@@ -20,14 +20,14 @@ struct CHUNKHASHOBJ : public TSHashObject<CHUNKHASHOBJ, HASHKEY_STRI> {
 
   char                      zoneName[128];
   char                      subZoneName[128];
-  unsigned int              chunkNumber;
+  UINT                      chunkNumber;
   _FSOUND_REVERB_PROPERTIES desc;
 
   void DumpInfo(int summary, int newlyCreated);
   void PrintInfo(FILE *outFile);
 };
 
-static unsigned int                            s_currentChunk;
+static UINT                                    s_currentChunk;
 static TSHashTable<CHUNKHASHOBJ, HASHKEY_STRI> s_chunkHash;
 static TSGrowableArray<CHUNKHASHOBJ *>         s_chunkList;
 
@@ -91,8 +91,8 @@ void CHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
   }
 }
 
-int SndDebugListChunksINDOORS(const char *command, const char *arguments) {
-  unsigned int i;
+int SndDebugListChunksINDOORS(LPCSTR command, LPCSTR arguments) {
+  UINT i;
   for (i = 0; i < s_chunkList.Count(); ++i) {
     ASSERT(s_chunkList[i]);
     s_chunkList[i]->DumpInfo(1, 0);
@@ -101,14 +101,14 @@ int SndDebugListChunksINDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int CreateChunkINDOORS(const char *command, const char *arguments) {
+int CreateChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!object) {
     ConsoleWrite("Error, can't locate player!", DEFAULT_COLOR);
     return 1;
   }
 
-  unsigned long worldObject = object->GetWorldObject();
+  DWORD worldObject = object->GetWorldObject();
   if (!worldObject) {
     ConsoleWrite("Error, can't locate player world object!", DEFAULT_COLOR);
     return 1;
@@ -118,11 +118,11 @@ int CreateChunkINDOORS(const char *command, const char *arguments) {
     return 1;
   }
 
-  const char *subZoneName = CWorld::QueryChunkName();
-  const char *zoneName = 0;
+  LPCSTR subZoneName = CWorld::QueryChunkName();
+  LPCSTR zoneName = 0;
   CWorld::QueryMapObjFileName(worldObject, zoneName);
   ASSERT(zoneName && *zoneName);
-  const char *slash = SStrChrR(zoneName, '\\');
+  LPCSTR slash = SStrChrR(zoneName, '\\');
   if (slash) {
     zoneName = slash + 1;
   }
@@ -145,9 +145,9 @@ int CreateChunkINDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int SetCurrentChunkINDOORS(const char *command, const char *arguments) {
+int SetCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
-    unsigned int chunk = SStrToUnsigned(arguments);
+    UINT chunk = SStrToUnsigned(arguments);
     if (chunk < s_chunkList.Count()) {
       s_currentChunk = chunk;
       ConsolePrintf("Current chunk set to %d", chunk);
@@ -160,7 +160,7 @@ int SetCurrentChunkINDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int ShowCurrentChunkINDOORS(const char *command, const char *arguments) {
+int ShowCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   if (!s_chunkList.Count()) {
     ConsoleWrite("No chunks created!", DEFAULT_COLOR);
   } else if (s_currentChunk >= s_chunkList.Count()) {
@@ -172,7 +172,7 @@ int ShowCurrentChunkINDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int SetChunkPropertyINDOORS(const char *command, const char *arguments) {
+int SetChunkPropertyINDOORS(LPCSTR command, LPCSTR arguments) {
   if (s_currentChunk > s_chunkList.Count()) {
     ConsoleWrite("Error, the current chunk is invalid!", DEFAULT_COLOR);
     return 1;
@@ -180,8 +180,8 @@ int SetChunkPropertyINDOORS(const char *command, const char *arguments) {
 
   CHUNKHASHOBJ *chunk = s_chunkList[s_currentChunk];
   ASSERT(chunk);
-  unsigned int prefNumber;
-  float        value;
+  UINT  prefNumber;
+  float value;
   sscanf(arguments, "%d %f", &prefNumber, &value);
   int intValue = static_cast<int>(value);
 
@@ -259,8 +259,8 @@ int SetChunkPropertyINDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int DumpChunksINDOORS(const char *command, const char *arguments) {
-  unsigned int chunks = s_chunkList.Count();
+int DumpChunksINDOORS(LPCSTR command, LPCSTR arguments) {
+  UINT chunks = s_chunkList.Count();
   if (!chunks) {
     ConsoleWrite("Error, no chunk information to dump!", DEFAULT_COLOR);
     return 1;
@@ -268,7 +268,7 @@ int DumpChunksINDOORS(const char *command, const char *arguments) {
 
   FILE *outFile = 0;
   char  buffer[128];
-  for (unsigned int fileNumber = 0; fileNumber < 100; ++fileNumber) {
+  for (UINT fileNumber = 0; fileNumber < 100; ++fileNumber) {
     SStrPrintf(buffer, sizeof(buffer), "SndEAXChunkInfo_INDOORS_%02d.txt", fileNumber);
     outFile = fopen(buffer, "wt");
     if (outFile) {
@@ -281,7 +281,7 @@ int DumpChunksINDOORS(const char *command, const char *arguments) {
   }
 
   fprintf(outFile, "%d\n", chunks);
-  for (unsigned int i = 0; i < chunks; ++i) {
+  for (UINT i = 0; i < chunks; ++i) {
     ASSERT(s_chunkList[i]);
     s_chunkList[i]->PrintInfo(outFile);
   }

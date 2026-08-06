@@ -6,31 +6,31 @@
 
 class CEvent : public TRefCnt {
  public:
-  CEvent(unsigned int id = static_cast<unsigned int>(-1), void *param = 0) : id(id), param(param) {
+  CEvent(UINT id = static_cast<UINT>(-1), LPVOID param = 0) : id(id), param(param) {
   }
 
   virtual ~CEvent() {
   }
 
-  unsigned int Id() const {
+  UINT Id() const {
     return id;
   }
 
-  void SetId(unsigned int value) {
+  void SetId(UINT value) {
     id = value;
   }
 
-  void *GetParam() const {
+  LPVOID GetParam() const {
     return param;
   }
 
-  void SetParam(void *value) {
+  void SetParam(LPVOID value) {
     param = value;
   }
 
  private:
-  unsigned int id;
-  void        *param;
+  UINT   id;
+  LPVOID param;
 };
 
 class CCharEvent : public CEvent, public EVENT_DATA_CHAR {

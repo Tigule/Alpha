@@ -9,10 +9,10 @@ void CGxDeviceD3d::XformSetViewport(float minX, float maxX, float minY, float ma
 
   const NTempest::CRect &window = DeviceCurWindow();
   D3DVIEWPORT9           viewport;
-  viewport.X = static_cast<unsigned long>(minX * window.r);
-  viewport.Y = static_cast<unsigned long>((1.0f - maxY) * window.b);
-  viewport.Width = static_cast<unsigned long>(maxX * window.r - viewport.X);
-  viewport.Height = static_cast<unsigned long>((1.0f - minY) * window.b - viewport.Y);
+  viewport.X = static_cast<DWORD>(minX * window.r);
+  viewport.Y = static_cast<DWORD>((1.0f - maxY) * window.b);
+  viewport.Width = static_cast<DWORD>(maxX * window.r - viewport.X);
+  viewport.Height = static_cast<DWORD>((1.0f - minY) * window.b - viewport.Y);
   viewport.MinZ = minZ;
   viewport.MaxZ = maxZ;
 
@@ -46,8 +46,8 @@ void CGxDeviceD3d::XformSetProjection(const NTempest::C44Matrix &matrix) {
     D3DXMATRIX matProj = tmp;
     D3DXMATRIX shrink(0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
-    for (unsigned int row = 0; row < 4; ++row) {
-      for (unsigned int column = 0; column < 4; ++column) {
+    for (UINT row = 0; row < 4; ++row) {
+      for (UINT column = 0; column < 4; ++column) {
         tmp.m[row][column] = matProj.m[row][0] * shrink.m[0][column] + matProj.m[row][1] * shrink.m[1][column] +
                              matProj.m[row][2] * shrink.m[2][column] + matProj.m[row][3] * shrink.m[3][column];
       }
@@ -76,14 +76,14 @@ void CGxDeviceD3d::IXformSetWorld() {
   world.m_dirty = 0;
 }
 
-void CGxDeviceD3d::IXformSetTex(unsigned int tmu) {
+void CGxDeviceD3d::IXformSetTex(UINT tmu) {
   ASSERT(tmu < m_caps.m_numTmus);
 
   int ts = 0;
   GxRsGet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), ts);
 
-  unsigned int ttfBits = D3DTTFF_DISABLE;
-  D3DXMATRIX   matTex;
+  UINT       ttfBits = D3DTTFF_DISABLE;
+  D3DXMATRIX matTex;
 
   switch (ts) {
     case GxTS_PassThru:

@@ -6,11 +6,11 @@
 #include "Object/ObjectClient/Bag_C.h"
 
 struct TradeItemData {
-  unsigned int     entryID;
-  unsigned int     displayID;
-  unsigned int     count;
-  unsigned int     enchantmentID;
-  unsigned __int64 creator;
+  UINT      entryID;
+  UINT      displayID;
+  UINT      count;
+  UINT      enchantmentID;
+  DWORDLONG creator;
 };
 
 enum TRADE_STATUS {
@@ -34,24 +34,24 @@ enum TRADE_STATUS {
 
 class CGTradeInfo {
  public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static unsigned __int64 GetTradePartner() {
+  static void      EnterWorld();
+  static void      LeaveWorld();
+  static DWORDLONG GetTradePartner() {
     return m_tradingPlayer;
   }
-  static void SetTradePartner(unsigned __int64 partner);
-  static void Update(TradeItemData *items);
-  static void PlayerAccept(int accept);
-  static void TargetAccept(int accept);
-  static void ClearAccept();
-  static void HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
-  static int SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot);
-  static unsigned __int64 GetPlayerTradeSlot(int index);
-  static void RemovePlayerItem(unsigned __int64 guid);
-  static void UpdatePlayerItem(unsigned __int64 guid);
-  static void UnlockTradeItems();
+  static void            SetTradePartner(DWORDLONG partner);
+  static void            Update(TradeItemData *items);
+  static void            PlayerAccept(int accept);
+  static void            TargetAccept(int accept);
+  static void            ClearAccept();
+  static void            HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
+  static int             SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot);
+  static DWORDLONG       GetPlayerTradeSlot(int index);
+  static void            RemovePlayerItem(DWORDLONG guid);
+  static void            UpdatePlayerItem(DWORDLONG guid);
+  static void            UnlockTradeItems();
   static GAME_ERROR_TYPE GetGameError(BAG_RESULT bagResult, int myFailure);
-  static void GetPlayerItemInfo(int index, unsigned __int64 &guid, unsigned __int64 &bag, unsigned char &slot) {
+  static void            GetPlayerItemInfo(int index, DWORDLONG &guid, DWORDLONG &bag, BYTE &slot) {
     if (index >= 0 && index < 8) {
       guid = m_playerItems[index];
       bag = m_playerItemBag[index];
@@ -71,7 +71,7 @@ class CGTradeInfo {
   static int GetTargetTradeItemEnachantment(int index) {
     return index >= 0 && index < 8 ? m_targetItemEnchantment[index] : 0;
   }
-  static unsigned __int64 GetTargetTradeItemCreator(int index) {
+  static DWORDLONG GetTargetTradeItemCreator(int index) {
     return index >= 0 && index < 8 ? m_targetItemCreator[index] : 0;
   }
   static int GetPlayerEnchantSlot() {
@@ -82,20 +82,20 @@ class CGTradeInfo {
   }
 
  protected:
-  static unsigned __int64 m_tradingPlayer;
-  static int              m_playerAccepted;
-  static int              m_targetAccepted;
-  static unsigned __int64 m_playerItems[8];
-  static unsigned __int64 m_playerItemBag[8];
-  static unsigned char    m_playerItemSlot[8];
-  static int              m_targetItems[8];
-  static int              m_targetItemCount[8];
-  static int              m_targetItemEnchantment[8];
-  static unsigned __int64 m_targetItemCreator[8];
-  static int              m_playerEnchantSlot;
-  static int              m_targetEnchantSlot;
-  static unsigned int     m_playerMoney;
-  static unsigned int     m_targetMoney;
+  static DWORDLONG m_tradingPlayer;
+  static int       m_playerAccepted;
+  static int       m_targetAccepted;
+  static DWORDLONG m_playerItems[8];
+  static DWORDLONG m_playerItemBag[8];
+  static BYTE      m_playerItemSlot[8];
+  static int       m_targetItems[8];
+  static int       m_targetItemCount[8];
+  static int       m_targetItemEnchantment[8];
+  static DWORDLONG m_targetItemCreator[8];
+  static int       m_playerEnchantSlot;
+  static int       m_targetEnchantSlot;
+  static UINT      m_playerMoney;
+  static UINT      m_targetMoney;
 };
 
 #endif

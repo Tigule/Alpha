@@ -7,7 +7,7 @@
 namespace NTempest {
 
   void CFacet::Set(float a) {
-    for (unsigned int i = 0; i < 3; ++i) {
+    for (UINT i = 0; i < 3; ++i) {
       vertices[i].x = a;
       vertices[i].y = a;
       vertices[i].z = a;

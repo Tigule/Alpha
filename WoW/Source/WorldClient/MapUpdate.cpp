@@ -116,7 +116,7 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
   NTempest::CAaBox aaBox;
   CMapObjGroup    *mapObjGroup;
   SMOLight        *sLight;
-  unsigned int     i;
+  UINT             i;
   CMapObjDefGroup *mapObjDefGroup;
 
   FATALASSERT(mapObjDef);
@@ -162,7 +162,7 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
 void CMap::UpdateChunks(CMapArea *area) {
   FATALASSERT(area);
 
-  unsigned int corner = 0;
+  UINT corner = 0;
   if (CWorldScene::camTarg.x > CWorldScene::camPos.x) {
     corner = 2;
   }

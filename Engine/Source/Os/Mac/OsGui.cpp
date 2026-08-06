@@ -5,20 +5,20 @@
 
 #include <storm.h>
 
-static void *s_gxWindow;
+static LPVOID s_gxWindow;
 
-void *OsGuiGetWindow(int inWindowType) {
+LPVOID OsGuiGetWindow(int inWindowType) {
   return s_gxWindow;
 }
 
-void OsGuiSetGxWindow(void *window) {
+void OsGuiSetGxWindow(LPVOID window) {
   s_gxWindow = window;
 }
 
-void OsGuiSetWindowTitle(void *inWindow, const char *inText) {
+void OsGuiSetWindowTitle(LPVOID inWindow, LPCSTR inText) {
   OsMacSetWindowTitle(inWindow, inText);
 }
 
-int OsGuiMessageBox(void *inParentWindow, int inStyle, const char *inMessage, const char *inTitle) {
+int OsGuiMessageBox(LPVOID inParentWindow, int inStyle, LPCSTR inMessage, LPCSTR inTitle) {
   return OsMacMessageBox(inMessage, inTitle);
 }

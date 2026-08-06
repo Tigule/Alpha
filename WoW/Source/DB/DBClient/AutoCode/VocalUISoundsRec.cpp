@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *VocalUISoundsRec::GetFilename() {
+LPCSTR VocalUISoundsRec::GetFilename() {
   return "DBFilesClient\\VocalUISounds.dbc";
 }
 
@@ -19,7 +19,7 @@ VocalUISoundsRec::VocalUISoundsRec() {
 VocalUISoundsRec::~VocalUISoundsRec() {
 }
 
-bool VocalUISoundsRec::Read(SFile *f, const char *stringBuffer) {
+bool VocalUISoundsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

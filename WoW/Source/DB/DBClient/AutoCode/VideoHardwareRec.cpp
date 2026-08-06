@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *VideoHardwareRec::GetFilename() {
+LPCSTR VideoHardwareRec::GetFilename() {
   return "DBFilesClient\\VideoHardware.dbc";
 }
 
@@ -19,7 +19,7 @@ VideoHardwareRec::VideoHardwareRec() {
 VideoHardwareRec::~VideoHardwareRec() {
 }
 
-bool VideoHardwareRec::Read(SFile *f, const char *stringBuffer) {
+bool VideoHardwareRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_vendorID, sizeof(m_vendorID), 0, 0, 0) && result;

@@ -7,13 +7,13 @@ class CinematicCameraRec {
   CinematicCameraRec();
   ~CinematicCameraRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 7;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 28;
   }
 
@@ -28,15 +28,15 @@ class CinematicCameraRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_model;
-  int         m_soundID;
-  float       m_originX;
-  float       m_originY;
-  float       m_originZ;
-  float       m_originFacing;
+  int    m_ID;
+  LPCSTR m_model;
+  int    m_soundID;
+  float  m_originX;
+  float  m_originY;
+  float  m_originZ;
+  float  m_originFacing;
 };
 
 extern WowClientDB<CinematicCameraRec> g_cinematicCameraDB;

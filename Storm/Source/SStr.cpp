@@ -13,7 +13,7 @@ static const DWORD s_hashtable[16] = {
     0xD6057177, 0x904ECE93, 0x1C38024F, 0x98FD323B, 0xE3061AE7, 0xA39B0FA1, 0x9797F25F, 0xE4444563,
 };
 
-static const __int64 s_hashtable64[16] = {
+static const LONGLONG s_hashtable64[16] = {
     0x486E26EEDCAA16B3, 0xE1918EEF202DAFDB, 0x341C7DC71C365303, 0x40EF2D3765FD5E49, 0xD6057177904ECE93, 0x1C38024F98FD323B,
     0xE3061AE7A39B0FA1, 0x9797F25FE4444563, 0xCD2EC20C8DC1B898, 0x31759633799A306D, 0x8C2063852E6E9627, 0x79237D9973922C66,
     0x8728628D28628824, 0x8F1F7E9625887795, 0x296E3281389C0D60, 0x6F4893CA61636542,
@@ -195,11 +195,11 @@ static inline double SStrParseIntegerDouble(LPCSTR *string) {
 }
 
 static inline double SStrParseDecimalDouble(LPCSTR string) {
-  const char *scan;
-  double      result;
-  DWORD       digit;
-  int         exponent;
-  int         tableOffset;
+  LPCSTR scan;
+  double result;
+  DWORD  digit;
+  int    exponent;
+  int    tableOffset;
 
   CheckInitialized();
   scan = string;
@@ -235,7 +235,7 @@ static inline double SStrParseDecimalDouble(LPCSTR string) {
   return result;
 }
 
-const char *SStrChr(const char *string, char ch) {
+LPCSTR SStrChr(LPCSTR string, char ch) {
   char current;
 
   FATALASSERT(string);
@@ -269,8 +269,8 @@ char *SStrChr(char *string, char ch) {
   return NULL;
 }
 
-const char *SStrChrR(const char *string, char ch) {
-  const char *result;
+LPCSTR SStrChrR(LPCSTR string, char ch) {
+  LPCSTR result;
 
   FATALASSERT(string);
 
@@ -339,7 +339,7 @@ DWORD APIENTRY SStrCopy(char *dest, LPCSTR source, DWORD destsize) {
   }
 }
 
-char *APIENTRY SStrDupA(LPCSTR string, LPCSTR fileName, unsigned int lineNumber) {
+char *APIENTRY SStrDupA(LPCSTR string, LPCSTR fileName, UINT lineNumber) {
   DWORD bytes;
   char *result;
 
@@ -374,8 +374,8 @@ DWORD APIENTRY SStrLen(LPCSTR string) {
   }
 }
 
-DWORD APIENTRY SStrLen(const unsigned short *string) {
-  const unsigned short *scan;
+DWORD APIENTRY SStrLen(const WORD *string) {
+  const WORD *scan;
 
   FATALASSERT(string);
 
@@ -420,7 +420,7 @@ DWORD APIENTRY SStrPack(char *dest, LPCSTR source, DWORD destsize) {
   }
 }
 
-static int ISStrVPrintf(char *dest, unsigned int maxchars, LPCSTR format, char *arglist) {
+static int ISStrVPrintf(char *dest, UINT maxchars, LPCSTR format, char *arglist) {
   int written;
 
   if (!maxchars) {
@@ -439,7 +439,7 @@ static int ISStrVPrintf(char *dest, unsigned int maxchars, LPCSTR format, char *
   } else {
     written = _vsnprintf(dest, maxchars, format, (va_list)arglist);
   }
-  if ((unsigned int)written >= maxchars) {
+  if ((UINT)written >= maxchars) {
     dest[maxchars - 1] = 0;
     return maxchars - 1;
   }
@@ -501,9 +501,9 @@ float APIENTRY SStrToFloat(LPCSTR string) {
 }
 
 static inline int SStrParseInt(LPCSTR string) {
-  unsigned int result;
-  unsigned int digit;
-  int          negative;
+  UINT result;
+  UINT digit;
+  int  negative;
 
   negative = *string == '-';
   if (negative) {
@@ -532,13 +532,13 @@ int APIENTRY SStrToInt(LPCSTR string) {
   return SStrParseInt(string);
 }
 
-static inline unsigned __int64 SStrParseUnsigned64(LPCSTR *string) {
-  LPCSTR           source;
-  LPCSTR           chunkStart;
-  unsigned __int64 result;
-  DWORD            chunk;
-  DWORD            digit;
-  unsigned __int64 multiplier;
+static inline DWORDLONG SStrParseUnsigned64(LPCSTR *string) {
+  LPCSTR    source;
+  LPCSTR    chunkStart;
+  DWORDLONG result;
+  DWORD     chunk;
+  DWORD     digit;
+  DWORDLONG multiplier;
 
   source = *string;
   result = 0;
@@ -551,7 +551,7 @@ static inline unsigned __int64 SStrParseUnsigned64(LPCSTR *string) {
       chunk = chunk * 10 + digit;
       source++;
       if (chunk >= 0x19999999) {
-        multiplier = (unsigned __int64)(pow(10.0, source - chunkStart) + 0.5);
+        multiplier = (DWORDLONG)(pow(10.0, source - chunkStart) + 0.5);
         result = result * multiplier + chunk;
         chunk = 0;
         chunkStart = source;
@@ -563,7 +563,7 @@ static inline unsigned __int64 SStrParseUnsigned64(LPCSTR *string) {
   }
 
   if (result != 0) {
-    multiplier = (unsigned __int64)(pow(10.0, source - chunkStart) + 0.5);
+    multiplier = (DWORDLONG)(pow(10.0, source - chunkStart) + 0.5);
     result = result * multiplier + chunk;
   } else {
     result = chunk;
@@ -573,9 +573,9 @@ static inline unsigned __int64 SStrParseUnsigned64(LPCSTR *string) {
   return result;
 }
 
-__int64 APIENTRY SStrToInt64(LPCSTR string) {
-  __int64 result;
-  int     negative;
+LONGLONG APIENTRY SStrToInt64(LPCSTR string) {
+  LONGLONG result;
+  int      negative;
 
   FATALASSERT(string);
 
@@ -591,9 +591,9 @@ __int64 APIENTRY SStrToInt64(LPCSTR string) {
   return result;
 }
 
-unsigned int APIENTRY SStrToUnsigned(LPCSTR string) {
-  unsigned int result;
-  unsigned int digit;
+UINT APIENTRY SStrToUnsigned(LPCSTR string) {
+  UINT result;
+  UINT digit;
 
   FATALASSERT(string);
 
@@ -732,10 +732,10 @@ DWORD APIENTRY SStrHash(LPCSTR string, DWORD flags, DWORD seed) {
   return hash;
 }
 
-__int64 APIENTRY SStrHash64(LPCSTR string, DWORD flags, __int64 seed) {
-  __int64 result;
-  DWORD   ch;
-  __int64 adjust;
+LONGLONG APIENTRY SStrHash64(LPCSTR string, DWORD flags, LONGLONG seed) {
+  LONGLONG result;
+  DWORD    ch;
+  LONGLONG adjust;
 
   FATALASSERT(string);
 
@@ -780,7 +780,7 @@ __int64 APIENTRY SStrHash64(LPCSTR string, DWORD flags, __int64 seed) {
   return result;
 }
 
-static DWORD bjhash(unsigned char *k, DWORD length, DWORD initval) {
+static DWORD bjhash(BYTE *k, DWORD length, DWORD initval) {
   register DWORD a;
   register DWORD b;
   register DWORD c;
@@ -883,7 +883,7 @@ DWORD APIENTRY SStrHashHT(LPCSTR string) {
   }
   *out = 0;
 
-  return bjhash((unsigned char *)buf, used, 0);
+  return bjhash((BYTE *)buf, used, 0);
 }
 
 void APIENTRY SStrUpper(char *string) {
@@ -894,7 +894,7 @@ void APIENTRY SStrLower(char *string) {
   _strlwr(string);
 }
 
-const char *SStrStr(const char *string, const char *search) {
+LPCSTR SStrStr(LPCSTR string, LPCSTR search) {
   DWORD searchLen;
 
   FATALASSERT(string);
@@ -911,7 +911,7 @@ const char *SStrStr(const char *string, const char *search) {
   return NULL;
 }
 
-char *SStrStr(char *string, const char *search) {
+char *SStrStr(char *string, LPCSTR search) {
   DWORD searchLen;
 
   FATALASSERT(string);
@@ -928,7 +928,7 @@ char *SStrStr(char *string, const char *search) {
   return NULL;
 }
 
-const char *SStrStrI(const char *string, const char *search) {
+LPCSTR SStrStrI(LPCSTR string, LPCSTR search) {
   DWORD searchLen;
 
   FATALASSERT(string);
@@ -945,7 +945,7 @@ const char *SStrStrI(const char *string, const char *search) {
   return NULL;
 }
 
-char *SStrStrI(char *string, const char *search) {
+char *SStrStrI(char *string, LPCSTR search) {
   DWORD searchLen;
 
   FATALASSERT(string);
@@ -962,7 +962,7 @@ char *SStrStrI(char *string, const char *search) {
   return NULL;
 }
 
-char *Int64ToString(__int64 num, char *buf, DWORD destsize) {
+char *Int64ToString(LONGLONG num, char *buf, DWORD destsize) {
   char  nbuf[32];
   char *out;
   char *scan;
@@ -1080,7 +1080,7 @@ void STypeCache::Grow() {
   }
 }
 
-int STypeCache::GetProbe(const char *rawname) {
+int STypeCache::GetProbe(LPCSTR rawname) {
   DWORD hash;
   int   probe;
   int   reprobe;
@@ -1114,7 +1114,7 @@ int STypeCache::GetProbe(const char *rawname) {
   return probe;
 }
 
-const char *STypeCache::Get(const char *rawname) {
+LPCSTR STypeCache::Get(LPCSTR rawname) {
   int probe;
 
   if (!rawname) {
@@ -1135,7 +1135,7 @@ const char *STypeCache::Get(const char *rawname) {
   return NULL;
 }
 
-const char *STypeCache::Set(const char *rawname, const char *decname) {
+LPCSTR STypeCache::Set(LPCSTR rawname, LPCSTR decname) {
   int   probe;
   int   keyBytes;
   int   valueBytes;

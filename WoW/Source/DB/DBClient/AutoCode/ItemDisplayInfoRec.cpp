@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ItemDisplayInfoRec::GetFilename() {
+LPCSTR ItemDisplayInfoRec::GetFilename() {
   return "DBFilesClient\\ItemDisplayInfo.dbc";
 }
 
@@ -19,13 +19,13 @@ ItemDisplayInfoRec::ItemDisplayInfoRec() {
 ItemDisplayInfoRec::~ItemDisplayInfoRec() {
 }
 
-bool ItemDisplayInfoRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempgroundModelIndices[1];
-  unsigned int temptextureIndices[8];
-  unsigned int tempmodelNameIndices[2];
-  unsigned int tempinventoryIconIndices[1];
-  unsigned int tempmodelTextureIndices[2];
+bool ItemDisplayInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempgroundModelIndices[1];
+  UINT temptextureIndices[8];
+  UINT tempmodelNameIndices[2];
+  UINT tempinventoryIconIndices[1];
+  UINT tempmodelTextureIndices[2];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempmodelNameIndices[0], sizeof(tempmodelNameIndices[0]), 0, 0, 0) && result;

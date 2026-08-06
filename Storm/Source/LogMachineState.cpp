@@ -107,7 +107,7 @@ extern BOOL g_memFullError;
 
 struct MEMDUMP {
   LOGMACHINESTATEPROC logLineProc;
-  void               *logLineProcParam;
+  LPVOID              logLineProcParam;
 };
 
 struct MiniDumpParam {
@@ -121,7 +121,7 @@ struct MiniDumpParam {
 
 struct LogLineParams {
   LOGMACHINESTATEPROC logLineProc;
-  void               *logLineProcParam;
+  LPVOID              logLineProcParam;
 };
 
 struct ModuleData {
@@ -219,7 +219,7 @@ void CDbgHelpDll::Unload() {
     DeleteCriticalSection(&s_CrawlCritsect);
   }
 }
-static void sLogSeparatorLine(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, char character, int longLine) {
+static void sLogSeparatorLine(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, char character, int longLine) {
   char line[80];
   int  chars;
 
@@ -228,23 +228,22 @@ static void sLogSeparatorLine(LOGMACHINESTATEPROC logLineProc, void *logLineProc
   line[chars] = 0;
   logLineProc(logLineProcParam, "%s", line);
 }
-static void sLogHeader(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const char *headerString) {
+static void sLogHeader(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, LPCSTR headerString) {
   logLineProc(logLineProcParam, "");
   sLogSeparatorLine(logLineProc, logLineProcParam, '-', 0);
   logLineProc(logLineProcParam, "    %s", headerString);
   sLogSeparatorLine(logLineProc, logLineProcParam, '-', 0);
   logLineProc(logLineProcParam, "");
 }
-static void
-sLogMemoryHexDump(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, unsigned char *address, unsigned long numBytes, int alignedLines) {
-  char           buffer[80];
-  unsigned char *row;
-  unsigned long  numLines;
-  unsigned long  offset;
-  int            i;
-  char          *cursor;
+static void sLogMemoryHexDump(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, BYTE *address, DWORD numBytes, int alignedLines) {
+  char  buffer[80];
+  BYTE *row;
+  DWORD numLines;
+  DWORD offset;
+  int   i;
+  char *cursor;
 
-  row = (unsigned char *)address;
+  row = (BYTE *)address;
   numLines = numBytes >> 4;
   offset = ((DWORD)address) & 0x0F;
 
@@ -291,15 +290,14 @@ sLogMemoryHexDump(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, unsig
     --numLines;
   }
 }
-static void
-sLogVerboseMessage(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const char *format, unsigned long error) {
+static void sLogVerboseMessage(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, LPCSTR format, DWORD error) {
   if (logOptions & 0x80000000) {
     logLineProc(logLineProcParam, format, error);
   }
 }
-static const char *sGetPathLeaf(const char *path) {
-  const char *leaf;
-  const char *slash;
+static LPCSTR sGetPathLeaf(LPCSTR path) {
+  LPCSTR leaf;
+  LPCSTR slash;
 
   leaf = NULL;
   slash = strrchr(path, '/');
@@ -317,13 +315,13 @@ static const char *sGetPathLeaf(const char *path) {
 
   return leaf ? leaf + 1 : path;
 }
-static void sLogExeFile(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
+static void sLogExeFile(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam) {
   char exeFullPath[MAX_PATH];
 
   GetModuleFileNameA(NULL, exeFullPath, sizeof(exeFullPath));
   logLineProc(logLineProcParam, "%-10s%s", "Exe:", exeFullPath);
 }
-static void sLogDateTimeString(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const SYSTEMTIME *time) {
+static void sLogDateTimeString(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, const SYSTEMTIME *time) {
   WORD hour;
   char suffix;
 
@@ -342,7 +340,7 @@ static void sLogDateTimeString(LOGMACHINESTATEPROC logLineProc, void *logLinePro
       time->wMinute, time->wSecond, time->wMilliseconds, suffix
   );
 }
-static void sLogUserName(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
+static void sLogUserName(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam) {
   char  userName[0x101];
   DWORD size;
 
@@ -352,7 +350,7 @@ static void sLogUserName(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam
   }
   logLineProc(logLineProcParam, "%-10s%s", "User:", userName);
 }
-static void sLogComputerName(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
+static void sLogComputerName(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam) {
   char  computerName[0x10];
   DWORD size;
 
@@ -362,14 +360,13 @@ static void sLogComputerName(LOGMACHINESTATEPROC logLineProc, void *logLineProcP
   }
   logLineProc(logLineProcParam, "%-10s%s", "Computer:", computerName);
 }
-static void
-sLogMemory(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, unsigned long instructionPointr, unsigned long stackPointer) {
+static void sLogMemory(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, DWORD instructionPointr, DWORD stackPointer) {
   sLogHeader(logLineProc, logLineProcParam, "Memory Dump");
 
   if (logOptions & 0x00100000) {
     logLineProc(logLineProcParam, "Code: %d bytes starting at (EIP = %08X)", 0x10, instructionPointr);
     logLineProc(logLineProcParam, "");
-    sLogMemoryHexDump(logLineProc, logLineProcParam, (unsigned char *)instructionPointr, 0x10, 0);
+    sLogMemoryHexDump(logLineProc, logLineProcParam, (BYTE *)instructionPointr, 0x10, 0);
     logLineProc(logLineProcParam, "");
     logLineProc(logLineProcParam, "");
   }
@@ -377,12 +374,12 @@ sLogMemory(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcPa
   if (logOptions & 0x00200000) {
     logLineProc(logLineProcParam, "Stack: %d bytes starting at (ESP = %08X)", 0x400, stackPointer);
     logLineProc(logLineProcParam, "");
-    sLogMemoryHexDump(logLineProc, logLineProcParam, (unsigned char *)stackPointer, 0x400, 1);
+    sLogMemoryHexDump(logLineProc, logLineProcParam, (BYTE *)stackPointer, 0x400, 1);
     logLineProc(logLineProcParam, "");
     logLineProc(logLineProcParam, "");
   }
 }
-static int __cdecl sModuleCompareProc(const void *elem1, const void *elem2) {
+static int __cdecl sModuleCompareProc(LPCVOID elem1, LPCVOID elem2) {
   if (((const ModuleData *)elem1)->baseAddress > ((const ModuleData *)elem2)->baseAddress) {
     return 1;
   }
@@ -409,8 +406,7 @@ static BOOL CALLBACK sEnumSymbolsCallback(LPSTR SymbolName, ULONG SymbolAddress,
       );
   return TRUE;
 }
-static void
-sLogModule(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, unsigned long baseAddress, char *moduleName) {
+static void sLogModule(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, DWORD baseAddress, char *moduleName) {
   IMAGEHLP_MODULE module;
   LogLineParams   params;
 
@@ -437,7 +433,7 @@ sLogModule(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcPa
     logLineProc(logLineProcParam, "");
   }
 }
-static void sGetLogicalAddress(void *addr, char *moduleName, unsigned long moduleNameSize, unsigned long *section, unsigned long *offset) {
+static void sGetLogicalAddress(LPVOID addr, char *moduleName, DWORD moduleNameSize, DWORD *section, DWORD *offset) {
   MEMORY_BASIC_INFORMATION memInfo;
   HMODULE                  module;
   PIMAGE_DOS_HEADER        dosHeader;
@@ -445,7 +441,7 @@ static void sGetLogicalAddress(void *addr, char *moduleName, unsigned long modul
   PIMAGE_SECTION_HEADER    sectionHeader;
   DWORD                    rva;
   DWORD                    sectionSize;
-  unsigned int             i;
+  UINT                     i;
 
   lstrcpynA(moduleName, "<unknown>", moduleNameSize);
   *section = 0;
@@ -495,14 +491,8 @@ static void sGetLogicalAddress(void *addr, char *moduleName, unsigned long modul
     }
   }
 }
-static int sDbgHelpGetStackFrameInfo(
-    unsigned long  address,
-    char          *moduleName,
-    char          *symbolName,
-    unsigned long &symbolDisplacement,
-    char          *fileName,
-    unsigned long &lineNumber
-) {
+static int
+sDbgHelpGetStackFrameInfo(DWORD address, char *moduleName, char *symbolName, DWORD &symbolDisplacement, char *fileName, DWORD &lineNumber) {
   IMAGEHLP_MODULE module;
   char            buffer[0x118];
   IMAGEHLP_LINE   line;
@@ -553,14 +543,14 @@ static int sDbgHelpGetStackFrameInfo(
 
   return err;
 }
-static void sLogDbgHelpStackFrame(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const STACKFRAME *stackFrame) {
-  char          symbolName[0x100];
-  char          fileName[0x104];
-  char          moduleName[0x20];
-  unsigned long lineNumber;
-  unsigned long symbolDisplacement;
-  unsigned long address;
-  int           err;
+static void sLogDbgHelpStackFrame(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, const STACKFRAME *stackFrame) {
+  char  symbolName[0x100];
+  char  fileName[0x104];
+  char  moduleName[0x20];
+  DWORD lineNumber;
+  DWORD symbolDisplacement;
+  DWORD address;
+  int   err;
 
   address = stackFrame->AddrPC.Offset;
   err = sDbgHelpGetStackFrameInfo(address, moduleName, symbolName, symbolDisplacement, fileName, lineNumber);
@@ -576,17 +566,17 @@ static void sLogDbgHelpStackFrame(UINT logOptions, LOGMACHINESTATEPROC logLinePr
   }
 
   if (logOptions & 0x00040000) {
-    const char *format = fileName[0] ? "%08X %-12s %s+%d (0x%08X,0x%08X,0x%08X,0x%08X) (%s,%d)" : "%08X %-12s %s+%d (0x%08X,0x%08X,0x%08X,0x%08X)";
+    LPCSTR format = fileName[0] ? "%08X %-12s %s+%d (0x%08X,0x%08X,0x%08X,0x%08X) (%s,%d)" : "%08X %-12s %s+%d (0x%08X,0x%08X,0x%08X,0x%08X)";
     logLineProc(
         logLineProcParam, format, address, moduleName, symbolName, symbolDisplacement, stackFrame->Params[0], stackFrame->Params[1],
         stackFrame->Params[2], stackFrame->Params[3], fileName, lineNumber
     );
   } else {
-    const char *format = fileName[0] ? "%08X %-12s %s+%d (%s,%d)" : "%08X %-12s %s+%d";
+    LPCSTR format = fileName[0] ? "%08X %-12s %s+%d (%s,%d)" : "%08X %-12s %s+%d";
     logLineProc(logLineProcParam, format, address, moduleName, symbolName, symbolDisplacement, fileName, lineNumber);
   }
 }
-static int sSymInitialize(void *process) {
+static int sSymInitialize(LPVOID process) {
   char path[0x104];
   path[0] = 0;
   GetModuleFileNameA(NULL, path, sizeof(path));
@@ -708,12 +698,12 @@ extern "C" int APIENTRY QuickStackWalk(DWORD *crawl, int &depth, int stackFrames
 #endif
 }
 extern "C" int APIENTRY StackWalkAddrsToNames(DWORD *crawlAddrs, int depth, char **crawlNames) {
-  char          fileName[0x104];
-  char          symbolName[0x100];
-  char          moduleName[0x20];
-  char          key[0x20];
-  unsigned long symbolDisplacement;
-  unsigned long lineNumber;
+  char  fileName[0x104];
+  char  symbolName[0x100];
+  char  moduleName[0x20];
+  char  key[0x20];
+  DWORD symbolDisplacement;
+  DWORD lineNumber;
 
   if (!sQuickStackWalkInit(TRUE)) {
     return FALSE;
@@ -741,7 +731,7 @@ extern "C" int APIENTRY StackWalkAddrsToNames(DWORD *crawlAddrs, int depth, char
   SErrResumeWatchdog();
   return TRUE;
 }
-static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT hOutput, const char *str) {
+static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT hOutput, LPCSTR str) {
   MEMDUMP                *dump;
   SMemReportByCallerInfo *info;
 
@@ -749,7 +739,7 @@ static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT hOutput, const char *str) {
   info = (SMemReportByCallerInfo *)str;
   dump->logLineProc(dump->logLineProcParam, "%5d %5d %s(%d)", info->allocatedBlocks, info->allocatedBytes, info->fileName, info->lineNumber);
 }
-static void sShowOutOfMemory(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam) {
+static void sShowOutOfMemory(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam) {
   MEMDUMP dump;
 
   if (!g_memFullError) {
@@ -765,16 +755,16 @@ static void sShowOutOfMemory(LOGMACHINESTATEPROC logLineProc, void *logLineProcP
 static void sLogDbgHelpStackTrace(
     UINT                logOptions,
     LOGMACHINESTATEPROC logLineProc,
-    void               *logLineProcParam,
-    unsigned long       registerEip,
-    unsigned long       registerEbp,
-    unsigned long       registerEsp,
-    unsigned int        stackFramesToSkip
+    LPVOID              logLineProcParam,
+    DWORD               registerEip,
+    DWORD               registerEbp,
+    DWORD               registerEsp,
+    UINT                stackFramesToSkip
 ) {
   HANDLE         process;
   HANDLE         thread;
   STACKFRAME     stackFrame;
-  unsigned int   frameIndex;
+  UINT           frameIndex;
   EnumModuleData data;
   DWORD          moduleIndex;
   BOOL           success;
@@ -853,17 +843,17 @@ static void sLogDbgHelpStackTrace(
   logLineProc(logLineProcParam, "");
 }
 static void sLogX86ManualStackTrace(
-    UINT                __formal,
+    UINT,
     LOGMACHINESTATEPROC logLineProc,
-    void               *logLineProcParam,
-    unsigned long       registerEip,
-    unsigned long       registerEbp,
-    unsigned int        stackFramesToSkip
+    LPVOID              logLineProcParam,
+    DWORD               registerEip,
+    DWORD               registerEbp,
+    UINT                stackFramesToSkip
 ) {
-  char          modulePath[0x104];
-  unsigned long section;
-  unsigned long offset;
-  unsigned int  i;
+  char  modulePath[0x104];
+  DWORD section;
+  DWORD offset;
+  UINT  i;
 
   sLogHeader(logLineProc, logLineProcParam, "Stack Trace (Manual)");
   logLineProc(logLineProcParam, "%s", "Address  Frame    Logical addr  Module");
@@ -873,27 +863,25 @@ static void sLogX86ManualStackTrace(
 
   while (i < 0x64) {
     if (i >= stackFramesToSkip) {
-      sGetLogicalAddress((void *)registerEip, modulePath, sizeof(modulePath), &section, &offset);
+      sGetLogicalAddress((LPVOID)registerEip, modulePath, sizeof(modulePath), &section, &offset);
       logLineProc(logLineProcParam, "%08X %08X %04X:%08X %s", registerEip, registerEbp, section, offset, modulePath);
     }
 
-    if (IsBadWritePtr((void *)registerEbp, 8)) {
+    if (IsBadWritePtr((LPVOID)registerEbp, 8)) {
       return;
     }
 
-    registerEip = ((unsigned long *)registerEbp)[1];
+    registerEip = ((DWORD *)registerEbp)[1];
 
-    if ((((unsigned long *)registerEbp)[0] & 3) || ((unsigned long *)registerEbp)[0] <= registerEbp ||
-        IsBadWritePtr((void *)((unsigned long *)registerEbp)[0], 8))
-    {
+    if ((((DWORD *)registerEbp)[0] & 3) || ((DWORD *)registerEbp)[0] <= registerEbp || IsBadWritePtr((LPVOID)((DWORD *)registerEbp)[0], 8)) {
       return;
     }
 
-    registerEbp = ((unsigned long *)registerEbp)[0];
+    registerEbp = ((DWORD *)registerEbp)[0];
     ++i;
   }
 }
-static void sLogX86ContextRegisters(LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, CONTEXT *context) {
+static void sLogX86ContextRegisters(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, CONTEXT *context) {
   sLogHeader(logLineProc, logLineProcParam, "x86 Registers");
 
   logLineProc(
@@ -922,8 +910,7 @@ void LoadMachineStateSymbols() {
 void UnloadMachineStateSymbols() {
   sgDbgHelpDll.Unload();
 }
-void
-LogComputerInfoHeader(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const char *headerTitleLine, SYSTEMTIME *time) {
+void LogComputerInfoHeader(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, LPCSTR headerTitleLine, SYSTEMTIME *time) {
   SYSTEMTIME currentTime;
 
   if (InterlockedIncrement(&sgRecursionLevel) == 1) {
@@ -960,7 +947,7 @@ LogComputerInfoHeader(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *lo
 
   InterlockedDecrement(&sgRecursionLevel);
 }
-void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, UINT stackFramesToSkip, CONTEXT *context) {
+void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, UINT stackFramesToSkip, CONTEXT *context) {
 #if defined(_M_IX86) || defined(_X86_)
   DWORD                 registerEip;
   DWORD                 registerEbp;
@@ -1027,7 +1014,7 @@ void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *log
   }
   InterlockedDecrement(&sgRecursionLevel);
 }
-static DWORD WINAPI MiniDumpThreadProc(void *param) {
+static DWORD WINAPI MiniDumpThreadProc(LPVOID param) {
   MINIDUMP_USER_STREAM             miniDumpUserStreamArray[16];
   MINIDUMP_EXCEPTION_INFORMATION   miniDumpExceptionInfo;
   MINIDUMP_USER_STREAM_INFORMATION miniDumpUserStreamInfo;
@@ -1065,7 +1052,7 @@ static DWORD WINAPI MiniDumpThreadProc(void *param) {
   sgDbgHelpDll.Unload();
   return 0;
 }
-int LogMiniDump(void *logfile, EXCEPTION_POINTERS *exceptionPointers, UINT userStringCount, char **userStrings) {
+int LogMiniDump(LPVOID logfile, EXCEPTION_POINTERS *exceptionPointers, UINT userStringCount, char **userStrings) {
   MiniDumpParam miniDumpParam;
   DWORD         threadid;
 

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *AreaTriggerRec::GetFilename() {
+LPCSTR AreaTriggerRec::GetFilename() {
   return "DBFilesClient\\AreaTrigger.dbc";
 }
 
@@ -19,7 +19,7 @@ AreaTriggerRec::AreaTriggerRec() {
 AreaTriggerRec::~AreaTriggerRec() {
 }
 
-bool AreaTriggerRec::Read(SFile *f, const char *stringBuffer) {
+bool AreaTriggerRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

@@ -18,7 +18,7 @@ class CGActionBar {
   static void UpdateSelection();
   static void UpdateCooldowns();
   static void UpdateUsable();
-  static int IsSpell(int id) {
+  static int  IsSpell(int id) {
     return id >= 0 && id < NUM_ACTION_BUTTONS && m_slotActions[id] > 0;
   }
   static int IsItem(int id) {
@@ -33,28 +33,28 @@ class CGActionBar {
   static int HasAction(int id) {
     return id >= 0 && id < NUM_ACTION_BUTTONS && m_slotActions[id] != 0;
   }
-  static int IsAttackAction(int id);
-  static int IsUsableAction(int id, int &noMana);
-  static int IsCurrentAction(int id);
-  static int IsToggledAction(int id);
-  static void UpdateItem(int entryID);
-  static void AddAction(int action);
-  static void UseAction(int id, int checkCursor);
-  static void PickupAction(int id);
-  static void PutActionInSlot(int id);
-  static const char *GetAttackTexture();
-  static const char *GetTexture(int id);
-  static int GetCount(int id);
-  static void GetCooldown(int id, unsigned long &startTime, unsigned int &duration, unsigned int &enable);
-  static void PrecacheButtonArt(int id);
-  static void SlotChanged(int id);
-  static unsigned int GetBonusBarOffset() {
+  static int    IsAttackAction(int id);
+  static int    IsUsableAction(int id, int &noMana);
+  static int    IsCurrentAction(int id);
+  static int    IsToggledAction(int id);
+  static void   UpdateItem(int entryID);
+  static void   AddAction(int action);
+  static void   UseAction(int id, int checkCursor);
+  static void   PickupAction(int id);
+  static void   PutActionInSlot(int id);
+  static LPCSTR GetAttackTexture();
+  static LPCSTR GetTexture(int id);
+  static int    GetCount(int id);
+  static void   GetCooldown(int id, DWORD &startTime, UINT &duration, UINT &enable);
+  static void   PrecacheButtonArt(int id);
+  static void   SlotChanged(int id);
+  static UINT   GetBonusBarOffset() {
     return m_bonusPage;
   }
 
  private:
-  static int             m_slotActions[NUM_ACTION_BUTTONS];
-  static unsigned int    m_bonusPage;
+  static int  m_slotActions[NUM_ACTION_BUTTONS];
+  static UINT m_bonusPage;
 };
 
 #endif

@@ -13,5 +13,5 @@ enum WOW_LOCALE {
   DEFAULT_LANGUAGE = 0
 };
 
-extern WOW_LOCALE  CURRENT_LANGUAGE;
-extern const char *g_localeID[NUM_LOCALES];
+extern WOW_LOCALE CURRENT_LANGUAGE;
+extern LPCSTR     g_localeID[NUM_LOCALES];

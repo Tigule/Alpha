@@ -9,16 +9,16 @@ class CGItemText {
   static void ShutdownGame();
   static void EnterWorld();
   static void LeaveWorld();
-  static void SetItem(const unsigned __int64 &item, int callback);
-  static void DisplayText(const unsigned __int64 &item, int useSkill);
+  static void SetItem(const DWORDLONG &item, int callback);
+  static void DisplayText(const DWORDLONG &item, int useSkill);
 
-  static const unsigned __int64 &GetItem() {
+  static const DWORDLONG &GetItem() {
     return m_itemGUID;
   }
-  static unsigned int GetCurrentPage() {
+  static UINT GetCurrentPage() {
     return m_currentPage;
   }
-  static const char *GetText() {
+  static LPCSTR GetText() {
     return m_text;
   }
   static int HasNextPage() {
@@ -28,9 +28,9 @@ class CGItemText {
   static void NextPage();
 
  private:
-  static void ItemTextCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
-  static unsigned __int64     m_itemGUID;
-  static unsigned int         m_currentPage;
+  static void                 ItemTextCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
+  static DWORDLONG            m_itemGUID;
+  static UINT                 m_currentPage;
   static TSGrowableArray<int> m_pages;
   static char                 m_text[0x200];
 };

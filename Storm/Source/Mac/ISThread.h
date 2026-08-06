@@ -17,22 +17,22 @@ class CCritSect {
 
   void Enter();
 
-  void Enter(int __formal) {
+  void Enter(int) {
     pthread_mutex_lock(&m_critsect);
   }
 
   void Leave();
 
-  void Leave(int __formal) {
+  void Leave(int) {
     pthread_mutex_unlock(&m_critsect);
   }
 };
 
 class CInitCritSect {
  private:
-  LONG          m_spinLock;
-  CCritSect    *m_critsect;
-  unsigned char m_critsectData[sizeof(pthread_mutex_t)];
+  LONG       m_spinLock;
+  CCritSect *m_critsect;
+  BYTE       m_critsectData[sizeof(pthread_mutex_t)];
 
  public:
   int  Enter();

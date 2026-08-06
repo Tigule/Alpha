@@ -11,12 +11,12 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 
-DWORD OsPathGetRootChars(const char *path);
-void OsPathStripFilename(char *buffer);
-void OsPathStripLastDir(char *buffer);
-void OsFileConvertSlashes(char *path);
+DWORD OsPathGetRootChars(LPCSTR path);
+void  OsPathStripFilename(char *buffer);
+void  OsPathStripLastDir(char *buffer);
+void  OsFileConvertSlashes(char *path);
 
-extern "C" void APIENTRY SErrSetAppCommand(const char *command);
+extern "C" void APIENTRY SErrSetAppCommand(LPCSTR command);
 
 static int  s_pathsInitialized;
 static char s_dataPath[0x400];
@@ -24,7 +24,7 @@ static char s_installPath[0x400];
 char        g_osCommandLine[0x400];
 char        g_osExeName[0x400];
 
-static char *BuildNativePath(const char *path, const char *mode, char *buffer, DWORD bufferSize) {
+static char *BuildNativePath(LPCSTR path, LPCSTR mode, char *buffer, DWORD bufferSize) {
   char converted[0x400];
 
   SStrCopy(converted, path, sizeof(converted));
@@ -73,14 +73,14 @@ void OsFileConvertSlashes(char *path) {
   }
 }
 
-int OsSetArgs(const char **argv, bool resolveRealPath, bool writeDataPath) {
-  const char  *command = argv[0];
-  CFBundleRef  bundle;
-  CFURLRef     bundleUrl;
-  const char  *home;
-  char         exePath[0x400];
-  UInt8        bundlePath[0x400];
-  int          index;
+int OsSetArgs(LPCSTR *argv, bool resolveRealPath, bool writeDataPath) {
+  LPCSTR      command = argv[0];
+  CFBundleRef bundle;
+  CFURLRef    bundleUrl;
+  LPCSTR      home;
+  char        exePath[0x400];
+  UInt8       bundlePath[0x400];
+  int         index;
 
   ASSERT(writeDataPath == true);
 
@@ -88,9 +88,9 @@ int OsSetArgs(const char **argv, bool resolveRealPath, bool writeDataPath) {
   bundleUrl = CFBundleCopyBundleURL(bundle);
   if (bundleUrl) {
     if (CFURLGetFileSystemRepresentation(bundleUrl, 0, bundlePath, sizeof(bundlePath))) {
-      DWORD chars = SStrLen(reinterpret_cast<const char *>(bundlePath));
-      if (chars > 4 && !SStrCmp(reinterpret_cast<const char *>(bundlePath) + chars - 4, ".app", 0x7FFFFFFF)) {
-        command = reinterpret_cast<const char *>(bundlePath);
+      DWORD chars = SStrLen(reinterpret_cast<LPCSTR>(bundlePath));
+      if (chars > 4 && !SStrCmp(reinterpret_cast<LPCSTR>(bundlePath) + chars - 4, ".app", 0x7FFFFFFF)) {
+        command = reinterpret_cast<LPCSTR>(bundlePath);
       }
     }
   }
@@ -105,9 +105,9 @@ int OsSetArgs(const char **argv, bool resolveRealPath, bool writeDataPath) {
 
   strcpy(exePath, command);
   if (!SStrChrR(exePath, '/')) {
-    const char *searchPath = getenv("PATH");
-    const char *separator;
-    int         found = 0;
+    LPCSTR searchPath = getenv("PATH");
+    LPCSTR separator;
+    int    found = 0;
 
     do {
       exePath[0] = 0;
@@ -180,7 +180,7 @@ int OsSetArgs(const char **argv, bool resolveRealPath, bool writeDataPath) {
   return 1;
 }
 
-const char *OsGetCommandLine() {
+LPCSTR OsGetCommandLine() {
   return g_osCommandLine;
 }
 
@@ -193,15 +193,9 @@ void OsGetExePath(char *buffer, DWORD chars) {
   OsPathStripLastDir(buffer);
 }
 
-HOSFILE OsCreateFile(
-    const char *fileName,
-    DWORD       desiredAccess,
-    DWORD       shareMode,
-    DWORD       createDisposition,
-    DWORD       flagsAndAttributes,
-    DWORD       extendedFileType
-) {
-  const char *mode = 0;
+HOSFILE
+OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD createDisposition, DWORD flagsAndAttributes, DWORD extendedFileType) {
+  LPCSTR      mode = 0;
   struct stat stats;
   char        nativePath[0x400];
   FILE       *file;
@@ -277,7 +271,7 @@ void OsCloseFile(HOSFILE fileHandle) {
   }
 }
 
-int OsReadFile(HOSFILE fileHandle, void *buffer, DWORD bytesToRead, DWORD *bytesRead) {
+int OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
   size_t read;
 
   FATALASSERT(buffer);
@@ -292,7 +286,7 @@ int OsReadFile(HOSFILE fileHandle, void *buffer, DWORD bytesToRead, DWORD *bytes
   return read != 0;
 }
 
-int OsWriteFile(HOSFILE fileHandle, const void *buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
+int OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
   size_t written;
 
   FATALASSERT(buffer);
@@ -307,7 +301,7 @@ int OsWriteFile(HOSFILE fileHandle, const void *buffer, DWORD bytesToWrite, DWOR
   return written != 0;
 }
 
-unsigned __int64 OsGetFileSize(HOSFILE fileHandle) {
+DWORDLONG OsGetFileSize(HOSFILE fileHandle) {
   struct stat stats;
 
   if (!fileHandle) {
@@ -319,16 +313,16 @@ unsigned __int64 OsGetFileSize(HOSFILE fileHandle) {
   return stats.st_size;
 }
 
-unsigned __int64 OsSetFilePointer(HOSFILE fileHandle, __int64 distanceToMove, DWORD moveMethod) {
+DWORDLONG OsSetFilePointer(HOSFILE fileHandle, LONGLONG distanceToMove, DWORD moveMethod) {
   if (!fileHandle) {
-    return static_cast<unsigned __int64>(-1);
+    return static_cast<DWORDLONG>(-1);
   }
 
   fseek(reinterpret_cast<FILE *>(fileHandle), static_cast<long>(distanceToMove), moveMethod);
   return ftell(reinterpret_cast<FILE *>(fileHandle));
 }
 
-DWORD OsGetFileAttributes(const char *fileName) {
+DWORD OsGetFileAttributes(LPCSTR fileName) {
   DWORD       attributes;
   struct stat stats;
   char        nativePath[0x400];
@@ -351,7 +345,7 @@ DWORD OsGetFileAttributes(const char *fileName) {
   return attributes;
 }
 
-int OsFileExists(const char *path) {
+int OsFileExists(LPCSTR path) {
   DWORD attributes;
 
   if (!path || !path[0]) {
@@ -362,7 +356,7 @@ int OsFileExists(const char *path) {
   return attributes != 0xFFFFFFFF && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
-int OsDirectoryExists(const char *dirName) {
+int OsDirectoryExists(LPCSTR dirName) {
   DWORD attributes;
 
   if (!dirName || !dirName[0]) {
@@ -373,7 +367,7 @@ int OsDirectoryExists(const char *dirName) {
   return attributes != 0xFFFFFFFF && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
-int OsCreateDirectory(const char *pathName, int recursive) {
+int OsCreateDirectory(LPCSTR pathName, int recursive) {
   struct stat stats;
   char        nativePath[0x400];
 
@@ -404,7 +398,7 @@ int OsCreateDirectory(const char *pathName, int recursive) {
   return mkdir(nativePath, 0755) == 0;
 }
 
-int OsSetCurrentDirectory(const char *pathName) {
+int OsSetCurrentDirectory(LPCSTR pathName) {
   char nativePath[0x400];
 
   FATALASSERT(pathName);
@@ -433,7 +427,7 @@ int OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   return 1;
 }
 
-static int ListNativePattern(const char *pattern, int (*inCallback)(OS_FILE_DATA &, void *), void *inCBParam, int returnHidden) {
+static int ListNativePattern(LPCSTR pattern, int (*inCallback)(OS_FILE_DATA &, LPVOID), LPVOID inCBParam, int returnHidden) {
   glob_t       results;
   struct stat  stats;
   OS_FILE_DATA osfData;
@@ -448,8 +442,8 @@ static int ListNativePattern(const char *pattern, int (*inCallback)(OS_FILE_DATA
   }
 
   for (index = 0; index < results.gl_pathc; ++index) {
-    const char *path = results.gl_pathv[index];
-    const char *base;
+    LPCSTR path = results.gl_pathv[index];
+    LPCSTR base;
 
     if (stat(path, &stats)) {
       continue;
@@ -478,13 +472,7 @@ static int ListNativePattern(const char *pattern, int (*inCallback)(OS_FILE_DATA
   return stop;
 }
 
-int OsFileList(
-    const char *inDir,
-    const char *inPattern,
-    int (*inCallback)(OS_FILE_DATA &, void *),
-    void *inCBParam,
-    int   returnHidden
-) {
+int OsFileList(LPCSTR inDir, LPCSTR inPattern, int (*inCallback)(OS_FILE_DATA &, LPVOID), LPVOID inCBParam, int returnHidden) {
   char pattern[0x400];
 
   SStrCopy(pattern, inDir, 0x7FFFFFFF);
@@ -494,7 +482,7 @@ int OsFileList(
   return ListNativePattern(pattern, inCallback, inCBParam, returnHidden);
 }
 
-int OsDeleteFile(const char *fileName) {
+int OsDeleteFile(LPCSTR fileName) {
   char nativePath[0x400];
 
   FATALASSERT(fileName);

@@ -28,9 +28,9 @@ enum ACTIVITY {
   ACTIVITIES = 24
 };
 
-void ActivityBegin(ACTIVITY activity);
-void ActivityEnd(ACTIVITY activity);
+void  ActivityBegin(ACTIVITY activity);
+void  ActivityEnd(ACTIVITY activity);
 float ActivityGetTimePercent(ACTIVITY activity);
 float ActivityGetCalls(ACTIVITY activity);
 float ActivityGetTime(ACTIVITY activity);
-void ActivityResetTimes();
+void  ActivityResetTimes();

@@ -5,12 +5,12 @@
 
 #include <storm.h>
 
-char         g_commandHistory[32][80];
-unsigned int g_commandHistoryIndex;
-char         g_ExecBuffer[0x2000];
-EXECMODE     g_ExecCreateMode = EM_NOTACTIVE;
+char     g_commandHistory[32][80];
+UINT     g_commandHistoryIndex;
+char     g_ExecBuffer[0x2000];
+EXECMODE g_ExecCreateMode = EM_NOTACTIVE;
 
-int AddLineToExecFile(const char *currentLine) {
+int AddLineToExecFile(LPCSTR currentLine) {
   char stringToWrite[0x104];
   int  spaceRemaining;
 
@@ -46,7 +46,7 @@ int AddLineToExecFile(const char *currentLine) {
   return 0;
 }
 
-void AddToHistory(const char *command) {
+void AddToHistory(LPCSTR command) {
   SStrCopy(g_commandHistory[g_commandHistoryIndex], command, 80);
   g_commandHistoryIndex = (g_commandHistoryIndex + 1) & 0x1F;
 }

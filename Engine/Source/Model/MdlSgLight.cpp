@@ -6,10 +6,10 @@
 #include "Gxu/IGxuLight.h"
 #include "MDLFile/MDLTypes.h"
 
-unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 
-static unsigned long CreateGxLight(const MDLLIGHTSECTION &data) {
-  unsigned long lightId = GxuLightCreate();
+static DWORD CreateGxLight(const MDLLIGHTSECTION &data) {
+  DWORD lightId = GxuLightCreate();
   if (!lightId) {
     return 0;
   }
@@ -17,19 +17,9 @@ static unsigned long CreateGxLight(const MDLLIGHTSECTION &data) {
   CGxLight *light = GxuLightLock(lightId);
   if (light) {
     light->m_isOmni = data.type == LIGHTTYPE_OMNI;
-    light->m_dirColor.Set(
-        1.0f,
-        data.staticColor.r,
-        data.staticColor.g,
-        data.staticColor.b
-    );
+    light->m_dirColor.Set(1.0f, data.staticColor.r, data.staticColor.g, data.staticColor.b);
     light->m_dirIntensity = data.staticIntensity;
-    light->m_ambColor.Set(
-        1.0f,
-        data.staticAmbColor.r,
-        data.staticAmbColor.g,
-        data.staticAmbColor.b
-    );
+    light->m_ambColor.Set(1.0f, data.staticAmbColor.r, data.staticAmbColor.g, data.staticAmbColor.b);
     light->m_ambIntensity = data.staticAmbIntensity;
     light->m_enabled = 0;
 
@@ -39,18 +29,18 @@ static unsigned long CreateGxLight(const MDLLIGHTSECTION &data) {
   return lightId;
 }
 
-static unsigned long CreateGxLight(unsigned char *lightData) {
-  unsigned long lightId = GxuLightCreate();
+static DWORD CreateGxLight(BYTE *lightData) {
+  DWORD lightId = GxuLightCreate();
   if (!lightId) {
     return 0;
   }
 
   CGxLight *light = GxuLightLock(lightId);
   if (light) {
-    unsigned int   staticDataOffset = *reinterpret_cast<const unsigned int *>(lightData);
-    const unsigned char *staticData = lightData + staticDataOffset;
+    UINT        staticDataOffset = *reinterpret_cast<const UINT *>(lightData);
+    const BYTE *staticData = lightData + staticDataOffset;
 
-    unsigned int type = *reinterpret_cast<const unsigned int *>(staticData);
+    UINT         type = *reinterpret_cast<const UINT *>(staticData);
     const float *values = reinterpret_cast<const float *>(staticData + 12);
 
     light->m_isOmni = type == 0;
@@ -66,34 +56,34 @@ static unsigned long CreateGxLight(unsigned char *lightData) {
   return lightId;
 }
 
-int MdlReadLoadLights(const MDLDATA& data, CModelComplex* modelptr) {
+int MdlReadLoadLights(const MDLDATA &data, CModelComplex *modelptr) {
   FATALASSERT(modelptr);
-  unsigned int numLights = data.lights.Count();
+  UINT numLights = data.lights.Count();
   modelptr->m_lights.SetCount(numLights);
-  unsigned int i;
+  UINT i;
   for (i = 0; i < numLights; ++i) {
     modelptr->m_lights[i] = CreateGxLight(data.lights[i]);
   }
   return 1;
 }
 
-void MdxReadLights(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr) {
+void MdxReadLights(BYTE *data, UINT fileBytes, CModelComplex *modelptr) {
   ASSERT(data);
   ASSERT(modelptr);
 
-  unsigned char *section = MDLFileBinarySeek(data, fileBytes, 0x4554494C);
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, 0x4554494C);
   if (!section) {
     return;
   }
 
-  unsigned int   sectionBytes = *reinterpret_cast<unsigned int *>(section) - 4;
-  unsigned int   numLights = *reinterpret_cast<unsigned int *>(section + 4);
-  unsigned char *lightData = section + 8;
+  UINT  sectionBytes = *reinterpret_cast<UINT *>(section) - 4;
+  UINT  numLights = *reinterpret_cast<UINT *>(section + 4);
+  BYTE *lightData = section + 8;
 
   modelptr->m_lights.SetCount(numLights);
 
-  for (unsigned int i = 0; i < numLights; ++i) {
-    unsigned int bytesThisLight = *reinterpret_cast<unsigned int *>(lightData);
+  for (UINT i = 0; i < numLights; ++i) {
+    UINT bytesThisLight = *reinterpret_cast<UINT *>(lightData);
     modelptr->m_lights[i] = CreateGxLight(lightData + 4);
 
     ASSERT(sectionBytes >= bytesThisLight);

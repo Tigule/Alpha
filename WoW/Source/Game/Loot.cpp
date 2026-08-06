@@ -3,8 +3,8 @@
 
 #include <storm.h>
 
-static int          s_currencyMultiplier[3];
-static unsigned char s_lootInitialized;
+static int  s_currencyMultiplier[3];
+static BYTE s_lootInitialized;
 
 int CurrencyMultiplier(int denomination) {
   FATALASSERT(s_lootInitialized);
@@ -12,7 +12,7 @@ int CurrencyMultiplier(int denomination) {
   return s_currencyMultiplier[denomination];
 }
 
-const char *CurrencyAbbreviation(int coinType) {
+LPCSTR CurrencyAbbreviation(int coinType) {
   switch (coinType) {
     case 0:
       return "COPPER";
@@ -41,11 +41,11 @@ void CurrencyBreakdown(int money, int *coins) {
   coins[0] = money;
 }
 
-unsigned int CurrencyTotal(int *const coins) {
+UINT CurrencyTotal(int *const coins) {
   FATALASSERT(s_lootInitialized);
   FATALASSERT(coins);
 
-  unsigned int total = 0;
+  UINT total = 0;
   for (int coinType = 2; coinType >= 0; --coinType) {
     total += coins[coinType] * CurrencyMultiplier(coinType);
   }

@@ -6,11 +6,11 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-int OsBeep(unsigned long dwFreq, unsigned long dwDuration) {
+int OsBeep(DWORD dwFreq, DWORD dwDuration) {
   return Beep(dwFreq, dwDuration);
 }
 
-void __cdecl OsOutputDebugString(const char *format, ...) {
+void __cdecl OsOutputDebugString(LPCSTR format, ...) {
   char    buffer[256];
   va_list args;
 
@@ -19,7 +19,7 @@ void __cdecl OsOutputDebugString(const char *format, ...) {
   OutputDebugStringA(buffer);
 }
 
-void OsOutputDebugStringV(const char *format, char *args) {
+void OsOutputDebugStringV(LPCSTR format, char *args) {
   char buffer[256];
 
   _vsnprintf(buffer, sizeof(buffer), format, args);

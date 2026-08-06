@@ -11,22 +11,22 @@
 
 class CStatus;
 
-unsigned char *MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status);
-void MDLFileBinaryUnload(unsigned char *fileData);
-unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status);
+void  MDLFileBinaryUnload(BYTE *fileData);
+BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 
-static unsigned int g_gxBufCreateCount;
-static unsigned int g_gxBufDestroyCount;
+static UINT g_gxBufCreateCount;
+static UINT g_gxBufDestroyCount;
 
 LISTDECLEX(CDetailDoodadInst, lameAssLink, CDetailDoodad::instList);
-TSGrowableArray<CGxBuf *>              CDetailDoodad::gxBufFreeList;
-TSGrowableArray<CDetailDoodadData *>   CDetailDoodad::doodadList;
+TSGrowableArray<CGxBuf *>            CDetailDoodad::gxBufFreeList;
+TSGrowableArray<CDetailDoodadData *> CDetailDoodad::doodadList;
 LISTDECLEX(CDetailDoodadGeom, lameAssLink, CDetailDoodad::geomList);
-CGxTex                                *CDetailDoodad::alphaRampTexture;
+CGxTex *CDetailDoodad::alphaRampTexture;
 
 void CDetailDoodad::Initialize() {
-  unsigned int nEntries = g_groundEffectDoodadDB.GetNumRecords();
-  unsigned int i;
+  UINT nEntries = g_groundEffectDoodadDB.GetNumRecords();
+  UINT i;
 
   gxBufFreeList.SetCount(0);
   doodadList.SetCount(nEntries);
@@ -51,7 +51,7 @@ void CDetailDoodad::Initialize() {
 void CDetailDoodad::Destroy() {
   Clear();
 
-  for (unsigned int index = 0; index < gxBufFreeList.Count(); ++index) {
+  for (UINT index = 0; index < gxBufFreeList.Count(); ++index) {
     GxBufDestroy(gxBufFreeList[index]);
     ++g_gxBufDestroyCount;
   }
@@ -66,7 +66,7 @@ void CDetailDoodad::Destroy() {
 }
 
 void CDetailDoodad::Clear() {
-  for (unsigned int index = 0; index < doodadList.Count(); ++index) {
+  for (UINT index = 0; index < doodadList.Count(); ++index) {
     if (doodadList[index]) {
       DEL(doodadList[index]);
     }
@@ -90,7 +90,7 @@ CDetailDoodadInst *CDetailDoodad::AllocInst() {
 }
 
 void CDetailDoodad::FreeInst(CDetailDoodadInst *inst) {
-  unsigned int index;
+  UINT index;
 
   ASSERT(inst);
   instList.LinkNode(inst, LIST_TAIL, 0);
@@ -132,7 +132,7 @@ void CDetailDoodad::FreeGeom(CDetailDoodadGeom *geom) {
   geom->indexList.SetCount(0);
 }
 
-CGxBuf *CDetailDoodad::AllocGxBuf(unsigned int vertexCount, unsigned int indexCount) {
+CGxBuf *CDetailDoodad::AllocGxBuf(UINT vertexCount, UINT indexCount) {
   CGxBuf *gxBuf;
 
   if (gxBufFreeList.Count()) {
@@ -162,9 +162,9 @@ void CDetailDoodad::GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf) {
   detailDoodadGeom->FillGxBufIndex(cmd, buf);
 }
 
-void CDetailDoodad::CreateAlphaRampTexture(const void *&texels) {
+void CDetailDoodad::CreateAlphaRampTexture(LPCVOID &texels) {
   static NTempest::CImVector alphaRamp[8][64];
-  unsigned char              alpha = 0;
+  BYTE                       alpha = 0;
 
   for (int x = 63; x >= 0; --x) {
     for (int y = 0; y < 8; ++y) {
@@ -178,13 +178,13 @@ void CDetailDoodad::CreateAlphaRampTexture(const void *&texels) {
 
 void CDetailDoodad::UpdateAlphaRampTexture(
     EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
+    UINT          w,
+    UINT          h,
+    UINT          d,
+    UINT          mipLevel,
+    LPVOID        userArg,
+    UINT         &texelStrideInBytes,
+    LPCVOID      &texels
 ) {
   switch (cmd) {
     case GxTex_Lock:
@@ -198,7 +198,7 @@ void CDetailDoodad::UpdateAlphaRampTexture(
 }
 
 void CDetailDoodadGeom::FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf) {
-  unsigned int index = 0;
+  UINT index = 0;
 
   switch (cmd.vertex.op) {
     case GxBufOp_Fill: {
@@ -224,7 +224,7 @@ void CDetailDoodadGeom::FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf) {
 void CDetailDoodadGeom::FillGxBufIndex(CGxBufCommand &cmd, CGxBuf *buf) {
   switch (cmd.index.op) {
     case GxBufOp_Fill:
-      memcpy(*cmd.index.mem[GxVM_Indices], indexList.Ptr(), indexList.Count() * sizeof(unsigned short));
+      memcpy(*cmd.index.mem[GxVM_Indices], indexList.Ptr(), indexList.Count() * sizeof(WORD));
       break;
 
     case GxBufOp_Assign:
@@ -240,7 +240,7 @@ CDetailDoodadData::CDetailDoodadData() {
   fileName = 0;
 }
 
-CDetailDoodadData::CDetailDoodadData(const char *mdlName) {
+CDetailDoodadData::CDetailDoodadData(LPCSTR mdlName) {
   loaded = 0;
   texture = 0;
   geom = 0;
@@ -260,7 +260,7 @@ CDetailDoodadData::~CDetailDoodadData() {
   }
 }
 
-static int IsBinaryModelFile(char* path) {
+static int IsBinaryModelFile(char *path) {
   int length = SStrLen(path);
   if (path[length - 1] == 'x' || path[length - 1] == 'X') {
     if (SFile::FileExists(path)) {
@@ -281,13 +281,13 @@ int CDetailDoodadData::Load() {
   SStrCopy(pathName, "World\\NoDXT\\Detail\\", sizeof(pathName));
   SStrPack(pathName, fileName, sizeof(pathName));
 
-  unsigned int pathLength = SStrLen(pathName);
+  UINT pathLength = SStrLen(pathName);
   if (pathLength && pathName[pathLength - 1] != 'x' && pathName[pathLength - 1] != 'X') {
     pathName[pathLength - 1] = 'x';
   }
 
-  unsigned int   fileBytes = 0;
-  unsigned char *fileData = MDLFileBinaryLoad(pathName, &fileBytes, 0);
+  UINT  fileBytes = 0;
+  BYTE *fileData = MDLFileBinaryLoad(pathName, &fileBytes, 0);
   if (!fileData) {
     loaded = 1;
     return 0;
@@ -299,15 +299,15 @@ int CDetailDoodadData::Load() {
   return 1;
 }
 
-void CDetailDoodadData::MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CDetailDoodadData *detailDoodad) {
+void CDetailDoodadData::MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailDoodadData *detailDoodad) {
   FATALASSERT(detailDoodad);
   FATALASSERT(detailDoodad->geom == 0);
 
-  unsigned char *texSection = MDLFileBinarySeek(fileData, fileBytes, 0x53584554);
+  BYTE *texSection = MDLFileBinarySeek(fileData, fileBytes, 0x53584554);
   FATALASSERT(texSection);
-  unsigned int sectionBytes = *reinterpret_cast<unsigned int *>(texSection);
+  UINT sectionBytes = *reinterpret_cast<UINT *>(texSection);
   FATALASSERT(sectionBytes == 268);
-  unsigned char *texData = texSection + sizeof(unsigned int);
+  BYTE *texData = texSection + sizeof(UINT);
   detailDoodad->texture = CMap::LoadTexture(reinterpret_cast<char *>(texData + 4));
 
   CDetailDoodadGeom *geom = CDetailDoodad::AllocGeom();
@@ -315,14 +315,14 @@ void CDetailDoodadData::MdlReadCallback(unsigned char *fileData, unsigned int fi
   detailDoodad->geom = geom;
   geom->texture = 0;
 
-  unsigned char *geoSection = MDLFileBinarySeek(fileData, fileBytes, 0x534F4547);
+  BYTE *geoSection = MDLFileBinarySeek(fileData, fileBytes, 0x534F4547);
   FATALASSERT(geoSection);
-  unsigned int *data = reinterpret_cast<unsigned int *>(geoSection);
+  UINT *data = reinterpret_cast<UINT *>(geoSection);
   FATALASSERT(data[1] == 1);
   data += 3;
 
   FATALASSERT(*data++ == 0x58545256);
-  unsigned int nVertices = *data++;
+  UINT nVertices = *data++;
   geom->vertexList.SetCount(nVertices);
   memcpy(geom->vertexList.Ptr(), data, nVertices * sizeof(NTempest::C3Vector));
   data += 3 * nVertices;
@@ -340,17 +340,17 @@ void CDetailDoodadData::MdlReadCallback(unsigned char *fileData, unsigned int fi
   data += 2 * nVertices;
 
   FATALASSERT(*data++ == 0x50595450);
-  unsigned int primitiveTypeBytes = *data++;
-  data = reinterpret_cast<unsigned int *>(reinterpret_cast<unsigned char *>(data) + primitiveTypeBytes);
+  UINT primitiveTypeBytes = *data++;
+  data = reinterpret_cast<UINT *>(reinterpret_cast<BYTE *>(data) + primitiveTypeBytes);
 
   FATALASSERT(*data++ == 0x544E4350);
-  unsigned int primitiveCount = *data++;
+  UINT primitiveCount = *data++;
   data += primitiveCount;
 
   FATALASSERT(*data++ == 0x58545650);
-  unsigned int nPrims = *data++;
+  UINT nPrims = *data++;
   geom->indexList.SetCount(nPrims);
-  memcpy(geom->indexList.Ptr(), data, nPrims * sizeof(unsigned short));
+  memcpy(geom->indexList.Ptr(), data, nPrims * sizeof(WORD));
 }
 
 void CDetailDoodadData::MdlReadCallback(const MDLDATA &data, CDetailDoodadData *detailDoodad) {
@@ -368,20 +368,20 @@ void CDetailDoodadData::MdlReadCallback(const MDLDATA &data, CDetailDoodadData *
   geom->texture = 0;
 
   const MDLGEOSETSECTION &geoset = data.geosets[0];
-  unsigned int            nVertices = geoset.vertices.Count();
+  UINT                    nVertices = geoset.vertices.Count();
 
   geom->vertexList.SetCount(nVertices);
   geom->normalList.SetCount(nVertices);
   geom->tVertexList.SetCount(nVertices);
-  for (unsigned int index = 0; index < nVertices; ++index) {
+  for (UINT index = 0; index < nVertices; ++index) {
     geom->vertexList[index] = geoset.vertices[index];
     geom->normalList[index] = geoset.normals[index];
     geom->tVertexList[index] = geoset.texCoords[0][index];
   }
 
-  unsigned int nIndices = geoset.primitives.vertices.Count();
+  UINT nIndices = geoset.primitives.vertices.Count();
   geom->indexList.SetCount(nIndices);
-  for (unsigned int index2 = 0; index2 < nIndices; ++index2) {
+  for (UINT index2 = 0; index2 < nIndices; ++index2) {
     geom->indexList[index2] = geoset.primitives.vertices[index2];
   }
 }
@@ -394,7 +394,7 @@ CDetailDoodadInst::CDetailDoodadInst() {
 }
 
 CDetailDoodadInst::~CDetailDoodadInst() {
-  for (unsigned int index = 0; index < 2; ++index) {
+  for (UINT index = 0; index < 2; ++index) {
     if (geom[index]) {
       CDetailDoodad::FreeGeom(geom[index]);
     }
@@ -408,7 +408,7 @@ CDetailDoodadInst::~CDetailDoodadInst() {
 }
 
 void CDetailDoodadInst::FreeBufs() {
-  for (unsigned int index = 0; index < 2; ++index) {
+  for (UINT index = 0; index < 2; ++index) {
     if (gxBuf[index]) {
       CDetailDoodad::FreeGxBuf(gxBuf[index]);
     }
@@ -416,7 +416,7 @@ void CDetailDoodadInst::FreeBufs() {
   }
 }
 
-void CDetailDoodadInst::AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos, unsigned long flags) {
+void CDetailDoodadInst::AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags) {
   CDetailDoodadData *detailData = CDetailDoodad::doodadList[doodadId];
   if (!detailData || (!detailData->loaded && !detailData->Load()) || !detailData->geom) {
     return;
@@ -424,7 +424,7 @@ void CDetailDoodadInst::AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos
 
   CDetailDoodadGeom *geomData = detailData->geom;
   int                geomIndex = -1;
-  unsigned int       index;
+  UINT               index;
   for (index = 0; index < 2; ++index) {
     if (geom[index] && geom[index]->texture == detailData->texture) {
       geomIndex = index;
@@ -448,10 +448,10 @@ void CDetailDoodadInst::AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos
   }
 
   CDetailDoodadGeom *dst = geom[geomIndex];
-  unsigned int       vertexBase = dst->vertexList.Count();
-  unsigned int       indexBase = dst->indexList.Count();
-  unsigned int       vertexCount = geomData->vertexList.Count();
-  unsigned int       indexCount = geomData->indexList.Count();
+  UINT               vertexBase = dst->vertexList.Count();
+  UINT               indexBase = dst->indexList.Count();
+  UINT               vertexCount = geomData->vertexList.Count();
+  UINT               indexCount = geomData->indexList.Count();
 
   dst->vertexList.SetCount(vertexBase + vertexCount);
   dst->normalList.SetCount(vertexBase + vertexCount);
@@ -474,14 +474,13 @@ void CDetailDoodadInst::AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos
   }
 
   for (index = 0; index < indexCount; ++index) {
-    dst->indexList[indexBase + index] =
-        static_cast<unsigned short>(vertexBase + geomData->indexList[index]);
+    dst->indexList[indexBase + index] = static_cast<WORD>(vertexBase + geomData->indexList[index]);
   }
 }
 
-void CDetailDoodadInst::AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos, unsigned long flags, NTempest::C4Plane &plane) {
-  unsigned int idx;
-  unsigned int iIdx;
+void CDetailDoodadInst::AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags, NTempest::C4Plane &plane) {
+  UINT idx;
+  UINT iIdx;
 
   CDetailDoodadData *detailData = CDetailDoodad::doodadList[doodadId];
   if (!detailData || (!detailData->loaded && !detailData->Load()) || !detailData->geom) {
@@ -513,10 +512,10 @@ void CDetailDoodadInst::AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos
   }
 
   CDetailDoodadGeom *dst = geom[geomIndex];
-  unsigned int       vertexBase = dst->vertexList.Count();
-  unsigned int       indexBase = dst->indexList.Count();
-  unsigned int       vertexCount = geomData->vertexList.Count();
-  unsigned int       indexCount = geomData->indexList.Count();
+  UINT               vertexBase = dst->vertexList.Count();
+  UINT               indexBase = dst->indexList.Count();
+  UINT               vertexCount = geomData->vertexList.Count();
+  UINT               indexCount = geomData->indexList.Count();
 
   dst->vertexList.SetCount(vertexBase + vertexCount);
   dst->normalList.SetCount(vertexBase + vertexCount);
@@ -542,7 +541,7 @@ void CDetailDoodadInst::AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos
   }
 
   for (iIdx = 0; iIdx < indexCount; ++iIdx) {
-    dst->indexList[indexBase + iIdx] = static_cast<unsigned short>(vertexBase + geomData->indexList[iIdx]);
+    dst->indexList[indexBase + iIdx] = static_cast<WORD>(vertexBase + geomData->indexList[iIdx]);
   }
 }
 
@@ -555,13 +554,12 @@ void CDetailDoodadInst::Render() {
   GxRsSet(GxRs_DepthWrite, 1);
   GxVertexShaderSelect(GxVS_PassThru);
 
-  for (unsigned int index = 0; index < 2; ++index) {
+  for (UINT index = 0; index < 2; ++index) {
     if (geom[index] && geom[index]->indexList.Count()) {
       CGxTex *texture = TextureGetGxTex(geom[index]->texture, 0, 0);
       if (texture) {
         if (!gxBuf[index]) {
-          gxBuf[index] =
-              CDetailDoodad::AllocGxBuf(geom[index]->vertexList.Count(), geom[index]->indexList.Count());
+          gxBuf[index] = CDetailDoodad::AllocGxBuf(geom[index]->vertexList.Count(), geom[index]->indexList.Count());
           gxBuf[index]->UserArgSet(geom[index]);
         }
 
@@ -598,7 +596,7 @@ void CDetailDoodadInst::RenderAlpha() {
   GxXformPush(GxXform_Tex1, mat);
   GxVertexShaderSelect(GxVS_PassThru);
 
-  for (unsigned int i = 0; i < 2; ++i) {
+  for (UINT i = 0; i < 2; ++i) {
     if (geom[i] && geom[i]->indexList.Count()) {
       CGxTex *texture = TextureGetGxTex(geom[i]->texture, 0, 0);
       if (texture) {

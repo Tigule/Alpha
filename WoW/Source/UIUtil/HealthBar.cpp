@@ -10,7 +10,7 @@
 #include <Frame/CSimpleRender.h>
 #include <Tempest/cimvector.h>
 
-static int SimpleHealthUpdateHandler(unsigned __int64 guid, unsigned int, unsigned int, const void *data, void *parameter) {
+static int SimpleHealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID data, LPVOID parameter) {
   FATALASSERT(parameter);
 
   CGSimpleHealthBar *healthBar = static_cast<CGSimpleHealthBar *>(parameter);

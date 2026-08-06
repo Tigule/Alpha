@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *GroundEffectTextureRec::GetFilename() {
+LPCSTR GroundEffectTextureRec::GetFilename() {
   return "DBFilesClient\\GroundEffectTexture.dbc";
 }
 
@@ -19,9 +19,9 @@ GroundEffectTextureRec::GroundEffectTextureRec() {
 GroundEffectTextureRec::~GroundEffectTextureRec() {
 }
 
-bool GroundEffectTextureRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int temptextureNameIndices[1];
+bool GroundEffectTextureRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT temptextureNameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_datestamp, sizeof(m_datestamp), 0, 0, 0) && result;

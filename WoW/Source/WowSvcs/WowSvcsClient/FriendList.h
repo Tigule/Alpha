@@ -32,12 +32,12 @@ class FriendList {
     Friend() {
     }
 
-    unsigned char    m_connected;
-    char            *m_name;
-    unsigned __int64 guid;
-    int              m_level;
-    int              m_class;
-    int              m_area;
+    BYTE      m_connected;
+    char     *m_name;
+    DWORDLONG guid;
+    int       m_level;
+    int       m_class;
+    int       m_area;
 
     ~Friend() {
       FREEIFUSED(m_name);
@@ -47,50 +47,50 @@ class FriendList {
   ~FriendList();
 
   FriendList();
-  static void Initialize();
-  static void RegisterScriptFunctions();
-  static void UnregisterScriptFunctions();
-  static void Destroy();
-  unsigned int           GetNumFriends();
-  const Friend          *GetFriend(unsigned int index);
-  void                   SetFriendSelectionIndex(unsigned int index);
-  int                    GetFriendSelectionIndex();
-  void                   AddFriend(const char *name);
-  void                   RemoveFriend(const char *name);
-  void                   RemoveFriend(unsigned __int64 guid);
-  void                   RemoveFriend(unsigned int index);
-  void                   ShowFriends();
-  unsigned int           GetNumIgnores();
-  unsigned __int64       GetIgnore(unsigned int index);
-  void                   SetIgnoreSelectionIndex(unsigned int index);
-  int                    GetIgnoreSelectionIndex();
-  void                   AddOrDelIgnore(const char *name);
-  void                   AddIgnore(const char *name);
-  void                   DelIgnore(const char *name);
-  void                   DelIgnore(unsigned __int64 guid);
-  void                   SendWho(const char *str);
-  bool                   IsIgnored(unsigned __int64 guid);
-  void                   HandleStatus(FRIEND_RESULT result, unsigned __int64 guid, CDataStore *msg);
-  void                   AddFriends(CDataStore *msg);
-  void                   IgnoreList(CDataStore *msg);
-  void                   SetName(unsigned __int64 guid, const char *name);
-  void                   DecrementPendingFriendName();
-  void                   DecrementPendingIgnoreName();
-  void                   SortFriends();
-  void                   SortIgnore();
-  int                    Added(unsigned __int64 guid);
-  void                   Removed(unsigned __int64 guid);
-  void                   SetConnected(unsigned __int64 guid, bool connected);
-  void                   IgnoreAdded(unsigned __int64 guid, int sort);
-  void                   IgnoreRemoved(unsigned __int64 guid);
+  static void   Initialize();
+  static void   RegisterScriptFunctions();
+  static void   UnregisterScriptFunctions();
+  static void   Destroy();
+  UINT          GetNumFriends();
+  const Friend *GetFriend(UINT index);
+  void          SetFriendSelectionIndex(UINT index);
+  int           GetFriendSelectionIndex();
+  void          AddFriend(LPCSTR name);
+  void          RemoveFriend(LPCSTR name);
+  void          RemoveFriend(DWORDLONG guid);
+  void          RemoveFriend(UINT index);
+  void          ShowFriends();
+  UINT          GetNumIgnores();
+  DWORDLONG     GetIgnore(UINT index);
+  void          SetIgnoreSelectionIndex(UINT index);
+  int           GetIgnoreSelectionIndex();
+  void          AddOrDelIgnore(LPCSTR name);
+  void          AddIgnore(LPCSTR name);
+  void          DelIgnore(LPCSTR name);
+  void          DelIgnore(DWORDLONG guid);
+  void          SendWho(LPCSTR str);
+  bool          IsIgnored(DWORDLONG guid);
+  void          HandleStatus(FRIEND_RESULT result, DWORDLONG guid, CDataStore *msg);
+  void          AddFriends(CDataStore *msg);
+  void          IgnoreList(CDataStore *msg);
+  void          SetName(DWORDLONG guid, LPCSTR name);
+  void          DecrementPendingFriendName();
+  void          DecrementPendingIgnoreName();
+  void          SortFriends();
+  void          SortIgnore();
+  int           Added(DWORDLONG guid);
+  void          Removed(DWORDLONG guid);
+  void          SetConnected(DWORDLONG guid, bool connected);
+  void          IgnoreAdded(DWORDLONG guid, int sort);
+  void          IgnoreRemoved(DWORDLONG guid);
 
  private:
-  Friend           m_friends[50];
-  unsigned int     m_friendNamesPending;
-  unsigned __int64 m_selectedFriend;
-  unsigned __int64 m_ignore[25];
-  unsigned int     m_ignoreNamesPending;
-  unsigned __int64 m_selectedIgnore;
+  Friend    m_friends[50];
+  UINT      m_friendNamesPending;
+  DWORDLONG m_selectedFriend;
+  DWORDLONG m_ignore[25];
+  UINT      m_ignoreNamesPending;
+  DWORDLONG m_selectedIgnore;
 };
 
 extern FriendList *g_friendList;

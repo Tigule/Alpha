@@ -6,9 +6,9 @@
 
 #include "WowServices/WowConnectionNet.h"
 
-static int           s_workerPipe[2] = {-1, -1};
-static unsigned char s_usingEngine;
-static WSADATA       s_wsaData;
+static int     s_workerPipe[2] = {-1, -1};
+static BYTE    s_usingEngine;
+static WSADATA s_wsaData;
 
 static void WinsockInit() {
   WSAStartup(0x0202, &s_wsaData);
@@ -55,11 +55,11 @@ void WowConnectionNet::PlatformWorkerReady() {
 }
 
 static void MakeSocketPipe(int *const pipes) {
-  sockaddr_in   addr;
-  sockaddr_in   incoming;
-  int           len;
-  unsigned long on;
-  int           listener = socket(AF_INET, SOCK_STREAM, 0);
+  sockaddr_in addr;
+  sockaddr_in incoming;
+  int         len;
+  DWORD       on;
+  int         listener = socket(AF_INET, SOCK_STREAM, 0);
 
   if (listener < 0) {
     return;
@@ -68,8 +68,8 @@ static void MakeSocketPipe(int *const pipes) {
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-  unsigned short port = static_cast<unsigned short>(rand() % 10000 + 40000);
-  int            b;
+  WORD port = static_cast<WORD>(rand() % 10000 + 40000);
+  int  b;
 
   while (1) {
     addr.sin_port = htons(port);
@@ -195,7 +195,7 @@ void WowConnectionNet::PlatformRun() {
 
     for (int i = 0; i < numConns; ++i) {
       WowConnection *conn = conns[i];
-      unsigned int   flags = 0;
+      UINT           flags = 0;
 
       if (conn->m_sock >= 0) {
         if (FD_ISSET(conn->m_sock, &wfds)) {

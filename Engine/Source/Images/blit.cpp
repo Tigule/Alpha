@@ -15,14 +15,14 @@ using NTempest::CArgb4444;
 using NTempest::CImVector;
 using NTempest::CRgb565;
 
-typedef void(*BlitFunc)(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride);
+typedef void (*BlitFunc)(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride);
 
-static int          initBlit;
-static unsigned int BYTES_PER_BLOCK[BlitFormats_Last] = {0, 4, 2, 2, 2, 8, 16, 16};
-static unsigned int PIXELS_PER_BLOCK_SHIFT[BlitFormats_Last] = {0, 0, 0, 0, 0, 2, 2, 2};
-static BlitFunc     s_blits[BlitFormats_Last][BlitFormats_Last][BlitAlphas_Last];
+static int      initBlit;
+static UINT     BYTES_PER_BLOCK[BlitFormats_Last] = {0, 4, 2, 2, 2, 8, 16, 16};
+static UINT     PIXELS_PER_BLOCK_SHIFT[BlitFormats_Last] = {0, 0, 0, 0, 0, 2, 2, 2};
+static BlitFunc s_blits[BlitFormats_Last][BlitFormats_Last][BlitAlphas_Last];
 
-static void Blit_Argb8888_Argb4444(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Argb8888_Argb4444(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   const CImVector *src = static_cast<const CImVector *>(in);
   CArgb4444       *dst = static_cast<CArgb4444 *>(out);
   int              y;
@@ -32,12 +32,12 @@ static void Blit_Argb8888_Argb4444(const C2iVector &size, const void *in, unsign
       dst[x] = src[x];
     }
 
-    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const unsigned char *>(src) + inStride);
-    dst = reinterpret_cast<CArgb4444 *>(reinterpret_cast<unsigned char *>(dst) + outStride);
+    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const BYTE *>(src) + inStride);
+    dst = reinterpret_cast<CArgb4444 *>(reinterpret_cast<BYTE *>(dst) + outStride);
   }
 }
 
-static void Blit_Argb8888_Argb1555(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Argb8888_Argb1555(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   const CImVector *src = static_cast<const CImVector *>(in);
   CArgb1555       *dst = static_cast<CArgb1555 *>(out);
   int              y;
@@ -47,12 +47,12 @@ static void Blit_Argb8888_Argb1555(const C2iVector &size, const void *in, unsign
       dst[x] = src[x];
     }
 
-    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const unsigned char *>(src) + inStride);
-    dst = reinterpret_cast<CArgb1555 *>(reinterpret_cast<unsigned char *>(dst) + outStride);
+    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const BYTE *>(src) + inStride);
+    dst = reinterpret_cast<CArgb1555 *>(reinterpret_cast<BYTE *>(dst) + outStride);
   }
 }
 
-static void Blit_Argb8888_Rgb565(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Argb8888_Rgb565(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   const CImVector *src = static_cast<const CImVector *>(in);
   CRgb565         *dst = static_cast<CRgb565 *>(out);
   int              y;
@@ -62,19 +62,19 @@ static void Blit_Argb8888_Rgb565(const C2iVector &size, const void *in, unsigned
       dst[x] = src[x];
     }
 
-    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const unsigned char *>(src) + inStride);
-    dst = reinterpret_cast<CRgb565 *>(reinterpret_cast<unsigned char *>(dst) + outStride);
+    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const BYTE *>(src) + inStride);
+    dst = reinterpret_cast<CRgb565 *>(reinterpret_cast<BYTE *>(dst) + outStride);
   }
 }
 
-static void Blit_Argb8888_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Argb8888_Argb8888(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   if (sizeof(CImVector) * size.x == inStride && sizeof(CImVector) * size.x == outStride) {
     memcpy(out, in, sizeof(CImVector) * size.x * size.y);
     return;
   }
 
-  const unsigned char *src = static_cast<const unsigned char *>(in);
-  unsigned char       *dst = static_cast<unsigned char *>(out);
+  const BYTE *src = static_cast<const BYTE *>(in);
+  BYTE       *dst = static_cast<BYTE *>(out);
   for (int y = size.y; y; --y) {
     memcpy(dst, src, sizeof(CImVector) * size.x);
     src += inStride;
@@ -82,7 +82,7 @@ static void Blit_Argb8888_Argb8888(const C2iVector &size, const void *in, unsign
   }
 }
 
-static void Blit_Argb8888_Argb8888_A1(const C2iVector &size, const void *i, unsigned int iStride, void *o, unsigned int oStride) {
+static void Blit_Argb8888_Argb8888_A1(const C2iVector &size, LPCVOID i, UINT iStride, LPVOID o, UINT oStride) {
   const CImVector *src = static_cast<const CImVector *>(i);
   CImVector       *dst = static_cast<CImVector *>(o);
   for (int y = size.y; y; --y) {
@@ -95,12 +95,12 @@ static void Blit_Argb8888_Argb8888_A1(const C2iVector &size, const void *i, unsi
       }
     }
 
-    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const unsigned char *>(src) + iStride);
-    dst = reinterpret_cast<CImVector *>(reinterpret_cast<unsigned char *>(dst) + oStride);
+    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const BYTE *>(src) + iStride);
+    dst = reinterpret_cast<CImVector *>(reinterpret_cast<BYTE *>(dst) + oStride);
   }
 }
 
-static void Blit_Argb8888_Argb8888_A8(const C2iVector &size, const void *i, unsigned int iStride, void *o, unsigned int oStride) {
+static void Blit_Argb8888_Argb8888_A8(const C2iVector &size, LPCVOID i, UINT iStride, LPVOID o, UINT oStride) {
   const CImVector *src = static_cast<const CImVector *>(i);
   CImVector       *dst = static_cast<CImVector *>(o);
   for (int y = size.y; y; --y) {
@@ -114,64 +114,57 @@ static void Blit_Argb8888_Argb8888_A8(const C2iVector &size, const void *i, unsi
         dst[x].SetRGB(src + x);
       } else {
         dst[x].Set(
-            dst[x].a,
-            static_cast<unsigned char>(
-                dst[x].r + (((*src[x].IV_() >> CImVector::eAlphaS) * (src[x].r - dst[x].r)) >> 8)
-            ),
-            static_cast<unsigned char>(
-                dst[x].g + (((*src[x].IV_() >> CImVector::eAlphaS) * (src[x].g - dst[x].g)) >> 8)
-            ),
-            static_cast<unsigned char>(
-                dst[x].b + (((*src[x].IV_() >> CImVector::eAlphaS) * (src[x].b - dst[x].b)) >> 8)
-            )
+            dst[x].a, static_cast<BYTE>(dst[x].r + (((*src[x].IV_() >> CImVector::eAlphaS) * (src[x].r - dst[x].r)) >> 8)),
+            static_cast<BYTE>(dst[x].g + (((*src[x].IV_() >> CImVector::eAlphaS) * (src[x].g - dst[x].g)) >> 8)),
+            static_cast<BYTE>(dst[x].b + (((*src[x].IV_() >> CImVector::eAlphaS) * (src[x].b - dst[x].b)) >> 8))
         );
       }
     }
 
-    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const unsigned char *>(src) + iStride);
-    dst = reinterpret_cast<CImVector *>(reinterpret_cast<unsigned char *>(dst) + oStride);
+    src = reinterpret_cast<const CImVector *>(reinterpret_cast<const BYTE *>(src) + iStride);
+    dst = reinterpret_cast<CImVector *>(reinterpret_cast<BYTE *>(dst) + oStride);
   }
 }
 
-static void Blit_uint16_uint16(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
-  if (sizeof(unsigned short) * size.x == inStride && sizeof(unsigned short) * size.x == outStride) {
-    memcpy(out, in, sizeof(unsigned short) * size.x * size.y);
+static void Blit_uint16_uint16(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
+  if (sizeof(WORD) * size.x == inStride && sizeof(WORD) * size.x == outStride) {
+    memcpy(out, in, sizeof(WORD) * size.x * size.y);
     return;
   }
 
-  const unsigned char *src = static_cast<const unsigned char *>(in);
-  unsigned char       *dst = static_cast<unsigned char *>(out);
+  const BYTE *src = static_cast<const BYTE *>(in);
+  BYTE       *dst = static_cast<BYTE *>(out);
   for (int y = size.y; y; --y) {
-    memcpy(dst, src, sizeof(unsigned short) * size.x);
+    memcpy(dst, src, sizeof(WORD) * size.x);
     src += inStride;
     dst += outStride;
   }
 }
 
-static void Blit_Dxt1_Dxt1(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt1_Dxt1(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   int width = size.x > 4 ? size.x : 4;
   int height = size.y > 4 ? size.y : 4;
-  memcpy(out, in, static_cast<unsigned int>(4 * width * height) >> 3);
+  memcpy(out, in, static_cast<UINT>(4 * width * height) >> 3);
 }
 
-static void Blit_Dxt35_Dxt35(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt35_Dxt35(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   int width = size.x > 4 ? size.x : 4;
   int height = size.y > 4 ? size.y : 4;
-  memcpy(out, in, static_cast<unsigned int>(8 * width * height) >> 3);
+  memcpy(out, in, static_cast<UINT>(8 * width * height) >> 3);
 }
 
 template <class Pixel>
-inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt1Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
+inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt1Block *in, UINT inStride, Pixel *out, UINT outStride) {
   static Pixel table[4];
-  unsigned int rectWidth = size.x < 4 ? size.x : 4;
-  unsigned int rectHeight = size.y < 4 ? size.y : 4;
+  UINT         rectWidth = size.x < 4 ? size.x : 4;
+  UINT         rectHeight = size.y < 4 ? size.y : 4;
   int          y;
   for (y = 0; y < size.y; y += 4) {
     Pixel *dest[4];
     int    row;
     for (row = 0; row < 4; ++row) {
       dest[row] = out;
-      out = reinterpret_cast<Pixel *>(reinterpret_cast<unsigned char *>(out) + outStride);
+      out = reinterpret_cast<Pixel *>(reinterpret_cast<BYTE *>(out) + outStride);
     }
 
     const Dxt1Block *src = in;
@@ -182,12 +175,12 @@ inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt1Block *in, unsign
       ++src;
     }
 
-    in = reinterpret_cast<const Dxt1Block *>(reinterpret_cast<const unsigned char *>(in) + inStride);
+    in = reinterpret_cast<const Dxt1Block *>(reinterpret_cast<const BYTE *>(in) + inStride);
   }
 }
 
 template <class Pixel>
-inline void Blit_Dxt(const C2iVector &size, const Dxt1Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
+inline void Blit_Dxt(const C2iVector &size, const Dxt1Block *in, UINT inStride, Pixel *out, UINT outStride) {
   static Pixel table[4];
   int          y;
   for (y = 0; y < size.y; y += 4) {
@@ -195,7 +188,7 @@ inline void Blit_Dxt(const C2iVector &size, const Dxt1Block *in, unsigned int in
     int    row;
     for (row = 0; row < 4; ++row) {
       dest[row] = out;
-      out = reinterpret_cast<Pixel *>(reinterpret_cast<unsigned char *>(out) + outStride);
+      out = reinterpret_cast<Pixel *>(reinterpret_cast<BYTE *>(out) + outStride);
     }
 
     const Dxt1Block *src = in;
@@ -206,22 +199,22 @@ inline void Blit_Dxt(const C2iVector &size, const Dxt1Block *in, unsigned int in
       ++src;
     }
 
-    in = reinterpret_cast<const Dxt1Block *>(reinterpret_cast<const unsigned char *>(in) + inStride);
+    in = reinterpret_cast<const Dxt1Block *>(reinterpret_cast<const BYTE *>(in) + inStride);
   }
 }
 
 template <class Pixel>
-inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt3Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
+inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt3Block *in, UINT inStride, Pixel *out, UINT outStride) {
   static Pixel table[4];
-  unsigned int rectWidth = size.x < 4 ? size.x : 4;
-  unsigned int rectHeight = size.y < 4 ? size.y : 4;
+  UINT         rectWidth = size.x < 4 ? size.x : 4;
+  UINT         rectHeight = size.y < 4 ? size.y : 4;
   int          y;
   for (y = 0; y < size.y; y += 4) {
     Pixel *dest[4];
     int    row;
     for (row = 0; row < 4; ++row) {
       dest[row] = out;
-      out = reinterpret_cast<Pixel *>(reinterpret_cast<unsigned char *>(out) + outStride);
+      out = reinterpret_cast<Pixel *>(reinterpret_cast<BYTE *>(out) + outStride);
     }
 
     const Dxt3Block *src = in;
@@ -232,12 +225,12 @@ inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt3Block *in, unsign
       ++src;
     }
 
-    in = reinterpret_cast<const Dxt3Block *>(reinterpret_cast<const unsigned char *>(in) + inStride);
+    in = reinterpret_cast<const Dxt3Block *>(reinterpret_cast<const BYTE *>(in) + inStride);
   }
 }
 
 template <class Pixel>
-inline void Blit_Dxt(const C2iVector &size, const Dxt3Block *in, unsigned int inStride, Pixel *out, unsigned int outStride) {
+inline void Blit_Dxt(const C2iVector &size, const Dxt3Block *in, UINT inStride, Pixel *out, UINT outStride) {
   static Pixel table[4];
   int          y;
   for (y = 0; y < size.y; y += 4) {
@@ -245,7 +238,7 @@ inline void Blit_Dxt(const C2iVector &size, const Dxt3Block *in, unsigned int in
     int    row;
     for (row = 0; row < 4; ++row) {
       dest[row] = out;
-      out = reinterpret_cast<Pixel *>(reinterpret_cast<unsigned char *>(out) + outStride);
+      out = reinterpret_cast<Pixel *>(reinterpret_cast<BYTE *>(out) + outStride);
     }
 
     const Dxt3Block *src = in;
@@ -256,11 +249,11 @@ inline void Blit_Dxt(const C2iVector &size, const Dxt3Block *in, unsigned int in
       ++src;
     }
 
-    in = reinterpret_cast<const Dxt3Block *>(reinterpret_cast<const unsigned char *>(in) + inStride);
+    in = reinterpret_cast<const Dxt3Block *>(reinterpret_cast<const BYTE *>(in) + inStride);
   }
 }
 
-static void Blit_Dxt1_Rgb565(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt1_Rgb565(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned(size, static_cast<const Dxt1Block *>(in), inStride, static_cast<CRgb565 *>(out), outStride);
   } else {
@@ -268,7 +261,7 @@ static void Blit_Dxt1_Rgb565(const C2iVector &size, const void *in, unsigned int
   }
 }
 
-static void Blit_Dxt1_Argb1555(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt1_Argb1555(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned(size, static_cast<const Dxt1Block *>(in), inStride, static_cast<CArgb1555 *>(out), outStride);
   } else {
@@ -276,7 +269,7 @@ static void Blit_Dxt1_Argb1555(const C2iVector &size, const void *in, unsigned i
   }
 }
 
-static void Blit_Dxt1_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt1_Argb8888(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned(size, static_cast<const Dxt1Block *>(in), inStride, static_cast<CImVector *>(out), outStride);
   } else {
@@ -284,7 +277,7 @@ static void Blit_Dxt1_Argb8888(const C2iVector &size, const void *in, unsigned i
   }
 }
 
-static void Blit_Dxt3_Argb4444(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt3_Argb4444(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned<CArgb4444>(size, static_cast<const Dxt3Block *>(in), inStride, static_cast<CArgb4444 *>(out), outStride);
   } else {
@@ -292,7 +285,7 @@ static void Blit_Dxt3_Argb4444(const C2iVector &size, const void *in, unsigned i
   }
 }
 
-static void Blit_Dxt3_Argb8888(const C2iVector &size, const void *in, unsigned int inStride, void *out, unsigned int outStride) {
+static void Blit_Dxt3_Argb8888(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
   if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
     Blit_DxtUnaligned<CImVector>(size, static_cast<const Dxt3Block *>(in), inStride, static_cast<CImVector *>(out), outStride);
   } else {
@@ -320,16 +313,7 @@ static void InitBlit() {
   s_blits[BlitFormat_Dxt3][BlitFormat_Argb8888][BlitAlpha_0] = Blit_Dxt3_Argb8888;
 }
 
-void Blit(
-    const C2iVector &size,
-    BlitAlpha        alpha,
-    const void      *src,
-    unsigned int     srcStride,
-    BlitFormat       srcFmt,
-    void            *dst,
-    unsigned int     dstStride,
-    BlitFormat       dstFmt
-) {
+void Blit(const C2iVector &size, BlitAlpha alpha, LPCVOID src, UINT srcStride, BlitFormat srcFmt, LPVOID dst, UINT dstStride, BlitFormat dstFmt) {
   ASSERT(alpha < BlitAlphas_Last);
   ASSERT(srcFmt < BlitFormats_Last);
   ASSERT(dstFmt < BlitFormats_Last);
@@ -346,14 +330,14 @@ void Blit(
   blit(size, src, srcStride, dst, dstStride);
 }
 
-unsigned int CalcRowStride(BlitFormat format, unsigned int width) {
+UINT CalcRowStride(BlitFormat format, UINT width) {
   ASSERT(format >= BlitFormat_Argb8888 && format < BlitFormats_Last);
 
   if (format >= BlitFormat_Dxt1 && format <= BlitFormat_Dxt5 && width <= 4) {
     width = 4;
   }
 
-  unsigned int rowSize = BYTES_PER_BLOCK[format] * (width >> PIXELS_PER_BLOCK_SHIFT[format]);
+  UINT rowSize = BYTES_PER_BLOCK[format] * (width >> PIXELS_PER_BLOCK_SHIFT[format]);
   ASSERT(rowSize);
   return rowSize;
 }

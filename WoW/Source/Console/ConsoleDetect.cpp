@@ -7,16 +7,16 @@
 #include <storm.h>
 
 struct _PCI_VENTABLE {
-  unsigned short VenId;
-  char          *VenShort;
-  char          *VenFull;
+  WORD  VenId;
+  char *VenShort;
+  char *VenFull;
 };
 
 struct _PCI_DEVTABLE {
-  unsigned short VenId;
-  unsigned short DevId;
-  char          *Chip;
-  char          *ChipDesc;
+  WORD  VenId;
+  WORD  DevId;
+  char *Chip;
+  char *ChipDesc;
 };
 
 #include "ConsoleDetectPciData.inc"
@@ -44,14 +44,14 @@ static CGxFormat s_formats[7] = {
 
 static float s_terrainLODDist[4] = {80.0f, 80.0f, 100.0f, 100.0f};
 
-static unsigned int s_detailDoodadDensity[4] = {8, 12, 16, 24};
+static UINT s_detailDoodadDensity[4] = {8, 12, 16, 24};
 
-static unsigned int s_animatingDoodads[2][2] = {
+static UINT s_animatingDoodads[2][2] = {
     {0, 0},
     {0, 1}
 };
 
-static unsigned int s_waterLOD[2][2] = {
+static UINT s_waterLOD[2][2] = {
     {0, 0},
     {0, 1}
 };
@@ -91,16 +91,16 @@ static float s_farClip[4][2] = {
     {450.0f, 500.0f}
 };
 
-static const char  REGKEY[11] = "WoW\\Client";
-static const char *HWCPUIDX = "HWCpuIdx";
-static const char *HWMEMIDX = "HWMemIdx";
-static const char *HWVIDEOIDX = "HWVideoIdx";
-static const char *HWSOUNDIDX = "HWSoundIdx";
+static const char REGKEY[11] = "WoW\\Client";
+static LPCSTR     HWCPUIDX = "HWCpuIdx";
+static LPCSTR     HWMEMIDX = "HWMemIdx";
+static LPCSTR     HWVIDEOIDX = "HWVideoIdx";
+static LPCSTR     HWSOUNDIDX = "HWSoundIdx";
 
 static void PrintUnknownHardware(const Hardware &hardware) {
-  char         caption[512];
-  char         msg[1024];
-  unsigned int i;
+  char caption[512];
+  char msg[1024];
+  UINT i;
 
   SStrPrintf(msg, sizeof(msg), "Vendor id = 0x%04X\nDevice id = 0x%04X\n\n", hardware.videoDevice.vendorID, hardware.videoDevice.deviceID);
 
@@ -205,13 +205,13 @@ void SaveHardware(const Hardware &hardware, bool &changed) {
 
   changed = false;
 
-  if (SRegLoadValue(REGKEY, HWCPUIDX, 0, reinterpret_cast<unsigned long *>(&cpuIdx)) &&
-      SRegLoadValue(REGKEY, HWMEMIDX, 0, reinterpret_cast<unsigned long *>(&memIdx)) &&
-      SRegLoadValue(REGKEY, HWVIDEOIDX, 0, reinterpret_cast<unsigned long *>(&videoIdx)) &&
-      SRegLoadValue(REGKEY, HWSOUNDIDX, 0, reinterpret_cast<unsigned long *>(&soundIdx)))
+  if (SRegLoadValue(REGKEY, HWCPUIDX, 0, reinterpret_cast<DWORD *>(&cpuIdx)) &&
+      SRegLoadValue(REGKEY, HWMEMIDX, 0, reinterpret_cast<DWORD *>(&memIdx)) &&
+      SRegLoadValue(REGKEY, HWVIDEOIDX, 0, reinterpret_cast<DWORD *>(&videoIdx)) &&
+      SRegLoadValue(REGKEY, HWSOUNDIDX, 0, reinterpret_cast<DWORD *>(&soundIdx)))
   {
-    if (hardware.cpuIdx != static_cast<unsigned int>(cpuIdx) || hardware.videoIdx != static_cast<unsigned int>(videoIdx) ||
-        hardware.soundIdx != static_cast<unsigned int>(soundIdx) || hardware.memIdx != static_cast<unsigned int>(memIdx))
+    if (hardware.cpuIdx != static_cast<UINT>(cpuIdx) || hardware.videoIdx != static_cast<UINT>(videoIdx) ||
+        hardware.soundIdx != static_cast<UINT>(soundIdx) || hardware.memIdx != static_cast<UINT>(memIdx))
     {
       if (!OsGuiMessageBox(OsGuiGetWindow(2), 2, "Hardware changed.  Reload default settings?", "")) {
         changed = true;

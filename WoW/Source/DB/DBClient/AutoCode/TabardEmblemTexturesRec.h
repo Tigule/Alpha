@@ -7,13 +7,13 @@ class TabardEmblemTexturesRec {
   TabardEmblemTexturesRec();
   ~TabardEmblemTexturesRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 3;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 12;
   }
 
@@ -28,10 +28,10 @@ class TabardEmblemTexturesRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_TorsoTexture[2];
+  int    m_ID;
+  LPCSTR m_TorsoTexture[2];
 };
 
 extern WowClientDB<TabardEmblemTexturesRec> g_tabardEmblemTexturesDB;

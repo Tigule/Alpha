@@ -39,10 +39,7 @@ static LONG IDeleteValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valueName) {
   status = RegDeleteValueA(key, valueName);
   if (status == ERROR_SUCCESS) {
     SStrCopy(currentSubKey, subKeyName, sizeof(currentSubKey));
-    status = RegQueryInfoKeyA(
-        key, NULL, NULL, NULL, &subKeyCount, NULL, NULL,
-        reinterpret_cast<LPDWORD>(&valueName), NULL, NULL, NULL, NULL
-    );
+    status = RegQueryInfoKeyA(key, NULL, NULL, NULL, &subKeyCount, NULL, NULL, reinterpret_cast<LPDWORD>(&valueName), NULL, NULL, NULL, NULL);
     while (status == ERROR_SUCCESS) {
       if (subKeyCount || valueName) {
         break;
@@ -61,10 +58,7 @@ static LONG IDeleteValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valueName) {
       if (status != ERROR_SUCCESS) {
         return status;
       }
-      status = RegQueryInfoKeyA(
-          key, NULL, NULL, NULL, &subKeyCount, NULL, NULL,
-          reinterpret_cast<LPDWORD>(&valueName), NULL, NULL, NULL, NULL
-      );
+      status = RegQueryInfoKeyA(key, NULL, NULL, NULL, &subKeyCount, NULL, NULL, reinterpret_cast<LPDWORD>(&valueName), NULL, NULL, NULL, NULL);
     }
   }
   RegCloseKey(key);
@@ -85,8 +79,7 @@ static LONG IDeleteKey(HKEY parentKey, LPCSTR subKeyName) {
   return status;
 }
 
-static LONG
-ILoadValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valuename, LPDWORD datatype, LPBYTE buffer, DWORD bytes, LPDWORD bytesread) {
+static LONG ILoadValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valuename, LPDWORD datatype, LPBYTE buffer, DWORD bytes, LPDWORD bytesread) {
   HKEY key;
   LONG status;
 
@@ -170,8 +163,7 @@ static BOOL InternalDeleteKey(LPCSTR keyname, UINT flags) {
   return FALSE;
 }
 
-static BOOL
-InternalLoadEntry(LPCSTR keyname, LPCSTR valuename, UINT flags, LPDWORD datatype, LPVOID buffer, DWORD bytes, LPDWORD bytesread) {
+static BOOL InternalLoadEntry(LPCSTR keyname, LPCSTR valuename, UINT flags, LPDWORD datatype, LPVOID buffer, DWORD bytes, LPDWORD bytesread) {
   char fullkeyname[MAX_PATH];
   LONG status;
 
@@ -263,15 +255,7 @@ extern "C" BOOL APIENTRY SRegLoadData(LPCSTR keyname, LPCSTR valuename, UINT fla
     bytesread = reinterpret_cast<LPDWORD>(&keyname);
   }
 
-  return InternalLoadEntry(
-      keyname,
-      valuename,
-      flags,
-      reinterpret_cast<LPDWORD>(&valuename),
-      buffer,
-      buffersize,
-      bytesread
-  );
+  return InternalLoadEntry(keyname, valuename, flags, reinterpret_cast<LPDWORD>(&valuename), buffer, buffersize, bytesread);
 }
 
 extern "C" BOOL APIENTRY SRegLoadString(LPCSTR keyname, LPCSTR valuename, UINT flags, char *buffer, DWORD buffersize) {
@@ -282,24 +266,12 @@ extern "C" BOOL APIENTRY SRegLoadString(LPCSTR keyname, LPCSTR valuename, UINT f
   FATALASSERT(buffer);
   FATALASSERT(buffersize);
 
-  if (!InternalLoadEntry(
-      keyname,
-      valuename,
-      flags,
-      reinterpret_cast<LPDWORD>(&keyname),
-      buffer,
-      buffersize,
-      reinterpret_cast<LPDWORD>(&valuename)
-  )) {
+  if (!InternalLoadEntry(keyname, valuename, flags, reinterpret_cast<LPDWORD>(&keyname), buffer, buffersize, reinterpret_cast<LPDWORD>(&valuename))) {
     return FALSE;
   }
 
   if (*reinterpret_cast<LPDWORD>(&keyname) == REG_SZ) {
-    buffer[
-        *reinterpret_cast<LPDWORD>(&valuename) < buffersize
-            ? *reinterpret_cast<LPDWORD>(&valuename)
-            : buffersize - 1
-    ] = 0;
+    buffer[*reinterpret_cast<LPDWORD>(&valuename) < buffersize ? *reinterpret_cast<LPDWORD>(&valuename) : buffersize - 1] = 0;
   } else if (*reinterpret_cast<LPDWORD>(&keyname) == REG_DWORD) {
     SStrPrintf(buffer, buffersize, "%u", *(DWORD *)buffer);
   }
@@ -308,7 +280,7 @@ extern "C" BOOL APIENTRY SRegLoadString(LPCSTR keyname, LPCSTR valuename, UINT f
 }
 
 extern "C" BOOL APIENTRY SRegLoadValue(LPCSTR keyname, LPCSTR valuename, UINT flags, LPDWORD value) {
-  char  buffer[256];
+  char buffer[256];
 
   FATALASSERT(keyname);
   FATALASSERT(*keyname);
@@ -318,14 +290,9 @@ extern "C" BOOL APIENTRY SRegLoadValue(LPCSTR keyname, LPCSTR valuename, UINT fl
 
   buffer[0] = 0;
   if (!InternalLoadEntry(
-      keyname,
-      valuename,
-      flags,
-      reinterpret_cast<LPDWORD>(&keyname),
-      buffer,
-      sizeof(buffer),
-      reinterpret_cast<LPDWORD>(&valuename)
-  )) {
+          keyname, valuename, flags, reinterpret_cast<LPDWORD>(&keyname), buffer, sizeof(buffer), reinterpret_cast<LPDWORD>(&valuename)
+      ))
+  {
     return FALSE;
   }
 
@@ -411,9 +378,9 @@ extern "C" BOOL APIENTRY SRegEnumKey(LPCSTR baseKeyName, UINT flags, UINT subKey
 }
 
 extern "C" BOOL APIENTRY SRegGetNumSubKeys(LPCSTR keyName, UINT flags, UINT *numSubKeys) {
-  char  fullKeyName[MAX_PATH];
-  HKEY  key;
-  LONG  status;
+  char fullKeyName[MAX_PATH];
+  HKEY key;
+  LONG status;
 
   FATALASSERT(keyName);
   FATALASSERT(numSubKeys);
@@ -427,20 +394,7 @@ extern "C" BOOL APIENTRY SRegGetNumSubKeys(LPCSTR keyName, UINT flags, UINT *num
     return FALSE;
   }
 
-  status = RegQueryInfoKeyA(
-      key,
-      NULL,
-      NULL,
-      NULL,
-      reinterpret_cast<LPDWORD>(numSubKeys),
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      NULL
-  );
+  status = RegQueryInfoKeyA(key, NULL, NULL, NULL, reinterpret_cast<LPDWORD>(numSubKeys), NULL, NULL, NULL, NULL, NULL, NULL, NULL);
   RegCloseKey(key);
 
   if (status != ERROR_SUCCESS) {

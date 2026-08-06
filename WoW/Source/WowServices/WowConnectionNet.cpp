@@ -4,7 +4,7 @@
 
 #include "Console/ConsoleClient.h"
 
-WowConnectionNet::WowConnectionNet(int numThreads, void(*threadinit)()) : m_stopEvent(0, 0), m_workerSem(0, numThreads) {
+WowConnectionNet::WowConnectionNet(int numThreads, void (*threadinit)()) : m_stopEvent(0, 0), m_workerSem(0, numThreads) {
   m_numWorkers = numThreads;
   m_threadinit = threadinit;
   m_stop = 0;
@@ -32,13 +32,13 @@ void WowConnectionNet::Remove(WowConnection *conn) {
   m_connectionsLock.Leave();
 }
 
-static unsigned int __stdcall WorkerProc(void *param) {
+static UINT __stdcall WorkerProc(LPVOID param) {
   WowConnectionNet::Worker *worker = static_cast<WowConnectionNet::Worker *>(param);
   worker->owner->RunWorker(worker->id);
   return 0;
 }
 
-static unsigned int __stdcall MainProc(void *param) {
+static UINT __stdcall MainProc(LPVOID param) {
   static_cast<WowConnectionNet *>(param)->Run();
   return 0;
 }
@@ -135,7 +135,7 @@ void WowConnectionNet::RunWorker(int id) {
   }
 }
 
-void WowConnectionNet::SignalWorker(WowConnection *conn, unsigned int flags) {
+void WowConnectionNet::SignalWorker(WowConnection *conn, UINT flags) {
   if (m_workerSem.Wait(500)) {
     ConsolePrintf("Worker wait timed out");
     return;

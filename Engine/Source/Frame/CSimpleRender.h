@@ -24,8 +24,8 @@ struct HTEXTFONT__;
 struct HTEXTURE__;
 struct CGxString;
 
-const char *TextBlockGetFontName(HTEXTFONT__ *font);
-unsigned int TextBlockGetFontFlags(HTEXTFONT__ *font);
+LPCSTR     TextBlockGetFontName(HTEXTFONT__ *font);
+UINT       TextBlockGetFontFlags(HTEXTFONT__ *font);
 CGxString *TextBlockGetStringPtr(HTEXTBLOCK__ *text);
 
 class CRenderBatch;
@@ -37,12 +37,12 @@ class CSimpleRender {
 
  protected:
   static NTempest::C3Vector s_normal;
-  static unsigned short     s_indices[4];
+  static WORD               s_indices[4];
 };
 
 NODEDECL(RENDERCALLBACKNODE) {
-  void(*callback)(void *);
-  void *param;
+  void (*callback)(LPVOID);
+  LPVOID param;
 };
 
 class CRenderBatch {
@@ -54,18 +54,18 @@ class CRenderBatch {
 
   void Clear();
   void Finish();
-  void QueueCallback(void(*callback)(void *), void *param);
+  void QueueCallback(void (*callback)(LPVOID), LPVOID param);
   void QueueFontString(CSimpleFontString *string);
   void QueueTexture(CSimpleTexture *texture);
 
-  unsigned int Count() {
+  UINT Count() {
     return m_count;
   }
 
  protected:
-  unsigned int                                               m_count;
-  TSGrowableArray<CSimpleBatchedTexture>                     m_texturelist;
-  CGxStringBatch                                            *m_stringbatch;
+  UINT                                   m_count;
+  TSGrowableArray<CSimpleBatchedTexture> m_texturelist;
+  CGxStringBatch                        *m_stringbatch;
   LISTDECL(RENDERCALLBACKNODE, m_callbacks);
 
  public:
@@ -99,34 +99,34 @@ class CSimpleFontStringAttributes {
 
   const CSimpleFontStringAttributes &operator=(const CSimpleFontStringAttributes &rhs);
   const CSimpleFontStringAttributes &operator=(const CSimpleFontString &rhs);
-  void SetFont(const char *font, float fontHeight, unsigned int fontFlags) {
+  void                               SetFont(LPCSTR font, float fontHeight, UINT fontFlags) {
     m_font = font;
     m_fontHeight = fontHeight;
     m_fontFlags = fontFlags;
     m_flags |= FLAG_FONT_UPDATE;
   }
-  unsigned char HasFont() const {
-    const char *font = m_font;
+  BYTE HasFont() const {
+    LPCSTR font = m_font;
     return font && *font;
   }
-  const char *GetFontName() const {
+  LPCSTR GetFontName() const {
     return m_font;
   }
-  float                              GetFontHeight() const {
+  float GetFontHeight() const {
     return m_fontHeight;
   }
-  unsigned int GetFontFlags() const {
+  UINT GetFontFlags() const {
     return m_fontFlags;
   }
-  void SetHorizontalAlignment(unsigned int alignment) {
+  void SetHorizontalAlignment(UINT alignment) {
     m_styleFlags = (m_styleFlags & ~0x7U) | alignment;
     m_flags |= FLAG_STYLE_UPDATE;
   }
-  void SetVerticalAlignment(unsigned int alignment) {
+  void SetVerticalAlignment(UINT alignment) {
     m_styleFlags = (m_styleFlags & ~0x38U) | alignment;
     m_flags |= FLAG_STYLE_UPDATE;
   }
-  void SetStyleFlags(unsigned int flags) {
+  void SetStyleFlags(UINT flags) {
     m_styleFlags = flags;
     m_flags |= FLAG_STYLE_UPDATE;
   }
@@ -137,7 +137,7 @@ class CSimpleFontStringAttributes {
     m_color = color;
     m_flags |= FLAG_COLOR_UPDATE;
   }
-  void SetAlpha(unsigned char alpha) {
+  void SetAlpha(BYTE alpha) {
     m_color.a = alpha;
     m_flags |= FLAG_COLOR_UPDATE;
   }
@@ -160,9 +160,9 @@ class CSimpleFontStringAttributes {
   int                 m_flags;
   RCString            m_font;
   float               m_fontHeight;
-  unsigned int        m_fontFlags;
+  UINT                m_fontFlags;
   float               m_spacing;
-  unsigned int        m_styleFlags;
+  UINT                m_styleFlags;
   NTempest::CImVector m_color;
   NTempest::CImVector m_shadowColor;
   NTempest::C2Vector  m_shadowOffset;
@@ -170,7 +170,7 @@ class CSimpleFontStringAttributes {
 
 class CSimpleRegion : public CLayoutFrame {
  public:
-  CSimpleRegion(CSimpleFrame *frame, unsigned int drawlayer, int show);
+  CSimpleRegion(CSimpleFrame *frame, UINT drawlayer, int show);
   virtual ~CSimpleRegion();
 
   virtual CLayoutFrame *GetLayoutParent();
@@ -178,8 +178,8 @@ class CSimpleRegion : public CLayoutFrame {
   virtual void          Draw(CRenderBatch *batch) = 0;
   virtual void          ClearFromSimpleRegistry() = 0;
 
-  void SetVertexColor(const NTempest::CImVector &color);
-  void GetVertexColor(NTempest::CImVector &color) const;
+  void                       SetVertexColor(const NTempest::CImVector &color);
+  void                       GetVertexColor(NTempest::CImVector &color) const;
   const NTempest::CImVector *GetGxColor() const {
     return m_GxColor;
   }
@@ -191,15 +191,15 @@ class CSimpleRegion : public CLayoutFrame {
   CSimpleFrame *GetParentFrame() {
     return m_frame;
   }
-  void SetFrame(CSimpleFrame *frame, unsigned int drawlayer, int show);
+  void SetFrame(CSimpleFrame *frame, UINT drawlayer, int show);
   void OnRegionChanged();
 
  protected:
-  unsigned char              m_color_a;
+  BYTE                       m_color_a;
   NTempest::CImVector        m_color;
   const NTempest::CImVector *m_GxColor;
   CSimpleFrame              *m_frame;
-  unsigned int               m_drawlayer;
+  UINT                       m_drawlayer;
   int                        m_visible;
 };
 
@@ -211,33 +211,33 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   friend class CSimpleMessageScrollFrame;
 
  public:
-  CSimpleFontString(CSimpleFrame *frame, unsigned int drawlayer, int show);
+  CSimpleFontString(CSimpleFrame *frame, UINT drawlayer, int show);
   virtual ~CSimpleFontString();
 
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();
 
-  virtual const char *GetName() const {
+  virtual LPCSTR GetName() const {
     return m_name;
   }
   virtual float         GetWidth();
   virtual float         GetHeight();
   virtual void          OnGxColorChanged();
   virtual void          LoadXML(const XMLNode *node, CStatus *status);
-  virtual CLayoutFrame *GetLayoutFrameByName(const char *name);
+  virtual CLayoutFrame *GetLayoutFrameByName(LPCSTR name);
   virtual void          SetLayoutScale(float scale, bool force);
   void                  PreLoadXML(const XMLNode *node, CStatus *status);
   void                  PostLoadXML(const XMLNode *node, CStatus *status);
-  int                   AddToRegistry(const char *name, unsigned int context);
+  int                   AddToRegistry(LPCSTR name, UINT context);
   void                  SetAttributes(CSimpleFontStringAttributes &attrib) {
     attrib.UpdateString(this, 0);
   }
-  int                   SetFont(const char *font, float fontHeight, unsigned int fontFlags);
-  void                  SetTextLength(int size);
-  void                  SetText(const char *text);
-  void                  SetText(int value);
-  void                  GetText(char *buffer, int bufferBytes) const;
-  const char           *GetText() const {
+  int    SetFont(LPCSTR font, float fontHeight, UINT fontFlags);
+  void   SetTextLength(int size);
+  void   SetText(LPCSTR text);
+  void   SetText(int value);
+  void   GetText(char *buffer, int bufferBytes) const;
+  LPCSTR GetText() const {
     return m_text;
   }
   int GetTextLength() {
@@ -249,24 +249,24 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   float GetSpacing() const {
     return m_spacing;
   }
-  float        GetStringWidth();
-  float        GetStringHeight();
-  float        GetTextWidth(const char *text, unsigned int textBytes);
-  unsigned int WrapText(const char *text, float maxWidth, unsigned int *lineOffsets, unsigned int maxLines);
-  unsigned int GetNumCharsWithinWidth(const char *text, unsigned int textBytes, float maxWidth);
-  unsigned int GetNumCharsWithinWidthFromEnd(const char *text, unsigned int textBytes, float maxWidth);
-  void         SetTextHeight(float height);
-  bool         SetAlphaGradient(int startChar, int length);
-  void         SetSpacing(float spacing);
-  void         AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset);
-  void         RemoveShadow();
-  int          HasShadow() const {
+  float GetStringWidth();
+  float GetStringHeight();
+  float GetTextWidth(LPCSTR text, UINT textBytes);
+  UINT  WrapText(LPCSTR text, float maxWidth, UINT *lineOffsets, UINT maxLines);
+  UINT  GetNumCharsWithinWidth(LPCSTR text, UINT textBytes, float maxWidth);
+  UINT  GetNumCharsWithinWidthFromEnd(LPCSTR text, UINT textBytes, float maxWidth);
+  void  SetTextHeight(float height);
+  bool  SetAlphaGradient(int startChar, int length);
+  void  SetSpacing(float spacing);
+  void  AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset);
+  void  RemoveShadow();
+  int   HasShadow() const {
     return (m_styleFlags & 0x100) != 0;
   }
-  const char *GetFontName() const {
+  LPCSTR GetFontName() const {
     return m_font ? TextBlockGetFontName(m_font) : 0;
   }
-  unsigned int GetFontFlags() const {
+  UINT GetFontFlags() const {
     return m_font ? TextBlockGetFontFlags(m_font) : 0;
   }
   void GetShadowColor(NTempest::CImVector &color) const {
@@ -278,18 +278,18 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   CGxString *GetString() {
     return m_string ? TextBlockGetStringPtr(m_string) : 0;
   }
-  void         SetJustificationOffset(float x, float y);
-  void         SetHorizontalAlignment(unsigned int alignment) {
+  void SetJustificationOffset(float x, float y);
+  void SetHorizontalAlignment(UINT alignment) {
     ChangeStyleFlags(0x7, alignment);
   }
-  unsigned int GetHorizontalAlignment() const {
+  UINT GetHorizontalAlignment() const {
     return m_styleFlags & 0x7;
   }
 
-  void SetVerticalAlignment(unsigned int alignment) {
+  void SetVerticalAlignment(UINT alignment) {
     ChangeStyleFlags(0x38, alignment);
   }
-  unsigned int GetVerticalAlignment() const {
+  UINT GetVerticalAlignment() const {
     return m_styleFlags & 0x38;
   }
 
@@ -300,10 +300,10 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   void GetTextColor(NTempest::CImVector &color) const {
     GetVertexColor(color);
   }
-  void SetStyleFlags(unsigned int flags) {
+  void SetStyleFlags(UINT flags) {
     ChangeStyleFlags(0xFFFFFFFF, flags);
   }
-  unsigned int GetStyleFlags() const {
+  UINT GetStyleFlags() const {
     return m_styleFlags;
   }
   void SetCanWrapOnSpace(int canWrap) {
@@ -329,10 +329,10 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   virtual void ClearFromSimpleRegistry();
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
-  void ChangeStyleFlags(unsigned int mask, int flags) {
-    unsigned int styleFlags = (m_styleFlags & ~mask) | flags;
+  void ChangeStyleFlags(UINT mask, int flags) {
+    UINT styleFlags = (m_styleFlags & ~mask) | flags;
 
     if (styleFlags != m_styleFlags) {
       m_styleFlags = styleFlags;
@@ -345,7 +345,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
   char               *m_name;
-  unsigned int        m_registryContext;
+  UINT                m_registryContext;
   HTEXTFONT__        *m_font;
   float               m_fontHeight;
   int                 m_textMaxSize;
@@ -360,7 +360,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   NTempest::C2Vector  m_justificationOffset;
   int                 m_alphaGradientStart;
   int                 m_alphaGradientLength;
-  unsigned int        m_styleFlags;
+  UINT                m_styleFlags;
 };
 
 class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
@@ -370,22 +370,22 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
   friend class CSimpleStatusBar;
 
  public:
-  CSimpleTexture(CSimpleFrame *frame, unsigned int drawlayer, int show);
+  CSimpleTexture(CSimpleFrame *frame, UINT drawlayer, int show);
   virtual ~CSimpleTexture();
 
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();
 
-  virtual const char *GetName() const {
+  virtual LPCSTR GetName() const {
     return m_name;
   }
   virtual void          LoadXML(const XMLNode *node, CStatus *status);
-  virtual CLayoutFrame *GetLayoutFrameByName(const char *name);
+  virtual CLayoutFrame *GetLayoutFrameByName(LPCSTR name);
   void                  PreLoadXML(const XMLNode *node, CStatus *status);
   void                  PostLoadXML(const XMLNode *node, CStatus *status);
-  int                   AddToRegistry(const char *name, unsigned int context);
+  int                   AddToRegistry(LPCSTR name, UINT context);
   int                   SetTexture(HTEXTURE__ *texHandle);
-  int                   SetTexture(const char *file, int uvWrapping);
+  int                   SetTexture(LPCSTR file, int uvWrapping);
   int                   SetTexture(const NTempest::CImVector &color);
   void                  SetBlendMode(EGxBlend mode);
   void                  SetTexCoord(const NTempest::CRect &rect);
@@ -393,13 +393,13 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
   void                  SetTexCoordModifiesPosition(int modifies) {
     m_TexCoordModifiesPosition = modifies;
   }
-  void                  TexCorrectRect(NTempest::CRect &rect);
-  void                  SetPosition(const NTempest::CRect &rect);
-  virtual float         GetWidth();
-  virtual float         GetHeight();
-  virtual void          OnFrameSizeChanged(const NTempest::CRect &rect);
-  CGxTex               *GetTexture();
-  HTEXTURE__            *GetHTEXTURE() {
+  void          TexCorrectRect(NTempest::CRect &rect);
+  void          SetPosition(const NTempest::CRect &rect);
+  virtual float GetWidth();
+  virtual float GetHeight();
+  virtual void  OnFrameSizeChanged(const NTempest::CRect &rect);
+  CGxTex       *GetTexture();
+  HTEXTURE__   *GetHTEXTURE() {
     return m_texture;
   }
   EGxBlend GetAlphaMode() {
@@ -414,17 +414,17 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
   static void SetTextureFilterMode(EGxTexFilter mode) {
     s_textureFilterMode = mode;
   }
-  virtual void          Draw(CRenderBatch *batch);
-  virtual void          ClearFromSimpleRegistry();
+  virtual void Draw(CRenderBatch *batch);
+  virtual void ClearFromSimpleRegistry();
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
   static EGxTexFilter                                         s_textureFilterMode;
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
   char              *m_name;
-  unsigned int       m_registryContext;
+  UINT               m_registryContext;
   HTEXTURE__        *m_texture;
   EGxBlend           m_alphamode;
   NTempest::C3Vector m_position[4];
@@ -433,7 +433,7 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
 };
 
 struct CSimpleBatchedTexture {
-  unsigned long              textureID;
+  DWORD                      textureID;
   const NTempest::C3Vector  *position;
   const NTempest::C2Vector  *texCoord;
   EGxBlend                   alphamode;

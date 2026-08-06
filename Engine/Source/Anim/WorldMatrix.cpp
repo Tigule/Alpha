@@ -55,7 +55,7 @@ void WorldMatrixBasis(const NTempest::C3Vector &x, const NTempest::C3Vector &y, 
   world = rotationBasis * world;
 }
 
-void WorldMatrixRemove(unsigned int removeFlags) {
+void WorldMatrixRemove(UINT removeFlags) {
   NTempest::C34Matrix &matrix = s_worldMatrixStack.Get();
 
   switch (removeFlags & 6) {
@@ -125,7 +125,7 @@ void WorldMatrixTransform(NTempest::C3Vector *v) {
   *v *= s_worldMatrixStack.Get();
 }
 
-void WorldMatrixGetRow(unsigned int row, NTempest::C3Vector *v) {
+void WorldMatrixGetRow(UINT row, NTempest::C3Vector *v) {
   switch (row) {
     case 0: {
       NTempest::C34Matrix &matrix = s_worldMatrixStack.Get();
@@ -161,7 +161,7 @@ void WorldMatrixGetRow(unsigned int row, NTempest::C3Vector *v) {
   }
 }
 
-void WorldMatrixSetRow(unsigned int row, const NTempest::C3Vector &v) {
+void WorldMatrixSetRow(UINT row, const NTempest::C3Vector &v) {
   switch (row) {
     case 0: {
       NTempest::C34Matrix &matrix = s_worldMatrixStack.Get();

@@ -26,13 +26,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-unsigned __int64                        CGClassTrainer::m_trainer;
+DWORDLONG                               CGClassTrainer::m_trainer;
 TRAINER_TYPE                            CGClassTrainer::m_trainerType;
 int                                     CGClassTrainer::m_currentSelection;
-unsigned int                            CGClassTrainer::m_numServices;
-unsigned int                            CGClassTrainer::m_numSkillLines;
-unsigned int                            CGClassTrainer::m_filteredServices;
+UINT                                    CGClassTrainer::m_numServices;
+UINT                                    CGClassTrainer::m_numSkillLines;
+UINT                                    CGClassTrainer::m_filteredServices;
 int                                     CGClassTrainer::m_serviceTypeFilter;
 int                                     CGClassTrainer::m_skillLineFilter;
 int                                     CGClassTrainer::m_collapseFilter;
@@ -40,16 +39,16 @@ TSGrowableArray<TrainerServiceInfo *>   CGClassTrainer::m_services;
 TSGrowableArray<TrainerSkillLineInfo *> CGClassTrainer::m_skillLines;
 char                                    CGClassTrainer::m_greetingText[512];
 
-void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet);
-int SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
+void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, UINT level, int isPet);
+int  SpellParserParseText(const SpellRec *spell, char *buf, UINT size, int isPet);
 
-static void TrainerItemCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
+static void TrainerItemCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (granted) {
     CGClassTrainer::RefreshList();
   }
 }
 
-static void TradeSkillItemCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
+static void TradeSkillItemCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (granted) {
     CGClassTrainer::RefreshList();
   }
@@ -59,7 +58,7 @@ void CGClassTrainer::InitializeGame() {
 }
 
 void CGClassTrainer::ShutdownGame() {
-  unsigned int i;
+  UINT i;
   for (i = 0; i < m_services.Count(); ++i) {
     DEL(m_services[i]);
   }
@@ -82,7 +81,7 @@ void CGClassTrainer::LeaveWorld() {
   SetTrainer(0, TRAINER_TYPE_GENERAL);
 }
 
-void CGClassTrainer::SetTrainer(unsigned __int64 trainerGUID, TRAINER_TYPE type) {
+void CGClassTrainer::SetTrainer(DWORDLONG trainerGUID, TRAINER_TYPE type) {
   if (trainerGUID) {
     if (trainerGUID != ClntObjMgrGetActivePlayer()) {
       CGGameUI::SetInteractTarget(trainerGUID, MAX_SHOP_DISTANCE_SQUARED);
@@ -98,7 +97,7 @@ void CGClassTrainer::SetTrainer(unsigned __int64 trainerGUID, TRAINER_TYPE type)
   }
 }
 
-void CGClassTrainer::SetSelection(unsigned int index) {
+void CGClassTrainer::SetSelection(UINT index) {
   if (index < m_numServices) {
     m_currentSelection = m_services[index]->spellID;
   } else {
@@ -110,7 +109,7 @@ int CGClassTrainer::GetSelectionIndex() {
   if (!m_currentSelection) {
     return -1;
   }
-  unsigned int index;
+  UINT index;
   for (index = 0; index < m_numServices; ++index) {
     if (m_services[index]->spellID == m_currentSelection) {
       break;
@@ -119,7 +118,7 @@ int CGClassTrainer::GetSelectionIndex() {
   return index == m_numServices ? -1 : index;
 }
 
-static int __cdecl QSortSkillLines(const void *a, const void *b) {
+static int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   TrainerSkillLineInfo *info1 = *static_cast<TrainerSkillLineInfo *const *>(a);
@@ -141,7 +140,7 @@ static int __cdecl QSortSkillLines(const void *a, const void *b) {
   return SStrCmp(line1->m_displayName_lang[CURRENT_LANGUAGE], line2->m_displayName_lang[CURRENT_LANGUAGE], 0x7FFFFFFF);
 }
 
-int __cdecl QSortTradeSkillTypes(const void *a, const void *b) {
+int __cdecl QSortTradeSkillTypes(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   int line1 = (*static_cast<TrainerSkillLineInfo *const *>(a))->skillLine;
@@ -152,7 +151,7 @@ int __cdecl QSortTradeSkillTypes(const void *a, const void *b) {
   return line1 > line2 ? 1 : -1;
 }
 
-int __cdecl QSortServices_General(const void *a, const void *b) {
+int __cdecl QSortServices_General(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
@@ -160,9 +159,9 @@ int __cdecl QSortServices_General(const void *a, const void *b) {
   if (info1->enabled != info2->enabled) {
     return info2->enabled ? 1 : -1;
   }
-  unsigned int line1 = 0;
-  unsigned int line2 = 0;
-  for (unsigned int index = 0; index < CGClassTrainer::m_numSkillLines; ++index) {
+  UINT line1 = 0;
+  UINT line2 = 0;
+  for (UINT index = 0; index < CGClassTrainer::m_numSkillLines; ++index) {
     if (CGClassTrainer::m_skillLines[index]->skillLine == info1->skillLine) {
       line1 = index;
     }
@@ -187,7 +186,7 @@ int __cdecl QSortServices_General(const void *a, const void *b) {
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
-int __cdecl QSortServices_Tradeskill(const void *a, const void *b) {
+int __cdecl QSortServices_Tradeskill(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
@@ -209,7 +208,7 @@ int __cdecl QSortServices_Tradeskill(const void *a, const void *b) {
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
-int __cdecl QSortServices_Talent(const void *a, const void *b) {
+int __cdecl QSortServices_Talent(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
@@ -253,7 +252,7 @@ int GetSkillLineFromService(int serviceSpell) {
   }
   if (petSpell) {
     const CGUnitData *unitData = unit->GetUnitData();
-    unsigned __int64  pet = unitData->charm ? unitData->charm : unitData->summon;
+    DWORDLONG         pet = unitData->charm ? unitData->charm : unitData->summon;
     unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(pet, __FILE__, __LINE__));
   }
   if (!unit) {
@@ -264,17 +263,17 @@ int GetSkillLineFromService(int serviceSpell) {
 }
 
 void CGClassTrainer::AddServices(
-    unsigned int   count,
-    int           *spellID,
-    unsigned int  *moneyCost,
-    unsigned char **const pointCost,
-    unsigned char  *reqLevel,
-    unsigned int  *reqSkillLine,
-    unsigned int  *reqSkillRank,
-    unsigned int  *reqSkillStep,
-    int          **const reqAbility,
-    unsigned char  *usable,
-    const char    *greeting
+    UINT         count,
+    int         *spellID,
+    UINT        *moneyCost,
+    BYTE **const pointCost,
+    BYTE        *reqLevel,
+    UINT        *reqSkillLine,
+    UINT        *reqSkillRank,
+    UINT        *reqSkillStep,
+    int **const  reqAbility,
+    BYTE        *usable,
+    LPCSTR       greeting
 ) {
   while (m_services.Count() < count) {
     TrainerServiceInfo *info = NEW(TrainerServiceInfo);
@@ -298,21 +297,21 @@ void CGClassTrainer::AddServices(
     m_numSkillLines = 1;
   }
 
-  unsigned int skipped = 0;
-  for (unsigned int index = 0; index + skipped < count; ++index) {
-    unsigned int        source = index + skipped;
+  UINT skipped = 0;
+  for (UINT index = 0; index + skipped < count; ++index) {
+    UINT                source = index + skipped;
     TrainerServiceInfo *info = m_services[index];
     memset(info, 0, sizeof(*info));
     info->spellID = spellID[source];
     info->moneyCost = moneyCost[source];
-    for (unsigned int point = 0; point < 2; ++point) {
+    for (UINT point = 0; point < 2; ++point) {
       info->pointCost[point] = pointCost[point][source];
     }
     info->reqLevel = reqLevel[source];
     info->reqSkillLine = reqSkillLine[source];
     info->reqSkillRank = reqSkillRank[source];
     info->reqSkillStep = reqSkillStep[source];
-    for (unsigned int ability = 0; ability < 3; ++ability) {
+    for (UINT ability = 0; ability < 3; ++ability) {
       info->reqAbility[ability] = reqAbility[ability][source];
     }
     info->usable = usable[source];
@@ -321,7 +320,7 @@ void CGClassTrainer::AddServices(
       info->skillLine = 2;
       const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
       if (spell) {
-        for (unsigned int effect = 0; effect < 3; ++effect) {
+        for (UINT effect = 0; effect < 3; ++effect) {
           if (spell->m_effect[effect] == 44) {
             info->skillLine = 1;
             break;
@@ -341,7 +340,7 @@ void CGClassTrainer::AddServices(
     }
 
     TrainerSkillLineInfo *line = 0;
-    for (unsigned int lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
+    for (UINT lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
       if (m_skillLines[lineIndex]->skillLine == info->skillLine) {
         line = m_skillLines[lineIndex];
         break;
@@ -358,7 +357,7 @@ void CGClassTrainer::AddServices(
       line->skillLine = info->skillLine;
       line->collapsed = 1;
       line->allCostPoints = 0;
-      for (unsigned int point = 0; point < 2; ++point) {
+      for (UINT point = 0; point < 2; ++point) {
         if (info->pointCost[point]) {
           line->allCostPoints = 1;
         }
@@ -380,7 +379,7 @@ void CGClassTrainer::AddServices(
     TrainerServiceInfo *info = NEW(TrainerServiceInfo);
     m_services.Add(1, &info);
   }
-  for (unsigned int lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
+  for (UINT lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
     TrainerServiceInfo *header = m_services[m_numServices + lineIndex];
     memset(header, 0, sizeof(*header));
     header->spellID = -1;
@@ -396,8 +395,8 @@ void CGClassTrainer::AddServices(
 }
 
 void CGClassTrainer::RefreshList() {
-  unsigned int i;
-  unsigned int j;
+  UINT i;
+  UINT j;
 
   if (!m_trainer) {
     return;
@@ -440,9 +439,8 @@ void CGClassTrainer::RefreshList() {
         int min;
         int max;
         Spell_C_GetMinMaxPoints(srec, j, &min, &max, player->GetUnitData()->level, 0);
-        for (unsigned int skill = 0; skill < 64; ++skill) {
-          if (player->GetMirrorSkillID(skill) == srec->m_effectMiscValue[j] &&
-              player->GetMirrorSkillStep(skill) >= min) {
+        for (UINT skill = 0; skill < 64; ++skill) {
+          if (player->GetMirrorSkillID(skill) == srec->m_effectMiscValue[j] && player->GetMirrorSkillStep(skill) >= min) {
             info->usable = 2;
             break;
           }
@@ -452,7 +450,7 @@ void CGClassTrainer::RefreshList() {
       if (srec->m_effect[j] == 57) {
         ++numToLearn;
         const CGUnitData *unitData = player->GetUnitData();
-        unsigned __int64  petGUID = unitData->charm ? unitData->charm : unitData->summon;
+        DWORDLONG         petGUID = unitData->charm ? unitData->charm : unitData->summon;
         pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(petGUID, __FILE__, __LINE__));
         if (!pet) {
           info->usable = 1;
@@ -476,7 +474,7 @@ void CGClassTrainer::RefreshList() {
     }
 
     if (info->reqSkillLine) {
-      int            maxRank = 0;
+      int maxRank = 0;
       for (j = 0; j < 64; ++j) {
         if (player->GetMirrorSkillID(j) != info->reqSkillLine) {
           continue;
@@ -556,10 +554,10 @@ void CGClassTrainer::RefreshList() {
 
 void CGClassTrainer::FilterAndSortServices() {
   m_filteredServices = m_numServices;
-  for (unsigned int lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
+  for (UINT lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
     TrainerSkillLineInfo *line = m_skillLines[lineIndex];
     int                   hasService = 0;
-    for (unsigned int type = 0; type < NUM_TRAINER_SERVICE_TYPES; ++type) {
+    for (UINT type = 0; type < NUM_TRAINER_SERVICE_TYPES; ++type) {
       if ((m_serviceTypeFilter & (1 << type)) && line->numSkills[type]) {
         hasService = 1;
         break;
@@ -569,11 +567,11 @@ void CGClassTrainer::FilterAndSortServices() {
     line->collapsed = !(m_collapseFilter & (1 << lineIndex));
   }
 
-  for (unsigned int index = 0; index < m_numServices; ++index) {
+  for (UINT index = 0; index < m_numServices; ++index) {
     TrainerServiceInfo *info = m_services[index];
     info->enabled = info->spellID < 0 || (m_serviceTypeFilter & (1 << info->usable));
     TrainerSkillLineInfo *line = 0;
-    for (unsigned int lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
+    for (UINT lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
       if (m_skillLines[lineIndex]->skillLine == info->skillLine) {
         line = m_skillLines[lineIndex];
         break;
@@ -585,7 +583,7 @@ void CGClassTrainer::FilterAndSortServices() {
     }
   }
 
-  int(__cdecl * compare)(const void *, const void *) = QSortServices_General;
+  int(__cdecl * compare)(LPCVOID, LPCVOID) = QSortServices_General;
   if (m_trainerType == TRAINER_TYPE_TALENTS) {
     compare = QSortServices_Talent;
   } else if (m_trainerType == TRAINER_TYPE_TRADESKILLS) {
@@ -594,11 +592,11 @@ void CGClassTrainer::FilterAndSortServices() {
   qsort(m_services.Ptr(), m_numServices, sizeof(TrainerServiceInfo *), compare);
 }
 
-const TrainerServiceInfo *CGClassTrainer::GetService(unsigned int index) {
+const TrainerServiceInfo *CGClassTrainer::GetService(UINT index) {
   return index < m_numServices ? m_services[index] : 0;
 }
 
-const char *CGClassTrainer::GetServiceName(unsigned int index) {
+LPCSTR CGClassTrainer::GetServiceName(UINT index) {
   const TrainerServiceInfo *service = GetService(index);
   if (!service) {
     return 0;
@@ -614,7 +612,7 @@ const char *CGClassTrainer::GetServiceName(unsigned int index) {
   return line ? line->m_displayName_lang[CURRENT_LANGUAGE] : 0;
 }
 
-const char *CGClassTrainer::GetServiceSubtext(unsigned int index) {
+LPCSTR CGClassTrainer::GetServiceSubtext(UINT index) {
   const TrainerServiceInfo *service = GetService(index);
   if (!service || service->spellID < 0) {
     return service ? "" : 0;
@@ -623,7 +621,7 @@ const char *CGClassTrainer::GetServiceSubtext(unsigned int index) {
   return spell ? spell->m_nameSubtext_lang[CURRENT_LANGUAGE] : 0;
 }
 
-const char *CGClassTrainer::GetServiceType(unsigned int index) {
+LPCSTR CGClassTrainer::GetServiceType(UINT index) {
   const TrainerServiceInfo *service = GetService(index);
   if (!service) {
     return 0;
@@ -637,12 +635,12 @@ const char *CGClassTrainer::GetServiceType(unsigned int index) {
   return service->usable == 2 ? "used" : "unavailable";
 }
 
-int CGClassTrainer::GetSkillLineIndexFromService(unsigned int index) {
+int CGClassTrainer::GetSkillLineIndexFromService(UINT index) {
   const TrainerServiceInfo *service = GetService(index);
   if (!service || service->spellID >= 0) {
     return -1;
   }
-  for (unsigned int line = 0; line < m_numSkillLines; ++line) {
+  for (UINT line = 0; line < m_numSkillLines; ++line) {
     if (m_skillLines[line]->skillLine == service->skillLine) {
       return line;
     }
@@ -650,7 +648,7 @@ int CGClassTrainer::GetSkillLineIndexFromService(unsigned int index) {
   return -1;
 }
 
-int CGClassTrainer::IsCollpasedHeader(unsigned int index) {
+int CGClassTrainer::IsCollpasedHeader(UINT index) {
   int line = GetSkillLineIndexFromService(index);
   return line >= 0 && !(m_collapseFilter & (1 << line));
 }
@@ -673,7 +671,7 @@ void CGClassTrainer::SetCollapseFilter(int filter) {
   FrameScript_SignalEvent(287);
 }
 
-static int Script_OpenTrainer(lua_State *__formal) {
+static int Script_OpenTrainer(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->TalkToTrainer(player->GetUnitData()->target);
@@ -681,7 +679,7 @@ static int Script_OpenTrainer(lua_State *__formal) {
   return 0;
 }
 
-static int Script_CloseTrainer(lua_State *__formal) {
+static int Script_CloseTrainer(lua_State *) {
   CGClassTrainer::SetTrainer(0, TRAINER_TYPE_GENERAL);
   return 0;
 }
@@ -695,7 +693,7 @@ static int Script_GetTrainerServiceInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceInfo(index)");
   }
-  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   lua_pushstring(L, CGClassTrainer::GetServiceName(index));
   lua_pushstring(L, CGClassTrainer::GetServiceSubtext(index));
   lua_pushstring(L, CGClassTrainer::GetServiceType(index));
@@ -711,7 +709,7 @@ static int Script_SelectTrainerService(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: SelectTrainerService(index)");
   }
-  CGClassTrainer::SetSelection(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  CGClassTrainer::SetSelection(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   return 0;
 }
 
@@ -747,22 +745,19 @@ static int Script_GetTrainerServiceIcon(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceIcon(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *spell = service ? g_spellDB.GetRecord(service->spellID) : 0;
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec           *spell = service ? g_spellDB.GetRecord(service->spellID) : 0;
   if (spell && CGClassTrainer::GetTrainerType() == TRAINER_TYPE_TRADESKILLS) {
-    for (unsigned int i = 0; i < 3; ++i) {
+    for (UINT i = 0; i < 3; ++i) {
       if (spell->m_effect[i] == 36 || spell->m_effect[i] == 57) {
         const SpellRec *learned = g_spellDB.GetRecord(spell->m_effectTriggerSpell[i]);
         if (learned && learned->m_effectItemType[0]) {
           const ItemStats_C *stats = g_itemDBCache.GetRecord(
-              learned->m_effectItemType[0],
-              static_cast<unsigned __int64>(learned->m_ID) | 0xB000000000000000ui64,
-              TradeSkillItemCallback,
-              0
+              learned->m_effectItemType[0], static_cast<DWORDLONG>(learned->m_ID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0
           );
           if (stats) {
-            char        buffer[260];
-            const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+            char   buffer[260];
+            LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
             SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
             SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
             lua_pushstring(L, buffer);
@@ -782,8 +777,8 @@ static int Script_GetTrainerServiceSkillLine(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceSkillLine(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SkillLineRec *line = service ? g_skillLineDB.GetRecord(GetSkillLineFromService(service->spellID)) : 0;
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SkillLineRec       *line = service ? g_skillLineDB.GetRecord(GetSkillLineFromService(service->spellID)) : 0;
   lua_pushstring(L, line ? line->m_displayName_lang[CURRENT_LANGUAGE] : 0);
   return 1;
 }
@@ -792,9 +787,9 @@ static int Script_GetTrainerServiceCost(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceCost(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  int moneyCost = 0;
-  int costCP[2] = {0, 0};
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  int                       moneyCost = 0;
+  int                       costCP[2] = {0, 0};
   if (service) {
     moneyCost = service->moneyCost;
     costCP[0] = service->pointCost[0];
@@ -810,8 +805,8 @@ static int Script_GetTrainerServiceLevelReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceLevelReq(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  int level = service ? service->reqLevel : 0;
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  int                       level = service ? service->reqLevel : 0;
   lua_pushnumber(L, static_cast<double>(level));
   return 1;
 }
@@ -820,11 +815,11 @@ static int Script_GetTrainerServiceSkillReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceSkillReq(index)");
   }
-  int                 met = 1;
-  int                 rank = 0;
-  CGPlayer_C         *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SkillLineRec *line = 0;
+  int                       met = 1;
+  int                       rank = 0;
+  CGPlayer_C               *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SkillLineRec       *line = 0;
   if (player && service && service->reqSkillLine) {
     rank = service->reqSkillRank;
     if (rank) {
@@ -853,10 +848,10 @@ static int Script_GetTrainerServiceNumAbilityReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceAbilityReq(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  unsigned int        count = 0;
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  UINT                      count = 0;
   if (service) {
-    for (unsigned int i = 0; i < 3; ++i) {
+    for (UINT i = 0; i < 3; ++i) {
       if (service->reqAbility[i] > 0) {
         ++count;
       }
@@ -870,11 +865,11 @@ static int Script_GetTrainerServiceAbilityReq(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: GetTrainerServiceAbilityReq(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  unsigned int        abilityIndex = static_cast<unsigned int>(lua_tonumber(L, 2)) - 1;
-  const SpellRec     *spell = service && abilityIndex < 3 ? g_spellDB.GetRecord(service->reqAbility[abilityIndex]) : 0;
-  char                ability[256];
-  int                 met = 1;
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  UINT                      abilityIndex = static_cast<UINT>(lua_tonumber(L, 2)) - 1;
+  const SpellRec           *spell = service && abilityIndex < 3 ? g_spellDB.GetRecord(service->reqAbility[abilityIndex]) : 0;
+  char                      ability[256];
+  int                       met = 1;
   ability[0] = 0;
   if (spell) {
     if (spell->m_nameSubtext_lang[CURRENT_LANGUAGE] && *spell->m_nameSubtext_lang[CURRENT_LANGUAGE]) {
@@ -884,13 +879,13 @@ static int Script_GetTrainerServiceAbilityReq(lua_State *L) {
     }
   }
   lua_pushstring(L, *ability ? ability : 0);
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  CGUnit_C   *unit = player;
+  CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGUnit_C       *unit = player;
   const SpellRec *trainerSpell = service ? g_spellDB.GetRecord(service->spellID) : 0;
-  for (unsigned int i = 0; trainerSpell && i < 3; ++i) {
+  for (UINT i = 0; trainerSpell && i < 3; ++i) {
     if (trainerSpell->m_effect[i] == 57) {
       const CGUnitData *unitData = player ? player->GetUnitData() : 0;
-      unsigned __int64 pet = unitData ? unitData->summon : 0;
+      DWORDLONG         pet = unitData ? unitData->summon : 0;
       unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(pet, __FILE__, __LINE__));
       break;
     }
@@ -910,17 +905,17 @@ static int Script_GetTrainerServiceStepReq(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceStepReq(index)");
   }
-  int                 found = 1;
-  CGPlayer_C         *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *spell = service ? g_spellDB.GetRecord(service->reqSkillStep) : 0;
+  int                       found = 1;
+  CGPlayer_C               *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec           *spell = service ? g_spellDB.GetRecord(service->reqSkillStep) : 0;
   if (player && spell) {
     found = 0;
-    for (unsigned int effect = 0; effect < 3; ++effect) {
+    for (UINT effect = 0; effect < 3; ++effect) {
       if (spell->m_effect[effect] != 44) {
         continue;
       }
-      for (unsigned int skill = 0; skill < 64; ++skill) {
+      for (UINT skill = 0; skill < 64; ++skill) {
         if (player->GetMirrorSkillID(skill) == spell->m_effectMiscValue[effect]) {
           int min;
           int max;
@@ -967,11 +962,11 @@ static int Script_GetTrainerServiceDescription(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceDescription(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  int                 learnEffect = -1;
-  const SpellRec     *learned = GetLearnedSpell(service, &learnEffect);
-  const SpellRec     *trainer = service ? g_spellDB.GetRecord(service->spellID) : 0;
-  const SpellRec     *description =
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  int                       learnEffect = -1;
+  const SpellRec           *learned = GetLearnedSpell(service, &learnEffect);
+  const SpellRec           *trainer = service ? g_spellDB.GetRecord(service->spellID) : 0;
+  const SpellRec           *description =
       learned && learned->m_description_lang[CURRENT_LANGUAGE] && *learned->m_description_lang[CURRENT_LANGUAGE] ? learned : trainer;
   if (description && description->m_description_lang[CURRENT_LANGUAGE] && *description->m_description_lang[CURRENT_LANGUAGE]) {
     char buf[1024];
@@ -987,10 +982,10 @@ static int Script_IsTrainerServiceSkillStep(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: IsTrainerServiceSkillStep(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *spell = service ? g_spellDB.GetRecord(service->spellID) : 0;
-  int                 found = 0;
-  for (unsigned int i = 0; spell && i < 3; ++i) {
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec           *spell = service ? g_spellDB.GetRecord(service->spellID) : 0;
+  int                       found = 0;
+  for (UINT i = 0; spell && i < 3; ++i) {
     if (spell->m_effect[i] == 44) {
       found = 1;
       break;
@@ -1008,11 +1003,11 @@ static int Script_IsTrainerServiceLearnSpell(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: IsTrainerServiceLearnSpell(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *trainer = service ? g_spellDB.GetRecord(service->spellID) : 0;
-  int                 learn = 0;
-  int                 pet = 0;
-  for (unsigned int i = 0; trainer && i < 3; ++i) {
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec           *trainer = service ? g_spellDB.GetRecord(service->spellID) : 0;
+  int                       learn = 0;
+  int                       pet = 0;
+  for (UINT i = 0; trainer && i < 3; ++i) {
     if (trainer->m_effect[i] == 36 || trainer->m_effect[i] == 57) {
       learn = 1;
       pet = trainer->m_effect[i] == 57;
@@ -1036,8 +1031,8 @@ static int Script_IsTrainerServiceTradeSkill(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: IsTrainerServiceTradeSkill(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *learned = GetLearnedSpell(service, 0);
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec           *learned = GetLearnedSpell(service, 0);
   if (learned && (learned->m_attributes & 0x20)) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -1050,9 +1045,9 @@ static int Script_GetTrainerServiceStepIncrease(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceStepIncrease(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *spell = service ? g_spellDB.GetRecord(service->spellID) : 0;
-  for (unsigned int i = 0; spell && i < 3; ++i) {
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec           *spell = service ? g_spellDB.GetRecord(service->spellID) : 0;
+  for (UINT i = 0; spell && i < 3; ++i) {
     if (spell->m_effect[i] == 44) {
       int min;
       int max;
@@ -1072,8 +1067,8 @@ static int Script_GetTrainerServiceSpellStats(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceSpellStats(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *spell = GetLearnedSpell(service, 0);
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec           *spell = GetLearnedSpell(service, 0);
   if (!spell) {
     for (int i = 0; i < 5; ++i) {
       lua_pushnil(L);
@@ -1101,8 +1096,8 @@ static int Script_GetTrainerServiceEffects(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceEffects(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *spell = GetLearnedSpell(service, 0);
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec           *spell = GetLearnedSpell(service, 0);
   if (!spell) {
     return 0;
   }
@@ -1120,8 +1115,8 @@ static int Script_BuyTrainerService(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: BuyTrainerService(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  CGPlayer_C         *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  CGPlayer_C               *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (service && player) {
     player->TrainerBuySpell(CGClassTrainer::GetTrainer(), service->spellID);
   }
@@ -1132,12 +1127,12 @@ static int Script_GetTrainerServiceItemStats(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTrainerServiceItemStats(index)");
   }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec     *spell = GetLearnedSpell(service, 0);
+  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec           *spell = GetLearnedSpell(service, 0);
   if (!spell || !(spell->m_attributes & 0x20) || spell->m_effect[0] != 24 || !spell->m_effectItemType[0]) {
     return 0;
   }
-  unsigned __int64   guid = static_cast<unsigned __int64>(spell->m_ID) | 0xB000000000000000ui64;
+  DWORDLONG          guid = static_cast<DWORDLONG>(spell->m_ID) | 0xB000000000000000ui64;
   const ItemStats_C *stats = g_itemDBCache.GetRecord(spell->m_effectItemType[0], guid, TrainerItemCallback, 0);
   if (!stats) {
     return 0;
@@ -1160,7 +1155,7 @@ static int Script_GetTrainerServiceItemStats(lua_State *L) {
   return count;
 }
 
-static TRAINER_SERVICE GetServiceTypeFromString(const char *string) {
+static TRAINER_SERVICE GetServiceTypeFromString(LPCSTR string) {
   if (!string) {
     return NUM_TRAINER_SERVICE_TYPES;
   }
@@ -1180,7 +1175,7 @@ static int Script_SetTrainerServiceTypeFilter(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SetTrainerServiceTypeFilter(\"type\" [, on\\off, exclusive])");
   }
-  const char *type = lua_tostring(L, 1);
+  LPCSTR type = lua_tostring(L, 1);
   if (!SStrCmp(type, "all", 0x7FFFFFFF)) {
     CGClassTrainer::SetServiceTypeFilter(7);
     return 0;
@@ -1197,7 +1192,7 @@ static int Script_SetTrainerServiceTypeFilter(lua_State *L) {
     );
   }
   int filter = CGClassTrainer::GetServiceTypeFilter();
-  if (static_cast<unsigned int>(lua_tonumber(L, 2))) {
+  if (static_cast<UINT>(lua_tonumber(L, 2))) {
     filter = lua_isnumber(L, 3) && lua_tonumber(L, 3) ? 1 << serviceType : filter | (1 << serviceType);
   } else {
     filter &= ~(1 << serviceType);
@@ -1215,7 +1210,7 @@ static int Script_SetTrainerSkillLineFilter(lua_State *L) {
     CGClassTrainer::SetSkillLineFilter(-1);
     return 0;
   }
-  if (static_cast<unsigned int>(index) >= CGClassTrainer::GetNumSkillLines()) {
+  if (static_cast<UINT>(index) >= CGClassTrainer::GetNumSkillLines()) {
     return luaL_error(L, "Bad skill line in SetTrainerSkillLineFilter");
   }
   if (!lua_isnumber(L, 2)) {
@@ -1226,7 +1221,7 @@ static int Script_SetTrainerSkillLineFilter(lua_State *L) {
     );
   }
   int filter = CGClassTrainer::GetSkillLineFilter();
-  if (static_cast<unsigned int>(lua_tonumber(L, 2))) {
+  if (static_cast<UINT>(lua_tonumber(L, 2))) {
     filter = lua_isnumber(L, 3) && lua_tonumber(L, 3) ? 1 << index : filter | (1 << index);
   } else {
     filter &= ~(1 << index);
@@ -1260,7 +1255,7 @@ static int Script_GetTrainerSkillLineFilter(lua_State *L) {
   if (index < 0) {
     enabled = CGClassTrainer::GetSkillLineFilter() == static_cast<int>((1u << CGClassTrainer::GetNumSkillLines()) - 1);
   } else {
-    if (static_cast<unsigned int>(index) >= CGClassTrainer::GetNumSkillLines()) {
+    if (static_cast<UINT>(index) >= CGClassTrainer::GetNumSkillLines()) {
       return luaL_error(L, "Bad skill line in GetTrainerSkillLineFilter");
     }
     enabled = (CGClassTrainer::GetSkillLineFilter() & (1 << index)) != 0;
@@ -1274,8 +1269,8 @@ static int Script_GetTrainerSkillLineFilter(lua_State *L) {
 }
 
 static int Script_GetTrainerSkillLines(lua_State *L) {
-  unsigned int count = CGClassTrainer::GetNumSkillLines();
-  for (unsigned int i = 0; i < count; ++i) {
+  UINT count = CGClassTrainer::GetNumSkillLines();
+  for (UINT i = 0; i < count; ++i) {
     const SkillLineRec *line = g_skillLineDB.GetRecord(CGClassTrainer::GetSkillLine(i));
     lua_pushstring(L, line ? line->m_displayName_lang[CURRENT_LANGUAGE] : 0);
   }
@@ -1353,13 +1348,13 @@ static FrameScript_Method s_ScriptFunctions[33] = {
 };
 
 void ClassTrainerRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 33; ++i) {
+  for (UINT i = 0; i < 33; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void ClassTrainerUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 33; ++i) {
+  for (UINT i = 0; i < 33; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

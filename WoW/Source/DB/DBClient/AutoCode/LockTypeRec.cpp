@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *LockTypeRec::GetFilename() {
+LPCSTR LockTypeRec::GetFilename() {
   return "DBFilesClient\\LockType.dbc";
 }
 
@@ -19,11 +19,11 @@ LockTypeRec::LockTypeRec() {
 LockTypeRec::~LockTypeRec() {
 }
 
-bool LockTypeRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[8];
-  unsigned int tempresourceName_langIndices[8];
-  unsigned int tempverb_langIndices[8];
+bool LockTypeRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[8];
+  UINT tempresourceName_langIndices[8];
+  UINT tempverb_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempname_langIndices[0], sizeof(tempname_langIndices[0]), 0, 0, 0) && result;

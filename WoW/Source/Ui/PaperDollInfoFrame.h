@@ -12,20 +12,20 @@ class CGCharacterModelBase;
 
 class CGCharacterInfo {
  public:
-  static void InitializeGame();
-  static void ShutdownGame();
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void UpdateAllSkillLines();
-  static void UpdateItem(unsigned __int64 item);
-  static void PickupItem(int slot);
-  static void UseItem(int slot);
-  static void PickupBag(int slot);
-  static int PutItemInBag(int slot);
-  static int PutItemInBackpack();
-  static int GetSkillOffsetFromString(const char *string, int &offset);
+  static void             InitializeGame();
+  static void             ShutdownGame();
+  static void             EnterWorld();
+  static void             LeaveWorld();
+  static void             UpdateAllSkillLines();
+  static void             UpdateItem(DWORDLONG item);
+  static void             PickupItem(int slot);
+  static void             UseItem(int slot);
+  static void             PickupBag(int slot);
+  static int              PutItemInBag(int slot);
+  static int              PutItemInBackpack();
+  static int              GetSkillOffsetFromString(LPCSTR string, int &offset);
   static const SkillInfo *GetSkillInfoByIndex(int index);
-  static int GetNumClassSkills() {
+  static int              GetNumClassSkills() {
     return m_profOffset - 1;
   }
   static int GetNumSpecSkills() {
@@ -46,17 +46,17 @@ class CGCharacterInfo {
   }
 
  protected:
-  static void InstallMirrorHandlers(unsigned __int64 player);
-  static void RemoveMirrorHandlers(unsigned __int64 player);
-  static void OrderSkillLines();
-  static unsigned int OrderProficiencies(unsigned int offset);
-  static SkillInfo               m_skillInfoList[93];
-  static unsigned int            m_profOffset;
-  static unsigned int            m_specialOffset;
-  static unsigned int            m_racialOffset;
-  static unsigned int            m_secondaryOffset;
-  static unsigned int            m_numSkills;
-  static CGCharacterModelBase   *m_paperDoll;
+  static void                  InstallMirrorHandlers(DWORDLONG player);
+  static void                  RemoveMirrorHandlers(DWORDLONG player);
+  static void                  OrderSkillLines();
+  static UINT                  OrderProficiencies(UINT offset);
+  static SkillInfo             m_skillInfoList[93];
+  static UINT                  m_profOffset;
+  static UINT                  m_specialOffset;
+  static UINT                  m_racialOffset;
+  static UINT                  m_secondaryOffset;
+  static UINT                  m_numSkills;
+  static CGCharacterModelBase *m_paperDoll;
 };
 
 #endif

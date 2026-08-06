@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CameraShakesRec::GetFilename() {
+LPCSTR CameraShakesRec::GetFilename() {
   return "DBFilesClient\\CameraShakes.dbc";
 }
 
@@ -19,7 +19,7 @@ CameraShakesRec::CameraShakesRec() {
 CameraShakesRec::~CameraShakesRec() {
 }
 
-bool CameraShakesRec::Read(SFile *f, const char *stringBuffer) {
+bool CameraShakesRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

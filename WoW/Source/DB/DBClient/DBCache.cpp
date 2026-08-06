@@ -7,12 +7,12 @@
 
 template <class RECORD, class KEY, class HASHKEY>
 DBCache<RECORD, KEY, HASHKEY>::DBCache(
-    unsigned long fileTag,
-    const char   *fileName,
-    NETMESSAGE    singleQuery,
-    NETMESSAGE    multiQuery,
-    bool          requireGuids,
-    bool          persistent
+    DWORD      fileTag,
+    LPCSTR     fileName,
+    NETMESSAGE singleQuery,
+    NETMESSAGE multiQuery,
+    bool       requireGuids,
+    bool       persistent
 )
     : m_fileTag(fileTag),
       m_fileName(fileName),
@@ -29,7 +29,7 @@ DBCache<RECORD, KEY, HASHKEY>::~DBCache() {
 }
 
 template <class RECORD, class KEY, class HASHKEY>
-const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const unsigned __int64 &guid, DBCACHECALLBACKPROC cb, void *cbArg) {
+const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const DWORDLONG &guid, DBCACHECALLBACKPROC cb, LPVOID cbArg) {
   DBCACHEHASH     *entry;
   DBCACHECALLBACK *callbackEntry;
 
@@ -37,7 +37,7 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const unsigned __
     return 0;
   }
 
-  entry = m_table.Ptr(static_cast<unsigned int>(id), HASHKEY(id));
+  entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
   if (entry) {
     if (entry->m_haveData) {
       return &entry->m_record;
@@ -57,7 +57,7 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const unsigned __
     return 0;
   }
 
-  entry = m_table.New(static_cast<unsigned int>(id), HASHKEY(id), 0, 0);
+  entry = m_table.New(static_cast<UINT>(id), HASHKEY(id), 0, 0);
   callbackEntry = entry->m_callbacks.NewNode(LIST_TAIL, 0, 0);
   callbackEntry->m_callback = cb;
   callbackEntry->m_guid = guid;
@@ -78,18 +78,18 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const unsigned __
 }
 
 template <class RECORD, class KEY, class HASHKEY>
-void DBCache<RECORD, KEY, HASHKEY>::VerifyPack(CGContainer_C *container, DBCACHECALLBACKPROC callback, void *arg) {
+void DBCache<RECORD, KEY, HASHKEY>::VerifyPack(CGContainer_C *container, DBCACHECALLBACKPROC callback, LPVOID arg) {
 }
 
 template <class RECORD, class KEY, class HASHKEY>
-void DBCache<RECORD, KEY, HASHKEY>::VerifyCache(CGPlayer_C *player, DBCACHECALLBACKPROC callback, void *arg) {
+void DBCache<RECORD, KEY, HASHKEY>::VerifyCache(CGPlayer_C *player, DBCACHECALLBACKPROC callback, LPVOID arg) {
 }
 
 template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::DenyItem(KEY key) {
   DBCACHEHASH *entry;
 
-  entry = m_table.Ptr(static_cast<unsigned int>(key), HASHKEY(key));
+  entry = m_table.Ptr(static_cast<UINT>(key), HASHKEY(key));
   if (!entry) {
     return;
   }
@@ -105,9 +105,9 @@ template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::AddItem(RECORD *item, KEY key) {
   DBCACHEHASH *obj;
 
-  obj = m_table.Ptr(static_cast<unsigned int>(key), HASHKEY(key));
+  obj = m_table.Ptr(static_cast<UINT>(key), HASHKEY(key));
   if (!obj) {
-    obj = m_table.New(static_cast<unsigned int>(key), HASHKEY(key), 0, 0);
+    obj = m_table.New(static_cast<UINT>(key), HASHKEY(key), 0, 0);
   }
 
   obj->m_record = *item;
@@ -123,10 +123,10 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItem(RECORD *item, KEY key) {
 
 template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
-  KEY              id;
-  unsigned char    invalid;
-  unsigned char    count;
-  DBCACHEHASH     *entry;
+  KEY          id;
+  BYTE         invalid;
+  BYTE         count;
+  DBCACHEHASH *entry;
 
   if (single) {
     count = 1;
@@ -143,7 +143,7 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
     invalid = (id & ~0x7FFFFFFF) != 0;
     id &= 0x7FFFFFFF;
 
-    entry = m_table.Ptr(static_cast<unsigned int>(id), HASHKEY(id));
+    entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
     if (invalid) {
       if (entry) {
         ITERATELIST(DBCACHECALLBACK, entry->m_callbacks, callbackEntry) {
@@ -157,7 +157,7 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
     }
 
     if (!entry) {
-      entry = m_table.New(static_cast<unsigned int>(id), HASHKEY(id), 0, 0);
+      entry = m_table.New(static_cast<UINT>(id), HASHKEY(id), 0, 0);
     }
 
     entry->m_record.Unpack(msg);
@@ -173,10 +173,10 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
 }
 
 template <class RECORD, class KEY, class HASHKEY>
-void DBCache<RECORD, KEY, HASHKEY>::CancelCallback(KEY id, DBCACHECALLBACKPROC cb, void *cbArg) {
+void DBCache<RECORD, KEY, HASHKEY>::CancelCallback(KEY id, DBCACHECALLBACKPROC cb, LPVOID cbArg) {
   DBCACHEHASH *entry;
 
-  entry = m_table.Ptr(static_cast<unsigned int>(id), HASHKEY(id));
+  entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
   if (!entry) {
     return;
   }
@@ -190,18 +190,18 @@ void DBCache<RECORD, KEY, HASHKEY>::CancelCallback(KEY id, DBCACHECALLBACKPROC c
 
 template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::Load() {
-  const unsigned long HeaderSize = 16;
-  unsigned int        data[0x800];
-  char                fileName[260];
-  int                 recVersion;
-  unsigned long       recSize;
-  int                 build;
-  HOSFILE             file;
-  unsigned long       tag;
-  unsigned long       itemSize;
-  KEY                 itemId;
-  unsigned long       bytesRead;
-  DBCACHEHASH        *entry;
+  const DWORD  HeaderSize = 16;
+  UINT         data[0x800];
+  char         fileName[260];
+  int          recVersion;
+  DWORD        recSize;
+  int          build;
+  HOSFILE      file;
+  DWORD        tag;
+  DWORD        itemSize;
+  KEY          itemId;
+  DWORD        bytesRead;
+  DBCACHEHASH *entry;
 
   if (!m_persistent) {
     return;
@@ -221,7 +221,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
     return;
   }
 
-  CDataStore header(reinterpret_cast<unsigned char *>(data), HeaderSize);
+  CDataStore header(reinterpret_cast<BYTE *>(data), HeaderSize);
   header.Get(tag);
   ASSERT(tag == m_fileTag);
   if (tag != m_fileTag) {
@@ -247,7 +247,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
       OsReadFile(file, data, sizeof(DWORD) + sizeof(KEY), &bytesRead);
       ASSERT(bytesRead == sizeof(DWORD) + sizeof(KEY));
 
-      CDataStore itemHdr(reinterpret_cast<unsigned char *>(data), sizeof(DWORD) + sizeof(KEY));
+      CDataStore itemHdr(reinterpret_cast<BYTE *>(data), sizeof(DWORD) + sizeof(KEY));
       itemHdr.Get(itemId);
       itemHdr.Get(itemSize);
       if (!itemId) {
@@ -261,10 +261,10 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
         break;
       }
 
-      CDataStore rec(reinterpret_cast<unsigned char *>(data), itemSize);
-      entry = m_table.Ptr(static_cast<unsigned int>(itemId), HASHKEY(itemId));
+      CDataStore rec(reinterpret_cast<BYTE *>(data), itemSize);
+      entry = m_table.Ptr(static_cast<UINT>(itemId), HASHKEY(itemId));
       if (!entry) {
-        entry = m_table.New(static_cast<unsigned int>(itemId), HASHKEY(itemId), 0, 0);
+        entry = m_table.New(static_cast<UINT>(itemId), HASHKEY(itemId), 0, 0);
       }
 
       entry->m_record.Unpack(&rec);
@@ -278,11 +278,11 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
 
 template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::Save() {
-  char          fileName[0x104];
-  unsigned long endMarker;
-  KEY           endMarkerKey;
-  HOSFILE       file;
-  unsigned long bytesWritten;
+  char    fileName[0x104];
+  DWORD   endMarker;
+  KEY     endMarkerKey;
+  HOSFILE file;
+  DWORD   bytesWritten;
 
   if (!m_persistent) {
     return;
@@ -294,11 +294,11 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
   FATALASSERT(file != HOSFILE_INVALID);
 
   CDataStore store;
-  void      *ptr;
+  LPVOID     ptr;
 
   store.Put(m_fileTag);
   store.Put(3368);
-  store.Put(static_cast<unsigned long>(sizeof(RECORD)));
+  store.Put(static_cast<DWORD>(sizeof(RECORD)));
   store.Put(1);
   store.Finalize();
   store.GetDataInSitu(ptr, store.Size());
@@ -311,15 +311,14 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
     if (entry->m_haveData && !entry->m_temp) {
       r.Reset();
       r.Put(entry->m_dbkey);
-      r.Put(static_cast<unsigned long>(0));
+      r.Put(static_cast<DWORD>(0));
       entry->m_record.Pack(&r);
-      r.Set(sizeof(KEY), r.Size() - sizeof(KEY) - sizeof(unsigned long));
+      r.Set(sizeof(KEY), r.Size() - sizeof(KEY) - sizeof(DWORD));
       r.Finalize();
       r.GetDataInSitu(ptr, r.Size());
       OsWriteFile(file, ptr, r.Size(), &bytesWritten);
       ASSERT(bytesWritten == r.Size());
     }
-
   }
 
   endMarkerKey = 0;
@@ -336,7 +335,7 @@ template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::Invalidate(KEY id) {
   DBCACHEHASH *entry;
 
-  entry = m_table.Ptr(static_cast<unsigned int>(id), HASHKEY(id));
+  entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
   if (!entry) {
     return;
   }
@@ -358,7 +357,7 @@ template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::SetTemporary(KEY id) {
   DBCACHEHASH *entry;
 
-  entry = m_table.Ptr(static_cast<unsigned int>(id), HASHKEY(id));
+  entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
   if (entry) {
     entry->m_temp = true;
   }
@@ -368,7 +367,7 @@ template class DBCache<CreatureStats_C, int, HASHKEY_INT>;
 template class DBCache<GameObjectStats_C, int, HASHKEY_INT>;
 template class DBCache<ItemStats_C, int, HASHKEY_INT>;
 template class DBCache<NPCText, int, HASHKEY_INT>;
-template class DBCache<NameCache, unsigned __int64, CHashKeyGUID>;
+template class DBCache<NameCache, DWORDLONG, CHashKeyGUID>;
 template class DBCache<GuildStats_C, int, HASHKEY_INT>;
 template class DBCache<QuestCache, int, HASHKEY_INT>;
 template class DBCache<PageTextCache_C, int, HASHKEY_INT>;

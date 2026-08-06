@@ -9,9 +9,9 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   struct EVENTCALLBACKREG;
   struct EVENTDISPATCHREG;
   class EventIterator;
-  typedef EVENTCALLBACKREG *PEVENTCALLBACKREG;
+  typedef EVENTCALLBACKREG       *PEVENTCALLBACKREG;
   typedef const EVENTCALLBACKREG *PCEVENTCALLBACKREG;
-  typedef EVENTDISPATCHREG *PEVENTDISPATCHREG;
+  typedef EVENTDISPATCHREG       *PEVENTDISPATCHREG;
   typedef const EVENTDISPATCHREG *PCEVENTDISPATCHREG;
 
  private:
@@ -24,7 +24,7 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   EventReg();
   ~EventReg();
 
-  void RegisterCallback(EVENTCALLBACK callback, void *param);
+  void RegisterCallback(EVENTCALLBACK callback, LPVOID param);
   void RegisterEvent(int expectedEventId, CObserver *pObserver);
   void UnregisterCallback(EVENTCALLBACK callback);
   void UnregisterEvent(CObserver *pObserver);
@@ -36,15 +36,15 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   int  DispatchEvent(CEvent &event);
 
  private:
-  void SetFlag(unsigned long flag) {
+  void SetFlag(DWORD flag) {
     flags |= flag;
   }
 
-  void ClearFlag(unsigned long flag) {
+  void ClearFlag(DWORD flag) {
     flags &= ~flag;
   }
 
-  int TestFlag(unsigned long flag) const {
+  int TestFlag(DWORD flag) const {
     return (flags & flag) != 0;
   }
 
@@ -78,7 +78,7 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   }
 
  private:
-  unsigned long                                          flags;
+  DWORD flags;
   LISTDECL(EVENTCALLBACKREG, callbackList);
   LISTDECL(EVENTDISPATCHREG, dispatchList);
 };
@@ -93,7 +93,7 @@ NODEDECL(EventReg::EVENTCALLBACKREG) {
   }
 
   EVENTCALLBACK callback;
-  void         *param;
+  LPVOID        param;
 };
 
 NODEDECL(EventReg::EVENTDISPATCHREG) {
@@ -127,12 +127,12 @@ class EventRegistry : public TSHashTable<EventReg, HASHKEY_NONE> {
   EventRegistry(const EventRegistry &);
 
  private:
-  EventRegistry &operator=(const EventRegistry &);
+  EventRegistry    &operator=(const EventRegistry &);
   virtual void      InternalDelete(EventReg *pReg);
-  virtual EventReg *InternalNew(LISTEXDYN(EventReg) *list, unsigned long extrabytes, unsigned long flags);
+  virtual EventReg *InternalNew(LISTEXDYN(EventReg) * list, DWORD extrabytes, DWORD flags);
 };
 
-static HASHKEY_NONE                                           s_eventRegistryKey;
+static HASHKEY_NONE                                         s_eventRegistryKey;
 static TLockedInstanceAllocator<EventReg>                   s_eventRegAllocator(0x400);
 static TLockedInstanceAllocator<EventReg::EVENTCALLBACKREG> s_callbackRegAllocator(0x100);
 static TLockedInstanceAllocator<EventReg::EVENTDISPATCHREG> s_dispatchRegAllocator(0x400);
@@ -181,7 +181,7 @@ EventRegistry *CObserver::GetRegistry(int create) {
   return m_pEventRegistry;
 }
 
-EventReg *CObserver::GetEventReg(unsigned int eventId, int create) {
+EventReg *CObserver::GetEventReg(UINT eventId, int create) {
   EventRegistry *registry = GetRegistry(create);
   if (!registry) {
     return 0;
@@ -228,19 +228,19 @@ int CObserver::DispatchEvent(int id, CEvent &event) {
   return handled;
 }
 
-void CObserver::RegisterCallback(unsigned int id, EVENTCALLBACK callback, void *param) {
+void CObserver::RegisterCallback(UINT id, EVENTCALLBACK callback, LPVOID param) {
   EventReg *reg = GetEventReg(id, 1);
   ASSERT(reg);
   reg->RegisterCallback(callback, param);
 }
 
-void CObserver::RegisterEvent(unsigned int id, int expectedEventId, CObserver *pObserver) {
+void CObserver::RegisterEvent(UINT id, int expectedEventId, CObserver *pObserver) {
   EventReg *reg = GetEventReg(id, 1);
   ASSERT(reg);
   reg->RegisterEvent(expectedEventId, pObserver);
 }
 
-void CObserver::UnregisterCallback(unsigned int id, EVENTCALLBACK callback) {
+void CObserver::UnregisterCallback(UINT id, EVENTCALLBACK callback) {
   EventReg *reg = GetEventReg(id, 0);
   if (!reg) {
     return;
@@ -256,7 +256,7 @@ void CObserver::UnregisterCallback(unsigned int id, EVENTCALLBACK callback) {
   }
 }
 
-void CObserver::UnregisterEvent(unsigned int id, CObserver *pObserver) {
+void CObserver::UnregisterEvent(UINT id, CObserver *pObserver) {
   EventReg *reg = GetEventReg(id, 0);
   if (!reg) {
     return;
@@ -272,12 +272,12 @@ void CObserver::UnregisterEvent(unsigned int id, CObserver *pObserver) {
   }
 }
 
-int CObserver::IsEventRegistered(unsigned int id) {
+int CObserver::IsEventRegistered(UINT id) {
   EventReg *reg = GetEventReg(id, 0);
   return reg && !reg->IsEmpty();
 }
 
-int CObserver::IsEventRegisteredBy(unsigned int id, CObserver *pObserver) {
+int CObserver::IsEventRegisteredBy(UINT id, CObserver *pObserver) {
   EventReg *reg = GetEventReg(id, 0);
   return reg && reg->IsEventRegistered(pObserver);
 }
@@ -287,7 +287,7 @@ void EventRegistry::InternalDelete(EventReg *pReg) {
   s_eventRegAllocator.Put(pReg);
 }
 
-EventReg *EventRegistry::InternalNew(LISTEXDYN(EventReg) *, unsigned long extrabytes, unsigned long flags) {
+EventReg *EventRegistry::InternalNew(LISTEXDYN(EventReg) *, DWORD extrabytes, DWORD flags) {
   FATALASSERT(!extrabytes);
   return s_eventRegAllocator.Get((flags & SMEM_FLAG_ZEROMEMORY) != 0);
 }
@@ -300,7 +300,7 @@ EventReg::~EventReg() {
   CleanupEvents();
 }
 
-void EventReg::RegisterCallback(EVENTCALLBACK callback, void *param) {
+void EventReg::RegisterCallback(EVENTCALLBACK callback, LPVOID param) {
   ITERATELIST(EVENTCALLBACKREG, callbackList, entry) {
     if (entry->callback == callback) {
       entry->param = param;

@@ -17,7 +17,7 @@ static int CSimpleMessageFrame_AddMessage(lua_State *L) {
   ASSERT(frame);
 
   if (lua_isstring(L, 2)) {
-    const char *message = lua_tostring(L, 2);
+    LPCSTR message = lua_tostring(L, 2);
     if (message && *message) {
       NTempest::CImVector color(0xFFFFFFFFul);
       float               time = 0.0f;
@@ -63,7 +63,7 @@ void CSimpleMessageFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleMessageFrame::LookupScriptMethod(lua_State *L, const char *name) {
+int CSimpleMessageFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

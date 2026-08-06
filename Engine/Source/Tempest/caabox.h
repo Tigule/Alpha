@@ -36,18 +36,18 @@ namespace NTempest {
     CAaBox &operator/=(const CAaBox &value);
     CAaBox  operator-() const;
 
-    unsigned char NotEmpty() const;
-    unsigned char Empty() const;
-    unsigned char Encloses(const CAaBox &value) const;
-    unsigned char Encloses(const C2Vector &value) const;
-    unsigned char Encloses(const C3Vector &value) const;
-    unsigned char Contains(const CAaBox &value) const;
-    unsigned char Contains(const C2Vector &value) const;
-    unsigned char Contains(const C3Vector &value) const;
-    unsigned char InOpenR(const CAaBox &value) const;
-    unsigned char InOpenR(const C3Vector &value) const;
-    unsigned char Intersects(const CAaBox &value) const;
-    unsigned char Intersects2d(const CAaBox &value) const;
+    BYTE NotEmpty() const;
+    BYTE Empty() const;
+    BYTE Encloses(const CAaBox &value) const;
+    BYTE Encloses(const C2Vector &value) const;
+    BYTE Encloses(const C3Vector &value) const;
+    BYTE Contains(const CAaBox &value) const;
+    BYTE Contains(const C2Vector &value) const;
+    BYTE Contains(const C3Vector &value) const;
+    BYTE InOpenR(const CAaBox &value) const;
+    BYTE InOpenR(const C3Vector &value) const;
+    BYTE Intersects(const CAaBox &value) const;
+    BYTE Intersects2d(const CAaBox &value) const;
 
     float    Width() const;
     float    Height() const;
@@ -98,12 +98,12 @@ namespace NTempest {
     static CAaBox Intersection(const CAaBox &a, const CAaBox &b, const CAaBox &c);
     static CAaBox Intersection(const CAaBox &a, const CAaBox &b);
     static CAaBox Union(const CAaBox &a, const CAaBox &b);
-    CAaBox                  Intersect(const CAaBox &value);
-    CAaBox                  Unite(const CAaBox &value);
+    CAaBox        Intersect(const CAaBox &value);
+    CAaBox        Unite(const CAaBox &value);
 
-    static CAaBox Bounding(const CDynTable<unsigned long> &indices, const CDynTable<C3Vector> &vectors);
+    static CAaBox Bounding(const CDynTable<DWORD> &indices, const CDynTable<C3Vector> &vectors);
     static CAaBox Bounding(const CDynTable<C3Vector> &vectors);
-    static CAaBox Bounding(const C3Vector *vectors, unsigned long count);
+    static CAaBox Bounding(const C3Vector *vectors, DWORD count);
 
     C3Vector b;
     C3Vector t;

@@ -7,13 +7,13 @@ class CreatureModelDataRec {
   CreatureModelDataRec();
   ~CreatureModelDataRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 14;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 56;
   }
 
@@ -28,22 +28,22 @@ class CreatureModelDataRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_flags;
-  const char *m_ModelName;
-  int         m_sizeClass;
-  float       m_modelScale;
-  int         m_bloodID;
-  int         m_footprintTextureID;
-  float       m_footprintTextureLength;
-  float       m_footprintTextureWidth;
-  float       m_footprintParticleScale;
-  int         m_foleyMaterialID;
-  int         m_footstepShakeSize;
-  int         m_deathThudShakeSize;
-  int         m_soundID;
+  int    m_ID;
+  int    m_flags;
+  LPCSTR m_ModelName;
+  int    m_sizeClass;
+  float  m_modelScale;
+  int    m_bloodID;
+  int    m_footprintTextureID;
+  float  m_footprintTextureLength;
+  float  m_footprintTextureWidth;
+  float  m_footprintParticleScale;
+  int    m_foleyMaterialID;
+  int    m_footstepShakeSize;
+  int    m_deathThudShakeSize;
+  int    m_soundID;
 };
 
 extern WowClientDB<CreatureModelDataRec> g_creatureModelDataDB;

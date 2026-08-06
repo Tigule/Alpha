@@ -218,28 +218,28 @@ WowClientDB<NamesReservedRec>                 g_namesReservedDB;
 WowClientDB<ItemVisualsRec>                   g_itemVisualsDB;
 WowClientDB<ItemVisualEffectsRec>             g_itemVisualEffectsDB;
 
-static unsigned int                          s_physicalDamageClassID = -1;
-static unsigned int                          s_firstNonPhysicalDamageClass = -1;
+static UINT                                  s_physicalDamageClassID = -1;
+static UINT                                  s_firstNonPhysicalDamageClass = -1;
 static TSFixedArray<const ResistancesRec *>  s_damageTypeRecordIDs;
-static TSFixedArray<unsigned int>            s_terrainSoundType;
+static TSFixedArray<UINT>                    s_terrainSoundType;
 static TSFixedArray<const ItemSubClassRec *> s_weaponSubClasses;
 static const ItemClassRec                   *s_weaponClassRecPtr;
 static const ItemSubClassRec                *s_unarmedWeaponSubclass;
 static const SoundProviderPreferencesRec    *s_defaultOutdoorProviderPrefs;
 static const SoundProviderPreferencesRec    *s_defaultIndoorProviderPrefs;
 
-void StaticDBLoadAll();
-void CheckDamageClassConsistency();
-void InitTerrainSoundTypeIDs();
-void InitWeaponSubclasses();
-void InitSoundProviderPreferences();
+void        StaticDBLoadAll();
+void        CheckDamageClassConsistency();
+void        InitTerrainSoundTypeIDs();
+void        InitWeaponSubclasses();
+void        InitSoundProviderPreferences();
 static void LocateWeaponSubclass();
 
 void SDBItemSubclassInitialize();
 void SDBItemSubclassDestroy();
 
 void CheckDamageClassConsistency() {
-  unsigned int numDamageClasses = g_resistancesDB.GetNumRecords();
+  UINT numDamageClasses = g_resistancesDB.GetNumRecords();
 
   s_physicalDamageClassID = -1;
   s_firstNonPhysicalDamageClass = -1;
@@ -253,7 +253,7 @@ void CheckDamageClassConsistency() {
 
   s_damageTypeRecordIDs.SetCount(numDamageClasses);
 
-  for (unsigned int i = 0; i < numDamageClasses; ++i) {
+  for (UINT i = 0; i < numDamageClasses; ++i) {
     const ResistancesRec *rec = g_resistancesDB.GetRecordByIndex(i);
 
     if (rec->m_Flags & 1) {
@@ -289,8 +289,8 @@ void CheckDamageClassConsistency() {
 }
 
 void InitTerrainSoundTypeIDs() {
-  unsigned int numTerrainTypes = g_terrainTypeDB.GetMaxID() + 1;
-  unsigned int i;
+  UINT numTerrainTypes = g_terrainTypeDB.GetMaxID() + 1;
+  UINT i;
   s_terrainSoundType.SetCount(numTerrainTypes);
   for (i = 0; i < numTerrainTypes; ++i) {
     const TerrainTypeRec *rec;
@@ -398,7 +398,7 @@ void ClientDBShutdown() {
   SDBItemSubclassDestroy();
 }
 
-const char *ClientDBStringLookup(STRINGLOOKUP lookup) {
+LPCSTR ClientDBStringLookup(STRINGLOOKUP lookup) {
   const StringLookupsRec *record;
 
   ASSERT(lookup < NUM_STRINGLOOKUPS);
@@ -407,56 +407,56 @@ const char *ClientDBStringLookup(STRINGLOOKUP lookup) {
   return record ? record->m_String : 0;
 }
 
-unsigned int GetPhysicalDamageClassID() {
+UINT GetPhysicalDamageClassID() {
   ASSERT(s_physicalDamageClassID != -1);
   return s_physicalDamageClassID;
 }
 
-unsigned int GetFirstNonPhysicalID() {
+UINT GetFirstNonPhysicalID() {
   ASSERT(s_firstNonPhysicalDamageClass != -1);
   return s_firstNonPhysicalDamageClass;
 }
 
-const ResistancesRec *GetDamageClassRecord(unsigned int record) {
+const ResistancesRec *GetDamageClassRecord(UINT record) {
   return g_resistancesDB.GetRecord(record);
 }
 
-unsigned int ClientDBLookupTerrainSoundID(unsigned int terrainType) {
+UINT ClientDBLookupTerrainSoundID(UINT terrainType) {
   return terrainType < s_terrainSoundType.Count() ? s_terrainSoundType.Ptr()[terrainType] : 0;
 }
 
 WEAPONPARRYSEQ
-ClientDBGetWeaponSubclassParrySeq(unsigned int subclassID) {
+ClientDBGetWeaponSubclassParrySeq(UINT subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
   return static_cast<WEAPONPARRYSEQ>(s_weaponSubClasses[subclassID]->m_weaponParrySeq);
 }
 
 WEAPONREADYSEQ
-ClientDBGetWeaponSubclassReadySeq(unsigned int subclassID) {
+ClientDBGetWeaponSubclassReadySeq(UINT subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
   return static_cast<WEAPONREADYSEQ>(s_weaponSubClasses[subclassID]->m_weaponReadySeq);
 }
 
 WEAPONATTACKSEQ
-ClientDBGetWeaponSubclassWeaponSeq(unsigned int subclassID) {
+ClientDBGetWeaponSubclassWeaponSeq(UINT subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
   return static_cast<WEAPONATTACKSEQ>(s_weaponSubClasses[subclassID]->m_weaponAttackSeq);
 }
 
-unsigned int ClientDBGetNumWeaponSubclasses() {
+UINT ClientDBGetNumWeaponSubclasses() {
   return s_weaponSubClasses.Count();
 }
 
-int ClientDBWeaponSubclassSetsFingerSeq(unsigned int subclassID) {
+int ClientDBWeaponSubclassSetsFingerSeq(UINT subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
   return s_weaponSubClasses[subclassID]->m_flags & 0x2;
 }
 
-unsigned int ClientDBGetUnarmedWeapon() {
+UINT ClientDBGetUnarmedWeapon() {
   ASSERT(s_unarmedWeaponSubclass);
   return s_unarmedWeaponSubclass->m_subClassID;
 }

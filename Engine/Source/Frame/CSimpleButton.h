@@ -39,21 +39,21 @@ class CSimpleButton : public CSimpleFrame {
   void SetText(CSimpleFontString *text);
   void SetDisabledText(CSimpleFontString *text);
   void SetHighlightText(CSimpleFontString *text);
-  void SetTextString(const char *text);
-  void SetDisabledTextString(const char *text);
-  void SetHighlightTextString(const char *text);
+  void SetTextString(LPCSTR text);
+  void SetDisabledTextString(LPCSTR text);
+  void SetHighlightTextString(LPCSTR text);
   void SetTextColor(const NTempest::CImVector &color);
   void SetDisabledTextColor(const NTempest::CImVector &color);
   void SetHighlightTextColor(const NTempest::CImVector &color);
   void SetPressedOffset(const NTempest::C2Vector &offset);
   void SetStateTexture(CSimpleButtonState state, CSimpleTexture *texture);
-  int  SetStateTexture(CSimpleButtonState state, const char *texFile);
-  void SetClickAction(unsigned int action);
+  int  SetStateTexture(CSimpleButtonState state, LPCSTR texFile);
+  void SetClickAction(UINT action);
   int  IsMouseButtonHandled(MOUSEBUTTON button) {
     return (m_clickAction & (button | (button << 8))) != 0;
   }
-  void RegisterClick(unsigned int eventId, CObserver *observer);
-  void RegisterTrack(unsigned int enterEventId, unsigned int exitEventId, CObserver *observer);
+  void RegisterClick(UINT eventId, CObserver *observer);
+  void RegisterTrack(UINT enterEventId, UINT exitEventId, CObserver *observer);
 
   CSimpleFontString *GetText() {
     return m_text;
@@ -67,15 +67,15 @@ class CSimpleButton : public CSimpleFrame {
     return m_highlightText;
   }
 
-  const char *GetTextString() {
-    const char *text = m_text->GetText();
+  LPCSTR GetTextString() {
+    LPCSTR text = m_text->GetText();
     return text && *text ? text : 0;
   }
 
-  const char *GetDisabledTextString();
-  const char *GetHighlightTextString();
-  void SetOnClickScript(const char *source);
-  void RunOnClickScript(MOUSEBUTTON button);
+  LPCSTR GetDisabledTextString();
+  LPCSTR GetHighlightTextString();
+  void   SetOnClickScript(LPCSTR source);
+  void   RunOnClickScript(MOUSEBUTTON button);
 
   CSimpleTexture *GetStateTexture(CSimpleButtonState state) {
     return m_textures[state];
@@ -90,20 +90,20 @@ class CSimpleButton : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
   void UpdateTextState(CSimpleButtonState state);
 
   CObserver         *m_observer;
-  unsigned int       m_observerEventId;
+  UINT               m_observerEventId;
   CObserver         *m_trackObserver;
-  unsigned int       m_trackEnterEventId;
-  unsigned int       m_trackExitEventId;
+  UINT               m_trackEnterEventId;
+  UINT               m_trackExitEventId;
   CSimpleButtonState m_state;
   int                m_stateLocked;
-  unsigned int       m_clickAction;
+  UINT               m_clickAction;
   CSimpleFontString *m_disabledText;
   CSimpleFontString *m_text;
   CSimpleFontString *m_highlightText;

@@ -14,31 +14,31 @@
 #include <stdio.h>
 #include <storm.h>
 
-static int  PingSound(const char *command, const char *arguments);
-static int  RoomType(const char *command, const char *arguments);
-static int  DebugTickHandler(const void *dataPtr, void *param);
+static int  PingSound(LPCSTR command, LPCSTR arguments);
+static int  RoomType(LPCSTR command, LPCSTR arguments);
+static int  DebugTickHandler(LPCVOID dataPtr, LPVOID param);
 static void SndDebugTick();
 
-int DumpChunksINDOORS(const char *command, const char *arguments);
-int ShowCurrentChunkINDOORS(const char *command, const char *arguments);
-int SetChunkPropertyINDOORS(const char *command, const char *arguments);
-int SetCurrentChunkINDOORS(const char *command, const char *arguments);
-int CreateChunkINDOORS(const char *command, const char *arguments);
-int SndDebugListChunksINDOORS(const char *command, const char *arguments);
-int DumpChunksOUTDOORS(const char *command, const char *arguments);
-int ShowCurrentChunkOUTDOORS(const char *command, const char *arguments);
-int SetChunkPropertyOUTDOORS(const char *command, const char *arguments);
-int SetCurrentChunkOUTDOORS(const char *command, const char *arguments);
-int CreateChunkOUTDOORS(const char *command, const char *arguments);
-int SndDebugListChunksOUTDOORS(const char *command, const char *arguments);
-void SndDebugRegisterContinent(unsigned int continent);
+int  DumpChunksINDOORS(LPCSTR command, LPCSTR arguments);
+int  ShowCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments);
+int  SetChunkPropertyINDOORS(LPCSTR command, LPCSTR arguments);
+int  SetCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments);
+int  CreateChunkINDOORS(LPCSTR command, LPCSTR arguments);
+int  SndDebugListChunksINDOORS(LPCSTR command, LPCSTR arguments);
+int  DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments);
+int  ShowCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments);
+int  SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments);
+int  SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments);
+int  CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments);
+int  SndDebugListChunksOUTDOORS(LPCSTR command, LPCSTR arguments);
+void SndDebugRegisterContinent(UINT continent);
 
-static unsigned int       s_pingSound;
-static unsigned int       s_pingFrequency;
-static unsigned int       s_lastPingTime;
+static UINT               s_pingSound;
+static UINT               s_pingFrequency;
+static UINT               s_lastPingTime;
 static NTempest::C3Vector s_pingPosition;
 
-static int PingSound(const char *command, const char *arguments) {
+static int PingSound(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     s_lastPingTime = 0;
     sscanf(arguments, "%d %d", &s_pingSound, &s_pingFrequency);
@@ -66,7 +66,7 @@ static int PingSound(const char *command, const char *arguments) {
   return 1;
 }
 
-static int RoomType(const char *command, const char *arguments) {
+static int RoomType(LPCSTR command, LPCSTR arguments) {
   SNDROOMTYPE roomType;
 
   if (!arguments || (roomType = static_cast<SNDROOMTYPE>(SStrToInt(arguments))) <= SNDROOMTYPE_PSYCHOTIC) {
@@ -91,7 +91,7 @@ static void SndDebugTick() {
   }
 }
 
-static int DebugTickHandler(const void *dataPtr, void *param) {
+static int DebugTickHandler(LPCVOID dataPtr, LPVOID param) {
   SndDebugTick();
   return 1;
 }
@@ -111,7 +111,7 @@ void SndDebugShutdown() {
   EventUnregister(EVENT_ID_IDLE, DebugTickHandler);
 }
 
-void SndDebugDungeonTransition(int indoors, unsigned int continent) {
+void SndDebugDungeonTransition(int indoors, UINT continent) {
   ConsoleCommandUnregister("SndDebugListChunks");
   ConsoleCommandUnregister("SndDebugCreateChunk");
   ConsoleCommandUnregister("SndDebugSetCurrentChunk");

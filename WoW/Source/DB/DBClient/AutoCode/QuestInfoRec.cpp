@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *QuestInfoRec::GetFilename() {
+LPCSTR QuestInfoRec::GetFilename() {
   return "DBFilesClient\\QuestInfo.dbc";
 }
 
@@ -19,9 +19,9 @@ QuestInfoRec::QuestInfoRec() {
 QuestInfoRec::~QuestInfoRec() {
 }
 
-bool QuestInfoRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempInfoName_langIndices[NUM_LOCALES];
+bool QuestInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempInfoName_langIndices[NUM_LOCALES];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempInfoName_langIndices[0], sizeof(tempInfoName_langIndices[0]), 0, 0, 0) && result;

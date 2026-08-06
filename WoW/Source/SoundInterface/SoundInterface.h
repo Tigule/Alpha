@@ -14,8 +14,8 @@ struct FOOTSTEPSNDCACHE : public TSHashObject<FOOTSTEPSNDCACHE, HASHKEY_NONE> {
   ~FOOTSTEPSNDCACHE() {
   }
 
-  TSGrowableArray<unsigned int> m_soundIDs;
-  TSGrowableArray<unsigned int> m_splashSoundIDs;
+  TSGrowableArray<UINT> m_soundIDs;
+  TSGrowableArray<UINT> m_splashSoundIDs;
 };
 
 class CGItem_C;
@@ -108,8 +108,8 @@ struct VOCALUISOUND {
     pissedCount = 0;
   }
 
-  unsigned int soundTypes[NUM_SOUNDTYPES];
-  unsigned int pissedCount;
+  UINT soundTypes[NUM_SOUNDTYPES];
+  UINT pissedCount;
 };
 
 enum PARRYMATERIALS {
@@ -132,9 +132,9 @@ enum AMBIENCE {
   NUM_AMBIENCES = 2
 };
 
-extern unsigned int g_sndInterfaceFlags;
-extern bool         g_underWater;
-extern AMBIENCE     g_currentAmbience;
+extern UINT     g_sndInterfaceFlags;
+extern bool     g_underWater;
+extern AMBIENCE g_currentAmbience;
 
 void SndInterfaceInitialize();
 void SndInterfaceDestroy();
@@ -156,7 +156,7 @@ void InitializeGlueMusic();
 void ShutdownGlueMusic();
 void ProviderPrefInitialize();
 void ProviderPrefShutdown();
-void SndInterfaceSetProviderPrefs(unsigned int index, unsigned int indexUnderwater, unsigned int transitionDuration);
+void SndInterfaceSetProviderPrefs(UINT index, UINT indexUnderwater, UINT transitionDuration);
 void SndInterfaceSetProviderPrefs(const _FSOUND_REVERB_PROPERTIES &pref, const _FSOUND_REVERB_PROPERTIES &prefUnderwater);
 void SndInterfaceClearProviderPrefs(int indoors);
 void SndInterfaceProviderPrefsUnderwaterChanged();
@@ -164,58 +164,52 @@ void SndSetRoomType(SNDROOMTYPE roomType);
 void ISndInterfaceInitialize();
 void ISndInterfaceShutdown();
 void SndInterfacePauseZoneMusic(int pause);
-int SndInterfaceIsZoneMusicPaused();
+int  SndInterfaceIsZoneMusicPaused();
 void SndInterfaceZoneIntroStop();
-void SndDebugDungeonTransition(int indoors, unsigned int continent);
-void SndInterfaceRegisterNewZone(unsigned int musicID);
+void SndDebugDungeonTransition(int indoors, UINT continent);
+void SndInterfaceRegisterNewZone(UINT musicID);
 void SndInterfaceSetMIDIArea(int normal, int underwater);
 void SndInterfaceClearMIDI();
 void SndInterfaceRegisterNewZoneIntro(int soundID, int priority);
-void SndInterfacePlayInterfaceSound(const char *name);
+void SndInterfacePlayInterfaceSound(LPCSTR name);
 void SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj);
-unsigned int SndInterfaceGetSoundVariations(unsigned int soundID);
-void SndInterfacePlaySpellFizzleSound(unsigned int spellID, const CGUnit_C *caster);
-void
-SndInterfacePlayParrySound(const VirtualItemInfo *attackingWeapon, const VirtualItemInfo *defendingItem, int criticalHit, const NTempest::C3Vector &position);
-void
-SndInterfacePlayHitSound(const VirtualItemInfo *attackingWeapon, unsigned int defendingItemType, int criticalHit, const NTempest::C3Vector &position);
-void SndInterfacePlaySheatheSound(
-    const VirtualItemInfo *info,
-    int sheathing,
+UINT SndInterfaceGetSoundVariations(UINT soundID);
+void SndInterfacePlaySpellFizzleSound(UINT spellID, const CGUnit_C *caster);
+void SndInterfacePlayParrySound(
+    const VirtualItemInfo    *attackingWeapon,
+    const VirtualItemInfo    *defendingItem,
+    int                       criticalHit,
     const NTempest::C3Vector &position
 );
-void SndInterfacePlayDeflectedSound(const NTempest::C3Vector &position);
-void SndInterfacePlayImmuneSound(const NTempest::C3Vector &pos);
-void SndInterfacePlayAbsorbedSound(const NTempest::C3Vector &pos);
-void SndInterfaceInitializeVocalUISounds(unsigned int race, unsigned int sex);
-void SndInterfacePlayVocalUISound(VOCALUISOUNDS soundType);
-void SoundInterfacePlayVocalMacro(const CGPlayer_C *player, int category);
-void SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, const CGItem_C *itemPtr);
-void SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, int itemDisplayID);
-bool SndInterfacePlaySound(unsigned int soundID, int forceIndex);
-bool SndInterfacePlaySound(unsigned int soundID, const NTempest::C3Vector &position, int forceIndex, float volumeScaler);
-bool SndInterfacePlaySound(Sound *sound, float fadeInRate);
-bool SoundInterfaceIsSoundLooping(unsigned int soundID, bool &looping);
-bool SndInterfacePlaySplashSound(unsigned int soundID, const NTempest::C3Vector &position);
-void SndInterfacePlayFootstepSound(
-    unsigned int footstepID,
-    const NTempest::C3Vector &position,
-    unsigned int terrainID,
-    int splashing
-);
-void SndInterfacePlayFoleySound(unsigned int materialID, const NTempest::C3Vector &position);
-Sound *SndInterfacePlayLoopedSound(unsigned int soundID, unsigned int loopCount);
-Sound *SndInterfacePlayLoopedSound(unsigned int soundID, const NTempest::C3Vector &position, unsigned int loopCount);
-Sound *SndInterfaceCreateSound(unsigned int soundID, float fadeInRate, int forceIndex, bool doNotKeepAlive);
-void SndInterfaceAssociateSoundWithObject(Sound *sound, CGObject_C *objectPtr);
-int SndInterfaceHandleDoodadLoopStart(unsigned int soundID, const NTempest::C3Vector &pos);
-void SndInterfaceHandleDoodadLoopStop(unsigned int soundHandle);
-void SndInterfaceHandleDoodadOneShot(unsigned int soundID, const NTempest::C3Vector &position);
-void SndInterfaceSetGlueMusic(const char *musicFile);
-void SndInterfaceStopGlueMusic(float fadeTime);
-void SoundRegisterScriptFunctions();
-void SoundUnregisterScriptFunctions();
-void SndInterfaceSetPositionCallback();
-void SndInterfaceClearPositionCallback();
+void   SndInterfacePlayHitSound(const VirtualItemInfo *attackingWeapon, UINT defendingItemType, int criticalHit, const NTempest::C3Vector &position);
+void   SndInterfacePlaySheatheSound(const VirtualItemInfo *info, int sheathing, const NTempest::C3Vector &position);
+void   SndInterfacePlayDeflectedSound(const NTempest::C3Vector &position);
+void   SndInterfacePlayImmuneSound(const NTempest::C3Vector &pos);
+void   SndInterfacePlayAbsorbedSound(const NTempest::C3Vector &pos);
+void   SndInterfaceInitializeVocalUISounds(UINT race, UINT sex);
+void   SndInterfacePlayVocalUISound(VOCALUISOUNDS soundType);
+void   SoundInterfacePlayVocalMacro(const CGPlayer_C *player, int category);
+void   SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, const CGItem_C *itemPtr);
+void   SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, int itemDisplayID);
+bool   SndInterfacePlaySound(UINT soundID, int forceIndex);
+bool   SndInterfacePlaySound(UINT soundID, const NTempest::C3Vector &position, int forceIndex, float volumeScaler);
+bool   SndInterfacePlaySound(Sound *sound, float fadeInRate);
+bool   SoundInterfaceIsSoundLooping(UINT soundID, bool &looping);
+bool   SndInterfacePlaySplashSound(UINT soundID, const NTempest::C3Vector &position);
+void   SndInterfacePlayFootstepSound(UINT footstepID, const NTempest::C3Vector &position, UINT terrainID, int splashing);
+void   SndInterfacePlayFoleySound(UINT materialID, const NTempest::C3Vector &position);
+Sound *SndInterfacePlayLoopedSound(UINT soundID, UINT loopCount);
+Sound *SndInterfacePlayLoopedSound(UINT soundID, const NTempest::C3Vector &position, UINT loopCount);
+Sound *SndInterfaceCreateSound(UINT soundID, float fadeInRate, int forceIndex, bool doNotKeepAlive);
+void   SndInterfaceAssociateSoundWithObject(Sound *sound, CGObject_C *objectPtr);
+int    SndInterfaceHandleDoodadLoopStart(UINT soundID, const NTempest::C3Vector &pos);
+void   SndInterfaceHandleDoodadLoopStop(UINT soundHandle);
+void   SndInterfaceHandleDoodadOneShot(UINT soundID, const NTempest::C3Vector &position);
+void   SndInterfaceSetGlueMusic(LPCSTR musicFile);
+void   SndInterfaceStopGlueMusic(float fadeTime);
+void   SoundRegisterScriptFunctions();
+void   SoundUnregisterScriptFunctions();
+void   SndInterfaceSetPositionCallback();
+void   SndInterfaceClearPositionCallback();
 
 #endif

@@ -2,10 +2,10 @@
 
 void BaseFileInitialize();
 void BaseFileDestroy();
-int  BaseFilePrefetch(const char *fileName);
-int  BaseFileIsFetched(const char *fileName);
-int  BaseFileLoad(const char *fileName, void **fileBuffer, unsigned long *fileSize);
+int  BaseFilePrefetch(LPCSTR fileName);
+int  BaseFileIsFetched(LPCSTR fileName);
+int  BaseFileLoad(LPCSTR fileName, LPVOID *fileBuffer, DWORD *fileSize);
 void BaseFileFlush();
-void BaseFileRegisterUncachable(const char *fileName);
-void BaseFileUnregisterUncachable(const char *fileName);
+void BaseFileRegisterUncachable(LPCSTR fileName);
+void BaseFileUnregisterUncachable(LPCSTR fileName);
 void BaseFileDumpStats();

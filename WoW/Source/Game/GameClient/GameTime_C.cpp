@@ -10,7 +10,7 @@
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 CGameTime g_clientGameTime;
-static void(*s_forcedChangeCallbacks[4])(unsigned int oldTime, unsigned int newTime);
+static void (*s_forcedChangeCallbacks[4])(UINT oldTime, UINT newTime);
 
 static void UpdateTime() {
   DNInfo *dnInfo = DayNightGetInfo();
@@ -20,7 +20,7 @@ static void UpdateTime() {
   dnInfo->day = static_cast<float>(g_clientGameTime.GetDaysSinceEpoch());
   CWorld::UpdateDayNight(1, 0);
 
-  for (unsigned int index = 0; index < 4; ++index) {
+  for (UINT index = 0; index < 4; ++index) {
     if (s_forcedChangeCallbacks[index]) {
       s_forcedChangeCallbacks[index](g_clientGameTime.m_hour, g_clientGameTime.m_minute);
     }
@@ -32,7 +32,7 @@ static void UpdateTime() {
   ConsoleWrite(buffer, DEFAULT_COLOR);
 }
 
-int CCommand_ShowLocalGameTime(const char *, const char *) {
+int CCommand_ShowLocalGameTime(LPCSTR, LPCSTR) {
   char buffer[128];
 
   SStrPrintf(buffer, sizeof(buffer), "Current game time is %02d:%02d", g_clientGameTime.m_hour, g_clientGameTime.m_minute);
@@ -40,7 +40,7 @@ int CCommand_ShowLocalGameTime(const char *, const char *) {
   return 1;
 }
 
-int CCommand_ShowServerGameTime(const char *, const char *) {
+int CCommand_ShowServerGameTime(LPCSTR, LPCSTR) {
   CDataStore message;
 
   message.Put(CMSG_SERVERTIME);
@@ -49,10 +49,10 @@ int CCommand_ShowServerGameTime(const char *, const char *) {
   return 1;
 }
 
-int CCommand_GameTime(const char *__formal, const char *time) {
-  unsigned int hour = SStrToInt(time);
-  const char  *minuteText = SStrChr(time, ' ');
-  unsigned int minute;
+int CCommand_GameTime(LPCSTR, LPCSTR time) {
+  UINT   hour = SStrToInt(time);
+  LPCSTR minuteText = SStrChr(time, ' ');
+  UINT   minute;
 
   if (!minuteText) {
     minuteText = SStrChr(time, ':');
@@ -84,10 +84,10 @@ int CCommand_GameTime(const char *__formal, const char *time) {
   return 1;
 }
 
-int CCommand_LocalTime(const char *__formal, const char *time) {
-  unsigned int hour = SStrToInt(time);
-  const char  *minuteText = SStrChr(time, ' ');
-  unsigned int minute;
+int CCommand_LocalTime(LPCSTR, LPCSTR time) {
+  UINT   hour = SStrToInt(time);
+  LPCSTR minuteText = SStrChr(time, ' ');
+  UINT   minute;
 
   if (!minuteText) {
     minuteText = SStrChr(time, ':');
@@ -109,10 +109,10 @@ int CCommand_LocalTime(const char *__formal, const char *time) {
   return 1;
 }
 
-int CCommand_SpawnTime(const char *__formal, const char *time) {
-  unsigned int hour = SStrToInt(time);
-  const char  *minuteText = SStrChr(time, ' ');
-  unsigned int minute;
+int CCommand_SpawnTime(LPCSTR, LPCSTR time) {
+  UINT   hour = SStrToInt(time);
+  LPCSTR minuteText = SStrChr(time, ' ');
+  UINT   minute;
 
   if (!minuteText) {
     minuteText = SStrChr(time, ':');
@@ -131,7 +131,7 @@ int CCommand_SpawnTime(const char *__formal, const char *time) {
   return 1;
 }
 
-int CCommand_GameSpeed(const char *__formal, const char *speed) {
+int CCommand_GameSpeed(LPCSTR, LPCSTR speed) {
   CDataStore message;
 
   message.Put(CMSG_GAMESPEED_SET);
@@ -141,7 +141,7 @@ int CCommand_GameSpeed(const char *__formal, const char *speed) {
   return 1;
 }
 
-int ReceiveNewGameSpeed(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
+int ReceiveNewGameSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   float newSpeed;
   msg->Get(newSpeed);
 
@@ -157,9 +157,9 @@ int ReceiveNewGameSpeed(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg
   return 1;
 }
 
-int ReceiveNewTimeSpeed(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
-  unsigned int gameTime;
-  float        newSpeed;
+int ReceiveNewTimeSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+  UINT  gameTime;
+  float newSpeed;
   msg->Get(gameTime);
   msg->Get(newSpeed);
 
@@ -177,8 +177,8 @@ int ReceiveNewTimeSpeed(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg
   return 1;
 }
 
-int ReceiveGameTimeUpdate(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
-  unsigned int gameTime;
+int ReceiveGameTimeUpdate(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+  UINT gameTime;
   msg->Get(gameTime);
 
   if (!msg->IsRead()) {
@@ -190,8 +190,8 @@ int ReceiveGameTimeUpdate(void *, NETMESSAGE msgId, unsigned long, CDataStore *m
   return 1;
 }
 
-int ReceiveServerTime(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
-  unsigned int gameTime;
+int ReceiveServerTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+  UINT gameTime;
   msg->Get(gameTime);
 
   if (!msg->IsRead()) {
@@ -208,8 +208,8 @@ int ReceiveServerTime(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) 
   return 1;
 }
 
-int ReceiveNewGameTime(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
-  unsigned int gameTime;
+int ReceiveNewGameTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+  UINT gameTime;
   msg->Get(gameTime);
 
   if (!msg->IsRead()) {
@@ -222,7 +222,7 @@ int ReceiveNewGameTime(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg)
   return 1;
 }
 
-int ClientGameTimeTickHandler(const void *data, void *__formal) {
+int ClientGameTimeTickHandler(LPCVOID data, LPVOID) {
   FATALASSERT(data);
   g_clientGameTime.GameTimeUpdate(*static_cast<const float *>(data));
   return 1;
@@ -262,10 +262,8 @@ void ClientDestroyGameTime() {
   g_clientGameTime.Destroy();
 }
 
-void SetGameTimeForcedChangeCallback(
-    int set, void(*callback)(unsigned int oldTime, unsigned int newTime)
-) {
-  for (unsigned int index = 0; index < 4; ++index) {
+void SetGameTimeForcedChangeCallback(int set, void (*callback)(UINT oldTime, UINT newTime)) {
+  for (UINT index = 0; index < 4; ++index) {
     if ((!s_forcedChangeCallbacks[index] && set) || (s_forcedChangeCallbacks[index] == callback && !set)) {
       s_forcedChangeCallbacks[index] = set ? callback : 0;
       return;

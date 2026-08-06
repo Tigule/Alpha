@@ -15,19 +15,19 @@ class TInstanceId : public TSLinkedNode<T> {
     this->Unlink();
   }
 
-  void SetId(unsigned long id) {
+  void SetId(DWORD id) {
     m_id = id;
   }
 
-  unsigned long Id() const {
+  DWORD Id() const {
     return m_id;
   }
 
  private:
-  unsigned long m_id;
+  DWORD m_id;
 };
 
-template <class T, unsigned int SLOTCOUNT>
+template <class T, UINT SLOTCOUNT>
 class TInstanceIdTable {
   class Iterator {
     friend class TInstanceIdTable<T, SLOTCOUNT>;
@@ -88,12 +88,12 @@ class TInstanceIdTable {
     return SLOTCOUNT;
   }
 
-  unsigned long Link(T *instance) {
-    unsigned long id;
-    unsigned int  slot;
-    int           found;
-    T            *cursor;
-    Iterator      iterator(*this);
+  DWORD Link(T *instance) {
+    DWORD    id;
+    UINT     slot;
+    int      found;
+    T       *cursor;
+    Iterator iterator(*this);
 
     m_idCritsect.Enter();
     for (;;) {
@@ -134,8 +134,8 @@ class TInstanceIdTable {
   }
 
   void Unlink(T *instance) {
-    unsigned long id = instance->Id();
-    unsigned int  slot;
+    DWORD id = instance->Id();
+    UINT  slot;
 
     if (!id) {
       return;
@@ -148,7 +148,7 @@ class TInstanceIdTable {
     m_idLock[slot].Leave(1);
   }
 
-  T *Lock(unsigned long id, int forWriting, INSTANCELOCK &instanceLock, const char *, unsigned long) {
+  T *Lock(DWORD id, int forWriting, INSTANCELOCK &instanceLock, LPCSTR, DWORD) {
     int slot;
     instanceLock = reinterpret_cast<INSTANCELOCK>(-1);
     if (!id) {
@@ -167,31 +167,31 @@ class TInstanceIdTable {
     return 0;
   }
 
-  void Unlock(INSTANCELOCK instanceLock, const char *, unsigned long) {
-    long         encoded = reinterpret_cast<long>(instanceLock);
-    unsigned int slot;
-    int          forWriting;
+  void Unlock(INSTANCELOCK instanceLock, LPCSTR, DWORD) {
+    long encoded = reinterpret_cast<long>(instanceLock);
+    UINT slot;
+    int  forWriting;
 
     if (encoded == -1) {
       return;
     }
 
     forWriting = encoded >= static_cast<long>(SLOTCOUNT);
-    slot = static_cast<unsigned int>(encoded) & (SLOTCOUNT - 1);
+    slot = static_cast<UINT>(encoded) & (SLOTCOUNT - 1);
     m_idLock[slot].Leave(forWriting);
   }
 
  private:
   TInstanceIdTable &operator=(const TInstanceIdTable &);
 
-  SCritSect                m_idCritsect;
-  unsigned long            m_id;
-  int                      m_idWrapped;
-  CSRWLock                 m_idLock[SLOTCOUNT];
+  SCritSect m_idCritsect;
+  DWORD     m_id;
+  int       m_idWrapped;
+  CSRWLock  m_idLock[SLOTCOUNT];
   LISTDECL(T, m_idList[SLOTCOUNT]);
 };
 
-template <class T, unsigned int SLOTCOUNT>
+template <class T, UINT SLOTCOUNT>
 class TSingletonInstanceId : public TInstanceId<T> {
   typedef TInstanceIdTable<T, SLOTCOUNT> Table;
 
@@ -207,5 +207,5 @@ class TSingletonInstanceId : public TInstanceId<T> {
   static Table s_idTable;
 };
 
-template <class T, unsigned int SLOTCOUNT>
+template <class T, UINT SLOTCOUNT>
 TInstanceIdTable<T, SLOTCOUNT> TSingletonInstanceId<T, SLOTCOUNT>::s_idTable;

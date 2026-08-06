@@ -8,10 +8,10 @@ DWORD SGetCurrentThreadId() {
 
 struct THREADSTART {
   STHREADPROC proc;
-  void       *param;
+  LPVOID      param;
 };
 
-static void *ThreadProc(void *param) {
+static LPVOID ThreadProc(LPVOID param) {
   THREADSTART start = *static_cast<THREADSTART *>(param);
 
   SMemFree(param, __FILE__, __LINE__, 0);
@@ -20,7 +20,7 @@ static void *ThreadProc(void *param) {
   return 0;
 }
 
-void *SCreateThread(DWORD stackSize, STHREADPROC proc, void *param, DWORD flags, unsigned int *threadId, char *name) {
+LPVOID SCreateThread(DWORD stackSize, STHREADPROC proc, LPVOID param, DWORD flags, UINT *threadId, char *name) {
   pthread_attr_t attributes;
   pthread_t      thread;
   THREADSTART   *start;
@@ -41,7 +41,7 @@ void *SCreateThread(DWORD stackSize, STHREADPROC proc, void *param, DWORD flags,
   }
 
   if (threadId) {
-    *threadId = static_cast<unsigned int>(reinterpret_cast<uintptr_t>(thread));
+    *threadId = static_cast<UINT>(reinterpret_cast<uintptr_t>(thread));
   }
 
   return thread;

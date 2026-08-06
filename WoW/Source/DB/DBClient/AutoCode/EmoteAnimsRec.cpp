@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *EmoteAnimsRec::GetFilename() {
+LPCSTR EmoteAnimsRec::GetFilename() {
   return "DBFilesClient\\EmoteAnims.dbc";
 }
 
@@ -19,9 +19,9 @@ EmoteAnimsRec::EmoteAnimsRec() {
 EmoteAnimsRec::~EmoteAnimsRec() {
 }
 
-bool EmoteAnimsRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempAnimNameIndices[1];
+bool EmoteAnimsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempAnimNameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_ProcessedAnimIndex, sizeof(m_ProcessedAnimIndex), 0, 0, 0) && result;

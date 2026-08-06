@@ -7,13 +7,13 @@ class AreaMIDIAmbiencesRec {
   AreaMIDIAmbiencesRec();
   ~AreaMIDIAmbiencesRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 5;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 20;
   }
 
@@ -28,13 +28,13 @@ class AreaMIDIAmbiencesRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_DaySequence;
-  const char *m_NightSequence;
-  const char *m_DLSFile;
-  float       m_volume;
+  int    m_ID;
+  LPCSTR m_DaySequence;
+  LPCSTR m_NightSequence;
+  LPCSTR m_DLSFile;
+  float  m_volume;
 };
 
 extern WowClientDB<AreaMIDIAmbiencesRec> g_areaMIDIAmbiencesDB;

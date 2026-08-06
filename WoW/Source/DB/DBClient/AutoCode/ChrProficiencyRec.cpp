@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ChrProficiencyRec::GetFilename() {
+LPCSTR ChrProficiencyRec::GetFilename() {
   return "DBFilesClient\\ChrProficiency.dbc";
 }
 
@@ -19,7 +19,7 @@ ChrProficiencyRec::ChrProficiencyRec() {
 ChrProficiencyRec::~ChrProficiencyRec() {
 }
 
-bool ChrProficiencyRec::Read(SFile *f, const char *stringBuffer) {
+bool ChrProficiencyRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

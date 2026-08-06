@@ -37,34 +37,154 @@ namespace NTempest {
       return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     }
 
-    void Get(long &tx, long &ty, long &tz, long &tw) const { tx = x; ty = y; tz = z; tw = w; }
-    void Set(long tx, long ty, long tz, long tw) { x = tx; y = ty; z = tz; w = tw; }
-    operator C2iVector() const { return C2iVector(x, y); }
-    operator C3iVector() const { return C3iVector(x, y, z); }
-    C4iVector &operator+=(long a) { x += a; y += a; z += a; w += a; return *this; }
-    C4iVector &operator+=(const C4iVector &a) { x += a.x; y += a.y; z += a.z; w += a.w; return *this; }
-    C4iVector &operator-=(long a) { x -= a; y -= a; z -= a; w -= a; return *this; }
-    C4iVector &operator-=(const C4iVector &a) { x -= a.x; y -= a.y; z -= a.z; w -= a.w; return *this; }
-    C4iVector &operator*=(long a) { x *= a; y *= a; z *= a; w *= a; return *this; }
-    C4iVector &operator*=(const C4iVector &a) { x *= a.x; y *= a.y; z *= a.z; w *= a.w; return *this; }
-    C4iVector &operator/=(long a) { x /= a; y /= a; z /= a; w /= a; return *this; }
-    C4iVector &operator/=(const C4iVector &a) { x /= a.x; y /= a.y; z /= a.z; w /= a.w; return *this; }
-    C4iVector &operator>>=(long a) { x >>= a; y >>= a; z >>= a; w >>= a; return *this; }
-    C4iVector &operator>>=(const C4iVector &a) { x >>= a.x; y >>= a.y; z >>= a.z; w >>= a.w; return *this; }
-    C4iVector &operator<<=(long a) { x <<= a; y <<= a; z <<= a; w <<= a; return *this; }
-    C4iVector &operator<<=(const C4iVector &a) { x <<= a.x; y <<= a.y; z <<= a.z; w <<= a.w; return *this; }
-    C4iVector operator-() const { return C4iVector(-x, -y, -z, -w); }
-    long SquaredMag() const { return x * x + y * y + z * z + w * w; }
-    long Mag() const { return static_cast<long>(CMath::sqrt_(static_cast<float>(SquaredMag()))); }
-    long SumC() const { return x + y + z + w; }
-    bool IsUnit() const { return SquaredMag() == 1; }
+    void Get(long &tx, long &ty, long &tz, long &tw) const {
+      tx = x;
+      ty = y;
+      tz = z;
+      tw = w;
+    }
+    void Set(long tx, long ty, long tz, long tw) {
+      x = tx;
+      y = ty;
+      z = tz;
+      w = tw;
+    }
+    operator C2iVector() const {
+      return C2iVector(x, y);
+    }
+    operator C3iVector() const {
+      return C3iVector(x, y, z);
+    }
+    C4iVector &operator+=(long a) {
+      x += a;
+      y += a;
+      z += a;
+      w += a;
+      return *this;
+    }
+    C4iVector &operator+=(const C4iVector &a) {
+      x += a.x;
+      y += a.y;
+      z += a.z;
+      w += a.w;
+      return *this;
+    }
+    C4iVector &operator-=(long a) {
+      x -= a;
+      y -= a;
+      z -= a;
+      w -= a;
+      return *this;
+    }
+    C4iVector &operator-=(const C4iVector &a) {
+      x -= a.x;
+      y -= a.y;
+      z -= a.z;
+      w -= a.w;
+      return *this;
+    }
+    C4iVector &operator*=(long a) {
+      x *= a;
+      y *= a;
+      z *= a;
+      w *= a;
+      return *this;
+    }
+    C4iVector &operator*=(const C4iVector &a) {
+      x *= a.x;
+      y *= a.y;
+      z *= a.z;
+      w *= a.w;
+      return *this;
+    }
+    C4iVector &operator/=(long a) {
+      x /= a;
+      y /= a;
+      z /= a;
+      w /= a;
+      return *this;
+    }
+    C4iVector &operator/=(const C4iVector &a) {
+      x /= a.x;
+      y /= a.y;
+      z /= a.z;
+      w /= a.w;
+      return *this;
+    }
+    C4iVector &operator>>=(long a) {
+      x >>= a;
+      y >>= a;
+      z >>= a;
+      w >>= a;
+      return *this;
+    }
+    C4iVector &operator>>=(const C4iVector &a) {
+      x >>= a.x;
+      y >>= a.y;
+      z >>= a.z;
+      w >>= a.w;
+      return *this;
+    }
+    C4iVector &operator<<=(long a) {
+      x <<= a;
+      y <<= a;
+      z <<= a;
+      w <<= a;
+      return *this;
+    }
+    C4iVector &operator<<=(const C4iVector &a) {
+      x <<= a.x;
+      y <<= a.y;
+      z <<= a.z;
+      w <<= a.w;
+      return *this;
+    }
+    C4iVector operator-() const {
+      return C4iVector(-x, -y, -z, -w);
+    }
+    long SquaredMag() const {
+      return x * x + y * y + z * z + w * w;
+    }
+    long Mag() const {
+      return static_cast<long>(CMath::sqrt_(static_cast<float>(SquaredMag())));
+    }
+    long SumC() const {
+      return x + y + z + w;
+    }
+    bool IsUnit() const {
+      return SquaredMag() == 1;
+    }
     void Normalize() {
       long magnitude = Mag();
-      x /= magnitude; y /= magnitude; z /= magnitude; w /= magnitude;
+      x /= magnitude;
+      y /= magnitude;
+      z /= magnitude;
+      w /= magnitude;
     }
-    void Scale(const long magnitude) { Normalize(); *this *= magnitude; }
-    void Minimize(const C4iVector &a) { if (a.x < x) x = a.x; if (a.y < y) y = a.y; if (a.z < z) z = a.z; if (a.w < w) w = a.w; }
-    void Maximize(const C4iVector &a) { if (a.x > x) x = a.x; if (a.y > y) y = a.y; if (a.z > z) z = a.z; if (a.w > w) w = a.w; }
+    void Scale(const long magnitude) {
+      Normalize();
+      *this *= magnitude;
+    }
+    void Minimize(const C4iVector &a) {
+      if (a.x < x)
+        x = a.x;
+      if (a.y < y)
+        y = a.y;
+      if (a.z < z)
+        z = a.z;
+      if (a.w < w)
+        w = a.w;
+    }
+    void Maximize(const C4iVector &a) {
+      if (a.x > x)
+        x = a.x;
+      if (a.y > y)
+        y = a.y;
+      if (a.z > z)
+        z = a.z;
+      if (a.w > w)
+        w = a.w;
+    }
 
     long x;
     long y;

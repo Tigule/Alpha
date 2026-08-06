@@ -6,29 +6,29 @@
 
 static void LoadDBCaches();
 
-static int ReceiveCreature(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceiveGameObject(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceiveSingleItem(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceiveMultipleItems(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceiveNPCText(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceiveName(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceiveGuildInfo(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceiveQuest(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceivePageText(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceivePetName(void *, NETMESSAGE, unsigned long, CDataStore *msg);
-static int ReceivePetition(void *, NETMESSAGE, unsigned long, CDataStore *msg);
+static int ReceiveCreature(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceiveGameObject(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceiveSingleItem(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceiveMultipleItems(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceiveNPCText(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceiveName(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceiveGuildInfo(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceiveQuest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceivePageText(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceivePetName(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+static int ReceivePetition(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
 
 DBCache<CreatureStats_C, int, HASHKEY_INT> g_creatureDBCache(0x574D4F42, "creaturecache.wdb", CMSG_CREATURE_QUERY, MSG_NULL_ACTION, true, true);
 DBCache<GameObjectStats_C, int, HASHKEY_INT>
                                        g_gameObjectDBCache(0x57474F42, "gameobjectcache.wdb", CMSG_GAMEOBJECT_QUERY, MSG_NULL_ACTION, true, true);
 DBCache<ItemStats_C, int, HASHKEY_INT> g_itemDBCache(0x57494442, "itemcache.wdb", CMSG_ITEM_QUERY_SINGLE, CMSG_ITEM_QUERY_MULTIPLE, true, true);
 DBCache<NPCText, int, HASHKEY_INT>     g_npcTextDBCache(0x574E5043, "npccache.wdb", CMSG_NPC_TEXT_QUERY, MSG_NULL_ACTION, true, true);
-DBCache<NameCache, unsigned __int64, CHashKeyGUID> g_nameDBCache(0x574E414D, "namecache.wdb", CMSG_NAME_QUERY, MSG_NULL_ACTION, false, false);
-DBCache<GuildStats_C, int, HASHKEY_INT>            g_guildInfoCache(0x57474C44, "guildcache.wdb", CMSG_GUILD_QUERY, MSG_NULL_ACTION, false, false);
-DBCache<QuestCache, int, HASHKEY_INT>              g_questDBCache(0x57515354, "questcache.wdb", CMSG_QUEST_QUERY, MSG_NULL_ACTION, false, true);
-DBCache<PageTextCache_C, int, HASHKEY_INT> g_pageTextCache(0x57505458, "pagetextcache.wdb", CMSG_PAGE_TEXT_QUERY, MSG_NULL_ACTION, true, true);
-DBCache<PetNameCache, int, HASHKEY_INT>    g_petNameCache(0x57504E4D, "petnamecache.wdb", CMSG_PET_NAME_QUERY, MSG_NULL_ACTION, true, false);
-DBCache<CGPetition, int, HASHKEY_INT>      g_petitionCache(0x5750544E, "petitioncache.wdb", CMSG_PETITION_QUERY, MSG_NULL_ACTION, true, false);
+DBCache<NameCache, DWORDLONG, CHashKeyGUID> g_nameDBCache(0x574E414D, "namecache.wdb", CMSG_NAME_QUERY, MSG_NULL_ACTION, false, false);
+DBCache<GuildStats_C, int, HASHKEY_INT>     g_guildInfoCache(0x57474C44, "guildcache.wdb", CMSG_GUILD_QUERY, MSG_NULL_ACTION, false, false);
+DBCache<QuestCache, int, HASHKEY_INT>       g_questDBCache(0x57515354, "questcache.wdb", CMSG_QUEST_QUERY, MSG_NULL_ACTION, false, true);
+DBCache<PageTextCache_C, int, HASHKEY_INT>  g_pageTextCache(0x57505458, "pagetextcache.wdb", CMSG_PAGE_TEXT_QUERY, MSG_NULL_ACTION, true, true);
+DBCache<PetNameCache, int, HASHKEY_INT>     g_petNameCache(0x57504E4D, "petnamecache.wdb", CMSG_PET_NAME_QUERY, MSG_NULL_ACTION, true, false);
+DBCache<CGPetition, int, HASHKEY_INT>       g_petitionCache(0x5750544E, "petitioncache.wdb", CMSG_PETITION_QUERY, MSG_NULL_ACTION, true, false);
 
 static void LoadDBCaches() {
   g_creatureDBCache.Load();
@@ -43,32 +43,32 @@ static void LoadDBCaches() {
   g_petitionCache.Load();
 }
 
-static int ReceiveCreature(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveCreature(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_creatureDBCache.AddItems(msg, true);
   return 1;
 }
 
-static int ReceiveGameObject(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveGameObject(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_gameObjectDBCache.AddItems(msg, true);
   return 1;
 }
 
-static int ReceiveSingleItem(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveSingleItem(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_itemDBCache.AddItems(msg, true);
   return 1;
 }
 
-static int ReceiveMultipleItems(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveMultipleItems(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_itemDBCache.AddItems(msg, false);
   return 1;
 }
 
-static int ReceiveNPCText(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveNPCText(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_npcTextDBCache.AddItems(msg, true);
   return 1;
 }
 
-static int ReceiveName(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveName(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   NameCache nc;
 
   msg->Get(nc.m_guid);
@@ -89,7 +89,7 @@ static int ReceiveName(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   return 1;
 }
 
-static int ReceiveGuildInfo(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveGuildInfo(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   GuildStats_C guildStats;
 
   guildStats.Unpack(msg);
@@ -102,7 +102,7 @@ static int ReceiveGuildInfo(void *, NETMESSAGE, unsigned long, CDataStore *msg) 
   return 1;
 }
 
-static int ReceiveQuest(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceiveQuest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   QuestCache qc;
 
   qc.Unpack(msg);
@@ -115,12 +115,12 @@ static int ReceiveQuest(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   return 1;
 }
 
-static int ReceivePageText(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceivePageText(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_pageTextCache.AddItems(msg, true);
   return 1;
 }
 
-static int ReceivePetName(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceivePetName(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   PetNameCache pnc;
 
   msg->Get(pnc.m_ID);
@@ -136,7 +136,7 @@ static int ReceivePetName(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
   return 1;
 }
 
-static int ReceivePetition(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ReceivePetition(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   CGPetition pc;
 
   pc.Unpack(msg);

@@ -29,44 +29,44 @@
 struct UNITHASHOBJ : public TSHashObject<UNITHASHOBJ, CHashKeyGUID> {
   UNITHASHOBJ() : count(0) {
   }
-  unsigned int count;
+  UINT count;
 };
 
 struct COMBATLOGDESC {
-  unsigned int totalDamageDoneByEntity;
-  unsigned int totalDamageReducedByVictim;
-  unsigned int totalAttemptsByEntity;
-  unsigned int totalMisses;
-  unsigned int totalHits;
-  unsigned int totalVictimStatesByEntity[9];
-  unsigned int parryAttempts;
-  unsigned int dodgeAttempts;
-  unsigned int blockAttempts;
-  unsigned int totalTimeDelayed;
-  unsigned int criticalHits;
-  unsigned int spellCritsAttempted;
-  unsigned int spellCritsSucceeded;
-  unsigned int spellCritsSuffered;
-  int          totalHealthHealed;
-  int          totalReflectedDamageSuffered;
-  int          totalDamageSuffered;
-  int          totalHealingProvided;
-  int          totalReflectedDamageProvided;
-  int          totalDamageProvided;
-  float        totalSpellDamageReducedByVictim;
-  float        totalSpellDamageReduced;
+  UINT                                   totalDamageDoneByEntity;
+  UINT                                   totalDamageReducedByVictim;
+  UINT                                   totalAttemptsByEntity;
+  UINT                                   totalMisses;
+  UINT                                   totalHits;
+  UINT                                   totalVictimStatesByEntity[9];
+  UINT                                   parryAttempts;
+  UINT                                   dodgeAttempts;
+  UINT                                   blockAttempts;
+  UINT                                   totalTimeDelayed;
+  UINT                                   criticalHits;
+  UINT                                   spellCritsAttempted;
+  UINT                                   spellCritsSucceeded;
+  UINT                                   spellCritsSuffered;
+  int                                    totalHealthHealed;
+  int                                    totalReflectedDamageSuffered;
+  int                                    totalDamageSuffered;
+  int                                    totalHealingProvided;
+  int                                    totalReflectedDamageProvided;
+  int                                    totalDamageProvided;
+  float                                  totalSpellDamageReducedByVictim;
+  float                                  totalSpellDamageReduced;
   TSHashTable<UNITHASHOBJ, CHashKeyGUID> victims;
   TSHashTable<UNITHASHOBJ, CHashKeyGUID> attackers;
-  char          m_name[48];
+  char                                   m_name[48];
 
-  COMBATLOGDESC(const char *name);
+  COMBATLOGDESC(LPCSTR name);
   ~COMBATLOGDESC();
   void Clear();
   void LogAttack(const ATTACKROUNDINFO &info);
   void LogAttack(const SPELLLOG &info);
   void LogVictim(const SPELLLOG &info);
   void LogVictim(const ATTACKROUNDINFO &info);
-  void LogUnitGUID(unsigned __int64 guid, TSHashTable<UNITHASHOBJ, CHashKeyGUID> &theTable);
+  void LogUnitGUID(DWORDLONG guid, TSHashTable<UNITHASHOBJ, CHashKeyGUID> &theTable);
 };
 
 struct COMBATMESSAGEPRONOUNS {
@@ -78,9 +78,7 @@ struct ENCHANTMENTLOGDESC {
   ENCHANTMENTLOGDESC() : valid(false) {
   }
 
-  ENCHANTMENTLOGDESC(const ENCHANTMENTLOGDESC &other)
-      : valid(other.valid),
-        log(other.log) {
+  ENCHANTMENTLOGDESC(const ENCHANTMENTLOGDESC &other) : valid(other.valid), log(other.log) {
   }
 
   bool           valid;
@@ -100,25 +98,23 @@ enum COMBATMESSAGETYPE {
 };
 
 void UnitCombatLogEnableFileLog(int enable);
-void UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp);
+void UnitCombatLogShowXPGained(const DWORDLONG &victim, int xp);
 void UnitCombatLogEnchantment(const ENCHANTMENTLOG &log);
 
-static HSLOG        s_logHandle;
-static HSLOG        s_generalLogHandle;
-static unsigned int s_flags;
-static const CGPlayer_C *s_activePlayer;
-static TSGrowableArray<char> s_charArray;
+static HSLOG                               s_logHandle;
+static HSLOG                               s_generalLogHandle;
+static UINT                                s_flags;
+static const CGPlayer_C                   *s_activePlayer;
+static TSGrowableArray<char>               s_charArray;
 static TSGrowableArray<ENCHANTMENTLOGDESC> s_logDesc;
-static unsigned int s_logStartTime;
-static unsigned int s_lastLogTime;
-static COMBATLOGDESC s_unitCombatData[AFFILIATION_NUMAFFILIATIONS] = {
-    "You", "Your Pet", "Party Members", "Enemy", "Your Charmer"
-};
-static const char *formatString =
+static UINT                                s_logStartTime;
+static UINT                                s_lastLogTime;
+static COMBATLOGDESC s_unitCombatData[AFFILIATION_NUMAFFILIATIONS] = {"You", "Your Pet", "Party Members", "Enemy", "Your Charmer"};
+static LPCSTR        formatString =
     "(%d)%s Hit (%g%%/%g%%) %s for %d points of %s damage(-/+/mDone/mTaken/actual/scaler) "
     "%d/%d/%g/%g/%d/%g ( %g/%g - %g(max:%g)) )%s%s%s";
 
-COMBATLOGDESC::COMBATLOGDESC(const char *name) {
+COMBATLOGDESC::COMBATLOGDESC(LPCSTR name) {
   if (name && *name) {
     SStrPrintf(m_name, sizeof(m_name), name);
   } else {
@@ -157,9 +153,9 @@ void COMBATLOGDESC::Clear() {
   totalSpellDamageReduced = 0.0f;
 }
 
-void COMBATLOGDESC::LogUnitGUID(unsigned __int64 guid, TSHashTable<UNITHASHOBJ, CHashKeyGUID> &theTable) {
+void COMBATLOGDESC::LogUnitGUID(DWORDLONG guid, TSHashTable<UNITHASHOBJ, CHashKeyGUID> &theTable) {
   CHashKeyGUID key(guid);
-  unsigned int hash = static_cast<unsigned int>(guid);
+  UINT         hash = static_cast<UINT>(guid);
   UNITHASHOBJ *unit = theTable.Ptr(hash, key);
   if (!unit) {
     unit = theTable.New(hash, key, 0, 0);
@@ -239,8 +235,7 @@ void COMBATLOGDESC::LogVictim(const ATTACKROUNDINFO &info) {
 }
 
 static SLASH_COMMAND_ID s_affiliationLogType[AFFILIATION_NUMAFFILIATIONS] = {
-    SLASH_CMD_COMBAT_LOG_SELF, SLASH_CMD_COMBAT_LOG_PARTY, SLASH_CMD_COMBAT_LOG_PARTY, SLASH_CMD_COMBAT_LOG_ENEMY,
-    SLASH_CMD_COMBAT_LOG_PARTY
+    SLASH_CMD_COMBAT_LOG_SELF, SLASH_CMD_COMBAT_LOG_PARTY, SLASH_CMD_COMBAT_LOG_PARTY, SLASH_CMD_COMBAT_LOG_ENEMY, SLASH_CMD_COMBAT_LOG_PARTY
 };
 
 static float GetLogDistance(UNITAFFILIATION aff, bool suppressUnaffiliated) {
@@ -248,7 +243,7 @@ static float GetLogDistance(UNITAFFILIATION aff, bool suppressUnaffiliated) {
     return 0.0f;
   }
 
-  const char *cvarName = 0;
+  LPCSTR cvarName = 0;
   if (aff == AFFILIATION_PARTYMEMBER) {
     cvarName = "CombatLogPartyRange";
   } else if (aff == AFFILIATION_OTHER) {
@@ -263,7 +258,7 @@ static float GetLogDistance(UNITAFFILIATION aff, bool suppressUnaffiliated) {
 }
 
 static bool ShouldLogAttacker(
-    unsigned __int64 attacker,
+    DWORDLONG        attacker,
     UNITAFFILIATION &aAff,
     CGObject_C     *&unitPtr,
     bool             suppressIfUnaffiliated,
@@ -285,14 +280,21 @@ static bool ShouldLogAttacker(
   }
 
   CVar *cvar = CVar::Lookup("CombatDeathLogRange");
-  float dist = useDeathRange && cvar
-      ? cvar->GetFloat()
-      : GetLogDistance(aAff, suppressIfUnaffiliated);
-  return (s_activePlayer->GetPosition() - unitPtr->GetPosition()).SquaredMag() <=
-      dist * dist;
+  float dist = useDeathRange && cvar ? cvar->GetFloat() : GetLogDistance(aAff, suppressIfUnaffiliated);
+  return (s_activePlayer->GetPosition() - unitPtr->GetPosition()).SquaredMag() <= dist * dist;
 }
 
-static int ShouldLog(unsigned __int64 object, UNITAFFILIATION& aAff, CGObject_C*& objectPtr, CGUnit_C*& attackerPtr, unsigned __int64 subject, UNITAFFILIATION& vAff, CGObject_C*& subjectPtr, CGUnit_C*& victimPtr, bool suppressIfAllUnaffiliated) {
+static int ShouldLog(
+    DWORDLONG        object,
+    UNITAFFILIATION &aAff,
+    CGObject_C     *&objectPtr,
+    CGUnit_C       *&attackerPtr,
+    DWORDLONG        subject,
+    UNITAFFILIATION &vAff,
+    CGObject_C     *&subjectPtr,
+    CGUnit_C       *&victimPtr,
+    bool             suppressIfAllUnaffiliated
+) {
   if (!s_activePlayer) {
     return 0;
   }
@@ -318,26 +320,21 @@ static int ShouldLog(unsigned __int64 object, UNITAFFILIATION& aAff, CGObject_C*
   float subjectRangeSquared = GetLogDistance(vAff, suppressIfAllUnaffiliated);
   objectRangeSquared *= objectRangeSquared;
   subjectRangeSquared *= subjectRangeSquared;
-  NTempest::C3Vector objectDiff =
-      s_activePlayer->GetPosition() - objectPtr->GetPosition();
-  float objectSquaredMag = objectDiff.SquaredMag();
-  float subjectSquaredMag =
-      (s_activePlayer->GetPosition() - subjectPtr->GetPosition()).SquaredMag();
+  NTempest::C3Vector objectDiff = s_activePlayer->GetPosition() - objectPtr->GetPosition();
+  float              objectSquaredMag = objectDiff.SquaredMag();
+  float              subjectSquaredMag = (s_activePlayer->GetPosition() - subjectPtr->GetPosition()).SquaredMag();
 
-  if (aAff == AFFILIATION_PARTYMEMBER &&
-      objectSquaredMag > objectRangeSquared) {
+  if (aAff == AFFILIATION_PARTYMEMBER && objectSquaredMag > objectRangeSquared) {
     return 0;
   }
-  if (vAff == AFFILIATION_PARTYMEMBER &&
-      subjectSquaredMag > subjectRangeSquared) {
+  if (vAff == AFFILIATION_PARTYMEMBER && subjectSquaredMag > subjectRangeSquared) {
     return 0;
   }
-  return objectSquaredMag < objectRangeSquared ||
-      subjectSquaredMag < subjectRangeSquared;
+  return objectSquaredMag < objectRangeSquared || subjectSquaredMag < subjectRangeSquared;
 }
 
 static bool IsSpellTeach(const SpellRec *rec) {
-  for (unsigned int effect = 0; effect < 3; ++effect) {
+  for (UINT effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 36) {
       return 1;
     }
@@ -346,24 +343,22 @@ static bool IsSpellTeach(const SpellRec *rec) {
 }
 
 static bool IsSpellAbility(const SpellRec *rec) {
-  return (static_cast<unsigned int>(rec->m_attributes) >> 4) & 1;
+  return (static_cast<UINT>(rec->m_attributes) >> 4) & 1;
 }
 
-static unsigned char IsSpellHarmful(const SpellRec* rec) {
-  for (unsigned int effect = 0; effect < 3; ++effect) {
-    if (rec->m_effect[effect] == 2 ||
-        rec->m_effect[effect] == 58 ||
-        rec->m_effect[effect] == 17 ||
-        rec->m_effect[effect] == 31 ||
-        rec->m_effect[effect] == 62) {
+static BYTE IsSpellHarmful(const SpellRec *rec) {
+  for (UINT effect = 0; effect < 3; ++effect) {
+    if (rec->m_effect[effect] == 2 || rec->m_effect[effect] == 58 || rec->m_effect[effect] == 17 || rec->m_effect[effect] == 31 ||
+        rec->m_effect[effect] == 62)
+    {
       return 1;
     }
   }
   return 0;
 }
 
-static unsigned char IsSpellOpenLock(const SpellRec* rec) {
-  for (unsigned int effect = 0; effect < 3; ++effect) {
+static BYTE IsSpellOpenLock(const SpellRec *rec) {
+  for (UINT effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 33 || rec->m_effect[effect] == 59) {
       return 1;
     }
@@ -372,21 +367,20 @@ static unsigned char IsSpellOpenLock(const SpellRec* rec) {
 }
 
 static bool IsSpellQuiet(const SpellRec *rec) {
-  return (static_cast<unsigned int>(rec->m_attributes) >> 7) & 1;
+  return (static_cast<UINT>(rec->m_attributes) >> 7) & 1;
 }
 
-bool IsSpellAura(const SpellRec *rec);
-void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim);
-static void ItemEnchantmentCacheCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
+bool        IsSpellAura(const SpellRec *rec);
+void        UnitCombatLogSpellMissed(UINT missReason, UINT spellID, DWORDLONG caster, DWORDLONG victim);
+static void ItemEnchantmentCacheCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
 
-static void LogEnchantmentRequest(const ENCHANTMENTLOG& log) {
-  unsigned int index = 0;
+static void LogEnchantmentRequest(const ENCHANTMENTLOG &log) {
+  UINT index = 0;
   while (index < s_logDesc.Count() && s_logDesc[index].valid) {
     ++index;
   }
 
-  ENCHANTMENTLOGDESC *desc =
-      index == s_logDesc.Count() ? s_logDesc.New() : &s_logDesc[index];
+  ENCHANTMENTLOGDESC *desc = index == s_logDesc.Count() ? s_logDesc.New() : &s_logDesc[index];
   desc->valid = true;
   desc->log = log;
 }
@@ -398,7 +392,7 @@ static void CloseDebugLogHandle() {
   s_logHandle = 0;
 }
 
-static void __cdecl GeneralLogPrintf(SLASH_COMMAND_ID type, const char *format, ...) {
+static void __cdecl GeneralLogPrintf(SLASH_COMMAND_ID type, LPCSTR format, ...) {
   char    buffer[512];
   va_list arguments;
   va_start(arguments, format);
@@ -411,101 +405,110 @@ static void __cdecl GeneralLogPrintf(SLASH_COMMAND_ID type, const char *format, 
   }
 }
 
-static void ReportError(const char *string) {
+static void ReportError(LPCSTR string) {
   if (string && *string) {
     GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_ERROR, "Warning, string %s not found in stringfile.", string);
   }
 }
 
-static void UnitCombatLogSpellTeach(const SpellRec* rec, unsigned __int64 caster, unsigned __int64 target) {
+static void UnitCombatLogSpellTeach(const SpellRec *rec, DWORDLONG caster, DWORDLONG target) {
   CGObject_C *casterObject = ClntObjMgrObjectPtr(caster, __FILE__, __LINE__);
   CGObject_C *targetObject = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
-  if (!rec || !casterObject || !targetObject ||
-      !(casterObject->GetType() & TYPE_UNIT) || !(targetObject->GetType() & TYPE_UNIT)) {
+  if (!rec || !casterObject || !targetObject || !(casterObject->GetType() & TYPE_UNIT) || !(targetObject->GetType() & TYPE_UNIT)) {
     return;
   }
   GeneralLogPrintf(
-      SLASH_CMD_COMBAT_LOG_SELF, "%s teaches %s to %s.",
-      static_cast<CGUnit_C *>(casterObject)->GetUnitName(),
-      rec->m_name_lang[CURRENT_LANGUAGE],
+      SLASH_CMD_COMBAT_LOG_SELF, "%s teaches %s to %s.", static_cast<CGUnit_C *>(casterObject)->GetUnitName(), rec->m_name_lang[CURRENT_LANGUAGE],
       static_cast<CGUnit_C *>(targetObject)->GetUnitName()
   );
 }
 
-static void HandleTerseVictimLogging(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID) {
-  CGObject_C *attackerObject = ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__);
-  CGObject_C *victimObject = ClntObjMgrObjectPtr(victim, __FILE__, __LINE__);
+static void HandleTerseVictimLogging(DWORDLONG attacker, DWORDLONG victim, UINT spellID) {
+  CGObject_C     *attackerObject = ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__);
+  CGObject_C     *victimObject = ClntObjMgrObjectPtr(victim, __FILE__, __LINE__);
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
-  if (attackerObject && victimObject && spell &&
-      (attackerObject->GetType() & TYPE_UNIT) && (victimObject->GetType() & TYPE_UNIT)) {
+  if (attackerObject && victimObject && spell && (attackerObject->GetType() & TYPE_UNIT) && (victimObject->GetType() & TYPE_UNIT)) {
     GeneralLogPrintf(
-        SLASH_CMD_COMBAT_LOG_PARTY, "%s's %s affects %s.",
-        static_cast<CGUnit_C *>(attackerObject)->GetUnitName(),
-        spell->m_name_lang[CURRENT_LANGUAGE],
-        static_cast<CGUnit_C *>(victimObject)->GetUnitName()
+        SLASH_CMD_COMBAT_LOG_PARTY, "%s's %s affects %s.", static_cast<CGUnit_C *>(attackerObject)->GetUnitName(),
+        spell->m_name_lang[CURRENT_LANGUAGE], static_cast<CGUnit_C *>(victimObject)->GetUnitName()
     );
   }
 }
 
-static void HandleGeneralHealLogging(const DamageData& dmg, unsigned int spellID, unsigned __int64 attacker, unsigned __int64 victim) {
-  CGObject_C *attackerObject = ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__);
-  CGObject_C *victimObject = ClntObjMgrObjectPtr(victim, __FILE__, __LINE__);
+static void HandleGeneralHealLogging(const DamageData &dmg, UINT spellID, DWORDLONG attacker, DWORDLONG victim) {
+  CGObject_C     *attackerObject = ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__);
+  CGObject_C     *victimObject = ClntObjMgrObjectPtr(victim, __FILE__, __LINE__);
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
-  if (attackerObject && victimObject && spell &&
-      (attackerObject->GetType() & TYPE_UNIT) && (victimObject->GetType() & TYPE_UNIT)) {
+  if (attackerObject && victimObject && spell && (attackerObject->GetType() & TYPE_UNIT) && (victimObject->GetType() & TYPE_UNIT)) {
     GeneralLogPrintf(
-        SLASH_CMD_COMBAT_LOG_SELF, "%s's %s heals %s for %d.",
-        static_cast<CGUnit_C *>(attackerObject)->GetUnitName(),
-        spell->m_name_lang[CURRENT_LANGUAGE],
-        static_cast<CGUnit_C *>(victimObject)->GetUnitName(),
-        -dmg.totalDamage
+        SLASH_CMD_COMBAT_LOG_SELF, "%s's %s heals %s for %d.", static_cast<CGUnit_C *>(attackerObject)->GetUnitName(),
+        spell->m_name_lang[CURRENT_LANGUAGE], static_cast<CGUnit_C *>(victimObject)->GetUnitName(), -dmg.totalDamage
     );
   }
 }
 
-static void HandleGeneralCombatOrSpellHitLogging(int combat, const DamageData& dmg, unsigned int spellID, CGUnit_C* attackerPtr, CGUnit_C* victimPtr, int critted, unsigned int specialSpellID, unsigned int specialSpellDamage, UNITAFFILIATION aAff, UNITAFFILIATION vAff) {
+static void HandleGeneralCombatOrSpellHitLogging(
+    int               combat,
+    const DamageData &dmg,
+    UINT              spellID,
+    CGUnit_C         *attackerPtr,
+    CGUnit_C         *victimPtr,
+    int               critted,
+    UINT              specialSpellID,
+    UINT              specialSpellDamage,
+    UNITAFFILIATION   aAff,
+    UNITAFFILIATION   vAff
+) {
   if (!attackerPtr || !victimPtr) {
     return;
   }
   const SpellRec *spell = spellID ? g_spellDB.GetRecord(spellID) : 0;
-  const char *spellName = spell ? spell->m_name_lang[CURRENT_LANGUAGE] : 0;
-  const char *victimName = victimPtr->GetUnitName();
+  LPCSTR          spellName = spell ? spell->m_name_lang[CURRENT_LANGUAGE] : 0;
+  LPCSTR          victimName = victimPtr->GetUnitName();
   if (spellName) {
-    GeneralLogPrintf(s_affiliationLogType[aAff], "%s's %s hits %s for %d%s.",
-        attackerPtr->GetUnitName(), spellName, victimName, dmg.totalDamage,
-        critted ? " (critical)" : "");
+    GeneralLogPrintf(
+        s_affiliationLogType[aAff], "%s's %s hits %s for %d%s.", attackerPtr->GetUnitName(), spellName, victimName, dmg.totalDamage,
+        critted ? " (critical)" : ""
+    );
   } else {
-    GeneralLogPrintf(s_affiliationLogType[aAff], "%s hits %s for %d%s.",
-        attackerPtr->GetUnitName(), victimName, dmg.totalDamage,
-        critted ? " (critical)" : "");
+    GeneralLogPrintf(
+        s_affiliationLogType[aAff], "%s hits %s for %d%s.", attackerPtr->GetUnitName(), victimName, dmg.totalDamage, critted ? " (critical)" : ""
+    );
   }
 }
 
-static void HandleSpellLogTerse(CGUnit_C* attackerPtr, UNITAFFILIATION aAff, const char* spellNameString) {
+static void HandleSpellLogTerse(CGUnit_C *attackerPtr, UNITAFFILIATION aAff, LPCSTR spellNameString) {
   if (attackerPtr && spellNameString) {
     GeneralLogPrintf(s_affiliationLogType[aAff], "%s casts %s.", attackerPtr->GetUnitName(), spellNameString);
   }
 }
 
-static void HandleGeneralCombatLoggingMissed(const ATTACKROUNDINFO& info, CGUnit_C* attackerPtr, CGUnit_C* victimPtr, UNITAFFILIATION aAff, UNITAFFILIATION vAff) {
+static void HandleGeneralCombatLoggingMissed(
+    const ATTACKROUNDINFO &info,
+    CGUnit_C              *attackerPtr,
+    CGUnit_C              *victimPtr,
+    UNITAFFILIATION        aAff,
+    UNITAFFILIATION        vAff
+) {
   if (attackerPtr && victimPtr) {
-    const char *attackerName = attackerPtr->GetUnitName();
+    LPCSTR attackerName = attackerPtr->GetUnitName();
     GeneralLogPrintf(s_affiliationLogType[aAff], "%s misses %s.", attackerName, victimPtr->GetUnitName());
   }
 }
 
-static void HandleGeneralCombatEvadeLogging(const ATTACKROUNDINFO info, CGUnit_C* attackerPtr, CGUnit_C* victimPtr, UNITAFFILIATION aAff, UNITAFFILIATION vAff) {
+static void
+HandleGeneralCombatEvadeLogging(const ATTACKROUNDINFO info, CGUnit_C *attackerPtr, CGUnit_C *victimPtr, UNITAFFILIATION aAff, UNITAFFILIATION vAff) {
   if (attackerPtr && victimPtr) {
-    const char *attackerName = attackerPtr->GetUnitName();
+    LPCSTR attackerName = attackerPtr->GetUnitName();
     GeneralLogPrintf(s_affiliationLogType[aAff], "%s's attack was evaded by %s.", attackerName, victimPtr->GetUnitName());
   }
 }
 
-static void HandleGeneralCombatLogging(const ATTACKROUNDINFO& info) {
-  CGObject_C *attackerObjPtr;
-  CGObject_C *victimObjPtr;
-  CGUnit_C *attackerPtr;
-  CGUnit_C *victimPtr;
+static void HandleGeneralCombatLogging(const ATTACKROUNDINFO &info) {
+  CGObject_C     *attackerObjPtr;
+  CGObject_C     *victimObjPtr;
+  CGUnit_C       *attackerPtr;
+  CGUnit_C       *victimPtr;
   UNITAFFILIATION aAff;
   UNITAFFILIATION vAff;
   if (!ShouldLog(info.attacker, aAff, attackerObjPtr, attackerPtr, info.victim, vAff, victimObjPtr, victimPtr, 0)) {
@@ -520,27 +523,27 @@ static void HandleGeneralCombatLogging(const ATTACKROUNDINFO& info) {
   }
 }
 
-static void FormatSpellMissString(char* string, unsigned int size, const SPELLMISSLOG& log) {
+static void FormatSpellMissString(char *string, UINT size, const SPELLMISSLOG &log) {
   const SpellRec *spell = g_spellDB.GetRecord(log.spellID);
   SStrPrintf(string, size, "%s missed (reason %u).", spell ? spell->m_name_lang[CURRENT_LANGUAGE] : "Spell", log.reason);
 }
 
-static void FormatSpellString(char* string, unsigned int size, const SPELLLOG& log) {
+static void FormatSpellString(char *string, UINT size, const SPELLLOG &log) {
   const SpellRec *spell = g_spellDB.GetRecord(log.spellID);
   SStrPrintf(string, size, "%s hit for %d.", spell ? spell->m_name_lang[CURRENT_LANGUAGE] : "Spell", log.dmg.totalDamage);
 }
 
-static void Capitalize(char* string) {
+static void Capitalize(char *string) {
   if (string && *string && islower(*string)) {
     *string -= 32;
   }
 }
 
-static void NormalHitHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+static void NormalHitHandler(COMBATMESSAGEPRONOUNS &pronouns, const ATTACKROUNDINFO &info, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   const ResistancesRec *damageClass = GetDamageClassRecord(info.dmg.damageType[0]);
-  const char *damageType = damageClass ? damageClass->m_name_lang[CURRENT_LANGUAGE] : "";
+  LPCSTR                damageType = damageClass ? damageClass->m_name_lang[CURRENT_LANGUAGE] : "";
 
   char critString[128] = "";
   if (info.flags & 8) {
@@ -549,98 +552,85 @@ static void NormalHitHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDI
   char stunString[128] = "";
   if (info.flags & 0x10) {
     SStrPrintf(
-        stunString, sizeof(stunString), " (STUN: %g%%/%g%%%s%s)", info.stunRollNeededFloat, info.stunRollFloat,
-        (info.flags & 0x800) ? " HIT" : "", (info.flags & 0x100) ? " CLDN" : ""
+        stunString, sizeof(stunString), " (STUN: %g%%/%g%%%s%s)", info.stunRollNeededFloat, info.stunRollFloat, (info.flags & 0x800) ? " HIT" : "",
+        (info.flags & 0x100) ? " CLDN" : ""
     );
   }
   char offHandString[128] = "";
   if (info.flags & 0x200) {
-    SStrPrintf(
-        offHandString, sizeof(offHandString), " (OFFHAND: %g%%/%g%%",
-        info.dualWieldHitRollNeededFloat, info.dualWieldHitRollFloat
-    );
+    SStrPrintf(offHandString, sizeof(offHandString), " (OFFHAND: %g%%/%g%%", info.dualWieldHitRollNeededFloat, info.dualWieldHitRollFloat);
   }
   int totalDamage = (info.flags & 0x4000) ? 0 : info.dmg.totalDamage;
   SStrPrintf(
-      buffer, size, formatString, info.sinceLastSwing, pronouns.attackerName, info.hitRollNeededFloat, info.hitRollFloat,
-      pronouns.victimName, totalDamage, damageType, info.dmg.minDamage[0], info.dmg.maxDamage[0], info.modDamageDone,
-      info.modDamageTaken, totalDamage, info.DPSScaler, info.scaledDamage, info.dmg.damageFloat[0],
-      info.scaledArmorReduction, info.maxDamageReduction, critString, stunString, offHandString
+      buffer, size, formatString, info.sinceLastSwing, pronouns.attackerName, info.hitRollNeededFloat, info.hitRollFloat, pronouns.victimName,
+      totalDamage, damageType, info.dmg.minDamage[0], info.dmg.maxDamage[0], info.modDamageDone, info.modDamageTaken, totalDamage, info.DPSScaler,
+      info.scaledDamage, info.dmg.damageFloat[0], info.scaledArmorReduction, info.maxDamageReduction, critString, stunString, offHandString
   );
 }
 
-static void NormalMissHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+static void NormalMissHandler(COMBATMESSAGEPRONOUNS &pronouns, const ATTACKROUNDINFO &info, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   if (info.flags & 0x8000) {
-    SStrPrintf(
-        buffer, size, "(%d) offhand failed (%g%%/%g%%)", info.sinceLastSwing,
-        info.dualWieldHitRollNeededFloat, info.dualWieldHitRollFloat
-    );
+    SStrPrintf(buffer, size, "(%d) offhand failed (%g%%/%g%%)", info.sinceLastSwing, info.dualWieldHitRollNeededFloat, info.dualWieldHitRollFloat);
     return;
   }
   char buff[128] = "";
   if (info.flags & 0x200) {
-    SStrPrintf(
-        buff, sizeof(buff), " OFFHAND: (%g%%/%g%%)",
-        info.dualWieldHitRollNeededFloat, info.dualWieldHitRollFloat
-    );
+    SStrPrintf(buff, sizeof(buff), " OFFHAND: (%g%%/%g%%)", info.dualWieldHitRollNeededFloat, info.dualWieldHitRollFloat);
   }
   SStrPrintf(
-      buffer, size, "(%d)%s (%g%%/%g%%) Missed %s%s", info.sinceLastSwing, pronouns.attackerName,
-      info.hitRollNeededFloat, info.hitRollFloat, pronouns.victimName, buff
+      buffer, size, "(%d)%s (%g%%/%g%%) Missed %s%s", info.sinceLastSwing, pronouns.attackerName, info.hitRollNeededFloat, info.hitRollFloat,
+      pronouns.victimName, buff
   );
 }
 
-static void NormalBlockHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+static void NormalBlockHandler(COMBATMESSAGEPRONOUNS &pronouns, const ATTACKROUNDINFO &info, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   SStrPrintf(
-      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is blocked (%g%%/%g%%)", info.sinceLastSwing,
-      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat,
-      info.blockRollNeededFloat, info.blockRollFloat
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is blocked (%g%%/%g%%)", info.sinceLastSwing, pronouns.attackerName, pronouns.victimName,
+      info.hitRollNeededFloat, info.hitRollFloat, info.blockRollNeededFloat, info.blockRollFloat
   );
 }
 
-static void NormalParryHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+static void NormalParryHandler(COMBATMESSAGEPRONOUNS &pronouns, const ATTACKROUNDINFO &info, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   SStrPrintf(
-      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is parried (%g%%/%g%%) by %s", info.sinceLastSwing,
-      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat,
-      info.parryRollNeededFloat, info.parryRollFloat, pronouns.victimName
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is parried (%g%%/%g%%) by %s", info.sinceLastSwing, pronouns.attackerName,
+      pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat, info.parryRollNeededFloat, info.parryRollFloat, pronouns.victimName
   );
 }
 
-static void NormalDodgeHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+static void NormalDodgeHandler(COMBATMESSAGEPRONOUNS &pronouns, const ATTACKROUNDINFO &info, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   SStrPrintf(
-      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is dodged (%g%%/%g%%) by %s", info.sinceLastSwing,
-      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat,
-      info.dodgeRollNeededFloat, info.dodgeRollFloat, pronouns.victimName
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is dodged (%g%%/%g%%) by %s", info.sinceLastSwing, pronouns.attackerName,
+      pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat, info.dodgeRollNeededFloat, info.dodgeRollFloat, pronouns.victimName
   );
 }
 
-static void NormalImmuneHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+static void NormalImmuneHandler(COMBATMESSAGEPRONOUNS &pronouns, const ATTACKROUNDINFO &info, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   SStrPrintf(
-      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) failed, victim is immune", info.sinceLastSwing,
-      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) failed, victim is immune", info.sinceLastSwing, pronouns.attackerName,
+      pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat
   );
 }
 
-static void NormalEvadeHandler(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info, char* buffer, unsigned int size) {
+static void NormalEvadeHandler(COMBATMESSAGEPRONOUNS &pronouns, const ATTACKROUNDINFO &info, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   SStrPrintf(
-      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is evaded by %s", info.sinceLastSwing,
-      pronouns.attackerName, pronouns.victimName, info.hitRollNeededFloat, info.hitRollFloat, pronouns.victimName
+      buffer, size, "(%d)The attack of %s on %s (%g%%/%g%%,) is evaded by %s", info.sinceLastSwing, pronouns.attackerName, pronouns.victimName,
+      info.hitRollNeededFloat, info.hitRollFloat, pronouns.victimName
   );
 }
 
-static void WriteMessage(const char *message) {
+static void WriteMessage(LPCSTR message) {
   if (message && *message && (s_flags & 2) && s_logHandle) {
     SLogWrite(s_logHandle, "%s", message);
   }
@@ -648,106 +638,129 @@ static void WriteMessage(const char *message) {
 
 void UnitCombatDebugLogEnable(int enable);
 
-static int CCommand_PlayerCombatLogDebug(const char *, const char *arguments) {
+static int CCommand_PlayerCombatLogDebug(LPCSTR, LPCSTR arguments) {
   UnitCombatDebugLogEnable(arguments && SStrToInt(arguments));
   return 1;
 }
 
-static int DebugCombatLogHandler(const char* command, const char* arguments) {
+static int DebugCombatLogHandler(LPCSTR command, LPCSTR arguments) {
   UnitCombatDebugLogEnable(arguments && SStrToInt(arguments));
   return 1;
 }
 
-static void GeneratePronouns(COMBATMESSAGEPRONOUNS& pronouns, const ATTACKROUNDINFO& info) {
+static void GeneratePronouns(COMBATMESSAGEPRONOUNS &pronouns, const ATTACKROUNDINFO &info) {
   CGObject_C *attacker = ClntObjMgrObjectPtr(info.attacker, __FILE__, __LINE__);
   CGObject_C *victim = ClntObjMgrObjectPtr(info.victim, __FILE__, __LINE__);
-  SStrCopy(pronouns.attackerName,
-      attacker && (attacker->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(attacker)->GetUnitName() : "",
-      sizeof(pronouns.attackerName));
-  SStrCopy(pronouns.victimName,
-      victim && (victim->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(victim)->GetUnitName() : "",
-      sizeof(pronouns.victimName));
+  SStrCopy(
+      pronouns.attackerName, attacker && (attacker->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(attacker)->GetUnitName() : "",
+      sizeof(pronouns.attackerName)
+  );
+  SStrCopy(
+      pronouns.victimName, victim && (victim->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(victim)->GetUnitName() : "",
+      sizeof(pronouns.victimName)
+  );
 }
 
-static COMBATMESSAGETYPE DetermineResultType(const ATTACKROUNDINFO& info) {
+static COMBATMESSAGETYPE DetermineResultType(const ATTACKROUNDINFO &info) {
   switch (info.newVictimState) {
-    case VS_BLOCK: return COMBATMESSAGETYPE_NORMALBLOCK;
-    case VS_PARRY: return COMBATMESSAGETYPE_NORMALPARRY;
-    case VS_DODGE: return COMBATMESSAGETYPE_NORMALDODGE;
-    case VS_EVADE: return COMBATMESSAGETYPE_NORMALEVADE;
-    case VS_IMMUNE: return COMBATMESSAGETYPE_NORMALIMMUNE;
-    default: return info.dmg.totalDamage ? COMBATMESSAGETYPE_NORMALHIT : COMBATMESSAGETYPE_NORMALMISS;
+    case VS_BLOCK:
+      return COMBATMESSAGETYPE_NORMALBLOCK;
+    case VS_PARRY:
+      return COMBATMESSAGETYPE_NORMALPARRY;
+    case VS_DODGE:
+      return COMBATMESSAGETYPE_NORMALDODGE;
+    case VS_EVADE:
+      return COMBATMESSAGETYPE_NORMALEVADE;
+    case VS_IMMUNE:
+      return COMBATMESSAGETYPE_NORMALIMMUNE;
+    default:
+      return info.dmg.totalDamage ? COMBATMESSAGETYPE_NORMALHIT : COMBATMESSAGETYPE_NORMALMISS;
   }
 }
 
-static void OutputCombatMessage(const ATTACKROUNDINFO& info) {
+static void OutputCombatMessage(const ATTACKROUNDINFO &info) {
   COMBATMESSAGEPRONOUNS pronouns;
   GeneratePronouns(pronouns, info);
   char buffer[256];
   switch (DetermineResultType(info)) {
-    case COMBATMESSAGETYPE_NORMALHIT: NormalHitHandler(pronouns, info, buffer, sizeof(buffer)); break;
-    case COMBATMESSAGETYPE_NORMALBLOCK: NormalBlockHandler(pronouns, info, buffer, sizeof(buffer)); break;
-    case COMBATMESSAGETYPE_NORMALPARRY: NormalParryHandler(pronouns, info, buffer, sizeof(buffer)); break;
-    case COMBATMESSAGETYPE_NORMALDODGE: NormalDodgeHandler(pronouns, info, buffer, sizeof(buffer)); break;
-    case COMBATMESSAGETYPE_NORMALEVADE: NormalEvadeHandler(pronouns, info, buffer, sizeof(buffer)); break;
-    case COMBATMESSAGETYPE_NORMALIMMUNE: NormalImmuneHandler(pronouns, info, buffer, sizeof(buffer)); break;
-    default: NormalMissHandler(pronouns, info, buffer, sizeof(buffer)); break;
+    case COMBATMESSAGETYPE_NORMALHIT:
+      NormalHitHandler(pronouns, info, buffer, sizeof(buffer));
+      break;
+    case COMBATMESSAGETYPE_NORMALBLOCK:
+      NormalBlockHandler(pronouns, info, buffer, sizeof(buffer));
+      break;
+    case COMBATMESSAGETYPE_NORMALPARRY:
+      NormalParryHandler(pronouns, info, buffer, sizeof(buffer));
+      break;
+    case COMBATMESSAGETYPE_NORMALDODGE:
+      NormalDodgeHandler(pronouns, info, buffer, sizeof(buffer));
+      break;
+    case COMBATMESSAGETYPE_NORMALEVADE:
+      NormalEvadeHandler(pronouns, info, buffer, sizeof(buffer));
+      break;
+    case COMBATMESSAGETYPE_NORMALIMMUNE:
+      NormalImmuneHandler(pronouns, info, buffer, sizeof(buffer));
+      break;
+    default:
+      NormalMissHandler(pronouns, info, buffer, sizeof(buffer));
+      break;
   }
   ConsoleWrite(buffer, DEFAULT_COLOR);
   WriteMessage(buffer);
 }
 
-static void WriteString(int writeToConsole, TSGrowableArray<char> &array, const char *format, ...) {
-  char buff[256];
+static void WriteString(int writeToConsole, TSGrowableArray<char> &array, LPCSTR format, ...) {
+  char    buff[256];
   va_list args;
   va_start(args, format);
   SStrVPrintf(buff, sizeof(buff), format, args);
   va_end(args);
   buff[sizeof(buff) - 1] = 0;
-  unsigned int chars = SStrLen(buff);
+  UINT chars = SStrLen(buff);
   array.Add(chars, buff);
   if (writeToConsole) {
     ConsoleWrite(buff, DEFAULT_COLOR);
   }
 }
 
-static void WriteSpellInfo(const COMBATLOGDESC& unit) {
-  float critRate = unit.spellCritsAttempted
-                     ? static_cast<float>(unit.spellCritsSucceeded) / unit.spellCritsAttempted * 100.0f
-                     : 0.0f;
-  WriteString(1, s_charArray, "%s: %d/%d crits/attempts (suffered %d), %02f%% crit rate\r\n",
-      unit.m_name, unit.spellCritsSucceeded, unit.spellCritsAttempted, unit.spellCritsSuffered, critRate);
+static void WriteSpellInfo(const COMBATLOGDESC &unit) {
+  float critRate = unit.spellCritsAttempted ? static_cast<float>(unit.spellCritsSucceeded) / unit.spellCritsAttempted * 100.0f : 0.0f;
+  WriteString(
+      1, s_charArray, "%s: %d/%d crits/attempts (suffered %d), %02f%% crit rate\r\n", unit.m_name, unit.spellCritsSucceeded, unit.spellCritsAttempted,
+      unit.spellCritsSuffered, critRate
+  );
   WriteString(1, s_charArray, "%s: Received %d HP of healing\r\n", unit.m_name, unit.totalHealthHealed);
   int totalDamageSuffered = unit.totalReflectedDamageSuffered + unit.totalDamageSuffered;
-  WriteString(1, s_charArray, "%s: %d/%d/%d points of reflected/normal/total damage received\r\n",
-      unit.m_name, unit.totalReflectedDamageSuffered, unit.totalDamageSuffered, totalDamageSuffered);
+  WriteString(
+      1, s_charArray, "%s: %d/%d/%d points of reflected/normal/total damage received\r\n", unit.m_name, unit.totalReflectedDamageSuffered,
+      unit.totalDamageSuffered, totalDamageSuffered
+  );
   WriteString(1, s_charArray, "%s: Provided %d HP of healing\r\n", unit.m_name, unit.totalHealingProvided);
-  WriteString(1, s_charArray, "%s: %d/%d/%d points of reflected/normal/total damage given\r\n",
-      unit.m_name, unit.totalReflectedDamageProvided, unit.totalDamageProvided,
-      unit.totalReflectedDamageProvided + unit.totalDamageProvided);
-  WriteString(1, s_charArray, "%s: Total spell damage reduced by self/victim: %g/%g\r\n",
-      unit.m_name, unit.totalSpellDamageReduced, unit.totalSpellDamageReducedByVictim);
+  WriteString(
+      1, s_charArray, "%s: %d/%d/%d points of reflected/normal/total damage given\r\n", unit.m_name, unit.totalReflectedDamageProvided,
+      unit.totalDamageProvided, unit.totalReflectedDamageProvided + unit.totalDamageProvided
+  );
+  WriteString(
+      1, s_charArray, "%s: Total spell damage reduced by self/victim: %g/%g\r\n", unit.m_name, unit.totalSpellDamageReduced,
+      unit.totalSpellDamageReducedByVictim
+  );
   float reduced = totalDamageSuffered ? unit.totalSpellDamageReduced / totalDamageSuffered * 100.0f : 0.0f;
   WriteString(1, s_charArray, "%s: percent damage reduced: %g\r\n", unit.m_name, reduced);
 }
 
-static void WriteAttemptsHitsMisses(const COMBATLOGDESC& attacker) {
-  WriteString(1, s_charArray, "%s Attempts/Hits/Misses on victim: %d/%d/%d\r\n",
-      attacker.m_name, attacker.totalAttemptsByEntity, attacker.totalHits, attacker.totalMisses);
-  unsigned int hitPercent = attacker.totalAttemptsByEntity
-                              ? 100 * attacker.totalHits / attacker.totalAttemptsByEntity
-                              : 0;
+static void WriteAttemptsHitsMisses(const COMBATLOGDESC &attacker) {
+  WriteString(
+      1, s_charArray, "%s Attempts/Hits/Misses on victim: %d/%d/%d\r\n", attacker.m_name, attacker.totalAttemptsByEntity, attacker.totalHits,
+      attacker.totalMisses
+  );
+  UINT hitPercent = attacker.totalAttemptsByEntity ? 100 * attacker.totalHits / attacker.totalAttemptsByEntity : 0;
   WriteString(1, s_charArray, "%s percentage hits: %d\r\n", attacker.m_name, hitPercent);
-  float critRate = attacker.totalAttemptsByEntity
-                     ? static_cast<float>(attacker.criticalHits) / attacker.totalAttemptsByEntity * 100.0f
-                     : 0.0f;
-  WriteString(1, s_charArray, "%d/%d crits/attempts, %02f%% crit rate\r\n",
-      attacker.criticalHits, attacker.totalHits, critRate);
+  float critRate = attacker.totalAttemptsByEntity ? static_cast<float>(attacker.criticalHits) / attacker.totalAttemptsByEntity * 100.0f : 0.0f;
+  WriteString(1, s_charArray, "%d/%d crits/attempts, %02f%% crit rate\r\n", attacker.criticalHits, attacker.totalHits, critRate);
 }
 
-static void WriteVictimStates(const COMBATLOGDESC& victim, const char* name, unsigned int attempts, unsigned int successes) {
-  WriteString(1, s_charArray, "%s %s Attempts/Success/Failure: %d/%d/%d\r\n",
-      victim.m_name, name, attempts, successes, attempts - successes);
+static void WriteVictimStates(const COMBATLOGDESC &victim, LPCSTR name, UINT attempts, UINT successes) {
+  WriteString(1, s_charArray, "%s %s Attempts/Success/Failure: %d/%d/%d\r\n", victim.m_name, name, attempts, successes, attempts - successes);
   float successRate = attempts ? static_cast<float>(successes) * 100.0f / attempts : 0.0f;
   WriteString(1, s_charArray, "%s Percentage %s successes: %g%%\r\n", victim.m_name, name, successRate);
 }
@@ -766,31 +779,33 @@ static float RoundTo(float roundThis, float toThis) {
     toThis = -toThis;
   }
 
-  unsigned int count = static_cast<unsigned int>(roundThis / toThis);
+  UINT count = static_cast<UINT>(roundThis / toThis);
   if (fmod(roundThis, toThis) >= toThis * 0.5f) {
     ++count;
   }
   return count * negate * toThis;
 }
 
-static void WriteDamageTallies(const COMBATLOGDESC& desc, float seconds) {
+static void WriteDamageTallies(const COMBATLOGDESC &desc, float seconds) {
   float perSecond = 1.0f / seconds;
   float reducedPerSecond = RoundTo(desc.totalDamageReducedByVictim * perSecond, 0.5f);
-  WriteString(1, s_charArray, "  Total damage reduced by the armor of victim: %d (%g per second)\r\n",
-      desc.totalDamageReducedByVictim, reducedPerSecond);
-  unsigned int grossDamage = desc.totalDamageDoneByEntity + desc.totalDamageReducedByVictim;
-  WriteString(1, s_charArray, "  Gross damage suffered by victim: %d (%g per second)\r\n",
-      grossDamage, RoundTo(grossDamage * perSecond, 0.3f));
-  WriteString(1, s_charArray, "  Net damage suffered by victim: %d (%g per second)\r\n",
-      desc.totalDamageDoneByEntity, RoundTo(desc.totalDamageDoneByEntity * perSecond, 0.3f));
-  unsigned int percent = grossDamage ? 100 * desc.totalDamageReducedByVictim / grossDamage : 0;
+  WriteString(
+      1, s_charArray, "  Total damage reduced by the armor of victim: %d (%g per second)\r\n", desc.totalDamageReducedByVictim, reducedPerSecond
+  );
+  UINT grossDamage = desc.totalDamageDoneByEntity + desc.totalDamageReducedByVictim;
+  WriteString(1, s_charArray, "  Gross damage suffered by victim: %d (%g per second)\r\n", grossDamage, RoundTo(grossDamage * perSecond, 0.3f));
+  WriteString(
+      1, s_charArray, "  Net damage suffered by victim: %d (%g per second)\r\n", desc.totalDamageDoneByEntity,
+      RoundTo(desc.totalDamageDoneByEntity * perSecond, 0.3f)
+  );
+  UINT percent = grossDamage ? 100 * desc.totalDamageReducedByVictim / grossDamage : 0;
   WriteString(1, s_charArray, "  Percent damage reduction: %d\r\n", percent);
 }
 
 static void LogResults() {
   s_charArray.SetCount(0);
-  unsigned int currentTime = OsGetAsyncTimeMs();
-  unsigned int elapsedTime = s_lastLogTime - s_logStartTime;
+  UINT currentTime = OsGetAsyncTimeMs();
+  UINT elapsedTime = s_lastLogTime - s_logStartTime;
   if (s_lastLogTime == s_logStartTime) {
     elapsedTime = 1;
   }
@@ -800,25 +815,16 @@ static void LogResults() {
   WriteString(1, s_charArray, "Start Time: %d\r\n", s_logStartTime);
   WriteString(1, s_charArray, "End Time  : %d\r\n", currentTime);
   WriteString(1, s_charArray, "Elapsed time: %g seconds\r\n", seconds);
-  for (unsigned int i = 0; i < AFFILIATION_NUMAFFILIATIONS; ++i) {
+  for (UINT i = 0; i < AFFILIATION_NUMAFFILIATIONS; ++i) {
     WriteString(1, s_charArray, "Tallies for %s:\r\n", s_unitCombatData[i].m_name);
     WriteDamageTallies(s_unitCombatData[i], seconds);
   }
-  for (unsigned int j = 0; j < AFFILIATION_NUMAFFILIATIONS; ++j) {
+  for (UINT j = 0; j < AFFILIATION_NUMAFFILIATIONS; ++j) {
     WriteString(1, s_charArray, "--------------------\r\n");
     WriteAttemptsHitsMisses(s_unitCombatData[j]);
-    WriteVictimStates(
-        s_unitCombatData[j], "Parry", s_unitCombatData[j].parryAttempts,
-        s_unitCombatData[j].totalVictimStatesByEntity[VS_PARRY]
-    );
-    WriteVictimStates(
-        s_unitCombatData[j], "Dodge", s_unitCombatData[j].dodgeAttempts,
-        s_unitCombatData[j].totalVictimStatesByEntity[VS_DODGE]
-    );
-    WriteVictimStates(
-        s_unitCombatData[j], "Block", s_unitCombatData[j].blockAttempts,
-        s_unitCombatData[j].totalVictimStatesByEntity[VS_BLOCK]
-    );
+    WriteVictimStates(s_unitCombatData[j], "Parry", s_unitCombatData[j].parryAttempts, s_unitCombatData[j].totalVictimStatesByEntity[VS_PARRY]);
+    WriteVictimStates(s_unitCombatData[j], "Dodge", s_unitCombatData[j].dodgeAttempts, s_unitCombatData[j].totalVictimStatesByEntity[VS_DODGE]);
+    WriteVictimStates(s_unitCombatData[j], "Block", s_unitCombatData[j].blockAttempts, s_unitCombatData[j].totalVictimStatesByEntity[VS_BLOCK]);
     WriteString(1, s_charArray, "Spell Info:\r\n");
     WriteSpellInfo(s_unitCombatData[j]);
   }
@@ -827,10 +833,10 @@ static void LogResults() {
   s_charArray.Add(1, &terminator);
 }
 
-static void UnitCombatLogEnchantmentRemoved(const ENCHANTMENTLOG& log, bool isCallback) {
+static void UnitCombatLogEnchantmentRemoved(const ENCHANTMENTLOG &log, bool isCallback) {
   ENCHANTMENTLOG copy(log);
   copy.flags |= 1;
-  unsigned __int64 noGuid = 0;
+  DWORDLONG noGuid = 0;
   if (isCallback || g_itemDBCache.GetRecord(copy.itemID, noGuid, ItemEnchantmentCacheCallback, 0)) {
     UnitCombatLogEnchantment(copy);
   } else {
@@ -838,10 +844,10 @@ static void UnitCombatLogEnchantmentRemoved(const ENCHANTMENTLOG& log, bool isCa
   }
 }
 
-static void UnitCombatLogEnchantmentAdded(const ENCHANTMENTLOG& log, bool isCallback) {
+static void UnitCombatLogEnchantmentAdded(const ENCHANTMENTLOG &log, bool isCallback) {
   ENCHANTMENTLOG copy(log);
   copy.flags &= ~1;
-  unsigned __int64 noGuid = 0;
+  DWORDLONG noGuid = 0;
   if (isCallback || g_itemDBCache.GetRecord(copy.itemID, noGuid, ItemEnchantmentCacheCallback, 0)) {
     UnitCombatLogEnchantment(copy);
   } else {
@@ -849,13 +855,13 @@ static void UnitCombatLogEnchantmentAdded(const ENCHANTMENTLOG& log, bool isCall
   }
 }
 
-static void ItemEnchantmentCacheCallback(int id, const unsigned __int64 &, void *, bool) {
-  unsigned __int64 noGuid = 0;
+static void ItemEnchantmentCacheCallback(int id, const DWORDLONG &, LPVOID, bool) {
+  DWORDLONG noGuid = 0;
   if (!g_itemDBCache.GetRecord(id, noGuid, 0, 0)) {
     return;
   }
 
-  for (unsigned int index = s_logDesc.Count(); index;) {
+  for (UINT index = s_logDesc.Count(); index;) {
     ENCHANTMENTLOGDESC &desc = s_logDesc[--index];
     if (!desc.valid || desc.log.itemID != id) {
       continue;
@@ -871,7 +877,7 @@ static void ItemEnchantmentCacheCallback(int id, const unsigned __int64 &, void 
 }
 
 static void ClearUnitDataStructs() {
-  for (unsigned int i = 0; i < AFFILIATION_NUMAFFILIATIONS; ++i) {
+  for (UINT i = 0; i < AFFILIATION_NUMAFFILIATIONS; ++i) {
     s_unitCombatData[i].Clear();
   }
 }
@@ -926,7 +932,7 @@ void UnitCombatDebugLogEnable(int enable) {
   ClientServices_Send(&msg);
 }
 
-void UnitCombatLogCastGo(unsigned int spellID, unsigned __int64 casterUnit, unsigned __int64 target) {
+void UnitCombatLogCastGo(UINT spellID, DWORDLONG casterUnit, DWORDLONG target) {
   if (!s_activePlayer) {
     return;
   }
@@ -943,8 +949,8 @@ void UnitCombatLogCastGo(unsigned int spellID, unsigned __int64 casterUnit, unsi
   if (!caster || !(caster->GetType() & TYPE_UNIT)) {
     return;
   }
-  const char *casterName = static_cast<CGUnit_C *>(caster)->GetUnitName();
-  const char *spellName = rec->m_name_lang[CURRENT_LANGUAGE];
+  LPCSTR casterName = static_cast<CGUnit_C *>(caster)->GetUnitName();
+  LPCSTR spellName = rec->m_name_lang[CURRENT_LANGUAGE];
   if (victim && (victim->GetType() & TYPE_UNIT)) {
     GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_SELF, "%s casts %s on %s.", casterName, spellName, static_cast<CGUnit_C *>(victim)->GetUnitName());
   } else {
@@ -952,7 +958,7 @@ void UnitCombatLogCastGo(unsigned int spellID, unsigned __int64 casterUnit, unsi
   }
 }
 
-void UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster) {
+void UnitCombatLogCastStart(UINT spellID, DWORDLONG caster) {
   if (!s_activePlayer) {
     return;
   }
@@ -968,17 +974,17 @@ void UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster) {
     return;
   }
 
-  const char  *casterName = static_cast<CGUnit_C *>(casterObjPtr)->GetUnitName();
-  const char  *spellName = rec->m_name_lang[CURRENT_LANGUAGE];
-  unsigned int selfCasting = caster == ClntObjMgrGetActivePlayer();
-  const char  *templateTag;
+  LPCSTR casterName = static_cast<CGUnit_C *>(casterObjPtr)->GetUnitName();
+  LPCSTR spellName = rec->m_name_lang[CURRENT_LANGUAGE];
+  UINT   selfCasting = caster == ClntObjMgrGetActivePlayer();
+  LPCSTR templateTag;
   if (selfCasting) {
     templateTag = IsSpellAbility(rec) ? "SPELLPERFORMSELFSTART" : "SPELLCASTSELFSTART";
   } else {
     templateTag = IsSpellAbility(rec) ? "SPELLPERFORMOTHERSTART" : "SPELLCASTOTHERSTART";
   }
 
-  const char *format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
   if (!format || !*format) {
     ReportError(templateTag);
     return;
@@ -1045,15 +1051,15 @@ void UnitCombatLog(const SPELLLOG &log) {
     return;
   }
 
-  const SpellRec   *spellRec = g_spellDB.GetRecord(log.spellID);
-  const char *spellName = spellRec ? spellRec->m_name_lang[CURRENT_LANGUAGE] : "Unknown Spell";
-  const char *attackerName = static_cast<CGUnit_C *>(attackerObjPtr)->GetUnitName();
-  const char *victimName = static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName();
+  const SpellRec *spellRec = g_spellDB.GetRecord(log.spellID);
+  LPCSTR          spellName = spellRec ? spellRec->m_name_lang[CURRENT_LANGUAGE] : "Unknown Spell";
+  LPCSTR          attackerName = static_cast<CGUnit_C *>(attackerObjPtr)->GetUnitName();
+  LPCSTR          victimName = static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName();
   if ((log.flags & 0x20) && (aAff != AFFILIATION_OTHER || vAff != AFFILIATION_OTHER)) {
     s_unitCombatData[vAff].LogVictim(log);
     s_unitCombatData[aAff].LogAttack(log);
   }
-  char        outputString[512];
+  char outputString[512];
   SStrPrintf(outputString, sizeof(outputString), "%s's %s hits %s for %d.", attackerName, spellName, victimName, log.dmg.totalDamage);
   GeneralLogPrintf(s_affiliationLogType[aAff], "%s", outputString);
   WriteMessage(outputString);
@@ -1066,7 +1072,7 @@ void UnitCombatLog(const SPELLMISSLOG &log) {
 }
 
 void UnitCombatLog(const MIRRORTIMERDAMAGE &log) {
-  if (static_cast<unsigned int>(log.damage) > 2 || !log.amount || !log.victim) {
+  if (static_cast<UINT>(log.damage) > 2 || !log.amount || !log.victim) {
     return;
   }
 
@@ -1076,8 +1082,8 @@ void UnitCombatLog(const MIRRORTIMERDAMAGE &log) {
     return;
   }
 
-  unsigned int other = aff != AFFILIATION_YOURSELF;
-  const char  *templateTag;
+  UINT   other = aff != AFFILIATION_YOURSELF;
+  LPCSTR templateTag;
   if (log.damage == UNIT_MIRROR_TIMER_EXHAUSTION) {
     templateTag = other ? "VSENVEXHAUSTIONOTHER" : "VSENVEXHAUSTIONSELF";
   } else if (log.damage == UNIT_MIRROR_TIMER_BREATH) {
@@ -1086,7 +1092,7 @@ void UnitCombatLog(const MIRRORTIMERDAMAGE &log) {
     return;
   }
 
-  const char *format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
   if (!format || !*format) {
     ReportError(templateTag);
     return;
@@ -1111,7 +1117,7 @@ void UnitCombatLog(const ENVIRONMENTALDAMAGE &log) {
 
   char buffer[64];
   SStrPrintf(buffer, sizeof(buffer), "VSENVIRONMENTALDAMAGE_%d_%s", log.school, aff == AFFILIATION_YOURSELF ? "SELF" : "OTHER");
-  const char *format = FrameScript_GetText(buffer, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR format = FrameScript_GetText(buffer, -1, GENDER_NOT_APPLICABLE);
   if (!format || !*format) {
     ReportError(buffer);
     return;
@@ -1125,7 +1131,7 @@ void UnitCombatLog(const ENVIRONMENTALDAMAGE &log) {
 }
 
 void UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added, int auraSlot) {
-  const SpellRec       *spellRec = g_spellDB.GetRecord(spellID);
+  const SpellRec *spellRec = g_spellDB.GetRecord(spellID);
   CGObject_C     *dummy;
   UNITAFFILIATION aAff;
   if (!unitPtr || !spellRec || (spellRec->m_attributes & 0xC0) || IsSpellQuiet(spellRec) ||
@@ -1134,7 +1140,7 @@ void UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added,
     return;
   }
 
-  const char *token;
+  LPCSTR token;
   if (added) {
     if (auraSlot < 32 || auraSlot >= 40) {
       token = aAff ? "AURAADDEDOTHERHELPFUL" : "AURAADDEDSELFHELPFUL";
@@ -1145,14 +1151,14 @@ void UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added,
     token = aAff ? "AURAREMOVEDOTHER" : "AURAREMOVEDSELF";
   }
 
-  const char *format = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR format = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
   if (!format || !*format) {
     ReportError(token);
     return;
   }
 
-  const char *spellName = spellRec->m_name_lang[CURRENT_LANGUAGE];
-  char        string[128];
+  LPCSTR spellName = spellRec->m_name_lang[CURRENT_LANGUAGE];
+  char   string[128];
   if (!aAff) {
     SStrPrintf(string, sizeof(string), format, spellName);
   } else if (added) {
@@ -1168,7 +1174,7 @@ void UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added,
   }
 }
 
-void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim) {
+void UnitCombatLogSpellMissed(UINT missReason, UINT spellID, DWORDLONG caster, DWORDLONG victim) {
   CGObject_C     *attackerObjPtr;
   CGObject_C     *victimObjPtr;
   UNITAFFILIATION aAff;
@@ -1177,14 +1183,14 @@ void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, uns
     return;
   }
 
-  const SpellRec   *spell = g_spellDB.GetRecord(spellID);
-  CGUnit_C   *attackerPtr = static_cast<CGUnit_C *>(attackerObjPtr);
-  CGUnit_C   *victimPtr = static_cast<CGUnit_C *>(victimObjPtr);
-  const char *casterName = attackerPtr->GetUnitName();
-  const char *victimName = victimPtr->GetUnitName();
-  const char *spellName = spell ? spell->m_name_lang[CURRENT_LANGUAGE] : "";
+  const SpellRec *spell = g_spellDB.GetRecord(spellID);
+  CGUnit_C       *attackerPtr = static_cast<CGUnit_C *>(attackerObjPtr);
+  CGUnit_C       *victimPtr = static_cast<CGUnit_C *>(victimObjPtr);
+  LPCSTR          casterName = attackerPtr->GetUnitName();
+  LPCSTR          victimName = victimPtr->GetUnitName();
+  LPCSTR          spellName = spell ? spell->m_name_lang[CURRENT_LANGUAGE] : "";
 
-  const char *reasonToken;
+  LPCSTR reasonToken;
   switch (missReason) {
     case 2:
       reasonToken = "SPELLRESIST";
@@ -1220,8 +1226,8 @@ void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, uns
       templateTagBuffer, sizeof(templateTagBuffer), "%s%s%s", reasonToken, aAff == AFFILIATION_YOURSELF ? "SELF" : "OTHER",
       vAff == AFFILIATION_YOURSELF ? "SELF" : "OTHER"
   );
-  const char *templateTag = templateTagBuffer;
-  const char *format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR templateTag = templateTagBuffer;
+  LPCSTR format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
 
   char output[128];
   if (format && *format) {
@@ -1233,22 +1239,20 @@ void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, uns
   WriteMessage(output);
 }
 
-void UnitCombatLogUnitDead(unsigned __int64 unit) {
+void UnitCombatLogUnitDead(DWORDLONG unit) {
   if (!s_activePlayer) {
     return;
   }
 
   UNITAFFILIATION aAff;
-  CGObject_C *unitObjPtr;
-  if (!ShouldLogAttacker(unit, aAff, unitObjPtr, 0, 1, -1) ||
-      (static_cast<CGUnit_C *>(unitObjPtr)->GetUnitData()->flags & 0x80)) {
+  CGObject_C     *unitObjPtr;
+  if (!ShouldLogAttacker(unit, aAff, unitObjPtr, 0, 1, -1) || (static_cast<CGUnit_C *>(unitObjPtr)->GetUnitData()->flags & 0x80)) {
     return;
   }
 
-  const char *unitName = static_cast<CGUnit_C *>(unitObjPtr)->GetUnitName();
-  const char *templateTag = aAff ? "UNITDIESOTHER" : "UNITDIESSELF";
-  const char *format =
-      FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR unitName = static_cast<CGUnit_C *>(unitObjPtr)->GetUnitName();
+  LPCSTR templateTag = aAff ? "UNITDIESOTHER" : "UNITDIESSELF";
+  LPCSTR format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
   if (!format || !*format) {
     ReportError(templateTag);
     return;
@@ -1280,12 +1284,12 @@ void UnitCombatLogSetActivePlayer(const CGPlayer_C *playerPtr) {
   s_activePlayer = playerPtr;
 }
 
-void UnitCombatLogXPGain(const unsigned __int64 &victim, CDataStore *msg, unsigned int count) {
+void UnitCombatLogXPGain(const DWORDLONG &victim, CDataStore *msg, UINT count) {
   FATALASSERT(msg);
 
-  for (unsigned int i = 0; i < count; ++i) {
-    unsigned __int64 guid;
-    int              xp;
+  for (UINT i = 0; i < count; ++i) {
+    DWORDLONG guid;
+    int       xp;
     msg->Get(guid);
     msg->Get(xp);
     CGObject_C *playerPtr = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
@@ -1302,7 +1306,7 @@ void UnitCombatLogXPGain(const unsigned __int64 &victim, CDataStore *msg, unsign
   }
 }
 
-void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message) {
+void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, LPCSTR message) {
   if (!s_activePlayer || !caster || !spellID) {
     return;
   }
@@ -1310,9 +1314,9 @@ void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message) 
     message = "";
   }
 
-  CGObject_C      *dummy;
-  UNITAFFILIATION  aAff;
-  unsigned __int64 casterGUID = caster->GetGUID();
+  CGObject_C     *dummy;
+  UNITAFFILIATION aAff;
+  DWORDLONG       casterGUID = caster->GetGUID();
   if (!ShouldLogAttacker(casterGUID, aAff, dummy, 0, 0, -1)) {
     return;
   }
@@ -1322,23 +1326,23 @@ void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message) 
     return;
   }
 
-  const char  *casterName = caster->GetUnitName();
-  unsigned int selfCasting = casterGUID == ClntObjMgrGetActivePlayer();
-  const char  *templateTag;
+  LPCSTR casterName = caster->GetUnitName();
+  UINT   selfCasting = casterGUID == ClntObjMgrGetActivePlayer();
+  LPCSTR templateTag;
   if (IsSpellAbility(spellRec)) {
     templateTag = selfCasting ? "SPELLFAILPERFORMSELF" : "SPELLFAILPERFORMOTHER";
   } else {
     templateTag = selfCasting ? "SPELLFAILCASTSELF" : "SPELLFAILCASTOTHER";
   }
 
-  const char *format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
   if (!format || !*format) {
     ReportError(templateTag);
     return;
   }
 
-  const char *spellName = spellRec->m_name_lang[CURRENT_LANGUAGE];
-  char        output[256];
+  LPCSTR spellName = spellRec->m_name_lang[CURRENT_LANGUAGE];
+  char   output[256];
   if (selfCasting) {
     SStrPrintf(output, sizeof(output), format, spellName, message);
   } else {
@@ -1395,15 +1399,15 @@ void UnitCombatLogEnchantment(const ENCHANTMENTLOG &log) {
   }
 
   const SpellItemEnchantmentRec *enchantment = g_spellItemEnchantmentDB.GetRecord(log.enchantment);
-  const char              *enchantmentName = enchantment ? enchantment->m_name_lang[CURRENT_LANGUAGE] : "Unknown Enchantment";
-  const ItemStats_C       *item = g_itemDBCache.GetRecord(log.itemID, 0, 0, 0);
+  LPCSTR                         enchantmentName = enchantment ? enchantment->m_name_lang[CURRENT_LANGUAGE] : "Unknown Enchantment";
+  const ItemStats_C             *item = g_itemDBCache.GetRecord(log.itemID, 0, 0, 0);
   if (!item) {
     return;
   }
-  const char *itemName = item->m_displayName[0] ? item->m_displayName[0] : "";
-  const char *attackerName = static_cast<CGUnit_C *>(attackerObjPtr)->GetUnitName();
+  LPCSTR itemName = item->m_displayName[0] ? item->m_displayName[0] : "";
+  LPCSTR attackerName = static_cast<CGUnit_C *>(attackerObjPtr)->GetUnitName();
 
-  const char     *templateTag;
+  LPCSTR          templateTag;
   CGObject_C     *victimObjPtr = 0;
   UNITAFFILIATION vAff = AFFILIATION_OTHER;
   if (log.flags & 1) {
@@ -1419,14 +1423,14 @@ void UnitCombatLogEnchantment(const ENCHANTMENTLOG &log) {
     }
   }
 
-  const char *format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
   if (!format || !*format) {
     ReportError(templateTag);
     return;
   }
 
-  char        output[256];
-  const char *victimName = victimObjPtr ? static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName() : "";
+  char   output[256];
+  LPCSTR victimName = victimObjPtr ? static_cast<CGUnit_C *>(victimObjPtr)->GetUnitName() : "";
   if (log.flags & 1) {
     if (aAff == AFFILIATION_YOURSELF) {
       SStrPrintf(output, sizeof(output), format, enchantmentName, itemName);
@@ -1447,7 +1451,7 @@ void UnitCombatLogEnchantment(const ENCHANTMENTLOG &log) {
   GeneralLogPrintf(s_affiliationLogType[aAff], "%s", output);
 }
 
-void UnitCombatLogString(const char* buffer) {
+void UnitCombatLogString(LPCSTR buffer) {
   if (buffer && *buffer) {
     GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_ENEMY, "%s", buffer);
   }
@@ -1459,8 +1463,8 @@ void UnitCombatLogFactionChanged(int faction, int delta) {
     return;
   }
 
-  const char *token = delta < 0 ? "FACTION_STANDING_DECREASED" : "FACTION_STANDING_INCREASED";
-  const char *format = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR token = delta < 0 ? "FACTION_STANDING_DECREASED" : "FACTION_STANDING_INCREASED";
+  LPCSTR format = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
   if (format) {
     if (delta <= 0) {
       delta = -delta;
@@ -1487,7 +1491,7 @@ void UnitCombatLogPartyKill(const PARTYKILLLOG &log) {
     return;
   }
 
-  const char *format = FrameScript_GetText("PARTYKILLOTHER", -1, GENDER_NOT_APPLICABLE);
+  LPCSTR format = FrameScript_GetText("PARTYKILLOTHER", -1, GENDER_NOT_APPLICABLE);
   if (!format) {
     GeneralLogPrintf(SLASH_CMD_COMBAT_LOG_MISC_INFO, "Error, cannot find string <%s>", "PARTYKILLOTHER");
     return;
@@ -1497,12 +1501,11 @@ void UnitCombatLogPartyKill(const PARTYKILLLOG &log) {
   );
 }
 
-void UnitCombatLogShowXPGained(const unsigned __int64 &victim, int xp) {
+void UnitCombatLogShowXPGained(const DWORDLONG &victim, int xp) {
   CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(victim, __FILE__, __LINE__));
   if (victimPtr && (victimPtr->GetUnitData()->flags & 8)) {
     GeneralLogPrintf(
-        SLASH_CMD_COMBAT_LOG_SELF, FrameScript_GetText("COMBATLOG_XPGAIN_FIRSTPERSON", -1, GENDER_NOT_APPLICABLE), victimPtr->GetUnitName(),
-        xp
+        SLASH_CMD_COMBAT_LOG_SELF, FrameScript_GetText("COMBATLOG_XPGAIN_FIRSTPERSON", -1, GENDER_NOT_APPLICABLE), victimPtr->GetUnitName(), xp
     );
   }
 }

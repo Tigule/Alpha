@@ -22,20 +22,20 @@ struct FACEDATA : public CHandleObject, public TSHashObject<FACEDATA, HASHKEY_ST
     }
   }
 
-  void    *data;
+  LPVOID   data;
   FT_Face  face;
   HFACE__ *selfReference;
 };
 
 static TSHashTable<FACEDATA, HASHKEY_STRI> s_faceHash;
 
-HFACE__ *FontFaceGetHandle(const char *fileName, FT_LibraryRec_ *library) {
-  void         *data = 0;
-  unsigned long size;
-  FT_Face       theFace;
-  HFACE__      *handle = 0;
-  FACEDATA     *faceData;
-  void         *storage;
+HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
+  LPVOID    data = 0;
+  DWORD     size;
+  FT_Face   theFace;
+  HFACE__  *handle = 0;
+  FACEDATA *faceData;
+  LPVOID    storage;
 
   if (!library || !fileName || !*fileName) {
     return 0;
@@ -99,8 +99,8 @@ FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle) {
 }
 
 void FontFaceCloseHandle(HFACE__ *handle) {
-  FACEDATA    *dataPtr;
-  unsigned int refCount;
+  FACEDATA *dataPtr;
+  UINT      refCount;
 
   FATALASSERT(handle);
 
@@ -119,7 +119,7 @@ void FontFaceCloseHandle(HFACE__ *handle) {
   }
 }
 
-const char *FontFaceGetFontName(HFACE__ *handle) {
+LPCSTR FontFaceGetFontName(HFACE__ *handle) {
   FACEDATA *dataPtr;
 
   FATALASSERT(handle);

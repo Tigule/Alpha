@@ -19,7 +19,7 @@
 #include <lua.h>
 #include <string.h>
 
-unsigned __int64   CGGuildRegistrar::m_registrar;
+DWORDLONG          CGGuildRegistrar::m_registrar;
 PetitionVendorItem CGGuildRegistrar::m_petition;
 
 void CGGuildRegistrar::EnterWorld() {
@@ -30,7 +30,7 @@ void CGGuildRegistrar::LeaveWorld() {
   CloseRegistrar();
 }
 
-void CGGuildRegistrar::SetRegistrar(unsigned __int64 registrar, const PetitionVendorItem *petition) {
+void CGGuildRegistrar::SetRegistrar(DWORDLONG registrar, const PetitionVendorItem *petition) {
   CGGameUI::SetInteractTarget(registrar, 0.0f);
   m_registrar = registrar;
   m_petition = *petition;
@@ -45,11 +45,11 @@ void CGGuildRegistrar::CloseRegistrar() {
   }
 }
 
-unsigned int CGGuildRegistrar::GetGuildCharterCost() {
+UINT CGGuildRegistrar::GetGuildCharterCost() {
   return m_petition.m_price;
 }
 
-void CGGuildRegistrar::BuyGuildCharter(const char *guildName) {
+void CGGuildRegistrar::BuyGuildCharter(LPCSTR guildName) {
   if (!guildName || !*guildName || !m_registrar) {
     return;
   }
@@ -62,7 +62,7 @@ void CGGuildRegistrar::BuyGuildCharter(const char *guildName) {
   }
 }
 
-static int Script_CloseGuildRegistrar(lua_State *__formal) {
+static int Script_CloseGuildRegistrar(lua_State *) {
   CGGuildRegistrar::CloseRegistrar();
   return 0;
 }
@@ -76,7 +76,7 @@ static int Script_BuyGuildCharter(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: BuyGuildCharter(guildName)");
   }
-  const char *name = lua_tostring(L, 1);
+  LPCSTR name = lua_tostring(L, 1);
   if (ValidateCharacterName(CURRENT_LANGUAGE, name) == NAME_SUCCESS) {
     CGGuildRegistrar::BuyGuildCharter(name);
     lua_pushnumber(L, 1.0);
@@ -86,7 +86,7 @@ static int Script_BuyGuildCharter(lua_State *L) {
   return 1;
 }
 
-static int Script_TurnInGuildCharter(lua_State *__formal) {
+static int Script_TurnInGuildCharter(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -95,7 +95,7 @@ static int Script_TurnInGuildCharter(lua_State *__formal) {
   return 0;
 }
 
-static int Script_GetTabardInfo(lua_State *__formal) {
+static int Script_GetTabardInfo(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->TalkToTabardVendor(CGGuildRegistrar::GetRegistrar());
@@ -113,13 +113,13 @@ static FrameScript_Method s_ScriptFunctions[5] = {
 };
 
 void GuildRegistrarRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 5; ++i) {
+  for (UINT i = 0; i < 5; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void GuildRegistrarUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 5; ++i) {
+  for (UINT i = 0; i < 5; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

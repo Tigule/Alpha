@@ -4,14 +4,14 @@
 
 WOW_LOCALE CURRENT_LANGUAGE;
 
-const char *g_localeID[NUM_LOCALES] = {"enUS", "koKR", "jaJP", "zhCN", "zhTW", "esES", "frFR", "deDE"};
+LPCSTR g_localeID[NUM_LOCALES] = {"enUS", "koKR", "jaJP", "zhCN", "zhTW", "esES", "frFR", "deDE"};
 
 const CHARTEXTUREVARIATIONS g_charTextureSectionMapping[CHARTEXTURESECTION_NUM] = {
     CHARTEXTUREVAR_SKIN, CHARTEXTUREVAR_SKIN, CHARTEXTUREVAR_SKIN, CHARTEXTUREVAR_SKIN,       CHARTEXTUREVAR_FACE,      CHARTEXTUREVAR_FACE,
     CHARTEXTUREVAR_HAIR, CHARTEXTUREVAR_HAIR, CHARTEXTUREVAR_HAIR, CHARTEXTUREVAR_FACIALHAIR, CHARTEXTUREVAR_FACIALHAIR
 };
 
-const char *const g_sexString[UNITSEX_LAST] = {"Male", "Female", "NOSEX"};
+LPCSTR const g_sexString[UNITSEX_LAST] = {"Male", "Female", "NOSEX"};
 
 static const int s_ITEMTYPEARRAY[27] = {0,     1,      2,     4,     8,       16,     32, 64,    128,   256,   512, 3072,   12288, 98304,
                                         65536, 131072, 16384, 32768, 7864320, 262144, 16, 32768, 65536, 65536, 0,   131072, 131072};
@@ -52,7 +52,7 @@ GEOCOMPONENTINFO g_geometryComponentLookups[INDEX_NUMSLOTS] = {
     {0x000, {-1, -1}, {-1, -1}},
     {0x800, {11, -1}, {11, -1}},
     {0x000, {-1, -1}, {-1, -1}},
-    {0x060, {6, 5}, {6, 5}},
+    {0x060,   {6, 5},   {6, 5}},
     {0x000, {-1, -1}, {-1, -1}},
     {0x000, {-1, -1}, {-1, -1}},
     {0x000, {-1, -1}, {-1, -1}},
@@ -62,18 +62,18 @@ GEOCOMPONENTINFO g_geometryComponentLookups[INDEX_NUMSLOTS] = {
     {0x000, {-1, -1}, {-1, -1}},
     {0x000, {-1, -1}, {-1, -1}},
     {0x000, {-1, -1}, {-1, -1}},
-    {0x002, {1, -1}, {2, -1}},
-    {0x001, {0, -1}, {0, -1}},
-    {0x004, {2, -1}, {2, -1}},
+    {0x002,  {1, -1},  {2, -1}},
+    {0x001,  {0, -1},  {0, -1}},
+    {0x004,  {2, -1},  {2, -1}},
     {0x000, {-1, -1}, {-1, -1}},
-    {0x002, {1, -1}, {1, -1}},
+    {0x002,  {1, -1},  {1, -1}},
     {0x000, {-1, -1}, {-1, -1}},
     {0x000, {-1, -1}, {-1, -1}},
     {0x000, {-1, -1}, {-1, -1}},
-    {0x002, {1, -1}, {1, -1}},
-    {0x004, {2, -1}, {2, -1}},
-    {0x004, {2, -1}, {2, -1}},
+    {0x002,  {1, -1},  {1, -1}},
+    {0x004,  {2, -1},  {2, -1}},
+    {0x004,  {2, -1},  {2, -1}},
     {0x000, {-1, -1}, {-1, -1}},
-    {0x002, {1, -1}, {1, -1}},
-    {0x002, {1, -1}, {1, -1}}
+    {0x002,  {1, -1},  {1, -1}},
+    {0x002,  {1, -1},  {1, -1}}
 };

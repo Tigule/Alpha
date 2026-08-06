@@ -17,24 +17,21 @@
 #include <Services/SysMessage.h>
 #include <Tempest/caasphere.h>
 
-void SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard);
+void            SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard);
 BlizzardObject *SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec);
-void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
-void SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
-void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
+void            SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position);
+void            SpellCameraShakeCallback(LPCSTR eventName, const NTempest::C3Vector &position);
+void            SpellSoundEffectCallback(LPCSTR eventName, const NTempest::C3Vector &position);
 
 static const char NONAME[7] = "NoName";
 
-void CGDynamicObject_C::SetStorage(unsigned long *storage) {
+void CGDynamicObject_C::SetStorage(DWORD *storage) {
   CGObject_C::SetStorage(storage);
   CGDynamicObject::SetStorage(storage + CGObject::TotalFields());
 }
 
-CGDynamicObject_C::CGDynamicObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init),
-      CGDynamicObject(storage + CGObject::TotalFields()),
-      m_blizzardObject(0),
-      m_sound(0) {
+CGDynamicObject_C::CGDynamicObject_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
+    : CGObject_C(storage, eventTime, init), CGDynamicObject(storage + CGObject::TotalFields()), m_blizzardObject(0), m_sound(0) {
   m_dynamicScale = 1.0f;
   m_dynamicObj->m_position = init->move.status.worldPosition;
   m_dynamicObj->m_facing = init->move.status.worldFacing;
@@ -84,11 +81,11 @@ int CGDynamicObject_C::UpdateModelLoadStatus() {
   return 1;
 }
 
-static void AnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void AnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
   static_cast<CGDynamicObject_C *>(param)->HandleAnimEvent(eventName, position);
 }
 
-static int AnimFinishedCallback(void *param) {
+static int AnimFinishedCallback(LPVOID param) {
   if (param) {
     static_cast<CGDynamicObject_C *>(param)->AnimFinished();
   }
@@ -106,7 +103,7 @@ void CGDynamicObject_C::PostInit(const CClientObjCreate &init) {
   }
   ObjectVisKitProc();
 
-  unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
+  DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   if (m_dynamicObj->m_type == 2 && m_dynamicObj->m_caster == activePlayer) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
     if (player && player->GetFarsightFocus() == GetGUID()) {
@@ -163,22 +160,22 @@ void CGDynamicObject_C::Reenable() {
   AddWorldObject();
 }
 
-int CGDynamicObject_C::SetBlock(unsigned int, unsigned long) {
+int CGDynamicObject_C::SetBlock(UINT, DWORD) {
   FATALASSERT(0);
   return 1;
 }
 
-void CGDynamicObject_C::SetData(const void *data, unsigned int bytes) {
+void CGDynamicObject_C::SetData(LPCVOID data, UINT bytes) {
   FATALASSERT(bytes <= sizeof(*m_dynamicObj));
   memcpy(m_dynamicObj, data, bytes);
 }
 
-unsigned int CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
+UINT CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
   if (type == ID_OBJECT) {
     return 0;
   }
   FATALASSERT(type == ID_DYNAMICOBJECT);
-  return CGObject::TotalFields() * sizeof(unsigned long);
+  return CGObject::TotalFields() * sizeof(DWORD);
 }
 
 const SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() const {
@@ -206,7 +203,7 @@ const SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() cons
   return effectRec;
 }
 
-const char *CGDynamicObject_C::GetModelFileName() const {
+LPCSTR CGDynamicObject_C::GetModelFileName() const {
   const SpellVisualEffectNameRec *effectRec = GetVisualEffectNameRec();
   if (effectRec) {
     return effectRec->m_fileName;
@@ -216,8 +213,8 @@ const char *CGDynamicObject_C::GetModelFileName() const {
   return NONAME;
 }
 
-void CGDynamicObject_C::HandleAnimEvent(const char *eventName, const NTempest::C3Vector &position) {
-  unsigned int event = *reinterpret_cast<const unsigned int *>(eventName);
+void CGDynamicObject_C::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position) {
+  UINT event = *reinterpret_cast<const UINT *>(eventName);
   if (event == 0x444E5324) {  // $SND
     SpellSoundEffectCallback(eventName + 4, position);
   } else if (event == 0x4B485324) {  // $SHK

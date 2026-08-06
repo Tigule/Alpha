@@ -65,8 +65,8 @@ void CMap::GxBufDynLowDetailCallback(CGxBufCommand &cmd, CGxBuf *buf) {
 
 void CMap::CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPC *vtxBase = 0;
-  unsigned int row;
-  unsigned int column;
+  UINT         row;
+  UINT         column;
 
   ASSERT(areaLow);
 
@@ -124,9 +124,9 @@ void CMap::CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CGxBufCommand
 }
 
 void CMap::CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf) {
-  unsigned short *idx = 0;
-  unsigned int    row;
-  unsigned int    column;
+  WORD *idx = 0;
+  UINT  row;
+  UINT  column;
 
   ASSERT(areaLow);
 
@@ -135,11 +135,11 @@ void CMap::CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand 
       return;
 
     case GxBufOp_Fill:
-      idx = static_cast<unsigned short *>(*cmd.index.mem[GxVM_Indices]);
+      idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
       break;
 
     case GxBufOp_Assign:
-      idx = static_cast<unsigned short *>(GxAllocIndexMem(buf->IndexCount() * sizeof(unsigned short)));
+      idx = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
       *cmd.index.mem[GxVM_Indices] = idx;
       break;
   }
@@ -148,11 +148,11 @@ void CMap::CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand 
 
   for (row = 0; row < 16; ++row) {
     for (column = 0; column < 16; ++column) {
-      unsigned short topLeft = row * 17 + column;
-      unsigned short topRight = topLeft + 1;
-      unsigned short bottomLeft = topLeft + 17;
-      unsigned short bottomRight = topLeft + 18;
-      unsigned short center = 289 + row * 16 + column;
+      WORD topLeft = row * 17 + column;
+      WORD topRight = topLeft + 1;
+      WORD bottomLeft = topLeft + 17;
+      WORD bottomRight = topLeft + 18;
+      WORD center = 289 + row * 16 + column;
 
       *idx++ = center;
       *idx++ = topRight;
@@ -253,10 +253,10 @@ void DNPlanet::Render() {
   NTempest::C3Vector  billbGeov[6];
   NTempest::C2Vector  billbTexv[6];
   NTempest::CImVector billbClrv[6];
-  unsigned short      billbIdx[8];
+  WORD                billbIdx[8];
   NTempest::C44Matrix worldMat;
-  unsigned long       idxCount;
-  unsigned long       vertCount;
+  DWORD               idxCount;
+  DWORD               vertCount;
   NTempest::C3Vector  worldFaceDir;
 
   GenGeometry(billbGeov, billbTexv, billbClrv, billbIdx, vertCount, idxCount);

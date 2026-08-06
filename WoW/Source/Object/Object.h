@@ -7,30 +7,30 @@ struct CMovementStatus {
   CMovementStatus() : transport(0), transRelPosition(0.0f), transRelFacing(0.0f), worldPosition(0.0f), worldFacing(0.0f), pitch(0.0f), moveFlags(0) {
   }
 
-  static unsigned int Skip(CDataStore *packet);
+  static UINT Skip(CDataStore *packet);
 
-  unsigned __int64   transport;
+  DWORDLONG          transport;
   NTempest::C3Vector transRelPosition;
   float              transRelFacing;
   NTempest::C3Vector worldPosition;
   float              worldFacing;
   float              pitch;
-  unsigned int       moveFlags;
+  UINT               moveFlags;
 };
 
 struct CMoveSpline {
   struct SplineFaceData {
     NTempest::C3Vector spot;
-    unsigned __int64   guid;
+    DWORDLONG          guid;
     float              facing;
   };
 
   static void Skip(CDataStore *packet);
 
-  unsigned int                  flags;
+  UINT                          flags;
   SplineFaceData                face;
-  unsigned long                 start;
-  unsigned long                 time;
+  DWORD                         start;
+  DWORD                         time;
   NTempest::C3Spline_CatmullRom spline;
 };
 
@@ -43,7 +43,7 @@ struct CClientMoveUpdate {
   static void Skip(CDataStore *packet);
 
   CMovementStatus status;
-  unsigned int    timeFallen;
+  UINT            timeFallen;
   float           walkSpeed;
   float           runSpeed;
   float           swimSpeed;
@@ -53,8 +53,8 @@ struct CClientMoveUpdate {
 
 CDataStore &operator<<(CDataStore &packet, const CClientMoveUpdate &update);
 CDataStore &operator>>(CDataStore &packet, CClientMoveUpdate &update);
-bool IsAngleWithinRange(float a, float b, float fieldofView);
-float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
+bool        IsAngleWithinRange(float a, float b, float fieldofView);
+float       CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
 
 struct CClientObjCreate {
   CClientObjCreate() : flags(0) {
@@ -77,16 +77,16 @@ struct CClientObjCreate {
   }
 
   static void Skip(CDataStore *packet) {
-    void *unused;
+    LPVOID unused;
     CClientMoveUpdate::Skip(packet);
     packet->GetDataInSitu(unused, 20);
   }
 
   CClientMoveUpdate move;
-  unsigned int      flags;
-  unsigned int      attackCycle;
-  unsigned int      timerID;
-  unsigned __int64  victim;
+  UINT              flags;
+  UINT              attackCycle;
+  UINT              timerID;
+  DWORDLONG         victim;
 };
 
 enum OBJECT_TYPE_ID {
@@ -129,60 +129,51 @@ enum OBJECT_TYPE {
   HIER_TYPE_AREATRIGGER = TYPE_OBJECT | TYPE_AREATRIGGER
 };
 
-const OBJECT_TYPE g_heirTypeFlags[NUM_OBJECT_TYPES] = {
-    HIER_TYPE_OBJECT,
-    HIER_TYPE_ITEM,
-    HIER_TYPE_CONTAINER,
-    HIER_TYPE_UNIT,
-    HIER_TYPE_PLAYER,
-    HIER_TYPE_GAMEOBJECT,
-    HIER_TYPE_DYNAMICOBJECT,
-    HIER_TYPE_CORPSE,
-    HIER_TYPE_AIGROUP,
-    HIER_TYPE_AREATRIGGER
-};
+const OBJECT_TYPE g_heirTypeFlags[NUM_OBJECT_TYPES] = {HIER_TYPE_OBJECT,  HIER_TYPE_ITEM,       HIER_TYPE_CONTAINER,     HIER_TYPE_UNIT,
+                                                       HIER_TYPE_PLAYER,  HIER_TYPE_GAMEOBJECT, HIER_TYPE_DYNAMICOBJECT, HIER_TYPE_CORPSE,
+                                                       HIER_TYPE_AIGROUP, HIER_TYPE_AREATRIGGER};
 
 struct VirtualItemInfo {
-  unsigned char operator!=(const VirtualItemInfo &);
+  BYTE operator!=(const VirtualItemInfo &);
 
-  unsigned char m_classID;
-  unsigned char m_subclassID;
-  unsigned char m_material;
-  unsigned char m_inventoryType;
-  unsigned char m_sheatheType;
-  unsigned char m_padding0;
-  unsigned char m_padding1;
-  unsigned char m_padding2;
+  BYTE m_classID;
+  BYTE m_subclassID;
+  BYTE m_material;
+  BYTE m_inventoryType;
+  BYTE m_sheatheType;
+  BYTE m_padding0;
+  BYTE m_padding1;
+  BYTE m_padding2;
 };
 
 struct CGObjectData {
-  unsigned __int64 m_guid;
-  OBJECT_TYPE      m_type;
-  int              m_entryID;
-  float            m_scale;
-  unsigned int     pad;
+  DWORDLONG   m_guid;
+  OBJECT_TYPE m_type;
+  int         m_entryID;
+  float       m_scale;
+  UINT        pad;
 };
 
 class CGObject {
  public:
-  static unsigned int GetDataSize();
-  static unsigned int GetBaseOffset();
-  static __forceinline unsigned int TotalFields() {
+  static UINT               GetDataSize();
+  static UINT               GetBaseOffset();
+  static __forceinline UINT TotalFields() {
     return 6;
   }
-  static unsigned int GetUpdateMaskBytes();
-  static unsigned int GetUpdateMaskBlocks();
+  static UINT GetUpdateMaskBytes();
+  static UINT GetUpdateMaskBlocks();
 
-  unsigned char IsA(OBJECT_TYPE_ID type) const {
-    return (static_cast<unsigned int>(GetType()) >> type) & 1;
+  BYTE IsA(OBJECT_TYPE_ID type) const {
+    return (static_cast<UINT>(GetType()) >> type) & 1;
   }
-  unsigned char IsA(OBJECT_TYPE type) const {
+  BYTE IsA(OBJECT_TYPE type) const {
     return (GetType() & type) != 0;
   }
-  unsigned char IsExactlyA(OBJECT_TYPE_ID type) const;
+  BYTE IsExactlyA(OBJECT_TYPE_ID type) const;
 
-  unsigned __int64 GetGUID() const {
-    return *reinterpret_cast<const unsigned __int64 *>(m_obj);
+  DWORDLONG GetGUID() const {
+    return *reinterpret_cast<const DWORDLONG *>(m_obj);
   }
 
   OBJECT_TYPE GetType() const {
@@ -197,21 +188,21 @@ class CGObject {
     return m_obj->m_entryID;
   }
 
-  unsigned char *GetData(unsigned int index) const {
-    return reinterpret_cast<unsigned char *>(m_data + index);
+  BYTE *GetData(UINT index) const {
+    return reinterpret_cast<BYTE *>(m_data + index);
   }
 
-  void SetStorage(unsigned long *storage) {
+  void SetStorage(DWORD *storage) {
     m_data = storage;
     m_obj = reinterpret_cast<CGObjectData *>(storage);
   }
 
-  unsigned long *GetStorage() {
+  DWORD *GetStorage() {
     return m_data;
   }
 
  protected:
-  explicit CGObject(unsigned long *storage) {
+  explicit CGObject(DWORD *storage) {
     SetStorage(storage);
   }
 
@@ -226,6 +217,6 @@ class CGObject {
     return m_obj;
   }
 
-  unsigned long *m_data;
-  CGObjectData  *m_obj;
+  DWORD        *m_data;
+  CGObjectData *m_obj;
 };

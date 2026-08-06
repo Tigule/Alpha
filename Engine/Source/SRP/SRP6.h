@@ -1,16 +1,18 @@
 #ifndef ENGINE_SOURCE_SRP_SRP6_H
 #define ENGINE_SOURCE_SRP_SRP6_H
 
-class SRP6_Random {
-  public:
-    SRP6_Random(unsigned int seed);
-    void GenerateRandomBytes(unsigned char *data, unsigned int size);
+#include <Base/Base.h>
 
-  private:
-    unsigned char m_randkey1[20];
-    unsigned char m_randkey2[20];
-    unsigned char m_randpool[20];
-    unsigned int  m_inpool;
+class SRP6_Random {
+ public:
+  SRP6_Random(UINT seed);
+  void GenerateRandomBytes(BYTE *data, UINT size);
+
+ private:
+  BYTE m_randkey1[20];
+  BYTE m_randkey2[20];
+  BYTE m_randpool[20];
+  UINT m_inpool;
 };
 
 #endif

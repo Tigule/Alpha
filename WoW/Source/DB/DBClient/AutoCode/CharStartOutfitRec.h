@@ -7,13 +7,13 @@ class CharStartOutfitRec {
   CharStartOutfitRec();
   ~CharStartOutfitRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 41;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 152;
   }
 
@@ -28,16 +28,16 @@ class CharStartOutfitRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int           m_ID;
-  unsigned char m_raceID;
-  unsigned char m_classID;
-  unsigned char m_sexID;
-  unsigned char m_outfitID;
-  int           m_ItemID[12];
-  int           m_DisplayItemID[12];
-  int           m_InventoryType[12];
+  int  m_ID;
+  BYTE m_raceID;
+  BYTE m_classID;
+  BYTE m_sexID;
+  BYTE m_outfitID;
+  int  m_ItemID[12];
+  int  m_DisplayItemID[12];
+  int  m_InventoryType[12];
 };
 
 extern WowClientDB<CharStartOutfitRec> g_charStartOutfitDB;

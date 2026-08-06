@@ -1,6 +1,5 @@
 #include "OsJoystick.h"
 
-#include <Base/Base.h>
 #include <storm.h>
 #include <stpl.h>
 #include <mmsystem.h>
@@ -11,9 +10,9 @@ struct W32Joystick {
     float scale;
   };
 
-  unsigned int id;
-  _transaxis   transaxis[6];
-  JOYCAPS      caps;
+  UINT       id;
+  _transaxis transaxis[6];
+  JOYCAPS    caps;
 };
 
 static TSGrowableArray<W32Joystick> s_joystick;
@@ -66,7 +65,7 @@ OsJoystickID OsOpenJoystick(int index) {
     return -1;
   }
 
-  ASSERT((uint)index < s_joystick.Count());
+  ASSERT((UINT)index < s_joystick.Count());
 
   joycaps = s_joystick[index].caps;
 
@@ -107,7 +106,7 @@ int OsGetNumAxes(OsJoystickID id) {
   return s_joystick[id].caps.wNumAxes;
 }
 
-unsigned int OsGetButtonState(OsJoystickID id) {
+UINT OsGetButtonState(OsJoystickID id) {
   JOYINFOEX joyinfo;
 
   joyinfo.dwSize = sizeof(joyinfo);
@@ -125,11 +124,11 @@ int OsGetButtonState(OsJoystickID id, int index) {
 }
 
 int OsGetAxisState(OsJoystickID id, int index) {
-  unsigned long flags[6] = {
+  DWORD flags[6] = {
       JOY_RETURNX, JOY_RETURNY, JOY_RETURNZ, JOY_RETURNR, JOY_RETURNU, JOY_RETURNV,
   };
   JOYINFOEX                joyinfo;
-  unsigned long            pos[6];
+  DWORD                    pos[6];
   W32Joystick::_transaxis *transaxis;
 
   joyinfo.dwSize = sizeof(joyinfo);

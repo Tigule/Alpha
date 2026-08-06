@@ -6,11 +6,11 @@
 #include "c3vector.h"
 #include "cmath.h"
 
-static unsigned long lattice_(long x);
+static DWORD lattice_(long x);
 
 namespace NTempest {
 
-  extern const unsigned long gnoise32_[64] = {
+  extern const DWORD gnoise32_[64] = {
       0x9927148EUL, 0x08C7AAFDUL, 0x1F3EE6D5UL, 0xDA55BBF6UL, 0x6A4AA075UL, 0xFF97BDE8UL, 0x9FBC9BDEUL, 0x46A18A81UL, 0x63E30B6EUL, 0x5D6C7A76UL,
       0xCA69D388UL, 0x25B947C3UL, 0x3FA2AB83UL, 0xBA7C41A6UL, 0x0195ACE5UL, 0xC109CF7EUL, 0x717062D9UL, 0x0205DB8DUL, 0x54EF8724UL, 0x3037D4C6UL,
       0x7BCB1BD0UL, 0xECD8E4B8UL, 0xDCADCE49UL, 0xC494A913UL, 0x0DAE398FUL, 0x0EDD5218UL, 0x85F5FA78UL, 0x6DAFD258UL, 0x3B53B2A4UL, 0xBE50A551UL,
@@ -20,7 +20,7 @@ namespace NTempest {
       0x2664D196UL, 0x4FCC45D7UL, 0xB5E9B0C8UL, 0xEA31D600UL,
   };
 
-  void CRndSeed::SetSeed(unsigned long seed) {
+  void CRndSeed::SetSeed(DWORD seed) {
     rndacc = seed;
     rndvls = 4 * ((seed % 61) | (((seed % 59) | (((seed % 53) | ((seed % 47) << 8)) << 8)) << 8));
   }
@@ -29,12 +29,12 @@ namespace NTempest {
     SetSeed(CRandom::Seed(password));
   }
 
-  unsigned long CRandom::Seed(char *password) {
+  DWORD CRandom::Seed(char *password) {
     ASSERT(password);
-    unsigned long length = SStrLen(password);
-    unsigned long seed = static_cast<unsigned char>(password[0]);
-    for (unsigned long i = 1; i < length; ++i) {
-      seed = (seed ^ 31277 * seed) + static_cast<unsigned char>(password[i]);
+    DWORD length = SStrLen(password);
+    DWORD seed = static_cast<BYTE>(password[0]);
+    for (DWORD i = 1; i < length; ++i) {
+      seed = (seed ^ 31277 * seed) + static_cast<BYTE>(password[i]);
     }
     return seed;
   }
@@ -57,44 +57,51 @@ namespace NTempest {
     return C2Vector(CMath::cos_(angle), CMath::sin_(angle));
   }
 
-  void CRandom::array_(unsigned long *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(DWORD *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = uint32_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = uint32_(seed);
   }
 
-  void CRandom::array_(long *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(long *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    array_(reinterpret_cast<unsigned long *>(buf), count, seed);
+    array_(reinterpret_cast<DWORD *>(buf), count, seed);
   }
 
-  void CRandom::array_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(float *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = real_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = real_(seed);
   }
 
-  void CRandom::array_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(double *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = lreal_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = lreal_(seed);
   }
 
-  void CRandom::arrayp_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrayp_(float *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = realp_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = realp_(seed);
   }
 
-  void CRandom::arrayp_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrayp_(double *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = lrealp_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = lrealp_(seed);
   }
 
-  void CRandom::arrays_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrays_(float *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = reals_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = reals_(seed);
   }
 
-  void CRandom::arrays_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrays_(double *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = lreals_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = lreals_(seed);
   }
 
   float CRandom::reale_(CRndSeed &seed) {
@@ -155,167 +162,177 @@ namespace NTempest {
     return lrealg_(seed) * variation + mean;
   }
 
-  void CRandom::arraye_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arraye_(float *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = reale_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = reale_(seed);
   }
 
-  void CRandom::arraye_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arraye_(double *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = lreale_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = lreale_(seed);
   }
 
-  void CRandom::arraye_(float *buf, unsigned long count, float mean, CRndSeed &seed) {
+  void CRandom::arraye_(float *buf, DWORD count, float mean, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = reale_(mean, seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = reale_(mean, seed);
   }
 
-  void CRandom::arraye_(double *buf, unsigned long count, double mean, CRndSeed &seed) {
+  void CRandom::arraye_(double *buf, DWORD count, double mean, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = lreale_(mean, seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = lreale_(mean, seed);
   }
 
-  void CRandom::arrayg_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrayg_(float *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = realg_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = realg_(seed);
   }
 
-  void CRandom::arrayg_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::arrayg_(double *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = lrealg_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = lrealg_(seed);
   }
 
-  void CRandom::arrayg_(float *buf, unsigned long count, float mean, float variation, CRndSeed &seed) {
+  void CRandom::arrayg_(float *buf, DWORD count, float mean, float variation, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = realg_(mean, variation, seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = realg_(mean, variation, seed);
   }
 
-  void CRandom::arrayg_(double *buf, unsigned long count, double mean, double variation, CRndSeed &seed) {
+  void CRandom::arrayg_(double *buf, DWORD count, double mean, double variation, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = lrealg_(mean, variation, seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = lrealg_(mean, variation, seed);
   }
 
-  void CRandom::array_(C2Vector *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(C2Vector *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = C2Vector_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = C2Vector_(seed);
   }
 
-  void CRandom::array_(C3Vector *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::array_(C3Vector *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 0; i < count; ++i) buf[i] = C3Vector_(seed);
+    for (DWORD i = 0; i < count; ++i)
+      buf[i] = C3Vector_(seed);
   }
 
   void CRandom::shuffle_(char *buf, CRndSeed &seed) {
     ASSERT(buf);
-    shuffle_(reinterpret_cast<unsigned char *>(buf), SStrLen(buf), seed);
+    shuffle_(reinterpret_cast<BYTE *>(buf), SStrLen(buf), seed);
   }
 
-  void CRandom::shuffle_(char *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(char *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    shuffle_(reinterpret_cast<unsigned char *>(buf), count, seed);
+    shuffle_(reinterpret_cast<BYTE *>(buf), count, seed);
   }
 
-  void CRandom::shuffle_(unsigned char *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(BYTE *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 1; i < count; ++i) {
-      unsigned char bi = buf[i];
-      unsigned long index = dice_(i + 1, seed);
+    for (DWORD i = 1; i < count; ++i) {
+      BYTE  bi = buf[i];
+      DWORD index = dice_(i + 1, seed);
       buf[i] = buf[index];
       buf[index] = bi;
     }
   }
 
-  void CRandom::shuffle_(short *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(short *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    shuffle_(reinterpret_cast<unsigned short *>(buf), count, seed);
+    shuffle_(reinterpret_cast<WORD *>(buf), count, seed);
   }
 
-  void CRandom::shuffle_(unsigned short *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(WORD *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 1; i < count; ++i) {
-      unsigned short bi = buf[i];
-      unsigned long index = dice_(i + 1, seed);
+    for (DWORD i = 1; i < count; ++i) {
+      WORD  bi = buf[i];
+      DWORD index = dice_(i + 1, seed);
       buf[i] = buf[index];
       buf[index] = bi;
     }
   }
 
-  void CRandom::shuffle_(long *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(long *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    shuffle_(reinterpret_cast<unsigned long *>(buf), count, seed);
+    shuffle_(reinterpret_cast<DWORD *>(buf), count, seed);
   }
 
-  void CRandom::shuffle_(unsigned long *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(DWORD *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 1; i < count; ++i) {
-      unsigned long bi = buf[i];
-      unsigned long index = dice_(i + 1, seed);
+    for (DWORD i = 1; i < count; ++i) {
+      DWORD bi = buf[i];
+      DWORD index = dice_(i + 1, seed);
       buf[i] = buf[index];
       buf[index] = bi;
     }
   }
 
-  void CRandom::shuffle_(float *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(float *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 1; i < count; ++i) {
+    for (DWORD i = 1; i < count; ++i) {
       float bi = buf[i];
-      unsigned long index = dice_(i + 1, seed);
+      DWORD index = dice_(i + 1, seed);
       buf[i] = buf[index];
       buf[index] = bi;
     }
   }
 
-  void CRandom::shuffle_(double *buf, unsigned long count, CRndSeed &seed) {
+  void CRandom::shuffle_(double *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf);
-    for (unsigned long i = 1; i < count; ++i) {
+    for (DWORD i = 1; i < count; ++i) {
       double bi = buf[i];
-      unsigned long index = dice_(i + 1, seed);
+      DWORD  index = dice_(i + 1, seed);
       buf[i] = buf[index];
       buf[index] = bi;
     }
   }
 
-  void CRandom::crypt_(char *buf, unsigned long size, unsigned long seedNumber) {
-    ASSERT((reinterpret_cast<unsigned long>(buf) & 3) == 0);
+  void CRandom::crypt_(char *buf, DWORD size, DWORD seedNumber) {
+    ASSERT((reinterpret_cast<DWORD>(buf) & 3) == 0);
     CRndSeed seed(seedNumber);
-    unsigned long offset = -reinterpret_cast<unsigned long>(buf) & 3;
+    DWORD    offset = -reinterpret_cast<DWORD>(buf) & 3;
     buf += offset;
-    for (unsigned long ind = 0; ind < (size - offset) >> 2; ++ind) {
+    for (DWORD ind = 0; ind < (size - offset) >> 2; ++ind) {
       buf[ind] ^= static_cast<char>(uint32_(seed));
     }
   }
 
-  void CRandom::crypt_(char *buf, unsigned long size, char *password) {
+  void CRandom::crypt_(char *buf, DWORD size, char *password) {
     ASSERT(password);
     crypt_(buf, size, Seed(password));
   }
 
-  unsigned long CRandom::lattice_(long x) {
+  DWORD CRandom::lattice_(long x) {
     return ::lattice_(x);
   }
 
-  unsigned long CRandom::lattice_(long x, long y) {
-    unsigned long value = lattice_(y);
+  DWORD CRandom::lattice_(long x, long y) {
+    DWORD value = lattice_(y);
     return lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
   }
 
-  unsigned long CRandom::lattice_(long x, long y, long z) {
-    unsigned long value = lattice_(y, z);
+  DWORD CRandom::lattice_(long x, long y, long z) {
+    DWORD value = lattice_(y, z);
     return lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
   }
 
-  unsigned long CRandom::lattice_(long x, long y, long z, long w) {
-    unsigned long value = lattice_(y, z, w);
+  DWORD CRandom::lattice_(long x, long y, long z, long w) {
+    DWORD value = lattice_(y, z, w);
     return lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
   }
 
-  void CRandom::lattice2_(long x, unsigned long *vtx) {
+  void CRandom::lattice2_(long x, DWORD *vtx) {
     ASSERT(vtx);
     vtx[0] = lattice_(x);
     vtx[1] = lattice_(x + 1);
   }
 
-  void CRandom::lattice4_(long x, long y, unsigned long *vertices) {
+  void CRandom::lattice4_(long x, long y, DWORD *vertices) {
     ASSERT(vertices);
     vertices[0] = lattice_(x, y);
     vertices[1] = lattice_(x + 1, y);
@@ -323,7 +340,7 @@ namespace NTempest {
     vertices[3] = lattice_(x + 1, y + 1);
   }
 
-  void CRandom::lattice8_(long x, long y, long z, unsigned long *vertices) {
+  void CRandom::lattice8_(long x, long y, long z, DWORD *vertices) {
     ASSERT(vertices);
     vertices[0] = lattice_(x, y, z);
     vertices[1] = lattice_(x + 1, y, z);
@@ -335,24 +352,24 @@ namespace NTempest {
     vertices[7] = lattice_(x + 1, y + 1, z + 1);
   }
 
-  void CRandom::lattice3_(long x, unsigned long *vtx) {
+  void CRandom::lattice3_(long x, DWORD *vtx) {
     ASSERT(vtx);
     vtx[0] = lattice_(x - 1);
     vtx[1] = lattice_(x);
     vtx[2] = lattice_(x + 1);
   }
 
-  void CRandom::lattice9_(long x, long y, unsigned long *vertices) {
+  void CRandom::lattice9_(long x, long y, DWORD *vertices) {
     ASSERT(vertices);
-    unsigned long index = 0;
+    DWORD index = 0;
     for (long j = -1; j <= 1; ++j)
       for (long i = -1; i <= 1; ++i)
         vertices[index++] = lattice_(x + i, y + j);
   }
 
-  void CRandom::lattice27_(long x, long y, long z, unsigned long *vertices) {
+  void CRandom::lattice27_(long x, long y, long z, DWORD *vertices) {
     ASSERT(vertices);
-    unsigned long index = 0;
+    DWORD index = 0;
     for (long k = -1; k <= 1; ++k)
       for (long j = -1; j <= 1; ++j)
         for (long i = -1; i <= 1; ++i)
@@ -361,12 +378,13 @@ namespace NTempest {
 
   float CRandom::noise_(double x) {
     long integer = static_cast<long>(x);
-    if (x < 0.0) --integer;
+    if (x < 0.0)
+      --integer;
     double fraction = x - integer;
 
-    unsigned long first = lattice_(integer);
-    unsigned long second = lattice_(integer + 1);
-    unsigned long bits = 0x40000000 | ((first & 0xFFFF) << 7);
+    DWORD first = lattice_(integer);
+    DWORD second = lattice_(integer + 1);
+    DWORD bits = 0x40000000 | ((first & 0xFFFF) << 7);
     float firstSlope = *reinterpret_cast<float *>(&bits) - 3.0f;
     bits = 0x40000000 | ((second & 0xFFFF) << 7);
     float secondSlope = *reinterpret_cast<float *>(&bits) - 3.0f;
@@ -376,29 +394,31 @@ namespace NTempest {
     float difference = *reinterpret_cast<float *>(&bits) - 3.0f;
 
     double fraction2 = fraction * fraction;
-    double value = (((fraction - 2.0) * fraction2 + fraction) * firstSlope +
-                    (3.0 - fraction - fraction) * fraction2 * difference +
-                    (fraction2 * fraction - fraction2) * secondSlope +
-                    firstValue) * 0.75 + 0.125;
+    double value = (((fraction - 2.0) * fraction2 + fraction) * firstSlope + (3.0 - fraction - fraction) * fraction2 * difference +
+                    (fraction2 * fraction - fraction2) * secondSlope + firstValue) *
+                       0.75 +
+                   0.125;
     return static_cast<float>((3.0 - value - value) * value * value);
   }
 
   float CRandom::noise_(double x, double y) {
     long xi = static_cast<long>(x);
     long yi = static_cast<long>(y);
-    if (x < 0.0) --xi;
-    if (y < 0.0) --yi;
+    if (x < 0.0)
+      --xi;
+    if (y < 0.0)
+      --yi;
     float xf = static_cast<float>(x - xi);
     float yf = static_cast<float>(y - yi);
-    unsigned long vertices[4];
+    DWORD vertices[4];
     lattice4_(xi, yi, vertices);
 
     float values[4];
     float derivativesX[4];
     float derivativesY[4];
     float derivativesXY[4];
-    for (unsigned long i = 0; i < 4; ++i) {
-      unsigned long bits = (vertices[i] >> 10 & 0x3FF800) | 0x40400000;
+    for (DWORD i = 0; i < 4; ++i) {
+      DWORD bits = (vertices[i] >> 10 & 0x3FF800) | 0x40400000;
       values[i] = *reinterpret_cast<float *>(&bits);
       bits = ((vertices[i] & 0x3F80) | 0x200000) << 9;
       derivativesX[i] = *reinterpret_cast<float *>(&bits);
@@ -419,12 +439,10 @@ namespace NTempest {
 
     float row0 = (values[1] - values[0]) * hxv + derivativesX[0] * hx0 + derivativesX[1] * hx1 + values[0];
     float row1 = (values[3] - values[2]) * hxv + derivativesX[2] * hx0 + derivativesX[3] * hx1 + values[2];
-    float rowDerivative0 = (derivativesY[1] - derivativesY[0]) * hxv +
-                           derivativesXY[0] * hx0 + derivativesXY[1] * hx1 + derivativesY[0];
-    float rowDerivative1 = (derivativesY[3] - derivativesY[2]) * hxv +
-                           derivativesXY[2] * hx0 + derivativesXY[3] * hx1 + derivativesY[2];
-    float value = (row1 - row0) * hyv + rowDerivative0 * hy0 + rowDerivative1 * hy1 + row0 -
-                  ((hx0 + hx1 + 1.0f) * 3.0f * (hy0 + hy1 + 1.0f) - 0.30000001f);
+    float rowDerivative0 = (derivativesY[1] - derivativesY[0]) * hxv + derivativesXY[0] * hx0 + derivativesXY[1] * hx1 + derivativesY[0];
+    float rowDerivative1 = (derivativesY[3] - derivativesY[2]) * hxv + derivativesXY[2] * hx0 + derivativesXY[3] * hx1 + derivativesY[2];
+    float value =
+        (row1 - row0) * hyv + rowDerivative0 * hy0 + rowDerivative1 * hy1 + row0 - ((hx0 + hx1 + 1.0f) * 3.0f * (hy0 + hy1 + 1.0f) - 0.30000001f);
     return (1.17188f - value * 0.48828f) * value * value;
   }
 
@@ -432,13 +450,16 @@ namespace NTempest {
     long xi = static_cast<long>(x);
     long yi = static_cast<long>(y);
     long zi = static_cast<long>(z);
-    if (x < 0.0) --xi;
-    if (y < 0.0) --yi;
-    if (z < 0.0) --zi;
+    if (x < 0.0)
+      --xi;
+    if (y < 0.0)
+      --yi;
+    if (z < 0.0)
+      --zi;
     float xf = static_cast<float>(x - xi);
     float yf = static_cast<float>(y - yi);
     float zf = static_cast<float>(z - zi);
-    unsigned long vertices[8];
+    DWORD vertices[8];
     lattice8_(xi, yi, zi, vertices);
 
     float xf2 = xf * xf;
@@ -455,15 +476,14 @@ namespace NTempest {
     float hz1 = zf2 * zf - zf2;
 
     float interpolated[4][4];
-    for (unsigned long pair = 0; pair < 4; ++pair) {
-      unsigned long first = vertices[pair * 2];
-      unsigned long second = vertices[pair * 2 + 1];
-      long value0 = first >> 28;
-      long value1 = second >> 28;
+    for (DWORD pair = 0; pair < 4; ++pair) {
+      DWORD first = vertices[pair * 2];
+      DWORD second = vertices[pair * 2 + 1];
+      long  value0 = first >> 28;
+      long  value1 = second >> 28;
       interpolated[pair][0] = static_cast<float>(value1 - value0) / 15.0f * hxv +
                               static_cast<float>(2 * static_cast<long>((first >> 24) & 0xF) - 15) / 15.0f * hx0 +
-                              static_cast<float>(2 * static_cast<long>((second >> 24) & 0xF) - 15) / 15.0f * hx1 +
-                              static_cast<float>(value0) / 15.0f;
+                              static_cast<float>(2 * static_cast<long>((second >> 24) & 0xF) - 15) / 15.0f * hx1 + static_cast<float>(value0) / 15.0f;
       value0 = (first >> 20) & 0xF;
       value1 = (second >> 20) & 0xF;
       interpolated[pair][1] = static_cast<float>(2 * (value1 - value0)) / 15.0f * hxv +
@@ -472,27 +492,25 @@ namespace NTempest {
                               static_cast<float>(2 * value0 - 15) / 15.0f;
       value0 = (first >> 12) & 0xF;
       value1 = (second >> 12) & 0xF;
-      interpolated[pair][2] = static_cast<float>(2 * (value1 - value0)) / 15.0f * hxv +
-                              static_cast<float>(2 * static_cast<long>((first >> 8) & 0xF) - 15) / 15.0f * hx0 +
-                              static_cast<float>(2 * static_cast<long>((second >> 8) & 0xF) - 15) / 15.0f * hx1 +
-                              static_cast<float>(2 * value0 - 15) / 15.0f;
+      interpolated[pair][2] =
+          static_cast<float>(2 * (value1 - value0)) / 15.0f * hxv + static_cast<float>(2 * static_cast<long>((first >> 8) & 0xF) - 15) / 15.0f * hx0 +
+          static_cast<float>(2 * static_cast<long>((second >> 8) & 0xF) - 15) / 15.0f * hx1 + static_cast<float>(2 * value0 - 15) / 15.0f;
       value0 = (first >> 4) & 0xF;
       value1 = (second >> 4) & 0xF;
-      interpolated[pair][3] = static_cast<float>(2 * (value1 - value0)) / 15.0f * hxv +
-                              static_cast<float>(2 * static_cast<long>(first & 0xF) - 15) / 15.0f * hx0 +
-                              static_cast<float>(2 * static_cast<long>(second & 0xF) - 15) / 15.0f * hx1 +
-                              static_cast<float>(2 * value0 - 15) / 15.0f;
+      interpolated[pair][3] =
+          static_cast<float>(2 * (value1 - value0)) / 15.0f * hxv + static_cast<float>(2 * static_cast<long>(first & 0xF) - 15) / 15.0f * hx0 +
+          static_cast<float>(2 * static_cast<long>(second & 0xF) - 15) / 15.0f * hx1 + static_cast<float>(2 * value0 - 15) / 15.0f;
     }
 
-    float firstRow = (interpolated[2][0] - interpolated[0][0]) * hzv +
-                     interpolated[2][2] * hz1 + interpolated[0][2] * hz0 + interpolated[0][0];
-    float value = (((interpolated[3][0] - interpolated[1][0]) * hzv +
-                    interpolated[3][2] * hz1 + interpolated[1][2] * hz0 + interpolated[1][0] - firstRow) * hyv +
-                   ((interpolated[2][1] - interpolated[0][1]) * hzv +
-                    interpolated[2][3] * hz1 + interpolated[0][3] * hz0 + interpolated[0][1]) * hy0 +
-                   ((interpolated[3][1] - interpolated[1][1]) * hzv +
-                    interpolated[3][3] * hz1 + interpolated[1][3] * hz0 + interpolated[1][1]) * hy1 +
-                   firstRow) * 0.625f + 0.1875f;
+    float firstRow = (interpolated[2][0] - interpolated[0][0]) * hzv + interpolated[2][2] * hz1 + interpolated[0][2] * hz0 + interpolated[0][0];
+    float value =
+        (((interpolated[3][0] - interpolated[1][0]) * hzv + interpolated[3][2] * hz1 + interpolated[1][2] * hz0 + interpolated[1][0] - firstRow) *
+             hyv +
+         ((interpolated[2][1] - interpolated[0][1]) * hzv + interpolated[2][3] * hz1 + interpolated[0][3] * hz0 + interpolated[0][1]) * hy0 +
+         ((interpolated[3][1] - interpolated[1][1]) * hzv + interpolated[3][3] * hz1 + interpolated[1][3] * hz0 + interpolated[1][1]) * hy1 +
+         firstRow) *
+            0.625f +
+        0.1875f;
     return (3.0f - value - value) * value * value;
   }
 
@@ -500,13 +518,16 @@ namespace NTempest {
     long xi = static_cast<long>(x);
     long yi = static_cast<long>(y);
     long zi = static_cast<long>(z);
-    if (x < 0.0) --xi;
-    if (y < 0.0) --yi;
-    if (z < 0.0) --zi;
+    if (x < 0.0)
+      --xi;
+    if (y < 0.0)
+      --yi;
+    if (z < 0.0)
+      --zi;
     float xf = static_cast<float>(x - xi);
     float yf = static_cast<float>(y - yi);
     float zf = static_cast<float>(z - zi);
-    unsigned long vertices[8];
+    DWORD vertices[8];
     lattice8_(xi, yi, zi, vertices);
 
     float xf2 = xf * xf;
@@ -523,65 +544,56 @@ namespace NTempest {
     float hz1 = zf2 * zf - zf2;
 
     float xValues[4][4];
-    for (unsigned long pair = 0; pair < 4; ++pair) {
-      unsigned long first = vertices[pair * 2];
-      unsigned long second = vertices[pair * 2 + 1];
-      long a = first >> 28, b = second >> 28;
-      xValues[pair][0] = static_cast<float>(b - a) / 15.0f * hxv +
-                         static_cast<float>(2 * static_cast<long>((first >> 24) & 0xF) - 15) / 15.0f * hx0 +
-                         static_cast<float>(2 * static_cast<long>((second >> 24) & 0xF) - 15) / 15.0f * hx1 +
-                         static_cast<float>(a) / 15.0f;
-      a = (first >> 20) & 0xF; b = (second >> 20) & 0xF;
+    for (DWORD pair = 0; pair < 4; ++pair) {
+      DWORD first = vertices[pair * 2];
+      DWORD second = vertices[pair * 2 + 1];
+      long  a = first >> 28, b = second >> 28;
+      xValues[pair][0] = static_cast<float>(b - a) / 15.0f * hxv + static_cast<float>(2 * static_cast<long>((first >> 24) & 0xF) - 15) / 15.0f * hx0 +
+                         static_cast<float>(2 * static_cast<long>((second >> 24) & 0xF) - 15) / 15.0f * hx1 + static_cast<float>(a) / 15.0f;
+      a = (first >> 20) & 0xF;
+      b = (second >> 20) & 0xF;
       xValues[pair][1] = static_cast<float>(2 * (b - a)) / 15.0f * hxv +
                          static_cast<float>(2 * static_cast<long>((first >> 16) & 0xF) - 15) / 15.0f * hx0 +
-                         static_cast<float>(2 * static_cast<long>((second >> 16) & 0xF) - 15) / 15.0f * hx1 +
-                         static_cast<float>(2 * a - 15) / 15.0f;
-      a = (first >> 12) & 0xF; b = (second >> 12) & 0xF;
+                         static_cast<float>(2 * static_cast<long>((second >> 16) & 0xF) - 15) / 15.0f * hx1 + static_cast<float>(2 * a - 15) / 15.0f;
+      a = (first >> 12) & 0xF;
+      b = (second >> 12) & 0xF;
       xValues[pair][2] = static_cast<float>(2 * (b - a)) / 15.0f * hxv +
                          static_cast<float>(2 * static_cast<long>((first >> 8) & 0xF) - 15) / 15.0f * hx0 +
-                         static_cast<float>(2 * static_cast<long>((second >> 8) & 0xF) - 15) / 15.0f * hx1 +
-                         static_cast<float>(2 * a - 15) / 15.0f;
-      a = (first >> 4) & 0xF; b = (second >> 4) & 0xF;
-      xValues[pair][3] = static_cast<float>(2 * (b - a)) / 15.0f * hxv +
-                         static_cast<float>(2 * static_cast<long>(first & 0xF) - 15) / 15.0f * hx0 +
-                         static_cast<float>(2 * static_cast<long>(second & 0xF) - 15) / 15.0f * hx1 +
-                         static_cast<float>(2 * a - 15) / 15.0f;
+                         static_cast<float>(2 * static_cast<long>((second >> 8) & 0xF) - 15) / 15.0f * hx1 + static_cast<float>(2 * a - 15) / 15.0f;
+      a = (first >> 4) & 0xF;
+      b = (second >> 4) & 0xF;
+      xValues[pair][3] = static_cast<float>(2 * (b - a)) / 15.0f * hxv + static_cast<float>(2 * static_cast<long>(first & 0xF) - 15) / 15.0f * hx0 +
+                         static_cast<float>(2 * static_cast<long>(second & 0xF) - 15) / 15.0f * hx1 + static_cast<float>(2 * a - 15) / 15.0f;
     }
 
     float zValues[4][4];
-    for (unsigned long zPair = 0; zPair < 4; ++zPair) {
-      unsigned long first = vertices[zPair];
-      unsigned long second = vertices[zPair + 4];
-      long a = first >> 28, b = second >> 28;
+    for (DWORD zPair = 0; zPair < 4; ++zPair) {
+      DWORD first = vertices[zPair];
+      DWORD second = vertices[zPair + 4];
+      long  a = first >> 28, b = second >> 28;
       zValues[zPair][0] = static_cast<float>(b - a) / 15.0f * hzv +
-                         static_cast<float>(2 * static_cast<long>((first >> 12) & 0xF) - 15) / 15.0f * hz0 +
-                         static_cast<float>(2 * static_cast<long>((second >> 12) & 0xF) - 15) / 15.0f * hz1 +
-                         static_cast<float>(a) / 15.0f;
-      a = (first >> 24) & 0xF; b = (second >> 24) & 0xF;
+                          static_cast<float>(2 * static_cast<long>((first >> 12) & 0xF) - 15) / 15.0f * hz0 +
+                          static_cast<float>(2 * static_cast<long>((second >> 12) & 0xF) - 15) / 15.0f * hz1 + static_cast<float>(a) / 15.0f;
+      a = (first >> 24) & 0xF;
+      b = (second >> 24) & 0xF;
       zValues[zPair][1] = static_cast<float>(2 * (b - a)) / 15.0f * hzv +
-                         static_cast<float>(2 * static_cast<long>((first >> 8) & 0xF) - 15) / 15.0f * hz0 +
-                         static_cast<float>(2 * static_cast<long>((second >> 8) & 0xF) - 15) / 15.0f * hz1 +
-                         static_cast<float>(2 * a - 15) / 15.0f;
-      a = (first >> 20) & 0xF; b = (second >> 20) & 0xF;
+                          static_cast<float>(2 * static_cast<long>((first >> 8) & 0xF) - 15) / 15.0f * hz0 +
+                          static_cast<float>(2 * static_cast<long>((second >> 8) & 0xF) - 15) / 15.0f * hz1 + static_cast<float>(2 * a - 15) / 15.0f;
+      a = (first >> 20) & 0xF;
+      b = (second >> 20) & 0xF;
       zValues[zPair][2] = static_cast<float>(2 * (b - a)) / 15.0f * hzv +
-                         static_cast<float>(2 * static_cast<long>((first >> 4) & 0xF) - 15) / 15.0f * hz0 +
-                         static_cast<float>(2 * static_cast<long>((second >> 4) & 0xF) - 15) / 15.0f * hz1 +
-                         static_cast<float>(2 * a - 15) / 15.0f;
-      a = (first >> 16) & 0xF; b = (second >> 16) & 0xF;
-      zValues[zPair][3] = static_cast<float>(2 * (b - a)) / 15.0f * hzv +
-                         static_cast<float>(2 * static_cast<long>(first & 0xF) - 15) / 15.0f * hz0 +
-                         static_cast<float>(2 * static_cast<long>(second & 0xF) - 15) / 15.0f * hz1 +
-                         static_cast<float>(2 * a - 15) / 15.0f;
+                          static_cast<float>(2 * static_cast<long>((first >> 4) & 0xF) - 15) / 15.0f * hz0 +
+                          static_cast<float>(2 * static_cast<long>((second >> 4) & 0xF) - 15) / 15.0f * hz1 + static_cast<float>(2 * a - 15) / 15.0f;
+      a = (first >> 16) & 0xF;
+      b = (second >> 16) & 0xF;
+      zValues[zPair][3] = static_cast<float>(2 * (b - a)) / 15.0f * hzv + static_cast<float>(2 * static_cast<long>(first & 0xF) - 15) / 15.0f * hz0 +
+                          static_cast<float>(2 * static_cast<long>(second & 0xF) - 15) / 15.0f * hz1 + static_cast<float>(2 * a - 15) / 15.0f;
     }
 
-    float yDerivative1 = (xValues[3][1] - xValues[1][1]) * hzv +
-                         xValues[1][3] * hz0 + xValues[3][3] * hz1 + xValues[1][1];
-    float yDerivative0 = (xValues[2][1] - xValues[0][1]) * hzv +
-                         xValues[0][3] * hz0 + xValues[2][3] * hz1 + xValues[0][1];
-    float value0 = (xValues[2][0] - xValues[0][0]) * hzv +
-                   xValues[0][2] * hz0 + xValues[2][2] * hz1 + xValues[0][0];
-    float valueDifference = (xValues[3][0] - xValues[1][0]) * hzv +
-                            xValues[1][2] * hz0 + xValues[3][2] * hz1 + xValues[1][0] - value0;
+    float yDerivative1 = (xValues[3][1] - xValues[1][1]) * hzv + xValues[1][3] * hz0 + xValues[3][3] * hz1 + xValues[1][1];
+    float yDerivative0 = (xValues[2][1] - xValues[0][1]) * hzv + xValues[0][3] * hz0 + xValues[2][3] * hz1 + xValues[0][1];
+    float value0 = (xValues[2][0] - xValues[0][0]) * hzv + xValues[0][2] * hz0 + xValues[2][2] * hz1 + xValues[0][0];
+    float valueDifference = (xValues[3][0] - xValues[1][0]) * hzv + xValues[1][2] * hz0 + xValues[3][2] * hz1 + xValues[1][0] - value0;
 
     float hxDifference = hxv - hxv * hxv;
     float hyDifference = hyv - hyv * hyv;
@@ -589,30 +601,25 @@ namespace NTempest {
     float hxEnd = hxv - 3.0f * hxDifference;
     float hyEnd = hyv - 3.0f * hyDifference;
     float hzEnd = hzv - 3.0f * hzDifference;
-    derivative.x =
-        ((zValues[2][2] - zValues[0][2]) * hyv + zValues[0][3] * hy0 + zValues[2][3] * hy1 + zValues[0][2]) *
-            (hxEnd - hxv - hxv + 1.0f) +
-        ((zValues[3][0] - zValues[1][0]) * hyv + zValues[1][1] * hy0 + zValues[3][1] * hy1 + zValues[1][0] -
-         zValues[0][0] - (zValues[2][0] - zValues[0][0]) * hyv - zValues[0][1] * hy0 - zValues[2][1] * hy1) *
-            6.0f * hxDifference +
-        ((zValues[3][2] - zValues[1][2]) * hyv + zValues[1][3] * hy0 + zValues[3][3] * hy1 + zValues[1][2]) * hxEnd;
-    derivative.y = (hyEnd - hyv - hyv + 1.0f) * yDerivative0 +
-                   valueDifference * 6.0f * hyDifference + hyEnd * yDerivative1;
-    derivative.z =
-        ((xValues[1][2] - xValues[0][2]) * hyv + xValues[0][3] * hy0 + xValues[1][3] * hy1 + xValues[0][2]) *
-            (hzEnd - hzv - hzv + 1.0f) +
-        ((xValues[3][0] - xValues[2][0]) * hyv + xValues[2][1] * hy0 + xValues[3][1] * hy1 + xValues[2][0] -
-         xValues[0][0] - (xValues[1][0] - xValues[0][0]) * hyv - xValues[0][1] * hy0 - xValues[1][1] * hy1) *
-            6.0f * hzDifference +
-        ((xValues[3][2] - xValues[2][2]) * hyv + xValues[2][3] * hy0 + xValues[3][3] * hy1 + xValues[2][2]) * hzEnd;
+    derivative.x = ((zValues[2][2] - zValues[0][2]) * hyv + zValues[0][3] * hy0 + zValues[2][3] * hy1 + zValues[0][2]) * (hxEnd - hxv - hxv + 1.0f) +
+                   ((zValues[3][0] - zValues[1][0]) * hyv + zValues[1][1] * hy0 + zValues[3][1] * hy1 + zValues[1][0] - zValues[0][0] -
+                    (zValues[2][0] - zValues[0][0]) * hyv - zValues[0][1] * hy0 - zValues[2][1] * hy1) *
+                       6.0f * hxDifference +
+                   ((zValues[3][2] - zValues[1][2]) * hyv + zValues[1][3] * hy0 + zValues[3][3] * hy1 + zValues[1][2]) * hxEnd;
+    derivative.y = (hyEnd - hyv - hyv + 1.0f) * yDerivative0 + valueDifference * 6.0f * hyDifference + hyEnd * yDerivative1;
+    derivative.z = ((xValues[1][2] - xValues[0][2]) * hyv + xValues[0][3] * hy0 + xValues[1][3] * hy1 + xValues[0][2]) * (hzEnd - hzv - hzv + 1.0f) +
+                   ((xValues[3][0] - xValues[2][0]) * hyv + xValues[2][1] * hy0 + xValues[3][1] * hy1 + xValues[2][0] - xValues[0][0] -
+                    (xValues[1][0] - xValues[0][0]) * hyv - xValues[0][1] * hy0 - xValues[1][1] * hy1) *
+                       6.0f * hzDifference +
+                   ((xValues[3][2] - xValues[2][2]) * hyv + xValues[2][3] * hy0 + xValues[3][3] * hy1 + xValues[2][2]) * hzEnd;
 
     float value = (yDerivative0 * hy0 + valueDifference * hyv + yDerivative1 * hy1 + value0) * 0.625f + 0.1875f;
     return (3.0f - value - value) * value * value;
   }
 
-  float CRandom::turbulence_(double x, double y, double z, C3Vector &d, unsigned long) {
+  float CRandom::turbulence_(double x, double y, double z, C3Vector &d, DWORD) {
     C3Vector td(0.0f, 0.0f, 0.0f);
-    float n = noise_(x, y, z, d);
+    float    n = noise_(x, y, z, d);
     n += noise_(x * 2.0, y * 2.0, z * 2.0, td) * 0.5f;
     d += td;
     n += noise_(x * 4.0, y * 4.0, z * 4.0, td) * 0.25f;
@@ -626,15 +633,12 @@ namespace NTempest {
 
 }  // namespace NTempest
 
-static unsigned long lattice_(long x) {
-  unsigned long value = static_cast<unsigned long>(x);
+static DWORD lattice_(long x) {
+  DWORD value = static_cast<DWORD>(x);
   value = ((value << 11) | (value >> 21)) ^ ((value << 21) | (value >> 11)) ^ value;
 
-  unsigned long n1 = NTempest::gnoise32_[(value >> 6) & 0x3F];
-  unsigned long n2 = NTempest::gnoise32_[(value >> 12) & 0x3F];
-  unsigned long n3 = NTempest::gnoise32_[(value >> 18) & 0x3F];
-  return NTempest::gnoise32_[value & 0x3F] ^
-         ((n1 << 1) | (n1 >> 31)) ^
-         ((n2 << 2) | (n2 >> 30)) ^
-         ((n3 << 3) | (n3 >> 29));
+  DWORD n1 = NTempest::gnoise32_[(value >> 6) & 0x3F];
+  DWORD n2 = NTempest::gnoise32_[(value >> 12) & 0x3F];
+  DWORD n3 = NTempest::gnoise32_[(value >> 18) & 0x3F];
+  return NTempest::gnoise32_[value & 0x3F] ^ ((n1 << 1) | (n1 >> 31)) ^ ((n2 << 2) | (n2 >> 30)) ^ ((n3 << 3) | (n3 >> 29));
 }

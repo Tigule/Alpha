@@ -13,8 +13,8 @@ NODEDECL(WNDREC) {
 };
 typedef WNDREC *WNDRECPTR;
 
-static HWND                               s_defaultwindow;
-static RECT                               s_defaultwindowrect;
+static HWND s_defaultwindow;
+static RECT s_defaultwindowrect;
 static LISTDECL(WNDREC, s_wndlist);
 
 static void AddWindow(HWND window) {

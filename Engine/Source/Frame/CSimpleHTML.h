@@ -29,7 +29,7 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
   static void UnregisterScriptMethods();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
-  void SetTextAttributes(const CSimpleFontStringAttributes &attrib, HTML_TEXT_TYPE textType) {
+  void         SetTextAttributes(const CSimpleFontStringAttributes &attrib, HTML_TEXT_TYPE textType) {
     ASSERT(textType >= HTML_TEXT_NORMAL && textType < NUM_HTML_TEXT_TYPES);
     m_attrib[textType] = attrib;
   }
@@ -37,23 +37,23 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
     ASSERT(textType >= HTML_TEXT_NORMAL && textType < NUM_HTML_TEXT_TYPES);
     return m_attrib[textType];
   }
-  bool         SetText(const char *text, CStatus *status);
+  bool SetText(LPCSTR text, CStatus *status);
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void ClearContent();
   void ParseBODY(const XMLNode *node, CStatus *status);
   void ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *status);
   void ParseIMG(const XMLNode *node, CStatus *status);
-  void AddText(const char *text, CSimpleFontStringAttributes &attrib);
+  void AddText(LPCSTR text, CSimpleFontStringAttributes &attrib);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
   LISTDECL(REGIONNODE, m_content);
-  CLayoutFrame                               *m_layoutAnchor;
-  float                                       m_layoutOffset;
-  CSimpleFontStringAttributes                 m_attrib[4];
+  CLayoutFrame               *m_layoutAnchor;
+  float                       m_layoutOffset;
+  CSimpleFontStringAttributes m_attrib[4];
   LISTDECLEX(CSimpleHyperlinkButton, m_link, m_hyperlinks);
 };
 

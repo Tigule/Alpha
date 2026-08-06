@@ -43,8 +43,8 @@ void CGxDeviceD3d::IStateSync() {
     return;
   }
 
-  unsigned long numPasses;
-  long          result = m_d3dDevice->ValidateDevice(&numPasses);
+  DWORD numPasses;
+  long  result = m_d3dDevice->ValidateDevice(&numPasses);
   if (result == 0 && numPasses == 1) {
     return;
   }
@@ -97,7 +97,7 @@ void CGxDeviceD3d::IStateSync() {
 }
 
 void CGxDeviceD3d::IStateSyncLights() {
-  for (unsigned int whichLight = 0; whichLight < 8; ++whichLight) {
+  for (UINT whichLight = 0; whichLight < 8; ++whichLight) {
     CGxLight &light = m_appState.m_lights[whichLight];
 
     d3dLight.Type = light.m_isOmni ? D3DLIGHT_POINT : D3DLIGHT_DIRECTIONAL;
@@ -129,8 +129,8 @@ void CGxDeviceD3d::IStateSyncLights() {
 }
 
 void CGxDeviceD3d::IStateSyncEnables() {
-  unsigned long app = m_appState.m_masterEnables;
-  unsigned long hw = m_hwState.m_masterEnables;
+  DWORD app = m_appState.m_masterEnables;
+  DWORD hw = m_hwState.m_masterEnables;
 
   if (app != hw) {
     int enable;
@@ -170,7 +170,7 @@ void CGxDeviceD3d::IStateSyncTransforms() {
     IXformSetWorld();
   }
 
-  for (unsigned int tmu = 0; tmu < m_caps.m_numTmus; ++tmu) {
+  for (UINT tmu = 0; tmu < m_caps.m_numTmus; ++tmu) {
     int texture = 0;
     RsGet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), texture);
     if (texture && (m_xforms[tmu].m_dirty || m_texGen[tmu].m_dirty)) {
@@ -184,7 +184,7 @@ void CGxDeviceD3d::IStateSetD3DDefaults() {
   m_d3dDevice->SetRenderState(D3DRS_LOCALVIEWER, TRUE);
   m_d3dDevice->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
 
-  for (unsigned int whichLight = 0; whichLight < 8; ++whichLight) {
+  for (UINT whichLight = 0; whichLight < 8; ++whichLight) {
     CGxLight  &light = m_hwState.m_lights[whichLight];
     _D3DLIGHT9 d3dLight;
     memset(&d3dLight, 0, sizeof(d3dLight));
@@ -225,14 +225,14 @@ void CGxDeviceD3d::IStateSetD3DDefaults() {
   }
 }
 
-void CGxDeviceD3d::ISetLight(unsigned long which, const _D3DLIGHT9 &value, int enabled) {
+void CGxDeviceD3d::ISetLight(DWORD which, const _D3DLIGHT9 &value, int enabled) {
   StateD3dLight &state = m_d3dStatesLight[which];
-  int            force = state.which == static_cast<unsigned long>(-1);
-  unsigned int   chkSum = 0;
+  int            force = state.which == static_cast<DWORD>(-1);
+  UINT           chkSum = 0;
 
   if (!force) {
-    const unsigned long *data = reinterpret_cast<const unsigned long *>(&value);
-    unsigned int         count = sizeof(value) / sizeof(unsigned long);
+    const DWORD *data = reinterpret_cast<const DWORD *>(&value);
+    UINT         count = sizeof(value) / sizeof(DWORD);
     while (count) {
       chkSum += (--count ^ *data++);
     }
@@ -242,8 +242,8 @@ void CGxDeviceD3d::ISetLight(unsigned long which, const _D3DLIGHT9 &value, int e
     m_d3dDevice->SetLight(which, &value);
     memcpy(&state.val, &value, sizeof(state.val));
 
-    const unsigned long *data = reinterpret_cast<const unsigned long *>(&state.val);
-    unsigned int         count = sizeof(state.val) / sizeof(unsigned long);
+    const DWORD *data = reinterpret_cast<const DWORD *>(&state.val);
+    UINT         count = sizeof(state.val) / sizeof(DWORD);
     state.chkSum = 0;
     while (count) {
       state.chkSum += (--count ^ *data++);
@@ -259,16 +259,16 @@ void CGxDeviceD3d::ISetLight(unsigned long which, const _D3DLIGHT9 &value, int e
 }
 
 void CGxDeviceD3d::IForceLights() {
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     StateD3dLight &state = m_d3dStatesLight[i];
-    if (state.which != static_cast<unsigned long>(-1)) {
+    if (state.which != static_cast<DWORD>(-1)) {
       m_d3dDevice->SetLight(state.which, &state.val);
       m_d3dDevice->LightEnable(state.which, state.enabled);
     }
   }
 }
 
-void CGxDeviceD3d::DsSet(EDeviceState state, unsigned long val) {
+void CGxDeviceD3d::DsSet(EDeviceState state, DWORD val) {
   ASSERT(state < DeviceStates_Last);
   if (m_deviceState[state] == val) {
     return;
@@ -307,7 +307,7 @@ void CGxDeviceD3d::DsSet(EDeviceState state, unsigned long val) {
   m_deviceState[state] = val;
 }
 
-void CGxDeviceD3d::ISetTexture(unsigned int tmu, CGxTex *tex) {
+void CGxDeviceD3d::ISetTexture(UINT tmu, CGxTex *tex) {
   if (tmu >= m_caps.m_numTmus) {
     return;
   }
@@ -329,8 +329,8 @@ void CGxDeviceD3d::ISetTexture(unsigned int tmu, CGxTex *tex) {
 
     if (!m_texEnable[tmu]) {
       m_texEnable[tmu] = 1;
-      unsigned int blendState = GxRs_TexBlend0 + tmu;
-      ISetTexBlend(tmu, static_cast<EGxTexBlend>(*reinterpret_cast<unsigned int *>(&mAppRenderStates[blendState].mValue)));
+      UINT blendState = GxRs_TexBlend0 + tmu;
+      ISetTexBlend(tmu, static_cast<EGxTexBlend>(*reinterpret_cast<UINT *>(&mAppRenderStates[blendState].mValue)));
       mAppRenderStates[blendState].mDirty = 0;
     }
   } else {
@@ -343,7 +343,7 @@ void CGxDeviceD3d::ISetTexture(unsigned int tmu, CGxTex *tex) {
   }
 }
 
-void CGxDeviceD3d::ISetTexGen(unsigned int tmu, EGxTexGen texGen) {
+void CGxDeviceD3d::ISetTexGen(UINT tmu, EGxTexGen texGen) {
   if (tmu >= m_caps.m_numTmus) {
     return;
   }
@@ -403,13 +403,13 @@ void CGxDeviceD3d::ISetTexGen(unsigned int tmu, EGxTexGen texGen) {
   }
 }
 
-void CGxDeviceD3d::ISetTexLodBias(unsigned int tmu, float bias) {
+void CGxDeviceD3d::ISetTexLodBias(UINT tmu, float bias) {
   if (m_caps.m_mipMapLodBias && tmu < m_caps.m_numTmus) {
-    m_d3dDevice->SetSamplerState(tmu, D3DSAMP_MIPMAPLODBIAS, *reinterpret_cast<unsigned int *>(&bias));
+    m_d3dDevice->SetSamplerState(tmu, D3DSAMP_MIPMAPLODBIAS, *reinterpret_cast<UINT *>(&bias));
   }
 }
 
-void CGxDeviceD3d::ISetTexBlend(unsigned int tmu, EGxTexBlend blend) {
+void CGxDeviceD3d::ISetTexBlend(UINT tmu, EGxTexBlend blend) {
   if (tmu < m_caps.m_numTmus && m_texEnable[tmu]) {
     m_d3dDevice->SetTextureStageState(tmu, D3DTSS_COLOROP, s_texColorOps[blend]);
     m_d3dDevice->SetTextureStageState(tmu, D3DTSS_ALPHAOP, s_texAlphaOps[blend]);
@@ -418,12 +418,12 @@ void CGxDeviceD3d::ISetTexBlend(unsigned int tmu, EGxTexBlend blend) {
 
 void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
   CGxAppRenderState &state = mAppRenderStates[which];
-  unsigned int       value = *reinterpret_cast<unsigned int *>(&state.mValue);
+  UINT               value = *reinterpret_cast<UINT *>(&state.mValue);
 
   switch (which) {
     case GxRs_PolygonOffset:
       if (m_caps.m_depthBias) {
-        m_d3dDevice->SetRenderState(D3DRS_DEPTHBIAS, static_cast<unsigned int>(*reinterpret_cast<float *>(&state.mValue) * 16.0f));
+        m_d3dDevice->SetRenderState(D3DRS_DEPTHBIAS, static_cast<UINT>(*reinterpret_cast<float *>(&state.mValue) * 16.0f));
       }
       break;
     case GxRs_MatDiffuse:
@@ -492,8 +492,8 @@ void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
       break;
     case GxRs_DepthTest:
     case GxRs_DepthFunc:
-      if ((m_appState.m_masterEnables & 4) && *reinterpret_cast<unsigned int *>(&mAppRenderStates[GxRs_DepthTest].mValue)) {
-        m_d3dDevice->SetRenderState(D3DRS_ZFUNC, s_cmpFunc[*reinterpret_cast<unsigned int *>(&mAppRenderStates[GxRs_DepthFunc].mValue)]);
+      if ((m_appState.m_masterEnables & 4) && *reinterpret_cast<UINT *>(&mAppRenderStates[GxRs_DepthTest].mValue)) {
+        m_d3dDevice->SetRenderState(D3DRS_ZFUNC, s_cmpFunc[*reinterpret_cast<UINT *>(&mAppRenderStates[GxRs_DepthFunc].mValue)]);
       } else {
         m_d3dDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
       }

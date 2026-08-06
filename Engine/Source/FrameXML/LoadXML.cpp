@@ -6,10 +6,10 @@
 
 #include <storm.h>
 
-int StringToFramePoint(const char *string, FRAMEPOINT &point) {
+int StringToFramePoint(LPCSTR string, FRAMEPOINT &point) {
   struct FRAMEPOINTNAME {
-    FRAMEPOINT  point;
-    const char *name;
+    FRAMEPOINT point;
+    LPCSTR     name;
   };
 
   FRAMEPOINTNAME framePointNames[FRAMEPOINT_NUMPOINTS] = {
@@ -23,7 +23,7 @@ int StringToFramePoint(const char *string, FRAMEPOINT &point) {
       {       FRAMEPOINT_LEFT,        "LEFT"},
       {      FRAMEPOINT_RIGHT,       "RIGHT"}
   };
-  unsigned int index;
+  UINT index;
 
   for (index = 0; index < FRAMEPOINT_NUMPOINTS; ++index) {
     if (!SStrCmpI(framePointNames[index].name, string, 0x7FFFFFFF)) {
@@ -35,10 +35,10 @@ int StringToFramePoint(const char *string, FRAMEPOINT &point) {
   return 0;
 }
 
-int StringToDrawLayer(const char *string, unsigned int &drawLayer) {
+int StringToDrawLayer(LPCSTR string, UINT &drawLayer) {
   struct DRAWLAYERNAME {
-    unsigned int drawLayer;
-    const char  *name;
+    UINT   drawLayer;
+    LPCSTR name;
   };
 
   DRAWLAYERNAME drawLayerNames[5] = {
@@ -48,7 +48,7 @@ int StringToDrawLayer(const char *string, unsigned int &drawLayer) {
       {3,    "OVERLAY"},
       {4,  "HIGHLIGHT"}
   };
-  unsigned int index;
+  UINT index;
 
   for (index = 0; index < 5; ++index) {
     if (!SStrCmpI(drawLayerNames[index].name, string, 0x7FFFFFFF)) {
@@ -60,10 +60,10 @@ int StringToDrawLayer(const char *string, unsigned int &drawLayer) {
   return 0;
 }
 
-int StringToBlendMode(const char *string, EGxBlend &blendMode) {
+int StringToBlendMode(LPCSTR string, EGxBlend &blendMode) {
   struct BLENDMODENAME {
-    EGxBlend    blendMode;
-    const char *name;
+    EGxBlend blendMode;
+    LPCSTR   name;
   };
 
   BLENDMODENAME blendModeNames[4] = {
@@ -72,7 +72,7 @@ int StringToBlendMode(const char *string, EGxBlend &blendMode) {
       {GxBlend_AlphaKey, "ALPHAKEY"},
       {     GxBlend_Add,      "ADD"}
   };
-  unsigned int index;
+  UINT index;
 
   for (index = 0; index < 4; ++index) {
     if (!SStrCmpI(blendModeNames[index].name, string, 0x7FFFFFFF)) {
@@ -84,10 +84,10 @@ int StringToBlendMode(const char *string, EGxBlend &blendMode) {
   return 0;
 }
 
-int StringToJustify(const char *string, unsigned int &justify) {
+int StringToJustify(LPCSTR string, UINT &justify) {
   struct JUSTIFYNAME {
-    unsigned int justify;
-    const char  *name;
+    UINT   justify;
+    LPCSTR name;
   };
 
   JUSTIFYNAME justifyNames[6] = {
@@ -98,7 +98,7 @@ int StringToJustify(const char *string, unsigned int &justify) {
       {0x10, "MIDDLE"},
       {0x20, "BOTTOM"}
   };
-  unsigned int index;
+  UINT index;
 
   for (index = 0; index < 6; ++index) {
     if (!SStrCmpI(justifyNames[index].name, string, 0x7FFFFFFF)) {
@@ -110,7 +110,7 @@ int StringToJustify(const char *string, unsigned int &justify) {
   return 0;
 }
 
-int StringToBOOL(const char *string) {
+int StringToBOOL(LPCSTR string) {
   if (string && !SStrCmpI(string, "true", 0x7FFFFFFF)) {
     return 1;
   }
@@ -124,7 +124,7 @@ int StringToBOOL(const char *string) {
 
 int LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
   const XMLNode *child;
-  const char    *attribute;
+  LPCSTR         attribute;
 
   value = 0.0f;
 
@@ -158,7 +158,7 @@ int LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
 
 int LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatus *status) {
   const XMLNode *child;
-  const char    *value;
+  LPCSTR         value;
 
   width = 0.0f;
   height = 0.0f;
@@ -203,7 +203,7 @@ int LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatus
 
 int LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, float &bottom, CStatus *status) {
   const XMLNode *child;
-  const char    *attribute;
+  LPCSTR         attribute;
 
   left = 0.0f;
   right = 0.0f;
@@ -269,11 +269,11 @@ int LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, f
 }
 
 int LoadXML_Color(const XMLNode *node, NTempest::CImVector &color, CStatus *status) {
-  const char *attribute;
-  float       alpha = 1.0f;
-  float       red = 0.0f;
-  float       green = 0.0f;
-  float       blue = 0.0f;
+  LPCSTR attribute;
+  float  alpha = 1.0f;
+  float  red = 0.0f;
+  float  green = 0.0f;
+  float  blue = 0.0f;
 
   attribute = node->GetAttributeByName("r");
   if (attribute && *attribute) {

@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag);
+BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 
 int MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
   ASSERT(cameras);
@@ -15,7 +15,7 @@ int MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
   cameras->SetCount(data.cameras.Count());
   memset(cameras->Ptr(), 0, cameras->Count() * sizeof(HCAMERA));
 
-  for (unsigned int i = 0; i < data.cameras.Count(); ++i) {
+  for (UINT i = 0; i < data.cameras.Count(); ++i) {
     const MDLCAMERASECTION &source = data.cameras[i];
     HCAMERA                 camera = CameraCreate();
 
@@ -32,25 +32,25 @@ int MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
   return 1;
 }
 
-void MdxReadCameras(unsigned char *data, unsigned int fileBytes, TSFixedArray<HCAMERA> *cameras) {
+void MdxReadCameras(BYTE *data, UINT fileBytes, TSFixedArray<HCAMERA> *cameras) {
   ASSERT(data);
   ASSERT(cameras);
 
-  unsigned char *section = MDLFileBinarySeek(data, fileBytes, 0x534D4143);
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, 0x534D4143);
   if (!section) {
     return;
   }
 
-  fileBytes = *reinterpret_cast<unsigned int *>(section) - 4;
-  unsigned int   numCameras = *reinterpret_cast<unsigned int *>(section + 4);
-  unsigned char *cameraData = section + 8;
+  fileBytes = *reinterpret_cast<UINT *>(section) - 4;
+  UINT  numCameras = *reinterpret_cast<UINT *>(section + 4);
+  BYTE *cameraData = section + 8;
 
   cameras->SetCount(numCameras);
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < numCameras; ++i) {
-    unsigned int bytesThisCamera = *reinterpret_cast<unsigned int *>(cameraData);
-    float       *values = reinterpret_cast<float *>(cameraData + 0x54);
+    UINT   bytesThisCamera = *reinterpret_cast<UINT *>(cameraData);
+    float *values = reinterpret_cast<float *>(cameraData + 0x54);
 
     HCAMERA camera = CameraCreate();
 

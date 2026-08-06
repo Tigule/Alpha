@@ -20,24 +20,24 @@ void MovementLockMoversList(int forWriting) {
 void MovementUnlockMoversList(int fromWriting) {
 }
 
-void *MovementTryLock(unsigned __int64) {
-  return reinterpret_cast<void *>(1);
+LPVOID MovementTryLock(DWORDLONG) {
+  return reinterpret_cast<LPVOID>(1);
 }
 
-void MovementUnlock(void *obj) {
+void MovementUnlock(LPVOID obj) {
 }
 
 int MovementIsWorldServer() {
   return 0;
 }
 
-void MovementNotifyZoneMgr(unsigned __int64 guid) {
+void MovementNotifyZoneMgr(DWORDLONG guid) {
 }
 
-void MovementUpdateProxMap(void *obj) {
+void MovementUpdateProxMap(LPVOID obj) {
 }
 
-void MovementFixOutOfBoundsUnit(unsigned __int64 guid) {
+void MovementFixOutOfBoundsUnit(DWORDLONG guid) {
   if (guid == ClntObjMgrGetActivePlayer()) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
     if (unit && unit->IsDeathFlagSet()) {
@@ -56,36 +56,36 @@ void MovementRemoveTransport(CGGameObject_C *transport) {
   s_transports.UnlinkNode(transport);
 }
 
-void MovementMoveTransports(unsigned long eventTime, float elapsed) {
+void MovementMoveTransports(DWORD eventTime, float elapsed) {
   ITERATELIST(CGGameObject_C, s_transports, transport) {
     transport->m_baseObj->UpdateMovement(eventTime, elapsed);
   }
 }
 
-void MovementAddToTransport(CMovementData *mover, unsigned __int64 transportGUID) {
+void MovementAddToTransport(CMovementData *mover, DWORDLONG transportGUID) {
   CGGameObject_C *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
   FATALASSERT(transport);
   transport->m_baseObj->AddPassenger(mover);
 }
 
-void MovementFixUpMoveHistory(unsigned __int64 mover, const NTempest::C34Matrix &fixup) {
+void MovementFixUpMoveHistory(DWORDLONG mover, const NTempest::C34Matrix &fixup) {
 }
 
-void MovementUpdateCameraYaw(unsigned __int64 transportGUID) {
+void MovementUpdateCameraYaw(DWORDLONG transportGUID) {
   CGCamera *camera = CGWorldFrame::GetActiveCamera();
   FATALASSERT(camera);
   camera->MakeRelativeTo(transportGUID);
 }
 
-void MovementSetGlobals(void *ptr) {
+void MovementSetGlobals(LPVOID ptr) {
   ClntObjMgrSetMovementGlobals(ptr);
 }
 
-void *MovementGetGlobals() {
+LPVOID MovementGetGlobals() {
   return ClntObjMgrGetMovementGlobals();
 }
 
-NTempest::C3Vector MovementGetTransportVector(unsigned __int64 transportGUID) {
+NTempest::C3Vector MovementGetTransportVector(DWORDLONG transportGUID) {
   CGObject_C *transport = ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__);
   FATALASSERT(transport);
   return transport->GetPosition();
@@ -95,7 +95,7 @@ void MovementClearClobals() {
   ClntObjMgrSetMovementGlobals(0);
 }
 
-int MovementGameObjIsTransport(unsigned __int64 transportGUID) {
+int MovementGameObjIsTransport(DWORDLONG transportGUID) {
   CGGameObject_C *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
   if (!transport) {
     return 0;
@@ -103,7 +103,7 @@ int MovementGameObjIsTransport(unsigned __int64 transportGUID) {
   return transport->IsTransport();
 }
 
-void MovementGetTransportMtx(unsigned __int64 transportGUID, NTempest::C34Matrix *transportMtx) {
+void MovementGetTransportMtx(DWORDLONG transportGUID, NTempest::C34Matrix *transportMtx) {
   NTempest::C3Vector zAxis(0.0f, 0.0f, 1.0f);
   CGGameObject_C    *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
   FATALASSERT(transport);
@@ -113,12 +113,12 @@ void MovementGetTransportMtx(unsigned __int64 transportGUID, NTempest::C34Matrix
   transportMtx->Rotate(transport->GetFacing(), zAxis, true);
 }
 
-float MovementGetTransportFacing(unsigned __int64 transportGUID) {
+float MovementGetTransportFacing(DWORDLONG transportGUID) {
   CGGameObject_C *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
   FATALASSERT(transport);
   return transport->GetFacing();
 }
-int MovementInsideTransport(unsigned __int64 transportGUID, const NTempest::C3Vector& position) {
+int MovementInsideTransport(DWORDLONG transportGUID, const NTempest::C3Vector &position) {
   CGGameObject_C *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
   FATALASSERT(transport);
   return transport->IsPointInside(position);

@@ -13,9 +13,9 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-static const char *s_tutorialTokens[18] = {"QUESTGIVERS", "MOVEMENT",     "CAMERA", "TARGETING", "TARGETING_ENEMY", "COMBAT",  "LOOTING",
-                                           "ITEMS",       "USABLE_ITEMS", "BAGS",   "FOOD",      "DRINK",           "TALENTS", "SKILLS",
-                                           "ABILITIES",   "REPUTATION",   "TELLS",  "GROUPING"};
+static LPCSTR s_tutorialTokens[18] = {"QUESTGIVERS", "MOVEMENT",     "CAMERA", "TARGETING", "TARGETING_ENEMY", "COMBAT",  "LOOTING",
+                                      "ITEMS",       "USABLE_ITEMS", "BAGS",   "FOOD",      "DRINK",           "TALENTS", "SKILLS",
+                                      "ABILITIES",   "REPUTATION",   "TELLS",  "GROUPING"};
 
 FBitField CGTutorial::m_tutorialFlags;
 
@@ -35,7 +35,7 @@ void CGTutorial::ClearTutorials() {
   m_tutorialFlags.SetAll();
 
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_TUTORIAL_CLEAR));
+  msg.Put(static_cast<UINT>(CMSG_TUTORIAL_CLEAR));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -44,14 +44,14 @@ void CGTutorial::ResetTutorials() {
   m_tutorialFlags.ClearAll();
 
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_TUTORIAL_RESET));
+  msg.Put(static_cast<UINT>(CMSG_TUTORIAL_RESET));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-int CGTutorial::OnTutorialFlags(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
-  unsigned int byteCount = msg->Size() - msg->Tell();
-  void        *data;
+int CGTutorial::OnTutorialFlags(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+  UINT   byteCount = msg->Size() - msg->Tell();
+  LPVOID data;
 
   msg->GetDataInSitu(data, byteCount);
   m_tutorialFlags.Load(data, byteCount);
@@ -63,8 +63,8 @@ static int Script_TriggerTutorial(lua_State *L) {
     return luaL_error(L, "Usage: TriggerTutorial(\"tutorial\")");
   }
 
-  const char  *token = lua_tostring(L, 1);
-  unsigned int tutorial;
+  LPCSTR token = lua_tostring(L, 1);
+  UINT   tutorial;
   for (tutorial = 0; tutorial < NUM_TUTORIALS; ++tutorial) {
     if (!SStrCmpI(token, s_tutorialTokens[tutorial], 0x7FFFFFFF)) {
       break;
@@ -93,13 +93,13 @@ static FrameScript_Method s_ScriptFunctions[3] = {
 };
 
 void TutorialRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void TutorialUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

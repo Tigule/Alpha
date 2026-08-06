@@ -6,16 +6,16 @@
 
 typedef struct SThreadLaunchInfo {
   STHREADPROC proc;
-  void       *param;
+  LPVOID      param;
   DWORD       threadId;
   HANDLE      handle;
 } SThreadLaunchInfo;
 
-typedef void(*SPROCESSCOMPLETIONPROC)(void *);
+typedef void (*SPROCESSCOMPLETIONPROC)(LPVOID);
 
 typedef struct SProcessCompletionInfo {
   SPROCESSCOMPLETIONPROC proc;
-  void                  *param;
+  LPVOID                 param;
   HANDLE                 process;
 } SProcessCompletionInfo;
 
@@ -24,7 +24,7 @@ namespace S_Thread {
     int    suspended;
     int    live;
     DWORD  threadId;
-    void  *threadH;
+    LPVOID threadH;
     char   name[16];
   };
 
@@ -32,10 +32,10 @@ namespace S_Thread {
   SThreadTrack  s_threads[STHREAD_MAX_TRACKED];
   int           s_numthreads;
 
-  DWORD WINAPI s_SLaunchThread(void *lpThreadParameter);
+  DWORD WINAPI s_SLaunchThread(LPVOID lpThreadParameter);
 }  // namespace S_Thread
 
-static unsigned int APIENTRY ProcessCompletionCallbackThread(void *vdata) {
+static UINT APIENTRY ProcessCompletionCallbackThread(LPVOID vdata) {
   SProcessCompletionInfo *info;
 
   info = (SProcessCompletionInfo *)vdata;
@@ -46,7 +46,7 @@ static unsigned int APIENTRY ProcessCompletionCallbackThread(void *vdata) {
   return 0;
 }
 
-int SCreateProcess(const char *appName, char *commandLine, SPROCESSCOMPLETIONPROC callbackWhenProcessCompletes, void *callbackData) {
+int SCreateProcess(LPCSTR appName, char *commandLine, SPROCESSCOMPLETIONPROC callbackWhenProcessCompletes, LPVOID callbackData) {
   WCHAR               appNameW[MAX_PATH];
   WCHAR               commandLineW[MAX_PATH];
   STARTUPINFOW        startInfo;
@@ -56,8 +56,8 @@ int SCreateProcess(const char *appName, char *commandLine, SPROCESSCOMPLETIONPRO
   startInfo.cb = sizeof(startInfo);
   ZeroMemory(&processInfo, sizeof(processInfo));
 
-  SUniConvertUTF8to16((unsigned short *)appNameW, MAX_PATH, appName, 0x7FFFFFFF, NULL, NULL);
-  SUniConvertUTF8to16((unsigned short *)commandLineW, MAX_PATH, commandLine, 0x7FFFFFFF, NULL, NULL);
+  SUniConvertUTF8to16((WORD *)appNameW, MAX_PATH, appName, 0x7FFFFFFF, NULL, NULL);
+  SUniConvertUTF8to16((WORD *)commandLineW, MAX_PATH, commandLine, 0x7FFFFFFF, NULL, NULL);
 
   if (!CreateProcessW(appNameW, commandLineW, NULL, NULL, FALSE, 0, NULL, NULL, &startInfo, &processInfo)) {
     return 0;
@@ -74,12 +74,7 @@ int SCreateProcess(const char *appName, char *commandLine, SPROCESSCOMPLETIONPRO
     completionInfo->proc = callbackWhenProcessCompletes;
     completionInfo->param = callbackData;
     completionInfo->process = processInfo.hProcess;
-    SCreateThread(
-        ProcessCompletionCallbackThread,
-        completionInfo,
-        reinterpret_cast<unsigned int *>(&callbackWhenProcessCompletes),
-        NULL,
-        NULL);
+    SCreateThread(ProcessCompletionCallbackThread, completionInfo, reinterpret_cast<UINT *>(&callbackWhenProcessCompletes), NULL, NULL);
   }
 
   return 1;
@@ -97,12 +92,12 @@ void SSetCurrentThreadPriority(int priority) {
   SetThreadPriority(GetCurrentThread(), priority);
 }
 
-DWORD WINAPI S_Thread::s_SLaunchThread(void *lpThreadParameter) {
+DWORD WINAPI S_Thread::s_SLaunchThread(LPVOID lpThreadParameter) {
   DWORD              threadVal;
   DWORD              threadId;
   SThreadLaunchInfo *launch = (SThreadLaunchInfo *)lpThreadParameter;
   STHREADPROC        proc;
-  void              *userParam;
+  LPVOID             userParam;
   int                index;
 
   proc = launch->proc;
@@ -123,12 +118,12 @@ DWORD WINAPI S_Thread::s_SLaunchThread(void *lpThreadParameter) {
   return threadVal;
 }
 
-void *
-SCreateThread(DWORD dwStackSize, STHREADPROC lpStartAddress, void *lpParameter, DWORD dwCreationFlags, unsigned int *lpThreadId, char *threadName) {
+LPVOID
+SCreateThread(DWORD dwStackSize, STHREADPROC lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, UINT *lpThreadId, char *threadName) {
   struct {
-    DWORD cdThreadId;
-    void *cdThreadH;
-  }                  buf;
+    DWORD  cdThreadId;
+    LPVOID cdThreadH;
+  } buf;
   DWORD              bufsize;
   HANDLE             hThread;
   SThreadLaunchInfo *launch;
@@ -187,6 +182,6 @@ SCreateThread(DWORD dwStackSize, STHREADPROC lpStartAddress, void *lpParameter, 
   return hThread;
 }
 
-void *SCreateThread(STHREADPROC lpStartAddress, void *lpParameter, unsigned int *lpThreadId, void *linuxData, char *threadName) {
+LPVOID SCreateThread(STHREADPROC lpStartAddress, LPVOID lpParameter, UINT *lpThreadId, LPVOID linuxData, char *threadName) {
   return SCreateThread(0, lpStartAddress, lpParameter, 0, lpThreadId, threadName);
 }

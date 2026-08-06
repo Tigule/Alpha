@@ -13,7 +13,7 @@
 
 class CStatus;
 
-int MDLFileRead(const char *path, MDLDATA *mdldata, CStatus *status);
+int MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status);
 
 TSHashTable<CSimpleDoodad, HASHKEY_NONE> CSimpleDoodad::simpleDoodadHash;
 CGxBuf                                  *CSimpleDoodad::gxBufDyn;
@@ -39,8 +39,8 @@ void CSimpleDoodad::ClearCache() {
   simpleDoodadHash.Clear();
 }
 
-CSimpleDoodad *CSimpleDoodad::Create(const char *fileName) {
-  unsigned int   hashval = SStrHashHT(fileName);
+CSimpleDoodad *CSimpleDoodad::Create(LPCSTR fileName) {
+  UINT           hashval = SStrHashHT(fileName);
   CSimpleDoodad *simpleDoodad = simpleDoodadHash.Ptr(hashval, nullHashKey);
   if (simpleDoodad) {
     ++simpleDoodad->refCount;
@@ -88,7 +88,7 @@ void CSimpleDoodad::RenderScene() {
   while (simpleDoodad) {
     CSimpleDoodad *simpleDoodadnext_node = simpleDoodadScene.Next(simpleDoodad);
 
-    for (unsigned int n = 0; n < simpleDoodad->nGeosets; ++n) {
+    for (UINT n = 0; n < simpleDoodad->nGeosets; ++n) {
       CSimpleDoodadGeoset *geoset = &simpleDoodad->geosets[n];
       CSimpleDoodadMat    *material = &simpleDoodad->materials[geoset->material];
       CGxTex              *gxTex = TextureGetGxTex(simpleDoodad->textures[material->texture[0]], 0, 0);
@@ -101,7 +101,7 @@ void CSimpleDoodad::RenderScene() {
         gxBufDyn->UserArgSet(geoset);
         GxBufLock(gxBufDyn);
         CGxBatch gxBatch(GxPrim_Triangles, geoset->indexList.Count(), 0, geoset->vertexList.Count(), -1);
-        for (unsigned int index = 0; index < simpleDoodad->matrixList.Count(); ++index) {
+        for (UINT index = 0; index < simpleDoodad->matrixList.Count(); ++index) {
           CMap::SelectLight(simpleDoodad->doodadDefList[index]);
           GxXformSet(GxXform_World, simpleDoodad->matrixList[index]);
           GxBufRender(gxBatch);
@@ -120,7 +120,7 @@ void CSimpleDoodad::RenderScene() {
   GxRsPop();
 }
 
-int CSimpleDoodad::Read(const char *fileName, CSimpleDoodad *simpleDoodad) {
+int CSimpleDoodad::Read(LPCSTR fileName, CSimpleDoodad *simpleDoodad) {
   ASSERT(fileName);
 
   MDLDATA mdlData;
@@ -144,7 +144,7 @@ int CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoo
     return 0;
   }
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < data.materials.Count(); ++i) {
     if (data.materials[i].texLayers.Count() != 1) {
       return 0;
@@ -160,7 +160,7 @@ int CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoo
   for (i = 0; i < data.materials.Count(); ++i) {
     CSimpleDoodadMat *material = &simpleDoodad->materials[i];
     material->nTextures = data.materials[i].texLayers.Count();
-    for (unsigned int j = 0; j < data.materials[i].texLayers.Count(); ++j) {
+    for (UINT j = 0; j < data.materials[i].texLayers.Count(); ++j) {
       material->texture[j] = data.materials[i].texLayers[j].textureId;
       if (data.materials[i].texLayers[j].blendMode == TEXOP_TRANSPARENT) {
         material->props |= CSimpleDoodadMat::PROP_TRANSPARENT;
@@ -174,20 +174,20 @@ int CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoo
   simpleDoodad->nGeosets = data.geosets.Count();
   for (i = 0; i < data.geosets.Count(); ++i) {
     CSimpleDoodadGeoset *geoset = &simpleDoodad->geosets[i];
-    unsigned int         nVertices = data.geosets[i].vertices.Count();
+    UINT                 nVertices = data.geosets[i].vertices.Count();
 
     geoset->vertexList.SetCount(nVertices);
     geoset->normalList.SetCount(nVertices);
     geoset->tVertexList.SetCount(nVertices);
-    for (unsigned int v = 0; v < nVertices; ++v) {
+    for (UINT v = 0; v < nVertices; ++v) {
       geoset->vertexList[v] = data.geosets[i].vertices[v];
       geoset->normalList[v] = data.geosets[i].normals[v];
       geoset->tVertexList[v] = data.geosets[i].texCoords[0][v];
     }
 
-    unsigned int nIndices = data.geosets[i].primitives.vertices.Count();
+    UINT nIndices = data.geosets[i].primitives.vertices.Count();
     geoset->indexList.SetCount(nIndices);
-    for (unsigned int p = 0; p < nIndices; ++p) {
+    for (UINT p = 0; p < nIndices; ++p) {
       geoset->indexList[p] = data.geosets[i].primitives.vertices[p];
     }
 
@@ -196,8 +196,7 @@ int CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoo
 
   simpleDoodad->extents = data.model.bounds.extent;
   simpleDoodad->bounds.c.Set(
-      (data.model.bounds.extent.b.x + data.model.bounds.extent.t.x) * 0.5f,
-      (data.model.bounds.extent.b.y + data.model.bounds.extent.t.y) * 0.5f,
+      (data.model.bounds.extent.b.x + data.model.bounds.extent.t.x) * 0.5f, (data.model.bounds.extent.b.y + data.model.bounds.extent.t.y) * 0.5f,
       (data.model.bounds.extent.b.z + data.model.bounds.extent.t.z) * 0.5f
   );
   simpleDoodad->bounds.r = data.model.bounds.radius;
@@ -205,7 +204,7 @@ int CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoo
   return 1;
 }
 
-void CSimpleDoodad::MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CSimpleDoodad *simpleDoodad) {
+void CSimpleDoodad::MdlReadCallback(BYTE *fileData, UINT fileBytes, CSimpleDoodad *simpleDoodad) {
 }
 
 void CSimpleDoodad::GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf) {
@@ -222,7 +221,7 @@ void CSimpleDoodad::GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf) {
 
 void CSimpleDoodad::CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPNT0 *vtxBase;
-  unsigned int   index;
+  UINT           index;
 
   ASSERT(geoset);
 
@@ -253,7 +252,7 @@ void CSimpleDoodad::CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufComm
 }
 
 void CSimpleDoodad::CreateIndices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf) {
-  unsigned short *idx;
+  WORD *idx;
 
   ASSERT(geoset);
 
@@ -262,14 +261,14 @@ void CSimpleDoodad::CreateIndices(CSimpleDoodadGeoset *geoset, const CGxBufComma
       break;
 
     case GxBufOp_Fill:
-      idx = static_cast<unsigned short *>(*cmd.index.mem[GxVM_Indices]);
+      idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
       ASSERT(idx);
 
-      memcpy(idx, geoset->indexList.Ptr(), geoset->indexList.Count() * sizeof(unsigned short));
+      memcpy(idx, geoset->indexList.Ptr(), geoset->indexList.Count() * sizeof(WORD));
       break;
 
     case GxBufOp_Assign:
-      idx = static_cast<unsigned short *>(GxAllocIndexMem(buf->IndexCount() * sizeof(unsigned short)));
+      idx = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
       ASSERT(idx);
 
       *cmd.index.mem[GxVM_Indices] = idx;

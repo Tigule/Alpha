@@ -60,7 +60,7 @@ class CSimpleSlider : public CSimpleFrame {
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();
 
-  void SetOnValueChangedScript(const char *source) {
+  void SetOnValueChangedScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnValueChanged", GetName());
     SetEventScript(m_onValueChanged, source, description);
@@ -73,12 +73,12 @@ class CSimpleSlider : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
-  float StepValue(float value) {
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  float       StepValue(float value) {
     if (m_valueStep != 0.0f) {
       float delta = value - m_baseValue;
       float halfStep = m_valueStep * 0.5f;
-      int steps;
+      int   steps;
 
       if (delta > 0.0f) {
         steps = static_cast<int>((delta + halfStep) / m_valueStep);

@@ -7,15 +7,13 @@
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include <cstring>
 
-void CGContainer_C::SetStorage(unsigned long *storage) {
+void CGContainer_C::SetStorage(DWORD *storage) {
   CGItem_C::SetStorage(storage);
   CGContainer::SetStorage(storage + CGItem::TotalFields());
 }
 
-CGContainer_C::CGContainer_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
-    : CGItem_C(storage, eventTime, init),
-      CGContainer(storage + CGItem::TotalFields()),
-      m_bag(GetGUID(), &m_cont->m_numSlots, m_cont->m_slots, 0) {
+CGContainer_C::CGContainer_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
+    : CGItem_C(storage, eventTime, init), CGContainer(storage + CGItem::TotalFields()), m_bag(GetGUID(), &m_cont->m_numSlots, m_cont->m_slots, 0) {
 }
 
 CGContainer_C::~CGContainer_C() {
@@ -28,8 +26,8 @@ void CGContainer_C::Disable(int shutdown) {
 void CGContainer_C::Reenable() {
   CGItem_C::Reenable();
 
-  for (unsigned int i = 0; i < m_bag.NumSlots(); ++i) {
-    unsigned __int64 guid = m_bag.GetItem(i);
+  for (UINT i = 0; i < m_bag.NumSlots(); ++i) {
+    DWORDLONG guid = m_bag.GetItem(i);
     if (guid) {
       ClntObjMgrObjectInRange(guid);
     }
@@ -60,24 +58,24 @@ int CGContainer_C::GetHeight() const {
   return m_bag.GetHeight(0);
 }
 
-int CGContainer_C::SetBlock(unsigned int, unsigned long) {
+int CGContainer_C::SetBlock(UINT, DWORD) {
   FATALASSERT(0);
   return 1;
 }
 
-void CGContainer_C::SetData(const void *data, unsigned int bytes) {
+void CGContainer_C::SetData(LPCVOID data, UINT bytes) {
   FATALASSERT(bytes <= sizeof(*m_cont));
   memcpy(m_cont, data, bytes);
 }
 
-unsigned int CGContainer_C::OffsetOf(OBJECT_TYPE_ID type) {
+UINT CGContainer_C::OffsetOf(OBJECT_TYPE_ID type) {
   switch (type) {
     case ID_OBJECT:
       return 0;
     case ID_ITEM:
-      return CGObject::TotalFields() * sizeof(unsigned long);
+      return CGObject::TotalFields() * sizeof(DWORD);
     case ID_CONTAINER:
-      return CGItem::TotalFields() * sizeof(unsigned long);
+      return CGItem::TotalFields() * sizeof(DWORD);
     default:
       FATALASSERT(0);
       return -1;

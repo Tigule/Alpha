@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellAuraNamesRec::GetFilename() {
+LPCSTR SpellAuraNamesRec::GetFilename() {
   return "DBFilesClient\\SpellAuraNames.dbc";
 }
 
@@ -19,10 +19,10 @@ SpellAuraNamesRec::SpellAuraNamesRec() {
 SpellAuraNamesRec::~SpellAuraNamesRec() {
 }
 
-bool SpellAuraNamesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[8];
-  unsigned int tempglobalstrings_tagIndices[1];
+bool SpellAuraNamesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[8];
+  UINT tempglobalstrings_tagIndices[1];
 
   result = SFile::Read(f, &m_EnumID, sizeof(m_EnumID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_specialMiscValue, sizeof(m_specialMiscValue), 0, 0, 0) && result;

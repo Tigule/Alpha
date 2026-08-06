@@ -57,7 +57,7 @@ void CMap::PurgeMapObjDef(CMapObjDef *mapObjDef) {
       link = next;
     }
 
-    for (unsigned int i = 0; i < mapObjDef->lightList.Count(); ++i) {
+    for (UINT i = 0; i < mapObjDef->lightList.Count(); ++i) {
       if (mapObjDef->lightList[i]) {
         DestroyLight(mapObjDef->lightList[i]);
       }
@@ -113,7 +113,7 @@ void CMap::PurgeChunk(CMapChunk *chunk) {
 
 void CMapArea::Purge() {
   if (asyncObject) {
-    unsigned char *buffer = static_cast<unsigned char *>(asyncObject->buffer);
+    BYTE *buffer = static_cast<BYTE *>(asyncObject->buffer);
     AsyncFileReadDestroyObject(asyncObject);
     asyncObject = 0;
     if (buffer) {
@@ -133,7 +133,7 @@ void CMapArea::Purge() {
     link = next;
   }
 
-  for (unsigned int i = 0; i < texIdTable.Count(); ++i) {
+  for (UINT i = 0; i < texIdTable.Count(); ++i) {
     if (texIdTable[i]) {
       HandleClose(reinterpret_cast<HOBJECT>(texIdTable[i]));
       texIdTable[i] = 0;
@@ -163,7 +163,7 @@ void CMapArea::PurgeChunks() {
 
 void CMapChunk::Purge() {
   if (asyncObject) {
-    unsigned char *buffer = static_cast<unsigned char *>(asyncObject->buffer);
+    BYTE *buffer = static_cast<BYTE *>(asyncObject->buffer);
     AsyncFileReadDestroyObject(asyncObject);
     asyncObject = 0;
     if (buffer) {
@@ -171,7 +171,7 @@ void CMapChunk::Purge() {
     }
   }
 
-  unsigned int i; 
+  UINT i;
   for (i = 0; i < nLayers; ++i) {
     PurgeLayer(layerList[i]);
     layerList[i] = 0;

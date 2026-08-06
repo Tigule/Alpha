@@ -14,15 +14,15 @@
 #define SRGN_SENTINEL         3.402823466e+38F
 #define SRGN_MIN_POSITIVE     1.175494351e-38F
 typedef struct _SOURCE {
-  RECTF rect;
-  void *param;
-  int   sequence;
-  DWORD flags;
+  RECTF  rect;
+  LPVOID param;
+  int    sequence;
+  DWORD  flags;
 } SRGNSOURCE, *SRGNSOURCEPTR;
 
 typedef struct _FOUNDPARAM {
-  void *param;
-  int   sequence;
+  LPVOID param;
+  int    sequence;
 } SRGNPARAM, *SRGNPARAMPTR;
 
 typedef struct RGN : public TSHashObject<RGN, HASHKEY_NONE> {
@@ -41,25 +41,25 @@ typedef TSExportTableSync<RGN, HSRGN, HLOCKEDRGN, CCritSect, 1> SRGNEXPORTTABLE;
 
 static SRGNEXPORTTABLE s_rgntable;
 
-static void AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const RECTF *rect);
-static void AddSourceRect(TSGrowableArray<SRGNSOURCE> *, const RECTF *, void *, int, DWORD);
-static int CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect);
-static void ClearRegion(RGN *rgnptr);
-static void CombineRectangles(TSGrowableArray<RECTF> *combinedarray);
-static int CompareRects(const RECTF *rect1, const RECTF *rect2);
-static void DeleteCombinedRect(TSGrowableArray<RECTF> *combinedarray, DWORD index);
-static void DeleteRect(RECTF *rect);
-static void DeleteSourceRect(TSGrowableArray<SRGNSOURCE> *, DWORD);
-static void FindSourceParams(RGN *rgnptr, const RECTF *rect);
-static void FragmentCombinedRectangles(TSGrowableArray<RECTF> *combinedarray, DWORD firstindex, DWORD lastindex, const RECTF *rect);
-static void FragmentSourceRectangles(TSGrowableArray<SRGNSOURCE> *, DWORD, DWORD, BOOL, const RECTF *, void *, int);
-static void InvalidateRegion(RGN *rgnptr);
-static int IsNullRect(const RECTF *rect);
-static void OptimizeSource(TSGrowableArray<SRGNSOURCE> *);
-static void ProcessBooleanOperation(TSGrowableArray<SRGNSOURCE> *, int);
-static void ProduceCombinedRectangles(RGN *rgnptr);
-static int __cdecl     SortFoundParamsCallback(const void *elem1, const void *elem2);
-static int __cdecl     SortRectCallback(const void *elem1, const void *elem2);
+static void        AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const RECTF *rect);
+static void        AddSourceRect(TSGrowableArray<SRGNSOURCE> *, const RECTF *, LPVOID, int, DWORD);
+static int         CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect);
+static void        ClearRegion(RGN *rgnptr);
+static void        CombineRectangles(TSGrowableArray<RECTF> *combinedarray);
+static int         CompareRects(const RECTF *rect1, const RECTF *rect2);
+static void        DeleteCombinedRect(TSGrowableArray<RECTF> *combinedarray, DWORD index);
+static void        DeleteRect(RECTF *rect);
+static void        DeleteSourceRect(TSGrowableArray<SRGNSOURCE> *, DWORD);
+static void        FindSourceParams(RGN *rgnptr, const RECTF *rect);
+static void        FragmentCombinedRectangles(TSGrowableArray<RECTF> *combinedarray, DWORD firstindex, DWORD lastindex, const RECTF *rect);
+static void        FragmentSourceRectangles(TSGrowableArray<SRGNSOURCE> *, DWORD, DWORD, BOOL, const RECTF *, LPVOID, int);
+static void        InvalidateRegion(RGN *rgnptr);
+static int         IsNullRect(const RECTF *rect);
+static void        OptimizeSource(TSGrowableArray<SRGNSOURCE> *);
+static void        ProcessBooleanOperation(TSGrowableArray<SRGNSOURCE> *, int);
+static void        ProduceCombinedRectangles(RGN *rgnptr);
+static int __cdecl SortFoundParamsCallback(LPCVOID elem1, LPCVOID elem2);
+static int __cdecl SortRectCallback(LPCVOID elem1, LPCVOID elem2);
 
 static inline void AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const RECTF *rect) {
   RECTF *entry;
@@ -70,7 +70,7 @@ static inline void AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const 
   }
 }
 
-static inline void AddSourceRect(TSGrowableArray<SRGNSOURCE> *sourcearray, const RECTF *rect, void *param, int sequence, DWORD flags) {
+static inline void AddSourceRect(TSGrowableArray<SRGNSOURCE> *sourcearray, const RECTF *rect, LPVOID param, int sequence, DWORD flags) {
   SRGNSOURCEPTR source;
 
   source = sourcearray->NewElement();
@@ -281,7 +281,7 @@ static void FragmentSourceRectangles(
     DWORD                        lastindex,
     BOOL                         previousoverlap,
     const RECTF                 *rect,
-    void                        *param,
+    LPVOID                       param,
     int                          sequence
 ) {
   BOOL         overlaps[5][2];
@@ -455,14 +455,14 @@ static void ProduceCombinedRectangles(RGN *rgnptr) {
   }
 }
 
-static int __cdecl SortFoundParamsCallback(const void *elem1, const void *elem2) {
+static int __cdecl SortFoundParamsCallback(LPCVOID elem1, LPCVOID elem2) {
   const SRGNPARAM *param1 = (const SRGNPARAM *)elem1;
   const SRGNPARAM *param2 = (const SRGNPARAM *)elem2;
 
   return param1->sequence - param2->sequence;
 }
 
-static int __cdecl SortRectCallback(const void *elem1, const void *elem2) {
+static int __cdecl SortRectCallback(LPCVOID elem1, LPCVOID elem2) {
   const RECTF *rect1 = (const RECTF *)elem1;
   const RECTF *rect2 = (const RECTF *)elem2;
   float        delta;
@@ -495,7 +495,7 @@ extern "C" void APIENTRY SRgnClear(HSRGN handle) {
   }
 }
 
-extern "C" void APIENTRY SRgnCombineRectf(HSRGN handle, const RECTF *rect, void *param, int combinemode) {
+extern "C" void APIENTRY SRgnCombineRectf(HSRGN handle, const RECTF *rect, LPVOID param, int combinemode) {
   HLOCKEDRGN lockedhandle;
   RGN       *rgnptr;
 
@@ -523,7 +523,7 @@ extern "C" void APIENTRY SRgnCombineRectf(HSRGN handle, const RECTF *rect, void 
   }
 }
 
-extern "C" void APIENTRY SRgnCombineRecti(HSRGN handle, const RECT *rect, void *param, int combinemode) {
+extern "C" void APIENTRY SRgnCombineRecti(HSRGN handle, const RECT *rect, LPVOID param, int combinemode) {
   RECTF rectf;
 
   FATALASSERT(rect);
@@ -560,8 +560,8 @@ extern "C" void APIENTRY SRgnDestroy() {
 }
 
 extern "C" void APIENTRY SRgnDuplicate(HSRGN orighandle, HSRGN *handle, DWORD reserved) {
-  RGN       *original;
-  RGN       *copy;
+  RGN *original;
+  RGN *copy;
 
   FATALASSERT(handle);
 
@@ -631,7 +631,7 @@ extern "C" void APIENTRY SRgnGetBoundingRecti(HSRGN handle, RECT *rect) {
   rect->bottom = (LONG)rectf.top;
 }
 
-extern "C" void APIENTRY SRgnGetRectParamsf(HSRGN handle, const RECTF *rect, DWORD *numparams, void **buffer) {
+extern "C" void APIENTRY SRgnGetRectParamsf(HSRGN handle, const RECTF *rect, DWORD *numparams, LPVOID *buffer) {
   HLOCKEDRGN lockedhandle;
   RGN       *rgnptr;
   DWORD      count;
@@ -674,7 +674,7 @@ extern "C" void APIENTRY SRgnGetRectParamsf(HSRGN handle, const RECTF *rect, DWO
   s_rgntable.Unlock(lockedhandle);
 }
 
-extern "C" void APIENTRY SRgnGetRectParamsi(HSRGN handle, const RECT *rect, DWORD *numparams, void **buffer) {
+extern "C" void APIENTRY SRgnGetRectParamsi(HSRGN handle, const RECT *rect, DWORD *numparams, LPVOID *buffer) {
   RECTF rectf;
 
   FATALASSERT(rect);

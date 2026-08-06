@@ -12,7 +12,7 @@
 static int s_debugCollision;
 
 int ToggleCollisionInfo() {
-  unsigned __int64 watchTarget = 0;
+  DWORDLONG watchTarget = 0;
 
   s_debugCollision = !s_debugCollision;
   if (s_debugCollision) {
@@ -44,7 +44,7 @@ void RenderCollisionInfo() {
   debugLight.m_dirIntensity = 1.0f;
   GxLightSet(0, debugLight, NTempest::C3Vector(0.0f));
 
-  for (unsigned int light = 1; light < 8; ++light) {
+  for (UINT light = 1; light < 8; ++light) {
     GxLightEnable(light, 0);
   }
 

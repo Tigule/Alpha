@@ -11,8 +11,7 @@
 
 #include <lua.h>
 
-
-unsigned __int64 CGTabardCreationFrame::m_vendor;
+DWORDLONG CGTabardCreationFrame::m_vendor;
 
 void CGTabardCreationFrame::EnterWorld() {
   m_vendor = 0;
@@ -22,7 +21,7 @@ void CGTabardCreationFrame::LeaveWorld() {
   Close();
 }
 
-void CGTabardCreationFrame::Open(const unsigned __int64 &vendor) {
+void CGTabardCreationFrame::Open(const DWORDLONG &vendor) {
   m_vendor = vendor;
   CGGameUI::SetInteractTarget(vendor, MAX_SHOP_DISTANCE_SQUARED);
   FrameScript_SignalEvent(357);
@@ -36,7 +35,7 @@ void CGTabardCreationFrame::Close() {
   }
 }
 
-static int Script_CloseTabardCreation(lua_State *__formal) {
+static int Script_CloseTabardCreation(lua_State *) {
   CGTabardCreationFrame::Close();
   return 0;
 }
@@ -58,13 +57,13 @@ static FrameScript_Method s_ScriptFunctions[3] = {
 };
 
 void TabardCreationRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void TabardCreationUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

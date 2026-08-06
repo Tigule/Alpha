@@ -21,7 +21,7 @@ void WowConnectionResponse::WCGlobalLock() {
 void WowConnectionResponse::WCGlobalUnlock() {
 }
 
-void WowConnectionResponse::WCDataReady(WowConnection *conn, unsigned long timeStamp, unsigned char *data, int len) {
+void WowConnectionResponse::WCDataReady(WowConnection *conn, DWORD timeStamp, BYTE *data, int len) {
 }
 
 void WowConnectionResponse::WCWriteReady(WowConnection *conn) {
@@ -35,18 +35,18 @@ NODEDECL(NETCLIENTNODE) {
 };
 
 struct CLIENT_NETSTATS {
-  unsigned long bytesSent;
-  unsigned long messagesSent;
-  unsigned long sendTimestamp;
-  unsigned long bytesReceived;
-  unsigned long messagesReceived;
-  unsigned long receivTimestamp;
-  unsigned long logTimestamp;
+  DWORD bytesSent;
+  DWORD messagesSent;
+  DWORD sendTimestamp;
+  DWORD bytesReceived;
+  DWORD messagesReceived;
+  DWORD receivTimestamp;
+  DWORD logTimestamp;
 };
 
 struct CLIENTNETGETREALMSDATA {
-  void(*fcn)(CDataStore *, void *);
-  void      *userData;
+  void (*fcn)(CDataStore *, LPVOID);
+  LPVOID     userData;
   CDataStore data;
 };
 
@@ -65,7 +65,7 @@ class NetClientRedirect : public WowConnectionResponse {
     }
   }
 
-  void Connect(const char *host, unsigned short port) {
+  void Connect(LPCSTR host, WORD port) {
     if (m_conn) {
       m_conn->SetResponse(0);
       m_conn->Release();
@@ -76,14 +76,14 @@ class NetClientRedirect : public WowConnectionResponse {
     m_conn->Connect(host, port, -1);
   }
 
-  virtual void WCMessageReady(WowConnection *, unsigned long, CDataStore *) {
+  virtual void WCMessageReady(WowConnection *, DWORD, CDataStore *) {
     ASSERT(0);
   }
 
-  virtual void WCConnected(WowConnection *, WowConnection *, unsigned long, const NETCONNADDR *) {
+  virtual void WCConnected(WowConnection *, WowConnection *, DWORD, const NETCONNADDR *) {
   }
 
-  virtual void WCDisconnected(WowConnection *conn, unsigned long __formal, const NETCONNADDR *addr) {
+  virtual void WCDisconnected(WowConnection *conn, DWORD, const NETCONNADDR *addr) {
     if (m_owner) {
       m_owner->m_redirectHostPort[m_owner->m_redirectBytesRead] = 0;
 
@@ -92,7 +92,7 @@ class NetClientRedirect : public WowConnectionResponse {
       if (port) {
         *port++ = 0;
         m_owner->m_netState = NS_INITIALIZED;
-        m_owner->Connect(m_owner->m_redirectHostPort, static_cast<unsigned short>(atoi(port)));
+        m_owner->Connect(m_owner->m_redirectHostPort, static_cast<WORD>(atoi(port)));
       } else {
         m_owner->m_netState = NS_CONNECTING;
         m_owner->m_netEventQueue->AddEvent(EVENT_ID_NET_CANTCONNECT, conn, m_owner, 0, 0);
@@ -100,14 +100,14 @@ class NetClientRedirect : public WowConnectionResponse {
     }
   }
 
-  virtual void WCCantConnect(WowConnection *conn, unsigned long, const NETCONNADDR *) {
+  virtual void WCCantConnect(WowConnection *conn, DWORD, const NETCONNADDR *) {
     if (m_owner) {
       m_owner->m_netState = NS_CONNECTING;
       m_owner->m_netEventQueue->AddEvent(EVENT_ID_NET_CANTCONNECT, conn, m_owner, 0, 0);
     }
   }
 
-  virtual void WCDataReady(WowConnection *conn, unsigned long __formal, unsigned char *data, int bytes) {
+  virtual void WCDataReady(WowConnection *conn, DWORD, BYTE *data, int bytes) {
     if (m_owner) {
       int bytesRead = m_owner->m_redirectBytesRead;
       if (bytesRead + bytes > 1024) {
@@ -126,8 +126,8 @@ class NetClientRedirect : public WowConnectionResponse {
 };
 
 static LISTDECL(NETCLIENTNODE, s_clientList);
-static CLIENT_NETSTATS                                  s_stats;
-static HPROPCONTEXT                                     s_propContext;
+static CLIENT_NETSTATS s_stats;
+static HPROPCONTEXT    s_propContext;
 
 static void LogStats() {
   char message[128];
@@ -251,7 +251,7 @@ void NetClient::CancelRedirect() {
   }
 }
 
-void NetClient::Connect(const char *hostName) {
+void NetClient::Connect(LPCSTR hostName) {
   char hostport[1024];
 
   ASSERT(hostName);
@@ -260,13 +260,13 @@ void NetClient::Connect(const char *hostName) {
   ASSERT(m_netState == NS_INITIALIZED);
 
   m_redirectBytesRead = 0;
-  unsigned short port = 9090;
+  WORD port = 9090;
   SStrCopy(hostport, hostName, sizeof(hostport));
 
   char *portString = SStrChr(hostport, ':');
   if (portString) {
     *portString = 0;
-    port = static_cast<unsigned short>(atoi(portString + 1));
+    port = static_cast<WORD>(atoi(portString + 1));
   }
 
   m_netState = NS_REDIRECT_CONNECTING;
@@ -278,7 +278,7 @@ void NetClient::Connect(const char *hostName) {
   m_redirect->Connect(hostport, port);
 }
 
-int NetClient::Connect(const char *hostName, unsigned short port) {
+int NetClient::Connect(LPCSTR hostName, WORD port) {
   ASSERT(m_netState == NS_INITIALIZED);
 
   m_netState = NS_CONNECTING;
@@ -297,7 +297,7 @@ void NetClient::Disconnect() {
 
 void NetClient::Send(CDataStore *msg) {
   if (m_netState == NS_CONNECTED) {
-    unsigned long bytes = msg->Size() - msg->Tell();
+    DWORD bytes = msg->Size() - msg->Tell();
 
     if (bytes) {
       m_serverConnection->Send(msg);
@@ -307,7 +307,7 @@ void NetClient::Send(CDataStore *msg) {
   }
 }
 
-void NetClient::SetMessageHandler(NETMESSAGE msgId, int(*handler)(void *, NETMESSAGE, unsigned long, CDataStore *), void *param) {
+void NetClient::SetMessageHandler(NETMESSAGE msgId, int (*handler)(LPVOID, NETMESSAGE, DWORD, CDataStore *), LPVOID param) {
   ASSERT(msgId < NUM_MSG_TYPES);
   ASSERT(handler);
   ASSERT(m_handlers[msgId] == 0);
@@ -323,10 +323,10 @@ void NetClient::ClearMessageHandler(NETMESSAGE msgId) {
   m_handlerParams[msgId] = 0;
 }
 
-void NetClient::ProcessMessage(unsigned long timeStamp, CDataStore *msg) {
+void NetClient::ProcessMessage(DWORD timeStamp, CDataStore *msg) {
   ++s_stats.messagesReceived;
 
-  unsigned long dwid;
+  DWORD dwid;
   msg->Get(dwid);
   NETMESSAGE id = static_cast<NETMESSAGE>(dwid);
 
@@ -351,9 +351,9 @@ void NetClient::ProcessMessage(unsigned long timeStamp, CDataStore *msg) {
   }
 }
 
-void NetClient::WCMessageReady(WowConnection *conn, unsigned long timeStamp, CDataStore *msg) {
-  unsigned long bytes = msg->Size();
-  void         *data;
+void NetClient::WCMessageReady(WowConnection *conn, DWORD timeStamp, CDataStore *msg) {
+  DWORD  bytes = msg->Size();
+  LPVOID data;
 
   msg->GetDataInSitu(data, bytes);
   SInterlockedExchangeAdd((long *)&m_bytesReceived, msg->Size());
@@ -370,7 +370,7 @@ void NetClient::WCMessageReady(WowConnection *conn, unsigned long timeStamp, CDa
   }
 }
 
-void NetClient::WCConnected(WowConnection *conn, WowConnection *inbound, unsigned long timeStamp, const NETCONNADDR *addr) {
+void NetClient::WCConnected(WowConnection *conn, WowConnection *inbound, DWORD timeStamp, const NETCONNADDR *addr) {
   m_pingLock.Enter();
 
   m_connectedTimestamp = timeStamp;
@@ -385,7 +385,7 @@ void NetClient::WCConnected(WowConnection *conn, WowConnection *inbound, unsigne
   m_netEventQueue->AddEvent(EVENT_ID_NET_CONNECT, conn, this, 0, 0);
 }
 
-void NetClient::WCDisconnected(WowConnection *conn, unsigned long timeStamp, const NETCONNADDR *addr) {
+void NetClient::WCDisconnected(WowConnection *conn, DWORD timeStamp, const NETCONNADDR *addr) {
   DisplayNetworkStats();
 
   if (m_netEventQueue) {
@@ -393,18 +393,18 @@ void NetClient::WCDisconnected(WowConnection *conn, unsigned long timeStamp, con
   }
 }
 
-void NetClient::WCCantConnect(WowConnection *conn, unsigned long timeStamp, const NETCONNADDR *addr) {
+void NetClient::WCCantConnect(WowConnection *conn, DWORD timeStamp, const NETCONNADDR *addr) {
   m_netEventQueue->AddEvent(EVENT_ID_NET_CANTCONNECT, conn, this, 0, 0);
 }
 
-int NetClient::HandleData(unsigned long timeReceived, void *data, int size) {
+int NetClient::HandleData(DWORD timeReceived, LPVOID data, int size) {
   PushObjMgr();
 
   ASSERT(m_netState == NS_CONNECTED || m_netState == NS_DISCONNECTING);
 
   s_stats.bytesReceived += size + 2;
   if (m_netState == NS_CONNECTED) {
-    CDataStore theMessage(static_cast<unsigned char *>(data), size);
+    CDataStore theMessage(static_cast<BYTE *>(data), size);
     ProcessMessage(timeReceived, &theMessage);
   }
 
@@ -443,15 +443,8 @@ int NetClient::HandleCantConnect() {
   return 1;
 }
 
-static int __stdcall GetRealmsEventHandler(
-    HNETCONN__        *conn,
-    const NETCONNADDR *connAddr,
-    NETNOTE            note,
-    void              *user,
-    const void        *data,
-    unsigned long      bytes,
-    unsigned long     *bytesProcessed
-) {
+static int __stdcall
+GetRealmsEventHandler(HNETCONN__ *conn, const NETCONNADDR *connAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
   if (bytesProcessed) {
     *bytesProcessed = bytes;
   }
@@ -481,7 +474,7 @@ static int __stdcall GetRealmsEventHandler(
   return 0;
 }
 
-void ClientNetGetRealms(const char *serverAddress, void(*fcn)(CDataStore *, void *), void *userData) {
+void ClientNetGetRealms(LPCSTR serverAddress, void (*fcn)(CDataStore *, LPVOID), LPVOID userData) {
   ASSERT(serverAddress);
   ASSERT(fcn);
 
@@ -491,12 +484,12 @@ void ClientNetGetRealms(const char *serverAddress, void(*fcn)(CDataStore *, void
   connectionData->fcn = fcn;
   connectionData->userData = userData;
 
-  unsigned long address = OsNetGetHostAddr(serverAddress);
+  DWORD address = OsNetGetHostAddr(serverAddress);
   OsTcpConnect(address, 9100, GetRealmsEventHandler, connectionData, 0, 0);
 }
 
 void NetClient::PongHandler(CDataStore *msg) {
-  unsigned long sequence;
+  DWORD sequence;
 
   m_pingLock.Enter();
   msg->Get(sequence);
@@ -536,9 +529,9 @@ void NetClient::Ping() {
 }
 
 void NetClient::DisplayNetworkStats() {
-  float         bandwidthIn;
-  float         bandwidthOut;
-  unsigned long latency;
+  float bandwidthIn;
+  float bandwidthOut;
+  DWORD latency;
 
   m_pingLock.Enter();
   OsGetAsyncTimeMs();
@@ -546,16 +539,16 @@ void NetClient::DisplayNetworkStats() {
   m_pingLock.Leave();
 }
 
-void NetClient::GetNetStats(float &bandwidthIn, float &bandwidthOut, unsigned long &latency) {
+void NetClient::GetNetStats(float &bandwidthIn, float &bandwidthOut, DWORD &latency) {
   m_pingLock.Enter();
 
   float connectedSeconds = (OsGetAsyncTimeMs() - m_connectedTimestamp) * 0.001f;
   bandwidthIn = m_bytesReceived * 0.0009765625f / connectedSeconds;
   bandwidthOut = m_bytesSent * 0.0009765625f / connectedSeconds;
 
-  unsigned long count = 0;
-  unsigned long total = 0;
-  unsigned long current = m_latencyStart;
+  DWORD count = 0;
+  DWORD total = 0;
+  DWORD current = m_latencyStart;
 
   while (current != m_latencyEnd) {
     if (current >= 16) {
@@ -601,7 +594,7 @@ void NetClient::PollEventQueue() {
   m_netEventQueue->Poll();
 }
 
-unsigned int NetClient::GetAddr() {
+UINT NetClient::GetAddr() {
   NETADDR addr;
 
   if (!m_serverConnection) {

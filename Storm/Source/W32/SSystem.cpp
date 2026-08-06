@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-void __cdecl SOutputDebugString(const char *format, ...) {
+void __cdecl SOutputDebugString(LPCSTR format, ...) {
   char    buffer[0x100];
   va_list args;
 

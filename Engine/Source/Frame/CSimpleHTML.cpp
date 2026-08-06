@@ -23,7 +23,7 @@ void CSimpleHTML::LoadXML(const XMLNode *node, CStatus *status) {
   const XMLNode *child;
   for (child = node->GetChild(); child; child = child->GetSibling()) {
     CSimpleFontStringAttributes *attrib = 0;
-    const char                  *name = child->GetName();
+    LPCSTR                       name = child->GetName();
 
     if (!SStrCmpI(name, "FontString", 0x7FFFFFFF)) {
       attrib = &m_attrib[HTML_TEXT_NORMAL];
@@ -43,7 +43,7 @@ void CSimpleHTML::LoadXML(const XMLNode *node, CStatus *status) {
   }
 }
 
-bool CSimpleHTML::SetText(const char *text, CStatus *status) {
+bool CSimpleHTML::SetText(LPCSTR text, CStatus *status) {
   if (!status) {
     status = &s_nullStatus;
   }
@@ -99,7 +99,7 @@ void CSimpleHTML::ParseBODY(const XMLNode *node, CStatus *status) {
   const XMLNode *child;
 
   for (child = node->GetChild(); child; child = child->GetSibling()) {
-    const char *name = child->GetName();
+    LPCSTR name = child->GetName();
 
     if (!SStrCmpI(name, "H1", 0x7FFFFFFF)) {
       ParseP(child, HTML_TEXT_HEADER1, status);
@@ -120,23 +120,23 @@ void CSimpleHTML::ParseBODY(const XMLNode *node, CStatus *status) {
 }
 
 void CSimpleHTML::ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *status) {
-  const char                  *body;
-  const char                  *link;
+  LPCSTR                       body;
+  LPCSTR                       link;
   CSimpleFontStringAttributes *attrib;
   int                          extralen;
   int                          offset;
-  unsigned int                 flag;
+  UINT                         flag;
 
   attrib = &m_attrib[textType];
 
-  if (!static_cast<const char *>(attrib->m_font)) {
+  if (!static_cast<LPCSTR>(attrib->m_font)) {
     attrib = &m_attrib[HTML_TEXT_NORMAL];
   }
 
   attrib->m_styleFlags = (attrib->m_styleFlags & ~0x7U) | 0x1;
   attrib->m_flags |= CSimpleFontStringAttributes::FLAG_STYLE_UPDATE;
 
-  const char *value = node->GetAttributeByName("align");
+  LPCSTR value = node->GetAttributeByName("align");
   if (value && *value && StringToJustify(value, flag)) {
     attrib->m_styleFlags = (attrib->m_styleFlags & ~0x7U) | (flag & 0x7);
     attrib->m_flags |= CSimpleFontStringAttributes::FLAG_STYLE_UPDATE;
@@ -149,8 +149,8 @@ void CSimpleHTML::ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *
 
   for (child = node->GetChild(); child; child = child->GetSibling()) {
     if (!SStrCmpI(child->GetName(), "BR", 0x7FFFFFFF)) {
-      char        *newText = static_cast<char *>(ALLOC(SStrLen(text) + 2));
-      unsigned int childOffset = child->GetParentBodyOffset() + offset;
+      char *newText = static_cast<char *>(ALLOC(SStrLen(text) + 2));
+      UINT  childOffset = child->GetParentBodyOffset() + offset;
 
       SStrCopy(newText, text, childOffset + 1);
       SStrPack(newText, "\n", 0x7FFFFFFF);
@@ -166,8 +166,8 @@ void CSimpleHTML::ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *
 
       if (body && *body && link && *link) {
         extralen = SStrLen(link) + SStrLen(body) + 6;
-        char        *newText = static_cast<char *>(ALLOC(SStrLen(text) + extralen + 1));
-        unsigned int childOffset = child->GetParentBodyOffset() + offset;
+        char *newText = static_cast<char *>(ALLOC(SStrLen(text) + extralen + 1));
+        UINT  childOffset = child->GetParentBodyOffset() + offset;
 
         SStrCopy(newText, text, childOffset + 2);
         SStrPack(newText, "|H", 0x7FFFFFFF);
@@ -193,10 +193,10 @@ void CSimpleHTML::ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *
 }
 
 void CSimpleHTML::ParseIMG(const XMLNode *node, CStatus *status) {
-  unsigned int align = 0x1;
-  float        h = 0.0f;
-  float        w = 0.0f;
-  const char  *value = node->GetAttributeByName("align");
+  UINT   align = 0x1;
+  float  h = 0.0f;
+  float  w = 0.0f;
+  LPCSTR value = node->GetAttributeByName("align");
   if (value && *value) {
     StringToJustify(value, align);
   }
@@ -246,7 +246,7 @@ void CSimpleHTML::ParseIMG(const XMLNode *node, CStatus *status) {
   regionNode->region = texture;
 }
 
-void CSimpleHTML::AddText(const char *text, CSimpleFontStringAttributes &attrib) {
+void CSimpleHTML::AddText(LPCSTR text, CSimpleFontStringAttributes &attrib) {
   CSimpleFontString *string = NEW(CSimpleFontString)(this, 2, 1);
 
   if (m_layoutAnchor) {
@@ -269,9 +269,9 @@ void CSimpleHTML::AddText(const char *text, CSimpleFontStringAttributes &attrib)
 
   CGxString                  *gxString = string->m_string ? TextBlockGetStringPtr(string->m_string) : 0;
   const GXUFONTHYPERLINKINFO *links;
-  unsigned int                linkCount = GxuFontStringHyperLinkInfo(gxString, links);
+  UINT                        linkCount = GxuFontStringHyperLinkInfo(gxString, links);
 
-  for (unsigned int i = 0; i < linkCount; ++i) {
+  for (UINT i = 0; i < linkCount; ++i) {
     CSimpleHyperlinkButton *button = CreateHyperlinkButton();
     m_hyperlinks.LinkNode(button, LIST_TAIL, 0);
     button->SetHyperlink(string, &links[i]);

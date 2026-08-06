@@ -1,20 +1,20 @@
 #include <Base/Base.h>
 
-void OsCallInitialize(const char *threadName) {
+void OsCallInitialize(LPCSTR threadName) {
 }
 
 void OsCallDestroy() {
 }
 
-void *OsCallInitializeContext(const char *contextName) {
+LPVOID OsCallInitializeContext(LPCSTR contextName) {
   return 0;
 }
 
-void OsCallDestroyContext(void *contextDataPtr) {
+void OsCallDestroyContext(LPVOID contextDataPtr) {
 }
 
-void OsCallSetContext(void *contextDataPtr) {
+void OsCallSetContext(LPVOID contextDataPtr) {
 }
 
-void OsCallResetContext(void *contextDataPtr) {
+void OsCallResetContext(LPVOID contextDataPtr) {
 }

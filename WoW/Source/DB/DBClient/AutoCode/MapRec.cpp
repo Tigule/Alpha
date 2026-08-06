@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *MapRec::GetFilename() {
+LPCSTR MapRec::GetFilename() {
   return "DBFilesClient\\Map.dbc";
 }
 
@@ -19,10 +19,10 @@ MapRec::MapRec() {
 MapRec::~MapRec() {
 }
 
-bool MapRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempDirectoryIndices[1];
-  unsigned int tempMapName_langIndices[8];
+bool MapRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempDirectoryIndices[1];
+  UINT tempMapName_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempDirectoryIndices[0], sizeof(tempDirectoryIndices[0]), 0, 0, 0) && result;

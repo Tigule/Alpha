@@ -9,53 +9,53 @@ class CDataStore {
  public:
   template <class T>
   struct Space {
-    unsigned int m_pos;
+    UINT m_pos;
 
     Space();
-    unsigned int GetDifferenceInclusive(const CDataStore &) const;
-    unsigned int GetDifferenceExclusive(const CDataStore &) const;
+    UINT GetDifferenceInclusive(const CDataStore &) const;
+    UINT GetDifferenceExclusive(const CDataStore &) const;
     void Set(CDataStore &, T);
     void SetDifferenceInclusive(CDataStore &);
     void SetDifferenceExclusive(CDataStore &);
   };
 
-  template <class T, unsigned int MAXSIZE>
+  template <class T, UINT MAXSIZE>
   struct FixedString {
     T m_data[MAXSIZE];
 
     FixedString();
     FixedString(const T *);
     FixedString &operator=(const T *);
-    unsigned int MaxSize() const;
-    int Compare(const T *) const;
-    int CompareI(const T *) const;
-    void Copy(const T *);
-    void Reset();
+    UINT         MaxSize() const;
+    int          Compare(const T *) const;
+    int          CompareI(const T *) const;
+    void         Copy(const T *);
+    void         Reset();
   };
 
-  template <class SIZET, unsigned int MAXSIZE>
+  template <class SIZET, UINT MAXSIZE>
   struct FixedBuffer {
-    SIZET         m_size;
-    unsigned char m_data[MAXSIZE];
+    SIZET m_size;
+    BYTE  m_data[MAXSIZE];
 
     FixedBuffer();
     FixedBuffer(const FixedBuffer &);
     FixedBuffer &operator=(const FixedBuffer &);
     FixedBuffer &operator=(const CDataStore &);
-    operator void *();
-    operator const void *() const;
-    unsigned int MaxSize() const;
-    unsigned int Size() const;
-    unsigned int MaxBytes() const;
-    unsigned int Bytes() const;
-    int Compare(const FixedBuffer &) const;
-    void Copy(const FixedBuffer &);
-    void Copy(const void *, SIZET);
-    void Copy(const CDataStore &);
-    void Reset();
+                 operator LPVOID();
+                 operator LPCVOID() const;
+    UINT         MaxSize() const;
+    UINT         Size() const;
+    UINT         MaxBytes() const;
+    UINT         Bytes() const;
+    int          Compare(const FixedBuffer &) const;
+    void         Copy(const FixedBuffer &);
+    void         Copy(LPCVOID, SIZET);
+    void         Copy(const CDataStore &);
+    void         Reset();
   };
 
-  template <class SIZET, class T, unsigned int MAXSIZE>
+  template <class SIZET, class T, UINT MAXSIZE>
   struct FixedArray {
     SIZET m_size;
     T     m_data[MAXSIZE];
@@ -63,18 +63,18 @@ class CDataStore {
     FixedArray();
     FixedArray(const FixedArray &);
     FixedArray &operator=(const FixedArray &);
-    unsigned int MaxSize() const;
-    unsigned int Size() const;
-    unsigned int MaxBytes() const;
-    unsigned int Bytes() const;
-    void Copy(const FixedArray &);
-    void Copy(const T *, SIZET);
-    void Reset();
-    void PutFast(CDataStore &) const;
-    void GetFast(CDataStore &);
+    UINT        MaxSize() const;
+    UINT        Size() const;
+    UINT        MaxBytes() const;
+    UINT        Bytes() const;
+    void        Copy(const FixedArray &);
+    void        Copy(const T *, SIZET);
+    void        Reset();
+    void        PutFast(CDataStore &) const;
+    void        GetFast(CDataStore &);
   };
 
-  static unsigned char *Alloc(unsigned int bytes, const char *fileName, int lineNumber) {
+  static BYTE *Alloc(UINT bytes, LPCSTR fileName, int lineNumber) {
     if (!bytes) {
       return 0;
     }
@@ -84,10 +84,10 @@ class CDataStore {
       lineNumber = __LINE__;
     }
 
-    return static_cast<unsigned char *>(SMemAlloc(bytes, fileName, lineNumber, 0));
+    return static_cast<BYTE *>(SMemAlloc(bytes, fileName, lineNumber, 0));
   }
 
-  static void Free(unsigned char *data, const char *fileName, int lineNumber) {
+  static void Free(BYTE *data, LPCSTR fileName, int lineNumber) {
     if (!fileName) {
       fileName = __FILE__;
       lineNumber = __LINE__;
@@ -96,42 +96,34 @@ class CDataStore {
     SMemFree(data, fileName, lineNumber, 0);
   }
 
-  static unsigned char *Realloc(unsigned char *data, unsigned int bytes, const char *fileName, int lineNumber) {
+  static BYTE *Realloc(BYTE *data, UINT bytes, LPCSTR fileName, int lineNumber) {
     if (!fileName) {
       fileName = __FILE__;
       lineNumber = __LINE__;
     }
 
-    return static_cast<unsigned char *>(SMemReAlloc(data, bytes, fileName, lineNumber, 0));
+    return static_cast<BYTE *>(SMemReAlloc(data, bytes, fileName, lineNumber, 0));
   }
 
  protected:
-  virtual void InternalInitialize(unsigned char *&data, unsigned int &base, unsigned int &alloc);
-  virtual void InternalDestroy(unsigned char *&data, unsigned int &base, unsigned int &alloc);
-  virtual int  InternalFetchRead(unsigned int pos, unsigned int bytes, unsigned char *&data, unsigned int &base, unsigned int &alloc);
-  virtual int  InternalFetchWrite(
-      unsigned int    pos,
-      unsigned int    bytes,
-      unsigned char *&data,
-      unsigned int   &base,
-      unsigned int   &alloc,
-      const char     *fileName,
-      int             lineNumber
-  );
+  virtual void InternalInitialize(BYTE *&data, UINT &base, UINT &alloc);
+  virtual void InternalDestroy(BYTE *&data, UINT &base, UINT &alloc);
+  virtual int  InternalFetchRead(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc);
+  virtual int  InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber);
 
   void Initialize() {
-    if (m_alloc != static_cast<unsigned int>(-1)) {
+    if (m_alloc != static_cast<UINT>(-1)) {
       InternalInitialize(m_data, m_base, m_alloc);
     }
   }
 
   void Destroy() {
-    if (m_alloc != static_cast<unsigned int>(-1)) {
+    if (m_alloc != static_cast<UINT>(-1)) {
       InternalDestroy(m_data, m_base, m_alloc);
     }
   }
 
-  int FetchRead(unsigned int pos, unsigned int bytes) {
+  int FetchRead(UINT pos, UINT bytes) {
     if (pos + bytes > m_size) {
       Seek(m_size + 1);
       return 0;
@@ -150,7 +142,7 @@ class CDataStore {
     return 1;
   }
 
-  int FetchWrite(unsigned int pos, unsigned int bytes, const char *fileName, int lineNumber) {
+  int FetchWrite(UINT pos, UINT bytes, LPCSTR fileName, int lineNumber) {
     if (pos < m_base || pos + bytes > m_base + m_alloc) {
       if (!InternalFetchWrite(pos, bytes, m_data, m_base, m_alloc, fileName, lineNumber)) {
         return 0;
@@ -163,29 +155,29 @@ class CDataStore {
     return 1;
   }
 
-  void AssertFetchWrite(unsigned int pos, unsigned int bytes, const char *fileName, int lineNumber) {
+  void AssertFetchWrite(UINT pos, UINT bytes, LPCSTR fileName, int lineNumber) {
     if (!FetchWrite(pos, bytes, fileName, lineNumber)) {
       FATALERROR(("CDataStore::AssertFetchWrite(%u, %u) failed", pos, bytes));
     }
   }
 
-  void PutSpace(unsigned int bytes);
+  void PutSpace(UINT bytes);
 
  public:
   CDataStore() : m_data(0), m_base(0), m_alloc(0), m_size(0), m_read(-1) {
   }
 
-  CDataStore(unsigned char *data, unsigned int size) : m_data(data), m_base(0), m_alloc(-1), m_size(size), m_read(0) {
+  CDataStore(BYTE *data, UINT size) : m_data(data), m_base(0), m_alloc(-1), m_size(size), m_read(0) {
   }
 
-  CDataStore(unsigned char *data, unsigned int size, unsigned int read);
+  CDataStore(BYTE *data, UINT size, UINT read);
   CDataStore(const CDataStore &store);
   virtual ~CDataStore() {
     Destroy();
   }
 
   int IsFinal() const {
-    return m_read != static_cast<unsigned int>(-1);
+    return m_read != static_cast<UINT>(-1);
   }
 
   int IsValid() const {
@@ -193,17 +185,17 @@ class CDataStore {
   }
 
   int IsReadOnly() const {
-    return m_alloc == static_cast<unsigned int>(-1);
+    return m_alloc == static_cast<UINT>(-1);
   }
 
-  operator void *() const;
+  operator LPVOID() const;
 
   int operator!() const {
     return !IsValid();
   }
 
   void Unfinalize() {
-    m_read = static_cast<unsigned int>(-1);
+    m_read = static_cast<UINT>(-1);
   }
 
   void Invalidate() {
@@ -217,143 +209,217 @@ class CDataStore {
     m_read = 0;
   }
 
-  void Seek(unsigned int pos) {
+  void Seek(UINT pos) {
     ASSERT(IsFinal());
     m_read = pos;
   }
 
-  unsigned int Tell() const {
+  UINT Tell() const {
     ASSERT(IsFinal());
     return m_read;
   }
 
-  unsigned int Size() const {
+  UINT Size() const {
     return m_size;
   }
 
-  void SetSize(unsigned int size);
-  void Reserve(unsigned int bytes, const char *fileName = 0, int lineNumber = 0);
+  void SetSize(UINT size);
+  void Reserve(UINT bytes, LPCSTR fileName = 0, int lineNumber = 0);
 
-  virtual void GetBufferParams(const void **data, unsigned int *size, unsigned int *alloc) const;
-  virtual void DetachBuffer(void **data, unsigned int *size, unsigned int *alloc);
+  virtual void GetBufferParams(LPCVOID *data, UINT *size, UINT *alloc) const;
+  virtual void DetachBuffer(LPVOID *data, UINT *size, UINT *alloc);
 
-  CDataStore &Set(unsigned int pos, char val);
-  CDataStore &Set(unsigned int pos, unsigned char val);
-  CDataStore &Set(unsigned int pos, short val);
-  CDataStore &Set(unsigned int pos, unsigned short val);
-  CDataStore &Set(unsigned int pos, int val);
-  CDataStore &Set(unsigned int pos, unsigned int val);
-  CDataStore &Set(unsigned int pos, long val);
-  CDataStore &Set(unsigned int pos, unsigned long val);
-  CDataStore &Set(unsigned int pos, __int64 val);
-  CDataStore &Set(unsigned int pos, unsigned __int64 val);
-  CDataStore &Set(unsigned int pos, float val);
+  CDataStore &Set(UINT pos, char val);
+  CDataStore &Set(UINT pos, BYTE val);
+  CDataStore &Set(UINT pos, short val);
+  CDataStore &Set(UINT pos, WORD val);
+  CDataStore &Set(UINT pos, int val);
+  CDataStore &Set(UINT pos, UINT val);
+  CDataStore &Set(UINT pos, long val);
+  CDataStore &Set(UINT pos, DWORD val);
+  CDataStore &Set(UINT pos, LONGLONG val);
+  CDataStore &Set(UINT pos, DWORDLONG val);
+  CDataStore &Set(UINT pos, float val);
 
   CDataStore &Put(char val);
-  CDataStore &Put(unsigned char val);
+  CDataStore &Put(BYTE val);
   CDataStore &Put(short val);
-  CDataStore &Put(unsigned short val);
+  CDataStore &Put(WORD val);
   CDataStore &Put(int val);
-  CDataStore &Put(unsigned int val);
+  CDataStore &Put(UINT val);
   CDataStore &Put(long val);
-  CDataStore &Put(unsigned long val);
-  CDataStore &Put(__int64 val);
-  CDataStore &Put(unsigned __int64 val);
+  CDataStore &Put(DWORD val);
+  CDataStore &Put(LONGLONG val);
+  CDataStore &Put(DWORDLONG val);
   CDataStore &Put(float val);
   CDataStore &Put(CDataStore &store) {
-    const void  *data;
-    unsigned int size;
+    LPCVOID data;
+    UINT    size;
     store.GetBufferParams(&data, &size, 0);
     return PutData(data, size);
   }
-  CDataStore &PutString(const char *pval);
-  CDataStore &PutString(const unsigned short *pval);
-  CDataStore &PutArray(const unsigned char *pval, unsigned int count);
-  CDataStore &PutArray(const char *pval, unsigned int count) {
-    return PutArray(reinterpret_cast<const unsigned char *>(pval), count);
+  CDataStore &PutString(LPCSTR pval);
+  CDataStore &PutString(const WORD *pval);
+  CDataStore &PutArray(const BYTE *pval, UINT count);
+  CDataStore &PutArray(LPCSTR pval, UINT count) {
+    return PutArray(reinterpret_cast<const BYTE *>(pval), count);
   }
-  CDataStore &PutArray(const short *pval, unsigned int count) {
-    return PutArray(reinterpret_cast<const unsigned short *>(pval), count);
+  CDataStore &PutArray(const short *pval, UINT count) {
+    return PutArray(reinterpret_cast<const WORD *>(pval), count);
   }
-  CDataStore &PutArray(const unsigned short *pval, unsigned int count);
-  CDataStore &PutArray(const long *pval, unsigned int count) {
-    return PutArray(reinterpret_cast<const unsigned long *>(pval), count);
+  CDataStore &PutArray(const WORD *pval, UINT count);
+  CDataStore &PutArray(const long *pval, UINT count) {
+    return PutArray(reinterpret_cast<const DWORD *>(pval), count);
   }
-  CDataStore &PutArray(const unsigned long *pval, unsigned int count);
-  CDataStore &PutArray(const unsigned __int64 *pval, unsigned int count);
-  CDataStore &PutArray(const float *pval, unsigned int count);
-  CDataStore &PutArray(const unreal *pval, unsigned int count);
-  CDataStore &PutData(const void *pval, unsigned int bytes);
+  CDataStore &PutArray(const DWORD *pval, UINT count);
+  CDataStore &PutArray(const DWORDLONG *pval, UINT count);
+  CDataStore &PutArray(const float *pval, UINT count);
+  CDataStore &PutArray(const unreal *pval, UINT count);
+  CDataStore &PutData(LPCVOID pval, UINT bytes);
 
-  CDataStore &PutBool(int val) { return Put(val); }
-  CDataStore &PutChar(char val) { return Put(val); }
-  CDataStore &PutUchar(unsigned char val) { return Put(val); }
-  CDataStore &PutByte(unsigned char val) { return Put(val); }
-  CDataStore &PutTchar(char val) { return Put(val); }
-  CDataStore &PutShort(short val) { return Put(val); }
-  CDataStore &PutUshort(unsigned short val) { return Put(val); }
-  CDataStore &PutWord(unsigned short val) { return Put(val); }
-  CDataStore &PutInt(int val) { return Put(val); }
-  CDataStore &PutUint(unsigned int val) { return Put(val); }
-  CDataStore &PutLong(long val) { return Put(val); }
-  CDataStore &PutUlong(unsigned long val) { return Put(val); }
-  CDataStore &PutDword(unsigned long val) { return Put(val); }
-  CDataStore &PutLonglong(__int64 val) { return Put(val); }
-  CDataStore &PutUlonglong(unsigned __int64 val) { return Put(val); }
-  CDataStore &PutFloat(float val) { return Put(val); }
-  CDataStore &PutCharString(const char *val) { return PutString(val); }
-  CDataStore &PutWcharString(const unsigned short *val) { return PutString(val); }
-  CDataStore &PutTcharString(const char *val) { return PutString(val); }
-  CDataStore &PutUcharArray(const unsigned char *val, unsigned int count) { return PutArray(val, count); }
-  CDataStore &PutUshortArray(const unsigned short *val, unsigned int count) { return PutArray(val, count); }
-  CDataStore &PutUlongArray(const unsigned long *val, unsigned int count) { return PutArray(val, count); }
-  CDataStore &PutUlonglongArray(const unsigned __int64 *val, unsigned int count) { return PutArray(val, count); }
-  CDataStore &PutFloatArray(const float *val, unsigned int count) { return PutArray(val, count); }
+  CDataStore &PutBool(int val) {
+    return Put(val);
+  }
+  CDataStore &PutChar(char val) {
+    return Put(val);
+  }
+  CDataStore &PutUchar(BYTE val) {
+    return Put(val);
+  }
+  CDataStore &PutByte(BYTE val) {
+    return Put(val);
+  }
+  CDataStore &PutTchar(char val) {
+    return Put(val);
+  }
+  CDataStore &PutShort(short val) {
+    return Put(val);
+  }
+  CDataStore &PutUshort(WORD val) {
+    return Put(val);
+  }
+  CDataStore &PutWord(WORD val) {
+    return Put(val);
+  }
+  CDataStore &PutInt(int val) {
+    return Put(val);
+  }
+  CDataStore &PutUint(UINT val) {
+    return Put(val);
+  }
+  CDataStore &PutLong(long val) {
+    return Put(val);
+  }
+  CDataStore &PutUlong(DWORD val) {
+    return Put(val);
+  }
+  CDataStore &PutDword(DWORD val) {
+    return Put(val);
+  }
+  CDataStore &PutLonglong(LONGLONG val) {
+    return Put(val);
+  }
+  CDataStore &PutUlonglong(DWORDLONG val) {
+    return Put(val);
+  }
+  CDataStore &PutFloat(float val) {
+    return Put(val);
+  }
+  CDataStore &PutCharString(LPCSTR val) {
+    return PutString(val);
+  }
+  CDataStore &PutWcharString(const WORD *val) {
+    return PutString(val);
+  }
+  CDataStore &PutTcharString(LPCSTR val) {
+    return PutString(val);
+  }
+  CDataStore &PutUcharArray(const BYTE *val, UINT count) {
+    return PutArray(val, count);
+  }
+  CDataStore &PutUshortArray(const WORD *val, UINT count) {
+    return PutArray(val, count);
+  }
+  CDataStore &PutUlongArray(const DWORD *val, UINT count) {
+    return PutArray(val, count);
+  }
+  CDataStore &PutUlonglongArray(const DWORDLONG *val, UINT count) {
+    return PutArray(val, count);
+  }
+  CDataStore &PutFloatArray(const float *val, UINT count) {
+    return PutArray(val, count);
+  }
 
-  CDataStore &operator<<(char val) { return Put(val); }
-  CDataStore &operator<<(unsigned char val) { return Put(val); }
-  CDataStore &operator<<(short val) { return Put(val); }
-  CDataStore &operator<<(unsigned short val) { return Put(val); }
-  CDataStore &operator<<(int val) { return Put(val); }
-  CDataStore &operator<<(unsigned int val) { return Put(val); }
-  CDataStore &operator<<(long val) { return Put(val); }
-  CDataStore &operator<<(unsigned long val) { return Put(val); }
-  CDataStore &operator<<(__int64 val) { return Put(val); }
-  CDataStore &operator<<(unsigned __int64 val) { return Put(val); }
-  CDataStore &operator<<(float val) { return Put(val); }
-  CDataStore &operator<<(const char *val) { return PutString(val); }
-  CDataStore &operator<<(const unsigned short *val) { return PutString(val); }
+  CDataStore &operator<<(char val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(BYTE val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(short val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(WORD val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(int val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(UINT val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(long val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(DWORD val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(LONGLONG val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(DWORDLONG val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(float val) {
+    return Put(val);
+  }
+  CDataStore &operator<<(LPCSTR val) {
+    return PutString(val);
+  }
+  CDataStore &operator<<(const WORD *val) {
+    return PutString(val);
+  }
 
   CDataStore &Get(char &val);
-  CDataStore &Get(unsigned char &val);
+  CDataStore &Get(BYTE &val);
   CDataStore &Get(short &val);
-  CDataStore &Get(unsigned short &val);
+  CDataStore &Get(WORD &val);
   CDataStore &Get(int &val);
-  CDataStore &Get(unsigned int &val);
+  CDataStore &Get(UINT &val);
   CDataStore &Get(long &val);
-  CDataStore &Get(unsigned long &val);
-  CDataStore &Get(__int64 &val);
-  CDataStore &Get(unsigned __int64 &val);
+  CDataStore &Get(DWORD &val);
+  CDataStore &Get(LONGLONG &val);
+  CDataStore &Get(DWORDLONG &val);
   CDataStore &Get(float &val);
-  CDataStore &GetString(char *pval, unsigned int maxChars);
-  CDataStore &GetString(unsigned short *pval, unsigned int maxChars);
-  CDataStore &GetArray(unsigned char *pval, unsigned int count);
-  CDataStore &GetArray(char *pval, unsigned int count) {
-    return GetArray(reinterpret_cast<unsigned char *>(pval), count);
+  CDataStore &GetString(char *pval, UINT maxChars);
+  CDataStore &GetString(WORD *pval, UINT maxChars);
+  CDataStore &GetArray(BYTE *pval, UINT count);
+  CDataStore &GetArray(char *pval, UINT count) {
+    return GetArray(reinterpret_cast<BYTE *>(pval), count);
   }
-  CDataStore &GetArray(short *pval, unsigned int count) {
-    return GetArray(reinterpret_cast<unsigned short *>(pval), count);
+  CDataStore &GetArray(short *pval, UINT count) {
+    return GetArray(reinterpret_cast<WORD *>(pval), count);
   }
-  CDataStore &GetArray(unsigned short *pval, unsigned int count);
-  CDataStore &GetArray(long *pval, unsigned int count) {
-    return GetArray(reinterpret_cast<unsigned long *>(pval), count);
+  CDataStore &GetArray(WORD *pval, UINT count);
+  CDataStore &GetArray(long *pval, UINT count) {
+    return GetArray(reinterpret_cast<DWORD *>(pval), count);
   }
-  CDataStore &GetArray(unsigned long *pval, unsigned int count);
-  CDataStore &GetArray(unsigned __int64 *pval, unsigned int count);
-  CDataStore &GetArray(float *pval, unsigned int count);
-  CDataStore &GetArray(unreal *pval, unsigned int count);
-  CDataStore &GetData(void *pval, unsigned int bytes);
-  CDataStore &GetDataInSitu(void *&pval, unsigned int bytes);
+  CDataStore &GetArray(DWORD *pval, UINT count);
+  CDataStore &GetArray(DWORDLONG *pval, UINT count);
+  CDataStore &GetArray(float *pval, UINT count);
+  CDataStore &GetArray(unreal *pval, UINT count);
+  CDataStore &GetData(LPVOID pval, UINT bytes);
+  CDataStore &GetDataInSitu(LPVOID &pval, UINT bytes);
 
   int GetBool() {
     int val;
@@ -361,63 +427,181 @@ class CDataStore {
     return val;
   }
 
-  CDataStore &GetBool(int &val) { return Get(val); }
-  char GetChar() { char val; Get(val); return val; }
-  CDataStore &GetChar(char &val) { return Get(val); }
-  unsigned char GetUchar() { unsigned char val; Get(val); return val; }
-  CDataStore &GetUchar(unsigned char &val) { return Get(val); }
-  unsigned char GetByte() { return GetUchar(); }
-  CDataStore &GetByte(unsigned char &val) { return Get(val); }
-  CDataStore &GetTchar(char &val) { return Get(val); }
-  short GetShort() { short val; Get(val); return val; }
-  CDataStore &GetShort(short &val) { return Get(val); }
-  unsigned short GetUshort() { unsigned short val; Get(val); return val; }
-  CDataStore &GetUshort(unsigned short &val) { return Get(val); }
-  unsigned short GetWord() { return GetUshort(); }
-  CDataStore &GetWord(unsigned short &val) { return Get(val); }
-  int GetInt() { int val; Get(val); return val; }
-  CDataStore &GetInt(int &val) { return Get(val); }
-  unsigned int GetUint() { unsigned int val; Get(val); return val; }
-  CDataStore &GetUint(unsigned int &val) { return Get(val); }
-  long GetLong() { long val; Get(val); return val; }
-  CDataStore &GetLong(long &val) { return Get(val); }
-  unsigned long GetUlong() { unsigned long val; Get(val); return val; }
-  CDataStore &GetUlong(unsigned long &val) { return Get(val); }
-  unsigned long GetDword() { return GetUlong(); }
-  CDataStore &GetDword(unsigned long &val) { return Get(val); }
-  __int64 GetLonglong() { __int64 val; Get(val); return val; }
-  CDataStore &GetLonglong(__int64 &val) { return Get(val); }
-  unsigned __int64 GetUlonglong() { unsigned __int64 val; Get(val); return val; }
-  CDataStore &GetUlonglong(unsigned __int64 &val) { return Get(val); }
-  float GetFloat() { float val; Get(val); return val; }
-  CDataStore &GetFloat(float &val) { return Get(val); }
-  CDataStore &GetCharString(char *val, unsigned int maxChars) { return GetString(val, maxChars); }
-  CDataStore &GetWcharString(unsigned short *val, unsigned int maxChars) { return GetString(val, maxChars); }
-  CDataStore &GetTcharString(char *val, unsigned int maxChars);
-  CDataStore &GetUcharArray(unsigned char *val, unsigned int count) { return GetArray(val, count); }
-  CDataStore &GetUshortArray(unsigned short *val, unsigned int count) { return GetArray(val, count); }
-  CDataStore &GetUlongArray(unsigned long *val, unsigned int count) { return GetArray(val, count); }
-  CDataStore &GetUlonglongArray(unsigned __int64 *val, unsigned int count) { return GetArray(val, count); }
-  CDataStore &GetFloatArray(float *val, unsigned int count) { return GetArray(val, count); }
+  CDataStore &GetBool(int &val) {
+    return Get(val);
+  }
+  char GetChar() {
+    char val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetChar(char &val) {
+    return Get(val);
+  }
+  BYTE GetUchar() {
+    BYTE val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetUchar(BYTE &val) {
+    return Get(val);
+  }
+  BYTE GetByte() {
+    return GetUchar();
+  }
+  CDataStore &GetByte(BYTE &val) {
+    return Get(val);
+  }
+  CDataStore &GetTchar(char &val) {
+    return Get(val);
+  }
+  short GetShort() {
+    short val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetShort(short &val) {
+    return Get(val);
+  }
+  WORD GetUshort() {
+    WORD val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetUshort(WORD &val) {
+    return Get(val);
+  }
+  WORD GetWord() {
+    return GetUshort();
+  }
+  CDataStore &GetWord(WORD &val) {
+    return Get(val);
+  }
+  int GetInt() {
+    int val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetInt(int &val) {
+    return Get(val);
+  }
+  UINT GetUint() {
+    UINT val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetUint(UINT &val) {
+    return Get(val);
+  }
+  long GetLong() {
+    long val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetLong(long &val) {
+    return Get(val);
+  }
+  DWORD GetUlong() {
+    DWORD val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetUlong(DWORD &val) {
+    return Get(val);
+  }
+  DWORD GetDword() {
+    return GetUlong();
+  }
+  CDataStore &GetDword(DWORD &val) {
+    return Get(val);
+  }
+  LONGLONG GetLonglong() {
+    LONGLONG val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetLonglong(LONGLONG &val) {
+    return Get(val);
+  }
+  DWORDLONG GetUlonglong() {
+    DWORDLONG val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetUlonglong(DWORDLONG &val) {
+    return Get(val);
+  }
+  float GetFloat() {
+    float val;
+    Get(val);
+    return val;
+  }
+  CDataStore &GetFloat(float &val) {
+    return Get(val);
+  }
+  CDataStore &GetCharString(char *val, UINT maxChars) {
+    return GetString(val, maxChars);
+  }
+  CDataStore &GetWcharString(WORD *val, UINT maxChars) {
+    return GetString(val, maxChars);
+  }
+  CDataStore &GetTcharString(char *val, UINT maxChars);
+  CDataStore &GetUcharArray(BYTE *val, UINT count) {
+    return GetArray(val, count);
+  }
+  CDataStore &GetUshortArray(WORD *val, UINT count) {
+    return GetArray(val, count);
+  }
+  CDataStore &GetUlongArray(DWORD *val, UINT count) {
+    return GetArray(val, count);
+  }
+  CDataStore &GetUlonglongArray(DWORDLONG *val, UINT count) {
+    return GetArray(val, count);
+  }
+  CDataStore &GetFloatArray(float *val, UINT count) {
+    return GetArray(val, count);
+  }
 
-  CDataStore &operator>>(char &val) { return Get(val); }
-  CDataStore &operator>>(unsigned char &val) { return Get(val); }
-  CDataStore &operator>>(short &val) { return Get(val); }
-  CDataStore &operator>>(unsigned short &val) { return Get(val); }
-  CDataStore &operator>>(int &val) { return Get(val); }
-  CDataStore &operator>>(unsigned int &val) { return Get(val); }
-  CDataStore &operator>>(long &val) { return Get(val); }
-  CDataStore &operator>>(unsigned long &val) { return Get(val); }
-  CDataStore &operator>>(__int64 &val) { return Get(val); }
-  CDataStore &operator>>(unsigned __int64 &val) { return Get(val); }
-  CDataStore &operator>>(float &val) { return Get(val); }
+  CDataStore &operator>>(char &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(BYTE &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(short &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(WORD &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(int &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(UINT &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(long &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(DWORD &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(LONGLONG &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(DWORDLONG &val) {
+    return Get(val);
+  }
+  CDataStore &operator>>(float &val) {
+    return Get(val);
+  }
 
  private:
-  unsigned char *m_data;
-  unsigned int   m_base;
-  unsigned int   m_alloc;
-  unsigned int   m_size;
-  unsigned int   m_read;
+  BYTE *m_data;
+  UINT  m_base;
+  UINT  m_alloc;
+  UINT  m_size;
+  UINT  m_read;
 };
 
 #endif

@@ -14,10 +14,10 @@
 #include "Tempest/cmath.h"
 
 static TSGrowableArray<NTempest::C34Matrix> s_transforms;
-static unsigned int                         s_transInUse;
-static TSGrowableArray<unsigned int>        s_layers;
-static unsigned int                         s_layersInUse;
-static TSGrowableArray<unsigned char>       s_layerAlpha;
+static UINT                                 s_transInUse;
+static TSGrowableArray<UINT>                s_layers;
+static UINT                                 s_layersInUse;
+static TSGrowableArray<BYTE>                s_layerAlpha;
 
 static void ApplyWorldTransforms(
     const NTempest::C3Vector &position,
@@ -29,7 +29,7 @@ static void ApplyWorldTransforms(
 static void ModelAnimateAttached(
     HMODEL                    model,
     float                     scale,
-    unsigned int              transform,
+    UINT                      transform,
     int                       normalizeNorms,
     const NTempest::C3Vector &cameraWorldPos,
     const NTempest::C3Vector &cameraVector
@@ -37,36 +37,35 @@ static void ModelAnimateAttached(
 
 void ModelAnimateLogStop();
 
-static void BuildPrimBone(NTempest::C34Matrix *boneMatrices, unsigned int *matrix, unsigned int mtxCount, NTempest::C34Matrix *bone);
+static void BuildPrimBone(NTempest::C34Matrix *boneMatrices, UINT *matrix, UINT mtxCount, NTempest::C34Matrix *bone);
 static void BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatrices, NTempest::C34Matrix *weightedMatrices);
 static void SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared, NTempest::C34Matrix *boneMatrices);
 static void SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared);
 
-static void
-IModelAnimate(CModelBase *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector);
+static void IModelAnimate(CModelBase *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector);
 static void IModelProcessEvents(CModelBase *unique, CModelShared *shared);
 
-static unsigned int GetTransformListIndex(unsigned int numAttached) {
+static UINT GetTransformListIndex(UINT numAttached) {
   if (!numAttached) {
     return 0;
   }
 
-  unsigned int newInUse = s_transInUse + numAttached;
+  UINT newInUse = s_transInUse + numAttached;
   if (s_transforms.Count() < newInUse) {
     s_transforms.SetCount(newInUse);
   }
 
-  unsigned int index = s_transInUse;
+  UINT index = s_transInUse;
   s_transInUse = newInUse;
   return index;
 }
 
-static void ReleaseTransformListIndex(unsigned int numAttached) {
+static void ReleaseTransformListIndex(UINT numAttached) {
   ASSERT(s_transInUse >= numAttached);
   s_transInUse -= numAttached;
 }
 
-static NTempest::C34Matrix *GetTransformPtr(unsigned int index) {
+static NTempest::C34Matrix *GetTransformPtr(UINT index) {
   if (!s_transforms.Count()) {
     return 0;
   }
@@ -74,27 +73,27 @@ static NTempest::C34Matrix *GetTransformPtr(unsigned int index) {
   return &s_transforms[index];
 }
 
-static unsigned int GetLayerIndex(unsigned int numLayers) {
+static UINT GetLayerIndex(UINT numLayers) {
   if (!numLayers) {
     return 0;
   }
 
-  unsigned int newInUse = s_layersInUse + numLayers;
+  UINT newInUse = s_layersInUse + numLayers;
   if (s_layers.Count() < newInUse) {
     s_layers.SetCount(newInUse);
   }
 
-  unsigned int index = s_layersInUse;
+  UINT index = s_layersInUse;
   s_layersInUse = newInUse;
   return index;
 }
 
-static void ReleaseLayerIndex(unsigned int numLayers) {
+static void ReleaseLayerIndex(UINT numLayers) {
   ASSERT(s_layersInUse >= numLayers);
   s_layersInUse -= numLayers;
 }
 
-static unsigned int *GetLayerPtr(unsigned int index) {
+static UINT *GetLayerPtr(UINT index) {
   if (!s_layers.Count()) {
     return 0;
   }
@@ -102,24 +101,24 @@ static unsigned int *GetLayerPtr(unsigned int index) {
   return &s_layers[index];
 }
 
-static void IGetLayerIDs(unsigned int *array, unsigned int numLayers) {
+static void IGetLayerIDs(UINT *array, UINT numLayers) {
   if (numLayers) {
     ASSERT(array);
 
     do {
-      array[--numLayers] = static_cast<unsigned int>(-1);
+      array[--numLayers] = static_cast<UINT>(-1);
     } while (numLayers);
   }
 }
 
-static void BuildPrimBone(NTempest::C34Matrix *boneMatrices, unsigned int *matrix, unsigned int mtxCount, NTempest::C34Matrix *bone) {
-  unsigned int i;
+static void BuildPrimBone(NTempest::C34Matrix *boneMatrices, UINT *matrix, UINT mtxCount, NTempest::C34Matrix *bone) {
+  UINT i;
 
   ASSERT(mtxCount > 0);
 
   if (mtxCount == 1) {
-    unsigned int *source = reinterpret_cast<unsigned int *>(boneMatrices + matrix[0]);
-    unsigned int *target = reinterpret_cast<unsigned int *>(bone);
+    UINT *source = reinterpret_cast<UINT *>(boneMatrices + matrix[0]);
+    UINT *target = reinterpret_cast<UINT *>(bone);
 
     for (i = 0; i < NTempest::C34Matrix::eComponents; ++i) {
       target[i] = source[i];
@@ -160,8 +159,8 @@ static void BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatri
     return;
   }
 
-  unsigned int *mtxCount = geoset->groupMatrixCounts.Ptr();
-  unsigned int *mtxList = geoset->matrices.Ptr();
+  UINT *mtxCount = geoset->groupMatrixCounts.Ptr();
+  UINT *mtxList = geoset->matrices.Ptr();
 
   do {
     BuildPrimBone(boneMatrices, mtxList, *mtxCount, weightedMatrices);
@@ -172,7 +171,7 @@ static void BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatri
 
 static void SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared, NTempest::C34Matrix *boneMatrices) {
   if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].animatedColor.a) {
-    unsigned int numGroups = geoShared->groupMatrixCounts.Count();
+    UINT numGroups = geoShared->groupMatrixCounts.Count();
     ASSERT(numGroups > 0);
 
     geoUnique->weightedBones = MatrixAlloc(numGroups);
@@ -192,7 +191,7 @@ static void SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetCo
 static void SetCollisionMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
   NTempest::C34Matrix *source = boneMatrices + shared->numBones - shared->hitTest.Count();
   NTempest::C34Matrix *target = unique->m_hitTestMtx.Ptr();
-  unsigned int         count = unique->m_hitTestMtx.Count();
+  UINT                 count = unique->m_hitTestMtx.Count();
 
   while (count) {
     *target = *source;
@@ -205,8 +204,8 @@ static void SetCollisionMatrices(CModelComplex *unique, CModelShared *shared, NT
 static void SetGeosetMatrices(CModelSimple *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
   ASSERT(unique);
 
-  unsigned int numGeosets = unique->m_geosets.Count();
-  for (unsigned int i = 0; i < numGeosets; ++i) {
+  UINT numGeosets = unique->m_geosets.Count();
+  for (UINT i = 0; i < numGeosets; ++i) {
     SetGeosetMatrix(&unique->m_geosets[i], unique->m_geosetColor.Ptr(), &shared->geosets[i], boneMatrices);
   }
 }
@@ -214,12 +213,12 @@ static void SetGeosetMatrices(CModelSimple *unique, CModelShared *shared, NTempe
 static void SetGeosetMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
   ASSERT(unique);
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < shared->numGeosets; ++i) {
     SetGeosetMatrix(&unique->m_geosets[i], unique->m_geosetColor.Ptr(), &shared->geosets[i], boneMatrices);
   }
 
-  unsigned int numAddlGeosets = unique->m_addlGeosets.Count();
+  UINT numAddlGeosets = unique->m_addlGeosets.Count();
   for (i = 0; i < numAddlGeosets; ++i) {
     SetGeosetMatrix(&unique->m_geosets[i + shared->numGeosets], unique->m_geosetColor.Ptr(), &unique->m_addlGeosets[i], boneMatrices);
   }
@@ -227,7 +226,7 @@ static void SetGeosetMatrices(CModelComplex *unique, CModelShared *shared, NTemp
 
 static void SetUnanimatedCollisionMatrices(CModelComplex *unique) {
   NTempest::C34Matrix *matrix = unique->m_hitTestMtx.Ptr();
-  unsigned int         count = unique->m_hitTestMtx.Count();
+  UINT                 count = unique->m_hitTestMtx.Count();
 
   while (count) {
     WorldMatrixGet(matrix);
@@ -240,8 +239,8 @@ static void SetUnanimatedGeosetMatrices(CModelSimple *unique, CModelShared *shar
   ASSERT(unique);
   ASSERT(shared);
 
-  unsigned int numGeosets = unique->m_geosets.Count();
-  for (unsigned int i = 0; i < numGeosets; ++i) {
+  UINT numGeosets = unique->m_geosets.Count();
+  for (UINT i = 0; i < numGeosets; ++i) {
     SetUnanimatedGeosetMatrix(&unique->m_geosets[i], unique->m_geosetColor.Ptr(), &shared->geosets[i]);
   }
 }
@@ -250,40 +249,40 @@ static void SetUnanimatedGeosetMatrices(CModelComplex *unique, CModelShared *sha
   ASSERT(unique);
   ASSERT(shared);
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < shared->numGeosets; ++i) {
     SetUnanimatedGeosetMatrix(&unique->m_geosets[i], unique->m_geosetColor.Ptr(), &shared->geosets[i]);
   }
 
-  unsigned int numAddlGeosets = unique->m_addlGeosets.Count();
+  UINT numAddlGeosets = unique->m_addlGeosets.Count();
   for (i = 0; i < numAddlGeosets; ++i) {
     SetUnanimatedGeosetMatrix(&unique->m_geosets[i + shared->numGeosets], unique->m_geosetColor.Ptr(), &unique->m_addlGeosets[i]);
   }
 }
 
-static void GetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsigned char *layerAlpha) {
-  unsigned int i;
+static void GetLayerAlpha(HMATERIAL *materials, UINT numMaterials, BYTE *layerAlpha) {
+  UINT i;
 
   for (i = 0; i < numMaterials; ++i) {
     CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[i]);
     ASSERT(uniqueMtl);
 
-    unsigned int numLayers = uniqueMtl->layers.Count();
-    for (unsigned int layer = 0; layer < numLayers; ++layer) {
+    UINT numLayers = uniqueMtl->layers.Count();
+    for (UINT layer = 0; layer < numLayers; ++layer) {
       *layerAlpha++ = uniqueMtl->layers[layer].layerAlpha;
     }
   }
 }
 
-static void SetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsigned char *layerAlpha) {
-  unsigned int i;
+static void SetLayerAlpha(HMATERIAL *materials, UINT numMaterials, BYTE *layerAlpha) {
+  UINT i;
 
   for (i = 0; i < numMaterials; ++i) {
     CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[i]);
     ASSERT(uniqueMtl);
 
-    unsigned int numLayers = uniqueMtl->layers.Count();
-    for (unsigned int layer = 0; layer < numLayers; ++layer) {
+    UINT numLayers = uniqueMtl->layers.Count();
+    for (UINT layer = 0; layer < numLayers; ++layer) {
       uniqueMtl->layers[layer].layerAlpha = *layerAlpha++;
     }
   }
@@ -292,8 +291,8 @@ static void SetLayerAlpha(HMATERIAL *materials, unsigned int numMaterials, unsig
 static void UpdateEmitters(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos) {
   float elapsed = AnimGetElapsedTime() * 0.001f;
 
-  unsigned int i;
-  unsigned int numEmitters = unique->m_emitters2.Count();
+  UINT i;
+  UINT numEmitters = unique->m_emitters2.Count();
   for (i = 0; i < numEmitters; ++i) {
     NTempest::C34Matrix currentWorldMatrix = unique->m_modelToWorld;
     currentWorldMatrix.Translate(shared->positions[shared->emitter2Order[i]]);
@@ -302,7 +301,7 @@ static void UpdateEmitters(CModelComplex *unique, CModelShared *shared, const NT
     unique->m_emitters2[i]->Update(elapsed, currentWorldMatrix, cameraWorldPos);
   }
 
-  unsigned int numRibbons = unique->m_ribbons.Count();
+  UINT numRibbons = unique->m_ribbons.Count();
   for (i = 0; i < numRibbons; ++i) {
     unique->m_ribbons[i]->SetEnabled(1);
     unique->m_ribbons[i]->Update(elapsed, 0);
@@ -324,18 +323,18 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
     return;
   }
 
-  unsigned int numMaterials = unique->m_materials.Count();
+  UINT numMaterials = unique->m_materials.Count();
   s_layerAlpha.SetCount(shared->numLayers);
   GetLayerAlpha(unique->m_materials.Ptr(), numMaterials, s_layerAlpha.Ptr());
 
-  unsigned int bones = GetTransformListIndex(shared->numBones);
-  unsigned int numLayers = 0;
-  for (unsigned int i = 0; i < numMaterials; ++i) {
+  UINT bones = GetTransformListIndex(shared->numBones);
+  UINT numLayers = 0;
+  for (UINT i = 0; i < numMaterials; ++i) {
     CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[i]);
     numLayers += material->layers.Count();
   }
-  unsigned int  layerIndex = GetLayerIndex(numLayers);
-  unsigned int *layers = GetLayerPtr(layerIndex);
+  UINT  layerIndex = GetLayerIndex(numLayers);
+  UINT *layers = GetLayerPtr(layerIndex);
   IGetLayerIDs(layers, numLayers);
 
   unique->m_texBones = MatrixAlloc(shared->numTexBones);
@@ -357,13 +356,13 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
   animData.layerTextureIds = layers;
   AnimAnimateModel(unique->m_anim, animData);
 
-  for (unsigned int materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
+  for (UINT materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
     CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[materialIndex]);
-    for (unsigned int materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
-      unsigned int animatedId = layers[materialLayer];
-      if (animatedId != static_cast<unsigned int>(-1)) {
-        CTexLayer   &layer = material->layers[materialLayer];
-        unsigned int originalId = layer.tmuPass[0].textureId;
+    for (UINT materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
+      UINT animatedId = layers[materialLayer];
+      if (animatedId != static_cast<UINT>(-1)) {
+        CTexLayer &layer = material->layers[materialLayer];
+        UINT       originalId = layer.tmuPass[0].textureId;
         if (HandleObjectCompare(
                 reinterpret_cast<HOBJECT>(unique->m_textures[animatedId].handle), reinterpret_cast<HOBJECT>(unique->m_textures[originalId].handle)
             ))
@@ -382,7 +381,7 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
 static void ModelAnimateAttached(
     HMODEL                    model,
     float                     scale,
-    unsigned int              transform,
+    UINT                      transform,
     int                       normalizeNorms,
     const NTempest::C3Vector &cameraWorldPos,
     const NTempest::C3Vector &cameraVector
@@ -411,21 +410,21 @@ static void ModelAnimateAttached(
 
 static void
 IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector) {
-  const unsigned int numAttachments = unique->m_attached.Count();
-  unsigned int       transforms = GetTransformListIndex(numAttachments);
+  const UINT numAttachments = unique->m_attached.Count();
+  UINT       transforms = GetTransformListIndex(numAttachments);
 
   if (unique->m_anim) {
-    unsigned int numMaterials = unique->m_materials.Count();
+    UINT numMaterials = unique->m_materials.Count();
     s_layerAlpha.SetCount(shared->numLayers);
     GetLayerAlpha(unique->m_materials.Ptr(), numMaterials, s_layerAlpha.Ptr());
-    unsigned int bones = GetTransformListIndex(shared->numBones);
-    unsigned int numLayers = 0;
-    for (unsigned int i = 0; i < numMaterials; ++i) {
+    UINT bones = GetTransformListIndex(shared->numBones);
+    UINT numLayers = 0;
+    for (UINT i = 0; i < numMaterials; ++i) {
       CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[i]);
       numLayers += material->layers.Count();
     }
-    unsigned int  layerIndex = GetLayerIndex(numLayers);
-    unsigned int *layers = GetLayerPtr(layerIndex);
+    UINT  layerIndex = GetLayerIndex(numLayers);
+    UINT *layers = GetLayerPtr(layerIndex);
     IGetLayerIDs(layers, numLayers);
     unique->m_texBones = MatrixAlloc(shared->numTexBones);
 
@@ -450,13 +449,13 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
     if (unique->m_attachmentFlags.Count()) {
       memset(unique->m_attachmentFlags.Ptr(), 0, unique->m_attachmentFlags.Count());
     }
-    for (unsigned int materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
+    for (UINT materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
       CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[materialIndex]);
-      for (unsigned int materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
-        unsigned int animatedId = layers[materialLayer];
-        if (animatedId != static_cast<unsigned int>(-1)) {
-          CTexLayer   &layer = material->layers[materialLayer];
-          unsigned int originalId = layer.tmuPass[0].textureId;
+      for (UINT materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
+        UINT animatedId = layers[materialLayer];
+        if (animatedId != static_cast<UINT>(-1)) {
+          CTexLayer &layer = material->layers[materialLayer];
+          UINT       originalId = layer.tmuPass[0].textureId;
           if (HandleObjectCompare(
                   reinterpret_cast<HOBJECT>(unique->m_textures[animatedId].handle), reinterpret_cast<HOBJECT>(unique->m_textures[originalId].handle)
               ))
@@ -478,7 +477,7 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
   }
 
   int normalizeNorms = unique->m_flags & 2;
-  for (unsigned int attachmentIndex = 0; attachmentIndex < numAttachments; ++attachmentIndex) {
+  for (UINT attachmentIndex = 0; attachmentIndex < numAttachments; ++attachmentIndex) {
     int enabled = 1;
     if (unique->m_anim) {
       if (unique->m_attachmentFlags[attachmentIndex] & 1) {
@@ -522,8 +521,8 @@ static void IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
   }
 
   CModelComplex *complex = static_cast<CModelComplex *>(unique);
-  unsigned int   numAttached = complex->m_attached.Count();
-  for (unsigned int index = 0; index < numAttached; ++index) {
+  UINT           numAttached = complex->m_attached.Count();
+  for (UINT index = 0; index < numAttached; ++index) {
     int enabled = !unique->m_anim || AnimIsAttachmentEnabled(unique->m_anim, index);
     if (!enabled) {
       continue;
@@ -629,13 +628,13 @@ void ModelAnimateDestroy() {
   ModelAnimateLogStop();
 }
 
-void ModelAnimateLogStart(const char *fileName) {
+void ModelAnimateLogStart(LPCSTR fileName) {
 }
 
 void ModelAnimateLogStop() {
 }
 
-int ModelAnimateLogToggle(const char *fileName) {
+int ModelAnimateLogToggle(LPCSTR fileName) {
   return 0;
 }
 
@@ -653,8 +652,7 @@ void ModelAnimateCameras(HMODEL model, const NTempest::C34Matrix &orientation) {
   }
 }
 
-void
-ModelAnimateCameras(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale) {
+void ModelAnimateCameras(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale) {
   NTempest::C34Matrix orientation;
 
   ApplyWorldTransforms(position, rotationAngle, rotationAxis, scale, &orientation);
@@ -675,8 +673,7 @@ void ModelProcessEvents(HMODEL model, const NTempest::C34Matrix &orientation) {
   }
 }
 
-void
-ModelProcessEvents(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale) {
+void ModelProcessEvents(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale) {
   NTempest::C34Matrix orientation;
 
   ApplyWorldTransforms(position, rotationAngle, rotationAxis, scale, &orientation);
@@ -747,7 +744,7 @@ void ModelAnimate(
   ModelAnimate(model, orientation, fakeScale, cameraWorldPos, cameraVector);
 }
 
-int ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned int flags) {
+int ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -776,7 +773,7 @@ int ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned int flags) {
   return 1;
 }
 
-int ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
+int ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -793,7 +790,7 @@ int ModelSetSequence(HMODEL model, unsigned int seqIndex, unsigned int objectId,
   return AnimSetSequence(unique->m_anim, seqIndex, objectId, flags);
 }
 
-int ModelMatchSequence(HMODEL model, unsigned int objectId, unsigned int sameAsObjectId, unsigned int flags) {
+int ModelMatchSequence(HMODEL model, UINT objectId, UINT sameAsObjectId, UINT flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -810,7 +807,7 @@ int ModelMatchSequence(HMODEL model, unsigned int objectId, unsigned int sameAsO
   return AnimMatchSequence(unique->m_anim, objectId, sameAsObjectId, flags);
 }
 
-int ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int flags) {
+int ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -835,7 +832,7 @@ int ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned i
   return result;
 }
 
-int ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int objectId, unsigned int flags) {
+int ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -852,7 +849,7 @@ int ModelSetRandomSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned i
   return AnimSetRandomSequenceFidget(unique->m_anim, seqIndex, objectId, flags);
 }
 
-unsigned int ModelGetNumSequenceFidgets(HMODEL model, unsigned int seqIndex) {
+UINT ModelGetNumSequenceFidgets(HMODEL model, UINT seqIndex) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -861,7 +858,7 @@ unsigned int ModelGetNumSequenceFidgets(HMODEL model, unsigned int seqIndex) {
   return 0;
 }
 
-int ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int fidgetId, unsigned int flags) {
+int ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -886,7 +883,7 @@ int ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int fid
   return result;
 }
 
-int ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int fidgetId, unsigned int objectId, unsigned int flags) {
+int ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT objectId, UINT flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -903,7 +900,7 @@ int ModelSetSequenceFidget(HMODEL model, unsigned int seqIndex, unsigned int fid
   return AnimSetSequenceFidget(unique->m_anim, seqIndex, fidgetId, objectId, flags);
 }
 
-unsigned int ModelGetNumSequences(HMODEL model) {
+UINT ModelGetNumSequences(HMODEL model) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -912,7 +909,7 @@ unsigned int ModelGetNumSequences(HMODEL model) {
   return 0;
 }
 
-int ModelGetSequenceDuration(HMODEL model, unsigned int seqIndex, unsigned int *duration) {
+int ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration) {
   FATALASSERT(duration);
   *duration = 0;
 
@@ -921,7 +918,7 @@ int ModelGetSequenceDuration(HMODEL model, unsigned int seqIndex, unsigned int *
          AnimGetSequenceDuration(unique->m_anim, seqIndex, duration);
 }
 
-int ModelGetSequenceMoveSpeed(HMODEL model, unsigned int seqIndex, float *moveSpeed) {
+int ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed) {
   FATALASSERT(moveSpeed);
   *moveSpeed = 0.0f;
 
@@ -930,7 +927,7 @@ int ModelGetSequenceMoveSpeed(HMODEL model, unsigned int seqIndex, float *moveSp
          AnimGetSequenceMoveSpeed(unique->m_anim, seqIndex, moveSpeed);
 }
 
-int ModelGetSequenceName(HMODEL model, unsigned int seqIndex, char *buffer, unsigned int buffLength) {
+int ModelGetSequenceName(HMODEL model, UINT seqIndex, char *buffer, UINT buffLength) {
   FATALASSERT(buffer);
   if (buffLength) {
     buffer[0] = 0;
@@ -941,13 +938,13 @@ int ModelGetSequenceName(HMODEL model, unsigned int seqIndex, char *buffer, unsi
          AnimGetSequenceName(unique->m_anim, seqIndex, buffer, buffLength);
 }
 
-int ModelHasSequenceId(HMODEL model, unsigned int seqIndex) {
+int ModelHasSequenceId(HMODEL model, UINT seqIndex) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimHasSequenceId(unique->m_anim, seqIndex);
 }
 
-unsigned int ModelGetTotalKeys(HMODEL model) {
+UINT ModelGetTotalKeys(HMODEL model) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -956,7 +953,7 @@ unsigned int ModelGetTotalKeys(HMODEL model) {
   return 0;
 }
 
-void ModelSetSeqFinishedHandler(HMODEL model, ANIMSEQFINISHEDHANDLER callback, void *param) {
+void ModelSetSeqFinishedHandler(HMODEL model, ANIMSEQFINISHEDHANDLER callback, LPVOID param) {
   CModelBase *unique;
 
   FATALASSERT(model);
@@ -971,7 +968,7 @@ void ModelSetSeqFinishedHandler(HMODEL model, ANIMSEQFINISHEDHANDLER callback, v
   }
 }
 
-void ModelSetSeqFinishedHandler(HMODEL model, unsigned int sequence, ANIMSEQFINISHEDHANDLER callback, void *param) {
+void ModelSetSeqFinishedHandler(HMODEL model, UINT sequence, ANIMSEQFINISHEDHANDLER callback, LPVOID param) {
   CModelBase *unique;
 
   FATALASSERT(model);
@@ -1004,8 +1001,8 @@ void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
   }
 
   CModelComplex *complex = static_cast<CModelComplex *>(unique);
-  unsigned int   numAttachments = complex->m_attached.Count();
-  for (unsigned int index = 0; index < numAttachments; ++index) {
+  UINT           numAttachments = complex->m_attached.Count();
+  for (UINT index = 0; index < numAttachments; ++index) {
     int enabled = 1;
     if (unique->m_anim) {
       if (complex->m_attachmentFlags[index] & 1) {
@@ -1025,7 +1022,7 @@ void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
   }
 }
 
-int ModelSetObjectTimeScale(HMODEL model, unsigned int objectId, float timeScale, int doLinkedModels) {
+int ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int doLinkedModels) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1043,8 +1040,8 @@ int ModelSetObjectTimeScale(HMODEL model, unsigned int objectId, float timeScale
   }
 
   CModelComplex *complex = static_cast<CModelComplex *>(unique);
-  unsigned int   numAttachments = complex->m_attached.Count();
-  for (unsigned int index = 0; index < numAttachments; ++index) {
+  UINT           numAttachments = complex->m_attached.Count();
+  for (UINT index = 0; index < numAttachments; ++index) {
     int enabled = 1;
     if (unique->m_anim) {
       if (complex->m_attachmentFlags[index] & 1) {
@@ -1077,7 +1074,7 @@ float ModelGetTimeScale(HMODEL model) {
   return 0.0f;
 }
 
-float ModelGetObjectTimeScale(HMODEL model, unsigned int objectId) {
+float ModelGetObjectTimeScale(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
@@ -1104,7 +1101,7 @@ int ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMode
   }
 
   CModelComplex *complex = static_cast<CModelComplex *>(unique);
-  for (unsigned int index = 0; index < complex->m_attached.Count(); ++index) {
+  for (UINT index = 0; index < complex->m_attached.Count(); ++index) {
     int enabled = 1;
     if (unique->m_anim) {
       if (complex->m_attachmentFlags[index] & 1) {
@@ -1128,7 +1125,7 @@ int ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMode
   return 1;
 }
 
-int ModelForceSequenceTime(HMODEL model, unsigned int seqIndex, int timeOffset, int doLinkedModels) {
+int ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLinkedModels) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1142,9 +1139,9 @@ int ModelForceSequenceTime(HMODEL model, unsigned int seqIndex, int timeOffset, 
   }
 
   if (doLinkedModels && (unique->m_flags & 0x20)) {
-    CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = static_cast<CModelComplex *>(unique);
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
-    unsigned int                                index = 0;
+    UINT index = 0;
 
     while (index < complex->m_attached.Count()) {
       int enabled = 1;
@@ -1186,10 +1183,10 @@ int ModelAdvanceTime(HMODEL model) {
 
   ASSERT(reinterpret_cast<CModel *>(model));
   if (unique->m_flags & 0x20) {
-    CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = static_cast<CModelComplex *>(unique);
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
-    for (unsigned int index = 0; index < complex->m_attached.Count(); ++index) {
+    for (UINT index = 0; index < complex->m_attached.Count(); ++index) {
       int enabled = 1;
       if (unique->m_anim) {
         if (complex->m_attachmentFlags[index] & 1) {
@@ -1225,10 +1222,10 @@ int ModelAdvanceTime(HMODEL model, int timeChange) {
 
   FATALASSERT(reinterpret_cast<CModel *>(model));
   if (unique->m_flags & 0x20) {
-    CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = static_cast<CModelComplex *>(unique);
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
-    for (unsigned int index = 0; index < complex->m_attached.Count(); ++index) {
+    for (UINT index = 0; index < complex->m_attached.Count(); ++index) {
       int enabled = 1;
       if (unique->m_anim) {
         if (complex->m_attachmentFlags[index] & 1) {
@@ -1252,7 +1249,7 @@ int ModelAdvanceTime(HMODEL model, int timeChange) {
 }
 
 void ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
-  CModelBase *unique;
+  CModelBase    *unique;
   CModelComplex *complex;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
     return;
@@ -1266,7 +1263,7 @@ void ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
     complex = static_cast<CModelComplex *>(unique);
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
-    for (unsigned int index = 0; index < complex->m_attached.Count(); ++index) {
+    for (UINT index = 0; index < complex->m_attached.Count(); ++index) {
       int enabled = 1;
       if (unique->m_anim) {
         if (complex->m_attachmentFlags[index] & 1) {
@@ -1298,8 +1295,8 @@ void ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) {
 
   if (doLinkedModels && (unique->m_flags & 0x20)) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
-    unsigned int   numAttachments = complex->m_attached.Count();
-    for (unsigned int index = 0; index < numAttachments; ++index) {
+    UINT           numAttachments = complex->m_attached.Count();
+    for (UINT index = 0; index < numAttachments; ++index) {
       int enabled = !unique->m_anim || AnimIsAttachmentEnabled(unique->m_anim, index);
       if (!enabled) {
         continue;
@@ -1313,8 +1310,7 @@ void ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) {
   }
 }
 
-void
-ModelSetEventCallback(HMODEL model, void(*callback)(const char *, const NTempest::C3Vector &, void *), void *param, int doLinkedModels) {
+void ModelSetEventCallback(HMODEL model, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param, int doLinkedModels) {
   CModelBase *unique;
 
   FATALASSERT(model);
@@ -1329,8 +1325,8 @@ ModelSetEventCallback(HMODEL model, void(*callback)(const char *, const NTempest
   }
 
   if (doLinkedModels && (unique->m_flags & 0x20)) {
-    CModelComplex                              *complex = static_cast<CModelComplex *>(unique);
-    unsigned int                                numAttachments = complex->m_attached.Count();
+    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    UINT           numAttachments = complex->m_attached.Count();
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
     while (numAttachments) {
       ITERATELISTPTR(LINKUNIQUE, attached, link) {
@@ -1342,7 +1338,7 @@ ModelSetEventCallback(HMODEL model, void(*callback)(const char *, const NTempest
   }
 }
 
-int ModelApplyObjectLookAt(HMODEL model, unsigned int objectId, const NTempest::C3Vector &target) {
+int ModelApplyObjectLookAt(HMODEL model, UINT objectId, const NTempest::C3Vector &target) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1354,7 +1350,7 @@ int ModelApplyObjectLookAt(HMODEL model, unsigned int objectId, const NTempest::
   return unique->m_anim ? AnimApplyObjectLookAt(unique->m_anim, objectId, target) : 0;
 }
 
-int ModelRemoveObjectLookAt(HMODEL model, unsigned int objectId) {
+int ModelRemoveObjectLookAt(HMODEL model, UINT objectId) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1366,13 +1362,13 @@ int ModelRemoveObjectLookAt(HMODEL model, unsigned int objectId) {
   return unique->m_anim ? AnimRemoveObjectLookAt(unique->m_anim, objectId) : 0;
 }
 
-int ModelObjectUsingLookAt(HMODEL model, unsigned int objectId) {
+int ModelObjectUsingLookAt(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimObjectUsingLookAt(unique->m_anim, objectId);
 }
 
-int ModelApplyObjectFaceDir(HMODEL model, unsigned int objectId, const NTempest::C3Vector &direction) {
+int ModelApplyObjectFaceDir(HMODEL model, UINT objectId, const NTempest::C3Vector &direction) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1384,7 +1380,7 @@ int ModelApplyObjectFaceDir(HMODEL model, unsigned int objectId, const NTempest:
   return unique->m_anim ? AnimApplyObjectFaceDir(unique->m_anim, objectId, direction) : 0;
 }
 
-int ModelRemoveObjectFaceDir(HMODEL model, unsigned int objectId) {
+int ModelRemoveObjectFaceDir(HMODEL model, UINT objectId) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1396,13 +1392,13 @@ int ModelRemoveObjectFaceDir(HMODEL model, unsigned int objectId) {
   return unique->m_anim ? AnimRemoveObjectFaceDir(unique->m_anim, objectId) : 0;
 }
 
-int ModelObjectUsingFaceDir(HMODEL model, unsigned int objectId) {
+int ModelObjectUsingFaceDir(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimObjectUsingFaceDir(unique->m_anim, objectId);
 }
 
-int ModelMarkFootstepSequence(HMODEL model, unsigned int seqIndex) {
+int ModelMarkFootstepSequence(HMODEL model, UINT seqIndex) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1414,7 +1410,7 @@ int ModelMarkFootstepSequence(HMODEL model, unsigned int seqIndex) {
   return unique->m_anim ? AnimMarkFootstepSequence(unique->m_anim, seqIndex) : 0;
 }
 
-int ModelLockObjectSequence(HMODEL model, unsigned int objectId, int set) {
+int ModelLockObjectSequence(HMODEL model, UINT objectId, int set) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1488,13 +1484,13 @@ float ModelGetPrimarySequenceCompletion(HMODEL model) {
   return 0.0f;
 }
 
-int ModelEventEmitterHasKeysThisSeq(HMODEL model, unsigned int objectId) {
+int ModelEventEmitterHasKeysThisSeq(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimEventEmitterHasKeysThisSeq(unique->m_anim, objectId);
 }
 
-int ModelGetModelSpacePivot(HMODEL model, unsigned int objectId, NTempest::C3Vector *pivot) {
+int ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -1502,7 +1498,7 @@ int ModelGetModelSpacePivot(HMODEL model, unsigned int objectId, NTempest::C3Vec
          AnimGetObjectPosition(unique->m_anim, objectId, shared->positions, pivot);
 }
 
-int ModelGetObjectPosition(HMODEL model, unsigned int objectId, NTempest::C3Vector *position) {
+int ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *position) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -1516,7 +1512,7 @@ int ModelGetObjectPosition(HMODEL model, unsigned int objectId, NTempest::C3Vect
   return 1;
 }
 
-int ModelGetEventObjectPosition(HMODEL model, unsigned int objectId, int modelSpace, NTempest::C3Vector *position) {
+int ModelGetEventObjectPosition(HMODEL model, UINT objectId, int modelSpace, NTempest::C3Vector *position) {
   CModelBase *unique;
 
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) || !unique->m_anim ||

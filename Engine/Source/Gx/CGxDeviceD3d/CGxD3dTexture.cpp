@@ -19,7 +19,7 @@ static NTempest::CiRect emptyRect;
 static NTempest::CiRect lockRect;
 
 void CGxDeviceD3d::ITexForceRecreation(int freeTextures) {
-  unsigned int i = m_textures.Count();
+  UINT i = m_textures.Count();
 
   while (i) {
     CGxTex *texture = m_textures[--i];
@@ -33,12 +33,12 @@ void CGxDeviceD3d::ITexForceRecreation(int freeTextures) {
 }
 
 int CGxDeviceD3d::TexCreate(
-    unsigned int width,
-    unsigned int height,
+    UINT         width,
+    UINT         height,
     EGxTexFormat format,
     CGxTexFlags  flags,
-    void        *userArg,
-    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    LPVOID       userArg,
+    void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
     CGxTex *&texId
 ) {
   return CGxDevice::TexCreate(width, height, format, flags, userArg, userFunc, texId);
@@ -46,14 +46,14 @@ int CGxDeviceD3d::TexCreate(
 
 int CGxDeviceD3d::TexCreate(
     EGxTexTarget target,
-    unsigned int width,
-    unsigned int height,
-    unsigned int depth,
+    UINT         width,
+    UINT         height,
+    UINT         depth,
     EGxTexFormat format,
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
-    void        *userArg,
-    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    LPVOID       userArg,
+    void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
     CGxTex *&texId
 ) {
   return CGxDevice::TexCreate(target, width, height, depth, format, dataFormat, flags, userArg, userFunc, texId);
@@ -67,15 +67,15 @@ void CGxDeviceD3d::TexDestroy(CGxTex *texId) {
   CGxDevice::TexDestroy(texId);
 }
 
-void CGxDeviceD3d::ITexCreate(CGxTex *gxTex, unsigned int w, unsigned int h, unsigned int startLevel, unsigned int endLevel) {
+void CGxDeviceD3d::ITexCreate(CGxTex *gxTex, UINT w, UINT h, UINT startLevel, UINT endLevel) {
   gxTex->m_format = s_GxTexFmtToUse[gxTex->m_format];
 
   if (m_force32BitTextures && m_deviceSupports32BitTextures) {
     gxTex->m_format = GxTex_Argb8888;
   }
 
-  unsigned long usage = 0;
-  _D3DPOOL      pool = D3DPOOL_MANAGED;
+  DWORD    usage = 0;
+  _D3DPOOL pool = D3DPOOL_MANAGED;
 
   if (gxTex->m_flags.m_renderTarget) {
     usage = D3DUSAGE_RENDERTARGET;
@@ -108,10 +108,10 @@ void CGxDeviceD3d::ITexCreate(CGxTex *gxTex, unsigned int w, unsigned int h, uns
   }
 }
 
-void CGxDeviceD3d::ITexUpload(CGxTex *texId, unsigned int w, unsigned int h, unsigned int startLevel, unsigned int endLevel) {
+void CGxDeviceD3d::ITexUpload(CGxTex *texId, UINT w, UINT h, UINT startLevel, UINT endLevel) {
   IDirect3DTexture9 *texD3d = static_cast<IDirect3DTexture9 *>(texId->m_apiSpecificData);
-  unsigned int       texelStrideInBytes;
-  const void        *texels;
+  UINT               texelStrideInBytes;
+  LPCVOID            texels;
 
   texId->m_userFunc(GxTex_Lock, texId->m_width, texId->m_height, 0, 0, texId->m_userArg, texelStrideInBytes, texels);
 
@@ -119,7 +119,7 @@ void CGxDeviceD3d::ITexUpload(CGxTex *texId, unsigned int w, unsigned int h, uns
     ASSERT(w == (texId->m_width >> startLevel) && h == (texId->m_height >> startLevel));
   }
 
-  unsigned int d3dBase = startLevel;
+  UINT d3dBase = startLevel;
 
   while (startLevel != endLevel) {
     texId->m_userFunc(GxTex_Latch, w, h, 0, startLevel, texId->m_userArg, texelStrideInBytes, texels);
@@ -157,8 +157,8 @@ void CGxDeviceD3d::ITexUpload(CGxTex *texId, unsigned int w, unsigned int h, uns
         break;
       }
 
-      void *corner = reinterpret_cast<unsigned char *>(const_cast<void *>(texels)) + ((lockRect.l * s_texFormatBitDepth[texId->m_dataFormat]) >> 3) +
-                     texelStrideInBytes * lockRect.t;
+      LPVOID corner = reinterpret_cast<BYTE *>(const_cast<LPVOID>(texels)) + ((lockRect.l * s_texFormatBitDepth[texId->m_dataFormat]) >> 3) +
+                      texelStrideInBytes * lockRect.t;
 
       try {
         Blit(
@@ -196,13 +196,13 @@ void CGxDeviceD3d::ITexMarkAsUpdated(CGxTex *texId) {
   }
 
   if (texId->m_needsUpdate) {
-    unsigned int w = texId->m_width;
-    unsigned int h = texId->m_height;
-    unsigned int startLevel = 0;
-    unsigned int endLevel = 1;
+    UINT w = texId->m_width;
+    UINT h = texId->m_height;
+    UINT startLevel = 0;
+    UINT endLevel = 1;
 
     if ((texId->m_flags.m_filter >= 2 && !texId->m_flags.m_generateMipMaps) || texId->m_flags.m_forceMipTracking) {
-      unsigned int dimension = w > h ? w : h;
+      UINT dimension = w > h ? w : h;
 
       for (endLevel = 1; dimension != 1; ++endLevel) {
         dimension >>= 1;

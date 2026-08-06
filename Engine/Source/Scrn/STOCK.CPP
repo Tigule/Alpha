@@ -8,32 +8,23 @@
 #include <Services/TextBlock.h>
 
 static HTEXTFONT__ *s_stockObjects[SCRNSTOCKOBJECTS];
-static const float s_stockObjectHeights[SCRNSTOCKOBJECTS] = {
-  0.01953125f,
-  0.01953125f
-};
+static const float  s_stockObjectHeights[SCRNSTOCKOBJECTS] = {0.01953125f, 0.01953125f};
 
-void OsBuildFontFilePath(const char *fileName,
-                         char *buffer,
-                         unsigned int size);
-static void CreateSysFont(SCRNSTOCK stockID,
-                                     const char *fontFilePath) {
+void        OsBuildFontFilePath(LPCSTR fileName, char *buffer, UINT size);
+static void CreateSysFont(SCRNSTOCK stockID, LPCSTR fontFilePath) {
   ASSERT(stockID < SCRNSTOCKOBJECTS);
 
   if (s_stockObjects[stockID]) {
     HandleClose(reinterpret_cast<HOBJECT>(s_stockObjects[stockID]));
   }
 
-  s_stockObjects[stockID] = TextBlockGenerateFont(
-      fontFilePath,
-      0,
-      NDCToDDCHeight(s_stockObjectHeights[stockID]));
+  s_stockObjects[stockID] = TextBlockGenerateFont(fontFilePath, 0, NDCToDDCHeight(s_stockObjectHeights[stockID]));
 
   ASSERT(s_stockObjects[stockID]);
 }
 
 void IStockDestroy() {
-  unsigned int i;
+  UINT i;
 
   for (i = 0; i < SCRNSTOCKOBJECTS; ++i) {
     if (s_stockObjects[i]) {
@@ -61,8 +52,7 @@ HTEXTFONT__ *ScrnGetStockFont(SCRNSTOCK id) {
   return s_stockObjects[id];
 }
 
-void ScrnSetStockFont(SCRNSTOCK stockID,
-                                 const char *fontTexturePath) {
+void ScrnSetStockFont(SCRNSTOCK stockID, LPCSTR fontTexturePath) {
   FATALASSERT(stockID < SCRNSTOCKOBJECTS);
 
   FATALASSERT(fontTexturePath && *fontTexturePath);

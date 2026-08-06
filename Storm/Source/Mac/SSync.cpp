@@ -20,7 +20,7 @@ struct SYNCDATA {
   pthread_cond_t  cond;
 };
 
-static SYNCDATA *SyncData(void *opaqueData) {
+static SYNCDATA *SyncData(LPVOID opaqueData) {
   return reinterpret_cast<SYNCDATA *>(opaqueData);
 }
 
@@ -177,7 +177,7 @@ int SEvent::Reset() {
   return 1;
 }
 
-SSemaphore::SSemaphore(unsigned int initialCount, unsigned int maximumCount) {
+SSemaphore::SSemaphore(UINT initialCount, UINT maximumCount) {
   SYNCDATA *sync = SyncData(m_opaqueData);
 
   pthread_mutex_init(&sync->mutex, 0);
@@ -191,7 +191,7 @@ SSemaphore &SSemaphore::operator=(const SSemaphore &rhs) {
   return *this;
 }
 
-int SSemaphore::Signal(unsigned int count) {
+int SSemaphore::Signal(UINT count) {
   SYNCDATA *sync = SyncData(m_opaqueData);
 
   pthread_mutex_lock(&sync->mutex);
@@ -237,7 +237,7 @@ int SGetCurrentThreadPriority() {
 void SSetCurrentThreadPriority(int priority) {
 }
 
-void __cdecl SOutputDebugString(const char *format, ...) {
+void __cdecl SOutputDebugString(LPCSTR format, ...) {
   char    buffer[256];
   va_list args;
 
@@ -248,7 +248,7 @@ void __cdecl SOutputDebugString(const char *format, ...) {
   printf("%s", buffer);
 }
 
-int SThread::Create(STHREADPROC proc, void *param, SThread &thread, char *name) {
+int SThread::Create(STHREADPROC proc, LPVOID param, SThread &thread, char *name) {
   return SCreateThread(0, proc, param, 0, 0, name) != 0;
 }
 
@@ -257,8 +257,8 @@ SThread &SThread::operator=(const SThread &rhs) {
   return *this;
 }
 
-DWORD WaitMultiplePtr(unsigned int count, SSyncObject **const objectPtrs, int waitAll, DWORD timeoutMs) {
-  unsigned int index;
+DWORD WaitMultiplePtr(UINT count, SSyncObject **const objectPtrs, int waitAll, DWORD timeoutMs) {
+  UINT index;
 
   for (index = 0; index < count; ++index) {
     DWORD result = objectPtrs[index]->Wait(waitAll ? timeoutMs : 0);

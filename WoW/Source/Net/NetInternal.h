@@ -12,10 +12,10 @@ NODEDECL(NETEVENTQUEUENODE) {
     FREEIFUSED(m_data);
   }
 
-  EVENTID       m_eventId;
-  unsigned long m_timeReceived;
-  void         *m_data;
-  unsigned long m_dataSize;
+  EVENTID m_eventId;
+  DWORD   m_timeReceived;
+  LPVOID  m_data;
+  DWORD   m_dataSize;
 };
 
 class NETEVENTQUEUE {
@@ -29,12 +29,12 @@ class NETEVENTQUEUE {
   NETEVENTQUEUE(NetClient *client);
   ~NETEVENTQUEUE();
 
-  void AddEvent(EVENTID eventId, void *conn, NetClient *client, const void *data, unsigned long bytes);
+  void AddEvent(EVENTID eventId, LPVOID conn, NetClient *client, LPCVOID data, DWORD bytes);
   void Poll();
 
  private:
-  NetClient                                               *m_client;
-  SCritSect                                                m_critsect;
+  NetClient *m_client;
+  SCritSect  m_critsect;
   LISTDECL(NETEVENTQUEUENODE, m_eventQueue);
 };
 

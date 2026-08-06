@@ -7,13 +7,13 @@ class WMOAreaTableRec {
   WMOAreaTableRec();
   ~WMOAreaTableRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 23;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 92;
   }
 
@@ -28,24 +28,24 @@ class WMOAreaTableRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_WMOID;
-  int         m_NameSetID;
-  int         m_WMOGroupID;
-  int         m_DayAmbienceSoundID;
-  int         m_NightAmbienceSoundID;
-  int         m_SoundProviderPref;
-  int         m_SoundProviderPrefUnderwater;
-  int         m_MIDIAmbience;
-  int         m_MIDIAmbienceUnderwater;
-  int         m_ZoneMusic;
-  int         m_IntroSound;
-  int         m_IntroPriority;
-  int         m_Flags;
-  const char *m_AreaName_lang[NUM_LOCALES];
-  int         m_AreaName_flag;
+  int    m_ID;
+  int    m_WMOID;
+  int    m_NameSetID;
+  int    m_WMOGroupID;
+  int    m_DayAmbienceSoundID;
+  int    m_NightAmbienceSoundID;
+  int    m_SoundProviderPref;
+  int    m_SoundProviderPrefUnderwater;
+  int    m_MIDIAmbience;
+  int    m_MIDIAmbienceUnderwater;
+  int    m_ZoneMusic;
+  int    m_IntroSound;
+  int    m_IntroPriority;
+  int    m_Flags;
+  LPCSTR m_AreaName_lang[NUM_LOCALES];
+  int    m_AreaName_flag;
 };
 
 extern WowClientDB<WMOAreaTableRec> g_wMOAreaTableDB;

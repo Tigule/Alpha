@@ -8,10 +8,10 @@ static const float MIN_EDGE_LIFE_SPAN = 0.25f;
 static const float NORMAL_SCALE = 1.0f;
 
 static void DuplicateTextureArray(const TSGrowableArray<HTEXTURE> &src, TSGrowableArray<HTEXTURE> *dst) {
-  unsigned int numTextures = src.Count();
+  UINT numTextures = src.Count();
   dst->SetCount(numTextures);
 
-  for (unsigned int i = 0; i < numTextures; ++i) {
+  for (UINT i = 0; i < numTextures; ++i) {
     (*dst)[i] = static_cast<HTEXTURE>(HandleDuplicate(reinterpret_cast<HOBJECT>(src[i])));
   }
 }
@@ -70,7 +70,7 @@ void CRibbonEmitter::InitInterpDeltas() {
   m_currDirScaled = m_currDir * scale;
 }
 
-void CRibbonEmitter::InterpEdge(float age, float t, unsigned int advance) {
+void CRibbonEmitter::InterpEdge(float age, float t, UINT advance) {
   CRibbonVertex &v0 = m_gxVertices[2 * m_writePos];
   float          w0 = 1.0f - t;
 
@@ -82,7 +82,7 @@ void CRibbonEmitter::InterpEdge(float age, float t, unsigned int advance) {
   ASSERT(m_writePos != m_readPos || advance == 0);
 }
 
-void CRibbonEmitter::Advance(unsigned int &pos, unsigned int amount) {
+void CRibbonEmitter::Advance(UINT &pos, UINT amount) {
   ASSERT(amount <= m_edges.Count());
 
   pos += amount;
@@ -92,8 +92,8 @@ void CRibbonEmitter::Advance(unsigned int &pos, unsigned int amount) {
 }
 
 void CRibbonEmitter::ConvertTexSlotToTexCoords() {
-  unsigned int col = m_texSlot % m_cols;
-  unsigned int row = m_texSlot / m_cols;
+  UINT col = m_texSlot % m_cols;
+  UINT row = m_texSlot / m_cols;
 
   m_texSlotBox.l = col * m_tmpDU + m_texBox.l;
   m_texSlotBox.t = row * m_tmpDV + m_texBox.t;
@@ -102,8 +102,8 @@ void CRibbonEmitter::ConvertTexSlotToTexCoords() {
 }
 
 void CRibbonEmitter::CloseTextureHandles() {
-  unsigned int count = m_textures.Count();
-  unsigned int index;
+  UINT count = m_textures.Count();
+  UINT index;
 
   for (index = 0; index < count; ++index) {
     if (m_textures[index]) {
@@ -169,19 +169,19 @@ const CRibbonEmitter &CRibbonEmitter::operator=(const CRibbonEmitter &rhs) {
 }
 
 void CRibbonEmitter::Initialize(
-    float                                edgesPerSec,
-    float                                edgeLifeSpanInSec,
-    const NTempest::CImVector           &diffuseClr,
-    const TSGrowableArray<HTEXTURE>     &textures,
-    const TSGrowableArray<CRibbonMat>   &materials,
-    const TSGrowableArray<unsigned int> &replaces,
-    const NTempest::CRect               &texBox,
-    unsigned int                         rows,
-    unsigned int                         cols
+    float                              edgesPerSec,
+    float                              edgeLifeSpanInSec,
+    const NTempest::CImVector         &diffuseClr,
+    const TSGrowableArray<HTEXTURE>   &textures,
+    const TSGrowableArray<CRibbonMat> &materials,
+    const TSGrowableArray<UINT>       &replaces,
+    const NTempest::CRect             &texBox,
+    UINT                               rows,
+    UINT                               cols
 ) {
-  unsigned int numEdges;
-  unsigned int t;
-  unsigned int count;
+  UINT numEdges;
+  UINT t;
+  UINT count;
 
   ASSERT(!m_initialized);
   ASSERT(edgesPerSec >= 1.0f);
@@ -194,7 +194,7 @@ void CRibbonEmitter::Initialize(
     edgeLifeSpanInSec = MIN_EDGE_LIFE_SPAN;
   }
 
-  numEdges = static_cast<unsigned int>(ceil(edgesPerSec * edgeLifeSpanInSec) + 2.0);
+  numEdges = static_cast<UINT>(ceil(edgesPerSec * edgeLifeSpanInSec) + 2.0);
   m_edges.SetCount(numEdges);
   m_readPos = 0;
   m_writePos = 0;
@@ -209,7 +209,7 @@ void CRibbonEmitter::Initialize(
 
   m_gxIndices.SetCount(4 * numEdges);
   for (t = 0; t < m_gxIndices.Count(); ++t) {
-    m_gxIndices[t] = static_cast<unsigned short>(t % (2 * numEdges));
+    m_gxIndices[t] = static_cast<WORD>(t % (2 * numEdges));
   }
 
   m_ooLifeSpan = 1.0f / edgeLifeSpanInSec;
@@ -243,10 +243,10 @@ void CRibbonEmitter::Initialize(
   m_initialized = 1;
 }
 
-unsigned int CRibbonEmitter::ReplaceTexture(unsigned int replaceableId, HTEXTURE texture) {
-  unsigned int numReplaced = 0;
+UINT CRibbonEmitter::ReplaceTexture(UINT replaceableId, HTEXTURE texture) {
+  UINT numReplaced = 0;
 
-  for (unsigned int index = 0; index < m_replaces.Count(); ++index) {
+  for (UINT index = 0; index < m_replaces.Count(); ++index) {
     if (m_replaces[index] == replaceableId) {
       if (m_textures[index]) {
         HandleClose(m_textures[index]);
@@ -266,7 +266,7 @@ void CRibbonEmitter::SetEnabled(int enable_) {
   }
 }
 
-void CRibbonEmitter::SetTexSlot(unsigned int slot) {
+void CRibbonEmitter::SetTexSlot(UINT slot) {
   ASSERT(slot < m_rows * m_cols);
   if (m_texSlot != slot) {
     m_texSlot = slot;
@@ -320,9 +320,9 @@ void CRibbonEmitter::SetPos(const NTempest::C44Matrix &orient, const NTempest::C
 }
 
 void CRibbonEmitter::SetMats(
-    const TSGrowableArray<CRibbonMat>   &materials,
-    const TSGrowableArray<HTEXTURE>     &textures,
-    const TSGrowableArray<unsigned int> &replaces
+    const TSGrowableArray<CRibbonMat> &materials,
+    const TSGrowableArray<HTEXTURE>   &textures,
+    const TSGrowableArray<UINT>       &replaces
 ) {
   ASSERT(materials.Count() == textures.Count());
   ASSERT(textures.Count() == replaces.Count());
@@ -334,12 +334,7 @@ void CRibbonEmitter::SetMats(
 }
 
 void CRibbonEmitter::SetColor(const float r, const float g, const float b) {
-  m_diffuseClr.Set(
-      m_diffuseClr.a,
-      NTempest::CMath::fuint_n(r * 255.0f),
-      NTempest::CMath::fuint_n(g * 255.0f),
-      NTempest::CMath::fuint_n(b * 255.0f)
-  );
+  m_diffuseClr.Set(m_diffuseClr.a, NTempest::CMath::fuint_n(r * 255.0f), NTempest::CMath::fuint_n(g * 255.0f), NTempest::CMath::fuint_n(b * 255.0f));
 }
 
 void CRibbonEmitter::SetAlpha(const float a) {
@@ -390,7 +385,7 @@ void CRibbonEmitter::Update(float elapsedSec, int suppressNewEdges) {
     v1Vertex.texCoord.y = m_texSlotBox.b;
   }
 
-  unsigned int start = m_readPos;
+  UINT start = m_readPos;
   while (start != m_writePos) {
     CRibbonVertex *v0 = &m_gxVertices[2 * start];
     CRibbonVertex *v1 = &m_gxVertices[2 * start + 1];
@@ -422,9 +417,7 @@ int CRibbonEmitter::Render() {
   }
 
   NTempest::C44Matrix worldToCamera;
-  worldToCamera.Translate(
-      NTempest::C3Vector(-m_cameraPos.x, -m_cameraPos.y, -m_cameraPos.z)
-  );
+  worldToCamera.Translate(NTempest::C3Vector(-m_cameraPos.x, -m_cameraPos.y, -m_cameraPos.z));
 
   GxXformPush(GxXform_World, worldToCamera);
   GxVertexShaderSelect(GxVS_PassThru);
@@ -434,7 +427,7 @@ int CRibbonEmitter::Render() {
       sizeof(CRibbonVertex), 0, 0
   );
 
-  unsigned int indexCount;
+  UINT indexCount;
   if (m_readPos < m_writePos) {
     indexCount = 2 * (m_writePos - m_readPos) + 2;
   } else {
@@ -443,8 +436,8 @@ int CRibbonEmitter::Render() {
 
   GxPrimLockIndexPtr(GxPrim_TriangleStrip, indexCount, m_gxIndices.Ptr() + 2 * m_readPos);
 
-  unsigned int numMaterials = m_materials.Count();
-  unsigned int index;
+  UINT numMaterials = m_materials.Count();
+  UINT index;
   for (index = 0; index < numMaterials; ++index) {
     GxRsPush();
     GxRsSet(GxRs_Lighting, m_materials[index].enableLighting);
@@ -469,15 +462,15 @@ int CRibbonEmitter::IsDead() {
 }
 
 void CRibbonEmitter::MaterialDisableLight(int disable) {
-  unsigned int numMaterials = m_materials.Count();
-  for (unsigned int i = 0; i < numMaterials; ++i) {
+  UINT numMaterials = m_materials.Count();
+  for (UINT i = 0; i < numMaterials; ++i) {
     m_materials[i].enableLighting = !disable;
   }
 }
 
 void CRibbonEmitter::MaterialDisableFog(int disable) {
-  unsigned int numMaterials = m_materials.Count();
-  for (unsigned int i = 0; i < numMaterials; ++i) {
+  UINT numMaterials = m_materials.Count();
+  for (UINT i = 0; i < numMaterials; ++i) {
     m_materials[i].enableFog = !disable;
   }
 }
@@ -492,4 +485,3 @@ void CRibbonEmitter::DecRef() {
     DEL(this);
   }
 }
-

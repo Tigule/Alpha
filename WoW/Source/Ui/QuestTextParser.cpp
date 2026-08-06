@@ -16,20 +16,20 @@
 
 #include <FrameScript/FrameScript.h>
 
-static const char *token;
-static int         s_lastNumber;
+static LPCSTR token;
+static int    s_lastNumber;
 
-int Spell_C_GetSpellLevel(int id, int isPet);
-int Spell_C_GetManaCost(int id, int isPet);
-int Spell_C_GetManaCostPerSecond(int id, int isPet);
-void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet);
+int  Spell_C_GetSpellLevel(int id, int isPet);
+int  Spell_C_GetManaCost(int id, int isPet);
+int  Spell_C_GetManaCostPerSecond(int id, int isPet);
+void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, UINT level, int isPet);
 
-bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
+bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
 
-bool QuestParserGenderConditional(char *buf, unsigned int size, const unsigned __int64 &target, const NameCache *nc) {
-  char        temp[1024];
-  const char *semi;
-  CGUnit_C   *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
+bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &target, const NameCache *nc) {
+  char      temp[1024];
+  LPCSTR    semi;
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
 
   if (!unit && !nc) {
     return false;
@@ -63,7 +63,7 @@ bool QuestParserGenderConditional(char *buf, unsigned int size, const unsigned _
   }
 
   if (semi != token) {
-    unsigned int length = SStrLen(buf);
+    UINT length = SStrLen(buf);
     SStrPack(buf, token, size);
     buf[length + semi - token] = 0;
     while (length < SStrLen(buf) && buf[SStrLen(buf) - 1] == ' ') {
@@ -77,7 +77,7 @@ bool QuestParserGenderConditional(char *buf, unsigned int size, const unsigned _
   return true;
 }
 
-bool QuestParserReplaceText(char *buf, unsigned int size, const unsigned __int64 &target, const NameCache *nc) {
+bool QuestParserReplaceText(char *buf, UINT size, const DWORDLONG &target, const NameCache *nc) {
   char      race[32];
   char      classStr[32];
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
@@ -97,7 +97,7 @@ bool QuestParserReplaceText(char *buf, unsigned int size, const unsigned __int64
 
     case 'C':
     case 'c': {
-      unsigned int   classID = unit ? unit->GetUnitData()->classId : nc->m_race;
+      UINT                 classID = unit ? unit->GetUnitData()->classId : nc->m_race;
       const ChrClassesRec *classRec = g_chrClassesDB.GetRecord(classID);
       SStrCopy(classStr, classRec->m_name_lang[CURRENT_LANGUAGE], sizeof(classStr));
       if (*token == 'c') {
@@ -143,12 +143,12 @@ bool QuestParserReplaceText(char *buf, unsigned int size, const unsigned __int64
   return true;
 }
 
-bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken) {
-  const char      *oldToken;
+bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken) {
+  LPCSTR           oldToken;
   const NameCache *nc;
-  unsigned int     length;
-  unsigned int     oldLen;
-  unsigned int     error;
+  UINT             length;
+  UINT             oldLen;
+  UINT             error;
 
   FATALASSERT(text);
   FATALASSERT(buf);
@@ -184,7 +184,7 @@ bool QuestParserParseText(const char *text, char *buf, unsigned int size, const 
   return error == 0;
 }
 
-bool SpellParserGenderConditional(char *buf, unsigned int size) {
+bool SpellParserGenderConditional(char *buf, UINT size) {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return false;
@@ -195,16 +195,16 @@ bool SpellParserGenderConditional(char *buf, unsigned int size) {
   if (!*token) {
     return true;
   }
-  const char *semi = SStrChr(token, ':');
+  LPCSTR semi = SStrChr(token, ':');
   if (!semi) {
     return true;
   }
-  const char *end = SStrChr(semi, ';');
+  LPCSTR end = SStrChr(semi, ';');
   if (!end) {
     return true;
   }
-  const char *text = token;
-  const char *stop = semi;
+  LPCSTR text = token;
+  LPCSTR stop = semi;
   if (player->GetUnitData()->sex) {
     text = semi + 1;
     while (*text == ' ') {
@@ -213,7 +213,7 @@ bool SpellParserGenderConditional(char *buf, unsigned int size) {
     stop = end;
   }
   if (stop != text) {
-    unsigned int oldLen = SStrLen(buf);
+    UINT oldLen = SStrLen(buf);
     SStrPack(buf, text, size);
     buf[oldLen + stop - text] = 0;
     while (oldLen < SStrLen(buf) && buf[SStrLen(buf) - 1] == ' ') {
@@ -224,23 +224,23 @@ bool SpellParserGenderConditional(char *buf, unsigned int size) {
   return true;
 }
 
-bool SpellParserPluralConditional(char *buf, unsigned int size, int ordinal) {
+bool SpellParserPluralConditional(char *buf, UINT size, int ordinal) {
   while (*token == ' ') {
     ++token;
   }
   if (!*token) {
     return true;
   }
-  const char *semi = SStrChr(token, ':');
+  LPCSTR semi = SStrChr(token, ':');
   if (!semi) {
     return true;
   }
-  const char *end = SStrChr(semi, ';');
+  LPCSTR end = SStrChr(semi, ';');
   if (!end) {
     return true;
   }
-  const char *text = token;
-  const char *stop = semi;
+  LPCSTR text = token;
+  LPCSTR stop = semi;
   if (FrameScript_GetPluralIndex(ordinal)) {
     text = semi + 1;
     while (*text == ' ') {
@@ -249,7 +249,7 @@ bool SpellParserPluralConditional(char *buf, unsigned int size, int ordinal) {
     stop = end;
   }
   if (stop != text) {
-    unsigned int oldLen = SStrLen(buf);
+    UINT oldLen = SStrLen(buf);
     SStrPack(buf, text, size);
     buf[oldLen + stop - text] = 0;
     while (oldLen < SStrLen(buf) && buf[SStrLen(buf) - 1] == ' ') {
@@ -260,12 +260,12 @@ bool SpellParserPluralConditional(char *buf, unsigned int size, int ordinal) {
   return true;
 }
 
-int SpellParserReplaceText(char *buf, unsigned int size, const SpellRec *spell, int level, int isPet) {
+int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, int level, int isPet) {
   if (!spell) {
     return 0;
   }
-  unsigned int effect = 0;
-  int          indexed = token[1] >= '1' && token[1] <= '9';
+  UINT effect = 0;
+  int  indexed = token[1] >= '1' && token[1] <= '9';
   if (indexed) {
     effect = token[1] - '1';
     if (effect >= 3) {
@@ -300,8 +300,7 @@ int SpellParserReplaceText(char *buf, unsigned int size, const SpellRec *spell, 
           char format[64];
           char formatted[64];
           SStrCopy(
-              format,
-              FrameScript_GetText(milliseconds < 60000 ? "SPELL_DURATION_SEC" : "SPELL_DURATION_MIN", -1, GENDER_NOT_APPLICABLE),
+              format, FrameScript_GetText(milliseconds < 60000 ? "SPELL_DURATION_SEC" : "SPELL_DURATION_MIN", -1, GENDER_NOT_APPLICABLE),
               sizeof(format)
           );
           SStrPrintf(formatted, sizeof(formatted), format, milliseconds / (milliseconds >= 60000 ? 60000 : 1000));
@@ -364,13 +363,7 @@ int SpellParserReplaceText(char *buf, unsigned int size, const SpellRec *spell, 
       } else if (min == max) {
         SStrPrintf(string, sizeof(string), "%d", min);
       } else {
-        SStrPrintf(
-            string,
-            sizeof(string),
-            FrameScript_GetText("SPELL_POINTS_SPREAD_TEMPLATE", -1, GENDER_NOT_APPLICABLE),
-            min,
-            max
-        );
+        SStrPrintf(string, sizeof(string), FrameScript_GetText("SPELL_POINTS_SPREAD_TEMPLATE", -1, GENDER_NOT_APPLICABLE), min, max);
       }
       SStrPack(buf, string, size);
       break;
@@ -411,18 +404,18 @@ int SpellParserReplaceText(char *buf, unsigned int size, const SpellRec *spell, 
   return 1;
 }
 
-int SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet) {
+int SpellParserParseText(const SpellRec *spell, char *buf, UINT size, int isPet) {
   FATALASSERT(spell);
   FATALASSERT(buf);
   buf[0] = 0;
-  const char *text = spell->m_description_lang[CURRENT_LANGUAGE];
+  LPCSTR text = spell->m_description_lang[CURRENT_LANGUAGE];
   token = SStrChr(text, '$');
   int level = Spell_C_GetSpellLevel(spell->m_ID, isPet);
   int error = 0;
   while (token && *token) {
-    unsigned int length = token - text;
+    UINT length = token - text;
     if (length) {
-      unsigned int oldLen = SStrLen(buf);
+      UINT oldLen = SStrLen(buf);
       SStrPack(buf, text, size);
       buf[oldLen + length] = 0;
     }

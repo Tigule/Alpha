@@ -11,56 +11,56 @@
 #include <intrin.h>
 #endif
 
-static int     s_qpcExists;
-static int     s_qpcExistsTested;
-static float   s_qpcScaleToMs;
-static __int64 s_cpuTicksPerSecond;
-static float   s_cpuTicksDivisor;
-static __int64 s_lastTimeAndTickCount;
+static int      s_qpcExists;
+static int      s_qpcExistsTested;
+static float    s_qpcScaleToMs;
+static LONGLONG s_cpuTicksPerSecond;
+static float    s_cpuTicksDivisor;
+static LONGLONG s_lastTimeAndTickCount;
 
 class OsTimeManager {
-  public:
-    OsTimeManager();
-    ~OsTimeManager();
+ public:
+  OsTimeManager();
+  ~OsTimeManager();
 
-    void Shutdown();
+  void Shutdown();
 
-  private:
-    struct TimeSnapshot {
-      __int64       rdtsc;
-      unsigned long tickCount;
+ private:
+  struct TimeSnapshot {
+    LONGLONG rdtsc;
+    DWORD    tickCount;
 
-      LARGE_INTEGER qperfCount;
-    };
+    LARGE_INTEGER qperfCount;
+  };
 
-    void Snapshot(TimeSnapshot* time);
-    static unsigned int __stdcall TimeKeeper(void*);
-    void Calibrate();
+  void                  Snapshot(TimeSnapshot *time);
+  static UINT __stdcall TimeKeeper(LPVOID);
+  void                  Calibrate();
 
-  public:
-    __int64 cpuTicksPerSecond_qp;
-    __int64 cpuTicksPerSecond_ti;
+ public:
+  LONGLONG cpuTicksPerSecond_qp;
+  LONGLONG cpuTicksPerSecond_ti;
 
-  private:
-    SThread       timeMgrThread;
-    SEvent        shutdownEvt;
-    unsigned long sleepVal;
-    int           hasQPF;
+ private:
+  SThread timeMgrThread;
+  SEvent  shutdownEvt;
+  DWORD   sleepVal;
+  int     hasQPF;
 };
 
-static OsTimeManager* s_OsTimeMgr;
+static OsTimeManager *s_OsTimeMgr;
 
 #if defined(_MSC_VER) && _MSC_VER < 1400 && defined(_M_IX86)
-__declspec(naked) __int64 __cdecl OsGetAsyncTimeClocks() {
+__declspec(naked) LONGLONG __cdecl OsGetAsyncTimeClocks() {
   __asm {
     rdtsc
     ret
   }
 }
 #else
-__int64 __cdecl OsGetAsyncTimeClocks() {
+LONGLONG __cdecl OsGetAsyncTimeClocks() {
 #if defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(_M_IX86) || defined(_M_X64))
-  return static_cast<__int64>(__rdtsc());
+  return static_cast<LONGLONG>(__rdtsc());
 #else
   LARGE_INTEGER clocks;
   QueryPerformanceCounter(&clocks);
@@ -69,12 +69,12 @@ __int64 __cdecl OsGetAsyncTimeClocks() {
 }
 #endif
 
-__int64 OsGetAsyncClocksPerSecond() {
+LONGLONG OsGetAsyncClocksPerSecond() {
   LARGE_INTEGER qwTickStart;
   LARGE_INTEGER qwTickEnd;
   LARGE_INTEGER liPerfFreq;
-  __int64       start;
-  __int64       end;
+  LONGLONG      start;
+  LONGLONG      end;
   int           priority;
   HANDLE        thread;
 
@@ -147,76 +147,73 @@ float OsGetAsyncTimeSec() {
   return (float)GetTickCount() * 0.001f;
 }
 
-void OsGetTimeStr(char* timebuf, unsigned long len) {
+void OsGetTimeStr(char *timebuf, DWORD len) {
   time_t ltime;
   time(&ltime);
   SStrCopy(timebuf, ctime(&ltime), len);
   *SStrChrR(timebuf, '\n') = 0;
 }
 
-void OsGetTimeStamp(char *timeStamp, unsigned long len) {
+void OsGetTimeStamp(char *timeStamp, DWORD len) {
   time_t ltime;
 
   time(&ltime);
   strftime(timeStamp, len, "%m%d%y_%H%M%S", localtime(&ltime));
 }
 
-void OsGetTimeStr(char* timebuf, unsigned long len, const char* format, long timer) {
+void OsGetTimeStr(char *timebuf, DWORD len, LPCSTR format, long timer) {
   strftime(timebuf, len, format, localtime(&timer));
 }
 
-long OsGetTime(long* timer) {
+long OsGetTime(long *timer) {
   return time(timer);
 }
 
-void OsFileTimeGetCurrent(OSFILETIME* filetime) {
+void OsFileTimeGetCurrent(OSFILETIME *filetime) {
   FATALASSERT(filetime);
   SYSTEMTIME systime;
   GetSystemTime(&systime);
   SystemTimeToFileTime(&systime, reinterpret_cast<FILETIME *>(&filetime->m_value));
 }
 
-int OsFileTimeCompare(const OSFILETIME* filetime1, const OSFILETIME* filetime2) {
+int OsFileTimeCompare(const OSFILETIME *filetime1, const OSFILETIME *filetime2) {
   FATALASSERT(filetime1);
   FATALASSERT(filetime2);
-  return CompareFileTime(
-      reinterpret_cast<const FILETIME *>(&filetime1->m_value),
-      reinterpret_cast<const FILETIME *>(&filetime2->m_value)
-  );
+  return CompareFileTime(reinterpret_cast<const FILETIME *>(&filetime1->m_value), reinterpret_cast<const FILETIME *>(&filetime2->m_value));
 }
 
-void OsFileTimeAdd(OSFILETIME* filetime, unsigned int seconds) {
+void OsFileTimeAdd(OSFILETIME *filetime, UINT seconds) {
   FATALASSERT(filetime);
   filetime->m_value += 10000000ui64 * seconds;
 }
 
-unsigned __int64 OsGetAsyncThreadTimeMs() {
+DWORDLONG OsGetAsyncThreadTimeMs() {
   return GetTickCount();
 }
 
-unsigned long OsGetTime() {
-  __int64              lastTimeAndTickCount;
-  __int64              currTimeAndTickCount;
-  __int64              observedTimeAndTickCount;
-  unsigned long       *curr;
-  const unsigned long *last;
-  const unsigned long *observed;
+DWORD OsGetTime() {
+  LONGLONG     lastTimeAndTickCount;
+  LONGLONG     currTimeAndTickCount;
+  LONGLONG     observedTimeAndTickCount;
+  DWORD       *curr;
+  const DWORD *last;
+  const DWORD *observed;
 
-  curr = reinterpret_cast<unsigned long *>(&currTimeAndTickCount);
+  curr = reinterpret_cast<DWORD *>(&currTimeAndTickCount);
   currTimeAndTickCount = GetTickCount();
 
   lastTimeAndTickCount = SInterlockedRead(&s_lastTimeAndTickCount);
-  last = reinterpret_cast<const unsigned long *>(&lastTimeAndTickCount);
+  last = reinterpret_cast<const DWORD *>(&lastTimeAndTickCount);
 
   if (last[1] && static_cast<long>(curr[0] - last[0]) < 500) {
     return last[1];
   }
 
-  currTimeAndTickCount |= static_cast<__int64>(time(0)) << 32;
+  currTimeAndTickCount |= static_cast<LONGLONG>(time(0)) << 32;
   observedTimeAndTickCount = SInterlockedCompareExchange(&s_lastTimeAndTickCount, currTimeAndTickCount, lastTimeAndTickCount);
 
   if (observedTimeAndTickCount != lastTimeAndTickCount) {
-    observed = reinterpret_cast<const unsigned long *>(&observedTimeAndTickCount);
+    observed = reinterpret_cast<const DWORD *>(&observedTimeAndTickCount);
     return observed[1];
   }
 
@@ -268,11 +265,11 @@ int OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTim
 }
 
 void OsTimeToFileTime(DWORD time, OSFILETIME *fileTime) {
-  unsigned __int64 value;
+  DWORDLONG value;
 
   FATALASSERT(fileTime);
 
-  value = ((unsigned __int64)time + 11644473600ui64) * 10000000ui64;
+  value = ((DWORDLONG)time + 11644473600ui64) * 10000000ui64;
   fileTime->m_value = value;
 }
 
@@ -311,12 +308,11 @@ void OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime) {
   OsFileTimeToSystemTime(&localFileTime, localSysTime);
 }
 
-OsTimeManager::OsTimeManager()
-  : shutdownEvt(1, 0) {
+OsTimeManager::OsTimeManager() : shutdownEvt(1, 0) {
   s_OsTimeMgr = this;
   sleepVal = 50;
   shutdownEvt.Reset();
-  SThread::Create(TimeKeeper, 0, timeMgrThread, const_cast<char*>("OsTime"));
+  SThread::Create(TimeKeeper, 0, timeMgrThread, const_cast<char *>("OsTime"));
 }
 
 OsTimeManager::~OsTimeManager() {
@@ -326,9 +322,9 @@ void OsTimeManager::Shutdown() {
   shutdownEvt.Set();
 }
 
-void OsTimeManager::Snapshot(TimeSnapshot* time) {
+void OsTimeManager::Snapshot(TimeSnapshot *time) {
   HANDLE thread = GetCurrentThread();
-  int priority = GetThreadPriority(thread);
+  int    priority = GetThreadPriority(thread);
 
   if (priority != THREAD_PRIORITY_ERROR_RETURN) {
     SetThreadPriority(GetCurrentThread(), priority);
@@ -342,14 +338,12 @@ void OsTimeManager::Snapshot(TimeSnapshot* time) {
   }
 }
 
-unsigned int __stdcall OsTimeManager::TimeKeeper(void*) {
+UINT __stdcall OsTimeManager::TimeKeeper(LPVOID) {
   s_OsTimeMgr->Calibrate();
 
-  OsTimeManager* timeMgr;
+  OsTimeManager *timeMgr;
   do {
-    timeMgr = reinterpret_cast<OsTimeManager*>(
-        SInterlockedExchange(reinterpret_cast<long*>(&s_OsTimeMgr), 0)
-    );
+    timeMgr = reinterpret_cast<OsTimeManager *>(SInterlockedExchange(reinterpret_cast<long *>(&s_OsTimeMgr), 0));
   } while (!timeMgr);
 
   delete timeMgr;
@@ -359,9 +353,9 @@ unsigned int __stdcall OsTimeManager::TimeKeeper(void*) {
 
 void OsTimeManager::Calibrate() {
   LARGE_INTEGER qPerfFreq;
-  TimeSnapshot baseTime;
-  TimeSnapshot interval;
-  SSyncObject* waitObjectPtrs[1];
+  TimeSnapshot  baseTime;
+  TimeSnapshot  interval;
+  SSyncObject  *waitObjectPtrs[1];
 
   if (QueryPerformanceFrequency(&qPerfFreq) && qPerfFreq.QuadPart) {
     hasQPF = 1;
@@ -377,22 +371,18 @@ void OsTimeManager::Calibrate() {
       break;
     }
 
-    __int64 deltaCpu = interval.rdtsc - baseTime.rdtsc;
+    LONGLONG deltaCpu = interval.rdtsc - baseTime.rdtsc;
 
     if (hasQPF) {
       if (interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) {
-        cpuTicksPerSecond_qp =
-            static_cast<__int64>(
-                (double)qPerfFreq.QuadPart /
-                (double)(interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) *
-                (double)deltaCpu
-            );
+        cpuTicksPerSecond_qp = static_cast<LONGLONG>(
+            (double)qPerfFreq.QuadPart / (double)(interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) * (double)deltaCpu
+        );
       }
     }
 
     if (interval.tickCount - baseTime.tickCount) {
-      cpuTicksPerSecond_ti =
-          1000 * deltaCpu / (interval.tickCount - baseTime.tickCount);
+      cpuTicksPerSecond_ti = 1000 * deltaCpu / (interval.tickCount - baseTime.tickCount);
     }
 
     if (hasQPF && cpuTicksPerSecond_qp) {
@@ -419,15 +409,10 @@ void OsTimeStartup() {
 }
 
 void OsTimeShutdown() {
-  OsTimeManager* timeMgr = reinterpret_cast<OsTimeManager*>(
-      SInterlockedExchange(reinterpret_cast<long*>(&s_OsTimeMgr), 0)
-  );
+  OsTimeManager *timeMgr = reinterpret_cast<OsTimeManager *>(SInterlockedExchange(reinterpret_cast<long *>(&s_OsTimeMgr), 0));
 
   if (timeMgr) {
     timeMgr->Shutdown();
-    SInterlockedExchange(
-        reinterpret_cast<long*>(&s_OsTimeMgr),
-        reinterpret_cast<long>(timeMgr)
-    );
+    SInterlockedExchange(reinterpret_cast<long *>(&s_OsTimeMgr), reinterpret_cast<long>(timeMgr));
   }
 }

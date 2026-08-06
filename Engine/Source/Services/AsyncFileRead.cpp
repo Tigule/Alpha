@@ -8,24 +8,24 @@
 #define OSWAIT_OBJECT_0 WAIT_OBJECT_0
 #define OSWAIT_TIMEOUT  WAIT_TIMEOUT
 
-static int AsyncFileReadPollHandler(const void *, void *);
-static unsigned int APIENTRY AsyncFileReadThread(void *param);
+static int           AsyncFileReadPollHandler(LPCVOID, LPVOID);
+static UINT APIENTRY AsyncFileReadThread(LPVOID param);
 
-static unsigned int                              s_waiting;
+static UINT s_waiting;
 static LISTDECLEX(CAsyncObject, link, s_asyncFileReadList);
 static LISTDECLEX(CAsyncObject, link, s_asyncFileReadFreeList);
 static LISTDECLEX(CAsyncObject, link, s_asyncFileReadPostList);
-static CAsyncObject                             *s_asyncCurrentObject;
-static HPROPCONTEXT                              s_propContext;
-static SCritSect                                 s_queueLock;
-static SThread                                   s_asyncReadThread;
-static SEvent                                    s_shutdownEvent(1, 0);
-static SEvent                                    s_queueEvent(0, 0);
-static CAsyncObject volatile                    *s_asyncWaitObject;
-static TSGrowableArray<void(*)(void)> s_handlers;
+static CAsyncObject                   *s_asyncCurrentObject;
+static HPROPCONTEXT                    s_propContext;
+static SCritSect                       s_queueLock;
+static SThread                         s_asyncReadThread;
+static SEvent                          s_shutdownEvent(1, 0);
+static SEvent                          s_queueEvent(0, 0);
+static CAsyncObject volatile          *s_asyncWaitObject;
+static TSGrowableArray<void (*)(void)> s_handlers;
 
-static unsigned int APIENTRY AsyncFileReadThread(void *param) {
-  unsigned long waitResult;
+static UINT APIENTRY AsyncFileReadThread(LPVOID param) {
+  DWORD waitResult;
 
   PropSelectContext(s_propContext);
 
@@ -104,8 +104,8 @@ void AsyncFileReadDestroy() {
   EventUnregisterEx(EVENT_ID_POLL, AsyncFileReadPollHandler, 0, 0xFFFFFFFF);
 }
 
-void AsyncFileReadAddHandler(void(*handler)()) {
-  unsigned int index;
+void AsyncFileReadAddHandler(void (*handler)()) {
+  UINT index;
 
   for (index = 0; index < s_handlers.Count(); ++index) {
     if (s_handlers[index] == handler) {
@@ -162,7 +162,7 @@ void AsyncFileReadDestroyObject(CAsyncObject *object) {
 }
 
 void AsyncFileReadObject(CAsyncObject *object) {
-  unsigned long location;
+  DWORD location;
 
   ASSERT(object);
   ASSERT(!object->isLoaded);
@@ -228,9 +228,9 @@ bool AsyncFileReadIsReading() {
   return reading;
 }
 
-static int AsyncFileReadPollHandler(const void *, void *) {
-  unsigned int index;
-  unsigned int start;
+static int AsyncFileReadPollHandler(LPCVOID, LPVOID) {
+  UINT index;
+  UINT start;
 
   for (index = 0; index < s_handlers.Count(); ++index) {
     s_handlers[index]();

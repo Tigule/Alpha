@@ -8,20 +8,20 @@
 namespace RegisterCombiners {
 
   struct CombinerVariable {
-    unsigned int input;
-    unsigned int mapping;
-    unsigned int component;
+    UINT input;
+    UINT mapping;
+    UINT component;
   };
 
   struct CombinerOutput {
-    unsigned int  abOutput;
-    unsigned int  cdOutput;
-    unsigned int  sumOutput;
-    unsigned int  scale;
-    unsigned int  bias;
-    unsigned char abDotProduct;
-    unsigned char cdDotProduct;
-    unsigned char muxSum;
+    UINT abOutput;
+    UINT cdOutput;
+    UINT sumOutput;
+    UINT scale;
+    UINT bias;
+    BYTE abDotProduct;
+    BYTE cdDotProduct;
+    BYTE muxSum;
   };
 
   struct CombinerPortion {
@@ -36,7 +36,7 @@ namespace RegisterCombiners {
     CombinerVariable variable[4];
     CombinerOutput   output;
 
-    void Realize(unsigned int stage, unsigned int portion);
+    void Realize(UINT stage, UINT portion);
   };
 
   struct GeneralCombiner {
@@ -49,7 +49,7 @@ namespace RegisterCombiners {
     CombinerPortion    portion[2];
     NTempest::C4Vector constants[2];
 
-    void Realize(unsigned int stage, int perStageConstants);
+    void Realize(UINT stage, int perStageConstants);
   };
 
   struct FinalCombiner {
@@ -69,8 +69,8 @@ namespace RegisterCombiners {
     void Realize();
   };
 
-  void CombinerPortion::Realize(unsigned int stage, unsigned int portion) {
-    for (unsigned int i = 0; i < 4; ++i) {
+  void CombinerPortion::Realize(UINT stage, UINT portion) {
+    for (UINT i = 0; i < 4; ++i) {
       glCombinerInputNV(stage, portion, GL_VARIABLE_A_NV + i, variable[i].input, variable[i].mapping, variable[i].component);
     }
     glCombinerOutputNV(
@@ -79,7 +79,7 @@ namespace RegisterCombiners {
     );
   }
 
-  void GeneralCombiner::Realize(unsigned int stage, int perStageConstants) {
+  void GeneralCombiner::Realize(UINT stage, int perStageConstants) {
     portion[0].Realize(stage, GL_RGB);
     portion[1].Realize(stage, GL_ALPHA);
     if (perStageConstants) {
@@ -89,7 +89,7 @@ namespace RegisterCombiners {
   }
 
   void FinalCombiner::Realize() {
-    for (unsigned int i = 0; i < 7; ++i) {
+    for (UINT i = 0; i < 7; ++i) {
       glFinalCombinerInputNV(GL_VARIABLE_A_NV + i, variable[i].input, variable[i].mapping, variable[i].component);
     }
   }
@@ -99,18 +99,18 @@ namespace RegisterCombiners {
 void CGxDeviceOpenGl::IPixelShaderBind(CGxPixelShader *ps) {
   if (ps) {
     if (m_caps.m_pixelShaderTarget == CGxPixelShader::Target_nvrc) {
-      const unsigned char *code = ps->code.Ptr();
-      unsigned int         combinerCount = *reinterpret_cast<const unsigned int *>(code);
+      const BYTE *code = ps->code.Ptr();
+      UINT        combinerCount = *reinterpret_cast<const UINT *>(code);
       glCombinerParameteriNV(GL_NUM_GENERAL_COMBINERS_NV, combinerCount);
       glCombinerParameteriNV(GL_PER_STAGE_CONSTANTS_NV, code[4]);
       glCombinerParameterfvNV(GL_CONSTANT_COLOR0_NV, reinterpret_cast<const float *>(code + 8));
       glCombinerParameterfvNV(GL_CONSTANT_COLOR1_NV, reinterpret_cast<const float *>(code + 24));
 
-      RegisterCombiners::GeneralCombiner *general = reinterpret_cast<RegisterCombiners::GeneralCombiner *>(const_cast<unsigned char *>(code + 40));
-      for (unsigned int stage = 0; stage < combinerCount; ++stage) {
+      RegisterCombiners::GeneralCombiner *general = reinterpret_cast<RegisterCombiners::GeneralCombiner *>(const_cast<BYTE *>(code + 40));
+      for (UINT stage = 0; stage < combinerCount; ++stage) {
         general[stage].Realize(GL_COMBINER0_NV + stage, 0);
       }
-      reinterpret_cast<RegisterCombiners::FinalCombiner *>(const_cast<unsigned char *>(code + 392))->Realize();
+      reinterpret_cast<RegisterCombiners::FinalCombiner *>(const_cast<BYTE *>(code + 392))->Realize();
       DsSet(Ds_RegisterCombinersNV, 1, 0);
     } else if (m_caps.m_pixelShaderTarget == CGxPixelShader::Target_arbfp1) {
       glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, ps->apiSpecific);
@@ -123,7 +123,7 @@ void CGxDeviceOpenGl::IPixelShaderBind(CGxPixelShader *ps) {
   }
 }
 
-void CGxDeviceOpenGl::PixelShaderCreate(CGxPixelShader *&ps, const char *filename) {
+void CGxDeviceOpenGl::PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename) {
   CGxDevice::PixelShaderCreate(ps, filename);
 
   if (ps->code.Count() && glARBFragmentProgram) {
@@ -145,7 +145,7 @@ void CGxDeviceOpenGl::PixelShaderDestroy(CGxPixelShader *&ps) {
 void CGxDeviceOpenGl::ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &params, int forceForBind) {
   ITERATELIST(CGxShaderParam, params, param) {
     if (param->dirty || forceForBind) {
-      for (unsigned int i = 0; i < CGxShaderParam::TypeCountTable[param->type]; ++i) {
+      for (UINT i = 0; i < CGxShaderParam::TypeCountTable[param->type]; ++i) {
         glProgramLocalParameter4fvARB(GL_FRAGMENT_PROGRAM_ARB, param->index + i, param->f + i * 4);
       }
 

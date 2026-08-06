@@ -4,7 +4,7 @@
 
 class CGUnit_C;
 
-extern unsigned int g_specialSpellIDs[43];
+extern UINT g_specialSpellIDs[43];
 
 void LoadUnitDefs();
 
@@ -37,16 +37,16 @@ enum SPELL_VISUAL_ATTACHMENT {
 
 struct MISSILESTRUCT {
   CGUnit_C          *caster;
-  unsigned int       spellID;
-  unsigned __int64   target;
+  UINT               spellID;
+  DWORDLONG          target;
   NTempest::C3Vector startPosition;
   NTempest::C3Vector destination;
   float              speed;
-  unsigned int       ammoDisplayID;
+  UINT               ammoDisplayID;
   int                inventoryType;
-  unsigned int       missileEffect;
-  unsigned int       missileVictimEffect;
-  unsigned int       missilePathType;
+  UINT               missileEffect;
+  UINT               missileVictimEffect;
+  UINT               missilePathType;
   bool               hits;
   MISS_REASON        reason;
   int                sound;

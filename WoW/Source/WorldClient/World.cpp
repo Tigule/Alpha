@@ -29,16 +29,16 @@
 #include <storm.h>
 
 NTempest::C44Matrix CWTriData::matrices[CWTriData::MaxBatches];
-unsigned short      CWTriData::vertexIndices[CWTriData::MaxVertexIndices];
-unsigned short      CWTriData::triIndices[CWTriData::MaxTriIndices];
+WORD                CWTriData::vertexIndices[CWTriData::MaxVertexIndices];
+WORD                CWTriData::triIndices[CWTriData::MaxTriIndices];
 CWTriData::Batch    CWTriData::batches[CWTriData::MaxBatches];
-unsigned int        CWTriData::nMatrices;
-unsigned int        CWTriData::nVertexIndices;
-unsigned int        CWTriData::nTriIndices;
-unsigned int        CWTriData::nBatches;
+UINT                CWTriData::nMatrices;
+UINT                CWTriData::nVertexIndices;
+UINT                CWTriData::nTriIndices;
+UINT                CWTriData::nBatches;
 
-unsigned int        CWorld::frameCnt;
-unsigned int        CWorld::chunkCnt;
+UINT                CWorld::frameCnt;
+UINT                CWorld::chunkCnt;
 NTempest::CiRect    CWorld::chunkRectHi;
 NTempest::CiRect    CWorld::gbChunkRect;
 NTempest::CiRect    CWorld::areaRect;
@@ -48,40 +48,40 @@ NTempest::C44Matrix CWorld::idMat;
 NTempest::C4Vector  CWorld::texVect[8];
 float               CWorld::detailDoodadDist = 100.0f;
 float               CWorld::detailDoodadDistS;
-unsigned int        CWorld::detailDoodadDensity;
+UINT                CWorld::detailDoodadDensity;
 int                 CWorld::detailDoodadTest;
-unsigned int        CWorld::detailDoodadAlphaRef;
+UINT                CWorld::detailDoodadAlphaRef;
 float               CWorld::textureLodDist = 777.0f;
 float               CWorld::lodDist = 77.0f;
-unsigned int        CWorld::lodMax = 3;
-unsigned int        CWorld::lodMin = 2;
-unsigned int        CWorld::pnEstimateVertex;
-unsigned int        CWorld::pnEstimateIndex;
-unsigned int        CWorld::pnt0EstimateVertex;
-unsigned int        CWorld::pnt0EstimateIndex;
-unsigned int        CWorld::pnct0EstimateVertex;
-unsigned int        CWorld::pnct0EstimateIndex;
+UINT                CWorld::lodMax = 3;
+UINT                CWorld::lodMin = 2;
+UINT                CWorld::pnEstimateVertex;
+UINT                CWorld::pnEstimateIndex;
+UINT                CWorld::pnt0EstimateVertex;
+UINT                CWorld::pnt0EstimateIndex;
+UINT                CWorld::pnct0EstimateVertex;
+UINT                CWorld::pnct0EstimateIndex;
 float               CWorld::farFog;
 float               CWorld::farClip;
 float               CWorld::nearClip;
 float               CWorld::unitDrawDist;
 NTempest::CAaBox    CWorld::groupAoi;
 NTempest::CAaBox    CWorld::objectAoi;
-unsigned long       CWorld::enables;
+DWORD               CWorld::enables;
 float               CWorld::curTimeSec;
 float               CWorld::tickTimeSec;
-unsigned int        CWorld::curTimeMs;
-unsigned int        CWorld::tickTimeMs;
-unsigned long       CWorld::enableLayerCnt;
-unsigned int        CWorld::maxLights;
+UINT                CWorld::curTimeMs;
+UINT                CWorld::tickTimeMs;
+DWORD               CWorld::enableLayerCnt;
+UINT                CWorld::maxLights;
 NTempest::CImVector CWorld::shadowColor;
-unsigned int        CWorld::shadowModColor[64];
+UINT                CWorld::shadowModColor[64];
 CGxTex             *CWorld::shadowModGxTex;
-unsigned int        CWorld::shadowMipLevel;
-unsigned int        CWorld::alphaMipLevel;
+UINT                CWorld::shadowMipLevel;
+UINT                CWorld::alphaMipLevel;
 float               CWorld::texLodBias;
-unsigned int        CWorld::texMaxAnisotropy;
-unsigned int        CWorld::texMaxAnisotropyLog2;
+UINT                CWorld::texMaxAnisotropy;
+UINT                CWorld::texMaxAnisotropyLog2;
 Particulate        *CWorld::particulate;
 int                 CWorld::bLoadSimpleDoodads;
 int                 CWorld::bShowSimpleDoodads;
@@ -99,16 +99,7 @@ static float s_texDir[8][2] = {
     {-1.0f, -1.0f}
 };
 
-static void UpdateShadowGxTex(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-);
+static void UpdateShadowGxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
 
 void CWorld::Initialize() {
   enables |= 0x07100B73;
@@ -120,7 +111,7 @@ void CWorld::Initialize() {
   bLoadSimpleDoodads = 0;
   shadowColor = 0xFFFFFFFF;
 
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     texVect[i] = NTempest::C4Vector(0.0f, 0.0f, 0.0f, 1.0f);
   }
 
@@ -129,15 +120,7 @@ void CWorld::Initialize() {
   shadowModGxTex = 0;
 
   GxTexCreate(
-      GxTex_2d,
-      8,
-      8,
-      0,
-      GxTex_Argb4444,
-      GxTex_Argb8888,
-      CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
-      shadowModColor,
-      UpdateShadowGxTex,
+      GxTex_2d, 8, 8, 0, GxTex_Argb4444, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), shadowModColor, UpdateShadowGxTex,
       shadowModGxTex
   );
 
@@ -196,7 +179,7 @@ void CWorld::Destroy() {
   delete particulate;
 }
 
-void CWorld::LoadMap(const char *mapName, NTempest::C3Vector &position, int preLoad) {
+void CWorld::LoadMap(LPCSTR mapName, NTempest::C3Vector &position, int preLoad) {
   FATALASSERT(mapName);
 
   PrepareAreaOfInterest(position, position);
@@ -239,9 +222,9 @@ void CWorld::PrepareUpdate(const NTempest::C3Vector &position, const NTempest::C
   ActivityEnd(ACTIVITY_WORLD);
 }
 
-void CWorld::SetUpdateTime(float elapsedSec, unsigned long pCurTimeMs) {
+void CWorld::SetUpdateTime(float elapsedSec, DWORD pCurTimeMs) {
   curTimeMs = pCurTimeMs;
-  tickTimeMs = static_cast<unsigned int>(elapsedSec * 1000.0f);
+  tickTimeMs = static_cast<UINT>(elapsedSec * 1000.0f);
   tickTimeSec = elapsedSec;
   curTimeSec = static_cast<float>(pCurTimeMs) * 0.001f;
 }
@@ -249,7 +232,7 @@ void CWorld::SetUpdateTime(float elapsedSec, unsigned long pCurTimeMs) {
 void CWorld::Update() {
   ActivityBegin(ACTIVITY_WORLD);
   CalcFPS();
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     texVect[i].x += tickTimeSec * s_texDir[i][0];
     texVect[i].y += tickTimeSec * s_texDir[i][1];
     if (texVect[i].x >= 64.0f) {
@@ -322,8 +305,7 @@ void CWorld::RenderAlpha() {
   ActivityEnd(ACTIVITY_WORLD);
 }
 
-void
-CWorld::SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
+void CWorld::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
   if (parm) {
     CMapBaseObj *baseObj = static_cast<CMapBaseObj *>(parm);
     if (baseObj->camDist < farFog) {
@@ -336,11 +318,11 @@ CWorld::SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3V
   }
 }
 
-unsigned int CWorld::QueryAreaId(float x, float y) {
+UINT CWorld::QueryAreaId(float x, float y) {
   return CMap::QueryAreaId(x, y);
 }
 
-int CWorld::QueryObjectInside(unsigned long hWorldObject) {
+int CWorld::QueryObjectInside(DWORD hWorldObject) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
 
   FATALASSERT(entity);
@@ -348,12 +330,7 @@ int CWorld::QueryObjectInside(unsigned long hWorldObject) {
   return entity->flagInside;
 }
 
-int CWorld::QueryLiquidSounds(
-    unsigned long       hwObject,
-    float               radius,
-    int                *lbool,
-    NTempest::C3Vector *ldelta
-) {
+int CWorld::QueryLiquidSounds(DWORD hwObject, float radius, int *lbool, NTempest::C3Vector *ldelta) {
   FATALASSERT(lbool);
   FATALASSERT(ldelta);
   FATALASSERT(radius > 0.0f && radius < 16.0f);
@@ -363,20 +340,19 @@ int CWorld::QueryLiquidSounds(
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
 
   float ldsquared[9];
-  for (unsigned int i = 0; i < 9; ++i) {
+  for (UINT i = 0; i < 9; ++i) {
     ldsquared[i] = FLT_MAX;
   }
   memset(lbool, 0, 9 * sizeof(*lbool));
 
-  unsigned int closestExtLevel;
-  if (!entity->flagInside ||
-      (closestExtLevel = 9999, entity->QueryLiquidSounds(lbool, ldelta, ldsquared, closestExtLevel), closestExtLevel < 2)) {
+  UINT closestExtLevel;
+  if (!entity->flagInside || (closestExtLevel = 9999, entity->QueryLiquidSounds(lbool, ldelta, ldsquared, closestExtLevel), closestExtLevel < 2)) {
     CMap::QueryLiquidSounds(entity->pos, radius, lbool, ldelta, ldsquared);
   }
   return 1;
 }
 
-int CWorld::QueryMapObjZoneName(unsigned long hWorldObject, const char *&zoneName) {
+int CWorld::QueryMapObjZoneName(DWORD hWorldObject, LPCSTR &zoneName) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
 
   FATALASSERT(entity);
@@ -384,7 +360,7 @@ int CWorld::QueryMapObjZoneName(unsigned long hWorldObject, const char *&zoneNam
   return entity->QueryMapObjZoneName(zoneName);
 }
 
-int CWorld::QueryMapObjSubzoneName(unsigned long hWorldObject, const char *&subzoneName, unsigned int &subzoneId) {
+int CWorld::QueryMapObjSubzoneName(DWORD hWorldObject, LPCSTR &subzoneName, UINT &subzoneId) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
 
   FATALASSERT(entity);
@@ -392,7 +368,7 @@ int CWorld::QueryMapObjSubzoneName(unsigned long hWorldObject, const char *&subz
   return entity->QueryMapObjSubzoneName(subzoneName, subzoneId);
 }
 
-int CWorld::QueryMapObjFileName(unsigned long hWorldObject, const char *&fileName) {
+int CWorld::QueryMapObjFileName(DWORD hWorldObject, LPCSTR &fileName) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
 
   FATALASSERT(entity);
@@ -400,28 +376,28 @@ int CWorld::QueryMapObjFileName(unsigned long hWorldObject, const char *&fileNam
   return entity->QueryMapObjFileName(fileName);
 }
 
-bool CWorld::QueryMapObjMinimap(unsigned long hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads) {
+bool CWorld::QueryMapObjMinimap(DWORD hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   return entity->QueryMapObjMinimap(aaBox, quads);
 }
 
-bool CWorld::QueryMapObjIDs(unsigned long hWorldObject, unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID) {
+bool CWorld::QueryMapObjIDs(DWORD hWorldObject, UINT &wmoID, UINT &instanceID, UINT &groupID) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   return entity->flagInside ? entity->QueryMapObjIDs(wmoID, instanceID, groupID) : 0;
 }
 
-bool CWorld::QueryMapObjMatrix(unsigned long hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
+bool CWorld::QueryMapObjMatrix(DWORD hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   return entity->flagInside ? entity->QueryMapObjMatrix(mtx, invMtx) : 0;
 }
 
-bool CWorld::QueryMapObjAreaTable(unsigned long hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec) {
+bool CWorld::QueryMapObjAreaTable(DWORD hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
 
   FATALASSERT(entity);
@@ -429,7 +405,7 @@ bool CWorld::QueryMapObjAreaTable(unsigned long hWorldObject, const WMOAreaTable
   return entity->QueryMapObjAreaTable(subzoneRec, globalRec);
 }
 
-int CWorld::QueryMapObjFog(unsigned long hWorldObject, SMOFog::Fogs &oFogs, float &oPct) {
+int CWorld::QueryMapObjFog(DWORD hWorldObject, SMOFog::Fogs &oFogs, float &oPct) {
   if (!hWorldObject) {
     return CMapEntity::QueryCameraFog(oFogs, oPct);
   }
@@ -442,7 +418,7 @@ int CWorld::QueryMapObjFog(unsigned long hWorldObject, SMOFog::Fogs &oFogs, floa
   return 0;
 }
 
-int CWorld::QueryObjectLiquid(unsigned long hWorldObject, unsigned int &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep) {
+int CWorld::QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
 
   FATALASSERT(entity);
@@ -458,7 +434,7 @@ int CWorld::QueryObjectLiquid(unsigned long hWorldObject, unsigned int &liquid, 
   return 1;
 }
 
-int CWorld::QueryGroundType(unsigned long hWorldObject, unsigned int &groundType) {
+int CWorld::QueryGroundType(DWORD hWorldObject, UINT &groundType) {
   CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -472,8 +448,8 @@ int CWorld::QueryGroundType(unsigned long hWorldObject, unsigned int &groundType
       return 0;
     }
 
-    NTempest::C3Vector p1(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
-    NTempest::C3Vector p0(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
+    NTempest::C3Vector  p1(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
+    NTempest::C3Vector  p0(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
     NTempest::C3Segment seg(p0 * mapObjDef->invMat, p1 * mapObjDef->invMat);
     CWTriData           triData;
     float               t = 1.0f;
@@ -489,9 +465,9 @@ int CWorld::QueryGroundType(unsigned long hWorldObject, unsigned int &groundType
 
   NTempest::C3Vector p0(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
   NTempest::C3Vector p1(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
-  float     t = 1.0f;
-  SMOPoly  *poly = 0;
-  CMapObj  *mapObj = 0;
+  float              t = 1.0f;
+  SMOPoly           *poly = 0;
+  CMapObj           *mapObj = 0;
   if (CMap::VectorIntersectMapObjs(&p0, &p1, 0, 8, 0x2000, &t, &poly, &mapObj) && poly) {
     groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
     return 1;
@@ -500,7 +476,7 @@ int CWorld::QueryGroundType(unsigned long hWorldObject, unsigned int &groundType
   return CMap::QueryGroundType(entity->pos, groundType);
 }
 
-bool CWorld::QueryMountAllowed(unsigned long hWorldObject, bool &allowed) {
+bool CWorld::QueryMountAllowed(DWORD hWorldObject, bool &allowed) {
   CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -518,15 +494,8 @@ bool CWorld::QueryMountAllowed(unsigned long hWorldObject, bool &allowed) {
   return true;
 }
 
-unsigned int CWorld::ObjectCreate(
-    const char *name,
-    NTempest::C3Vector &pos,
-    float angle,
-    int bWait,
-    int bSnap,
-    unsigned __int64 param64
-) {
-  CMapBaseObj *baseObj;
+UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, int bWait, int bSnap, DWORDLONG param64) {
+  CMapBaseObj     *baseObj;
   CMapBaseObjLink *link;
 
   if (SStrStr(name, ".wmo")) {
@@ -555,10 +524,10 @@ unsigned int CWorld::ObjectCreate(
   }
 
   ++baseObj->refCount;
-  return reinterpret_cast<unsigned int>(baseObj);
+  return reinterpret_cast<UINT>(baseObj);
 }
 
-void CWorld::ObjectUpdate(unsigned int id, NTempest::C3Vector &pos, float angle, int bSnap) {
+void CWorld::ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, int bSnap) {
   FATALASSERT(reinterpret_cast<CMapBaseObj *>(id));
   if (bSnap) {
     CMap::SnapBaseObjToSubChunk(reinterpret_cast<CMapBaseObj *>(id), pos, angle);
@@ -570,7 +539,7 @@ void CWorld::ObjectUpdate(unsigned int id, NTempest::C3Vector &pos, float angle,
   }
 }
 
-void CWorld::ObjectGetExtents(unsigned int id, NTempest::CAaBox &extents) {
+void CWorld::ObjectGetExtents(UINT id, NTempest::CAaBox &extents) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
 
   FATALASSERT(baseObj);
@@ -583,7 +552,7 @@ void CWorld::ObjectGetExtents(unsigned int id, NTempest::CAaBox &extents) {
   }
 }
 
-void CWorld::ObjectEnableCollision(unsigned int id, int bEnable) {
+void CWorld::ObjectEnableCollision(UINT id, int bEnable) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
   ASSERT(baseObj);
   if (bEnable) {
@@ -593,8 +562,7 @@ void CWorld::ObjectEnableCollision(unsigned int id, int bEnable) {
   }
 }
 
-bool CWorld::ObjectTestConvexVolume(
-    unsigned int id, const NTempest::C3Vector &pos) {
+bool CWorld::ObjectTestConvexVolume(UINT id, const NTempest::C3Vector &pos) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
   FATALASSERT(baseObj);
   if (!(baseObj->GetType() & CMapBaseObj::Type_MapObjDef)) {
@@ -606,7 +574,7 @@ bool CWorld::ObjectTestConvexVolume(
   return mapObjDef->mapObj->TestConvexVolume(pos);
 }
 
-void CWorld::ObjectDelete(unsigned int id) {
+void CWorld::ObjectDelete(UINT id) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
 
   FATALASSERT(baseObj);
@@ -625,16 +593,16 @@ void CWorld::ObjectDelete(unsigned int id) {
   }
 }
 
-void CWorld::SetObjectHandler(int(*handler)(void *, unsigned long, unsigned __int64, unsigned long), void *handlerParam) {
+void CWorld::SetObjectHandler(int (*handler)(LPVOID, DWORD, DWORDLONG, DWORD), LPVOID handlerParam) {
   CMap::entityHandler = handler;
   CMap::entityHandlerParam = handlerParam;
 }
 
-void CWorld::SetObjectCollisionHandler(int(*handler)(unsigned __int64, unsigned long, WorldObjCollisionHandlerData *)) {
+void CWorld::SetObjectCollisionHandler(int (*handler)(DWORDLONG, DWORD, WorldObjCollisionHandlerData *)) {
   CMap::entityCollisionHandler = handler;
 }
 
-unsigned long CWorld::AddObject(unsigned __int64 param64, unsigned long param32, HMODEL__ *hModel, unsigned int objFlags) {
+DWORD CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL__ *hModel, UINT objFlags) {
   CMapEntity *entity = CMap::AllocEntity();
   FATALASSERT(entity);
 
@@ -652,10 +620,10 @@ unsigned long CWorld::AddObject(unsigned __int64 param64, unsigned long param32,
   entity->ambient = CMap::sunLight->gxLight.m_ambColor;
   entity->ambientTarget = CMap::sunLight->gxLight.m_ambColor;
 
-  return reinterpret_cast<unsigned long>(entity);
+  return reinterpret_cast<DWORD>(entity);
 }
 
-unsigned long CWorld::AddDoodad(const char *fileName, HMODEL__ *hModel, const NTempest::C44Matrix &mat, unsigned int objFlags) {
+DWORD CWorld::AddDoodad(LPCSTR fileName, HMODEL__ *hModel, const NTempest::C44Matrix &mat, UINT objFlags) {
   CMapDoodadDef *doodad = CMap::AllocDoodadDef();
   FATALASSERT(doodad);
 
@@ -672,17 +640,17 @@ unsigned long CWorld::AddDoodad(const char *fileName, HMODEL__ *hModel, const NT
 
   CMap::InitializeDoodadBounds(doodad);
   CMap::LinkEntity(doodad);
-  return reinterpret_cast<unsigned long>(doodad);
+  return reinterpret_cast<DWORD>(doodad);
 }
 
-HMODEL__ *CWorld::GetModel(unsigned long doodad) {
+HMODEL__ *CWorld::GetModel(DWORD doodad) {
   CMapDoodadDef *entity = reinterpret_cast<CMapDoodadDef *>(doodad);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_DoodadDef);
   return entity->model;
 }
 
-void CWorld::SetObjectRenderCallback(unsigned long hWorldObject, void(*cb)(void *, const NTempest::C44Matrix &), void *param) {
+void CWorld::SetObjectRenderCallback(DWORD hWorldObject, void (*cb)(LPVOID, const NTempest::C44Matrix &), LPVOID param) {
   CMapDoodadDef *doodad = reinterpret_cast<CMapDoodadDef *>(hWorldObject);
   FATALASSERT(doodad);
   FATALASSERT(doodad->GetType() & CMapBaseObj::Type_DoodadDef);
@@ -690,7 +658,7 @@ void CWorld::SetObjectRenderCallback(unsigned long hWorldObject, void(*cb)(void 
   doodad->renderCBParam = param;
 }
 
-void CWorld::UpdateObject(unsigned long hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox) {
+void CWorld::UpdateObject(DWORD hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(hWorldObject);
 
   ActivityBegin(ACTIVITY_WORLD);
@@ -730,21 +698,21 @@ void CWorld::UpdateObject(unsigned long hWorldObject, const NTempest::C44Matrix 
   ActivityEnd(ACTIVITY_WORLD);
 }
 
-void CWorld::TickObject(unsigned long hWorldObject) {
+void CWorld::TickObject(DWORD hWorldObject) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   entity->Tick();
 }
 
-void CWorld::SetHidden(unsigned long hWorldObject, int hidden) {
+void CWorld::SetHidden(DWORD hWorldObject, int hidden) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   entity->flagHidden = hidden != 0;
 }
 
-void CWorld::RemoveObject(unsigned long hWorldObject) {
+void CWorld::RemoveObject(DWORD hWorldObject) {
   CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
   FATALASSERT(entity);
 
@@ -772,7 +740,7 @@ void CWorld::RemoveObject(unsigned long hWorldObject) {
   }
 }
 
-void CWorld::SetCameraTarget(unsigned long hWorldObject) {
+void CWorld::SetCameraTarget(DWORD hWorldObject) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -783,14 +751,7 @@ float CWorld::CalcAltitude(float x, float y, float radius) {
   return CMap::PointIntersect(x, y, radius);
 }
 
-bool CWorld::Intersect(
-    const NTempest::C3Vector *a,
-    const NTempest::C3Vector *b,
-    float                     radius,
-    NTempest::C3Vector       *ip,
-    float                    *dist,
-    unsigned int              queryFlags
-) {
+bool CWorld::Intersect(const NTempest::C3Vector *a, const NTempest::C3Vector *b, float radius, NTempest::C3Vector *ip, float *dist, UINT queryFlags) {
   FATALASSERT(*dist >= 0.0f && *dist <= 1.0f);
   ActivityBegin(ACTIVITY_WORLD);
   bool result = CMap::VectorIntersect(a, b, ip, dist, queryFlags);
@@ -798,26 +759,26 @@ bool CWorld::Intersect(
   return result;
 }
 
-bool CWorld::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags) {
+bool CWorld::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {
   ActivityBegin(ACTIVITY_WORLD);
   bool result = CMap::GetFacet(seg, t, facet, queryFlags);
   ActivityEnd(ACTIVITY_WORLD);
   return result;
 }
 
-bool CWorld::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags) {
+bool CWorld::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
   ActivityBegin(ACTIVITY_WORLD);
-  unsigned int result = CMap::GetTris(aaBox, triData, queryFlags);
+  UINT result = CMap::GetTris(aaBox, triData, queryFlags);
   ActivityEnd(ACTIVITY_WORLD);
   return result;
 }
 
-int CWorld::QueryLiquidStatus(const NTempest::C3Vector &point, unsigned int &liquid, float &surface, NTempest::C3Vector &waterDir) {
+int CWorld::QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir) {
   int deep;
   return CMap::QueryLiquidStatus(point, liquid, surface, waterDir, deep);
 }
 
-unsigned int CWorld::SceneCamLiquidStatus() {
+UINT CWorld::SceneCamLiquidStatus() {
   return CWorldScene::camLiquid;
 }
 
@@ -843,26 +804,26 @@ void CWorld::GetCounts(int counts[]) {
   CMap::GetCounts(counts);
 }
 
-void CWorld::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags) {
+void CWorld::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
   ActivityBegin(ACTIVITY_WORLD);
   CMap::GetFacets(aaBox, facetData, queryFlags);
   ActivityEnd(ACTIVITY_WORLD);
 }
 
-void CWorld::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags) {
+void CWorld::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, UINT queryFlags) {
   ActivityBegin(ACTIVITY_WORLD);
   CMap::GetFacets(frustum, facetData, queryFlags);
   ActivityEnd(ACTIVITY_WORLD);
 }
 
-void CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, unsigned __int64 param64) {
-  unsigned int origFacetCount = facetData.facets.Count();
+void CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, DWORDLONG param64) {
+  UINT origFacetCount = facetData.facets.Count();
 
-  for (unsigned int batchIndex = 0; batchIndex < triData.GetNumBatches(); ++batchIndex) {
+  for (UINT batchIndex = 0; batchIndex < triData.GetNumBatches(); ++batchIndex) {
     const CWTriData::Batch &batch = triData.GetBatch(batchIndex);
-    const unsigned short   *indices = batch.vertexIndices;
+    const WORD             *indices = batch.vertexIndices;
 
-    for (unsigned int triIndex = 0; triIndex < batch.triCount; ++triIndex) {
+    for (UINT triIndex = 0; triIndex < batch.triCount; ++triIndex) {
       NTempest::CFacet *facet = facetData.facets.NewElement();
       facet->vertices[0] = batch.vertices[indices[0]] * *batch.matrix;
       facet->vertices[1] = batch.vertices[indices[1]] * *batch.matrix;
@@ -874,14 +835,14 @@ void CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData
     }
   }
 
-  unsigned int facetCount = facetData.facets.Count();
+  UINT facetCount = facetData.facets.Count();
   facetData.gameObjects.SetCount(facetCount);
-  for (unsigned int index = origFacetCount; index < facetCount; ++index) {
+  for (UINT index = origFacetCount; index < facetCount; ++index) {
     facetData.gameObjects[index] = param64;
   }
 }
 
-const char *CWorld::QueryChunkName() {
+LPCSTR CWorld::QueryChunkName() {
   return CWorldScene::currentChunkName;
 }
 
@@ -897,10 +858,10 @@ void CWorld::SetShadowColor(NTempest::CImVector &color) {
   shadowColor = color;
 }
 
-void CWorld::SetDetailDoodadDensity(unsigned int density) {
-  int          chunkWidth;
-  unsigned int estimate;
-  unsigned int vertices;
+void CWorld::SetDetailDoodadDensity(UINT density) {
+  int  chunkWidth;
+  UINT estimate;
+  UINT vertices;
 
   if (detailDoodadDensity == density) {
     return;
@@ -914,7 +875,7 @@ void CWorld::SetDetailDoodadDensity(unsigned int density) {
   vertices = estimate << 7;
 
   if (vertices > pnct0EstimateVertex) {
-    unsigned int indices = estimate * 192;
+    UINT indices = estimate * 192;
 
     pnct0EstimateVertex = vertices;
     pnct0EstimateIndex = indices;
@@ -927,11 +888,11 @@ void CWorld::SetNearClip(float nearClip) {
 }
 
 void CWorld::SetFarClip(float farClip) {
-  int          aoiSize;
-  int          aoiCount;
-  int          estimate;
-  unsigned int vertices;
-  unsigned int indices;
+  int  aoiSize;
+  int  aoiCount;
+  int  estimate;
+  UINT vertices;
+  UINT indices;
   if (CWorld::farClip != farClip) {
     CWorld::farClip = farClip;
     aoiSize = 1 - static_cast<int>(farClip * -0.030000001f);
@@ -961,7 +922,7 @@ void CWorld::SetTexLodBias(float bias) {
   texLodBias = bias;
 }
 
-void CWorld::SetTexAnisotropy(unsigned int anisotropy) {
+void CWorld::SetTexAnisotropy(UINT anisotropy) {
   texMaxAnisotropy = anisotropy;
   texMaxAnisotropyLog2 = 0;
   anisotropy >>= 1;
@@ -1054,16 +1015,7 @@ void CWorld::PrepareAreaOfInterest(const NTempest::C3Vector &position, const NTe
   objectAoi.t = position + NTempest::C3Vector(farClip);
 }
 
-static void UpdateShadowGxTex(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+static void UpdateShadowGxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   switch (cmd) {
     case GxTex_Lock:
       break;
@@ -1103,7 +1055,7 @@ int CWorld::AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowDetailDoodads(const char *, const char *) {
+int CWorld::ConsoleCommand_ShowDetailDoodads(LPCSTR, LPCSTR) {
   if (enables & Enable_DetailDoodads) {
     ConsoleWrite("Detail doodads disabled.", DEFAULT_COLOR);
     enables &= ~Enable_DetailDoodads;
@@ -1115,8 +1067,8 @@ int CWorld::ConsoleCommand_ShowDetailDoodads(const char *, const char *) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_MaxLOD(const char *__formal, const char *arguments) {
-  unsigned int maxLod;
+int CWorld::ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments) {
+  UINT maxLod;
 
   sscanf(arguments, "%d", &maxLod);
   if (maxLod > 3) {
@@ -1130,7 +1082,7 @@ int CWorld::ConsoleCommand_MaxLOD(const char *__formal, const char *arguments) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowCull(const char *, const char *) {
+int CWorld::ConsoleCommand_ShowCull(LPCSTR, LPCSTR) {
   if (enables & Enable_Culling) {
     ConsoleWrite("Terrain culling disabled.", DEFAULT_COLOR);
     enables &= ~Enable_Culling;
@@ -1142,7 +1094,7 @@ int CWorld::ConsoleCommand_ShowCull(const char *, const char *) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_SetShadow(const char *__formal, const char *arguments) {
+int CWorld::ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments) {
   float               color[4];
   NTempest::CImVector argb;
 
@@ -1155,8 +1107,8 @@ int CWorld::ConsoleCommand_SetShadow(const char *__formal, const char *arguments
   }
 
   argb.Set(
-      static_cast<unsigned char>(color[0] * 255.0f), static_cast<unsigned char>(color[1] * 255.0f), static_cast<unsigned char>(color[2] * 255.0f),
-      static_cast<unsigned char>(color[3] * 255.0f)
+      static_cast<BYTE>(color[0] * 255.0f), static_cast<BYTE>(color[1] * 255.0f), static_cast<BYTE>(color[2] * 255.0f),
+      static_cast<BYTE>(color[3] * 255.0f)
   );
   SetShadowColor(argb);
   return 1;
@@ -1166,7 +1118,7 @@ shadowColorRangeInvalid:
   return 0;
 }
 
-int CWorld::ConsoleCommand_MapObjLightMode(const char *, const char *) {
+int CWorld::ConsoleCommand_MapObjLightMode(LPCSTR, LPCSTR) {
   if (enables & Enable_VertexLight) {
     ConsoleWrite("MapObj lightmaps enabled.", DEFAULT_COLOR);
     enables &= ~Enable_VertexLight;
@@ -1178,7 +1130,7 @@ int CWorld::ConsoleCommand_MapObjLightMode(const char *, const char *) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterShow(const char *, const char *) {
+int CWorld::ConsoleCommand_WaterShow(LPCSTR, LPCSTR) {
   if (enables & Enable_Water) {
     ConsoleWrite("Water disabled", DEFAULT_COLOR);
     enables &= ~Enable_Water;
@@ -1190,7 +1142,7 @@ int CWorld::ConsoleCommand_WaterShow(const char *, const char *) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterMaxLOD(const char *__formal, const char *arguments) {
+int CWorld::ConsoleCommand_WaterMaxLOD(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterMaxLOD);
   if (CMapArea::ccWaterMaxLOD > 4) {
     CMapArea::ccWaterMaxLOD = 4;
@@ -1202,22 +1154,22 @@ int CWorld::ConsoleCommand_WaterMaxLOD(const char *__formal, const char *argumen
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterWaves(const char *__formal, const char *arguments) {
+int CWorld::ConsoleCommand_WaterWaves(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterWaves);
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterSpecular(const char *__formal, const char *arguments) {
+int CWorld::ConsoleCommand_WaterSpecular(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterSpecular);
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterRipples(const char *__formal, const char *arguments) {
+int CWorld::ConsoleCommand_WaterRipples(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterRipples);
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterParticulates(const char *, const char *) {
+int CWorld::ConsoleCommand_WaterParticulates(LPCSTR, LPCSTR) {
   if (enables & Enable_Particulates) {
     ConsoleWrite("Particulates disabled", DEFAULT_COLOR);
     enables &= ~Enable_Particulates;
@@ -1229,8 +1181,8 @@ int CWorld::ConsoleCommand_WaterParticulates(const char *, const char *) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_DetailDoodadAlpha(const char *__formal, const char *arguments) {
-  unsigned int alphaRef;
+int CWorld::ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments) {
+  UINT alphaRef;
 
   sscanf(arguments, "%d", &alphaRef);
   if (alphaRef > 255) {
@@ -1241,7 +1193,7 @@ int CWorld::ConsoleCommand_DetailDoodadAlpha(const char *__formal, const char *a
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowShadow(const char *, const char *) {
+int CWorld::ConsoleCommand_ShowShadow(LPCSTR, LPCSTR) {
   if (enables & Enable_Shadow) {
     ConsoleWrite("Terrain shadow disabled.", DEFAULT_COLOR);
     enables &= ~Enable_Shadow;
@@ -1253,7 +1205,7 @@ int CWorld::ConsoleCommand_ShowShadow(const char *, const char *) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowLowDetail(const char *, const char *) {
+int CWorld::ConsoleCommand_ShowLowDetail(LPCSTR, LPCSTR) {
   if (enables & Enable_LowDetail) {
     ConsoleWrite("Terrain low detail disabled.", DEFAULT_COLOR);
     enables &= ~Enable_LowDetail;
@@ -1265,7 +1217,7 @@ int CWorld::ConsoleCommand_ShowLowDetail(const char *, const char *) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowSimpleDoodads(const char *, const char *) {
+int CWorld::ConsoleCommand_ShowSimpleDoodads(LPCSTR, LPCSTR) {
   if (bShowSimpleDoodads) {
     ConsoleWrite("Simple doodads disabled.", DEFAULT_COLOR);
     bShowSimpleDoodads = 0;
@@ -1277,7 +1229,7 @@ int CWorld::ConsoleCommand_ShowSimpleDoodads(const char *, const char *) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_EnumTextures(const char *__formal, const char *name) {
+int CWorld::ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name) {
   char  buffer[256];
   char  timeStamp[256];
   HSLOG log;
@@ -1296,7 +1248,7 @@ int CWorld::ConsoleCommand_EnumTextures(const char *__formal, const char *name) 
   return 1;
 }
 
-int CWorld::ConsoleCommand_EnumTextureGxCache(const char *__formal, const char *name) {
+int CWorld::ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name) {
   char  buffer[256];
   char  timeStamp[256];
   HSLOG log;

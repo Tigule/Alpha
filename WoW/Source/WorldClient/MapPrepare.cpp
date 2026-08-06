@@ -83,14 +83,12 @@ void CMap::PrepareMapObjDefs() {
           }
         }
       }
-
     }
-
   }
 }
 
 void CMap::PrepareDoodadDefs() {
-  unsigned int count = 0;
+  UINT count = 0;
   ITERATELIST(CMapDoodadDef, doodadDefHash, doodadDef) {
     if (!(doodadDef->flags & CMapBaseObj::Flag_Loaded)) {
       if (!doodadDef->model) {
@@ -111,7 +109,6 @@ void CMap::PrepareDoodadDefs() {
         break;
       }
     }
-
   }
 }
 
@@ -125,19 +122,14 @@ void CMap::QueryLightmap(CMapDoodadDef *doodadDef) {
   doodadDef->QueryLightmap(mapObjDef, mapObjGroup);
 }
 
-void CMap::UpdateMapObjDefGroupDoodads(
-    CMapObj         *mapObj,
-    CMapObjGroup    *mapObjGroup,
-      CMapObjDef      *mapObjDef,
-      CMapObjDefGroup *mapObjDefGroup
-  ) {
-    int bFini = 1;
-    FATALASSERT(mapObj);
+void CMap::UpdateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
+  int bFini = 1;
+  FATALASSERT(mapObj);
   FATALASSERT(mapObjGroup);
   FATALASSERT(mapObjDef);
   FATALASSERT(mapObjDefGroup);
 
-    unsigned int     count = 0;
+  UINT             count = 0;
   CMapBaseObjLink *doodadDefLink = mapObjDefGroup->doodadDefLinkList.Head();
 
   while (reinterpret_cast<long>(doodadDefLink) > 0) {
@@ -180,7 +172,7 @@ void CMap::PrepareMapObjDef(CMapObjDef *mapObjDef, CMapObj *mapObj) {
   mapObjDef->ambient = mapObj->ambColor;
 
   mapObjDef->lightList.SetCount(mapObj->lightCount);
-  for (unsigned int i = 0; i < mapObjDef->lightList.Count(); ++i) {
+  for (UINT i = 0; i < mapObjDef->lightList.Count(); ++i) {
     mapObjDef->lightList[i] = 0;
   }
 
@@ -196,8 +188,8 @@ void CMap::PrepareChunks() {
   NTempest::C2iVector chunkIndex;
   for (chunkIndex.y = CWorld::gbChunkRect.miny; chunkIndex.y <= CWorld::gbChunkRect.maxy; ++chunkIndex.y) {
     for (chunkIndex.x = CWorld::gbChunkRect.minx; chunkIndex.x <= CWorld::gbChunkRect.maxx; ++chunkIndex.x) {
-      unsigned int areaIndex = (chunkIndex.x >> 4) + 64 * (chunkIndex.y >> 4);
-      int          cIdx = (chunkIndex.x & 0xF) + 16 * (chunkIndex.y & 0xF);
+      UINT areaIndex = (chunkIndex.x >> 4) + 64 * (chunkIndex.y >> 4);
+      int  cIdx = (chunkIndex.x & 0xF) + 16 * (chunkIndex.y & 0xF);
 
       if (!areaInfo[areaIndex].offset) {
         continue;
@@ -243,7 +235,7 @@ void CMap::PrepareChunks() {
 void CMap::PrepareArea(int x, int y) {
   FATALASSERT(wdtFile);
 
-  unsigned long index = x + 64 * y;
+  DWORD index = x + 64 * y;
   FATALASSERT(areaInfo[index].flags == 0);
   FATALASSERT(areaTable[index] == 0);
 
@@ -270,7 +262,7 @@ void CMap::PrepareChunk(CMapArea *area, int x, int y) {
   FATALASSERT(area);
   FATALASSERT(wdtFile);
 
-  unsigned int index = x + 16 * y;
+  UINT index = x + 16 * y;
   FATALASSERT(area->chunkInfo[index].flags == 0);
   FATALASSERT(area->chunkTable[index] == 0);
 
@@ -296,8 +288,8 @@ void CMap::CreateChunkNeighborPtrs(CMapChunk *chunk) {
   CMapArea *area = static_cast<CMapArea *>(chunk->parentLinkList.Head()->ref);
   FATALASSERT(area);
 
-  unsigned int areaIndex = area->mIndex.x + 64 * area->mIndex.y;
-  unsigned int chunkIndex = chunk->aIndex.x + 16 * chunk->aIndex.y;
+  UINT areaIndex = area->mIndex.x + 64 * area->mIndex.y;
+  UINT chunkIndex = chunk->aIndex.x + 16 * chunk->aIndex.y;
 
   chunk->neighbor[0] = 0;
   chunk->neighbor[1] = 0;

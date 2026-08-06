@@ -27,7 +27,7 @@ static int CSimpleMessageScrollFrame_AddMessage(lua_State *L) {
     return 0;
   }
 
-  const char *message = lua_tostring(L, 2);
+  LPCSTR message = lua_tostring(L, 2);
   if (!message || !*message) {
     return 0;
   }
@@ -120,7 +120,7 @@ void CSimpleMessageScrollFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleMessageScrollFrame::LookupScriptMethod(lua_State *L, const char *name) {
+int CSimpleMessageScrollFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

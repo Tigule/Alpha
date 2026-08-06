@@ -33,7 +33,7 @@ class CLayoutFrame {
     }
 
     CLayoutFrame *frame;
-    unsigned int  dep;
+    UINT          dep;
   };
 
   typedef FRAMENODE       *PFRAMENODE;
@@ -58,34 +58,34 @@ class CLayoutFrame {
   virtual float         GetWidth();
   virtual float         GetHeight();
   virtual int           IsAttachmentOrigin();
-  virtual CLayoutFrame *GetLayoutFrameByName(const char *name);
+  virtual CLayoutFrame *GetLayoutFrameByName(LPCSTR name);
 
-  float Left();
-  float Top();
-  float Right();
-  float Bottom();
-  float CenterY();
-  float CenterX();
-  int   CalculateRect(NTempest::CRect *rect);
-  void  SetPoint(FRAMEPOINT point, float x, float y, int doResize);
-  void  SetPoint(FRAMEPOINT point, CLayoutFrame *relative, FRAMEPOINT relativePoint, float offsetX, float offsetY, int doResize);
-  void  SetAllPoints(CLayoutFrame *relative, int doResize);
-  void  Clear(CLayoutFrame *relative, int doResize);
-  void  ClearAllPoints(int doResize);
-  void  RegisterResize(CLayoutFrame *frame, unsigned int dependency);
-  void  UnregisterResize(const CLayoutFrame *frame);
-  int   IsResizeDependency(CLayoutFrame *pNewDependentFrame);
-  int   FlattenFrame(CLayoutFrame *top, float width, float height, float delta_x, float delta_y, NTempest::CRect *finalrect);
-  int   ScaleBy(CLayoutFrame *top, float scale_x, float scale_y, FRAMEPOINT anchorpoint, NTempest::CRect *finalrect);
-  int   DragBy(CLayoutFrame *top, float delta_x, float delta_y, FRAMEPOINT dragpoint, NTempest::CRect *finalrect);
-  int   IsResizePending();
-  int   PtInFrameRect(const NTempest::C2Vector &pt);
-  void  Resize(int force);
-  static unsigned int ResizePending();
+  float       Left();
+  float       Top();
+  float       Right();
+  float       Bottom();
+  float       CenterY();
+  float       CenterX();
+  int         CalculateRect(NTempest::CRect *rect);
+  void        SetPoint(FRAMEPOINT point, float x, float y, int doResize);
+  void        SetPoint(FRAMEPOINT point, CLayoutFrame *relative, FRAMEPOINT relativePoint, float offsetX, float offsetY, int doResize);
+  void        SetAllPoints(CLayoutFrame *relative, int doResize);
+  void        Clear(CLayoutFrame *relative, int doResize);
+  void        ClearAllPoints(int doResize);
+  void        RegisterResize(CLayoutFrame *frame, UINT dependency);
+  void        UnregisterResize(const CLayoutFrame *frame);
+  int         IsResizeDependency(CLayoutFrame *pNewDependentFrame);
+  int         FlattenFrame(CLayoutFrame *top, float width, float height, float delta_x, float delta_y, NTempest::CRect *finalrect);
+  int         ScaleBy(CLayoutFrame *top, float scale_x, float scale_y, FRAMEPOINT anchorpoint, NTempest::CRect *finalrect);
+  int         DragBy(CLayoutFrame *top, float delta_x, float delta_y, FRAMEPOINT dragpoint, NTempest::CRect *finalrect);
+  int         IsResizePending();
+  int         PtInFrameRect(const NTempest::C2Vector &pt);
+  void        Resize(int force);
+  static UINT ResizePending();
   static void ClearResizePendingList();
-  void                           SetWidth(float width);
-  void                           SetHeight(float height);
-  void                           CageMouseInFrame(int enable);
+  void        SetWidth(float width);
+  void        SetHeight(float height);
+  void        CageMouseInFrame(int enable);
 
   CFramePoint *GetPoint(FRAMEPOINT whichPoint) {
     FATALASSERT(whichPoint < FRAMEPOINT_NUMPOINTS);
@@ -110,7 +110,7 @@ class CLayoutFrame {
   }
 
  protected:
-  void                   DestroyLayout();
+  void        DestroyLayout();
   static void RemoveFromResizeList(CLayoutFrame *pFrame);
 
  private:
@@ -120,18 +120,18 @@ class CLayoutFrame {
 
   TSFixedArray<CFramePoint *> m_points;
   struct {
-    unsigned int left : 1;
-    unsigned int top : 1;
-    unsigned int right : 1;
-    unsigned int bottom : 1;
-    unsigned int centerX : 1;
-    unsigned int centerY : 1;
+    UINT left : 1;
+    UINT top : 1;
+    UINT right : 1;
+    UINT bottom : 1;
+    UINT centerX : 1;
+    UINT centerY : 1;
   } m_guard;
   LISTDECL(FRAMENODE, m_resizeList);
-  unsigned char                            m_resizeCounter;
+  BYTE m_resizeCounter;
 
  protected:
-  unsigned int    m_flags;
+  UINT            m_flags;
   NTempest::CRect m_rect;
   float           m_width;
   float           m_height;

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *WorldMapContinentRec::GetFilename() {
+LPCSTR WorldMapContinentRec::GetFilename() {
   return "DBFilesClient\\WorldMapContinent.dbc";
 }
 
@@ -19,7 +19,7 @@ WorldMapContinentRec::WorldMapContinentRec() {
 WorldMapContinentRec::~WorldMapContinentRec() {
 }
 
-bool WorldMapContinentRec::Read(SFile *f, const char *stringBuffer) {
+bool WorldMapContinentRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

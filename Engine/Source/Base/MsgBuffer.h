@@ -4,99 +4,118 @@
 #include <storm.h>
 
 class CMsgBuffer {
-  private:
-    void ReallocData(unsigned int count);
+ private:
+  void ReallocData(UINT count);
 
-  protected:
-    void Reserve(unsigned int count);
+ protected:
+  void Reserve(UINT count);
 
-  public:
-    CMsgBuffer(unsigned int count = 0);
-    ~CMsgBuffer();
+ public:
+  CMsgBuffer(UINT count = 0);
+  ~CMsgBuffer();
 
-    void Reset();
-    int Bytes() const;
-    unsigned int GetReadPosition();
-    void SetReadPosition(unsigned int position);
-    unsigned int GetWritePosition();
-    void SetWritePosition(unsigned int position);
-    unsigned char *Data();
-    void SetData(unsigned char *data, unsigned int count, int freeData);
+  void  Reset();
+  int   Bytes() const;
+  UINT  GetReadPosition();
+  void  SetReadPosition(UINT position);
+  UINT  GetWritePosition();
+  void  SetWritePosition(UINT position);
+  BYTE *Data();
+  void  SetData(BYTE *data, UINT count, int freeData);
 
-    void AddChar(char val);
-    void AddUchar(unsigned char val);
-    void AddByte(unsigned char val);
-    void AddTchar(char val);
-    void AddTcharArray(const char *str, unsigned int count, int zeroExtra);
-    void AddTcharString(const char *str, int compress);
-    void AddShort(short val);
-    void AddUshort(unsigned short val);
-    void AddWord(unsigned short val);
-    void AddInt(int val);
-    void AddUint(unsigned int val);
-    void AddLong(long val);
-    void AddUlong(unsigned long val);
-    void AddDword(unsigned long val);
-    void AddLongLong(__int64 val);
-    void AddUlongLong(unsigned __int64 val);
-    void AddFloat(float val);
-    void AddData(const void *data, unsigned int count);
-    void AddData(unsigned char *data, unsigned int count);
-    void AddWordArray(const unsigned short *buffer, unsigned int count);
-    void AddDwordArray(const unsigned long *buffer, unsigned int count);
-    void AddUintArray(const unsigned int *buffer, unsigned int count);
-    void AddFloatArray(const float *buffer, unsigned int count);
+  void AddChar(char val);
+  void AddUchar(BYTE val);
+  void AddByte(BYTE val);
+  void AddTchar(char val);
+  void AddTcharArray(LPCSTR str, UINT count, int zeroExtra);
+  void AddTcharString(LPCSTR str, int compress);
+  void AddShort(short val);
+  void AddUshort(WORD val);
+  void AddWord(WORD val);
+  void AddInt(int val);
+  void AddUint(UINT val);
+  void AddLong(long val);
+  void AddUlong(DWORD val);
+  void AddDword(DWORD val);
+  void AddLongLong(LONGLONG val);
+  void AddUlongLong(DWORDLONG val);
+  void AddFloat(float val);
+  void AddData(LPCVOID data, UINT count);
+  void AddData(BYTE *data, UINT count);
+  void AddWordArray(const WORD *buffer, UINT count);
+  void AddDwordArray(const DWORD *buffer, UINT count);
+  void AddUintArray(const UINT *buffer, UINT count);
+  void AddFloatArray(const float *buffer, UINT count);
 
-    void AddArray(const unsigned int *buffer, unsigned int count) { AddUintArray(buffer, count); }
-    void AddArray(const float *buffer, unsigned int count) { AddFloatArray(buffer, count); }
-    void AddArray(const unsigned long *buffer, unsigned int count) { AddDwordArray(buffer, count); }
-    void AddArray(const unsigned short *buffer, unsigned int count) { AddWordArray(buffer, count); }
-    void AddArray(const unsigned char *buffer, unsigned int count) { AddData(buffer, count); }
+  void AddArray(const UINT *buffer, UINT count) {
+    AddUintArray(buffer, count);
+  }
+  void AddArray(const float *buffer, UINT count) {
+    AddFloatArray(buffer, count);
+  }
+  void AddArray(const DWORD *buffer, UINT count) {
+    AddDwordArray(buffer, count);
+  }
+  void AddArray(const WORD *buffer, UINT count) {
+    AddWordArray(buffer, count);
+  }
+  void AddArray(const BYTE *buffer, UINT count) {
+    AddData(buffer, count);
+  }
 
-    char GetChar();
-    unsigned char GetUchar();
-    unsigned char GetByte();
-    char GetTchar();
-    void GetTcharArray(char *buffer, unsigned int count);
-    unsigned int GetTcharStringBufferLength(int *wide);
-    void GetTcharString(char *buffer, unsigned int bufferLength, int wide);
-    short GetShort();
-    unsigned short GetUshort();
-    unsigned short GetWord();
-    int GetInt();
-    unsigned int GetUint();
-    long GetLong();
-    unsigned long GetUlong();
-    unsigned long GetDword();
-    __int64 GetLongLong();
-    unsigned __int64 GetUlongLong();
-    float GetFloat();
-    void GetData(void *buffer, int count);
-    const void *GetData(int count);
-    void GetWordArray(unsigned short *buffer, unsigned int count);
-    void GetDwordArray(unsigned long *buffer, unsigned int count);
-    void GetFloatArray(float *buffer, unsigned int count);
-    void GetUintArray(unsigned int *buffer, unsigned int count);
+  char      GetChar();
+  BYTE      GetUchar();
+  BYTE      GetByte();
+  char      GetTchar();
+  void      GetTcharArray(char *buffer, UINT count);
+  UINT      GetTcharStringBufferLength(int *wide);
+  void      GetTcharString(char *buffer, UINT bufferLength, int wide);
+  short     GetShort();
+  WORD      GetUshort();
+  WORD      GetWord();
+  int       GetInt();
+  UINT      GetUint();
+  long      GetLong();
+  DWORD     GetUlong();
+  DWORD     GetDword();
+  LONGLONG  GetLongLong();
+  DWORDLONG GetUlongLong();
+  float     GetFloat();
+  void      GetData(LPVOID buffer, int count);
+  LPCVOID   GetData(int count);
+  void      GetWordArray(WORD *buffer, UINT count);
+  void      GetDwordArray(DWORD *buffer, UINT count);
+  void      GetFloatArray(float *buffer, UINT count);
+  void      GetUintArray(UINT *buffer, UINT count);
 
-    void GetArray(unsigned int *buffer, unsigned int count) { GetUintArray(buffer, count); }
-    void GetArray(float *buffer, unsigned int count) { GetFloatArray(buffer, count); }
-    void GetArray(unsigned long *buffer, unsigned int count) { GetDwordArray(buffer, count); }
-    void GetArray(unsigned short *buffer, unsigned int count) { GetWordArray(buffer, count); }
-    void GetArray(unsigned char *buffer, unsigned int count) { GetData(buffer, count); }
+  void GetArray(UINT *buffer, UINT count) {
+    GetUintArray(buffer, count);
+  }
+  void GetArray(float *buffer, UINT count) {
+    GetFloatArray(buffer, count);
+  }
+  void GetArray(DWORD *buffer, UINT count) {
+    GetDwordArray(buffer, count);
+  }
+  void GetArray(WORD *buffer, UINT count) {
+    GetWordArray(buffer, count);
+  }
+  void GetArray(BYTE *buffer, UINT count) {
+    GetData(buffer, count);
+  }
 
-  private:
-    unsigned int m_alloc;
-    int m_freeData;
+ private:
+  UINT m_alloc;
+  int  m_freeData;
 
-  protected:
-    unsigned int m_read;
-    unsigned int m_write;
-    unsigned char *m_data;
+ protected:
+  UINT  m_read;
+  UINT  m_write;
+  BYTE *m_data;
 };
 
-inline CMsgBuffer::CMsgBuffer(unsigned int count)
-    : m_alloc(count), m_freeData(1), m_read(0), m_write(0),
-      m_data(count ? static_cast<unsigned char *>(SMemAlloc(count, __FILE__, __LINE__, 0)) : 0) {
+inline CMsgBuffer::CMsgBuffer(UINT count)
+    : m_alloc(count), m_freeData(1), m_read(0), m_write(0), m_data(count ? static_cast<BYTE *>(SMemAlloc(count, __FILE__, __LINE__, 0)) : 0) {
 }
 
 inline CMsgBuffer::~CMsgBuffer() {
@@ -105,7 +124,7 @@ inline CMsgBuffer::~CMsgBuffer() {
   }
 }
 
-inline void CMsgBuffer::Reserve(unsigned int count) {
+inline void CMsgBuffer::Reserve(UINT count) {
   if (m_write + count > m_alloc) {
     ReallocData(m_write + count);
   }
@@ -120,27 +139,27 @@ inline int CMsgBuffer::Bytes() const {
   return m_write - m_read;
 }
 
-inline unsigned int CMsgBuffer::GetReadPosition() {
+inline UINT CMsgBuffer::GetReadPosition() {
   return m_read;
 }
 
-inline void CMsgBuffer::SetReadPosition(unsigned int position) {
+inline void CMsgBuffer::SetReadPosition(UINT position) {
   m_read = position;
 }
 
-inline unsigned int CMsgBuffer::GetWritePosition() {
+inline UINT CMsgBuffer::GetWritePosition() {
   return m_write;
 }
 
-inline void CMsgBuffer::SetWritePosition(unsigned int position) {
+inline void CMsgBuffer::SetWritePosition(UINT position) {
   m_write = position;
 }
 
-inline unsigned char *CMsgBuffer::Data() {
+inline BYTE *CMsgBuffer::Data() {
   return m_data;
 }
 
-inline void CMsgBuffer::SetData(unsigned char *data, unsigned int count, int freeData) {
+inline void CMsgBuffer::SetData(BYTE *data, UINT count, int freeData) {
   if (m_freeData && m_data) {
     SMemFree(m_data, __FILE__, __LINE__, 0);
   }

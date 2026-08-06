@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ItemClassRec::GetFilename() {
+LPCSTR ItemClassRec::GetFilename() {
   return "DBFilesClient\\ItemClass.dbc";
 }
 
@@ -19,9 +19,9 @@ ItemClassRec::ItemClassRec() {
 ItemClassRec::~ItemClassRec() {
 }
 
-bool ItemClassRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempclassName_langIndices[NUM_LOCALES];
+bool ItemClassRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempclassName_langIndices[NUM_LOCALES];
 
   result = SFile::Read(f, &m_classID, sizeof(m_classID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_subclassMapID, sizeof(m_subclassMapID), 0, 0, 0) && result;

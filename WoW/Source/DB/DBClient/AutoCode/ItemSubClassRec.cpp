@@ -4,7 +4,7 @@
 
 #include <Console/ConsoleClient.h>
 
-const char *ItemSubClassRec::GetFilename() {
+LPCSTR ItemSubClassRec::GetFilename() {
   return "DBFilesClient\\ItemSubClass.dbc";
 }
 
@@ -14,10 +14,10 @@ ItemSubClassRec::ItemSubClassRec() {
 ItemSubClassRec::~ItemSubClassRec() {
 }
 
-bool ItemSubClassRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempdisplayName_langIndices[NUM_LOCALES];
-  unsigned int tempverboseName_langIndices[NUM_LOCALES];
+bool ItemSubClassRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempdisplayName_langIndices[NUM_LOCALES];
+  UINT tempverboseName_langIndices[NUM_LOCALES];
 
   result = SFile::Read(f, &m_classID, sizeof(m_classID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_subClassID, sizeof(m_subClassID), 0, 0, 0) && result;

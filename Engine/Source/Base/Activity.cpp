@@ -8,20 +8,20 @@
 #include <storm.h>
 #include <stpl.h>
 
-const unsigned int MAX_STACK_DEPTH = 100;
+const UINT MAX_STACK_DEPTH = 100;
 
 static TSGrowableArray<ACTIVITY> s_activityStack;
-static __int64                   s_firstTime;
-static __int64                   s_lastTime;
-static __int64                   s_periodStartTimeClocks;
-static __int64                   s_periodElapsedTimeClocks;
-static __int64                   s_totalTime[ACTIVITIES];
-static unsigned int              s_totalCalls[ACTIVITIES];
+static LONGLONG                  s_firstTime;
+static LONGLONG                  s_lastTime;
+static LONGLONG                  s_periodStartTimeClocks;
+static LONGLONG                  s_periodElapsedTimeClocks;
+static LONGLONG                  s_totalTime[ACTIVITIES];
+static UINT                      s_totalCalls[ACTIVITIES];
 static double                    s_timeScale;
 static int                       s_timeScaleComputed;
 
 static void ActivitySuspend() {
-  __int64 currTime = OsGetAsyncTimeClocks();
+  LONGLONG currTime = OsGetAsyncTimeClocks();
 
   if (s_activityStack.Count()) {
     ACTIVITY activity = *s_activityStack.Top();
@@ -36,7 +36,7 @@ static void ActivityResume() {
 
 void ActivityBegin(ACTIVITY activity) {
   ACTIVITY previousActivity;
-  __int64  currentTime;
+  LONGLONG currentTime;
 
   ASSERT(activity < ACTIVITIES);
   ASSERT(activity != ACTIVITY_OTHER);
@@ -61,7 +61,7 @@ void ActivityBegin(ACTIVITY activity) {
 }
 
 void ActivityEnd(ACTIVITY activity) {
-  __int64 currTime = OsGetAsyncTimeClocks();
+  LONGLONG currTime = OsGetAsyncTimeClocks();
 
   FATALASSERT(activity == *s_activityStack.Top());
 
@@ -99,7 +99,7 @@ float ActivityGetTime(ACTIVITY activity) {
 }
 
 void ActivityResetTimes() {
-  unsigned int i;
+  UINT i;
 
   memset(s_totalCalls, 0, sizeof(s_totalCalls));
 

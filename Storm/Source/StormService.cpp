@@ -7,7 +7,7 @@
 #define STORM_SERVICE_SSTR_I64_TO_STRING   3
 #define STORM_SERVICE_SMEM_MARK_ALL_HEAPS  4
 
-char *Int64ToString(__int64 num, char *buf, DWORD destsize);
+char *Int64ToString(LONGLONG num, char *buf, DWORD destsize);
 
 static int ISMemGetAllocator(char *arglist);
 static int ISMemGenerateReport(char *arglist);
@@ -47,9 +47,9 @@ extern "C" int __cdecl StormCallService(int selector, ...) {
 }
 
 static int ISMemGetAllocator(char *arglist) {
-  void **allocator;
+  LPVOID *allocator;
 
-  allocator = va_arg(arglist, void **);
+  allocator = va_arg(arglist, LPVOID *);
   *allocator = NULL;
   return TRUE;
 }
@@ -63,6 +63,6 @@ static int ISMemMarkAllHeaps(char *arglist) {
 }
 
 static int ISStrI64ToString(char *arglist) {
-  Int64ToString(*(__int64 *)arglist, *(char **)(arglist + 8), *(DWORD *)(arglist + 12));
+  Int64ToString(*(LONGLONG *)arglist, *(char **)(arglist + 8), *(DWORD *)(arglist + 12));
   return TRUE;
 }

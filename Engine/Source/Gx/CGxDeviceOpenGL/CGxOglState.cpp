@@ -9,21 +9,21 @@
 
 static const float oo255 = 1.0f / 255.0f;
 
-static unsigned int s_glSrcBlend[8] = {GL_ONE, GL_ONE, GL_SRC_ALPHA, GL_SRC_ALPHA, GL_DST_COLOR, GL_DST_COLOR, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA};
-static unsigned int s_glDstBlend[8] = {GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO, GL_SRC_COLOR, GL_ONE, GL_ONE};
-static int          s_texEnv[5] = {GL_REPLACE, GL_MODULATE, GL_DECAL, GL_ADD, -1};
-static unsigned int s_fogStyle[3] = {GL_LINEAR, GL_EXP, GL_EXP2};
-static unsigned int s_cmpFunc[3] = {GL_LEQUAL, GL_EQUAL, GL_GEQUAL};
+static UINT s_glSrcBlend[8] = {GL_ONE, GL_ONE, GL_SRC_ALPHA, GL_SRC_ALPHA, GL_DST_COLOR, GL_DST_COLOR, GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA};
+static UINT s_glDstBlend[8] = {GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO, GL_SRC_COLOR, GL_ONE, GL_ONE};
+static int  s_texEnv[5] = {GL_REPLACE, GL_MODULATE, GL_DECAL, GL_ADD, -1};
+static UINT s_fogStyle[3] = {GL_LINEAR, GL_EXP, GL_EXP2};
+static UINT s_cmpFunc[3] = {GL_LEQUAL, GL_EQUAL, GL_GEQUAL};
 
 void CGxDeviceOpenGl::DsInit() {
   memset(m_deviceState, 0, sizeof(m_deviceState));
   m_deviceState[Ds_DepthMask] = 1;
 }
 
-void CGxDeviceOpenGl::DsSet(EDeviceState which, unsigned int newVal, int force) {
+void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
   ASSERT(which < DeviceStates_Last);
 
-  unsigned int oldValue = DsGet(which);
+  UINT oldValue = DsGet(which);
   if (oldValue == newVal && !force) {
     return;
   }
@@ -45,7 +45,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, unsigned int newVal, int force) 
     case Ds_TexTarget1:
     case Ds_TexTarget2:
     case Ds_TexTarget3:
-      ASSERT(static_cast<unsigned int>(which - Ds_TexTarget0) == DsGet(Ds_ActiveTexture));
+      ASSERT(static_cast<UINT>(which - Ds_TexTarget0) == DsGet(Ds_ActiveTexture));
       if (oldValue) {
         glDisable(oldValue);
       }
@@ -58,7 +58,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, unsigned int newVal, int force) 
     case Ds_TexGenS1:
     case Ds_TexGenS2:
     case Ds_TexGenS3:
-      ASSERT(static_cast<unsigned int>(which - Ds_TexGenS0) == DsGet(Ds_ActiveTexture));
+      ASSERT(static_cast<UINT>(which - Ds_TexGenS0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, newVal);
       } else {
@@ -73,7 +73,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, unsigned int newVal, int force) 
     case Ds_TexGenT1:
     case Ds_TexGenT2:
     case Ds_TexGenT3:
-      ASSERT(static_cast<unsigned int>(which - Ds_TexGenT0) == DsGet(Ds_ActiveTexture));
+      ASSERT(static_cast<UINT>(which - Ds_TexGenT0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, newVal);
       } else {
@@ -88,7 +88,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, unsigned int newVal, int force) 
     case Ds_TexGenR1:
     case Ds_TexGenR2:
     case Ds_TexGenR3:
-      ASSERT(static_cast<unsigned int>(which - Ds_TexGenR0) == DsGet(Ds_ActiveTexture));
+      ASSERT(static_cast<UINT>(which - Ds_TexGenR0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, newVal);
       } else {
@@ -103,7 +103,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, unsigned int newVal, int force) 
     case Ds_TexGenQ1:
     case Ds_TexGenQ2:
     case Ds_TexGenQ3:
-      ASSERT(static_cast<unsigned int>(which - Ds_TexGenQ0) == DsGet(Ds_ActiveTexture));
+      ASSERT(static_cast<UINT>(which - Ds_TexGenQ0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glTexGeni(GL_Q, GL_TEXTURE_GEN_MODE, newVal);
       } else {
@@ -118,7 +118,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, unsigned int newVal, int force) 
     case Ds_TexEnvMode1:
     case Ds_TexEnvMode2:
     case Ds_TexEnvMode3:
-      ASSERT(static_cast<unsigned int>(which - Ds_TexEnvMode0) == DsGet(Ds_ActiveTexture));
+      ASSERT(static_cast<UINT>(which - Ds_TexEnvMode0) == DsGet(Ds_ActiveTexture));
       glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, newVal);
       break;
 
@@ -142,7 +142,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, unsigned int newVal, int force) 
     case Ds_TextureArray1:
     case Ds_TextureArray2:
     case Ds_TextureArray3:
-      ASSERT(static_cast<unsigned int>(which - Ds_TextureArray0) == DsGet(Ds_ActiveTexture));
+      ASSERT(static_cast<UINT>(which - Ds_TextureArray0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
       } else {
@@ -298,11 +298,11 @@ void CGxDeviceOpenGl::IStateSyncLights() {
   m_worldViewChange |= m_xforms[GxXform_World].m_dirty | m_xforms[GxXform_View].m_dirty;
   haveSetView = 0;
 
-  for (unsigned int which = 0; which < 8; ++which) {
+  for (UINT which = 0; which < 8; ++which) {
     CGxLight &app = m_appState.m_lights[which];
     CGxLight &hw = m_hwState.m_lights[which];
     updateNeeded = m_hwState.m_lightsDirty[which];
-    unsigned int light = GL_LIGHT0 + which;
+    UINT light = GL_LIGHT0 + which;
     memset(&glTmp, 0, sizeof(glTmp));
 
     if (m_worldViewChange ||
@@ -401,7 +401,7 @@ void CGxDeviceOpenGl::IStateSyncEnables() {
 void CGxDeviceOpenGl::IStateSyncTexTransforms() {
   int texture;
 
-  for (unsigned int tmu = 0; tmu < m_caps.m_numTmus; ++tmu) {
+  for (UINT tmu = 0; tmu < m_caps.m_numTmus; ++tmu) {
     texture = 0;
     RsGet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), texture);
     if (texture && (m_xforms[tmu].m_dirty || m_texGen[tmu].m_dirty)) {
@@ -410,7 +410,7 @@ void CGxDeviceOpenGl::IStateSyncTexTransforms() {
   }
 }
 
-void CGxDeviceOpenGl::IStateSyncTexTransform(unsigned int tmu) {
+void CGxDeviceOpenGl::IStateSyncTexTransform(UINT tmu) {
   NTempest::C44Matrix concatMat;
   int                 ts;
 
@@ -441,7 +441,7 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
   NTempest::C4Vector  opaqueBlack(0.0f);
   float               rPlane[4] = {0.0f, 0.0f, 1.0f, 0.0f};
   float               qPlane[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-  unsigned int        maxTex;
+  UINT                maxTex;
   NTempest::C4Vector  glTmp;
 
   DsInit();
@@ -461,9 +461,9 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
   glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, 1);
   IXformSetModelView(m_xforms[GxXform_View].TopConst());
 
-  for (unsigned int which = 0; which < 8; ++which) {
+  for (UINT which = 0; which < 8; ++which) {
     const CGxLight &light = m_hwState.m_lights[which];
-    unsigned int    glLight = GL_LIGHT0 + which;
+    UINT            glLight = GL_LIGHT0 + which;
     glTmp = NTempest::C4Vector(0.0f);
     glLightfv(glLight, GL_SPECULAR, &opaqueBlack.x);
     if (light.m_isOmni) {
@@ -508,7 +508,7 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 }
 
-void CGxDeviceOpenGl::ISetTexture(unsigned int tmu, CGxTex *tex) {
+void CGxDeviceOpenGl::ISetTexture(UINT tmu, CGxTex *tex) {
   if (tmu >= m_caps.m_numTmus) {
     return;
   }
@@ -523,21 +523,21 @@ void CGxDeviceOpenGl::ISetTexture(unsigned int tmu, CGxTex *tex) {
   }
 }
 
-void CGxDeviceOpenGl::ISetTexBlend(unsigned int tmu, EGxTexBlend blend) {
+void CGxDeviceOpenGl::ISetTexBlend(UINT tmu, EGxTexBlend blend) {
   if (tmu < m_caps.m_numTmus) {
     DsSet(Ds_ActiveTexture, tmu, 0);
     DsSet(static_cast<EDeviceState>(Ds_TexEnvMode0 + tmu), s_texEnv[blend], 0);
   }
 }
 
-void CGxDeviceOpenGl::ISetTexLodBias(unsigned int tmu, float bias) {
+void CGxDeviceOpenGl::ISetTexLodBias(UINT tmu, float bias) {
   if (tmu < m_caps.m_numTmus && glExtTextureLodBias) {
     DsSet(Ds_ActiveTexture, tmu, 0);
     glTexEnvf(GL_TEXTURE_FILTER_CONTROL_EXT, GL_TEXTURE_LOD_BIAS_EXT, bias);
   }
 }
 
-void CGxDeviceOpenGl::ISetTexGen(unsigned int tmu, EGxTexGen texGen) {
+void CGxDeviceOpenGl::ISetTexGen(UINT tmu, EGxTexGen texGen) {
   if (tmu >= m_caps.m_numTmus) {
     return;
   }
@@ -588,9 +588,9 @@ void CGxDeviceOpenGl::ISetTexGen(unsigned int tmu, EGxTexGen texGen) {
   if (texGen == GxTexGen_World) {
     NTempest::C44Matrix &texMat = m_texGen[tmu].Top();
     IXformGLModelView(m_xforms[GxXform_View].TopConst(), texMat);
-    float               b0 = texMat.b0;
-    float               c0 = texMat.c0;
-    float               c1 = texMat.c1;
+    float b0 = texMat.b0;
+    float c0 = texMat.c0;
+    float c1 = texMat.c1;
     texMat.b0 = texMat.a1;
     texMat.c0 = texMat.a2;
     texMat.a1 = b0;
@@ -619,7 +619,7 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
       if (floatVal == 0.0f) {
         DsSet(Ds_PolygonOffsetEnable, 0, 0);
       } else {
-        DsSet(Ds_PolygonOffset, *reinterpret_cast<unsigned int *>(&floatVal), 0);
+        DsSet(Ds_PolygonOffset, *reinterpret_cast<UINT *>(&floatVal), 0);
         DsSet(Ds_PolygonOffsetEnable, 1, 0);
       }
       break;

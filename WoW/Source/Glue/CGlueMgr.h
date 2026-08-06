@@ -44,15 +44,15 @@ class CGlueMgr {
     m_estimatedWaitTime = 0;
   }
 
-  static void UpdateWaitQueue(unsigned int wait);
+  static void UpdateWaitQueue(UINT wait);
 
   static void ExpectDisconnect(int reconnect) {
     m_disconnectPending = 1;
     m_reconnect = reconnect;
   }
 
-  static void SetScreen(const char *screen);
-  static void UpdateCurrentScreen(const char *screen);
+  static void SetScreen(LPCSTR screen);
+  static void UpdateCurrentScreen(LPCSTR screen);
 
   static void Reload() {
     m_reload = 1;
@@ -61,24 +61,24 @@ class CGlueMgr {
   static void DefaultServerLogin();
   static void ChangeRealm(const REALM_INFO *info);
   static void CreateCharacter(const CHARACTER_CREATE_INFO *info);
-  static void DeleteCharacter(unsigned __int64 guid);
+  static void DeleteCharacter(DWORDLONG guid);
   static void QuitGame();
   static void EnterWorld();
   static void WorldLoginFailed();
   static void StatusDialogClick();
 
-  static const char *GetCurrentAccount() {
+  static LPCSTR GetCurrentAccount() {
     return m_accountName;
   }
 
   static void GetCharacterList();
   static void GetRealmList();
-  static int NetDisconnectHandler(const void *eventData, void *__formal);
+  static int  NetDisconnectHandler(LPCVOID eventData, LPVOID);
 
  private:
   friend void ClientDestroyGame(int connected, int resumeUI, int loginError);
 
-  static int Idle(const void *eventData, void *param);
+  static int Idle(LPCVOID eventData, LPVOID param);
 
  protected:
   static void InitCursor();
@@ -100,8 +100,8 @@ class CGlueMgr {
   static WOW_LOCALE      m_locale;
   static char            m_accountName[64];
   static char            m_password[64];
-  static unsigned int    m_queuePosition[3];
-  static unsigned long   m_queueTime[3];
+  static UINT            m_queuePosition[3];
+  static DWORD           m_queueTime[3];
   static int             m_estimatedWaitTime;
   static CHARACTER_INFO *m_characterInfo;
 };

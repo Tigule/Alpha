@@ -7,13 +7,13 @@ class SpellEffectNamesRec {
   SpellEffectNamesRec();
   ~SpellEffectNamesRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 10;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 40;
   }
 
@@ -29,12 +29,12 @@ class SpellEffectNamesRec {
     m_generatedID = id;
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_EnumID;
-  const char *m_name_lang[8];
-  int         m_name_flag;
-  int         m_generatedID;
+  int    m_EnumID;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+  int    m_generatedID;
 };
 
 extern WowClientDB<SpellEffectNamesRec> g_spellEffectNamesDB;

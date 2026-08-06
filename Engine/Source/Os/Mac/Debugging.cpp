@@ -7,13 +7,13 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-void __cdecl SOutputDebugString(const char *format, ...);
+void __cdecl SOutputDebugString(LPCSTR format, ...);
 
 int OsBeep(DWORD dwFreq, DWORD dwDuration) {
   return 0;
 }
 
-void __cdecl OsOutputDebugString(const char *format, ...) {
+void __cdecl OsOutputDebugString(LPCSTR format, ...) {
   char    buffer[256];
   va_list args;
 
@@ -24,7 +24,7 @@ void __cdecl OsOutputDebugString(const char *format, ...) {
   SOutputDebugString("%s", buffer);
 }
 
-void OsOutputDebugStringV(const char *format, char *args) {
+void OsOutputDebugStringV(LPCSTR format, char *args) {
   char buffer[256];
 
   vsnprintf(buffer, sizeof(buffer), format, args);

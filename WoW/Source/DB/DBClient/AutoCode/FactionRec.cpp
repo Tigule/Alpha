@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *FactionRec::GetFilename() {
+LPCSTR FactionRec::GetFilename() {
   return "DBFilesClient\\Faction.dbc";
 }
 
@@ -19,9 +19,9 @@ FactionRec::FactionRec() {
 FactionRec::~FactionRec() {
 }
 
-bool FactionRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[8];
+bool FactionRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_reputationIndex, sizeof(m_reputationIndex), 0, 0, 0) && result;

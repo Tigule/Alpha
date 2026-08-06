@@ -14,7 +14,7 @@
 
 class CSimpleButtonClickEvent : public CEvent {
  public:
-  CSimpleButtonClickEvent(unsigned int id = -1) : CEvent(id) {
+  CSimpleButtonClickEvent(UINT id = -1) : CEvent(id) {
   }
 
   MOUSEBUTTON button;
@@ -64,7 +64,7 @@ void CSimpleButton::LoadXML(const XMLNode *node, CStatus *status) {
   CSimpleFrame::LoadXML(node, status);
 
   for (const XMLNode *child = node->GetChild(); child; child = child->GetSibling()) {
-    const char *name = child->GetName();
+    LPCSTR name = child->GetName();
 
     if (!SStrCmpI(name, "NormalTexture", INT_MAX)) {
       SetStateTexture(BUTTONSTATE_NORMAL, LoadXML_Texture(child, this, status));
@@ -140,19 +140,19 @@ void CSimpleButton::SetHighlightText(CSimpleFontString *text) {
   UpdateTextState(m_state);
 }
 
-void CSimpleButton::SetTextString(const char *text) {
+void CSimpleButton::SetTextString(LPCSTR text) {
   if (m_text && text) {
     m_text->SetText(text);
   }
 }
 
-void CSimpleButton::SetDisabledTextString(const char *text) {
+void CSimpleButton::SetDisabledTextString(LPCSTR text) {
   if (m_disabledText && text) {
     m_disabledText->SetText(text);
   }
 }
 
-void CSimpleButton::SetHighlightTextString(const char *text) {
+void CSimpleButton::SetHighlightTextString(LPCSTR text) {
   if (m_highlightText && text) {
     m_highlightText->SetText(text);
   }
@@ -180,7 +180,7 @@ void CSimpleButton::SetPressedOffset(const NTempest::C2Vector &offset) {
   m_pressedOffset = offset;
 }
 
-int CSimpleButton::SetStateTexture(CSimpleButtonState state, const char *texFile) {
+int CSimpleButton::SetStateTexture(CSimpleButtonState state, LPCSTR texFile) {
   if (m_textures[state]) {
     m_textures[state]->SetTexture(texFile, 0);
     return 1;
@@ -311,7 +311,7 @@ void CSimpleButton::OnClick(MOUSEBUTTON button) {
     }
 
     if (m_onClick) {
-      const char *buttonName;
+      LPCSTR buttonName;
 
       switch (button) {
         case MOUSE_BUTTON_LEFT:
@@ -339,16 +339,16 @@ void CSimpleButton::OnClick(MOUSEBUTTON button) {
   }
 }
 
-void CSimpleButton::SetClickAction(unsigned int action) {
+void CSimpleButton::SetClickAction(UINT action) {
   m_clickAction = action;
 }
 
-void CSimpleButton::RegisterClick(unsigned int eventId, CObserver *observer) {
+void CSimpleButton::RegisterClick(UINT eventId, CObserver *observer) {
   m_observer = observer;
   m_observerEventId = eventId;
 }
 
-void CSimpleButton::RegisterTrack(unsigned int enterEventId, unsigned int exitEventId, CObserver *observer) {
+void CSimpleButton::RegisterTrack(UINT enterEventId, UINT exitEventId, CObserver *observer) {
   m_trackObserver = observer;
   m_trackEnterEventId = enterEventId;
   m_trackExitEventId = exitEventId;

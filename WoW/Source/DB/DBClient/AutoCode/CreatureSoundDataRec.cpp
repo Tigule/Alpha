@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CreatureSoundDataRec::GetFilename() {
+LPCSTR CreatureSoundDataRec::GetFilename() {
   return "DBFilesClient\\CreatureSoundData.dbc";
 }
 
@@ -19,7 +19,7 @@ CreatureSoundDataRec::CreatureSoundDataRec() {
 CreatureSoundDataRec::~CreatureSoundDataRec() {
 }
 
-bool CreatureSoundDataRec::Read(SFile *f, const char *stringBuffer) {
+bool CreatureSoundDataRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

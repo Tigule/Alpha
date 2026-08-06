@@ -32,10 +32,10 @@ static int Script_CloseTaxiMap(lua_State *L);
 static int Script_GetTextureCoordinates(lua_State *L);
 static int Script_TaxiNodeGetType(lua_State *L);
 
-static const char *s_taxiNodeNames[4] = {"NONE", "CURRENT", "REACHABLE", "DISTANT"};
+static LPCSTR s_taxiNodeNames[4] = {"NONE", "CURRENT", "REACHABLE", "DISTANT"};
 
-unsigned __int64       CGTaxiMap::m_unit;
-unsigned int           CGTaxiMap::m_startNode;
+DWORDLONG              CGTaxiMap::m_unit;
+UINT                   CGTaxiMap::m_startNode;
 TSCArray<TaxiNode, 64> CGTaxiMap::m_nodes;
 
 void CGTaxiMap::InitializeGame() {
@@ -52,13 +52,7 @@ void CGTaxiMap::LeaveWorld() {
   CloseMap();
 }
 
-void CGTaxiMap::SetupMap(
-    const unsigned __int64 &unit,
-    unsigned int            node,
-    __int64                 destNodes,
-    __int64                 knownNodes,
-    const NTempest::CRect  &visibleArea
-) {
+void CGTaxiMap::SetupMap(const DWORDLONG &unit, UINT node, LONGLONG destNodes, LONGLONG knownNodes, const NTempest::CRect &visibleArea) {
   FATALASSERT(unit);
   if (m_unit) {
     if (m_unit == unit) {
@@ -80,11 +74,11 @@ void CGTaxiMap::SetupMap(
     return;
   }
 
-  unsigned int count = 0;
+  UINT count = 0;
   m_nodes.SetCount(64);
-  for (unsigned int nodeID = 1; nodeID <= 64; ++nodeID) {
+  for (UINT nodeID = 1; nodeID <= 64; ++nodeID) {
     const TaxiNodesRec *taxiNode = g_taxiNodesDB.GetRecord(nodeID);
-    if (taxiNode && taxiNode->m_ContinentID == currentNode->m_ContinentID && (destNodes & (static_cast<__int64>(1) << (taxiNode->m_ID - 1))) &&
+    if (taxiNode && taxiNode->m_ContinentID == currentNode->m_ContinentID && (destNodes & (static_cast<LONGLONG>(1) << (taxiNode->m_ID - 1))) &&
         taxiNode->m_X <= visibleArea.r && taxiNode->m_X >= visibleArea.l && taxiNode->m_Y <= visibleArea.b && taxiNode->m_Y >= visibleArea.t)
     {
       TaxiNode &out = m_nodes[count++];
@@ -107,37 +101,37 @@ void CGTaxiMap::CloseMap() {
   }
 }
 
-const char *CGTaxiMap::TaxiNodeName(unsigned int slot) {
+LPCSTR CGTaxiMap::TaxiNodeName(UINT slot) {
   FATALASSERT(slot < NumTaxiNodes());
   const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(m_nodes[slot].id);
   FATALASSERT(node);
   return node->m_Name_lang[CURRENT_LANGUAGE];
 }
 
-const char *CGTaxiMap::TaxiNodeType(unsigned int slot) {
+LPCSTR CGTaxiMap::TaxiNodeType(UINT slot) {
   FATALASSERT(slot < NumTaxiNodes());
   return s_taxiNodeNames[TaxiNodeGetNodeType(m_nodes[slot].id)];
 }
 
-void CGTaxiMap::TaxiNodePosition(unsigned int slot, float &x, float &y) {
+void CGTaxiMap::TaxiNodePosition(UINT slot, float &x, float &y) {
   FATALASSERT(slot < NumTaxiNodes());
   x = m_nodes[slot].offsetx;
   y = m_nodes[slot].offsety;
 }
 
-unsigned int CGTaxiMap::TaxiNodeCost(unsigned int slot) {
+UINT CGTaxiMap::TaxiNodeCost(UINT slot) {
   FATALASSERT(slot < NumTaxiNodes());
   return ::TaxiNodeCost(m_startNode, m_nodes[slot].id);
 }
 
-void CGTaxiMap::TakeTaxiNode(unsigned int slot) {
+void CGTaxiMap::TakeTaxiNode(UINT slot) {
   FATALASSERT(slot < NumTaxiNodes());
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return;
   }
 
-  unsigned int flags = player->GetUnitData()->flags;
+  UINT flags = player->GetUnitData()->flags;
   if ((flags & 0x2000) || (flags & 0x1000)) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(163));
   } else if (m_startNode == m_nodes[slot].id) {
@@ -171,13 +165,10 @@ static int Script_SetTaxiMap(lua_State *L) {
 }
 
 static int Script_SetTaxiRoute(lua_State *L) {
-  CSimpleModel *model = static_cast<CSimpleModel *>(SimpleFrameRegistryGetEntry("TaxiRouteMap", 0));
+  CSimpleModel   *model = static_cast<CSimpleModel *>(SimpleFrameRegistryGetEntry("TaxiRouteMap", 0));
   NTempest::CRect rect;
   if (model && !model->GetModel() && model->GetRect(&rect)) {
-    HMODEL route = TaxiGetRouteModel(
-        (rect.r - rect.l) / model->GetLayoutScale(),
-        (rect.b - rect.t) / model->GetLayoutScale()
-    );
+    HMODEL route = TaxiGetRouteModel((rect.r - rect.l) / model->GetLayoutScale(), (rect.b - rect.t) / model->GetLayoutScale());
     model->SetModel(route);
     if (route) {
       HandleClose(route);
@@ -195,7 +186,7 @@ static int Script_TaxiNodeName(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TaxiNodeName(slot)");
   }
-  unsigned int slot = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot > CGTaxiMap::NumTaxiNodes()) {
     return luaL_error(L, "Invalid taxi node slot");
   }
@@ -207,7 +198,7 @@ static int Script_TaxiNodePosition(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TaxiNodeTaxiNodeLocation(slot)");
   }
-  unsigned int slot = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot > CGTaxiMap::NumTaxiNodes()) {
     return luaL_error(L, "Invalid taxi node slot");
   }
@@ -223,7 +214,7 @@ static int Script_TaxiNodeCost(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TaxiNodeCost(slot)");
   }
-  unsigned int slot = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot > CGTaxiMap::NumTaxiNodes()) {
     return luaL_error(L, "Invalid taxi node slot");
   }
@@ -235,7 +226,7 @@ static int Script_TakeTaxiNode(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TakeTaxiNode(slot)");
   }
-  unsigned int slot = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot < CGTaxiMap::NumTaxiNodes()) {
     CGTaxiMap::TakeTaxiNode(slot);
   }
@@ -260,7 +251,7 @@ static int Script_TaxiNodeGetType(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TakeTaxiNode(slot)");
   }
-  unsigned int slot = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot > CGTaxiMap::NumTaxiNodes()) {
     return luaL_error(L, "Invalid taxi node slot");
   }
@@ -284,13 +275,13 @@ static FrameScript_Method s_ScriptFunctions[10] = {
 };
 
 void CGTaxiMap::RegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 10; ++i) {
+  for (UINT i = 0; i < 10; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void CGTaxiMap::UnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 10; ++i) {
+  for (UINT i = 0; i < 10; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

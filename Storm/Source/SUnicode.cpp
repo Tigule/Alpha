@@ -1,19 +1,18 @@
 #include <storm.h>
 
-typedef unsigned long UCS4;
+typedef DWORD UCS4;
 
-static const unsigned long offsetsFromUTF8[6] = {0x00000000UL, 0x00003080UL, 0x000E2080UL, 0x03C82080UL, 0xFA082080UL, 0x82082080UL};
+static const DWORD offsetsFromUTF8[6] = {0x00000000UL, 0x00003080UL, 0x000E2080UL, 0x03C82080UL, 0xFA082080UL, 0x82082080UL};
 
-static const unsigned char bytesFromUTF8[256] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5};
+static const BYTE bytesFromUTF8[256] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                        1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5};
 
-static const unsigned long firstByteMark[7] = {0x00UL, 0x00UL, 0xC0UL, 0xE0UL, 0xF0UL, 0xF8UL, 0xFCUL};
+static const DWORD firstByteMark[7] = {0x00UL, 0x00UL, 0xC0UL, 0xE0UL, 0xF0UL, 0xF8UL, 0xFCUL};
 
 #define ASCII_CODE_PAGE                                                                                                                           \
   0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F, 0x0010, 0x0011, \
@@ -25,7 +24,7 @@ static const unsigned long firstByteMark[7] = {0x00UL, 0x00UL, 0xC0UL, 0xE0UL, 0
       0x0067, 0x0068, 0x0069, 0x006A, 0x006B, 0x006C, 0x006D, 0x006E, 0x006F, 0x0070, 0x0071, 0x0072, 0x0073, 0x0074, 0x0075, 0x0076, 0x0077,     \
       0x0078, 0x0079, 0x007A, 0x007B, 0x007C, 0x007D, 0x007E, 0x007F
 
-static const unsigned short CP1252[256] = {
+static const WORD CP1252[256] = {
     ASCII_CODE_PAGE, 0x20AC, 0xFFFF, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0xFFFF, 0x017D, 0xFFFF,
     0xFFFF,          0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0xFFFF, 0x017E, 0x0178, 0x00A0,
     0x00A1,          0x00A2, 0x00A3, 0x00A4, 0x00A5, 0x00A6, 0x00A7, 0x00A8, 0x00A9, 0x00AA, 0x00AB, 0x00AC, 0x00AD, 0x00AE, 0x00AF, 0x00B0, 0x00B1,
@@ -36,7 +35,7 @@ static const unsigned short CP1252[256] = {
     0x00F6,          0x00F7, 0x00F8, 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00FD, 0x00FE, 0x00FF,
 };
 
-static const unsigned short CP10000[256] = {
+static const WORD CP10000[256] = {
     ASCII_CODE_PAGE, 0x00C4, 0x00C5, 0x00C7, 0x00C9, 0x00D1, 0x00D6, 0x00DC, 0x00E1, 0x00E0, 0x00E2, 0x00E4, 0x00E3, 0x00E5, 0x00E7, 0x00E9, 0x00E8,
     0x00EA,          0x00EB, 0x00ED, 0x00EC, 0x00EE, 0x00EF, 0x00F1, 0x00F3, 0x00F2, 0x00F4, 0x00F6, 0x00F5, 0x00FA, 0x00F9, 0x00FB, 0x00FC, 0x2020,
     0x00B0,          0x00A2, 0x00A3, 0x00A7, 0x2022, 0x00B6, 0x00DF, 0x00AE, 0x00A9, 0x2122, 0x00B4, 0x00A8, 0x2260, 0x00C6, 0x00D8, 0x221E, 0x00B1,
@@ -47,7 +46,7 @@ static const unsigned short CP10000[256] = {
     0x02C6,          0x02DC, 0x00AF, 0x02D8, 0x02D9, 0x02DA, 0x00B8, 0x02DD, 0x02DB, 0x02C7,
 };
 
-static const unsigned short CP437[256] = {
+static const WORD CP437[256] = {
     ASCII_CODE_PAGE, 0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7, 0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5,
     0x00C9,          0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9, 0x00FF, 0x00D6, 0x00DC, 0x00A2, 0x00A3, 0x00A5, 0x20A7, 0x0192, 0x00E1,
     0x00ED,          0x00F3, 0x00FA, 0x00F1, 0x00D1, 0x00AA, 0x00BA, 0x00BF, 0x2310, 0x00AC, 0x00BD, 0x00BC, 0x00A1, 0x00AB, 0x00BB, 0x2591, 0x2592,
@@ -58,10 +57,10 @@ static const unsigned short CP437[256] = {
     0x00F7,          0x2248, 0x00B0, 0x2219, 0x00B7, 0x221A, 0x207F, 0x00B2, 0x25A0, 0x00A0,
 };
 
-extern "C" int APIENTRY SUniConvertUTF16to8Len(const unsigned short *src, unsigned long srcMaxChars, unsigned long *srcChars) {
-  const unsigned short *srcStart;
-  const unsigned short *srcEnd;
-  int                   result;
+extern "C" int APIENTRY SUniConvertUTF16to8Len(const WORD *src, DWORD srcMaxChars, DWORD *srcChars) {
+  const WORD *srcStart;
+  const WORD *srcEnd;
+  int         result;
 
   if (!srcMaxChars || !src) {
     if (srcChars) {
@@ -73,7 +72,7 @@ extern "C" int APIENTRY SUniConvertUTF16to8Len(const unsigned short *src, unsign
 
   srcStart = src;
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const unsigned short *>(-1);
+    srcEnd = reinterpret_cast<const WORD *>(-1);
   } else {
     srcEnd = src + srcMaxChars;
   }
@@ -122,26 +121,19 @@ sourceExhausted:
 
 finished:
   if (srcChars) {
-    *srcChars = static_cast<unsigned int>(src - srcStart);
+    *srcChars = static_cast<UINT>(src - srcStart);
   }
 
   return result;
 }
 
-extern "C" int APIENTRY SUniConvertUTF16to8(
-    char                 *dst,
-    unsigned long         dstMaxChars,
-    const unsigned short *src,
-    unsigned long         srcMaxChars,
-    unsigned long        *dstChars,
-    unsigned long        *srcChars
-) {
-  char                 *dstStart;
-  const unsigned short *srcStart;
-  int                   result;
-  const unsigned short *srcEnd;
-  unsigned int          srcIndex;
-  char                 *dstEnd;
+extern "C" int APIENTRY SUniConvertUTF16to8(char *dst, DWORD dstMaxChars, const WORD *src, DWORD srcMaxChars, DWORD *dstChars, DWORD *srcChars) {
+  char       *dstStart;
+  const WORD *srcStart;
+  int         result;
+  const WORD *srcEnd;
+  UINT        srcIndex;
+  char       *dstEnd;
 
   dstStart = dst;
   srcStart = src;
@@ -149,14 +141,14 @@ extern "C" int APIENTRY SUniConvertUTF16to8(
   dstEnd = dst + dstMaxChars;
 
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const unsigned short *>(-1);
+    srcEnd = reinterpret_cast<const WORD *>(-1);
   } else {
     srcEnd = src + srcMaxChars;
   }
 
   while (src < srcEnd) {
-    UCS4         ch = src[0];
-    unsigned int bytesToWrite;
+    UCS4 ch = src[0];
+    UINT bytesToWrite;
 
     srcIndex = 1;
 
@@ -233,19 +225,19 @@ extern "C" int APIENTRY SUniConvertUTF16to8(
 
 finished:
   if (srcChars) {
-    *srcChars = static_cast<unsigned int>(src - srcStart);
+    *srcChars = static_cast<UINT>(src - srcStart);
   }
   if (dstChars) {
-    *dstChars = static_cast<unsigned int>(dst - dstStart);
+    *dstChars = static_cast<UINT>(dst - dstStart);
   }
 
   return result;
 }
 
-extern "C" int APIENTRY SUniConvertUTF8to16Len(const char *src, unsigned long srcMaxChars, unsigned long *srcChars) {
-  const char *srcStart;
-  const char *srcEnd;
-  int         result;
+extern "C" int APIENTRY SUniConvertUTF8to16Len(LPCSTR src, DWORD srcMaxChars, DWORD *srcChars) {
+  LPCSTR srcStart;
+  LPCSTR srcEnd;
+  int    result;
 
   if (!srcMaxChars || !src) {
     if (srcChars) {
@@ -257,7 +249,7 @@ extern "C" int APIENTRY SUniConvertUTF8to16Len(const char *src, unsigned long sr
 
   srcStart = src;
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const char *>(-1);
+    srcEnd = reinterpret_cast<LPCSTR>(-1);
   } else {
     srcEnd = src + srcMaxChars;
   }
@@ -265,8 +257,8 @@ extern "C" int APIENTRY SUniConvertUTF8to16Len(const char *src, unsigned long sr
   result = 0;
 
   while (src < srcEnd) {
-    unsigned int extraBytes = bytesFromUTF8[*src];
-    UCS4         ch = 0;
+    UINT extraBytes = bytesFromUTF8[*src];
+    UCS4 ch = 0;
 
     if (src + extraBytes >= srcEnd) {
       result = -1 - static_cast<int>(extraBytes);
@@ -310,31 +302,24 @@ extern "C" int APIENTRY SUniConvertUTF8to16Len(const char *src, unsigned long sr
 
 finished:
   if (srcChars) {
-    *srcChars = static_cast<unsigned int>(src - srcStart);
+    *srcChars = static_cast<UINT>(src - srcStart);
   }
 
   return result;
 }
 
-extern "C" int APIENTRY SUniConvertUTF8to16(
-    unsigned short *dst,
-    unsigned long   dstMaxChars,
-    const char     *src,
-    unsigned long   srcMaxChars,
-    unsigned long  *dstChars,
-    unsigned long  *srcChars
-) {
-  unsigned short *dstStart;
-  const char     *srcStart;
-  unsigned short *dstEnd;
-  int             result;
-  const char     *srcEnd;
+extern "C" int APIENTRY SUniConvertUTF8to16(WORD *dst, DWORD dstMaxChars, LPCSTR src, DWORD srcMaxChars, DWORD *dstChars, DWORD *srcChars) {
+  WORD  *dstStart;
+  LPCSTR srcStart;
+  WORD  *dstEnd;
+  int    result;
+  LPCSTR srcEnd;
 
   dstStart = dst;
   srcStart = src;
 
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const char *>(-1);
+    srcEnd = reinterpret_cast<LPCSTR>(-1);
   } else {
     srcEnd = src + srcMaxChars;
   }
@@ -343,11 +328,11 @@ extern "C" int APIENTRY SUniConvertUTF8to16(
   result = 0;
 
   while (src < srcEnd) {
-    unsigned int extraBytes;
-    unsigned int srcIndex;
-    UCS4         ch;
+    UINT extraBytes;
+    UINT srcIndex;
+    UCS4 ch;
 
-    extraBytes = bytesFromUTF8[static_cast<unsigned char>(*src)];
+    extraBytes = bytesFromUTF8[static_cast<BYTE>(*src)];
 
     if (src + extraBytes >= srcEnd) {
       result = -1 - static_cast<int>(extraBytes);
@@ -359,22 +344,22 @@ extern "C" int APIENTRY SUniConvertUTF8to16(
 
     switch (extraBytes) {
       case 5:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 4:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 3:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 2:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 1:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 0:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
     }
     ch -= offsetsFromUTF8[extraBytes];
 
@@ -384,7 +369,7 @@ extern "C" int APIENTRY SUniConvertUTF8to16(
     }
 
     if (ch <= 0xFFFF) {
-      *dst++ = static_cast<unsigned short>(ch);
+      *dst++ = static_cast<WORD>(ch);
       if (!ch) {
         goto finished;
       }
@@ -397,8 +382,8 @@ extern "C" int APIENTRY SUniConvertUTF8to16(
       }
 
       ch -= 0x10000;
-      *dst++ = static_cast<unsigned short>((ch >> 10) + 0xD800);
-      *dst++ = static_cast<unsigned short>((ch & 0x3FF) + 0xDC00);
+      *dst++ = static_cast<WORD>((ch >> 10) + 0xD800);
+      *dst++ = static_cast<WORD>((ch & 0x3FF) + 0xDC00);
     }
 
     src += srcIndex;
@@ -408,29 +393,29 @@ extern "C" int APIENTRY SUniConvertUTF8to16(
 
 finished:
   if (srcChars) {
-    *srcChars = static_cast<unsigned int>(src - srcStart);
+    *srcChars = static_cast<UINT>(src - srcStart);
   }
   if (dstChars) {
-    *dstChars = static_cast<unsigned int>(dst - dstStart);
+    *dstChars = static_cast<UINT>(dst - dstStart);
   }
 
   return result;
 }
 
-extern "C" unsigned int APIENTRY SUniSGetUTF8(const unsigned char *strptr, int *chars) {
-  unsigned int c;
-  int          remaining;
+extern "C" UINT APIENTRY SUniSGetUTF8(const BYTE *strptr, int *chars) {
+  UINT c;
+  int  remaining;
 
   if (chars) {
     *chars = 0;
   }
   if (!strptr) {
-    return static_cast<unsigned int>(-1);
+    return static_cast<UINT>(-1);
   }
 
   c = *strptr++;
   if (!c) {
-    return static_cast<unsigned int>(-1);
+    return static_cast<UINT>(-1);
   }
   if (chars) {
     ++*chars;
@@ -460,10 +445,10 @@ extern "C" unsigned int APIENTRY SUniSGetUTF8(const unsigned char *strptr, int *
   }
 
   while (remaining-- > 0) {
-    unsigned int next = *strptr++;
+    UINT next = *strptr++;
 
     if (!next) {
-      return static_cast<unsigned int>(-1);
+      return static_cast<UINT>(-1);
     }
     if (chars) {
       ++*chars;
@@ -478,7 +463,7 @@ extern "C" unsigned int APIENTRY SUniSGetUTF8(const unsigned char *strptr, int *
   return c;
 }
 
-extern "C" char *APIENTRY SUniSPutUTF8(unsigned long c, char *strptr) {
+extern "C" char *APIENTRY SUniSPutUTF8(DWORD c, char *strptr) {
   if (!strptr) {
     return strptr;
   }
@@ -516,22 +501,22 @@ extern "C" char *APIENTRY SUniSPutUTF8(unsigned long c, char *strptr) {
   return strptr;
 }
 
-static int FindUTF8Character(const char *utf8String, int index, int direction) {
-  while (index > 0 && utf8String[index] && (((unsigned char)utf8String[index] & 0xC0) == 0x80)) {
+static int FindUTF8Character(LPCSTR utf8String, int index, int direction) {
+  while (index > 0 && utf8String[index] && (((BYTE)utf8String[index] & 0xC0) == 0x80)) {
     index += direction;
   }
   return index;
 }
 
-extern "C" int APIENTRY SUniFindUTF8ChrStart(const char *utf8String, int index) {
+extern "C" int APIENTRY SUniFindUTF8ChrStart(LPCSTR utf8String, int index) {
   return FindUTF8Character(utf8String, index, -1);
 }
 
-extern "C" int APIENTRY SUniFindAfterUTF8Chr(const char *utf8String, int index) {
+extern "C" int APIENTRY SUniFindAfterUTF8Chr(LPCSTR utf8String, int index) {
   return FindUTF8Character(utf8String, index + 1, 1);
 }
 
-static DWORD SUniConvertUTF16ToCP(unsigned short *codepage, char *dest, const unsigned short *source, DWORD destsize) {
+static DWORD SUniConvertUTF16ToCP(WORD *codepage, char *dest, const WORD *source, DWORD destsize) {
   char *start;
 
   if (!destsize) {
@@ -540,12 +525,12 @@ static DWORD SUniConvertUTF16ToCP(unsigned short *codepage, char *dest, const un
 
   start = dest;
   while (*source && destsize) {
-    unsigned short ch;
-    unsigned int   cp;
+    WORD ch;
+    UINT cp;
 
     ch = *source;
     if (ch < 0x100 && codepage[ch] == ch) {
-      cp = (unsigned char)*source;
+      cp = (BYTE)*source;
     } else {
       cp = 0xFF;
       while (cp > 0 && codepage[cp] != ch) {
@@ -568,8 +553,8 @@ static DWORD SUniConvertUTF16ToCP(unsigned short *codepage, char *dest, const un
   return (DWORD)(dest - start);
 }
 
-static DWORD SUniConvertCPToUTF16(unsigned short *codepage, unsigned short *dest, const char *source, DWORD destsize) {
-  unsigned short *start;
+static DWORD SUniConvertCPToUTF16(WORD *codepage, WORD *dest, LPCSTR source, DWORD destsize) {
+  WORD *start;
 
   if (!destsize) {
     return 0;
@@ -577,7 +562,7 @@ static DWORD SUniConvertCPToUTF16(unsigned short *codepage, unsigned short *dest
 
   start = dest;
   while (*source && destsize) {
-    *dest++ = codepage[(unsigned char)*source];
+    *dest++ = codepage[(BYTE)*source];
     ++source;
     --destsize;
   }
@@ -589,26 +574,26 @@ static DWORD SUniConvertCPToUTF16(unsigned short *codepage, unsigned short *dest
   return (DWORD)(dest - start);
 }
 
-extern "C" DWORD APIENTRY SUniConvertUTF16ToWin(char *dest, const unsigned short *source, DWORD destsize) {
-  return SUniConvertUTF16ToCP(const_cast<unsigned short *>(CP1252), dest, source, destsize);
+extern "C" DWORD APIENTRY SUniConvertUTF16ToWin(char *dest, const WORD *source, DWORD destsize) {
+  return SUniConvertUTF16ToCP(const_cast<WORD *>(CP1252), dest, source, destsize);
 }
 
-extern "C" DWORD APIENTRY SUniConvertUTF16ToMac(char *dest, const unsigned short *source, DWORD destsize) {
-  return SUniConvertUTF16ToCP(const_cast<unsigned short *>(CP10000), dest, source, destsize);
+extern "C" DWORD APIENTRY SUniConvertUTF16ToMac(char *dest, const WORD *source, DWORD destsize) {
+  return SUniConvertUTF16ToCP(const_cast<WORD *>(CP10000), dest, source, destsize);
 }
 
-extern "C" DWORD APIENTRY SUniConvertUTF16ToDos(char *dest, const unsigned short *source, DWORD destsize) {
-  return SUniConvertUTF16ToCP(const_cast<unsigned short *>(CP437), dest, source, destsize);
+extern "C" DWORD APIENTRY SUniConvertUTF16ToDos(char *dest, const WORD *source, DWORD destsize) {
+  return SUniConvertUTF16ToCP(const_cast<WORD *>(CP437), dest, source, destsize);
 }
 
-extern "C" DWORD APIENTRY SUniConvertWinToUTF16(unsigned short *dest, const char *source, DWORD destsize) {
-  return SUniConvertCPToUTF16(const_cast<unsigned short *>(CP1252), dest, source, destsize);
+extern "C" DWORD APIENTRY SUniConvertWinToUTF16(WORD *dest, LPCSTR source, DWORD destsize) {
+  return SUniConvertCPToUTF16(const_cast<WORD *>(CP1252), dest, source, destsize);
 }
 
-extern "C" DWORD APIENTRY SUniConvertMacToUTF16(unsigned short *dest, const char *source, DWORD destsize) {
-  return SUniConvertCPToUTF16(const_cast<unsigned short *>(CP10000), dest, source, destsize);
+extern "C" DWORD APIENTRY SUniConvertMacToUTF16(WORD *dest, LPCSTR source, DWORD destsize) {
+  return SUniConvertCPToUTF16(const_cast<WORD *>(CP10000), dest, source, destsize);
 }
 
-extern "C" DWORD APIENTRY SUniConvertDosToUTF16(unsigned short *dest, const char *source, DWORD destsize) {
-  return SUniConvertCPToUTF16(const_cast<unsigned short *>(CP437), dest, source, destsize);
+extern "C" DWORD APIENTRY SUniConvertDosToUTF16(WORD *dest, LPCSTR source, DWORD destsize) {
+  return SUniConvertCPToUTF16(const_cast<WORD *>(CP437), dest, source, destsize);
 }

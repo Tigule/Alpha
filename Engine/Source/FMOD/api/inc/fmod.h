@@ -50,20 +50,20 @@ typedef struct FMUSIC_MODULE    FMUSIC_MODULE;
 /* 
     Callback types
 */
-typedef void *      (F_CALLBACKAPI *FSOUND_OPENCALLBACK)    (const char *name);
-typedef void        (F_CALLBACKAPI *FSOUND_CLOSECALLBACK)   (void *handle);
-typedef int         (F_CALLBACKAPI *FSOUND_READCALLBACK)    (void *buffer, int size, void *handle);
-typedef int         (F_CALLBACKAPI *FSOUND_SEEKCALLBACK)    (void *handle, int pos, signed char mode);
-typedef int         (F_CALLBACKAPI *FSOUND_TELLCALLBACK)    (void *handle);
+typedef LPVOID      (F_CALLBACKAPI *FSOUND_OPENCALLBACK)    (LPCSTR name);
+typedef void        (F_CALLBACKAPI *FSOUND_CLOSECALLBACK)   (LPVOID handle);
+typedef int         (F_CALLBACKAPI *FSOUND_READCALLBACK)    (LPVOID buffer, int size, LPVOID handle);
+typedef int         (F_CALLBACKAPI *FSOUND_SEEKCALLBACK)    (LPVOID handle, int pos, signed char mode);
+typedef int         (F_CALLBACKAPI *FSOUND_TELLCALLBACK)    (LPVOID handle);
 
-typedef void *      (F_CALLBACKAPI *FSOUND_ALLOCCALLBACK)   (unsigned int size);
-typedef void *      (F_CALLBACKAPI *FSOUND_REALLOCCALLBACK) (void *ptr, unsigned int size);
-typedef void        (F_CALLBACKAPI *FSOUND_FREECALLBACK)    (void *ptr);
+typedef LPVOID      (F_CALLBACKAPI *FSOUND_ALLOCCALLBACK)   (UINT size);
+typedef LPVOID      (F_CALLBACKAPI *FSOUND_REALLOCCALLBACK) (LPVOID ptr, UINT size);
+typedef void        (F_CALLBACKAPI *FSOUND_FREECALLBACK)    (LPVOID ptr);
 
-typedef void *      (F_CALLBACKAPI *FSOUND_DSPCALLBACK)     (void *originalbuffer, void *newbuffer, int length, void *userdata);
-typedef signed char (F_CALLBACKAPI *FSOUND_STREAMCALLBACK)  (FSOUND_STREAM *stream, void *buff, int len, void *userdata);
-typedef signed char (F_CALLBACKAPI *FSOUND_METADATACALLBACK)(char *name, char *value, void *userdata);
-typedef void        (F_CALLBACKAPI *FMUSIC_CALLBACK)        (FMUSIC_MODULE *mod, unsigned char param);
+typedef LPVOID      (F_CALLBACKAPI *FSOUND_DSPCALLBACK)     (LPVOID originalbuffer, LPVOID newbuffer, int length, LPVOID userdata);
+typedef signed char (F_CALLBACKAPI *FSOUND_STREAMCALLBACK)  (FSOUND_STREAM *stream, LPVOID buff, int len, LPVOID userdata);
+typedef signed char (F_CALLBACKAPI *FSOUND_METADATACALLBACK)(char *name, char *value, LPVOID userdata);
+typedef void        (F_CALLBACKAPI *FMUSIC_CALLBACK)        (FMUSIC_MODULE *mod, BYTE param);
 
 
 /*
@@ -376,7 +376,7 @@ enum FMUSIC_TYPES
 */
 typedef struct _FSOUND_REVERB_PROPERTIES /* MIN     MAX    DEFAULT   DESCRIPTION */
 {                                   
-    unsigned int Environment;            /* 0     , 25    , 0      , sets all listener properties (WIN32/PS2 only) */
+    UINT Environment;            /* 0     , 25    , 0      , sets all listener properties (WIN32/PS2 only) */
     float        EnvSize;                /* 1.0   , 100.0 , 7.5    , environment size in meters (WIN32 only) */
     float        EnvDiffusion;           /* 0.0   , 1.0   , 1.0    , environment diffusion (WIN32/XBOX) */
     int          Room;                   /* -10000, 0     , -1000  , room effect level (at mid frequencies) (WIN32/XBOX/PS2) */
@@ -401,7 +401,7 @@ typedef struct _FSOUND_REVERB_PROPERTIES /* MIN     MAX    DEFAULT   DESCRIPTION
     float        RoomRolloffFactor;      /* 0.0   , 10.0  , 0.0    , like FSOUND_3D_SetRolloffFactor but for room effect (WIN32/XBOX) */
     float        Diffusion;              /* 0.0   , 100.0 , 100.0  , Value that controls the echo density in the late reverberation decay. (XBOX only) */
     float        Density;                /* 0.0   , 100.0 , 100.0  , Value that controls the modal density in the late reverberation decay (XBOX only) */
-    unsigned int Flags;                  /* FSOUND_REVERB_FLAGS - modifies the behavior of above properties (WIN32/PS2 only) */
+    UINT Flags;                  /* FSOUND_REVERB_FLAGS - modifies the behavior of above properties (WIN32/PS2 only) */
 } FSOUND_REVERB_PROPERTIES;
 
 
@@ -786,10 +786,10 @@ DLL_API signed char     F_API FSOUND_SetOutput(int outputtype);
 DLL_API signed char     F_API FSOUND_SetDriver(int driver);
 DLL_API signed char     F_API FSOUND_SetMixer(int mixer);
 DLL_API signed char     F_API FSOUND_SetBufferSize(int len_ms);
-DLL_API signed char     F_API FSOUND_SetHWND(void *hwnd);
+DLL_API signed char     F_API FSOUND_SetHWND(LPVOID hwnd);
 DLL_API signed char     F_API FSOUND_SetMinHardwareChannels(int min);
 DLL_API signed char     F_API FSOUND_SetMaxHardwareChannels(int max);
-DLL_API signed char     F_API FSOUND_SetMemorySystem(void *pool, 
+DLL_API signed char     F_API FSOUND_SetMemorySystem(LPVOID pool, 
                                                      int poollen, 
                                                      FSOUND_ALLOCCALLBACK   useralloc,
                                                      FSOUND_REALLOCCALLBACK userrealloc,
@@ -802,7 +802,7 @@ DLL_API signed char     F_API FSOUND_SetMemorySystem(void *pool,
            which window is in focus. (FSOUND_OUTPUT_DSOUND only)
 */
 
-DLL_API signed char     F_API FSOUND_Init(int mixrate, int maxsoftwarechannels, unsigned int flags);
+DLL_API signed char     F_API FSOUND_Init(int mixrate, int maxsoftwarechannels, UINT flags);
 DLL_API void            F_API FSOUND_Close();
 
 /* 
@@ -811,7 +811,7 @@ DLL_API void            F_API FSOUND_Close();
 
 DLL_API void            F_API FSOUND_Update();   /* This is called to update 3d sound / non-realtime output */
 
-DLL_API void            F_API FSOUND_SetSpeakerMode(unsigned int speakermode);
+DLL_API void            F_API FSOUND_SetSpeakerMode(UINT speakermode);
 DLL_API void            F_API FSOUND_SetSFXMasterVolume(int volume);
 DLL_API void            F_API FSOUND_SetPanSeperation(float pansep);
 DLL_API void            F_API FSOUND_File_SetCallbacks(FSOUND_OPENCALLBACK  useropen,
@@ -827,21 +827,21 @@ DLL_API void            F_API FSOUND_File_SetCallbacks(FSOUND_OPENCALLBACK  user
 DLL_API int             F_API FSOUND_GetError();
 DLL_API float           F_API FSOUND_GetVersion();
 DLL_API int             F_API FSOUND_GetOutput();
-DLL_API void *          F_API FSOUND_GetOutputHandle();
+DLL_API LPVOID          F_API FSOUND_GetOutputHandle();
 DLL_API int             F_API FSOUND_GetDriver();
 DLL_API int             F_API FSOUND_GetMixer();
 DLL_API int             F_API FSOUND_GetNumDrivers();
-DLL_API const char *    F_API FSOUND_GetDriverName(int id);
-DLL_API signed char     F_API FSOUND_GetDriverCaps(int id, unsigned int *caps);
+DLL_API LPCSTR    F_API FSOUND_GetDriverName(int id);
+DLL_API signed char     F_API FSOUND_GetDriverCaps(int id, UINT *caps);
 DLL_API int             F_API FSOUND_GetOutputRate();
 DLL_API int             F_API FSOUND_GetMaxChannels();
 DLL_API int             F_API FSOUND_GetMaxSamples();
-DLL_API unsigned int    F_API FSOUND_GetSpeakerMode();
+DLL_API UINT    F_API FSOUND_GetSpeakerMode();
 DLL_API int             F_API FSOUND_GetSFXMasterVolume();
 DLL_API signed char     F_API FSOUND_GetNumHWChannels(int *num2d, int *num3d, int *total);
 DLL_API int             F_API FSOUND_GetChannelsPlaying();
 DLL_API float           F_API FSOUND_GetCPUUsage();
-DLL_API void            F_API FSOUND_GetMemoryStats(unsigned int *currentalloced, unsigned int *maxalloced);
+DLL_API void            F_API FSOUND_GetMemoryStats(UINT *currentalloced, UINT *maxalloced);
 
 /* =================================== */
 /* Sample management / load functions. */
@@ -853,18 +853,18 @@ DLL_API void            F_API FSOUND_GetMemoryStats(unsigned int *currentalloced
            Use FSOUND_LOADRAW      flag with FSOUND_Sample_Load to treat as as raw pcm data.
 */
 
-DLL_API FSOUND_SAMPLE * F_API FSOUND_Sample_Load(int index, const char *name_or_data, unsigned int mode, int offset, int length);
-DLL_API FSOUND_SAMPLE * F_API FSOUND_Sample_Alloc(int index, int length, unsigned int mode, int deffreq, int defvol, int defpan, int defpri);
+DLL_API FSOUND_SAMPLE * F_API FSOUND_Sample_Load(int index, LPCSTR name_or_data, UINT mode, int offset, int length);
+DLL_API FSOUND_SAMPLE * F_API FSOUND_Sample_Alloc(int index, int length, UINT mode, int deffreq, int defvol, int defpan, int defpri);
 DLL_API void            F_API FSOUND_Sample_Free(FSOUND_SAMPLE *sptr);
-DLL_API signed char     F_API FSOUND_Sample_Upload(FSOUND_SAMPLE *sptr, void *srcdata, unsigned int mode);
-DLL_API signed char     F_API FSOUND_Sample_Lock(FSOUND_SAMPLE *sptr, int offset, int length, void **ptr1, void **ptr2, unsigned int *len1, unsigned int *len2);
-DLL_API signed char     F_API FSOUND_Sample_Unlock(FSOUND_SAMPLE *sptr, void *ptr1, void *ptr2, unsigned int len1, unsigned int len2);
+DLL_API signed char     F_API FSOUND_Sample_Upload(FSOUND_SAMPLE *sptr, LPVOID srcdata, UINT mode);
+DLL_API signed char     F_API FSOUND_Sample_Lock(FSOUND_SAMPLE *sptr, int offset, int length, LPVOID *ptr1, LPVOID *ptr2, UINT *len1, UINT *len2);
+DLL_API signed char     F_API FSOUND_Sample_Unlock(FSOUND_SAMPLE *sptr, LPVOID ptr1, LPVOID ptr2, UINT len1, UINT len2);
 
 /*
     Sample control functions
 */
 
-DLL_API signed char     F_API FSOUND_Sample_SetMode(FSOUND_SAMPLE *sptr, unsigned int mode);
+DLL_API signed char     F_API FSOUND_Sample_SetMode(FSOUND_SAMPLE *sptr, UINT mode);
 DLL_API signed char     F_API FSOUND_Sample_SetLoopPoints(FSOUND_SAMPLE *sptr, int loopstart, int loopend);
 DLL_API signed char     F_API FSOUND_Sample_SetDefaults(FSOUND_SAMPLE *sptr, int deffreq, int defvol, int defpan, int defpri);
 DLL_API signed char     F_API FSOUND_Sample_SetDefaultsEx(FSOUND_SAMPLE *sptr, int deffreq, int defvol, int defpan, int defpri, int varfreq, int varvol, int varpan);
@@ -876,12 +876,12 @@ DLL_API signed char     F_API FSOUND_Sample_SetMaxPlaybacks(FSOUND_SAMPLE *sptr,
 */
 
 DLL_API FSOUND_SAMPLE * F_API FSOUND_Sample_Get(int sampno);
-DLL_API const char *    F_API FSOUND_Sample_GetName(FSOUND_SAMPLE *sptr);
-DLL_API unsigned int    F_API FSOUND_Sample_GetLength(FSOUND_SAMPLE *sptr);
+DLL_API LPCSTR    F_API FSOUND_Sample_GetName(FSOUND_SAMPLE *sptr);
+DLL_API UINT    F_API FSOUND_Sample_GetLength(FSOUND_SAMPLE *sptr);
 DLL_API signed char     F_API FSOUND_Sample_GetLoopPoints(FSOUND_SAMPLE *sptr, int *loopstart, int *loopend);
 DLL_API signed char     F_API FSOUND_Sample_GetDefaults(FSOUND_SAMPLE *sptr, int *deffreq, int *defvol, int *defpan, int *defpri);
 DLL_API signed char     F_API FSOUND_Sample_GetDefaultsEx(FSOUND_SAMPLE *sptr, int *deffreq, int *defvol, int *defpan, int *defpri, int *varfreq, int *varvol, int *varpan);
-DLL_API unsigned int    F_API FSOUND_Sample_GetMode(FSOUND_SAMPLE *sptr);
+DLL_API UINT    F_API FSOUND_Sample_GetMode(FSOUND_SAMPLE *sptr);
 DLL_API signed char     F_API FSOUND_Sample_GetMinMaxDistance(FSOUND_SAMPLE *sptr, float *min, float *max);
   
 /* ============================ */
@@ -912,8 +912,8 @@ DLL_API signed char     F_API FSOUND_SetMute(int channel, signed char mute);
 DLL_API signed char     F_API FSOUND_SetPriority(int channel, int priority);
 DLL_API signed char     F_API FSOUND_SetReserved(int channel, signed char reserved);
 DLL_API signed char     F_API FSOUND_SetPaused(int channel, signed char paused);
-DLL_API signed char     F_API FSOUND_SetLoopMode(int channel, unsigned int loopmode);
-DLL_API signed char     F_API FSOUND_SetCurrentPosition(int channel, unsigned int offset);
+DLL_API signed char     F_API FSOUND_SetLoopMode(int channel, UINT loopmode);
+DLL_API signed char     F_API FSOUND_SetCurrentPosition(int channel, UINT offset);
 DLL_API signed char     F_API FSOUND_3D_SetAttributes(int channel, const float *pos, const float *vel);
 DLL_API signed char     F_API FSOUND_3D_SetMinMaxDistance(int channel, float min, float max);
 
@@ -931,8 +931,8 @@ DLL_API signed char     F_API FSOUND_GetMute(int channel);
 DLL_API int             F_API FSOUND_GetPriority(int channel);
 DLL_API signed char     F_API FSOUND_GetReserved(int channel);
 DLL_API signed char     F_API FSOUND_GetPaused(int channel);
-DLL_API unsigned int    F_API FSOUND_GetLoopMode(int channel);
-DLL_API unsigned int    F_API FSOUND_GetCurrentPosition(int channel);
+DLL_API UINT    F_API FSOUND_GetLoopMode(int channel);
+DLL_API UINT    F_API FSOUND_GetCurrentPosition(int channel);
 DLL_API FSOUND_SAMPLE * F_API FSOUND_GetCurrentSample(int channel);
 DLL_API signed char     F_API FSOUND_GetCurrentLevels(int channel, float *l, float *r);
 DLL_API int             F_API FSOUND_GetNumSubChannels(int channel);
@@ -974,7 +974,7 @@ DLL_API void            F_API FSOUND_3D_SetRolloffFactor(float scale);
     - FSOUND_FX_Disable must be called to reset/clear the FX from a channel.
 */
 
-DLL_API int             F_API FSOUND_FX_Enable(int channel, unsigned int fxtype);    /* See FSOUND_FX_MODES */
+DLL_API int             F_API FSOUND_FX_Enable(int channel, UINT fxtype);    /* See FSOUND_FX_MODES */
 DLL_API signed char     F_API FSOUND_FX_Disable(int channel);                        /* Disables all effects */
 
 DLL_API signed char     F_API FSOUND_FX_SetChorus(int fxid, float WetDryMix, float Depth, float Feedback, float Frequency, int Waveform, float Delay, int Phase);
@@ -1000,57 +1000,57 @@ DLL_API signed char     F_API FSOUND_FX_SetWavesReverb(int fxid, float InGain, f
 
 DLL_API signed char        F_API FSOUND_Stream_SetBufferSize(int ms);      /* call this before opening streams, not after */
                            
-DLL_API FSOUND_STREAM *    F_API FSOUND_Stream_Open(const char *name_or_data, unsigned int mode, int offset, int length);
-DLL_API FSOUND_STREAM *    F_API FSOUND_Stream_Create(FSOUND_STREAMCALLBACK callback, int length, unsigned int mode, int samplerate, void *userdata);
+DLL_API FSOUND_STREAM *    F_API FSOUND_Stream_Open(LPCSTR name_or_data, UINT mode, int offset, int length);
+DLL_API FSOUND_STREAM *    F_API FSOUND_Stream_Create(FSOUND_STREAMCALLBACK callback, int length, UINT mode, int samplerate, LPVOID userdata);
 DLL_API signed char        F_API FSOUND_Stream_Close(FSOUND_STREAM *stream);
                            
 DLL_API int                F_API FSOUND_Stream_Play(int channel, FSOUND_STREAM *stream);
 DLL_API int                F_API FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, FSOUND_DSPUNIT *dsp, signed char startpaused);
 DLL_API signed char        F_API FSOUND_Stream_Stop(FSOUND_STREAM *stream);
                            
-DLL_API signed char        F_API FSOUND_Stream_SetPosition(FSOUND_STREAM *stream, unsigned int position);
-DLL_API unsigned int       F_API FSOUND_Stream_GetPosition(FSOUND_STREAM *stream);
+DLL_API signed char        F_API FSOUND_Stream_SetPosition(FSOUND_STREAM *stream, UINT position);
+DLL_API UINT       F_API FSOUND_Stream_GetPosition(FSOUND_STREAM *stream);
 DLL_API signed char        F_API FSOUND_Stream_SetTime(FSOUND_STREAM *stream, int ms);
 DLL_API int                F_API FSOUND_Stream_GetTime(FSOUND_STREAM *stream);
 DLL_API int                F_API FSOUND_Stream_GetLength(FSOUND_STREAM *stream);
 DLL_API int                F_API FSOUND_Stream_GetLengthMs(FSOUND_STREAM *stream);
                            
-DLL_API signed char        F_API FSOUND_Stream_SetMode(FSOUND_STREAM *stream, unsigned int mode);
-DLL_API unsigned int       F_API FSOUND_Stream_GetMode(FSOUND_STREAM *stream);
-DLL_API signed char        F_API FSOUND_Stream_SetLoopPoints(FSOUND_STREAM *stream, unsigned int loopstartpcm, unsigned int loopendpcm);
+DLL_API signed char        F_API FSOUND_Stream_SetMode(FSOUND_STREAM *stream, UINT mode);
+DLL_API UINT       F_API FSOUND_Stream_GetMode(FSOUND_STREAM *stream);
+DLL_API signed char        F_API FSOUND_Stream_SetLoopPoints(FSOUND_STREAM *stream, UINT loopstartpcm, UINT loopendpcm);
 DLL_API signed char        F_API FSOUND_Stream_SetLoopCount(FSOUND_STREAM *stream, int count);
 DLL_API int                F_API FSOUND_Stream_GetOpenState(FSOUND_STREAM *stream);                /* use with FSOUND_NONBLOCKING opened streams */
 DLL_API FSOUND_SAMPLE *    F_API FSOUND_Stream_GetSample(FSOUND_STREAM *stream);
-DLL_API FSOUND_DSPUNIT *   F_API FSOUND_Stream_CreateDSP(FSOUND_STREAM *stream, FSOUND_DSPCALLBACK callback, int priority, void *userdata);
+DLL_API FSOUND_DSPUNIT *   F_API FSOUND_Stream_CreateDSP(FSOUND_STREAM *stream, FSOUND_DSPCALLBACK callback, int priority, LPVOID userdata);
                            
-DLL_API signed char        F_API FSOUND_Stream_SetEndCallback(FSOUND_STREAM *stream, FSOUND_STREAMCALLBACK callback, void *userdata);
-DLL_API signed char        F_API FSOUND_Stream_SetSyncCallback(FSOUND_STREAM *stream, FSOUND_STREAMCALLBACK callback, void *userdata);
+DLL_API signed char        F_API FSOUND_Stream_SetEndCallback(FSOUND_STREAM *stream, FSOUND_STREAMCALLBACK callback, LPVOID userdata);
+DLL_API signed char        F_API FSOUND_Stream_SetSyncCallback(FSOUND_STREAM *stream, FSOUND_STREAMCALLBACK callback, LPVOID userdata);
 
-DLL_API FSOUND_SYNCPOINT * F_API FSOUND_Stream_AddSyncPoint(FSOUND_STREAM *stream, unsigned int pcmoffset, const char *name);
+DLL_API FSOUND_SYNCPOINT * F_API FSOUND_Stream_AddSyncPoint(FSOUND_STREAM *stream, UINT pcmoffset, LPCSTR name);
 DLL_API signed char        F_API FSOUND_Stream_DeleteSyncPoint(FSOUND_SYNCPOINT *point);
 DLL_API int                F_API FSOUND_Stream_GetNumSyncPoints(FSOUND_STREAM *stream);
 DLL_API FSOUND_SYNCPOINT * F_API FSOUND_Stream_GetSyncPoint(FSOUND_STREAM *stream, int index);
-DLL_API char *             F_API FSOUND_Stream_GetSyncPointInfo(FSOUND_SYNCPOINT *point, unsigned int *pcmoffset);
+DLL_API char *             F_API FSOUND_Stream_GetSyncPointInfo(FSOUND_SYNCPOINT *point, UINT *pcmoffset);
 
 DLL_API signed char        F_API FSOUND_Stream_SetSubStream(FSOUND_STREAM *stream, int index);     /* For FMOD .FSB bank files. */
 DLL_API int                F_API FSOUND_Stream_GetNumSubStreams(FSOUND_STREAM *stream);            /* For FMOD .FSB bank files. */
 DLL_API signed char        F_API FSOUND_Stream_SetSubStreamSentence(FSOUND_STREAM *stream, const int *sentencelist, int numitems);
 
 DLL_API signed char        F_API FSOUND_Stream_GetNumTagFields(FSOUND_STREAM *stream, int *num);
-DLL_API signed char        F_API FSOUND_Stream_GetTagField(FSOUND_STREAM *stream, int num, int *type, char **name, void **value, int *length);
-DLL_API signed char        F_API FSOUND_Stream_FindTagField(FSOUND_STREAM *stream, int type, const char *name, void **value, int *length);
+DLL_API signed char        F_API FSOUND_Stream_GetTagField(FSOUND_STREAM *stream, int num, int *type, char **name, LPVOID *value, int *length);
+DLL_API signed char        F_API FSOUND_Stream_FindTagField(FSOUND_STREAM *stream, int type, LPCSTR name, LPVOID *value, int *length);
 
 /*
     Internet streaming functions
 */
 
-DLL_API signed char        F_API FSOUND_Stream_Net_SetProxy(const char *proxy);
+DLL_API signed char        F_API FSOUND_Stream_Net_SetProxy(LPCSTR proxy);
 DLL_API signed char        F_API FSOUND_Stream_Net_SetTimeout(int timeout);
 DLL_API char *             F_API FSOUND_Stream_Net_GetLastServerStatus();
 DLL_API signed char        F_API FSOUND_Stream_Net_SetBufferProperties(int buffersize, int prebuffer_percent, int rebuffer_percent);
 DLL_API signed char        F_API FSOUND_Stream_Net_GetBufferProperties(int *buffersize, int *prebuffer_percent, int *rebuffer_percent);
-DLL_API signed char        F_API FSOUND_Stream_Net_SetMetadataCallback(FSOUND_STREAM *stream, FSOUND_METADATACALLBACK callback, void *userdata);
-DLL_API signed char        F_API FSOUND_Stream_Net_GetStatus(FSOUND_STREAM *stream, int *status, int *bufferpercentused, int *bitrate, unsigned int *flags);
+DLL_API signed char        F_API FSOUND_Stream_Net_SetMetadataCallback(FSOUND_STREAM *stream, FSOUND_METADATACALLBACK callback, LPVOID userdata);
+DLL_API signed char        F_API FSOUND_Stream_Net_GetStatus(FSOUND_STREAM *stream, int *status, int *bufferpercentused, int *bitrate, UINT *flags);
 
 /* =================== */
 /* CD audio functions. */
@@ -1065,7 +1065,7 @@ DLL_API void            F_API FSOUND_CD_SetPlayMode(char drive, signed char mode
 DLL_API signed char     F_API FSOUND_CD_Stop(char drive);
 DLL_API signed char     F_API FSOUND_CD_SetPaused(char drive, signed char paused);
 DLL_API signed char     F_API FSOUND_CD_SetVolume(char drive, int volume);
-DLL_API signed char     F_API FSOUND_CD_SetTrackTime(char drive, unsigned int ms);
+DLL_API signed char     F_API FSOUND_CD_SetTrackTime(char drive, UINT ms);
 DLL_API signed char     F_API FSOUND_CD_OpenTray(char drive, signed char open);
 
 DLL_API signed char     F_API FSOUND_CD_GetPaused(char drive);
@@ -1084,7 +1084,7 @@ DLL_API int             F_API FSOUND_CD_GetTrackTime(char drive);
     These functions allow you access to the mixed stream that FMOD uses to play back sound on.
 */
 
-DLL_API FSOUND_DSPUNIT *F_API FSOUND_DSP_Create(FSOUND_DSPCALLBACK callback, int priority, void *userdata);
+DLL_API FSOUND_DSPUNIT *F_API FSOUND_DSP_Create(FSOUND_DSPCALLBACK callback, int priority, LPVOID userdata);
 DLL_API void            F_API FSOUND_DSP_Free(FSOUND_DSPUNIT *unit);
 DLL_API void            F_API FSOUND_DSP_SetPriority(FSOUND_DSPUNIT *unit, int priority);
 DLL_API int             F_API FSOUND_DSP_GetPriority(FSOUND_DSPUNIT *unit);
@@ -1108,7 +1108,7 @@ DLL_API FSOUND_DSPUNIT *F_API FSOUND_DSP_GetClipAndCopyUnit();
     It is off by default to save cpu usage.
 */
 
-DLL_API signed char     F_API FSOUND_DSP_MixBuffers(void *destbuffer, void *srcbuffer, int len, int freq, int vol, int pan, unsigned int mode);
+DLL_API signed char     F_API FSOUND_DSP_MixBuffers(LPVOID destbuffer, LPVOID srcbuffer, int len, int freq, int vol, int pan, UINT mode);
 DLL_API void            F_API FSOUND_DSP_ClearMixBuffer();
 DLL_API int             F_API FSOUND_DSP_GetBufferLength();      /* Length of each DSP update */
 DLL_API int             F_API FSOUND_DSP_GetBufferLengthTotal(); /* Total buffer length due to FSOUND_SetBufferSize */
@@ -1137,7 +1137,7 @@ DLL_API signed char     F_API FSOUND_Reverb_GetChannelProperties(int channel, FS
 
 DLL_API signed char     F_API FSOUND_Record_SetDriver(int outputtype);
 DLL_API int             F_API FSOUND_Record_GetNumDrivers();
-DLL_API const char *    F_API FSOUND_Record_GetDriverName(int id);
+DLL_API LPCSTR    F_API FSOUND_Record_GetDriverName(int id);
 DLL_API int             F_API FSOUND_Record_GetDriver();
 
 /*
@@ -1156,8 +1156,8 @@ DLL_API int             F_API FSOUND_Record_GetPosition();
     Song management / playback functions.
 */
 
-DLL_API FMUSIC_MODULE * F_API FMUSIC_LoadSong(const char *name);
-DLL_API FMUSIC_MODULE * F_API FMUSIC_LoadSongEx(const char *name_or_data, int offset, int length, unsigned int mode, const int *samplelist, int samplelistnum);
+DLL_API FMUSIC_MODULE * F_API FMUSIC_LoadSong(LPCSTR name);
+DLL_API FMUSIC_MODULE * F_API FMUSIC_LoadSongEx(LPCSTR name_or_data, int offset, int length, UINT mode, const int *samplelist, int samplelistnum);
 DLL_API int             F_API FMUSIC_GetOpenState(FMUSIC_MODULE *mod);
 DLL_API signed char     F_API FMUSIC_FreeSong(FMUSIC_MODULE *mod);
 DLL_API signed char     F_API FMUSIC_PlaySong(FMUSIC_MODULE *mod);
@@ -1170,7 +1170,7 @@ DLL_API signed char     F_API FMUSIC_SetOrderCallback(FMUSIC_MODULE *mod, FMUSIC
 DLL_API signed char     F_API FMUSIC_SetInstCallback(FMUSIC_MODULE *mod, FMUSIC_CALLBACK callback, int instrument);
 
 DLL_API signed char     F_API FMUSIC_SetSample(FMUSIC_MODULE *mod, int sampno, FSOUND_SAMPLE *sptr);
-DLL_API signed char     F_API FMUSIC_SetUserData(FMUSIC_MODULE *mod, void *userdata);
+DLL_API signed char     F_API FMUSIC_SetUserData(FMUSIC_MODULE *mod, LPVOID userdata);
 DLL_API signed char     F_API FMUSIC_OptimizeChannels(FMUSIC_MODULE *mod, int maxchannels, int minvolume);
 
 /*
@@ -1189,7 +1189,7 @@ DLL_API signed char     F_API FMUSIC_SetPanSeperation(FMUSIC_MODULE *mod, float 
     Static song information functions.
 */
 
-DLL_API const char *    F_API FMUSIC_GetName(FMUSIC_MODULE *mod);
+DLL_API LPCSTR    F_API FMUSIC_GetName(FMUSIC_MODULE *mod);
 DLL_API int             F_API FMUSIC_GetType(FMUSIC_MODULE *mod);
 DLL_API int             F_API FMUSIC_GetNumOrders(FMUSIC_MODULE *mod);
 DLL_API int             F_API FMUSIC_GetNumPatterns(FMUSIC_MODULE *mod);
@@ -1215,7 +1215,7 @@ DLL_API int             F_API FMUSIC_GetRow(FMUSIC_MODULE *mod);
 DLL_API signed char     F_API FMUSIC_GetPaused(FMUSIC_MODULE *mod);
 DLL_API int             F_API FMUSIC_GetTime(FMUSIC_MODULE *mod);
 DLL_API int             F_API FMUSIC_GetRealChannel(FMUSIC_MODULE *mod, int modchannel);
-DLL_API void *          F_API FMUSIC_GetUserData(FMUSIC_MODULE *mod);
+DLL_API LPVOID          F_API FMUSIC_GetUserData(FMUSIC_MODULE *mod);
 
 #ifdef __cplusplus
 }

@@ -7,13 +7,13 @@ class TerrainTypeSoundsRec {
   TerrainTypeSoundsRec();
   ~TerrainTypeSoundsRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 1;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 4;
   }
 
@@ -28,7 +28,7 @@ class TerrainTypeSoundsRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
   int m_ID;
 };

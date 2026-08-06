@@ -9,27 +9,27 @@
 #include <malloc.h>
 #include <new>
 
-static void *FreeTypeAllocFunction(FT_Memory memory, long size) {
+static LPVOID FreeTypeAllocFunction(FT_Memory memory, long size) {
   ASSERT(size > 0);
   return ALLOC(size);
 }
 
-static void FreeTypeFreeFunction(FT_Memory memory, void *block) {
+static void FreeTypeFreeFunction(FT_Memory memory, LPVOID block) {
   FREEIFUSED(block);
 }
 
-static void *FreeTypeReallocFunction(FT_Memory memory, long currentSize, long newSize, void *block) {
+static LPVOID FreeTypeReallocFunction(FT_Memory memory, long currentSize, long newSize, LPVOID block) {
   ASSERT(newSize > 0);
   return SMemReAlloc(block, newSize, __FILE__, __LINE__, 0);
 }
 
-static FT_Library                                         s_FTLibrary;
+static FT_Library s_FTLibrary;
 static LISTDECL(CGxFont, s_fonts);
 static LISTDECL(CGxStringBatch, s_unusedBatches);
-static float                                              s_pixelHeight;
-static float                                              s_pixelWidth;
-static CGxStringBatch                                     s_stringBatch;
-static FT_MemoryRec_ s_GxuMemoryRecord = {0, FreeTypeAllocFunction, FreeTypeFreeFunction, FreeTypeReallocFunction};
+static float          s_pixelHeight;
+static float          s_pixelWidth;
+static CGxStringBatch s_stringBatch;
+static FT_MemoryRec_  s_GxuMemoryRecord = {0, FreeTypeAllocFunction, FreeTypeFreeFunction, FreeTypeReallocFunction};
 
 float SignOf(float value) {
   return value >= 0.0f ? 1.0f : -1.0f;
@@ -37,10 +37,10 @@ float SignOf(float value) {
 FT_LibraryRec_ *GetFreeTypeLibrary() {
   return s_FTLibrary;
 }
-unsigned int GetScreenPixelHeight() {
+UINT GetScreenPixelHeight() {
   return g_heightPixels;
 }
-unsigned int GetScreenPixelWidth() {
+UINT GetScreenPixelWidth() {
   return g_widthPixels;
 }
 float ScreenToPixelHeight(int billboarded, float height) {
@@ -80,8 +80,8 @@ void GxuFontWindowSizeChanged() {
   }
 
   s_currentRect = rect;
-  g_widthPixels = static_cast<unsigned int>(rect.r - rect.l);
-  g_heightPixels = static_cast<unsigned int>(rect.b - rect.t);
+  g_widthPixels = static_cast<UINT>(rect.r - rect.l);
+  g_heightPixels = static_cast<UINT>(rect.b - rect.t);
   s_pixelWidth = g_widthPixels ? 1.0f / g_widthPixels : 0.0f;
   s_pixelHeight = g_heightPixels ? 1.0f / g_heightPixels : 0.0f;
 
@@ -113,7 +113,7 @@ void GxuFontShutdown() {
   s_FTLibrary = 0;
 }
 
-int GxuFontCreateFont(const char *name, float fontHeight, CGxFont *&face, unsigned int flags) {
+int GxuFontCreateFont(LPCSTR name, float fontHeight, CGxFont *&face, UINT flags) {
   CGxFont *newFace;
   int      result;
 
@@ -146,10 +146,10 @@ int GxuFontCreateFont(const char *name, float fontHeight, CGxFont *&face, unsign
   face = newFace;
   return result;
 }
-const char *GxuFontGetFontName(CGxFont *fontName) {
+LPCSTR GxuFontGetFontName(CGxFont *fontName) {
   return fontName ? fontName->GetName() : 0;
 }
-unsigned int GxuFontGetFontFlags(CGxFont *fontName) {
+UINT GxuFontGetFontFlags(CGxFont *fontName) {
   return fontName ? fontName->m_flags : 0;
 }
 void GxuFontDestroyFont(CGxFont *&face) {
@@ -163,7 +163,7 @@ void GxuFontDestroyFont(CGxFont *&face) {
 }
 int GxuFontCreateString(
     CGxFont                   *face,
-    const char                *text,
+    LPCSTR                     text,
     float                      fontHeight,
     const NTempest::C3Vector  &position,
     float                      blockWidth,
@@ -172,7 +172,7 @@ int GxuFontCreateString(
     CGxString                *&string,
     EGxFontVJusts              vertJustification,
     EGxFontHJusts              horzJustification,
-    unsigned int               flags,
+    UINT                       flags,
     const NTempest::CImVector &color,
     float                      charSpacing
 ) {
@@ -219,7 +219,7 @@ void GxuFontDestroyString(CGxString *&string) {
 }
 int GxuFontRenderString(
     CGxFont                  *font,
-    const char               *text,
+    LPCSTR                    text,
     float                     textHeight,
     const NTempest::C3Vector &position,
     NTempest::CImVector       color,
@@ -227,7 +227,7 @@ int GxuFontRenderString(
     float                     blockHeight,
     EGxFontVJusts             vertJustification,
     EGxFontHJusts             horzJustification,
-    unsigned int              flags,
+    UINT                      flags,
     float                     spacing,
     float                     charSpacing
 ) {
@@ -323,20 +323,19 @@ void GxuFontRenderInternalBatch() {
   s_stringBatch.RenderBatch();
   s_stringBatch.Clear();
 }
-void
-GxuFontGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, float charSpacing, unsigned int flags) {
+void GxuFontGetTextExtent(CGxFont *face, LPCSTR text, UINT numBytes, float height, float *extent, float charSpacing, UINT flags) {
   InternalGetTextExtent(face, text, numBytes, height, extent, flags);
 }
 void GxuFontGetWrapPoint(
-    CGxFont      *face,
-    const char   *text,
-    float         fontHeight,
-    float         blockWidth,
-    unsigned int *numBytes,
-    float        *pExtent,
-    const char  **pNextText,
-    float         spacing,
-    unsigned int  flags
+    CGxFont *face,
+    LPCSTR   text,
+    float    fontHeight,
+    float    blockWidth,
+    UINT    *numBytes,
+    float   *pExtent,
+    LPCSTR  *pNextText,
+    float    spacing,
+    UINT     flags
 ) {
   FATALASSERT(face);
 
@@ -344,14 +343,13 @@ void GxuFontGetWrapPoint(
 
   CalcWrapPoint(face, text, fontHeight, blockWidth, numBytes, pExtent, pNextText, flags);
 }
-float
-GxuFontGetWrappedTextHeight(CGxFont *face, const char *text, float fontHeight, float blockWidth, float lineSpacing, unsigned int flags) {
-  unsigned int advance;
-  float        extent;
-  unsigned int wide;
-  unsigned int lines = 0;
-  const char  *nextText = 0;
-  const char  *currentText;
+float GxuFontGetWrappedTextHeight(CGxFont *face, LPCSTR text, float fontHeight, float blockWidth, float lineSpacing, UINT flags) {
+  UINT   advance;
+  float  extent;
+  UINT   wide;
+  UINT   lines = 0;
+  LPCSTR nextText = 0;
+  LPCSTR currentText;
 
   FATALASSERT(face);
 
@@ -385,34 +383,34 @@ GxuFontGetWrappedTextHeight(CGxFont *face, const char *text, float fontHeight, f
 
   return static_cast<float>(lines - 1) * lineSpacing + static_cast<float>(lines) * fontHeight;
 }
-unsigned int GxuFontGetMaxCharsWithinWidth(
-    CGxFont     *face,
-    const char  *text,
-    float        height,
-    float        maxWidth,
-    unsigned int lineBytes,
-    float       *extent,
-    float        charSpacing,
-    unsigned int flags
+UINT GxuFontGetMaxCharsWithinWidth(
+    CGxFont *face,
+    LPCSTR   text,
+    float    height,
+    float    maxWidth,
+    UINT     lineBytes,
+    float   *extent,
+    float    charSpacing,
+    UINT     flags
 ) {
   return InternalGetMaxCharsWithinWidth(face, text, height, maxWidth, lineBytes, extent, flags, 0, 0, 0);
 }
-unsigned int GxuFontGetMaxCharsWithinWidthFromEnd(
-    CGxFont     *font,
-    const char  *text,
-    float        fontHeight,
-    float        width,
-    unsigned int lineBytes,
-    float       *extent,
-    float        charSpacing,
-    unsigned int flags
+UINT GxuFontGetMaxCharsWithinWidthFromEnd(
+    CGxFont *font,
+    LPCSTR   text,
+    float    fontHeight,
+    float    width,
+    UINT     lineBytes,
+    float   *extent,
+    float    charSpacing,
+    UINT     flags
 ) {
-  unsigned int bytesInString;
-  float        textExtent;
-  float        remaining;
-  float       *widthArray;
-  float       *currentWidth;
-  unsigned int charsToRemove;
+  UINT   bytesInString;
+  float  textExtent;
+  float  remaining;
+  float *widthArray;
+  float *currentWidth;
+  UINT   charsToRemove;
 
   ASSERT(font);
 
@@ -450,26 +448,26 @@ unsigned int GxuFontGetMaxCharsWithinWidthFromEnd(
   }
   return bytesInString - charsToRemove;
 }
-unsigned int GxuFontWrapText(
-    CGxFont      *font,
-    const char   *text,
-    unsigned int  lineBytes,
-    float         fontHeight,
-    float         blockWidth,
-    unsigned int *outputList,
-    unsigned int  outputListElements,
-    float         charSpacing,
-    unsigned int  flags
+UINT GxuFontWrapText(
+    CGxFont *font,
+    LPCSTR   text,
+    UINT     lineBytes,
+    float    fontHeight,
+    float    blockWidth,
+    UINT    *outputList,
+    UINT     outputListElements,
+    float    charSpacing,
+    UINT     flags
 ) {
-  const char  *currentText = text;
-  unsigned int unusedNumBytes;
-  float        unusedExtents;
-  unsigned int advance;
-  const char  *nextText;
-  unsigned int wide;
-  const char  *originalText;
-  const char  *textEnd;
-  unsigned int lines;
+  LPCSTR currentText = text;
+  UINT   unusedNumBytes;
+  float  unusedExtents;
+  UINT   advance;
+  LPCSTR nextText;
+  UINT   wide;
+  LPCSTR originalText;
+  LPCSTR textEnd;
+  UINT   lines;
 
   ASSERT(font);
   ASSERT(outputListElements);
@@ -490,7 +488,7 @@ unsigned int GxuFontWrapText(
     QUOTEDCODE quoted;
 
     if (lines < outputListElements) {
-      outputList[lines] = static_cast<unsigned int>(currentText - originalText);
+      outputList[lines] = static_cast<UINT>(currentText - originalText);
     }
     ++lines;
 
@@ -524,12 +522,12 @@ float GxuFontGetOneToOneHeight(CGxFont *font) {
 
   return static_cast<float>(font->m_pixelSize) / static_cast<float>(g_heightPixels);
 }
-const char *
-GxuFontStripEscapeCodes(const char *inputString, unsigned int numBytes, unsigned int flags, char *buffer, unsigned int bufferSize) {
+LPCSTR
+GxuFontStripEscapeCodes(LPCSTR inputString, UINT numBytes, UINT flags, char *buffer, UINT bufferSize) {
   static struct {
-    unsigned int stripFlags;
-    char         charCode;
-    int          addEscapeChar;
+    UINT stripFlags;
+    char charCode;
+    int  addEscapeChar;
   } s_stripFlags[NUM_QUOTEDCODES] = {
       {0x000,  'C', 1},
       {0x100,  'R', 1},
@@ -539,11 +537,11 @@ GxuFontStripEscapeCodes(const char *inputString, unsigned int numBytes, unsigned
       {0x400,  'h', 1},
       {0x000,  '-', 1}
   };
-  unsigned int wide;
-  const char  *originalString;
-  unsigned int advance;
-  unsigned int remainingBytes;
-  unsigned int outputBytes;
+  UINT   wide;
+  LPCSTR originalString;
+  UINT   advance;
+  UINT   remainingBytes;
+  UINT   outputBytes;
 
   FATALASSERT(buffer);
 
@@ -616,9 +614,9 @@ done:
   buffer[outputBytes] = 0;
   return buffer;
 }
-int GxuFontGetLastColorCode(const char *string, unsigned int numBytes, NTempest::CImVector *color) {
-  unsigned int        wide;
-  unsigned int        advance;
+int GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *color) {
+  UINT                wide;
+  UINT                advance;
   NTempest::CImVector colorCode;
   NTempest::CImVector foundColor;
   int                 found;
@@ -642,7 +640,7 @@ int GxuFontGetLastColorCode(const char *string, unsigned int numBytes, NTempest:
   }
   return found;
 }
-int GxuFontGenerateColorString(char *buf, unsigned int bufSize, const NTempest::CImVector &color) {
+int GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVector &color) {
   if (!buf || bufSize < 11) {
     return 0;
   }
@@ -690,7 +688,7 @@ int GxuFontGetStringHeight(CGxString *string, float *height) {
   }
   return string != 0;
 }
-unsigned int GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list) {
+UINT GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list) {
   return string ? string->GetHyperLinkInfo(list) : 0;
 }
 int GxuFontStringSetGradient(CGxString *string, int startCharacter, int length) {

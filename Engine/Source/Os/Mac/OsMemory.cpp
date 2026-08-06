@@ -25,7 +25,7 @@ COsSharedMemory::~COsSharedMemory() {
   Destroy();
 }
 
-bool COsSharedMemory::Initialize(const char *name, unsigned int size, int mode) {
+bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
   OSSHAREDMEMORY *shared = reinterpret_cast<OSSHAREDMEMORY *>(m_opaqueData);
   struct stat     stats;
   int             flags;
@@ -68,7 +68,7 @@ bool COsSharedMemory::Initialize(const char *name, unsigned int size, int mode) 
       return true;
     }
 
-    size = static_cast<unsigned int>(stats.st_size);
+    size = static_cast<UINT>(stats.st_size);
   }
 
   if (!size) {

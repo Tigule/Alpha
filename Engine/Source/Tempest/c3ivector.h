@@ -60,30 +60,125 @@ namespace NTempest {
       return C3iVector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
     }
 
-    C3iVector &operator+=(long a) { x += a; y += a; z += a; return *this; }
-    C3iVector &operator+=(const C3iVector &a) { x += a.x; y += a.y; z += a.z; return *this; }
-    C3iVector &operator-=(long a) { x -= a; y -= a; z -= a; return *this; }
-    C3iVector &operator-=(const C3iVector &a) { x -= a.x; y -= a.y; z -= a.z; return *this; }
-    C3iVector &operator*=(long a) { x *= a; y *= a; z *= a; return *this; }
-    C3iVector &operator*=(const C3iVector &a) { x *= a.x; y *= a.y; z *= a.z; return *this; }
-    C3iVector &operator/=(long a) { x /= a; y /= a; z /= a; return *this; }
-    C3iVector &operator/=(const C3iVector &a) { x /= a.x; y /= a.y; z /= a.z; return *this; }
-    C3iVector &operator>>=(long a) { x >>= a; y >>= a; z >>= a; return *this; }
-    C3iVector &operator>>=(const C3iVector &a) { x >>= a.x; y >>= a.y; z >>= a.z; return *this; }
-    C3iVector &operator<<=(long a) { x <<= a; y <<= a; z <<= a; return *this; }
-    C3iVector &operator<<=(const C3iVector &a) { x <<= a.x; y <<= a.y; z <<= a.z; return *this; }
-    C3iVector operator-() const { return C3iVector(-x, -y, -z); }
-    long &operator[](unsigned int index) { ASSERT(index < 3); return (&x)[index]; }
-    const long &operator[](unsigned int index) const { ASSERT(index < 3); return (&x)[index]; }
+    C3iVector &operator+=(long a) {
+      x += a;
+      y += a;
+      z += a;
+      return *this;
+    }
+    C3iVector &operator+=(const C3iVector &a) {
+      x += a.x;
+      y += a.y;
+      z += a.z;
+      return *this;
+    }
+    C3iVector &operator-=(long a) {
+      x -= a;
+      y -= a;
+      z -= a;
+      return *this;
+    }
+    C3iVector &operator-=(const C3iVector &a) {
+      x -= a.x;
+      y -= a.y;
+      z -= a.z;
+      return *this;
+    }
+    C3iVector &operator*=(long a) {
+      x *= a;
+      y *= a;
+      z *= a;
+      return *this;
+    }
+    C3iVector &operator*=(const C3iVector &a) {
+      x *= a.x;
+      y *= a.y;
+      z *= a.z;
+      return *this;
+    }
+    C3iVector &operator/=(long a) {
+      x /= a;
+      y /= a;
+      z /= a;
+      return *this;
+    }
+    C3iVector &operator/=(const C3iVector &a) {
+      x /= a.x;
+      y /= a.y;
+      z /= a.z;
+      return *this;
+    }
+    C3iVector &operator>>=(long a) {
+      x >>= a;
+      y >>= a;
+      z >>= a;
+      return *this;
+    }
+    C3iVector &operator>>=(const C3iVector &a) {
+      x >>= a.x;
+      y >>= a.y;
+      z >>= a.z;
+      return *this;
+    }
+    C3iVector &operator<<=(long a) {
+      x <<= a;
+      y <<= a;
+      z <<= a;
+      return *this;
+    }
+    C3iVector &operator<<=(const C3iVector &a) {
+      x <<= a.x;
+      y <<= a.y;
+      z <<= a.z;
+      return *this;
+    }
+    C3iVector operator-() const {
+      return C3iVector(-x, -y, -z);
+    }
+    long &operator[](UINT index) {
+      ASSERT(index < 3);
+      return (&x)[index];
+    }
+    const long &operator[](UINT index) const {
+      ASSERT(index < 3);
+      return (&x)[index];
+    }
 
-    long SquaredMag() const { return x * x + y * y + z * z; }
-    long Mag() const { return static_cast<long>(sqrt(static_cast<double>(SquaredMag()))); }
-    long SumC() const { return x + y + z; }
-    bool IsUnit() const { return SquaredMag() == 1; }
-    void Normalize() { *this /= Mag(); }
-    void Scale(const long magnitude) { Normalize(); *this *= magnitude; }
-    void Minimize(const C3iVector &a) { if (a.x < x) x = a.x; if (a.y < y) y = a.y; if (a.z < z) z = a.z; }
-    void Maximize(const C3iVector &a) { if (a.x > x) x = a.x; if (a.y > y) y = a.y; if (a.z > z) z = a.z; }
+    long SquaredMag() const {
+      return x * x + y * y + z * z;
+    }
+    long Mag() const {
+      return static_cast<long>(sqrt(static_cast<double>(SquaredMag())));
+    }
+    long SumC() const {
+      return x + y + z;
+    }
+    bool IsUnit() const {
+      return SquaredMag() == 1;
+    }
+    void Normalize() {
+      *this /= Mag();
+    }
+    void Scale(const long magnitude) {
+      Normalize();
+      *this *= magnitude;
+    }
+    void Minimize(const C3iVector &a) {
+      if (a.x < x)
+        x = a.x;
+      if (a.y < y)
+        y = a.y;
+      if (a.z < z)
+        z = a.z;
+    }
+    void Maximize(const C3iVector &a) {
+      if (a.x > x)
+        x = a.x;
+      if (a.y > y)
+        y = a.y;
+      if (a.z > z)
+        z = a.z;
+    }
 
     long x;
     long y;

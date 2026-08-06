@@ -8,16 +8,16 @@
 
 #include <string.h>
 
-void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int holdButton);
-void PostMouseUp(EvtContext *context, int button, int x, int y, unsigned int flags, int time);
+void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, UINT holdButton);
+void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int time);
 void ResetAsyncState();
 
-static unsigned int             s_buttonState = 0;
-static unsigned int             s_metaKeyState = 0;
-static unsigned int             s_mouseHoldButton = 0;
+static UINT                     s_buttonState = 0;
+static UINT                     s_metaKeyState = 0;
+static UINT                     s_mouseHoldButton = 0;
 static MOUSEMODE                s_mouseMode = MOUSE_MODE_NORMAL;
 static EVENTCONFIRMCLOSEHANDLER s_confirmCloseCallback = 0;
-static void                    *s_confirmCloseParam = 0;
+static LPVOID                   s_confirmCloseParam = 0;
 static NTempest::CRect          s_boundingRect(0.0f);
 
 void CheckMouseModeState() {
@@ -65,7 +65,7 @@ void ConvertPosition(int clientx, int clienty, float *x, float *y) {
   *y = 1.0f - static_cast<float>(clienty) / static_cast<float>(windowDim.bottom - windowDim.top);
 }
 
-unsigned int GenerateMouseFlags() {
+UINT GenerateMouseFlags() {
   return s_mouseMode == MOUSE_MODE_RELATIVE ? 0x2 : 0;
 }
 
@@ -75,7 +75,7 @@ int ConfirmClose() {
 
 void PostCaptureChanged(EvtContext *context, int x, int y) {
   while (s_buttonState) {
-    unsigned int button = ((s_buttonState - 1) ^ s_buttonState) & s_buttonState;
+    UINT button = ((s_buttonState - 1) ^ s_buttonState) & s_buttonState;
     PostMouseUp(context, button, x, y, 0x1, OsGetAsyncTimeMs());
   }
 }
@@ -94,7 +94,7 @@ void PostString(EvtContext *context, int str, int num_chars) {
   data.repeat = 1;
 
   for (int index = 0; index < num_chars; ++index) {
-    data.ch = reinterpret_cast<const unsigned short *>(str)[index];
+    data.ch = reinterpret_cast<const WORD *>(str)[index];
     IEvtQueueDispatch(context, EVENT_ID_CHAR, &data);
   }
 }
@@ -189,10 +189,10 @@ void PostMouseMoveRelative(EvtContext *context, int x, int y, int time) {
   IEvtQueueDispatch(context, EVENT_ID_MOUSEMOVE_RELATIVE, &data);
 }
 
-void PostMouseUp(EvtContext *context, int button, int x, int y, unsigned int flags, int time) {
+void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int time) {
   EVENT_DATA_MOUSE data;
   data.button = static_cast<MOUSEBUTTON>(button);
-  s_buttonState &= ~static_cast<unsigned int>(button);
+  s_buttonState &= ~static_cast<UINT>(button);
   data.mode = s_mouseMode;
   data.buttonState = s_buttonState;
   data.metaKeyState = s_metaKeyState;
@@ -328,7 +328,7 @@ int IEvtInputProcess(EvtContext *context, int *shutdown) {
   return processed;
 }
 
-void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int holdButton) {
+void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, UINT holdButton) {
   FATALASSERT(context);
 
   if (holdButton == (holdButton & s_buttonState)) {
@@ -357,7 +357,7 @@ void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int hol
   }
 }
 
-void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam) {
+void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, LPVOID inParam) {
   s_confirmCloseCallback = inFunc;
   s_confirmCloseParam = inParam;
 }

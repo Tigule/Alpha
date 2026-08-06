@@ -7,13 +7,13 @@ class TaxiNodesRec {
   TaxiNodesRec();
   ~TaxiNodesRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 14;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 56;
   }
 
@@ -28,15 +28,15 @@ class TaxiNodesRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_ContinentID;
-  float       m_X;
-  float       m_Y;
-  float       m_Z;
-  const char *m_Name_lang[8];
-  int         m_Name_flag;
+  int    m_ID;
+  int    m_ContinentID;
+  float  m_X;
+  float  m_Y;
+  float  m_Z;
+  LPCSTR m_Name_lang[8];
+  int    m_Name_flag;
 };
 
 extern WowClientDB<TaxiNodesRec> g_taxiNodesDB;

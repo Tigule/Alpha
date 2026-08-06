@@ -57,7 +57,7 @@ int  OsMacPollEvent(OSMACEVENT *event);
 void OsMacGetMainWindowRect(int *width, int *height);
 int  OsMacIsWindowActive();
 void OsMacSetCursorPosition(int x, int y);
-int  OsMacMessageBox(const char *message, const char *title);
-void OsMacSetWindowTitle(void *window, const char *text);
+int  OsMacMessageBox(LPCSTR message, LPCSTR title);
+void OsMacSetWindowTitle(LPVOID window, LPCSTR text);
 
 #endif

@@ -13,25 +13,17 @@ class WDataStore : public CDataStore {
     Destroy();
   }
 
-  virtual void InternalInitialize(unsigned char *&data, unsigned int &base, unsigned int &alloc);
-  virtual void InternalDestroy(unsigned char *&data, unsigned int &base, unsigned int &alloc);
-  virtual int  InternalFetchWrite(
-      unsigned int    pos,
-      unsigned int    bytes,
-      unsigned char *&data,
-      unsigned int   &base,
-      unsigned int   &alloc,
-      const char     *fileName,
-      int             lineNumber
-  );
+  virtual void InternalInitialize(BYTE *&data, UINT &base, UINT &alloc);
+  virtual void InternalDestroy(BYTE *&data, UINT &base, UINT &alloc);
+  virtual int  InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber);
 
-  static void StaticInitialize();
-  static void StaticDestroy();
-  static void *AllocBuffer(unsigned int size);
-  static void FreeBuffer(void *buffer, unsigned int size);
+  static void   StaticInitialize();
+  static void   StaticDestroy();
+  static LPVOID AllocBuffer(UINT size);
+  static void   FreeBuffer(LPVOID buffer, UINT size);
 
  private:
-  void *m_bufferObj;
+  LPVOID m_bufferObj;
 };
 
 #endif

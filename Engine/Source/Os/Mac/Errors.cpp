@@ -6,9 +6,9 @@
 #include <string.h>
 
 char *OsGetLastErrorStr() {
-  const char *message = strerror(errno);
-  DWORD       bytes = SStrLen(message) + 1;
-  char       *buffer = static_cast<char *>(SMemAlloc(bytes, __FILE__, __LINE__, 0));
+  LPCSTR message = strerror(errno);
+  DWORD  bytes = SStrLen(message) + 1;
+  char  *buffer = static_cast<char *>(SMemAlloc(bytes, __FILE__, __LINE__, 0));
 
   SStrCopy(buffer, message, bytes);
   return buffer;

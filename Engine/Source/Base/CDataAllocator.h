@@ -12,37 +12,37 @@ class CDataAllocator {
     Data *m_next;
   };
 
-  CDataAllocator(unsigned long bytesPerData, unsigned long dataPerBlock);
+  CDataAllocator(DWORD bytesPerData, DWORD dataPerBlock);
   CDataAllocator(const CDataAllocator &source);
   ~CDataAllocator();
 
-  void  Clear(const char *fileName, int lineNumber);
-  void *GetData(int zero, const char *fileName, int lineNumber);
-  void  PutData(void *data, const char *fileName, int lineNumber);
-  unsigned long BytesPerData() const {
+  void   Clear(LPCSTR fileName, int lineNumber);
+  LPVOID GetData(int zero, LPCSTR fileName, int lineNumber);
+  void   PutData(LPVOID data, LPCSTR fileName, int lineNumber);
+  DWORD  BytesPerData() const {
     return m_bytesPerData;
   }
-  unsigned long DataPerBlock() const {
+  DWORD DataPerBlock() const {
     return m_dataPerBlock;
   }
-  unsigned long DataUsed() const {
+  DWORD DataUsed() const {
     return m_dataUsed;
   }
 
  private:
   CDataAllocator &operator=(const CDataAllocator &source);
 
-  unsigned long m_bytesPerData;
-  unsigned long m_dataPerBlock;
-  unsigned long m_dataUsed;
-  Block       *m_blockList;
-  Data        *m_dataList;
+  DWORD  m_bytesPerData;
+  DWORD  m_dataPerBlock;
+  DWORD  m_dataUsed;
+  Block *m_blockList;
+  Data  *m_dataList;
 };
 
 template <class T>
 class TInstanceAllocator : protected CDataAllocator {
  public:
-  TInstanceAllocator(unsigned long dataPerBlock) : CDataAllocator(sizeof(T), dataPerBlock) {
+  TInstanceAllocator(DWORD dataPerBlock) : CDataAllocator(sizeof(T), dataPerBlock) {
   }
 
   __forceinline void Clear() {
@@ -50,7 +50,7 @@ class TInstanceAllocator : protected CDataAllocator {
   }
 
   __forceinline T *Get(int zero) {
-    void *data = CDataAllocator::GetData(zero, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
+    LPVOID data = CDataAllocator::GetData(zero, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
     return data ? new (data) T : 0;
   }
 
@@ -59,7 +59,7 @@ class TInstanceAllocator : protected CDataAllocator {
     CDataAllocator::PutData(data, 0, 0);
   }
 
-  __forceinline unsigned long Used() const {
+  __forceinline DWORD Used() const {
     return DataUsed();
   }
 
@@ -70,7 +70,7 @@ class TInstanceAllocator : protected CDataAllocator {
 template <class T>
 class TLockedInstanceAllocator : protected TInstanceAllocator<T> {
  public:
-  TLockedInstanceAllocator(unsigned long dataPerBlock) : TInstanceAllocator<T>(dataPerBlock) {
+  TLockedInstanceAllocator(DWORD dataPerBlock) : TInstanceAllocator<T>(dataPerBlock) {
   }
   TLockedInstanceAllocator(const TLockedInstanceAllocator &);
 
@@ -91,7 +91,7 @@ class TLockedInstanceAllocator : protected TInstanceAllocator<T> {
     m_critsect.Leave();
   }
 
-  __forceinline unsigned long Used() const {
+  __forceinline DWORD Used() const {
     return TInstanceAllocator<T>::Used();
   }
 

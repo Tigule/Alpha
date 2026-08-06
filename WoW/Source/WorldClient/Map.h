@@ -37,24 +37,24 @@ struct HMODEL__;
 struct HTEXTURE__;
 
 struct SWVert {
-  unsigned char depth;
-  unsigned char flow0Pct;
-  unsigned char flow1Pct;
-  unsigned char filler;
-  float         height;
+  BYTE  depth;
+  BYTE  flow0Pct;
+  BYTE  flow1Pct;
+  BYTE  filler;
+  float height;
 };
 
 struct SOVert {
-  unsigned char depth;
-  unsigned char foam;
-  unsigned char wet;
-  unsigned char filler;
+  BYTE depth;
+  BYTE foam;
+  BYTE wet;
+  BYTE filler;
 };
 
 struct SMVert {
-  unsigned short s;
-  unsigned short t;
-  float          height;
+  WORD  s;
+  WORD  t;
+  float height;
 };
 
 struct SLVert {
@@ -67,41 +67,41 @@ struct SLVert {
 
 struct SLTiles {
  public:
-  int  GetLiquid(const NTempest::C2iVector &pos, unsigned int &liquid, int &fishable, int &deep) const;
-  void SetLiquid(const NTempest::C2iVector &pos, unsigned int liquid, int fishable, int deep);
+  int  GetLiquid(const NTempest::C2iVector &pos, UINT &liquid, int &fishable, int &deep) const;
+  void SetLiquid(const NTempest::C2iVector &pos, UINT liquid, int fishable, int deep);
 
  private:
   friend class CChunkLiquid;
   friend class CMap;
   friend class CMapArea;
 
-  unsigned char tiles[8][8];
+  BYTE tiles[8][8];
 };
 
 class CWSoundEmitter {
  public:
-  unsigned long      soundPointID;
-  unsigned long      soundNameID;
+  DWORD              soundPointID;
+  DWORD              soundNameID;
   NTempest::C3Vector pos;
   float              minDistance;
   float              maxDistance;
   float              cutoffDistance;
-  unsigned long      startTime;
-  unsigned long      endTime;
-  unsigned long      mode;
-  unsigned long      groupSilenceMin;
-  unsigned long      groupSilenceMax;
-  unsigned long      playInstancesMin;
-  unsigned long      playInstancesMax;
-  unsigned long      loopCountMin;
-  unsigned long      loopCountMax;
-  unsigned long      interSoundGapMin;
-  unsigned long      interSoundGapMax;
+  DWORD              startTime;
+  DWORD              endTime;
+  DWORD              mode;
+  DWORD              groupSilenceMin;
+  DWORD              groupSilenceMax;
+  DWORD              playInstancesMin;
+  DWORD              playInstancesMax;
+  DWORD              loopCountMin;
+  DWORD              loopCountMax;
+  DWORD              interSoundGapMin;
+  DWORD              interSoundGapMax;
 };
 
 class CMapSoundEmitter {
  public:
-  CWSoundEmitter           data;
+  CWSoundEmitter data;
   LINKDECLEX(CMapSoundEmitter, lameAssLink);
 };
 
@@ -116,33 +116,33 @@ struct SWFlowv {
 class CChunkLiquid {
  public:
   struct UserArg {
-    UserArg(CChunkLiquid *liquid, unsigned int liquidType) : liquid(liquid), liquidType(liquidType), indexCount(0) {
+    UserArg(CChunkLiquid *liquid, UINT liquidType) : liquid(liquid), liquidType(liquidType), indexCount(0) {
     }
 
-    CChunkLiquid  *liquid;
-    unsigned int   liquidType;
-    unsigned short indexCount;
+    CChunkLiquid *liquid;
+    UINT          liquidType;
+    WORD          indexCount;
   };
 
-  unsigned short         Render0I(unsigned short *idxBase, unsigned int liquidType);
-  void                   RenderOcean0();
-  void                   RenderOcean0V(CGxVertexPNT0 *vtx);
+  WORD        Render0I(WORD *idxBase, UINT liquidType);
+  void        RenderOcean0();
+  void        RenderOcean0V(CGxVertexPNT0 *vtx);
   static void RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf);
-  void                   RenderRiver0(unsigned int type);
-  void                   RenderRiver0V(CGxVertexPNT0 *vtx);
+  void        RenderRiver0(UINT type);
+  void        RenderRiver0V(CGxVertexPNT0 *vtx);
   static void RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf);
-  void                   RenderMagma0(unsigned int type);
-  void                   RenderMagma0V(CGxVertexPCT0 *vtx);
+  void        RenderMagma0(UINT type);
+  void        RenderMagma0V(CGxVertexPCT0 *vtx);
   static void RenderMagma0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf);
-  void                   Render(unsigned int type);
-  void                   GetAaBox(NTempest::CAaBox &aaBox);
+  void        Render(UINT type);
+  void        GetAaBox(NTempest::CAaBox &aaBox);
 
-  NTempest::CRange     height;
-  SLVert               verts[81];
-  SLTiles              tiles;
-  unsigned int         nFlowvs;
-  SWFlowv              flowvs[2];
-  CMapChunk           *chunk;
+  NTempest::CRange height;
+  SLVert           verts[81];
+  SLTiles          tiles;
+  UINT             nFlowvs;
+  SWFlowv          flowvs[2];
+  CMapChunk       *chunk;
   LINKDECLEX(CChunkLiquid, sceneLink);
   LINKDECLEX(CChunkLiquid, lameAssLink);
 };
@@ -154,7 +154,7 @@ NODEDECL(CChunkTex) {
   CChunkTex(const CChunkTex &);
   ~CChunkTex();
 
-  unsigned long pixels[4096];
+  DWORD pixels[4096];
 };
 
 NODEDECL(CChunkLayer) {
@@ -162,31 +162,30 @@ NODEDECL(CChunkLayer) {
   CChunkLayer(const CChunkLayer &);
   ~CChunkLayer();
 
-  unsigned short props;
-  unsigned short effectId;
-  HTEXTURE__    *texId;
-  unsigned char *offsAlpha;
-  CChunkTex     *tex;
-  CGxTex        *gxTexture;
-  CMapChunk     *chunk;
+  WORD        props;
+  WORD        effectId;
+  HTEXTURE__ *texId;
+  BYTE       *offsAlpha;
+  CChunkTex  *tex;
+  CGxTex     *gxTexture;
+  CMapChunk  *chunk;
 };
 
 class CMapCacheLight {
  public:
-
-  CGxLight               gxLight;
-  float                  attenStart;
-  float                  attenEnd;
-  float                  attenDenom;
+  CGxLight gxLight;
+  float    attenStart;
+  float    attenEnd;
+  float    attenDenom;
   LINKDECLEX(CMapCacheLight, lameAssLink);
 };
 
 class CMapAreaLow {
  public:
   static NTempest::C3Vector s_vertexBuffer[65535];
-  static unsigned short     s_indexBuffer[65535];
-  static unsigned int       s_vertexBufferIndex;
-  static unsigned int       s_indexBufferIndex;
+  static WORD               s_indexBuffer[65535];
+  static UINT               s_vertexBufferIndex;
+  static UINT               s_indexBufferIndex;
 
   NTempest::CAaBox    aaBox;
   NTempest::CAaSphere aaSphere;
@@ -198,8 +197,8 @@ class CMapAreaLow {
 
 class CMapBaseObjLink {
  public:
-  CMapBaseObj            *owner;
-  CMapBaseObj            *ref;
+  CMapBaseObj *owner;
+  CMapBaseObj *ref;
   LINKDECLEX(CMapBaseObjLink, refLink);
   LINKDECLEX(CMapBaseObjLink, ownerLink);
 };
@@ -239,25 +238,25 @@ class CMapBaseObj {
 
   int TestAABox(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1);
 
-  unsigned int GetType() {
+  UINT GetType() {
     return type;
   }
 
  protected:
-  unsigned long                       type;
+  DWORD type;
 
  public:
   LINKDECLEX(CMapBaseObj, lameAssLink);
   LISTDECLEX(CMapBaseObjLink, ownerLink, parentLinkList);
-  NTempest::C3Vector                  pos;
-  float                               scale;
-  NTempest::C4Quaternion              rot;
-  NTempest::CAaBox                    aaBox;
-  NTempest::CAaSphere                 aaSphere;
-  NTempest::C3Vector                  corner;
-  float                               camDist;
-  unsigned short                      flags;
-  short                               refCount;
+  NTempest::C3Vector     pos;
+  float                  scale;
+  NTempest::C4Quaternion rot;
+  NTempest::CAaBox       aaBox;
+  NTempest::CAaSphere    aaSphere;
+  NTempest::C3Vector     corner;
+  float                  camDist;
+  WORD                   flags;
+  short                  refCount;
 };
 
 class CMapLight : public CMapBaseObj {
@@ -265,8 +264,8 @@ class CMapLight : public CMapBaseObj {
   CMapLight();
   ~CMapLight();
 
-  static void CreatePointAtten();
-  static void DestroyPointAtten();
+  static void    CreatePointAtten();
+  static void    DestroyPointAtten();
   static CGxTex *GetPointAttenTex();
 
   void SetAtten(float attenStart, float attenEnd);
@@ -276,18 +275,18 @@ class CMapLight : public CMapBaseObj {
   void Project();
 
   static LISTDECLEX(CMapBaseObjLink, refLink, dirLightLinkList);
-  static unsigned int                       maxLights;
-  static float                              bucketSize;
-  static float                              halfBucketSize;
+  static UINT  maxLights;
+  static float bucketSize;
+  static float halfBucketSize;
 
-  CGxLight     gxLight;
-  float        attenStart;
-  float        attenEnd;
-  float        attenDenom;
-  unsigned char dynamic;
+  CGxLight gxLight;
+  float    attenStart;
+  float    attenEnd;
+  float    attenDenom;
+  BYTE     dynamic;
 
  private:
-  static void ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf);
+  static void        ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf);
   static HTEXTURE__ *s_hPointAttenTex;
 };
 
@@ -296,32 +295,26 @@ class CMapStaticEntity : public CMapBaseObj {
   virtual void SelectLights();
   virtual void QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup) = 0;
 
-  void AdjustLightmap(
-      const NTempest::CImVector &lmColor,
-      NTempest::CImVector       &dirColor,
-      unsigned char              minDir,
-      NTempest::CImVector       &ambColor,
-      unsigned char              maxAmbient
-  );
+  void AdjustLightmap(const NTempest::CImVector &lmColor, NTempest::CImVector &dirColor, BYTE minDir, NTempest::CImVector &ambColor, BYTE maxAmbient);
   int  GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapObj, CMapObjDefGroup *&mapObjDefGroup, CMapObjGroup *&mapObjGroup);
   int  GetMapObjDef(CMapObjDef *&mapObjDef);
   void FindLights();
   void CreateCacheLight(CMapLight *light);
 
   LISTDECLEX(CMapCacheLight, lameAssLink, cacheLightList);
-  NTempest::CImVector                ambient;
-  NTempest::CImVector                interiorDirColor;
-  float                              dirLightScale;
-  HMODEL__                          *model;
-  unsigned int                       flagInside : 1;
-  unsigned int                       flagVisible : 1;
-  unsigned int                       flagCollidable : 1;
-  unsigned int                       flagHidden : 1;
-  unsigned int                       flagShadowed : 1;
-  unsigned int                       flagInLiquid : 1;
-  unsigned int                       flagDeepLiquid : 1;
-  unsigned int                       flagAlwaysAnimate : 1;
-  unsigned int                       flagCastShadow : 1;
+  NTempest::CImVector ambient;
+  NTempest::CImVector interiorDirColor;
+  float               dirLightScale;
+  HMODEL__           *model;
+  UINT                flagInside : 1;
+  UINT                flagVisible : 1;
+  UINT                flagCollidable : 1;
+  UINT                flagHidden : 1;
+  UINT                flagShadowed : 1;
+  UINT                flagInLiquid : 1;
+  UINT                flagDeepLiquid : 1;
+  UINT                flagAlwaysAnimate : 1;
+  UINT                flagCastShadow : 1;
 
   static const float              dirLightScaleAmount;
   static const NTempest::C3Vector interiorSunDir;
@@ -336,30 +329,30 @@ struct CMapEntity : public CMapStaticEntity {
 
   virtual void QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup);
   void         Tick();
-  void         QueryLiquidSounds(int *lbool, NTempest::C3Vector *ldelta, float *ldsquared, unsigned int &closestExtLevel);
+  void         QueryLiquidSounds(int *lbool, NTempest::C3Vector *ldelta, float *ldsquared, UINT &closestExtLevel);
   void         UpdateMapObjLiquid();
-  int          QueryMapObjZoneName(const char *&zoneName);
-  int          QueryMapObjSubzoneName(const char *&subzoneName, unsigned int &subzoneId);
-  int          QueryMapObjFileName(const char *&fileName);
-  int          QueryMapObjListenerId(unsigned int &listenerId);
-  int          QueryMapGroundType(unsigned int &groundType);
+  int          QueryMapObjZoneName(LPCSTR &zoneName);
+  int          QueryMapObjSubzoneName(LPCSTR &subzoneName, UINT &subzoneId);
+  int          QueryMapObjFileName(LPCSTR &fileName);
+  int          QueryMapObjListenerId(UINT &listenerId);
+  int          QueryMapGroundType(UINT &groundType);
   int          QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct);
   static int   QueryCameraFog(SMOFog::Fogs &oFog, float &oPct);
-  bool QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorld::MinimapQuad> &quads);
-  bool QueryMapObjIDs(unsigned int &wmoID, unsigned int &instanceID, unsigned int &groupID);
-  bool QueryMapObjMatrix(NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
+  bool         QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorld::MinimapQuad> &quads);
+  bool         QueryMapObjIDs(UINT &wmoID, UINT &instanceID, UINT &groupID);
+  bool         QueryMapObjMatrix(NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
   bool         QueryMapObjAreaTable(const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
 
-  int (*handler)(void *, unsigned long, unsigned __int64, unsigned long);
-  unsigned __int64      param64;
-  unsigned long         param32;
-  NTempest::C3Vector    oldPos;
-  unsigned int          rFrameCount;
-  NTempest::C3Vector    lqDirection;
-  float                 lqSurface;
-  unsigned int          lqWhich;
-  NTempest::CImVector   ambientTarget;
-  float                 dirLightScaleTarget;
+  int (*handler)(LPVOID, DWORD, DWORDLONG, DWORD);
+  DWORDLONG           param64;
+  DWORD               param32;
+  NTempest::C3Vector  oldPos;
+  UINT                rFrameCount;
+  NTempest::C3Vector  lqDirection;
+  float               lqSurface;
+  UINT                lqWhich;
+  NTempest::CImVector ambientTarget;
+  float               dirLightScaleTarget;
   LINKDECLEX(CMapDoodadDef, sceneLink);
 };
 
@@ -376,16 +369,16 @@ class CMapDoodadDef : public CMapStaticEntity, public TSHashObject<CMapDoodadDef
   void GetBounds(NTempest::CAaBox &bounds);
   void GetCollideExt(NTempest::CAaBox &bounds);
 
-  NTempest::C44Matrix   lMat;
-  NTempest::C44Matrix   mat;
-  NTempest::CAaBox      collideExt;
-  const char           *modelName;
-  unsigned int          rCount;
-  unsigned int          cCount;
-  int                   doodadSoundHandle;
+  NTempest::C44Matrix lMat;
+  NTempest::C44Matrix mat;
+  NTempest::CAaBox    collideExt;
+  LPCSTR              modelName;
+  UINT                rCount;
+  UINT                cCount;
+  int                 doodadSoundHandle;
   LINKDECLEX(CMapDoodadDef, sceneLink);
-  void(*RenderCB)(void *param, const NTempest::C44Matrix &matrix);
-  void *renderCBParam;
+  void (*RenderCB)(LPVOID param, const NTempest::C44Matrix &matrix);
+  LPVOID renderCBParam;
 };
 
 class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_NONE> {
@@ -393,20 +386,20 @@ class CMapObjDef : public CMapBaseObj, public TSHashObject<CMapObjDef, HASHKEY_N
   CMapObjDef();
   ~CMapObjDef();
 
-  NTempest::C44Matrix                mat;
-  NTempest::C44Matrix                invMat;
-  unsigned long                      nameId;
-  CMapObj                           *mapObj;
-  unsigned short                     tDoodadRefs;
-  unsigned short                     firstDoodadRef;
-  unsigned long                      doodadSet;
-  unsigned short                     nameSet;
-  const char                        *zoneName;
+  NTempest::C44Matrix mat;
+  NTempest::C44Matrix invMat;
+  DWORD               nameId;
+  CMapObj            *mapObj;
+  WORD                tDoodadRefs;
+  WORD                firstDoodadRef;
+  DWORD               doodadSet;
+  WORD                nameSet;
+  LPCSTR              zoneName;
   LISTDECLEX(CMapBaseObjLink, refLink, groupLinkList);
-  TSGrowableArray<CMapLight *>       lightList;
-  unsigned int                       rCount;
-  NTempest::CImVector                ambient;
-  unsigned __int64                   param64;
+  TSGrowableArray<CMapLight *> lightList;
+  UINT                         rCount;
+  NTempest::CImVector          ambient;
+  DWORDLONG                    param64;
   LINKDECLEX(CMapStaticEntity, sceneLink);
 };
 
@@ -419,14 +412,14 @@ class CMapObjDefGroup : public CMapBaseObj {
   void         UpdateLights();
   void         Update(const NTempest::C44Matrix &newMat);
 
-  unsigned int                       groupNum;
-  unsigned long                      doodadRefStart;
-  unsigned long                      nDoodadRefs;
-  NTempest::CImVector                ambient;
-  const char                        *subzoneName;
-  unsigned int                       level;
-  int                                rDrawSharedLiquidToggle;
-  TSExplicitList<CWFrustum, 0xF4>    frustumList;
+  UINT                            groupNum;
+  DWORD                           doodadRefStart;
+  DWORD                           nDoodadRefs;
+  NTempest::CImVector             ambient;
+  LPCSTR                          subzoneName;
+  UINT                            level;
+  int                             rDrawSharedLiquidToggle;
+  TSExplicitList<CWFrustum, 0xF4> frustumList;
   LISTDECLEX(CMapBaseObjLink, refLink, doodadDefLinkList);
   LISTDECLEX(CMapBaseObjLink, refLink, entityLinkList);
   LISTDECLEX(CMapBaseObjLink, refLink, lightLinkList);
@@ -434,37 +427,35 @@ class CMapObjDefGroup : public CMapBaseObj {
 };
 
 struct SMAreaHeader {
-  unsigned long offsInfo;
-  unsigned long offsTex;
-  unsigned long sizeTex;
-  unsigned long offsDoo;
-  unsigned long sizeDoo;
-  unsigned long offsMob;
-  unsigned long sizeMob;
-  unsigned char pad[36];
+  DWORD offsInfo;
+  DWORD offsTex;
+  DWORD sizeTex;
+  DWORD offsDoo;
+  DWORD sizeDoo;
+  DWORD offsMob;
+  DWORD sizeMob;
+  BYTE  pad[36];
 };
 
 struct SMDoodadDef {
-
-  unsigned long      nameId;
-  unsigned long      uniqueId;
+  DWORD              nameId;
+  DWORD              uniqueId;
   NTempest::C3Vector pos;
   NTempest::C3Vector rot;
-  unsigned short     scale;
-  unsigned short     flags;
+  WORD               scale;
+  WORD               flags;
 };
 
 struct SMMapObjDef {
-
-  unsigned long      nameId;
-  unsigned long      uniqueId;
+  DWORD              nameId;
+  DWORD              uniqueId;
   NTempest::C3Vector pos;
   NTempest::C3Vector rot;
   NTempest::CAaBox   extents;
-  unsigned short     flags;
-  unsigned short     doodadSet;
-  unsigned short     nameSet;
-  unsigned short     pad;
+  WORD               flags;
+  WORD               doodadSet;
+  WORD               nameSet;
+  WORD               pad;
 };
 
 struct SMChunkInfo {
@@ -472,12 +463,12 @@ struct SMChunkInfo {
     FLAG_LOADED = 1
   };
 
-  unsigned long offset;
-  unsigned long size;
-  unsigned long flags;
+  DWORD offset;
+  DWORD size;
+  DWORD flags;
   union {
-    unsigned char pad[4];
-    unsigned long asyncId;
+    BYTE  pad[4];
+    DWORD asyncId;
   };
 };
 
@@ -486,12 +477,12 @@ struct SMAreaInfo {
     FLAG_LOADED = 1
   };
 
-  unsigned long offset;
-  unsigned long size;
-  unsigned long flags;
+  DWORD offset;
+  DWORD size;
+  DWORD flags;
   union {
-    unsigned char pad[4];
-    unsigned long asyncId;
+    BYTE  pad[4];
+    DWORD asyncId;
   };
 };
 
@@ -504,38 +495,38 @@ struct SMChunk {
     FLAG_LQ_MAGMA = 16
   };
 
-  unsigned long  flags;
-  unsigned long  indexX;
-  unsigned long  indexY;
-  float          radius;
-  unsigned long  nLayers;
-  unsigned long  nDoodadRefs;
-  unsigned long  offsHeight;
-  unsigned long  offsNormal;
-  unsigned long  offsLayer;
-  unsigned long  offsRefs;
-  unsigned long  offsAlpha;
-  unsigned long  sizeAlpha;
-  unsigned long  offsShadow;
-  unsigned long  sizeShadow;
-  unsigned long  areaid;
-  unsigned long  nMapObjRefs;
-  unsigned short holes;
-  unsigned short pad0;
-  unsigned short predTex[8];
-  unsigned char  noEffectDoodad[8];
-  unsigned long  offsSndEmitters;
-  unsigned long  nSndEmitters;
-  unsigned long  offsLiquid;
-  unsigned char  pad1[24];
+  DWORD flags;
+  DWORD indexX;
+  DWORD indexY;
+  float radius;
+  DWORD nLayers;
+  DWORD nDoodadRefs;
+  DWORD offsHeight;
+  DWORD offsNormal;
+  DWORD offsLayer;
+  DWORD offsRefs;
+  DWORD offsAlpha;
+  DWORD sizeAlpha;
+  DWORD offsShadow;
+  DWORD sizeShadow;
+  DWORD areaid;
+  DWORD nMapObjRefs;
+  WORD  holes;
+  WORD  pad0;
+  WORD  predTex[8];
+  BYTE  noEffectDoodad[8];
+  DWORD offsSndEmitters;
+  DWORD nSndEmitters;
+  DWORD offsLiquid;
+  BYTE  pad1[24];
 };
 
 struct SMLayer {
-  unsigned long  textureId;
-  unsigned long  props;
-  unsigned long  offsAlpha;
-  unsigned short effectId;
-  unsigned char  pad[2];
+  DWORD textureId;
+  DWORD props;
+  DWORD offsAlpha;
+  WORD  effectId;
+  BYTE  pad[2];
 };
 
 struct SMNormal {
@@ -544,29 +535,29 @@ struct SMNormal {
 };
 
 struct SMMapHeader {
-  unsigned long nDoodadNames;
-  unsigned long offsDoodadNames;
-  unsigned long nMapObjNames;
-  unsigned long offsMapObjNames;
-  unsigned char pad[112];
+  DWORD nDoodadNames;
+  DWORD offsDoodadNames;
+  DWORD nMapObjNames;
+  DWORD offsMapObjNames;
+  BYTE  pad[112];
 };
 
 class CMapChunk : public CMapBaseObj {
  public:
-  static unsigned int cornerVertexIndex[4];
-  static unsigned int farCornerIndex;
+  static UINT cornerVertexIndex[4];
+  static UINT farCornerIndex;
 
   CMapChunk();
   ~CMapChunk();
 
   void Load(SMChunkInfo *chunkInfo);
-  void Create(unsigned char *data);
+  void Create(BYTE *data);
 
   static void Initialize();
   static void AsyncPollHandler();
   static void Destroy();
   static void FreeLists();
-  static void SetSoundEmitterHandlers(void(*create)(CWSoundEmitter &), void(*destroy)(unsigned long));
+  static void SetSoundEmitterHandlers(void (*create)(CWSoundEmitter &), void (*destroy)(DWORD));
 
   virtual void SelectLights();
   void         UpdateLights();
@@ -576,140 +567,101 @@ class CMapChunk : public CMapBaseObj {
   void         CreateDetailDoodads();
   void         Purge();
 
-  unsigned long                        infoIndex;
-  unsigned short                       holes;
-  unsigned short                       pad;
-  unsigned int                         lod;
-  unsigned int                         remapLod;
-  CDetailDoodadInst                   *detailDoodadInst;
-  CMapChunk                           *neighbor[4];
+  DWORD              infoIndex;
+  WORD               holes;
+  WORD               pad;
+  UINT               lod;
+  UINT               remapLod;
+  CDetailDoodadInst *detailDoodadInst;
+  CMapChunk         *neighbor[4];
   LINKDECLEX(CMapChunk, sceneLink);
   LISTDECLEX(CMapBaseObjLink, refLink, doodadDefLinkList);
   LISTDECLEX(CMapBaseObjLink, refLink, mapObjDefLinkList);
   LISTDECLEX(CMapBaseObjLink, refLink, entityLinkList);
   LISTDECLEX(CMapBaseObjLink, refLink, lightLinkList);
   LISTDECLEX(CMapSoundEmitter, lameAssLink, soundEmitterList);
-  CChunkLiquid                        *liquids[4];
-  NTempest::C2iVector                  aIndex;
-  NTempest::C2iVector                  sOffset;
-  NTempest::C2iVector                  cOffset;
-  float                                freeTime;
-  int                                  bLoaded;
-  CChunkLayer                         *layerList[4];
-  unsigned int                         nLayers;
-  CChunkTex                           *shadowTexture;
-  CGxTex                              *shadowGxTexture;
-  unsigned char                       *shadowOffs;
-  unsigned long                        shadowSize;
-  CGxBuf                              *gxBuf;
-  CChunkTex                           *shaderTexture;
-  CGxTex                              *shaderGxTexture;
-  CAsyncObject                        *asyncObject;
-  unsigned int                         fileOffset;
-  unsigned int                         fileSize;
-  NTempest::CRndSeed                   rSeed;
-  unsigned int                         zoneId;
-  unsigned short                       predTex[8];
-  unsigned char                        noEffectDoodad[8];
-  NTempest::C3Vector                   normalList[145];
-  NTempest::C3Vector                   vertexList[145];
-  NTempest::C4Plane                    planeList[256];
-  unsigned long                        shadowBits[32];
+  CChunkLiquid       *liquids[4];
+  NTempest::C2iVector aIndex;
+  NTempest::C2iVector sOffset;
+  NTempest::C2iVector cOffset;
+  float               freeTime;
+  int                 bLoaded;
+  CChunkLayer        *layerList[4];
+  UINT                nLayers;
+  CChunkTex          *shadowTexture;
+  CGxTex             *shadowGxTexture;
+  BYTE               *shadowOffs;
+  DWORD               shadowSize;
+  CGxBuf             *gxBuf;
+  CChunkTex          *shaderTexture;
+  CGxTex             *shaderGxTexture;
+  CAsyncObject       *asyncObject;
+  UINT                fileOffset;
+  UINT                fileSize;
+  NTempest::CRndSeed  rSeed;
+  UINT                zoneId;
+  WORD                predTex[8];
+  BYTE                noEffectDoodad[8];
+  NTempest::C3Vector  normalList[145];
+  NTempest::C3Vector  vertexList[145];
+  NTempest::C4Plane   planeList[256];
+  DWORD               shadowBits[32];
 
  private:
-  void         SyncLoadLayer(CChunkLayer *layer);
-  void         SyncLoadShadow();
-  void         SyncLoadShader();
-  void         FindLights();
-  void         CreateVertices(float *heights);
-  void         CreateVertices2(float *heights);
-  void         CreateNormals(signed char *normals);
-  void         CreateFacePlanes();
-  void         CreateLayer(CMapArea *area, SMLayer *layer, unsigned char *alphaTex);
-  void         CreateShadow(unsigned char *shadowTex);
-  void         CreateAlphaShadow();
-  void         CreateRefs(CMapArea *area, unsigned int *ref, unsigned int doodadCnt, unsigned int mapObjCnt);
-  void         CreateChunkShadowTex();
-  void         CreateChunkLayerTex(CChunkLayer *layer);
-  void         CreateChunkShaderTex();
-  void         RemapVertices();
-  void         RemapVerticesDyn();
-  void                      PurgeLayer(CChunkLayer *layer);
-  static CGxBuf *AllocGxBuf(unsigned int indexCount);
-  static void FreeGxBuf(CGxBuf *gxBuf);
-  static CGxTex *AllocAlphaGxTex(
-      void *userArg,
-      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
-  );
-  static void FreeAlphaGxTex(CGxTex *gxTex);
-  static CGxTex *AllocShadowGxTex(
-      void *userArg,
-      void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
-  );
-  static void FreeShadowGxTex(CGxTex *gxTex);
+  void           SyncLoadLayer(CChunkLayer *layer);
+  void           SyncLoadShadow();
+  void           SyncLoadShader();
+  void           FindLights();
+  void           CreateVertices(float *heights);
+  void           CreateVertices2(float *heights);
+  void           CreateNormals(signed char *normals);
+  void           CreateFacePlanes();
+  void           CreateLayer(CMapArea *area, SMLayer *layer, BYTE *alphaTex);
+  void           CreateShadow(BYTE *shadowTex);
+  void           CreateAlphaShadow();
+  void           CreateRefs(CMapArea *area, UINT *ref, UINT doodadCnt, UINT mapObjCnt);
+  void           CreateChunkShadowTex();
+  void           CreateChunkLayerTex(CChunkLayer *layer);
+  void           CreateChunkShaderTex();
+  void           RemapVertices();
+  void           RemapVerticesDyn();
+  void           PurgeLayer(CChunkLayer *layer);
+  static CGxBuf *AllocGxBuf(UINT indexCount);
+  static void    FreeGxBuf(CGxBuf *gxBuf);
+  static CGxTex *AllocAlphaGxTex(LPVOID userArg, void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &));
+  static void    FreeAlphaGxTex(CGxTex *gxTex);
+  static CGxTex *AllocShadowGxTex(LPVOID userArg, void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &));
+  static void    FreeShadowGxTex(CGxTex *gxTex);
+  static void    UnpackAlphaShadowBits(NTempest::CImVector *texels, DWORD *bits, const BYTE *const *alpha, const BYTE *shadow);
+  static void    UnpackAlphaBits(DWORD *pixels, const BYTE *alphaPixels);
+  static void    UnpackShadowBits(DWORD *pixels, DWORD *shadowBits, const BYTE *shadow);
   static void
-  UnpackAlphaShadowBits(NTempest::CImVector *texels, unsigned long *bits, const unsigned char *const *alpha, const unsigned char *shadow);
-  static void UnpackAlphaBits(unsigned long *pixels, const unsigned char *alphaPixels);
-  static void UnpackShadowBits(unsigned long *pixels, unsigned long *shadowBits, const unsigned char *shadow);
-  static void UpdateLayerGxTexture(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  d,
-      unsigned int  mipLevel,
-      void         *userArg,
-      unsigned int &texelStrideInBytes,
-      const void  *&texels
-  );
-  static void UpdateShadowGxTexture(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  d,
-      unsigned int  mipLevel,
-      void         *userArg,
-      unsigned int &texelStrideInBytes,
-      const void  *&texels
-  );
-  static void UpdateShaderGxTexture(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  d,
-      unsigned int  mipLevel,
-      void         *userArg,
-      unsigned int &texelStrideInBytes,
-      const void  *&texels
-  );
-  static void UpdateTextureDefault(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  d,
-      unsigned int  mipLevel,
-      void         *userArg,
-      unsigned int &texelStrideInBytes,
-      const void  *&texels
-  );
-  static void CreateRenderLists();
-  static void GxBufDynFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
-  static void GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
-  static void LodCreateTree(int level, int maxLevel, int neighborLOD, int holes, int cX, int cY);
-  void                            FillGxBufVertex(const CGxBufCommand &cmd, CGxBuf *buf);
-  void                            FillGxBufIndex(const CGxBufCommand &cmd, CGxBuf *buf);
-  void                            FillGxBufDynVertex(const CGxBufCommand &cmd, CGxBuf *buf);
-  void                            FillGxBufDynIndex(const CGxBufCommand &cmd, CGxBuf *buf);
-  void                            RenderLayers();
-  void                            RenderLayersDyn();
-  void                            RenderLayersColor();
-  void                            RenderLayersColorDyn();
-  static void FreeAsyncLoadBuffer(unsigned char *buffer);
-  static void InitAsyncLoadBuffers();
-  static unsigned char *AllocAsyncLoadBuffer();
-  static void AsyncCallback(void *userArg);
-  void                            SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, unsigned char *&shadowTex, unsigned char *&alphaTex);
+  UpdateLayerGxTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
+  static void
+  UpdateShadowGxTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
+  static void
+  UpdateShaderGxTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
+  static void
+  UpdateTextureDefault(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
+  static void  CreateRenderLists();
+  static void  GxBufDynFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
+  static void  GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
+  static void  LodCreateTree(int level, int maxLevel, int neighborLOD, int holes, int cX, int cY);
+  void         FillGxBufVertex(const CGxBufCommand &cmd, CGxBuf *buf);
+  void         FillGxBufIndex(const CGxBufCommand &cmd, CGxBuf *buf);
+  void         FillGxBufDynVertex(const CGxBufCommand &cmd, CGxBuf *buf);
+  void         FillGxBufDynIndex(const CGxBufCommand &cmd, CGxBuf *buf);
+  void         RenderLayers();
+  void         RenderLayersDyn();
+  void         RenderLayersColor();
+  void         RenderLayersColorDyn();
+  static void  FreeAsyncLoadBuffer(BYTE *buffer);
+  static void  InitAsyncLoadBuffers();
+  static BYTE *AllocAsyncLoadBuffer();
+  static void  AsyncCallback(LPVOID userArg);
+  void         SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, BYTE *&shadowTex, BYTE *&alphaTex);
 
-  static unsigned char      syncLoadBuffer[15000];
+  static BYTE               syncLoadBuffer[15000];
   static NTempest::C2Vector texCoordList[145];
   static NTempest::C2Vector texCoordList2[145];
   static NTempest::C2Vector rmTexCoordList[4][145];
@@ -717,10 +669,10 @@ class CMapChunk : public CMapBaseObj {
   static CGxBatch           rmGxBatchList[4][2];
   static const float        TERRAIN_SPEC_EXP;
   static NTempest::C4Vector psLayerMask[4];
-  static unsigned short     primList[768];
-  static unsigned short    *primPtr;
-  static void(*soundEmitterCreateHandler)(CWSoundEmitter &);
-  static void(*soundEmitterDestroyHandler)(unsigned long);
+  static WORD               primList[768];
+  static WORD              *primPtr;
+  static void (*soundEmitterCreateHandler)(CWSoundEmitter &);
+  static void (*soundEmitterDestroyHandler)(DWORD);
   static CGxBuf                   *gxBufDyn;
   static TSGrowableArray<CGxBuf *> gxBufFreeList;
   static TSGrowableArray<CGxTex *> gxAlphaTexFreeList;

@@ -24,9 +24,9 @@
   ASSERT(object)
 
 #define DEFINE_RENDER_GET_NAME(TYPE, FUNCTION) \
-  int FUNCTION(lua_State *L) {      \
+  int FUNCTION(lua_State *L) {                 \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);   \
-    const char *name = object->GetName();      \
+    LPCSTR name = object->GetName();           \
     if (name && *name) {                       \
       lua_pushstring(L, name);                 \
     } else {                                   \
@@ -36,7 +36,7 @@
   }
 
 #define DEFINE_RENDER_SET_VERTEX_COLOR(TYPE, FUNCTION)                  \
-  int FUNCTION(lua_State *L) {                               \
+  int FUNCTION(lua_State *L) {                                          \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);                            \
     NTempest::CImVector color;                                          \
     float               red = static_cast<float>(lua_tonumber(L, 2));   \
@@ -51,35 +51,35 @@
     return 0;                                                           \
   }
 
-#define DEFINE_RENDER_SET_ALPHA(TYPE, FUNCTION)                       \
-  int FUNCTION(lua_State *L) {                             \
-    GET_SIMPLE_RENDER_THIS(L, TYPE, object);                          \
-    if (!lua_isnumber(L, 2)) {                                        \
-      luaL_error(L, "Usage: SetAlpha(alpha)");                        \
-    }                                                                 \
-    NTempest::CImVector color;                                        \
-    object->GetVertexColor(color);                                    \
-    color.a = static_cast<unsigned char>(lua_tonumber(L, 2) * 255.0); \
-    object->SetVertexColor(color);                                    \
-    return 0;                                                         \
+#define DEFINE_RENDER_SET_ALPHA(TYPE, FUNCTION)              \
+  int FUNCTION(lua_State *L) {                               \
+    GET_SIMPLE_RENDER_THIS(L, TYPE, object);                 \
+    if (!lua_isnumber(L, 2)) {                               \
+      luaL_error(L, "Usage: SetAlpha(alpha)");               \
+    }                                                        \
+    NTempest::CImVector color;                               \
+    object->GetVertexColor(color);                           \
+    color.a = static_cast<BYTE>(lua_tonumber(L, 2) * 255.0); \
+    object->SetVertexColor(color);                           \
+    return 0;                                                \
   }
 
 #define DEFINE_RENDER_SHOW(TYPE, FUNCTION)   \
-  int FUNCTION(lua_State *L) {    \
+  int FUNCTION(lua_State *L) {               \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object); \
     object->Show();                          \
     return 0;                                \
   }
 
 #define DEFINE_RENDER_HIDE(TYPE, FUNCTION)   \
-  int FUNCTION(lua_State *L) {    \
+  int FUNCTION(lua_State *L) {               \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object); \
     object->Hide();                          \
     return 0;                                \
   }
 
 #define DEFINE_RENDER_IS_VISIBLE(TYPE, FUNCTION) \
-  int FUNCTION(lua_State *L) {        \
+  int FUNCTION(lua_State *L) {                   \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);     \
     if (object->IsVisible()) {                   \
       lua_pushnumber(L, 1.0);                    \
@@ -90,7 +90,7 @@
   }
 
 #define DEFINE_RENDER_SET_POINT(TYPE, FUNCTION)                                             \
-  int FUNCTION(lua_State *L) {                                                   \
+  int FUNCTION(lua_State *L) {                                                              \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);                                                \
     if (!lua_isstring(L, 2) || !lua_isstring(L, 3)) {                                       \
       luaL_error(                                                                           \
@@ -109,7 +109,7 @@
       luaL_error(L, "Unknown frame point");                                                 \
     }                                                                                       \
     relativePoint = point;                                                                  \
-    const char *relativeName = lua_tostring(L, 3);                                          \
+    LPCSTR relativeName = lua_tostring(L, 3);                                               \
     relativeFrame = object->GetLayoutFrameByName(relativeName);                             \
     if (!relativeFrame) {                                                                   \
       SStrPrintf(message, sizeof(message), "Couldn't find frame named '%s'", relativeName); \
@@ -129,7 +129,7 @@
   }
 
 #define DEFINE_RENDER_CLEAR_ALL_POINTS(TYPE, FUNCTION) \
-  int FUNCTION(lua_State *L) {              \
+  int FUNCTION(lua_State *L) {                         \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);           \
     object->ClearAllPoints(1);                         \
     return 0;                                          \
@@ -287,7 +287,7 @@ int CSimpleFontString_SetText(lua_State *L) {
 int CSimpleFontString_GetText(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  const char *text = object->GetText();
+  LPCSTR text = object->GetText();
   if (!text || !*text) {
     text = 0;
   }
@@ -356,7 +356,7 @@ int CSimpleFontString_GetHeight(lua_State *L) {
 int CSimpleFontString_SetJustifyH(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  unsigned int flag;
+  UINT flag;
   if (!lua_isstring(L, 2) || !StringToJustify(lua_tostring(L, 2), flag)) {
     luaL_error(L, "Usage(SetJustifyH(\"justify\")");
   }
@@ -368,7 +368,7 @@ int CSimpleFontString_SetJustifyH(lua_State *L) {
 int CSimpleFontString_SetJustifyV(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  unsigned int flag;
+  UINT flag;
   if (!lua_isstring(L, 2) || !StringToJustify(lua_tostring(L, 2), flag)) {
     luaL_error(L, "Usage(SetJustifyV(\"justify\")");
   }
@@ -388,7 +388,7 @@ void CSimpleTexture::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleTexture::LookupScriptMethod(lua_State *L, const char *name) {
+int CSimpleTexture::LookupScriptMethod(lua_State *L, LPCSTR name) {
   return FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods);
 }
 
@@ -436,6 +436,6 @@ void CSimpleFontString::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleFontString::LookupScriptMethod(lua_State *L, const char *name) {
+int CSimpleFontString::LookupScriptMethod(lua_State *L, LPCSTR name) {
   return FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods);
 }

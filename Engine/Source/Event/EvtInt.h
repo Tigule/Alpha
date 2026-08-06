@@ -12,16 +12,16 @@ struct EvtKeyDown;
 struct EvtTimer;
 struct EvtThread;
 
-void OsCallSetContext(void *contextDataPtr);
-void OsCallResetContext(void *contextDataPtr);
-void OsCallDestroyContext(void *contextDataPtr);
+void OsCallSetContext(LPVOID contextDataPtr);
+void OsCallResetContext(LPVOID contextDataPtr);
+void OsCallDestroyContext(LPVOID contextDataPtr);
 
 template <class T>
 class EvtIdTable {
  public:
-  unsigned int Alloc() {
-    unsigned int id;
-    unsigned int count = m_freeArray.Count();
+  UINT Alloc() {
+    UINT id;
+    UINT count = m_freeArray.Count();
 
     if (count) {
       id = m_freeArray[count - 1];
@@ -36,28 +36,28 @@ class EvtIdTable {
     return id;
   }
 
-  void Free(unsigned int id) {
+  void Free(UINT id) {
     if (id) {
       ASSERT(id < m_allocArray.Count());
       m_freeArray.Add(1, &id);
     }
   }
 
-  unsigned int NumAllocated() const {
+  UINT NumAllocated() const {
     return m_allocArray.Count() - m_freeArray.Count();
   }
 
-  T &operator[](unsigned int id) {
+  T &operator[](UINT id) {
     return m_allocArray[id];
   }
 
-  const T &operator[](unsigned int id) const {
+  const T &operator[](UINT id) const {
     return const_cast<EvtIdTable<T> *>(this)->m_allocArray[id];
   }
 
  private:
-  TSGrowableArray<T>            m_allocArray;
-  TSGrowableArray<unsigned int> m_freeArray;
+  TSGrowableArray<T>    m_allocArray;
+  TSGrowableArray<UINT> m_freeArray;
 
   friend struct EvtContext;
 };
@@ -76,32 +76,32 @@ class EvtContextQueue : public TSPriorityQueue<EvtContext> {
 
 struct EvtHandler {
   LINKDECLEX(EvtHandler, link);
-  EVENTHANDLER       func;
-  void              *param;
-  float              priority;
-  int                marker;
+  EVENTHANDLER func;
+  LPVOID       param;
+  float        priority;
+  int          marker;
 };
 
 struct EvtMessage : public TExtraInstanceRecyclable<EvtMessage> {
   LINKDECLEX(EvtMessage, link);
-  EVENTID            id;
-  BYTE               data[4];
+  EVENTID id;
+  BYTE    data[4];
 };
 
 struct EvtKeyDown {
   LINKDECLEX(EvtKeyDown, link);
-  KEY                key;
+  KEY key;
 };
 
 struct EvtTimer {
-  unsigned int           id;
+  UINT                   id;
   TSTimerPriority<DWORD> targetTime;
   float                  timeout;
   EVENTHANDLER           handler;
-  void                  *param;
+  LPVOID                 param;
   EVENTGUIDHANDLER       guidHandler;
-  unsigned __int64       guidParam;
-  void                  *guidParam2;
+  DWORDLONG              guidParam;
+  LPVOID                 guidParam2;
 };
 
 struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
@@ -113,43 +113,43 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   };
 
  private:
-  EvtContext(unsigned long idleTime, unsigned long flags, unsigned int weight, void *callContext, int startWatchdog);
+  EvtContext(DWORD idleTime, DWORD flags, UINT weight, LPVOID callContext, int startWatchdog);
   EvtContext(const EvtContext &);
   EvtContext &operator=(const EvtContext &);
 
-  friend void DestroySchedulerThread(unsigned int hThread);
+  friend void          DestroySchedulerThread(UINT hThread);
   friend HEVENTCONTEXT AttachContextToThread(EvtContext *context);
-  friend void DetachContextFromThread(unsigned int hThread, EvtContext *context);
-  friend void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
+  friend void          DetachContextFromThread(UINT hThread, EvtContext *context);
+  friend void          PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
   friend HEVENTCONTEXT
   IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags);
 
-  SCritSect                     m_critsect;
-  DWORD                         m_currTime;
-  SCHEDSTATE                    m_schedState;
-  TSTimerPriority<DWORD>        m_schedNextWakeTime;
-  DWORD                         m_schedLastIdle;
-  DWORD                         m_schedFlags;
-  DWORD                         m_schedIdleTime;
-  DWORD                         m_schedInitialIdleTime;
-  unsigned int                  m_schedWeight;
-  unsigned int                  m_schedSmoothWeight;
-  int                           m_schedRebalance;
+  SCritSect              m_critsect;
+  DWORD                  m_currTime;
+  SCHEDSTATE             m_schedState;
+  TSTimerPriority<DWORD> m_schedNextWakeTime;
+  DWORD                  m_schedLastIdle;
+  DWORD                  m_schedFlags;
+  DWORD                  m_schedIdleTime;
+  DWORD                  m_schedInitialIdleTime;
+  UINT                   m_schedWeight;
+  UINT                   m_schedSmoothWeight;
+  int                    m_schedRebalance;
   LISTDECLEX(EvtHandler, link, m_queueHandlerList[EVENTIDS]);
   LISTDECLEX(EvtMessage, link, m_queueMessageList);
-  unsigned int                  m_queueSyncButtonState;
+  UINT m_queueSyncButtonState;
   LISTDECLEX(EvtKeyDown, link, m_queueSyncKeyDownList);
-  EvtIdTable<EvtTimer *>        m_timerIdTable;
-  EvtTimerQueue                 m_timerQueue;
-  HPROPCONTEXT                  m_propContext;
-  void                         *m_callContext;
-  unsigned int                  m_startWatchdog;
+  EvtIdTable<EvtTimer *> m_timerIdTable;
+  EvtTimerQueue          m_timerQueue;
+  HPROPCONTEXT           m_propContext;
+  LPVOID                 m_callContext;
+  UINT                   m_startWatchdog;
 
  public:
   ~EvtContext() {
-    EvtTimer    *timer;
-    unsigned int i;
-    unsigned int loop;
+    EvtTimer *timer;
+    UINT      i;
+    UINT      loop;
 
     for (i = 0; i < EVENTIDS; ++i) {
       m_queueHandlerList[i].Clear();
@@ -168,26 +168,26 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   }
 
   int IsCurrentContext() const {
-    return !Id() || reinterpret_cast<void *>(Id()) == PropGet(PROP_EVENTCONTEXT);
+    return !Id() || reinterpret_cast<LPVOID>(Id()) == PropGet(PROP_EVENTCONTEXT);
   }
 
   HEVENTCONTEXT Handle() const {
     return reinterpret_cast<HEVENTCONTEXT>(Id());
   }
 
-  unsigned long GetCurrTime() const {
+  DWORD GetCurrTime() const {
     ASSERT(IsCurrentContext());
     return m_currTime;
   }
 
-  void SetCurrTime(unsigned long currTime) {
+  void SetCurrTime(DWORD currTime) {
     ASSERT(IsCurrentContext());
     m_currTime = currTime;
   }
 
   void SchedSelect() {
     PropSelectContext(m_propContext);
-    PropSet(PROP_EVENTCONTEXT, reinterpret_cast<void *>(Id()));
+    PropSet(PROP_EVENTCONTEXT, reinterpret_cast<LPVOID>(Id()));
     OsCallSetContext(m_callContext);
   }
 
@@ -229,66 +229,66 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_critsect.Leave();
   }
 
-  unsigned long SchedGetNextWakeTime() const {
+  DWORD SchedGetNextWakeTime() const {
     return m_schedNextWakeTime.Get();
   }
 
-  void SchedSetNextWakeTime(unsigned long nextWakeTime) {
+  void SchedSetNextWakeTime(DWORD nextWakeTime) {
     m_schedNextWakeTime.Set(nextWakeTime);
   }
 
-  unsigned long SchedGetLastIdle() const {
+  DWORD SchedGetLastIdle() const {
     ASSERT(IsCurrentContext());
     return m_schedLastIdle;
   }
 
-  void SchedSetLastIdle(unsigned long lastIdle) {
+  void SchedSetLastIdle(DWORD lastIdle) {
     ASSERT(IsCurrentContext());
     m_schedLastIdle = lastIdle;
   }
 
-  unsigned long SchedGetFlags(unsigned long flags) const {
+  DWORD SchedGetFlags(DWORD flags) const {
     ASSERT(IsCurrentContext());
     return m_schedFlags & flags;
   }
 
-  void SchedSetFlags(unsigned long flags) {
+  void SchedSetFlags(DWORD flags) {
     ASSERT(IsCurrentContext());
     m_schedFlags |= flags;
   }
 
-  void SchedResetFlags(unsigned long flags) {
+  void SchedResetFlags(DWORD flags) {
     ASSERT(IsCurrentContext());
     m_schedFlags &= ~flags;
   }
 
-  unsigned long SchedGetInitialIdleTime() const {
+  DWORD SchedGetInitialIdleTime() const {
     ASSERT(IsCurrentContext());
     return m_schedInitialIdleTime;
   }
 
-  unsigned long SchedGetIdleTime() const {
+  DWORD SchedGetIdleTime() const {
     ASSERT(IsCurrentContext());
     return m_schedIdleTime;
   }
 
-  void SchedSetIdleTime(unsigned long idleTime) {
+  void SchedSetIdleTime(DWORD idleTime) {
     m_schedIdleTime = idleTime;
   }
 
-  unsigned int SchedGetWeight() const {
+  UINT SchedGetWeight() const {
     return m_schedWeight;
   }
 
-  void SchedSetWeight(unsigned int weight) {
+  void SchedSetWeight(UINT weight) {
     m_schedWeight = weight;
   }
 
-  unsigned int SchedGetSmoothWeight() const {
+  UINT SchedGetSmoothWeight() const {
     return m_schedSmoothWeight;
   }
 
-  void SchedSetSmoothWeight(unsigned int smoothWeight) {
+  void SchedSetSmoothWeight(UINT smoothWeight) {
     m_schedSmoothWeight = smoothWeight;
   }
 
@@ -304,7 +304,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     return m_startWatchdog;
   }
 
-  LISTEX(EvtHandler, link) &QueueLockHandlerList(EVENTID id) {
+  LISTEX(EvtHandler, link) & QueueLockHandlerList(EVENTID id) {
     ASSERT(IsCurrentContext());
     ASSERT(id >= 0 && id < EVENTIDS);
     return m_queueHandlerList[id];
@@ -314,7 +314,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     ASSERT(IsCurrentContext());
   }
 
-  LISTEX(EvtMessage, link) &QueueLockMessageList() {
+  LISTEX(EvtMessage, link) & QueueLockMessageList() {
     m_critsect.Enter();
     return m_queueMessageList;
   }
@@ -323,7 +323,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_critsect.Leave();
   }
 
-  LISTEX(EvtKeyDown, link) &QueueLockSyncKeyDownList() {
+  LISTEX(EvtKeyDown, link) & QueueLockSyncKeyDownList() {
     ASSERT(IsCurrentContext());
     m_critsect.Enter();
     return m_queueSyncKeyDownList;
@@ -334,17 +334,17 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_critsect.Leave();
   }
 
-  unsigned int QueueGetSyncButtonState(unsigned int flags) {
+  UINT QueueGetSyncButtonState(UINT flags) {
     ASSERT(IsCurrentContext());
     return m_queueSyncButtonState & flags;
   }
 
-  void QueueSetSyncButtonState(unsigned int flags) {
+  void QueueSetSyncButtonState(UINT flags) {
     ASSERT(IsCurrentContext());
     m_queueSyncButtonState |= flags;
   }
 
-  void QueueResetSyncButtonState(unsigned int flags) {
+  void QueueResetSyncButtonState(UINT flags) {
     ASSERT(IsCurrentContext());
     m_queueSyncButtonState &= ~flags;
   }
@@ -363,66 +363,66 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
 };
 
 NODEDECL(EvtThread) {
-  unsigned int    m_threadSlot;
-  unsigned int    m_threadCount;
-  unsigned int    m_weightTotal;
-  unsigned int    m_weightAvg;
-  unsigned int    m_contextCount;
-  unsigned int    m_rebalance;
+  UINT            m_threadSlot;
+  UINT            m_threadCount;
+  UINT            m_weightTotal;
+  UINT            m_weightAvg;
+  UINT            m_contextCount;
+  UINT            m_rebalance;
   SEvent          m_wakeEvent;
   EvtContextQueue m_contextQueue;
 };
 
 void IEvtQueueInitialize();
 void IEvtQueueDestroy();
-void IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, float priority);
-void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags);
-void IEvtQueueDispatch(EvtContext *context, EVENTID id, const void *data);
+void IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, LPVOID param, float priority);
+void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, LPVOID param, UINT flags);
+void IEvtQueueDispatch(EvtContext *context, EVENTID id, LPCVOID data);
 void IEvtQueueDispatchAll(EvtContext *context);
-int IEvtQueueHasMessages(EvtContext *context);
-int IEvtQueueDispatchNext(EvtContext *context);
-void IEvtQueuePost(EvtContext *context, EVENTID id, const void *data, unsigned int bytes);
-void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, void *param);
-int IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
-int IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
+int  IEvtQueueHasMessages(EvtContext *context);
+int  IEvtQueueDispatchNext(EvtContext *context);
+void IEvtQueuePost(EvtContext *context, EVENTID id, LPCVOID data, UINT bytes);
+void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, LPVOID param);
+int  IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
+int  IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
 
-int IEvtTimerDispatch(EvtContext *context);
-unsigned int IEvtTimerGetNextTime(EvtContext *context, DWORD currTime);
-float IEvtTimerGetRemaining(EvtContext *context, unsigned int id);
-void IEvtTimerKill(EvtContext *context, unsigned int id, EVENTHANDLER handlerFunction, const char *functionName);
-unsigned int IEvtTimerSet(
+int   IEvtTimerDispatch(EvtContext *context);
+UINT  IEvtTimerGetNextTime(EvtContext *context, DWORD currTime);
+float IEvtTimerGetRemaining(EvtContext *context, UINT id);
+void  IEvtTimerKill(EvtContext *context, UINT id, EVENTHANDLER handlerFunction, LPCSTR functionName);
+UINT  IEvtTimerSet(
     EvtContext      *context,
     float            timeout,
     EVENTHANDLER     handler,
-    void            *param,
+    LPVOID           param,
     EVENTGUIDHANDLER guidHandler,
-    unsigned __int64 guidParam,
-    void            *guidParam2
+    DWORDLONG        guidParam,
+    LPVOID           guidParam2
 );
-unsigned int IEvtTimerSet(
+UINT IEvtTimerSet(
     EvtContext      *context,
-    unsigned int     timeout,
+    UINT             timeout,
     EVENTHANDLER     handler,
-    void            *param,
+    LPVOID           param,
     EVENTGUIDHANDLER guidHandler,
-    unsigned __int64 guidParam,
-    void            *guidParam2
+    DWORDLONG        guidParam,
+    LPVOID           guidParam2
 );
-unsigned int IEvtTimerSetAbsolute(
+UINT IEvtTimerSetAbsolute(
     EvtContext      *context,
     DWORD            triggerTime,
     EVENTHANDLER     handler,
-    void            *param,
+    LPVOID           param,
     EVENTGUIDHANDLER guidHandler,
-    unsigned __int64 guidParam,
-    void            *guidParam2
+    DWORDLONG        guidParam,
+    LPVOID           guidParam2
 );
 
 void IEvtInputInitialize();
 void IEvtInputDestroy();
-int IEvtInputProcess(EvtContext *context, int *shutdown);
-void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, unsigned int holdButton);
-void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam);
+int  IEvtInputProcess(EvtContext *context, int *shutdown);
+void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, UINT holdButton);
+void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, LPVOID inParam);
 void IEvtInputGetMousePosition(float *x, float *y);
 void IEvtInputSetMousePosition(float x, float y);
 
@@ -432,7 +432,7 @@ namespace NTempest {
 
 void IEvtInputSetMouseBoundingRect(NTempest::CRect *rect);
 
-void IEvtSchedulerInitialize(unsigned int threadCount, int netServer);
+void IEvtSchedulerInitialize(UINT threadCount, int netServer);
 void IEvtSchedulerDestroy();
 void IEvtSchedulerProcess();
 void IEvtSchedulerShutdown();

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellVisualPrecastTransitionsRec::GetFilename() {
+LPCSTR SpellVisualPrecastTransitionsRec::GetFilename() {
   return "DBFilesClient\\SpellVisualPrecastTransitions.dbc";
 }
 
@@ -19,10 +19,10 @@ SpellVisualPrecastTransitionsRec::SpellVisualPrecastTransitionsRec() {
 SpellVisualPrecastTransitionsRec::~SpellVisualPrecastTransitionsRec() {
 }
 
-bool SpellVisualPrecastTransitionsRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempPrecastLoadAnimNameIndices[1];
-  unsigned int tempPrecastHoldAnimNameIndices[1];
+bool SpellVisualPrecastTransitionsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempPrecastLoadAnimNameIndices[1];
+  UINT tempPrecastHoldAnimNameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, tempPrecastLoadAnimNameIndices, sizeof(tempPrecastLoadAnimNameIndices), 0, 0, 0) && result;

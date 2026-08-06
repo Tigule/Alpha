@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SkillLineRec::GetFilename() {
+LPCSTR SkillLineRec::GetFilename() {
   return "DBFilesClient\\SkillLine.dbc";
 }
 
@@ -19,9 +19,9 @@ SkillLineRec::SkillLineRec() {
 SkillLineRec::~SkillLineRec() {
 }
 
-bool SkillLineRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempdisplayName_langIndices[8];
+bool SkillLineRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempdisplayName_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_raceMask, sizeof(m_raceMask), 0, 0, 0) && result;

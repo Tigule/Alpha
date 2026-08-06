@@ -12,14 +12,14 @@ NODEDECL(CGxuLight) {
   CGxuLight() : m_lockCount(0) {
   }
 
-  float          Fitness(NTempest::C3Vector &pos, float linearAttenuation, float quadraticAttenuation);
+  float          Fitness(NTempest::C3Vector & pos, float linearAttenuation, float quadraticAttenuation);
   CGxuLightLink *AllocListLink();
   void           ClearListLinks();
 
-  CGxLight                          m_light;
-  unsigned int                      m_hwLight;
-  unsigned long                     m_selectionCount;
-  int                               m_lockCount;
+  CGxLight m_light;
+  UINT     m_hwLight;
+  DWORD    m_selectionCount;
+  int      m_lockCount;
   LISTDECLEX(CGxuLightLink, m_lightLink, m_links);
 
   static LISTDECL(CGxuLight, s_lights);
@@ -27,34 +27,34 @@ NODEDECL(CGxuLight) {
   static LISTDECLEX(CGxuLightLink, m_lightLink, s_linksFreeList);
 };
 
-static void IGxuLightShutdown();
-static unsigned long IGxuLightCreate();
-static void IGxuLightDestroy(unsigned long lightId);
-static CGxLight *IGxuLightLock(unsigned long lightId);
-static void IGxuLightUnlock(unsigned long lightId);
-static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
+static void      IGxuLightShutdown();
+static DWORD     IGxuLightCreate();
+static void      IGxuLightDestroy(DWORD lightId);
+static CGxLight *IGxuLightLock(DWORD lightId);
+static void      IGxuLightUnlock(DWORD lightId);
+static void      IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
 
-static void IGxuLightInitialize();
-static void IGxuLightEnableSet(unsigned long lightId, int enable);
-static int IGxuLightEnable(unsigned long lightId);
-static void IGxuLightSetMaxLights(unsigned int maxLightsToUse);
+static void  IGxuLightInitialize();
+static void  IGxuLightEnableSet(DWORD lightId, int enable);
+static int   IGxuLightEnable(DWORD lightId);
+static void  IGxuLightSetMaxLights(UINT maxLightsToUse);
 static float IGxuLightBucketSize();
-static void IGxuLightBucketSizeSet(float bucketSize);
-static void IGxuLightResetCache();
+static void  IGxuLightBucketSizeSet(float bucketSize);
+static void  IGxuLightResetCache();
 
-static const float                                  GxuLight_BucketSizeDefault = 1024.0f;
-static float                                        s_bucketSize = GxuLight_BucketSizeDefault;
-static float                                        s_halfBucket = GxuLight_BucketSizeDefault * 0.5f;
+static const float GxuLight_BucketSizeDefault = 1024.0f;
+static float       s_bucketSize = GxuLight_BucketSizeDefault;
+static float       s_halfBucket = GxuLight_BucketSizeDefault * 0.5f;
 LISTDECL(CGxuLight, CGxuLight::s_lights);
 LISTDECL(CGxuLight, CGxuLight::s_lightsFreeList);
 LISTDECLEX(CGxuLightLink, m_lightLink, CGxuLight::s_linksFreeList);
-static unsigned long                                s_lastLightsHash;
+static DWORD                                        s_lastLightsHash;
 CLightList                                          s_dirLightList;
-static unsigned int                                 s_updateDirLights;
-static unsigned int                                 s_dirLightSet;
-static unsigned char                                s_forceSettingLights = 1;
-static unsigned int                                 s_maxLightsToUse = 8;
-static unsigned long                                s_selectionCount;
+static UINT                                         s_updateDirLights;
+static UINT                                         s_dirLightSet;
+static BYTE                                         s_forceSettingLights = 1;
+static UINT                                         s_maxLightsToUse = 8;
+static DWORD                                        s_selectionCount;
 TSHashTableReuse<CLightList, HASHKEY_DWORD, 1>      CLightList::s_lightHashTable;
 static NTempest::CPriorityQ<CGxuLight *, CGxuLight> s_lightPriQ;
 static TSGrowableArray<CGxuLight *>                 s_lightsToUse;
@@ -95,34 +95,34 @@ inline void CGxuLight::ClearListLinks() {
   }
 }
 
-void(*GxuLightInitialize)() = IGxuLightInitialize;
-void(*GxuLightShutdown)() = IGxuLightShutdown;
-unsigned long(*GxuLightCreate)() = IGxuLightCreate;
-void(*GxuLightDestroy)(unsigned long) = IGxuLightDestroy;
-CGxLight *(*GxuLightLock)(unsigned long) = IGxuLightLock;
-void(*GxuLightUnlock)(unsigned long) = IGxuLightUnlock;
-void(*GxuLightSelect)(NTempest::C3Vector, const NTempest::C3Vector &, unsigned int) = IGxuLightSelect;
-int(*GxuLightEnable)(unsigned long) = IGxuLightEnable;
-void(*GxuLightEnableSet)(unsigned long, int) = IGxuLightEnableSet;
-void(*GxuLightSetMaxLights)(unsigned int) = IGxuLightSetMaxLights;
-float(*GxuLightBucketSize)() = IGxuLightBucketSize;
-void(*GxuLightBucketSizeSet)(float) = IGxuLightBucketSizeSet;
-void(*GxuLightResetCache)() = IGxuLightResetCache;
+void (*GxuLightInitialize)() = IGxuLightInitialize;
+void (*GxuLightShutdown)() = IGxuLightShutdown;
+DWORD (*GxuLightCreate)() = IGxuLightCreate;
+void (*GxuLightDestroy)(DWORD) = IGxuLightDestroy;
+CGxLight *(*GxuLightLock)(DWORD) = IGxuLightLock;
+void (*GxuLightUnlock)(DWORD) = IGxuLightUnlock;
+void (*GxuLightSelect)(NTempest::C3Vector, const NTempest::C3Vector &, UINT) = IGxuLightSelect;
+int (*GxuLightEnable)(DWORD) = IGxuLightEnable;
+void (*GxuLightEnableSet)(DWORD, int) = IGxuLightEnableSet;
+void (*GxuLightSetMaxLights)(UINT) = IGxuLightSetMaxLights;
+float (*GxuLightBucketSize)() = IGxuLightBucketSize;
+void (*GxuLightBucketSizeSet)(float) = IGxuLightBucketSizeSet;
+void (*GxuLightResetCache)() = IGxuLightResetCache;
 
 void GxuLightFuncsSet(
-    void(*initializeFunc)(),
-    void(*shutDownFunc)(),
-    unsigned long(*createFunc)(),
-    void(*destroyFunc)(unsigned long),
-    CGxLight *(*lockFunc)(unsigned long),
-    void(*unlockFunc)(unsigned long),
-    void(*selectFunc)(NTempest::C3Vector, const NTempest::C3Vector &, unsigned int),
-    int(*enableFunc)(unsigned long),
-    void(*enableSetFunc)(unsigned long, int),
-    void(*setMaxLightsFunc)(unsigned int),
-    float(*bucketSizeFunc)(),
-    void(*bucketSizeSetFunc)(float),
-    void(*resetCacheFunc)()
+    void (*initializeFunc)(),
+    void (*shutDownFunc)(),
+    DWORD (*createFunc)(),
+    void (*destroyFunc)(DWORD),
+    CGxLight *(*lockFunc)(DWORD),
+    void (*unlockFunc)(DWORD),
+    void (*selectFunc)(NTempest::C3Vector, const NTempest::C3Vector &, UINT),
+    int (*enableFunc)(DWORD),
+    void (*enableSetFunc)(DWORD, int),
+    void (*setMaxLightsFunc)(UINT),
+    float (*bucketSizeFunc)(),
+    void (*bucketSizeSetFunc)(float),
+    void (*resetCacheFunc)()
 ) {
   if (initializeFunc) {
     GxuLightInitialize = initializeFunc;
@@ -184,7 +184,7 @@ static void IGxuLightShutdown() {
   }
 }
 
-static unsigned long IGxuLightCreate() {
+static DWORD IGxuLightCreate() {
   CGxuLight *light = CGxuLight::s_lightsFreeList.Head();
 
   if (!light) {
@@ -196,10 +196,10 @@ static unsigned long IGxuLightCreate() {
     new (&light->m_light) CGxLight;
   }
 
-  return reinterpret_cast<unsigned long>(light);
+  return reinterpret_cast<DWORD>(light);
 }
 
-static void IGxuLightDestroy(unsigned long lightId) {
+static void IGxuLightDestroy(DWORD lightId) {
   CGxuLight *light = reinterpret_cast<CGxuLight *>(lightId);
 
   ASSERT(light);
@@ -209,7 +209,7 @@ static void IGxuLightDestroy(unsigned long lightId) {
   CGxuLight::s_lightsFreeList.LinkNode(light, LIST_TAIL, 0);
 }
 
-static CGxLight *IGxuLightLock(unsigned long lightId) {
+static CGxLight *IGxuLightLock(DWORD lightId) {
   CGxuLight *light = reinterpret_cast<CGxuLight *>(lightId);
 
   ASSERT(light);
@@ -217,7 +217,7 @@ static CGxLight *IGxuLightLock(unsigned long lightId) {
   return &light->m_light;
 }
 
-static void IGxuLightUnlock(unsigned long lightId) {
+static void IGxuLightUnlock(DWORD lightId) {
   CGxuLight         *light = reinterpret_cast<CGxuLight *>(lightId);
   NTempest::C3Vector pos;
   NTempest::C3Vector max;
@@ -257,8 +257,8 @@ static void IGxuLightUnlock(unsigned long lightId) {
 
   for (y = static_cast<int>(min.y / s_bucketSize - 0.5f); y <= static_cast<int>(max.y / s_bucketSize - 0.5f); ++y) {
     for (x = static_cast<int>(min.x / s_bucketSize - 0.5f); x <= static_cast<int>(max.x / s_bucketSize - 0.5f); ++x) {
-      hashKey = HASHKEY_DWORD((y << 16) | static_cast<unsigned short>(x));
-      unsigned int   hash = hashKey.GetDword() % 0x1FFF;
+      hashKey = HASHKEY_DWORD((y << 16) | static_cast<WORD>(x));
+      UINT           hash = hashKey.GetDword() % 0x1FFF;
       CLightList    *list = CLightList::s_lightHashTable.Ptr(hash, hashKey);
       CGxuLightLink *link;
       CGxuLightLink *existing;
@@ -291,13 +291,13 @@ static void IGxuLightUnlock(unsigned long lightId) {
   }
 }
 
-static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
-  int            y;
-  int            x;
-  HASHKEY_DWORD  hashKey;
-  unsigned long  hash;
-  CLightList    *list;
-  unsigned int   whichLight;
+static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
+  int           y;
+  int           x;
+  HASHKEY_DWORD hashKey;
+  DWORD         hash;
+  CLightList   *list;
+  UINT          whichLight;
 
   if (!CGxuLight::s_lights.Head()) {
     return;
@@ -307,7 +307,7 @@ static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vecto
 
   y = static_cast<int>(worldPos.y / s_bucketSize - 0.5f);
   x = static_cast<int>(worldPos.x / s_bucketSize - 0.5f);
-  hashKey = HASHKEY_DWORD((y << 16) | static_cast<unsigned short>(x));
+  hashKey = HASHKEY_DWORD((y << 16) | static_cast<WORD>(x));
   hash = hashKey.GetDword() % 0x1FFF;
   list = CLightList::s_lightHashTable.Ptr(hash, hashKey);
 
@@ -343,9 +343,9 @@ static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vecto
   ActivityEnd(ACTIVITY_LIGHTING);
 }
 
-static void IGxuLightEnableSet(unsigned long lightId, int enable) {
-  unsigned long light = lightId;
-  CGxLight     *gxLight;
+static void IGxuLightEnableSet(DWORD lightId, int enable) {
+  DWORD     light = lightId;
+  CGxLight *gxLight;
 
   ASSERT(light);
   gxLight = GxuLightLock(light);
@@ -353,9 +353,9 @@ static void IGxuLightEnableSet(unsigned long lightId, int enable) {
   GxuLightUnlock(light);
 }
 
-static int IGxuLightEnable(unsigned long lightId) {
-  unsigned long light = lightId;
-  int           enable;
+static int IGxuLightEnable(DWORD lightId) {
+  DWORD light = lightId;
+  int   enable;
 
   ASSERT(light);
   enable = GxuLightLock(light)->m_enabled;
@@ -363,7 +363,7 @@ static int IGxuLightEnable(unsigned long lightId) {
   return enable;
 }
 
-static void IGxuLightSetMaxLights(unsigned int maxLightsToUse) {
+static void IGxuLightSetMaxLights(UINT maxLightsToUse) {
   s_maxLightsToUse = maxLightsToUse;
   if (maxLightsToUse >= 8) {
     s_maxLightsToUse = 8;

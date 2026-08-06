@@ -41,7 +41,7 @@ int CSimpleHTML_SetTextColor(lua_State *L) {
   NTempest::CImVector color;
   color.Set(alpha, red, green, blue);
 
-  for (unsigned int i = 0; i < NUM_HTML_TEXT_TYPES; ++i) {
+  for (UINT i = 0; i < NUM_HTML_TEXT_TYPES; ++i) {
     CSimpleFontStringAttributes attrib(object->m_attrib[i]);
     attrib.SetColor(color);
     object->m_attrib[i] = attrib;
@@ -65,7 +65,7 @@ void CSimpleHTML::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleHTML::LookupScriptMethod(lua_State *L, const char *name) {
+int CSimpleHTML::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

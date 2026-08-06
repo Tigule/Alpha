@@ -7,13 +7,13 @@ class EmotesTextRec {
   EmotesTextRec();
   ~EmotesTextRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 19;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 76;
   }
 
@@ -28,12 +28,12 @@ class EmotesTextRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_name;
-  int         m_emoteID;
-  int         m_emoteText[16];
+  int    m_ID;
+  LPCSTR m_name;
+  int    m_emoteID;
+  int    m_emoteText[16];
 };
 
 extern WowClientDB<EmotesTextRec> g_emotesTextDB;

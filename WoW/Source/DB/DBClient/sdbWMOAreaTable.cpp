@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-static int __cdecl bscompare(const void *e1, const void *e2) {
+static int __cdecl bscompare(LPCVOID e1, LPCVOID e2) {
   return static_cast<const WMOAreaTableRec *>(e1)->m_WMOID != static_cast<const WMOAreaTableRec *>(e2)->m_WMOID
              ? static_cast<const WMOAreaTableRec *>(e1)->m_WMOID - static_cast<const WMOAreaTableRec *>(e2)->m_WMOID
          : static_cast<const WMOAreaTableRec *>(e1)->m_NameSetID != static_cast<const WMOAreaTableRec *>(e2)->m_NameSetID
@@ -12,7 +12,7 @@ static int __cdecl bscompare(const void *e1, const void *e2) {
              : static_cast<const WMOAreaTableRec *>(e1)->m_WMOGroupID - static_cast<const WMOAreaTableRec *>(e2)->m_WMOGroupID;
 }
 
-const char *SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID) {
+LPCSTR SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID) {
   WMOAreaTableRec key;
   key.m_WMOID = wmoID;
   key.m_NameSetID = nameSetID;

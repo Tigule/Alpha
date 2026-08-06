@@ -7,32 +7,32 @@ struct C4Pixel {
   C4Pixel() {
   }
 
-  C4Pixel(unsigned int color) {
-    *reinterpret_cast<unsigned int *>(this) = color;
+  C4Pixel(UINT color) {
+    *reinterpret_cast<UINT *>(this) = color;
   }
 
-  C4Pixel(unsigned char b, unsigned char g, unsigned char r, unsigned char a) : b(b), g(g), r(r), a(a) {
+  C4Pixel(BYTE b, BYTE g, BYTE r, BYTE a) : b(b), g(g), r(r), a(a) {
   }
 
-  unsigned int BitDepth() const {
+  UINT BitDepth() const {
     return 8;
   }
 
-  operator unsigned int() {
-    return *reinterpret_cast<unsigned int *>(this);
+  operator UINT() {
+    return *reinterpret_cast<UINT *>(this);
   }
 
-  unsigned char b;
-  unsigned char g;
-  unsigned char r;
-  unsigned char a;
+  BYTE b;
+  BYTE g;
+  BYTE r;
+  BYTE a;
 };
 
 struct C4LargePixel {
   C4LargePixel() {
   }
 
-  C4LargePixel(unsigned int value) : b(value), g(value), r(value), a(value) {
+  C4LargePixel(UINT value) : b(value), g(value), r(value), a(value) {
   }
 
   C4LargePixel(long b, long g, long r, long a) : b(b), g(g), r(r), a(a) {
@@ -46,7 +46,7 @@ struct C4LargePixel {
     return *this;
   }
 
-  unsigned int BitDepth() const {
+  UINT BitDepth() const {
     return 32;
   }
 
@@ -72,17 +72,17 @@ struct DxtColorBlock : public DxtBlock {
   struct Tables {
     Tables();
 
-    unsigned short dt135[32];
-    unsigned short dt235[32];
-    unsigned short dt136[64];
-    unsigned short dt236[64];
+    WORD dt135[32];
+    WORD dt235[32];
+    WORD dt136[64];
+    WORD dt236[64];
   };
 
   static Tables tables;
 
   NTempest::CRgb565 color0;
   NTempest::CRgb565 color1;
-  unsigned char     row[DxtBlock::ROWS];
+  BYTE              row[DxtBlock::ROWS];
 };
 
 struct Dxt1Block : public DxtBlock {
@@ -95,7 +95,7 @@ struct Dxt3AlphaBlock : public DxtBlock {
     PIXEL_LSB_MASK = 15
   };
 
-  unsigned short row[DxtBlock::ROWS];
+  WORD row[DxtBlock::ROWS];
 };
 
 struct Dxt3Block : public DxtBlock {
@@ -107,27 +107,26 @@ struct DxtRect {
   DxtRect() {
   }
 
-  DxtRect(unsigned int left, unsigned int top, unsigned int right, unsigned int bottom, unsigned int width, unsigned int height)
-      : l(left), t(top), r(right), b(bottom), w(width), h(height) {
+  DxtRect(UINT left, UINT top, UINT right, UINT bottom, UINT width, UINT height) : l(left), t(top), r(right), b(bottom), w(width), h(height) {
   }
 
-  DxtRect(unsigned int left, unsigned int top, unsigned int right, unsigned int bottom);
+  DxtRect(UINT left, UINT top, UINT right, UINT bottom);
   void Check();
 
-  unsigned int l;
-  unsigned int t;
-  unsigned int r;
-  unsigned int b;
-  unsigned int w;
-  unsigned int h;
+  UINT l;
+  UINT t;
+  UINT r;
+  UINT b;
+  UINT w;
+  UINT h;
 };
 
-inline unsigned char Dxt3A4(unsigned int alphaBits) {
-  return static_cast<unsigned char>(alphaBits);
+inline BYTE Dxt3A4(UINT alphaBits) {
+  return static_cast<BYTE>(alphaBits);
 }
 
-inline unsigned char Dxt3A8(unsigned int alphaBits) {
-  return static_cast<unsigned char>(alphaBits | (alphaBits << 4));
+inline BYTE Dxt3A8(UINT alphaBits) {
+  return static_cast<BYTE>(alphaBits | (alphaBits << 4));
 }
 
 template <class Pixel>
@@ -135,21 +134,21 @@ inline void DxtMakeTableAlpha(const DxtColorBlock &block, Pixel *table) {
   table[0] = block.color0;
   table[1] = block.color1;
 
-  if (static_cast<unsigned short>(block.color0) > static_cast<unsigned short>(block.color1)) {
+  if (static_cast<WORD>(block.color0) > static_cast<WORD>(block.color1)) {
     table[2].From565(
-        static_cast<unsigned char>((DxtColorBlock::tables.dt235[block.color0.r] + DxtColorBlock::tables.dt135[block.color1.r]) >> 8),
-        static_cast<unsigned char>((DxtColorBlock::tables.dt236[block.color0.g] + DxtColorBlock::tables.dt136[block.color1.g]) >> 8),
-        static_cast<unsigned char>((DxtColorBlock::tables.dt235[block.color0.b] + DxtColorBlock::tables.dt135[block.color1.b]) >> 8)
+        static_cast<BYTE>((DxtColorBlock::tables.dt235[block.color0.r] + DxtColorBlock::tables.dt135[block.color1.r]) >> 8),
+        static_cast<BYTE>((DxtColorBlock::tables.dt236[block.color0.g] + DxtColorBlock::tables.dt136[block.color1.g]) >> 8),
+        static_cast<BYTE>((DxtColorBlock::tables.dt235[block.color0.b] + DxtColorBlock::tables.dt135[block.color1.b]) >> 8)
     );
     table[3].From565(
-        static_cast<unsigned char>((DxtColorBlock::tables.dt135[block.color0.r] + DxtColorBlock::tables.dt235[block.color1.r]) >> 8),
-        static_cast<unsigned char>((DxtColorBlock::tables.dt136[block.color0.g] + DxtColorBlock::tables.dt236[block.color1.g]) >> 8),
-        static_cast<unsigned char>((DxtColorBlock::tables.dt135[block.color0.b] + DxtColorBlock::tables.dt235[block.color1.b]) >> 8)
+        static_cast<BYTE>((DxtColorBlock::tables.dt135[block.color0.r] + DxtColorBlock::tables.dt235[block.color1.r]) >> 8),
+        static_cast<BYTE>((DxtColorBlock::tables.dt136[block.color0.g] + DxtColorBlock::tables.dt236[block.color1.g]) >> 8),
+        static_cast<BYTE>((DxtColorBlock::tables.dt135[block.color0.b] + DxtColorBlock::tables.dt235[block.color1.b]) >> 8)
     );
   } else {
     table[2].From565(
-        static_cast<unsigned char>((block.color0.r + block.color1.r) / 2), static_cast<unsigned char>((block.color0.g + block.color1.g) / 2),
-        static_cast<unsigned char>((block.color0.b + block.color1.b) / 2)
+        static_cast<BYTE>((block.color0.r + block.color1.r) / 2), static_cast<BYTE>((block.color0.g + block.color1.g) / 2),
+        static_cast<BYTE>((block.color0.b + block.color1.b) / 2)
     );
     table[3] = Pixel(0ul);
   }
@@ -160,10 +159,10 @@ inline void DxtDecompress(const Dxt1Block *block, Pixel **dest, const DxtRect &r
   static Pixel colorTable[4];
   DxtMakeTableAlpha(block->color, colorTable);
 
-  unsigned int t;
+  UINT t;
   for (t = rect.t; t <= rect.b; ++t) {
-    unsigned int colorBitRow = block->color.row[t] >> (rect.l * DxtColorBlock::BPP);
-    unsigned int l;
+    UINT colorBitRow = block->color.row[t] >> (rect.l * DxtColorBlock::BPP);
+    UINT l;
     for (l = rect.l; l <= rect.r; ++l) {
       dest[t][l] = colorTable[colorBitRow & DxtColorBlock::PIXEL_LSB_MASK];
       colorBitRow >>= DxtColorBlock::BPP;
@@ -174,26 +173,26 @@ inline void DxtDecompress(const Dxt1Block *block, Pixel **dest, const DxtRect &r
 }
 
 template <class Pixel>
-inline void DxtDecompress(const Dxt3Block *block, Pixel **dest, const DxtRect &rect, unsigned char(*afunc)(unsigned int)) {
+inline void DxtDecompress(const Dxt3Block *block, Pixel **dest, const DxtRect &rect, BYTE (*afunc)(UINT)) {
   static Pixel colorTable[4];
   colorTable[0] = block->color.color0;
   colorTable[1] = block->color.color1;
   colorTable[2].From565(
-      static_cast<unsigned char>((DxtColorBlock::tables.dt235[block->color.color0.r] + DxtColorBlock::tables.dt135[block->color.color1.r]) >> 8),
-      static_cast<unsigned char>((DxtColorBlock::tables.dt236[block->color.color0.g] + DxtColorBlock::tables.dt136[block->color.color1.g]) >> 8),
-      static_cast<unsigned char>((DxtColorBlock::tables.dt235[block->color.color0.b] + DxtColorBlock::tables.dt135[block->color.color1.b]) >> 8)
+      static_cast<BYTE>((DxtColorBlock::tables.dt235[block->color.color0.r] + DxtColorBlock::tables.dt135[block->color.color1.r]) >> 8),
+      static_cast<BYTE>((DxtColorBlock::tables.dt236[block->color.color0.g] + DxtColorBlock::tables.dt136[block->color.color1.g]) >> 8),
+      static_cast<BYTE>((DxtColorBlock::tables.dt235[block->color.color0.b] + DxtColorBlock::tables.dt135[block->color.color1.b]) >> 8)
   );
   colorTable[3].From565(
-      static_cast<unsigned char>((DxtColorBlock::tables.dt135[block->color.color0.r] + DxtColorBlock::tables.dt235[block->color.color1.r]) >> 8),
-      static_cast<unsigned char>((DxtColorBlock::tables.dt136[block->color.color0.g] + DxtColorBlock::tables.dt236[block->color.color1.g]) >> 8),
-      static_cast<unsigned char>((DxtColorBlock::tables.dt135[block->color.color0.b] + DxtColorBlock::tables.dt235[block->color.color1.b]) >> 8)
+      static_cast<BYTE>((DxtColorBlock::tables.dt135[block->color.color0.r] + DxtColorBlock::tables.dt235[block->color.color1.r]) >> 8),
+      static_cast<BYTE>((DxtColorBlock::tables.dt136[block->color.color0.g] + DxtColorBlock::tables.dt236[block->color.color1.g]) >> 8),
+      static_cast<BYTE>((DxtColorBlock::tables.dt135[block->color.color0.b] + DxtColorBlock::tables.dt235[block->color.color1.b]) >> 8)
   );
 
-  unsigned int t;
+  UINT t;
   for (t = rect.t; t <= rect.b; ++t) {
-    unsigned int colorBitRow = block->color.row[t] >> (rect.l * DxtColorBlock::BPP);
-    unsigned int alphaBitRow = block->alpha.row[t] >> (rect.l * Dxt3AlphaBlock::BPP);
-    unsigned int l;
+    UINT colorBitRow = block->color.row[t] >> (rect.l * DxtColorBlock::BPP);
+    UINT alphaBitRow = block->alpha.row[t] >> (rect.l * Dxt3AlphaBlock::BPP);
+    UINT l;
     for (l = rect.l; l <= rect.r; ++l) {
       dest[t][l] = colorTable[colorBitRow & DxtColorBlock::PIXEL_LSB_MASK];
       dest[t][l].a = afunc(alphaBitRow & Dxt3AlphaBlock::PIXEL_LSB_MASK);
@@ -209,20 +208,13 @@ struct MipBits {
   C4Pixel *mip[1];
 };
 
-unsigned int GetBitDepth(unsigned int fourCC);
-unsigned int CalcLevelSize(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC);
-unsigned int CalcLevelOffset(unsigned int level, unsigned int width, unsigned int height, unsigned int fourCC);
-unsigned int CalcLevelCount(unsigned int width, unsigned int height);
-unsigned int MippedImgCalcSize(unsigned int fourCC, unsigned int width, unsigned int height);
-MipBits *MippedImgAllocA(unsigned int fourCC, unsigned int width, unsigned int height, const char *fileName, int lineNumber);
-void MippedImgSet(unsigned int fourCC, unsigned int width, unsigned int height, MipBits *bits);
-void FullShrink(
-    C4Pixel             *dest,
-    unsigned int         destWidth,
-    unsigned int         destHeight,
-    const C4Pixel *const source,
-    unsigned int         sourceWidth,
-    unsigned int         sourceHeight
-);
+UINT     GetBitDepth(UINT fourCC);
+UINT     CalcLevelSize(UINT level, UINT width, UINT height, UINT fourCC);
+UINT     CalcLevelOffset(UINT level, UINT width, UINT height, UINT fourCC);
+UINT     CalcLevelCount(UINT width, UINT height);
+UINT     MippedImgCalcSize(UINT fourCC, UINT width, UINT height);
+MipBits *MippedImgAllocA(UINT fourCC, UINT width, UINT height, LPCSTR fileName, int lineNumber);
+void     MippedImgSet(UINT fourCC, UINT width, UINT height, MipBits *bits);
+void     FullShrink(C4Pixel *dest, UINT destWidth, UINT destHeight, const C4Pixel *const source, UINT sourceWidth, UINT sourceHeight);
 
 #endif

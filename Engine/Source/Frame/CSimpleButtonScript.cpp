@@ -21,9 +21,9 @@
   }                                                               \
   ASSERT(object)
 
-static int StringToButtonState(const char *string, CSimpleButtonState &state) {
+static int StringToButtonState(LPCSTR string, CSimpleButtonState &state) {
   struct ButtonStateName {
-    const char        *string;
+    LPCSTR             string;
     CSimpleButtonState state;
   };
 
@@ -33,7 +33,7 @@ static int StringToButtonState(const char *string, CSimpleButtonState &state) {
       {  "PUSHED",   BUTTONSTATE_PUSHED}
   };
 
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     if (!SStrCmpI(array[i].string, string, 0x7FFFFFFF)) {
       state = array[i].state;
       return 1;
@@ -43,7 +43,7 @@ static int StringToButtonState(const char *string, CSimpleButtonState &state) {
   return 0;
 }
 
-static const char *ButtonStateToString(CSimpleButtonState state) {
+static LPCSTR ButtonStateToString(CSimpleButtonState state) {
   switch (state) {
     case BUTTONSTATE_DISABLED:
       return "DISABLED";
@@ -110,7 +110,7 @@ static int CSimpleButton_SetText(lua_State *L) {
     luaL_error(L, "Usage: SetText(\"text\")");
   }
 
-  const char *text = lua_tostring(L, 2);
+  LPCSTR text = lua_tostring(L, 2);
   object->SetTextString(text);
   object->SetDisabledTextString(text);
   object->SetHighlightTextString(text);
@@ -244,10 +244,10 @@ static int CSimpleButton_GetTextHeight(lua_State *L) {
 static int CSimpleButton_RegisterForClicks(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, button);
 
-  unsigned int buttons = 0;
-  int          index = 2;
+  UINT buttons = 0;
+  int  index = 2;
   while (lua_isstring(L, index)) {
-    const char *click = lua_tostring(L, index);
+    LPCSTR click = lua_tostring(L, index);
 
     if (click && *click) {
       if (!SStrCmpI(click, "LeftButtonDown", 0x7FFFFFFF)) {
@@ -285,7 +285,7 @@ static int CSimpleButton_Click(lua_State *L) {
 
   MOUSEBUTTON button = MOUSE_BUTTON_LEFT;
   if (lua_isstring(L, 2)) {
-    const char *name = lua_tostring(L, 2);
+    LPCSTR name = lua_tostring(L, 2);
     button = MOUSE_BUTTON_NONE;
 
     if (name && *name) {
@@ -352,7 +352,7 @@ void CSimpleButton::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleButton::LookupScriptMethod(lua_State *L, const char *name) {
+int CSimpleButton::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

@@ -24,9 +24,9 @@ class CSimpleDoodadMat {
   CSimpleDoodadMat() : nTextures(0), props(0) {
   }
 
-  unsigned int texture[4];
-  unsigned int nTextures;
-  unsigned int props;
+  UINT texture[4];
+  UINT nTextures;
+  UINT props;
 };
 
 class CSimpleDoodadGeoset {
@@ -38,8 +38,8 @@ class CSimpleDoodadGeoset {
   TSGrowableArray<NTempest::C3Vector> vertexList;
   TSGrowableArray<NTempest::C3Vector> normalList;
   TSGrowableArray<NTempest::C2Vector> tVertexList;
-  TSGrowableArray<unsigned short>     indexList;
-  unsigned int                        material;
+  TSGrowableArray<WORD>               indexList;
+  UINT                                material;
 };
 
 struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
@@ -52,21 +52,21 @@ struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
   static void Destroy();
   static void ClearCache();
 
-  static CSimpleDoodad *Create(const char *fileName);
-  static void Delete(CSimpleDoodad *simpleDoodad);
-  static void PrepareUpdate();
-  static void AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef);
-  static void RenderScene();
+  static CSimpleDoodad *Create(LPCSTR fileName);
+  static void           Delete(CSimpleDoodad *simpleDoodad);
+  static void           PrepareUpdate();
+  static void           AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef);
+  static void           RenderScene();
 
-  static CSimpleDoodad *Get(unsigned int id);
-  unsigned int          GetId();
+  static CSimpleDoodad *Get(UINT id);
+  UINT                  GetId();
   void                  GetBounds(NTempest::CAaSphere &bounds);
   void                  GetExtents(NTempest::CAaBox &extents);
   int                   TestBounds(const NTempest::CAaSphere &bounds);
   int                   TestExtents(const NTempest::CAaBox &extents);
 
   ~CSimpleDoodad() {
-    for (unsigned int index = 0; index < nTextures; ++index) {
+    for (UINT index = 0; index < nTextures; ++index) {
       HandleClose(textures[index]);
       textures[index] = 0;
     }
@@ -83,26 +83,26 @@ struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
   CSimpleDoodadGeoset                  geosets[4];
   TSGrowableArray<NTempest::C44Matrix> matrixList;
   TSGrowableArray<CMapDoodadDef *>     doodadDefList;
-  unsigned int                         nTextures;
-  unsigned int                         nMaterials;
-  unsigned int                         nGeosets;
+  UINT                                 nTextures;
+  UINT                                 nMaterials;
+  UINT                                 nGeosets;
   int                                  refCount;
   float                                flushTime;
   CGxBuf                              *gxBuf;
 
  public:
   LINKDECLEX(CSimpleDoodad, sceneLink);
-  NTempest::CAaBox      extents;
-  NTempest::CAaSphere   bounds;
+  NTempest::CAaBox    extents;
+  NTempest::CAaSphere bounds;
 
  private:
   static TSHashTable<CSimpleDoodad, HASHKEY_NONE> simpleDoodadHash;
   static HASHKEY_NONE                             nullHashKey;
   static CGxBuf                                  *gxBufDyn;
 
-  static int Read(const char *fileName, CSimpleDoodad *simpleDoodad);
-  static int MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad);
-  static void MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CSimpleDoodad *simpleDoodad);
+  static int  Read(LPCSTR fileName, CSimpleDoodad *simpleDoodad);
+  static int  MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad);
+  static void MdlReadCallback(BYTE *fileData, UINT fileBytes, CSimpleDoodad *simpleDoodad);
 
   static void GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf);
   static void CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf);

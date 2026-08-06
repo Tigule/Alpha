@@ -35,10 +35,10 @@ static CRITICAL_SECTION s_defaultdir_critsect;
 static char             s_defaultdir[MAX_PATH];
 static BOOL             s_logsysteminit;
 
-static DWORD PathGetRootChars(const char *path) {
-  const char *cursor;
-  DWORD       count;
-  DWORD       len;
+static DWORD PathGetRootChars(LPCSTR path) {
+  LPCSTR cursor;
+  DWORD  count;
+  DWORD  len;
 
   if (path[0] == '/') {
     return 1;
@@ -98,7 +98,7 @@ static void PathConvertSlashes(char *path) {
   }
 }
 
-static BOOL CreateFileDirectory(const char *path) {
+static BOOL CreateFileDirectory(LPCSTR path) {
   char  buffer[MAX_PATH];
   char *cursor;
   char *slash;
@@ -253,7 +253,7 @@ static void UnlockLog(HLOCKEDLOG lockedhandle) {
   LeaveCriticalSection(&s_critsect[bucket]);
 }
 
-static const char *PrependDefaultDir(char *newfilename, DWORD newfilenamesize, const char *filename) {
+static LPCSTR PrependDefaultDir(char *newfilename, DWORD newfilenamesize, LPCSTR filename) {
   char *slash;
 
   if (!filename || !filename[0] || filename[1] == ':' || SStrChr(filename, '\\')) {
@@ -278,10 +278,10 @@ static const char *PrependDefaultDir(char *newfilename, DWORD newfilenamesize, c
   return newfilename;
 }
 
-static BOOL OpenLogFile(const char *filename, void **file, DWORD flags) {
-  char        newfilename[MAX_PATH];
-  const char *openPath;
-  DWORD       disposition;
+static BOOL OpenLogFile(LPCSTR filename, LPVOID *file, DWORD flags) {
+  char   newfilename[MAX_PATH];
+  LPCSTR openPath;
+  DWORD  disposition;
 
   if (!filename || !filename[0]) {
     *file = INVALID_HANDLE_VALUE;
@@ -305,7 +305,7 @@ static BOOL OpenLogFile(const char *filename, void **file, DWORD flags) {
 }
 
 static BOOL PrepareLog(LOGPTR logptr) {
-  if (logptr->file == INVALID_HANDLE_VALUE && !OpenLogFile(logptr->filename, (void **)&logptr->file, logptr->flags)) {
+  if (logptr->file == INVALID_HANDLE_VALUE && !OpenLogFile(logptr->filename, (LPVOID *)&logptr->file, logptr->flags)) {
     logptr->filename[0] = 0;
     return FALSE;
   }
@@ -333,7 +333,7 @@ extern "C" void APIENTRY SLogClose(HSLOG log) {
   UnlockDeleteLog(rec, lockedhandle);
 }
 
-extern "C" BOOL APIENTRY SLogCreate(const char *filename, DWORD flags, HSLOG *log) {
+extern "C" BOOL APIENTRY SLogCreate(LPCSTR filename, DWORD flags, HSLOG *log) {
   HLOCKEDLOG lockedhandle;
   HANDLE     file;
   LOGPTR     rec;
@@ -349,7 +349,7 @@ extern "C" BOOL APIENTRY SLogCreate(const char *filename, DWORD flags, HSLOG *lo
   }
 
   file = INVALID_HANDLE_VALUE;
-  if ((flags & SLOG_FLAG_OPENNOW) && !OpenLogFile(filename, (void **)&file, flags)) {
+  if ((flags & SLOG_FLAG_OPENNOW) && !OpenLogFile(filename, (LPVOID *)&file, flags)) {
     return FALSE;
   }
 
@@ -398,7 +398,7 @@ extern "C" void APIENTRY SLogDestroy() {
   DeleteCriticalSection(&s_defaultdir_critsect);
 }
 
-extern "C" void APIENTRY SLogDump(HSLOG log, const void *data, DWORD bytes) {
+extern "C" void APIENTRY SLogDump(HSLOG log, LPCVOID data, DWORD bytes) {
   HLOCKEDLOG lockedhandle;
   DWORD      offset;
   DWORD      i;
@@ -426,7 +426,7 @@ extern "C" void APIENTRY SLogDump(HSLOG log, const void *data, DWORD bytes) {
     end = offset + 8;
     for (i = offset; i < end; i++) {
       if (i < bytes) {
-        wsprintfA(rec->buffer + rec->bufferused, "%02x ", ((const unsigned char *)data)[i]);
+        wsprintfA(rec->buffer + rec->bufferused, "%02x ", ((const BYTE *)data)[i]);
         rec->bufferused += SStrLen(rec->buffer + rec->bufferused);
       } else {
         rec->bufferused += SStrCopy(rec->buffer + rec->bufferused, "   ", 0x7FFFFFFF);
@@ -438,11 +438,11 @@ extern "C" void APIENTRY SLogDump(HSLOG log, const void *data, DWORD bytes) {
     }
 
     for (i = offset; i < end; i++) {
-      if (i < bytes && ((const char *)data)[i] >= 0x20 && ((const char *)data)[i] != 0x7F) {
-        wsprintfA(rec->buffer + rec->bufferused, "%c", ((const char *)data)[i]);
+      if (i < bytes && ((LPCSTR)data)[i] >= 0x20 && ((LPCSTR)data)[i] != 0x7F) {
+        wsprintfA(rec->buffer + rec->bufferused, "%c", ((LPCSTR)data)[i]);
         rec->bufferused += SStrLen(rec->buffer + rec->bufferused);
       } else {
-        rec->bufferused += SStrCopy(rec->buffer + rec->bufferused, i < bytes && ((const char *)data)[i] ? "." : " ", 0x7FFFFFFF);
+        rec->bufferused += SStrCopy(rec->buffer + rec->bufferused, i < bytes && ((LPCSTR)data)[i] ? "." : " ", 0x7FFFFFFF);
       }
 
       if ((i & 7) == 3) {
@@ -521,7 +521,7 @@ extern "C" BOOL APIENTRY SLogIsInitialized() {
   return s_logsysteminit;
 }
 
-extern "C" void __cdecl SLogPend(HSLOG log, const char *format, ...) {
+extern "C" void __cdecl SLogPend(HSLOG log, LPCSTR format, ...) {
   HLOCKEDLOG lockedhandle;
   LOGPTR     rec;
   va_list    arglist;
@@ -557,7 +557,7 @@ extern "C" long APIENTRY SLogSetAbsIndent(HSLOG log, long indent) {
   return previous;
 }
 
-extern "C" void APIENTRY SLogSetDefaultDirectory(const char *dirname) {
+extern "C" void APIENTRY SLogSetDefaultDirectory(LPCSTR dirname) {
   DWORD len;
 
   EnterCriticalSection(&s_defaultdir_critsect);
@@ -596,7 +596,7 @@ extern "C" void APIENTRY SLogSetTimestamp(HSLOG log, BOOL timeStamp) {
   UnlockLog(lockedhandle);
 }
 
-extern "C" void APIENTRY SLogVWrite(HSLOG log, const char *format, char *arglist) {
+extern "C" void APIENTRY SLogVWrite(HSLOG log, LPCSTR format, char *arglist) {
   HLOCKEDLOG lockedhandle;
   LOGPTR     rec;
 
@@ -623,7 +623,7 @@ extern "C" void APIENTRY SLogVWrite(HSLOG log, const char *format, char *arglist
   UnlockLog(lockedhandle);
 }
 
-extern "C" void __cdecl SLogWrite(HSLOG log, const char *format, ...) {
+extern "C" void __cdecl SLogWrite(HSLOG log, LPCSTR format, ...) {
   va_list arglist;
 
   va_start(arglist, format);

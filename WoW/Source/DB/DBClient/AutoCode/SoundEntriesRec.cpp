@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SoundEntriesRec::GetFilename() {
+LPCSTR SoundEntriesRec::GetFilename() {
   return "DBFilesClient\\SoundEntries.dbc";
 }
 
@@ -19,11 +19,11 @@ SoundEntriesRec::SoundEntriesRec() {
 SoundEntriesRec::~SoundEntriesRec() {
 }
 
-bool SoundEntriesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempnameIndices[1];
-  unsigned int tempFileIndices[10];
-  unsigned int tempDirectoryBaseIndices[1];
+bool SoundEntriesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempnameIndices[1];
+  UINT tempFileIndices[10];
+  UINT tempDirectoryBaseIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_soundType, sizeof(m_soundType), 0, 0, 0) && result;

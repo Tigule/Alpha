@@ -6,32 +6,30 @@
 #include <string.h>
 #include <stpl.h>
 
-unsigned int OsGetProcessorCount();
+UINT OsGetProcessorCount();
 void OsNetPump(DWORD timeout);
 
-void OsCallInitialize(const char *name);
-void OsCallDestroy();
-void *OsCallInitializeContext(const char *name);
-int              s_watchdogActive;
+void   OsCallInitialize(LPCSTR name);
+void   OsCallDestroy();
+LPVOID OsCallInitializeContext(LPCSTR name);
+int    s_watchdogActive;
 
-static unsigned int                             s_hThread;
-static int                                      s_netServer;
-static long                                     s_threadListContention = -1;
-static SCritSect                                s_threadListCritsect;
+static UINT      s_hThread;
+static int       s_netServer;
+static long      s_threadListContention = -1;
+static SCritSect s_threadListCritsect;
 static LISTDECL(EvtThread, s_threadList);
-static SCritSect                               *s_threadSlotCritsects;
-static EvtThread                              **s_threadSlots;
-static unsigned int                             s_threadSlotCount;
-static TSGrowableArray<SThread *>               s_schedulerThreads;
-static SEvent                                   s_startEvent(1, 0);
-static SEvent                                   s_shutdownEvent(1, 0);
-static long                                     s_interactiveCount;
-static int                                      s_originalThreadPriority;
-static unsigned int                             s_mainThread;
+static SCritSect                 *s_threadSlotCritsects;
+static EvtThread                **s_threadSlots;
+static UINT                       s_threadSlotCount;
+static TSGrowableArray<SThread *> s_schedulerThreads;
+static SEvent                     s_startEvent(1, 0);
+static SEvent                     s_shutdownEvent(1, 0);
+static long                       s_interactiveCount;
+static int                        s_originalThreadPriority;
+static UINT                       s_mainThread;
 
-inline EvtContext::EvtContext(
-    unsigned long idleTime, unsigned long flags, unsigned int weight, void *callContext, int startWatchdog
-)
+inline EvtContext::EvtContext(DWORD idleTime, DWORD flags, UINT weight, LPVOID callContext, int startWatchdog)
     : m_currTime(0),
       m_schedState(SCHEDSTATE_ACTIVE),
       m_schedLastIdle(OsGetAsyncTimeMs()),
@@ -47,20 +45,20 @@ inline EvtContext::EvtContext(
       m_startWatchdog(startWatchdog) {
 }
 
-static int SynthesizeInitialize(EvtContext *context);
-static void SynthesizeDestroy(EvtContext *context);
-static void SynthesizeIdle(EvtContext *context);
-static void SynthesizePoll(EvtContext *context);
-static void SynthesizePaint(EvtContext *context);
-static unsigned int InitializeSchedulerThread();
-void DestroySchedulerThread(unsigned int hThread);
-void DetachContextFromThread(unsigned int hThread, EvtContext *context);
-static EvtContext *GetNextContext(unsigned int hThread);
-static SEvent *GetWakeEvent(unsigned int hThread);
-void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
-HEVENTCONTEXT AttachContextToThread(EvtContext *context);
-static unsigned int APIENTRY    SchedulerThreadProc(void *mainThread);
-static unsigned int APIENTRY    ShutdownThreadProc(void *pEvent);
+static int           SynthesizeInitialize(EvtContext *context);
+static void          SynthesizeDestroy(EvtContext *context);
+static void          SynthesizeIdle(EvtContext *context);
+static void          SynthesizePoll(EvtContext *context);
+static void          SynthesizePaint(EvtContext *context);
+static UINT          InitializeSchedulerThread();
+void                 DestroySchedulerThread(UINT hThread);
+void                 DetachContextFromThread(UINT hThread, EvtContext *context);
+static EvtContext   *GetNextContext(UINT hThread);
+static SEvent       *GetWakeEvent(UINT hThread);
+void                 PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
+HEVENTCONTEXT        AttachContextToThread(EvtContext *context);
+static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread);
+static UINT APIENTRY ShutdownThreadProc(LPVOID pEvent);
 
 static int SynthesizeInitialize(EvtContext *context) {
   if (context->SchedGetFlags(0x1)) {
@@ -132,11 +130,11 @@ static void SynthesizePaint(EvtContext *context) {
   }
 }
 
-static unsigned int InitializeSchedulerThread() {
-  unsigned int slot;
-  unsigned int bestSlot = s_threadSlotCount;
-  EvtThread   *thread;
-  EvtThread   *bestThread;
+static UINT InitializeSchedulerThread() {
+  UINT       slot;
+  UINT       bestSlot = s_threadSlotCount;
+  EvtThread *thread;
+  EvtThread *bestThread;
 
   SInterlockedIncrement(&s_threadListContention);
   s_threadListCritsect.Enter();
@@ -165,11 +163,11 @@ static unsigned int InitializeSchedulerThread() {
   return bestSlot;
 }
 
-void DestroySchedulerThread(unsigned int hThread) {
+void DestroySchedulerThread(UINT hThread) {
   TSGrowableArray<EvtContext *> contextArray;
   EvtContext                   *context;
   EvtThread                    *thread;
-  unsigned int                  index;
+  UINT                          index;
 
   SInterlockedIncrement(&s_threadListContention);
   s_threadListCritsect.Enter();
@@ -244,9 +242,9 @@ HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
   return reinterpret_cast<HEVENTCONTEXT>(contextId);
 }
 
-void DetachContextFromThread(unsigned int hThread, EvtContext *context) {
-  EvtThread   *thread;
-  unsigned int amount;
+void DetachContextFromThread(UINT hThread, EvtContext *context) {
+  EvtThread *thread;
+  UINT       amount;
 
   SInterlockedIncrement(&s_threadListContention);
   s_threadListCritsect.Enter();
@@ -270,7 +268,7 @@ void DetachContextFromThread(unsigned int hThread, EvtContext *context) {
   SInterlockedDecrement(&s_threadListContention);
 }
 
-static EvtContext *GetNextContext(unsigned int hThread) {
+static EvtContext *GetNextContext(UINT hThread) {
   EvtThread       *thread;
   EvtContextQueue *queue;
   EvtContext      *context = 0;
@@ -284,20 +282,20 @@ static EvtContext *GetNextContext(unsigned int hThread) {
   return context;
 }
 
-static SEvent *GetWakeEvent(unsigned int hThread) {
+static SEvent *GetWakeEvent(UINT hThread) {
   EvtThread *thread = s_threadSlots[hThread];
   ASSERT(thread);
   return &thread->m_wakeEvent;
 }
 
-void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
+void PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
   TSTimerPriority<DWORD> *priority = &context->m_schedNextWakeTime;
   EvtThread              *thread;
   EvtThread              *bestThread;
   EvtContextQueue        *queue;
   DWORD                   oldWeight;
   DWORD                   delta;
-  unsigned int            threadSlot = hThread;
+  UINT                    threadSlot = hThread;
   DWORD                   bestWeightTotal;
 
   priority->Set(nextWakeTime);
@@ -371,7 +369,7 @@ void PutContext(unsigned int hThread, EvtContext *context, DWORD nextWakeTime, D
   }
 }
 
-static unsigned int APIENTRY ShutdownThreadProc(void *pEvent) {
+static UINT APIENTRY ShutdownThreadProc(LPVOID pEvent) {
   SEvent *shutdownEvent = static_cast<SEvent *>(pEvent);
 
   ASSERT(pEvent);
@@ -381,19 +379,19 @@ static unsigned int APIENTRY ShutdownThreadProc(void *pEvent) {
   return 0;
 }
 
-static unsigned int APIENTRY SchedulerThreadProc(void *mainThread) {
-  unsigned int hThread;
-  EvtContext  *context;
-  DWORD        nextDelay;
-  DWORD        currTime;
-  DWORD        idleTime;
-  DWORD        waitResult;
-  LONG         signedDelay;
-  int          shutdown;
-  int          watchdogActive = 0;
-  int          closed;
-  int          currentPriority;
-  char         callName[64];
+static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread) {
+  UINT        hThread;
+  EvtContext *context;
+  DWORD       nextDelay;
+  DWORD       currTime;
+  DWORD       idleTime;
+  DWORD       waitResult;
+  LONG        signedDelay;
+  int         shutdown;
+  int         watchdogActive = 0;
+  int         closed;
+  int         currentPriority;
+  char        callName[64];
 
   PropSelectContext(0);
   hThread = mainThread ? s_mainThread : InitializeSchedulerThread();
@@ -490,14 +488,14 @@ static unsigned int APIENTRY SchedulerThreadProc(void *mainThread) {
 
 void IEvtSchedulerProcess() {
   s_startEvent.Set();
-  SchedulerThreadProc(reinterpret_cast<void *>(1));
+  SchedulerThreadProc(reinterpret_cast<LPVOID>(1));
   s_mainThread = 0;
 }
 
-void IEvtSchedulerInitialize(unsigned int threadCount, int netServer) {
-  unsigned int threadSlotCount = 1;
-  SThread     *thread;
-  char         threadname[16];
+void IEvtSchedulerInitialize(UINT threadCount, int netServer) {
+  UINT     threadSlotCount = 1;
+  SThread *thread;
+  char     threadname[16];
 
   if (s_threadSlotCount) {
     FATALERROR(("IEvtScheduler already initialized"));
@@ -538,9 +536,9 @@ void IEvtSchedulerInitialize(unsigned int threadCount, int netServer) {
 }
 
 void IEvtSchedulerDestroy() {
-  unsigned int processorCount;
-  unsigned int index;
-  SThread     *threadPtr;
+  UINT     processorCount;
+  UINT     index;
+  SThread *threadPtr;
 
   if (!s_threadSlotCount) {
     return;
@@ -602,8 +600,8 @@ void IEvtSchedulerDestroy() {
 }
 
 void IEvtSchedulerShutdown() {
-  unsigned int slot;
-  EvtThread   *thread;
+  UINT       slot;
+  EvtThread *thread;
 
   s_shutdownEvent.Set();
   if (!s_netServer) {
@@ -622,7 +620,7 @@ HEVENTCONTEXT
 IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags) {
   char        contextName[256];
   int         startWatchdog;
-  void       *callContext = 0;
+  LPVOID      callContext = 0;
   EvtContext *context;
 
   if (!idleTime) {
@@ -634,7 +632,7 @@ IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVEN
   }
   startWatchdog = (debugFlags >> 1) & 1;
 
-  unsigned int weight = interactive ? 1000 : 1;
+  UINT weight = interactive ? 1000 : 1;
   context = NEW(EvtContext)(idleTime, interactive ? 0x2 : 0, weight, callContext, startWatchdog);
 
   if (interactive) {

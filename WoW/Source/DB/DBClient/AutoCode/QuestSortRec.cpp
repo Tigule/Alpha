@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *QuestSortRec::GetFilename() {
+LPCSTR QuestSortRec::GetFilename() {
   return "DBFilesClient\\QuestSort.dbc";
 }
 
@@ -19,9 +19,9 @@ QuestSortRec::QuestSortRec() {
 QuestSortRec::~QuestSortRec() {
 }
 
-bool QuestSortRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempSortName_langIndices[NUM_LOCALES];
+bool QuestSortRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempSortName_langIndices[NUM_LOCALES];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempSortName_langIndices[0], sizeof(tempSortName_langIndices[0]), 0, 0, 0) && result;

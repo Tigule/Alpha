@@ -35,16 +35,16 @@ class CHandleObject {
     return m_refcount;
   }
 
-  virtual const char *GetObjectName();
+  virtual LPCSTR GetObjectName();
 
  private:
   int m_refcount;
 };
 
-void HandleClose(HOBJECT handle);
-HOBJECT HandleCreate(CHandleObject *ptr, const char *handleName);
+void           HandleClose(HOBJECT handle);
+HOBJECT        HandleCreate(CHandleObject *ptr, LPCSTR handleName);
 CHandleObject *HandleDereference(HOBJECT handle);
-void HandleDestroy();
-HOBJECT HandleDuplicate(HOBJECT handle);
-void HandleInitialize();
-int HandleObjectCompare(HOBJECT object1, HOBJECT object2);
+void           HandleDestroy();
+HOBJECT        HandleDuplicate(HOBJECT handle);
+void           HandleInitialize();
+int            HandleObjectCompare(HOBJECT object1, HOBJECT object2);

@@ -9,7 +9,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 
-static int  s_sleepInBackground;
+static int   s_sleepInBackground;
 static DWORD s_backgroundSleepMs;
 static void (*s_launchUrlCallback)();
 
@@ -17,7 +17,7 @@ void OsLaunchURLSetCallback(void (*callback)()) {
   s_launchUrlCallback = callback;
 }
 
-int OsLaunchURL(const char *url) {
+int OsLaunchURL(LPCSTR url) {
   CFStringRef urlString;
   CFURLRef    urlRef;
   OSStatus    status;
@@ -52,7 +52,7 @@ DWORD OsGetBackgroundSleepMs() {
   return s_backgroundSleepMs;
 }
 
-unsigned int OsGetProcessorCount() {
+UINT OsGetProcessorCount() {
   return MPProcessors();
 }
 
@@ -79,12 +79,12 @@ DWORD OsGetProcessorFeaturesEx(int &vendorID) {
 }
 
 void OsGetVersionString(char *string, int length) {
-  SInt32      version;
-  const char *prefix;
-  int         major;
-  int         minor;
-  int         bugfix;
-  int         chars;
+  SInt32 version;
+  LPCSTR prefix;
+  int    major;
+  int    minor;
+  int    bugfix;
+  int    chars;
 
   if (Gestalt('sysv', &version)) {
     version = 0;

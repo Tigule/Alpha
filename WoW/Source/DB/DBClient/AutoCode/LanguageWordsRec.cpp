@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *LanguageWordsRec::GetFilename() {
+LPCSTR LanguageWordsRec::GetFilename() {
   return "DBFilesClient\\LanguageWords.dbc";
 }
 
@@ -19,9 +19,9 @@ LanguageWordsRec::LanguageWordsRec() {
 LanguageWordsRec::~LanguageWordsRec() {
 }
 
-bool LanguageWordsRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempwordIndices[1];
+bool LanguageWordsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempwordIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_languageID, sizeof(m_languageID), 0, 0, 0) && result;

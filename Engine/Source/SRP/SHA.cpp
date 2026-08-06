@@ -4,15 +4,13 @@
 
 #include "SHA.h"
 
-typedef unsigned char BYTE;
-typedef unsigned int  DWORD;
-
 static const BYTE s_sha1Padding = 0x80;
 static BYTE       s_sha1Zero;
 
 #define SHA1_ROL(value, bits) _lrotl((value), (bits))
 #define SHA1_BLK0(i)          (words.l[i] = (SHA1_ROL(((DWORD *)buffer)[i], 24) & 0xFF00FF00) | (SHA1_ROL(((DWORD *)buffer)[i], 8) & 0x00FF00FF))
-#define SHA1_BLK(i) (words.l[(i) & 15] = SHA1_ROL(words.l[((i) + 13) & 15] ^ words.l[((i) + 8) & 15] ^ words.l[((i) + 2) & 15] ^ words.l[(i) & 15], 1))
+#define SHA1_BLK(i) \
+  (words.l[(i) & 15] = SHA1_ROL(words.l[((i) + 13) & 15] ^ words.l[((i) + 8) & 15] ^ words.l[((i) + 2) & 15] ^ words.l[(i) & 15], 1))
 #define SHA1_R0(v, w, x, y, z, i)                                        \
   z += ((w & (x ^ y)) ^ y) + SHA1_BLK0(i) + 0x5A827999 + SHA1_ROL(v, 5); \
   w = SHA1_ROL(w, 30)
@@ -36,11 +34,11 @@ void SHA1_Transform(unsigned int *state, const unsigned char *buffer) {
   };
 
   CHAR64LONG16 words;
-  DWORD a;
-  DWORD b;
-  DWORD c;
-  DWORD d;
-  DWORD e;
+  DWORD        a;
+  DWORD        b;
+  DWORD        c;
+  DWORD        d;
+  DWORD        e;
 
   a = state[0];
   b = state[1];

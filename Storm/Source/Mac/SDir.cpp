@@ -4,7 +4,7 @@
 
 void OsFileConvertSlashes(char *path);
 
-SDIR *APIENTRY SFile::OpenDir(const char *name) {
+SDIR *APIENTRY SFile::OpenDir(LPCSTR name) {
   char native[MAX_PATH];
 
   // the client addresses directories with backslashes

@@ -10,14 +10,14 @@ class CSBasePriorityQueue;
 template <class T>
 class TSStackArray {
  public:
-  TSStackArray(void *data, unsigned int maxCount, int count) : m_maxCount(maxCount), m_count(count), m_data(static_cast<T *>(data)) {
-    for (unsigned int index = 0; index < m_count; ++index) {
+  TSStackArray(LPVOID data, UINT maxCount, int count) : m_maxCount(maxCount), m_count(count), m_data(static_cast<T *>(data)) {
+    for (UINT index = 0; index < m_count; ++index) {
       new (&m_data[index]) T;
     }
   }
 
   ~TSStackArray() {
-    for (unsigned int index = 0; index < m_count; ++index) {
+    for (UINT index = 0; index < m_count; ++index) {
       m_data[index].~T();
     }
   }
@@ -29,25 +29,25 @@ class TSStackArray {
     return *this;
   }
 
-  const T &operator[](unsigned int index) const {
+  const T &operator[](UINT index) const {
     if (index >= m_count) {
       FatalArrayBounds();
     }
     return m_data[index];
   }
 
-  T &operator[](unsigned int index) {
+  T &operator[](UINT index) {
     if (index >= m_count) {
       FatalArrayBounds();
     }
     return m_data[index];
   }
 
-  unsigned int Count() const {
+  UINT Count() const {
     return m_count;
   }
 
-  unsigned int Bytes() const {
+  UINT Bytes() const {
     return m_count * sizeof(T);
   }
 
@@ -59,16 +59,16 @@ class TSStackArray {
     return m_data;
   }
 
-  void Set(unsigned int count, int, const T *data) {
+  void Set(UINT count, int, const T *data) {
     SetCount(0);
     Add(count, 0, data);
   }
 
-  void Set(unsigned int count, const T *data) {
+  void Set(UINT count, const T *data) {
     Set(count, 0, data);
   }
 
-  void SetCount(unsigned int count) {
+  void SetCount(UINT count) {
     if (count > m_maxCount) {
       FatalArrayBounds();
     }
@@ -85,21 +85,21 @@ class TSStackArray {
     memset(m_data, 0, Bytes());
   }
 
-  unsigned int SizeOfElement() const {
+  UINT SizeOfElement() const {
     return sizeof(T);
   }
 
-  void Add(unsigned int count, int, const T *data) {
+  void Add(UINT count, int, const T *data) {
     if (m_count + count > m_maxCount) {
       FatalArrayBounds();
     }
 
-    for (unsigned int index = 0; index < count; ++index) {
+    for (UINT index = 0; index < count; ++index) {
       new (&m_data[m_count++]) T(data[index]);
     }
   }
 
-  void Add(unsigned int count, const T *data) {
+  void Add(UINT count, const T *data) {
     Add(count, 0, data);
   }
 
@@ -127,17 +127,17 @@ class TSStackArray {
   }
 
  private:
-  unsigned int m_maxCount;
+  UINT m_maxCount;
 
  protected:
-  unsigned int m_count;
-  T           *m_data;
+  UINT m_count;
+  T   *m_data;
 };
 
-template <class T, unsigned int MAXCOUNT>
+template <class T, UINT MAXCOUNT>
 class TSCArray {
  protected:
-  const char *MemFileName() const {
+  LPCSTR MemFileName() const {
     return typeid(T).INTERNALRAWNAME();
   }
 
@@ -164,46 +164,46 @@ class TSCArray {
     return *this;
   }
 
-  const T &operator[](unsigned int index) const {
+  const T &operator[](UINT index) const {
     if (index >= m_count) {
       FatalArrayBounds();
     }
     return m_data[index];
   }
 
-  T &operator[](unsigned int index) {
+  T &operator[](UINT index) {
     if (index >= m_count) {
       FatalArrayBounds();
     }
     return m_data[index];
   }
 
-  unsigned int Count() const {
+  UINT Count() const {
     return m_count;
   }
 
-  unsigned int Bytes() const {
+  UINT Bytes() const {
     return m_count * sizeof(T);
   }
 
-  void SetCount(unsigned int count) {
+  void SetCount(UINT count) {
     if (count > MAXCOUNT) {
       FatalArrayBounds();
     }
     m_count = count;
   }
 
-  void Set(unsigned int count, const T *data) {
+  void Set(UINT count, const T *data) {
     if (count > MAXCOUNT) {
       FatalArrayBounds();
     }
-    for (unsigned int i = 0; i < count; ++i) {
+    for (UINT i = 0; i < count; ++i) {
       m_data[i] = data[i];
     }
     m_count = count;
   }
 
-  void Set(unsigned int count, int, const T *data) {
+  void Set(UINT count, int, const T *data) {
     Set(count, data);
   }
 
@@ -211,11 +211,11 @@ class TSCArray {
     memset(m_data, 0, Bytes());
   }
 
-  unsigned int SizeOfElement() const {
+  UINT SizeOfElement() const {
     return sizeof(T);
   }
 
-  unsigned int MaxCount() const {
+  UINT MaxCount() const {
     return MAXCOUNT;
   }
 
@@ -228,8 +228,8 @@ class TSCArray {
   }
 
  protected:
-  unsigned int m_count;
-  T            m_data[MAXCOUNT];
+  UINT m_count;
+  T    m_data[MAXCOUNT];
 };
 
 template <class T>
@@ -241,7 +241,7 @@ class TSBaseArray {
     m_data = 0;
   }
 
-  virtual const char *MemFileName() const {
+  virtual LPCSTR MemFileName() const {
     return typeid(T).INTERNALRAWNAME();
   }
 
@@ -250,15 +250,15 @@ class TSBaseArray {
   }
 
  public:
-  unsigned int Count() const {
+  UINT Count() const {
     return m_count;
   }
 
-  unsigned int SizeOfElement() const {
+  UINT SizeOfElement() const {
     return sizeof(T);
   }
 
-  unsigned int Bytes() const {
+  UINT Bytes() const {
     return m_count * sizeof(T);
   }
 
@@ -278,30 +278,30 @@ class TSBaseArray {
     return m_count ? &m_data[m_count - 1] : 0;
   }
 
-  T &operator[](unsigned int index) {
+  T &operator[](UINT index) {
     CheckArrayBounds(index);
     return m_data[index];
   }
 
-  const T &operator[](unsigned int index) const {
+  const T &operator[](UINT index) const {
     CheckArrayBounds(index);
     return m_data[index];
   }
 
-  unsigned int NumElements() const {
+  UINT NumElements() const {
     return Count();
   }
 
  protected:
-  void CheckArrayBounds(unsigned int index) const {
+  void CheckArrayBounds(UINT index) const {
     if (index >= m_count) {
       SErrDisplayErrorFmt(0x85100080, MemFileName(), MemLineNo(), TRUE, 1, "index (0x%08X), array size (0x%08X)", index, m_count);
     }
   }
 
-  unsigned int m_alloc;
-  unsigned int m_count;
-  T           *m_data;
+  UINT m_alloc;
+  UINT m_count;
+  T   *m_data;
 };
 
 template <class T>
@@ -320,17 +320,17 @@ class TSFixedArray : public TSBaseArray<T> {
   ~TSFixedArray();
 
   void Clear();
-  void Detach(T **data, unsigned int *count, unsigned int *alloc);
+  void Detach(T **data, UINT *count, UINT *alloc);
   void Exchange(TSFixedArray<T> *array);
-  void Set(unsigned int count, const T *data);
-  void Set(unsigned int count, int, const T *data);
-  void SetCount(unsigned int count);
-  void SetOptional(unsigned int count, const T *data);
+  void Set(UINT count, const T *data);
+  void Set(UINT count, int, const T *data);
+  void SetCount(UINT count);
+  void SetOptional(UINT count, const T *data);
   void Zero();
 
  protected:
-  void ReallocAndClearData(unsigned int count);
-  void ReallocData(unsigned int count);
+  void ReallocAndClearData(UINT count);
+  void ReallocData(UINT count);
 };
 
 template <class T>
@@ -364,13 +364,13 @@ class TSGrowableArray : public TSFixedArray<T> {
     return value;
   }
 
-  unsigned int Reserved() const {
+  UINT Reserved() const {
     ASSERT(m_alloc >= m_count);
     return m_alloc - m_count;
   }
 
-  void SetCount(unsigned int count) {
-    unsigned int index;
+  void SetCount(UINT count) {
+    UINT index;
 
     if (count > this->m_count) {
       Reserve(count - this->m_count, 1);
@@ -386,11 +386,11 @@ class TSGrowableArray : public TSFixedArray<T> {
     this->m_count = count;
   }
 
-  void ReserveSpace(unsigned int count) {
+  void ReserveSpace(UINT count) {
     Reserve(count, 0);
   }
 
-  void SetChunkSize(unsigned int chunk) {
+  void SetChunkSize(UINT chunk) {
     m_chunk = chunk;
   }
 
@@ -398,22 +398,22 @@ class TSGrowableArray : public TSFixedArray<T> {
     this->ReallocData(this->m_count);
   }
 
-  void GrowToFit(unsigned int index, int zero);
+  void GrowToFit(UINT index, int zero);
 
-  unsigned int Add(const T *data) {
+  UINT Add(const T *data) {
     return Add(1, data);
   }
 
-  unsigned int Add(unsigned int count, const T *data);
-  unsigned int Add(unsigned int count, int, const T *data) {
+  UINT Add(UINT count, const T *data);
+  UINT Add(UINT count, int, const T *data) {
     return Add(count, data);
   }
 
-  unsigned int AddElement(const T *data) {
+  UINT AddElement(const T *data) {
     return Add(data);
   }
 
-  unsigned int AddElements(unsigned int count, const T *data) {
+  UINT AddElements(UINT count, const T *data) {
     return Add(count, data);
   }
 
@@ -421,23 +421,23 @@ class TSGrowableArray : public TSFixedArray<T> {
     return New();
   }
 
-  void SetNumElements(unsigned int count) {
+  void SetNumElements(UINT count) {
     SetCount(count);
   }
 
  private:
-  void Reserve(unsigned int count, int round);
+  void Reserve(UINT count, int round);
 
-  unsigned int CalcChunkSize(unsigned int count);
+  UINT CalcChunkSize(UINT count);
 
-  unsigned int RoundToChunk(unsigned int count, unsigned int chunk) const;
+  UINT RoundToChunk(UINT count, UINT chunk) const;
 
   friend class CSBasePriorityQueue;
 
-  unsigned int m_chunk;
+  UINT m_chunk;
 };
 
-template <class T, unsigned int TAG, int LINE>
+template <class T, UINT TAG, int LINE>
 class TSFixedArray_ : public TSFixedArray<T> {
  public:
   TSFixedArray_<T, TAG, LINE> &operator=(const TSFixedArray<T> &source) {
@@ -451,7 +451,7 @@ class TSFixedArray_ : public TSFixedArray<T> {
   }
 
  protected:
-  virtual const char *MemFileName() const {
+  virtual LPCSTR MemFileName() const {
     return s_name;
   }
 
@@ -463,13 +463,13 @@ class TSFixedArray_ : public TSFixedArray<T> {
   static char s_name[5];
 };
 
-template <class T, unsigned int TAG, int LINE>
+template <class T, UINT TAG, int LINE>
 char TSFixedArray_<T, TAG, LINE>::s_name[5] = {
     static_cast<char>((TAG >> 24) & 0xFF), static_cast<char>((TAG >> 16) & 0xFF), static_cast<char>((TAG >> 8) & 0xFF), static_cast<char>(TAG & 0xFF),
     0
 };
 
-template <class T, unsigned int TAG, int LINE>
+template <class T, UINT TAG, int LINE>
 class TSGrowableArray_ : public TSGrowableArray<T> {
  public:
   TSGrowableArray_<T, TAG, LINE> &operator=(const TSGrowableArray<T> &source) {
@@ -483,7 +483,7 @@ class TSGrowableArray_ : public TSGrowableArray<T> {
   }
 
  protected:
-  virtual const char *MemFileName() const {
+  virtual LPCSTR MemFileName() const {
     return s_name;
   }
 
@@ -495,7 +495,7 @@ class TSGrowableArray_ : public TSGrowableArray<T> {
   static char s_name[5];
 };
 
-template <class T, unsigned int TAG, int LINE>
+template <class T, UINT TAG, int LINE>
 char TSGrowableArray_<T, TAG, LINE>::s_name[5] = {
     static_cast<char>((TAG >> 24) & 0xFF), static_cast<char>((TAG >> 16) & 0xFF), static_cast<char>((TAG >> 8) & 0xFF), static_cast<char>(TAG & 0xFF),
     0
@@ -510,9 +510,9 @@ TSFixedArray<T>::TSFixedArray(const TSBaseArray<T> &source) {
 template <class T>
 TSFixedArray<T>::TSFixedArray(const TSFixedArray<T> &source) {
   this->Constructor();
-  unsigned int count = source.m_count;
-  const T     *data = source.m_data;
-  unsigned int index;
+  UINT     count = source.m_count;
+  const T *data = source.m_data;
+  UINT     index;
 
   ReallocAndClearData(count);
   for (index = 0; index < count; ++index) {
@@ -542,7 +542,7 @@ inline TSFixedArray<T> &TSFixedArray<T>::operator=(const TSFixedArray<T> &source
 
 template <class T>
 TSFixedArray<T>::~TSFixedArray() {
-  unsigned int index;
+  UINT index;
 
   for (index = 0; index < this->m_count; ++index) {
     this->m_data[index].~T();
@@ -563,9 +563,9 @@ void TSFixedArray<T>::Clear() {
 
 template <class T>
 void TSFixedArray<T>::Exchange(TSFixedArray<T> *array) {
-  T *data = this->m_data;
-  unsigned int count = this->m_count;
-  unsigned int alloc = this->m_alloc;
+  T   *data = this->m_data;
+  UINT count = this->m_count;
+  UINT alloc = this->m_alloc;
 
   this->m_data = array->m_data;
   this->m_count = array->m_count;
@@ -576,8 +576,8 @@ void TSFixedArray<T>::Exchange(TSFixedArray<T> *array) {
 }
 
 template <class T>
-void TSFixedArray<T>::Set(unsigned int count, const T *data) {
-  unsigned int index;
+void TSFixedArray<T>::Set(UINT count, const T *data) {
+  UINT index;
 
   ReallocAndClearData(count);
   for (index = 0; index < count; ++index) {
@@ -590,12 +590,12 @@ void TSFixedArray<T>::Set(unsigned int count, const T *data) {
 }
 
 template <class T>
-void TSFixedArray<T>::Set(unsigned int count, int, const T *data) {
+void TSFixedArray<T>::Set(UINT count, int, const T *data) {
   Set(count, data);
 }
 
 template <class T>
-void TSFixedArray<T>::SetOptional(unsigned int count, const T *data) {
+void TSFixedArray<T>::SetOptional(UINT count, const T *data) {
   if (data) {
     Set(count, data);
   } else {
@@ -609,8 +609,8 @@ void TSFixedArray<T>::Zero() {
 }
 
 template <class T>
-void TSFixedArray<T>::SetCount(unsigned int count) {
-  unsigned int index;
+void TSFixedArray<T>::SetCount(UINT count) {
+  UINT index;
 
   if (count == this->m_count) {
     return;
@@ -629,8 +629,8 @@ void TSFixedArray<T>::SetCount(unsigned int count) {
 }
 
 template <class T>
-void TSFixedArray<T>::ReallocAndClearData(unsigned int count) {
-  unsigned int index;
+void TSFixedArray<T>::ReallocAndClearData(UINT count) {
+  UINT index;
 
   for (index = 0; index < this->m_count; ++index) {
     this->m_data[index].~T();
@@ -643,18 +643,11 @@ void TSFixedArray<T>::ReallocAndClearData(unsigned int count) {
 }
 
 template <class T>
-void TSFixedArray<T>::ReallocData(unsigned int count) {
-  T           *oldData = this->m_data;
-  T           *newData;
-  unsigned int copyCount;
-  unsigned int oldCount = this->m_count;
-  unsigned int index;
-
-  if (count < oldCount) {
-    for (index = count; index < oldCount; ++index) {
-      oldData[index].~T();
-    }
-  }
+void TSFixedArray<T>::ReallocData(UINT count) {
+  T   *oldData = this->m_data;
+  T   *newData;
+  UINT copyCount;
+  UINT index;
 
   this->m_alloc = count;
   newData = static_cast<T *>(SMemReAlloc(oldData, count * sizeof(T), this->MemFileName(), this->MemLineNo(), 0x10));
@@ -669,21 +662,20 @@ void TSFixedArray<T>::ReallocData(unsigned int count) {
     return;
   }
 
-  copyCount = count < oldCount ? count : oldCount;
+  copyCount = count < this->m_count ? count : this->m_count;
   for (index = 0; index < copyCount; ++index) {
-    if (newData) {
-      new (&newData[index]) T(oldData[index]);
+    if (this->m_data) {
+      new (&this->m_data[index]) T(oldData[index]);
     }
-    oldData[index].~T();
   }
 
   SMemFree(oldData, this->MemFileName(), this->MemLineNo(), 0);
 }
 
 template <class T>
-void TSGrowableArray<T>::Reserve(unsigned int count, int round) {
-  unsigned int needed = this->m_count + count;
-  unsigned int chunk;
+void TSGrowableArray<T>::Reserve(UINT count, int round) {
+  UINT needed = this->m_count + count;
+  UINT chunk;
 
   if (needed <= this->m_alloc) {
     return;
@@ -701,7 +693,7 @@ void TSGrowableArray<T>::Reserve(unsigned int count, int round) {
 }
 
 template <class T>
-void TSGrowableArray<T>::GrowToFit(unsigned int index, int zero) {
+void TSGrowableArray<T>::GrowToFit(UINT index, int zero) {
   if (index >= this->m_count) {
     Reserve(index - this->m_count + 1, 1);
     if (zero) {
@@ -712,7 +704,7 @@ void TSGrowableArray<T>::GrowToFit(unsigned int index, int zero) {
 }
 
 template <class T>
-void TSFixedArray<T>::Detach(T **data, unsigned int *count, unsigned int *alloc) {
+void TSFixedArray<T>::Detach(T **data, UINT *count, UINT *alloc) {
   *data = this->m_data;
   *count = this->m_count;
   *alloc = this->m_alloc;
@@ -722,10 +714,10 @@ void TSFixedArray<T>::Detach(T **data, unsigned int *count, unsigned int *alloc)
 }
 
 template <class T>
-unsigned int TSGrowableArray<T>::Add(unsigned int count, const T *data) {
-  unsigned int first = this->m_count;
-  unsigned int index;
-  T           *destination;
+UINT TSGrowableArray<T>::Add(UINT count, const T *data) {
+  UINT first = this->m_count;
+  UINT index;
+  T   *destination;
 
   Reserve(count, 1);
   for (index = 0; index < count; ++index) {
@@ -739,10 +731,10 @@ unsigned int TSGrowableArray<T>::Add(unsigned int count, const T *data) {
 }
 
 template <class T>
-unsigned int TSGrowableArray<T>::CalcChunkSize(unsigned int count) {
-  const unsigned int maxChunk = sizeof(T) < 0x20 ? 0x100 / sizeof(T) : 8;
-  unsigned int       chunk = count;
-  unsigned int       next;
+UINT TSGrowableArray<T>::CalcChunkSize(UINT count) {
+  const UINT maxChunk = sizeof(T) < 0x20 ? 0x100 / sizeof(T) : 8;
+  UINT       chunk = count;
+  UINT       next;
 
   if (count >= maxChunk) {
     m_chunk = maxChunk;
@@ -758,8 +750,8 @@ unsigned int TSGrowableArray<T>::CalcChunkSize(unsigned int count) {
 }
 
 template <class T>
-unsigned int TSGrowableArray<T>::RoundToChunk(unsigned int count, unsigned int chunk) const {
-  unsigned int remainder = count % chunk;
+UINT TSGrowableArray<T>::RoundToChunk(UINT count, UINT chunk) const {
+  UINT remainder = count % chunk;
   return remainder ? count + chunk - remainder : count;
 }
 
@@ -787,7 +779,7 @@ class CSBasePriority {
 
   void Relink();
 
-  void SetQueuePosition(CSBasePriorityQueue *queue, unsigned int index) {
+  void SetQueuePosition(CSBasePriorityQueue *queue, UINT index) {
     m_queue = queue;
     m_index = index;
   }
@@ -796,7 +788,7 @@ class CSBasePriority {
 
  private:
   CSBasePriorityQueue *m_queue;
-  unsigned int         m_index;
+  UINT                 m_index;
 };
 
 template <class T>
@@ -825,32 +817,32 @@ class TSTimerPriority : public CSBasePriority {
   T m_val;
 };
 
-class CSBasePriorityQueue : public TSGrowableArray<void *> {
+class CSBasePriorityQueue : public TSGrowableArray<LPVOID> {
  private:
   friend class CSBasePriority;
 
-  unsigned int Child(unsigned int index) const {
+  UINT Child(UINT index) const {
     return index * 2 + 1;
   }
 
-  unsigned int Parent(unsigned int index) const {
+  UINT Parent(UINT index) const {
     return (index - 1) >> 1;
   }
 
-  CSBasePriority *Link(unsigned int index) const {
+  CSBasePriority *Link(UINT index) const {
     this->CheckArrayBounds(index);
     return Link(this->m_data[index]);
   }
 
-  CSBasePriority *Link(void *value) const {
+  CSBasePriority *Link(LPVOID value) const {
     return reinterpret_cast<CSBasePriority *>(reinterpret_cast<BYTE *>(value) + m_linkOffset);
   }
 
-  void SetLink(unsigned int index) {
+  void SetLink(UINT index) {
     Link(index)->SetQueuePosition(this, index);
   }
 
-  void UnsetLink(unsigned int index) {
+  void UnsetLink(UINT index) {
     Link(index)->SetQueuePosition(0, 0);
   }
 
@@ -868,12 +860,12 @@ class CSBasePriorityQueue : public TSGrowableArray<void *> {
 
   ~CSBasePriorityQueue();
 
-  void *Root() {
+  LPVOID Root() {
     return this->m_count ? this->m_data[ROOT_INDEX] : 0;
   }
 
-  void *Dequeue() {
-    void *val;
+  LPVOID Dequeue() {
+    LPVOID val;
 
     if (!Count()) {
       return 0;
@@ -884,9 +876,9 @@ class CSBasePriorityQueue : public TSGrowableArray<void *> {
     return val;
   }
 
-  void Enqueue(void *val) {
-    unsigned int    index = this->m_count;
-    unsigned int    parent;
+  void Enqueue(LPVOID val) {
+    UINT            index = this->m_count;
+    UINT            parent;
     CSBasePriority *valueLink = Link(val);
 
     Reserve(1, 1);
@@ -904,10 +896,10 @@ class CSBasePriorityQueue : public TSGrowableArray<void *> {
     SetLink(index);
   }
 
-  void Remove(unsigned int index) {
-    unsigned int    newCount;
-    unsigned int    child;
-    void           *replacement;
+  void Remove(UINT index) {
+    UINT            newCount;
+    UINT            child;
+    LPVOID          replacement;
     CSBasePriority *replacementLink;
 
     this->CheckArrayBounds(index);
@@ -938,7 +930,7 @@ class CSBasePriorityQueue : public TSGrowableArray<void *> {
   }
 
  private:
-  unsigned int m_linkOffset;
+  UINT m_linkOffset;
 };
 
 template <class T>
@@ -947,11 +939,11 @@ class TSPriorityQueue : public CSBasePriorityQueue {
   TSPriorityQueue(int linkOffset) : CSBasePriorityQueue(linkOffset) {
   }
 
-  T *operator[](unsigned int index) {
+  T *operator[](UINT index) {
     return static_cast<T *>(CSBasePriorityQueue::operator[](index));
   }
 
-  const T *operator[](unsigned int index) const {
+  const T *operator[](UINT index) const {
     this->CheckArrayBounds(index);
     return static_cast<const T *>(this->m_data[index]);
   }
@@ -968,13 +960,13 @@ class TSPriorityQueue : public CSBasePriorityQueue {
     CSBasePriorityQueue::Enqueue(value);
   }
 
-  void Remove(unsigned int index) {
+  void Remove(UINT index) {
     CSBasePriorityQueue::Remove(index);
   }
 };
 
 inline CSBasePriorityQueue::~CSBasePriorityQueue() {
-  unsigned int index;
+  UINT index;
 
   for (index = 0; index < this->m_count; ++index) {
     UnsetLink(index);
@@ -987,8 +979,8 @@ inline CSBasePriority::~CSBasePriority() {
 
 inline void CSBasePriority::Relink() {
   CSBasePriorityQueue *queue = m_queue;
-  unsigned int         index;
-  void                *value;
+  UINT                 index;
+  LPVOID               value;
 
   if (!queue) {
     return;
@@ -1170,8 +1162,8 @@ class TSGetLink {
 template <class T>
 class TSGetExplicitLink {
  public:
-  static TSLink<T> *Link(const void *instance, int linkoffset) {
-    return reinterpret_cast<TSLink<T> *>(reinterpret_cast<BYTE *>(const_cast<void *>(instance)) + linkoffset);
+  static TSLink<T> *Link(LPCVOID instance, int linkoffset) {
+    return reinterpret_cast<TSLink<T> *>(reinterpret_cast<BYTE *>(const_cast<LPVOID>(instance)) + linkoffset);
   }
 };
 
@@ -1195,7 +1187,7 @@ class TSList {
 
   void InitializeTerminator() {
     m_terminator.m_prevlink = &m_terminator;
-    m_terminator.m_next = reinterpret_cast<T *>(~reinterpret_cast<unsigned long>(&m_terminator));
+    m_terminator.m_next = reinterpret_cast<T *>(~reinterpret_cast<DWORD>(&m_terminator));
   }
 
  protected:
@@ -1306,9 +1298,9 @@ class TSList {
     }
   }
 
-  void LinkNode(T *instance, unsigned long linktype, T *existingInstance);
+  void LinkNode(T *instance, DWORD linktype, T *existingInstance);
 
-  T *NewNode(unsigned long location, unsigned long extrabytes, unsigned long flags) {
+  T *NewNode(DWORD location, DWORD extrabytes, DWORD flags) {
     T *ptr = static_cast<T *>(SMemAlloc(sizeof(T) + extrabytes, typeid(T).INTERNALRAWNAME(), -2, flags | SMEM_FLAG_ZEROMEMORY));
 
     if (ptr) {
@@ -1330,7 +1322,7 @@ class TSList {
     return next;
   }
 
-  void Combine(TSList<T, GETLINK> *list, unsigned long linktype, T *existingInstance) {
+  void Combine(TSList<T, GETLINK> *list, DWORD linktype, T *existingInstance) {
     TSLink<T> *listTerminator;
     TSLink<T> *existing;
     TSLink<T> *first;
@@ -1384,7 +1376,7 @@ TSLink<T> *TSList<T, GETLINK>::Link(const T *instance) const {
 }
 
 template <class T, class GETLINK>
-void TSList<T, GETLINK>::LinkNode(T *instance, unsigned long linktype, T *existingInstance) {
+void TSList<T, GETLINK>::LinkNode(T *instance, DWORD linktype, T *existingInstance) {
   TSLink<T> *link = Link(instance);
   TSLink<T> *existing = Link(existingInstance);
 
@@ -1425,99 +1417,73 @@ class TSExplicitList : public TSList<T, TSGetExplicitLink<T> > {
   }
 };
 
+#define LINKEX(structname)              TSLink<structname>
+#define LINKDECLEX(structname, varname) TSLink<structname> varname
+#define LIST(structname)                TSList<structname, TSGetLink<structname> >
+#define LISTDECL(structname, varname)   TSList<structname, TSGetLink<structname> > varname
+#define LISTPTR(structname)             TSList<structname, TSGetLink<structname> > *
+#define LISTPTREX(structname)           TSList<structname, TSGetExplicitLink<structname> > *
+#define NODEDECL(structname)            struct structname : public TSLinkedNode<structname>
+#define NODEDECLEX(structname)          typedef struct structname : public TSExplicitNode<structname>
 
-#define  LINKEX(structname)              TSLink< structname >
-#define  LINKDECLEX(structname,varname)  TSLink< structname > varname
-#define  LIST(structname)                TSList< structname ,TSGetLink< structname > >
-#define  LISTDECL(structname,varname)    TSList< structname ,TSGetLink< structname > > varname
-#define  LISTPTR(structname)             TSList< structname ,TSGetLink< structname > > *
-#define  LISTPTREX(structname)           TSList< structname ,TSGetExplicitLink< structname > > *
-#define  NODEDECL(structname)            struct structname : public TSLinkedNode< structname >
-#define  NODEDECLEX(structname)          typedef struct structname : public TSExplicitNode< structname >
+#define LISTEX(structname, linkname) TSExplicitList<structname, (int)&(((structname *)0)->linkname)>
 
-#define  LISTEX(structname,linkname)                                     \
-  TSExplicitList< structname ,(int)&(((structname *)0)->linkname)>
+#define LISTEXDYN(structname) TSExplicitList<structname, (int)0xDDDDDDDD>
 
-#define  LISTEXDYN(structname)                                           \
-  TSExplicitList< structname ,(int)0xDDDDDDDD>
+#define LISTEXSETLINK(structname, listname, linkname) listname.ChangeLinkOffset((int)&(((structname *)0)->linkname));
 
-#define  LISTEXSETLINK(structname,listname,linkname)                     \
-  listname.ChangeLinkOffset((int)&(((structname *)0)->linkname));
+#define LISTDECLEX(structname, linkname, varname) TSExplicitList<structname, (int)&(((structname *)0)->linkname)> varname
 
-#define  LISTDECLEX(structname,linkname,varname)                         \
-  TSExplicitList< structname ,(int)&(((structname *)0)->linkname)> varname
+#define ITERATEFORWARDTEMPLATE(structname, listname, start, ptrname, op)                                                                        \
+  for (structname *ptrname = start, *iterate_delete = NULL; (int)ptrname > 0;                                                                   \
+       iterate_delete                                                                                                                           \
+           ? (ptrname = (listname)op DeleteNode(ptrname), ptrname = ((int)iterate_delete > 0) ? ptrname : NULL, iterate_delete = NULL, ptrname) \
+           : ptrname = (listname)op RawNext(ptrname))
 
-#define  ITERATEFORWARDTEMPLATE(structname,listname,start,ptrname,op)    \
-  for (structname *ptrname = start,                                      \
-         *iterate_delete = NULL;                                         \
-       (int)ptrname > 0;                                                 \
-       iterate_delete                                                    \
-         ? (ptrname = (listname) op DeleteNode(ptrname),                 \
-            ptrname = ((int)iterate_delete > 0) ? ptrname : NULL,        \
-            iterate_delete = NULL,                                       \
-            ptrname)                                                     \
-         : ptrname = (listname) op RawNext(ptrname))
+#define ITERATEREVERSETEMPLATE(structname, listname, start, ptrname, op)                                                                        \
+  for (structname *ptrname = start, *iterate_delete = NULL, *iterate_delete_temp = NULL; ptrname;                                               \
+       iterate_delete ? (iterate_delete_temp = ((int)iterate_delete > 0) ? (listname)op Prev(ptrname) : NULL, (listname)op DeleteNode(ptrname), \
+                        iterate_delete = NULL, ptrname = iterate_delete_temp)                                                                   \
+                      : ptrname = (listname)op Prev(ptrname))
 
-#define  ITERATEREVERSETEMPLATE(structname,listname,start,ptrname,op)    \
-  for (structname *ptrname = start,                                      \
-         *iterate_delete = NULL,                                         \
-         *iterate_delete_temp = NULL;                                    \
-       ptrname;                                                          \
-       iterate_delete                                                    \
-         ? (iterate_delete_temp = ((int)iterate_delete > 0)              \
-              ? (listname) op Prev(ptrname)                              \
-              : NULL,                                                    \
-            (listname) op DeleteNode(ptrname),                           \
-            iterate_delete = NULL,                                       \
-            ptrname        = iterate_delete_temp)                        \
-         : ptrname = (listname) op Prev(ptrname))
+#define ITERATELIST(structname, listname, ptrname) ITERATEFORWARDTEMPLATE(structname, listname, (listname).Head(), ptrname, .)
 
-#define  ITERATELIST(structname,listname,ptrname)                        \
-  ITERATEFORWARDTEMPLATE(structname,listname,(listname).Head(),ptrname,.)
+#define ITERATELISTPTR(structname, listname, ptrname) ITERATEFORWARDTEMPLATE(structname, listname, (listname)->Head(), ptrname, ->)
 
-#define  ITERATELISTPTR(structname,listname,ptrname)                     \
-  ITERATEFORWARDTEMPLATE(structname,listname,(listname)->Head(),ptrname,->)
+#define ITERATEPARTIALLIST(structname, listname, start, ptrname) ITERATEFORWARDTEMPLATE(structname, listname, start, ptrname, .)
 
-#define  ITERATEPARTIALLIST(structname,listname,start,ptrname)           \
-  ITERATEFORWARDTEMPLATE(structname,listname,start,ptrname,.)
+#define ITERATEPARTIALLISTPTR(structname, listname, start, ptrname) ITERATEFORWARDTEMPLATE(structname, listname, start, ptrname, ->)
 
-#define  ITERATEPARTIALLISTPTR(structname,listname,start,ptrname)        \
-  ITERATEFORWARDTEMPLATE(structname,listname,start,ptrname,->)
+#define ITERATELISTREVERSE(structname, listname, ptrname) ITERATEREVERSETEMPLATE(structname, listname, (listname).Tail(), ptrname, .)
 
-#define  ITERATELISTREVERSE(structname,listname,ptrname)                 \
-  ITERATEREVERSETEMPLATE(structname,listname,(listname).Tail(),ptrname,.)
+#define ITERATELISTREVERSEPTR(structname, listname, ptrname) ITERATEREVERSETEMPLATE(structname, listname, (listname)->Tail(), ptrname, ->)
 
-#define  ITERATELISTREVERSEPTR(structname,listname,ptrname)              \
-  ITERATEREVERSETEMPLATE(structname,listname,(listname)->Tail(),ptrname,->)
+#define ITERATEPARTIALLISTREVERSE(structname, listname, start, ptrname) ITERATEREVERSETEMPLATE(structname, listname, start, ptrname, .)
 
-#define  ITERATEPARTIALLISTREVERSE(structname,listname,start,ptrname)    \
-  ITERATEREVERSETEMPLATE(structname,listname,start,ptrname,.)
+#define ITERATEPARTIALLISTREVERSEPTR(structname, listname, start, ptrname) ITERATEREVERSETEMPLATE(structname, listname, start, ptrname, ->)
 
-#define  ITERATEPARTIALLISTREVERSEPTR(structname,listname,start,ptrname) \
-  ITERATEREVERSETEMPLATE(structname,listname,start,ptrname,->)
-
-#define  ITERATE_DELETE                                                  \
-  {                                                                      \
-    ++iterate_delete;                                                    \
-    continue;                                                            \
+#define ITERATE_DELETE \
+  {                    \
+    ++iterate_delete;  \
+    continue;          \
   }
 
-#define  ITERATE_DELETEANDBREAK                                          \
-  {                                                                      \
-    --iterate_delete;                                                    \
-    continue;                                                            \
+#define ITERATE_DELETEANDBREAK \
+  {                            \
+    --iterate_delete;          \
+    continue;                  \
   }
 
 class HASHKEY_NONE {
  public:
-  bool operator==(const HASHKEY_NONE &__formal) const {
+  bool operator==(const HASHKEY_NONE &) const {
     return true;
   }
 };
 
 class HASHKEY_DWORD {
  public:
-  HASHKEY_DWORD(unsigned long key = 0) : m_key(key) {
+  HASHKEY_DWORD(DWORD key = 0) : m_key(key) {
   }
 
   HASHKEY_DWORD(const HASHKEY_DWORD &key) : m_key(key.m_key) {
@@ -1527,12 +1493,12 @@ class HASHKEY_DWORD {
     return m_key == key.m_key;
   }
 
-  unsigned long GetDword() const {
+  DWORD GetDword() const {
     return m_key;
   }
 
  private:
-  unsigned long m_key;
+  DWORD m_key;
 };
 
 struct SoundFileDataCacheBlock;
@@ -1546,8 +1512,8 @@ class HASHKEY_LONGLONG {
  private:
   friend class TSHashObject<SoundFileDataCacheBlock, HASHKEY_LONGLONG>;
 
-  friend void DataCacheInitialize(int cacheSizeMB);
-  friend SoundFileDataCacheBlock *AllocCacheBlock(__int64 hashKey);
+  friend void                     DataCacheInitialize(int cacheSizeMB);
+  friend SoundFileDataCacheBlock *AllocCacheBlock(LONGLONG hashKey);
   friend class SoundFileCache;
 
   HASHKEY_LONGLONG() : m_key(0) {
@@ -1556,7 +1522,7 @@ class HASHKEY_LONGLONG {
   HASHKEY_LONGLONG(int key) : m_key(key) {
   }
 
-  HASHKEY_LONGLONG(__int64 key) : m_key(key) {
+  HASHKEY_LONGLONG(LONGLONG key) : m_key(key) {
   }
 
   HASHKEY_LONGLONG(const HASHKEY_LONGLONG &key) : m_key(key.m_key) {
@@ -1572,12 +1538,12 @@ class HASHKEY_LONGLONG {
     return m_key == key.m_key;
   }
 
-  __int64 GetLongLong() const {
+  LONGLONG GetLongLong() const {
     return m_key;
   }
 
  private:
-  __int64 m_key;
+  LONGLONG m_key;
 };
 
 class HASHKEY_STR {
@@ -1585,7 +1551,7 @@ class HASHKEY_STR {
   HASHKEY_STR() : m_str(0) {
   }
 
-  HASHKEY_STR(const char *str) : m_str(SStrDupA(str, __FILE__, __LINE__)) {
+  HASHKEY_STR(LPCSTR str) : m_str(SStrDupA(str, __FILE__, __LINE__)) {
   }
 
   HASHKEY_STR(const HASHKEY_STR &key) : m_str(SStrDupA(key.m_str, __FILE__, __LINE__)) {
@@ -1593,13 +1559,13 @@ class HASHKEY_STR {
 
   ~HASHKEY_STR();
 
-  HASHKEY_STR &operator=(const char *str);
+  HASHKEY_STR &operator=(LPCSTR str);
 
   HASHKEY_STR &operator=(const HASHKEY_STR &key) {
     return operator=(key.m_str);
   }
 
-  bool operator==(const char *str) const {
+  bool operator==(LPCSTR str) const {
     return SStrCmp(m_str, str, 0x7FFFFFFF) == 0;
   }
 
@@ -1607,7 +1573,7 @@ class HASHKEY_STR {
     return operator==(key.m_str);
   }
 
-  const char *GetString() const {
+  LPCSTR GetString() const {
     return m_str;
   }
 
@@ -1620,13 +1586,13 @@ class HASHKEY_STRI : public HASHKEY_STR {
   HASHKEY_STRI() {
   }
 
-  HASHKEY_STRI(const char *str) : HASHKEY_STR(str) {
+  HASHKEY_STRI(LPCSTR str) : HASHKEY_STR(str) {
   }
 
   HASHKEY_STRI(const HASHKEY_STRI &key) : HASHKEY_STR(key) {
   }
 
-  HASHKEY_STRI &operator=(const char *str) {
+  HASHKEY_STRI &operator=(LPCSTR str) {
     HASHKEY_STR::operator=(str);
     return *this;
   }
@@ -1636,7 +1602,7 @@ class HASHKEY_STRI : public HASHKEY_STR {
     return *this;
   }
 
-  bool operator==(const char *str) const {
+  bool operator==(LPCSTR str) const {
     return SStrCmpI(m_str, str, 0x7FFFFFFF) == 0;
   }
 
@@ -1650,10 +1616,10 @@ class HASHKEY_CONSTSTR {
   HASHKEY_CONSTSTR() : m_str(0) {
   }
 
-  HASHKEY_CONSTSTR(const char *str) : m_str(str) {
+  HASHKEY_CONSTSTR(LPCSTR str) : m_str(str) {
   }
 
-  bool operator==(const char *str) const {
+  bool operator==(LPCSTR str) const {
     return SStrCmp(m_str, str, 0x7FFFFFFF) == 0;
   }
 
@@ -1661,12 +1627,12 @@ class HASHKEY_CONSTSTR {
     return operator==(key.m_str);
   }
 
-  const char *GetString() const {
+  LPCSTR GetString() const {
     return m_str;
   }
 
  protected:
-  const char *m_str;
+  LPCSTR m_str;
 };
 
 class HASHKEY_CONSTSTRI : public HASHKEY_CONSTSTR {
@@ -1674,10 +1640,10 @@ class HASHKEY_CONSTSTRI : public HASHKEY_CONSTSTR {
   HASHKEY_CONSTSTRI() {
   }
 
-  HASHKEY_CONSTSTRI(const char *str) : HASHKEY_CONSTSTR(str) {
+  HASHKEY_CONSTSTRI(LPCSTR str) : HASHKEY_CONSTSTR(str) {
   }
 
-  bool operator==(const char *str) const {
+  bool operator==(LPCSTR str) const {
     return m_str == str || SStrCmpI(m_str, str, 0x7FFFFFFF) == 0;
   }
 
@@ -1691,7 +1657,7 @@ class HASHKEY_PTR {
   HASHKEY_PTR() : m_key(0) {
   }
 
-  HASHKEY_PTR(void *key) : m_key(key) {
+  HASHKEY_PTR(LPVOID key) : m_key(key) {
   }
 
   HASHKEY_PTR(const HASHKEY_PTR &key) : m_key(key.m_key) {
@@ -1706,12 +1672,12 @@ class HASHKEY_PTR {
     return m_key == key.m_key;
   }
 
-  void *GetPtr() const {
+  LPVOID GetPtr() const {
     return m_key;
   }
 
  private:
-  void *m_key;
+  LPVOID m_key;
 };
 
 template <class T, class KEY>
@@ -1719,10 +1685,10 @@ class TSHashObject {
   friend class TSHashTable<T, KEY>;
 
  private:
-  unsigned int m_hashval;
-  TSLink<T>    m_linktoslot;
-  TSLink<T>    m_linktofull;
-  KEY          m_key;
+  UINT      m_hashval;
+  TSLink<T> m_linktoslot;
+  TSLink<T> m_linktofull;
+  KEY       m_key;
 
  public:
   TSHashObject() {
@@ -1735,7 +1701,7 @@ class TSHashObject {
     return *this;
   }
 
-  const char *GetString() const {
+  LPCSTR GetString() const {
     return m_key.GetString();
   }
 
@@ -1743,9 +1709,9 @@ class TSHashObject {
     return m_key;
   }
 
-  const void *GetData() const;
+  LPCVOID GetData() const;
 
-  unsigned int GetHashValue() const {
+  UINT GetHashValue() const {
     return m_hashval;
   }
 };
@@ -1756,13 +1722,13 @@ class TSHashTable {
   friend class CGameTime;
 
   virtual void InternalDelete(T *ptr);
-  virtual T   *InternalNew(LISTEXDYN(T) *list, unsigned long extrabytes, unsigned long flags);
+  virtual T   *InternalNew(LISTEXDYN(T) * list, DWORD extrabytes, DWORD flags);
 
-  unsigned int ComputeSlot(unsigned int hashval) const {
+  UINT ComputeSlot(UINT hashval) const {
     return hashval & m_slotmask;
   }
 
-  void GrowListArray(unsigned int newarraysize);
+  void GrowListArray(UINT newarraysize);
   void Initialize();
 
   int Initialized() {
@@ -1770,9 +1736,9 @@ class TSHashTable {
   }
 
   void InternalClear(int warn);
-  void InternalLinkNode(T *ptr, unsigned int hashval);
-  T   *InternalNewNode(unsigned int hashval, unsigned long extrabytes, unsigned long flags);
-  int  MonitorFullness(unsigned int slot);
+  void InternalLinkNode(T *ptr, UINT hashval);
+  T   *InternalNewNode(UINT hashval, DWORD extrabytes, DWORD flags);
+  int  MonitorFullness(UINT slot);
 
   TSHashTable<T, KEY> &NonConst() const {
     return const_cast<TSHashTable<T, KEY> &>(*this);
@@ -1792,11 +1758,11 @@ class TSHashTable {
     InternalClear(0);
   }
 
-  void SetTableSize(unsigned int count) {
-    unsigned int requested = count * 2;
-    unsigned int tableSize;
-    unsigned int value;
-    unsigned int shift;
+  void SetTableSize(UINT count) {
+    UINT requested = count * 2;
+    UINT tableSize;
+    UINT value;
+    UINT shift;
 
     if (requested <= m_slotmask + 1) {
       return;
@@ -1822,9 +1788,9 @@ class TSHashTable {
   }
 
   float GetAverageBinDepth() const;
-  unsigned int GetPeakBinDepth() const;
+  UINT  GetPeakBinDepth() const;
 
-  void Delete(const char *key) {
+  void Delete(LPCSTR key) {
     T *ptr = Ptr(key);
 
     FATALASSERT(ptr);
@@ -1832,7 +1798,7 @@ class TSHashTable {
     Delete(ptr);
   }
 
-  void Delete(unsigned int hashval, const char *key) {
+  void Delete(UINT hashval, LPCSTR key) {
     T *ptr = Ptr(hashval, key);
 
     FATALASSERT(ptr);
@@ -1840,7 +1806,7 @@ class TSHashTable {
     Delete(ptr);
   }
 
-  void Delete(unsigned int hashval, const KEY &key) {
+  void Delete(UINT hashval, const KEY &key) {
     T *ptr = Ptr(hashval, key);
 
     FATALASSERT(ptr);
@@ -1866,31 +1832,31 @@ class TSHashTable {
     return NonConst().Head();
   }
 
-  void Insert(T *ptr, const char *key) {
+  void Insert(T *ptr, LPCSTR key) {
     Insert(ptr, SStrHashHT(key), key);
   }
 
-  void Insert(T *ptr, unsigned int hashval, const char *key) {
+  void Insert(T *ptr, UINT hashval, LPCSTR key) {
     InternalLinkNode(ptr, hashval);
     ptr->m_key = key;
   }
 
-  void Insert(T *ptr, unsigned int hashval, const KEY &key) {
+  void Insert(T *ptr, UINT hashval, const KEY &key) {
     InternalLinkNode(ptr, hashval);
     ptr->m_key = key;
   }
 
-  T *New(const char *key, unsigned long extrabytes, unsigned long flags) {
+  T *New(LPCSTR key, DWORD extrabytes, DWORD flags) {
     return New(SStrHashHT(key), key, extrabytes, flags);
   }
 
-  T *New(unsigned int hashval, const char *key, unsigned long extrabytes, unsigned long flags) {
+  T *New(UINT hashval, LPCSTR key, DWORD extrabytes, DWORD flags) {
     T *ptr = InternalNewNode(hashval, extrabytes, flags);
     ptr->m_key = key;
     return ptr;
   }
 
-  T *New(unsigned int hashval, const KEY &key, unsigned long extrabytes, unsigned long flags) {
+  T *New(UINT hashval, const KEY &key, DWORD extrabytes, DWORD flags) {
     T *ptr = InternalNewNode(hashval, extrabytes, flags);
     ptr->m_key = key;
     return ptr;
@@ -1912,19 +1878,19 @@ class TSHashTable {
     return NonConst().Prev(ptr);
   }
 
-  T *Ptr(const char *key);
+  T *Ptr(LPCSTR key);
 
-  const T *Ptr(const char *key) const {
+  const T *Ptr(LPCSTR key) const {
     return NonConst().Ptr(key);
   }
 
-  T *Ptr(unsigned int hashval, const char *key);
+  T *Ptr(UINT hashval, LPCSTR key);
 
-  const T *Ptr(unsigned int hashval, const char *key) const;
+  const T *Ptr(UINT hashval, LPCSTR key) const;
 
-  T *Ptr(unsigned int hashval, const KEY &key);
+  T *Ptr(UINT hashval, const KEY &key);
 
-  const T *Ptr(unsigned int hashval, const KEY &key) const {
+  const T *Ptr(UINT hashval, const KEY &key) const {
     return NonConst().Ptr(hashval, key);
   }
 
@@ -1946,7 +1912,7 @@ class TSHashTable {
 
   void Unlink(T *ptr);
 
-  static unsigned int Hash(const char *key) {
+  static UINT Hash(LPCSTR key) {
     return SStrHashHT(key);
   }
 
@@ -1954,9 +1920,9 @@ class TSHashTable {
   LISTEXDYN(T) m_fulllist;
 
  private:
-  unsigned int                                    m_fullnessIndicator;
-  TSGrowableArray<LISTEXDYN(T) > m_slotlistarray;
-  unsigned int                                    m_slotmask;
+  UINT                          m_fullnessIndicator;
+  TSGrowableArray<LISTEXDYN(T)> m_slotlistarray;
+  UINT                          m_slotmask;
 };
 
 template <class T, class KEY>
@@ -1971,7 +1937,7 @@ class TSHashTableReuse : public TSHashTable<T, KEY> {
  private:
   void         Destructor();
   virtual void InternalDelete(T *ptr);
-  virtual T   *InternalNew(LISTEXDYN(T) *list, unsigned long extrabytes, unsigned long flags);
+  virtual T   *InternalNew(LISTEXDYN(T) * list, DWORD extrabytes, DWORD flags);
 
  public:
   TSHashTableReuse();
@@ -1980,7 +1946,7 @@ class TSHashTableReuse : public TSHashTable<T, KEY> {
 
  private:
   LISTEXDYN(T) m_reuseList;
-  unsigned long                 m_chunkSize;
+  DWORD                                         m_chunkSize;
   TSExplicitList<TSHashObjectChunk<T, KEY>, 20> m_chunkList;
 };
 
@@ -1988,7 +1954,7 @@ template <class T, class HANDLE, int REUSE>
 class TSExportTableSimple : public TSHashTableReuse<T, HASHKEY_NONE, REUSE> {
  private:
   HASHKEY_NONE m_key;
-  unsigned int m_sequence;
+  UINT         m_sequence;
   int          m_wrapped;
 
   HANDLE GenerateUniqueHandle();
@@ -2045,13 +2011,13 @@ void TSHashTable<T, KEY>::InternalDelete(T *ptr) {
 }
 
 template <class T, class KEY>
-T *TSHashTable<T, KEY>::InternalNew(LISTEXDYN(T) *list, unsigned long extrabytes, unsigned long flags) {
+T *TSHashTable<T, KEY>::InternalNew(LISTEXDYN(T) * list, DWORD extrabytes, DWORD flags) {
   return list->NewNode(LIST_HEAD, extrabytes, flags);
 }
 
 template <class T, class KEY>
 void TSHashTable<T, KEY>::Initialize() {
-  unsigned int index;
+  UINT index;
 
   m_slotmask = 3;
   m_slotlistarray.SetCount(4);
@@ -2062,8 +2028,8 @@ void TSHashTable<T, KEY>::Initialize() {
 
 template <class T, class KEY>
 void TSHashTable<T, KEY>::InternalClear(int warn) {
-  unsigned int index;
-  T           *ptr;
+  UINT index;
+  T   *ptr;
 
   m_fullnessIndicator = 0;
   m_fulllist.UnlinkAll();
@@ -2087,8 +2053,8 @@ void TSHashTable<T, KEY>::Destroy() {
 }
 
 template <class T, class KEY>
-void TSHashTable<T, KEY>::InternalLinkNode(T *ptr, unsigned int hashval) {
-  unsigned int slot;
+void TSHashTable<T, KEY>::InternalLinkNode(T *ptr, UINT hashval) {
+  UINT slot;
 
   if (!Initialized()) {
     Initialize();
@@ -2105,9 +2071,9 @@ void TSHashTable<T, KEY>::InternalLinkNode(T *ptr, unsigned int hashval) {
 }
 
 template <class T, class KEY>
-T *TSHashTable<T, KEY>::InternalNewNode(unsigned int hashval, unsigned long extrabytes, unsigned long flags) {
-  unsigned int slot;
-  T           *ptr;
+T *TSHashTable<T, KEY>::InternalNewNode(UINT hashval, DWORD extrabytes, DWORD flags) {
+  UINT slot;
+  T   *ptr;
 
   if (!Initialized()) {
     Initialize();
@@ -2125,10 +2091,10 @@ T *TSHashTable<T, KEY>::InternalNewNode(unsigned int hashval, unsigned long extr
 }
 
 template <class T, class KEY>
-T *TSHashTable<T, KEY>::Ptr(const char *key) {
-  unsigned int hashval;
-  unsigned int slot;
-  T           *ptr;
+T *TSHashTable<T, KEY>::Ptr(LPCSTR key) {
+  UINT hashval;
+  UINT slot;
+  T   *ptr;
 
   if (!Initialized()) {
     return 0;
@@ -2147,9 +2113,9 @@ T *TSHashTable<T, KEY>::Ptr(const char *key) {
 }
 
 template <class T, class KEY>
-T *TSHashTable<T, KEY>::Ptr(unsigned int hashval, const char *key) {
-  unsigned int slot;
-  T           *ptr;
+T *TSHashTable<T, KEY>::Ptr(UINT hashval, LPCSTR key) {
+  UINT slot;
+  T   *ptr;
 
   if (!Initialized()) {
     return 0;
@@ -2167,9 +2133,9 @@ T *TSHashTable<T, KEY>::Ptr(unsigned int hashval, const char *key) {
 }
 
 template <class T, class KEY>
-T *TSHashTable<T, KEY>::Ptr(unsigned int hashval, const KEY &key) {
-  unsigned int slot;
-  T           *ptr;
+T *TSHashTable<T, KEY>::Ptr(UINT hashval, const KEY &key) {
+  UINT slot;
+  T   *ptr;
 
   if (!Initialized()) {
     return 0;
@@ -2195,7 +2161,7 @@ void TSHashTable<T, KEY>::Unlink(T *ptr) {
 }
 
 template <class T, class KEY>
-int TSHashTable<T, KEY>::MonitorFullness(unsigned int slot) {
+int TSHashTable<T, KEY>::MonitorFullness(UINT slot) {
   T *ptr;
 
   if (m_slotmask >= 0x1FFF) {
@@ -2227,11 +2193,11 @@ int TSHashTable<T, KEY>::MonitorFullness(unsigned int slot) {
 }
 
 template <class T, class KEY>
-void TSHashTable<T, KEY>::GrowListArray(unsigned int newarraysize) {
+void TSHashTable<T, KEY>::GrowListArray(UINT newarraysize) {
   LISTEXDYN(T) templist;
-  unsigned int                  oldarraysize = m_slotmask + 1;
-  unsigned int                  index;
-  T                            *ptr;
+  UINT oldarraysize = m_slotmask + 1;
+  UINT index;
+  T   *ptr;
 
   templist.ChangeLinkOffset(GetLinkOffset());
   for (index = 0; index < oldarraysize; ++index) {
@@ -2275,8 +2241,8 @@ void TSHashTableReuse<T, KEY, REUSE>::InternalDelete(T *ptr) {
 }
 
 template <class T, class KEY, int REUSE>
-T *TSHashTableReuse<T, KEY, REUSE>::InternalNew(LISTEXDYN(T) *list, unsigned long extrabytes, unsigned long flags) {
-  T     *ptr;
+T *TSHashTableReuse<T, KEY, REUSE>::InternalNew(LISTEXDYN(T) * list, DWORD extrabytes, DWORD flags) {
+  T                         *ptr;
   TSHashObjectChunk<T, KEY> *chunk;
 
   ASSERT(!extrabytes);
@@ -2329,17 +2295,17 @@ T *TSExportTableSimple<T, HANDLE, REUSE>::New(HANDLE *handle) {
   HANDLE newhandle = GenerateUniqueHandle();
 
   *handle = newhandle;
-  return TSHashTable<T, HASHKEY_NONE>::New(reinterpret_cast<unsigned int>(newhandle), m_key, 0, 0);
+  return TSHashTable<T, HASHKEY_NONE>::New(reinterpret_cast<UINT>(newhandle), m_key, 0, 0);
 }
 
 template <class T, class HANDLE, int REUSE>
 T *TSExportTableSimple<T, HANDLE, REUSE>::Ptr(HANDLE handle) {
-  return TSHashTable<T, HASHKEY_NONE>::Ptr(reinterpret_cast<unsigned int>(handle), m_key);
+  return TSHashTable<T, HASHKEY_NONE>::Ptr(reinterpret_cast<UINT>(handle), m_key);
 }
 
 template <class T, class HANDLE, class LOCKED, class SYNC, int REUSE>
 int TSExportTableSync<T, HANDLE, LOCKED, SYNC, REUSE>::IsForWriting(LOCKED lockedhandle) {
-  return reinterpret_cast<unsigned long>(lockedhandle) == 1;
+  return reinterpret_cast<DWORD>(lockedhandle) == 1;
 }
 
 template <class T, class HANDLE, class LOCKED, class SYNC, int REUSE>

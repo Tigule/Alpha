@@ -19,35 +19,34 @@
 #include <lua.h>
 #include <storm.h>
 
-void Trade_C_CancelTrade();
-int Trade_C_UseCursorItem();
-int Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot);
-unsigned int Trade_C_GetPlayerTradeGold();
-unsigned int Trade_C_GetTargetTradeGold();
-unsigned __int64 Trade_C_GetTradeTarget();
-bool Trade_C_AddItem(unsigned __int64 item, unsigned __int64 itemContainer, unsigned int itemSlot, unsigned int tradeSlot);
-void Trade_C_RemoveItem(unsigned int slot);
-void Trade_C_AcceptTrade();
-void Trade_C_UnacceptTrade();
-void Trade_C_AddMoney(unsigned int money);
-void Trade_C_RemoveMoney(unsigned int money);
-void TradeItemStatsCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
+void      Trade_C_CancelTrade();
+int       Trade_C_UseCursorItem();
+int       Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot);
+UINT      Trade_C_GetPlayerTradeGold();
+UINT      Trade_C_GetTargetTradeGold();
+DWORDLONG Trade_C_GetTradeTarget();
+bool      Trade_C_AddItem(DWORDLONG item, DWORDLONG itemContainer, UINT itemSlot, UINT tradeSlot);
+void      Trade_C_RemoveItem(UINT slot);
+void      Trade_C_AcceptTrade();
+void      Trade_C_UnacceptTrade();
+void      Trade_C_AddMoney(UINT money);
+void      Trade_C_RemoveMoney(UINT money);
+void      TradeItemStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
 
-
-unsigned __int64 CGTradeInfo::m_tradingPlayer;
-int              CGTradeInfo::m_playerAccepted;
-int              CGTradeInfo::m_targetAccepted;
-unsigned __int64 CGTradeInfo::m_playerItems[8];
-unsigned __int64 CGTradeInfo::m_playerItemBag[8];
-unsigned char    CGTradeInfo::m_playerItemSlot[8];
-int              CGTradeInfo::m_targetItems[8];
-int              CGTradeInfo::m_targetItemCount[8];
-int              CGTradeInfo::m_targetItemEnchantment[8];
-unsigned __int64 CGTradeInfo::m_targetItemCreator[8];
-int              CGTradeInfo::m_playerEnchantSlot = -1;
-int              CGTradeInfo::m_targetEnchantSlot = -1;
-unsigned int     CGTradeInfo::m_playerMoney;
-unsigned int     CGTradeInfo::m_targetMoney;
+DWORDLONG CGTradeInfo::m_tradingPlayer;
+int       CGTradeInfo::m_playerAccepted;
+int       CGTradeInfo::m_targetAccepted;
+DWORDLONG CGTradeInfo::m_playerItems[8];
+DWORDLONG CGTradeInfo::m_playerItemBag[8];
+BYTE      CGTradeInfo::m_playerItemSlot[8];
+int       CGTradeInfo::m_targetItems[8];
+int       CGTradeInfo::m_targetItemCount[8];
+int       CGTradeInfo::m_targetItemEnchantment[8];
+DWORDLONG CGTradeInfo::m_targetItemCreator[8];
+int       CGTradeInfo::m_playerEnchantSlot = -1;
+int       CGTradeInfo::m_targetEnchantSlot = -1;
+UINT      CGTradeInfo::m_playerMoney;
+UINT      CGTradeInfo::m_targetMoney;
 
 void CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID) {
   switch (status) {
@@ -92,7 +91,7 @@ void CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, 
   }
 }
 
-void TradeItemStatsCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
+void TradeItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(298);
   }
@@ -162,20 +161,20 @@ void CGTradeInfo::Update(TradeItemData *items) {
     FrameScript_SignalEvent(300, "%d", proposedEnchantmentSlot + 1);
   }
 
-  unsigned int playerMoney = Trade_C_GetPlayerTradeGold();
+  UINT playerMoney = Trade_C_GetPlayerTradeGold();
   if (m_playerMoney != playerMoney) {
     m_playerMoney = playerMoney;
     FrameScript_SignalEvent(303);
     FrameScript_SignalEvent(49, "%s", "player");
   }
-  unsigned int targetMoney = Trade_C_GetTargetTradeGold();
+  UINT targetMoney = Trade_C_GetTargetTradeGold();
   if (m_targetMoney != targetMoney) {
     m_targetMoney = targetMoney;
     FrameScript_SignalEvent(302);
   }
 }
 
-void CGTradeInfo::SetTradePartner(unsigned __int64 partner) {
+void CGTradeInfo::SetTradePartner(DWORDLONG partner) {
   if (!partner) {
     if (m_tradingPlayer) {
       FrameScript_SignalEvent(297);
@@ -203,9 +202,9 @@ void CGTradeInfo::SetTradePartner(unsigned __int64 partner) {
   m_targetMoney = 0;
 
   if (Trade_C_UseCursorItem()) {
-    unsigned __int64 item;
-    unsigned __int64 container;
-    unsigned int     slot;
+    DWORDLONG item;
+    DWORDLONG container;
+    UINT      slot;
     CGGameUI::GetCursorItem(item, container, slot);
     if (item && container) {
       Trade_C_AddItem(item, container, slot, 0);
@@ -218,7 +217,7 @@ void CGTradeInfo::SetTradePartner(unsigned __int64 partner) {
   FrameScript_SignalEvent(296);
 }
 
-int CGTradeInfo::SetPlayerItem(int index, unsigned __int64 guid, unsigned __int64 bag, unsigned char slot) {
+int CGTradeInfo::SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot) {
   if (index < 0 || index >= 8) {
     return 0;
   }
@@ -232,7 +231,7 @@ int CGTradeInfo::SetPlayerItem(int index, unsigned __int64 guid, unsigned __int6
   return 1;
 }
 
-void CGTradeInfo::RemovePlayerItem(unsigned __int64 guid) {
+void CGTradeInfo::RemovePlayerItem(DWORDLONG guid) {
   if (!guid) {
     return;
   }
@@ -245,7 +244,7 @@ void CGTradeInfo::RemovePlayerItem(unsigned __int64 guid) {
   }
 }
 
-void CGTradeInfo::UpdatePlayerItem(unsigned __int64 guid) {
+void CGTradeInfo::UpdatePlayerItem(DWORDLONG guid) {
   if (!guid) {
     return;
   }
@@ -276,7 +275,7 @@ GAME_ERROR_TYPE CGTradeInfo::GetGameError(BAG_RESULT bagResult, int myFailure) {
   return CGBag_C::GetGameError(bagResult);
 }
 
-static int Script_CloseTrade(lua_State *__formal) {
+static int Script_CloseTrade(lua_State *) {
   Trade_C_CancelTrade();
   return 0;
 }
@@ -290,14 +289,14 @@ static int Script_ClickTradeButton(lua_State *L) {
     CGGameUI::ClearCursor(1);
     return 0;
   }
-  int              index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  unsigned __int64 cursorItem;
-  unsigned __int64 cursorContainer;
-  unsigned int     cursorSlot;
+  int       index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  DWORDLONG cursorItem;
+  DWORDLONG cursorContainer;
+  UINT      cursorSlot;
   CGGameUI::GetCursorItem(cursorItem, cursorContainer, cursorSlot);
-  unsigned __int64 item;
-  unsigned __int64 bag;
-  unsigned char    slot;
+  DWORDLONG item;
+  DWORDLONG bag;
+  BYTE      slot;
   CGTradeInfo::GetPlayerItemInfo(index, item, bag, slot);
   if (cursorItem == item) {
     CGGameUI::ClearCursor(1);
@@ -320,7 +319,7 @@ static int Script_ClickTargetTradeButton(lua_State *L) {
     Trade_C_AddMoney(CGGameUI::GetCursorMoney());
     CGGameUI::ClearCursor(1);
   } else {
-    Trade_C_RemoveItem(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+    Trade_C_RemoveItem(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   }
   return 0;
 }
@@ -331,7 +330,7 @@ static int Script_GetTradeTargetItemInfo(lua_State *L) {
   }
   int              index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   int              itemID = CGTradeInfo::GetTargetTradeItem(index);
-  unsigned __int64 creator = CGTradeInfo::GetTargetTradeItemCreator(index);
+  DWORDLONG        creator = CGTradeInfo::GetTargetTradeItemCreator(index);
   const ItemStats *stats = itemID ? g_itemDBCache.GetRecord(itemID, creator, TradeItemStatsCallback, 0) : 0;
   if (!itemID || !stats) {
     lua_pushnil(L);
@@ -343,9 +342,9 @@ static int Script_GetTradeTargetItemInfo(lua_State *L) {
     return 6;
   }
   lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
-  const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  const char *separator = path && *path ? "\\" : "";
-  char        buffer[260];
+  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+  LPCSTR separator = path && *path ? "\\" : "";
+  char   buffer[260];
   SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
   SStrCopy(buffer + strlen(buffer), CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer) - strlen(buffer));
   lua_pushstring(L, buffer);
@@ -379,10 +378,10 @@ static int Script_GetTradePlayerItemInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradePlayerItemInfo(index)");
   }
-  int              index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  unsigned __int64 guid;
-  unsigned __int64 bag;
-  unsigned char    slot;
+  int       index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  DWORDLONG guid;
+  DWORDLONG bag;
+  BYTE      slot;
   CGTradeInfo::GetPlayerItemInfo(index, guid, bag, slot);
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!item) {
@@ -399,9 +398,9 @@ static int Script_GetTradePlayerItemInfo(lua_State *L) {
   } else {
     lua_pushnil(L);
   }
-  const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  const char *separator = path && *path ? "\\" : "";
-  char        buffer[260];
+  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+  LPCSTR separator = path && *path ? "\\" : "";
+  char   buffer[260];
   SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
   SStrCopy(buffer + strlen(buffer), item->GetInventoryArt(), sizeof(buffer) - strlen(buffer));
   lua_pushstring(L, buffer);
@@ -419,9 +418,9 @@ static int Script_GetTradePlayerItemLink(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradePlayerItemLink(index)");
   }
-  unsigned __int64 guid;
-  unsigned __int64 bag;
-  unsigned char    slot;
+  DWORDLONG guid;
+  DWORDLONG bag;
+  BYTE      slot;
   CGTradeInfo::GetPlayerItemInfo(static_cast<int>(lua_tonumber(L, 1)) - 1, guid, bag, slot);
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!item) {
@@ -437,12 +436,12 @@ static int Script_GetTradePlayerItemLink(lua_State *L) {
   return 1;
 }
 
-static int Script_AcceptTrade(lua_State *__formal) {
+static int Script_AcceptTrade(lua_State *) {
   Trade_C_AcceptTrade();
   return 0;
 }
 
-static int Script_CancelTradeAccept(lua_State *__formal) {
+static int Script_CancelTradeAccept(lua_State *) {
   Trade_C_UnacceptTrade();
   return 0;
 }
@@ -461,7 +460,7 @@ static int Script_PickupTradeMoney(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: PickupTradeMoney(amount)");
   }
-  unsigned int amount = static_cast<unsigned int>(lua_tonumber(L, 1));
+  UINT amount = static_cast<UINT>(lua_tonumber(L, 1));
   if (amount && amount <= Trade_C_GetPlayerTradeGold()) {
     Trade_C_RemoveMoney(amount);
     CGGameUI::SetCursorMoney(amount);
@@ -469,7 +468,7 @@ static int Script_PickupTradeMoney(lua_State *L) {
   return 0;
 }
 
-static int Script_AddTradeMoney(lua_State *__formal) {
+static int Script_AddTradeMoney(lua_State *) {
   if (CGGameUI::GetCursorMoney()) {
     Trade_C_AddMoney(CGGameUI::GetCursorMoney());
     CGGameUI::ClearCursor(1);
@@ -494,13 +493,13 @@ static FrameScript_Method s_ScriptFunctions[13] = {
 };
 
 void TradeInfoRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 13; ++i) {
+  for (UINT i = 0; i < 13; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void TradeInfoUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 13; ++i) {
+  for (UINT i = 0; i < 13; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

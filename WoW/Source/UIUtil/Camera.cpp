@@ -135,14 +135,14 @@ void RangeList::RemoveRange(float iMin, float iMax) {
 }
 
 NODEDECL(CameraShake) {
-  int           type;
-  int           direction;
-  float         amplitude;
-  float         frequency;
-  float         duration;
-  float         phase;
-  float         coefficient;
-  unsigned long timestamp;
+  int   type;
+  int   direction;
+  float amplitude;
+  float frequency;
+  float duration;
+  float phase;
+  float coefficient;
+  DWORD timestamp;
 };
 
 void CGCamera::AddShake(
@@ -229,7 +229,7 @@ static const struct {
     {1.00f, 0.78539818f},
 };
 
-static bool ValidateIsInRange(const char *strValue, float min, float max) {
+static bool ValidateIsInRange(LPCSTR strValue, float min, float max) {
   float value = SStrToFloat(strValue);
 
   if (value >= min && value <= max) {
@@ -240,7 +240,7 @@ static bool ValidateIsInRange(const char *strValue, float min, float max) {
   return false;
 }
 
-static bool ValidateCameraDistance(CVar *cvar, const char *oldValue, const char *newValue, void *arg) {
+static bool ValidateCameraDistance(CVar *cvar, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   float min;
 
   ASSERT(newValue);
@@ -250,7 +250,7 @@ static bool ValidateCameraDistance(CVar *cvar, const char *oldValue, const char 
   return ValidateIsInRange(newValue, min, 27.777779f);
 }
 
-static bool ValidateCameraAngle(CVar *cvar, const char *oldValue, const char *newValue, void *arg) {
+static bool ValidateCameraAngle(CVar *cvar, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   ASSERT(newValue);
 
   return ValidateIsInRange(newValue, -90.0f, 90.0f);
@@ -258,30 +258,30 @@ static bool ValidateCameraAngle(CVar *cvar, const char *oldValue, const char *ne
 
 static int Script_CameraZoomIn(lua_State *L) {
   FATALASSERT(CGInputControl::GetActive());
-  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
-  float         distance = lua_isnumber(L, 2) ? static_cast<float>(lua_tonumber(L, 2)) : 1.0f;
+  DWORD timestamp = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  float distance = lua_isnumber(L, 2) ? static_cast<float>(lua_tonumber(L, 2)) : 1.0f;
   CGWorldFrame::GetActiveCamera()->ZoomIn(distance, timestamp);
   return 0;
 }
 
 static int Script_CameraZoomOut(lua_State *L) {
   FATALASSERT(CGInputControl::GetActive());
-  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
-  float         distance = lua_isnumber(L, 2) ? static_cast<float>(lua_tonumber(L, 2)) : 1.0f;
+  DWORD timestamp = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  float distance = lua_isnumber(L, 2) ? static_cast<float>(lua_tonumber(L, 2)) : 1.0f;
   CGWorldFrame::GetActiveCamera()->ZoomOut(distance, timestamp);
   return 0;
 }
 
 static int Script_MoveViewStart(lua_State *L, CGCameraMotion motion) {
   FATALASSERT(CGInputControl::GetActive());
-  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  DWORD timestamp = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGWorldFrame::GetActiveCamera()->StartMotion(motion, timestamp, 0);
   return 0;
 }
 
 static int Script_MoveViewStop(lua_State *L, CGCameraMotion motion) {
   FATALASSERT(CGInputControl::GetActive());
-  unsigned long timestamp = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  DWORD timestamp = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGWorldFrame::GetActiveCamera()->StopMotion(motion, timestamp);
   return 0;
 }
@@ -340,7 +340,7 @@ static int Script_MoveViewDownStop(lua_State *L) {
   return Script_MoveViewStop(L, CAMERA_MOVE_DOWN);
 }
 
-static int Script_ToggleMouseMove(lua_State *__formal) {
+static int Script_ToggleMouseMove(lua_State *) {
   CGWorldFrame::GetActiveCamera()->ToggleFreeLook();
   return 0;
 }
@@ -375,12 +375,12 @@ static int Script_ResetView(lua_State *L) {
   return 0;
 }
 
-static int Script_NextView(lua_State *__formal) {
+static int Script_NextView(lua_State *) {
   CGWorldFrame::GetActiveCamera()->NextView();
   return 0;
 }
 
-static int Script_PrevView(lua_State *__formal) {
+static int Script_PrevView(lua_State *) {
   CGWorldFrame::GetActiveCamera()->PreviousView();
   return 0;
 }
@@ -600,7 +600,7 @@ float CGCamera::GetCameraDistance(float cameraDist, const NTempest::C3Vector &ta
 
   NTempest::C3Vector boxExtent = Forward() * (cameraDist - m_nearZ);
   NTempest::C3Vector boxPoints[8];
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     boxPoints[i] = cameraFrustum.corners[i];
     boxPoints[i + 4] = cameraFrustum.corners[i] + boxExtent;
   }
@@ -613,19 +613,19 @@ float CGCamera::GetCameraDistance(float cameraDist, const NTempest::C3Vector &ta
   NTempest::C44Matrix xform;
   int                 boxClipped = 0;
   if (boxIntersect.facets.Count() && CWorld::NDCXform(cameraFrustum, xform, false)) {
-    unsigned int count = boxIntersect.facets.Count();
-    for (unsigned int i = 0; i < count; ++i) {
+    UINT count = boxIntersect.facets.Count();
+    for (UINT i = 0; i < count; ++i) {
       NTempest::CFacet &facet = boxIntersect.facets[i];
-      for (unsigned int j = 0; j < 3; ++j) {
+      for (UINT j = 0; j < 3; ++j) {
         facet.vertices[j] = (facet.vertices[j] - cameraPosition) * xform;
       }
 
       NTempest::C3Vector **clipped_points;
-      unsigned int         clipped_count;
+      UINT                 clipped_count;
       if (CWorld::NDCClip(facet.vertices, 3, clipped_points, clipped_count)) {
         float maxZ = -FLT_MAX;
         float minZ = FLT_MAX;
-        for (unsigned int j = 0; j < clipped_count; ++j) {
+        for (UINT j = 0; j < clipped_count; ++j) {
           if (clipped_points[j]->z < minZ) {
             minZ = clipped_points[j]->z;
           }
@@ -660,7 +660,7 @@ float CGCamera::GetCameraDistance(float cameraDist, const NTempest::C3Vector &ta
   return cameraDist;
 }
 
-int CGCamera::CCommand_CameraClip(const char *command, const char *arguments) {
+int CGCamera::CCommand_CameraClip(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     s_clipCamera = SStrToInt(arguments);
   } else {
@@ -700,7 +700,7 @@ float CGCamera::CollideCameraWithWorld(const NTempest::C3Vector &targetPosition)
   return cameraDist;
 }
 
-void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
+void CGCamera::CalcThirdPerson(CGObject_C *target, DWORD timestamp) {
   FATALASSERT(target);
   if (!((m_flags & 0x40) || FinishLoadingTarget(target))) {
     return;
@@ -721,7 +721,7 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
     unit->UpdateSmoothFacing();
     playerYaw = unit->GetRawSmoothFacing();
     const CGUnitData *unitData = unit->GetUnitData();
-    unsigned int      unitFlags = unitData->flags;
+    UINT              unitFlags = unitData->flags;
     if (!(unitFlags & 0x01000000) &&
         (!((target->GetType() & TYPE_PLAYER) && !unitData->charmedBy) || !(((unitFlags & 2) || !(unitFlags & 0x00C00004)) && !(unitFlags & 1))))
     {
@@ -740,11 +740,7 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
     m_zoomSmoothingTimestamp = 0;
   } else {
     if ((timestamp - m_zoomSmoothingTimestamp) * 0.001f / m_zoomTime < 1.0f) {
-      m_distance = OrganicSmooth(
-          m_previousDistance,
-          m_desiredDistance,
-          (timestamp - m_zoomSmoothingTimestamp) * 0.001f / m_zoomTime
-      );
+      m_distance = OrganicSmooth(m_previousDistance, m_desiredDistance, (timestamp - m_zoomSmoothingTimestamp) * 0.001f / m_zoomTime);
     } else {
       m_distance = m_desiredDistance;
     }
@@ -757,11 +753,7 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
       m_pitch = m_desiredPitch;
     } else if (timestamp >= m_pitchSmoothingTimestamp) {
       if ((timestamp - m_pitchSmoothingTimestamp) * 0.001f / m_pitchTime < 1.0f) {
-        m_pitch = OrganicSmooth(
-            m_previousPitch,
-            m_desiredPitch,
-            (timestamp - m_pitchSmoothingTimestamp) * 0.001f / m_pitchTime
-        );
+        m_pitch = OrganicSmooth(m_previousPitch, m_desiredPitch, (timestamp - m_pitchSmoothingTimestamp) * 0.001f / m_pitchTime);
       } else {
         m_pitch = m_desiredPitch;
       }
@@ -772,11 +764,7 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
       m_yawOffset = m_desiredYaw;
     } else if (timestamp >= m_yawSmoothingTimestamp) {
       if ((timestamp - m_yawSmoothingTimestamp) * 0.001f / m_yawTime < 1.0f) {
-        m_yawOffset = OrganicSmooth(
-            m_previousYaw,
-            m_desiredYaw,
-            (timestamp - m_yawSmoothingTimestamp) * 0.001f / m_yawTime
-        );
+        m_yawOffset = OrganicSmooth(m_previousYaw, m_desiredYaw, (timestamp - m_yawSmoothingTimestamp) * 0.001f / m_yawTime);
       } else {
         m_yawOffset = m_desiredYaw;
       }
@@ -811,8 +799,8 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
       m_facing.a0 = static_cast<float>(cos(m_yaw));
       m_facing.a1 = static_cast<float>(sin(m_yaw));
     } else {
-      unsigned int fadeValue = static_cast<unsigned int>(OrganicSmooth(0.0f, 255.0f, normalizedDist / fadeDistance));
-      SetTargetFadeValue(static_cast<unsigned char>(fadeValue));
+      UINT fadeValue = static_cast<UINT>(OrganicSmooth(0.0f, 255.0f, normalizedDist / fadeDistance));
+      SetTargetFadeValue(static_cast<BYTE>(fadeValue));
     }
   } else {
     SetTargetFadeValue(255);
@@ -821,7 +809,7 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, unsigned long timestamp) {
   CSimpleCamera::SetFacing(NTempest::C3Vector(m_facing.a0, m_facing.a1, m_facing.a2));
 }
 
-void CGCamera::CalcFirstPerson(CGObject_C *target, unsigned long timestamp) {
+void CGCamera::CalcFirstPerson(CGObject_C *target, DWORD timestamp) {
   FATALASSERT(target);
 
   if ((m_flags & 0x40) || FinishLoadingTarget(target)) {
@@ -839,7 +827,7 @@ void CGCamera::CalcFirstPerson(CGObject_C *target, unsigned long timestamp) {
   }
 }
 
-void CGCamera::CalcModelCamera(unsigned long timestamp) {
+void CGCamera::CalcModelCamera(DWORD timestamp) {
   if ((m_flags & 0x40) || (ModelIsLoaded(m_model, 1) && FinishLoadingModel())) {
     if (ModelAdvanceTime(m_model)) {
       NTempest::C3Vector position(0.0f);
@@ -853,7 +841,7 @@ void CGCamera::CalcModelCamera(unsigned long timestamp) {
   }
 }
 
-void CGCamera::SetTargetFadeValue(unsigned char value) {
+void CGCamera::SetTargetFadeValue(BYTE value) {
   CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
   FATALASSERT(worldFrame);
   worldFrame->SetPlayerFadeCameraValue(value);
@@ -894,7 +882,7 @@ void CGCamera::DisableFreeLook(int sticky) {
   SetModeNormal();
   m_distance = m_desiredDistance;
 
-  unsigned int view = m_flags & 0x7;
+  UINT view = m_flags & 0x7;
   if (!view) {
     SetTargetFadeValue(0);
     return;
@@ -1005,8 +993,8 @@ void CGCamera::ResetView(int view) {
   }
 }
 
-void CGCamera::ZoomIn(float distance, unsigned long timestamp) {
-  unsigned long timeout = static_cast<unsigned long>(distance / s_cameraLinearSpeed->GetFloat() * 1000.0f);
+void CGCamera::ZoomIn(float distance, DWORD timestamp) {
+  DWORD timeout = static_cast<DWORD>(distance / s_cameraLinearSpeed->GetFloat() * 1000.0f);
   if (m_motionMask & (1 << (2 * CAMERA_MOVE_OUT))) {
     StopMotion(CAMERA_MOVE_OUT, timestamp);
   }
@@ -1017,8 +1005,8 @@ void CGCamera::ZoomIn(float distance, unsigned long timestamp) {
   }
 }
 
-void CGCamera::ZoomOut(float distance, unsigned long timestamp) {
-  unsigned long timeout = static_cast<unsigned long>(distance / s_cameraLinearSpeed->GetFloat() * 1000.0f);
+void CGCamera::ZoomOut(float distance, DWORD timestamp) {
+  DWORD timeout = static_cast<DWORD>(distance / s_cameraLinearSpeed->GetFloat() * 1000.0f);
   if (m_motionMask & (1 << (2 * CAMERA_MOVE_IN))) {
     StopMotion(CAMERA_MOVE_IN, timestamp);
   }
@@ -1029,7 +1017,7 @@ void CGCamera::ZoomOut(float distance, unsigned long timestamp) {
   }
 }
 
-void CGCamera::StartMotion(CGCameraMotion move, unsigned long timestamp, unsigned long timeout) {
+void CGCamera::StartMotion(CGCameraMotion move, DWORD timestamp, DWORD timeout) {
   FATALASSERT(move < NUM_CAMERA_MOTIONS);
   if (m_flags & 7) {
     m_motionMask |= 1 << (2 * move);
@@ -1038,9 +1026,9 @@ void CGCamera::StartMotion(CGCameraMotion move, unsigned long timestamp, unsigne
   }
 }
 
-void CGCamera::StopMotion(CGCameraMotion move, unsigned long timestamp) {
+void CGCamera::StopMotion(CGCameraMotion move, DWORD timestamp) {
   FATALASSERT(move < NUM_CAMERA_MOTIONS);
-  unsigned long motion = 1 << (2 * move);
+  DWORD motion = 1 << (2 * move);
   if (m_motionMask & motion) {
     m_motionStop[move] = timestamp;
     m_motionMask |= 1 << (2 * move + 1);
@@ -1074,9 +1062,9 @@ void CGCamera::SyncFreeLookFacing() {
   CGInputControl::GetActive()->CameraTurnPlayer(OsGetAsyncTimeMs(), playerYaw, m_pitch, 1);
 }
 
-void CGCamera::UpdateMotion(unsigned long timestamp) {
+void CGCamera::UpdateMotion(DWORD timestamp) {
   for (int move = 0; move < NUM_CAMERA_MOTIONS; ++move) {
-    unsigned long motion = 1 << (2 * move);
+    DWORD motion = 1 << (2 * move);
     if (!(m_motionMask & motion)) {
       continue;
     }
@@ -1085,7 +1073,7 @@ void CGCamera::UpdateMotion(unsigned long timestamp) {
       StopMotion(static_cast<CGCameraMotion>(move), timestamp);
     }
 
-    unsigned long elapsed;
+    DWORD elapsed;
     if (m_motionMask & (motion << 1)) {
       long stopped = m_motionStop[move] - m_motionStart[move];
       elapsed = stopped < 0 ? 0 : stopped;
@@ -1167,7 +1155,7 @@ void CGCamera::UpdateMotion(unsigned long timestamp) {
 void CGCamera::RunShakes() {
   if (!m_shakes.IsEmpty()) {
     NTempest::C3Vector shakeOffset(0.0f);
-    unsigned long      timestamp = OsGetAsyncTimeMs();
+    DWORD              timestamp = OsGetAsyncTimeMs();
     CGUnit_C          *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_target, __FILE__, __LINE__));
     FATALASSERT(target);
     float yaw = target->GetSmoothFacing();
@@ -1200,7 +1188,7 @@ void CGCamera::RunShakes() {
 }
 
 void CGCamera::CheckUnderwater() {
-  unsigned int liquid = CWorld::SceneCamLiquidStatus();
+  UINT liquid = CWorld::SceneCamLiquidStatus();
   if (!(m_flags & 0x20) || m_savedLiquid != liquid) {
     SndInterfaceSetUnderwater(liquid != 15);
     m_flags |= 0x20;
@@ -1208,10 +1196,10 @@ void CGCamera::CheckUnderwater() {
   }
 }
 
-int CGCamera::UpdateCallback(const void *__formal, void *param) {
+int CGCamera::UpdateCallback(LPCVOID, LPVOID param) {
   if (param) {
-    CGCamera     *camera = static_cast<CGCamera *>(param);
-    unsigned long timestamp = OsGetAsyncTimeMs();
+    CGCamera *camera = static_cast<CGCamera *>(param);
+    DWORD     timestamp = OsGetAsyncTimeMs();
     camera->m_fov = s_cameraFOV->GetFloat() * 0.017453292f;
     camera->m_nearZ = s_cameraNearZ->GetFloat();
     camera->m_farZ = s_cameraFarZ->GetFloat();
@@ -1250,7 +1238,7 @@ void CGCamera::SetupWorldProjection(const NTempest::CRect &projectionRect) {
   SetGxProjectionAndView(projectionRect);
 }
 
-void CGCamera::MakeRelativeTo(unsigned __int64 guid) {
+void CGCamera::MakeRelativeTo(DWORDLONG guid) {
   if (guid == m_relativeTo) {
     return;
   }
@@ -1353,7 +1341,7 @@ void CGCamera::SetView(int newView) {
     return;
   }
 
-  unsigned long timestamp = OsGetAsyncTimeMs();
+  DWORD timestamp = OsGetAsyncTimeMs();
   m_flags = (m_flags & ~0x7) | newView;
   m_zoomSmoothingTimestamp = timestamp;
   m_zoomTime = 0.0f;
@@ -1389,9 +1377,7 @@ void CGCamera::ResetModelCamera() {
   }
 }
 
-int CGCamera::SetModelCamera(
-    const char *modelFile, const NTempest::C3Vector &origin, float facing, int(*ModelCameraFinished)(void *), void *param
-) {
+int CGCamera::SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param) {
   ClearModelCamera();
 
   CStatus status;
@@ -1457,7 +1443,7 @@ float CGCamera::GetSmoothedHeight(float z, int moving) {
   return m_savedTargetZ;
 }
 
-void CGCamera::SetDesiredDistance(float desiredDistance, unsigned long timestamp) {
+void CGCamera::SetDesiredDistance(float desiredDistance, DWORD timestamp) {
   if (NTempest::CMath::fnotequal_(m_desiredDistance, desiredDistance)) {
     m_zoomTime = NTempest::CMath::fabs_((desiredDistance - m_distance) / (desiredDistance - m_desiredDistance)) * s_cameraSmoothingTime->GetFloat();
     m_zoomSmoothingTimestamp = timestamp;
@@ -1466,47 +1452,47 @@ void CGCamera::SetDesiredDistance(float desiredDistance, unsigned long timestamp
   }
 }
 
-void CGCamera::SetDesiredDistanceOverTime(float desiredDistance, float motionTime, unsigned long timestamp) {
+void CGCamera::SetDesiredDistanceOverTime(float desiredDistance, float motionTime, DWORD timestamp) {
   m_zoomTime = motionTime;
   m_zoomSmoothingTimestamp = timestamp;
   m_previousDistance = m_distance;
   m_desiredDistance = desiredDistance;
 }
 
-void CGCamera::SetDesiredPitchAngle(float desiredAngle, float delay, unsigned long timestamp) {
+void CGCamera::SetDesiredPitchAngle(float desiredAngle, float delay, DWORD timestamp) {
   if (NTempest::CMath::fnotequal_(m_desiredPitch, desiredAngle)) {
     m_flags &= ~0x10u;
     m_smoothingAngle = 0.0f;
     float motionTime = NTempest::CMath::fabs_((desiredAngle - m_pitch) / (desiredAngle - m_desiredPitch)) * s_cameraSmoothingTime->GetFloat();
-    SetDesiredPitchAngleOverTime(desiredAngle, motionTime, timestamp + static_cast<unsigned long>(delay * 1000.0f));
+    SetDesiredPitchAngleOverTime(desiredAngle, motionTime, timestamp + static_cast<DWORD>(delay * 1000.0f));
   }
 }
 
-void CGCamera::SetDesiredPitchAngleOverTime(float desiredAngle, float motionTime, unsigned long timestamp) {
+void CGCamera::SetDesiredPitchAngleOverTime(float desiredAngle, float motionTime, DWORD timestamp) {
   m_previousPitch = m_pitch;
   m_desiredPitch = desiredAngle;
   m_pitchTime = motionTime;
   m_pitchSmoothingTimestamp = timestamp;
 }
 
-void CGCamera::SetDesiredYawAngle(float desiredAngle, float delay, unsigned long timestamp) {
+void CGCamera::SetDesiredYawAngle(float desiredAngle, float delay, DWORD timestamp) {
   if (NTempest::CMath::fabs_(desiredAngle - m_yawOffset) > 3.1415927f) {
     desiredAngle = 6.2831855f - desiredAngle;
   }
   if (m_desiredYaw != desiredAngle) {
     float motionTime = (desiredAngle - m_yawOffset) / (desiredAngle - m_desiredYaw) * s_cameraSmoothingTime->GetFloat();
-    SetDesiredYawAngleOverTime(desiredAngle, motionTime, timestamp + static_cast<unsigned long>(delay * 1000.0f));
+    SetDesiredYawAngleOverTime(desiredAngle, motionTime, timestamp + static_cast<DWORD>(delay * 1000.0f));
   }
 }
 
-void CGCamera::SetDesiredYawAngleOverTime(float desiredAngle, float motionTime, unsigned long timestamp) {
+void CGCamera::SetDesiredYawAngleOverTime(float desiredAngle, float motionTime, DWORD timestamp) {
   m_previousYaw = m_yawOffset;
   m_desiredYaw = desiredAngle;
   m_yawTime = motionTime;
   m_yawSmoothingTimestamp = timestamp;
 }
 
-void CGCamera::SetSmoothingAngle(float smoothingAngle, unsigned long timestamp, int quickly) {
+void CGCamera::SetSmoothingAngle(float smoothingAngle, DWORD timestamp, int quickly) {
   if (smoothingAngle > 0.61086524f) {
     smoothingAngle = 0.61086524f;
   } else if (smoothingAngle < -0.52359879f) {
@@ -1526,9 +1512,7 @@ void CGCamera::SetSmoothingAngle(float smoothingAngle, unsigned long timestamp, 
   m_smoothingAngle = smoothingAngle;
 }
 
-void CGCamera::PerformTerrainTilt(
-    unsigned long timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly
-) {
+void CGCamera::PerformTerrainTilt(DWORD timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly) {
   int quickly;
   if (!s_cameraSmooth->GetInt()) {
     return;
@@ -1537,7 +1521,7 @@ void CGCamera::PerformTerrainTilt(
     return;
   }
 
-  unsigned long nextUpdate;
+  DWORD nextUpdate;
   if (moving || !turning) {
     quickly = 0;
     nextUpdate = m_lastDeltaZ + 100;

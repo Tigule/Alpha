@@ -28,13 +28,13 @@ class CGPartyInfo {
     int                connected;
   };
 
-  static void InitializeGame();
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void ShutdownGame();
-  static int IsMember(const unsigned __int64 &guid);
-  static unsigned __int64 GetMemberByName(const char *name);
-  static unsigned __int64 GetLeader() {
+  static void      InitializeGame();
+  static void      EnterWorld();
+  static void      LeaveWorld();
+  static void      ShutdownGame();
+  static int       IsMember(const DWORDLONG &guid);
+  static DWORDLONG GetMemberByName(LPCSTR name);
+  static DWORDLONG GetLeader() {
     return m_leader;
   }
   static int GetLeaderIndex() {
@@ -43,25 +43,25 @@ class CGPartyInfo {
   static int InParty() {
     return NumMembers() != 0;
   }
-  static unsigned int NumMembers();
-  static RemoteStats *GetRemoteStats(unsigned __int64 guid);
+  static UINT         NumMembers();
+  static RemoteStats *GetRemoteStats(DWORDLONG guid);
   static RemoteStats *GetRemoteStatsByIndex(int index);
-  static void OnNameCacheCallback();
-  static unsigned __int64        GetMember(unsigned int index) {
+  static void         OnNameCacheCallback();
+  static DWORDLONG    GetMember(UINT index) {
     FATALASSERT(index < 4);
     return m_members[index];
   }
-  static void SetLeader(unsigned __int64 guid);
-  static void AddMember(unsigned __int64 guid, int connected);
-  static void EnableMember(unsigned __int64 guid, int enable);
-  static void RemoveActivePlayer(unsigned __int64 guid);
-  static void RemoveAll();
-  static void SetLootMethod(LOOT_METHOD method, unsigned __int64 master);
-  static void SetLookingForGroup(int looking);
+  static void        SetLeader(DWORDLONG guid);
+  static void        AddMember(DWORDLONG guid, int connected);
+  static void        EnableMember(DWORDLONG guid, int enable);
+  static void        RemoveActivePlayer(DWORDLONG guid);
+  static void        RemoveAll();
+  static void        SetLootMethod(LOOT_METHOD method, DWORDLONG master);
+  static void        SetLookingForGroup(int looking);
   static LOOT_METHOD GetLootMethod() {
     return m_lootMethod;
   }
-  static unsigned __int64 GetMasterLooter() {
+  static DWORDLONG GetMasterLooter() {
     return m_lootMaster;
   }
   static int IsLookingForGroup() {
@@ -69,13 +69,13 @@ class CGPartyInfo {
   }
 
  protected:
-  static unsigned __int64 m_leader;
-  static int              m_leaderIndex;
-  static unsigned __int64 m_members[4];
-  static RemoteStats      m_remoteStats[4];
-  static LOOT_METHOD      m_lootMethod;
-  static unsigned __int64 m_lootMaster;
-  static int              m_lookingForGroup;
+  static DWORDLONG   m_leader;
+  static int         m_leaderIndex;
+  static DWORDLONG   m_members[4];
+  static RemoteStats m_remoteStats[4];
+  static LOOT_METHOD m_lootMethod;
+  static DWORDLONG   m_lootMaster;
+  static int         m_lookingForGroup;
 };
 
 #endif

@@ -17,26 +17,26 @@ NODEDECL(MSGBUFFER) {
     FREEIFUSED(string);
   }
 
-  void SetInfo(const char *newString, SYSMSG_TYPE newSeverity, unsigned int categories);
+  void SetInfo(LPCSTR newString, SYSMSG_TYPE newSeverity, UINT categories);
 
-  char        *string;
-  float        timeVisible;
-  SYSMSG_TYPE  severity;
-  unsigned int categoryMask;
+  char       *string;
+  float       timeVisible;
+  SYSMSG_TYPE severity;
+  UINT        categoryMask;
 };
 
 static LISTDECL(MSGBUFFER, s_msgBuffer);
 
 static const char s_categoryMaskLetters[7] = {'G', 'W', 'U', 'A', 'M', 'O', 'S'};
 
-static const char *s_severityStrings[SYSMSG_NUMTYPES] = {"INFO", "WARNING", "ERROR", "FATAL"};
+static LPCSTR s_severityStrings[SYSMSG_NUMTYPES] = {"INFO", "WARNING", "ERROR", "FATAL"};
 
 static struct {
-  unsigned char red;
-  unsigned char green;
-  unsigned char blue;
-  unsigned char unused;
-  float         timeVisible;
+  BYTE  red;
+  BYTE  green;
+  BYTE  blue;
+  BYTE  unused;
+  float timeVisible;
 } s_severityDisplay[SYSMSG_NUMTYPES] = {
     {255, 255, 255, 0, 10.0f},
     {255, 255, 127, 0, 15.0f},
@@ -47,14 +47,14 @@ static struct {
 static int            s_enabled = 1;
 static SYSMSG_TYPE    s_minSeverity = SYSMSG_INFO;
 static SYSMSG_TYPE    s_maxSeverity = SYSMSG_FATAL;
-static unsigned int   s_categoryFilter = 0xFFFFFFFF;
+static UINT           s_categoryFilter = 0xFFFFFFFF;
 static HOSFILE        s_osFile;
 static SYSMSGCALLBACK s_callback;
 
-static void GenerateMaskString(char *buffer, unsigned int size, unsigned int maskString);
-static int DetermineFileName(const char *curDir, char *buffer, unsigned int size);
+static void GenerateMaskString(char *buffer, UINT size, UINT maskString);
+static int  DetermineFileName(LPCSTR curDir, char *buffer, UINT size);
 
-void MSGBUFFER::SetInfo(const char *newString, SYSMSG_TYPE newSeverity, unsigned int categories) {
+void MSGBUFFER::SetInfo(LPCSTR newString, SYSMSG_TYPE newSeverity, UINT categories) {
   FREEIFUSED(string);
 
   if (newString) {
@@ -67,9 +67,9 @@ void MSGBUFFER::SetInfo(const char *newString, SYSMSG_TYPE newSeverity, unsigned
   categoryMask = categories;
 }
 
-static void GenerateMaskString(char *buffer, unsigned int size, unsigned int maskString) {
-  char         maskLetters[7];
-  unsigned int i;
+static void GenerateMaskString(char *buffer, UINT size, UINT maskString) {
+  char maskLetters[7];
+  UINT i;
 
   for (i = 0; i < 7; ++i) {
     maskLetters[i] = maskString & (1 << i) ? s_categoryMaskLetters[i] : '-';
@@ -80,8 +80,8 @@ static void GenerateMaskString(char *buffer, unsigned int size, unsigned int mas
   );
 }
 
-static int DetermineFileName(const char *curDir, char *buffer, unsigned int size) {
-  unsigned int index;
+static int DetermineFileName(LPCSTR curDir, char *buffer, UINT size) {
+  UINT index;
 
   for (index = 0; index < 1000; ++index) {
     ASSERT(curDir);
@@ -95,9 +95,9 @@ static int DetermineFileName(const char *curDir, char *buffer, unsigned int size
   return 0;
 }
 
-int SysMsgAdd(const char *msg, SYSMSG_TYPE severity, unsigned int categoryMask) {
-  char          string[512];
-  char          maskString[32] = "";
+int SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask) {
+  char string[512];
+  char maskString[32] = "";
 
   FATALASSERT(msg);
 
@@ -108,7 +108,7 @@ int SysMsgAdd(const char *msg, SYSMSG_TYPE severity, unsigned int categoryMask) 
     SStrPrintf(string, sizeof(string), "%s|%s|%s\r\n", maskString, s_severityStrings[severity], msg);
 
     if (s_osFile) {
-      OsWriteFile(s_osFile, string, SStrLen(string), reinterpret_cast<unsigned long *>(&categoryMask));
+      OsWriteFile(s_osFile, string, SStrLen(string), reinterpret_cast<DWORD *>(&categoryMask));
     }
 
     if (s_callback) {
@@ -119,7 +119,7 @@ int SysMsgAdd(const char *msg, SYSMSG_TYPE severity, unsigned int categoryMask) 
   return 1;
 }
 
-int SysMsgAdd(const CStatus &status, unsigned int categoryMask) {
+int SysMsgAdd(const CStatus &status, UINT categoryMask) {
   char *msg;
   int   result;
 
@@ -133,7 +133,7 @@ int SysMsgAdd(const CStatus &status, unsigned int categoryMask) {
   return result;
 }
 
-int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, unsigned int categoryMask, const char *format, char *arglist) {
+int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, char *arglist) {
   char buff[256];
 
   _vsnprintf(buff, sizeof(buff), format, arglist);
@@ -141,7 +141,7 @@ int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, unsigned int categoryMask, const
   return SysMsgAdd(buff, severity, categoryMask);
 }
 
-int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, unsigned int categoryMask, const char *format, ...) {
+int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, ...) {
   va_list arglist;
 
   FATALASSERT(format);
@@ -184,11 +184,11 @@ SYSMSG_TYPE SysMsgGetMaxDisplayLevel() {
   return s_maxSeverity;
 }
 
-void SysMsgSetFilter(unsigned int categoryFilter) {
+void SysMsgSetFilter(UINT categoryFilter) {
   s_categoryFilter = categoryFilter;
 }
 
-unsigned int SysMsgGetFilter() {
+UINT SysMsgGetFilter() {
   return s_categoryFilter;
 }
 
@@ -222,7 +222,7 @@ void SysMsgShutdown() {
   SysMsgDisableFileLog();
 }
 
-void SysMsgEnableFileLog(const char *baseDir) {
+void SysMsgEnableFileLog(LPCSTR baseDir) {
   char fileName[MAX_PATH];
   char file[MAX_PATH] = "";
 

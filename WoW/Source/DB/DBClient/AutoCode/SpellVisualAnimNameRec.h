@@ -7,13 +7,13 @@ class SpellVisualAnimNameRec {
   SpellVisualAnimNameRec();
   ~SpellVisualAnimNameRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 2;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 8;
   }
 
@@ -29,11 +29,11 @@ class SpellVisualAnimNameRec {
     m_generatedID = id;
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_AnimID;
-  const char *m_name;
-  int         m_generatedID;
+  int    m_AnimID;
+  LPCSTR m_name;
+  int    m_generatedID;
 };
 
 extern WowClientDB<SpellVisualAnimNameRec> g_spellVisualAnimNameDB;

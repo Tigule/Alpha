@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellEffectNamesRec::GetFilename() {
+LPCSTR SpellEffectNamesRec::GetFilename() {
   return "DBFilesClient\\SpellEffectNames.dbc";
 }
 
@@ -19,9 +19,9 @@ SpellEffectNamesRec::SpellEffectNamesRec() {
 SpellEffectNamesRec::~SpellEffectNamesRec() {
 }
 
-bool SpellEffectNamesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[8];
+bool SpellEffectNamesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[8];
 
   result = SFile::Read(f, &m_EnumID, sizeof(m_EnumID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempname_langIndices[0], sizeof(tempname_langIndices[0]), 0, 0, 0) && result;

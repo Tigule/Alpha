@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CharVariationsRec::GetFilename() {
+LPCSTR CharVariationsRec::GetFilename() {
   return "DBFilesClient\\CharVariations.dbc";
 }
 
@@ -19,7 +19,7 @@ CharVariationsRec::CharVariationsRec() {
 CharVariationsRec::~CharVariationsRec() {
 }
 
-bool CharVariationsRec::Read(SFile *f, const char *stringBuffer) {
+bool CharVariationsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_RaceID, sizeof(m_RaceID), 0, 0, 0) && result;

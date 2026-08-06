@@ -33,57 +33,56 @@ namespace NTempest {
       eBlueS = 0
     };
 
-    CImVector(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
+    CImVector(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
       Set(alpha, red, green, blue);
     }
 
-    CImVector(unsigned long n = 0);
+    CImVector(DWORD n = 0);
 
-    CImVector(unsigned char red, unsigned char green, unsigned char blue) {
+    CImVector(BYTE red, BYTE green, BYTE blue) {
       Set(0, red, green, blue);
     }
 
     CImVector(const CImVector *value) {
-      *reinterpret_cast<unsigned long *>(this) = *reinterpret_cast<const unsigned long *>(value);
+      *reinterpret_cast<DWORD *>(this) = *reinterpret_cast<const DWORD *>(value);
     }
 
     CImVector(const CImVector &value) {
-      *reinterpret_cast<unsigned long *>(this) = *reinterpret_cast<const unsigned long *>(&value);
+      *reinterpret_cast<DWORD *>(this) = *reinterpret_cast<const DWORD *>(&value);
     }
 
     ~CImVector() {
     }
 
-    static unsigned long MakeARGB(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
-      return (static_cast<unsigned long>(alpha) << 24) | (static_cast<unsigned long>(red) << 16) | (static_cast<unsigned long>(green) << 8) |
-             static_cast<unsigned long>(blue);
+    static DWORD MakeARGB(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
+      return (static_cast<DWORD>(alpha) << 24) | (static_cast<DWORD>(red) << 16) | (static_cast<DWORD>(green) << 8) | static_cast<DWORD>(blue);
     }
 
-    unsigned long *IV_() const {
-      return reinterpret_cast<unsigned long *>(const_cast<CImVector *>(this));
+    DWORD *IV_() const {
+      return reinterpret_cast<DWORD *>(const_cast<CImVector *>(this));
     }
 
     void Set(float alpha, float red, float green, float blue) {
       *IV_() = MakeARGB(
-          static_cast<unsigned char>(CMath::fuint_n(alpha * 255.0f)), static_cast<unsigned char>(CMath::fuint_n(red * 255.0f)),
-          static_cast<unsigned char>(CMath::fuint_n(green * 255.0f)), static_cast<unsigned char>(CMath::fuint_n(blue * 255.0f))
+          static_cast<BYTE>(CMath::fuint_n(alpha * 255.0f)), static_cast<BYTE>(CMath::fuint_n(red * 255.0f)),
+          static_cast<BYTE>(CMath::fuint_n(green * 255.0f)), static_cast<BYTE>(CMath::fuint_n(blue * 255.0f))
       );
     }
 
-    void Set(unsigned long value) {
+    void Set(DWORD value) {
       *IV_() = value;
     }
 
-    CImVector &operator=(unsigned long n) {
+    CImVector &operator=(DWORD n) {
       *IV_() = n;
       return *this;
     }
 
-    void Set(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
+    void Set(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
       *IV_() = MakeARGB(alpha, red, green, blue);
     }
 
-    void From565(unsigned char r5, unsigned char g6, unsigned char b5);
+    void From565(BYTE r5, BYTE g6, BYTE b5);
 
     CImVector &operator=(const CRgb565 &c);
     CImVector &operator=(const CArgb1555 &c);
@@ -92,187 +91,167 @@ namespace NTempest {
       *IV_() = *c.IV_();
       return *this;
     }
-    static unsigned long MakeRGB(unsigned char red, unsigned char green, unsigned char blue);
-    static unsigned long A_(unsigned long value);
-    unsigned long A_() const;
-    static unsigned long R_(unsigned long value);
-    unsigned long R_() const;
-    static unsigned long G_(unsigned long value);
-    unsigned long G_() const;
-    static unsigned long B_(unsigned long value);
-    unsigned long B_() const;
-    static void Get_(unsigned long value, float &alpha, float &red, float &green, float &blue);
-    static void Get_(
-        unsigned long value,
-        unsigned long &alpha,
-        unsigned long &red,
-        unsigned long &green,
-        unsigned long &blue);
-    static void Get_(unsigned long value, unsigned long &red, unsigned long &green, unsigned long &blue);
-    static unsigned long Neg(unsigned long value);
-    void Neg();
-    static unsigned long NegRGB(unsigned long value);
-    void NegRGB();
-    static unsigned long Desaturate(unsigned long value);
-    void Desaturate();
-    static unsigned long NegA(unsigned long value);
-    void NegA();
-    static unsigned long NegR(unsigned long value);
-    void NegR();
-    static unsigned long NegG(unsigned long value);
-    void NegG();
-    static unsigned long NegB(unsigned long value);
-    void NegB();
-    static unsigned char Gray(unsigned long value);
-    unsigned char Gray() const;
-    CImVector &operator=(const C3Vector &c);
-               operator C3Vector() const;
+    static DWORD MakeRGB(BYTE red, BYTE green, BYTE blue);
+    static DWORD A_(DWORD value);
+    DWORD        A_() const;
+    static DWORD R_(DWORD value);
+    DWORD        R_() const;
+    static DWORD G_(DWORD value);
+    DWORD        G_() const;
+    static DWORD B_(DWORD value);
+    DWORD        B_() const;
+    static void  Get_(DWORD value, float &alpha, float &red, float &green, float &blue);
+    static void  Get_(DWORD value, DWORD &alpha, DWORD &red, DWORD &green, DWORD &blue);
+    static void  Get_(DWORD value, DWORD &red, DWORD &green, DWORD &blue);
+    static DWORD Neg(DWORD value);
+    void         Neg();
+    static DWORD NegRGB(DWORD value);
+    void         NegRGB();
+    static DWORD Desaturate(DWORD value);
+    void         Desaturate();
+    static DWORD NegA(DWORD value);
+    void         NegA();
+    static DWORD NegR(DWORD value);
+    void         NegR();
+    static DWORD NegG(DWORD value);
+    void         NegG();
+    static DWORD NegB(DWORD value);
+    void         NegB();
+    static BYTE  Gray(DWORD value);
+    BYTE         Gray() const;
+    CImVector   &operator=(const C3Vector &c);
+                 operator C3Vector() const;
 
    protected:
-    unsigned long SetC_(unsigned long value, unsigned long mask, unsigned long shift) const;
-    static unsigned char ScaleC(unsigned long value, unsigned long scale);
-    static unsigned char ScaleC255(unsigned long value, unsigned long scale);
-    static unsigned char BlendC(unsigned long alpha, unsigned long source, unsigned long destination);
-    void Scale_(unsigned long scale);
-    void ScaleRGB_(unsigned long scale);
-    void Scale255RGB_(unsigned long scale);
-    void Multiply_(const CImVector *source);
-    void Blend_(unsigned long alpha, const CImVector *source);
-    void BlendARGB_(unsigned long alpha, const CImVector *source);
+    DWORD       SetC_(DWORD value, DWORD mask, DWORD shift) const;
+    static BYTE ScaleC(DWORD value, DWORD scale);
+    static BYTE ScaleC255(DWORD value, DWORD scale);
+    static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination);
+    void        Scale_(DWORD scale);
+    void        ScaleRGB_(DWORD scale);
+    void        Scale255RGB_(DWORD scale);
+    void        Multiply_(const CImVector *source);
+    void        Blend_(DWORD alpha, const CImVector *source);
+    void        BlendARGB_(DWORD alpha, const CImVector *source);
 
-    void Scale255_(unsigned long scale) {
-      Set(
-          0,
-          static_cast<unsigned char>((scale * r + 255) >> 8),
-          static_cast<unsigned char>((scale * g + 255) >> 8),
-          static_cast<unsigned char>((scale * b + 255) >> 8)
-      );
+    void Scale255_(DWORD scale) {
+      Set(0, static_cast<BYTE>((scale * r + 255) >> 8), static_cast<BYTE>((scale * g + 255) >> 8), static_cast<BYTE>((scale * b + 255) >> 8));
     }
 
     void MultiplyRGB_(const CImVector *s) {
       CImVector d(*this);
       CImVector sa(*s);
 
-      Set(d.a, static_cast<unsigned char>((sa.r * d.r + 255) >> 8), static_cast<unsigned char>((sa.g * d.g + 255) >> 8),
-          static_cast<unsigned char>((sa.b * d.b + 255) >> 8));
+      Set(d.a, static_cast<BYTE>((sa.r * d.r + 255) >> 8), static_cast<BYTE>((sa.g * d.g + 255) >> 8), static_cast<BYTE>((sa.b * d.b + 255) >> 8));
     }
 
-    void BlendRGB_(unsigned long alpha, const CImVector *source) {
+    void BlendRGB_(DWORD alpha, const CImVector *source) {
       CImVector destination(*this);
-      Set(
-          destination.a,
-          static_cast<unsigned char>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
-          static_cast<unsigned char>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
-          static_cast<unsigned char>(destination.b + ((alpha * (source->b - destination.b)) >> 8))
-      );
+      Set(destination.a, static_cast<BYTE>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
+          static_cast<BYTE>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
+          static_cast<BYTE>(destination.b + ((alpha * (source->b - destination.b)) >> 8)));
     }
 
-    void Blend255_(unsigned long alpha, const CImVector *source) {
+    void Blend255_(DWORD alpha, const CImVector *source) {
       if (alpha == 255) {
         *IV_() = *source->IV_();
         return;
       }
 
       CImVector destination(*this);
-      Set(
-          0,
-          static_cast<unsigned char>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
-          static_cast<unsigned char>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
-          static_cast<unsigned char>(destination.b + ((alpha * (source->b - destination.b)) >> 8))
-      );
+      Set(0, static_cast<BYTE>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
+          static_cast<BYTE>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
+          static_cast<BYTE>(destination.b + ((alpha * (source->b - destination.b)) >> 8)));
     }
 
-    void BlendRGB255_(unsigned long alpha, const CImVector *source) {
+    void BlendRGB255_(DWORD alpha, const CImVector *source) {
       if (alpha == 255) {
         SetRGB(source);
         return;
       }
 
       CImVector destination(*this);
-      Set(
-          destination.a,
-          static_cast<unsigned char>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
-          static_cast<unsigned char>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
-          static_cast<unsigned char>(destination.b + ((alpha * (source->b - destination.b)) >> 8))
-      );
+      Set(destination.a, static_cast<BYTE>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
+          static_cast<BYTE>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
+          static_cast<BYTE>(destination.b + ((alpha * (source->b - destination.b)) >> 8)));
     }
 
    public:
-    void Get(float &alpha, float &red, float &green, float &blue) const;
-    void Get(unsigned long &alpha, unsigned long &red, unsigned long &green, unsigned long &blue) const;
-    void Get(unsigned long &red, unsigned long &green, unsigned long &blue) const;
-    unsigned long Get() const;
-    unsigned long GetRGB() const;
-    void SetA(unsigned char alpha);
-    void SetR(unsigned char red);
-    void SetG(unsigned char green);
-    void SetB(unsigned char blue);
-    void Set(const CImVector *value);
-    void Set(const CImVector &value);
-    void Set(unsigned char red, unsigned char green, unsigned char blue);
-    void SetRGB(unsigned long value);
-    void SetRGB(const CImVector &value);
-    void SetRGB(unsigned char red, unsigned char green, unsigned char blue);
-    void From1555(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
-    void From4444(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
-    void FromARGB(unsigned char alpha, const CImVector &rgb);
+    void  Get(float &alpha, float &red, float &green, float &blue) const;
+    void  Get(DWORD &alpha, DWORD &red, DWORD &green, DWORD &blue) const;
+    void  Get(DWORD &red, DWORD &green, DWORD &blue) const;
+    DWORD Get() const;
+    DWORD GetRGB() const;
+    void  SetA(BYTE alpha);
+    void  SetR(BYTE red);
+    void  SetG(BYTE green);
+    void  SetB(BYTE blue);
+    void  Set(const CImVector *value);
+    void  Set(const CImVector &value);
+    void  Set(BYTE red, BYTE green, BYTE blue);
+    void  SetRGB(DWORD value);
+    void  SetRGB(const CImVector &value);
+    void  SetRGB(BYTE red, BYTE green, BYTE blue);
+    void  From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
+    void  From4444(BYTE alpha, BYTE red, BYTE green, BYTE blue);
+    void  FromARGB(BYTE alpha, const CImVector &rgb);
 
-    unsigned long operator~() const;
-    operator unsigned long() const;
+    DWORD operator~() const;
+          operator DWORD() const;
 
-    void Scale(unsigned long scale);
-    void ScaleRGB(unsigned long scale);
-    void Scale255(unsigned long scale);
-    void Scale255RGB(unsigned long scale);
-    void ScaleA(unsigned long scale);
-    void ScaleA255(unsigned long scale);
+    void Scale(DWORD scale);
+    void ScaleRGB(DWORD scale);
+    void Scale255(DWORD scale);
+    void Scale255RGB(DWORD scale);
+    void ScaleA(DWORD scale);
+    void ScaleA255(DWORD scale);
     void Multiply(const CImVector *source);
     void MultiplyRGB(const CImVector *s) {
       MultiplyRGB_(s);
     }
 
-    void Blend(unsigned long alpha, unsigned long source);
-    void Blend(unsigned long alpha, const CImVector *source);
-    void Blend(unsigned long source);
+    void Blend(DWORD alpha, DWORD source);
+    void Blend(DWORD alpha, const CImVector *source);
+    void Blend(DWORD source);
     void Blend(const CImVector *source);
-    void BlendRGB(unsigned long alpha, unsigned long source);
-    void BlendRGB(unsigned long alpha, const CImVector *source);
-    void BlendRGB(unsigned long source);
+    void BlendRGB(DWORD alpha, DWORD source);
+    void BlendRGB(DWORD alpha, const CImVector *source);
+    void BlendRGB(DWORD source);
     void BlendRGB(const CImVector *source);
-    void BlendARGB(unsigned long alpha, unsigned long source);
-    void BlendARGB(unsigned long alpha, const CImVector *source);
-    void Blend255(unsigned long alpha, unsigned long source);
-    void Blend255(unsigned long alpha, const CImVector *source);
-    void Blend255RGB(unsigned long alpha, unsigned long source);
-    void Blend255RGB(unsigned long alpha, const CImVector *source);
+    void BlendARGB(DWORD alpha, DWORD source);
+    void BlendARGB(DWORD alpha, const CImVector *source);
+    void Blend255(DWORD alpha, DWORD source);
+    void Blend255(DWORD alpha, const CImVector *source);
+    void Blend255RGB(DWORD alpha, DWORD source);
+    void Blend255RGB(DWORD alpha, const CImVector *source);
 
     void SetRGB(const CImVector *source) {
       *IV_() ^= (*IV_() ^ *source->IV_()) & 0x00FFFFFF;
     }
 
-    unsigned char &operator[](unsigned long index) {
+    BYTE &operator[](DWORD index) {
       ASSERT(index < 4);
       return (&b)[index];
     }
 
-    const unsigned char &operator[](unsigned long index) const {
+    const BYTE &operator[](DWORD index) const {
       ASSERT(index < 4);
       return (&b)[index];
     }
 
    protected:
-    static unsigned char s_a1Table[];
-    static unsigned char s_a4Table[];
+    static BYTE s_a1Table[];
+    static BYTE s_a4Table[];
 
    public:
-    unsigned char b;
-    unsigned char g;
-    unsigned char r;
-    unsigned char a;
+    BYTE b;
+    BYTE g;
+    BYTE r;
+    BYTE a;
   };
 
-  inline CImVector::CImVector(unsigned long n) {
-    *reinterpret_cast<unsigned long *>(this) = n;
+  inline CImVector::CImVector(DWORD n) {
+    *reinterpret_cast<DWORD *>(this) = n;
   }
 
   class CRgb565 {
@@ -294,25 +273,25 @@ namespace NTempest {
     CRgb565() {
     }
 
-    CRgb565(unsigned short value) {
-      *reinterpret_cast<unsigned short *>(this) = value;
+    CRgb565(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
     }
 
-    CRgb565(unsigned char r5, unsigned char g6, unsigned char b5) {
+    CRgb565(BYTE r5, BYTE g6, BYTE b5) {
       From565(r5, g6, b5);
     }
 
-    void From565(unsigned char r5, unsigned char g6, unsigned char b5) {
+    void From565(BYTE r5, BYTE g6, BYTE b5) {
       r = r5;
       g = g6;
       b = b5;
     }
-    void From888(unsigned int red, unsigned int green, unsigned int blue);
-    void From555(unsigned char red, unsigned char green, unsigned char blue);
-    void From444(unsigned char red, unsigned char green, unsigned char blue);
-    void FromARGB(unsigned char alpha, const CRgb565 &rgb);
-    CImVector MakeArgb() const;
-    static CRgb565 Blend(unsigned long alpha, const CRgb565 &source, const CRgb565 &destination);
+    void           From888(UINT red, UINT green, UINT blue);
+    void           From555(BYTE red, BYTE green, BYTE blue);
+    void           From444(BYTE red, BYTE green, BYTE blue);
+    void           FromARGB(BYTE alpha, const CRgb565 &rgb);
+    CImVector      MakeArgb() const;
+    static CRgb565 Blend(DWORD alpha, const CRgb565 &source, const CRgb565 &destination);
 
     CRgb565 &operator=(const CImVector &c) {
       r = c.r >> 3;
@@ -321,27 +300,27 @@ namespace NTempest {
       return *this;
     }
 
-    CRgb565 &operator=(unsigned short value) {
-      *reinterpret_cast<unsigned short *>(this) = value;
+    CRgb565 &operator=(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
       return *this;
     }
     CRgb565 &operator=(const CRgb565 &value) {
-      return *this = static_cast<unsigned short>(value);
+      return *this = static_cast<WORD>(value);
     }
     CRgb565 &operator=(const CArgb1555 &value);
     CRgb565 &operator=(const CArgb4444 &value);
 
-    operator unsigned short() const {
-      return *reinterpret_cast<const unsigned short *>(this);
+    operator WORD() const {
+      return *reinterpret_cast<const WORD *>(this);
     }
 
    private:
-    static unsigned char BlendC(unsigned long alpha, unsigned long source, unsigned long destination);
+    static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination);
 
    public:
-    unsigned short b : 5;
-    unsigned short g : 6;
-    unsigned short r : 5;
+    WORD b : 5;
+    WORD g : 6;
+    WORD r : 5;
   };
 
   class CArgb1555 {
@@ -366,29 +345,29 @@ namespace NTempest {
     CArgb1555() {
     }
 
-    CArgb1555(unsigned short value) {
-      *reinterpret_cast<unsigned short *>(this) = value;
+    CArgb1555(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
     }
 
-    CArgb1555(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
+    CArgb1555(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
       a = alpha;
       r = red;
       g = green;
       b = blue;
     }
 
-    void From565(unsigned char r5, unsigned char g6, unsigned char b5) {
+    void From565(BYTE r5, BYTE g6, BYTE b5) {
       a = 1;
       r = r5;
       g = g6 >> 1;
       b = b5;
     }
-    void From1555(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
-    void From4444(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
-    void From8888(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
-    void FromARGB(unsigned char alpha, const CArgb1555 &rgb);
+    void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
+    void       From4444(BYTE alpha, BYTE red, BYTE green, BYTE blue);
+    void       From8888(BYTE alpha, BYTE red, BYTE green, BYTE blue);
+    void       FromARGB(BYTE alpha, const CArgb1555 &rgb);
     CArgb1555 &operator=(const CArgb1555 &value) {
-      return *this = static_cast<unsigned short>(value);
+      return *this = static_cast<WORD>(value);
     }
     CArgb1555 &operator=(const CArgb4444 &value);
 
@@ -405,19 +384,19 @@ namespace NTempest {
       return *this;
     }
 
-    CArgb1555 &operator=(unsigned short value) {
-      *reinterpret_cast<unsigned short *>(this) = value;
+    CArgb1555 &operator=(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
       return *this;
     }
 
-    operator unsigned short() const {
-      return *reinterpret_cast<const unsigned short *>(this);
+    operator WORD() const {
+      return *reinterpret_cast<const WORD *>(this);
     }
 
-    unsigned short b : 5;
-    unsigned short g : 5;
-    unsigned short r : 5;
-    unsigned short a : 1;
+    WORD b : 5;
+    WORD g : 5;
+    WORD r : 5;
+    WORD a : 1;
   };
 
   class CArgb4444 {
@@ -442,29 +421,29 @@ namespace NTempest {
     CArgb4444() {
     }
 
-    CArgb4444(unsigned short value) {
-      *reinterpret_cast<unsigned short *>(this) = value;
+    CArgb4444(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
     }
 
-    CArgb4444(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue) {
+    CArgb4444(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
       a = alpha;
       r = red;
       g = green;
       b = blue;
     }
 
-    void From565(unsigned char r5, unsigned char g6, unsigned char b5) {
+    void From565(BYTE r5, BYTE g6, BYTE b5) {
       a = 15;
       r = r5 >> 1;
       g = g6 >> 2;
       b = b5 >> 1;
     }
-    void From1555(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
-    void From4444(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
-    void From8888(unsigned char alpha, unsigned char red, unsigned char green, unsigned char blue);
-    void FromARGB(unsigned char alpha, const CArgb4444 &rgb);
+    void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
+    void       From4444(BYTE alpha, BYTE red, BYTE green, BYTE blue);
+    void       From8888(BYTE alpha, BYTE red, BYTE green, BYTE blue);
+    void       FromARGB(BYTE alpha, const CArgb4444 &rgb);
     CArgb4444 &operator=(const CArgb4444 &value) {
-      return *this = static_cast<unsigned short>(value);
+      return *this = static_cast<WORD>(value);
     }
     CArgb4444 &operator=(const CArgb1555 &value);
 
@@ -481,26 +460,26 @@ namespace NTempest {
       return *this;
     }
 
-    CArgb4444 &operator=(const unsigned short value) {
-      *reinterpret_cast<unsigned short *>(this) = value;
+    CArgb4444 &operator=(const WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
       return *this;
     }
 
-    operator unsigned short() const {
-      return *reinterpret_cast<const unsigned short *>(this);
+    operator WORD() const {
+      return *reinterpret_cast<const WORD *>(this);
     }
 
    protected:
-    static unsigned char s_a1Table[];
+    static BYTE s_a1Table[];
 
    public:
-    unsigned short b : 4;
-    unsigned short g : 4;
-    unsigned short r : 4;
-    unsigned short a : 4;
+    WORD b : 4;
+    WORD g : 4;
+    WORD r : 4;
+    WORD a : 4;
   };
 
-  inline void CImVector::From565(unsigned char r5, unsigned char g6, unsigned char b5) {
+  inline void CImVector::From565(BYTE r5, BYTE g6, BYTE b5) {
     a = 255;
     r = r5 << 3;
     g = g6 << 2;

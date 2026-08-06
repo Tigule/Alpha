@@ -9,11 +9,10 @@
 
 #include <storm.h>
 
-static const char *const s_texComponentBasePath = "Item\\TextureComponents\\";
-static char *const       s_sexSuffixNames[UNITSEX_LAST] = {"M", "F", "U"};
+static LPCSTR const s_texComponentBasePath = "Item\\TextureComponents\\";
+static char *const  s_sexSuffixNames[UNITSEX_LAST] = {"M", "F", "U"};
 
-static void
-ConstructSuffixString(unsigned int race, unsigned int sex, int includeRace, int includeSex, char *buffer, unsigned int size) {
+static void ConstructSuffixString(UINT race, UINT sex, int includeRace, int includeSex, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
 
@@ -28,7 +27,7 @@ ConstructSuffixString(unsigned int race, unsigned int sex, int includeRace, int 
   }
 }
 
-static void BuildObjComponentPath(const char *fileName, unsigned int race, unsigned int sex, char *buffer, unsigned int size) {
+static void BuildObjComponentPath(LPCSTR fileName, UINT race, UINT sex, char *buffer, UINT size) {
   char inputFile[MAX_PATH];
   char filenameExtension[12] = "";
   char suffixBuffer[12];
@@ -38,7 +37,7 @@ static void BuildObjComponentPath(const char *fileName, unsigned int race, unsig
   FATALASSERT(buffer);
   FATALASSERT(size);
   FATALASSERT(race != 0);
-  FATALASSERT(race <= (uint)g_chrRacesDB.GetMaxID());
+  FATALASSERT(race <= (UINT)g_chrRacesDB.GetMaxID());
 
   SStrCopy(inputFile, fileName, sizeof(inputFile));
   char *extension = SStrChrR(inputFile, '.');
@@ -52,7 +51,7 @@ static void BuildObjComponentPath(const char *fileName, unsigned int race, unsig
   SStrCopy(buffer, finalBuffer, size);
 }
 
-void CompDecorateObjName(const char *string, char *buffer, unsigned int size, unsigned int race, unsigned int sex) {
+void CompDecorateObjName(LPCSTR string, char *buffer, UINT size, UINT race, UINT sex) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   buffer[0] = 0;
@@ -72,14 +71,13 @@ void CompDecorateObjName(const char *string, char *buffer, unsigned int size, un
   }
 }
 
-static void
-BuildTexComponentPath(const char *string, TEXCOMPONENT_SECTIONS section, char *buffer, unsigned int size, UNIT_SEX sex, int includeSex) {
-  static const char *sectionNames[NUM_TEXCOMPONENT_SECTIONS] = {"ArmUpperTexture",  "ArmLowerTexture",   "HandTexture",       "HeadUpperTexture",
-                                                                "HeadLowerTexture", "TorsoUpperTexture", "TorsoLowerTexture", "LegUpperTexture",
-                                                                "LegLowerTexture",  "FootTexture"};
-  char               stringBuffer[MAX_PATH];
-  char               suffixBuffer[16];
-  char               extension[16] = "";
+static void BuildTexComponentPath(LPCSTR string, TEXCOMPONENT_SECTIONS section, char *buffer, UINT size, UNIT_SEX sex, int includeSex) {
+  static LPCSTR sectionNames[NUM_TEXCOMPONENT_SECTIONS] = {"ArmUpperTexture",  "ArmLowerTexture",   "HandTexture",       "HeadUpperTexture",
+                                                           "HeadLowerTexture", "TorsoUpperTexture", "TorsoLowerTexture", "LegUpperTexture",
+                                                           "LegLowerTexture",  "FootTexture"};
+  char          stringBuffer[MAX_PATH];
+  char          suffixBuffer[16];
+  char          extension[16] = "";
 
   FATALASSERT(string);
   FATALASSERT(buffer);
@@ -98,7 +96,7 @@ BuildTexComponentPath(const char *string, TEXCOMPONENT_SECTIONS section, char *b
   SStrPrintf(buffer, size, "%s%s\\%s%s%s", s_texComponentBasePath, sectionNames[section], stringBuffer, suffixBuffer, ".BLP");
 }
 
-static int ComponentUtilImageFileExists(const char *fileName) {
+static int ComponentUtilImageFileExists(LPCSTR fileName) {
   if (SFile::FileExists(fileName)) {
     return 1;
   }
@@ -109,8 +107,7 @@ static int ComponentUtilImageFileExists(const char *fileName) {
   return SFile::FileExists(alternate);
 }
 
-void
-CompDecorateTexName(const char *string, TEXCOMPONENT_SECTIONS section, char *buffer, unsigned int size, unsigned int sex, int includeSex) {
+void CompDecorateTexName(LPCSTR string, TEXCOMPONENT_SECTIONS section, char *buffer, UINT size, UINT sex, int includeSex) {
   char finalName[MAX_PATH];
 
   ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
@@ -136,7 +133,7 @@ CompDecorateTexName(const char *string, TEXCOMPONENT_SECTIONS section, char *buf
   }
 }
 
-int CompDecorateUndecorateObjName(const char *string, char *buffer, unsigned int size) {
+int CompDecorateUndecorateObjName(LPCSTR string, char *buffer, UINT size) {
   enum STATES {
     FINDING_PERIOD = 0,
     FINDING_DIRECTORYSEPARATOR = 1,
@@ -152,10 +149,10 @@ int CompDecorateUndecorateObjName(const char *string, char *buffer, unsigned int
   }
 
   SStrCopy(buffer, string, size);
-  char extensionBuffer[12] = "";
-  char fileNameBuffer[MAX_PATH] = "";
+  char   extensionBuffer[12] = "";
+  char   fileNameBuffer[MAX_PATH] = "";
   STATES state = FINDING_PERIOD;
-  char *cursor = buffer + SStrLen(buffer) - 1;
+  char  *cursor = buffer + SStrLen(buffer) - 1;
   for (; cursor >= buffer; --cursor) {
     if (state == FINDING_PERIOD) {
       if (*cursor == '.') {
@@ -184,7 +181,7 @@ int CompDecorateUndecorateObjName(const char *string, char *buffer, unsigned int
   return 0;
 }
 
-int CompDecorateUndecorateTexName(const char *string, char *buffer, unsigned int size) {
+int CompDecorateUndecorateTexName(LPCSTR string, char *buffer, UINT size) {
   enum STATES {
     FINDING_PERIOD = 0,
     FINDING_UNDERSCORE = 1
@@ -199,9 +196,9 @@ int CompDecorateUndecorateTexName(const char *string, char *buffer, unsigned int
   }
 
   SStrCopy(buffer, string, size);
-  char extension[12] = "";
+  char   extension[12] = "";
   STATES state = FINDING_PERIOD;
-  char *cursor = buffer + SStrLen(buffer) - 1;
+  char  *cursor = buffer + SStrLen(buffer) - 1;
   for (; cursor >= buffer; --cursor) {
     if (state == FINDING_PERIOD && *cursor == '.') {
       SStrCopy(extension, cursor, sizeof(extension));

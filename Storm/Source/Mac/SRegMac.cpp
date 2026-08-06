@@ -19,14 +19,13 @@
 struct RegistryEntry : TSHashObject<RegistryEntry, HASHKEY_STRI> {
   DWORD type;
   union {
-    DWORD  value;
-    char  *string;
+    DWORD value;
+    char *string;
   };
   DWORD size;
 };
 
-struct RegistryFileEntry : TSHashObject<RegistryFileEntry, HASHKEY_STRI> {
-};
+struct RegistryFileEntry : TSHashObject<RegistryFileEntry, HASHKEY_STRI> {};
 
 struct WriteRegistryEntry : TSHashObject<WriteRegistryEntry, HASHKEY_STRI> {
   FILE *file;
@@ -40,7 +39,7 @@ static const char k_battleNetSubdirectory[] = "";
 static TSHashTable<RegistryFileEntry, HASHKEY_STRI> s_fileTable;
 static TSHashTable<RegistryEntry, HASHKEY_STRI>     s_entryTable;
 
-static const char *AutoGetUserPath() {
+static LPCSTR AutoGetUserPath() {
   static char s_path[0x400];
   static int  s_valid;
 
@@ -64,7 +63,7 @@ static const char *AutoGetUserPath() {
   return s_path;
 }
 
-static const char *AutoGetSharedPath() {
+static LPCSTR AutoGetSharedPath() {
   static char s_path[0x400];
   static int  s_valid;
 
@@ -94,20 +93,12 @@ static const char *AutoGetSharedPath() {
   return s_path;
 }
 
-static void BuildKeyAndPath(
-    const char *keyname,
-    const char *valuename,
-    DWORD       flags,
-    char       *key,
-    DWORD       keysize,
-    char       *path,
-    DWORD       pathsize
-) {
-  char        group[0x400];
-  char       *separator;
-  const char *scope;
-  const char *directory;
-  const char *subdirectory;
+static void BuildKeyAndPath(LPCSTR keyname, LPCSTR valuename, DWORD flags, char *key, DWORD keysize, char *path, DWORD pathsize) {
+  char   group[0x400];
+  char  *separator;
+  LPCSTR scope;
+  LPCSTR directory;
+  LPCSTR subdirectory;
 
   SStrCopy(group, keyname, sizeof(group));
 
@@ -193,11 +184,11 @@ static void ReadEscapedValue(FILE *file, RegistryEntry *entry, int terminate) {
   memcpy(entry->string, &data[0], data.Count());
 }
 
-static void WriteEscapedValue(FILE *file, const char *data, DWORD size) {
+static void WriteEscapedValue(FILE *file, LPCSTR data, DWORD size) {
   DWORD index;
 
   for (index = 0; index < size; ++index) {
-    unsigned char byte = static_cast<unsigned char>(data[index]);
+    BYTE byte = static_cast<BYTE>(data[index]);
 
     if (byte == '%') {
       fprintf(file, "%%%%");
@@ -211,7 +202,7 @@ static void WriteEscapedValue(FILE *file, const char *data, DWORD size) {
   fputc('\n', file);
 }
 
-static void LoadRegistryFile(const char *path) {
+static void LoadRegistryFile(LPCSTR path) {
   FILE *file;
   char  sigil;
   char  key[0x400];
@@ -249,7 +240,7 @@ static void LoadRegistryFile(const char *path) {
   s_fileTable.New(path, 0, 0);
 }
 
-static RegistryEntry *FindEntry(const char *key, const char *path) {
+static RegistryEntry *FindEntry(LPCSTR key, LPCSTR path) {
   RegistryEntry *entry = s_entryTable.Ptr(key);
 
   if (entry) {
@@ -260,7 +251,7 @@ static RegistryEntry *FindEntry(const char *key, const char *path) {
   return s_entryTable.Ptr(key);
 }
 
-static RegistryEntry *CreateEntry(const char *key, const char *path) {
+static RegistryEntry *CreateEntry(LPCSTR key, LPCSTR path) {
   RegistryEntry *entry = FindEntry(key, path);
 
   if (entry) {
@@ -374,10 +365,10 @@ extern "C" BOOL APIENTRY SRegDestroy() {
   WriteRegistryEntry                           *writeEntry;
 
   while ((entry = s_entryTable.Head()) != 0) {
-    const char         *fullKey = entry->Key().GetString();
-    const char         *keyEnd;
-    const char         *valueStart;
-    char                group[0x400];
+    LPCSTR fullKey = entry->Key().GetString();
+    LPCSTR keyEnd;
+    LPCSTR valueStart;
+    char   group[0x400];
 
     valueStart = SStrChr(fullKey, '\\');
     keyEnd = valueStart ? SStrChr(valueStart + 1, '\\') : 0;
@@ -391,9 +382,9 @@ extern "C" BOOL APIENTRY SRegDestroy() {
 
     writeEntry = writeTable.Ptr(group);
     if (!writeEntry) {
-      const char *directory;
-      const char *subdirectory;
-      char        folder[0x400];
+      LPCSTR directory;
+      LPCSTR subdirectory;
+      char   folder[0x400];
 
       if (group[0] == 'B') {
         directory = AutoGetSharedPath();

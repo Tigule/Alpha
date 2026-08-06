@@ -10,33 +10,33 @@
 class CDataStore;
 
 struct CHARACTER_INFO {
-  unsigned __int64   guid;
+  DWORDLONG          guid;
   char               name[48];
-  unsigned int       mapID;
-  unsigned int       zoneID;
-  unsigned int       guildID;
+  UINT               mapID;
+  UINT               zoneID;
+  UINT               guildID;
   NTempest::C3Vector position;
-  unsigned int       inventoryItemDisplayID[20];
-  unsigned int       inventoryItemType[20];
-  unsigned int       petDisplayInfoID;
-  unsigned int       petExperienceLevel;
-  unsigned int       petCreatureFamilyID;
-  unsigned char      raceID;
-  unsigned char      classID;
-  unsigned char      sexID;
-  unsigned char      skinID;
-  unsigned char      faceID;
-  unsigned char      hairStyleID;
-  unsigned char      hairColorID;
-  unsigned char      facialHairStyleID;
-  unsigned char      experienceLevel;
+  UINT               inventoryItemDisplayID[20];
+  UINT               inventoryItemType[20];
+  UINT               petDisplayInfoID;
+  UINT               petExperienceLevel;
+  UINT               petCreatureFamilyID;
+  BYTE               raceID;
+  BYTE               classID;
+  BYTE               sexID;
+  BYTE               skinID;
+  BYTE               faceID;
+  BYTE               hairStyleID;
+  BYTE               hairColorID;
+  BYTE               facialHairStyleID;
+  BYTE               experienceLevel;
 };
 
 struct REALM_INFO {
-  unsigned char id;
-  char          name[256];
-  char          address[32];
-  unsigned int  players;
+  BYTE id;
+  char name[256];
+  char address[32];
+  UINT players;
 };
 
 class ClientConnection : public NetClient {
@@ -51,18 +51,18 @@ class ClientConnection : public NetClient {
   void              Cancel(int errorCode);
   void              Cleanup();
   void              Connect();
-  void              AccountLogin(const char *name, const char *password, int region, WOW_LOCALE locale);
+  void              AccountLogin(LPCSTR name, LPCSTR password, int region, WOW_LOCALE locale);
   void              AccountLogout();
   void              GetRealmList();
   int               GetRealmListCount();
-  int               EnumerateRealms(void(*fcn)(REALM_INFO &info, void *param), void *param);
+  int               EnumerateRealms(void (*fcn)(REALM_INFO &info, LPVOID param), LPVOID param);
   const REALM_INFO *GetRealmInfoByIndex(int index);
   void              GetCharacterList();
   int               GetCharacterListCount();
-  int               EnumerateCharacters(void(*fcn)(CHARACTER_INFO &info, void *param), void *param);
+  int               EnumerateCharacters(void (*fcn)(CHARACTER_INFO &info, LPVOID param), LPVOID param);
   void              CharacterCreate(const CHARACTER_CREATE_INFO &info);
-  void              CharacterDelete(unsigned __int64 guid);
-  void              CharacterLogin(unsigned __int64 id);
+  void              CharacterDelete(DWORDLONG guid);
+  void              CharacterLogin(DWORDLONG id);
   int               Disconnect();
   void              CharacterSetInGame(int state);
   void              CharacterLogout(bool exitAfterLogout, bool instant);
@@ -75,9 +75,9 @@ class ClientConnection : public NetClient {
   int               IsBot();
   int               PollStatus(WOWCS_OPS &op, int &errorCode, int &result);
   void              RealmEnumCallback(CDataStore *data);
-  const char       *GetCharacterName();
+  LPCSTR            GetCharacterName();
 
-  unsigned int GetWaitCount() {
+  UINT GetWaitCount() {
     return m_waitCount;
   }
 
@@ -93,15 +93,15 @@ class ClientConnection : public NetClient {
   virtual int HandleDisconnect();
   virtual int HandleCantConnect();
 
-  int HandleAuthChallenge(NETMESSAGE msgId, unsigned long __formal, CDataStore *msg);
-  int HandleAuthResponse(NETMESSAGE msgId, unsigned long __formal, CDataStore *msg);
-  int HandleCharEnum(NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-  int HandleCharacterCreate(NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-  int HandleCharacterDelete(NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-  int HandleCharacterLoginFailed(NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-  int HandleLogoutComplete(NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-  int HandleLogoutAbortAck(NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-  int HandleLogoutResponse(NETMESSAGE msgId, unsigned long time, CDataStore *msg);
+  int HandleAuthChallenge(NETMESSAGE msgId, DWORD, CDataStore *msg);
+  int HandleAuthResponse(NETMESSAGE msgId, DWORD, CDataStore *msg);
+  int HandleCharEnum(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  int HandleCharacterCreate(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  int HandleCharacterDelete(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  int HandleCharacterLoginFailed(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  int HandleLogoutComplete(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  int HandleLogoutAbortAck(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  int HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataStore *msg);
 
  private:
   ClientConnection &operator=(const ClientConnection &connection);
@@ -123,13 +123,13 @@ class ClientConnection : public NetClient {
   WOWCS_OPS                    m_statusCop;
   int                          m_errorCode;
   int                          m_inGame;
-  unsigned char                m_exitAfterLogout;
-  unsigned char                m_loggingOut;
+  BYTE                         m_exitAfterLogout;
+  BYTE                         m_loggingOut;
   LoginData                    m_loginData;
   TSFixedArray<CHARACTER_INFO> m_characterList;
   TSFixedArray<REALM_INFO>     m_realmList;
   int                          m_isBot;
-  unsigned int                 m_waitCount;
+  UINT                         m_waitCount;
   void (ClientConnection::*m_cleanup)();
 };
 

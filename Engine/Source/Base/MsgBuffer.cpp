@@ -5,50 +5,50 @@
 #include <storm.h>
 #include <string.h>
 
-void CMsgBuffer::ReallocData(unsigned int count) {
+void CMsgBuffer::ReallocData(UINT count) {
   if (count & 0xFF) {
     count += 0x100 - (count & 0xFF);
   }
   m_alloc = count;
   if (m_freeData) {
-    m_data = static_cast<unsigned char *>(SMemReAlloc(m_data, count, __FILE__, __LINE__, 0));
+    m_data = static_cast<BYTE *>(SMemReAlloc(m_data, count, __FILE__, __LINE__, 0));
   } else {
-    unsigned char *data = static_cast<unsigned char *>(SMemAlloc(count, __FILE__, __LINE__, 0));
+    BYTE *data = static_cast<BYTE *>(SMemAlloc(count, __FILE__, __LINE__, 0));
     memcpy(data, m_data, m_write);
     m_data = data;
   }
   m_freeData = 1;
 }
 
-#define DEFINE_ADD_SCALAR(functionName, valueType) \
-  void CMsgBuffer::functionName(valueType val) {   \
-    Reserve(sizeof(val));                           \
+#define DEFINE_ADD_SCALAR(functionName, valueType)          \
+  void CMsgBuffer::functionName(valueType val) {            \
+    Reserve(sizeof(val));                                   \
     *reinterpret_cast<valueType *>(m_data + m_write) = val; \
-    m_write += sizeof(val);                         \
+    m_write += sizeof(val);                                 \
   }
 
 DEFINE_ADD_SCALAR(AddChar, char)
-DEFINE_ADD_SCALAR(AddUchar, unsigned char)
-DEFINE_ADD_SCALAR(AddByte, unsigned char)
+DEFINE_ADD_SCALAR(AddUchar, BYTE)
+DEFINE_ADD_SCALAR(AddByte, BYTE)
 DEFINE_ADD_SCALAR(AddTchar, char)
 DEFINE_ADD_SCALAR(AddShort, short)
-DEFINE_ADD_SCALAR(AddUshort, unsigned short)
-DEFINE_ADD_SCALAR(AddWord, unsigned short)
+DEFINE_ADD_SCALAR(AddUshort, WORD)
+DEFINE_ADD_SCALAR(AddWord, WORD)
 DEFINE_ADD_SCALAR(AddInt, int)
-DEFINE_ADD_SCALAR(AddUint, unsigned int)
+DEFINE_ADD_SCALAR(AddUint, UINT)
 DEFINE_ADD_SCALAR(AddLong, long)
-DEFINE_ADD_SCALAR(AddUlong, unsigned long)
-DEFINE_ADD_SCALAR(AddDword, unsigned long)
-DEFINE_ADD_SCALAR(AddLongLong, __int64)
-DEFINE_ADD_SCALAR(AddUlongLong, unsigned __int64)
+DEFINE_ADD_SCALAR(AddUlong, DWORD)
+DEFINE_ADD_SCALAR(AddDword, DWORD)
+DEFINE_ADD_SCALAR(AddLongLong, LONGLONG)
+DEFINE_ADD_SCALAR(AddUlongLong, DWORDLONG)
 DEFINE_ADD_SCALAR(AddFloat, float)
 
 #undef DEFINE_ADD_SCALAR
 
-void CMsgBuffer::AddTcharArray(const char *str, unsigned int count, int zeroExtra) {
+void CMsgBuffer::AddTcharArray(LPCSTR str, UINT count, int zeroExtra) {
   Reserve(count);
   while (count) {
-    unsigned char value = *str++;
+    BYTE value = *str++;
     m_data[m_write++] = value;
     --count;
     if (zeroExtra && !value) {
@@ -59,19 +59,19 @@ void CMsgBuffer::AddTcharArray(const char *str, unsigned int count, int zeroExtr
   }
 }
 
-void CMsgBuffer::AddTcharString(const char *str, int compress) {
-  unsigned int length = strlen(str);
+void CMsgBuffer::AddTcharString(LPCSTR str, int compress) {
+  UINT length = strlen(str);
   if (length > 0x3FFF) {
     ASSERT(length <= 0x3FFF);
     length = 0x3FFF;
   }
 
-  unsigned char prefix = static_cast<unsigned char>(length & 0x3F);
+  BYTE prefix = static_cast<BYTE>(length & 0x3F);
   if (length > 0x3F) {
     prefix |= 0x40;
   }
   if (compress) {
-    for (unsigned int i = 0; i < length; ++i) {
+    for (UINT i = 0; i < length; ++i) {
       if (str[i] > 0xFF) {
         prefix |= 0x80;
         break;
@@ -82,74 +82,74 @@ void CMsgBuffer::AddTcharString(const char *str, int compress) {
   }
   AddByte(prefix);
   if (prefix & 0x40) {
-    AddByte(static_cast<unsigned char>(length >> 8));
+    AddByte(static_cast<BYTE>(length >> 8));
   }
   if (prefix & 0x80) {
     AddTcharArray(str, length, 0);
   } else {
-    for (unsigned int i = 0; i < length; ++i) {
+    for (UINT i = 0; i < length; ++i) {
       AddByte(str[i]);
     }
   }
 }
 
-void CMsgBuffer::AddData(unsigned char *data, unsigned int count) {
-  AddData(static_cast<const void *>(data), count);
+void CMsgBuffer::AddData(BYTE *data, UINT count) {
+  AddData(static_cast<LPCVOID>(data), count);
 }
 
-void CMsgBuffer::AddData(const void *data, unsigned int count) {
+void CMsgBuffer::AddData(LPCVOID data, UINT count) {
   Reserve(count);
   memcpy(m_data + m_write, data, count);
   m_write += count;
 }
 
-#define DEFINE_ADD_ARRAY(functionName, valueType)                         \
-  void CMsgBuffer::functionName(const valueType *buffer, unsigned int count) { \
-    AddData(buffer, count * sizeof(valueType));                           \
+#define DEFINE_ADD_ARRAY(functionName, valueType)                      \
+  void CMsgBuffer::functionName(const valueType *buffer, UINT count) { \
+    AddData(buffer, count * sizeof(valueType));                        \
   }
 
-DEFINE_ADD_ARRAY(AddWordArray, unsigned short)
-DEFINE_ADD_ARRAY(AddDwordArray, unsigned long)
-DEFINE_ADD_ARRAY(AddUintArray, unsigned int)
+DEFINE_ADD_ARRAY(AddWordArray, WORD)
+DEFINE_ADD_ARRAY(AddDwordArray, DWORD)
+DEFINE_ADD_ARRAY(AddUintArray, UINT)
 DEFINE_ADD_ARRAY(AddFloatArray, float)
 
 #undef DEFINE_ADD_ARRAY
 
-#define DEFINE_GET_SCALAR(functionName, valueType) \
-  valueType CMsgBuffer::functionName() {           \
-    ASSERT(Bytes() >= sizeof(valueType));           \
+#define DEFINE_GET_SCALAR(functionName, valueType)                     \
+  valueType CMsgBuffer::functionName() {                               \
+    ASSERT(Bytes() >= sizeof(valueType));                              \
     valueType value = *reinterpret_cast<valueType *>(m_data + m_read); \
-    m_read += sizeof(valueType);                    \
-    return value;                                   \
+    m_read += sizeof(valueType);                                       \
+    return value;                                                      \
   }
 
 DEFINE_GET_SCALAR(GetChar, char)
-DEFINE_GET_SCALAR(GetUchar, unsigned char)
-DEFINE_GET_SCALAR(GetByte, unsigned char)
+DEFINE_GET_SCALAR(GetUchar, BYTE)
+DEFINE_GET_SCALAR(GetByte, BYTE)
 DEFINE_GET_SCALAR(GetTchar, char)
 DEFINE_GET_SCALAR(GetShort, short)
-DEFINE_GET_SCALAR(GetUshort, unsigned short)
-DEFINE_GET_SCALAR(GetWord, unsigned short)
+DEFINE_GET_SCALAR(GetUshort, WORD)
+DEFINE_GET_SCALAR(GetWord, WORD)
 DEFINE_GET_SCALAR(GetInt, int)
-DEFINE_GET_SCALAR(GetUint, unsigned int)
+DEFINE_GET_SCALAR(GetUint, UINT)
 DEFINE_GET_SCALAR(GetLong, long)
-DEFINE_GET_SCALAR(GetUlong, unsigned long)
-DEFINE_GET_SCALAR(GetDword, unsigned long)
-DEFINE_GET_SCALAR(GetLongLong, __int64)
-DEFINE_GET_SCALAR(GetUlongLong, unsigned __int64)
+DEFINE_GET_SCALAR(GetUlong, DWORD)
+DEFINE_GET_SCALAR(GetDword, DWORD)
+DEFINE_GET_SCALAR(GetLongLong, LONGLONG)
+DEFINE_GET_SCALAR(GetUlongLong, DWORDLONG)
 DEFINE_GET_SCALAR(GetFloat, float)
 
 #undef DEFINE_GET_SCALAR
 
-void CMsgBuffer::GetTcharArray(char *buffer, unsigned int count) {
+void CMsgBuffer::GetTcharArray(char *buffer, UINT count) {
   GetData(buffer, count);
 }
 
-unsigned int CMsgBuffer::GetTcharStringBufferLength(int *wide) {
-  unsigned char prefix = GetByte();
-  unsigned int length = prefix & 0x3F;
+UINT CMsgBuffer::GetTcharStringBufferLength(int *wide) {
+  BYTE prefix = GetByte();
+  UINT length = prefix & 0x3F;
   if (prefix & 0x40) {
-    length |= static_cast<unsigned int>(GetByte()) << 8;
+    length |= static_cast<UINT>(GetByte()) << 8;
   }
   if (wide) {
     *wide = (prefix & 0x80) == 0x80;
@@ -157,12 +157,12 @@ unsigned int CMsgBuffer::GetTcharStringBufferLength(int *wide) {
   return length + 1;
 }
 
-void CMsgBuffer::GetTcharString(char *buffer, unsigned int bufferLength, int wide) {
+void CMsgBuffer::GetTcharString(char *buffer, UINT bufferLength, int wide) {
   if (wide) {
     GetTcharArray(buffer, bufferLength - 1);
     buffer[bufferLength - 1] = 0;
   } else {
-    unsigned int count = bufferLength - 1;
+    UINT count = bufferLength - 1;
     while (count--) {
       *buffer++ = GetByte();
     }
@@ -170,25 +170,25 @@ void CMsgBuffer::GetTcharString(char *buffer, unsigned int bufferLength, int wid
   }
 }
 
-const void *CMsgBuffer::GetData(int count) {
+LPCVOID CMsgBuffer::GetData(int count) {
   ASSERT(Bytes() >= count);
-  const void *data = m_data + m_read;
+  LPCVOID data = m_data + m_read;
   m_read += count;
   return data;
 }
 
-void CMsgBuffer::GetData(void *buffer, int count) {
+void CMsgBuffer::GetData(LPVOID buffer, int count) {
   memcpy(buffer, GetData(count), count);
 }
 
-#define DEFINE_GET_ARRAY(functionName, valueType)                    \
-  void CMsgBuffer::functionName(valueType *buffer, unsigned int count) { \
-    GetData(buffer, count * sizeof(valueType));                      \
+#define DEFINE_GET_ARRAY(functionName, valueType)                \
+  void CMsgBuffer::functionName(valueType *buffer, UINT count) { \
+    GetData(buffer, count * sizeof(valueType));                  \
   }
 
-DEFINE_GET_ARRAY(GetWordArray, unsigned short)
-DEFINE_GET_ARRAY(GetDwordArray, unsigned long)
-DEFINE_GET_ARRAY(GetUintArray, unsigned int)
+DEFINE_GET_ARRAY(GetWordArray, WORD)
+DEFINE_GET_ARRAY(GetDwordArray, DWORD)
+DEFINE_GET_ARRAY(GetUintArray, UINT)
 DEFINE_GET_ARRAY(GetFloatArray, float)
 
 #undef DEFINE_GET_ARRAY

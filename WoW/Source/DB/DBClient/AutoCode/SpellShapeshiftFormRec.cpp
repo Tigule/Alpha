@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellShapeshiftFormRec::GetFilename() {
+LPCSTR SpellShapeshiftFormRec::GetFilename() {
   return "DBFilesClient\\SpellShapeshiftForm.dbc";
 }
 
@@ -19,9 +19,9 @@ SpellShapeshiftFormRec::SpellShapeshiftFormRec() {
 SpellShapeshiftFormRec::~SpellShapeshiftFormRec() {
 }
 
-bool SpellShapeshiftFormRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[NUM_LOCALES];
+bool SpellShapeshiftFormRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[NUM_LOCALES];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_bonusActionBar, sizeof(m_bonusActionBar), 0, 0, 0) && result;

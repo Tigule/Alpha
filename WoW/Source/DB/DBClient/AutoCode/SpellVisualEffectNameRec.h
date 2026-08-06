@@ -7,13 +7,13 @@ class SpellVisualEffectNameRec {
   SpellVisualEffectNameRec();
   ~SpellVisualEffectNameRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 6;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 24;
   }
 
@@ -28,14 +28,14 @@ class SpellVisualEffectNameRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_fileName;
-  int         m_specialID;
-  int         m_specialAttachPoint;
-  float       m_areaEffectSize;
-  int         m_VisualEffectNameFlags;
+  int    m_ID;
+  LPCSTR m_fileName;
+  int    m_specialID;
+  int    m_specialAttachPoint;
+  float  m_areaEffectSize;
+  int    m_VisualEffectNameFlags;
 };
 
 extern WowClientDB<SpellVisualEffectNameRec> g_spellVisualEffectNameDB;

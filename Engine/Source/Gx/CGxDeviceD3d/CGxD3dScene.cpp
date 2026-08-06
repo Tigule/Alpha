@@ -2,10 +2,9 @@
 
 #include <math.h>
 
-static const float  PI = 3.14159265358979323846f;
-static unsigned int t;
+static UINT t;
 
-void CGxDeviceD3d::ISceneBegin(unsigned int mask) {
+void CGxDeviceD3d::ISceneBegin(UINT mask) {
   if (m_appState.m_masterEnables & (1U << GxMasterEnable_ClearOnPresent)) {
     float minX;
     float maxX;
@@ -32,7 +31,7 @@ void CGxDeviceD3d::ISceneEnd() {
   }
 }
 
-void CGxDeviceD3d::SceneClear(unsigned int mask) {
+void CGxDeviceD3d::SceneClear(UINT mask) {
   CGxDevice::SceneClear(mask);
 
   NTempest::CImVector clearColor = m_clearColor;
@@ -41,12 +40,12 @@ void CGxDeviceD3d::SceneClear(unsigned int mask) {
     t = (t + 1) & 0xFF;
 
     clearColor.Set(
-        static_cast<unsigned char>(0xFF), static_cast<unsigned char>((sin(phase * 3.0f) + 1.0f) * 127.5f),
-        static_cast<unsigned char>((sin(phase * 5.0f) + 1.0f) * 127.5f), static_cast<unsigned char>((sin(phase * 7.0f) + 1.0f) * 127.5f)
+        static_cast<BYTE>(0xFF), static_cast<BYTE>((sin(phase * 3.0f) + 1.0f) * 127.5f), static_cast<BYTE>((sin(phase * 5.0f) + 1.0f) * 127.5f),
+        static_cast<BYTE>((sin(phase * 7.0f) + 1.0f) * 127.5f)
     );
   }
 
-  unsigned long clearMask = 0;
+  DWORD clearMask = 0;
   if (mask & 1) {
     clearMask = 1;
   }
@@ -57,7 +56,7 @@ void CGxDeviceD3d::SceneClear(unsigned int mask) {
   m_d3dDevice->Clear(0, 0, clearMask, NTempest::CImVector::MakeARGB(clearColor.a, clearColor.r, clearColor.g, clearColor.b), 1.0f, 0);
 }
 
-void CGxDeviceD3d::ScenePresent(unsigned int mask) {
+void CGxDeviceD3d::ScenePresent(UINT mask) {
   int screenShot = m_scrShotClick;
 
   CGxDevice::ScenePresent(mask);

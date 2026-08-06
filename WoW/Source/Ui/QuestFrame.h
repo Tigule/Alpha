@@ -40,28 +40,27 @@ class CGQuestInfo {
  public:
   static void EnterWorld();
   static void LeaveWorld();
-  static void SetState(unsigned __int64 guid, QUEST_STATE state, const char *text, int quest);
-  static void SetLogDescription(const char *desc);
-  static void AddQuest(int quest, const char *desc, int questLevel, int turnIn);
-  static void AddQuestInProgress(int quest, const char *desc, int questLevel);
+  static void SetState(DWORDLONG guid, QUEST_STATE state, LPCSTR text, int quest);
+  static void SetLogDescription(LPCSTR desc);
+  static void AddQuest(int quest, LPCSTR desc, int questLevel, int turnIn);
+  static void AddQuestInProgress(int quest, LPCSTR desc, int questLevel);
   static void EndQuestList();
   static void AddReward(
-      const char *title,
-      int        *itemChoice,
-      int        *choiceDisplay,
-      int        *choiceAmount,
-      int         numChoice,
-      int        *itemReward,
-      int        *itemDisplay,
-      int        *itemAmount,
-      int         numReward,
-      int         money,
-      int         autoLaunched
+      LPCSTR title,
+      int   *itemChoice,
+      int   *choiceDisplay,
+      int   *choiceAmount,
+      int    numChoice,
+      int   *itemReward,
+      int   *itemDisplay,
+      int   *itemAmount,
+      int    numReward,
+      int    money,
+      int    autoLaunched
   );
-  static void
-  AddItemRequest(const char *title, int *items, int *itemAmount, int *itemDisplay, int numItems, int completed, int autoLaunched);
-  static void QuestGiverFinished();
-  static const unsigned __int64 &GetQuestGiver() {
+  static void             AddItemRequest(LPCSTR title, int *items, int *itemAmount, int *itemDisplay, int numItems, int completed, int autoLaunched);
+  static void             QuestGiverFinished();
+  static const DWORDLONG &GetQuestGiver() {
     return m_npc;
   }
   static int GetCurrentQuest() {
@@ -74,50 +73,41 @@ class CGQuestInfo {
   static void ClearLastChosenItem() {
     m_lastChosenItem = 0;
   }
-  static const char *GetTitleText() {
+  static LPCSTR GetTitleText() {
     return m_questTitle;
   }
-  static const char *GetGreetingText() {
+  static LPCSTR GetGreetingText() {
     return m_greetingText;
   }
-  static const char *GetQuestText() {
+  static LPCSTR GetQuestText() {
     return m_questText;
   }
-  static const char *GetQuestLogText() {
+  static LPCSTR GetQuestLogText() {
     return m_questLogText;
   }
-  static const char *GetProgressText() {
+  static LPCSTR GetProgressText() {
     return m_progressText;
   }
-  static const char *GetRewardText() {
+  static LPCSTR GetRewardText() {
     return m_rewardText;
   }
-  static void QueryQuest(unsigned int index);
-  static void CompleteQuest(unsigned int index);
+  static void QueryQuest(UINT index);
+  static void CompleteQuest(UINT index);
   static void AcceptQuest();
   static void DeclineQuest();
   static void GiveQuestItems();
-  static int GetReward(int choice);
-  static int GetRewardMoney() {
+  static int  GetReward(int choice);
+  static int  GetRewardMoney() {
     return m_rewardMoney;
   }
-  static unsigned int GetNumQuestRewards();
-  static unsigned int GetNumQuestChoices();
-  static unsigned int GetNumQuestItems();
-  static int GetQuestItemInfo(
-      const char   *type,
-      unsigned int  index,
-      char         *name,
-      unsigned int  nameSize,
-      char         *texture,
-      unsigned int  textureSize,
-      unsigned int &amount,
-      int          &quality,
-      int          &usable
-  );
-  static int GetQuestItemID(const char *type, unsigned int index);
-  static void ConfirmAcceptQuest(int questID, const char *questTitle, const unsigned __int64 &initiatedBy);
-  static int GetPendingConfirmQuest() {
+  static UINT GetNumQuestRewards();
+  static UINT GetNumQuestChoices();
+  static UINT GetNumQuestItems();
+  static int
+  GetQuestItemInfo(LPCSTR type, UINT index, char *name, UINT nameSize, char *texture, UINT textureSize, UINT &amount, int &quality, int &usable);
+  static int  GetQuestItemID(LPCSTR type, UINT index);
+  static void ConfirmAcceptQuest(int questID, LPCSTR questTitle, const DWORDLONG &initiatedBy);
+  static int  GetPendingConfirmQuest() {
     return m_pendingQuest;
   }
   static int GetNumQuests() {
@@ -126,16 +116,16 @@ class CGQuestInfo {
   static int GetNumInProgress() {
     return m_numInProgress;
   }
-  static const char *GetQuestName(unsigned int index) {
+  static LPCSTR GetQuestName(UINT index) {
     return index < m_numQuests ? m_quests[index].name : 0;
   }
-  static const char *GetInProgressName(unsigned int index) {
+  static LPCSTR GetInProgressName(UINT index) {
     return index < m_numInProgress ? m_inProgress[index].name : 0;
   }
-  static int GetQuestLevel(unsigned int index) {
+  static int GetQuestLevel(UINT index) {
     return index < m_numQuests ? m_quests[index].level : 0;
   }
-  static int GetInProgressLevel(unsigned int index) {
+  static int GetInProgressLevel(UINT index) {
     return index < m_numInProgress ? m_inProgress[index].level : 0;
   }
 
@@ -153,25 +143,25 @@ class CGQuestInfo {
   }
 
  protected:
-  static unsigned __int64 m_npc;
-  static QUEST_STATE      m_state;
-  static int              m_currentQuest;
-  static int              m_completable;
-  static int              m_autoLaunched;
-  static int              m_lastChosenItem;
-  static int              m_rewardMoney;
-  static unsigned int     m_numQuests;
-  static unsigned int     m_numInProgress;
-  static QuestInfo        m_quests[8];
-  static QuestInfo        m_inProgress[8];
-  static QuestItemInfo    m_questItems[6];
-  static char             m_greetingText[256];
-  static char             m_questTitle[64];
-  static char             m_questText[1024];
-  static char             m_questLogText[1024];
-  static char             m_progressText[1024];
-  static char             m_rewardText[1024];
-  static int              m_pendingQuest;
+  static DWORDLONG     m_npc;
+  static QUEST_STATE   m_state;
+  static int           m_currentQuest;
+  static int           m_completable;
+  static int           m_autoLaunched;
+  static int           m_lastChosenItem;
+  static int           m_rewardMoney;
+  static UINT          m_numQuests;
+  static UINT          m_numInProgress;
+  static QuestInfo     m_quests[8];
+  static QuestInfo     m_inProgress[8];
+  static QuestItemInfo m_questItems[6];
+  static char          m_greetingText[256];
+  static char          m_questTitle[64];
+  static char          m_questText[1024];
+  static char          m_questLogText[1024];
+  static char          m_progressText[1024];
+  static char          m_rewardText[1024];
+  static int           m_pendingQuest;
 };
 
 #endif

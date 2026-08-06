@@ -16,40 +16,40 @@
 #include <stdlib.h>
 #include <storm.h>
 
-static int __cdecl            SortByTexture(const void *A, const void *B);
-static const char *LanguageProcess(const char *text);
-static const char *LanguageRule1(const char *text);
-static bool CheckJongsung(const unsigned short *text, int position);
-void TextureGetDimensions(HTEXTURE texture, unsigned int *width, unsigned int *height);
-unsigned int TextBlockGetMaxCharsWithinWidthFromEnd(
-    HTEXTFONT    font,
-    const char  *text,
-    float        height,
-    float        maxWidth,
-    unsigned int lineBytes,
-    float       *extent,
-    float        charSpacing,
-    unsigned int flags
+static int __cdecl SortByTexture(LPCVOID A, LPCVOID B);
+static LPCSTR      LanguageProcess(LPCSTR text);
+static LPCSTR      LanguageRule1(LPCSTR text);
+static bool        CheckJongsung(const WORD *text, int position);
+void               TextureGetDimensions(HTEXTURE texture, UINT *width, UINT *height);
+UINT               TextBlockGetMaxCharsWithinWidthFromEnd(
+    HTEXTFONT font,
+    LPCSTR    text,
+    float     height,
+    float     maxWidth,
+    UINT      lineBytes,
+    float    *extent,
+    float     charSpacing,
+    UINT      flags
 );
 void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor);
 
-static char           output8[0x1000];
-static unsigned short output16[0x1000];
+static char output8[0x1000];
+static WORD output16[0x1000];
 
-static const unsigned char NumericJongsung[10] = {1, 1, 0, 1, 0, 0, 1, 1, 1, 0};
-static const unsigned char AlphabeticJongsung[26] = {0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0};
+static const BYTE NumericJongsung[10] = {1, 1, 0, 1, 0, 0, 1, 1, 1, 0};
+static const BYTE AlphabeticJongsung[26] = {0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0};
 
 NTempest::C3Vector CSimpleRender::s_normal(0.0f, 0.0f, 1.0f);
-unsigned short     CSimpleRender::s_indices[4] = {0, 1, 2, 3};
+WORD               CSimpleRender::s_indices[4] = {0, 1, 2, 3};
 
 EGxTexFilter CSimpleTexture::s_textureFilterMode = GxTex_Linear;
 
 void CSimpleRender::DrawBatch(CRenderBatch *batch) {
-  unsigned int count = batch->m_texturelist.Count();
+  UINT count = batch->m_texturelist.Count();
 
   if (count) {
-    unsigned long texture = static_cast<unsigned long>(-1);
-    unsigned int  i;
+    DWORD texture = static_cast<DWORD>(-1);
+    UINT  i;
 
     GxVertexShaderSelect(GxVS_PassThru);
     GxRsPush();
@@ -63,7 +63,7 @@ void CSimpleRender::DrawBatch(CRenderBatch *batch) {
 
       if (texture != batched.textureID) {
         texture = batched.textureID;
-        GxRsSet(GxRs_Texture0, (void *)texture);
+        GxRsSet(GxRs_Texture0, (LPVOID)texture);
       }
 
       if (batched.GxColor && batched.alphamode < GxBlend_Alpha) {
@@ -89,7 +89,7 @@ void CSimpleRender::DrawBatch(CRenderBatch *batch) {
   }
 }
 
-CSimpleTexture::CSimpleTexture(CSimpleFrame *frame, unsigned int drawlayer, int show)
+CSimpleTexture::CSimpleTexture(CSimpleFrame *frame, UINT drawlayer, int show)
     : CSimpleRegion(frame, drawlayer, show),
       m_name(0),
       m_registryContext(0),
@@ -164,7 +164,7 @@ void CSimpleFontStringAttributes::CopyFlags(const CSimpleFontStringAttributes &r
   m_flags = rhs.m_flags;
 }
 
-int CSimpleTexture::SetTexture(const char *file, int uvWrapping) {
+int CSimpleTexture::SetTexture(LPCSTR file, int uvWrapping) {
   if (m_texture) {
     HandleClose(m_texture);
     m_texture = 0;
@@ -223,7 +223,7 @@ int CSimpleTexture::SetTexture(const NTempest::CImVector &color) {
   return result;
 }
 
-CSimpleFontString::CSimpleFontString(CSimpleFrame *frame, unsigned int drawlayer, int show)
+CSimpleFontString::CSimpleFontString(CSimpleFrame *frame, UINT drawlayer, int show)
     : CSimpleRegion(frame, drawlayer, show),
       m_name(0),
       m_registryContext(0),
@@ -278,7 +278,7 @@ void CSimpleTexture::SetTexCoord(const NTempest::C2Vector *texCoord) {
   }
 }
 
-CLayoutFrame *CSimpleTexture::GetLayoutFrameByName(const char *name) {
+CLayoutFrame *CSimpleTexture::GetLayoutFrameByName(LPCSTR name) {
   char newName[1024];
 
   if (!SStrCmpI(name, "$parent", SStrLen("$parent"))) {
@@ -286,7 +286,7 @@ CLayoutFrame *CSimpleTexture::GetLayoutFrameByName(const char *name) {
 
     SStrCopy(newName, "Top", 0x7FFFFFFF);
     for (frame = m_frame; frame; frame = frame->m_parent) {
-      const char *frameName = frame->GetName();
+      LPCSTR frameName = frame->GetName();
 
       if (frameName && *frameName) {
         SStrCopy(newName, frameName, sizeof(newName));
@@ -303,7 +303,7 @@ CLayoutFrame *CSimpleTexture::GetLayoutFrameByName(const char *name) {
 }
 
 void CSimpleTexture::PreLoadXML(const XMLNode *node, CStatus *status) {
-  const char *textureName = node->GetAttributeByName("name");
+  LPCSTR textureName = node->GetAttributeByName("name");
 
   if (textureName && *textureName) {
     char name[1024];
@@ -313,7 +313,7 @@ void CSimpleTexture::PreLoadXML(const XMLNode *node, CStatus *status) {
 
       SStrCopy(name, "Top", 0x7FFFFFFF);
       for (frame = m_frame; frame; frame = frame->m_parent) {
-        const char *frameName = frame->GetName();
+        LPCSTR frameName = frame->GetName();
 
         if (frameName && *frameName) {
           SStrCopy(name, frameName, sizeof(name));
@@ -333,7 +333,7 @@ void CSimpleTexture::PreLoadXML(const XMLNode *node, CStatus *status) {
 }
 
 void CSimpleTexture::LoadXML(const XMLNode *node, CStatus *status) {
-  const char    *value;
+  LPCSTR         value;
   const XMLNode *child;
   int            uvWrapping = 0;
 
@@ -414,7 +414,7 @@ void CSimpleTexture::LoadXML(const XMLNode *node, CStatus *status) {
 
 void CSimpleTexture::PostLoadXML(const XMLNode *node, CStatus *status) {
   if (m_frame) {
-    unsigned int count = m_points.Count();
+    UINT count = m_points.Count();
 
     while (count) {
       if (m_points[--count]) {
@@ -426,7 +426,7 @@ void CSimpleTexture::PostLoadXML(const XMLNode *node, CStatus *status) {
   }
 }
 
-int CSimpleTexture::AddToRegistry(const char *name, unsigned int context) {
+int CSimpleTexture::AddToRegistry(LPCSTR name, UINT context) {
   if (m_name) {
     UnregisterScriptObject(m_name);
     SimpleTextureRegistryRemoveEntry(m_name, m_registryContext);
@@ -448,7 +448,7 @@ int CSimpleTexture::AddToRegistry(const char *name, unsigned int context) {
   return 1;
 }
 
-int CSimpleFontString::SetFont(const char *font, float fontHeight, unsigned int fontFlags) {
+int CSimpleFontString::SetFont(LPCSTR font, float fontHeight, UINT fontFlags) {
   int okay = 1;
 
   m_fontHeight = fontHeight;
@@ -521,9 +521,9 @@ void CSimpleFontString::SetTextLength(int size) {
   }
 }
 
-static bool CheckJongsung(const unsigned short *text, int position) {
+static bool CheckJongsung(const WORD *text, int position) {
   while (position >= 0) {
-    unsigned short character = text[position];
+    WORD character = text[position];
 
     if (character & 0xFF00) {
       if (character >= 0xAC00 && character <= 0xD7A3) {
@@ -542,8 +542,8 @@ static bool CheckJongsung(const unsigned short *text, int position) {
 }
 
 const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const CSimpleFontString &rhs) {
-  unsigned int        fontFlags = rhs.m_font ? TextBlockGetFontFlags(rhs.m_font) : 0;
-  const char         *fontName = rhs.m_font ? TextBlockGetFontName(rhs.m_font) : 0;
+  UINT                fontFlags = rhs.m_font ? TextBlockGetFontFlags(rhs.m_font) : 0;
+  LPCSTR              fontName = rhs.m_font ? TextBlockGetFontName(rhs.m_font) : 0;
   NTempest::CImVector color(0ul);
   NTempest::CImVector shadowColor;
   NTempest::C2Vector  offset(0.0f);
@@ -587,12 +587,12 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
     m_flags |= FLAG_STYLE_UPDATE;
   }
 
-  if (*reinterpret_cast<unsigned long *>(&m_color) != *reinterpret_cast<const unsigned long *>(&rhs.m_color)) {
+  if (*reinterpret_cast<DWORD *>(&m_color) != *reinterpret_cast<const DWORD *>(&rhs.m_color)) {
     m_color = rhs.m_color;
     m_flags |= FLAG_COLOR_UPDATE;
   }
 
-  if (*reinterpret_cast<unsigned long *>(&m_shadowColor) != *reinterpret_cast<const unsigned long *>(&rhs.m_shadowColor) ||
+  if (*reinterpret_cast<DWORD *>(&m_shadowColor) != *reinterpret_cast<const DWORD *>(&rhs.m_shadowColor) ||
       m_shadowOffset.x != rhs.m_shadowOffset.x || m_shadowOffset.y != rhs.m_shadowOffset.y)
   {
     m_shadowColor = rhs.m_shadowColor;
@@ -608,23 +608,23 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
   return *this;
 }
 
-static const char *LanguageRule1(const char *text) {
-  unsigned short *readpos;
+static LPCSTR LanguageRule1(LPCSTR text) {
+  WORD *readpos;
 
   SUniConvertUTF8to16(output16, 0x1000, text, 0x7FFFFFFF, 0, 0);
 
   readpos = output16;
-  unsigned short *writepos = output16;
+  WORD *writepos = output16;
 
   while (*readpos) {
     if (*readpos == '|') {
       ++readpos;
 
       if (*readpos == '1' && (readpos[1] < '0' || readpos[1] > '9')) {
-        unsigned short *jongsungText = readpos + 1;
-        unsigned short *nonJongsungText = jongsungText;
-        unsigned short *end;
-        unsigned short *selectedText;
+        WORD *jongsungText = readpos + 1;
+        WORD *nonJongsungText = jongsungText;
+        WORD *end;
+        WORD *selectedText;
 
         while (*nonJongsungText && *nonJongsungText++ != ';') {
         }
@@ -655,9 +655,9 @@ static const char *LanguageRule1(const char *text) {
   return output8;
 }
 
-static const char *LanguageProcess(const char *text) {
+static LPCSTR LanguageProcess(LPCSTR text) {
   while (*text) {
-    const char *rule = text;
+    LPCSTR rule = text;
 
     while (*rule) {
       if (*rule == '|') {
@@ -689,7 +689,7 @@ CSimpleFontString::~CSimpleFontString() {
   ClearFromSimpleRegistry();
 }
 
-CLayoutFrame *CSimpleFontString::GetLayoutFrameByName(const char *name) {
+CLayoutFrame *CSimpleFontString::GetLayoutFrameByName(LPCSTR name) {
   char newName[1024];
 
   if (!SStrCmpI(name, "$parent", SStrLen("$parent"))) {
@@ -697,7 +697,7 @@ CLayoutFrame *CSimpleFontString::GetLayoutFrameByName(const char *name) {
 
     SStrCopy(newName, "Top", 0x7FFFFFFF);
     for (frame = m_frame; frame; frame = frame->m_parent) {
-      const char *frameName = frame->GetName();
+      LPCSTR frameName = frame->GetName();
 
       if (frameName && *frameName) {
         SStrCopy(newName, frameName, sizeof(newName));
@@ -714,7 +714,7 @@ CLayoutFrame *CSimpleFontString::GetLayoutFrameByName(const char *name) {
 }
 
 void CSimpleFontString::PreLoadXML(const XMLNode *node, CStatus *status) {
-  const char *fontStringName = node->GetAttributeByName("name");
+  LPCSTR fontStringName = node->GetAttributeByName("name");
 
   if (fontStringName && *fontStringName) {
     char name[1024];
@@ -724,7 +724,7 @@ void CSimpleFontString::PreLoadXML(const XMLNode *node, CStatus *status) {
 
       SStrCopy(name, "Top", 0x7FFFFFFF);
       for (frame = m_frame; frame; frame = frame->m_parent) {
-        const char *frameName = frame->GetName();
+        LPCSTR frameName = frame->GetName();
 
         if (frameName && *frameName) {
           SStrCopy(name, frameName, sizeof(name));
@@ -744,7 +744,7 @@ void CSimpleFontString::PreLoadXML(const XMLNode *node, CStatus *status) {
 }
 
 void CSimpleFontString::LoadXML(const XMLNode *node, CStatus *status) {
-  const char    *value;
+  LPCSTR         value;
   const XMLNode *child;
 
   CLayoutFrame::LoadXML(node, status);
@@ -760,9 +760,9 @@ void CSimpleFontString::LoadXML(const XMLNode *node, CStatus *status) {
 
   value = node->GetAttributeByName("font");
   if (value && *value) {
-    const char  *font = value;
-    float        fontHeight = 0.0f;
-    unsigned int fontFlags = 0;
+    LPCSTR font = value;
+    float  fontHeight = 0.0f;
+    UINT   fontFlags = 0;
 
     child = node->GetChildByName("FontHeight");
     if (child) {
@@ -803,7 +803,7 @@ void CSimpleFontString::LoadXML(const XMLNode *node, CStatus *status) {
 
   value = node->GetAttributeByName("text");
   if (value && *value) {
-    const char *text = FrameScript_GetText(value, -1, GENDER_NOT_APPLICABLE);
+    LPCSTR text = FrameScript_GetText(value, -1, GENDER_NOT_APPLICABLE);
 
     if (!text || !*text) {
       text = value;
@@ -814,7 +814,7 @@ void CSimpleFontString::LoadXML(const XMLNode *node, CStatus *status) {
 
   value = node->GetAttributeByName("justifyV");
   if (value && *value) {
-    unsigned int justify;
+    UINT justify;
 
     if (StringToJustify(value, justify)) {
       ChangeStyleFlags(0x38, justify);
@@ -823,7 +823,7 @@ void CSimpleFontString::LoadXML(const XMLNode *node, CStatus *status) {
 
   value = node->GetAttributeByName("justifyH");
   if (value && *value) {
-    unsigned int justify;
+    UINT justify;
 
     if (StringToJustify(value, justify)) {
       ChangeStyleFlags(0x7, justify);
@@ -863,7 +863,7 @@ void CSimpleFontString::LoadXML(const XMLNode *node, CStatus *status) {
 
 void CSimpleFontString::PostLoadXML(const XMLNode *node, CStatus *status) {
   if (m_frame) {
-    unsigned int count = m_points.Count();
+    UINT count = m_points.Count();
 
     while (count) {
       if (m_points[--count]) {
@@ -881,7 +881,7 @@ void CSimpleFontString::PostLoadXML(const XMLNode *node, CStatus *status) {
   }
 }
 
-int CSimpleFontString::AddToRegistry(const char *name, unsigned int context) {
+int CSimpleFontString::AddToRegistry(LPCSTR name, UINT context) {
   if (m_name) {
     UnregisterScriptObject(m_name);
     SimpleFontStringRegistryRemoveEntry(m_name, m_registryContext);
@@ -903,7 +903,7 @@ int CSimpleFontString::AddToRegistry(const char *name, unsigned int context) {
   return 1;
 }
 
-void CSimpleFontString::SetText(const char *text) {
+void CSimpleFontString::SetText(LPCSTR text) {
   ASSERT(m_font);
 
   if (m_text) {
@@ -918,7 +918,7 @@ void CSimpleFontString::SetText(const char *text) {
   m_cachedHeight = 0.0f;
 
   if (text && *text) {
-    const char *processedText = LanguageProcess(text);
+    LPCSTR processedText = LanguageProcess(text);
 
     if (m_textMaxSize) {
       SStrCopy(m_text, processedText, m_textMaxSize);
@@ -1058,7 +1058,7 @@ float CSimpleTexture::GetWidth() {
   float width = CLayoutFrame::GetWidth();
 
   if (width == 0.0f && m_texture) {
-    unsigned int pixels;
+    UINT pixels;
 
     TextureGetDimensions(m_texture, &pixels, 0);
     width = pixels * 0.0009765625f * 0.8f;
@@ -1081,7 +1081,7 @@ float CSimpleTexture::GetHeight() {
   float height = CLayoutFrame::GetHeight();
 
   if (height == 0.0f && m_texture) {
-    unsigned int pixels;
+    UINT pixels;
 
     TextureGetDimensions(m_texture, 0, &pixels);
     height = pixels * 0.0009765625f * 0.8f;
@@ -1090,7 +1090,7 @@ float CSimpleTexture::GetHeight() {
   return height;
 }
 
-float CSimpleFontString::GetTextWidth(const char *text, unsigned int textBytes) {
+float CSimpleFontString::GetTextWidth(LPCSTR text, UINT textBytes) {
   float width;
 
   ASSERT(m_font);
@@ -1118,11 +1118,11 @@ void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
   }
 
   if (m_text && *m_text) {
-    unsigned int       styleFlags = m_styleFlags;
+    UINT               styleFlags = m_styleFlags;
     NTempest::C3Vector position(rect->l + m_justificationOffset.x * m_layoutScale, rect->t + m_justificationOffset.y * m_layoutScale, 0.0f);
 
     if (!(styleFlags & 0x400)) {
-      const char *scan = m_text;
+      LPCSTR scan = m_text;
 
       while (*scan) {
         if (*scan == '|') {
@@ -1148,7 +1148,7 @@ void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
 
     if (m_styleFlags & 0x100) {
       NTempest::CImVector shadowColor(m_shadowColor);
-      shadowColor.a = static_cast<unsigned char>(m_shadowColor.a * m_frame->GetAlpha() / 255);
+      shadowColor.a = static_cast<BYTE>(m_shadowColor.a * m_frame->GetAlpha() / 255);
       NTempest::C2Vector shadowOffset(m_shadowOffset.x * m_layoutScale, m_shadowOffset.y * m_layoutScale);
       TextBlockAddShadow(m_string, shadowColor, shadowOffset);
     }
@@ -1161,7 +1161,7 @@ void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
   OnRegionChanged();
 }
 
-unsigned int CSimpleFontString::WrapText(const char *text, float maxWidth, unsigned int *lineOffsets, unsigned int maxLines) {
+UINT CSimpleFontString::WrapText(LPCSTR text, float maxWidth, UINT *lineOffsets, UINT maxLines) {
   ASSERT(m_font);
 
   return TextBlockWrapText(m_font, text, m_fontHeight * m_layoutScale, maxWidth * m_layoutScale, lineOffsets, maxLines, 0.0f, m_styleFlags);
@@ -1173,7 +1173,7 @@ float CSimpleFontString::GetWidth() {
   return width == 0.0f ? GetStringWidth() : width;
 }
 
-unsigned int CSimpleFontString::GetNumCharsWithinWidth(const char *text, unsigned int textBytes, float maxWidth) {
+UINT CSimpleFontString::GetNumCharsWithinWidth(LPCSTR text, UINT textBytes, float maxWidth) {
   float width;
 
   ASSERT(m_font);
@@ -1192,7 +1192,7 @@ float CSimpleFontString::GetHeight() {
   return height == 0.0f ? GetStringHeight() : height;
 }
 
-unsigned int CSimpleFontString::GetNumCharsWithinWidthFromEnd(const char *text, unsigned int textBytes, float maxWidth) {
+UINT CSimpleFontString::GetNumCharsWithinWidthFromEnd(LPCSTR text, UINT textBytes, float maxWidth) {
   float width;
 
   ASSERT(m_font);
@@ -1212,8 +1212,8 @@ void CSimpleFontString::SetLayoutScale(float scale, bool force) {
     CLayoutFrame::SetLayoutScale(scale, force);
 
     if (m_font) {
-      char         fontName[128];
-      unsigned int fontFlags;
+      char fontName[128];
+      UINT fontFlags;
 
       SStrCopy(fontName, TextBlockGetFontName(m_font), sizeof(fontName));
       fontFlags = m_font ? TextBlockGetFontFlags(m_font) : 0;
@@ -1279,11 +1279,11 @@ void CRenderBatch::QueueTexture(CSimpleTexture *texture) {
   CGxTex *texturedata = texture->GetTexture();
 
   if (texturedata) {
-    unsigned int index = m_texturelist.Count();
+    UINT index = m_texturelist.Count();
 
     m_texturelist.SetCount(index + 1);
     CSimpleBatchedTexture &batched = m_texturelist[index];
-    batched.textureID = reinterpret_cast<unsigned long>(texturedata);
+    batched.textureID = reinterpret_cast<DWORD>(texturedata);
     batched.position = texture->m_position;
     batched.texCoord = texture->m_texCoord;
     batched.alphamode = texture->m_alphamode;
@@ -1308,19 +1308,19 @@ void CRenderBatch::QueueFontString(CSimpleFontString *string) {
   }
 }
 
-void CRenderBatch::QueueCallback(void(*callback)(void *), void *param) {
+void CRenderBatch::QueueCallback(void (*callback)(LPVOID), LPVOID param) {
   RENDERCALLBACKNODE *node = m_callbacks.NewNode(LIST_TAIL, 0, 0);
   node->callback = callback;
   node->param = param;
   ++m_count;
 }
 
-static int __cdecl SortByTexture(const void *A, const void *B) {
+static int __cdecl SortByTexture(LPCVOID A, LPCVOID B) {
   return static_cast<const CSimpleBatchedTexture *>(A)->textureID - static_cast<const CSimpleBatchedTexture *>(B)->textureID;
 }
 
 void CRenderBatch::Finish() {
-  unsigned int count = m_texturelist.Count();
+  UINT count = m_texturelist.Count();
 
   if (count > 1) {
     qsort(m_texturelist.Ptr(), count, sizeof(CSimpleBatchedTexture), SortByTexture);

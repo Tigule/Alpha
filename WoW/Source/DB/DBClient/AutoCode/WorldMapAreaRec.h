@@ -7,13 +7,13 @@ class WorldMapAreaRec {
   WorldMapAreaRec();
   ~WorldMapAreaRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 8;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 32;
   }
 
@@ -28,16 +28,16 @@ class WorldMapAreaRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_mapID;
-  int         m_areaID;
-  int         m_leftBoundary;
-  int         m_rightBoundary;
-  int         m_topBoundary;
-  int         m_bottomBoundary;
-  const char *m_areaName;
+  int    m_ID;
+  int    m_mapID;
+  int    m_areaID;
+  int    m_leftBoundary;
+  int    m_rightBoundary;
+  int    m_topBoundary;
+  int    m_bottomBoundary;
+  LPCSTR m_areaName;
 };
 
 extern WowClientDB<WorldMapAreaRec> g_worldMapAreaDB;

@@ -12,17 +12,17 @@ enum {
   LARGE_BUFFER_SIZE = 0x4000
 };
 
-template <unsigned int SIZE>
+template <UINT SIZE>
 class WDataStoreBuffer : public TObjectAllocMemHandle {
  public:
   int GetSize();
 
-  unsigned char buf[SIZE];
+  BYTE buf[SIZE];
 };
 
 static TObjectAlloc<WDataStoreBuffer<SMALL_BUFFER_SIZE> > *s_smallHeap;
 static TObjectAlloc<WDataStoreBuffer<LARGE_BUFFER_SIZE> > *s_largeHeap;
-static unsigned char                                       s_heapsInitialized;
+static BYTE                                                s_heapsInitialized;
 
 void WDataStore::StaticInitialize() {
   if (s_heapsInitialized) {
@@ -48,14 +48,14 @@ void WDataStore::StaticDestroy() {
   s_heapsInitialized = 0;
 }
 
-void WDataStore::InternalInitialize(unsigned char *&data, unsigned int &base, unsigned int &alloc) {
+void WDataStore::InternalInitialize(BYTE *&data, UINT &base, UINT &alloc) {
   m_bufferObj = 0;
   alloc = 0;
   data = 0;
   base = 0;
 }
 
-void WDataStore::InternalDestroy(unsigned char *&data, unsigned int &base, unsigned int &alloc) {
+void WDataStore::InternalDestroy(BYTE *&data, UINT &base, UINT &alloc) {
   if (m_bufferObj) {
     if (alloc == SMALL_BUFFER_SIZE) {
       s_smallHeap->Free(static_cast<WDataStoreBuffer<SMALL_BUFFER_SIZE> *>(m_bufferObj));
@@ -73,28 +73,20 @@ void WDataStore::InternalDestroy(unsigned char *&data, unsigned int &base, unsig
   alloc = 0;
 }
 
-int WDataStore::InternalFetchWrite(
-    unsigned int    pos,
-    unsigned int    bytes,
-    unsigned char *&data,
-    unsigned int   &base,
-    unsigned int   &alloc,
-    const char     *fileName,
-    int             lineNumber
-) {
+int WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber) {
   if (!s_heapsInitialized) {
     StaticInitialize();
   }
 
   ASSERT(alloc == 0 || alloc == SMALL_BUFFER_SIZE || alloc >= LARGE_BUFFER_SIZE);
 
-  unsigned int newAlloc = (pos + bytes + 0xFF) & 0xFFFFFF00;
-  unsigned int oldAlloc = alloc;
+  UINT newAlloc = (pos + bytes + 0xFF) & 0xFFFFFF00;
+  UINT oldAlloc = alloc;
   if (newAlloc < oldAlloc) {
     return 1;
   }
 
-  void *oldBufferObj = m_bufferObj;
+  LPVOID oldBufferObj = m_bufferObj;
 
   if (newAlloc <= SMALL_BUFFER_SIZE) {
     WDataStoreBuffer<SMALL_BUFFER_SIZE> *obj = s_smallHeap->New();
@@ -118,7 +110,7 @@ int WDataStore::InternalFetchWrite(
     if (!oldBufferObj) {
       data = Realloc(data, newAlloc, fileName, lineNumber);
     } else {
-      unsigned char *newData = Alloc(newAlloc, fileName, lineNumber);
+      BYTE *newData = Alloc(newAlloc, fileName, lineNumber);
       memcpy(newData, data, oldAlloc);
       data = newData;
       m_bufferObj = 0;
@@ -140,7 +132,7 @@ int WDataStore::InternalFetchWrite(
   return 1;
 }
 
-void *WDataStore::AllocBuffer(unsigned int size) {
+LPVOID WDataStore::AllocBuffer(UINT size) {
   if (size <= SMALL_BUFFER_SIZE) {
     return s_smallHeap->New()->buf;
   }
@@ -152,7 +144,7 @@ void *WDataStore::AllocBuffer(unsigned int size) {
   return ALLOC(size);
 }
 
-void WDataStore::FreeBuffer(void *buffer, unsigned int size) {
+void WDataStore::FreeBuffer(LPVOID buffer, UINT size) {
   if (size <= SMALL_BUFFER_SIZE) {
     WDataStoreBuffer<SMALL_BUFFER_SIZE> *obj = CONTAINING_RECORD(buffer, WDataStoreBuffer<SMALL_BUFFER_SIZE>, buf);
     s_smallHeap->Free(obj);

@@ -7,13 +7,13 @@ class SpellChainEffectsRec {
   SpellChainEffectsRec();
   ~SpellChainEffectsRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 8;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 32;
   }
 
@@ -28,16 +28,16 @@ class SpellChainEffectsRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  float       m_AvgSegLen;
-  float       m_Width;
-  float       m_NoiseScale;
-  float       m_TexCoordScale;
-  int         m_SegDuration;
-  int         m_SegDelay;
-  const char *m_Texture;
+  int    m_ID;
+  float  m_AvgSegLen;
+  float  m_Width;
+  float  m_NoiseScale;
+  float  m_TexCoordScale;
+  int    m_SegDuration;
+  int    m_SegDelay;
+  LPCSTR m_Texture;
 };
 
 extern WowClientDB<SpellChainEffectsRec> g_spellChainEffectsDB;

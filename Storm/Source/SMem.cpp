@@ -267,20 +267,19 @@ static void UnlockHeap(HLOCKEDHEAP *lockedhandle) {
 // Block allocation/deallocation functions
 // --------------------------------
 
-static void CombineFreeBlocks(HEAPPTR heapptr);
-static void ComputeBlockSize(DWORD bytes, LPDWORD blockSize, LPDWORD padding, LPBOOL largeAlloc, LPBOOL boundingSig);
+static void  CombineFreeBlocks(HEAPPTR heapptr);
+static void  ComputeBlockSize(DWORD bytes, LPDWORD blockSize, LPDWORD padding, LPBOOL largeAlloc, LPBOOL boundingSig);
 static DWORD ComputeFreeSlot(DWORD bytes);
-static void ComputePageSize();
-static void FillBlockHeaderAndSignatures(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD blockSize, DWORD padding, BYTE flags);
-static void FreeHeap(HEAPPTR *nextptr);
-static void FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block);
-static int GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize);
-static BOOL GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
-static void ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
-static void SubdivideBlock(HEAPPTR heapptr, BLOCKPTR blockptr, LPDWORD blocksize, LPDWORD padding);
+static void  ComputePageSize();
+static void  FillBlockHeaderAndSignatures(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD blockSize, DWORD padding, BYTE flags);
+static void  FreeHeap(HEAPPTR *nextptr);
+static void  FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block);
+static int   GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize);
+static BOOL  GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
+static void  ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
+static void  SubdivideBlock(HEAPPTR heapptr, BLOCKPTR blockptr, LPDWORD blocksize, LPDWORD padding);
 
-static HEAPPTR
-AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWORD slot, DWORD chunksize, DWORD commitsize, DWORD reservesize) {
+static HEAPPTR AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWORD slot, DWORD chunksize, DWORD commitsize, DWORD reservesize) {
   BLOCK    block;
   DWORD    filenamebytes;
   DWORD    headerbytes;
@@ -1174,7 +1173,7 @@ BOOL APIENTRY SMemDumpStateEx(char *arglist) {
       info.lineNumber = heapdetails.linenumber;
       SStrCopy(info.fileName, heapdetails.filename, sizeof(info.fileName));
 
-      outputproc(outputcontext, (const char *)&info);
+      outputproc(outputcontext, (LPCSTR)&info);
       heapdetails.size = sizeof(heapdetails);
     }
     return TRUE;

@@ -6,12 +6,12 @@
 #include <pthread.h>
 
 NODEDECL(TLSData) {
-  TSGrowableArray<void *> m_values;
+  TSGrowableArray<LPVOID> m_values;
 };
 
-static SCritSect     s_critsect;
-static int           s_initialized;
-static DWORD         s_nextIndex;
+static SCritSect s_critsect;
+static int       s_initialized;
+static DWORD     s_nextIndex;
 static LISTDECL(TLSData, s_tlsList);
 static pthread_key_t s_key;
 
@@ -52,7 +52,7 @@ DWORD OsTlsAlloc() {
 void OsTlsFree(DWORD index) {
 }
 
-void *OsTlsGetValue(DWORD index) {
+LPVOID OsTlsGetValue(DWORD index) {
   TLSData *data = GetTlsData();
 
   if (index < data->m_values.Count()) {
@@ -62,7 +62,7 @@ void *OsTlsGetValue(DWORD index) {
   return 0;
 }
 
-BOOL OsTlsSetValue(DWORD index, void *value) {
+BOOL OsTlsSetValue(DWORD index, LPVOID value) {
   TLSData *data = GetTlsData();
 
   if (index >= data->m_values.Count()) {

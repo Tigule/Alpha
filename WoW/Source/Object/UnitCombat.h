@@ -46,13 +46,13 @@ enum ANIMQUEUETYPE {
 };
 
 struct DamageData {
-  int          totalDamage;
-  int          damageType[5];
-  unsigned int minDamage[5];
-  unsigned int maxDamage[5];
-  float        damageFloat[5];
-  int          damage[5];
-  int          absorbed[5];
+  int   totalDamage;
+  int   damageType[5];
+  UINT  minDamage[5];
+  UINT  maxDamage[5];
+  float damageFloat[5];
+  int   damage[5];
+  int   absorbed[5];
 
   void Clear();
 };
@@ -64,7 +64,7 @@ inline void DamageData::Clear() {
   memset(absorbed, 0, sizeof(absorbed));
   memset(minDamage, 0, sizeof(minDamage));
   memset(maxDamage, 0, sizeof(maxDamage));
-  for (unsigned int i = 0; i < 5; ++i) {
+  for (UINT i = 0; i < 5; ++i) {
     damageType[i] = -1;
   }
 }
@@ -85,30 +85,30 @@ struct LOGBASE {
 
 struct DAMAGELOGBASE : public LOGBASE {
   DAMAGELOGBASE(const DAMAGELOGBASE &other);
-  DAMAGELOGBASE(unsigned __int64 attacker, unsigned __int64 victim);
+  DAMAGELOGBASE(DWORDLONG attacker, DWORDLONG victim);
 
-  unsigned __int64 attacker;
-  unsigned __int64 victim;
-  float            intellectBonus;
-  float            DPSScaler;
-  float            modDamageTaken;
-  float            modDamageDone;
-  float            scaledDamage;
-  float            netDamageMultiplier;
-  float            maxDamageReduction;
-  float            scaledArmorReduction;
-  float            hitRollFloat;
-  float            hitRollNeededFloat;
-  float            critRollFloat;
-  float            critRollNeededFloat;
-  unsigned int     flags;
-  DamageData       dmg;
+  DWORDLONG  attacker;
+  DWORDLONG  victim;
+  float      intellectBonus;
+  float      DPSScaler;
+  float      modDamageTaken;
+  float      modDamageDone;
+  float      scaledDamage;
+  float      netDamageMultiplier;
+  float      maxDamageReduction;
+  float      scaledArmorReduction;
+  float      hitRollFloat;
+  float      hitRollNeededFloat;
+  float      critRollFloat;
+  float      critRollNeededFloat;
+  UINT       flags;
+  DamageData dmg;
 };
 
 struct ATTACKROUNDINFO : public DAMAGELOGBASE {
-  unsigned int armorReduction;
+  UINT         armorReduction;
   VICTIMSTATES newVictimState;
-  unsigned int victimRoundDuration;
+  UINT         victimRoundDuration;
   float        dodgeRollFloat;
   float        dodgeRollNeededFloat;
   float        parryRollFloat;
@@ -117,10 +117,10 @@ struct ATTACKROUNDINFO : public DAMAGELOGBASE {
   float        blockRollNeededFloat;
   float        stunRollFloat;
   float        stunRollNeededFloat;
-  unsigned int delayTime;
-  unsigned int spellDamageAdded;
-  unsigned int spellAddedDamage;
-  unsigned int sinceLastSwing;
+  UINT         delayTime;
+  UINT         spellDamageAdded;
+  UINT         spellAddedDamage;
+  UINT         sinceLastSwing;
   float        dualWieldHitRollFloat;
   float        dualWieldHitRollNeededFloat;
   int          procSpell;
@@ -132,23 +132,23 @@ struct ATTACKROUNDINFO : public DAMAGELOGBASE {
 
 struct SPELLLOG : public DAMAGELOGBASE {
   SPELLLOG(const SPELLLOG &);
-  SPELLLOG(unsigned __int64 attacker, unsigned __int64 victim, int spellID);
-  SPELLLOG(unsigned __int64 attacker, unsigned int spellID);
+  SPELLLOG(DWORDLONG attacker, DWORDLONG victim, int spellID);
+  SPELLLOG(DWORDLONG attacker, UINT spellID);
   SPELLLOG(
-      unsigned __int64 attacker,
-      unsigned __int64 victim,
-      unsigned int spellID,
-      float intellectBonus,
-      float DPSScaler,
-      unsigned int damageType,
-      unsigned int auraEffectID,
-      float resistanceCoefficient
+      DWORDLONG attacker,
+      DWORDLONG victim,
+      UINT      spellID,
+      float     intellectBonus,
+      float     DPSScaler,
+      UINT      damageType,
+      UINT      auraEffectID,
+      float     resistanceCoefficient
   );
 
-  unsigned int auraEffectID;
-  unsigned int spellID;
-  unsigned int damageType;
-  float        resistanceCoefficient;
+  UINT  auraEffectID;
+  UINT  spellID;
+  UINT  damageType;
+  float resistanceCoefficient;
 
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
@@ -156,21 +156,21 @@ struct SPELLLOG : public DAMAGELOGBASE {
 
 struct SPELLMISSLOG : public LOGBASE {
   SPELLMISSLOG(const SPELLMISSLOG &);
-  SPELLMISSLOG(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID);
+  SPELLMISSLOG(DWORDLONG attacker, DWORDLONG victim, UINT spellID);
 
-  unsigned __int64 attacker;
-  unsigned __int64 victim;
-  unsigned int     spellID;
-  unsigned int     reason;
-  float            hitRoll;
-  float            hitRollNeeded;
-  float            dodgeRoll;
-  float            dodgeRollNeeded;
-  float            parryRoll;
-  float            parryRollNeeded;
-  float            blockRoll;
-  float            blockRollNeeded;
-  unsigned int     flags;
+  DWORDLONG attacker;
+  DWORDLONG victim;
+  UINT      spellID;
+  UINT      reason;
+  float     hitRoll;
+  float     hitRollNeeded;
+  float     dodgeRoll;
+  float     dodgeRollNeeded;
+  float     parryRoll;
+  float     parryRollNeeded;
+  float     blockRoll;
+  float     blockRollNeeded;
+  UINT      flags;
 
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
@@ -182,24 +182,24 @@ struct RESISTLOG : public LOGBASE {
 
   RESISTLOG(const RESISTLOG &);
 
-  unsigned __int64 attacker;
-  unsigned __int64 victim;
-  int              spell;
-  float            resistRollNeeded;
-  float            resistRoll;
-  int              flags;
-  int              castLevel;
+  DWORDLONG attacker;
+  DWORDLONG victim;
+  int       spell;
+  float     resistRollNeeded;
+  float     resistRoll;
+  int       flags;
+  int       castLevel;
 
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
 struct ENCHANTMENTLOG : public LOGBASE {
-  unsigned __int64 attacker;
-  unsigned __int64 victim;
-  int              enchantment;
-  int              itemID;
-  int              flags;
+  DWORDLONG attacker;
+  DWORDLONG victim;
+  int       enchantment;
+  int       itemID;
+  int       flags;
 
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
@@ -210,11 +210,11 @@ struct ENVIRONMENTALDAMAGE : public LOGBASE {
   }
 
   ENVIRONMENTALDAMAGE(const ENVIRONMENTALDAMAGE &);
-  ENVIRONMENTALDAMAGE(unsigned __int64 victim, int school, int amount);
+  ENVIRONMENTALDAMAGE(DWORDLONG victim, int school, int amount);
 
-  unsigned __int64 victim;
-  int              school;
-  int              amount;
+  DWORDLONG victim;
+  int       school;
+  int       amount;
 
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
@@ -225,24 +225,24 @@ struct MIRRORTIMERDAMAGE : public LOGBASE {
   }
 
   MIRRORTIMERDAMAGE(const MIRRORTIMERDAMAGE &);
-  MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, unsigned __int64 victim, int amount);
+  MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, DWORDLONG victim, int amount);
 
-  int              damage;
-  unsigned __int64 victim;
-  int              amount;
+  int       damage;
+  DWORDLONG victim;
+  int       amount;
 
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
 struct PARTYKILLLOG : public LOGBASE {
-  PARTYKILLLOG(unsigned __int64 killer = 0, unsigned __int64 victim = 0);
+  PARTYKILLLOG(DWORDLONG killer = 0, DWORDLONG victim = 0);
 
   PARTYKILLLOG(const PARTYKILLLOG &other) : killer(other.killer), victim(other.victim) {
   }
 
-  unsigned __int64 killer;
-  unsigned __int64 victim;
+  DWORDLONG killer;
+  DWORDLONG victim;
 
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
@@ -268,7 +268,7 @@ inline DAMAGELOGBASE::DAMAGELOGBASE(const DAMAGELOGBASE &other)
       dmg(other.dmg) {
 }
 
-inline DAMAGELOGBASE::DAMAGELOGBASE(unsigned __int64 attacker, unsigned __int64 victim)
+inline DAMAGELOGBASE::DAMAGELOGBASE(DWORDLONG attacker, DWORDLONG victim)
     : attacker(attacker),
       victim(victim),
       intellectBonus(0.0f),
@@ -287,8 +287,7 @@ inline DAMAGELOGBASE::DAMAGELOGBASE(unsigned __int64 attacker, unsigned __int64 
   dmg.Clear();
 }
 
-inline ATTACKROUNDINFO::ATTACKROUNDINFO()
-    : DAMAGELOGBASE(0, 0) {
+inline ATTACKROUNDINFO::ATTACKROUNDINFO() : DAMAGELOGBASE(0, 0) {
   armorReduction = 0;
   newVictimState = VS_NONE;
   victimRoundDuration = 0;
@@ -307,27 +306,21 @@ inline ATTACKROUNDINFO::ATTACKROUNDINFO()
   procSpell = 0;
 }
 
-inline SPELLLOG::SPELLLOG(unsigned __int64 attacker, unsigned __int64 victim, int spellID)
-    : DAMAGELOGBASE(attacker, victim),
-      auraEffectID(0),
-      spellID(spellID),
-      damageType(0),
-      resistanceCoefficient(0.0f) {
+inline SPELLLOG::SPELLLOG(DWORDLONG attacker, DWORDLONG victim, int spellID)
+    : DAMAGELOGBASE(attacker, victim), auraEffectID(0), spellID(spellID), damageType(0), resistanceCoefficient(0.0f) {
 }
 
-inline SPELLMISSLOG::SPELLMISSLOG(unsigned __int64 attacker, unsigned __int64 victim, unsigned int spellID)
+inline SPELLMISSLOG::SPELLMISSLOG(DWORDLONG attacker, DWORDLONG victim, UINT spellID)
     : attacker(attacker), victim(victim), spellID(spellID), flags(0) {
 }
 
-inline ENVIRONMENTALDAMAGE::ENVIRONMENTALDAMAGE(unsigned __int64 victim, int school, int amount)
-    : victim(victim), school(school), amount(amount) {
+inline ENVIRONMENTALDAMAGE::ENVIRONMENTALDAMAGE(DWORDLONG victim, int school, int amount) : victim(victim), school(school), amount(amount) {
 }
 
-inline MIRRORTIMERDAMAGE::MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, unsigned __int64 victim, int amount)
-    : damage(damage), victim(victim), amount(amount) {
+inline MIRRORTIMERDAMAGE::MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, DWORDLONG victim, int amount) : damage(damage), victim(victim), amount(amount) {
 }
 
-inline PARTYKILLLOG::PARTYKILLLOG(unsigned __int64 killer, unsigned __int64 victim) : killer(killer), victim(victim) {
+inline PARTYKILLLOG::PARTYKILLLOG(DWORDLONG killer, DWORDLONG victim) : killer(killer), victim(victim) {
 }
 
 NODEDECL(ANIMQUEUENODE) {
@@ -336,25 +329,27 @@ NODEDECL(ANIMQUEUENODE) {
 };
 
 class CCombat {
- friend class CGUnit_C;
+  friend class CGUnit_C;
+
  public:
   CCombat() : m_victim(0) {
   }
 
-  unsigned __int64 IsAttacking() const;
-  void             SetAttacking(unsigned __int64 victim);
-  void             StopAttack() {
+  DWORDLONG IsAttacking() const;
+  void      SetAttacking(DWORDLONG victim);
+  void      StopAttack() {
     m_victim = 0;
   }
-  void             GetClientInitData(CClientObjCreate *init) const;
-  void             SetClientInitData(const CClientObjCreate &init);
+  void GetClientInitData(CClientObjCreate *init) const;
+  void SetClientInitData(const CClientObjCreate &init);
 
  protected:
-  unsigned __int64 m_victim;
+  DWORDLONG m_victim;
 };
 
 class CCombatClient : public CCombat {
- friend class CGUnit_C;
+  friend class CGUnit_C;
+
  public:
   CCombatClient() : m_attackSent(0), m_stopSent(0) {
   }
@@ -363,8 +358,8 @@ class CCombatClient : public CCombat {
     return m_attackSent;
   }
 
-  void SetAttackSent(unsigned __int64 victim);
-  void SetAttacking(unsigned __int64 victim) {
+  void SetAttackSent(DWORDLONG victim);
+  void SetAttacking(DWORDLONG victim) {
     CCombat::SetAttacking(victim);
   }
   void StopAttack() {

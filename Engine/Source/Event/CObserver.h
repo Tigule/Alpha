@@ -7,7 +7,7 @@ class CEvent;
 class EventRegistry;
 struct EventReg;
 
-typedef int(*EVENTCALLBACK)(const CEvent &, void *);
+typedef int (*EVENTCALLBACK)(const CEvent &, LPVOID);
 
 class CObserver : public TRefCnt {
  public:
@@ -17,18 +17,18 @@ class CObserver : public TRefCnt {
   }
   virtual ~CObserver();
 
-  virtual void RegisterCallback(unsigned int eventId, EVENTCALLBACK callback, void *param);
-  virtual void RegisterEvent(unsigned int id, int expectedEventId, CObserver *pObserver);
+  virtual void RegisterCallback(UINT eventId, EVENTCALLBACK callback, LPVOID param);
+  virtual void RegisterEvent(UINT id, int expectedEventId, CObserver *pObserver);
   virtual int  OnEvent(const CEvent &event);
   virtual int  DispatchEvent(CEvent &event);
   virtual int  DispatchEvent(int id, CEvent &event);
 
-  void      UnregisterCallback(unsigned int eventId, EVENTCALLBACK callback);
-  void      UnregisterEvent(unsigned int id, CObserver *pObserver);
-  int       IsEventRegistered(unsigned int id);
-  int       IsEventRegisteredBy(unsigned int id, CObserver *pObserver);
+  void      UnregisterCallback(UINT eventId, EVENTCALLBACK callback);
+  void      UnregisterEvent(UINT id, CObserver *pObserver);
+  int       IsEventRegistered(UINT id);
+  int       IsEventRegisteredBy(UINT id, CObserver *pObserver);
   void      ClearRegistry();
-  EventReg *GetEventReg(unsigned int eventId, int create);
+  EventReg *GetEventReg(UINT eventId, int create);
 
  protected:
   EventRegistry *GetRegistry(int create);

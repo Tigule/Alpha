@@ -66,23 +66,23 @@ struct SUBCOMPONENTDESC {
     textureName = 0;
   }
 
-  void SetPathName(const char *pathName) {
+  void SetPathName(LPCSTR pathName) {
     if (this->pathName) {
       SMemFree(this->pathName, __FILE__, __LINE__, 0);
     }
     this->pathName = pathName ? SStrDupA(pathName, __FILE__, __LINE__) : 0;
   }
 
-  void SetTextureName(const char *textureName) {
+  void SetTextureName(LPCSTR textureName) {
     if (this->textureName) {
       SMemFree(this->textureName, __FILE__, __LINE__, 0);
     }
     this->textureName = textureName ? SStrDupA(textureName, __FILE__, __LINE__) : 0;
   }
 
-  char        *pathName;
-  char        *textureName;
-  unsigned int connectionPointIndex;
+  char *pathName;
+  char *textureName;
+  UINT  connectionPointIndex;
 };
 
 struct LAYERIDS {
@@ -94,47 +94,45 @@ struct SECTIONPRIORITIES {
 };
 
 struct GEOCOMPONENTINFO {
-  __int64 allowedSlots;
-  int     itemLinks[2];
-  int     altItemLinks[2];
+  LONGLONG allowedSlots;
+  int      itemLinks[2];
+  int      altItemLinks[2];
 };
 
-extern GEOCOMPONENTINFO         g_geometryComponentLookups[INDEX_NUMSLOTS];
+extern GEOCOMPONENTINFO        g_geometryComponentLookups[INDEX_NUMSLOTS];
 extern const LAYERIDS          g_sectionLayers[INDEX_NUMSLOTS];
 extern const SECTIONPRIORITIES g_sectionPriorities[INDEX_NUMSLOTS];
 
-int CompUtilGetSectionDimensions(unsigned int sectionIndex, unsigned int *width, unsigned int *height);
-int CompUtilGetSectionOffset(unsigned int sectionIndex, unsigned int *xCoord, unsigned int *yCoord);
+int CompUtilGetSectionDimensions(UINT sectionIndex, UINT *width, UINT *height);
+int CompUtilGetSectionOffset(UINT sectionIndex, UINT *xCoord, UINT *yCoord);
 int CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority);
 int CompUtilItemSectionInfo(
-    const ItemDisplayInfoRec    *displayInfoRec,
-    unsigned int                 inventoryType,
-    unsigned int                *numTextureComponents,
-    TEXCOMPONENT_SECTIONS        sectionList[6],
-    TEXCOMPONENT_LAYERS          layerList[6],
-    LAYERPRIORITY                priorityList[6],
-    CSectionFileNames           *fileNameList
+    const ItemDisplayInfoRec *displayInfoRec,
+    UINT                      inventoryType,
+    UINT                     *numTextureComponents,
+    TEXCOMPONENT_SECTIONS     sectionList[6],
+    TEXCOMPONENT_LAYERS       layerList[6],
+    LAYERPRIORITY             priorityList[6],
+    CSectionFileNames        *fileNameList
 );
-const char *CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, unsigned int textureSection);
-unsigned int CompUtilGetObjComponents(
+LPCSTR CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, UINT textureSection);
+UINT   CompUtilGetObjComponents(
     const ItemDisplayInfoRec *displayInfoRec,
     int                       itemInventoryType,
     SUBCOMPONENTDESC         *subComponents,
-    unsigned int              numSubComponents,
+    UINT                      numSubComponents,
     int                       useAlternate
 );
-unsigned int CompUtilGetObjComponentSlotFlags(const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType, int useAlternateSlot);
-int
-GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool isPlayer, bool useAlternate, HMODEL *models, int *attachmentPoints);
-HMODEL ObjComponentBuildAmmoModel(const ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration);
-void ComponentUtilAddItemVisual(HMODEL itemModel, int index, const char *name);
+UINT CompUtilGetObjComponentSlotFlags(const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType, int useAlternateSlot);
+int GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool isPlayer, bool useAlternate, HMODEL *models, int *attachmentPoints);
+HMODEL ObjComponentBuildAmmoModel(const ItemDisplayInfoRec *displayInfoRec, UINT inventoryType, UINT &seqDuration);
+void   ComponentUtilAddItemVisual(HMODEL itemModel, int index, LPCSTR name);
 HMODEL ComponentUtilGetChildModel(HMODEL parent, int index);
-void
-CompDecorateTexName(const char *string, TEXCOMPONENT_SECTIONS section, char *buffer, unsigned int size, unsigned int sex, int includeSex);
-void CompDecorateObjName(const char *string, char *buffer, unsigned int size, unsigned int race, unsigned int sex);
-void GetTabardBackgroundFileName(int section, int background, char *buffer, int size);
-void GetTabardEmblemFileName(int section, int emblem, int color, char *buffer, int size);
-void GetTabardBorderFileName(int section, int border, int color, char *buffer, int size);
+void   CompDecorateTexName(LPCSTR string, TEXCOMPONENT_SECTIONS section, char *buffer, UINT size, UINT sex, int includeSex);
+void   CompDecorateObjName(LPCSTR string, char *buffer, UINT size, UINT race, UINT sex);
+void   GetTabardBackgroundFileName(int section, int background, char *buffer, int size);
+void   GetTabardEmblemFileName(int section, int emblem, int color, char *buffer, int size);
+void   GetTabardBorderFileName(int section, int border, int color, char *buffer, int size);
 
 class CTexturePiece : public CHandleObject {
  public:
@@ -163,13 +161,13 @@ class CTexturePiece : public CHandleObject {
     return m_holds != 0;
   }
 
-  int HasHold(unsigned int hold) const;
+  int HasHold(UINT hold) const;
 
-  void SetHold(unsigned int hold) {
+  void SetHold(UINT hold) {
     m_holds |= 1 << hold;
   }
 
-  void ClearHold(unsigned int hold) {
+  void ClearHold(UINT hold) {
     m_holds &= ~(1 << hold);
   }
 
@@ -179,13 +177,13 @@ class CTexturePiece : public CHandleObject {
       LAYERPRIORITY         priority,
       CStatus              *status,
       int                   checkExistingTexture,
-      const char           *fileName,
-      unsigned int          expectedWidth,
-      unsigned int          expectedHeight
+      LPCSTR                fileName,
+      UINT                  expectedWidth,
+      UINT                  expectedHeight
   );
   void SetTexture(int checkExistingTexture, const CTexturePiece &source);
   void SetTexture(int checkExistingTexture, HTEXTURE texture);
-  void AllocBlankTexture(EGxTexFormat format, unsigned int width, unsigned int height, int opaque);
+  void AllocBlankTexture(EGxTexFormat format, UINT width, UINT height, int opaque);
   void SetOpaque(int opaque);
   int  UpdateInfo(int force);
   int  Paste(const CTexturePiece &source, int x, int y);
@@ -202,7 +200,7 @@ class CTexturePiece : public CHandleObject {
 
   TEXTUREINFO    m_textureInfo;
   HMIPPEDTEXTURE m_mippedTexture;
-  unsigned int   m_holds;
+  UINT           m_holds;
 
  protected:
   char m_fileName[MAX_PATH];
@@ -219,8 +217,8 @@ class CTextureLayer {
       CStatus              *status,
       TEXCOMPONENT_LAYERS   layer,
       EGxTexFormat          format,
-      unsigned int          width,
-      unsigned int          height,
+      UINT                  width,
+      UINT                  height,
       int                   opaque
   );
   int SetTexture(
@@ -229,21 +227,15 @@ class CTextureLayer {
       LAYERPRIORITY         priority,
       CStatus              *status,
       int                   checkExistingTexture,
-      const char           *fileName,
-      unsigned int          expectedWidth,
-      unsigned int          expectedHeight
+      LPCSTR                fileName,
+      UINT                  expectedWidth,
+      UINT                  expectedHeight
   );
-  void PasteOpaque(
-      const CTexturePiece   &source,
-      NTempest::C2iVector   dstPos,
-      NTempest::C2iVector   srcPos,
-      unsigned int          width,
-      unsigned int          height,
-      LAYERPRIORITY         priority
-  );
-  void SetHold(int priority, unsigned int hold);
-  void ClearHold(int priority, unsigned int hold);
-  int  HasHold(int priority, unsigned int hold) const;
+  void
+  PasteOpaque(const CTexturePiece &source, NTempest::C2iVector dstPos, NTempest::C2iVector srcPos, UINT width, UINT height, LAYERPRIORITY priority);
+  void SetHold(int priority, UINT hold);
+  void ClearHold(int priority, UINT hold);
+  int  HasHold(int priority, UINT hold) const;
   int  HasHolds(int priority) const;
   int  HasImage(int priority) const;
 
@@ -253,31 +245,31 @@ class CTextureLayer {
 class CSection {
  public:
   CSection &operator=(const CSection &rhs);
-  void      SetHold(int layer, int priority, unsigned int hold);
-  void      ClearHold(int layer, int priority, unsigned int hold);
-  int       HasHold(int layer, int priority, unsigned int hold) const;
+  void      SetHold(int layer, int priority, UINT hold);
+  void      ClearHold(int layer, int priority, UINT hold);
+  int       HasHold(int layer, int priority, UINT hold) const;
   int       HasHolds(int layer, int priority) const;
   int       HasImage(int layer, int priority) const;
-  int       IsLayerOpaque(unsigned int layer);
+  int       IsLayerOpaque(UINT layer);
   void      SetTexture(int layer, int priority, int checkExistingTexture, HTEXTURE texture);
   void      SetTexture(int layer, int priority, int checkExistingTexture, const CTexturePiece &texture);
   int       SetTexture(
-            CStatus              *status,
-            TEXCOMPONENT_SECTIONS section,
-            TEXCOMPONENT_LAYERS   layer,
-            LAYERPRIORITY         priority,
-            int                   checkExistingTexture,
-            const char           *fileName,
-            unsigned int          expectedWidth,
-            unsigned int          expectedHeight
+      CStatus              *status,
+      TEXCOMPONENT_SECTIONS section,
+      TEXCOMPONENT_LAYERS   layer,
+      LAYERPRIORITY         priority,
+      int                   checkExistingTexture,
+      LPCSTR                fileName,
+      UINT                  expectedWidth,
+      UINT                  expectedHeight
   );
   void AllocBlankTexture(
       TEXCOMPONENT_SECTIONS section,
       CStatus              *status,
       TEXCOMPONENT_LAYERS   layer,
       EGxTexFormat          format,
-      unsigned int          width,
-      unsigned int          height,
+      UINT                  width,
+      UINT                  height,
       int                   opaque
   );
   void PasteOpaque(
@@ -285,8 +277,8 @@ class CSection {
       const CTexturePiece &source,
       NTempest::C2iVector  dstPos,
       NTempest::C2iVector  srcPos,
-      unsigned int         width,
-      unsigned int         height,
+      UINT                 width,
+      UINT                 height,
       LAYERPRIORITY        priority
   );
 
@@ -320,7 +312,7 @@ class CTexComponent : public CTexturePiece {
   }
 
   void MarkDirty() {
-    for (unsigned int section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
+    for (UINT section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
       m_dirtyFlags |= 1 << section;
     }
   }
@@ -335,43 +327,43 @@ class CTexComponent : public CTexturePiece {
   void UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section, int bUpdate);
   int  Paste(CStatus *status, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, int x, int y, int width, int height);
   void PasteTabardTexture(CStatus *status, TEXCOMPONENT_SECTIONS section);
-  void BuildSkinPieces(CStatus *status, unsigned int *layerHoldSectionFlags);
-  void BuildNakedPieces(CStatus *status, unsigned int race, unsigned int sex, unsigned int skinID, int isNPC);
-  void HideUnderwear(unsigned int underwearSection);
-  void ShowUnderwear(unsigned int underwearSection);
+  void BuildSkinPieces(CStatus *status, UINT *layerHoldSectionFlags);
+  void BuildNakedPieces(CStatus *status, UINT race, UINT sex, UINT skinID, int isNPC);
+  void HideUnderwear(UINT underwearSection);
+  void ShowUnderwear(UINT underwearSection);
   void SetTexture(int checkExistingTexture, HTEXTURE texture);
   void SetTexture(
       CStatus              *status,
       int                   checkExistingTexture,
-      const char           *fileName,
+      LPCSTR                fileName,
       TEXCOMPONENT_SECTIONS section,
       TEXCOMPONENT_LAYERS   layer,
       LAYERPRIORITY         priority,
-      unsigned int          expectedWidth,
-      unsigned int          expectedHeight
+      UINT                  expectedWidth,
+      UINT                  expectedHeight
   );
   void UpdateUnderwearVisibility();
-  void RemoveSections(const TEXCOMPONENT_SECTIONS *sectionPointers, const unsigned int *startLayerList, unsigned int size);
+  void RemoveSections(const TEXCOMPONENT_SECTIONS *sectionPointers, const UINT *startLayerList, UINT size);
   void AddHold(INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
   void RemoveHold(INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
   void RemoveHolds();
   void IncUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SECTIONS sectionID);
   void DecUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SECTIONS sectionID);
-  void SetUpperHeadTexture(const char *upperHead);
-  void SetLowerHeadTexture(const char *lowerHead);
+  void SetUpperHeadTexture(LPCSTR upperHead);
+  void SetLowerHeadTexture(LPCSTR lowerHead);
 
-  HTEXTURE     m_texture;
-  unsigned int m_dirtyFlags;
-  CSection     m_sections[NUM_TEXCOMPONENT_SECTIONS];
-  unsigned int m_underwearHideCounts[2];
-  unsigned int m_flags;
-  char         m_upperFaceTexture[MAX_PATH];
-  char         m_lowerFaceTexture[MAX_PATH];
-  int          m_emblemStyle;
-  int          m_emblemColor;
-  int          m_borderStyle;
-  int          m_borderColor;
-  int          m_background;
+  HTEXTURE m_texture;
+  UINT     m_dirtyFlags;
+  CSection m_sections[NUM_TEXCOMPONENT_SECTIONS];
+  UINT     m_underwearHideCounts[2];
+  UINT     m_flags;
+  char     m_upperFaceTexture[MAX_PATH];
+  char     m_lowerFaceTexture[MAX_PATH];
+  int      m_emblemStyle;
+  int      m_emblemColor;
+  int      m_borderStyle;
+  int      m_borderColor;
+  int      m_background;
 };
 
 void ComponentInitialize();
@@ -380,19 +372,14 @@ bool ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle, int eColor
 void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfo, int inventoryType);
 void ComponentForceTabardDraw(HTEXCOMPONENT component);
 void TexComponentCopy(HTEXCOMPONENT d, HTEXCOMPONENT s);
-int TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce);
-int TexComponentCheckSections(HTEXCOMPONENT component, int bForce);
-void TexComponentRemoveSections(
-    HTEXCOMPONENT                component,
-    const TEXCOMPONENT_SECTIONS *sectionPointers,
-    const unsigned int          *startLayerList,
-    unsigned int                 size
-);
+int  TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce);
+int  TexComponentCheckSections(HTEXCOMPONENT component, int bForce);
+void TexComponentRemoveSections(HTEXCOMPONENT component, const TEXCOMPONENT_SECTIONS *sectionPointers, const UINT *startLayerList, UINT size);
 void TexComponentRemoveAllHolds(HTEXCOMPONENT component);
 void TexComponentAddHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
 void TexComponentRemoveHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
 HTEXCOMPONENT
-TexComponentCreate(HTEXTURE texture, unsigned int race, unsigned int sex, unsigned int skinID, int isNPC, int ignoreExistingTexture);
+TexComponentCreate(HTEXTURE texture, UINT race, UINT sex, UINT skinID, int isNPC, int ignoreExistingTexture);
 void TexComponentAdd(
     CStatus                  *status,
     int                       playerSex,
@@ -401,17 +388,17 @@ void TexComponentAdd(
     int                       itemInventoryType,
     int                       checkForExistingTexture
 );
-void TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperHead, const char *lowerHead, unsigned int layer);
+void TexComponentChangeCharacterHead(HTEXCOMPONENT component, LPCSTR upperHead, LPCSTR lowerHead, UINT layer);
 void HeadGeosetHideCharGeosets(
     HCHARGEOSET               geosetHandle,
     const ItemDisplayInfoRec *displayInfoRec,
-    unsigned int              raceID,
-    const unsigned int       *preferredGeosets,
-    unsigned int              numPreferredGeosets
+    UINT                      raceID,
+    const UINT               *preferredGeosets,
+    UINT                      numPreferredGeosets
 );
-void HeadGeosetUnhideCharGeosets(HCHARGEOSET geosetHandle, const unsigned int *preferredGeosets, unsigned int numPreferredGeosets);
-typedef void(*OBJCALLBACK)(void *param, unsigned int inventorySlot, HMODEL model, unsigned int unk, int loaded);
-typedef HMODEL(*OBJREMOVECALLBACK)(void *param, unsigned int inventorySlot, unsigned int componentLink);
+void HeadGeosetUnhideCharGeosets(HCHARGEOSET geosetHandle, const UINT *preferredGeosets, UINT numPreferredGeosets);
+typedef void (*OBJCALLBACK)(LPVOID param, UINT inventorySlot, HMODEL model, UINT unk, int loaded);
+typedef HMODEL (*OBJREMOVECALLBACK)(LPVOID param, UINT inventorySlot, UINT componentLink);
 int ObjComponentAdd(
     int                       unitSex,
     int                       unitRace,
@@ -422,18 +409,18 @@ int ObjComponentAdd(
     int                       useAlternateSlot,
     HMODEL                    existingModel,
     OBJCALLBACK               callback,
-    void                     *param,
-    unsigned int              inventorySlot
+    LPVOID                    param,
+    UINT                      inventorySlot
 );
-HMODEL ObjComponentCreate(unsigned int itemClass, unsigned int itemInventoryType, const ItemDisplayInfoRec *displayInfoRec);
-void ObjComponentRemove(HMODEL charModel, unsigned int inventoryType);
+HMODEL ObjComponentCreate(UINT itemClass, UINT itemInventoryType, const ItemDisplayInfoRec *displayInfoRec);
+void   ObjComponentRemove(HMODEL charModel, UINT inventoryType);
 HMODEL ObjComponentRemove(
     HMODEL            charModel,
-    unsigned int      unitRace,
-    unsigned int      unitSex,
-    unsigned int      slot,
+    UINT              unitRace,
+    UINT              unitSex,
+    UINT              slot,
     int               returnModelIfOnlyOneSubcomponent,
     OBJREMOVECALLBACK callback,
-    void             *callbackParam
+    LPVOID            callbackParam
 );
 void TexComponentRemove(HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType);

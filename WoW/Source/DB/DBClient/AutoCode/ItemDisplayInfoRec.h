@@ -7,13 +7,13 @@ class ItemDisplayInfoRec {
   ItemDisplayInfoRec();
   ~ItemDisplayInfoRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 25;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 100;
   }
 
@@ -28,21 +28,21 @@ class ItemDisplayInfoRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_modelName[2];
-  const char *m_modelTexture[2];
-  const char *m_inventoryIcon;
-  const char *m_groundModel;
-  int         m_geosetGroup[4];
-  int         m_flags;
-  int         m_spellVisualID;
-  int         m_groupSoundIndex;
-  int         m_itemSize;
-  int         m_helmetGeosetVisID;
-  const char *m_texture[8];
-  int         m_itemVisual;
+  int    m_ID;
+  LPCSTR m_modelName[2];
+  LPCSTR m_modelTexture[2];
+  LPCSTR m_inventoryIcon;
+  LPCSTR m_groundModel;
+  int    m_geosetGroup[4];
+  int    m_flags;
+  int    m_spellVisualID;
+  int    m_groupSoundIndex;
+  int    m_itemSize;
+  int    m_helmetGeosetVisID;
+  LPCSTR m_texture[8];
+  int    m_itemVisual;
 };
 
 extern WowClientDB<ItemDisplayInfoRec> g_itemDisplayInfoDB;

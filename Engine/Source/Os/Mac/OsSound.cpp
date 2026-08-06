@@ -4,13 +4,9 @@
 
 #include <storm.h>
 
-unsigned char (*Sound::m_positionUpdateCallback)(__int64 handle, NTempest::C3Vector &position);
+BYTE (*Sound::m_positionUpdateCallback)(LONGLONG handle, NTempest::C3Vector &position);
 
-int Sound::Initialize(
-    bool (*getIntCVar)(const char *, int &),
-    bool (*getFloatCVar)(const char *, float &),
-    bool (*getStringCVar)(const char *, const char *&)
-) {
+int Sound::Initialize(bool (*getIntCVar)(LPCSTR, int &), bool (*getFloatCVar)(LPCSTR, float &), bool (*getStringCVar)(LPCSTR, LPCSTR &)) {
   return 0;
 }
 
@@ -36,7 +32,7 @@ int Sound::MIDI_Initialize() {
 void Sound::MIDI_Shutdown() {
 }
 
-void Sound::MIDI_Play(const char *midiFilename, const char *dlsFilename) {
+void Sound::MIDI_Play(LPCSTR midiFilename, LPCSTR dlsFilename) {
 }
 
 void Sound::MIDI_Stop() {
@@ -57,19 +53,19 @@ void Sound::SetListenerAttributes(
 ) {
 }
 
-Sound *Sound::Play2D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused) {
+Sound *Sound::Play2D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused) {
   return 0;
 }
 
-Sound *Sound::Play3D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused) {
+Sound *Sound::Play3D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused) {
   return 0;
 }
 
-Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused) {
+Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused) {
   return 0;
 }
 
-Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused) {
+Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused) {
   return 0;
 }
 
@@ -94,7 +90,7 @@ bool Sound::IsOutOfRange() {
   return false;
 }
 
-void Sound::Set3DUpdateHandle(__int64 handle) {
+void Sound::Set3DUpdateHandle(LONGLONG handle) {
 }
 
 bool Sound::SetPaused(bool state) {

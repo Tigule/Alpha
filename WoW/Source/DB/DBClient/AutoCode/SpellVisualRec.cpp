@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellVisualRec::GetFilename() {
+LPCSTR SpellVisualRec::GetFilename() {
   return "DBFilesClient\\SpellVisual.dbc";
 }
 
@@ -19,7 +19,7 @@ SpellVisualRec::SpellVisualRec() {
 SpellVisualRec::~SpellVisualRec() {
 }
 
-bool SpellVisualRec::Read(SFile *f, const char *stringBuffer) {
+bool SpellVisualRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

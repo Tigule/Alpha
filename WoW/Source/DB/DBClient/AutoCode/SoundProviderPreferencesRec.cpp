@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SoundProviderPreferencesRec::GetFilename() {
+LPCSTR SoundProviderPreferencesRec::GetFilename() {
   return "DBFilesClient\\SoundProviderPreferences.dbc";
 }
 
@@ -19,9 +19,9 @@ SoundProviderPreferencesRec::SoundProviderPreferencesRec() {
 SoundProviderPreferencesRec::~SoundProviderPreferencesRec() {
 }
 
-bool SoundProviderPreferencesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempDescriptionIndices[1];
+bool SoundProviderPreferencesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempDescriptionIndices[1];
 
   result = SFileReadTyped(f, &m_ID) && result;
   result = SFileReadTyped(f, &tempDescriptionIndices[0]) && result;

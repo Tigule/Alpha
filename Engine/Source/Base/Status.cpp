@@ -5,7 +5,7 @@
 
 static CStatus s_errorList;
 
-static char *FormatStatusMessage(const char *format, va_list argptr);
+static char *FormatStatusMessage(LPCSTR format, va_list argptr);
 
 CStatus &GetGlobalStatusObj() {
   return s_errorList;
@@ -15,7 +15,7 @@ CStatus::~CStatus() {
   Clear();
 }
 
-static char *FormatStatusMessage(const char *format, va_list argptr) {
+static char *FormatStatusMessage(LPCSTR format, va_list argptr) {
   static char buffer[0x100];
   int         length = _vsnprintf(buffer, sizeof(buffer), format, argptr);
 
@@ -27,10 +27,10 @@ static char *FormatStatusMessage(const char *format, va_list argptr) {
   return length ? buffer : 0;
 }
 
-void CStatus::Prepend(STATUS_TYPE severity, const char *format, ...) {
+void CStatus::Prepend(STATUS_TYPE severity, LPCSTR format, ...) {
   STATUSENTRY *entry = 0;
   STATUSENTRY *pnextstatus = 0;
-  const char  *text;
+  LPCSTR       text;
   va_list      args;
 
   FATALASSERT(format);
@@ -59,10 +59,10 @@ void CStatus::Prepend(STATUS_TYPE severity, const char *format, ...) {
   statusList.LinkNode(entry, LIST_LINK_BEFORE, pnextstatus);
 }
 
-void CStatus::Add(STATUS_TYPE severity, const char *format, ...) {
+void CStatus::Add(STATUS_TYPE severity, LPCSTR format, ...) {
   STATUSENTRY *entry = 0;
   STATUSENTRY *pnextstatus = 0;
-  const char  *text;
+  LPCSTR       text;
   va_list      args;
 
   FATALASSERT(format);
@@ -108,7 +108,7 @@ void CStatus::Clear() {
   statusList.Clear();
 }
 
-void CStatus::GetErrorStr(char *buffer, unsigned long bufchars, STATUS_TYPE minSeverity) const {
+void CStatus::GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity) const {
   const STATUSENTRY *entry;
 
   FATALASSERT(buffer);
@@ -117,7 +117,7 @@ void CStatus::GetErrorStr(char *buffer, unsigned long bufchars, STATUS_TYPE minS
   entry = statusList.Head();
   while (entry) {
     if (entry->severity >= minSeverity) {
-      unsigned long length = SStrLen(entry->text);
+      DWORD length = SStrLen(entry->text);
       if (length >= bufchars) {
         return;
       }
@@ -129,8 +129,8 @@ void CStatus::GetErrorStr(char *buffer, unsigned long bufchars, STATUS_TYPE minS
   }
 }
 
-unsigned int CStatus::GetErrorStrLen(STATUS_TYPE minSeverity) const {
-  unsigned int       length = 0;
+UINT CStatus::GetErrorStrLen(STATUS_TYPE minSeverity) const {
+  UINT               length = 0;
   const STATUSENTRY *entry = statusList.Head();
 
   while (entry) {
@@ -143,8 +143,8 @@ unsigned int CStatus::GetErrorStrLen(STATUS_TYPE minSeverity) const {
 }
 
 char *CStatus::GetErrorStrAlloc(STATUS_TYPE minSeverity) const {
-  unsigned int bufchars = GetErrorStrLen(minSeverity) + 1;
-  char        *buffer = static_cast<char *>(ALLOC(bufchars));
+  UINT  bufchars = GetErrorStrLen(minSeverity) + 1;
+  char *buffer = static_cast<char *>(ALLOC(bufchars));
   GetErrorStr(buffer, bufchars, minSeverity);
   return buffer;
 }

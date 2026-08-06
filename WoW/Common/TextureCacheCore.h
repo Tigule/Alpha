@@ -9,18 +9,18 @@ struct TEXTUREINFO {
   TEXTUREINFO() : width(0), height(0), format(GxTex_Argb8888), levels(0), opaque(1), alphaBits(0) {
   }
 
-  unsigned int width;
-  unsigned int height;
+  UINT         width;
+  UINT         height;
   EGxTexFormat format;
-  unsigned int levels;
+  UINT         levels;
   int          opaque;
-  unsigned int alphaBits;
+  UINT         alphaBits;
 };
 
-HTEXTURECACHE TextureCacheCreateSizeCache(unsigned int cacheSize);
-HTEXTURECACHE TextureCacheCreateInstanceCache(unsigned int instances);
-HTEXTURECACHE TextureCacheCreatTimeCache(unsigned int milliSeconds);
-HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, const char *fileName, TEXTUREINFO *info);
+HTEXTURECACHE  TextureCacheCreateSizeCache(UINT cacheSize);
+HTEXTURECACHE  TextureCacheCreateInstanceCache(UINT instances);
+HTEXTURECACHE  TextureCacheCreatTimeCache(UINT milliSeconds);
+HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, LPCSTR fileName, TEXTUREINFO *info);
 const MipBits *TextureCacheGetImage(HMIPPEDTEXTURE texture);
-int TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, int bForce);
-HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, unsigned int width, unsigned int height, TEXTUREINFO *textureInfo);
+int            TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, int bForce);
+HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, UINT width, UINT height, TEXTUREINFO *textureInfo);

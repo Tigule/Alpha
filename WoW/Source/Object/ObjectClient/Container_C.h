@@ -4,28 +4,28 @@
 #include "Object/ObjectClient/Item_C.h"
 
 struct CGContainerData {
-  unsigned int     m_numSlots;
-  unsigned int     m_pad;
-  unsigned __int64 m_slots[20];
+  UINT      m_numSlots;
+  UINT      m_pad;
+  DWORDLONG m_slots[20];
 };
 
 class CGContainer {
  public:
-  static unsigned int GetDataSize();
-  static unsigned int GetBaseOffset();
-  static __forceinline unsigned int TotalFields() {
+  static UINT               GetDataSize();
+  static UINT               GetBaseOffset();
+  static __forceinline UINT TotalFields() {
     return 78;
   }
-  static unsigned int GetUpdateMaskBytes();
-  static unsigned int GetUpdateMaskBlocks();
+  static UINT GetUpdateMaskBytes();
+  static UINT GetUpdateMaskBlocks();
 
-  unsigned char *GetData(unsigned int index);
-  void SetStorage(unsigned long *storage) {
+  BYTE *GetData(UINT index);
+  void  SetStorage(DWORD *storage) {
     m_cont = reinterpret_cast<CGContainerData *>(storage);
   }
 
  protected:
-  explicit CGContainer(unsigned long *storage) {
+  explicit CGContainer(DWORD *storage) {
     SetStorage(storage);
   }
 
@@ -45,24 +45,24 @@ class CGContainer {
 
 class CGContainer_C : public CGItem_C, public CGContainer {
  public:
-  CGContainer_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
+  CGContainer_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init);
   ~CGContainer_C();
 
-  void         SetStorage(unsigned long *storage);
+  void SetStorage(DWORD *storage);
   void PostMovementUpdate() {
   }
-  virtual void                   Disable(int shutdown);
-  virtual void                   Reenable();
-  float                          GetCloseXOffset() const;
-  float                          GetCloseYOffset() const;
-  float                          GetSlotXOffset() const;
-  float                          GetSlotYOffset() const;
-  int                            GetWidth() const;
-  int                            GetHeight() const;
-  int                            SetBlock(unsigned int i, unsigned long data);
-  void                           SetData(const void *data, unsigned int bytes);
-  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
-  virtual CGBag_C               *GetBag() {
+  virtual void     Disable(int shutdown);
+  virtual void     Reenable();
+  float            GetCloseXOffset() const;
+  float            GetCloseYOffset() const;
+  float            GetSlotXOffset() const;
+  float            GetSlotYOffset() const;
+  int              GetWidth() const;
+  int              GetHeight() const;
+  int              SetBlock(UINT i, DWORD data);
+  void             SetData(LPCVOID data, UINT bytes);
+  static UINT      OffsetOf(OBJECT_TYPE_ID type);
+  virtual CGBag_C *GetBag() {
     return &m_bag;
   }
   CGBag_C *Bag() {

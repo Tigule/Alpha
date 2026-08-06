@@ -80,14 +80,14 @@ namespace Storm {
       CCritSect      sync;
       LONG           refcount;
       char           archivename[260];
-      void          *handle;
+      LPVOID         handle;
       int            dontCheckDisk;
       int            priority;
       _ARCHIVEHEADER header;
       HSFILE         ownerarchivefile;
       HSARCHIVE      parentArchive;
       char           pathPrefix[260];
-      void          *sectorfile;
+      LPVOID         sectorfile;
       DWORD          sectorlocation;
       DWORD          sectorsize;
       BYTE          *sectorbuffer;
@@ -108,7 +108,7 @@ namespace Storm {
       LONG        refcount;
       char        name[260];
       char       *actualName;
-      void       *handle;
+      LPVOID      handle;
       ARCHIVEREC *archive;
       _BLOCKENTRY block;
       DWORD       key;
@@ -118,7 +118,7 @@ namespace Storm {
       DWORD      *sectoroffsettable;
       int         sectoroffsettablevalid;
       int         dda;
-      void       *readaheadbuffer;
+      LPVOID      readaheadbuffer;
       DWORD       readaheadoffset;
       DWORD       readaheadbytes;
       DWORD       crc;
@@ -155,17 +155,17 @@ namespace Storm {
 
     struct StormGlobals {
       DWORD s_ioerrormode;
-      int(APIENTRY *s_ioerrorproc)(const char *, DWORD, DWORD);
+      int(APIENTRY *s_ioerrorproc)(LPCSTR, DWORD, DWORD);
       WORD  s_languageId;
       BYTE  s_platformId;
       DWORD s_dataChunkSize;
       int   s_seekOptimize;
       DWORD WAVECHUNKSIZE;
-      unsigned int s_asyncBudget;
+      UINT  s_asyncBudget;
       DWORD s_directaccess;
       char  s_basepath[260];
-      void(APIENTRY *s_loadNotifyProc)(const char *, void *);
-      void *s_loadNotifyData;
+      void(APIENTRY *s_loadNotifyProc)(LPCSTR, LPVOID);
+      LPVOID s_loadNotifyData;
     };
 
     struct ArchivePtr {
@@ -211,18 +211,18 @@ namespace Storm {
     };
 
     ARCHIVEREC *GetArchivePtr(HSARCHIVE hArchive);
-    int ReleaseArchivePtr(ARCHIVEREC *archive);
-    int IsSubArchive(HSARCHIVE archive);
-    int IsReopenedArchive(HSARCHIVE archive);
-    FILEREC *GetFilePtr(HSFILE hFile);
-    int ReleaseFilePtr(FILEREC *file);
-    void AddArchiveRef(ARCHIVEREC *archive);
-    void AddFileRef(FILEREC *file);
-    void AddStreamRef(AUDIOSTREAM *stream);
-    void RemoveArchiveRef(ARCHIVEREC *archive);
-    void RemoveFileRef(FILEREC *file);
-    void RemoveStreamRef(AUDIOSTREAM *stream);
-    int s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, HSARCHIVE *handle);
+    int         ReleaseArchivePtr(ARCHIVEREC *archive);
+    int         IsSubArchive(HSARCHIVE archive);
+    int         IsReopenedArchive(HSARCHIVE archive);
+    FILEREC    *GetFilePtr(HSFILE hFile);
+    int         ReleaseFilePtr(FILEREC *file);
+    void        AddArchiveRef(ARCHIVEREC *archive);
+    void        AddFileRef(FILEREC *file);
+    void        AddStreamRef(AUDIOSTREAM *stream);
+    void        RemoveArchiveRef(ARCHIVEREC *archive);
+    void        RemoveFileRef(FILEREC *file);
+    void        RemoveStreamRef(AUDIOSTREAM *stream);
+    int         s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, HSARCHIVE *handle);
 
     struct UseGlob {
       UseGlob();
@@ -239,21 +239,20 @@ namespace Storm {
   }  // namespace SFile
 }  // namespace Storm
 
-static int
-ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, void *buffer, DWORD bytestoread, DWORD *bytesread, const char *filename);
-static int CheckFileExistsOnDisk(const char *filename, DWORD flags, char *localfilename);
+static int ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, LPCSTR filename);
+static int CheckFileExistsOnDisk(LPCSTR filename, DWORD flags, char *localfilename);
 
 NODEDECL(REQUEST) {
   ~REQUEST();
 
-  void                      *event;
+  LPVOID                     event;
   Storm::SFile::FILEREC     *file;
   DWORD                      location;
   DWORD                      approxarchivelocation;
   DWORD                      requiredcompletiontime;
   int                        urgent;
-  void                      *buffer;
-  void                      *bufferbegin;
+  LPVOID                     buffer;
+  LPVOID                     bufferbegin;
   IDirectSoundBuffer        *soundbuffer;
   DWORD                      soundbufferoffset;
   Storm::SFile::AUDIOSTREAM *stream;
@@ -264,7 +263,7 @@ NODEDECL(REQUEST) {
 };
 
 NODEDECL(EVENTREC) {
-  void *event;
+  LPVOID event;
 };
 
 namespace Storm {
@@ -274,78 +273,78 @@ namespace Storm {
     DWORD        *s_hashsource = 0;
     DWORD         s_cdthreadid = 0;
     IDirectSound *s_directsound = 0;
-    void         *s_cdthread = 0;
-    void         *s_explodebuffer = 0;
-    void         *s_soundreadbuffer = 0;
-    void         *s_cdevent = 0;
+    LPVOID        s_cdthread = 0;
+    LPVOID        s_explodebuffer = 0;
+    LPVOID        s_soundreadbuffer = 0;
+    LPVOID        s_cdevent = 0;
     int           s_cdshutdown = 0;
     REQUEST      *s_cdrequest = 0;
     int           s_closingDirectSound = 0;
 
-    CCritSect                                    s_cdlock;
+    CCritSect s_cdlock;
     LISTDECL(REQUEST, s_cdreqlist);
     LISTDECL(EVENTREC, s_signalList);
-    CCritSect                                    s_streamlock;
+    CCritSect s_streamlock;
     LISTDECL(AUDIOSTREAM, s_streamlist);
-    CCritSect                                    s_archivelock;
+    CCritSect s_archivelock;
     LISTDECL(ARCHIVEREC, s_archivelist);
-    CCritSect                                    s_filelock;
+    CCritSect s_filelock;
     LISTDECL(FILEREC, s_filelist);
-    CCritSect                                    s_lzwcrit;
-    CCritSect                                    s_globcritsect;
+    CCritSect s_lzwcrit;
+    CCritSect s_globcritsect;
 
   }  // namespace SFile
 }  // namespace Storm
 
-typedef Storm::SFile::ARCHIVEREC                                       SFileArchiveRecData;
-typedef Storm::SFile::FILEREC                                          SFileRecData;
-typedef Storm::SFile::AUDIOSTREAM                                      SFileAudioStreamData;
-typedef REQUEST                                                        SFileRequestData;
-typedef EVENTREC                                                       SFileEventRecData;
-typedef LIST(REQUEST)                           SFileRequestList;
-typedef LIST(EVENTREC)                          SFileEventRecList;
-typedef LIST(SFileAudioStreamData)              SFileAudioStreamList;
-typedef _ARCHIVEHEADER                                                 SFileArchiveHeaderData;
-typedef _HASHENTRY                                                     SFileHashEntryData;
-typedef _BLOCKENTRY                                                    SFileBlockEntryData;
+typedef Storm::SFile::ARCHIVEREC  SFileArchiveRecData;
+typedef Storm::SFile::FILEREC     SFileRecData;
+typedef Storm::SFile::AUDIOSTREAM SFileAudioStreamData;
+typedef REQUEST                   SFileRequestData;
+typedef EVENTREC                  SFileEventRecData;
+typedef LIST(REQUEST) SFileRequestList;
+typedef LIST(EVENTREC) SFileEventRecList;
+typedef LIST(SFileAudioStreamData) SFileAudioStreamList;
+typedef _ARCHIVEHEADER SFileArchiveHeaderData;
+typedef _HASHENTRY     SFileHashEntryData;
+typedef _BLOCKENTRY    SFileBlockEntryData;
 
 struct SFileDirectSoundBufferVtbl {
-  void *QueryInterface;
-  void *AddRef;
+  LPVOID QueryInterface;
+  LPVOID AddRef;
   ULONG(STDMETHODCALLTYPE *Release)(IDirectSoundBuffer *buffer);
-  void *GetCaps;
+  LPVOID GetCaps;
   HRESULT(STDMETHODCALLTYPE *GetCurrentPosition)(IDirectSoundBuffer *buffer, DWORD *currentplaycursor, DWORD *currentwritecursor);
-  void *GetFormat;
+  LPVOID GetFormat;
   HRESULT(STDMETHODCALLTYPE *GetVolume)(IDirectSoundBuffer *buffer, LONG *volume);
   HRESULT(STDMETHODCALLTYPE *GetPan)(IDirectSoundBuffer *buffer, LONG *pan);
-  void *GetFrequency;
-  void *GetStatus;
-  void *Initialize;
+  LPVOID GetFrequency;
+  LPVOID GetStatus;
+  LPVOID Initialize;
   HRESULT(STDMETHODCALLTYPE *Lock)(
       IDirectSoundBuffer *buffer,
       DWORD               offset,
       DWORD               bytes,
-      void              **audioPtr1,
+      LPVOID             *audioPtr1,
       DWORD              *audioBytes1,
-      void              **audioPtr2,
+      LPVOID             *audioPtr2,
       DWORD              *audioBytes2,
       DWORD               flags
   );
   HRESULT(STDMETHODCALLTYPE *Play)(IDirectSoundBuffer *buffer, DWORD reserved1, DWORD reserved2, DWORD flags);
-  void *SetCurrentPosition;
-  void *SetFormat;
+  LPVOID SetCurrentPosition;
+  LPVOID SetFormat;
   HRESULT(STDMETHODCALLTYPE *SetVolume)(IDirectSoundBuffer *buffer, LONG volume);
   HRESULT(STDMETHODCALLTYPE *SetPan)(IDirectSoundBuffer *buffer, LONG pan);
-  void *SetFrequency;
+  LPVOID SetFrequency;
   HRESULT(STDMETHODCALLTYPE *Stop)(IDirectSoundBuffer *buffer);
-  HRESULT(STDMETHODCALLTYPE *Unlock)(IDirectSoundBuffer *buffer, void *audioPtr1, DWORD audioBytes1, void *audioPtr2, DWORD audioBytes2);
+  HRESULT(STDMETHODCALLTYPE *Unlock)(IDirectSoundBuffer *buffer, LPVOID audioPtr1, DWORD audioBytes1, LPVOID audioPtr2, DWORD audioBytes2);
 };
 
 struct SFileDirectSoundVtbl {
-  void *QueryInterface;
-  void *AddRef;
-  void *Release;
-  HRESULT(STDMETHODCALLTYPE *CreateSoundBuffer)(IDirectSound *sound, void *desc, IDirectSoundBuffer **buffer, void *outer);
+  LPVOID QueryInterface;
+  LPVOID AddRef;
+  LPVOID Release;
+  HRESULT(STDMETHODCALLTYPE *CreateSoundBuffer)(IDirectSound *sound, LPVOID desc, IDirectSoundBuffer **buffer, LPVOID outer);
 };
 
 struct _DSBUFFERDESC {
@@ -362,14 +361,14 @@ struct CKINFO {
 };
 
 struct _DECOMPRESSIONINFO {
-  void *sourcebuffer;
-  DWORD sourceoffset;
-  void *destbuffer;
-  DWORD destoffset;
-  DWORD bytes;
+  LPVOID sourcebuffer;
+  DWORD  sourceoffset;
+  LPVOID destbuffer;
+  DWORD  destoffset;
+  DWORD  bytes;
 };
 
-static const unsigned char modulus[0x100] = {
+static const BYTE modulus[0x100] = {
     0x77, 0x64, 0xF8, 0x57, 0x1D, 0xFB, 0xB0, 0x09, 0xC4, 0xE6, 0x28, 0x91, 0x34, 0xE3, 0x55, 0x61, 0x15, 0x8A, 0xE9, 0x07, 0xFC, 0xAA, 0x60, 0xB3,
     0x82, 0xB7, 0xE2, 0xA4, 0x40, 0x15, 0x01, 0x3F, 0xC2, 0x36, 0xA8, 0x9D, 0x95, 0xD0, 0x54, 0x69, 0xAA, 0xF5, 0xED, 0x5C, 0x7F, 0x21, 0xC5, 0x55,
     0x95, 0x56, 0x5B, 0x2F, 0xC6, 0xDD, 0x2C, 0xBD, 0x74, 0xA3, 0x5A, 0x0D, 0x70, 0x98, 0x9A, 0x01, 0x36, 0x51, 0x78, 0x71, 0x9B, 0x8E, 0xCB, 0xB8,
@@ -383,7 +382,7 @@ static const unsigned char modulus[0x100] = {
     0xB4, 0x1D, 0x98, 0x42, 0x8C, 0xF8, 0x27, 0x7E, 0xC8, 0x87, 0xF6, 0x24, 0xCE, 0x7E, 0x06, 0xB1
 };
 
-static const unsigned char exponent[4] = {0x01, 0x00, 0x01, 0x00};
+static const BYTE exponent[4] = {0x01, 0x00, 0x01, 0x00};
 
 typedef BOOL(WINAPI *SFileCryptAcquireContextAProc)(DWORD *, LPCSTR, LPCSTR, DWORD, DWORD);
 typedef BOOL(WINAPI *SFileCryptCreateHashProc)(DWORD, DWORD, DWORD, DWORD, DWORD *);
@@ -408,8 +407,8 @@ struct SFileCryptoApi {
 };
 
 struct _AUTHCOMPANYINFO {
-  const char *keyname;
-  DWORD       authresult;
+  LPCSTR keyname;
+  DWORD  authresult;
 };
 
 static const _AUTHCOMPANYINFO s_authcompany[1] = {
@@ -417,7 +416,7 @@ static const _AUTHCOMPANYINFO s_authcompany[1] = {
 };
 
 typedef LIST(SFileArchiveRecData) SFileArchiveRecList;
-typedef LIST(SFileRecData)        SFileRecList;
+typedef LIST(SFileRecData) SFileRecList;
 
 Storm::SFile::AUDIOSTREAM::~AUDIOSTREAM() {
   Storm::SFile::RemoveFileRef(file);
@@ -647,9 +646,9 @@ int Storm::SFile::ReleaseFilePtr(FILEREC *file) {
   return TRUE;
 }
 
-unsigned int __cdecl DecompressLzw_BufferRead(char *buffer, unsigned int *size, void *param) {
+UINT __cdecl DecompressLzw_BufferRead(char *buffer, UINT *size, LPVOID param) {
   _DECOMPRESSIONINFO *info = static_cast<_DECOMPRESSIONINFO *>(param);
-  unsigned int        bytes = info->bytes - info->sourceoffset;
+  UINT                bytes = info->bytes - info->sourceoffset;
 
   if (*size < bytes) {
     bytes = *size;
@@ -659,7 +658,7 @@ unsigned int __cdecl DecompressLzw_BufferRead(char *buffer, unsigned int *size, 
   return bytes;
 }
 
-void __cdecl DecompressLzw_BufferWrite(char *buffer, unsigned int *size, void *param) {
+void __cdecl DecompressLzw_BufferWrite(char *buffer, UINT *size, LPVOID param) {
   _DECOMPRESSIONINFO *info = static_cast<_DECOMPRESSIONINFO *>(param);
 
   memcpy(static_cast<BYTE *>(info->destbuffer) + info->destoffset, buffer, *size);
@@ -689,7 +688,7 @@ static void Decrypt(DWORD *data, DWORD bytes, DWORD key) {
   }
 }
 
-static DWORD Hash(const char *filename, int hashtype) {
+static DWORD Hash(LPCSTR filename, int hashtype) {
   DWORD hash;
   DWORD seed;
 
@@ -707,11 +706,11 @@ static DWORD Hash(const char *filename, int hashtype) {
 }
 
 static void InitializeHashSource(DWORD seed) {
-  DWORD  i;
-  DWORD  j;
-  DWORD  index;
-  DWORD  value1;
-  DWORD  value2;
+  DWORD i;
+  DWORD j;
+  DWORD index;
+  DWORD value1;
+  DWORD value2;
 
   if (!Storm::SFile::s_hashsource) {
     Storm::SFile::s_hashsource = (DWORD *)ALLOC(0x1400);
@@ -729,9 +728,9 @@ static void InitializeHashSource(DWORD seed) {
   }
 }
 
-typedef BOOL(APIENTRY *SFileIoErrorProc)(const char *filename, DWORD error, DWORD retryCount);
+typedef BOOL(APIENTRY *SFileIoErrorProc)(LPCSTR filename, DWORD error, DWORD retryCount);
 
-static DWORD InternalReadAligned(SFileRecData *file, DWORD location, void *buffer, DWORD bytes) {
+static DWORD InternalReadAligned(SFileRecData *file, DWORD location, LPVOID buffer, DWORD bytes) {
   SFileArchiveRecData *archive;
   DWORD                sectorSize;
   DWORD                flags;
@@ -921,7 +920,7 @@ static DWORD InternalReadAlignedSector(SFileRecData *file, DWORD location) {
   return file->archive->sectorbytesread;
 }
 
-static DWORD InternalReadUnaligned(SFileRecData *file, DWORD location, void *buffer, DWORD bytes) {
+static DWORD InternalReadUnaligned(SFileRecData *file, DWORD location, LPVOID buffer, DWORD bytes) {
   SFileArchiveRecData *archive;
   BYTE                *cursor;
   DWORD                sectorSize;
@@ -1026,8 +1025,7 @@ static DWORD InternalReadUnaligned(SFileRecData *file, DWORD location, void *buf
   return totalRead;
 }
 
-static int
-ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, void *buffer, DWORD bytestoread, DWORD *bytesread, const char *filename) {
+static int ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, LPCSTR filename) {
   SFileIoErrorProc retryProc;
   DWORD            mode;
   DWORD            numcalls;
@@ -1074,7 +1072,7 @@ ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, void *buffe
   return FALSE;
 }
 
-static int ReadFileWin32(SFileRecData *fileptr, DWORD offset, void *buffer, DWORD bytestoread, DWORD *bytesread) {
+static int ReadFileWin32(SFileRecData *fileptr, DWORD offset, LPVOID buffer, DWORD bytestoread, DWORD *bytesread) {
   DWORD localbytesread;
   DWORD newlocation;
 
@@ -1091,7 +1089,7 @@ static SFileBlockEntryData *GetBlockEntry(SFileArchiveRecData *archive, DWORD in
   return &archive->blocktable[archive->hashtable[index].block];
 }
 
-static DWORD SearchHashTable(SFileArchiveRecData *archive, const char *filename, WORD languageId, BYTE platformId) {
+static DWORD SearchHashTable(SFileArchiveRecData *archive, LPCSTR filename, WORD languageId, BYTE platformId) {
   SFileHashEntryData *table;
   SFileHashEntryData *entry;
   DWORD               mask;
@@ -1151,8 +1149,8 @@ static void BlockEntryFileToMem(SFileBlockEntryData *pBlockTbl, DWORD dwBlockTbl
   }
 }
 
-static DWORD InternalReadAligned(SFileRecData *file, DWORD location, void *buffer, DWORD bytes);
-static void Initialize();
+static DWORD InternalReadAligned(SFileRecData *file, DWORD location, LPVOID buffer, DWORD bytes);
+static void  Initialize();
 
 static int ReadAdditionalAttributes(HSARCHIVE archive, SFileBlockEntryData *pBlockTbl, DWORD dwBlockTblEntries) {
   HSFILE hfile;
@@ -1229,19 +1227,19 @@ void Storm::SFile::AddStreamRef(AUDIOSTREAM *stream) {
   }
 }
 
-static void FillSoundBuffer(SFileRequestData *request);
+static void              FillSoundBuffer(SFileRequestData *request);
 static SFileRequestData *IssueRequest(
     SFileRecData         *file,
     DWORD                 offset,
-    void                 *buffer,
-    void                 *bufferbegin,
+    LPVOID                buffer,
+    LPVOID                bufferbegin,
     IDirectSoundBuffer   *soundbuffer,
     DWORD                 soundbufferoffset,
     SFileAudioStreamData *stream,
     DWORD                 bytestoread,
     DWORD                 requiredms,
     int                   urgent,
-    void                 *event,
+    LPVOID                event,
     int                   autodelrequest,
     int                   triggerreadthread,
     _TASYNCPARAMBLOCK    *asyncparam
@@ -1275,8 +1273,8 @@ void Storm::SFile::RemoveStreamRef(AUDIOSTREAM *stream) {
   }
 }
 
-static int CancelRequest(void *buffer, IDirectSoundBuffer *soundbuffer) {
-  int               cancelled;
+static int CancelRequest(LPVOID buffer, IDirectSoundBuffer *soundbuffer) {
+  int cancelled;
 
   if (!buffer && !soundbuffer) {
     return FALSE;
@@ -1341,11 +1339,11 @@ static DWORD UpdateAudioStreamPos(SFileAudioStreamData *curr) {
 }
 
 static void CheckAudioStreams(int &parent_header) {
-  DWORD timeoffset;
-  void *buffer;
-  DWORD bytes;
-  DWORD maxoffset;
-  DWORD WAVECHUNKSIZE;
+  DWORD  timeoffset;
+  LPVOID buffer;
+  DWORD  bytes;
+  DWORD  maxoffset;
+  DWORD  WAVECHUNKSIZE;
 
   (void)parent_header;
   if (Storm::SFile::s_closingDirectSound || Storm::SFile::s_streamlist.IsEmpty()) {
@@ -1358,14 +1356,14 @@ static void CheckAudioStreams(int &parent_header) {
   }
   Storm::SFile::s_streamlock.Enter();
   ITERATELIST(SFileAudioStreamData, Storm::SFile::s_streamlist, stream) {
-      {
-        Storm::SFile::FilePtrLocked    fileptr((HSFILE)stream->file);
-        SFileRecData                  *file = fileptr.operator->();
-        Storm::SFile::ArchivePtrLocked archiveptr((HSARCHIVE)file->archive);
+    {
+      Storm::SFile::FilePtrLocked    fileptr((HSFILE)stream->file);
+      SFileRecData                  *file = fileptr.operator->();
+      Storm::SFile::ArchivePtrLocked archiveptr((HSARCHIVE)file->archive);
 
-        if (stream->fillstatus == 3 || (stream->fillstatus == 2 && file->location >= stream->waveheadersize + stream->wavedatasize)) {
-          if (stream->loop) {
-            file->location = stream->waveheadersize;
+      if (stream->fillstatus == 3 || (stream->fillstatus == 2 && file->location >= stream->waveheadersize + stream->wavedatasize)) {
+        if (stream->loop) {
+          file->location = stream->waveheadersize;
           stream->writecursor = 0;
           stream->bytespastend = 0;
         } else {
@@ -1421,18 +1419,18 @@ static void CheckAudioStreams(int &parent_header) {
           if (bytes > WAVECHUNKSIZE) {
             bytes = WAVECHUNKSIZE;
           }
-            DWORD remaining = stream->waveheadersize + stream->wavedatasize - file->location;
+          DWORD remaining = stream->waveheadersize + stream->wavedatasize - file->location;
           if (bytes > remaining) {
             bytes = remaining;
           }
           if (g_opt.alignstreamingwavedata) {
-              DWORD remainder = (file->archive->sectorsize - 1) & (file->location + bytes);
+            DWORD remainder = (file->archive->sectorsize - 1) & (file->location + bytes);
             if (remainder && remainder < bytes) {
               bytes -= remainder;
             }
           }
-            IssueRequest(file, file->location, NULL, NULL, stream->soundbuffer, stream->nextwrite, stream, bytes, 0, 0, NULL, 1, 0, NULL);
-            file->location += bytes;
+          IssueRequest(file, file->location, NULL, NULL, stream->soundbuffer, stream->nextwrite, stream, bytes, 0, 0, NULL, 1, 0, NULL);
+          file->location += bytes;
           stream->nextwrite += WAVECHUNKSIZE;
           if (stream->nextwrite >= stream->soundbuffersize) {
             stream->nextwrite -= stream->soundbuffersize;
@@ -1443,7 +1441,7 @@ static void CheckAudioStreams(int &parent_header) {
         if (maxoffset > stream->soundbuffersize) {
           maxoffset = stream->soundbuffersize;
         }
-          file->location = stream->waveheadersize + stream->startingoffset;
+        file->location = stream->waveheadersize + stream->startingoffset;
 
         DWORD offset = 0;
         timeoffset = 0;
@@ -1452,12 +1450,12 @@ static void CheckAudioStreams(int &parent_header) {
           if (bytes > maxoffset) {
             bytes = maxoffset;
           }
-            DWORD remainder = (file->archive->sectorsize - 1) & (file->location + bytes);
+          DWORD remainder = (file->archive->sectorsize - 1) & (file->location + bytes);
           if (remainder && remainder < bytes) {
             bytes -= remainder;
           }
-            IssueRequest(file, file->location, NULL, NULL, stream->soundbuffer, 0, stream, bytes, 0, 0, NULL, 1, 0, NULL);
-            file->location += bytes;
+          IssueRequest(file, file->location, NULL, NULL, stream->soundbuffer, 0, stream, bytes, 0, 0, NULL, 1, 0, NULL);
+          file->location += bytes;
           offset = bytes;
           timeoffset = 1;
         }
@@ -1467,8 +1465,8 @@ static void CheckAudioStreams(int &parent_header) {
           if (bytes > WAVECHUNKSIZE) {
             bytes = WAVECHUNKSIZE;
           }
-            IssueRequest(file, file->location, NULL, NULL, stream->soundbuffer, offset, stream, bytes, timeoffset, 0, NULL, 1, 0, NULL);
-            file->location += bytes;
+          IssueRequest(file, file->location, NULL, NULL, stream->soundbuffer, offset, stream, bytes, timeoffset, 0, NULL, 1, 0, NULL);
+          file->location += bytes;
           timeoffset++;
           offset += WAVECHUNKSIZE;
         }
@@ -1477,7 +1475,6 @@ static void CheckAudioStreams(int &parent_header) {
         stream->nextwrite = offset % stream->soundbuffersize;
       }
     }
-
   }
   Storm::SFile::s_streamlock.Leave();
 }
@@ -1551,8 +1548,8 @@ static void CheckRequests(
   Storm::SFile::s_cdlock.Leave();
 }
 
-static DWORD WINAPI CdThreadProc(void *__formal) {
-  typedef void(APIENTRY * SFileAsyncNotifyProc)(void *buffer, DWORD completedOffset, _TASYNCPARAMBLOCK *asyncparam);
+static DWORD WINAPI CdThreadProc(LPVOID) {
+  typedef void(APIENTRY * SFileAsyncNotifyProc)(LPVOID buffer, DWORD completedOffset, _TASYNCPARAMBLOCK * asyncparam);
 
   LONG                 lowcompletetime;
   SFileRequestData    *urgentreq;
@@ -1567,7 +1564,7 @@ static DWORD WINAPI CdThreadProc(void *__formal) {
   DWORD                budgetInterval;
   DWORD                s_asyncBudget;
   SFileEventRecData   *eventrec;
-  void                *event;
+  LPVOID               event;
 
   lastarchive = NULL;
   lastarchivelocation = 0;
@@ -1662,11 +1659,11 @@ static DWORD WINAPI CdThreadProc(void *__formal) {
         }
       }
 
-      if (nextreq->asyncparam && *(void **)nextreq->asyncparam) {
+      if (nextreq->asyncparam && *(LPVOID *)nextreq->asyncparam) {
         if (file->crcavail && file->crcstate == 4 && file->crc != file->block.crc) {
           SErrDisplayError(0x85100083, file->name, -4, NULL, FALSE, 1);
         }
-        asyncproc = (SFileAsyncNotifyProc) * (void **)nextreq->asyncparam;
+        asyncproc = (SFileAsyncNotifyProc) * (LPVOID *)nextreq->asyncparam;
         DWORD completedOffset = (DWORD)((BYTE *)nextreq->buffer + nextreq->bytesread - (BYTE *)nextreq->bufferbegin);
         archiveptr.Leave();
         fileptr.Leave();
@@ -1734,7 +1731,7 @@ static void DestroyCdThread() {
   }
 }
 
-void StormOptCdThread(DWORD *threadId, void **hThread) {
+void StormOptCdThread(DWORD *threadId, LPVOID *hThread) {
   CreateCdThread();
   *threadId = Storm::SFile::s_cdthreadid;
   *hThread = Storm::SFile::s_cdthread;
@@ -1811,15 +1808,15 @@ static void FillSoundBuffer(SFileRequestData *request) {
 static SFileRequestData *IssueRequest(
     SFileRecData         *file,
     DWORD                 offset,
-    void                 *buffer,
-    void                 *bufferbegin,
+    LPVOID                buffer,
+    LPVOID                bufferbegin,
     IDirectSoundBuffer   *soundbuffer,
     DWORD                 soundbufferoffset,
     SFileAudioStreamData *stream,
     DWORD                 bytestoread,
     DWORD                 requiredms,
     int                   urgent,
-    void                 *event,
+    LPVOID                event,
     int                   autodelrequest,
     int                   triggerreadthread,
     _TASYNCPARAMBLOCK    *asyncparam
@@ -1866,7 +1863,7 @@ static SFileRequestData *IssueRequest(
   return request;
 }
 
-static void MarkRequestUrgent(void *buffer, int urgent) {
+static void MarkRequestUrgent(LPVOID buffer, int urgent) {
   SFileRequestList *requests;
 
   if (!buffer) {
@@ -1911,23 +1908,17 @@ static DWORD BuildDefaultOpenFlags() {
   return flags;
 }
 
-static DWORD GetFileBlockEntry(
-    HSARCHIVE             archivehandle,
-    const char           *filename,
-    DWORD                 flags,
-    SFileArchiveRecData **archive,
-    SFileBlockEntryData **block,
-    char                 *diskname
-) {
+static DWORD
+GetFileBlockEntry(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags, SFileArchiveRecData **archive, SFileBlockEntryData **block, char *diskname) {
   char                 localfilename[MAX_PATH];
   char                 mungedname[MAX_PATH];
-  unsigned int         s_platformId;
+  UINT                 s_platformId;
   WORD                 s_languageId;
   DWORD                exists;
   SFileArchiveRecData *archiveNode;
   SFileArchiveRecData *searchArchive;
   SFileBlockEntryData *blockentry;
-  const char          *searchName;
+  LPCSTR               searchName;
   DWORD                index;
 
   if (archive) {
@@ -2009,11 +2000,11 @@ static DWORD GetFileBlockEntry(
   return exists;
 }
 
-static int CheckFileExists(const char *filename) {
+static int CheckFileExists(LPCSTR filename) {
   return !(GetFileAttributesA(filename) & FILE_ATTRIBUTE_DIRECTORY);
 }
 
-static int CheckForCdRom(const char *path) {
+static int CheckForCdRom(LPCSTR path) {
   char  rootpath[4];
   char  fsname[MAX_PATH];
   DWORD driveType;
@@ -2045,7 +2036,7 @@ static int CheckForCdRom(const char *path) {
   return value == 0x1F00 || value == 0x0805;
 }
 
-static void ConvertRelativePathName(const char *inputpath, char *outputpath, int strippath) {
+static void ConvertRelativePathName(LPCSTR inputpath, char *outputpath, int strippath) {
   char                  absolutepath[260];
   Storm::SFile::UseGlob glob;
 
@@ -2053,7 +2044,7 @@ static void ConvertRelativePathName(const char *inputpath, char *outputpath, int
     BuildDefaultBasePath(glob->s_basepath, MAX_PATH);
   }
   if (strippath) {
-    const char *slash = SStrChrR(inputpath, '\\');
+    LPCSTR slash = SStrChrR(inputpath, '\\');
     if (slash) {
       inputpath = slash + 1;
     }
@@ -2062,7 +2053,7 @@ static void ConvertRelativePathName(const char *inputpath, char *outputpath, int
   _fullpath(outputpath, absolutepath, MAX_PATH);
 }
 
-static int CheckFileExistsOnDisk(const char *filename, DWORD flags, char *localfilename) {
+static int CheckFileExistsOnDisk(LPCSTR filename, DWORD flags, char *localfilename) {
   char localonly[MAX_PATH];
   int  result = FALSE;
 
@@ -2125,10 +2116,10 @@ extern "C" BOOL APIENTRY SFileAuthenticateArchive(HSARCHIVE handle, DWORD *exten
   SFileCryptoApi      *crypto;
   HMODULE              library;
   HANDLE               mapping;
-  void                *view;
+  LPVOID               view;
   HRSRC                resource;
   HGLOBAL              resourceHandle;
-  void                *resourceData;
+  LPVOID               resourceData;
   DWORD                provider;
   DWORD                key;
   DWORD                hash;
@@ -2318,12 +2309,12 @@ cleanup:
 }
 
 extern "C" BOOL APIENTRY SFileAuthenticateArchiveEx(
-    HSARCHIVE    handle,
-    DWORD       *extendedresult,
-    const BYTE  *modulus,
-    DWORD        modulusSize,
-    const BYTE  *exponent,
-    DWORD        exponentSize
+    HSARCHIVE   handle,
+    DWORD      *extendedresult,
+    const BYTE *modulus,
+    DWORD       modulusSize,
+    const BYTE *exponent,
+    DWORD       exponentSize
 ) {
   SSignatureData *token;
   BYTE           *buffer;
@@ -2384,7 +2375,7 @@ cleanup:
   return *extendedresult == 5;
 }
 
-extern "C" DWORD APIENTRY SFileCalcFileCrc(const char *filename) {
+extern "C" DWORD APIENTRY SFileCalcFileCrc(LPCSTR filename) {
   BYTE  *buffer;
   DWORD  crc;
   HANDLE filehandle;
@@ -2434,13 +2425,13 @@ close_file:
   return crc;
 }
 
-extern "C" void APIENTRY SFileCancelRequest(void *buffer) {
+extern "C" void APIENTRY SFileCancelRequest(LPVOID buffer) {
   FATALASSERT(buffer);
 
   CancelRequest(buffer, NULL);
 }
 
-extern "C" BOOL APIENTRY SFileCancelRequestEx(void *buffer) {
+extern "C" BOOL APIENTRY SFileCancelRequestEx(LPVOID buffer) {
   FATALASSERT(buffer);
 
   return CancelRequest(buffer, NULL);
@@ -2488,7 +2479,7 @@ extern "C" BOOL APIENTRY SFileCloseFile(HSFILE handle) {
   return TRUE;
 }
 
-extern "C" void APIENTRY SFileRegisterLoadNotifyProc(void(APIENTRY *f)(const char *, void *), void *opaqueData) {
+extern "C" void APIENTRY SFileRegisterLoadNotifyProc(void(APIENTRY *f)(LPCSTR, LPVOID), LPVOID opaqueData) {
   Storm::SFile::UseGlob glob;
   glob->s_loadNotifyProc = f;
   glob->s_loadNotifyData = opaqueData;
@@ -2853,7 +2844,7 @@ extern "C" BOOL APIENTRY SFileDestroy() {
   SFileAudioStreamData *stream;
   SFileRecData         *file;
   SFileArchiveRecData  *archive;
-  void                 *buffer;
+  LPVOID                buffer;
 
   SFileDdaDestroy();
   DestroyCdThread();
@@ -2937,11 +2928,11 @@ extern "C" void APIENTRY SFileEnableSeekOptimization(int enable) {
   glob->s_seekOptimize = enable;
 }
 
-extern "C" DWORD APIENTRY SFileFileExists(const char *filename) {
+extern "C" DWORD APIENTRY SFileFileExists(LPCSTR filename) {
   return SFileFileExistsEx(NULL, filename, BuildDefaultOpenFlags());
 }
 
-extern "C" DWORD APIENTRY SFileFileExistsEx(HSARCHIVE archivehandle, const char *filename, DWORD flags) {
+extern "C" DWORD APIENTRY SFileFileExistsEx(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags) {
   FATALASSERT(filename);
   FATALASSERT(*filename);
 
@@ -3090,27 +3081,27 @@ extern "C" BOOL APIENTRY SFileGetFileTime(HSFILE handle, FILETIME *filetime) {
   return TRUE;
 }
 
-extern "C" BOOL APIENTRY SFileLoadFile(const char *filename, void **buffer, DWORD *bytes, DWORD extraBytes, OVERLAPPED *overlapped) {
+extern "C" BOOL APIENTRY SFileLoadFile(LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, OVERLAPPED *overlapped) {
   return SFileLoadFileEx2(NULL, filename, buffer, bytes, extraBytes, BuildDefaultOpenFlags(), overlapped, 0);
 }
 
 extern "C" BOOL APIENTRY
-SFileLoadFileEx(HSARCHIVE archive, const char *filename, void **buffer, DWORD *bytes, DWORD extraBytes, DWORD flags, OVERLAPPED *overlapped) {
+SFileLoadFileEx(HSARCHIVE archive, LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, DWORD flags, OVERLAPPED *overlapped) {
   return SFileLoadFileEx2(archive, filename, buffer, bytes, extraBytes, flags, overlapped, 0);
 }
 
 extern "C" BOOL APIENTRY SFileLoadFileEx2(
     HSARCHIVE   archive,
-    const char *filename,
-    void      **buffer,
+    LPCSTR      filename,
+    LPVOID     *buffer,
     DWORD      *bytes,
     DWORD       extraBytes,
     DWORD       flags,
     OVERLAPPED *overlapped,
     LONG        overlappedpriority
 ) {
-  DWORD sizeLow;
-  void *target;
+  DWORD  sizeLow;
+  LPVOID target;
 
   FATALASSERT(filename);
   FATALASSERT(buffer);
@@ -3143,7 +3134,7 @@ extern "C" BOOL APIENTRY SFileLoadFileEx2(
   return *buffer != NULL;
 }
 
-extern "C" BOOL APIENTRY SFileOpenArchive(const char *archivename, int priority, DWORD flags, HSARCHIVE *handle) {
+extern "C" BOOL APIENTRY SFileOpenArchive(LPCSTR archivename, int priority, DWORD flags, HSARCHIVE *handle) {
   SFileArchiveRecData *archive;
   HANDLE               file;
   int                  checkCdRom;
@@ -3199,7 +3190,7 @@ extern "C" BOOL APIENTRY SFileOpenArchive(const char *archivename, int priority,
   return Storm::SFile::s_OpenArchive(archive, flags, checkCdRom, handle);
 }
 
-extern "C" BOOL APIENTRY SFileOpenPathAsArchive(HSARCHIVE ownerarchive, const char *pathPrefix, int priority, DWORD flags, HSARCHIVE *handle) {
+extern "C" BOOL APIENTRY SFileOpenPathAsArchive(HSARCHIVE ownerarchive, LPCSTR pathPrefix, int priority, DWORD flags, HSARCHIVE *handle) {
   SFileArchiveRecData *node;
   SFileArchiveRecData *position;
 
@@ -3329,11 +3320,11 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
   return TRUE;
 }
 
-extern "C" DWORD APIENTRY SFileOpenFile(const char *filename, HSFILE *handle) {
+extern "C" DWORD APIENTRY SFileOpenFile(LPCSTR filename, HSFILE *handle) {
   return SFileOpenFileEx(NULL, filename, BuildDefaultOpenFlags(), handle);
 }
 
-extern "C" BOOL APIENTRY SFileOpenFileAsArchive(HSARCHIVE ownerarchive, const char *filename, int priority, DWORD flags, HSARCHIVE *handle) {
+extern "C" BOOL APIENTRY SFileOpenFileAsArchive(HSARCHIVE ownerarchive, LPCSTR filename, int priority, DWORD flags, HSARCHIVE *handle) {
   HSFILE               filehandle;
   SFileArchiveRecData *newarchive;
   BOOL                 ondisk;
@@ -3394,14 +3385,14 @@ extern "C" BOOL APIENTRY SFileOpenFileAsArchive(HSARCHIVE ownerarchive, const ch
   return result;
 }
 
-extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, const char *filename, DWORD flags, HSFILE *handle) {
-  typedef void(APIENTRY * SFileLoadNotifyProc)(const char *, void *);
+extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags, HSFILE *handle) {
+  typedef void(APIENTRY * SFileLoadNotifyProc)(LPCSTR, LPVOID);
   char                 localfilename[MAX_PATH];
   BOOL                 result = FALSE;
   DWORD                sectors;
   DWORD               *sectoroffsettable;
   SFileArchiveRecData *archiveptr;
-  void                *s_loadNotifyData;
+  LPVOID               s_loadNotifyData;
   DWORD                key;
 
   FATALASSERT(handle);
@@ -3411,14 +3402,8 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, const char *f
 
   Initialize();
   archiveptr = NULL;
-  DWORD source = GetFileBlockEntry(
-      archivehandle,
-      filename,
-      flags,
-      &archiveptr,
-      reinterpret_cast<SFileBlockEntryData **>(&archivehandle),
-      localfilename
-  );
+  DWORD source =
+      GetFileBlockEntry(archivehandle, filename, flags, &archiveptr, reinterpret_cast<SFileBlockEntryData **>(&archivehandle), localfilename);
 
   if (source) {
     if (source == 2) {
@@ -3452,8 +3437,8 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, const char *f
           SErrSetLastError(ERROR_FILE_NOT_FOUND);
         }
       } else {
-        const char *keyname = filename;
-        const char *separator = SStrChrR(keyname, ':');
+        LPCSTR keyname = filename;
+        LPCSTR separator = SStrChrR(keyname, ':');
         if (separator) {
           keyname = separator + 1;
         }
@@ -3467,8 +3452,7 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, const char *f
           key = (key + reinterpret_cast<SFileBlockEntryData *>(archivehandle)->offset - archiveptr->startinglocation) ^
                 reinterpret_cast<SFileBlockEntryData *>(archivehandle)->sizefile;
         }
-        sectors = (reinterpret_cast<SFileBlockEntryData *>(archivehandle)->sizefile + archiveptr->sectorsize - 1) /
-                  archiveptr->sectorsize;
+        sectors = (reinterpret_cast<SFileBlockEntryData *>(archivehandle)->sizefile + archiveptr->sectorsize - 1) / archiveptr->sectorsize;
         sectoroffsettable = NULL;
         if (reinterpret_cast<SFileBlockEntryData *>(archivehandle)->flags & MPQ_COMPRESSEDMASK) {
           sectoroffsettable = (DWORD *)ALLOC((sectors + 1) * sizeof(DWORD));
@@ -3512,7 +3496,7 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, const char *f
   return result;
 }
 
-extern "C" void APIENTRY SFilePrioritizeRequest(void *buffer, LONG overlappedpriority) {
+extern "C" void APIENTRY SFilePrioritizeRequest(LPVOID buffer, LONG overlappedpriority) {
   FATALASSERT(buffer);
   MarkRequestUrgent(buffer, overlappedpriority > 0);
   if (overlappedpriority >= 1 && Storm::SFile::s_cdevent) {
@@ -3520,18 +3504,18 @@ extern "C" void APIENTRY SFilePrioritizeRequest(void *buffer, LONG overlappedpri
   }
 }
 
-extern "C" BOOL APIENTRY SFileReadFile(HSFILE handle, void *buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped) {
+extern "C" BOOL APIENTRY SFileReadFile(HSFILE handle, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped) {
   return SFileReadFileEx2(handle, buffer, bytestoread, bytesread, overlapped, 0, NULL);
 }
 
 extern "C" BOOL APIENTRY
-SFileReadFileEx(HSFILE handle, void *buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped, _TASYNCPARAMBLOCK *asyncparam) {
+SFileReadFileEx(HSFILE handle, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped, _TASYNCPARAMBLOCK *asyncparam) {
   return SFileReadFileEx2(handle, buffer, bytestoread, bytesread, overlapped, 0, asyncparam);
 }
 
 extern "C" BOOL APIENTRY SFileReadFileEx2(
     HSFILE             handle,
-    void              *buffer,
+    LPVOID             buffer,
     DWORD              bytestoread,
     DWORD             *bytesread,
     OVERLAPPED        *overlapped,
@@ -3708,7 +3692,7 @@ extern "C" void APIENTRY SFileSetAsyncBudget(DWORD bytesPerSec) {
   glob->s_asyncBudget = bytesPerSec;
 }
 
-extern "C" BOOL APIENTRY SFileSetBasePath(const char *path) {
+extern "C" BOOL APIENTRY SFileSetBasePath(LPCSTR path) {
   DWORD len;
   DWORD required;
   int   terminated;
@@ -3805,7 +3789,7 @@ extern "C" void APIENTRY SFileSetPlatform(DWORD platformId) {
   glob->s_platformId = (BYTE)platformId;
 }
 
-extern "C" BOOL APIENTRY SFileUnloadFile(void *buffer) {
+extern "C" BOOL APIENTRY SFileUnloadFile(LPVOID buffer) {
   FATALASSERT(buffer);
   FREE(buffer);
   return TRUE;

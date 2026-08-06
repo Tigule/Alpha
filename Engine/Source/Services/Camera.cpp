@@ -10,7 +10,7 @@
 
 static const float DEFAULT_SCREEN_FRUSTUM_LENGTH = 500.0f;
 
-void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, unsigned int flags) {
+void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, UINT flags) {
   NTempest::C44Matrix mProj;
   const float         aspect = (projectionRect.r - projectionRect.l) / (projectionRect.b - projectionRect.t);
 
@@ -26,7 +26,7 @@ void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, unsign
   GxXformSetView(mView);
 }
 
-void CameraCalcPosFromTarg(HCAMERA__* camera, NTempest::C3Vector* position) {
+void CameraCalcPosFromTarg(HCAMERA__ *camera, NTempest::C3Vector *position) {
   CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
   FATALASSERT(cameraPtr);
   FATALASSERT(position);
@@ -37,7 +37,7 @@ void CameraCalcPosFromTarg(HCAMERA__* camera, NTempest::C3Vector* position) {
   position->z = cameraPtr->m_target.Get().z - cameraPtr->m_aoa.Sin() * distance;
 }
 
-void CameraCalcTargFromPos(HCAMERA__* camera, NTempest::C3Vector* target) {
+void CameraCalcTargFromPos(HCAMERA__ *camera, NTempest::C3Vector *target) {
   CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
   FATALASSERT(cameraPtr);
   FATALASSERT(target);
@@ -152,7 +152,7 @@ void CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NT
   GxXformSetView(mView);
 }
 
-void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, unsigned int flags) {
+void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, UINT flags) {
   ASSERT(camera);
 
   reinterpret_cast<CCamera *>(camera)->SetupWorldProjection(projectionRect, flags);
@@ -160,7 +160,7 @@ void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectio
 
 #include "Services/DataMgrInt.h"
 
-void CameraUpdate(HCAMERA__* camera, float elapsedSec) {
+void CameraUpdate(HCAMERA__ *camera, float elapsedSec) {
   CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
   FATALASSERT(cameraPtr);
   cameraPtr->Update(elapsedSec);

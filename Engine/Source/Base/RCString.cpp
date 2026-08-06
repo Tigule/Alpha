@@ -31,7 +31,7 @@ void CStringManager::DestroyManager() {
 CStringManager::~CStringManager() {
 }
 
-CStringRep &CStringManager::Add(const char *str) {
+CStringRep &CStringManager::Add(LPCSTR str) {
   if (!str) {
     return CStringRep::s_nullRep;
   }
@@ -44,7 +44,7 @@ CStringRep &CStringManager::Add(const char *str) {
   return *rep;
 }
 
-CStringRep &CStringManager::Find(const char *str) {
+CStringRep &CStringManager::Find(LPCSTR str) {
   CStringRep *rep = str ? Ptr(str) : 0;
 
   return rep ? *rep : CStringRep::s_nullRep;
@@ -60,8 +60,8 @@ void CStringRep::DecrRef() {
   }
 }
 
-int CStringRep::IsString(const char *str) const {
-  const char *thisString = GetString();
+int CStringRep::IsString(LPCSTR str) const {
+  LPCSTR thisString = GetString();
 
   if (!thisString) {
     return str == 0;
@@ -90,7 +90,7 @@ void RCString::Copy(const RCString &source) {
   m_rep = source.m_rep;
 }
 
-void RCString::Copy(const char *source) {
+void RCString::Copy(LPCSTR source) {
   if (!source) {
     m_rep = &CStringRep::s_nullRep;
     return;
@@ -115,19 +115,19 @@ int RCString::operator==(const RCString &r) const {
   return m_rep == r.m_rep;
 }
 
-int RCString::operator==(const char *str) const {
+int RCString::operator==(LPCSTR str) const {
   return m_rep.m_ptr ? m_rep.m_ptr->IsString(str) : str == 0;
 }
 
-const char *RCString::GetString() const {
+LPCSTR RCString::GetString() const {
   return m_rep ? m_rep->GetString() : 0;
 }
 
-RCString::operator const char *() const {
+RCString::operator LPCSTR() const {
   return GetString();
 }
 
-RCString RCString::Cat(const char *lstr, const char *rstr) {
+RCString RCString::Cat(LPCSTR lstr, LPCSTR rstr) {
   char buffer[MAX_RCSTRING_LENGTH * 2 + 1];
 
   SStrCopy(buffer, lstr, sizeof(buffer));
@@ -137,8 +137,8 @@ RCString RCString::Cat(const char *lstr, const char *rstr) {
   return rcstr;
 }
 
-RCString &RCString::operator+=(const char *rstr) {
-  const char *lstr = GetString();
+RCString &RCString::operator+=(LPCSTR rstr) {
+  LPCSTR lstr = GetString();
 
   if (!lstr) {
     Copy(rstr);
@@ -150,8 +150,8 @@ RCString &RCString::operator+=(const char *rstr) {
 }
 
 RCString &RCString::operator+=(const RCString &r) {
-  const char *lstr = GetString();
-  const char *rstr = r.GetString();
+  LPCSTR lstr = GetString();
+  LPCSTR rstr = r.GetString();
 
   if (!lstr) {
     Copy(rstr);
@@ -166,9 +166,9 @@ RCString RCString::SubString(RCStringIndex start, RCStringIndex end) const {
   char *str = const_cast<char *>(GetString());
 
   if (str) {
-    unsigned int len = SStrLen(str);
+    UINT len = SStrLen(str);
 
-    FATALASSERT(len < (unsigned short)-1);
+    FATALASSERT(len < (WORD)-1);
 
     if (len && start <= static_cast<RCStringIndex>(len)) {
       if (end >= static_cast<RCStringIndex>(len)) {
@@ -187,7 +187,7 @@ RCString RCString::SubString(RCStringIndex start, RCStringIndex end) const {
 }
 
 void RCString::Get(char *buf, RCStringIndex bufSize) const {
-  const char *str = GetString();
+  LPCSTR str = GetString();
 
   if (str) {
     SStrCopy(buf, str, bufSize);

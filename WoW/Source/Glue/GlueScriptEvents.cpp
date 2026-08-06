@@ -15,28 +15,28 @@
 #include <lua.h>
 #include <storm.h>
 
-int OsLaunchURL(const char *url);
+int OsLaunchURL(LPCSTR url);
 
 static const char REGKEY[11] = "WoW\\Client";
 static const char REGVAL_ACCOUNTNAME[12] = "AccountName";
 
 static int Script_GetBuildInfo(lua_State *L);
 static int Script_SetCurrentScreen(lua_State *L);
-static int Script_QuitGame(lua_State *__formal);
+static int Script_QuitGame(lua_State *);
 static int Script_PlayGlueMusic(lua_State *L);
 static int Script_LaunchURL(lua_State *L);
-static int Script_LaunchAccountCreate(lua_State *__formal);
+static int Script_LaunchAccountCreate(lua_State *);
 static int Script_GetLastAccountName(lua_State *L);
 static int Script_DefaultServerLogin(lua_State *L);
-static int Script_StatusDialogClick(lua_State *__formal);
+static int Script_StatusDialogClick(lua_State *);
 static int Script_GetServerName(lua_State *L);
-static int Script_DisconnectFromServer(lua_State *__formal);
+static int Script_DisconnectFromServer(lua_State *);
 static int Script_IsConnectedToServer(lua_State *L);
-static int Script_GetRealmList(lua_State *__formal);
+static int Script_GetRealmList(lua_State *);
 static int Script_GetNumRealms(lua_State *L);
 static int Script_GetRealmInfo(lua_State *L);
 static int Script_ChangeRealm(lua_State *L);
-static int Script_EnterWorld(lua_State *__formal);
+static int Script_EnterWorld(lua_State *);
 
 static FrameScript_Method s_ScriptFunctions[17] = {
     {        "GetBuildInfo",         Script_GetBuildInfo},
@@ -58,7 +58,7 @@ static FrameScript_Method s_ScriptFunctions[17] = {
     {          "EnterWorld",           Script_EnterWorld}
 };
 
-const char *g_glueScriptEvents[11];
+LPCSTR g_glueScriptEvents[11];
 
 void GlueScriptEventsInitialize() {
   g_glueScriptEvents[0] = "SET_GLUE_SCREEN";
@@ -94,7 +94,7 @@ static int Script_SetCurrentScreen(lua_State *L) {
   return 0;
 }
 
-static int Script_QuitGame(lua_State *__formal) {
+static int Script_QuitGame(lua_State *) {
   CGlueMgr::QuitGame();
   return 0;
 }
@@ -119,7 +119,7 @@ static int Script_LaunchURL(lua_State *L) {
   return 0;
 }
 
-static int Script_LaunchAccountCreate(lua_State *__formal) {
+static int Script_LaunchAccountCreate(lua_State *) {
   OsLaunchURL(FrameScript_GetText("ACCOUNT_CREATE_URL", -1, GENDER_NOT_APPLICABLE));
   return 0;
 }
@@ -142,7 +142,7 @@ static int Script_DefaultServerLogin(lua_State *L) {
   return 0;
 }
 
-static int Script_StatusDialogClick(lua_State *__formal) {
+static int Script_StatusDialogClick(lua_State *) {
   CGlueMgr::StatusDialogClick();
   return 0;
 }
@@ -152,7 +152,7 @@ static int Script_GetServerName(lua_State *L) {
   return 1;
 }
 
-static int Script_DisconnectFromServer(lua_State *__formal) {
+static int Script_DisconnectFromServer(lua_State *) {
   if (ClientServices_IsConnected()) {
     CGlueMgr::ExpectDisconnect(0);
     ClientServices_Disconnect();
@@ -171,7 +171,7 @@ static int Script_IsConnectedToServer(lua_State *L) {
   return 1;
 }
 
-static int Script_GetRealmList(lua_State *__formal) {
+static int Script_GetRealmList(lua_State *) {
   CGlueMgr::GetRealmList();
   return 0;
 }
@@ -227,19 +227,19 @@ static int Script_ChangeRealm(lua_State *L) {
   return 0;
 }
 
-static int Script_EnterWorld(lua_State *__formal) {
+static int Script_EnterWorld(lua_State *) {
   CGlueMgr::EnterWorld();
   return 0;
 }
 
 void GlueScriptEventsRegisterFunctions() {
-  for (unsigned int i = 0; i < 17; ++i) {
+  for (UINT i = 0; i < 17; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void GlueScriptEventsUnregisterFunctions() {
-  for (unsigned int i = 0; i < 17; ++i) {
+  for (UINT i = 0; i < 17; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

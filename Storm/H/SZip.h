@@ -12,7 +12,7 @@ class WowFileSystemProvider {
 
   ~WowFileSystemProvider() {
   }
-  virtual WowFile *Open(const char *filename) = 0;
+  virtual WowFile *Open(LPCSTR filename) = 0;
   virtual bool     Close(WowFile *file) = 0;
 };
 
@@ -44,7 +44,7 @@ class TestFileSystemProvider : public WowFileSystemProvider {
  public:
   TestFileSystemProvider();
   ~TestFileSystemProvider();
-  virtual WowFile *Open(const char *filename);
+  virtual WowFile *Open(LPCSTR filename);
   virtual bool     Close(WowFile *f);
 };
 
@@ -57,7 +57,7 @@ class WowFileSystem {
   }
   void     RegisterProvider(WowFileSystemProvider &provider);
   void     UnregisterProvider(WowFileSystemProvider &provider);
-  WowFile *Open(const char *filename);
+  WowFile *Open(LPCSTR filename);
 
  private:
   WowFileSystemProvider *m_providerList;

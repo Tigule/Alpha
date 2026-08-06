@@ -26,9 +26,9 @@ namespace NTempest {
   bool Intersect(const CAaBox &box, const CAaSphere &sphere, SolidIntersect mode);
   bool Intersect2d(const CAaBox &box, const CAaSphere &sphere, SolidIntersect mode);
   bool Intersect(const C3Ray &ray, const C4Plane &plane, float *t, C3Vector *p);
-  bool Intersect(const C3Vector &point, const C3Vector *polygon, unsigned int nPoints, C3Vector::EAxis axis);
-  bool Intersect(const C3Vector &point, const C3Vector *polygon, const unsigned short *indices, unsigned int nPoints, C3Vector::EAxis axis);
-  bool Intersect(const C3Vector &point, const C3Vector *polygon, const unsigned long *indices, unsigned int nPoints, C3Vector::EAxis axis);
+  bool Intersect(const C3Vector &point, const C3Vector *polygon, UINT nPoints, C3Vector::EAxis axis);
+  bool Intersect(const C3Vector &point, const C3Vector *polygon, const WORD *indices, UINT nPoints, C3Vector::EAxis axis);
+  bool Intersect(const C3Vector &point, const C3Vector *polygon, const DWORD *indices, UINT nPoints, C3Vector::EAxis axis);
   bool Intersect(const C3Ray &ray, const CFacet &facet, float *t, C3Vector *p);
   bool Intersect(const C3Ray &ray, const C3Vector *verts, float *t, C2Vector *bary);
   bool IntersectCull(const C3Ray &ray, const C3Vector *verts, float *t, C2Vector *bary);

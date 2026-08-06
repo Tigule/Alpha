@@ -67,7 +67,7 @@ LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam
   return DefWindowProcA(hWnd, uMsg, wParam, lParam);
 }
 
-static unsigned short WindowClassCreate() {
+static WORD WindowClassCreate() {
   HINSTANCE   instance = GetModuleHandleA(0);
   WNDCLASSEXA wc;
 
@@ -87,10 +87,9 @@ static unsigned short WindowClassCreate() {
 }
 
 static HWND WindowCreate(CGxDeviceD3d *dev, const CGxFormat &format) {
-  HINSTANCE     instance = GetModuleHandleA(0);
-  CGxFormat     fmt = format;
-  unsigned long style =
-      format.window ? WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+  HINSTANCE instance = GetModuleHandleA(0);
+  CGxFormat fmt = format;
+  DWORD style = format.window ? WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 
   if (!fmt.size.x) {
     fmt.size.x = CW_USEDEFAULT;
@@ -111,14 +110,14 @@ static void WindowDestroy(HWND &hwnd) {
   hwnd = 0;
 }
 
-static void WindowClassDestroy(unsigned short &hClass) {
-  UnregisterClassA(reinterpret_cast<const char *>(hClass), GetModuleHandleA(0));
+static void WindowClassDestroy(WORD &hClass) {
+  UnregisterClassA(reinterpret_cast<LPCSTR>(hClass), GetModuleHandleA(0));
   hClass = 0;
 }
 
 CGxDeviceD3d::CGxDeviceD3d() {
-  for (unsigned int i = 0; i < 8; ++i) {
-    m_d3dStatesLight[i].which = static_cast<unsigned long>(-1);
+  for (UINT i = 0; i < 8; ++i) {
+    m_d3dStatesLight[i].which = static_cast<DWORD>(-1);
     m_d3dStatesLight[i].chkSum = 0;
   }
 
@@ -155,10 +154,10 @@ CGxDeviceD3d::~CGxDeviceD3d() {
 }
 
 int CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
-  typedef IDirect3D9 *(__stdcall * D3dCreateProc)(unsigned int);
+  typedef IDirect3D9 *(__stdcall * D3dCreateProc)(UINT);
 
   D3dCreateProc d3dCreateProc;
-  const char   *failure;
+  LPCSTR        failure;
 
   d3dLib = 0;
   d3d = 0;
@@ -269,19 +268,19 @@ void CGxDeviceD3d::IDestroyD3d() {
   IUnloadD3dLib(m_d3dLib, m_d3d);
 }
 
-int CGxDeviceD3d::ICheckTextureFormat(unsigned long usage, _D3DFORMAT textureFormat) {
+int CGxDeviceD3d::ICheckTextureFormat(DWORD usage, _D3DFORMAT textureFormat) {
   return m_d3d->CheckDeviceFormat(0, D3DDEVTYPE_HAL, m_devAdapterFormat, usage, D3DRTYPE_TEXTURE, textureFormat) == 0;
 }
 
 int CGxDeviceD3d::IAllocBuffers() {
-  for (unsigned int format = 0; format < GxVertexBufferFormats_Last; ++format) {
+  for (UINT format = 0; format < GxVertexBufferFormats_Last; ++format) {
     ICreateBuffers(static_cast<EGxVertexBufferFormat>(format), 0x4000, m_VBL[GxBWF_Dynamic][format], 0xC000, m_IB[GxBWF_Dynamic][0]);
 
     if (!m_VBL[GxBWF_Dynamic][format].m_vbList.Count() || !m_IB[GxBWF_Dynamic][0]) {
       return 0;
     }
 
-    for (unsigned int frequency = GxBWF_Low; frequency <= GxBWF_Medium; ++frequency) {
+    for (UINT frequency = GxBWF_Low; frequency <= GxBWF_Medium; ++frequency) {
       BufReserve(
           static_cast<EGxBufWriteFreq>(frequency), static_cast<EGxVertexBufferFormat>(format), m_VBReserve[frequency][format],
           m_IBReserve[frequency][format]
@@ -376,7 +375,7 @@ void CGxDeviceD3d::ISetPresentParms(D3DPRESENT_PARAMETERS &d3dpp, const CGxForma
 }
 
 void CGxDeviceD3d::IReleaseD3dResources(int freeTextures) {
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     StateD3dLight state;
     state.which = -1;
     state.chkSum = 0;
@@ -390,8 +389,8 @@ void CGxDeviceD3d::IReleaseD3dResources(int freeTextures) {
     static_cast<CGxBufD3d *>(buf)->Release();
   }
 
-  for (unsigned int frequency = 0; frequency < 4; ++frequency) {
-    for (unsigned int format = 0; format < GxVertexBufferFormats_Last; ++format) {
+  for (UINT frequency = 0; frequency < 4; ++frequency) {
+    for (UINT format = 0; format < GxVertexBufferFormats_Last; ++format) {
       m_VBL[frequency][format].Release();
       if (m_IB[frequency][format]) {
         DEL(m_IB[frequency][format]);
@@ -438,7 +437,7 @@ int CGxDeviceD3d::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format)
   return 0;
 }
 
-int CGxDeviceD3d::DeviceCreate(unsigned int hwnd, const CGxFormat &format) {
+int CGxDeviceD3d::DeviceCreate(UINT hwnd, const CGxFormat &format) {
   m_ownhwnd = 0;
   CGxDevice::DeviceCreate(hwnd, format);
   m_hwnd = reinterpret_cast<HWND>(hwnd);
@@ -480,7 +479,7 @@ int CGxDeviceD3d::DeviceSetFormat(const CGxFormat &format) {
   return 0;
 }
 
-void CGxDeviceD3d::DeviceSetBaseMipLevel(unsigned int baseMipLevel) {
+void CGxDeviceD3d::DeviceSetBaseMipLevel(UINT baseMipLevel) {
   CGxDevice::DeviceSetBaseMipLevel(baseMipLevel);
   ITexForceRecreation(1);
 }
@@ -506,8 +505,8 @@ void CGxDeviceD3d::DeviceSetTextureQuality(int force32) {
   ITexForceRecreation(1);
 }
 
-unsigned long CGxDeviceD3d::DeviceWindow() {
-  return reinterpret_cast<unsigned long>(m_hwnd);
+DWORD CGxDeviceD3d::DeviceWindow() {
+  return reinterpret_cast<DWORD>(m_hwnd);
 }
 
 void CGxDeviceD3d::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels) {
@@ -528,8 +527,8 @@ void CGxDeviceD3d::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTem
   bb->GetDesc(&desc);
 
   if (bb->LockRect(&r, 0, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK) >= 0) {
-    unsigned char *src = static_cast<unsigned char *>(r.pBits);
-    unsigned char *dst = reinterpret_cast<unsigned char *>(pixels.Ptr());
+    BYTE *src = static_cast<BYTE *>(r.pBits);
+    BYTE *dst = reinterpret_cast<BYTE *>(pixels.Ptr());
 
     for (int y = rect.b - rect.t; y; --y) {
       switch (desc.Format) {
@@ -540,10 +539,10 @@ void CGxDeviceD3d::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTem
 
         case D3DFMT_R5G6B5: {
           for (int x = 0; x < width; ++x) {
-            unsigned short pixel = reinterpret_cast<unsigned short *>(src)[x];
-            dst[x * 4 + 0] = static_cast<unsigned char>(pixel << 3);
-            dst[x * 4 + 1] = static_cast<unsigned char>((pixel >> 3) & 0xFC);
-            dst[x * 4 + 2] = static_cast<unsigned char>((pixel >> 8) & 0xF8);
+            WORD pixel = reinterpret_cast<WORD *>(src)[x];
+            dst[x * 4 + 0] = static_cast<BYTE>(pixel << 3);
+            dst[x * 4 + 1] = static_cast<BYTE>((pixel >> 3) & 0xFC);
+            dst[x * 4 + 2] = static_cast<BYTE>((pixel >> 8) & 0xF8);
             dst[x * 4 + 3] = 0xFF;
           }
           break;
@@ -552,10 +551,10 @@ void CGxDeviceD3d::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTem
         case D3DFMT_X1R5G5B5:
         case D3DFMT_A1R5G5B5: {
           for (int x = 0; x < width; ++x) {
-            unsigned short pixel = reinterpret_cast<unsigned short *>(src)[x];
-            dst[x * 4 + 0] = static_cast<unsigned char>(pixel << 3);
-            dst[x * 4 + 1] = static_cast<unsigned char>((pixel >> 2) & 0xF8);
-            dst[x * 4 + 2] = static_cast<unsigned char>((pixel >> 7) & 0xF8);
+            WORD pixel = reinterpret_cast<WORD *>(src)[x];
+            dst[x * 4 + 0] = static_cast<BYTE>(pixel << 3);
+            dst[x * 4 + 1] = static_cast<BYTE>((pixel >> 2) & 0xF8);
+            dst[x * 4 + 2] = static_cast<BYTE>((pixel >> 7) & 0xF8);
             dst[x * 4 + 3] = 0xFF;
           }
           break;
@@ -607,7 +606,7 @@ void CGxDeviceD3d::DeviceWM(EGxWM wm, long param1, long param2) {
   }
 }
 
-void CGxDeviceD3d::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, unsigned int plane) {
+void CGxDeviceD3d::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UINT plane) {
   TextureTarget &target = m_textureTarget[buffer];
   if (target.m_texture == gxTex && target.m_plane == plane) {
     return;
@@ -639,12 +638,10 @@ void CGxDeviceD3d::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, unsign
   }
   m_d3dDevice->SetRenderTarget(0, colorSurface);
 
-  XformSetViewport(
-      m_viewport.x.l, m_viewport.x.h, m_viewport.y.l, m_viewport.y.h, m_viewport.z.l, m_viewport.z.h
-  );
+  XformSetViewport(m_viewport.x.l, m_viewport.x.h, m_viewport.y.l, m_viewport.y.h, m_viewport.z.l, m_viewport.z.h);
 }
 
-void CGxDeviceD3d::DeviceOverride(EGxOverride override, unsigned long value) {
+void CGxDeviceD3d::DeviceOverride(EGxOverride override, DWORD value) {
   CGxDevice::DeviceOverride(override, value);
 
   if (override == GxOverride_PixelShader) {

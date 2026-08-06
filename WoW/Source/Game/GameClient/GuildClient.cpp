@@ -4,8 +4,8 @@
 #include "Object/GuildStats.h"
 
 bool GuildGetGuildTabard(
-    unsigned int guildID,
-    void(*callback)(int, const unsigned __int64 &, void *, bool),
+    UINT guildID,
+    void (*callback)(int, const DWORDLONG &, LPVOID, bool),
     int &eStyle,
     int &eColor,
     int &bStyle,
@@ -34,6 +34,6 @@ bool GuildGetGuildTabard(
   return true;
 }
 
-unsigned int GuildGetTabardCost() {
+UINT GuildGetTabardCost() {
   return 100000;
 }

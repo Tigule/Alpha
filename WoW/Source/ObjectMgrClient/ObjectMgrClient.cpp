@@ -31,34 +31,33 @@
 #include "WowSvcs/WowSvcsClient/ClientConnection.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
-extern "C" int __stdcall
-zlib_uncompress(unsigned char *dest, unsigned long *destLen, const unsigned char *source, unsigned long sourceLen);
+extern "C" int __stdcall zlib_uncompress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen);
 
-static ClntObjMgr        *s_curMgr;
-static unsigned int       s_hashMemBlock;
-static const unsigned int s_objTotalSize[8] = {
+static ClntObjMgr *s_curMgr;
+static UINT        s_hashMemBlock;
+static const UINT  s_objTotalSize[8] = {
     0x48, 0xEC, 0x1B0, 0xCC0, 0x2248, 0xEC, 0x84, 0x10C,
 };
-static const char *s_objNames[8] = {
+static LPCSTR s_objNames[8] = {
     "CGObject_C", "CGItem_C", "CGContainer_C", "CGUnit_C", "CGPlayer_C", "CGGameObject_C", "CGDynamicObject_C", "CGCorpse_C",
 };
 static int s_heapSizes[8] = {
     0, 0x100, 0x20, 0x40, 0x40, 0x40, 0x20, 0x20,
 };
-static const unsigned int s_objMirrorBlocks[8] = {
+static const UINT s_objMirrorBlocks[8] = {
     6, 36, 78, 184, 634, 20, 16, 36,
 };
-static unsigned char                                      s_heapsAllocated;
-static unsigned int                                       s_objHeapId[7];
-static int                                                s_localPlayerUpdates;
+static BYTE s_heapsAllocated;
+static UINT s_objHeapId[7];
+static int  s_localPlayerUpdates;
 static LISTDECL(CMirrorHandler, s_mirrorHandlers[8][634]);
 
-static int MirrorHandlerRemoveQueued(unsigned __int64 guid, CMirrorHandler *mirror);
-static void ProcessObjHandlersQueue();
+static int           MirrorHandlerRemoveQueued(DWORDLONG guid, CMirrorHandler *mirror);
+static void          ProcessObjHandlersQueue();
 static C_OBJECTHASH *AllocNewObj();
-void SkipCreateObject(CDataStore *msg);
+void                 SkipCreateObject(CDataStore *msg);
 
-static int IsMaskBitSet(const unsigned int *changeMask, unsigned int dwordNum) {
+static int IsMaskBitSet(const UINT *changeMask, UINT dwordNum) {
   return changeMask[dwordNum >> 5] & (1 << (dwordNum & 0x1F));
 }
 
@@ -77,7 +76,7 @@ static void FillInObjectData(C_OBJECTHASH *objhash, CDataStore *msg, CClientObjC
   FillInPartialObjectData(objhash, msg, 1, 1);
 }
 
-static unsigned int GetDataBaseOffset(OBJECT_TYPE_ID section) {
+static UINT GetDataBaseOffset(OBJECT_TYPE_ID section) {
   switch (section) {
     case ID_ITEM:
     case ID_UNIT:
@@ -94,20 +93,13 @@ static unsigned int GetDataBaseOffset(OBJECT_TYPE_ID section) {
   }
 }
 
-static void CallBlockMirrorHandlersIfChanged(
-    LISTPTREX(CMirrorHandler)                                   handlerList,
-    unsigned __int64                                            guid,
-    CGObject_C                                                 *obj,
-    OBJECT_TYPE_ID                                              objectTypeId
-) {
+static void CallBlockMirrorHandlersIfChanged(LISTPTREX(CMirrorHandler) handlerList, DWORDLONG guid, CGObject_C *obj, OBJECT_TYPE_ID objectTypeId) {
   s_curMgr->m_callingMirrorHandlers = 1;
 
   ITERATELISTPTR(CMirrorHandler, handlerList, mirrorHandler) {
     mirrorHandler->blocksLeft = 1;
-    const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
-    if (memcmp(data, mirrorHandler->previous.Ptr(), mirrorHandler->previous.Count()) &&
-        !MirrorHandlerRemoveQueued(guid, mirrorHandler))
-    {
+    const BYTE *data = reinterpret_cast<const BYTE *>(obj->GetData(0)) + mirrorHandler->offset;
+    if (memcmp(data, mirrorHandler->previous.Ptr(), mirrorHandler->previous.Count()) && !MirrorHandlerRemoveQueued(guid, mirrorHandler)) {
       FATALASSERT(mirrorHandler->handler);
       mirrorHandler->handler(
           guid, mirrorHandler->offset - GetDataBaseOffset(objectTypeId), mirrorHandler->previous.Count(), mirrorHandler->previous.Ptr(),
@@ -120,21 +112,14 @@ static void CallBlockMirrorHandlersIfChanged(
   ProcessObjHandlersQueue();
 }
 
-static void CallBlockMirrorHandlers(
-    LISTPTREX(CMirrorHandler)                                   handlerList,
-    unsigned __int64                                            guid,
-    CGObject_C                                                 *obj,
-    OBJECT_TYPE_ID                                              objectTypeId
-) {
+static void CallBlockMirrorHandlers(LISTPTREX(CMirrorHandler) handlerList, DWORDLONG guid, CGObject_C *obj, OBJECT_TYPE_ID objectTypeId) {
   s_curMgr->m_callingMirrorHandlers = 1;
 
   ITERATELISTPTR(CMirrorHandler, handlerList, mirrorHandler) {
     if (!MirrorHandlerRemoveQueued(guid, mirrorHandler)) {
       FATALASSERT(mirrorHandler->handler);
-      const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
-      if (mirrorHandler->previous.Count() >= sizeof(unsigned long) ||
-          memcmp(mirrorHandler->previous.Ptr(), data, mirrorHandler->previous.Count()))
-      {
+      const BYTE *data = reinterpret_cast<const BYTE *>(obj->GetData(0)) + mirrorHandler->offset;
+      if (mirrorHandler->previous.Count() >= sizeof(DWORD) || memcmp(mirrorHandler->previous.Ptr(), data, mirrorHandler->previous.Count())) {
         mirrorHandler->handler(
             guid, mirrorHandler->offset - GetDataBaseOffset(objectTypeId), mirrorHandler->previous.Count(), mirrorHandler->previous.Ptr(),
             mirrorHandler->param
@@ -151,21 +136,21 @@ static void CallBlockMirrorHandlers(
 static void SavePreviousValue(LISTPTR(CMirrorHandler) handlerList, CGObject_C *obj) {
   FATALASSERT(obj);
   ITERATELISTPTR(CMirrorHandler, handlerList, mirrorHandler) {
-    const unsigned char *data = reinterpret_cast<const unsigned char *>(obj->GetData(0)) + mirrorHandler->offset;
+    const BYTE *data = reinterpret_cast<const BYTE *>(obj->GetData(0)) + mirrorHandler->offset;
     memcpy(mirrorHandler->previous.Ptr(), data, mirrorHandler->previous.Count());
   }
 }
 
-static C_OBJECTHASH *FindActiveObj(unsigned __int64 guid) {
+static C_OBJECTHASH *FindActiveObj(DWORDLONG guid) {
   return s_curMgr->m_objects.Ptr(guid, CHashKeyGUID(guid));
 }
 
-static int SetObjectBlock(CGObject_C *obj, unsigned int i, unsigned long data) {
+static int SetObjectBlock(CGObject_C *obj, UINT i, DWORD data) {
   FATALASSERT(obj);
   return obj->SetBlock(i, data);
 }
 
-static unsigned int IncTypeId(CGObject_C *obj, unsigned int currTypeId) {
+static UINT IncTypeId(CGObject_C *obj, UINT currTypeId) {
   switch (obj->GetType()) {
     case HIER_TYPE_ITEM:
     case HIER_TYPE_CONTAINER:
@@ -215,11 +200,8 @@ static void MirrorHandlerAdvanceBlock(LISTPTREX(CMirrorHandler) handlerList) {
   }
 }
 
-static int GetMirrorHandler(
-    LISTPTR(CMirrorHandler)                                     mirrorHandlers,
-    LISTPTREX(CMirrorHandler)                                   handlerList
-) {
-  unsigned int offDword;
+static int GetMirrorHandler(LISTPTR(CMirrorHandler) mirrorHandlers, LISTPTREX(CMirrorHandler) handlerList) {
+  UINT offDword;
 
   FATALASSERT(handlerList);
   if (!mirrorHandlers || mirrorHandlers->IsEmpty()) {
@@ -235,7 +217,7 @@ static int GetMirrorHandler(
   return 1;
 }
 
-static unsigned int GetNumDwordBlocks(OBJECT_TYPE objType) {
+static UINT GetNumDwordBlocks(OBJECT_TYPE objType) {
   switch (objType) {
     case HIER_TYPE_OBJECT:
       return 6;
@@ -259,14 +241,14 @@ static unsigned int GetNumDwordBlocks(OBJECT_TYPE objType) {
 }
 
 static void SkipPartialObjectUpdate(CDataStore *msg) {
-  unsigned int  changeMasks[20];
-  unsigned long junk;
-  unsigned char updateMaskBlocks = 0;
+  UINT  changeMasks[20];
+  DWORD junk;
+  BYTE  updateMaskBlocks = 0;
 
   msg->Get(updateMaskBlocks);
   FATALASSERT(updateMaskBlocks <= 20);
 
-  unsigned int block;
+  UINT block;
   for (block = 0; block < updateMaskBlocks; ++block) {
     msg->Get(changeMasks[block]);
   }
@@ -278,7 +260,7 @@ static void SkipPartialObjectUpdate(CDataStore *msg) {
   }
 }
 
-static void PartialUpdateFromFullUpdate(unsigned long eventTime, C_OBJECTHASH *foundObj, CDataStore *msg) {
+static void PartialUpdateFromFullUpdate(DWORD eventTime, C_OBJECTHASH *foundObj, CDataStore *msg) {
   CClientObjCreate createData;
   CGObject_C      *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
   FATALASSERT(object);
@@ -293,14 +275,14 @@ static void PartialUpdateFromFullUpdate(unsigned long eventTime, C_OBJECTHASH *f
 }
 
 static void FillInPartialObjectData(C_OBJECTHASH *foundObj, CDataStore *msg, bool forFullUpdate, bool zeroZeroBits) {
-  unsigned int                      changeMasks[20];
+  UINT changeMasks[20];
   LISTDECLEX(CMirrorHandler, callLink, handlerList);
-  unsigned int                      numBlocks;
-  unsigned long                     block;
-  unsigned int                      blockOffset;
-  unsigned int                      objectTypeId;
-  CGObject_C                       *obj;
-  unsigned char                     updateMaskBlocks = 0;
+  UINT        numBlocks;
+  DWORD       block;
+  UINT        blockOffset;
+  UINT        objectTypeId;
+  CGObject_C *obj;
+  BYTE        updateMaskBlocks = 0;
 
   FATALASSERT(foundObj);
   FATALASSERT(msg);
@@ -332,7 +314,7 @@ static void FillInPartialObjectData(C_OBJECTHASH *foundObj, CDataStore *msg, boo
       }
     }
 
-    unsigned long data = 0;
+    DWORD data = 0;
     if (IsMaskBitSet(changeMasks, block)) {
       msg->Get(data);
     } else if (!zeroZeroBits) {
@@ -342,14 +324,14 @@ static void FillInPartialObjectData(C_OBJECTHASH *foundObj, CDataStore *msg, boo
   }
 }
 
-static void CallMirrorHandlers(CDataStore *msg, bool forFullUpdate, unsigned __int64 guid) {
-  unsigned int                      changeMasks[20];
+static void CallMirrorHandlers(CDataStore *msg, bool forFullUpdate, DWORDLONG guid) {
+  UINT changeMasks[20];
   LISTDECLEX(CMirrorHandler, callLink, handlerList);
-  unsigned long                     junk;
-  unsigned int                      numBlocks;
-  C_OBJECTHASH                     *foundObj;
-  CGObject_C                       *obj;
-  unsigned char                     updateMaskBlocks = 0;
+  DWORD         junk;
+  UINT          numBlocks;
+  C_OBJECTHASH *foundObj;
+  CGObject_C   *obj;
+  BYTE          updateMaskBlocks = 0;
 
   FATALASSERT(msg);
   if (!forFullUpdate) {
@@ -367,14 +349,14 @@ static void CallMirrorHandlers(CDataStore *msg, bool forFullUpdate, unsigned __i
 
   msg->Get(updateMaskBlocks);
   FATALASSERT(updateMaskBlocks <= 20);
-  unsigned int block;
+  UINT block;
   for (block = 0; block < updateMaskBlocks; ++block) {
     msg->Get(changeMasks[block]);
   }
 
   numBlocks = GetNumDwordBlocks(obj->GetType());
-  unsigned int blockOffset = 0;
-  unsigned int objectTypeId = ID_OBJECT;
+  UINT blockOffset = 0;
+  UINT objectTypeId = ID_OBJECT;
   for (block = 0; block < numBlocks; ++block) {
     if (block >= s_objMirrorBlocks[objectTypeId]) {
       blockOffset = s_objMirrorBlocks[objectTypeId];
@@ -396,7 +378,7 @@ static void CallMirrorHandlers(CDataStore *msg, bool forFullUpdate, unsigned __i
   }
 }
 
-static OBJECT_TYPE_ID GetOffsetSectionId(OBJECT_TYPE hierType, unsigned int offset) {
+static OBJECT_TYPE_ID GetOffsetSectionId(OBJECT_TYPE hierType, UINT offset) {
   if (offset < 24) {
     return ID_OBJECT;
   }
@@ -448,8 +430,8 @@ static OBJECT_TYPE_ID GetSectionId(OBJECT_TYPE hierType) {
   }
 }
 
-static void InitObject(unsigned long eventTime, OBJECT_TYPE_ID type, unsigned int memHandle, CClientObjCreate *init) {
-  void *storage = ObjectPtr(memHandle);
+static void InitObject(DWORD eventTime, OBJECT_TYPE_ID type, UINT memHandle, CClientObjCreate *init) {
+  LPVOID storage = ObjectPtr(memHandle);
   FATALASSERT(storage);
 
   CGObject_C *object = static_cast<CGObject_C *>(storage);
@@ -461,25 +443,25 @@ static void InitObject(unsigned long eventTime, OBJECT_TYPE_ID type, unsigned in
 
   switch (type) {
     case ID_ITEM:
-      new (storage) CGItem_C(reinterpret_cast<unsigned long *>(static_cast<CGItem_C *>(storage) + 1), eventTime, init);
+      new (storage) CGItem_C(reinterpret_cast<DWORD *>(static_cast<CGItem_C *>(storage) + 1), eventTime, init);
       break;
     case ID_CONTAINER:
-      new (storage) CGContainer_C(reinterpret_cast<unsigned long *>(static_cast<CGContainer_C *>(storage) + 1), eventTime, init);
+      new (storage) CGContainer_C(reinterpret_cast<DWORD *>(static_cast<CGContainer_C *>(storage) + 1), eventTime, init);
       break;
     case ID_UNIT:
-      new (storage) CGUnit_C(reinterpret_cast<unsigned long *>(static_cast<CGUnit_C *>(storage) + 1), eventTime, init);
+      new (storage) CGUnit_C(reinterpret_cast<DWORD *>(static_cast<CGUnit_C *>(storage) + 1), eventTime, init);
       break;
     case ID_PLAYER:
-      new (storage) CGPlayer_C(reinterpret_cast<unsigned long *>(static_cast<CGPlayer_C *>(storage) + 1), eventTime, init);
+      new (storage) CGPlayer_C(reinterpret_cast<DWORD *>(static_cast<CGPlayer_C *>(storage) + 1), eventTime, init);
       break;
     case ID_GAMEOBJECT:
-      new (storage) CGGameObject_C(reinterpret_cast<unsigned long *>(static_cast<CGGameObject_C *>(storage) + 1), eventTime, init);
+      new (storage) CGGameObject_C(reinterpret_cast<DWORD *>(static_cast<CGGameObject_C *>(storage) + 1), eventTime, init);
       break;
     case ID_DYNAMICOBJECT:
-      new (storage) CGDynamicObject_C(reinterpret_cast<unsigned long *>(static_cast<CGDynamicObject_C *>(storage) + 1), eventTime, init);
+      new (storage) CGDynamicObject_C(reinterpret_cast<DWORD *>(static_cast<CGDynamicObject_C *>(storage) + 1), eventTime, init);
       break;
     case ID_CORPSE:
-      new (storage) CGCorpse_C(reinterpret_cast<unsigned long *>(static_cast<CGCorpse_C *>(storage) + 1), eventTime, init);
+      new (storage) CGCorpse_C(reinterpret_cast<DWORD *>(static_cast<CGCorpse_C *>(storage) + 1), eventTime, init);
       break;
     default:
       FATALASSERT(0);
@@ -492,7 +474,7 @@ void SkipCreateObject(CDataStore *msg) {
   SkipPartialObjectUpdate(msg);
 }
 
-static CGObject_C *GetObjectPtr(unsigned __int64 guid) {
+static CGObject_C *GetObjectPtr(DWORDLONG guid) {
   C_OBJECTHASH *foundObj;
 
   if (!guid) {
@@ -509,9 +491,9 @@ static CGObject_C *GetObjectPtr(unsigned __int64 guid) {
 
 static void PostInitObject(CDataStore *msg) {
   CClientObjCreate init;
-  unsigned __int64 guid;
+  DWORDLONG        guid;
   OBJECT_TYPE_ID   type;
-  unsigned char    btype = 0;
+  BYTE             btype = 0;
 
   msg->Get(guid);
   msg->Get(btype);
@@ -586,7 +568,7 @@ static void CreateMessage(OBJECT_TYPE_ID id) {
   }
 }
 
-static C_OBJECTHASH *GetUpdateObject(unsigned __int64 guid) {
+static C_OBJECTHASH *GetUpdateObject(DWORDLONG guid) {
   C_OBJECTHASH *foundObj = FindActiveObj(guid);
   if (foundObj) {
     return foundObj;
@@ -610,73 +592,61 @@ static C_OBJECTHASH *GetUpdateObject(unsigned __int64 guid) {
   return foundObj;
 }
 
-static void SetupObjectStorage(OBJECT_TYPE_ID type, unsigned int memHandle) {
-  unsigned char *storage = static_cast<unsigned char *>(ObjectPtr(memHandle));
+static void SetupObjectStorage(OBJECT_TYPE_ID type, UINT memHandle) {
+  BYTE *storage = static_cast<BYTE *>(ObjectPtr(memHandle));
 
-  static const unsigned int objectSizes[8] = {
-      sizeof(CGObject_C),
-      sizeof(CGItem_C),
-      sizeof(CGContainer_C),
-      sizeof(CGUnit_C),
-      sizeof(CGPlayer_C),
-      sizeof(CGGameObject_C),
-      sizeof(CGDynamicObject_C),
-      sizeof(CGCorpse_C),
+  static const UINT objectSizes[8] = {
+      sizeof(CGObject_C), sizeof(CGItem_C),       sizeof(CGContainer_C),     sizeof(CGUnit_C),
+      sizeof(CGPlayer_C), sizeof(CGGameObject_C), sizeof(CGDynamicObject_C), sizeof(CGCorpse_C),
   };
-  static const unsigned int totalFields[8] = {
-      CGObject::TotalFields(),
-      CGItem::TotalFields(),
-      CGContainer::TotalFields(),
-      CGUnit::TotalFields(),
-      CGPlayer::TotalFields(),
-      CGGameObject::TotalFields(),
-      CGDynamicObject::TotalFields(),
-      CGCorpse::TotalFields(),
+  static const UINT totalFields[8] = {
+      CGObject::TotalFields(), CGItem::TotalFields(),       CGContainer::TotalFields(),     CGUnit::TotalFields(),
+      CGPlayer::TotalFields(), CGGameObject::TotalFields(), CGDynamicObject::TotalFields(), CGCorpse::TotalFields(),
   };
 
-  unsigned long *data;
+  DWORD *data;
   switch (type) {
     case ID_OBJECT:
-      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_OBJECT]);
-      static_cast<CGObject_C *>(static_cast<void *>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_OBJECT]);
+      static_cast<CGObject_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
       break;
     case ID_ITEM:
-      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_ITEM]);
-      static_cast<CGItem_C *>(static_cast<void *>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_ITEM]);
+      static_cast<CGItem_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
       break;
     case ID_CONTAINER:
-      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_CONTAINER]);
-      static_cast<CGContainer_C *>(static_cast<void *>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_CONTAINER]);
+      static_cast<CGContainer_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
       break;
     case ID_UNIT:
-      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_UNIT]);
-      static_cast<CGUnit_C *>(static_cast<void *>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_UNIT]);
+      static_cast<CGUnit_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
       break;
     case ID_PLAYER:
-      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_PLAYER]);
-      static_cast<CGPlayer_C *>(static_cast<void *>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_PLAYER]);
+      static_cast<CGPlayer_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
       break;
     case ID_GAMEOBJECT:
-      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_GAMEOBJECT]);
-      static_cast<CGGameObject_C *>(static_cast<void *>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_GAMEOBJECT]);
+      static_cast<CGGameObject_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
       break;
     case ID_DYNAMICOBJECT:
-      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_DYNAMICOBJECT]);
-      static_cast<CGDynamicObject_C *>(static_cast<void *>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_DYNAMICOBJECT]);
+      static_cast<CGDynamicObject_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
       break;
     case ID_CORPSE:
-      data = reinterpret_cast<unsigned long *>(storage + objectSizes[ID_CORPSE]);
-      static_cast<CGCorpse_C *>(static_cast<void *>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_CORPSE]);
+      static_cast<CGCorpse_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
       break;
     default:
       FATALASSERT(0);
       return;
   }
-  memset(storage + objectSizes[type], 0, totalFields[type] * sizeof(unsigned long));
+  memset(storage + objectSizes[type], 0, totalFields[type] * sizeof(DWORD));
 }
 
 static C_OBJECTHASH *AllocNewObj() {
-  unsigned int memHandle;
+  UINT memHandle;
 
   if (!ObjectAlloc(s_hashMemBlock, &memHandle)) {
     return 0;
@@ -692,12 +662,12 @@ static C_OBJECTHASH *AllocNewObj() {
   return hash;
 }
 
-static int CreateObject(unsigned long eventTime, CDataStore *msg) {
+static int CreateObject(DWORD eventTime, CDataStore *msg) {
   CClientObjCreate init;
-  unsigned __int64 guid;
-  unsigned int     memHandle;
+  DWORDLONG        guid;
+  UINT             memHandle;
   OBJECT_TYPE_ID   type;
-  unsigned char    btype = 0;
+  BYTE             btype = 0;
 
   FATALASSERT(msg);
   msg->Get(guid);
@@ -778,9 +748,9 @@ static int CreateObject(unsigned long eventTime, CDataStore *msg) {
   return 1;
 }
 
-static int UpdateObjectMovement(unsigned long eventTime, CDataStore *msg) {
+static int UpdateObjectMovement(DWORD eventTime, CDataStore *msg) {
   CClientMoveUpdate update;
-  unsigned __int64  guid;
+  DWORDLONG         guid;
 
   msg->Get(guid);
   s_curMgr->m_legalGuidDeref = guid;
@@ -801,7 +771,7 @@ static int UpdateObjectMovement(unsigned long eventTime, CDataStore *msg) {
 }
 
 static int UpdateObject(CDataStore *msg) {
-  unsigned __int64 guid;
+  DWORDLONG guid;
   msg->Get(guid);
   s_curMgr->m_legalGuidDeref = guid;
   if (guid == ClntObjMgrGetActivePlayer()) {
@@ -819,7 +789,7 @@ static int UpdateObject(CDataStore *msg) {
 
 static void PostMovementUpdate(CDataStore *msg) {
   CClientMoveUpdate update;
-  unsigned __int64  guid;
+  DWORDLONG         guid;
   msg->Get(guid);
   *msg >> update;
   CGObject_C *object = GetObjectPtr(guid);
@@ -828,8 +798,8 @@ static void PostMovementUpdate(CDataStore *msg) {
   }
 }
 
-static void OutOfRangeMessage(unsigned __int64 guid) {
-  static const char *messages[8] = {
+static void OutOfRangeMessage(DWORDLONG guid) {
+  static LPCSTR messages[8] = {
       "Forgetting object", "Forgetting item",        "Forgetting container",      "Forgetting unit",
       "Forgetting player", "Forgetting game object", "Forgetting dynamic object", "Forgetting corpse",
   };
@@ -839,8 +809,8 @@ static void OutOfRangeMessage(unsigned __int64 guid) {
   }
 }
 
-static void InRangeMessage(unsigned __int64 guid) {
-  static const char *messages[8] = {
+static void InRangeMessage(DWORDLONG guid) {
+  static LPCSTR messages[8] = {
       "Remembering object", "Remembering item",        "Remembering container",      "Remembering unit",
       "Remembering player", "Remembering game object", "Remembering dynamic object", "Remembering corpse",
   };
@@ -850,7 +820,7 @@ static void InRangeMessage(unsigned __int64 guid) {
   }
 }
 
-void ClntObjMgrObjectInRange(unsigned __int64 guid) {
+void ClntObjMgrObjectInRange(DWORDLONG guid) {
   C_OBJECTHASH *foundObj = GetUpdateObject(guid);
   if (foundObj) {
     CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
@@ -860,11 +830,11 @@ void ClntObjMgrObjectInRange(unsigned __int64 guid) {
 }
 
 static void UpdateInRangeObjects(CDataStore *msg) {
-  unsigned __int64 guid;
-  unsigned int     count;
+  DWORDLONG guid;
+  UINT      count;
   msg->Get(count);
   FATALASSERT(count);
-  for (unsigned int i = 0; i < count; ++i) {
+  for (UINT i = 0; i < count; ++i) {
     msg->Get(guid);
     if (guid != ClntObjMgrGetActivePlayer()) {
       ClntObjMgrObjectInRange(guid);
@@ -873,11 +843,11 @@ static void UpdateInRangeObjects(CDataStore *msg) {
 }
 
 static void UpdateOutOfRangeObjects(CDataStore *msg) {
-  unsigned __int64 guid;
-  unsigned int     count;
+  DWORDLONG guid;
+  UINT      count;
   msg->Get(count);
   FATALASSERT(count);
-  for (unsigned int i = 0; i < count; ++i) {
+  for (UINT i = 0; i < count; ++i) {
     msg->Get(guid);
     if (guid != ClntObjMgrGetActivePlayer()) {
       ClntObjMgrObjectOutOfRange(guid, 0);
@@ -886,7 +856,7 @@ static void UpdateOutOfRangeObjects(CDataStore *msg) {
 }
 
 static void ClearObjectMirrorHandlers(C_OBJECTHASH *foundObj) {
-  for (unsigned int i = 0; i < 634; ++i) {
+  for (UINT i = 0; i < 634; ++i) {
     while (CMirrorHandler *handler = foundObj->mirrorHandlers[i].Head()) {
       foundObj->mirrorHandlers[i].UnlinkNode(handler);
       DEL(handler);
@@ -894,7 +864,7 @@ static void ClearObjectMirrorHandlers(C_OBJECTHASH *foundObj) {
   }
 }
 
-void ClntObjMgrObjectOutOfRange(unsigned __int64 guid, int shutdown) {
+void ClntObjMgrObjectOutOfRange(DWORDLONG guid, int shutdown) {
   C_OBJECTHASH *foundObj = FindActiveObj(guid);
   if (!foundObj) {
     return;
@@ -915,23 +885,23 @@ void ClntObjMgrObjectOutOfRange(unsigned __int64 guid, int shutdown) {
 }
 
 static void SkipSetOfObjects(CDataStore *msg) {
-  void        *junkData;
-  unsigned int count;
+  LPVOID junkData;
+  UINT   count;
   msg->Get(count);
-  msg->GetDataInSitu(junkData, count * sizeof(unsigned __int64));
+  msg->GetDataInSitu(junkData, count * sizeof(DWORDLONG));
 }
 
-static int ObjectUpdateHandler(void *, NETMESSAGE, unsigned long eventTime, CDataStore *msg) {
-  unsigned __int64 oldActive;
-  unsigned char    marker1 = 0;
-  int              success;
-  unsigned int     numObjUpdates;
-  unsigned char    updateType = 0;
+static int ObjectUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
+  DWORDLONG oldActive;
+  BYTE      marker1 = 0;
+  int       success;
+  UINT      numObjUpdates;
+  BYTE      updateType = 0;
 
   msg->Get(numObjUpdates);
-  unsigned int marker = msg->Tell();
+  UINT marker = msg->Tell();
   msg->Get(marker1);
-  unsigned int firstUpdate = 0;
+  UINT firstUpdate = 0;
   if (marker1 == 3) {
     UpdateOutOfRangeObjects(msg);
     firstUpdate = 1;
@@ -943,7 +913,7 @@ static int ObjectUpdateHandler(void *, NETMESSAGE, unsigned long eventTime, CDat
   s_localPlayerUpdates = 0;
   oldActive = ClntObjMgrGetActivePlayer();
   success = 1;
-  unsigned int i;
+  UINT i;
   for (i = firstUpdate; i < numObjUpdates; ++i) {
     s_curMgr->m_legalGuidDeref = 0;
     msg->Get(updateType);
@@ -1021,23 +991,18 @@ static int ObjectUpdateHandler(void *, NETMESSAGE, unsigned long eventTime, CDat
   return success;
 }
 
-static int ObjectCompressedUpdateHandler(void *, NETMESSAGE, unsigned long eventTime, CDataStore *msg) {
-  WDataStore    realmsg;
-  void         *data;
-  unsigned int  origSize;
-  unsigned long destSize;
+static int ObjectCompressedUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
+  WDataStore realmsg;
+  LPVOID     data;
+  UINT       origSize;
+  DWORD      destSize;
 
   msg->Get(origSize);
-  unsigned int compressedSize = msg->Size() - msg->Tell();
+  UINT compressedSize = msg->Size() - msg->Tell();
   msg->GetDataInSitu(data, compressedSize);
-  void *dest = _alloca(origSize);
+  LPVOID dest = _alloca(origSize);
   destSize = origSize;
-  zlib_uncompress(
-      static_cast<unsigned char *>(dest),
-      &destSize,
-      static_cast<const unsigned char *>(data),
-      compressedSize
-  );
+  zlib_uncompress(static_cast<BYTE *>(dest), &destSize, static_cast<const BYTE *>(data), compressedSize);
   FATALASSERT(destSize == origSize);
   realmsg.PutData(dest, destSize);
   realmsg.Finalize();
@@ -1045,11 +1010,11 @@ static int ObjectCompressedUpdateHandler(void *, NETMESSAGE, unsigned long event
 }
 
 static void AssignMirrorHandler(
-    LISTPTR(CMirrorHandler)                             handlerList,
-    unsigned int                                        offset,
-    unsigned int                                        bytes,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
-    void            *param,
+    LISTPTR(CMirrorHandler) handlerList,
+    UINT offset,
+    UINT bytes,
+    int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID),
+    LPVOID           param,
     HANDLER_PRIORITY priority
 ) {
   CMirrorHandler *mirror = NEW(CMirrorHandler);
@@ -1061,11 +1026,7 @@ static void AssignMirrorHandler(
   mirror->priority = priority;
 }
 
-static void UnassignMirrorHandler(
-    LISTPTR(CMirrorHandler)                             handlerList,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
-    void *param
-) {
+static void UnassignMirrorHandler(LISTPTR(CMirrorHandler) handlerList, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID), LPVOID param) {
   ITERATELISTPTR(CMirrorHandler, handlerList, mirror) {
     if (mirror->handler == handler && mirror->param == param) {
       ITERATE_DELETEANDBREAK
@@ -1073,18 +1034,18 @@ static void UnassignMirrorHandler(
   }
 }
 
-static int OnObjectDestroy(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
-  unsigned __int64 guid;
+static int OnObjectDestroy(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  DWORDLONG guid;
   msg->Get(guid);
   ClntObjMgrFreeObject(guid);
   return 1;
 }
 
-static int CCommand_ObjUsage(const char *command, const char *arguments) {
-  unsigned int numVisible = 0;
-  unsigned int numActive = 0;
-  unsigned int numWaiting = 0;
-  unsigned int numFree = 0;
+static int CCommand_ObjUsage(LPCSTR command, LPCSTR arguments) {
+  UINT numVisible = 0;
+  UINT numActive = 0;
+  UINT numWaiting = 0;
+  UINT numFree = 0;
 
   {
     ITERATELIST(C_OBJECTHASH, s_curMgr->m_visibleObjects, object) {
@@ -1117,7 +1078,7 @@ static int CCommand_ObjUsage(const char *command, const char *arguments) {
   return 1;
 }
 
-ClntObjMgr *ClntObjMgrCreate(PLAYER_TYPE type, void *clientPtr) {
+ClntObjMgr *ClntObjMgrCreate(PLAYER_TYPE type, LPVOID clientPtr) {
   return NEW(ClntObjMgr)(type, clientPtr);
 }
 
@@ -1157,7 +1118,7 @@ int ClntObjMgrIsValid(int forWriting) {
 
 void ClntObjMgrInitializeShared() {
   if (!s_heapsAllocated) {
-    unsigned int objectType;
+    UINT objectType;
 
     for (objectType = 1; objectType < 8; ++objectType) {
       s_objHeapId[objectType - 1] = ObjectAllocAddHeap(s_objTotalSize[objectType], s_heapSizes[objectType], s_objNames[objectType]);
@@ -1172,7 +1133,7 @@ void ClntObjMgrInitializeShared() {
 }
 
 void ClntObjMgrInitialize() {
-  for (unsigned int i = 0; i < 64; ++i) {
+  for (UINT i = 0; i < 64; ++i) {
     C_OBJECTHASH *hash = AllocNewObj();
     ASSERT(hash);
     s_curMgr->m_freeObjects.LinkNode(hash, LIST_TAIL, 0);
@@ -1184,11 +1145,11 @@ void ClntObjMgrInitialize() {
 }
 
 void ClntObjMgrSetObjMirrorHandler(
-    unsigned __int64 guid,
-    unsigned int     offset,
-    unsigned int     bytes,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
-    void            *param,
+    DWORDLONG guid,
+    UINT      offset,
+    UINT      bytes,
+    int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID),
+    LPVOID           param,
     HANDLER_PRIORITY priority
 ) {
   if (s_curMgr->m_callingMirrorHandlers) {
@@ -1215,7 +1176,7 @@ void ClntObjMgrSetObjMirrorHandler(
   }
 }
 
-static int MirrorHandlerRemoveQueued(unsigned __int64 guid, CMirrorHandler *mirror) {
+static int MirrorHandlerRemoveQueued(DWORDLONG guid, CMirrorHandler *mirror) {
   ITERATELIST(OBJHANDLERREQUEST, s_curMgr->m_pendingObjHandlerRequests, request) {
     if (!request->set && request->offset == mirror->offset && request->guid == guid && request->handler == mirror->handler &&
         request->param == mirror->param)
@@ -1243,12 +1204,7 @@ static void ProcessObjHandlersQueue() {
   }
 }
 
-void ClntObjMgrUnsetObjMirrorHandler(
-    unsigned __int64 guid,
-    unsigned int     offset,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
-    void *param
-) {
+void ClntObjMgrUnsetObjMirrorHandler(DWORDLONG guid, UINT offset, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID), LPVOID param) {
   if (s_curMgr->m_callingMirrorHandlers) {
     OBJHANDLERREQUEST *request = NEW(OBJHANDLERREQUEST);
     s_curMgr->m_pendingObjHandlerRequests.LinkNode(request, LIST_TAIL, 0);
@@ -1273,10 +1229,10 @@ void ClntObjMgrUnsetObjMirrorHandler(
 
 void ClntObjMgrSetTypeMirrorHandler(
     OBJECT_TYPE hierType,
-    unsigned int offset,
-    unsigned int bytes,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
-    void *param,
+    UINT        offset,
+    UINT        bytes,
+    int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID),
+    LPVOID           param,
     HANDLER_PRIORITY priority
 ) {
   ActivityBegin(ACTIVITY_OBJMGR);
@@ -1286,11 +1242,7 @@ void ClntObjMgrSetTypeMirrorHandler(
   ActivityEnd(ACTIVITY_OBJMGR);
 }
 
-void ClntObjMgrUnsetTypeMirrorHandler(
-    OBJECT_TYPE hierType,
-    unsigned int offset,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
-) {
+void ClntObjMgrUnsetTypeMirrorHandler(OBJECT_TYPE hierType, UINT offset, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)) {
   ActivityBegin(ACTIVITY_OBJMGR);
   OBJECT_TYPE_ID section = GetSectionId(hierType);
   FATALASSERT(section < NUM_CLIENT_OBJECT_TYPES);
@@ -1298,7 +1250,7 @@ void ClntObjMgrUnsetTypeMirrorHandler(
   ActivityEnd(ACTIVITY_OBJMGR);
 }
 
-void ClntObjMgrHideObject(unsigned __int64 guid) {
+void ClntObjMgrHideObject(DWORDLONG guid) {
   C_OBJECTHASH *foundObj = FindActiveObj(guid);
   if (foundObj) {
     ActivityBegin(ACTIVITY_OBJMGR);
@@ -1309,7 +1261,7 @@ void ClntObjMgrHideObject(unsigned __int64 guid) {
   }
 }
 
-void ClntObjMgrShowObject(unsigned __int64 guid) {
+void ClntObjMgrShowObject(DWORDLONG guid) {
   C_OBJECTHASH *foundObj = FindActiveObj(guid);
   if (foundObj) {
     ActivityBegin(ACTIVITY_OBJMGR);
@@ -1320,7 +1272,7 @@ void ClntObjMgrShowObject(unsigned __int64 guid) {
   }
 }
 
-int ClntObjMgrEnumVisibleObjects(int(*handler)(unsigned __int64, void *), void *param) {
+int ClntObjMgrEnumVisibleObjects(int (*handler)(DWORDLONG, LPVOID), LPVOID param) {
   ActivityBegin(ACTIVITY_OBJMGR);
 
   int success = 1;
@@ -1335,7 +1287,7 @@ int ClntObjMgrEnumVisibleObjects(int(*handler)(unsigned __int64, void *), void *
   return success;
 }
 
-void ClntObjMgrFreeObject(unsigned __int64 guid) {
+void ClntObjMgrFreeObject(DWORDLONG guid) {
   ActivityBegin(ACTIVITY_OBJMGR);
   ClntObjMgrObjectOutOfRange(guid, 1);
 
@@ -1383,7 +1335,7 @@ void ClntObjMgrFreeObject(unsigned __int64 guid) {
   ActivityEnd(ACTIVITY_OBJMGR);
 }
 
-CGObject_C *ClntObjMgrObjectPtr(unsigned __int64 guid, const char *fileName, unsigned int lineNumber) {
+CGObject_C *ClntObjMgrObjectPtr(DWORDLONG guid, LPCSTR fileName, UINT lineNumber) {
   CGObject_C *object;
 
   if (!s_curMgr) {
@@ -1457,8 +1409,8 @@ void ClntObjMgrDestroy() {
     ObjectFree(hash->thisMemHandle);
   }
 
-  for (unsigned int objectType = 0; objectType < 8; ++objectType) {
-    for (unsigned int block = 0; block < 634; ++block) {
+  for (UINT objectType = 0; objectType < 8; ++objectType) {
+    for (UINT block = 0; block < 634; ++block) {
       while (CMirrorHandler *handler = s_mirrorHandlers[objectType][block].Head()) {
         s_mirrorHandlers[objectType][block].UnlinkNode(handler);
         DEL(handler);
@@ -1471,7 +1423,7 @@ void ClntObjMgrDestroy() {
   s_curMgr->m_net->ClearMessageHandler(SMSG_DESTROY_OBJECT);
 }
 
-unsigned __int64 ClntObjMgrGetActivePlayer() {
+DWORDLONG ClntObjMgrGetActivePlayer() {
   if (!s_curMgr) {
     return 0;
   }
@@ -1479,7 +1431,7 @@ unsigned __int64 ClntObjMgrGetActivePlayer() {
   return s_curMgr->m_activePlayer;
 }
 
-void ClntObjMgrSetActivePlayer(unsigned __int64 guid) {
+void ClntObjMgrSetActivePlayer(DWORDLONG guid) {
   if (s_curMgr) {
     s_curMgr->m_activePlayer = guid;
   }
@@ -1489,11 +1441,11 @@ PLAYER_TYPE ClntObjMgrGetPlayerType() {
   return s_curMgr->m_type;
 }
 
-unsigned int ClntObjMgrGetMapID() {
+UINT ClntObjMgrGetMapID() {
   return s_curMgr->m_mapID;
 }
 
-void ClntObjMgrSetMapID(unsigned int mapID) {
+void ClntObjMgrSetMapID(UINT mapID) {
   s_curMgr->m_mapID = mapID;
 }
 
@@ -1510,7 +1462,7 @@ ClientConnection *ClntObjMgrGetNet() {
   return s_curMgr->m_net;
 }
 
-void *ClntObjMgrGetMovementGlobals() {
+LPVOID ClntObjMgrGetMovementGlobals() {
   if (!s_curMgr) {
     return 0;
   }
@@ -1518,13 +1470,13 @@ void *ClntObjMgrGetMovementGlobals() {
   return s_curMgr->m_movement;
 }
 
-void ClntObjMgrSetMovementGlobals(void *ptr) {
+void ClntObjMgrSetMovementGlobals(LPVOID ptr) {
   if (s_curMgr) {
     s_curMgr->m_movement = ptr;
   }
 }
 
-void *ClntObjMgrGetClientPtr() {
+LPVOID ClntObjMgrGetClientPtr() {
   if (!s_curMgr) {
     return 0;
   }

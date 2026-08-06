@@ -3,7 +3,7 @@
 static DWORD s_alloccount;
 static DWORD s_freecount;
 
-void StormOptCdThread(DWORD *threadId, void **hThread);
+void StormOptCdThread(DWORD *threadId, LPVOID *hThread);
 
 STORMOPTIONS g_opt;
 
@@ -15,7 +15,7 @@ void IncrementFreeCount() {
   ++s_freecount;
 }
 
-extern "C" BOOL APIENTRY StormGetOption(int optname, void *optval, LPDWORD optlen) {
+extern "C" BOOL APIENTRY StormGetOption(int optname, LPVOID optval, LPDWORD optlen) {
   FATALASSERT(optval);
   FATALASSERT(optlen);
   SErrSetLastError(ERROR_INVALID_PARAMETER);
@@ -70,8 +70,8 @@ extern "C" BOOL APIENTRY StormGetOption(int optname, void *optval, LPDWORD optle
         return FALSE;
       }
       {
-        DWORD threadId;
-        void *hThread;
+        DWORD  threadId;
+        LPVOID hThread;
 
         StormOptCdThread(&threadId, &hThread);
         ((DWORD *)optval)[0] = threadId;
@@ -101,7 +101,7 @@ extern "C" BOOL APIENTRY StormGetOption(int optname, void *optval, LPDWORD optle
   return TRUE;
 }
 
-extern "C" BOOL APIENTRY StormSetOption(int optname, void *optval, DWORD optlen) {
+extern "C" BOOL APIENTRY StormSetOption(int optname, LPVOID optval, DWORD optlen) {
   FATALASSERT(optval);
   SErrSetLastError(ERROR_INVALID_PARAMETER);
   switch (optname) {

@@ -185,11 +185,11 @@ static ObjDataDescriptor *const s_descriptors[8] = {
     s_playerDescriptors, s_gameObjectDescriptors, s_dynamicObjectDescriptors, s_corpseDescriptors,
 };
 
-static void CopyAndExpandDescriptors(ObjDataDescriptor *dest, ObjDataDescriptor *source, unsigned int num, unsigned int destArraySize) {
-  unsigned int d = 0;
+static void CopyAndExpandDescriptors(ObjDataDescriptor *dest, ObjDataDescriptor *source, UINT num, UINT destArraySize) {
+  UINT d = 0;
 
   while (num--) {
-    unsigned int fieldSize = source->fieldSize;
+    UINT fieldSize = source->fieldSize;
 
     while (fieldSize--) {
       dest[d++] = *source;
@@ -225,7 +225,7 @@ void MirrorInitialize() {
   CopyAndExpandDescriptors(s_corpseDescriptors + 6, s_corpseBaseDescriptors, 11, 30);
 }
 
-const ObjDataDescriptor* MirrorGetObjDataDescriptor(OBJECT_TYPE type, unsigned int blockID) {
+const ObjDataDescriptor *MirrorGetObjDataDescriptor(OBJECT_TYPE type, UINT blockID) {
   switch (type) {
     case HIER_TYPE_OBJECT:
       ASSERT(blockID < sizeof(s_objDescriptors) / sizeof(s_objDescriptors[0]));

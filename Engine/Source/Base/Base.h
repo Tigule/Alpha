@@ -6,9 +6,6 @@ const float PI = 3.14159265358979323846f;
 const float TWO_PI = PI + PI;
 const float OO_TWO_PI = 1.0f / TWO_PI;
 
-typedef unsigned int   uint;
-typedef unsigned short uint16;
-
 DECLARE_STRICT_HANDLE(HPROPCONTEXT);
 
 enum PROPERTY {
@@ -34,19 +31,19 @@ enum PROPERTY {
   PROPERTIES = 0x13
 };
 
-void PropInitialize();
-void PropDestroy();
+void         PropInitialize();
+void         PropDestroy();
 HPROPCONTEXT PropCreateContext();
-void PropSelectContext(HPROPCONTEXT context);
+void         PropSelectContext(HPROPCONTEXT context);
 HPROPCONTEXT PropGetSelectedContext();
-void PropDeleteContext(HPROPCONTEXT context);
-void *PropGet(PROPERTY id);
-void PropSet(PROPERTY id, void *value);
+void         PropDeleteContext(HPROPCONTEXT context);
+LPVOID       PropGet(PROPERTY id);
+void         PropSet(PROPERTY id, LPVOID value);
 
-DWORD OsTlsAlloc();
-void OsTlsFree(DWORD index);
-void *OsTlsGetValue(DWORD index);
-BOOL OsTlsSetValue(DWORD index, void *value);
+DWORD  OsTlsAlloc();
+void   OsTlsFree(DWORD index);
+LPVOID OsTlsGetValue(DWORD index);
+BOOL   OsTlsSetValue(DWORD index, LPVOID value);
 
 void BaseInitializeGlobal();
 void BaseDestroyGlobal();

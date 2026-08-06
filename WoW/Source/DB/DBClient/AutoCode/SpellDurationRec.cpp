@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellDurationRec::GetFilename() {
+LPCSTR SpellDurationRec::GetFilename() {
   return "DBFilesClient\\SpellDuration.dbc";
 }
 
@@ -19,7 +19,7 @@ SpellDurationRec::SpellDurationRec() {
 SpellDurationRec::~SpellDurationRec() {
 }
 
-bool SpellDurationRec::Read(SFile *f, const char *stringBuffer) {
+bool SpellDurationRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

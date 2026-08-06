@@ -14,20 +14,20 @@
 
 #include <storm.h>
 
-static int EnvironmentHandler(const char *command, const char *arguments);
-static int EnvironmentListHandler(const char *command, const char *arguments);
+static int   EnvironmentHandler(LPCSTR command, LPCSTR arguments);
+static int   EnvironmentListHandler(LPCSTR command, LPCSTR arguments);
 static float InterpFloat(float progress, float start, float end);
-static int InterpInt(float progress, int start, int end);
-static void StopWorldIdleHandler();
-static int WorldIdleHandler(const void *dataPtr, void *param);
-static void StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &rec, unsigned int duration);
-static void StartWorldIdleHandler();
-static void StopProviderPrefFade();
-static void SaveDesc(_FSOUND_REVERB_PROPERTIES &desc, const SoundProviderPreferencesRec *rec);
+static int   InterpInt(float progress, int start, int end);
+static void  StopWorldIdleHandler();
+static int   WorldIdleHandler(LPCVOID dataPtr, LPVOID param);
+static void  StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &rec, UINT duration);
+static void  StartWorldIdleHandler();
+static void  StopProviderPrefFade();
+static void  SaveDesc(_FSOUND_REVERB_PROPERTIES &desc, const SoundProviderPreferencesRec *rec);
 
-static unsigned int              s_providerPrefFadeStartTime;
-static unsigned int              s_providerPrefFadeEndTime;
-static unsigned int              s_providerPrefFadeDuration;
+static UINT                      s_providerPrefFadeStartTime;
+static UINT                      s_providerPrefFadeEndTime;
+static UINT                      s_providerPrefFadeDuration;
 static _FSOUND_REVERB_PROPERTIES s_startProviderDesc;
 static _FSOUND_REVERB_PROPERTIES s_currentProviderDesc;
 static _FSOUND_REVERB_PROPERTIES s_targetProviderDesc;
@@ -85,7 +85,7 @@ void SndInterfaceFadeProviderPrefs(const EVENT_DATA_IDLE *data) {
   Sound::SetReverbProperties(&s_currentProviderDesc);
 }
 
-static int WorldIdleHandler(const void *dataPtr, void *param) {
+static int WorldIdleHandler(LPCVOID dataPtr, LPVOID param) {
   SndInterfaceFadeProviderPrefs(static_cast<const EVENT_DATA_IDLE *>(dataPtr));
   return 1;
 }
@@ -100,8 +100,8 @@ static void StopWorldIdleHandler() {
   s_idleRunning = false;
 }
 
-static void StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &rec, unsigned int duration) {
-  unsigned int startTime = OsGetAsyncTimeMs();
+static void StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &rec, UINT duration) {
+  UINT startTime = OsGetAsyncTimeMs();
 
   s_providerPrefFadeDuration = duration;
   s_providerPrefFadeStartTime = startTime;
@@ -149,7 +149,7 @@ static void SaveDesc(_FSOUND_REVERB_PROPERTIES &desc, const SoundProviderPrefere
   desc.ReverbPan[2] = 0.0f;
 }
 
-void SndInterfaceSetProviderPrefs(unsigned int index, unsigned int indexUnderwater, unsigned int transitionDuration) {
+void SndInterfaceSetProviderPrefs(UINT index, UINT indexUnderwater, UINT transitionDuration) {
   const SoundProviderPreferencesRec *rec;
   const SoundProviderPreferencesRec *recUnderwater;
 
@@ -224,9 +224,9 @@ void SndSetRoomType(SNDROOMTYPE roomType) {
   }
 }
 
-static int EnvironmentHandler(const char *command, const char *arguments) {
+static int EnvironmentHandler(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
-    unsigned int index = SStrToUnsigned(arguments);
+    UINT index = SStrToUnsigned(arguments);
 
     SndInterfaceSetProviderPrefs(index, index, 0);
   }
@@ -234,7 +234,7 @@ static int EnvironmentHandler(const char *command, const char *arguments) {
   return 1;
 }
 
-static int EnvironmentListHandler(const char *command, const char *arguments) {
+static int EnvironmentListHandler(LPCSTR command, LPCSTR arguments) {
   int i = g_soundProviderPreferencesDB.GetNumRecords();
 
   while (i) {

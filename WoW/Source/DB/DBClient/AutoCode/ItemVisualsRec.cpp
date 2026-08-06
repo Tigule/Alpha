@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ItemVisualsRec::GetFilename() {
+LPCSTR ItemVisualsRec::GetFilename() {
   return "DBFilesClient\\ItemVisuals.dbc";
 }
 
@@ -19,7 +19,7 @@ ItemVisualsRec::ItemVisualsRec() {
 ItemVisualsRec::~ItemVisualsRec() {
 }
 
-bool ItemVisualsRec::Read(SFile *f, const char *stringBuffer) {
+bool ItemVisualsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

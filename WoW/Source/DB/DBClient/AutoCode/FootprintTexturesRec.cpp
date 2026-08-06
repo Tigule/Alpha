@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *FootprintTexturesRec::GetFilename() {
+LPCSTR FootprintTexturesRec::GetFilename() {
   return "DBFilesClient\\FootprintTextures.dbc";
 }
 
@@ -19,9 +19,9 @@ FootprintTexturesRec::FootprintTexturesRec() {
 FootprintTexturesRec::~FootprintTexturesRec() {
 }
 
-bool FootprintTexturesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempFootstepFilenameIndices[1];
+bool FootprintTexturesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempFootstepFilenameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempFootstepFilenameIndices[0], sizeof(tempFootstepFilenameIndices[0]), 0, 0, 0) && result;

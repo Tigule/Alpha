@@ -7,13 +7,13 @@ class CharBaseInfoRec {
   CharBaseInfoRec();
   ~CharBaseInfoRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 3;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 6;
   }
 
@@ -29,12 +29,12 @@ class CharBaseInfoRec {
     m_generatedID = id;
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  unsigned char m_raceID;
-  unsigned char m_classID;
-  int           m_proficiency;
-  int           m_generatedID;
+  BYTE m_raceID;
+  BYTE m_classID;
+  int  m_proficiency;
+  int  m_generatedID;
 };
 
 extern WowClientDB<CharBaseInfoRec> g_charBaseInfoDB;

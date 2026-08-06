@@ -30,7 +30,7 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
     return GetRefCount() > 1;
   }
 
-  void LoadData(const char *fileName) {
+  void LoadData(LPCSTR fileName) {
     char    altFileName[0x104];
     CStatus status;
 
@@ -44,33 +44,33 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
   }
 
   LINKDECLEX(CACHEENTRY, m_cacheLink);
-  HTEXTURE           m_texture;
-  TEXTUREINFO        m_textureInfo;
-  unsigned int       m_size;
-  unsigned int       m_expireTime;
-  int                m_uncached;
-  HMIPPEDTEXTURE     m_selfReference;
+  HTEXTURE       m_texture;
+  TEXTUREINFO    m_textureInfo;
+  UINT           m_size;
+  UINT           m_expireTime;
+  int            m_uncached;
+  HMIPPEDTEXTURE m_selfReference;
 };
 
 class CACHEOBJECT : public CHandleObject {
-  friend HTEXTURECACHE TextureCacheCreateSizeCache(unsigned int cacheSize);
-  friend HTEXTURECACHE TextureCacheCreateInstanceCache(unsigned int instances);
-  friend HTEXTURECACHE TextureCacheCreatTimeCache(unsigned int milliSeconds);
+  friend HTEXTURECACHE TextureCacheCreateSizeCache(UINT cacheSize);
+  friend HTEXTURECACHE TextureCacheCreateInstanceCache(UINT instances);
+  friend HTEXTURECACHE TextureCacheCreatTimeCache(UINT milliSeconds);
 
  public:
   CACHEOBJECT();
   virtual ~CACHEOBJECT();
   void           PurgeTextureCache();
-  HMIPPEDTEXTURE GetTexture(const char *fileName, TEXTUREINFO *info);
+  HMIPPEDTEXTURE GetTexture(LPCSTR fileName, TEXTUREINFO *info);
 
  protected:
   LISTDECLEX(CACHEENTRY, m_cacheLink, m_LRUList);
   TSHashTable<CACHEENTRY, HASHKEY_STRI> m_cacheTable;
-  unsigned int                          m_cacheSize;
-  unsigned int                          m_currentCacheSize;
+  UINT                                  m_cacheSize;
+  UINT                                  m_currentCacheSize;
   CACHEMODE                             m_cacheMode;
-  unsigned int                          m_cacheEntries;
-  unsigned int                          m_cacheTime;
+  UINT                                  m_cacheEntries;
+  UINT                                  m_cacheTime;
 };
 
 void CACHEOBJECT::PurgeTextureCache() {
@@ -94,7 +94,7 @@ void CACHEOBJECT::PurgeTextureCache() {
       break;
 
     case CACHEMODE_ENTRIES: {
-      unsigned int entriesFound = 0;
+      UINT entriesFound = 0;
 
       curr = m_LRUList.Head();
       while (curr && m_currentCacheSize > m_cacheSize) {
@@ -116,7 +116,7 @@ void CACHEOBJECT::PurgeTextureCache() {
     }
 
     case CACHEMODE_TIME: {
-      unsigned int currentTime;
+      UINT currentTime;
 
       curr = m_LRUList.Head();
       currentTime = OsGetAsyncTimeMs();
@@ -157,7 +157,7 @@ CACHEOBJECT::~CACHEOBJECT() {
   }
 }
 
-HMIPPEDTEXTURE CACHEOBJECT::GetTexture(const char *fileName, TEXTUREINFO *info) {
+HMIPPEDTEXTURE CACHEOBJECT::GetTexture(LPCSTR fileName, TEXTUREINFO *info) {
   CACHEENTRY *object;
 
   ASSERT(fileName);
@@ -190,8 +190,8 @@ HMIPPEDTEXTURE CACHEOBJECT::GetTexture(const char *fileName, TEXTUREINFO *info) 
   return reinterpret_cast<HMIPPEDTEXTURE>(HandleDuplicate(object->m_selfReference));
 }
 
-HTEXTURECACHE TextureCacheCreateSizeCache(unsigned int cacheSize) {
-  void        *storage;
+HTEXTURECACHE TextureCacheCreateSizeCache(UINT cacheSize) {
+  LPVOID       storage;
   CACHEOBJECT *cacheObject;
 
   if (!cacheSize) {
@@ -209,8 +209,8 @@ HTEXTURECACHE TextureCacheCreateSizeCache(unsigned int cacheSize) {
   return reinterpret_cast<HTEXTURECACHE>(HandleCreate(cacheObject, "HTEXTURECACHE"));
 }
 
-HTEXTURECACHE TextureCacheCreateInstanceCache(unsigned int instances) {
-  void        *storage;
+HTEXTURECACHE TextureCacheCreateInstanceCache(UINT instances) {
+  LPVOID       storage;
   CACHEOBJECT *cacheObject;
 
   if (!instances) {
@@ -228,8 +228,8 @@ HTEXTURECACHE TextureCacheCreateInstanceCache(unsigned int instances) {
   return reinterpret_cast<HTEXTURECACHE>(HandleCreate(cacheObject, "HTEXTURECACHE"));
 }
 
-HTEXTURECACHE TextureCacheCreatTimeCache(unsigned int milliSeconds) {
-  void        *storage;
+HTEXTURECACHE TextureCacheCreatTimeCache(UINT milliSeconds) {
+  LPVOID       storage;
   CACHEOBJECT *cacheObject;
 
   if (!milliSeconds) {
@@ -247,7 +247,7 @@ HTEXTURECACHE TextureCacheCreatTimeCache(unsigned int milliSeconds) {
   return reinterpret_cast<HTEXTURECACHE>(HandleCreate(cacheObject, "HTEXTURECACHE"));
 }
 
-HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, const char *fileName, TEXTUREINFO *info) {
+HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, LPCSTR fileName, TEXTUREINFO *info) {
   CACHEOBJECT *cacheObject = reinterpret_cast<CACHEOBJECT *>(cache);
 
   FATALASSERT(cache);
@@ -293,7 +293,7 @@ int TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, int bForce) {
   return 1;
 }
 
-HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, unsigned int width, unsigned int height, TEXTUREINFO *textureInfo) {
+HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, UINT width, UINT height, TEXTUREINFO *textureInfo) {
   CACHEENTRY *newObj;
 
   ASSERT(!(width & (width - 1)));

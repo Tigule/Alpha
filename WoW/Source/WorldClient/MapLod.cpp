@@ -4,7 +4,7 @@
 
 #include "WorldClient/World.h"
 
-extern unsigned int g_holeMask[4][4];
+extern UINT g_holeMask[4][4];
 
 static const int childOffsX[3][4] = {
     {-2, 2, 2, -2},
@@ -36,7 +36,7 @@ void CMapChunk::LodCreateTree(int level, int maxLevel, int neighborLOD, int hole
   lod[3] = maxLevel | (maxLevel << 8) | (neighborLOD & 0xFFFF0000);
 
   if (holes && level == 1) {
-    for (unsigned int i = 0; i < 4; ++i) {
+    for (UINT i = 0; i < 4; ++i) {
       int x = cX + childOffsX[1][i];
       int y = cY + childOffsY[1][i];
       if (!(holes & g_holeMask[(y - 1) >> 1][(x - 1) >> 1])) {
@@ -47,61 +47,61 @@ void CMapChunk::LodCreateTree(int level, int maxLevel, int neighborLOD, int hole
   }
 
   if (level < maxLevel) {
-    for (unsigned int i = 0; i < 4; ++i) {
+    for (UINT i = 0; i < 4; ++i) {
       LodCreateTree(level + 1, maxLevel, lod[i], holes, cX + childOffsX[level][i], cY + childOffsY[level][i]);
     }
     return;
   }
 
-  unsigned short width = static_cast<unsigned short>(vertOffs[level][0]);
-  unsigned short height = static_cast<unsigned short>(vertOffs[level][1]);
-  unsigned short center;
-  unsigned short corner;
+  WORD width = static_cast<WORD>(vertOffs[level][0]);
+  WORD height = static_cast<WORD>(vertOffs[level][1]);
+  WORD center;
+  WORD corner;
   if (level == 3) {
-    corner = static_cast<unsigned short>(cX + 17 * cY);
-    center = static_cast<unsigned short>(corner + 9);
+    corner = static_cast<WORD>(cX + 17 * cY);
+    center = static_cast<WORD>(corner + 9);
   } else {
-    center = static_cast<unsigned short>(cX + 17 * cY);
-    corner = static_cast<unsigned short>(center - (width >> 1) - (height >> 1));
+    center = static_cast<WORD>(cX + 17 * cY);
+    corner = static_cast<WORD>(center - (width >> 1) - (height >> 1));
   }
 
   *primPtr++ = center;
   *primPtr++ = corner;
-  if (static_cast<unsigned char>(neighborLOD >> 24) > level) {
-    *primPtr++ = static_cast<unsigned short>(corner + (width >> 1));
+  if (static_cast<BYTE>(neighborLOD >> 24) > level) {
+    *primPtr++ = static_cast<WORD>(corner + (width >> 1));
     *primPtr++ = center;
-    *primPtr++ = static_cast<unsigned short>(corner + (width >> 1));
+    *primPtr++ = static_cast<WORD>(corner + (width >> 1));
   }
 
-  *primPtr++ = static_cast<unsigned short>(corner + width);
+  *primPtr++ = static_cast<WORD>(corner + width);
   *primPtr++ = center;
-  if (static_cast<unsigned char>(neighborLOD >> 16) > level) {
-    *primPtr++ = static_cast<unsigned short>(corner + width);
-    *primPtr++ = static_cast<unsigned short>(corner + width + (height >> 1));
+  if (static_cast<BYTE>(neighborLOD >> 16) > level) {
+    *primPtr++ = static_cast<WORD>(corner + width);
+    *primPtr++ = static_cast<WORD>(corner + width + (height >> 1));
     *primPtr++ = center;
-    *primPtr++ = static_cast<unsigned short>(corner + width + (height >> 1));
+    *primPtr++ = static_cast<WORD>(corner + width + (height >> 1));
   } else {
-    *primPtr++ = static_cast<unsigned short>(corner + width);
+    *primPtr++ = static_cast<WORD>(corner + width);
   }
 
-  *primPtr++ = static_cast<unsigned short>(corner + width + height);
+  *primPtr++ = static_cast<WORD>(corner + width + height);
   *primPtr++ = center;
-  if (static_cast<unsigned char>(neighborLOD >> 8) > level) {
-    *primPtr++ = static_cast<unsigned short>(corner + width + height);
-    *primPtr++ = static_cast<unsigned short>(corner + height + (width >> 1));
+  if (static_cast<BYTE>(neighborLOD >> 8) > level) {
+    *primPtr++ = static_cast<WORD>(corner + width + height);
+    *primPtr++ = static_cast<WORD>(corner + height + (width >> 1));
     *primPtr++ = center;
-    *primPtr++ = static_cast<unsigned short>(corner + height + (width >> 1));
+    *primPtr++ = static_cast<WORD>(corner + height + (width >> 1));
   } else {
-    *primPtr++ = static_cast<unsigned short>(corner + width + height);
+    *primPtr++ = static_cast<WORD>(corner + width + height);
   }
 
-  *primPtr++ = static_cast<unsigned short>(corner + height);
+  *primPtr++ = static_cast<WORD>(corner + height);
   *primPtr++ = center;
-  *primPtr++ = static_cast<unsigned short>(corner + height);
-  if (static_cast<unsigned char>(neighborLOD) > level) {
-    *primPtr++ = static_cast<unsigned short>(corner + (height >> 1));
+  *primPtr++ = static_cast<WORD>(corner + height);
+  if (static_cast<BYTE>(neighborLOD) > level) {
+    *primPtr++ = static_cast<WORD>(corner + (height >> 1));
     *primPtr++ = center;
-    *primPtr++ = static_cast<unsigned short>(corner + (height >> 1));
+    *primPtr++ = static_cast<WORD>(corner + (height >> 1));
   }
   *primPtr++ = corner;
 }

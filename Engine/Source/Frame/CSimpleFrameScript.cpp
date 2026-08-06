@@ -27,7 +27,7 @@ int CSimpleFrame_GetParent(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   CSimpleFrame *parent = object->m_parent;
-  const char   *name;
+  LPCSTR        name;
 
   if (parent && (name = parent->GetName()) != 0 && *name) {
     lua_getglobal(L, name);
@@ -41,7 +41,7 @@ int CSimpleFrame_GetParent(lua_State *L) {
 int CSimpleFrame_GetName(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  const char *name = object->GetName();
+  LPCSTR name = object->GetName();
   if (name && *name) {
     lua_pushstring(L, name);
   } else {
@@ -103,7 +103,7 @@ int CSimpleFrame_SetAlpha(lua_State *L) {
     luaL_error(L, "Alpha must be in the range of 0.0 to 1.0");
   }
 
-  object->SetAlpha(static_cast<unsigned char>(alpha * 255.0));
+  object->SetAlpha(static_cast<BYTE>(alpha * 255.0));
   return 0;
 }
 
@@ -135,7 +135,7 @@ int CSimpleFrame_GetID(lua_State *L) {
 int CSimpleFrame_EnableDrawLayer(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  unsigned int layer = 2;
+  UINT layer = 2;
   if (lua_isstring(L, 2)) {
     StringToDrawLayer(lua_tostring(L, 2), layer);
   }
@@ -147,7 +147,7 @@ int CSimpleFrame_EnableDrawLayer(lua_State *L) {
 int CSimpleFrame_DisableDrawLayer(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  unsigned int layer = 2;
+  UINT layer = 2;
   if (lua_isstring(L, 2)) {
     StringToDrawLayer(lua_tostring(L, 2), layer);
   }
@@ -291,7 +291,7 @@ int CSimpleFrame_SetPoint(lua_State *L) {
 
   relativePoint = point;
 
-  const char *relativeName = lua_tostring(L, 3);
+  LPCSTR relativeName = lua_tostring(L, 3);
   relativeFrame = object->GetLayoutFrameByName(relativeName);
   if (!relativeFrame) {
     char message[128];
@@ -329,7 +329,7 @@ int CSimpleFrame_SetAllPoints(lua_State *L) {
     luaL_error(L, "Usage: SetAllPoints(\"frame\")");
   }
 
-  const char   *relativeName = lua_tostring(L, 2);
+  LPCSTR        relativeName = lua_tostring(L, 2);
   CLayoutFrame *relativeFrame = object->GetLayoutFrameByName(relativeName);
 
   if (!relativeFrame) {
@@ -354,11 +354,11 @@ int CSimpleFrame_RegisterForDrag(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
   CSimpleFrame *frame = object;
-  unsigned int  buttons = 0;
+  UINT          buttons = 0;
   int           index = 2;
 
   while (lua_isstring(L, index)) {
-    const char *button = lua_tostring(L, index);
+    LPCSTR button = lua_tostring(L, index);
 
     if (button && *button) {
       if (!SStrCmpI(button, "LeftButton", 0x7FFFFFFF)) {
@@ -392,7 +392,7 @@ int CSimpleFrame_EnableMouse(lua_State *L) {
   }
 
   if (enable) {
-    object->EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<unsigned int>(-1));
+    object->EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
   } else {
     object->DisableEvent(SIMPLE_EVENT_MOUSE);
   }
@@ -415,8 +415,8 @@ int CSimpleFrame_EnableKeyboard(lua_State *L) {
   }
 
   if (enable) {
-    object->EnableEvent(SIMPLE_EVENT_KEY, static_cast<unsigned int>(-1));
-    object->EnableEvent(SIMPLE_EVENT_CHAR, static_cast<unsigned int>(-1));
+    object->EnableEvent(SIMPLE_EVENT_KEY, static_cast<UINT>(-1));
+    object->EnableEvent(SIMPLE_EVENT_CHAR, static_cast<UINT>(-1));
   } else {
     object->DisableEvent(SIMPLE_EVENT_KEY);
     object->DisableEvent(SIMPLE_EVENT_CHAR);
@@ -513,6 +513,6 @@ void CSimpleFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleFrame::LookupScriptMethod(lua_State *L, const char *name) {
+int CSimpleFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   return FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods);
 }

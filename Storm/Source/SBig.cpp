@@ -13,14 +13,14 @@ class BigBuffer {
 
  public:
   BigBuffer();
-  UINT      &operator[](UINT index);
-  UINT       operator[](UINT index) const;
-  void       Clear();
-  UINT       Count() const;
-  int        IsUsed(UINT index) const;
-  void       SetCount(UINT count);
-  void       SetOffset(UINT offset);
-  void       Trim() const;
+  UINT &operator[](UINT index);
+  UINT  operator[](UINT index) const;
+  void  Clear();
+  UINT  Count() const;
+  int   IsUsed(UINT index) const;
+  void  SetCount(UINT count);
+  void  SetOffset(UINT offset);
+  void  Trim() const;
 };
 
 class BigStack {
@@ -55,19 +55,19 @@ class BigData {
   SBigOutputArray &Output() const;
 };
 
-static const unsigned int SMALL_PRIMES[171] = {3,   5,   7,   11,  13,  17,  19,  23,  29,  31,  37,  41,  43,  47,  53,  59,   61,   67,   71,
-                                        73,  79,  83,  89,  97,  101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151,  157,  163,  167,
-                                        173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257,  263,  269,  271,
-                                        277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373,  379,  383,  389,
-                                        397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487,  491,  499,  503,
-                                        509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613,  617,  619,  631,
-                                        641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739,  743,  751,  757,
-                                        761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863,  877,  881,  883,
-                                        887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997, 1009, 1013, 1019, 1021};
+static const UINT SMALL_PRIMES[171] = {3,   5,   7,   11,  13,  17,  19,  23,  29,  31,  37,  41,  43,  47,  53,  59,   61,   67,   71,
+                                       73,  79,  83,  89,  97,  101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151,  157,  163,  167,
+                                       173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257,  263,  269,  271,
+                                       277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373,  379,  383,  389,
+                                       397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487,  491,  499,  503,
+                                       509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613,  617,  619,  631,
+                                       641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739,  743,  751,  757,
+                                       761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863,  877,  881,  883,
+                                       887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997, 1009, 1013, 1019, 1021};
 
-static const unsigned int FERMAT_WITNESS[1] = {2};
-static const BYTE  initSeed[8] = {0xB5, 0x3B, 0x12, 0x1F, 0xE5, 0x55, 0x9A, 0x15};
-static const BYTE  initMul[8] = {0x50, 0x46, 0x00, 0x00, 0x69, 0x90, 0x00, 0x00};
+static const UINT FERMAT_WITNESS[1] = {2};
+static const BYTE initSeed[8] = {0xB5, 0x3B, 0x12, 0x1F, 0xE5, 0x55, 0x9A, 0x15};
+static const BYTE initMul[8] = {0x50, 0x46, 0x00, 0x00, 0x69, 0x90, 0x00, 0x00};
 
 void TSSwap(BYTE &a, BYTE &b) {
   BYTE temp = a;
@@ -75,56 +75,56 @@ void TSSwap(BYTE &a, BYTE &b) {
   b = temp;
 }
 
-static UINT ExtractLowPart(unsigned __int64 *b);
-static UINT ExtractLowPartLargeSum(unsigned __int64 *carry, unsigned __int64 add);
-static UINT ExtractLowPartSx(unsigned __int64 *b);
-static void InsertLowPart(unsigned __int64 *b, UINT c);
-static unsigned __int64 MakeLarge(UINT low, UINT high);
-static void Add(BigBuffer &a, const BigBuffer &b, UINT c);
-static void Add(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static void And(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static int Compare(const BigBuffer &a, UINT b);
-static int Compare(const BigBuffer &a, const BigBuffer &b);
-static void Div(BigBuffer &a, UINT *b, const BigBuffer &c, unsigned __int64 d);
-static void Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
-static void FindPrime(BigBuffer &a, UINT b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
-static void Gcd(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
-static UINT HighBitPos(const BigBuffer &a);
-static void InvMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
-static int IsEven(const BigBuffer &a);
-static int IsOdd(const BigBuffer &a);
-static int IsOne(const BigBuffer &a);
-static int IsPrime(const BigBuffer &a, BigStack &stack);
-static int IsZero(const BigBuffer &a);
-static UINT LowBitPos(const BigBuffer &a);
-static void Mul(BigBuffer &a, const BigBuffer &b, unsigned __int64 c);
-static void Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
-static void MulMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
-static void Not(BigBuffer &a, const BigBuffer &b);
-static void Or(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static void Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &stack);
-static void PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
-static void Rand(BigBuffer &a, const BigBuffer &b, BigBuffer &seed, BigStack &stack);
-static void Set2Exp(BigBuffer &a, UINT b);
-static void SetOne(BigBuffer &a);
-static void SetZero(BigBuffer &a);
-static void Shl(BigBuffer &a, const BigBuffer &b, UINT c);
-static void Shr(BigBuffer &a, const BigBuffer &b, UINT c);
-static void Square(BigBuffer &a, const BigBuffer &b, BigStack &stack);
-static void Sub(BigBuffer &a, const BigBuffer &b, UINT c);
-static void Sub(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static void Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
-static void DecodeDataBytes(const void *data, UINT maxBytes, UINT *offset, UINT *dataBytes);
-static void EncodeDataBytes(SBigOutputArray &output, UINT dataBytes);
-static void FromBinary(BigBuffer &a, const void *data, UINT bytes);
-static void FromStr(BigBuffer &a, const char *str);
-static void FromStream(BigBuffer &a, const void *data, UINT maxBytes, UINT *bytes);
-static void FromUnsigned(BigBuffer &a, UINT val);
-static void ToBinary(SBigOutputArray &output, const BigBuffer &a);
-static void ToBinaryAppend(SBigOutputArray &output, const BigBuffer &a);
-static void ToStr(SBigOutputArray &output, const BigBuffer &a, BigStack &stack);
-static void ToStream(SBigOutputArray &output, const BigBuffer &a);
-static void ToUnsigned(UINT *val, const BigBuffer &a);
+static UINT      ExtractLowPart(DWORDLONG *b);
+static UINT      ExtractLowPartLargeSum(DWORDLONG *carry, DWORDLONG add);
+static UINT      ExtractLowPartSx(DWORDLONG *b);
+static void      InsertLowPart(DWORDLONG *b, UINT c);
+static DWORDLONG MakeLarge(UINT low, UINT high);
+static void      Add(BigBuffer &a, const BigBuffer &b, UINT c);
+static void      Add(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static void      And(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static int       Compare(const BigBuffer &a, UINT b);
+static int       Compare(const BigBuffer &a, const BigBuffer &b);
+static void      Div(BigBuffer &a, UINT *b, const BigBuffer &c, DWORDLONG d);
+static void      Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
+static void      FindPrime(BigBuffer &a, UINT b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
+static void      Gcd(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
+static UINT      HighBitPos(const BigBuffer &a);
+static void      InvMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
+static int       IsEven(const BigBuffer &a);
+static int       IsOdd(const BigBuffer &a);
+static int       IsOne(const BigBuffer &a);
+static int       IsPrime(const BigBuffer &a, BigStack &stack);
+static int       IsZero(const BigBuffer &a);
+static UINT      LowBitPos(const BigBuffer &a);
+static void      Mul(BigBuffer &a, const BigBuffer &b, DWORDLONG c);
+static void      Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
+static void      MulMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
+static void      Not(BigBuffer &a, const BigBuffer &b);
+static void      Or(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static void      Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &stack);
+static void      PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack);
+static void      Rand(BigBuffer &a, const BigBuffer &b, BigBuffer &seed, BigStack &stack);
+static void      Set2Exp(BigBuffer &a, UINT b);
+static void      SetOne(BigBuffer &a);
+static void      SetZero(BigBuffer &a);
+static void      Shl(BigBuffer &a, const BigBuffer &b, UINT c);
+static void      Shr(BigBuffer &a, const BigBuffer &b, UINT c);
+static void      Square(BigBuffer &a, const BigBuffer &b, BigStack &stack);
+static void      Sub(BigBuffer &a, const BigBuffer &b, UINT c);
+static void      Sub(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static void      Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c);
+static void      DecodeDataBytes(LPCVOID data, UINT maxBytes, UINT *offset, UINT *dataBytes);
+static void      EncodeDataBytes(SBigOutputArray &output, UINT dataBytes);
+static void      FromBinary(BigBuffer &a, LPCVOID data, UINT bytes);
+static void      FromStr(BigBuffer &a, LPCSTR str);
+static void      FromStream(BigBuffer &a, LPCVOID data, UINT maxBytes, UINT *bytes);
+static void      FromUnsigned(BigBuffer &a, UINT val);
+static void      ToBinary(SBigOutputArray &output, const BigBuffer &a);
+static void      ToBinaryAppend(SBigOutputArray &output, const BigBuffer &a);
+static void      ToStr(SBigOutputArray &output, const BigBuffer &a, BigStack &stack);
+static void      ToStream(SBigOutputArray &output, const BigBuffer &a);
+static void      ToUnsigned(UINT *val, const BigBuffer &a);
 
 void BigBuffer::GrowToFit(UINT index) {
   m_data.GrowToFit(m_offset + index, 1);
@@ -220,23 +220,23 @@ SBigOutputArray &BigData::Output() const {
   return (SBigOutputArray &)m_output;
 }
 
-static UINT ExtractLowPart(unsigned __int64 *b) {
+static UINT ExtractLowPart(DWORDLONG *b) {
   UINT result;
   result = (UINT)*b;
   *b >>= 32;
   return result;
 }
 
-static UINT ExtractLowPartLargeSum(unsigned __int64 *carry, unsigned __int64 add) {
+static UINT ExtractLowPartLargeSum(DWORDLONG *carry, DWORDLONG add) {
   UINT result;
   *carry += add;
-  add = (unsigned __int64)(UINT)(*carry < add);
+  add = (DWORDLONG)(UINT)(*carry < add);
   result = ExtractLowPart(carry);
   *carry += add << 32;
   return result;
 }
 
-static UINT ExtractLowPartSx(unsigned __int64 *b) {
+static UINT ExtractLowPartSx(DWORDLONG *b) {
   UINT result;
   result = (UINT)*b;
   *b >>= 32;
@@ -246,17 +246,17 @@ static UINT ExtractLowPartSx(unsigned __int64 *b) {
   return result;
 }
 
-static void InsertLowPart(unsigned __int64 *b, UINT c) {
+static void InsertLowPart(DWORDLONG *b, UINT c) {
   *b = (*b << 32) | c;
 }
 
-static unsigned __int64 MakeLarge(UINT low, UINT high) {
-  return ((unsigned __int64)high << 32) + low;
+static DWORDLONG MakeLarge(UINT low, UINT high) {
+  return ((DWORDLONG)high << 32) + low;
 }
 
 static void Add(BigBuffer &a, const BigBuffer &b, UINT c) {
-  unsigned __int64 carry = c;
-  UINT             index = 0;
+  DWORDLONG carry = c;
+  UINT      index = 0;
   while (carry || b.IsUsed(index)) {
     carry += b[index];
     a[index++] = ExtractLowPart(&carry);
@@ -265,10 +265,10 @@ static void Add(BigBuffer &a, const BigBuffer &b, UINT c) {
 }
 
 static void Add(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
-  unsigned __int64 carry = 0;
-  UINT             index = 0;
+  DWORDLONG carry = 0;
+  UINT      index = 0;
   while (carry || b.IsUsed(index) || c.IsUsed(index)) {
-    carry += (unsigned __int64)b[index] + c[index];
+    carry += (DWORDLONG)b[index] + c[index];
     a[index++] = ExtractLowPart(&carry);
   }
   a.SetCount(index);
@@ -307,9 +307,9 @@ static int Compare(const BigBuffer &a, const BigBuffer &b) {
   return result;
 }
 
-static void Div(BigBuffer &a, UINT *b, const BigBuffer &c, unsigned __int64 d) {
-  unsigned __int64 data = 0;
-  UINT             index = c.Count();
+static void Div(BigBuffer &a, UINT *b, const BigBuffer &c, DWORDLONG d) {
+  DWORDLONG data = 0;
+  UINT      index = c.Count();
   a.SetCount(index);
   while (index) {
     InsertLowPart(&data, c[--index]);
@@ -545,12 +545,12 @@ static UINT LowBitPos(const BigBuffer &a) {
   return 0;
 }
 
-static void Mul(BigBuffer &a, const BigBuffer &b, unsigned __int64 c) {
-  unsigned __int64 carry = 0;
-  UINT             index = 0;
+static void Mul(BigBuffer &a, const BigBuffer &b, DWORDLONG c) {
+  DWORDLONG carry = 0;
+  UINT      index = 0;
   c = MakeLarge((UINT)c, (UINT)(c >> 32));
   while (b.IsUsed(index) || carry) {
-    carry += (unsigned __int64)b[index] * c;
+    carry += (DWORDLONG)b[index] * c;
     a[index++] = ExtractLowPart(&carry);
   }
   a.SetCount(index);
@@ -558,13 +558,13 @@ static void Mul(BigBuffer &a, const BigBuffer &b, unsigned __int64 c) {
 }
 
 static void Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack) {
-  unsigned __int64 carry;
-  unsigned __int64 product;
-  unsigned __int64 sum;
-  UINT             bIndex;
-  UINT             cIndex;
-  UINT             allocCount = 0;
-  BigBuffer       &aa = stack.MakeDistinct(a, &a == &b || &a == &c);
+  DWORDLONG  carry;
+  DWORDLONG  product;
+  DWORDLONG  sum;
+  UINT       bIndex;
+  UINT       cIndex;
+  UINT       allocCount = 0;
+  BigBuffer &aa = stack.MakeDistinct(a, &a == &b || &a == &c);
 
   aa.SetCount(b.Count() + c.Count());
   for (bIndex = 0; bIndex < aa.Count(); ++bIndex) {
@@ -573,8 +573,8 @@ static void Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &
   for (bIndex = 0; bIndex < b.Count(); ++bIndex) {
     carry = 0;
     for (cIndex = 0; cIndex < c.Count(); ++cIndex) {
-      product = (unsigned __int64)b[bIndex] * c[cIndex];
-      sum = (unsigned __int64)aa[bIndex + cIndex] + carry;
+      product = (DWORDLONG)b[bIndex] * c[cIndex];
+      sum = (DWORDLONG)aa[bIndex + cIndex] + carry;
       aa[bIndex + cIndex] = ExtractLowPartLargeSum(&product, sum);
       carry = product;
     }
@@ -762,17 +762,17 @@ static void Shr(BigBuffer &a, const BigBuffer &b, UINT c) {
 }
 
 static void Square(BigBuffer &a, const BigBuffer &b, BigStack &stack) {
-  unsigned __int64 add;
-  unsigned __int64 mul;
-  unsigned __int64 carry;
-  BigBuffer       &aa = stack.MakeDistinct(a, &a == &b);
+  DWORDLONG  add;
+  DWORDLONG  mul;
+  DWORDLONG  carry;
+  BigBuffer &aa = stack.MakeDistinct(a, &a == &b);
 
   aa.Clear();
   for (UINT bIndex = 0; b.IsUsed(bIndex); ++bIndex) {
     carry = 0;
     for (UINT cIndex = 0; cIndex <= bIndex; ++cIndex) {
-      mul = (unsigned __int64)b[cIndex] * b[bIndex];
-      add = (unsigned __int64)aa[bIndex + cIndex] + mul;
+      mul = (DWORDLONG)b[cIndex] * b[bIndex];
+      add = (DWORDLONG)aa[bIndex + cIndex] + mul;
       if (cIndex < bIndex) {
         carry += mul;
       }
@@ -784,8 +784,8 @@ static void Square(BigBuffer &a, const BigBuffer &b, BigStack &stack) {
 }
 
 static void Sub(BigBuffer &a, const BigBuffer &b, UINT c) {
-  unsigned __int64 borrow = 0 - static_cast<unsigned __int64>(c);
-  UINT             index = 0;
+  DWORDLONG borrow = 0 - static_cast<DWORDLONG>(c);
+  UINT      index = 0;
 
   while (b.IsUsed(index)) {
     borrow += b[index];
@@ -798,10 +798,10 @@ static void Sub(BigBuffer &a, const BigBuffer &b, UINT c) {
 }
 
 static void Sub(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
-  unsigned __int64 borrow = 0;
-  UINT             index = 0;
+  DWORDLONG borrow = 0;
+  UINT      index = 0;
   while (borrow || b.IsUsed(index) || c.IsUsed(index)) {
-    borrow = (unsigned __int64)b[index] - c[index] - (UINT)borrow;
+    borrow = (DWORDLONG)b[index] - c[index] - (UINT)borrow;
     a[index++] = ExtractLowPartSx(&borrow);
   }
   a.SetCount(index);
@@ -818,7 +818,7 @@ static void Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
   a.SetCount(index);
 }
 
-static void DecodeDataBytes(const void *data, UINT maxBytes, UINT *offset, UINT *dataBytes) {
+static void DecodeDataBytes(LPCVOID data, UINT maxBytes, UINT *offset, UINT *dataBytes) {
   *offset = 0;
   *dataBytes = 0;
   while (*offset < maxBytes) {
@@ -841,7 +841,7 @@ static void EncodeDataBytes(SBigOutputArray &output, UINT dataBytes) {
   *output.New() = 0xFF;
 }
 
-static void FromBinary(BigBuffer &a, const void *data, UINT bytes) {
+static void FromBinary(BigBuffer &a, LPCVOID data, UINT bytes) {
   UINT byte;
   a.Clear();
   for (byte = 0; byte < bytes; ++byte) {
@@ -854,15 +854,15 @@ static void FromBinary(BigBuffer &a, const void *data, UINT bytes) {
   a.Trim();
 }
 
-static void FromStr(BigBuffer &a, const char *str) {
+static void FromStr(BigBuffer &a, LPCSTR str) {
   a.Clear();
   while (*str) {
-    Mul(a, a, (unsigned __int64)10);
+    Mul(a, a, (DWORDLONG)10);
     Add(a, a, (UINT)(*str++ - '0'));
   }
 }
 
-static void FromStream(BigBuffer &a, const void *data, UINT maxBytes, UINT *bytes) {
+static void FromStream(BigBuffer &a, LPCVOID data, UINT maxBytes, UINT *bytes) {
   UINT offset;
   UINT dataBytes;
   DecodeDataBytes(data, maxBytes, &offset, &dataBytes);
@@ -971,15 +971,15 @@ extern "C" void APIENTRY SBigFindPrime(BigData *a, UINT b, const BigData &c, con
   FindPrime(a->Primary(), b, c.Primary(), d.Primary(), a->Stack());
 }
 
-extern "C" void APIENTRY SBigFromBinary(BigData *num, const void *data, UINT bytes) {
+extern "C" void APIENTRY SBigFromBinary(BigData *num, LPCVOID data, UINT bytes) {
   FromBinary(num->Primary(), data, bytes);
 }
 
-extern "C" void APIENTRY SBigFromStr(BigData *num, const char *str) {
+extern "C" void APIENTRY SBigFromStr(BigData *num, LPCSTR str) {
   FromStr(num->Primary(), str);
 }
 
-extern "C" void APIENTRY SBigFromStream(BigData *num, const void *data, UINT maxBytes, UINT *bytes) {
+extern "C" void APIENTRY SBigFromStream(BigData *num, LPCVOID data, UINT maxBytes, UINT *bytes) {
   FromStream(num->Primary(), data, maxBytes, bytes);
 }
 
@@ -1095,7 +1095,7 @@ extern "C" void APIENTRY SBigToBinaryArray(const BigData &num, TSGrowableArray<B
   }
 }
 
-extern "C" void APIENTRY SBigToBinaryBuffer(const BigData &num, void *data, UINT maxBytes, UINT *bytes) {
+extern "C" void APIENTRY SBigToBinaryBuffer(const BigData &num, LPVOID data, UINT maxBytes, UINT *bytes) {
   UINT count;
   ToBinary(num.Output(), num.Primary());
   count = min(num.Output().Count(), maxBytes);
@@ -1105,7 +1105,7 @@ extern "C" void APIENTRY SBigToBinaryBuffer(const BigData &num, void *data, UINT
   }
 }
 
-extern "C" void APIENTRY SBigToBinaryPtr(const BigData &num, const void **data, UINT *bytes) {
+extern "C" void APIENTRY SBigToBinaryPtr(const BigData &num, LPCVOID *data, UINT *bytes) {
   ToBinary(num.Output(), num.Primary());
   *data = num.Output().Ptr();
   if (bytes) {
@@ -1116,20 +1116,20 @@ extern "C" void APIENTRY SBigToBinaryPtr(const BigData &num, const void **data, 
 extern "C" void APIENTRY SBigToStrArray(const BigData &num, TSGrowableArray<char> *array, int append) {
   ToStr(num.Output(), num.Primary(), num.Stack());
   if (append) {
-    array->Add(num.Output().Count(), (const char *)num.Output().Ptr());
+    array->Add(num.Output().Count(), (LPCSTR)num.Output().Ptr());
   } else {
-    array->Set(num.Output().Count(), (const char *)num.Output().Ptr());
+    array->Set(num.Output().Count(), (LPCSTR)num.Output().Ptr());
   }
 }
 
 extern "C" void APIENTRY SBigToStrBuffer(const BigData &num, char *str, UINT chars) {
   ToStr(num.Output(), num.Primary(), num.Stack());
-  SStrCopy(str, (const char *)num.Output().Ptr(), chars);
+  SStrCopy(str, (LPCSTR)num.Output().Ptr(), chars);
 }
 
-extern "C" void APIENTRY SBigToStrPtr(const BigData &num, const char **str) {
+extern "C" void APIENTRY SBigToStrPtr(const BigData &num, LPCSTR *str) {
   ToStr(num.Output(), num.Primary(), num.Stack());
-  *str = (const char *)num.Output().Ptr();
+  *str = (LPCSTR)num.Output().Ptr();
 }
 
 extern "C" void APIENTRY SBigToStreamArray(const BigData &num, TSGrowableArray<BYTE> *array, int append) {
@@ -1141,7 +1141,7 @@ extern "C" void APIENTRY SBigToStreamArray(const BigData &num, TSGrowableArray<B
   }
 }
 
-extern "C" void APIENTRY SBigToStreamBuffer(const BigData &num, void *data, UINT maxBytes, UINT *bytes) {
+extern "C" void APIENTRY SBigToStreamBuffer(const BigData &num, LPVOID data, UINT maxBytes, UINT *bytes) {
   UINT count;
   ToStream(num.Output(), num.Primary());
   count = min(num.Output().Count(), maxBytes);
@@ -1151,7 +1151,7 @@ extern "C" void APIENTRY SBigToStreamBuffer(const BigData &num, void *data, UINT
   }
 }
 
-extern "C" void APIENTRY SBigToStreamPtr(const BigData &num, const void **data, UINT *bytes) {
+extern "C" void APIENTRY SBigToStreamPtr(const BigData &num, LPCVOID *data, UINT *bytes) {
   ToStream(num.Output(), num.Primary());
   *data = num.Output().Ptr();
   *bytes = num.Output().Count();

@@ -184,17 +184,17 @@ enum OS_MOUSE_MODE {
   OS_MOUSE_MODES = 2
 };
 
-typedef int(*EVENTHANDLER)(const void *data, void *param);
-typedef int(*EVENTGUIDHANDLER)(const void *data, unsigned __int64 guid, void *param);
-typedef void(*EVENTSCANHANDLER)(EVENTID id, const void *data, void *param);
-typedef int(*EVENTCONFIRMCLOSEHANDLER)(void *param);
+typedef int (*EVENTHANDLER)(LPCVOID data, LPVOID param);
+typedef int (*EVENTGUIDHANDLER)(LPCVOID data, DWORDLONG guid, LPVOID param);
+typedef void (*EVENTSCANHANDLER)(EVENTID id, LPCVOID data, LPVOID param);
+typedef int (*EVENTCONFIRMCLOSEHANDLER)(LPVOID param);
 
 const float EVENT_PRIORITY_NORMAL = 0.0f;
 
 struct EVENT_DATA_CHAR {
-  int          ch;
-  unsigned int metaKeyState;
-  unsigned int repeat;
+  int  ch;
+  UINT metaKeyState;
+  UINT repeat;
 };
 
 struct EVENT_DATA_FOCUS {
@@ -202,29 +202,29 @@ struct EVENT_DATA_FOCUS {
 };
 
 struct EVENT_DATA_IME {
-  unsigned int message;
-  unsigned int wParam;
-  unsigned int lParam;
-  unsigned int codepage;
+  UINT message;
+  UINT wParam;
+  UINT lParam;
+  UINT codepage;
 };
 
 struct EVENT_DATA_KEY {
-  KEY          key;
-  unsigned int metaKeyState;
-  unsigned int repeat;
-  unsigned long time;
+  KEY   key;
+  UINT  metaKeyState;
+  UINT  repeat;
+  DWORD time;
 };
 
 struct EVENT_DATA_MOUSE {
-  MOUSEMODE    mode;
-  MOUSEBUTTON  button;
-  unsigned int buttonState;
-  unsigned int metaKeyState;
-  unsigned int flags;
-  float        x;
-  float        y;
-  int          wheelDistance;
-  unsigned long time;
+  MOUSEMODE   mode;
+  MOUSEBUTTON button;
+  UINT        buttonState;
+  UINT        metaKeyState;
+  UINT        flags;
+  float       x;
+  float       y;
+  int         wheelDistance;
+  DWORD       time;
 };
 
 struct EVENT_DATA_SIZE {
@@ -242,41 +242,41 @@ struct EVENT_DATA_TIMER {
   DWORD currTime;
 };
 
-void EventInitialize(unsigned int threadCount, int netServer);
+void EventInitialize(UINT threadCount, int netServer);
 void EventDestroy();
 void EventDoMessageLoop();
 void EventInitiateShutdown();
 
 HEVENTCONTEXT
 EventCreateContextEx(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags);
-void EventCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler);
-int EventIsContextInteractive();
+void          EventCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler);
+int           EventIsContextInteractive();
 HEVENTCONTEXT EventGetCurrentContext();
-void EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext);
-DWORD EventGetContextIdleTime(HEVENTCONTEXT hContext);
-void EventPostClose();
-void EventPostCloseEx(HEVENTCONTEXT hContext);
-int EventIsButtonDown(MOUSEBUTTON button);
-int EventIsKeyDown(KEY key);
-void EventInputGetMousePosition(float *x, float *y);
-void EventInputSetMousePosition(float x, float y);
-int EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, const void *data, unsigned int bytes);
-int EventQueueScan(EVENTSCANHANDLER scanner, void *param);
-void EventSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, void *inParam);
-int EventInputProcess(HEVENTCONTEXT hContext);
-void EventSetMouseMode(MOUSEMODE mode, unsigned int holdButton);
-void EventSetMouseBoundingRect(NTempest::CRect *rect);
+void          EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext);
+DWORD         EventGetContextIdleTime(HEVENTCONTEXT hContext);
+void          EventPostClose();
+void          EventPostCloseEx(HEVENTCONTEXT hContext);
+int           EventIsButtonDown(MOUSEBUTTON button);
+int           EventIsKeyDown(KEY key);
+void          EventInputGetMousePosition(float *x, float *y);
+void          EventInputSetMousePosition(float x, float y);
+int           EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, LPCVOID data, UINT bytes);
+int           EventQueueScan(EVENTSCANHANDLER scanner, LPVOID param);
+void          EventSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, LPVOID inParam);
+int           EventInputProcess(HEVENTCONTEXT hContext);
+void          EventSetMouseMode(MOUSEMODE mode, UINT holdButton);
+void          EventSetMouseBoundingRect(NTempest::CRect *rect);
 
-unsigned int EventSetTimer(float timeout, EVENTHANDLER handler, void *param);
-unsigned int EventSetTimer(float timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2);
-unsigned int EventSetTimer(unsigned int timeout, EVENTHANDLER handler, void *param);
-unsigned int EventSetTimer(unsigned int timeout, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2);
-unsigned int EventSetTimerAbsolute(DWORD triggerTime, EVENTHANDLER handler, void *param);
-unsigned int EventSetTimerAbsolute(DWORD triggerTime, EVENTGUIDHANDLER handler, unsigned __int64 param, void *param2);
-void EventKillTimer(unsigned int timerId, EVENTHANDLER handlerFunction, const char *functionName);
-float EventGetRemainingTime(unsigned int timerId);
+UINT  EventSetTimer(float timeout, EVENTHANDLER handler, LPVOID param);
+UINT  EventSetTimer(float timeout, EVENTGUIDHANDLER handler, DWORDLONG param, LPVOID param2);
+UINT  EventSetTimer(UINT timeout, EVENTHANDLER handler, LPVOID param);
+UINT  EventSetTimer(UINT timeout, EVENTGUIDHANDLER handler, DWORDLONG param, LPVOID param2);
+UINT  EventSetTimerAbsolute(DWORD triggerTime, EVENTHANDLER handler, LPVOID param);
+UINT  EventSetTimerAbsolute(DWORD triggerTime, EVENTGUIDHANDLER handler, DWORDLONG param, LPVOID param2);
+void  EventKillTimer(UINT timerId, EVENTHANDLER handlerFunction, LPCSTR functionName);
+float EventGetRemainingTime(UINT timerId);
 
 void EventRegister(EVENTID id, EVENTHANDLER handler);
-void EventRegisterEx(EVENTID id, EVENTHANDLER handler, void *param, float priority);
+void EventRegisterEx(EVENTID id, EVENTHANDLER handler, LPVOID param, float priority);
 void EventUnregister(EVENTID id, EVENTHANDLER handler);
-void EventUnregisterEx(EVENTID id, EVENTHANDLER handler, void *param, unsigned int flags);
+void EventUnregisterEx(EVENTID id, EVENTHANDLER handler, LPVOID param, UINT flags);

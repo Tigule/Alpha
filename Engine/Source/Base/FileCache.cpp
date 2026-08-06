@@ -12,10 +12,10 @@ struct PrefetchNode;
 static void IBaseFileWaitForLoad(PrefetchNode *theFile);
 
 struct PrefetchNode : public TSHashObject<PrefetchNode, HASHKEY_STRI> {
-  void        *buffer;
-  unsigned int size;
-  SOVERLAPPED  overlapped;
-  int          refCount;
+  LPVOID      buffer;
+  UINT        size;
+  SOVERLAPPED overlapped;
+  int         refCount;
 
   PrefetchNode() : buffer(0), size(0), refCount(0) {
     SFile::CreateOverlapped(&overlapped);
@@ -35,10 +35,10 @@ struct PrefetchNode : public TSHashObject<PrefetchNode, HASHKEY_STRI> {
 
 struct UncachableNode : public TSHashObject<UncachableNode, HASHKEY_STRI> {};
 
-typedef LISTEXDYN(PrefetchNode)   PrefetchList;
+typedef LISTEXDYN(PrefetchNode) PrefetchList;
 typedef LISTEXDYN(UncachableNode) UncachableList;
 
-static PrefetchNode* IBaseFileStartLoad(const char* fileName);
+static PrefetchNode *IBaseFileStartLoad(LPCSTR fileName);
 
 static void IBaseFileWaitForLoad(PrefetchNode *theFile) {
   ASSERT(theFile != 0);
@@ -54,7 +54,7 @@ static UncachableTable s_uncachableFiles;
 static int             s_numActiveFiles;
 static SCritSect       s_critSect;
 
-static PrefetchNode* IBaseFileStartLoad(const char* fileName) {
+static PrefetchNode *IBaseFileStartLoad(LPCSTR fileName) {
   PrefetchNode *theFile = s_activeFiles.Ptr(fileName);
 
   if (theFile) {
@@ -68,7 +68,7 @@ static PrefetchNode* IBaseFileStartLoad(const char* fileName) {
   }
 
   theFile = s_activeFiles.New(fileName, 0, 0);
-  if (!SFile::LoadFile(fileName, &theFile->buffer, reinterpret_cast<unsigned long *>(&theFile->size), 1, &theFile->overlapped)) {
+  if (!SFile::LoadFile(fileName, &theFile->buffer, reinterpret_cast<DWORD *>(&theFile->size), 1, &theFile->overlapped)) {
     s_activeFiles.Delete(theFile);
     return 0;
   }
@@ -83,7 +83,7 @@ HASHKEY_STR::~HASHKEY_STR() {
   }
 }
 
-HASHKEY_STR &HASHKEY_STR::operator=(const char *str) {
+HASHKEY_STR &HASHKEY_STR::operator=(LPCSTR str) {
   if (m_str != str) {
     if (m_str) {
       SMemFree(m_str, __FILE__, __LINE__, 0);
@@ -93,7 +93,7 @@ HASHKEY_STR &HASHKEY_STR::operator=(const char *str) {
   return *this;
 }
 
-int IBaseFileLoad(const char* fileName, const void** fileBuffer, unsigned long* fileSize) {
+int IBaseFileLoad(LPCSTR fileName, LPCVOID *fileBuffer, DWORD *fileSize) {
   PrefetchNode *theFile = IBaseFileStartLoad(fileName);
   if (!theFile) {
     return 0;
@@ -109,7 +109,7 @@ int IBaseFileLoad(const char* fileName, const void** fileBuffer, unsigned long* 
   return 1;
 }
 
-void IBaseFileUnload(const char* fileName) {
+void IBaseFileUnload(LPCSTR fileName) {
   PrefetchNode *theFile = s_activeFiles.Ptr(fileName);
   ASSERT(theFile);
 
@@ -129,7 +129,7 @@ void BaseFileDestroy() {
   s_critSect.Leave();
 }
 
-int BaseFilePrefetch(const char* fileName) {
+int BaseFilePrefetch(LPCSTR fileName) {
   FATALASSERT(fileName);
 
   s_critSect.Enter();
@@ -141,11 +141,11 @@ int BaseFilePrefetch(const char* fileName) {
   return success;
 }
 
-int BaseFileIsFetched(const char* fileName) {
+int BaseFileIsFetched(LPCSTR fileName) {
   FATALASSERT(fileName);
 
   s_critSect.Enter();
-  int success = 0;
+  int           success = 0;
   PrefetchNode *theFile = s_activeFiles.Ptr(fileName);
   if (theFile) {
     success = SFile::PollOverlapped(&theFile->overlapped);
@@ -154,12 +154,12 @@ int BaseFileIsFetched(const char* fileName) {
   return success;
 }
 
-int BaseFileLoad(const char* fileName, void** fileBuffer, unsigned long* fileSize) {
+int BaseFileLoad(LPCSTR fileName, LPVOID *fileBuffer, DWORD *fileSize) {
   FATALASSERT(fileName);
   FATALASSERT(fileBuffer);
 
-  const void   *tempBuffer;
-  unsigned long tempSize;
+  LPCVOID tempBuffer;
+  DWORD   tempSize;
 
   *fileBuffer = 0;
   if (fileSize) {
@@ -196,7 +196,7 @@ void BaseFileFlush() {
   s_critSect.Leave();
 }
 
-void BaseFileRegisterUncachable(const char *fileName) {
+void BaseFileRegisterUncachable(LPCSTR fileName) {
   FATALASSERT(fileName);
 
   s_critSect.Enter();
@@ -206,7 +206,7 @@ void BaseFileRegisterUncachable(const char *fileName) {
   s_critSect.Leave();
 }
 
-void BaseFileUnregisterUncachable(const char* fileName) {
+void BaseFileUnregisterUncachable(LPCSTR fileName) {
   FATALASSERT(fileName);
 
   s_critSect.Enter();

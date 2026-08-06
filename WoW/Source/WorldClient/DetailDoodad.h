@@ -27,25 +27,25 @@ class CDetailDoodadGeom {
   TSGrowableArray<NTempest::C3Vector>  normalList;
   TSGrowableArray<NTempest::C2Vector>  tVertexList;
   TSGrowableArray<NTempest::CImVector> cVertexList;
-  TSGrowableArray<unsigned short>      indexList;
+  TSGrowableArray<WORD>                indexList;
   LINKDECLEX(CDetailDoodadGeom, lameAssLink);
 };
 
 class CDetailDoodadData {
  public:
   CDetailDoodadData();
-  CDetailDoodadData(const char *mdlName);
+  CDetailDoodadData(LPCSTR mdlName);
   ~CDetailDoodadData();
 
   int Load();
 
-  const char        *fileName;
+  LPCSTR             fileName;
   int                loaded;
   HTEXTURE__        *texture;
   CDetailDoodadGeom *geom;
 
  private:
-  static void MdlReadCallback(unsigned char *fileData, unsigned int fileBytes, CDetailDoodadData *detailDoodad);
+  static void MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailDoodadData *detailDoodad);
   static void MdlReadCallback(const MDLDATA &data, CDetailDoodadData *detailDoodad);
 };
 
@@ -59,47 +59,39 @@ class CDetailDoodadInst {
   ~CDetailDoodadInst();
 
   void FreeBufs();
-  void AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos, unsigned long flags);
-  void AddDoodad(unsigned int doodadId, NTempest::C3Vector &pos, unsigned long flags, NTempest::C4Plane &plane);
+  void AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags);
+  void AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags, NTempest::C4Plane &plane);
   void Render();
   void RenderAlpha();
   int  HasBufs();
 
-  CDetailDoodadGeom        *geom[2];
-  CGxBuf                   *gxBuf[2];
+  CDetailDoodadGeom *geom[2];
+  CGxBuf            *gxBuf[2];
   LINKDECLEX(CDetailDoodadGeom, lameAssLink);
 };
 
 class CDetailDoodad {
  public:
-  static void Initialize();
-  static void Destroy();
-  static void Clear();
+  static void               Initialize();
+  static void               Destroy();
+  static void               Clear();
   static CDetailDoodadInst *AllocInst();
-  static void FreeInst(CDetailDoodadInst *inst);
+  static void               FreeInst(CDetailDoodadInst *inst);
   static CDetailDoodadGeom *AllocGeom();
-  static void FreeGeom(CDetailDoodadGeom *geom);
-  static CGxBuf *AllocGxBuf(unsigned int vertexCount, unsigned int indexCount);
-  static void FreeGxBuf(CGxBuf *gxBuf);
+  static void               FreeGeom(CDetailDoodadGeom *geom);
+  static CGxBuf            *AllocGxBuf(UINT vertexCount, UINT indexCount);
+  static void               FreeGxBuf(CGxBuf *gxBuf);
 
   static LISTDECLEX(CDetailDoodadGeom, lameAssLink, geomList);
   static LISTDECLEX(CDetailDoodadInst, lameAssLink, instList);
-  static TSGrowableArray<CDetailDoodadData *>   doodadList;
-  static CGxTex                                *alphaRampTexture;
+  static TSGrowableArray<CDetailDoodadData *> doodadList;
+  static CGxTex                              *alphaRampTexture;
 
  private:
   static void GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
-  static void CreateAlphaRampTexture(const void *&texels);
-  static void UpdateAlphaRampTexture(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  d,
-      unsigned int  mipLevel,
-      void         *userArg,
-      unsigned int &texelStrideInBytes,
-      const void  *&texels
-  );
+  static void CreateAlphaRampTexture(LPCVOID &texels);
+  static void
+  UpdateAlphaRampTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
 
   static TSGrowableArray<CGxBuf *> gxBufFreeList;
 };

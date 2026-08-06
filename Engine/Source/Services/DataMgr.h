@@ -17,12 +17,12 @@ namespace NTempest {
   bool operator!=(const CImVector &left, const CImVector &right);
   bool operator==(const C33Matrix &left, const C33Matrix &right);
   bool operator!=(const C33Matrix &left, const C33Matrix &right);
-}
+}  // namespace NTempest
 
 struct UpdateInfo {
-  void(*updateFcn)(float, void *, void *);
-  void *updateData;
-  float updatePriority;
+  void (*updateFcn)(float, LPVOID, LPVOID);
+  LPVOID updateData;
+  float  updatePriority;
 
   UpdateInfo();
 };
@@ -51,23 +51,23 @@ class CBaseManaged {
   }
   virtual ~CBaseManaged() {
   }
-  virtual void Update(float __formal) {
+  virtual void Update(float) {
   }
-  virtual void UpdateR(float __formal) {
+  virtual void UpdateR(float) {
   }
   void GetInfo(UpdateInfo *info);
-  void SetUpdate(void(*fcn)(float, void *, void *), void *data, float priority) {
+  void SetUpdate(void (*fcn)(float, LPVOID, LPVOID), LPVOID data, float priority) {
     m_updateFcn = fcn;
     m_updateData = data;
     m_updatePriority = priority;
   }
 
   LINKDECLEX(CBaseManaged, m_link);
-  unsigned char        m_dataTypeId;
-  unsigned char        m_flags;
-  void(*m_updateFcn)(float, void *, void *);
-  void *m_updateData;
-  float m_updatePriority;
+  BYTE m_dataTypeId;
+  BYTE m_flags;
+  void (*m_updateFcn)(float, LPVOID, LPVOID);
+  LPVOID m_updateData;
+  float  m_updatePriority;
 };
 
 class CAngle;
@@ -142,41 +142,59 @@ inline void TManaged<C3Color>::Set_(const C3Color &val) {
 
 class CDataMgr : public CHandleObject {
  public:
-  TSFixedArray<CBaseManaged *>    m_managedArray;
+  TSFixedArray<CBaseManaged *> m_managedArray;
   LISTDECLEX(CBaseManaged, m_link, m_updateList);
 
  protected:
-  CDataMgr(unsigned int count) {
+  CDataMgr(UINT count) {
     m_managedArray.SetCount(count);
   }
 
  private:
-  void AddManaged(CBaseManaged *manage, unsigned int fieldId, unsigned int flags, unsigned int dataTypeId);
+  void AddManaged(CBaseManaged *manage, UINT fieldId, UINT flags, UINT dataTypeId);
 
  protected:
-  void AddManaged(TManaged<NTempest::CImVector> *manage, unsigned int fieldId, unsigned int flags);
-  void AddManaged(TManaged<C3Color> *manage, unsigned int fieldId, unsigned int flags);
-  void AddManaged(TManaged<NTempest::C3Vector> *manage, unsigned int fieldId, unsigned int flags);
-  void AddManaged(TManaged<NTempest::C33Matrix> *manage, unsigned int fieldId, unsigned int flags);
-  void AddManaged(TManaged<int> *manage, unsigned int fieldId, unsigned int flags);
-  void AddManaged(TManaged<float> *manage, unsigned int fieldId, unsigned int flags);
+  void AddManaged(TManaged<NTempest::CImVector> *manage, UINT fieldId, UINT flags);
+  void AddManaged(TManaged<C3Color> *manage, UINT fieldId, UINT flags);
+  void AddManaged(TManaged<NTempest::C3Vector> *manage, UINT fieldId, UINT flags);
+  void AddManaged(TManaged<NTempest::C33Matrix> *manage, UINT fieldId, UINT flags);
+  void AddManaged(TManaged<int> *manage, UINT fieldId, UINT flags);
+  void AddManaged(TManaged<float> *manage, UINT fieldId, UINT flags);
 
  public:
   void LinkManaged(CBaseManaged *m);
   void Update(float elapsedSec);
 };
 
-void DataMgrGetCoord(HDATAMGR mgr, unsigned int fieldId, NTempest::C3Vector *coord);
-float DataMgrGetFloat(HDATAMGR mgr, unsigned int fieldId);
+void  DataMgrGetCoord(HDATAMGR mgr, UINT fieldId, NTempest::C3Vector *coord);
+float DataMgrGetFloat(HDATAMGR mgr, UINT fieldId);
 
-void DataMgrSetCoord(HDATAMGR mgr, unsigned int fieldId, const NTempest::C3Vector &coord, unsigned int coordFlags);
+void DataMgrSetCoord(HDATAMGR mgr, UINT fieldId, const NTempest::C3Vector &coord, UINT coordFlags);
 
-void DataMgrSetFloat(HDATAMGR mgr, unsigned int fieldId, float val);
+void DataMgrSetFloat(HDATAMGR mgr, UINT fieldId, float val);
 
-void DataMgrSetBoolUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, int *), void *updateData, float updatePriority);
-void DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, NTempest::CImVector *), void *updateData, float updatePriority);
-void DataMgrSetColorUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, C3Color *), void *updateData, float updatePriority);
-void DataMgrSetCoordUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, NTempest::C3Vector *), void *updateData, float updatePriority);
-void DataMgrSetC33MatrixUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, NTempest::C33Matrix *), void *updateData, float updatePriority);
-void DataMgrSetIntUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, int *), void *updateData, float updatePriority);
-void DataMgrSetFloatUpdate(HDATAMGR mgr, unsigned int fieldId, void(*updateFcn)(float, void *, float *), void *updateData, float updatePriority);
+void DataMgrSetBoolUpdate(HDATAMGR mgr, UINT fieldId, void (*updateFcn)(float, LPVOID, int *), LPVOID updateData, float updatePriority);
+void DataMgrSetColorUpdate(
+    HDATAMGR mgr,
+    UINT     fieldId,
+    void (*updateFcn)(float, LPVOID, NTempest::CImVector *),
+    LPVOID updateData,
+    float  updatePriority
+);
+void DataMgrSetColorUpdate(HDATAMGR mgr, UINT fieldId, void (*updateFcn)(float, LPVOID, C3Color *), LPVOID updateData, float updatePriority);
+void DataMgrSetCoordUpdate(
+    HDATAMGR mgr,
+    UINT     fieldId,
+    void (*updateFcn)(float, LPVOID, NTempest::C3Vector *),
+    LPVOID updateData,
+    float  updatePriority
+);
+void DataMgrSetC33MatrixUpdate(
+    HDATAMGR mgr,
+    UINT     fieldId,
+    void (*updateFcn)(float, LPVOID, NTempest::C33Matrix *),
+    LPVOID updateData,
+    float  updatePriority
+);
+void DataMgrSetIntUpdate(HDATAMGR mgr, UINT fieldId, void (*updateFcn)(float, LPVOID, int *), LPVOID updateData, float updatePriority);
+void DataMgrSetFloatUpdate(HDATAMGR mgr, UINT fieldId, void (*updateFcn)(float, LPVOID, float *), LPVOID updateData, float updatePriority);

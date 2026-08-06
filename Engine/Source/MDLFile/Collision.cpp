@@ -6,26 +6,19 @@
 
 #include <stpl.h>
 
-void ReadVertices(Parser &, const char *, TSGrowableArray<NTempest::C3Vector> *);
-void WriteVertices(
-    const TSGrowableArray<NTempest::C3Vector> &, unsigned int, TSGrowableArray<char> &
-);
-void WriteBinC3VectorSection(
-    CMsgBuffer &, unsigned long, const TSGrowableArray<NTempest::C3Vector> &
-);
-int ReadBinC3VectorSection(
-    CMsgBuffer &, unsigned long, const char *, TSGrowableArray<NTempest::C3Vector> *,
-    unsigned int *, CMDLStatus *
-);
+void ReadVertices(Parser &, LPCSTR, TSGrowableArray<NTempest::C3Vector> *);
+void WriteVertices(const TSGrowableArray<NTempest::C3Vector> &, UINT, TSGrowableArray<char> &);
+void WriteBinC3VectorSection(CMsgBuffer &, DWORD, const TSGrowableArray<NTempest::C3Vector> &);
+int  ReadBinC3VectorSection(CMsgBuffer &, DWORD, LPCSTR, TSGrowableArray<NTempest::C3Vector> *, UINT *, CMDLStatus *);
 
 namespace MDL {
-const char *TokenText(unsigned int token);
-void __cdecl WriteLine(TSGrowableArray<char> &buffer, const char *format, ...);
-int ReadCollision(Parser &, MDLDATA &, CMDLStatus *);
-int WriteCollision(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-int ReadBinCollision(CMsgBuffer &, unsigned int, MDLDATA &, CMDLStatus *);
-int WriteBinCollision(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-}
+  LPCSTR       TokenText(UINT token);
+  void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...);
+  int          ReadCollision(Parser &, MDLDATA &, CMDLStatus *);
+  int          WriteCollision(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  int          ReadBinCollision(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  int          WriteBinCollision(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+}  // namespace MDL
 
 static void ICollisionAddErrors(TSet &errors) {
   errors.Add(0x1D8, 1, 0);
@@ -33,10 +26,10 @@ static void ICollisionAddErrors(TSet &errors) {
   errors.Add(0x17B, 1, 0);
 }
 
-static void IReadTriangleIndices(Parser &parse, TSGrowableArray<unsigned short> *triIndices) {
-  unsigned int savedtoken;
-  const char *tokentext;
-  long count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
+static void IReadTriangleIndices(Parser &parse, TSGrowableArray<WORD> *triIndices) {
+  UINT   savedtoken;
+  LPCSTR tokentext;
+  long   count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   if (count > 0) {
     triIndices->ReserveSpace(3 * count);
   }
@@ -44,11 +37,11 @@ static void IReadTriangleIndices(Parser &parse, TSGrowableArray<unsigned short> 
   long actual = 0;
   savedtoken = parse.Token(&tokentext, 0);
   while (savedtoken == '{') {
-    *triIndices->New() = static_cast<unsigned short>(parse.ExpectInt());
+    *triIndices->New() = static_cast<WORD>(parse.ExpectInt());
     parse.Expect(',');
-    *triIndices->New() = static_cast<unsigned short>(parse.ExpectInt());
+    *triIndices->New() = static_cast<WORD>(parse.ExpectInt());
     parse.Expect(',');
-    *triIndices->New() = static_cast<unsigned short>(parse.ExpectInt());
+    *triIndices->New() = static_cast<WORD>(parse.ExpectInt());
     parse.Expect('}');
     parse.Expect(',');
     ++actual;
@@ -60,32 +53,25 @@ static void IReadTriangleIndices(Parser &parse, TSGrowableArray<unsigned short> 
   }
 }
 
-static void IWriteTriangleIndices(
-    const TSGrowableArray<unsigned short> &triIndices,
-    TSGrowableArray<char> &buffer
-) {
-  unsigned int numTriangles = triIndices.Count() / 3;
+static void IWriteTriangleIndices(const TSGrowableArray<WORD> &triIndices, TSGrowableArray<char> &buffer) {
+  UINT numTriangles = triIndices.Count() / 3;
   MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(0x1C9), numTriangles);
-  for (unsigned int i = 0; i < numTriangles; ++i) {
-    MDL::WriteLine(
-        buffer, "\t\t{ %hu, %hu, %hu },\n",
-        triIndices[i * 3], triIndices[i * 3 + 1], triIndices[i * 3 + 2]
-    );
+  for (UINT i = 0; i < numTriangles; ++i) {
+    MDL::WriteLine(buffer, "\t\t{ %hu, %hu, %hu },\n", triIndices[i * 3], triIndices[i * 3 + 1], triIndices[i * 3 + 2]);
   }
   MDL::WriteLine(buffer, "\t}\n");
 }
 
-static unsigned int GetSectionSize(const MDLCOLLISION &collision) {
-  return 24 + 12 * (collision.vertices.Count() + collision.facetNormals.Count())
-      + 2 * collision.triIndices.Count();
+static UINT GetSectionSize(const MDLCOLLISION &collision) {
+  return 24 + 12 * (collision.vertices.Count() + collision.facetNormals.Count()) + 2 * collision.triIndices.Count();
 }
 
 int MDL::ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   TSet errors;
   ICollisionAddErrors(errors);
   parse.Expect('{');
-  const char *tokentext;
-  unsigned int token = parse.Token(&tokentext, 0);
+  LPCSTR tokentext;
+  UINT   token = parse.Token(&tokentext, 0);
   while (token && token != '}') {
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokentext);
@@ -117,13 +103,8 @@ int MDL::WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDL
   return 1;
 }
 
-int MDL::ReadBinCollision(
-    CMsgBuffer &buf,
-    unsigned int length,
-    MDLDATA &data,
-    CMDLStatus *status
-) {
-  unsigned int totalRead = 0;
+int MDL::ReadBinCollision(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  UINT totalRead = 0;
   if (!length) {
     return 1;
   }
@@ -134,15 +115,14 @@ int MDL::ReadBinCollision(
     status->Add(STATUS_ERROR, "Invalid %s section detected in model.\n", "Triangle Index");
     return 0;
   }
-  unsigned int count = buf.GetUint();
+  UINT count = buf.GetUint();
   totalRead += 8;
   data.collision.triIndices.SetCount(count);
   if (count) {
     buf.GetWordArray(data.collision.triIndices.Ptr(), count);
     totalRead += 2 * count;
   }
-  if (!ReadBinC3VectorSection(
-          buf, 'SMRN', "Facet Normal", &data.collision.facetNormals, &totalRead, status)) {
+  if (!ReadBinC3VectorSection(buf, 'SMRN', "Facet Normal", &data.collision.facetNormals, &totalRead, status)) {
     return 0;
   }
   if (totalRead > length) {
@@ -163,5 +143,4 @@ int MDL::WriteBinCollision(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
     WriteBinC3VectorSection(buf, 'SMRN', data.collision.facetNormals);
   }
   return 1;
-
 }

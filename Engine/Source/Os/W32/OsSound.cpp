@@ -12,19 +12,19 @@
 
 #include <new>
 
-typedef signed char(__stdcall *FSOUND_STREAMCALLBACK)(FSOUND_STREAM *, void *, int, int);
-typedef void *(__stdcall *FSOUND_ALLOCCALLBACK)(unsigned int);
-typedef void *(__stdcall *FSOUND_REALLOCCALLBACK)(void *, unsigned int);
-typedef void(__stdcall *FSOUND_FREECALLBACK)(void *);
-typedef unsigned int(__stdcall *FSOUND_OPENCALLBACK)(const char *);
-typedef void(__stdcall *FSOUND_CLOSECALLBACK)(unsigned int);
-typedef int(__stdcall *FSOUND_READCALLBACK)(void *, int, unsigned int);
-typedef int(__stdcall *FSOUND_SEEKCALLBACK)(unsigned int, int, signed char);
-typedef int(__stdcall *FSOUND_TELLCALLBACK)(unsigned int);
+typedef signed char(__stdcall *FSOUND_STREAMCALLBACK)(FSOUND_STREAM *, LPVOID, int, int);
+typedef LPVOID(__stdcall *FSOUND_ALLOCCALLBACK)(UINT);
+typedef LPVOID(__stdcall *FSOUND_REALLOCCALLBACK)(LPVOID, UINT);
+typedef void(__stdcall *FSOUND_FREECALLBACK)(LPVOID);
+typedef UINT(__stdcall *FSOUND_OPENCALLBACK)(LPCSTR);
+typedef void(__stdcall *FSOUND_CLOSECALLBACK)(UINT);
+typedef int(__stdcall *FSOUND_READCALLBACK)(LPVOID, int, UINT);
+typedef int(__stdcall *FSOUND_SEEKCALLBACK)(UINT, int, signed char);
+typedef int(__stdcall *FSOUND_TELLCALLBACK)(UINT);
 
-typedef bool(*SOUND_GET_PARAM_INT)(const char *, int &);
-typedef bool(*SOUND_GET_PARAM_FLOAT)(const char *, float &);
-typedef bool(*SOUND_GET_PARAM_STRING)(const char *, const char *&);
+typedef bool (*SOUND_GET_PARAM_INT)(LPCSTR, int &);
+typedef bool (*SOUND_GET_PARAM_FLOAT)(LPCSTR, float &);
+typedef bool (*SOUND_GET_PARAM_STRING)(LPCSTR, LPCSTR &);
 
 extern "C" void __stdcall        FSOUND_3D_SetDistanceFactor(float factor);
 extern "C" void __stdcall        FSOUND_3D_SetDopplerFactor(float factor);
@@ -61,8 +61,8 @@ extern "C" void __stdcall        FSOUND_File_SetCallbacks(
     FSOUND_TELLCALLBACK  tellCallback
 );
 extern "C" int __stdcall         FSOUND_GetDriver();
-extern "C" signed char __stdcall FSOUND_GetDriverCaps(int driver, unsigned int *caps);
-extern "C" const char *__stdcall FSOUND_GetDriverName(int driver);
+extern "C" signed char __stdcall FSOUND_GetDriverCaps(int driver, UINT *caps);
+extern "C" LPCSTR __stdcall      FSOUND_GetDriverName(int driver);
 extern "C" int __stdcall         FSOUND_GetError();
 extern "C" int __stdcall         FSOUND_GetMaxChannels();
 extern "C" int __stdcall         FSOUND_GetMixer();
@@ -70,17 +70,17 @@ extern "C" int __stdcall         FSOUND_GetNumDrivers();
 extern "C" int __stdcall         FSOUND_GetNumHardwareChannels();
 extern "C" int __stdcall         FSOUND_GetOutput();
 extern "C" int __stdcall         FSOUND_GetOutputRate();
-extern "C" signed char __stdcall FSOUND_Init(int mixRate, int maxSoftwareChannels, unsigned int flags);
+extern "C" signed char __stdcall FSOUND_Init(int mixRate, int maxSoftwareChannels, UINT flags);
 extern "C" signed char __stdcall FSOUND_Sample_SetMinMaxDistance(FSOUND_SAMPLE *sample, float minDistance, float maxDistance);
 extern "C" signed char __stdcall FSOUND_SetMute(int channel, signed char mute);
 extern "C" signed char __stdcall FSOUND_SetPaused(int channel, signed char paused);
 extern "C" signed char __stdcall FSOUND_SetFrequency(int channel, int frequency);
 extern "C" signed char __stdcall FSOUND_SetBufferSize(int milliseconds);
 extern "C" signed char __stdcall FSOUND_SetDriver(int driver);
-extern "C" signed char __stdcall FSOUND_SetHWND(unsigned long window);
+extern "C" signed char __stdcall FSOUND_SetHWND(DWORD window);
 extern "C" signed char __stdcall FSOUND_SetMaxHardwareChannels(int maximum);
 extern "C" signed char __stdcall FSOUND_SetMemorySystem(
-    void                  *pool,
+    LPVOID                 pool,
     int                    poolLength,
     FSOUND_ALLOCCALLBACK   allocCallback,
     FSOUND_REALLOCCALLBACK reallocCallback,
@@ -93,9 +93,9 @@ extern "C" signed char __stdcall    FSOUND_SetSFXMasterVolume(int volume);
 extern "C" signed char __stdcall    FSOUND_SetVolume(int channel, int volume);
 extern "C" signed char __stdcall    FSOUND_StopSound(int channel);
 extern "C" signed char __stdcall    FSOUND_Stream_Close(FSOUND_STREAM *stream);
-extern "C" FSOUND_STREAM *__stdcall FSOUND_Stream_Open(const char *filename, unsigned int mode, int offset, int length);
+extern "C" FSOUND_STREAM *__stdcall FSOUND_Stream_Open(LPCSTR filename, UINT mode, int offset, int length);
 extern "C" FSOUND_SAMPLE *__stdcall FSOUND_Stream_GetSample(FSOUND_STREAM *stream);
-extern "C" int __stdcall            FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, void *dsp, signed char startPaused);
+extern "C" int __stdcall            FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, LPVOID dsp, signed char startPaused);
 extern "C" signed char __stdcall    FSOUND_Stream_SetEndCallback(FSOUND_STREAM *stream, FSOUND_STREAMCALLBACK callback, int userdata);
 extern "C" signed char __stdcall    FSOUND_Stream_SetLoopCount(FSOUND_STREAM *stream, int loopCount);
 extern "C" int __stdcall            FSOUND_Stream_GetLengthMs(FSOUND_STREAM *stream);
@@ -103,13 +103,13 @@ extern "C" signed char __stdcall    FSOUND_Stream_SetTime(FSOUND_STREAM *stream,
 extern "C" signed char __stdcall    FSOUND_Stream_Stop(FSOUND_STREAM *stream);
 extern "C" void __stdcall           FSOUND_Update();
 
-static int         logFlags;
-static int         s_maxCategorySounds[SOUNDCATEGORIES_NUMCATEGORIES] = {0x7FFFFFFF, 1, 2};
-static const char *s_outputSystemName[13] = {
+static int    logFlags;
+static int    s_maxCategorySounds[SOUNDCATEGORIES_NUMCATEGORIES] = {0x7FFFFFFF, 1, 2};
+static LPCSTR s_outputSystemName[13] = {
     "No Sound", "Windows Mulimedia", "Direct Sound",      "A3D",      "Open Sound System",      "Enlightment Sound Daemon", "Alsa", "ASIO",
     "XBox",     "PlayStation 2",     "Mac Sound Manager", "Gamecube", "No Sound (non-realtime)"
 };
-static const char *s_mixerName[10] = {
+static LPCSTR s_mixerName[10] = {
     "Low quality autodetect",
     "Blend mode (obsolete)",
     "MMXP5 (obsolete)",
@@ -121,13 +121,13 @@ static const char *s_mixerName[10] = {
     "Low quality mono",
     "Mono"
 };
-static bool                      s_initialized;
-static int                       s_numChannels;
-static int                       s_numSoftwareChannels;
-static int                       s_num2dHardwareChannels;
-static int                       s_num3dHardwareChannels;
-static int                       s_mixRate = 44100;
-static HSLOG                     s_log;
+static bool  s_initialized;
+static int   s_numChannels;
+static int   s_numSoftwareChannels;
+static int   s_num2dHardwareChannels;
+static int   s_num3dHardwareChannels;
+static int   s_mixRate = 44100;
+static HSLOG s_log;
 static LISTDECLEX(Sound, link, s_soundListActive);
 static LISTDECLEX(Sound, fadeLink, s_soundListFade);
 static LISTDECLEX(Sound, updateLink, s_soundListUpdate);
@@ -159,30 +159,30 @@ struct InitParams {
   int   cacheSizeMB;
 };
 
-unsigned char(*Sound::m_positionUpdateCallback)(__int64, NTempest::C3Vector &);
+BYTE (*Sound::m_positionUpdateCallback)(LONGLONG, NTempest::C3Vector &);
 
-static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, void *buff, int len, int param);
-static void *__stdcall       FSoundAllocCallback(unsigned int size);
-static void *__stdcall       FSoundReallocCallback(void *ptr, unsigned int size);
-static void __stdcall        FSoundFreeCallback(void *ptr);
-static int SoundIdle(const void *, void *);
-static int CheckInitError(char success, const char *function, int parameter);
+static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVOID buff, int len, int param);
+static LPVOID __stdcall      FSoundAllocCallback(UINT size);
+static LPVOID __stdcall      FSoundReallocCallback(LPVOID ptr, UINT size);
+static void __stdcall        FSoundFreeCallback(LPVOID ptr);
+static int                   SoundIdle(LPCVOID, LPVOID);
+static int                   CheckInitError(char success, LPCSTR function, int parameter);
 static void
 InitializeParams(InitParams &params, SOUND_GET_PARAM_INT GetParamInt, SOUND_GET_PARAM_FLOAT GetParamFloat, SOUND_GET_PARAM_STRING GetParamString);
 
-static void *__stdcall FSoundAllocCallback(unsigned int size) {
+static LPVOID __stdcall FSoundAllocCallback(UINT size) {
   return SMemAlloc(size, "FMod", 0, 0);
 }
 
-static void *__stdcall FSoundReallocCallback(void *ptr, unsigned int size) {
+static LPVOID __stdcall FSoundReallocCallback(LPVOID ptr, UINT size) {
   return SMemReAlloc(ptr, size, "FMod", 0, 0);
 }
 
-static void __stdcall FSoundFreeCallback(void *ptr) {
+static void __stdcall FSoundFreeCallback(LPVOID ptr) {
   SMemFree(ptr, "FMod", 0, 0);
 }
 
-static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, void *buff, int len, int param) {
+static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVOID buff, int len, int param) {
   ASSERT(param);
 
   s_soundSystemLock.Enter();
@@ -192,7 +192,7 @@ static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, void
   return 0;
 }
 
-static int SoundIdle(const void *, void *) {
+static int SoundIdle(LPCVOID, LPVOID) {
   if (!s_globalPause) {
     Sound::Update();
   }
@@ -220,7 +220,7 @@ Sound::~Sound() {
   --s_activeSoundCount;
 }
 
-static int CheckInitError(char success, const char *function, int parameter) {
+static int CheckInitError(char success, LPCSTR function, int parameter) {
   if (!success) {
     int error = FSOUND_GetError();
     SLogWrite(s_log, "Error: %s(%i) returned %i", function, parameter, error);
@@ -263,19 +263,15 @@ InitializeParams(InitParams &params, SOUND_GET_PARAM_INT GetParamInt, SOUND_GET_
   params.flags &= ~0x200;
 }
 
-int Sound::Initialize(
-    bool(*GetParamInt)(const char *, int &),
-    bool(*GetParamFloat)(const char *, float &),
-    bool(*GetParamString)(const char *, const char *&)
-) {
-  int          error = 0;
-  InitParams   params;
-  unsigned int caps;
-  int          parameter;
-  int          driver;
-  int          mixer;
-  int          output;
-  int          numHardwareChannels;
+int Sound::Initialize(bool (*GetParamInt)(LPCSTR, int &), bool (*GetParamFloat)(LPCSTR, float &), bool (*GetParamString)(LPCSTR, LPCSTR &)) {
+  int        error = 0;
+  InitParams params;
+  UINT       caps;
+  int        parameter;
+  int        driver;
+  int        mixer;
+  int        output;
+  int        numHardwareChannels;
 
   ASSERT(GetParamInt);
   ASSERT(GetParamFloat);
@@ -492,9 +488,9 @@ void Sound::ProcessStopList() {
 }
 
 void Sound::ProcessFadeList() {
-  unsigned int timestamp = OsGetAsyncTimeMs();
-  Sound       *sound;
-  Sound       *next;
+  UINT   timestamp = OsGetAsyncTimeMs();
+  Sound *sound;
+  Sound *next;
 
   for (sound = s_soundListFade.Head(); sound; sound = next) {
     next = s_soundListFade.Next(sound);
@@ -615,7 +611,7 @@ void Sound::ProcessCutoffList(const NTempest::C3Vector &listenerPos) {
   }
 }
 
-Sound *Sound::Alloc(const char *name) {
+Sound *Sound::Alloc(LPCSTR name) {
   Sound *sound = s_soundListFree.Get(0);
 
   s_soundListActive.LinkNode(sound, LIST_TAIL, 0);
@@ -626,7 +622,7 @@ Sound *Sound::Alloc(const char *name) {
   return sound;
 }
 
-Sound *Sound::Play(SOUNDCATEGORIES category, const char *filename, unsigned int mode, bool startPaused, int flags) {
+Sound *Sound::Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool startPaused, int flags) {
   Sound *sound = Alloc(filename);
   ASSERT(sound);
 
@@ -660,7 +656,7 @@ Sound *Sound::Play(SOUNDCATEGORIES category, const char *filename, unsigned int 
   return sound;
 }
 
-Sound *Sound::Play2D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused) {
+Sound *Sound::Play2D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
     return 0;
   }
@@ -668,7 +664,7 @@ Sound *Sound::Play2D(SOUNDCATEGORIES category, const char *filename, int flags, 
   return Play(category, filename, 0x2000, startPaused, flags);
 }
 
-Sound *Sound::Play3D(SOUNDCATEGORIES category, const char *filename, int flags, bool startPaused) {
+Sound *Sound::Play3D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
     return 0;
   }
@@ -686,7 +682,7 @@ Sound *Sound::Play3D(SOUNDCATEGORIES category, const char *filename, int flags, 
   return sound;
 }
 
-Sound *Sound::PlayLooped(SOUNDCATEGORIES category, const char *filename, int loopCount, unsigned int mode, bool startPaused, int flags) {
+Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCount, UINT mode, bool startPaused, int flags) {
   ASSERT(loopCount >= -1);
 
   Sound *sound = Alloc(filename);
@@ -728,7 +724,7 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, const char *filename, int loo
   return sound;
 }
 
-Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused) {
+Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
     return 0;
   }
@@ -740,7 +736,7 @@ Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, const char *filename, int f
   return PlayLooped(category, filename, static_cast<int>(loopCount - 1), 0x2002, startPaused, flags);
 }
 
-Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, const char *filename, int flags, unsigned int loopCount, bool startPaused) {
+Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused) {
   Sound *sound;
 
   if (DupeCheckFailed(category, filename, flags)) {
@@ -785,7 +781,7 @@ void Sound::SetFadeIn(float fadeTime, float volume) {
   }
 }
 
-void Sound::SetFadeIn(unsigned int fadeTime, float volume) {
+void Sound::SetFadeIn(UINT fadeTime, float volume) {
   ASSERT(volume >= 0.0f && volume <= 1.0f);
 
   if (m_stream && fadeTime) {
@@ -800,7 +796,7 @@ void Sound::SetFadeIn(unsigned int fadeTime, float volume) {
   }
 }
 
-void Sound::Set3DUpdateHandle(__int64 handle) {
+void Sound::Set3DUpdateHandle(LONGLONG handle) {
   if (m_channel == -1 || !m_stream || !(m_flags & 0x08000000)) {
     return;
   }
@@ -940,7 +936,7 @@ void Sound::Stop(float fadeTime) {
   }
 }
 
-void Sound::Stop(unsigned int fadeTime) {
+void Sound::Stop(UINT fadeTime) {
   if (m_channel != -1 && m_stream && fadeTime >= 100) {
     m_fadeVolume = GetVolume();
     m_fadeRate = m_fadeVolume / -static_cast<float>(fadeTime);
@@ -1185,15 +1181,15 @@ void Sound::RemoveFromCutoffList() {
   }
 }
 
-unsigned int SndGetCPUPerformance() {
-  return static_cast<unsigned int>(FSOUND_GetCPUUsage());
+UINT SndGetCPUPerformance() {
+  return static_cast<UINT>(FSOUND_GetCPUUsage());
 }
 
 int Sound::GetNumOutputSystems() {
   return 13;
 }
 
-const char *Sound::GetOutputSystemName(int index) {
+LPCSTR Sound::GetOutputSystemName(int index) {
   ASSERT(index >= 0 && index <= 12);
   return s_outputSystemName[index];
 }
@@ -1202,7 +1198,7 @@ int Sound::GetNumDrivers() {
   return FSOUND_GetNumDrivers();
 }
 
-const char *Sound::GetDriverName(int index) {
+LPCSTR Sound::GetDriverName(int index) {
   ASSERT(index >= 0 && index < FSOUND_GetNumDrivers());
   return FSOUND_GetDriverName(index);
 }
@@ -1211,7 +1207,7 @@ int Sound::GetNumMixers() {
   return 10;
 }
 
-const char *Sound::GetMixerName(int index) {
+LPCSTR Sound::GetMixerName(int index) {
   ASSERT(index >= 0 && index < 10);
   return s_mixerName[index];
 }
@@ -1261,7 +1257,7 @@ void Sound::UpdateSoundVolumes(bool music) {
   }
 }
 
-bool Sound::DupeCheckFailed(SOUNDCATEGORIES category, const char *fileName, int flags) {
+bool Sound::DupeCheckFailed(SOUNDCATEGORIES category, LPCSTR fileName, int flags) {
   if (category >= SOUNDCATEGORIES_NUMCATEGORIES) {
     return true;
   }
@@ -1271,7 +1267,7 @@ bool Sound::DupeCheckFailed(SOUNDCATEGORIES category, const char *fileName, int 
   }
 
   if (flags & 0x1) {
-    unsigned int filenameHash = SStrHash(fileName, 0, 0);
+    UINT filenameHash = SStrHash(fileName, 0, 0);
 
     ITERATELIST(Sound, s_soundListActive, sound) {
       if (sound->m_fileNameHashed == filenameHash && (!(sound->m_flags & 0x80000000) || (sound->m_flags & 0x01000000))) {

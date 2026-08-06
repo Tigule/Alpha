@@ -8,7 +8,7 @@ void HandleClose(HOBJECT handle) {
   ptr->DecRef();
 }
 
-HOBJECT HandleCreate(CHandleObject *ptr, const char *handleName) {
+HOBJECT HandleCreate(CHandleObject *ptr, LPCSTR handleName) {
   FATALASSERT(ptr);
 
   ptr->IncRef();

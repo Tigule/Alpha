@@ -9,13 +9,13 @@
 #include <stdarg.h>
 
 namespace MDL {
-const char *TokenText(unsigned int token);
+  LPCSTR TokenText(UINT token);
 }
 
-mdl_scan::mdl_scan(const char *in, int inputSize) {
+mdl_scan::mdl_scan(LPCSTR in, int inputSize) {
   size = inputSize;
   mdltext = static_cast<char *>(SMemAlloc(size + 1, "new", -1, 0));
-  state = static_cast<unsigned int *>(SMemAlloc(sizeof(unsigned int) * (size + 1), "new", -1, 0));
+  state = static_cast<UINT *>(SMemAlloc(sizeof(UINT) * (size + 1), "new", -1, 0));
   if (!mdltext || !state) {
     mdlerror("out of dynamic memory in mdl_scan");
     exit(1);
@@ -61,7 +61,7 @@ int mdl_scan::mdlgetc() {
 }
 
 int mdl_scan::input() {
-  int result = static_cast<unsigned char>(*mdlin);
+  int result = static_cast<BYTE>(*mdlin);
   if (result) {
     ++mdlin;
   }
@@ -91,7 +91,7 @@ void mdl_scan::mdl_reset() {
   mdllineno = 1;
 }
 
-void mdl_scan::setinput(const char *inputBuffer) {
+void mdl_scan::setinput(LPCSTR inputBuffer) {
   mdlin = inputBuffer;
 }
 
@@ -113,7 +113,7 @@ void mdl_scan::YY_SCANNER() {
 
 void mdl_scan::mdlless(int count) {
   while (mdlleng > count) {
-    unput(static_cast<unsigned char>(mdltext[--mdlleng]));
+    unput(static_cast<BYTE>(mdltext[--mdlleng]));
   }
   mdltext[mdlleng] = 0;
 }
@@ -189,11 +189,10 @@ int mdl_scan::mdllex() {
       return 0x102;
     }
 
-    if (isdigit(character) || character == '-' || character == '+'
-        || (character == '.' && isdigit(static_cast<unsigned char>(*mdlin)))) {
+    if (isdigit(character) || character == '-' || character == '+' || (character == '.' && isdigit(static_cast<BYTE>(*mdlin)))) {
       int isFloat = character == '.';
       while (*mdlin) {
-        int next = static_cast<unsigned char>(*mdlin);
+        int next = static_cast<BYTE>(*mdlin);
         if (!isdigit(next) && next != '.' && next != 'e' && next != 'E' && next != '-' && next != '+') {
           break;
         }
@@ -215,14 +214,14 @@ int mdl_scan::mdllex() {
     }
 
     if (isalpha(character) || character == '_') {
-      while (isalnum(static_cast<unsigned char>(*mdlin)) || *mdlin == '_') {
+      while (isalnum(static_cast<BYTE>(*mdlin)) || *mdlin == '_') {
         if (mdlleng < size) {
           mdltext[mdlleng++] = *mdlin;
         }
         ++mdlin;
       }
       mdltext[mdlleng] = 0;
-      for (unsigned int token = 0x103; token < 0x1DF; ++token) {
+      for (UINT token = 0x103; token < 0x1DF; ++token) {
         if (!strcmp(mdltext, MDL::TokenText(token))) {
           return token;
         }

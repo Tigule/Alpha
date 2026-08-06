@@ -13,13 +13,13 @@ class CSimpleSortedArray {
     m_array.Clear();
   }
 
-  unsigned int Count() {
+  UINT Count() {
     return m_count;
   }
 
   void Insert(T value) {
-    unsigned int index;
-    unsigned int valuePriority = value->SimpleSortedArrayValue();
+    UINT index;
+    UINT valuePriority = value->SimpleSortedArrayValue();
 
     if (m_count == m_maxcount) {
       m_maxcount += 8;
@@ -28,7 +28,7 @@ class CSimpleSortedArray {
 
     for (index = 0; index < m_count; ++index) {
       if (valuePriority > m_array[index]->SimpleSortedArrayValue()) {
-        unsigned int move = m_count;
+        UINT move = m_count;
 
         while (move > index) {
           m_array[move] = m_array[move - 1];
@@ -45,8 +45,8 @@ class CSimpleSortedArray {
     ++m_count;
   }
 
-  void Remove(unsigned int index) {
-    unsigned int move;
+  void Remove(UINT index) {
+    UINT move;
 
     ASSERT(index < m_count);
     for (move = index; move + 1 < m_count; ++move) {
@@ -76,16 +76,16 @@ class CSimpleSortedArray {
     return &m_array[m_iterator++];
   }
 
-  T &operator[](unsigned int index) {
+  T &operator[](UINT index) {
     ASSERT(index < m_count);
     return m_array[index];
   }
 
  protected:
   TSGrowableArray<T> m_array;
-  unsigned int       m_count;
-  unsigned int       m_maxcount;
-  unsigned int       m_iterator;
+  UINT               m_count;
+  UINT               m_maxcount;
+  UINT               m_iterator;
 };
 
 #endif

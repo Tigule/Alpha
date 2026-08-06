@@ -32,8 +32,8 @@ CSimpleSlider::~CSimpleSlider() {
 void CSimpleSlider::LoadXML(const XMLNode *node, CStatus *status) {
   CSimpleFrame::LoadXML(node, status);
 
-  unsigned int layer = 3;
-  const char  *value = node->GetAttributeByName("drawLayer");
+  UINT   layer = 3;
+  LPCSTR value = node->GetAttributeByName("drawLayer");
   if (value && *value) {
     StringToDrawLayer(value, layer);
   }

@@ -38,12 +38,12 @@ static char            s_logTitle[0x100];
 static char            s_appCommand[0x104] = "GenericBlizzardApp";
 static char            s_lastLogPath[0x104];
 
-static const char *s_fatalFileName;
-static int         s_fatalLineNumber;
-static int         s_fatalProcessId;
+static LPCSTR s_fatalFileName;
+static int    s_fatalLineNumber;
+static int    s_fatalProcessId;
 
-static void StackCrawl(char *buffer, DWORD bufferchars, const char *prefix, const char *suffix) {
-  void  *frames[40];
+static void StackCrawl(char *buffer, DWORD bufferchars, LPCSTR prefix, LPCSTR suffix) {
+  LPVOID frames[40];
   int    count;
   char **symbols;
   int    index;
@@ -178,8 +178,8 @@ static FILE *OpenErrorFile() {
 
   OsGetSystemTime(&sysTime);
   SStrPrintf(
-      name, sizeof(name), "%04d-%02d-%02d %02d.%02d.%02d %s.%s", sysTime.year, sysTime.month, sysTime.day, sysTime.hour,
-      sysTime.minute, sysTime.second, "Error", "txt"
+      name, sizeof(name), "%04d-%02d-%02d %02d.%02d.%02d %s.%s", sysTime.year, sysTime.month, sysTime.day, sysTime.hour, sysTime.minute,
+      sysTime.second, "Error", "txt"
   );
   SStrPack(path, name, sizeof(path));
 
@@ -202,18 +202,17 @@ static FILE *OpenErrorFile() {
   return file;
 }
 
-extern "C" BOOL APIENTRY
-SErrDisplayError(DWORD errorcode, LPCSTR filename, int linenumber, LPCSTR description, BOOL recoverable, UINT exitcode) {
+extern "C" BOOL APIENTRY SErrDisplayError(DWORD errorcode, LPCSTR filename, int linenumber, LPCSTR description, BOOL recoverable, UINT exitcode) {
   if (s_assertOptions & (SERR_OPTION_STDERR | SERR_OPTION_ERRORFILE)) {
-    FILE        *destination[2];
-    int          count = 0;
-    FILE        *errorFile = 0;
-    OSSYSTEMTIME localTime;
+    FILE         *destination[2];
+    int           count = 0;
+    FILE         *errorFile = 0;
+    OSSYSTEMTIME  localTime;
     CFTimeZoneRef timeZone;
-    CFStringRef  abbreviation;
-    char         zone[0x40];
-    char         crawl[SERR_STACKCRAWL_SIZE];
-    int          index;
+    CFStringRef   abbreviation;
+    char          zone[0x40];
+    char          crawl[SERR_STACKCRAWL_SIZE];
+    int           index;
 
     StackCrawl(crawl, sizeof(crawl), "", "\n");
 
@@ -254,8 +253,8 @@ SErrDisplayError(DWORD errorcode, LPCSTR filename, int linenumber, LPCSTR descri
       }
 
       fprintf(
-          file, " Time:      %04d-%02d-%02d %02d.%02d.%02d %s\n", localTime.year, localTime.month, localTime.day,
-          localTime.hour, localTime.minute, localTime.second, zone
+          file, " Time:      %04d-%02d-%02d %02d.%02d.%02d %s\n", localTime.year, localTime.month, localTime.day, localTime.hour, localTime.minute,
+          localTime.second, zone
       );
       fprintf(file, "\n");
 
@@ -310,8 +309,7 @@ SErrDisplayError(DWORD errorcode, LPCSTR filename, int linenumber, LPCSTR descri
   return TRUE;
 }
 
-extern "C" BOOL __cdecl
-SErrDisplayErrorFmt(DWORD errorcode, LPCSTR filename, int linenumber, BOOL recoverable, UINT exitcode, LPCSTR format, ...) {
+extern "C" BOOL __cdecl SErrDisplayErrorFmt(DWORD errorcode, LPCSTR filename, int linenumber, BOOL recoverable, UINT exitcode, LPCSTR format, ...) {
   char    description[0x400];
   va_list args;
 
@@ -323,10 +321,10 @@ SErrDisplayErrorFmt(DWORD errorcode, LPCSTR filename, int linenumber, BOOL recov
 }
 
 extern "C" void __cdecl SErrDisplayAppFatal(LPCSTR format, ...) {
-  const char *filename = 0;
-  int         linenumber = 0;
-  char        description[0x400];
-  va_list     args;
+  LPCSTR  filename = 0;
+  int     linenumber = 0;
+  char    description[0x400];
+  va_list args;
 
   pthread_mutex_lock(&s_critsect);
 

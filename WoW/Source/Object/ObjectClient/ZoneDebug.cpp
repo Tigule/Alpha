@@ -14,14 +14,14 @@
 
 #include <string.h>
 
-static unsigned char s_zoneIDMap[256][256];
+static BYTE s_zoneIDMap[256][256];
 
-static int ReceiveZoneMap(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
-  unsigned char *next = &s_zoneIDMap[0][0];
+static int ReceiveZoneMap(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  BYTE *next = &s_zoneIDMap[0][0];
 
   while (!msg->IsRead()) {
-    unsigned char id;
-    unsigned int  run;
+    BYTE id;
+    UINT run;
 
     msg->Get(id);
     msg->Get(run);
@@ -57,7 +57,7 @@ bool ZoneDebugIsInCurrentZone(float x, float y) {
   }
 
   NTempest::C3Vector position = player->GetPosition();
-  unsigned int       playerX = static_cast<unsigned int>((position.x * 36.0f + 614400.0f) * 0.00020833334f);
-  unsigned int       playerY = static_cast<unsigned int>((position.y * 36.0f + 614400.0f) * 0.00020833334f);
+  UINT               playerX = static_cast<UINT>((position.x * 36.0f + 614400.0f) * 0.00020833334f);
+  UINT               playerY = static_cast<UINT>((position.y * 36.0f + 614400.0f) * 0.00020833334f);
   return s_zoneIDMap[playerX][playerY] == s_zoneIDMap[cellPos.x][cellPos.y];
 }

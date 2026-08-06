@@ -20,24 +20,24 @@
 #include <string.h>
 
 struct LODIndexFix {
-  void Set(unsigned short, unsigned short);
+  void Set(WORD, WORD);
 
-  unsigned short from;
-  unsigned short to;
+  WORD from;
+  WORD to;
 };
 
 struct LODArrays {
   TSGrowableArray<NTempest::C2Vector> geov;
   TSGrowableArray<NTempest::C2Vector> texv;
-  TSGrowableArray<unsigned short>     idx;
-  unsigned int                        nFixes;
+  TSGrowableArray<WORD>               idx;
+  UINT                                nFixes;
   TSGrowableArray<LODIndexFix>        fixes;
 
-  void GenFixes(unsigned int p_nFixes, unsigned int vertsPerSide, unsigned int tilesPerSide);
-  void GenVerts(unsigned int lod);
+  void GenFixes(UINT p_nFixes, UINT vertsPerSide, UINT tilesPerSide);
+  void GenVerts(UINT lod);
 };
 
-static unsigned int               s_lodSubdivs[5] = {0, 1, 3, 7, 15};
+static UINT                       s_lodSubdivs[5] = {0, 1, 3, 7, 15};
 static TSGrowableArray<LODArrays> s_lodArrays;
 static NTempest::CImVector       *pixels;
 static const float                kDeepDarken = 0.75f;
@@ -50,8 +50,8 @@ static NTempest::CImVector        s_reflectivity[256];
 CGxTex                           *CMap::skyTexid;
 CGxTex                           *CMap::riverDiffTexid;
 CGxTex                           *CMap::oceanDiffTexid;
-const unsigned int                CMap::SKYTEX_HEIGHT = 64;
-const unsigned int                CMap::WATERTEX_HEIGHT = 64;
+const UINT                        CMap::SKYTEX_HEIGHT = 64;
+const UINT                        CMap::WATERTEX_HEIGHT = 64;
 const float                       CMap::LIQUID_TEX_PURGE_TIME = 20.0f;
 const float                       CMap::WATER_SPEC_EXP = 6.0f;
 TSFixedArray<NTempest::CImVector> CMap::skyTexels;
@@ -59,7 +59,7 @@ HTEXTURE__                       *CMap::liquidTex[LIQUID_COUNT][LIQUID_TEXTURE_C
 bool                              CMap::liquidTexLoaded[LIQUID_COUNT];
 float                             CMap::liquidLastShown[LIQUID_COUNT];
 const float                       CMap::liquidTexLoopTime[LIQUID_COUNT] = {1.25f, 1.25f, 1.25f, 1.25f, 1.25f, 1.25f, 1.25f, 1.25f, 1.25f};
-const char                       *CMap::liquidTexBaseName[LIQUID_COUNT] = {"XTextures\\river\\lake_a.%d.blp", "XTextures\\ocean\\ocean_h.%d.blp",
+LPCSTR                            CMap::liquidTexBaseName[LIQUID_COUNT] = {"XTextures\\river\\lake_a.%d.blp", "XTextures\\ocean\\ocean_h.%d.blp",
                                                                            "XTextures\\lava\\lava.%d.blp",    "XTextures\\slime\\slime.%d.blp",
                                                                            "XTextures\\river\\lake_a.%d.blp", 0,
                                                                            "XTextures\\lava\\lava.%d.blp",    "XTextures\\slime\\slime.%d.blp",
@@ -99,7 +99,7 @@ NTempest::C2Vector Particulate::s_tc[13][4] = {
     {NTempest::C2Vector(0.59765625f,  0.3984375f), NTempest::C2Vector(0.59765625f, 0.59765625f),   NTempest::C2Vector(0.796875f,  0.3984375f),
      NTempest::C2Vector(0.796875f, 0.59765625f)  }
 };
-unsigned int Particulate::s_tcSub[4][8] = {
+UINT Particulate::s_tcSub[4][8] = {
     {0,  1,  2,  3, 4,  5,  6,  7},
     {0,  1,  2,  3, 4,  5,  6,  7},
     {9, 10, 11, 12, 9, 10, 11, 12},
@@ -107,10 +107,10 @@ unsigned int Particulate::s_tcSub[4][8] = {
 };
 LISTDECL(WaterRadWave, CMap::waterRipplesFree);
 LISTDECL(WaterRadWave, CMap::waterRipplesActive);
-CGxPixelShader                                *CMap::psOcean0;
-static NTempest::C2Vector                      oceanfft[4096];
-static float                                  phase;
-static float                                  phase2;
+CGxPixelShader           *CMap::psOcean0;
+static NTempest::C2Vector oceanfft[4096];
+static float              phase;
+static float              phase2;
 
 void WaterRadWave::Init(const NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq) {
   pos = p_pos;
@@ -132,13 +132,7 @@ int CMapArea::ccWaterWaves = 2;
 int CMapArea::ccWaterSpecular = 1;
 int CMapArea::ccWaterRipples = 1;
 
-void CMap::QueryLiquidSounds(
-    const NTempest::C3Vector &worldPos,
-    float                      radius,
-    int                       *lbool,
-    NTempest::C3Vector        *ldelta,
-    float                     *ldsquared
-) {
+void CMap::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radius, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared) {
   float mx = -(worldPos.y - 17066.666f);
   float my = -(worldPos.x - 17066.666f);
   FATALASSERT(mx >= 0.0f && my >= 0.0f);
@@ -192,13 +186,7 @@ void CMap::QueryLiquidSounds(
   }
 }
 
-void CMapArea::QueryLiquidSounds(
-    const NTempest::C3Vector &worldPos,
-    float                      radius,
-    int                       *lbool,
-    NTempest::C3Vector        *ldelta,
-    float                     *ldsquared
-) {
+void CMapArea::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radius, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared) {
   float mx = -(worldPos.y - 17066.666f);
   float my = -(worldPos.x - 17066.666f);
   FATALASSERT(mx >= 0.0f && my >= 0.0f);
@@ -219,14 +207,14 @@ void CMapArea::QueryLiquidSounds(
       if (!chunk) {
         continue;
       }
-      for (unsigned int liquidIndex = 0; liquidIndex < 4; ++liquidIndex) {
+      for (UINT liquidIndex = 0; liquidIndex < 4; ++liquidIndex) {
         CChunkLiquid *liquid = chunk->liquids[liquidIndex];
         if (!liquid) {
           continue;
         }
-        for (unsigned int tileY = 0; tileY < 8; ++tileY) {
-          for (unsigned int tileX = 0; tileX < 8; ++tileX) {
-            unsigned int tile = liquid->tiles.tiles[tileY][tileX] & 0xF;
+        for (UINT tileY = 0; tileY < 8; ++tileY) {
+          for (UINT tileX = 0; tileX < 8; ++tileX) {
+            UINT tile = liquid->tiles.tiles[tileY][tileX] & 0xF;
             if (tile == 0xF) {
               continue;
             }
@@ -249,10 +237,10 @@ void CMapArea::QueryLiquidSounds(
 }
 
 void CMapObj::QueryLiquidSounds(
-    unsigned int              groupIdx,
-    unsigned int              parentIdx,
-    unsigned int              rlevel,
-    unsigned int             &closestExtLevel,
+    UINT                      groupIdx,
+    UINT                      parentIdx,
+    UINT                      rlevel,
+    UINT                     &closestExtLevel,
     const NTempest::C3Vector &pos,
     int                      *lbool,
     NTempest::C3Vector       *ldelta,
@@ -263,8 +251,7 @@ void CMapObj::QueryLiquidSounds(
   }
 
   const NTempest::CAaBox &box = GetGroupInfo(groupIdx)->aaBox;
-  if (pos.x <= box.b.x || pos.y <= box.b.y || pos.z <= box.b.z ||
-      pos.x >= box.t.x || pos.y >= box.t.y || pos.z >= box.t.z) {
+  if (pos.x <= box.b.x || pos.y <= box.b.y || pos.z <= box.b.z || pos.x >= box.t.x || pos.y >= box.t.y || pos.z >= box.t.z) {
     return;
   }
 
@@ -277,28 +264,23 @@ void CMapObj::QueryLiquidSounds(
   }
   group->QueryLiquidSounds(pos, lbool, ldelta, ldsquared);
 
-  for (unsigned int i = 0; i < group->portalCount; ++i) {
-    unsigned int nextGroup = portalRefList[group->portalStart + i].groupIndex;
+  for (UINT i = 0; i < group->portalCount; ++i) {
+    UINT nextGroup = portalRefList[group->portalStart + i].groupIndex;
     if (nextGroup != 0xFFFF && nextGroup != parentIdx) {
       QueryLiquidSounds(nextGroup, groupIdx, rlevel + 1, closestExtLevel, pos, lbool, ldelta, ldsquared);
     }
   }
 }
 
-void CMapObjGroup::QueryLiquidSounds(
-    const NTempest::C3Vector &pos,
-    int                      *lbool,
-    NTempest::C3Vector       *ldelta,
-    float                    *ldsquared
-) {
+void CMapObjGroup::QueryLiquidSounds(const NTempest::C3Vector &pos, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared) {
   for (int y = 0; y < liquidTiles.y; ++y) {
     for (int x = 0; x < liquidTiles.x; ++x) {
-      unsigned int tile = liquidTileList[y * liquidTiles.x + x].GetLiquid();
+      UINT tile = liquidTileList[y * liquidTiles.x + x].GetLiquid();
       if (tile == LIQUID_NONE) {
         continue;
       }
 
-      unsigned int liquidType = tile & 3;
+      UINT  liquidType = tile & 3;
       float height;
       if (liquidType == 1) {
         ASSERT(!"CMapObjGroup::QueryLiquidSounds()\n");
@@ -320,13 +302,13 @@ void CMapObjGroup::QueryLiquidSounds(
   }
 }
 
-void LODArrays::GenFixes(unsigned int p_nFixes, unsigned int vertsPerSide, unsigned int tilesPerSide) {
+void LODArrays::GenFixes(UINT p_nFixes, UINT vertsPerSide, UINT tilesPerSide) {
   nFixes = p_nFixes;
   fixes.SetCount(4 * p_nFixes);
 
-  unsigned int   index = 0;
-  unsigned short from = 1;
-  unsigned int   i;
+  UINT index = 0;
+  WORD from = 1;
+  UINT i;
   for (i = 0; i < nFixes; ++i) {
     fixes[index].from = from;
     fixes[index].to = from - 1;
@@ -334,23 +316,23 @@ void LODArrays::GenFixes(unsigned int p_nFixes, unsigned int vertsPerSide, unsig
     from += 2;
   }
 
-  from = static_cast<unsigned short>(2 * vertsPerSide - 1);
-  unsigned short to = 0;
-  unsigned short to2 = static_cast<unsigned short>(4 * vertsPerSide);
+  from = static_cast<WORD>(2 * vertsPerSide - 1);
+  WORD to = 0;
+  WORD to2 = static_cast<WORD>(4 * vertsPerSide);
   for (i = 0; i < nFixes / 2; ++i) {
     fixes[index].from = from;
     fixes[index].to = to;
     ++index;
-    fixes[index].from = static_cast<unsigned short>(from + 2 * vertsPerSide);
+    fixes[index].from = static_cast<WORD>(from + 2 * vertsPerSide);
     fixes[index].to = to2;
     ++index;
-    from = static_cast<unsigned short>(from + 4 * vertsPerSide);
-    to = static_cast<unsigned short>(to + 4 * vertsPerSide);
-    to2 = static_cast<unsigned short>(to2 + 4 * vertsPerSide);
+    from = static_cast<WORD>(from + 4 * vertsPerSide);
+    to = static_cast<WORD>(to + 4 * vertsPerSide);
+    to2 = static_cast<WORD>(to2 + 4 * vertsPerSide);
   }
 
-  from = static_cast<unsigned short>(tilesPerSide * vertsPerSide + 1);
-  to = static_cast<unsigned short>(tilesPerSide * vertsPerSide);
+  from = static_cast<WORD>(tilesPerSide * vertsPerSide + 1);
+  to = static_cast<WORD>(tilesPerSide * vertsPerSide);
   for (i = 0; i < nFixes; ++i) {
     fixes[index].from = from;
     fixes[index].to = to;
@@ -359,27 +341,27 @@ void LODArrays::GenFixes(unsigned int p_nFixes, unsigned int vertsPerSide, unsig
     to += 2;
   }
 
-  from = static_cast<unsigned short>(tilesPerSide * tilesPerSide - 1);
-  to = static_cast<unsigned short>(tilesPerSide * tilesPerSide - 2);
+  from = static_cast<WORD>(tilesPerSide * tilesPerSide - 1);
+  to = static_cast<WORD>(tilesPerSide * tilesPerSide - 2);
   for (i = 0; i < nFixes; ++i) {
     fixes[index].from = from;
     fixes[index].to = to;
     ++index;
-    from = static_cast<unsigned short>(from - 2 * vertsPerSide);
+    from = static_cast<WORD>(from - 2 * vertsPerSide);
     to = from - 1;
   }
 }
 
-void LODArrays::GenVerts(unsigned int lod) {
-  unsigned int vertsPerSide = lod + 2;
-  unsigned int vertexCount = vertsPerSide * vertsPerSide;
+void LODArrays::GenVerts(UINT lod) {
+  UINT vertsPerSide = lod + 2;
+  UINT vertexCount = vertsPerSide * vertsPerSide;
   geov.SetCount(vertexCount);
   texv.SetCount(vertexCount);
 
-  unsigned int vertex = 0;
-  unsigned int y = 0;
-  unsigned int x;
-  float        ooTiles = 1.0f / static_cast<float>(lod + 1);
+  UINT  vertex = 0;
+  UINT  y = 0;
+  UINT  x;
+  float ooTiles = 1.0f / static_cast<float>(lod + 1);
   while (y < vertsPerSide) {
     float ty = static_cast<float>(y) * ooTiles;
     for (x = 0; x < vertsPerSide; ++x) {
@@ -408,21 +390,21 @@ void LODArrays::GenVerts(unsigned int lod) {
     ++y;
   }
 
-  unsigned int indexCount = 2 * vertsPerSide * (lod + 1) + 2;
+  UINT indexCount = 2 * vertsPerSide * (lod + 1) + 2;
   idx.SetCount(indexCount);
-  unsigned int   index = 0;
-  unsigned short low = 0;
-  unsigned short high = static_cast<unsigned short>(2 * vertsPerSide - 1);
-  for (unsigned int row = 0; row < lod + 1; ++row) {
-    for (unsigned int x = 0; x < vertsPerSide; ++x) {
+  UINT index = 0;
+  WORD low = 0;
+  WORD high = static_cast<WORD>(2 * vertsPerSide - 1);
+  for (UINT row = 0; row < lod + 1; ++row) {
+    for (UINT x = 0; x < vertsPerSide; ++x) {
       idx[index++] = low++;
       idx[index++] = high--;
     }
     low = high + 1;
-    high = static_cast<unsigned short>(high + 2 * vertsPerSide);
+    high = static_cast<WORD>(high + 2 * vertsPerSide);
   }
   idx[index++] = low;
-  idx[index] = (lod + 1) & 1 ? static_cast<unsigned short>(low + lod + 1) : low;
+  idx[index] = (lod + 1) & 1 ? static_cast<WORD>(low + lod + 1) : low;
 
   switch (lod) {
     case 1:
@@ -451,22 +433,13 @@ void LODArrays::GenVerts(unsigned int lod) {
 void CMapArea::InitWater() {
   if (!s_lodArrays.Count()) {
     s_lodArrays.SetCount(5);
-    for (unsigned int i = 0; i < 5; ++i) {
+    for (UINT i = 0; i < 5; ++i) {
       s_lodArrays[i].GenVerts(s_lodSubdivs[i]);
     }
   }
 }
 
-void CMap::WaterDiffTexCallback(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+void CMap::WaterDiffTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   ASSERT(mipLevel == 0);
   ASSERT(h == 64);
 
@@ -476,22 +449,22 @@ void CMap::WaterDiffTexCallback(
       break;
 
     case GxTex_Latch: {
-      unsigned int         index = 2 * reinterpret_cast<unsigned int>(userArg);
+      UINT                 index = 2 * reinterpret_cast<UINT>(userArg);
       DNInfo              *dnInfo = DayNightGetInfo();
       NTempest::CImVector  shallowClr = dnInfo->light.WaterArray[index];
       NTempest::CImVector  deepClr = dnInfo->light.WaterArray[index + 1];
-      unsigned int         redDelta = ((deepClr.r - shallowClr.r) << 8) >> 6;
-      unsigned int         greenDelta = ((deepClr.g - shallowClr.g) << 8) >> 6;
-      unsigned int         blueDelta = ((deepClr.b - shallowClr.b) << 8) >> 6;
-      unsigned int         red = shallowClr.r << 8;
-      unsigned int         green = shallowClr.g << 8;
-      unsigned int         blue = shallowClr.b << 8;
+      UINT                 redDelta = ((deepClr.r - shallowClr.r) << 8) >> 6;
+      UINT                 greenDelta = ((deepClr.g - shallowClr.g) << 8) >> 6;
+      UINT                 blueDelta = ((deepClr.b - shallowClr.b) << 8) >> 6;
+      UINT                 red = shallowClr.r << 8;
+      UINT                 green = shallowClr.g << 8;
+      UINT                 blue = shallowClr.b << 8;
       NTempest::CImVector *tex = pixels;
 
-      for (unsigned int y = 0; y < h; ++y) {
+      for (UINT y = 0; y < h; ++y) {
         NTempest::CImVector rowColor;
 
-        rowColor.Set(0xFF, static_cast<unsigned char>(red >> 8), static_cast<unsigned char>(green >> 8), static_cast<unsigned char>(blue >> 8));
+        rowColor.Set(0xFF, static_cast<BYTE>(red >> 8), static_cast<BYTE>(green >> 8), static_cast<BYTE>(blue >> 8));
 
         if (y == h - 1 && !userArg) {
           NTempest::C3Vector rgb = rowColor;
@@ -503,7 +476,7 @@ void CMap::WaterDiffTexCallback(
           rowColor = rgb;
         }
 
-        for (unsigned int x = 0; x < w; ++x) {
+        for (UINT x = 0; x < w; ++x) {
           tex[x] = rowColor;
         }
 
@@ -524,19 +497,19 @@ void CMap::WaterDiffTexCallback(
   }
 }
 
-HTEXTURE__ *CMap::GetLiquidTexture(unsigned int liquid) {
-  char         filename[256];
-  CStatus      status;
-  const float  secsPerLoop = liquidTexLoopTime[liquid];
-  unsigned char allLoaded;
+HTEXTURE__ *CMap::GetLiquidTexture(UINT liquid) {
+  char        filename[256];
+  CStatus     status;
+  const float secsPerLoop = liquidTexLoopTime[liquid];
+  BYTE        allLoaded;
 
   ASSERT(liquid < LIQUID_COUNT);
 
-  unsigned int texture = static_cast<unsigned int>(fmod(CWorld::GetCurTimeSec(), secsPerLoop) / secsPerLoop * LIQUID_TEXTURE_COUNT - 0.5f);
+  UINT texture = static_cast<UINT>(fmod(CWorld::GetCurTimeSec(), secsPerLoop) / secsPerLoop * LIQUID_TEXTURE_COUNT - 0.5f);
 
   if (!liquidTexLoaded[liquid]) {
     allLoaded = 1;
-    for (unsigned int i = 0; i < LIQUID_TEXTURE_COUNT; ++i) {
+    for (UINT i = 0; i < LIQUID_TEXTURE_COUNT; ++i) {
       if (!liquidTex[liquid][i]) {
         EGxTexFilter filter;
         if (CWorld::enables & CWorld::Enable_Anisotropic) {
@@ -564,10 +537,10 @@ HTEXTURE__ *CMap::GetLiquidTexture(unsigned int liquid) {
   return liquidTex[liquid][texture];
 }
 
-void CMap::UnloadLiquidTexture(unsigned int liquid) {
+void CMap::UnloadLiquidTexture(UINT liquid) {
   ASSERT(liquid < LIQUID_COUNT);
 
-  for (unsigned int texture = 0; texture < LIQUID_TEXTURE_COUNT; ++texture) {
+  for (UINT texture = 0; texture < LIQUID_TEXTURE_COUNT; ++texture) {
     if (liquidTex[liquid][texture]) {
       HandleClose(liquidTex[liquid][texture]);
       liquidTex[liquid][texture] = 0;
@@ -580,29 +553,29 @@ void CMap::UnloadLiquidTexture(unsigned int liquid) {
 void CMap::UpdateLiquidTextures() {
 }
 
-static void fft2(float* data, unsigned long* nn, int ndim, float isign) {
-  unsigned long ntot = 1;
-  int idim;
+static void fft2(float *data, DWORD *nn, int ndim, float isign) {
+  DWORD ntot = 1;
+  int   idim;
   for (idim = 1; idim <= ndim; ++idim) {
     ntot *= nn[idim];
   }
 
-  unsigned long nprev = 1;
+  DWORD nprev = 1;
   for (idim = ndim; idim >= 1; --idim) {
-    unsigned long n = nn[idim];
-    unsigned long nrem = ntot / (n * nprev);
-    unsigned long ip1 = nprev << 1;
-    unsigned long ip2 = ip1 * n;
-    unsigned long ip3 = ip2 * nrem;
-    unsigned long i2rev = 1;
-    unsigned long i2;
+    DWORD n = nn[idim];
+    DWORD nrem = ntot / (n * nprev);
+    DWORD ip1 = nprev << 1;
+    DWORD ip2 = ip1 * n;
+    DWORD ip3 = ip2 * nrem;
+    DWORD i2rev = 1;
+    DWORD i2;
     for (i2 = 1; i2 <= ip2; i2 += ip1) {
       if (i2 < i2rev) {
-        unsigned long i1;
+        DWORD i1;
         for (i1 = i2; i1 <= i2 + ip1 - 2; i1 += 2) {
-          unsigned long i3;
+          DWORD i3;
           for (i3 = i1; i3 <= ip3; i3 += ip2) {
-            unsigned long i3rev = i2rev + i3 - i2;
+            DWORD i3rev = i2rev + i3 - i2;
             float temp = data[i3];
             data[i3] = data[i3rev];
             data[i3rev] = temp;
@@ -612,7 +585,7 @@ static void fft2(float* data, unsigned long* nn, int ndim, float isign) {
           }
         }
       }
-      unsigned long ibit = ip2 >> 1;
+      DWORD ibit = ip2 >> 1;
       while (ibit >= ip1 && i2rev > ibit) {
         i2rev -= ibit;
         ibit >>= 1;
@@ -620,31 +593,28 @@ static void fft2(float* data, unsigned long* nn, int ndim, float isign) {
       i2rev += ibit;
     }
 
-    unsigned long ifp1 = ip1;
+    DWORD ifp1 = ip1;
     while (ifp1 < ip2) {
-      unsigned long ifp2 = ifp1 << 1;
-      double theta =
-          isign * 6.28318530717958647692 / (ifp2 / ip1);
+      DWORD  ifp2 = ifp1 << 1;
+      double theta = isign * 6.28318530717958647692 / (ifp2 / ip1);
       double wtemp = sin(0.5 * theta);
       double wpr = -2.0 * wtemp * wtemp;
       double wpi = sin(theta);
       double wr = 1.0;
       double wi = 0.0;
-      unsigned long i3;
+      DWORD  i3;
       for (i3 = 1; i3 <= ifp1; i3 += ip1) {
-        unsigned long i1;
+        DWORD i1;
         for (i1 = i3; i1 <= i3 + ip1 - 2; i1 += 2) {
-          unsigned long i2a;
+          DWORD i2a;
           for (i2a = i1; i2a <= ip3; i2a += ifp2) {
-            unsigned long k1 = i2a + ifp1;
+            DWORD  k1 = i2a + ifp1;
             double tempr = wr * data[k1] - wi * data[k1 + 1];
             double tempi = wr * data[k1 + 1] + wi * data[k1];
             data[k1] = static_cast<float>(data[i2a] - tempr);
-            data[k1 + 1] =
-                static_cast<float>(data[i2a + 1] - tempi);
+            data[k1 + 1] = static_cast<float>(data[i2a + 1] - tempi);
             data[i2a] = static_cast<float>(data[i2a] + tempr);
-            data[i2a + 1] =
-                static_cast<float>(data[i2a + 1] + tempi);
+            data[i2a + 1] = static_cast<float>(data[i2a + 1] + tempi);
           }
         }
         wtemp = wr;
@@ -677,10 +647,10 @@ void CMap::OceanFFT() {
   oceanfft[1424] = NTempest::C2Vector(1.4f * c2, 1.4f * s2);
   oceanfft[254] = NTempest::C2Vector(1.6f * c2, 1.6f * s2);
 
-  unsigned long nn[2] = {64, 64};
+  DWORD nn[2] = {64, 64};
   fft2(reinterpret_cast<float *>(oceanfft) - 1, nn - 1, 2, -1.0f);
 
-  for (unsigned int i = 0; i < 4096; ++i) {
+  for (UINT i = 0; i < 4096; ++i) {
     oceanfft[i].x *= 0.015625f;
     oceanfft[i].y *= 0.015625f;
   }
@@ -703,8 +673,8 @@ void CMap::WaterInitialize() {
   oceanDiffTexid = 0;
 
   {
-    for (unsigned int i = 0; i < NUM_RIPPLES; ++i) {
-      void         *storage = SMemAlloc(sizeof(WaterRadWave), typeid(WaterRadWave).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
+    for (UINT i = 0; i < NUM_RIPPLES; ++i) {
+      LPVOID        storage = SMemAlloc(sizeof(WaterRadWave), typeid(WaterRadWave).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
       WaterRadWave *wave = storage ? new (storage) WaterRadWave : 0;
 
       waterRipplesFree.LinkNode(wave, LIST_TAIL, 0);
@@ -715,7 +685,7 @@ void CMap::WaterInitialize() {
   memset(liquidTexLoaded, 0, sizeof(liquidTexLoaded));
 
   {
-    for (unsigned int i = 0; i < 256; ++i) {
+    for (UINT i = 0; i < 256; ++i) {
       if (MD_OCEAN_DEPTH_SCALE * i <= 26.666666f) {
         s_oceanDepthCoordTable[i] = MD_OCEAN_DEPTH_SCALE * i * 0.037500001f;
       } else {
@@ -731,7 +701,7 @@ void CMap::WaterInitialize() {
   }
 
   {
-    for (unsigned int i = 0; i < 256; ++i) {
+    for (UINT i = 0; i < 256; ++i) {
       float thetai = static_cast<float>(acos(static_cast<float>(i) * 0.0039215689f));
       float thetat = static_cast<float>(asin(sin(thetai) * 0.74626863f));
       float fs;
@@ -746,28 +716,25 @@ void CMap::WaterInitialize() {
       }
 
       s_reflectivity[i].Set(
-          static_cast<unsigned char>(fs * 255.0f),
-          static_cast<unsigned char>(fs * 255.0f),
-          static_cast<unsigned char>(fs * 255.0f),
-          static_cast<unsigned char>(fs * 255.0f)
+          static_cast<BYTE>(fs * 255.0f), static_cast<BYTE>(fs * 255.0f), static_cast<BYTE>(fs * 255.0f), static_cast<BYTE>(fs * 255.0f)
       );
     }
   }
 
   if (!skyTexid) {
-    skyTexels.SetCount(static_cast<unsigned int>(Gx_MinTexAspect * SKYTEX_HEIGHT * SKYTEX_HEIGHT));
+    skyTexels.SetCount(static_cast<UINT>(Gx_MinTexAspect * SKYTEX_HEIGHT * SKYTEX_HEIGHT));
     GxTexCreate(
-        static_cast<unsigned int>(Gx_MinTexAspect * SKYTEX_HEIGHT), SKYTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
-        &skyTexels[0], DayNightSkyTexCallback, skyTexid
+        static_cast<UINT>(Gx_MinTexAspect * SKYTEX_HEIGHT), SKYTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &skyTexels[0],
+        DayNightSkyTexCallback, skyTexid
     );
   }
 
   GxTexCreate(
-      static_cast<unsigned int>(Gx_MinTexAspect * WATERTEX_HEIGHT), WATERTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
-      reinterpret_cast<void *>(1), WaterDiffTexCallback, riverDiffTexid
+      static_cast<UINT>(Gx_MinTexAspect * WATERTEX_HEIGHT), WATERTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
+      reinterpret_cast<LPVOID>(1), WaterDiffTexCallback, riverDiffTexid
   );
   GxTexCreate(
-      static_cast<unsigned int>(Gx_MinTexAspect * WATERTEX_HEIGHT), WATERTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0,
+      static_cast<UINT>(Gx_MinTexAspect * WATERTEX_HEIGHT), WATERTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0,
       WaterDiffTexCallback, oceanDiffTexid
   );
   GxPixelShaderCreate(psOcean0, "Shaders\\Pixel\\Ocean0.bls");
@@ -789,7 +756,7 @@ void CMap::WaterDestroy() {
   }
   oceanDiffTexid = 0;
 
-  for (unsigned int liquid = 0; liquid < LIQUID_COUNT; ++liquid) {
+  for (UINT liquid = 0; liquid < LIQUID_COUNT; ++liquid) {
     UnloadLiquidTexture(liquid);
   }
 
@@ -800,10 +767,10 @@ void CMap::WaterDestroy() {
 }
 
 void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
-  unsigned int       tx;
-  unsigned int       vrowx;
+  UINT               tx;
+  UINT               vrowx;
   float              fx;
-  unsigned int       ty;
+  UINT               ty;
   float              dy;
   NTempest::C3Vector vertWorldPos;
   NTempest::C2Vector farCorner;
@@ -833,7 +800,7 @@ void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
   }
 }
 
-static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPNT0 *&vtx, unsigned short *&idx) {
+static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPNT0 *&vtx, WORD *&idx) {
   FATALASSERT(cmd.vertex.op != GxBufOp_Nop);
   FATALASSERT(cmd.index.op != GxBufOp_Nop);
 
@@ -847,14 +814,14 @@ static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPNT0 *&vtx, 
   }
 
   if (cmd.index.op == GxBufOp_Fill) {
-    idx = static_cast<unsigned short *>(*cmd.index.mem[GxVM_Position]);
+    idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Position]);
   } else {
-    idx = static_cast<unsigned short *>(GxAllocIndexMem(gxBuf->IndexCount() * sizeof(*idx)));
+    idx = static_cast<WORD *>(GxAllocIndexMem(gxBuf->IndexCount() * sizeof(*idx)));
     *cmd.index.mem[GxVM_Position] = idx;
   }
 }
 
-static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPCT0 *&vtx, unsigned short *&idx) {
+static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPCT0 *&vtx, WORD *&idx) {
   FATALASSERT(cmd.vertex.op != GxBufOp_Nop);
   FATALASSERT(cmd.index.op != GxBufOp_Nop);
 
@@ -868,9 +835,9 @@ static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPCT0 *&vtx, 
   }
 
   if (cmd.index.op == GxBufOp_Fill) {
-    idx = static_cast<unsigned short *>(*cmd.index.mem[GxVM_Position]);
+    idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Position]);
   } else {
-    idx = static_cast<unsigned short *>(GxAllocIndexMem(gxBuf->IndexCount() * sizeof(*idx)));
+    idx = static_cast<WORD *>(GxAllocIndexMem(gxBuf->IndexCount() * sizeof(*idx)));
     *cmd.index.mem[GxVM_Position] = idx;
   }
 }
@@ -879,10 +846,10 @@ void CChunkLiquid::RenderRiver0V(CGxVertexPNT0 *vtx) {
   NTempest::C3Vector diffv;
   float              dsq;
   NTempest::C3Vector vertWorldPos;
-  unsigned int       vrow1;
-  unsigned int       tx;
+  UINT               vrow1;
+  UINT               tx;
   float              fx;
-  unsigned int       ty;
+  UINT               ty;
   float              dy;
   NTempest::C2Vector farCorner;
   float              dx;
@@ -922,7 +889,7 @@ void CChunkLiquid::RenderRiver0V(CGxVertexPNT0 *vtx) {
 
 void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
   NTempest::C3Vector  vertWorldPos;
-  unsigned int        vrow1;
+  UINT                vrow1;
   float               fx;
   float               dy;
   const float         MAGMA_TILES = 3.0f;
@@ -949,11 +916,11 @@ void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
 
   v = NTempest::C2iVector(0);
   t = NTempest::C2iVector(0);
-  while (static_cast<unsigned int>(v.y) < 9) {
+  while (static_cast<UINT>(v.y) < 9) {
     vertWorldPos.x = static_cast<float>(v.y) * dy + chunk->corner.x;
     v.x = 0;
     t.x = 0;
-    while (static_cast<unsigned int>(v.x) < 9) {
+    while (static_cast<UINT>(v.x) < 9) {
       vrow1 = v.x + 9 * v.y;
       SMVert &magmaVert = verts[vrow1].magmaVert;
       vertWorldPos.y = static_cast<float>(v.x) * dx + chunk->corner.y;
@@ -970,25 +937,25 @@ void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
   }
 }
 
-unsigned short CChunkLiquid::Render0I(unsigned short *idxBase, unsigned int liquidType) {
-  unsigned short  i2;
-  unsigned int    ty;
-  unsigned short  lastRenderedVtx = 0;
-  unsigned char   inStrip = 0;
-  unsigned short *idx = idxBase;
+WORD CChunkLiquid::Render0I(WORD *idxBase, UINT liquidType) {
+  WORD  i2;
+  UINT  ty;
+  WORD  lastRenderedVtx = 0;
+  BYTE  inStrip = 0;
+  WORD *idx = idxBase;
 
   for (ty = 0; ty < 8; ++ty) {
-    unsigned short i0 = static_cast<unsigned short>(9 * ty);
-    i2 = static_cast<unsigned short>(i0 + 10);
+    WORD i0 = static_cast<WORD>(9 * ty);
+    i2 = static_cast<WORD>(i0 + 10);
     while (i0 < 9 * ty + 8) {
       if ((tiles.tiles[ty][i0 - 9 * ty] & 0xF) == liquidType) {
         if (!inStrip) {
           *idx++ = i0;
           *idx++ = i0;
-          *idx++ = static_cast<unsigned short>(i0 + 9);
+          *idx++ = static_cast<WORD>(i0 + 9);
           inStrip = 1;
         }
-        *idx++ = static_cast<unsigned short>(i0 + 1);
+        *idx++ = static_cast<WORD>(i0 + 1);
         *idx++ = i2;
         lastRenderedVtx = i2;
       } else if (inStrip) {
@@ -1003,13 +970,13 @@ unsigned short CChunkLiquid::Render0I(unsigned short *idxBase, unsigned int liqu
       inStrip = 0;
     }
   }
-  return static_cast<unsigned short>(idx - idxBase);
+  return static_cast<WORD>(idx - idxBase);
 }
 
 void CChunkLiquid::RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
-  unsigned short *idx;
-  CGxVertexPNT0  *vtx;
-  UserArg        *arg = static_cast<UserArg *>(gxBuf->UserArg());
+  WORD          *idx;
+  CGxVertexPNT0 *vtx;
+  UserArg       *arg = static_cast<UserArg *>(gxBuf->UserArg());
   SetupBufCmd(gxBuf, cmd, vtx, idx);
   arg->liquid->RenderOcean0V(vtx);
   arg->indexCount = arg->liquid->Render0I(idx, arg->liquidType);
@@ -1017,9 +984,9 @@ void CChunkLiquid::RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
 }
 
 void CChunkLiquid::RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
-  unsigned short *idx;
-  CGxVertexPNT0  *vtx;
-  UserArg        *arg = static_cast<UserArg *>(gxBuf->UserArg());
+  WORD          *idx;
+  CGxVertexPNT0 *vtx;
+  UserArg       *arg = static_cast<UserArg *>(gxBuf->UserArg());
   SetupBufCmd(gxBuf, cmd, vtx, idx);
   arg->liquid->RenderRiver0V(vtx);
   arg->indexCount = arg->liquid->Render0I(idx, arg->liquidType);
@@ -1027,9 +994,9 @@ void CChunkLiquid::RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
 }
 
 void CChunkLiquid::RenderMagma0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
-  unsigned short *idx;
-  CGxVertexPCT0  *vtx;
-  UserArg        *arg = static_cast<UserArg *>(gxBuf->UserArg());
+  WORD          *idx;
+  CGxVertexPCT0 *vtx;
+  UserArg       *arg = static_cast<UserArg *>(gxBuf->UserArg());
   SetupBufCmd(gxBuf, cmd, vtx, idx);
   arg->liquid->RenderMagma0V(vtx);
   arg->indexCount = arg->liquid->Render0I(idx, arg->liquidType);
@@ -1052,7 +1019,7 @@ void CChunkLiquid::RenderOcean0() {
   }
 }
 
-void CChunkLiquid::RenderRiver0(unsigned int type) {
+void CChunkLiquid::RenderRiver0(UINT type) {
   UserArg arg(this, 4);
   CGxTex *texture = TextureGetGxTex(CMap::GetLiquidTexture(4), 0, 0);
   if (CMap::liquidTexLoaded[4]) {
@@ -1068,7 +1035,7 @@ void CChunkLiquid::RenderRiver0(unsigned int type) {
   }
 }
 
-void CChunkLiquid::RenderMagma0(unsigned int type) {
+void CChunkLiquid::RenderMagma0(UINT type) {
   UserArg arg(this, 6);
   CGxTex *texture = TextureGetGxTex(CMap::GetLiquidTexture(6), 0, 0);
   if (CMap::liquidTexLoaded[6]) {
@@ -1084,7 +1051,7 @@ void CChunkLiquid::RenderMagma0(unsigned int type) {
   }
 }
 
-void CChunkLiquid::Render(unsigned int type) {
+void CChunkLiquid::Render(UINT type) {
   switch (type) {
     case 0: {
       if (!CMap::riverDiffTexUpdated) {
@@ -1155,7 +1122,7 @@ NTempest::C3Vector Particulate::ComputeMovement(float elapsedTime) {
   return NTempest::C3Vector(0.0f, 0.0f, 0.0f);
 }
 
-Particulate::Particulate(float particleScale, float boxSize, const char *particulateTexture) : show(0) {
+Particulate::Particulate(float particleScale, float boxSize, LPCSTR particulateTexture) : show(0) {
   SetPercentage(1.0f);
   SetScale(particleScale);
   SetSize(boxSize);
@@ -1168,7 +1135,7 @@ Particulate::Particulate(float particleScale, float boxSize, const char *particu
 
 void Particulate::SetPercentage(float percent) {
   ASSERT(percent >= 0.0f && percent <= 1.0f);
-  numParticles = static_cast<unsigned int>(percent * 4000.0f);
+  numParticles = static_cast<UINT>(percent * 4000.0f);
 }
 
 Particulate::~Particulate() {
@@ -1185,22 +1152,22 @@ void Particulate::SetSize(float units) {
   boxSize = units;
 }
 
-void Particulate::SetTexture(const char *name) {
+void Particulate::SetTexture(LPCSTR name) {
   if (texture) {
     HandleClose(texture);
   }
 
-  CStatus     status;
+  CStatus status;
   texture = TextureCreate(name, CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 2);
 }
 
-void Particulate::InitParticles(unsigned int l) {
+void Particulate::InitParticles(UINT l) {
   float scaleMin = scale * 0.5f;
   float scaleDiff = scale * 1.5f - scaleMin;
   float halfBoxSize = boxSize * 0.5f;
 
-  for (unsigned int lp = 0; lp < numParticles; ++lp) {
+  for (UINT lp = 0; lp < numParticles; ++lp) {
     particles[lp].pos = NTempest::C3Vector(
         NTempest::CRandom::real_(g_rndSeed) * boxSize - halfBoxSize, NTempest::CRandom::real_(g_rndSeed) * boxSize - halfBoxSize,
         NTempest::CRandom::real_(g_rndSeed) * boxSize - halfBoxSize
@@ -1239,7 +1206,7 @@ void Particulate::Update() {
 
   delta += ComputeMovement(CWorld::GetTickTimeSec());
 
-  for (unsigned int lp = 0; lp < numParticles; ++lp) {
+  for (UINT lp = 0; lp < numParticles; ++lp) {
     particles[lp].pos += delta;
 
     if (particles[lp].pos.x > halfBoxSize) {
@@ -1267,17 +1234,17 @@ void Particulate::Render() {
     return;
   }
 
-  CGxVertexPCT0  *vtxBase = static_cast<CGxVertexPCT0 *>(GxAllocVertexMem(2664 * sizeof(*vtxBase)));
-  unsigned short *idxBase = static_cast<unsigned short *>(GxAllocIndexMem(3996 * sizeof(*idxBase)));
+  CGxVertexPCT0 *vtxBase = static_cast<CGxVertexPCT0 *>(GxAllocVertexMem(2664 * sizeof(*vtxBase)));
+  WORD          *idxBase = static_cast<WORD *>(GxAllocIndexMem(3996 * sizeof(*idxBase)));
 
   NTempest::C44Matrix view;
   GxXformView(view);
   GxXformSetView(NTempest::C44Matrix());
 
-  unsigned int    nVerts = 0;
-  unsigned short *idx = idxBase;
-  unsigned int    tcSub = 8;
-  for (unsigned int lp = 0; lp < numParticles; ++lp) {
+  UINT  nVerts = 0;
+  WORD *idx = idxBase;
+  UINT  tcSub = 8;
+  for (UINT lp = 0; lp < numParticles; ++lp) {
     const Particle    &particle = particles[lp];
     NTempest::C3Vector vp(
         view.a0 * particle.pos.x + view.b0 * particle.pos.y + view.c0 * particle.pos.z,
@@ -1287,7 +1254,7 @@ void Particulate::Render() {
 
     if (vp.z > 0.0f && vp.x < vp.z && vp.x > -vp.z && vp.y < vp.z && vp.y > -vp.z) {
       CGxVertexPCT0 *vtx = vtxBase + nVerts;
-      for (unsigned int i = 0; i < 4; ++i) {
+      for (UINT i = 0; i < 4; ++i) {
         vtx[i].p.x = vp.x + s_vcv[i].x * particle.scale;
         vtx[i].p.y = vp.y + s_vcv[i].y * particle.scale;
         vtx[i].p.z = vp.z;
@@ -1325,6 +1292,6 @@ void Particulate::Render() {
   GxXformSetView(view);
 }
 
-void Particulate::CustomRenderCallback(void *p1, int p2) {
+void Particulate::CustomRenderCallback(LPVOID p1, int p2) {
   static_cast<Particulate *>(p1)->Render();
 }

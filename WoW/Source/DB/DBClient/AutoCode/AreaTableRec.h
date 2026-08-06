@@ -7,13 +7,13 @@ class AreaTableRec {
   AreaTableRec();
   ~AreaTableRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 22;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 88;
   }
 
@@ -28,23 +28,23 @@ class AreaTableRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_AreaNumber;
-  int         m_ContinentID;
-  int         m_ParentAreaNum;
-  int         m_AreaBit;
-  int         m_flags;
-  int         m_SoundProviderPref;
-  int         m_SoundProviderPrefUnderwater;
-  int         m_MIDIAmbience;
-  int         m_MIDIAmbienceUnderwater;
-  int         m_ZoneMusic;
-  int         m_IntroSound;
-  int         m_IntroPriority;
-  const char *m_AreaName_lang[NUM_LOCALES];
-  int         m_AreaName_flag;
+  int    m_ID;
+  int    m_AreaNumber;
+  int    m_ContinentID;
+  int    m_ParentAreaNum;
+  int    m_AreaBit;
+  int    m_flags;
+  int    m_SoundProviderPref;
+  int    m_SoundProviderPrefUnderwater;
+  int    m_MIDIAmbience;
+  int    m_MIDIAmbienceUnderwater;
+  int    m_ZoneMusic;
+  int    m_IntroSound;
+  int    m_IntroPriority;
+  LPCSTR m_AreaName_lang[NUM_LOCALES];
+  int    m_AreaName_flag;
 };
 
 extern WowClientDB<AreaTableRec> g_areaTableDB;

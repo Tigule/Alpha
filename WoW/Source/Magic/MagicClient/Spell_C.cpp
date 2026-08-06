@@ -65,60 +65,60 @@ class SpellCast {
   void BuildFullZoneUpdate(CDataStore *msg);
   void UnpackFullZoneUpdate(CDataStore *msg);
 
-  unsigned __int64   caster;
-  unsigned __int64   casterUnit;
+  DWORDLONG          caster;
+  DWORDLONG          casterUnit;
   int                spellID;
-  unsigned short     targets;
-  unsigned __int64   unitTarget;
-  unsigned __int64   itemTarget;
-  unsigned __int64   selectedTarget;
+  WORD               targets;
+  DWORDLONG          unitTarget;
+  DWORDLONG          itemTarget;
+  DWORDLONG          selectedTarget;
   NTempest::C3Vector sourceLocation;
   NTempest::C3Vector destLocation;
   float              destFacing;
-  unsigned int       destZoneID;
-  unsigned int       castTime;
-  unsigned int       castEndTime;
+  UINT               destZoneID;
+  UINT               castTime;
+  UINT               castEndTime;
   int                spellIndex;
-  unsigned int       spellLevel;
-  unsigned __int64   ammoItem;
-  unsigned __int64   reflector;
+  UINT               spellLevel;
+  DWORDLONG          ammoItem;
+  DWORDLONG          reflector;
   char               targetString[128];
   int                overrideRank;
-  unsigned short     flags;
+  WORD               flags;
 };
 
 NODEDECL(SPELLHISTORY) {
-  int           spellID;
-  int           itemID;
-  unsigned long recoveryStart;
-  unsigned int  recoveryTime;
-  int           category;
-  unsigned long categoryRecoveryStart;
-  unsigned int  categoryRecoveryTime;
-  bool          onHold;
-  int           startRecoveryCategory;
-  unsigned int  startRecoveryTime;
+  int   spellID;
+  int   itemID;
+  DWORD recoveryStart;
+  UINT  recoveryTime;
+  int   category;
+  DWORD categoryRecoveryStart;
+  UINT  categoryRecoveryTime;
+  bool  onHold;
+  int   startRecoveryCategory;
+  UINT  startRecoveryTime;
 };
 
 class SpellHistory {
  public:
   void AddHistory(
-      int           spellID,
-      int           itemID,
-      unsigned long recoveryStart,
-      unsigned int  recoveryTime,
-      int           category,
-      unsigned long categoryRecoveryStart,
-      unsigned int  categoryRecoveryTime,
-      bool          onHold,
-      int           startRecoveryCategory,
-      unsigned int  startRecoveryTime
+      int   spellID,
+      int   itemID,
+      DWORD recoveryStart,
+      UINT  recoveryTime,
+      int   category,
+      DWORD categoryRecoveryStart,
+      UINT  categoryRecoveryTime,
+      bool  onHold,
+      int   startRecoveryCategory,
+      UINT  startRecoveryTime
   );
-  int GetCooldown(int spellID, int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+  int  GetCooldown(int spellID, int itemID, UINT *duration, DWORD *startTime, UINT *enable);
   int  IsOnHold(int spellID, int itemID);
-  void RemoveHold(int spellID, unsigned long startTime, bool clear);
+  void RemoveHold(int spellID, DWORD startTime, bool clear);
   void ClearHistory();
-  void GarbageCollect(unsigned long timestamp);
+  void GarbageCollect(DWORD timestamp);
 
  protected:
   LISTDECL(SPELLHISTORY, m_spellHistory);
@@ -126,81 +126,89 @@ class SpellHistory {
 };
 
 struct ITEMCOOLDOWNHASHNODE : public TSHashObject<ITEMCOOLDOWNHASHNODE, HASHKEY_NONE> {
-  int           spellID;
-  unsigned long startTime;
-  unsigned char needsEvent;
+  int   spellID;
+  DWORD startTime;
+  BYTE  needsEvent;
 };
 
-static SpellCast        s_spellCast;
-static GAME_ERROR_TYPE  s_gerrEnums[4] = {
-    GERR_OUT_OF_MANA,
-    GERR_OUT_OF_RAGE,
-    GERR_OUT_OF_FOCUS,
-    GERR_OUT_OF_ENERGY};
-static unsigned int     s_displayPowerMods[4] = {1, 10, 1, 1};
-static unsigned short   s_needTargets;
-static int              s_modalSpellID;
-static int              s_savedModalSpellID;
-static unsigned __int64 s_modalItemID;
-static unsigned __int64 s_savedModalItemID;
-static unsigned char    s_playerCast;
-static char             s_spellTargetString[128];
-static unsigned int     s_spellWorldModel;
-static float            s_spellWorldModelFacing;
-static unsigned char    s_spellWorldModelHousing;
-static SpellHistory     s_spellHistory[2];
-static unsigned long    s_cleanupTime;
+static SpellCast                                       s_spellCast;
+static GAME_ERROR_TYPE                                 s_gerrEnums[4] = {GERR_OUT_OF_MANA, GERR_OUT_OF_RAGE, GERR_OUT_OF_FOCUS, GERR_OUT_OF_ENERGY};
+static UINT                                            s_displayPowerMods[4] = {1, 10, 1, 1};
+static WORD                                            s_needTargets;
+static int                                             s_modalSpellID;
+static int                                             s_savedModalSpellID;
+static DWORDLONG                                       s_modalItemID;
+static DWORDLONG                                       s_savedModalItemID;
+static BYTE                                            s_playerCast;
+static char                                            s_spellTargetString[128];
+static UINT                                            s_spellWorldModel;
+static float                                           s_spellWorldModelFacing;
+static BYTE                                            s_spellWorldModelHousing;
+static SpellHistory                                    s_spellHistory[2];
+static DWORD                                           s_cleanupTime;
 static TSHashTable<ITEMCOOLDOWNHASHNODE, HASHKEY_NONE> s_itemCooldowns;
 
 void CursorSetCursorMode(CURSORANIMATIONS mode);
 void CursorModelSetSequence(CURSORANIMATIONS sequence);
 void CursorResetCursor(int force);
-void            SendCast(SpellCast *cast);
+void SendCast(SpellCast *cast);
 void SpellPutCastTargets(SpellCast *cast, CDataStore *msg);
 void SpellGetCastTargets(SpellCast *cast, CDataStore *msg);
-void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2);
-void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason);
-void
-SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, unsigned int duration, unsigned int animDuration, bool wasProc);
-void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, const char *message);
+void Spell_C_SpellFailed(int spellID, BYTE reason, int arg1, int arg2);
+void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, BYTE status, BYTE reason);
+void SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, UINT duration, UINT animDuration, bool wasProc);
+void UnitCombatLogSpellFail(CGUnit_C *caster, int spellID, LPCSTR message);
 void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
-void SpellVisualsPlayKit(CGUnit_C *target, unsigned int id);
+void SpellVisualsPlayKit(CGUnit_C *target, UINT id);
 void SpellVisualsHandleSpellStart(
-    int spellID, const SpellCast &cast, CGGameObject_C *caster,
-    const TSStackArray<unsigned __int64> &targets, bool ignoreAreaEffect, bool hits);
+    int                            spellID,
+    const SpellCast               &cast,
+    CGGameObject_C                *caster,
+    const TSStackArray<DWORDLONG> &targets,
+    bool                           ignoreAreaEffect,
+    bool                           hits
+);
 void SpellVisualsHandleSpellStartHits(
-    int spellID, const SpellCast &cast, CGUnit_C *caster,
-    const TSStackArray<unsigned __int64> &targets, int ammoDisplayID,
-    int ammoInventoryType, int flags);
+    int                            spellID,
+    const SpellCast               &cast,
+    CGUnit_C                      *caster,
+    const TSStackArray<DWORDLONG> &targets,
+    int                            ammoDisplayID,
+    int                            ammoInventoryType,
+    int                            flags
+);
 void SpellVisualsHandleSpellStartMisses(
-    int spellID, const SpellCast &cast, CGUnit_C *caster,
-    const TSStackArray<unsigned __int64> &targets,
-    TSStackArray<MISS_REASON> &missReasons, int ammoDisplayID,
-    int ammoInventoryType, int flags);
-void UnitCombatLogCastGo(
-    unsigned int spellID, unsigned __int64 casterUnit,
-    unsigned __int64 target);
-bool Spell_C_IsTargeting();
-bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *rec, bool report);
-bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *rec, bool checkAmmo, bool report);
-bool RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec);
-bool Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec);
-void UnitEffectPreloadSpellEffects(int spellID);
-const ItemSubClassRec *SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
-bool Spell_C_HandleSpriteClick(CGObject_C *object);
-const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
+    int                            spellID,
+    const SpellCast               &cast,
+    CGUnit_C                      *caster,
+    const TSStackArray<DWORDLONG> &targets,
+    TSStackArray<MISS_REASON>     &missReasons,
+    int                            ammoDisplayID,
+    int                            ammoInventoryType,
+    int                            flags
+);
+void                       UnitCombatLogCastGo(UINT spellID, DWORDLONG casterUnit, DWORDLONG target);
+bool                       Spell_C_IsTargeting();
+bool                       Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *rec, bool report);
+bool                       Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *rec, bool checkAmmo, bool report);
+bool                       RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec);
+bool                       Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec);
+void                       UnitEffectPreloadSpellEffects(int spellID);
+const ItemSubClassRec     *SDBItemSubclassGetSubClassRec(UINT classID, UINT subClassID);
+bool                       Spell_C_HandleSpriteClick(CGObject_C *object);
+const SkillLineAbilityRec *SpellTableLookupAbility(UINT raceID, UINT classID, UINT spellID);
 
 void SpellHistory::AddHistory(
-    int           spellID,
-    int           itemID,
-    unsigned long recoveryStart,
-    unsigned int  recoveryTime,
-    int           category,
-    unsigned long categoryRecoveryStart,
-    unsigned int  categoryRecoveryTime,
-    bool          onHold,
-    int           startRecoveryCategory,
-    unsigned int  startRecoveryTime
+    int   spellID,
+    int   itemID,
+    DWORD recoveryStart,
+    UINT  recoveryTime,
+    int   category,
+    DWORD categoryRecoveryStart,
+    UINT  categoryRecoveryTime,
+    bool  onHold,
+    int   startRecoveryCategory,
+    UINT  startRecoveryTime
 ) {
   if (!recoveryTime && !categoryRecoveryTime && !onHold && !startRecoveryTime) {
     return;
@@ -226,7 +234,7 @@ void SpellHistory::AddHistory(
   history->startRecoveryTime = startRecoveryTime;
 }
 
-void SpellHistory::RemoveHold(int spellID, unsigned long startTime, bool clear) {
+void SpellHistory::RemoveHold(int spellID, DWORD startTime, bool clear) {
   SPELLHISTORY *history = m_spellHistory.Head();
   while (history) {
     SPELLHISTORY *next = m_spellHistory.Next(history);
@@ -251,19 +259,13 @@ void SpellHistory::ClearHistory() {
   }
 }
 
-void SpellHistory::GarbageCollect(unsigned long timestamp) {
+void SpellHistory::GarbageCollect(DWORD timestamp) {
   SPELLHISTORY *history = m_spellHistory.Head();
   while (history) {
     SPELLHISTORY *next = m_spellHistory.Next(history);
-    if (!history->onHold &&
-        (!history->recoveryTime ||
-         static_cast<long>(
-             timestamp - (history->recoveryStart + history->recoveryTime)) >= 0) &&
-        (!history->categoryRecoveryTime ||
-         static_cast<long>(
-             timestamp -
-             (history->categoryRecoveryStart +
-              history->categoryRecoveryTime)) >= 0)) {
+    if (!history->onHold && (!history->recoveryTime || static_cast<long>(timestamp - (history->recoveryStart + history->recoveryTime)) >= 0) &&
+        (!history->categoryRecoveryTime || static_cast<long>(timestamp - (history->categoryRecoveryStart + history->categoryRecoveryTime)) >= 0))
+    {
       m_spellHistory.UnlinkNode(history);
       m_freeList.LinkNode(history, LIST_TAIL, 0);
     }
@@ -279,12 +281,10 @@ int SpellHistory::IsOnHold(int spellID, int itemID) {
 
   int category = spell->m_category;
   if (itemID) {
-    const ItemStats *stats =
-        g_itemDBCache.GetRecord(itemID, 0, 0, 0);
+    const ItemStats *stats = g_itemDBCache.GetRecord(itemID, 0, 0, 0);
     if (stats) {
       for (int i = 0; i < 5; ++i) {
-        if (stats->m_spellID[i] == spellID &&
-            stats->m_spellCategory[i] > 0) {
+        if (stats->m_spellID[i] == spellID && stats->m_spellCategory[i] > 0) {
           category = stats->m_spellCategory[i];
         }
       }
@@ -292,19 +292,17 @@ int SpellHistory::IsOnHold(int spellID, int itemID) {
   }
 
   ITERATELIST(SPELLHISTORY, m_spellHistory, history) {
-    if (((history->spellID == spellID &&
-          history->itemID == itemID &&
-          history->recoveryTime) ||
-         (history->category == category &&
-          history->categoryRecoveryTime)) &&
-        history->onHold) {
+    if (((history->spellID == spellID && history->itemID == itemID && history->recoveryTime) ||
+         (history->category == category && history->categoryRecoveryTime)) &&
+        history->onHold)
+    {
       return 1;
     }
   }
   return 0;
 }
 
-int SpellHistory::GetCooldown(int spellID, int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable) {
+int SpellHistory::GetCooldown(int spellID, int itemID, UINT *duration, DWORD *startTime, UINT *enable) {
   if (enable) {
     *enable = 1;
   }
@@ -328,12 +326,12 @@ int SpellHistory::GetCooldown(int spellID, int itemID, unsigned int *duration, u
     }
   }
 
-  unsigned long now = OsGetAsyncTimeMs();
-  unsigned long latestEnd = now;
+  DWORD now = OsGetAsyncTimeMs();
+  DWORD latestEnd = now;
   ITERATELIST(SPELLHISTORY, m_spellHistory, history) {
     if (history->spellID == spellID && history->itemID == itemID && history->recoveryTime) {
-      unsigned long start = history->onHold ? now : history->recoveryStart;
-      unsigned long end = start + history->recoveryTime;
+      DWORD start = history->onHold ? now : history->recoveryStart;
+      DWORD end = start + history->recoveryTime;
       if (static_cast<long>(end - latestEnd) >= 0) {
         if (duration) {
           *duration = history->recoveryTime;
@@ -349,8 +347,8 @@ int SpellHistory::GetCooldown(int spellID, int itemID, unsigned int *duration, u
     }
 
     if (history->category == category && history->categoryRecoveryTime) {
-      unsigned long start = history->onHold ? now : history->categoryRecoveryStart;
-      unsigned long end = start + history->categoryRecoveryTime;
+      DWORD start = history->onHold ? now : history->categoryRecoveryStart;
+      DWORD end = start + history->categoryRecoveryTime;
       if (static_cast<long>(end - latestEnd) >= 0) {
         if (duration) {
           *duration = history->categoryRecoveryTime;
@@ -366,8 +364,8 @@ int SpellHistory::GetCooldown(int spellID, int itemID, unsigned int *duration, u
     }
 
     if (history->startRecoveryCategory == startCategory && history->startRecoveryTime) {
-      unsigned long start = history->onHold ? now : history->recoveryStart;
-      unsigned long end = start + history->startRecoveryTime;
+      DWORD start = history->onHold ? now : history->recoveryStart;
+      DWORD end = start + history->startRecoveryTime;
       if (static_cast<long>(end - latestEnd) >= 0) {
         if (duration) {
           *duration = history->startRecoveryTime;
@@ -385,140 +383,216 @@ int SpellHistory::GetCooldown(int spellID, int itemID, unsigned int *duration, u
   return latestEnd != now;
 }
 
-static const ItemSubClassRec* FindAnyItemSubclassRec(int classID, unsigned int subclassMask) {
+static const ItemSubClassRec *FindAnyItemSubclassRec(int classID, UINT subclassMask) {
   for (int i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
-    const ItemSubClassRec *record =
-        g_itemSubClassDB.GetRecordByIndex(i);
-    if (record->m_classID == classID &&
-        (subclassMask & (1 << record->m_subClassID))) {
+    const ItemSubClassRec *record = g_itemSubClassDB.GetRecordByIndex(i);
+    if (record->m_classID == classID && (subclassMask & (1 << record->m_subClassID))) {
       return record;
     }
   }
   return 0;
 }
 
-static const char* GetStringReason(unsigned char reason) {
+static LPCSTR GetStringReason(BYTE reason) {
   switch (reason) {
-    case 0: return "SPELL_FAILED_AFFECTING_COMBAT";
-    case 1: return "SPELL_FAILED_ALREADY_HAVE_CHARM";
-    case 2: return "SPELL_FAILED_ALREADY_HAVE_SUMMON";
-    case 3: return "SPELL_FAILED_ALREADY_OPEN";
-    case 4: return "SPELL_FAILED_AURA_BOUNCED";
-    case 5: return "SPELL_FAILED_BAD_IMPLICIT_TARGETS";
-    case 6: return "SPELL_FAILED_BAD_TARGETS";
-    case 7: return "SPELL_FAILED_CANT_BE_CHARMED";
-    case 8: return "SPELL_FAILED_CANT_STEALTH";
-    case 9: return "SPELL_FAILED_CASTER_AURASTATE";
-    case 10: return "SPELL_FAILED_CASTER_DEAD";
-    case 11: return "SPELL_FAILED_DONT_REPORT";
-    case 12: return "SPELL_FAILED_EQUIPPED_ITEM";
-    case 13: return "SPELL_FAILED_EQUIPPED_ITEM_CLASS";
-    case 14: return "SPELL_FAILED_ERROR";
-    case 15: return "SPELL_FAILED_FIZZLE";
-    case 16: return "SPELL_FAILED_HUNGER_SATIATED";
-    case 17: return "SPELL_FAILED_INTERRUPTED";
-    case 18: return "SPELL_FAILED_INTERRUPTED_COMBAT";
-    case 19: return "SPELL_FAILED_ITEM_ALREADY_ENCHANTED";
-    case 20: return "SPELL_FAILED_ITEM_NOT_FOUND";
-    case 21: return "SPELL_FAILED_ITEM_NOT_READY";
-    case 22: return "SPELL_FAILED_LEVEL_REQUIREMENT";
-    case 23: return "SPELL_FAILED_LINE_OF_SIGHT";
-    case 24: return "SPELL_FAILED_LOWLEVEL";
-    case 25: return "SPELL_FAILED_LOW_CASTLEVEL";
-    case 26: return "SPELL_FAILED_MOVING";
-    case 27: return "SPELL_FAILED_NEED_AMMO";
-    case 28: return "SPELL_FAILED_NEED_AMMO_POUCH";
-    case 29: return "SPELL_FAILED_NEED_EXOTIC_AMMO";
-    case 30: return "SPELL_FAILED_NOPATH";
-    case 31: return "SPELL_FAILED_NOTSTANDING";
-    case 32: return "SPELL_FAILED_NOT_BEHIND";
-    case 33: return "SPELL_FAILED_NOT_BEHIND_OR_SIDE";
-    case 34: return "SPELL_FAILED_NOT_HERE";
-    case 35: return "SPELL_FAILED_NOT_KNOWN";
-    case 36: return "SPELL_FAILED_NOT_MOUNTED";
-    case 37: return "SPELL_FAILED_NOT_READY";
-    case 38: return "SPELL_FAILED_NOT_SHAPESHIFT";
-    case 39: return "SPELL_FAILED_NOT_TRADING";
-    case 40: return "SPELL_FAILED_NO_AMMO";
-    case 41: return "SPELL_FAILED_NO_CHARGES_REMAIN";
-    case 42: return "SPELL_FAILED_NO_ENDURANCE";
-    case 43: return "SPELL_FAILED_NO_PET";
-    case 44: return "SPELL_FAILED_NO_POWER";
-    case 45: return "SPELL_FAILED_ONLY_ABOVEWATER";
-    case 46: return "SPELL_FAILED_ONLY_DAYTIME";
-    case 47: return "SPELL_FAILED_ONLY_INDOORS";
-    case 48: return "SPELL_FAILED_ONLY_MOUNTED";
-    case 49: return "SPELL_FAILED_ONLY_NIGHTTIME";
-    case 50: return "SPELL_FAILED_ONLY_OUTDOORS";
-    case 51: return "SPELL_FAILED_ONLY_SHAPESHIFT";
-    case 52: return "SPELL_FAILED_ONLY_STEALTHED";
-    case 53: return "SPELL_FAILED_ONLY_UNDERWATER";
-    case 54: return "SPELL_FAILED_OUT_OF_RANGE";
-    case 55: return "SPELL_FAILED_PACIFIED";
-    case 56: return "SPELL_FAILED_REAGENTS";
-    case 57: return "SPELL_FAILED_REQUIRES_SPELL_FOCUS";
-    case 58: return "SPELL_FAILED_SILENCED";
-    case 59: return "SPELL_FAILED_SPELL_IN_PROGRESS";
-    case 60: return "SPELL_FAILED_SPELL_LEARNED";
-    case 61: return "SPELL_FAILED_SPELL_UNAVAILABLE";
-    case 62: return "SPELL_FAILED_STUNNED";
-    case 63: return "SPELL_FAILED_TARGETS_DEAD";
-    case 64: return "SPELL_FAILED_TARGET_AFFECTING_COMBAT";
-    case 65: return "SPELL_FAILED_TARGET_AURASTATE";
-    case 66: return "SPELL_FAILED_TARGET_ENEMY";
-    case 67: return "SPELL_FAILED_TARGET_ENRAGED";
-    case 68: return "SPELL_FAILED_TARGET_FRIENDLY";
-    case 69: return "SPELL_FAILED_TARGET_IS_PLAYER";
-    case 70: return "SPELL_FAILED_TARGET_NOT_DEAD";
-    case 71: return "SPELL_FAILED_TARGET_NOT_IN_PARTY";
-    case 72: return "SPELL_FAILED_TARGET_NO_POCKETS";
-    case 73: return "SPELL_FAILED_THIRST_SATIATED";
-    case 74: return "SPELL_FAILED_TOO_CLOSE";
-    case 75: return "SPELL_FAILED_TOTEMS";
-    case 76: return "SPELL_FAILED_TRY_AGAIN";
-    case 77: return "SPELL_FAILED_UNIT_NOT_ATSIDE";
-    case 78: return "SPELL_FAILED_UNIT_NOT_BEHIND";
-    case 79: return "SPELL_FAILED_UNIT_NOT_INFRONT";
-    case 80: return "SPELL_FAILED_NO_MOUNTS_ALLOWED";
-    case 81: return "SPELL_FAILED_CHEST_IN_USE";
-    case 82: return "SPELL_FAILED_NO_COMBO_POINTS";
-    case 83: return "SPELL_FAILED_TARGET_NOT_PLAYER";
-    case 84: return "SPELL_FAILED_TARGET_DUELING";
-    case 85: return "SPELL_FAILED_NOTUNSHEATHED";
-    case 86: return "SPELL_FAILED_NOT_FISHABLE";
-    default: return "SPELL_FAILED_UNKNOWN";
+    case 0:
+      return "SPELL_FAILED_AFFECTING_COMBAT";
+    case 1:
+      return "SPELL_FAILED_ALREADY_HAVE_CHARM";
+    case 2:
+      return "SPELL_FAILED_ALREADY_HAVE_SUMMON";
+    case 3:
+      return "SPELL_FAILED_ALREADY_OPEN";
+    case 4:
+      return "SPELL_FAILED_AURA_BOUNCED";
+    case 5:
+      return "SPELL_FAILED_BAD_IMPLICIT_TARGETS";
+    case 6:
+      return "SPELL_FAILED_BAD_TARGETS";
+    case 7:
+      return "SPELL_FAILED_CANT_BE_CHARMED";
+    case 8:
+      return "SPELL_FAILED_CANT_STEALTH";
+    case 9:
+      return "SPELL_FAILED_CASTER_AURASTATE";
+    case 10:
+      return "SPELL_FAILED_CASTER_DEAD";
+    case 11:
+      return "SPELL_FAILED_DONT_REPORT";
+    case 12:
+      return "SPELL_FAILED_EQUIPPED_ITEM";
+    case 13:
+      return "SPELL_FAILED_EQUIPPED_ITEM_CLASS";
+    case 14:
+      return "SPELL_FAILED_ERROR";
+    case 15:
+      return "SPELL_FAILED_FIZZLE";
+    case 16:
+      return "SPELL_FAILED_HUNGER_SATIATED";
+    case 17:
+      return "SPELL_FAILED_INTERRUPTED";
+    case 18:
+      return "SPELL_FAILED_INTERRUPTED_COMBAT";
+    case 19:
+      return "SPELL_FAILED_ITEM_ALREADY_ENCHANTED";
+    case 20:
+      return "SPELL_FAILED_ITEM_NOT_FOUND";
+    case 21:
+      return "SPELL_FAILED_ITEM_NOT_READY";
+    case 22:
+      return "SPELL_FAILED_LEVEL_REQUIREMENT";
+    case 23:
+      return "SPELL_FAILED_LINE_OF_SIGHT";
+    case 24:
+      return "SPELL_FAILED_LOWLEVEL";
+    case 25:
+      return "SPELL_FAILED_LOW_CASTLEVEL";
+    case 26:
+      return "SPELL_FAILED_MOVING";
+    case 27:
+      return "SPELL_FAILED_NEED_AMMO";
+    case 28:
+      return "SPELL_FAILED_NEED_AMMO_POUCH";
+    case 29:
+      return "SPELL_FAILED_NEED_EXOTIC_AMMO";
+    case 30:
+      return "SPELL_FAILED_NOPATH";
+    case 31:
+      return "SPELL_FAILED_NOTSTANDING";
+    case 32:
+      return "SPELL_FAILED_NOT_BEHIND";
+    case 33:
+      return "SPELL_FAILED_NOT_BEHIND_OR_SIDE";
+    case 34:
+      return "SPELL_FAILED_NOT_HERE";
+    case 35:
+      return "SPELL_FAILED_NOT_KNOWN";
+    case 36:
+      return "SPELL_FAILED_NOT_MOUNTED";
+    case 37:
+      return "SPELL_FAILED_NOT_READY";
+    case 38:
+      return "SPELL_FAILED_NOT_SHAPESHIFT";
+    case 39:
+      return "SPELL_FAILED_NOT_TRADING";
+    case 40:
+      return "SPELL_FAILED_NO_AMMO";
+    case 41:
+      return "SPELL_FAILED_NO_CHARGES_REMAIN";
+    case 42:
+      return "SPELL_FAILED_NO_ENDURANCE";
+    case 43:
+      return "SPELL_FAILED_NO_PET";
+    case 44:
+      return "SPELL_FAILED_NO_POWER";
+    case 45:
+      return "SPELL_FAILED_ONLY_ABOVEWATER";
+    case 46:
+      return "SPELL_FAILED_ONLY_DAYTIME";
+    case 47:
+      return "SPELL_FAILED_ONLY_INDOORS";
+    case 48:
+      return "SPELL_FAILED_ONLY_MOUNTED";
+    case 49:
+      return "SPELL_FAILED_ONLY_NIGHTTIME";
+    case 50:
+      return "SPELL_FAILED_ONLY_OUTDOORS";
+    case 51:
+      return "SPELL_FAILED_ONLY_SHAPESHIFT";
+    case 52:
+      return "SPELL_FAILED_ONLY_STEALTHED";
+    case 53:
+      return "SPELL_FAILED_ONLY_UNDERWATER";
+    case 54:
+      return "SPELL_FAILED_OUT_OF_RANGE";
+    case 55:
+      return "SPELL_FAILED_PACIFIED";
+    case 56:
+      return "SPELL_FAILED_REAGENTS";
+    case 57:
+      return "SPELL_FAILED_REQUIRES_SPELL_FOCUS";
+    case 58:
+      return "SPELL_FAILED_SILENCED";
+    case 59:
+      return "SPELL_FAILED_SPELL_IN_PROGRESS";
+    case 60:
+      return "SPELL_FAILED_SPELL_LEARNED";
+    case 61:
+      return "SPELL_FAILED_SPELL_UNAVAILABLE";
+    case 62:
+      return "SPELL_FAILED_STUNNED";
+    case 63:
+      return "SPELL_FAILED_TARGETS_DEAD";
+    case 64:
+      return "SPELL_FAILED_TARGET_AFFECTING_COMBAT";
+    case 65:
+      return "SPELL_FAILED_TARGET_AURASTATE";
+    case 66:
+      return "SPELL_FAILED_TARGET_ENEMY";
+    case 67:
+      return "SPELL_FAILED_TARGET_ENRAGED";
+    case 68:
+      return "SPELL_FAILED_TARGET_FRIENDLY";
+    case 69:
+      return "SPELL_FAILED_TARGET_IS_PLAYER";
+    case 70:
+      return "SPELL_FAILED_TARGET_NOT_DEAD";
+    case 71:
+      return "SPELL_FAILED_TARGET_NOT_IN_PARTY";
+    case 72:
+      return "SPELL_FAILED_TARGET_NO_POCKETS";
+    case 73:
+      return "SPELL_FAILED_THIRST_SATIATED";
+    case 74:
+      return "SPELL_FAILED_TOO_CLOSE";
+    case 75:
+      return "SPELL_FAILED_TOTEMS";
+    case 76:
+      return "SPELL_FAILED_TRY_AGAIN";
+    case 77:
+      return "SPELL_FAILED_UNIT_NOT_ATSIDE";
+    case 78:
+      return "SPELL_FAILED_UNIT_NOT_BEHIND";
+    case 79:
+      return "SPELL_FAILED_UNIT_NOT_INFRONT";
+    case 80:
+      return "SPELL_FAILED_NO_MOUNTS_ALLOWED";
+    case 81:
+      return "SPELL_FAILED_CHEST_IN_USE";
+    case 82:
+      return "SPELL_FAILED_NO_COMBO_POINTS";
+    case 83:
+      return "SPELL_FAILED_TARGET_NOT_PLAYER";
+    case 84:
+      return "SPELL_FAILED_TARGET_DUELING";
+    case 85:
+      return "SPELL_FAILED_NOTUNSHEATHED";
+    case 86:
+      return "SPELL_FAILED_NOT_FISHABLE";
+    default:
+      return "SPELL_FAILED_UNKNOWN";
   }
 }
 
-static void SpellMissingItemCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
-  unsigned char reason = static_cast<unsigned char>(reinterpret_cast<unsigned long>(arg));
+static void SpellMissingItemCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
+  BYTE reason = static_cast<BYTE>(reinterpret_cast<DWORD>(arg));
   char message[128];
   char processedmessage[256];
 
-  SStrCopy(
-      message,
-      FrameScript_GetText(GetStringReason(reason), -1, GENDER_NOT_APPLICABLE),
-      sizeof(message));
+  SStrCopy(message, FrameScript_GetText(GetStringReason(reason), -1, GENDER_NOT_APPLICABLE), sizeof(message));
   const ItemStats *stats = g_itemDBCache.GetRecord(id, guid, 0, 0);
-  SStrPrintf(
-      processedmessage,
-      sizeof(processedmessage),
-      message,
-      stats ? stats->m_displayName[0] : "UNKNOWN");
-  CGGameUI::DisplayError(
-      reason == 56 ? GERR_SPELL_FAILED_REAGENTS : reason == 75 ? GERR_SPELL_FAILED_TOTEMS : GERR_SPELL_FAILED_S,
-      processedmessage
-  );
+  SStrPrintf(processedmessage, sizeof(processedmessage), message, stats ? stats->m_displayName[0] : "UNKNOWN");
+  CGGameUI::DisplayError(reason == 56 ? GERR_SPELL_FAILED_REAGENTS : reason == 75 ? GERR_SPELL_FAILED_TOTEMS : GERR_SPELL_FAILED_S, processedmessage);
 }
 
-void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) {
+void Spell_C_SpellFailed(int spellID, BYTE reason, int arg1, int arg2) {
   char            shapes[512];
   char            processedmessage[256];
   char            token[64];
   char            message[128];
-  unsigned int    numEntries = 0;
+  UINT            numEntries = 0;
   CGPlayer_C     *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const SpellRec       *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(spellID);
   int             isPet = 0;
   int             first = 1;
   GAME_ERROR_TYPE error = GERR_SPELL_FAILED_S;
@@ -586,7 +660,7 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
     return;
   }
 
-  const char *failureToken;
+  LPCSTR failureToken;
   switch (reason) {
     case 0:
       failureToken = "SPELL_FAILED_AFFECTING_COMBAT";
@@ -863,29 +937,23 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
     SStrCopy(message, FrameScript_GetText(failureToken, -1, GENDER_NOT_APPLICABLE), sizeof(message));
   }
 
-  const char *replacement = 0;
+  LPCSTR                 replacement = 0;
   const ItemSubClassRec *subclass = 0;
   shapes[0] = 0;
   processedmessage[0] = 0;
   switch (reason) {
     case 13:
       subclass = FindAnyItemSubclassRec(arg1, arg2);
-      replacement = subclass
-          ? subclass->m_displayName_lang[CURRENT_LANGUAGE]
-          : 0;
+      replacement = subclass ? subclass->m_displayName_lang[CURRENT_LANGUAGE] : 0;
       break;
     case 27:
     case 28:
       subclass = FindAnyItemSubclassRec(11, 1 << arg1);
-      replacement = subclass
-          ? subclass->m_displayName_lang[CURRENT_LANGUAGE]
-          : 0;
+      replacement = subclass ? subclass->m_displayName_lang[CURRENT_LANGUAGE] : 0;
       break;
     case 29:
       subclass = FindAnyItemSubclassRec(6, 1 << arg1);
-      replacement = subclass
-          ? subclass->m_displayName_lang[CURRENT_LANGUAGE]
-          : 0;
+      replacement = subclass ? subclass->m_displayName_lang[CURRENT_LANGUAGE] : 0;
       break;
     case 44:
       if (spell && spell->m_powerType == -2) {
@@ -893,24 +961,19 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
       } else if (spell) {
         CGGameUI::DisplayError(s_gerrEnums[spell->m_powerType]);
       }
-      UnitCombatLogSpellFail(
-          playerPtr, spellID, CGGameUI::GetLastErrorString());
+      UnitCombatLogSpellFail(playerPtr, spellID, CGGameUI::GetLastErrorString());
       return;
     case 51: {
       if (!spell) {
         return;
       }
       for (int i = 0; i < g_spellShapeshiftFormDB.GetNumRecords(); ++i) {
-        const SpellShapeshiftFormRec *form =
-            g_spellShapeshiftFormDB.GetRecordByIndex(i);
-        if ((spell->m_shapeshiftMask & (1 << i)) &&
-            form->m_name_lang[CURRENT_LANGUAGE] &&
-            *form->m_name_lang[CURRENT_LANGUAGE]) {
+        const SpellShapeshiftFormRec *form = g_spellShapeshiftFormDB.GetRecordByIndex(i);
+        if ((spell->m_shapeshiftMask & (1 << i)) && form->m_name_lang[CURRENT_LANGUAGE] && *form->m_name_lang[CURRENT_LANGUAGE]) {
           if (shapes[0]) {
             SStrPack(shapes, ", ", sizeof(shapes));
           }
-          SStrPack(
-              shapes, form->m_name_lang[CURRENT_LANGUAGE], sizeof(shapes));
+          SStrPack(shapes, form->m_name_lang[CURRENT_LANGUAGE], sizeof(shapes));
         }
       }
       if (!shapes[0]) {
@@ -921,11 +984,8 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
     }
     case 56:
     case 75: {
-      const ItemStats *stats = g_itemDBCache.GetRecord(
-          arg1,
-          static_cast<unsigned __int64>(0),
-          SpellMissingItemCallback,
-          reinterpret_cast<void *>(static_cast<unsigned long>(reason)));
+      const ItemStats *stats =
+          g_itemDBCache.GetRecord(arg1, static_cast<DWORDLONG>(0), SpellMissingItemCallback, reinterpret_cast<LPVOID>(static_cast<DWORD>(reason)));
       if (!stats) {
         return;
       }
@@ -940,8 +1000,7 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
   }
 
   if (replacement) {
-    SStrPrintf(
-        processedmessage, sizeof(processedmessage), message, replacement);
+    SStrPrintf(processedmessage, sizeof(processedmessage), message, replacement);
   } else {
     SStrCopy(processedmessage, message, sizeof(processedmessage));
   }
@@ -958,8 +1017,8 @@ void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2) 
   }
 }
 
-static void SetItemCooldown(int itemID, int spellID, unsigned long startTime, bool needsEvent) {
-  HASHKEY_NONE key;
+static void SetItemCooldown(int itemID, int spellID, DWORD startTime, bool needsEvent) {
+  HASHKEY_NONE          key;
   ITEMCOOLDOWNHASHNODE *cooldown = s_itemCooldowns.Ptr(itemID, key);
   if (!cooldown) {
     cooldown = s_itemCooldowns.New(itemID, key, 0, 0);
@@ -979,13 +1038,13 @@ void Spell_C_SetCooldownLeft(
     int  isPet,
     int  startRecoveryTimeLeft
 ) {
-  unsigned int     spellRecoveryTime = 0;
-  unsigned long    categoryRecoveryStart = 0;
-  unsigned int     categoryRecoveryTime = 0;
-  const SpellRec        *srec = g_spellDB.GetRecord(spellID);
-  unsigned long    now = OsGetAsyncTimeMs();
+  UINT             spellRecoveryTime = 0;
+  DWORD            categoryRecoveryStart = 0;
+  UINT             categoryRecoveryTime = 0;
+  const SpellRec  *srec = g_spellDB.GetRecord(spellID);
+  DWORD            now = OsGetAsyncTimeMs();
   const ItemStats *stats = 0;
-  unsigned long    spellRecoveryStart = 0;
+  DWORD            spellRecoveryStart = 0;
 
   if (!srec) {
     return;
@@ -1008,7 +1067,7 @@ void Spell_C_SetCooldownLeft(
     } else {
       spellRecoveryTime = stats->m_spellCooldown[index];
     }
-    if (spellRecoveryTime <= static_cast<unsigned int>(recoveryLeft)) {
+    if (spellRecoveryTime <= static_cast<UINT>(recoveryLeft)) {
       spellRecoveryTime = recoveryLeft;
     }
     spellRecoveryStart = now - spellRecoveryTime + recoveryLeft;
@@ -1020,7 +1079,7 @@ void Spell_C_SetCooldownLeft(
     } else {
       categoryRecoveryTime = stats->m_spellCategoryCooldown[index];
     }
-    if (categoryRecoveryTime <= static_cast<unsigned int>(categoryRecoveryLeft)) {
+    if (categoryRecoveryTime <= static_cast<UINT>(categoryRecoveryLeft)) {
       categoryRecoveryTime = categoryRecoveryLeft;
     }
     categoryRecoveryStart = now - categoryRecoveryTime + categoryRecoveryLeft;
@@ -1031,7 +1090,7 @@ void Spell_C_SetCooldownLeft(
   );
 }
 
-static void ItemStatsCooldownCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
+static void ItemStatsCooldownCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (!granted) {
     return;
   }
@@ -1043,26 +1102,27 @@ static void ItemStatsCooldownCallback(int id, const unsigned __int64 &guid, void
   for (index = 0; index < 5; ++index) {
     const SpellRec *srec = g_spellDB.GetRecord(stats->m_spellID[index]);
     if (srec && !stats->m_spellTrigger[index]) {
-      int category = stats->m_spellCategory[index];
-      unsigned int selfCooldown = stats->m_spellCooldown[index] < 0 ? srec->m_recoveryTime : stats->m_spellCooldown[index];
+      int  category = stats->m_spellCategory[index];
+      UINT selfCooldown = stats->m_spellCooldown[index] < 0 ? srec->m_recoveryTime : stats->m_spellCooldown[index];
       Spell_C_SetCooldownLeft(srec->m_ID, id, category, selfCooldown, stats->m_spellCategoryCooldown[index], true, 0, 0);
     }
   }
 }
 
-int Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable) {
+int Spell_C_GetSpellCooldown(int spell, int isPet, UINT *duration, DWORD *startTime, UINT *enable) {
   return s_spellHistory[isPet].GetCooldown(spell, 0, duration, startTime, enable);
 }
 
-static void ItemCheckCooldownCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
+static void ItemCheckCooldownCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     CGSpellBook::UpdateCooldowns();
     CGActionBar::UpdateCooldowns();
   }
 }
 
-int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable) {
-  const ItemStats *stats = g_itemDBCache.GetRecord(itemID, ClntObjMgrGetActivePlayer(), reinterpret_cast<DBCACHECALLBACKPROC>(ItemCheckCooldownCallback), 0);
+int Spell_C_GetItemCooldown(int itemID, UINT *duration, DWORD *startTime, UINT *enable) {
+  const ItemStats *stats =
+      g_itemDBCache.GetRecord(itemID, ClntObjMgrGetActivePlayer(), reinterpret_cast<DBCACHECALLBACKPROC>(ItemCheckCooldownCallback), 0);
   if (!stats) {
     return 0;
   }
@@ -1076,30 +1136,25 @@ int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *s
   return 0;
 }
 
-int Spell_C_NeedsCooldownEvent(const SpellRec* srec, int isPet) {
+int Spell_C_NeedsCooldownEvent(const SpellRec *srec, int isPet) {
   return s_spellHistory[isPet].IsOnHold(srec->m_ID, 0);
 }
 
 int Spell_C_NeedsCooldownEvent(int itemID) {
-  const ItemStats *stats = g_itemDBCache.GetRecord(
-      itemID,
-      ClntObjMgrGetActivePlayer(),
-      reinterpret_cast<DBCACHECALLBACKPROC>(ItemCheckCooldownCallback),
-      0);
+  const ItemStats *stats =
+      g_itemDBCache.GetRecord(itemID, ClntObjMgrGetActivePlayer(), reinterpret_cast<DBCACHECALLBACKPROC>(ItemCheckCooldownCallback), 0);
   if (!stats) {
     return 0;
   }
   for (int i = 0; i < 5; ++i) {
     if (stats->m_spellID[i] > 0 && !stats->m_spellTrigger[i]) {
-      return s_spellHistory[0].IsOnHold(
-          stats->m_spellID[i],
-          itemID);
+      return s_spellHistory[0].IsOnHold(stats->m_spellID[i], itemID);
     }
   }
   return 0;
 }
 
-static void Spell_C_CooldownEventTriggered(int spellID, unsigned long receivedTime, int isPet, int clear) {
+static void Spell_C_CooldownEventTriggered(int spellID, DWORD receivedTime, int isPet, int clear) {
   s_spellHistory[isPet].RemoveHold(spellID, receivedTime, clear != 0);
   if (isPet) {
     CGPetInfo::UpdateCooldowns();
@@ -1121,14 +1176,11 @@ static void Spell_C_ClearCooldowns(int isPet) {
   }
 }
 
-int Spell_C_GetSpellByName(const char* name) {
+int Spell_C_GetSpellByName(LPCSTR name) {
   int num = g_spellDB.GetNumRecords();
   for (int i = 0; i < num; ++i) {
     const SpellRec *spell = g_spellDB.GetRecordByIndex(i);
-    if (!SStrCmpI(
-            spell->m_name_lang[CURRENT_LANGUAGE],
-            name,
-            0x7FFFFFFF)) {
+    if (!SStrCmpI(spell->m_name_lang[CURRENT_LANGUAGE], name, 0x7FFFFFFF)) {
       return spell->m_ID;
     }
   }
@@ -1144,7 +1196,7 @@ int Spell_C_GetSpellLevel(int id, int isPet) {
     }
 
     const CGUnitData *unitData = unit->GetUnitData();
-    unsigned __int64  pet = unitData->charm ? unitData->charm : unitData->summon;
+    DWORDLONG         pet = unitData->charm ? unitData->charm : unitData->summon;
     unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(pet, __FILE__, __LINE__));
   }
 
@@ -1157,14 +1209,12 @@ int Spell_C_GetManaCost(int id, int isPet) {
     return -1;
   }
   if (spell->m_manaCostPct && !isPet) {
-    CGPlayer_C *player =
-        static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
       return static_cast<int>(spell->m_manaCostPct * 0.01f * player->m_plyr->baseMana);
     }
   }
-  return spell->m_manaCost +
-      Spell_C_GetSpellLevel(id, isPet) * spell->m_manaCostPerLevel;
+  return spell->m_manaCost + Spell_C_GetSpellLevel(id, isPet) * spell->m_manaCostPerLevel;
 }
 
 int Spell_C_GetManaCostPerSecond(int id, int isPet) {
@@ -1172,8 +1222,7 @@ int Spell_C_GetManaCostPerSecond(int id, int isPet) {
   if (!spellRec) {
     return -1;
   }
-  return spellRec->m_manaPerSecond +
-      Spell_C_GetSpellLevel(id, isPet) * spellRec->m_manaPerSecondPerLevel;
+  return spellRec->m_manaPerSecond + Spell_C_GetSpellLevel(id, isPet) * spellRec->m_manaPerSecondPerLevel;
 }
 
 int Spell_C_GetCastTime(int id, int isPet) {
@@ -1221,7 +1270,7 @@ void Spell_C_GetMinMaxRange(int id, float *min, float *max) {
   }
 }
 
-void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, unsigned int level, int isPet) {
+void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, UINT level, int isPet) {
   *min = 0;
   *max = 0;
   if (!srec) {
@@ -1266,7 +1315,7 @@ int Spell_C_GetModalSpell() {
   return s_modalSpellID;
 }
 
-const unsigned __int64 &Spell_C_GetModalItem() {
+const DWORDLONG &Spell_C_GetModalItem() {
   return s_modalItemID;
 }
 
@@ -1274,16 +1323,16 @@ bool Spell_C_IsModal() {
   return s_modalSpellID != 0;
 }
 
-const unsigned __int64 &Spell_C_GetCurrentCaster() {
+const DWORDLONG &Spell_C_GetCurrentCaster() {
   return s_spellCast.caster;
 }
 
-const unsigned __int64 &Spell_C_GetCurrentTarget() {
+const DWORDLONG &Spell_C_GetCurrentTarget() {
   return s_spellCast.unitTarget;
 }
 
 void SendCast(SpellCast *cast) {
-  unsigned __int64 castingItem = cast->caster == cast->casterUnit ? 0 : cast->caster;
+  DWORDLONG castingItem = cast->caster == cast->casterUnit ? 0 : cast->caster;
 
   if (s_spellWorldModel) {
     CWorld::ObjectDelete(s_spellWorldModel);
@@ -1310,7 +1359,7 @@ void SendCast(SpellCast *cast) {
       return;
     }
 
-    unsigned int itemSlot = 0;
+    UINT itemSlot = 0;
     while (itemSlot < container->GetBag()->NumSlots() && container->GetBag()->GetItem(itemSlot) != item->GetGUID()) {
       ++itemSlot;
     }
@@ -1325,7 +1374,7 @@ void SendCast(SpellCast *cast) {
       return;
     }
 
-    unsigned int packSlot = player->FindSlotIndex(item->m_item->m_containedIn);
+    UINT packSlot = player->FindSlotIndex(item->m_item->m_containedIn);
     if (packSlot > 43 && packSlot != 0xFF) {
       ConsoleWrite("Object not in container belonging to active player", DEFAULT_COLOR);
       return;
@@ -1337,7 +1386,7 @@ void SendCast(SpellCast *cast) {
       return;
     }
 
-    unsigned int spellIndex = 0;
+    UINT spellIndex = 0;
     while (spellIndex < 5 && (stats->m_spellID[spellIndex] != cast->spellID || stats->m_spellTrigger[spellIndex])) {
       ++spellIndex;
     }
@@ -1346,12 +1395,12 @@ void SendCast(SpellCast *cast) {
       return;
     }
 
-    castMsg.Put(static_cast<unsigned int>(CMSG_USE_ITEM));
+    castMsg.Put(static_cast<UINT>(CMSG_USE_ITEM));
     castMsg.Put(packSlot);
     castMsg.Put(itemSlot);
     castMsg.Put(spellIndex);
   } else {
-    castMsg.Put(static_cast<unsigned int>(CMSG_CAST_SPELL));
+    castMsg.Put(static_cast<UINT>(CMSG_CAST_SPELL));
     castMsg.Put(cast->spellID);
   }
 
@@ -1380,7 +1429,7 @@ void SendCast(SpellCast *cast) {
 }
 
 bool Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec) {
-  s_needTargets = static_cast<unsigned short>(srec->m_targets);
+  s_needTargets = static_cast<WORD>(srec->m_targets);
   bool suppressTarget = false;
 
   switch (srec->m_implicitTargetA[0]) {
@@ -1433,7 +1482,7 @@ bool Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec) {
 }
 
 bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *rec, bool report) {
-  unsigned int index;
+  UINT index;
   for (index = 0; index < 2; ++index) {
     if (rec->m_totem[index] && !player->m_inventory.FindItemOfType(rec->m_totem[index], 0)) {
       if (report) {
@@ -1455,11 +1504,11 @@ bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *rec, bool repor
 }
 
 struct FindAmmoData {
-  int          ammoType;
-  unsigned int exoticAmmo;
+  int  ammoType;
+  UINT exoticAmmo;
 };
 
-static int FindAmmoCallback(const CGItem_C *item, void *param) {
+static int FindAmmoCallback(const CGItem_C *item, LPVOID param) {
   FindAmmoData *data = static_cast<FindAmmoData *>(param);
   if (item->GetClassID() != 6 || item->GetSubtypeID() != data->ammoType) {
     return 0;
@@ -1480,8 +1529,8 @@ bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *rec, boo
     return false;
   }
 
-  const ItemStats       *stats = g_itemDBCache.GetRecord(equipped->GetEntryID(), 0, 0, 0);
-  int                    ammoType = stats ? stats->m_ammunitionType : 0;
+  const ItemStats *stats = g_itemDBCache.GetRecord(equipped->GetEntryID(), 0, 0, 0);
+  int              ammoType = stats ? stats->m_ammunitionType : 0;
   if (!checkAmmo || !ammoType) {
     return true;
   }
@@ -1530,7 +1579,7 @@ bool RangeCheck(CGPlayer_C *caster, CGObject_C *target, int spellID) {
 }
 
 bool RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec) {
-  unsigned int checkRange;
+  UINT checkRange;
   switch (srec->m_implicitTargetA[0]) {
     case 6:
       checkRange = 0x80;
@@ -1602,7 +1651,7 @@ void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON rea
   } else if (Spell_C_IsModal()) {
     if (notifyServer && !Spell_C_GetModalItem()) {
       CDataStore msg;
-      msg.Put(static_cast<unsigned int>(CMSG_CANCEL_CAST));
+      msg.Put(static_cast<UINT>(CMSG_CANCEL_CAST));
       msg.Put(Spell_C_GetModalSpell());
       msg.Finalize();
       ClientServices_Send(&msg);
@@ -1630,22 +1679,19 @@ void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON rea
   }
 }
 
-static void GameObjectStatsCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
+static void GameObjectStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (reinterpret_cast<int>(arg) != s_spellCast.spellID) {
     return;
   }
-  const GameObjectStats_C *stats =
-      g_gameObjectDBCache.GetRecord(id, guid, 0, 0);
+  const GameObjectStats_C *stats = g_gameObjectDBCache.GetRecord(id, guid, 0, 0);
   if (!stats) {
     return;
   }
-  const GameObjectDisplayInfoRec *display =
-      g_gameObjectDisplayInfoDB.GetRecord(stats->m_displayID);
+  const GameObjectDisplayInfoRec *display = g_gameObjectDisplayInfoDB.GetRecord(stats->m_displayID);
   if (!display) {
     return;
   }
-  CGObject_C *caster =
-      ClntObjMgrObjectPtr(s_spellCast.casterUnit, __FILE__, __LINE__);
+  CGObject_C *caster = ClntObjMgrObjectPtr(s_spellCast.casterUnit, __FILE__, __LINE__);
   if (!caster) {
     return;
   }
@@ -1685,9 +1731,8 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
       return false;
     }
 
-    const SkillLineAbilityRec *ability =
-        SpellTableLookupAbility(player->GetUnitData()->race, player->GetUnitData()->classId, spellID);
-    const SkillLineRec *skillLine = ability ? g_skillLineDB.GetRecord(ability->m_skillLine) : 0;
+    const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetUnitData()->race, player->GetUnitData()->classId, spellID);
+    const SkillLineRec        *skillLine = ability ? g_skillLineDB.GetRecord(ability->m_skillLine) : 0;
     if (skillLine) {
       CGTradeSkillInfo::SetSkillLine(skillLine->m_ID);
     }
@@ -1704,7 +1749,7 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
     return false;
   }
 
-  unsigned int playerCast = 1;
+  UINT playerCast = 1;
   if (item) {
     playerCast = item->GetItemStaticFlag(ITEM_FLAG_PLAYERCAST);
   }
@@ -1723,10 +1768,8 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
     return false;
   }
 
-  if (!Spell_C_HaveSpellTokens(player, spell, true) ||
-      !Spell_C_HaveEquippedSpellItems(player, spell, true, true) ||
-      !player->CheckAndReportSpellInhibitFlags(spell, item) ||
-      !RangeCheckSelected(player, spell))
+  if (!Spell_C_HaveSpellTokens(player, spell, true) || !Spell_C_HaveEquippedSpellItems(player, spell, true, true) ||
+      !player->CheckAndReportSpellInhibitFlags(spell, item) || !RangeCheckSelected(player, spell))
   {
     return false;
   }
@@ -1760,7 +1803,7 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
   UnitEffectPreloadSpellEffects(spellID);
   if (!Spell_C_TargetSpell(player, spell)) {
     if (s_needTargets & 0x80) {
-      unsigned __int64 target = CGGameUI::GetLockedTarget();
+      DWORDLONG target = CGGameUI::GetLockedTarget();
       s_needTargets = 0;
       Spell_C_SpellFailed(spellID, target ? 6 : 5, -1, -1);
       CGSpellBook::UpdateSelection();
@@ -1774,7 +1817,7 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
     s_spellWorldModelHousing = 0;
     s_spellWorldModelFacing = 0.0f;
 
-    unsigned int effectIndex;
+    UINT effectIndex;
     for (effectIndex = 0; effectIndex < 3; ++effectIndex) {
       int effect = spell->m_effect[effectIndex];
       if (effect == 50 || effect == 76 || effect == 81) {
@@ -1788,10 +1831,8 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
       }
 
       const GameObjectStats_C *stats = g_gameObjectDBCache.GetRecord(
-          spell->m_effectMiscValue[effectIndex],
-          static_cast<unsigned int>(spellID) | 0xB000000000000000ui64,
-          reinterpret_cast<DBCACHECALLBACKPROC>(GameObjectStatsCallback),
-          reinterpret_cast<void *>(spellID)
+          spell->m_effectMiscValue[effectIndex], static_cast<UINT>(spellID) | 0xB000000000000000ui64,
+          reinterpret_cast<DBCACHECALLBACKPROC>(GameObjectStatsCallback), reinterpret_cast<LPVOID>(spellID)
       );
       if (stats) {
         const GameObjectDisplayInfoRec *display = g_gameObjectDisplayInfoDB.GetRecord(stats->m_displayID);
@@ -1808,7 +1849,7 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
   return true;
 }
 
-bool Spell_C_CastSpell(const char *name) {
+bool Spell_C_CastSpell(LPCSTR name) {
   if (!SStrCmpI(name, "none", 0x7FFFFFFF)) {
     Spell_C_CancelSpell(1, 1, SPELL_FAILED_ERROR);
     return false;
@@ -1840,9 +1881,9 @@ bool Spell_C_HandleSpriteClick(CGObject_C *object) {
     }
   }
 
-  unsigned short oldTargets = s_spellCast.targets;
-  unsigned short oldNeedTargets = s_needTargets;
-  unsigned int   handled = 0;
+  WORD oldTargets = s_spellCast.targets;
+  WORD oldNeedTargets = s_needTargets;
+  UINT handled = 0;
 
   if (object->GetType() & TYPE_UNIT) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(object);
@@ -1954,7 +1995,7 @@ bool Spell_C_HandleTerrainClick(const CTerrainClickEvent &evt) {
     return 0;
   }
 
-  unsigned int handled = 0;
+  UINT handled = 0;
   if (s_needTargets & 0x20) {
     s_spellCast.sourceLocation = evt.point;
     s_spellCast.targets |= 0x20;
@@ -1985,7 +2026,7 @@ float Spell_C_GetSpellRadius() {
 
   const SpellRec       *spell = g_spellDB.GetRecord(s_spellCast.spellID);
   const SpellRadiusRec *radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[0]);
-  float           radius1 = radius ? radius->m_radius + player->GetUnitData()->level * radius->m_radiusPerLevel : 0.0f;
+  float                 radius1 = radius ? radius->m_radius + player->GetUnitData()->level * radius->m_radiusPerLevel : 0.0f;
   radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[1]);
   float radius2 = radius ? radius->m_radius + player->GetUnitData()->level * radius->m_radiusPerLevel : 0.0f;
   return radius1 > radius2 ? radius1 : radius2;
@@ -2084,10 +2125,7 @@ bool Spell_C_WaitingForStringInput() {
 }
 
 int Spell_C_TargetTradeItem(int tradeIndex) {
-  if (!(s_needTargets & 0x4010) ||
-      tradeIndex < 0 ||
-      tradeIndex >= 8 ||
-      !CGTradeInfo::GetTargetTradeItem(tradeIndex)) {
+  if (!(s_needTargets & 0x4010) || tradeIndex < 0 || tradeIndex >= 8 || !CGTradeInfo::GetTargetTradeItem(tradeIndex)) {
     return 0;
   }
   s_spellCast.targets |= 0x1000;
@@ -2101,7 +2139,7 @@ int Spell_C_TargetTradeItem(int tradeIndex) {
   return 1;
 }
 
-unsigned int Spell_C_WorldObjectCursor() {
+UINT Spell_C_WorldObjectCursor() {
   return s_spellWorldModel;
 }
 
@@ -2127,17 +2165,17 @@ void Spell_C_WorldObjectRotate() {
   }
 }
 
-static int CCommand_Cast(const char*, const char* arguments) {
+static int CCommand_Cast(LPCSTR, LPCSTR arguments) {
   Spell_C_CastSpell(arguments);
   return 1;
 }
 
-unsigned __int64 Script_GetGUIDFromName(const char *name);
+DWORDLONG Script_GetGUIDFromName(LPCSTR name);
 
-static int CastResultHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  int spellID;
-  unsigned char status;
-  unsigned char reason = 0;
+static int CastResultHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  int  spellID;
+  BYTE status;
+  BYTE reason = 0;
   msg->Get(spellID);
   msg->Get(status);
   if (status == 2) {
@@ -2154,8 +2192,7 @@ static int CastResultHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) 
     Spell_C_SpellFailed(spellID, reason, arg1, arg2);
   }
 
-  CGUnit_C *player = static_cast<CGUnit_C *>(
-      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     SpellVisualsHandleCastStop(spellID, player, status, reason);
   }
@@ -2176,9 +2213,9 @@ static int CastResultHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) 
   return 1;
 }
 
-static void SpellStart(unsigned __int64 casterGUID, unsigned __int64 casterUnit, int spellID, CDataStore* msg) {
-  unsigned short spellCastFlags;
-  unsigned long castDelay;
+static void SpellStart(DWORDLONG casterGUID, DWORDLONG casterUnit, int spellID, CDataStore *msg) {
+  WORD  spellCastFlags;
+  DWORD castDelay;
   msg->Get(spellCastFlags);
   UnitEffectPreloadSpellEffects(spellID);
   msg->Get(castDelay);
@@ -2200,8 +2237,7 @@ static void SpellStart(unsigned __int64 casterGUID, unsigned __int64 casterUnit,
   if (!srec) {
     return;
   }
-  CGUnit_C *caster = static_cast<CGUnit_C *>(
-      ClntObjMgrObjectPtr(casterUnit, __FILE__, __LINE__));
+  CGUnit_C *caster = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(casterUnit, __FILE__, __LINE__));
   if (!caster) {
     return;
   }
@@ -2212,31 +2248,17 @@ static void SpellStart(unsigned __int64 casterGUID, unsigned __int64 casterUnit,
   }
 
   if (caster->GetGUID() == ClntObjMgrGetActivePlayer()) {
-    unsigned __int64 target =
-        (srec->m_attributes & 0x400000) && (cast.targets & 2) && cast.unitTarget
-            ? cast.unitTarget
-            : CGGameUI::GetLockedTarget();
+    DWORDLONG target = (srec->m_attributes & 0x400000) && (cast.targets & 2) && cast.unitTarget ? cast.unitTarget : CGGameUI::GetLockedTarget();
     if (srec->m_attributes & 0x400000) {
       caster->SaveTrackingTarget(target, TRACKTYPE_SPELLPRECAST, 0);
     }
     if (castDelay) {
-      FrameScript_SignalEvent(
-          0x13B,
-          "%s%d",
-          srec->m_name_lang[CURRENT_LANGUAGE],
-          castDelay);
+      FrameScript_SignalEvent(0x13B, "%s%d", srec->m_name_lang[CURRENT_LANGUAGE], castDelay);
     }
   } else {
-    SpellVisualsHandleCastStart(
-        spellID,
-        cast,
-        caster,
-        castDelay,
-        castDelay,
-        (spellCastFlags & 1) != 0);
+    SpellVisualsHandleCastStart(spellID, cast, caster, castDelay, castDelay, (spellCastFlags & 1) != 0);
     if ((cast.targets & 2) && cast.unitTarget == ClntObjMgrGetActivePlayer()) {
-      CGUnit_C *player = static_cast<CGUnit_C *>(
-          ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if (player && !caster->CanAssist(player) && !CGGameUI::GetLockedTarget()) {
         CGGameUI::Target(caster->GetGUID(), 0);
       }
@@ -2244,13 +2266,12 @@ static void SpellStart(unsigned __int64 casterGUID, unsigned __int64 casterUnit,
   }
 }
 
-static int SpellDelayed(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned __int64 caster;
-  unsigned long delay;
+static int SpellDelayed(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  DWORDLONG caster;
+  DWORD     delay;
   msg->Get(caster);
   msg->Get(delay);
-  CGUnit_C *unit =
-      static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(caster, __FILE__, __LINE__));
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(caster, __FILE__, __LINE__));
   if (unit) {
     unit->SpellDelayed(delay);
   }
@@ -2260,32 +2281,30 @@ static int SpellDelayed(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   return 1;
 }
 
-static int SpellChannelStart(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  int          spellID;
-  unsigned long time;
+static int SpellChannelStart(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  int   spellID;
+  DWORD time;
   msg->Get(spellID);
   msg->Get(time);
   if (static_cast<int>(time) > 0) {
     const SpellRec *spell = g_spellDB.GetRecord(spellID);
-    const char *text =
-        spell && (spell->m_attributesEx & 0x20000000)
-            ? spell->m_name_lang[CURRENT_LANGUAGE]
-            : FrameScript_GetText("CHANNELING", -1, GENDER_NOT_APPLICABLE);
+    LPCSTR          text = spell && (spell->m_attributesEx & 0x20000000) ? spell->m_name_lang[CURRENT_LANGUAGE]
+                                                                         : FrameScript_GetText("CHANNELING", -1, GENDER_NOT_APPLICABLE);
     FrameScript_SignalEvent(0x140, "%d%s", time, text);
   }
   return 1;
 }
 
-static int SpellChannelUpdate(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned long time;
+static int SpellChannelUpdate(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  DWORD time;
   msg->Get(time);
   FrameScript_SignalEvent(0x141, "%d", time);
   return 1;
 }
 
-static int SpellAddDynamicTarget(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned __int64 dynObjGUID;
-  unsigned __int64 targetGUID;
+static int SpellAddDynamicTarget(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  DWORDLONG dynObjGUID;
+  DWORDLONG targetGUID;
   msg->Get(dynObjGUID);
   msg->Get(targetGUID);
   ClntObjMgrObjectPtr(dynObjGUID, __FILE__, __LINE__);
@@ -2293,15 +2312,14 @@ static int SpellAddDynamicTarget(void*, NETMESSAGE, unsigned long, CDataStore* m
   return 1;
 }
 
-static void SpellGo(const unsigned __int64& casterGUID, const unsigned __int64& casterUnit, int spellID, CDataStore* msg) {
-  unsigned short spellCastFlags;
-  unsigned char count;
+static void SpellGo(const DWORDLONG &casterGUID, const DWORDLONG &casterUnit, int spellID, CDataStore *msg) {
+  WORD spellCastFlags;
+  BYTE count;
   msg->Get(spellCastFlags);
   msg->Get(count);
 
-  TSStackArray<unsigned __int64> targets(
-      _alloca(count * sizeof(unsigned __int64)), count, count);
-  unsigned int i;
+  TSStackArray<DWORDLONG> targets(_alloca(count * sizeof(DWORDLONG)), count, count);
+  UINT                    i;
   for (i = 0; i < count; ++i) {
     msg->Get(targets[i]);
     if (!(spellCastFlags & 1)) {
@@ -2310,12 +2328,10 @@ static void SpellGo(const unsigned __int64& casterGUID, const unsigned __int64& 
   }
 
   msg->Get(count);
-  TSStackArray<unsigned __int64> missTargets(
-      _alloca(count * sizeof(unsigned __int64)), count, count);
-  TSStackArray<MISS_REASON> missReasons(
-      _alloca(count * sizeof(MISS_REASON)), count, count);
+  TSStackArray<DWORDLONG>   missTargets(_alloca(count * sizeof(DWORDLONG)), count, count);
+  TSStackArray<MISS_REASON> missReasons(_alloca(count * sizeof(MISS_REASON)), count, count);
   for (i = 0; i < count; ++i) {
-    unsigned char reason = 0;
+    BYTE reason = 0;
     msg->Get(reason);
     missReasons[i] = static_cast<MISS_REASON>(reason);
     msg->Get(missTargets[i]);
@@ -2342,21 +2358,14 @@ static void SpellGo(const unsigned __int64& casterGUID, const unsigned __int64& 
     return;
   }
 
-  CGObject_C *casterObject =
-      ClntObjMgrObjectPtr(casterGUID, __FILE__, __LINE__);
+  CGObject_C *casterObject = ClntObjMgrObjectPtr(casterGUID, __FILE__, __LINE__);
   if (!casterObject) {
-    CGObject_C *unitObject =
-        ClntObjMgrObjectPtr(casterUnit, __FILE__, __LINE__);
+    CGObject_C *unitObject = ClntObjMgrObjectPtr(casterUnit, __FILE__, __LINE__);
     if (unitObject && (unitObject->GetType() & TYPE_GAMEOBJECT)) {
-      CGGameObject_C *gameObject =
-          static_cast<CGGameObject_C *>(unitObject);
-      SpellVisualsHandleSpellStart(
-          spellID, cast, gameObject, targets,
-          (spellCastFlags & 8) != 0, true);
+      CGGameObject_C *gameObject = static_cast<CGGameObject_C *>(unitObject);
+      SpellVisualsHandleSpellStart(spellID, cast, gameObject, targets, (spellCastFlags & 8) != 0, true);
       if (missTargets.Count()) {
-        SpellVisualsHandleSpellStart(
-            spellID, cast, gameObject, missTargets,
-            (spellCastFlags & 8) != 0, false);
+        SpellVisualsHandleSpellStart(spellID, cast, gameObject, missTargets, (spellCastFlags & 8) != 0, false);
       }
     }
     return;
@@ -2364,81 +2373,58 @@ static void SpellGo(const unsigned __int64& casterGUID, const unsigned __int64& 
 
   FATALASSERT(casterObject->GetType() & TYPE_UNIT);
   CGUnit_C *caster = static_cast<CGUnit_C *>(casterObject);
-  unsigned long currTime = OsGetAsyncTimeMs();
-  bool needsEvent = (srec->m_attributes & 0x2000000) != 0;
+  DWORD     currTime = OsGetAsyncTimeMs();
+  bool      needsEvent = (srec->m_attributes & 0x2000000) != 0;
   if (srec->m_attributes & 2) {
     caster->SetRangedStandTimer();
   }
-  SpellVisualsHandleSpellStartHits(
-      spellID, cast, caster, targets, ammoDisplayID,
-      ammoInventoryType, spellCastFlags);
+  SpellVisualsHandleSpellStartHits(spellID, cast, caster, targets, ammoDisplayID, ammoInventoryType, spellCastFlags);
   if (missTargets.Count()) {
-    SpellVisualsHandleSpellStartMisses(
-        spellID, cast, caster, missTargets, missReasons,
-        ammoDisplayID, ammoInventoryType, spellCastFlags);
+    SpellVisualsHandleSpellStartMisses(spellID, cast, caster, missTargets, missReasons, ammoDisplayID, ammoInventoryType, spellCastFlags);
   }
 
   if (caster->GetGUID() == ClntObjMgrGetActivePlayer()) {
-    unsigned int effect;
+    UINT effect;
     for (effect = 0; effect < 3; ++effect) {
-      if ((srec->m_effect[effect] == 33 ||
-           srec->m_effect[effect] == 59) &&
-          targets.Count() == 1) {
-        CGObject_C *target =
-            ClntObjMgrObjectPtr(targets[0], __FILE__, __LINE__);
-        if (target && (target->GetType() & TYPE_GAMEOBJECT) &&
-            static_cast<CGGameObject_C *>(target)->GetType() == 3) {
-          static_cast<CGPlayer_C *>(caster)->OnLootGameObject(
-              targets[0], true);
+      if ((srec->m_effect[effect] == 33 || srec->m_effect[effect] == 59) && targets.Count() == 1) {
+        CGObject_C *target = ClntObjMgrObjectPtr(targets[0], __FILE__, __LINE__);
+        if (target && (target->GetType() & TYPE_GAMEOBJECT) && static_cast<CGGameObject_C *>(target)->GetType() == 3) {
+          static_cast<CGPlayer_C *>(caster)->OnLootGameObject(targets[0], true);
         }
         break;
       }
     }
 
-    int itemID = 0;
-    CGObject_C *unitObject =
-        ClntObjMgrObjectPtr(casterUnit, __FILE__, __LINE__);
+    int         itemID = 0;
+    CGObject_C *unitObject = ClntObjMgrObjectPtr(casterUnit, __FILE__, __LINE__);
     if (unitObject && (unitObject->GetType() & TYPE_ITEM)) {
       itemID = unitObject->GetEntryID();
     }
 
     if (casterUnit == casterGUID) {
       s_spellHistory[0].AddHistory(
-          spellID, 0, currTime, srec->m_recoveryTime,
-          srec->m_category, currTime, srec->m_categoryRecoveryTime,
-          needsEvent, 0, 0);
+          spellID, 0, currTime, srec->m_recoveryTime, srec->m_category, currTime, srec->m_categoryRecoveryTime, needsEvent, 0, 0
+      );
       CGActionBar::UpdateCooldowns();
       CGSpellBook::UpdateCooldowns();
     } else if (itemID) {
-      const ItemStats *stats = g_itemDBCache.GetRecord(
-          itemID, casterUnit, ItemStatsCooldownCallback,
-          reinterpret_cast<void *>(1));
+      const ItemStats *stats = g_itemDBCache.GetRecord(itemID, casterUnit, ItemStatsCooldownCallback, reinterpret_cast<LPVOID>(1));
       if (!stats) {
         SetItemCooldown(itemID, spellID, currTime, needsEvent);
         return;
       }
 
-      unsigned int index;
+      UINT index;
       for (index = 0; index < 5; ++index) {
         if (stats->m_spellID[index] == spellID) {
           break;
         }
       }
       if (index < 5) {
-        unsigned int recoveryTime =
-            stats->m_spellCooldown[index] < 0
-                ? srec->m_recoveryTime
-                : stats->m_spellCooldown[index];
-        int category = stats->m_spellCategory[index] <= 0
-                           ? srec->m_category
-                           : stats->m_spellCategory[index];
-        unsigned int categoryRecoveryTime =
-            stats->m_spellCategoryCooldown[index] < 0
-                ? srec->m_categoryRecoveryTime
-                : stats->m_spellCategoryCooldown[index];
-        s_spellHistory[0].AddHistory(
-            spellID, itemID, currTime, recoveryTime, category,
-            currTime, categoryRecoveryTime, needsEvent, 0, 0);
+        UINT recoveryTime = stats->m_spellCooldown[index] < 0 ? srec->m_recoveryTime : stats->m_spellCooldown[index];
+        int  category = stats->m_spellCategory[index] <= 0 ? srec->m_category : stats->m_spellCategory[index];
+        UINT categoryRecoveryTime = stats->m_spellCategoryCooldown[index] < 0 ? srec->m_categoryRecoveryTime : stats->m_spellCategoryCooldown[index];
+        s_spellHistory[0].AddHistory(spellID, itemID, currTime, recoveryTime, category, currTime, categoryRecoveryTime, needsEvent, 0, 0);
       }
       CGActionBar::UpdateCooldowns();
       CGSpellBook::UpdateCooldowns();
@@ -2446,15 +2432,12 @@ static void SpellGo(const unsigned __int64& casterGUID, const unsigned __int64& 
     }
   } else {
     const CGUnitData *unitData = caster->GetUnitData();
-    const unsigned __int64 &owner =
-        unitData->charmedBy ? unitData->charmedBy
-                            : unitData->summonedBy;
+    const DWORDLONG  &owner = unitData->charmedBy ? unitData->charmedBy : unitData->summonedBy;
     if (owner == ClntObjMgrGetActivePlayer()) {
       s_spellHistory[1].AddHistory(
-          spellID, 0, currTime, srec->m_recoveryTime,
-          srec->m_category, currTime, srec->m_categoryRecoveryTime,
-          needsEvent, srec->m_startRecoveryCategory,
-          srec->m_startRecoveryTime);
+          spellID, 0, currTime, srec->m_recoveryTime, srec->m_category, currTime, srec->m_categoryRecoveryTime, needsEvent,
+          srec->m_startRecoveryCategory, srec->m_startRecoveryTime
+      );
       CGPetInfo::UpdateCooldowns();
     }
   }
@@ -2467,10 +2450,10 @@ static void SpellGo(const unsigned __int64& casterGUID, const unsigned __int64& 
   }
 }
 
-static int SpellStartHandler(void*, NETMESSAGE msgID, unsigned long, CDataStore* msg) {
-  unsigned __int64 casterGUID;
-  unsigned __int64 casterUnit;
-  int spellID;
+static int SpellStartHandler(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) {
+  DWORDLONG casterGUID;
+  DWORDLONG casterUnit;
+  int       spellID;
   msg->Get(casterGUID);
   msg->Get(casterUnit);
   msg->Get(spellID);
@@ -2482,16 +2465,15 @@ static int SpellStartHandler(void*, NETMESSAGE msgID, unsigned long, CDataStore*
   return 1;
 }
 
-static int SpellFailedHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned __int64 casterGUID;
-  int spellID;
-  unsigned char reason;
+static int SpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  DWORDLONG casterGUID;
+  int       spellID;
+  BYTE      reason;
   msg->Get(casterGUID);
   msg->Get(spellID);
   msg->Get(reason);
 
-  CGUnit_C *caster =
-      static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(casterGUID, __FILE__, __LINE__));
+  CGUnit_C *caster = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(casterGUID, __FILE__, __LINE__));
   if (caster) {
     const SpellRec *spell = g_spellDB.GetRecord(spellID);
     if (spell && (spell->m_attributesEx & 2)) {
@@ -2503,9 +2485,9 @@ static int SpellFailedHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg)
   return 1;
 }
 
-static int PetSpellFailedHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  int spellID;
-  unsigned char reason;
+static int PetSpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  int  spellID;
+  BYTE reason;
   msg->Get(spellID);
   msg->Get(reason);
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
@@ -2514,8 +2496,7 @@ static int PetSpellFailedHandler(void*, NETMESSAGE, unsigned long, CDataStore* m
   }
 
   if (reason == 37) {
-    CGGameUI::DisplayError(
-        (spell->m_attributes & 0x10) ? GERR_ABILITY_COOLDOWN : GERR_SPELL_COOLDOWN);
+    CGGameUI::DisplayError((spell->m_attributes & 0x10) ? GERR_ABILITY_COOLDOWN : GERR_SPELL_COOLDOWN);
   } else if (reason == 44) {
     if (spell->m_powerType == -2) {
       CGGameUI::DisplayError(GERR_OUT_OF_HEALTH);
@@ -2525,17 +2506,15 @@ static int PetSpellFailedHandler(void*, NETMESSAGE, unsigned long, CDataStore* m
   } else if (reason == 54) {
     CGGameUI::DisplayError(GERR_SPELL_OUT_OF_RANGE);
   } else {
-    CGGameUI::DisplayError(
-        GERR_SPELL_FAILED_S,
-        FrameScript_GetText(GetStringReason(reason), -1, GENDER_NOT_APPLICABLE));
+    CGGameUI::DisplayError(GERR_SPELL_FAILED_S, FrameScript_GetText(GetStringReason(reason), -1, GENDER_NOT_APPLICABLE));
   }
   return 1;
 }
 
-static int SpellCooldownHandler(void*, NETMESSAGE, unsigned long eventTime, CDataStore* msg) {
-  int              spellID;
-  unsigned __int64 guid;
-  unsigned short   recoveryTime;
+static int SpellCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
+  int       spellID;
+  DWORDLONG guid;
+  WORD      recoveryTime;
   msg->Get(spellID);
   msg->Get(guid);
   msg->Get(recoveryTime);
@@ -2553,16 +2532,9 @@ static int SpellCooldownHandler(void*, NETMESSAGE, unsigned long eventTime, CDat
   if (spell) {
     bool needsEvent = (spell->m_attributes & 0x02000000) != 0;
     s_spellHistory[isPet].AddHistory(
-        spellID,
-        0,
-        eventTime,
-        recoveryTime ? recoveryTime : spell->m_recoveryTime,
-        spell->m_category,
-        eventTime,
-        spell->m_categoryRecoveryTime,
-        needsEvent,
-        spell->m_startRecoveryCategory,
-        spell->m_startRecoveryTime);
+        spellID, 0, eventTime, recoveryTime ? recoveryTime : spell->m_recoveryTime, spell->m_category, eventTime, spell->m_categoryRecoveryTime,
+        needsEvent, spell->m_startRecoveryCategory, spell->m_startRecoveryTime
+    );
   }
 
   if (isPet) {
@@ -2574,27 +2546,16 @@ static int SpellCooldownHandler(void*, NETMESSAGE, unsigned long eventTime, CDat
   return 1;
 }
 
-static int ItemCooldownHandler(void*, NETMESSAGE, unsigned long eventTime, CDataStore* msg) {
-  unsigned __int64 itemGUID;
-  int              spellID;
+static int ItemCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
+  DWORDLONG itemGUID;
+  int       spellID;
   msg->Get(itemGUID);
   msg->Get(spellID);
 
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
-  CGObject_C *object =
-      ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__);
+  CGObject_C     *object = ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__);
   if (spell && object && (object->GetType() & TYPE_ITEM)) {
-    s_spellHistory[0].AddHistory(
-        spellID,
-        object->GetEntryID(),
-        eventTime,
-        30000,
-        0,
-        0,
-        0,
-        false,
-        0,
-        0);
+    s_spellHistory[0].AddHistory(spellID, object->GetEntryID(), eventTime, 30000, 0, 0, 0, false, 0, 0);
   }
   CGActionBar::UpdateCooldowns();
   CGSpellBook::UpdateCooldowns();
@@ -2602,9 +2563,9 @@ static int ItemCooldownHandler(void*, NETMESSAGE, unsigned long eventTime, CData
   return 1;
 }
 
-static int CooldownEvent(void*, NETMESSAGE msgID, unsigned long timeReceived, CDataStore* msg) {
-  int              spellID;
-  unsigned __int64 guid;
+static int CooldownEvent(LPVOID, NETMESSAGE msgID, DWORD timeReceived, CDataStore *msg) {
+  int       spellID;
+  DWORDLONG guid;
   msg->Get(spellID);
   msg->Get(guid);
 
@@ -2620,17 +2581,13 @@ static int CooldownEvent(void*, NETMESSAGE msgID, unsigned long timeReceived, CD
   if (msgID == SMSG_COOLDOWN_CHEAT) {
     Spell_C_ClearCooldowns(isPet);
   } else {
-    Spell_C_CooldownEventTriggered(
-        spellID,
-        timeReceived,
-        isPet,
-        msgID == SMSG_CLEAR_COOLDOWN);
+    Spell_C_CooldownEventTriggered(spellID, timeReceived, isPet, msgID == SMSG_CLEAR_COOLDOWN);
   }
   return 1;
 }
 
-static int CooldownCheat(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned __int64 guid;
+static int CooldownCheat(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  DWORDLONG guid;
   msg->Get(guid);
   if (guid == ClntObjMgrGetActivePlayer()) {
     Spell_C_ClearCooldowns(0);
@@ -2640,36 +2597,53 @@ static int CooldownCheat(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
   return 1;
 }
 
-static int PetTameFailure(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned char reason;
+static int PetTameFailure(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  BYTE reason;
   msg->Get(reason);
 
-  const char *token;
+  LPCSTR token;
   switch (reason) {
-    case 1: token = "PETTAME_INVALIDCREATURE"; break;
-    case 2: token = "PETTAME_TOOMANY"; break;
-    case 3: token = "PETTAME_CREATUREALREADYOWNED"; break;
-    case 4: token = "PETTAME_NOTTAMEABLE"; break;
-    case 5: token = "PETTAME_ANOTHERSUMMONACTIVE"; break;
-    case 6: token = "PETTAME_UNITSCANTTAME"; break;
-    case 7: token = "PETTAME_NOPETAVAILABLE"; break;
-    case 8: token = "PETTAME_INTERNALERROR"; break;
-    case 9: token = "PETTAME_TOOHIGHLEVEL"; break;
-    default: token = "PETTAME_UNKNOWNERROR"; break;
+    case 1:
+      token = "PETTAME_INVALIDCREATURE";
+      break;
+    case 2:
+      token = "PETTAME_TOOMANY";
+      break;
+    case 3:
+      token = "PETTAME_CREATUREALREADYOWNED";
+      break;
+    case 4:
+      token = "PETTAME_NOTTAMEABLE";
+      break;
+    case 5:
+      token = "PETTAME_ANOTHERSUMMONACTIVE";
+      break;
+    case 6:
+      token = "PETTAME_UNITSCANTTAME";
+      break;
+    case 7:
+      token = "PETTAME_NOPETAVAILABLE";
+      break;
+    case 8:
+      token = "PETTAME_INTERNALERROR";
+      break;
+    case 9:
+      token = "PETTAME_TOOHIGHLEVEL";
+      break;
+    default:
+      token = "PETTAME_UNKNOWNERROR";
+      break;
   }
 
   char message[128];
-  SStrCopy(
-      message,
-      FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE),
-      sizeof(message));
+  SStrCopy(message, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE), sizeof(message));
   CGGameUI::DisplayError(GERR_TAME_FAILED, message);
   return 1;
 }
 
-static int PlaySpellVisualKit(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned __int64 target;
-  unsigned int     id;
+static int PlaySpellVisualKit(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  DWORDLONG target;
+  UINT      id;
   msg->Get(target);
   msg->Get(id);
   CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
@@ -2679,7 +2653,7 @@ static int PlaySpellVisualKit(void*, NETMESSAGE, unsigned long, CDataStore* msg)
   return 1;
 }
 
-static int CCommand_Learn(const char* command, const char* arguments) {
+static int CCommand_Learn(LPCSTR command, LPCSTR arguments) {
   int spellID;
   if (isdigit(*arguments)) {
     spellID = SStrToInt(arguments);
@@ -2699,7 +2673,7 @@ static int CCommand_Learn(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_Cooldown(const char* command, const char* arguments) {
+static int CCommand_Cooldown(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(40);
   msg.Put(ClntObjMgrGetActivePlayer());
@@ -2707,7 +2681,7 @@ static int CCommand_Cooldown(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_CooldownPet(const char* command, const char* arguments) {
+static int CCommand_CooldownPet(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(40);
   msg.Put(CGPetInfo::GetPet());
@@ -2715,7 +2689,7 @@ static int CCommand_CooldownPet(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_UseSkill(const char* command, const char* arguments) {
+static int CCommand_UseSkill(LPCSTR command, LPCSTR arguments) {
   int offset = 0;
   int id;
   if (isdigit(*arguments)) {
@@ -2750,8 +2724,8 @@ static int CCommand_UseSkill(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_SetSkill(const char* command, const char* arguments) {
-  const char *name = arguments;
+static int CCommand_SetSkill(LPCSTR command, LPCSTR arguments) {
+  LPCSTR name = arguments;
   if (!isdigit(*name)) {
     ConsolePrintf("Unknown skill line");
     return 1;
@@ -2764,10 +2738,7 @@ static int CCommand_SetSkill(const char* command, const char* arguments) {
   int skillID = 0;
   for (int i = 0; i < g_skillLineDB.GetNumRecords(); ++i) {
     const SkillLineRec *skill = g_skillLineDB.GetRecordByIndex(i);
-    if (!SStrCmpI(
-            skill->m_displayName_lang[CURRENT_LANGUAGE],
-            name,
-            SStrLen(name))) {
+    if (!SStrCmpI(skill->m_displayName_lang[CURRENT_LANGUAGE], name, SStrLen(name))) {
       skillID = skill->m_ID;
       break;
     }
@@ -2785,7 +2756,7 @@ static int CCommand_SetSkill(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_CancelAura(const char*, const char* arguments) {
+static int CCommand_CancelAura(LPCSTR, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(297);
   msg.Put(SStrToInt(arguments));
@@ -2793,16 +2764,12 @@ static int CCommand_CancelAura(const char*, const char* arguments) {
   return 1;
 }
 
-static int CCommand_SpellString(const char*, const char* arguments) {
+static int CCommand_SpellString(LPCSTR, LPCSTR arguments) {
   if (arguments && *arguments) {
     SStrPrintf(s_spellTargetString, sizeof(s_spellTargetString), "%s", arguments);
     if (Spell_C_IsTargeting()) {
       if (s_needTargets & 0x2000) {
-        SStrPrintf(
-            s_spellCast.targetString,
-            sizeof(s_spellCast.targetString),
-            "%s",
-            s_spellTargetString);
+        SStrPrintf(s_spellCast.targetString, sizeof(s_spellCast.targetString), "%s", s_spellTargetString);
         s_needTargets &= ~0x2000;
         s_spellCast.targets |= 0x2000;
         s_spellTargetString[0] = 0;
@@ -2826,7 +2793,7 @@ static int Script_SpellCanTargetUnit(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SpellCanTargetUnit(\"unit\")");
   }
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  DWORDLONG         guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   CSpriteClickEvent evt;
   evt.objectGUID = guid;
   evt.pos.x = 0.0f;
@@ -2843,7 +2810,7 @@ static int Script_SpellTargetUnit(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SpellCanTargetUnit(\"unit\")");
   }
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   if (guid) {
     CSpriteClickEvent evt;
     evt.objectGUID = guid;
@@ -2862,13 +2829,13 @@ static int Script_SpellStopTargeting(lua_State *L) {
 }
 
 void SpellRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     FrameScript_RegisterFunction(s_SpellScriptFunctions[i].name, s_SpellScriptFunctions[i].method);
   }
 }
 
 void SpellUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     FrameScript_UnregisterFunction(s_SpellScriptFunctions[i].name);
   }
 }
@@ -2895,7 +2862,7 @@ void Spell_C_CancelCombatSpell() {
   if (spell && (spell->m_attributes & 0x404)) {
     if (!s_savedModalItemID) {
       CDataStore msg;
-      msg.Put(static_cast<unsigned int>(CMSG_CANCEL_CAST));
+      msg.Put(static_cast<UINT>(CMSG_CANCEL_CAST));
       msg.Put(s_savedModalSpellID);
       msg.Finalize();
       ClientServices_Send(&msg);
@@ -2908,8 +2875,7 @@ void Spell_C_CancelCombatSpell() {
 void Spell_C_CancelAura(int spellID) {
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (spell->m_attributesEx & 0x2000) {
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(
-        ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
       player->ToggleFarSight();
     }
@@ -2919,13 +2885,13 @@ void Spell_C_CancelAura(int spellID) {
   }
 
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_CANCEL_AURA));
+  msg.Put(static_cast<UINT>(CMSG_CANCEL_AURA));
   msg.Put(spellID);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-unsigned int Spell_C_GetPowerDisplayMod(POWER_TYPE type) {
+UINT Spell_C_GetPowerDisplayMod(POWER_TYPE type) {
   return type < 0 ? 1 : s_displayPowerMods[type];
 }
 
@@ -2957,22 +2923,10 @@ void Spell_C_Initialize() {
   ConsoleCommandRegister("learn", CCommand_Learn, DEBUG, "Learn a spell (or -1 for all spells)");
   ConsoleCommandRegister("cooldown", CCommand_Cooldown, DEBUG, "Toggle cooldowns");
   ConsoleCommandRegister("cooldownPet", CCommand_CooldownPet, DEBUG, "Toggle cooldowns for your pet");
-  ConsoleCommandRegister(
-      "useskill",
-      CCommand_UseSkill,
-      DEBUG,
-      "Simulate usage of a spell without actually casting, to test skill rank-ups");
+  ConsoleCommandRegister("useskill", CCommand_UseSkill, DEBUG, "Simulate usage of a spell without actually casting, to test skill rank-ups");
   ConsoleCommandRegister("setskill", CCommand_SetSkill, DEBUG, "Set skill to a specific level");
-  ConsoleCommandRegister(
-      "cancelaura",
-      CCommand_CancelAura,
-      GAME,
-      "Cancel an aura given the aura's index (not spell ID)");
-  ConsoleCommandRegister(
-      "spellstring",
-      CCommand_SpellString,
-      GAME,
-      "specify a spell string. Eventually there will be an editbox.");
+  ConsoleCommandRegister("cancelaura", CCommand_CancelAura, GAME, "Cancel an aura given the aura's index (not spell ID)");
+  ConsoleCommandRegister("spellstring", CCommand_SpellString, GAME, "specify a spell string. Eventually there will be an editbox.");
 }
 
 void Spell_C_Destroy() {
@@ -3008,7 +2962,7 @@ void Spell_C_Destroy() {
 }
 
 bool IsSpellAura(const SpellRec *rec) {
-  for (unsigned int effect = 0; effect < 3; ++effect) {
+  for (UINT effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 6 || rec->m_effect[effect] == 35) {
       return 1;
     }

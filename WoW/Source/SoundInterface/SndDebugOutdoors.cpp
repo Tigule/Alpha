@@ -15,19 +15,19 @@
 #include <storm.h>
 
 struct OUTDOORSCHUNKHASHOBJ : public TSHashObject<OUTDOORSCHUNKHASHOBJ, AREAHASHKEY> {
-  unsigned int              chunkNumber;
+  UINT                      chunkNumber;
   _FSOUND_REVERB_PROPERTIES desc;
-  unsigned int              continentID;
-  unsigned int              areaID;
+  UINT                      continentID;
+  UINT                      areaID;
 
   void DumpInfo(int summary, int newlyCreated);
   void PrintInfo(FILE *outFile);
 };
 
-static unsigned int                                   s_currentContinent;
+static UINT                                           s_currentContinent;
 static TSHashTable<OUTDOORSCHUNKHASHOBJ, AREAHASHKEY> s_chunkHash;
 static TSGrowableArray<OUTDOORSCHUNKHASHOBJ *>        s_chunkList;
-static unsigned int                                   s_currentChunk;
+static UINT                                           s_currentChunk;
 
 void OUTDOORSCHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
   if (newlyCreated) {
@@ -35,7 +35,7 @@ void OUTDOORSCHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
   }
 
   ConsolePrintf(
-      "[%03d]   %d \"c%dz%ds%d\" %s", chunkNumber, areaID, continentID, areaID >> 16, static_cast<unsigned short>(areaID),
+      "[%03d]   %d \"c%dz%ds%d\" %s", chunkNumber, areaID, continentID, areaID >> 16, static_cast<WORD>(areaID),
       chunkNumber == s_currentChunk ? "[CURRENT]" : ""
   );
   if (!summary) {
@@ -67,7 +67,7 @@ void OUTDOORSCHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
 void OUTDOORSCHUNKHASHOBJ::PrintInfo(FILE *outFile) {
   FATALASSERT(outFile);
 
-  fprintf(outFile, "c%dz%ds%d\n", continentID, areaID >> 16, static_cast<unsigned short>(areaID));
+  fprintf(outFile, "c%dz%ds%d\n", continentID, areaID >> 16, static_cast<WORD>(areaID));
   fprintf(outFile, "%d\n", desc.Environment);
   fprintf(outFile, "%0.4f\n", desc.DecayTime);
   fprintf(outFile, "%0.4f\n", desc.EnvSize);
@@ -92,8 +92,8 @@ void OUTDOORSCHUNKHASHOBJ::PrintInfo(FILE *outFile) {
   fprintf(outFile, "%d\n", desc.Environment);
 }
 
-int DumpChunksOUTDOORS(const char *command, const char *arguments) {
-  unsigned int chunks = s_chunkList.Count();
+int DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
+  UINT chunks = s_chunkList.Count();
   if (!chunks) {
     ConsoleWrite("Error, no chunk information to dump!", DEFAULT_COLOR);
     return 1;
@@ -101,7 +101,7 @@ int DumpChunksOUTDOORS(const char *command, const char *arguments) {
 
   FILE *outFile = 0;
   char  buffer[128];
-  for (unsigned int fileNumber = 0; fileNumber < 100; ++fileNumber) {
+  for (UINT fileNumber = 0; fileNumber < 100; ++fileNumber) {
     SStrPrintf(buffer, sizeof(buffer), "SndEAXChunkInfo_OUTDOORS_%02d.txt", fileNumber);
     outFile = fopen(buffer, "wt");
     if (outFile) {
@@ -114,7 +114,7 @@ int DumpChunksOUTDOORS(const char *command, const char *arguments) {
   }
 
   fprintf(outFile, "%d\n", chunks);
-  for (unsigned int i = 0; i < chunks; ++i) {
+  for (UINT i = 0; i < chunks; ++i) {
     ASSERT(s_chunkList[i]);
     s_chunkList[i]->PrintInfo(outFile);
   }
@@ -122,7 +122,7 @@ int DumpChunksOUTDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int ShowCurrentChunkOUTDOORS(const char *command, const char *arguments) {
+int ShowCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (!s_chunkList.Count()) {
     ConsoleWrite("No chunks created!", DEFAULT_COLOR);
   } else if (s_currentChunk >= s_chunkList.Count()) {
@@ -134,7 +134,7 @@ int ShowCurrentChunkOUTDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int SetChunkPropertyOUTDOORS(const char *command, const char *arguments) {
+int SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (s_currentChunk > s_chunkList.Count()) {
     ConsoleWrite("Error, the current chunk is invalid!", DEFAULT_COLOR);
     return 1;
@@ -142,8 +142,8 @@ int SetChunkPropertyOUTDOORS(const char *command, const char *arguments) {
 
   OUTDOORSCHUNKHASHOBJ *chunk = s_chunkList[s_currentChunk];
   ASSERT(chunk);
-  unsigned int prefNumber;
-  float        value;
+  UINT  prefNumber;
+  float value;
   sscanf(arguments, "%d %f", &prefNumber, &value);
   int intValue = static_cast<int>(value);
 
@@ -221,9 +221,9 @@ int SetChunkPropertyOUTDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int SetCurrentChunkOUTDOORS(const char *command, const char *arguments) {
+int SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
-    unsigned int chunk = SStrToUnsigned(arguments);
+    UINT chunk = SStrToUnsigned(arguments);
     if (chunk < s_chunkList.Count()) {
       s_currentChunk = chunk;
       ConsolePrintf("Current chunk set to %d", chunk);
@@ -236,14 +236,14 @@ int SetCurrentChunkOUTDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int CreateChunkOUTDOORS(const char *command, const char *arguments) {
+int CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!object) {
     ConsoleWrite("Error, can't locate player!", DEFAULT_COLOR);
     return 1;
   }
 
-  unsigned long worldObject = object->GetWorldObject();
+  DWORD worldObject = object->GetWorldObject();
   if (!worldObject) {
     ConsoleWrite("Error, can't locate player world object!", DEFAULT_COLOR);
     return 1;
@@ -254,8 +254,8 @@ int CreateChunkOUTDOORS(const char *command, const char *arguments) {
   }
 
   NTempest::C3Vector location = object->GetPosition();
-  unsigned int       count = CWorld::QueryAreaId(location.x, location.y);
-  AREAHASHKEY        key(s_currentContinent, count >> 16, static_cast<unsigned short>(count));
+  UINT               count = CWorld::QueryAreaId(location.x, location.y);
+  AREAHASHKEY        key(s_currentContinent, count >> 16, static_cast<WORD>(count));
 
   OUTDOORSCHUNKHASHOBJ *chunk = s_chunkHash.Ptr(count, key);
   if (!chunk) {
@@ -273,8 +273,8 @@ int CreateChunkOUTDOORS(const char *command, const char *arguments) {
   return 1;
 }
 
-int SndDebugListChunksOUTDOORS(const char *command, const char *arguments) {
-  unsigned int i;
+int SndDebugListChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
+  UINT i;
   for (i = 0; i < s_chunkList.Count(); ++i) {
     ASSERT(s_chunkList[i]);
     s_chunkList[i]->DumpInfo(1, 0);
@@ -288,6 +288,6 @@ void OutdoorsShutdown() {
   s_chunkList.Clear();
 }
 
-void SndDebugRegisterContinent(unsigned int continent) {
+void SndDebugRegisterContinent(UINT continent) {
   s_currentContinent = continent;
 }

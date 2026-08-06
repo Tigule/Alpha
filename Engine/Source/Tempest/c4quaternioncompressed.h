@@ -7,15 +7,15 @@ namespace NTempest {
   class C4QuaternionCompressed {
    private:
     float GetX() const {
-      return static_cast<float>(static_cast<int>(static_cast<unsigned __int64>(m_data) >> 32) >> 10) * 0.00000047683716f;
+      return static_cast<float>(static_cast<int>(static_cast<DWORDLONG>(m_data) >> 32) >> 10) * 0.00000047683716f;
     }
 
     float GetY() const {
-      return static_cast<float>(static_cast<int>(static_cast<unsigned int>(static_cast<unsigned __int64>(m_data) >> 10)) >> 11) * 0.00000095367432f;
+      return static_cast<float>(static_cast<int>(static_cast<UINT>(static_cast<DWORDLONG>(m_data) >> 10)) >> 11) * 0.00000095367432f;
     }
 
     float GetZ() const {
-      return static_cast<float>(static_cast<int>(static_cast<unsigned int>(m_data) << 11) >> 11) * 0.00000095367432f;
+      return static_cast<float>(static_cast<int>(static_cast<UINT>(m_data) << 11) >> 11) * 0.00000095367432f;
     }
 
     float GetW(float x, float y, float z) const {
@@ -27,7 +27,7 @@ namespace NTempest {
     C4QuaternionCompressed() : m_data(0) {
     }
 
-    C4QuaternionCompressed(__int64 data) : m_data(data) {
+    C4QuaternionCompressed(LONGLONG data) : m_data(data) {
     }
 
     C4QuaternionCompressed(const C4QuaternionCompressed &source) : m_data(source.m_data) {
@@ -48,9 +48,9 @@ namespace NTempest {
     }
 
     void Set(const C4Quaternion &source);
-    operator C4Quaternion() const;
+         operator C4Quaternion() const;
 
-    __int64 Raw() const {
+    LONGLONG Raw() const {
       return m_data;
     }
 
@@ -74,32 +74,25 @@ namespace NTempest {
       Set(quaternion);
     }
 
-    static C4Quaternion Slerp(
-        float ratio,
-        const C4QuaternionCompressed &start,
-        const C4QuaternionCompressed &end
-    ) {
+    static C4Quaternion Slerp(float ratio, const C4QuaternionCompressed &start, const C4QuaternionCompressed &end) {
       return C4Quaternion::Slerp(ratio, static_cast<C4Quaternion>(start), static_cast<C4Quaternion>(end));
     }
 
     static C4Quaternion Squad(
-        float ratio,
+        float                         ratio,
         const C4QuaternionCompressed &start,
         const C4QuaternionCompressed &end,
         const C4QuaternionCompressed &outTangent,
         const C4QuaternionCompressed &inTangent
     ) {
       return C4Quaternion::Squad(
-          ratio,
-          static_cast<C4Quaternion>(start),
-          static_cast<C4Quaternion>(end),
-          static_cast<C4Quaternion>(outTangent),
+          ratio, static_cast<C4Quaternion>(start), static_cast<C4Quaternion>(end), static_cast<C4Quaternion>(outTangent),
           static_cast<C4Quaternion>(inTangent)
       );
     }
 
    private:
-    __int64 m_data;
+    LONGLONG m_data;
   };
 
 }  // namespace NTempest

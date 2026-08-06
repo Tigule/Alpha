@@ -7,13 +7,13 @@ class SpellItemEnchantmentRec {
   SpellItemEnchantmentRec();
   ~SpellItemEnchantmentRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 23;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 92;
   }
 
@@ -28,16 +28,16 @@ class SpellItemEnchantmentRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_effect[3];
-  int         m_effectPointsMin[3];
-  int         m_effectPointsMax[3];
-  int         m_effectArg[3];
-  const char *m_name_lang[NUM_LOCALES];
-  int         m_name_flag;
-  int         m_itemVisual;
+  int    m_ID;
+  int    m_effect[3];
+  int    m_effectPointsMin[3];
+  int    m_effectPointsMax[3];
+  int    m_effectArg[3];
+  LPCSTR m_name_lang[NUM_LOCALES];
+  int    m_name_flag;
+  int    m_itemVisual;
 };
 
 extern WowClientDB<SpellItemEnchantmentRec> g_spellItemEnchantmentDB;

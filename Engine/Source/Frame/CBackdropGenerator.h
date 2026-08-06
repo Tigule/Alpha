@@ -40,8 +40,8 @@ class CBackdropGenerator {
   void GetVertexColor(NTempest::CImVector &color) const;
   void SetBorderVertexColor(const NTempest::CImVector &color);
   void GetBorderVertexColor(NTempest::CImVector &color) const;
-  void SetBackdropTextures(const RCStaticString &background, const RCStaticString &border, unsigned int pieces, int tileBackground);
-  void SetBackdropTextures(const char *background, const char *border, unsigned int pieces, int tileBackground);
+  void SetBackdropTextures(const RCStaticString &background, const RCStaticString &border, UINT pieces, int tileBackground);
+  void SetBackdropTextures(LPCSTR background, LPCSTR border, UINT pieces, int tileBackground);
   void SetBackgroundInsets(float right, float left, float top, float bottom);
   void SetBackgroundSize(float size);
   void SetCornerSize(float size);
@@ -60,7 +60,7 @@ class CBackdropGenerator {
   CSimpleTexture     *m_bottomRightTexture;
   RCStaticString      m_background;
   RCStaticString      m_border;
-  unsigned int        m_pieces;
+  UINT                m_pieces;
   int                 m_tileBackground;
   int                 m_blendAll;
   float               m_cornerSize;

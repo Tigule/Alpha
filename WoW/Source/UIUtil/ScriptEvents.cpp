@@ -70,10 +70,10 @@ static int Script_IsInGuild(lua_State *L);
 static char  s_unitNameArray[4][32];
 static char *s_unitNames[4] = {s_unitNameArray[0], s_unitNameArray[1], s_unitNameArray[2], s_unitNameArray[3]};
 
-CGUnit_C *Script_GetUnitFromName(const char *name);
-unsigned __int64 Script_GetGUIDFromName(const char *name);
-void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit);
-void SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int sex, unsigned __int64 guid);
+CGUnit_C *Script_GetUnitFromName(LPCSTR name);
+DWORDLONG Script_GetGUIDFromName(LPCSTR name);
+void      SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit);
+void      SetPortraitTexture(CSimpleTexture *texture, UINT race, UINT sex, DWORDLONG guid);
 
 class ScriptPartyInfoAccess : public CGPartyInfo {
  public:
@@ -81,10 +81,10 @@ class ScriptPartyInfoAccess : public CGPartyInfo {
   using CGPartyInfo::m_members;
 };
 
-CGUnit_C *Script_GetUnitFromName(const char *name) {
-  unsigned __int64 guid;
-  CGObject_C      *object;
-  CGUnit_C        *player;
+CGUnit_C *Script_GetUnitFromName(LPCSTR name) {
+  DWORDLONG   guid;
+  CGObject_C *object;
+  CGUnit_C   *player;
 
   guid = ClntObjMgrGetActivePlayer();
   object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
@@ -115,11 +115,10 @@ CGUnit_C *Script_GetUnitFromName(const char *name) {
   return object && (object->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
 }
 
-CGObject_C *Script_GetObjectFromName(const char *name) {
-  unsigned __int64 guid = ClntObjMgrGetActivePlayer();
-  CGObject_C      *playerObject = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
-  CGUnit_C        *player =
-      playerObject && (playerObject->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(playerObject) : 0;
+CGObject_C *Script_GetObjectFromName(LPCSTR name) {
+  DWORDLONG   guid = ClntObjMgrGetActivePlayer();
+  CGObject_C *playerObject = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  CGUnit_C   *player = playerObject && (playerObject->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(playerObject) : 0;
   if (!player || !name || !*name) {
     return 0;
   }
@@ -148,11 +147,11 @@ CGObject_C *Script_GetObjectFromName(const char *name) {
   return ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
 }
 
-unsigned __int64 Script_GetGUIDFromName(const char *name) {
-  CGUnit_C        *unit = Script_GetUnitFromName(name);
-  unsigned __int64 guid;
-  CGObject_C      *object;
-  CGUnit_C        *player;
+DWORDLONG Script_GetGUIDFromName(LPCSTR name) {
+  CGUnit_C   *unit = Script_GetUnitFromName(name);
+  DWORDLONG   guid;
+  CGObject_C *object;
+  CGUnit_C   *player;
 
   if (unit) {
     return unit->GetGUID();
@@ -185,7 +184,7 @@ unsigned __int64 Script_GetGUIDFromName(const char *name) {
   return 0;
 }
 
-char **Script_GetNamesFromGUID(const unsigned __int64 &guid, int &numnames) {
+char **Script_GetNamesFromGUID(const DWORDLONG &guid, int &numnames) {
   numnames = 0;
   if (!guid) {
     return 0;
@@ -200,7 +199,7 @@ char **Script_GetNamesFromGUID(const unsigned __int64 &guid, int &numnames) {
     SStrCopy(s_unitNames[numnames++], "player", 32);
   }
 
-  unsigned __int64 pet = player->GetUnitData()->charm;
+  DWORDLONG pet = player->GetUnitData()->charm;
   if (!pet) {
     pet = player->GetUnitData()->summon;
   }
@@ -227,7 +226,7 @@ char **Script_GetNamesFromGUID(const unsigned __int64 &guid, int &numnames) {
   return s_unitNames;
 }
 
-void Script_SendUnitSignal(const unsigned __int64 &guid, int signal) {
+void Script_SendUnitSignal(const DWORDLONG &guid, int signal) {
   int    numnames;
   char **names = Script_GetNamesFromGUID(guid, numnames);
   for (int index = 0; index < numnames; ++index) {
@@ -281,17 +280,17 @@ static FrameScript_Method s_UnitFunctions[38] = {
     {          "IsInGuild",           Script_IsInGuild}
 };
 
-static int UnitUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int UnitUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   Script_SendUnitSignal(guid, offset >> 2);
   return 1;
 }
 
-static int UnitInventoryUpdate(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int UnitInventoryUpdate(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object && guid == ClntObjMgrGetActivePlayer()) {
-    CGBag_C         *bag = object->GetBag();
-    unsigned __int64 item = bag ? bag->GetItem(offset >> 3) : 0;
-    if (*static_cast<const unsigned __int64 *>(prevValue) != item) {
+    CGBag_C  *bag = object->GetBag();
+    DWORDLONG item = bag ? bag->GetItem(offset >> 3) : 0;
+    if (*static_cast<const DWORDLONG *>(prevValue) != item) {
       CGGameUI::UnlockItem(item);
     }
   }
@@ -299,7 +298,7 @@ static int UnitInventoryUpdate(unsigned __int64 guid, unsigned int offset, unsig
   return 1;
 }
 
-static int PlayerXPUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void* prevValue, void* param) {
+static int PlayerXPUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   FrameScript_SignalEvent(185);
   return 1;
 }
@@ -329,8 +328,8 @@ static CGUnit_C *GetScriptUnit(lua_State *L, int index) {
 }
 
 static int Script_UnitExists(lua_State *L) {
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-  CGObject_C      *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
 
   PushBoolean(L, object && (object->GetType() & TYPE_UNIT) || CGPartyInfo::IsMember(guid));
   return 1;
@@ -346,8 +345,8 @@ static int Script_UnitIsUnit(lua_State *L) {
 }
 
 static int Script_UnitIsPlayer(lua_State *L) {
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-  CGObject_C      *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
 
   PushBoolean(L, object && (object->GetType() & TYPE_PLAYER) || CGPartyInfo::IsMember(guid));
   return 1;
@@ -359,7 +358,7 @@ static int Script_UnitIsPartyLeader(lua_State *L) {
 }
 
 static int Script_UnitInParty(lua_State *L) {
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   PushBoolean(L, CGPartyInfo::IsMember(guid));
   return 1;
 }
@@ -397,12 +396,12 @@ static int Script_UnitIsEnemy(lua_State *L) {
 }
 
 static int Script_UnitIsFriend(lua_State *L) {
-  const char      *name1;
-  const char      *name2;
-  unsigned __int64 unitGUID;
-  unsigned __int64 targetGUID;
-  CGUnit_C        *unit;
-  CGUnit_C        *target;
+  LPCSTR    name1;
+  LPCSTR    name2;
+  DWORDLONG unitGUID;
+  DWORDLONG targetGUID;
+  CGUnit_C *unit;
+  CGUnit_C *target;
 
   if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
     luaL_error(L, "Usage: UnitIsFriend(\"unit\", \"otherUnit\")");
@@ -448,20 +447,20 @@ static int Script_UnitIsPlusMob(lua_State *L) {
 }
 
 static int Script_IsInGuild(lua_State *L) {
-  CGUnit_C            *player = Script_GetUnitFromName("player");
-  const unsigned long *playerData = player ? player->GetStorage() : 0;
+  CGUnit_C    *player = Script_GetUnitFromName("player");
+  const DWORD *playerData = player ? player->GetStorage() : 0;
   PushBoolean(L, playerData && playerData[145] != 0);
   return 1;
 }
 
-static void NameQueryCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
+static void NameQueryCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     CGGameUI::UnitNameUpdate(guid);
   }
 }
 
 static int Script_UnitName(lua_State *L) {
-  unsigned __int64 guid;
+  DWORDLONG        guid;
   CGUnit_C        *unit;
   const NameCache *name;
 
@@ -481,8 +480,8 @@ static int Script_UnitName(lua_State *L) {
 }
 
 static int Script_UnitXP(lua_State *L) {
-  CGUnit_C            *unit;
-  const unsigned long *data;
+  CGUnit_C    *unit;
+  const DWORD *data;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitXP(\"unit\")");
@@ -494,8 +493,8 @@ static int Script_UnitXP(lua_State *L) {
 }
 
 static int Script_UnitXPMax(lua_State *L) {
-  CGUnit_C            *unit;
-  const unsigned long *data;
+  CGUnit_C    *unit;
+  const DWORD *data;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitXPMax(\"unit\")");
@@ -528,33 +527,33 @@ static int Script_UnitHealthMax(lua_State *L) {
   return 1;
 }
 
-static unsigned int PowerDisplayMod(unsigned int powerType) {
+static UINT PowerDisplayMod(UINT powerType) {
   return powerType == 1 ? 10 : 1;
 }
 
 static int Script_UnitMana(lua_State *L) {
-  CGUnit_C    *unit;
-  unsigned int powerType;
+  CGUnit_C *unit;
+  UINT      powerType;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitMana(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
   powerType = unit ? unit->GetUnitData()->displayPower : 0;
-  lua_pushnumber(L, unit ? static_cast<unsigned int>(unit->GetUnitData()->power[powerType]) / PowerDisplayMod(powerType) : 0);
+  lua_pushnumber(L, unit ? static_cast<UINT>(unit->GetUnitData()->power[powerType]) / PowerDisplayMod(powerType) : 0);
   return 1;
 }
 
 static int Script_UnitManaMax(lua_State *L) {
-  CGUnit_C    *unit;
-  unsigned int powerType;
+  CGUnit_C *unit;
+  UINT      powerType;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitManaMax(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
   powerType = unit ? unit->GetUnitData()->displayPower : 0;
-  lua_pushnumber(L, unit ? static_cast<unsigned int>(unit->GetUnitData()->maxPower[powerType]) / PowerDisplayMod(powerType) : 0);
+  lua_pushnumber(L, unit ? static_cast<UINT>(unit->GetUnitData()->maxPower[powerType]) / PowerDisplayMod(powerType) : 0);
   return 1;
 }
 
@@ -607,8 +606,8 @@ static int Script_UnitSex(lua_State *L) {
 }
 
 static int Script_UnitLevel(lua_State *L) {
-  unsigned __int64 guid;
-  CGUnit_C        *unit;
+  DWORDLONG guid;
+  CGUnit_C *unit;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitLevel(\"unit\")");
@@ -672,17 +671,17 @@ static int Script_UnitClass(lua_State *L) {
 }
 
 static int Script_UnitResistance(lua_State *L) {
-  unsigned int resistance;
-  CGUnit_C    *unit;
-  int          r = 0;
-  int          er = 0;
-  int          pos = 0;
-  int          neg = 0;
+  UINT      resistance;
+  CGUnit_C *unit;
+  int       r = 0;
+  int       er = 0;
+  int       pos = 0;
+  int       neg = 0;
 
   if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
     luaL_error(L, "Usage: UnitResistance(\"unit\", resistance)");
   }
-  resistance = static_cast<unsigned int>(lua_tonumber(L, 2));
+  resistance = static_cast<UINT>(lua_tonumber(L, 2));
   if (resistance > 6) {
     luaL_error(L, "Invalid resistance index in UnitResistance");
   }
@@ -701,15 +700,15 @@ static int Script_UnitResistance(lua_State *L) {
 }
 
 static int Script_UnitStat(lua_State *L) {
-  unsigned int stat;
-  CGUnit_C    *unit;
-  int          base = 0;
-  int          value = 0;
+  UINT      stat;
+  CGUnit_C *unit;
+  int       base = 0;
+  int       value = 0;
 
   if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
     luaL_error(L, "Usage: UnitStat(\"unit\", resistance)");
   }
-  stat = static_cast<unsigned int>(lua_tonumber(L, 2)) - 1;
+  stat = static_cast<UINT>(lua_tonumber(L, 2)) - 1;
   if (stat >= 5) {
     luaL_error(L, "Invalid stat index in UnitStat");
   }
@@ -724,10 +723,10 @@ static int Script_UnitStat(lua_State *L) {
 }
 
 static int Script_UnitAttackBothHands(lua_State *L) {
-  CGUnit_C    *unit;
-  int          base[2] = {0, 0};
-  int          modifier[2] = {0, 0};
-  unsigned int i;
+  CGUnit_C *unit;
+  int       base[2] = {0, 0};
+  int       modifier[2] = {0, 0};
+  UINT      i;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitAttackBothHands(\"unit\")");
@@ -746,8 +745,8 @@ static int Script_UnitAttackBothHands(lua_State *L) {
 }
 
 static int Script_UnitDamage(lua_State *L) {
-  CGUnit_C    *unit;
-  unsigned int i;
+  CGUnit_C *unit;
+  UINT      i;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitDamage(\"unit\")");
@@ -804,12 +803,12 @@ static int Script_UnitDefense(lua_State *L) {
 }
 
 static int Script_UnitArmor(lua_State *L) {
-  CGUnit_C    *unit;
-  unsigned int resistance = GetPhysicalDamageClassID();
-  int          r = 0;
-  int          er = 0;
-  int          pos = 0;
-  int          neg = 0;
+  CGUnit_C *unit;
+  UINT      resistance = GetPhysicalDamageClassID();
+  int       r = 0;
+  int       er = 0;
+  int       pos = 0;
+  int       neg = 0;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitArmor(\"unit\")");
@@ -829,8 +828,8 @@ static int Script_UnitArmor(lua_State *L) {
 }
 
 static int Script_UnitCharacterPoints(lua_State *L) {
-  CGUnit_C            *unit;
-  const unsigned long *data;
+  CGUnit_C    *unit;
+  const DWORD *data;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitCharacterPoints(\"unit\")");
@@ -842,7 +841,7 @@ static int Script_UnitCharacterPoints(lua_State *L) {
   return 2;
 }
 
-static void PortraitQueryCallback(int, const unsigned __int64 &, void *, bool granted) {
+static void PortraitQueryCallback(int, const DWORDLONG &, LPVOID, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(181);
   }
@@ -850,7 +849,7 @@ static void PortraitQueryCallback(int, const unsigned __int64 &, void *, bool gr
 
 static int Script_SetPortraitTexture(lua_State *L) {
   CSimpleTexture  *texture = 0;
-  unsigned __int64 guid;
+  DWORDLONG        guid;
   CGUnit_C        *unit;
   const NameCache *name;
 
@@ -892,7 +891,7 @@ static int Script_GetComboPoints(lua_State *L) {
   return 1;
 }
 
-const char *g_scriptEvents[0x177];
+LPCSTR g_scriptEvents[0x177];
 
 void ScriptEventsInitialize() {
   g_scriptEvents[136] = "UNIT_RESISTANCE";
@@ -1149,7 +1148,7 @@ void ScriptEventsInitialize() {
 }
 
 void ScriptEventsRegisterFunctions() {
-  unsigned int i;
+  UINT i;
 
   for (i = 0; i < sizeof(s_SystemFunctions) / sizeof(s_SystemFunctions[0]); ++i) {
     FrameScript_RegisterFunction(s_SystemFunctions[i].name, s_SystemFunctions[i].method);
@@ -1161,7 +1160,7 @@ void ScriptEventsRegisterFunctions() {
 }
 
 void ScriptEventsUnregisterFunctions() {
-  unsigned int i;
+  UINT i;
 
   for (i = 0; i < sizeof(s_SystemFunctions) / sizeof(s_SystemFunctions[0]); ++i) {
     FrameScript_UnregisterFunction(s_SystemFunctions[i].name);
@@ -1172,19 +1171,19 @@ void ScriptEventsUnregisterFunctions() {
   }
 }
 
-void ScriptEventsRegisterUnit(CGUnit_C* unit) {
+void ScriptEventsRegisterUnit(CGUnit_C *unit) {
   if (!unit) {
     return;
   }
 
-  unsigned __int64 guid = unit->GetGUID();
-  unsigned int     unitOffset = CGPlayer_C::OffsetOf(ID_UNIT);
-  for (unsigned int event = 0; event < 178; ++event) {
+  DWORDLONG guid = unit->GetGUID();
+  UINT      unitOffset = CGPlayer_C::OffsetOf(ID_UNIT);
+  for (UINT event = 0; event < 178; ++event) {
     if (!g_scriptEvents[event]) {
       continue;
     }
 
-    unsigned int bytes = 4;
+    UINT bytes = 4;
     if (event == 0 || event == 10 || event == 134 || event == 135) {
       bytes = 8;
     } else if (event >= 29 && event <= 33) {
@@ -1193,49 +1192,41 @@ void ScriptEventsRegisterUnit(CGUnit_C* unit) {
       bytes = 24;
     }
 
-    ClntObjMgrSetObjMirrorHandler(
-        guid, unitOffset + 4 * event, bytes, UnitUpdateHandler, 0, HANDLER_PRIORITY_NORMAL
-    );
+    ClntObjMgrSetObjMirrorHandler(guid, unitOffset + 4 * event, bytes, UnitUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
     Script_SendUnitSignal(guid, event);
   }
 
   if (unit->GetType() & TYPE_PLAYER) {
-    unsigned int playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-    for (unsigned int offset = 0; offset <= 176; offset += 8) {
-      ClntObjMgrSetObjMirrorHandler(
-          guid, playerOffset + offset, 8, UnitInventoryUpdate, 0, HANDLER_PRIORITY_NORMAL
-      );
+    UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
+    for (UINT offset = 0; offset <= 176; offset += 8) {
+      ClntObjMgrSetObjMirrorHandler(guid, playerOffset + offset, 8, UnitInventoryUpdate, 0, HANDLER_PRIORITY_NORMAL);
     }
     Script_SendUnitSignal(guid, 183);
 
     if (guid == ClntObjMgrGetActivePlayer()) {
-      ClntObjMgrSetObjMirrorHandler(
-          guid, playerOffset + 592, 4, PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL
-      );
-      ClntObjMgrSetObjMirrorHandler(
-          guid, playerOffset + 596, 4, PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL
-      );
+      ClntObjMgrSetObjMirrorHandler(guid, playerOffset + 592, 4, PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+      ClntObjMgrSetObjMirrorHandler(guid, playerOffset + 596, 4, PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
       FrameScript_SignalEvent(185);
     }
   }
 }
 
-void ScriptEventsUnregisterUnit(CGUnit_C* unit) {
+void ScriptEventsUnregisterUnit(CGUnit_C *unit) {
   if (!unit) {
     return;
   }
 
-  unsigned __int64 guid = unit->GetGUID();
-  unsigned int     unitOffset = CGPlayer_C::OffsetOf(ID_UNIT);
-  for (unsigned int event = 0; event < 178; ++event) {
+  DWORDLONG guid = unit->GetGUID();
+  UINT      unitOffset = CGPlayer_C::OffsetOf(ID_UNIT);
+  for (UINT event = 0; event < 178; ++event) {
     if (g_scriptEvents[event]) {
       ClntObjMgrUnsetObjMirrorHandler(guid, unitOffset + 4 * event, UnitUpdateHandler, 0);
     }
   }
 
   if (unit->GetType() & TYPE_PLAYER) {
-    unsigned int playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-    for (unsigned int offset = 0; offset <= 176; offset += 8) {
+    UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
+    for (UINT offset = 0; offset <= 176; offset += 8) {
       ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + offset, UnitInventoryUpdate, 0);
     }
     if (guid == ClntObjMgrGetActivePlayer()) {

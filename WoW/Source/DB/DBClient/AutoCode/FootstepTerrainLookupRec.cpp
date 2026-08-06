@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *FootstepTerrainLookupRec::GetFilename() {
+LPCSTR FootstepTerrainLookupRec::GetFilename() {
   return "DBFilesClient\\FootstepTerrainLookup.dbc";
 }
 
@@ -19,7 +19,7 @@ FootstepTerrainLookupRec::FootstepTerrainLookupRec() {
 FootstepTerrainLookupRec::~FootstepTerrainLookupRec() {
 }
 
-bool FootstepTerrainLookupRec::Read(SFile *f, const char *stringBuffer) {
+bool FootstepTerrainLookupRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

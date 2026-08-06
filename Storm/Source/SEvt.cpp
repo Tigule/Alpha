@@ -25,17 +25,17 @@ typedef struct _TYPEHASHENTRY {
 } TYPEHASHENTRY, *TYPEHASHENTRYPTR;
 
 NODEDECL(BREAKCMD) {
-  void *data;
+  LPVOID data;
 };
 typedef BREAKCMD *BREAKCMDPTR;
 
 static LISTDECL(BREAKCMD, s_breakcmdlist);
-static CCritSect                              s_critsect;
-static LONG                                   s_dispatchesinprogress;
-static int                                    s_modified;
-static TYPEHASHENTRYPTR                      *s_typehashtable;
-static DWORD                                  s_typehashtablesize;
-static DWORD                                  s_typehashtableused;
+static CCritSect         s_critsect;
+static LONG              s_dispatchesinprogress;
+static int               s_modified;
+static TYPEHASHENTRYPTR *s_typehashtable;
+static DWORD             s_typehashtablesize;
+static DWORD             s_typehashtableused;
 
 static DWORD ComputeNewTableSize(DWORD currentused) {
   DWORD needed = currentused + currentused + 2;
@@ -112,7 +112,7 @@ static TYPEHASHENTRYPTR FindTypeHashEntry(DWORD type, DWORD subtype) {
   return NULL;
 }
 
-extern "C" BOOL APIENTRY SEvtBreakHandlerChain(void *data) {
+extern "C" BOOL APIENTRY SEvtBreakHandlerChain(LPVOID data) {
   BREAKCMDPTR node;
 
   s_critsect.Enter();
@@ -156,7 +156,7 @@ extern "C" BOOL APIENTRY SEvtDestroy() {
   return TRUE;
 }
 
-extern "C" BOOL APIENTRY SEvtDispatch(DWORD type, DWORD subtype, DWORD id, void *data) {
+extern "C" BOOL APIENTRY SEvtDispatch(DWORD type, DWORD subtype, DWORD id, LPVOID data) {
   DWORD          currsequence;
   BOOL           success;
   IDHASHENTRYPTR currptr;

@@ -15,7 +15,7 @@
 
 static LISTDECLEX(CLayoutFrame, resizeLink, s_resizePendingList);
 
-CLayoutFrame *CLayoutFrame::GetLayoutFrameByName(const char *name) {
+CLayoutFrame *CLayoutFrame::GetLayoutFrameByName(LPCSTR name) {
   CLayoutFrame *result = SimpleFrameRegistryGetEntry(name, 0);
 
   if (!result) {
@@ -202,7 +202,7 @@ float CLayoutFrame::Bottom() {
 }
 
 void CLayoutFrame::FreePoints() {
-  unsigned int  count = m_points.Count();
+  UINT          count = m_points.Count();
   CFramePoint **point = m_points.Ptr();
 
   while (count) {
@@ -233,7 +233,7 @@ CLayoutFrame::~CLayoutFrame() {
 }
 
 void CLayoutFrame::LoadXML(const XMLNode *node, CStatus *status) {
-  const char *inherits = node->GetAttributeByName("inherits");
+  LPCSTR inherits = node->GetAttributeByName("inherits");
 
   if (inherits && *inherits) {
     const XMLNode *inheritedNode = FrameXML_FindHashNode(inherits);
@@ -259,8 +259,8 @@ void CLayoutFrame::LoadXML(const XMLNode *node, CStatus *status) {
   CLayoutFrame *parent = GetLayoutParent();
   ASSERT(parent);
 
-  int         setAllPoints = 0;
-  const char *setAllPointsValue = node->GetAttributeByName("setAllPoints");
+  int    setAllPoints = 0;
+  LPCSTR setAllPointsValue = node->GetAttributeByName("setAllPoints");
   if (setAllPointsValue && !SStrCmpI(setAllPointsValue, "true", 0x7FFFFFFF)) {
     setAllPoints = 1;
   }
@@ -277,15 +277,15 @@ void CLayoutFrame::LoadXML(const XMLNode *node, CStatus *status) {
       float         offsetX = 0.0f;
       float         offsetY = 0.0f;
       FRAMEPOINT    point;
-      const char   *pointValue = anchor->GetAttributeByName("point");
+      LPCSTR        pointValue = anchor->GetAttributeByName("point");
 
       if (!pointValue || !StringToFramePoint(pointValue, point)) {
         status->Add(STATUS_WARNING, "Invalid anchor point in frame: %s", pointValue);
         continue;
       }
 
-      FRAMEPOINT  relativePoint;
-      const char *relativePointValue = anchor->GetAttributeByName("relativePoint");
+      FRAMEPOINT relativePoint;
+      LPCSTR     relativePointValue = anchor->GetAttributeByName("relativePoint");
       if (relativePointValue && *relativePointValue) {
         if (!StringToFramePoint(relativePointValue, relativePoint)) {
           status->Add(STATUS_WARNING, "Invalid anchor point in frame: %s", relativePointValue);
@@ -295,7 +295,7 @@ void CLayoutFrame::LoadXML(const XMLNode *node, CStatus *status) {
         relativePoint = point;
       }
 
-      const char *relativeTo = anchor->GetAttributeByName("relativeTo");
+      LPCSTR relativeTo = anchor->GetAttributeByName("relativeTo");
       if (relativeTo && *relativeTo) {
         relative = GetLayoutFrameByName(relativeTo);
         if (!relative) {
@@ -384,7 +384,7 @@ void CLayoutFrame::SetAllPoints(CLayoutFrame *relative, int doResize) {
 }
 
 void CLayoutFrame::Clear(CLayoutFrame *relative, int doResize) {
-  unsigned int  count = m_points.Count();
+  UINT          count = m_points.Count();
   CFramePoint **point = m_points.Ptr();
 
   while (count) {
@@ -410,7 +410,7 @@ void CLayoutFrame::ClearAllPoints(int doResize) {
   }
 }
 
-void CLayoutFrame::RegisterResize(CLayoutFrame *frame, unsigned int dependency) {
+void CLayoutFrame::RegisterResize(CLayoutFrame *frame, UINT dependency) {
   FRAMENODE *node;
 
   ITERATELIST(FRAMENODE, m_resizeList, existingNode) {
@@ -437,7 +437,7 @@ void CLayoutFrame::UnregisterResize(const CLayoutFrame *frame) {
 }
 
 int CLayoutFrame::IsResizeDependency(CLayoutFrame *pNewDependentFrame) {
-  unsigned int whichPoint;
+  UINT whichPoint;
 
   for (whichPoint = 0; whichPoint < FRAMEPOINT_NUMPOINTS; ++whichPoint) {
     CFramePoint *point = GetPoint((FRAMEPOINT)whichPoint);
@@ -462,7 +462,7 @@ void CLayoutFrame::SetDeferredResize(int enable) {
   }
 
   if (!(m_flags & 0x2) && (m_flags & 0x4)) {
-    unsigned int whichPoint;
+    UINT whichPoint;
 
     for (whichPoint = 0; whichPoint < FRAMEPOINT_NUMPOINTS; ++whichPoint) {
       CFramePoint *point = GetPoint((FRAMEPOINT)whichPoint);
@@ -503,7 +503,7 @@ void CLayoutFrame::Resize(int force) {
     CLayoutFrame *pDependentNode = 0;
 
     ITERATELIST(CLayoutFrame, s_resizePendingList, frame) {
-      unsigned int whichPoint;
+      UINT whichPoint;
 
       for (whichPoint = 0; whichPoint < FRAMEPOINT_NUMPOINTS; ++whichPoint) {
         CFramePoint *point = frame->GetPoint((FRAMEPOINT)whichPoint);
@@ -765,7 +765,7 @@ void CLayoutFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   static const float EPSILON = 2.38418579e-7f;
   float              oldHeight = m_rect.b - m_rect.t;
   float              oldWidth = m_rect.r - m_rect.l;
-  unsigned int       dependency = 0;
+  UINT               dependency = 0;
 
   if (!(fabs(rect.b - m_rect.b) < EPSILON)) {
     dependency = 0x3;
@@ -833,8 +833,8 @@ void CLayoutFrame::DestroyLayout() {
   RemoveFromResizeList(this);
 }
 
-unsigned int CLayoutFrame::ResizePending() {
-  unsigned int  resized = 0;
+UINT CLayoutFrame::ResizePending() {
+  UINT          resized = 0;
   CLayoutFrame *frame = s_resizePendingList.Head();
 
   while (frame) {

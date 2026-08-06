@@ -7,13 +7,13 @@ class SpellAuraNamesRec {
   SpellAuraNamesRec();
   ~SpellAuraNamesRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 12;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 48;
   }
 
@@ -29,14 +29,14 @@ class SpellAuraNamesRec {
     m_generatedID = id;
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_EnumID;
-  int         m_specialMiscValue;
-  const char *m_globalstrings_tag;
-  const char *m_name_lang[8];
-  int         m_name_flag;
-  int         m_generatedID;
+  int    m_EnumID;
+  int    m_specialMiscValue;
+  LPCSTR m_globalstrings_tag;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+  int    m_generatedID;
 };
 
 extern WowClientDB<SpellAuraNamesRec> g_spellAuraNamesDB;

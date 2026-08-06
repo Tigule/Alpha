@@ -21,7 +21,7 @@
 #include "Ui/GameUI.h"
 #include "UIUtil/Cursor.h"
 
-static const char *s_animationNames[NUM_CURSOR_ANIMS] = {
+static LPCSTR s_animationNames[NUM_CURSOR_ANIMS] = {
     "Point",       "Cast",       "Buy",       "Attack",       "Interact",       "Speak",       "RangedAttack",       "Pickup",       "Taxi",
     "UnablePoint", "UnableCast", "UnableBuy", "UnableAttack", "UnableInteract", "UnableSpeak", "UnableRangedAttack", "UnablePickup", "UnableTaxi"
 };
@@ -81,7 +81,7 @@ static void CreateCursorIconModel(HTEXTURE texture) {
   NTempest::C2Vector texCoords[4] = {
       NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(1.0f, 0.0f)
   };
-  unsigned short primVertIndices[4] = {1, 0, 3, 2};
+  WORD primVertIndices[4] = {1, 0, 3, 2};
 
   s_cursorModel = ModelCreateSimpleMesh(
       "CursorGrabSpell", 4, vertices, normals, texCoords, GxPrim_TriangleStrip, primVertIndices, 4, texture, GxBlend_Alpha, 0x21,
@@ -90,13 +90,13 @@ static void CreateCursorIconModel(HTEXTURE texture) {
   FATALASSERT(s_cursorModel);
 }
 
-int CursorGrabMoney(unsigned int amount) {
-  const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  const char *separator = path && *path ? "\\" : "";
-  char        buffer[MAX_PATH];
+int CursorGrabMoney(UINT amount) {
+  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+  LPCSTR separator = path && *path ? "\\" : "";
+  char   buffer[MAX_PATH];
   SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
 
-  const char *art;
+  LPCSTR art;
   if (amount < 10) {
     art = "INV_Misc_Coin_05";
   } else if (amount < 100) {
@@ -129,7 +129,7 @@ int CursorGrabMoney(unsigned int amount) {
   return CursorGrabMoney(s_cursorModel);
 }
 
-int CursorGrabSpell(const char *filename) {
+int CursorGrabSpell(LPCSTR filename) {
   if (!filename) {
     return 0;
   }
@@ -178,11 +178,11 @@ void CursorModelSetSequence(CURSORANIMATIONS sequence) {
   }
 }
 
-unsigned int CursorGetCursorType() {
+UINT CursorGetCursorType() {
   return s_cursorType;
 }
 
-unsigned int CursorGetCursorMode() {
+UINT CursorGetCursorMode() {
   return s_cursorMode;
 }
 
@@ -206,7 +206,7 @@ void CursorResetCursor(int force) {
   }
 }
 
-void CursorSetHeldItem(unsigned __int64 itemGuid) {
+void CursorSetHeldItem(DWORDLONG itemGuid) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGuid, __FILE__, __LINE__));
   if (!item) {
     g_cursor->Drop();
@@ -214,11 +214,11 @@ void CursorSetHeldItem(unsigned __int64 itemGuid) {
     return;
   }
 
-  CStatus     status;
-  const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  const char *art = item->GetInventoryArt();
-  const char *separator = path && *path && art && *art ? "\\" : "";
-  char        buffer[260];
+  CStatus status;
+  LPCSTR  path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+  LPCSTR  art = item->GetInventoryArt();
+  LPCSTR  separator = path && *path && art && *art ? "\\" : "";
+  char    buffer[260];
   SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, art);
 
   g_cursor->Drop();
@@ -239,17 +239,17 @@ void CursorSetHeldItem(unsigned __int64 itemGuid) {
   g_cursor->Grab(s_cursorModel);
 }
 
-void CursorSetHeldVirtualItem(unsigned int displayID) {
+void CursorSetHeldVirtualItem(UINT displayID) {
   if (!displayID) {
     g_cursor->Drop();
     g_cursor->SetItemType(CURSOR_EMPTY);
     return;
   }
 
-  const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  const char *art = CGItem_C::GetInventoryArt(displayID);
-  const char *separator = path && *path && art && *art ? "\\" : "";
-  char        buffer[260];
+  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+  LPCSTR art = CGItem_C::GetInventoryArt(displayID);
+  LPCSTR separator = path && *path && art && *art ? "\\" : "";
+  char   buffer[260];
   SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, art);
 
   CStatus     status;
@@ -296,7 +296,7 @@ void CGCursor::Grab(HMODEL model) {
   }
 }
 
-void CGCursor::SetArt(const char *art) {
+void CGCursor::SetArt(LPCSTR art) {
   if (m_model) {
     HandleClose(m_model);
   }
@@ -309,7 +309,7 @@ void CGCursor::SetArt(const char *art) {
   createData.sequenceNames = s_animationNames;
   createData.numSequences = NUM_CURSOR_ANIMS;
   createData.flags = 2;
-  CStatus      status;
+  CStatus status;
   m_model = ModelCreate(art, &createData, &status);
   SysMsgAdd(status, 4);
 }

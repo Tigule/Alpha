@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *FactionGroupRec::GetFilename() {
+LPCSTR FactionGroupRec::GetFilename() {
   return "DBFilesClient\\FactionGroup.dbc";
 }
 
@@ -19,10 +19,10 @@ FactionGroupRec::FactionGroupRec() {
 FactionGroupRec::~FactionGroupRec() {
 }
 
-bool FactionGroupRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[8];
-  unsigned int tempinternalNameIndices[1];
+bool FactionGroupRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[8];
+  UINT tempinternalNameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_maskID, sizeof(m_maskID), 0, 0, 0) && result;

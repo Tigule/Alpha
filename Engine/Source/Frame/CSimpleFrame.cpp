@@ -83,7 +83,7 @@ CSimpleFrame::~CSimpleFrame() {
     }
   }
 
-  unsigned int layer;
+  UINT layer;
   for (layer = 0; layer < NUM_SIMPLEFRAME_DRAWLAYERS; ++layer) {
     ASSERT(m_drawlayers[layer].IsEmpty());
   }
@@ -132,7 +132,7 @@ void CSimpleFrame::DelayedDelete() {
   }
 }
 
-CLayoutFrame *CSimpleFrame::GetLayoutFrameByName(const char *name) {
+CLayoutFrame *CSimpleFrame::GetLayoutFrameByName(LPCSTR name) {
   char newName[1024];
 
   if (!SStrCmpI(name, "$parent", SStrLen("$parent"))) {
@@ -140,7 +140,7 @@ CLayoutFrame *CSimpleFrame::GetLayoutFrameByName(const char *name) {
 
     SStrCopy(newName, "Top", 0x7FFFFFFF);
     for (parent = m_parent; parent; parent = parent->m_parent) {
-      const char *parentName = parent->GetName();
+      LPCSTR parentName = parent->GetName();
 
       if (parentName && *parentName) {
         SStrCopy(newName, parentName, sizeof(newName));
@@ -157,7 +157,7 @@ CLayoutFrame *CSimpleFrame::GetLayoutFrameByName(const char *name) {
 }
 
 void CSimpleFrame::PreLoadXML(const XMLNode *node, CStatus *status) {
-  const char *frameName = node->GetAttributeByName("name");
+  LPCSTR frameName = node->GetAttributeByName("name");
 
   if (frameName && *frameName) {
     char name[1024];
@@ -167,7 +167,7 @@ void CSimpleFrame::PreLoadXML(const XMLNode *node, CStatus *status) {
 
       SStrCopy(name, "Top", 0x7FFFFFFF);
       for (parent = m_parent; parent; parent = parent->m_parent) {
-        const char *parentName = parent->GetName();
+        LPCSTR parentName = parent->GetName();
 
         if (parentName && *parentName) {
           SStrCopy(name, parentName, sizeof(name));
@@ -190,7 +190,7 @@ void CSimpleFrame::PreLoadXML(const XMLNode *node, CStatus *status) {
 }
 
 void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
-  const char *attribute;
+  LPCSTR attribute;
 
   CLayoutFrame::LoadXML(node, status);
 
@@ -248,7 +248,7 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
   attribute = node->GetAttributeByName("alpha");
   if (attribute && *attribute) {
-    SetAlpha(static_cast<unsigned char>(min(max(SStrToFloat(attribute), 0.0f), 1.0f) * 255.0f));
+    SetAlpha(static_cast<BYTE>(min(max(SStrToFloat(attribute), 0.0f), 1.0f) * 255.0f));
   }
 
   attribute = node->GetAttributeByName("id");
@@ -262,18 +262,18 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
   attribute = node->GetAttributeByName("enableMouse");
   if (attribute && *attribute && StringToBOOL(attribute)) {
-    EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<unsigned int>(-1));
+    EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
   }
 
   attribute = node->GetAttributeByName("enableKeyboard");
   if (attribute && *attribute && StringToBOOL(attribute)) {
-    EnableEvent(SIMPLE_EVENT_KEY, static_cast<unsigned int>(-1));
-    EnableEvent(SIMPLE_EVENT_CHAR, static_cast<unsigned int>(-1));
+    EnableEvent(SIMPLE_EVENT_KEY, static_cast<UINT>(-1));
+    EnableEvent(SIMPLE_EVENT_CHAR, static_cast<UINT>(-1));
   }
 
   const XMLNode *child;
   for (child = node->GetChild(); child; child = child->GetSibling()) {
-    const char *childName = child->GetName();
+    LPCSTR childName = child->GetName();
 
     if (!SStrCmpI(childName, "TitleRegion", 0x7FFFFFFF)) {
       CSimpleTitleRegion *titleRegion = NEW(CSimpleTitleRegion);
@@ -298,7 +298,7 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
     } else if (!SStrCmpI(childName, "Layers", 0x7FFFFFFF)) {
       LoadXML_Layers(child, status);
     } else if (!SStrCmpI(childName, "Scripts", 0x7FFFFFFF)) {
-      const char *name = GetName();
+      LPCSTR name = GetName();
 
       if (name && *name) {
         LoadXML_Scripts(child, status);
@@ -325,8 +325,8 @@ void CSimpleFrame::LoadXML_Layers(const XMLNode *node, CStatus *status) {
       continue;
     }
 
-    unsigned int drawLayer = 2;
-    const char  *level = layer->GetAttributeByName("level");
+    UINT   drawLayer = 2;
+    LPCSTR level = layer->GetAttributeByName("level");
     if (level && *level) {
       StringToDrawLayer(level, drawLayer);
     }
@@ -350,8 +350,8 @@ void CSimpleFrame::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
   const XMLNode *script;
 
   for (script = node->GetChild(); script; script = script->GetSibling()) {
-    const char *name = script->GetName();
-    const char *source = script->GetBody();
+    LPCSTR name = script->GetName();
+    LPCSTR source = script->GetBody();
 
     if (!SStrCmpI(name, "OnLoad", 0x7FFFFFFF)) {
       SetOnLoadScript(source);
@@ -416,7 +416,7 @@ void CSimpleFrame::SetBeingScrolled(int on) {
   SetFrameFlag(0x2000, on);
 
   if (on) {
-    unsigned int layer;
+    UINT layer;
 
     for (layer = 0; layer < NUM_SIMPLEFRAME_DRAWLAYERS; ++layer) {
       OnUpdateBatch(layer);
@@ -484,7 +484,7 @@ void CSimpleFrame::SetBackdrop(CBackdropGenerator *backdrop) {
   m_backdrop = backdrop;
 }
 
-int CSimpleFrame::SetHighlight(const char *texFile, EGxBlend blendMode) {
+int CSimpleFrame::SetHighlight(LPCSTR texFile, EGxBlend blendMode) {
   CSimpleTexture *texture = NEW(CSimpleTexture)(this, 4, 1);
 
   if (texture->SetTexture(texFile, 0)) {
@@ -507,7 +507,7 @@ int CSimpleFrame::SetHighlight(CSimpleTexture *texture, EGxBlend blendMode) {
   return 1;
 }
 
-void CSimpleFrame::SetAlpha(unsigned char alpha) {
+void CSimpleFrame::SetAlpha(BYTE alpha) {
   if (alpha != m_alpha) {
     m_alpha = alpha;
 
@@ -525,13 +525,13 @@ void CSimpleFrame::SetAlpha(unsigned char alpha) {
   }
 }
 
-void CSimpleFrame::EnableDrawLayer(unsigned int drawlayer) {
+void CSimpleFrame::EnableDrawLayer(UINT drawlayer) {
   ASSERT(drawlayer < NUM_SIMPLEFRAME_DRAWLAYERS);
   m_drawenabled[drawlayer] = 1;
   NotifyDrawLayerChanged(drawlayer);
 }
 
-void CSimpleFrame::DisableDrawLayer(unsigned int drawlayer) {
+void CSimpleFrame::DisableDrawLayer(UINT drawlayer) {
   ASSERT(drawlayer < NUM_SIMPLEFRAME_DRAWLAYERS);
   m_drawenabled[drawlayer] = 0;
   NotifyDrawLayerChanged(drawlayer);
@@ -555,7 +555,7 @@ void CSimpleFrame::UnregisterRegion(CSimpleRegion *region) {
   }
 }
 
-void CSimpleFrame::AddFrameRegion(CSimpleRegion *region, unsigned int drawlayer) {
+void CSimpleFrame::AddFrameRegion(CSimpleRegion *region, UINT drawlayer) {
   REGIONNODE *node;
 
   region->SetLayoutScale(m_layoutScale, false);
@@ -564,7 +564,7 @@ void CSimpleFrame::AddFrameRegion(CSimpleRegion *region, unsigned int drawlayer)
   NotifyDrawLayerChanged(drawlayer);
 }
 
-void CSimpleFrame::RemoveFrameRegion(CSimpleRegion *region, unsigned int drawlayer) {
+void CSimpleFrame::RemoveFrameRegion(CSimpleRegion *region, UINT drawlayer) {
   ITERATELIST(REGIONNODE, m_drawlayers[drawlayer], node) {
     if (node->region == region) {
       NotifyDrawLayerChanged(drawlayer);
@@ -574,7 +574,7 @@ void CSimpleFrame::RemoveFrameRegion(CSimpleRegion *region, unsigned int drawlay
   }
 }
 
-void CSimpleFrame::NotifyDrawLayerChanged(unsigned int drawlayer) {
+void CSimpleFrame::NotifyDrawLayerChanged(UINT drawlayer) {
   if (m_top && m_visible) {
     m_top->NotifyFrameLayerChanged(this, drawlayer);
   }
@@ -582,7 +582,7 @@ void CSimpleFrame::NotifyDrawLayerChanged(unsigned int drawlayer) {
 
 void CSimpleFrame::NotifyDrawLayersChanged() {
   if (m_top && m_visible) {
-    unsigned int drawlayer;
+    UINT drawlayer;
 
     for (drawlayer = 0; drawlayer < NUM_SIMPLEFRAME_DRAWLAYERS; ++drawlayer) {
       m_top->NotifyFrameLayerChanged(this, drawlayer);
@@ -590,7 +590,7 @@ void CSimpleFrame::NotifyDrawLayersChanged() {
   }
 }
 
-int CSimpleFrame::AddToFrameRegistry(const char *frameName, unsigned int context) {
+int CSimpleFrame::AddToFrameRegistry(LPCSTR frameName, UINT context) {
   if (m_frameName) {
     UnregisterScriptObject(m_frameName);
     SimpleFrameRegistryRemoveEntry(m_frameName, m_frameRegContext);
@@ -773,8 +773,8 @@ int CSimpleFrame::ShowThis() {
   return shown;
 }
 
-void CSimpleFrame::EnableEvent(CSimpleEventType event, unsigned int priority) {
-  unsigned int eventbit = 1 << event;
+void CSimpleFrame::EnableEvent(CSimpleEventType event, UINT priority) {
+  UINT eventbit = 1 << event;
 
   ASSERT(event < sizeof(m_eventmask) * 8);
 
@@ -788,7 +788,7 @@ void CSimpleFrame::EnableEvent(CSimpleEventType event, unsigned int priority) {
 }
 
 void CSimpleFrame::DisableEvent(CSimpleEventType event) {
-  unsigned int eventbit = 1 << event;
+  UINT eventbit = 1 << event;
 
   if (m_eventmask & eventbit) {
     if (m_visible) {
@@ -800,17 +800,17 @@ void CSimpleFrame::DisableEvent(CSimpleEventType event) {
 }
 
 void CSimpleFrame::RegisterForEvents() {
-  unsigned int event;
+  UINT event;
 
   for (event = 0; event < NUM_SIMPLE_EVENTS; ++event) {
     if (m_eventmask & (1 << event)) {
-      m_top->RegisterForEvent(this, static_cast<CSimpleEventType>(event), static_cast<unsigned int>(-1));
+      m_top->RegisterForEvent(this, static_cast<CSimpleEventType>(event), static_cast<UINT>(-1));
     }
   }
 }
 
 void CSimpleFrame::UnregisterForEvents() {
-  unsigned int event;
+  UINT event;
 
   for (event = 0; event < NUM_SIMPLE_EVENTS; ++event) {
     if (m_eventmask & (1 << event)) {
@@ -898,7 +898,7 @@ int CSimpleFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
   return TestHitRect(pt);
 }
 
-void CSimpleFrame::OnFrameRender(CRenderBatch *batch, unsigned int layer) {
+void CSimpleFrame::OnFrameRender(CRenderBatch *batch, UINT layer) {
   ASSERT(layer < NUM_SIMPLEFRAME_DRAWLAYERS);
 
   if (m_drawenabled[layer]) {
@@ -909,7 +909,7 @@ void CSimpleFrame::OnFrameRender(CRenderBatch *batch, unsigned int layer) {
 }
 
 void CSimpleFrame::OnFrameRender() {
-  unsigned int layer;
+  UINT layer;
 
   if (m_batchDirty) {
     for (layer = 0; layer < NUM_SIMPLEFRAME_DRAWLAYERS; ++layer) {
@@ -944,7 +944,7 @@ void CSimpleFrame::OnFrameRender() {
   }
 }
 
-void CSimpleFrame::OnUpdateBatch(unsigned int layer) {
+void CSimpleFrame::OnUpdateBatch(UINT layer) {
   m_batchDirty |= 1 << layer;
 }
 
@@ -1021,7 +1021,7 @@ int CSimpleFrame::OnLayerChar(CCharEvent &evt) {
 }
 
 int CSimpleFrame::OnLayerKeyDown(CKeyEvent &evt) {
-  const char *keyName;
+  LPCSTR keyName;
 
   if (!m_visible || !m_onKeyDown) {
     return 0;
@@ -1163,7 +1163,7 @@ int CSimpleFrame::OnLayerKeyDown(CKeyEvent &evt) {
 }
 
 int CSimpleFrame::OnLayerKeyUp(CKeyEvent &evt) {
-  const char *keyName;
+  LPCSTR keyName;
 
   if (!m_visible || !m_onKeyUp) {
     return 0;

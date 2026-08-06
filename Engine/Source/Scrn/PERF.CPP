@@ -15,140 +15,131 @@
 #include <Tempest/cimvector.h>
 
 #include <string.h>
-static unsigned int memBytesComm;
-static unsigned int memBytesAlloc;
-static int loggedFull;
+static UINT memBytesComm;
+static UINT memBytesAlloc;
+static int  loggedFull;
 
 #pragma pack(push, 4)
 struct SimplePerfHdr {
-  unsigned char signature;
-  unsigned char message;
-  unsigned short len;
-  __int64 timestamp;
-  __int64 frame;
-  unsigned int updateCount;
-  unsigned short id;
-  unsigned short size;
+  BYTE     signature;
+  BYTE     message;
+  WORD     len;
+  LONGLONG timestamp;
+  LONGLONG frame;
+  UINT     updateCount;
+  WORD     id;
+  WORD     size;
 };
 #pragma pack(pop)
 
-unsigned int SndGetCPUPerformance();
+UINT SndGetCPUPerformance();
 
-static void PaintFunc(void *,
-                                 const RECTF *,
-                                 const RECTF *visible,
-                                 float elapsed);
+static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed);
 static void IPerfGetPerfTimes(float *perfTime);
 static void IPerfRemoteQueuePerfData(float *perfTime);
-void IPerfRemoteQueueOnRingBuffer(void *dataToQueue,
-                                             unsigned long size);
-int IPerfRemoteSpaceAvail(unsigned long size);
-void IPerfRemoteInitSimpleHdr(SimplePerfHdr *h,
-                                         unsigned long packetSize,
-                                         unsigned short id);
-void IPerfRemoteQueuePerfLabels();
-void IPerfRemoteQueueLogString(const char *prompt);
-void IPerfResetTimePeaks();
+void        IPerfRemoteQueueOnRingBuffer(LPVOID dataToQueue, DWORD size);
+int         IPerfRemoteSpaceAvail(DWORD size);
+void        IPerfRemoteInitSimpleHdr(SimplePerfHdr *h, DWORD packetSize, WORD id);
+void        IPerfRemoteQueuePerfLabels();
+void        IPerfRemoteQueueLogString(LPCSTR prompt);
+void        IPerfResetTimePeaks();
 
 static int s_enabled;
 static struct {
   float (*func)(ACTIVITY);
-  const char *title;
+  LPCSTR title;
 } s_activityModes[3] = {
-  {ActivityGetTime, "ms per frame"},
-  {ActivityGetTimePercent, "percentage CPU"},
-  {ActivityGetCalls, "calls per frame"}
+    {       ActivityGetTime,    "ms per frame"},
+    {ActivityGetTimePercent,  "percentage CPU"},
+    {      ActivityGetCalls, "calls per frame"}
 };
-static int s_activityMode;
+static int       s_activityMode;
 static HLAYER__ *s_layer;
-static void (*sTextFunc)(char *, int, void *);
-static void *sTextFuncParam;
-static float s_avgPerfTime[20];
-static float s_peakPerfTime[20];
-static int s_peakSustain[20];
-static float s_avgPerfAccum[20][8];
-static int s_avgPerfIndex;
-static float s_perfFontHeight;
+static void (*sTextFunc)(char *, int, LPVOID);
+static LPVOID          sTextFuncParam;
+static float           s_avgPerfTime[20];
+static float           s_peakPerfTime[20];
+static int             s_peakSustain[20];
+static float           s_avgPerfAccum[20][8];
+static int             s_avgPerfIndex;
+static float           s_perfFontHeight;
 static CGxStringBatch *s_stringBatch;
 
 char *s_perfPrompts[20] = {
-  "Events",
-  "Event Idle",
-  "Event Paint",
-  "Animate",
-  "Animation Event Handlers",
-  "Animation Done Handlers",
-  "Model",
-  "Particle",
-  "Lighting",
-  "Render",
-  "Object Manager",
-  "Frame Manager",
-  "World",
-  "Sound",
-  "Perf Display",
-  "Custom 0",
-  "Custom 1",
-  "Custom 2",
-  "Custom 3",
-  "Other"
+    "Events",
+    "Event Idle",
+    "Event Paint",
+    "Animate",
+    "Animation Event Handlers",
+    "Animation Done Handlers",
+    "Model",
+    "Particle",
+    "Lighting",
+    "Render",
+    "Object Manager",
+    "Frame Manager",
+    "World",
+    "Sound",
+    "Perf Display",
+    "Custom 0",
+    "Custom 1",
+    "Custom 2",
+    "Custom 3",
+    "Other"
 };
 
 static PERF_REMOTE_MODE s_PerfRemoteMode;
-static CSRWLock s_ProfLock;
-static SCritSect s_ringLock;
-static int s_HasProfServer;
-static int s_HasProfConn;
-static SEvent *s_ProfRequestEnqueuedEvent;
-static char *s_ProfRingBuf;
-static int s_ProfRingBufHead;
-static int s_ProfRingBufTail;
-static __int64 s_ProfRingFrame;
-static NETADDR s_ProfAddr;
-static SEvent *s_ProfStartupEvent;
-static SEvent *s_ProfShutdownEvent;
-static HNETCONN__ *s_ProfConn;
-static SThread *s_ProfThreadPtr;
-static long s_ProfStartup;
-static char s_hostNameList[64];
+static CSRWLock         s_ProfLock;
+static SCritSect        s_ringLock;
+static int              s_HasProfServer;
+static int              s_HasProfConn;
+static SEvent          *s_ProfRequestEnqueuedEvent;
+static char            *s_ProfRingBuf;
+static int              s_ProfRingBufHead;
+static int              s_ProfRingBufTail;
+static LONGLONG         s_ProfRingFrame;
+static NETADDR          s_ProfAddr;
+static SEvent          *s_ProfStartupEvent;
+static SEvent          *s_ProfShutdownEvent;
+static HNETCONN__      *s_ProfConn;
+static SThread         *s_ProfThreadPtr;
+static long             s_ProfStartup;
+static char             s_hostNameList[64];
 
-void __stdcall HookRenderBegin(void *__formal) {
+void __stdcall HookRenderBegin(LPVOID) {
   ActivityBegin(ACTIVITY_RENDER);
 }
 
-void __stdcall HookRenderEnd(void *__formal) {
+void __stdcall HookRenderEnd(LPVOID) {
   ActivityEnd(ACTIVITY_RENDER);
 }
 
-static void PaintFunc(void *,
-                                 const RECTF *,
-                                 const RECTF *visible,
-                                 float elapsed) {
-  float perfTime[20];
-  float perfTimeTotal;
-  float peakTimeTotal;
-  unsigned int fps;
-  unsigned int vertices;
-  unsigned int primitives;
-  unsigned int batches;
-  unsigned int textures;
-  unsigned int textureBytes;
-  unsigned int uploads;
-  unsigned int uploadBytes;
-  unsigned int binds;
-  unsigned int bindBytes;
-  unsigned int vertexBytes;
-  unsigned int indexBytes;
-  EGxApi gxApi;
-  const char *api;
-  SMEMHEAPDETAILS details;
-  HSHEAP heap;
-  char line[11][0x200];
-  CGxFont *theFont;
-  CGxString *s_stringArray[11];
+static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed) {
+  float              perfTime[20];
+  float              perfTimeTotal;
+  float              peakTimeTotal;
+  UINT               fps;
+  UINT               vertices;
+  UINT               primitives;
+  UINT               batches;
+  UINT               textures;
+  UINT               textureBytes;
+  UINT               uploads;
+  UINT               uploadBytes;
+  UINT               binds;
+  UINT               bindBytes;
+  UINT               vertexBytes;
+  UINT               indexBytes;
+  EGxApi             gxApi;
+  LPCSTR             api;
+  SMEMHEAPDETAILS    details;
+  HSHEAP             heap;
+  char               line[11][0x200];
+  CGxFont           *theFont;
+  CGxString         *s_stringArray[11];
   NTempest::C3Vector pos;
-  unsigned int i;
-  unsigned int j;
+  UINT               i;
+  UINT               j;
 
   if (!s_enabled) {
     if (ScrnPerfRemoteGetMode() == PERF_REMOTE_MODE__ONPAINT) {
@@ -216,8 +207,7 @@ static void PaintFunc(void *,
     } else if (s_peakSustain[i]) {
       --s_peakSustain[i];
     } else {
-      s_peakPerfTime[i] =
-          perfTime[i] * 0.1f + s_peakPerfTime[i] * 0.9f;
+      s_peakPerfTime[i] = perfTime[i] * 0.1f + s_peakPerfTime[i] * 0.9f;
     }
 
     s_avgPerfAccum[i][s_avgPerfIndex] = perfTime[i];
@@ -232,74 +222,41 @@ static void PaintFunc(void *,
     peakTimeTotal += s_peakPerfTime[i];
   }
 
-  SStrPrintf(line[0],
-             sizeof(line[0]),
-             "%3u FPS, %5.1f/%5.1fMB mem,  Displaying: %s",
-             fps,
-             static_cast<double>(memBytesAlloc) * 0.00000095367432,
-             static_cast<double>(memBytesComm) * 0.00000095367432,
-             s_activityModes[s_activityMode].title);
-  SStrPrintf(line[1],
-             sizeof(line[1]),
-             "%2u batches, %5u verts, %5u prims, %s",
-             batches,
-             vertices,
-             primitives,
-             api);
-  SStrPrintf(line[2],
-             sizeof(line[2]),
-             "%6u VB, %6u IB",
-             vertexBytes,
-             indexBytes);
-  SStrPrintf(line[3],
-             sizeof(line[3]),
-             "tex:%3u, %4.2fMB   ren:%3u, %3.3fMB   upd:%3u, %2.4fMB",
-             textures,
-             static_cast<double>(textureBytes) * 0.00000095367432,
-             binds,
-             static_cast<double>(bindBytes) * 0.00000095367432,
-             uploads,
-             static_cast<double>(uploadBytes) * 0.00000095367432);
-  SStrPrintf(line[4],
-             sizeof(line[4]),
-             "%6.1f idle @%4.0f, %6.1f evnt @%4.0f, %6.1f snd  @%4.0f, %6.1f pnt  @%4.0f",
-             s_avgPerfTime[1], s_peakPerfTime[1],
-             s_avgPerfTime[0], s_peakPerfTime[0],
-             s_avgPerfTime[13], s_peakPerfTime[13],
-             s_avgPerfTime[2], s_peakPerfTime[2]);
-  SStrPrintf(line[5],
-             sizeof(line[5]),
-             "%6.1f fmgr @%4.0f, %6.1f wrld @%4.0f, %6.1f lght @%4.0f, %6.1f modl @%4.0f",
-             s_avgPerfTime[11], s_peakPerfTime[11],
-             s_avgPerfTime[12], s_peakPerfTime[12],
-             s_avgPerfTime[8], s_peakPerfTime[8],
-             s_avgPerfTime[6], s_peakPerfTime[6]);
-  SStrPrintf(line[6],
-             sizeof(line[6]),
-             "%6.1f part @%4.0f, %6.1f rndr @%4.0f, %6.1f omgr @%4.0f",
-             s_avgPerfTime[7], s_peakPerfTime[7],
-             s_avgPerfTime[9], s_peakPerfTime[9],
-             s_avgPerfTime[10], s_peakPerfTime[10]);
-  SStrPrintf(line[7],
-             sizeof(line[7]),
-             "%6.1f anim @%4.0f, %6.1f aevt @%4.0f, %6.1f aseq @%4.0f",
-             s_avgPerfTime[3], s_peakPerfTime[3],
-             s_avgPerfTime[4], s_peakPerfTime[4],
-             s_avgPerfTime[5], s_peakPerfTime[5]);
-  SStrPrintf(line[8],
-             sizeof(line[8]),
-             "%6.1f p0   @%4.0f, %6.1f p1   @%4.0f, %6.1f p2   @%4.0f, %6.1f p3   @%4.0f",
-             s_avgPerfTime[15], s_peakPerfTime[15],
-             s_avgPerfTime[16], s_peakPerfTime[16],
-             s_avgPerfTime[17], s_peakPerfTime[17],
-             s_avgPerfTime[18], s_peakPerfTime[18]);
-  SStrPrintf(line[9],
-             sizeof(line[9]),
-             "%6.1f perf @%4.0f, %6.1f othr @%4.0f, %6.1f totl @%4.0f,   miles %d%%",
-             s_avgPerfTime[14], s_peakPerfTime[14],
-             s_avgPerfTime[19], s_peakPerfTime[19],
-             perfTimeTotal, peakTimeTotal,
-             SndGetCPUPerformance());
+  SStrPrintf(
+      line[0], sizeof(line[0]), "%3u FPS, %5.1f/%5.1fMB mem,  Displaying: %s", fps, static_cast<double>(memBytesAlloc) * 0.00000095367432,
+      static_cast<double>(memBytesComm) * 0.00000095367432, s_activityModes[s_activityMode].title
+  );
+  SStrPrintf(line[1], sizeof(line[1]), "%2u batches, %5u verts, %5u prims, %s", batches, vertices, primitives, api);
+  SStrPrintf(line[2], sizeof(line[2]), "%6u VB, %6u IB", vertexBytes, indexBytes);
+  SStrPrintf(
+      line[3], sizeof(line[3]), "tex:%3u, %4.2fMB   ren:%3u, %3.3fMB   upd:%3u, %2.4fMB", textures,
+      static_cast<double>(textureBytes) * 0.00000095367432, binds, static_cast<double>(bindBytes) * 0.00000095367432, uploads,
+      static_cast<double>(uploadBytes) * 0.00000095367432
+  );
+  SStrPrintf(
+      line[4], sizeof(line[4]), "%6.1f idle @%4.0f, %6.1f evnt @%4.0f, %6.1f snd  @%4.0f, %6.1f pnt  @%4.0f", s_avgPerfTime[1], s_peakPerfTime[1],
+      s_avgPerfTime[0], s_peakPerfTime[0], s_avgPerfTime[13], s_peakPerfTime[13], s_avgPerfTime[2], s_peakPerfTime[2]
+  );
+  SStrPrintf(
+      line[5], sizeof(line[5]), "%6.1f fmgr @%4.0f, %6.1f wrld @%4.0f, %6.1f lght @%4.0f, %6.1f modl @%4.0f", s_avgPerfTime[11], s_peakPerfTime[11],
+      s_avgPerfTime[12], s_peakPerfTime[12], s_avgPerfTime[8], s_peakPerfTime[8], s_avgPerfTime[6], s_peakPerfTime[6]
+  );
+  SStrPrintf(
+      line[6], sizeof(line[6]), "%6.1f part @%4.0f, %6.1f rndr @%4.0f, %6.1f omgr @%4.0f", s_avgPerfTime[7], s_peakPerfTime[7], s_avgPerfTime[9],
+      s_peakPerfTime[9], s_avgPerfTime[10], s_peakPerfTime[10]
+  );
+  SStrPrintf(
+      line[7], sizeof(line[7]), "%6.1f anim @%4.0f, %6.1f aevt @%4.0f, %6.1f aseq @%4.0f", s_avgPerfTime[3], s_peakPerfTime[3], s_avgPerfTime[4],
+      s_peakPerfTime[4], s_avgPerfTime[5], s_peakPerfTime[5]
+  );
+  SStrPrintf(
+      line[8], sizeof(line[8]), "%6.1f p0   @%4.0f, %6.1f p1   @%4.0f, %6.1f p2   @%4.0f, %6.1f p3   @%4.0f", s_avgPerfTime[15], s_peakPerfTime[15],
+      s_avgPerfTime[16], s_peakPerfTime[16], s_avgPerfTime[17], s_peakPerfTime[17], s_avgPerfTime[18], s_peakPerfTime[18]
+  );
+  SStrPrintf(
+      line[9], sizeof(line[9]), "%6.1f perf @%4.0f, %6.1f othr @%4.0f, %6.1f totl @%4.0f,   miles %d%%", s_avgPerfTime[14], s_peakPerfTime[14],
+      s_avgPerfTime[19], s_peakPerfTime[19], perfTimeTotal, peakTimeTotal, SndGetCPUPerformance()
+  );
 
   line[10][0] = 0;
   if (sTextFunc) {
@@ -314,19 +271,7 @@ static void PaintFunc(void *,
     pos.z = 0.0f;
     NTempest::CImVector color(0xFFFFFF00);
     pos.y = visible->top - (i + 2) * 0.025f;
-    GxuFontCreateString(theFont,
-                        line[i],
-                        0.0f,
-                        pos,
-                        1.0f,
-                        s_perfFontHeight,
-                        0.0f,
-                        s_stringArray[i],
-                        GxVJ_Middle,
-                        GxHJ_Left,
-                        0x54,
-                        color,
-                        -0.45f);
+    GxuFontCreateString(theFont, line[i], 0.0f, pos, 1.0f, s_perfFontHeight, 0.0f, s_stringArray[i], GxVJ_Middle, GxHJ_Left, 0x54, color, -0.45f);
     GxuFontAddToBatch(s_stringBatch, s_stringArray[i]);
   }
 
@@ -349,8 +294,7 @@ void IPerfDestroy() {
 }
 
 static void IPerfGetPerfTimes(float *perfTime) {
-  float (*activityGet)(ACTIVITY) =
-      s_activityModes[s_activityMode].func;
+  float (*activityGet)(ACTIVITY) = s_activityModes[s_activityMode].func;
 
   perfTime[3] = activityGet(ACTIVITY_ANIMATE);
   perfTime[4] = activityGet(ACTIVITY_ANIMEVENTS);
@@ -395,7 +339,7 @@ void IPerfResetTimePeaks() {
   s_avgPerfIndex = 0;
 }
 
-void __stdcall IPerfHostAddrProc(const NETADDR* addrs, unsigned long addrCount, void* user) {
+void __stdcall IPerfHostAddrProc(const NETADDR *addrs, DWORD addrCount, LPVOID user) {
   if (addrCount) {
     s_ProfAddr = addrs[0];
     s_ProfStartupEvent->Set();
@@ -404,7 +348,8 @@ void __stdcall IPerfHostAddrProc(const NETADDR* addrs, unsigned long addrCount, 
   }
 }
 
-int __stdcall ChatEventProc(HNETCONN__* conn, const NETCONNADDR* conAddr, NETNOTE note, void* user, const void* data, unsigned long bytes, unsigned long* bytesProcessed) {
+int __stdcall
+ChatEventProc(HNETCONN__ *conn, const NETCONNADDR *conAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
   if (note == NETNOTE_CONNECT) {
     s_ProfLock.Enter(1);
     s_ProfConn = OsNetConnCopyHandle(conn);
@@ -418,8 +363,7 @@ int __stdcall ChatEventProc(HNETCONN__* conn, const NETCONNADDR* conAddr, NETNOT
       s_ProfShutdownEvent->Set();
     }
     s_ProfLock.Enter(1);
-    HNETCONN__ *old = reinterpret_cast<HNETCONN__ *>(
-        SInterlockedExchange(reinterpret_cast<long *>(&s_ProfConn), 0));
+    HNETCONN__ *old = reinterpret_cast<HNETCONN__ *>(SInterlockedExchange(reinterpret_cast<long *>(&s_ProfConn), 0));
     s_ProfLock.Leave(1);
     if (old) {
       OsNetConnFreeHandle(old);
@@ -436,14 +380,13 @@ int __stdcall ChatEventProc(HNETCONN__* conn, const NETCONNADDR* conAddr, NETNOT
 int IPerfRemoteLoggingIni() {
   SSyncObject *waitObjectPtrs[2] = {s_ProfStartupEvent, s_ProfShutdownEvent};
   s_ProfStartupEvent->Reset();
-  if (!OsNetGetHostAddrs(s_hostNameList, 0x17EB, IPerfHostAddrProc, 0) ||
-      WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
+  if (!OsNetGetHostAddrs(s_hostNameList, 0x17EB, IPerfHostAddrProc, 0) || WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
     return 0;
   }
 
-  unsigned short port;
-  unsigned long address = OsNetAddrGetAddress(&s_ProfAddr, &port);
-  unsigned char connByte = 0x8E;
+  WORD  port;
+  DWORD address = OsNetAddrGetAddress(&s_ProfAddr, &port);
+  BYTE  connByte = 0x8E;
   s_ProfStartupEvent->Reset();
   OsTcpConnect(address, port, ChatEventProc, 0, &connByte, 1);
   if (WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
@@ -451,26 +394,26 @@ int IPerfRemoteLoggingIni() {
   }
 
   s_HasProfServer = 1;
-  char username[16];
-  char computer[32];
-  unsigned long usernameSize = sizeof(username);
-  unsigned long computerSize = sizeof(computer);
+  char  username[16];
+  char  computer[32];
+  DWORD usernameSize = sizeof(username);
+  DWORD computerSize = sizeof(computer);
   OsGetUserName(username, &usernameSize);
   OsGetComputerName(computer, &computerSize);
   struct {
-    unsigned char signature;
-    unsigned char message;
-    unsigned short len;
+    BYTE signature;
+    BYTE message;
+    WORD len;
     char strings[256];
   } msg;
-  unsigned int usernameLength = SStrLen(username);
-  unsigned int computerLength = SStrLen(computer);
+  UINT usernameLength = SStrLen(username);
+  UINT computerLength = SStrLen(computer);
   msg.signature = 0xAB;
   msg.message = 0;
   SStrCopy(msg.strings, username, 0x7FFFFFFF);
   SStrCopy(msg.strings + usernameLength + 1, computer, 0x7FFFFFFF);
-  unsigned int messageBytes = usernameLength + computerLength + 6;
-  msg.len = static_cast<unsigned short>(messageBytes);
+  UINT messageBytes = usernameLength + computerLength + 6;
+  msg.len = static_cast<WORD>(messageBytes);
   s_ProfLock.Enter(0);
   if (s_ProfConn) {
     OsTcpConnSend(s_ProfConn, &msg, messageBytes);
@@ -480,14 +423,14 @@ int IPerfRemoteLoggingIni() {
   return 1;
 }
 
-void IPerfGetFromBuffer(char*& buf1, long& len1, char*& buf2, long& len2) {
+void IPerfGetFromBuffer(char *&buf1, long &len1, char *&buf2, long &len2) {
   if (0x10000 - s_ProfRingBufTail < 4) {
     s_ProfRingBufTail = 0;
   }
   char *record = s_ProfRingBuf + s_ProfRingBufTail;
-  unsigned int recordBytes = *reinterpret_cast<unsigned int *>(record);
+  UINT  recordBytes = *reinterpret_cast<UINT *>(record);
   buf1 = record + 4;
-  unsigned int remain = 0x10000 - s_ProfRingBufTail;
+  UINT remain = 0x10000 - s_ProfRingBufTail;
   len1 = recordBytes - 4;
   if (recordBytes <= remain) {
     buf2 = 0;
@@ -508,8 +451,8 @@ void IPerfRemoteSendQueued() {
   while (s_ProfRingBufHead != s_ProfRingBufTail) {
     char *buf1;
     char *buf2;
-    long len1;
-    long len2;
+    long  len1;
+    long  len2;
     IPerfGetFromBuffer(buf1, len1, buf2, len2);
     s_ProfLock.Enter(0);
     if (s_ProfConn) {
@@ -528,10 +471,10 @@ void IPerfRemoteSendQueued() {
   }
 }
 
-unsigned int __stdcall IPerfRemoteLoggingThread(void*) {
+UINT __stdcall IPerfRemoteLoggingThread(LPVOID) {
   if (IPerfRemoteLoggingIni()) {
     SSyncObject *waitObjectPtrs[2] = {s_ProfShutdownEvent, s_ProfRequestEnqueuedEvent};
-    unsigned long waitResult;
+    DWORD        waitResult;
     while ((waitResult = WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE)) != 0) {
       if (waitResult != 1) {
         break;
@@ -540,8 +483,7 @@ unsigned int __stdcall IPerfRemoteLoggingThread(void*) {
       s_ProfRequestEnqueuedEvent->Reset();
     }
     s_ProfLock.Enter(1);
-    HNETCONN__ *old = reinterpret_cast<HNETCONN__ *>(
-        SInterlockedExchange(reinterpret_cast<long *>(&s_ProfConn), 0));
+    HNETCONN__ *old = reinterpret_cast<HNETCONN__ *>(SInterlockedExchange(reinterpret_cast<long *>(&s_ProfConn), 0));
     s_ProfLock.Leave(1);
     if (old) {
       OsNetConnFreeHandle(old);
@@ -551,8 +493,8 @@ unsigned int __stdcall IPerfRemoteLoggingThread(void*) {
   return 0;
 }
 
-int IPerfRemoteSpaceAvail(unsigned long size) {
-  unsigned long space;
+int IPerfRemoteSpaceAvail(DWORD size) {
+  DWORD space;
 
   if (s_ProfRingBufTail > s_ProfRingBufHead) {
     space = s_ProfRingBufTail - s_ProfRingBufHead;
@@ -571,28 +513,24 @@ int IPerfRemoteSpaceAvail(unsigned long size) {
   return 0;
 }
 
-void IPerfRemoteInitSimpleHdr(SimplePerfHdr *h,
-                                         unsigned long packetSize,
-                                         unsigned short id) {
+void IPerfRemoteInitSimpleHdr(SimplePerfHdr *h, DWORD packetSize, WORD id) {
   float asyncTimeClocks;
 
   ASSERT(packetSize < 65532);
 
   h->signature = 0xAB;
   h->message = 1;
-  h->len = static_cast<unsigned short>(packetSize);
+  h->len = static_cast<WORD>(packetSize);
   asyncTimeClocks = static_cast<float>(OsGetAsyncTimeClocks());
-  h->timestamp = static_cast<__int64>(
-      OsGetAsyncClocksDivisor() * asyncTimeClocks * 1000000.0f);
+  h->timestamp = static_cast<LONGLONG>(OsGetAsyncClocksDivisor() * asyncTimeClocks * 1000000.0f);
   h->frame = s_ProfRingFrame++;
   h->updateCount = 1;
   h->id = id;
 }
 
-void IPerfRemoteQueueOnRingBuffer(void *dataToQueue,
-                                             unsigned long size) {
-  unsigned long head;
-  unsigned long bytes;
+void IPerfRemoteQueueOnRingBuffer(LPVOID dataToQueue, DWORD size) {
+  DWORD head;
+  DWORD bytes;
 
   s_ringLock.Enter();
   head = s_ProfRingBufHead;
@@ -611,9 +549,7 @@ void IPerfRemoteQueueOnRingBuffer(void *dataToQueue,
   memcpy(s_ProfRingBuf + head, dataToQueue, bytes);
 
   if (bytes < size) {
-    memcpy(s_ProfRingBuf,
-           static_cast<unsigned char *>(dataToQueue) + bytes,
-           size - bytes);
+    memcpy(s_ProfRingBuf, static_cast<BYTE *>(dataToQueue) + bytes, size - bytes);
     OsGetAsyncTimeMs();
   }
 
@@ -624,34 +560,29 @@ void IPerfRemoteQueueOnRingBuffer(void *dataToQueue,
 
 static void IPerfRemoteQueuePerfData(float *perfTime) {
   struct {
-    unsigned long msgSize;
+    DWORD         msgSize;
     SimplePerfHdr h;
-    float perfTime[20];
+    float         perfTime[20];
   } queuePerfBuf;
 
-  if (s_HasProfServer && s_HasProfConn &&
-      IPerfRemoteSpaceAvail(sizeof(queuePerfBuf))) {
+  if (s_HasProfServer && s_HasProfConn && IPerfRemoteSpaceAvail(sizeof(queuePerfBuf))) {
     queuePerfBuf.msgSize = sizeof(queuePerfBuf);
-    IPerfRemoteInitSimpleHdr(&queuePerfBuf.h,
-                             sizeof(queuePerfBuf) - 4,
-                             1);
+    IPerfRemoteInitSimpleHdr(&queuePerfBuf.h, sizeof(queuePerfBuf) - 4, 1);
     queuePerfBuf.h.size = sizeof(queuePerfBuf.perfTime);
-    memcpy(queuePerfBuf.perfTime,
-           perfTime,
-           sizeof(queuePerfBuf.perfTime));
+    memcpy(queuePerfBuf.perfTime, perfTime, sizeof(queuePerfBuf.perfTime));
     IPerfRemoteQueueOnRingBuffer(&queuePerfBuf, sizeof(queuePerfBuf));
   }
 }
 
 void IPerfRemoteQueuePerfLabels() {
   struct {
-    unsigned long msgSize;
+    DWORD         msgSize;
     SimplePerfHdr h;
-    char labels[0x400];
+    char          labels[0x400];
   } queueLabelsBuf;
-  unsigned int labelBytes;
-  unsigned int packetBytes;
-  unsigned int i;
+  UINT  labelBytes;
+  UINT  packetBytes;
+  UINT  i;
   char *label;
 
   if (!s_HasProfServer || !s_HasProfConn) {
@@ -668,10 +599,9 @@ void IPerfRemoteQueuePerfLabels() {
     return;
   }
 
-  queueLabelsBuf.msgSize =
-      static_cast<unsigned short>(packetBytes);
+  queueLabelsBuf.msgSize = static_cast<WORD>(packetBytes);
   IPerfRemoteInitSimpleHdr(&queueLabelsBuf.h, packetBytes - 4, 2);
-  queueLabelsBuf.h.size = static_cast<unsigned short>(labelBytes);
+  queueLabelsBuf.h.size = static_cast<WORD>(labelBytes);
   label = queueLabelsBuf.labels;
 
   for (i = 0; i < 20; ++i) {
@@ -681,13 +611,13 @@ void IPerfRemoteQueuePerfLabels() {
   IPerfRemoteQueueOnRingBuffer(&queueLabelsBuf, packetBytes);
 }
 
-void IPerfRemoteQueueLogString(const char *prompt) {
+void IPerfRemoteQueueLogString(LPCSTR prompt) {
   struct {
-    unsigned long msgSize;
+    DWORD         msgSize;
     SimplePerfHdr h;
-    char prompt[0x100];
+    char          prompt[0x100];
   } queuePromptBuf;
-  unsigned int packetBytes;
+  UINT packetBytes;
 
   if (!s_HasProfServer || !s_HasProfConn) {
     return;
@@ -700,8 +630,7 @@ void IPerfRemoteQueueLogString(const char *prompt) {
 
   queuePromptBuf.msgSize = packetBytes;
   IPerfRemoteInitSimpleHdr(&queuePromptBuf.h, packetBytes - 4, 3);
-  queuePromptBuf.h.size =
-      static_cast<unsigned short>(SStrLen(prompt) + 1);
+  queuePromptBuf.h.size = static_cast<WORD>(SStrLen(prompt) + 1);
   SStrCopy(queuePromptBuf.prompt, prompt, sizeof(queuePromptBuf.prompt));
   IPerfRemoteQueueOnRingBuffer(&queuePromptBuf, packetBytes);
 }
@@ -780,7 +709,7 @@ PERF_REMOTE_MODE ScrnPerfRemoteGetMode() {
   return s_PerfRemoteMode;
 }
 
-void ScrnPerfRemoteLogString(const char *prompt) {
+void ScrnPerfRemoteLogString(LPCSTR prompt) {
   IPerfRemoteQueueLogString(prompt);
 }
 
@@ -791,16 +720,14 @@ void ScrnPerfRemoteLogPerfCounters() {
   IPerfRemoteQueuePerfData(perfTime);
 }
 
-void ScrnPerfSetTextFunction(
-    void (*inFunc)(char *, int, void *),
-    void *inParam) {
+void ScrnPerfSetTextFunction(void (*inFunc)(char *, int, LPVOID), LPVOID inParam) {
   sTextFunc = inFunc;
   sTextFuncParam = inParam;
 }
 
 void ScrnPerfToggleDisplayedValues() {
   ++s_activityMode;
-  if (static_cast<unsigned int>(s_activityMode) >= 3) {
+  if (static_cast<UINT>(s_activityMode) >= 3) {
     s_activityMode = 0;
   }
 

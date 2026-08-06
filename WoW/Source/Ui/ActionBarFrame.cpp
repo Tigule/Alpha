@@ -26,21 +26,21 @@
 #include <lua.h>
 #include <storm.h>
 
-bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
-int Spell_C_GetManaCost(int id, int isPet);
-int Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-int Spell_C_GetModalSpell();
-const unsigned __int64 &Spell_C_GetModalItem();
-int Spell_C_GetTargettingSpell();
-bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
-bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
-int Spell_C_NeedsCooldownEvent(const SpellRec *spell, int isPet);
-int Spell_C_NeedsCooldownEvent(int itemID);
-void Spell_C_StopTargeting();
-void Spell_C_CancelAura(int spellID);
-void UnitEffectPreloadSpellEffects(int spellID);
-const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID);
+bool                       Spell_C_CastSpell(int spellID, const CGItem_C *item);
+int                        Spell_C_GetManaCost(int id, int isPet);
+int                        Spell_C_GetSpellCooldown(int spell, int isPet, UINT *duration, DWORD *startTime, UINT *enable);
+int                        Spell_C_GetItemCooldown(int itemID, UINT *duration, DWORD *startTime, UINT *enable);
+int                        Spell_C_GetModalSpell();
+const DWORDLONG           &Spell_C_GetModalItem();
+int                        Spell_C_GetTargettingSpell();
+bool                       Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
+bool                       Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
+int                        Spell_C_NeedsCooldownEvent(const SpellRec *spell, int isPet);
+int                        Spell_C_NeedsCooldownEvent(int itemID);
+void                       Spell_C_StopTargeting();
+void                       Spell_C_CancelAura(int spellID);
+void                       UnitEffectPreloadSpellEffects(int spellID);
+const SkillLineAbilityRec *SpellTableLookupAbility(UINT raceID, UINT classID, UINT spellID);
 
 class CGTradeSkillInfo {
  public:
@@ -62,8 +62,8 @@ class CGCraftInfo {
   static SPELL_CAST_UI_TYPE m_craftType;
 };
 
-int          CGActionBar::m_slotActions[NUM_ACTION_BUTTONS];
-unsigned int CGActionBar::m_bonusPage;
+int  CGActionBar::m_slotActions[NUM_ACTION_BUTTONS];
+UINT CGActionBar::m_bonusPage;
 
 void CGActionBar::InitializeGame() {
   memset(m_slotActions, 0, sizeof(m_slotActions));
@@ -93,8 +93,7 @@ void CGActionBar::UpdateBonusBar() {
 int CGActionBar::IsUsableAction(int id, int &noMana) {
   noMana = 0;
 
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(
-      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
   }
@@ -113,10 +112,7 @@ int CGActionBar::IsUsableAction(int id, int &noMana) {
   }
 
   const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
-  if (!spell ||
-      !Spell_C_HaveSpellTokens(player, spell, false) ||
-      !Spell_C_HaveEquippedSpellItems(player, spell, true, false))
-  {
+  if (!spell || !Spell_C_HaveSpellTokens(player, spell, false) || !Spell_C_HaveEquippedSpellItems(player, spell, true, false)) {
     return 0;
   }
 
@@ -124,9 +120,7 @@ int CGActionBar::IsUsableAction(int id, int &noMana) {
     return 0;
   }
 
-  if (spell->m_shapeshiftMask &&
-      !(spell->m_shapeshiftMask & (1 << (unitData->shapeshiftForm - 1))))
-  {
+  if (spell->m_shapeshiftMask && !(spell->m_shapeshiftMask & (1 << (unitData->shapeshiftForm - 1)))) {
     return 0;
   }
 
@@ -141,18 +135,13 @@ int CGActionBar::IsUsableAction(int id, int &noMana) {
     return 0;
   }
 
-  if (spell->m_casterAuraState &&
-      !(unitData->auraState & (1 << (spell->m_casterAuraState - 1))))
-  {
+  if (spell->m_casterAuraState && !(unitData->auraState & (1 << (spell->m_casterAuraState - 1)))) {
     return 0;
   }
 
   if (spell->m_targetAuraState && spell->m_implicitTargetA[0] == 6) {
-    CGUnit_C *target = static_cast<CGUnit_C *>(
-        ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
-    if (!target ||
-        !(target->GetUnitData()->auraState & (1 << (spell->m_targetAuraState - 1))))
-    {
+    CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
+    if (!target || !(target->GetUnitData()->auraState & (1 << (spell->m_targetAuraState - 1)))) {
       return 0;
     }
   }
@@ -161,9 +150,7 @@ int CGActionBar::IsUsableAction(int id, int &noMana) {
     return 0;
   }
 
-  int power = spell->m_powerType == -2
-      ? unitData->health
-      : unitData->power[spell->m_powerType];
+  int power = spell->m_powerType == -2 ? unitData->health : unitData->power[spell->m_powerType];
   if (Spell_C_GetManaCost(spell->m_ID, 0) <= power) {
     return 1;
   }
@@ -179,8 +166,7 @@ int CGActionBar::IsCurrentAction(int id) {
   }
 
   if (IsAttackAction(id)) {
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(
-        ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     return player && (player->GetUnitData()->flags & 0x400);
   }
 
@@ -199,23 +185,21 @@ int CGActionBar::IsCurrentAction(int id) {
     return 0;
   }
 
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(
-      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player && spell->m_effect[0] == 47) {
     if (spell->m_effectMiscValue[0]) {
       if (CGCraftInfo::GetCraftType() == spell->m_effectMiscValue[0]) {
         return 1;
       }
     } else {
-      const SkillLineAbilityRec *ability =
-          SpellTableLookupAbility(player->GetUnitData()->race, player->GetUnitData()->classId, spell->m_ID);
+      const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetUnitData()->race, player->GetUnitData()->classId, spell->m_ID);
       if (ability && CGTradeSkillInfo::GetSkillLine() == ability->m_skillLine) {
         return 1;
       }
     }
   }
 
-  unsigned int effect;
+  UINT effect;
   for (effect = 0; effect < 3; ++effect) {
     if (spell->m_effectAura[effect] == 36) {
       break;
@@ -230,8 +214,7 @@ int CGActionBar::IsCurrentAction(int id) {
 }
 
 int CGActionBar::IsToggledAction(int id) {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(
-      ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
   }
@@ -240,9 +223,9 @@ int CGActionBar::IsToggledAction(int id) {
   if (m_slotActions[id] > 0) {
     const SpellRec *spell = g_spellDB.GetRecord(m_slotActions[id]);
     if (spell && spell->m_activeIconID) {
-      const CGUnitData    *unitData = player->GetUnitData();
-      const unsigned char *auraFlags = unitData->auraFlags;
-      int aura;
+      const CGUnitData *unitData = player->GetUnitData();
+      const BYTE       *auraFlags = unitData->auraFlags;
+      int               aura;
       for (aura = 0; aura < 40; ++aura) {
         if (unitData->auras[aura] == spell->m_ID && ((auraFlags[aura / 2] >> (4 * (aura % 2))) & 1)) {
           active = 1;
@@ -267,7 +250,7 @@ void CGActionBar::SlotChanged(int id) {
 
   CDataStore msg;
   msg.Put(CMSG_SET_ACTION_BUTTON);
-  msg.Put(static_cast<unsigned char>(id));
+  msg.Put(static_cast<BYTE>(id));
   msg.Put(m_slotActions[id]);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -309,7 +292,7 @@ void CGActionBar::UpdateCooldowns() {
 }
 
 void CGActionBar::SetAction(int id, int action) {
-  if (static_cast<unsigned int>(id) >= NUM_ACTION_BUTTONS) {
+  if (static_cast<UINT>(id) >= NUM_ACTION_BUTTONS) {
     return;
   }
 
@@ -345,7 +328,7 @@ void CGActionBar::RemoveAction(int id) {
 }
 
 void CGActionBar::RemoveSpell(int spellID) {
-  for (unsigned int id = 0; id < NUM_ACTION_BUTTONS; ++id) {
+  for (UINT id = 0; id < NUM_ACTION_BUTTONS; ++id) {
     if (m_slotActions[id] == spellID) {
       RemoveAction(id);
     }
@@ -353,7 +336,7 @@ void CGActionBar::RemoveSpell(int spellID) {
 }
 
 void CGActionBar::ReplaceSpell(int oldSpell, int newSpell) {
-  for (unsigned int id = 0; id < NUM_ACTION_BUTTONS; ++id) {
+  for (UINT id = 0; id < NUM_ACTION_BUTTONS; ++id) {
     if (m_slotActions[id] == oldSpell) {
       RemoveAction(id);
       SetAction(id, newSpell);
@@ -365,9 +348,8 @@ void CGActionBar::UseAction(int id, int checkCursor) {
   ASSERT(id >= 0);
   ASSERT(id < NUM_ACTION_BUTTONS);
 
-  if (checkCursor &&
-      (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
-       (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR && CGGameUI::GetCursorVirtualItem())))
+  if (checkCursor && (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
+                      (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR && CGGameUI::GetCursorVirtualItem())))
   {
     PutActionInSlot(id);
     return;
@@ -418,7 +400,7 @@ void CGActionBar::PickupAction(int id) {
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  CGItem_C *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(-action, 0) : 0;
+  CGItem_C   *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(-action, 0) : 0;
   if (item) {
     CGGameUI::SetCursorVirtualItem(-action, item->GetDisplayID(), id, UICURSOR_ACTIONBAR);
   }
@@ -460,7 +442,7 @@ void CGActionBar::PutActionInSlot(int id) {
       CGGameUI::SetCursorSpell(oldAction, 0);
     } else if (oldAction < 0) {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      CGItem_C *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(-oldAction, 0) : 0;
+      CGItem_C   *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(-oldAction, 0) : 0;
       if (item) {
         CGGameUI::SetCursorVirtualItem(-oldAction, item->GetDisplayID(), id, UICURSOR_ACTIONBAR);
       }
@@ -475,7 +457,7 @@ void CGActionBar::PutActionInSlot(int id) {
 
   if (cursorItem > 0) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    CGItem_C *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(cursorItem, 0) : 0;
+    CGItem_C   *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(cursorItem, 0) : 0;
     if (!item || !item->CanBeUsed()) {
       return;
     }
@@ -501,7 +483,7 @@ void CGActionBar::PutActionInSlot(int id) {
   }
 }
 
-const char *CGActionBar::GetAttackTexture() {
+LPCSTR CGActionBar::GetAttackTexture() {
   static char buffer[260];
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -510,11 +492,11 @@ const char *CGActionBar::GetAttackTexture() {
   }
 
   if (!(player->GetUnitData()->flags & 0x200000)) {
-    CGBag_C         *inventory = player->GetBag();
-    unsigned __int64 itemGUID = inventory ? inventory->GetItem(15) : 0;
-    CGItem_C        *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
+    CGBag_C  *inventory = player->GetBag();
+    DWORDLONG itemGUID = inventory ? inventory->GetItem(15) : 0;
+    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
     if (item) {
-      const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+      LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
       SStrPrintf(buffer, sizeof(buffer), "%s%s", path, path && *path ? "\\" : "");
       SStrPack(buffer, item->GetInventoryArt(), sizeof(buffer));
       return buffer;
@@ -524,7 +506,7 @@ const char *CGActionBar::GetAttackTexture() {
   return "Interface\\Buttons\\Spell-Reset";
 }
 
-const char *CGActionBar::GetTexture(int id) {
+LPCSTR CGActionBar::GetTexture(int id) {
   static char buffer[260];
 
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
@@ -532,7 +514,7 @@ const char *CGActionBar::GetTexture(int id) {
     return 0;
   }
 
-  const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   SStrPrintf(buffer, sizeof(buffer), "%s%s", path, path && *path ? "\\" : "");
 
   if (IsAttackAction(id)) {
@@ -545,7 +527,7 @@ const char *CGActionBar::GetTexture(int id) {
       return 0;
     }
 
-    int           iconID = IsToggledAction(id) ? spell->m_activeIconID : spell->m_spellIconID;
+    int                 iconID = IsToggledAction(id) ? spell->m_activeIconID : spell->m_spellIconID;
     const SpellIconRec *icon = g_spellIconDB.GetRecord(iconID);
     return icon ? icon->m_textureFilename : 0;
   }
@@ -567,7 +549,7 @@ int CGActionBar::GetCount(int id) {
   return player ? player->GetBag()->GetItemTypeCount(GetItem(id), 0) : 0;
 }
 
-void CGActionBar::GetCooldown(int id, unsigned long &startTime, unsigned int &duration, unsigned int &enable) {
+void CGActionBar::GetCooldown(int id, DWORD &startTime, UINT &duration, UINT &enable) {
   startTime = 0;
   duration = 0;
   if (IsSpell(id)) {
@@ -593,7 +575,7 @@ void CGActionBar::PrecacheButtonArt(int id) {
 static int Script_GetActionTexture(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetActionTexture(slot)");
-  const char *texture = CGActionBar::GetTexture(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  LPCSTR texture = CGActionBar::GetTexture(static_cast<int>(lua_tonumber(L, 1)) - 1);
   if (texture) {
     lua_pushstring(L, texture);
   } else {
@@ -612,9 +594,9 @@ static int Script_GetActionCount(lua_State *L) {
 static int Script_GetActionCooldown(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetActionCooldown(slot)");
-  unsigned long startTime;
-  unsigned int  duration;
-  unsigned int  enable;
+  DWORD startTime;
+  UINT  duration;
+  UINT  enable;
   CGActionBar::GetCooldown(static_cast<int>(lua_tonumber(L, 1)) - 1, startTime, duration, enable);
   lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
   lua_pushnumber(L, static_cast<double>(duration) * 0.001);
@@ -703,7 +685,7 @@ static int Script_GetBonusBarOffset(lua_State *L) {
   return 1;
 }
 
-static int Script_ChangeActionBarPage(lua_State *__formal) {
+static int Script_ChangeActionBarPage(lua_State *) {
   FrameScript_SignalEvent(203);
   return 0;
 }
@@ -732,13 +714,13 @@ static FrameScript_Method s_ScriptFunctions[13] = {
 };
 
 void ActionBarRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 13; ++i) {
+  for (UINT i = 0; i < 13; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void ActionBarUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 13; ++i) {
+  for (UINT i = 0; i < 13; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

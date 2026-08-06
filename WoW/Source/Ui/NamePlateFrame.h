@@ -16,7 +16,7 @@ class CGNamePlateFrame : public CSimpleButton {
   virtual void OnClick(MOUSEBUTTON button);
 
  private:
-  unsigned __int64   m_unit;
+  DWORDLONG          m_unit;
   CSimpleTexture    *m_highlight;
   CSimpleFontString *m_nameFrame;
   CGSimpleHealthBar *m_healthBar;

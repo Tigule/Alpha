@@ -15,22 +15,22 @@ class CCritSect {
 
   void Enter();
 
-  void Enter(int __formal) {
+  void Enter(int) {
     EnterCriticalSection(&m_critsect);
   }
 
   void Leave();
 
-  void Leave(int __formal) {
+  void Leave(int) {
     LeaveCriticalSection(&m_critsect);
   }
 };
 
 class CInitCritSect {
  private:
-  LONG          m_spinLock;
-  CCritSect    *m_critsect;
-  unsigned char m_critsectData[0x18];
+  LONG       m_spinLock;
+  CCritSect *m_critsect;
+  BYTE       m_critsectData[0x18];
 
  public:
   int  Enter();

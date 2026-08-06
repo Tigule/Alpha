@@ -7,13 +7,13 @@ class CreatureDisplayInfoExtraRec {
   CreatureDisplayInfoExtraRec();
   ~CreatureDisplayInfoExtraRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 19;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 76;
   }
 
@@ -28,18 +28,18 @@ class CreatureDisplayInfoExtraRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_DisplayRaceID;
-  int         m_DisplaySexID;
-  int         m_SkinID;
-  int         m_FaceID;
-  int         m_HairStyleID;
-  int         m_HairColorID;
-  int         m_FacialHairID;
-  int         m_NPCItemDisplay[10];
-  const char *m_BakeName;
+  int    m_ID;
+  int    m_DisplayRaceID;
+  int    m_DisplaySexID;
+  int    m_SkinID;
+  int    m_FaceID;
+  int    m_HairStyleID;
+  int    m_HairColorID;
+  int    m_FacialHairID;
+  int    m_NPCItemDisplay[10];
+  LPCSTR m_BakeName;
 };
 
 extern WowClientDB<CreatureDisplayInfoExtraRec> g_creatureDisplayInfoExtraDB;

@@ -45,54 +45,38 @@ enum COLOR_FILE_FORMAT {
   COLOR_DXT = 2
 };
 
-static int LoadBlpMips(
-    const char   *fileName,
-    MipBits     *&buffer,
-    unsigned int *width,
-    unsigned int *height,
-    EGxTexFormat *format,
-    int          *isOpaque,
-    unsigned int *alphaBits
-);
+static int LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *height, EGxTexFormat *format, int *isOpaque, UINT *alphaBits);
 static int PumpBlpTextureAsync(CTexture *texture);
 
 struct BlpPalPixel {
-  unsigned char b;
-  unsigned char g;
-  unsigned char r;
-  unsigned char pad;
+  BYTE b;
+  BYTE g;
+  BYTE r;
+  BYTE pad;
 };
 
 struct BLPHeader {
-  unsigned long magic;
-  unsigned long formatVersion;
-  unsigned char colorEncoding;
-  unsigned char alphaSize;
-  unsigned char preferredFormat;
-  unsigned char hasMips;
-  unsigned long width;
-  unsigned long height;
-  unsigned long mipOffsets[16];
-  unsigned long mipSizes[16];
+  DWORD magic;
+  DWORD formatVersion;
+  BYTE  colorEncoding;
+  BYTE  alphaSize;
+  BYTE  preferredFormat;
+  BYTE  hasMips;
+  DWORD width;
+  DWORD height;
+  DWORD mipOffsets[16];
+  DWORD mipSizes[16];
   union {
     BlpPalPixel palette[256];
     struct {
-      unsigned long headerSize;
-      unsigned char headerData[1020];
+      DWORD headerSize;
+      BYTE  headerData[1020];
     } jpeg;
   } extended;
 };
 
 class CBLPFile {
-  friend int LoadBlpMips(
-      const char   *fileName,
-      MipBits     *&buffer,
-      unsigned int *width,
-      unsigned int *height,
-      EGxTexFormat *format,
-      int          *isOpaque,
-      unsigned int *alphaBits
-  );
+  friend int LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *height, EGxTexFormat *format, int *isOpaque, UINT *alphaBits);
   friend int PumpBlpTextureAsync(CTexture *texture);
 
  public:
@@ -116,50 +100,43 @@ class CBLPFile {
   }
 
   void      Close();
-  int       Open(const char *filename);
-  int       Source(void *fileBits);
-  int       Lock(PIXEL_FORMAT format, unsigned int mipLevel, unsigned char *&data, unsigned int &stride);
-  int       Unlock(unsigned int mipLevel);
-  int       LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, unsigned int mipLevel);
-  int       LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, unsigned int mipLevel);
-  int       SetImage(CBLPFile &source, unsigned int mipLevel, CStatus *status);
-  int       SetImage(
-            const void *pImg,
-            unsigned int width,
-            unsigned int height,
-            unsigned int alphaBits,
-            unsigned int mipLevel,
-            CStatus *status
-  );
-  int       SetAlphaBits(unsigned int alpha);
+  int       Open(LPCSTR filename);
+  int       Source(LPVOID fileBits);
+  int       Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride);
+  int       Unlock(UINT mipLevel);
+  int       LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
+  int       LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
+  int       SetImage(CBLPFile &source, UINT mipLevel, CStatus *status);
+  int       SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, UINT mipLevel, CStatus *status);
+  int       SetAlphaBits(UINT alpha);
   MIPS_TYPE HasMips() const;
   void      SetHasMips(MIPS_TYPE hasMips);
-  unsigned int Bytes() const;
-  unsigned int Bytes(unsigned int mipLevel) const;
+  UINT      Bytes() const;
+  UINT      Bytes(UINT mipLevel) const;
 
-  unsigned int Width() const {
+  UINT Width() const {
     return m_header.width;
   }
-  unsigned int Width(unsigned int mipLevel) const {
-    unsigned int width = m_header.width >> mipLevel;
+  UINT Width(UINT mipLevel) const {
+    UINT width = m_header.width >> mipLevel;
     return width ? width : 1;
   }
 
-  unsigned int Height() const {
+  UINT Height() const {
     return m_header.height;
   }
-  unsigned int Height(unsigned int mipLevel) const {
-    unsigned int height = m_header.height >> mipLevel;
+  UINT Height(UINT mipLevel) const {
+    UINT height = m_header.height >> mipLevel;
     return height ? height : 1;
   }
 
-  unsigned int Pixels() const {
+  UINT Pixels() const {
     return m_header.width * m_header.height;
   }
-  unsigned int Pixels(unsigned int mipLevel) const {
+  UINT Pixels(UINT mipLevel) const {
     return Width(mipLevel) * Height(mipLevel);
   }
-  unsigned int Quality() const {
+  UINT Quality() const {
     return m_quality;
   }
   COLOR_FILE_FORMAT GetColorEncoding() const {
@@ -168,67 +145,60 @@ class CBLPFile {
   PIXEL_FORMAT GetPreferredFormat() const {
     return static_cast<PIXEL_FORMAT>(m_header.preferredFormat);
   }
-  unsigned int GetNumLevels() {
+  UINT GetNumLevels() {
     return m_numLevels;
   }
-  void SetQuality(unsigned int quality) {
+  void SetQuality(UINT quality) {
     m_quality = quality;
   }
   void SetPreferredFormat(PIXEL_FORMAT format) {
-    m_header.preferredFormat = static_cast<unsigned char>(format);
+    m_header.preferredFormat = static_cast<BYTE>(format);
   }
   void SetMipMapAlgorithm(MipMapAlgorithm algorithm) {
     m_mipMapAlgorithm = algorithm;
   }
 
-  unsigned int AlphaBits() const {
+  UINT AlphaBits() const {
     return m_header.alphaSize;
   }
 
-  int GenerateMipLevel(unsigned int sourceLevel, unsigned int destinationLevel);
-  int GenerateMipLevels(const char *name, CStatus *status);
-  int GenerateMipLevels(CStatus *status);
-  static void FlushFromReadCache(const char *name);
-  int SetImages(CBLPFile &source);
-  int Write(const char *name, COLOR_FILE_FORMAT format);
+  int         GenerateMipLevel(UINT sourceLevel, UINT destinationLevel);
+  int         GenerateMipLevels(LPCSTR name, CStatus *status);
+  int         GenerateMipLevels(CStatus *status);
+  static void FlushFromReadCache(LPCSTR name);
+  int         SetImages(CBLPFile &source);
+  int         Write(LPCSTR name, COLOR_FILE_FORMAT format);
 
  protected:
-  unsigned char *Image(unsigned int level);
-  int  CreateMipLevels(unsigned int width, unsigned int height);
-  int  IsValidMip(unsigned int level) const;
-  int  GetFormatSize(PIXEL_FORMAT format, unsigned int mipLevel, unsigned int *size, unsigned int *stride) const;
-  void DecompPalFastPath(unsigned char *data, const void *tempBuffer, unsigned int colorSize);
-  void DecompPalARGB8888(unsigned char *data, const void *tempBuffer, unsigned int colorSize);
-  void DecompPalARGB4444(unsigned char *data, const void *tempBuffer, unsigned int colorSize);
-  void DecompPalARGB1555(unsigned char *data, const void *tempBuffer, unsigned int colorSize);
-  void DecompPalARGB565(unsigned char *data, const void *tempBuffer, unsigned int colorSize);
-  int  DecompPal(PIXEL_FORMAT format, unsigned int mipLevel, unsigned char *data, const void *tempBuffer);
-  int  DecompJPEG(
-      PIXEL_FORMAT format,
-      unsigned int mipLevel,
-      unsigned char *&data,
-      unsigned int dataSize,
-      const void *source,
-      unsigned int &stride
-  );
-  int GetOctreePal(tagPALETTEENTRY *palette, unsigned int count);
-  int AddSourceImages(HCOLORLIST__ *colors);
-  int ComputePalette(HCOLORLIST__ *colors);
-  int Palettize(void *output);
-  int MakeAlpha(unsigned char **alpha, unsigned int mipLevel);
-  int MakeJPEGS(void *output);
-  int MakeDXT(void *output);
-  int WriteOutputFile(void *file, unsigned char *header, unsigned char *data, unsigned int size);
-  int WriteJPEGOutputFile(void *file, unsigned char *header, unsigned int headerSize, unsigned int dataSize);
-  int WriteHeader(void *file);
-  int PalettizeSourceImage(unsigned char **image, unsigned int mipLevel);
-  int BuildPalettedImages(void *output);
+  BYTE            *Image(UINT level);
+  int              CreateMipLevels(UINT width, UINT height);
+  int              IsValidMip(UINT level) const;
+  int              GetFormatSize(PIXEL_FORMAT format, UINT mipLevel, UINT *size, UINT *stride) const;
+  void             DecompPalFastPath(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  void             DecompPalARGB8888(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  void             DecompPalARGB4444(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  void             DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  void             DecompPalARGB565(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  int              DecompPal(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, LPCVOID tempBuffer);
+  int              DecompJPEG(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT dataSize, LPCVOID source, UINT &stride);
+  int              GetOctreePal(tagPALETTEENTRY *palette, UINT count);
+  int              AddSourceImages(HCOLORLIST__ *colors);
+  int              ComputePalette(HCOLORLIST__ *colors);
+  int              Palettize(LPVOID output);
+  int              MakeAlpha(BYTE **alpha, UINT mipLevel);
+  int              MakeJPEGS(LPVOID output);
+  int              MakeDXT(LPVOID output);
+  int              WriteOutputFile(LPVOID file, BYTE *header, BYTE *data, UINT size);
+  int              WriteJPEGOutputFile(LPVOID file, BYTE *header, UINT headerSize, UINT dataSize);
+  int              WriteHeader(LPVOID file);
+  int              PalettizeSourceImage(BYTE **image, UINT mipLevel);
+  int              BuildPalettedImages(LPVOID output);
   tagPALETTEENTRY *GetBackgroundColor(int alpha, tagPALETTEENTRY *color);
-  void PaletteConvert(const tagPALETTEENTRY *source, BlpPalPixel *destination);
+  void             PaletteConvert(const tagPALETTEENTRY *source, BlpPalPixel *destination);
 
-  static unsigned char  s_eightBitAlphaLookup[16];
-  static unsigned char  s_oneBitAlphaLookup[2];
-  static unsigned short s_oneBitAlphaShort[2];
+  static BYTE s_eightBitAlphaLookup[16];
+  static BYTE s_oneBitAlphaLookup[2];
+  static WORD s_oneBitAlphaShort[2];
 
  private:
   CBLPFile &operator=(CBLPFile &source);
@@ -242,19 +212,19 @@ class CBLPFile {
     m_mipMapAlgorithm = MMA_BOX;
   }
 
-  int Lock2(PIXEL_FORMAT format, unsigned int mipLevel, unsigned char *data, unsigned int &stride);
-  int Unlock2(unsigned int mipLevel);
+  int Lock2(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, UINT &stride);
+  int Unlock2(UINT mipLevel);
 
  protected:
   MipBits        *m_images;
   BLPHeader       m_header;
-  void           *m_inMemoryImage;
+  LPVOID          m_inMemoryImage;
   int             m_inMemoryNeedsFree;
-  unsigned int    m_numLevels;
-  unsigned int    m_quality;
+  UINT            m_numLevels;
+  UINT            m_quality;
   HCOLORMAP__    *m_colorMapping;
   MipMapAlgorithm m_mipMapAlgorithm;
-  unsigned char  *m_lockDecompMem;
+  BYTE           *m_lockDecompMem;
 };
 
 #endif

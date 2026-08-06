@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ResistancesRec::GetFilename() {
+LPCSTR ResistancesRec::GetFilename() {
   return "DBFilesClient\\Resistances.dbc";
 }
 
@@ -19,9 +19,9 @@ ResistancesRec::ResistancesRec() {
 ResistancesRec::~ResistancesRec() {
 }
 
-bool ResistancesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[8];
+bool ResistancesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_Flags, sizeof(m_Flags), 0, 0, 0) && result;

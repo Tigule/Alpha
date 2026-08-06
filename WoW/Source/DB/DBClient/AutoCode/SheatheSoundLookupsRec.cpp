@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SheatheSoundLookupsRec::GetFilename() {
+LPCSTR SheatheSoundLookupsRec::GetFilename() {
   return "DBFilesClient\\SheatheSoundLookups.dbc";
 }
 
@@ -19,7 +19,7 @@ SheatheSoundLookupsRec::SheatheSoundLookupsRec() {
 SheatheSoundLookupsRec::~SheatheSoundLookupsRec() {
 }
 
-bool SheatheSoundLookupsRec::Read(SFile *f, const char *stringBuffer) {
+bool SheatheSoundLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

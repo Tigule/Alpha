@@ -27,7 +27,7 @@ struct SIMPLECONTEXTHASHOBJ : public TSHashObject<SIMPLECONTEXTHASHOBJ, HASHKEY_
 static TSHashTable<SIMPLECONTEXTHASHOBJ, HASHKEY_NONE> s_contextLookup;
 static HASHKEY_NONE                                    s_nullHashKey;
 
-static SIMPLEFRAMEREGHASH *GetSimpleFrameHash(const char *name, unsigned int context, int create, int *alreadyExisted) {
+static SIMPLEFRAMEREGHASH *GetSimpleFrameHash(LPCSTR name, UINT context, int create, int *alreadyExisted) {
   SIMPLECONTEXTHASHOBJ *contextHash;
   SIMPLEFRAMEREGHASH   *hash;
 
@@ -55,7 +55,7 @@ static SIMPLEFRAMEREGHASH *GetSimpleFrameHash(const char *name, unsigned int con
   return hash;
 }
 
-static SIMPLETEXTUREREGHASH *GetSimpleTextureHash(const char *name, unsigned int context, int create, int *alreadyExisted) {
+static SIMPLETEXTUREREGHASH *GetSimpleTextureHash(LPCSTR name, UINT context, int create, int *alreadyExisted) {
   SIMPLECONTEXTHASHOBJ *contextHash;
   SIMPLETEXTUREREGHASH *hash;
 
@@ -83,7 +83,7 @@ static SIMPLETEXTUREREGHASH *GetSimpleTextureHash(const char *name, unsigned int
   return hash;
 }
 
-static SIMPLEFONTSTRINGREGHASH *GetSimpleFontStringHash(const char *name, unsigned int context, int create, int *alreadyExisted) {
+static SIMPLEFONTSTRINGREGHASH *GetSimpleFontStringHash(LPCSTR name, UINT context, int create, int *alreadyExisted) {
   SIMPLECONTEXTHASHOBJ    *contextHash;
   SIMPLEFONTSTRINGREGHASH *hash;
 
@@ -111,7 +111,7 @@ static SIMPLEFONTSTRINGREGHASH *GetSimpleFontStringHash(const char *name, unsign
   return hash;
 }
 
-int SimpleFrameRegistryAddEntry(const char *name, CSimpleFrame *object, unsigned int context) {
+int SimpleFrameRegistryAddEntry(LPCSTR name, CSimpleFrame *object, UINT context) {
   int                 alreadyExisted;
   SIMPLEFRAMEREGHASH *hash;
 
@@ -132,7 +132,7 @@ int SimpleFrameRegistryAddEntry(const char *name, CSimpleFrame *object, unsigned
   return 1;
 }
 
-int SimpleTextureRegistryAddEntry(const char *name, CSimpleTexture *object, unsigned int context) {
+int SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT context) {
   int                   alreadyExisted;
   SIMPLETEXTUREREGHASH *hash;
 
@@ -153,7 +153,7 @@ int SimpleTextureRegistryAddEntry(const char *name, CSimpleTexture *object, unsi
   return 1;
 }
 
-int SimpleFontStringRegistryAddEntry(const char *name, CSimpleFontString *object, unsigned int context) {
+int SimpleFontStringRegistryAddEntry(LPCSTR name, CSimpleFontString *object, UINT context) {
   int                      alreadyExisted;
   SIMPLEFONTSTRINGREGHASH *hash;
 
@@ -174,7 +174,7 @@ int SimpleFontStringRegistryAddEntry(const char *name, CSimpleFontString *object
   return 1;
 }
 
-void SimpleFrameRegistryRemoveEntry(const char *name, unsigned int context) {
+void SimpleFrameRegistryRemoveEntry(LPCSTR name, UINT context) {
   SIMPLECONTEXTHASHOBJ *contextHash;
 
   if (!name || !*name) {
@@ -187,7 +187,7 @@ void SimpleFrameRegistryRemoveEntry(const char *name, unsigned int context) {
   }
 }
 
-void SimpleTextureRegistryRemoveEntry(const char *name, unsigned int context) {
+void SimpleTextureRegistryRemoveEntry(LPCSTR name, UINT context) {
   SIMPLECONTEXTHASHOBJ *contextHash;
 
   if (!name || !*name) {
@@ -200,7 +200,7 @@ void SimpleTextureRegistryRemoveEntry(const char *name, unsigned int context) {
   }
 }
 
-void SimpleFontStringRegistryRemoveEntry(const char *name, unsigned int context) {
+void SimpleFontStringRegistryRemoveEntry(LPCSTR name, UINT context) {
   SIMPLECONTEXTHASHOBJ *contextHash;
 
   if (!name || !*name) {
@@ -213,7 +213,7 @@ void SimpleFontStringRegistryRemoveEntry(const char *name, unsigned int context)
   }
 }
 
-CSimpleFrame *SimpleFrameRegistryGetEntry(const char *name, unsigned int context) {
+CSimpleFrame *SimpleFrameRegistryGetEntry(LPCSTR name, UINT context) {
   int                 unused;
   SIMPLEFRAMEREGHASH *hash;
 
@@ -224,7 +224,7 @@ CSimpleFrame *SimpleFrameRegistryGetEntry(const char *name, unsigned int context
   return hash ? hash->object : 0;
 }
 
-CSimpleTexture *SimpleTextureRegistryGetEntry(const char *name, unsigned int context) {
+CSimpleTexture *SimpleTextureRegistryGetEntry(LPCSTR name, UINT context) {
   int                   unused;
   SIMPLETEXTUREREGHASH *hash;
 
@@ -235,7 +235,7 @@ CSimpleTexture *SimpleTextureRegistryGetEntry(const char *name, unsigned int con
   return hash ? hash->object : 0;
 }
 
-CSimpleFontString *SimpleFontStringRegistryGetEntry(const char *name, unsigned int context) {
+CSimpleFontString *SimpleFontStringRegistryGetEntry(LPCSTR name, UINT context) {
   int                      unused;
   SIMPLEFONTSTRINGREGHASH *hash;
 

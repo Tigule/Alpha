@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *UnitBloodLevelsRec::GetFilename() {
+LPCSTR UnitBloodLevelsRec::GetFilename() {
   return "DBFilesClient\\UnitBloodLevels.dbc";
 }
 
@@ -19,7 +19,7 @@ UnitBloodLevelsRec::UnitBloodLevelsRec() {
 UnitBloodLevelsRec::~UnitBloodLevelsRec() {
 }
 
-bool UnitBloodLevelsRec::Read(SFile *f, const char *stringBuffer) {
+bool UnitBloodLevelsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

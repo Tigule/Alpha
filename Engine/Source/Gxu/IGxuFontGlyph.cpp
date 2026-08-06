@@ -4,7 +4,7 @@
 
 #include <freetype/freetype.h>
 
-static int FREETYPE_RenderGlyph(FT_Face face, unsigned int charCode, int noHinting, int monochrome) {
+static int FREETYPE_RenderGlyph(FT_Face face, UINT charCode, int noHinting, int monochrome) {
   ASSERT(face);
 
   FT_UInt glyphIndex = FT_Get_Char_Index(face, charCode);
@@ -25,22 +25,15 @@ static int FREETYPE_RenderGlyph(FT_Face face, unsigned int charCode, int noHinti
   return FT_Render_Glyph(face->glyph, mode) == 0;
 }
 
-static void CalculateYOffset(
-    FT_Face       face,
-    unsigned int *yOffsetPtr,
-    unsigned int *glyphYStart,
-    unsigned int  pixelHeight,
-    int           baseLineRow,
-    unsigned int  glyphHeight
-) {
+static void CalculateYOffset(FT_Face face, UINT *yOffsetPtr, UINT *glyphYStart, UINT pixelHeight, int baseLineRow, UINT glyphHeight) {
   ASSERT(face);
   ASSERT(yOffsetPtr);
   ASSERT(glyphYStart);
   ASSERT(pixelHeight);
   ASSERT(glyphHeight);
 
-  unsigned int yStart = 0;
-  unsigned int yOffset = 0;
+  UINT yStart = 0;
+  UINT yOffset = 0;
 
   if (glyphHeight <= pixelHeight) {
     int bitmapTop = face->glyph->bitmap_top;
@@ -60,15 +53,7 @@ static void CalculateYOffset(
   }
 }
 
-int IGxuFontGlyphRenderGlyph(
-    FT_Face      face,
-    unsigned int pixelHeight,
-    unsigned int code,
-    unsigned int baseLine,
-    GLYPHDATA   *dataPtr,
-    int          noHinting,
-    int          monochrome
-) {
+int IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT baseLine, GLYPHDATA *dataPtr, int noHinting, int monochrome) {
   FATALASSERT(face);
 
   FATALASSERT(pixelHeight);
@@ -86,14 +71,14 @@ int IGxuFontGlyphRenderGlyph(
     return 0;
   }
 
-  unsigned int width = face->glyph->bitmap.width;
-  unsigned int height = min(pixelHeight, face->glyph->bitmap.rows);
+  UINT width = face->glyph->bitmap.width;
+  UINT height = min(pixelHeight, face->glyph->bitmap.rows);
   ASSERT(height <= pixelHeight);
 
-  const void  *srcData = face->glyph->bitmap.buffer;
-  unsigned int pitch = face->glyph->bitmap.pitch;
-  unsigned int dataSize = face->glyph->bitmap.rows * face->glyph->bitmap.pitch;
-  int          dummyGlyph = 0;
+  LPCVOID srcData = face->glyph->bitmap.buffer;
+  UINT    pitch = face->glyph->bitmap.pitch;
+  UINT    dataSize = face->glyph->bitmap.rows * face->glyph->bitmap.pitch;
+  int     dummyGlyph = 0;
 
   if (!width || !height || !srcData || !pitch || !dataSize) {
     width = (pixelHeight + 3) / 4;
@@ -107,7 +92,7 @@ int IGxuFontGlyphRenderGlyph(
     dummyGlyph = 1;
   }
 
-  void *data = ALLOC(dataSize);
+  LPVOID data = ALLOC(dataSize);
   if (data) {
     memset(data, 0, dataSize);
   }
@@ -123,8 +108,8 @@ int IGxuFontGlyphRenderGlyph(
   dataPtr->freeTypeGlyphAdvance = face->glyph->linearHoriAdvance;
   dataPtr->freeTypeGlyphBearing = face->glyph->metrics.horiBearingX * (1.0f / 64.0f);
 
-  unsigned int yOffset = 0;
-  unsigned int yStart = 0;
+  UINT yOffset = 0;
+  UINT yStart = 0;
   if (height && width && data && !dummyGlyph) {
     CalculateYOffset(face, &yOffset, &yStart, pixelHeight, baseLine, height);
   }

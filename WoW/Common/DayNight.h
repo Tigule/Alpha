@@ -29,7 +29,7 @@ struct DNLightInfo {
 };
 
 struct DNInfo {
-  unsigned int        time;
+  UINT                time;
   float               dayProgression;
   float               day;
   NTempest::C3Vector  playerPos;
@@ -40,11 +40,11 @@ struct DNInfo {
   float               farClip;
   float               elapsedSec;
   float               stormPercentage;
-  unsigned char       eclipseAmount;
+  BYTE                eclipseAmount;
   NTempest::CImVector eclipseColor;
   CurrentLight        light;
   DNFogInfo           fogInfo;
-  unsigned char       intFog;
+  BYTE                intFog;
   DNFogInfo           intFogInfo;
   DNLightInfo         lightInfo;
   NTempest::CImVector shadowClr;
@@ -61,7 +61,7 @@ class GlareBase {
  protected:
   static NTempest::C3Vector m_geov[4];
   static NTempest::C2Vector m_texv[4];
-  static unsigned short     m_idx[4];
+  static WORD               m_idx[4];
 
  public:
   virtual void Update(float elapsedSec) = 0;
@@ -82,7 +82,7 @@ class GlareBase {
 
 class DNGlare : public GlareBase {
  public:
-  void         Initialize(const char *filename);
+  void         Initialize(LPCSTR filename);
   virtual void Update(float elapsedSec);
   virtual void Render();
   virtual int  IsVisible();
@@ -118,16 +118,9 @@ class DNPlanet {
     MOON2
   };
 
-  void Initialize(const char *filename);
+  void Initialize(LPCSTR filename);
   void Destroy();
-  void GenGeometry(
-      NTempest::C3Vector  *geov,
-      NTempest::C2Vector  *texv,
-      NTempest::CImVector *clrv,
-      unsigned short      *idx,
-      unsigned long       &vertCount,
-      unsigned long       &idxCount
-  );
+  void GenGeometry(NTempest::C3Vector *geov, NTempest::C2Vector *texv, NTempest::CImVector *clrv, WORD *idx, DWORD &vertCount, DWORD &idxCount);
   void Render();
   void Update();
 
@@ -151,11 +144,11 @@ class DNStars {
   void Render();
 
  private:
-  friend void DayNightInitialize(const char *litFile);
+  friend void                     DayNightInitialize(LPCSTR litFile);
   static const NTempest::C2Vector m_fadeTable[4];
-  HMODEL__              *m_hModel;
-  NTempest::CImVector    m_color;
-  NTempest::C3Vector     m_pos;
+  HMODEL__                       *m_hModel;
+  NTempest::CImVector             m_color;
+  NTempest::C3Vector              m_pos;
 };
 
 class DNClouds {
@@ -167,85 +160,77 @@ class DNClouds {
   void  GenSphere(float size);
   float GetDensity(const NTempest::C3Vector &worldPoint, float area);
   void  Render();
-  void  SetLOD(unsigned long newlod, unsigned long newUpdateSize);
-  void  SetLayers(unsigned long layers) {
+  void  SetLOD(DWORD newlod, DWORD newUpdateSize);
+  void  SetLayers(DWORD layers) {
     m_nLayers = layers;
   }
   void SetDensity(float newDensity);
   void SetSharpness(float newSharpness);
   void OverrideDensitySharpness(float newDensity, float newSharpness);
   void Update();
+
  private:
   void BumpMap();
   void WorldToTexture(const NTempest::C3Vector &worldPt, NTempest::C2Vector &tex);
 
-  static void Callback_GxTex(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  d,
-      unsigned int  mipLevel,
-      void         *userArg,
-      unsigned int &texelStrideInBytes,
-      const void  *&gxTexels
-  );
+  static void Callback_GxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &gxTexels);
 
   struct Vector3us {
-    unsigned short x;
-    unsigned short y;
-    unsigned short z;
+    WORD x;
+    WORD y;
+    WORD z;
   };
 
   struct Octave {
-    Vector3us    value;
-    Vector3us    delta;
-    Vector3us    min;
-    Vector3us    max;
-    float        amplitude;
-    unsigned int permy00;
-    unsigned int permy10;
-    unsigned int permy01;
-    unsigned int permy11;
-    float        x000;
-    float        x100;
-    float        x010;
-    float        x110;
-    float        x001;
-    float        x101;
-    float        x011;
-    float        x111;
-    unsigned int iv;
-    unsigned int lastiv;
+    Vector3us value;
+    Vector3us delta;
+    Vector3us min;
+    Vector3us max;
+    float     amplitude;
+    UINT      permy00;
+    UINT      permy10;
+    UINT      permy01;
+    UINT      permy11;
+    float     x000;
+    float     x100;
+    float     x010;
+    float     x110;
+    float     x001;
+    float     x101;
+    float     x011;
+    float     x111;
+    UINT      iv;
+    UINT      lastiv;
   };
 
-  static unsigned long      m_tmSizeTable[];
-  static unsigned long      m_tmShiftTable[];
+  static DWORD                    m_tmSizeTable[];
+  static DWORD                    m_tmShiftTable[];
   static const NTempest::C2Vector m_bumpFadeTable[];
-  static const float        BUMPFADETIME;
+  static const float              BUMPFADETIME;
 
-  unsigned int                      m_lastTime;
+  UINT                              m_lastTime;
   float                             m_sharpness;
-  unsigned char                     m_density;
+  BYTE                              m_density;
   float                             m_densityOverride;
-  unsigned long                     m_lod;
-  unsigned long                     m_updateSize;
-  unsigned long                     m_updateRow;
-  unsigned long                     m_tmSize;
-  unsigned long                     m_tmShift;
-  unsigned long                     m_wrapMask;
-  unsigned long                     m_nOctaves;
-  unsigned long                     m_nLayers;
+  DWORD                             m_lod;
+  DWORD                             m_updateSize;
+  DWORD                             m_updateRow;
+  DWORD                             m_tmSize;
+  DWORD                             m_tmShift;
+  DWORD                             m_wrapMask;
+  DWORD                             m_nOctaves;
+  DWORD                             m_nLayers;
   TSFixedArray<NTempest::CImVector> m_texels;
-  TSFixedArray<unsigned char>       m_height;
+  TSFixedArray<BYTE>                m_height;
   TSFixedArray<float>               m_noise;
   TSFixedArray<float>               m_lastBumpNoiseY;
   TSFixedArray<NTempest::C2Vector>  m_bump;
   TSFixedArray<NTempest::C3Vector>  m_geoVerts;
   TSFixedArray<NTempest::C2Vector>  m_texVerts;
-  TSFixedArray<unsigned short>      m_indices;
-  unsigned short                    m_nIndices;
-  unsigned short                    m_nVerts;
-  unsigned short                    m_timeX;
+  TSFixedArray<WORD>                m_indices;
+  WORD                              m_nIndices;
+  WORD                              m_nVerts;
+  WORD                              m_timeX;
   DNFogInfo                         m_fogInfo;
   float                             m_waitTime;
 
@@ -264,7 +249,7 @@ class DNSky {
     SKY_NUMBANDS = 7
   };
 
-  void GenTexture(unsigned int w, unsigned int h, NTempest::CImVector *texels);
+  void GenTexture(UINT w, UINT h, NTempest::CImVector *texels);
   void GenSphere(float sphRadius);
   void SetColors();
   void Render();
@@ -272,10 +257,10 @@ class DNSky {
  private:
   TSFixedArray<NTempest::C3Vector>  m_geoVerts;
   TSFixedArray<NTempest::CImVector> m_clrVerts;
-  TSFixedArray<unsigned short>      m_indices;
+  TSFixedArray<WORD>                m_indices;
   int                               m_sphThetaTess;
-  unsigned short                    m_nVerts;
-  unsigned short                    m_nIndices;
+  WORD                              m_nVerts;
+  WORD                              m_nIndices;
   float                             m_sphRadius;
 
   static const NTempest::C2Vector m_darkTable[];
@@ -286,24 +271,15 @@ class DNSky {
 };
 
 DNInfo *DayNightGetInfo();
-void DayNightInitialize(const char *litFile);
-void DayNightForceFullUpdate();
-void DayNightUpdateLighting();
-float DayNightSI(float offset);
-float DayNightUnitSelectColor();
-void DayNightRenderGlares();
-void DayNightRenderSky();
-void DayNightSetEclipse(NTempest::CImVector color, float amount);
-void DayNightDestroy();
-void DayNightSkyTexCallback(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-);
+void    DayNightInitialize(LPCSTR litFile);
+void    DayNightForceFullUpdate();
+void    DayNightUpdateLighting();
+float   DayNightSI(float offset);
+float   DayNightUnitSelectColor();
+void    DayNightRenderGlares();
+void    DayNightRenderSky();
+void    DayNightSetEclipse(NTempest::CImVector color, float amount);
+void    DayNightDestroy();
+void    DayNightSkyTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
 
 #endif

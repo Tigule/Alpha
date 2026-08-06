@@ -22,15 +22,8 @@ namespace NTempest {
 
   C33Matrix C33Matrix::Cofactors() const {
     return C33Matrix(
-        Det(b1, b2, c1, c2),
-        -Det(b0, b2, c0, c2),
-        Det(b0, b1, c0, c1),
-        -Det(a1, a2, c1, c2),
-        Det(a0, a2, c0, c2),
-        -Det(a0, a1, c0, c1),
-        Det(a1, a2, b1, b2),
-        -Det(a0, a2, b0, b2),
-        Det(a0, a1, b0, b1)
+        Det(b1, b2, c1, c2), -Det(b0, b2, c0, c2), Det(b0, b1, c0, c1), -Det(a1, a2, c1, c2), Det(a0, a2, c0, c2), -Det(a0, a1, c0, c1),
+        Det(a1, a2, b1, b2), -Det(a0, a2, b0, b2), Det(a0, a1, b0, b1)
     );
   }
 
@@ -55,11 +48,7 @@ namespace NTempest {
   }
 
   C33Matrix C33Matrix::AffineInverse(const C3Vector &scale) const {
-    C3Vector s(
-        1.0f / scale.x,
-        1.0f / scale.y,
-        1.0f / scale.z
-    );
+    C3Vector  s(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z);
     C33Matrix rotationScale = *this;
     rotationScale.Scale(s);
     C33Matrix matrix = rotationScale.Transpose();
@@ -93,11 +82,7 @@ namespace NTempest {
   C33Matrix C33Matrix::Rotation(float angle) {
     float sine = CMath::sin_(angle);
     float cosine = CMath::cos_(angle);
-    return C33Matrix(
-        cosine, -sine, 0.0f,
-        sine, cosine, 0.0f,
-        0.0f, 0.0f, 1.0f
-    );
+    return C33Matrix(cosine, -sine, 0.0f, sine, cosine, 0.0f, 0.0f, 0.0f, 1.0f);
   }
 
   void C33Matrix::Scale(float scale) {
@@ -156,9 +141,7 @@ namespace NTempest {
     *this = Rotation(angle) * *this;
   }
 
-  bool C33Matrix::ToEulerAnglesXYZ(
-      float &x, float &y, float &z
-  ) const {
+  bool C33Matrix::ToEulerAnglesXYZ(float &x, float &y, float &z) const {
     if (c0 >= 1.0f) {
       x = static_cast<float>(atan2(a1, b1));
       y = 1.5707964f;
@@ -177,9 +160,7 @@ namespace NTempest {
     return true;
   }
 
-  bool C33Matrix::ToEulerAnglesXZY(
-      float &x, float &z, float &y
-  ) const {
+  bool C33Matrix::ToEulerAnglesXZY(float &x, float &z, float &y) const {
     if (b0 >= 1.0f) {
       x = static_cast<float>(atan2(-a2, c2));
       z = -1.5707964f;
@@ -198,9 +179,7 @@ namespace NTempest {
     return true;
   }
 
-  bool C33Matrix::ToEulerAnglesYXZ(
-      float &y, float &x, float &z
-  ) const {
+  bool C33Matrix::ToEulerAnglesYXZ(float &y, float &x, float &z) const {
     if (c1 >= 1.0f) {
       y = static_cast<float>(atan2(-b0, a0));
       x = -1.5707964f;
@@ -219,9 +198,7 @@ namespace NTempest {
     return true;
   }
 
-  bool C33Matrix::ToEulerAnglesYZX(
-      float &y, float &z, float &x
-  ) const {
+  bool C33Matrix::ToEulerAnglesYZX(float &y, float &z, float &x) const {
     if (a1 >= 1.0f) {
       y = static_cast<float>(atan2(b2, c2));
       z = 1.5707964f;
@@ -240,9 +217,7 @@ namespace NTempest {
     return true;
   }
 
-  bool C33Matrix::ToEulerAnglesZXY(
-      float &z, float &x, float &y
-  ) const {
+  bool C33Matrix::ToEulerAnglesZXY(float &z, float &x, float &y) const {
     if (b2 >= 1.0f) {
       z = static_cast<float>(atan2(c0, a0));
       x = 1.5707964f;
@@ -261,9 +236,7 @@ namespace NTempest {
     return true;
   }
 
-  bool C33Matrix::ToEulerAnglesZYX(
-      float &z, float &y, float &x
-  ) const {
+  bool C33Matrix::ToEulerAnglesZYX(float &z, float &y, float &x) const {
     if (a2 >= 1.0f) {
       z = static_cast<float>(atan2(-b0, -c0));
       y = -1.5707964f;
@@ -283,97 +256,37 @@ namespace NTempest {
   }
 
   void C33Matrix::FromEulerAnglesXYZ(float x, float y, float z) {
-    C33Matrix x_(
-        1.0f, 0.0f, 0.0f,
-        0.0f, CMath::cos_(x), -CMath::sin_(x),
-        0.0f, CMath::sin_(x), CMath::cos_(x)
-    );
-    C33Matrix y_(
-        CMath::cos_(y), 0.0f, CMath::sin_(y),
-        0.0f, 1.0f, 0.0f,
-        -CMath::sin_(y), 0.0f, CMath::cos_(y)
-    );
-    C33Matrix z_(
-        CMath::cos_(z), -CMath::sin_(z), 0.0f,
-        CMath::sin_(z), CMath::cos_(z), 0.0f,
-        0.0f, 0.0f, 1.0f
-    );
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
+    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
+    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
     *this = (x_ * (y_ * z_)).Transpose();
   }
 
   void C33Matrix::FromEulerAnglesXZY(float x, float z, float y) {
-    C33Matrix x_(
-        1.0f, 0.0f, 0.0f,
-        0.0f, CMath::cos_(x), -CMath::sin_(x),
-        0.0f, CMath::sin_(x), CMath::cos_(x)
-    );
-    C33Matrix z_(
-        CMath::cos_(z), -CMath::sin_(z), 0.0f,
-        CMath::sin_(z), CMath::cos_(z), 0.0f,
-        0.0f, 0.0f, 1.0f
-    );
-    C33Matrix y_(
-        CMath::cos_(y), 0.0f, CMath::sin_(y),
-        0.0f, 1.0f, 0.0f,
-        -CMath::sin_(y), 0.0f, CMath::cos_(y)
-    );
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
+    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
+    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
     *this = (x_ * (z_ * y_)).Transpose();
   }
 
   void C33Matrix::FromEulerAnglesYXZ(float y, float x, float z) {
-    C33Matrix y_(
-        CMath::cos_(y), 0.0f, CMath::sin_(y),
-        0.0f, 1.0f, 0.0f,
-        -CMath::sin_(y), 0.0f, CMath::cos_(y)
-    );
-    C33Matrix x_(
-        1.0f, 0.0f, 0.0f,
-        0.0f, CMath::cos_(x), -CMath::sin_(x),
-        0.0f, CMath::sin_(x), CMath::cos_(x)
-    );
-    C33Matrix z_(
-        CMath::cos_(z), -CMath::sin_(z), 0.0f,
-        CMath::sin_(z), CMath::cos_(z), 0.0f,
-        0.0f, 0.0f, 1.0f
-    );
+    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
+    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
     *this = (y_ * (x_ * z_)).Transpose();
   }
 
   void C33Matrix::FromEulerAnglesYZX(float y, float z, float x) {
-    C33Matrix y_(
-        CMath::cos_(y), 0.0f, CMath::sin_(y),
-        0.0f, 1.0f, 0.0f,
-        -CMath::sin_(y), 0.0f, CMath::cos_(y)
-    );
-    C33Matrix z_(
-        CMath::cos_(z), -CMath::sin_(z), 0.0f,
-        CMath::sin_(z), CMath::cos_(z), 0.0f,
-        0.0f, 0.0f, 1.0f
-    );
-    C33Matrix x_(
-        1.0f, 0.0f, 0.0f,
-        0.0f, CMath::cos_(x), -CMath::sin_(x),
-        0.0f, CMath::sin_(x), CMath::cos_(x)
-    );
+    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
+    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
     *this = (y_ * (z_ * x_)).Transpose();
   }
 
   void C33Matrix::FromEulerAnglesZXY(float z, float x, float y) {
-    C33Matrix z_(
-        CMath::cos_(z), -CMath::sin_(z), 0.0f,
-        CMath::sin_(z), CMath::cos_(z), 0.0f,
-        0.0f, 0.0f, 1.0f
-    );
-    C33Matrix x_(
-        1.0f, 0.0f, 0.0f,
-        0.0f, CMath::cos_(x), -CMath::sin_(x),
-        0.0f, CMath::sin_(x), CMath::cos_(x)
-    );
-    C33Matrix y_(
-        CMath::cos_(y), 0.0f, CMath::sin_(y),
-        0.0f, 1.0f, 0.0f,
-        -CMath::sin_(y), 0.0f, CMath::cos_(y)
-    );
+    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
+    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
     *this = (z_ * (x_ * y_)).Transpose();
   }
 

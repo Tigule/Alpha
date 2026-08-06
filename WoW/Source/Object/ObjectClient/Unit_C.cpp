@@ -116,72 +116,61 @@ void ShadowDestroy();
 void UnitFootprintInitialize();
 void UnitFootprintShutdown();
 void UnitFootprintNewSplat(
-    unsigned int               textureID,
-    const NTempest::C2Vector  &size,
-    const NTempest::C3Vector  &position,
-    float                      facing,
-    int                        mirrorLength,
-    unsigned int               terrain
-);
-void UnitFootprintPlayParticle(
-    CGUnit_C                  *unit,
+    UINT                      textureID,
+    const NTempest::C2Vector &size,
     const NTempest::C3Vector &position,
-    unsigned int              terrainID,
-    float                     scale
+    float                     facing,
+    int                       mirrorLength,
+    UINT                      terrain
 );
-ANIMENUMERATION Object_C_GetAnimIndex(const char *animName);
-void UnitEffectClear(CGObject_C *object);
-void WeaponTrailDisableDrawing(int trail);
-void BotClientLoseTarget(const CGUnit_C *unit);
-void ScriptEventsRegisterUnit(CGUnit_C *unit);
-void ScriptEventsUnregisterUnit(CGUnit_C *unit);
-FishingLineObject *SpellVisualsFishingLineCreate(
-    const SpellVisualKitRec *kitRec,
-    const unsigned __int64  &gameObj,
-    const unsigned __int64  &caster
-);
-void SpellVisualsFishingLineDestroy(FishingLineObject *object);
-void SpellVisualFishingLineSetVisible(FishingLineObject *object);
-void SpellVisualClearLightning(LightningObject *lightning);
-void SpellVisualGetLightning(
-    const CGUnit_C *unitPtr, const SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects
-);
-int SpellFizzleTimer(const void *data, void *userData);
-void UpdatePortraitTexture(const unsigned __int64 &guid);
+void               UnitFootprintPlayParticle(CGUnit_C *unit, const NTempest::C3Vector &position, UINT terrainID, float scale);
+ANIMENUMERATION    Object_C_GetAnimIndex(LPCSTR animName);
+void               UnitEffectClear(CGObject_C *object);
+void               WeaponTrailDisableDrawing(int trail);
+void               BotClientLoseTarget(const CGUnit_C *unit);
+void               ScriptEventsRegisterUnit(CGUnit_C *unit);
+void               ScriptEventsUnregisterUnit(CGUnit_C *unit);
+FishingLineObject *SpellVisualsFishingLineCreate(const SpellVisualKitRec *kitRec, const DWORDLONG &gameObj, const DWORDLONG &caster);
+void               SpellVisualsFishingLineDestroy(FishingLineObject *object);
+void               SpellVisualFishingLineSetVisible(FishingLineObject *object);
+void               SpellVisualClearLightning(LightningObject *lightning);
+void SpellVisualGetLightning(const CGUnit_C *unitPtr, const SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects);
+int  SpellFizzleTimer(LPCVOID data, LPVOID userData);
+void UpdatePortraitTexture(const DWORDLONG &guid);
 bool Spell_C_IsModal();
-int Spell_C_GetSpellCooldown(int spellID, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-int Spell_C_GetItemCooldown(int itemID, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
-int Spell_C_GetManaCost(int spellID, int isPet);
-void Spell_C_SpellFailed(int spellID, unsigned char reason, int arg1, int arg2);
-const unsigned __int64 &Spell_C_GetCurrentTarget();
-void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
-void UnitCombatLogUnitDead(unsigned __int64 unit);
-void            UnitFootprintNewBloodSplat(const UnitBloodRec *rec, unsigned int unitSize, const NTempest::C3Vector &position);
-static void PlayerNameGuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
+int  Spell_C_GetSpellCooldown(int spellID, int isPet, UINT *duration, DWORD *startTime, UINT *enable);
+int  Spell_C_GetItemCooldown(int itemID, UINT *duration, DWORD *startTime, UINT *enable);
+int  Spell_C_GetManaCost(int spellID, int isPet);
+void Spell_C_SpellFailed(int spellID, BYTE reason, int arg1, int arg2);
+const DWORDLONG &Spell_C_GetCurrentTarget();
+void             Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
+void             UnitCombatLogUnitDead(DWORDLONG unit);
+void             UnitFootprintNewBloodSplat(const UnitBloodRec *rec, UINT unitSize, const NTempest::C3Vector &position);
+static void      PlayerNameGuildCallback(int guildID, const DWORDLONG &guid, LPVOID arg, bool granted);
 
 NODEDECL(BLOODSPLATNODE) {
-  unsigned int       m_triggerTime;
+  UINT               m_triggerTime;
   NTempest::C3Vector m_position;
 };
 
-static const char NONAME[7] = "NoName";
-static unsigned int FADEOUT_TIME = 400;
-static unsigned int FADEIN_TIME = 200;
+static const char  NONAME[7] = "NoName";
+static UINT        FADEOUT_TIME = 400;
+static UINT        FADEIN_TIME = 200;
 static const float MIN_SCALE = 0.75f;
 static const float MAX_SCALE = 2.0f;
-static float IPT2_SCALE = 1.1f;
-static float IPT1_SCALE = 1.1f;
-static float OPT1_SCALE = 0.875f;
-static float OPT2_SCALE = 0.875f;
+static float       IPT2_SCALE = 1.1f;
+static float       IPT1_SCALE = 1.1f;
+static float       OPT1_SCALE = 0.875f;
+static float       OPT2_SCALE = 0.875f;
 static const float MAX_SHORT_RANGE_TELEPORT = 30.0f;
 static const float COS_1 = 0.99984771f;
-static const unsigned int allEmoteFlags = 7;
-static const unsigned int STEALTHFADETIME = 1000;
+static const UINT  allEmoteFlags = 7;
+static const UINT  STEALTHFADETIME = 1000;
 static const float UNDERWATER_BUBBLE_THRESHOLD = 5.0f;
-static unsigned int s_lootCooldownTime;
+static UINT        s_lootCooldownTime;
 static const float MOUSE_LOOK_SEND_FACING_DELTA = 0.1f;
 
-int OnPickNextStandHandler(void *param, CGUnit_C *ptr) {
+int OnPickNextStandHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->OnPickNextStandHandler();
   return 1;
 }
@@ -260,7 +249,7 @@ void CGUnit_C::PostReenable() {
   RefreshInteractIcon();
   DetermineReadySequence(0);
 
-  unsigned int flags = 0x100;
+  UINT flags = 0x100;
   if (m_unit->health > 0) {
     ClearResEffectModel();
   } else {
@@ -313,42 +302,42 @@ void CGUnit_C::ProcessChannelObject() {
   }
 }
 
-int DeathAnimEndHandler(void *param, CGUnit_C *ptr) {
+int DeathAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->DeathAnimEndHandler();
   return 1;
 }
 
-int PickNextRunHandler(void *param, CGUnit_C *ptr) {
+int PickNextRunHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->PickNextRunHandler();
   return 1;
 }
 
-int WoundAnimEndHandler(void *param, CGUnit_C *ptr) {
+int WoundAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->WoundAnimEndHandler();
   return 1;
 }
 
-int SpellAnimEndHandler(void *param, CGUnit_C *ptr) {
+int SpellAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->SpellAnimEndHandler();
   return 1;
 }
 
-int NPCAnimEndHandler(void *param, CGUnit_C *ptr) {
+int NPCAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->NPCAnimEndHandler();
   return 1;
 }
 
-int JumpTakeOffFinishedHandler(void *param, CGUnit_C *ptr) {
+int JumpTakeOffFinishedHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->JumpTakeOffFinishedHandler();
   return 1;
 }
 
-int JumpLandFinishedHandler(void *param, CGUnit_C *ptr) {
+int JumpLandFinishedHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->JumpLandFinishedHandler();
   return 1;
 }
 
-void CGUnit_C::UnitHit(VICTIMSTATES, unsigned __int64) {
+void CGUnit_C::UnitHit(VICTIMSTATES, DWORDLONG) {
 }
 
 struct INTERACTICONTYPEINFO {
@@ -365,7 +354,7 @@ static INTERACTICONTYPEINFO s_interactIconModelInfo[5] = {
     INTERACTICONTYPEINFO(SLOOKUP_BINDERINDICATORMODEL)
 };
 
-static const char *s_interactIconAnimNames[2] = {"stand", "StandHigh"};
+static LPCSTR s_interactIconAnimNames[2] = {"stand", "StandHigh"};
 
 static INTERACTICONTYPE s_questIconInfo[5] = {
     INTERACTICON_NONE, INTERACTICON_NONE, INTERACTICON_FUTURE, INTERACTICON_COMPLETION, INTERACTICON_NORMAL
@@ -375,10 +364,10 @@ static LISTDECL(BLOODSPLATNODE, s_bloodSplatList);
 
 struct NAMEPLATEDESC : public TSHashObject<NAMEPLATEDESC, CHashKeyGUID> {
   LINKDECLEX(NAMEPLATEDESC, m_sortLink);
-  float                 screenSortOrder;
-  CGUnit_C             *unit;
-  CGNamePlateFrame     *namePlate;
-  NTempest::C2Vector    screenCoords;
+  float              screenSortOrder;
+  CGUnit_C          *unit;
+  CGNamePlateFrame  *namePlate;
+  NTempest::C2Vector screenCoords;
 
   NAMEPLATEDESC() : screenSortOrder(0.0f), unit(0), screenCoords(0.0f) {
   }
@@ -398,36 +387,36 @@ FREENAMEPLATE::~FREENAMEPLATE() {
   DEL(namePlate);
 }
 
-static int                                              s_drawNameplates;
+static int s_drawNameplates;
 static LISTDECLEX(NAMEPLATEDESC, m_sortLink, s_namePlateList);
-static const float                                      MAX_NAMEPLATE_DIST = 20.0f;
-static const float                                      MAX_NAMEPLATE_DIST_SQ = MAX_NAMEPLATE_DIST * MAX_NAMEPLATE_DIST;
+static const float MAX_NAMEPLATE_DIST = 20.0f;
+static const float MAX_NAMEPLATE_DIST_SQ = MAX_NAMEPLATE_DIST * MAX_NAMEPLATE_DIST;
 static LISTDECL(FREENAMEPLATE, s_freeNamePlateList);
-static TSHashTable<NAMEPLATEDESC, CHashKeyGUID>         s_monsterNamePlateList;
-static CGWorldFrame                                    *s_namePlateWorldFrame;
+static TSHashTable<NAMEPLATEDESC, CHashKeyGUID> s_monsterNamePlateList;
+static CGWorldFrame                            *s_namePlateWorldFrame;
 
-int RangedWeaponAnimEndHandler(void *param, CGUnit_C *ptr) {
+int RangedWeaponAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->RangedWeaponAnimEndHandler();
   return 1;
 }
 
 typedef LIST(SPELLEFFECTDESC) SpellEffectList;
-typedef void(*SpellProcHandler)(
+typedef void (*SpellProcHandler)(
     SPELLPROC_ACTION         action,
     SpellEffectList         &list,
     CGUnit_C                *unit,
     HMODEL                   charModel,
     const SpellVisualKitRec *rec,
     SPELLEFFECTDESC         *newDesc,
-    unsigned int             spellID,
+    UINT                     spellID,
     float                    elapsed
 );
 
-void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason);
-void UnitEffectClearSpellPrecast(CGObject_C *object, int spellID);
-void SndInterfaceAssociateSoundWithObject(Sound *sound, CGObject_C *objectPtr);
-const ItemSubClassRec *SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
-int SheatheTypeToSheathePoint(int sheatheType, int invSlot);
+void                   SpellVisualsHandleCastStop(int id, CGUnit_C *caster, BYTE status, BYTE reason);
+void                   UnitEffectClearSpellPrecast(CGObject_C *object, int spellID);
+void                   SndInterfaceAssociateSoundWithObject(Sound *sound, CGObject_C *objectPtr);
+const ItemSubClassRec *SDBItemSubclassGetSubClassRec(UINT classID, UINT subClassID);
+int                    SheatheTypeToSheathePoint(int sheatheType, int invSlot);
 
 enum SAVEDSHEATHATTACHPOINTS {
   SHEATHATTACH_NONE = 0,
@@ -442,28 +431,28 @@ enum SAVEDSHEATHATTACHPOINTS {
 };
 
 static SAVEDSHEATHATTACHPOINTS s_sheathePoints[2][9] = {
-    {SHEATHATTACH_NONE, SHEATHATTACH_MAINHAND, SHEATHATTACH_LARGEWEAPONRIGHT, SHEATHATTACH_HIPWEAPONLEFT,
-     SHEATHATTACH_SHIELD, SHEATHATTACH_NONE, SHEATHATTACH_NONE, SHEATHATTACH_NONE, SHEATHATTACH_NONE},
-    {SHEATHATTACH_NONE, SHEATHATTACH_OFFHAND, SHEATHATTACH_LARGEWEAPONLEFT, SHEATHATTACH_HIPWEAPONRIGHT,
-     SHEATHATTACH_SHIELD, SHEATHATTACH_NONE, SHEATHATTACH_NONE, SHEATHATTACH_NONE, SHEATHATTACH_NONE}
+    {SHEATHATTACH_NONE, SHEATHATTACH_MAINHAND, SHEATHATTACH_LARGEWEAPONRIGHT,  SHEATHATTACH_HIPWEAPONLEFT, SHEATHATTACH_SHIELD, SHEATHATTACH_NONE,
+     SHEATHATTACH_NONE, SHEATHATTACH_NONE, SHEATHATTACH_NONE},
+    {SHEATHATTACH_NONE,  SHEATHATTACH_OFFHAND,  SHEATHATTACH_LARGEWEAPONLEFT, SHEATHATTACH_HIPWEAPONRIGHT, SHEATHATTACH_SHIELD, SHEATHATTACH_NONE,
+     SHEATHATTACH_NONE, SHEATHATTACH_NONE, SHEATHATTACH_NONE}
 };
 
 static const int s_savedSheathToAttachPoints[8] = {-1, 26, 27, 30, 31, 32, 33, 28};
-void WeaponTrailClose(int trail);
-int WeaponTrailCreate(HMODEL model);
-void WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, unsigned int duration);
-int Spell_C_GetCastTime(int id, int isPet);
-int UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber);
-void UnitEffectOneShot(
-    UNITEFFECTSPECIALS effectNumber,
-    unsigned __int64   target,
+void             WeaponTrailClose(int trail);
+int              WeaponTrailCreate(HMODEL model);
+void             WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, UINT duration);
+int              Spell_C_GetCastTime(int id, int isPet);
+int              UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber);
+void             UnitEffectOneShot(
+    UNITEFFECTSPECIALS        effectNumber,
+    DWORDLONG                 target,
     const NTempest::C3Vector *attachPos,
-    float              facing,
-    float              scale,
-    bool               forceEffectOnMount
+    float                     facing,
+    float                     scale,
+    bool                      forceEffectOnMount
 );
 void UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added, int auraSlot);
-int GetObjComponentInfo(
+int  GetObjComponentInfo(
     int     race,
     int     sex,
     int     displayID,
@@ -473,25 +462,25 @@ int GetObjComponentInfo(
     HMODEL *models,
     int    *attachmentPoints
 );
-void CreatureQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted);
-void Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
-bool IsShapeshiftSpell(const SpellRec *rec);
-void SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj);
-void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
-void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset);
+void              CreatureQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
+void              Script_SendUnitSignal(const DWORDLONG &guid, int signal);
+bool              IsShapeshiftSpell(const SpellRec *rec);
+void              SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj);
+void              SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position);
+void              UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset);
 GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach);
-HMODEL UnitEffectCreateAuraModel(unsigned int effectID);
-bool UnitEffectIsAuraWorldObject(unsigned int effectID, bool &isWorldObj);
-unsigned long UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest::C3Vector &location, float facing);
-int OnFirstAuraSequenceFinished(void *param);
-bool AnimSheathesWeapon(unsigned int anim);
-int GetObjAnimFlags(int unitAnimFlags);
-unsigned int SpellGetRangedPrecastHoldAnim(unsigned int loadAnim);
-unsigned int PlayerNameGetUnitNameMode();
-void SpellVisualsPlayCastKit(CGUnit_C *caster, const SpellVisualKitRec *kitRec, int spellID, bool isCastEffect);
-bool Object_C_AnimHasHitEvent(int anim);
-float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
-void UnitEffectOneShot(
+HMODEL            UnitEffectCreateAuraModel(UINT effectID);
+bool              UnitEffectIsAuraWorldObject(UINT effectID, bool &isWorldObj);
+DWORD             UnitEffectCreateWorldModelAura(UINT effect, const NTempest::C3Vector &location, float facing);
+int               OnFirstAuraSequenceFinished(LPVOID param);
+bool              AnimSheathesWeapon(UINT anim);
+int               GetObjAnimFlags(int unitAnimFlags);
+UINT              SpellGetRangedPrecastHoldAnim(UINT loadAnim);
+UINT              PlayerNameGetUnitNameMode();
+void              SpellVisualsPlayCastKit(CGUnit_C *caster, const SpellVisualKitRec *kitRec, int spellID, bool isCastEffect);
+bool              Object_C_AnimHasHitEvent(int anim);
+float             CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
+void              UnitEffectOneShot(
     const SpellVisualEffectNameRec *effect,
     CGObject_C                     *object,
     UNITEFFECTATTACHPPOINT          attachPoint,
@@ -502,7 +491,7 @@ void UnitEffectOneShot(
 
 NODEDECL(AuraDecayNode) {
   AuraVisual             visual;
-  unsigned __int64       unit;
+  DWORDLONG              unit;
   UNITEFFECTATTACHPPOINT attach;
 
   ~AuraDecayNode();
@@ -512,10 +501,10 @@ AuraDecayNode::~AuraDecayNode() {
   visual.Clear();
 }
 
-int OnAuraDecayFinished(void *param);
+int OnAuraDecayFinished(LPVOID param);
 
-int AuraMirrorHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param);
-#define DECLARE_UNIT_MIRROR_HANDLER(name) int name(unsigned __int64, unsigned int, unsigned int, const void *, void *)
+int AuraMirrorHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
+#define DECLARE_UNIT_MIRROR_HANDLER(name) int name(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)
 DECLARE_UNIT_MIRROR_HANDLER(UnitFlagUpdateHandler);
 DECLARE_UNIT_MIRROR_HANDLER(UnitLevelUpdateHandler);
 DECLARE_UNIT_MIRROR_HANDLER(UnitModeUpdateHandler);
@@ -544,45 +533,22 @@ enum OBJATTACHMENTPOINTS {
 };
 
 static int s_invSlotToObjAttachSlot[EQUIPPED_LAST + 1] = {
-    OBJATTACH_HELMET,
-    -1,
-    OBJATTACH_SHOULDERPAD,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1,
-    -1,
-    OBJATTACH_MAINHAND,
-    OBJATTACH_OFFHAND,
-    OBJATTACH_RANGED,
-    -1
+    OBJATTACH_HELMET, -1, OBJATTACH_SHOULDERPAD, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, OBJATTACH_MAINHAND, OBJATTACH_OFFHAND,
+    OBJATTACH_RANGED, -1
 };
-static const unsigned int s_shoulderBones[NUMHANDS] = {3, 2};
-static const unsigned int s_hands[NUMHANDS] = {INVSLOT_MAINHAND, INVSLOT_OFFHAND};
-const VIRTUAL_MONSTER_SLOT g_monsterHands[NUMHANDS] = {
-    VIRTUAL_MONSTER_SLOT_MAINHAND,
-    VIRTUAL_MONSTER_SLOT_OFFHAND
-};
-static unsigned char s_canHideslots[OBJATTACH_NUM] = {0, 0, 1, 0, 1};
-static int WEAPONTYPE = 0x00622000;
+static const UINT          s_shoulderBones[NUMHANDS] = {3, 2};
+static const UINT          s_hands[NUMHANDS] = {INVSLOT_MAINHAND, INVSLOT_OFFHAND};
+const VIRTUAL_MONSTER_SLOT g_monsterHands[NUMHANDS] = {VIRTUAL_MONSTER_SLOT_MAINHAND, VIRTUAL_MONSTER_SLOT_OFFHAND};
+static BYTE                s_canHideslots[OBJATTACH_NUM] = {0, 0, 1, 0, 1};
+static int                 WEAPONTYPE = 0x00622000;
 
-static OBJATTACHMENTPOINTS s_handAttachments[NUMHANDS] = {
-    OBJATTACH_MAINHAND,
-    OBJATTACH_OFFHAND
-};
-static int flags = 3;
+static OBJATTACHMENTPOINTS s_handAttachments[NUMHANDS] = {OBJATTACH_MAINHAND, OBJATTACH_OFFHAND};
+static int                 flags = 3;
 
 struct ForcedAnimationInfo {
-  const char     *name;
+  LPCSTR          name;
   ANIMENUMERATION anim;
-  unsigned int    flag;
+  UINT            flag;
 };
 
 static const ForcedAnimationInfo s_forceAnimDescs[8] = {
@@ -596,32 +562,24 @@ static const ForcedAnimationInfo s_forceAnimDescs[8] = {
     {        "woundcrit",   ANIM_COMBATWOUND, 1},
 };
 
-static const ANIM_STATE                                 s_standStateAnims[9] = {
-    ANIM_STATE_IDLE,
-    ANIM_STATE_SITTING,
-    ANIM_STATE_IDLE,
-    ANIM_STATE_SLEEPING,
-    ANIM_STATE_SITCHAIRLOW,
-    ANIM_STATE_SITCHAIRMEDIUM,
-    ANIM_STATE_SITCHAIRHIGH,
-    ANIM_STATE_DEAD,
-    ANIM_STATE_KNEELING
-};
-static TInstanceAllocator<ACTIVEAURAINFO>               s_auraInfoFreeList(100);
-static TInstanceAllocator<ANIMENDDATA>                  s_animEndDataPool(1024);
-static TSGrowableArray<unsigned int>                    g_unitSeqEndList;
-static TSGrowableArray<unsigned int>                    g_mountSeqEndList;
+static const ANIM_STATE                   s_standStateAnims[9] = {ANIM_STATE_IDLE,         ANIM_STATE_SITTING,     ANIM_STATE_IDLE,
+                                                                  ANIM_STATE_SLEEPING,     ANIM_STATE_SITCHAIRLOW, ANIM_STATE_SITCHAIRMEDIUM,
+                                                                  ANIM_STATE_SITCHAIRHIGH, ANIM_STATE_DEAD,        ANIM_STATE_KNEELING};
+static TInstanceAllocator<ACTIVEAURAINFO> s_auraInfoFreeList(100);
+static TInstanceAllocator<ANIMENDDATA>    s_animEndDataPool(1024);
+static TSGrowableArray<UINT>              g_unitSeqEndList;
+static TSGrowableArray<UINT>              g_mountSeqEndList;
 static LISTDECL(AuraDecayNode, s_activeAuraDecays);
-static TInstanceAllocator<AuraDecayNode>                s_auraDecayFreeList(100);
-static TInstanceAllocator<SPELLEFFECTDESC>              s_spellEffectFreeList(100);
-static TInstanceAllocator<ANIMQUEUENODE>                s_animQueueFreeList(100);
-static TInstanceAllocator<IMPACTEFFECTDESC>             s_freeImpactEffectDescs(100);
-static TInstanceAllocator<ACTIVEATTACHMENTINFO>         s_activeAttachmentFreeList(100);
-static CVar                                             *s_showBreathCvar;
-static unsigned int                                      s_currentGlobalClickCount;
-static NTempest::CImVector                               s_targetFlashColor;
-static unsigned long                                     s_lastTargetFlashTime;
-static int                                               s_targetPulseDirection;
+static TInstanceAllocator<AuraDecayNode>        s_auraDecayFreeList(100);
+static TInstanceAllocator<SPELLEFFECTDESC>      s_spellEffectFreeList(100);
+static TInstanceAllocator<ANIMQUEUENODE>        s_animQueueFreeList(100);
+static TInstanceAllocator<IMPACTEFFECTDESC>     s_freeImpactEffectDescs(100);
+static TInstanceAllocator<ACTIVEATTACHMENTINFO> s_activeAttachmentFreeList(100);
+static CVar                                    *s_showBreathCvar;
+static UINT                                     s_currentGlobalClickCount;
+static NTempest::CImVector                      s_targetFlashColor;
+static DWORD                                    s_lastTargetFlashTime;
+static int                                      s_targetPulseDirection;
 
 CGUnit_C::~CGUnit_C() {
   ClearTempCharModel();
@@ -629,7 +587,7 @@ CGUnit_C::~CGUnit_C() {
   m_savedChannelSpellTargets.Clear();
 
   if (GetType() & TYPE_PLAYER) {
-    unsigned int guildID = static_cast<CGPlayer_C *>(this)->GetGuildID();
+    UINT guildID = static_cast<CGPlayer_C *>(this)->GetGuildID();
     if (guildID) {
       g_guildInfoCache.CancelCallback(guildID, PlayerNameGuildCallback, &m_unitNameHandle);
     }
@@ -653,7 +611,7 @@ CGUnit_C::~CGUnit_C() {
     ModelSetEventCallback(m_model, 0, 0, 0);
   }
 
-  unsigned int index;
+  UINT index;
   for (index = 0; index < sizeof(m_auraVisual) / sizeof(m_auraVisual[0]); ++index) {
     m_auraVisual[index].Clear();
   }
@@ -693,7 +651,7 @@ CGUnit_C::~CGUnit_C() {
   ClearAnimCallbackData();
 }
 
-int LootAnimEndHandler(void *param, CGUnit_C *ptr) {
+int LootAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   if (ptr->GetType() & TYPE_PLAYER) {
     static_cast<CGPlayer_C *>(ptr)->CGPlayer_C::LootAnimEndHandler();
   } else {
@@ -702,32 +660,32 @@ int LootAnimEndHandler(void *param, CGUnit_C *ptr) {
   return 1;
 }
 
-int SheatheAnimEndHandler(void *param, CGUnit_C *ptr) {
+int SheatheAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->SheatheAnimEndHandler();
   return 1;
 }
 
-int SitSleepAnimEndHandler(void *param, CGUnit_C *ptr) {
+int SitSleepAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->SitSleepAnimEndHandler();
   return 1;
 }
 
-int RangedPrecastEndHandler(void *param, CGUnit_C *ptr) {
+int RangedPrecastEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->RangedPrecastEndHandler();
   return 1;
 }
 
-int ThrowAnimEndHandler(void *param, CGUnit_C *ptr) {
+int ThrowAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->ThrowAnimEndHandler();
   return 1;
 }
 
-int AttackAnimEndHandler(void *param, CGUnit_C *ptr) {
+int AttackAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->AttackAnimEndHandler();
   return 1;
 }
 
-int DodgeAnimEndHandler(void *param, CGUnit_C *ptr) {
+int DodgeAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->DodgeAnimEndHandler();
   return 1;
 }
@@ -736,9 +694,9 @@ int InvSlotToObjAttachSlot(int invSlot) {
   return invSlot <= EQUIPPED_LAST ? s_invSlotToObjAttachSlot[invSlot] : -1;
 }
 
-static void PurgeExpiredNodes(LIST(SPELLEFFECTDESC) &list, float elapsed) {
+static void PurgeExpiredNodes(LIST(SPELLEFFECTDESC) & list, float elapsed) {
   ITERATELIST(SPELLEFFECTDESC, list, desc) {
-    desc->curTime += static_cast<unsigned int>(elapsed * 1000.0f);
+    desc->curTime += static_cast<UINT>(elapsed * 1000.0f);
     if (desc->endTime && desc->curTime > desc->endTime) {
       s_spellEffectFreeList.Put(desc);
     }
@@ -762,12 +720,12 @@ float SPELLEFFECTDESC::CalcScalar() {
 void SpellProcChainHandler(
     SPELLPROC_ACTION action,
     SpellEffectList &list,
-    CGUnit_C *unit,
+    CGUnit_C        *unit,
     HMODEL,
     const SpellVisualKitRec *rec,
     SPELLEFFECTDESC         *newDesc,
-    unsigned int             spellID,
-  float
+    UINT                     spellID,
+    float
 ) {
   if (action == SPELLPROCADD) {
     int savedChannelSpellID = unit->GetSavedChannelSpellID();
@@ -791,26 +749,26 @@ void SpellProcColorHandler(
     HMODEL                   charModel,
     const SpellVisualKitRec *rec,
     SPELLEFFECTDESC         *newDesc,
-    unsigned int,
+    UINT,
     float elapsed
 ) {
   if (action == SPELLPROCADD) {
-    newDesc->color.Set(static_cast<unsigned int>(rec->m_characterParam[0]) | 0xFF000000);
-    unsigned int now = OsGetAsyncTimeMs();
+    newDesc->color.Set(static_cast<UINT>(rec->m_characterParam[0]) | 0xFF000000);
+    UINT now = OsGetAsyncTimeMs();
     newDesc->curTime = now;
     newDesc->startTime = now;
     newDesc->fadeInTime = now;
     newDesc->period = rec->m_characterParam[1] == 0.0f ? 0.0f : 1000.0f / rec->m_characterParam[1];
     if (newDesc->isOneShot) {
-      newDesc->fadeOutTime = now + static_cast<unsigned int>(rec->m_characterParam[3] * 1000.0f);
-      newDesc->endTime = newDesc->fadeOutTime + static_cast<unsigned int>(rec->m_characterParam[2] * 1000.0f);
+      newDesc->fadeOutTime = now + static_cast<UINT>(rec->m_characterParam[3] * 1000.0f);
+      newDesc->endTime = newDesc->fadeOutTime + static_cast<UINT>(rec->m_characterParam[2] * 1000.0f);
     } else {
       newDesc->fadeOutTime = 0;
       newDesc->endTime = 0;
     }
   } else if (action == SPELLPROCREMOVE) {
     newDesc->fadeOutTime = newDesc->curTime;
-    newDesc->endTime = newDesc->curTime + static_cast<unsigned int>(newDesc->kitPtr->m_characterParam[2] * 1000.0f);
+    newDesc->endTime = newDesc->curTime + static_cast<UINT>(newDesc->kitPtr->m_characterParam[2] * 1000.0f);
   } else if (action == SPELLPROCREFRESH) {
     SPELLEFFECTDESC    *desc = list.Tail();
     NTempest::CImVector color(desc ? *desc->color.IV_() : 0xFFFFFFFF);
@@ -821,10 +779,10 @@ void SpellProcColorHandler(
     PurgeExpiredNodes(list, elapsed);
     SPELLEFFECTDESC *desc = unit->GetActiveEffect(list);
     if (desc) {
-      unsigned int alpha = static_cast<unsigned int>(desc->CalcScalar() * 255.0f);
-      color.r = static_cast<unsigned char>(255 + (alpha * (static_cast<int>(desc->color.r) - 255) >> 8));
-      color.g = static_cast<unsigned char>(255 + (alpha * (static_cast<int>(desc->color.g) - 255) >> 8));
-      color.b = static_cast<unsigned char>(255 + (alpha * (static_cast<int>(desc->color.b) - 255) >> 8));
+      UINT alpha = static_cast<UINT>(desc->CalcScalar() * 255.0f);
+      color.r = static_cast<BYTE>(255 + (alpha * (static_cast<int>(desc->color.r) - 255) >> 8));
+      color.g = static_cast<BYTE>(255 + (alpha * (static_cast<int>(desc->color.g) - 255) >> 8));
+      color.b = static_cast<BYTE>(255 + (alpha * (static_cast<int>(desc->color.b) - 255) >> 8));
     }
     if (hadEffects) {
       ModelSetVertexColor(charModel, color.r, color.g, color.b, 0);
@@ -883,11 +841,11 @@ void SpellProcScaleHandler(
     HMODEL,
     const SpellVisualKitRec *rec,
     SPELLEFFECTDESC         *newDesc,
-    unsigned int,
+    UINT,
     float elapsed
 ) {
   if (action == SPELLPROCADD) {
-    unsigned int now = OsGetAsyncTimeMs();
+    UINT now = OsGetAsyncTimeMs();
     newDesc->curTime = now;
     newDesc->startTime = now;
     newDesc->fadeInTime = now + FADEIN_TIME;
@@ -917,11 +875,11 @@ void SpellProcEmissiveHandler(
     HMODEL,
     const SpellVisualKitRec *rec,
     SPELLEFFECTDESC         *newDesc,
-    unsigned int,
+    UINT,
     float elapsed
 ) {
   if (action == SPELLPROCADD) {
-    newDesc->color.Set(static_cast<unsigned int>(rec->m_characterParam[0]) | 0xFF000000);
+    newDesc->color.Set(static_cast<UINT>(rec->m_characterParam[0]) | 0xFF000000);
     unit->AddEmissiveColor(newDesc->color);
   } else if (action == SPELLPROCREMOVE) {
     unit->RemoveEmissiveColor(newDesc->color);
@@ -938,15 +896,15 @@ void SpellProcEclipseHandler(
     HMODEL,
     const SpellVisualKitRec *rec,
     SPELLEFFECTDESC         *newDesc,
-    unsigned int             spellID,
+    UINT                     spellID,
     float                    elapsed
 ) {
   if (action == SPELLPROCADD) {
-    newDesc->color.Set(static_cast<unsigned int>(rec->m_characterParam[0]) | 0xFF000000);
+    newDesc->color.Set(static_cast<UINT>(rec->m_characterParam[0]) | 0xFF000000);
     newDesc->startTime = OsGetAsyncTimeMs();
     int castTime = Spell_C_GetCastTime(spellID, 0);
     newDesc->endTime = newDesc->startTime + castTime;
-    newDesc->fadeInTime = newDesc->startTime + static_cast<unsigned int>(castTime * rec->m_characterParam[1]);
+    newDesc->fadeInTime = newDesc->startTime + static_cast<UINT>(castTime * rec->m_characterParam[1]);
   } else if (action == SPELLPROCREMOVE) {
     s_spellEffectFreeList.Put(newDesc);
   } else if (action == SPELLPROCUPDATE) {
@@ -961,7 +919,7 @@ void SpellProcStandWalkAnimHandler(
     HMODEL,
     const SpellVisualKitRec *rec,
     SPELLEFFECTDESC         *newDesc,
-    unsigned int,
+    UINT,
     float elapsed
 ) {
   static const int standStateAnims[] = {0, 120, 1};
@@ -998,41 +956,37 @@ void SpellProcStandWalkAnimHandler(
   }
 }
 
-unsigned __int64                           CGUnit_C::m_activeMover;
-static unsigned int                        s_moveHeartBeatTimer;
+DWORDLONG                                  CGUnit_C::m_activeMover;
+static UINT                                s_moveHeartBeatTimer;
 static TRACKTYPE                           s_trackingType;
-static unsigned __int64                    s_trackingTarget;
-static unsigned int                        s_trackingFlags;
-static unsigned long                       s_trackingInterpStartTime;
-static unsigned long                       s_trackLastCheckTime;
+static DWORDLONG                           s_trackingTarget;
+static UINT                                s_trackingFlags;
+static DWORD                               s_trackingInterpStartTime;
+static DWORD                               s_trackLastCheckTime;
 static TSGrowableArray<NTempest::C3Vector> s_bowStringVerts;
-static TSGrowableArray<unsigned short>     s_bowStringIndices;
+static TSGrowableArray<WORD>               s_bowStringIndices;
 static const EmotesRec                    *s_talkEmotes[TALKANIM_NUMTALKANIMS];
 static const bool                          s_mustSheathe[9] = {0, 1, 1, 1, 1, 1, 1, 1, 1};
-static const ANIMQUEUETYPE                  s_animStandUpTransitions[9] = {
-    ANIMQUEUE_NONE,      ANIMQUEUE_SITUP,       ANIMQUEUE_SITCHAIRUP,
-    ANIMQUEUE_SLEEPUP,   ANIMQUEUE_SITCHAIRUP,  ANIMQUEUE_SITCHAIRUP,
-    ANIMQUEUE_SITCHAIRUP, ANIMQUEUE_NONE,        ANIMQUEUE_KNEELUP
-};
-static const ANIMQUEUETYPE                  s_animStandDownTransitions[9] = {
-    ANIMQUEUE_NONE,          ANIMQUEUE_SITDOWN,        ANIMQUEUE_SITCHAIR,
-    ANIMQUEUE_SLEEPDOWN,     ANIMQUEUE_SITCHAIRLOW,    ANIMQUEUE_SITCHAIRMEDIUM,
-    ANIMQUEUE_SITCHAIRHIGH,  ANIMQUEUE_DEAD,           ANIMQUEUE_KNEELDOWN
-};
+static const ANIMQUEUETYPE                 s_animStandUpTransitions[9] = {ANIMQUEUE_NONE,       ANIMQUEUE_SITUP,      ANIMQUEUE_SITCHAIRUP,
+                                                                          ANIMQUEUE_SLEEPUP,    ANIMQUEUE_SITCHAIRUP, ANIMQUEUE_SITCHAIRUP,
+                                                                          ANIMQUEUE_SITCHAIRUP, ANIMQUEUE_NONE,       ANIMQUEUE_KNEELUP};
+static const ANIMQUEUETYPE                 s_animStandDownTransitions[9] = {ANIMQUEUE_NONE,         ANIMQUEUE_SITDOWN,     ANIMQUEUE_SITCHAIR,
+                                                                            ANIMQUEUE_SLEEPDOWN,    ANIMQUEUE_SITCHAIRLOW, ANIMQUEUE_SITCHAIRMEDIUM,
+                                                                            ANIMQUEUE_SITCHAIRHIGH, ANIMQUEUE_DEAD,        ANIMQUEUE_KNEELDOWN};
 
 void SpellProcWeaponTrailHandler(
     SPELLPROC_ACTION action,
     SpellEffectList &list,
-    CGUnit_C *unit,
+    CGUnit_C        *unit,
     HMODEL,
     const SpellVisualKitRec *rec,
     SPELLEFFECTDESC         *newDesc,
-    unsigned int,
+    UINT,
     float
 ) {
   if (action == SPELLPROCADD) {
-    NTempest::CImVector color((static_cast<unsigned int>(rec->m_characterParam[3]) << 24) | static_cast<unsigned int>(rec->m_characterParam[0]));
-    unit->EnableWeaponTrail(color, static_cast<int>(rec->m_characterParam[1]), static_cast<unsigned int>(rec->m_characterParam[2]));
+    NTempest::CImVector color((static_cast<UINT>(rec->m_characterParam[3]) << 24) | static_cast<UINT>(rec->m_characterParam[0]));
+    unit->EnableWeaponTrail(color, static_cast<int>(rec->m_characterParam[1]), static_cast<UINT>(rec->m_characterParam[2]));
   } else if (action == SPELLPROCREMOVE) {
     FATALASSERT(newDesc);
     s_spellEffectFreeList.Put(newDesc);
@@ -1049,14 +1003,14 @@ static BLOODSPLATNODE *NewBloodSplatNode() {
 }
 
 struct UnitAnimationInfo {
-  unsigned int state;
-  const char  *name;
-  unsigned int flags;
-  int          basePriority;
-  int          priorityOffset;
-  unsigned int statePreempts;
+  UINT   state;
+  LPCSTR name;
+  UINT   flags;
+  int    basePriority;
+  int    priorityOffset;
+  UINT   statePreempts;
 
-  UnitAnimationInfo(unsigned int theState, const char *theName, unsigned int theFlags, int theBasePriority, int thePriorityOffset)
+  UnitAnimationInfo(UINT theState, LPCSTR theName, UINT theFlags, int theBasePriority, int thePriorityOffset)
       : state(theState), name(theName), flags(theFlags), basePriority(theBasePriority), priorityOffset(thePriorityOffset) {
   }
 };
@@ -1153,31 +1107,31 @@ void CGUnit_C::PreRender(int currentTime, float elapsed) {
 
 static NTempest::CImVector COLOR_GOLD(0xFFFFDE00);
 
-int OnPickNextStandHandler(void *param, CGUnit_C *ptr);
-int DeathAnimEndHandler(void *param, CGUnit_C *ptr);
-int PickNextRunHandler(void *param, CGUnit_C *ptr);
-int WoundAnimEndHandler(void *param, CGUnit_C *ptr);
-int SpellAnimEndHandler(void *param, CGUnit_C *ptr);
-int NPCAnimEndHandler(void *param, CGUnit_C *ptr);
-int JumpTakeOffFinishedHandler(void *param, CGUnit_C *ptr);
-int JumpLandFinishedHandler(void *param, CGUnit_C *ptr);
-int RangedWeaponAnimEndHandler(void *param, CGUnit_C *ptr);
-int LootAnimEndHandler(void *param, CGUnit_C *ptr);
-int SheatheAnimEndHandler(void *param, CGUnit_C *ptr);
-int SitSleepAnimEndHandler(void *param, CGUnit_C *ptr);
-int RangedPrecastEndHandler(void *param, CGUnit_C *ptr);
-int ThrowAnimEndHandler(void *param, CGUnit_C *ptr);
-int AttackAnimEndHandler(void *param, CGUnit_C *ptr);
-int DodgeAnimEndHandler(void *param, CGUnit_C *ptr);
+int OnPickNextStandHandler(LPVOID param, CGUnit_C *ptr);
+int DeathAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int PickNextRunHandler(LPVOID param, CGUnit_C *ptr);
+int WoundAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int SpellAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int NPCAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int JumpTakeOffFinishedHandler(LPVOID param, CGUnit_C *ptr);
+int JumpLandFinishedHandler(LPVOID param, CGUnit_C *ptr);
+int RangedWeaponAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int LootAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int SheatheAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int SitSleepAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int RangedPrecastEndHandler(LPVOID param, CGUnit_C *ptr);
+int ThrowAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int AttackAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+int DodgeAnimEndHandler(LPVOID param, CGUnit_C *ptr);
 
 static void ClearQuestIconHandles(int reinitialize) {
-  for (unsigned int i = 0; i < 5; ++i) {
+  for (UINT i = 0; i < 5; ++i) {
     if (s_interactIconModelInfo[i].model) {
       HandleClose(s_interactIconModelInfo[i].model);
     }
 
     if (reinitialize) {
-      const char *modelName = ClientDBStringLookup(s_interactIconModelInfo[i].string);
+      LPCSTR modelName = ClientDBStringLookup(s_interactIconModelInfo[i].string);
       FATALASSERT(modelName && *modelName);
 
       CModelCreate createData;
@@ -1215,8 +1169,8 @@ void InitTalkEmotes() {
   }
 }
 
-void CreatureQueryCallback(int id, const unsigned __int64 &guid, void *, bool) {
-  const CreatureStats_C *stats = g_creatureDBCache.GetRecord(id, static_cast<unsigned __int64>(0), 0, 0);
+void CreatureQueryCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
+  const CreatureStats_C *stats = g_creatureDBCache.GetRecord(id, static_cast<DWORDLONG>(0), 0, 0);
   if (stats) {
     CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
     if (unitPtr) {
@@ -1226,7 +1180,7 @@ void CreatureQueryCallback(int id, const unsigned __int64 &guid, void *, bool) {
   }
 }
 
-static void NameQueryCallback(int id, const unsigned __int64 &guid, void *arg, bool granted) {
+static void NameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (granted) {
     CGGameUI::UnitNameUpdate(guid);
   }
@@ -1251,14 +1205,14 @@ void CGUnit_C::RemoveObjectLookAt() {
   m_animFlags &= ~0x1000u;
 }
 
-int SpellFizzleTimer(const void *__formal, void *userData) {
+int SpellFizzleTimer(LPCVOID, LPVOID userData) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(userData);
   FATALASSERT(unitPtr);
   unitPtr->EndSpellEffects(2);
   return 1;
 }
 
-static int RangedStandTimerHandler(const void *__formal, void *userData) {
+static int RangedStandTimerHandler(LPCVOID, LPVOID userData) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(userData);
   FATALASSERT(unitPtr);
   unitPtr->OnRangedStandTimer();
@@ -1275,22 +1229,22 @@ void CGUnit_C::AddBloodPool() {
   }
 }
 
-static void AnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
+static void AnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(param);
   if (unit) {
     unit->HandleAnimEvent(eventName, position);
   }
 }
 
-static void MountedAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
+static void MountedAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(param);
   if (unit) {
     unit->HandleMountedAnimEvent(eventName, position);
   }
 }
 
-void CGUnit_C::HandleMountedAnimEvent(const char *eventName, const NTempest::C3Vector &position) {
-  unsigned long eventCode = *reinterpret_cast<const unsigned long *>(eventName);
+void CGUnit_C::HandleMountedAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position) {
+  DWORD eventCode = *reinterpret_cast<const DWORD *>(eventName);
   if (eventCode == 0x47475724) {
     PlayUnitSound(UNITSOUNDTYPE_WINGGLIDE, 0);
   } else if (eventCode == 0x474E5724) {
@@ -1302,18 +1256,17 @@ void CGUnit_C::HandleMountedAnimEvent(const char *eventName, const NTempest::C3V
   }
 }
 
-UNITEFFECTSPECIALS CGUnit_C::DetermineBreathEffect(unsigned int *duration) {
+UNITEFFECTSPECIALS CGUnit_C::DetermineBreathEffect(UINT *duration) {
   ASSERT(duration);
 
   if (s_showBreathCvar->GetInt() && (!m_modelData || !(m_modelData->m_flags & 2))) {
-    unsigned int       liquid = 0;
+    UINT               liquid = 0;
     float              surface = 0.0f;
     NTempest::C3Vector flowDir(0.0f);
     NTempest::C3Vector pos = GetPosition();
     int                deep = 0;
 
-    if (ClntObjMgrGetPlayerType() ||
-        !CWorld::QueryObjectLiquid(GetWorldObject(), liquid, surface, flowDir, deep)) {
+    if (ClntObjMgrGetPlayerType() || !CWorld::QueryObjectLiquid(GetWorldObject(), liquid, surface, flowDir, deep)) {
       if (AreaListZoneHasBreathParticles(GetWorldObject(), CGPlayer_C::GetNewContinentID(), GetPosition())) {
         *duration = 2000;
         return SPECIALEFFECT_COLDBREATH;
@@ -1329,7 +1282,7 @@ UNITEFFECTSPECIALS CGUnit_C::DetermineBreathEffect(unsigned int *duration) {
 }
 
 void CGUnit_C::BreathHandler(int forceOnMount) {
-  unsigned int duration;
+  UINT               duration;
   UNITEFFECTSPECIALS effect = DetermineBreathEffect(&duration);
   if (effect != SPECIALEFFECT_NONE) {
     UnitEffectOneShot(effect, GetGUID(), 0, 0.0f, 1.0f, forceOnMount != 0);
@@ -1341,9 +1294,8 @@ void CGUnit_C::ProcessBreathParticles(int currentTime) {
     return;
   }
 
-  if ((m_nextBreath == -1 || m_nextBreath <= currentTime) &&
-      (m_currentBaseAnimState == ANIM_STATE_IDLE || !(m_flags & 0x2000))) {
-    unsigned int       duration;
+  if ((m_nextBreath == -1 || m_nextBreath <= currentTime) && (m_currentBaseAnimState == ANIM_STATE_IDLE || !(m_flags & 0x2000))) {
+    UINT               duration;
     UNITEFFECTSPECIALS effect = DetermineBreathEffect(&duration);
     m_nextBreath = currentTime + duration;
     if (effect != SPECIALEFFECT_NONE) {
@@ -1352,8 +1304,9 @@ void CGUnit_C::ProcessBreathParticles(int currentTime) {
   }
 
   if ((m_nextMountBreath == -1 || m_nextMountBreath <= currentTime) &&
-      (((m_unit->flags & 0x2000) && m_currentMountAnimState == ANIM_STATE_IDLE) || !(m_flags & 0x4000))) {
-    unsigned int       duration;
+      (((m_unit->flags & 0x2000) && m_currentMountAnimState == ANIM_STATE_IDLE) || !(m_flags & 0x4000)))
+  {
+    UINT               duration;
     UNITEFFECTSPECIALS effect = DetermineBreathEffect(&duration);
     if (effect != SPECIALEFFECT_NONE) {
       UnitEffectOneShot(effect, GetGUID(), 0, 0.0f, 1.0f, true);
@@ -1365,7 +1318,7 @@ void CGUnit_C::ProcessBreathParticles(int currentTime) {
   }
 }
 
-static int GenericAnimEndHandler(void *param) {
+static int GenericAnimEndHandler(LPVOID param) {
   FATALASSERT(param);
   ANIMENDDATA *data = static_cast<ANIMENDDATA *>(param);
   FATALASSERT(data->animID < NUM_OBJECTANIMATIONS);
@@ -1376,15 +1329,15 @@ static int GenericAnimEndHandler(void *param) {
   return 1;
 }
 
-int UnitFlagUpdateHandler(unsigned __int64 unit, unsigned int, unsigned int, const void *oldValue, void *) {
+int UnitFlagUpdateHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOID) {
   FATALASSERT(oldValue);
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(unitPtr);
-  unitPtr->OnFlagChanged(*static_cast<const unsigned int *>(oldValue));
+  unitPtr->OnFlagChanged(*static_cast<const UINT *>(oldValue));
   return 1;
 }
 
-int UnitLevelUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int UnitLevelUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   int       oldLevel = *static_cast<const int *>(oldValue);
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unitPtr->GetUnitData()->level != oldLevel) {
@@ -1393,7 +1346,7 @@ int UnitLevelUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned 
   return 1;
 }
 
-int UnitModeUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int UnitModeUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   FATALASSERT(oldValue);
   CGUnit_C              *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   const CreatureStats_C *stats = g_creatureDBCache.GetRecord(unitPtr->m_obj->m_entryID, guid, CreatureQueryCallback, 0);
@@ -1404,15 +1357,14 @@ int UnitModeUpdateHandler(unsigned __int64 guid, unsigned int offset, unsigned i
   return 1;
 }
 
-int UnitHealthUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   FATALASSERT(oldValue);
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   int       oldHealth = *static_cast<const int *>(oldValue);
   FATALASSERT(unitPtr->IsA(HIER_TYPE_UNIT));
   FATALASSERT(unitPtr->GetMaxHealth());
 
-  if (static_cast<float>(unitPtr->m_unit->health) / unitPtr->m_unit->maxHealth < 0.2f &&
-      unitPtr->m_unit->health > 0) {
+  if (static_cast<float>(unitPtr->m_unit->health) / unitPtr->m_unit->maxHealth < 0.2f && unitPtr->m_unit->health > 0) {
     unitPtr->AddBloodPool();
   } else {
     unitPtr->RemoveBloodPool();
@@ -1442,7 +1394,7 @@ int UnitHealthUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned
   return 1;
 }
 
-int UnitCharmedUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int UnitCharmedUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->OnCharmedChanged();
@@ -1450,7 +1402,7 @@ int UnitCharmedUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigne
   return 1;
 }
 
-int DisplayIDUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int DisplayIDUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->UpdateDisplayInfo();
@@ -1458,10 +1410,10 @@ int DisplayIDUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned 
   return 1;
 }
 
-int StandStateUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int StandStateUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
-    unitPtr->StandStateChanged(*static_cast<const unsigned char *>(oldValue));
+    unitPtr->StandStateChanged(*static_cast<const BYTE *>(oldValue));
   }
   return 1;
 }
@@ -1618,15 +1570,15 @@ static const TRACKTYPEINFO s_trackTypeInfo[3] = {
 static const float TRACKMOVETHRESHOLDSQ = 4.0f;
 static const float TRACKRUNTHRESHOLDSQ = 16.0f;
 
-int NPCFlagsHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int NPCFlagsHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
-    unitPtr->NPCFlagChanged(*static_cast<const unsigned char *>(oldValue));
+    unitPtr->NPCFlagChanged(*static_cast<const BYTE *>(oldValue));
   }
   return 1;
 }
 
-int WeaponModeUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int WeaponModeUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->WeaponModeChanged();
@@ -1634,13 +1586,13 @@ int WeaponModeUpdateHandler(unsigned __int64 unit, unsigned int offset, unsigned
   return 1;
 }
 
-int PetNameChangeHandler(unsigned __int64 unit, unsigned int, unsigned int, const void *, void *) {
+int PetNameChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID, LPVOID) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     const CGUnitData *unitData = unitPtr->GetUnitData();
     g_petNameCache.Invalidate(unitData->petNumber);
     unitPtr->GetUnitName();
-    unsigned __int64 owner = unitData->charmedBy ? unitData->charmedBy : unitData->summonedBy;
+    DWORDLONG owner = unitData->charmedBy ? unitData->charmedBy : unitData->summonedBy;
     if (owner == ClntObjMgrGetActivePlayer()) {
       FrameScript_SignalEvent(309);
     }
@@ -1648,7 +1600,7 @@ int PetNameChangeHandler(unsigned __int64 unit, unsigned int, unsigned int, cons
   return 1;
 }
 
-int VirtualItemChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int VirtualItemChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->VirtualComponentChanged(reinterpret_cast<int>(param), *static_cast<const int *>(oldValue));
@@ -1656,15 +1608,15 @@ int VirtualItemChangeHandler(unsigned __int64 unit, unsigned int offset, unsigne
   return 1;
 }
 
-int DynamicFlagsChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int DynamicFlagsChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
-    unitPtr->OnDynamicFlagsChanged(*static_cast<const unsigned int *>(oldValue));
+    unitPtr->OnDynamicFlagsChanged(*static_cast<const UINT *>(oldValue));
   }
   return 1;
 }
 
-int EmoteStateChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int EmoteStateChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->ClearTorsoAnimation(0);
@@ -1689,15 +1641,15 @@ void ACTIVEATTACHMENTINFO::ClearAttachmentFromModel(HMODEL charModel, HMODEL pap
   }
 }
 
-int ChannelSpellChangeHandler(unsigned __int64 unit, unsigned int offset, unsigned int bytes, const void *oldValue, void *param) {
+int ChannelSpellChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
-    unitPtr->OnChannelSpellChanged(*static_cast<const unsigned int *>(oldValue));
+    unitPtr->OnChannelSpellChanged(*static_cast<const UINT *>(oldValue));
   }
   return 1;
 }
 
-int CGUnit_C::OnMoveEvent(NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int CGUnit_C::OnMoveEvent(NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CMovementStatus update;
   msg->Get(update.transport);
   msg->Get(update.transRelPosition.x);
@@ -1712,59 +1664,114 @@ int CGUnit_C::OnMoveEvent(NETMESSAGE msgId, unsigned long eventTime, CDataStore 
   msg->Get(update.moveFlags);
 
   switch (msgId) {
-    case MSG_MOVE_START_FORWARD: OnMoveStart(eventTime, update, 1); return 1;
-    case MSG_MOVE_START_BACKWARD: OnMoveStart(eventTime, update, 0); return 1;
-    case MSG_MOVE_STOP: OnMoveStop(eventTime, update); return 1;
-    case MSG_MOVE_START_STRAFE_LEFT: OnStrafeStart(eventTime, update, 1); return 1;
-    case MSG_MOVE_START_STRAFE_RIGHT: OnStrafeStart(eventTime, update, 0); return 1;
-    case MSG_MOVE_STOP_STRAFE: OnStrafeStop(eventTime, update); return 1;
-    case MSG_MOVE_JUMP: OnJump(eventTime, update); return 1;
-    case MSG_MOVE_START_TURN_LEFT: OnTurnStart(eventTime, update, 1); return 1;
-    case MSG_MOVE_START_TURN_RIGHT: OnTurnStart(eventTime, update, 0); return 1;
-    case MSG_MOVE_STOP_TURN: OnTurnStop(eventTime, update); return 1;
-    case MSG_MOVE_START_PITCH_UP: OnPitchStart(eventTime, update, 1); return 1;
-    case MSG_MOVE_START_PITCH_DOWN: OnPitchStart(eventTime, update, 0); return 1;
-    case MSG_MOVE_STOP_PITCH: OnPitchStop(eventTime, update); return 1;
-    case MSG_MOVE_SET_RUN_MODE: OnSetRunMode(eventTime, update, 1); return 1;
-    case MSG_MOVE_SET_WALK_MODE: OnSetRunMode(eventTime, update, 0); return 1;
-    case MSG_MOVE_TELEPORT: OnTeleport(eventTime, update); return 1;
-    case MSG_MOVE_TELEPORT_ACK: OnTeleportAck(eventTime, update); return 1;
-    case MSG_MOVE_START_SWIM: OnSwimStart(eventTime, update); return 1;
-    case MSG_MOVE_STOP_SWIM: OnSwimStop(eventTime, update); return 1;
-    case MSG_MOVE_SET_RUN_SPEED: OnRunSpeedChange(eventTime, update, msg); return 1;
-    case MSG_MOVE_SET_WALK_SPEED: OnWalkSpeedChange(eventTime, update, msg); return 1;
-    case MSG_MOVE_SET_SWIM_SPEED: OnSwimSpeedChange(eventTime, update, msg); return 1;
-    case MSG_MOVE_SET_TURN_RATE: OnTurnRateChange(eventTime, update, msg); return 1;
-    case MSG_MOVE_TOGGLE_COLLISION_CHEAT: OnToggleCollision(eventTime, update); return 1;
-    case MSG_MOVE_SET_FACING: OnSetFacing(eventTime, update); return 1;
-    case MSG_MOVE_SET_PITCH: OnSetPitch(eventTime, update); return 1;
+    case MSG_MOVE_START_FORWARD:
+      OnMoveStart(eventTime, update, 1);
+      return 1;
+    case MSG_MOVE_START_BACKWARD:
+      OnMoveStart(eventTime, update, 0);
+      return 1;
+    case MSG_MOVE_STOP:
+      OnMoveStop(eventTime, update);
+      return 1;
+    case MSG_MOVE_START_STRAFE_LEFT:
+      OnStrafeStart(eventTime, update, 1);
+      return 1;
+    case MSG_MOVE_START_STRAFE_RIGHT:
+      OnStrafeStart(eventTime, update, 0);
+      return 1;
+    case MSG_MOVE_STOP_STRAFE:
+      OnStrafeStop(eventTime, update);
+      return 1;
+    case MSG_MOVE_JUMP:
+      OnJump(eventTime, update);
+      return 1;
+    case MSG_MOVE_START_TURN_LEFT:
+      OnTurnStart(eventTime, update, 1);
+      return 1;
+    case MSG_MOVE_START_TURN_RIGHT:
+      OnTurnStart(eventTime, update, 0);
+      return 1;
+    case MSG_MOVE_STOP_TURN:
+      OnTurnStop(eventTime, update);
+      return 1;
+    case MSG_MOVE_START_PITCH_UP:
+      OnPitchStart(eventTime, update, 1);
+      return 1;
+    case MSG_MOVE_START_PITCH_DOWN:
+      OnPitchStart(eventTime, update, 0);
+      return 1;
+    case MSG_MOVE_STOP_PITCH:
+      OnPitchStop(eventTime, update);
+      return 1;
+    case MSG_MOVE_SET_RUN_MODE:
+      OnSetRunMode(eventTime, update, 1);
+      return 1;
+    case MSG_MOVE_SET_WALK_MODE:
+      OnSetRunMode(eventTime, update, 0);
+      return 1;
+    case MSG_MOVE_TELEPORT:
+      OnTeleport(eventTime, update);
+      return 1;
+    case MSG_MOVE_TELEPORT_ACK:
+      OnTeleportAck(eventTime, update);
+      return 1;
+    case MSG_MOVE_START_SWIM:
+      OnSwimStart(eventTime, update);
+      return 1;
+    case MSG_MOVE_STOP_SWIM:
+      OnSwimStop(eventTime, update);
+      return 1;
+    case MSG_MOVE_SET_RUN_SPEED:
+      OnRunSpeedChange(eventTime, update, msg);
+      return 1;
+    case MSG_MOVE_SET_WALK_SPEED:
+      OnWalkSpeedChange(eventTime, update, msg);
+      return 1;
+    case MSG_MOVE_SET_SWIM_SPEED:
+      OnSwimSpeedChange(eventTime, update, msg);
+      return 1;
+    case MSG_MOVE_SET_TURN_RATE:
+      OnTurnRateChange(eventTime, update, msg);
+      return 1;
+    case MSG_MOVE_TOGGLE_COLLISION_CHEAT:
+      OnToggleCollision(eventTime, update);
+      return 1;
+    case MSG_MOVE_SET_FACING:
+      OnSetFacing(eventTime, update);
+      return 1;
+    case MSG_MOVE_SET_PITCH:
+      OnSetPitch(eventTime, update);
+      return 1;
     case MSG_MOVE_ROOT:
       m_move.m_moveFlags = (m_move.m_moveFlags & 0xFF87DFFF) | 0x2000;
       return 1;
     case MSG_MOVE_UNROOT:
       m_move.m_moveFlags &= ~0x2000u;
       return 1;
-    case MSG_MOVE_HEARTBEAT: OnMoveHeartBeat(eventTime, update); return 1;
-    default: return 0;
+    case MSG_MOVE_HEARTBEAT:
+      OnMoveHeartBeat(eventTime, update);
+      return 1;
+    default:
+      return 0;
   }
 }
 
-void CGUnit_C::OnMoveStopLocalNoUpdate(unsigned long eventTime) {
+void CGUnit_C::OnMoveStopLocalNoUpdate(DWORD eventTime) {
   if (static_cast<CMovement &>(m_move).OnMoveStop(eventTime)) {
     UpdateBaseAnimation(ANIM_STATE_STOP, 0);
   }
 }
 
-void CGUnit_C::OnSetRunModeLocalNoUpdate(unsigned long eventTime, int run) {
+void CGUnit_C::OnSetRunModeLocalNoUpdate(DWORD eventTime, int run) {
   static_cast<CMovement &>(m_move).OnSetRunMode(eventTime, run);
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnSetFacingLocalNoUpdate(unsigned long eventTime, float facing) {
+void CGUnit_C::OnSetFacingLocalNoUpdate(DWORD eventTime, float facing) {
   static_cast<CMovement &>(m_move).OnSetFacing(eventTime, facing);
 }
 
-void CGUnit_C::OnSetFacingGUIDLocalNoUpdate(unsigned long eventTime, const unsigned __int64 &guid) {
+void CGUnit_C::OnSetFacingGUIDLocalNoUpdate(DWORD eventTime, const DWORDLONG &guid) {
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
     NTempest::C3Vector target = object->GetPosition();
@@ -1773,12 +1780,12 @@ void CGUnit_C::OnSetFacingGUIDLocalNoUpdate(unsigned long eventTime, const unsig
   }
 }
 
-void CGUnit_C::OnTeleportNoUpdate(unsigned long eventTime, const NTempest::C3Vector &position, float facing) {
+void CGUnit_C::OnTeleportNoUpdate(DWORD eventTime, const NTempest::C3Vector &position, float facing) {
   static_cast<CMovement &>(m_move).OnTeleport(eventTime, position, facing);
   UpdateBaseAnimation(ANIM_STATE_NONE, 0);
 }
 
-void CGUnit_C::OnMonsterMove(unsigned long eventTime, CDataStore *msg) {
+void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
   NTempest::C3Vector serverLoc;
   msg->Get(serverLoc.x);
   msg->Get(serverLoc.y);
@@ -1791,8 +1798,8 @@ void CGUnit_C::OnMonsterMove(unsigned long eventTime, CDataStore *msg) {
   NTempest::C3Vector delta = serverLoc - position;
   if (delta.x * delta.x + delta.y * delta.y > maxDeltaSquared || NTempest::CMath::fabs_(delta.z) > maxDelta) {
     CMovement::LogWrite(
-        "0x%016I64X: sync teleport from (%f,%f,%f) to (%f,%f,%f) - move flags: 0x%X", GetGUID(), position.x, position.y,
-        position.z, serverLoc.x, serverLoc.y, serverLoc.z, m_move.m_moveFlags
+        "0x%016I64X: sync teleport from (%f,%f,%f) to (%f,%f,%f) - move flags: 0x%X", GetGUID(), position.x, position.y, position.z, serverLoc.x,
+        serverLoc.y, serverLoc.z, m_move.m_moveFlags
     );
     OnTeleportNoUpdate(eventTime, serverLoc, GetFacing());
   }
@@ -1800,14 +1807,14 @@ void CGUnit_C::OnMonsterMove(unsigned long eventTime, CDataStore *msg) {
   m_debugPathPoints.Clear();
   m_serverLoc = serverLoc;
 
-  unsigned int moveIndex;
-  unsigned char facingType;
+  UINT moveIndex;
+  BYTE facingType;
   msg->Get(moveIndex);
   msg->Get(facingType);
 
   NTempest::C3Vector finalFacingSpot;
-  unsigned __int64 finalFacingGUID = 0;
-  float finalFacingAngle = 0.0f;
+  DWORDLONG          finalFacingGUID = 0;
+  float              finalFacingAngle = 0.0f;
   switch (facingType) {
     case 1:
       OnMoveStopLocalNoUpdate(eventTime);
@@ -1820,31 +1827,23 @@ void CGUnit_C::OnMonsterMove(unsigned long eventTime, CDataStore *msg) {
       break;
   }
 
-  unsigned int flags;
-  unsigned int moveTime;
-  unsigned int numPoints;
+  UINT flags;
+  UINT moveTime;
+  UINT numPoints;
   msg->Get(flags);
   msg->Get(moveTime);
   msg->Get(numPoints);
   FATALASSERT(numPoints > 0);
 
-  TSStackArray<NTempest::C3Vector> points(
-      _alloca(sizeof(NTempest::C3Vector) * (numPoints + 3)),
-      numPoints + 3,
-      2
-  );
+  TSStackArray<NTempest::C3Vector> points(_alloca(sizeof(NTempest::C3Vector) * (numPoints + 3)), numPoints + 3, 2);
   position = GetPosition();
   float facing = GetFacing();
-  points[0] = NTempest::C3Vector(
-      position.x - static_cast<float>(cos(facing)),
-      position.y - static_cast<float>(sin(facing)),
-      position.z
-  );
+  points[0] = NTempest::C3Vector(position.x - static_cast<float>(cos(facing)), position.y - static_cast<float>(sin(facing)), position.z);
   points[1] = position;
 
   NTempest::C3Vector endPoint;
   if (flags & 0x200) {
-    for (unsigned int i = 0; i < numPoints; ++i) {
+    for (UINT i = 0; i < numPoints; ++i) {
       msg->Get(endPoint.x);
       msg->Get(endPoint.y);
       msg->Get(endPoint.z);
@@ -1854,16 +1853,18 @@ void CGUnit_C::OnMonsterMove(unsigned long eventTime, CDataStore *msg) {
     msg->Get(endPoint.x);
     msg->Get(endPoint.y);
     msg->Get(endPoint.z);
-    for (unsigned int i = 1; i < numPoints; ++i) {
-      unsigned int packedDeltas;
+    for (UINT i = 1; i < numPoints; ++i) {
+      UINT packedDeltas;
       msg->Get(packedDeltas);
       int xDelta = static_cast<int>(packedDeltas << 20) >> 20;
       int yDelta = static_cast<int>(packedDeltas << 8) >> 20;
       int zDelta = static_cast<signed char>(packedDeltas >> 24);
-      points.New(NTempest::C3Vector(
-          endPoint.x - static_cast<float>(xDelta) * 0.125f, endPoint.y - static_cast<float>(yDelta) * 0.125f,
-          endPoint.z - static_cast<float>(zDelta) * 0.125f
-      ));
+      points.New(
+          NTempest::C3Vector(
+              endPoint.x - static_cast<float>(xDelta) * 0.125f, endPoint.y - static_cast<float>(yDelta) * 0.125f,
+              endPoint.z - static_cast<float>(zDelta) * 0.125f
+          )
+      );
     }
     points.New(endPoint);
   }
@@ -1876,10 +1877,10 @@ void CGUnit_C::OnMonsterMove(unsigned long eventTime, CDataStore *msg) {
   if (points.Count() > 4) {
     position = GetPosition();
     float closestDistance = FLT_MAX;
-    unsigned int closest_index = 1;
-    for (unsigned int i = 2; i < points.Count() - 1; ++i) {
+    UINT  closest_index = 1;
+    for (UINT i = 2; i < points.Count() - 1; ++i) {
       NTempest::C3Vector offset = position - points[i];
-      float distance = offset.SquaredMag();
+      float              distance = offset.SquaredMag();
       if (distance <= closestDistance) {
         closestDistance = distance;
         closest_index = i;
@@ -1897,7 +1898,7 @@ void CGUnit_C::OnMonsterMove(unsigned long eventTime, CDataStore *msg) {
     }
 
     if (closest_index != 2) {
-      unsigned int newCount = points.Count() - (closest_index - 2);
+      UINT newCount = points.Count() - (closest_index - 2);
       memmove(&points[2], &points[closest_index], sizeof(NTempest::C3Vector) * (newCount - 2));
       points.SetCount(newCount);
     }
@@ -1911,8 +1912,7 @@ void CGUnit_C::OnMonsterMove(unsigned long eventTime, CDataStore *msg) {
       zDelta = 0.0f;
     }
     float squaredDistance =
-        (position.x - destination.x) * (position.x - destination.x) +
-        (position.y - destination.y) * (position.y - destination.y) + zDelta * zDelta;
+        (position.x - destination.x) * (position.x - destination.x) + (position.y - destination.y) * (position.y - destination.y) + zDelta * zDelta;
     if (squaredDistance > 0.027777778f) {
       float distance = NTempest::CMath::sqrt_(squaredDistance);
       float speed = m_move.m_runSpeed * 2.0f;
@@ -1979,7 +1979,7 @@ void CGUnit_C::OnMonsterMove(unsigned long eventTime, CDataStore *msg) {
   }
 }
 
-int CGUnit_C::OnForceMoveChange(unsigned long eventTime, NETMESSAGE msgID, CDataStore *msg) {
+int CGUnit_C::OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *msg) {
   switch (msgID) {
     case SMSG_FORCE_SPEED_CHANGE: {
       float speed;
@@ -2008,7 +2008,7 @@ int CGUnit_C::OnForceMoveChange(unsigned long eventTime, NETMESSAGE msgID, CData
   }
 }
 
-void CGUnit_C::OnMoveStart(unsigned long eventTime, const CMovementStatus &update, int forward) {
+void CGUnit_C::OnMoveStart(DWORD eventTime, const CMovementStatus &update, int forward) {
   if (m_move.m_moveFlags & 0x2400) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
     return;
@@ -2018,7 +2018,7 @@ void CGUnit_C::OnMoveStart(unsigned long eventTime, const CMovementStatus &updat
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnStrafeStart(unsigned long eventTime, const CMovementStatus &update, int left) {
+void CGUnit_C::OnStrafeStart(DWORD eventTime, const CMovementStatus &update, int left) {
   if (m_move.m_moveFlags & 0x2400) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
     return;
@@ -2028,30 +2028,30 @@ void CGUnit_C::OnStrafeStart(unsigned long eventTime, const CMovementStatus &upd
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnStrafeStartLocalNoUpdate(unsigned long eventTime, int left) {
+void CGUnit_C::OnStrafeStartLocalNoUpdate(DWORD eventTime, int left) {
   static_cast<CMovement &>(m_move).OnStrafeStart(eventTime, left);
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnMoveStop(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnMoveStop(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).OnMoveStop(eventTime);
   UpdateBaseAnimation(ANIM_STATE_STOP, 0);
 }
 
-void CGUnit_C::OnStrafeStop(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnStrafeStop(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).OnStrafeStop(eventTime);
   UpdateBaseAnimation(ANIM_STATE_STOP, 0);
 }
 
-void CGUnit_C::OnStrafeStopLocalNoUpdate(unsigned long eventTime) {
+void CGUnit_C::OnStrafeStopLocalNoUpdate(DWORD eventTime) {
   if (static_cast<CMovement &>(m_move).OnStrafeStop(eventTime)) {
     UpdateBaseAnimation(ANIM_STATE_STOP, 0);
   }
 }
 
-void CGUnit_C::OnJump(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnJump(DWORD eventTime, const CMovementStatus &update) {
   if (m_move.m_moveFlags & 0x2400) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
     return;
@@ -2061,7 +2061,7 @@ void CGUnit_C::OnJump(unsigned long eventTime, const CMovementStatus &update) {
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnTurnStart(unsigned long eventTime, const CMovementStatus &update, int left) {
+void CGUnit_C::OnTurnStart(DWORD eventTime, const CMovementStatus &update, int left) {
   if (m_unit->flags & 0x40000) {
     CMovement::LogWrite("0x%016I64X: Stunned\n", GetGUID());
     return;
@@ -2071,13 +2071,13 @@ void CGUnit_C::OnTurnStart(unsigned long eventTime, const CMovementStatus &updat
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnTurnStop(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnTurnStop(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).OnTurnStop(eventTime);
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnPitchStart(unsigned long eventTime, const CMovementStatus &update, int up) {
+void CGUnit_C::OnPitchStart(DWORD eventTime, const CMovementStatus &update, int up) {
   if (m_unit->flags & 0x40000) {
     CMovement::LogWrite("0x%016I64X: Stunned\n", GetGUID());
     return;
@@ -2087,30 +2087,30 @@ void CGUnit_C::OnPitchStart(unsigned long eventTime, const CMovementStatus &upda
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnPitchStop(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnPitchStop(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).OnPitchStop(eventTime);
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnSwimStart(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnSwimStart(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).OnSwimStart(eventTime);
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnSwimStop(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnSwimStop(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).OnSwimStop(eventTime);
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::OnMoveHeartBeat(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnMoveHeartBeat(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
 }
 
-void CGUnit_C::OnRunSpeedChange(unsigned long eventTime, const CMovementStatus &update, CDataStore *msg) {
-  int wasWalking = IsWalking();
+void CGUnit_C::OnRunSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg) {
+  int   wasWalking = IsWalking();
   float speed;
   msg->Get(speed);
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
@@ -2121,8 +2121,8 @@ void CGUnit_C::OnRunSpeedChange(unsigned long eventTime, const CMovementStatus &
   UpdateMovementAnimSpeed(1, INVALID_ANIM_STATE);
 }
 
-void CGUnit_C::OnWalkSpeedChange(unsigned long eventTime, const CMovementStatus &update, CDataStore *msg) {
-  int wasWalking = IsWalking();
+void CGUnit_C::OnWalkSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg) {
+  int   wasWalking = IsWalking();
   float speed;
   msg->Get(speed);
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
@@ -2133,7 +2133,7 @@ void CGUnit_C::OnWalkSpeedChange(unsigned long eventTime, const CMovementStatus 
   UpdateMovementAnimSpeed(1, INVALID_ANIM_STATE);
 }
 
-void CGUnit_C::OnSwimSpeedChange(unsigned long eventTime, const CMovementStatus &update, CDataStore *msg) {
+void CGUnit_C::OnSwimSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg) {
   float speed;
   msg->Get(speed);
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
@@ -2142,54 +2142,54 @@ void CGUnit_C::OnSwimSpeedChange(unsigned long eventTime, const CMovementStatus 
   UpdateMovementAnimSpeed(1, INVALID_ANIM_STATE);
 }
 
-void CGUnit_C::OnTurnRateChange(unsigned long eventTime, const CMovementStatus &update, CDataStore *msg) {
+void CGUnit_C::OnTurnRateChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg) {
   float rate;
   msg->Get(rate);
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).OnTurnRateChange(eventTime, rate);
 }
 
-void CGUnit_C::OnSetRunMode(unsigned long eventTime, const CMovementStatus &update, int run) {
+void CGUnit_C::OnSetRunMode(DWORD eventTime, const CMovementStatus &update, int run) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   OnSetRunModeLocalNoUpdate(eventTime, run);
 }
 
-void CGUnit_C::OnToggleCollision(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnToggleCollision(DWORD eventTime, const CMovementStatus &update) {
   FATALASSERT(GetGUID() != CGUnit_C::GetActiveMover());
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).EnableCollision(eventTime, !(m_move.m_moveFlags & 0x800));
 }
 
-void CGUnit_C::OnEnableCollisionLocalNoUpdate(unsigned long eventTime) {
+void CGUnit_C::OnEnableCollisionLocalNoUpdate(DWORD eventTime) {
   static_cast<CMovement &>(m_move).EnableCollision(eventTime, 1);
 }
 
-void CGUnit_C::OnDisableCollisionLocalNoUpdate(unsigned long eventTime) {
+void CGUnit_C::OnDisableCollisionLocalNoUpdate(DWORD eventTime) {
   static_cast<CMovement &>(m_move).EnableCollision(eventTime, 0);
 }
 
-void CGUnit_C::OnToggleCollisionLocal(unsigned long eventTime) {
+void CGUnit_C::OnToggleCollisionLocal(DWORD eventTime) {
   FATALASSERT(GetGUID() == CGUnit_C::GetActiveMover());
   static_cast<CMovement &>(m_move).ToggleCollision(eventTime);
   SendMovementUpdate(MSG_MOVE_TOGGLE_COLLISION_CHEAT);
 }
 
-void CGUnit_C::OnSetFacing(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnSetFacing(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).OnSetFacing(eventTime, GetFacing());
 }
 
-void CGUnit_C::OnSetPitch(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnSetPitch(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   static_cast<CMovement &>(m_move).OnSetPitch(eventTime, m_move.m_pitch);
 }
 
-void CGUnit_C::OnTeleport(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnTeleport(DWORD eventTime, const CMovementStatus &update) {
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
   OnTeleportNoUpdate(eventTime, GetPosition(), GetFacing());
 }
 
-void CGUnit_C::OnTeleportAck(unsigned long eventTime, const CMovementStatus &update) {
+void CGUnit_C::OnTeleportAck(DWORD eventTime, const CMovementStatus &update) {
   (void)ClntObjMgrGetPlayerType();
   NTempest::C3Vector oldPos;
   GetPosition(oldPos);
@@ -2209,7 +2209,7 @@ void CGUnit_C::OnTeleportAck(unsigned long eventTime, const CMovementStatus &upd
   ClientServices_Send(&outBound);
 }
 
-static int OnUnitMoveEvent(NETMESSAGE msgId, unsigned long eventTime, unsigned __int64 guid, CDataStore *msg) {
+static int OnUnitMoveEvent(NETMESSAGE msgId, DWORD eventTime, DWORDLONG guid, CDataStore *msg) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
     return unit->OnMoveEvent(msgId, eventTime, msg);
@@ -2220,15 +2220,15 @@ static int OnUnitMoveEvent(NETMESSAGE msgId, unsigned long eventTime, unsigned _
   return 0;
 }
 
-static int OnUnitMoveEventActive(void *param, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+static int OnUnitMoveEventActive(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
   return OnUnitMoveEvent(msgId, eventTime, CGUnit_C::GetActiveMover(), msg);
 }
 
-static int OnUnitMoveEventNoActive(void *param, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+static int OnUnitMoveEventNoActive(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
-  unsigned __int64 guid;
+  DWORDLONG guid;
   msg->Get(guid);
   if (guid != CGUnit_C::GetActiveMover()) {
     return OnUnitMoveEvent(msgId, eventTime, guid, msg);
@@ -2238,8 +2238,8 @@ static int OnUnitMoveEventNoActive(void *param, NETMESSAGE msgId, unsigned long 
   return 1;
 }
 
-static int OnMonsterMoveEvent(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
-  unsigned __int64 guid;
+static int OnMonsterMoveEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+  DWORDLONG guid;
   msg->Get(guid);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
@@ -2252,7 +2252,7 @@ static int OnMonsterMoveEvent(void* param, NETMESSAGE msgId, unsigned long event
   return 0;
 }
 
-static int OnForceMoveChange(void *, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+static int OnForceMoveChange(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (unit) {
     return unit->OnForceMoveChange(eventTime, msgId, msg);
@@ -2260,9 +2260,9 @@ static int OnForceMoveChange(void *, NETMESSAGE msgId, unsigned long eventTime, 
   return 1;
 }
 
-static int OnUnitMountCancelledEvent(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int OnUnitMountCancelledEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   ASSERT(msg);
-  unsigned __int64 guid;
+  DWORDLONG guid;
   msg->Get(guid);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
@@ -2271,9 +2271,9 @@ static int OnUnitMountCancelledEvent(void* param, NETMESSAGE msgId, unsigned lon
   return 1;
 }
 
-static int OnSpecialMountAnim(void* param, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int OnSpecialMountAnim(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   ASSERT(msg);
-  unsigned __int64 guid;
+  DWORDLONG guid;
   msg->Get(guid);
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
@@ -2282,10 +2282,10 @@ static int OnSpecialMountAnim(void* param, NETMESSAGE msgId, unsigned long event
   return 1;
 }
 
-static int OnUnitReaction(void*, NETMESSAGE msgId, unsigned long, CDataStore* msg) {
+static int OnUnitReaction(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   ASSERT(msgId == SMSG_AI_REACTION);
-  unsigned __int64 unitGUID;
-  int              reaction;
+  DWORDLONG unitGUID;
+  int       reaction;
   msg->Get(unitGUID);
   msg->Get(reaction);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unitGUID, __FILE__, __LINE__));
@@ -2295,8 +2295,8 @@ static int OnUnitReaction(void*, NETMESSAGE msgId, unsigned long, CDataStore* ms
   return 1;
 }
 
-int AuraMirrorHandler(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *prevValue, void *param) {
-  unsigned int slot = (offset - 200) >> 2;
+int AuraMirrorHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+  UINT slot = (offset - 200) >> 2;
   FATALASSERT(prevValue);
   int       previousValue = *static_cast<const int *>(prevValue);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
@@ -2306,7 +2306,7 @@ int AuraMirrorHandler(unsigned __int64 guid, unsigned int offset, unsigned int b
   return 1;
 }
 
-static int TargetMirrorHandler(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
+static int TargetMirrorHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   ASSERT(unit);
   if (guid != ClntObjMgrGetActivePlayer()) {
@@ -2315,7 +2315,7 @@ static int TargetMirrorHandler(unsigned __int64 guid, unsigned int, unsigned int
   return 1;
 }
 
-static int ChannelObjectMirrorHandler(unsigned __int64 guid, unsigned int, unsigned int, const void*, void*) {
+static int ChannelObjectMirrorHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
     unit->ClearFishingObject();
@@ -2323,7 +2323,7 @@ static int ChannelObjectMirrorHandler(unsigned __int64 guid, unsigned int, unsig
   return 1;
 }
 
-static void PlayerNameGuildCallback(int guildID, const unsigned __int64& guid, void* arg, bool granted) {
+static void PlayerNameGuildCallback(int guildID, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (granted) {
     PlayerNameTriggerNameRegenerate(*static_cast<HPLAYERNAME *>(arg));
   }
@@ -2344,7 +2344,7 @@ void CGUnit_C::OnSpecialMountAnim() {
 
 void CGUnit_C::UnitInitializeMountModel(HMODEL model) {
   ModelSetEventCallback(model, MountedAnimEventCallback, this, 0);
-  unsigned int index = g_mountSeqEndList.Count();
+  UINT index = g_mountSeqEndList.Count();
   while (index) {
     --index;
     InstallSeqEndHandler(model, g_mountSeqEndList[index]);
@@ -2419,8 +2419,8 @@ void CGUnit_C::CreateUnitMount() {
 
 void CGUnit_C::DestroyUnitMount(int doNotUpdateAnim) {
   if (m_flags & 0x10) {
-    HMODEL       charModel = 0;
-    unsigned int numModels = 1;
+    HMODEL charModel = 0;
+    UINT   numModels = 1;
     if (ModelGetLinkPoint(m_model, 0, &charModel, &numModels)) {
       FATALASSERT(charModel);
       HMODEL mountModel = m_model;
@@ -2432,11 +2432,10 @@ void CGUnit_C::DestroyUnitMount(int doNotUpdateAnim) {
       SetWalkStateAnim(m_walkStateAnim);
 
       AuraVisual *visual = m_auraVisual;
-      for (unsigned int index = 0; index < 12; ++index, ++visual) {
+      for (UINT index = 0; index < 12; ++index, ++visual) {
         if (visual->HasArt() && !visual->IsWorldModel() && visual->GetModel()) {
-          HMODEL auraModel = visual->GetModel();
-          GEOCOMPONENTLINKS linkPoint =
-              UnitEffectGetLinkPointFromAttachment(static_cast<UNITEFFECTATTACHPPOINT>(index));
+          HMODEL            auraModel = visual->GetModel();
+          GEOCOMPONENTLINKS linkPoint = UnitEffectGetLinkPointFromAttachment(static_cast<UNITEFFECTATTACHPPOINT>(index));
           if (ModelAddLink(charModel, linkPoint, auraModel, 1.0f)) {
             if (ModelHasSequenceId(auraModel, 1)) {
               ModelSetSequence(auraModel, 1, 0);
@@ -2462,8 +2461,8 @@ void CGUnit_C::DestroyUnitMount(int doNotUpdateAnim) {
   }
 }
 
-void CGUnit_C::UpdateUnitMountInfo(int immediate, unsigned int changedFlags) {
-  unsigned int flags = m_unit->flags;
+void CGUnit_C::UpdateUnitMountInfo(int immediate, UINT changedFlags) {
+  UINT flags = m_unit->flags;
   if (flags & 0x3000) {
     if (changedFlags & 0x2000) {
       if ((flags & 0x2000) && (flags & 0x1000)) {
@@ -2556,13 +2555,13 @@ void CGUnit_C::OnMountCancelled() {
   }
 }
 
-void OnPendingMoveStateChange(unsigned __int64 unit, int msgId, unsigned long eventTime) {
+void OnPendingMoveStateChange(DWORDLONG unit, int msgId, DWORD eventTime) {
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(mover);
   mover->OnPendingMoveStateChange(static_cast<NETMESSAGE>(msgId));
 }
 
-void OnCollideRedirected(unsigned __int64 unit, unsigned long eventTime) {
+void OnCollideRedirected(DWORDLONG unit, DWORD eventTime) {
   if (unit == CGUnit_C::GetActiveMover()) {
     CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
     FATALASSERT(mover);
@@ -2570,7 +2569,7 @@ void OnCollideRedirected(unsigned __int64 unit, unsigned long eventTime) {
   }
 }
 
-void OnCollideStuck(unsigned __int64 unit, unsigned long eventTime) {
+void OnCollideStuck(DWORDLONG unit, DWORD eventTime) {
   if (unit == CGUnit_C::GetActiveMover()) {
     CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
     FATALASSERT(mover);
@@ -2582,19 +2581,19 @@ void OnCollideStuck(unsigned __int64 unit, unsigned long eventTime) {
   }
 }
 
-void OnCollideFallLand(unsigned __int64 unit, unsigned long eventTime) {
+void OnCollideFallLand(DWORDLONG unit, DWORD eventTime) {
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(mover);
   mover->OnCollideFallLand(eventTime);
 }
 
-void OnCollideFalling(unsigned __int64 unit, unsigned long eventTime) {
+void OnCollideFalling(DWORDLONG unit, DWORD eventTime) {
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(mover);
   mover->OnCollideFalling(eventTime);
 }
 
-void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime) {
+void OnMoveUpdate(DWORDLONG unit, DWORD eventTime) {
   CGUnit_C *unitptr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(unitptr);
 
@@ -2603,7 +2602,7 @@ void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime) {
   NTempest::C3Vector ripplePos;
   NTempest::C3Vector waterDir(0.0f);
   int                deep;
-  unsigned int       liquidStatus = 15;
+  UINT               liquidStatus = 15;
   float              depth = 0.0f;
   float              surfaceColPt = 0.0f;
   int                inWater = CWorld::QueryObjectLiquid(unitptr->GetWorldObject(), liquidStatus, surfaceColPt, waterDir, deep);
@@ -2614,7 +2613,7 @@ void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime) {
   }
 
   if (unit == CGUnit_C::GetActiveMover()) {
-    unsigned int moveFlags = unitptr->m_move.m_moveFlags;
+    UINT moveFlags = unitptr->m_move.m_moveFlags;
     if ((moveFlags & 0x01000000) || ((unitptr->GetType() & TYPE_PLAYER) && !unitptr->m_move.m_transportGUID &&
                                      ((moveFlags & 2) || !(moveFlags & 0x00C00004)) && !(moveFlags & 1)))
     {
@@ -2629,7 +2628,7 @@ void OnMoveUpdate(unsigned __int64 unit, unsigned long eventTime) {
   }
 }
 
-int UnitGetObjectPosition(const unsigned __int64 &guid, NTempest::C3Vector *position) {
+int UnitGetObjectPosition(const DWORDLONG &guid, NTempest::C3Vector *position) {
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (!object) {
     return 0;
@@ -2643,7 +2642,7 @@ float UnitCalculateFacingTo(const NTempest::C3Vector &position, const NTempest::
   return CalculateFacingTo(position, destination);
 }
 
-void UnitUpdateMovementAnim(const unsigned __int64 &unit) {
+void UnitUpdateMovementAnim(const DWORDLONG &unit) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->UpdateBaseAnimation(0);
@@ -2651,38 +2650,32 @@ void UnitUpdateMovementAnim(const unsigned __int64 &unit) {
   }
 }
 
-void UnitNotifyStopped(const unsigned __int64 &guid, bool moveComplete) {
+void UnitNotifyStopped(const DWORDLONG &guid, bool moveComplete) {
 }
 
-CGUnit::CGUnit(
-    unsigned long *storage,
-    const NTempest::C3Vector &position,
-    float facing,
-    const unsigned __int64 &guid
-)
-    : m_unit(reinterpret_cast<CGUnitData *>(storage)),
-      m_move(position, facing, guid) {
+CGUnit::CGUnit(DWORD *storage, const NTempest::C3Vector &position, float facing, const DWORDLONG &guid)
+    : m_unit(reinterpret_cast<CGUnitData *>(storage)), m_move(position, facing, guid) {
 }
 
 CGUnit::~CGUnit() {
 }
 
-UNITAFFILIATION CGUnit::GetGUIDAffiliation(unsigned __int64) const {
+UNITAFFILIATION CGUnit::GetGUIDAffiliation(DWORDLONG) const {
   return AFFILIATION_OTHER;
 }
 
-void CGUnit_C::SetStorage(unsigned long *storage) {
+void CGUnit_C::SetStorage(DWORD *storage) {
   CGObject_C::SetStorage(storage);
   CGUnit::SetStorage(storage + CGObject::TotalFields());
 }
 
-CGUnit_C::CGUnit_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init)
+CGUnit_C::CGUnit_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
     : CGObject_C(storage, eventTime, init),
       CGUnit(
           storage + CGObject::TotalFields(),
           init->move.status.worldPosition,
           init->move.status.worldFacing,
-          *reinterpret_cast<unsigned __int64 *>(storage)
+          *reinterpret_cast<DWORDLONG *>(storage)
       ),
       m_questCountKilled(-1),
       m_questCountNeeded(-1),
@@ -2795,8 +2788,7 @@ CGUnit_C::CGUnit_C(unsigned long *storage, unsigned long eventTime, CClientObjCr
   AddWorldObject();
   RefreshDataPointers();
   if (GetType() == HIER_TYPE_UNIT) {
-    m_stats = const_cast<CreatureStats_C *>(
-        g_creatureDBCache.GetRecord(m_obj->m_entryID, GetGUID(), CreatureQueryCallback, 0));
+    m_stats = const_cast<CreatureStats_C *>(g_creatureDBCache.GetRecord(m_obj->m_entryID, GetGUID(), CreatureQueryCallback, 0));
     m_NPCSoundsRec = g_nPCSoundsDB.GetRecord(GetSoundData()->m_NPCSoundID);
     m_numNPCPissedSounds = m_NPCSoundsRec ? SndInterfaceGetSoundVariations(m_NPCSoundsRec->m_SoundID[2]) : 0;
     InitializeExtendedDisplay();
@@ -2820,9 +2812,9 @@ void CGUnit_C::InitializeExtendedDisplay() {
 
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
-  unsigned int   race = GetDisplayRace();
-  unsigned int   sex = GetDisplaySex();
-  const char    *displayTextureName = GetDisplayTextureName();
+  UINT           race = GetDisplayRace();
+  UINT           sex = GetDisplaySex();
+  LPCSTR         displayTextureName = GetDisplayTextureName();
   HTEXTURE       texture;
   HTEXCOMPONENT &texComponent = m_texComponent;
 
@@ -2895,7 +2887,7 @@ void CGUnit_C::PostInit(const CClientObjCreate &init) {
     CGObject_C::Animate();
   }
 
-  unsigned int flags = 0x100;
+  UINT flags = 0x100;
   if (m_unit->health > 0) {
     ClearResEffectModel();
   } else {
@@ -2927,7 +2919,7 @@ void CGUnit_C::PostInit(const CClientObjCreate &init) {
     player->SetFarSightFocus(this);
   }
 
-  for (unsigned int slot = 0; slot < 56; ++slot) {
+  for (UINT slot = 0; slot < 56; ++slot) {
     if (m_unit->auras[slot]) {
       AddAuraEffect(slot, 0);
       RefreshAuraVisuals();
@@ -2940,7 +2932,7 @@ void CGUnit_C::PostMovementUpdate(const CClientMoveUpdate &update) {
   UpdateBaseAnimation(0);
 }
 
-void CGUnit_C::UpdateUnitCollisionBox(HMODEL model, const char *modelFileName) {
+void CGUnit_C::UpdateUnitCollisionBox(HMODEL model, LPCSTR modelFileName) {
   NTempest::CAaBox extents(0.0f);
   ModelGetCollisionExtents(model, &extents);
   if (!static_cast<CMovement &>(m_move).SetCollisionBox(extents, GetScale())) {
@@ -2960,11 +2952,7 @@ void CGUnit_C::SetupFootprints() {
   m_footprintParticleScale = m_modelData->m_footprintParticleScale;
 }
 
-void CGUnit_C::InitializeTextureVariations(
-    const CreatureDisplayInfoRec *displayInfo,
-    HMODEL                        theModel,
-    const CreatureModelDataRec   *modelData
-) {
+void CGUnit_C::InitializeTextureVariations(const CreatureDisplayInfoRec *displayInfo, HMODEL theModel, const CreatureModelDataRec *modelData) {
   char textureFile[MAX_PATH];
   char texturePath[MAX_PATH];
 
@@ -2979,7 +2967,7 @@ void CGUnit_C::InitializeTextureVariations(
   }
 
   EGxTexFilter filter = GxTex_LinearMipNearest;
-  unsigned int maxAnisotropy = 1;
+  UINT         maxAnisotropy = 1;
   if (CWorld::enables & CWorld::Enable_Anisotropic) {
     filter = GxTex_Anisotropic;
     maxAnisotropy = 1 << CWorld::texMaxAnisotropyLog2;
@@ -2990,8 +2978,8 @@ void CGUnit_C::InitializeTextureVariations(
   CGxTexFlags texFlags(filter, 1, 1, 0, 0, 0, maxAnisotropy);
   CStatus     status;
 
-  for (unsigned int index = 0; index < 3; ++index) {
-    const char *variation = displayInfo->m_textureVariation[index];
+  for (UINT index = 0; index < 3; ++index) {
+    LPCSTR variation = displayInfo->m_textureVariation[index];
     if (!*variation) {
       continue;
     }
@@ -3006,12 +2994,11 @@ void CGUnit_C::InitializeTextureVariations(
 }
 
 int CGUnit_C::IsWalking() const {
-  return const_cast<CMovement &>(static_cast<const CMovement &>(m_move)).GetCurrentSpeed() <=
-         m_move.m_walkSpeed + m_move.m_walkSpeed;
+  return const_cast<CMovement &>(static_cast<const CMovement &>(m_move)).GetCurrentSpeed() <= m_move.m_walkSpeed + m_move.m_walkSpeed;
 }
 
-unsigned int CGUnit_C::GetAnimationState() {
-  int inAttackMode = 0;
+UINT CGUnit_C::GetAnimationState() {
+  int         inAttackMode = 0;
   CGUnitData *unit;
 
   if (m_unit->health <= 0 && ((m_animFlags & 0x2000) || !(m_flags & 4))) {
@@ -3020,13 +3007,13 @@ unsigned int CGUnit_C::GetAnimationState() {
   }
 
   if (IsA(ID_PLAYER)) {
-    unsigned int playerState = static_cast<CGPlayer_C *>(this)->GetPlayerAnimState();
+    UINT playerState = static_cast<CGPlayer_C *>(this)->GetPlayerAnimState();
     if (playerState) {
       return playerState;
     }
   }
 
-  unsigned int moveFlags = m_move.m_moveFlags;
+  UINT moveFlags = m_move.m_moveFlags;
   if (moveFlags & 0x8000) {
     return ANIM_STATE_FALLING;
   }
@@ -3083,7 +3070,7 @@ attack_ready:
   return ANIM_STATE_ATTACK_READY;
 }
 
-void CGUnit_C::GenericAnimEndHandler(ANIMENUMERATION animID, void *param) {
+void CGUnit_C::GenericAnimEndHandler(ANIMENUMERATION animID, LPVOID param) {
   if (m_currentTorsoAnimState == ANIM_STATE_EMOTE && GetCurrentTorsoAnim() == animID) {
     ClearTorsoAnimation(0x40);
   } else if (g_seqInformation[animID].handler) {
@@ -3091,7 +3078,7 @@ void CGUnit_C::GenericAnimEndHandler(ANIMENUMERATION animID, void *param) {
   }
 }
 
-int IsSitStandSleepTransition(unsigned int animState);
+int IsSitStandSleepTransition(UINT animState);
 
 int CGUnit_C::PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget, bool &checkImpacts) {
   checkImpacts = false;
@@ -3141,7 +3128,7 @@ int CGUnit_C::PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget
       StoreSequenceEndCallbacks(GetCurrentTorsoAnim());
     }
     if (newAnimState == ANIM_STATE_JUMPING) {
-      unsigned int fallTime = static_cast<CMovement &>(m_move).FallTime();
+      UINT fallTime = static_cast<CMovement &>(m_move).FallTime();
       ModelForceSequenceTime(charModel, newAnim, fallTime, 0);
       if (fallTime < 300) {
         PlayUnitSound(UNITSOUNDTYPE_JUMPSTART, 1);
@@ -3172,7 +3159,7 @@ int CGUnit_C::PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget
 }
 
 void CGUnit_C::SetStrafeRotation() {
-  unsigned int       moveFlags = m_move.m_moveFlags;
+  UINT               moveFlags = m_move.m_moveFlags;
   NTempest::C3Vector waistTurn;
   NTempest::C3Vector spineTurn;
 
@@ -3200,7 +3187,7 @@ void CGUnit_C::SetStrafeRotation() {
   ModelApplyObjectFaceDir(model, 6, spineTurn);
 }
 
-void CGUnit_C::ApplyStrafeRotation(unsigned int newState) {
+void CGUnit_C::ApplyStrafeRotation(UINT newState) {
   if (newState >= 8 && newState <= 17) {
     SetStrafeRotation();
   } else if (GetCurrentBaseAnimState() >= 8 && GetCurrentBaseAnimState() <= 17) {
@@ -3226,18 +3213,17 @@ bool CGUnit_C::TorsoAnimOverridesBase() const {
   return (s_animInfo[m_currentTorsoAnimState].flags & 0x8000) || (g_seqInformation[GetCurrentTorsoAnim()].flags & 8);
 }
 
-void CGUnit_C::UpdateMountAnimation(unsigned int newState, unsigned int flags) {
+void CGUnit_C::UpdateMountAnimation(UINT newState, UINT flags) {
   FATALASSERT(newState < NUM_ANIMSTATES);
 
   if ((m_flags & 0x10) && (m_currentMountAnimState != newState || (flags & 0x100))) {
     m_currentMountAnimState = newState;
-    unsigned int newAnim = ChooseAnimation(newState);
-    HMODEL       model = m_model;
+    UINT   newAnim = ChooseAnimation(newState);
+    HMODEL model = m_model;
     ObjectModelSetSequence(model, newAnim, GetObjAnimFlags(2), 0);
     UpdateMovementAnimSpeed(1, INVALID_ANIM_STATE);
 
-    if (((flags & 0x100) && (s_animInfo[newState].flags & 0x400)) ||
-        (s_animInfo[newState].flags & 0x40) ||
+    if (((flags & 0x100) && (s_animInfo[newState].flags & 0x400)) || (s_animInfo[newState].flags & 0x40) ||
         ((s_animInfo[newState].flags & 0x800) && !(m_animFlags & 4)))
     {
       ModelForceSequenceTime(model, newAnim, 0x7FFFFFFF, 0);
@@ -3255,7 +3241,7 @@ int CGUnit_C::SetTorsoSequence(float timeScale, int flags) {
   FATALASSERT(theModel);
   if (IsPreemptableWoundAnimState(m_currentTorsoAnimState)) {
     m_currentWoundStartTime = OsGetAsyncTimeMs();
-    unsigned int anim = GetCurrentTorsoAnim();
+    UINT anim = GetCurrentTorsoAnim();
     if (!ModelGetSequenceDuration(theModel, anim, &m_currentWoundAnimDuration)) {
       goto sequence_failed;
     }
@@ -3283,12 +3269,12 @@ sequence_failed:
   return 0;
 }
 
-float CGUnit_C::GetAnimTimeScale(unsigned int sequence, unsigned int duration, unsigned int flags) {
+float CGUnit_C::GetAnimTimeScale(UINT sequence, UINT duration, UINT flags) {
   HMODEL theModel = GetCharacterModel(0);
   FATALASSERT(theModel);
 
-  float        timeScale = 1.0f;
-  unsigned int seqInfoDuration;
+  float timeScale = 1.0f;
+  UINT  seqInfoDuration;
   if (ModelGetSequenceDuration(theModel, sequence, &seqInfoDuration)) {
     m_animBaseDuration = seqInfoDuration;
     m_animStartTime = OsGetAsyncTimeMsPrecise();
@@ -3309,7 +3295,7 @@ void CGUnit_C::StoreSequenceEndCallbacks(int anim) {
 }
 
 void CGUnit_C::ProcessAnimEndCallbacks() {
-  unsigned int count = m_animEndCallbackList.Count();
+  UINT count = m_animEndCallbackList.Count();
   while (count) {
     --count;
     ANIMENDDATA &data = m_animEndCallbackList[count];
@@ -3318,7 +3304,7 @@ void CGUnit_C::ProcessAnimEndCallbacks() {
   m_animEndCallbackList.SetCount(0);
 }
 
-int CGUnit_C::SetTorsoAnimation(unsigned int state, unsigned long duration, unsigned int flags) {
+int CGUnit_C::SetTorsoAnimation(UINT state, DWORD duration, UINT flags) {
   FATALASSERT(state < NUM_ANIMSTATES);
 
   if (!state) {
@@ -3334,13 +3320,8 @@ int CGUnit_C::SetTorsoAnimation(unsigned int state, unsigned long duration, unsi
       UpdateBaseAnimation(0);
       SetTorsoAnim(ChooseAnimation(m_currentBaseAnimState));
 
-      if (GetCurrentTorsoAnim() == ANIM_STEALTHSTAND ||
-          (!GetCurrentTorsoAnim() && (m_combat.IsAttacking() || !m_unit->health)))
-      {
-        return SetTorsoSequence(
-            GetAnimTimeScale(GetCurrentTorsoAnim(), duration, flags | 1),
-            flags | 1
-        );
+      if (GetCurrentTorsoAnim() == ANIM_STEALTHSTAND || (!GetCurrentTorsoAnim() && (m_combat.IsAttacking() || !m_unit->health))) {
+        return SetTorsoSequence(GetAnimTimeScale(GetCurrentTorsoAnim(), duration, flags | 1), flags | 1);
       }
 
       return SetTorsoSequence(GetAnimTimeScale(GetCurrentTorsoAnim(), duration, flags), flags);
@@ -3360,12 +3341,12 @@ int CGUnit_C::SetTorsoAnimation(unsigned int state, unsigned long duration, unsi
     return 0;
   }
   if (m_currentTorsoAnimState &&
-      s_animInfo[m_currentTorsoAnimState].basePriority > s_animInfo[state].basePriority + s_animInfo[state].priorityOffset &&
-      !(flags & 0x40)) {
+      s_animInfo[m_currentTorsoAnimState].basePriority > s_animInfo[state].basePriority + s_animInfo[state].priorityOffset && !(flags & 0x40))
+  {
     return 0;
   }
 
-  unsigned int anim = ChooseAnimation(state);
+  UINT anim = ChooseAnimation(state);
   if (anim == INVALID_ANIMATION) {
     return 1;
   }
@@ -3377,8 +3358,8 @@ int CGUnit_C::SetTorsoAnimation(unsigned int state, unsigned long duration, unsi
   return SetTorsoSequence(GetAnimTimeScale(GetCurrentTorsoAnim(), duration, flags), flags);
 }
 
-int CGUnit_C::ClearTorsoAnimation(unsigned int flags) {
-  int           anim;
+int CGUnit_C::ClearTorsoAnimation(UINT flags) {
+  int anim;
 
   if (IsSpellAuraAnimActive(anim)) {
     m_spellCastingAnim = static_cast<ANIMENUMERATION>(anim);
@@ -3414,11 +3395,11 @@ void CGUnit_C::SheatheAnimEndHandler() {
   }
 }
 
-void CGUnit_C::UpdateMoveInfo(unsigned long eventTime, const CClientMoveUpdate &update) {
+void CGUnit_C::UpdateMoveInfo(DWORD eventTime, const CClientMoveUpdate &update) {
   static_cast<CMovement &>(m_move).SetUpdateInfo(eventTime, update, GetGUID() == m_activeMover);
 }
 
-void CGUnit_C::SetClientInitData(unsigned long eventTime, const CClientObjCreate &init, bool partialUpdateOfActivePlayer) {
+void CGUnit_C::SetClientInitData(DWORD eventTime, const CClientObjCreate &init, bool partialUpdateOfActivePlayer) {
   m_combat.SetClientInitData(init);
   if (!partialUpdateOfActivePlayer) {
     UpdateMoveInfo(eventTime, init.move);
@@ -3430,7 +3411,7 @@ void CGUnit_C::PostSetClientInitData(const CClientMoveUpdate &update) {
 }
 
 void CGUnit_C::SetAuraMirrorHandlers() {
-  for (unsigned int slot = 0; slot < 56; ++slot) {
+  for (UINT slot = 0; slot < 56; ++slot) {
     SetAuraMirrorHandler(slot, AuraMirrorHandler);
   }
 }
@@ -3472,13 +3453,13 @@ void CGUnit_C::LookAtTarget(CGUnit_C *target) {
 }
 
 void CGUnit_C::UnsetAuraMirrorHandlers() {
-  for (unsigned int slot = 0; slot < 56; ++slot) {
+  for (UINT slot = 0; slot < 56; ++slot) {
     UnsetAuraMirrorHandler(slot, AuraMirrorHandler);
   }
 }
 
 void CGUnit_C::LookAtTarget() {
-  unsigned __int64 targetGUID;
+  DWORDLONG targetGUID;
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
     targetGUID = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetLocalTarget();
   } else {
@@ -3499,7 +3480,7 @@ void CGUnit_C::LookAtTarget() {
 }
 
 void CGUnit_C::UpdateLookAtTarget() {
-  unsigned __int64 targetGUID;
+  DWORDLONG targetGUID;
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
     targetGUID = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetLocalTarget();
   } else {
@@ -3516,7 +3497,7 @@ void CGUnit_C::UpdateLookAtTarget() {
   }
 }
 
-int OnAuraDecayFinished(void *param) {
+int OnAuraDecayFinished(LPVOID param) {
   AuraDecayNode *decay = static_cast<AuraDecayNode *>(param);
   CGObject_C    *object = ClntObjMgrObjectPtr(decay->unit, __FILE__, __LINE__);
 
@@ -3539,19 +3520,19 @@ int OnAuraDecayFinished(void *param) {
   return 0;
 }
 
-void CGUnit_C::UpdateBaseAnimation(unsigned int flags) {
+void CGUnit_C::UpdateBaseAnimation(UINT flags) {
   if (IsMounted()) {
     CGUnit_C::UpdateBaseAnimation(ANIM_STATE_MOUNTED, flags);
   }
   CGUnit_C::UpdateBaseAnimation(GetAnimationState(), flags);
 }
 
-void CGUnit_C::SetBaseAnimState(unsigned int newState) {
+void CGUnit_C::SetBaseAnimState(UINT newState) {
   FATALASSERT(newState < NUM_ANIMSTATES);
   m_currentBaseAnimState = newState;
 }
 
-void CGUnit_C::SetEmoteState(unsigned int emoteID) {
+void CGUnit_C::SetEmoteState(UINT emoteID) {
 }
 
 void CGUnit_C::OnPickNextStandHandler() {
@@ -3595,13 +3576,13 @@ void CGUnit_C::RestoreUnit() {
   }
 }
 
-void CGUnit_C::SetTorsoAnimState(unsigned int newState) {
+void CGUnit_C::SetTorsoAnimState(UINT newState) {
   FATALASSERT(newState < NUM_ANIMSTATES);
   if ((m_flags & 0x400) && newState != ANIM_STATE_SPELLPRECAST) {
     ShowHandArrow(0);
     m_flags &= ~0x400U;
   }
-  unsigned int oldState = m_currentTorsoAnimState;
+  UINT oldState = m_currentTorsoAnimState;
   if (oldState != newState) {
     ClearMeleeDeathHold();
     if ((s_animInfo[newState].flags ^ s_animInfo[oldState].flags) & 0x80) {
@@ -3643,11 +3624,11 @@ int CGUnit_C::GetSpellCastingTime(int spellID) const {
   return result > 0 ? result : 0;
 }
 
-int CGUnit_C::GetVirtualItemDisplayID(unsigned int slot) const {
+int CGUnit_C::GetVirtualItemDisplayID(UINT slot) const {
   return m_unit->virtualItemDisplay[slot];
 }
 
-const VirtualItemInfo *CGUnit_C::GetVirtualItem(unsigned int slot, bool ignoreDisarmFlag) const {
+const VirtualItemInfo *CGUnit_C::GetVirtualItem(UINT slot, bool ignoreDisarmFlag) const {
   ASSERT(!IsA(TYPE_PLAYER));
   if (!GetVirtualItemDisplayID(slot)) {
     return 0;
@@ -3659,7 +3640,7 @@ const VirtualItemInfo *CGUnit_C::GetVirtualItem(unsigned int slot, bool ignoreDi
   return item;
 }
 
-int CGUnit_C::ShouldRenderUnitName(unsigned int mode) const {
+int CGUnit_C::ShouldRenderUnitName(UINT mode) const {
   if ((m_unit->flags & 0x18000) && CGGameUI::GetLockedTarget() != m_obj->m_guid) {
     return 0;
   }
@@ -3677,7 +3658,7 @@ int CGUnit_C::ShouldRenderUnitName(unsigned int mode) const {
 void CGUnit_C::SetLastWeaponModeSent(int mode) {
 }
 
-void CGUnit_C::InstallSeqEndHandler(HMODEL model, unsigned int animID) {
+void CGUnit_C::InstallSeqEndHandler(HMODEL model, UINT animID) {
   if (animID >= 135) {
     return;
   }
@@ -3693,7 +3674,7 @@ void CGUnit_C::InstallSeqEndHandler(HMODEL model, unsigned int animID) {
 }
 
 void CGUnit_C::ClearAnimCallbackData() {
-  for (unsigned int animID = 0; animID < NUM_OBJECTANIMATIONS; ++animID) {
+  for (UINT animID = 0; animID < NUM_OBJECTANIMATIONS; ++animID) {
     if (m_callbackList[animID]) {
       s_animEndDataPool.Put(m_callbackList[animID]);
       m_callbackList[animID] = 0;
@@ -3704,7 +3685,7 @@ void CGUnit_C::ClearAnimCallbackData() {
 void CGUnit_C::UnitInitializeModel(HMODEL model) {
   FATALASSERT(model);
   ModelSetEventCallback(model, AnimEventCallback, this, 0);
-  unsigned int index = g_unitSeqEndList.Count();
+  UINT index = g_unitSeqEndList.Count();
   while (index) {
     --index;
     InstallSeqEndHandler(model, g_unitSeqEndList[index]);
@@ -3716,7 +3697,7 @@ void CGUnit_C::UnitUninitializeModel(HMODEL model) {
     return;
   }
   ModelSetEventCallback(model, 0, 0, 0);
-  unsigned int index = g_unitSeqEndList.Count();
+  UINT index = g_unitSeqEndList.Count();
   while (index) {
     --index;
     ModelSetSeqFinishedHandler(model, index, 0, 0);
@@ -3738,7 +3719,7 @@ void CGUnit_C::MarkFootstepAnimations(HMODEL model) {
 }
 
 void CGUnit_C::UpdateUnitAlpha() {
-  unsigned char alpha = m_displayInfo ? static_cast<unsigned char>(m_displayInfo->m_creatureModelAlpha) : 255;
+  BYTE alpha = m_displayInfo ? static_cast<BYTE>(m_displayInfo->m_creatureModelAlpha) : 255;
   if (m_unit->flags & 0x18000) {
     alpha /= 3;
   }
@@ -3747,7 +3728,7 @@ void CGUnit_C::UpdateUnitAlpha() {
 
 void CGUnit_C::RefreshAttachmentInfo(HMODEL model) {
   bool sheathed = m_unit->weaponMode == WEAPONMODE_SHEATHEDMODE;
-  for (unsigned int slot = 0; slot < 5; ++slot) {
+  for (UINT slot = 0; slot < 5; ++slot) {
     if (m_attachments[slot]) {
       ApplyAttachmentInfo(model, sheathed, slot, true);
     }
@@ -3770,7 +3751,7 @@ void CGUnit_C::CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel) {
     m_geosetHandle = 0;
   }
 
-  bool mountShowing = (m_flags & 0x10) != 0;
+  bool   mountShowing = (m_flags & 0x10) != 0;
   HMODEL model = mountShowing ? GetCharacterModel(0) : m_model;
   if (!model) {
     return;
@@ -3836,7 +3817,7 @@ void CGUnit_C::ReinitializeUnitArtwork() {
 
   HMODEL characterModel = GetCharacterModel(0);
   FATALASSERT(characterModel);
-  for (unsigned int index = 0; index < 12; ++index) {
+  for (UINT index = 0; index < 12; ++index) {
     AuraVisual &visual = m_auraVisual[index];
     if (visual.HasArt() && !visual.IsWorldModel()) {
       HMODEL auraModel = visual.GetModel();
@@ -3915,7 +3896,7 @@ bool CGUnit_C::IsSpellAuraAnimActive(int &anim) const {
   return anim > 0;
 }
 
-void CGUnit_C::UpdateBaseAnimation(unsigned int newState, unsigned int flags) {
+void CGUnit_C::UpdateBaseAnimation(UINT newState, UINT flags) {
   FATALASSERT(newState < NUM_ANIMSTATES);
   if (!newState) {
     return;
@@ -3935,16 +3916,13 @@ void CGUnit_C::UpdateBaseAnimation(unsigned int newState, unsigned int flags) {
     return;
   }
 
-  unsigned int newAnim = ChooseAnimation(newState);
+  UINT newAnim = ChooseAnimation(newState);
   ApplyStrafeRotation(newState);
   if (!(flags & 0x100) && GetCurrentBaseAnimState() == newState && GetCurrentBaseAnim() == newAnim) {
     return;
   }
 
-  FATALASSERT(
-      (GetCurrentBaseAnimState() != ANIM_STATE_DEAD) ||
-      (GetCurrentTorsoAnimState() != ANIM_STATE_WOUND)
-  );
+  FATALASSERT((GetCurrentBaseAnimState() != ANIM_STATE_DEAD) || (GetCurrentTorsoAnimState() != ANIM_STATE_WOUND));
   if (m_flags & 4) {
     CheckPendingThrownWeaponReattach(0);
   }
@@ -3959,10 +3937,8 @@ void CGUnit_C::UpdateBaseAnimation(unsigned int newState, unsigned int flags) {
       CheckPendingImpactKit();
     }
 
-    if ((flags & 0x80) ||
-        ((flags & 0x100) && (s_animInfo[GetCurrentBaseAnimState()].flags & 0x400)) ||
-        (s_animInfo[GetCurrentBaseAnimState()].flags & 0x40) ||
-        ((s_animInfo[GetCurrentBaseAnimState()].flags & 0x800) && !(m_animFlags & 4)))
+    if ((flags & 0x80) || ((flags & 0x100) && (s_animInfo[GetCurrentBaseAnimState()].flags & 0x400)) ||
+        (s_animInfo[GetCurrentBaseAnimState()].flags & 0x40) || ((s_animInfo[GetCurrentBaseAnimState()].flags & 0x800) && !(m_animFlags & 4)))
     {
       ModelForceSequenceTime(m_model, newAnim, 0x7FFFFFFF, 0);
     }
@@ -3992,8 +3968,8 @@ ACTIVEAURAINFO *CGUnit_C::FindActiveAuraInfo(int slot) {
 void CGUnit_C::RefreshAuraVisuals() {
   const SpellVisualKitRec *highestPrioritiesByKit[12];
   const SpellRec          *highestPrioritySpellFoundByKit[12];
-  ACTIVEAURAINFO    *highestSpellWithAnim = 0;
-  ACTIVEAURAINFO    *highestPriorityAura = 0;
+  ACTIVEAURAINFO          *highestSpellWithAnim = 0;
+  ACTIVEAURAINFO          *highestPriorityAura = 0;
 
   memset(highestPrioritiesByKit, 0, sizeof(highestPrioritiesByKit));
   memset(highestPrioritySpellFoundByKit, 0, sizeof(highestPrioritySpellFoundByKit));
@@ -4031,7 +4007,8 @@ void CGUnit_C::RefreshAuraVisuals() {
   }
 
   if ((m_currentTorsoAnimState == ANIM_STATE_SPELLCAST || m_currentTorsoAnimState == ANIM_STATE_SPELLAURA) &&
-      (!highestSpellWithAnim || static_cast<int>(m_animatingAura) != highestPriorityAura->auraSlot)) {
+      (!highestSpellWithAnim || static_cast<int>(m_animatingAura) != highestPriorityAura->auraSlot))
+  {
     m_animatingAura = -1;
     if (m_currentTorsoAnimState == ANIM_STATE_SPELLAURA) {
       ClearTorsoAnimation(0);
@@ -4130,7 +4107,7 @@ void CGUnit_C::RemoveAuraVisual(UNITEFFECTATTACHPPOINT attach) {
   HandleClose(charModel);
 }
 
-void CGUnit_C::RemoveAuraEffect(unsigned int slot, int previousSpell) {
+void CGUnit_C::RemoveAuraEffect(UINT slot, int previousSpell) {
   ACTIVEAURAINFO *active = FindActiveAuraInfo(slot);
   if (active) {
     RemoveSpellProcAuraEffect(active);
@@ -4138,8 +4115,8 @@ void CGUnit_C::RemoveAuraEffect(unsigned int slot, int previousSpell) {
     s_auraInfoFreeList.Put(active);
   }
 
-  for (unsigned int attach = 0; attach < sizeof(m_auraVisual) / sizeof(m_auraVisual[0]); ++attach) {
-    if (m_auraVisual[attach].GetSpellID() == static_cast<unsigned int>(previousSpell)) {
+  for (UINT attach = 0; attach < sizeof(m_auraVisual) / sizeof(m_auraVisual[0]); ++attach) {
+    if (m_auraVisual[attach].GetSpellID() == static_cast<UINT>(previousSpell)) {
       RemoveAuraVisual(static_cast<UNITEFFECTATTACHPPOINT>(attach));
     }
   }
@@ -4154,7 +4131,7 @@ void CGUnit_C::RemoveAuraEffect(unsigned int slot, int previousSpell) {
     SErrDisplayAppFatal("Spell record not found.  Your spell.dbc file is probably out of date!");
   }
 
-  for (unsigned int effect = 0; effect < 3; ++effect) {
+  for (UINT effect = 0; effect < 3; ++effect) {
     if (spellRec->m_effect[effect] == 76) {
       CVar *fov = CVar::Lookup("fov");
       if (fov) {
@@ -4164,7 +4141,7 @@ void CGUnit_C::RemoveAuraEffect(unsigned int slot, int previousSpell) {
   }
 }
 
-void CGUnit_C::AddAuraEffect(unsigned int slot, bool startNow) {
+void CGUnit_C::AddAuraEffect(UINT slot, bool startNow) {
   FATALASSERT(slot < sizeof(m_unit->auras) / sizeof(m_unit->auras[0]));
   FATALASSERT(m_model);
 
@@ -4183,7 +4160,7 @@ void CGUnit_C::AddAuraEffect(unsigned int slot, bool startNow) {
   }
 
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
-    for (unsigned int effect = 0; effect < 3; ++effect) {
+    for (UINT effect = 0; effect < 3; ++effect) {
       if (spellRec->m_effect[effect] == 76) {
         CVar *fov = CVar::Lookup("fov");
         if (fov) {
@@ -4229,7 +4206,7 @@ void CGUnit_C::AddAuraEffect(unsigned int slot, bool startNow) {
   AddKitAuras(stateRec, spellRec);
   AddSpellProcAuraEffect(slot, stateRec);
 
-  bool          higherPriority = m_animatingAura == -1;
+  bool higherPriority = m_animatingAura == -1;
   if (!higherPriority) {
     const SpellRec *current = g_spellDB.GetRecord(m_unit->auras[m_animatingAura]);
     higherPriority = !current || spellRec->m_spellPriority > current->m_spellPriority;
@@ -4241,12 +4218,12 @@ void CGUnit_C::AddAuraEffect(unsigned int slot, bool startNow) {
   }
 }
 
-int OnFirstAuraSequenceFinished(void *param) {
+int OnFirstAuraSequenceFinished(LPVOID param) {
   ModelSetRandomSequenceFidget(reinterpret_cast<HMODEL>(param), 1, 0);
   return 1;
 }
 
-void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, unsigned int effect, unsigned int spellID, int priority, bool permanent) {
+void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, UINT effect, UINT spellID, int priority, bool permanent) {
   AuraVisual &visual = m_auraVisual[attach];
   if (visual.HasArt() && visual.GetSpellID() == spellID) {
     return;
@@ -4265,7 +4242,7 @@ void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, unsigned int effec
   }
 
   if (isWorldObj) {
-    unsigned long object = UnitEffectCreateWorldModelAura(effect, GetPosition(), GetFacing());
+    DWORD object = UnitEffectCreateWorldModelAura(effect, GetPosition(), GetFacing());
     if (!object) {
       return;
     }
@@ -4296,18 +4273,15 @@ void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, unsigned int effec
   visual.SetPermanent(permanent);
 }
 
-void CGUnit_C::SetAuraMirrorHandler(unsigned int slot, int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)) {
+void CGUnit_C::SetAuraMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)) {
   ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 4 * slot + 200, 4, handler, 0, HANDLER_PRIORITY_HIGH);
 }
 
-void CGUnit_C::UnsetAuraMirrorHandler(
-    unsigned int slot,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
-) {
+void CGUnit_C::UnsetAuraMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)) {
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 4 * slot + 200, handler, 0);
 }
 
-void CGUnit_C::OnAuraChanged(unsigned int slot, int previousValue) {
+void CGUnit_C::OnAuraChanged(UINT slot, int previousValue) {
   FATALASSERT(slot < sizeof(m_unit->auras));
   if (previousValue) {
     RemoveAuraEffect(slot, previousValue);
@@ -4326,10 +4300,10 @@ void CGUnit_C::OnAuraChanged(unsigned int slot, int previousValue) {
   }
 }
 
-void CGUnit_C::OnFlagChanged(unsigned int oldFlags) {
-  unsigned long currentTime = OsGetAsyncTimeMs();
-  unsigned int  newFlags = m_unit->flags;
-  unsigned int  xorBits = oldFlags ^ newFlags;
+void CGUnit_C::OnFlagChanged(UINT oldFlags) {
+  DWORD currentTime = OsGetAsyncTimeMs();
+  UINT  newFlags = m_unit->flags;
+  UINT  xorBits = oldFlags ^ newFlags;
 
   if (xorBits & 0x02000000) {
     CombatLoggingFlagChanged();
@@ -4345,12 +4319,8 @@ void CGUnit_C::OnFlagChanged(unsigned int oldFlags) {
 
   if ((xorBits & 0x00C40004) && GetGUID() == ClntObjMgrGetActivePlayer()) {
     if (xorBits & 0x00C00004) {
-      int hasControl =
-          (newFlags & 0x01000000) ||
-          ((m_obj->m_type & TYPE_PLAYER) &&
-           !m_unit->charmedBy &&
-           ((newFlags & 2) || !(newFlags & 0x00C00004)) &&
-           !(newFlags & 1));
+      int hasControl = (newFlags & 0x01000000) ||
+                       ((m_obj->m_type & TYPE_PLAYER) && !m_unit->charmedBy && ((newFlags & 2) || !(newFlags & 0x00C00004)) && !(newFlags & 1));
       CGGameUI::OnClientControlChanged(hasControl);
     }
     CGInputControl::GetActive()->UpdatePlayer(currentTime);
@@ -4368,9 +4338,7 @@ void CGUnit_C::OnFlagChanged(unsigned int oldFlags) {
   if (xorBits & 0x4000) {
     Script_SendUnitSignal(GetGUID(), 16);
     if ((newFlags & 0x4000) && GetGUID() == CGGameUI::GetLockedTarget()) {
-      CGPlayer_C *player = static_cast<CGPlayer_C *>(
-          ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)
-      );
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if (player && (player->m_flags & 0x400)) {
         player->SetCombatMode(0);
       }
@@ -4392,7 +4360,7 @@ void CGUnit_C::OnFlagChanged(unsigned int oldFlags) {
   }
 
   if (xorBits & 0x800) {
-    unsigned __int64 owner = m_unit->charmedBy ? m_unit->charmedBy : m_unit->summonedBy;
+    DWORDLONG owner = m_unit->charmedBy ? m_unit->charmedBy : m_unit->summonedBy;
     if (owner == ClntObjMgrGetActivePlayer()) {
       FrameScript_SignalEvent((newFlags & 0x800) ? 312 : 313);
     }
@@ -4402,15 +4370,13 @@ void CGUnit_C::OnFlagChanged(unsigned int oldFlags) {
     UpdateUnitMountInfo(0, xorBits);
   }
 
-  if (GetGUID() == ClntObjMgrGetActivePlayer() &&
-      (xorBits & 0x100000) &&
-      (newFlags & 0x100000)) {
+  if (GetGUID() == ClntObjMgrGetActivePlayer() && (xorBits & 0x100000) && (newFlags & 0x100000)) {
     ClearTrackingTarget(false);
   }
 }
 
-void CGUnit_C::HandleAnimEvent(const char *eventName, const NTempest::C3Vector &pos) {
-  unsigned long code;
+void CGUnit_C::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos) {
+  DWORD code;
   memcpy(&code, eventName, sizeof(code));
 
   switch (code) {
@@ -4485,12 +4451,12 @@ void CGUnit_C::HandleAnimEvent(const char *eventName, const NTempest::C3Vector &
       return;
 
     case 0x44534624:  // $FSD
-      {
-        unsigned int groundType;
-        if (CWorld::QueryGroundType(m_worldObject, groundType)) {
-          m_terrain = groundType;
-        }
+    {
+      UINT groundType;
+      if (CWorld::QueryGroundType(m_worldObject, groundType)) {
+        m_terrain = groundType;
       }
+    }
       HandleFootfallAnimEvent(pos);
       return;
 
@@ -4531,7 +4497,7 @@ void CGUnit_C::HandleAnimEvent(const char *eventName, const NTempest::C3Vector &
 }
 
 void CGUnit_C::FootstepAnimEventHit(const NTempest::C3Vector &position, int isLeftFoot) {
-  unsigned int       textureID;
+  UINT               textureID;
   NTempest::C2Vector size(0.0f);
   GetFootprintInfo(&textureID, &size);
   UnitFootprintNewSplat(textureID, size, position, GetFacing(), !isLeftFoot, m_terrain);
@@ -4556,7 +4522,7 @@ void CGUnit_C::HandleFootstepAnimEvent(const NTempest::C3Vector &position) {
   }
 }
 
-void CGUnit_C::GetFootprintInfo(unsigned int *id, NTempest::C2Vector *size) {
+void CGUnit_C::GetFootprintInfo(UINT *id, NTempest::C2Vector *size) {
   if ((m_unit->flags & 0x2000) && (m_flags & 0x10)) {
     FATALASSERT(id);
     FATALASSERT(size);
@@ -4568,7 +4534,7 @@ void CGUnit_C::GetFootprintInfo(unsigned int *id, NTempest::C2Vector *size) {
   }
 }
 
-const char *CGUnit_C::GetModelFileName() const {
+LPCSTR CGUnit_C::GetModelFileName() const {
   const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_unit->displayID);
   if (!displayInfo) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOCREATUREDISPLAYIDFOUND|%d", m_unit->displayID);
@@ -4584,12 +4550,12 @@ const char *CGUnit_C::GetModelFileName() const {
   return modelData->m_ModelName;
 }
 
-int CGUnit_C::CanBeLooted(unsigned long currentTime) const {
+int CGUnit_C::CanBeLooted(DWORD currentTime) const {
   return m_unit->health <= 0 && (m_animFlags & 0x2000) && static_cast<int>(currentTime - m_deathTime) >= 0 && (m_unit->dynamicFlags & 1);
 }
 
-void CGUnit_C::OnDynamicFlagsChanged(unsigned int oldValue) {
-  unsigned int newValue = m_unit->dynamicFlags;
+void CGUnit_C::OnDynamicFlagsChanged(UINT oldValue) {
+  UINT newValue = m_unit->dynamicFlags;
   if (((oldValue ^ newValue) & 1) == 0) {
     return;
   }
@@ -4604,16 +4570,16 @@ void CGUnit_C::OnDynamicFlagsChanged(unsigned int oldValue) {
     return;
   }
 
-  unsigned int effect = UnitEffectGetSpecialVisual(SPECIALEFFECT_LOOTART);
-  for (unsigned int attach = 0; attach < NUM_UNITEFFECTATTACHPOINTS; ++attach) {
-    const unsigned int attachedEffect = m_auraVisual[attach].GetEffect();
+  UINT effect = UnitEffectGetSpecialVisual(SPECIALEFFECT_LOOTART);
+  for (UINT attach = 0; attach < NUM_UNITEFFECTATTACHPOINTS; ++attach) {
+    const UINT attachedEffect = m_auraVisual[attach].GetEffect();
     if (attachedEffect == effect) {
       RemoveAuraVisual(static_cast<UNITEFFECTATTACHPPOINT>(attach));
     }
   }
 }
 
-int MoveHeartBeatHandler(const void *packetData, void *param) {
+int MoveHeartBeatHandler(LPCVOID packetData, LPVOID param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (unit && !(unit->m_move.m_moveFlags & 0x10000000)) {
     unit->SendMovementUpdate(MSG_MOVE_HEARTBEAT);
@@ -4628,7 +4594,7 @@ HTEXCOMPONENT CGUnit_C::GetTexComponent() const {
   return m_texComponent;
 }
 
-void CGUnit_C::SetActiveMover(const unsigned __int64 &guid) {
+void CGUnit_C::SetActiveMover(const DWORDLONG &guid) {
   if (m_activeMover) {
     CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_activeMover, __FILE__, __LINE__));
     if (mover) {
@@ -4639,7 +4605,7 @@ void CGUnit_C::SetActiveMover(const unsigned __int64 &guid) {
 }
 
 void CGUnit_C::BuildMovementUpdate(NETMESSAGE messageId, CDataStore *msg) const {
-  msg->Put(static_cast<unsigned int>(messageId));
+  msg->Put(static_cast<UINT>(messageId));
   const NTempest::C3Vector &position = m_move.GetPosition(m_move.m_position);
   msg->Put(m_move.m_transportGUID)
       .Put(m_move.m_position.x)
@@ -4673,18 +4639,17 @@ float CGUnit_C::GetSmoothFacing() const {
 }
 
 bool CGUnit_C::IsTurningState() const {
-  unsigned int state = (m_unit->flags & 0x2000) ? m_currentMountAnimState : m_currentBaseAnimState;
+  UINT state = (m_unit->flags & 0x2000) ? m_currentMountAnimState : m_currentBaseAnimState;
   return state == 18 || state == 19;
 }
 
 int CGUnit_C::ShouldShuffle() const {
-  unsigned __int64 unitBeingLooted = 0;
+  DWORDLONG unitBeingLooted = 0;
   if (m_obj->m_type & TYPE_PLAYER) {
     unitBeingLooted = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetUnitBeingLooted();
   }
 
-  return !(m_move.m_moveFlags & 0x02000000) &&
-         ((m_unit->flags & 0x20000) || !const_cast<CCombatClient &>(m_combat).IsAttacking()) &&
+  return !(m_move.m_moveFlags & 0x02000000) && ((m_unit->flags & 0x20000) || !const_cast<CCombatClient &>(m_combat).IsAttacking()) &&
          !unitBeingLooted && !m_unit->standState && !(s_animInfo[m_currentTorsoAnimState].flags & 8);
 }
 
@@ -4746,7 +4711,7 @@ void CGUnit_C::UpdateDisplayFacing() {
       absHeadAngle = 0.69813168f;
     }
 
-    float signedAngle = angleDelta < 0.0f ? -absHeadAngle : absHeadAngle;
+    float              signedAngle = angleDelta < 0.0f ? -absHeadAngle : absHeadAngle;
     NTempest::C3Vector torsoTurn(cos(signedAngle), sin(signedAngle), 0.0f);
     if (ModelApplyObjectFaceDir(model, 4, torsoTurn)) {
       absAngleConsumed = absHeadAngle;
@@ -4766,9 +4731,7 @@ void CGUnit_C::UpdateDisplayFacing() {
   }
 
   if (ShouldShuffle()) {
-    if (((m_animFlags & 0x10) && absAngleLeft > 0.00000023841858f) ||
-        (!(m_animFlags & 0x18) && fabs(absAngleToRetract) >= 0.00000023841858f))
-    {
+    if (((m_animFlags & 0x10) && absAngleLeft > 0.00000023841858f) || (!(m_animFlags & 0x18) && fabs(absAngleToRetract) >= 0.00000023841858f)) {
       if (angleDelta >= 0.0f && m_currentBaseAnimState != ANIM_STATE_TURNING_LEFT) {
         CGUnit_C::UpdateBaseAnimation(ANIM_STATE_TURNING_LEFT, 0);
       } else if (angleDelta < 0.0f && m_currentBaseAnimState != ANIM_STATE_TURNING_RIGHT) {
@@ -4788,7 +4751,7 @@ void CGUnit_C::UpdateSmoothFacing() {
 
   CGObject_C *activeMover = ClntObjMgrObjectPtr(m_activeMover, __FILE__, __LINE__);
   if (this == activeMover) {
-    unsigned int unitFlags = m_unit->flags;
+    UINT unitFlags = m_unit->flags;
     if ((unitFlags & 0x1000000) ||
         ((m_obj->m_type & TYPE_PLAYER) && !m_unit->charmedBy && ((unitFlags & 2) || !(unitFlags & 0xC00004)) && !(unitFlags & 1)))
     {
@@ -4812,7 +4775,7 @@ void CGUnit_C::UpdateSmoothFacing() {
     if (m_flags & 1) {
       facing = m_forcedDisplayFacing;
     } else if (!((m_unit->flags & 8) && (m_obj->m_type & TYPE_PLAYER))) {
-      unsigned __int64 target = 0;
+      DWORDLONG target = 0;
       if ((m_unit->flags & 0x20000) || !m_combat.IsAttacking()) {
         if (GetType() & TYPE_PLAYER) {
           target = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetUnitBeingLooted();
@@ -4891,7 +4854,7 @@ static void UpdateLocalPlayerFallState(int falling) {
   }
 }
 
-void CGUnit_C::OnTeleportLocalNoUpdate(unsigned long eventTime, const NTempest::C3Vector &position, float facing) {
+void CGUnit_C::OnTeleportLocalNoUpdate(DWORD eventTime, const NTempest::C3Vector &position, float facing) {
   static_cast<CMovement &>(m_move).OnTeleportLocal(eventTime, position, facing);
   UpdateBaseAnimation(0);
   if (GetGUID() == CGWorldFrame::GetActiveCamera()->GetTarget()) {
@@ -4899,7 +4862,7 @@ void CGUnit_C::OnTeleportLocalNoUpdate(unsigned long eventTime, const NTempest::
   }
 }
 
-void CGUnit_C::UpdateSwimmingStatus(unsigned long eventTime, int inWater, float depth) {
+void CGUnit_C::UpdateSwimmingStatus(DWORD eventTime, int inWater, float depth) {
   if (m_move.m_moveFlags & 0x800) {
     return;
   }
@@ -4945,7 +4908,7 @@ void CGUnit_C::StartMoveHeartbeatTimer() {
   s_moveHeartBeatTimer = ClientSetTimer(500, MoveHeartBeatHandler, 0);
 }
 
-unsigned int CGUnit_C::OffsetOf(OBJECT_TYPE_ID type) {
+UINT CGUnit_C::OffsetOf(OBJECT_TYPE_ID type) {
   switch (type) {
     case ID_OBJECT:
       return 0;
@@ -4967,7 +4930,7 @@ static void ResequenceEmoteAnims() {
   }
 }
 
-static bool ShowBreathCallback(CVar *h, const char *oldValue, const char *newValue, void *) {
+static bool ShowBreathCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID) {
   ConsoleWrite(SStrToInt(newValue) ? "Breath display enabled" : "Breath display disabled", DEFAULT_COLOR);
   return true;
 }
@@ -5025,7 +4988,7 @@ void CGUnit_C::Initialize() {
 
   g_unitSeqEndList.Clear();
   g_mountSeqEndList.Clear();
-  for (unsigned int animID = 0; animID < NUM_OBJECTANIMATIONS; ++animID) {
+  for (UINT animID = 0; animID < NUM_OBJECTANIMATIONS; ++animID) {
     if (g_seqInformation[animID].callbackFlags & 1) {
       *g_unitSeqEndList.New() = animID;
     }
@@ -5035,8 +4998,7 @@ void CGUnit_C::Initialize() {
   }
 
   ResequenceEmoteAnims();
-  s_showBreathCvar =
-      CVar::Register("ShowBreath", "Toggle display of unit/player breath", 0, "1", ShowBreathCallback, GRAPHICS, false, 0);
+  s_showBreathCvar = CVar::Register("ShowBreath", "Toggle display of unit/player breath", 0, "1", ShowBreathCallback, GRAPHICS, false, 0);
 }
 
 void CGUnit_C::PostShutdown() {
@@ -5119,7 +5081,7 @@ int CGUnit_C::GetCreatureType() const {
   return race->m_creatureType;
 }
 
-void CGUnit_C::SetLocalTarget(unsigned __int64 target) {
+void CGUnit_C::SetLocalTarget(DWORDLONG target) {
   if (m_targetUnit == target) {
     return;
   }
@@ -5138,28 +5100,25 @@ void CGUnit_C::SetLocalTarget(unsigned __int64 target) {
 }
 
 int CGUnit_C::IsSplashing(const NTempest::C3Vector &position) {
-  unsigned int        liquid = 15;
-  float               surfaceColPt = 0.0f;
-  NTempest::C3Vector  waterDir(0.0f, 0.0f, 0.0f);
-  int                 deep;
-  return CWorld::QueryObjectLiquid(GetWorldObject(), liquid, surfaceColPt, waterDir, deep)
-      && (liquid & 3) != 2
-      && surfaceColPt > position.z
-      && surfaceColPt - position.z < 0.66666669f;
+  UINT               liquid = 15;
+  float              surfaceColPt = 0.0f;
+  NTempest::C3Vector waterDir(0.0f, 0.0f, 0.0f);
+  int                deep;
+  return CWorld::QueryObjectLiquid(GetWorldObject(), liquid, surfaceColPt, waterDir, deep) && (liquid & 3) != 2 && surfaceColPt > position.z &&
+         surfaceColPt - position.z < 0.66666669f;
 }
 
 bool CGUnit_C::IsShapeShifted() const {
   if (!m_unit->shapeshiftForm) {
     return false;
   }
-  const SpellShapeshiftFormRec *form =
-      g_spellShapeshiftFormDB.GetRecord(m_unit->shapeshiftForm);
+  const SpellShapeshiftFormRec *form = g_spellShapeshiftFormDB.GetRecord(m_unit->shapeshiftForm);
   return !(form->m_flags & 1);
 }
 
 int CGUnit_C::IsUnderWater() const {
   float              surfaceColPt = 0.0f;
-  unsigned int       liquidStatus = 0;
+  UINT               liquidStatus = 0;
   NTempest::C3Vector waterDir;
   int                deep = 15;
   float              depth = 0.0f;
@@ -5169,7 +5128,7 @@ int CGUnit_C::IsUnderWater() const {
   return depth > m_move.m_collisionBoxHeight * 0.5f;
 }
 
-unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
+UINT CGUnit_C::ChooseAnimation(UINT state) const {
   FATALASSERT(state != ANIM_STATE_NONE);
 
   switch (state) {
@@ -5249,7 +5208,7 @@ unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
     case ANIM_STATE_EMOTE:
       return GetEmoteAnimation(m_emoteID);
     case ANIM_STATE_ATTACK_READY: {
-      unsigned int sequence = GetReadySequence();
+      UINT sequence = GetReadySequence();
       if (ModelHasSequenceId(GetObjectModel(), sequence)) {
         return sequence;
       }
@@ -5290,12 +5249,12 @@ unsigned int CGUnit_C::ChooseAnimation(unsigned int state) const {
   }
 }
 
-void CGUnit_C::OnBadAttackFacing(unsigned __int64 victimGUID) {
+void CGUnit_C::OnBadAttackFacing(DWORDLONG victimGUID) {
   m_hitInformation.attackFlags |= 2;
 }
 
-int GetForcedAnimIndex(const char *token) {
-  for (unsigned int i = 0; i < 8; ++i) {
+int GetForcedAnimIndex(LPCSTR token) {
+  for (UINT i = 0; i < 8; ++i) {
     if (!SStrCmp(s_forceAnimDescs[i].name, token, 0x7FFFFFFF)) {
       return i;
     }
@@ -5303,16 +5262,16 @@ int GetForcedAnimIndex(const char *token) {
   return -1;
 }
 
-int ParseForcedAnimCommandLine(const char *arguments, unsigned int *fidgetIndex) {
+int ParseForcedAnimCommandLine(LPCSTR arguments, UINT *fidgetIndex) {
   if (!arguments || !*arguments || !fidgetIndex) {
     return -1;
   }
 
-  char         tokenBuffer[128];
-  const char  *stringBuffer = arguments;
-  unsigned int foundFidget = 0;
-  int          anim = -1;
-  int          token = 0;
+  char   tokenBuffer[128];
+  LPCSTR stringBuffer = arguments;
+  UINT   foundFidget = 0;
+  int    anim = -1;
+  int    token = 0;
   do {
     SStrTokenize(&stringBuffer, tokenBuffer, sizeof(tokenBuffer), " ", 0);
     if (!token) {
@@ -5331,9 +5290,9 @@ int ParseForcedAnimCommandLine(const char *arguments, unsigned int *fidgetIndex)
   return anim;
 }
 
-void CGUnit_C::SetForcedAnimation(const char *string) {
-  unsigned int animVariation;
-  int          animIndex = ParseForcedAnimCommandLine(string, &animVariation);
+void CGUnit_C::SetForcedAnimation(LPCSTR string) {
+  UINT animVariation;
+  int  animIndex = ParseForcedAnimCommandLine(string, &animVariation);
   if (animIndex == -1) {
     return;
   }
@@ -5345,7 +5304,7 @@ void CGUnit_C::SetForcedAnimation(const char *string) {
     return;
   }
 
-  unsigned int &flags = m_animFlags;
+  UINT &flags = m_animFlags;
   flags |= 1;
   if (s_forceAnimDescs[animIndex].flag) {
     flags |= 2;
@@ -5360,17 +5319,11 @@ void CGUnit_C::SetForcedAnimation(const char *string) {
       break;
     case 4:
     case 6:
-      PlayUnitSound(
-          s_forceAnimDescs[animIndex].flag ? UNITSOUNDTYPE_EXERTIONCRITICAL : UNITSOUNDTYPE_EXERTION,
-          1
-      );
+      PlayUnitSound(s_forceAnimDescs[animIndex].flag ? UNITSOUNDTYPE_EXERTIONCRITICAL : UNITSOUNDTYPE_EXERTION, 1);
       break;
     case 5:
     case 7:
-      PlayUnitSound(
-          s_forceAnimDescs[animIndex].flag ? UNITSOUNDTYPE_INJURYCRITICAL : UNITSOUNDTYPE_INJURY,
-          1
-      );
+      PlayUnitSound(s_forceAnimDescs[animIndex].flag ? UNITSOUNDTYPE_INJURYCRITICAL : UNITSOUNDTYPE_INJURY, 1);
       break;
   }
 }
@@ -5384,14 +5337,14 @@ void CGUnit_C::ForceUpdateBaseAnimation() {
   UpdateBaseAnimation(GetAnimationState(), 0x100);
 }
 
-void CGUnit_C::OnBadAttackPosition(unsigned __int64 victimGUID, float range) {
+void CGUnit_C::OnBadAttackPosition(DWORDLONG victimGUID, float range) {
 }
 
 void ClearSpecialEffects(HMODEL model) {
-  static unsigned int linkPoints[] = {19, 20, 21, 22, -1, 17, 34, 23, 24, 25, 16, 15};
+  static UINT linkPoints[] = {19, 20, 21, 22, -1, 17, 34, 23, 24, 25, 16, 15};
 
   FATALASSERT(model);
-  for (unsigned int i = 0; i < 12; ++i) {
+  for (UINT i = 0; i < 12; ++i) {
     ModelClearLink(model, linkPoints[i]);
   }
   ModelSetVertexAlpha(model, 255, 1);
@@ -5401,16 +5354,16 @@ void ClearSpecialEffects(HMODEL model) {
   ModelRemoveObjectFaceDir(model, 5);
 }
 
-void CGUnit_C::StopSpellFizzleTimer(int spellID, unsigned char status) {
+void CGUnit_C::StopSpellFizzleTimer(int spellID, BYTE status) {
   int castingSpell = m_castingSpell;
   if (castingSpell && spellID == castingSpell) {
-    unsigned int timer = m_spellFizzleTimer;
+    UINT timer = m_spellFizzleTimer;
     ClientKillTimer(timer, SpellFizzleTimer, "SpellFizzleTimer");
     EndSpellEffects(status);
   }
 }
 
-void CGUnit_C::StartSpellFizzleTimer(int spellID, unsigned int castingTime, int animSet) {
+void CGUnit_C::StartSpellFizzleTimer(int spellID, UINT castingTime, int animSet) {
   StopSpellFizzleTimer(m_castingSpell, 2);
   m_spellFizzleTimer = ClientSetTimer(castingTime, SpellFizzleTimer, this);
   SetCastingSpell(spellID, 1, animSet != 0);
@@ -5420,12 +5373,11 @@ void CGUnit_C::SpellDelayed(int delay) {
   if (m_spellFizzleTimer && delay) {
     float remaining = EventGetRemainingTime(m_spellFizzleTimer);
     ClientKillTimer(m_spellFizzleTimer, SpellFizzleTimer, "SpellFizzleTimer");
-    m_spellFizzleTimer =
-        ClientSetTimer(delay + static_cast<unsigned int>(remaining * 1000.0f), SpellFizzleTimer, this);
+    m_spellFizzleTimer = ClientSetTimer(delay + static_cast<UINT>(remaining * 1000.0f), SpellFizzleTimer, this);
   }
 }
 
-void CGUnit_C::EndSpellEffects(unsigned char status) {
+void CGUnit_C::EndSpellEffects(BYTE status) {
   int castingSpell = m_castingSpell;
   m_spellFizzleTimer = 0;
 
@@ -5435,9 +5387,9 @@ void CGUnit_C::EndSpellEffects(unsigned char status) {
   }
 
   KillSpellLoopedSound();
-  unsigned int torsoState = m_currentTorsoAnimState;
+  UINT torsoState = m_currentTorsoAnimState;
   if (torsoState == 37) {
-    unsigned int torsoAnim = GetCurrentTorsoAnim();
+    UINT torsoAnim = GetCurrentTorsoAnim();
     if (torsoAnim == 46 || torsoAnim == 49) {
       RangedWeaponAnimEndHandler();
     } else if (torsoAnim == 107) {
@@ -5457,7 +5409,7 @@ void CGUnit_C::AddDeathHold() {
   ++m_deathHolds;
 }
 
-unsigned __int64 CGUnit_C::GetUnitBeingLooted() const {
+DWORDLONG CGUnit_C::GetUnitBeingLooted() const {
   return 0;
 }
 
@@ -5466,10 +5418,7 @@ void CGUnit_C::GetSwimMatrix(NTempest::C34Matrix *worldMatrix) const {
   rotation.FromEulerAnglesZYX(-(6.2831855f - GetRenderFacing()), 6.2831855f - m_move.m_pitch, 0.0f);
 
   *worldMatrix = NTempest::C34Matrix(
-      rotation.a0, rotation.a1, rotation.a2,
-      rotation.b0, rotation.b1, rotation.b2,
-      rotation.c0, rotation.c1, rotation.c2,
-      0.0f, 0.0f, 0.0f
+      rotation.a0, rotation.a1, rotation.a2, rotation.b0, rotation.b1, rotation.b2, rotation.c0, rotation.c1, rotation.c2, 0.0f, 0.0f, 0.0f
   );
   worldMatrix->Scale(GetScale() * GetRenderScale());
   *worldMatrix->Row3AsVec3() = GetPosition();
@@ -5481,10 +5430,7 @@ void CGUnit_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
 
   if (m_currentBaseAnim == 1 || m_currentBaseAnim == 99) {
     blendRatio = ModelGetPrimarySequenceCompletion(model);
-  } else if (
-      (m_move.m_spline && !(m_move.m_spline->flags & 4) && (m_move.m_spline->flags & 0x200)) ||
-      m_currentBaseAnim == 100
-  ) {
+  } else if ((m_move.m_spline && !(m_move.m_spline->flags & 4) && (m_move.m_spline->flags & 0x200)) || m_currentBaseAnim == 100) {
     blendRatio = 1.0f;
   } else if (m_currentBaseAnim == 101) {
     blendRatio = 1.0f - ModelGetPrimarySequenceCompletion(model);
@@ -5497,9 +5443,7 @@ void CGUnit_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
     return;
   }
 
-  ModelForceStandingMatrix(
-      model, GetPosition(), GetGroundNormal(), GetRenderFacing(), GetScale() * GetRenderScale(), 2, blendRatio, worldMatrix
-  );
+  ModelForceStandingMatrix(model, GetPosition(), GetGroundNormal(), GetRenderFacing(), GetScale() * GetRenderScale(), 2, blendRatio, worldMatrix);
 }
 
 void CGUnit_C::DelDeathHold() {
@@ -5560,7 +5504,7 @@ static bool IsCombatSwingSpell(int spellID) {
   return spellRec && (spellRec->m_attributes & 0x404);
 }
 
-void CGUnit_C::AddDamageDone(unsigned int damage, int normalCombatDamage, unsigned int flags, unsigned __int64 attacker, int spellID) {
+void CGUnit_C::AddDamageDone(UINT damage, int normalCombatDamage, UINT flags, DWORDLONG attacker, int spellID) {
   if (attacker != ClntObjMgrGetActivePlayer()) {
     return;
   }
@@ -5635,7 +5579,7 @@ void CGUnit_C::OnPendingMoveStateChange(NETMESSAGE msgId) {
   }
 
   if (GetGUID() == m_activeMover) {
-    unsigned int unitFlags = m_unit->flags;
+    UINT unitFlags = m_unit->flags;
     if ((unitFlags & 0x01000000) ||
         ((GetType() & TYPE_PLAYER) && !m_unit->charmedBy && ((unitFlags & 2) || !(unitFlags & 0x00C00004)) && !(unitFlags & 1)))
     {
@@ -5644,14 +5588,14 @@ void CGUnit_C::OnPendingMoveStateChange(NETMESSAGE msgId) {
   }
 }
 
-void CGUnit_C::OnCollideFalling(unsigned long eventTime) {
+void CGUnit_C::OnCollideFalling(DWORD eventTime) {
   UpdateBaseAnimation(0);
   if (GetGUID() == m_activeMover && m_move.m_jumpVelocity == 0.0f) {
     UpdateLocalPlayerFallState(1);
   }
 }
 
-void CGUnit_C::OnCollideFallLand(unsigned long eventTime) {
+void CGUnit_C::OnCollideFallLand(DWORD eventTime) {
   if (m_move.m_moveFlags & 0xF) {
     UpdateBaseAnimation(0);
   } else if (!IsInStandSitTransition()) {
@@ -5670,7 +5614,7 @@ void CGUnit_C::OnCollideFallLand(unsigned long eventTime) {
   }
 }
 
-bool CGUnit_C::IsSlotComponented(unsigned int offset, int ignoreUsingRangedWeapon) {
+bool CGUnit_C::IsSlotComponented(UINT offset, int ignoreUsingRangedWeapon) {
   if (offset >= 23) {
     return 0;
   }
@@ -5712,14 +5656,14 @@ void CGUnit_C::UpdateMovementAnimSpeed(int forMount, int currentState) {
   if (s_animInfo[currentState].flags & 0x100) {
     scale = fabs(DetermineWalkRunTimeScale(currentState));
   }
-  unsigned int animFlags = s_animInfo[currentState].flags;
+  UINT animFlags = s_animInfo[currentState].flags;
   if ((animFlags & 0x40) || ((animFlags & 0x800) && !(m_animFlags & 4))) {
     scale = -scale;
   }
   ModelSetTimeScale(m_model, scale, 0);
 }
 
-void CGUnit_C::AttachVirtualComponent(unsigned int slot, bool deferApply) {
+void CGUnit_C::AttachVirtualComponent(UINT slot, bool deferApply) {
   FATALASSERT(!IsA(TYPE_PLAYER));
   FATALASSERT(slot < NUM_VIRTUAL_MONSTER_SLOTS);
 
@@ -5752,14 +5696,7 @@ void CGUnit_C::AttachVirtualComponent(unsigned int slot, bool deferApply) {
   int                    inventoryType = itemInfo->m_inventoryType;
 
   AddObjectComponentBySlot(
-      invSlot,
-      GetVirtualItemDisplayID(slot),
-      inventoryType,
-      forceAlternate,
-      deferApply,
-      false,
-      sheathedAttachmentPoint,
-      showHidden
+      invSlot, GetVirtualItemDisplayID(slot), inventoryType, forceAlternate, deferApply, false, sheathedAttachmentPoint, showHidden
   );
 }
 
@@ -5768,7 +5705,7 @@ void CGUnit_C::AttachVirtualMonsterWeapons() {
     return;
   }
 
-  for (unsigned int slot = 0; slot < NUM_VIRTUAL_MONSTER_SLOTS; ++slot) {
+  for (UINT slot = 0; slot < NUM_VIRTUAL_MONSTER_SLOTS; ++slot) {
     if (m_unit->virtualItemDisplay[slot]) {
       AttachVirtualComponent(slot, slot == VIRTUAL_MONSTER_SLOT_RANGED);
     }
@@ -5776,11 +5713,7 @@ void CGUnit_C::AttachVirtualMonsterWeapons() {
 
   SetSheatheReason(SHEATHE_PLAYEREXPLICIT, m_unit->weaponMode == WEAPONMODE_SHEATHEDMODE, 1);
   if (m_unit->virtualItemDisplay[VIRTUAL_MONSTER_SLOT_RANGED]) {
-    SetSheatheReason(
-        SHEATHE_RANGED,
-        m_unit->weaponMode == WEAPONMODE_RANGEDMODE && m_sheatheReasons,
-        true
-    );
+    SetSheatheReason(SHEATHE_RANGED, m_unit->weaponMode == WEAPONMODE_RANGEDMODE && m_sheatheReasons, true);
   }
 }
 
@@ -5788,9 +5721,8 @@ void CGUnit_C::RenderDebugPathing() {
   static NTempest::CImVector green(0xFF00FF00);
   static NTempest::CImVector white(0xFFFFFFFF);
 
-  TSGrowableArray<NTempest::C3Vector> &points =
-      m_debugPathPoints;
-  unsigned int &numPathNodes = m_numDebugPathNodes;
+  TSGrowableArray<NTempest::C3Vector> &points = m_debugPathPoints;
+  UINT                                &numPathNodes = m_numDebugPathNodes;
 
   GxRsPush();
   if (m_move.m_spline && !(m_move.m_spline->flags & 4) && (m_move.m_spline->flags & 0x200)) {
@@ -5801,7 +5733,7 @@ void CGUnit_C::RenderDebugPathing() {
 
     NTempest::C3Vector cameraPos;
     CGWorldFrame::GetCameraPosition(&cameraPos);
-    for (unsigned int i = 0; i < numPathNodes; ++i) {
+    for (UINT i = 0; i < numPathNodes; ++i) {
       NTempest::C3Vector zero(0.0f);
       NTempest::C3Vector up(0.0f, 0.0f, 1.0f);
       NTempest::C3Vector position = points[i] - cameraPos;
@@ -5818,12 +5750,12 @@ void CGUnit_C::RenderDebugPathing() {
     worldToCamera.Translate(-cameraPos);
     GxXformPush(GxXform_World, worldToCamera);
 
-    const unsigned int        count = points.Count() - numPathNodes;
+    const UINT                count = points.Count() - numPathNodes;
     const NTempest::C3Vector *linePoints = &points[numPathNodes];
     GxPrimLockVertexPtrs(count, linePoints, sizeof(*linePoints), 0, 0, &white, 0, 0, 0, 0, 0, 0, 0);
-    unsigned short *indices = static_cast<unsigned short *>(_alloca(count * sizeof(*indices)));
-    for (unsigned int index = 0; index < count; ++index) {
-      indices[index] = static_cast<unsigned short>(index);
+    WORD *indices = static_cast<WORD *>(_alloca(count * sizeof(*indices)));
+    for (UINT index = 0; index < count; ++index) {
+      indices[index] = static_cast<WORD>(index);
     }
     GxPrimDrawElements(GxPrim_LineStrip, count, indices);
     GxPrimUnlockVertexPtrs();
@@ -5836,7 +5768,7 @@ void CGUnit_C::RenderDebugPathing() {
     NTempest::CAaBox          worldBox(serverLoc - halfExtents, serverLoc + halfExtents);
     ProjectTex2d(worldBox, green, 0, 0.5f);
 
-    for (unsigned int pointIndex = points.Count(); pointIndex; --pointIndex) {
+    for (UINT pointIndex = points.Count(); pointIndex; --pointIndex) {
       const NTempest::C3Vector &point = points[pointIndex - 1];
       worldBox.b = point - halfExtents;
       worldBox.t = point + halfExtents;
@@ -5849,12 +5781,11 @@ void CGUnit_C::RenderDebugPathing() {
 
 void CGUnit_C::PreAnimate(CGWorldFrame *worldFrame) {
   FATALASSERT(worldFrame);
-  unsigned int currentTime = OsGetAsyncTimeMs();
+  UINT currentTime = OsGetAsyncTimeMs();
 
   if (s_drawNameplates && !(m_obj->m_type & TYPE_PLAYER) && m_unit->health > 0) {
-    CGCamera *camera = CGWorldFrame::GetActiveCamera();
-    CGObject_C *target =
-        static_cast<CGObject_C *>(ClntObjMgrObjectPtr(camera->GetTarget(), __FILE__, __LINE__));
+    CGCamera   *camera = CGWorldFrame::GetActiveCamera();
+    CGObject_C *target = static_cast<CGObject_C *>(ClntObjMgrObjectPtr(camera->GetTarget(), __FILE__, __LINE__));
     if (target) {
       NTempest::C3Vector targetPosition = target->GetPosition();
       NTempest::C3Vector position = GetPosition();
@@ -5865,8 +5796,7 @@ void CGUnit_C::PreAnimate(CGWorldFrame *worldFrame) {
   }
 
   if (CGGameUI::GetLockedTarget() == GetGUID()) {
-    CGPlayer_C *player =
-        static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player && player->IsInCombatMode()) {
       m_flags |= 0x200;
       if (static_cast<int>(currentTime - s_lastTargetFlashTime - 500) >= 0) {
@@ -5879,7 +5809,7 @@ void CGUnit_C::PreAnimate(CGWorldFrame *worldFrame) {
       if (s_targetPulseDirection) {
         pulse = 1.0f - pulse;
       }
-      s_targetFlashColor.g = static_cast<unsigned char>(pulse * 128.0f);
+      s_targetFlashColor.g = static_cast<BYTE>(pulse * 128.0f);
       PlayerNameTriggerColorUpdate(m_unitNameHandle);
     }
   } else if (m_flags & 0x200) {
@@ -5887,7 +5817,7 @@ void CGUnit_C::PreAnimate(CGWorldFrame *worldFrame) {
     PlayerNameTriggerColorUpdate(m_unitNameHandle);
   }
 
-  for (BLOODSPLATNODE *node = m_bloodSplatNodes.Head(); node; ) {
+  for (BLOODSPLATNODE *node = m_bloodSplatNodes.Head(); node;) {
     if (static_cast<int>(currentTime - node->m_triggerTime) < 0) {
       break;
     }
@@ -5903,8 +5833,8 @@ void CGUnit_C::PreAnimate(CGWorldFrame *worldFrame) {
     m_flags = (m_flags & ~8U) | 0x80000;
     if (m_castingSpell && m_ammoDisplayID) {
       const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(m_ammoDisplayID);
-      unsigned int        sequenceDuration;
-      HMODEL              ammoModel = ObjComponentBuildAmmoModel(displayInfo, m_ammoInvType, sequenceDuration);
+      UINT                      sequenceDuration;
+      HMODEL                    ammoModel = ObjComponentBuildAmmoModel(displayInfo, m_ammoInvType, sequenceDuration);
       if (ammoModel) {
         HMODEL charModel = GetCharacterModel(0);
         if (charModel) {
@@ -5928,20 +5858,13 @@ void CGUnit_C::BuildSelectionRotMatrix(NTempest::C44Matrix &matrix) const {
   }
 }
 
-void CGUnit_C::ObjectPostAnimate(
-    const NTempest::C34Matrix &,
-    const NTempest::C3Vector &cameraPos,
-    const NTempest::C3Vector &cameraTarg
-) {
+void CGUnit_C::ObjectPostAnimate(const NTempest::C34Matrix &, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
   if (m_fadingPureMountModel) {
     UpdateFadingMountModel(cameraPos, cameraTarg);
   }
 }
 
-void CGUnit_C::UpdateFadingMountModel(
-    const NTempest::C3Vector &cameraPos,
-    const NTempest::C3Vector &cameraTarg
-) {
+void CGUnit_C::UpdateFadingMountModel(const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
   FATALASSERT(m_fadingPureMountModel);
 
   int elapsed = OsGetAsyncTimeMs() - m_pureMountFadeStartTime;
@@ -5958,20 +5881,12 @@ void CGUnit_C::UpdateFadingMountModel(
   if (m_pureMountFadeMode == PUREMOUNTFADE_OUT) {
     alpha = 1.0f - alpha;
   }
-  ModelSetVertexAlpha(m_fadingPureMountModel, static_cast<unsigned char>(alpha * 255.0f), 1);
+  ModelSetVertexAlpha(m_fadingPureMountModel, static_cast<BYTE>(alpha * 255.0f), 1);
 
   if (ModelAdvanceTime(m_fadingPureMountModel)) {
     NTempest::C3Vector rotationAxis(0.0f, 0.0f, 1.0f);
     NTempest::C3Vector cameraVector = cameraTarg - cameraPos;
-    ModelAnimate(
-        m_fadingPureMountModel,
-        m_fadingMountPos,
-        m_fadingMountFacing,
-        rotationAxis,
-        m_fadingMountScale,
-        cameraPos,
-        cameraVector
-    );
+    ModelAnimate(m_fadingPureMountModel, m_fadingMountPos, m_fadingMountFacing, rotationAxis, m_fadingMountScale, cameraPos, cameraVector);
     ModelAddToScene(m_fadingPureMountModel, 0);
   }
 }
@@ -5985,7 +5900,7 @@ void CGUnit_C::UpdatePlayerName() {
   FATALASSERT(charModel);
 
   NTempest::C3Vector namePosition(0.0f);
-  unsigned int       objectID = 22 | ((m_unit->flags >> 13) & 1);
+  UINT               objectID = 22 | ((m_unit->flags >> 13) & 1);
   if (!ModelAnimHasObjectId(charModel, objectID)) {
     objectID = 22;
   }
@@ -6129,20 +6044,14 @@ void CGUnit_C::RenderTargetSelection() const {
 }
 
 int CGUnit_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
-  static NTempest::CImVector s_reactionTypeColors[NUM_UNIT_REACTIONS] = {
-      NTempest::CImVector(0xFFFF0000),
-      NTempest::CImVector(0xFFFF0000),
-      NTempest::CImVector(255, 255, 128, 0),
-      NTempest::CImVector(255, 255, 255, 0),
-      NTempest::CImVector(255, 0, 255, 0),
-      NTempest::CImVector(255, 0, 255, 0),
-      NTempest::CImVector(255, 0, 255, 0)
-  };
+  static NTempest::CImVector s_reactionTypeColors[NUM_UNIT_REACTIONS] = {NTempest::CImVector(0xFFFF0000),       NTempest::CImVector(0xFFFF0000),
+                                                                         NTempest::CImVector(255, 255, 128, 0), NTempest::CImVector(255, 255, 255, 0),
+                                                                         NTempest::CImVector(255, 0, 255, 0),   NTempest::CImVector(255, 0, 255, 0),
+                                                                         NTempest::CImVector(255, 0, 255, 0)};
   static NTempest::CImVector s_playerReactionColor(255, 96, 96, 255);
   static NTempest::CImVector s_partyReactionColor(255, 170, 170, 255);
 
-  CGUnit_C *currentPlayer =
-      static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGUnit_C *currentPlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   FATALASSERT(currentPlayer);
   FATALASSERT(outPtr);
 
@@ -6176,7 +6085,7 @@ void CGUnit_C::OnLeftClick() {
     }
     ++m_pissedCount;
   } else {
-    unsigned int pissedIndex = m_pissedCount - 4;
+    UINT pissedIndex = m_pissedCount - 4;
     if (pissedIndex < m_numNPCPissedSounds) {
       if (!PlayNPCSound(NPCSOUND_PISSED, pissedIndex)) {
         return;
@@ -6194,16 +6103,14 @@ void CGUnit_C::OnLeftClick() {
 }
 
 void CGUnit_C::OnRightClick() {
-  CGPlayer_C *player =
-      static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || player->m_unit->health <= 0) {
     return;
   }
 
   if (player->m_flags & 0x800) {
     CGUnit_C *possessed = player->GetPossessedUnit();
-    if (m_unit->health > 0 && possessed && possessed->m_unit->health > 0 &&
-        !(possessed->m_unit->flags & 0x2000) && possessed->CanAttack(this)) {
+    if (m_unit->health > 0 && possessed && possessed->m_unit->health > 0 && !(possessed->m_unit->flags & 0x2000) && possessed->CanAttack(this)) {
       CGPetInfo::PetAttackTarget(GetGUID());
     }
     return;
@@ -6211,7 +6118,7 @@ void CGUnit_C::OnRightClick() {
 
   if (m_unit->health > 0) {
     if (player->CanInteract(this)) {
-      unsigned int npcFlags = m_unit->npcFlags;
+      UINT npcFlags = m_unit->npcFlags;
       if (npcFlags & 1) {
         player->ShopFromMerchant(GetGUID());
       } else if (npcFlags & 4) {
@@ -6232,8 +6139,7 @@ void CGUnit_C::OnRightClick() {
     } else if (player->CanAttack(this)) {
       if (player->m_unit->standState) {
         CGGameUI::DisplayError(GERR_CANTATTACK_NOTSTANDING);
-      } else if (player->m_unit->health > 0 && !(player->m_unit->flags & 0x2000) &&
-                 m_unit->health > 0 && player->CanAttack(this)) {
+      } else if (player->m_unit->health > 0 && !(player->m_unit->flags & 0x2000) && m_unit->health > 0 && player->CanAttack(this)) {
         player->SetCombatMode(1);
       }
     }
@@ -6257,8 +6163,8 @@ bool CGUnit_C::FactionHasReputation(int faction) {
 }
 
 int CGUnit_C::GetFactionTemplate() const {
-  const unsigned __int64 &owner = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
-  CGUnit_C               *ownerUnit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(owner, __FILE__, __LINE__));
+  const DWORDLONG &owner = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
+  CGUnit_C        *ownerUnit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(owner, __FILE__, __LINE__));
 
   return ownerUnit ? ownerUnit->m_unit->factionTemplate : m_unit->factionTemplate;
 }
@@ -6273,25 +6179,24 @@ bool CGUnit_C::CanAssist(const CGUnit_C *unit) const {
   }
 
   if (unit->m_unit->flags & 8) {
-    const CGUnit_C         *player1 = this;
-    const unsigned __int64 &owner1 = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
+    const CGUnit_C  *player1 = this;
+    const DWORDLONG &owner1 = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
     if (owner1) {
       player1 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner1, __FILE__, __LINE__));
     }
 
-    const CGUnit_C         *player2 = unit;
-    const unsigned __int64 &owner2 = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
+    const CGUnit_C  *player2 = unit;
+    const DWORDLONG &owner2 = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
     if (owner2) {
       player2 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner2, __FILE__, __LINE__));
     }
 
     const CGPlayer_C *playerObject1 = static_cast<const CGPlayer_C *>(player1);
     const CGPlayer_C *playerObject2 = static_cast<const CGPlayer_C *>(player2);
-    if (player1 && (player1->m_obj->m_type & TYPE_PLAYER) && player2 && (player2->m_obj->m_type & TYPE_PLAYER) &&
-            playerObject1->GetDuelTeam() ||
-        playerObject2->GetDuelTeam()) {
-      return playerObject1->GetDuelArbiter() == playerObject2->GetDuelArbiter() &&
-             playerObject1->GetDuelTeam() == playerObject2->GetDuelTeam();
+    if (player1 && (player1->m_obj->m_type & TYPE_PLAYER) && player2 && (player2->m_obj->m_type & TYPE_PLAYER) && playerObject1->GetDuelTeam() ||
+        playerObject2->GetDuelTeam())
+    {
+      return playerObject1->GetDuelArbiter() == playerObject2->GetDuelArbiter() && playerObject1->GetDuelTeam() == playerObject2->GetDuelTeam();
     }
 
     return UnitReaction(GetFactionTemplate(), unit, -1) >= UNIT_REACTION_NEUTRAL;
@@ -6302,7 +6207,7 @@ bool CGUnit_C::CanAssist(const CGUnit_C *unit) const {
 }
 
 bool CGUnit_C::CanAttack(const CGUnit_C *unit) const {
-  unsigned int flags = m_unit->flags;
+  UINT flags = m_unit->flags;
   if (((flags & 8) && (unit->m_unit->flags & 0x100)) || (!(flags & 8) && (unit->m_unit->flags & 0x200)) ||
       ((flags & 0x100) && (unit->m_unit->flags & 8)) || ((flags & 0x200) && !(unit->m_unit->flags & 8)))
   {
@@ -6310,18 +6215,17 @@ bool CGUnit_C::CanAttack(const CGUnit_C *unit) const {
   }
 
   if (!(flags & 8) || !(unit->m_unit->flags & 8)) {
-    return UnitReaction(unit) < UNIT_REACTION_AMIABLE ||
-           (!(m_unit->flags & 8) && unit->UnitReaction(this) < UNIT_REACTION_AMIABLE);
+    return UnitReaction(unit) < UNIT_REACTION_AMIABLE || (!(m_unit->flags & 8) && unit->UnitReaction(this) < UNIT_REACTION_AMIABLE);
   }
 
-  const CGUnit_C         *player1 = this;
-  const unsigned __int64 &owner1 = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
+  const CGUnit_C  *player1 = this;
+  const DWORDLONG &owner1 = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
   if (owner1) {
     player1 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner1, __FILE__, __LINE__));
   }
 
-  const CGUnit_C         *player2 = unit;
-  const unsigned __int64 &owner2 = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
+  const CGUnit_C  *player2 = unit;
+  const DWORDLONG &owner2 = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
   if (owner2) {
     player2 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner2, __FILE__, __LINE__));
   }
@@ -6329,8 +6233,8 @@ bool CGUnit_C::CanAttack(const CGUnit_C *unit) const {
   if (player1 && (player1->m_obj->m_type & TYPE_PLAYER) && player2 && (player2->m_obj->m_type & TYPE_PLAYER)) {
     const CGPlayer_C *playerObject1 = static_cast<const CGPlayer_C *>(player1);
     const CGPlayer_C *playerObject2 = static_cast<const CGPlayer_C *>(player2);
-    unsigned int      duelTeam1 = playerObject1->GetDuelTeam();
-    unsigned int      duelTeam2 = playerObject2->GetDuelTeam();
+    UINT              duelTeam1 = playerObject1->GetDuelTeam();
+    UINT              duelTeam2 = playerObject2->GetDuelTeam();
 
     if (duelTeam1 || duelTeam2) {
       if (playerObject1->GetDuelArbiter() != playerObject2->GetDuelArbiter()) {
@@ -6340,8 +6244,7 @@ bool CGUnit_C::CanAttack(const CGUnit_C *unit) const {
     }
   }
 
-  return UnitReaction(unit) < UNIT_REACTION_AMIABLE ||
-         (!(m_unit->flags & 8) && unit->UnitReaction(this) < UNIT_REACTION_AMIABLE);
+  return UnitReaction(unit) < UNIT_REACTION_AMIABLE || (!(m_unit->flags & 8) && unit->UnitReaction(this) < UNIT_REACTION_AMIABLE);
 }
 
 bool CGUnit_C::CanCooperate(const CGUnit_C *unit) const {
@@ -6360,14 +6263,14 @@ bool CGUnit_C::IsUnitInGroup(const CGUnit_C *unit) const {
   }
 
   if ((m_unit->flags & 8) && (unit->m_unit->flags & 8)) {
-    const CGUnit_C         *player1 = this;
-    const unsigned __int64 &owner1 = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
+    const CGUnit_C  *player1 = this;
+    const DWORDLONG &owner1 = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
     if (owner1) {
       player1 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner1, __FILE__, __LINE__));
     }
 
-    const CGUnit_C         *player2 = unit;
-    const unsigned __int64 &owner2 = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
+    const CGUnit_C  *player2 = unit;
+    const DWORDLONG &owner2 = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
     if (owner2) {
       player2 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner2, __FILE__, __LINE__));
     }
@@ -6403,11 +6306,11 @@ void CGUnit_C::PlayerNameVisibilityChanged(int nameVisible) {
   }
 }
 
-static int IsInSitSleepPosition(unsigned int animState) {
+static int IsInSitSleepPosition(UINT animState) {
   return animState < 64 ? (s_animInfo[animState].flags >> 19) & 1 : 0;
 }
 
-void CGUnit_C::AddWorldDamageText(unsigned int damage, int normalCombatDamage) {
+void CGUnit_C::AddWorldDamageText(UINT damage, int normalCombatDamage) {
   if (damage) {
     char buffer[32];
     SStrPrintf(buffer, sizeof(buffer), "%d", damage);
@@ -6416,7 +6319,7 @@ void CGUnit_C::AddWorldDamageText(unsigned int damage, int normalCombatDamage) {
   }
 }
 
-void CGUnit_C::AddWorldCritText(unsigned int damage, int normalCombatDamage) {
+void CGUnit_C::AddWorldCritText(UINT damage, int normalCombatDamage) {
   if (damage) {
     char buffer[32];
     SStrPrintf(buffer, sizeof(buffer), "%d", damage);
@@ -6447,7 +6350,7 @@ void CGUnit_C::RemoveInteractIcon() {
   }
 }
 
-HMODEL CGUnit_C::DuplicateCharacterModel(unsigned int flags) const {
+HMODEL CGUnit_C::DuplicateCharacterModel(UINT flags) const {
   HMODEL characterModel = GetCharacterModel(0);
   HMODEL duplicate = ModelDuplicate(characterModel, flags);
   HandleClose(characterModel);
@@ -6463,8 +6366,8 @@ UNIT_REACTION CGUnit_C::UnitReaction(int factionID, const CGUnit_C *unit, int tr
   }
 
   if (FactionHasReputation(source->m_faction)) {
-    const unsigned __int64 &owner = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
-    const CGUnit_C         *ownerUnit = unit;
+    const DWORDLONG &owner = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
+    const CGUnit_C  *ownerUnit = unit;
     if (owner) {
       ownerUnit = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner, __FILE__, __LINE__));
     }
@@ -6476,7 +6379,7 @@ UNIT_REACTION CGUnit_C::UnitReaction(int factionID, const CGUnit_C *unit, int tr
   if (target->m_factionGroup & source->m_enemyGroup) {
     return UNIT_REACTION_HOSTILE;
   }
-  unsigned int i;
+  UINT i;
   for (i = 0; i < 4 && source->m_enemies[i]; ++i) {
     if (source->m_enemies[i] == target->m_faction) {
       return UNIT_REACTION_HOSTILE;
@@ -6510,14 +6413,14 @@ UNIT_REACTION CGUnit_C::UnitReaction(const CGUnit_C *unit) const {
   }
 
   if ((m_unit->flags & 8) && (unit->m_unit->flags & 8)) {
-    const CGUnit_C         *player1 = this;
-    const unsigned __int64 &owner1 = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
+    const CGUnit_C  *player1 = this;
+    const DWORDLONG &owner1 = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
     if (owner1) {
       player1 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner1, __FILE__, __LINE__));
     }
 
-    const CGUnit_C         *player2 = unit;
-    const unsigned __int64 &owner2 = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
+    const CGUnit_C  *player2 = unit;
+    const DWORDLONG &owner2 = unit->m_unit->charmedBy ? unit->m_unit->charmedBy : unit->m_unit->createdBy;
     if (owner2) {
       player2 = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner2, __FILE__, __LINE__));
     }
@@ -6528,8 +6431,8 @@ UNIT_REACTION CGUnit_C::UnitReaction(const CGUnit_C *unit) const {
 
     const CGPlayer_C *playerObject1 = static_cast<const CGPlayer_C *>(player1);
     const CGPlayer_C *playerObject2 = static_cast<const CGPlayer_C *>(player2);
-    unsigned int      duelTeam1 = playerObject1->GetDuelTeam();
-    unsigned int      duelTeam2 = playerObject2->GetDuelTeam();
+    UINT              duelTeam1 = playerObject1->GetDuelTeam();
+    UINT              duelTeam2 = playerObject2->GetDuelTeam();
 
     if (duelTeam1 && duelTeam2 && playerObject1->GetDuelArbiter() == playerObject2->GetDuelArbiter()) {
       return duelTeam1 == duelTeam2 ? UNIT_REACTION_FRIENDLY : UNIT_REACTION_HOSTILE;
@@ -6558,8 +6461,8 @@ UNIT_REACTION CGUnit_C::UnitReaction(const CGUnit_C *unit) const {
   if (m_unit->flags & 8) {
     const FactionTemplateRec *targetFaction = g_factionTemplateDB.GetRecord(unit->GetFactionTemplate());
     if (targetFaction && FactionHasReputation(targetFaction->m_faction)) {
-      const unsigned __int64 &owner = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
-      const CGUnit_C         *ownerUnit = this;
+      const DWORDLONG &owner = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
+      const CGUnit_C  *ownerUnit = this;
       if (owner) {
         ownerUnit = static_cast<const CGUnit_C *>(ClntObjMgrObjectPtr(owner, __FILE__, __LINE__));
       }
@@ -6602,12 +6505,12 @@ HMODEL CGUnit_C::GetMountedModel() const {
   return static_cast<HMODEL>(HandleDuplicate(m_model));
 }
 
-unsigned int CGUnit_C::GetRunSequence() const {
+UINT CGUnit_C::GetRunSequence() const {
   if (!IsMounted()) {
     return ANIM_RUN;
   }
 
-  unsigned int moveFlags = m_move.m_moveFlags;
+  UINT moveFlags = m_move.m_moveFlags;
   if ((moveFlags & 0x33) != 0x33) {
     return ANIM_RUN;
   }
@@ -6621,16 +6524,16 @@ unsigned int CGUnit_C::GetRunSequence() const {
   return ANIM_RUN;
 }
 
-unsigned int CGUnit_C::GetStopSequence() const {
+UINT CGUnit_C::GetStopSequence() const {
   HMODEL model = m_model;
   if (ModelHasSequenceId(model, ANIM_STOP)) {
     return ANIM_STOP;
   }
-  unsigned int sequence = GetStandStateAnim(0);
+  UINT sequence = GetStandStateAnim(0);
   return ModelHasSequenceId(model, sequence) ? sequence : ANIM_STAND;
 }
 
-unsigned int CGUnit_C::GetRangedReadySequence() const {
+UINT CGUnit_C::GetRangedReadySequence() const {
   if (m_readySequence != ANIM_READYBOW && m_readySequence != ANIM_READYRIFLE) {
     return GetStandStateAnim(0);
   }
@@ -6705,11 +6608,11 @@ void CGUnit_C::AddUnitNamePlate(CGWorldFrame *worldFrame) {
     return;
   }
 
-  unsigned __int64 unit = GetGUID();
-  CHashKeyGUID     key(unit);
-  NAMEPLATEDESC   *desc = s_monsterNamePlateList.Ptr(static_cast<unsigned int>(unit), key);
+  DWORDLONG      unit = GetGUID();
+  CHashKeyGUID   key(unit);
+  NAMEPLATEDESC *desc = s_monsterNamePlateList.Ptr(static_cast<UINT>(unit), key);
   if (!desc) {
-    desc = s_monsterNamePlateList.New(static_cast<unsigned int>(unit), key, 0, 0);
+    desc = s_monsterNamePlateList.New(static_cast<UINT>(unit), key, 0, 0);
     desc->unit = this;
     desc->namePlate = GetNewNameplateFrame(worldFrame);
     FATALASSERT(desc->namePlate);
@@ -6759,9 +6662,9 @@ void CGUnit_C::RemoveAllNamePlates() {
 }
 
 void CGUnit_C::RemoveUnitNamePlate() {
-  unsigned __int64 unit = GetGUID();
-  CHashKeyGUID     key(unit);
-  NAMEPLATEDESC   *desc = s_monsterNamePlateList.Ptr(static_cast<unsigned int>(unit), key);
+  DWORDLONG      unit = GetGUID();
+  CHashKeyGUID   key(unit);
+  NAMEPLATEDESC *desc = s_monsterNamePlateList.Ptr(static_cast<UINT>(unit), key);
   if (desc) {
     s_monsterNamePlateList.Delete(desc);
   }
@@ -6787,14 +6690,14 @@ void CGUnit_C::ResortAllUnitNameplates(CGWorldFrame *worldFrame) {
   }
 }
 
-unsigned int CGUnit_C::GetPlayerNameAttachmentPoint() {
+UINT CGUnit_C::GetPlayerNameAttachmentPoint() {
   if (!(m_flags & 0x10)) {
     return 18;
   }
   return (m_flags & 0x1000) ? 18 : 29;
 }
 
-const char *CGUnit_C::GetUnitName() const {
+LPCSTR CGUnit_C::GetUnitName() const {
   if (m_obj->m_type & 0x10) {
     const NameCache *name = g_nameDBCache.GetRecord(m_obj->m_guid, m_obj->m_guid, NameQueryCallback, 0);
     if (name) {
@@ -6819,7 +6722,7 @@ void CGUnit_C::UpdatePlayerNameWorldText() {
   PlayerNameUpdateWorldText(m_unitNameHandle);
 }
 
-int CGUnit_C::ShouldRender(unsigned long worldStatus) {
+int CGUnit_C::ShouldRender(DWORD worldStatus) {
   if (m_animFlags & 0x8000) {
     UnitEffectOneShot(SPECIALEFFECT_LEVELUP, GetGUID(), 0, 0.0f, 1.0f, false);
   }
@@ -6840,7 +6743,7 @@ int CGUnit_C::ShouldRender(unsigned long worldStatus) {
 }
 
 static bool IsDayTime() {
-  unsigned int encoded;
+  UINT    encoded;
   WowTime valMin;
   WowTime valMax;
   WowTime::WowEncodeTime(encoded, 0, 20, -1, -1, -1, -1, 0);
@@ -6850,8 +6753,8 @@ static bool IsDayTime() {
   return g_clientGameTime.InRange(valMin, valMax);
 }
 
-static bool IsMountSpell(const SpellRec* rec) {
-  for (unsigned int i = 0; i < 3; ++i) {
+static bool IsMountSpell(const SpellRec *rec) {
+  for (UINT i = 0; i < 3; ++i) {
     if (rec->m_effectAura[i] == 34) {
       return 1;
     }
@@ -6897,23 +6800,17 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGIt
       return false;
     }
 
-    int availablePower =
-        spell->m_powerType < 0
-            ? m_unit->health
-            : m_unit->power[spell->m_powerType];
+    int availablePower = spell->m_powerType < 0 ? m_unit->health : m_unit->power[spell->m_powerType];
     if (availablePower < Spell_C_GetManaCost(spell->m_ID, 0)) {
       Spell_C_SpellFailed(spell->m_ID, 44, -1, -1);
       return false;
     }
   }
 
-  for (unsigned int effect = 0; effect < 3; ++effect) {
+  for (UINT effect = 0; effect < 3; ++effect) {
     if (spell->m_effect[effect] == 36 && (GetType() & TYPE_PLAYER) && IsSpellKnown(spell->m_effectTriggerSpell[effect])) {
       const SpellRec *learnedSpell = g_spellDB.GetRecord(spell->m_effectTriggerSpell[effect]);
-      CGGameUI::DisplayError(
-          GERR_SPELL_ALREADY_KNOWN_S,
-          learnedSpell ? learnedSpell->m_name_lang[CURRENT_LANGUAGE] : "Unknown"
-      );
+      CGGameUI::DisplayError(GERR_SPELL_ALREADY_KNOWN_S, learnedSpell ? learnedSpell->m_name_lang[CURRENT_LANGUAGE] : "Unknown");
       return false;
     }
 
@@ -6922,8 +6819,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGIt
       return false;
     }
 
-    if ((spell->m_implicitTargetA[effect] == 5 || spell->m_implicitTargetB[effect] == 5) &&
-        !(m_unit->charm || m_unit->summon)) {
+    if ((spell->m_implicitTargetA[effect] == 5 || spell->m_implicitTargetB[effect] == 5) && !(m_unit->charm || m_unit->summon)) {
       Spell_C_SpellFailed(spell->m_ID, 43, -1, -1);
       return false;
     }
@@ -6954,14 +6850,16 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGIt
     return false;
   }
 
-  unsigned int moveFlags = m_move.GetMoveFlags();
+  UINT moveFlags = m_move.GetMoveFlags();
   if ((spell->m_auraInterruptFlags & 0x100) && !(moveFlags & 0x2000000) ||
-      (spell->m_attributesEx & 4) && (spell->m_channelInterruptFlags & 0x100) && !(moveFlags & 0x2000000)) {
+      (spell->m_attributesEx & 4) && (spell->m_channelInterruptFlags & 0x100) && !(moveFlags & 0x2000000))
+  {
     Spell_C_SpellFailed(spell->m_ID, 53, -1, -1);
     return false;
   }
   if ((spell->m_auraInterruptFlags & 0x80) && (moveFlags & 0x2000000) ||
-      (spell->m_attributesEx & 4) && (spell->m_channelInterruptFlags & 0x80) && (moveFlags & 0x2000000)) {
+      (spell->m_attributesEx & 4) && (spell->m_channelInterruptFlags & 0x80) && (moveFlags & 0x2000000))
+  {
     Spell_C_SpellFailed(spell->m_ID, 45, -1, -1);
     return false;
   }
@@ -6970,7 +6868,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGIt
     return false;
   }
 
-  unsigned int formMask = m_unit->shapeshiftForm ? 1 << (m_unit->shapeshiftForm - 1) : 0;
+  UINT formMask = m_unit->shapeshiftForm ? 1 << (m_unit->shapeshiftForm - 1) : 0;
   if (spell->m_shapeshiftMask && !(spell->m_shapeshiftMask & formMask)) {
     const SpellShapeshiftFormRec *form = g_spellShapeshiftFormDB.GetRecord(m_unit->shapeshiftForm);
     if (!form || (form->m_flags & 1)) {
@@ -7016,7 +6914,7 @@ void CGUnit_C::PendingPrecastInterrupt(int spellID) {
 
 void CGUnit_C::StoreXPGain(int XP) {
   m_accumulatedXPDrop += XP;
-  unsigned int animFlags = m_animFlags;
+  UINT animFlags = m_animFlags;
   m_flags |= 0x80;
   if (animFlags & 0x2000) {
     ShowPlayerXPGained();
@@ -7035,13 +6933,12 @@ void CGUnit_C::UpdateInteractIcon(INTERACTICONTYPE which) {
   RemoveInteractIcon();
   if (which) {
     FATALASSERT(which < INTERACTICON_NUMITEMS);
-    unsigned int index = which - 1;
+    UINT index = which - 1;
     FATALASSERT(s_interactIconModelInfo[index].model);
     m_interactIconModel = ModelDuplicate(s_interactIconModelInfo[index].model, 0);
     if (m_interactIconModel) {
-      int renderName = GetType() & TYPE_PLAYER
-          ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::ShouldRenderUnitName(PlayerNameGetUnitNameMode())
-          : CGUnit_C::ShouldRenderUnitName(PlayerNameGetUnitNameMode());
+      int renderName = GetType() & TYPE_PLAYER ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::ShouldRenderUnitName(PlayerNameGetUnitNameMode())
+                                               : CGUnit_C::ShouldRenderUnitName(PlayerNameGetUnitNameMode());
       ModelSetSequence(m_interactIconModel, renderName != 0, 0);
 
       HMODEL charModel = CGObject_C::GetCharacterModel(0);
@@ -7065,11 +6962,7 @@ void CGUnit_C::QueueBloodSplat(BLOODSPURTLOCATION linkPoint) {
   BLOODSPLATNODE *node = NewBloodSplatNode();
   node->m_triggerTime = OsGetAsyncTimeMs() + 500;
 
-  NTempest::C3Vector  jitter(
-      NTempest::CRandom::reals_(g_rndSeed) / 6.0f,
-      NTempest::CRandom::reals_(g_rndSeed) / 6.0f,
-      0.0f
-  );
+  NTempest::C3Vector  jitter(NTempest::CRandom::reals_(g_rndSeed) / 6.0f, NTempest::CRandom::reals_(g_rndSeed) / 6.0f, 0.0f);
   NTempest::C44Matrix direction;
   direction.Rotate(-GetDisplayFacing(), NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
 
@@ -7083,7 +6976,7 @@ void CGUnit_C::QueueBloodSplat(BLOODSPURTLOCATION linkPoint) {
   m_bloodSplatNodes.LinkNode(node, LIST_TAIL, 0);
 }
 
-void CGUnit_C::HandleBloodPool(unsigned int currentTime) {
+void CGUnit_C::HandleBloodPool(UINT currentTime) {
   const UnitBloodRec *bloodRec = GetBloodRecord();
   if (bloodRec && static_cast<int>(currentTime - m_nextAllowableBloodPool) >= 0) {
     m_nextAllowableBloodPool = currentTime + 2000 + NTempest::CMath::mulhwu_(3000, NTempest::CRandom::uint32_(g_rndSeed));
@@ -7102,7 +6995,7 @@ const UnitBloodRec *CGUnit_C::GetBloodRecord() {
 }
 
 void CGUnit_C::HandleCastAnimEvent() {
-  unsigned int &castKit = m_spellCastingEffectKit;
+  UINT &castKit = m_spellCastingEffectKit;
   if (castKit) {
     const SpellVisualKitRec *kitRec = g_spellVisualKitDB.GetRecord(castKit);
     if (kitRec) {
@@ -7138,8 +7031,8 @@ void CGUnit_C::CheckPendingMissileRelease(const NTempest::C3Vector *position) {
       if (!(GetType() & TYPE_PLAYER)) {
         ThrownMissileReleased();
       } else {
-        CGBag_C         *bag = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetBag();
-        unsigned __int64 itemGUID = bag->GetItem(17);
+        CGBag_C  *bag = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetBag();
+        DWORDLONG itemGUID = bag->GetItem(17);
         CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
         if (item) {
           if (item->GetInventoryType() == 25) {
@@ -7182,20 +7075,11 @@ void CGUnit_C::ThrownMissileReleased() {
 }
 
 void CGUnit_C::CheckPendingThrownWeaponReattach(bool force) {
-  int displayID = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_RANGED);
+  int                    displayID = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_RANGED);
   const VirtualItemInfo *itemInfo = GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, 0);
   if ((force || (m_flags & 0x20000)) && displayID && itemInfo) {
     const ItemSubClassRec *subClass = SDBItemSubclassGetSubClassRec(itemInfo->m_classID, itemInfo->m_subclassID);
-    AddObjectComponentBySlot(
-        INVSLOT_RANGED,
-        displayID,
-        itemInfo->m_inventoryType,
-        subClass && (subClass->m_flags & 0x20),
-        0,
-        0,
-        -1,
-        0
-    );
+    AddObjectComponentBySlot(INVSLOT_RANGED, displayID, itemInfo->m_inventoryType, subClass && (subClass->m_flags & 0x20), 0, 0, -1, 0);
     SetAttachmentHidden(OBJATTACH_RANGED, 0);
   }
   m_flags &= ~0x20000u;
@@ -7222,7 +7106,7 @@ void CGUnit_C::CheckRendering() {
   }
 }
 
-void CGUnit_C::UpdateDisplay(unsigned long now) {
+void CGUnit_C::UpdateDisplay(DWORD now) {
   CheckRendering();
   if (m_worldObject) {
     UpdateLookAtTarget();
@@ -7347,20 +7231,10 @@ void CGUnit_C::SetMirrorHandlers() {
   ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 672, 4, PetNameChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
   ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 156, 4, VirtualItemChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
   ClntObjMgrSetObjMirrorHandler(
-      GetGUID(),
-      OffsetOf(ID_UNIT) + 160,
-      4,
-      VirtualItemChangeHandler,
-      reinterpret_cast<void *>(VIRTUAL_MONSTER_SLOT_OFFHAND),
-      HANDLER_PRIORITY_NORMAL
+      GetGUID(), OffsetOf(ID_UNIT) + 160, 4, VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_OFFHAND), HANDLER_PRIORITY_NORMAL
   );
   ClntObjMgrSetObjMirrorHandler(
-      GetGUID(),
-      OffsetOf(ID_UNIT) + 164,
-      4,
-      VirtualItemChangeHandler,
-      reinterpret_cast<void *>(VIRTUAL_MONSTER_SLOT_RANGED),
-      HANDLER_PRIORITY_NORMAL
+      GetGUID(), OffsetOf(ID_UNIT) + 164, 4, VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_RANGED), HANDLER_PRIORITY_NORMAL
   );
   ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 684, 4, DynamicFlagsChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
   ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 688, 4, EmoteStateChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
@@ -7389,28 +7263,22 @@ void CGUnit_C::UnsetMirrorHandlers() {
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 672, PetNameChangeHandler, 0);
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 156, VirtualItemChangeHandler, 0);
   ClntObjMgrUnsetObjMirrorHandler(
-      GetGUID(),
-      OffsetOf(ID_UNIT) + 160,
-      VirtualItemChangeHandler,
-      reinterpret_cast<void *>(VIRTUAL_MONSTER_SLOT_OFFHAND)
+      GetGUID(), OffsetOf(ID_UNIT) + 160, VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_OFFHAND)
   );
   ClntObjMgrUnsetObjMirrorHandler(
-      GetGUID(),
-      OffsetOf(ID_UNIT) + 164,
-      VirtualItemChangeHandler,
-      reinterpret_cast<void *>(VIRTUAL_MONSTER_SLOT_RANGED)
+      GetGUID(), OffsetOf(ID_UNIT) + 164, VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_RANGED)
   );
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 684, DynamicFlagsChangeHandler, 0);
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 688, EmoteStateChangeHandler, 0);
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 692, ChannelSpellChangeHandler, 0);
 }
 
-void CGUnit_C::StandStateChanged(unsigned int oldState) {
+void CGUnit_C::StandStateChanged(UINT oldState) {
   if (IsInReenable()) {
     return;
   }
 
-  unsigned char newState = m_unit->standState;
+  BYTE newState = m_unit->standState;
   OnStandStateChanged(oldState, newState);
   SetSheatheReason(SHEATHE_STANDSTATE, s_mustSheathe[newState], 0);
   FATALASSERT(newState < 9);
@@ -7431,9 +7299,9 @@ SPELLEFFECTDESC::~SPELLEFFECTDESC() {
   ClearLightningObjects();
 }
 
-void CGUnit_C::NPCFlagChanged(unsigned int oldNPCFlags) {
-  unsigned int newFlags = m_unit->npcFlags;
-  unsigned int changed = oldNPCFlags ^ newFlags;
+void CGUnit_C::NPCFlagChanged(UINT oldNPCFlags) {
+  UINT newFlags = m_unit->npcFlags;
+  UINT changed = oldNPCFlags ^ newFlags;
   if (changed & 8) {
     RemoveInteractIcon();
   }
@@ -7540,17 +7408,13 @@ void CGUnit_C::ProcessDiscardedAnim(ANIMQUEUENODE *node, bool doNotProcess) {
   switch (node->type) {
     case ANIMQUEUE_ATTACK:
       if (!doNotProcess) {
-        CGUnit_C *victim =
-            static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(node->roundInfo.victim, __FILE__, __LINE__));
+        CGUnit_C *victim = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(node->roundInfo.victim, __FILE__, __LINE__));
         if (victim) {
           victim->DoVictimFeedback(&node->roundInfo, 0);
         } else {
-          CGUnit_C *activePlayer =
-              static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+          CGUnit_C *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
           if (activePlayer) {
-            activePlayer->DDGENLOG(
-                GetGUID(), "WARNING discarding attack queue with no victimptr!", __FILE__, __LINE__
-            );
+            activePlayer->DDGENLOG(GetGUID(), "WARNING discarding attack queue with no victimptr!", __FILE__, __LINE__);
           }
         }
       }
@@ -7575,23 +7439,11 @@ void CGUnit_C::ProcessDiscardedAnim(ANIMQUEUENODE *node, bool doNotProcess) {
 }
 
 void CGUnit_C::ProcessAnim(ANIMQUEUENODE *node) {
-  static const ANIM_STATE s_standStateAnims[ANIMQUEUE_NUMTYPES] = {
-      INVALID_ANIM_STATE,
-      INVALID_ANIM_STATE,
-      INVALID_ANIM_STATE,
-      ANIM_STATE_SITDOWN,
-      ANIM_STATE_SITUP,
-      ANIM_STATE_SLEEPDOWN,
-      ANIM_STATE_SLEEPUP,
-      ANIM_STATE_SITCHAIRLOW,
-      INVALID_ANIM_STATE,
-      ANIM_STATE_SITCHAIRLOW,
-      ANIM_STATE_SITCHAIRMEDIUM,
-      ANIM_STATE_SITCHAIRHIGH,
-      ANIM_STATE_DEAD,
-      ANIM_STATE_KNEELDOWN,
-      ANIM_STATE_KNEELUP
-  };
+  static const ANIM_STATE s_standStateAnims[ANIMQUEUE_NUMTYPES] = {INVALID_ANIM_STATE,     INVALID_ANIM_STATE,        INVALID_ANIM_STATE,
+                                                                   ANIM_STATE_SITDOWN,     ANIM_STATE_SITUP,          ANIM_STATE_SLEEPDOWN,
+                                                                   ANIM_STATE_SLEEPUP,     ANIM_STATE_SITCHAIRLOW,    INVALID_ANIM_STATE,
+                                                                   ANIM_STATE_SITCHAIRLOW, ANIM_STATE_SITCHAIRMEDIUM, ANIM_STATE_SITCHAIRHIGH,
+                                                                   ANIM_STATE_DEAD,        ANIM_STATE_KNEELDOWN,      ANIM_STATE_KNEELUP};
 
   FATALASSERT(node);
   FATALASSERT(node->type < ANIMQUEUE_NUMTYPES);
@@ -7609,11 +7461,7 @@ void CGUnit_C::ProcessAnim(ANIMQUEUENODE *node) {
 
     case ANIMQUEUE_WOUND:
       SetVictimAnimation(
-          node->roundInfo.newVictimState,
-          node->roundInfo.flags & 4,
-          node->roundInfo.flags & 8,
-          node->roundInfo.victimRoundDuration,
-          1
+          node->roundInfo.newVictimState, node->roundInfo.flags & 4, node->roundInfo.flags & 8, node->roundInfo.victimRoundDuration, 1
       );
       RecycleAnimNode(node);
       return;
@@ -7650,7 +7498,7 @@ void CGUnit_C::PurgeAnimNodes(bool doNotProcess) {
 }
 
 void CGUnit_C::SpellAnimHit(int spellID) {
-  for (unsigned int slot = 0; slot < 56; ++slot) {
+  for (UINT slot = 0; slot < 56; ++slot) {
     if (m_unit->auras[slot] == spellID && !m_auraFlags[slot]) {
       AddAuraEffect(slot, 1);
     }
@@ -7658,9 +7506,8 @@ void CGUnit_C::SpellAnimHit(int spellID) {
 }
 
 void CGUnit_C::CheckPendingSpellAnimHits() {
-  for (unsigned int count = m_pendingHitAnimVictims.Count(); count; --count) {
-    CGUnit_C *victim =
-        static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_pendingHitAnimVictims[count - 1], __FILE__, __LINE__));
+  for (UINT count = m_pendingHitAnimVictims.Count(); count; --count) {
+    CGUnit_C *victim = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_pendingHitAnimVictims[count - 1], __FILE__, __LINE__));
     if (victim && victim->IsA(TYPE_UNIT)) {
       victim->SpellAnimHit(m_pendingHitSpellID);
     }
@@ -7668,7 +7515,7 @@ void CGUnit_C::CheckPendingSpellAnimHits() {
   m_pendingHitAnimVictims.Clear();
 }
 
-static bool NodesSame(const ANIMQUEUENODE* current, const ANIMQUEUENODE* next) {
+static bool NodesSame(const ANIMQUEUENODE *current, const ANIMQUEUENODE *next) {
   FATALASSERT(current);
   if (!next) {
     return 0;
@@ -7736,7 +7583,7 @@ bool CGUnit_C::SetSpellPreCastingAnimation(ANIMENUMERATION anim) {
 
   bool returnValue = true;
   if (ModelIsLoaded(charModel, 1)) {
-    unsigned int sequence = anim;
+    UINT sequence = anim;
     while (!ModelHasSequenceId(charModel, sequence)) {
       if (sequence == 31) {
         returnValue = false;
@@ -7761,7 +7608,7 @@ void CGUnit_C::SetSpellImpactKit(const SpellVisualKitRec *impactKit) {
   }
 }
 
-int CGUnit_C::PlayEmoteAnimation(unsigned int emoteID, int flags) {
+int CGUnit_C::PlayEmoteAnimation(UINT emoteID, int flags) {
   const EmotesRec *emote = g_emotesDB.GetRecord(emoteID);
   if (!emote || m_unit->standState == 3 || (emote->m_EmoteFlags & 2) || (m_move.m_moveFlags & 0x2000000)) {
     return 0;
@@ -7778,7 +7625,7 @@ void CGUnit_C::RequestTalkEmote(TALKANIMATION talkAnim) {
   }
 }
 
-unsigned int CGUnit_C::GetEmoteAnimation(unsigned int emoteID) const {
+UINT CGUnit_C::GetEmoteAnimation(UINT emoteID) const {
   const EmotesRec *emote = g_emotesDB.GetRecord(emoteID);
   if (emote) {
     const EmoteAnimsRec *anim = g_emoteAnimsDB.GetRecord(emote->m_EmoteAnimID);
@@ -7794,7 +7641,7 @@ static SpellProcHandler const s_spellProcHandlerFunctions[11] = {
     SpellProcEclipseHandler, SpellProcStandWalkAnimHandler, SpellProcWeaponTrailHandler, 0, 0
 };
 
-int CGUnit_C::EmoteProcType(unsigned int emoteID, EMOTESPECPROCS &proc) const {
+int CGUnit_C::EmoteProcType(UINT emoteID, EMOTESPECPROCS &proc) const {
   const EmotesRec *rec = g_emotesDB.GetRecord(emoteID);
   if (!rec || ((1 << rec->m_EmoteSpecProc) & 7) == 0) {
     return 0;
@@ -7803,13 +7650,13 @@ int CGUnit_C::EmoteProcType(unsigned int emoteID, EMOTESPECPROCS &proc) const {
   return 1;
 }
 
-void CGUnit_C::ChangeStandState(unsigned int standState) {
+void CGUnit_C::ChangeStandState(UINT standState) {
   FATALASSERT(!(standState >= 4 && standState <= 6));
   FATALASSERT(standState < 9);
 
   if (!IsInStandSitTransition() && !m_castingSpell && !IsMounted() && StandStateValid(static_cast<UNITSTANDSTATE>(standState))) {
     CDataStore msg;
-    msg.Put(static_cast<unsigned int>(CMSG_STANDSTATECHANGE));
+    msg.Put(static_cast<UINT>(CMSG_STANDSTATECHANGE));
     msg.Put(standState);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -7823,13 +7670,7 @@ void CGUnit_C::RegisterScript() {
   ++m_scriptRegistered;
 }
 
-bool CGUnit_C::SetSpellCastingAnimation(
-    ANIMENUMERATION anim,
-    unsigned int effectKit,
-    unsigned int soundID,
-    int camShakeID,
-    ANIMENUMERATION &finalAnim
-) {
+bool CGUnit_C::SetSpellCastingAnimation(ANIMENUMERATION anim, UINT effectKit, UINT soundID, int camShakeID, ANIMENUMERATION &finalAnim) {
   if (anim == INVALID_ANIMATION || anim >= NUM_OBJECTANIMATIONS) {
     return false;
   }
@@ -7837,19 +7678,14 @@ bool CGUnit_C::SetSpellCastingAnimation(
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
 
-  if ((anim >= ANIM_SPELL_SPECIAL1H &&
-       anim <= ANIM_SPELL_SPECIAL2H) ||
-      anim == ANIM_SPECIALUNARMED) {
+  if ((anim >= ANIM_SPELL_SPECIAL1H && anim <= ANIM_SPELL_SPECIAL2H) || anim == ANIM_SPECIALUNARMED) {
     const VirtualItemInfo *item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, 0);
     if (!item || m_unit->weaponMode == WEAPONMODE_SHEATHEDMODE) {
       anim = ANIM_SPECIALUNARMED;
     } else {
-      unsigned int numLinked = 0;
-      if (ModelGetNumLinkedAtPoint(charModel, 1, &numLinked) &&
-          numLinked) {
-        anim = item->m_inventoryType == INDEX_2HWEAPON_TYPE
-                   ? ANIM_SPELL_SPECIAL2H
-                   : ANIM_SPELL_SPECIAL1H;
+      UINT numLinked = 0;
+      if (ModelGetNumLinkedAtPoint(charModel, 1, &numLinked) && numLinked) {
+        anim = item->m_inventoryType == INDEX_2HWEAPON_TYPE ? ANIM_SPELL_SPECIAL2H : ANIM_SPELL_SPECIAL1H;
       } else {
         anim = ANIM_SPECIALUNARMED;
       }
@@ -7903,12 +7739,12 @@ void CGUnit_C::UnregisterScript() {
   }
 }
 
-int CGUnit_C::SetEmoteAnimation(unsigned int emoteID, int flags) {
+int CGUnit_C::SetEmoteAnimation(UINT emoteID, int flags) {
   m_emoteID = emoteID;
   return SetTorsoAnimation(ANIM_STATE_EMOTE, 0, flags);
 }
 
-bool AnimSheathesWeapon(unsigned int anim) {
+bool AnimSheathesWeapon(UINT anim) {
   FATALASSERT(anim < NUM_OBJECTANIMATIONS);
   return (g_seqInformation[anim].flags >> 4) & 1;
 }
@@ -7921,9 +7757,8 @@ void CGUnit_C::SetEmoteQueue(TSStackArray<QUESTGIVEREMOTENODE> &list) {
   SetEmoteQueue(list.Ptr(), list.Count());
 }
 
-void CGUnit_C::SetEmoteQueue(const QUESTGIVEREMOTENODE *list, unsigned int num) {
-  TSGrowableArray<QUESTGIVEREMOTENODE> &queue =
-      m_emoteQueue;
+void CGUnit_C::SetEmoteQueue(const QUESTGIVEREMOTENODE *list, UINT num) {
+  TSGrowableArray<QUESTGIVEREMOTENODE> &queue = m_emoteQueue;
   queue.SetCount(0);
 
   EMOTESPECPROCS proc = EMOTESPECPROC_NONE;
@@ -7941,10 +7776,10 @@ void CGUnit_C::SetEmoteQueue(const QUESTGIVEREMOTENODE *list, unsigned int num) 
 
 void CGUnit_C::ProcessEmoteQueue() {
   if (m_emoteQueue.Count() && m_currentTorsoAnimState != 46) {
-    unsigned int index = m_emoteQueue.Count() - 1;
-    int currentTime = OsGetAsyncTimeMs();
+    UINT index = m_emoteQueue.Count() - 1;
+    int  currentTime = OsGetAsyncTimeMs();
     if (currentTime >= static_cast<int>(m_emoteQueue[index].delay)) {
-      unsigned int emoteID = m_emoteQueue[index].emoteID;
+      UINT emoteID = m_emoteQueue[index].emoteID;
       m_emoteQueue.SetCount(index);
       if (!PlayEmoteAnimation(emoteID, 0) && m_emoteQueue.Count()) {
         m_emoteQueue[m_emoteQueue.Count() - 1].delay += currentTime;
@@ -7953,46 +7788,46 @@ void CGUnit_C::ProcessEmoteQueue() {
   }
 }
 
-unsigned int CGUnit_C::GetDisplayRace() const {
+UINT CGUnit_C::GetDisplayRace() const {
   return m_displayInfoExtra ? m_displayInfoExtra->m_DisplayRaceID : m_unit->race;
 }
 
-unsigned int CGUnit_C::GetDisplaySex() const {
+UINT CGUnit_C::GetDisplaySex() const {
   return m_displayInfoExtra ? m_displayInfoExtra->m_DisplaySexID : m_unit->sex;
 }
 
-const char *CGUnit_C::GetDisplayTextureName() const {
+LPCSTR CGUnit_C::GetDisplayTextureName() const {
   return m_displayInfoExtra ? m_displayInfoExtra->m_BakeName : 0;
 }
 
-unsigned int CGUnit_C::SkinVariationID() const {
+UINT CGUnit_C::SkinVariationID() const {
   FATALASSERT(m_displayInfoExtra);
   return m_displayInfoExtra->m_SkinID;
 }
 
-unsigned int CGUnit_C::FaceID() const {
+UINT CGUnit_C::FaceID() const {
   FATALASSERT(m_displayInfoExtra);
   return m_displayInfoExtra->m_FaceID;
 }
 
-unsigned int CGUnit_C::HairStyleID() const {
+UINT CGUnit_C::HairStyleID() const {
   FATALASSERT(m_displayInfoExtra);
   return m_displayInfoExtra->m_HairStyleID;
 }
 
-unsigned int CGUnit_C::HairColorID() const {
+UINT CGUnit_C::HairColorID() const {
   FATALASSERT(m_displayInfoExtra);
   return m_displayInfoExtra->m_HairColorID;
 }
 
-unsigned int CGUnit_C::FacialHairID() const {
+UINT CGUnit_C::FacialHairID() const {
   FATALASSERT(m_displayInfoExtra);
   return m_displayInfoExtra->m_FacialHairID;
 }
 
 void CGUnit_C::InitPreferredGeosets() {
   FATALASSERT(m_displayInfoExtra);
-  unsigned int *preferredGeosets = m_preferredGeosets;
+  UINT *preferredGeosets = m_preferredGeosets;
   memset(preferredGeosets, 0, 15 * sizeof(*preferredGeosets));
   preferredGeosets[CHARGEOSET_HAIR] = HairStyleID();
 
@@ -8019,9 +7854,9 @@ void CGUnit_C::InitializeNPCItems() {
   HCHARGEOSET geosetHandle = m_geosetHandle;
   FATALASSERT(geosetHandle);
   HTEXCOMPONENT texComponent = m_texComponent;
-  unsigned int *preferredGeosets = m_preferredGeosets;
+  UINT         *preferredGeosets = m_preferredGeosets;
 
-  for (unsigned int i = 0; i < 10; ++i) {
+  for (UINT i = 0; i < 10; ++i) {
     int displayID = m_displayInfoExtra->m_NPCItemDisplay[i];
     if (!displayID) {
       continue;
@@ -8085,7 +7920,7 @@ const SkillLineAbilityRec *CGUnit_C::LookupAbility(int spellID) const {
   return 0;
 }
 
-void CGUnit_C::OnBadAttackTarget(unsigned __int64 victim) {
+void CGUnit_C::OnBadAttackTarget(DWORDLONG victim) {
 }
 
 bool CGUnit_C::IsSpellSuperceded(int spellID) const {
@@ -8138,8 +7973,7 @@ void CGUnit_C::NPCAnimEndHandler() {
 }
 
 void CGUnit_C::PickNextRunHandler() {
-  if (((m_unit->flags & 0x2000) && (m_flags & 0x10) && m_currentMountAnimState == ANIM_STATE_RUN) ||
-      m_currentBaseAnimState == ANIM_STATE_RUN) {
+  if (((m_unit->flags & 0x2000) && (m_flags & 0x10) && m_currentMountAnimState == ANIM_STATE_RUN) || m_currentBaseAnimState == ANIM_STATE_RUN) {
     UpdateBaseAnimation(ANIM_STATE_RUN, 0x100);
   }
 }
@@ -8161,7 +7995,7 @@ void CGUnit_C::CheckPendingImpactKit() {
 }
 
 void CGUnit_C::SpellAnimEndHandler() {
-  unsigned int state = m_currentTorsoAnimState;
+  UINT state = m_currentTorsoAnimState;
   if (state == 38 || state == 47 || state == 62 || state == 63) {
     ClearTorsoAnimation(0x40);
   }
@@ -8173,7 +8007,7 @@ void CGUnit_C::AddSpellProcAuraEffect(int auraslot, const SpellVisualKitRec *rec
     return;
   }
 
-  if (rec->m_characterParam[0] >= 11 || ((1 << static_cast<unsigned int>(rec->m_characterParam[0])) & 0x640)) {
+  if (rec->m_characterParam[0] >= 11 || ((1 << static_cast<UINT>(rec->m_characterParam[0])) & 0x640)) {
     return;
   }
 
@@ -8187,7 +8021,7 @@ void CGUnit_C::AddSpellProcAuraEffect(int auraslot, const SpellVisualKitRec *rec
   newDesc->kitPtr = rec;
   newDesc->isOneShot = 0;
 
-  unsigned int     spellID;
+  UINT spellID;
   if (auraslot == -1) {
     spellID = m_unit->channelSpell;
     SPELLEFFECTDESC **channelEffect = &m_channelSpellEffect;
@@ -8195,18 +8029,18 @@ void CGUnit_C::AddSpellProcAuraEffect(int auraslot, const SpellVisualKitRec *rec
     *channelEffect = newDesc;
   } else {
     spellID = m_unit->auras[auraslot];
-    m_spellEffectLists[static_cast<unsigned int>(rec->m_characterParam[0])].LinkNode(newDesc, LIST_TAIL, 0);
+    m_spellEffectLists[static_cast<UINT>(rec->m_characterParam[0])].LinkNode(newDesc, LIST_TAIL, 0);
   }
 
-  SpellProcHandler handler = s_spellProcHandlerFunctions[static_cast<unsigned int>(rec->m_characterParam[0])];
+  SpellProcHandler handler = s_spellProcHandlerFunctions[static_cast<UINT>(rec->m_characterParam[0])];
   if (handler) {
-    handler(SPELLPROCADD, m_spellEffectLists[static_cast<unsigned int>(rec->m_characterParam[0])], this, charModel, rec, newDesc, spellID, 0.0f);
+    handler(SPELLPROCADD, m_spellEffectLists[static_cast<UINT>(rec->m_characterParam[0])], this, charModel, rec, newDesc, spellID, 0.0f);
   }
   HandleClose(charModel);
 }
 
 void CGUnit_C::RemoveSpellProcAuraEffect(ACTIVEAURAINFO *rec) {
-  unsigned int             proc = static_cast<unsigned int>(-1);
+  UINT                     proc = static_cast<UINT>(-1);
   SPELLEFFECTDESC         *desc = 0;
   const SpellVisualKitRec *kitRec = 0;
 
@@ -8259,7 +8093,7 @@ void CGUnit_C::RemoveSpellProcAuraEffect(ACTIVEAURAINFO *rec) {
   HandleClose(charModel);
 }
 
-void CGUnit_C::OnNotStanding(unsigned __int64 victim) {
+void CGUnit_C::OnNotStanding(DWORDLONG victim) {
 }
 
 void CGUnit_C::DeathAnimEndHandler() {
@@ -8280,7 +8114,7 @@ void CGUnit_C::DeathAnimEndHandler() {
 }
 
 SPELLEFFECTDESC *CGUnit_C::FindSpellEffectProcDesc(const SpellVisualKitRec *rec) {
-  unsigned int proc = rec->m_characterParam[0];
+  UINT proc = rec->m_characterParam[0];
   if (proc >= 11) {
     return 0;
   }
@@ -8313,7 +8147,7 @@ void CGUnit_C::InternalProcessSpellProcEffects(SPELLPROC_ACTION action, float el
     return;
   }
 
-  for (unsigned int proc = 0; proc < 11; ++proc) {
+  for (UINT proc = 0; proc < 11; ++proc) {
     SpellProcHandler handler = s_spellProcHandlerFunctions[proc];
     SpellEffectList &list = m_spellEffectLists[proc];
     if (handler && list.Head()) {
@@ -8340,8 +8174,8 @@ void CGUnit_C::AddEmissiveColor(const NTempest::CImVector &color) {
   HMODEL model = GetCharacterModel(0);
   if (model) {
     NTempest::CImVector emissive(
-        0xFF000000 | (static_cast<unsigned int>(current[0] < 255 ? current[0] : 255) << 16) |
-        (static_cast<unsigned int>(current[1] < 255 ? current[1] : 255) << 8) | static_cast<unsigned int>(current[2] < 255 ? current[2] : 255)
+        0xFF000000 | (static_cast<UINT>(current[0] < 255 ? current[0] : 255) << 16) | (static_cast<UINT>(current[1] < 255 ? current[1] : 255) << 8) |
+        static_cast<UINT>(current[2] < 255 ? current[2] : 255)
     );
     ModelSetEmissiveColor(model, emissive, 0);
   }
@@ -8371,7 +8205,7 @@ int CGUnit_C::IsInStandSitTransition() {
   return IsSitStandSleepTransition(m_currentBaseAnimState);
 }
 
-int IsSitStandSleepTransition(unsigned int animState) {
+int IsSitStandSleepTransition(UINT animState) {
   return animState < 64 ? (s_animInfo[animState].flags >> 16) & 1 : 0;
 }
 
@@ -8380,23 +8214,23 @@ int CGUnit_C::IsInSitSleepPosition() {
     return 0;
   }
 
-  unsigned int animState = m_currentBaseAnimState;
+  UINT animState = m_currentBaseAnimState;
   return animState < 64 ? (s_animInfo[animState].flags >> 19) & 1 : 0;
 }
 
-void CGUnit_C::PrintAttackSeqErrorMsg(unsigned int sequence, unsigned int fallBack) const {
+void CGUnit_C::PrintAttackSeqErrorMsg(UINT sequence, UINT fallBack) const {
   ASSERT(sequence < NUM_OBJECTANIMATIONS);
   ASSERT(fallBack < NUM_OBJECTANIMATIONS);
   SysMsgPrintf(SYSMSG_ERROR, 8, "COMBATANIMFALLBACK|%s|%d|%d", GetUnitName(), sequence, fallBack);
 }
 
-UNITAFFILIATION CGUnit_C::GetGUIDAffiliation(unsigned __int64 unit) const {
-  const unsigned __int64 &controller = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
+UNITAFFILIATION CGUnit_C::GetGUIDAffiliation(DWORDLONG unit) const {
+  const DWORDLONG &controller = m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
   if (unit == controller) {
     return AFFILIATION_YOURCONTROLLER;
   }
 
-  const unsigned __int64 &pet = m_unit->charm ? m_unit->charm : m_unit->summon;
+  const DWORDLONG &pet = m_unit->charm ? m_unit->charm : m_unit->summon;
   if (unit == pet) {
     return AFFILIATION_YOURPET;
   }
@@ -8431,7 +8265,7 @@ void CGUnit_C::OnLevelChange() {
 }
 
 void CGUnit_C::PerformLevelUpAnim(int force) {
-  unsigned int &flags = m_animFlags;
+  UINT &flags = m_animFlags;
   if (force || (flags & 0x4000)) {
     flags |= 0x8000;
   }
@@ -8446,10 +8280,10 @@ void CGUnit_C::CheckLevelUpAnimFlag(int oldState, int newState) {
 
 void CGUnit_C::AddWorldText(WORLDTEXTMISSTYPE type) {
   struct WORLDTEXTINFO {
-    const char   *string;
+    LPCSTR        string;
     WORLDTEXTTYPE type;
 
-    WORLDTEXTINFO(const char *string_, WORLDTEXTTYPE type_) : string(string_), type(type_) {
+    WORLDTEXTINFO(LPCSTR string_, WORLDTEXTTYPE type_) : string(string_), type(type_) {
     }
   };
 
@@ -8467,10 +8301,10 @@ void CGUnit_C::AddWorldText(WORLDTEXTMISSTYPE type) {
 }
 
 void CGUnit_C::AddWorldText(MISS_REASON reason) {
-  static WORLDTEXTMISSTYPE s_worldMissTextReasons[10] = {
-      WORLDTEXTMISS_NUMTYPES, WORLDTEXTMISS_PHYSICAL, WORLDTEXTMISS_RESIST, WORLDTEXTMISS_IMMUNE,    WORLDTEXTMISS_EVADED,
-      WORLDTEXTMISS_DODGED,               WORLDTEXTMISS_PARRIED,  WORLDTEXTMISS_BLOCKED, WORLDTEXTMISS_TEMPIMMUNE, WORLDTEXTMISS_DEFLECTED
-  };
+  static WORLDTEXTMISSTYPE s_worldMissTextReasons[10] = {WORLDTEXTMISS_NUMTYPES, WORLDTEXTMISS_PHYSICAL, WORLDTEXTMISS_RESIST,
+                                                         WORLDTEXTMISS_IMMUNE,   WORLDTEXTMISS_EVADED,   WORLDTEXTMISS_DODGED,
+                                                         WORLDTEXTMISS_PARRIED,  WORLDTEXTMISS_BLOCKED,  WORLDTEXTMISS_TEMPIMMUNE,
+                                                         WORLDTEXTMISS_DEFLECTED};
 
   reason = AdjustVictimState(reason);
   if (reason < MISS_NUMMISSTYPES) {
@@ -8502,7 +8336,7 @@ void CGUnit_C_RenderBowStrings(const NTempest::C3Vector &c) {
 }
 
 void CGUnit_C::DrawBowString(const NTempest::C3Vector &cameraPos) {
-  unsigned int torsoAnim = GetCurrentTorsoAnim();
+  UINT torsoAnim = GetCurrentTorsoAnim();
   if (torsoAnim != ANIM_ATTACKBOW && torsoAnim != ANIM_LOADBOW && torsoAnim != ANIM_HOLDBOW) {
     return;
   }
@@ -8532,7 +8366,7 @@ void CGUnit_C::DrawBowString(const NTempest::C3Vector &cameraPos) {
       bowPoints[0] *= worldToChar;
       bowPoints[1] *= worldToChar;
 
-      unsigned int pointCount = 2;
+      UINT pointCount = 2;
       if ((torsoAnim == ANIM_LOADBOW || torsoAnim == ANIM_HOLDBOW) && (torsoAnim == ANIM_HOLDBOW || (m_flags & 0x400)) &&
           ModelGetEventObjectPosition(charModel, 19, 1, &bowPoints[2]))
       {
@@ -8540,16 +8374,15 @@ void CGUnit_C::DrawBowString(const NTempest::C3Vector &cameraPos) {
         pointCount = 3;
       }
 
-      unsigned short currentCount = static_cast<unsigned short>(s_bowStringVerts.Count());
+      WORD currentCount = static_cast<WORD>(s_bowStringVerts.Count());
       s_bowStringVerts.Add(pointCount, bowPoints);
 
       if (pointCount == 2) {
-        unsigned short indices[2] = {currentCount, static_cast<unsigned short>(currentCount + 1)};
+        WORD indices[2] = {currentCount, static_cast<WORD>(currentCount + 1)};
         s_bowStringIndices.Add(2, indices);
       } else {
-        unsigned short indices[4] = {
-            currentCount, static_cast<unsigned short>(currentCount + 2), static_cast<unsigned short>(currentCount + 2),
-            static_cast<unsigned short>(currentCount + 1)
+        WORD indices[4] = {
+            currentCount, static_cast<WORD>(currentCount + 2), static_cast<WORD>(currentCount + 2), static_cast<WORD>(currentCount + 1)
         };
         s_bowStringIndices.Add(4, indices);
       }
@@ -8567,22 +8400,21 @@ void CGUnit_C::SetRangedWeaponReleaseAnim() {
   }
 }
 
-void CGUnit_C::SetBaseAnim(unsigned int newAnim) {
+void CGUnit_C::SetBaseAnim(UINT newAnim) {
   SetSheatheReason(SHEATHE_BASEANIM, AnimSheathesWeapon(newAnim), 0);
   FATALASSERT(newAnim != NUM_OBJECTANIMATIONS);
   m_currentBaseAnim = newAnim;
 }
 
-void CGUnit_C::SetTorsoAnim(unsigned int newAnim) {
+void CGUnit_C::SetTorsoAnim(UINT newAnim) {
   SetSheatheReason(SHEATHE_TORSOANIM, AnimSheathesWeapon(newAnim), 0);
   m_currentTorsoAnim = newAnim;
 }
 
-static const char *const s_animQueueNames[15] = {"ANIMQUEUE_NONE",        "ANIMQUEUE_ATTACK",         "ANIMQUEUE_WOUND",
-                                                 "ANIMQUEUE_SITDOWN",     "ANIMQUEUE_SITUP",          "ANIMQUEUE_SLEEPDOWN",
-                                                 "ANIMQUEUE_SLEEPUP",     "ANIMQUEUE_SITCHAIR",       "ANIMQUEUE_SITCHAIRUP",
-                                                 "ANIMQUEUE_SITCHAIRLOW", "ANIMQUEUE_SITCHAIRMEDIUM", "ANIMQUEUE_SITCHAIRHIGH",
-                                                 "ANIMQUEUE_DEAD",        "ANIMQUEUE_KNEELDOWN",      "ANIMQUEUE_KNEELUP"};
+static LPCSTR const s_animQueueNames[15] = {"ANIMQUEUE_NONE",       "ANIMQUEUE_ATTACK",      "ANIMQUEUE_WOUND",          "ANIMQUEUE_SITDOWN",
+                                            "ANIMQUEUE_SITUP",      "ANIMQUEUE_SLEEPDOWN",   "ANIMQUEUE_SLEEPUP",        "ANIMQUEUE_SITCHAIR",
+                                            "ANIMQUEUE_SITCHAIRUP", "ANIMQUEUE_SITCHAIRLOW", "ANIMQUEUE_SITCHAIRMEDIUM", "ANIMQUEUE_SITCHAIRHIGH",
+                                            "ANIMQUEUE_DEAD",       "ANIMQUEUE_KNEELDOWN",   "ANIMQUEUE_KNEELUP"};
 
 void CGUnit_C::ShowHandArrow(int show) {
   HMODEL model = GetCharacterModel(0);
@@ -8613,7 +8445,7 @@ HMODEL CGUnit_C::GetRangedWeaponModel() {
 
   const VirtualItemInfo *itemStats = GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, 0);
 
-  unsigned int linkPoint;
+  UINT linkPoint;
   if (!itemStats || itemStats->m_inventoryType == INDEX_THROWN_TYPE) {
     HandleClose(characterModel);
     return 0;
@@ -8627,8 +8459,8 @@ HMODEL CGUnit_C::GetRangedWeaponModel() {
     return 0;
   }
 
-  HMODEL       handle = 0;
-  unsigned int numModels = 1;
+  HMODEL handle = 0;
+  UINT   numModels = 1;
   if (ModelGetLinkPoint(characterModel, linkPoint, &handle, &numModels)) {
     HandleClose(characterModel);
     return handle;
@@ -8638,33 +8470,27 @@ HMODEL CGUnit_C::GetRangedWeaponModel() {
 }
 
 void CGUnit_C::ClearRangedStandTimer() {
-  unsigned int &timer = m_rangedStandTimer;
+  UINT &timer = m_rangedStandTimer;
   if (timer) {
     ClientKillTimer(timer, RangedStandTimerHandler, "RangedStandTimerHandler");
     timer = 0;
   }
 }
 
-void CGUnit_C::MaybeSaveChannelSpellTargets(
-    int spellID,
-    const TSStackArray<unsigned __int64> &targets
-) {
+void CGUnit_C::MaybeSaveChannelSpellTargets(int spellID, const TSStackArray<DWORDLONG> &targets) {
   m_savedChannelSpellID = spellID;
   m_savedChannelSpellTargets.SetCount(targets.Count());
-  unsigned int i;
+  UINT i;
   for (i = 0; i < targets.Count(); ++i) {
     m_savedChannelSpellTargets[i] = targets[i];
   }
 }
 
-void CGUnit_C::AddHitAnimHolds(
-    int spellID,
-    const TSStackArray<unsigned __int64> &targets
-) {
+void CGUnit_C::AddHitAnimHolds(int spellID, const TSStackArray<DWORDLONG> &targets) {
   m_pendingHitSpellID = spellID;
-  unsigned int oldCount = m_pendingHitAnimVictims.Count();
+  UINT oldCount = m_pendingHitAnimVictims.Count();
   m_pendingHitAnimVictims.SetCount(oldCount + targets.Count());
-  unsigned int i;
+  UINT i;
   for (i = 0; i < targets.Count(); ++i) {
     m_pendingHitAnimVictims[oldCount + i] = targets[i];
   }
@@ -8676,20 +8502,20 @@ void CGUnit_C::ClearSpellCastAnimInfo() {
 }
 
 void CGUnit_C::StoreSpellMissileEffect(
-    const unsigned __int64 &target,
+    const DWORDLONG          &target,
     const NTempest::C3Vector &destination,
-    float speed,
-    unsigned int ammoDisplayID,
-    int inventoryType,
-    const SpellVisualRec *rec,
-    bool hits,
-    MISS_REASON reason,
-    unsigned int spellID,
-    bool wasProc
+    float                     speed,
+    UINT                      ammoDisplayID,
+    int                       inventoryType,
+    const SpellVisualRec     *rec,
+    bool                      hits,
+    MISS_REASON               reason,
+    UINT                      spellID,
+    bool                      wasProc
 ) {
   FATALASSERT(rec);
   CheckPendingMissileRelease(0);
-  unsigned int sound = rec->m_missileSound;
+  UINT sound = rec->m_missileSound;
   m_spellMissileStruct.caster = this;
   m_spellMissileStruct.target = target;
   m_spellMissileStruct.destination = destination;
@@ -8735,7 +8561,7 @@ void CGUnit_C::SetRangedWeaponPullAnim(int duration) {
   if (m_unit->weaponMode == WEAPONMODE_RANGEDMODE) {
     HMODEL model = GetRangedWeaponModel();
     if (model) {
-      unsigned int seqDuration;
+      UINT seqDuration;
       if (ModelSetRandomSequenceFidget(model, 2, 0) && ModelGetSequenceDuration(model, 2, &seqDuration)) {
         if (duration) {
           ModelSetTimeScale(model, static_cast<float>(seqDuration) / static_cast<float>(duration), 0);
@@ -8773,29 +8599,29 @@ void CGUnit_C::CommitTexture(int force) {
   }
 }
 
-void CGUnit_C::DDWRITELOG(const char *buffer) {
-  unsigned int current = m_deathHoldBuffer.Count();
-  unsigned int bytes = SStrLen(buffer) + 1;
+void CGUnit_C::DDWRITELOG(LPCSTR buffer) {
+  UINT current = m_deathHoldBuffer.Count();
+  UINT bytes = SStrLen(buffer) + 1;
   m_deathHoldBuffer.SetCount(current + bytes);
   memcpy(&m_deathHoldBuffer[current], buffer, bytes);
   *m_deathHoldBufferIndices.New() = current;
 }
 
-void CGUnit_C::DDADDLOG(unsigned __int64 guid, const char *string, const char *file, unsigned int line) {
+void CGUnit_C::DDADDLOG(DWORDLONG guid, LPCSTR string, LPCSTR file, UINT line) {
   char buffer[512];
   SStrPrintf(buffer, sizeof(buffer), "[DDADD 0x%016I64X (%d)]: %s (%s:%d)", guid, m_deathHolds, string, file, line);
   DDWRITELOG(buffer);
   AddDeathHold();
 }
 
-void CGUnit_C::DDDELLOG(unsigned __int64 guid, const char *string, const char *file, unsigned int line) {
+void CGUnit_C::DDDELLOG(DWORDLONG guid, LPCSTR string, LPCSTR file, UINT line) {
   char buffer[512];
   SStrPrintf(buffer, sizeof(buffer), "[DDDEL 0x%016I64X (%d)]: %s (%s:%d)", guid, m_deathHolds, string, file, line);
   DDWRITELOG(buffer);
   DelDeathHold();
 }
 
-void CGUnit_C::DDGENLOG(unsigned __int64 guid, const char *string, const char *file, unsigned int line) {
+void CGUnit_C::DDGENLOG(DWORDLONG guid, LPCSTR string, LPCSTR file, UINT line) {
   char buffer[512];
   SStrPrintf(buffer, sizeof(buffer), "[DDGEN 0x%016I64X (%d)]: %s (%s:%d)", guid, m_deathHolds, string, file, line);
   DDWRITELOG(buffer);
@@ -8817,20 +8643,20 @@ void DDGenerateLogString(HSLOG handle, TSGrowableArray<char> *stringBuffer, char
   }
 
   if (stringBuffer) {
-    unsigned int length = SStrLen(buf);
-    unsigned int newline = length > 1022 ? 1022 : length;
+    UINT length = SStrLen(buf);
+    UINT newline = length > 1022 ? 1022 : length;
     buf[newline] = '\r';
     buf[newline + 1] = '\n';
 
-    unsigned int count = length + 1;
-    unsigned int current = stringBuffer->Count();
+    UINT count = length + 1;
+    UINT current = stringBuffer->Count();
     stringBuffer->SetCount(current + count);
     memcpy(&(*stringBuffer)[current], buf, count);
   }
 }
 
 void CGUnit_C::RangedWeaponAnimEndHandler() {
-  unsigned int &flags = m_flags;
+  UINT &flags = m_flags;
   if (!(flags & 0x800)) {
     SetRangedWeaponReleaseAnim();
     flags |= 0x800;
@@ -8847,7 +8673,7 @@ void CGUnit_C::ThrowAnimEndHandler() {
 
 void CGUnit_C::RangedPrecastEndHandler() {
   if (GetCurrentTorsoAnimState() == 37) {
-    unsigned int anim = SpellGetRangedPrecastHoldAnim(GetCurrentTorsoAnim());
+    UINT anim = SpellGetRangedPrecastHoldAnim(GetCurrentTorsoAnim());
     if (anim != INVALID_ANIMATION && SetSpellPreCastingAnimation(static_cast<ANIMENUMERATION>(anim))) {
       if (anim == 109) {
         SetRangedWeaponPullAnim(0);
@@ -8891,21 +8717,21 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
     return;
   }
 
-  for (unsigned int i = 0; i < m_deathHoldBufferIndices.Count(); ++i) {
+  for (UINT i = 0; i < m_deathHoldBufferIndices.Count(); ++i) {
     DDGenerateLogString(handle, stringBuffer, "%s", &m_deathHoldBuffer[m_deathHoldBufferIndices[i]]);
   }
 
-  const unsigned int *animNode = reinterpret_cast<const unsigned int *>(m_animQueue.Head());
+  const UINT *animNode = reinterpret_cast<const UINT *>(m_animQueue.Head());
   if (animNode) {
     DDGenerateLogString(handle, stringBuffer, "The following anims are queued:");
     while (animNode) {
-      unsigned int type = animNode[2];
+      UINT type = animNode[2];
       if (type >= 15) {
         DDGenerateLogString(handle, stringBuffer, "Unknown queue type: %d", type);
       } else {
         DDGenerateLogString(handle, stringBuffer, "%s", s_animQueueNames[type]);
       }
-      animNode = reinterpret_cast<const unsigned int *>(animNode[1]);
+      animNode = reinterpret_cast<const UINT *>(animNode[1]);
     }
   } else {
     DDGenerateLogString(handle, stringBuffer, "No anims queued");
@@ -8915,7 +8741,7 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
   if (impact) {
     DDGenerateLogString(handle, stringBuffer, "The following impact effects are queued:");
     while (impact) {
-      const char *victimName = "UNKNOWNVICTIM";
+      LPCSTR      victimName = "UNKNOWNVICTIM";
       CGObject_C *victim = ClntObjMgrObjectPtr(impact->victim, __FILE__, __LINE__);
       if (victim) {
         victimName = static_cast<CGUnit_C *>(victim)->GetUnitName();
@@ -8948,9 +8774,9 @@ int CGUnit_C::SetCastingSpell(int spellID, bool force, bool precastAnimSuccessfu
   return 0;
 }
 
-void CGUnit_C::OnChannelSpellChanged(unsigned int oldSpell) {
+void CGUnit_C::OnChannelSpellChanged(UINT oldSpell) {
   if (oldSpell) {
-    for (unsigned int attach = 0; attach < 12; ++attach) {
+    for (UINT attach = 0; attach < 12; ++attach) {
       if (m_auraVisual[attach].GetSpellID() == oldSpell) {
         RemoveAuraVisual(static_cast<UNITEFFECTATTACHPPOINT>(attach));
       }
@@ -8965,8 +8791,7 @@ void CGUnit_C::OnChannelSpellChanged(unsigned int oldSpell) {
       return;
     }
 
-    TSGrowableArray<unsigned __int64> &targets =
-        m_savedChannelSpellTargets;
+    TSGrowableArray<DWORDLONG> &targets = m_savedChannelSpellTargets;
     if (targets.Count() && (spellRec->m_attributesEx & 0x4000)) {
       SaveTrackingTarget(targets[0], TRACKTYPE_SPELLCHANNEL, 0);
     }
@@ -9003,7 +8828,7 @@ void CGUnit_C::OnChannelSpellChanged(unsigned int oldSpell) {
 }
 
 void CGUnit_C::ClearSavedChannelSpellTargets() {
-  TSGrowableArray<unsigned __int64> &targets = m_savedChannelSpellTargets;
+  TSGrowableArray<DWORDLONG> &targets = m_savedChannelSpellTargets;
   targets.Clear();
 }
 
@@ -9031,7 +8856,7 @@ int CGUnit_C::GetStandStateAnim(HMODEL model) const {
     model = m_model;
   }
 
-  unsigned int standStateAnim = m_standStateAnim;
+  UINT standStateAnim = m_standStateAnim;
   return ModelHasSequenceId(model, standStateAnim) ? standStateAnim : ANIM_STAND;
 }
 
@@ -9049,7 +8874,7 @@ const SpellVisualRec *CGUnit_C::GetAppropriateSpellVisual(const SpellRec *spellR
   const SpellVisualRec *itemVisual = 0;
   const SpellVisualRec *spellVisual = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
   if (spellRec->m_attributes & 2) {
-    int displayID = GetVirtualItemDisplayID(2);
+    int                       displayID = GetVirtualItemDisplayID(2);
     const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
     if (displayInfo && displayInfo->m_spellVisualID) {
       itemVisual = g_spellVisualDB.GetRecord(displayInfo->m_spellVisualID);
@@ -9161,8 +8986,7 @@ int CGUnit_C::CanHighlight() const {
 
 void CGUnit_C::RefreshInteractIcon() {
   RemoveInteractIcon();
-  CGPlayer_C *player =
-      static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     if (m_unit->npcFlags & 2) {
       player->UpdateQuestStatus(this);
@@ -9322,12 +9146,11 @@ ACTIVEATTACHMENTINFO *CGUnit_C::CreateAttachmentInfo(
     int  sheathedAttachmentPoint,
     bool showHidden
 ) {
-  HMODEL              models[2] = {0, 0};
-  int                 attachmentPoints[2] = {0, 0};
+  HMODEL models[2] = {0, 0};
+  int    attachmentPoints[2] = {0, 0};
   if (!GetObjComponentInfo(
           GetDisplayRace(), GetDisplaySex(), displayID, inventoryType,
-          (GetType() & TYPE_PLAYER) || m_texComponent || m_geosetHandle || m_displayInfoExtra,
-          forceAlternate, models, attachmentPoints
+          (GetType() & TYPE_PLAYER) || m_texComponent || m_geosetHandle || m_displayInfoExtra, forceAlternate, models, attachmentPoints
       ))
   {
     return 0;
@@ -9345,7 +9168,7 @@ ACTIVEATTACHMENTINFO *CGUnit_C::CreateAttachmentInfo(
   if (showHidden) {
     info->flags |= 2;
   }
-  for (unsigned int i = 0; i < 2; ++i) {
+  for (UINT i = 0; i < 2; ++i) {
     info->modelInfo[i].model = models[i];
     info->modelInfo[i].attachmentPoint = attachmentPoints[i];
     models[i] = 0;
@@ -9441,8 +9264,7 @@ bool CGUnit_C::ApplyAttachmentInfo(HMODEL characterModel, bool sheathe, int atta
   if (info->flags & 2) {
     return true;
   }
-  if (attachmentSlot != OBJATTACH_RANGED &&
-      !((1 << attachmentSlot) & ((1 << OBJATTACH_MAINHAND) | (1 << OBJATTACH_OFFHAND)))) {
+  if (attachmentSlot != OBJATTACH_RANGED && !((1 << attachmentSlot) & ((1 << OBJATTACH_MAINHAND) | (1 << OBJATTACH_OFFHAND)))) {
     sheathe = false;
   }
 
@@ -9496,7 +9318,7 @@ bool CGUnit_C::ApplyAttachmentInfo(HMODEL characterModel, bool sheathe, int atta
 }
 
 void CGUnit_C::SetAttachmentHidden(int attachmentSlot, bool hide) {
-  if (static_cast<unsigned int>(attachmentSlot) >= OBJATTACH_NUM) {
+  if (static_cast<UINT>(attachmentSlot) >= OBJATTACH_NUM) {
     return;
   }
 
@@ -9517,8 +9339,8 @@ void CGUnit_C::ReinitializePaperdollModel() {
 }
 
 void CGUnit_C::CreatePaperdollModel() {
-  HMODEL      &paperDollModel = m_paperDollModel;
-  int sequenceTime = 0;
+  HMODEL &paperDollModel = m_paperDollModel;
+  int     sequenceTime = 0;
   if (paperDollModel) {
     sequenceTime = ModelGetSequenceTime(paperDollModel, 0);
     HandleClose(paperDollModel);
@@ -9536,12 +9358,12 @@ void CGUnit_C::CreatePaperdollModel() {
 }
 
 int CGUnit_C::ShouldDelayLevelupAnim() {
-  unsigned int state = m_currentTorsoAnimState;
+  UINT state = m_currentTorsoAnimState;
   FATALASSERT(state < 64);
   return ShouldDelayLevelupAnim(state);
 }
 
-int CGUnit_C::ShouldDelayLevelupAnim(unsigned int state) {
+int CGUnit_C::ShouldDelayLevelupAnim(UINT state) {
   FATALASSERT(state < 64);
   return s_animInfo[state].flags & 0x200;
 }
@@ -9573,7 +9395,7 @@ const SpellVisualKitRec *CGUnit_C::GetRangedSpellAnim(int id, bool castKit) {
     return 0;
   }
 
-  SpellVisualRec  visRecData;
+  SpellVisualRec        visRecData;
   const SpellVisualRec *visualRec = GetAppropriateSpellVisual(spellRec, visRecData);
   if (!visualRec) {
     return 0;
@@ -9583,7 +9405,7 @@ const SpellVisualKitRec *CGUnit_C::GetRangedSpellAnim(int id, bool castKit) {
   return g_spellVisualKitDB.GetRecord(kitID);
 }
 
-unsigned int CGUnit_C::GetCurrentTorsoAnim() const {
+UINT CGUnit_C::GetCurrentTorsoAnim() const {
   if (!m_currentTorsoAnimState) {
     return m_currentBaseAnim;
   }
@@ -9632,11 +9454,11 @@ void CGUnit_C::CheckDeferredSheathing() {
 
   FATALASSERT(m_deferredSheatheReason < SHEATHE_NUMREASONS);
 
-  bool sheathe = (m_deferredSheatheFlags & 2) != 0;
+  bool   sheathe = (m_deferredSheatheFlags & 2) != 0;
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
 
-  for (unsigned int i = 0; i < NUMHANDS; ++i) {
+  for (UINT i = 0; i < NUMHANDS; ++i) {
     const VirtualItemInfo *info = GetVirtualItem(g_monsterHands[i], 1);
     if (!info) {
       RemoveObjectComponentByInvSlot(s_hands[i], false, true);
@@ -9658,7 +9480,7 @@ void CGUnit_C::CheckDeferredSheathing() {
 }
 
 void CGUnit_C::DisableWeaponTrails() {
-  for (unsigned int i = 0; i < 5; ++i) {
+  for (UINT i = 0; i < 5; ++i) {
     if (m_weaponTrails[i]) {
       WeaponTrailDisableDrawing(m_weaponTrails[i]);
     }
@@ -9691,7 +9513,7 @@ void CGUnit_C::MaybeStartSheatheAnim() {
     const VirtualItemInfo *info = GetVirtualItem(*slot, 0);
     if (info) {
       found = true;
-      unsigned char sheatheMask = 1 << info->m_sheatheType;
+      BYTE sheatheMask = 1 << info->m_sheatheType;
       *handAnim = (sheatheMask & 0x88) ? ANIM_HIPSHEATHE : ANIM_SHEATHE;
     }
   }
@@ -9704,7 +9526,7 @@ void CGUnit_C::MaybeStartSheatheAnim() {
 }
 
 bool CGUnit_C::SheatheAnimPlaying() const {
-  for (unsigned int hand = 0; hand < NUMHANDS; ++hand) {
+  for (UINT hand = 0; hand < NUMHANDS; ++hand) {
     if (m_handAnim[hand] != RESET_ANIMATION_INDICES0) {
       return true;
     }
@@ -9720,11 +9542,7 @@ void CGUnit_C::HandleRemotePlayerSheathing() {
 
 void CGUnit_C::HandleLocalPlayerSheathing() {
   if (!SheatheAnimPlaying() || (m_animFlags & 0x10000)) {
-    SetSheatheReason(
-        SHEATHE_PLAYEREXPLICIT,
-        m_unit->weaponMode == WEAPONMODE_SHEATHEDMODE,
-        !SheatheAnimPlaying()
-    );
+    SetSheatheReason(SHEATHE_PLAYEREXPLICIT, m_unit->weaponMode == WEAPONMODE_SHEATHEDMODE, !SheatheAnimPlaying());
   }
 }
 
@@ -9743,9 +9561,9 @@ bool CGUnit_C::SetSheathingSequence() {
   FATALASSERT(theModel);
   m_animFlags &= ~0x10000u;
 
-  bool success = true;
+  bool             success = true;
   ANIMENUMERATION *handAnim = m_handAnim;
-  for (unsigned int i = 0; i < NUMHANDS; ++i, ++handAnim) {
+  for (UINT i = 0; i < NUMHANDS; ++i, ++handAnim) {
     if (*handAnim != RESET_ANIMATION_INDICES0) {
       success = success && ObjectModelSetBoneSequence(theModel, *handAnim, s_shoulderBones[i], 0);
       ModelLockObjectSequence(theModel, s_shoulderBones[i], 1);
@@ -9756,7 +9574,7 @@ bool CGUnit_C::SetSheathingSequence() {
 }
 
 int SheatheTypeToSheathePoint(int sheatheType, int invSlot) {
-  unsigned int ranged = invSlot != INVSLOT_MAINHAND;
+  UINT ranged = invSlot != INVSLOT_MAINHAND;
   return s_savedSheathToAttachPoints[s_sheathePoints[ranged][sheatheType]];
 }
 
@@ -9765,7 +9583,7 @@ void CGUnit_C::SetWeaponMode(WEAPONMODE mode) {
 
   CDataStore msg;
   msg.Put(CMSG_SETWEAPONMODE);
-  msg.Put(static_cast<unsigned int>(mode));
+  msg.Put(static_cast<UINT>(mode));
   msg.Finalize();
   ClientServices_Send(&msg);
 
@@ -9777,7 +9595,7 @@ void CGUnit_C::AddSpellProcOneShotEffect(int spellID, const SpellVisualKitRec *r
     return;
   }
 
-  if (rec->m_characterParam[0] >= 11 || ((1 << static_cast<unsigned int>(rec->m_characterParam[0])) & 0x640)) {
+  if (rec->m_characterParam[0] >= 11 || ((1 << static_cast<UINT>(rec->m_characterParam[0])) & 0x640)) {
     return;
   }
 
@@ -9791,10 +9609,10 @@ void CGUnit_C::AddSpellProcOneShotEffect(int spellID, const SpellVisualKitRec *r
   newDesc->kitPtr = rec;
   newDesc->isOneShot = 1;
 
-  m_spellEffectLists[static_cast<unsigned int>(rec->m_characterParam[0])].LinkNode(newDesc, LIST_TAIL, 0);
-  SpellProcHandler handler = s_spellProcHandlerFunctions[static_cast<unsigned int>(rec->m_characterParam[0])];
+  m_spellEffectLists[static_cast<UINT>(rec->m_characterParam[0])].LinkNode(newDesc, LIST_TAIL, 0);
+  SpellProcHandler handler = s_spellProcHandlerFunctions[static_cast<UINT>(rec->m_characterParam[0])];
   if (handler) {
-    handler(SPELLPROCADD, m_spellEffectLists[static_cast<unsigned int>(rec->m_characterParam[0])], this, charModel, rec, newDesc, spellID, 0.0f);
+    handler(SPELLPROCADD, m_spellEffectLists[static_cast<UINT>(rec->m_characterParam[0])], this, charModel, rec, newDesc, spellID, 0.0f);
   }
   HandleClose(charModel);
 }
@@ -9807,7 +9625,7 @@ SPELLEFFECTDESC *CGUnit_C::GetActiveEffect(SpellEffectList &list) {
   return desc ? desc : list.Tail();
 }
 
-void CGUnit_C::OnMoveStartLocal(unsigned long eventTime, int forward) {
+void CGUnit_C::OnMoveStartLocal(DWORD eventTime, int forward) {
   OnMovementInitiated(0);
   if (m_move.m_moveFlags & 0x2400) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
@@ -9816,11 +9634,11 @@ void CGUnit_C::OnMoveStartLocal(unsigned long eventTime, int forward) {
   }
 }
 
-void CGUnit_C::OnMoveStopLocal(unsigned long eventTime) {
+void CGUnit_C::OnMoveStopLocal(DWORD eventTime) {
   static_cast<CMovement &>(m_move).OnMoveStopLocal(eventTime);
 }
 
-void CGUnit_C::OnStrafeStartLocal(unsigned long eventTime, int left) {
+void CGUnit_C::OnStrafeStartLocal(DWORD eventTime, int left) {
   if (!(m_unit->flags & 0x2000)) {
     OnMovementInitiated(0);
     if (m_move.m_moveFlags & 0x2400) {
@@ -9831,21 +9649,21 @@ void CGUnit_C::OnStrafeStartLocal(unsigned long eventTime, int left) {
   }
 }
 
-void CGUnit_C::OnStrafeStopLocal(unsigned long eventTime) {
+void CGUnit_C::OnStrafeStopLocal(DWORD eventTime) {
   if (!(m_unit->flags & 0x2000)) {
     static_cast<CMovement &>(m_move).OnStrafeStopLocal(eventTime);
   }
 }
 
-void CGUnit_C::OnSwimStartLocal(unsigned long eventTime) {
+void CGUnit_C::OnSwimStartLocal(DWORD eventTime) {
   static_cast<CMovement &>(m_move).OnSwimStartLocal(eventTime);
 }
 
-void CGUnit_C::OnSwimStopLocal(unsigned long eventTime) {
+void CGUnit_C::OnSwimStopLocal(DWORD eventTime) {
   static_cast<CMovement &>(m_move).OnSwimStopLocal(eventTime);
 }
 
-void CGUnit_C::OnTurnStartLocal(unsigned long eventTime, int left) {
+void CGUnit_C::OnTurnStartLocal(DWORD eventTime, int left) {
   OnMovementInitiated(0);
   if (m_unit->flags & 0x40000) {
     CMovement::LogWrite("0x%016I64X: Stunned\n", GetGUID());
@@ -9854,18 +9672,18 @@ void CGUnit_C::OnTurnStartLocal(unsigned long eventTime, int left) {
   }
 }
 
-void CGUnit_C::OnTurnStopLocal(unsigned long eventTime) {
+void CGUnit_C::OnTurnStopLocal(DWORD eventTime) {
   static_cast<CMovement &>(m_move).OnTurnStopLocal(eventTime);
 }
 
-void CGUnit_C::OnPitchStartLocal(unsigned long eventTime, int up) {
+void CGUnit_C::OnPitchStartLocal(DWORD eventTime, int up) {
   static_cast<CMovement &>(m_move).OnPitchStartLocal(eventTime, up);
 }
-void CGUnit_C::OnPitchStopLocal(unsigned long eventTime) {
+void CGUnit_C::OnPitchStopLocal(DWORD eventTime) {
   static_cast<CMovement &>(m_move).OnPitchStopLocal(eventTime);
 }
 
-void CGUnit_C::OnSetFacingLocal(unsigned long eventTime, float facing) {
+void CGUnit_C::OnSetFacingLocal(DWORD eventTime, float facing) {
   OnMovementInitiated(1);
   static_cast<CMovement &>(m_move).OnSetFacingLocal(eventTime, facing);
   if (m_unit->standState == 3 || m_unit->standState == 2) {
@@ -9873,7 +9691,7 @@ void CGUnit_C::OnSetFacingLocal(unsigned long eventTime, float facing) {
   }
 }
 
-void CGUnit_C::OnSetRawFacingLocal(unsigned long eventTime, float facing) {
+void CGUnit_C::OnSetRawFacingLocal(DWORD eventTime, float facing) {
   OnMovementInitiated(1);
   static_cast<CMovement &>(m_move).OnSetRawFacingLocal(eventTime, facing);
   if (m_unit->standState == 3 || m_unit->standState == 2) {
@@ -9881,11 +9699,11 @@ void CGUnit_C::OnSetRawFacingLocal(unsigned long eventTime, float facing) {
   }
 }
 
-void CGUnit_C::OnSetPitchLocal(unsigned long eventTime, float pitch) {
+void CGUnit_C::OnSetPitchLocal(DWORD eventTime, float pitch) {
   static_cast<CMovement &>(m_move).OnSetPitchLocal(eventTime, pitch);
 }
 
-void CGUnit_C::OnJumpLocal(unsigned long eventTime) {
+void CGUnit_C::OnJumpLocal(DWORD eventTime) {
   OnMovementInitiated(0);
   if (m_move.m_moveFlags & 0x2400) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
@@ -9900,7 +9718,7 @@ void CGUnit_C::OnJumpLocal(unsigned long eventTime) {
   }
 }
 
-void CGUnit_C::OnRunSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID, float speed) {
+void CGUnit_C::OnRunSpeedChangeLocal(DWORD eventTime, NETMESSAGE msgID, float speed) {
   static_cast<CMovement &>(m_move).OnRunSpeedChange(eventTime, speed);
   UpdateBaseAnimation(0);
   UpdateMovementAnimSpeed(1, INVALID_ANIM_STATE);
@@ -9912,7 +9730,7 @@ void CGUnit_C::OnRunSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID, 
   ClientServices_Send(&msg);
 }
 
-void CGUnit_C::OnWalkSpeedChangeLocal(unsigned long eventTime, float speed) {
+void CGUnit_C::OnWalkSpeedChangeLocal(DWORD eventTime, float speed) {
   static_cast<CMovement &>(m_move).OnWalkSpeedChange(eventTime, speed);
   UpdateMovementAnimSpeed(1, INVALID_ANIM_STATE);
 
@@ -9923,7 +9741,7 @@ void CGUnit_C::OnWalkSpeedChangeLocal(unsigned long eventTime, float speed) {
   ClientServices_Send(&msg);
 }
 
-void CGUnit_C::OnSwimSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID, float speed) {
+void CGUnit_C::OnSwimSpeedChangeLocal(DWORD eventTime, NETMESSAGE msgID, float speed) {
   static_cast<CMovement &>(m_move).OnSwimSpeedChange(eventTime, speed);
   UpdateMovementAnimSpeed(1, INVALID_ANIM_STATE);
 
@@ -9934,7 +9752,7 @@ void CGUnit_C::OnSwimSpeedChangeLocal(unsigned long eventTime, NETMESSAGE msgID,
   ClientServices_Send(&msg);
 }
 
-void CGUnit_C::OnAllSpeedChangeLocal(unsigned long eventTime, float speed) {
+void CGUnit_C::OnAllSpeedChangeLocal(DWORD eventTime, float speed) {
   static_cast<CMovement &>(m_move).OnRunSpeedChange(eventTime, speed);
   static_cast<CMovement &>(m_move).OnWalkSpeedChange(eventTime, speed);
   static_cast<CMovement &>(m_move).OnSwimSpeedChange(eventTime, speed);
@@ -9948,7 +9766,7 @@ void CGUnit_C::OnAllSpeedChangeLocal(unsigned long eventTime, float speed) {
   ClientServices_Send(&msg);
 }
 
-void CGUnit_C::OnTurnRateChangeLocal(unsigned long eventTime, float rate) {
+void CGUnit_C::OnTurnRateChangeLocal(DWORD eventTime, float rate) {
   static_cast<CMovement &>(m_move).OnTurnRateChange(eventTime, rate);
 
   CDataStore msg;
@@ -9958,23 +9776,23 @@ void CGUnit_C::OnTurnRateChangeLocal(unsigned long eventTime, float rate) {
   ClientServices_Send(&msg);
 }
 
-void CGUnit_C::OnSetRunModeLocal(unsigned long eventTime, int run) {
+void CGUnit_C::OnSetRunModeLocal(DWORD eventTime, int run) {
   static_cast<CMovement &>(m_move).OnSetRunModeLocal(eventTime, run);
 }
 
-void CGUnit_C::ToggleRunModeLocal(unsigned long eventTime) {
+void CGUnit_C::ToggleRunModeLocal(DWORD eventTime) {
   OnSetRunModeLocal(eventTime, m_move.m_moveFlags & 0x100);
 }
 
-void ProcessLocalMoveEvent(unsigned int msgId) {
+void ProcessLocalMoveEvent(UINT msgId) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   FATALASSERT(unit);
   unit->ProcessLocalMoveEvent(static_cast<NETMESSAGE>(msgId));
 }
 
-void CGUnit_C::EnableWeaponTrail(const NTempest::CImVector &color, int fadeOutRate, unsigned int duration) {
+void CGUnit_C::EnableWeaponTrail(const NTempest::CImVector &color, int fadeOutRate, UINT duration) {
   int *trails = m_weaponTrails;
-  for (unsigned int i = 0; i < 5; ++i) {
+  for (UINT i = 0; i < 5; ++i) {
     if (trails[i]) {
       WeaponTrailSetDrawing(trails[i], color, fadeOutRate, duration);
     }
@@ -9982,7 +9800,7 @@ void CGUnit_C::EnableWeaponTrail(const NTempest::CImVector &color, int fadeOutRa
 }
 
 void SPELLEFFECTDESC::ClearLightningObjects() {
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     if (lightningObjs[i]) {
       SpellVisualClearLightning(lightningObjs[i]);
     }
@@ -10005,7 +9823,7 @@ void AuraVisual::SetModel(HMODEL model) {
   flags &= ~2;
 }
 
-void AuraVisual::SetWorldObject(unsigned long object) {
+void AuraVisual::SetWorldObject(DWORD object) {
   Clear();
   obj = object;
   if (obj) {
@@ -10013,7 +9831,7 @@ void AuraVisual::SetWorldObject(unsigned long object) {
   }
 }
 
-void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, bool snapToTargetOnClear) {
+void CGUnit_C::SaveTrackingTarget(DWORDLONG target, TRACKTYPE type, bool snapToTargetOnClear) {
   FATALASSERT(!target || type <= TRACKTYPE_NUMTRACKTYPES);
   if (GetGUID() != ClntObjMgrGetActivePlayer() || ((!target && !s_trackingTarget) || target == GetGUID())) {
     return;
@@ -10024,7 +9842,7 @@ void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, bool 
     return;
   }
 
-  unsigned long currentTime = OsGetAsyncTimeMs();
+  DWORD currentTime = OsGetAsyncTimeMs();
   if (target) {
     CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
     if (!object || !(object->GetType() & TYPE_UNIT)) {
@@ -10045,8 +9863,8 @@ void CGUnit_C::SaveTrackingTarget(unsigned __int64 target, TRACKTYPE type, bool 
       s_trackLastCheckTime = s_trackingInterpStartTime;
     }
   } else if (s_trackingTarget) {
-    unsigned int objectFlags = m_move.m_moveFlags;
-    if ((((s_trackingFlags >> 2) ^ static_cast<unsigned int>(~(objectFlags >> 8))) & 1) != 0) {
+    UINT objectFlags = m_move.m_moveFlags;
+    if ((((s_trackingFlags >> 2) ^ static_cast<UINT>(~(objectFlags >> 8))) & 1) != 0) {
       OnSetRunModeLocal(currentTime, (s_trackingFlags >> 2) & 1);
     }
 
@@ -10083,7 +9901,7 @@ void CGUnit_C::ClearTrackingTarget(bool snapToTargetOnClear) {
   }
 }
 
-unsigned __int64 CGUnit_C::GetTrackingTarget() const {
+DWORDLONG CGUnit_C::GetTrackingTarget() const {
   return m_obj->m_guid == ClntObjMgrGetActivePlayer() ? s_trackingTarget : 0;
 }
 
@@ -10115,7 +9933,7 @@ void CGUnit_C::HandleFollowTarget() {
     return;
   }
 
-  unsigned long currentTime = OsGetAsyncTimeMs();
+  DWORD currentTime = OsGetAsyncTimeMs();
   target->GetPosition(targetPosition);
   GetPosition(position);
   float facingToTarget = CalculateFacingTo(position, targetPosition);
@@ -10129,8 +9947,7 @@ void CGUnit_C::HandleFollowTarget() {
       facingDiff = fmod(facingDiff, 6.2831855f);
     }
 
-    float maxChange =
-        fmod(fabs((currentTime - s_trackLastCheckTime) * 0.001f * 3.1415927f), 6.2831855f);
+    float maxChange = fmod(fabs((currentTime - s_trackLastCheckTime) * 0.001f * 3.1415927f), 6.2831855f);
     s_trackLastCheckTime = currentTime;
     float change = facingDiff <= 3.1415927f ? facingDiff : 6.2831855f - facingDiff;
     if (change >= maxChange) {
@@ -10146,7 +9963,7 @@ void CGUnit_C::HandleFollowTarget() {
   }
 
   if (s_trackTypeInfo[s_trackingType].hasMovement) {
-    unsigned int moveFlags = m_move.m_moveFlags;
+    UINT moveFlags = m_move.m_moveFlags;
     if (moveFlags & 3) {
       if (distanceSq <= TRACKMOVETHRESHOLDSQ) {
         s_trackingFlags |= 2;
@@ -10198,7 +10015,7 @@ int GetObjAnimFlags(int unitAnimFlags) {
   return flags;
 }
 
-void IMPACTEFFECTDESC::Set(unsigned __int64 a, unsigned __int64 v, const SpellVisualKitRec *i, int s) {
+void IMPACTEFFECTDESC::Set(DWORDLONG a, DWORDLONG v, const SpellVisualKitRec *i, int s) {
   attacker = a;
   victim = v;
   impactKit = const_cast<SpellVisualKitRec *>(i);
@@ -10216,20 +10033,15 @@ void CGUnit_C::GetGMText(char *buffer, int) const {
   buffer[0] = '\0';
 }
 
-const char *CGUnit_C::GetUnitTitle() const {
+LPCSTR CGUnit_C::GetUnitTitle() const {
   return m_stats && m_stats->m_title && m_stats->m_title[0] ? m_stats->m_title : 0;
 }
 
-unsigned int CGUnit_C::UpdateUnitNameString(
-    unsigned int,
-    unsigned int otherUnitsFlags,
-    char *buffer,
-    unsigned int bufferSize
-) const {
+UINT CGUnit_C::UpdateUnitNameString(UINT, UINT otherUnitsFlags, char *buffer, UINT bufferSize) const {
   FATALASSERT(buffer);
   FATALASSERT(bufferSize);
 
-  unsigned int added = 0;
+  UINT added = 0;
   char temp[260];
 
   GetAFKText(temp, sizeof(temp));
@@ -10247,11 +10059,10 @@ unsigned int CGUnit_C::UpdateUnitNameString(
 
   if ((m_obj->m_type & TYPE_PLAYER) && (otherUnitsFlags & 2)) {
     const CGPlayer_C *player = static_cast<const CGPlayer_C *>(this);
-    unsigned int guildID = player->GetGuildID();
+    UINT              guildID = player->GetGuildID();
     if (guildID) {
-      const unsigned __int64 noGuid = 0;
-      const GuildStats_C *guild =
-          g_guildInfoCache.GetRecord(guildID, noGuid, PlayerNameGuildCallback, const_cast<HPLAYERNAME *>(&m_unitNameHandle));
+      const DWORDLONG     noGuid = 0;
+      const GuildStats_C *guild = g_guildInfoCache.GetRecord(guildID, noGuid, PlayerNameGuildCallback, const_cast<HPLAYERNAME *>(&m_unitNameHandle));
       if (guild) {
         if (added) {
           SStrPack(buffer, "\n", bufferSize);
@@ -10264,7 +10075,7 @@ unsigned int CGUnit_C::UpdateUnitNameString(
     }
   }
 
-  const char *title = GetUnitTitle();
+  LPCSTR title = GetUnitTitle();
   if (title && (otherUnitsFlags & 4)) {
     if (added) {
       SStrPack(buffer, "\n", bufferSize);
@@ -10293,7 +10104,7 @@ unsigned int CGUnit_C::UpdateUnitNameString(
   return added;
 }
 
-unsigned __int64 CGUnit_C::GetLocalTarget() const {
+DWORDLONG CGUnit_C::GetLocalTarget() const {
   return m_targetUnit;
 }
 
@@ -10317,7 +10128,7 @@ bool CGUnit_C::CanBeMounted() {
   return true;
 }
 
-void CGUnit_C::OnStandStateChanged(unsigned int, unsigned int) {
+void CGUnit_C::OnStandStateChanged(UINT, UINT) {
 }
 
 bool CGUnit_C::GetDefenseSkillRank(int &base, int &modifier) const {

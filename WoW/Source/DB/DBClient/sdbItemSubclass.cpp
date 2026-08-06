@@ -4,7 +4,7 @@
 #include <storm.h>
 #include <stpl.h>
 
-const unsigned int NUM_ITEMCLASSES = 16;
+const UINT NUM_ITEMCLASSES = 16;
 
 static TSFixedArray<const ItemSubClassRec *> s_itemSubClassList[NUM_ITEMCLASSES];
 
@@ -34,7 +34,7 @@ void SDBItemSubclassInitialize() {
     const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
 
     if (rec->m_classID >= 0) {
-      ASSERT(s_itemSubClassList[rec->m_classID].Count() > (unsigned int)rec->m_subClassID);
+      ASSERT(s_itemSubClassList[rec->m_classID].Count() > (UINT)rec->m_subClassID);
       s_itemSubClassList[rec->m_classID][rec->m_subClassID] = rec;
     }
   }
@@ -43,7 +43,7 @@ void SDBItemSubclassInitialize() {
 void SDBItemSubclassDestroy() {
 }
 
-const ItemSubClassRec *SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID) {
+const ItemSubClassRec *SDBItemSubclassGetSubClassRec(UINT classID, UINT subClassID) {
   if (classID >= NUM_ITEMCLASSES) {
     return 0;
   }

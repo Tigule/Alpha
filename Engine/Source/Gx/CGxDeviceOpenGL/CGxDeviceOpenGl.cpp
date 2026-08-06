@@ -29,7 +29,7 @@ CGxDeviceOpenGl::CGxDeviceOpenGl()
   m_api = GxApi_OpenGl;
   m_caps.m_colorFormat = GxCF_rgba;
 
-  for (unsigned int freq = 0; freq < GxBufWriteFreqs_Last; ++freq) {
+  for (UINT freq = 0; freq < GxBufWriteFreqs_Last; ++freq) {
     m_vertexBuffer[freq] = 0;
     m_indexBuffer[freq] = 0;
   }
@@ -83,7 +83,7 @@ void CGxDeviceOpenGl::DeviceReadDepths(NTempest::CiRect &rect, TSGrowableArray<f
   }
 }
 
-void CGxDeviceOpenGl::DeviceOverride(EGxOverride override, unsigned long value) {
+void CGxDeviceOpenGl::DeviceOverride(EGxOverride override, DWORD value) {
   CGxDevice::DeviceOverride(override, value);
 
   if (override == GxOverride_PixelShader) {
@@ -92,7 +92,7 @@ void CGxDeviceOpenGl::DeviceOverride(EGxOverride override, unsigned long value) 
   }
 }
 
-void CGxDeviceOpenGl::LockArrays(unsigned int count) {
+void CGxDeviceOpenGl::LockArrays(UINT count) {
   if (glExtCVA) {
     glLockArraysEXT(0, count);
     m_lockedArrays = count;
@@ -107,7 +107,7 @@ void CGxDeviceOpenGl::UnlockArrays() {
 }
 
 void CGxDeviceOpenGl::GetError() {
-  for (unsigned int i = 0;; ++i) {
+  for (UINT i = 0;; ++i) {
     GLenum error = glGetError();
     if (error == GL_NO_ERROR && i != 0x100) {
       break;
@@ -120,16 +120,16 @@ void CGxDeviceOpenGl::GetError() {
 void CGxDeviceOpenGl::IAllocVAR() {
   FATALASSERT(m_nvvarMem == 0);
 
-  unsigned int freqlp;
-  unsigned int order = 3;
+  UINT freqlp;
+  UINT order = 3;
   while (order) {
-    unsigned int bytes = 0;
+    UINT bytes = 0;
     for (freqlp = 0; freqlp < order; ++freqlp) {
       EGxBufWriteFreq freq = freqOrder[freqlp];
       if (freq == GxBWF_Dynamic) {
         bytes += GxVertexSize(GxVBF_PNCT0T1) << 15;
       } else {
-        for (unsigned int format = 0; format < GxVertexBufferFormats_Last; ++format) {
+        for (UINT format = 0; format < GxVertexBufferFormats_Last; ++format) {
           bytes += m_VBReserve[freq][format] * GxVertexSize(static_cast<EGxVertexBufferFormat>(format));
         }
       }
@@ -153,34 +153,34 @@ void CGxDeviceOpenGl::IFreeVAR() {
   glVertexArrayRangeNV(0, 0);
 }
 
-void CGxDeviceOpenGl::IAllocVertexBufferVAR(EGxBufWriteFreq freq, unsigned int bytes) {
+void CGxDeviceOpenGl::IAllocVertexBufferVAR(EGxBufWriteFreq freq, UINT bytes) {
   if (!m_nvvarMem) {
     IAllocVAR();
   }
 
   if (bytes && m_nvvarMem) {
     FATALASSERT(m_nvvarNext + bytes <= m_nvvarBytes);
-    m_vertexBuffer[freq] = NEW(CGxMemBuffer_VAR)(bytes, static_cast<unsigned char *>(m_nvvarMem) + m_nvvarNext);
+    m_vertexBuffer[freq] = NEW(CGxMemBuffer_VAR)(bytes, static_cast<BYTE *>(m_nvvarMem) + m_nvvarNext);
     m_nvvarNext += bytes;
   }
 }
 
-void CGxDeviceOpenGl::AllocVertexBuffer(EGxBufWriteFreq freq, unsigned int bytes) {
+void CGxDeviceOpenGl::AllocVertexBuffer(EGxBufWriteFreq freq, UINT bytes) {
   FATALASSERT(m_vertexBuffer[freq] == 0);
   if (glNVVertexArrayRange) {
     IAllocVertexBufferVAR(freq, bytes);
   }
 }
 
-void CGxDeviceOpenGl::AllocIndexBuffer(EGxBufWriteFreq freq, unsigned int bytes) {
+void CGxDeviceOpenGl::AllocIndexBuffer(EGxBufWriteFreq freq, UINT bytes) {
   FATALASSERT(m_indexBuffer[freq] == 0);
 }
 
 void CGxDeviceOpenGl::IAllocBuffers() {
-  for (unsigned int freqlp = 0; freqlp < GxBufWriteFreqs_Last; ++freqlp) {
-    unsigned int maxVertices = 0;
-    unsigned int maxIndices = 0;
-    for (unsigned int format = 0; format < GxVertexBufferFormats_Last; ++format) {
+  for (UINT freqlp = 0; freqlp < GxBufWriteFreqs_Last; ++freqlp) {
+    UINT maxVertices = 0;
+    UINT maxIndices = 0;
+    for (UINT format = 0; format < GxVertexBufferFormats_Last; ++format) {
       if (m_VBReserve[freqlp][format] > maxVertices) {
         maxVertices = m_VBReserve[freqlp][format];
       }
@@ -190,7 +190,7 @@ void CGxDeviceOpenGl::IAllocBuffers() {
     }
 
     AllocVertexBuffer(static_cast<EGxBufWriteFreq>(freqlp), maxVertices * GxVertexSize(GxVBF_PNCT0T1));
-    AllocIndexBuffer(static_cast<EGxBufWriteFreq>(freqlp), maxIndices * sizeof(unsigned short));
+    AllocIndexBuffer(static_cast<EGxBufWriteFreq>(freqlp), maxIndices * sizeof(WORD));
   }
 }
 
@@ -217,7 +217,7 @@ void CGxDeviceOpenGl::FreeIndexBuffer(CGxMemBuffer *&b) {
 }
 
 void CGxDeviceOpenGl::FreeBuffers() {
-  for (unsigned int freq = 0; freq < GxBufWriteFreqs_Last; ++freq) {
+  for (UINT freq = 0; freq < GxBufWriteFreqs_Last; ++freq) {
     FreeVertexBuffer(m_vertexBuffer[freq]);
     FreeIndexBuffer(m_indexBuffer[freq]);
   }
@@ -227,13 +227,13 @@ void CGxDeviceOpenGl::FreeBuffers() {
   }
 }
 
-void CGxDeviceOpenGl::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, unsigned int numVertices, unsigned int numIndices) {
+void CGxDeviceOpenGl::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, UINT numVertices, UINT numIndices) {
   CGxDevice::BufReserve(freq, format, numVertices, numIndices);
   m_bufRealloc = 1;
 }
 
 void CGxDeviceOpenGl::ISetGlCaps() {
-  m_caps.m_numTmus = static_cast<unsigned int>(glExtMultiTextureCount) < 4 ? glExtMultiTextureCount : 4;
+  m_caps.m_numTmus = static_cast<UINT>(glExtMultiTextureCount) < 4 ? glExtMultiTextureCount : 4;
   m_caps.m_pixelCenterOnEdge = 1;
   m_caps.m_texelCenterOnEdge = 1;
   m_caps.m_maxTextureSize = 0x200;
@@ -268,7 +268,7 @@ void CGxDeviceOpenGl::ISetGlCaps() {
   Log(m_caps);
 }
 
-CGxMemBuffer_VAR::CGxMemBuffer_VAR(unsigned int count, void *mem) : CGxMemBuffer(count), m_mem(mem), m_fence(0) {
+CGxMemBuffer_VAR::CGxMemBuffer_VAR(UINT count, LPVOID mem) : CGxMemBuffer(count), m_mem(mem), m_fence(0) {
   glGenFencesNV(1, &m_fence);
 }
 
@@ -283,7 +283,7 @@ CGxMemBuffer_VAR::~CGxMemBuffer_VAR() {
   glDeleteFencesNV(1, &m_fence);
 }
 
-void CGxMemBuffer_VAR::Lock(void *&mem, unsigned int bytes, unsigned int base) {
+void CGxMemBuffer_VAR::Lock(LPVOID &mem, UINT bytes, UINT base) {
   FATALASSERT(bytes <= m_count);
 
   if (base == CGxBuf::BASE_NONE) {
@@ -298,5 +298,5 @@ void CGxMemBuffer_VAR::Lock(void *&mem, unsigned int bytes, unsigned int base) {
     base = m_base;
   }
 
-  mem = static_cast<unsigned char *>(m_mem) + base;
+  mem = static_cast<BYTE *>(m_mem) + base;
 }

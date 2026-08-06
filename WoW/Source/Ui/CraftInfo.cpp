@@ -41,48 +41,48 @@ struct CraftSkillLineInfo {
   int collapsed;
 };
 
-static int __cdecl QSortSkills(const void *a, const void *b);
-static int __cdecl QSortPetSkills(const void *a, const void *b);
-static int __cdecl QSortSkillLines(const void *a, const void *b);
+static int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+static int __cdecl QSortPetSkills(LPCVOID a, LPCVOID b);
+static int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b);
 
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
-int SpellParserParseText(const SpellRec *spell, char *buf, unsigned int size, int isPet);
+int  SpellParserParseText(const SpellRec *spell, char *buf, UINT size, int isPet);
 
 class CGCraftInfo {
  public:
-  static void EnterWorld();
-  static void ShutdownGame();
-  static void Close();
-  static void SetSelection(int index);
-  static int GetSelectionIndex();
+  static void               EnterWorld();
+  static void               ShutdownGame();
+  static void               Close();
+  static void               SetSelection(int index);
+  static int                GetSelectionIndex();
   static SPELL_CAST_UI_TYPE GetCraftType() {
     return m_craftType;
   }
   static int GetNumCrafts() {
     return m_filteredSkills;
   }
-  static const CraftInfo *GetCraftInfo(unsigned int index) {
+  static const CraftInfo *GetCraftInfo(UINT index) {
     return index < m_filteredSkills ? m_skills[index] : 0;
   }
-  static unsigned int GetNumSkillLines() {
+  static UINT GetNumSkillLines() {
     return m_numSkillLines;
   }
-  static CraftSkillLineInfo *GetSkillLine(unsigned int index) {
+  static CraftSkillLineInfo *GetSkillLine(UINT index) {
     return index < m_numSkillLines ? m_skillLines[index] : 0;
   }
-  static int GetSkillLineIndexFromCraft(unsigned int index);
+  static int  GetSkillLineIndexFromCraft(UINT index);
   static void SetCraftType(SPELL_CAST_UI_TYPE type);
   static void RefreshList();
-  static int IsCollpasedHeader(unsigned int index);
-  static int GetCollapseFilter() {
+  static int  IsCollpasedHeader(UINT index);
+  static int  GetCollapseFilter() {
     return m_collapseFilter;
   }
   static void SetCollapseFilter(int filter);
 
  private:
-  friend int __cdecl QSortSkills(const void *a, const void *b);
-  friend int __cdecl QSortPetSkills(const void *a, const void *b);
-  friend int __cdecl QSortSkillLines(const void *a, const void *b);
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortPetSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b);
 
  protected:
   static void FilterAndSortSkills();
@@ -90,9 +90,9 @@ class CGCraftInfo {
  private:
   static SPELL_CAST_UI_TYPE                    m_craftType;
   static int                                   m_currentSelection;
-  static unsigned int                          m_numSkills;
-  static unsigned int                          m_numSkillLines;
-  static unsigned int                          m_filteredSkills;
+  static UINT                                  m_numSkills;
+  static UINT                                  m_numSkillLines;
+  static UINT                                  m_filteredSkills;
   static int                                   m_collapseFilter;
   static TSGrowableArray<CraftInfo *>          m_skills;
   static TSGrowableArray<CraftSkillLineInfo *> m_skillLines;
@@ -100,17 +100,17 @@ class CGCraftInfo {
 
 SPELL_CAST_UI_TYPE                    CGCraftInfo::m_craftType;
 int                                   CGCraftInfo::m_currentSelection;
-unsigned int                          CGCraftInfo::m_numSkills;
-unsigned int                          CGCraftInfo::m_numSkillLines;
-unsigned int                          CGCraftInfo::m_filteredSkills;
+UINT                                  CGCraftInfo::m_numSkills;
+UINT                                  CGCraftInfo::m_numSkillLines;
+UINT                                  CGCraftInfo::m_filteredSkills;
 int                                   CGCraftInfo::m_collapseFilter;
 TSGrowableArray<CraftInfo *>          CGCraftInfo::m_skills;
 TSGrowableArray<CraftSkillLineInfo *> CGCraftInfo::m_skillLines;
 
-static const char *s_craftButtonTokens[4] = {"USE", "TRAIN", "DISGUISE", "ENSCRIBE"};
-static const char  s_skillCategoryStrings[5][32] = {"none", "optimal", "medium", "easy", "trivial"};
+static LPCSTR     s_craftButtonTokens[4] = {"USE", "TRAIN", "DISGUISE", "ENSCRIBE"};
+static const char s_skillCategoryStrings[5][32] = {"none", "optimal", "medium", "easy", "trivial"};
 
-static void CraftReagentItemCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
+static void CraftReagentItemCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     CGCraftInfo::RefreshList();
   }
@@ -155,7 +155,7 @@ int CGCraftInfo::GetSelectionIndex() {
   if (!m_currentSelection) {
     return -1;
   }
-  unsigned int index;
+  UINT index;
   for (index = 0; index < m_numSkills; ++index) {
     if (m_skills[index]->spellID == m_currentSelection) {
       break;
@@ -164,16 +164,16 @@ int CGCraftInfo::GetSelectionIndex() {
   return index == m_numSkills ? -1 : index;
 }
 
-static int __cdecl QSortSkills(const void *a, const void *b) {
+static int __cdecl QSortSkills(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  CraftInfo   *info1 = *static_cast<CraftInfo *const *>(a);
-  CraftInfo   *info2 = *static_cast<CraftInfo *const *>(b);
-  unsigned int skillLineRank1 = 0;
-  unsigned int skillLineRank2 = 0;
-  int          enabled1 = 1;
-  int          enabled2 = 1;
-  for (unsigned int i = 0; i < CGCraftInfo::m_numSkillLines; ++i) {
+  CraftInfo *info1 = *static_cast<CraftInfo *const *>(a);
+  CraftInfo *info2 = *static_cast<CraftInfo *const *>(b);
+  UINT       skillLineRank1 = 0;
+  UINT       skillLineRank2 = 0;
+  int        enabled1 = 1;
+  int        enabled2 = 1;
+  for (UINT i = 0; i < CGCraftInfo::m_numSkillLines; ++i) {
     CraftSkillLineInfo *line = CGCraftInfo::m_skillLines[i];
     if (line->skillLine == info1->skillLine && info1->spellID >= 0) {
       skillLineRank1 = i;
@@ -210,16 +210,16 @@ static int __cdecl QSortSkills(const void *a, const void *b) {
   return SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF);
 }
 
-static int __cdecl QSortPetSkills(const void *a, const void *b) {
+static int __cdecl QSortPetSkills(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  CraftInfo   *info1 = *static_cast<CraftInfo *const *>(a);
-  CraftInfo   *info2 = *static_cast<CraftInfo *const *>(b);
-  unsigned int skillLineRank1 = 0;
-  unsigned int skillLineRank2 = 0;
-  int          enabled1 = 1;
-  int          enabled2 = 1;
-  for (unsigned int i = 0; i < CGCraftInfo::m_numSkillLines; ++i) {
+  CraftInfo *info1 = *static_cast<CraftInfo *const *>(a);
+  CraftInfo *info2 = *static_cast<CraftInfo *const *>(b);
+  UINT       skillLineRank1 = 0;
+  UINT       skillLineRank2 = 0;
+  int        enabled1 = 1;
+  int        enabled2 = 1;
+  for (UINT i = 0; i < CGCraftInfo::m_numSkillLines; ++i) {
     CraftSkillLineInfo *line = CGCraftInfo::m_skillLines[i];
     if (line->skillLine == info1->skillLine && info1->spellID >= 0) {
       skillLineRank1 = i;
@@ -257,7 +257,7 @@ static int __cdecl QSortPetSkills(const void *a, const void *b) {
   return result ? result : SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF);
 }
 
-static int __cdecl QSortSkillLines(const void *a, const void *b) {
+static int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   CraftSkillLineInfo *info1 = *static_cast<CraftSkillLineInfo *const *>(a);
@@ -271,7 +271,7 @@ static int __cdecl QSortSkillLines(const void *a, const void *b) {
 }
 
 void CGCraftInfo::RefreshList() {
-  unsigned int i;
+  UINT i;
 
   m_numSkills = 0;
   m_numSkillLines = 0;
@@ -308,7 +308,7 @@ void CGCraftInfo::RefreshList() {
       int rank = player->GetSkillRank(skillLine);
       info->category = rank < low ? CRAFT_OPTIMAL : rank < medium ? CRAFT_MEDIUM : rank < high ? CRAFT_EASY : CRAFT_TRIVIAL;
     }
-    unsigned int lineIndex;
+    UINT lineIndex;
     for (lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
       if (m_skillLines[lineIndex]->skillLine == skillLine) {
         break;
@@ -341,8 +341,8 @@ void CGCraftInfo::RefreshList() {
 }
 
 void CGCraftInfo::FilterAndSortSkills() {
-  unsigned int i;
-  unsigned int j;
+  UINT i;
+  UINT j;
 
   m_filteredSkills = m_numSkills;
   for (i = 0; i < m_numSkillLines; ++i) {
@@ -362,7 +362,7 @@ void CGCraftInfo::FilterAndSortSkills() {
     if (!m_numSkillLines) {
       continue;
     }
-    unsigned int lineIndex = 0;
+    UINT lineIndex = 0;
     for (j = 0; j < m_numSkillLines; ++j) {
       if (m_skills[i]->skillLine == m_skillLines[j]->skillLine) {
         lineIndex = j;
@@ -378,12 +378,12 @@ void CGCraftInfo::FilterAndSortSkills() {
   qsort(m_skills.Ptr(), m_numSkills, sizeof(CraftInfo *), m_craftType == SPELL_CAST_UI_PET_TRAINING ? QSortPetSkills : QSortSkills);
 }
 
-int CGCraftInfo::GetSkillLineIndexFromCraft(unsigned int index) {
+int CGCraftInfo::GetSkillLineIndexFromCraft(UINT index) {
   const CraftInfo *info = GetCraftInfo(index);
   if (!info || info->spellID >= 0) {
     return -1;
   }
-  for (unsigned int line = 0; line < m_numSkillLines; ++line) {
+  for (UINT line = 0; line < m_numSkillLines; ++line) {
     if (m_skillLines[line]->skillLine == info->skillLine) {
       return line;
     }
@@ -391,7 +391,7 @@ int CGCraftInfo::GetSkillLineIndexFromCraft(unsigned int index) {
   return -1;
 }
 
-int CGCraftInfo::IsCollpasedHeader(unsigned int index) {
+int CGCraftInfo::IsCollpasedHeader(UINT index) {
   int line = GetSkillLineIndexFromCraft(index);
   return line >= 0 && !(m_collapseFilter & (1 << line));
 }
@@ -402,7 +402,7 @@ void CGCraftInfo::SetCollapseFilter(int filter) {
   FrameScript_SignalEvent(344);
 }
 
-static int Script_CloseCraft(lua_State *__formal) {
+static int Script_CloseCraft(lua_State *) {
   CGCraftInfo::Close();
   return 0;
 }
@@ -428,7 +428,7 @@ static int Script_GetCraftInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftInfo(index)");
   }
-  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT             index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   const CraftInfo *info = CGCraftInfo::GetCraftInfo(index);
   if (info && info->spellID != -1) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
@@ -476,7 +476,7 @@ static int Script_GetCraftIcon(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillIcon(index)");
   }
-  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo    *info = CGCraftInfo::GetCraftInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   const SpellRec     *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
   const SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
   lua_pushstring(L, icon ? icon->m_textureFilename : 0);
@@ -487,7 +487,7 @@ static int Script_GetCraftSkillLine(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftSkillLine(index)");
   }
-  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo    *info = CGCraftInfo::GetCraftInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   const SkillLineRec *line = info ? g_skillLineDB.GetRecord(info->skillLine) : 0;
   lua_pushstring(L, line ? line->m_displayName_lang[CURRENT_LANGUAGE] : 0);
   return 1;
@@ -497,11 +497,11 @@ static int Script_GetCraftNumReagents(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftNumReagents(index)");
   }
-  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
-  int             count = 0;
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec  *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
+  int              count = 0;
   if (spell) {
-    for (unsigned int i = 0; i < 8; ++i) {
+    for (UINT i = 0; i < 8; ++i) {
       if (spell->m_reagent[i]) {
         ++count;
       }
@@ -515,11 +515,11 @@ static int Script_GetCraftReagentInfo(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: GetCraftReagentInfo(index, reagentIndex)");
   }
-  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  int             reagentIndex = static_cast<int>(lua_tonumber(L, 2));
-  const SpellRec *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
-  unsigned int    slot = 0;
-  int             count = 0;
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  int              reagentIndex = static_cast<int>(lua_tonumber(L, 2));
+  const SpellRec  *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
+  UINT             slot = 0;
+  int              count = 0;
   while (spell && slot < 8) {
     if (spell->m_reagent[slot] && ++count == reagentIndex) {
       break;
@@ -528,13 +528,12 @@ static int Script_GetCraftReagentInfo(lua_State *L) {
   }
   if (spell && slot < 8) {
     int                itemID = spell->m_reagent[slot];
-    const ItemStats_C *stats = g_itemDBCache.GetRecord(
-        itemID, static_cast<unsigned __int64>(info->spellID) | 0xB000000000000000ui64, CraftReagentItemCallback, 0
-    );
+    const ItemStats_C *stats =
+        g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, CraftReagentItemCallback, 0);
     if (stats) {
       lua_pushstring(L, stats->m_displayName[0]);
-      char        buffer[260];
-      const char *path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+      char   buffer[260];
+      LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
       SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
       SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
       lua_pushstring(L, buffer);
@@ -558,20 +557,19 @@ static int Script_GetCraftSpellFocus(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetTradeSkillSpellFocus(index)");
   }
-  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
-  unsigned int    count = 0;
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec  *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
+  UINT             count = 0;
   if (spell) {
     const SpellFocusObjectRec *focus = g_spellFocusObjectDB.GetRecord(spell->m_requiresSpellFocus);
     if (focus) {
       lua_pushstring(L, focus->m_name_lang[CURRENT_LANGUAGE]);
       ++count;
     }
-    for (unsigned int i = 0; i < 2; ++i) {
+    for (UINT i = 0; i < 2; ++i) {
       if (spell->m_totem[i]) {
-        const ItemStats_C *stats = g_itemDBCache.GetRecord(
-            spell->m_totem[i], static_cast<unsigned __int64>(spell->m_ID) | 0xB000000000000000ui64, CraftReagentItemCallback, 0
-        );
+        const ItemStats_C *stats =
+            g_itemDBCache.GetRecord(spell->m_totem[i], static_cast<DWORDLONG>(spell->m_ID) | 0xB000000000000000ui64, CraftReagentItemCallback, 0);
         if (stats) {
           lua_pushstring(L, stats->m_displayName[0]);
           ++count;
@@ -586,8 +584,8 @@ static int Script_GetCraftDescription(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetCraftDescription(index)");
   }
-  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  const SpellRec *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const SpellRec  *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
   if (spell) {
     char buf[1024];
     if (spell->m_description_lang[CURRENT_LANGUAGE] && *spell->m_description_lang[CURRENT_LANGUAGE]) {
@@ -595,7 +593,7 @@ static int Script_GetCraftDescription(lua_State *L) {
       lua_pushstring(L, buf);
       return 1;
     }
-    for (unsigned int i = 0; i < 3; ++i) {
+    for (UINT i = 0; i < 3; ++i) {
       if (spell->m_effect[i] == 36 || spell->m_effect[i] == 57) {
         const SpellRec *trigger = g_spellDB.GetRecord(spell->m_effectTriggerSpell[i]);
         if (trigger) {
@@ -648,7 +646,7 @@ static int Script_DoCraft(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: DoCraft(index)");
   }
-  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   if (info) {
     Spell_C_CastSpell(info->spellID, 0);
   }
@@ -675,13 +673,13 @@ static FrameScript_Method s_ScriptFunctions[16] = {
 };
 
 void CraftInfoRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 16; ++i) {
+  for (UINT i = 0; i < 16; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void CraftInfoUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 16; ++i) {
+  for (UINT i = 0; i < 16; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

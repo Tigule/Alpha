@@ -7,13 +7,13 @@ class QuestInfoRec {
   QuestInfoRec();
   ~QuestInfoRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 10;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 40;
   }
 
@@ -28,11 +28,11 @@ class QuestInfoRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_InfoName_lang[NUM_LOCALES];
-  int         m_InfoName_flag;
+  int    m_ID;
+  LPCSTR m_InfoName_lang[NUM_LOCALES];
+  int    m_InfoName_flag;
 };
 
 extern WowClientDB<QuestInfoRec> g_questInfoDB;

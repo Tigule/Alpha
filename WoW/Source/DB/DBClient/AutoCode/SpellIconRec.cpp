@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellIconRec::GetFilename() {
+LPCSTR SpellIconRec::GetFilename() {
   return "DBFilesClient\\SpellIcon.dbc";
 }
 
@@ -19,9 +19,9 @@ SpellIconRec::SpellIconRec() {
 SpellIconRec::~SpellIconRec() {
 }
 
-bool SpellIconRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int temptextureFilenameIndices[1];
+bool SpellIconRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT temptextureFilenameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &temptextureFilenameIndices[0], sizeof(temptextureFilenameIndices[0]), 0, 0, 0) && result;

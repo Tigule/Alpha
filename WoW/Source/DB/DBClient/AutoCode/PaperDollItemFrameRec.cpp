@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *PaperDollItemFrameRec::GetFilename() {
+LPCSTR PaperDollItemFrameRec::GetFilename() {
   return "DBFilesClient\\PaperDollItemFrame.dbc";
 }
 
@@ -19,10 +19,10 @@ PaperDollItemFrameRec::PaperDollItemFrameRec() {
 PaperDollItemFrameRec::~PaperDollItemFrameRec() {
 }
 
-bool PaperDollItemFrameRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempItemButtonNameIndices[1];
-  unsigned int tempSlotIconIndices[1];
+bool PaperDollItemFrameRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempItemButtonNameIndices[1];
+  UINT tempSlotIconIndices[1];
 
   result = SFile::Read(f, &tempItemButtonNameIndices[0], sizeof(tempItemButtonNameIndices[0]), 0, 0, 0) && result;
   result = SFile::Read(f, &tempSlotIconIndices[0], sizeof(tempSlotIconIndices[0]), 0, 0, 0) && result;

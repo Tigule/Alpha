@@ -7,13 +7,13 @@ class GroundEffectDoodadRec {
   GroundEffectDoodadRec();
   ~GroundEffectDoodadRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 3;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 12;
   }
 
@@ -28,11 +28,11 @@ class GroundEffectDoodadRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_doodadIdTag;
-  const char *m_doodadpath;
+  int    m_ID;
+  int    m_doodadIdTag;
+  LPCSTR m_doodadpath;
 };
 
 extern WowClientDB<GroundEffectDoodadRec> g_groundEffectDoodadDB;

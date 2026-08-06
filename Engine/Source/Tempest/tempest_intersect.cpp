@@ -14,16 +14,12 @@
 
 #include <math.h>
 
-static NTempest::C2iVector projAxisTable[3] = {
-    NTempest::C2iVector(1, 2),
-    NTempest::C2iVector(2, 0),
-    NTempest::C2iVector(0, 1)
-};
+static NTempest::C2iVector projAxisTable[3] = {NTempest::C2iVector(1, 2), NTempest::C2iVector(2, 0), NTempest::C2iVector(0, 1)};
 
 namespace NTempest {
 
   bool Intersect(const C3Ray &ray, const CAaBox &box, float *t, C3Vector *p) {
-    float localT;
+    float    localT;
     C3Vector localP;
     if (!t) {
       t = &localT;
@@ -32,10 +28,10 @@ namespace NTempest {
       p = &localP;
     }
 
-    unsigned char quadrant[3];
+    BYTE  quadrant[3];
     float candidate[3];
-    bool inside = true;
-    for (unsigned int i = 0; i < 3; ++i) {
+    bool  inside = true;
+    for (UINT i = 0; i < 3; ++i) {
       if (ray.origin[i] < box.b[i]) {
         quadrant[i] = 1;
         candidate[i] = box.b[i];
@@ -56,13 +52,11 @@ namespace NTempest {
     }
 
     float maxT[3];
-    for (unsigned int axis = 0; axis < 3; ++axis) {
-      maxT[axis] = quadrant[axis] == 2 || ray.dir[axis] == 0.0f
-          ? -1.0f
-          : (candidate[axis] - ray.origin[axis]) / ray.dir[axis];
+    for (UINT axis = 0; axis < 3; ++axis) {
+      maxT[axis] = quadrant[axis] == 2 || ray.dir[axis] == 0.0f ? -1.0f : (candidate[axis] - ray.origin[axis]) / ray.dir[axis];
     }
 
-    unsigned int plane = 0;
+    UINT plane = 0;
     if (maxT[1] > maxT[plane]) {
       plane = 1;
     }
@@ -74,7 +68,7 @@ namespace NTempest {
     }
 
     *t = maxT[plane];
-    for (unsigned int component = 0; component < 3; ++component) {
+    for (UINT component = 0; component < 3; ++component) {
       if (component == plane) {
         (*p)[component] = candidate[component];
       } else {
@@ -89,9 +83,9 @@ namespace NTempest {
 
   bool Intersect(const C3Ray &ray, const CAaSphere &sphere, float *t, C3Vector *p) {
     C3Vector toCenter = sphere.c - ray.origin;
-    float projection = C3Vector::Dot(toCenter, ray.dir);
-    float centerDistanceSquared = toCenter.SquaredMag();
-    float radiusSquared = sphere.r * sphere.r;
+    float    projection = C3Vector::Dot(toCenter, ray.dir);
+    float    centerDistanceSquared = toCenter.SquaredMag();
+    float    radiusSquared = sphere.r * sphere.r;
 
     if (projection < 0.0f && centerDistanceSquared > radiusSquared) {
       return false;
@@ -116,9 +110,9 @@ namespace NTempest {
     float radiusSquared = sphere.r * sphere.r;
     float minDistanceSquared = 0.0f;
     float maxDistanceSquared = 0.0f;
-    bool boundaryReachable = false;
+    bool  boundaryReachable = false;
 
-    for (unsigned int i = 0; i < 2; ++i) {
+    for (UINT i = 0; i < 2; ++i) {
       float bottomDistance = sphere.c[i] - box.b[i];
       float topDistance = sphere.c[i] - box.t[i];
       float bottomSquared = bottomDistance * bottomDistance;
@@ -184,20 +178,19 @@ namespace NTempest {
     return true;
   }
 
-  bool Intersect(const C3Vector &point, const C3Vector *polygon, unsigned int nPoints, C3Vector::EAxis axis) {
+  bool Intersect(const C3Vector &point, const C3Vector *polygon, UINT nPoints, C3Vector::EAxis axis) {
     FATALASSERT(axis <= C3Vector::C3AXIS_Z);
 
-    unsigned int x = projAxisTable[axis].x;
-    unsigned int y = projAxisTable[axis].y;
-    bool         inside = false;
-    bool         y0 = polygon[nPoints - 1][y] >= point[y];
-    unsigned int previous = nPoints - 1;
+    UINT x = projAxisTable[axis].x;
+    UINT y = projAxisTable[axis].y;
+    bool inside = false;
+    bool y0 = polygon[nPoints - 1][y] >= point[y];
+    UINT previous = nPoints - 1;
 
-    for (unsigned int i = 0; i < nPoints; ++i) {
+    for (UINT i = 0; i < nPoints; ++i) {
       bool y1 = polygon[i][y] >= point[y];
-      if (y0 != y1 &&
-          (((polygon[previous][y] - polygon[i][y]) * (polygon[i][x] - point[x]) <=
-            (polygon[previous][x] - polygon[i][x]) * (polygon[i][y] - point[y])) == y1))
+      if (y0 != y1 && (((polygon[previous][y] - polygon[i][y]) * (polygon[i][x] - point[x]) <=
+                        (polygon[previous][x] - polygon[i][x]) * (polygon[i][y] - point[y])) == y1))
       {
         inside = !inside;
       }
@@ -209,22 +202,20 @@ namespace NTempest {
     return inside;
   }
 
-  bool Intersect(
-      const C3Vector &point, const C3Vector *polygon, const unsigned short *indices, unsigned int nPoints, C3Vector::EAxis axis
-  ) {
+  bool Intersect(const C3Vector &point, const C3Vector *polygon, const WORD *indices, UINT nPoints, C3Vector::EAxis axis) {
     FATALASSERT(axis <= C3Vector::C3AXIS_Z);
-    unsigned int x = projAxisTable[axis].x;
-    unsigned int y = projAxisTable[axis].y;
+    UINT x = projAxisTable[axis].x;
+    UINT y = projAxisTable[axis].y;
     bool inside = false;
-    unsigned int previous = indices[nPoints - 1];
+    UINT previous = indices[nPoints - 1];
     bool y0 = polygon[previous][y] >= point[y];
 
-    for (unsigned int i = 0; i < nPoints; ++i) {
-      unsigned int current = indices[i];
+    for (UINT i = 0; i < nPoints; ++i) {
+      UINT current = indices[i];
       bool y1 = polygon[current][y] >= point[y];
-      if (y0 != y1 &&
-          (((polygon[previous][y] - polygon[current][y]) * (polygon[current][x] - point[x]) <=
-            (polygon[previous][x] - polygon[current][x]) * (polygon[current][y] - point[y])) == y1)) {
+      if (y0 != y1 && (((polygon[previous][y] - polygon[current][y]) * (polygon[current][x] - point[x]) <=
+                        (polygon[previous][x] - polygon[current][x]) * (polygon[current][y] - point[y])) == y1))
+      {
         inside = !inside;
       }
       y0 = y1;
@@ -233,24 +224,22 @@ namespace NTempest {
     return inside;
   }
 
-  bool Intersect(
-      const C3Vector &point, const C3Vector *polygon, const unsigned long *indices, unsigned int nPoints, C3Vector::EAxis axis
-  ) {
+  bool Intersect(const C3Vector &point, const C3Vector *polygon, const DWORD *indices, UINT nPoints, C3Vector::EAxis axis) {
     ASSERT(polygon);
     ASSERT(indices);
     FATALASSERT(axis <= C3Vector::C3AXIS_Z);
-    unsigned int x = projAxisTable[axis].x;
-    unsigned int y = projAxisTable[axis].y;
-    bool inside = false;
-    unsigned long previous = indices[nPoints - 1];
-    bool y0 = polygon[previous][y] >= point[y];
+    UINT  x = projAxisTable[axis].x;
+    UINT  y = projAxisTable[axis].y;
+    bool  inside = false;
+    DWORD previous = indices[nPoints - 1];
+    bool  y0 = polygon[previous][y] >= point[y];
 
-    for (unsigned int i = 0; i < nPoints; ++i) {
-      unsigned long current = indices[i];
-      bool y1 = polygon[current][y] >= point[y];
-      if (y0 != y1 &&
-          (((polygon[previous][y] - polygon[current][y]) * (polygon[current][x] - point[x]) <=
-            (polygon[previous][x] - polygon[current][x]) * (polygon[current][y] - point[y])) == y1)) {
+    for (UINT i = 0; i < nPoints; ++i) {
+      DWORD current = indices[i];
+      bool  y1 = polygon[current][y] >= point[y];
+      if (y0 != y1 && (((polygon[previous][y] - polygon[current][y]) * (polygon[current][x] - point[x]) <=
+                        (polygon[previous][x] - polygon[current][x]) * (polygon[current][y] - point[y])) == y1))
+      {
         inside = !inside;
       }
       y0 = y1;
@@ -294,20 +283,20 @@ namespace NTempest {
     C3Vector edge1 = verts[1] - verts[0];
     C3Vector edge2 = verts[2] - verts[0];
     C3Vector pvec = C3Vector::Cross(ray.dir, edge2);
-    float determinant = C3Vector::Dot(edge1, pvec);
+    float    determinant = C3Vector::Dot(edge1, pvec);
     if (determinant > -0.000001f && determinant < 0.000001f) {
       return false;
     }
 
-    float inverseDeterminant = 1.0f / determinant;
+    float    inverseDeterminant = 1.0f / determinant;
     C3Vector tvec = ray.origin - verts[0];
-    float u = C3Vector::Dot(tvec, pvec) * inverseDeterminant;
+    float    u = C3Vector::Dot(tvec, pvec) * inverseDeterminant;
     if (u < 0.0f || u > 1.0f) {
       return false;
     }
 
     C3Vector qvec = C3Vector::Cross(tvec, edge1);
-    float v = C3Vector::Dot(ray.dir, qvec) * inverseDeterminant;
+    float    v = C3Vector::Dot(ray.dir, qvec) * inverseDeterminant;
     if (v < 0.0f || u + v > 1.0f) {
       return false;
     }
@@ -327,19 +316,19 @@ namespace NTempest {
     C3Vector edge1 = verts[1] - verts[0];
     C3Vector edge2 = verts[2] - verts[0];
     C3Vector pvec = C3Vector::Cross(ray.dir, edge2);
-    float det = C3Vector::Dot(edge1, pvec);
+    float    det = C3Vector::Dot(edge1, pvec);
     if (det < 0.000001f) {
       return false;
     }
 
     C3Vector tvec = ray.origin - verts[0];
-    float u = C3Vector::Dot(tvec, pvec);
+    float    u = C3Vector::Dot(tvec, pvec);
     if (u < 0.0f || u > det) {
       return false;
     }
 
     C3Vector qvec = C3Vector::Cross(tvec, edge1);
-    float v = C3Vector::Dot(ray.dir, qvec);
+    float    v = C3Vector::Dot(ray.dir, qvec);
     if (v < 0.0f || u + v > det) {
       return false;
     }
@@ -360,13 +349,13 @@ namespace NTempest {
 
   bool Intersect(const C3Vector &point, const CCone &cone) {
     C3Vector offset = point - cone.position;
-    float axialDistance = C3Vector::Dot(offset, cone.axis);
-    bool inside = cone.CosAngle() * cone.CosAngle() * offset.SquaredMag() <= axialDistance * axialDistance;
+    float    axialDistance = C3Vector::Dot(offset, cone.axis);
+    bool     inside = cone.CosAngle() * cone.CosAngle() * offset.SquaredMag() <= axialDistance * axialDistance;
     return cone.height == 0.0f ? inside : axialDistance <= cone.height && inside;
   }
 
   bool Intersect(const C3Ray &ray, const CCone &cone, float *t, C3Vector *p) {
-    float localT;
+    float    localT;
     C3Vector localP;
     if (!t) {
       t = &localT;
@@ -375,14 +364,14 @@ namespace NTempest {
       p = &localP;
     }
 
-    float directionProjection = C3Vector::Dot(ray.dir, cone.axis);
-    float directionSquared = ray.dir.SquaredMag();
-    float cosineSquared = cone.CosAngle() * cone.CosAngle();
+    float    directionProjection = C3Vector::Dot(ray.dir, cone.axis);
+    float    directionSquared = ray.dir.SquaredMag();
+    float    cosineSquared = cone.CosAngle() * cone.CosAngle();
     C3Vector offset = ray.origin - cone.position;
-    float offsetProjection = C3Vector::Dot(offset, cone.axis);
-    float c2 = directionProjection * directionProjection - cosineSquared * directionSquared;
-    float c1 = directionProjection * offsetProjection - cosineSquared * C3Vector::Dot(offset, ray.dir);
-    float c0 = offsetProjection * offsetProjection - cosineSquared * offset.SquaredMag();
+    float    offsetProjection = C3Vector::Dot(offset, cone.axis);
+    float    c2 = directionProjection * directionProjection - cosineSquared * directionSquared;
+    float    c1 = directionProjection * offsetProjection - cosineSquared * C3Vector::Dot(offset, ray.dir);
+    float    c0 = offsetProjection * offsetProjection - cosineSquared * offset.SquaredMag();
 
     if (CMath::fabs_(c2) >= 0.000001f) {
       float discriminant = c1 * c1 - c0 * c2;
@@ -423,42 +412,39 @@ namespace NTempest {
   }
 
   bool Intersect(const CObBox &a, const CObBox &b) {
-    float c[3][3];
-    float absC[3][3];
+    float           c[3][3];
+    float           absC[3][3];
     const C3Vector *aAxis = a.b.Row0AsVec3();
     const C3Vector *bAxis = b.b.Row0AsVec3();
-    C3Vector difference = b.c - a.c;
-    float projectedDifference[3];
+    C3Vector        difference = b.c - a.c;
+    float           projectedDifference[3];
 
-    for (unsigned int i = 0; i < 3; ++i) {
+    for (UINT i = 0; i < 3; ++i) {
       projectedDifference[i] = C3Vector::Dot(difference, aAxis[i]);
-      for (unsigned int j = 0; j < 3; ++j) {
+      for (UINT j = 0; j < 3; ++j) {
         c[i][j] = C3Vector::Dot(aAxis[i], bAxis[j]);
         absC[i][j] = CMath::fabs_(c[i][j]);
       }
-      if (CMath::fabs_(projectedDifference[i]) >
-          a.e[i] + b.e.x * absC[i][0] + b.e.y * absC[i][1] + b.e.z * absC[i][2]) {
+      if (CMath::fabs_(projectedDifference[i]) > a.e[i] + b.e.x * absC[i][0] + b.e.y * absC[i][1] + b.e.z * absC[i][2]) {
         return false;
       }
     }
 
-    for (unsigned int bComponent = 0; bComponent < 3; ++bComponent) {
+    for (UINT bComponent = 0; bComponent < 3; ++bComponent) {
       float projected = C3Vector::Dot(difference, bAxis[bComponent]);
-      if (CMath::fabs_(projected) >
-          b.e[bComponent] + a.e.x * absC[0][bComponent] + a.e.y * absC[1][bComponent] + a.e.z * absC[2][bComponent]) {
+      if (CMath::fabs_(projected) > b.e[bComponent] + a.e.x * absC[0][bComponent] + a.e.y * absC[1][bComponent] + a.e.z * absC[2][bComponent]) {
         return false;
       }
     }
 
-    for (unsigned int crossA = 0; crossA < 3; ++crossA) {
-      unsigned int i1 = (crossA + 1) % 3;
-      unsigned int i2 = (crossA + 2) % 3;
-      for (unsigned int crossB = 0; crossB < 3; ++crossB) {
-        unsigned int j1 = (crossB + 1) % 3;
-        unsigned int j2 = (crossB + 2) % 3;
+    for (UINT crossA = 0; crossA < 3; ++crossA) {
+      UINT i1 = (crossA + 1) % 3;
+      UINT i2 = (crossA + 2) % 3;
+      for (UINT crossB = 0; crossB < 3; ++crossB) {
+        UINT  j1 = (crossB + 1) % 3;
+        UINT  j2 = (crossB + 2) % 3;
         float projected = CMath::fabs_(c[i2][crossB] * projectedDifference[i1] - c[i1][crossB] * projectedDifference[i2]);
-        float radius = a.e[i1] * absC[i2][crossB] + a.e[i2] * absC[i1][crossB]
-                     + b.e[j1] * absC[crossA][j2] + b.e[j2] * absC[crossA][j1];
+        float radius = a.e[i1] * absC[i2][crossB] + a.e[i2] * absC[i1][crossB] + b.e[j1] * absC[crossA][j2] + b.e[j2] * absC[crossA][j1];
         if (projected > radius) {
           return false;
         }
@@ -469,9 +455,7 @@ namespace NTempest {
 
 }  // namespace NTempest
 
-bool NTempest::Intersect(
-    const C2Vector &a0, const C2Vector &a1, const C2Vector &b0, const C2Vector &b1
-) {
+bool NTempest::Intersect(const C2Vector &a0, const C2Vector &a1, const C2Vector &b0, const C2Vector &b1) {
   float ax = a1.x - a0.x;
   float ay = a1.y - a0.y;
   float bx = b0.x - b1.x;
@@ -487,48 +471,35 @@ bool NTempest::Intersect(
   return false;
 }
 
-bool NTempest::Intersect(
-    const C2Vector &a0, const C2Vector &a1, const C2Vector &b0, const C2Vector &b1, C2Vector &point
-) {
-  float denominator =
-      (a0.y - a1.y) * b0.x +
-      (b0.y - b1.y) * a1.x +
-      (a1.y - a0.y) * b1.x +
-      (b1.y - b0.y) * a0.x;
+bool NTempest::Intersect(const C2Vector &a0, const C2Vector &a1, const C2Vector &b0, const C2Vector &b1, C2Vector &point) {
+  float denominator = (a0.y - a1.y) * b0.x + (b0.y - b1.y) * a1.x + (a1.y - a0.y) * b1.x + (b1.y - b0.y) * a0.x;
   if (CMath::fabs_(denominator) < 0.001f) {
     return false;
   }
 
   float inverse = 1.0f / denominator;
-  float s =
-      ((a0.y - b1.y) * b0.x +
-       (b0.y - a0.y) * b1.x +
-       (b1.y - b0.y) * a0.x) * inverse;
-  float t =
-      -((b0.y - a1.y) * a0.x +
-        (a0.y - b0.y) * a1.x +
-        (a1.y - a0.y) * b0.x) * inverse;
+  float s = ((a0.y - b1.y) * b0.x + (b0.y - a0.y) * b1.x + (b1.y - b0.y) * a0.x) * inverse;
+  float t = -((b0.y - a1.y) * a0.x + (a0.y - b0.y) * a1.x + (a1.y - a0.y) * b0.x) * inverse;
   point.x = a0.x + (a1.x - a0.x) * s;
   point.y = a0.y + (a1.y - a0.y) * s;
   return s >= 0.0f && s <= 1.0f && t >= 0.0f && t <= 1.0f;
 }
 
-static int EdgeIntersectTriEdge(NTempest::C2Vector& a0, NTempest::C2Vector& a1, NTempest::C2Vector& b0, NTempest::C2Vector& b1, NTempest::C2Vector& b2) {
-  return NTempest::Intersect(a0, a1, b0, b1)
-      || NTempest::Intersect(a0, a1, b1, b2)
-      || NTempest::Intersect(a0, a1, b2, b0);
+static int
+EdgeIntersectTriEdge(NTempest::C2Vector &a0, NTempest::C2Vector &a1, NTempest::C2Vector &b0, NTempest::C2Vector &b1, NTempest::C2Vector &b2) {
+  return NTempest::Intersect(a0, a1, b0, b1) || NTempest::Intersect(a0, a1, b1, b2) || NTempest::Intersect(a0, a1, b2, b0);
 }
 
-static int PointInTri(NTempest::C2Vector& p, NTempest::C2Vector& a0, NTempest::C2Vector& a1, NTempest::C2Vector& a2) {
+static int PointInTri(NTempest::C2Vector &p, NTempest::C2Vector &a0, NTempest::C2Vector &a1, NTempest::C2Vector &a2) {
   float ab = (a1.y - a0.y) * (p.x - a0.x) - (a1.x - a0.x) * (p.y - a0.y);
   float bc = (a2.y - a1.y) * (p.x - a1.x) - (a2.x - a1.x) * (p.y - a1.y);
   float ca = (a0.y - a2.y) * (p.x - a2.x) - (a0.x - a2.x) * (p.y - a2.y);
   return ab * bc >= 0.0f && ab * ca >= 0.0f;
 }
 
-static unsigned char CoplanarTriIntersectTri(const NTempest::CFacet& facet0, const NTempest::CFacet& facet1) {
-  int i0;
-  int i1;
+static BYTE CoplanarTriIntersectTri(const NTempest::CFacet &facet0, const NTempest::CFacet &facet1) {
+  int   i0;
+  int   i1;
   float nx = static_cast<float>(fabs(facet0.plane.n.x));
   float ny = static_cast<float>(fabs(facet0.plane.n.y));
   float nz = static_cast<float>(fabs(facet0.plane.n.z));
@@ -549,9 +520,9 @@ static unsigned char CoplanarTriIntersectTri(const NTempest::CFacet& facet0, con
     v[i] = NTempest::C2Vector(facet0.vertices[i][i0], facet0.vertices[i][i1]);
     u[i] = NTempest::C2Vector(facet1.vertices[i][i0], facet1.vertices[i][i1]);
   }
-  if (EdgeIntersectTriEdge(v[0], v[1], u[0], u[1], u[2])
-      || EdgeIntersectTriEdge(v[1], v[2], u[0], u[1], u[2])
-      || EdgeIntersectTriEdge(v[2], v[0], u[0], u[1], u[2])) {
+  if (EdgeIntersectTriEdge(v[0], v[1], u[0], u[1], u[2]) || EdgeIntersectTriEdge(v[1], v[2], u[0], u[1], u[2]) ||
+      EdgeIntersectTriEdge(v[2], v[0], u[0], u[1], u[2]))
+  {
     return 1;
   }
   return PointInTri(v[0], u[0], u[1], u[2]) || PointInTri(u[0], v[0], v[1], v[2]);
@@ -559,10 +530,10 @@ static unsigned char CoplanarTriIntersectTri(const NTempest::CFacet& facet0, con
 
 bool NTempest::Intersect(const CFacet &facet0, const CFacet &facet1) {
   float distances[3];
-  int sides[3];
-  int counts[3] = {0, 0, 0};
+  int   sides[3];
+  int   counts[3] = {0, 0, 0};
 
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     distances[i] = facet1.plane.DistSigned(facet0.vertices[i]);
     if (distances[i] > 0.01f) {
       sides[i] = 0;
@@ -579,22 +550,18 @@ bool NTempest::Intersect(const CFacet &facet0, const CFacet &facet1) {
   }
 
   C3Vector segment[2];
-  unsigned int segmentCount = 0;
-  for (unsigned int edge = 0; edge < 3; ++edge) {
-    unsigned int next = edge == 2 ? 0 : edge + 1;
+  UINT     segmentCount = 0;
+  for (UINT edge = 0; edge < 3; ++edge) {
+    UINT next = edge == 2 ? 0 : edge + 1;
     if (sides[edge] != sides[next]) {
       float amount = distances[edge] / (distances[edge] - distances[next]);
       segment[segmentCount++] = facet0.vertices[edge] + (facet0.vertices[next] - facet0.vertices[edge]) * amount;
     }
   }
 
-  C3Vector absoluteNormal(
-      CMath::fabs_(facet0.plane.n.x),
-      CMath::fabs_(facet0.plane.n.y),
-      CMath::fabs_(facet0.plane.n.z)
-  );
-  int i0;
-  int i1;
+  C3Vector absoluteNormal(CMath::fabs_(facet0.plane.n.x), CMath::fabs_(facet0.plane.n.y), CMath::fabs_(facet0.plane.n.z));
+  int      i0;
+  int      i1;
   if (absoluteNormal.x > absoluteNormal.y && absoluteNormal.x > absoluteNormal.z) {
     i0 = 1;
     i1 = 2;
@@ -609,10 +576,9 @@ bool NTempest::Intersect(const CFacet &facet0, const CFacet &facet1) {
   C2Vector edge0(segment[0][i0], segment[0][i1]);
   C2Vector edge1(segment[1][i0], segment[1][i1]);
   C2Vector triangle[3] = {
-      C2Vector(facet1.vertices[0][i0], facet1.vertices[0][i1]),
-      C2Vector(facet1.vertices[1][i0], facet1.vertices[1][i1]),
+      C2Vector(facet1.vertices[0][i0], facet1.vertices[0][i1]), C2Vector(facet1.vertices[1][i0], facet1.vertices[1][i1]),
       C2Vector(facet1.vertices[2][i0], facet1.vertices[2][i1])
   };
-  return EdgeIntersectTriEdge(edge0, edge1, triangle[0], triangle[1], triangle[2]) != 0
-      || PointInTri(edge0, triangle[0], triangle[1], triangle[2]) != 0;
+  return EdgeIntersectTriEdge(edge0, edge1, triangle[0], triangle[1], triangle[2]) != 0 ||
+         PointInTri(edge0, triangle[0], triangle[1], triangle[2]) != 0;
 }

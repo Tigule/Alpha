@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *LockRec::GetFilename() {
+LPCSTR LockRec::GetFilename() {
   return "DBFilesClient\\Lock.dbc";
 }
 
@@ -19,7 +19,7 @@ LockRec::LockRec() {
 LockRec::~LockRec() {
 }
 
-bool LockRec::Read(SFile *f, const char *stringBuffer) {
+bool LockRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

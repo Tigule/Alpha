@@ -12,14 +12,14 @@
 #include <Base/CDataStore.h>
 #include <Services/SysMessage.h>
 
-static int              s_questQueriesPending;
-static int              s_questRewardQueriesPending;
-static unsigned char    s_numQuestsOffered;
-static unsigned __int64 s_npcGUID;
-static int              s_pendingNPCQuest;
+static int       s_questQueriesPending;
+static int       s_questRewardQueriesPending;
+static BYTE      s_numQuestsOffered;
+static DWORDLONG s_npcGUID;
+static int       s_pendingNPCQuest;
 
-static int NPCResponseHandler(void *, NETMESSAGE msgId, unsigned long, CDataStore *msg) {
-  unsigned __int64 npcGUID;
+static int NPCResponseHandler(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+  DWORDLONG npcGUID;
   msg->Get(npcGUID);
   if (!npcGUID) {
     return 1;
@@ -50,7 +50,7 @@ void NPC_C_Destroy() {
   ClientServices_ClearMessageHandler(SMSG_NPC_WONT_TALK);
 }
 
-void NPC_C_OfferItem(unsigned __int64 npc, unsigned __int64 itemGUID) {
+void NPC_C_OfferItem(DWORDLONG npc, DWORDLONG itemGUID) {
   CDataStore msg;
   msg.Put(CMSG_NPC_OFFER_ITEM);
   msg.Put(npc);

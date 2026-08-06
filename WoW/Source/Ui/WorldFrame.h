@@ -15,21 +15,21 @@ struct HTEXCOMPONENT__;
 class CGObject_C;
 class CGUnit_C;
 class CGGameObject_C;
-int UnitUpdateProc(unsigned __int64 guid, void *param);
+int UnitUpdateProc(DWORDLONG guid, LPVOID param);
 
 struct CWorldClickEvent {
-  unsigned int button;
+  UINT button;
 };
 
 struct CTerrainClickEvent {
   NTempest::C3Vector point;
-  unsigned int       button;
+  UINT               button;
 };
 
 struct CSpriteClickEvent {
-  unsigned __int64   objectGUID;
-  unsigned int       button;
-  unsigned int       time;
+  DWORDLONG          objectGUID;
+  UINT               button;
+  UINT               time;
   NTempest::C2Vector pos;
 };
 
@@ -37,14 +37,14 @@ struct CObjectTrackEvent {
   CObjectTrackEvent() {
   }
 
-  unsigned __int64 object;
-  unsigned __int64 oldGUID;
-  float            x;
-  float            y;
+  DWORDLONG object;
+  DWORDLONG oldGUID;
+  float     x;
+  float     y;
 };
 
 class CGWorldFrame : public CSimpleFrame {
-  friend int UnitUpdateProc(unsigned __int64 guid, void *param);
+  friend int UnitUpdateProc(DWORDLONG guid, LPVOID param);
 
  public:
   enum HIT_TYPE {
@@ -57,7 +57,7 @@ class CGWorldFrame : public CSimpleFrame {
     HitTestResult() : object(0), point(0.0f), distance(0.0f) {
     }
 
-    unsigned __int64   object;
+    DWORDLONG          object;
     NTempest::C3Vector point;
     float              distance;
   };
@@ -91,7 +91,7 @@ class CGWorldFrame : public CSimpleFrame {
   virtual ~CGWorldFrame();
   virtual void OnLayerUpdate(float elapsedSec);
   virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
-  virtual void OnFrameRender(CRenderBatch *batch, unsigned int layer);
+  virtual void OnFrameRender(CRenderBatch *batch, UINT layer);
   virtual void OnLayerCursorExit();
   virtual int  OnLayerKeyDown(CKeyEvent &evt);
   virtual int  OnLayerKeyUp(CKeyEvent &evt);
@@ -122,101 +122,96 @@ class CGWorldFrame : public CSimpleFrame {
     return m_worldMatrix;
   }
 
-  unsigned long GetUpdateTimeStamp() {
+  DWORD GetUpdateTimeStamp() {
     return m_updateTimeStamp;
   }
 
-  void                        SetCameraTarget(CGObject_C *target);
-  void                        UpdateObject(CGObject_C *object, unsigned long status);
-  void                        AddModelToScene(CGObject_C *object, HMODEL__ *model);
-  void                        SetPlayerFadeCameraValue(unsigned char value);
-  void                        SetSpriteClickButtons(unsigned int buttons);
-  void                        SetTerrainClickButtons(unsigned int buttons);
-  int                         PerformDefaultAction(MOUSEBUTTON button, unsigned int timestamp);
-  unsigned __int64            GetObjectUnderMouse();
-  int                         TogglePlayerRender();
-  int                         SetPlayerRender(int state);
-  void                        OnMouseModeNormal();
-  void                        OnMouseModeRelative();
-  static CGCamera *GetActiveCamera();
-  static void GetCameraPosition(NTempest::C3Vector *position);
-  static void GetCameraFacing(NTempest::C3Vector *position);
-  static void RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT__ *texture, unsigned char startAlpha);
-  void                        SetNamePlateUpdate();
-  void                        RefreshPlayerAlpha();
-  NTempest::C2Vector          GetScreenCoordinates(const NTempest::C3Vector &point);
-  NTempest::C2Vector          GetScreenCoordinates(
-      const NTempest::C3Vector &point,
-      const NTempest::C44Matrix &matrix,
-      int clip,
-      int worldPositionSpecified
-  );
+  void               SetCameraTarget(CGObject_C *target);
+  void               UpdateObject(CGObject_C *object, DWORD status);
+  void               AddModelToScene(CGObject_C *object, HMODEL__ *model);
+  void               SetPlayerFadeCameraValue(BYTE value);
+  void               SetSpriteClickButtons(UINT buttons);
+  void               SetTerrainClickButtons(UINT buttons);
+  int                PerformDefaultAction(MOUSEBUTTON button, UINT timestamp);
+  DWORDLONG          GetObjectUnderMouse();
+  int                TogglePlayerRender();
+  int                SetPlayerRender(int state);
+  void               OnMouseModeNormal();
+  void               OnMouseModeRelative();
+  static CGCamera   *GetActiveCamera();
+  static void        GetCameraPosition(NTempest::C3Vector *position);
+  static void        GetCameraFacing(NTempest::C3Vector *position);
+  static void        RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT__ *texture, BYTE startAlpha);
+  void               SetNamePlateUpdate();
+  void               RefreshPlayerAlpha();
+  NTempest::C2Vector GetScreenCoordinates(const NTempest::C3Vector &point);
+  NTempest::C2Vector GetScreenCoordinates(const NTempest::C3Vector &point, const NTempest::C44Matrix &matrix, int clip, int worldPositionSpecified);
 
  protected:
-  unsigned __int64 FindClosestModel(const NTempest::C3Vector &a, const NTempest::C3Vector &b, unsigned int hitFilter, float *hitDist);
-  float            GetSkyProgress();
+  DWORDLONG FindClosestModel(const NTempest::C3Vector &a, const NTempest::C3Vector &b, UINT hitFilter, float *hitDist);
+  float     GetSkyProgress();
 
   CGWorldFrame(CSimpleFrame *parent);
 
  private:
-  unsigned int           SphereTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector, unsigned int hitFilter);
-  unsigned int           VolumeTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector);
-  unsigned int           GeometryTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector);
-  void                   ReduceToClosestModel();
-  CModelRecord          *HigherPriorityModel(CModelRecord *a, CModelRecord *b);
-  int                    IsLegalSelection(CModelRecord *record, unsigned int hitFilter);
-  int                    IsUnitLegalSelection(const CGUnit_C *unit, unsigned int hitFilter);
-  void                   MoveToFreeList(CModelRecord *record);
-  void                   MoveToFreeList(LISTPTR(CModelRecord) objList);
-  HIT_TYPE               HitTest(const NTempest::C3Vector &a, const NTempest::C3Vector &b, unsigned int hitFilter, HitTestResult *hitTestResult);
-  HIT_TYPE               HitTestPoint(float x, float y, HitTestResult *hitTestResult);
-  int                    SendObjectTrackEvent(unsigned __int64 guid, float x, float y);
-  int                    SendUnitFadeEvent(unsigned __int64 guid);
-  void                   OnLayerTrackTerrain(const HitTestResult &hitTestResult);
-  void                   OnLayerTrackObject(const HitTestResult &hitTestResult, float x, float y);
-  void                   CursorTrackUnit(CGUnit_C *unit);
-  void                   CursorTrackObject(CGGameObject_C *gameObject);
-  void                   HideObstructingModels(float maxDist);
-  unsigned int           GetHitTestFilterFlags() const;
+  UINT          SphereTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector, UINT hitFilter);
+  UINT          VolumeTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector);
+  UINT          GeometryTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector);
+  void          ReduceToClosestModel();
+  CModelRecord *HigherPriorityModel(CModelRecord *a, CModelRecord *b);
+  int           IsLegalSelection(CModelRecord *record, UINT hitFilter);
+  int           IsUnitLegalSelection(const CGUnit_C *unit, UINT hitFilter);
+  void          MoveToFreeList(CModelRecord *record);
+  void          MoveToFreeList(LISTPTR(CModelRecord) objList);
+  HIT_TYPE      HitTest(const NTempest::C3Vector &a, const NTempest::C3Vector &b, UINT hitFilter, HitTestResult *hitTestResult);
+  HIT_TYPE      HitTestPoint(float x, float y, HitTestResult *hitTestResult);
+  int           SendObjectTrackEvent(DWORDLONG guid, float x, float y);
+  int           SendUnitFadeEvent(DWORDLONG guid);
+  void          OnLayerTrackTerrain(const HitTestResult &hitTestResult);
+  void          OnLayerTrackObject(const HitTestResult &hitTestResult, float x, float y);
+  void          CursorTrackUnit(CGUnit_C *unit);
+  void          CursorTrackObject(CGGameObject_C *gameObject);
+  void          HideObstructingModels(float maxDist);
+  UINT          GetHitTestFilterFlags() const;
 
  protected:
-  void                   UpdateDayNightInfo(float elapsedSec);
-  void                   UpdatePlayerAlpha(float elapsedSeconds);
-  void                   HandleUnitFade(int nowTracking, int immediateFade);
-  void                   UnitUpdate();
-  void                   OnWorldUpdate();
-  void                   OnWorldRender();
+  void UpdateDayNightInfo(float elapsedSec);
+  void UpdatePlayerAlpha(float elapsedSeconds);
+  void HandleUnitFade(int nowTracking, int immediateFade);
+  void UnitUpdate();
+  void OnWorldUpdate();
+  void OnWorldRender();
 
  public:
-  static void RenderWorld(void *param);
+  static void RenderWorld(LPVOID param);
 
  private:
-  int                    GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
+  int GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
 
   LISTDECL(CModelRecord, m_models);
   LISTDECL(CModelRecord, m_filteredModels);
   LISTDECL(CModelRecord, m_freeModels);
-  unsigned int                                   m_spriteButtons;
-  unsigned int                                   m_terrainButtons;
-  unsigned __int64                               m_lastUnitFade;
-  unsigned __int64                               m_lastObjectTrack;
-  float                                          m_lastUpdateElapsedSec;
-  float                                          m_skyAnimDuration;
-  unsigned int                                   m_renderPlayer : 1;
-  unsigned int                                   m_freeLookMode : 1;
-  NTempest::C44Matrix                            m_worldMatrix;
+  UINT                m_spriteButtons;
+  UINT                m_terrainButtons;
+  DWORDLONG           m_lastUnitFade;
+  DWORDLONG           m_lastObjectTrack;
+  float               m_lastUpdateElapsedSec;
+  float               m_skyAnimDuration;
+  UINT                m_renderPlayer : 1;
+  UINT                m_freeLookMode : 1;
+  NTempest::C44Matrix m_worldMatrix;
 
   static CGWorldFrame *s_currentWorldFrame;
 
-  unsigned int m_flags;
-  float        m_elapsedSec;
-  char         m_lastKey[780][32];
+  UINT  m_flags;
+  float m_elapsedSec;
+  char  m_lastKey[780][32];
 
  protected:
-  CGCamera      *m_camera;
+  CGCamera *m_camera;
 
  private:
-  unsigned long  m_updateTimeStamp;
+  DWORD m_updateTimeStamp;
 
  protected:
   PLAYERFADEMODE m_playerFadeMode;

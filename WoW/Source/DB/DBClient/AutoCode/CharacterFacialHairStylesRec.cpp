@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CharacterFacialHairStylesRec::GetFilename() {
+LPCSTR CharacterFacialHairStylesRec::GetFilename() {
   return "DBFilesClient\\CharacterFacialHairStyles.dbc";
 }
 
@@ -19,7 +19,7 @@ CharacterFacialHairStylesRec::CharacterFacialHairStylesRec() {
 CharacterFacialHairStylesRec::~CharacterFacialHairStylesRec() {
 }
 
-bool CharacterFacialHairStylesRec::Read(SFile *f, const char *stringBuffer) {
+bool CharacterFacialHairStylesRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_RaceID, sizeof(m_RaceID), 0, 0, 0) && result;

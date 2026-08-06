@@ -18,11 +18,11 @@ enum TOOLTIP_DETAIL {
 };
 
 struct TooltipExtendedItemInfo {
-  int            enchantment[5];
-  unsigned int   enchantmentExpiration[5];
-  unsigned int   cooldownTime;
-  int            proposedEnchantment;
-  unsigned __int64 creator;
+  int       enchantment[5];
+  UINT      enchantmentExpiration[5];
+  UINT      cooldownTime;
+  int       proposedEnchantment;
+  DWORDLONG creator;
 };
 
 enum TOOLTIP_ANCHORPOINT {
@@ -38,29 +38,12 @@ enum TOOLTIP_ANCHORPOINT {
 class CGTooltip : public CSimpleFrame {
  public:
   static CSimpleFrame *Create(CSimpleFrame *parent);
-  static const char *GetItemQualityColorString(unsigned int quality);
-  static void GetSpellEffectString(
-      char           *buf,
-      unsigned int    bufSize,
-      const SpellRec *spell,
-      unsigned int    effectIndex,
-      unsigned int    level,
-      int             isPet,
-      TOOLTIP_DETAIL  detail
-  );
-  static void GetAuraEffectString(
-      char           *buf,
-      unsigned int    bufSize,
-      const SpellRec *spell,
-      unsigned int    effectIndex,
-      unsigned int    level,
-      int             isPet,
-      TOOLTIP_DETAIL  detail
-  );
-  static void
-  GetItemEnchantString(char *buf, unsigned int bufSize, const SpellItemEnchantmentRec *enchant, unsigned int effectIndex, TOOLTIP_DETAIL detail);
-  static void GetSpellTargetString(char *buf, unsigned int bufSize, const SpellRec *spell, unsigned int effectIndex);
-  static void GetSummonedByString(const CGUnit_C *unitPtr, char *string, unsigned int size);
+  static LPCSTR        GetItemQualityColorString(UINT quality);
+  static void GetSpellEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, int isPet, TOOLTIP_DETAIL detail);
+  static void GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, int isPet, TOOLTIP_DETAIL detail);
+  static void GetItemEnchantString(char *buf, UINT bufSize, const SpellItemEnchantmentRec *enchant, UINT effectIndex, TOOLTIP_DETAIL detail);
+  static void GetSpellTargetString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex);
+  static void GetSummonedByString(const CGUnit_C *unitPtr, char *string, UINT size);
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();
 
@@ -71,44 +54,37 @@ class CGTooltip : public CSimpleFrame {
   void SetOwner(CLayoutFrame *owner, float x, float y);
   void SetPosition(float x, float y);
   void ClearLines();
-  void AddLine(const char *leftText, const char *rightText, const NTempest::CImVector &leftColor, const NTempest::CImVector &rightColor, int wrapped);
-  void AddLine(const char *leftText, const char *rightText, int wrapped);
-  void AddLine(const char *text, const NTempest::CImVector &color, int wrapped);
-  unsigned int NumLines() {
+  void AddLine(LPCSTR leftText, LPCSTR rightText, const NTempest::CImVector &leftColor, const NTempest::CImVector &rightColor, int wrapped);
+  void AddLine(LPCSTR leftText, LPCSTR rightText, int wrapped);
+  void AddLine(LPCSTR text, const NTempest::CImVector &color, int wrapped);
+  UINT NumLines() {
     return m_lines;
   }
-  void AppendText(const char *text);
+  void AppendText(LPCSTR text);
   void SetTooltipPadding(float right);
   void CalculateSize();
-  int  SetUnit(const unsigned __int64 &unit);
-  void SetObject(const unsigned __int64 &object);
-  int  SetItem(
-      int                      itemID,
-      const unsigned __int64  &refGUID,
-      const unsigned __int64  &itemGUID,
-      int                      nameOnly,
-      int                      showComparison,
-      TooltipExtendedItemInfo *info
-  );
-  int                     SetSpell(int spellID, int nameOnly, unsigned int cooldownTime, int isPet);
-  void                    SetBuff(int spellID, unsigned char flags);
-  void                    SetCorpse(const unsigned __int64 &corpseGUID);
-  const unsigned __int64 &GetObjectGUID() const {
+  int  SetUnit(const DWORDLONG &unit);
+  void SetObject(const DWORDLONG &object);
+  int  SetItem(int itemID, const DWORDLONG &refGUID, const DWORDLONG &itemGUID, int nameOnly, int showComparison, TooltipExtendedItemInfo *info);
+  int  SetSpell(int spellID, int nameOnly, UINT cooldownTime, int isPet);
+  void SetBuff(int spellID, BYTE flags);
+  void SetCorpse(const DWORDLONG &corpseGUID);
+  const DWORDLONG &GetObjectGUID() const {
     return m_objectGUID;
   }
   int GetItem() const {
     return m_itemID;
   }
-  const unsigned __int64 &GetItemGUID() const {
+  const DWORDLONG &GetItemGUID() const {
     return m_itemGUID;
   }
-  void SetDebugUnit(const unsigned __int64 &unit) {
+  void SetDebugUnit(const DWORDLONG &unit) {
     m_debugUnit = unit;
   }
-  const unsigned __int64 &GetDebugUnit() const {
+  const DWORDLONG &GetDebugUnit() const {
     return m_debugUnit;
   }
-  unsigned __int64 GetUnit() {
+  DWORDLONG GetUnit() {
     return m_unit;
   }
   void FadeOut();
@@ -120,30 +96,30 @@ class CGTooltip : public CSimpleFrame {
   CGTooltip(CSimpleFrame *parent);
   virtual ~CGTooltip();
 
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
   virtual int HideThis();
   virtual int ShowThis();
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
  private:
-  static unsigned int m_spellID;
+  static UINT m_spellID;
 
   CLayoutFrame                     *m_owner;
   TOOLTIP_ANCHORPOINT               m_anchorPoint;
-  unsigned int                      m_lines;
-  unsigned int                      m_linesMax;
+  UINT                              m_lines;
+  UINT                              m_linesMax;
   int                               m_reposition;
   TSFixedArray<CSimpleFontString *> m_leftStrings;
   TSFixedArray<CSimpleFontString *> m_rightStrings;
   TSFixedArray<int>                 m_wrapLine;
   CSimpleStatusBar                 *m_statusBar;
-  unsigned __int64                  m_unit;
-  unsigned __int64                  m_objectGUID;
-  unsigned __int64                  m_debugUnit;
-  unsigned __int64                  m_itemGUID;
-  unsigned __int64                  m_corpseGUID;
-  unsigned int                      m_itemID;
+  DWORDLONG                         m_unit;
+  DWORDLONG                         m_objectGUID;
+  DWORDLONG                         m_debugUnit;
+  DWORDLONG                         m_itemGUID;
+  DWORDLONG                         m_corpseGUID;
+  UINT                              m_itemID;
   int                               m_fading;
   float                             m_fadeTime;
   float                             m_padding;

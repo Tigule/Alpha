@@ -22,7 +22,7 @@ void CMapObjDefGroup::SelectLights() {
 
   GxLightSet(0, CMap::sunLight->gxLight, CWorldScene::camPos);
 
-  unsigned int     whichLight = 1;
+  UINT whichLight = 1;
 
   ITERATELIST(CMapBaseObjLink, lightLinkList, link) {
     if (whichLight >= 8) {

@@ -33,9 +33,9 @@
 
 int Spell_C_GetModalSpell();
 class CGItem_C;
-int Spell_C_GetTargettingSpell();
+int  Spell_C_GetTargettingSpell();
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
-int Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+int  Spell_C_GetSpellCooldown(int spell, int isPet, UINT *duration, DWORD *startTime, UINT *enable);
 void Spell_C_StopTargeting();
 void Spell_C_CancelAura(int spellID);
 
@@ -79,7 +79,7 @@ void CGSpellBook::ShutdownGame() {
 }
 
 void CGSpellBook::ClearSpells() {
-  unsigned int i;
+  UINT i;
 
   m_knownSpellBits.ClearAll();
   memset(m_petSpells, 0, sizeof(m_petSpells));
@@ -100,7 +100,7 @@ void CGSpellBook::ClearSpells() {
   m_selectedSlot = -1;
 }
 
-int __cdecl QSortShapeshiftForms(const void *a, const void *b) {
+int __cdecl QSortShapeshiftForms(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
 
@@ -140,12 +140,12 @@ void CGSpellBook::AddKnownSpell(int spellID, int slot, int learned) {
     m_unlockSpells.Add(&spellID);
   }
 
-  for (unsigned int effect = 0; effect < 3; ++effect) {
+  for (UINT effect = 0; effect < 3; ++effect) {
     if (info->m_effectAura[effect] != 36) {
       continue;
     }
 
-    unsigned int unlock;
+    UINT unlock;
     for (unlock = 0; unlock < m_shapeshiftForms.Count(); ++unlock) {
       if (m_shapeshiftForms[unlock] == spellID) {
         break;
@@ -179,9 +179,9 @@ void CGSpellBook::AddKnownSpell(int spellID, int slot, int learned) {
     return;
   }
 
-  unsigned int spellSlot;
-  int          sendSpellSlot;
-  if (!slot || static_cast<unsigned int>(abs(slot) - 1) >= MAXIMUM_LEARNED_SPELLS) {
+  UINT spellSlot;
+  int  sendSpellSlot;
+  if (!slot || static_cast<UINT>(abs(slot) - 1) >= MAXIMUM_LEARNED_SPELLS) {
     sendSpellSlot = 1;
   } else {
     spellSlot = abs(slot) - 1;
@@ -232,17 +232,17 @@ void CGSpellBook::DelKnownSpell(int spellID) {
     }
   }
 
-  for (unsigned int language = m_languageSpells.Count(); language;) {
+  for (UINT language = m_languageSpells.Count(); language;) {
     --language;
     if (m_languageSpells[language] == spellID) {
       m_languageSpells[language] = 0;
     }
   }
 
-  for (unsigned int form = m_shapeshiftForms.Count(); form;) {
+  for (UINT form = m_shapeshiftForms.Count(); form;) {
     --form;
     if (m_shapeshiftForms[form] == spellID) {
-      unsigned int remaining = m_shapeshiftForms.Count() - form - 1;
+      UINT remaining = m_shapeshiftForms.Count() - form - 1;
       if (remaining) {
         memmove(&m_shapeshiftForms[form], &m_shapeshiftForms[form + 1], remaining * sizeof(int));
       }
@@ -258,7 +258,7 @@ void CGSpellBook::DelKnownSpell(int spellID) {
 
 void CGSpellBook::ReplaceSpell(int oldSpell, int newSpell) {
   int slot = 0;
-  for (unsigned int index = 0; index < MAXIMUM_LEARNED_SPELLS; ++index) {
+  for (UINT index = 0; index < MAXIMUM_LEARNED_SPELLS; ++index) {
     if (m_knownSpells[index] == oldSpell) {
       slot = index + 1;
       break;
@@ -286,7 +286,7 @@ void CGSpellBook::ClearPetSpells() {
 void CGSpellBook::AddPetSpell(int spellID) {
   const SpellRec *info = g_spellDB.GetRecord(spellID);
   if (info && !(info->m_attributes & 0x80000000)) {
-    for (unsigned int slot = 0; slot < MAXIMUM_LEARNED_SPELLS; ++slot) {
+    for (UINT slot = 0; slot < MAXIMUM_LEARNED_SPELLS; ++slot) {
       if (m_petSpells[slot] <= 0) {
         m_petSpells[slot] = spellID;
         break;
@@ -353,7 +353,7 @@ void CGSpellBook::UpdateSelection() {
     return;
   }
 
-  for (unsigned int slot = 0; slot < MAXIMUM_LEARNED_SPELLS; ++slot) {
+  for (UINT slot = 0; slot < MAXIMUM_LEARNED_SPELLS; ++slot) {
     if (m_knownSpells[slot] == spell) {
       m_selectedSlot = slot;
       m_selectedType = PLAYER_SPELL;
@@ -410,10 +410,7 @@ void CGSpellBook::PickupSpell(int slot, UI_SPELL_TYPE type) {
     }
 
     int isAbility = (spell->m_attributes & 0x10) != 0;
-    if ((type == PET_SPELL && !cursorWasPetSpell) ||
-        (type == PLAYER_ABILITY && !isAbility) ||
-        (type == PLAYER_SPELL && isAbility))
-    {
+    if ((type == PET_SPELL && !cursorWasPetSpell) || (type == PLAYER_ABILITY && !isAbility) || (type == PLAYER_SPELL && isAbility)) {
       return;
     }
 
@@ -503,7 +500,7 @@ int CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
     }
   }
 
-  unsigned int effect;
+  UINT effect;
   for (effect = 0; effect < 3; ++effect) {
     if (spell->m_effectAura[effect] == 36) {
       break;
@@ -526,15 +523,15 @@ int CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
     return 0;
   }
 
-  int active = 0;
+  int             active = 0;
   const SpellRec *spell = g_spellDB.GetRecord(GetSpell(slot, type));
   if (!spell || !spell->m_activeIconID) {
     return 0;
   }
 
-  const CGUnitData      *unitData = player->GetUnitData();
-  const unsigned char   *auraFlags = unitData->auraFlags;
-  for (unsigned int aura = 0; aura < 40; ++aura) {
+  const CGUnitData *unitData = player->GetUnitData();
+  const BYTE       *auraFlags = unitData->auraFlags;
+  for (UINT aura = 0; aura < 40; ++aura) {
     if (unitData->auras[aura] == spell->m_ID && ((auraFlags[aura / 2] >> (4 * (aura % 2))) & 1)) {
       active = 1;
       break;
@@ -548,7 +545,7 @@ static int GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &type) {
     return 0;
   }
   slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  const char *bookType = lua_tostring(L, 2);
+  LPCSTR bookType = lua_tostring(L, 2);
   if (!SStrCmpI(bookType, "spell", 0x7FFFFFFF)) {
     type = PLAYER_SPELL;
   } else if (!SStrCmpI(bookType, "ability", 0x7FFFFFFF)) {
@@ -561,7 +558,7 @@ static int GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &type) {
   return slot >= 0 && slot < MAXIMUM_LEARNED_SPELLS;
 }
 
-static const char *GetSpellbookTexture(int slot, UI_SPELL_TYPE type) {
+static LPCSTR GetSpellbookTexture(int slot, UI_SPELL_TYPE type) {
   const SpellRec *spell = g_spellDB.GetRecord(CGSpellBook::GetSpell(slot, type));
   if (spell && spell->m_effect[0] == 78) {
     return CGActionBar::GetAttackTexture();
@@ -576,7 +573,7 @@ static int Script_GetSpellTexture(lua_State *L) {
   if (!GetSlotFromLua(L, slot, type)) {
     return luaL_error(L, "Invalid spell slot in GetSpellTexture");
   }
-  const char *texture = GetSpellbookTexture(slot, type);
+  LPCSTR texture = GetSpellbookTexture(slot, type);
   if (texture && *texture) {
     lua_pushstring(L, texture);
   } else {
@@ -608,10 +605,10 @@ static int Script_GetSpellCooldown(lua_State *L) {
   if (!GetSlotFromLua(L, slot, type)) {
     return luaL_error(L, "Invalid spell slot in GetSpellCooldown");
   }
-  unsigned int  duration = 0;
-  unsigned long startTime = 0;
-  unsigned int  enable = 0;
-  int           spell = CGSpellBook::GetSpell(slot, type);
+  UINT  duration = 0;
+  DWORD startTime = 0;
+  UINT  enable = 0;
+  int   spell = CGSpellBook::GetSpell(slot, type);
   Spell_C_GetSpellCooldown(spell, type == PET_SPELL, &duration, &startTime, &enable);
   lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
   lua_pushnumber(L, static_cast<double>(duration) * 0.001);
@@ -653,7 +650,7 @@ static int Script_IsCurrentCast(lua_State *L) {
   return 1;
 }
 
-static int Script_UpdateSpells(lua_State *__formal) {
+static int Script_UpdateSpells(lua_State *) {
   CGSpellBook::UpdateSpells();
   return 0;
 }
@@ -670,10 +667,8 @@ static int Script_PlayerHasSpells(lua_State *L) {
 static int Script_HasPetSpells(lua_State *L) {
   if (CGSpellBook::KnowsPetSpells()) {
     lua_pushnumber(L, 1.0);
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(
-        ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    const ChrClassesRec *classRec =
-        player ? g_chrClassesDB.GetRecord(player->GetUnitData()->classId) : 0;
+    CGPlayer_C          *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    const ChrClassesRec *classRec = player ? g_chrClassesDB.GetRecord(player->GetUnitData()->classId) : 0;
     lua_pushstring(L, classRec ? classRec->m_petNameToken : "PET");
     return 2;
   }
@@ -688,7 +683,7 @@ static int Script_IsSpellPassive(lua_State *L) {
   if (!GetSlotFromLua(L, slot, type)) {
     return luaL_error(L, "Invalid spell slot in IsSpellPassive");
   }
-  int spellID = CGSpellBook::GetSpell(slot, type);
+  int             spellID = CGSpellBook::GetSpell(slot, type);
   const SpellRec *spell = spellID >= 0 ? g_spellDB.GetRecord(spellID) : 0;
   if (spell && (spell->m_attributes & 0x40)) {
     lua_pushnumber(L, 1.0);
@@ -707,10 +702,10 @@ static int Script_GetShapeshiftFormInfo(lua_State *L) {
   if (lua_tonumber(L, 1) == 0.0) {
     return luaL_error(L, "Usage: GetShapeshiftFormInfo(index)");
   }
-  unsigned int          index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT                 index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   TSGrowableArray<int> forms = CGSpellBook::GetShapeshiftForms();
-  const SpellRec            *spell = index < forms.Count() ? g_spellDB.GetRecord(forms[index]) : 0;
-  const SpellIconRec         *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
+  const SpellRec      *spell = index < forms.Count() ? g_spellDB.GetRecord(forms[index]) : 0;
+  const SpellIconRec  *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
   if (icon) {
     lua_pushstring(L, icon->m_textureFilename);
   } else {
@@ -724,7 +719,7 @@ static int Script_GetShapeshiftFormInfo(lua_State *L) {
 
   int form = 0;
   if (spell) {
-    for (unsigned int effect = 0; effect < 3; ++effect) {
+    for (UINT effect = 0; effect < 3; ++effect) {
       if (spell->m_effectAura[effect] == 36) {
         form = spell->m_effectMiscValue[effect];
         break;
@@ -745,27 +740,24 @@ static int Script_CastShapeshiftForm(lua_State *L) {
   if (lua_tonumber(L, 1) == 0.0) {
     return luaL_error(L, "Usage: CastShapeshiftForm(index)");
   }
-  unsigned int          index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT                 index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   TSGrowableArray<int> forms = CGSpellBook::GetShapeshiftForms();
   if (index < forms.Count()) {
     const SpellRec *spell = g_spellDB.GetRecord(forms[index]);
     if (spell) {
       int form = 0;
-      for (unsigned int effect = 0; effect < 3; ++effect) {
+      for (UINT effect = 0; effect < 3; ++effect) {
         if (spell->m_effectAura[effect] == 36) {
           form = spell->m_effectMiscValue[effect];
           break;
         }
       }
 
-      CGPlayer_C *player = static_cast<CGPlayer_C *>(
-          ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      CGPlayer_C                   *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       const SpellShapeshiftFormRec *formRec = g_spellShapeshiftFormDB.GetRecord(form);
-      if (!player || !formRec || player->GetUnitData()->shapeshiftForm != form ||
-          !(formRec->m_flags & 1)) {
+      if (!player || !formRec || player->GetUnitData()->shapeshiftForm != form || !(formRec->m_flags & 1)) {
         Spell_C_CastSpell(forms[index], 0);
-        SndInterfacePlayInterfaceSound(
-            spell->m_attributes & 0x10 ? "GAMEABILITYACTIVATE" : "GAMESPELLACTIVATE");
+        SndInterfacePlayInterfaceSound(spell->m_attributes & 0x10 ? "GAMEABILITYACTIVATE" : "GAMESPELLACTIVATE");
       }
     }
   }
@@ -776,11 +768,11 @@ static int Script_GetShapeshiftFormCooldown(lua_State *L) {
   if (lua_tonumber(L, 1) == 0.0) {
     return luaL_error(L, "Usage: GetShapeshiftFormCooldown(index)");
   }
-  unsigned int          index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT                 index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   TSGrowableArray<int> forms = CGSpellBook::GetShapeshiftForms();
-  unsigned int         duration = 0;
-  unsigned long         startTime = 0;
-  unsigned int          enable = 1;
+  UINT                 duration = 0;
+  DWORD                startTime = 0;
+  UINT                 enable = 1;
   if (index < forms.Count()) {
     Spell_C_GetSpellCooldown(forms[index], 0, &duration, &startTime, &enable);
   }
@@ -808,13 +800,13 @@ static FrameScript_Method s_ScriptFunctions[14] = {
 };
 
 void SpellBookRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 14; ++i) {
+  for (UINT i = 0; i < 14; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void SpellBookUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 14; ++i) {
+  for (UINT i = 0; i < 14; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

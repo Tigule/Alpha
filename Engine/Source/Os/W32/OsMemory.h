@@ -17,16 +17,16 @@ class COsSharedMemory {
   COsSharedMemory();
   ~COsSharedMemory();
 
-  bool Initialize(const char *name, unsigned int size, int mode);
+  bool Initialize(LPCSTR name, UINT size, int mode);
   bool ChangeAccess(int newAccess);
   void Destroy();
 
-  void *Data() const {
+  LPVOID Data() const {
     return m_data;
   }
 
  protected:
-  void         *m_data;
-  unsigned int  m_size;
-  unsigned char m_opaqueData[4];
+  LPVOID m_data;
+  UINT   m_size;
+  BYTE   m_opaqueData[4];
 };

@@ -19,7 +19,7 @@
 #include <FrameScript/FrameScript.h>
 
 namespace {
-extern FrameScript_Method s_ScriptFunctions[19];
+  extern FrameScript_Method s_ScriptFunctions[19];
 }
 
 #include <ctype.h>
@@ -47,9 +47,9 @@ struct WhoListEntry {
 };
 
 static WhoListEntry s_whoList[50];
-static unsigned int s_numWhos;
-static unsigned int s_totalNumWhos;
-static const char  *s_partyStatusStrings[3] = {"no", "yes", "looking"};
+static UINT         s_numWhos;
+static UINT         s_totalNumWhos;
+static LPCSTR       s_partyStatusStrings[3] = {"no", "yes", "looking"};
 static CVar        *s_whoChatThreshold;
 static int          s_whoToUI;
 
@@ -69,15 +69,14 @@ struct WhoSortType {
   int           reverse;
 };
 
-
 FriendList::FriendList() : m_friendNamesPending(0), m_selectedFriend(0), m_ignoreNamesPending(0), m_selectedIgnore(0) {
   memset(m_friends, 0, sizeof(m_friends));
   memset(m_ignore, 0, sizeof(m_ignore));
 }
 
-static int FriendListStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned char result;
-  unsigned __int64 guid;
+static int FriendListStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  BYTE      result;
+  DWORDLONG guid;
   msg->Get(result);
   msg->Get(guid);
   if (g_friendList) {
@@ -86,8 +85,8 @@ static int FriendListStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore*
   return 1;
 }
 
-static void FriendListNameCallbackWithSort(int id, const unsigned __int64& guid, void* arg, bool granted) {
-  GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(reinterpret_cast<unsigned int>(arg));
+static void FriendListNameCallbackWithSort(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
+  GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(reinterpret_cast<UINT>(arg));
   if (granted) {
     const NameCache *name = g_nameDBCache.GetRecord(guid, 0, 0, 0);
     FATALASSERT(name);
@@ -109,8 +108,8 @@ static void FriendListNameCallbackWithSort(int id, const unsigned __int64& guid,
   }
 }
 
-static void IgnoreListNameCallback(int id, const unsigned __int64& guid, void* arg, bool granted) {
-  GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(reinterpret_cast<unsigned int>(arg));
+static void IgnoreListNameCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
+  GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(reinterpret_cast<UINT>(arg));
   if (granted) {
     const NameCache *name = g_nameDBCache.GetRecord(guid, 0, 0, 0);
     FATALASSERT(name);
@@ -134,41 +133,40 @@ static void IgnoreListNameCallback(int id, const unsigned __int64& guid, void* a
 FriendList::~FriendList() {
 }
 
-static int FriendListHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int FriendListHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   if (g_friendList) {
     g_friendList->AddFriends(msg);
   }
   return 1;
 }
 
-static int CCommand_Friends(const char* command, const char* arguments) {
+static int CCommand_Friends(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(102);
   ClientServices_Send(&msg);
   return 1;
 }
 
-static int CCommand_AddFriend(const char* command, const char* arguments) {
+static int CCommand_AddFriend(LPCSTR command, LPCSTR arguments) {
   g_friendList->AddFriend(arguments);
   return 1;
 }
 
-static int CCommand_RemoveFriend(const char* command, const char* arguments) {
+static int CCommand_RemoveFriend(LPCSTR command, LPCSTR arguments) {
   g_friendList->RemoveFriend(arguments);
   return 1;
 }
 
-static int WhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int WhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   char name[256];
   msg->GetString(name, 0x7FFFFFFF);
   ConsoleWrite(name, DEFAULT_COLOR);
   return 1;
 }
 
-void FriendList::RemoveFriend(const char *name) {
-  for (unsigned int i = 0; i < 50; ++i) {
-    if (m_friends[i].m_name &&
-        !SStrCmpI(m_friends[i].m_name, name, 0x7FFFFFFF)) {
+void FriendList::RemoveFriend(LPCSTR name) {
+  for (UINT i = 0; i < 50; ++i) {
+    if (m_friends[i].m_name && !SStrCmpI(m_friends[i].m_name, name, 0x7FFFFFFF)) {
       RemoveFriend(m_friends[i].guid);
       return;
     }
@@ -176,15 +174,15 @@ void FriendList::RemoveFriend(const char *name) {
   CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(0xEE));
 }
 
-void FriendList::RemoveFriend(unsigned __int64 guid) {
+void FriendList::RemoveFriend(DWORDLONG guid) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_DEL_FRIEND));
+  msg.Put(static_cast<UINT>(CMSG_DEL_FRIEND));
   msg.Put(guid);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-void FriendList::RemoveFriend(unsigned int index) {
+void FriendList::RemoveFriend(UINT index) {
   const Friend *entry = GetFriend(index);
   if (!entry) {
     return;
@@ -192,10 +190,10 @@ void FriendList::RemoveFriend(unsigned int index) {
   RemoveFriend(entry->guid);
 }
 
-static int ReverseWhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
-  unsigned int numAccounts = 0;
+static int ReverseWhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  UINT numAccounts = 0;
   msg->Get(numAccounts);
-  if (numAccounts == static_cast<unsigned int>(-1)) {
+  if (numAccounts == static_cast<UINT>(-1)) {
     ConsoleWriteA("RWhoIs failed\n", ERROR_COLOR);
     return 1;
   }
@@ -204,30 +202,25 @@ static int ReverseWhoisResponseHandler(void*, NETMESSAGE, unsigned long, CDataSt
     return 1;
   }
 
-  for (unsigned int account = 0; account < numAccounts; ++account) {
+  for (UINT account = 0; account < numAccounts; ++account) {
     char accountName[64];
     msg->GetString(accountName, 0x7FFFFFFF);
     ConsolePrintf("Account: %s\n", accountName);
 
-    int          numCharacters = 0;
-    unsigned int selected = 0;
+    int  numCharacters = 0;
+    UINT selected = 0;
     msg->Get(numCharacters);
     msg->Get(selected);
     for (int character = 0; character < numCharacters; ++character) {
       char characterName[48];
       msg->GetString(characterName, 0x7FFFFFFF);
-      ConsoleWriteA(
-          "  %s\n",
-          character == static_cast<int>(selected)
-              ? WARNING_COLOR
-              : DEFAULT_COLOR,
-          characterName);
+      ConsoleWriteA("  %s\n", character == static_cast<int>(selected) ? WARNING_COLOR : DEFAULT_COLOR, characterName);
     }
   }
   return 1;
 }
 
-static int CCommand_Whois(const char*, const char* args) {
+static int CCommand_Whois(LPCSTR, LPCSTR args) {
   CDataStore msg;
   msg.Put(100);
   msg.PutString(args);
@@ -235,7 +228,7 @@ static int CCommand_Whois(const char*, const char* args) {
   return 1;
 }
 
-static int CCommand_RWhois(const char*, const char* args) {
+static int CCommand_RWhois(LPCSTR, LPCSTR args) {
   CDataStore msg;
   msg.Put(494);
   msg.PutString(args);
@@ -252,14 +245,14 @@ static int Script_GetFriendInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetFriendInfo(index)");
   }
-  const FriendList::Friend *entry = g_friendList ? g_friendList->GetFriend(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1) : 0;
+  const FriendList::Friend *entry = g_friendList ? g_friendList->GetFriend(static_cast<UINT>(lua_tonumber(L, 1)) - 1) : 0;
   if (!entry) {
     return 0;
   }
   lua_pushstring(L, entry->m_name ? entry->m_name : "");
   lua_pushnumber(L, entry->m_level);
   const ChrClassesRec *classRec = g_chrClassesDB.GetRecord(entry->m_class);
-  const char *unknown = FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE);
+  LPCSTR               unknown = FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE);
   lua_pushstring(L, classRec ? classRec->m_name_lang[CURRENT_LANGUAGE] : unknown);
   const AreaTableRec *areaRec = g_areaTableDB.GetRecord(entry->m_area);
   lua_pushstring(L, areaRec ? areaRec->m_AreaName_lang[CURRENT_LANGUAGE] : unknown);
@@ -273,7 +266,7 @@ static int Script_SetSelectedFriend(lua_State *L) {
     return luaL_error(L, "Usage: SetSelectedFriend(index)");
   }
   if (g_friendList) {
-    g_friendList->SetFriendSelectionIndex(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+    g_friendList->SetFriendSelectionIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   }
   return 0;
 }
@@ -283,11 +276,11 @@ static int Script_GetSelectedFriend(lua_State *L) {
   return 1;
 }
 
-void FriendList::DelIgnore(const char *name) {
+void FriendList::DelIgnore(LPCSTR name) {
   if (!name || !*name) {
     return;
   }
-  for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
+  for (UINT i = 0; i < GetNumIgnores(); ++i) {
     const NameCache *entry = g_nameDBCache.GetRecord(m_ignore[i], 0, 0, 0);
     if (entry && !SStrCmpI(entry->m_name, name, 0x7FFFFFFF)) {
       DelIgnore(m_ignore[i]);
@@ -311,7 +304,7 @@ static int Script_RemoveFriend(lua_State *L) {
     return luaL_error(L, "Usage: RemoveFriend(index)");
   }
   if (g_friendList) {
-    g_friendList->RemoveFriend(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+    g_friendList->RemoveFriend(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   }
   return 0;
 }
@@ -342,7 +335,7 @@ static int Script_GetIgnoreName(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetIgnoreName(index)");
   }
-  unsigned __int64 guid = g_friendList->GetIgnore(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+  DWORDLONG        guid = g_friendList->GetIgnore(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   const NameCache *entry = g_nameDBCache.GetRecord(guid, 0, 0, 0);
   lua_pushstring(L, entry ? entry->m_name : FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
   return 1;
@@ -353,7 +346,7 @@ static int Script_SetSelectedIgnore(lua_State *L) {
     return luaL_error(L, "Usage: SetSelectedIgnore(index)");
   }
   if (g_friendList) {
-    g_friendList->SetIgnoreSelectionIndex(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
+    g_friendList->SetIgnoreSelectionIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   }
   return 0;
 }
@@ -403,7 +396,7 @@ static int Script_GetWhoInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: GetWhoInfo(index)");
   }
-  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (index >= s_numWhos) {
     return 0;
   }
@@ -426,7 +419,7 @@ static int Script_SetWhoToUI(lua_State *L) {
   return 0;
 }
 
-static int __cdecl QSortWho(const void *a, const void *b) {
+static int __cdecl QSortWho(LPCVOID a, LPCVOID b) {
   const WhoListEntry *info1 = static_cast<const WhoListEntry *>(a);
   const WhoListEntry *info2 = static_cast<const WhoListEntry *>(b);
   return SStrCmpI(info1->name, info2->name, 0x7FFFFFFF);
@@ -449,18 +442,16 @@ void FriendList::UnregisterScriptFunctions() {
   }
 }
 
-static void PrintWho(const char* name, const char* guild, int level, int classID, int raceID, int areaID) {
-  const ChrRacesRec *race = g_chrRacesDB.GetRecord(raceID);
+static void PrintWho(LPCSTR name, LPCSTR guild, int level, int classID, int raceID, int areaID) {
+  const ChrRacesRec   *race = g_chrRacesDB.GetRecord(raceID);
   const ChrClassesRec *playerClass = g_chrClassesDB.GetRecord(classID);
-  const AreaTableRec *area = g_areaTableDB.GetRecord(areaID);
-  const char *unknown = FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE);
-  const char *raceName = race ? race->m_name_lang[CURRENT_LANGUAGE] : unknown;
-  const char *className = playerClass ? playerClass->m_name_lang[CURRENT_LANGUAGE] : unknown;
-  const char *areaName = area ? area->m_AreaName_lang[CURRENT_LANGUAGE] : unknown;
-  const char *format = FrameScript_GetText(
-      guild && *guild ? "WHO_LIST_GUILD_FORMAT" : "WHO_LIST_FORMAT",
-      -1, GENDER_NOT_APPLICABLE);
-  char fullLine[256];
+  const AreaTableRec  *area = g_areaTableDB.GetRecord(areaID);
+  LPCSTR               unknown = FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE);
+  LPCSTR               raceName = race ? race->m_name_lang[CURRENT_LANGUAGE] : unknown;
+  LPCSTR               className = playerClass ? playerClass->m_name_lang[CURRENT_LANGUAGE] : unknown;
+  LPCSTR               areaName = area ? area->m_AreaName_lang[CURRENT_LANGUAGE] : unknown;
+  LPCSTR               format = FrameScript_GetText(guild && *guild ? "WHO_LIST_GUILD_FORMAT" : "WHO_LIST_FORMAT", -1, GENDER_NOT_APPLICABLE);
+  char                 fullLine[256];
   if (guild && *guild) {
     SStrPrintf(fullLine, sizeof(fullLine), format, name, level, raceName, className, guild, areaName);
   } else {
@@ -469,16 +460,16 @@ static void PrintWho(const char* name, const char* guild, int level, int classID
   CGChat::AddChatMessage(fullLine, static_cast<SLASH_COMMAND_ID>(1), 0, 0, 0, 0, 0);
 }
 
-static int OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStore* msg) {
+static int OnWhoList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
-  unsigned int count;
+  UINT count;
   msg->Get(count);
   msg->Get(s_totalNumWhos);
   s_numWhos = min(count, 50U);
   int threshold = s_whoChatThreshold ? s_whoChatThreshold->GetInt() : 3;
-  int toChat = !s_whoToUI && (threshold < 0 || count <= static_cast<unsigned int>(threshold));
+  int toChat = !s_whoToUI && (threshold < 0 || count <= static_cast<UINT>(threshold));
 
-  for (unsigned int i = 0; i < count; ++i) {
+  for (UINT i = 0; i < count; ++i) {
     WhoListEntry entry;
     memset(&entry, 0, sizeof(entry));
     msg->GetString(entry.name, sizeof(entry.name));
@@ -500,8 +491,8 @@ static int OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStor
 
   qsort(s_whoList, s_numWhos, sizeof(WhoListEntry), QSortWho);
   if (toChat) {
-    char buf[256];
-    const char *format = FrameScript_GetText("WHO_NUM_RESULTS", count, GENDER_NOT_APPLICABLE);
+    char   buf[256];
+    LPCSTR format = FrameScript_GetText("WHO_NUM_RESULTS", count, GENDER_NOT_APPLICABLE);
     SStrPrintf(buf, sizeof(buf), format, count);
     CGChat::AddChatMessage(buf, static_cast<SLASH_COMMAND_ID>(1), 0, 0, 0, 0, 0);
   } else {
@@ -510,7 +501,7 @@ static int OnWhoList(void*, NETMESSAGE msgId, unsigned long eventTime, CDataStor
   return 1;
 }
 
-static int OnIgnoreList(void*, NETMESSAGE, unsigned long, CDataStore* msg) {
+static int OnIgnoreList(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   if (g_friendList) {
     g_friendList->IgnoreList(msg);
   }
@@ -536,7 +527,6 @@ void FriendList::Initialize() {
   ConsoleCommandRegister("removefriend", CCommand_RemoveFriend, GAME, 0);
   ConsoleCommandRegister("whois", CCommand_Whois, DEBUG, "Ask the server to do an account/real name lookup on a character name");
   ConsoleCommandRegister("rwhois", CCommand_RWhois, DEBUG, "Ask the server to do an reverse lookup on an account's real name");
-
 }
 
 void FriendList::Destroy() {
@@ -559,25 +549,25 @@ void FriendList::Destroy() {
   }
 }
 
-unsigned int FriendList::GetNumFriends() {
-  unsigned int count = 0;
+UINT FriendList::GetNumFriends() {
+  UINT count = 0;
   while (count < 50 && m_friends[count].guid) {
     ++count;
   }
   return count;
 }
 
-const FriendList::Friend *FriendList::GetFriend(unsigned int index) {
+const FriendList::Friend *FriendList::GetFriend(UINT index) {
   return index < GetNumFriends() ? &m_friends[index] : 0;
 }
 
-void FriendList::SetFriendSelectionIndex(unsigned int index) {
+void FriendList::SetFriendSelectionIndex(UINT index) {
   const Friend *entry = GetFriend(index);
   m_selectedFriend = entry ? entry->guid : 0;
 }
 
 int FriendList::GetFriendSelectionIndex() {
-  for (unsigned int i = 0; i < GetNumFriends(); ++i) {
+  for (UINT i = 0; i < GetNumFriends(); ++i) {
     if (m_friends[i].guid == m_selectedFriend) {
       return i;
     }
@@ -585,24 +575,24 @@ int FriendList::GetFriendSelectionIndex() {
   return -1;
 }
 
-unsigned int FriendList::GetNumIgnores() {
-  unsigned int count = 0;
+UINT FriendList::GetNumIgnores() {
+  UINT count = 0;
   while (count < 25 && m_ignore[count]) {
     ++count;
   }
   return count;
 }
 
-unsigned __int64 FriendList::GetIgnore(unsigned int index) {
+DWORDLONG FriendList::GetIgnore(UINT index) {
   return index < GetNumIgnores() ? m_ignore[index] : 0;
 }
 
-void FriendList::SetIgnoreSelectionIndex(unsigned int index) {
+void FriendList::SetIgnoreSelectionIndex(UINT index) {
   m_selectedIgnore = GetIgnore(index);
 }
 
 int FriendList::GetIgnoreSelectionIndex() {
-  for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
+  for (UINT i = 0; i < GetNumIgnores(); ++i) {
     if (m_ignore[i] == m_selectedIgnore) {
       return i;
     }
@@ -612,59 +602,63 @@ int FriendList::GetIgnoreSelectionIndex() {
 
 void FriendList::ShowFriends() {
   char text[256];
-  for (unsigned int i = 0; i < 50; ++i) {
+  for (UINT i = 0; i < 50; ++i) {
     if (m_friends[i].m_name) {
-      SStrPrintf(
-          text,
-          sizeof(text),
-          m_friends[i].m_connected ? "%s - Online" : "%s - Offline",
-          m_friends[i].m_name);
+      SStrPrintf(text, sizeof(text), m_friends[i].m_connected ? "%s - Online" : "%s - Offline", m_friends[i].m_name);
       CGChat::AddChatMessage(text, static_cast<SLASH_COMMAND_ID>(9), 0, 0, 0, 0, 0);
     }
   }
 }
 
-void FriendList::AddFriend(const char *name) {
+void FriendList::AddFriend(LPCSTR name) {
   if (!name || !*name) {
     return;
   }
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_ADD_FRIEND));
+  msg.Put(static_cast<UINT>(CMSG_ADD_FRIEND));
   msg.PutString(name);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-static int __cdecl QSortFriends(const void* a, const void* b) {
+static int __cdecl QSortFriends(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   const FriendList::Friend *left = static_cast<const FriendList::Friend *>(a);
   const FriendList::Friend *right = static_cast<const FriendList::Friend *>(b);
-  if (!left->guid && !right->guid) return 0;
-  if (!left->guid) return 1;
-  if (!right->guid) return -1;
+  if (!left->guid && !right->guid)
+    return 0;
+  if (!left->guid)
+    return 1;
+  if (!right->guid)
+    return -1;
   if (left->m_connected != right->m_connected) {
     return left->m_connected ? -1 : 1;
   }
   if (left->m_name && right->m_name) {
     return SStrCmpI(left->m_name, right->m_name, 0x7FFFFFFF);
   }
-  if (!left->m_name && !right->m_name) return 0;
+  if (!left->m_name && !right->m_name)
+    return 0;
   return left->m_name ? -1 : 1;
 }
 
-static int __cdecl QSortIgnore(const void* a, const void* b) {
+static int __cdecl QSortIgnore(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  unsigned __int64 left = *static_cast<const unsigned __int64 *>(a);
-  unsigned __int64 right = *static_cast<const unsigned __int64 *>(b);
-  if (!left) return right != 0;
-  if (!right) return -1;
-  unsigned __int64 nc1 = 0;
+  DWORDLONG left = *static_cast<const DWORDLONG *>(a);
+  DWORDLONG right = *static_cast<const DWORDLONG *>(b);
+  if (!left)
+    return right != 0;
+  if (!right)
+    return -1;
+  DWORDLONG        nc1 = 0;
   const NameCache *leftName = g_nameDBCache.GetRecord(left, nc1, 0, 0);
   const NameCache *rightName = g_nameDBCache.GetRecord(right, nc1, 0, 0);
-  if (leftName && rightName) return SStrCmpI(leftName->m_name, rightName->m_name, 0x7FFFFFFF);
-  if (!leftName && !rightName) return 0;
+  if (leftName && rightName)
+    return SStrCmpI(leftName->m_name, rightName->m_name, 0x7FFFFFFF);
+  if (!leftName && !rightName)
+    return 0;
   return leftName ? -1 : 1;
 }
 
@@ -678,8 +672,8 @@ void FriendList::SortIgnore() {
   FrameScript_SignalEvent(331);
 }
 
-void FriendList::Removed(unsigned __int64 guid) {
-  for (unsigned int i = 0; i < 50; ++i) {
+void FriendList::Removed(DWORDLONG guid) {
+  for (UINT i = 0; i < 50; ++i) {
     if (m_friends[i].guid == guid) {
       m_friends[i].guid = 0;
       FREEIFUSED(m_friends[i].m_name);
@@ -688,9 +682,9 @@ void FriendList::Removed(unsigned __int64 guid) {
   }
 }
 
-int FriendList::Added(unsigned __int64 guid) {
-  unsigned int freeIndex = -1;
-  unsigned int i = 0;
+int FriendList::Added(DWORDLONG guid) {
+  UINT freeIndex = -1;
+  UINT i = 0;
 
   for (; i < 50; ++i) {
     if (m_friends[i].guid == guid) {
@@ -707,8 +701,8 @@ int FriendList::Added(unsigned __int64 guid) {
   return freeIndex;
 }
 
-void FriendList::SetName(unsigned __int64 guid, const char *name) {
-  for (unsigned int i = 0; i < 50; ++i) {
+void FriendList::SetName(DWORDLONG guid, LPCSTR name) {
+  for (UINT i = 0; i < 50; ++i) {
     if (m_friends[i].guid == guid) {
       FREEIFUSED(m_friends[i].m_name);
       m_friends[i].m_name = SStrDupA(name, __FILE__, __LINE__);
@@ -717,8 +711,8 @@ void FriendList::SetName(unsigned __int64 guid, const char *name) {
   }
 }
 
-void FriendList::SetConnected(unsigned __int64 guid, bool connected) {
-  for (unsigned int i = 0; i < 50; ++i) {
+void FriendList::SetConnected(DWORDLONG guid, bool connected) {
+  for (UINT i = 0; i < 50; ++i) {
     if (m_friends[i].guid == guid) {
       m_friends[i].m_connected = connected;
       return;
@@ -738,8 +732,8 @@ void FriendList::DecrementPendingIgnoreName() {
   }
 }
 
-bool FriendList::IsIgnored(unsigned __int64 guid) {
-  for (unsigned int i = 0; i < 25; ++i) {
+bool FriendList::IsIgnored(DWORDLONG guid) {
+  for (UINT i = 0; i < 25; ++i) {
     if (m_ignore[i] == guid) {
       return true;
     }
@@ -748,18 +742,18 @@ bool FriendList::IsIgnored(unsigned __int64 guid) {
 }
 
 void FriendList::AddFriends(CDataStore *msg) {
-  unsigned int i;
+  UINT i;
   for (i = 0; i < 50; ++i) {
     FREEIFUSED(m_friends[i].m_name);
     memset(&m_friends[i], 0, sizeof(m_friends[i]));
   }
   m_friendNamesPending = 0;
 
-  unsigned char count;
+  BYTE count;
   msg->Get(count);
   for (i = 0; i < count && i < 50; ++i) {
-    unsigned __int64 guid;
-    unsigned char status;
+    DWORDLONG guid;
+    BYTE      status;
     msg->Get(guid);
     msg->Get(status);
     m_friends[i].guid = guid;
@@ -769,9 +763,7 @@ void FriendList::AddFriends(CDataStore *msg) {
       msg->Get(m_friends[i].m_level);
       msg->Get(m_friends[i].m_class);
     }
-    const NameCache *name = g_nameDBCache.GetRecord(
-        guid, guid, FriendListNameCallbackWithSort,
-        reinterpret_cast<void *>(297));
+    const NameCache *name = g_nameDBCache.GetRecord(guid, guid, FriendListNameCallbackWithSort, reinterpret_cast<LPVOID>(297));
     if (name) {
       m_friends[i].m_name = SStrDupA(name->m_name, __FILE__, __LINE__);
     } else {
@@ -783,8 +775,8 @@ void FriendList::AddFriends(CDataStore *msg) {
   }
 }
 
-void FriendList::IgnoreAdded(unsigned __int64 guid, int sort) {
-  for (unsigned int i = 0; i < 25; ++i) {
+void FriendList::IgnoreAdded(DWORDLONG guid, int sort) {
+  for (UINT i = 0; i < 25; ++i) {
     if (m_ignore[i] == guid) {
       return;
     }
@@ -798,8 +790,8 @@ void FriendList::IgnoreAdded(unsigned __int64 guid, int sort) {
   }
 }
 
-void FriendList::IgnoreRemoved(unsigned __int64 guid) {
-  for (unsigned int i = 0; i < 25; ++i) {
+void FriendList::IgnoreRemoved(DWORDLONG guid) {
+  for (UINT i = 0; i < 25; ++i) {
     if (m_ignore[i] == guid) {
       m_ignore[i] = 0;
       SortIgnore();
@@ -808,9 +800,9 @@ void FriendList::IgnoreRemoved(unsigned __int64 guid) {
   }
 }
 
-void FriendList::DelIgnore(unsigned __int64 guid) {
+void FriendList::DelIgnore(DWORDLONG guid) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_DEL_IGNORE));
+  msg.Put(static_cast<UINT>(CMSG_DEL_IGNORE));
   msg.Put(guid);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -819,15 +811,14 @@ void FriendList::DelIgnore(unsigned __int64 guid) {
 void FriendList::IgnoreList(CDataStore *msg) {
   memset(m_ignore, 0, sizeof(m_ignore));
   m_ignoreNamesPending = 0;
-  unsigned char count;
+  BYTE count;
   msg->Get(count);
   FATALASSERT(count <= 25);
-  for (unsigned int i = 0; i < count; ++i) {
-    unsigned __int64 guid;
+  for (UINT i = 0; i < count; ++i) {
+    DWORDLONG guid;
     msg->Get(guid);
     IgnoreAdded(guid, 0);
-    if (!g_nameDBCache.GetRecord(
-            guid, guid, IgnoreListNameCallback, reinterpret_cast<void *>(297))) {
+    if (!g_nameDBCache.GetRecord(guid, guid, IgnoreListNameCallback, reinterpret_cast<LPVOID>(297))) {
       ++m_ignoreNamesPending;
     }
   }
@@ -836,8 +827,8 @@ void FriendList::IgnoreList(CDataStore *msg) {
   }
 }
 
-void FriendList::HandleStatus(FRIEND_RESULT result, unsigned __int64 guid, CDataStore *msg) {
-  unsigned int i;
+void FriendList::HandleStatus(FRIEND_RESULT result, DWORDLONG guid, CDataStore *msg) {
+  UINT i;
   switch (result) {
     case FRIEND_ONLINE:
     case FRIEND_ADDED_ONLINE: {
@@ -861,7 +852,8 @@ void FriendList::HandleStatus(FRIEND_RESULT result, unsigned __int64 guid, CData
     }
     case FRIEND_OFFLINE:
       for (i = 0; i < 50; ++i) {
-        if (m_friends[i].guid == guid) m_friends[i].m_connected = 0;
+        if (m_friends[i].guid == guid)
+          m_friends[i].m_connected = 0;
       }
       break;
     case FRIEND_REMOVED:
@@ -894,12 +886,11 @@ void FriendList::HandleStatus(FRIEND_RESULT result, unsigned __int64 guid, CData
   }
 
   bool sortIgnore = result >= FRIEND_IGNORE_ALREADY;
-  void (*callback)(int, const unsigned __int64 &, void *, bool) =
-      sortIgnore ? IgnoreListNameCallback : FriendListNameCallbackWithSort;
-  const NameCache *name = g_nameDBCache.GetRecord(
-      guid, guid, callback, reinterpret_cast<void *>(297));
+  void (*callback)(int, const DWORDLONG &, LPVOID, bool) = sortIgnore ? IgnoreListNameCallback : FriendListNameCallbackWithSort;
+  const NameCache *name = g_nameDBCache.GetRecord(guid, guid, callback, reinterpret_cast<LPVOID>(297));
   if (name) {
-    if (!sortIgnore) SetName(guid, name->m_name);
+    if (!sortIgnore)
+      SetName(guid, name->m_name);
     sortIgnore ? SortIgnore() : SortFriends();
   } else if (sortIgnore) {
     ++m_ignoreNamesPending;
@@ -926,50 +917,50 @@ char *StripQuotes(char *string) {
 }
 
 namespace {
-FrameScript_Method s_ScriptFunctions[19] = {
-    {    "GetNumFriends",     Script_GetNumFriends},
-    {    "GetFriendInfo",     Script_GetFriendInfo},
-    {"SetSelectedFriend", Script_SetSelectedFriend},
-    {"GetSelectedFriend", Script_GetSelectedFriend},
-    {        "AddFriend",         Script_AddFriend},
-    {     "RemoveFriend",      Script_RemoveFriend},
-    {      "ShowFriends",       Script_ShowFriends},
-    {          "SendWho",           Script_SendWho},
-    {    "GetNumIgnores",     Script_GetNumIgnores},
-    {    "GetIgnoreName",     Script_GetIgnoreName},
-    {"SetSelectedIgnore", Script_SetSelectedIgnore},
-    {"GetSelectedIgnore", Script_GetSelectedIgnore},
-    {   "AddOrDelIgnore",    Script_AddOrDelIgnore},
-    {        "AddIgnore",         Script_AddIgnore},
-    {        "DelIgnore",         Script_DelIgnore},
-    { "GetNumWhoResults",  Script_GetNumWhoResults},
-    {       "GetWhoInfo",        Script_GetWhoInfo},
-    {       "SetWhoToUI",        Script_SetWhoToUI},
-    {          "SortWho",           Script_SortWho}
-};
+  FrameScript_Method s_ScriptFunctions[19] = {
+      {    "GetNumFriends",     Script_GetNumFriends},
+      {    "GetFriendInfo",     Script_GetFriendInfo},
+      {"SetSelectedFriend", Script_SetSelectedFriend},
+      {"GetSelectedFriend", Script_GetSelectedFriend},
+      {        "AddFriend",         Script_AddFriend},
+      {     "RemoveFriend",      Script_RemoveFriend},
+      {      "ShowFriends",       Script_ShowFriends},
+      {          "SendWho",           Script_SendWho},
+      {    "GetNumIgnores",     Script_GetNumIgnores},
+      {    "GetIgnoreName",     Script_GetIgnoreName},
+      {"SetSelectedIgnore", Script_SetSelectedIgnore},
+      {"GetSelectedIgnore", Script_GetSelectedIgnore},
+      {   "AddOrDelIgnore",    Script_AddOrDelIgnore},
+      {        "AddIgnore",         Script_AddIgnore},
+      {        "DelIgnore",         Script_DelIgnore},
+      { "GetNumWhoResults",  Script_GetNumWhoResults},
+      {       "GetWhoInfo",        Script_GetWhoInfo},
+      {       "SetWhoToUI",        Script_SetWhoToUI},
+      {          "SortWho",           Script_SortWho}
+  };
 }
 
-void FriendList::SendWho(const char *str) {
-  char         words[4][128];
-  char         guild[96];
-  char         filter[128];
-  char         name[48];
-  int          zones[10];
-  char        *wordptrs[4];
-  int          minLevel = 0;
-  int          quoted = 0;
-  int          maxLevel = 100;
-  int          raceFilter = -1;
-  int          classFilter = -1;
-  unsigned int numZones = 0;
-  int          w = 0;
+void FriendList::SendWho(LPCSTR str) {
+  char  words[4][128];
+  char  guild[96];
+  char  filter[128];
+  char  name[48];
+  int   zones[10];
+  char *wordptrs[4];
+  int   minLevel = 0;
+  int   quoted = 0;
+  int   maxLevel = 100;
+  int   raceFilter = -1;
+  int   classFilter = -1;
+  UINT  numZones = 0;
+  int   w = 0;
 
   FATALASSERT(str);
 
   name[0] = 0;
   guild[0] = 0;
   SStrCopy(filter, str, sizeof(filter));
-  unsigned int length = strlen(filter);
+  UINT length = strlen(filter);
   filter[length] = ' ';
   filter[length + 1] = 0;
 
@@ -979,8 +970,8 @@ void FriendList::SendWho(const char *str) {
   }
 
   while (*c && w < 4) {
-    char        *word = words[w];
-    unsigned int chars = 0;
+    char *word = words[w];
+    UINT  chars = 0;
     while (*c) {
       if (*c == '"' || *c == '\'') {
         quoted = !quoted;
@@ -999,8 +990,8 @@ void FriendList::SendWho(const char *str) {
     word[chars] = 0;
     wordptrs[w] = StripQuotes(word);
 
-    const char  *tag = FrameScript_GetText("WHO_TAG_NAME", -1, GENDER_NOT_APPLICABLE);
-    unsigned int tagLength = strlen(tag);
+    LPCSTR tag = FrameScript_GetText("WHO_TAG_NAME", -1, GENDER_NOT_APPLICABLE);
+    UINT   tagLength = strlen(tag);
     if (!SStrCmp(word, tag, tagLength)) {
       SStrCopy(name, StripQuotes(word + tagLength), sizeof(name));
       continue;
@@ -1016,7 +1007,7 @@ void FriendList::SendWho(const char *str) {
     tag = FrameScript_GetText("WHO_TAG_ZONE", -1, GENDER_NOT_APPLICABLE);
     tagLength = strlen(tag);
     if (!SStrCmp(word, tag, tagLength)) {
-      const char *zone = StripQuotes(word + tagLength);
+      LPCSTR zone = StripQuotes(word + tagLength);
       for (int index = 0; index < g_areaTableDB.GetNumRecords() && numZones < 10; ++index) {
         const AreaTableRec *rec = g_areaTableDB.GetRecordByIndex(index);
         if (!rec->m_ParentAreaNum && SStrStrI(rec->m_AreaName_lang[CURRENT_LANGUAGE], zone)) {
@@ -1032,7 +1023,7 @@ void FriendList::SendWho(const char *str) {
     tag = FrameScript_GetText("WHO_TAG_RACE", -1, GENDER_NOT_APPLICABLE);
     tagLength = strlen(tag);
     if (!SStrCmp(word, tag, tagLength)) {
-      const char *race = StripQuotes(word + tagLength);
+      LPCSTR race = StripQuotes(word + tagLength);
       if (raceFilter == -1) {
         raceFilter = 0;
       }
@@ -1048,7 +1039,7 @@ void FriendList::SendWho(const char *str) {
     tag = FrameScript_GetText("WHO_TAG_CLASS", -1, GENDER_NOT_APPLICABLE);
     tagLength = strlen(tag);
     if (!SStrCmp(word, tag, tagLength)) {
-      const char *playerClass = StripQuotes(word + tagLength);
+      LPCSTR playerClass = StripQuotes(word + tagLength);
       if (classFilter == -1) {
         classFilter = 0;
       }
@@ -1093,8 +1084,8 @@ void FriendList::SendWho(const char *str) {
   msg.PutString(guild);
   msg.Put(raceFilter);
   msg.Put(classFilter);
-  msg.Put(static_cast<unsigned char>(numZones));
-  for (unsigned int i = 0; i < numZones; ++i) {
+  msg.Put(static_cast<BYTE>(numZones));
+  for (UINT i = 0; i < numZones; ++i) {
     msg.Put(zones[i]);
   }
   msg.Put(w);
@@ -1105,11 +1096,11 @@ void FriendList::SendWho(const char *str) {
   ClientServices_Send(&msg);
 }
 
-void FriendList::AddOrDelIgnore(const char *name) {
+void FriendList::AddOrDelIgnore(LPCSTR name) {
   if (!name || !*name) {
     return;
   }
-  for (unsigned int i = 0; i < GetNumIgnores(); ++i) {
+  for (UINT i = 0; i < GetNumIgnores(); ++i) {
     const NameCache *entry = g_nameDBCache.GetRecord(m_ignore[i], 0, 0, 0);
     if (entry && !SStrCmpI(entry->m_name, name, 0x7FFFFFFF)) {
       DelIgnore(name);
@@ -1119,12 +1110,12 @@ void FriendList::AddOrDelIgnore(const char *name) {
   AddIgnore(name);
 }
 
-void FriendList::AddIgnore(const char *name) {
+void FriendList::AddIgnore(LPCSTR name) {
   if (!name || !*name) {
     return;
   }
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_ADD_IGNORE));
+  msg.Put(static_cast<UINT>(CMSG_ADD_IGNORE));
   msg.PutString(name);
   msg.Finalize();
   ClientServices_Send(&msg);

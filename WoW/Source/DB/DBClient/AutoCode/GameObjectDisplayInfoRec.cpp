@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *GameObjectDisplayInfoRec::GetFilename() {
+LPCSTR GameObjectDisplayInfoRec::GetFilename() {
   return "DBFilesClient\\GameObjectDisplayInfo.dbc";
 }
 
@@ -19,9 +19,9 @@ GameObjectDisplayInfoRec::GameObjectDisplayInfoRec() {
 GameObjectDisplayInfoRec::~GameObjectDisplayInfoRec() {
 }
 
-bool GameObjectDisplayInfoRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempmodelNameIndices[1];
+bool GameObjectDisplayInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempmodelNameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempmodelNameIndices[0], sizeof(tempmodelNameIndices[0]), 0, 0, 0) && result;

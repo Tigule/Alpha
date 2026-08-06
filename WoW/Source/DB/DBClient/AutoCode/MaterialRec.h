@@ -7,13 +7,13 @@ class MaterialRec {
   MaterialRec();
   ~MaterialRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 3;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 12;
   }
 
@@ -28,7 +28,7 @@ class MaterialRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
   int m_materialID;
   int m_flags;

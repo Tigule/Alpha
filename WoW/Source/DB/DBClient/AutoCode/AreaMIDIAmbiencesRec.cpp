@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *AreaMIDIAmbiencesRec::GetFilename() {
+LPCSTR AreaMIDIAmbiencesRec::GetFilename() {
   return "DBFilesClient\\AreaMIDIAmbiences.dbc";
 }
 
@@ -19,11 +19,11 @@ AreaMIDIAmbiencesRec::AreaMIDIAmbiencesRec() {
 AreaMIDIAmbiencesRec::~AreaMIDIAmbiencesRec() {
 }
 
-bool AreaMIDIAmbiencesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempDaySequenceIndices[1];
-  unsigned int tempNightSequenceIndices[1];
-  unsigned int tempDLSFileIndices[1];
+bool AreaMIDIAmbiencesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempDaySequenceIndices[1];
+  UINT tempNightSequenceIndices[1];
+  UINT tempDLSFileIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, tempDaySequenceIndices, sizeof(tempDaySequenceIndices), 0, 0, 0) && result;

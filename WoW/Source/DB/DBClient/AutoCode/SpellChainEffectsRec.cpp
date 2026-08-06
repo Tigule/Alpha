@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellChainEffectsRec::GetFilename() {
+LPCSTR SpellChainEffectsRec::GetFilename() {
   return "DBFilesClient\\SpellChainEffects.dbc";
 }
 
@@ -19,9 +19,9 @@ SpellChainEffectsRec::SpellChainEffectsRec() {
 SpellChainEffectsRec::~SpellChainEffectsRec() {
 }
 
-bool SpellChainEffectsRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempTextureIndices[1];
+bool SpellChainEffectsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempTextureIndices[1];
 
   result = SFileReadTyped(f, &m_ID) && result;
   result = SFileReadTyped(f, &m_AvgSegLen) && result;

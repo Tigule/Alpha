@@ -15,14 +15,14 @@ class WowConnectionNet {
     int               id;
     WowConnection    *serviceConn;
     SEvent            event;
-    unsigned char     quit;
+    BYTE              quit;
     SCritSect         lock;
 
    private:
     Worker &operator=(const Worker &worker);
   };
 
-  WowConnectionNet(int numThreads, void(*threadinit)());
+  WowConnectionNet(int numThreads, void (*threadinit)());
   WowConnectionNet(const WowConnectionNet &net);
   ~WowConnectionNet();
   WowConnectionNet &operator=(const WowConnectionNet &net);
@@ -32,7 +32,7 @@ class WowConnectionNet {
   void RunWorker(int id);
   void Run();
   void Service(WowConnection *conn);
-  void SignalWorker(WowConnection *conn, unsigned int flags);
+  void SignalWorker(WowConnection *conn, UINT flags);
   void ChangeState(WowConnection *conn, WOW_CONN_STATE state);
   void Delete(WowConnection *conn);
 
@@ -52,16 +52,16 @@ class WowConnectionNet {
  private:
   friend class WowConnection;
 
-  SThread                            m_thread;
-  SEvent                             m_stopEvent;
-  unsigned char                      m_stop;
-  int                                m_numWorkers;
-  Worker                             m_workers[8];
+  SThread m_thread;
+  SEvent  m_stopEvent;
+  BYTE    m_stop;
+  int     m_numWorkers;
+  Worker  m_workers[8];
   LISTDECLEX(WowConnection, netlink, m_connections);
-  SCritSect                          m_connectionsLock;
-  SSemaphore                         m_workerSem;
-  void(*m_threadinit)();
-  void *m_connectionsChangedEvent;
+  SCritSect  m_connectionsLock;
+  SSemaphore m_workerSem;
+  void (*m_threadinit)();
+  LPVOID m_connectionsChangedEvent;
 };
 
 #endif

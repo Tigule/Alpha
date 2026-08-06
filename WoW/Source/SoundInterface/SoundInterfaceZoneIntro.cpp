@@ -19,7 +19,7 @@ void SndInterfaceZoneIntroIdler() {
   }
 }
 
-static int CCommand_ZoneIntroReset(const char* command, const char* arguments) {
+static int CCommand_ZoneIntroReset(LPCSTR command, LPCSTR arguments) {
   s_lastPlayTime = -1;
   return 1;
 }
@@ -43,7 +43,7 @@ void SndInterfaceRegisterNewZoneIntro(int soundID, int priority) {
       if (s_lastPlayTime == -1 || s_lastPlayTime + 3600000 <= currentTime) {
         SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
         if (definition) {
-          const char *filename = definition->GetRandomFileName(-1);
+          LPCSTR filename = definition->GetRandomFileName(-1);
           if (filename && *filename) {
             s_sound = Sound::Play2D(SOUNDCATEGORY_NONE, filename, 6, true);
             if (s_sound) {

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *StringLookupsRec::GetFilename() {
+LPCSTR StringLookupsRec::GetFilename() {
   return "DBFilesClient\\StringLookups.dbc";
 }
 
@@ -19,9 +19,9 @@ StringLookupsRec::StringLookupsRec() {
 StringLookupsRec::~StringLookupsRec() {
 }
 
-bool StringLookupsRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempStringIndices[1];
+bool StringLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempStringIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempStringIndices[0], sizeof(tempStringIndices[0]), 0, 0, 0) && result;

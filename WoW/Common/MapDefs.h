@@ -28,7 +28,7 @@ struct SMOFog {
       end += (fog.end - end) * t;
       startScalar += (fog.startScalar - startScalar) * t;
 
-      unsigned int amount = NTempest::CMath::fuint_n(t * 255.0f);
+      UINT amount = NTempest::CMath::fuint_n(t * 255.0f);
       if (!amount) {
         return;
       }
@@ -40,9 +40,9 @@ struct SMOFog {
         return;
       }
 
-      color.r = static_cast<unsigned char>(color.r + ((amount * (fog.color.r - color.r)) >> 8));
-      color.g = static_cast<unsigned char>(color.g + ((amount * (fog.color.g - color.g)) >> 8));
-      color.b = static_cast<unsigned char>(color.b + ((amount * (fog.color.b - color.b)) >> 8));
+      color.r = static_cast<BYTE>(color.r + ((amount * (fog.color.r - color.r)) >> 8));
+      color.g = static_cast<BYTE>(color.g + ((amount * (fog.color.g - color.g)) >> 8));
+      color.b = static_cast<BYTE>(color.b + ((amount * (fog.color.b - color.b)) >> 8));
     }
 
     float               end;
@@ -53,16 +53,16 @@ struct SMOFog {
   class Fogs {
    public:
     void Blend(const Fogs &fogs, float t) {
-      for (unsigned int i = 0; i < 2; ++i) {
+      for (UINT i = 0; i < 2; ++i) {
         fog[i].Blend(fogs.fog[i], t);
       }
     }
 
-    Fog &operator[](unsigned int index) {
+    Fog &operator[](UINT index) {
       return fog[index];
     }
 
-    const Fog &operator[](unsigned int index) const {
+    const Fog &operator[](UINT index) const {
       return fog[index];
     }
 
@@ -70,7 +70,7 @@ struct SMOFog {
     Fog fog[2];
   };
 
-  unsigned int       flags;
+  UINT               flags;
   NTempest::C3Vector pos;
   float              start;
   float              end;
@@ -87,15 +87,15 @@ struct SMOPoly {
     F_COLLIDE_HIT = 128
   };
 
-  unsigned char flags;
-  unsigned char lightmapTex;
-  unsigned char mtlId;
-  unsigned char pad[1];
+  BYTE flags;
+  BYTE lightmapTex;
+  BYTE mtlId;
+  BYTE pad[1];
 };
 
 struct SMOLightmap {
-  unsigned char x;
-  unsigned char y;
-  char          width;
-  char          height;
+  BYTE x;
+  BYTE y;
+  char width;
+  char height;
 };

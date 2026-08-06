@@ -16,7 +16,7 @@ extern "C" BOOL WINAPI ImmAssociateContextEx(HWND, HIMC, DWORD);
 
 struct HIMC__;
 static HIMC__ *s_IMC;
-static int  s_IMEActive;
+static int     s_IMEActive;
 
 OS_IME_LANGUAGEMODE OsIMEGetLanguageMode() {
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
@@ -44,7 +44,7 @@ OS_IME_LANGUAGEMODE OsIMEGetLanguageMode() {
   return mode;
 }
 
-static int GetCompositionString(int which, char* string, int maxlen) {
+static int GetCompositionString(int which, char *string, int maxlen) {
   memset(string, 0, maxlen);
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
   HIMC context = ImmGetContext(wnd);
@@ -52,39 +52,39 @@ static int GetCompositionString(int which, char* string, int maxlen) {
     return 0;
   }
 
-  unsigned short wtemp[512];
+  WORD wtemp[512];
   ImmGetCompositionStringA(context, which, string, maxlen);
   MultiByteToWideChar(OsInputGetCodePage(), 0, string, -1, reinterpret_cast<wchar_t *>(wtemp), 512);
-  ConvertUTF16toUTF8(string, maxlen - 1, wtemp, 512, reinterpret_cast<unsigned int *>(&maxlen), 0);
+  ConvertUTF16toUTF8(string, maxlen - 1, wtemp, 512, reinterpret_cast<UINT *>(&maxlen), 0);
   string[maxlen] = 0;
   ImmReleaseContext(wnd, context);
   return 1;
 }
 
-int OsIMEGetCompositionString(char* string, unsigned int maxlen) {
+int OsIMEGetCompositionString(char *string, UINT maxlen) {
   return GetCompositionString(GCS_COMPSTR, string, maxlen);
 }
 
-int OsIMEGetCompositionResult(char* string, unsigned int maxlen) {
+int OsIMEGetCompositionResult(char *string, UINT maxlen) {
   return GetCompositionString(GCS_RESULTSTR, string, maxlen);
 }
 
-int OsIMEGetClauseInfo(unsigned int& clauseLeft, unsigned int& clauseRight, unsigned int& cursorPos) {
-  unsigned int codepage = OsInputGetCodePage();
+int OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
+  UINT codepage = OsInputGetCodePage();
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
   HIMC context = ImmGetContext(wnd);
   if (!context) {
     return 0;
   }
 
-  unsigned int cursor = static_cast<unsigned short>(ImmGetCompositionStringA(context, GCS_CURSORPOS, 0, 0));
-  unsigned int length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, 0, 0);
+  UINT cursor = static_cast<WORD>(ImmGetCompositionStringA(context, GCS_CURSORPOS, 0, 0));
+  UINT length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, 0, 0);
   if (!length) {
     ImmReleaseContext(wnd, context);
     return 0;
   }
 
-  unsigned int *clauses = static_cast<unsigned int *>(SMemAlloc(length, __FILE__, __LINE__, 0));
+  UINT *clauses = static_cast<UINT *>(SMemAlloc(length, __FILE__, __LINE__, 0));
   memset(clauses, 0, length);
   length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, clauses, length);
   if (length == IMM_ERROR_NODATA || length == IMM_ERROR_GENERAL) {
@@ -93,16 +93,16 @@ int OsIMEGetClauseInfo(unsigned int& clauseLeft, unsigned int& clauseRight, unsi
     return 0;
   }
 
-  length /= sizeof(unsigned int);
-  unsigned int currentClause = 0;
-  unsigned int i;
+  length /= sizeof(UINT);
+  UINT currentClause = 0;
+  UINT i;
   for (i = 0; i + 1 < length; ++i) {
     if (cursor >= clauses[i] && cursor < clauses[i + 1]) {
       currentClause = i;
     }
   }
 
-  unsigned char attrib[512];
+  BYTE attrib[512];
   ImmGetCompositionStringA(context, GCS_COMPATTR, attrib, sizeof(attrib));
   for (i = 0; i + 1 < length; ++i) {
     if (!attrib[clauses[i]]) {
@@ -114,12 +114,10 @@ int OsIMEGetClauseInfo(unsigned int& clauseLeft, unsigned int& clauseRight, unsi
   ImmGetCompositionStringA(context, GCS_COMPSTR, string, sizeof(string));
   ImmReleaseContext(wnd, context);
 
-  unsigned int cursorLen = MultiByteToWideChar(codepage, 0, string, cursor, 0, 0);
+  UINT cursorLen = MultiByteToWideChar(codepage, 0, string, cursor, 0, 0);
   length = MultiByteToWideChar(codepage, 0, string, clauses[currentClause], 0, 0);
-  currentClause = length + MultiByteToWideChar(
-      codepage, 0, string + clauses[currentClause],
-      clauses[currentClause + 1] - clauses[currentClause], 0, 0
-  );
+  currentClause =
+      length + MultiByteToWideChar(codepage, 0, string + clauses[currentClause], clauses[currentClause + 1] - clauses[currentClause], 0, 0);
   SMemFree(clauses, __FILE__, __LINE__, 0);
   clauseLeft = length;
   clauseRight = currentClause;
@@ -127,12 +125,7 @@ int OsIMEGetClauseInfo(unsigned int& clauseLeft, unsigned int& clauseRight, unsi
   return 1;
 }
 
-int OsIMEGetCandidates(
-    unsigned long which,
-    unsigned int &pagesize,
-    unsigned int &count,
-    unsigned int &selection,
-    TSGrowableArray<OsIMECandidate> &candidates) {
+int OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates) {
   candidates.Clear();
 
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
@@ -144,7 +137,7 @@ int OsIMEGetCandidates(
     return 0;
   }
 
-  unsigned long listIndex = static_cast<unsigned long>(-1);
+  DWORD listIndex = static_cast<DWORD>(-1);
   while (which & 1) {
     which >>= 1;
     ++listIndex;
@@ -198,20 +191,14 @@ int OsIMEGetCandidates(
   count = pcl->dwCount;
   selection = pcl->dwSelection;
 
-  for (unsigned int i = 0; i < pagesize; ++i) {
+  for (UINT i = 0; i < pagesize; ++i) {
     OsIMECandidate *candidate = candidates.New();
-    unsigned int written = 0;
+    UINT            written = 0;
 
     if (pcl->dwPageStart + i < pcl->dwCount) {
-      unsigned short wtemp[512];
-      const char *source = reinterpret_cast<const char *>(pcl) + pcl->dwOffset[pcl->dwPageStart + i];
-      MultiByteToWideChar(
-          OsInputGetCodePage(),
-          0,
-          source,
-          -1,
-          reinterpret_cast<wchar_t *>(wtemp),
-          512);
+      WORD   wtemp[512];
+      LPCSTR source = reinterpret_cast<LPCSTR>(pcl) + pcl->dwOffset[pcl->dwPageStart + i];
+      MultiByteToWideChar(OsInputGetCodePage(), 0, source, -1, reinterpret_cast<wchar_t *>(wtemp), 512);
       ConvertUTF16toUTF8(candidate->candidate, 1023, wtemp, 512, &written, 0);
     }
 

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *TabardEmblemTexturesRec::GetFilename() {
+LPCSTR TabardEmblemTexturesRec::GetFilename() {
   return "DBFilesClient\\TabardEmblemTextures.dbc";
 }
 
@@ -19,9 +19,9 @@ TabardEmblemTexturesRec::TabardEmblemTexturesRec() {
 TabardEmblemTexturesRec::~TabardEmblemTexturesRec() {
 }
 
-bool TabardEmblemTexturesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempTorsoTextureIndices[2];
+bool TabardEmblemTexturesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempTorsoTextureIndices[2];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempTorsoTextureIndices[0], sizeof(tempTorsoTextureIndices[0]), 0, 0, 0) && result;

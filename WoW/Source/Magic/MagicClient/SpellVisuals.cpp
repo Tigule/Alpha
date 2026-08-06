@@ -42,7 +42,7 @@ struct SPELLVISUALNODE : public TSHashObject<SPELLVISUALNODE, HASHKEY_NONE> {
   SPELLVISUALNODE();
   SPELLVISUALNODE(const SPELLVISUALNODE &);
 
-  unsigned int    m_effects[15];
+  UINT            m_effects[15];
   ANIMENUMERATION m_anims[2];
 };
 
@@ -56,7 +56,7 @@ NODEDECL(BlizzardObject) {
   NODEDECL(Shard) {
     NTempest::C3Vector pos;
     HMODEL             hModel;
-    unsigned long      startTime;
+    DWORD              startTime;
 
     void Init() {
       hModel = 0;
@@ -65,25 +65,25 @@ NODEDECL(BlizzardObject) {
 
   static LISTDECL(Shard, shardPool);
 
-  HMODEL                           shardModel;
-  unsigned long                    hWorldObject;
-  NTempest::C3Vector               groundPos;
-  float                            radius;
-  float                            numEmitted;
-  float                            emissionRate;
-  unsigned int                     dead;
-  NTempest::CAaSphere              boundSphere;
+  HMODEL              shardModel;
+  DWORD               hWorldObject;
+  NTempest::C3Vector  groundPos;
+  float               radius;
+  float               numEmitted;
+  float               emissionRate;
+  UINT                dead;
+  NTempest::CAaSphere boundSphere;
   LISTDECL(Shard, shards);
 
-  static int ShardSeqFinished(void *param);
-  static Shard          *AllocShard();
-  static void            FreeShard(Shard *&shard);
-  void                   UpdateBounds();
-  static void WorldObjectRender(void *param, const NTempest::C44Matrix &mtx);
-  void                   Init(const NTempest::C3Vector &pos, const char *modelName, float pRadius, float pEmissionRate);
-  void                   Destroy();
-  void                   Update();
-  void                   Render(const NTempest::C44Matrix &mtx);
+  static int    ShardSeqFinished(LPVOID param);
+  static Shard *AllocShard();
+  static void   FreeShard(Shard * &shard);
+  void          UpdateBounds();
+  static void   WorldObjectRender(LPVOID param, const NTempest::C44Matrix &mtx);
+  void          Init(const NTempest::C3Vector &pos, LPCSTR modelName, float pRadius, float pEmissionRate);
+  void          Destroy();
+  void          Update();
+  void          Render(const NTempest::C44Matrix &mtx);
 };
 
 NODEDECL(LightningObject) {
@@ -93,30 +93,30 @@ NODEDECL(LightningObject) {
       NULL_SUB = 0xFFFF
     };
 
-    unsigned short srcGuidSub;
-    unsigned short dstGuidSub;
-    unsigned int   birthTime;
-    unsigned int   deathTime;
-    BoltID         boltID;
+    WORD   srcGuidSub;
+    WORD   dstGuidSub;
+    UINT   birthTime;
+    UINT   deathTime;
+    BoltID boltID;
   };
 
   LightningObject();
   ~LightningObject();
-  void         AddRef();
-  void         DelRef();
-  bool Tick(unsigned int currentTime);
+  void AddRef();
+  void DelRef();
+  bool Tick(UINT currentTime);
 
-  TSGrowableArray<unsigned __int64> guids;
-  TSGrowableArray<Bolt>             bolts;
-  unsigned int                      deathTime;
-  float                             avgSegLen;
-  float                             width;
-  float                             noiseScale;
-  float                             texCoordScale;
-  float                             duration;
-  HTEXTURE                          texture;
-  int                               spellID;
-  unsigned char                     forever;
+  TSGrowableArray<DWORDLONG> guids;
+  TSGrowableArray<Bolt>      bolts;
+  UINT                       deathTime;
+  float                      avgSegLen;
+  float                      width;
+  float                      noiseScale;
+  float                      texCoordScale;
+  float                      duration;
+  HTEXTURE                   texture;
+  int                        spellID;
+  BYTE                       forever;
 
  private:
   int refCount;
@@ -124,17 +124,17 @@ NODEDECL(LightningObject) {
 
 struct EclipseObject {
   NTempest::CImVector color;
-  unsigned int        startTime;
-  unsigned int        fadeInTime;
-  unsigned int        fadeOutTime;
-  unsigned int        endTime;
+  UINT                startTime;
+  UINT                fadeInTime;
+  UINT                fadeOutTime;
+  UINT                endTime;
 
-  void Update(unsigned int currentTime);
+  void Update(UINT currentTime);
 };
 
 NODEDECL(FishingLineObject) {
-  unsigned __int64    object;
-  unsigned __int64    caster;
+  DWORDLONG           object;
+  DWORDLONG           caster;
   NTempest::CImVector color;
   bool                visible;
 
@@ -142,25 +142,25 @@ NODEDECL(FishingLineObject) {
   void RenderLine(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, const NTempest::CImVector &color);
 };
 
-static void ShardEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
-static void FreeBlizzard(BlizzardObject *bliz);
-static void                    RenderFishingLines();
-static bool GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos);
-SPELL_VISUAL_ATTACHMENT GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID);
-void GetMissileTargetPosition(CGObject_C *target, SPELL_VISUAL_ATTACHMENT hitLocation, NTempest::C3Vector &position);
-int Spell_C_GetCastTime(int id, int isPet);
+static void             ShardEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param);
+static void             FreeBlizzard(BlizzardObject *bliz);
+static void             RenderFishingLines();
+static bool             GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos);
+SPELL_VISUAL_ATTACHMENT GetMissileTargetLocation(DWORDLONG caster, UINT spellID);
+void                    GetMissileTargetPosition(CGObject_C *target, SPELL_VISUAL_ATTACHMENT hitLocation, NTempest::C3Vector &position);
+int                     Spell_C_GetCastTime(int id, int isPet);
 
 LISTDECL(BlizzardObject::Shard, BlizzardObject::shardPool);
 
 static LISTDECL(FishingLineObject, s_fishingLineObjects);
-static TInstanceAllocator<FishingLineObject>                    s_freeFishingObjects(20);
-static TSCArray<unsigned short, 201>                            s_fishingLineIndices;
-static TSCArray<float, 201>                                     s_segmentPoints;
+static TInstanceAllocator<FishingLineObject> s_freeFishingObjects(20);
+static TSCArray<WORD, 201>                   s_fishingLineIndices;
+static TSCArray<float, 201>                  s_segmentPoints;
 
 LightningObject::LightningObject() : refCount(1) {
 }
 
-int BlizzardObject::ShardSeqFinished(void *param) {
+int BlizzardObject::ShardSeqFinished(LPVOID param) {
   return 0;
 }
 
@@ -180,11 +180,11 @@ void BlizzardObject::FreeShard(Shard *&shard) {
   shard = 0;
 }
 
-void BlizzardObject::WorldObjectRender(void *param, const NTempest::C44Matrix &mtx) {
+void BlizzardObject::WorldObjectRender(LPVOID param, const NTempest::C44Matrix &mtx) {
   static_cast<BlizzardObject *>(param)->Render(mtx);
 }
 
-void BlizzardObject::Init(const NTempest::C3Vector &pos, const char *modelName, float pRadius, float pEmissionRate) {
+void BlizzardObject::Init(const NTempest::C3Vector &pos, LPCSTR modelName, float pRadius, float pEmissionRate) {
   NTempest::C44Matrix mtx;
   NTempest::CAaBox    aaBox;
   NTempest::CAaSphere sphere;
@@ -218,11 +218,11 @@ void BlizzardObject::Destroy() {
   shardModel = 0;
 }
 
-static void ShardEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
-  static unsigned int counter;
+static void ShardEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
+  static UINT counter;
 
   ++counter;
-  if ((counter & 1) && *reinterpret_cast<const unsigned int *>(eventName) == 0x444E5324) {
+  if ((counter & 1) && *reinterpret_cast<const UINT *>(eventName) == 0x444E5324) {
     SndInterfacePlayInterfaceSound(eventName + 4);
   }
 }
@@ -300,8 +300,8 @@ void BlizzardObject::Render(const NTempest::C44Matrix &mtx) {
 static bool GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos) {
   FATALASSERT(model);
 
-  HMODEL       attached = 0;
-  unsigned int size = 1;
+  HMODEL attached = 0;
+  UINT   size = 1;
   if (!ModelGetLinkPoint(model, 1, &attached, &size) || !attached) {
     return false;
   }
@@ -358,7 +358,7 @@ void FishingLineObject::RenderLine(const NTempest::C3Vector &p0, const NTempest:
   NTempest::C3Vector xyIncr = (point1 - point0) * 0.005f;
   float              maxDip = (point0 - point1).Mag() * 0.05f;
 
-  for (unsigned int i = 0; i < 201; ++i) {
+  for (UINT i = 0; i < 201; ++i) {
     points[i].x = xy.x;
     points[i].y = xy.y;
     points[i].z = xy.z + maxDip * s_segmentPoints[i];
@@ -375,48 +375,48 @@ void FishingLineObject::RenderLine(const NTempest::C3Vector &p0, const NTempest:
   GxRsPop();
 }
 
-static const char *modelNames[4] = {
+static LPCSTR modelNames[4] = {
     "Spells\\Blizzard_Impact_Base.mdx", "Spells\\RainOfFire_Impact_Base.mdx", "Spells\\CallLightning_Impact.mdx",
     "Spells\\FlamestrikeSmall_Impact_Base.mdx"
 };
 static LISTDECL(BlizzardObject, s_blizzardPool);
 static LISTDECL(BlizzardObject, s_blizzard);
-static TSGrowableArray<const SpellAuraNamesRec *>           s_auraNames;
-static TSFixedArray<ANIMENUMERATION>                        s_precastAnimTransitions;
+static TSGrowableArray<const SpellAuraNamesRec *> s_auraNames;
+static TSFixedArray<ANIMENUMERATION>              s_precastAnimTransitions;
 static LISTDECL(LightningObject, s_lightning);
-static CLightningManager                                   *s_lightningManager;
-static EclipseObject                                        s_eclipseObject;
+static CLightningManager *s_lightningManager;
+static EclipseObject      s_eclipseObject;
 
 class SpellCast {
  public:
   void BuildFullZoneUpdate(CDataStore *msg);
   void UnpackFullZoneUpdate(CDataStore *msg);
 
-  unsigned __int64   caster;
-  unsigned __int64   casterUnit;
+  DWORDLONG          caster;
+  DWORDLONG          casterUnit;
   int                spellID;
-  unsigned short     targets;
-  unsigned __int64   unitTarget;
-  unsigned __int64   itemTarget;
-  unsigned __int64   selectedTarget;
+  WORD               targets;
+  DWORDLONG          unitTarget;
+  DWORDLONG          itemTarget;
+  DWORDLONG          selectedTarget;
   NTempest::C3Vector sourceLocation;
   NTempest::C3Vector destLocation;
   float              destFacing;
-  unsigned int       destZoneID;
-  unsigned int       castTime;
-  unsigned int       castEndTime;
+  UINT               destZoneID;
+  UINT               castTime;
+  UINT               castEndTime;
   int                spellIndex;
-  unsigned int       spellLevel;
-  unsigned __int64   ammoItem;
-  unsigned __int64   reflector;
+  UINT               spellLevel;
+  DWORDLONG          ammoItem;
+  DWORDLONG          reflector;
   char               targetString[128];
   int                overrideRank;
-  unsigned short     flags;
+  WORD               flags;
 };
 
 static void CreateLightningObj(
     const CGUnit_C          *unitPtr,
-    const unsigned __int64  *guids,
+    const DWORDLONG         *guids,
     int                      numGuids,
     int                      spellID,
     const SpellVisualKitRec *kitRec,
@@ -434,27 +434,25 @@ void UnitEffectOneShot(
 );
 void UnitEffectOneShot(
     const SpellVisualEffectNameRec *effect,
-    const NTempest::C3Vector &location,
-    const TSStackArray<unsigned __int64> *objects,
-    float facing,
-    float scale
+    const NTempest::C3Vector       &location,
+    const TSStackArray<DWORDLONG>  *objects,
+    float                           facing,
+    float                           scale
 );
 void SpellVisualsProcedure(
-    CGUnit_C                             *caster,
-    const SpellVisualKitRec              *kitRec,
-    unsigned int                          spellID,
-    const TSStackArray<unsigned __int64> *targets,
-    const TSStackArray<MISS_REASON>      *missReasons
+    CGUnit_C                        *caster,
+    const SpellVisualKitRec         *kitRec,
+    UINT                             spellID,
+    const TSStackArray<DWORDLONG>   *targets,
+    const TSStackArray<MISS_REASON> *missReasons
 );
 bool IsSpellAura(const SpellRec *rec);
 bool Object_C_AnimHasHitEvent(int anim);
-void UnitCombatLogSpellMissed(
-    unsigned int reason, unsigned int spellID,
-    unsigned __int64 caster, unsigned __int64 target);
-void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
-void UnitCombatLogCastStart(unsigned int spellID, unsigned __int64 caster);
+void UnitCombatLogSpellMissed(UINT reason, UINT spellID, DWORDLONG caster, DWORDLONG target);
+void SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position);
+void UnitCombatLogCastStart(UINT spellID, DWORDLONG caster);
 
-void EclipseObject::Update(unsigned int currentTime) {
+void EclipseObject::Update(UINT currentTime) {
   if (startTime == endTime) {
     return;
   }
@@ -495,7 +493,7 @@ static void InitializeAuraNames() {
 
   for (index = g_spellAuraNamesDB.GetNumRecords() - 1; index >= 0; --index) {
     const SpellAuraNamesRec *auraName = g_spellAuraNamesDB.GetRecordByIndex(index);
-    unsigned int             enumID = auraName->m_EnumID;
+    UINT                     enumID = auraName->m_EnumID;
 
     if (enumID < s_auraNames.Count()) {
       ASSERT(!s_auraNames[enumID]);
@@ -518,8 +516,8 @@ void PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT 
 }
 
 static void InitializeFishingLineIntervals() {
-  float        current = 0.0f;
-  unsigned int index;
+  float current = 0.0f;
+  UINT  index;
 
   for (index = 0; index < s_segmentPoints.MaxCount(); ++index) {
     s_segmentPoints[index] = -NTempest::CMath::sin_(3.1415927f * (current < 0.0f ? 0.0f : (current > 1.0f ? 1.0f : current)));
@@ -528,19 +526,19 @@ static void InitializeFishingLineIntervals() {
 }
 
 static void InitializeFishingLineIndices() {
-  unsigned int index;
+  UINT index;
 
   for (index = 0; index < s_fishingLineIndices.MaxCount(); ++index) {
-    s_fishingLineIndices[index] = static_cast<unsigned short>(index);
+    s_fishingLineIndices[index] = static_cast<WORD>(index);
   }
 }
 
 void SpellVisualsInitialize() {
   TSGrowableArray<int> animCheck;
   int                  i;
-  unsigned int         map;
+  UINT                 map;
   SpellVisualKitRec   *constKit;
-  unsigned int         found;
+  UINT                 found;
 
   InitializeAuraNames();
   InitializeFishingLineIntervals();
@@ -650,8 +648,7 @@ void SpellVisualsPlayCastKit(CGUnit_C *caster, const SpellVisualKitRec *kitRec, 
   SpellVisualsProcedure(caster, kitRec, spellID, 0, 0);
 }
 
-void
-SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, unsigned int duration, unsigned int animDuration, bool wasProc) {
+void SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, UINT duration, UINT animDuration, bool wasProc) {
   FATALASSERT(caster);
 
   UnitCombatLogCastStart(id, caster->GetGUID());
@@ -662,7 +659,7 @@ SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, uns
     return;
   }
 
-  unsigned int   instant = caster->GetSpellRank(id) > 0 || (spellRec->m_attributes & 2);
+  UINT           instant = caster->GetSpellRank(id) > 0 || (spellRec->m_attributes & 2);
   SpellVisualRec visRecData;
   if (!caster->GetAppropriateSpellVisual(spellRec, visRecData)) {
     SysMsgPrintf(SYSMSG_ERROR, 2, "SPELLVISUALIDNOTFOUND|%d", id);
@@ -690,7 +687,7 @@ SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, uns
 
   int animSet = 0;
   if (!instant && caster->SetSpellPreCastingAnimation(static_cast<ANIMENUMERATION>(visualRec->m_anim))) {
-    unsigned int specialAnim = visualRec->m_anim == 105 || visualRec->m_anim == 106;
+    UINT specialAnim = visualRec->m_anim == 105 || visualRec->m_anim == 106;
     animSet = caster->SetTorsoAnimation(37, specialAnim ? animDuration : 0, specialAnim ? 0x20 : 0);
   }
 
@@ -700,7 +697,7 @@ SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, uns
   }
 }
 
-void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, unsigned char status, unsigned char reason) {
+void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, BYTE status, BYTE reason) {
   FATALASSERT(caster);
 
   if (status == 2 && reason == 18) {
@@ -732,7 +729,7 @@ NTempest::C3Vector GetSpellChainEffectSource(const CGUnit_C &unit) {
 }
 
 LightningObject::~LightningObject() {
-  unsigned int index;
+  UINT index;
 
   ASSERT(s_lightningManager);
   for (index = 0; index < bolts.Count(); ++index) {
@@ -749,8 +746,8 @@ LightningObject::~LightningObject() {
   }
 }
 
-bool LightningObject::Tick(unsigned int currentTime) {
-  for (unsigned int i = 0; i < bolts.Count(); ++i) {
+bool LightningObject::Tick(UINT currentTime) {
+  for (UINT i = 0; i < bolts.Count(); ++i) {
     Bolt &bolt = bolts[i];
     if (bolt.srcGuidSub == Bolt::NULL_SUB || bolt.dstGuidSub == Bolt::NULL_SUB) {
       continue;
@@ -758,12 +755,10 @@ bool LightningObject::Tick(unsigned int currentTime) {
 
     CGObject_C *srcObj = ClntObjMgrObjectPtr(guids[bolt.srcGuidSub], __FILE__, __LINE__);
     CGObject_C *dstObj = ClntObjMgrObjectPtr(guids[bolt.dstGuidSub], __FILE__, __LINE__);
-    CGUnit_C   *srcUnit = srcObj && (srcObj->GetType() & TYPE_UNIT)
-        ? static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guids[bolt.srcGuidSub], __FILE__, __LINE__))
-        : 0;
-    CGUnit_C   *dstUnit = dstObj && (dstObj->GetType() & TYPE_UNIT)
-        ? static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guids[bolt.dstGuidSub], __FILE__, __LINE__))
-        : 0;
+    CGUnit_C   *srcUnit =
+        srcObj && (srcObj->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guids[bolt.srcGuidSub], __FILE__, __LINE__)) : 0;
+    CGUnit_C *dstUnit =
+        dstObj && (dstObj->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guids[bolt.dstGuidSub], __FILE__, __LINE__)) : 0;
 
     if (forever || (currentTime >= bolt.birthTime && currentTime < bolt.deathTime)) {
       if (srcObj && dstObj) {
@@ -788,8 +783,8 @@ bool LightningObject::Tick(unsigned int currentTime) {
 
         if (bolt.boltID == BADBOLT) {
           bolt.boltID = s_lightningManager->Add(
-              sourcePosition, destPosition, avgSegLen, width, NTempest::CImVector(static_cast<unsigned long>(-1)), noiseScale, texCoordScale,
-              duration, texture, 0, 0
+              sourcePosition, destPosition, avgSegLen, width, NTempest::CImVector(static_cast<DWORD>(-1)), noiseScale, texCoordScale, duration,
+              texture, 0, 0
           );
         } else {
           s_lightningManager->Move(bolt.boltID, &sourcePosition, &destPosition);
@@ -815,12 +810,12 @@ bool LightningObject::Tick(unsigned int currentTime) {
   return forever || currentTime < deathTime;
 }
 
-void SpellVisualsProc_Eclipse(CGUnit_C *caster, const SpellVisualKitRec *kitRec, unsigned int spellID) {
+void SpellVisualsProc_Eclipse(CGUnit_C *caster, const SpellVisualKitRec *kitRec, UINT spellID) {
   FATALASSERT(kitRec->m_characterParam[1] >= 0.0f && kitRec->m_characterParam[1] <= 1.0f);
 
-  unsigned int duration = Spell_C_GetCastTime(spellID, 0);
-  s_eclipseObject.color = NTempest::CImVector(static_cast<unsigned long>(kitRec->m_characterParam[0]) | 0xFF000000ul);
-  unsigned int fadeDuration = static_cast<unsigned int>(duration * kitRec->m_characterParam[1]);
+  UINT duration = Spell_C_GetCastTime(spellID, 0);
+  s_eclipseObject.color = NTempest::CImVector(static_cast<DWORD>(kitRec->m_characterParam[0]) | 0xFF000000ul);
+  UINT fadeDuration = static_cast<UINT>(duration * kitRec->m_characterParam[1]);
   s_eclipseObject.startTime = OsGetAsyncTimeMs();
   s_eclipseObject.fadeInTime = s_eclipseObject.startTime + fadeDuration;
   s_eclipseObject.fadeOutTime = s_eclipseObject.startTime + duration;
@@ -829,7 +824,7 @@ void SpellVisualsProc_Eclipse(CGUnit_C *caster, const SpellVisualKitRec *kitRec,
 
 static void CreateLightningObj(
     const CGUnit_C          *unitPtr,
-    const unsigned __int64  *guids,
+    const DWORDLONG         *guids,
     int                      numGuids,
     int                      spellID,
     const SpellVisualKitRec *kitRec,
@@ -845,16 +840,16 @@ static void CreateLightningObj(
     return;
   }
 
-  CStatus      status;
-  unsigned int currentTime = OsGetAsyncTimeMs();
-  unsigned int boltCount = NTempest::CMath::ftol_0_256_(kitRec->m_characterParam[1]);
+  CStatus status;
+  UINT    currentTime = OsGetAsyncTimeMs();
+  UINT    boltCount = NTempest::CMath::ftol_0_256_(kitRec->m_characterParam[1]);
   if (!boltCount) {
     return;
   }
   FATALASSERT(boltCount <= 3);
 
   int added = 0;
-  for (unsigned int boltIndex = 0; boltIndex < boltCount; ++boltIndex) {
+  for (UINT boltIndex = 0; boltIndex < boltCount; ++boltIndex) {
     LightningObject *lightning = s_lightning.NewNode(LIST_TAIL, 0, 0);
     if (added < maxObjects) {
       objects[added++] = lightning;
@@ -875,7 +870,7 @@ static void CreateLightningObj(
     lightning->texture = texture;
     lightning->AddRef();
 
-    unsigned int srcGuidSub = 0;
+    UINT srcGuidSub = 0;
     for (int i = 0; i < numGuids; ++i) {
       LightningObject::Bolt &bolt = lightning->bolts[i];
       bolt.srcGuidSub = LightningObject::Bolt::NULL_SUB;
@@ -887,8 +882,8 @@ static void CreateLightningObj(
         lightning->guids[i + 1] = guids[i];
         bolt.birthTime = currentTime + i * rec->m_SegDelay;
         bolt.deathTime = bolt.birthTime + rec->m_SegDuration;
-        bolt.srcGuidSub = static_cast<unsigned short>(srcGuidSub);
-        bolt.dstGuidSub = static_cast<unsigned short>(i + 1);
+        bolt.srcGuidSub = static_cast<WORD>(srcGuidSub);
+        bolt.dstGuidSub = static_cast<WORD>(i + 1);
 
         if (!lightning->forever && !(target->GetType() & TYPE_GAMEOBJECT)) {
           CGUnit_C *targetUnit = static_cast<CGUnit_C *>(target);
@@ -908,12 +903,12 @@ static void CreateLightningObj(
 }
 
 void SpellVisualsProcedureDispatch(
-    int                                   proc,
-    CGUnit_C                             *caster,
-    const SpellVisualKitRec              *kitRec,
-    unsigned int                          spellID,
-    const TSStackArray<unsigned __int64> *targets,
-    const TSStackArray<MISS_REASON>      *missReasons
+    int                              proc,
+    CGUnit_C                        *caster,
+    const SpellVisualKitRec         *kitRec,
+    UINT                             spellID,
+    const TSStackArray<DWORDLONG>   *targets,
+    const TSStackArray<MISS_REASON> *missReasons
 ) {
   if (proc == 0) {
     if (targets) {
@@ -925,39 +920,21 @@ void SpellVisualsProcedureDispatch(
 }
 
 void SpellVisualsProcedure(
-    CGUnit_C                             *caster,
-    const SpellVisualKitRec              *kitRec,
-    unsigned int                          spellID,
-    const TSStackArray<unsigned __int64> *targets,
-    const TSStackArray<MISS_REASON>      *missReasons
+    CGUnit_C                        *caster,
+    const SpellVisualKitRec         *kitRec,
+    UINT                             spellID,
+    const TSStackArray<DWORDLONG>   *targets,
+    const TSStackArray<MISS_REASON> *missReasons
 ) {
   if (caster && kitRec) {
     SpellVisualsProcedureDispatch(kitRec->m_characterProcedure, caster, kitRec, spellID, targets, missReasons);
   }
 }
 
-static void PlayImpactKit(CGUnit_C* target, const SpellVisualKitRec* impactKit) {
-  UnitEffectOneShot(
-      g_spellVisualEffectNameDB.GetRecord(impactKit->m_headEffect),
-      target,
-      UNITEFFECT_ATTACHHEAD,
-      0,
-      true,
-      false);
-  UnitEffectOneShot(
-      g_spellVisualEffectNameDB.GetRecord(impactKit->m_chestEffect),
-      target,
-      UNITEFFECT_ATTACHCHEST,
-      0,
-      true,
-      false);
-  UnitEffectOneShot(
-      g_spellVisualEffectNameDB.GetRecord(impactKit->m_baseEffect),
-      target,
-      UNITEFFECT_ATTACHBASE,
-      0,
-      true,
-      false);
+static void PlayImpactKit(CGUnit_C *target, const SpellVisualKitRec *impactKit) {
+  UnitEffectOneShot(g_spellVisualEffectNameDB.GetRecord(impactKit->m_headEffect), target, UNITEFFECT_ATTACHHEAD, 0, true, false);
+  UnitEffectOneShot(g_spellVisualEffectNameDB.GetRecord(impactKit->m_chestEffect), target, UNITEFFECT_ATTACHCHEST, 0, true, false);
+  UnitEffectOneShot(g_spellVisualEffectNameDB.GetRecord(impactKit->m_baseEffect), target, UNITEFFECT_ATTACHBASE, 0, true, false);
 
   SpellVisualsPlayCameraShakeID(impactKit->m_shakeID, target->GetPosition());
   target->SetSpellImpactKit(impactKit);
@@ -966,14 +943,12 @@ static void PlayImpactKit(CGUnit_C* target, const SpellVisualKitRec* impactKit) 
   }
 }
 
-unsigned int SpellGetRangedPrecastHoldAnim(unsigned int loadAnim) {
-  return loadAnim < s_precastAnimTransitions.Count()
-      ? s_precastAnimTransitions.Ptr()[loadAnim]
-      : INVALID_ANIMATION;
+UINT SpellGetRangedPrecastHoldAnim(UINT loadAnim) {
+  return loadAnim < s_precastAnimTransitions.Count() ? s_precastAnimTransitions.Ptr()[loadAnim] : INVALID_ANIMATION;
 }
 
 void SpellVisualsTick(float elapsed) {
-  unsigned long currentTime = OsGetAsyncTimeMs();
+  DWORD currentTime = OsGetAsyncTimeMs();
 
   LightningObject *lightning = s_lightning.Head();
   while (lightning) {
@@ -1001,24 +976,22 @@ void SpellVisualsRender() {
   RenderFishingLines();
 }
 
-void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position) {
+void SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position) {
   const SpellEffectCameraShakesRec *rec = g_spellEffectCameraShakesDB.GetRecord(shakeID);
   if (!rec) {
     return;
   }
 
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     if (rec->m_CameraShake[i]) {
       CGWorldFrame::GetActiveCamera()->AddShake(rec->m_CameraShake[i], position);
     }
   }
 }
 
-void SpellVisualGetLightning(
-    const CGUnit_C *unitPtr, const SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects
-) {
+void SpellVisualGetLightning(const CGUnit_C *unitPtr, const SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects) {
   if (unitPtr) {
-    const TSGrowableArray<unsigned __int64> &targets = unitPtr->GetSavedChannelSpellTargets();
+    const TSGrowableArray<DWORDLONG> &targets = unitPtr->GetSavedChannelSpellTargets();
     CreateLightningObj(unitPtr, targets.Ptr(), targets.Count(), spellID, kitRec, objects, numObjects);
   }
 }
@@ -1030,7 +1003,7 @@ void SpellVisualClearLightning(LightningObject *lightning) {
 }
 
 BlizzardObject *SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec) {
-  unsigned int nameSub;
+  UINT nameSub;
 
   BlizzardObject *blizzard = AllocBlizzard();
 
@@ -1045,7 +1018,7 @@ void SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard) {
   blizzard = 0;
 }
 
-FishingLineObject* SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec, const unsigned __int64& gameObj, const unsigned __int64& caster) {
+FishingLineObject *SpellVisualsFishingLineCreate(const SpellVisualKitRec *kitRec, const DWORDLONG &gameObj, const DWORDLONG &caster) {
   if (!kitRec) {
     return 0;
   }
@@ -1055,22 +1028,20 @@ FishingLineObject* SpellVisualsFishingLineCreate(const SpellVisualKitRec* kitRec
   }
   object->object = gameObj;
   object->caster = caster;
-  object->color.Set(
-      static_cast<unsigned int>(kitRec->m_characterParam[3]) |
-      0xFF000000);
+  object->color.Set(static_cast<UINT>(kitRec->m_characterParam[3]) | 0xFF000000);
   object->visible = 0;
   s_fishingLineObjects.LinkNode(object, LIST_TAIL, 0);
   return object;
 }
 
-void SpellVisualsFishingLineDestroy(FishingLineObject* object) {
+void SpellVisualsFishingLineDestroy(FishingLineObject *object) {
   if (object) {
     s_fishingLineObjects.UnlinkNode(object);
     s_freeFishingObjects.Put(object);
   }
 }
 
-void SpellVisualFishingLineSetVisible(FishingLineObject* obj) {
+void SpellVisualFishingLineSetVisible(FishingLineObject *obj) {
   if (obj) {
     obj->visible = 1;
   }
@@ -1088,71 +1059,60 @@ void LightningObject::DelRef() {
 }
 
 bool IsShapeshiftSpell(const SpellRec *rec) {
-  for (unsigned int effect = 0; effect < 3; ++effect) {
+  for (UINT effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 6 && (rec->m_effectAura[effect] == 36 || rec->m_effectAura[effect] == 56)) {
       return true;
     }
   }
   return false;
 }
-void SpellVisualsPlayKit(CGUnit_C* target, unsigned int id) {
+void SpellVisualsPlayKit(CGUnit_C *target, UINT id) {
   const SpellVisualKitRec *kitRec = g_spellVisualKitDB.GetRecord(id);
   if (kitRec) {
     PlayImpactKit(target, kitRec);
   }
 }
 
-static bool GetSpellRecords(CGUnit_C* caster, int spellID, const SpellRec*& srec, SpellVisualRec& visRecData, const SpellVisualRec*& visRec, const SpellVisualKitRec*& kitRec) {
+static bool GetSpellRecords(
+    CGUnit_C                 *caster,
+    int                       spellID,
+    const SpellRec          *&srec,
+    SpellVisualRec           &visRecData,
+    const SpellVisualRec    *&visRec,
+    const SpellVisualKitRec *&kitRec
+) {
   srec = g_spellDB.GetRecord(spellID);
   if (!srec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", spellID);
     return 0;
   }
-  visRec = caster->GetAppropriateSpellVisual(
-      const_cast<SpellRec *>(srec),
-      visRecData);
+  visRec = caster->GetAppropriateSpellVisual(const_cast<SpellRec *>(srec), visRecData);
   if (!visRec) {
-    SysMsgPrintf(
-        SYSMSG_WARNING,
-        2,
-        "SPELLVISUALIDNOTFOUND|%d",
-        spellID);
+    SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d", spellID);
     return 0;
   }
   kitRec = caster->GetRangedSpellAnim(spellID, 1);
   return 1;
 }
 
-static void PlayOneShotEffect(
-    const NTempest::C3Vector &pos,
-    int effectID,
-    const TSStackArray<unsigned __int64> &objects
-) {
-  UnitEffectOneShot(
-      g_spellVisualEffectNameDB.GetRecord(effectID),
-      pos,
-      &objects,
-      0.0f,
-      1.0f);
+static void PlayOneShotEffect(const NTempest::C3Vector &pos, int effectID, const TSStackArray<DWORDLONG> &objects) {
+  UnitEffectOneShot(g_spellVisualEffectNameDB.GetRecord(effectID), pos, &objects, 0.0f, 1.0f);
 }
 
 static void PlayCastAnim(
-    CGUnit_C *caster,
-    const SpellRec *srec,
-    const SpellVisualRec *visRec,
-    const SpellVisualKitRec *kitRec,
-    const TSStackArray<unsigned __int64> &targets,
-    int &torsoAnimSet
+    CGUnit_C                      *caster,
+    const SpellRec                *srec,
+    const SpellVisualRec          *visRec,
+    const SpellVisualKitRec       *kitRec,
+    const TSStackArray<DWORDLONG> &targets,
+    int                           &torsoAnimSet
 ) {
   FATALASSERT(caster->GetType() & TYPE_UNIT);
   if (kitRec->m_anim) {
     ANIMENUMERATION finalAnim;
-    bool animSuccessful = caster->SetSpellCastingAnimation(
-        static_cast<ANIMENUMERATION>(kitRec->m_anim),
-        visRec->m_castKit,
-        kitRec->m_soundID,
-        kitRec->m_shakeID,
-        finalAnim);
+    bool            animSuccessful = caster->SetSpellCastingAnimation(
+        static_cast<ANIMENUMERATION>(kitRec->m_anim), visRec->m_castKit, kitRec->m_soundID, kitRec->m_shakeID, finalAnim
+    );
     caster->AddSpellProcOneShotEffect(srec->m_ID, kitRec);
     SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, caster->GetPosition());
     int oldCastingSpell = caster->SetCastingSpell(srec->m_ID, 0, 0);
@@ -1161,18 +1121,14 @@ static void PlayCastAnim(
     }
     if (torsoAnimSet) {
       caster->HandlePrecastStop(srec->m_ID, true);
-      caster->SetSheatheReason(
-          SHEATHE_SPELLS,
-          (srec->m_attributes & 0x40000) == 0,
-          false);
+      caster->SetSheatheReason(SHEATHE_SPELLS, (srec->m_attributes & 0x40000) == 0, false);
     } else {
       caster->ClearSpellCastAnimInfo();
     }
     if (!oldCastingSpell) {
       caster->SetCastingSpell(0, 1, 0);
     }
-    if (torsoAnimSet &&
-        Object_C_AnimHasHitEvent(torsoAnimSet)) {
+    if (torsoAnimSet && Object_C_AnimHasHitEvent(torsoAnimSet)) {
       caster->AddHitAnimHolds(srec->m_ID, targets);
     }
     caster->SetCastingSpell(0, 0, 0);
@@ -1180,60 +1136,53 @@ static void PlayCastAnim(
     SndInterfacePlaySpellSound(kitRec->m_soundID, caster);
     SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, caster->GetPosition());
   }
-  if (!torsoAnimSet &&
-      caster->GetCurrentTorsoAnim() == 37) {
+  if (!torsoAnimSet && caster->GetCurrentTorsoAnim() == 37) {
     caster->ClearTorsoAnimation(0);
   }
 }
 
 void HandleMissileEffects(
-    CGUnit_C *caster,
-    const SpellRec *srec,
-    const SpellVisualRec *visRec,
-    int ammoDisplayID,
-    int ammoInventoryType,
-    const SpellCast &cast,
-    const TSStackArray<unsigned __int64> &targets,
+    CGUnit_C                        *caster,
+    const SpellRec                  *srec,
+    const SpellVisualRec            *visRec,
+    int                              ammoDisplayID,
+    int                              ammoInventoryType,
+    const SpellCast                 &cast,
+    const TSStackArray<DWORDLONG>   &targets,
     const TSStackArray<MISS_REASON> *missReasons,
-    bool wasProc
+    bool                             wasProc
 ) {
-  if (!caster || !targets.Count() ||
-      (!visRec->m_hasMissile && !ammoDisplayID)) {
+  if (!caster || !targets.Count() || (!visRec->m_hasMissile && !ammoDisplayID)) {
     return;
   }
 
   if (cast.targets & 0x802) {
-    unsigned int i;
+    UINT i;
     for (i = 0; i < targets.Count(); ++i) {
-      CGObject_C *target =
-          ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+      CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
       if (target) {
-        MISS_REASON reason = missReasons
-                                 ? (*missReasons)[i]
-                                 : MISS_PHYSICAL;
+        MISS_REASON        reason = missReasons ? (*missReasons)[i] : MISS_PHYSICAL;
         NTempest::C3Vector destination;
         target->GetPosition(destination);
         caster->StoreSpellMissileEffect(
-            targets[i], destination, srec->m_speed,
-            ammoDisplayID, ammoInventoryType, visRec,
-            missReasons == 0, reason, srec->m_ID, wasProc);
+            targets[i], destination, srec->m_speed, ammoDisplayID, ammoInventoryType, visRec, missReasons == 0, reason, srec->m_ID, wasProc
+        );
       }
     }
   } else if (cast.targets & 0x40) {
     caster->StoreSpellMissileEffect(
-        0, cast.destLocation, srec->m_speed,
-        ammoDisplayID, ammoInventoryType, visRec,
-        missReasons == 0, MISS_PHYSICAL, srec->m_ID, wasProc);
+        0, cast.destLocation, srec->m_speed, ammoDisplayID, ammoInventoryType, visRec, missReasons == 0, MISS_PHYSICAL, srec->m_ID, wasProc
+    );
   }
 }
 
 void SpellVisualsHandleSpellStart(
-    int spellID,
-    const SpellCast &cast,
-    CGGameObject_C *caster,
-    const TSStackArray<unsigned __int64> &targets,
-    bool ignoreAreaEffect,
-    bool hits
+    int                            spellID,
+    const SpellCast               &cast,
+    CGGameObject_C                *caster,
+    const TSStackArray<DWORDLONG> &targets,
+    bool                           ignoreAreaEffect,
+    bool                           hits
 ) {
   FATALASSERT(caster);
   const SpellRec *srec = g_spellDB.GetRecord(spellID);
@@ -1241,23 +1190,18 @@ void SpellVisualsHandleSpellStart(
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", spellID);
     return;
   }
-  const SpellVisualRec *visRec =
-      g_spellVisualDB.GetRecord(srec->m_spellVisualID);
+  const SpellVisualRec *visRec = g_spellVisualDB.GetRecord(srec->m_spellVisualID);
   if (!visRec) {
-    SysMsgPrintf(
-        SYSMSG_WARNING, 2,
-        "SPELLVISUALIDNOTFOUND|%d", spellID);
+    SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d", spellID);
     return;
   }
 
   if (targets.Count() && srec->m_speed <= 0.0f && hits) {
-    const SpellVisualKitRec *impactKit =
-        g_spellVisualKitDB.GetRecord(visRec->m_impactKit);
+    const SpellVisualKitRec *impactKit = g_spellVisualKitDB.GetRecord(visRec->m_impactKit);
     if (impactKit) {
-      unsigned int i;
+      UINT i;
       for (i = 0; i < targets.Count(); ++i) {
-        CGObject_C *target =
-            ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+        CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
         if (target && (target->GetType() & TYPE_UNIT)) {
           PlayImpactKit(static_cast<CGUnit_C *>(target), impactKit);
         }
@@ -1270,20 +1214,19 @@ void SpellVisualsHandleSpellStart(
 }
 
 void SpellVisualsHandleSpellStartHits(
-    int spellID,
-    const SpellCast &cast,
-    CGUnit_C *caster,
-    const TSStackArray<unsigned __int64> &targets,
-    int ammoDisplayID,
-    int ammoInventoryType,
-    int flags
+    int                            spellID,
+    const SpellCast               &cast,
+    CGUnit_C                      *caster,
+    const TSStackArray<DWORDLONG> &targets,
+    int                            ammoDisplayID,
+    int                            ammoInventoryType,
+    int                            flags
 ) {
-  SpellVisualRec visRecData;
-  const SpellRec *srec;
-  const SpellVisualRec *visRec;
+  SpellVisualRec           visRecData;
+  const SpellRec          *srec;
+  const SpellVisualRec    *visRec;
   const SpellVisualKitRec *kitRec;
-  if (!GetSpellRecords(
-          caster, spellID, srec, visRecData, visRec, kitRec)) {
+  if (!GetSpellRecords(caster, spellID, srec, visRecData, visRec, kitRec)) {
     return;
   }
 
@@ -1292,37 +1235,23 @@ void SpellVisualsHandleSpellStartHits(
   }
   int torsoAnimSet = 0;
   if (!(flags & 1) && kitRec) {
-    PlayCastAnim(
-        caster, srec, visRec, kitRec, targets, torsoAnimSet);
+    PlayCastAnim(caster, srec, visRec, kitRec, targets, torsoAnimSet);
   }
   if (kitRec && !(flags & 1)) {
-    SpellVisualsProcedure(
-        caster,
-        kitRec,
-        spellID,
-        &targets,
-        0);
+    SpellVisualsProcedure(caster, kitRec, spellID, &targets, 0);
   }
 
   if (srec->m_speed > 0.0f) {
-    HandleMissileEffects(
-        caster, srec, visRec, ammoDisplayID,
-        ammoInventoryType, cast, targets, 0, (flags & 1) != 0);
+    HandleMissileEffects(caster, srec, visRec, ammoDisplayID, ammoInventoryType, cast, targets, 0, (flags & 1) != 0);
   } else {
     caster->MaybeSaveChannelSpellTargets(spellID, targets);
-    const SpellVisualKitRec *impactKit =
-        g_spellVisualKitDB.GetRecord(visRec->m_impactKit);
+    const SpellVisualKitRec *impactKit = g_spellVisualKitDB.GetRecord(visRec->m_impactKit);
     if (impactKit && !IsSpellAura(srec)) {
-      unsigned int i;
+      UINT i;
       for (i = 0; i < targets.Count(); ++i) {
-        CGObject_C *target =
-            ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+        CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
         if (target && (target->GetType() & TYPE_UNIT)) {
-          caster->SetImpactKitEffect(
-              spellID,
-              static_cast<CGUnit_C *>(target),
-              impactKit,
-              torsoAnimSet == 0);
+          caster->SetImpactKitEffect(spellID, static_cast<CGUnit_C *>(target), impactKit, torsoAnimSet == 0);
         }
       }
     }
@@ -1330,97 +1259,77 @@ void SpellVisualsHandleSpellStartHits(
 }
 
 void SpellVisualsHandleSpellStartMisses(
-    int spellID,
-    const SpellCast &cast,
-    CGUnit_C *caster,
-    const TSStackArray<unsigned __int64> &targets,
-    TSStackArray<MISS_REASON> &missReasons,
-    int ammoDisplayID,
-    int ammoInventoryType,
-    int flags
+    int                            spellID,
+    const SpellCast               &cast,
+    CGUnit_C                      *caster,
+    const TSStackArray<DWORDLONG> &targets,
+    TSStackArray<MISS_REASON>     &missReasons,
+    int                            ammoDisplayID,
+    int                            ammoInventoryType,
+    int                            flags
 ) {
   if (!targets.Count()) {
     return;
   }
-  bool ignoreAreaEffect = (flags & 8) != 0;
-  bool wasProc = (flags & 1) != 0;
-  SpellVisualRec visRecData;
-  const SpellRec *srec;
-  const SpellVisualRec *visRec;
+  bool                     ignoreAreaEffect = (flags & 8) != 0;
+  bool                     wasProc = (flags & 1) != 0;
+  SpellVisualRec           visRecData;
+  const SpellRec          *srec;
+  const SpellVisualRec    *visRec;
   const SpellVisualKitRec *kitRec;
-  if (!GetSpellRecords(
-          caster, spellID, srec, visRecData, visRec, kitRec)) {
+  if (!GetSpellRecords(caster, spellID, srec, visRecData, visRec, kitRec)) {
     return;
   }
 
   if (caster->GetCurrentTorsoAnim() == 37) {
     caster->ClearTorsoAnimation(0);
   }
-  if (!ignoreAreaEffect && !wasProc &&
-      (cast.targets & 0x40)) {
+  if (!ignoreAreaEffect && !wasProc && (cast.targets & 0x40)) {
     PlayOneShotEffect(cast.destLocation, visRec->m_areaModel, targets);
   }
   int torsoAnimSet = 0;
   if (!wasProc && kitRec) {
-    PlayCastAnim(
-        caster, srec, visRec, kitRec, targets, torsoAnimSet);
+    PlayCastAnim(caster, srec, visRec, kitRec, targets, torsoAnimSet);
   }
   if (kitRec && !wasProc) {
-    SpellVisualsProcedure(
-        caster,
-        kitRec,
-        spellID,
-        &targets,
-        &missReasons);
+    SpellVisualsProcedure(caster, kitRec, spellID, &targets, &missReasons);
   }
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < targets.Count(); ++i) {
-    CGObject_C *target =
-        ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+    CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
     if (target && (target->GetType() & TYPE_UNIT)) {
-      missReasons[i] =
-          static_cast<CGUnit_C *>(target)->AdjustVictimState(
-              missReasons[i]);
+      missReasons[i] = static_cast<CGUnit_C *>(target)->AdjustVictimState(missReasons[i]);
     }
   }
 
   if (srec->m_speed > 0.0f) {
-    HandleMissileEffects(
-        caster, srec, visRec, ammoDisplayID,
-        ammoInventoryType, cast, targets, &missReasons, wasProc);
+    HandleMissileEffects(caster, srec, visRec, ammoDisplayID, ammoInventoryType, cast, targets, &missReasons, wasProc);
     return;
   }
 
   for (i = 0; i < targets.Count(); ++i) {
-    CGObject_C *targetObject =
-        ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
-    if (targetObject && (targetObject->GetType() & TYPE_UNIT) &&
-        caster->GetGUID() == ClntObjMgrGetActivePlayer()) {
+    CGObject_C *targetObject = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+    if (targetObject && (targetObject->GetType() & TYPE_UNIT) && caster->GetGUID() == ClntObjMgrGetActivePlayer()) {
       CGUnit_C *target = static_cast<CGUnit_C *>(targetObject);
       if (srec->m_attributes & 0x404) {
-        CGPlayer_C::AddDeferredSpellMiss(
-            targets[i],
-            target->AdjustVictimState(missReasons[i]),
-            spellID);
+        CGPlayer_C::AddDeferredSpellMiss(targets[i], target->AdjustVictimState(missReasons[i]), spellID);
       } else {
         target->AddWorldText(missReasons[i]);
-        UnitCombatLogSpellMissed(
-            missReasons[i], spellID, caster->GetGUID(),
-            target->GetGUID());
+        UnitCombatLogSpellMissed(missReasons[i], spellID, caster->GetGUID(), target->GetGUID());
       }
     }
   }
 }
 
-const char* GetSpellAuraEffectName(int effectID) {
+LPCSTR GetSpellAuraEffectName(int effectID) {
   if (effectID < static_cast<int>(s_auraNames.Count())) {
     return s_auraNames[effectID]->m_name_lang[0];
   }
   return "INVALID_SPELL_AURA_EFFECT";
 }
 
-const char* GetSpellAuraEffectToken(int effectID) {
+LPCSTR GetSpellAuraEffectToken(int effectID) {
   if (effectID < static_cast<int>(s_auraNames.Count())) {
     return s_auraNames[effectID]->m_globalstrings_tag;
   }

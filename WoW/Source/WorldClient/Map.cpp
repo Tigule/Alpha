@@ -17,22 +17,19 @@
 
 NTempest::CiRect NTempest::CiRect::Intersection(const CiRect &left, const CiRect &right) {
   return CiRect(
-      left.t > right.t ? left.t : right.t,
-      left.l > right.l ? left.l : right.l,
-      left.b < right.b ? left.b : right.b,
+      left.t > right.t ? left.t : right.t, left.l > right.l ? left.l : right.l, left.b < right.b ? left.b : right.b,
       left.r < right.r ? left.r : right.r
   );
 }
 
-static float OneHalfOffset = 0.5f;
+static float            OneHalfOffset = 0.5f;
 static NTempest::CiRect scBounds(0, 0, 7, 7);
-static const float OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
+static const float      OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
 
 void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData);
-void
-AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, unsigned __int64 guid, CWFacetData *facetData);
+void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, DWORDLONG guid, CWFacetData *facetData);
 
-unsigned int g_holeMask[4][4] = {
+UINT g_holeMask[4][4] = {
     {   1,    2,     4,     8},
     {  16,   32,    64,   128},
     { 256,  512,  1024,  2048},
@@ -46,7 +43,7 @@ static int iIndiciesP[4][2] = {
     { 1, 18}
 };
 
-static unsigned short idxoffs[36] = {0, 1, 2, 0, 2, 3, 0, 4, 5, 0, 5, 1, 3, 7, 4, 3, 4, 0, 2, 6, 7, 2, 7, 3, 2, 6, 5, 2, 5, 1, 4, 5, 6, 4, 6, 7};
+static WORD idxoffs[36] = {0, 1, 2, 0, 2, 3, 0, 4, 5, 0, 5, 1, 3, 7, 4, 3, 4, 0, 2, 6, 7, 2, 7, 3, 2, 6, 5, 2, 5, 1, 4, 5, 6, 4, 6, 7};
 
 static int s_vertexIndex[4][3] = {
     {17,  9,  0},
@@ -57,57 +54,57 @@ static int s_vertexIndex[4][3] = {
 
 static int s_vertexIndexFlat[5] = {0, 9, 17, 1, 18};
 
-unsigned int                       CMap::uniqueId;
-bool                               CMap::enablePixelShaders;
-bool                               CMap::enableSpecular;
-bool                               CMap::enableSpecularTerrain;
-bool                               CMap::enableTerrainShader;
-bool                               CMap::enableSpecularWater;
-CGxPixelShader                    *CMap::psSpecTerrain;
-CGxShaderParam                    *CMap::psSpecTerrain_LayerMask;
-CGxPixelShader                    *CMap::psTerrain;
-CGxShaderParam                    *CMap::psTerrain_LayerMask;
-CGxPixelShader                    *CMap::psSpecUTerrain;
-CGxShaderParam                    *CMap::psSpecUTerrain_LayerMask;
-CGxPixelShader                    *CMap::psUTerrain;
-CGxShaderParam                    *CMap::psUTerrain_LayerMask;
-CGxBuf                            *CMap::gxBufDynLowDetail;
-SFile                             *CMap::wdtFile;
-unsigned long                      CMap::version;
-SMMapHeader                        CMap::header;
-int                                CMap::bActive;
-int                                CMap::bPreload;
-int                                CMap::bDungeon;
-SMAreaInfo                         CMap::areaInfo[4096];
-CMapArea                          *CMap::areaTable[4096];
-unsigned long                      CMap::areaLowOffsets[4096];
-CMapAreaLow                       *CMap::areaLowTable[4096];
+UINT            CMap::uniqueId;
+bool            CMap::enablePixelShaders;
+bool            CMap::enableSpecular;
+bool            CMap::enableSpecularTerrain;
+bool            CMap::enableTerrainShader;
+bool            CMap::enableSpecularWater;
+CGxPixelShader *CMap::psSpecTerrain;
+CGxShaderParam *CMap::psSpecTerrain_LayerMask;
+CGxPixelShader *CMap::psTerrain;
+CGxShaderParam *CMap::psTerrain_LayerMask;
+CGxPixelShader *CMap::psSpecUTerrain;
+CGxShaderParam *CMap::psSpecUTerrain_LayerMask;
+CGxPixelShader *CMap::psUTerrain;
+CGxShaderParam *CMap::psUTerrain_LayerMask;
+CGxBuf         *CMap::gxBufDynLowDetail;
+SFile          *CMap::wdtFile;
+DWORD           CMap::version;
+SMMapHeader     CMap::header;
+int             CMap::bActive;
+int             CMap::bPreload;
+int             CMap::bDungeon;
+SMAreaInfo      CMap::areaInfo[4096];
+CMapArea       *CMap::areaTable[4096];
+DWORD           CMap::areaLowOffsets[4096];
+CMapAreaLow    *CMap::areaLowTable[4096];
 LISTDECLEX(CMapBaseObjLink, refLink, CMap::areaLinkList);
 LISTDECLEX(CMapBaseObjLink, refLink, CMap::doodadDefLinkList);
 LISTDECLEX(CMapBaseObjLink, refLink, CMap::mapObjDefLinkList);
-HASHKEY_NONE                       CMap::nullHashKey;
-TSGrowableArray<char>              CMap::doodadNames;
-TSGrowableArray<unsigned int>      CMap::doodadNamesIndex;
-TSGrowableArray<char>              CMap::mapObjNames;
-TSGrowableArray<unsigned int>      CMap::mapObjNamesIndex;
-TSGrowableArray<unsigned int>      CMap::scCollideList;
-unsigned int                       CMap::scCollideCnt;
-unsigned int                       CMap::mapGetFacetsCount;
-int(*CMap::entityHandler)(void *, unsigned long, unsigned __int64, unsigned long);
-void *CMap::entityHandlerParam;
-int(*CMap::entityCollisionHandler)(unsigned __int64, unsigned long, WorldObjCollisionHandlerData *);
-TSGrowableArray<CGxVertexPC>    CMap::testQueryVerts;
-TSGrowableArray<unsigned short> CMap::testQueryIndices;
-unsigned int                    CMap::cCount;
-unsigned int                    CMap::bspRecurseCount;
-unsigned int                    CMap::nChunksPrepared;
-unsigned int                    CMap::nGbChunksPrepared;
-void                           *CMap::oldSelectLightParm;
-CMapLight                      *CMap::sunLight;
-char                            CMap::wdtFilename[256];
-char                            CMap::wobFilename[256];
-char                            CMap::mapPath[256];
-char                            CMap::mapName[256];
+HASHKEY_NONE          CMap::nullHashKey;
+TSGrowableArray<char> CMap::doodadNames;
+TSGrowableArray<UINT> CMap::doodadNamesIndex;
+TSGrowableArray<char> CMap::mapObjNames;
+TSGrowableArray<UINT> CMap::mapObjNamesIndex;
+TSGrowableArray<UINT> CMap::scCollideList;
+UINT                  CMap::scCollideCnt;
+UINT                  CMap::mapGetFacetsCount;
+int (*CMap::entityHandler)(LPVOID, DWORD, DWORDLONG, DWORD);
+LPVOID CMap::entityHandlerParam;
+int (*CMap::entityCollisionHandler)(DWORDLONG, DWORD, WorldObjCollisionHandlerData *);
+TSGrowableArray<CGxVertexPC> CMap::testQueryVerts;
+TSGrowableArray<WORD>        CMap::testQueryIndices;
+UINT                         CMap::cCount;
+UINT                         CMap::bspRecurseCount;
+UINT                         CMap::nChunksPrepared;
+UINT                         CMap::nGbChunksPrepared;
+LPVOID                       CMap::oldSelectLightParm;
+CMapLight                   *CMap::sunLight;
+char                         CMap::wdtFilename[256];
+char                         CMap::wobFilename[256];
+char                         CMap::mapPath[256];
+char                         CMap::mapName[256];
 
 void CMap::Initialize() {
   CMapArea::Initialize();
@@ -121,7 +118,7 @@ void CMap::Initialize() {
   memset(freeCounts, 0, 11 * sizeof(freeCounts[0]));
   memset(areaTable, 0, sizeof(areaTable));
 
-  for (unsigned int i = 0; i < 4096; ++i) {
+  for (UINT i = 0; i < 4096; ++i) {
     areaInfo[i].offset = 0;
     areaInfo[i].size = 0;
     areaInfo[i].flags = 0;
@@ -215,12 +212,12 @@ void CMap::GetCounts(int counts[]) {
 void CMap::CalcMem() {
 }
 
-unsigned long CMap::GetTextureUseage() {
+DWORD CMap::GetTextureUseage() {
   CMapBaseObjLink *areaLinknext_node;
   CMapBaseObjLink *chunkLinknext_node;
   CMapArea        *area;
   CMapChunk       *chunk;
-  unsigned int     texUseage = 0;
+  UINT             texUseage = 0;
 
   for (CMapBaseObjLink *areaLink = areaLinkList.Head(); areaLink; areaLink = areaLinknext_node) {
     areaLinknext_node = areaLinkList.Next(areaLink);
@@ -236,7 +233,7 @@ unsigned long CMap::GetTextureUseage() {
         texUseage += CWorld::shadowMipLevel ? 0x800 : 0x2000;
       }
 
-      for (unsigned int i = 0; i < chunk->nLayers; ++i) {
+      for (UINT i = 0; i < chunk->nLayers; ++i) {
         CChunkLayer *layer = chunk->layerList[i];
         ASSERT(layer);
 
@@ -289,7 +286,7 @@ float CMap::PointIntersect(float wx, float wy, float radius) {
   NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
   float               lx = wx - chunk->corner.x;
   float               ly = wy - chunk->corner.y;
-  unsigned int        triangle = (v[18].x - v[0].x) * (v[18].y - ly) - (v[18].y - v[0].y) * (v[18].x - lx) <= 0.0f;
+  UINT                triangle = (v[18].x - v[0].x) * (v[18].y - ly) - (v[18].y - v[0].y) * (v[18].x - lx) <= 0.0f;
   if ((v[17].x - v[1].x) * (v[17].y - ly) - (v[17].y - v[1].y) * (v[17].x - lx) <= 0.0f) {
     triangle += 2;
   }
@@ -303,7 +300,7 @@ bool CMap::GetPlane(float wx, float wy, NTempest::C4Plane &plane) {
   float my = -(wx - 17066.666f);
 
   ASSERT(mx >= 0.0f && my >= 0.0f);
-  ASSERT(mx < ((64*16)*((150.0f/36.0f)*8)) && my < ((64*16)*((150.0f/36.0f)*8)));
+  ASSERT(mx < ((64 * 16) * ((150.0f / 36.0f) * 8)) && my < ((64 * 16) * ((150.0f / 36.0f) * 8)));
 
   mx *= 0.24f;
   my *= 0.24f;
@@ -328,7 +325,7 @@ bool CMap::GetPlane(float wx, float wy, NTempest::C4Plane &plane) {
   NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
   float               lx = wx - chunk->corner.x;
   float               ly = wy - chunk->corner.y;
-  unsigned int        triangle = (v[18].x - v[0].x) * (v[18].y - ly) - (v[18].y - v[0].y) * (v[18].x - lx) <= 0.0f;
+  UINT                triangle = (v[18].x - v[0].x) * (v[18].y - ly) - (v[18].y - v[0].y) * (v[18].x - lx) <= 0.0f;
   if ((v[17].x - v[1].x) * (v[17].y - ly) - (v[17].y - v[1].y) * (v[17].x - lx) <= 0.0f) {
     triangle += 2;
   }
@@ -344,7 +341,7 @@ bool CMap::LocateViewerMapObjs(
     const NTempest::C3Vector &lEnd,
     float                    &maxT,
     CMapObjDef              *&hitMapObjDef,
-    unsigned int             *hitGroupIDs
+    UINT                     *hitGroupIDs
 ) {
   hitMapObjDef = 0;
   hitGroupIDs[0] = 0xFFFF;
@@ -372,8 +369,8 @@ bool CMap::LocateViewerMapObjs(
           }
         }
 
-        float        portalT = 1.0f;
-        unsigned int portalGroups[2];
+        float portalT = 1.0f;
+        UINT  portalGroups[2];
         if (mapObj->VectorIntersectPortals(NTempest::C3Segment(v0, v1), portalT, portalGroups) && portalT - maxT < 0.0001f) {
           maxT = portalT;
           if (!(mapObj->GetGroupInfo(portalGroups[0])->flags & 8)) {
@@ -395,27 +392,27 @@ bool CMap::LocateViewerMapObjs(
 
 void CMap::TestQueryAdd(const NTempest::CFacet &facet, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
   NTempest::C44Matrix        id;
-  unsigned int               sub = testQueryVerts.Count();
+  UINT                       sub = testQueryVerts.Count();
   const NTempest::C44Matrix *mtx = basis ? basis : &id;
 
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     CGxVertexPC *v = testQueryVerts.NewElement();
     v->p = facet.vertices[i] * *mtx;
     v->c = color;
   }
 
-  testQueryIndices.Add(reinterpret_cast<unsigned short *>(&sub));
+  testQueryIndices.Add(reinterpret_cast<WORD *>(&sub));
   ++sub;
-  testQueryIndices.Add(reinterpret_cast<unsigned short *>(&sub));
+  testQueryIndices.Add(reinterpret_cast<WORD *>(&sub));
   ++sub;
-  testQueryIndices.Add(reinterpret_cast<unsigned short *>(&sub));
+  testQueryIndices.Add(reinterpret_cast<WORD *>(&sub));
 }
 
 void CMap::TestQueryAdd(const CWFrustum &frustum, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
   NTempest::C44Matrix        id;
-  unsigned int               sub = testQueryVerts.Count();
+  UINT                       sub = testQueryVerts.Count();
   const NTempest::C44Matrix *mtx = basis ? basis : &id;
-  unsigned int               i;
+  UINT                       i;
 
   for (i = 0; i < 8; ++i) {
     CGxVertexPC *v = testQueryVerts.NewElement();
@@ -424,14 +421,14 @@ void CMap::TestQueryAdd(const CWFrustum &frustum, NTempest::CImVector color, con
   }
 
   for (i = 0; i < 36; ++i) {
-    unsigned short index = static_cast<unsigned short>(sub + idxoffs[i]);
+    WORD index = static_cast<WORD>(sub + idxoffs[i]);
     testQueryIndices.Add(&index);
   }
 }
 
 void CMap::TestQueryAdd(const NTempest::CAaBox &aabox, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
   NTempest::C44Matrix id;
-  unsigned int        sub = testQueryVerts.Count();
+  UINT                sub = testQueryVerts.Count();
   if (!basis) {
     basis = &id;
   }
@@ -461,28 +458,20 @@ void CMap::TestQueryAdd(const NTempest::CAaBox &aabox, NTempest::CImVector color
   v->p = NTempest::C3Vector(aabox.b.x, aabox.t.y, aabox.t.z) * *basis;
   v->c = color;
 
-  for (unsigned int i = 0; i < 36; ++i) {
-    unsigned short index = static_cast<unsigned short>(sub + idxoffs[i]);
+  for (UINT i = 0; i < 36; ++i) {
+    WORD index = static_cast<WORD>(sub + idxoffs[i]);
     testQueryIndices.Add(&index);
   }
 }
 
-bool CMap::VectorIntersectTerrain(
-    const NTempest::C3Vector *p0,
-    const NTempest::C3Vector *p1,
-    float                    *t,
-    unsigned int              queryFlags,
-    CMapChunk               **chunk
-) {
+bool CMap::VectorIntersectTerrain(const NTempest::C3Vector *p0, const NTempest::C3Vector *p1, float *t, UINT queryFlags, CMapChunk **chunk) {
   NTempest::C2Vector v0(17066.666f - p0->y, 17066.666f - p0->x);
   NTempest::C2Vector v1(17066.666f - p1->y, 17066.666f - p1->x);
   float              dx = v1.x - v0.x;
   float              dy = v1.y - v0.y;
   NTempest::CiRect   sRect(
-      static_cast<int>(v0.y * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
-      static_cast<int>(v0.x * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
-      static_cast<int>(v1.y * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
-      static_cast<int>(v1.x * OO_COORD_TO_SUBCHUNK - OneHalfOffset)
+      static_cast<int>(v0.y * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(v0.x * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
+      static_cast<int>(v1.y * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(v1.x * OO_COORD_TO_SUBCHUNK - OneHalfOffset)
   );
 
   scCollideCnt = 0;
@@ -500,13 +489,7 @@ bool CMap::VectorIntersectTerrain(
   return VectorIntersectSubchunks(p0, p1, t, queryFlags, chunk);
 }
 
-bool CMap::VectorIntersect(
-    const NTempest::C3Vector *p0,
-    const NTempest::C3Vector *p1,
-    NTempest::C3Vector       *ip,
-    float                    *dist,
-    unsigned int              queryFlags
-) {
+bool CMap::VectorIntersect(const NTempest::C3Vector *p0, const NTempest::C3Vector *p1, NTempest::C3Vector *ip, float *dist, UINT queryFlags) {
   FATALASSERT(p0);
   FATALASSERT(p1);
   FATALASSERT(ip);
@@ -517,7 +500,7 @@ bool CMap::VectorIntersect(
   ++cCount;
 
   if (queryFlags & 0xF0) {
-    unsigned int polyIgnoreFlags = 0;
+    UINT polyIgnoreFlags = 0;
     if (!(queryFlags & 0x10)) {
       polyIgnoreFlags = 8;
     }
@@ -542,9 +525,9 @@ bool CMap::VectorIntersect(
 bool CMap::VectorIntersectMapObjs(
     const NTempest::C3Vector *p0,
     const NTempest::C3Vector *p1,
-    unsigned int              queryFlags,
-    unsigned int              polyIgnoreFlags,
-    unsigned int              groupIgnoreFlags,
+    UINT                      queryFlags,
+    UINT                      polyIgnoreFlags,
+    UINT                      groupIgnoreFlags,
     float                    *t,
     SMOPoly                 **poly,
     CMapObj                 **qMapObj
@@ -559,7 +542,7 @@ bool CMap::VectorIntersectMapObjs(
 
     NTempest::C3Vector v0 = *p0 * mapObjDef->invMat;
     NTempest::C3Vector v1 = *p1 * mapObjDef->invMat;
-    CMapObj            *mapObj = mapObjDef->mapObj;
+    CMapObj           *mapObj = mapObjDef->mapObj;
     if (!mapObj) {
       continue;
     }
@@ -575,11 +558,11 @@ bool CMap::VectorIntersectMapObjs(
 }
 
 bool CMap::VectorIntersectDoodadDefLinkList(
-    LISTEX(CMapBaseObjLink, refLink) &doodadDefLinkList,
-    const NTempest::C3Vector           *p0,
-    const NTempest::C3Vector           *p1,
-    float                              *t,
-    unsigned int                        queryFlags
+    LISTEX(CMapBaseObjLink, refLink) & doodadDefLinkList,
+    const NTempest::C3Vector *p0,
+    const NTempest::C3Vector *p1,
+    float                    *t,
+    UINT                      queryFlags
 ) {
   NTempest::C3Vector camrelP0 = *p0 - CWorldScene::camPos;
   NTempest::C3Vector camrelP1 = *p1 - CWorldScene::camPos;
@@ -607,13 +590,12 @@ bool CMap::VectorIntersectDoodadDefLinkList(
       if (ModelCollisionVectorIntersect(
               doodadDef->model,
               NTempest::C34Matrix(
-                  doodadDef->mat.a0, doodadDef->mat.a1, doodadDef->mat.a2,
-                  doodadDef->mat.b0, doodadDef->mat.b1, doodadDef->mat.b2,
-                  doodadDef->mat.c0, doodadDef->mat.c1, doodadDef->mat.c2,
-                  doodadDef->mat.d0, doodadDef->mat.d1, doodadDef->mat.d2),
-              *p0,
-              *p1,
-              it)) {
+                  doodadDef->mat.a0, doodadDef->mat.a1, doodadDef->mat.a2, doodadDef->mat.b0, doodadDef->mat.b1, doodadDef->mat.b2, doodadDef->mat.c0,
+                  doodadDef->mat.c1, doodadDef->mat.c2, doodadDef->mat.d0, doodadDef->mat.d1, doodadDef->mat.d2
+              ),
+              *p0, *p1, it
+          ))
+      {
         if (it < hitT) {
           hitT = it;
         }
@@ -635,11 +617,11 @@ bool CMap::VectorIntersectDoodadDefLinkList(
 }
 
 bool CMap::VectorIntersectGameObjLinkList(
-    LISTEX(CMapBaseObjLink, refLink) &gameObjLinkList,
-    const NTempest::C3Vector           *p0,
-    const NTempest::C3Vector           *p1,
-    float                              *t,
-    unsigned int                        queryFlags
+    LISTEX(CMapBaseObjLink, refLink) & gameObjLinkList,
+    const NTempest::C3Vector *p0,
+    const NTempest::C3Vector *p1,
+    float                    *t,
+    UINT                      queryFlags
 ) {
   if (!entityCollisionHandler) {
     return false;
@@ -660,9 +642,7 @@ bool CMap::VectorIntersectGameObjLinkList(
     WorldObjCollisionHandlerData data;
     data.collideExt = NTempest::CAaBox(0.0f);
     data.matrix = NTempest::C44Matrix();
-    if (!entityCollisionHandler(entity->param64, entity->param32, &data) ||
-        !CWorldMath::VectorIntersectAABox2(data.collideExt, *p0, *p1))
-    {
+    if (!entityCollisionHandler(entity->param64, entity->param32, &data) || !CWorldMath::VectorIntersectAABox2(data.collideExt, *p0, *p1)) {
       continue;
     }
 
@@ -675,13 +655,12 @@ bool CMap::VectorIntersectGameObjLinkList(
       if (!ModelCollisionVectorIntersect(
               data.model,
               NTempest::C34Matrix(
-                  data.matrix.a0, data.matrix.a1, data.matrix.a2,
-                  data.matrix.b0, data.matrix.b1, data.matrix.b2,
-                  data.matrix.c0, data.matrix.c1, data.matrix.c2,
-                  data.matrix.d0, data.matrix.d1, data.matrix.d2),
-              *p0,
-              *p1,
-              it)) {
+                  data.matrix.a0, data.matrix.a1, data.matrix.a2, data.matrix.b0, data.matrix.b1, data.matrix.b2, data.matrix.c0, data.matrix.c1,
+                  data.matrix.c2, data.matrix.d0, data.matrix.d1, data.matrix.d2
+              ),
+              *p0, *p1, it
+          ))
+      {
         continue;
       }
       if (it < hitT) {
@@ -866,26 +845,20 @@ bool CMap::VectorIntersectTri(
   return true;
 }
 
-bool CMap::VectorIntersectSubchunks(
-    const NTempest::C3Vector *p0,
-    const NTempest::C3Vector *p1,
-    float                    *t,
-    unsigned int              queryFlags,
-    CMapChunk               **retChunk
-) {
-  unsigned int *scPtr = scCollideList.Ptr();
+bool CMap::VectorIntersectSubchunks(const NTempest::C3Vector *p0, const NTempest::C3Vector *p1, float *t, UINT queryFlags, CMapChunk **retChunk) {
+  UINT *scPtr = scCollideList.Ptr();
   FATALASSERT(scPtr);
 
-  unsigned int scCnt = scCollideCnt;
-  unsigned int bMaskY = scPtr[0] & 0x2000;
-  unsigned int bMaskX = scPtr[1] & 0x2000;
-  CMapChunk   *chunk = 0;
-  CMapChunk   *hitChunk = 0;
-  float        hitT = *t;
+  UINT       scCnt = scCollideCnt;
+  UINT       bMaskY = scPtr[0] & 0x2000;
+  UINT       bMaskX = scPtr[1] & 0x2000;
+  CMapChunk *chunk = 0;
+  CMapChunk *hitChunk = 0;
+  float      hitT = *t;
 
   while (scCnt) {
-    unsigned int sx = scPtr[0];
-    unsigned int sy = scPtr[1];
+    UINT sx = scPtr[0];
+    UINT sy = scPtr[1];
     scPtr += 2;
     scCnt -= 2;
 
@@ -918,8 +891,8 @@ bool CMap::VectorIntersectSubchunks(
       }
     }
 
-    unsigned int x = sx & 7;
-    unsigned int y = sy & 7;
+    UINT               x = sx & 7;
+    UINT               y = sy & 7;
     NTempest::C3Vector lp0 = *p0 - chunk->corner;
     NTempest::C3Vector lp1 = *p1 - chunk->corner;
 
@@ -929,7 +902,7 @@ bool CMap::VectorIntersectSubchunks(
 
     NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
     NTempest::C4Plane  *p = &chunk->planeList[4 * (x + 8 * y)];
-    for (unsigned int triangle = 0; triangle < 4; ++triangle) {
+    for (UINT triangle = 0; triangle < 4; ++triangle) {
       float ip0 = NTempest::C3Vector::Dot(p->n, lp0) + p->d;
       float ip1 = NTempest::C3Vector::Dot(p->n, lp1) + p->d;
 
@@ -958,7 +931,7 @@ bool CMap::VectorIntersectSubchunks(
   return true;
 }
 
-bool CMap::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags) {
+bool CMap::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {
   bool hit = false;
   if (queryFlags & 0xFF) {
     hit = GetFacetMapObjs(seg, t, facet, queryFlags);
@@ -969,7 +942,7 @@ bool CMap::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane 
   return hit;
 }
 
-bool CMap::GetFacetMapObjs(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags) {
+bool CMap::GetFacetMapObjs(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {
   bool hit = false;
 
   ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
@@ -983,7 +956,7 @@ bool CMap::GetFacetMapObjs(const NTempest::C3Segment &seg, float &t, NTempest::C
     }
 
     NTempest::C3Segment relSeg(seg.start * mapObjDef->invMat, seg.end * mapObjDef->invMat);
-    unsigned int flags = 0;
+    UINT                flags = 0;
     if (queryFlags & 0x10) {
       flags = 8;
     } else if (queryFlags & 0x20) {
@@ -997,10 +970,11 @@ bool CMap::GetFacetMapObjs(const NTempest::C3Segment &seg, float &t, NTempest::C
 
     hit = true;
     const CWTriData::Batch &batch = triData.GetBatch(0);
-    const unsigned short   *indices = batch.vertexIndices;
+    const WORD             *indices = batch.vertexIndices;
     facet.n = NTempest::C3Vector::Cross(
         batch.vertices[indices[1]] * *batch.matrix - batch.vertices[indices[0]] * *batch.matrix,
-        batch.vertices[indices[2]] * *batch.matrix - batch.vertices[indices[0]] * *batch.matrix);
+        batch.vertices[indices[2]] * *batch.matrix - batch.vertices[indices[0]] * *batch.matrix
+    );
     facet.n.Normalize();
     facet.d = -NTempest::C3Vector::Dot(batch.vertices[indices[0]] * *batch.matrix, facet.n);
   }
@@ -1008,7 +982,7 @@ bool CMap::GetFacetMapObjs(const NTempest::C3Segment &seg, float &t, NTempest::C
   return hit;
 }
 
-bool CMap::GetFacetTerrain(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags) {
+bool CMap::GetFacetTerrain(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {
   NTempest::C3Segment nb;
   NTempest::C2Vector  v0(17066.666f - seg.start.y, 17066.666f - seg.start.x);
   NTempest::C2Vector  v1(17066.666f - seg.end.y, 17066.666f - seg.end.x);
@@ -1043,23 +1017,23 @@ bool CMap::GetFacetTerrain(const NTempest::C3Segment &seg, float &t, NTempest::C
   return false;
 }
 
-bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, unsigned int queryFlags) {
-  unsigned int *scPtr = scCollideList.Ptr();
+bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {
+  UINT *scPtr = scCollideList.Ptr();
   ASSERT(scPtr);
 
-  unsigned int scCnt = scCollideCnt;
-  unsigned int bMaskY = scPtr[0] & 0x2000;
-  unsigned int bMaskX = scPtr[1] & 0x2000;
-  CMapChunk   *chunk = 0;
-  unsigned int hit = 0;
+  UINT       scCnt = scCollideCnt;
+  UINT       bMaskY = scPtr[0] & 0x2000;
+  UINT       bMaskX = scPtr[1] & 0x2000;
+  CMapChunk *chunk = 0;
+  UINT       hit = 0;
 
   if (!scCnt) {
     return false;
   }
 
   do {
-    unsigned int sx = scPtr[0];
-    unsigned int sy = scPtr[1];
+    UINT sx = scPtr[0];
+    UINT sy = scPtr[1];
     scPtr += 2;
     scCnt -= 2;
 
@@ -1082,8 +1056,8 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
       bMaskY = sy & 0x1FF8;
     }
 
-    unsigned int        x = sx & 7;
-    unsigned int        y = sy & 7;
+    UINT                x = sx & 7;
+    UINT                y = sy & 7;
     NTempest::C3Segment localSeg;
     localSeg.start = seg.start - chunk->corner;
     localSeg.end = seg.end - chunk->corner;
@@ -1094,7 +1068,7 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
 
     NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
     NTempest::C4Plane  *p = &chunk->planeList[4 * (x + 8 * y)];
-    for (unsigned int triangle = 0; triangle < 4; ++triangle) {
+    for (UINT triangle = 0; triangle < 4; ++triangle) {
       float ip0 = NTempest::C3Vector::Dot(p->n, localSeg.start) + p->d;
       float ip1 = NTempest::C3Vector::Dot(p->n, localSeg.end) + p->d;
 
@@ -1120,7 +1094,7 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
   return hit;
 }
 
-bool CMap::GetTrisTerrain(const NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags) {
+bool CMap::GetTrisTerrain(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
   NTempest::CRect tLocation(17066.666f - aaBox.t.x, 17066.666f - aaBox.t.y, 17066.666f - aaBox.b.x, 17066.666f - aaBox.b.y);
   FATALASSERT(tLocation.l >= 0.0f && tLocation.t >= 0.0f);
   FATALASSERT(tLocation.r < 34133.332f && tLocation.b < 34133.332f);
@@ -1131,7 +1105,7 @@ bool CMap::GetTrisTerrain(const NTempest::CAaBox &aaBox, CWTriData &triData, uns
   );
   NTempest::CiRect cRect(sRect.t >> 3, sRect.l >> 3, sRect.b >> 3, sRect.r >> 3);
 
-  unsigned int got = 0;
+  UINT got = 0;
   for (int cy = cRect.t; cy <= cRect.b; ++cy) {
     for (int cx = cRect.l; cx <= cRect.r; ++cx) {
       got |= GetTrisChunk(cx, cy, sRect, aaBox, triData, queryFlags);
@@ -1140,8 +1114,8 @@ bool CMap::GetTrisTerrain(const NTempest::CAaBox &aaBox, CWTriData &triData, uns
   return got;
 }
 
-bool CMap::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags) {
-  unsigned int got = 0;
+bool CMap::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
+  UINT got = 0;
   if (queryFlags & 0xF0) {
     got = GetTrisMapObjs(aaBox, triData, queryFlags);
   }
@@ -1151,7 +1125,7 @@ bool CMap::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, unsigned i
   return got;
 }
 
-bool CMap::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags) {
+bool CMap::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
   FATALASSERT(facetData);
 
   ++mapGetFacetsCount;
@@ -1183,8 +1157,8 @@ bool CMap::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, unsi
   return facetData->facets.Count() != 0;
 }
 
-bool CMap::GetFacetsMapObjs(const NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags) {
-  unsigned int origFacetCount = facetData->facets.Count();
+bool CMap::GetFacetsMapObjs(const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
+  UINT               origFacetCount = facetData->facets.Count();
   NTempest::C3Vector lCen = (aaBox.b + aaBox.t) * 0.5f;
   NTempest::CAaBox   lBox = aaBox;
   NTempest::C3Vector tCen(-lCen.x, -lCen.y, -lCen.z);
@@ -1198,8 +1172,7 @@ bool CMap::GetFacetsMapObjs(const NTempest::CAaBox &aaBox, CWFacetData *facetDat
 
     tCen = lCen * mapObjDef->invMat;
     NTempest::C33Matrix tMat(
-        mapObjDef->invMat.a0, mapObjDef->invMat.a1, mapObjDef->invMat.a2,
-        mapObjDef->invMat.b0, mapObjDef->invMat.b1, mapObjDef->invMat.b2,
+        mapObjDef->invMat.a0, mapObjDef->invMat.a1, mapObjDef->invMat.a2, mapObjDef->invMat.b0, mapObjDef->invMat.b1, mapObjDef->invMat.b2,
         mapObjDef->invMat.c0, mapObjDef->invMat.c1, mapObjDef->invMat.c2
     );
     NTempest::CAaBox tBox;
@@ -1245,9 +1218,7 @@ bool CMap::GetFacetsMapObjs(const NTempest::CAaBox &aaBox, CWFacetData *facetDat
           }
 
           WorldObjCollisionHandlerData data;
-          if (entityCollisionHandler(entity->param64, entity->param32, &data) &&
-              data.collideExt.b <= aaBox.t && data.collideExt.t >= aaBox.b)
-          {
+          if (entityCollisionHandler(entity->param64, entity->param32, &data) && data.collideExt.b <= aaBox.t && data.collideExt.t >= aaBox.b) {
             AddGameObjFacets(aaBox, data, entity->param64, facetData);
           }
         }
@@ -1259,7 +1230,7 @@ bool CMap::GetFacetsMapObjs(const NTempest::CAaBox &aaBox, CWFacetData *facetDat
 }
 
 void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData) {
-  unsigned int existing = facetData->facets.Count();
+  UINT existing = facetData->facets.Count();
   ModelAddCollisionFacets(
       doodadDef->model,
       NTempest::C34Matrix(
@@ -1269,16 +1240,15 @@ void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CW
       doodadDef->scale, aaBox, &facetData->facets
   );
 
-  unsigned int count = facetData->facets.Count();
+  UINT count = facetData->facets.Count();
   facetData->gameObjects.SetCount(count);
   if (count != existing) {
     memset(&facetData->gameObjects[existing], 0, (count - existing) * sizeof(facetData->gameObjects[0]));
   }
 }
 
-void AddGameObjFacets(
-    const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, unsigned __int64 guid, CWFacetData *facetData) {
-  unsigned int existing = facetData->facets.Count();
+void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, DWORDLONG guid, CWFacetData *facetData) {
+  UINT existing = facetData->facets.Count();
   ModelAddCollisionFacets(
       data.model,
       NTempest::C34Matrix(
@@ -1288,21 +1258,21 @@ void AddGameObjFacets(
       data.scale, aaBox, &facetData->facets
   );
 
-  unsigned int count = facetData->facets.Count();
+  UINT count = facetData->facets.Count();
   facetData->gameObjects.SetCount(count);
-  for (unsigned int index = existing; index < count; ++index) {
+  for (UINT index = existing; index < count; ++index) {
     facetData->gameObjects[index] = guid;
   }
 }
 
-bool CMap::GetTrisMapObjs(const NTempest::CAaBox &aaBox, CWTriData &triData, unsigned int queryFlags) {
+bool CMap::GetTrisMapObjs(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
   NTempest::C3Vector lCen = (aaBox.b + aaBox.t) * 0.5f;
   NTempest::CAaBox   lBox = aaBox;
   NTempest::C3Vector tCen(-lCen.x, -lCen.y, -lCen.z);
   lBox.b += tCen;
   lBox.t += tCen;
 
-  unsigned int got = 0;
+  UINT got = 0;
   ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
     if (mapObjDef->flags & CMapBaseObj::Flag_NoCollision) {
       continue;
@@ -1310,8 +1280,7 @@ bool CMap::GetTrisMapObjs(const NTempest::CAaBox &aaBox, CWTriData &triData, uns
 
     tCen = lCen * mapObjDef->invMat;
     NTempest::C33Matrix tMat(
-        mapObjDef->invMat.a0, mapObjDef->invMat.a1, mapObjDef->invMat.a2,
-        mapObjDef->invMat.b0, mapObjDef->invMat.b1, mapObjDef->invMat.b2,
+        mapObjDef->invMat.a0, mapObjDef->invMat.a1, mapObjDef->invMat.a2, mapObjDef->invMat.b0, mapObjDef->invMat.b1, mapObjDef->invMat.b2,
         mapObjDef->invMat.c0, mapObjDef->invMat.c1, mapObjDef->invMat.c2
     );
     NTempest::CAaBox tBox;
@@ -1327,14 +1296,7 @@ bool CMap::GetTrisMapObjs(const NTempest::CAaBox &aaBox, CWTriData &triData, uns
   return got;
 }
 
-bool CMap::GetTrisChunk(
-    int               cx,
-    int               cy,
-    NTempest::CiRect &sRect,
-    const NTempest::CAaBox &aaBox,
-    CWTriData        &triData,
-    unsigned int      queryFlags
-) {
+bool CMap::GetTrisChunk(int cx, int cy, NTempest::CiRect &sRect, const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
   CMapArea *area = areaTable[((cy >> 4) & 0x3F) * 64 + ((cx >> 4) & 0x3F)];
   if (!area) {
     return 0;
@@ -1349,9 +1311,9 @@ bool CMap::GetTrisChunk(
 
   NTempest::CAaBox  localBox(aaBox.b - chunk->corner, aaBox.t - chunk->corner);
   CWTriData::Batch *batch = 0;
-  unsigned short   *indices = 0;
-  unsigned int      indexCount = 0;
-  unsigned int      culled[19];
+  WORD             *indices = 0;
+  UINT              indexCount = 0;
+  UINT              culled[19];
 
   for (int y = scRect.t; y <= scRect.b; ++y) {
     for (int x = scRect.l; x <= scRect.r; ++x) {
@@ -1359,10 +1321,10 @@ bool CMap::GetTrisChunk(
         continue;
       }
       NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
-      for (unsigned int vertex = 0; vertex < 5; ++vertex) {
+      for (UINT vertex = 0; vertex < 5; ++vertex) {
         int                       vi = s_vertexIndexFlat[vertex];
         const NTempest::C3Vector &p = v[vi];
-        unsigned int              mask = 0;
+        UINT                      mask = 0;
         if (p.x < localBox.b.x - 0.019444443f)
           mask |= 0x01;
         if (p.y < localBox.b.y - 0.019444443f)
@@ -1378,7 +1340,7 @@ bool CMap::GetTrisChunk(
         culled[vi] = mask;
       }
 
-      for (unsigned int triangle = 0; triangle < 4; ++triangle) {
+      for (UINT triangle = 0; triangle < 4; ++triangle) {
         int i0 = s_vertexIndex[triangle][0];
         int i1 = s_vertexIndex[triangle][1];
         int i2 = s_vertexIndex[triangle][2];
@@ -1393,16 +1355,16 @@ bool CMap::GetTrisChunk(
           batch->matrix = matrix;
           batch->vertices = chunk->vertexList;
           batch->normals = chunk->normalList;
-          batch->sourceID = reinterpret_cast<unsigned long>(chunk);
-          unsigned int maxIndices = (scRect.b - scRect.t + 1) * (scRect.r - scRect.l + 1) * 12;
+          batch->sourceID = reinterpret_cast<DWORD>(chunk);
+          UINT maxIndices = (scRect.b - scRect.t + 1) * (scRect.r - scRect.l + 1) * 12;
           indices = triData.AllocVertexIndices(maxIndices);
           batch->vertexIndices = indices;
         }
 
         int       base = x + 17 * y;
         const int triangleIndices[3] = {i0, i1, i2};
-        for (unsigned int corner = 0; corner < 3; ++corner) {
-          unsigned short index = static_cast<unsigned short>(base + triangleIndices[corner]);
+        for (UINT corner = 0; corner < 3; ++corner) {
+          WORD index = static_cast<WORD>(base + triangleIndices[corner]);
           indices[indexCount++] = index;
           if (index < batch->minIndex)
             batch->minIndex = index;
@@ -1417,25 +1379,18 @@ bool CMap::GetTrisChunk(
   return batch != 0;
 }
 
-bool CMap::GetChunkFacets(
-    int               cx,
-    int               cy,
-    NTempest::CiRect       &sRect,
-    const NTempest::CAaBox &aaBox,
-    CWFacetData      *facetData,
-    unsigned int      queryFlags
-) {
+bool CMap::GetChunkFacets(int cx, int cy, NTempest::CiRect &sRect, const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
   FATALASSERT(facetData);
 
-  unsigned int origFacetCount = facetData->facets.Count();
-  unsigned int areaIndex = ((cy >> 4) & 0x3F) * 64 + ((cx >> 4) & 0x3F);
-  CMapArea    *area = areaTable[areaIndex];
+  UINT      origFacetCount = facetData->facets.Count();
+  UINT      areaIndex = ((cy >> 4) & 0x3F) * 64 + ((cx >> 4) & 0x3F);
+  CMapArea *area = areaTable[areaIndex];
   if (!area) {
     return 0;
   }
 
-  unsigned int chunkIndex = (cy & 0xF) * 16 + (cx & 0xF);
-  CMapChunk   *chunk = area->chunkTable[chunkIndex];
+  UINT       chunkIndex = (cy & 0xF) * 16 + (cx & 0xF);
+  CMapChunk *chunk = area->chunkTable[chunkIndex];
   if (!chunk) {
     return 0;
   }
@@ -1451,7 +1406,7 @@ bool CMap::GetChunkFacets(
     scRect.r = 7;
 
   NTempest::CAaBox localAaBox(aaBox.b - chunk->corner, aaBox.t - chunk->corner);
-  unsigned int     culled[19];
+  UINT             culled[19];
 
   for (int y = scRect.t; y <= scRect.b; ++y) {
     for (int x = scRect.l; x <= scRect.r; ++x) {
@@ -1461,10 +1416,10 @@ bool CMap::GetChunkFacets(
 
       FATALASSERT(s_vertexIndex[2][2] == 18);
       NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
-      for (unsigned int index = 0; index < 5; ++index) {
+      for (UINT index = 0; index < 5; ++index) {
         int                       vertexIndex = s_vertexIndexFlat[index];
         const NTempest::C3Vector &vertex = v[vertexIndex];
-        unsigned int              mask = 0;
+        UINT                      mask = 0;
         if (vertex.x < localAaBox.b.x - 0.019444443f)
           mask |= 0x01;
         if (vertex.y < localAaBox.b.y - 0.019444443f)
@@ -1481,7 +1436,7 @@ bool CMap::GetChunkFacets(
       }
 
       NTempest::C4Plane *p = &chunk->planeList[4 * (x + 8 * y)];
-      for (unsigned int triangle = 0; triangle < 4; ++triangle, ++p) {
+      for (UINT triangle = 0; triangle < 4; ++triangle, ++p) {
         int i0 = s_vertexIndex[triangle][0];
         int i1 = s_vertexIndex[triangle][1];
         int i2 = s_vertexIndex[triangle][2];
@@ -1512,7 +1467,7 @@ bool CMap::GetChunkFacets(
     }
   }
 
-  unsigned int facetCount = facetData->facets.Count();
+  UINT facetCount = facetData->facets.Count();
   facetData->gameObjects.SetCount(facetCount);
   if (facetCount != origFacetCount) {
     memset(&facetData->gameObjects[origFacetCount], 0, (facetCount - origFacetCount) * sizeof(facetData->gameObjects[0]));
@@ -1553,8 +1508,7 @@ bool CMap::GetChunkFacets(
   return origFacetCount != facetData->facets.Count();
 }
 
-void
-CreateFacet(CWFacetData *facetData, NTempest::C3Vector &corner, NTempest::C3Vector &normal, NTempest::C3Vector &up, NTempest::C3Vector &right) {
+void CreateFacet(CWFacetData *facetData, NTempest::C3Vector &corner, NTempest::C3Vector &normal, NTempest::C3Vector &up, NTempest::C3Vector &right) {
   NTempest::CFacet *facet = facetData->facets.NewElement();
   facet->plane.n = normal;
   facet->plane.d = -NTempest::C3Vector::Dot(normal, corner);
@@ -1570,7 +1524,7 @@ CreateFacet(CWFacetData *facetData, NTempest::C3Vector &corner, NTempest::C3Vect
   facet->vertices[2] = corner + up;
 }
 
-void CMap::CreateImpassableFacets(CMapChunk *chunk, const NTempest::CAaBox &aaBox, CWFacetData *facetData, unsigned int queryFlags) {
+void CMap::CreateImpassableFacets(CMapChunk *chunk, const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
   NTempest::C3Vector up(0.0f, 0.0f, 10000.0f);
   NTempest::C3Vector normal;
   NTempest::C3Vector right;
@@ -1605,7 +1559,7 @@ void CMap::CreateImpassableFacets(CMapChunk *chunk, const NTempest::CAaBox &aaBo
   }
 }
 
-bool CMap::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags) {
+bool CMap::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, UINT queryFlags) {
   FATALASSERT(facetData);
 
   ++cCount;
@@ -1615,7 +1569,7 @@ bool CMap::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, unsigned 
   NTempest::CAaBox faab = NTempest::CAaBox::Bounding(frustum.corners, 8);
   NTempest::CRect  tLocation(17066.666f - faab.t.x, 17066.666f - faab.t.y, 17066.666f - faab.b.x, 17066.666f - faab.b.y);
   FATALASSERT(tLocation.minx >= 0.0f && tLocation.miny >= 0.0f);
-  FATALASSERT(tLocation.maxy < ((64*16)*((150.0f/36.0f)*8)) && tLocation.maxy < ((64*16)*((150.0f/36.0f)*8)));
+  FATALASSERT(tLocation.maxy < ((64 * 16) * ((150.0f / 36.0f) * 8)) && tLocation.maxy < ((64 * 16) * ((150.0f / 36.0f) * 8)));
 
   NTempest::CiRect sRect(
       static_cast<int>(tLocation.t * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.l * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
@@ -1639,15 +1593,15 @@ bool CMap::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, unsigned 
 bool CMap::GetChunkFacets(int cx, int cy, const NTempest::CiRect &sRect, const CWFrustum &wFrustum, CWFacetData *facetData) {
   FATALASSERT(facetData);
 
-  unsigned int origFacetCount = facetData->facets.Count();
-  unsigned int areaIndex = ((cy >> 4) & 0x3F) * 64 + ((cx >> 4) & 0x3F);
-  CMapArea    *area = areaTable[areaIndex];
+  UINT      origFacetCount = facetData->facets.Count();
+  UINT      areaIndex = ((cy >> 4) & 0x3F) * 64 + ((cx >> 4) & 0x3F);
+  CMapArea *area = areaTable[areaIndex];
   if (!area) {
     return false;
   }
 
-  unsigned int chunkIndex = (cy & 0xF) * 16 + (cx & 0xF);
-  CMapChunk   *chunk = area->chunkTable[chunkIndex];
+  UINT       chunkIndex = (cy & 0xF) * 16 + (cx & 0xF);
+  CMapChunk *chunk = area->chunkTable[chunkIndex];
   if (!chunk) {
     return false;
   }
@@ -1666,7 +1620,7 @@ bool CMap::GetChunkFacets(int cx, int cy, const NTempest::CiRect &sRect, const C
   lFrustum = wFrustum;
   lFrustum.Translate(-chunk->corner);
 
-  unsigned int culled[19];
+  UINT culled[19];
   for (int y = scRect.t; y <= scRect.b; ++y) {
     for (int x = scRect.l; x <= scRect.r; ++x) {
       if (chunk->holes & g_holeMask[y >> 1][x >> 1]) {
@@ -1675,13 +1629,13 @@ bool CMap::GetChunkFacets(int cx, int cy, const NTempest::CiRect &sRect, const C
 
       FATALASSERT(s_vertexIndex[2][2] == 18);
       NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
-      for (unsigned int index = 0; index < 5; ++index) {
+      for (UINT index = 0; index < 5; ++index) {
         int vertexIndex = s_vertexIndexFlat[index];
         lFrustum.Cull(v[vertexIndex], culled[vertexIndex]);
       }
 
       NTempest::C4Plane *p = &chunk->planeList[4 * (x + 8 * y)];
-      for (unsigned int triangle = 0; triangle < 4; ++triangle, ++p) {
+      for (UINT triangle = 0; triangle < 4; ++triangle, ++p) {
         int i0 = s_vertexIndex[triangle][0];
         int i1 = s_vertexIndex[triangle][1];
         int i2 = s_vertexIndex[triangle][2];
@@ -1713,8 +1667,8 @@ bool CMap::GetChunkFacets(int cx, int cy, const NTempest::CiRect &sRect, const C
       ModelAddCollisionFacets(
           doodadDef->model,
           NTempest::C34Matrix(
-              doodadDef->mat.a0, doodadDef->mat.a1, doodadDef->mat.a2, doodadDef->mat.b0, doodadDef->mat.b1, doodadDef->mat.b2,
-              doodadDef->mat.c0, doodadDef->mat.c1, doodadDef->mat.c2, doodadDef->mat.d0, doodadDef->mat.d1, doodadDef->mat.d2
+              doodadDef->mat.a0, doodadDef->mat.a1, doodadDef->mat.a2, doodadDef->mat.b0, doodadDef->mat.b1, doodadDef->mat.b2, doodadDef->mat.c0,
+              doodadDef->mat.c1, doodadDef->mat.c2, doodadDef->mat.d0, doodadDef->mat.d1, doodadDef->mat.d2
           ),
           doodadDef->scale, frustumBox, &facetData->facets
       );
@@ -1725,7 +1679,7 @@ bool CMap::GetChunkFacets(int cx, int cy, const NTempest::CiRect &sRect, const C
   return origFacetCount != facetData->facets.Count();
 }
 
-bool CMap::GetFacetsMapObjs(const CWFrustum &frustum, CWFacetData *facetData, unsigned int queryFlags) {
+bool CMap::GetFacetsMapObjs(const CWFrustum &frustum, CWFacetData *facetData, UINT queryFlags) {
   bool hit = false;
 
   ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
@@ -1734,12 +1688,12 @@ bool CMap::GetFacetsMapObjs(const CWFrustum &frustum, CWFacetData *facetData, un
     }
 
     NTempest::C3Vector moCorners[8];
-    for (unsigned int i = 0; i < 8; ++i) {
+    for (UINT i = 0; i < 8; ++i) {
       moCorners[i] = frustum.corners[i] * mapObjDef->invMat;
     }
 
     CWFrustum moFrustum(moCorners);
-    CMapObj *mapObj = mapObjDef->mapObj;
+    CMapObj  *mapObj = mapObjDef->mapObj;
     if (mapObj) {
       CWTriData triData;
       hit |= mapObj->GetTris(triData, moFrustum, mapObjDef, queryFlags);

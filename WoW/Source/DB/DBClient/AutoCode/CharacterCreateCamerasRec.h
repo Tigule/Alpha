@@ -7,13 +7,13 @@ class CharacterCreateCamerasRec {
   CharacterCreateCamerasRec();
   ~CharacterCreateCamerasRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 6;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 24;
   }
 
@@ -29,7 +29,7 @@ class CharacterCreateCamerasRec {
     m_generatedID = id;
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
   int   m_Race;
   int   m_Sex;

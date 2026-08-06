@@ -13,7 +13,7 @@
 #ifdef INFINITY
 #undef INFINITY
 #endif
-static NTempest::CImVector image[64];
+static NTempest::CImVector                            image[64];
 static TSFixedArray_<NTempest::C3Vector, 'GxuT', 759> tmpVtx;
 
 static float D3dCeil(float f) {
@@ -24,7 +24,7 @@ static float OglFloor(float f) {
   return static_cast<float>(ceil(floor(f * 16.0f + 0.5f) * 0.0625f));
 }
 
-static void PixSnap(const CGxCaps& caps, const NTempest::C3Vector& src, NTempest::C3Vector& dst) {
+static void PixSnap(const CGxCaps &caps, const NTempest::C3Vector &src, NTempest::C3Vector &dst) {
   if (caps.m_pixelCenterOnEdge && caps.m_texelCenterOnEdge) {
     dst.Set(OglFloor(src.x), OglFloor(src.y), 1.0f);
   } else if (!caps.m_pixelCenterOnEdge && caps.m_texelCenterOnEdge) {
@@ -124,7 +124,12 @@ void GxuXformCreateLookAtSgCompat(
   dst.Translate(NTempest::C3Vector(-eye.x, -eye.y, -eye.z));
 }
 
-void GxuXformCreateLookAtXXX(const NTempest::C3Vector& eye, const NTempest::C3Vector& center, const NTempest::C3Vector& up, NTempest::C44Matrix& dst) {
+void GxuXformCreateLookAtXXX(
+    const NTempest::C3Vector &eye,
+    const NTempest::C3Vector &center,
+    const NTempest::C3Vector &up,
+    NTempest::C44Matrix      &dst
+) {
   dst = NTempest::C44Matrix();
 
   NTempest::C3Vector zv = center - eye;
@@ -193,9 +198,8 @@ void GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4
   planes[4] = NTempest::C4Vector(viewProj.a2 - viewProj.a3, viewProj.b2 - viewProj.b3, viewProj.c2 - viewProj.c3, viewProj.d2 - viewProj.d3);
   planes[5] = NTempest::C4Vector(-viewProj.a2 - viewProj.a3, -viewProj.b2 - viewProj.b3, -viewProj.c2 - viewProj.c3, -viewProj.d2 - viewProj.d3);
 
-  for (unsigned int i = 0; i < 6; ++i) {
-    float invMag =
-        1.0f / NTempest::CMath::sqrt_(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
+  for (UINT i = 0; i < 6; ++i) {
+    float invMag = 1.0f / NTempest::CMath::sqrt_(planes[i].x * planes[i].x + planes[i].y * planes[i].y + planes[i].z * planes[i].z);
     planes[i].x *= invMag;
     planes[i].y *= invMag;
     planes[i].z *= invMag;
@@ -203,21 +207,26 @@ void GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4
   }
 }
 
-void GxuXformCalcFrustumBounds(const NTempest::C44Matrix& view, const NTempest::C44Matrix& proj, NTempest::C3Vector& minBound, NTempest::C3Vector& maxBound) {
+void GxuXformCalcFrustumBounds(
+    const NTempest::C44Matrix &view,
+    const NTempest::C44Matrix &proj,
+    NTempest::C3Vector        &minBound,
+    NTempest::C3Vector        &maxBound
+) {
   NTempest::C3Vector corners[8];
   GxuXformCalcFrustumCorners(view, proj, corners);
   minBound = corners[0];
   maxBound = corners[0];
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     minBound = NTempest::C3Vector::Min(minBound, corners[i]);
     maxBound = NTempest::C3Vector::Max(maxBound, corners[i]);
   }
 }
 
-void GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C3Vector* src, NTempest::C3Vector* dst) {
-  NTempest::CRect winRect;
-  NTempest::C3Vector vpMin;
-  NTempest::C3Vector vpMax;
+void GxuXformCalc2dScreenCoords(UINT count, const NTempest::C3Vector *src, NTempest::C3Vector *dst) {
+  NTempest::CRect     winRect;
+  NTempest::C3Vector  vpMin;
+  NTempest::C3Vector  vpMax;
   NTempest::C44Matrix viewProj;
   GxCapsWindowSize(winRect);
   GxXformViewport(vpMin.x, vpMax.x, vpMin.y, vpMax.y, vpMin.z, vpMax.z);
@@ -225,7 +234,7 @@ void GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C3Vector* sr
 
   float vpWidth = vpMax.x - vpMin.x;
   float vpHeight = vpMax.y - vpMin.y;
-  for (unsigned int i = 0; i < count; ++i) {
+  for (UINT i = 0; i < count; ++i) {
     dst[i].x = viewProj.a0 * src[i].x + viewProj.b0 * src[i].y + viewProj.d0;
     dst[i].y = viewProj.a1 * src[i].x + viewProj.b1 * src[i].y + viewProj.d1;
     dst[i].z = 1.0f;
@@ -235,28 +244,37 @@ void GxuXformCalc2dScreenCoords(unsigned int count, const NTempest::C3Vector* sr
   }
 }
 
-void GxuTexScale(const void* srcPixels, EGxTexFormat srcFormat, unsigned int srcW, unsigned int srcH, unsigned int srcStrideInBytes, const void* dstPixels, EGxTexFormat dstFormat, unsigned int dstW, unsigned int dstH, unsigned int dstStrideInBytes) {
+void GxuTexScale(
+    LPCVOID      srcPixels,
+    EGxTexFormat srcFormat,
+    UINT         srcW,
+    UINT         srcH,
+    UINT         srcStrideInBytes,
+    LPCVOID      dstPixels,
+    EGxTexFormat dstFormat,
+    UINT         dstW,
+    UINT         dstH,
+    UINT         dstStrideInBytes
+) {
   ASSERT(srcFormat == dstFormat);
   FATALASSERT(srcPixels);
   FATALASSERT(srcFormat < GxTexFormats_Last);
   FATALASSERT(dstPixels);
   FATALASSERT(dstFormat < GxTexFormats_Last);
 
-  const unsigned char *src = static_cast<const unsigned char *>(srcPixels);
-  unsigned char       *dst = const_cast<unsigned char *>(static_cast<const unsigned char *>(dstPixels));
-  unsigned int         stepX = (srcW << 16) / dstW;
-  unsigned int         stepY = (srcH << 16) / dstH;
-  unsigned int         srcY = 0;
-  unsigned int         pixelSize = srcFormat == GxTex_Argb8888 ? 4 : 2;
-  for (unsigned int y = 0; y < dstH; ++y) {
-    unsigned int srcX = 0;
-    for (unsigned int x = 0; x < dstW; ++x) {
+  const BYTE *src = static_cast<const BYTE *>(srcPixels);
+  BYTE       *dst = const_cast<BYTE *>(static_cast<const BYTE *>(dstPixels));
+  UINT        stepX = (srcW << 16) / dstW;
+  UINT        stepY = (srcH << 16) / dstH;
+  UINT        srcY = 0;
+  UINT        pixelSize = srcFormat == GxTex_Argb8888 ? 4 : 2;
+  for (UINT y = 0; y < dstH; ++y) {
+    UINT srcX = 0;
+    for (UINT x = 0; x < dstW; ++x) {
       if (pixelSize == 4) {
-        *reinterpret_cast<unsigned int *>(dst + x * 4) =
-            *reinterpret_cast<const unsigned int *>(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 4);
+        *reinterpret_cast<UINT *>(dst + x * 4) = *reinterpret_cast<const UINT *>(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 4);
       } else {
-        *reinterpret_cast<unsigned short *>(dst + x * 2) =
-            *reinterpret_cast<const unsigned short *>(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 2);
+        *reinterpret_cast<WORD *>(dst + x * 2) = *reinterpret_cast<const WORD *>(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 2);
       }
       srcX += stepX;
     }
@@ -267,20 +285,20 @@ void GxuTexScale(const void* srcPixels, EGxTexFormat srcFormat, unsigned int src
 
 void GxuUpdateSingleColorTexture(
     EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
+    UINT          w,
+    UINT          h,
+    UINT          d,
+    UINT          mipLevel,
+    LPVOID        userArg,
+    UINT         &texelStrideInBytes,
+    LPCVOID      &texels
 ) {
-  unsigned int index;
+  UINT index;
 
   switch (cmd) {
     case GxTex_Lock:
       for (index = 0; index < 64; ++index) {
-        image[index].Set(reinterpret_cast<unsigned long>(userArg));
+        image[index].Set(reinterpret_cast<DWORD>(userArg));
       }
       break;
 
@@ -291,7 +309,13 @@ void GxuUpdateSingleColorTexture(
   }
 }
 
-int GxuTestRayAndSphere(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, const NTempest::C3Vector& sphereCenter, float sphereRadius, float& distance) {
+int GxuTestRayAndSphere(
+    const NTempest::C3Vector &rayStart,
+    const NTempest::C3Vector &rayDirection,
+    const NTempest::C3Vector &sphereCenter,
+    float                     sphereRadius,
+    float                    &distance
+) {
   using NTempest::IsUnitVector;
 
   distance = INFINITY;
@@ -308,7 +332,7 @@ int GxuTestRayAndSphere(const NTempest::C3Vector& rayStart, const NTempest::C3Ve
 }
 
 int GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &sphereCenterInWorld, float radius, const NTempest::C4Vector *planes) {
-  for (unsigned int i = 0; i < 6; ++i) {
+  for (UINT i = 0; i < 6; ++i) {
     if (planes[i].x * sphereCenterInWorld.x + planes[i].y * sphereCenterInWorld.y + planes[i].z * sphereCenterInWorld.z + planes[i].w > radius) {
       return 0;
     }
@@ -355,7 +379,23 @@ int GxuTestRayAndTriangle(
   distance = NTempest::C3Vector::Dot(e2, q) * f;
   return 1;
 }
-int GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, const NTempest::C34Matrix* modelToWorldMatrices, unsigned int matrixCount, unsigned int posCount, const NTempest::C3Vector* pos, unsigned int posStride, unsigned int boneCount, const unsigned char* bone, unsigned int boneStride, EGxPrim primType, unsigned int indexCount, const unsigned short* indices, float& distance, unsigned int& primIntersected) {
+int GxuTestRayAndMesh(
+    const NTempest::C3Vector  &rayStart,
+    const NTempest::C3Vector  &rayDirection,
+    const NTempest::C34Matrix *modelToWorldMatrices,
+    UINT                       matrixCount,
+    UINT                       posCount,
+    const NTempest::C3Vector  *pos,
+    UINT                       posStride,
+    UINT                       boneCount,
+    const BYTE                *bone,
+    UINT                       boneStride,
+    EGxPrim                    primType,
+    UINT                       indexCount,
+    const WORD                *indices,
+    float                     &distance,
+    UINT                      &primIntersected
+) {
   using NTempest::IsUnitVector;
 
   distance = INFINITY;
@@ -373,10 +413,10 @@ int GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vect
   }
 
   tmpVtx.SetCount(posCount);
-  const unsigned char *posBytes = reinterpret_cast<const unsigned char *>(pos);
-  const unsigned char *boneIndex = bone;
-  for (unsigned int vndx = 0; vndx < posCount; ++vndx) {
-    unsigned int id = boneIndex ? *boneIndex : 0;
+  const BYTE *posBytes = reinterpret_cast<const BYTE *>(pos);
+  const BYTE *boneIndex = bone;
+  for (UINT vndx = 0; vndx < posCount; ++vndx) {
+    UINT id = boneIndex ? *boneIndex : 0;
     FATALASSERT(boneStride ? vndx < boneCount : 1);
     FATALASSERT(id < matrixCount);
     tmpVtx[vndx] = *reinterpret_cast<const NTempest::C3Vector *>(posBytes) * modelToWorldMatrices[id];
@@ -389,10 +429,8 @@ int GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vect
   float currDistance;
   switch (primType) {
     case GxPrim_Triangles: {
-      for (unsigned int i = 0, primitive = 0; i < indexCount; i += 3, ++primitive) {
-        if (GxuTestRayAndTriangle(
-                rayStart, rayDirection, tmpVtx[indices[i]], tmpVtx[indices[i + 1]], tmpVtx[indices[i + 2]], currDistance
-            ) &&
+      for (UINT i = 0, primitive = 0; i < indexCount; i += 3, ++primitive) {
+        if (GxuTestRayAndTriangle(rayStart, rayDirection, tmpVtx[indices[i]], tmpVtx[indices[i + 1]], tmpVtx[indices[i + 2]], currDistance) &&
             currDistance >= 0.0f && currDistance < distance)
         {
           distance = currDistance;
@@ -403,10 +441,8 @@ int GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vect
     }
 
     case GxPrim_TriangleStrip: {
-      for (unsigned int i = 2; i < indexCount; ++i) {
-        if (GxuTestRayAndTriangle(
-                rayStart, rayDirection, tmpVtx[indices[i - 2]], tmpVtx[indices[i - 1]], tmpVtx[indices[i]], currDistance
-            ) &&
+      for (UINT i = 2; i < indexCount; ++i) {
+        if (GxuTestRayAndTriangle(rayStart, rayDirection, tmpVtx[indices[i - 2]], tmpVtx[indices[i - 1]], tmpVtx[indices[i]], currDistance) &&
             currDistance >= 0.0f && currDistance < distance)
         {
           distance = currDistance;
@@ -417,10 +453,8 @@ int GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vect
     }
 
     case GxPrim_TriangleFan: {
-      for (unsigned int i = 2; i < indexCount; ++i) {
-        if (GxuTestRayAndTriangle(
-                rayStart, rayDirection, tmpVtx[indices[0]], tmpVtx[indices[i - 1]], tmpVtx[indices[i]], currDistance
-            ) &&
+      for (UINT i = 2; i < indexCount; ++i) {
+        if (GxuTestRayAndTriangle(rayStart, rayDirection, tmpVtx[indices[0]], tmpVtx[indices[i - 1]], tmpVtx[indices[i]], currDistance) &&
             currDistance >= 0.0f && currDistance < distance)
         {
           distance = currDistance;
@@ -434,7 +468,17 @@ int GxuTestRayAndMesh(const NTempest::C3Vector& rayStart, const NTempest::C3Vect
   return distance != INFINITY;
 }
 
-int GxuTestRayAndRigidMeshInModelSpace(const NTempest::C3Vector& rayStart, const NTempest::C3Vector& rayDirection, unsigned int posCount, const NTempest::C3Vector* pos, EGxPrim primType, unsigned int indexCount, const unsigned short* indices, float& distance, unsigned int& primIntersected) {
+int GxuTestRayAndRigidMeshInModelSpace(
+    const NTempest::C3Vector &rayStart,
+    const NTempest::C3Vector &rayDirection,
+    UINT                      posCount,
+    const NTempest::C3Vector *pos,
+    EGxPrim                   primType,
+    UINT                      indexCount,
+    const WORD               *indices,
+    float                    &distance,
+    UINT                     &primIntersected
+) {
   using NTempest::IsUnitVector;
 
   distance = INFINITY;
@@ -448,7 +492,7 @@ int GxuTestRayAndRigidMeshInModelSpace(const NTempest::C3Vector& rayStart, const
   float currDistance;
   switch (primType) {
     case GxPrim_Triangles: {
-      for (unsigned int i = 0, primitive = 0; i < indexCount; i += 3, ++primitive) {
+      for (UINT i = 0, primitive = 0; i < indexCount; i += 3, ++primitive) {
         if (GxuTestRayAndTriangle(rayStart, rayDirection, pos[indices[i]], pos[indices[i + 1]], pos[indices[i + 2]], currDistance) &&
             currDistance < distance)
         {
@@ -459,7 +503,7 @@ int GxuTestRayAndRigidMeshInModelSpace(const NTempest::C3Vector& rayStart, const
       break;
     }
     case GxPrim_TriangleStrip: {
-      for (unsigned int i = 2; i < indexCount; ++i) {
+      for (UINT i = 2; i < indexCount; ++i) {
         if (GxuTestRayAndTriangle(rayStart, rayDirection, pos[indices[i - 2]], pos[indices[i - 1]], pos[indices[i]], currDistance) &&
             currDistance < distance)
         {
@@ -470,7 +514,7 @@ int GxuTestRayAndRigidMeshInModelSpace(const NTempest::C3Vector& rayStart, const
       break;
     }
     case GxPrim_TriangleFan: {
-      for (unsigned int i = 2; i < indexCount; ++i) {
+      for (UINT i = 2; i < indexCount; ++i) {
         if (GxuTestRayAndTriangle(rayStart, rayDirection, pos[indices[0]], pos[indices[i - 1]], pos[indices[i]], currDistance) &&
             currDistance < distance)
         {
@@ -484,27 +528,21 @@ int GxuTestRayAndRigidMeshInModelSpace(const NTempest::C3Vector& rayStart, const
   return distance != INFINITY;
 }
 
-unsigned int GxuClipCalcCode(const NTempest::C44Matrix& viewProj, const NTempest::C3Vector& pos) {
+UINT GxuClipCalcCode(const NTempest::C44Matrix &viewProj, const NTempest::C3Vector &pos) {
   NTempest::C4Vector clipVert(pos.x, pos.y, pos.z, 1.0f);
   clipVert = clipVert * viewProj;
-  float cc[6] = {
-      clipVert.w - clipVert.x,
-      clipVert.x + clipVert.w,
-      clipVert.w - clipVert.y,
-      clipVert.y + clipVert.w,
-      clipVert.w - clipVert.z,
-      clipVert.z + clipVert.w
-  };
-  unsigned int code = 0;
-  const unsigned int *bits = reinterpret_cast<const unsigned int *>(cc);
-  for (unsigned int i = 0; i < 6; ++i) {
+  float       cc[6] = {clipVert.w - clipVert.x, clipVert.x + clipVert.w, clipVert.w - clipVert.y,
+                       clipVert.y + clipVert.w, clipVert.w - clipVert.z, clipVert.z + clipVert.w};
+  UINT        code = 0;
+  const UINT *bits = reinterpret_cast<const UINT *>(cc);
+  for (UINT i = 0; i < 6; ++i) {
     code |= (bits[i] >> 31) << i;
   }
   return code;
 }
 
-void GxuSnapTexelsToPixels(const NTempest::C3Vector* pos, NTempest::C2Vector* tex, unsigned int texW, unsigned int texH) {
-  unsigned int i;
+void GxuSnapTexelsToPixels(const NTempest::C3Vector *pos, NTempest::C2Vector *tex, UINT texW, UINT texH) {
+  UINT               i;
   NTempest::C3Vector posScr[4];
   NTempest::C3Vector iposScr[4];
   NTempest::C3Vector texScr[4];
@@ -517,33 +555,39 @@ void GxuSnapTexelsToPixels(const NTempest::C3Vector* pos, NTempest::C2Vector* te
   for (i = 0; i < 4; ++i) {
     PixSnap(caps, posScr[i], iposScr[i]);
     iposCntr += iposScr[i] * 0.25f;
-    if (tex[i].x < texScr[0].x) texScr[0].x = tex[i].x;
-    if (tex[i].y < texScr[0].y) texScr[0].y = tex[i].y;
-    if (tex[i].x > texScr[1].x) texScr[1].x = tex[i].x;
-    if (tex[i].y > texScr[1].y) texScr[1].y = tex[i].y;
+    if (tex[i].x < texScr[0].x)
+      texScr[0].x = tex[i].x;
+    if (tex[i].y < texScr[0].y)
+      texScr[0].y = tex[i].y;
+    if (tex[i].x > texScr[1].x)
+      texScr[1].x = tex[i].x;
+    if (tex[i].y > texScr[1].y)
+      texScr[1].y = tex[i].y;
   }
 
   float texArea = (texScr[1].x - texScr[0].x) * (texScr[1].y - texScr[0].y) * static_cast<float>(texW) * static_cast<float>(texH);
   for (i = 0; i < 4; ++i) {
-    if (iposScr[i].x > iposCntr.x) iposScr[i].x -= 1.0f;
-    if (iposScr[i].y > iposCntr.y) iposScr[i].y -= 1.0f;
+    if (iposScr[i].x > iposCntr.x)
+      iposScr[i].x -= 1.0f;
+    if (iposScr[i].y > iposCntr.y)
+      iposScr[i].y -= 1.0f;
   }
 
   NTempest::C3Vector normal = NTempest::C3Vector::Cross(iposScr[2] - iposScr[1], iposScr[0] - iposScr[1]);
-  float pixArea = normal.Mag();
+  float              pixArea = normal.Mag();
   if (pixArea < 1.0f) {
     return;
   }
 
   pixArea *= 3.0f;
-  unsigned int mip = 0;
+  UINT mip = 0;
   while (pixArea <= texArea) {
     texArea *= 0.5f;
     ++mip;
   }
 
-  unsigned int mipW = texW >> mip;
-  unsigned int mipH = texH >> mip;
+  UINT mipW = texW >> mip;
+  UINT mipH = texH >> mip;
   if (!mipW || !mipH) {
     return;
   }
@@ -558,16 +602,8 @@ void GxuSnapTexelsToPixels(const NTempest::C3Vector* pos, NTempest::C2Vector* te
     texScr[i].y += texScr[i].y >= texCenterY ? -0.5f : 0.5f;
   }
 
-  NTempest::C33Matrix iposM33(
-      iposScr[0].x, iposScr[0].y, 1.0f,
-      iposScr[1].x, iposScr[1].y, 1.0f,
-      iposScr[2].x, iposScr[2].y, 1.0f
-  );
-  NTempest::C33Matrix texM33(
-      texScr[0].x, texScr[0].y, 1.0f,
-      texScr[1].x, texScr[1].y, 1.0f,
-      texScr[2].x, texScr[2].y, 1.0f
-  );
+  NTempest::C33Matrix iposM33(iposScr[0].x, iposScr[0].y, 1.0f, iposScr[1].x, iposScr[1].y, 1.0f, iposScr[2].x, iposScr[2].y, 1.0f);
+  NTempest::C33Matrix texM33(texScr[0].x, texScr[0].y, 1.0f, texScr[1].x, texScr[1].y, 1.0f, texScr[2].x, texScr[2].y, 1.0f);
   NTempest::C33Matrix fromPixToTexM33 = iposM33.Inverse(iposM33.Determinant()) * texM33;
   for (i = 0; i < 4; ++i) {
     NTempest::C3Vector snapped = fromPixToTexM33 * posScr[i];

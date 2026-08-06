@@ -32,9 +32,9 @@ struct WORLDTEXTCREATEPARAMS {
   void Clear();
 
   float               ascendDistance;
-  unsigned int        totalTime;
-  unsigned int        fadeInTime;
-  unsigned int        fadeOutTime;
+  UINT                totalTime;
+  UINT                fadeInTime;
+  UINT                fadeOutTime;
   NTempest::CImVector fontColor;
   NTempest::C2Vector  shadowOffset;
   NTempest::CImVector shadowColor;
@@ -44,9 +44,9 @@ struct WORLDTEXTCREATEPARAMS {
   NTempest::C2Vector  border;
   float               startFontHeight;
   float               endFontHeight;
-  unsigned int        enlargeTime;
-  unsigned int        shrinkTime;
-  unsigned int        flags;
+  UINT                enlargeTime;
+  UINT                shrinkTime;
+  UINT                flags;
   char                fontName[260];
   float               fontHeight;
 };
@@ -55,43 +55,43 @@ struct WORLDTEXTSTRING : public CHandleObject {
   WORLDTEXTSTRING();
   void Update(float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *basePosition);
   void Reset();
-  void CalculateNewColor(unsigned int elapsed);
-  void CalculateTextHeight(unsigned int elapsedTime);
+  void CalculateNewColor(UINT elapsed);
+  void CalculateTextHeight(UINT elapsedTime);
   void CalculateNewPosition(
-      const NTempest::C4Vector &worldPosition,
-      unsigned int         elapsedTime,
-      NTempest::C4Vector  &textPos,
+      const NTempest::C4Vector  &worldPosition,
+      UINT                       elapsedTime,
+      NTempest::C4Vector        &textPos,
       const NTempest::C44Matrix &matrix,
-      int                  worldPositionSpecified
+      int                        worldPositionSpecified
   );
-  void UpdatePosition(const NTempest::C4Vector &worldPosition, unsigned int elapsedTime, NTempest::C4Vector &textPos);
+  void UpdatePosition(const NTempest::C4Vector &worldPosition, UINT elapsedTime, NTempest::C4Vector &textPos);
   void UpdateStringHeight(float height);
   void RecreateString();
   void Hide(int hide);
   void Render() const;
-  void InitTextFrame(const char *text);
+  void InitTextFrame(LPCSTR text);
   virtual ~WORLDTEXTSTRING();
 
-  WORLDTEXTTYPE           worldTextType;
-  WORLDTEXTCREATEPARAMS   params;
-  unsigned int            elapsedTime;
-  unsigned int            totalTime;
-  unsigned __int64        object;
-  float                   textWidth;
-  float                   textHeight;
-  float                   heightScale;
-  float                   zOffset;
+  WORLDTEXTTYPE         worldTextType;
+  WORLDTEXTCREATEPARAMS params;
+  UINT                  elapsedTime;
+  UINT                  totalTime;
+  DWORDLONG             object;
+  float                 textWidth;
+  float                 textHeight;
+  float                 heightScale;
+  float                 zOffset;
   LINKDECLEX(WORLDTEXTSTRING, link);
-  int                     hidden;
-  unsigned int            m_flags;
-  CGxString              *string;
-  float                   savedStringHeight;
-  char                    savedStringText[64];
+  int        hidden;
+  UINT       m_flags;
+  CGxString *string;
+  float      savedStringHeight;
+  char       savedStringText[64];
 };
 
-void WorldTextClearStrings();
-HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride);
-void WorldTextShow(HWORLDTEXT__ *text, int show);
-void WorldTextRender(HWORLDTEXT__ *text);
-void WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position);
-int WorldTextIsTextDone(HWORLDTEXT__ *text);
+void          WorldTextClearStrings();
+HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object, const NTempest::CImVector *colorOverride);
+void          WorldTextShow(HWORLDTEXT__ *text, int show);
+void          WorldTextRender(HWORLDTEXT__ *text);
+void          WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position);
+int           WorldTextIsTextDone(HWORLDTEXT__ *text);

@@ -71,7 +71,7 @@ void OsInputSetScreenIsWindow(int inVal) {
   s_screenIsWindow = inVal;
 }
 
-unsigned int OsInputGetCodePage() {
+UINT OsInputGetCodePage() {
   return 0;
 }
 

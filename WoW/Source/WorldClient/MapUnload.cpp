@@ -11,7 +11,7 @@
 void CMap::Unload() {
   Purge();
 
-  for (unsigned int i = 0; i < 4096; ++i) {
+  for (UINT i = 0; i < 4096; ++i) {
     if (areaLowTable[i]) {
       DEL(areaLowTable[i]);
       areaLowTable[i] = 0;

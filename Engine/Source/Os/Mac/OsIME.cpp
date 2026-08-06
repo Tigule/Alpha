@@ -2,25 +2,19 @@
 
 #include "Os/W32/OsIME.h"
 
-int OsIMEGetCompositionString(char *string, unsigned int maxlen) {
+int OsIMEGetCompositionString(char *string, UINT maxlen) {
   return 0;
 }
 
-int OsIMEGetCompositionResult(char *string, unsigned int maxlen) {
+int OsIMEGetCompositionResult(char *string, UINT maxlen) {
   return 0;
 }
 
-int OsIMEGetClauseInfo(unsigned int &clauseLeft, unsigned int &clauseRight, unsigned int &cursorPos) {
+int OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   return 0;
 }
 
-int OsIMEGetCandidates(
-    DWORD                            which,
-    unsigned int                    &pageSize,
-    unsigned int                    &count,
-    unsigned int                    &selection,
-    TSGrowableArray<OsIMECandidate> &candidates
-) {
+int OsIMEGetCandidates(DWORD which, UINT &pageSize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates) {
   return 0;
 }
 

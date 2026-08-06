@@ -20,14 +20,14 @@
 
 class CGUIBindingsStatus : public CStatus {
  public:
-  virtual void Add(int severity, const char *format, ...);
+  virtual void Add(int severity, LPCSTR format, ...);
 };
 
 static CGUIBindingsStatus s_nullStatus;
 
-int ConsoleCommand_RunExec(const char *cmd, const char *arguments);
+int ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments);
 
-void CGUIBindingsStatus::Add(int, const char *format, ...) {
+void CGUIBindingsStatus::Add(int, LPCSTR format, ...) {
   char    buffer[512];
   va_list arguments;
 
@@ -37,7 +37,7 @@ void CGUIBindingsStatus::Add(int, const char *format, ...) {
   OsOutputDebugString(buffer);
 }
 
-static int Bind_CommandHandler(const char *command, const char *arguments) {
+static int Bind_CommandHandler(LPCSTR command, LPCSTR arguments) {
   char keyName[32];
 
   if (!*arguments) {
@@ -53,7 +53,7 @@ static int Bind_CommandHandler(const char *command, const char *arguments) {
 
 CGUIBindings *CGUIBindings::s_bindings;
 
-CGUIBindings *CGUIBindings::Initialize(const char *commandsFile, CStatus *status) {
+CGUIBindings *CGUIBindings::Initialize(LPCSTR commandsFile, CStatus *status) {
   FATALASSERT(!s_bindings);
   s_bindings = NEW(CGUIBindings);
   FATALASSERT(s_bindings);
@@ -90,19 +90,19 @@ void CGUIBindings::SaveBindings() {
   CGUIBindings *bindings = GetActive();
   FATALASSERT(bindings);
 
-  const char *fileName = "bindings.wtf";
+  LPCSTR  fileName = "bindings.wtf";
   HOSFILE file = OsCreateFile(fileName, 0x40000000, 0, 2, 0x80, 0x3F3F3F3F);
   if (file == HOSFILE_INVALID) {
     return;
   }
 
-  char buffer[128];
-  unsigned long bytesWritten;
+  char  buffer[128];
+  DWORD bytesWritten;
   for (int commandIndex = 0; commandIndex < bindings->GetNumCommands(); ++commandIndex) {
-    const char *command;
+    LPCSTR command;
     bindings->GetCommand(commandIndex, command);
     for (int keyIndex = 0;; ++keyIndex) {
-      const char *key = bindings->GetCommandKey(command, keyIndex);
+      LPCSTR key = bindings->GetCommandKey(command, keyIndex);
       if (!key) {
         break;
       }
@@ -112,10 +112,10 @@ void CGUIBindings::SaveBindings() {
   }
 
   for (int hiddenCommandIndex = 0; hiddenCommandIndex < bindings->GetNumHiddenCommands(); ++hiddenCommandIndex) {
-    const char *hiddenCommand;
+    LPCSTR hiddenCommand;
     bindings->GetHiddenCommand(hiddenCommandIndex, hiddenCommand);
     for (int hiddenKeyIndex = 0;; ++hiddenKeyIndex) {
-      const char *hiddenKey = bindings->GetCommandKey(hiddenCommand, hiddenKeyIndex);
+      LPCSTR hiddenKey = bindings->GetCommandKey(hiddenCommand, hiddenKeyIndex);
       if (!hiddenKey) {
         break;
       }
@@ -132,15 +132,15 @@ void CGUIBindings::SaveBindings() {
 }
 
 static struct {
-  unsigned int metaKey;
-  const char  *metaStr;
+  UINT   metaKey;
+  LPCSTR metaStr;
 } metaList[3] = {
-    {KEY_SHIFT, "SHIFT-"},
-    {KEY_CONTROL, "CTRL-"},
-    {KEY_ALT, "ALT-"}
+    {  KEY_SHIFT, "SHIFT-"},
+    {KEY_CONTROL,  "CTRL-"},
+    {    KEY_ALT,   "ALT-"}
 };
 
-int CGUIBindings::AddMetaPrefix(unsigned int metaKeyState, char *&string, int &maxLen) {
+int CGUIBindings::AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen) {
   for (int index = 2; index >= 0; --index) {
     if (metaKeyState & (1 << metaList[index].metaKey)) {
       int length = SStrLen(metaList[index].metaStr);
@@ -155,11 +155,11 @@ int CGUIBindings::AddMetaPrefix(unsigned int metaKeyState, char *&string, int &m
   return 1;
 }
 
-const char *CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int maxLen) {
-  char        charBuf[8];
-  char       *dest = string;
-  const char *keyString = "UNKNOWN";
-  unsigned int metaKeyState = evt.metaKeyState;
+LPCSTR CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int maxLen) {
+  char   charBuf[8];
+  char  *dest = string;
+  LPCSTR keyString = "UNKNOWN";
+  UINT   metaKeyState = evt.metaKeyState;
 
   if (evt.repeat > 1) {
     return 0;
@@ -182,55 +182,131 @@ const char *CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, i
     keyString = charBuf;
   } else {
     switch (evt.key) {
-      case KEY_SHIFT: keyString = "SHIFT"; break;
-      case KEY_CONTROL: keyString = "CTRL"; break;
-      case KEY_ALT: keyString = "ALT"; break;
-      case KEY_SPACE: keyString = "SPACE"; break;
-      case KEY_TILDE: keyString = "TILDE"; break;
-      case KEY_NUMPAD_PLUS: keyString = "NUMPADPLUS"; break;
-      case KEY_NUMPAD_MINUS: keyString = "NUMPADMINUS"; break;
-      case KEY_NUMPAD_MULTIPLY: keyString = "NUMPADMULTIPLY"; break;
-      case KEY_NUMPAD_DIVIDE: keyString = "NUMPADDIVIDE"; break;
-      case KEY_PLUS: keyString = "PLUS"; break;
-      case KEY_MINUS: keyString = "MINUS"; break;
-      case KEY_BRACKET_OPEN: keyString = "LEFTBRACKET"; break;
-      case KEY_BRACKET_CLOSE: keyString = "RIGHTBRACKET"; break;
-      case KEY_SLASH: keyString = "SLASH"; break;
-      case KEY_BACKSLASH: keyString = "BACKSLASH"; break;
-      case KEY_SEMICOLON: keyString = "SEMICOLON"; break;
-      case KEY_APOSTROPHE: keyString = "APOSTROPHE"; break;
-      case KEY_COMMA: keyString = "COMMA"; break;
-      case KEY_PERIOD: keyString = "PERIOD"; break;
-      case KEY_ESCAPE: keyString = "ESCAPE"; break;
-      case KEY_ENTER: keyString = "ENTER"; break;
-      case KEY_BACKSPACE: keyString = "BACKSPACE"; break;
-      case KEY_TAB: keyString = "TAB"; break;
-      case KEY_LEFT: keyString = "LEFT"; break;
-      case KEY_UP: keyString = "UP"; break;
-      case KEY_RIGHT: keyString = "RIGHT"; break;
-      case KEY_DOWN: keyString = "DOWN"; break;
-      case KEY_INSERT: keyString = "INSERT"; break;
-      case KEY_DELETE: keyString = "DELETE"; break;
-      case KEY_HOME: keyString = "HOME"; break;
-      case KEY_END: keyString = "END"; break;
-      case KEY_PAGEUP: keyString = "PAGEUP"; break;
-      case KEY_PAGEDOWN: keyString = "PAGEDOWN"; break;
-      case KEY_NUMLOCK: keyString = "NUMLOCK"; break;
-      case KEY_CAPSLOCK: keyString = "CAPSLOCK"; break;
-      case KEY_SCROLLLOCK: keyString = "SCROLLLOCK"; break;
-      case KEY_PAUSE: keyString = "PAUSE"; break;
-      case KEY_PRINTSCREEN: keyString = "PRINTSCREEN"; break;
+      case KEY_SHIFT:
+        keyString = "SHIFT";
+        break;
+      case KEY_CONTROL:
+        keyString = "CTRL";
+        break;
+      case KEY_ALT:
+        keyString = "ALT";
+        break;
+      case KEY_SPACE:
+        keyString = "SPACE";
+        break;
+      case KEY_TILDE:
+        keyString = "TILDE";
+        break;
+      case KEY_NUMPAD_PLUS:
+        keyString = "NUMPADPLUS";
+        break;
+      case KEY_NUMPAD_MINUS:
+        keyString = "NUMPADMINUS";
+        break;
+      case KEY_NUMPAD_MULTIPLY:
+        keyString = "NUMPADMULTIPLY";
+        break;
+      case KEY_NUMPAD_DIVIDE:
+        keyString = "NUMPADDIVIDE";
+        break;
+      case KEY_PLUS:
+        keyString = "PLUS";
+        break;
+      case KEY_MINUS:
+        keyString = "MINUS";
+        break;
+      case KEY_BRACKET_OPEN:
+        keyString = "LEFTBRACKET";
+        break;
+      case KEY_BRACKET_CLOSE:
+        keyString = "RIGHTBRACKET";
+        break;
+      case KEY_SLASH:
+        keyString = "SLASH";
+        break;
+      case KEY_BACKSLASH:
+        keyString = "BACKSLASH";
+        break;
+      case KEY_SEMICOLON:
+        keyString = "SEMICOLON";
+        break;
+      case KEY_APOSTROPHE:
+        keyString = "APOSTROPHE";
+        break;
+      case KEY_COMMA:
+        keyString = "COMMA";
+        break;
+      case KEY_PERIOD:
+        keyString = "PERIOD";
+        break;
+      case KEY_ESCAPE:
+        keyString = "ESCAPE";
+        break;
+      case KEY_ENTER:
+        keyString = "ENTER";
+        break;
+      case KEY_BACKSPACE:
+        keyString = "BACKSPACE";
+        break;
+      case KEY_TAB:
+        keyString = "TAB";
+        break;
+      case KEY_LEFT:
+        keyString = "LEFT";
+        break;
+      case KEY_UP:
+        keyString = "UP";
+        break;
+      case KEY_RIGHT:
+        keyString = "RIGHT";
+        break;
+      case KEY_DOWN:
+        keyString = "DOWN";
+        break;
+      case KEY_INSERT:
+        keyString = "INSERT";
+        break;
+      case KEY_DELETE:
+        keyString = "DELETE";
+        break;
+      case KEY_HOME:
+        keyString = "HOME";
+        break;
+      case KEY_END:
+        keyString = "END";
+        break;
+      case KEY_PAGEUP:
+        keyString = "PAGEUP";
+        break;
+      case KEY_PAGEDOWN:
+        keyString = "PAGEDOWN";
+        break;
+      case KEY_NUMLOCK:
+        keyString = "NUMLOCK";
+        break;
+      case KEY_CAPSLOCK:
+        keyString = "CAPSLOCK";
+        break;
+      case KEY_SCROLLLOCK:
+        keyString = "SCROLLLOCK";
+        break;
+      case KEY_PAUSE:
+        keyString = "PAUSE";
+        break;
+      case KEY_PRINTSCREEN:
+        keyString = "PRINTSCREEN";
+        break;
     }
   }
 
-  if (!*keyString || SStrLen(keyString) >= static_cast<unsigned int>(maxLen)) {
+  if (!*keyString || SStrLen(keyString) >= static_cast<UINT>(maxLen)) {
     return 0;
   }
   SStrCopy(dest, keyString, 0x7FFFFFFF);
   return string;
 }
 
-const char *CGUIBindings::MouseEventToString(const CMouseEvent &evt, char *string, int maxLen) {
+LPCSTR CGUIBindings::MouseEventToString(const CMouseEvent &evt, char *string, int maxLen) {
   char *dest = string;
   if (!AddMetaPrefix(evt.metaKeyState, dest, maxLen)) {
     return 0;
@@ -245,11 +321,21 @@ const char *CGUIBindings::MouseEventToString(const CMouseEvent &evt, char *strin
   }
 
   switch (evt.button) {
-    case MOUSE_BUTTON_LEFT: SStrCopy(dest, "BUTTON1", maxLen); break;
-    case MOUSE_BUTTON_MIDDLE: SStrCopy(dest, "BUTTON3", maxLen); break;
-    case MOUSE_BUTTON_RIGHT: SStrCopy(dest, "BUTTON2", maxLen); break;
-    case MOUSE_BUTTON_XBUTTON1: SStrCopy(dest, "BUTTON4", maxLen); break;
-    case MOUSE_BUTTON_XBUTTON2: SStrCopy(dest, "BUTTON5", maxLen); break;
+    case MOUSE_BUTTON_LEFT:
+      SStrCopy(dest, "BUTTON1", maxLen);
+      break;
+    case MOUSE_BUTTON_MIDDLE:
+      SStrCopy(dest, "BUTTON3", maxLen);
+      break;
+    case MOUSE_BUTTON_RIGHT:
+      SStrCopy(dest, "BUTTON2", maxLen);
+      break;
+    case MOUSE_BUTTON_XBUTTON1:
+      SStrCopy(dest, "BUTTON4", maxLen);
+      break;
+    case MOUSE_BUTTON_XBUTTON2:
+      SStrCopy(dest, "BUTTON5", maxLen);
+      break;
     default: {
       ASSERT(evt.button > MOUSE_BUTTON_RIGHT);
       *dest = 0;
@@ -275,14 +361,14 @@ CGUIBindings::~CGUIBindings() {
   m_commands.Clear();
 }
 
-int CGUIBindings::Load(const char *commandsFile, CStatus *status) {
+int CGUIBindings::Load(LPCSTR commandsFile, CStatus *status) {
   char           headerBuf[64];
   XMLTree       *tree;
-  const char    *script;
-  unsigned long  bytesRead;
+  LPCSTR         script;
+  DWORD          bytesRead;
   int            headerIndex;
-  void          *buffer;
-  const char    *name;
+  LPVOID         buffer;
+  LPCSTR         name;
   const XMLNode *node;
 
   if (!status) {
@@ -297,7 +383,7 @@ int CGUIBindings::Load(const char *commandsFile, CStatus *status) {
     return 0;
   }
 
-  tree = XMLTree_Load(static_cast<const char *>(buffer), bytesRead);
+  tree = XMLTree_Load(static_cast<LPCSTR>(buffer), bytesRead);
   SFileUnloadFile(buffer);
   if (!tree) {
     status->Add(STATUS_ERROR, "Couldn't parse XML in %s", commandsFile);
@@ -332,7 +418,7 @@ int CGUIBindings::Load(const char *commandsFile, CStatus *status) {
       continue;
     }
 
-    const char *header = node->GetAttributeByName("header");
+    LPCSTR header = node->GetAttributeByName("header");
     if (header && *header) {
       headerIndex = SStrToInt(header);
       if (headerIndex >= 0) {
@@ -349,7 +435,7 @@ int CGUIBindings::Load(const char *commandsFile, CStatus *status) {
     }
 
     KEYCOMMAND *command = m_commands.New(name, 0, 0);
-    const char *hidden = node->GetAttributeByName("hidden");
+    LPCSTR      hidden = node->GetAttributeByName("hidden");
     if (hidden && StringToBOOL(hidden)) {
       command->index = -++m_numHiddenCommands;
     } else {
@@ -357,7 +443,7 @@ int CGUIBindings::Load(const char *commandsFile, CStatus *status) {
     }
 
     command->function = FrameScript_CompileFunction(script, name);
-    const char *runOnUp = node->GetAttributeByName("runOnUp");
+    LPCSTR runOnUp = node->GetAttributeByName("runOnUp");
     command->runOnUp = runOnUp ? StringToBOOL(runOnUp) : 0;
     node = node->GetSibling();
   }
@@ -366,7 +452,7 @@ int CGUIBindings::Load(const char *commandsFile, CStatus *status) {
   return 1;
 }
 
-int CGUIBindings::Bind(const char *keystring, const char *command) {
+int CGUIBindings::Bind(LPCSTR keystring, LPCSTR command) {
   if (!keystring || !command) {
     return 0;
   }
@@ -398,11 +484,11 @@ int CGUIBindings::Bind(const char *keystring, const char *command) {
   return 1;
 }
 
-int CGUIBindings::ExecKey(const char *keystring, unsigned long timestamp, int down) const {
+int CGUIBindings::ExecKey(LPCSTR keystring, DWORD timestamp, int down) const {
   if (!keystring || !*keystring) {
     return 0;
   }
-  const char *action = GetCommandAction(keystring);
+  LPCSTR action = GetCommandAction(keystring);
   if (!action) {
     return 0;
   }
@@ -411,7 +497,7 @@ int CGUIBindings::ExecKey(const char *keystring, unsigned long timestamp, int do
   return ExecCommand(command, timestamp, down);
 }
 
-int CGUIBindings::ExecCommand(const char *command, unsigned long timestamp, int down) const {
+int CGUIBindings::ExecCommand(LPCSTR command, DWORD timestamp, int down) const {
   if (!command || !*command) {
     return 0;
   }
@@ -433,7 +519,7 @@ int CGUIBindings::ExecCommand(const char *command, unsigned long timestamp, int 
   return 1;
 }
 
-void CGUIBindings::GetCommand(int index, const char *&command) const {
+void CGUIBindings::GetCommand(int index, LPCSTR &command) const {
   command = 0;
   for (const KEYCOMMAND *entry = m_commands.Head(); entry; entry = m_commands.Next(entry)) {
     if (entry->index == index) {
@@ -443,7 +529,7 @@ void CGUIBindings::GetCommand(int index, const char *&command) const {
   }
 }
 
-void CGUIBindings::GetHiddenCommand(int index, const char *&command) const {
+void CGUIBindings::GetHiddenCommand(int index, LPCSTR &command) const {
   command = 0;
   for (const KEYCOMMAND *entry = m_commands.Head(); entry; entry = m_commands.Next(entry)) {
     if (entry->index == -index - 1) {
@@ -453,7 +539,7 @@ void CGUIBindings::GetHiddenCommand(int index, const char *&command) const {
   }
 }
 
-const char *CGUIBindings::GetCommandKey(const char *command, int keyindex) const {
+LPCSTR CGUIBindings::GetCommandKey(LPCSTR command, int keyindex) const {
   for (const KEYBINDING *binding = m_bindings.Head(); binding; binding = m_bindings.Next(binding)) {
     if (!SStrCmpI(binding->command, command, 0x7FFFFFFF) && binding->index == keyindex) {
       return binding->GetString();
@@ -462,8 +548,8 @@ const char *CGUIBindings::GetCommandKey(const char *command, int keyindex) const
   return 0;
 }
 
-unsigned int CGUIBindings::GetNumCommandKeys(const char *command) const {
-  unsigned int count = 0;
+UINT CGUIBindings::GetNumCommandKeys(LPCSTR command) const {
+  UINT count = 0;
   for (const KEYBINDING *binding = m_bindings.Head(); binding; binding = m_bindings.Next(binding)) {
     if (!SStrCmpI(binding->command, command, 0x7FFFFFFF)) {
       ++count;
@@ -472,7 +558,7 @@ unsigned int CGUIBindings::GetNumCommandKeys(const char *command) const {
   return count;
 }
 
-void CGUIBindings::AdjustCommandKeyIndices(const char *command, int index) const {
+void CGUIBindings::AdjustCommandKeyIndices(LPCSTR command, int index) const {
   ITERATELIST(KEYBINDING, m_bindings, binding) {
     if (!SStrCmpI(binding->command, command, 0x7FFFFFFF) && binding->index > index) {
       --binding->index;
@@ -480,7 +566,7 @@ void CGUIBindings::AdjustCommandKeyIndices(const char *command, int index) const
   }
 }
 
-const char *CGUIBindings::GetCommandAction(const char *keystring) const {
+LPCSTR CGUIBindings::GetCommandAction(LPCSTR keystring) const {
   const KEYBINDING *binding = m_bindings.Ptr(keystring);
   return binding ? binding->command : 0;
 }
@@ -498,13 +584,11 @@ static int Script_GetBinding(lua_State *L) {
   }
   CGUIBindings *bindings = CGUIBindings::GetActive();
   ASSERT(bindings);
-  const char *command = "";
+  LPCSTR command = "";
   bindings->GetCommand(static_cast<int>(lua_tonumber(L, 1)) - 1, command);
   lua_pushstring(L, command);
   int count = 0;
-  for (const char *key = bindings->GetCommandKey(command, 0);
-       key;
-       key = bindings->GetCommandKey(command, count)) {
+  for (LPCSTR key = bindings->GetCommandKey(command, 0); key; key = bindings->GetCommandKey(command, count)) {
     ++count;
     lua_pushstring(L, key);
   }
@@ -531,9 +615,9 @@ static int Script_GetBindingKey(lua_State *L) {
   }
   CGUIBindings *bindings = CGUIBindings::GetActive();
   FATALASSERT(bindings);
-  const char *command = lua_tostring(L, 1);
-  int         count = 0;
-  for (const char *key = bindings->GetCommandKey(command, 0); key; key = bindings->GetCommandKey(command, count)) {
+  LPCSTR command = lua_tostring(L, 1);
+  int    count = 0;
+  for (LPCSTR key = bindings->GetCommandKey(command, 0); key; key = bindings->GetCommandKey(command, count)) {
     ++count;
     lua_pushstring(L, key);
   }
@@ -546,7 +630,7 @@ static int Script_GetBindingAction(lua_State *L) {
   }
   CGUIBindings *bindings = CGUIBindings::GetActive();
   FATALASSERT(bindings);
-  const char *command = bindings->GetCommandAction(lua_tostring(L, 1));
+  LPCSTR command = bindings->GetCommandAction(lua_tostring(L, 1));
   lua_pushstring(L, command ? command : "");
   return 1;
 }

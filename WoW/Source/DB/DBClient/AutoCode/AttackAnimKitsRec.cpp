@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *AttackAnimKitsRec::GetFilename() {
+LPCSTR AttackAnimKitsRec::GetFilename() {
   return "DBFilesClient\\AttackAnimKits.dbc";
 }
 
@@ -19,7 +19,7 @@ AttackAnimKitsRec::AttackAnimKitsRec() {
 AttackAnimKitsRec::~AttackAnimKitsRec() {
 }
 
-bool AttackAnimKitsRec::Read(SFile *f, const char *stringBuffer) {
+bool AttackAnimKitsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

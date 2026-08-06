@@ -9,7 +9,7 @@
 #include <windows.h>
 #include <malloc.h>
 
-static void FailureMessage(const char *title) {
+static void FailureMessage(LPCSTR title) {
   char *msgBuffer;
 
   FormatMessageA(0x1300, 0, GetLastError(), 0x400, reinterpret_cast<char *>(&msgBuffer), 0, 0);
@@ -17,13 +17,13 @@ static void FailureMessage(const char *title) {
   LocalFree(msgBuffer);
 }
 
-int OsClipboardGetString(char *buf, unsigned int bufSize) {
-  HWND            hWnd = GetActiveWindow();
-  HANDLE          globalObjectHandle;
-  char           *clipboardString;
-  int             wideChars;
-  unsigned short *wideString;
-  unsigned int    written;
+int OsClipboardGetString(char *buf, UINT bufSize) {
+  HWND   hWnd = GetActiveWindow();
+  HANDLE globalObjectHandle;
+  char  *clipboardString;
+  int    wideChars;
+  WORD  *wideString;
+  UINT   written;
 
   ASSERT(hWnd);
 
@@ -47,7 +47,7 @@ int OsClipboardGetString(char *buf, unsigned int bufSize) {
   }
 
   wideChars = MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, 0, 0);
-  wideString = static_cast<unsigned short *>(_alloca(wideChars * sizeof(unsigned short)));
+  wideString = static_cast<WORD *>(_alloca(wideChars * sizeof(WORD)));
   MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, reinterpret_cast<wchar_t *>(wideString), wideChars);
 
   ConvertUTF16toUTF8(buf, bufSize - 1, wideString, wideChars, &written, 0);
@@ -59,13 +59,13 @@ int OsClipboardGetString(char *buf, unsigned int bufSize) {
 }
 
 char *OsClipboardGetString() {
-  HWND            hWnd = GetActiveWindow();
-  HANDLE          globalObjectHandle;
-  char           *clipboardString;
-  int             wideChars;
-  unsigned short *wideString;
-  char           *buffer;
-  unsigned int    written;
+  HWND   hWnd = GetActiveWindow();
+  HANDLE globalObjectHandle;
+  char  *clipboardString;
+  int    wideChars;
+  WORD  *wideString;
+  char  *buffer;
+  UINT   written;
 
   ASSERT(hWnd);
 
@@ -89,7 +89,7 @@ char *OsClipboardGetString() {
   }
 
   wideChars = MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, 0, 0);
-  wideString = static_cast<unsigned short *>(_alloca(wideChars * sizeof(unsigned short)));
+  wideString = static_cast<WORD *>(_alloca(wideChars * sizeof(WORD)));
   MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, reinterpret_cast<wchar_t *>(wideString), wideChars);
 
   buffer = static_cast<char *>(ALLOC(3 * wideChars));
@@ -105,12 +105,12 @@ void OsClipboardFreeString(char *string) {
   FREEIFUSED(string);
 }
 
-int OsClipboardPutString(const char *string) {
-  HWND            hWnd = GetActiveWindow();
-  unsigned int    stringBytes;
-  HGLOBAL         clipboardData;
-  char           *globalString;
-  unsigned short *wideString;
+int OsClipboardPutString(LPCSTR string) {
+  HWND    hWnd = GetActiveWindow();
+  UINT    stringBytes;
+  HGLOBAL clipboardData;
+  char   *globalString;
+  WORD   *wideString;
 
   ASSERT(hWnd);
 
@@ -128,7 +128,7 @@ int OsClipboardPutString(const char *string) {
     return 0;
   }
 
-  wideString = static_cast<unsigned short *>(_alloca(stringBytes * sizeof(unsigned short)));
+  wideString = static_cast<WORD *>(_alloca(stringBytes * sizeof(WORD)));
   ConvertUTF8toUTF16(wideString, stringBytes, string, 0x7FFFFFFF, 0, 0);
   WideCharToMultiByte(OsInputGetCodePage(), 0, reinterpret_cast<const wchar_t *>(wideString), -1, globalString, stringBytes, 0, 0);
   GlobalUnlock(clipboardData);

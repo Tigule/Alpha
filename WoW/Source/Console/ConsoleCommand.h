@@ -38,36 +38,36 @@ enum EXECMODE {
   EM_NUM_EXECMODES = 5
 };
 
-typedef int(*CONSOLECOMMANDHANDLER)(const char *command, const char *arguments);
+typedef int (*CONSOLECOMMANDHANDLER)(LPCSTR command, LPCSTR arguments);
 
 struct CONSOLECOMMAND : public TSHashObject<CONSOLECOMMAND, HASHKEY_CONSTSTRI> {
   CONSOLECOMMAND() : m_helpText(0) {
   }
 
   CONSOLECOMMANDHANDLER m_handler;
-  const char           *m_helpText;
+  LPCSTR                m_helpText;
   CATEGORY              m_category;
 };
 
 extern EXECMODE                                       g_ExecCreateMode;
 extern char                                           g_ExecBuffer[0x2000];
-extern unsigned int                                   g_commandHistoryIndex;
+extern UINT                                           g_commandHistoryIndex;
 extern char                                           g_commandHistory[32][80];
 extern CONSOLECOMMANDHANDLER                          g_defaultCommand;
 extern TSHashTable<CONSOLECOMMAND, HASHKEY_CONSTSTRI> g_consoleCommandHash;
 
-int AddLineToExecFile(const char *currentLine);
-void AddToHistory(const char *command);
+int  AddLineToExecFile(LPCSTR currentLine);
+void AddToHistory(LPCSTR command);
 
-CONSOLECOMMAND *ParseCommand(const char *commandLine, const char **command, const char **arguments);
+CONSOLECOMMAND *ParseCommand(LPCSTR commandLine, LPCSTR *command, LPCSTR *arguments);
 
-void ConsoleCommandExecute(const char *commandLine, int addToHistory);
-unsigned int ConsoleCommandHistoryDepth();
-const char *ConsoleCommandHistory(unsigned int offset);
-int ConsoleCommandRegister(const char *command, CONSOLECOMMANDHANDLER handler, CATEGORY category, const char *helpText);
-void ConsoleCommandUnregister(const char *command);
-int ConsoleCommandComplete(const char *partial, const char **previous, int direction);
-void ConsoleCommandWriteHelp(const char *cmd);
-void ConsoleCommandRegisterDefault(CONSOLECOMMANDHANDLER handler);
-void ConsoleCommandInitialize();
-void ConsoleCommandDestroy();
+void   ConsoleCommandExecute(LPCSTR commandLine, int addToHistory);
+UINT   ConsoleCommandHistoryDepth();
+LPCSTR ConsoleCommandHistory(UINT offset);
+int    ConsoleCommandRegister(LPCSTR command, CONSOLECOMMANDHANDLER handler, CATEGORY category, LPCSTR helpText);
+void   ConsoleCommandUnregister(LPCSTR command);
+int    ConsoleCommandComplete(LPCSTR partial, LPCSTR *previous, int direction);
+void   ConsoleCommandWriteHelp(LPCSTR cmd);
+void   ConsoleCommandRegisterDefault(CONSOLECOMMANDHANDLER handler);
+void   ConsoleCommandInitialize();
+void   ConsoleCommandDestroy();

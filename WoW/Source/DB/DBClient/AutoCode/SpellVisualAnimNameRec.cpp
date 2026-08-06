@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellVisualAnimNameRec::GetFilename() {
+LPCSTR SpellVisualAnimNameRec::GetFilename() {
   return "DBFilesClient\\SpellVisualAnimName.dbc";
 }
 
@@ -19,9 +19,9 @@ SpellVisualAnimNameRec::SpellVisualAnimNameRec() {
 SpellVisualAnimNameRec::~SpellVisualAnimNameRec() {
 }
 
-bool SpellVisualAnimNameRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempnameIndices[1];
+bool SpellVisualAnimNameRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempnameIndices[1];
 
   result = SFile::Read(f, &m_AnimID, sizeof(m_AnimID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempnameIndices[0], sizeof(tempnameIndices[0]), 0, 0, 0) && result;

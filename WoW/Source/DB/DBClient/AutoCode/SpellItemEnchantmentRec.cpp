@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellItemEnchantmentRec::GetFilename() {
+LPCSTR SpellItemEnchantmentRec::GetFilename() {
   return "DBFilesClient\\SpellItemEnchantment.dbc";
 }
 
@@ -19,9 +19,9 @@ SpellItemEnchantmentRec::SpellItemEnchantmentRec() {
 SpellItemEnchantmentRec::~SpellItemEnchantmentRec() {
 }
 
-bool SpellItemEnchantmentRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[NUM_LOCALES];
+bool SpellItemEnchantmentRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[NUM_LOCALES];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, m_effect, sizeof(m_effect), 0, 0, 0) && result;

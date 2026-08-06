@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ChrClassesRec::GetFilename() {
+LPCSTR ChrClassesRec::GetFilename() {
   return "DBFilesClient\\ChrClasses.dbc";
 }
 
@@ -19,10 +19,10 @@ ChrClassesRec::ChrClassesRec() {
 ChrClassesRec::~ChrClassesRec() {
 }
 
-bool ChrClassesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[NUM_LOCALES];
-  unsigned int temppetNameTokenIndices[1];
+bool ChrClassesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[NUM_LOCALES];
+  UINT temppetNameTokenIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_PlayerClass, sizeof(m_PlayerClass), 0, 0, 0) && result;

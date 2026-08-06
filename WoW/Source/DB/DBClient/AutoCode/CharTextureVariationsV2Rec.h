@@ -7,13 +7,13 @@ class CharTextureVariationsV2Rec {
   CharTextureVariationsV2Rec();
   ~CharTextureVariationsV2Rec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 8;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 32;
   }
 
@@ -28,16 +28,16 @@ class CharTextureVariationsV2Rec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_RaceID;
-  int         m_SexID;
-  int         m_SectionID;
-  int         m_VariationID;
-  int         m_ColorID;
-  int         m_IsNPC;
-  const char *m_TextureName;
+  int    m_ID;
+  int    m_RaceID;
+  int    m_SexID;
+  int    m_SectionID;
+  int    m_VariationID;
+  int    m_ColorID;
+  int    m_IsNPC;
+  LPCSTR m_TextureName;
 };
 
 extern WowClientDB<CharTextureVariationsV2Rec> g_charTextureVariationsV2DB;

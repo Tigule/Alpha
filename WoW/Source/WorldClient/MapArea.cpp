@@ -8,32 +8,32 @@
 #include "Services/AsyncFileRead.h"
 #include "Services/Texture.h"
 
-static SCritSect                        s_fileCritSect;
-static TSCArray<unsigned char, 163840>  s_asyncLoadBuffers[4];
+static SCritSect              s_fileCritSect;
+static TSCArray<BYTE, 163840> s_asyncLoadBuffers[4];
 static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
-static unsigned char                   *s_freeAsyncBuffer;
-static unsigned int                     s_asyncBuffersInitialized;
+static BYTE *s_freeAsyncBuffer;
+static UINT  s_asyncBuffersInitialized;
 
-void CMapArea::FreeAsyncLoadBuffer(unsigned char *buffer) {
-  *reinterpret_cast<unsigned char **>(buffer) = s_freeAsyncBuffer;
+void CMapArea::FreeAsyncLoadBuffer(BYTE *buffer) {
+  *reinterpret_cast<BYTE **>(buffer) = s_freeAsyncBuffer;
   s_freeAsyncBuffer = buffer;
 }
 
 void CMapArea::InitAsyncLoadBuffers() {
-  for (unsigned int index = 0; index < 4; ++index) {
+  for (UINT index = 0; index < 4; ++index) {
     FreeAsyncLoadBuffer(s_asyncLoadBuffers[index].Ptr());
   }
 }
 
-unsigned char *CMapArea::AllocAsyncLoadBuffer() {
+BYTE *CMapArea::AllocAsyncLoadBuffer() {
   if (!s_asyncBuffersInitialized) {
     InitAsyncLoadBuffers();
     s_asyncBuffersInitialized = 1;
   }
 
-  unsigned char *buffer = s_freeAsyncBuffer;
+  BYTE *buffer = s_freeAsyncBuffer;
   if (buffer) {
-    s_freeAsyncBuffer = *reinterpret_cast<unsigned char **>(buffer);
+    s_freeAsyncBuffer = *reinterpret_cast<BYTE **>(buffer);
   }
 
   return buffer;
@@ -50,7 +50,7 @@ void CMapArea::AsyncPollHandler() {
   CAsyncObject *object = s_asyncLoadList.Head();
 
   while (object) {
-    unsigned char *buffer = AllocAsyncLoadBuffer();
+    BYTE *buffer = AllocAsyncLoadBuffer();
     if (!buffer) {
       break;
     }
@@ -67,7 +67,7 @@ void CMapArea::AsyncPollHandler() {
 CMapArea::CMapArea() {
   infoIndex = 0;
   asyncObject = 0;
-  for (unsigned int i = 0; i < 256; ++i) {
+  for (UINT i = 0; i < 256; ++i) {
     chunkInfo[i].offset = 0;
     chunkInfo[i].size = 0;
     chunkInfo[i].flags = 0;
@@ -109,7 +109,7 @@ void CMapArea::Load(SMAreaInfo *areaInfo) {
       s_asyncLoadList.LinkNode(asyncObject, LIST_TAIL, 0);
     }
 
-    areaInfo->asyncId = reinterpret_cast<unsigned int>(asyncObject);
+    areaInfo->asyncId = reinterpret_cast<UINT>(asyncObject);
   }
 }
 
@@ -133,7 +133,7 @@ void CMapArea::PrepareLocalRect() {
   }
 }
 
-void CMapArea::Create(unsigned char *data) {
+void CMapArea::Create(BYTE *data) {
   FATALASSERT(data);
   FATALASSERT(CMap::bActive);
 
@@ -175,11 +175,11 @@ void CMapArea::Create(unsigned char *data) {
   CMap::areaInfo[infoIndex].asyncId = 0;
 }
 
-void CMapArea::LoadTextures(char *texNames, unsigned long size) {
+void CMapArea::LoadTextures(char *texNames, DWORD size) {
   FATALASSERT(texNames);
 
   texIdTable.SetCount(0);
-  unsigned int i = 0;
+  UINT i = 0;
   while (i < size) {
     HTEXTURE hTexture;
 
@@ -205,14 +205,13 @@ void CMapArea::LoadTextures(char *texNames, unsigned long size) {
   }
 }
 
-void CMapArea::AsyncCallback(void *userArg) {
+void CMapArea::AsyncCallback(LPVOID userArg) {
   CMapArea *area = static_cast<CMapArea *>(userArg);
   FATALASSERT(area);
 
-  area->Create(static_cast<unsigned char *>(area->asyncObject->buffer));
-  FreeAsyncLoadBuffer(static_cast<unsigned char *>(area->asyncObject->buffer));
+  area->Create(static_cast<BYTE *>(area->asyncObject->buffer));
+  FreeAsyncLoadBuffer(static_cast<BYTE *>(area->asyncObject->buffer));
   area->asyncObject->buffer = 0;
   AsyncFileReadDestroyObject(area->asyncObject);
   area->asyncObject = 0;
 }
-

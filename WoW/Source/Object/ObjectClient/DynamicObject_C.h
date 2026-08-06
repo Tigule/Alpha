@@ -13,10 +13,10 @@ enum DYNAMIC_OBJECT_TYPE {
 };
 
 struct CGDynamicObjectData {
-  unsigned __int64   m_caster;
-  unsigned char      m_type;
-  unsigned char      m_typeFlags;
-  unsigned char      m_padding[2];
+  DWORDLONG          m_caster;
+  BYTE               m_type;
+  BYTE               m_typeFlags;
+  BYTE               m_padding[2];
   int                m_spellID;
   float              m_radius;
   NTempest::C3Vector m_position;
@@ -28,29 +28,29 @@ struct CGDynamicObjectData {
 
 class CGDynamicObject {
  public:
-  static unsigned int GetDataSize();
-  static unsigned int GetBaseOffset();
-  static __forceinline unsigned int TotalFields() {
+  static UINT               GetDataSize();
+  static UINT               GetBaseOffset();
+  static __forceinline UINT TotalFields() {
     return 16;
   }
-  static unsigned int GetUpdateMaskBytes();
-  static unsigned int GetUpdateMaskBlocks();
+  static UINT GetUpdateMaskBytes();
+  static UINT GetUpdateMaskBlocks();
 
-  unsigned char *GetData(unsigned int index);
+  BYTE               *GetData(UINT index);
   DYNAMIC_OBJECT_TYPE GetDynamicType();
-  void SetStorage(unsigned long *storage) {
+  void                SetStorage(DWORD *storage) {
     m_dynamicObj = reinterpret_cast<CGDynamicObjectData *>(storage);
   }
 
-  int GetSpellID() const;
-  float GetRadius() const;
-  void GetObjectPosition(NTempest::C3Vector &position) const;
+  int                GetSpellID() const;
+  float              GetRadius() const;
+  void               GetObjectPosition(NTempest::C3Vector &position) const;
   NTempest::C3Vector GetObjectPosition() const;
-  float GetObjectFacing() const;
-  unsigned __int64 GetCaster() const;
+  float              GetObjectFacing() const;
+  DWORDLONG          GetCaster() const;
 
  protected:
-  explicit CGDynamicObject(unsigned long *storage) {
+  explicit CGDynamicObject(DWORD *storage) {
     SetStorage(storage);
   }
 
@@ -70,23 +70,23 @@ class CGDynamicObject {
 
 class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
  public:
-  CGDynamicObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
+  CGDynamicObject_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init);
   ~CGDynamicObject_C();
 
-  void         SetStorage(unsigned long *storage);
-  void         PostInit(const CClientObjCreate &init);
+  void SetStorage(DWORD *storage);
+  void PostInit(const CClientObjCreate &init);
   void PostMovementUpdate() {
   }
-  virtual void                   Disable(int shutdown);
-  virtual void                   Reenable();
-  int                            SetBlock(unsigned int i, unsigned long data);
-  void                           SetData(const void *data, unsigned int bytes);
-  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
+  virtual void                    Disable(int shutdown);
+  virtual void                    Reenable();
+  int                             SetBlock(UINT i, DWORD data);
+  void                            SetData(LPCVOID data, UINT bytes);
+  static UINT                     OffsetOf(OBJECT_TYPE_ID type);
   const SpellVisualEffectNameRec *GetVisualEffectNameRec() const;
-  virtual const char            *GetModelFileName() const;
-  void                           HandleAnimEvent(const char *eventName, const NTempest::C3Vector &position);
-  void                           AnimFinished();
-  virtual void                   GetPosition(NTempest::C3Vector &vec) const {
+  virtual LPCSTR                  GetModelFileName() const;
+  void                            HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position);
+  void                            AnimFinished();
+  virtual void                    GetPosition(NTempest::C3Vector &vec) const {
     vec = m_dynamicObj->m_position;
   }
   virtual NTempest::C3Vector GetPosition() const {
@@ -99,7 +99,7 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
     return m_dynamicScale;
   }
   virtual int UpdateModelLoadStatus();
-  void        UpdateDisplay(unsigned long displayID);
+  void        UpdateDisplay(DWORD displayID);
   void        ObjectVisKitProc();
   void        ClearSound();
 

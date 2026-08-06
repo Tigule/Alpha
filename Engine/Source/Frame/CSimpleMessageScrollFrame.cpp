@@ -59,7 +59,7 @@ void CSimpleMessageScrollFrame::LoadXML(const XMLNode *node, CStatus *status) {
     }
   }
 
-  const char *value = node->GetAttributeByName("fadeDuration");
+  LPCSTR value = node->GetAttributeByName("fadeDuration");
   if (value && *value) {
     float fadeDuration = SStrToFloat(value);
     if (fadeDuration > 0.0f) {
@@ -118,13 +118,13 @@ void CSimpleMessageScrollFrame::SetMessageFrameInsets(float right, float left, f
 void CSimpleMessageScrollFrame::SetTextLength(int size) {
   m_textMaxSize = size;
 
-  unsigned int count = m_displayNodes.Count();
+  UINT count = m_displayNodes.Count();
   while (count) {
     m_displayNodes[--count].string->SetTextLength(size);
   }
 }
 
-void CSimpleMessageScrollFrame::AddMessage(const char *text, const CSimpleFontStringAttributes *attrib) {
+void CSimpleMessageScrollFrame::AddMessage(LPCSTR text, const CSimpleFontStringAttributes *attrib) {
   FATALASSERT(text);
 
   if (m_numMessages < m_maxMessages) {
@@ -156,7 +156,7 @@ void CSimpleMessageScrollFrame::AddMessage(const char *text, const CSimpleFontSt
   }
 }
 
-unsigned int CSimpleMessageScrollFrame::AddMultiLine(char *text, const CSimpleFontStringAttributes *attrib) {
+UINT CSimpleMessageScrollFrame::AddMultiLine(char *text, const CSimpleFontStringAttributes *attrib) {
   if (m_messageFrameArea.r - m_messageFrameArea.l <= 0.0f) {
     return 0;
   }
@@ -166,10 +166,10 @@ unsigned int CSimpleMessageScrollFrame::AddMultiLine(char *text, const CSimpleFo
   attributes = attrib ? *attrib : m_attrib;
   attributes.UpdateString(&string, 0);
 
-  unsigned int *lineOffsets = static_cast<unsigned int *>(_alloca(m_maxMessages * sizeof(*lineOffsets)));
-  unsigned int  lines = string.WrapText(text, m_messageFrameArea.r - m_messageFrameArea.l, lineOffsets, m_maxMessages);
+  UINT *lineOffsets = static_cast<UINT *>(_alloca(m_maxMessages * sizeof(*lineOffsets)));
+  UINT  lines = string.WrapText(text, m_messageFrameArea.r - m_messageFrameArea.l, lineOffsets, m_maxMessages);
 
-  for (unsigned int i = 0; i < lines; ++i) {
+  for (UINT i = 0; i < lines; ++i) {
     if (i < lines - 1) {
       char saved = text[lineOffsets[i + 1]];
       text[lineOffsets[i + 1]] = 0;
@@ -201,9 +201,9 @@ void CSimpleMessageScrollFrame::OnFrameSizeChanged(const NTempest::CRect &rect) 
   m_messageFrameArea.t = rect.t + m_messageFrameInset.t * scale;
   m_messageFrameArea.b = rect.b - m_messageFrameInset.b * scale;
 
-  unsigned int count = m_displayNodes.Count();
-  float        messageWidth = (m_messageFrameArea.r - m_messageFrameArea.l) / scale;
-  for (unsigned int i = 0; i < count; ++i) {
+  UINT  count = m_displayNodes.Count();
+  float messageWidth = (m_messageFrameArea.r - m_messageFrameArea.l) / scale;
+  for (UINT i = 0; i < count; ++i) {
     m_displayNodes[i].string->SetWidth(messageWidth);
   }
 
@@ -211,8 +211,8 @@ void CSimpleMessageScrollFrame::OnFrameSizeChanged(const NTempest::CRect &rect) 
 }
 
 void CSimpleMessageScrollFrame::OnLayerUpdate(float elapsedSec) {
-  int          i;
-  unsigned int updateHyperlinks;
+  int  i;
+  UINT updateHyperlinks;
 
   CSimpleFrame::OnLayerUpdate(elapsedSec);
 
@@ -241,7 +241,7 @@ void CSimpleMessageScrollFrame::OnLayerUpdate(float elapsedSec) {
     } else if (line->fadeLeft != 0.0f) {
       line->fadeLeft -= elapsedSec;
       if (line->fadeLeft >= 0.0f) {
-        unsigned char alpha = static_cast<unsigned char>(line->fadeLeft / m_fadeDuration * 255.0f);
+        BYTE alpha = static_cast<BYTE>(line->fadeLeft / m_fadeDuration * 255.0f);
         line->attrib.SetAlpha(alpha);
         node.attrib.SetAlpha(alpha);
         node.string->SetVertexColor(node.attrib.GetColor());
@@ -354,7 +354,7 @@ void CSimpleMessageScrollFrame::ScrollMessages(int start) {
   CSimpleFontString             *string;
   int                            current;
   float                          sizeNeeded;
-  unsigned int                   added;
+  UINT                           added;
 
   if (m_currentLine == -1) {
     return;
@@ -380,7 +380,7 @@ void CSimpleMessageScrollFrame::ScrollMessages(int start) {
     maxMessages += current - m_currentLine;
   }
 
-  unsigned int displayIndex = 0;
+  UINT displayIndex = 0;
   current = start;
   while (static_cast<int>(displayIndex) < maxMessages) {
     added = displayIndex == m_displayNodes.Count();
@@ -482,10 +482,10 @@ void CSimpleMessageScrollFrame::RefreshHyperlinks() {
     node = &m_displayNodes[--i];
 
     if (node->line->isVisible) {
-      CGxString   *gxString = node->string->m_string ? TextBlockGetStringPtr(node->string->m_string) : 0;
-      unsigned int linkCount = GxuFontStringHyperLinkInfo(gxString, links);
+      CGxString *gxString = node->string->m_string ? TextBlockGetStringPtr(node->string->m_string) : 0;
+      UINT       linkCount = GxuFontStringHyperLinkInfo(gxString, links);
 
-      for (unsigned int linkIndex = 0; linkIndex < linkCount; ++linkIndex) {
+      for (UINT linkIndex = 0; linkIndex < linkCount; ++linkIndex) {
         button = CreateHyperlinkButton();
         m_hyperlinks.LinkNode(button, LIST_TAIL, 0);
         button->SetHyperlink(node->string, &links[linkIndex]);

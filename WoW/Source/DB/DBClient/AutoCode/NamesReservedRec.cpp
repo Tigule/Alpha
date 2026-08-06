@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *NamesReservedRec::GetFilename() {
+LPCSTR NamesReservedRec::GetFilename() {
   return "DBFilesClient\\NamesReserved.dbc";
 }
 
@@ -19,9 +19,9 @@ NamesReservedRec::NamesReservedRec() {
 NamesReservedRec::~NamesReservedRec() {
 }
 
-bool NamesReservedRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempNameIndices[1];
+bool NamesReservedRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempNameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempNameIndices[0], sizeof(tempNameIndices[0]), 0, 0, 0) && result;

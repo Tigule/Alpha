@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Base/Base.h>
+
 class SoundProviderPreferencesRec;
 class ResistancesRec;
 class WMOAreaTableRec;
@@ -46,21 +48,21 @@ enum STRINGLOOKUP {
   NUM_STRINGLOOKUPS = 10
 };
 
-const char *ClientDBStringLookup(STRINGLOOKUP lookup);
-unsigned int GetPhysicalDamageClassID();
-unsigned int GetFirstNonPhysicalID();
-const ResistancesRec *GetDamageClassRecord(unsigned int record);
-unsigned int ClientDBLookupTerrainSoundID(unsigned int terrainType);
+LPCSTR                ClientDBStringLookup(STRINGLOOKUP lookup);
+UINT                  GetPhysicalDamageClassID();
+UINT                  GetFirstNonPhysicalID();
+const ResistancesRec *GetDamageClassRecord(UINT record);
+UINT                  ClientDBLookupTerrainSoundID(UINT terrainType);
 WEAPONPARRYSEQ
-ClientDBGetWeaponSubclassParrySeq(unsigned int subclassID);
+ClientDBGetWeaponSubclassParrySeq(UINT subclassID);
 WEAPONREADYSEQ
-ClientDBGetWeaponSubclassReadySeq(unsigned int subclassID);
+ClientDBGetWeaponSubclassReadySeq(UINT subclassID);
 WEAPONATTACKSEQ
-ClientDBGetWeaponSubclassWeaponSeq(unsigned int subclassID);
-int ClientDBWeaponSubclassSetsFingerSeq(unsigned int subclassID);
-unsigned int ClientDBGetUnarmedWeapon();
+ClientDBGetWeaponSubclassWeaponSeq(UINT subclassID);
+int                                ClientDBWeaponSubclassSetsFingerSeq(UINT subclassID);
+UINT                               ClientDBGetUnarmedWeapon();
 const SoundProviderPreferencesRec *ClientDBGetDefaultIndoorProviderPrefs();
 const SoundProviderPreferencesRec *ClientDBGetDefaultOutdoorProviderPrefs();
-unsigned int ClientDBGetNumWeaponSubclasses();
-const char *SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID);
-bool SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAreaTableRec *&rec);
+UINT                               ClientDBGetNumWeaponSubclasses();
+LPCSTR                             SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID);
+bool                               SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAreaTableRec *&rec);

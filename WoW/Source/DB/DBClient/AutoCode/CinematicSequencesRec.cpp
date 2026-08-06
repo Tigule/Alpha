@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CinematicSequencesRec::GetFilename() {
+LPCSTR CinematicSequencesRec::GetFilename() {
   return "DBFilesClient\\CinematicSequences.dbc";
 }
 
@@ -19,7 +19,7 @@ CinematicSequencesRec::CinematicSequencesRec() {
 CinematicSequencesRec::~CinematicSequencesRec() {
 }
 
-bool CinematicSequencesRec::Read(SFile *f, const char *stringBuffer) {
+bool CinematicSequencesRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

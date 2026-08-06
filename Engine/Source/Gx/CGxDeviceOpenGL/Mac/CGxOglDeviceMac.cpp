@@ -19,7 +19,7 @@ static HWND WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
 
 static void WindowDestroy(HWND &hwnd) {
   if (hwnd) {
-    GxMacWindowDestroy(reinterpret_cast<void *>(hwnd));
+    GxMacWindowDestroy(reinterpret_cast<LPVOID>(hwnd));
     hwnd = 0;
   }
 }
@@ -48,7 +48,7 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
     return;
   }
 
-  GxMacWindowShow(reinterpret_cast<void *>(m_hwnd), format.window, focus);
+  GxMacWindowShow(reinterpret_cast<LPVOID>(m_hwnd), format.window, focus);
 
   if (!format.window) {
     if (focus) {
@@ -78,9 +78,7 @@ int CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   for (index = 0; index < count; ++index) {
     CGDisplayModeRef mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(modes, index);
 
-    if (static_cast<int>(CGDisplayModeGetWidth(mode)) == format.size.x
-        && static_cast<int>(CGDisplayModeGetHeight(mode)) == format.size.y)
-    {
+    if (static_cast<int>(CGDisplayModeGetWidth(mode)) == format.size.x && static_cast<int>(CGDisplayModeGetHeight(mode)) == format.size.y) {
       format.apiSpecificModeID = static_cast<DWORD>(index);
       CFRelease(modes);
       return 1;
@@ -94,8 +92,8 @@ int CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
 int CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
   FATALASSERT(m_hdc == 0 && m_hglrc == 0);
 
-  void *view = GxMacWindowContentView(reinterpret_cast<void *>(m_hwnd));
-  void *context;
+  LPVOID view = GxMacWindowContentView(reinterpret_cast<LPVOID>(m_hwnd));
+  LPVOID context;
 
   if (!view) {
     IDevRemoveGlContext();
@@ -103,8 +101,8 @@ int CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
   }
 
   context = GxMacContextCreate(
-      view, format.colorFormat ? 32 : 16, format.depthFormat == CGxFormat::Fmt_Ds160 ? 16 : 24,
-      format.depthFormat == CGxFormat::Fmt_Ds248 ? 8 : 0, format.vsync
+      view, format.colorFormat ? 32 : 16, format.depthFormat == CGxFormat::Fmt_Ds160 ? 16 : 24, format.depthFormat == CGxFormat::Fmt_Ds248 ? 8 : 0,
+      format.vsync
   );
 
   if (!context) {
@@ -139,7 +137,7 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
     UnbindGlExtensions();
 
     GxMacContextClearCurrent();
-    GxMacContextDestroy(reinterpret_cast<void *>(m_hglrc));
+    GxMacContextDestroy(reinterpret_cast<LPVOID>(m_hglrc));
 
     CGDisplayShowCursor(kCGDirectMainDisplay);
 
@@ -196,7 +194,7 @@ int CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &form
   return 0;
 }
 
-int CGxDeviceOpenGl::DeviceCreate(unsigned int clienthwnd, const CGxFormat &format) {
+int CGxDeviceOpenGl::DeviceCreate(UINT clienthwnd, const CGxFormat &format) {
   s_inCreateOrDestroy = 1;
   m_ownhwnd = 0;
   m_gammaRamp = m_systemGammaRamp;
@@ -263,7 +261,7 @@ int CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
   return 0;
 }
 
-void CGxDeviceOpenGl::DeviceSetBaseMipLevel(unsigned int baseMipLevel) {
+void CGxDeviceOpenGl::DeviceSetBaseMipLevel(UINT baseMipLevel) {
   CGxDevice::DeviceSetBaseMipLevel(baseMipLevel);
   ITexForceRecreation();
 }
@@ -272,7 +270,7 @@ static void ApplyGammaRamp(const CGxGammaRamp &ramp) {
   CGGammaValue red[CGxGammaRamp::ENTRIES];
   CGGammaValue green[CGxGammaRamp::ENTRIES];
   CGGammaValue blue[CGxGammaRamp::ENTRIES];
-  unsigned int index;
+  UINT         index;
 
   for (index = 0; index < CGxGammaRamp::ENTRIES; ++index) {
     red[index] = ramp.red[index] / 65535.0f;
@@ -299,7 +297,7 @@ void CGxDeviceOpenGl::DeviceSetGamma(const CGxGammaRamp &ramp) {
   }
 }
 
-void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, unsigned int plane) {
+void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UINT plane) {
   TextureTarget &target = m_textureTarget[buffer];
 
   if (target.m_texture == gxTex && target.m_plane == plane) {
@@ -310,7 +308,7 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, uns
 
   CGxTex *oldTex = static_cast<CGxTex *>(target.m_apiSpecific);
   if (oldTex) {
-    BindTexture(oldTex, static_cast<unsigned int>(-1));
+    BindTexture(oldTex, static_cast<UINT>(-1));
 
     if (oldTex->m_needsCreation) {
       glCopyTexImage2D(GL_TEXTURE_2D, 0, s_convertTexFmt[oldTex->m_format], 0, 0, oldTex->m_width, oldTex->m_height, 0);
@@ -324,7 +322,7 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, uns
 
   target.m_apiSpecific = gxTex;
 
-  GxMacContextMakeCurrent(reinterpret_cast<void *>(m_hglrc));
+  GxMacContextMakeCurrent(reinterpret_cast<LPVOID>(m_hglrc));
 
   XformSetViewport(m_viewport.x.l, m_viewport.x.h, m_viewport.y.l, m_viewport.y.h, m_viewport.z.l, m_viewport.z.h);
   XformSetProjection(m_projection);
@@ -349,7 +347,7 @@ void CGxDeviceOpenGl::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
   double r;
   double b;
 
-  GxMacWindowContentRectInScreen(reinterpret_cast<void *>(m_hwnd), windowRect.r, windowRect.b, &l, &t, &r, &b);
+  GxMacWindowContentRectInScreen(reinterpret_cast<LPVOID>(m_hwnd), windowRect.r, windowRect.b, &l, &t, &r, &b);
 
   dst.l = static_cast<float>(l);
   dst.t = static_cast<float>(t);
@@ -384,7 +382,7 @@ int CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
     fmt.apiSpecificModeID = static_cast<DWORD>(index);
     fmt.size.x = static_cast<int>(CGDisplayModeGetWidth(mode));
     fmt.size.y = static_cast<int>(CGDisplayModeGetHeight(mode));
-    fmt.refreshRate = static_cast<unsigned int>(CGDisplayModeGetRefreshRate(mode));
+    fmt.refreshRate = static_cast<UINT>(CGDisplayModeGetRefreshRate(mode));
     formats.Add(1, &fmt);
   }
 
@@ -400,7 +398,7 @@ CGxDevice *CGxDevice::NewD3d() {
   return 0;
 }
 
-int CGxDevice::AdapterID(unsigned short &vendorID, unsigned short &deviceID, unsigned int &driverVersionHi, unsigned int &driverVersionLow) {
+int CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, UINT &driverVersionHi, UINT &driverVersionLow) {
   vendorID = 0;
   deviceID = 0;
   driverVersionHi = 0;
@@ -408,7 +406,7 @@ int CGxDevice::AdapterID(unsigned short &vendorID, unsigned short &deviceID, uns
   return 0;
 }
 
-int CGxDevice::AdapterInfer(unsigned short &deviceID) {
+int CGxDevice::AdapterInfer(WORD &deviceID) {
   deviceID = 0;
   return 0;
 }
@@ -431,7 +429,7 @@ int CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
     monitorMode.size.x = static_cast<int>(CGDisplayModeGetWidth(mode));
     monitorMode.size.y = static_cast<int>(CGDisplayModeGetHeight(mode));
     monitorMode.bpp = 32;
-    monitorMode.refreshRate = static_cast<unsigned int>(CGDisplayModeGetRefreshRate(mode));
+    monitorMode.refreshRate = static_cast<UINT>(CGDisplayModeGetRefreshRate(mode));
     modes.Add(1, &monitorMode);
   }
 
@@ -449,7 +447,7 @@ int CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
   mode.size.x = static_cast<int>(CGDisplayModeGetWidth(displayMode));
   mode.size.y = static_cast<int>(CGDisplayModeGetHeight(displayMode));
   mode.bpp = 32;
-  mode.refreshRate = static_cast<unsigned int>(CGDisplayModeGetRefreshRate(displayMode));
+  mode.refreshRate = static_cast<UINT>(CGDisplayModeGetRefreshRate(displayMode));
 
   CGDisplayModeRelease(displayMode);
   return 1;

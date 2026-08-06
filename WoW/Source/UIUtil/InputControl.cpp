@@ -24,18 +24,18 @@
 
 #include <lua.h>
 
-static int          s_joystickID = -1;
-static unsigned int s_buttonState;
-static float        s_speed;
-static float        s_delta[2];
-static float        s_rate;
-static const float  DELTAX_PER_SECOND = 512.0f;
-static const float  DELTAY_PER_SECOND = 192.0f;
-static int          AXIS_THRESHOLD = 0x1FFF;
+static int         s_joystickID = -1;
+static UINT        s_buttonState;
+static float       s_speed;
+static float       s_delta[2];
+static float       s_rate;
+static const float DELTAX_PER_SECOND = 512.0f;
+static const float DELTAY_PER_SECOND = 192.0f;
+static int         AXIS_THRESHOLD = 0x1FFF;
 
 CGInputControl *CGInputControl::s_inputControl;
 
-static bool JoystickCallback(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
+static bool JoystickCallback(CVar *cvar, LPCSTR oldValue, LPCSTR newValue, LPVOID userArg) {
   if (*newValue == '1') {
     if (s_joystickID == -1) {
       s_joystickID = OsOpenJoystick(0);
@@ -52,7 +52,7 @@ static int Script_ToggleAutoRun(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
 
-  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  DWORD eventTime = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   control->SetControlBit(INPUT_MOVE_PLAYER_AUTORUN, !control->IsAutoRunning(), eventTime, 0);
   return 0;
 }
@@ -60,119 +60,119 @@ static int Script_ToggleAutoRun(lua_State *L) {
 static int Script_MoveForwardStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_MOVE_PLAYER_FORWARD_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_MOVE_PLAYER_FORWARD_KEY, 1, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_MoveForwardStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_MOVE_PLAYER_FORWARD_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_MOVE_PLAYER_FORWARD_KEY, 0, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_MoveBackwardStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_MOVE_PLAYER_BACKWARD_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_MOVE_PLAYER_BACKWARD_KEY, 1, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_MoveBackwardStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_MOVE_PLAYER_BACKWARD_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_MOVE_PLAYER_BACKWARD_KEY, 0, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_TurnLeftStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_TURN_PLAYER_LEFT_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_TURN_PLAYER_LEFT_KEY, 1, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_TurnLeftStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_TURN_PLAYER_LEFT_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_TURN_PLAYER_LEFT_KEY, 0, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_TurnRightStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_TURN_PLAYER_RIGHT_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_TURN_PLAYER_RIGHT_KEY, 1, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_TurnRightStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_TURN_PLAYER_RIGHT_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_TURN_PLAYER_RIGHT_KEY, 0, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_StrafeLeftStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_STRAFE_PLAYER_LEFT_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_STRAFE_PLAYER_LEFT_KEY, 1, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_StrafeLeftStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_STRAFE_PLAYER_LEFT_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_STRAFE_PLAYER_LEFT_KEY, 0, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_StrafeRightStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_STRAFE_PLAYER_RIGHT_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_STRAFE_PLAYER_RIGHT_KEY, 1, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_StrafeRightStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_STRAFE_PLAYER_RIGHT_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_STRAFE_PLAYER_RIGHT_KEY, 0, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_PitchUpStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_PITCH_PLAYER_UP_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_PITCH_PLAYER_UP_KEY, 1, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_PitchUpStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_PITCH_PLAYER_UP_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_PITCH_PLAYER_UP_KEY, 0, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_PitchDownStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_PITCH_PLAYER_DOWN_KEY, 1, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_PITCH_PLAYER_DOWN_KEY, 1, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_PitchDownStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_PITCH_PLAYER_DOWN_KEY, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_PITCH_PLAYER_DOWN_KEY, 0, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_TurnOrActionStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  DWORD eventTime = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   control->SetReleaseAction(INPUT_RELEASE_ACTION);
   control->SetControlBit(INPUT_TURN_PLAYER, 1, eventTime, 0);
   return 0;
@@ -181,14 +181,14 @@ static int Script_TurnOrActionStart(lua_State *L) {
 static int Script_TurnOrActionStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  control->SetControlBit(INPUT_TURN_PLAYER, 0, lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
+  control->SetControlBit(INPUT_TURN_PLAYER, 0, lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs(), 0);
   return 0;
 }
 
 static int Script_CameraOrSelectOrMoveStart(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  DWORD eventTime = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   control->SetReleaseAction(INPUT_RELEASE_SELECT);
   control->SetControlBit(INPUT_MOVE_PLAYER_OR_TURN_CAMERA, 1, eventTime, 0);
   return 0;
@@ -197,8 +197,8 @@ static int Script_CameraOrSelectOrMoveStart(lua_State *L) {
 static int Script_CameraOrSelectOrMoveStop(lua_State *L) {
   CGInputControl *control = CGInputControl::GetActive();
   FATALASSERT(control);
-  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
-  int           updatePlayer = 0;
+  DWORD eventTime = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  int   updatePlayer = 0;
   if (lua_isnumber(L, 2)) {
     updatePlayer = static_cast<int>(lua_tonumber(L, 2));
   } else if (lua_isstring(L, 2)) {
@@ -300,9 +300,9 @@ void CGInputControl::OnUpdate(float elapsedSec) {
     return;
   }
 
-  unsigned long eventTime = OsGetAsyncTimeMs();
-  int           value = OsGetButtonState(s_joystickID);
-  if (static_cast<unsigned int>(value) != s_buttonState) {
+  DWORD eventTime = OsGetAsyncTimeMs();
+  int   value = OsGetButtonState(s_joystickID);
+  if (static_cast<UINT>(value) != s_buttonState) {
     if ((value ^ s_buttonState) & 0x1) {
       SetControlBit(INPUT_TURN_PLAYER, value & 0x1, eventTime, 0);
     }
@@ -396,7 +396,7 @@ void CGInputControl::OnUpdate(float elapsedSec) {
   }
 }
 
-void CGInputControl::UpdatePlayer(unsigned long now) {
+void CGInputControl::UpdatePlayer(DWORD now) {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (!player) {
     return;
@@ -409,10 +409,8 @@ void CGInputControl::UpdatePlayer(unsigned long now) {
   const CGUnitData *unit = player->GetUnitData();
   bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charmedBy &&
                                                                      ((unit->flags & 2) || !(unit->flags & 0xC00004)) && !(unit->flags & 1));
-  bool              canMove = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() &&
-                              !(player->m_move.m_moveFlags & 0x2400);
-  bool              canTurn = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() &&
-                              !(unit->flags & 0x40000);
+  bool              canMove = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() && !(player->m_move.m_moveFlags & 0x2400);
+  bool              canTurn = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() && !(unit->flags & 0x40000);
 
   if (canMove) {
     MovePlayer(now, player);
@@ -483,14 +481,14 @@ int CGInputControl::SetControlBit(INPUT_CONTROL bit) {
   }
   if (bit & INPUT_FREE_LOOK_MASK) {
     m_controlFlags |= INPUT_CAMERA_MOVED;
-    if ((m_controlFlags & INPUT_FREE_LOOK_MASK) != static_cast<unsigned int>(bit)) {
+    if ((m_controlFlags & INPUT_FREE_LOOK_MASK) != static_cast<UINT>(bit)) {
       m_releaseAction = INPUT_RELEASE_NONE;
     }
   }
   return 1;
 }
 
-void CGInputControl::SetControlBit(INPUT_CONTROL bit, int set, unsigned long now, int sticky) {
+void CGInputControl::SetControlBit(INPUT_CONTROL bit, int set, DWORD now, int sticky) {
   int changed = set ? SetControlBit(bit) : UnsetControlBit(bit, sticky);
   if (changed) {
     UpdatePlayer(now);
@@ -557,7 +555,7 @@ int CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
   return 1;
 }
 
-void CGInputControl::MovePlayer(unsigned long now, CGUnit_C *player) {
+void CGInputControl::MovePlayer(DWORD now, CGUnit_C *player) {
   int direction = (m_controlFlags & INPUT_MOVE_PLAYER_AUTORUN) != 0;
   if (m_controlFlags & INPUT_MOVE_PLAYER_FORWARD_KEY) {
     ++direction;
@@ -582,7 +580,7 @@ void CGInputControl::MovePlayer(unsigned long now, CGUnit_C *player) {
   }
 }
 
-void CGInputControl::StrafePlayer(unsigned long now, CGUnit_C *player) {
+void CGInputControl::StrafePlayer(DWORD now, CGUnit_C *player) {
   int direction = (m_controlFlags & INPUT_STRAFE_PLAYER_LEFT_KEY) != 0;
   if ((m_controlFlags & INPUT_TURN_PLAYER) && (m_controlFlags & INPUT_TURN_PLAYER_LEFT_KEY)) {
     ++direction;
@@ -607,7 +605,7 @@ void CGInputControl::StrafePlayer(unsigned long now, CGUnit_C *player) {
   }
 }
 
-void CGInputControl::TurnPlayer(unsigned long now, CGUnit_C *player) {
+void CGInputControl::TurnPlayer(DWORD now, CGUnit_C *player) {
   if (!(m_controlFlags & INPUT_TURN_PLAYER)) {
     int direction = (m_controlFlags & INPUT_TURN_PLAYER_LEFT_KEY) != 0;
     if (m_controlFlags & INPUT_TURN_PLAYER_RIGHT_KEY) {
@@ -627,7 +625,7 @@ void CGInputControl::TurnPlayer(unsigned long now, CGUnit_C *player) {
   }
 }
 
-void CGInputControl::PitchPlayer(unsigned long now, CGUnit_C *player) {
+void CGInputControl::PitchPlayer(DWORD now, CGUnit_C *player) {
   if (!(m_controlFlags & INPUT_TURN_PLAYER)) {
     int direction = (m_controlFlags & INPUT_PITCH_PLAYER_UP_KEY) != 0;
     if (m_controlFlags & INPUT_PITCH_PLAYER_DOWN_KEY) {
@@ -665,7 +663,7 @@ int CGInputControl::CameraCanTurnPlayer() const {
   return (m_controlFlags & INPUT_TURN_PLAYER) != 0;
 }
 
-void CGInputControl::CameraTurnPlayer(unsigned long timestamp, float yaw, float pitch, bool setSmoothFacing) {
+void CGInputControl::CameraTurnPlayer(DWORD timestamp, float yaw, float pitch, bool setSmoothFacing) {
   if (!CameraCanTurnPlayer()) {
     return;
   }

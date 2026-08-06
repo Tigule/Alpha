@@ -8,8 +8,8 @@ class CGCharacterModelBase : public CSimpleModel {
   CGCharacterModelBase(CSimpleFrame *parent);
 
   static CSimpleFrame *Create(CSimpleFrame *parent);
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
+  static void          RegisterScriptMethods();
+  static void          UnregisterScriptMethods();
 
   virtual void UpdateModel();
   virtual void InitializeModel(HMODEL model) {
@@ -17,20 +17,20 @@ class CGCharacterModelBase : public CSimpleModel {
   virtual bool GetUniquePaperDollModel() {
     return false;
   }
-  void SetUnit(unsigned __int64 unitGUID);
+  void SetUnit(DWORDLONG unitGUID);
   void SetRotationScale(float rotationScale) {
     m_rotationScale = rotationScale;
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
-  void ConfigureCamera();
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  void        ConfigureCamera();
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
  private:
-  unsigned __int64                                            m_unit;
-  float                                                       m_rotationScale;
+  DWORDLONG m_unit;
+  float     m_rotationScale;
 };
 
 inline CSimpleFrame *CGCharacterModelBase::Create(CSimpleFrame *parent) {

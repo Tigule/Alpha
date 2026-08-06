@@ -14,15 +14,10 @@ struct OsIMECandidate {
 };
 
 OS_IME_LANGUAGEMODE OsIMEGetLanguageMode();
-int OsIMEGetCompositionString(char *string, unsigned int maxlen);
-int OsIMEGetCompositionResult(char *string, unsigned int maxlen);
-int OsIMEGetClauseInfo(unsigned int &clauseLeft, unsigned int &clauseRight, unsigned int &cursorPos);
-int OsIMEGetCandidates(
-    unsigned long which,
-    unsigned int &pageSize,
-    unsigned int &count,
-    unsigned int &selection,
-    TSGrowableArray<OsIMECandidate> &candidates);
-void OsIMEEnable(int enabled);
-void OsIMEInitialize();
-void OsIMEDestroy();
+int                 OsIMEGetCompositionString(char *string, UINT maxlen);
+int                 OsIMEGetCompositionResult(char *string, UINT maxlen);
+int                 OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos);
+int                 OsIMEGetCandidates(DWORD which, UINT &pageSize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates);
+void                OsIMEEnable(int enabled);
+void                OsIMEInitialize();
+void                OsIMEDestroy();

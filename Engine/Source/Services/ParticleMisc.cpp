@@ -23,7 +23,7 @@ void CParticleKey::Interpolate(float time, NTempest::CImVector &color, int &head
 }
 
 CParticleKey::CParticleKey()
-    : m_startColor(static_cast<unsigned int>(-1)),
+    : m_startColor(static_cast<UINT>(-1)),
       m_initialHead(0),
       m_deltaHead(0),
       m_initialTail(0),
@@ -33,7 +33,7 @@ CParticleKey::CParticleKey()
       m_startTime(0.0f),
       m_ooSegLength(1.0f),
       m_endTime(1.0f),
-      m_endColor(static_cast<unsigned int>(-1)),
+      m_endColor(static_cast<UINT>(-1)),
       m_headStart(0),
       m_headEnd(0),
       m_tailStart(0),
@@ -43,7 +43,7 @@ CParticleKey::CParticleKey()
       m_normStartTime(0.0f),
       m_normEndTime(1.0f),
       m_lifeSpan(1.0f) {
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     m_deltaColor[i] = 0;
   }
 }

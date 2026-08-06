@@ -15,26 +15,26 @@
 #include <Os/OsTime.h>
 #include <storm.h>
 
-static unsigned __int64 s_ghostTarget;
-static unsigned int     s_lastGhostUpdate;
-static unsigned char    s_ghostRequestPending;
-static unsigned __int64 s_ghostTargetRequested;
-static char             s_ghostNameRequested[256];
-static unsigned __int64 s_realActivePlayer;
+static DWORDLONG s_ghostTarget;
+static UINT      s_lastGhostUpdate;
+static BYTE      s_ghostRequestPending;
+static DWORDLONG s_ghostTargetRequested;
+static char      s_ghostNameRequested[256];
+static DWORDLONG s_realActivePlayer;
 
 static void MaybeSendGhostRequest();
-int OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+int         OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
-void CGPlayer_C::SetRealActivePlayer(unsigned __int64 guid) {
+void CGPlayer_C::SetRealActivePlayer(DWORDLONG guid) {
   s_realActivePlayer = guid;
 }
 
-unsigned __int64 CGPlayer_C::GetRealActivePlayer() {
+DWORDLONG CGPlayer_C::GetRealActivePlayer() {
   FATALASSERT(!GetActive() || s_realActivePlayer);
   return s_realActivePlayer;
 }
 
-int OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg) {
+int OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   switch (msgId) {
     case CMSG_GHOST: {
       s_ghostRequestPending = 0;
@@ -73,7 +73,7 @@ int OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataSt
     }
 
     case MSG_GM_BIND_OTHER: {
-      unsigned char success;
+      BYTE success;
       msg->Get(success);
       if (success) {
         ConsolePrintf("Player bound to current location");
@@ -84,7 +84,7 @@ int OnGMEvent(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataSt
     }
 
     case MSG_GM_SUMMON: {
-      unsigned char success;
+      BYTE success;
       msg->Get(success);
       if (success) {
         ConsolePrintf("Server is summoning now");
@@ -110,10 +110,10 @@ void CGPlayer_C::UninstallGMHandlers() {
   ClientServices_ClearMessageHandler(MSG_GM_BIND_OTHER);
 }
 
-void CGPlayer_C::StartGhosting(const char *name) {
+void CGPlayer_C::StartGhosting(LPCSTR name) {
   WDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_GHOST));
-  msg.Put(static_cast<unsigned char>(1));
+  msg.Put(static_cast<UINT>(CMSG_GHOST));
+  msg.Put(static_cast<BYTE>(1));
   msg.PutString(name);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -126,10 +126,10 @@ void CGPlayer_C::StartGhosting(const char *name) {
   s_ghostRequestPending = 1;
 }
 
-void CGPlayer_C::StartGhosting(unsigned __int64 guid) {
+void CGPlayer_C::StartGhosting(DWORDLONG guid) {
   WDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_GHOST));
-  msg.Put(static_cast<unsigned char>(0));
+  msg.Put(static_cast<UINT>(CMSG_GHOST));
+  msg.Put(static_cast<BYTE>(0));
   msg.Put(guid);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -142,9 +142,9 @@ void CGPlayer_C::StartGhosting(unsigned __int64 guid) {
 
 void CGPlayer_C::StopGhosting() {
   WDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_GHOST));
-  msg.Put(static_cast<unsigned char>(0));
-  msg.Put(static_cast<unsigned __int64>(0));
+  msg.Put(static_cast<UINT>(CMSG_GHOST));
+  msg.Put(static_cast<BYTE>(0));
+  msg.Put(static_cast<DWORDLONG>(0));
   msg.Finalize();
   ClientServices_Send(&msg);
 
@@ -174,7 +174,7 @@ void CGPlayer_C::GMIdle() {
     return;
   }
 
-  CGUnit_C          *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_realActivePlayer, __FILE__, __LINE__));
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_realActivePlayer, __FILE__, __LINE__));
   player->OnTeleportLocalNoUpdate(OsGetAsyncTimeMs(), target->GetPosition(), target->GetFacing());
 
   if (OsGetAsyncTimeMs() - s_lastGhostUpdate > 500) {

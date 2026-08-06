@@ -14,15 +14,15 @@
 #include <math.h>
 
 void CClientMoveUpdate::Skip(CDataStore *packet) {
-  void *unused;
+  LPVOID unused;
   packet->GetDataInSitu(unused, 44);
-  unsigned int flags = 0;
+  UINT flags = 0;
   packet->Get(flags);
   packet->GetDataInSitu(unused, 20);
   if (flags & 0x04000000) {
     flags = 0;
     packet->Get(flags);
-    unsigned int bytes = 0;
+    UINT bytes = 0;
     if (flags & 0x00010000) {
       bytes = 12;
     }
@@ -33,7 +33,7 @@ void CClientMoveUpdate::Skip(CDataStore *packet) {
       bytes += 4;
     }
     packet->GetDataInSitu(unused, bytes + 8);
-    unsigned int pointCount = 0;
+    UINT pointCount = 0;
     packet->Get(pointCount);
     packet->GetDataInSitu(unused, 12 * pointCount);
   }
@@ -68,10 +68,10 @@ CDataStore &operator<<(CDataStore &packet, const CClientMoveUpdate &update) {
     if (update.spline.flags & 0x00040000) {
       packet << update.spline.face.facing;
     }
-    packet << static_cast<unsigned long>(OsGetAsyncTimeMs() - update.spline.start) << update.spline.time;
-    unsigned int pointCount = update.spline.spline.NumPoints();
+    packet << static_cast<DWORD>(OsGetAsyncTimeMs() - update.spline.start) << update.spline.time;
+    UINT pointCount = update.spline.spline.NumPoints();
     packet << pointCount;
-    for (unsigned int i = 0; i < pointCount; ++i) {
+    for (UINT i = 0; i < pointCount; ++i) {
       const NTempest::C3Vector &point = update.spline.spline.Point(i);
       packet << point.x << point.y << point.z;
     }
@@ -111,14 +111,14 @@ CDataStore &operator>>(CDataStore &packet, CClientMoveUpdate &update) {
     if (update.spline.flags & 0x00040000) {
       packet.Get(update.spline.face.facing);
     }
-    unsigned long elapsed;
+    DWORD elapsed;
     packet.Get(elapsed);
     update.spline.start = OsGetAsyncTimeMs() - elapsed;
     packet.Get(update.spline.time);
-    unsigned int pointCount = 0;
+    UINT pointCount = 0;
     packet.Get(pointCount);
     if (pointCount) {
-      void *points;
+      LPVOID points;
       packet.GetDataInSitu(points, 12 * pointCount);
       update.spline.spline.SetPoints(static_cast<const NTempest::C3Vector *>(points), pointCount);
     }

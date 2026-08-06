@@ -27,15 +27,15 @@
 #include <string.h>
 
 NODEDECL(PENDINGUSERLIST) {
-  unsigned __int64 guid;
-  unsigned char    flags;
+  DWORDLONG guid;
+  BYTE      flags;
 };
 
 struct ChatChannel {
-  int                                                  localID;
-  char                                                 name[128];
+  int  localID;
+  char name[128];
   LISTDECL(PENDINGUSERLIST, pendingNames);
-  unsigned char                                        channelFlags;
+  BYTE channelFlags;
 
   ~ChatChannel() {
   }
@@ -50,15 +50,15 @@ NODEDECL(PENDINGCHAT) {
   ~PENDINGCHAT() {
   }
 
-  int              slashCmd;
-  unsigned __int64 guid;
-  char            *text;
-  unsigned int     language;
-  int              waitingForUI;
-  int              parse;
-  char             channel[128];
-  unsigned __int64 guid2;
-  char             specialFlag[5];
+  int       slashCmd;
+  DWORDLONG guid;
+  char     *text;
+  UINT      language;
+  int       waitingForUI;
+  int       parse;
+  char      channel[128];
+  DWORDLONG guid2;
+  char      specialFlag[5];
 };
 
 NODEDECL(PENDINGTEXTEMOTE) {
@@ -70,20 +70,20 @@ NODEDECL(PENDINGTEXTEMOTE) {
   ~PENDINGTEXTEMOTE() {
   }
 
-  unsigned __int64 sender;
-  int              textEmoteID;
-  char            *target;
-  int              waitingForUI;
+  DWORDLONG sender;
+  int       textEmoteID;
+  char     *target;
+  int       waitingForUI;
 };
 
 class HASHKEY_LANGUAGE {
  public:
-  HASHKEY_LANGUAGE(unsigned int languageID = 0, unsigned int length = 0);
+  HASHKEY_LANGUAGE(UINT languageID = 0, UINT length = 0);
 
   HASHKEY_LANGUAGE(const HASHKEY_LANGUAGE &key) : m_languageID(key.m_languageID), m_length(key.m_length) {
   }
 
-  unsigned char operator==(const HASHKEY_LANGUAGE &key) const {
+  BYTE operator==(const HASHKEY_LANGUAGE &key) const {
     return m_languageID == key.m_languageID && m_length == key.m_length;
   }
 
@@ -94,39 +94,38 @@ class HASHKEY_LANGUAGE {
   }
 
  private:
-  unsigned int m_languageID;
-  unsigned int m_length;
+  UINT m_languageID;
+  UINT m_length;
 };
 
-inline HASHKEY_LANGUAGE::HASHKEY_LANGUAGE(unsigned int languageID, unsigned int length)
-    : m_languageID(languageID), m_length(length) {
+inline HASHKEY_LANGUAGE::HASHKEY_LANGUAGE(UINT languageID, UINT length) : m_languageID(languageID), m_length(length) {
 }
 
 struct WORDLIST : public TSHashObject<WORDLIST, HASHKEY_LANGUAGE> {
   TSGrowableArray<const LanguageWordsRec *> m_words;
 };
 
-static const unsigned int                           s_events[30] = {217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231,
-                                                                    232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 338, 339, 340, 341, 342};
+static const UINT s_events[30] = {217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231,
+                                  232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 338, 339, 340, 341, 342};
 static LISTDECL(PENDINGCHAT, s_pendingChat);
 static LISTDECL(PENDINGTEXTEMOTE, s_pendingTextEmote);
-static TSGrowableArray<ChatChannel>                           s_channels;
-static TSHashTable<WORDLIST, HASHKEY_LANGUAGE>                s_wordLists;
-static int                                                    s_loggingEnabled;
-static HSLOG                                                  s_logHandle;
+static TSGrowableArray<ChatChannel>            s_channels;
+static TSHashTable<WORDLIST, HASHKEY_LANGUAGE> s_wordLists;
+static int                                     s_loggingEnabled;
+static HSLOG                                   s_logHandle;
 
-unsigned __int64 Script_GetGUIDFromName(const char *name);
+DWORDLONG Script_GetGUIDFromName(LPCSTR name);
 
 int CGChat::m_paused = 1;
 int CGChat::m_filterChat = 1;
 
 void CGChat::InitializeGame() {
-  unsigned int numEntries = g_languageWordsDB.GetNumRecords();
-  for (unsigned int i = 0; i < numEntries; ++i) {
+  UINT numEntries = g_languageWordsDB.GetNumRecords();
+  for (UINT i = 0; i < numEntries; ++i) {
     const LanguageWordsRec *wordRec = g_languageWordsDB.GetRecordByIndex(i);
-    unsigned int      len = SStrLen(wordRec->m_word);
-    HASHKEY_LANGUAGE  key(wordRec->m_languageID, len);
-    WORDLIST         *wordList = s_wordLists.Ptr(wordRec->m_languageID ^ (len << 16), key);
+    UINT                    len = SStrLen(wordRec->m_word);
+    HASHKEY_LANGUAGE        key(wordRec->m_languageID, len);
+    WORDLIST               *wordList = s_wordLists.Ptr(wordRec->m_languageID ^ (len << 16), key);
     if (!wordList) {
       wordList = s_wordLists.New(wordRec->m_languageID ^ (len << 16), key, 0, 0);
     }
@@ -151,7 +150,7 @@ void CGChat::ShutdownGame() {
     s_pendingTextEmote.DeleteNode(pendingEmote);
   }
 
-  for (unsigned int i = 0; i < s_channels.Count(); ++i) {
+  for (UINT i = 0; i < s_channels.Count(); ++i) {
     s_channels[i].pendingNames.Clear();
   }
   s_channels.Clear();
@@ -166,15 +165,7 @@ void CGChat::LeaveWorld() {
   m_paused = 1;
 }
 
-static void SendChatEvent(
-    const char      *text,
-    SLASH_COMMAND_ID type,
-    const char      *player,
-    unsigned int     language,
-    const char      *channel,
-    const char      *player2,
-    const char      *specialFlag
-) {
+static void SendChatEvent(LPCSTR text, SLASH_COMMAND_ID type, LPCSTR player, UINT language, LPCSTR channel, LPCSTR player2, LPCSTR specialFlag) {
   if (type >= 30) {
     return;
   }
@@ -193,22 +184,14 @@ static void SendChatEvent(
   FrameScript_SignalEvent(s_events[type], "%s%s%s%s%s%s", text, player, "", channel, player2, specialFlag);
 }
 
-void CGChat::AddChatMessage(
-    const char      *text,
-    SLASH_COMMAND_ID type,
-    const char      *player,
-    unsigned int     language,
-    const char      *channel,
-    const char      *player2,
-    const char      *specialFlag
-) {
+void CGChat::AddChatMessage(LPCSTR text, SLASH_COMMAND_ID type, LPCSTR player, UINT language, LPCSTR channel, LPCSTR player2, LPCSTR specialFlag) {
   if (s_loggingEnabled && s_logHandle) {
     SLogWrite(s_logHandle, "%s", text ? text : "");
   }
   SendChatEvent(text, type, player, language, channel, player2, specialFlag);
 }
 
-void CGChat::AddTextEmoteMessage(const unsigned __int64 &senderGUID, int textEmoteID, const char *target) {
+void CGChat::AddTextEmoteMessage(const DWORDLONG &senderGUID, int textEmoteID, LPCSTR target) {
   NameCache *nc = const_cast<NameCache *>(g_nameDBCache.GetRecord(senderGUID, senderGUID, 0, 0));
   if (!nc) {
     return;
@@ -223,12 +206,12 @@ void CGChat::AddTextEmoteMessage(const unsigned __int64 &senderGUID, int textEmo
   AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(8), nc->m_name, 0, 0, 0, 0);
 }
 
-static void CopyWordCase(char *buffer, const char *token, const char *word, unsigned int maxlen) {
+static void CopyWordCase(char *buffer, LPCSTR token, LPCSTR word, UINT maxlen) {
   while (*word && maxlen > 1) {
-    if (*token && isupper(static_cast<unsigned char>(*token))) {
-      *buffer = static_cast<char>(toupper(static_cast<unsigned char>(*word)));
+    if (*token && isupper(static_cast<BYTE>(*token))) {
+      *buffer = static_cast<char>(toupper(static_cast<BYTE>(*word)));
     } else {
-      *buffer = static_cast<char>(tolower(static_cast<unsigned char>(*word)));
+      *buffer = static_cast<char>(tolower(static_cast<BYTE>(*word)));
     }
     ++buffer;
     ++token;
@@ -238,7 +221,7 @@ static void CopyWordCase(char *buffer, const char *token, const char *word, unsi
   *buffer = 0;
 }
 
-void CGChat::TranslateMessage(unsigned int language, unsigned int skill, const char *text, char *buffer, unsigned int size, int passXML) {
+void CGChat::TranslateMessage(UINT language, UINT skill, LPCSTR text, char *buffer, UINT size, int passXML) {
   if (!size) {
     return;
   }
@@ -249,25 +232,25 @@ void CGChat::TranslateMessage(unsigned int language, unsigned int skill, const c
   }
 
   while (*text && SStrLen(buffer) + 1 < size) {
-    if (isspace(static_cast<unsigned char>(*text)) || (passXML && *text == '<')) {
+    if (isspace(static_cast<BYTE>(*text)) || (passXML && *text == '<')) {
       char separator[2] = {*text++, 0};
       SStrPack(buffer, separator, size);
       continue;
     }
 
-    char         token[256];
-    unsigned int len = 0;
-    while (text[len] && !isspace(static_cast<unsigned char>(text[len])) && len + 1 < sizeof(token)) {
+    char token[256];
+    UINT len = 0;
+    while (text[len] && !isspace(static_cast<BYTE>(text[len])) && len + 1 < sizeof(token)) {
       token[len] = text[len];
       ++len;
     }
     token[len] = 0;
     text += len;
 
-    unsigned int            hash = SStrHash(token, 0, 0);
-    unsigned int            count = 0;
+    UINT                    hash = SStrHash(token, 0, 0);
+    UINT                    count = 0;
     const LanguageWordsRec *replacement = 0;
-    for (unsigned int i = 0; i < g_languageWordsDB.GetNumRecords(); ++i) {
+    for (UINT i = 0; i < g_languageWordsDB.GetNumRecords(); ++i) {
       const LanguageWordsRec *word = g_languageWordsDB.GetRecordByIndex(i);
       if (word && word->m_languageID == static_cast<int>(language) && SStrLen(word->m_word) == len) {
         ++count;
@@ -291,7 +274,7 @@ void CGChat::UpdateLanguages() {
   FrameScript_SignalEvent(242);
 }
 
-void CGChat::AddChannel(const char *name) {
+void CGChat::AddChannel(LPCSTR name) {
   int index;
   for (index = 0; index < s_channels.Count(); ++index) {
     if (!s_channels[index].localID) {
@@ -299,13 +282,13 @@ void CGChat::AddChannel(const char *name) {
     }
   }
 
-  ChatChannel *channel = static_cast<unsigned int>(index) < s_channels.Count() ? &s_channels[index] : s_channels.New();
+  ChatChannel *channel = static_cast<UINT>(index) < s_channels.Count() ? &s_channels[index] : s_channels.New();
   channel->localID = index + 1;
   SStrCopy(channel->name, name, sizeof(channel->name));
 }
 
-void CGChat::RemoveChannel(const char *name) {
-  for (unsigned int index = 0; index < s_channels.Count(); ++index) {
+void CGChat::RemoveChannel(LPCSTR name) {
+  for (UINT index = 0; index < s_channels.Count(); ++index) {
     ChatChannel &channel = s_channels[index];
     if (!SStrCmpI(channel.name, name, 0x7FFFFFFF)) {
       channel.localID = 0;
@@ -315,21 +298,21 @@ void CGChat::RemoveChannel(const char *name) {
   }
 }
 
-int CGChat::GetChannelID(const char *name) {
+int CGChat::GetChannelID(LPCSTR name) {
   ChatChannel *channel = GetChannel(name);
   return channel ? channel->localID : 0;
 }
 
-const char *CGChat::GetChannelName(int localID) {
-  if (localID < 1 || static_cast<unsigned int>(localID) > s_channels.Count()) {
+LPCSTR CGChat::GetChannelName(int localID) {
+  if (localID < 1 || static_cast<UINT>(localID) > s_channels.Count()) {
     return 0;
   }
   ChatChannel &channel = s_channels[localID - 1];
   return channel.localID == localID ? channel.name : 0;
 }
 
-ChatChannel *CGChat::GetChannel(const char *name) {
-  for (unsigned int index = 0; index < s_channels.Count(); ++index) {
+ChatChannel *CGChat::GetChannel(LPCSTR name) {
+  for (UINT index = 0; index < s_channels.Count(); ++index) {
     if (!SStrCmpI(s_channels[index].name, name, 0x7FFFFFFF)) {
       return &s_channels[index];
     }
@@ -341,12 +324,12 @@ void CGChat::ChannelNotify(CDataStore *msg) {
   char             namebuffer[256] = "";
   char             buffer[512] = "";
   char             channel[128];
-  const char      *name[2] = {0, 0};
-  unsigned __int64 guid2 = 0;
-  unsigned char    oldFlags = 0;
-  unsigned char    newFlags = 0;
-  unsigned __int64 guid = 0;
-  unsigned char    type;
+  LPCSTR           name[2] = {0, 0};
+  DWORDLONG        guid2 = 0;
+  BYTE             oldFlags = 0;
+  BYTE             newFlags = 0;
+  DWORDLONG        guid = 0;
+  BYTE             type;
   SLASH_COMMAND_ID eventType = static_cast<SLASH_COMMAND_ID>(9);
 
   msg->Get(type);
@@ -584,15 +567,15 @@ void CGChat::DisplayPendingUserList(ChatChannel *channel) {
 }
 
 void CGChat::QueueChatText(
-    int              slashCmd,
-    unsigned __int64 guid,
-    char            *text,
-    unsigned int     language,
-    int              waitingForUI,
-    int              parse,
-    const char      *channel,
-    unsigned __int64 guid2,
-    const char      *specialFlag
+    int       slashCmd,
+    DWORDLONG guid,
+    char     *text,
+    UINT      language,
+    int       waitingForUI,
+    int       parse,
+    LPCSTR    channel,
+    DWORDLONG guid2,
+    LPCSTR    specialFlag
 ) {
   PENDINGCHAT *pending = s_pendingChat.NewNode(LIST_TAIL, 0, 0);
   pending->slashCmd = slashCmd;
@@ -606,7 +589,7 @@ void CGChat::QueueChatText(
   SStrCopy(pending->specialFlag, specialFlag ? specialFlag : "", sizeof(pending->specialFlag));
 }
 
-void CGChat::QueueTextEmote(const unsigned __int64 &sender, int textEmoteID, const char *target, int waitingForUI) {
+void CGChat::QueueTextEmote(const DWORDLONG &sender, int textEmoteID, LPCSTR target, int waitingForUI) {
   PENDINGTEXTEMOTE *pending = s_pendingTextEmote.NewNode(LIST_TAIL, 0, 0);
   pending->sender = sender;
   pending->textEmoteID = textEmoteID;
@@ -614,8 +597,8 @@ void CGChat::QueueTextEmote(const unsigned __int64 &sender, int textEmoteID, con
   pending->waitingForUI = waitingForUI;
 }
 
-void CGChat::NameQueryCallback(int id, const unsigned __int64 &guid, void *, bool) {
-  for (unsigned int i = 0; i < s_channels.Count(); ++i) {
+void CGChat::NameQueryCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
+  for (UINT i = 0; i < s_channels.Count(); ++i) {
     if (!s_channels[i].pendingNames.IsEmpty()) {
       DisplayPendingUserList(&s_channels[i]);
     }
@@ -623,7 +606,7 @@ void CGChat::NameQueryCallback(int id, const unsigned __int64 &guid, void *, boo
   GetPendingChatMessages();
 }
 
-void CGChat::TextEmoteNameQueryCallback(int id, const unsigned __int64 &guid, void *, bool) {
+void CGChat::TextEmoteNameQueryCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
   ITERATELIST(PENDINGTEXTEMOTE, s_pendingTextEmote, pending) {
     if (g_nameDBCache.GetRecord(pending->sender, pending->sender, 0, 0)) {
       if (!m_paused) {
@@ -639,8 +622,8 @@ void CGChat::GetPendingChatMessages() {
   if (m_paused)
     return;
   ITERATELIST(PENDINGCHAT, s_pendingChat, pending) {
-    NameCache   *nc = pending->guid ? const_cast<NameCache *>(g_nameDBCache.GetRecord(pending->guid, pending->guid, 0, 0)) : 0;
-    NameCache   *nc2 = pending->guid2 ? const_cast<NameCache *>(g_nameDBCache.GetRecord(pending->guid2, pending->guid2, 0, 0)) : 0;
+    NameCache *nc = pending->guid ? const_cast<NameCache *>(g_nameDBCache.GetRecord(pending->guid, pending->guid, 0, 0)) : 0;
+    NameCache *nc2 = pending->guid2 ? const_cast<NameCache *>(g_nameDBCache.GetRecord(pending->guid2, pending->guid2, 0, 0)) : 0;
     if ((!pending->guid || nc) && (!pending->guid2 || nc2)) {
       AddChatMessage(
           pending->text, static_cast<SLASH_COMMAND_ID>(pending->slashCmd), nc ? nc->m_name : 0, pending->language, pending->channel,
@@ -652,19 +635,19 @@ void CGChat::GetPendingChatMessages() {
   }
 }
 
-extern bool QuestParserParseText(const char *text, char *buf, unsigned int size, const unsigned __int64 &target, int restoreToken);
+extern bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
 
 int CGChat::ChatHandler(CDataStore *msg) {
-  char             message[512] = "";
-  char             buffer[512] = "";
-  char             name[48] = "";
-  char             channel[128] = "";
-  NameCache       *nc = 0;
-  unsigned int     language;
-  const char      *specialFlag = "";
-  unsigned __int64 guid = 0;
-  unsigned char    afkDND;
-  unsigned char    slashCmd;
+  char       message[512] = "";
+  char       buffer[512] = "";
+  char       name[48] = "";
+  char       channel[128] = "";
+  NameCache *nc = 0;
+  UINT       language;
+  LPCSTR     specialFlag = "";
+  DWORDLONG  guid = 0;
+  BYTE       afkDND;
+  BYTE       slashCmd;
 
   msg->Get(slashCmd);
   msg->Get(language);
@@ -717,9 +700,9 @@ int CGChat::ChatHandler(CDataStore *msg) {
 }
 
 int CGChat::HandleTextEmote(CDataStore *msg) {
-  char             target[128];
-  unsigned __int64 sender;
-  int              textEmoteID;
+  char      target[128];
+  DWORDLONG sender;
+  int       textEmoteID;
 
   msg->Get(sender);
   msg->Get(textEmoteID);
@@ -735,20 +718,20 @@ int CGChat::HandleTextEmote(CDataStore *msg) {
   return 1;
 }
 
-const char *CGChat::GetChannelString(const char *commandString) {
-  unsigned int localID = SStrToUnsigned(commandString);
+LPCSTR CGChat::GetChannelString(LPCSTR commandString) {
+  UINT localID = SStrToUnsigned(commandString);
   return localID ? GetChannelName(localID) : commandString;
 }
 
 void CGChat::CheckFlagChanged(
-    unsigned __int64,
+    DWORDLONG,
     const NameCache *nc,
-    unsigned char    oldFlags,
-    unsigned char    newFlags,
-    const char      *channel,
-    unsigned char    flagToCheck,
-    const char      *setText,
-    const char      *unsetText
+    BYTE             oldFlags,
+    BYTE             newFlags,
+    LPCSTR           channel,
+    BYTE             flagToCheck,
+    LPCSTR           setText,
+    LPCSTR           unsetText
 ) {
   if (!(oldFlags & flagToCheck) && (newFlags & flagToCheck)) {
     AddChatMessage(setText, SLASH_CMD_SAY, nc->m_name, 0, channel, 0, 0);
@@ -757,7 +740,7 @@ void CGChat::CheckFlagChanged(
   }
 }
 
-void CGChat::HandleFlagsChanged(unsigned __int64 guid, unsigned char oldFlags, unsigned char newFlags, const char *channel) {
+void CGChat::HandleFlagsChanged(DWORDLONG guid, BYTE oldFlags, BYTE newFlags, LPCSTR channel) {
   const NameCache *nc = g_nameDBCache.GetRecord(guid, guid, NameQueryCallback, 0);
   if (!nc)
     return;
@@ -765,10 +748,10 @@ void CGChat::HandleFlagsChanged(unsigned __int64 guid, unsigned char oldFlags, u
   CheckFlagChanged(guid, nc, oldFlags, newFlags, channel, 4, "SET_VOICE", "UNSET_VOICE");
 }
 
-static int StringToChatType(const char *string, SLASH_COMMAND_ID &slashCmd) {
+static int StringToChatType(LPCSTR string, SLASH_COMMAND_ID &slashCmd) {
   const struct {
-    const char *name;
-    int         type;
+    LPCSTR name;
+    int    type;
   } array[10] = {
       {    "SAY",  0},
       {  "PARTY",  1},
@@ -781,7 +764,7 @@ static int StringToChatType(const char *string, SLASH_COMMAND_ID &slashCmd) {
       {    "AFK", 19},
       {    "DND", 20}
   };
-  for (unsigned int i = 0; i < 10; ++i) {
+  for (UINT i = 0; i < 10; ++i) {
     if (!SStrCmpI(string, array[i].name, 0x7FFFFFFF)) {
       slashCmd = static_cast<SLASH_COMMAND_ID>(array[i].type);
       return 1;
@@ -790,7 +773,7 @@ static int StringToChatType(const char *string, SLASH_COMMAND_ID &slashCmd) {
   return 0;
 }
 
-static int StringToLanguage(const char *string, unsigned int &language) {
+static int StringToLanguage(LPCSTR string, UINT &language) {
   int numEntries = g_languagesDB.GetNumRecords();
   for (int i = 0; i < numEntries; ++i) {
     const LanguagesRec *rec = g_languagesDB.GetRecordByIndex(i);
@@ -810,7 +793,7 @@ static int Script_SendChatMessage(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: SendChatMessage(message [, chatType, language, channel])");
   }
-  const char      *text = lua_tostring(L, 1);
+  LPCSTR           text = lua_tostring(L, 1);
   SLASH_COMMAND_ID type = SLASH_CMD_SAY;
   if (lua_isstring(L, 2) && !StringToChatType(lua_tostring(L, 2), type)) {
     return luaL_error(L, "Unknown chat type");
@@ -819,7 +802,7 @@ static int Script_SendChatMessage(lua_State *L) {
     return 0;
   }
 
-  unsigned int       language = 0;
+  UINT               language = 0;
   const ChrRacesRec *race = g_chrRacesDB.GetRecord(player->GetUnitData()->race);
   if (race) {
     language = race->m_BaseLanguage;
@@ -828,7 +811,7 @@ static int Script_SendChatMessage(lua_State *L) {
     return luaL_error(L, "Unknown language");
   }
 
-  const char *target = lua_isstring(L, 4) ? lua_tostring(L, 4) : 0;
+  LPCSTR target = lua_isstring(L, 4) ? lua_tostring(L, 4) : 0;
   if (type == static_cast<SLASH_COMMAND_ID>(13)) {
     if (!target || !*target) {
       return luaL_error(L, "Channel send missing channel name");
@@ -842,8 +825,8 @@ static int Script_SendChatMessage(lua_State *L) {
   }
 
   CDataStore message;
-  message.Put(static_cast<unsigned int>(CMSG_MESSAGECHAT));
-  message.Put(static_cast<unsigned int>(type));
+  message.Put(static_cast<UINT>(CMSG_MESSAGECHAT));
+  message.Put(static_cast<UINT>(type));
   message.Put(language);
   if (type == static_cast<SLASH_COMMAND_ID>(5) || type == static_cast<SLASH_COMMAND_ID>(13)) {
     message.PutString(target);
@@ -855,11 +838,11 @@ static int Script_SendChatMessage(lua_State *L) {
 }
 
 static int Script_GetNumLanguages(lua_State *L) {
-  CGPlayer_C  *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned int count = 0;
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  UINT        count = 0;
   if (player) {
     for (int i = 0; i < g_languagesDB.GetNumRecords(); ++i) {
-      unsigned int        skill;
+      UINT                skill;
       const LanguagesRec *rec = g_languagesDB.GetRecordByIndex(i);
       if (rec && player->GetLanguageSkill(rec->m_ID, skill)) {
         ++count;
@@ -878,11 +861,11 @@ static int Script_GetLanguageByIndex(lua_State *L) {
   if (!player) {
     return 0;
   }
-  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1));
-  unsigned int count = 0;
-  int numEntries = g_languagesDB.GetNumRecords();
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1));
+  UINT count = 0;
+  int  numEntries = g_languagesDB.GetNumRecords();
   for (int i = 0; i < numEntries; ++i) {
-    unsigned int        skill;
+    UINT                skill;
     const LanguagesRec *rec = g_languagesDB.GetRecordByIndex(i);
     if (rec && player->GetLanguageSkill(rec->m_ID, skill) && ++count == index) {
       lua_pushstring(L, rec->m_name_lang[CURRENT_LANGUAGE]);
@@ -907,7 +890,7 @@ static int Script_DoEmote(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: DoEmote(emote [, unit])");
   }
-  const char          *name = lua_tostring(L, 1);
+  LPCSTR               name = lua_tostring(L, 1);
   const EmotesTextRec *rec = 0;
   for (int i = g_emotesTextDB.GetNumRecords(); i;) {
     const EmotesTextRec *candidate = g_emotesTextDB.GetRecordByIndex(--i);
@@ -919,9 +902,9 @@ static int Script_DoEmote(lua_State *L) {
   if (!rec) {
     return 0;
   }
-  const char      *unit = lua_isstring(L, 2) ? lua_tostring(L, 2) : "target";
-  unsigned __int64 target = Script_GetGUIDFromName(unit);
-  CGPlayer_C      *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  LPCSTR      unit = lua_isstring(L, 2) ? lua_tostring(L, 2) : "target";
+  DWORDLONG   target = Script_GetGUIDFromName(unit);
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->SendTextEmote(rec, target);
   }
@@ -953,38 +936,38 @@ static int Script_ChatFrameLog(lua_State *L) {
   return 1;
 }
 
-static void ChannelPlayerCommand(lua_State *L, int messageCode, const char *funcName) {
+static void ChannelPlayerCommand(lua_State *L, int messageCode, LPCSTR funcName) {
   char buffer[512];
   SStrPrintf(buffer, sizeof(buffer), "Usage: %s(channel, player)", funcName);
   if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
     luaL_error(L, buffer);
     return;
   }
-  const char *channel = CGChat::GetChannelString(lua_tostring(L, 1));
+  LPCSTR channel = CGChat::GetChannelString(lua_tostring(L, 1));
   if (!channel) {
     return;
   }
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(messageCode));
+  msg.Put(static_cast<UINT>(messageCode));
   msg.PutString(channel);
   msg.PutString(lua_tostring(L, 2));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-static void ChannelCommand(lua_State *L, int messageCode, const char *funcname) {
+static void ChannelCommand(lua_State *L, int messageCode, LPCSTR funcname) {
   char buffer[512];
   SStrPrintf(buffer, sizeof(buffer), "Usage: %s(channel)", funcname);
   if (!lua_isstring(L, 1)) {
     luaL_error(L, buffer);
     return;
   }
-  const char *channel = CGChat::GetChannelString(lua_tostring(L, 1));
+  LPCSTR channel = CGChat::GetChannelString(lua_tostring(L, 1));
   if (!channel) {
     return;
   }
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(messageCode));
+  msg.Put(static_cast<UINT>(messageCode));
   msg.PutString(channel);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -994,9 +977,9 @@ static int Script_JoinChannelByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     return luaL_error(L, "Usage: JoinChannelByName(channel [, password])");
   }
-  const char *password = lua_isstring(L, 2) ? lua_tostring(L, 2) : "";
-  CDataStore  msg;
-  msg.Put(static_cast<unsigned int>(CMSG_JOIN_CHANNEL));
+  LPCSTR     password = lua_isstring(L, 2) ? lua_tostring(L, 2) : "";
+  CDataStore msg;
+  msg.Put(static_cast<UINT>(CMSG_JOIN_CHANNEL));
   msg.PutString(lua_tostring(L, 1));
   msg.PutString(password);
   msg.Finalize();
@@ -1017,7 +1000,7 @@ static int Script_ListChannelByName(lua_State *L) {
 static int Script_ListChannels(lua_State *L) {
   char buffer[138];
   char line[256] = "";
-  for (unsigned int i = 0; i < s_channels.Count(); ++i) {
+  for (UINT i = 0; i < s_channels.Count(); ++i) {
     if (!s_channels[i].localID) {
       continue;
     }
@@ -1036,12 +1019,12 @@ static int Script_SetChannelPassword(lua_State *L) {
   if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
     return luaL_error(L, "Usage: SetChannelPassword(channel, password)");
   }
-  const char *channel = CGChat::GetChannelString(lua_tostring(L, 1));
+  LPCSTR channel = CGChat::GetChannelString(lua_tostring(L, 1));
   if (!channel) {
     return 0;
   }
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_CHANNEL_PASSWORD));
+  msg.Put(static_cast<UINT>(CMSG_CHANNEL_PASSWORD));
   msg.PutString(channel);
   msg.PutString(lua_tostring(L, 2));
   msg.Finalize();
@@ -1060,8 +1043,8 @@ static int Script_DisplayChannelOwner(lua_State *L) {
 }
 
 static int Script_GetChannelName(lua_State *L) {
-  int         channel;
-  const char *name;
+  int    channel;
+  LPCSTR name;
   if (lua_isnumber(L, 1)) {
     channel = static_cast<int>(lua_tonumber(L, 1));
     name = CGChat::GetChannelName(channel);
@@ -1161,13 +1144,13 @@ static FrameScript_Method s_ScriptFunctions[24] = {
 };
 
 void ChatRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 24; ++i) {
+  for (UINT i = 0; i < 24; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void ChatUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 24; ++i) {
+  for (UINT i = 0; i < 24; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

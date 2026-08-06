@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *UISoundLookupsRec::GetFilename() {
+LPCSTR UISoundLookupsRec::GetFilename() {
   return "DBFilesClient\\UISoundLookups.dbc";
 }
 
@@ -19,9 +19,9 @@ UISoundLookupsRec::UISoundLookupsRec() {
 UISoundLookupsRec::~UISoundLookupsRec() {
 }
 
-bool UISoundLookupsRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempSoundNameIndices[1];
+bool UISoundLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempSoundNameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_SoundID, sizeof(m_SoundID), 0, 0, 0) && result;

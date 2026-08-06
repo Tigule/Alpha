@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SoundWaterTypeRec::GetFilename() {
+LPCSTR SoundWaterTypeRec::GetFilename() {
   return "DBFilesClient\\SoundWaterType.dbc";
 }
 
@@ -19,7 +19,7 @@ SoundWaterTypeRec::SoundWaterTypeRec() {
 SoundWaterTypeRec::~SoundWaterTypeRec() {
 }
 
-bool SoundWaterTypeRec::Read(SFile *f, const char *stringBuffer) {
+bool SoundWaterTypeRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

@@ -27,7 +27,7 @@ class TRefCnt {
   virtual ~TRefCnt() {
   }
 
-  unsigned long m_refcnt;
+  DWORD m_refcnt;
 };
 
 template <class T>
@@ -97,23 +97,23 @@ class TRefCntPtr {
     return m_ptr;
   }
 
-  unsigned char operator==(const T *rhs) const {
+  BYTE operator==(const T *rhs) const {
     return m_ptr == rhs;
   }
 
-  unsigned char operator==(const TRefCntPtr<T> &rhs) const {
+  BYTE operator==(const TRefCntPtr<T> &rhs) const {
     return m_ptr == rhs.m_ptr;
   }
 
-  unsigned char operator!=(const T *rhs) const {
+  BYTE operator!=(const T *rhs) const {
     return m_ptr != rhs;
   }
 
-  unsigned char operator!=(const TRefCntPtr<T> &rhs) const {
+  BYTE operator!=(const TRefCntPtr<T> &rhs) const {
     return m_ptr != rhs.m_ptr;
   }
 
-  unsigned char operator!() const {
+  BYTE operator!() const {
     return m_ptr == 0;
   }
 

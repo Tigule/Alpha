@@ -44,7 +44,7 @@ void CSimpleMessageFrame::LoadXML(const XMLNode *node, CStatus *status) {
     }
   }
 
-  const char *value = node->GetAttributeByName("fadeDuration");
+  LPCSTR value = node->GetAttributeByName("fadeDuration");
   if (value && *value) {
     float fadeDuration = SStrToFloat(value);
     if (fadeDuration > 0.0f) {
@@ -72,7 +72,7 @@ void CSimpleMessageFrame::SetMessageFrameInsets(float right, float left, float t
 void CSimpleMessageFrame::SetTextLength(int size) {
   m_textMaxSize = size;
 
-  for (unsigned int i = 0; i < m_rows; ++i) {
+  for (UINT i = 0; i < m_rows; ++i) {
     m_lines[i].stringNode->string->SetTextLength(size);
   }
 }
@@ -85,7 +85,7 @@ void CSimpleMessageFrame::SetInsertMode(SimpleMessageFrameInsertMode mode) {
   }
 }
 
-void CSimpleMessageFrame::AddMessage(const char *text, const NTempest::CImVector &color, float timeVisible, int permanent) {
+void CSimpleMessageFrame::AddMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent) {
   ASSERT(text);
 
   MessageData *message = m_pendingMessages.New();
@@ -96,7 +96,7 @@ void CSimpleMessageFrame::AddMessage(const char *text, const NTempest::CImVector
 }
 
 void CSimpleMessageFrame::Clear() {
-  for (unsigned int i = 0; i < m_rows; ++i) {
+  for (UINT i = 0; i < m_rows; ++i) {
     HideLineNode(m_lines[i].stringNode);
   }
 
@@ -104,8 +104,8 @@ void CSimpleMessageFrame::Clear() {
 }
 
 void CSimpleMessageFrame::ClearPending() {
-  unsigned int pendingCount = m_pendingMessages.Count();
-  unsigned int i;
+  UINT pendingCount = m_pendingMessages.Count();
+  UINT i;
 
   for (i = 0; i < pendingCount; ++i) {
     DELIFUSED(m_pendingMessages[i].text);
@@ -128,7 +128,7 @@ void CSimpleMessageFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   ASSERT(fontHeight != 0.0f);
 
   float              areaHeight = m_messageFrameArea.b - m_messageFrameArea.t;
-  unsigned int       rows = static_cast<unsigned int>(areaHeight / fontHeight);
+  UINT               rows = static_cast<UINT>(areaHeight / fontHeight);
   static const float EPSILON = 2.38418579e-7f;
   if (fabs((rows + 1) * fontHeight - areaHeight) < EPSILON) {
     ++rows;
@@ -137,11 +137,11 @@ void CSimpleMessageFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   m_rows = rows;
   m_lines.SetCount(rows);
 
-  float        offsetX = m_messageFrameArea.l / scale;
-  float        offsetY = m_messageFrameArea.b / scale;
-  float        messageWidth = (m_messageFrameArea.r - m_messageFrameArea.l) / scale;
-  unsigned int index = m_insertMode == INSERT_AT_BOTTOM ? rows - 1 : 0;
-  int          increment = m_insertMode == INSERT_AT_BOTTOM ? -1 : 1;
+  float offsetX = m_messageFrameArea.l / scale;
+  float offsetY = m_messageFrameArea.b / scale;
+  float messageWidth = (m_messageFrameArea.r - m_messageFrameArea.l) / scale;
+  UINT  index = m_insertMode == INSERT_AT_BOTTOM ? rows - 1 : 0;
+  int   increment = m_insertMode == INSERT_AT_BOTTOM ? -1 : 1;
 
   for (; index < rows; index += increment) {
     CSimpleFontString *string = m_lines[index].stringNode->string;
@@ -160,11 +160,11 @@ void CSimpleMessageFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
 void CSimpleMessageFrame::OnLayerUpdate(float elapsedSec) {
   CSimpleFrame::OnLayerUpdate(elapsedSec);
 
-  unsigned int pendingCount = m_pendingMessages.Count();
+  UINT pendingCount = m_pendingMessages.Count();
   if (pendingCount) {
     NTempest::CRect rect;
     if (GetRect(&rect)) {
-      for (unsigned int pendingIndex = 0; pendingIndex < pendingCount; ++pendingIndex) {
+      for (UINT pendingIndex = 0; pendingIndex < pendingCount; ++pendingIndex) {
         MessageData &message = m_pendingMessages[pendingIndex];
         AddPendingMessage(message.text, message.color, message.timeVisible, message.permanent);
         DELIFUSED(message.text);
@@ -179,7 +179,7 @@ void CSimpleMessageFrame::OnLayerUpdate(float elapsedSec) {
     return;
   }
 
-  for (unsigned int i = 0; i < m_rows; ++i) {
+  for (UINT i = 0; i < m_rows; ++i) {
     CSimpleMessageFrameLineNode *node = m_lines[i].stringNode;
     if (node->permanent) {
       continue;
@@ -199,14 +199,14 @@ void CSimpleMessageFrame::OnLayerUpdate(float elapsedSec) {
       if (node->fadeLeft < 0.0f) {
         HideLineNode(node);
       } else {
-        node->color.a = static_cast<unsigned char>(node->fadeLeft / m_fadeDuration * 255.0f);
+        node->color.a = static_cast<BYTE>(node->fadeLeft / m_fadeDuration * 255.0f);
         node->string->SetVertexColor(node->color);
       }
     }
   }
 }
 
-void CSimpleMessageFrame::AddPendingMessage(const char *text, const NTempest::CImVector &color, float timeVisible, int permanent) {
+void CSimpleMessageFrame::AddPendingMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent) {
   ASSERT(text);
   ASSERT(m_rows > 0);
 
@@ -218,8 +218,8 @@ void CSimpleMessageFrame::AddPendingMessage(const char *text, const NTempest::CI
   ShowLineNode(node, timeVisible, m_fadeDuration, permanent);
 
   float rows = static_cast<float>(floor(node->string->GetHeight() / node->string->GetFontHeight() + 0.5f));
-  if (rows > 1.0f && m_rows > static_cast<unsigned int>(rows)) {
-    unsigned int start = m_insertMode == INSERT_AT_TOP;
+  if (rows > 1.0f && m_rows > static_cast<UINT>(rows)) {
+    UINT start = m_insertMode == INSERT_AT_TOP;
     do {
       ScrollMessages(start);
       rows -= 1.0f;
@@ -227,10 +227,10 @@ void CSimpleMessageFrame::AddPendingMessage(const char *text, const NTempest::CI
   }
 }
 
-void CSimpleMessageFrame::ScrollMessages(unsigned int start) {
+void CSimpleMessageFrame::ScrollMessages(UINT start) {
   CSimpleMessageFrameLineNode *lastNode = m_lines[m_rows - 1].stringNode;
 
-  unsigned int i;
+  UINT i;
   for (i = m_rows - 1; i > start; --i) {
     m_lines[i].stringNode = m_lines[i - 1].stringNode;
     m_lines[i].stringNode->string->SetPoint(FRAMEPOINT_TOPLEFT, this, FRAMEPOINT_TOPLEFT, m_lines[i].offsetX, -m_lines[i].offsetY, 1);

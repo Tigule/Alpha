@@ -12,7 +12,7 @@
 void NETEVENTQUEUE::Poll() {
   m_critsect.Enter();
 
-  unsigned char deleted = 0;
+  BYTE deleted = 0;
   m_client->AddRef();
 
   ITERATELIST(NETEVENTQUEUENODE, m_eventQueue, event) {
@@ -67,7 +67,7 @@ NETEVENTQUEUE::~NETEVENTQUEUE() {
   m_critsect.Leave();
 }
 
-void NETEVENTQUEUE::AddEvent(EVENTID eventId, void *conn, NetClient *client, const void *data, unsigned long bytes) {
+void NETEVENTQUEUE::AddEvent(EVENTID eventId, LPVOID conn, NetClient *client, LPCVOID data, DWORD bytes) {
   m_critsect.Enter();
 
   NETEVENTQUEUENODE *event = m_eventQueue.NewNode(LIST_TAIL, 0, 0);

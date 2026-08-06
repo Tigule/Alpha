@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellDispelTypeRec::GetFilename() {
+LPCSTR SpellDispelTypeRec::GetFilename() {
   return "DBFilesClient\\SpellDispelType.dbc";
 }
 
@@ -19,9 +19,9 @@ SpellDispelTypeRec::SpellDispelTypeRec() {
 SpellDispelTypeRec::~SpellDispelTypeRec() {
 }
 
-bool SpellDispelTypeRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[8];
+bool SpellDispelTypeRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempname_langIndices[0], sizeof(tempname_langIndices[0]), 0, 0, 0) && result;

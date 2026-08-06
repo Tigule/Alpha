@@ -35,7 +35,7 @@ static LOOPEDDOODADDESC *FindFreeDoodadLoop(int soundID, int &freeSlot, int &sou
       freeDoodadLoop = doodadLoop;
       soundIndex = index;
     }
-    if (doodadLoop->soundID == static_cast<int>(soundID) && static_cast<unsigned char>(doodadLoop->posInUseFlags) != 0xFF) {
+    if (doodadLoop->soundID == static_cast<int>(soundID) && static_cast<BYTE>(doodadLoop->posInUseFlags) != 0xFF) {
       freeSlot = doodadLoop->FindFreeSlot();
       soundIndex = index;
       return doodadLoop;
@@ -54,11 +54,11 @@ static LOOPEDDOODADDESC *FindFreeDoodadLoop(int soundID, int &freeSlot, int &sou
   return 0;
 }
 
-int DoodadLoopHandler(const void* dataPtr, void* param) {
+int DoodadLoopHandler(LPCVOID dataPtr, LPVOID param) {
   s_elapsed += static_cast<int>(*static_cast<const float *>(dataPtr) * 1000.0f);
   NTempest::C3Vector lPos(0.0f);
   Sound::GetListenerPosition(lPos);
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     s_doodadLoopedInfo[i].Update(lPos);
   }
   return 1;
@@ -70,7 +70,7 @@ void SoundInterfaceDoodadInitialize() {
 
 void SoundInterfaceDoodadDestroy() {
   EventUnregister(EVENT_ID_IDLE, DoodadLoopHandler);
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     Sound::KillSound(s_doodadLoopedInfo[i].sound);
     s_doodadLoopedInfo[i].soundID = -1;
   }
@@ -101,16 +101,10 @@ void LOOPEDDOODADDESC::Update(const NTempest::C3Vector &listener) {
     return;
   }
 
-  const char *filename = definition->GetRandomFileName(-1);
+  LPCSTR filename = definition->GetRandomFileName(-1);
   if (filename && *filename) {
     if (!sound) {
-      sound = Sound::Play3DLooped(
-          SOUNDCATEGORY_NONE,
-          filename,
-          definition->GetOsFlags() | 4,
-          0,
-          true
-      );
+      sound = Sound::Play3DLooped(SOUNDCATEGORY_NONE, filename, definition->GetOsFlags() | 4, 0, true);
     }
     if (sound) {
       definition->SetFrequencyAndVolume(sound, 1.0f, false);
@@ -152,7 +146,7 @@ int LOOPEDDOODADDESC::FindFreeSlot() const {
   return 0;
 }
 
-int SndInterfaceHandleDoodadLoopStart(unsigned int soundID, const NTempest::C3Vector &pos) {
+int SndInterfaceHandleDoodadLoopStart(UINT soundID, const NTempest::C3Vector &pos) {
   int freeSlot;
   int soundIndex;
 
@@ -171,13 +165,13 @@ int SndInterfaceHandleDoodadLoopStart(unsigned int soundID, const NTempest::C3Ve
   return (soundIndex << 16) | (freeSlot & 0xFF);
 }
 
-void SndInterfaceHandleDoodadLoopStop(unsigned int soundHandle) {
+void SndInterfaceHandleDoodadLoopStop(UINT soundHandle) {
   if (soundHandle) {
-    s_doodadLoopedInfo[soundHandle >> 16].posInUseFlags &= ~(1 << static_cast<unsigned char>(soundHandle));
+    s_doodadLoopedInfo[soundHandle >> 16].posInUseFlags &= ~(1 << static_cast<BYTE>(soundHandle));
   }
 }
 
-void SndInterfaceHandleDoodadOneShot(unsigned int soundID, const NTempest::C3Vector &position) {
+void SndInterfaceHandleDoodadOneShot(UINT soundID, const NTempest::C3Vector &position) {
   if (soundID) {
     SndInterfacePlaySound(soundID, NTempest::C3Vector(position.x, position.y, position.z + 2.0f), -1, 1.0f);
   }

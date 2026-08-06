@@ -33,7 +33,7 @@
 #define VK_OEM_7      0xDE
 #endif
 
-typedef long(*OSWINDOWPROC)(void *window, unsigned int message, unsigned int wparam, long lparam);
+typedef long (*OSWINDOWPROC)(LPVOID window, UINT message, UINT wparam, long lparam);
 
 struct OSEVENT {
   OSINPUT id;
@@ -45,7 +45,7 @@ static long          s_savedResize;
 static RECT          s_defaultwindowrect;
 static int           s_screenIsWindow = 1;
 static int           s_AppIsActive = 1;
-static unsigned int  s_buttonState;
+static UINT          s_buttonState;
 static int           s_releasing;
 static OSEVENT       s_queue[0x10];
 static int           s_queueHead;
@@ -56,11 +56,11 @@ static POINT         s_mouseCenter;
 static OS_MOUSE_MODE s_mouseMode;
 static short         s_numlockState;
 
-static unsigned int latin1lookup[0x20] = {0xFFFEu, 0xFFFEu, 0x201Au, 0x0192u, 0x201Eu, 0x2026u, 0x2020u, 0x2021u, 0x02C6u, 0x2030u, 0x0160u,
-                                          0x2039u, 0x0152u, 0xFFFEu, 0xFFFEu, 0xFFFEu, 0xFFFEu, 0x2018u, 0x2019u, 0x201Cu, 0x201Du, 0x2022u,
-                                          0x2013u, 0x2014u, 0x02DCu, 0x2122u, 0x0161u, 0x203Au, 0x0153u, 0xFFFEu, 0xFFFEu, 0x0178u};
+static UINT latin1lookup[0x20] = {0xFFFEu, 0xFFFEu, 0x201Au, 0x0192u, 0x201Eu, 0x2026u, 0x2020u, 0x2021u, 0x02C6u, 0x2030u, 0x0160u,
+                                  0x2039u, 0x0152u, 0xFFFEu, 0xFFFEu, 0xFFFEu, 0xFFFEu, 0x2018u, 0x2019u, 0x201Cu, 0x201Du, 0x2022u,
+                                  0x2013u, 0x2014u, 0x02DCu, 0x2122u, 0x0161u, 0x203Au, 0x0153u, 0xFFFEu, 0xFFFEu, 0x0178u};
 
-static unsigned int latin2lookup[0x100] = {
+static UINT latin2lookup[0x100] = {
     0x0000u, 0x0001u, 0x0002u, 0x0003u, 0x0004u, 0x0005u, 0x0006u, 0x0007u, 0x0008u, 0x0009u, 0x000Au, 0x000Bu, 0x000Cu, 0x000Du, 0x000Eu, 0x000Fu,
     0x0010u, 0x0011u, 0x0012u, 0x0013u, 0x0014u, 0x0015u, 0x0016u, 0x0017u, 0x0018u, 0x0019u, 0x001Au, 0x001Bu, 0x001Cu, 0x001Du, 0x001Eu, 0x001Fu,
     0x0020u, 0x0021u, 0x0022u, 0x0023u, 0x0024u, 0x0025u, 0x0026u, 0x0027u, 0x0028u, 0x0029u, 0x002Au, 0x002Bu, 0x002Cu, 0x002Du, 0x002Eu, 0x002Fu,
@@ -79,7 +79,7 @@ static unsigned int latin2lookup[0x100] = {
     0x0111u, 0x0144u, 0x0148u, 0x00F3u, 0x00F4u, 0x0151u, 0x00F6u, 0x00F7u, 0x0159u, 0x016Fu, 0x00FAu, 0x0171u, 0x00FCu, 0x00FDu, 0x0163u, 0x02D9u
 };
 
-static unsigned int cyrilliclookup[0x100] = {
+static UINT cyrilliclookup[0x100] = {
     0x0000u, 0x0001u, 0x0002u, 0x0003u, 0x0004u, 0x0005u, 0x0006u, 0x0007u, 0x0008u, 0x0009u, 0x000Au, 0x000Bu, 0x000Cu, 0x000Du, 0x000Eu, 0x000Fu,
     0x0010u, 0x0011u, 0x0012u, 0x0013u, 0x0014u, 0x0015u, 0x0016u, 0x0017u, 0x0018u, 0x0019u, 0x001Au, 0x001Bu, 0x001Cu, 0x001Du, 0x001Eu, 0x001Fu,
     0x0020u, 0x0021u, 0x0022u, 0x0023u, 0x0024u, 0x0025u, 0x0026u, 0x0027u, 0x0028u, 0x0029u, 0x002Au, 0x002Bu, 0x002Cu, 0x002Du, 0x002Eu, 0x002Fu,
@@ -98,7 +98,7 @@ static unsigned int cyrilliclookup[0x100] = {
     0x0440u, 0x0441u, 0x0442u, 0x0443u, 0x0444u, 0x0445u, 0x0446u, 0x0447u, 0x0448u, 0x0449u, 0x044Au, 0x044Bu, 0x044Cu, 0x044Du, 0x044Eu, 0x044Fu
 };
 
-static unsigned int latin5lookup[0x100] = {
+static UINT latin5lookup[0x100] = {
     0x0000u, 0x0001u, 0x0002u, 0x0003u, 0x0004u, 0x0005u, 0x0006u, 0x0007u, 0x0008u, 0x0009u, 0x000Au, 0x000Bu, 0x000Cu, 0x000Du, 0x000Eu, 0x000Fu,
     0x0010u, 0x0011u, 0x0012u, 0x0013u, 0x0014u, 0x0015u, 0x0016u, 0x0017u, 0x0018u, 0x0019u, 0x001Au, 0x001Bu, 0x001Cu, 0x001Du, 0x001Eu, 0x001Fu,
     0x0020u, 0x0021u, 0x0022u, 0x0023u, 0x0024u, 0x0025u, 0x0026u, 0x0027u, 0x0028u, 0x0029u, 0x002Au, 0x002Bu, 0x002Cu, 0x002Du, 0x002Eu, 0x002Fu,
@@ -117,7 +117,7 @@ static unsigned int latin5lookup[0x100] = {
     0x011Fu, 0x00F1u, 0x00F2u, 0x00F3u, 0x00F4u, 0x00F5u, 0x00F6u, 0x00F7u, 0x00F8u, 0x00F9u, 0x00FAu, 0x00FBu, 0x00FCu, 0x0131u, 0x015Fu, 0x00FFu
 };
 
-static unsigned int thailookup[0x100] = {
+static UINT thailookup[0x100] = {
     0x0000u, 0x0001u, 0x0002u, 0x0003u, 0x0004u, 0x0005u, 0x0006u, 0x0007u, 0x0008u, 0x0009u, 0x000Au, 0x000Bu, 0x000Cu, 0x000Du, 0x000Eu, 0x000Fu,
     0x0010u, 0x0011u, 0x0012u, 0x0013u, 0x0014u, 0x0015u, 0x0016u, 0x0017u, 0x0018u, 0x0019u, 0x001Au, 0x001Bu, 0x001Cu, 0x001Du, 0x001Eu, 0x001Fu,
     0x0020u, 0x0021u, 0x0022u, 0x0023u, 0x0024u, 0x0025u, 0x0026u, 0x0027u, 0x0028u, 0x0029u, 0x002Au, 0x002Bu, 0x002Cu, 0x002Du, 0x002Eu, 0x002Fu,
@@ -136,20 +136,20 @@ static unsigned int thailookup[0x100] = {
     0x0E50u, 0x0E51u, 0x0E52u, 0x0E53u, 0x0E54u, 0x0E55u, 0x0E56u, 0x0E57u, 0x0E58u, 0x0E59u, 0x0E5Au, 0x0E5Bu, 0x0020u, 0x0020u, 0x0020u, 0x0020u
 };
 
-void *OsGuiGetWindow(int inWindowType);
-int OsGuiProcessMessage(void *inMsgData);
-int OsGuiIsModifierKeyDown(int inKey);
-int OsSleepInBackground();
-DWORD OsGetBackgroundSleepMs();
+LPVOID OsGuiGetWindow(int inWindowType);
+int    OsGuiProcessMessage(LPVOID inMsgData);
+int    OsGuiIsModifierKeyDown(int inKey);
+int    OsSleepInBackground();
+DWORD  OsGetBackgroundSleepMs();
 
-static int OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3);
+static int  OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3);
 static void OsQueueSetParam(int index, int param);
 static void CenterMouse();
 static void RestoreMouse();
 static void SaveMouse(HWND window, const POINT &pt);
 static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param3);
-static int ConvertKeyCode(int vkey, KEY *key);
-static int ConvertButton(unsigned int message, unsigned int wparam, MOUSEBUTTON *button);
+static int  ConvertKeyCode(int vkey, KEY *key);
+static int  ConvertButton(UINT message, UINT wparam, MOUSEBUTTON *button);
 
 static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param3) {
   int nextHead;
@@ -385,7 +385,7 @@ static void CenterMouse() {
   SetCursorPos(s_mouseCenter.x, s_mouseCenter.y);
 }
 
-static int ConvertButton(unsigned int message, unsigned int wparam, MOUSEBUTTON *button) {
+static int ConvertButton(UINT message, UINT wparam, MOUSEBUTTON *button) {
   switch (message) {
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
@@ -566,7 +566,7 @@ int OsGetDefaultWindowRect(RECT *rect) {
   return 1;
 }
 
-unsigned int OsInputGetCodePage() {
+UINT OsInputGetCodePage() {
   return GetACP();
 }
 
@@ -591,16 +591,16 @@ void OsSetWindowProc(OSWINDOWPROC windowproc) {
   s_windowProc = windowproc;
 }
 
-long OsWindowProc(void *_window, unsigned int message, unsigned int wparam, long lparam) {
-  HWND         hWnd = static_cast<HWND>(_window);
-  POINT        pt;
-  KEY          key;
-  MOUSEBUTTON  button;
-  int          buttonDown;
-  unsigned int character;
-  unsigned int byte;
-  unsigned int codepage;
-  unsigned int imeFlags;
+long OsWindowProc(LPVOID _window, UINT message, UINT wparam, long lparam) {
+  HWND        hWnd = static_cast<HWND>(_window);
+  POINT       pt;
+  KEY         key;
+  MOUSEBUTTON button;
+  int         buttonDown;
+  UINT        character;
+  UINT        byte;
+  UINT        codepage;
+  UINT        imeFlags;
 
   switch (message) {
     case WM_SIZE:
@@ -609,7 +609,7 @@ long OsWindowProc(void *_window, unsigned int message, unsigned int wparam, long
 
     case WM_ACTIVATE:
       s_buttonState = 0;
-      OsQueuePut(OS_INPUT_FOCUS, static_cast<unsigned short>(LOWORD(wparam)) != WA_INACTIVE, 0, 0, 0);
+      OsQueuePut(OS_INPUT_FOCUS, static_cast<WORD>(LOWORD(wparam)) != WA_INACTIVE, 0, 0, 0);
       break;
 
     case WM_CLOSE:
@@ -633,8 +633,7 @@ long OsWindowProc(void *_window, unsigned int message, unsigned int wparam, long
       }
 
       OsQueuePut(
-          message == WM_KEYDOWN || message == WM_SYSKEYDOWN ? OS_INPUT_KEY_DOWN : OS_INPUT_KEY_UP, key, static_cast<unsigned short>(LOWORD(lparam)),
-          0, 0
+          message == WM_KEYDOWN || message == WM_SYSKEYDOWN ? OS_INPUT_KEY_DOWN : OS_INPUT_KEY_UP, key, static_cast<WORD>(LOWORD(lparam)), 0, 0
       );
 
       if (key == KEY_F4 && OsGuiIsModifierKeyDown(KEY_ALT)) {

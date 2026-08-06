@@ -1,10 +1,10 @@
 #include <storm.h>
 
-void *SInterlockedExchangePointer(void **destPtr, void *exchange) {
-  return (void *)InterlockedExchange((LPLONG)destPtr, (LONG)exchange);
+LPVOID SInterlockedExchangePointer(LPVOID *destPtr, LPVOID exchange) {
+  return (LPVOID)InterlockedExchange((LPLONG)destPtr, (LONG)exchange);
 }
 
-void *SInterlockedCompareExchangePointer(void **destPtr, void *exchange, void *comperand) {
+LPVOID SInterlockedCompareExchangePointer(LPVOID *destPtr, LPVOID exchange, LPVOID comperand) {
   return InterlockedCompareExchange(destPtr, exchange, comperand);
 }
 
@@ -29,79 +29,79 @@ long SInterlockedExchange(long *destPtr, long exchange) {
 }
 
 long SInterlockedCompareExchange(long *destPtr, long exchange, long comperand) {
-  return (long)InterlockedCompareExchange((void **)destPtr, (void *)exchange, (void *)comperand);
+  return (long)InterlockedCompareExchange((LPVOID *)destPtr, (LPVOID)exchange, (LPVOID)comperand);
 }
 
-__int64 SInterlockedIncrement(__int64 *valuePtr) {
+LONGLONG SInterlockedIncrement(LONGLONG *valuePtr) {
   return ++*valuePtr;
 }
 
-__int64 SInterlockedDecrement(__int64 *valuePtr) {
+LONGLONG SInterlockedDecrement(LONGLONG *valuePtr) {
   return --*valuePtr;
 }
 
-__int64 SInterlockedExchangeAdd(__int64 *valuePtr, long delta) {
-  __int64 original = *valuePtr;
+LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, long delta) {
+  LONGLONG original = *valuePtr;
   *valuePtr += delta;
   return original;
 }
 
-__int64 SInterlockedExchangeSub(__int64 *valuePtr, long delta) {
-  __int64 original = *valuePtr;
+LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, long delta) {
+  LONGLONG original = *valuePtr;
   *valuePtr -= delta;
   return original;
 }
 
-__int64 SInterlockedExchangeAdd(__int64 *valuePtr, const __int64 &delta) {
-  __int64 original = *valuePtr;
+LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, const LONGLONG &delta) {
+  LONGLONG original = *valuePtr;
   *valuePtr += delta;
   return original;
 }
 
-__int64 SInterlockedExchangeSub(__int64 *valuePtr, const __int64 &delta) {
-  __int64 original = *valuePtr;
+LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, const LONGLONG &delta) {
+  LONGLONG original = *valuePtr;
   *valuePtr -= delta;
   return original;
 }
 
-__int64 SInterlockedRead(const __int64 *sourcePtr) {
+LONGLONG SInterlockedRead(const LONGLONG *sourcePtr) {
   return *sourcePtr;
 }
 
-__int64 SInterlockedExchange(__int64 *destPtr, const __int64 &exchange) {
-  __int64 original = *destPtr;
+LONGLONG SInterlockedExchange(LONGLONG *destPtr, const LONGLONG &exchange) {
+  LONGLONG original = *destPtr;
   *destPtr = exchange;
   return original;
 }
 
-__int64 SInterlockedCompareExchange(__int64 *destPtr, const __int64 &exchange, const __int64 &comperand) {
-  __int64 original = *destPtr;
+LONGLONG SInterlockedCompareExchange(LONGLONG *destPtr, const LONGLONG &exchange, const LONGLONG &comperand) {
+  LONGLONG original = *destPtr;
   if (original == comperand) {
     *destPtr = exchange;
   }
   return original;
 }
 
-void SInterlockedIncrementNonAtomic(__int64 *valuePtr) {
+void SInterlockedIncrementNonAtomic(LONGLONG *valuePtr) {
   *valuePtr += 1;
 }
 
-void SInterlockedDecrementNonAtomic(__int64 *valuePtr) {
+void SInterlockedDecrementNonAtomic(LONGLONG *valuePtr) {
   *valuePtr -= 1;
 }
 
-void SInterlockedAddNonAtomic(__int64 *valuePtr, long delta) {
+void SInterlockedAddNonAtomic(LONGLONG *valuePtr, long delta) {
   *valuePtr += delta;
 }
 
-void SInterlockedSubNonAtomic(__int64 *valuePtr, long delta) {
+void SInterlockedSubNonAtomic(LONGLONG *valuePtr, long delta) {
   *valuePtr -= delta;
 }
 
-void SInterlockedAddNonAtomic(__int64 *valuePtr, const __int64 &delta) {
+void SInterlockedAddNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta) {
   *valuePtr += delta;
 }
 
-void SInterlockedSubNonAtomic(__int64 *valuePtr, const __int64 &delta) {
+void SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta) {
   *valuePtr -= delta;
 }

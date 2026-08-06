@@ -15,20 +15,20 @@
 
 #include <FrameScript/FrameScript.h>
 
-static int              s_initiator;
-static int              s_useCursorItem;
-static unsigned __int64 s_tradePartner;
-static int              s_tradeProposedEnchantment[2];
-static int              s_tradeProposedEnchantmentSlot[2];
-static unsigned int     s_tradeGold[2];
-static unsigned int     s_tradeFlags[2];
+static int       s_initiator;
+static int       s_useCursorItem;
+static DWORDLONG s_tradePartner;
+static int       s_tradeProposedEnchantment[2];
+static int       s_tradeProposedEnchantmentSlot[2];
+static UINT      s_tradeGold[2];
+static UINT      s_tradeFlags[2];
 
 struct TradeItemData {
-  unsigned int     entryID;
-  unsigned int     displayID;
-  unsigned int     count;
-  unsigned int     enchantmentID;
-  unsigned __int64 creator;
+  UINT      entryID;
+  UINT      displayID;
+  UINT      count;
+  UINT      enchantmentID;
+  DWORDLONG creator;
 };
 
 static TradeItemData s_tradeItems[2][8];
@@ -58,14 +58,14 @@ class CGTradeInfo {
   static void HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
 };
 
-void Trade_C_InitiateTrade(unsigned __int64 target, int useCursorItem);
+void Trade_C_InitiateTrade(DWORDLONG target, int useCursorItem);
 void Trade_C_AcceptTrade();
 void Trade_C_UnacceptTrade();
 void Trade_C_CancelTrade();
-bool Trade_C_AddItem(unsigned __int64 item, unsigned __int64 itemContainer, unsigned int itemSlot, unsigned int tradeSlot);
-void Trade_C_RemoveItem(unsigned int slot);
+bool Trade_C_AddItem(DWORDLONG item, DWORDLONG itemContainer, UINT itemSlot, UINT tradeSlot);
+void Trade_C_RemoveItem(UINT slot);
 
-static int CCommand_Trade(const char* command, const char* arguments) {
+static int CCommand_Trade(LPCSTR command, LPCSTR arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     Trade_C_InitiateTrade(player->GetLocalTarget(), 0);
@@ -73,27 +73,27 @@ static int CCommand_Trade(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_AddTradeItem(const char* command, const char* arguments) {
-  unsigned __int64 cursorItem;
-  unsigned __int64 cursorItemContainer;
-  unsigned int     cursorItemSlot;
+static int CCommand_AddTradeItem(LPCSTR command, LPCSTR arguments) {
+  DWORDLONG cursorItem;
+  DWORDLONG cursorItemContainer;
+  UINT      cursorItemSlot;
   CGGameUI::GetCursorItem(cursorItem, cursorItemContainer, cursorItemSlot);
-  unsigned int tradeSlot = arguments && *arguments ? static_cast<unsigned char>(SStrToInt(arguments)) : 0;
+  UINT tradeSlot = arguments && *arguments ? static_cast<BYTE>(SStrToInt(arguments)) : 0;
   Trade_C_AddItem(cursorItem, cursorItemContainer, cursorItemSlot, tradeSlot);
   return 1;
 }
 
-static int CCommand_ClearTradeItem(const char* command, const char* arguments) {
+static int CCommand_ClearTradeItem(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     Trade_C_RemoveItem(arguments && *arguments ? SStrToInt(arguments) : 0);
   }
   return 1;
 }
 
-static int CCommand_ClearTrade(const char* command, const char* arguments) {
+static int CCommand_ClearTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     CDataStore msg;
-    msg.Put(static_cast<unsigned int>(CMSG_CLEAR_TRADE_ITEM));
+    msg.Put(static_cast<UINT>(CMSG_CLEAR_TRADE_ITEM));
     msg.Put(0xFFu);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -101,31 +101,31 @@ static int CCommand_ClearTrade(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_AcceptTrade(const char* command, const char* arguments) {
+static int CCommand_AcceptTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     Trade_C_AcceptTrade();
   }
   return 1;
 }
 
-static int CCommand_CancelTrade(const char* command, const char* arguments) {
+static int CCommand_CancelTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     Trade_C_CancelTrade();
   }
   return 1;
 }
 
-static int CCommand_ShowTrade(const char*, const char*) {
-  for (unsigned char player = 0; player < 2; ++player) {
+static int CCommand_ShowTrade(LPCSTR, LPCSTR) {
+  for (BYTE player = 0; player < 2; ++player) {
     ConsoleWrite(player ? "He is offering:" : "You are offering:", DEFAULT_COLOR);
-    for (unsigned int slot = 0; slot < 8; ++slot) {
+    for (UINT slot = 0; slot < 8; ++slot) {
       ConsolePrintf("%d: item=%d, display=%d", slot, s_tradeItems[player][slot].entryID, s_tradeItems[player][slot].displayID);
     }
   }
   return 1;
 }
 
-static int CCommand_TradeGold(const char*, const char* arguments) {
+static int CCommand_TradeGold(LPCSTR, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(CMSG_SET_TRADE_GOLD);
   msg.Put(arguments ? SStrToInt(arguments) : 0);
@@ -134,28 +134,29 @@ static int CCommand_TradeGold(const char*, const char* arguments) {
   return 1;
 }
 
-static int CCommand_UnacceptTrade(const char*, const char*) {
+static int CCommand_UnacceptTrade(LPCSTR, LPCSTR) {
   Trade_C_UnacceptTrade();
   return 1;
 }
 
-static int TradeStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* netmsg) {
-  unsigned int statusint;
+static int TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
+  UINT statusint;
   netmsg->Get(statusint);
   TRADE_STATUS status = static_cast<TRADE_STATUS>(statusint);
-  BAG_RESULT bagResult = BAG_OK;
-  unsigned char myFailure = 0;
-  int itemID = 0;
-  const char *message = 0;
-  char buf[256];
-  char msgbuf[100];
-  unsigned __int64 guid;
-  int clearTrade = 0;
+  BAG_RESULT   bagResult = BAG_OK;
+  BYTE         myFailure = 0;
+  int          itemID = 0;
+  LPCSTR       message = 0;
+  char         buf[256];
+  char         msgbuf[100];
+  DWORDLONG    guid;
+  int          clearTrade = 0;
 
   switch (statusint) {
     case 0:
       SStrCopy(buf, FrameScript_GetText("PLAYER_BUSY", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      if (s_initiator) message = buf;
+      if (s_initiator)
+        message = buf;
       clearTrade = 1;
       break;
     case 1:
@@ -182,10 +183,24 @@ static int TradeStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* netm
       memset(s_tradeItems, 0, sizeof(s_tradeItems));
       s_tradeGold[0] = s_tradeGold[1] = 0;
       break;
-    case 4: SStrCopy(buf, FrameScript_GetText("TRADE_ACCEPTED", -1, GENDER_NOT_APPLICABLE), sizeof(buf)); message = buf; break;
-    case 5: SStrCopy(buf, FrameScript_GetText("ALREADY_TRADING", -1, GENDER_NOT_APPLICABLE), sizeof(buf)); message = buf; clearTrade = 1; break;
-    case 6: SStrCopy(buf, FrameScript_GetText("PLAYER_NOT_FOUND", -1, GENDER_NOT_APPLICABLE), sizeof(buf)); message = buf; clearTrade = 1; break;
-    case 7: SStrCopy(buf, FrameScript_GetText("TRADE_STATE_CHANGED", -1, GENDER_NOT_APPLICABLE), sizeof(buf)); message = buf; break;
+    case 4:
+      SStrCopy(buf, FrameScript_GetText("TRADE_ACCEPTED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+      message = buf;
+      break;
+    case 5:
+      SStrCopy(buf, FrameScript_GetText("ALREADY_TRADING", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      break;
+    case 6:
+      SStrCopy(buf, FrameScript_GetText("PLAYER_NOT_FOUND", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      break;
+    case 7:
+      SStrCopy(buf, FrameScript_GetText("TRADE_STATE_CHANGED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+      message = buf;
+      break;
     case 8:
       SStrCopy(buf, FrameScript_GetText("TRADE_COMPLETE", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
       message = buf;
@@ -193,8 +208,15 @@ static int TradeStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* netm
       memset(s_tradeItems, 0, sizeof(s_tradeItems));
       s_tradeGold[0] = s_tradeGold[1] = 0;
       break;
-    case 9: SStrCopy(buf, FrameScript_GetText("TRADE_UNACCEPTED", -1, GENDER_NOT_APPLICABLE), sizeof(buf)); message = buf; break;
-    case 10: SStrCopy(buf, FrameScript_GetText("TOO_FAR_TO_TRADE", -1, GENDER_NOT_APPLICABLE), sizeof(buf)); message = buf; clearTrade = 1; break;
+    case 9:
+      SStrCopy(buf, FrameScript_GetText("TRADE_UNACCEPTED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+      message = buf;
+      break;
+    case 10:
+      SStrCopy(buf, FrameScript_GetText("TOO_FAR_TO_TRADE", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      break;
     case 12:
       netmsg->Get(reinterpret_cast<int &>(bagResult));
       netmsg->Get(myFailure);
@@ -205,12 +227,15 @@ static int TradeStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* netm
       memset(s_tradeItems, 0, sizeof(s_tradeItems));
       s_tradeGold[0] = s_tradeGold[1] = 0;
       break;
-    case 13: SStrCopy(buf, FrameScript_GetText("TRADE_TARGET_DEAD", -1, GENDER_NOT_APPLICABLE), sizeof(buf)); message = buf; clearTrade = 1; break;
+    case 13:
+      SStrCopy(buf, FrameScript_GetText("TRADE_TARGET_DEAD", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      break;
     case 15: {
       CGUnit_C *partner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_tradePartner, __FILE__, __LINE__));
       if (partner) {
-        SStrPrintf(msgbuf, sizeof(msgbuf),
-                   FrameScript_GetText("ERR_IGNORING_YOU_S", -1, GENDER_NOT_APPLICABLE), partner->GetUnitName());
+        SStrPrintf(msgbuf, sizeof(msgbuf), FrameScript_GetText("ERR_IGNORING_YOU_S", -1, GENDER_NOT_APPLICABLE), partner->GetUnitName());
         message = msgbuf;
       }
       clearTrade = 1;
@@ -233,8 +258,8 @@ static int TradeStatusHandler(void*, NETMESSAGE, unsigned long, CDataStore* netm
   return 1;
 }
 
-static int TradeExtendedStatusHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
-  unsigned char whichPlayer;
+static int TradeExtendedStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+  BYTE whichPlayer;
   msg->Get(whichPlayer);
   FATALASSERT(whichPlayer < 2);
 
@@ -245,7 +270,7 @@ static int TradeExtendedStatusHandler(void *, NETMESSAGE, unsigned long, CDataSt
   msg->Get(s_tradeProposedEnchantmentSlot[whichPlayer]);
 
   while (!msg->IsRead()) {
-    unsigned char index;
+    BYTE index;
     msg->Get(index);
     TradeItemData &item = s_tradeItems[whichPlayer][index];
     msg->Get(item.entryID);
@@ -262,7 +287,7 @@ static int TradeExtendedStatusHandler(void *, NETMESSAGE, unsigned long, CDataSt
   return 1;
 }
 
-unsigned __int64 Trade_C_GetTradeTarget() {
+DWORDLONG Trade_C_GetTradeTarget() {
   return s_tradePartner;
 }
 
@@ -274,7 +299,7 @@ int Trade_C_UseCursorItem() {
   return s_initiator && s_useCursorItem;
 }
 
-int Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot) {
+int Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot) {
   int enchantment = s_tradeProposedEnchantment[player];
   if (enchantment <= 0) {
     return 0;
@@ -284,7 +309,7 @@ int Trade_C_GetProposedEnchantment(unsigned int player, int &spellID, int &slot)
   return 1;
 }
 
-void TradeNameCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
+void TradeNameCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     const NameCache *name = g_nameDBCache.GetRecord(guid, guid, 0, 0);
     if (name) {
@@ -293,7 +318,7 @@ void TradeNameCallback(int id, const unsigned __int64 &guid, void *, bool grante
   }
 }
 
-void Trade_C_InitiateTrade(unsigned __int64 target, int useCursorItem) {
+void Trade_C_InitiateTrade(DWORDLONG target, int useCursorItem) {
   CDataStore msg;
   msg.Put(CMSG_INITIATE_TRADE);
   msg.Put(target);
@@ -351,7 +376,7 @@ void Trade_C_CancelTrade() {
   ClientServices_Send(&msg);
 }
 
-bool Trade_C_AddItem(unsigned __int64 item, unsigned __int64 itemContainer, unsigned int itemSlot, unsigned int tradeSlot) {
+bool Trade_C_AddItem(DWORDLONG item, DWORDLONG itemContainer, UINT itemSlot, UINT tradeSlot) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return false;
@@ -362,26 +387,26 @@ bool Trade_C_AddItem(unsigned __int64 item, unsigned __int64 itemContainer, unsi
     return false;
   }
 
-  unsigned int itemContainerIndex = player->FindSlotIndex(itemContainer);
-  CDataStore   msg;
+  UINT       itemContainerIndex = player->FindSlotIndex(itemContainer);
+  CDataStore msg;
   msg.Put(CMSG_SET_TRADE_ITEM);
-  msg.Put(static_cast<unsigned char>(tradeSlot));
-  msg.Put(static_cast<unsigned char>(itemContainerIndex));
-  msg.Put(static_cast<unsigned char>(itemSlot));
+  msg.Put(static_cast<BYTE>(tradeSlot));
+  msg.Put(static_cast<BYTE>(itemContainerIndex));
+  msg.Put(static_cast<BYTE>(itemSlot));
   msg.Finalize();
   ClientServices_Send(&msg);
   return true;
 }
 
-void Trade_C_RemoveItem(unsigned int slot) {
+void Trade_C_RemoveItem(UINT slot) {
   CDataStore msg;
   msg.Put(CMSG_CLEAR_TRADE_ITEM);
-  msg.Put(static_cast<unsigned char>(slot));
+  msg.Put(static_cast<BYTE>(slot));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-void Trade_C_AddMoney(unsigned int money) {
+void Trade_C_AddMoney(UINT money) {
   if (money) {
     CDataStore msg;
     msg.Put(CMSG_SET_TRADE_GOLD);
@@ -391,7 +416,7 @@ void Trade_C_AddMoney(unsigned int money) {
   }
 }
 
-void Trade_C_RemoveMoney(unsigned int money) {
+void Trade_C_RemoveMoney(UINT money) {
   if (money && money <= s_tradeGold[0]) {
     CDataStore msg;
     msg.Put(CMSG_SET_TRADE_GOLD);
@@ -401,11 +426,11 @@ void Trade_C_RemoveMoney(unsigned int money) {
   }
 }
 
-unsigned int Trade_C_GetPlayerTradeGold() {
+UINT Trade_C_GetPlayerTradeGold() {
   return s_tradeGold[0];
 }
 
-unsigned int Trade_C_GetTargetTradeGold() {
+UINT Trade_C_GetTargetTradeGold() {
   return s_tradeGold[1];
 }
 

@@ -15,11 +15,11 @@
 TSHashTable<CONSOLECOMMAND, HASHKEY_CONSTSTRI> g_consoleCommandHash;
 CONSOLECOMMANDHANDLER                          g_defaultCommand = 0;
 
-static char        cmd[32];
-static const char  whitespace[] = " ,;\t\"\r\n";
-static const char  verstr[] = "WoW [Release Assertions Enabled] Build 3368 (Dec 11 2003)";
-static const char *NOHELPTEXT = "No help yet";
-static char        s_fileName[MAX_PATH];
+static char       cmd[32];
+static const char whitespace[] = " ,;\t\"\r\n";
+static const char verstr[] = "WoW [Release Assertions Enabled] Build 3368 (Dec 11 2003)";
+static LPCSTR     NOHELPTEXT = "No help yet";
+static char       s_fileName[MAX_PATH];
 
 struct CategoryTranslation {
   CATEGORY categoryValue;
@@ -37,8 +37,8 @@ static CategoryTranslation s_translation[8] = {
     {   SOUND,    "sound"}
 };
 
-static int ValidateFileName(const char *arguments) {
-  const char *extension;
+static int ValidateFileName(LPCSTR arguments) {
+  LPCSTR extension;
 
   if (strstr(arguments, "..") || strstr(arguments, "\\")) {
     ConsoleWrite("File Name cannot contain '\\' or '..'", ERROR_COLOR);
@@ -54,7 +54,7 @@ static int ValidateFileName(const char *arguments) {
   return 1;
 }
 
-static int CreateWTFFilePath(char *filename, unsigned int size) {
+static int CreateWTFFilePath(char *filename, UINT size) {
   char  buffer[MAX_PATH] = "";
   char *extension;
 
@@ -74,11 +74,11 @@ static int CreateWTFFilePath(char *filename, unsigned int size) {
   return 1;
 }
 
-static int ConsoleCommand_Help(const char *command, const char *arguments) {
-  unsigned int    index;
-  unsigned int    categoryCount;
+static int ConsoleCommand_Help(LPCSTR command, LPCSTR arguments) {
+  UINT            index;
+  UINT            categoryCount;
   CONSOLECOMMAND *entry;
-  const char     *helpText;
+  LPCSTR          helpText;
   char           *separator;
 
   (void)command;
@@ -154,30 +154,30 @@ static int ConsoleCommand_Help(const char *command, const char *arguments) {
   return 1;
 }
 
-static int ConsoleCommand_Quit(const char *command, const char *arguments) {
+static int ConsoleCommand_Quit(LPCSTR command, LPCSTR arguments) {
   (void)command;
   (void)arguments;
   ConsolePostClose();
   return 1;
 }
 
-static int ConsoleCommand_Ver(const char *command, const char *arguments) {
+static int ConsoleCommand_Ver(LPCSTR command, LPCSTR arguments) {
   (void)command;
   (void)arguments;
   ConsoleWrite(verstr, DEFAULT_COLOR);
   return 1;
 }
 
-int ConsoleCommand_RunExec(const char *cmd, const char *arguments) {
-  char          filename[MAX_PATH];
-  char          errorString[MAX_PATH];
-  char          tmp[MAX_PATH];
-  char          lineBuffer[128];
-  char          param1[32];
-  void         *readData;
-  int           verbose = 0;
-  const char   *bufferPtr;
-  unsigned long bytes;
+int ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments) {
+  char   filename[MAX_PATH];
+  char   errorString[MAX_PATH];
+  char   tmp[MAX_PATH];
+  char   lineBuffer[128];
+  char   param1[32];
+  LPVOID readData;
+  int    verbose = 0;
+  LPCSTR bufferPtr;
+  DWORD  bytes;
 
   if (sscanf(arguments, "%s %s", filename, param1) < 1) {
     ConsoleWrite("Invalid number of parameters", ERROR_COLOR);
@@ -203,7 +203,7 @@ int ConsoleCommand_RunExec(const char *cmd, const char *arguments) {
     return 0;
   }
 
-  bufferPtr = static_cast<const char *>(readData);
+  bufferPtr = static_cast<LPCSTR>(readData);
   readData = ALLOC(bytes + 1);
   if (!readData) {
     SFile::Unload(const_cast<char *>(bufferPtr));
@@ -213,7 +213,7 @@ int ConsoleCommand_RunExec(const char *cmd, const char *arguments) {
   memcpy(readData, bufferPtr, bytes);
   SFile::Unload(const_cast<char *>(bufferPtr));
   static_cast<char *>(readData)[bytes] = 0;
-  bufferPtr = static_cast<const char *>(readData);
+  bufferPtr = static_cast<LPCSTR>(readData);
   do {
     SStrTokenize(&bufferPtr, lineBuffer, sizeof(lineBuffer), "\r\n", 0);
     if (lineBuffer[0]) {
@@ -229,7 +229,7 @@ int ConsoleCommand_RunExec(const char *cmd, const char *arguments) {
   return 1;
 }
 
-static int ConsoleCommand_CreateExec(const char *cmd, const char *arguments) {
+static int ConsoleCommand_CreateExec(LPCSTR cmd, LPCSTR arguments) {
   char  folder[MAX_PATH];
   char  filePath[MAX_PATH];
   char *lastSlash;
@@ -269,7 +269,7 @@ static int ConsoleCommand_CreateExec(const char *cmd, const char *arguments) {
   return 1;
 }
 
-static int ConsoleCommand_AppendExec(const char *cmd, const char *arguments) {
+static int ConsoleCommand_AppendExec(LPCSTR cmd, LPCSTR arguments) {
   char errorString[MAX_PATH];
   char filePath[MAX_PATH];
 
@@ -297,10 +297,10 @@ static int ConsoleCommand_AppendExec(const char *cmd, const char *arguments) {
   return 1;
 }
 
-static int ConsoleCommand_CloseExec(const char *cmd, const char *arguments) {
-  char          filePath[MAX_PATH];
-  HOSFILE__    *file;
-  unsigned long count;
+static int ConsoleCommand_CloseExec(LPCSTR cmd, LPCSTR arguments) {
+  char       filePath[MAX_PATH];
+  HOSFILE__ *file;
+  DWORD      count;
 
   (void)cmd;
   (void)arguments;
@@ -336,13 +336,13 @@ static int ConsoleCommand_CloseExec(const char *cmd, const char *arguments) {
   return 1;
 }
 
-static int ConsoleCommand_TypeExec(const char *cmd, const char *arguments) {
-  char          errorString[MAX_PATH];
-  char          filePath[MAX_PATH];
-  char          lineBuffer[128];
-  void         *readData;
-  const char   *bufferPtr;
-  unsigned long bytes;
+static int ConsoleCommand_TypeExec(LPCSTR cmd, LPCSTR arguments) {
+  char   errorString[MAX_PATH];
+  char   filePath[MAX_PATH];
+  char   lineBuffer[128];
+  LPVOID readData;
+  LPCSTR bufferPtr;
+  DWORD  bytes;
 
   (void)cmd;
 
@@ -361,7 +361,7 @@ static int ConsoleCommand_TypeExec(const char *cmd, const char *arguments) {
     return 0;
   }
 
-  bufferPtr = static_cast<const char *>(readData);
+  bufferPtr = static_cast<LPCSTR>(readData);
   readData = ALLOC(bytes + 1);
   if (!readData) {
     SFile::Unload(const_cast<char *>(bufferPtr));
@@ -371,7 +371,7 @@ static int ConsoleCommand_TypeExec(const char *cmd, const char *arguments) {
   memcpy(readData, bufferPtr, bytes);
   SFile::Unload(const_cast<char *>(bufferPtr));
   static_cast<char *>(readData)[bytes] = 0;
-  bufferPtr = static_cast<const char *>(readData);
+  bufferPtr = static_cast<LPCSTR>(readData);
   do {
     SStrTokenize(&bufferPtr, lineBuffer, sizeof(lineBuffer), "\r\n", 0);
     if (lineBuffer[0]) {
@@ -383,12 +383,12 @@ static int ConsoleCommand_TypeExec(const char *cmd, const char *arguments) {
   return 1;
 }
 
-static int ConsoleCommand_DirWtf(const char *cmd, const char *arguments) {
-  char          line[80];
-  const char   *readBuffer;
-  char          endOfLine[4] = " \r\n";
-  unsigned long bytes;
-  void         *readData;
+static int ConsoleCommand_DirWtf(LPCSTR cmd, LPCSTR arguments) {
+  char   line[80];
+  LPCSTR readBuffer;
+  char   endOfLine[4] = " \r\n";
+  DWORD  bytes;
+  LPVOID readData;
 
   (void)cmd;
   (void)arguments;
@@ -400,7 +400,7 @@ static int ConsoleCommand_DirWtf(const char *cmd, const char *arguments) {
 
   ConsoleWrite("The wtf files are :", ECHO_COLOR);
   ((char *)readData)[bytes - 1] = 0;
-  readBuffer = (const char *)readData;
+  readBuffer = (LPCSTR)readData;
   do {
     SStrTokenize(&readBuffer, line, sizeof(line), endOfLine, 0);
     if (!line[0]) {
@@ -414,8 +414,8 @@ static int ConsoleCommand_DirWtf(const char *cmd, const char *arguments) {
   return 1;
 }
 
-CONSOLECOMMAND *ParseCommand(const char *commandLine, const char **command, const char **arguments) {
-  const char *args;
+CONSOLECOMMAND *ParseCommand(LPCSTR commandLine, LPCSTR *command, LPCSTR *arguments) {
+  LPCSTR args;
 
   ASSERT(commandLine);
 
@@ -435,15 +435,15 @@ CONSOLECOMMAND *ParseCommand(const char *commandLine, const char **command, cons
   return g_consoleCommandHash.Ptr(cmd);
 }
 
-unsigned int ConsoleCommandHistoryDepth() {
+UINT ConsoleCommandHistoryDepth() {
   return 32;
 }
 
-const char *ConsoleCommandHistory(unsigned int offset) {
+LPCSTR ConsoleCommandHistory(UINT offset) {
   return g_commandHistory[(g_commandHistoryIndex - offset - 1) & 0x1F];
 }
 
-int ConsoleCommandRegister(const char *command, CONSOLECOMMANDHANDLER handler, CATEGORY category, const char *helpText) {
+int ConsoleCommandRegister(LPCSTR command, CONSOLECOMMANDHANDLER handler, CATEGORY category, LPCSTR helpText) {
   CONSOLECOMMAND *entry;
 
   ASSERT(command);
@@ -464,7 +464,7 @@ int ConsoleCommandRegister(const char *command, CONSOLECOMMANDHANDLER handler, C
   return 1;
 }
 
-void ConsoleCommandUnregister(const char *command) {
+void ConsoleCommandUnregister(LPCSTR command) {
   CONSOLECOMMAND *entry = g_consoleCommandHash.Ptr(command);
 
   if (!entry) {
@@ -474,8 +474,8 @@ void ConsoleCommandUnregister(const char *command) {
   g_consoleCommandHash.Delete(entry);
 }
 
-int ConsoleCommandComplete(const char *partial, const char **previous, int direction) {
-  unsigned int    partialLength;
+int ConsoleCommandComplete(LPCSTR partial, LPCSTR *previous, int direction) {
+  UINT            partialLength;
   CONSOLECOMMAND *entry;
 
   ASSERT(previous);
@@ -512,7 +512,7 @@ int ConsoleCommandComplete(const char *partial, const char **previous, int direc
   return 0;
 }
 
-void ConsoleCommandWriteHelp(const char *cmd) {
+void ConsoleCommandWriteHelp(LPCSTR cmd) {
   ConsoleCommand_Help(cmd, "help");
 }
 

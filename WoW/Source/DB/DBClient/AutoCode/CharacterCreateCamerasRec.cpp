@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CharacterCreateCamerasRec::GetFilename() {
+LPCSTR CharacterCreateCamerasRec::GetFilename() {
   return "DBFilesClient\\CharacterCreateCameras.dbc";
 }
 
@@ -19,7 +19,7 @@ CharacterCreateCamerasRec::CharacterCreateCamerasRec() {
 CharacterCreateCamerasRec::~CharacterCreateCamerasRec() {
 }
 
-bool CharacterCreateCamerasRec::Read(SFile *f, const char *stringBuffer) {
+bool CharacterCreateCamerasRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_Race, sizeof(m_Race), 0, 0, 0) && result;

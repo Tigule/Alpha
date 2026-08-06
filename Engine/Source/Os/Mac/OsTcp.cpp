@@ -24,14 +24,14 @@ NODEDECL(NETCONN) {
   int          closed;
   int          refCount;
   NETEVENTPROC eventProc;
-  void        *user;
+  LPVOID       user;
   NETCONNADDR  addr;
 };
 
 static SCritSect s_netLock;
 static LISTDECL(NETCONN, s_connList);
-static int s_initialized;
-static int s_pumpExit;
+static int     s_initialized;
+static int     s_pumpExit;
 static SThread s_pumpThread;
 
 static void AddrFromSockaddr(const sockaddr_in &source, NETADDR *dest) {
@@ -63,7 +63,7 @@ static void ConnClose(NETCONN *conn) {
   conn->closed = 1;
 }
 
-static unsigned int APIENTRY NetPumpThread(void *) {
+static UINT APIENTRY NetPumpThread(LPVOID) {
   while (!s_pumpExit) {
     OsNetPump(100);
   }
@@ -132,7 +132,7 @@ void OsNetConnFreeHandle(HNETCONN__ *conn) {
   s_netLock.Leave();
 }
 
-DWORD OsNetGetHostAddr(const char *hostName) {
+DWORD OsNetGetHostAddr(LPCSTR hostName) {
   addrinfo  hints;
   addrinfo *results;
   DWORD     address = 0;
@@ -153,17 +153,17 @@ DWORD OsNetGetHostAddr(const char *hostName) {
   return address;
 }
 
-int OsNetGetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETHOSTADDRPROC hostAddrProc, void *user) {
-  const char *cursor = hostNameList;
-  DWORD       count = 0;
+int OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user) {
+  LPCSTR cursor = hostNameList;
+  DWORD  count = 0;
 
   while (*cursor) {
-    char           name[0x100];
-    char          *colon;
-    unsigned short port = defaultPort;
-    DWORD          address;
-    NETADDR        addr;
-    DWORD          chars = 0;
+    char    name[0x100];
+    char   *colon;
+    WORD    port = defaultPort;
+    DWORD   address;
+    NETADDR addr;
+    DWORD   chars = 0;
 
     while (*cursor && *cursor != ' ' && *cursor != ',' && *cursor != ';' && chars < sizeof(name) - 1) {
       name[chars++] = *cursor++;
@@ -182,7 +182,7 @@ int OsNetGetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETH
     colon = SStrChr(name, ':');
     if (colon) {
       *colon = 0;
-      port = static_cast<unsigned short>(SStrToInt(colon + 1));
+      port = static_cast<WORD>(SStrToInt(colon + 1));
     }
 
     address = OsNetGetHostAddr(name);
@@ -197,7 +197,7 @@ int OsNetGetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETH
   return count != 0;
 }
 
-DWORD OsNetAddrGetAddress(const NETADDR *netAddr, unsigned short *port) {
+DWORD OsNetAddrGetAddress(const NETADDR *netAddr, WORD *port) {
   const sockaddr_in *addr = reinterpret_cast<const sockaddr_in *>(netAddr);
 
   if (port) {
@@ -207,14 +207,7 @@ DWORD OsNetAddrGetAddress(const NETADDR *netAddr, unsigned short *port) {
   return addr->sin_addr.s_addr;
 }
 
-void OsTcpConnect(
-    DWORD          nodeNumber,
-    unsigned short port,
-    NETEVENTPROC   eventProc,
-    void          *user,
-    const void    *data,
-    DWORD          bytes
-) {
+void OsTcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID user, LPCVOID data, DWORD bytes) {
   NETCONN    *conn;
   sockaddr_in target;
   int         handle;
@@ -265,7 +258,7 @@ void OsTcpConnect(
   }
 }
 
-void OsTcpConnSend(HNETCONN__ *conn, const void *data, DWORD bytes) {
+void OsTcpConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes) {
   NETCONN *netConn = reinterpret_cast<NETCONN *>(conn);
 
   if (!netConn || netConn->socket < 0) {
@@ -360,14 +353,13 @@ void OsNetPump(DWORD timeout) {
     }
 
     if (conn->socket >= 0 && FD_ISSET(conn->socket, &readSet)) {
-      unsigned char buffer[OSNET_RECV_SIZE];
-      ssize_t       received = recv(conn->socket, buffer, sizeof(buffer), 0);
+      BYTE    buffer[OSNET_RECV_SIZE];
+      ssize_t received = recv(conn->socket, buffer, sizeof(buffer), 0);
 
       if (received > 0) {
         if (conn->eventProc) {
           conn->eventProc(
-              reinterpret_cast<HNETCONN__ *>(conn), &conn->addr, NETNOTE_DATA, conn->user, buffer, static_cast<DWORD>(received),
-              &consumed
+              reinterpret_cast<HNETCONN__ *>(conn), &conn->addr, NETNOTE_DATA, conn->user, buffer, static_cast<DWORD>(received), &consumed
           );
         }
       } else if (!received || errno != EWOULDBLOCK) {
@@ -383,7 +375,7 @@ void OsNetPump(DWORD timeout) {
   }
 }
 
-void OsNetAddrMake(DWORD nodeNumber, unsigned short port, NETADDR *netAddr) {
+void OsNetAddrMake(DWORD nodeNumber, WORD port, NETADDR *netAddr) {
   sockaddr_in addr;
 
   memset(&addr, 0, sizeof(addr));

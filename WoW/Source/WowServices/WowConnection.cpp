@@ -11,12 +11,12 @@
 #include <new>
 #include <string.h>
 
-static unsigned int s_destroyed;
-bool(*WowConnection::m_verifyAddr)(const NETADDR *);
+static UINT s_destroyed;
+bool (*WowConnection::m_verifyAddr)(const NETADDR *);
 static WowConnectionNet *s_network;
 
 class WowConnectionInitializer {
-  static unsigned int count;
+  static UINT count;
 
  public:
   WowConnectionInitializer() {
@@ -35,7 +35,7 @@ class WowConnectionInitializer {
   static void Destroy();
 };
 
-unsigned int                    WowConnectionInitializer::count;
+UINT                            WowConnectionInitializer::count;
 static WowConnectionInitializer s_initializer;
 
 int WowConnection::CreateSocket() {
@@ -63,7 +63,7 @@ WowConnection::WowConnection(int sock, sockaddr_in *addr, WowConnectionResponse 
   (void)addr;
 }
 
-WowConnection::WowConnection(WowConnectionResponse *response, void(*func)()) {
+WowConnection::WowConnection(WowConnectionResponse *response, void (*func)()) {
   Init(response, func);
 }
 
@@ -106,7 +106,7 @@ int WowConnection::Release() {
   return ref;
 }
 
-void WowConnection::Init(WowConnectionResponse *response, void(*func)()) {
+void WowConnection::Init(WowConnectionResponse *response, void (*func)()) {
   m_refCount = 1;
   m_responseRef = 0;
   m_sendDepth = 0;
@@ -179,11 +179,11 @@ void WowConnection::DoDisconnect() {
   Release();
 }
 
-WowConnection::SENDNODE *WowConnection::NewSendNode(void *data, int size, bool raw) {
+WowConnection::SENDNODE *WowConnection::NewSendNode(LPVOID data, int size, bool raw) {
   SENDNODE *sn = static_cast<SENDNODE *>(WDataStore::AllocBuffer(size + sizeof(SENDNODE) + 3));
 
   if (sn) {
-    new (sn) SENDNODE(reinterpret_cast<unsigned char *>(sn + 1), size, data, raw);
+    new (sn) SENDNODE(reinterpret_cast<BYTE *>(sn + 1), size, data, raw);
   }
 
   return sn;
@@ -194,8 +194,8 @@ void WowConnection::FreeSendNode(SENDNODE *sn) {
 }
 
 WC_SEND_RESULT WowConnection::Send(CDataStore *msg) {
-  unsigned int size = msg->Size();
-  void        *data;
+  UINT   size = msg->Size();
+  LPVOID data;
 
   msg->GetDataInSitu(data, size);
   SENDNODE      *sn = NewSendNode(data, size, false);
@@ -215,7 +215,7 @@ WC_SEND_RESULT WowConnection::Send(CDataStore *msg) {
       return WC_SEND_QUEUED;
     }
 
-    int sent = send(m_sock, reinterpret_cast<const char *>(sn->data), sn->size, 0);
+    int sent = send(m_sock, reinterpret_cast<LPCSTR>(sn->data), sn->size, 0);
 
     if (sent == sn->size) {
       FreeSendNode(sn);
@@ -250,7 +250,7 @@ WC_SEND_RESULT WowConnection::Send(CDataStore *msg) {
   return WC_SEND_ERROR;
 }
 
-WC_SEND_RESULT WowConnection::SendRaw(unsigned char *data, int len) {
+WC_SEND_RESULT WowConnection::SendRaw(BYTE *data, int len) {
   WC_SEND_RESULT result = WC_SEND_ERROR;
 
   m_lock.Enter();
@@ -265,7 +265,7 @@ WC_SEND_RESULT WowConnection::SendRaw(unsigned char *data, int len) {
       m_sendDepthBytes += sn->size;
       result = WC_SEND_QUEUED;
     } else {
-      int sent = send(m_sock, reinterpret_cast<const char *>(data), len, 0);
+      int sent = send(m_sock, reinterpret_cast<LPCSTR>(data), len, 0);
 
       if (sent == len) {
         m_lock.Leave();
@@ -336,7 +336,7 @@ void WowConnection::CheckConnect() {
 void WowConnection::CheckAccept() {
   sockaddr_in            addr;
   WowConnectionResponse *response;
-  unsigned long          on;
+  DWORD                  on;
   int                    len;
   int                    i;
 
@@ -372,10 +372,10 @@ void WowConnection::CheckAccept() {
 }
 
 void WowConnection::DoWrites() {
-  int          w;
-  int          sock;
-  unsigned int sendWriteNotify;
-  unsigned int disconnected = 0;
+  int  w;
+  int  sock;
+  UINT sendWriteNotify;
+  UINT disconnected = 0;
 
   AddRef();
   m_lock.Enter();
@@ -388,7 +388,7 @@ void WowConnection::DoWrites() {
       int       writeLen = min(sn->size - sn->offset, 1024);
       ASSERT(writeLen > 0);
 
-      w = send(m_sock, reinterpret_cast<const char *>(sn->data + sn->offset), writeLen, 0);
+      w = send(m_sock, reinterpret_cast<LPCSTR>(sn->data + sn->offset), writeLen, 0);
 
       if (w == writeLen) {
         if (writeLen == sn->size - sn->offset) {
@@ -471,7 +471,7 @@ void WowConnection::DoMessageReads() {
   int bytesRead;
 
   if (!m_readBuffer) {
-    m_readBuffer = static_cast<unsigned char *>(ALLOC(1024));
+    m_readBuffer = static_cast<BYTE *>(ALLOC(1024));
     m_readBufferSize = 1024;
     m_readBytes = 0;
   }
@@ -495,7 +495,7 @@ void WowConnection::DoMessageReads() {
     }
 
     if (m_readBytes >= m_readBufferSize) {
-      m_readBuffer = static_cast<unsigned char *>(SMemReAlloc(m_readBuffer, m_readBufferSize + 1024, __FILE__, __LINE__, 0));
+      m_readBuffer = static_cast<BYTE *>(SMemReAlloc(m_readBuffer, m_readBufferSize + 1024, __FILE__, __LINE__, 0));
       m_readBufferSize += 1024;
     }
 
@@ -567,8 +567,8 @@ void WowConnection::DoMessageReads() {
 }
 
 void WowConnection::DoStreamReads() {
-  unsigned char buf[4096];
-  int           bytesRead;
+  BYTE buf[4096];
+  int  bytesRead;
 
   while (1) {
     do {
@@ -650,8 +650,8 @@ void WowConnection::DoExceptions() {
 }
 
 void WowConnection::StartConnect() {
-  sockaddr_in   addr;
-  unsigned long on;
+  sockaddr_in addr;
+  DWORD       on;
 
   if (m_sock >= 0) {
     CloseSocket(m_sock);
@@ -688,10 +688,10 @@ void WowConnection::StartConnect() {
   SetState(WOWC_CONNECTING);
 }
 
-bool WowConnection::Connect(const char *address, int retryms) {
-  char        name[256];
-  int         port;
-  const char *colon = SStrChr(address, ':');
+bool WowConnection::Connect(LPCSTR address, int retryms) {
+  char   name[256];
+  int    port;
+  LPCSTR colon = SStrChr(address, ':');
 
   if (colon) {
     port = SStrToInt(colon + 1);
@@ -705,7 +705,7 @@ bool WowConnection::Connect(const char *address, int retryms) {
   return true;
 }
 
-bool WowConnection::Connect(unsigned long addr, unsigned short port, int retryms) {
+bool WowConnection::Connect(DWORD addr, WORD port, int retryms) {
   m_connectAddress = addr;
   m_connectPort = port;
   StartConnect();
@@ -714,13 +714,13 @@ bool WowConnection::Connect(unsigned long addr, unsigned short port, int retryms
   return true;
 }
 
-bool WowConnection::Connect(const char *address, unsigned short port, int retryms) {
+bool WowConnection::Connect(LPCSTR address, WORD port, int retryms) {
   hostent *host = gethostbyname(address);
 
   if (host) {
-    unsigned char *addressBytes = reinterpret_cast<unsigned char *>(host->h_addr_list[0]);
-    m_connectAddress = static_cast<unsigned long>(addressBytes[0]) | (static_cast<unsigned long>(addressBytes[1]) << 8) |
-                       (static_cast<unsigned long>(addressBytes[2]) << 16) | (static_cast<unsigned long>(addressBytes[3]) << 24);
+    BYTE *addressBytes = reinterpret_cast<BYTE *>(host->h_addr_list[0]);
+    m_connectAddress = static_cast<DWORD>(addressBytes[0]) | (static_cast<DWORD>(addressBytes[1]) << 8) |
+                       (static_cast<DWORD>(addressBytes[2]) << 16) | (static_cast<DWORD>(addressBytes[3]) << 24);
   } else {
     m_connectAddress = 0;
   }
@@ -737,9 +737,9 @@ bool WowConnection::Reconnect() {
   return true;
 }
 
-bool WowConnection::Listen(unsigned short port) {
-  sockaddr_in   addr;
-  unsigned long on;
+bool WowConnection::Listen(WORD port) {
+  sockaddr_in addr;
+  DWORD       on;
 
   if (m_sock >= 0) {
     return false;
@@ -772,22 +772,17 @@ void WowConnection::StopListening() {
 }
 
 char *WowConnection::GetStringAddress(char *buf, int size) {
-  sockaddr_in  *self = reinterpret_cast<sockaddr_in *>(&m_peer.selfAddr);
-  unsigned long addr = self->sin_addr.s_addr;
+  sockaddr_in *self = reinterpret_cast<sockaddr_in *>(&m_peer.selfAddr);
+  DWORD        addr = self->sin_addr.s_addr;
 
   SStrPrintf(
-      buf, size, "%d.%d.%d.%d:%d", static_cast<unsigned char>(addr), static_cast<unsigned char>(addr >> 8), static_cast<unsigned char>(addr >> 16),
-      static_cast<unsigned char>(addr >> 24), ntohs(self->sin_port)
+      buf, size, "%d.%d.%d.%d:%d", static_cast<BYTE>(addr), static_cast<BYTE>(addr >> 8), static_cast<BYTE>(addr >> 16),
+      static_cast<BYTE>(addr >> 24), ntohs(self->sin_port)
   );
   return buf;
 }
 
-int WowConnection::InitOsNet(
-    bool(*fcn)(const NETADDR *),
-    void(*threadinit)(),
-    int  numThreads,
-    bool useEngine
-) {
+int WowConnection::InitOsNet(bool (*fcn)(const NETADDR *), void (*threadinit)(), int numThreads, bool useEngine) {
   WDataStore::StaticInitialize();
   m_verifyAddr = fcn;
   s_destroyed = 0;
@@ -873,14 +868,14 @@ bool WowConnection::GetLocal(NETADDR &addr) {
   return getsockname(m_sock, reinterpret_cast<sockaddr *>(&addr), &size) == 0;
 }
 
-unsigned long WowConnection::GetAddr(NETADDR &addr) {
+DWORD WowConnection::GetAddr(NETADDR &addr) {
   return reinterpret_cast<sockaddr_in *>(&addr)->sin_addr.s_addr;
 }
 
-unsigned short WowConnection::GetPort(NETADDR &addr) {
+WORD WowConnection::GetPort(NETADDR &addr) {
   return reinterpret_cast<sockaddr_in *>(&addr)->sin_port;
 }
 
-void WowConnection::SetPort(NETADDR &addr, unsigned short port) {
+void WowConnection::SetPort(NETADDR &addr, WORD port) {
   reinterpret_cast<sockaddr_in *>(&addr)->sin_port = htons(port);
 }

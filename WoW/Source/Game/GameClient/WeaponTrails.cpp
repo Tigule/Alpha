@@ -30,22 +30,18 @@ struct VERTEX {
 };
 
 NODEDECL(SWING) {
-  TSGrowableArray<VERTEX>         m_trail;
-  TSGrowableArray<unsigned short> m_vertexIndices;
-  unsigned int                    m_flags;
-  NTempest::C44Matrix             m_lastMatrix;
+  TSGrowableArray<VERTEX> m_trail;
+  TSGrowableArray<WORD>   m_vertexIndices;
+  UINT                    m_flags;
+  NTempest::C44Matrix     m_lastMatrix;
 
   SWING();
   ~SWING();
   void Recycle();
   void Render() const;
   void AddVerts(
-      const NTempest::C44Matrix &basisMatrix,
-      const NTempest::C3Vector  &bottom,
-      const NTempest::C3Vector  &top,
-      const NTempest::CImVector &color,
-      unsigned char              currentAlpha,
-      const NTempest::C3Vector  &cameraPos
+      const NTempest::C44Matrix &basisMatrix, const NTempest::C3Vector &bottom, const NTempest::C3Vector &top, const NTempest::CImVector &color,
+      BYTE currentAlpha, const NTempest::C3Vector &cameraPos
   );
 };
 
@@ -53,21 +49,21 @@ class WTOBJECT {
  public:
   LINKDECLEX(WTOBJECT, m_explicitLink);
   LISTDECL(SWING, m_swings);
-  HMODEL                           m_model;
-  unsigned int                     m_geosetID;
-  NTempest::C3Vector               m_bottomCoord;
-  NTempest::C3Vector               m_topCoord;
-  NTempest::CImVector              m_color;
-  int                              m_fadeOutRate;
-  unsigned int                     m_flags;
-  unsigned int                     m_timer;
-  int                              m_currentAlpha;
+  HMODEL              m_model;
+  UINT                m_geosetID;
+  NTempest::C3Vector  m_bottomCoord;
+  NTempest::C3Vector  m_topCoord;
+  NTempest::CImVector m_color;
+  int                 m_fadeOutRate;
+  UINT                m_flags;
+  UINT                m_timer;
+  int                 m_currentAlpha;
 
   WTOBJECT();
   ~WTOBJECT();
   void Recycle();
   void DisableDrawing();
-  void SetDrawTrail(const NTempest::CImVector &color, int fadeOutRate, unsigned int duration);
+  void SetDrawTrail(const NTempest::CImVector &color, int fadeOutRate, UINT duration);
   void SetColor(NTempest::CImVector color);
   void SetFadeOutRate(int fadeOutRate);
   void Render(const NTempest::C44Matrix &basis);
@@ -78,24 +74,24 @@ class WTOBJECT {
 void ModelCustGeosetAdd(
     HMODEL                    model,
     const NTempest::C3Vector &modelSpacePosition,
-    void(*renderCallback)(HMODEL, const NTempest::C34Matrix &, void *),
-    void         *renderParam,
-    unsigned int *custGeosetId
+    void (*renderCallback)(HMODEL, const NTempest::C34Matrix &, LPVOID),
+    LPVOID renderParam,
+    UINT  *custGeosetId
 );
-void ModelCustGeosetRemove(HMODEL model, unsigned int custGeosetId);
-int ModelGetModelSpacePivot(HMODEL model, unsigned int objectId, NTempest::C3Vector *pivot);
+void ModelCustGeosetRemove(HMODEL model, UINT custGeosetId);
+int  ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot);
 
 static TInstanceAllocator<WTOBJECT> s_unusedObjects(100);
 static TInstanceAllocator<SWING>    s_freeSwings(100);
 
-static TSGrowableArray<VERTEX>         s_vertexBuffer;
-static TSGrowableArray<unsigned short> s_freeVertexIndices;
-static unsigned int                    STEPS_PER_180DEGS = 32;
-static int                             ALPHAFADEOUTRATE = 24;
-static int                             s_masterEnable = 1;
-static CVar                           *s_consoleVarHandle;
+static TSGrowableArray<VERTEX> s_vertexBuffer;
+static TSGrowableArray<WORD>   s_freeVertexIndices;
+static UINT                    STEPS_PER_180DEGS = 32;
+static int                     ALPHAFADEOUTRATE = 24;
+static int                     s_masterEnable = 1;
+static CVar                   *s_consoleVarHandle;
 
-static int DiscontinueTimerHandler(const void *data, void *userArg);
+static int DiscontinueTimerHandler(LPCVOID data, LPVOID userArg);
 
 SWING::SWING() : m_flags(0) {
   m_trail.SetChunkSize(128);
@@ -127,7 +123,7 @@ void SWING::AddVerts(
     const NTempest::C3Vector  &bottom,
     const NTempest::C3Vector  &top,
     const NTempest::CImVector &color,
-    unsigned char              currentAlpha,
+    BYTE                       currentAlpha,
     const NTempest::C3Vector  &cameraPos
 ) {
   NTempest::C44Matrix cameraTranslate;
@@ -146,7 +142,7 @@ void SWING::AddVerts(
     NTempest::C4Quaternion q2;
     q2.FromRotationMatrix(rotation);
 
-    unsigned int steps = static_cast<unsigned int>(fabs(1.0f - (q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w)) * STEPS_PER_180DEGS);
+    UINT steps = static_cast<UINT>(fabs(1.0f - (q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w)) * STEPS_PER_180DEGS);
     if (steps < 1) {
       steps = 1;
     }
@@ -158,7 +154,7 @@ void SWING::AddVerts(
     float t = 0.0f;
     float tStep = 1.0f / steps;
 
-    for (unsigned int step = 0; step < steps; ++step) {
+    for (UINT step = 0; step < steps; ++step) {
       NTempest::C4Quaternion slerped = NTempest::C4Quaternion::Slerp(t, q1, q2);
 
       float xx = slerped.x + slerped.x;
@@ -189,7 +185,7 @@ void SWING::AddVerts(
       newVerts[1].c = color;
       newVerts[1].c.a = currentAlpha;
 
-      unsigned int firstVertex = m_trail.Count();
+      UINT firstVertex = m_trail.Count();
       m_trail.Add(2, newVerts);
       m_vertexIndices.SetCount(firstVertex + 2);
       m_vertexIndices[firstVertex] = firstVertex;
@@ -207,7 +203,7 @@ void SWING::AddVerts(
   m_lastMatrix = matrix;
 }
 
-static bool ToggleCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ToggleCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   s_masterEnable = SStrToInt(newValue);
   return true;
 }
@@ -230,7 +226,7 @@ WTOBJECT::~WTOBJECT() {
   }
 }
 
-static void GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis, void *param) {
+static void GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis, LPVOID param) {
   FATALASSERT(param);
 
   NTempest::C44Matrix renderBasis(
@@ -239,7 +235,7 @@ static void GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis,
   static_cast<WTOBJECT *>(param)->Render(renderBasis);
 }
 
-static int DiscontinueTimerHandler(const void *data, void *userArg) {
+static int DiscontinueTimerHandler(LPCVOID data, LPVOID userArg) {
   WTOBJECT *trail = static_cast<WTOBJECT *>(userArg);
   FATALASSERT(trail);
 
@@ -308,7 +304,7 @@ void WTOBJECT::Render(const NTempest::C44Matrix &basis) {
   CGWorldFrame::GetCameraPosition(&cameraPos);
 
   if (s_masterEnable && swing && (m_flags & 1)) {
-    swing->AddVerts(basis, m_bottomCoord, m_topCoord, m_color, static_cast<unsigned char>(m_currentAlpha), cameraPos);
+    swing->AddVerts(basis, m_bottomCoord, m_topCoord, m_color, static_cast<BYTE>(m_currentAlpha), cameraPos);
   }
 
   RenderVerts(cameraPos);
@@ -320,7 +316,7 @@ void WTOBJECT::FadeVerts() {
     FATALASSERT(m_fadeOutRate < 0);
 
     int visible = 0;
-    for (unsigned int i = 0; i < swing->m_trail.Count(); ++i) {
+    for (UINT i = 0; i < swing->m_trail.Count(); ++i) {
       int alpha = swing->m_trail[i].c.a + m_fadeOutRate;
       if (alpha >= 0) {
         swing->m_trail[i].c.a = alpha;
@@ -341,7 +337,7 @@ void WTOBJECT::DisableDrawing() {
   m_flags &= ~1u;
 }
 
-void WTOBJECT::SetDrawTrail(const NTempest::CImVector &color, int fadeOutRate, unsigned int duration) {
+void WTOBJECT::SetDrawTrail(const NTempest::CImVector &color, int fadeOutRate, UINT duration) {
   if (m_timer) {
     ClientKillTimer(m_timer, DiscontinueTimerHandler, "DiscontinueTimerHandler");
   }
@@ -429,7 +425,7 @@ void WeaponTrailDisableDrawing(int trail) {
   reinterpret_cast<WTOBJECT *>(trail)->DisableDrawing();
 }
 
-void WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, unsigned int duration) {
+void WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, UINT duration) {
   if (duration && trail) {
     reinterpret_cast<WTOBJECT *>(trail)->SetDrawTrail(color, fadeOutRate, duration);
   }

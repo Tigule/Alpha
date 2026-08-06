@@ -16,23 +16,23 @@ void FastMicroseconds(DWORD *hi, DWORD *lo);
 #define OS_FILETIME_EPOCH_SECONDS 11644473600ULL
 #define OS_FILETIME_PER_SECOND    10000000ULL
 
-static SCritSect        s_timeCritsect;
-static DWORD            s_cachedTime;
-static DWORD            s_cachedTimeStamp;
-static int              s_timeZoneValid;
-static __int64          s_timeZoneSeconds;
-static float            s_cpuTicksDivisor;
-static unsigned __int64 s_cpuTicksPerSecond;
+static SCritSect s_timeCritsect;
+static DWORD     s_cachedTime;
+static DWORD     s_cachedTimeStamp;
+static int       s_timeZoneValid;
+static LONGLONG  s_timeZoneSeconds;
+static float     s_cpuTicksDivisor;
+static DWORDLONG s_cpuTicksPerSecond;
 
-__int64 __cdecl OsGetAsyncTimeClocks() {
+LONGLONG __cdecl OsGetAsyncTimeClocks() {
   DWORD hi;
   DWORD lo;
 
   FastMicroseconds(&hi, &lo);
-  return (static_cast<__int64>(hi) << 32) | lo;
+  return (static_cast<LONGLONG>(hi) << 32) | lo;
 }
 
-__int64 OsGetAsyncClocksPerSecond() {
+LONGLONG OsGetAsyncClocksPerSecond() {
   if (!s_cpuTicksPerSecond) {
     s_cpuTicksPerSecond = 1000000;
   }
@@ -69,7 +69,7 @@ float OsGetAsyncTimeSec() {
   return (float)OsGetAsyncTimeMs() * 0.001f;
 }
 
-unsigned __int64 OsGetAsyncThreadTimeMs() {
+DWORDLONG OsGetAsyncThreadTimeMs() {
   return OsGetAsyncTimeMs();
 }
 
@@ -115,7 +115,7 @@ void OsGetTimeStr(char *timebuf, DWORD len) {
   *SStrChrR(timebuf, '\n') = 0;
 }
 
-void OsGetTimeStr(char *timebuf, DWORD len, const char *format, LONG timer) {
+void OsGetTimeStr(char *timebuf, DWORD len, LPCSTR format, LONG timer) {
   time_t ltime = timer;
 
   strftime(timebuf, len, format, localtime(&ltime));
@@ -131,7 +131,7 @@ void OsGetTimeStamp(char *timeStamp, DWORD len) {
 void OsTimeToFileTime(DWORD time, OSFILETIME *fileTime) {
   FATALASSERT(fileTime);
 
-  fileTime->m_value = ((unsigned __int64)time + OS_FILETIME_EPOCH_SECONDS) * OS_FILETIME_PER_SECOND;
+  fileTime->m_value = ((DWORDLONG)time + OS_FILETIME_EPOCH_SECONDS) * OS_FILETIME_PER_SECOND;
 }
 
 void OsFileTimeGetCurrent(OSFILETIME *filetime) {
@@ -154,17 +154,17 @@ int OsFileTimeCompare(const OSFILETIME *filetime1, const OSFILETIME *filetime2) 
   return filetime1->m_value > filetime2->m_value;
 }
 
-void OsFileTimeAdd(OSFILETIME *filetime, unsigned int seconds) {
+void OsFileTimeAdd(OSFILETIME *filetime, UINT seconds) {
   FATALASSERT(filetime);
 
   filetime->m_value += OS_FILETIME_PER_SECOND * seconds;
 }
 
-static __int64 TimeZoneSeconds() {
+static LONGLONG TimeZoneSeconds() {
   if (!s_timeZoneValid) {
     CFTimeZoneRef timeZone = CFTimeZoneCopySystem();
 
-    s_timeZoneSeconds = static_cast<__int64>(CFTimeZoneGetSecondsFromGMT(timeZone, CFAbsoluteTimeGetCurrent()));
+    s_timeZoneSeconds = static_cast<LONGLONG>(CFTimeZoneGetSecondsFromGMT(timeZone, CFAbsoluteTimeGetCurrent()));
     CFRelease(timeZone);
 
     s_timeZoneValid = 1;
@@ -217,8 +217,7 @@ void OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime) {
 
   seconds = timegm(&broken);
 
-  fileTime->m_value = ((unsigned __int64)seconds + OS_FILETIME_EPOCH_SECONDS) * OS_FILETIME_PER_SECOND
-                    + sysTime->milliseconds * 10000;
+  fileTime->m_value = ((DWORDLONG)seconds + OS_FILETIME_EPOCH_SECONDS) * OS_FILETIME_PER_SECOND + sysTime->milliseconds * 10000;
 }
 
 void OsGetSystemTime(OSSYSTEMTIME *sysTime) {

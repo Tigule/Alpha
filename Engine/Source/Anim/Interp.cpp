@@ -3,29 +3,19 @@
 #include "Anim/AnimInternal.h"
 #include "Tempest/c44matrix.h"
 
-static NTempest::C44Matrix s_hermiteCoeffs(
-    2.0f, -3.0f, 0.0f, 1.0f,
-    1.0f, -2.0f, 1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f, 0.0f,
-    -2.0f, 3.0f, 0.0f, 0.0f
-);
+static NTempest::C44Matrix s_hermiteCoeffs(2.0f, -3.0f, 0.0f, 1.0f, 1.0f, -2.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, -2.0f, 3.0f, 0.0f, 0.0f);
 
-static NTempest::C44Matrix s_bezierCoeffs(
-    -1.0f, 3.0f, -3.0f, 1.0f,
-    3.0f, -6.0f, 3.0f, 0.0f,
-    -3.0f, 3.0f, 0.0f, 0.0f,
-    1.0f, 0.0f, 0.0f, 0.0f
-);
+static NTempest::C44Matrix s_bezierCoeffs(-1.0f, 3.0f, -3.0f, 1.0f, 3.0f, -6.0f, 3.0f, 0.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
 
-static float EvaluateCubicPolynomial(float t, const float* coefficients) {
+static float EvaluateCubicPolynomial(float t, const float *coefficients) {
   float result = coefficients[0];
-  for (unsigned int i = 1; i < 4; ++i) {
+  for (UINT i = 1; i < 4; ++i) {
     result = result * t + coefficients[i];
   }
   return result;
 }
 
-void CKeyFrameTrackBase::SetNumKeys(unsigned int numKeys, unsigned int keySize) {
+void CKeyFrameTrackBase::SetNumKeys(UINT numKeys, UINT keySize) {
   m_keyFrameSize = keySize;
   m_keyFrames = static_cast<CKeyFrame *>(SMemAlloc(numKeys * keySize, __FILE__, __LINE__, 0));
 }
@@ -39,7 +29,7 @@ void CKeyFrameTrackBase::SetSequenceIndices(const CArray<CAnimSequence> &seq) {
     return;
   }
 
-  unsigned int numSequences = seq.Count();
+  UINT numSequences = seq.Count();
   if (!numSequences) {
     m_indices.ReserveSpace(1);
     m_indices.SetCount(1);
@@ -55,10 +45,10 @@ void CKeyFrameTrackBase::SetSequenceIndices(const CArray<CAnimSequence> &seq) {
     return;
   }
 
-  unsigned int currKeyId = 0;
-  CKeyFrame   *key = m_keyFrames;
-  int          priorEnd = 0;
-  for (unsigned int sequence = 0; sequence < numSequences; ++sequence) {
+  UINT       currKeyId = 0;
+  CKeyFrame *key = m_keyFrames;
+  int        priorEnd = 0;
+  for (UINT sequence = 0; sequence < numSequences; ++sequence) {
     m_indices[sequence].count = 0;
     if (seq[sequence].time.l < priorEnd) {
       currKeyId = 0;
@@ -83,7 +73,7 @@ void CKeyFrameTrackBase::SetSequenceIndices(const CArray<CAnimSequence> &seq) {
   }
 }
 
-unsigned int CKeyFrameTrackBase::SetAnimTime(const CBaseStatus &sequence, CKeyTrackStatus *keyStat, const InterpInfo &interpData) {
+UINT CKeyFrameTrackBase::SetAnimTime(const CBaseStatus &sequence, CKeyTrackStatus *keyStat, const InterpInfo &interpData) {
   if (SequenceNeverChanges()) {
     if (TotalKeys() == 0) {
       return 0;
@@ -93,8 +83,8 @@ unsigned int CKeyFrameTrackBase::SetAnimTime(const CBaseStatus &sequence, CKeyTr
     return TotalKeys();
   }
 
-  unsigned char seqId = sequence.currSeq;
-  unsigned int  numKeys = NumKeysThisSeq(seqId);
+  BYTE seqId = sequence.currSeq;
+  UINT numKeys = NumKeysThisSeq(seqId);
   if (numKeys == 0) {
     return 0;
   }
@@ -107,10 +97,10 @@ unsigned int CKeyFrameTrackBase::SetAnimTime(const CBaseStatus &sequence, CKeyTr
 }
 
 int CKeyFrameTrackBase::JustPastKeyForward(
-    int elapsedTime,
-    const CAnimSequence &seqShared,
-    int seqElapsed,
-    int seqIsNew,
+    int                    elapsedTime,
+    const CAnimSequence   &seqShared,
+    int                    seqElapsed,
+    int                    seqIsNew,
     const CKeyTrackStatus &prev,
     const CKeyTrackStatus &curr
 ) const {
@@ -133,10 +123,10 @@ int CKeyFrameTrackBase::JustPastKeyForward(
 }
 
 int CKeyFrameTrackBase::JustPastKeyBackward(
-    int elapsedTime,
-    const CAnimSequence &seqShared,
-    int seqElapsed,
-    int seqIsNew,
+    int                    elapsedTime,
+    const CAnimSequence   &seqShared,
+    int                    seqElapsed,
+    int                    seqIsNew,
     const CKeyTrackStatus &prev,
     const CKeyTrackStatus &curr
 ) const {
@@ -159,15 +149,15 @@ int CKeyFrameTrackBase::JustPastKeyBackward(
 }
 
 int CKeyFrameTrackBase::JustPastKey(
-    int elapsedTime,
-    const CAnimSequence &seqShared,
-    int seqElapsed,
-    unsigned char sequenceId,
-    int seqIsNew,
+    int                    elapsedTime,
+    const CAnimSequence   &seqShared,
+    int                    seqElapsed,
+    BYTE                   sequenceId,
+    int                    seqIsNew,
     const CKeyTrackStatus &prev,
     const CKeyTrackStatus &curr
 ) const {
-  unsigned int numKeys = SequenceNeverChanges() ? TotalKeys() : NumKeysThisSeq(sequenceId);
+  UINT numKeys = SequenceNeverChanges() ? TotalKeys() : NumKeysThisSeq(sequenceId);
   if (!numKeys) {
     return 0;
   }
@@ -178,22 +168,22 @@ int CKeyFrameTrackBase::JustPastKey(
 }
 
 const CKeyFrame *CKeyFrameTrackBase::NextKey(const CKeyFrame *key) const {
-  return reinterpret_cast<const CKeyFrame *>(reinterpret_cast<const unsigned char *>(key) + m_keyFrameSize);
+  return reinterpret_cast<const CKeyFrame *>(reinterpret_cast<const BYTE *>(key) + m_keyFrameSize);
 }
 
 CKeyFrame *CKeyFrameTrackBase::NextKey(CKeyFrame *key) {
-  return reinterpret_cast<CKeyFrame *>(reinterpret_cast<unsigned char *>(key) + m_keyFrameSize);
+  return reinterpret_cast<CKeyFrame *>(reinterpret_cast<BYTE *>(key) + m_keyFrameSize);
 }
 
-const CKeyFrame *CKeyFrameTrackBase::GetKeyFrame(unsigned int keyId) const {
-  return reinterpret_cast<const CKeyFrame *>(reinterpret_cast<const unsigned char *>(m_keyFrames) + m_keyFrameSize * keyId);
+const CKeyFrame *CKeyFrameTrackBase::GetKeyFrame(UINT keyId) const {
+  return reinterpret_cast<const CKeyFrame *>(reinterpret_cast<const BYTE *>(m_keyFrames) + m_keyFrameSize * keyId);
 }
 
-CKeyFrame *CKeyFrameTrackBase::GetKeyFrame(unsigned int keyId) {
-  return reinterpret_cast<CKeyFrame *>(reinterpret_cast<unsigned char *>(m_keyFrames) + m_keyFrameSize * keyId);
+CKeyFrame *CKeyFrameTrackBase::GetKeyFrame(UINT keyId) {
+  return reinterpret_cast<CKeyFrame *>(reinterpret_cast<BYTE *>(m_keyFrames) + m_keyFrameSize * keyId);
 }
 
-unsigned int CKeyFrameTrackBase::TimeDiff(const CKeyFrame &curr, const CKeyFrame &next, unsigned int seqTime) {
+UINT CKeyFrameTrackBase::TimeDiff(const CKeyFrame &curr, const CKeyFrame &next, UINT seqTime) {
   int timeDiff = next.time - curr.time;
   if (timeDiff < 0) {
     timeDiff += seqTime;
@@ -221,7 +211,7 @@ void CKeyFrameTrackBase::ISetAnimTimeConstSeq(int milliseconds, int endtime, CKe
   keyStat->nextKey = keyStat->currKey == TotalKeys() - 1 ? 0 : keyStat->currKey + 1;
 }
 
-void CKeyFrameTrackBase::ISetAnimTime(unsigned char sequenceId, int seqIsNew, int milliseconds, int endtime, CKeyTrackStatus *keyStat) {
+void CKeyFrameTrackBase::ISetAnimTime(BYTE sequenceId, int seqIsNew, int milliseconds, int endtime, CKeyTrackStatus *keyStat) {
   ASSERT(keyStat);
   ASSERT(SequenceChanges());
 
@@ -231,7 +221,7 @@ void CKeyFrameTrackBase::ISetAnimTime(unsigned char sequenceId, int seqIsNew, in
   }
 
   keyStat->currKey = FindKeyForTime(sequenceId, keyStat->currKey, milliseconds);
-  unsigned int numKeys = NumKeysThisSeq(sequenceId);
+  UINT numKeys = NumKeysThisSeq(sequenceId);
   ASSERT(numKeys > 0);
 
   if (numKeys == 1) {
@@ -249,8 +239,8 @@ void CKeyFrameTrackBase::ISetAnimTime(unsigned char sequenceId, int seqIsNew, in
   keyStat->nextKey = keyStat->currKey == LastKeyId(sequenceId) ? FirstKeyId(sequenceId) : keyStat->currKey + 1;
 }
 
-unsigned int CKeyFrameTrackBase::FindKeyForTime(unsigned int currSeq, unsigned int currKeyId, int targettime) {
-  unsigned int numKeys = NumKeysThisSeq(currSeq);
+UINT CKeyFrameTrackBase::FindKeyForTime(UINT currSeq, UINT currKeyId, int targettime) {
+  UINT numKeys = NumKeysThisSeq(currSeq);
   ASSERT(numKeys > 0);
 
   if (numKeys == 1) {
@@ -261,7 +251,7 @@ unsigned int CKeyFrameTrackBase::FindKeyForTime(unsigned int currSeq, unsigned i
   if (targettime < key->time) {
     currKeyId = FirstKeyId(currSeq);
   } else {
-    unsigned int lastKeyId = LastKeyId(currSeq);
+    UINT lastKeyId = LastKeyId(currSeq);
     if (currKeyId >= lastKeyId) {
       return lastKeyId;
     }
@@ -279,14 +269,14 @@ unsigned int CKeyFrameTrackBase::FindKeyForTime(unsigned int currSeq, unsigned i
   return currKeyId;
 }
 
-unsigned int CKeyFrameTrackBase::FindKeyForTimeConstSeq(unsigned int currKeyId, int targettime) {
+UINT CKeyFrameTrackBase::FindKeyForTimeConstSeq(UINT currKeyId, int targettime) {
   ASSERT(TotalKeys() > 0);
 
   if (TotalKeys() == 1) {
     return 0;
   }
 
-  unsigned int     keyId = currKeyId;
+  UINT             keyId = currKeyId;
   const CKeyFrame *key = GetKeyFrame(currKeyId);
   if (targettime < key->time) {
     keyId = 0;
@@ -296,7 +286,7 @@ unsigned int CKeyFrameTrackBase::FindKeyForTimeConstSeq(unsigned int currKeyId, 
 
   key = GetKeyFrame(keyId + 1);
   if (targettime >= key->time) {
-    unsigned int lastKeyId = TotalKeys() - 1;
+    UINT lastKeyId = TotalKeys() - 1;
     do {
       ++keyId;
       if (keyId == lastKeyId) {
@@ -356,13 +346,11 @@ void CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector>::InterpolateHermite(
 ) {
   ASSERT(transform);
   float coefficients[4];
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     coefficients[i] = EvaluateCubicPolynomial(ratio, s_hermiteCoeffs[i]);
   }
-  *transform = currkey.transform * coefficients[0] +
-               currkey.outTan * coefficients[1] +
-               nextkey.inTan * coefficients[2] +
-               nextkey.transform * coefficients[3];
+  *transform =
+      currkey.transform * coefficients[0] + currkey.outTan * coefficients[1] + nextkey.inTan * coefficients[2] + nextkey.transform * coefficients[3];
 }
 
 template <>
@@ -374,13 +362,11 @@ void CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector>::InterpolateBezier(
 ) {
   ASSERT(transform);
   float coefficients[4];
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     coefficients[i] = EvaluateCubicPolynomial(ratio, s_bezierCoeffs[i]);
   }
-  *transform = currkey.transform * coefficients[0] +
-               currkey.outTan * coefficients[1] +
-               nextkey.inTan * coefficients[2] +
-               nextkey.transform * coefficients[3];
+  *transform =
+      currkey.transform * coefficients[0] + currkey.outTan * coefficients[1] + nextkey.inTan * coefficients[2] + nextkey.transform * coefficients[3];
 }
 
 template <>
@@ -403,16 +389,16 @@ void CKeyFrameTrack<C3Color, C3Color>::InterpolateHermite(
 ) {
   ASSERT(transform);
   float coefficients[4];
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     coefficients[i] = EvaluateCubicPolynomial(ratio, s_hermiteCoeffs[i]);
   }
   *transform = C3Color(
-      currkey.transform.r * coefficients[0] + currkey.outTan.r * coefficients[1] +
-          nextkey.inTan.r * coefficients[2] + nextkey.transform.r * coefficients[3],
-      currkey.transform.g * coefficients[0] + currkey.outTan.g * coefficients[1] +
-          nextkey.inTan.g * coefficients[2] + nextkey.transform.g * coefficients[3],
-      currkey.transform.b * coefficients[0] + currkey.outTan.b * coefficients[1] +
-          nextkey.inTan.b * coefficients[2] + nextkey.transform.b * coefficients[3]
+      currkey.transform.r * coefficients[0] + currkey.outTan.r * coefficients[1] + nextkey.inTan.r * coefficients[2] +
+          nextkey.transform.r * coefficients[3],
+      currkey.transform.g * coefficients[0] + currkey.outTan.g * coefficients[1] + nextkey.inTan.g * coefficients[2] +
+          nextkey.transform.g * coefficients[3],
+      currkey.transform.b * coefficients[0] + currkey.outTan.b * coefficients[1] + nextkey.inTan.b * coefficients[2] +
+          nextkey.transform.b * coefficients[3]
   );
 }
 
@@ -425,16 +411,16 @@ void CKeyFrameTrack<C3Color, C3Color>::InterpolateBezier(
 ) {
   ASSERT(transform);
   float coefficients[4];
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     coefficients[i] = EvaluateCubicPolynomial(ratio, s_bezierCoeffs[i]);
   }
   *transform = C3Color(
-      currkey.transform.r * coefficients[0] + currkey.outTan.r * coefficients[1] +
-          nextkey.inTan.r * coefficients[2] + nextkey.transform.r * coefficients[3],
-      currkey.transform.g * coefficients[0] + currkey.outTan.g * coefficients[1] +
-          nextkey.inTan.g * coefficients[2] + nextkey.transform.g * coefficients[3],
-      currkey.transform.b * coefficients[0] + currkey.outTan.b * coefficients[1] +
-          nextkey.inTan.b * coefficients[2] + nextkey.transform.b * coefficients[3]
+      currkey.transform.r * coefficients[0] + currkey.outTan.r * coefficients[1] + nextkey.inTan.r * coefficients[2] +
+          nextkey.transform.r * coefficients[3],
+      currkey.transform.g * coefficients[0] + currkey.outTan.g * coefficients[1] + nextkey.inTan.g * coefficients[2] +
+          nextkey.transform.g * coefficients[3],
+      currkey.transform.b * coefficients[0] + currkey.outTan.b * coefficients[1] + nextkey.inTan.b * coefficients[2] +
+          nextkey.transform.b * coefficients[3]
   );
 }
 
@@ -448,8 +434,7 @@ void CKeyFrameTrack<C3Color, C3Color>::InterpolateLinear(
   ASSERT(transform);
   float inverseRatio = 1.0f - ratio;
   *transform = C3Color(
-      currkey.transform.r * inverseRatio + nextkey.transform.r * ratio,
-      currkey.transform.g * inverseRatio + nextkey.transform.g * ratio,
+      currkey.transform.r * inverseRatio + nextkey.transform.r * ratio, currkey.transform.g * inverseRatio + nextkey.transform.g * ratio,
       currkey.transform.b * inverseRatio + nextkey.transform.b * ratio
   );
 }
@@ -463,13 +448,11 @@ void CKeyFrameTrack<float, float>::InterpolateHermite(
 ) {
   ASSERT(transform);
   float coefficients[4];
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     coefficients[i] = EvaluateCubicPolynomial(ratio, s_hermiteCoeffs[i]);
   }
-  *transform = currkey.transform * coefficients[0] +
-               currkey.outTan * coefficients[1] +
-               nextkey.inTan * coefficients[2] +
-               nextkey.transform * coefficients[3];
+  *transform =
+      currkey.transform * coefficients[0] + currkey.outTan * coefficients[1] + nextkey.inTan * coefficients[2] + nextkey.transform * coefficients[3];
 }
 
 template <>
@@ -481,13 +464,11 @@ void CKeyFrameTrack<float, float>::InterpolateBezier(
 ) {
   ASSERT(transform);
   float coefficients[4];
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     coefficients[i] = EvaluateCubicPolynomial(ratio, s_bezierCoeffs[i]);
   }
-  *transform = currkey.transform * coefficients[0] +
-               currkey.outTan * coefficients[1] +
-               nextkey.inTan * coefficients[2] +
-               nextkey.transform * coefficients[3];
+  *transform =
+      currkey.transform * coefficients[0] + currkey.outTan * coefficients[1] + nextkey.inTan * coefficients[2] + nextkey.transform * coefficients[3];
 }
 
 template <>
@@ -502,42 +483,27 @@ void CKeyFrameTrack<float, float>::InterpolateLinear(
 }
 
 template <>
-void CKeyFrameTrack<unsigned int, unsigned int>::InterpolateHermite(
-    const CSplineKeyFrame<unsigned int> &,
-    const CSplineKeyFrame<unsigned int> &,
-    float,
-    unsigned int *
-) {
+void CKeyFrameTrack<UINT, UINT>::InterpolateHermite(const CSplineKeyFrame<UINT> &, const CSplineKeyFrame<UINT> &, float, UINT *) {
   FATALASSERT(0);
 }
 
 template <>
-void CKeyFrameTrack<unsigned int, unsigned int>::InterpolateBezier(
-    const CSplineKeyFrame<unsigned int> &,
-    const CSplineKeyFrame<unsigned int> &,
-    float,
-    unsigned int *
-) {
+void CKeyFrameTrack<UINT, UINT>::InterpolateBezier(const CSplineKeyFrame<UINT> &, const CSplineKeyFrame<UINT> &, float, UINT *) {
   FATALASSERT(0);
 }
 
 template <>
-void CKeyFrameTrack<unsigned int, unsigned int>::InterpolateLinear(
-    const CLinearKeyFrame<unsigned int> &,
-    const CLinearKeyFrame<unsigned int> &,
-    float,
-    unsigned int *
-) {
+void CKeyFrameTrack<UINT, UINT>::InterpolateLinear(const CLinearKeyFrame<UINT> &, const CLinearKeyFrame<UINT> &, float, UINT *) {
   FATALASSERT(0);
 }
 
-void Blend(const NTempest::C3Vector &previous, NTempest::C3Vector *current, int timeLeft, unsigned int blendTime) {
+void Blend(const NTempest::C3Vector &previous, NTempest::C3Vector *current, int timeLeft, UINT blendTime) {
   ASSERT(current);
   float ratio = static_cast<float>(blendTime - timeLeft) / static_cast<float>(blendTime);
   *current = previous * (1.0f - ratio) + *current * ratio;
 }
 
-void Blend(const NTempest::C4Quaternion &previous, NTempest::C4Quaternion *current, int timeLeft, unsigned int blendTime) {
+void Blend(const NTempest::C4Quaternion &previous, NTempest::C4Quaternion *current, int timeLeft, UINT blendTime) {
   ASSERT(current);
   float ratio = static_cast<float>(blendTime - timeLeft) / static_cast<float>(blendTime);
   *current = NTempest::C4Quaternion::Slerp(ratio, previous, *current);

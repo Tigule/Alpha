@@ -7,8 +7,8 @@
 namespace NTempest {
 
   void RGBtoHSV(const C3Vector &rgb, C3Vector &hsv) {
-    unsigned int max = rgb.MajorAxis();
-    unsigned int min = rgb.MinorAxis();
+    UINT max = rgb.MajorAxis();
+    UINT min = rgb.MinorAxis();
 
     hsv.z = rgb[max];
     if (hsv.z == 0.0f) {

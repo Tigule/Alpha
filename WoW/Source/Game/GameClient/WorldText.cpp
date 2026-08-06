@@ -14,19 +14,17 @@
 
 #include <math.h>
 
-static const float PI = 3.14159265358979323846f;
-
 static LISTDECLEX(WORLDTEXTSTRING, link, s_textList);
-static WORLDTEXTCREATEPARAMS                  s_worldTextParams[NUM_WORLDTEXTTYPES];
-static HTEXTFONT                              s_worldTextFontHandles[NUM_WORLDTEXTTYPES];
-static CVar                                  *s_fontHeightCVar;
-static CVar                                  *s_fontOutlineCVar;
-static CVar                                  *s_fontFadeInTime;
-static CVar                                  *s_fontFadeOutTime;
-static CVar                                  *s_fontFadeTotalTime;
-static CVar                                  *s_fontFadeAscendDistance;
-static CVar                                  *s_fontCharSpacing;
-static CVar                                  *s_fontConeAngle;
+static WORLDTEXTCREATEPARAMS s_worldTextParams[NUM_WORLDTEXTTYPES];
+static HTEXTFONT             s_worldTextFontHandles[NUM_WORLDTEXTTYPES];
+static CVar                 *s_fontHeightCVar;
+static CVar                 *s_fontOutlineCVar;
+static CVar                 *s_fontFadeInTime;
+static CVar                 *s_fontFadeOutTime;
+static CVar                 *s_fontFadeTotalTime;
+static CVar                 *s_fontFadeAscendDistance;
+static CVar                 *s_fontCharSpacing;
+static CVar                 *s_fontConeAngle;
 
 struct WORLDTEXTRANGE {
   float startProgress;
@@ -42,19 +40,19 @@ struct WORLDTEXTJUMP {
 };
 
 struct WORLDTEXTFONTCOLOR {
-  unsigned char r;
-  unsigned char g;
-  unsigned char b;
-  unsigned char pad;
-  float         unused[3];
-  float         startProgress;
-  float         endProgress;
+  BYTE  r;
+  BYTE  g;
+  BYTE  b;
+  BYTE  pad;
+  float unused[3];
+  float startProgress;
+  float endProgress;
 };
 
 static WORLDTEXTJUMP s_jumps[3] = {
     {-0.33f, 0.33f, 1.5f},
-    { 0.33f, 0.5f,  0.2f},
-    { 0.5f,  0.66f, 0.1f}
+    { 0.33f,  0.5f, 0.2f},
+    {  0.5f, 0.66f, 0.1f}
 };
 static WORLDTEXTRANGE s_critHeights[3] = {
     {0.0f, 0.1f, 0.1f, 0.0f},
@@ -70,7 +68,7 @@ static WORLDTEXTFONTCOLOR s_fontColors[1] = {
     {255, 0, 0, 0, {0.0f, 0.0f, 0.0f}, 0.0f, 0.33f}
 };
 
-static unsigned int const worldTextFlags[NUM_WORLDTEXTTYPES] = {0x48, 0x48, 0x10, 0x8, 0x48, 0, 0};
+static UINT const worldTextFlags[NUM_WORLDTEXTTYPES] = {0x48, 0x48, 0x10, 0x8, 0x48, 0, 0};
 
 WORLDTEXTCREATEPARAMS::WORLDTEXTCREATEPARAMS() {
 }
@@ -108,10 +106,8 @@ static NTempest::CImVector ColorInterp(float range, NTempest::CImVector startCol
     range = 1.0f;
   }
   return NTempest::CImVector(
-      255,
-      static_cast<unsigned char>(IntInterp(range, startColor.r, endColor.r)),
-      static_cast<unsigned char>(IntInterp(range, startColor.g, endColor.g)),
-      static_cast<unsigned char>(IntInterp(range, startColor.b, endColor.b))
+      255, static_cast<BYTE>(IntInterp(range, startColor.r, endColor.r)), static_cast<BYTE>(IntInterp(range, startColor.g, endColor.g)),
+      static_cast<BYTE>(IntInterp(range, startColor.b, endColor.b))
   );
 }
 
@@ -131,7 +127,7 @@ void WORLDTEXTSTRING::Render() const {
   }
 }
 
-void WORLDTEXTSTRING::InitTextFrame(const char *text) {
+void WORLDTEXTSTRING::InitTextFrame(LPCSTR text) {
   if (text && *text) {
     SStrPrintf(savedStringText, sizeof(savedStringText), "%s", text);
   }
@@ -149,19 +145,19 @@ static void InitConsoleVariables() {
 }
 
 void WorldTextInitialize() {
-  unsigned int i;
+  UINT i;
   for (i = 0; i < NUM_WORLDTEXTTYPES; ++i) {
     s_worldTextParams[i].Defaults();
   }
 
   InitConsoleVariables();
 
-  float        fontHeight = NDCToDDCHeight(s_fontHeightCVar->GetFloat());
-  float        critFontHeight = fontHeight * 1.5f;
-  unsigned int fontFlags[NUM_WORLDTEXTTYPES] = {4, 4, 4, 0, 4, 0, 0};
-  float        fontHeights[NUM_WORLDTEXTTYPES] = {fontHeight, fontHeight, critFontHeight, fontHeight, fontHeight, fontHeight, fontHeight};
+  float fontHeight = NDCToDDCHeight(s_fontHeightCVar->GetFloat());
+  float critFontHeight = fontHeight * 1.5f;
+  UINT  fontFlags[NUM_WORLDTEXTTYPES] = {4, 4, 4, 0, 4, 0, 0};
+  float fontHeights[NUM_WORLDTEXTTYPES] = {fontHeight, fontHeight, critFontHeight, fontHeight, fontHeight, fontHeight, fontHeight};
 
-  const char *fontName = FrameScript_GetText("DAMAGE_TEXT_FONT", -1, GENDER_NOT_APPLICABLE);
+  LPCSTR fontName = FrameScript_GetText("DAMAGE_TEXT_FONT", -1, GENDER_NOT_APPLICABLE);
   if (fontName && *fontName) {
     for (i = 0; i < NUM_WORLDTEXTTYPES; ++i) {
       FATALASSERT(!s_worldTextFontHandles[i]);
@@ -176,25 +172,25 @@ void WorldTextInitialize() {
 
   float ascendDistance = s_fontFadeAscendDistance->GetFloat() * 0.027777778f;
   struct {
-    unsigned int fadeInTime;
-    unsigned int fadeOutTime;
-    unsigned int totalTime;
-    float        ascendDist;
-    float        smallFontHeight;
-    float        largeFontontHeight;
-    float        heightScale;
-    float        heightOffset;
-    unsigned int enlargeTime;
-    unsigned int shrinkTime;
+    UINT  fadeInTime;
+    UINT  fadeOutTime;
+    UINT  totalTime;
+    float ascendDist;
+    float smallFontHeight;
+    float largeFontontHeight;
+    float heightScale;
+    float heightOffset;
+    UINT  enlargeTime;
+    UINT  shrinkTime;
   } worldTextInfo[NUM_WORLDTEXTTYPES] = {
-      {                                                    0,                                                    800,800,        ascendDistance, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0                                                                                                                     },
-      {                                                    0,                                                    800,                           800,        ascendDistance, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0},
-      {                                                    0,                                                    800,                           800,                  0.0f,       0.0f, critFontHeight, 1.0f, 0.27777778f, 0, 0},
-      {static_cast<unsigned int>(s_fontFadeInTime->GetInt()), static_cast<unsigned int>(s_fontFadeOutTime->GetInt()),
-       static_cast<unsigned int>(s_fontFadeTotalTime->GetInt()),        ascendDistance, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0                                                                                    },
-      {                                                    0,                                                    800,                           800,        ascendDistance, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0},
-      {                                                  500,                                                    400,                          6000, ascendDistance * 2.0f, fontHeight,     fontHeight, 1.0f,        0.0f, 0, 0},
-      {                                                    0,                          static_cast<unsigned int>(-1), static_cast<unsigned int>(-1),                  0.0f, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0}
+      {                                            0,                                            800,800,        ascendDistance, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0                                                                                                     },
+      {                                            0,                                            800,                   800,        ascendDistance, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0},
+      {                                            0,                                            800,                   800,                  0.0f,       0.0f, critFontHeight, 1.0f, 0.27777778f, 0, 0},
+      {static_cast<UINT>(s_fontFadeInTime->GetInt()), static_cast<UINT>(s_fontFadeOutTime->GetInt()),
+       static_cast<UINT>(s_fontFadeTotalTime->GetInt()),        ascendDistance, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0                                                                    },
+      {                                            0,                                            800,                   800,        ascendDistance, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0},
+      {                                          500,                                            400,                  6000, ascendDistance * 2.0f, fontHeight,     fontHeight, 1.0f,        0.0f, 0, 0},
+      {                                            0,                          static_cast<UINT>(-1), static_cast<UINT>(-1),                  0.0f, fontHeight,     fontHeight, 1.0f, 0.27777778f, 0, 0}
   };
 
   for (i = 0; i < NUM_WORLDTEXTTYPES; ++i) {
@@ -219,7 +215,7 @@ void WorldTextInitialize() {
 }
 
 void WorldTextShutdown() {
-  for (unsigned int i = 0; i < NUM_WORLDTEXTTYPES; ++i) {
+  for (UINT i = 0; i < NUM_WORLDTEXTTYPES; ++i) {
     if (s_worldTextFontHandles[i]) {
       HandleClose(s_worldTextFontHandles[i]);
     }
@@ -237,13 +233,13 @@ void WorldTextClearStrings() {
   }
 }
 
-void WorldTextGetColor(WORLDTEXTTYPE type, NTempest::CImVector* color) {
+void WorldTextGetColor(WORLDTEXTTYPE type, NTempest::CImVector *color) {
   FATALASSERT(type < NUM_WORLDTEXTTYPES);
   FATALASSERT(color);
   *color = s_worldTextParams[type].fontColor;
 }
 
-HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride) {
+HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object, const NTempest::CImVector *colorOverride) {
   FATALASSERT(type < NUM_WORLDTEXTTYPES);
   WORLDTEXTCREATEPARAMS *params = &s_worldTextParams[type];
   FATALASSERT(params);
@@ -268,7 +264,7 @@ HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __i
   return reinterpret_cast<HWORLDTEXT__ *>(HandleCreate(worldTextPtr, "HWORLDTEXT"));
 }
 
-void WorldTextUpdate(float elapsed, const NTempest::C44Matrix& matrix) {
+void WorldTextUpdate(float elapsed, const NTempest::C44Matrix &matrix) {
   ITERATELIST(WORLDTEXTSTRING, s_textList, text) {
     if (text->object) {
       text->Update(elapsed, matrix, 0);
@@ -280,17 +276,13 @@ void WORLDTEXTSTRING::Reset() {
   elapsedTime = 0;
 }
 
-void WORLDTEXTSTRING::UpdatePosition(
-    const NTempest::C4Vector &worldPosition,
-    unsigned int elapsed,
-    NTempest::C4Vector &textPos
-) {
+void WORLDTEXTSTRING::UpdatePosition(const NTempest::C4Vector &worldPosition, UINT elapsed, NTempest::C4Vector &textPos) {
   textPos = worldPosition;
   if (!(params.flags & 1)) {
     float progress = static_cast<float>(elapsed > 1 ? elapsed : 1) / static_cast<float>(totalTime);
     float distance = params.ascendDistance;
     if (params.flags & 8) {
-      unsigned int i;
+      UINT i;
       for (i = 0; i < 3; ++i) {
         if (progress >= s_jumps[i].startProgress && progress <= s_jumps[i].endProgress) {
           float range = s_jumps[i].endProgress - s_jumps[i].startProgress;
@@ -311,18 +303,16 @@ void WORLDTEXTSTRING::UpdatePosition(
 }
 
 void WORLDTEXTSTRING::CalculateNewPosition(
-    const NTempest::C4Vector &worldPosition,
-    unsigned int elapsed,
-    NTempest::C4Vector &textPos,
+    const NTempest::C4Vector  &worldPosition,
+    UINT                       elapsed,
+    NTempest::C4Vector        &textPos,
     const NTempest::C44Matrix &matrix,
-    int worldPositionSpecified
+    int                        worldPositionSpecified
 ) {
   UpdatePosition(worldPosition, elapsed, textPos);
   CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
   ASSERT(worldFrame);
-  textPos = worldFrame->GetScreenCoordinates(
-      NTempest::C3Vector(textPos.x, textPos.y, textPos.z), matrix, 1, worldPositionSpecified
-  );
+  textPos = worldFrame->GetScreenCoordinates(NTempest::C3Vector(textPos.x, textPos.y, textPos.z), matrix, 1, worldPositionSpecified);
   textPos.w = 1.0f;
 }
 
@@ -337,15 +327,15 @@ void WORLDTEXTSTRING::Update(float elapsed, const NTempest::C44Matrix &matrix, c
     return;
   }
 
-  elapsedTime += static_cast<unsigned int>(elapsed * 1000.0f);
+  elapsedTime += static_cast<UINT>(elapsed * 1000.0f);
   if (elapsedTime > totalTime && !(params.flags & 1)) {
     return;
   }
 
   CalculateNewColor(elapsedTime);
   NTempest::C4Vector worldPosition;
-  CGObject_C *obj = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
-  int worldPositionSpecified = 0;
+  CGObject_C        *obj = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
+  int                worldPositionSpecified = 0;
   if (obj) {
     NTempest::C3Vector position;
     obj->GetPosition(position);
@@ -357,8 +347,7 @@ void WORLDTEXTSTRING::Update(float elapsed, const NTempest::C44Matrix &matrix, c
 
   NTempest::C4Vector textPosition;
   CalculateNewPosition(worldPosition, elapsedTime, textPosition, matrix, worldPositionSpecified);
-  if (!(params.flags & 1)
-      || (textPosition.x >= 0.0f && textPosition.y >= 0.0f && textPosition.x < 1.0f && textPosition.y < 1.0f)) {
+  if (!(params.flags & 1) || (textPosition.x >= 0.0f && textPosition.y >= 0.0f && textPosition.x < 1.0f && textPosition.y < 1.0f)) {
     float screenX;
     float screenY;
     NDCToDDC(textPosition.x, textPosition.y, &screenX, &screenY);
@@ -373,29 +362,28 @@ void WORLDTEXTSTRING::Update(float elapsed, const NTempest::C44Matrix &matrix, c
   }
 }
 
-void WORLDTEXTSTRING::CalculateTextHeight(unsigned int elapsed) {
-  unsigned int time = elapsed < params.totalTime ? elapsed : params.totalTime;
+void WORLDTEXTSTRING::CalculateTextHeight(UINT elapsed) {
+  UINT  time = elapsed < params.totalTime ? elapsed : params.totalTime;
   float heightScale;
 
   if (params.flags & 0x10) {
     float progress = static_cast<float>(time) / static_cast<float>(params.totalTime);
     heightScale = params.endFontHeight;
-    for (unsigned int i = 0; i < 3; ++i) {
+    for (UINT i = 0; i < 3; ++i) {
       ASSERT(s_critHeights[i].startProgress <= s_critHeights[i].endProgress);
       if (progress >= s_critHeights[i].startProgress && progress < s_critHeights[i].endProgress) {
-        float range = (progress - s_critHeights[i].startProgress)
-                    / (s_critHeights[i].endProgress - s_critHeights[i].startProgress);
-        heightScale = (range * (s_critHeights[i].endScale - s_critHeights[i].startScale)
-                + s_critHeights[i].startScale) * params.endFontHeight;
+        float range = (progress - s_critHeights[i].startProgress) / (s_critHeights[i].endProgress - s_critHeights[i].startProgress);
+        heightScale = (range * (s_critHeights[i].endScale - s_critHeights[i].startScale) + s_critHeights[i].startScale) * params.endFontHeight;
         break;
       }
     }
   } else if (!(params.flags & 1) && time < params.enlargeTime) {
-    heightScale = static_cast<float>(time) / static_cast<float>(params.enlargeTime)
-           * (params.endFontHeight - params.startFontHeight) + params.startFontHeight;
+    heightScale =
+        static_cast<float>(time) / static_cast<float>(params.enlargeTime) * (params.endFontHeight - params.startFontHeight) + params.startFontHeight;
   } else if (!(params.flags & 1) && time >= params.shrinkTime && time < totalTime) {
-    heightScale = static_cast<float>(totalTime - time) / static_cast<float>(totalTime - params.shrinkTime)
-           * (params.endFontHeight - params.startFontHeight) + params.startFontHeight;
+    heightScale =
+        static_cast<float>(totalTime - time) / static_cast<float>(totalTime - params.shrinkTime) * (params.endFontHeight - params.startFontHeight) +
+        params.startFontHeight;
   } else {
     heightScale = params.endFontHeight;
   }
@@ -412,12 +400,12 @@ void WORLDTEXTSTRING::RecreateString() {
 
   if ((m_flags & 0x80) && savedStringText[0] && s_worldTextFontHandles[worldTextType]) {
     CGxFont *font = TextBlockGetFontPtr(s_worldTextFontHandles[worldTextType]);
-    float stringHeight = DDCToNDCHeight(savedStringHeight);
+    float    stringHeight = DDCToNDCHeight(savedStringHeight);
     GxuFontGetTextExtent(font, savedStringText, SStrLen(savedStringText), stringHeight, &textWidth, 0.0f, 0);
     textHeight = GxuFontGetWrappedTextHeight(font, savedStringText, stringHeight, textWidth, 0.0f, 0);
     GxuFontCreateString(
-        font, savedStringText, stringHeight, NTempest::C3Vector(0.0f), textWidth, textHeight, 0.0f, string,
-        GxVJ_Bottom, GxHJ_Left, 0, params.fontColor, 0.0f
+        font, savedStringText, stringHeight, NTempest::C3Vector(0.0f), textWidth, textHeight, 0.0f, string, GxVJ_Bottom, GxHJ_Left, 0,
+        params.fontColor, 0.0f
     );
     if (string && (params.shadowOffset.x != 0.0f || params.shadowOffset.y != 0.0f)) {
       GxuFontAddShadow(string, params.shadowColor, params.shadowOffset);
@@ -433,49 +421,43 @@ void WORLDTEXTSTRING::UpdateStringHeight(float height) {
   }
 }
 
-void WORLDTEXTSTRING::CalculateNewColor(unsigned int elapsed) {
+void WORLDTEXTSTRING::CalculateNewColor(UINT elapsed) {
   ASSERT(string);
-  unsigned int time = elapsedTime < params.totalTime ? elapsedTime : params.totalTime;
+  UINT time = elapsedTime < params.totalTime ? elapsedTime : params.totalTime;
   elapsedTime = time;
   float progress = static_cast<float>(time) / static_cast<float>(params.totalTime);
-  unsigned char alpha = 255;
-  unsigned char shadowAlpha = params.shadowColor.a;
+  BYTE  alpha = 255;
+  BYTE  shadowAlpha = params.shadowColor.a;
 
   if (params.flags & 0x10) {
     float scale = 1.0f;
-    for (unsigned int i = 0; i < 3; ++i) {
+    for (UINT i = 0; i < 3; ++i) {
       ASSERT(s_critFades[i].startProgress <= s_critFades[i].endProgress);
       if (progress >= s_critFades[i].startProgress && progress < s_critFades[i].endProgress) {
-        float range = (progress - s_critFades[i].startProgress)
-                    / (s_critFades[i].endProgress - s_critFades[i].startProgress);
+        float range = (progress - s_critFades[i].startProgress) / (s_critFades[i].endProgress - s_critFades[i].startProgress);
         scale = range * (s_critFades[i].endScale - s_critFades[i].startScale) + s_critFades[i].startScale;
         break;
       }
     }
-    alpha = static_cast<unsigned char>(__min(255, static_cast<int>(scale * 255.0f)));
-    shadowAlpha = static_cast<unsigned char>(__min(static_cast<int>(params.shadowColor.a),
-                                                  static_cast<int>(params.shadowColor.a * scale)));
+    alpha = static_cast<BYTE>(__min(255, static_cast<int>(scale * 255.0f)));
+    shadowAlpha = static_cast<BYTE>(__min(static_cast<int>(params.shadowColor.a), static_cast<int>(params.shadowColor.a * scale)));
   } else if (!(params.flags & 1)) {
     if (elapsed < params.fadeInTime) {
-      alpha = static_cast<unsigned char>(__min(255, static_cast<int>(progress * 255.0f)));
-      shadowAlpha = static_cast<unsigned char>(
-          __min(static_cast<int>(params.shadowColor.a), static_cast<int>(params.shadowColor.a * progress))
-      );
+      alpha = static_cast<BYTE>(__min(255, static_cast<int>(progress * 255.0f)));
+      shadowAlpha = static_cast<BYTE>(__min(static_cast<int>(params.shadowColor.a), static_cast<int>(params.shadowColor.a * progress)));
     } else if (elapsed >= params.fadeOutTime) {
       float fade = totalTime == params.fadeOutTime
-                 ? 0.0f
-                 : static_cast<float>(elapsed - params.fadeOutTime) / static_cast<float>(totalTime - params.fadeOutTime);
+                       ? 0.0f
+                       : static_cast<float>(elapsed - params.fadeOutTime) / static_cast<float>(totalTime - params.fadeOutTime);
       fade = __max(0.0f, __min(fade, 1.0f));
-      alpha = static_cast<unsigned char>(255.0f - fade * 255.0f);
-      shadowAlpha = static_cast<unsigned char>(255.0f - __min(static_cast<float>(params.shadowColor.a),
-                                                              fade * params.shadowColor.a));
+      alpha = static_cast<BYTE>(255.0f - fade * 255.0f);
+      shadowAlpha = static_cast<BYTE>(255.0f - __min(static_cast<float>(params.shadowColor.a), fade * params.shadowColor.a));
     }
   }
 
   NTempest::CImVector color = params.fontColor;
   if ((params.flags & 0x40) && progress >= s_fontColors[0].startProgress && progress < s_fontColors[0].endProgress) {
-    float range = (progress - s_fontColors[0].startProgress)
-                / (s_fontColors[0].endProgress - s_fontColors[0].startProgress);
+    float range = (progress - s_fontColors[0].startProgress) / (s_fontColors[0].endProgress - s_fontColors[0].startProgress);
     color = ColorInterp(range, color, NTempest::CImVector(255, s_fontColors[0].r, s_fontColors[0].g, s_fontColors[0].b));
   }
   color.a = alpha;
@@ -488,13 +470,13 @@ void WORLDTEXTSTRING::CalculateNewColor(unsigned int elapsed) {
   }
 }
 
-void WorldTextUpdate(HWORLDTEXT__* text, float elapsed, const NTempest::C44Matrix& matrix, const NTempest::C3Vector* position) {
+void WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position) {
   if (text) {
     reinterpret_cast<WORLDTEXTSTRING *>(text)->Update(elapsed, matrix, position);
   }
 }
 
-int WorldTextIsTextDone(HWORLDTEXT__* handle) {
+int WorldTextIsTextDone(HWORLDTEXT__ *handle) {
   WORLDTEXTSTRING *text = reinterpret_cast<WORLDTEXTSTRING *>(handle);
   if (!text) {
     return 1;

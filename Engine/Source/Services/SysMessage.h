@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Base/Base.h>
 #include <stdarg.h>
 
 class CStatus;
@@ -12,33 +13,33 @@ enum SYSMSG_TYPE {
   SYSMSG_NUMTYPES = 4
 };
 
-typedef void(*SYSMSGCALLBACK)(const char *msg, SYSMSG_TYPE severity);
+typedef void (*SYSMSGCALLBACK)(LPCSTR msg, SYSMSG_TYPE severity);
 
-int SysMsgAdd(const char *msg, SYSMSG_TYPE severity, unsigned int categoryMask);
-int SysMsgAdd(const CStatus &status, unsigned int categoryMask);
-int __cdecl    SysMsgVPrintf(SYSMSG_TYPE severity, unsigned int categoryMask, const char *format, char *arglist);
-int __cdecl    SysMsgPrintf(SYSMSG_TYPE severity, unsigned int categoryMask, const char *format, ...);
+int         SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask);
+int         SysMsgAdd(const CStatus &status, UINT categoryMask);
+int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, char *arglist);
+int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, ...);
 
-inline int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, const char *format, ...) {
+inline int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, LPCSTR format, ...) {
   va_list arglist;
 
   va_start(arglist, format);
   return SysMsgVPrintf(severity, 1, format, arglist);
 }
 
-void SysMsgEnable(int enable);
-int SysMsgEnabled();
-void SysMsgSetMinDisplayLevel(SYSMSG_TYPE minSeverity);
-void SysMsgSetMaxDisplayLevel(SYSMSG_TYPE maxSeverity);
+void        SysMsgEnable(int enable);
+int         SysMsgEnabled();
+void        SysMsgSetMinDisplayLevel(SYSMSG_TYPE minSeverity);
+void        SysMsgSetMaxDisplayLevel(SYSMSG_TYPE maxSeverity);
 SYSMSG_TYPE SysMsgGetMinDisplayLevel();
 SYSMSG_TYPE SysMsgGetMaxDisplayLevel();
-void SysMsgSetFilter(unsigned int categoryFilter);
-unsigned int SysMsgGetFilter();
-void SysMsgGetSeverityColor(SYSMSG_TYPE severity, float &r, float &g, float &b);
-float SysMsgGetSeverityDuration(SYSMSG_TYPE severity);
+void        SysMsgSetFilter(UINT categoryFilter);
+UINT        SysMsgGetFilter();
+void        SysMsgGetSeverityColor(SYSMSG_TYPE severity, float &r, float &g, float &b);
+float       SysMsgGetSeverityDuration(SYSMSG_TYPE severity);
 
 void SysMsgInitialize();
 void SysMsgShutdown();
-void SysMsgEnableFileLog(const char *baseDir);
+void SysMsgEnableFileLog(LPCSTR baseDir);
 void SysMsgDisableFileLog();
 void SysMsgSetCallback(SYSMSGCALLBACK callback);

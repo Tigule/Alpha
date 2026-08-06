@@ -7,13 +7,13 @@ class SpellVisualPrecastTransitionsRec {
   SpellVisualPrecastTransitionsRec();
   ~SpellVisualPrecastTransitionsRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 3;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 12;
   }
 
@@ -28,11 +28,11 @@ class SpellVisualPrecastTransitionsRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_PrecastLoadAnimName;
-  const char *m_PrecastHoldAnimName;
+  int    m_ID;
+  LPCSTR m_PrecastLoadAnimName;
+  LPCSTR m_PrecastHoldAnimName;
 };
 
 extern WowClientDB<SpellVisualPrecastTransitionsRec> g_spellVisualPrecastTransitionsDB;

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellRadiusRec::GetFilename() {
+LPCSTR SpellRadiusRec::GetFilename() {
   return "DBFilesClient\\SpellRadius.dbc";
 }
 
@@ -19,7 +19,7 @@ SpellRadiusRec::SpellRadiusRec() {
 SpellRadiusRec::~SpellRadiusRec() {
 }
 
-bool SpellRadiusRec::Read(SFile *f, const char *stringBuffer) {
+bool SpellRadiusRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

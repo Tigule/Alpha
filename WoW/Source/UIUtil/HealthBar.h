@@ -18,8 +18,8 @@ class CGSimpleHealthBar : public CSimpleStatusBar {
   void InstallMirrorHandlers();
   void RemoveMirrorHandlers();
 
-  unsigned __int64 m_unitGUID;
-  int              m_scaleColor;
+  DWORDLONG m_unitGUID;
+  int       m_scaleColor;
 };
 
 #endif

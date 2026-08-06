@@ -36,21 +36,21 @@
 #include <stpl.h>
 #include <storm.h>
 
-int DeathHoldEventTimerHandler(const void *packetData, void *param);
-void SpellVisualsPlayCameraShakeID(unsigned int shakeID, const NTempest::C3Vector &position);
-HMODEL InitializeModel(const char *fileName, void(*callback)(const char *, const NTempest::C3Vector &, void *), void *param);
-static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, const CGObject_C *object, char *buffer, unsigned int size);
-static void SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
-void SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position);
-void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position);
-void UnitCombatLogSpellMissed(unsigned int missReason, unsigned int spellID, unsigned __int64 caster, unsigned __int64 victim);
-static int OneShotEndHandler(void *param);
-static void SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param);
-static int PurgeTimerHandler(const void *timerData, void *userData);
-void UnitEffectOneShot(
-    const SpellVisualEffectNameRec       *effectRec,
-    const NTempest::C3Vector             &location,
-    const TSStackArray<unsigned __int64> *objects,
+int         DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param);
+void        SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position);
+HMODEL      InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param);
+static void DecorateEffectFilename(LPCSTR fileName, int raceSexSpecific, const CGObject_C *object, char *buffer, UINT size);
+static void SpellUnitAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param);
+void        SpellCameraShakeCallback(LPCSTR eventName, const NTempest::C3Vector &position);
+void        SpellSoundEffectCallback(LPCSTR eventName, const NTempest::C3Vector &position);
+void        UnitCombatLogSpellMissed(UINT missReason, UINT spellID, DWORDLONG caster, DWORDLONG victim);
+static int  OneShotEndHandler(LPVOID param);
+static void SpellAreaAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param);
+static int  PurgeTimerHandler(LPCVOID timerData, LPVOID userData);
+void        UnitEffectOneShot(
+    const SpellVisualEffectNameRec *effectRec,
+    const NTempest::C3Vector       &location,
+    const TSStackArray<DWORDLONG>  *objects,
     float                           facing,
     float                           scale
 );
@@ -65,15 +65,15 @@ class PERSISTENTUNITEFFECT : public CHandleObject {
 
   void Clear();
 
-  HMODEL                effectModel;
-  HMODEL                objectModel;
-  GEOCOMPONENTLINKS     linkPoint;
-  NTempest::C3Vector    position;
+  HMODEL             effectModel;
+  HMODEL             objectModel;
+  GEOCOMPONENTLINKS  linkPoint;
+  NTempest::C3Vector position;
   LINKDECLEX(PERSISTENTUNITEFFECT, m_listLink);
 };
 
-static const char *s_sequenceNames[3] = {"Stand", "Hold", "Decay"};
-static const char *s_objNames[1] = {"$DTH"};
+static LPCSTR s_sequenceNames[3] = {"Stand", "Hold", "Decay"};
+static LPCSTR s_objNames[1] = {"$DTH"};
 
 void PERSISTENTUNITEFFECT::Clear() {
   if (!effectModel && !objectModel) {
@@ -95,7 +95,7 @@ void PERSISTENTUNITEFFECT::Clear() {
   effectModel = 0;
 }
 
-HMODEL CreateModel(const char *fileName, CStatus *status) {
+HMODEL CreateModel(LPCSTR fileName, CStatus *status) {
   CModelCreate createData;
   createData.flags = 0x2006;
   createData.sequenceNames = s_sequenceNames;
@@ -129,13 +129,13 @@ void PreloadModelsByKit(int record, CStatus *status) {
   PreloadModel(kit->m_leftHandEffect, status);
   PreloadModel(kit->m_rightHandEffect, status);
   PreloadModel(kit->m_breathEffect, status);
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     PreloadModel(kit->m_specialEffect[i], status);
   }
 }
 
-static void SpellAnimEventCallback(const char* eventName, const NTempest::C3Vector& position, void* param) {
-  unsigned int event = *reinterpret_cast<const unsigned int *>(eventName);
+static void SpellAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
+  UINT event = *reinterpret_cast<const UINT *>(eventName);
   switch (event) {
     case 0x444E5324:  // $SND
     case 0x58444E53:  // SNDX
@@ -144,9 +144,7 @@ static void SpellAnimEventCallback(const char* eventName, const NTempest::C3Vect
       SpellCameraShakeCallback(eventName + 4, position);
       break;
     default:
-      SysMsgPrintf(
-          SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|SpellAnimEventCallback|SpellAnimEventCallback", eventName
-      );
+      SysMsgPrintf(SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|SpellAnimEventCallback|SpellAnimEventCallback", eventName);
       break;
   }
 }
@@ -158,14 +156,14 @@ class NODEBASE {
   virtual void ReleaseDeathHolds() = 0;
   ~NODEBASE();
 
-  void         ClearDeathHoldTimer();
-  void         SetDeathHoldTimer(unsigned int duration);
+  void ClearDeathHoldTimer();
+  void SetDeathHoldTimer(UINT duration);
   bool CheckModelLoadStatus();
 
   LINKDECLEX(NODEBASE, node);
-  HMODEL__        *model;
-  unsigned int     flags;
-  unsigned int     deathHoldTimer;
+  HMODEL__ *model;
+  UINT      flags;
+  UINT      deathHoldTimer;
 };
 
 class ONESHOTEFFECTNODE : public NODEBASE {
@@ -176,11 +174,11 @@ class ONESHOTEFFECTNODE : public NODEBASE {
   void         CheckModelLoadStatus();
   ~ONESHOTEFFECTNODE();
 
-  HMODEL__        *objectModel;
-  unsigned int     objectModelAttachmentPoint;
-  unsigned __int64 objectGUID;
-  int              spellID;
-  unsigned char    isCastEffect;
+  HMODEL__ *objectModel;
+  UINT      objectModelAttachmentPoint;
+  DWORDLONG objectGUID;
+  int       spellID;
+  BYTE      isCastEffect;
 };
 
 class ONESHOTSTANDALONEEFFECTNODE : public NODEBASE {
@@ -191,12 +189,12 @@ class ONESHOTSTANDALONEEFFECTNODE : public NODEBASE {
   void         CheckModelLoadStatus();
   ~ONESHOTSTANDALONEEFFECTNODE();
 
-  NTempest::C3Vector             position;
-  TSFixedArray<unsigned __int64> objects;
-  float                          facing;
-  float                          scale;
-  unsigned long                  worldObject;
-  int                            expireTime;
+  NTempest::C3Vector      position;
+  TSFixedArray<DWORDLONG> objects;
+  float                   facing;
+  float                   scale;
+  DWORD                   worldObject;
+  int                     expireTime;
 };
 
 NODEDECL(MISSILENODE) {
@@ -221,18 +219,18 @@ NODEDECL(MISSILENODE) {
   void CheckModelLoadStatus();
 
   HMODEL             model;
-  unsigned __int64   caster;
+  DWORDLONG          caster;
   NTempest::C3Vector startPosition;
   NTempest::C3Vector position;
   NTempest::C3Vector endPosition;
   NTempest::C3Vector normal;
-  unsigned __int64   target;
-  unsigned int       startTime;
-  unsigned int       travelTime;
+  DWORDLONG          target;
+  UINT               startTime;
+  UINT               travelTime;
   NTempest::C3Vector facing;
-  unsigned int       spellID;
-  unsigned int       victimEffect;
-  unsigned int       pathType;
+  UINT               spellID;
+  UINT               victimEffect;
+  UINT               pathType;
   bool               miss;
   MISS_REASON        missReason;
   int                flags;
@@ -254,23 +252,23 @@ struct UNITONESHOTEFFECTDESC : public TSHashObject<UNITONESHOTEFFECTDESC, CHashK
 
 static TSHashTable<UNITONESHOTEFFECTDESC, CHashKeyGUID> s_oneShotEffects;
 static LISTDECLEX(ONESHOTSTANDALONEEFFECTNODE, node, s_standAloneEffects);
-static TInstanceAllocator<ONESHOTSTANDALONEEFFECTNODE>  s_freeStandaloneEffects(40);
+static TInstanceAllocator<ONESHOTSTANDALONEEFFECTNODE> s_freeStandaloneEffects(40);
 static LISTDECL(MISSILENODE, s_missiles);
-static TInstanceAllocator<MISSILENODE>                  s_freeMissiles(10);
-static CVar                                            *s_showEffectsStandalone;
-unsigned int                                            g_specialSpellIDs[43];
-static unsigned int                                     s_purgeTimer;
-static int                                              s_purgeTime;
+static TInstanceAllocator<MISSILENODE> s_freeMissiles(10);
+static CVar                           *s_showEffectsStandalone;
+UINT                                   g_specialSpellIDs[43];
+static UINT                            s_purgeTimer;
+static int                             s_purgeTime;
 
 static const GEOCOMPONENTLINKS g_attachmentPoints[12] = {
-    ATTACH_UNITEFFECT_BASE, ATTACH_UNITEFFECT_HEAD, ATTACH_UNITEFFECT_SPELLLEFTHAND, ATTACH_UNITEFFECT_SPELLRIGHTHAND,
-    ATTACH_NONE, ATTACH_BREATH, ATTACH_TORSOSPELL, ATTACH_UNITEFFECT_SPECIAL1,
-    ATTACH_UNITEFFECT_SPECIAL2, ATTACH_UNITEFFECT_SPECIAL3, ATTACH_TORSOBLOODBACK, ATTACH_TORSOBLOODFRONT
+    ATTACH_UNITEFFECT_BASE, ATTACH_UNITEFFECT_HEAD, ATTACH_UNITEFFECT_SPELLLEFTHAND, ATTACH_UNITEFFECT_SPELLRIGHTHAND, ATTACH_NONE,
+    ATTACH_BREATH,          ATTACH_TORSOSPELL,      ATTACH_UNITEFFECT_SPECIAL1,      ATTACH_UNITEFFECT_SPECIAL2,       ATTACH_UNITEFFECT_SPECIAL3,
+    ATTACH_TORSOBLOODBACK,  ATTACH_TORSOBLOODFRONT
 };
 
-static void SpellUnitAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void SpellUnitAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
   ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
-  unsigned int       event = *reinterpret_cast<const unsigned int *>(eventName);
+  UINT               event = *reinterpret_cast<const UINT *>(eventName);
 
   switch (event) {
     case 0x50504324:  // $CPP
@@ -329,9 +327,9 @@ void ONESHOTEFFECTNODE::ReleaseDeathHolds() {
   }
 }
 
-static void SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void SpellAreaAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
   ONESHOTSTANDALONEEFFECTNODE *node = static_cast<ONESHOTSTANDALONEEFFECTNODE *>(param);
-  unsigned int                 event = *reinterpret_cast<const unsigned int *>(eventName);
+  UINT                         event = *reinterpret_cast<const UINT *>(eventName);
 
   switch (event) {
     case 0x4B485324:  // $SHK
@@ -349,7 +347,7 @@ static void SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3
     }
     case 0x54494824:  // $HIT
       if (node) {
-        for (unsigned int index = 0; index < node->objects.Count(); ++index) {
+        for (UINT index = 0; index < node->objects.Count(); ++index) {
           CGObject_C *object = ClntObjMgrObjectPtr(node->objects[index], __FILE__, __LINE__);
           if (object && (object->GetType() & TYPE_UNIT)) {
             static_cast<CGUnit_C *>(object)->SpellEventHit();
@@ -363,7 +361,7 @@ static void SpellAreaAnimEventCallback(const char *eventName, const NTempest::C3
   }
 }
 
-static int OneShotEndHandler(void *param) {
+static int OneShotEndHandler(LPVOID param) {
   FATALASSERT(param);
 
   ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
@@ -374,7 +372,7 @@ static int OneShotEndHandler(void *param) {
   return 0;
 }
 
-HMODEL InitializeModel(const char *fileName, void(*callback)(const char *, const NTempest::C3Vector &, void *), void *param) {
+HMODEL InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param) {
   CStatus status;
   HMODEL  model = CreateModel(fileName, &status);
   if (callback) {
@@ -385,24 +383,21 @@ HMODEL InitializeModel(const char *fileName, void(*callback)(const char *, const
   return model;
 }
 
-static void RenderModel(HMODEL__* model, const NTempest::C3Vector& position, const NTempest::C44Matrix& orientation, CGCamera* camera, float scale) {
+static void RenderModel(HMODEL__ *model, const NTempest::C3Vector &position, const NTempest::C44Matrix &orientation, CGCamera *camera, float scale) {
   if (!model || !camera || !ModelAdvanceTime(model)) {
     return;
   }
 
-  NTempest::C3Vector cameraPos = camera->Position();
-  NTempest::C3Vector cameraVector = camera->Up();
-  NTempest::C3Vector relativePosition = position - cameraPos;
-  NTempest::C3Vector rotationAxis(0.0f, 0.0f, 1.0f);
+  NTempest::C3Vector  cameraPos = camera->Position();
+  NTempest::C3Vector  cameraVector = camera->Up();
+  NTempest::C3Vector  relativePosition = position - cameraPos;
+  NTempest::C3Vector  rotationAxis(0.0f, 0.0f, 1.0f);
   NTempest::C34Matrix basis(
-      orientation.a0, orientation.a1, orientation.a2,
-      orientation.b0, orientation.b1, orientation.b2,
-      orientation.c0, orientation.c1, orientation.c2,
+      orientation.a0, orientation.a1, orientation.a2, orientation.b0, orientation.b1, orientation.b2, orientation.c0, orientation.c1, orientation.c2,
       orientation.d0, orientation.d1, orientation.d2
   );
 
-  if (ModelTestSphere(
-          model, relativePosition, 0.0f, rotationAxis, scale, 0)) {
+  if (ModelTestSphere(model, relativePosition, 0.0f, rotationAxis, scale, 0)) {
     ModelAnimate(model, basis, scale, cameraPos, cameraVector);
     ModelProcessEvents(model, basis);
     ModelAddToScene(model, 0);
@@ -411,19 +406,17 @@ static void RenderModel(HMODEL__* model, const NTempest::C3Vector& position, con
   }
 }
 
-SPELL_VISUAL_ATTACHMENT GetMissileTargetLocation(unsigned __int64 caster, unsigned int spellID) {
+SPELL_VISUAL_ATTACHMENT GetMissileTargetLocation(DWORDLONG caster, UINT spellID) {
   const SpellRec *spellRec = g_spellDB.GetRecord(spellID);
   if (!spellRec) {
     return SPELL_VISUAL_ATTACH_CHEST;
   }
-  CGObject_C     *casterObject = caster ? ClntObjMgrObjectPtr(caster, __FILE__, __LINE__) : 0;
-  CGUnit_C       *casterUnit = casterObject && (casterObject->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(casterObject) : 0;
-  SpellVisualRec  visRecData;
+  CGObject_C           *casterObject = caster ? ClntObjMgrObjectPtr(caster, __FILE__, __LINE__) : 0;
+  CGUnit_C             *casterUnit = casterObject && (casterObject->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(casterObject) : 0;
+  SpellVisualRec        visRecData;
   const SpellVisualRec *visual =
       casterUnit ? casterUnit->GetAppropriateSpellVisual(spellRec, visRecData) : g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
-  return visual
-             ? static_cast<SPELL_VISUAL_ATTACHMENT>(visual->m_missileDestinationAttachment)
-             : SPELL_VISUAL_ATTACH_CHEST;
+  return visual ? static_cast<SPELL_VISUAL_ATTACHMENT>(visual->m_missileDestinationAttachment) : SPELL_VISUAL_ATTACH_CHEST;
 }
 
 static void RecycleMissileNode(MISSILENODE *node) {
@@ -439,7 +432,7 @@ void GetMissileTargetPosition(CGObject_C *target, SPELL_VISUAL_ATTACHMENT hitLoc
   HMODEL model = target->GetCharacterModel(0);
   FATALASSERT(model);
   if (hitLocation != 2) {
-    unsigned int eventObject = hitLocation ? 25 : 24;
+    UINT eventObject = hitLocation ? 25 : 24;
     if (ModelGetEventObjectPosition(model, eventObject, 0, &position)) {
       position += CGWorldFrame::GetActiveCamera()->Position();
       HandleClose(model);
@@ -457,7 +450,7 @@ static bool MoveMissile(MISSILENODE *node) {
     GetMissileTargetPosition(target, GetMissileTargetLocation(node->caster, node->spellID), node->endPosition);
   }
 
-  unsigned int elapsed = OsGetAsyncTimeMs() - node->startTime;
+  UINT elapsed = OsGetAsyncTimeMs() - node->startTime;
   if (elapsed >= node->travelTime) {
     if (target && (target->GetType() & TYPE_UNIT)) {
       CGUnit_C *unit = static_cast<CGUnit_C *>(target);
@@ -569,13 +562,7 @@ static void RenderMissiles(CGCamera *camera) {
         orientation.Rotate(node->facing.x, NTempest::C3Vector(0.0f, 1.0f, 0.0f), false);
       } else if (node->pathType == 1) {
         NTempest::C34Matrix ori34;
-        ModelGetStandingMatrix(
-            node->model,
-            node->position - camera->Position(),
-            node->normal,
-            node->facing.z,
-            1.0f,
-            &ori34);
+        ModelGetStandingMatrix(node->model, node->position - camera->Position(), node->normal, node->facing.z, 1.0f, &ori34);
         orientation = NTempest::C44Matrix(ori34);
       }
       RenderModel(node->model, node->position, orientation, camera, 1.0f);
@@ -584,7 +571,7 @@ static void RenderMissiles(CGCamera *camera) {
   }
 }
 
-int DeathHoldEventTimerHandler(const void *packetData, void *param) {
+int DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param) {
   FATALASSERT(param);
 
   NODEBASE *node = static_cast<NODEBASE *>(param);
@@ -600,7 +587,7 @@ void NODEBASE::ClearDeathHoldTimer() {
   }
 }
 
-void NODEBASE::SetDeathHoldTimer(unsigned int duration) {
+void NODEBASE::SetDeathHoldTimer(UINT duration) {
   ASSERT(!deathHoldTimer);
   deathHoldTimer = ClientSetTimer(duration >> 1, DeathHoldEventTimerHandler, this);
 }
@@ -615,13 +602,13 @@ void ONESHOTEFFECTNODE::CheckModelLoadStatus() {
 
 void ONESHOTSTANDALONEEFFECTNODE::CheckModelLoadStatus() {
   if (NODEBASE::CheckModelLoadStatus() && ModelAnimHasObjectId(model, 0)) {
-    for (unsigned int index = objects.Count(); index; --index) {
+    for (UINT index = objects.Count(); index; --index) {
       AddUnitDeathHold(static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(objects[index - 1], __FILE__, __LINE__)));
     }
   }
 }
 
-static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, const CGObject_C *object, char *buffer, unsigned int size) {
+static void DecorateEffectFilename(LPCSTR fileName, int raceSexSpecific, const CGObject_C *object, char *buffer, UINT size) {
   FATALASSERT(object);
   FATALASSERT(buffer);
   FATALASSERT(size);
@@ -646,13 +633,13 @@ static void DecorateEffectFilename(const char *fileName, int raceSexSpecific, co
   }
 
   const CGUnit_C *unit = static_cast<const CGUnit_C *>(object);
-  unsigned int sex = unit->GetDisplaySex();
-  unsigned int race = unit->GetDisplayRace();
+  UINT            sex = unit->GetDisplaySex();
+  UINT            race = unit->GetDisplayRace();
   FATALASSERT(sex < UNITSEX_LAST);
   const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(race);
   FATALASSERT(raceRec);
 
-  static const char *const sexNames[UNITSEX_LAST] = {"Male", "Female", "NOSEX"};
+  static LPCSTR const sexNames[UNITSEX_LAST] = {"Male", "Female", "NOSEX"};
   SStrPrintf(buffer, size, "%s%s%s%s", scratchBuffer, raceRec->m_clientFileString, sexNames[sex], extensionString);
 }
 
@@ -677,7 +664,7 @@ void ONESHOTSTANDALONEEFFECTNODE::ReleaseDeathHolds() {
 
   if (!(flags & 3)) {
     flags |= 1;
-    for (unsigned int index = 0; index < objects.Count(); ++index) {
+    for (UINT index = 0; index < objects.Count(); ++index) {
       CGObject_C *object = ClntObjMgrObjectPtr(objects[index], __FILE__, __LINE__);
       if (object && (object->GetType() & TYPE_UNIT)) {
         static_cast<CGUnit_C *>(object)->DDDELLOG(object->GetGUID(), "ONESHOTSTANDALONEEFFECTNODE::ReleaseDeathHolds", __FILE__, __LINE__);
@@ -711,10 +698,10 @@ MISSILENODE::~MISSILENODE() {
 void MISSILENODE::CheckModelLoadStatus() {
   if ((flags & 1) && !(flags & 2) && ModelIsLoaded(model, 1)) {
     flags |= 2;
-    unsigned int duration;
+    UINT duration;
     if (ModelGetSequenceDuration(model, 0, &duration)) {
-      unsigned int finishTime = startTime + travelTime;
-      unsigned int currentTime = OsGetAsyncTimeMs();
+      UINT finishTime = startTime + travelTime;
+      UINT currentTime = OsGetAsyncTimeMs();
       if (finishTime > currentTime) {
         ModelSetTimeScale(model, static_cast<float>(duration) / static_cast<float>(finishTime - currentTime), 1);
       }
@@ -764,7 +751,7 @@ void UnitEffectUpdate(CGCamera *camera) {
   }
 }
 
-static void CheckReinitTimer(int current, unsigned int duration) {
+static void CheckReinitTimer(int current, UINT duration) {
   int triggerTime = current + duration;
   if (s_purgeTimer) {
     if (triggerTime >= s_purgeTime) {
@@ -777,7 +764,7 @@ static void CheckReinitTimer(int current, unsigned int duration) {
   s_purgeTime = triggerTime;
 }
 
-static int PurgeTimerHandler(const void *timerData, void *userData) {
+static int PurgeTimerHandler(LPCVOID timerData, LPVOID userData) {
   s_purgeTimer = 0;
 
   int                          current = static_cast<const EvtContext *>(timerData)->GetCurrTime();
@@ -804,10 +791,10 @@ static int PurgeTimerHandler(const void *timerData, void *userData) {
   return 1;
 }
 
-void UnitEffectClear(CGObject_C* object) {
+void UnitEffectClear(CGObject_C *object) {
   if (object) {
-    CHashKeyGUID key(object->GetGUID());
-    UNITONESHOTEFFECTDESC *desc = s_oneShotEffects.Ptr(static_cast<unsigned int>(object->GetGUID()), key);
+    CHashKeyGUID           key(object->GetGUID());
+    UNITONESHOTEFFECTDESC *desc = s_oneShotEffects.Ptr(static_cast<UINT>(object->GetGUID()), key);
     if (desc) {
       s_oneShotEffects.Delete(desc);
     }
@@ -820,7 +807,7 @@ void UnitEffectClearSpellPrecast(CGObject_C *object, int spellID) {
   }
 
   CHashKeyGUID           key(object->GetGUID());
-  UNITONESHOTEFFECTDESC *effectDesc = s_oneShotEffects.Ptr(static_cast<unsigned int>(object->GetGUID()), key);
+  UNITONESHOTEFFECTDESC *effectDesc = s_oneShotEffects.Ptr(static_cast<UINT>(object->GetGUID()), key);
   if (!effectDesc) {
     return;
   }
@@ -836,20 +823,18 @@ int UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber) {
   return g_specialSpellIDs[effectNumber];
 }
 
-void SpellCameraShakeCallback(const char *eventName, const NTempest::C3Vector &position) {
+void SpellCameraShakeCallback(LPCSTR eventName, const NTempest::C3Vector &position) {
   if (eventName && *eventName) {
-    const SpellEffectCameraShakesRec *shakes =
-        g_spellEffectCameraShakesDB.GetRecord(SStrToInt(eventName));
+    const SpellEffectCameraShakesRec *shakes = g_spellEffectCameraShakesDB.GetRecord(SStrToInt(eventName));
     if (shakes) {
-      for (unsigned int i = 0; i < 3; ++i) {
-        CGWorldFrame::GetActiveCamera()->AddShake(
-            shakes->m_CameraShake[i], position);
+      for (UINT i = 0; i < 3; ++i) {
+        CGWorldFrame::GetActiveCamera()->AddShake(shakes->m_CameraShake[i], position);
       }
     }
   }
 }
 
-void SpellSoundEffectCallback(const char *eventName, const NTempest::C3Vector &position) {
+void SpellSoundEffectCallback(LPCSTR eventName, const NTempest::C3Vector &position) {
   if (eventName && *eventName) {
     SndInterfacePlaySound(SStrToUnsigned(eventName), position, -1, 1.0f);
   }
@@ -867,12 +852,12 @@ void UnitEffectOneShot(
     return;
   }
 
-  FATALASSERT(static_cast<unsigned int>(attachPoint) < sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0]));
+  FATALASSERT(static_cast<UINT>(attachPoint) < sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0]));
 
   CHashKeyGUID           key(object->GetGUID());
-  UNITONESHOTEFFECTDESC *unitEffectDesc = s_oneShotEffects.Ptr(static_cast<unsigned int>(object->GetGUID()), key);
+  UNITONESHOTEFFECTDESC *unitEffectDesc = s_oneShotEffects.Ptr(static_cast<UINT>(object->GetGUID()), key);
   if (!unitEffectDesc) {
-    unitEffectDesc = s_oneShotEffects.New(static_cast<unsigned int>(object->GetGUID()), key, 0, 0);
+    unitEffectDesc = s_oneShotEffects.New(static_cast<UINT>(object->GetGUID()), key, 0, 0);
   }
 
   HMODEL objectModel;
@@ -942,7 +927,7 @@ GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT at
   return g_attachmentPoints[attach];
 }
 
-HMODEL UnitEffectCreateAuraModel(unsigned int effectID) {
+HMODEL UnitEffectCreateAuraModel(UINT effectID) {
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (!effectRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTIDNOTFOUND|%d", effectID);
@@ -953,9 +938,9 @@ HMODEL UnitEffectCreateAuraModel(unsigned int effectID) {
 }
 
 void UnitEffectOneShot(
-    const SpellVisualEffectNameRec       *effectRec,
-    const NTempest::C3Vector             &location,
-    const TSStackArray<unsigned __int64> *objects,
+    const SpellVisualEffectNameRec *effectRec,
+    const NTempest::C3Vector       &location,
+    const TSStackArray<DWORDLONG>  *objects,
     float                           facing,
     float                           scale
 ) {
@@ -971,7 +956,7 @@ void UnitEffectOneShot(
     return;
   }
 
-  unsigned int duration = 0;
+  UINT duration = 0;
   if (!ModelIsLoaded(model, 1) || !ModelGetSequenceDuration(model, 0, &duration) || !duration) {
     HandleClose(model);
     s_freeStandaloneEffects.Put(unitEffectDesc);
@@ -1004,7 +989,7 @@ void UnitEffectOneShot(
   }
 }
 
-bool UnitEffectIsAuraWorldObject(unsigned int effectID, bool &isWorldObj) {
+bool UnitEffectIsAuraWorldObject(UINT effectID, bool &isWorldObj) {
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (!effectRec) {
     return 0;
@@ -1014,13 +999,13 @@ bool UnitEffectIsAuraWorldObject(unsigned int effectID, bool &isWorldObj) {
   return 1;
 }
 
-unsigned long UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest::C3Vector &location, float facing) {
+DWORD UnitEffectCreateWorldModelAura(UINT effect, const NTempest::C3Vector &location, float facing) {
   if (!effect) {
     return 0;
   }
 
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effect);
-  HMODEL                    model = InitializeModel(effectRec->m_fileName, 0, 0);
+  HMODEL                          model = InitializeModel(effectRec->m_fileName, 0, 0);
   if (!model) {
     return 0;
   }
@@ -1029,7 +1014,7 @@ unsigned long UnitEffectCreateWorldModelAura(unsigned int effect, const NTempest
   tempMat.Translate(location);
   NTempest::C3Vector axis(0.0f, 0.0f, 1.0f);
   tempMat.Rotate(facing, axis, 1);
-  unsigned long object = CWorld::AddDoodad(effectRec->m_fileName, model, tempMat, 6);
+  DWORD object = CWorld::AddDoodad(effectRec->m_fileName, model, tempMat, 6);
   HandleClose(model);
   return object;
 }
@@ -1040,16 +1025,16 @@ void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset) {
   if (desc.target && !target) {
     return;
   }
-  unsigned __int64 caster = desc.caster ? desc.caster->GetGUID() : 0;
+  DWORDLONG caster = desc.caster ? desc.caster->GetGUID() : 0;
   if (target) {
     GetMissileTargetPosition(target, GetMissileTargetLocation(caster, desc.spellID), endPos);
   } else {
     endPos = desc.destination;
   }
 
-  char                      modelName[MAX_PATH];
-  HMODEL                    model = 0;
-  unsigned int              dummy1 = 0;
+  char                            modelName[MAX_PATH];
+  HMODEL                          model = 0;
+  UINT                            dummy1 = 0;
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(desc.missileEffect);
   if (effectRec && effectRec->m_fileName && *effectRec->m_fileName) {
     DecorateEffectFilename(effectRec->m_fileName, 0, desc.caster, modelName, sizeof(modelName));
@@ -1107,7 +1092,7 @@ void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset) {
 
 void UnitEffectOneShot(
     UNITEFFECTSPECIALS        effectNumber,
-    unsigned __int64          target,
+    DWORDLONG                 target,
     const NTempest::C3Vector *attachPos,
     float                     facing,
     float                     scale,
@@ -1116,7 +1101,7 @@ void UnitEffectOneShot(
   if (target && effectNumber < 43) {
     CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
     if (object) {
-      int                       effectID = g_specialSpellIDs[effectNumber];
+      int                             effectID = g_specialSpellIDs[effectNumber];
       const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
       if (effectRec) {
         if (effectRec->m_specialAttachPoint == 4) {

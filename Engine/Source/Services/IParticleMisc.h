@@ -14,33 +14,32 @@ namespace NTempest {
   class C3Segment;
 }
 
-typedef int(*PARTICLEPROJECTCALLBACK)(const NTempest::C3Segment &segment, float &distance);
+typedef int (*PARTICLEPROJECTCALLBACK)(const NTempest::C3Segment &segment, float &distance);
 
 class CParticleStack {
  public:
   CParticleStack() : m_stackPointer(0) {
   }
 
-  CParticleStack(const CParticleStack &source)
-      : m_stack(source.m_stack), m_stackPointer(source.m_stackPointer) {
+  CParticleStack(const CParticleStack &source) : m_stack(source.m_stack), m_stackPointer(source.m_stackPointer) {
   }
 
-  void Push(unsigned int u) {
+  void Push(UINT u) {
     ASSERT(m_stackPointer < m_stack.Count());
     m_stack[m_stackPointer++] = u;
   }
 
-  unsigned int Pop() {
+  UINT Pop() {
     ASSERT(m_stackPointer != 0);
     return m_stack[--m_stackPointer];
   }
 
-  unsigned int Top() {
+  UINT Top() {
     ASSERT(m_stackPointer != 0);
     return m_stack[m_stackPointer - 1];
   }
 
-  void Remove(unsigned int index) {
+  void Remove(UINT index) {
     m_stack[index] = m_stack[m_stackPointer - 1];
     Pop();
   }
@@ -53,29 +52,29 @@ class CParticleStack {
     m_stackPointer = 0;
   }
 
-  unsigned int Count() const {
+  UINT Count() const {
     return m_stackPointer;
   }
 
-  void SetCount(unsigned int count) {
+  void SetCount(UINT count) {
     m_stack.SetCount(count);
   }
 
-  void ReserveSpace(unsigned int count) {
+  void ReserveSpace(UINT count) {
     m_stack.ReserveSpace(count);
   }
 
-  unsigned int operator[](unsigned int index) {
+  UINT operator[](UINT index) {
     return m_stack[index];
   }
 
-  unsigned int operator[](unsigned int index) const {
+  UINT operator[](UINT index) const {
     return m_stack[index];
   }
 
  private:
-  TSGrowableArray<unsigned int> m_stack;
-  unsigned int                  m_stackPointer;
+  TSGrowableArray<UINT> m_stack;
+  UINT                  m_stackPointer;
 };
 
 class ParticleSystemManager {
@@ -84,9 +83,9 @@ class ParticleSystemManager {
 
   ~ParticleSystemManager();
 
-  static void Destroy();
-  static void SetScaler(float scaler);
-  static float GetScaler();
+  static void                   Destroy();
+  static void                   SetScaler(float scaler);
+  static float                  GetScaler();
   static ParticleSystemManager *GetInstance();
 
   CPlaneParticleEmitter  *CreateQuadEmitter();
@@ -117,13 +116,13 @@ class ParticleSystemManager {
  private:
   friend class CWorld;
 
-  static void RenderParticleEmitter(void *param1, int param2);
-  static void RenderParticleEmitter2(void *param1, int param2);
+  static void RenderParticleEmitter(LPVOID param1, int param2);
+  static void RenderParticleEmitter2(LPVOID param1, int param2);
 
   static ParticleSystemManager *manager;
   static float                  scaler;
   static float                  sm_projectDistance;
-  static int(*sm_projectCallback)(const NTempest::C3Segment &segment, float &distance);
+  static int (*sm_projectCallback)(const NTempest::C3Segment &segment, float &distance);
 
   TSGrowableArray<CParticleEmitter *>  modelEmitters;
   TSGrowableArray<CParticleEmitter2 *> emitter2s;
@@ -135,17 +134,17 @@ class RibbonManager {
  public:
   ~RibbonManager();
 
-  static void Destroy();
+  static void           Destroy();
   static RibbonManager *GetInstance();
-  CRibbonEmitter                  *CreateEmitter();
-  CRibbonEmitter                  *DuplicateEmitter(const CRibbonEmitter *emitter);
-  void                             UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
-  void                             DeleteEmitter(CRibbonEmitter *emitter);
-  void                             Flush();
-  void                             RenderEmitters();
+  CRibbonEmitter       *CreateEmitter();
+  CRibbonEmitter       *DuplicateEmitter(const CRibbonEmitter *emitter);
+  void                  UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  void                  DeleteEmitter(CRibbonEmitter *emitter);
+  void                  Flush();
+  void                  RenderEmitters();
 
  private:
-  static void RenderEmitter(void *param1, int param2);
+  static void RenderEmitter(LPVOID param1, int param2);
 
   static RibbonManager *manager;
 

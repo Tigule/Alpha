@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CreatureDisplayInfoRec::GetFilename() {
+LPCSTR CreatureDisplayInfoRec::GetFilename() {
   return "DBFilesClient\\CreatureDisplayInfo.dbc";
 }
 
@@ -19,9 +19,9 @@ CreatureDisplayInfoRec::CreatureDisplayInfoRec() {
 CreatureDisplayInfoRec::~CreatureDisplayInfoRec() {
 }
 
-bool CreatureDisplayInfoRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int temptextureVariationIndices[3];
+bool CreatureDisplayInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT temptextureVariationIndices[3];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_modelID, sizeof(m_modelID), 0, 0, 0) && result;

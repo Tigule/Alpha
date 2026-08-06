@@ -2,7 +2,7 @@
 
 #include <gl/gl.h>
 
-void CGxDeviceOpenGl::ISceneBegin(unsigned int mask) {
+void CGxDeviceOpenGl::ISceneBegin(UINT mask) {
   float minX;
   float maxX;
   float minY;
@@ -16,7 +16,7 @@ void CGxDeviceOpenGl::ISceneBegin(unsigned int mask) {
   XformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 }
 
-void CGxDeviceOpenGl::SceneClear(unsigned int mask) {
+void CGxDeviceOpenGl::SceneClear(UINT mask) {
   NTempest::CImVector clearColor = m_clearColor;
   if (!(m_appState.m_masterEnables & (1U << GxMasterEnable_NormalProjection))) {
     clearColor.Set(0xFFFF0000);
@@ -25,10 +25,10 @@ void CGxDeviceOpenGl::SceneClear(unsigned int mask) {
   const float byteToFloat = 1.0f / 255.0f;
   glClearColor(clearColor.r * byteToFloat, clearColor.g * byteToFloat, clearColor.b * byteToFloat, clearColor.a * byteToFloat);
 
-  unsigned int oldDepthMask = m_deviceState[Ds_DepthMask];
+  UINT oldDepthMask = m_deviceState[Ds_DepthMask];
   DsSet(Ds_DepthMask, 1, 0);
 
-  unsigned int glMask = 0;
+  UINT glMask = 0;
   if (mask & 1) {
     glMask = GL_COLOR_BUFFER_BIT;
   }
@@ -40,7 +40,7 @@ void CGxDeviceOpenGl::SceneClear(unsigned int mask) {
   DsSet(Ds_DepthMask, oldDepthMask, 0);
 }
 
-void CGxDeviceOpenGl::ScenePresent(unsigned int mask) {
+void CGxDeviceOpenGl::ScenePresent(UINT mask) {
   int screenShot = m_scrShotClick;
   CGxDevice::ScenePresent(mask);
 

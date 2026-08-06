@@ -23,36 +23,33 @@
 #include <Os/W32/Debugging.h>
 
 struct CMemCmdItem {
-  unsigned int m_allocated;
-  unsigned int m_committed;
-  unsigned int m_reserved;
-  char         m_name[256];
+  UINT m_allocated;
+  UINT m_committed;
+  UINT m_reserved;
+  char m_name[256];
 
-  static int __cdecl Compare(const void *m1, const void *m2) {
-    return SStrCmp(
-        static_cast<const CMemCmdItem *>(m1)->m_name,
-        static_cast<const CMemCmdItem *>(m2)->m_name,
-        0x7FFFFFFF);
+  static int __cdecl Compare(LPCVOID m1, LPCVOID m2) {
+    return SStrCmp(static_cast<const CMemCmdItem *>(m1)->m_name, static_cast<const CMemCmdItem *>(m2)->m_name, 0x7FFFFFFF);
   }
 };
 
 struct CMemCmdDump {
-  unsigned __int64             m_sumAllocated;
-  unsigned __int64             m_sumCommitted;
-  unsigned __int64             m_sumReserved;
+  DWORDLONG                    m_sumAllocated;
+  DWORDLONG                    m_sumCommitted;
+  DWORDLONG                    m_sumReserved;
   TSGrowableArray<CMemCmdItem> m_items;
 };
 
-char *OsGetLastErrorStr();
-void OsFreeLastErrorStr(char *msgBuf);
-static unsigned __int64 s_lastTarget;
+char            *OsGetLastErrorStr();
+void             OsFreeLastErrorStr(char *msgBuf);
+static DWORDLONG s_lastTarget;
 
-int ModelRenderSceneLogToggle(const char *fileName);
-int ModelAnimateLogToggle(const char *fileName);
-int Player_C_TogglePlayerRender();
+int  ModelRenderSceneLogToggle(LPCSTR fileName);
+int  ModelAnimateLogToggle(LPCSTR fileName);
+int  Player_C_TogglePlayerRender();
 void ModelShowBoundingSphere(HMODEL model);
 
-static int CCommand_DBLookup(const char* command, const char* string) {
+static int CCommand_DBLookup(LPCSTR command, LPCSTR string) {
   CDataStore message;
   message.Put(2);
   message.PutString(string);
@@ -61,39 +58,27 @@ static int CCommand_DBLookup(const char* command, const char* string) {
   return 1;
 }
 
-static int CCommand_DrawLog(const char* command, const char* arguments) {
-  ConsoleWrite(
-      ModelRenderSceneLogToggle("RenderLog.txt")
-          ? "Model render logging started"
-          : "Model render logging stopped",
-      DEFAULT_COLOR);
+static int CCommand_DrawLog(LPCSTR command, LPCSTR arguments) {
+  ConsoleWrite(ModelRenderSceneLogToggle("RenderLog.txt") ? "Model render logging started" : "Model render logging stopped", DEFAULT_COLOR);
   return 1;
 }
 
-static int CCommand_AnimLog(const char* command, const char* arguments) {
-  ConsoleWrite(
-      ModelAnimateLogToggle("AnimLog.txt")
-          ? "Model animation logging started"
-          : "Model animation logging stopped",
-      DEFAULT_COLOR);
+static int CCommand_AnimLog(LPCSTR command, LPCSTR arguments) {
+  ConsoleWrite(ModelAnimateLogToggle("AnimLog.txt") ? "Model animation logging started" : "Model animation logging stopped", DEFAULT_COLOR);
   return 1;
 }
 
-static int CCommand_TogglePlayer(const char* command, const char* arguments) {
+static int CCommand_TogglePlayer(LPCSTR command, LPCSTR arguments) {
   if (CGWorldFrame::GetActive()) {
-    ConsoleWrite(
-        Player_C_TogglePlayerRender() ? "player visible" : "player hidden",
-        DEFAULT_COLOR);
+    ConsoleWrite(Player_C_TogglePlayerRender() ? "player visible" : "player hidden", DEFAULT_COLOR);
   }
   return 1;
 }
 
-static int CCommand_ToggleAnimBlending(const char* command, const char* arguments) {
-  CGObject_C *object = ClntObjMgrObjectPtr(
-      CGGameUI::GetCurrentObjectTrack(), __FILE__, __LINE__);
+static int CCommand_ToggleAnimBlending(LPCSTR command, LPCSTR arguments) {
+  CGObject_C *object = ClntObjMgrObjectPtr(CGGameUI::GetCurrentObjectTrack(), __FILE__, __LINE__);
   if (!object) {
-    object = ClntObjMgrObjectPtr(
-        ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
+    object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   }
   if (!object) {
     return 0;
@@ -110,12 +95,10 @@ static int CCommand_ToggleAnimBlending(const char* command, const char* argument
   return 1;
 }
 
-static int CCommand_ShowBounds(const char* command, const char* arguments) {
-  CGObject_C *object = ClntObjMgrObjectPtr(
-      CGGameUI::GetCurrentObjectTrack(), __FILE__, __LINE__);
+static int CCommand_ShowBounds(LPCSTR command, LPCSTR arguments) {
+  CGObject_C *object = ClntObjMgrObjectPtr(CGGameUI::GetCurrentObjectTrack(), __FILE__, __LINE__);
   if (!object) {
-    object = ClntObjMgrObjectPtr(
-        ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
+    object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   }
   if (!object) {
     return 0;
@@ -130,7 +113,7 @@ static int CCommand_ShowBounds(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_Loc(const char*, const char*) {
+static int CCommand_Loc(LPCSTR, LPCSTR) {
   CDataStore msg;
   msg.Put(4);
   msg.Put(ClntObjMgrGetActivePlayer());
@@ -139,7 +122,7 @@ static int CCommand_Loc(const char*, const char*) {
   return 1;
 }
 
-static int CCommand_TerminalVelocity(const char* command, const char* arguments) {
+static int CCommand_TerminalVelocity(LPCSTR command, LPCSTR arguments) {
   float metersPerSec;
   if (*arguments) {
     metersPerSec = static_cast<float>(atof(arguments));
@@ -156,21 +139,18 @@ static int CCommand_TerminalVelocity(const char* command, const char* arguments)
   return 1;
 }
 
-static int CCommand_DLoc(const char* command, const char* arguments) {
-  CGObject_C *player = ClntObjMgrObjectPtr(
-      ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
+static int CCommand_DLoc(LPCSTR command, LPCSTR arguments) {
+  CGObject_C        *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   NTempest::C3Vector position;
   player->GetPosition(position);
   ConsoleWriteA("%g, %g, %g", DEFAULT_COLOR, position.x, position.y, position.z);
   return 1;
 }
 
-static int CCommand_TargetLoc(const char*, const char*) {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(
-      ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+static int CCommand_TargetLoc(LPCSTR, LPCSTR) {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    CGObject_C *target = ClntObjMgrObjectPtr(
-        player->GetLocalTarget(), __FILE__, __LINE__);
+    CGObject_C *target = ClntObjMgrObjectPtr(player->GetLocalTarget(), __FILE__, __LINE__);
     if (!target) {
       target = ClntObjMgrObjectPtr(s_lastTarget, __FILE__, __LINE__);
     }
@@ -182,15 +162,11 @@ static int CCommand_TargetLoc(const char*, const char*) {
     s_lastTarget = target->GetGUID();
     NTempest::C3Vector targetPosition = target->GetPosition();
     NTempest::C3Vector playerPosition = player->GetPosition();
-    NTempest::C3Vector distance(
-        playerPosition.x - targetPosition.x,
-        playerPosition.y - targetPosition.y,
-        playerPosition.z - targetPosition.z);
+    NTempest::C3Vector distance(playerPosition.x - targetPosition.x, playerPosition.y - targetPosition.y, playerPosition.z - targetPosition.z);
     ConsoleWriteA(
-        "%016I64X: Local Pos: %g, %g, %g, facing: %g distance: %g",
-        DEFAULT_COLOR, target->GetGUID(),
-        targetPosition.x, targetPosition.y, targetPosition.z,
-        target->GetFacing(), distance.Mag());
+        "%016I64X: Local Pos: %g, %g, %g, facing: %g distance: %g", DEFAULT_COLOR, target->GetGUID(), targetPosition.x, targetPosition.y,
+        targetPosition.z, target->GetFacing(), distance.Mag()
+    );
 
     CDataStore locMsg;
     locMsg.Put(4);
@@ -207,7 +183,7 @@ static int CCommand_TargetLoc(const char*, const char*) {
   return 1;
 }
 
-static int CCommand_Facing(const char* command, const char* arguments) {
+static int CCommand_Facing(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(6);
   msg.Put(ClntObjMgrGetActivePlayer());
@@ -216,35 +192,29 @@ static int CCommand_Facing(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_DFacing(const char* command, const char* arguments) {
-  CGObject_C *player = ClntObjMgrObjectPtr(
-      ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
-  ConsoleWriteA(
-      "%g degrees", DEFAULT_COLOR,
-      player->GetFacing() * 57.29578f);
+static int CCommand_DFacing(LPCSTR command, LPCSTR arguments) {
+  CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
+  ConsoleWriteA("%g degrees", DEFAULT_COLOR, player->GetFacing() * 57.29578f);
   return 1;
 }
 
-static int CCommand_Speed(const char* command, const char* arguments) {
+static int CCommand_Speed(LPCSTR command, LPCSTR arguments) {
   float speed = SStrToFloat(arguments);
   if (speed > 0.0f) {
-    unsigned long eventTime = OsGetAsyncTimeMs();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(
-        ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+    DWORD     eventTime = OsGetAsyncTimeMs();
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
     if (unit) {
-      unit->OnRunSpeedChangeLocal(
-          eventTime, MSG_MOVE_SET_RUN_SPEED_CHEAT, speed);
+      unit->OnRunSpeedChangeLocal(eventTime, MSG_MOVE_SET_RUN_SPEED_CHEAT, speed);
     }
   }
   return 1;
 }
 
-static int CCommand_WalkSpeed(const char* command, const char* arguments) {
+static int CCommand_WalkSpeed(LPCSTR command, LPCSTR arguments) {
   float speed = SStrToFloat(arguments);
   if (speed > 0.0f) {
-    unsigned long eventTime = OsGetAsyncTimeMs();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(
-        ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+    DWORD     eventTime = OsGetAsyncTimeMs();
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
     if (unit) {
       unit->OnWalkSpeedChangeLocal(eventTime, speed);
     }
@@ -252,26 +222,23 @@ static int CCommand_WalkSpeed(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_SwimSpeed(const char* command, const char* arguments) {
+static int CCommand_SwimSpeed(LPCSTR command, LPCSTR arguments) {
   float speed = SStrToFloat(arguments);
   if (speed > 0.0f) {
-    unsigned long eventTime = OsGetAsyncTimeMs();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(
-        ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+    DWORD     eventTime = OsGetAsyncTimeMs();
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
     if (unit) {
-      unit->OnSwimSpeedChangeLocal(
-          eventTime, MSG_MOVE_SET_SWIM_SPEED_CHEAT, speed);
+      unit->OnSwimSpeedChangeLocal(eventTime, MSG_MOVE_SET_SWIM_SPEED_CHEAT, speed);
     }
   }
   return 1;
 }
 
-static int CCommand_TurnSpeed(const char* command, const char* arguments) {
+static int CCommand_TurnSpeed(LPCSTR command, LPCSTR arguments) {
   float rate = SStrToFloat(arguments);
   if (rate > 0.0f) {
-    unsigned long eventTime = OsGetAsyncTimeMs();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(
-        ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+    DWORD     eventTime = OsGetAsyncTimeMs();
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
     if (unit) {
       unit->OnTurnRateChangeLocal(eventTime, rate);
     }
@@ -279,8 +246,8 @@ static int CCommand_TurnSpeed(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_Money(const char* command, const char* arguments) {
-  char currArg[64];
+static int CCommand_Money(LPCSTR command, LPCSTR arguments) {
+  char       currArg[64];
   const char whitespace[] = "\t\r\n\" ";
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
@@ -295,23 +262,20 @@ static int CCommand_Money(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_WorldTeleport(const char* command, const char* arguments) {
-  CGObject_C *player = ClntObjMgrObjectPtr(
-      ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
+static int CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
+  CGObject_C        *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   NTempest::C3Vector position = player->GetPosition();
-  float facing = player->GetFacing();
+  float              facing = player->GetFacing();
 
-  char currArg[64];
+  char       currArg[64];
   const char whitespace[] = "\t\r\n\" ";
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
-    ConsoleWrite(
-        "Usage: worldport <continentID> [x y z] [facing]",
-        static_cast<COLOR_T>(4));
+    ConsoleWrite("Usage: worldport <continentID> [x y z] [facing]", static_cast<COLOR_T>(4));
     return 0;
   }
 
-  unsigned int mapID = SStrToUnsigned(currArg);
+  UINT mapID = SStrToUnsigned(currArg);
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (currArg[0]) {
     position.x = SStrToFloat(currArg);
@@ -330,15 +294,14 @@ static int CCommand_WorldTeleport(const char* command, const char* arguments) {
   }
 
   if (!g_mapDB.GetRecord(mapID)) {
-    ConsoleWriteA(
-        "Bad world number: %i\n", static_cast<COLOR_T>(3), mapID);
+    ConsoleWriteA("Bad world number: %i\n", static_cast<COLOR_T>(3), mapID);
     return 0;
   }
 
   CDataStore msg;
   msg.Put(8);
   msg.Put(OsGetAsyncTimeMs());
-  msg.Put(static_cast<unsigned char>(mapID));
+  msg.Put(static_cast<BYTE>(mapID));
   msg.Put(position.x);
   msg.Put(position.y);
   msg.Put(position.z);
@@ -348,14 +311,13 @@ static int CCommand_WorldTeleport(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_Teleport(const char* command, const char* arguments) {
-  CGObject_C *player = ClntObjMgrObjectPtr(
-      ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
+static int CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
+  CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!player) {
     return 1;
   }
 
-  if (!isdigit(static_cast<unsigned char>(*arguments)) && *arguments != '-') {
+  if (!isdigit(static_cast<BYTE>(*arguments)) && *arguments != '-') {
     CDataStore msg;
     msg.Put(9);
     msg.PutString(arguments);
@@ -364,7 +326,7 @@ static int CCommand_Teleport(const char* command, const char* arguments) {
     return 1;
   }
 
-  char currArg[64];
+  char       currArg[64];
   const char whitespace[] = "\t\r\n\" ,";
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
@@ -380,20 +342,15 @@ static int CCommand_Teleport(const char* command, const char* arguments) {
 
   float mapX = 17066.666f - x;
   float mapY = 17066.666f - y;
-  if (mapX < 0.0f || mapX >= 34133.332f ||
-      mapY < 0.0f || mapY >= 34133.332f) {
+  if (mapX < 0.0f || mapX >= 34133.332f || mapY < 0.0f || mapY >= 34133.332f) {
     ConsoleWrite("Coordinates out of range\n", DEFAULT_COLOR);
     return 1;
   }
 
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
-  float z = currArg[0]
-      ? SStrToFloat(currArg)
-      : CWorld::CalcAltitude(x, y, 0.0f);
+  float z = currArg[0] ? SStrToFloat(currArg) : CWorld::CalcAltitude(x, y, 0.0f);
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
-  float facing = currArg[0]
-      ? SStrToFloat(currArg) * 0.017453292f
-      : player->GetFacing();
+  float facing = currArg[0] ? SStrToFloat(currArg) * 0.017453292f : player->GetFacing();
 
   CDataStore msg;
   msg.Put(198);
@@ -406,7 +363,7 @@ static int CCommand_Teleport(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_CreateItem(const char* command, const char* arguments) {
+static int CCommand_CreateItem(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(19);
   msg.Put(SStrToInt(arguments));
@@ -415,7 +372,7 @@ static int CCommand_CreateItem(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_CreateGameObject(const char* command, const char* arguments) {
+static int CCommand_CreateGameObject(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(20);
   msg.Put(SStrToInt(arguments));
@@ -424,7 +381,7 @@ static int CCommand_CreateGameObject(const char* command, const char* arguments)
   return 1;
 }
 
-static int CCommand_CreateMonster(const char* command, const char* arguments) {
+static int CCommand_CreateMonster(LPCSTR command, LPCSTR arguments) {
   char type[32];
   SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
   CDataStore msg;
@@ -435,7 +392,7 @@ static int CCommand_CreateMonster(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_CreatePet(const char* command, const char* arguments) {
+static int CCommand_CreatePet(LPCSTR command, LPCSTR arguments) {
   char type[32];
   SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
   CDataStore msg;
@@ -446,12 +403,10 @@ static int CCommand_CreatePet(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_DestroyMonster(const char* command, const char* arguments) {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(
-      ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+static int CCommand_DestroyMonster(LPCSTR command, LPCSTR arguments) {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    CGObject_C *target = ClntObjMgrObjectPtr(
-        player->GetLocalTarget(), __FILE__, __LINE__);
+    CGObject_C *target = ClntObjMgrObjectPtr(player->GetLocalTarget(), __FILE__, __LINE__);
     if (!target) {
       ConsoleWrite("Error, no unit targeted!", DEFAULT_COLOR);
       return 1;
@@ -465,12 +420,10 @@ static int CCommand_DestroyMonster(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_AttackPlayer(const char* command, const char* arguments) {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(
-      ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+static int CCommand_AttackPlayer(LPCSTR command, LPCSTR arguments) {
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    CGObject_C *target = ClntObjMgrObjectPtr(
-        player->GetLocalTarget(), __FILE__, __LINE__);
+    CGObject_C *target = ClntObjMgrObjectPtr(player->GetLocalTarget(), __FILE__, __LINE__);
     if (!target) {
       ConsoleWrite("Error, no unit targeted!", DEFAULT_COLOR);
       return 1;
@@ -484,25 +437,22 @@ static int CCommand_AttackPlayer(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_TargetAttack(const char* command, const char* arguments) {
+static int CCommand_TargetAttack(LPCSTR command, LPCSTR arguments) {
   if (!arguments || !*arguments) {
     ConsoleWrite("GUID needed!", DEFAULT_COLOR);
     return 1;
   }
 
-  unsigned __int64 victimGUID;
+  DWORDLONG victimGUID;
   sscanf(arguments, "%I64d", &victimGUID);
-  unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
-  CGPlayer_C *player = activePlayer
-      ? static_cast<CGPlayer_C *>(
-            ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__))
-      : 0;
+  DWORDLONG   activePlayer = ClntObjMgrGetActivePlayer();
+  CGPlayer_C *player = activePlayer ? static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__)) : 0;
   if (!player) {
     ConsoleWrite("No active player!", DEFAULT_COLOR);
     return 1;
   }
 
-  unsigned __int64 target = player->GetLocalTarget();
+  DWORDLONG target = player->GetLocalTarget();
   if (!target || !ClntObjMgrObjectPtr(target, __FILE__, __LINE__)) {
     ConsoleWrite("Player has no target!", DEFAULT_COLOR);
     return 1;
@@ -517,7 +467,7 @@ static int CCommand_TargetAttack(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_Save(const char *command, const char *arguments) {
+static int CCommand_Save(LPCSTR command, LPCSTR arguments) {
   CDataStore message;
   message.Put(CMSG_SAVE_PLAYER);
   message.Finalize();
@@ -525,11 +475,10 @@ static int CCommand_Save(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_BindPoint(const char* command, const char* arguments) {
-  unsigned __int64 activePlayer = ClntObjMgrGetActivePlayer();
+static int CCommand_BindPoint(LPCSTR command, LPCSTR arguments) {
+  DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   if (activePlayer) {
-    CGObject_C *player = ClntObjMgrObjectPtr(
-        activePlayer, __FILE__, __LINE__);
+    CGObject_C *player = ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__);
     if (player) {
       NTempest::C3Vector position;
       player->GetPosition(position);
@@ -542,17 +491,16 @@ static int CCommand_BindPoint(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_Beastmaster(const char* command, const char* arguments) {
+static int CCommand_Beastmaster(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(33);
-  msg.Put(static_cast<unsigned char>(
-      SStrCmpI(arguments, "off", 0x7FFFFFFF) != 0));
+  msg.Put(static_cast<BYTE>(SStrCmpI(arguments, "off", 0x7FFFFFFF) != 0));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
-static int CCommand_SendEvent(const char* command, const char* arguments) {
+static int CCommand_SendEvent(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(45);
   msg.Put(SStrToInt(arguments));
@@ -561,7 +509,7 @@ static int CCommand_SendEvent(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_Recharge(const char *command, const char *arguments) {
+static int CCommand_Recharge(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(CMSG_RECHARGE);
   msg.Finalize();
@@ -569,7 +517,7 @@ static int CCommand_Recharge(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_Level(const char* command, const char* arguments) {
+static int CCommand_Level(LPCSTR command, LPCSTR arguments) {
   int level = SStrToInt(arguments);
   if (level <= 0 || level > 100) {
     ConsoleWrite("Invalid level specified\n", DEFAULT_COLOR);
@@ -583,7 +531,7 @@ static int CCommand_Level(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_PetLevel(const char* command, const char* arguments) {
+static int CCommand_PetLevel(LPCSTR command, LPCSTR arguments) {
   int level = SStrToInt(arguments);
   if (level <= 0 || level > 100) {
     ConsoleWrite("Invalid level specified\n", DEFAULT_COLOR);
@@ -597,7 +545,7 @@ static int CCommand_PetLevel(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_ClearQuest(const char* command, const char* arguments) {
+static int CCommand_ClearQuest(LPCSTR command, LPCSTR arguments) {
   int quest = SStrToInt(arguments);
   if (quest < 0) {
     ConsoleWrite("Invalid quest specified\n", DEFAULT_COLOR);
@@ -611,7 +559,7 @@ static int CCommand_ClearQuest(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_FlagQuest(const char* command, const char* arguments) {
+static int CCommand_FlagQuest(LPCSTR command, LPCSTR arguments) {
   int quest = SStrToInt(arguments);
   if (quest < 1) {
     ConsoleWrite("Invalid quest specified\n", DEFAULT_COLOR);
@@ -625,7 +573,7 @@ static int CCommand_FlagQuest(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_FlagQuestFinish(const char* command, const char* arguments) {
+static int CCommand_FlagQuestFinish(LPCSTR command, LPCSTR arguments) {
   int quest = SStrToInt(arguments);
   if (quest < 1) {
     ConsoleWrite("Invalid quest specified\n", DEFAULT_COLOR);
@@ -639,7 +587,7 @@ static int CCommand_FlagQuestFinish(const char* command, const char* arguments) 
   return 1;
 }
 
-static void QueryQuest(const unsigned __int64& questGiver, int questID) {
+static void QueryQuest(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
   msg.Put(386);
   msg.Put(questGiver);
@@ -648,7 +596,7 @@ static void QueryQuest(const unsigned __int64& questGiver, int questID) {
   ClientServices_Send(&msg);
 }
 
-static void AcceptQuest(const unsigned __int64& questGiver, int questID) {
+static void AcceptQuest(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
   msg.Put(389);
   msg.Put(questGiver);
@@ -657,7 +605,7 @@ static void AcceptQuest(const unsigned __int64& questGiver, int questID) {
   ClientServices_Send(&msg);
 }
 
-static void CompleteQuest(const unsigned __int64& questGiver, int questID) {
+static void CompleteQuest(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
   msg.Put(390);
   msg.Put(questGiver);
@@ -669,12 +617,12 @@ static void CompleteQuest(const unsigned __int64& questGiver, int questID) {
 static void QuestLogRemoveQuest(int entry) {
   CDataStore msg;
   msg.Put(400);
-  msg.Put(static_cast<unsigned char>(entry));
+  msg.Put(static_cast<BYTE>(entry));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-static int CCommand_QuestCommand(const char* command, const char* arguments) {
+static int CCommand_QuestCommand(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -682,7 +630,7 @@ static int CCommand_QuestCommand(const char* command, const char* arguments) {
     return 0;
   }
 
-  unsigned __int64 questGiver;
+  DWORDLONG questGiver;
   sscanf(buffer, "%I64X", &questGiver);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -703,7 +651,7 @@ static int CCommand_QuestCommand(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_TaxiClearAllNodes(const char *, const char *) {
+static int CCommand_TaxiClearAllNodes(LPCSTR, LPCSTR) {
   CDataStore msg;
   msg.Put(CMSG_TAXICLEARALLNODES);
   msg.Finalize();
@@ -711,7 +659,7 @@ static int CCommand_TaxiClearAllNodes(const char *, const char *) {
   return 1;
 }
 
-static int CCommand_TaxiEnableAllNodes(const char *, const char *) {
+static int CCommand_TaxiEnableAllNodes(LPCSTR, LPCSTR) {
   CDataStore msg;
   msg.Put(CMSG_TAXIENABLEALLNODES);
   msg.Finalize();
@@ -719,7 +667,7 @@ static int CCommand_TaxiEnableAllNodes(const char *, const char *) {
   return 1;
 }
 
-static int CCommand_ChangeCellZone(const char*, const char* args) {
+static int CCommand_ChangeCellZone(LPCSTR, LPCSTR args) {
   CDataStore msg;
   msg.Put(12);
   msg.Put(SStrToInt(args));
@@ -728,7 +676,7 @@ static int CCommand_ChangeCellZone(const char*, const char* args) {
   return 1;
 }
 
-static int CCommand_Played(const char *, const char *) {
+static int CCommand_Played(LPCSTR, LPCSTR) {
   CDataStore msg;
   msg.Put(CMSG_PLAYED_TIME);
   msg.Finalize();
@@ -736,28 +684,27 @@ static int CCommand_Played(const char *, const char *) {
   return 1;
 }
 
-static int CCommand_LootMethod(const char*, const char* args) {
+static int CCommand_LootMethod(LPCSTR, LPCSTR args) {
   CDataStore msg;
   msg.Put(122);
   switch (*args) {
     case 'F':
     case 'f':
-      msg.Put(static_cast<unsigned int>(0));
-      msg.Put(static_cast<unsigned __int64>(0));
+      msg.Put(static_cast<UINT>(0));
+      msg.Put(static_cast<DWORDLONG>(0));
       break;
     case 'M':
     case 'm':
-      msg.Put(static_cast<unsigned int>(2));
+      msg.Put(static_cast<UINT>(2));
       msg.Put(CGGameUI::GetLockedTarget());
       break;
     case 'R':
     case 'r':
-      msg.Put(static_cast<unsigned int>(1));
-      msg.Put(static_cast<unsigned __int64>(0));
+      msg.Put(static_cast<UINT>(1));
+      msg.Put(static_cast<DWORDLONG>(0));
       break;
     default:
-      ConsolePrintf(
-          "Valid lootMethods are freeforall, roundrobin, and master");
+      ConsolePrintf("Valid lootMethods are freeforall, roundrobin, and master");
       return 1;
   }
   msg.Finalize();
@@ -765,17 +712,16 @@ static int CCommand_LootMethod(const char*, const char* args) {
   return 1;
 }
 
-static int CCommand_CameraTarget(const char*, const char*) {
+static int CCommand_CameraTarget(LPCSTR, LPCSTR) {
   CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
-  CGObject_C *target = ClntObjMgrObjectPtr(
-      CGGameUI::GetLockedTarget(), __FILE__, __LINE__);
+  CGObject_C   *target = ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__);
   if (target) {
     worldFrame->SetCameraTarget(target);
   }
   return 1;
 }
 
-static int CCommand_Reclaim(const char* command, const char* arguments) {
+static int CCommand_Reclaim(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -783,7 +729,7 @@ static int CCommand_Reclaim(const char* command, const char* arguments) {
     return 0;
   }
 
-  unsigned __int64 corpseGUID;
+  DWORDLONG corpseGUID;
   sscanf(buffer, "%I64X", &corpseGUID);
   CDataStore msg;
   msg.Put(451);
@@ -793,14 +739,14 @@ static int CCommand_Reclaim(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_BuySpell(const char* command, const char* arguments) {
+static int CCommand_BuySpell(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected trainer.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned __int64 trainer;
+  DWORDLONG trainer;
   sscanf(buffer, "%I64X", &trainer);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -816,26 +762,26 @@ static int CCommand_BuySpell(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_SellItem(const char* command, const char* arguments) {
+static int CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected merchant.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned __int64 merchant;
+  DWORDLONG merchant;
   sscanf(buffer, "%I64X", &merchant);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected item.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned __int64 item;
+  DWORDLONG item;
   sscanf(buffer, "%I64X", &item);
-  unsigned char amount = 0;
+  BYTE amount = 0;
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (buffer[0]) {
-    amount = static_cast<unsigned char>(SStrToInt(buffer));
+    amount = static_cast<BYTE>(SStrToInt(buffer));
   }
   CDataStore sellMsg;
   sellMsg.Put(368);
@@ -847,71 +793,71 @@ static int CCommand_SellItem(const char* command, const char* arguments) {
   return 1;
 }
 
-static int CCommand_BuyItem(const char* command, const char* arguments) {
+static int CCommand_BuyItem(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected merchant.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned __int64 merchant;
+  DWORDLONG merchant;
   sscanf(buffer, "%I64X", &merchant);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected muid.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned int muid = SStrToInt(buffer);
+  UINT muid = SStrToInt(buffer);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected quantity.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned int quantity = SStrToInt(buffer);
+  UINT quantity = SStrToInt(buffer);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   CDataStore buyMsg;
   buyMsg.Put(370);
   buyMsg.Put(merchant);
   buyMsg.Put(muid);
   buyMsg.Put(quantity);
-  buyMsg.Put(static_cast<unsigned char>(buffer[0] && SStrToInt(buffer) != 0));
+  buyMsg.Put(static_cast<BYTE>(buffer[0] && SStrToInt(buffer) != 0));
   buyMsg.Finalize();
   ClientServices_Send(&buyMsg);
   return 1;
 }
 
-static int CCommand_BuyItemInSlot(const char* command, const char* arguments) {
+static int CCommand_BuyItemInSlot(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected merchant.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned __int64 merchant;
+  DWORDLONG merchant;
   sscanf(buffer, "%I64X", &merchant);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected muid.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned int muid = SStrToInt(buffer);
+  UINT muid = SStrToInt(buffer);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected container.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned __int64 container;
+  DWORDLONG container;
   sscanf(buffer, "%I64X", &container);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected quantity.", DEFAULT_COLOR);
     return 0;
   }
-  unsigned int quantity = SStrToInt(buffer);
-  unsigned char slot = static_cast<unsigned char>(-1);
+  UINT quantity = SStrToInt(buffer);
+  BYTE slot = static_cast<BYTE>(-1);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (buffer[0]) {
-    slot = static_cast<unsigned char>(SStrToInt(buffer));
+    slot = static_cast<BYTE>(SStrToInt(buffer));
   }
   CDataStore buyMsg;
   buyMsg.Put(371);
@@ -925,19 +871,19 @@ static int CCommand_BuyItemInSlot(const char* command, const char* arguments) {
   return 1;
 }
 
-static unsigned int CmdMemParseNum(const char*& str) {
+static UINT CmdMemParseNum(LPCSTR &str) {
   while (*str && (*str < '0' || *str > '9')) {
     ++str;
   }
-  unsigned int result = 0;
+  UINT result = 0;
   while (*str >= '0' && *str <= '9') {
     result = *str++ + 10 * result - '0';
   }
   return result;
 }
 
-static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT__* hOutput, const char* str) {
-  const char *strNum = SStrChrR(str, ' ');
+static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT__ *hOutput, LPCSTR str) {
+  LPCSTR strNum = SStrChrR(str, ' ');
   if (!strNum) {
     return;
   }
@@ -953,86 +899,54 @@ static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT__* hOutput, const char* str) {
   memDump->m_sumReserved += item->m_reserved;
 }
 
-static void DebugPrintMemDump(const CMemCmdDump& memDump) {
-  unsigned int numItems = memDump.m_items.Count();
-  unsigned int avgAllocated =
-      static_cast<unsigned int>(memDump.m_sumAllocated / numItems);
-  unsigned int avgCommitted =
-      static_cast<unsigned int>(memDump.m_sumCommitted / numItems);
-  unsigned int avgReserved =
-      static_cast<unsigned int>(memDump.m_sumReserved / numItems);
+static void DebugPrintMemDump(const CMemCmdDump &memDump) {
+  UINT numItems = memDump.m_items.Count();
+  UINT avgAllocated = static_cast<UINT>(memDump.m_sumAllocated / numItems);
+  UINT avgCommitted = static_cast<UINT>(memDump.m_sumCommitted / numItems);
+  UINT avgReserved = static_cast<UINT>(memDump.m_sumReserved / numItems);
   OsOutputDebugString("*** MEMORY DUMP BEGIN ***\n");
-  OsOutputDebugString(
-      "   ***     sums: %I64dk/%I64dk/%I64dk ***\n",
-      memDump.m_sumAllocated, memDump.m_sumCommitted,
-      memDump.m_sumReserved);
-  OsOutputDebugString(
-      "   *** averages: %uk/%uk/%uk ***\n",
-      avgAllocated, avgCommitted, avgReserved);
-  for (unsigned int i = 0; i < numItems; ++i) {
+  OsOutputDebugString("   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
+  OsOutputDebugString("   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
+  for (UINT i = 0; i < numItems; ++i) {
     OsOutputDebugString("%s\n", memDump.m_items[i].m_name);
   }
   OsOutputDebugString("*** MEMORY DUMP END ***\n");
-  OsOutputDebugString(
-      "   ***     sums: %I64dk/%I64dk/%I64dk ***\n",
-      memDump.m_sumAllocated, memDump.m_sumCommitted,
-      memDump.m_sumReserved);
-  OsOutputDebugString(
-      "   *** averages: %uk/%uk/%uk ***\n",
-      avgAllocated, avgCommitted, avgReserved);
+  OsOutputDebugString("   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
+  OsOutputDebugString("   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
 }
 
-static void FilePrintMemDump(const CMemCmdDump& memDump, const char* fileName) {
-  unsigned int numItems = memDump.m_items.Count();
-  unsigned int avgAllocated =
-      static_cast<unsigned int>(memDump.m_sumAllocated / numItems);
-  unsigned int avgCommitted =
-      static_cast<unsigned int>(memDump.m_sumCommitted / numItems);
-  unsigned int avgReserved =
-      static_cast<unsigned int>(memDump.m_sumReserved / numItems);
+static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
+  UINT  numItems = memDump.m_items.Count();
+  UINT  avgAllocated = static_cast<UINT>(memDump.m_sumAllocated / numItems);
+  UINT  avgCommitted = static_cast<UINT>(memDump.m_sumCommitted / numItems);
+  UINT  avgReserved = static_cast<UINT>(memDump.m_sumReserved / numItems);
   FILE *file = fopen(fileName, "wt");
   if (!file) {
     char *error = OsGetLastErrorStr();
-    ConsoleWriteA(
-        "Failed to open %s for writing.", static_cast<COLOR_T>(2),
-        fileName);
+    ConsoleWriteA("Failed to open %s for writing.", static_cast<COLOR_T>(2), fileName);
     ConsoleWrite(error, static_cast<COLOR_T>(4));
     return;
   }
 
   fprintf(file, "*** MEMORY DUMP BEGIN ***\n");
-  fprintf(
-      file, "   ***     sums: %I64dk/%I64dk/%I64dk ***\n",
-      memDump.m_sumAllocated, memDump.m_sumCommitted,
-      memDump.m_sumReserved);
-  fprintf(
-      file, "   *** averages: %uk/%uk/%uk ***\n",
-      avgAllocated, avgCommitted, avgReserved);
-  for (unsigned int i = 0; i < numItems; ++i) {
+  fprintf(file, "   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
+  fprintf(file, "   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
+  for (UINT i = 0; i < numItems; ++i) {
     fprintf(file, "%s\n", memDump.m_items[i].m_name);
   }
   fprintf(file, "*** MEMORY DUMP END ***\n");
-  fprintf(
-      file, "   ***     sums: %I64dk/%I64dk/%I64dk ***\n",
-      memDump.m_sumAllocated, memDump.m_sumCommitted,
-      memDump.m_sumReserved);
-  fprintf(
-      file, "   *** averages: %uk/%uk/%uk ***\n",
-      avgAllocated, avgCommitted, avgReserved);
+  fprintf(file, "   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
+  fprintf(file, "   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
   fclose(file);
 }
 
-static int CCommand_Mem(const char* command, const char* arguments) {
+static int CCommand_Mem(LPCSTR command, LPCSTR arguments) {
   CMemCmdDump memDump;
   memset(&memDump, 0, 24);
   memDump.m_items.SetChunkSize(256);
-  SMemDumpState(
-      reinterpret_cast<SMEMDUMPPROC>(CmdMemOutput),
-      reinterpret_cast<HOUTPUTCONTEXT>(&memDump));
+  SMemDumpState(reinterpret_cast<SMEMDUMPPROC>(CmdMemOutput), reinterpret_cast<HOUTPUTCONTEXT>(&memDump));
   if (memDump.m_items.Count()) {
-    qsort(
-        memDump.m_items.Ptr(), memDump.m_items.Count(),
-        sizeof(CMemCmdItem), CMemCmdItem::Compare);
+    qsort(memDump.m_items.Ptr(), memDump.m_items.Count(), sizeof(CMemCmdItem), CMemCmdItem::Compare);
     if (arguments && *arguments) {
       FilePrintMemDump(memDump, arguments);
     } else {
@@ -1068,7 +982,8 @@ void InstallGameConsoleCommands() {
   ConsoleCommandRegister("deathbind", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_BindPoint), GAME, 0);
   ConsoleCommandRegister(
       "db", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_DBLookup), DEBUG,
-      "TableName (Name or #ID) Note:Wildcard use * in TableName or Name not ID though");
+      "TableName (Name or #ID) Note:Wildcard use * in TableName or Name not ID though"
+  );
   ConsoleCommandRegister("drawlog", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_DrawLog), DEBUG, 0);
   ConsoleCommandRegister("animlog", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_AnimLog), DEBUG, 0);
   ConsoleCommandRegister("showplayer", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_TogglePlayer), GRAPHICS, 0);

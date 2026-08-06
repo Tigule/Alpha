@@ -10,7 +10,7 @@ class CGBag_C;
 class CGWorldFrame;
 struct HMODEL__;
 
-HMODEL__ *ObjectModelCreate(const char *filename, OBJECT_TYPE objectType, unsigned int mdlCreateFlags);
+HMODEL__ *ObjectModelCreate(LPCSTR filename, OBJECT_TYPE objectType, UINT mdlCreateFlags);
 
 enum HIGHLIGHTTYPE {
   HT_OBJSELECTION = 0,
@@ -31,23 +31,23 @@ class CGObject_C : public CGObject {
   friend class CGUnit_C;
 
  public:
-  CGObject_C(unsigned long *storage, unsigned long eventTime, CClientObjCreate *init);
+  CGObject_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init);
   ~CGObject_C();
 
-  void         SetStorage(unsigned long *storage);
-  void         SetTypeID(OBJECT_TYPE_ID typeID);
-  void         PostInit(const CClientObjCreate &init);
+  void SetStorage(DWORD *storage);
+  void SetTypeID(OBJECT_TYPE_ID typeID);
+  void PostInit(const CClientObjCreate &init);
   void PostMovementUpdate() {
   }
-  int          IsPostInited() const;
+  int IsPostInited() const;
 
   static void Initialize();
   static void Shutdown();
   static void UpdateAllWorldObjects();
 
-  virtual void               Disable(int shutdown);
-  virtual void               Reenable();
-  virtual void               PostReenable();
+  virtual void     Disable(int shutdown);
+  virtual void     Reenable();
+  virtual void     PostReenable();
   virtual CGBag_C *GetBag() {
     return 0;
   }
@@ -68,21 +68,21 @@ class CGObject_C : public CGObject {
   virtual NTempest::C3Vector GetGroundNormal() const {
     return NTempest::C3Vector(0.0f, 0.0f, 1.0f);
   }
-  void                       SetAnimated(int animated);
-  virtual HMODEL__          *GetCharacterModel(int *mounted) const;
-  HMODEL__                  *GetObjectModel() const {
+  void              SetAnimated(int animated);
+  virtual HMODEL__ *GetCharacterModel(int *mounted) const;
+  HMODEL__         *GetObjectModel() const {
     return m_model;
   }
   void SetObjectModel(HMODEL__ *model);
   int  IsObjectModelLoaded() const;
   int  AreAttachmentsLoaded() const;
-  int  AddAttachment(HMODEL__ *parent, unsigned int parentIndex, HMODEL__ *child, float scale);
+  int  AddAttachment(HMODEL__ *parent, UINT parentIndex, HMODEL__ *child, float scale);
   int  IsDisabled() const;
   int  IsInReenable() const;
 
-  int                            SetBlock(unsigned int i, unsigned long data);
-  void                           SetData(const void *data, unsigned int bytes);
-  static unsigned int OffsetOf(OBJECT_TYPE_ID type);
+  int         SetBlock(UINT i, DWORD data);
+  void        SetData(LPCVOID data, UINT bytes);
+  static UINT OffsetOf(OBJECT_TYPE_ID type);
 
   void AddWorldObject();
   void UpdateWorldObject();
@@ -92,26 +92,26 @@ class CGObject_C : public CGObject {
     return m_objectHeight;
   }
 
-  unsigned long GetWorldObject() const {
+  DWORD GetWorldObject() const {
     return m_worldObject;
   }
 
  protected:
-  virtual const char *GetModelFileName() const = 0;
-  int                 InitModelFileName(char *modelFileName, unsigned int size);
-  void                ReportMissingAnimation(unsigned int sequence, const char *modelName) const;
-  void                ReportMissingBone(unsigned int objectID, const char *modelName) const;
-  void                ReportMissingAttachment(unsigned int objectID, const char *modelName) const;
-  void                ReportNoAnimation(const char *modelName);
-  int                 ObjectModelSetSequence(HMODEL__ *model, unsigned int sequence, unsigned int flags, const char *modelName);
-  int                 ObjectModelSetBoneSequence(HMODEL__ *model, unsigned int sequence, unsigned int objectID, unsigned int flags);
-  int                 ObjectIsRendering() const;
+  virtual LPCSTR GetModelFileName() const = 0;
+  int            InitModelFileName(char *modelFileName, UINT size);
+  void           ReportMissingAnimation(UINT sequence, LPCSTR modelName) const;
+  void           ReportMissingBone(UINT objectID, LPCSTR modelName) const;
+  void           ReportMissingAttachment(UINT objectID, LPCSTR modelName) const;
+  void           ReportNoAnimation(LPCSTR modelName);
+  int            ObjectModelSetSequence(HMODEL__ *model, UINT sequence, UINT flags, LPCSTR modelName);
+  int            ObjectModelSetBoneSequence(HMODEL__ *model, UINT sequence, UINT objectID, UINT flags);
+  int            ObjectIsRendering() const;
 
  public:
   void UpdateObjectHeight(HMODEL__ *model);
 
  private:
-  void        ReportMissingAnimObj(const char *message, unsigned int objectID, const char *modelName) const;
+  void        ReportMissingAnimObj(LPCSTR message, UINT objectID, LPCSTR modelName) const;
   virtual int GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
     FATALASSERT(outPtr);
     outPtr->Set(0xFFFFFFFF);
@@ -127,25 +127,23 @@ class CGObject_C : public CGObject {
   }
   virtual void RenderTargetSelection() const {
   }
-  virtual int   UpdateModelLoadStatus();
-  virtual int   UpdateAttachmentLoadStatus();
+  virtual int UpdateModelLoadStatus();
+  virtual int UpdateAttachmentLoadStatus();
   virtual int UpdateTexComponentLoadStatus() {
     return 0;
   }
   virtual void PreRender(int currentTime, float elapsed) {
   }
-  virtual void  PreAnimate(CGWorldFrame *worldFrame);
+  virtual void PreAnimate(CGWorldFrame *worldFrame);
   virtual void PostAnimate(CGWorldFrame *worldFrame) {
   }
-  virtual void  GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
-  void          Animate();
-  void          Animate(const NTempest::C34Matrix &camRelativeMatrix);
-  virtual int   ShouldRender(unsigned long worldStatus);
+  virtual void GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
+  void         Animate();
+  void         Animate(const NTempest::C34Matrix &camRelativeMatrix);
+  virtual int  ShouldRender(DWORD worldStatus);
   virtual void ObjectPostAnimate(float renderFacing, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
   }
-  virtual void ObjectPostAnimate(
-      const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg
-  ) {
+  virtual void ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
   }
   virtual void UpdateRenderFacing() {
   }
@@ -154,7 +152,7 @@ class CGObject_C : public CGObject {
   }
   virtual void OnSpecialMountAnim() {
   }
-  virtual void  UpdatePlayerName() {
+  virtual void UpdatePlayerName() {
   }
   virtual int IsSolidSelectable() const {
     return 1;
@@ -177,7 +175,7 @@ class CGObject_C : public CGObject {
   virtual NTempest::C34Matrix GetMatrix() const {
     return NTempest::C34Matrix();
   }
-  void                        SetCircleRenderStates() const;
+  void SetCircleRenderStates() const;
 
   void HideHighlightType(HIGHLIGHTTYPE type);
   void ShowHighlightType(HIGHLIGHTTYPE type);
@@ -186,42 +184,42 @@ class CGObject_C : public CGObject {
   virtual int ShouldFadeIn() const {
     return 1;
   }
-  void        ObjectSetNotRendering();
+  void ObjectSetNotRendering();
 
  public:
-  virtual const char *GetObjectName() const;
-  void                ReportMissingEventObject(unsigned int objectID, const char *modelName) const;
-  virtual int GetPageTextID(void(*)(int, const unsigned __int64 &, void *, bool)) const {
+  virtual LPCSTR GetObjectName() const;
+  void           ReportMissingEventObject(UINT objectID, LPCSTR modelName) const;
+  virtual int    GetPageTextID(void (*)(int, const DWORDLONG &, LPVOID, bool)) const {
     return 0;
   }
-  void                DoFade(unsigned char alpha, unsigned int fadeTimeMs);
-  unsigned char       GetAlpha() const {
+  void DoFade(BYTE alpha, UINT fadeTimeMs);
+  BYTE GetAlpha() const {
     return m_alpha;
   }
-  void SetMaxAlpha(unsigned char alpha) {
+  void SetMaxAlpha(BYTE alpha) {
     m_maxAlpha = alpha;
   }
 
  private:
   CGObject_C &operator=(const CGObject_C &object);
 
-  float        m_renderScale;
-  HMODEL__    *m_model;
+  float     m_renderScale;
+  HMODEL__ *m_model;
 
-  unsigned int m_highlightTypes;
-  float        m_objectHeight;
+  UINT  m_highlightTypes;
+  float m_objectHeight;
 
  protected:
-  unsigned long m_worldObject;
+  DWORD m_worldObject;
 
  private:
-  unsigned int m_flags;
+  UINT m_flags;
 
  protected:
-  unsigned int  m_fadeStartTime;
-  unsigned int  m_fadeDuration;
-  unsigned char m_alpha;
-  unsigned char m_startAlpha;
-  unsigned char m_endAlpha;
-  unsigned char m_maxAlpha;
+  UINT m_fadeStartTime;
+  UINT m_fadeDuration;
+  BYTE m_alpha;
+  BYTE m_startAlpha;
+  BYTE m_endAlpha;
+  BYTE m_maxAlpha;
 };

@@ -7,12 +7,12 @@
 #include "Base/Base.h"
 #include "SoundInterface/SoundInterface.h"
 
-int                                          CMap::counts[Cnt_Num];
-int                                          CMap::freeCounts[Cnt_Num];
+int CMap::counts[Cnt_Num];
+int CMap::freeCounts[Cnt_Num];
 LISTDECLEX(CMapObjGroup, lameAssLink, CMap::mapObjGroupFreeList);
 LISTDECLEX(CMapChunk, lameAssLink, CMap::chunkList);
 LISTDECLEX(CMapLight, lameAssLink, CMap::lightList);
-TSHashTable<CMapObjDef, HASHKEY_NONE>        CMap::mapObjDefHash;
+TSHashTable<CMapObjDef, HASHKEY_NONE> CMap::mapObjDefHash;
 LISTDECLEX(CMapCacheLight, lameAssLink, CMap::cacheLightFreeList);
 LISTDECLEX(CMapLight, lameAssLink, CMap::lightFreeList);
 LISTDECLEX(CMapBaseObjLink, ownerLink, CMap::baseObjLinkFreeList);
@@ -23,7 +23,7 @@ LISTDECLEX(CMapEntity, lameAssLink, CMap::entityList);
 LISTDECLEX(CMapArea, lameAssLink, CMap::areaFreeList);
 LISTDECLEX(CMapArea, lameAssLink, CMap::areaList);
 LISTDECLEX(CMapChunk, lameAssLink, CMap::chunkFreeList);
-TSHashTable<CMapDoodadDef, HASHKEY_DWORD>    CMap::doodadDefHash;
+TSHashTable<CMapDoodadDef, HASHKEY_DWORD> CMap::doodadDefHash;
 LISTDECLEX(CChunkLiquid, lameAssLink, CMap::chunkLiquidList);
 LISTDECLEX(CChunkLiquid, lameAssLink, CMap::chunkLiquidFreeList);
 LISTDECLEX(CMapSoundEmitter, lameAssLink, CMap::soundEmitterFreeList);

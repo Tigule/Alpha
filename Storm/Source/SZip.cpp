@@ -12,60 +12,60 @@
 #define ZIP_READ_CHUNK  0x1000
 
 struct CentralDirectoryHeader {
-  char         signature[4];
-  WORD         thisDiskNumber;
-  WORD         directoryStartDiskNumber;
-  WORD         directoryEntriesThisDisk;
-  WORD         directoryEntriesTotal;
-  unsigned int centralDirectorySize;
-  unsigned int centralDirectoryOffset;
-  WORD         commentLength;
+  char signature[4];
+  WORD thisDiskNumber;
+  WORD directoryStartDiskNumber;
+  WORD directoryEntriesThisDisk;
+  WORD directoryEntriesTotal;
+  UINT centralDirectorySize;
+  UINT centralDirectoryOffset;
+  WORD commentLength;
 
   void EndianCorrect();
 };
 
 struct CentralDirectoryFileHeader {
-  char         signature[4];
-  WORD         versionMadeBy;
-  WORD         versionRequired;
-  WORD         generalFlags;
-  WORD         compressionMethod;
-  WORD         modifiedTime;
-  WORD         modifiedDate;
-  unsigned int z_crc32;
-  unsigned int compressedSize;
-  unsigned int uncompressedSize;
-  WORD         filenameSize;
-  WORD         extraFieldSize;
-  WORD         commentSize;
-  WORD         diskNumberStart;
-  WORD         internalFileAttributes;
-  unsigned int externalFileAttributes;
-  unsigned int localHeaderOffset;
+  char signature[4];
+  WORD versionMadeBy;
+  WORD versionRequired;
+  WORD generalFlags;
+  WORD compressionMethod;
+  WORD modifiedTime;
+  WORD modifiedDate;
+  UINT z_crc32;
+  UINT compressedSize;
+  UINT uncompressedSize;
+  WORD filenameSize;
+  WORD extraFieldSize;
+  WORD commentSize;
+  WORD diskNumberStart;
+  WORD internalFileAttributes;
+  UINT externalFileAttributes;
+  UINT localHeaderOffset;
 
   void EndianCorrect();
 };
 
 struct LocalFileHeader {
-  char         signature[4];
-  WORD         versionRequired;
-  WORD         generalFlags;
-  WORD         compressionMethod;
-  WORD         modifiedTime;
-  WORD         modifiedDate;
-  unsigned int z_crc32;
-  unsigned int compressedSize;
-  unsigned int uncompressedSize;
-  WORD         filenameSize;
-  WORD         extraFieldSize;
+  char signature[4];
+  WORD versionRequired;
+  WORD generalFlags;
+  WORD compressionMethod;
+  WORD modifiedTime;
+  WORD modifiedDate;
+  UINT z_crc32;
+  UINT compressedSize;
+  UINT uncompressedSize;
+  WORD filenameSize;
+  WORD extraFieldSize;
 
   void EndianCorrect();
 };
 
 struct DataDescriptor {
-  unsigned int z_crc32;
-  unsigned int compressedSize;
-  unsigned int uncompressedSize;
+  UINT z_crc32;
+  UINT compressedSize;
+  UINT uncompressedSize;
 
   void EndianCorrect();
 };
@@ -76,45 +76,45 @@ struct ZipFileDirEntry;
 class Flags {
  public:
   Flags();
-  void Set(unsigned int bit);
-  void Clear(unsigned int bit);
-  int  IsSet(unsigned int bit);
-  int  IsClear(unsigned int bit);
+  void Set(UINT bit);
+  void Clear(UINT bit);
+  int  IsSet(UINT bit);
+  int  IsClear(UINT bit);
 
  private:
-  unsigned int m_value;
+  UINT m_value;
 };
 
 struct ZipFileDirEntry : TSHashObject<ZipFileDirEntry, HASHKEY_CONSTSTRI> {
   ZipFileArchive *archive;
   char            filename[0x100];
-  unsigned int    startOffset;
-  unsigned int    compressedSize;
-  unsigned int    uncompressedSize;
-  unsigned int    compressionMethod;
+  UINT            startOffset;
+  UINT            compressedSize;
+  UINT            uncompressedSize;
+  UINT            compressionMethod;
   ZipFileDirEntry();
   ~ZipFileDirEntry();
 };
 
 NODEDECL(ZipFileArchive) {
-  FILE         *file;
-  char          filename[0x100];
-  unsigned int  openFileCount;
+  FILE *file;
+  char  filename[0x100];
+  UINT  openFileCount;
 
   ZipFileArchive();
   ~ZipFileArchive();
-  int Open(const char *archivename);
-  int GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader);
-  int ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader);
+  int Open(LPCSTR archivename);
+  int GetCentralDirectoryHeader(CentralDirectoryHeader & cdirHeader);
+  int ProcessCentralDirectory(CentralDirectoryHeader & cdirHeader);
   int ReadCentralDirectoryFileHeader();
 };
 
 struct ZipFileFCB {
   ZipFileDirEntry *dirEntry;
   Flags            flags;
-  unsigned int     targetPosition;
-  unsigned int     compressedPosition;
-  unsigned int     uncompressedPosition;
+  UINT             targetPosition;
+  UINT             compressedPosition;
+  UINT             uncompressedPosition;
   z_stream         zlibStream;
   BYTE             compressedData[ZIP_READ_CHUNK];
 
@@ -123,20 +123,20 @@ struct ZipFileFCB {
   int SetFault();
 };
 
-typedef TSHashTable<ZipFileDirEntry, HASHKEY_CONSTSTRI>   ZipDirTable;
-typedef LISTEXDYN(ZipFileDirEntry)                        ZipDirList;
-typedef TSGrowableArray<ZipDirList>                       ZipDirListArray;
-static const char                                         centralDirectoryFileSignature[4] = {'P', 'K', 1, 2};
-static const char                                         localFileSignature[4] = {'P', 'K', 3, 4};
-static const char                                         centralDirectoryHeaderSignature[4] = {'P', 'K', 5, 6};
-static WowFileSystem                                      s_fileSystem;
-static TestFileSystemProvider                             s_testProvider;
+typedef TSHashTable<ZipFileDirEntry, HASHKEY_CONSTSTRI> ZipDirTable;
+typedef LISTEXDYN(ZipFileDirEntry) ZipDirList;
+typedef TSGrowableArray<ZipDirList> ZipDirListArray;
+static const char                   centralDirectoryFileSignature[4] = {'P', 'K', 1, 2};
+static const char                   localFileSignature[4] = {'P', 'K', 3, 4};
+static const char                   centralDirectoryHeaderSignature[4] = {'P', 'K', 5, 6};
+static WowFileSystem                s_fileSystem;
+static TestFileSystemProvider       s_testProvider;
 static LISTDECL(ZipFileArchive, s_archives);
 
 template <>
 TSFixedArray<ZipDirList>::~TSFixedArray() {
-  unsigned int index;
-  ZipDirList  *data;
+  UINT        index;
+  ZipDirList *data;
 
   for (index = 0; index < m_count; ++index) {
     m_data[index].~ZipDirList();
@@ -148,9 +148,9 @@ TSFixedArray<ZipDirList>::~TSFixedArray() {
 }
 
 template <>
-void TSFixedArray<ZipDirList>::ReallocData(unsigned int count) {
-  ZipDirList  *oldData;
-  unsigned int index;
+void TSFixedArray<ZipDirList>::ReallocData(UINT count) {
+  ZipDirList *oldData;
+  UINT        index;
 
   oldData = m_data;
   if (count < m_count) {
@@ -182,8 +182,8 @@ void TSFixedArray<ZipDirList>::ReallocData(unsigned int count) {
 
 template <>
 void ZipDirTable::Initialize() {
-  int          linkoffset;
-  unsigned int index;
+  int  linkoffset;
+  UINT index;
 
   m_slotmask = 3;
   m_slotlistarray.SetCount(4);
@@ -194,12 +194,12 @@ void ZipDirTable::Initialize() {
 }
 
 template <>
-ZipFileDirEntry *ZipDirTable::InternalNew(ZipDirList *listptr, unsigned long extrabytes, unsigned long flags) {
+ZipFileDirEntry *ZipDirTable::InternalNew(ZipDirList *listptr, DWORD extrabytes, DWORD flags) {
   return listptr->NewNode(LIST_HEAD, extrabytes, flags);
 }
 
 template <>
-int ZipDirTable::MonitorFullness(unsigned int slot) {
+int ZipDirTable::MonitorFullness(UINT slot) {
   if (m_slotmask >= 0x1FFF) {
     return 0;
   }
@@ -227,9 +227,9 @@ ZipDirTable::~TSHashTable() {
 }
 
 template <>
-ZipFileDirEntry *ZipDirTable::Ptr(const char *str) {
-  unsigned int     hashval;
-  unsigned int     slot;
+ZipFileDirEntry *ZipDirTable::Ptr(LPCSTR str) {
+  UINT hashval;
+  UINT slot;
 
   if (!Initialized()) {
     return 0;
@@ -244,7 +244,7 @@ ZipFileDirEntry *ZipDirTable::Ptr(const char *str) {
   return 0;
 }
 
-void ZipFileUnloadFile(void *buffer);
+void ZipFileUnloadFile(LPVOID buffer);
 
 static ZipDirTable s_directory;
 
@@ -255,7 +255,7 @@ static void ConvertUInt16FromBinary(WORD &value) {
   value = (WORD)(((WORD)bytes[1] << 8) | bytes[0]);
 }
 
-static void ConvertUInt32FromBinary(unsigned int &value) {
+static void ConvertUInt32FromBinary(UINT &value) {
   BYTE *bytes;
 
   bytes = (BYTE *)&value;
@@ -314,19 +314,19 @@ Flags::Flags() {
   m_value = 0;
 }
 
-void Flags::Set(unsigned int bit) {
+void Flags::Set(UINT bit) {
   m_value |= bit;
 }
 
-void Flags::Clear(unsigned int bit) {
+void Flags::Clear(UINT bit) {
   m_value &= ~bit;
 }
 
-int Flags::IsSet(unsigned int bit) {
+int Flags::IsSet(UINT bit) {
   return m_value & bit;
 }
 
-int Flags::IsClear(unsigned int bit) {
+int Flags::IsClear(UINT bit) {
   return (m_value & bit) == 0;
 }
 
@@ -372,12 +372,12 @@ int ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader
     return 0;
   }
 
-  unsigned int fileSize = ftell(file);
-  if (fileSize == static_cast<unsigned int>(-1)) {
+  UINT fileSize = ftell(file);
+  if (fileSize == static_cast<UINT>(-1)) {
     return 0;
   }
 
-  unsigned int offset = 0;
+  UINT offset = 0;
   if (fileSize > ZIP_MAX_COMMENT + sizeof(CentralDirectoryHeader) + 1) {
     offset = fileSize - ZIP_MAX_COMMENT - sizeof(CentralDirectoryHeader) - 1;
   }
@@ -385,9 +385,9 @@ int ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader
     return 0;
   }
 
-  unsigned int signatureOffset = 0;
+  UINT signatureOffset = 0;
   while (!feof(file)) {
-    if (static_cast<unsigned char>(fgetc(file)) == centralDirectoryHeaderSignature[signatureOffset]) {
+    if (static_cast<BYTE>(fgetc(file)) == centralDirectoryHeaderSignature[signatureOffset]) {
       ++signatureOffset;
       if (signatureOffset == sizeof(centralDirectoryHeaderSignature)) {
         break;
@@ -400,8 +400,8 @@ int ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader
     return 0;
   }
 
-  unsigned int headerOffset = ftell(file);
-  if (headerOffset == static_cast<unsigned int>(-1)) {
+  UINT headerOffset = ftell(file);
+  if (headerOffset == static_cast<UINT>(-1)) {
     return 0;
   }
   if (fseek(file, headerOffset - sizeof(cdirHeader.signature), SEEK_SET)) {
@@ -523,7 +523,7 @@ ZipFileDirEntry::ZipFileDirEntry() {
   startOffset = 0;
 }
 
-static int GetDirEntry(const char *filename, ZipFileDirEntry **dirEntry) {
+static int GetDirEntry(LPCSTR filename, ZipFileDirEntry **dirEntry) {
   ZipFileDirEntry *found = s_directory.Ptr(filename);
 
   if (!found) {
@@ -538,23 +538,23 @@ static int GetDirEntry(const char *filename, ZipFileDirEntry **dirEntry) {
 ZipFileDirEntry::~ZipFileDirEntry() {
 }
 
-static void *zalloc(void *opaque, unsigned int count, unsigned int size) {
+static LPVOID zalloc(LPVOID opaque, UINT count, UINT size) {
   (void)opaque;
   return SMemAlloc(count * size, __FILE__, __LINE__, 8);
 }
 
-static void zfree(void *opaque, void *ptr) {
+static void zfree(LPVOID opaque, LPVOID ptr) {
   (void)opaque;
   SMemFree(ptr, __FILE__, __LINE__, 0);
 }
 
-unsigned long ZipFileOpenArchive(const char *archivename) {
+DWORD ZipFileOpenArchive(LPCSTR archivename) {
   ZipFileArchive        *archive;
   CentralDirectoryHeader cdirHeader;
 
   archive = s_archives.NewNode(LIST_TAIL, 0, 0);
   if (archive && archive->Open(archivename) && archive->GetCentralDirectoryHeader(cdirHeader) && archive->ProcessCentralDirectory(cdirHeader)) {
-    return (unsigned long)archive;
+    return (DWORD)archive;
   }
   if (archive) {
     s_archives.DeleteNode(archive);
@@ -562,17 +562,17 @@ unsigned long ZipFileOpenArchive(const char *archivename) {
   return 0;
 }
 
-int ZipFileCloseArchive(unsigned long handle) {
+int ZipFileCloseArchive(DWORD handle) {
   FATALASSERT(((ZipFileArchive *)handle)->openFileCount == 0);
   s_archives.DeleteNode((ZipFileArchive *)handle);
   return 1;
 }
 
-int ZipFileFileExists(const char *filename) {
+int ZipFileFileExists(LPCSTR filename) {
   return GetDirEntry(filename, NULL);
 }
 
-ZipFileFCB *ZipFileOpenFile(const char *filename, unsigned long archive) {
+ZipFileFCB *ZipFileOpenFile(LPCSTR filename, DWORD archive) {
   ZipFileArchive  *archiveptr;
   ZipFileDirEntry *dirEntry;
   ZipFileFCB      *fcb;
@@ -676,15 +676,15 @@ int ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin) {
   return 1;
 }
 
-unsigned long ZipFileGetFilePointer(ZipFileFCB *fcb) {
+DWORD ZipFileGetFilePointer(ZipFileFCB *fcb) {
   return fcb->targetPosition;
 }
 
-unsigned long ZipFileGetFileSize(ZipFileFCB *fcb) {
+DWORD ZipFileGetFileSize(ZipFileFCB *fcb) {
   return fcb->dirEntry->uncompressedSize;
 }
 
-int ZipFileReadFile(ZipFileFCB *fcb, void *buffer, unsigned int bytesToRead, unsigned int *bytesRead) {
+int ZipFileReadFile(ZipFileFCB *fcb, LPVOID buffer, UINT bytesToRead, UINT *bytesRead) {
   FILE *file;
   DWORD bytesSkipped;
   DWORD bytesProduced;
@@ -788,7 +788,7 @@ int ZipFileReadFile(ZipFileFCB *fcb, void *buffer, unsigned int bytesToRead, uns
   return 1;
 }
 
-int ZipFileLoadFile(const char *filename, void **buffer, unsigned int *bytes) {
+int ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
   z_stream         stream;
   ZipFileDirEntry *dirEntry;
   BYTE            *compressedData;
@@ -849,11 +849,11 @@ int ZipFileLoadFile(const char *filename, void **buffer, unsigned int *bytes) {
   return 0;
 }
 
-void ZipFileUnloadFile(void *buffer) {
+void ZipFileUnloadFile(LPVOID buffer) {
   SMemFree(buffer, __FILE__, __LINE__, 0);
 }
 
-int ZipFileList(unsigned long archive, int(*cb)(const char *, void *), void *param) {
+int ZipFileList(DWORD archive, int (*cb)(LPCSTR, LPVOID), LPVOID param) {
   ZipFileArchive *archiveptr = (ZipFileArchive *)archive;
 
   ITERATELIST(ZipFileDirEntry, s_directory, entry) {
@@ -870,7 +870,7 @@ TestFile::TestFile(WowFileSystemProvider *provider, FILE *f) : WowFile(provider)
 TestFileSystemProvider::TestFileSystemProvider() {
 }
 
-int ZipFileArchive::Open(const char *archivename) {
+int ZipFileArchive::Open(LPCSTR archivename) {
   FATALASSERT(archivename);
   file = fopen(archivename, "rb");
   if (!file) {
@@ -883,7 +883,7 @@ int ZipFileArchive::Open(const char *archivename) {
 TestFileSystemProvider::~TestFileSystemProvider() {
 }
 
-WowFile *TestFileSystemProvider::Open(const char *filename) {
+WowFile *TestFileSystemProvider::Open(LPCSTR filename) {
   FILE *f = fopen(filename, "rb");
   if (f) {
     return new TestFile(this, f);
@@ -907,7 +907,7 @@ void WowFileSystem::UnregisterProvider(WowFileSystemProvider &provider) {
   m_providerList = NULL;
 }
 
-WowFile *WowFileSystem::Open(const char *filename) {
+WowFile *WowFileSystem::Open(LPCSTR filename) {
   if (!m_providerList) {
     return NULL;
   }

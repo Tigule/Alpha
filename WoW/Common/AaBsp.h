@@ -18,12 +18,12 @@ class CAaBspNode {
   CAaBspNode() {
   }
 
-  unsigned short flags;
-  unsigned short negChild;
-  unsigned short posChild;
-  unsigned short nFaces;
-  unsigned long  faceStart;
-  float          planeDist;
+  WORD  flags;
+  WORD  negChild;
+  WORD  posChild;
+  WORD  nFaces;
+  DWORD faceStart;
+  float planeDist;
 };
 
 class CAaBsp {
@@ -38,22 +38,20 @@ class CAaBsp {
   ~CAaBsp();
 
   void Clear();
-  void Create(NTempest::C3Vector *vertices, unsigned int nVertices, unsigned short *faceVertexIndices, unsigned int nFaceVertexIndices);
-  void Set(
-      CAaBspNode *nodeList, unsigned int nNodes, unsigned short *faceIndices, unsigned int nFaceIndices, const NTempest::CAaBox &box
-  );
+  void Create(NTempest::C3Vector *vertices, UINT nVertices, WORD *faceVertexIndices, UINT nFaceVertexIndices);
+  void Set(CAaBspNode *nodeList, UINT nNodes, WORD *faceIndices, UINT nFaceIndices, const NTempest::CAaBox &box);
 
-  void                  GetFaceIndices(unsigned int nodeIndex, NTempest::CAaBox &aaBox);
-  void                  GetFaceIndices(unsigned int nodeIndex, NTempest::C3Segment &seg);
-  void                  GetFaceIndices(CAaBspNode *node);
-  const unsigned short *GetFaceIndices() const {
+  void        GetFaceIndices(UINT nodeIndex, NTempest::CAaBox &aaBox);
+  void        GetFaceIndices(UINT nodeIndex, NTempest::C3Segment &seg);
+  void        GetFaceIndices(CAaBspNode *node);
+  const WORD *GetFaceIndices() const {
     return nodeFaceIndices;
   }
-  unsigned short *GetFaceIndices() {
+  WORD *GetFaceIndices() {
     return nodeFaceIndices;
   }
-  unsigned int GetFaceIndices(NTempest::CAaBox &aaBox, unsigned short *indices, unsigned int maxCount);
-  unsigned int GetFaceIndices(NTempest::C3Segment &seg, unsigned short *indices, unsigned int maxCount);
+  UINT GetFaceIndices(NTempest::CAaBox &aaBox, WORD *indices, UINT maxCount);
+  UINT GetFaceIndices(NTempest::C3Segment &seg, WORD *indices, UINT maxCount);
 
   const CAaBspNode *GetNodeList() const {
     return nodes;
@@ -61,10 +59,10 @@ class CAaBsp {
   CAaBspNode *GetNodeList() {
     return nodes;
   }
-  unsigned int GetNumNodes() const {
+  UINT GetNumNodes() const {
     return nNodes;
   }
-  unsigned int GetNumFaceIndices() const {
+  UINT GetNumFaceIndices() const {
     return nNodeFaceIndices;
   }
   const NTempest::CAaBox &GetAaBox() const {
@@ -82,42 +80,34 @@ class CAaBsp {
   void Init();
   void Free();
 
-  unsigned short *AllocBuildFaceIndices(unsigned int count);
-  void            FreeBuildFaceIndices(unsigned int count);
-  unsigned short  AllocNode();
-  unsigned long   AllocNodeFaceIndices(unsigned int count);
-  unsigned short  BuildTree(unsigned short *buildFaceIndices, unsigned int count);
-  void            GenBoundingBox(NTempest::CAaBox &aaBox, unsigned short *buildFaceIndices, unsigned int count);
-  void            ChoosePlane(unsigned int &bestAxis, float &bestDist, unsigned short *buildFaceIndices, unsigned int count);
-  void PartitionFaceList(
-      unsigned int axis,
-      float dist,
-      unsigned short *buildFaceIndices,
-      unsigned int count,
-      unsigned short *posIndices,
-      unsigned int &posCount,
-      unsigned short *negIndices,
-      unsigned int &negCount
-  );
+  WORD *AllocBuildFaceIndices(UINT count);
+  void  FreeBuildFaceIndices(UINT count);
+  WORD  AllocNode();
+  DWORD AllocNodeFaceIndices(UINT count);
+  WORD  BuildTree(WORD *buildFaceIndices, UINT count);
+  void  GenBoundingBox(NTempest::CAaBox &aaBox, WORD *buildFaceIndices, UINT count);
+  void  ChoosePlane(UINT &bestAxis, float &bestDist, WORD *buildFaceIndices, UINT count);
+  void
+  PartitionFaceList(UINT axis, float dist, WORD *buildFaceIndices, UINT count, WORD *posIndices, UINT &posCount, WORD *negIndices, UINT &negCount);
 
   CAaBspNode         *rootNode;
   CAaBspNode         *nodes;
-  unsigned short     *nodeFaceIndices;
-  unsigned int        nNodes;
-  unsigned int        nNodeFaceIndices;
-  unsigned short     *faceVertexIndices;
-  unsigned int        nFaceVertexIndices;
+  WORD               *nodeFaceIndices;
+  UINT                nNodes;
+  UINT                nNodeFaceIndices;
+  WORD               *faceVertexIndices;
+  UINT                nFaceVertexIndices;
   NTempest::C3Vector *vertices;
-  unsigned int        nVertices;
-  unsigned int        nodeSize;
-  unsigned int        nodeNext;
-  unsigned int        nodeFaceIndicesSize;
-  unsigned int        nodeFaceIndicesNext;
-  unsigned short     *buildFaceIndices;
-  unsigned int        buildFaceIndicesSize;
-  unsigned int        buildFaceIndicesNext;
-  unsigned int        treeDepth;
-  unsigned int        avgNodeFaces;
+  UINT                nVertices;
+  UINT                nodeSize;
+  UINT                nodeNext;
+  UINT                nodeFaceIndicesSize;
+  UINT                nodeFaceIndicesNext;
+  WORD               *buildFaceIndices;
+  UINT                buildFaceIndicesSize;
+  UINT                buildFaceIndicesNext;
+  UINT                treeDepth;
+  UINT                avgNodeFaces;
   int                 bFree;
   NTempest::CAaBox    aaBox;
 };
@@ -130,8 +120,8 @@ class CAaBsp_Query {
 
  protected:
   void GetFaceIndices(const CAaBspNode *node) {
-    const unsigned short *faceIndices = aaBsp.GetFaceIndices();
-    for (unsigned int i = 0; i < node->nFaces; ++i) {
+    const WORD *faceIndices = aaBsp.GetFaceIndices();
+    for (UINT i = 0; i < node->nFaces; ++i) {
       f(faceIndices[node->faceStart + i]);
     }
   }
@@ -153,16 +143,16 @@ class CAaBsp_Query_Segment : public CAaBsp_Query<QUERY> {
  private:
   void operator=(const CAaBsp_Query_Segment &);
 
-  void GetFaceIndices(unsigned int nodeIndex, const NTempest::C3Segment &seg, const NTempest::CAaBox &qbBox) {
+  void GetFaceIndices(UINT nodeIndex, const NTempest::C3Segment &seg, const NTempest::CAaBox &qbBox) {
     const CAaBspNode *node = &this->aaBsp.GetNodeList()[nodeIndex];
     if (node->flags & CAaBspNode::Flag_Leaf) {
       CAaBsp_Query<QUERY>::GetFaceIndices(node);
       return;
     }
 
-    unsigned int axis = node->flags & CAaBspNode::Flag_AxisMask;
-    float        segMin = seg.start[axis] < seg.end[axis] ? seg.start[axis] : seg.end[axis];
-    float        segMax = seg.start[axis] > seg.end[axis] ? seg.start[axis] : seg.end[axis];
+    UINT  axis = node->flags & CAaBspNode::Flag_AxisMask;
+    float segMin = seg.start[axis] < seg.end[axis] ? seg.start[axis] : seg.end[axis];
+    float segMax = seg.start[axis] > seg.end[axis] ? seg.start[axis] : seg.end[axis];
     if (segMax < qbBox.b[axis] || segMin > qbBox.t[axis]) {
       return;
     }
@@ -233,14 +223,14 @@ class CAaBsp_Query_AaBox : public CAaBsp_Query<QUERY> {
  private:
   void operator=(const CAaBsp_Query_AaBox &);
 
-  void GetFaceIndices(unsigned int nodeIndex, const NTempest::CAaBox &nodeBox, const NTempest::CAaBox &queryBox) {
+  void GetFaceIndices(UINT nodeIndex, const NTempest::CAaBox &nodeBox, const NTempest::CAaBox &queryBox) {
     const CAaBspNode *node = &this->aaBsp.GetNodeList()[nodeIndex];
     if (node->flags & CAaBspNode::Flag_Leaf) {
       CAaBsp_Query<QUERY>::GetFaceIndices(node);
       return;
     }
 
-    unsigned int axis = node->flags & CAaBspNode::Flag_AxisMask;
+    UINT axis = node->flags & CAaBspNode::Flag_AxisMask;
     if (nodeBox.t[axis] < queryBox.b[axis] || nodeBox.b[axis] > queryBox.t[axis]) {
       return;
     }

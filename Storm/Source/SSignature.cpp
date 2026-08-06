@@ -6,22 +6,22 @@
 
 class SSignatureData {
  public:
-  unsigned long  modulusSize;
-  unsigned long  pubExponentSize;
-  unsigned long  magicBufferUsed;
-  unsigned long  magicBufferSize;
-  unsigned char *magicBuffer;
-  Sha1           sha;
+  DWORD modulusSize;
+  DWORD pubExponentSize;
+  DWORD magicBufferUsed;
+  DWORD magicBufferSize;
+  BYTE *magicBuffer;
+  Sha1  sha;
 };
 
 namespace Signature {
 
-  int HasMagic(const unsigned char *data, unsigned long size, unsigned long modulusSize, unsigned long &dataSize) {
+  int HasMagic(const BYTE *data, DWORD size, DWORD modulusSize, DWORD &dataSize) {
     dataSize = size - modulusSize - sizeof(DWORD);
     return size >= modulusSize + sizeof(DWORD) && *(const DWORD *)(data + dataSize) == SIGNATURE_MAGIC;
   }
 
-  void Hash(const unsigned char *data, unsigned long size, unsigned char *digest) {
+  void Hash(const BYTE *data, DWORD size, BYTE *digest) {
     Sha1 sha;
 
     sha.Initialize();
@@ -31,21 +31,21 @@ namespace Signature {
 
 }  // namespace Signature
 
-extern "C" void SSignatureVerifyStream_Begin(SSignatureData **token, unsigned long modulusSize, unsigned long pubExponentSize) {
+extern "C" void SSignatureVerifyStream_Begin(SSignatureData **token, DWORD modulusSize, DWORD pubExponentSize) {
   *token = new SSignatureData;
   (*token)->modulusSize = modulusSize;
   (*token)->pubExponentSize = pubExponentSize;
   (*token)->magicBufferUsed = 0;
   (*token)->magicBufferSize = modulusSize + sizeof(DWORD);
-  (*token)->magicBuffer = (unsigned char *)SMemAlloc((*token)->magicBufferSize, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY);
+  (*token)->magicBuffer = (BYTE *)SMemAlloc((*token)->magicBufferSize, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY);
   (*token)->sha.Initialize();
 }
 
-extern "C" unsigned long SSignatureVerifyStream_GetSignatureLength(SSignatureData *token) {
+extern "C" DWORD SSignatureVerifyStream_GetSignatureLength(SSignatureData *token) {
   return token->magicBufferSize;
 }
 
-extern "C" void SSignatureVerifyStream_ProvideData(SSignatureData *token, const unsigned char *data, unsigned long size) {
+extern "C" void SSignatureVerifyStream_ProvideData(SSignatureData *token, const BYTE *data, DWORD size) {
   long overflow;
   long hashBytes;
 
@@ -74,21 +74,21 @@ extern "C" void SSignatureVerifyStream_ProvideData(SSignatureData *token, const 
   token->magicBufferUsed += size;
 }
 
-extern "C" int SSignatureVerifyStream_Finish(SSignatureData *token, const unsigned char *modulus, const unsigned char *pubExponent) {
+extern "C" int SSignatureVerifyStream_Finish(SSignatureData *token, const BYTE *modulus, const BYTE *pubExponent) {
   int result;
 
   ASSERT(token);
   result = FALSE;
 
   if (token->magicBufferUsed == token->magicBufferSize && *(DWORD *)token->magicBuffer == SIGNATURE_MAGIC) {
-    unsigned char *generated;
-    unsigned char *stored;
+    BYTE *generated;
+    BYTE *stored;
 
-    generated = (unsigned char *)_alloca(token->modulusSize);
+    generated = (BYTE *)_alloca(token->modulusSize);
     memset(generated, 0xBB, token->modulusSize);
     generated[token->modulusSize - 1] = 0x0B;
     token->sha.Finalize(generated);
-    stored = (unsigned char *)_alloca(token->modulusSize);
+    stored = (BYTE *)_alloca(token->modulusSize);
     memcpy(stored, token->magicBuffer + sizeof(DWORD), token->modulusSize);
     Crypt::RSA decoder;
     decoder.Prepare(modulus, token->modulusSize, pubExponent, token->pubExponentSize);
@@ -101,14 +101,8 @@ extern "C" int SSignatureVerifyStream_Finish(SSignatureData *token, const unsign
   return result;
 }
 
-extern "C" int SSignatureVerify(
-    const unsigned char *data,
-    unsigned long        size,
-    const unsigned char *modulus,
-    unsigned long        modulusSize,
-    const unsigned char *pubExponent,
-    unsigned long        pubExponentSize
-) {
+extern "C" int
+SSignatureVerify(const BYTE *data, DWORD size, const BYTE *modulus, DWORD modulusSize, const BYTE *pubExponent, DWORD pubExponentSize) {
   SSignatureData *token;
 
   SSignatureVerifyStream_Begin(&token, modulusSize, pubExponentSize);
@@ -117,36 +111,36 @@ extern "C" int SSignatureVerify(
 }
 
 extern "C" int SSignatureGenerate(
-    unsigned char       *data,
-    unsigned long       &size,
-    const unsigned char *modulus,
-    unsigned long        modulusSize,
-    const unsigned char *privExponent,
-    unsigned long        privExponentSize,
-    const unsigned char *pubExponent,
-    unsigned long        pubExponentSize
+    BYTE       *data,
+    DWORD      &size,
+    const BYTE *modulus,
+    DWORD       modulusSize,
+    const BYTE *privExponent,
+    DWORD       privExponentSize,
+    const BYTE *pubExponent,
+    DWORD       pubExponentSize
 ) {
-  unsigned char *original;
-  unsigned char *generated;
-  unsigned long  dataSize;
-  unsigned char *check;
+  BYTE *original;
+  BYTE *generated;
+  DWORD dataSize;
+  BYTE *check;
 
   if (!Signature::HasMagic(data, size, modulusSize, dataSize)) {
     dataSize = size;
   }
 
-  original = (unsigned char *)_alloca(modulusSize);
+  original = (BYTE *)_alloca(modulusSize);
   memset(original, 0xBB, modulusSize);
   original[modulusSize - 1] = 0x0B;
   Signature::Hash(data, dataSize, original);
-  generated = (unsigned char *)_alloca(modulusSize);
+  generated = (BYTE *)_alloca(modulusSize);
   memcpy(generated, original, modulusSize);
 
   Crypt::RSA encoder;
   encoder.Prepare(modulus, modulusSize, privExponent, privExponentSize);
   encoder.Process(generated, modulusSize);
 
-  check = (unsigned char *)_alloca(modulusSize);
+  check = (BYTE *)_alloca(modulusSize);
   memcpy(check, generated, modulusSize);
   Crypt::RSA decoder;
   decoder.Prepare(modulus, modulusSize, pubExponent, pubExponentSize);

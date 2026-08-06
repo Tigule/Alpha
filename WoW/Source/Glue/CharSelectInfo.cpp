@@ -31,17 +31,17 @@
 static TSGrowableArray<CHARINFO> s_charList;
 static const char                REGKEY[11] = "WoW\\Client";
 
-void SetHandsState(HMODEL model, int itemSlot, int itemInventoryType);
-static const char                REGVAL_LASTCHARACTER[14] = "LastCharacter";
-static const char                REGVAL_LASTACCOUNT[12] = "LastAccount";
-static const char                REGVAL_LASTREALM[10] = "LastRealm";
+void              SetHandsState(HMODEL model, int itemSlot, int itemInventoryType);
+static const char REGVAL_LASTCHARACTER[14] = "LastCharacter";
+static const char REGVAL_LASTACCOUNT[12] = "LastAccount";
+static const char REGVAL_LASTREALM[10] = "LastRealm";
 
 int           CCharSelectInfo::m_selectionIndex;
 CSimpleModel *CCharSelectInfo::m_modelFrame;
 
 static int Script_SetCharSelectModelFrame(lua_State *L);
 static int Script_SetCharSelectBackground(lua_State *L);
-static int Script_GetCharacterListUpdate(lua_State *__formal);
+static int Script_GetCharacterListUpdate(lua_State *);
 static int Script_GetNumCharacters(lua_State *L);
 static int Script_GetCharacterInfo(lua_State *L);
 static int Script_SelectCharacter(lua_State *L);
@@ -101,7 +101,7 @@ void CCharSelectInfo::SetModelFrame(CSimpleModel *frame) {
   m_modelFrame = frame;
 }
 
-void CCharSelectInfo::SetBackgroundModel(const char *filename) {
+void CCharSelectInfo::SetBackgroundModel(LPCSTR filename) {
   CModelCreate createData;
 
   if (!m_modelFrame || !filename || !*filename) {
@@ -146,7 +146,7 @@ CHARACTER_INFO *CCharSelectInfo::GetSelectedCharacterInfo() {
   return &s_charList[m_selectionIndex].m_characterInfo;
 }
 
-void CCharSelectInfo::EnumerateCharactersCallback(CHARACTER_INFO &info, void *__formal) {
+void CCharSelectInfo::EnumerateCharactersCallback(CHARACTER_INFO &info, LPVOID) {
   ASSERT(s_charList.Count() < MAX_CHARACTERS_PER_REALM);
 
   CHARINFO *charInfo = s_charList.New();
@@ -169,9 +169,9 @@ void CCharSelectInfo::EnumerateCharactersCallback(CHARACTER_INFO &info, void *__
   }
 }
 
-void CCharSelectInfo::GuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted) {
+void CCharSelectInfo::GuildCallback(int guildID, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (guildID && granted) {
-    unsigned int index;
+    UINT index;
 
     ASSERT(g_guildInfoCache.GetRecord(guildID, guid, 0, 0));
 
@@ -193,9 +193,9 @@ void CCharSelectInfo::UpdateCharacterList() {
     return;
   }
 
-  char          realm[64] = "";
-  char          accountName[64] = "";
-  unsigned long lastChar;
+  char  realm[64] = "";
+  char  accountName[64] = "";
+  DWORD lastChar;
 
   SRegLoadString(REGKEY, REGVAL_LASTACCOUNT, 0, accountName, sizeof(accountName));
   SRegLoadString(REGKEY, REGVAL_LASTREALM, 0, realm, sizeof(realm));
@@ -213,7 +213,7 @@ void CCharSelectInfo::UpdateCharacterList() {
   FrameScript_SignalEvent(6);
 }
 
-void CHARINFO::UpdateCharacterInfo(const char *modelName, HMODEL backgroundModel) {
+void CHARINFO::UpdateCharacterInfo(LPCSTR modelName, HMODEL backgroundModel) {
   const CreatureDisplayInfoRec *displayInfo = 0;
   const CreatureModelDataRec   *modelData = 0;
 
@@ -259,7 +259,7 @@ void CHARINFO::UpdateCharacterInfo(const char *modelName, HMODEL backgroundModel
 }
 
 void CHARINFO::ChangeSkinTexture() {
-  unsigned int              preferredGeosets[NUM_CHARGEOSETS];
+  UINT                      preferredGeosets[NUM_CHARGEOSETS];
   CStatus                   status;
   BEARDSTYLEDATA            facialData;
   int                       hasFacialInfo;
@@ -349,8 +349,8 @@ void CHARINFO::ChangeSkinTexture() {
   HandleClose(geosetHandle);
 }
 
-static void SetFingersSeq(HMODEL model, unsigned int sequence, unsigned int startFinger, unsigned int lastFinger) {
-  unsigned int finger;
+static void SetFingersSeq(HMODEL model, UINT sequence, UINT startFinger, UINT lastFinger) {
+  UINT finger;
   for (finger = startFinger; finger <= lastFinger; ++finger) {
     if (ModelLockObjectSequence(model, finger, 0)) {
       if (ModelSetSequence(model, sequence, finger, 4)) {
@@ -360,9 +360,9 @@ static void SetFingersSeq(HMODEL model, unsigned int sequence, unsigned int star
   }
 }
 
-static void ResetFingersSeq(HMODEL model, unsigned int startFinger, unsigned int lastFinger) {
-  unsigned int finger;
-  unsigned int sequence = ModelGetPrimarySequence(model);
+static void ResetFingersSeq(HMODEL model, UINT startFinger, UINT lastFinger) {
+  UINT finger;
+  UINT sequence = ModelGetPrimarySequence(model);
   for (finger = startFinger; finger <= lastFinger; ++finger) {
     if (ModelLockObjectSequence(model, finger, 0)) {
       ModelSetSequence(model, sequence, finger, 4);
@@ -370,7 +370,7 @@ static void ResetFingersSeq(HMODEL model, unsigned int startFinger, unsigned int
   }
 }
 
-static void SetHandState(HMODEL model, int invType, unsigned int startFinger, unsigned int lastFinger) {
+static void SetHandState(HMODEL model, int invType, UINT startFinger, UINT lastFinger) {
   if (invType != INDEX_SHIELD_TYPE) {
     SetFingersSeq(model, 15, startFinger, lastFinger);
   } else {
@@ -383,8 +383,7 @@ void SetHandsState(HMODEL model, int itemSlot, int itemInventoryType) {
     return;
   }
   if (itemSlot != INDEX_RANGED_TYPE) {
-    if (itemSlot <= INDEX_RANGED_TYPE ||
-        itemSlot > INDEX_2HWEAPON_TYPE) {
+    if (itemSlot <= INDEX_RANGED_TYPE || itemSlot > INDEX_2HWEAPON_TYPE) {
       return;
     }
     SetHandState(model, itemInventoryType, 13, 17);
@@ -464,7 +463,7 @@ static int Script_SetCharSelectBackground(lua_State *L) {
   return 0;
 }
 
-static int Script_GetCharacterListUpdate(lua_State *__formal) {
+static int Script_GetCharacterListUpdate(lua_State *) {
   CCharSelectInfo::ClearCharacterModel();
   CCharSelectInfo::ClearPetModel();
   CGlueMgr::GetCharacterList();
@@ -543,13 +542,13 @@ static int Script_DeleteCharacter(lua_State *L) {
 }
 
 void CharSelectRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 7; ++i) {
+  for (UINT i = 0; i < 7; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void CharSelectUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 7; ++i) {
+  for (UINT i = 0; i < 7; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

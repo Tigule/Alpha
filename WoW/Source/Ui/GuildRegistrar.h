@@ -2,27 +2,27 @@
 #define WOW_SOURCE_UI_GUILDREGISTRAR_H
 
 struct PetitionVendorItem {
-  unsigned int m_muid;
-  unsigned int m_itemID;
-  unsigned int m_itemDisplayID;
-  int          m_price;
-  int          m_flags;
+  UINT m_muid;
+  UINT m_itemID;
+  UINT m_itemDisplayID;
+  int  m_price;
+  int  m_flags;
 };
 
 class CGGuildRegistrar {
  public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void SetRegistrar(unsigned __int64 registrar, const PetitionVendorItem *petition);
-  static void CloseRegistrar();
-  static unsigned __int64 GetRegistrar() {
+  static void      EnterWorld();
+  static void      LeaveWorld();
+  static void      SetRegistrar(DWORDLONG registrar, const PetitionVendorItem *petition);
+  static void      CloseRegistrar();
+  static DWORDLONG GetRegistrar() {
     return m_registrar;
   }
-  static unsigned int GetGuildCharterCost();
-  static void BuyGuildCharter(const char *guildName);
+  static UINT GetGuildCharterCost();
+  static void BuyGuildCharter(LPCSTR guildName);
 
  protected:
-  static unsigned __int64   m_registrar;
+  static DWORDLONG          m_registrar;
   static PetitionVendorItem m_petition;
 };
 

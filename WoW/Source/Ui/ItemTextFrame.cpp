@@ -19,9 +19,8 @@
 #include <lua.h>
 #include <string.h>
 
-
-unsigned __int64     CGItemText::m_itemGUID;
-unsigned int         CGItemText::m_currentPage;
+DWORDLONG            CGItemText::m_itemGUID;
+UINT                 CGItemText::m_currentPage;
 TSGrowableArray<int> CGItemText::m_pages;
 char                 CGItemText::m_text[0x200];
 
@@ -45,13 +44,13 @@ void CGItemText::LeaveWorld() {
   SetItem(0, 0);
 }
 
-void CGItemText::ItemTextCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
+void CGItemText::ItemTextCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted && m_itemGUID == guid) {
     SetItem(guid, 1);
   }
 }
 
-void CGItemText::SetItem(const unsigned __int64 &item, int callback) {
+void CGItemText::SetItem(const DWORDLONG &item, int callback) {
   if (!callback && !item && item == m_itemGUID) {
     CGGameUI::ClearInteractTarget(m_itemGUID);
     FrameScript_SignalEvent(276);
@@ -108,13 +107,13 @@ void CGItemText::SetItem(const unsigned __int64 &item, int callback) {
     if (container) {
       int slot = container->GetBag()->GetIndexOfObject(item);
       if (slot >= 0) {
-        player->ReadItem(itemObject->GetContainedIn(), static_cast<unsigned char>(slot));
+        player->ReadItem(itemObject->GetContainedIn(), static_cast<BYTE>(slot));
       }
     }
   }
 }
 
-void CGItemText::DisplayText(const unsigned __int64 &item, int useSkill) {
+void CGItemText::DisplayText(const DWORDLONG &item, int useSkill) {
   if (item != m_itemGUID) {
     return;
   }
@@ -134,7 +133,7 @@ void CGItemText::DisplayText(const unsigned __int64 &item, int useSkill) {
   }
   m_pages[m_currentPage + 1] = text->m_nextPage;
 
-  unsigned int language = 0;
+  UINT language = 0;
   if (object->GetType() & TYPE_ITEM) {
     CGItem_C *itemObject = static_cast<CGItem_C *>(object);
     if (itemObject->IsTranslated()) {
@@ -153,7 +152,7 @@ void CGItemText::DisplayText(const unsigned __int64 &item, int useSkill) {
     return;
   }
 
-  unsigned int skill = 0;
+  UINT skill = 0;
   if (useSkill) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
@@ -233,7 +232,7 @@ static int Script_ItemTextNextPage(lua_State *L) {
   return 0;
 }
 
-static int Script_CloseItemText(lua_State *__formal) {
+static int Script_CloseItemText(lua_State *) {
   CGItemText::SetItem(0, 0);
   return 0;
 }
@@ -250,13 +249,13 @@ static FrameScript_Method s_ScriptFunctions[8] = {
 };
 
 void ItemTextRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void ItemTextUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

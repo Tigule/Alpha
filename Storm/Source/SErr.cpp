@@ -6,11 +6,11 @@
 
 #define MAX_ERR_THREADS 64
 
-int CheckMachineStateSymbolHelper();
+int  CheckMachineStateSymbolHelper();
 void LoadMachineStateSymbols();
 void UnloadMachineStateSymbols();
-int LogMiniDump(void *file, EXCEPTION_POINTERS *exceptionPointers, UINT userStreamCount, char **userStreams);
-int LogMiniDumpIsAvailable();
+int  LogMiniDump(LPVOID file, EXCEPTION_POINTERS *exceptionPointers, UINT userStreamCount, char **userStreams);
+int  LogMiniDumpIsAvailable();
 
 typedef struct _MSGSRC {
   WORD      facility;
@@ -32,7 +32,7 @@ NODEDECL(HANDLER) {
 template <class T, class GETLINK>
 class TSListWinHeap : public TSList<T, GETLINK> {
  public:
-  T *NewNode(unsigned long location, unsigned long extrabytes, unsigned long flags);
+  T *NewNode(DWORD location, DWORD extrabytes, DWORD flags);
   T *DeleteNode(T *ptr);
 };
 
@@ -40,7 +40,7 @@ template <>
 void TSList<HANDLER, TSGetLink<HANDLER> >::Clear();
 
 template <>
-void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, unsigned long linktype, HANDLER *existingptr);
+void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, DWORD linktype, HANDLER *existingptr);
 
 template <>
 HANDLER *TSList<HANDLER, TSGetLink<HANDLER> >::Next(const HANDLER *ptr);
@@ -89,9 +89,9 @@ void TSList<HANDLER, TSGetLink<HANDLER> >::Clear() {
 }
 
 template <>
-void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, unsigned long linktype, HANDLER *existingptr) {
-  LINKEX(HANDLER) *link;
-  LINKEX(HANDLER) *existing;
+void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, DWORD linktype, HANDLER *existingptr) {
+  LINKEX(HANDLER) * link;
+  LINKEX(HANDLER) * existing;
 
   link = Link(ptr);
   existing = Link(existingptr);
@@ -100,7 +100,7 @@ void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, unsigned long 
   }
 
   if (linktype == LIST_LINK_AFTER) {
-    LINKEX(HANDLER) *nextlink;
+    LINKEX(HANDLER) * nextlink;
 
     nextlink = existing->NextLink(m_linkoffset);
     link->m_prevlink = existing;
@@ -108,7 +108,7 @@ void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, unsigned long 
     nextlink->m_prevlink = link;
     existing->m_next = ptr;
   } else {
-    LINKEX(HANDLER) *previous;
+    LINKEX(HANDLER) * previous;
 
     if (linktype != LIST_LINK_BEFORE) {
       FATALERROR(("Invalid case: %s=%u", "linktype", linktype));
@@ -128,7 +128,7 @@ HANDLER *TSList<HANDLER, TSGetLink<HANDLER> >::Next(const HANDLER *ptr) {
 }
 
 template <>
-HANDLER *TSListWinHeap<HANDLER, TSGetLink<HANDLER> >::NewNode(unsigned long location, unsigned long extrabytes, unsigned long flags) {
+HANDLER *TSListWinHeap<HANDLER, TSGetLink<HANDLER> >::NewNode(DWORD location, DWORD extrabytes, DWORD flags) {
   HANDLER *ptr;
 
   ptr = new (HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, sizeof(HANDLER) + extrabytes)) HANDLER;
@@ -150,14 +150,14 @@ HANDLER *TSListWinHeap<HANDLER, TSGetLink<HANDLER> >::DeleteNode(HANDLER *ptr) {
   return next;
 }
 
-static DWORD WINAPI    WatchdogThreadProc(LPVOID __formal);
-static void CheckKeyboard();
-static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCSTR description, LPCSTR suffix);
-static LONG WINAPI     ExceptionFilterWin32(EXCEPTION_POINTERS *exceptionpointers);
-static void InternalEnterCriticalSection(CRITICAL_SECTION *crit);
-static void InternalLeaveCriticalSection(CRITICAL_SECTION *crit);
-static void UnregisterAllThreads();
-static void Breakpoint();
+static DWORD WINAPI WatchdogThreadProc(LPVOID);
+static void         CheckKeyboard();
+static void         LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCSTR description, LPCSTR suffix);
+static LONG WINAPI  ExceptionFilterWin32(EXCEPTION_POINTERS *exceptionpointers);
+static void         InternalEnterCriticalSection(CRITICAL_SECTION *crit);
+static void         InternalLeaveCriticalSection(CRITICAL_SECTION *crit);
+static void         UnregisterAllThreads();
+static void         Breakpoint();
 
 #define SErrEnter()          InternalEnterCriticalSection(&s_critsect)
 #define SErrLeave()          InternalLeaveCriticalSection(&s_critsect)
@@ -252,7 +252,7 @@ static void InternalLeaveCriticalSection(CRITICAL_SECTION *critsect) {
   LeaveCriticalSection(critsect);
 }
 
-static int UndecorateObjectName(const char *source, char *dest, DWORD destchars) {
+static int UndecorateObjectName(LPCSTR source, char *dest, DWORD destchars) {
   char *end;
 
   if (!source || !dest || SStrLen(source) < 6 || source[0] != '.' || source[3] != 'U') {
@@ -325,7 +325,7 @@ static int MakeDirectory(LPCSTR pszFullPath) {
   return attributes != (DWORD)-1 && (attributes & FILE_ATTRIBUTE_DIRECTORY);
 }
 
-static void __cdecl WriteLine(void *param, const char *format, ...) {
+static void __cdecl WriteLine(LPVOID param, LPCSTR format, ...) {
   char    buffer[0x800];
   DWORD   byteswritten;
   va_list args;
@@ -1180,7 +1180,7 @@ static void CheckKeyboard() {
   s_keysweredown = chordDown;
 }
 
-static DWORD WINAPI WatchdogThreadProc(LPVOID __formal /* __formal */) {
+static DWORD WINAPI WatchdogThreadProc(LPVOID) {
   DWORD lastFreezePingCount;
 
   lastFreezePingCount = s_pingcounter - 1;

@@ -32,12 +32,12 @@ struct KEYCOMMAND : public TSHashObject<KEYCOMMAND, HASHKEY_STRI> {
 
 class CGUIBindings {
  public:
-  static CGUIBindings *Initialize(const char *commandsFile, CStatus *status);
-  static void Shutdown();
-  static void LoadBindings(int useDefault);
-  static void SaveBindings();
-  static const char *KeyEventToString(const CKeyEvent &evt, char *string, int maxLen);
-  static const char *MouseEventToString(const CMouseEvent &evt, char *string, int maxLen);
+  static CGUIBindings *Initialize(LPCSTR commandsFile, CStatus *status);
+  static void          Shutdown();
+  static void          LoadBindings(int useDefault);
+  static void          SaveBindings();
+  static LPCSTR        KeyEventToString(const CKeyEvent &evt, char *string, int maxLen);
+  static LPCSTR        MouseEventToString(const CMouseEvent &evt, char *string, int maxLen);
 
   static CGUIBindings *GetActive() {
     return s_bindings;
@@ -46,36 +46,36 @@ class CGUIBindings {
   CGUIBindings();
   ~CGUIBindings();
 
-  int Load(const char *commandsFile, CStatus *status);
-  int Bind(const char *keystring, const char *command);
-  int ExecKey(const char *keystring, unsigned long timestamp, int down) const;
-  int ExecCommand(const char *command, unsigned long timestamp, int down) const;
+  int Load(LPCSTR commandsFile, CStatus *status);
+  int Bind(LPCSTR keystring, LPCSTR command);
+  int ExecKey(LPCSTR keystring, DWORD timestamp, int down) const;
+  int ExecCommand(LPCSTR command, DWORD timestamp, int down) const;
   int GetNumCommands() const {
     return m_numCommands;
   }
   int GetNumHiddenCommands() const {
     return m_numHiddenCommands;
   }
-  void         GetCommand(int index, const char *&command) const;
-  void         GetHiddenCommand(int index, const char *&command) const;
-  const char  *GetCommandKey(const char *command, int keyindex) const;
-  unsigned int GetNumCommandKeys(const char *command) const;
-  const char  *GetCommandAction(const char *keystring) const;
-  void         AdjustCommandKeyIndices(const char *command, int index) const;
-  void         ClearBindings() {
+  void   GetCommand(int index, LPCSTR &command) const;
+  void   GetHiddenCommand(int index, LPCSTR &command) const;
+  LPCSTR GetCommandKey(LPCSTR command, int keyindex) const;
+  UINT   GetNumCommandKeys(LPCSTR command) const;
+  LPCSTR GetCommandAction(LPCSTR keystring) const;
+  void   AdjustCommandKeyIndices(LPCSTR command, int index) const;
+  void   ClearBindings() {
     m_bindings.Clear();
   }
 
  protected:
-  static int AddMetaPrefix(unsigned int metaKeyState, char *&string, int &maxLen);
+  static int AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen);
 
  private:
   static CGUIBindings *s_bindings;
 
-  int                                   m_numCommands;
-  int                                   m_numHiddenCommands;
+  int                                           m_numCommands;
+  int                                           m_numHiddenCommands;
   mutable TSHashTable<KEYBINDING, HASHKEY_STRI> m_bindings;
-  TSHashTable<KEYCOMMAND, HASHKEY_STRI> m_commands;
+  TSHashTable<KEYCOMMAND, HASHKEY_STRI>         m_commands;
 };
 
 void UIBindingsRegisterScriptFunctions();

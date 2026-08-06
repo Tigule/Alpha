@@ -9,7 +9,7 @@ OsJoystickID OsOpenJoystick(int index) {
 void OsCloseJoystick(OsJoystickID id) {
 }
 
-unsigned int OsGetButtonState(OsJoystickID id) {
+UINT OsGetButtonState(OsJoystickID id) {
   return 0;
 }
 

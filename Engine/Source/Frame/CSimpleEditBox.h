@@ -35,9 +35,9 @@ class CSimpleEditBox : public CSimpleFrame {
   virtual int  OnLayerMouseDown(CMouseEvent &evt);
   virtual int  OnLayerMouseUp(CMouseEvent &evt);
 
-  void        SetMultiLine(int enabled);
-  void        SetAutoFocus(int enabled);
-  void        SetEditTextInsets(float right, float left, float top, float bottom);
+  void SetMultiLine(int enabled);
+  void SetAutoFocus(int enabled);
+  void SetEditTextInsets(float right, float left, float top, float bottom);
   void SetPassword(int enabled) {
     m_password = enabled;
     m_dirtyFlags |= DIRTY_TEXT | DIRTY_HIGHLIGHT | DIRTY_CURSOR;
@@ -48,16 +48,16 @@ class CSimpleEditBox : public CSimpleFrame {
   void SetTextLetterLimit(int letters) {
     m_textLettersMax = letters;
   }
-  void        SetText(const char *text);
-  const char *GetText() {
+  void   SetText(LPCSTR text);
+  LPCSTR GetText() {
     return m_text;
   }
-  void Insert(const char *utf8string, int isIME);
-  void Insert(unsigned int utf16);
+  void Insert(LPCSTR utf8string, int isIME);
+  void Insert(UINT utf16);
   void SetHistoryLines(int numLines);
-  void AddHistoryLine(const char *line);
+  void AddHistoryLine(LPCSTR line);
   void HighlightText();
-  void SetFont(const char *fontName, float fontHeight, unsigned int fontFlags);
+  void SetFont(LPCSTR fontName, float fontHeight, UINT fontFlags);
 
   void SetTextColor(const NTempest::CImVector &color) {
     m_string->SetVertexColor(color);
@@ -68,7 +68,7 @@ class CSimpleEditBox : public CSimpleFrame {
   }
 
   void SetHighlightColor(const NTempest::CImVector &color) {
-    for (unsigned int i = 0; i < 3; ++i) {
+    for (UINT i = 0; i < 3; ++i) {
       m_highlight[i]->SetTexture(color);
     }
   }
@@ -95,31 +95,31 @@ class CSimpleEditBox : public CSimpleFrame {
     m_cursor->Hide();
   }
 
-  void RegisterEnter(unsigned int id, CObserver *observer) {
+  void RegisterEnter(UINT id, CObserver *observer) {
     RegisterAction(EVENT_ENTER, id, observer);
   }
 
-  void RegisterEscape(unsigned int id, CObserver *observer) {
+  void RegisterEscape(UINT id, CObserver *observer) {
     RegisterAction(EVENT_ESCAPE, id, observer);
   }
 
-  void RegisterSpace(unsigned int id, CObserver *observer) {
+  void RegisterSpace(UINT id, CObserver *observer) {
     RegisterAction(EVENT_SPACE, id, observer);
   }
 
-  void RegisterTab(unsigned int id, CObserver *observer) {
+  void RegisterTab(UINT id, CObserver *observer) {
     RegisterAction(EVENT_TAB, id, observer);
   }
 
-  void RegisterTextChanged(unsigned int id, CObserver *observer) {
+  void RegisterTextChanged(UINT id, CObserver *observer) {
     RegisterAction(EVENT_CHANGED, id, observer);
   }
 
-  void RegisterTextSet(unsigned int id, CObserver *observer) {
+  void RegisterTextSet(UINT id, CObserver *observer) {
     RegisterAction(EVENT_SET, id, observer);
   }
 
-  void SetOnEnterPressedScript(const char *source) {
+  void SetOnEnterPressedScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnEnterPressed", GetName());
     SetEventScript(m_onEnterPressed, source, description);
@@ -131,7 +131,7 @@ class CSimpleEditBox : public CSimpleFrame {
     }
   }
 
-  void SetOnEscapePressedScript(const char *source) {
+  void SetOnEscapePressedScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnEscapePressed", GetName());
     SetEventScript(m_onEscapePressed, source, description);
@@ -143,7 +143,7 @@ class CSimpleEditBox : public CSimpleFrame {
     }
   }
 
-  void SetOnSpacePressedScript(const char *source) {
+  void SetOnSpacePressedScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnSpacePressed", GetName());
     SetEventScript(m_onSpacePressed, source, description);
@@ -155,7 +155,7 @@ class CSimpleEditBox : public CSimpleFrame {
     }
   }
 
-  void SetOnTabPressedScript(const char *source) {
+  void SetOnTabPressedScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnTabPressed", GetName());
     SetEventScript(m_onTabPressed, source, description);
@@ -167,7 +167,7 @@ class CSimpleEditBox : public CSimpleFrame {
     }
   }
 
-  void SetOnTextChangedScript(const char *source) {
+  void SetOnTextChangedScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnTextChanged", GetName());
     SetEventScript(m_onTextChanged, source, description);
@@ -179,7 +179,7 @@ class CSimpleEditBox : public CSimpleFrame {
     }
   }
 
-  void SetOnTextSetScript(const char *source) {
+  void SetOnTextSetScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnTextSet", GetName());
     SetEventScript(m_onTextSet, source, description);
@@ -192,7 +192,7 @@ class CSimpleEditBox : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void UpdateSizes(const NTempest::CRect &rect);
   void UpdateTextInfo();
@@ -222,7 +222,7 @@ class CSimpleEditBox : public CSimpleFrame {
   void MoveLine(int distance, int highlight);
   void MoveForwardLine(int highlight);
   void MoveBackwardLine(int highlight);
-  int IsHighlighted() {
+  int  IsHighlighted() {
     return m_highlightLeft != m_highlightRight;
   }
   void StartHighlight();
@@ -250,9 +250,9 @@ class CSimpleEditBox : public CSimpleFrame {
   void CreateCandidatesFrame();
   void UpdateLanguageIndicator();
   void UpdateClauseInfo();
-  int  PopulateCandidates(unsigned long selection);
+  int  PopulateCandidates(DWORD selection);
   void DispatchAction(int action);
-  void RegisterAction(int action, unsigned int id, CObserver *observer) {
+  void RegisterAction(int action, UINT id, CObserver *observer) {
     m_actions[action].id = id;
     m_actions[action].obj = observer;
   }
@@ -277,35 +277,35 @@ class CSimpleEditBox : public CSimpleFrame {
     NUM_EDITBOX_ACTIONS = 6
   };
 
-  unsigned int                  m_dirtyFlags;
-  CSimpleFontString            *m_string;
-  char                         *m_text;
-  unsigned int                 *m_textInfo;
-  char                         *m_textHidden;
-  int                           m_textLength;
-  int                           m_textLengthMax;
-  int                           m_textLettersMax;
-  int                           m_textSize;
-  int                           m_visiblePos;
-  int                           m_visibleLen;
-  CSimpleTexture               *m_highlight[3];
-  int                           m_highlightLeft;
-  int                           m_highlightRight;
-  int                           m_highlightDrag;
-  CSimpleTexture               *m_cursor;
-  int                           m_cursorPos;
-  float                         m_cursorBlinkSpeed;
-  float                         m_blinkElapsedTime;
-  int                           m_password;
-  int                           m_multiline;
-  TSGrowableArray<unsigned int> m_visibleLines;
-  int                           m_autoFocus;
-  int                           m_numHistory;
-  int                           m_curHistory;
-  TSFixedArray<char *>          m_history;
+  UINT                  m_dirtyFlags;
+  CSimpleFontString    *m_string;
+  char                 *m_text;
+  UINT                 *m_textInfo;
+  char                 *m_textHidden;
+  int                   m_textLength;
+  int                   m_textLengthMax;
+  int                   m_textLettersMax;
+  int                   m_textSize;
+  int                   m_visiblePos;
+  int                   m_visibleLen;
+  CSimpleTexture       *m_highlight[3];
+  int                   m_highlightLeft;
+  int                   m_highlightRight;
+  int                   m_highlightDrag;
+  CSimpleTexture       *m_cursor;
+  int                   m_cursorPos;
+  float                 m_cursorBlinkSpeed;
+  float                 m_blinkElapsedTime;
+  int                   m_password;
+  int                   m_multiline;
+  TSGrowableArray<UINT> m_visibleLines;
+  int                   m_autoFocus;
+  int                   m_numHistory;
+  int                   m_curHistory;
+  TSFixedArray<char *>  m_history;
   struct {
-    unsigned int id;
-    CObserver   *obj;
+    UINT       id;
+    CObserver *obj;
   } m_actions[NUM_EDITBOX_ACTIONS];
   int                  m_imeInputMode;
   CSimpleTexture      *m_clauseHighlight;

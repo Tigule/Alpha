@@ -25,13 +25,13 @@ enum TEXTURETYPE {
 };
 
 struct TEXTUREINFO {
-  const char   *name;
-  unsigned char scaleWithProgress;
-  float         centerX;
-  float         centerY;
-  float         width;
-  float         height;
-  EGxBlend      blend;
+  LPCSTR   name;
+  BYTE     scaleWithProgress;
+  float    centerX;
+  float    centerY;
+  float    width;
+  float    height;
+  EGxBlend blend;
 };
 
 static const TEXTUREINFO s_textureInfo[TEXTURETYPE_NUMTEXTURETYPES] = {
@@ -40,30 +40,21 @@ static const TEXTUREINFO s_textureInfo[TEXTURETYPE_NUMTEXTURETYPES] = {
     {"Interface\\Glues\\LoadingBar\\Loading-BarBorder", 0, 0.5f, 0.075f,   0.6f,  0.05f, GxBlend_Alpha}
 };
 
-static const unsigned short indices[4] = {0, 1, 2, 3};
-static EGxTexFormat         s_textureFormat[TEXTURETYPE_NUMTEXTURETYPES];
-static int                  s_worldLoaded;
-static int                  s_xmlTotal;
-static HLAYER__            *s_loadingScreenLayer;
-static float                s_progress;
-static MipBits             *s_mipBits[TEXTURETYPE_NUMTEXTURETYPES];
-static CGxTex              *s_textureHandles[TEXTURETYPE_NUMTEXTURETYPES];
-static int                  s_xmlLoaded;
-static bool                 s_loadingScreenEnabled;
+static const WORD   indices[4] = {0, 1, 2, 3};
+static EGxTexFormat s_textureFormat[TEXTURETYPE_NUMTEXTURETYPES];
+static int          s_worldLoaded;
+static int          s_xmlTotal;
+static HLAYER__    *s_loadingScreenLayer;
+static float        s_progress;
+static MipBits     *s_mipBits[TEXTURETYPE_NUMTEXTURETYPES];
+static CGxTex      *s_textureHandles[TEXTURETYPE_NUMTEXTURETYPES];
+static int          s_xmlLoaded;
+static bool         s_loadingScreenEnabled;
 
 static void FrameXMLProgressCallback(int loaded, int total);
 static void UpdateProgressBar();
-static void LoadingScreenPaint(void *param, const RECTF *rect, const RECTF *visibleRect, float alpha);
-static void TextureCallback(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-);
+static void LoadingScreenPaint(LPVOID param, const RECTF *rect, const RECTF *visibleRect, float alpha);
+static void TextureCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
 
 void DisableLoadingScreen();
 
@@ -123,7 +114,7 @@ static void CleanupProgressBar() {
   FrameXML_RegisterLoadProgressCallback(0);
 }
 
-static int EatEvent(const void *data, void *param) {
+static int EatEvent(LPCVOID data, LPVOID param) {
   return 0;
 }
 
@@ -147,7 +138,7 @@ static void UnregisterHandlers() {
   EventUnregister(EVENT_ID_MOUSEMOVE, EatEvent);
 }
 
-static void LoadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
+static void LoadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
   static NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
   static NTempest::C2Vector texCoord[4] = {
       NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(1.0f, 0.0f)
@@ -158,7 +149,7 @@ static void LoadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
   GxRsSet(GxRs_Fog, 0);
   GxVertexShaderSelect(GxVS_PassThru);
 
-  for (unsigned int image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
+  for (UINT image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
     if (s_textureHandles[image]) {
       const TEXTUREINFO &info = s_textureInfo[image];
       GxRsSet(GxRs_Blend, info.blend);
@@ -195,18 +186,9 @@ static void LoadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
   GxRsPop();
 }
 
-static void TextureCallback(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
-  unsigned int image = reinterpret_cast<unsigned int>(userArg);
-  MipBits     *mipBits = s_mipBits[image];
+static void TextureCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
+  UINT     image = reinterpret_cast<UINT>(userArg);
+  MipBits *mipBits = s_mipBits[image];
 
   ASSERT(mipBits);
 
@@ -229,25 +211,16 @@ static void TextureCallback(
 }
 
 static void LoadImage(TEXTURETYPE image) {
-  unsigned int width;
-  unsigned int height;
-  int          isOpaque;
+  UINT width;
+  UINT height;
+  int  isOpaque;
 
-  s_mipBits[image] = TextureLoadImage(
-      s_textureInfo[image].name,
-      &width,
-      &height,
-      reinterpret_cast<unsigned int *>(&s_textureFormat[image]),
-      &isOpaque,
-      0,
-      0
-  );
+  s_mipBits[image] = TextureLoadImage(s_textureInfo[image].name, &width, &height, reinterpret_cast<UINT *>(&s_textureFormat[image]), &isOpaque, 0, 0);
 
   if (s_mipBits[image]) {
     CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
     GxTexCreate(
-        width, height, s_textureFormat[image], flags, reinterpret_cast<void *>(static_cast<unsigned int>(image)),
-        TextureCallback, s_textureHandles[image]
+        width, height, s_textureFormat[image], flags, reinterpret_cast<LPVOID>(static_cast<UINT>(image)), TextureCallback, s_textureHandles[image]
     );
     ASSERT(s_textureHandles[image]);
   }
@@ -258,7 +231,7 @@ void EnableLoadingScreen() {
 
   DisableLoadingScreen();
 
-  for (unsigned int image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
+  for (UINT image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
     LoadImage(static_cast<TEXTURETYPE>(image));
   }
 
@@ -277,7 +250,7 @@ bool DrawingLoadingScreen() {
 }
 
 void DisableLoadingScreen() {
-  unsigned int index;
+  UINT index;
 
   if (!s_loadingScreenEnabled) {
     return;

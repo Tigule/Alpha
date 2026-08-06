@@ -19,7 +19,7 @@ struct MACRODESC {
     memset(soundID, 0, sizeof(soundID));
   }
 
-  unsigned int soundID[12][3];
+  UINT soundID[12][3];
 };
 
 static TSGrowableArray<MACRODESC> s_macroRaceDescs;
@@ -58,10 +58,10 @@ void SndInterfaceUnregisterVocalScriptFunctions() {
 
 void SoundInterfacePlayVocalMacro(const CGPlayer_C *player, int category) {
   if (player && (player->GetType() & TYPE_PLAYER) && category < 12) {
-    const CGUnitData  *unitData = player->GetUnitData();
-    unsigned int       race = unitData->race;
-    unsigned int       sex = unitData->sex;
-    unsigned int       soundID = s_macroRaceDescs[race].soundID[category][sex];
+    const CGUnitData *unitData = player->GetUnitData();
+    UINT              race = unitData->race;
+    UINT              sex = unitData->sex;
+    UINT              soundID = s_macroRaceDescs[race].soundID[category][sex];
     SndInterfacePlaySound(soundID, player->GetPosition(), -1, 1.0f);
   }
 }

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellFocusObjectRec::GetFilename() {
+LPCSTR SpellFocusObjectRec::GetFilename() {
   return "DBFilesClient\\SpellFocusObject.dbc";
 }
 
@@ -19,9 +19,9 @@ SpellFocusObjectRec::SpellFocusObjectRec() {
 SpellFocusObjectRec::~SpellFocusObjectRec() {
 }
 
-bool SpellFocusObjectRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[NUM_LOCALES];
+bool SpellFocusObjectRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[NUM_LOCALES];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempname_langIndices[0], sizeof(tempname_langIndices[0]), 0, 0, 0) && result;

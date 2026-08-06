@@ -18,12 +18,12 @@ class WowClientDB {
   }
 
   void Load() {
-    unsigned int signature;
-    char        *stringBuffer;
-    unsigned int stringSize;
-    int          i;
-    unsigned int rowSize, numColumns;
-    SFile       *f;
+    UINT   signature;
+    char  *stringBuffer;
+    UINT   stringSize;
+    int    i;
+    UINT   rowSize, numColumns;
+    SFile *f;
     if (!SFile::Open(RECORD::GetFilename(), &f)) {
       FATALERROR(("Unable to open %s", RECORD::GetFilename()));
     }

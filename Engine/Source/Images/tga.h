@@ -4,45 +4,45 @@
 
 #pragma pack(push, 1)
 struct TGAHeader {
-  unsigned char  bIDLength;
-  unsigned char  bColorMapType;
-  unsigned char  bImageType;
-  unsigned short wColorMapStartIndex;
-  unsigned short wColorMapEntries;
-  unsigned char  bColorMapEntrySize;
-  unsigned short wXOrigin;
-  unsigned short wYOrigin;
-  unsigned short wWidth;
-  unsigned short wHeight;
-  unsigned char  bPixelDepth;
+  BYTE bIDLength;
+  BYTE bColorMapType;
+  BYTE bImageType;
+  WORD wColorMapStartIndex;
+  WORD wColorMapEntries;
+  BYTE bColorMapEntrySize;
+  WORD wXOrigin;
+  WORD wYOrigin;
+  WORD wWidth;
+  WORD wHeight;
+  BYTE bPixelDepth;
   union {
-    unsigned char bImageDescriptor;
+    BYTE bImageDescriptor;
     struct {
-      unsigned char bAlphaChannelBits : 4;
-      unsigned char bLeftRightOrder : 1;
-      unsigned char bTopBottomOrder : 1;
-      unsigned char bReserved : 2;
+      BYTE bAlphaChannelBits : 4;
+      BYTE bLeftRightOrder : 1;
+      BYTE bTopBottomOrder : 1;
+      BYTE bReserved : 2;
     } Desc;
   };
 };
 
 struct TGAFooter {
-  unsigned long dwExtensionOffset;
-  unsigned long dwDeveloperOffset;
-  char          szSigniture[0x12];
+  DWORD dwExtensionOffset;
+  DWORD dwDeveloperOffset;
+  char  szSigniture[0x12];
 };
 #pragma pack(pop)
 
 struct TGA32Pixel {
   TGA32Pixel();
-  TGA32Pixel(unsigned int color);
-  TGA32Pixel(unsigned char b, unsigned char g, unsigned char r, unsigned char a);
-  operator unsigned int();
+  TGA32Pixel(UINT color);
+  TGA32Pixel(BYTE b, BYTE g, BYTE r, BYTE a);
+  operator UINT();
 
-  unsigned char b;
-  unsigned char g;
-  unsigned char r;
-  unsigned char a;
+  BYTE b;
+  BYTE g;
+  BYTE r;
+  BYTE a;
 };
 
 class CTgaFile {
@@ -58,55 +58,47 @@ class CTgaFile {
     Close();
   }
 
-  void           Close();
-  int            Open(const char *filename);
-  int            LoadImageData(unsigned int flags);
-  int            AddAlphaChannel(const void *pImg);
-  int            SetTopDown(int set);
-  unsigned char *Image();
-  const unsigned char *Image() const;
-  TGA32Pixel    *ImageTGA32Pixel();
+  void              Close();
+  int               Open(LPCSTR filename);
+  int               LoadImageData(UINT flags);
+  int               AddAlphaChannel(LPCVOID pImg);
+  int               SetTopDown(int set);
+  BYTE             *Image();
+  const BYTE       *Image() const;
+  TGA32Pixel       *ImageTGA32Pixel();
   const TGA32Pixel *ImageTGA32Pixel() const;
-  int            RemoveAlphaChannels();
-  void           RemoveHeaderTrailer();
-  int            SetImage(const CTgaFile &source);
-  int            SetImage(
-      const void   *pImg,
-      unsigned int  width,
-      unsigned int  height,
-      unsigned char bPixelDepth,
-      unsigned char bAlphaBits,
-      int           bTopDown,
-      int           bRightToLeft
-  );
-  int Compress();
-  int Write(const char *path);
+  int               RemoveAlphaChannels();
+  void              RemoveHeaderTrailer();
+  int               SetImage(const CTgaFile &source);
+  int               SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, BYTE bAlphaBits, int bTopDown, int bRightToLeft);
+  int               Compress();
+  int               Write(LPCSTR path);
 
-  unsigned int Width() const {
+  UINT Width() const {
     return m_header.wWidth;
   }
 
-  unsigned int Height() const {
+  UINT Height() const {
     return m_header.wHeight;
   }
 
-  unsigned int Size() const {
+  UINT Size() const {
     return Width() * Height();
   }
 
-  unsigned int BytesPerPixel() const {
+  UINT BytesPerPixel() const {
     return (m_header.bPixelDepth + 7) / 8;
   }
 
-  unsigned int Bytes() const {
+  UINT Bytes() const {
     return Size() * BytesPerPixel();
   }
 
-  unsigned char AlphaBits() const {
+  BYTE AlphaBits() const {
     return m_header.Desc.bAlphaChannelBits;
   }
 
-  unsigned char PixelDepth() const {
+  BYTE PixelDepth() const {
     return m_header.bPixelDepth;
   }
 
@@ -122,11 +114,11 @@ class CTgaFile {
     return m_header.bColorMapType != 0;
   }
 
-  unsigned int ColorMapEntries() const {
+  UINT ColorMapEntries() const {
     return m_header.wColorMapEntries;
   }
 
-  unsigned int ColorMapEntryBytes() const {
+  UINT ColorMapEntryBytes() const {
     int componentBits = m_header.bColorMapEntrySize / 3;
 
     if (componentBits >= 8) {
@@ -136,15 +128,15 @@ class CTgaFile {
     return componentBits * 3 / 8;
   }
 
-  unsigned int ColorMapBytes() const {
+  UINT ColorMapBytes() const {
     return m_header.wColorMapEntries * ColorMapEntryBytes();
   }
 
-  unsigned char *ColorMap() {
+  BYTE *ColorMap() {
     return m_colorMap;
   }
 
-  const unsigned char *ColorMap() const {
+  const BYTE *ColorMap() const {
     return m_colorMap;
   }
 
@@ -153,23 +145,23 @@ class CTgaFile {
   }
 
  private:
-  int           ValidateColorDepth();
-  void          ConvertColorMapped(unsigned int flags);
-  int           ReadColorMappedImage(unsigned int flags);
-  unsigned long PreImageBytes();
-  void          AddAlphaChannel(unsigned char *pAlphaData, unsigned char *pNoAlphaData, const unsigned char *alpha);
-  int           ReadRawImage(unsigned int flags);
-  int           ReadRleImage(unsigned int flags);
-  int           RLEDecompressImage(unsigned char *pRLEData, unsigned char *pData);
-  int           CountRun(unsigned char *pImage, int nMax);
-  int           RleCompressLine(unsigned char **uncompressed, unsigned char **compressed);
+  int   ValidateColorDepth();
+  void  ConvertColorMapped(UINT flags);
+  int   ReadColorMappedImage(UINT flags);
+  DWORD PreImageBytes();
+  void  AddAlphaChannel(BYTE *pAlphaData, BYTE *pNoAlphaData, const BYTE *alpha);
+  int   ReadRawImage(UINT flags);
+  int   ReadRleImage(UINT flags);
+  int   RLEDecompressImage(BYTE *pRLEData, BYTE *pData);
+  int   CountRun(BYTE *pImage, int nMax);
+  int   RleCompressLine(BYTE **uncompressed, BYTE **compressed);
 
  private:
-  SFile         *m_file;
-  unsigned char *m_image;
-  TGAHeader      m_header;
-  unsigned char *m_addlHeaderData;
-  TGAFooter      m_footer;
-  unsigned int   m_imageBytes;
-  unsigned char *m_colorMap;
+  SFile    *m_file;
+  BYTE     *m_image;
+  TGAHeader m_header;
+  BYTE     *m_addlHeaderData;
+  TGAFooter m_footer;
+  UINT      m_imageBytes;
+  BYTE     *m_colorMap;
 };

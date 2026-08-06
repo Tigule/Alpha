@@ -18,25 +18,25 @@
 #include "Os/OsTime.h"
 #include "Tempest/c34matrix.h"
 
-static __int64      times[8];
-static __int64      start;
-static __int64      stop;
-static unsigned int tail;
-static float        frequency;
+static LONGLONG times[8];
+static LONGLONG start;
+static LONGLONG stop;
+static UINT     tail;
+static float    frequency;
 
-static unsigned int UpdateFrameRate() {
-  __int64      total = 0;
-  unsigned int frameRate;
+static UINT UpdateFrameRate() {
+  LONGLONG total = 0;
+  UINT     frameRate;
 
   stop = CGxDevice::CpuTicks();
   times[tail] = stop - start;
 
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     total += times[i];
   }
 
   if (total > 1024) {
-    frameRate = static_cast<unsigned int>(CGxDevice::CpuFrequency() * 8.0f / static_cast<double>(total));
+    frameRate = static_cast<UINT>(CGxDevice::CpuFrequency() * 8.0f / static_cast<double>(total));
   } else {
     frameRate = 99;
   }
@@ -74,12 +74,12 @@ void CGxDevice::ClampRectToWindow(NTempest::CiRect &rect) {
   rect.r = clippedRight;
 }
 
-static const char  *FmtNames[CGxFormat::Formats_Last] = {"Rgb565", "ArgbX888", "Argb8888", "Argb2101010", "Ds160", "Ds24X", "Ds248", "Ds320"};
-static unsigned int s_primVtxDiv[GxPrims_Last] = {1, 2, 1, 3, 1, 1};
-static unsigned int s_primVtxAdjust[GxPrims_Last] = {0, 0, 1, 0, 2, 2};
-static unsigned int s_alphaRef[GxBlends_Last] = {0, 224, 1, 1, 1, 1, 1, 0};
+static LPCSTR FmtNames[CGxFormat::Formats_Last] = {"Rgb565", "ArgbX888", "Argb8888", "Argb2101010", "Ds160", "Ds24X", "Ds248", "Ds320"};
+static UINT   s_primVtxDiv[GxPrims_Last] = {1, 2, 1, 3, 1, 1};
+static UINT   s_primVtxAdjust[GxPrims_Last] = {0, 0, 1, 0, 2, 2};
+static UINT   s_alphaRef[GxBlends_Last] = {0, 224, 1, 1, 1, 1, 1, 0};
 
-const unsigned int CGxDevice::s_texFormatBitDepth[GxTexFormats_Last] = {0, 32, 16, 16, 16, 4, 8, 8};
+const UINT CGxDevice::s_texFormatBitDepth[GxTexFormats_Last] = {0, 32, 16, 16, 16, 4, 8, 8};
 
 CGxLight::CGxLight() {
   m_enabled = m_isOmni = 0;
@@ -98,7 +98,7 @@ CGxLight::CGxLight() {
 }
 
 CGxStateRegister::CGxStateRegister() {
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     m_lightsDirty[i] = 1;
   }
 
@@ -178,7 +178,7 @@ CGxBuf::CGxBuf() {
   m_indexBase = BASE_NONE;
 }
 
-const unsigned int CGxBuf::BASE_NONE = 0xFFFFFFFF;
+const UINT CGxBuf::BASE_NONE = 0xFFFFFFFF;
 
 void CGxBuf::Invalidate(Status vertexStatus, Status indexStatus) {
   ASSERT(m_writeFreq != GxBWF_Static);
@@ -192,7 +192,7 @@ void CGxBuf::Invalidate(Status vertexStatus, Status indexStatus) {
   }
 }
 
-void CGxBuf::CountSet(unsigned int numVertices, unsigned int numIndices) {
+void CGxBuf::CountSet(UINT numVertices, UINT numIndices) {
   ASSERT(m_writeFreq != GxBWF_Static);
   ASSERT(numVertices <= Gx_MaxVertices);
   ASSERT(numIndices <= Gx_MaxIndices);
@@ -204,12 +204,12 @@ void CGxBuf::CountSet(unsigned int numVertices, unsigned int numIndices) {
 }
 
 CGxTex::CGxTex(
-    unsigned int width,
-    unsigned int height,
+    UINT         width,
+    UINT         height,
     EGxTexFormat format,
     CGxTexFlags  flags,
-    void        *userArg,
-    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+    LPVOID       userArg,
+    void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &)
 )
     : m_updateRect(), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
   Init(GxTex_2d, width, height, 0, format, format, flags, userArg, userFunc);
@@ -217,14 +217,14 @@ CGxTex::CGxTex(
 
 CGxTex::CGxTex(
     EGxTexTarget target,
-    unsigned int width,
-    unsigned int height,
-    unsigned int depth,
+    UINT         width,
+    UINT         height,
+    UINT         depth,
     EGxTexFormat format,
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
-    void        *userArg,
-    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+    LPVOID       userArg,
+    void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &)
 )
     : m_updateRect(), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
   Init(target, width, height, depth, format, dataFormat, flags, userArg, userFunc);
@@ -232,14 +232,14 @@ CGxTex::CGxTex(
 
 void CGxTex::Init(
     EGxTexTarget target,
-    unsigned int width,
-    unsigned int height,
-    unsigned int depth,
+    UINT         width,
+    UINT         height,
+    UINT         depth,
     EGxTexFormat format,
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
-    void        *userArg,
-    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&)
+    LPVOID       userArg,
+    void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &)
 ) {
   m_needsUpdate = 1;
   m_needsFlagUpdate = 1;
@@ -262,7 +262,7 @@ void CGxTex::Init(
   m_apiSpecificData = 0;
 }
 
-CGxMemBuffer::CGxMemBuffer(unsigned int count) : m_count(count), m_base(0), m_next(0), m_discard(0) {
+CGxMemBuffer::CGxMemBuffer(UINT count) : m_count(count), m_base(0), m_next(0), m_discard(0) {
 }
 
 void CGxMemBuffer::InvalidateBufs(CGxBuf::Status vertexStatus, CGxBuf::Status indexStatus) {
@@ -287,8 +287,8 @@ CGxMemBuffer::~CGxMemBuffer() {
 }
 
 void CGxGammaRamp::Set(float gamma) {
-  for (unsigned int i = 0; i < ENTRIES; ++i) {
-    unsigned short value = static_cast<unsigned short>(pow(static_cast<float>(i) / 255.0f, gamma) * 65535.0f);
+  for (UINT i = 0; i < ENTRIES; ++i) {
+    WORD value = static_cast<WORD>(pow(static_cast<float>(i) / 255.0f, gamma) * 65535.0f);
     red[i] = value;
     green[i] = value;
     blue[i] = value;
@@ -321,7 +321,7 @@ CGxDevice::CGxDevice() {
   m_vertexShader = GxVS_PassThru;
   m_vertexBufferFormat = GxVertexBufferFormats_Last;
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < 8; ++i) {
     m_appState.m_lightsDirty[i] = 0;
     m_hwState.m_lightsDirty[i] = 0;
@@ -352,7 +352,7 @@ CGxDevice::CGxDevice() {
 }
 
 CGxDevice::~CGxDevice() {
-  unsigned int count = m_textures.Count();
+  UINT count = m_textures.Count();
   while (count) {
     if (m_textures[--count]->m_apiSpecificData) {
       ASSERT(0);
@@ -370,7 +370,7 @@ void CGxDevice::DestroyDynamicBufs() {
 }
 
 void CGxDevice::CreateDynamicBufs() {
-  for (unsigned int format = 0; format < GxVertexBufferFormats_Last; ++format) {
+  for (UINT format = 0; format < GxVertexBufferFormats_Last; ++format) {
     m_dynBuf[format] = BufCreate(GxBWF_Dynamic, static_cast<EGxVertexBufferFormat>(format), 1, 1, 0, 0);
   }
 }
@@ -381,7 +381,7 @@ int CGxDevice::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
   return DeviceSetFormat(format);
 }
 
-int CGxDevice::DeviceCreate(unsigned int hwnd, const CGxFormat &format) {
+int CGxDevice::DeviceCreate(UINT hwnd, const CGxFormat &format) {
   CreateDynamicBufs();
   m_format = format;
   return 1;
@@ -397,7 +397,7 @@ int CGxDevice::DeviceSetFormat(const CGxFormat &format) {
   return 1;
 }
 
-void CGxDevice::DeviceSetBaseMipLevel(unsigned int baseMipLevel) {
+void CGxDevice::DeviceSetBaseMipLevel(UINT baseMipLevel) {
   m_baseMipLevel = baseMipLevel;
 }
 
@@ -419,7 +419,7 @@ const CGxFormat &CGxDevice::DeviceFormat() {
   return m_format;
 }
 
-unsigned int CGxDevice::DeviceBaseMipLevel() {
+UINT CGxDevice::DeviceBaseMipLevel() {
   return m_baseMipLevel;
 }
 
@@ -449,15 +449,15 @@ void CGxDevice::DeviceTakeScreenShot() {
 
 void CGxDevice::DeviceScreenShot() {
   const NTempest::CRect &window = DeviceCurWindow();
-  m_scrShotWidth = static_cast<unsigned int>(window.r);
-  unsigned int height = static_cast<unsigned int>(window.b);
+  m_scrShotWidth = static_cast<UINT>(window.r);
+  UINT height = static_cast<UINT>(window.b);
   m_scrShotHeight = height;
 
   NTempest::CiRect pixRect(0, 0, height, m_scrShotWidth);
   DeviceReadPixels(pixRect, m_scrShotPixels);
 }
 
-void CGxDevice::DeviceReadScreenShot(unsigned int &w, unsigned int &h, const NTempest::CImVector *&pixels) {
+void CGxDevice::DeviceReadScreenShot(UINT &w, UINT &h, const NTempest::CImVector *&pixels) {
   w = m_scrShotWidth;
   h = m_scrShotHeight;
   if (m_scrShotPixels.Count()) {
@@ -477,16 +477,14 @@ int CGxDevice::IDevIsWindowed() {
   return m_format.window;
 }
 
-void CGxDevice::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *texture, unsigned int plane) {
+void CGxDevice::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *texture, UINT plane) {
   m_textureTarget[buffer].m_texture = texture;
   m_textureTarget[buffer].m_plane = plane;
 
   if (!m_textureTarget[GxBuffers_Color].m_texture && !m_textureTarget[GxBuffers_Depth].m_texture) {
     DeviceSetCurWindow(DeviceDefWindow());
   } else {
-    DeviceSetCurWindow(
-        NTempest::CRect(0.0f, 0.0f, static_cast<float>(texture->m_height), static_cast<float>(texture->m_width))
-    );
+    DeviceSetCurWindow(NTempest::CRect(0.0f, 0.0f, static_cast<float>(texture->m_height), static_cast<float>(texture->m_width)));
   }
 }
 
@@ -507,7 +505,7 @@ void CGxDevice::DeviceSetCurWindow(const NTempest::CRect &rect) {
   m_curWindowRect = rect;
 }
 
-void CGxDevice::DeviceOverride(EGxOverride override, unsigned long value) {
+void CGxDevice::DeviceOverride(EGxOverride override, DWORD value) {
   Log("DeviceOverride(): %d set to %d", override, value);
 }
 
@@ -523,14 +521,14 @@ NTempest::CImVector CGxDevice::SceneClearColor() {
   return m_clearColor;
 }
 
-void CGxDevice::ScenePresent(unsigned int mask) {
+void CGxDevice::ScenePresent(UINT mask) {
   ++m_perfCountersAcc[GxPerf_FrameNum];
   m_perfCountersAcc[GxPerf_FrameRate] = UpdateFrameRate();
   m_scrShotClick = 0;
   PerfCountersLatch();
 }
 
-void CGxDevice::SceneClear(unsigned int mask) {
+void CGxDevice::SceneClear(UINT mask) {
 }
 
 void CGxDevice::XformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
@@ -547,7 +545,7 @@ void CGxDevice::XformSetView(const NTempest::C44Matrix &matrix) {
   m_xforms[6].Top() = matrix;
 }
 
-void CGxDevice::XformSetBones(unsigned int numBones, const NTempest::C34Matrix *matrices) {
+void CGxDevice::XformSetBones(UINT numBones, const NTempest::C34Matrix *matrices) {
   m_bones = matrices;
   m_boneCount = numBones;
 }
@@ -566,7 +564,7 @@ void CGxDevice::XformView(NTempest::C44Matrix &matrix) {
   matrix = m_xforms[6].m_mtx[m_xforms[6].m_level];
 }
 
-void CGxDevice::XformBone(unsigned int ndx, NTempest::C34Matrix &matrix) {
+void CGxDevice::XformBone(UINT ndx, NTempest::C34Matrix &matrix) {
   matrix = m_bones[ndx];
 }
 
@@ -653,19 +651,19 @@ EGxVertexBufferFormat CGxDevice::IGiveVbColor(EGxVertexBufferFormat format) {
 }
 
 void CGxDevice::PrimLockAndProcessVertexPtrs(
-    unsigned int               vertexCount,
+    UINT                       vertexCount,
     const NTempest::C3Vector  *pos,
-    unsigned int               posStride,
+    UINT                       posStride,
     const NTempest::C3Vector  *normal,
-    unsigned int               normalStride,
+    UINT                       normalStride,
     const NTempest::CImVector *color,
-    unsigned int               colorStride,
-    const unsigned char       *bone,
-    unsigned int               boneStride,
+    UINT                       colorStride,
+    const BYTE                *bone,
+    UINT                       boneStride,
     const NTempest::C2Vector  *tex0,
-    unsigned int               tex0Stride,
+    UINT                       tex0Stride,
     const NTempest::C2Vector  *tex1,
-    unsigned int               tex1Stride
+    UINT                       tex1Stride
 ) {
   if (!m_vertexLocked) {
     m_vertexLocked = 1;
@@ -700,7 +698,7 @@ void CGxDevice::PrimLockAndProcessVertexPtrs(
   m_perfCountersAcc[GxPerf_VertexBytes] += vertexCount * GxVertexSize(m_vertexBufferFormat);
 }
 
-void CGxDevice::PrimLockIndexPtr(EGxPrim primType, unsigned int indexCount, const unsigned short *indices) {
+void CGxDevice::PrimLockIndexPtr(EGxPrim primType, UINT indexCount, const WORD *indices) {
   ASSERT(!m_indexLocked);
   m_indexLocked = 1;
   m_primType = primType;
@@ -729,8 +727,8 @@ void CGxDevice::PrimUnlockVertexPtrs() {
   }
 }
 
-unsigned int CGxDevice::PrimCalcCount(EGxPrim primType, unsigned int indexCount) {
-  unsigned int divisor = s_primVtxDiv[primType];
+UINT CGxDevice::PrimCalcCount(EGxPrim primType, UINT indexCount) {
+  UINT divisor = s_primVtxDiv[primType];
 
   if (divisor != 1) {
     indexCount /= divisor;
@@ -746,7 +744,7 @@ void CGxDevice::PrimBegin(EGxPrim primType) {
   m_inBeginEnd = 1;
   m_primIndexArray.SetCount(0);
   m_primVertexArray.SetCount(0);
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     m_primTexCoordArray[i].SetCount(0);
   }
   m_primNormalArray.SetCount(0);
@@ -757,10 +755,10 @@ void CGxDevice::PrimVertex(const NTempest::C3Vector &v) {
   m_primVertex = v;
   m_primMask |= 1;
 
-  *m_primIndexArray.New() = static_cast<unsigned short>(m_primVertexArray.Count());
+  *m_primIndexArray.New() = static_cast<WORD>(m_primVertexArray.Count());
   *m_primVertexArray.New() = m_primVertex;
 
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     *m_primTexCoordArray[i].New() = m_primTexCoord[i];
   }
 
@@ -783,7 +781,7 @@ void CGxDevice::PrimColor(const NTempest::CImVector &c) {
   m_primMask |= 0x40;
 }
 
-void CGxDevice::PrimTexCoord(unsigned int tmu, const NTempest::C2Vector &t) {
+void CGxDevice::PrimTexCoord(UINT tmu, const NTempest::C2Vector &t) {
   m_primTexCoord[tmu] = t;
   m_primMask |= 2 << tmu;
 }
@@ -826,7 +824,7 @@ void CGxDevice::PrimEnd() {
   }
 }
 
-void CGxDevice::LightSet(unsigned int whichLight, const CGxLight &lightInfo, const NTempest::C3Vector &cameraPos) {
+void CGxDevice::LightSet(UINT whichLight, const CGxLight &lightInfo, const NTempest::C3Vector &cameraPos) {
   m_appState.m_lights[whichLight] = lightInfo;
 
   if (m_appState.m_lights[whichLight].m_isOmni) {
@@ -838,7 +836,7 @@ void CGxDevice::LightSet(unsigned int whichLight, const CGxLight &lightInfo, con
   m_hwState.m_lightsDirty[whichLight] = memcmp(&m_hwState.m_lights[whichLight], &lightInfo, sizeof(CGxLight)) != 0;
 }
 
-void CGxDevice::Light(unsigned int whichLight, CGxLight &lightInfo) {
+void CGxDevice::Light(UINT whichLight, CGxLight &lightInfo) {
   const CGxLight &source = m_appState.m_lights[whichLight];
   lightInfo.m_enabled = source.m_enabled;
   lightInfo.m_isOmni = source.m_isOmni;
@@ -856,7 +854,7 @@ void CGxDevice::Light(unsigned int whichLight, CGxLight &lightInfo) {
   lightInfo.m_attenEnd = source.m_attenEnd;
 }
 
-void CGxDevice::LightEnable(unsigned int whichLight, int enable) {
+void CGxDevice::LightEnable(UINT whichLight, int enable) {
   m_appState.m_lights[whichLight].m_enabled = enable;
 
   if (m_hwState.m_lights[whichLight].m_enabled != enable) {
@@ -864,18 +862,11 @@ void CGxDevice::LightEnable(unsigned int whichLight, int enable) {
   }
 }
 
-int CGxDevice::EnableState(unsigned long app, unsigned long appDisables, unsigned int flagPos) {
+int CGxDevice::EnableState(DWORD app, DWORD appDisables, UINT flagPos) {
   return (app & ~appDisables & (1UL << flagPos)) != 0;
 }
 
-int CGxDevice::NeedsUpdate(
-    unsigned long app,
-    unsigned long hw,
-    unsigned long appDisables,
-    unsigned long hwDisables,
-    unsigned int  flagPos,
-    int          &enable
-) {
+int CGxDevice::NeedsUpdate(DWORD app, DWORD hw, DWORD appDisables, DWORD hwDisables, UINT flagPos, int &enable) {
   enable = EnableState(app, appDisables, flagPos);
   return enable != EnableState(hw, hwDisables, flagPos);
 }
@@ -908,7 +899,7 @@ int CGxDevice::MasterEnable(EGxMasterEnables state) {
   return ((1U << state) & m_appState.m_masterEnables) != 0;
 }
 
-unsigned int CGxDevice::IMatAlphaRef(EGxBlend op) {
+UINT CGxDevice::IMatAlphaRef(EGxBlend op) {
   return s_alphaRef[op];
 }
 
@@ -976,7 +967,7 @@ void CGxDevice::RsSet(EGxRenderState which, const NTempest::C3Vector &value) {
   }
 }
 
-void CGxDevice::RsSet(EGxRenderState which, void *value) {
+void CGxDevice::RsSet(EGxRenderState which, LPVOID value) {
   CGxStateBom tmp_;
 
   if (mAppRenderStates[which].mValue.mData[0] != reinterpret_cast<int>(value)) {
@@ -1013,8 +1004,8 @@ void CGxDevice::RsGet(EGxRenderState which, NTempest::C3Vector &value) {
   value.z = data[2];
 }
 
-void CGxDevice::RsGet(EGxRenderState which, void *&value) {
-  value = reinterpret_cast<void *>(mAppRenderStates[which].mValue.mData[0]);
+void CGxDevice::RsGet(EGxRenderState which, LPVOID &value) {
+  value = reinterpret_cast<LPVOID>(mAppRenderStates[which].mValue.mData[0]);
 }
 
 void CGxDevice::RsPush() {
@@ -1024,8 +1015,8 @@ void CGxDevice::RsPush() {
 }
 
 void CGxDevice::RsPop() {
-  unsigned int topOfStk_;
-  unsigned int ndx_;
+  UINT topOfStk_;
+  UINT ndx_;
 
   ASSERT(mStackOffsets.Count() > 0);
 
@@ -1053,7 +1044,7 @@ void CGxDevice::RsPop() {
   mStackOffsets.SetCount(mStackOffsets.Count() - 1);
 }
 
-unsigned int CGxDevice::RsStackOffset() {
+UINT CGxDevice::RsStackOffset() {
   return mStackOffsets.Count();
 }
 
@@ -1130,16 +1121,16 @@ void CGxDevice::RsInit() {
   RsSet(GxRs_DepthFunc, 0);
   RsSet(GxRs_Culling, 1);
 
-  for (unsigned int tmu = 0; tmu < 4; ++tmu) {
-    RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), static_cast<void *>(0));
+  for (UINT tmu = 0; tmu < 4; ++tmu) {
+    RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), static_cast<LPVOID>(0));
     RsSet(static_cast<EGxRenderState>(GxRs_TexBlend0 + tmu), 1);
     RsSet(static_cast<EGxRenderState>(GxRs_TexLodBias0 + tmu), 0.0f);
     RsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), 0);
     RsSet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), 0);
   }
 
-  RsSet(GxRs_PixelShader, static_cast<void *>(0));
-  RsSet(GxRs_VertexShader, static_cast<void *>(0));
+  RsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
+  RsSet(GxRs_VertexShader, static_cast<LPVOID>(0));
 }
 
 void CGxDevice::IRsSet(EGxRenderState which, const CGxStateBom &value) {
@@ -1176,7 +1167,7 @@ void CGxDevice::IRsForceUpdate(EGxRenderState ndx_) {
 }
 
 void CGxDevice::IRsForceUpdate() {
-  for (unsigned int which = 0; which < GxRenderStates_Last; ++which) {
+  for (UINT which = 0; which < GxRenderStates_Last; ++which) {
     IRsForceUpdate(static_cast<EGxRenderState>(which));
   }
 }
@@ -1186,7 +1177,7 @@ void CGxDevice::IRsSync(int force) {
     IRsForceUpdate();
   }
 
-  unsigned int ndx = mDirtyStates.Count();
+  UINT ndx = mDirtyStates.Count();
   while (ndx) {
     EGxRenderState     which = mDirtyStates[--ndx];
     CGxAppRenderState &app = mAppRenderStates[which];
@@ -1211,10 +1202,10 @@ void CGxDevice::IRsSync(int force) {
 CGxBuf *CGxDevice::BufCreate(
     EGxBufWriteFreq       writeFreq,
     EGxVertexBufferFormat format,
-    unsigned int          numVertices,
-    unsigned int          numIndices,
-    void(*userCallback)(CGxBufCommand &, CGxBuf *),
-    void *userArg
+    UINT                  numVertices,
+    UINT                  numIndices,
+    void (*userCallback)(CGxBufCommand &, CGxBuf *),
+    LPVOID userArg
 ) {
   ASSERT(numVertices <= 0xFFFF);
   return 0;
@@ -1235,17 +1226,17 @@ void CGxDevice::BufUnlock() {
   m_bufLocked = 0;
 }
 
-void CGxDevice::BufRender(const CGxBatch *batches, unsigned int count) {
+void CGxDevice::BufRender(const CGxBatch *batches, UINT count) {
   ASSERT(m_bufLocked);
   ASSERT(m_bufLocked->m_vbFormat == m_vertexBufferFormat);
 
-  for (unsigned int i = 0; i < count; ++i) {
+  for (UINT i = 0; i < count; ++i) {
     m_perfCountersAcc[GxPerf_Primitives] += PrimCalcCount(batches[i].m_primType, batches[i].m_count);
   }
   m_perfCountersAcc[GxPerf_Batches] += count;
 }
 
-void CGxDevice::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, unsigned int numVertices, unsigned int numIndices) {
+void CGxDevice::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, UINT numVertices, UINT numIndices) {
   if (freq > GxBWF_Static && freq <= GxBWF_Medium) {
     m_VBReserve[freq][format] = numVertices;
     m_IBReserve[freq][format] = numIndices;
@@ -1259,12 +1250,12 @@ CGxBuf *CGxDevice::BufGetDynamic(EGxVertexBufferFormat format) {
 }
 
 int CGxDevice::TexCreate(
-    unsigned int width,
-    unsigned int height,
+    UINT         width,
+    UINT         height,
     EGxTexFormat format,
     CGxTexFlags  flags,
-    void        *userArg,
-    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    LPVOID       userArg,
+    void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
     CGxTex *&texId
 ) {
   CGxTex *tex = NEW(CGxTex)(width, height, format, flags, userArg, userFunc);
@@ -1277,14 +1268,14 @@ int CGxDevice::TexCreate(
 
 int CGxDevice::TexCreate(
     EGxTexTarget target,
-    unsigned int width,
-    unsigned int height,
-    unsigned int depth,
+    UINT         width,
+    UINT         height,
+    UINT         depth,
     EGxTexFormat format,
     EGxTexFormat dataFormat,
     CGxTexFlags  flags,
-    void        *userArg,
-    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
+    LPVOID       userArg,
+    void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
     CGxTex *&texId
 ) {
   CGxTex *tex = NEW(CGxTex)(target, width, height, depth, format, dataFormat, flags, userArg, userFunc);
@@ -1337,11 +1328,9 @@ void CGxDevice::ITexMarkAsUpdated(CGxTex *texId) {
   }
 }
 
-unsigned int CGxDevice::ITexComputeByteSize(
-    const CGxTex *texId, const unsigned int width, const unsigned int height
-) {
-  unsigned int texWidth = width;
-  unsigned int texHeight = height;
+UINT CGxDevice::ITexComputeByteSize(const CGxTex *texId, const UINT width, const UINT height) {
+  UINT texWidth = width;
+  UINT texHeight = height;
 
   if (texWidth == UINT_MAX) {
     texWidth = texId->m_width;
@@ -1352,7 +1341,7 @@ unsigned int CGxDevice::ITexComputeByteSize(
 
   texWidth >>= m_baseMipLevel;
   texHeight >>= m_baseMipLevel;
-  unsigned int bytes = (texWidth * texHeight * s_texFormatBitDepth[texId->m_format]) >> 3;
+  UINT bytes = (texWidth * texHeight * s_texFormatBitDepth[texId->m_format]) >> 3;
 
   if (texId->m_flags.m_filter == GxTex_LinearMipNearest || texId->m_flags.m_filter == GxTex_LinearMipLinear) {
     return bytes * 1.3f;
@@ -1368,11 +1357,7 @@ void CGxDevice::ITexBind(CGxTex *texId) {
   }
 }
 
-void CGxDevice::TexSetUserData(
-    CGxTex *texId,
-    void(*userFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&),
-    void *userArg
-) {
+void CGxDevice::TexSetUserData(CGxTex *texId, void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &), LPVOID userArg) {
   texId->m_userFunc = userFunc;
   texId->m_userArg = userArg;
 
@@ -1381,24 +1366,24 @@ void CGxDevice::TexSetUserData(
 }
 
 void CGxDevice::TexSetFlags(CGxTex *texId, CGxTexFlags flags) {
-  if (*reinterpret_cast<unsigned int *>(&texId->m_flags) != *reinterpret_cast<unsigned int *>(&flags)) {
+  if (*reinterpret_cast<UINT *>(&texId->m_flags) != *reinterpret_cast<UINT *>(&flags)) {
     texId->m_flags = flags;
     texId->m_needsFlagUpdate = 1;
   }
 }
 
-void *CGxDevice::TexUserArg(CGxTex *texId) {
+LPVOID CGxDevice::TexUserArg(CGxTex *texId) {
   return texId->m_userArg;
 }
 
-void CGxDevice::TexGetDimensions(const CGxTex *texId, unsigned int *width, unsigned int *height) {
+void CGxDevice::TexGetDimensions(const CGxTex *texId, UINT *width, UINT *height) {
   *width = texId->m_width;
   *height = texId->m_height;
 }
 
 void CGxDevice::TexDestroy(CGxTex *texId) {
-  unsigned int count = m_textures.Count();
-  unsigned int i = count;
+  UINT count = m_textures.Count();
+  UINT i = count;
 
   while (i) {
     --i;
@@ -1450,9 +1435,9 @@ void CGxShaderParam::Read(SFile *file) {
 }
 
 void CGxShader::Read(SFile *file) {
-  unsigned int bytes;
-  unsigned int pcount;
-  unsigned int ccount;
+  UINT bytes;
+  UINT pcount;
+  UINT ccount;
 
   SFile::Read(file, &ccount, sizeof(ccount), 0, 0, 0);
   while (ccount--) {
@@ -1472,7 +1457,7 @@ void CGxShader::Read(SFile *file) {
 CGxShader::~CGxShader() {
 }
 
-void CGxDevice::VertexShaderCreate(CGxVertexShader *&vs, const char *filename) {
+void CGxDevice::VertexShaderCreate(CGxVertexShader *&vs, LPCSTR filename) {
   vs = m_vertexShaderList.Ptr(filename);
   if (!vs) {
     vs = m_vertexShaderList.New(filename, 0, 0);
@@ -1481,10 +1466,10 @@ void CGxDevice::VertexShaderCreate(CGxVertexShader *&vs, const char *filename) {
       SFile *file = 0;
       SFile::Open(filename, &file);
       if (file) {
-        unsigned int magic;
+        UINT magic;
         SFile::Read(file, &magic, sizeof(magic), 0, 0, 0);
         if (magic == CGxVertexShader::Magic) {
-          unsigned int version;
+          UINT version;
           SFile::Read(file, &version, sizeof(version), 0, 0, 0);
           if (version == CGxVertexShader::Version) {
             CGxShader::DirEntry dir[CGxVertexShader::Targets_Last];
@@ -1513,7 +1498,7 @@ void CGxDevice::VertexShaderDestroy(CGxVertexShader *&vs) {
   vs = 0;
 }
 
-void CGxDevice::PixelShaderCreate(CGxPixelShader *&ps, const char *filename) {
+void CGxDevice::PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename) {
   ps = m_pixelShaderList.Ptr(filename);
   if (!ps) {
     ps = m_pixelShaderList.New(filename, 0, 0);
@@ -1522,10 +1507,10 @@ void CGxDevice::PixelShaderCreate(CGxPixelShader *&ps, const char *filename) {
       SFile *file = 0;
       SFile::Open(filename, &file);
       if (file) {
-        unsigned int magic;
+        UINT magic;
         SFile::Read(file, &magic, sizeof(magic), 0, 0, 0);
         if (magic == CGxPixelShader::Magic) {
-          unsigned int version;
+          UINT version;
           SFile::Read(file, &version, sizeof(version), 0, 0, 0);
           if (version == CGxPixelShader::Version) {
             CGxShader::DirEntry dir[CGxPixelShader::Targets_Last];
@@ -1562,12 +1547,12 @@ void CGxDevice::ISetShaderParameters(CGxShader *sh, int forceForBind) {
   }
 }
 
-unsigned int CGxDevice::PerfCounter(EGxPerfCounter counter) {
+UINT CGxDevice::PerfCounter(EGxPerfCounter counter) {
   return m_perfCountersLatched[counter];
 }
 
 void CGxDevice::PerfCountersLatch() {
-  for (unsigned int i = 0; i < GxPerfCounters_Last; ++i) {
+  for (UINT i = 0; i < GxPerfCounters_Last; ++i) {
     m_perfCountersLatched[i] = m_perfCountersAcc[i];
 
     if (i != GxPerf_Textures && i != GxPerf_TextureBytes) {
@@ -1579,8 +1564,8 @@ void CGxDevice::PerfCountersLatch() {
 }
 
 float CGxDevice::CpuFrequency() {
-  __int64      start;
-  unsigned int millisecond;
+  LONGLONG start;
+  UINT     millisecond;
 
   if (frequency != 0.0f) {
     return frequency;
@@ -1595,11 +1580,11 @@ float CGxDevice::CpuFrequency() {
   return frequency;
 }
 
-__int64 CGxDevice::CpuTicks() {
+LONGLONG CGxDevice::CpuTicks() {
   return OsGetAsyncTimeClocks();
 }
 
-void __cdecl CGxDevice::DbgPrintf(const char *format, ...) {
+void __cdecl CGxDevice::DbgPrintf(LPCSTR format, ...) {
   char    buffer[256];
   va_list arguments;
 
@@ -1623,7 +1608,7 @@ void CGxDevice::LogClose() {
   }
 }
 
-void __cdecl CGxDevice::Log(const char *format, ...) {
+void __cdecl CGxDevice::Log(LPCSTR format, ...) {
   char    buffer[0x800];
   va_list arguments;
 
@@ -1645,7 +1630,7 @@ void CGxDevice::Log(const CGxCaps &caps) const {
 }
 
 void CGxDevice::Log(const CGxFormat &format) const {
-  const char *depthFormat = FmtNames[format.depthFormat];
+  LPCSTR depthFormat = FmtNames[format.depthFormat];
 
   if (format.window) {
     Log("\tFormat: %d x %d Window, %s", format.size.x, format.size.y, depthFormat);

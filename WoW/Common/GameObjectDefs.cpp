@@ -101,9 +101,9 @@ class CGameObjectDef {
   };
 
   struct EnumValue {
-    int          count;
-    const char **list;
-    int          defaultIndex;
+    int     count;
+    LPCSTR *list;
+    int     defaultIndex;
   };
 
   struct NumberValue {
@@ -114,7 +114,7 @@ class CGameObjectDef {
   };
 
   struct StringValue {
-    const char *defaultValue;
+    LPCSTR defaultValue;
   };
 
   union ValueInfo {
@@ -123,24 +123,24 @@ class CGameObjectDef {
     StringValue s;
   };
 
-  static const char *NameFromTypeId(int typeId);
-  static int TypeIdFromName(const char *string);
-  static int GetNumProps(int typeId);
-  static int GetPropId(int typeId, int propNum);
-  static int GetPropNum(int typeId, int propId);
+  static LPCSTR           NameFromTypeId(int typeId);
+  static int              TypeIdFromName(LPCSTR string);
+  static int              GetNumProps(int typeId);
+  static int              GetPropId(int typeId, int propNum);
+  static int              GetPropNum(int typeId, int propId);
   static const ValueInfo *GetPropValueInfo(int typeId, int propNum);
-  static const char *NameFromPropId(int propId);
-  static int PropIdFromName(const char *string);
-  static int GetPropValueType(int propId);
-  static int GetPropValueBaseType(int propId);
+  static LPCSTR           NameFromPropId(int propId);
+  static int              PropIdFromName(LPCSTR string);
+  static int              GetPropValueType(int propId);
+  static int              GetPropValueBaseType(int propId);
 };
 
 struct ObjectInfo {
-  int         numProps;
-  const int  *props;
-  const void *values;
-  const char *name;
-  int         unused;
+  int        numProps;
+  const int *props;
+  LPCVOID    values;
+  LPCSTR     name;
+  int        unused;
 };
 
 static const int s_doorPropertiesList[] = {1, 4, 3};
@@ -180,7 +180,7 @@ static ObjectInfo s_objectInfo[19] = {
     { 2,      s_ritualPropertiesList, 0,      "ritual", 0}
 };
 
-const char *CGameObjectDef::NameFromTypeId(int typeId) {
+LPCSTR CGameObjectDef::NameFromTypeId(int typeId) {
   FATALASSERT(typeId >= 0 && typeId < 19);
   return typeId >= 0 && typeId < 19 ? s_objectInfo[typeId].name : 0;
 }

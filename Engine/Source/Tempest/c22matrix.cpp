@@ -10,4 +10,4 @@ namespace NTempest {
     return C22Matrix(cosine, sine, -sine, cosine);
   }
 
-}
+}  // namespace NTempest

@@ -7,13 +7,13 @@ class HelmetGeosetVisDataRec {
   HelmetGeosetVisDataRec();
   ~HelmetGeosetVisDataRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 97;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 388;
   }
 
@@ -28,7 +28,7 @@ class HelmetGeosetVisDataRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
   int m_ID;
   int m_DefaultFlags[32];

@@ -11,7 +11,7 @@ class CGPlayer_C;
 
 class HASHKEY_INT {
  public:
-  HASHKEY_INT(unsigned int) {
+  HASHKEY_INT(UINT) {
   }
 
   HASHKEY_INT(int) {
@@ -29,12 +29,12 @@ class HASHKEY_INT {
   }
 };
 
-typedef void(*DBCACHECALLBACKPROC)(int result, const unsigned __int64 &guid, void *arg, bool haveData);
+typedef void (*DBCACHECALLBACKPROC)(int result, const DWORDLONG &guid, LPVOID arg, bool haveData);
 
 NODEDECL(DBCACHECALLBACK) {
   DBCACHECALLBACKPROC m_callback;
-  unsigned __int64    m_guid;
-  void               *m_cbArg;
+  DWORDLONG           m_guid;
+  LPVOID              m_cbArg;
 };
 
 template <class RECORD, class KEY, class HASHKEY>
@@ -49,27 +49,27 @@ class DBCache {
       m_callbacks.Clear();
     }
 
-    RECORD                                               m_record;
-    KEY                                                  m_dbkey;
-    bool                                                 m_haveData;
+    RECORD m_record;
+    KEY    m_dbkey;
+    bool   m_haveData;
     LISTDECL(DBCACHECALLBACK, m_callbacks);
-    bool                                                 m_temp;
+    bool m_temp;
   };
 
   typedef DBCACHEHASH       *PDBCACHEHASH;
   typedef const DBCACHEHASH *PCDBCACHEHASH;
 
   DBCache(const DBCache<RECORD, KEY, HASHKEY> &cache);
-  DBCache(unsigned long fileTag, const char *fileName, NETMESSAGE singleQuery, NETMESSAGE multiQuery, bool requireGuids, bool persistent);
+  DBCache(DWORD fileTag, LPCSTR fileName, NETMESSAGE singleQuery, NETMESSAGE multiQuery, bool requireGuids, bool persistent);
   ~DBCache();
 
-  const RECORD *GetRecord(KEY id, const unsigned __int64 &guid, DBCACHECALLBACKPROC cb, void *cbArg);
-  void          VerifyPack(CGContainer_C *container, DBCACHECALLBACKPROC callback, void *arg);
-  void          VerifyCache(CGPlayer_C *player, DBCACHECALLBACKPROC callback, void *arg);
+  const RECORD *GetRecord(KEY id, const DWORDLONG &guid, DBCACHECALLBACKPROC cb, LPVOID cbArg);
+  void          VerifyPack(CGContainer_C *container, DBCACHECALLBACKPROC callback, LPVOID arg);
+  void          VerifyCache(CGPlayer_C *player, DBCACHECALLBACKPROC callback, LPVOID arg);
   void          AddItem(RECORD *item, KEY key);
   void          AddItems(CDataStore *msg, bool single);
   void          DenyItem(KEY key);
-  void          CancelCallback(KEY id, DBCACHECALLBACKPROC cb, void *cbArg);
+  void          CancelCallback(KEY id, DBCACHECALLBACKPROC cb, LPVOID cbArg);
   void          Load();
   void          Save();
   void          Clear();
@@ -78,8 +78,8 @@ class DBCache {
 
  private:
   TSHashTable<DBCACHEHASH, HASHKEY> m_table;
-  unsigned long                     m_fileTag;
-  const char                       *m_fileName;
+  DWORD                             m_fileTag;
+  LPCSTR                            m_fileName;
   NETMESSAGE                        m_singleQueryMsg;
   NETMESSAGE                        m_multiQueryMsg;
   bool                              m_requireGuids;

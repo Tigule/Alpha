@@ -11,12 +11,12 @@ static char const whitespace[8] = " ,;\t\"\r\n";
 
 typedef TSHashTable<CVar, HASHKEY_STRI> CVarHashTable;
 
-static CVarHashTable  s_registeredCVars;
-static const char    *s_filename;
-static int s_CreatePathDirectories(const char *szPath) {
-  char        dwPartialPath[MAX_PATH];
-  int         success = 1;
-  const char *separator;
+static CVarHashTable s_registeredCVars;
+static LPCSTR        s_filename;
+static int           s_CreatePathDirectories(LPCSTR szPath) {
+  char   dwPartialPath[MAX_PATH];
+  int    success = 1;
+  LPCSTR separator;
 
   if (!szPath || !szPath[0]) {
     return 0;
@@ -24,7 +24,7 @@ static int s_CreatePathDirectories(const char *szPath) {
 
   separator = SStrChr(szPath + 1, '\\');
   while (separator) {
-    unsigned int chars = static_cast<unsigned int>(separator - szPath);
+    UINT chars = static_cast<UINT>(separator - szPath);
     if (chars >= MAX_PATH) {
       success = 0;
       break;
@@ -33,7 +33,7 @@ static int s_CreatePathDirectories(const char *szPath) {
     memcpy(dwPartialPath, szPath, chars);
     dwPartialPath[chars] = 0;
     if (!OsCreateDirectory(dwPartialPath, 0)) {
-      unsigned int attributes = OsGetFileAttributes(dwPartialPath);
+      UINT attributes = OsGetFileAttributes(dwPartialPath);
       if (attributes == 0xFFFFFFFF || !(attributes & 0x10)) {
         success = 0;
         break;
@@ -58,7 +58,7 @@ CVar::~CVar() {
   FREEIFUSED(m_latchedValue);
 }
 
-static int CvarCommandHandler(const char *command, const char *arguments) {
+static int CvarCommandHandler(LPCSTR command, LPCSTR arguments) {
   CVar *cvar = CVar::Lookup(command);
   ASSERT(cvar);
 
@@ -75,7 +75,7 @@ static int CvarCommandHandler(const char *command, const char *arguments) {
   return 1;
 }
 
-static int SetCommandHandler(const char *command, const char *arguments) {
+static int SetCommandHandler(LPCSTR command, LPCSTR arguments) {
   char cvarValue[256];
   char cvarName[32];
 
@@ -92,7 +92,7 @@ static int SetCommandHandler(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CvarResetCommandHandler(const char *command, const char *arguments) {
+static int CvarResetCommandHandler(LPCSTR command, LPCSTR arguments) {
   char cvarName[32];
 
   SStrTokenize(&arguments, cvarName, sizeof(cvarName), whitespace, 0);
@@ -115,7 +115,7 @@ static int CvarResetCommandHandler(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CvarDefaultCommandHandler(const char *command, const char *arguments) {
+static int CvarDefaultCommandHandler(LPCSTR command, LPCSTR arguments) {
   char cvarName[32];
 
   SStrTokenize(&arguments, cvarName, sizeof(cvarName), whitespace, 0);
@@ -138,9 +138,9 @@ static int CvarDefaultCommandHandler(const char *command, const char *arguments)
   return 1;
 }
 
-static int CvarListCommandHandler(const char *command, const char *arguments) {
-  char  text[256];
-  char  text2[256];
+static int CvarListCommandHandler(LPCSTR command, LPCSTR arguments) {
+  char text[256];
+  char text2[256];
   ITERATELIST(CVar, s_registeredCVars, cvar) {
     SStrPrintf(text, sizeof(text), "  \"%s\" is \"%s\"", cvar->GetName(), cvar->GetString());
 
@@ -168,9 +168,9 @@ static int CVarLoadFile() {
 }
 
 static int CVarSaveFile() {
-  char          buffer[MAX_PATH];
-  char          fileName[MAX_PATH];
-  unsigned long count;
+  char  buffer[MAX_PATH];
+  char  fileName[MAX_PATH];
+  DWORD count;
 
   SStrCopy(fileName, "WTF\\", sizeof(fileName));
   SStrPack(fileName, s_filename, sizeof(fileName));
@@ -189,14 +189,13 @@ static int CVarSaveFile() {
         return 0;
       }
     }
-
   }
 
   OsCloseFile(file);
   return 1;
 }
 
-void CVar::Initialize(const char *filename) {
+void CVar::Initialize(LPCSTR filename) {
   char path[MAX_PATH];
 
   ASSERT(filename);
@@ -222,16 +221,7 @@ void CVar::Destroy() {
   s_registeredCVars.Clear();
 }
 
-CVar *CVar::Register(
-    const char  *name,
-    const char  *help,
-    unsigned int flags,
-    const char  *value,
-    CVar::CVARCALLBACKFCN fcn,
-    unsigned int category,
-    bool         setCommand,
-    void        *arg
-) {
+CVar *CVar::Register(LPCSTR name, LPCSTR help, UINT flags, LPCSTR value, CVar::CVARCALLBACKFCN fcn, UINT category, bool setCommand, LPVOID arg) {
   ASSERT(name);
   ASSERT(value);
 
@@ -277,11 +267,11 @@ CVar *CVar::Register(
   return cvar;
 }
 
-CVar *CVar::Lookup(const char *name) {
+CVar *CVar::Lookup(LPCSTR name) {
   return s_registeredCVars.Ptr(name);
 }
 
-bool CVar::Set(const char *value, bool setValue, bool setReset, bool setDefault) {
+bool CVar::Set(LPCSTR value, bool setValue, bool setReset, bool setDefault) {
   ASSERT(value);
 
   if (setValue) {
@@ -302,14 +292,14 @@ bool CVar::Set(const char *value, bool setValue, bool setReset, bool setDefault)
 }
 
 void CVar::Reset() {
-  const char *value = m_resetValue ? m_resetValue : m_defaultValue;
+  LPCSTR value = m_resetValue ? m_resetValue : m_defaultValue;
   if (value) {
     InternalSet(value, true, false, false);
   }
 }
 
 void CVar::Default() {
-  const char *value = m_defaultValue ? m_defaultValue : m_resetValue;
+  LPCSTR value = m_defaultValue ? m_defaultValue : m_resetValue;
   if (value) {
     InternalSet(value, true, false, false);
   }
@@ -326,7 +316,7 @@ bool CVar::Update() {
   return true;
 }
 
-void CVar::InternalSet(const char *value, bool setValue, bool setReset, bool setDefault) {
+void CVar::InternalSet(LPCSTR value, bool setValue, bool setReset, bool setDefault) {
   if (setValue) {
     FREEIFUSED(m_stringValue);
     m_stringValue = SStrDupA(value, __FILE__, __LINE__);

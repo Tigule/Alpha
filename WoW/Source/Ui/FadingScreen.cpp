@@ -11,22 +11,22 @@
 #include <Tempest/c3vector.h>
 #include <Tempest/cimvector.h>
 
-static unsigned short indices[4] = {0, 1, 2, 3};
+static WORD indices[4] = {0, 1, 2, 3};
 
-static unsigned int  s_fadingScreenEnabled;
-static unsigned int  s_drawingFadingScreen;
-static HLAYER__     *s_fadingScreenLayer;
-static int           s_fadingMode;
-static float         s_fadingTime;
-static unsigned long s_fadingStart;
-static unsigned int  s_fadingComplete;
-static void(*s_fadedCallback)(void *);
-static void   *s_fadedCallbackParam;
+static UINT      s_fadingScreenEnabled;
+static UINT      s_drawingFadingScreen;
+static HLAYER__ *s_fadingScreenLayer;
+static int       s_fadingMode;
+static float     s_fadingTime;
+static DWORD     s_fadingStart;
+static UINT      s_fadingComplete;
+static void (*s_fadedCallback)(LPVOID);
+static LPVOID  s_fadedCallbackParam;
 static CGxTex *s_textureHandle;
 
-void FadingScreenPaint(void *param, const RECTF *rect, const RECTF *visibleRect, float alpha);
+void FadingScreenPaint(LPVOID param, const RECTF *rect, const RECTF *visibleRect, float alpha);
 
-int EatEvent(const void *data, void *param) {
+int EatEvent(LPCVOID data, LPVOID param) {
   return 0;
 }
 
@@ -58,20 +58,19 @@ void FadingScreenCleanup() {
   s_drawingFadingScreen = 0;
 }
 
-void FadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
+void FadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
   static NTempest::C3Vector position[4] = {
-      NTempest::C3Vector(0.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f),
-      NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f)
+      NTempest::C3Vector(0.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(0.0f, 1.0f, 0.0f),
+      NTempest::C3Vector(1.0f, 1.0f, 0.0f)
   };
   static NTempest::C2Vector texCoord[4] = {
-      NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f),
-      NTempest::C2Vector(1.0f, 0.0f)
+      NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(1.0f, 0.0f)
   };
   static NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
 
   float               elapsed = 0.0f;
   NTempest::CImVector color(0xFFFFFFFF);
-  unsigned int        fadeComplete = 0;
+  UINT                fadeComplete = 0;
 
   if (s_fadingMode) {
     if (s_drawingFadingScreen) {
@@ -84,8 +83,8 @@ void FadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
       fadeComplete = 1;
       color.a = s_fadingMode == 2 ? 255 : 0;
     } else {
-      unsigned char fadeAlpha = static_cast<unsigned char>(elapsed / s_fadingTime * 255.0f);
-      color.a = s_fadingMode == 2 ? fadeAlpha : static_cast<unsigned char>(255 - fadeAlpha);
+      BYTE fadeAlpha = static_cast<BYTE>(elapsed / s_fadingTime * 255.0f);
+      color.a = s_fadingMode == 2 ? fadeAlpha : static_cast<BYTE>(255 - fadeAlpha);
     }
   }
 
@@ -116,7 +115,7 @@ void FadingScreenPaint(void *, const RECTF *, const RECTF *, float) {
   }
 }
 
-void EnableFadingScreen(float fadeTime, void(*fadedCallback)(void *), void *param) {
+void EnableFadingScreen(float fadeTime, void (*fadedCallback)(LPVOID), LPVOID param) {
   RECTF rect;
 
   if (s_fadingScreenEnabled) {
@@ -141,7 +140,7 @@ void EnableFadingScreen(float fadeTime, void(*fadedCallback)(void *), void *para
   s_fadingComplete = 0;
 }
 
-void DisableFadingScreen(float fadeTime, void(*fadedCallback)(void *), void *param) {
+void DisableFadingScreen(float fadeTime, void (*fadedCallback)(LPVOID), LPVOID param) {
   if (s_fadingScreenEnabled) {
     s_fadingTime = fadeTime;
     s_drawingFadingScreen = 0;

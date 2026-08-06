@@ -24,7 +24,7 @@ struct CHARINFO {
 
   void ChangeSkinTexture();
   void CommitTexture(int force);
-  void UpdateCharacterInfo(const char *modelName, HMODEL backgroundModel);
+  void UpdateCharacterInfo(LPCSTR modelName, HMODEL backgroundModel);
   void UpdateTabardTexture();
 
   CHARACTER_INFO m_characterInfo;
@@ -40,23 +40,23 @@ struct CHARINFO {
 
 class CCharSelectInfo {
  public:
-  static void ClearCharacterModel();
-  static void ClearCharacterList();
-  static void ClearPetModel();
-  static int GetNumCharacters();
-  static int GetSelectionIndex();
+  static void            ClearCharacterModel();
+  static void            ClearCharacterList();
+  static void            ClearPetModel();
+  static int             GetNumCharacters();
+  static int             GetSelectionIndex();
   static CHARACTER_INFO *GetSelectedCharacterInfo();
-  static void GuildCallback(int guildID, const unsigned __int64 &guid, void *arg, bool granted);
-  static void Initialize();
-  static void SelectCharacter(int index);
-  static void SetBackgroundModel(const char *filename);
-  static void SetModelFrame(CSimpleModel *frame);
-  static void Shutdown();
-  static void UpdateCharacterList();
+  static void            GuildCallback(int guildID, const DWORDLONG &guid, LPVOID arg, bool granted);
+  static void            Initialize();
+  static void            SelectCharacter(int index);
+  static void            SetBackgroundModel(LPCSTR filename);
+  static void            SetModelFrame(CSimpleModel *frame);
+  static void            Shutdown();
+  static void            UpdateCharacterList();
 
  protected:
   static void ChangeSkinTexture();
-  static void EnumerateCharactersCallback(CHARACTER_INFO &info, void *__formal);
+  static void EnumerateCharactersCallback(CHARACTER_INFO &info, LPVOID);
   static void UpdateCharacterInfo();
 
  private:

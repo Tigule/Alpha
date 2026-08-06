@@ -7,24 +7,23 @@
 #include <stpl.h>
 
 static const char GRAVE = '`';
-static unsigned short Valid_Korean[0x92E] = {
+static WORD Valid_Korean[0x92E] = {
 #include "Game/ValidKorean.inl"
 };
 
 TSFixedArray<regex_t> g_profanityTokens;
 
-static VALIDATE_NAME_RESULT
-ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, unsigned int &nameLength, CHARSET &charset);
-static CHARSET GetCharSet(unsigned short ch);
-static bool IsAlpha(WOW_LOCALE locale, unsigned short ch);
-static bool IsLatin1(unsigned short ch);
-static bool IsAlphaLatin1(unsigned short ch);
-static bool IsKorean(unsigned short ch);
-static bool IsAlphaKorean(unsigned short ch);
+static VALIDATE_NAME_RESULT ValidateName(WOW_LOCALE locale, WORD *validChars, LPCSTR name, UINT &nameLength, CHARSET &charset);
+static CHARSET              GetCharSet(WORD ch);
+static bool                 IsAlpha(WOW_LOCALE locale, WORD ch);
+static bool                 IsLatin1(WORD ch);
+static bool                 IsAlphaLatin1(WORD ch);
+static bool                 IsKorean(WORD ch);
+static bool                 IsAlphaKorean(WORD ch);
 
 void ValidateNameInitialize() {
-  unsigned int numRecords = g_namesProfanityDB.GetNumRecords();
-  unsigned int i;
+  UINT numRecords = g_namesProfanityDB.GetNumRecords();
+  UINT i;
 
   g_profanityTokens.SetCount(numRecords);
 
@@ -41,11 +40,10 @@ void ValidateNameDestroy() {
   g_profanityTokens.Clear();
 }
 
-static VALIDATE_NAME_RESULT
-ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, unsigned int &nameLength, CHARSET &charset) {
-  unsigned short uniName[0x400];
-  regmatch_t     match;
-  unsigned int   usedGrave = 0;
+static VALIDATE_NAME_RESULT ValidateName(WOW_LOCALE locale, WORD *validChars, LPCSTR name, UINT &nameLength, CHARSET &charset) {
+  WORD       uniName[0x400];
+  regmatch_t match;
+  UINT       usedGrave = 0;
 
   if (!name) {
     return NAME_TOO_SHORT;
@@ -61,7 +59,7 @@ ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, un
 
   nameLength = SStrLen(uniName);
   charset = CHARSET_UNKNOWN;
-  for (unsigned short *ch = uniName; *ch; ++ch) {
+  for (WORD *ch = uniName; *ch; ++ch) {
     if (IsAlpha(locale, *ch)) {
       CHARSET current = GetCharSet(*ch);
       if (charset == CHARSET_UNKNOWN) {
@@ -70,7 +68,7 @@ ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, un
         return NAME_MIXED_LANGUAGES;
       }
     } else {
-      unsigned short *valid = validChars;
+      WORD *valid = validChars;
       while (valid && *valid && *valid != *ch) {
         ++valid;
       }
@@ -94,14 +92,14 @@ ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, un
     return nameLength ? NAME_TOO_SHORT : NAME_NO_NAME;
   }
 
-  for (unsigned int i = 0; i < g_profanityTokens.Count(); ++i) {
+  for (UINT i = 0; i < g_profanityTokens.Count(); ++i) {
     if (!regexec(&g_profanityTokens[i], name, 1, &match, 0) && match.rm_so >= 0) {
       return NAME_PROFANE;
     }
   }
 
-  unsigned int numReserved = g_namesReservedDB.GetNumRecords();
-  for (unsigned int reservedIndex = 0; reservedIndex < numReserved; ++reservedIndex) {
+  UINT numReserved = g_namesReservedDB.GetNumRecords();
+  for (UINT reservedIndex = 0; reservedIndex < numReserved; ++reservedIndex) {
     const NamesReservedRec *reserved = g_namesReservedDB.GetRecordByIndex(reservedIndex);
     if (!SStrCmpI(name, reserved->m_Name, 0x7FFFFFFF)) {
       return NAME_RESERVED;
@@ -111,13 +109,13 @@ ValidateName(WOW_LOCALE locale, unsigned short *validChars, const char *name, un
   return NAME_SUCCESS;
 }
 
-VALIDATE_NAME_RESULT ValidateCharacterName(WOW_LOCALE locale, const char *name) {
-  unsigned int         length;
+VALIDATE_NAME_RESULT ValidateCharacterName(WOW_LOCALE locale, LPCSTR name) {
+  UINT                 length;
   CHARSET              charset;
   VALIDATE_NAME_RESULT result = ValidateName(locale, 0, name, length, charset);
 
   if (result == NAME_SUCCESS) {
-    unsigned int maxLength = charset == CHARSET_LATIN1 ? 12 : 8;
+    UINT maxLength = charset == CHARSET_LATIN1 ? 12 : 8;
     if (length > maxLength) {
       result = NAME_TOO_LONG;
     }
@@ -126,14 +124,14 @@ VALIDATE_NAME_RESULT ValidateCharacterName(WOW_LOCALE locale, const char *name) 
   return result;
 }
 
-static CHARSET GetCharSet(unsigned short ch) {
+static CHARSET GetCharSet(WORD ch) {
   if (IsLatin1(ch)) {
     return CHARSET_LATIN1;
   }
   return IsKorean(ch) ? CHARSET_KOREAN : CHARSET_UNKNOWN;
 }
 
-static bool IsAlpha(WOW_LOCALE locale, unsigned short ch) {
+static bool IsAlpha(WOW_LOCALE locale, WORD ch) {
   if (IsLatin1(ch)) {
     return IsAlphaLatin1(ch);
   }
@@ -143,24 +141,24 @@ static bool IsAlpha(WOW_LOCALE locale, unsigned short ch) {
   return 0;
 }
 
-static bool IsLatin1(unsigned short ch) {
+static bool IsLatin1(WORD ch) {
   return ch <= 0x00FF;
 }
 
-static bool IsAlphaLatin1(unsigned short ch) {
+static bool IsAlphaLatin1(WORD ch) {
   return (ch >= 0x0041 && ch <= 0x005A) || (ch >= 0x0061 && ch <= 0x007A) || (ch >= 0x00C0 && ch <= 0x00DD) || (ch >= 0x00E0 && ch <= 0x00FF);
 }
 
-static bool IsKorean(unsigned short ch) {
+static bool IsKorean(WORD ch) {
   return (ch >= 0x1100 && ch <= 0x11FF) || (ch >= 0x3130 && ch <= 0x318F) || (ch >= 0xAC00 && ch <= 0xD7A3);
 }
 
-static bool IsAlphaKorean(unsigned short ch) {
+static bool IsAlphaKorean(WORD ch) {
   if (ch < 0xAC00 || ch > 0xD7A3) {
     return 0;
   }
 
-  for (unsigned int i = 0; i < 0x92E; ++i) {
+  for (UINT i = 0; i < 0x92E; ++i) {
     if (ch == Valid_Korean[i]) {
       return 1;
     }

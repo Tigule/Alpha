@@ -39,45 +39,45 @@ struct SMOBatch {
     F_RENDERED = 0xF0
   };
 
-  unsigned char  lightMap;
-  unsigned char  texture;
-  short          bx;
-  short          by;
-  short          bz;
-  short          tx;
-  short          ty;
-  short          tz;
-  unsigned short startIndex;
-  unsigned short count;
-  unsigned short minIndex;
-  unsigned short maxIndex;
-  unsigned char  flags;
-  unsigned char  pad[1];
+  BYTE  lightMap;
+  BYTE  texture;
+  short bx;
+  short by;
+  short bz;
+  short tx;
+  short ty;
+  short tz;
+  WORD  startIndex;
+  WORD  count;
+  WORD  minIndex;
+  WORD  maxIndex;
+  BYTE  flags;
+  BYTE  pad[1];
 };
 struct SMODoodadDef {
-  unsigned long          nameIndex;
+  DWORD                  nameIndex;
   NTempest::C3Vector     pos;
   NTempest::C4Quaternion rot;
   float                  scale;
   NTempest::CImVector    color;
 };
 struct SMODoodadSet {
-  char          name[20];
-  unsigned long startIndex;
-  unsigned long count;
-  unsigned char pad[4];
+  char  name[20];
+  DWORD startIndex;
+  DWORD count;
+  BYTE  pad[4];
 };
 struct SMOHeader {
-  unsigned long       nTextures;
-  unsigned long       nGroups;
-  unsigned long       nPortals;
-  unsigned long       nLights;
-  unsigned long       nDoodadNames;
-  unsigned long       nDoodadDefs;
-  unsigned long       nDoodadSets;
+  DWORD               nTextures;
+  DWORD               nGroups;
+  DWORD               nPortals;
+  DWORD               nLights;
+  DWORD               nDoodadNames;
+  DWORD               nDoodadDefs;
+  DWORD               nDoodadSets;
   NTempest::CImVector ambColor;
-  unsigned long       wmoID;
-  unsigned char       pad[28];
+  DWORD               wmoID;
+  BYTE                pad[28];
 };
 struct SMOLight {
   enum LightType {
@@ -87,9 +87,9 @@ struct SMOLight {
     AMBIENT_LGT = 3
   };
 
-  unsigned char       type;
-  unsigned char       useAtten;
-  unsigned char       pad[2];
+  BYTE                type;
+  BYTE                useAtten;
+  BYTE                pad[2];
   NTempest::CImVector color;
   NTempest::C3Vector  position;
   float               intensity;
@@ -107,7 +107,7 @@ struct SMOLTile {
     FISHABLE_SHIFT = 6
   };
 
-  unsigned int GetLiquid() const {
+  UINT GetLiquid() const {
     return liquid & 0xF;
   }
 
@@ -118,7 +118,7 @@ struct SMOLTile {
   __forceinline int GetFishable() const {
     return (liquid & FISHABLE_MASK) >> FISHABLE_SHIFT;
   }
-  void SetLiquid(unsigned int);
+  void SetLiquid(UINT);
   void SetShared(int);
   void SetFishable(int);
 
@@ -127,15 +127,15 @@ struct SMOLTile {
   }
 
  private:
-  unsigned char liquid;
+  BYTE liquid;
 };
 
 struct SMOWVert {
-  unsigned char flow1;
-  unsigned char flow2;
-  unsigned char flow1Pct;
-  unsigned char filler;
-  float         height;
+  BYTE  flow1;
+  BYTE  flow2;
+  BYTE  flow1Pct;
+  BYTE  filler;
+  float height;
 };
 
 struct SMOMVert {
@@ -152,65 +152,65 @@ struct SMOLVert {
 };
 struct SMOPoly;
 struct SMOPortal {
-  unsigned short    startVertex;
-  unsigned short    count;
+  WORD              startVertex;
+  WORD              count;
   NTempest::C4Plane plane;
 };
 
 struct SMOPortalRef {
-  unsigned short portalIndex;
-  unsigned short groupIndex;
-  short          side;
-  unsigned short filler;
+  WORD  portalIndex;
+  WORD  groupIndex;
+  short side;
+  WORD  filler;
 };
 
 struct SIffChunk {
   SIffChunk() {
   }
 
-  SIffChunk(unsigned long token, unsigned long size) : token(token), size(size) {
+  SIffChunk(DWORD token, DWORD size) : token(token), size(size) {
   }
 
-  unsigned long token;
-  unsigned long size;
+  DWORD token;
+  DWORD size;
 };
 
 struct CMapObjHeader {
-  SIffChunk    iffChunkVersion;
-  unsigned long version;
-  SIffChunk    iffChunkHeader;
+  SIffChunk iffChunkVersion;
+  DWORD     version;
+  SIffChunk iffChunkHeader;
 };
 
 struct SMOGxBatch {
-  unsigned short vertStart;
-  unsigned short vertCount;
-  unsigned short batchStart;
-  unsigned short batchCount;
+  WORD vertStart;
+  WORD vertCount;
+  WORD batchStart;
+  WORD batchCount;
 };
 
 struct SMOGroupHeader {
   SIffChunk        iffChunk;
-  unsigned int     nameOffset;
-  unsigned int     descriptiveNameOffset;
-  unsigned int     flags;
+  UINT             nameOffset;
+  UINT             descriptiveNameOffset;
+  UINT             flags;
   NTempest::CAaBox aaBox;
-  unsigned int     pad0;
-  unsigned short   portalStart;
-  unsigned short   portalCount;
-  unsigned char    fogIds[4];
-  unsigned int     groupLiquid;
+  UINT             pad0;
+  WORD             portalStart;
+  WORD             portalCount;
+  BYTE             fogIds[4];
+  UINT             groupLiquid;
   SMOGxBatch       intBatch[4];
   SMOGxBatch       extBatch[4];
   int              uniqueID;
-  unsigned int     pad1[2];
+  UINT             pad1[2];
 };
 
 struct SMOGroupInfo {
-  unsigned long    offset;
-  unsigned long    size;
-  unsigned long    flags;
+  DWORD            offset;
+  DWORD            size;
+  DWORD            flags;
   NTempest::CAaBox aaBox;
-  unsigned long    nameIndex;
+  DWORD            nameIndex;
 };
 
 struct SPortalExt {
@@ -219,11 +219,11 @@ struct SPortalExt {
     F_INTERSECT_NEAR = 2
   };
 
-  unsigned short  flags;
-  unsigned short  rLevel;
+  WORD            flags;
+  WORD            rLevel;
   NTempest::CRect sRect;
-  unsigned int    xformTag;
-  unsigned int    visitedTag;
+  UINT            xformTag;
+  UINT            visitedTag;
 };
 
 struct SMOMaterial {
@@ -244,27 +244,27 @@ struct SMOMaterial {
     F_CLAMP_T = 128
   };
 
-  unsigned long       version;
-  unsigned long       flags;
-  unsigned long       blendMode;
-  unsigned long       diffuseNameIndex;
+  DWORD               version;
+  DWORD               flags;
+  DWORD               blendMode;
+  DWORD               diffuseNameIndex;
   NTempest::CImVector sidnColor;
   NTempest::CImVector frameSidnColor;
-  unsigned long       envNameIndex;
+  DWORD               envNameIndex;
   NTempest::CImVector diffColor;
-  unsigned long       groundType;
+  DWORD               groundType;
   union {
-    unsigned char inMemPad[8];
-    HTEXTURE__   *hMaps[2];
+    BYTE        inMemPad[8];
+    HTEXTURE__ *hMaps[2];
   };
 };
 
 struct SMOLightmapTex {
-  unsigned char texels[0x8000];
+  BYTE texels[0x8000];
   union {
-    unsigned char inMemPad[4];
-    CGxTex       *gxTexture;
-    HTEXTURE__   *hTexture;
+    BYTE        inMemPad[4];
+    CGxTex     *gxTexture;
+    HTEXTURE__ *hTexture;
   };
 };
 
@@ -272,9 +272,9 @@ class CMapObjGroup {
  public:
   CMapObjGroup();
   ~CMapObjGroup();
-  void         Init();
-  void         InitPtrs();
-  void         Clear();
+  void Init();
+  void InitPtrs();
+  void Clear();
   bool IsLoaded() {
     return bLoaded != 0;
   }
@@ -284,63 +284,63 @@ class CMapObjGroup {
   void SetFlushTime(float time) {
     flushTime = time;
   }
-  unsigned int GetFlags() {
+  UINT GetFlags() {
     return flags;
   }
-  unsigned int GetGroupLiquid() const {
+  UINT GetGroupLiquid() const {
     return groupLiquid;
   }
-  unsigned int GetDoodadRefCount() {
+  UINT GetDoodadRefCount() {
     return doodadRefCount;
   }
-  unsigned int GetDoodadRef(unsigned int index) {
+  UINT GetDoodadRef(UINT index) {
     return doodadRefList[index];
   }
-  unsigned int GetLightRefCount() {
+  UINT GetLightRefCount() {
     return lightRefCount;
   }
-  unsigned int GetLightRef(unsigned int index) {
+  UINT GetLightRef(UINT index) {
     return lightRefList[index];
   }
   long GetUniqueID() {
     return uniqueID;
   }
-  unsigned char GetFogId(unsigned int index) {
+  BYTE GetFogId(UINT index) {
     return fogIds[index];
   }
-  SMOPoly *GetPoly(unsigned short poly) {
+  SMOPoly *GetPoly(WORD poly) {
     ASSERT(poly < polyCount);
     ASSERT(polyList);
     return &polyList[poly];
   }
-  bool         QueryLightmap(const NTempest::C3Vector &point, unsigned short polyIdx, NTempest::CImVector &color);
-  bool         QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color);
-  bool QueryLiquidStatus(const NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);
-  bool         QueryLiquidFishable(const NTempest::C3Vector &pos, int &fishable);
-  void         QueryLiquidSounds(const NTempest::C3Vector &pos, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared);
-  bool         QueryMtlId(const NTempest::C3Segment &seg, unsigned int &mtlId);
-  bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, unsigned int queryFlags);
-  bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, unsigned int queryFlags);
-  bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, unsigned int queryFlags);
+  bool QueryLightmap(const NTempest::C3Vector &point, WORD polyIdx, NTempest::CImVector &color);
+  bool QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color);
+  bool QueryLiquidStatus(const NTempest::C3Vector &pos, UINT &liquid, float &surface, NTempest::C3Vector &dir);
+  bool QueryLiquidFishable(const NTempest::C3Vector &pos, int &fishable);
+  void QueryLiquidSounds(const NTempest::C3Vector &pos, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared);
+  bool QueryMtlId(const NTempest::C3Segment &seg, UINT &mtlId);
+  bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, UINT queryFlags);
+  bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, UINT queryFlags);
+  bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, UINT queryFlags);
 
  private:
   friend class CMap;
   friend class CMapObj;
 
-  unsigned int flags;
+  UINT                 flags;
   NTempest::CAaBox     aaBox;
-  unsigned int         portalStart;
-  unsigned int         portalCount;
-  unsigned char        fogIds[4];
-  unsigned int         groupLiquid;
+  UINT                 portalStart;
+  UINT                 portalCount;
+  BYTE                 fogIds[4];
+  UINT                 groupLiquid;
   SMOGxBatch           intBatch[4];
   SMOGxBatch           extBatch[4];
   CGxBuf              *intGxBuf[4];
   CGxBuf              *extGxBuf[4];
   CAaBsp               aaBsp;
-  unsigned int         frameCount;
-  unsigned int         rLevel;
-  unsigned int         minimapTag;
+  UINT                 frameCount;
+  UINT                 rLevel;
+  UINT                 minimapTag;
   float                lightmapTexFlushTime;
   char                *dbgName;
   NTempest::C4Plane   *planeList;
@@ -348,10 +348,10 @@ class CMapObjGroup {
   NTempest::C3Vector  *vertexList;
   NTempest::C3Vector  *normalList;
   NTempest::C2Vector  *textureVertexList;
-  unsigned short      *indexList;
+  WORD                *indexList;
   SMOBatch            *batchList;
-  unsigned short      *lightRefList;
-  unsigned short      *doodadRefList;
+  WORD                *lightRefList;
+  WORD                *doodadRefList;
   NTempest::CImVector *colorVertexList;
   NTempest::C2Vector  *lightmapVertexList;
   SMOLightmap         *lightmapList;
@@ -359,112 +359,90 @@ class CMapObjGroup {
   NTempest::C2iVector  liquidVerts;
   NTempest::C2iVector  liquidTiles;
   NTempest::C3Vector   liquidCorner;
-  unsigned short       liquidMtlId;
+  WORD                 liquidMtlId;
   SMOLVert            *liquidVertexList;
   SMOLTile            *liquidTileList;
-  unsigned int         planeCount;
-  unsigned int         polyCount;
-  unsigned int         vertexCount;
-  unsigned int         normalCount;
-  unsigned int         textureVertexCount;
-  unsigned int         indexCount;
-  unsigned int         batchCount;
-  unsigned int         lightRefCount;
-  unsigned int         doodadRefCount;
-  unsigned int         colorVertexCount;
-  unsigned int         lightmapVertexCount;
-  unsigned int         lightmapCount;
-  unsigned int         lightmapTexCount;
+  UINT                 planeCount;
+  UINT                 polyCount;
+  UINT                 vertexCount;
+  UINT                 normalCount;
+  UINT                 textureVertexCount;
+  UINT                 indexCount;
+  UINT                 batchCount;
+  UINT                 lightRefCount;
+  UINT                 doodadRefCount;
+  UINT                 colorVertexCount;
+  UINT                 lightmapVertexCount;
+  UINT                 lightmapCount;
+  UINT                 lightmapTexCount;
   long                 uniqueID;
-  unsigned char       *data;
+  BYTE                *data;
   CMapObj             *parent;
   float                flushTime;
   CAsyncObject        *asyncObject;
-  unsigned char        bLoaded;
+  BYTE                 bLoaded;
 
  public:
   LINKDECLEX(CMapObjGroup, lameAssLink);
 
  private:
-  void CreateLightmapPointers(unsigned char *&pData);
-  void CreateDataPointers(unsigned char *pData);
-  void CreateOptionalDataPointers(unsigned char *pData);
-  void Create(unsigned char *rawData);
-  unsigned int SphereIntersectPoly(
-      const NTempest::CAaSphere &sphere,
-      const unsigned int         numVerts,
-      const unsigned short      *indicies
-  );
-  bool PointInPoly(
-      const NTempest::C3Vector *p,
-      const unsigned int        numIndicies,
-      const unsigned short     *indicies,
-      const NTempest::C3Vector *n
-  );
-  void QueryMinimap(
-      unsigned int                         groupID,
-      const NTempest::CAaBox              &localBox,
-      TSStackArray<CWorld::MinimapQuad>   &quads
-  );
+  void CreateLightmapPointers(BYTE *&pData);
+  void CreateDataPointers(BYTE *pData);
+  void CreateOptionalDataPointers(BYTE *pData);
+  void Create(BYTE *rawData);
+  UINT SphereIntersectPoly(const NTempest::CAaSphere &sphere, const UINT numVerts, const WORD *indicies);
+  bool PointInPoly(const NTempest::C3Vector *p, const UINT numIndicies, const WORD *indicies, const NTempest::C3Vector *n);
+  void QueryMinimap(UINT groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
   void FreeData();
   void GenTexture(SMOLightmap *lightmap, const NTempest::CImVector *source, NTempest::CImVector *texture);
 
-  static void UpdateLightmapTex(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  d,
-      unsigned int  mipLevel,
-      void         *userArg,
-      unsigned int &texelStrideInBytes,
-      const void  *&texels
-  );
-  static void AsyncPostloadCallback(void *userArg);
-  static CGxBuf *AllocExtGxBuf(unsigned int nVerts, unsigned int nIndices);
-  static void ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
-  static CGxBuf *AllocIntGxBuf(unsigned int nVerts, unsigned int nIndices);
-  static void IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
-  static void Destroy();
-  static void FreeExtGxBuf(CGxBuf *&gxBuf);
-  static void FreeIntGxBuf(CGxBuf *&gxBuf);
-  void                      FreeLightmaps();
-  void                      CreateLightmaps();
-  void                      ExtGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf);
-  void                      IntGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf);
-  void                      GxBufFillIndex(CGxBufCommand &cmd, CGxBuf *buf);
-  void                      GetTrisFromQuery(CWTriData &triData, BspQuery &q, const CMapObjDef *mapObjDef);
+  static void UpdateLightmapTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
+  static void AsyncPostloadCallback(LPVOID userArg);
+  static CGxBuf *AllocExtGxBuf(UINT nVerts, UINT nIndices);
+  static void    ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
+  static CGxBuf *AllocIntGxBuf(UINT nVerts, UINT nIndices);
+  static void    IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
+  static void    Destroy();
+  static void    FreeExtGxBuf(CGxBuf *&gxBuf);
+  static void    FreeIntGxBuf(CGxBuf *&gxBuf);
+  void           FreeLightmaps();
+  void           CreateLightmaps();
+  void           ExtGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf);
+  void           IntGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf);
+  void           GxBufFillIndex(CGxBufCommand &cmd, CGxBuf *buf);
+  void           GetTrisFromQuery(CWTriData &triData, BspQuery &q, const CMapObjDef *mapObjDef);
 
   static TSCArray<CGxBuf *, 512> extGxBufFreeList;
   static TSCArray<CGxBuf *, 512> intGxBufFreeList;
   static const EGxTexFormat      LIGHTMAP_FORMAT;
   static const SMOGxBatch       *sLockGxBatch;
-  static unsigned int            rDrawSharedLiquidFirst;
-  static unsigned int            rDrawSharedLiquidToggle;
+  static UINT                    rDrawSharedLiquidFirst;
+  static UINT                    rDrawSharedLiquidToggle;
 };
 
 class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
  public:
-  static void Initialize();
-  static void Destroy();
-  static void ClearCache(int force);
-  static void Delete(CMapObj *mapObj);
-  static CMapObj *Create(const char *fileName);
-  static void SetGroupRenderCallback(void(*func)(const unsigned int, const void *, const int), void *userParam);
+  static void     Initialize();
+  static void     Destroy();
+  static void     ClearCache(int force);
+  static void     Delete(CMapObj *mapObj);
+  static CMapObj *Create(LPCSTR fileName);
+  static void     SetGroupRenderCallback(void (*func)(const UINT, LPCVOID, const int), LPVOID userParam);
 
   CMapObj();
   ~CMapObj();
   void Init();
   void InitPtrs();
   void Clear();
-  void ReadGroup(unsigned int index);
+  void ReadGroup(UINT index);
 
-  unsigned int GetId() {
+  UINT GetId() {
     return header->wmoID;
   }
   NTempest::CImVector GetAmbientColor() {
     return ambColor;
   }
-  const SMOMaterial *GetMaterial(unsigned int mtlId) {
+  const SMOMaterial *GetMaterial(UINT mtlId) {
     ASSERT(mtlId < materialCount);
     ASSERT(materialList != 0);
     return &materialList[mtlId];
@@ -475,48 +453,48 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   bool IsLoading() {
     return asyncObject != 0;
   }
-  const char *GetFileName() {
+  LPCSTR GetFileName() {
     return name;
   }
-  unsigned int GetNumGroups() {
+  UINT GetNumGroups() {
     return groupCount;
   }
-  SMODoodadDef *GetDoodadDef(unsigned int index) {
+  SMODoodadDef *GetDoodadDef(UINT index) {
     return &doodadDefList[index];
   }
-  const char *GetDoodadName(unsigned int index) {
+  LPCSTR GetDoodadName(UINT index) {
     return &doodadNameList[index];
   }
-  unsigned int GetLightCount() {
+  UINT GetLightCount() {
     return lightCount;
   }
-  SMOLight *GetLight(unsigned int index) {
+  SMOLight *GetLight(UINT index) {
     return &lightList[index];
   }
-  bool         IsGroupLoaded(unsigned int index);
-  bool         IsGroupLoading(unsigned int index);
-  void         SetFlushTime(float time) {
+  bool IsGroupLoaded(UINT index);
+  bool IsGroupLoading(UINT index);
+  void SetFlushTime(float time) {
     flushTime = time;
   }
-  void         WaitLoad();
-  void         WaitLoadGroup(unsigned int index);
-  unsigned int GetWmoID() {
+  void WaitLoad();
+  void WaitLoadGroup(UINT index);
+  UINT GetWmoID() {
     return header->wmoID;
   }
-  CMapObjGroup *GetGroup(unsigned int index, int force = 0);
-  const SMOGroupInfo *GetGroupInfo(unsigned int index);
-  char          *GetGroupName(unsigned int index);
-  void          GetBounds(NTempest::CAaBox &aaBox);
-  void          GetBounds(NTempest::CAaSphere &aaSphere);
-  void          GetGroupBounds(NTempest::CAaBox &aaBox, unsigned int index);
-  void          GetGroupBounds(NTempest::CAaSphere &aaSphere, unsigned int index);
-  unsigned int  GetGroupFlags(unsigned int index);
-  unsigned int  GetDoodadSet(unsigned int doodadIndex);
-  const SMOFog &GetFog(unsigned int index) {
+  CMapObjGroup       *GetGroup(UINT index, int force = 0);
+  const SMOGroupInfo *GetGroupInfo(UINT index);
+  char               *GetGroupName(UINT index);
+  void                GetBounds(NTempest::CAaBox &aaBox);
+  void                GetBounds(NTempest::CAaSphere &aaSphere);
+  void                GetGroupBounds(NTempest::CAaBox &aaBox, UINT index);
+  void                GetGroupBounds(NTempest::CAaSphere &aaSphere, UINT index);
+  UINT                GetGroupFlags(UINT index);
+  UINT                GetDoodadSet(UINT doodadIndex);
+  const SMOFog       &GetFog(UINT index) {
     FATALASSERT(index < fogCount);
     return fogList[index];
   }
-  unsigned int GetFogCount() {
+  UINT GetFogCount() {
     return fogCount;
   }
   NTempest::C3Vector *GetMin() {
@@ -533,116 +511,102 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   bool TestBounds(const NTempest::CAaBox &box);
   bool TestConvexVolume(const NTempest::C3Vector &point);
   bool VectorIntersect(
-      CMapObjDef                  *mapObjDef,
-      const NTempest::C3Vector    *v0,
-      const NTempest::C3Vector    *v1,
-      unsigned int                 queryFlags,
-      unsigned int                 polyIgnoreFlags,
-      unsigned int                 groupIgnoreFlags,
-      float                       *dist,
-      SMOPoly                    **poly
+      CMapObjDef               *mapObjDef,
+      const NTempest::C3Vector *v0,
+      const NTempest::C3Vector *v1,
+      UINT                      queryFlags,
+      UINT                      polyIgnoreFlags,
+      UINT                      groupIgnoreFlags,
+      float                    *dist,
+      SMOPoly                 **poly
   );
-  bool VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT, unsigned int *groupIDs);
-  bool VectorIntersectPortal(
-      const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, unsigned int fromGroup, unsigned int &toGroup
-  );
-  bool TestGroupBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, unsigned int index);
-  bool TestGroupBounds(const NTempest::C3Vector &point, const unsigned int index);
-  bool TestGroupBounds(const NTempest::CAaBox &box, const unsigned int index);
-  bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, unsigned int queryFlags);
-  bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, unsigned int queryFlags);
-  bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, unsigned int queryFlags);
+  bool VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT, UINT *groupIDs);
+  bool VectorIntersectPortal(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, UINT fromGroup, UINT &toGroup);
+  bool TestGroupBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, UINT index);
+  bool TestGroupBounds(const NTempest::C3Vector &point, const UINT index);
+  bool TestGroupBounds(const NTempest::CAaBox &box, const UINT index);
+  bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, UINT queryFlags);
+  bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, UINT queryFlags);
+  bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, UINT queryFlags);
   bool QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color, float *t);
-  bool
-  QueryLiquidStatus(unsigned int ignoreGroupFlags, const NTempest::C3Vector &pos, unsigned int &liquid, float &surface, NTempest::C3Vector &dir);
-  bool QueryLiquidFishable(unsigned int ignoreGroupFlags, const NTempest::C3Vector &pos, int &fishable);
+  bool QueryLiquidStatus(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, UINT &liquid, float &surface, NTempest::C3Vector &dir);
+  bool QueryLiquidFishable(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, int &fishable);
   void QueryLiquidSounds(
-      unsigned int              groupIdx,
-      unsigned int              parentIdx,
-      unsigned int              rlevel,
-      unsigned int             &closestExtLevel,
+      UINT                      groupIdx,
+      UINT                      parentIdx,
+      UINT                      rlevel,
+      UINT                     &closestExtLevel,
       const NTempest::C3Vector &pos,
       int                      *lbool,
       NTempest::C3Vector       *ldelta,
       float                    *ldsquared
   );
-  bool QueryMapObjMinimap(unsigned int groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
+  bool QueryMapObjMinimap(UINT groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
 
   static void PrepareUpdate();
-  void                   LocateViewer(NTempest::C44Matrix &im, TSGrowableArray<unsigned int> &inGroups);
-  unsigned int           StabPortals(
-      unsigned int fromGroupIndex, unsigned int groupIndex, NTempest::C3Vector &rayOrig, NTempest::C3Vector &rayDir
-  );
-  unsigned int           StabPortals(
-      unsigned int groupIndex, const NTempest::C3Vector &start, const NTempest::C3Vector &end
-  );
-  void                   IntRender(NTempest::C44Matrix &mat, TSGrowableArray<unsigned int> &inGroups);
-  void                   ExtRender(NTempest::C44Matrix &mat, const NTempest::CRect &rect);
-  void RenderGroup(
-      unsigned int groupNum,
-      int rDrawSharedLiquidToggle,
-      const NTempest::C44Matrix &invMat,
-      const LISTEX(CWFrustum, sceneLink) &frustumList
-  );
+  void        LocateViewer(NTempest::C44Matrix &im, TSGrowableArray<UINT> &inGroups);
+  UINT        StabPortals(UINT fromGroupIndex, UINT groupIndex, NTempest::C3Vector &rayOrig, NTempest::C3Vector &rayDir);
+  UINT        StabPortals(UINT groupIndex, const NTempest::C3Vector &start, const NTempest::C3Vector &end);
+  void        IntRender(NTempest::C44Matrix &mat, TSGrowableArray<UINT> &inGroups);
+  void        ExtRender(NTempest::C44Matrix &mat, const NTempest::CRect &rect);
+  void RenderGroup(UINT groupNum, int rDrawSharedLiquidToggle, const NTempest::C44Matrix &invMat, const LISTEX(CWFrustum, sceneLink) & frustumList);
 
   static TSCArray<NTempest::CRect, 16> extViewList;
   static TSCArray<SPortalExt, 2048>    portalExtList;
-  static unsigned int                  maxRLevel;
-  static unsigned int                  DEFAULT_RLEVEL;
-  static unsigned int                  MAX_SOUND_RLEVEL;
+  static UINT                          maxRLevel;
+  static UINT                          DEFAULT_RLEVEL;
+  static UINT                          MAX_SOUND_RLEVEL;
   static NTempest::C3Vector            localCamPos;
   static CMapObjDef                   *curMapObjDef;
   static int                           bIntRender;
-  static unsigned int                  sMinimapTag;
+  static UINT                          sMinimapTag;
 
  private:
   friend class CMap;
   friend class CMapObjGroup;
   friend class CMapEntity;
 
-  static void AsyncPostloadCallbackHeader(void *userArg);
-  static void AsyncPostloadCallback(void *userArg);
-  static void AsyncPostloadCallbackAll(void *userArg);
-  int                    Read(const char *fileName);
-  void                   CreateData();
-  void                   AllocGroups();
-  void                   CreateAllGroups();
-  void                   ReadExtGroups();
-  SIffChunk             *ReadChunkHeader(unsigned char *&pData, unsigned long expectedToken);
-  SIffChunk             *ReadOptionalChunkHeader(unsigned char *&pData, unsigned long expectedToken);
-  void                   CreateDataPointers();
-  void                   CreateMaterials();
-  void                   CreateMaterial(unsigned int materialId);
-  void                   CreateGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo);
-  void                   ReadGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo, int preLoad);
-  void                   UpdateMaterials();
-  void                   RenderAlways(unsigned int groupIdx);
-  void                   RRenderThruPortals(unsigned int groupIdx, unsigned int parentIdx, NTempest::CRect &viewRect, unsigned int level);
-  void                   RTransformPortal(SMOPortal *portal, SPortalExt *portalExt, int cpIgnore);
-  bool                   CullBatch(const SMOBatch *batch);
-  void                   RenderGroupLightTex(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupLightmapTex_Int(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupLightmapTex_Ext(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupLightmapTex(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupColorTex_Int(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupColorTex_Ext(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupColorTex(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupLightmap(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupTex(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroup_Ext(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroup_Int(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderPortals(CMapObjGroup *group);
-  void                   RenderPortals();
-  void                   RenderGroupBsp(const CMapObjGroup *group, unsigned int frustumCount);
-  void                   RenderGroupNormals(const CMapObjGroup *group);
-  void                   RenderWaterIndices_0(const CMapObjGroup *group, unsigned short *idxBase, unsigned int vtxSub, unsigned int &idxSub);
-  void                   RenderLiquid_0(const CMapObjGroup *group);
-  void                   RenderInteriorWater_0(const CMapObjGroup *group, unsigned int liquid);
-  void                   RenderExteriorWater_0(const CMapObjGroup *group, unsigned int liquid);
-  void                   RenderMagma(const CMapObjGroup *group, unsigned int liquid);
-  void QueryMapObjMinimapGroup(
-      unsigned int groupID, unsigned int parentID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads
-  );
+  static void AsyncPostloadCallbackHeader(LPVOID userArg);
+  static void AsyncPostloadCallback(LPVOID userArg);
+  static void AsyncPostloadCallbackAll(LPVOID userArg);
+  int         Read(LPCSTR fileName);
+  void        CreateData();
+  void        AllocGroups();
+  void        CreateAllGroups();
+  void        ReadExtGroups();
+  SIffChunk  *ReadChunkHeader(BYTE *&pData, DWORD expectedToken);
+  SIffChunk  *ReadOptionalChunkHeader(BYTE *&pData, DWORD expectedToken);
+  void        CreateDataPointers();
+  void        CreateMaterials();
+  void        CreateMaterial(UINT materialId);
+  void        CreateGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo);
+  void        ReadGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo, int preLoad);
+  void        UpdateMaterials();
+  void        RenderAlways(UINT groupIdx);
+  void        RRenderThruPortals(UINT groupIdx, UINT parentIdx, NTempest::CRect &viewRect, UINT level);
+  void        RTransformPortal(SMOPortal *portal, SPortalExt *portalExt, int cpIgnore);
+  bool        CullBatch(const SMOBatch *batch);
+  void        RenderGroupLightTex(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupLightmapTex_Int(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupLightmapTex_Ext(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupLightmapTex(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupColorTex_Int(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupColorTex_Ext(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupColorTex(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupLightmap(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupTex(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroup_Ext(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroup_Int(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderPortals(CMapObjGroup *group);
+  void        RenderPortals();
+  void        RenderGroupBsp(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupNormals(const CMapObjGroup *group);
+  void        RenderWaterIndices_0(const CMapObjGroup *group, WORD *idxBase, UINT vtxSub, UINT &idxSub);
+  void        RenderLiquid_0(const CMapObjGroup *group);
+  void        RenderInteriorWater_0(const CMapObjGroup *group, UINT liquid);
+  void        RenderExteriorWater_0(const CMapObjGroup *group, UINT liquid);
+  void        RenderMagma(const CMapObjGroup *group, UINT liquid);
+  void        QueryMapObjMinimapGroup(UINT groupID, UINT parentID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
 
   char                name[260];
   SMOHeader          *header;
@@ -658,18 +622,18 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   SMODoodadDef       *doodadDefList;
   SMOFog             *fogList;
   NTempest::C4Plane  *convexVolumePlanes;
-  unsigned int        textureNameCount;
-  unsigned int        groupNameCount;
-  unsigned int        groupCount;
-  unsigned int        portalVertexCount;
-  unsigned int        portalCount;
-  unsigned int        portalRefCount;
-  unsigned int        lightCount;
-  unsigned int        doodadSetCount;
-  unsigned int        doodadNameCount;
-  unsigned int        doodadDefCount;
-  unsigned int        fogCount;
-  unsigned int        volumePlaneCount;
+  UINT                textureNameCount;
+  UINT                groupNameCount;
+  UINT                groupCount;
+  UINT                portalVertexCount;
+  UINT                portalCount;
+  UINT                portalRefCount;
+  UINT                lightCount;
+  UINT                doodadSetCount;
+  UINT                doodadNameCount;
+  UINT                doodadDefCount;
+  UINT                fogCount;
+  UINT                volumePlaneCount;
   NTempest::CImVector ambColor;
   int                 version;
   NTempest::CAaBox    aaBox;
@@ -679,22 +643,22 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   LINKDECLEX(CMapObj, lameAssLink);
 
  private:
-  CMapObjHeader                       fileHeader;
-  unsigned char                      *data;
-  unsigned long                       dataBytes;
-  int                                 refCount;
-  float                               flushTime;
-  CAsyncObject                       *asyncObject;
-  unsigned char                       bLoaded;
-  SMOMaterial                        *materialList;
-  unsigned int                        materialCount;
-  unsigned int                        nGroupsRead;
+  CMapObjHeader fileHeader;
+  BYTE         *data;
+  DWORD         dataBytes;
+  int           refCount;
+  float         flushTime;
+  CAsyncObject *asyncObject;
+  BYTE          bLoaded;
+  SMOMaterial  *materialList;
+  UINT          materialCount;
+  UINT          nGroupsRead;
   LISTDECLEX(CMapObjGroup, lameAssLink, groupList);
-  TSCArray<CMapObjGroup *, 384>       groupPtrList;
+  TSCArray<CMapObjGroup *, 384> groupPtrList;
 
-  static unsigned int gRenderCount;
-  static void(*gRenderCallback)(const unsigned int, const void *, const int);
-  static void                              *gRenderUserParam;
+  static UINT gRenderCount;
+  static void (*gRenderCallback)(const UINT, LPCVOID, const int);
+  static LPVOID                             gRenderUserParam;
   static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
   static HASHKEY_NONE                       nullHashKey;
 };

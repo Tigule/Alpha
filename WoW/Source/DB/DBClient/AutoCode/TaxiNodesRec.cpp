@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *TaxiNodesRec::GetFilename() {
+LPCSTR TaxiNodesRec::GetFilename() {
   return "DBFilesClient\\TaxiNodes.dbc";
 }
 
@@ -19,9 +19,9 @@ TaxiNodesRec::TaxiNodesRec() {
 TaxiNodesRec::~TaxiNodesRec() {
 }
 
-bool TaxiNodesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempName_langIndices[8];
+bool TaxiNodesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempName_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_ContinentID, sizeof(m_ContinentID), 0, 0, 0) && result;

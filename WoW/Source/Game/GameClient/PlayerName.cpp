@@ -36,27 +36,27 @@ class PLAYERNAMEDESC : public CHandleObject {
   PLAYERNAMEDESC();
   virtual ~PLAYERNAMEDESC();
 
-  void CreateWorldText(WORLDTEXTTYPE type, const char *text, const NTempest::CImVector *colorOverride);
-  void RenderWorldText();
-  void ShowWorldText(int show);
-  void UpdateWorldPos();
-  void UpdateWorldText();
-  void MoveGeoset(const NTempest::C3Vector &pos);
-  void Render(const NTempest::C44Matrix &basis);
-  void SetStringColor(const NTempest::CImVector &color);
+  void                CreateWorldText(WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride);
+  void                RenderWorldText();
+  void                ShowWorldText(int show);
+  void                UpdateWorldPos();
+  void                UpdateWorldText();
+  void                MoveGeoset(const NTempest::C3Vector &pos);
+  void                Render(const NTempest::C44Matrix &basis);
+  void                SetStringColor(const NTempest::CImVector &color);
   NTempest::CImVector GetStringColor() const;
 
   LINKDECLEX(PLAYERNAMEDESC, m_link);
-  CGxString             *m_string;
-  unsigned int           m_customGeosetID;
-  NTempest::CImVector    m_stringColor;
-  unsigned int           m_lastUpdateTime;
-  NTempest::C3Vector     m_basePos;
-  CGUnit_C              *m_unitPtr;
-  unsigned int           m_flags;
-  unsigned int           m_lastRenderFrame;
-  HWORLDTEXT__          *m_worldTextHandles[4];
-  float                  m_heightOffset;
+  CGxString          *m_string;
+  UINT                m_customGeosetID;
+  NTempest::CImVector m_stringColor;
+  UINT                m_lastUpdateTime;
+  NTempest::C3Vector  m_basePos;
+  CGUnit_C           *m_unitPtr;
+  UINT                m_flags;
+  UINT                m_lastRenderFrame;
+  HWORLDTEXT__       *m_worldTextHandles[4];
+  float               m_heightOffset;
 };
 
 struct CVARINFO {
@@ -65,18 +65,18 @@ struct CVARINFO {
 };
 
 struct UNITNAMESTRINGS {
-  const char *cvarName;
-  const char *cvarDefaultValue;
-  const char *cvarHelp;
+  LPCSTR cvarName;
+  LPCSTR cvarDefaultValue;
+  LPCSTR cvarHelp;
 };
 
-static CGxFont                          *s_playerNameFont;
+static CGxFont *s_playerNameFont;
 static LISTDECLEX(PLAYERNAMEDESC, m_link, s_playerNames);
-static int                               s_showNames = 1;
-static CVar                             *s_unitShowMode;
-static CVar                             *s_showTypeCVars[8];
-static unsigned int                      s_showTypeFlags[2] = {-1, -1};
-static unsigned int                      s_lastRenderFrame;
+static int   s_showNames = 1;
+static CVar *s_unitShowMode;
+static CVar *s_showTypeCVars[8];
+static UINT  s_showTypeFlags[2] = {-1, -1};
+static UINT  s_lastRenderFrame;
 
 PLAYERNAMEDESC::PLAYERNAMEDESC()
     : m_string(0),
@@ -104,7 +104,7 @@ PLAYERNAMEDESC::~PLAYERNAMEDESC() {
       HandleClose(model);
     }
   }
-  unsigned int i;
+  UINT i;
   for (i = 0; i < 4; ++i) {
     if (m_worldTextHandles[i]) {
       HandleClose(reinterpret_cast<HOBJECT>(m_worldTextHandles[i]));
@@ -115,25 +115,23 @@ PLAYERNAMEDESC::~PLAYERNAMEDESC() {
   }
 }
 
-static void PlayerNameRenderCallback(HMODEL__* model, const NTempest::C34Matrix& basis, void* param) {
+static void PlayerNameRenderCallback(HMODEL__ *model, const NTempest::C34Matrix &basis, LPVOID param) {
   FATALASSERT(param);
   NTempest::C44Matrix matrix(
-      basis.a0, basis.a1, basis.a2, 0.0f,
-      basis.b0, basis.b1, basis.b2, 0.0f,
-      basis.c0, basis.c1, basis.c2, 0.0f,
-      basis.d0, basis.d1, basis.d2, 1.0f);
+      basis.a0, basis.a1, basis.a2, 0.0f, basis.b0, basis.b1, basis.b2, 0.0f, basis.c0, basis.c1, basis.c2, 0.0f, basis.d0, basis.d1, basis.d2, 1.0f
+  );
   static_cast<PLAYERNAMEDESC *>(param)->Render(matrix);
 }
 
 static const CVARINFO s_cvarInfo[8] = {
-    {    SHOWTYPE_LOCALPLAYER,        UNITNAMEINFO_NAME},
-    {    SHOWTYPE_LOCALPLAYER,       UNITNAMEINFO_GUILD},
-    {    SHOWTYPE_LOCALPLAYER,       UNITNAMEINFO_TITLE},
-    {    SHOWTYPE_LOCALPLAYER,  UNITNAMEINFO_SUMMONEDBY},
-    {SHOWTYPE_ALLOTHERUNITS,        UNITNAMEINFO_NAME},
-    {SHOWTYPE_ALLOTHERUNITS,       UNITNAMEINFO_GUILD},
-    {SHOWTYPE_ALLOTHERUNITS,       UNITNAMEINFO_TITLE},
-    {SHOWTYPE_ALLOTHERUNITS,  UNITNAMEINFO_SUMMONEDBY}
+    {  SHOWTYPE_LOCALPLAYER,       UNITNAMEINFO_NAME},
+    {  SHOWTYPE_LOCALPLAYER,      UNITNAMEINFO_GUILD},
+    {  SHOWTYPE_LOCALPLAYER,      UNITNAMEINFO_TITLE},
+    {  SHOWTYPE_LOCALPLAYER, UNITNAMEINFO_SUMMONEDBY},
+    {SHOWTYPE_ALLOTHERUNITS,       UNITNAMEINFO_NAME},
+    {SHOWTYPE_ALLOTHERUNITS,      UNITNAMEINFO_GUILD},
+    {SHOWTYPE_ALLOTHERUNITS,      UNITNAMEINFO_TITLE},
+    {SHOWTYPE_ALLOTHERUNITS, UNITNAMEINFO_SUMMONEDBY}
 };
 
 static const UNITNAMESTRINGS s_cvarStrings[8] = {
@@ -147,12 +145,12 @@ static const UNITNAMESTRINGS s_cvarStrings[8] = {
     {"UnitNameUnitSummonedBy", "1", "Toggles showing units' owners in worldname"}
 };
 
-static bool UnitNameShowTypeCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static void TriggerNameRegenerate();
-void PlayerNameShutdown();
-HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, const char *text, unsigned __int64 object, const NTempest::CImVector *colorOverride);
+static bool   UnitNameShowTypeCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+static void   TriggerNameRegenerate();
+void          PlayerNameShutdown();
+HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object, const NTempest::CImVector *colorOverride);
 
-static void CalculateBillboardRotation(const NTempest::C3Vector& direction, NTempest::C44Matrix& matrix) {
+static void CalculateBillboardRotation(const NTempest::C3Vector &direction, NTempest::C44Matrix &matrix) {
   NTempest::C3Vector zprime(direction);
   zprime.Normalize();
   matrix.c0 = zprime.x;
@@ -188,7 +186,7 @@ void PLAYERNAMEDESC::SetStringColor(const NTempest::CImVector &color) {
 }
 
 void PLAYERNAMEDESC::RenderWorldText() {
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     if (m_worldTextHandles[i]) {
       WorldTextRender(m_worldTextHandles[i]);
     }
@@ -197,7 +195,7 @@ void PLAYERNAMEDESC::RenderWorldText() {
 
 void PLAYERNAMEDESC::ShowWorldText(int show) {
   if ((show && (m_flags & 4)) || (!show && !(m_flags & 4))) {
-    for (unsigned int i = 0; i < 4; ++i) {
+    for (UINT i = 0; i < 4; ++i) {
       if (m_worldTextHandles[i]) {
         WorldTextShow(m_worldTextHandles[i], show);
       }
@@ -211,8 +209,8 @@ void PLAYERNAMEDESC::ShowWorldText(int show) {
   }
 }
 
-void PLAYERNAMEDESC::CreateWorldText(WORLDTEXTTYPE type, const char *text, const NTempest::CImVector *colorOverride) {
-  for (unsigned int i = 0; i < 4; ++i) {
+void PLAYERNAMEDESC::CreateWorldText(WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride) {
+  for (UINT i = 0; i < 4; ++i) {
     if (!m_worldTextHandles[i]) {
       m_worldTextHandles[i] = WorldTextCreate(type, text, 0, colorOverride);
       return;
@@ -222,12 +220,12 @@ void PLAYERNAMEDESC::CreateWorldText(WORLDTEXTTYPE type, const char *text, const
 
 void PLAYERNAMEDESC::UpdateWorldPos() {
   NTempest::C44Matrix cameraMatrix = CGWorldFrame::GetActive()->GetCurrentWorldMatrix();
-  unsigned int currentTime = OsGetAsyncTimeMs();
-  int elapsed = currentTime - m_lastUpdateTime;
+  UINT                currentTime = OsGetAsyncTimeMs();
+  int                 elapsed = currentTime - m_lastUpdateTime;
   ASSERT(elapsed >= 0);
   float elapsedSeconds = elapsed * 0.001f;
 
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     if (m_worldTextHandles[i]) {
       WorldTextUpdate(m_worldTextHandles[i], elapsedSeconds, cameraMatrix, &m_basePos);
       if (WorldTextIsTextDone(m_worldTextHandles[i])) {
@@ -249,13 +247,13 @@ static void TriggerNameRegenerate() {
   }
 }
 
-static bool UnitNameShowTypeCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
-  unsigned int index = reinterpret_cast<unsigned int>(arg);
+static bool UnitNameShowTypeCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
+  UINT index = reinterpret_cast<UINT>(arg);
   ASSERT(index < sizeof(s_cvarInfo) / sizeof(s_cvarInfo[0]));
 
   UNITNAME_SHOWTYPE_GROUPS group = s_cvarInfo[index].group;
-  unsigned int             oldFlags = s_showTypeFlags[group];
-  unsigned int             showTypeFlag = 1 << s_cvarInfo[index].showType;
+  UINT                     oldFlags = s_showTypeFlags[group];
+  UINT                     showTypeFlag = 1 << s_cvarInfo[index].showType;
 
   if (SStrToInt(newValue)) {
     s_showTypeFlags[group] |= showTypeFlag;
@@ -273,7 +271,7 @@ static bool UnitNameShowTypeCallback(CVar *h, const char *oldValue, const char *
 void PlayerNameInitialize() {
   PlayerNameShutdown();
 
-  const char *fontName;
+  LPCSTR fontName;
   if (FrameScript_GetVariable("UNIT_NAME_FONT", fontName)) {
     GxuFontCreateFont(fontName, 0.99f, s_playerNameFont, 4);
   }
@@ -283,11 +281,11 @@ void PlayerNameInitialize() {
       GRAPHICS, false, 0
   );
 
-  for (unsigned int i = 0; i < sizeof(s_cvarStrings) / sizeof(s_cvarStrings[0]); ++i) {
+  for (UINT i = 0; i < sizeof(s_cvarStrings) / sizeof(s_cvarStrings[0]); ++i) {
     if (s_cvarStrings[i].cvarName) {
       s_showTypeCVars[i] = CVar::Register(
           s_cvarStrings[i].cvarName, s_cvarStrings[i].cvarHelp, 0, s_cvarStrings[i].cvarDefaultValue, UnitNameShowTypeCallback, GRAPHICS, false,
-          reinterpret_cast<void *>(i)
+          reinterpret_cast<LPVOID>(i)
       );
     }
   }
@@ -306,9 +304,9 @@ void PlayerNameShow(int show) {
   s_showNames = show;
 }
 
-HPLAYERNAME__* PlayerNameCreate(CGUnit_C* unitPtr) {
+HPLAYERNAME__ *PlayerNameCreate(CGUnit_C *unitPtr) {
   FATALASSERT(unitPtr);
-  void *storage = SMemAlloc(sizeof(PLAYERNAMEDESC), "HPLAYERNAME", SERR_LINECODE_OBJECT, 0);
+  LPVOID          storage = SMemAlloc(sizeof(PLAYERNAMEDESC), "HPLAYERNAME", SERR_LINECODE_OBJECT, 0);
   PLAYERNAMEDESC *desc = storage ? new (storage) PLAYERNAMEDESC : 0;
   FATALASSERT(desc);
 
@@ -334,7 +332,7 @@ void PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name) {
   }
 }
 
-void PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, const char *text, const NTempest::CImVector *colorOverride) {
+void PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride) {
   if (ClntObjMgrGetPlayerType()) {
     return;
   }
@@ -345,7 +343,7 @@ void PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, const char *t
   }
 }
 
-void PlayerNameUpdateWorldText(HPLAYERNAME__* name) {
+void PlayerNameUpdateWorldText(HPLAYERNAME__ *name) {
   if (name) {
     reinterpret_cast<PLAYERNAMEDESC *>(name)->UpdateWorldText();
   }
@@ -369,16 +367,14 @@ void PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name) {
   }
 }
 
-void PlayerNameChangeLocation(HPLAYERNAME__* name, const NTempest::C3Vector& namePosition) {
+void PlayerNameChangeLocation(HPLAYERNAME__ *name, const NTempest::C3Vector &namePosition) {
   if (name) {
-    reinterpret_cast<PLAYERNAMEDESC *>(name)->MoveGeoset(
-        namePosition);
+    reinterpret_cast<PLAYERNAMEDESC *>(name)->MoveGeoset(namePosition);
   }
 }
 
 void PLAYERNAMEDESC::MoveGeoset(const NTempest::C3Vector &pos) {
-  if (m_unitPtr &&
-      m_customGeosetID != -1) {
+  if (m_unitPtr && m_customGeosetID != -1) {
     HMODEL model = m_unitPtr->GetCharacterModel(0);
     FATALASSERT(model);
     ModelCustGeosetMove(model, m_customGeosetID, pos);
@@ -386,7 +382,7 @@ void PLAYERNAMEDESC::MoveGeoset(const NTempest::C3Vector &pos) {
   }
 }
 
-unsigned int PlayerNameGetUnitNameMode() {
+UINT PlayerNameGetUnitNameMode() {
   FATALASSERT(s_unitShowMode);
   return s_unitShowMode->GetInt();
 }

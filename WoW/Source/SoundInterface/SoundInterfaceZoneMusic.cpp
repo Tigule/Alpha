@@ -10,12 +10,12 @@
 #include "SoundInterface/ISoundInterface.h"
 #include "Tempest/crandom.h"
 
-static int           s_flags;
+static int                 s_flags;
 static const ZoneMusicRec *s_currentMusic;
-static Sound        *s_sound;
-static int           s_elapsed;
-static int           s_nextPlay = -1;
-static NTempest::CRndSeed s_rndSeed;
+static Sound              *s_sound;
+static int                 s_elapsed;
+static int                 s_nextPlay = -1;
+static NTempest::CRndSeed  s_rndSeed;
 
 static int GetNextPlayTime() {
   if (s_flags & 4) {
@@ -28,14 +28,12 @@ static int GetNextPlayTime() {
   if (range < 1) {
     range = 1;
   }
-  unsigned int random = NTempest::CRandom::uint32_(s_rndSeed);
-  return OsGetAsyncTimeMs() + minimum + static_cast<unsigned int>(
-      (static_cast<unsigned __int64>(random) * static_cast<unsigned int>(range)) >> 32
-  );
+  UINT random = NTempest::CRandom::uint32_(s_rndSeed);
+  return OsGetAsyncTimeMs() + minimum + static_cast<UINT>((static_cast<DWORDLONG>(random) * static_cast<UINT>(range)) >> 32);
 }
 
 static void PlayMusic() {
-  unsigned int soundID = s_currentMusic->m_Sounds[g_currentAmbience];
+  UINT soundID = s_currentMusic->m_Sounds[g_currentAmbience];
   if (!soundID) {
     return;
   }
@@ -46,7 +44,7 @@ static void PlayMusic() {
   }
 
   Sound::KillSound(s_sound);
-  const char *filename = definition->GetRandomFileName(-1);
+  LPCSTR filename = definition->GetRandomFileName(-1);
   if (filename && *filename) {
     s_sound = Sound::Play2D(SOUNDCATEGORY_NONE, filename, 6, true);
   }
@@ -59,15 +57,14 @@ static void PlayMusic() {
   }
 }
 
-static int ZoneMusicIdle(const void* dataPtr, void* ptr) {
-  const EVENT_DATA_IDLE* data = static_cast<const EVENT_DATA_IDLE*>(dataPtr);
-  if (!(s_flags & 1) && s_currentMusic
-      && (s_currentMusic->m_Sounds[0] || s_currentMusic->m_Sounds[1])) {
+static int ZoneMusicIdle(LPCVOID dataPtr, LPVOID ptr) {
+  const EVENT_DATA_IDLE *data = static_cast<const EVENT_DATA_IDLE *>(dataPtr);
+  if (!(s_flags & 1) && s_currentMusic && (s_currentMusic->m_Sounds[0] || s_currentMusic->m_Sounds[1])) {
     if (s_sound && !s_sound->IsPlaying()) {
       s_nextPlay = GetNextPlayTime();
       Sound::KillSound(s_sound);
     }
-    if (!s_sound && (s_nextPlay == -1 || data->time > static_cast<unsigned int>(s_nextPlay))) {
+    if (!s_sound && (s_nextPlay == -1 || data->time > static_cast<UINT>(s_nextPlay))) {
       PlayMusic();
     }
   }
@@ -88,7 +85,7 @@ void ShutdownZoneMusic() {
   Sound::KillSound(s_sound);
 }
 
-void SndInterfaceRegisterNewZone(unsigned int musicID) {
+void SndInterfaceRegisterNewZone(UINT musicID) {
   const ZoneMusicRec *previousMusic = s_currentMusic;
   s_currentMusic = g_zoneMusicDB.GetRecord(musicID);
 

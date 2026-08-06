@@ -7,13 +7,13 @@ class ChrClassesRec {
   ChrClassesRec();
   ~ChrClassesRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 14;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 56;
   }
 
@@ -28,15 +28,15 @@ class ChrClassesRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_PlayerClass;
-  int         m_DamageBonusStat;
-  int         m_DisplayPower;
-  const char *m_petNameToken;
-  const char *m_name_lang[NUM_LOCALES];
-  int         m_name_flag;
+  int    m_ID;
+  int    m_PlayerClass;
+  int    m_DamageBonusStat;
+  int    m_DisplayPower;
+  LPCSTR m_petNameToken;
+  LPCSTR m_name_lang[NUM_LOCALES];
+  int    m_name_flag;
 };
 
 extern WowClientDB<ChrClassesRec> g_chrClassesDB;

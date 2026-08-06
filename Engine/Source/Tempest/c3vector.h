@@ -35,10 +35,20 @@ namespace NTempest {
     ~C3Vector() {
     }
 
-    C3Vector asC3Vector() const { return *this; }
-    const C3Vector *asFloatPtr() const { return this; }
-    void Get(float &tx, float &ty, float &tz) const { tx = x; ty = y; tz = z; }
-    operator C2Vector() const { return C2Vector(x, y); }
+    C3Vector asC3Vector() const {
+      return *this;
+    }
+    const C3Vector *asFloatPtr() const {
+      return this;
+    }
+    void Get(float &tx, float &ty, float &tz) const {
+      tx = x;
+      ty = y;
+      tz = z;
+    }
+    operator C2Vector() const {
+      return C2Vector(x, y);
+    }
 
     void Set(float tx, float ty, float tz) {
       x = tx;
@@ -74,11 +84,7 @@ namespace NTempest {
     }
 
     static C3Vector Lerp(const C3Vector &a, const C3Vector &b, const C3Vector &t) {
-      return C3Vector(
-          a.x + (b.x - a.x) * t.x,
-          a.y + (b.y - a.y) * t.y,
-          a.z + (b.z - a.z) * t.z
-      );
+      return C3Vector(a.x + (b.x - a.x) * t.x, a.y + (b.y - a.y) * t.y, a.z + (b.z - a.z) * t.z);
     }
 
     void Maximize(const C3Vector &a) {
@@ -105,25 +111,20 @@ namespace NTempest {
 
     static C3Vector ProjectionOnPlane(const C3Vector &vector, const C3Vector &normal) {
       float distance = Dot(vector, normal);
-      return C3Vector(
-          vector.x - normal.x * distance,
-          vector.y - normal.y * distance,
-          vector.z - normal.z * distance
-      );
+      return C3Vector(vector.x - normal.x * distance, vector.y - normal.y * distance, vector.z - normal.z * distance);
     }
 
     static C3Vector NearestOnPlane(const C3Vector &point, const C3Vector &planePoint, const C3Vector &normal) {
       C3Vector offset(point.x - planePoint.x, point.y - planePoint.y, point.z - planePoint.z);
-      float distance = Dot(offset, normal);
-      return C3Vector(
-          point.x - normal.x * distance,
-          point.y - normal.y * distance,
-          point.z - normal.z * distance
-      );
+      float    distance = Dot(offset, normal);
+      return C3Vector(point.x - normal.x * distance, point.y - normal.y * distance, point.z - normal.z * distance);
     }
 
     C3Vector &operator+=(float a) {
-      x += a; y += a; z += a; return *this;
+      x += a;
+      y += a;
+      z += a;
+      return *this;
     }
 
     C3Vector &operator+=(const C3Vector &a) {
@@ -134,11 +135,17 @@ namespace NTempest {
     }
 
     C3Vector &operator-=(float a) {
-      x -= a; y -= a; z -= a; return *this;
+      x -= a;
+      y -= a;
+      z -= a;
+      return *this;
     }
 
     C3Vector &operator-=(const C3Vector &a) {
-      x -= a.x; y -= a.y; z -= a.z; return *this;
+      x -= a.x;
+      y -= a.y;
+      z -= a.z;
+      return *this;
     }
 
     C3Vector &operator*=(const C3Vector &a) {
@@ -160,25 +167,32 @@ namespace NTempest {
     }
 
     C3Vector &operator/=(const C3Vector &a) {
-      x /= a.x; y /= a.y; z /= a.z; return *this;
+      x /= a.x;
+      y /= a.y;
+      z /= a.z;
+      return *this;
     }
 
     C3Vector operator-() const {
       return C3Vector(-x, -y, -z);
     }
 
-    const float &operator[](unsigned int sub) const {
+    const float &operator[](UINT sub) const {
       ASSERT(sub < eComponents);
       return (&x)[sub];
     }
 
-    float &operator[](unsigned int sub) {
+    float &operator[](UINT sub) {
       ASSERT(sub < eComponents);
       return (&x)[sub];
     }
 
-    float SumC() const { return x + y + z; }
-    bool IsUnit() const { return CMath::fabs_(SquaredMag() - 1.0f) < 0.0009765625f; }
+    float SumC() const {
+      return x + y + z;
+    }
+    bool IsUnit() const {
+      return CMath::fabs_(SquaredMag() - 1.0f) < 0.0009765625f;
+    }
     void SafeNormalize() {
       float squaredMag = SquaredMag();
       if (squaredMag > 0.0f) {
@@ -244,8 +258,7 @@ namespace NTempest {
   CDataStore &operator<<(CDataStore &store, const C3Vector &vector);
 
   inline C3iVector::C3iVector(const C3Vector &vector)
-      : x(static_cast<long>(vector.x)), y(static_cast<long>(vector.y)),
-        z(static_cast<long>(vector.z)) {
+      : x(static_cast<long>(vector.x)), y(static_cast<long>(vector.y)), z(static_cast<long>(vector.z)) {
   }
 
 }  // namespace NTempest

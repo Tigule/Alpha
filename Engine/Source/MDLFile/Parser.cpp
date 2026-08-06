@@ -3,19 +3,18 @@
 #include "lex.h"
 
 namespace MDL {
-const char *TokenText(unsigned int token);
+  LPCSTR TokenText(UINT token);
 }
 
-Parser::Parser(CMDLStatus *status, mdl_scan &scanner)
-    : m_scanner(scanner), m_status(status), m_flags(0) {
+Parser::Parser(CMDLStatus *status, mdl_scan &scanner) : m_scanner(scanner), m_status(status), m_flags(0) {
 }
 
 int Parser::GetLineNumber() {
   return m_scanner.mdllineno;
 }
 
-unsigned int Parser::Token(const char **tokenText, UTokenData *data) {
-  unsigned int token;
+UINT Parser::Token(LPCSTR *tokenText, UTokenData *data) {
+  UINT token;
   if (m_flags & 2) {
     token = 0;
   } else {
@@ -39,41 +38,36 @@ unsigned int Parser::Token(const char **tokenText, UTokenData *data) {
   return token;
 }
 
-void Parser::FatalDuplicate(const char *found) {
+void Parser::FatalDuplicate(LPCSTR found) {
   m_status->FatalDuplicate(found, GetLineNumber());
   m_flags |= 1;
 }
 
-void Parser::FatalUnmatched(
-    const char *item1,
-    unsigned int count1,
-    const char *item2,
-    unsigned int count2
-) {
+void Parser::FatalUnmatched(LPCSTR item1, UINT count1, LPCSTR item2, UINT count2) {
   m_status->FatalUnmatched(item1, count1, item2, count2, GetLineNumber());
   m_flags |= 1;
 }
 
-void Parser::FatalNotFound(const char *expected) {
+void Parser::FatalNotFound(LPCSTR expected) {
   m_status->FatalNotFound(expected, GetLineNumber());
   m_flags |= 1;
 }
 
-void Parser::FatalNotFound(unsigned int what) {
+void Parser::FatalNotFound(UINT what) {
   FatalNotFound(MDL::TokenText(what));
 }
 
-void Parser::FatalUnexpected(const char *found) {
+void Parser::FatalUnexpected(LPCSTR found) {
   m_status->FatalUnexpected(found, GetLineNumber());
   m_flags |= 1;
 }
 
-void Parser::FatalExpected(const char *expected, const char *found) {
+void Parser::FatalExpected(LPCSTR expected, LPCSTR found) {
   m_status->FatalExpected(expected, found, GetLineNumber());
   m_flags |= 1;
 }
 
-void Parser::FatalExpected(unsigned int what, const char *found) {
+void Parser::FatalExpected(UINT what, LPCSTR found) {
   FatalExpected(MDL::TokenText(what), found);
 }
 
@@ -82,7 +76,7 @@ void Parser::FatalEOF() {
   m_flags |= 1;
 }
 
-void Parser::WarningCount(const char *item, long expected, long actual) {
+void Parser::WarningCount(LPCSTR item, long expected, long actual) {
   m_status->WarningCount(item, expected, actual, GetLineNumber());
 }
 
@@ -90,20 +84,20 @@ int Parser::FoundError() {
   return m_flags & 1;
 }
 
-void Parser::Expect(unsigned int what) {
-  const char *tokentext;
+void Parser::Expect(UINT what) {
+  LPCSTR tokentext;
   if (Token(&tokentext, 0) != what) {
     FatalExpected(what, tokentext);
   }
 }
 
-void Parser::Expect(unsigned int what, unsigned int cachedToken, const char *tokenText) {
+void Parser::Expect(UINT what, UINT cachedToken, LPCSTR tokenText) {
   if (cachedToken != what) {
     FatalExpected(what, tokenText);
   }
 }
 
-long Parser::ExpectInt(unsigned int cachedToken, const char *tokenText, UTokenData *cachedValue) {
+long Parser::ExpectInt(UINT cachedToken, LPCSTR tokenText, UTokenData *cachedValue) {
   if (cachedToken == 0x100) {
     return cachedValue->lVal;
   }
@@ -112,16 +106,16 @@ long Parser::ExpectInt(unsigned int cachedToken, const char *tokenText, UTokenDa
 }
 
 long Parser::ExpectInt() {
-  const char *tokentext;
+  LPCSTR     tokentext;
   UTokenData value;
-  unsigned int token = Token(&tokentext, &value);
+  UINT       token = Token(&tokentext, &value);
   return ExpectInt(token, tokentext, &value);
 }
 
 float Parser::ExpectFloat() {
-  const char *tokentext;
+  LPCSTR     tokentext;
   UTokenData value;
-  unsigned int token = Token(&tokentext, &value);
+  UINT       token = Token(&tokentext, &value);
   if (token == 0x101) {
     return value.fVal;
   }
@@ -132,8 +126,8 @@ float Parser::ExpectFloat() {
   return 0.0f;
 }
 
-const char *Parser::ExpectString() {
-  const char *tokentext;
+LPCSTR Parser::ExpectString() {
+  LPCSTR     tokentext;
   UTokenData value;
   if (Token(&tokentext, &value) == 0x102) {
     return value.sVal;
@@ -142,11 +136,7 @@ const char *Parser::ExpectString() {
   return 0;
 }
 
-const char *Parser::ExpectString(
-    unsigned int cachedToken,
-    const char *tokenText,
-    UTokenData *cachedValue
-) {
+LPCSTR Parser::ExpectString(UINT cachedToken, LPCSTR tokenText, UTokenData *cachedValue) {
   if (cachedToken == 0x102) {
     return cachedValue->sVal;
   }
@@ -154,7 +144,7 @@ const char *Parser::ExpectString(
   return 0;
 }
 
-long Parser::GetOptionalInt(unsigned int *token, const char **tokenText, UTokenData *savedValue) {
+long Parser::GetOptionalInt(UINT *token, LPCSTR *tokenText, UTokenData *savedValue) {
   UTokenData value;
   *token = Token(tokenText, &value);
   if (*token != 0x100) {
@@ -165,12 +155,7 @@ long Parser::GetOptionalInt(unsigned int *token, const char **tokenText, UTokenD
   return result;
 }
 
-long Parser::GetOptionalInt(
-    unsigned int cachedToken,
-    UTokenData *cachedValue,
-    unsigned int *token,
-    const char **tokenText
-) {
+long Parser::GetOptionalInt(UINT cachedToken, UTokenData *cachedValue, UINT *token, LPCSTR *tokenText) {
   if (cachedToken == 0x100) {
     *token = Token(tokenText, 0);
     return cachedValue->lVal;
@@ -179,7 +164,7 @@ long Parser::GetOptionalInt(
   return -1;
 }
 
-int Parser::GetOptionalToken(unsigned int expected, unsigned int *token, const char **tokenText) {
+int Parser::GetOptionalToken(UINT expected, UINT *token, LPCSTR *tokenText) {
   *token = Token(tokenText, 0);
   if (*token != expected) {
     return 0;
@@ -188,12 +173,7 @@ int Parser::GetOptionalToken(unsigned int expected, unsigned int *token, const c
   return 1;
 }
 
-int Parser::GetOptionalToken(
-    unsigned int expected,
-    unsigned int cachedToken,
-    unsigned int *token,
-    const char **tokenText
-) {
+int Parser::GetOptionalToken(UINT expected, UINT cachedToken, UINT *token, LPCSTR *tokenText) {
   if (cachedToken == expected) {
     *token = Token(tokenText, 0);
     return 1;

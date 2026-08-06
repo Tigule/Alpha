@@ -19,11 +19,11 @@ class CGSpellBook {
   static void InitializeGame();
   static void ShutdownGame();
   static void ClearSpells();
-  static unsigned char IsSpellKnown(int spellID) {
+  static BYTE IsSpellKnown(int spellID) {
     return m_knownSpellBits.IsBitSet(spellID);
   }
-  static unsigned char IsPetSpellKnown(int spellID) {
-    for (unsigned int i = 0; i < MAXIMUM_LEARNED_SPELLS; ++i) {
+  static BYTE IsPetSpellKnown(int spellID) {
+    for (UINT i = 0; i < MAXIMUM_LEARNED_SPELLS; ++i) {
       if (m_petSpells[i] == spellID) {
         return 1;
       }
@@ -32,14 +32,14 @@ class CGSpellBook {
   }
   static void ClearPetSpells();
   static void AddPetSpell(int spellID);
-  static void                    SetKnowsPetSpells() {
+  static void SetKnowsPetSpells() {
     m_knowsPetSpells = 1;
   }
   static void UpdateSpells();
   static void ReplaceSpell(int oldSpell, int newSpell);
   static void UpdateSelection();
   static void UpdateCooldowns();
-  static int             GetLanguageSpell(unsigned int language) {
+  static int  GetLanguageSpell(UINT language) {
     return m_languageSpells[language];
   }
   static int GetStuckSpell() {
@@ -53,7 +53,7 @@ class CGSpellBook {
   static void DelKnownSpell(int spellID);
   static void PickupSpell(int slot, UI_SPELL_TYPE type);
   static void CastSpell(int slot, UI_SPELL_TYPE type);
-  static int GetSpell(unsigned int slot, UI_SPELL_TYPE type) {
+  static int  GetSpell(UINT slot, UI_SPELL_TYPE type) {
     if (slot >= MAXIMUM_LEARNED_SPELLS) {
       return 0;
     }
@@ -65,8 +65,8 @@ class CGSpellBook {
     }
     return type == PET_SPELL ? m_petSpells[slot] : 0;
   }
-  static int IsSelectedSlot(int slot, UI_SPELL_TYPE type);
-  static int IsToggledSpell(int slot, UI_SPELL_TYPE type);
+  static int                         IsSelectedSlot(int slot, UI_SPELL_TYPE type);
+  static int                         IsToggledSpell(int slot, UI_SPELL_TYPE type);
   static const TSGrowableArray<int> &GetUnlockSpells();
   static const TSGrowableArray<int> &GetShapeshiftForms() {
     return m_shapeshiftForms;

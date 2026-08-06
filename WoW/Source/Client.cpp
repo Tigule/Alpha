@@ -55,42 +55,42 @@ int CDataStore::IsRead() const {
 }
 
 void CDataStore::Reset() {
-  if (m_alloc == static_cast<unsigned int>(-1)) {
+  if (m_alloc == static_cast<UINT>(-1)) {
     m_data = 0;
     m_alloc = 0;
   }
 
   FetchWrite(0, 0, 0, 0);
   m_size = 0;
-  m_read = static_cast<unsigned int>(-1);
+  m_read = static_cast<UINT>(-1);
 }
 
 void CStatus::Display() const {
 }
 
 #if defined(_MSC_VER) && _MSC_VER == 1200
-void __cdecl operator delete(void *ptr) {
+void __cdecl operator delete(LPVOID ptr) {
   if (ptr) {
     SMemFree(ptr, "delete", -1, 0);
   }
 }
 
-void *__cdecl operator new(size_t bytes) {
+LPVOID __cdecl operator new(size_t bytes) {
   return SMemAlloc(bytes, "new", -1, 0);
 }
 #endif
 
-typedef void(*SPROCESSCOMPLETIONPROC)(void *);
+typedef void (*SPROCESSCOMPLETIONPROC)(LPVOID);
 
-unsigned int ClientSetTimer(unsigned int timeout, CLIENTTIMERHANDLER handler, void *param) {
+UINT ClientSetTimer(UINT timeout, CLIENTTIMERHANDLER handler, LPVOID param) {
   return EventSetTimer(timeout, handler, param);
 }
 
-unsigned int ClientSetTimer(unsigned int timeout, CLIENTGUIDTIMERHANDLER handler, unsigned __int64 guid, void *param) {
+UINT ClientSetTimer(UINT timeout, CLIENTGUIDTIMERHANDLER handler, DWORDLONG guid, LPVOID param) {
   return EventSetTimer(timeout, handler, guid, param);
 }
 
-static int ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+static int ReceiveObjectRotation(LPVOID, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   float facing;
   float anchorfacing;
 
@@ -100,59 +100,58 @@ static int ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, unsigned long
   return 1;
 }
 
-void OsIMEInitialize();
-void OsIMEDestroy();
-void TextureInitialize();
-void TextureDestroy();
-void ModelInitialize();
-void ModelDestroy();
-void ObjectAllocInitialize();
-void ObjectAllocDestroy();
-void ClientDBInitialize();
-void ClientDBShutdown();
-void ComponentInitialize();
-void ComponentShutdown();
-int FrameXML_RegisterDefault();
-void FrameXML_ClearFactories();
-void GlueScriptEventsInitialize();
-void ScriptEventsInitialize();
-void CharCustomizationInitialize();
-void CharCustomizationShutdown();
-void CameraInitialize();
-void CameraDestroy();
-void SpellVisualsInitialize();
-void SpellVisualsShutdown();
-void SpellTableInitialize();
-void SpellTableDestroy();
-void PlayerNameInitialize();
-void PlayerNameShutdown();
-void WeaponTrailsInitialize();
-void WeaponTrailsShutdown();
-void ShadowInit();
-void ShadowDestroy();
-void LootInitialize();
-void LootDestroy();
-void TaxiMapInitialize();
-void TaxiMapShutdown();
-void Trade_C_Initialize();
-void Trade_C_Destroy();
-void SmartScreenRectClearAllGrids();
-void ValidateNameInitialize();
-void ValidateNameDestroy();
-void ViolenceLevelsInitialize();
-void ViolenceLevelsShutdown();
-void InstallGameConsoleCommands();
-void UninstallGameConsoleCommands();
-void WorldTextClearStrings();
-int SCreateProcess(const char *applicationName, char *commandLine, SPROCESSCOMPLETIONPROC completionProc, void *completionParam);
-int ModelCacheUpdate(DWORD currentTime, CStatus *status);
-void TextureCacheUpdate(DWORD currentTime, CStatus *status);
-void OsGetExePath(char *buffer, DWORD chars);
+void               OsIMEInitialize();
+void               OsIMEDestroy();
+void               TextureInitialize();
+void               TextureDestroy();
+void               ModelInitialize();
+void               ModelDestroy();
+void               ObjectAllocInitialize();
+void               ObjectAllocDestroy();
+void               ClientDBInitialize();
+void               ClientDBShutdown();
+void               ComponentInitialize();
+void               ComponentShutdown();
+int                FrameXML_RegisterDefault();
+void               FrameXML_ClearFactories();
+void               GlueScriptEventsInitialize();
+void               ScriptEventsInitialize();
+void               CharCustomizationInitialize();
+void               CharCustomizationShutdown();
+void               CameraInitialize();
+void               CameraDestroy();
+void               SpellVisualsInitialize();
+void               SpellVisualsShutdown();
+void               SpellTableInitialize();
+void               SpellTableDestroy();
+void               PlayerNameInitialize();
+void               PlayerNameShutdown();
+void               WeaponTrailsInitialize();
+void               WeaponTrailsShutdown();
+void               ShadowInit();
+void               ShadowDestroy();
+void               LootInitialize();
+void               LootDestroy();
+void               TaxiMapInitialize();
+void               TaxiMapShutdown();
+void               Trade_C_Initialize();
+void               Trade_C_Destroy();
+void               SmartScreenRectClearAllGrids();
+void               ValidateNameInitialize();
+void               ValidateNameDestroy();
+void               ViolenceLevelsInitialize();
+void               ViolenceLevelsShutdown();
+void               InstallGameConsoleCommands();
+void               UninstallGameConsoleCommands();
+void               WorldTextClearStrings();
+int                SCreateProcess(LPCSTR applicationName, char *commandLine, SPROCESSCOMPLETIONPROC completionProc, LPVOID completionParam);
+int                ModelCacheUpdate(DWORD currentTime, CStatus *status);
+void               TextureCacheUpdate(DWORD currentTime, CStatus *status);
+void               OsGetExePath(char *buffer, DWORD chars);
 NTempest::CRndSeed g_rndSeed;
 CVar              *g_realmNameVar;
 CVar              *g_realmAddressVar;
 HEVENTCONTEXT      g_clientEventContext;
-
 
 static const ARGLIST s_wowArgList[17] = {
     {SCMD_TYPE_BOOL, 15,     "640x480", 0},
@@ -174,8 +173,8 @@ static const ARGLIST s_wowArgList[17] = {
     {SCMD_TYPE_BOOL, 35, "keepsession", 0}
 };
 
-static const char *s_archiveNames[8] = {"Data\\model.MPQ",     "Data\\texture.MPQ", "Data\\sound.MPQ",  "Data\\misc.MPQ",
-                                              "Data\\interface.MPQ", "Data\\fonts.MPQ",   "Data\\speech.MPQ", "Data\\dbc.MPQ"};
+static LPCSTR s_archiveNames[8] = {"Data\\model.MPQ",     "Data\\texture.MPQ", "Data\\sound.MPQ",  "Data\\misc.MPQ",
+                                   "Data\\interface.MPQ", "Data\\fonts.MPQ",   "Data\\speech.MPQ", "Data\\dbc.MPQ"};
 
 static SArchive          *s_archive[8];
 static LoginData          s_loginData;
@@ -189,88 +188,88 @@ static CVar              *s_debugShowGUIDsCvar;
 static CVar              *s_desktopGammaCvar;
 static CVar              *s_gammaCvar;
 static CVar              *s_profanityFilterCvar;
-static unsigned int       s_cacheUpdateTimerHandle;
+static UINT               s_cacheUpdateTimerHandle;
 static int                clientGameInitialized;
-static unsigned char      s_newZoneID;
+static BYTE               s_newZoneID;
 static NTempest::C3Vector s_newPosition;
 static float              s_newFacing;
-static const char        *s_newMapname;
+static LPCSTR             s_newMapname;
 
-static int CacheUpdateHandler(const void *eventData, void *arg);
+static int  CacheUpdateHandler(LPCVOID eventData, LPVOID arg);
 static void CacheUpdateInitialize();
 static void CacheUpdateShutdown();
 static void ClientRegisterConsoleCommands();
 static void ClientUnregisterConsoleCommands();
-static int ReceiveObjectRotation(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-static int ClientChatHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int ChannelNotifyHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
-static int ClientTextEmoteHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int ClientChannelListHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
-static int MovementLoggingHandler(void *param, NETMESSAGE msgID, unsigned long time, CDataStore *msg);
-static int MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-static int LookupResultsHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int ReceiveObjectPosition(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg);
-static int PlayedTimeHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
+static int  ReceiveObjectRotation(LPVOID, NETMESSAGE msgId, DWORD time, CDataStore *msg);
+static int  ClientChatHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg);
+static int  ChannelNotifyHandler(LPVOID param, NETMESSAGE msgId, DWORD timestamp, CDataStore *msg);
+static int  ClientTextEmoteHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg);
+static int  ClientChannelListHandler(LPVOID param, NETMESSAGE msgId, DWORD timestamp, CDataStore *msg);
+static int  MovementLoggingHandler(LPVOID param, NETMESSAGE msgID, DWORD time, CDataStore *msg);
+static int  MovementFallLoggingHandler(LPVOID param, NETMESSAGE msgId, DWORD time, CDataStore *msg);
+static int  LookupResultsHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg);
+static int  ReceiveObjectPosition(LPVOID, NETMESSAGE msgId, DWORD time, CDataStore *msg);
+static int  PlayedTimeHandler(LPVOID param, NETMESSAGE msgId, DWORD timestamp, CDataStore *msg);
 static void FormatTime(char *buf, int len, int secs);
-static int NotifyHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int TransferAbortedHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
-static int TransferPendingHandler(void *param, NETMESSAGE msgId, unsigned long timestamp, CDataStore *msg);
-void MovementInit();
-static int LoadNewWorld(const void *eventData, void *param);
-static int NewWorldHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg);
-static int ClientIdle(const void *data, void *__formal);
-static int ClientFocus(const void *packetData, void *__formal);
+static int  NotifyHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg);
+static int  TransferAbortedHandler(LPVOID param, NETMESSAGE msgId, DWORD timestamp, CDataStore *msg);
+static int  TransferPendingHandler(LPVOID param, NETMESSAGE msgId, DWORD timestamp, CDataStore *msg);
+void        MovementInit();
+static int  LoadNewWorld(LPCVOID eventData, LPVOID param);
+static int  NewWorldHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg);
+static int  ClientIdle(LPCVOID data, LPVOID);
+static int  ClientFocus(LPCVOID packetData, LPVOID);
 
-typedef unsigned __int64(*GETLOCALTARGETPROC)(CGPlayer_C *);
+typedef DWORDLONG (*GETLOCALTARGETPROC)(CGPlayer_C *);
 
-static bool ErrorDisplayCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool ErrorDisplayMinLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool ErrorDisplayMaxLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool ErrorDisplayFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool DebugTargetInfoCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool DebugShowGUIDsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool GammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool DesktopGammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
-static bool ProfanityFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg);
+static bool ErrorDisplayCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+static bool ErrorDisplayMinLevelCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+static bool ErrorDisplayMaxLevelCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+static bool ErrorDisplayFilterCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+static bool DebugTargetInfoCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+static bool DebugShowGUIDsCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+static bool GammaCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+static bool DesktopGammaCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+static bool ProfanityFilterCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
 
 static void DisplayErrorLevelStatus();
 static void PrintFilterMask();
-static int SetFilterMask(const char *filterString);
+static int  SetFilterMask(LPCSTR filterString);
 
-static int CCommand_ReloadUI(const char *command, const char *arguments);
-static int CCommand_ToggleLighting(const char *command, const char *arguments);
-static int CCommand_ToggleFog(const char *command, const char *arguments);
-static int CCommand_ToggleDepthTesting(const char *command, const char *arguments);
-static int CCommand_ToggleDepthSetting(const char *command, const char *arguments);
-static int CCommand_ToggleCulling(const char *command, const char *arguments);
-static int CCommand_ToggleDblBuffer(const char *command, const char *arguments);
-static int CCommand_SetResolutionXY(const char *command, const char *arguments);
-static int CCommand_SetResolutionMode(const char *command, const char *arguments);
-static int CCommand_SetColorDepth(const char *command, const char *arguments);
-static int CCommand_SetAPI(const char *command, const char *arguments);
-static int CCommand_Bug(const char *command, const char *args);
+static int CCommand_ReloadUI(LPCSTR command, LPCSTR arguments);
+static int CCommand_ToggleLighting(LPCSTR command, LPCSTR arguments);
+static int CCommand_ToggleFog(LPCSTR command, LPCSTR arguments);
+static int CCommand_ToggleDepthTesting(LPCSTR command, LPCSTR arguments);
+static int CCommand_ToggleDepthSetting(LPCSTR command, LPCSTR arguments);
+static int CCommand_ToggleCulling(LPCSTR command, LPCSTR arguments);
+static int CCommand_ToggleDblBuffer(LPCSTR command, LPCSTR arguments);
+static int CCommand_SetResolutionXY(LPCSTR command, LPCSTR arguments);
+static int CCommand_SetResolutionMode(LPCSTR command, LPCSTR arguments);
+static int CCommand_SetColorDepth(LPCSTR command, LPCSTR arguments);
+static int CCommand_SetAPI(LPCSTR command, LPCSTR arguments);
+static int CCommand_Bug(LPCSTR command, LPCSTR args);
 
-static int ClientChatHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int ClientChatHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
   return CGChat::ChatHandler(msg);
 }
 
-static int ChannelNotifyHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ChannelNotifyHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   CGChat::ChannelNotify(msg);
   return 1;
 }
 
-static int ClientTextEmoteHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int ClientTextEmoteHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
   return CGChat::HandleTextEmote(msg);
 }
 
-static int ClientChannelListHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int ClientChannelListHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   CGChat::ChannelList(msg);
   return 1;
 }
 
-static int DebugAIStateHandler(void *, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int DebugAIStateHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
   CGTooltip *tooltip = CGGameUI::m_gameTooltip;
-  unsigned __int64 unit;
+  DWORDLONG  unit;
   msg->Get(unit);
   if (tooltip && tooltip->GetDebugUnit() != unit) {
     tooltip = 0;
@@ -293,17 +292,17 @@ static int DebugAIStateHandler(void *, NETMESSAGE msgID, unsigned long timestamp
   return 1;
 }
 
-static int MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+static int MovementFallLoggingHandler(LPVOID param, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   if (CMovement::ToggleFallLogging()) {
     SysMsgAdd("MOVEMENT|Movement fall logging started", SYSMSG_INFO, 1);
     if (CGUnit_C::GetActiveMover()) {
       CMovement::FallLogWrite("Local mover guid (0x%016I64X)\n", CGUnit_C::GetActiveMover());
     }
 
-    unsigned __int64 guid = ClntObjMgrGetActivePlayer();
-    CGObject_C      *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+    DWORDLONG   guid = ClntObjMgrGetActivePlayer();
+    CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
     if (object) {
-      unsigned __int64 target = reinterpret_cast<CGPlayer_C *>(object)->CGPlayer_C::GetLocalTarget();
+      DWORDLONG target = reinterpret_cast<CGPlayer_C *>(object)->CGPlayer_C::GetLocalTarget();
       CMovement::FallLogWrite("Local target guid (0x%016I64X)\n", target);
     }
   } else {
@@ -313,7 +312,7 @@ static int MovementFallLoggingHandler(void *param, NETMESSAGE msgId, unsigned lo
   return 1;
 }
 
-static int MovementLoggingHandler(void *param, NETMESSAGE msgID, unsigned long time, CDataStore *msg) {
+static int MovementLoggingHandler(LPVOID param, NETMESSAGE msgID, DWORD time, CDataStore *msg) {
   if (CMovement::ToggleLogging()) {
     SysMsgAdd("MOVEMENT|Movement logging started", SYSMSG_INFO, 1);
     if (CGUnit_C::GetActiveMover()) {
@@ -326,8 +325,8 @@ static int MovementLoggingHandler(void *param, NETMESSAGE msgID, unsigned long t
   return 1;
 }
 
-static int LookupResultsHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
-  unsigned int numResults;
+static int LookupResultsHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
+  UINT numResults;
 
   msg->Get(numResults);
   if (!numResults) {
@@ -335,13 +334,13 @@ static int LookupResultsHandler(void *__formal, NETMESSAGE msgID, unsigned long 
     return 1;
   }
 
-  void *data;
+  LPVOID data;
   msg->GetDataInSitu(data, numResults * 0xC4);
   ASSERT(data);
 
   char *result = static_cast<char *>(data) + 68;
-  for (unsigned int i = 0; i < numResults; ++i, result += 0xC4) {
-    unsigned int id = *reinterpret_cast<unsigned int *>(result - 68);
+  for (UINT i = 0; i < numResults; ++i, result += 0xC4) {
+    UINT id = *reinterpret_cast<UINT *>(result - 68);
     ConsoleWriteA("[%.04d] \"%s\" \"%s\" %s", DEFAULT_COLOR, id, result - 64, result, result + 64);
     OsOutputDebugString("[%.04d] \"%s\" \"%s\" %s\n", id, result - 64, result, result + 64);
   }
@@ -349,7 +348,7 @@ static int LookupResultsHandler(void *__formal, NETMESSAGE msgID, unsigned long 
   return 1;
 }
 
-static int ReceiveObjectPosition(void *__formal, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+static int ReceiveObjectPosition(LPVOID, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   NTempest::C3Vector position;
 
   msg->Get(position.x);
@@ -370,7 +369,7 @@ static void FormatTime(char *buf, int len, int secs) {
   SStrPrintf(buf, len, "%dd %dh %dm %ds", days, hours, minutes, secs);
 }
 
-static int PlayedTimeHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int PlayedTimeHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   int  totalTime;
   int  levelTime;
   char buf[256];
@@ -386,14 +385,14 @@ static int PlayedTimeHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg)
   return 1;
 }
 
-static int TransferPendingHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int TransferPendingHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   CGGameUI::ClearClientControls();
   ConsolePrintf("World transfer pending...");
   EnableLoadingScreen();
   return 1;
 }
 
-static int TransferAbortedHandler(void *, NETMESSAGE, unsigned long, CDataStore *msg) {
+static int TransferAbortedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   ConsolePrintf("World transfer aborted...");
   DisableLoadingScreen();
   return 1;
@@ -411,7 +410,7 @@ void MovementInit() {
   EventRegisterEx(EVENT_ID_IDLE, MovementIdleMoveUnits, 0, 2.0f);
 }
 
-static int LoadNewWorld(const void *eventData, void *param) {
+static int LoadNewWorld(LPCVOID eventData, LPVOID param) {
   ClientServices_CharacterSetInGame(0);
 
   CWorld::UnloadMap();
@@ -439,7 +438,7 @@ static int LoadNewWorld(const void *eventData, void *param) {
   return 1;
 }
 
-static int NewWorldHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int NewWorldHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
   ASSERT(msgID == SMSG_NEW_WORLD);
 
   msg->Get(s_newZoneID);
@@ -466,7 +465,7 @@ static int NewWorldHandler(void *__formal, NETMESSAGE msgID, unsigned long times
   return 1;
 }
 
-static bool ErrorDisplayCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ErrorDisplayCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int enabled = SStrToInt(newValue);
 
   SysMsgEnable(enabled);
@@ -521,7 +520,7 @@ static void DisplayErrorLevelStatus() {
   ConsoleWrite(buffer, DEFAULT_COLOR);
 }
 
-static bool ErrorDisplayMinLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ErrorDisplayMinLevelCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int level = SStrToInt(newValue);
 
   if (level >= 0 && level < SYSMSG_NUMTYPES) {
@@ -534,7 +533,7 @@ static bool ErrorDisplayMinLevelCallback(CVar *h, const char *oldValue, const ch
   return false;
 }
 
-static bool ErrorDisplayMaxLevelCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ErrorDisplayMaxLevelCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int level = SStrToInt(newValue);
 
   if (level >= 0 && level < SYSMSG_NUMTYPES) {
@@ -548,8 +547,8 @@ static bool ErrorDisplayMaxLevelCallback(CVar *h, const char *oldValue, const ch
 }
 
 static void PrintFilterMask() {
-  char         filters[80] = "";
-  unsigned int filter = SysMsgGetFilter();
+  char filters[80] = "";
+  UINT filter = SysMsgGetFilter();
 
   if (filter == 0xFFFFFFFF) {
     ConsoleWrite("Now filtering: all messages", DEFAULT_COLOR);
@@ -578,11 +577,11 @@ static void PrintFilterMask() {
   ConsolePrintf("Now filtering: %s", filters);
 }
 
-static int SetFilterMask(const char *filterString) {
-  char         filter[64];
-  char         whitespace[] = "\t\r\n\" ";
-  int          invert = 0;
-  unsigned int categoryFilter = 0;
+static int SetFilterMask(LPCSTR filterString) {
+  char filter[64];
+  char whitespace[] = "\t\r\n\" ";
+  int  invert = 0;
+  UINT categoryFilter = 0;
 
   SStrTokenize(&filterString, filter, sizeof(filter), whitespace, 0);
   while (filter[0]) {
@@ -700,7 +699,7 @@ unknownFilter:
   return 0;
 }
 
-static bool ErrorDisplayFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ErrorDisplayFilterCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   if (!SetFilterMask(newValue)) {
     return false;
   }
@@ -709,23 +708,23 @@ static bool ErrorDisplayFilterCallback(CVar *h, const char *oldValue, const char
   return true;
 }
 
-static bool DebugTargetInfoCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool DebugTargetInfoCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int enabled = SStrToInt(newValue);
 
   ConsoleWrite(enabled ? "Debug target tooltips enabled" : "Debug target tooltips disabled", DEFAULT_COLOR);
   return true;
 }
 
-static bool DebugShowGUIDsCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool DebugShowGUIDsCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int enabled = SStrToInt(newValue);
 
   ConsoleWrite(enabled ? "GUID tooltips enabled" : "GUID tooltips disabled", DEFAULT_COLOR);
   return true;
 }
 
-static bool ErrorFileLogCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
-  char        curDir[MAX_PATH];
-  const char *dataDirectory;
+static bool ErrorFileLogCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
+  char   curDir[MAX_PATH];
+  LPCSTR dataDirectory;
 
   if (SStrToInt(newValue)) {
     dataDirectory = CmdLineGetString(CMD_DATA_DIR);
@@ -744,7 +743,7 @@ static bool ErrorFileLogCallback(CVar *h, const char *oldValue, const char *newV
   return true;
 }
 
-static bool GammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool GammaCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   float v = SStrToFloat(newValue);
 
   if (s_desktopGammaCvar && !s_desktopGammaCvar->GetInt()) {
@@ -753,7 +752,7 @@ static bool GammaCallback(CVar *h, const char *oldValue, const char *newValue, v
   return true;
 }
 
-static bool DesktopGammaCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool DesktopGammaCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   CGxGammaRamp ramp;
   float        gamma;
 
@@ -768,7 +767,7 @@ static bool DesktopGammaCallback(CVar *h, const char *oldValue, const char *newV
   return true;
 }
 
-static bool ProfanityFilterCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool ProfanityFilterCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int enabled = SStrToInt(newValue);
 
   ConsoleWrite(enabled ? "Profanity filter enabled" : "Profanity filter disabled", DEFAULT_COLOR);
@@ -776,13 +775,13 @@ static bool ProfanityFilterCallback(CVar *h, const char *oldValue, const char *n
   return true;
 }
 
-static int CCommand_ReloadUI(const char *command, const char *arguments) {
+static int CCommand_ReloadUI(LPCSTR command, LPCSTR arguments) {
   CGlueMgr::Reload();
   CGGameUI::Reload();
   return 1;
 }
 
-static int CCommand_ToggleLighting(const char *command, const char *arguments) {
+static int CCommand_ToggleLighting(LPCSTR command, LPCSTR arguments) {
   int enabled = SStrToInt(arguments);
 
   GxMasterEnableSet(GxMasterEnable_Lighting, enabled);
@@ -790,7 +789,7 @@ static int CCommand_ToggleLighting(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_ToggleFog(const char *command, const char *arguments) {
+static int CCommand_ToggleFog(LPCSTR command, LPCSTR arguments) {
   int enabled = SStrToInt(arguments);
 
   GxMasterEnableSet(GxMasterEnable_Fog, enabled);
@@ -798,7 +797,7 @@ static int CCommand_ToggleFog(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_ToggleDepthTesting(const char *command, const char *arguments) {
+static int CCommand_ToggleDepthTesting(LPCSTR command, LPCSTR arguments) {
   int enabled = !GxMasterEnable(GxMasterEnable_DepthTest);
 
   GxMasterEnableSet(GxMasterEnable_DepthTest, enabled);
@@ -806,7 +805,7 @@ static int CCommand_ToggleDepthTesting(const char *command, const char *argument
   return 1;
 }
 
-static int CCommand_ToggleDepthSetting(const char *command, const char *arguments) {
+static int CCommand_ToggleDepthSetting(LPCSTR command, LPCSTR arguments) {
   int enabled = !GxMasterEnable(GxMasterEnable_DepthWrite);
 
   GxMasterEnableSet(GxMasterEnable_DepthWrite, enabled);
@@ -814,7 +813,7 @@ static int CCommand_ToggleDepthSetting(const char *command, const char *argument
   return 1;
 }
 
-static int CCommand_ToggleCulling(const char *command, const char *arguments) {
+static int CCommand_ToggleCulling(LPCSTR command, LPCSTR arguments) {
   int enabled = !GxMasterEnable(GxMasterEnable_Culling);
 
   GxMasterEnableSet(GxMasterEnable_Culling, enabled);
@@ -822,7 +821,7 @@ static int CCommand_ToggleCulling(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_ToggleDblBuffer(const char *command, const char *arguments) {
+static int CCommand_ToggleDblBuffer(LPCSTR command, LPCSTR arguments) {
   int enabled = !GxMasterEnable(GxMasterEnable_DoubleBuffering);
 
   GxMasterEnableSet(GxMasterEnable_DoubleBuffering, enabled);
@@ -830,24 +829,24 @@ static int CCommand_ToggleDblBuffer(const char *command, const char *arguments) 
   return 1;
 }
 
-static int CCommand_SetResolutionXY(const char *command, const char *arguments) {
+static int CCommand_SetResolutionXY(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_SetResolutionMode(const char *command, const char *arguments) {
+static int CCommand_SetResolutionMode(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_SetColorDepth(const char *command, const char *arguments) {
+static int CCommand_SetColorDepth(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_SetAPI(const char *command, const char *arguments) {
+static int CCommand_SetAPI(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_Bug(const char *command, const char *args) {
-  unsigned int reportType;
+static int CCommand_Bug(LPCSTR command, LPCSTR args) {
+  UINT reportType;
 
   if (!SStrCmpI(command, "bug", 0x7FFFFFFF)) {
     reportType = 0;
@@ -931,7 +930,7 @@ static void ClientUnregisterConsoleCommands() {
   ConsoleCommandUnregister("Note");
 }
 
-static int CacheUpdateHandler(const void *eventData, void *arg) {
+static int CacheUpdateHandler(LPCVOID eventData, LPVOID arg) {
   CStatus status;
   DWORD   time = OsGetAsyncTimeMs();
 
@@ -952,7 +951,7 @@ static void CacheUpdateShutdown() {
   }
 }
 
-static int PollNet(const void *, void *) {
+static int PollNet(LPCVOID, LPVOID) {
   ClientServices_PollEventQueue();
   return 1;
 }
@@ -986,7 +985,7 @@ static void WowClientInit() {
   EventRegister(EVENT_ID_POLL, PollNet);
 }
 
-static int InitializeHandlerPlayer(const void *, void *) {
+static int InitializeHandlerPlayer(LPCVOID, LPVOID) {
   ASSERT(EventIsContextInteractive());
 
   BaseInitializeContext();
@@ -1022,7 +1021,7 @@ static void WowClientDestroy() {
   ObjectAllocDestroy();
 }
 
-static int DestroyHandlerPlayer(const void *, void *) {
+static int DestroyHandlerPlayer(LPCVOID, LPVOID) {
   ASSERT(EventIsContextInteractive());
 
   ClientDestroyGame(0, 0, 0);
@@ -1040,7 +1039,7 @@ static int DestroyHandlerPlayer(const void *, void *) {
   return 1;
 }
 
-static int NotifyHandler(void *__formal, NETMESSAGE msgID, unsigned long timestamp, CDataStore *msg) {
+static int NotifyHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
   char text[256];
 
   msg->GetString(text, sizeof(text));
@@ -1049,8 +1048,8 @@ static int NotifyHandler(void *__formal, NETMESSAGE msgID, unsigned long timesta
 }
 
 static void SetPaths() {
-  char        buffer[MAX_PATH];
-  const char *path;
+  char   buffer[MAX_PATH];
+  LPCSTR path;
 
   SFile::DisableSFileCheckDisk();
   SFile::EnableDirectAccess(3);
@@ -1067,7 +1066,7 @@ static void SetPaths() {
 }
 
 static void OpenArchives() {
-  unsigned int i;
+  UINT i;
 
   for (i = 0; i < 8; ++i) {
     if (!SFile::OpenArchive(s_archiveNames[i], 0, 0, &s_archive[i])) {
@@ -1077,7 +1076,7 @@ static void OpenArchives() {
 }
 
 static void ShutdownFileAccess() {
-  unsigned int i;
+  UINT i;
 
   for (i = 0; i < 8; ++i) {
     if (s_archive[i]) {
@@ -1151,19 +1150,19 @@ static void DestroyGlobal() {
   ShutdownFileAccess();
 }
 
-static int ClientIdle(const void *data, void *__formal) {
+static int ClientIdle(LPCVOID data, LPVOID) {
   ClientGameTimeTickHandler(data, 0);
   Player_C_ZoneUpdateHandler(data, 0);
   CGPlayer_C::GMIdle();
   return 1;
 }
 
-static int ClientFocus(const void *packetData, void *__formal) {
+static int ClientFocus(LPCVOID packetData, LPVOID) {
   Player_C_AppFocusMovementHandler(*static_cast<const int *>(packetData));
   return 1;
 }
 
-void ClientKillTimer(unsigned int timerId, CLIENTTIMERHANDLER handlerAddress, const char *handlerName) {
+void ClientKillTimer(UINT timerId, CLIENTTIMERHANDLER handlerAddress, LPCSTR handlerName) {
   EventKillTimer(timerId, handlerAddress, handlerName);
 }
 
@@ -1171,7 +1170,7 @@ void ClientPostClose() {
   EventPostClose();
 }
 
-void ClientInitializeGame(unsigned int continentID, NTempest::C3Vector position) {
+void ClientInitializeGame(UINT continentID, NTempest::C3Vector position) {
   GxMasterEnableSet(GxMasterEnable_Fog, 1);
   ClntObjMgrInitializeShared();
 
@@ -1294,27 +1293,27 @@ void ClientDestroyGame(int connected, int resumeUI, int loginError) {
   }
 }
 
-unsigned int Bot_QueryAreaId(float x, float y) {
+UINT Bot_QueryAreaId(float x, float y) {
   return CWorld::QueryAreaId(x, y);
 }
 
-int Bot_GetWanderPoint(const NTempest::C3Vector&, float, const NTempest::C3Vector&, const NTempest::C3Vector&, float, NTempest::C3Vector&) {
+int Bot_GetWanderPoint(const NTempest::C3Vector &, float, const NTempest::C3Vector &, const NTempest::C3Vector &, float, NTempest::C3Vector &) {
   return 0;
 }
 
-void BotClientSetAccount(const char *, const char *) {
+void BotClientSetAccount(LPCSTR, LPCSTR) {
 }
 
-void BotClientAddKnownSpell(CGPlayer_C*, int) {
+void BotClientAddKnownSpell(CGPlayer_C *, int) {
 }
 
-void BotClientLoseTarget(const CGUnit_C*) {
+void BotClientLoseTarget(const CGUnit_C *) {
 }
 
-static void LogZoneInfo(CGPlayer_C *player, char *log, unsigned long size) {
+static void LogZoneInfo(CGPlayer_C *player, char *log, DWORD size) {
   NTempest::C3Vector location(reinterpret_cast<CGObject_C *>(player)->GetPosition());
   char               text[MAX_PATH];
-  unsigned int       area;
+  UINT               area;
 
   SStrPack(log, "Local Zone: ", size);
   area = CWorld::QueryAreaId(location.x, location.y);
@@ -1323,13 +1322,13 @@ static void LogZoneInfo(CGPlayer_C *player, char *log, unsigned long size) {
   SStrPack(log, "\r\n", size);
 }
 
-static int ClientIsValidPointer(const void *address, unsigned long size, int forWriting) {
+static int ClientIsValidPointer(LPCVOID address, DWORD size, int forWriting) {
   return SMemIsValidPointer(address, size, forWriting) != 0;
 }
 
-static void LogObjectInfo(const char *label, CGObject_C *object, char *log, unsigned long size) {
-  char             text[MAX_PATH];
-  unsigned __int64 guid;
+static void LogObjectInfo(LPCSTR label, CGObject_C *object, char *log, DWORD size) {
+  char      text[MAX_PATH];
+  DWORDLONG guid;
 
   if (!ClientIsValidPointer(object, 0x30, FALSE)) {
     return;
@@ -1343,9 +1342,9 @@ static void LogObjectInfo(const char *label, CGObject_C *object, char *log, unsi
 }
 
 static int APIENTRY WowLogHeader(char *log, DWORD size) {
-  CGPlayer_C        *player;
-  CGObject_C        *object;
-  unsigned __int64   guid;
+  CGPlayer_C *player;
+  CGObject_C *object;
+  DWORDLONG   guid;
 
   SStrPrintf(log, size, "WoWBuild: %d\r\n", 3368);
 
@@ -1395,14 +1394,14 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
   return 1;
 }
 
-static void LaunchWoWError(const char *logFileName) {
+static void LaunchWoWError(LPCSTR logFileName) {
   char cmd[520];
 
   SStrPrintf(cmd, sizeof(cmd), "%s %s", "WowErrorAE.exe", logFileName);
   SCreateProcess("WowErrorAE.exe", cmd, 0, 0);
 }
 
-static BOOL APIENTRY SendErrorLog(DWORD code, const char *msg, const char *file, int line, const char *details) {
+static BOOL APIENTRY SendErrorLog(DWORD code, LPCSTR msg, LPCSTR file, int line, LPCSTR details) {
   char log[MAX_PATH];
 
   if (SErrGetLogLastPath(log, sizeof(log))) {

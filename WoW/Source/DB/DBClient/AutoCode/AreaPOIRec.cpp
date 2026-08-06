@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *AreaPOIRec::GetFilename() {
+LPCSTR AreaPOIRec::GetFilename() {
   return "DBFilesClient\\AreaPOI.dbc";
 }
 
@@ -19,9 +19,9 @@ AreaPOIRec::AreaPOIRec() {
 AreaPOIRec::~AreaPOIRec() {
 }
 
-bool AreaPOIRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[8];
+bool AreaPOIRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_importance, sizeof(m_importance), 0, 0, 0) && result;

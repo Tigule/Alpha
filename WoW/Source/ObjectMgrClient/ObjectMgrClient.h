@@ -21,7 +21,7 @@ struct CMirrorHandler;
 template <class RECORD, class KEY, class HASHKEY>
 class DBCache;
 
-static C_OBJECTHASH *FindActiveObj(unsigned __int64 guid);
+static C_OBJECTHASH *FindActiveObj(DWORDLONG guid);
 
 class CHashKeyGUID {
   friend class TSHashObject<C_OBJECTHASH, CHashKeyGUID>;
@@ -32,14 +32,14 @@ class CHashKeyGUID {
   friend class TSHashObject<UNITHASHOBJ, CHashKeyGUID>;
   friend class TSHashObject<UNITONESHOTEFFECTDESC, CHashKeyGUID>;
   friend class CGWorldFrame;
-  friend C_OBJECTHASH *FindActiveObj(unsigned __int64 guid);
-  friend class DBCache<NameCache, unsigned __int64, CHashKeyGUID>;
+  friend C_OBJECTHASH *FindActiveObj(DWORDLONG guid);
+  friend class DBCache<NameCache, DWORDLONG, CHashKeyGUID>;
 
  private:
   CHashKeyGUID(int guid);
 
  public:
-  CHashKeyGUID(unsigned __int64 guid) : m_guid(guid) {
+  CHashKeyGUID(DWORDLONG guid) : m_guid(guid) {
   }
 
  private:
@@ -51,17 +51,17 @@ class CHashKeyGUID {
   }
 
  private:
-  unsigned __int64 m_guid;
+  DWORDLONG m_guid;
 
  public:
   CHashKeyGUID &operator=(const CHashKeyGUID &key) {
     m_guid = key.m_guid;
     return *this;
   }
-  unsigned char operator==(const CHashKeyGUID &key) const {
+  BYTE operator==(const CHashKeyGUID &key) const {
     return m_guid == key.m_guid;
   }
-  unsigned __int64 GetGUID() const {
+  DWORDLONG GetGUID() const {
     return m_guid;
   }
 };
@@ -70,8 +70,8 @@ struct C_OBJECTHASH : public TSHashObject<C_OBJECTHASH, CHashKeyGUID> {
   C_OBJECTHASH(const C_OBJECTHASH &object);
   C_OBJECTHASH();
 
-  unsigned int                                       memHandle;
-  unsigned int                                       thisMemHandle;
+  UINT memHandle;
+  UINT thisMemHandle;
   LISTDECL(CMirrorHandler, mirrorHandlers[634]);
   LINKDECLEX(C_OBJECTHASH, link);
   LINKDECLEX(C_OBJECTHASH, reenableLink);
@@ -84,25 +84,25 @@ enum HANDLER_PRIORITY {
 
 NODEDECL(CMirrorHandler) {
   LINKDECLEX(CMirrorHandler, callLink);
-  int(*handler)(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *data, void *param);
-  void                                       *param;
-  unsigned int                                blocksLeft;
-  unsigned int                                offset;
-  TSGrowableArray_<unsigned char, 'OMGR', 71> previous;
-  HANDLER_PRIORITY                            priority;
+  int (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
+  LPVOID                             param;
+  UINT                               blocksLeft;
+  UINT                               offset;
+  TSGrowableArray_<BYTE, 'OMGR', 71> previous;
+  HANDLER_PRIORITY                   priority;
 };
 
 inline C_OBJECTHASH::C_OBJECTHASH() : memHandle(0) {
 }
 
 NODEDECL(OBJHANDLERREQUEST) {
-  unsigned __int64 guid;
-  unsigned int     offset;
-  unsigned int     bytes;
-  int(*handler)(unsigned __int64 guid, unsigned int offset, unsigned int bytes, const void *data, void *param);
-  void            *param;
+  DWORDLONG guid;
+  UINT      offset;
+  UINT      bytes;
+  int (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
+  LPVOID           param;
   HANDLER_PRIORITY priority;
-  unsigned char    set;
+  BYTE             set;
 };
 
 enum PLAYER_TYPE {
@@ -113,7 +113,7 @@ enum PLAYER_TYPE {
 class ClntObjMgr {
  public:
   ClntObjMgr(const ClntObjMgr &mgr);
-  ClntObjMgr(PLAYER_TYPE type, void *clientPtr)
+  ClntObjMgr(PLAYER_TYPE type, LPVOID clientPtr)
       : m_callingMirrorHandlers(0),
         m_allowGuidDeref(1),
         m_activePlayer(0),
@@ -126,75 +126,66 @@ class ClntObjMgr {
   ~ClntObjMgr() {
   }
 
-  TSHashTable<C_OBJECTHASH, CHashKeyGUID>                  m_objects;
-  TSHashTable<C_OBJECTHASH, CHashKeyGUID>                  m_lazyCleanupObjects;
+  TSHashTable<C_OBJECTHASH, CHashKeyGUID> m_objects;
+  TSHashTable<C_OBJECTHASH, CHashKeyGUID> m_lazyCleanupObjects;
   LISTDECLEX(C_OBJECTHASH, link, m_lazyCleanupFifo);
   LISTDECLEX(C_OBJECTHASH, link, m_freeObjects);
   LISTDECLEX(C_OBJECTHASH, link, m_visibleObjects);
   LISTDECLEX(C_OBJECTHASH, reenableLink, m_reenabledObjects);
-  int                                                      m_callingMirrorHandlers;
+  int m_callingMirrorHandlers;
   LISTDECL(OBJHANDLERREQUEST, m_pendingObjHandlerRequests);
-  int                                                      m_allowGuidDeref;
-  unsigned __int64                                         m_legalGuidDeref;
-  unsigned __int64                                         m_activePlayer;
-  PLAYER_TYPE                                              m_type;
-  unsigned int                                             m_mapID;
-  ClientConnection                                        *m_net;
-  void                                                    *m_movement;
-  void                                                    *m_clientPtr;
+  int               m_allowGuidDeref;
+  DWORDLONG         m_legalGuidDeref;
+  DWORDLONG         m_activePlayer;
+  PLAYER_TYPE       m_type;
+  UINT              m_mapID;
+  ClientConnection *m_net;
+  LPVOID            m_movement;
+  LPVOID            m_clientPtr;
 };
 
-ClntObjMgr *ClntObjMgrGetCurrent();
-ClntObjMgr *ClntObjMgrCreate(PLAYER_TYPE type, void *clientPtr);
-void ClntObjMgrSetCurrent(ClntObjMgr *mgr);
-int ClntObjMgrIsValid(int forWriting);
-void ClntObjMgrInitializeShared();
-void ClntObjMgrInitialize();
-void ClntObjMgrDestroy();
-unsigned __int64 ClntObjMgrGetActivePlayer();
-void ClntObjMgrSetActivePlayer(unsigned __int64 guid);
-PLAYER_TYPE ClntObjMgrGetPlayerType();
-void *ClntObjMgrGetMovementGlobals();
-void ClntObjMgrSetMovementGlobals(void *ptr);
-CGObject_C *ClntObjMgrObjectPtr(unsigned __int64 guid, const char *fileName, unsigned int lineNumber);
-unsigned int ClntObjMgrGetMapID();
-void ClntObjMgrSetMapID(unsigned int mapID);
-int ClntObjMgrEnumVisibleObjects(int(*handler)(unsigned __int64 object, void *param), void *param);
-void ClntObjMgrObjectInRange(unsigned __int64 guid);
-void ClntObjMgrHideObject(unsigned __int64 guid);
-void ClntObjMgrObjectOutOfRange(unsigned __int64 guid, int shutdown);
-void ClntObjMgrFreeObject(unsigned __int64 guid);
-void ClntObjMgrSetNet(ClientConnection *net);
+ClntObjMgr       *ClntObjMgrGetCurrent();
+ClntObjMgr       *ClntObjMgrCreate(PLAYER_TYPE type, LPVOID clientPtr);
+void              ClntObjMgrSetCurrent(ClntObjMgr *mgr);
+int               ClntObjMgrIsValid(int forWriting);
+void              ClntObjMgrInitializeShared();
+void              ClntObjMgrInitialize();
+void              ClntObjMgrDestroy();
+DWORDLONG         ClntObjMgrGetActivePlayer();
+void              ClntObjMgrSetActivePlayer(DWORDLONG guid);
+PLAYER_TYPE       ClntObjMgrGetPlayerType();
+LPVOID            ClntObjMgrGetMovementGlobals();
+void              ClntObjMgrSetMovementGlobals(LPVOID ptr);
+CGObject_C       *ClntObjMgrObjectPtr(DWORDLONG guid, LPCSTR fileName, UINT lineNumber);
+UINT              ClntObjMgrGetMapID();
+void              ClntObjMgrSetMapID(UINT mapID);
+int               ClntObjMgrEnumVisibleObjects(int (*handler)(DWORDLONG object, LPVOID param), LPVOID param);
+void              ClntObjMgrObjectInRange(DWORDLONG guid);
+void              ClntObjMgrHideObject(DWORDLONG guid);
+void              ClntObjMgrObjectOutOfRange(DWORDLONG guid, int shutdown);
+void              ClntObjMgrFreeObject(DWORDLONG guid);
+void              ClntObjMgrSetNet(ClientConnection *net);
 ClientConnection *ClntObjMgrGetNet();
-void *ClntObjMgrGetClientPtr();
-void ClntObjMgrDestruct(ClntObjMgr *mgr);
-void ClntObjMgrDestroyShared();
-void ClntObjMgrSetObjMirrorHandler(
-    unsigned __int64 guid,
-    unsigned int     offset,
-    unsigned int     bytes,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
-    void            *param,
+LPVOID            ClntObjMgrGetClientPtr();
+void              ClntObjMgrDestruct(ClntObjMgr *mgr);
+void              ClntObjMgrDestroyShared();
+void              ClntObjMgrSetObjMirrorHandler(
+    DWORDLONG guid,
+    UINT      offset,
+    UINT      bytes,
+    int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID),
+    LPVOID           param,
     HANDLER_PRIORITY priority
 );
-void ClntObjMgrUnsetObjMirrorHandler(
-    unsigned __int64 guid,
-    unsigned int     offset,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
-    void *param
-);
+void ClntObjMgrUnsetObjMirrorHandler(DWORDLONG guid, UINT offset, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID), LPVOID param);
 void ClntObjMgrSetTypeMirrorHandler(
     OBJECT_TYPE hierType,
-    unsigned int offset,
-    unsigned int bytes,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *),
-    void *param,
+    UINT        offset,
+    UINT        bytes,
+    int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID),
+    LPVOID           param,
     HANDLER_PRIORITY priority
 );
-void ClntObjMgrUnsetTypeMirrorHandler(
-    OBJECT_TYPE hierType,
-    unsigned int offset,
-    int(*handler)(unsigned __int64, unsigned int, unsigned int, const void *, void *)
-);
+void ClntObjMgrUnsetTypeMirrorHandler(OBJECT_TYPE hierType, UINT offset, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
 
 #endif

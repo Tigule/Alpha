@@ -23,15 +23,15 @@ struct GLYPHDATA {
     FREEIFUSED(data);
   }
 
-  void        *data;
-  unsigned int dataSize;
-  unsigned int freeTypeGlyphWidth;
-  unsigned int freeTypeGlyphHeight;
-  unsigned int freeTypeGlyphPitch;
-  int          freeTypeGlyphAdvance;
-  float        freeTypeGlyphBearing;
-  unsigned int yOffset;
-  unsigned int yStart;
+  LPVOID data;
+  UINT   dataSize;
+  UINT   freeTypeGlyphWidth;
+  UINT   freeTypeGlyphHeight;
+  UINT   freeTypeGlyphPitch;
+  int    freeTypeGlyphAdvance;
+  float  freeTypeGlyphBearing;
+  UINT   yOffset;
+  UINT   yStart;
 };
 
 enum EGxFontVJusts {
@@ -68,16 +68,16 @@ struct GLYPHBITMAPDATA : public TSHashObject<GLYPHBITMAPDATA, HASHKEY_NONE> {
   ~GLYPHBITMAPDATA();
   void Clear();
 
-  unsigned int    m_code;
-  void           *m_data;
-  unsigned int    m_dataSize;
+  UINT            m_code;
+  LPVOID          m_data;
+  UINT            m_dataSize;
   int             m_dirty;
-  unsigned int    m_glyphWidth;
-  unsigned int    m_glyphHeight;
-  unsigned int    m_glyphCellWidth;
+  UINT            m_glyphWidth;
+  UINT            m_glyphHeight;
+  UINT            m_glyphCellWidth;
   int             m_glyphAdvance;
   float           m_glyphBearing;
-  unsigned int    m_glyphPitch;
+  UINT            m_glyphPitch;
   int             m_yOffset;
   int             m_yStart;
   NTempest::CRect m_textureCoords;
@@ -87,16 +87,16 @@ struct GLYPHBITMAPDATA : public TSHashObject<GLYPHBITMAPDATA, HASHKEY_NONE> {
 struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
   CHARCODEDESC()
       : dataValid(0),
-        textureNumber(static_cast<unsigned int>(-1)),
-        rowNumber(static_cast<unsigned int>(-1)),
-        glyphStartPixel(static_cast<unsigned int>(-1)),
+        textureNumber(static_cast<UINT>(-1)),
+        rowNumber(static_cast<UINT>(-1)),
+        glyphStartPixel(static_cast<UINT>(-1)),
         glyphEndPixel(0),
         bitmapData(0) {
   }
 
-  void         GenerateTextureCoords(unsigned int rowNumber, unsigned int glyphSide);
-  unsigned int GapToNextTexture() const;
-  unsigned int GapToPreviousTexture() const;
+  void GenerateTextureCoords(UINT rowNumber, UINT glyphSide);
+  UINT GapToNextTexture() const;
+  UINT GapToPreviousTexture() const;
 
   int ValidBlockEndPoints() const {
     return glyphStartPixel <= glyphEndPixel;
@@ -106,23 +106,23 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
     return bitmapData->m_textureValid;
   }
 
-  unsigned int GetCellWidth() const {
+  UINT GetCellWidth() const {
     return glyphEndPixel - glyphStartPixel + 1;
   }
 
   LINKDECLEX(CHARCODEDESC, textureRowLink);
   LINKDECLEX(CHARCODEDESC, fontGlyphLink);
-  int                  dataValid;
-  unsigned int         textureNumber;
-  unsigned int         rowNumber;
-  unsigned int         glyphStartPixel;
-  unsigned int         glyphEndPixel;
-  GLYPHBITMAPDATA     *bitmapData;
+  int              dataValid;
+  UINT             textureNumber;
+  UINT             rowNumber;
+  UINT             glyphStartPixel;
+  UINT             glyphEndPixel;
+  GLYPHBITMAPDATA *bitmapData;
 };
 
 class KERNINGHASHKEY {
  public:
-  KERNINGHASHKEY(unsigned int currentCode, unsigned int nextCode) : code((currentCode << 16) ^ (nextCode & 0xFFFF)) {
+  KERNINGHASHKEY(UINT currentCode, UINT nextCode) : code((currentCode << 16) ^ (nextCode & 0xFFFF)) {
   }
 
   KERNINGHASHKEY(const KERNINGHASHKEY &key) : code(key.code) {
@@ -144,56 +144,40 @@ class KERNINGHASHKEY {
   }
 
  private:
-  unsigned int code;
+  UINT code;
 };
 
 struct KERNNODE : public TSHashObject<KERNNODE, KERNINGHASHKEY> {
-  unsigned int flags;
-  float        proporportionalSpacing;
-  float        fixedWidthSpacing;
+  UINT  flags;
+  float proporportionalSpacing;
+  float fixedWidthSpacing;
 };
 
 struct TEXTURECACHEROW {
   TEXTURECACHEROW() : widestFreeSlot(0) {
   }
 
-  CHARCODEDESC *CreateNewDesc(GLYPHBITMAPDATA *data, unsigned int rowNumber, unsigned int glyphCellHeight);
+  CHARCODEDESC *CreateNewDesc(GLYPHBITMAPDATA *data, UINT rowNumber, UINT glyphCellHeight);
   void          EvictGlyph(CHARCODEDESC *&desc);
 
-  unsigned int                     widestFreeSlot;
+  UINT widestFreeSlot;
   LISTDECLEX(CHARCODEDESC, textureRowLink, glyphList);
 };
 
 struct TEXTURECACHE {
   TEXTURECACHE();
   ~TEXTURECACHE();
-  CHARCODEDESC          *AllocateNewGlyph(GLYPHBITMAPDATA *data);
-  void                   CreateTexture(int filter);
-  void                   Initialize(CGxFont *face, unsigned int thePage, unsigned int pixelSize);
-  void                   PasteGlyph(GLYPHBITMAPDATA *data, unsigned long *dst, int thick);
-  void                   PasteGlyphNonOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned long *dst);
-  void                   PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, unsigned long *dst);
-  void                   PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned long *dst, int thick);
-  void                   PasteGlyphOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, unsigned long *dst, int thick);
-  static void TextureCallback(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  d,
-      unsigned int  mipLevel,
-      void         *userArg,
-      unsigned int &texelStrideInBytes,
-      const void  *&texels
-  );
-  void TextureCallbackHandler(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  mipLevel,
-      unsigned int &texelStrideInBytes,
-      const void  *&texels
-  );
-  void Update();
+  CHARCODEDESC *AllocateNewGlyph(GLYPHBITMAPDATA *data);
+  void          CreateTexture(int filter);
+  void          Initialize(CGxFont *face, UINT thePage, UINT pixelSize);
+  void          PasteGlyph(GLYPHBITMAPDATA *data, DWORD *dst, int thick);
+  void          PasteGlyphNonOutlinedAA(GLYPHBITMAPDATA *glyphData, DWORD *dst);
+  void          PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, DWORD *dst);
+  void          PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, DWORD *dst, int thick);
+  void          PasteGlyphOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, DWORD *dst, int thick);
+  static void   TextureCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
+  void          TextureCallbackHandler(EGxTexCommand cmd, UINT w, UINT h, UINT mipLevel, UINT &texelStrideInBytes, LPCVOID &texels);
+  void          Update();
 
   CGxTex *GetTexturePtr() {
     return m_texture;
@@ -210,10 +194,10 @@ struct TEXTURECACHE {
   }
 
   int                           m_anyDirtyGlyphs;
-  void                         *m_data;
+  LPVOID                        m_data;
   CGxTex                       *m_texture;
   CGxFont                      *m_theFace;
-  unsigned int                  m_page;
+  UINT                          m_page;
   TSFixedArray<TEXTURECACHEROW> m_textureRows;
 };
 
@@ -221,48 +205,48 @@ NODEDECL(CGxFont) {
   CGxFont();
   ~CGxFont();
 
-  int                 Initialize(const char *name, unsigned int newFlags, float fontHeight);
+  int                 Initialize(LPCSTR name, UINT newFlags, float fontHeight);
   void                HandleScreenSizeChange();
-  const char         *GetName() const;
+  LPCSTR              GetName() const;
   void                Clear();
   void                ClearGlyphs();
   int                 UpdateDimensions();
   void                UpdateTextures();
-  int                 CheckStringGlyphs(const char *string);
-  unsigned int        GetNumCurrentTextures();
-  const CHARCODEDESC *NewCodeDesc(unsigned int code);
-  int                 GetGlyphData(GLYPHBITMAPDATA *glyphData, FT_FaceRec_ *face, unsigned int code);
-  void                RegisterEvictNotice(unsigned int pageNumber);
-  float               ComputeStep(unsigned int currentCode, unsigned int nextCode);
-  float               ComputeStepFixedWidth(unsigned int currentCode, unsigned int nextCode);
-  float               GetCharAdvance(unsigned int code);
-  unsigned int        GetFlags() const {
+  int                 CheckStringGlyphs(LPCSTR string);
+  UINT                GetNumCurrentTextures();
+  const CHARCODEDESC *NewCodeDesc(UINT code);
+  int                 GetGlyphData(GLYPHBITMAPDATA * glyphData, FT_FaceRec_ * face, UINT code);
+  void                RegisterEvictNotice(UINT pageNumber);
+  float               ComputeStep(UINT currentCode, UINT nextCode);
+  float               ComputeStepFixedWidth(UINT currentCode, UINT nextCode);
+  float               GetCharAdvance(UINT code);
+  UINT                GetFlags() const {
     return m_flags;
   }
 
-  TSExplicitList<CGxString, 8>               m_strings;
+  TSExplicitList<CGxString, 8> m_strings;
   LINKDECLEX(CGxFont, m_batchedRenderLink);
   TSHashTable<GLYPHBITMAPDATA, HASHKEY_NONE> m_glyphBitmapData;
   TSHashTable<CHARCODEDESC, HASHKEY_NONE>    m_activeCharacters;
   TSHashTable<KERNNODE, KERNINGHASHKEY>      m_kernInfo;
   LISTDECLEX(CHARCODEDESC, fontGlyphLink, m_activeCharacterCache);
-  HFACE__                                   *m_faceHandle;
-  unsigned int                               m_pixelSize;
-  unsigned int                               m_rasterPixelSize;
-  char                                       m_fontName[0x104];
-  unsigned int                               m_cellHeight;
-  unsigned int                               m_baseline;
-  unsigned int                               m_flags;
-  float                                      m_requestedFontHeight;
-  float                                      m_currentFontHeight;
-  float                                      m_pixelsPerUnit;
-  TEXTURECACHE                               m_textureCache[8];
+  HFACE__     *m_faceHandle;
+  UINT         m_pixelSize;
+  UINT         m_rasterPixelSize;
+  char         m_fontName[0x104];
+  UINT         m_cellHeight;
+  UINT         m_baseline;
+  UINT         m_flags;
+  float        m_requestedFontHeight;
+  float        m_currentFontHeight;
+  float        m_pixelsPerUnit;
+  TEXTURECACHE m_textureCache[8];
 };
 
 struct GXUFONTHYPERLINKINFO {
   NTempest::CRect extent;
-  const char     *link;
-  unsigned int    linkLength;
+  LPCSTR          link;
+  UINT            linkLength;
 };
 
 enum HYPERLINKPARSEMODE {
@@ -274,8 +258,8 @@ enum HYPERLINKPARSEMODE {
 struct HYPERLINKPARSEINFO {
   HYPERLINKPARSEMODE   hyperlinkParseMode;
   GXUFONTHYPERLINKINFO currentParseInfo;
-  const char          *lastLinkStartPtr;
-  unsigned int         lastLinkLength;
+  LPCSTR               lastLinkStartPtr;
+  UINT                 lastLinkLength;
 };
 
 struct VERT {
@@ -294,18 +278,14 @@ NODEDECL(TEXTLINETEXTURE) {
   static TEXTLINETEXTURE *NewTextLineTexture();
   void                    Recycle();
   void                    InternalRenderTexture(
-      int                        textureNum,
-      CGxFont                   *face,
-      bool                       showShadow,
-      const NTempest::CImVector &shadowColor,
-      const NTempest::C2Vector  &shadowOffset,
+      int textureNum, CGxFont *face, bool showShadow, const NTempest::CImVector &shadowColor, const NTempest::C2Vector &shadowOffset,
       const NTempest::CImVector &fontColor
   );
 
   TSGrowableArray_<VERT, 'GxuF', __LINE__>                m_vert;
   TSGrowableArray_<NTempest::CImVector, 'GxuF', __LINE__> m_shadowColors;
   TSGrowableArray_<NTempest::CImVector, 'GxuF', __LINE__> m_colors;
-  TSGrowableArray_<unsigned short, 'GxuF', __LINE__>      m_vertIndices;
+  TSGrowableArray_<WORD, 'GxuF', __LINE__>                m_vertIndices;
 };
 
 NODEDECL(IGXUTEXTLINE) {
@@ -316,7 +296,7 @@ NODEDECL(IGXUTEXTLINE) {
   void                 Destroy();
   static IGXUTEXTLINE *NewGxuTextLine();
   void                 Recycle();
-  void                 Reserve(unsigned int numTextLineTextures);
+  void                 Reserve(UINT numTextLineTextures);
 
   TSGrowableArray<TEXTLINETEXTURE *> m_texturePages;
 };
@@ -344,17 +324,8 @@ NODEDECL(CGxString) {
   CGxString *Duplicate() const;
 
   int Initialize(
-      float                      fontHeight,
-      const NTempest::C3Vector  &position,
-      float                      blockWidth,
-      float                      blockHeight,
-      CGxFont                   *face,
-      const char                *text,
-      EGxFontVJusts              vertJust,
-      EGxFontHJusts              horzJust,
-      float                      spacing,
-      unsigned int               flags,
-      const NTempest::CImVector &color
+      float fontHeight, const NTempest::C3Vector &position, float blockWidth, float blockHeight, CGxFont *face, LPCSTR text, EGxFontVJusts vertJust,
+      EGxFontHJusts horzJust, float spacing, UINT flags, const NTempest::CImVector &color
   );
   void Recycle();
   void Render();
@@ -365,19 +336,19 @@ NODEDECL(CGxString) {
   void RemoveShadow();
   void SetCharSpacing(float spacing);
   int  SetGradient(int startCharacter, int length);
-  int  SetGradient(int startCharacter, int length, const TSGrowableArray<NTempest::CImVector *> &array, unsigned char alpha);
+  int  SetGradient(int startCharacter, int length, const TSGrowableArray<NTempest::CImVector *> &array, BYTE alpha);
   void SetColor(const NTempest::CImVector &color);
   void SetStringPosition(const NTempest::C3Vector &position);
-  int IsBillboarded() const {
+  int  IsBillboarded() const {
     return (m_flags & 0x80) != 0;
   }
   float GetStringHeight() const {
     return m_stringHeight;
   }
-  unsigned int Flags() {
+  UINT Flags() {
     return m_flags;
   }
-  void AddFlag(unsigned int flag) {
+  void AddFlag(UINT flag) {
     m_flags |= flag;
   }
   CGxFont *GetCurrentFace() const {
@@ -389,22 +360,18 @@ NODEDECL(CGxString) {
   float GetSavedHeight() const {
     return m_stringHeight;
   }
-  void BuildProjection(NTempest::C44Matrix *projPtr, float minx, float maxx, float miny, float maxy, float pixWidth, float pixHeight);
-  void BuildView(NTempest::C44Matrix *viewPtr, float width, float height);
+  void BuildProjection(NTempest::C44Matrix * projPtr, float minx, float maxx, float miny, float maxy, float pixWidth, float pixHeight);
+  void BuildView(NTempest::C44Matrix * viewPtr, float width, float height);
   void ClearInstanceData();
   void CreateGeometry();
   void GenerateVertexIndices();
-  void TexturePageEvicted(unsigned int pageNumber);
+  void TexturePageEvicted(UINT pageNumber);
   void InitializeTextLine(
-      const char               *currentText,
-      unsigned int              numBytes,
-      NTempest::CImVector      &workingColor,
-      const NTempest::C3Vector &position,
-      unsigned int             *texturePagesUsedFlag,
-      HYPERLINKPARSEINFO       &info
+      LPCSTR currentText, UINT numBytes, NTempest::CImVector & workingColor, const NTempest::C3Vector &position, UINT *texturePagesUsedFlag,
+      HYPERLINKPARSEINFO &info
   );
   void              InitializeViewportOffsets();
-  unsigned int      GetHyperLinkInfo(const GXUFONTHYPERLINKINFO *&list) const;
+  UINT              GetHyperLinkInfo(const GXUFONTHYPERLINKINFO *&list) const;
   static CGxString *GetNewString(int linkonList);
 
   LINKDECLEX(CGxString, m_fontStringLink);
@@ -422,13 +389,13 @@ NODEDECL(CGxString) {
   CGxFont                               *m_currentFace;
   IGXUTEXTBLOCK                          m_textBlock;
   char                                  *m_text;
-  unsigned int                           m_textLen;
+  UINT                                   m_textLen;
   EGxFontVJusts                          m_vertJust;
   EGxFontHJusts                          m_horzJust;
   float                                  m_spacing;
-  unsigned int                           m_flags;
+  UINT                                   m_flags;
   NTempest::C2Vector                     m_viewportOffset;
-  unsigned int                           m_texturePagesUsed;
+  UINT                                   m_texturePagesUsed;
   int                                    m_textureEvicted;
   float                                  m_stringHeight;
   float                                  m_savedWidth;
@@ -442,7 +409,7 @@ NODEDECL(CGxString) {
   void        AddHyperlinkParseInfo(GXUFONTHYPERLINKINFO currentParseInfo);
   inline void ClearStringMatrixEntry();
   void        InternalRender();
-  void        InternalRender(unsigned char);
+  void        InternalRender(BYTE);
   void        RenderTexture(bool initGxRenderStates, int texture);
   void        RenderTexture(int line, int texture);
 
@@ -456,7 +423,7 @@ struct BATCHEDRENDERFONTDESC : public TSHashObject<BATCHEDRENDERFONTDESC, HASHKE
   ~BATCHEDRENDERFONTDESC();
   void RenderBatch();
 
-  CGxFont                      *face;
+  CGxFont *face;
   LISTDECLEX(CGxString, m_batchedStringLink, m_strings);
 };
 
@@ -465,7 +432,7 @@ NODEDECL(CGxStringBatch) {
     Clear();
   }
 
-  void AddString(CGxString *string);
+  void AddString(CGxString * string);
   void Clear() {
     m_fontBatch.Clear();
   }
@@ -477,12 +444,12 @@ NODEDECL(CGxStringBatch) {
 
 struct STRINGVIEWMATRICES : public TSHashObject<STRINGVIEWMATRICES, HASHKEY_PTR> {
   LINKDECLEX(STRINGVIEWMATRICES, m_freeLink);
-  NTempest::C44Matrix        projection;
-  NTempest::C44Matrix        view;
+  NTempest::C44Matrix projection;
+  NTempest::C44Matrix view;
 };
 
-extern unsigned int                                         g_heightPixels;
-extern unsigned int                                         g_widthPixels;
+extern UINT g_heightPixels;
+extern UINT g_widthPixels;
 extern LISTDECL(TEXTLINETEXTURE, g_freeTextLineTextures);
 extern LISTDECL(IGXUTEXTLINE, g_freeTextLines);
 extern LISTDECL(CGxString, g_freeStrings);
@@ -491,69 +458,53 @@ extern LISTDECL(CGxString, g_strings);
 struct FT_LibraryRec_;
 
 FT_LibraryRec_ *GetFreeTypeLibrary();
-float SignOf(float value);
-HFACE__ *FontFaceGetHandle(const char *name, FT_LibraryRec_ *library);
-FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle);
-void FontFaceCloseHandle(HFACE__ *handle);
-const char *FontFaceGetFontName(HFACE__ *handle);
-unsigned int GetScreenPixelHeight();
-unsigned int GetScreenPixelWidth();
-float ScreenToPixelHeight(int billboarded, float height);
-float ScreenToPixelWidth(int billboarded, float width);
-float GxuFontGetOneToOneHeight(CGxFont *font);
-const char *GxuFontGetFontName(CGxFont *fontName);
-unsigned int GxuFontGetFontFlags(CGxFont *fontName);
-float
-GxuFontGetWrappedTextHeight(CGxFont *face, const char *text, float fontHeight, float blockWidth, float lineSpacing, unsigned int flags);
-unsigned int GxuFontWrapText(
-    CGxFont      *font,
-    const char   *text,
-    unsigned int  lineBytes,
-    float         fontHeight,
-    float         blockWidth,
-    unsigned int *outputList,
-    unsigned int  outputListElements,
-    float         charSpacing,
-    unsigned int  flags
+float           SignOf(float value);
+HFACE__        *FontFaceGetHandle(LPCSTR name, FT_LibraryRec_ *library);
+FT_FaceRec_    *FontFaceGetFace(HFACE__ *handle);
+void            FontFaceCloseHandle(HFACE__ *handle);
+LPCSTR          FontFaceGetFontName(HFACE__ *handle);
+UINT            GetScreenPixelHeight();
+UINT            GetScreenPixelWidth();
+float           ScreenToPixelHeight(int billboarded, float height);
+float           ScreenToPixelWidth(int billboarded, float width);
+float           GxuFontGetOneToOneHeight(CGxFont *font);
+LPCSTR          GxuFontGetFontName(CGxFont *fontName);
+UINT            GxuFontGetFontFlags(CGxFont *fontName);
+float           GxuFontGetWrappedTextHeight(CGxFont *face, LPCSTR text, float fontHeight, float blockWidth, float lineSpacing, UINT flags);
+UINT            GxuFontWrapText(
+    CGxFont *font,
+    LPCSTR   text,
+    UINT     lineBytes,
+    float    fontHeight,
+    float    blockWidth,
+    UINT    *outputList,
+    UINT     outputListElements,
+    float    charSpacing,
+    UINT     flags
 );
-QUOTEDCODE GxuDetermineQuotedCode(
-    const char          *text,
-    unsigned int        &advance,
-    NTempest::CImVector *color,
-    unsigned int         flags,
-    unsigned int        &wide,
-    unsigned int         remainingBytes
+QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVector *color, UINT flags, UINT &wide, UINT remainingBytes);
+void       CalcWrapPoint(
+    CGxFont *face,
+    LPCSTR   currentText,
+    float    fontHeight,
+    float    blockWidth,
+    UINT    *numBytes,
+    float   *pExtent,
+    LPCSTR  *pNextText,
+    UINT     flags
 );
-void CalcWrapPoint(
-    CGxFont      *face,
-    const char   *currentText,
-    float         fontHeight,
-    float         blockWidth,
-    unsigned int *numBytes,
-    float        *pExtent,
-    const char  **pNextText,
-    unsigned int  flags
-);
-int IGxuFontGlyphRenderGlyph(
-    FT_FaceRec_ *face,
-    unsigned int pixelHeight,
-    unsigned int code,
-    unsigned int baseLine,
-    GLYPHDATA   *dataPtr,
-    int          noHinting,
-    int          monochrome
-);
+int IGxuFontGlyphRenderGlyph(FT_FaceRec_ *face, UINT pixelHeight, UINT code, UINT baseLine, GLYPHDATA *dataPtr, int noHinting, int monochrome);
 
 void GxuFontInitialize();
 void GxuFontShutdown();
 void GxuFontWindowSizeChanged();
 
-int GxuFontCreateFont(const char *name, float fontHeight, CGxFont *&face, unsigned int flags);
+int  GxuFontCreateFont(LPCSTR name, float fontHeight, CGxFont *&face, UINT flags);
 void GxuFontDestroyFont(CGxFont *&face);
 
 int GxuFontCreateString(
     CGxFont                   *face,
-    const char                *text,
+    LPCSTR                     text,
     float                      fontHeight,
     const NTempest::C3Vector  &position,
     float                      blockWidth,
@@ -562,20 +513,20 @@ int GxuFontCreateString(
     CGxString                *&string,
     EGxFontVJusts              vertJustification,
     EGxFontHJusts              horzJustification,
-    unsigned int               flags,
+    UINT                       flags,
     const NTempest::CImVector &color,
     float                      charSpacing
 );
-void GxuFontDestroyString(CGxString *&string);
-void GxuFontRender(CGxString *string);
-void GxuFontRender(CGxString *string, const NTempest::C44Matrix &xform);
+void  GxuFontDestroyString(CGxString *&string);
+void  GxuFontRender(CGxString *string);
+void  GxuFontRender(CGxString *string, const NTempest::C44Matrix &xform);
 float GxuFontGetStringHeight(CGxString *string);
-void GxuFontAddShadow(CGxString *string, const NTempest::CImVector &color, const NTempest::C2Vector &offset);
-int GxuFontStringSetGradient(CGxString *string, int startCharacter, int length);
-unsigned int GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list);
-int GxuFontRenderString(
+void  GxuFontAddShadow(CGxString *string, const NTempest::CImVector &color, const NTempest::C2Vector &offset);
+int   GxuFontStringSetGradient(CGxString *string, int startCharacter, int length);
+UINT  GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list);
+int   GxuFontRenderString(
     CGxFont                  *font,
-    const char               *text,
+    LPCSTR                    text,
     float                     textHeight,
     const NTempest::C3Vector &position,
     NTempest::CImVector       color,
@@ -583,78 +534,77 @@ int GxuFontRenderString(
     float                     blockHeight,
     EGxFontVJusts             vertJustification,
     EGxFontHJusts             horzJustification,
-    unsigned int              flags,
+    UINT                      flags,
     float                     spacing,
     float                     charSpacing
 );
 
 CGxStringBatch *GxuFontCreateBatch();
-int GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string);
-int GxuFontRemoveFromBatch(CGxString *string);
-int GxuFontRenderBatch(CGxStringBatch *batch);
-int GxuFontClearBatch(CGxStringBatch *batch);
-int GxuFontDestroyBatch(CGxStringBatch *batch);
-int GxuFontAddToInternalBatch(CGxString *string);
-void GxuFontRenderInternalBatch();
+int             GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string);
+int             GxuFontRemoveFromBatch(CGxString *string);
+int             GxuFontRenderBatch(CGxStringBatch *batch);
+int             GxuFontClearBatch(CGxStringBatch *batch);
+int             GxuFontDestroyBatch(CGxStringBatch *batch);
+int             GxuFontAddToInternalBatch(CGxString *string);
+void            GxuFontRenderInternalBatch();
 
-void
-GxuFontGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, float charSpacing, unsigned int flags);
+void GxuFontGetTextExtent(CGxFont *face, LPCSTR text, UINT numBytes, float height, float *extent, float charSpacing, UINT flags);
 void GxuFontGetWrapPoint(
-    CGxFont      *face,
-    const char   *text,
-    float         fontHeight,
-    float         blockWidth,
-    unsigned int *numBytes,
-    float        *pExtent,
-    const char  **pNextText,
-    float         spacing,
-    unsigned int  flags
+    CGxFont *face,
+    LPCSTR   text,
+    float    fontHeight,
+    float    blockWidth,
+    UINT    *numBytes,
+    float   *pExtent,
+    LPCSTR  *pNextText,
+    float    spacing,
+    UINT     flags
 );
-unsigned int GxuFontGetMaxCharsWithinWidth(
-    CGxFont     *face,
-    const char  *text,
-    float        height,
-    float        maxWidth,
-    unsigned int lineBytes,
-    float       *extent,
-    float        charSpacing,
-    unsigned int flags
+UINT GxuFontGetMaxCharsWithinWidth(
+    CGxFont *face,
+    LPCSTR   text,
+    float    height,
+    float    maxWidth,
+    UINT     lineBytes,
+    float   *extent,
+    float    charSpacing,
+    UINT     flags
 );
-unsigned int GxuFontGetMaxCharsWithinWidthFromEnd(
-    CGxFont     *font,
-    const char  *text,
-    float        fontHeight,
-    float        width,
-    unsigned int lineBytes,
-    float       *extent,
-    float        charSpacing,
-    unsigned int flags
+UINT GxuFontGetMaxCharsWithinWidthFromEnd(
+    CGxFont *font,
+    LPCSTR   text,
+    float    fontHeight,
+    float    width,
+    UINT     lineBytes,
+    float   *extent,
+    float    charSpacing,
+    UINT     flags
 );
-const char *
-GxuFontStripEscapeCodes(const char *inputString, unsigned int numBytes, unsigned int flags, char *buffer, unsigned int bufferSize);
-int GxuFontGetLastColorCode(const char *string, unsigned int numBytes, NTempest::CImVector *color);
-int GxuFontGenerateColorString(char *buf, unsigned int bufSize, const NTempest::CImVector &color);
-int GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor);
-void GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos);
-void GxuFontSetCharSpacing(CGxString *string, float spacing);
-void GxuFontRemoveShadow(CGxString *string);
+LPCSTR
+GxuFontStripEscapeCodes(LPCSTR inputString, UINT numBytes, UINT flags, char *buffer, UINT bufferSize);
+int        GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *color);
+int        GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVector &color);
+int        GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor);
+void       GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos);
+void       GxuFontSetCharSpacing(CGxString *string, float spacing);
+void       GxuFontRemoveShadow(CGxString *string);
 CGxString *GxuFontDuplicateString(const CGxString *rhs);
-int GxuFontGetStringWidth(CGxString *string, float *width);
-int GxuFontGetStringHeight(CGxString *string, float *height);
+int        GxuFontGetStringWidth(CGxString *string, float *width);
+int        GxuFontGetStringHeight(CGxString *string, float *height);
 
 void IGxuStringInitialize();
 void IGxuStringShutdown();
 void GxuFontSetUseAdvanceWidth(int useAdvanceWidth);
-void InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, unsigned int flags);
-unsigned int InternalGetMaxCharsWithinWidth(
-    CGxFont      *face,
-    const char   *text,
-    float         height,
-    float         maxWidth,
-    unsigned int  lineBytes,
-    float        *extent,
-    unsigned int  flags,
-    unsigned int *bytesInString,
-    float        *widthArray,
-    float        *widthArrayGuard
+void InternalGetTextExtent(CGxFont *face, LPCSTR text, UINT numBytes, float height, float *extent, UINT flags);
+UINT InternalGetMaxCharsWithinWidth(
+    CGxFont *face,
+    LPCSTR   text,
+    float    height,
+    float    maxWidth,
+    UINT     lineBytes,
+    float   *extent,
+    UINT     flags,
+    UINT    *bytesInString,
+    float   *widthArray,
+    float   *widthArrayGuard
 );

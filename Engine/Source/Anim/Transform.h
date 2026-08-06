@@ -2,6 +2,4 @@
 
 #include "Anim/AnimInternal.h"
 
-void CalcGeosetColor(
-    const InterpInfo &animInfo, CAnimGeoset *geoset, CAnimGeosetObjStatus *geoStatus, CGeosetColor *color
-);
+void CalcGeosetColor(const InterpInfo &animInfo, CAnimGeoset *geoset, CAnimGeosetObjStatus *geoStatus, CGeosetColor *color);

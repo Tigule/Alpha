@@ -103,7 +103,7 @@ namespace OsNet {
     }
 
    private:
-    void *m_event;
+    LPVOID m_event;
   };
 
   struct NETOVERLAP {
@@ -125,16 +125,16 @@ namespace OsNet {
     OUTPUTSTATE m_state;
     union {
       struct {
-        void *m_operationId;
+        LPVOID m_operationId;
       } m_file;
       struct {
-        unsigned long m_time;
+        DWORD m_time;
       } m_sock;
     };
-    unsigned long  m_bytes;
-    unsigned long  m_dataBytes;
-    unsigned char *m_data;
-    SEvent        *m_completionEvent;
+    DWORD   m_bytes;
+    DWORD   m_dataBytes;
+    BYTE   *m_data;
+    SEvent *m_completionEvent;
 
     ~OUTPUT();
   };
@@ -147,20 +147,20 @@ namespace OsNet {
     NETOVERLAP m_overlap;
     union {
       struct {
-        void *m_operationId;
+        LPVOID m_operationId;
       } m_file;
       struct {
       } m_sock;
     };
-    unsigned long  m_bytes;
-    unsigned char *m_buffer;
+    DWORD m_bytes;
+    BYTE *m_buffer;
   };
 
   struct NETSELSOCK {
     NETSELSOCK() : m_sock(INVALID_SOCKET) {
     }
     NETSELSOCK(const NETSELSOCK &);
-    NETSELSOCK(unsigned int sock) : m_sock(sock) {
+    NETSELSOCK(UINT sock) : m_sock(sock) {
     }
 
    private:
@@ -170,7 +170,7 @@ namespace OsNet {
     virtual int  IsClosed() const;
     virtual void AddToSelectSets(NETSELECTSETS *selectSets) = 0;
 
-    unsigned int m_sock;
+    UINT m_sock;
 
     friend class NETSELECTSETS;
   };
@@ -187,7 +187,7 @@ namespace OsNet {
     void Clear();
     void AddSelSock(NETSELSOCK *selsock);
     void AddToSet(NETSELSOCK *selsock, SELECTSET selectSet);
-    int  Select(unsigned long timeoutTotal, long selsockTotal);
+    int  Select(DWORD timeoutTotal, long selsockTotal);
 
    private:
     TCPNET                                          *m_net;
@@ -197,7 +197,7 @@ namespace OsNet {
 
   class NETCONN : public NETSELSOCK {
    public:
-    NETCONN(TCPNET *net, unsigned int sock, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
+    NETCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
 
    protected:
     virtual void CloseAndUnlock() = 0;
@@ -207,38 +207,38 @@ namespace OsNet {
     }
     virtual void IncIo();
     virtual void DecIo();
-    virtual void CompleteWrite(NETOVERLAP *poverlap, unsigned long bytes);
-    virtual void CompleteRead(NETOVERLAP *poverlap, unsigned long bytes);
+    virtual void CompleteWrite(NETOVERLAP *poverlap, DWORD bytes);
+    virtual void CompleteRead(NETOVERLAP *poverlap, DWORD bytes);
     virtual void Close();
 
     void IncRef();
     void DecRef();
-    void GetEventProcAndUser(NETEVENTPROC &eventProc, void *&user);
-    void SetEventProcAndUser(NETEVENTPROC eventProc, void *user);
+    void GetEventProcAndUser(NETEVENTPROC &eventProc, LPVOID &user);
+    void SetEventProcAndUser(NETEVENTPROC eventProc, LPVOID user);
     void SetEventProc(NETEVENTPROC eventProc);
-    void SetUser(void *user);
+    void SetUser(LPVOID user);
     int  NoteCantConnect();
     int  NoteConnect();
     int  NoteDisconnect();
-    int  NoteData(void *data, unsigned long bytes, unsigned long *bytesProcessed, const NETCONNADDR *connAddr);
-    int  NoteFileOperation(void *data, unsigned long bytes, unsigned long offset, unsigned long offsetHigh, void *operationId, NETNOTE note);
+    int  NoteData(LPVOID data, DWORD bytes, DWORD *bytesProcessed, const NETCONNADDR *connAddr);
+    int  NoteFileOperation(LPVOID data, DWORD bytes, DWORD offset, DWORD offsetHigh, LPVOID operationId, NETNOTE note);
     void ConnAddr(NETCONNADDR *connAddr);
 
    private:
     LINKDECLEX(NETCONN, m_link);
-    unsigned char   m_list;
-    unsigned char   m_listSlot;
-    unsigned short  m_reserved;
-    LOCKEDLONG      m_refCount;
-    NETCONNADDR     m_connAddr;
-    long            m_eventProcUserLock;
-    NETEVENTPROC    m_eventProc;
-    void           *m_user;
+    BYTE         m_list;
+    BYTE         m_listSlot;
+    WORD         m_reserved;
+    LOCKEDLONG   m_refCount;
+    NETCONNADDR  m_connAddr;
+    long         m_eventProcUserLock;
+    NETEVENTPROC m_eventProc;
+    LPVOID       m_user;
 
    protected:
-    CCritSect       m_lock;
-    unsigned long   m_time;
-    TCPNET         *m_net;
+    CCritSect m_lock;
+    DWORD     m_time;
+    TCPNET   *m_net;
 
     CONNLIST ConnList() const {
       return static_cast<CONNLIST>(m_list);
@@ -250,63 +250,54 @@ namespace OsNet {
 
   class NETCONNFULL : public NETCONN {
    public:
-    NETCONNFULL(TCPNET *net, unsigned int sock, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr)
+    NETCONNFULL(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
         : NETCONN(net, sock, eventProc, user, pconnAddr) {
     }
 
-    virtual void    Send(const void *data, unsigned long bytes) = 0;
-    virtual OS_SEND SendSync(const void *data, unsigned long bytes, unsigned long *bytesSent, unsigned long timeout) = 0;
+    virtual void    Send(LPCVOID data, DWORD bytes) = 0;
+    virtual OS_SEND SendSync(LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout) = 0;
     virtual void    SetNagle(int enable);
-    virtual int     SetWindow(unsigned long size);
-    virtual void    SetRecvTimeout(unsigned long timeoutMs);
+    virtual int     SetWindow(DWORD size);
+    virtual void    SetRecvTimeout(DWORD timeoutMs);
   };
 
   class NETCONNLESS : public NETCONN {
    public:
-    NETCONNLESS(TCPNET *net, unsigned int sock, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr)
+    NETCONNLESS(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
         : NETCONN(net, sock, eventProc, user, pconnAddr) {
     }
 
-    virtual void SendTo(const void *data, unsigned long bytes, unsigned long addrCount, const NETADDR *addrArray) = 0;
+    virtual void SendTo(LPCVOID data, DWORD bytes, DWORD addrCount, const NETADDR *addrArray) = 0;
   };
 
   class TCPCONN : public NETCONNFULL {
    public:
-    TCPCONN(TCPNET *net, unsigned int sock, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
+    TCPCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     virtual ~TCPCONN();
-    virtual void    Send(const void *data, unsigned long bytes);
-    virtual OS_SEND SendSync(const void *data, unsigned long bytes, unsigned long *bytesSent, unsigned long timeout);
+    virtual void    Send(LPCVOID data, DWORD bytes);
+    virtual OS_SEND SendSync(LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout);
     virtual void    SetNagle(int enable);
-    virtual int     SetWindow(unsigned long size);
-    virtual void    SetRecvTimeout(unsigned long timeoutMs);
+    virtual int     SetWindow(DWORD size);
+    virtual void    SetRecvTimeout(DWORD timeoutMs);
 
    protected:
-    virtual void CompleteWrite(NETOVERLAP *poverlap, unsigned long bytes);
-    virtual void CompleteRead(NETOVERLAP *poverlap, unsigned long bytes);
+    virtual void CompleteWrite(NETOVERLAP *poverlap, DWORD bytes);
+    virtual void CompleteRead(NETOVERLAP *poverlap, DWORD bytes);
     virtual void StartWriteAndLeaveLock(OUTPUT *poutput) = 0;
     virtual void StartRead() = 0;
     virtual void CloseAndUnlock();
 
     LISTDECL(OUTPUT, m_outputList);
-    unsigned long                      m_bytes;
-    unsigned char                      m_data[1460];
+    DWORD m_bytes;
+    BYTE  m_data[1460];
 
    private:
-    OUTPUT *LockedEnqueue(const void *data, unsigned long bytes);
+    OUTPUT *LockedEnqueue(LPCVOID data, DWORD bytes);
   };
 
   class IOTCPCONN : public TCPCONN {
    public:
-    IOTCPCONN(
-        TCPNET            *net,
-        void              *port,
-        unsigned int       sock,
-        NETEVENTPROC       eventProc,
-        void              *user,
-        const NETCONNADDR *pconnAddr,
-        const void        *data,
-        unsigned long      bytes
-    );
+    IOTCPCONN(TCPNET *net, LPVOID port, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes);
 
    private:
     virtual void IncIo();
@@ -322,15 +313,7 @@ namespace OsNet {
 
   class SLTCPCONN : public TCPCONN {
    public:
-    SLTCPCONN(
-        TCPNET            *net,
-        unsigned int       sock,
-        NETEVENTPROC       eventProc,
-        void              *user,
-        const NETCONNADDR *pconnAddr,
-        const void        *data,
-        unsigned long      bytes
-    );
+    SLTCPCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes);
 
    private:
     virtual void StartWriteAndLeaveLock(OUTPUT *poutput);
@@ -343,18 +326,18 @@ namespace OsNet {
 
   class FILECONN : public NETCONN {
    public:
-    FILECONN(TCPNET *net, void *file, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
+    FILECONN(TCPNET *net, LPVOID file, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     virtual ~FILECONN();
     virtual int  IsClosed() const;
-    virtual void AddToSelectSets(NETSELECTSETS *__formal);
-    int          Write(unsigned __int64 pos, const void *data, unsigned long bytes, void *operationId);
-    int          Read(unsigned __int64 pos, void *buffer, unsigned long bytes, void *operationId);
+    virtual void AddToSelectSets(NETSELECTSETS *);
+    int          Write(DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId);
+    int          Read(DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId);
 
    protected:
     virtual void IncIo();
     virtual void DecIo();
-    virtual void CompleteWrite(NETOVERLAP *poverlap, unsigned long bytes);
-    virtual void CompleteRead(NETOVERLAP *poverlap, unsigned long bytes);
+    virtual void CompleteWrite(NETOVERLAP *poverlap, DWORD bytes);
+    virtual void CompleteRead(NETOVERLAP *poverlap, DWORD bytes);
     virtual void StartWriteAndLeaveLock(OUTPUT *poutput) = 0;
     virtual void StartRead(INPUT *pinput) = 0;
 
@@ -363,17 +346,17 @@ namespace OsNet {
     LOCKEDLONG   m_ioCount;
 
    protected:
-    void                              *m_file;
+    LPVOID m_file;
     LISTDECL(OUTPUT, m_outputList);
     LISTDECL(INPUT, m_inputList);
 
    private:
-    OUTPUT *LockedEnqueue(unsigned __int64 pos, const void *data, unsigned long bytes, void *operationId);
+    OUTPUT *LockedEnqueue(DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId);
   };
 
   class IOFILECONN : public FILECONN {
    public:
-    IOFILECONN(TCPNET *net, void *port, void *file, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
+    IOFILECONN(TCPNET *net, LPVOID port, LPVOID file, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
 
    private:
     virtual void StartWriteAndLeaveLock(OUTPUT *poutput);
@@ -385,16 +368,16 @@ namespace OsNet {
 
   class SLFILECONN : public FILECONN {
    public:
-    SLFILECONN(TCPNET *net, void *file, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
+    SLFILECONN(TCPNET *net, LPVOID file, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     virtual ~SLFILECONN();
 
    private:
-    static unsigned int __stdcall Thread(void *lpfileConn);
-    virtual void                  StartWriteAndLeaveLock(OUTPUT *poutput);
-    virtual void                  StartRead(INPUT *pinput);
+    static UINT __stdcall Thread(LPVOID lpfileConn);
+    virtual void          StartWriteAndLeaveLock(OUTPUT *poutput);
+    virtual void          StartRead(INPUT *pinput);
 
-    void *m_thread;
-    void *m_event;
+    LPVOID m_thread;
+    LPVOID m_event;
 
    protected:
     virtual void CloseAndUnlock();
@@ -409,14 +392,14 @@ namespace OsNet {
     void NoteCantConnect(NETEVENTPROC eventProc, const NETCONNADDR *pconnAddr);
 
     LINKDECLEX(NETCONNECT, m_link);
-    void              *m_user;
-    void              *m_data;
-    unsigned long      m_bytes;
+    LPVOID m_user;
+    LPVOID m_data;
+    DWORD  m_bytes;
   };
 
   struct LOOPCONNECT : public NETCONNECT {
     virtual int  IsClosed() const;
-    virtual void AddToSelectSets(NETSELECTSETS *__formal);
+    virtual void AddToSelectSets(NETSELECTSETS *);
     virtual void Fail();
     virtual void Complete(TCPNET *pnet);
 
@@ -432,9 +415,9 @@ namespace OsNet {
     virtual void Fail();
     virtual void Complete(TCPNET *pnet);
 
-    unsigned long m_nodeNumber;
-    unsigned long m_portAddr;
-    NETEVENTPROC  m_eventProc;
+    DWORD        m_nodeNumber;
+    DWORD        m_portAddr;
+    NETEVENTPROC m_eventProc;
 
    private:
     virtual void Selected(TCPNET *pnet, SELECTSET selectSet);
@@ -442,11 +425,11 @@ namespace OsNet {
 
   struct FILECONNECT : public NETCONNECT {
     virtual int  IsClosed() const;
-    virtual void AddToSelectSets(NETSELECTSETS *__formal);
+    virtual void AddToSelectSets(NETSELECTSETS *);
     virtual void Fail();
     virtual void Complete(TCPNET *pnet);
 
-    void        *m_file;
+    LPVOID       m_file;
     NETEVENTPROC m_eventProc;
 
    private:
@@ -458,29 +441,28 @@ namespace OsNet {
     struct INPUT {
       LINKDECLEX(INPUT, m_link);
       LINKDECLEX(INPUT, m_linkNet);
-      LOOPCONN     *m_conn;
-      unsigned long m_bytes;
-      unsigned long m_dataBytes;
-      unsigned char m_data[4];
-
+      LOOPCONN *m_conn;
+      DWORD     m_bytes;
+      DWORD     m_dataBytes;
+      BYTE      m_data[4];
     };
 
     typedef INPUT       *PINPUT;
     typedef const INPUT *PCINPUT;
 
-    LOOPCONN(TCPNET *net, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
+    LOOPCONN(TCPNET *net, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     virtual ~LOOPCONN();
-    virtual void    Send(const void *data, unsigned long bytes);
-    virtual OS_SEND SendSync(const void *data, unsigned long bytes, unsigned long *bytesSent, unsigned long timeout);
+    virtual void    Send(LPCVOID data, DWORD bytes);
+    virtual OS_SEND SendSync(LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout);
     virtual void    Close();
     virtual int     IsClosed() const;
 
    private:
-    LOOPCONN                *m_loopConn;
+    LOOPCONN *m_loopConn;
     LINKDECLEX(LOOPCONN, m_linkNet);
     LISTDECLEX(INPUT, m_link, m_inputList);
-    unsigned long            m_bytes;
-    unsigned char            m_data[1460];
+    DWORD m_bytes;
+    BYTE  m_data[1460];
 
    protected:
     virtual void CloseAndUnlock();
@@ -490,16 +472,16 @@ namespace OsNet {
     virtual void Selected(TCPNET *pnet, SELECTSET selectSet);
     void         Connect();
     void         CompleteInput(INPUT *pinput);
-    void         EnqueueInput(const void *data, unsigned long bytes);
+    void         EnqueueInput(LPCVOID data, DWORD bytes);
 
     friend struct TCPNET;
   };
 
   class UDPCONN : public NETCONNLESS {
    public:
-    UDPCONN(TCPNET *net, unsigned int sock, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
+    UDPCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     virtual ~UDPCONN();
-    virtual void SendTo(const void *data, unsigned long bytes, unsigned long addrCount, const NETADDR *addrArray);
+    virtual void SendTo(LPCVOID data, DWORD bytes, DWORD addrCount, const NETADDR *addrArray);
 
    protected:
     virtual void CloseAndUnlock();
@@ -605,11 +587,11 @@ namespace OsNet {
       return m_count;
     }
 
-    unsigned char Link(T *ptr) {
-      unsigned char slot;
+    BYTE Link(T *ptr) {
+      BYTE slot;
 
       m_linkSlot.Inc();
-      slot = static_cast<unsigned char>(static_cast<long>(m_linkSlot) & (SLOTS - 1));
+      slot = static_cast<BYTE>(static_cast<long>(m_linkSlot) & (SLOTS - 1));
       m_locks[slot].Enter();
       m_lists[slot].LinkNode(ptr, LIST_TAIL, 0);
       m_locks[slot].Leave();
@@ -617,7 +599,7 @@ namespace OsNet {
       return slot;
     }
 
-    void Unlink(T *ptr, unsigned char slot) {
+    void Unlink(T *ptr, BYTE slot) {
       ASSERT((LONG)slot >= 0 && (LONG)slot < SLOTS);
 
       m_locks[slot].Enter();
@@ -641,21 +623,21 @@ namespace OsNet {
   };
 
   NODEDECL(TCPACCEPT) {
-    TCPACCEPT(TCPLISTEN *listen);
+    TCPACCEPT(TCPLISTEN * listen);
     ~TCPACCEPT();
 
-    void         Init();
-    unsigned int Complete(NETCONNADDR *connAddr, int makeSock);
+    void Init();
+    UINT Complete(NETCONNADDR * connAddr, int makeSock);
 
-    NETOVERLAP    m_overlap;
-    CCritSect     m_lock;
-    unsigned char m_addr[64];
-    TCPLISTEN    *m_listen;
-    unsigned int  m_sock;
+    NETOVERLAP m_overlap;
+    CCritSect  m_lock;
+    BYTE       m_addr[64];
+    TCPLISTEN *m_listen;
+    UINT       m_sock;
   };
 
   struct TCPLISTEN : public NETSELSOCK {
-    TCPLISTEN(unsigned int sock, unsigned short port, NETEVENTPROC eventProc, void *user, unsigned long acceptCount);
+    TCPLISTEN(UINT sock, WORD port, NETEVENTPROC eventProc, LPVOID user, DWORD acceptCount);
     ~TCPLISTEN();
 
     int          Enable(int enable);
@@ -663,10 +645,10 @@ namespace OsNet {
     virtual void AddToSelectSets(NETSELECTSETS *selectSets);
 
     LINKDECLEX(TCPLISTEN, m_link);
-    unsigned long                            m_portAddr;
-    NETEVENTPROC                             m_eventProc;
-    void                                    *m_user;
-    int                                      m_enabled;
+    DWORD        m_portAddr;
+    NETEVENTPROC m_eventProc;
+    LPVOID       m_user;
+    int          m_enabled;
     LISTDECL(TCPACCEPT, m_acceptList);
 
    private:
@@ -682,10 +664,10 @@ namespace OsNet {
 
     char                    *m_hostNameList;
     char                    *m_hostNameCurr;
-    unsigned long            m_infoId;
-    void                    *m_thread;
+    DWORD                    m_infoId;
+    LPVOID                   m_thread;
     NETHOSTADDRPROC          m_hostAddrProc;
-    void                    *m_user;
+    LPVOID                   m_user;
     int                      m_ready;
     TSGrowableArray<NETADDR> m_addrs;
   };
@@ -697,40 +679,40 @@ namespace OsNet {
     ~TCPHOSTADDRTHREAD() {
     }
 
-    TCPNET        *m_net;
-    unsigned long  m_infoId;
-    void          *m_event;
-    unsigned short m_defaultPort;
+    TCPNET *m_net;
+    DWORD   m_infoId;
+    LPVOID  m_event;
+    WORD    m_defaultPort;
   };
 
   struct TCPNET {
    public:
     ~TCPNET();
 
-    static int Initialize(unsigned long hints, unsigned long parts);
-    static void Destroy(unsigned long parts);
+    static int     Initialize(DWORD hints, DWORD parts);
+    static void    Destroy(DWORD parts);
     static TCPNET *Net() {
       return s_pnet;
     }
 
-    void Pump(unsigned long timeout);
-    int  TcpListen(unsigned short port, NETEVENTPROC eventProc, void *user);
-    void TcpListenEnable(unsigned short port, int enable);
-    void TcpConnect(unsigned long nodeNumber, unsigned short port, NETEVENTPROC eventProc, void *user, const void *data, unsigned long bytes);
-    void UdpConnect(const NETADDR *addr, unsigned short portMin, unsigned short portMax, NETEVENTPROC eventProc, void *user);
-    void FileConnCreate(const char *fileName, NETEVENTPROC eventProc, void *user, int readOnly);
-    int  GetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETHOSTADDRPROC hostAddrProc, void *user);
-    TCPHOSTADDRINFO *LockedFindHostAddrInfo(unsigned long infoId);
-    void             LoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, void *user, const void *data, unsigned long bytes);
+    void             Pump(DWORD timeout);
+    int              TcpListen(WORD port, NETEVENTPROC eventProc, LPVOID user);
+    void             TcpListenEnable(WORD port, int enable);
+    void             TcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID user, LPCVOID data, DWORD bytes);
+    void             UdpConnect(const NETADDR *addr, WORD portMin, WORD portMax, NETEVENTPROC eventProc, LPVOID user);
+    void             FileConnCreate(LPCSTR fileName, NETEVENTPROC eventProc, LPVOID user, int readOnly);
+    int              GetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user);
+    TCPHOSTADDRINFO *LockedFindHostAddrInfo(DWORD infoId);
+    void             LoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, LPVOID user, LPCVOID data, DWORD bytes);
     void             LoopCompleteConnect(LOOPCONNECT *pconnect);
     void             TcpCompleteConnect(TCPCONNECT *pconnect);
     void             FileCompleteConnect(FILECONNECT *pconnect);
     void             LinkConn(NETCONN *pconn, CONNLIST tolist);
-    LOOPCONN::INPUT *LoopAllocInput(unsigned long bytes);
+    LOOPCONN::INPUT *LoopAllocInput(DWORD bytes);
     void             LoopFreeInput(LOOPCONN::INPUT *pinput);
 
-    static void __cdecl LogWrite(const char *format, ...);
-    static void __cdecl LogDump(const char *header, const void *data, unsigned long bytes);
+    static void __cdecl LogWrite(LPCSTR format, ...);
+    static void __cdecl LogDump(LPCSTR header, LPCVOID data, DWORD bytes);
 
     static LPFN_ACCEPTEX             s_AcceptEx;
     static LPFN_GETACCEPTEXSOCKADDRS s_GetAcceptExSockaddrs;
@@ -741,32 +723,32 @@ namespace OsNet {
     static float                     s_qpctoms;
 
     void CompleteAcceptEx(TCPACCEPT *paccept, int makeConn);
-    void CompleteAccept(TCPLISTEN *plisten, unsigned int sock, const NETCONNADDR *pconnAddr);
+    void CompleteAccept(TCPLISTEN *plisten, UINT sock, const NETCONNADDR *pconnAddr);
 
    private:
     TCPNET();
     TCPNET(const TCPNET &);
     TCPNET &operator=(const TCPNET &);
 
-    static void MakeConnAddr(unsigned int sock, unsigned long port, NETCONNADDR *connAddr);
-    static unsigned int CreateListenSocket(unsigned short port);
-    static void *IoCompletionPresent(unsigned long *pumpThreadCount);
-    static void IncludeDependantParts(unsigned long *parts);
+    static void   MakeConnAddr(UINT sock, DWORD port, NETCONNADDR *connAddr);
+    static UINT   CreateListenSocket(WORD port);
+    static LPVOID IoCompletionPresent(DWORD *pumpThreadCount);
+    static void   IncludeDependantParts(DWORD *parts);
 
-    int  BaseInitialize(unsigned long hints);
+    int  BaseInitialize(DWORD hints);
     void BaseDestroy();
-    int  WinsockInitialize(unsigned long hints);
+    int  WinsockInitialize(DWORD hints);
     void WinsockDestroy();
-    int  IoInitialize(unsigned long hints);
+    int  IoInitialize(DWORD hints);
     void IoDestroy();
-    int  TcpInitialize(unsigned long hints);
+    int  TcpInitialize(DWORD hints);
     void TcpDestroy();
     void IncRef();
     void DecRef();
     void WakePumpThread();
 
    public:
-    int  PostIo(unsigned long bytes, unsigned long key, OVERLAPPED *overlap) {
+    int PostIo(DWORD bytes, DWORD key, OVERLAPPED *overlap) {
       return PostQueuedCompletionStatus(m_port, bytes, key, overlap);
     }
     void BaseWakeThread() {
@@ -789,18 +771,18 @@ namespace OsNet {
     int  PumpThreadsInitialize();
     void PumpThreadsDestroy();
 
-    static unsigned int __stdcall IoPumpThread(void *lpnet);
-    static unsigned int __stdcall SlPumpThread(void *lpnet);
-    static unsigned int __stdcall BaseThread(void *lpnet);
-    static unsigned int __stdcall GetHostAddrsThread(void *lpparam);
-    static unsigned int __stdcall ListenThread(void *lpnet);
-    static unsigned int __stdcall UdpPumpThread(void *lpnet);
+    static UINT __stdcall IoPumpThread(LPVOID lpnet);
+    static UINT __stdcall SlPumpThread(LPVOID lpnet);
+    static UINT __stdcall BaseThread(LPVOID lpnet);
+    static UINT __stdcall GetHostAddrsThread(LPVOID lpparam);
+    static UINT __stdcall ListenThread(LPVOID lpnet);
+    static UINT __stdcall UdpPumpThread(LPVOID lpnet);
 
-    void IoPump(unsigned long timeout);
-    void TcpMakeConn(unsigned int sock, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr, const void *data, unsigned long bytes);
-    void UdpMakeConn(unsigned int sock, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
-    void FileMakeConn(void *file, NETEVENTPROC eventProc, void *user, const NETCONNADDR *pconnAddr);
-    void LoopMakeConn(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, void *user, const void *data, unsigned long bytes);
+    void IoPump(DWORD timeout);
+    void TcpMakeConn(UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes);
+    void UdpMakeConn(UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
+    void FileMakeConn(LPVOID file, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
+    void LoopMakeConn(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, LPVOID user, LPCVOID data, DWORD bytes);
     void LoopConnectInit(LOOPCONNECT *pconnect);
     void TcpConnectInit(TCPCONNECT *pconnect);
     void FileConnectInit(FILECONNECT *pconnect);
@@ -813,39 +795,39 @@ namespace OsNet {
       CONNECTLISTS = 4
     };
 
-    typedef TSExplicitList<LOOPCONN, 108> LISTLOOPCONN;
+    typedef TSExplicitList<LOOPCONN, 108>      LISTLOOPCONN;
     typedef TSExplicitList<LOOPCONN::INPUT, 8> LISTLOOPCONNINPUT;
-    typedef TSSlottedListEx<NETCONNECT, 8, 1> NETCONNECTLIST;
-    typedef TSExplicitList<NETCONNECT, 8> NETCONNECTSIMPLELIST;
-    typedef TSSlottedListEx<NETCONN, 8, 8> NETCONNLIST;
-    typedef TSExplicitList<NETCONN, 8> NETCONNSIMPLELIST;
-    typedef TSSlottedListEx<TCPLISTEN, 8, 1> TCPLISTENLIST;
+    typedef TSSlottedListEx<NETCONNECT, 8, 1>  NETCONNECTLIST;
+    typedef TSExplicitList<NETCONNECT, 8>      NETCONNECTSIMPLELIST;
+    typedef TSSlottedListEx<NETCONN, 8, 8>     NETCONNLIST;
+    typedef TSExplicitList<NETCONN, 8>         NETCONNSIMPLELIST;
+    typedef TSSlottedListEx<TCPLISTEN, 8, 1>   TCPLISTENLIST;
 
-    LOCKEDLONG                     m_refCount;
-    unsigned long                  m_pumpThreadCount;
-    TSGrowableArray<void *>        m_pumpThreads;
-    void                          *m_udpPumpThread;
-    void                          *m_udpPumpEvent;
-    CCritSect                      m_loopLock;
-    LISTLOOPCONNINPUT              m_loopInputRecycleList;
-    LISTLOOPCONNINPUT              m_loopInputList;
-    LISTEXDYN(LOOPCONN)            m_loopDisconnectList;
-    NETCONNLIST                    m_connList[CONNLISTS];
-    void                          *m_listenThread;
-    TCPLISTENLIST                  m_listenList;
-    void                          *m_baseThread;
-    void                          *m_baseEvent;
-    int                            m_baseTcpShutdown;
-    void                          *m_baseTcpShutdownEvent;
-    NETCONNECTLIST                 m_connectList[CONNECTLISTS];
-    void                          *m_port;
-    LOCKEDLONG                     m_hostAddrInfoCount;
-    CEventLock                     m_hostAddrInfoLock;
-    unsigned long                  m_hostAddrInfoId;
+    LOCKEDLONG              m_refCount;
+    DWORD                   m_pumpThreadCount;
+    TSGrowableArray<LPVOID> m_pumpThreads;
+    LPVOID                  m_udpPumpThread;
+    LPVOID                  m_udpPumpEvent;
+    CCritSect               m_loopLock;
+    LISTLOOPCONNINPUT       m_loopInputRecycleList;
+    LISTLOOPCONNINPUT       m_loopInputList;
+    LISTEXDYN(LOOPCONN) m_loopDisconnectList;
+    NETCONNLIST    m_connList[CONNLISTS];
+    LPVOID         m_listenThread;
+    TCPLISTENLIST  m_listenList;
+    LPVOID         m_baseThread;
+    LPVOID         m_baseEvent;
+    int            m_baseTcpShutdown;
+    LPVOID         m_baseTcpShutdownEvent;
+    NETCONNECTLIST m_connectList[CONNECTLISTS];
+    LPVOID         m_port;
+    LOCKEDLONG     m_hostAddrInfoCount;
+    CEventLock     m_hostAddrInfoLock;
+    DWORD          m_hostAddrInfoId;
     LISTDECL(TCPHOSTADDRINFO, m_hostAddrInfoList);
 
     static CInitCritSect s_initLock;
-    static unsigned long s_initCount[5];
+    static DWORD         s_initCount[5];
     static TCPNET *volatile s_pnet;
     static volatile int s_baseShutdown;
     static volatile int s_pumpShutdown;
@@ -855,40 +837,33 @@ namespace OsNet {
     static HMODULE      s_mswsockModule;
     static HMODULE      s_ws2Module;
 
-    friend void ::OsNetPump(unsigned long timeout);
-    friend int ::OsTcpListen(unsigned short port, NETEVENTPROC eventProc, void *user);
-    friend void ::OsTcpListenEnable(unsigned short port, int enable);
-    friend void ::OsTcpConnect(
-        unsigned long  nodeNumber,
-        unsigned short port,
-        NETEVENTPROC   eventProc,
-        void          *user,
-        const void    *data,
-        unsigned long  bytes
-    );
-    friend void ::OsUdpConnect(const NETADDR *addr, unsigned short portMin, unsigned short portMax, NETEVENTPROC eventProc, void *user);
-    friend void ::OsFileConnCreate(const char *fileName, NETEVENTPROC eventProc, void *user, int readOnly);
-    friend int ::OsNetGetHostAddrs(const char *hostNameList, unsigned short defaultPort, NETHOSTADDRPROC hostAddrProc, void *user);
+    friend void ::OsNetPump(DWORD timeout);
+    friend int ::OsTcpListen(WORD port, NETEVENTPROC eventProc, LPVOID user);
+    friend void ::OsTcpListenEnable(WORD port, int enable);
+    friend void ::OsTcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID user, LPCVOID data, DWORD bytes);
+    friend void ::OsUdpConnect(const NETADDR *addr, WORD portMin, WORD portMax, NETEVENTPROC eventProc, LPVOID user);
+    friend void ::OsFileConnCreate(LPCSTR fileName, NETEVENTPROC eventProc, LPVOID user, int readOnly);
+    friend int ::OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user);
     friend struct LOOPCONN;
     friend class IOFILECONN;
     friend class SLFILECONN;
   };
 
-  extern const char *OSNETERR_INTERNAL;
-  extern const char *OSNETERR_WINSOCKSTARTUP;
-  extern const char *OSNETERR_WINSOCKVERSION;
-  extern const char *OSNETERR_SENDFAILED;
-  extern const char *OSNETERR_THREADFAILED;
-  extern const char *OSNETERR_EVENTFAILED;
-  extern const char *OSNETERR_BINDFAILED;
-  extern const char *OSNETERR_LISTENFAILED;
-  extern const char *OSNETERR_SOCKETFAILED;
-  extern const char *OSNETERR_SELECTFAILED;
-  extern const char *OSNETERR_ACCEPTFAILED;
-  extern const char *OSNETERR_PORTFAILED;
-  extern const char *OSNETERR_OVERLAPTYPE;
-  extern const char *OSNETERR_LISTENCLOSED;
-  extern const char *OSNETERR_ACCEPTEXFAILED;
+  extern LPCSTR OSNETERR_INTERNAL;
+  extern LPCSTR OSNETERR_WINSOCKSTARTUP;
+  extern LPCSTR OSNETERR_WINSOCKVERSION;
+  extern LPCSTR OSNETERR_SENDFAILED;
+  extern LPCSTR OSNETERR_THREADFAILED;
+  extern LPCSTR OSNETERR_EVENTFAILED;
+  extern LPCSTR OSNETERR_BINDFAILED;
+  extern LPCSTR OSNETERR_LISTENFAILED;
+  extern LPCSTR OSNETERR_SOCKETFAILED;
+  extern LPCSTR OSNETERR_SELECTFAILED;
+  extern LPCSTR OSNETERR_ACCEPTFAILED;
+  extern LPCSTR OSNETERR_PORTFAILED;
+  extern LPCSTR OSNETERR_OVERLAPTYPE;
+  extern LPCSTR OSNETERR_LISTENCLOSED;
+  extern LPCSTR OSNETERR_ACCEPTEXFAILED;
 
 }  // namespace OsNet
 

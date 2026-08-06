@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *PageTextMaterialRec::GetFilename() {
+LPCSTR PageTextMaterialRec::GetFilename() {
   return "DBFilesClient\\PageTextMaterial.dbc";
 }
 
@@ -19,9 +19,9 @@ PageTextMaterialRec::PageTextMaterialRec() {
 PageTextMaterialRec::~PageTextMaterialRec() {
 }
 
-bool PageTextMaterialRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempnameIndices[1];
+bool PageTextMaterialRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempnameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempnameIndices[0], sizeof(tempnameIndices[0]), 0, 0, 0) && result;

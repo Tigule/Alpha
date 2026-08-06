@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ItemVisualEffectsRec::GetFilename() {
+LPCSTR ItemVisualEffectsRec::GetFilename() {
   return "DBFilesClient\\ItemVisualEffects.dbc";
 }
 
@@ -19,9 +19,9 @@ ItemVisualEffectsRec::ItemVisualEffectsRec() {
 ItemVisualEffectsRec::~ItemVisualEffectsRec() {
 }
 
-bool ItemVisualEffectsRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempModelIndices[1];
+bool ItemVisualEffectsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempModelIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempModelIndices[0], sizeof(tempModelIndices[0]), 0, 0, 0) && result;

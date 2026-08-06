@@ -30,9 +30,9 @@ int IEvtTimerDispatch(EvtContext *context) {
       EVENT_DATA_TIMER data;
       EVENTHANDLER     handler = timer->handler;
       EVENTGUIDHANDLER guidHandler = 0;
-      void            *param = 0;
-      unsigned __int64 guidParam = 0;
-      void            *guidParam2 = 0;
+      LPVOID           param = 0;
+      DWORDLONG        guidParam = 0;
+      LPVOID           guidParam2 = 0;
 
       if (handler) {
         param = timer->param;
@@ -63,7 +63,7 @@ int IEvtTimerDispatch(EvtContext *context) {
   return dispatched;
 }
 
-unsigned int IEvtTimerGetNextTime(EvtContext *context, DWORD currTime) {
+UINT IEvtTimerGetNextTime(EvtContext *context, DWORD currTime) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
 
@@ -80,7 +80,7 @@ unsigned int IEvtTimerGetNextTime(EvtContext *context, DWORD currTime) {
   return currTime;
 }
 
-float IEvtTimerGetRemaining(EvtContext *context, unsigned int id) {
+float IEvtTimerGetRemaining(EvtContext *context, UINT id) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
@@ -103,7 +103,7 @@ float IEvtTimerGetRemaining(EvtContext *context, unsigned int id) {
   return remaining;
 }
 
-void IEvtTimerKill(EvtContext *context, unsigned int id, EVENTHANDLER handlerFunction, const char *functionName) {
+void IEvtTimerKill(EvtContext *context, UINT id, EVENTHANDLER handlerFunction, LPCSTR functionName) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
@@ -121,7 +121,7 @@ void IEvtTimerKill(EvtContext *context, unsigned int id, EVENTHANDLER handlerFun
   }
 
   if ((timer->handler && timer->handler != handlerFunction) ||
-      (timer->guidHandler && reinterpret_cast<void *>(timer->guidHandler) != reinterpret_cast<void *>(handlerFunction)))
+      (timer->guidHandler && reinterpret_cast<LPVOID>(timer->guidHandler) != reinterpret_cast<LPVOID>(handlerFunction)))
   {
     FATALERROR(("Error, attempt to kill eventID %d with mismatching handler (%s)!", id, functionName ? functionName : ""));
   }
@@ -140,20 +140,20 @@ void IEvtTimerKill(EvtContext *context, unsigned int id, EVENTHANDLER handlerFun
   context->TimerUnlockIdTableAndQueue();
 }
 
-unsigned int IEvtTimerSet(
+UINT IEvtTimerSet(
     EvtContext      *context,
     float            timeout,
     EVENTHANDLER     handler,
-    void            *param,
+    LPVOID           param,
     EVENTGUIDHANDLER guidHandler,
-    unsigned __int64 guidParam,
-    void            *guidParam2
+    DWORDLONG        guidParam,
+    LPVOID           guidParam2
 ) {
   LONG                    timeoutMs;
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
-  unsigned int            id;
+  UINT                    id;
 
   FATALASSERT(context);
   if (!handler && !guidHandler) {
@@ -182,19 +182,19 @@ unsigned int IEvtTimerSet(
   return id;
 }
 
-unsigned int IEvtTimerSet(
+UINT IEvtTimerSet(
     EvtContext      *context,
-    unsigned int     timeout,
+    UINT             timeout,
     EVENTHANDLER     handler,
-    void            *param,
+    LPVOID           param,
     EVENTGUIDHANDLER guidHandler,
-    unsigned __int64 guidParam,
-    void            *guidParam2
+    DWORDLONG        guidParam,
+    LPVOID           guidParam2
 ) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
-  unsigned int            id;
+  UINT                    id;
   DWORD                   targetTime;
 
   FATALASSERT(context);
@@ -223,20 +223,20 @@ unsigned int IEvtTimerSet(
   return id;
 }
 
-unsigned int IEvtTimerSetAbsolute(
+UINT IEvtTimerSetAbsolute(
     EvtContext      *context,
     DWORD            triggerTime,
     EVENTHANDLER     handler,
-    void            *param,
+    LPVOID           param,
     EVENTGUIDHANDLER guidHandler,
-    unsigned __int64 guidParam,
-    void            *guidParam2
+    DWORDLONG        guidParam,
+    LPVOID           guidParam2
 ) {
   DWORD                   currTime;
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
-  unsigned int            id;
+  UINT                    id;
 
   FATALASSERT(context);
   if (!handler && !guidHandler) {

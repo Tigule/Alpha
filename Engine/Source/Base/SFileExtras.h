@@ -2,7 +2,7 @@
 
 #include <storm.h>
 
-inline int SFileReadTyped(SFile *file, unsigned int *data) {
+inline int SFileReadTyped(SFile *file, UINT *data) {
   return SFile::Read(file, data, sizeof(*data), 0, 0, 0);
 }
 

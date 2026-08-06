@@ -9,10 +9,10 @@
 
 static const AreaMIDIAmbiencesRec *s_ambienceRecNormal;
 static const AreaMIDIAmbiencesRec *s_ambienceRecUnderwater;
-static bool                  s_paused;
-static float                 s_volume = 1.0f;
+static bool                        s_paused;
+static float                       s_volume = 1.0f;
 
-static bool AmbienceVolumeHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
+static bool AmbienceVolumeHandler(CVar *cvar, LPCSTR oldValue, LPCSTR newValue, LPVOID userArg) {
   s_volume = SStrToFloat(newValue);
   SndInterfaceWaterUpdateVolume(s_volume);
   Sound::MIDI_SetVolume(s_volume);
@@ -34,9 +34,9 @@ static bool AmbienceVolumeHandler(CVar *cvar, const char *oldValue, const char *
   return true;
 }
 
-static bool EnableAmbienceHandler(CVar *cvar, const char *oldValue, const char *newValue, void *userArg) {
-  unsigned int enabled = SStrToInt(newValue);
-  CVar        *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
+static bool EnableAmbienceHandler(CVar *cvar, LPCSTR oldValue, LPCSTR newValue, LPVOID userArg) {
+  UINT  enabled = SStrToInt(newValue);
+  CVar *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
   if (masterSoundEffects && !masterSoundEffects->GetInt()) {
     enabled = 0;
   }
@@ -68,7 +68,7 @@ static void StartAmbience() {
   const AreaMIDIAmbiencesRec *ambienceRec = g_underWater ? s_ambienceRecUnderwater : s_ambienceRecNormal;
   CVar                       *enableAmbience = CVar::Lookup("EnableAmbience");
   if (ambienceRec && enableAmbience && enableAmbience->GetInt()) {
-    const char *sequence = g_currentAmbience == AMB_DAY ? ambienceRec->m_DaySequence : ambienceRec->m_NightSequence;
+    LPCSTR sequence = g_currentAmbience == AMB_DAY ? ambienceRec->m_DaySequence : ambienceRec->m_NightSequence;
     Sound::MIDI_Play(sequence, ambienceRec->m_DLSFile);
     Sound::MIDI_SetVolume(s_volume);
   }

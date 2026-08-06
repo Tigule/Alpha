@@ -19,9 +19,9 @@ static const char s_WndClassName[] = "GxWindowClassOpenGl";
 static int s_inCreateOrDestroy;
 
 HGLRC AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format);
-void RemoveGlContext(HGLRC context);
+void  RemoveGlContext(HGLRC context);
 
-static unsigned short WindowClassCreate() {
+static WORD WindowClassCreate() {
   HINSTANCE   instance = GetModuleHandle(0);
   WNDCLASSEXA wc;
   memset(&wc, 0, sizeof(wc));
@@ -38,14 +38,13 @@ static unsigned short WindowClassCreate() {
   return RegisterClassExA(&wc);
 }
 
-void WindowClassDestroy(unsigned short &hwndClass) {
-  UnregisterClass(reinterpret_cast<const char *>(hwndClass), GetModuleHandle(0));
+void WindowClassDestroy(WORD &hwndClass) {
+  UnregisterClass(reinterpret_cast<LPCSTR>(hwndClass), GetModuleHandle(0));
   hwndClass = 0;
 }
 
 static HWND WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
-  unsigned long style =
-      format.window ? WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_POPUP | WS_MAXIMIZE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+  DWORD style = format.window ? WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_POPUP | WS_MAXIMIZE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 
   return CreateWindowExA(
       WS_EX_APPWINDOW, s_WndClassName, "A game in progress", style, format.pos.x, format.pos.y, format.size.x, format.size.y, 0, 0,
@@ -113,8 +112,8 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
     dd.cb = sizeof(dd);
     dm.dmSize = sizeof(dm);
     EnumDisplayDevicesTarget(0, 0, &dd, 0);
-    EnumDisplaySettingsA(reinterpret_cast<const char *>(dd.DeviceName), format.apiSpecificModeID, &dm);
-    FATALASSERT(ChangeDisplaySettingsExA(reinterpret_cast<const char *>(dd.DeviceName), &dm, 0, CDS_FULLSCREEN, 0) == DISP_CHANGE_SUCCESSFUL);
+    EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), format.apiSpecificModeID, &dm);
+    FATALASSERT(ChangeDisplaySettingsExA(reinterpret_cast<LPCSTR>(dd.DeviceName), &dm, 0, CDS_FULLSCREEN, 0) == DISP_CHANGE_SUCCESSFUL);
     SetWindowPos(m_hwnd, 0, 0, 0, format.size.x, format.size.y, SWP_DEFERERASE | SWP_NOCOPYBITS | SWP_NOREDRAW);
     ShowWindow(m_hwnd, SW_SHOWMAXIMIZED);
   } else {
@@ -134,12 +133,12 @@ int CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   dd.cb = sizeof(dd);
   EnumDisplayDevicesTarget(0, 0, &dd, 0);
 
-  unsigned int mode = 0;
-  unsigned int bitsPerPixel = format.colorFormat ? 32 : 16;
+  UINT mode = 0;
+  UINT bitsPerPixel = format.colorFormat ? 32 : 16;
   dm.dmSize = sizeof(dm);
-  while (EnumDisplaySettingsA(reinterpret_cast<const char *>(dd.DeviceName), mode, &dm)) {
-    if (dm.dmBitsPerPel == bitsPerPixel && dm.dmDisplayFrequency == format.refreshRate &&
-        dm.dmPelsWidth == static_cast<unsigned int>(format.size.x) && dm.dmPelsHeight == static_cast<unsigned int>(format.size.y))
+  while (EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), mode, &dm)) {
+    if (dm.dmBitsPerPel == bitsPerPixel && dm.dmDisplayFrequency == format.refreshRate && dm.dmPelsWidth == static_cast<UINT>(format.size.x) &&
+        dm.dmPelsHeight == static_cast<UINT>(format.size.y))
     {
       format.apiSpecificModeID = mode;
       return 1;
@@ -192,7 +191,7 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
   m_context = 0;
 }
 
-long CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND window, unsigned int message, unsigned int wparam, long lparam) {
+long CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND window, UINT message, UINT wparam, long lparam) {
   CGxDeviceOpenGl *dev = reinterpret_cast<CGxDeviceOpenGl *>(GetWindowLongA(window, GWL_USERDATA));
   switch (message) {
     case WM_CREATE: {
@@ -279,7 +278,7 @@ int CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &form
   return 0;
 }
 
-int CGxDeviceOpenGl::DeviceCreate(unsigned int clienthwnd, const CGxFormat &format) {
+int CGxDeviceOpenGl::DeviceCreate(UINT clienthwnd, const CGxFormat &format) {
   s_inCreateOrDestroy = 1;
   m_ownhwnd = 0;
   HDC hDC = GetDC(0);
@@ -337,7 +336,7 @@ int CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
   return 0;
 }
 
-void CGxDeviceOpenGl::DeviceSetBaseMipLevel(unsigned int baseMipLevel) {
+void CGxDeviceOpenGl::DeviceSetBaseMipLevel(UINT baseMipLevel) {
   CGxDevice::DeviceSetBaseMipLevel(baseMipLevel);
   ITexForceRecreation();
 }
@@ -358,7 +357,7 @@ void CGxDeviceOpenGl::DeviceSetGamma(const CGxGammaRamp &ramp) {
   }
 }
 
-void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, unsigned int plane) {
+void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UINT plane) {
   TextureTarget &target = m_textureTarget[buffer];
   if (target.m_texture == gxTex && target.m_plane == plane) {
     return;
@@ -367,7 +366,7 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, uns
   CGxDevice::DeviceSetRenderTarget(buffer, gxTex, plane);
   CGxTex *oldTex = static_cast<CGxTex *>(target.m_apiSpecific);
   if (oldTex) {
-    BindTexture(oldTex, static_cast<unsigned int>(-1));
+    BindTexture(oldTex, static_cast<UINT>(-1));
     if (oldTex->m_needsCreation) {
       glCopyTexImage2D(GL_TEXTURE_2D, 0, s_convertTexFmt[oldTex->m_format], 0, 0, oldTex->m_width, oldTex->m_height, 0);
     } else {
@@ -385,9 +384,7 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, uns
     hglrc = m_hPbufferRC;
   }
   wglMakeCurrent(hdc, hglrc);
-  XformSetViewport(
-      m_viewport.x.l, m_viewport.x.h, m_viewport.y.l, m_viewport.y.h, m_viewport.z.l, m_viewport.z.h
-  );
+  XformSetViewport(m_viewport.x.l, m_viewport.x.h, m_viewport.y.l, m_viewport.y.h, m_viewport.z.l, m_viewport.z.h);
   XformSetProjection(m_projection);
 }
 
@@ -396,8 +393,8 @@ void CGxDeviceOpenGl::DeviceSetTextureQuality(int force32) {
   ITexForceRecreation();
 }
 
-unsigned long CGxDeviceOpenGl::DeviceWindow() {
-  return reinterpret_cast<unsigned long>(m_hwnd);
+DWORD CGxDeviceOpenGl::DeviceWindow() {
+  return reinterpret_cast<DWORD>(m_hwnd);
 }
 
 static int IsGlDisplayModeGood(const DEVMODEA &dm) {
@@ -408,7 +405,7 @@ int CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   DISPLAY_DEVICEA dd;
   DEVMODEA        dm;
   CGxFormat       fmt;
-  unsigned int    mode;
+  UINT            mode;
 
   dd.cb = sizeof(dd);
   EnumDisplayDevicesTarget(0, 0, &dd, 0);
@@ -419,7 +416,7 @@ int CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   mode = 0;
   dm.dmSize = sizeof(dm);
 
-  while (EnumDisplaySettingsA(reinterpret_cast<const char *>(dd.DeviceName), mode, &dm)) {
+  while (EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), mode, &dm)) {
     if (IsGlDisplayModeGood(dm)) {
       memset(&fmt, 0, sizeof(fmt));
       fmt.apiSpecificModeID = mode;

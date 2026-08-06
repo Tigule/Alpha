@@ -24,8 +24,8 @@
 
 static void LoadScriptFunctions();
 static void UnloadScriptFunctions();
-static int CCommand_Script(const char *command, const char *arguments);
-void EnableLoadingScreen();
+static int  CCommand_Script(LPCSTR command, LPCSTR arguments);
+void        EnableLoadingScreen();
 
 static const char REGKEY[11] = "WoW\\Client";
 static const char REGVAL_ACCOUNTNAME[12] = "AccountName";
@@ -33,7 +33,7 @@ static const char REGVAL_LASTCHARACTER[14] = "LastCharacter";
 static const char REGVAL_LASTACCOUNT[12] = "LastAccount";
 static const char REGVAL_LASTREALM[10] = "LastRealm";
 
-const char *g_glueBgObjNames[2] = {"CharacterAttachment", "PetAttachment"};
+LPCSTR g_glueBgObjNames[2] = {"CharacterAttachment", "PetAttachment"};
 
 CSimpleTop               *CGlueMgr::m_simpleTop;
 HMODEL                    CGlueMgr::m_cursorModel;
@@ -48,11 +48,11 @@ int                       CGlueMgr::m_region;
 WOW_LOCALE                CGlueMgr::m_locale;
 char                      CGlueMgr::m_accountName[64];
 char                      CGlueMgr::m_password[64];
-unsigned int              CGlueMgr::m_queuePosition[3];
-unsigned long             CGlueMgr::m_queueTime[3];
+UINT                      CGlueMgr::m_queuePosition[3];
+DWORD                     CGlueMgr::m_queueTime[3];
 int                       CGlueMgr::m_estimatedWaitTime;
 CHARACTER_INFO           *CGlueMgr::m_characterInfo;
-static unsigned __int64   s_loginGUID;
+static DWORDLONG          s_loginGUID;
 
 static void LoadScriptFunctions() {
   RegisterSimpleFrameScriptMethods();
@@ -160,9 +160,9 @@ void CGlueMgr::DestroyCursor() {
   }
 }
 
-void CGlueMgr::UpdateWaitQueue(unsigned int wait) {
+void CGlueMgr::UpdateWaitQueue(UINT wait) {
   if (wait != m_queuePosition[0] || m_queueTime[2] <= 0) {
-    for (unsigned int i = 1; i > 0; --i) {
+    for (UINT i = 1; i > 0; --i) {
       m_queuePosition[i + 1] = m_queuePosition[i];
       m_queueTime[i + 1] = m_queueTime[i];
     }
@@ -218,7 +218,7 @@ void CGlueMgr::CreateCharacter(const CHARACTER_CREATE_INFO *info) {
   ClientServices_CharacterCreate(*info);
 }
 
-void CGlueMgr::DeleteCharacter(unsigned __int64 guid) {
+void CGlueMgr::DeleteCharacter(DWORDLONG guid) {
   if (guid) {
     m_idleState = IDLE_DELETE_CHARACTER;
     FrameScript_SignalEvent(3, "%s", "CANCEL");
@@ -269,11 +269,11 @@ void CGlueMgr::StatusDialogClick() {
   }
 }
 
-void CGlueMgr::SetScreen(const char *screen) {
+void CGlueMgr::SetScreen(LPCSTR screen) {
   FrameScript_SignalEvent(0, "%s", screen);
 }
 
-void CGlueMgr::UpdateCurrentScreen(const char *screen) {
+void CGlueMgr::UpdateCurrentScreen(LPCSTR screen) {
   SStrCopy(m_currentScreen, screen, 64);
 }
 
@@ -297,10 +297,10 @@ void CGlueMgr::GetRealmList() {
   ClientServices_GetRealmList();
 }
 
-int CGlueMgr::Idle(const void *, void *) {
+int CGlueMgr::Idle(LPCVOID, LPVOID) {
   NTempest::C3Vector position;
   WOWCS_OPS          op;
-  const char        *msg;
+  LPCSTR             msg;
   int                result;
   int                errorCode;
 
@@ -441,7 +441,7 @@ int CGlueMgr::Idle(const void *, void *) {
 
       if (!m_suspended) {
         s_loginGUID = m_characterInfo->guid;
-        unsigned int mapID = m_characterInfo->mapID;
+        UINT mapID = m_characterInfo->mapID;
         position = m_characterInfo->position;
         Suspend();
         ClientInitializeGame(mapID, position);
@@ -469,12 +469,12 @@ int CGlueMgr::Idle(const void *, void *) {
   return 1;
 }
 
-int CGlueMgr::NetDisconnectHandler(const void *eventData, void *__formal) {
-  WOWCS_OPS   op;
-  int         errorCode;
-  const char *msg;
-  int         result;
-  bool        notAccountLogin = m_idleState != IDLE_ACCOUNT_LOGIN;
+int CGlueMgr::NetDisconnectHandler(LPCVOID eventData, LPVOID) {
+  WOWCS_OPS op;
+  int       errorCode;
+  LPCSTR    msg;
+  int       result;
+  bool      notAccountLogin = m_idleState != IDLE_ACCOUNT_LOGIN;
 
   m_idleState = IDLE_NONE;
 
@@ -508,7 +508,7 @@ int CGlueMgr::NetDisconnectHandler(const void *eventData, void *__formal) {
   return 1;
 }
 
-static int CCommand_Script(const char *command, const char *arguments) {
+static int CCommand_Script(LPCSTR command, LPCSTR arguments) {
   FrameScript_Execute(arguments, arguments);
   return 1;
 }

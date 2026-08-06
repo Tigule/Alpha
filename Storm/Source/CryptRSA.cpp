@@ -5,8 +5,8 @@ BigNum &BigNum::PowMod(const BigNum &b, const BigNum &c, const BigNum &d) {
   return *this;
 }
 
-void *BigNum::ToBinaryBuffer(void *data, unsigned int bytes) const {
-  unsigned int actual;
+LPVOID BigNum::ToBinaryBuffer(LPVOID data, UINT bytes) const {
+  UINT actual;
 
   SBigToBinaryBuffer(*m_data, data, bytes, &actual);
   if (actual < bytes) {
@@ -15,18 +15,18 @@ void *BigNum::ToBinaryBuffer(void *data, unsigned int bytes) const {
   return data;
 }
 
-void BigNum::FromBinary(const void *data, unsigned int bytes) {
+void BigNum::FromBinary(LPCVOID data, UINT bytes) {
   SBigFromBinary(m_data, data, bytes);
 }
 
 namespace Crypt {
 
-  void RSA::Prepare(const void *modulus, unsigned long mLength, const void *exponent, unsigned long eLength) {
+  void RSA::Prepare(LPCVOID modulus, DWORD mLength, LPCVOID exponent, DWORD eLength) {
     m_modulus.FromBinary(modulus, mLength);
     m_exponent.FromBinary(exponent, eLength);
   }
 
-  void RSA::Process(unsigned char *data, unsigned long length) {
+  void RSA::Process(BYTE *data, DWORD length) {
     BigNum src;
 
     src.FromBinary(data, length);

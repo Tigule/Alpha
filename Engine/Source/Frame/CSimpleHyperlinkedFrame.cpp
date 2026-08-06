@@ -66,7 +66,7 @@ void CSimpleHyperlinkedFrame::LoadXML_Scripts(const XMLNode *node, CStatus *stat
   CSimpleFrame::LoadXML_Scripts(node, status);
 
   for (script = node->GetChild(); script; script = script->GetSibling()) {
-    const char *name = script->GetName();
+    LPCSTR name = script->GetName();
 
     if (!SStrCmpI(name, "OnHyperlinkEnter", 0x7FFFFFFF)) {
       SetOnHyperlinkEnterScript(script->GetBody());
@@ -78,15 +78,15 @@ void CSimpleHyperlinkedFrame::LoadXML_Scripts(const XMLNode *node, CStatus *stat
   }
 }
 
-void CSimpleHyperlinkedFrame::OnHyperlinkEnter(const char *link) {
+void CSimpleHyperlinkedFrame::OnHyperlinkEnter(LPCSTR link) {
   RunOnHyperlinkEnterScript(link);
 }
 
-void CSimpleHyperlinkedFrame::OnHyperlinkLeave(const char *link) {
+void CSimpleHyperlinkedFrame::OnHyperlinkLeave(LPCSTR link) {
   RunOnHyperlinkLeaveScript(link);
 }
 
-void CSimpleHyperlinkedFrame::OnHyperlinkClick(const char *link, MOUSEBUTTON button) {
+void CSimpleHyperlinkedFrame::OnHyperlinkClick(LPCSTR link, MOUSEBUTTON button) {
   RunOnHyperlinkClickScript(link, button);
 }
 

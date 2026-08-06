@@ -16,8 +16,8 @@ void OsTlsFree(DWORD index) {
   TlsFree(index);
 }
 
-void *OsTlsGetValue(DWORD index) {
-  void *value;
+LPVOID OsTlsGetValue(DWORD index) {
+  LPVOID value;
 
   // tigule: Modern Windows may allocate valid TLS indices above the
   // legacy 63-slot limit assumed by the original client.
@@ -29,7 +29,7 @@ void *OsTlsGetValue(DWORD index) {
   return value;
 }
 
-BOOL OsTlsSetValue(DWORD index, void *value) {
+BOOL OsTlsSetValue(DWORD index, LPVOID value) {
   BOOL set = TlsSetValue(index, value);
 
   ASSERT(set);

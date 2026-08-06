@@ -14,8 +14,8 @@
 class SkillLineTable {
  public:
   void                       Initialize();
-  const SkillLineAbilityRec *Lookup(unsigned int raceID, unsigned int classID, unsigned int spellID);
-  const SkillLineAbilityRec *LookupPet(int skillLineID, unsigned int spellID);
+  const SkillLineAbilityRec *Lookup(UINT raceID, UINT classID, UINT spellID);
+  const SkillLineAbilityRec *LookupPet(int skillLineID, UINT spellID);
 
  private:
   bool MatchRaceClass(int raceID, int classID, int raceMask, int classMask, int excludeRace, int excludeClass);
@@ -81,8 +81,8 @@ void SkillLineTable::Initialize() {
   }
 }
 
-const SkillLineAbilityRec *SkillLineTable::Lookup(unsigned int raceID, unsigned int classID, unsigned int spellID) {
-  unsigned int                               numClasses = g_chrClassesDB.GetMaxID() + 1;
+const SkillLineAbilityRec *SkillLineTable::Lookup(UINT raceID, UINT classID, UINT spellID) {
+  UINT                                       numClasses = g_chrClassesDB.GetMaxID() + 1;
   TSFixedArray<const SkillLineAbilityRec *> &abilities = m_abilities[raceID * numClasses + classID];
 
   if (!abilities.Count()) {
@@ -92,7 +92,7 @@ const SkillLineAbilityRec *SkillLineTable::Lookup(unsigned int raceID, unsigned 
   return abilities[spellID];
 }
 
-const SkillLineAbilityRec *SkillLineTable::LookupPet(int skillLineID, unsigned int spellID) {
+const SkillLineAbilityRec *SkillLineTable::LookupPet(int skillLineID, UINT spellID) {
   for (int i = 0; i < g_skillLineAbilityDB.GetNumRecords(); ++i) {
     const SkillLineAbilityRec *ability = g_skillLineAbilityDB.GetRecordByIndex(i);
     if (ability->m_skillLine == skillLineID && ability->m_spell == spellID) {
@@ -116,7 +116,7 @@ void SpellTableDestroy() {
   }
 }
 
-const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned int classID, unsigned int spellID) {
+const SkillLineAbilityRec *SpellTableLookupAbility(UINT raceID, UINT classID, UINT spellID) {
   if (!s_skillLineTable) {
     return 0;
   }
@@ -124,7 +124,7 @@ const SkillLineAbilityRec *SpellTableLookupAbility(unsigned int raceID, unsigned
   return s_skillLineTable->Lookup(raceID, classID, spellID);
 }
 
-const SkillLineAbilityRec* SpellTableLookupPetAbility(int skillLineID, unsigned int spellID) {
+const SkillLineAbilityRec *SpellTableLookupPetAbility(int skillLineID, UINT spellID) {
   if (!s_skillLineTable) {
     return 0;
   }

@@ -260,6 +260,6 @@ void CSplineParticleEmitter::SetEmissionRate(float particlesPerSecond) {
   m_requestedEmissionRate = particlesPerSecond;
   SetActualEmissionRate();
 }
-void CSplineParticleEmitter::SetSpline(const NTempest::C3Vector *points, unsigned int numPoints) {
+void CSplineParticleEmitter::SetSpline(const NTempest::C3Vector *points, UINT numPoints) {
   m_spline.SetPoints(points, numPoints);
 }

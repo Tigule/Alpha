@@ -10,7 +10,7 @@ NODEDECL(CMDDEF) {
   int          namelength;
   DWORD        setvalue;
   DWORD        setmask;
-  void        *variableptr;
+  LPVOID       variableptr;
   DWORD        variablebytes;
   SCMDCALLBACK callback;
   int          found;
@@ -28,14 +28,14 @@ typedef struct _PROCESSING {
 
 typedef LIST(CMDDEF) CMDDEF_LIST;
 
-static const char *const s_errorstr[] = {"Invalid argument: %s", "The syntax of the command is incorrect.", "Unable to open response file: %s"};
-static BOOL        s_addedoptional;
-static CMDDEF_LIST s_arglist;
-static CMDDEF_LIST s_flaglist;
+static LPCSTR const s_errorstr[] = {"Invalid argument: %s", "The syntax of the command is incorrect.", "Unable to open response file: %s"};
+static BOOL         s_addedoptional;
+static CMDDEF_LIST  s_arglist;
+static CMDDEF_LIST  s_flaglist;
 #define SCMD_ARG_LIST  (&s_arglist)
 #define SCMD_FLAG_LIST (&s_flaglist)
 
-static void ConvertBool(CMDDEF *ptr, const char *string, int *datachars) {
+static void ConvertBool(CMDDEF *ptr, LPCSTR string, int *datachars) {
   BOOL enabled;
 
   if (string[0] == '-') {
@@ -61,7 +61,7 @@ static void ConvertBool(CMDDEF *ptr, const char *string, int *datachars) {
   }
 }
 
-static void ConvertNumber(CMDDEF *ptr, const char *string, int *datachars) {
+static void ConvertNumber(CMDDEF *ptr, LPCSTR string, int *datachars) {
   char *endptr = NULL;
   DWORD bytes;
 
@@ -78,7 +78,7 @@ static void ConvertNumber(CMDDEF *ptr, const char *string, int *datachars) {
   }
 }
 
-static void ConvertString(CMDDEF *ptr, const char *string, int *datachars) {
+static void ConvertString(CMDDEF *ptr, LPCSTR string, int *datachars) {
   *datachars = (int)SStrLen(string);
   if (ptr->currvaluestr) {
     SMemFree(ptr->currvaluestr, __FILE__, __LINE__, 0);
@@ -90,7 +90,7 @@ static void ConvertString(CMDDEF *ptr, const char *string, int *datachars) {
   }
 }
 
-static CMDDEF *FindFlagDef(const char *string, CMDDEF *firstdef, int minlength) {
+static CMDDEF *FindFlagDef(LPCSTR string, CMDDEF *firstdef, int minlength) {
   int     strlength;
   CMDDEF *bestptr = NULL;
   int     bestchars;
@@ -99,9 +99,7 @@ static CMDDEF *FindFlagDef(const char *string, CMDDEF *firstdef, int minlength) 
   bestchars = minlength - 1;
   ITERATEPARTIALLISTPTR(CMDDEF, SCMD_FLAG_LIST, firstdef, def) {
     if (def->namelength > bestchars && def->namelength <= strlength) {
-      if ((def->flags & SCMD_CASESENSITIVE) ? !strncmp(def->name, string, def->namelength)
-                                            : !_strnicmp(def->name, string, def->namelength))
-      {
+      if ((def->flags & SCMD_CASESENSITIVE) ? !strncmp(def->name, string, def->namelength) : !_strnicmp(def->name, string, def->namelength)) {
         bestptr = def;
         bestchars = def->namelength;
       }
@@ -111,7 +109,7 @@ static CMDDEF *FindFlagDef(const char *string, CMDDEF *firstdef, int minlength) 
   return bestptr;
 }
 
-static void GenerateError(SCMDERRORCALLBACK errorcallback, DWORD errorcode, const char *itemstring) {
+static void GenerateError(SCMDERRORCALLBACK errorcallback, DWORD errorcode, LPCSTR itemstring) {
   char     errorstr[0x100];
   char     buffer[0x100];
   CMDERROR data;
@@ -160,7 +158,7 @@ static void GenerateError(SCMDERRORCALLBACK errorcallback, DWORD errorcode, cons
   errorcallback(&data);
 }
 
-static BOOL PerformConversion(CMDDEF *ptr, const char *string, int *datachars) {
+static BOOL PerformConversion(CMDDEF *ptr, LPCSTR string, int *datachars) {
   CMDPARAMS    params;
   CMDDEF_LIST *list;
   DWORD        type;
@@ -223,7 +221,7 @@ static BOOL PerformConversion(CMDDEF *ptr, const char *string, int *datachars) {
   return TRUE;
 }
 
-static BOOL ProcessCurrentFlag(const char *string, PROCESSING *processing, int *datachars) {
+static BOOL ProcessCurrentFlag(LPCSTR string, PROCESSING *processing, int *datachars) {
   CMDDEF *cmd;
   int     currdatachars;
 
@@ -245,16 +243,16 @@ static BOOL ProcessCurrentFlag(const char *string, PROCESSING *processing, int *
 }
 
 static BOOL
-ProcessString(const char **stringptr, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback);
+ProcessString(LPCSTR *stringptr, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback);
 
 static BOOL
-ProcessFile(const char *filename, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
-  const char *curr;
-  DWORD       bytesread;
-  HANDLE      handle;
-  DWORD       size;
-  char       *buffer;
-  BOOL        result;
+ProcessFile(LPCSTR filename, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
+  LPCSTR curr;
+  DWORD  bytesread;
+  HANDLE handle;
+  DWORD  size;
+  char  *buffer;
+  BOOL   result;
 
   handle = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
   if (handle == INVALID_HANDLE_VALUE) {
@@ -276,7 +274,7 @@ ProcessFile(const char *filename, PROCESSING *processing, CMDDEF **nextarg, SCMD
   return result;
 }
 
-static BOOL ProcessFlags(const char *string, PROCESSING *processing, SCMDERRORCALLBACK errorcallback) {
+static BOOL ProcessFlags(LPCSTR string, PROCESSING *processing, SCMDERRORCALLBACK errorcallback) {
   char lastflag[0x100];
   int  datachars;
   int  strlength;
@@ -332,20 +330,14 @@ static BOOL ProcessFlags(const char *string, PROCESSING *processing, SCMDERRORCA
   return TRUE;
 }
 
-static BOOL ProcessToken(
-    const char         *string,
-    int                 quoted,
-    PROCESSING         *processing,
-    CMDDEF            **nextarg,
-    SCMDPROCESSCALLBACK extracallback,
-    SCMDERRORCALLBACK   errorcallback
-);
+static BOOL
+ProcessToken(LPCSTR string, int quoted, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback);
 
 static BOOL
-ProcessString(const char **stringptr, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
-  char        buffer[0x100];
-  const char *nextptr;
-  int         quoted;
+ProcessString(LPCSTR *stringptr, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
+  char   buffer[0x100];
+  LPCSTR nextptr;
+  int    quoted;
 
   while (**stringptr) {
     nextptr = *stringptr;
@@ -360,7 +352,7 @@ ProcessString(const char **stringptr, PROCESSING *processing, CMDDEF **nextarg, 
 }
 
 static BOOL ProcessToken(
-    const char         *string,
+    LPCSTR              string,
     int                 quoted,
     PROCESSING         *processing,
     CMDDEF            **nextarg,
@@ -485,7 +477,7 @@ extern "C" BOOL APIENTRY SCmdGetStringAlloc(DWORD id, char **buffer) {
   return FALSE;
 }
 
-extern "C" BOOL APIENTRY SCmdProcess(const char *cmdline, int skipprogname, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
+extern "C" BOOL APIENTRY SCmdProcess(LPCSTR cmdline, int skipprogname, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
   PROCESSING processing;
   CMDDEF    *nextarg;
   BOOL       result;
@@ -538,8 +530,8 @@ extern "C" BOOL APIENTRY SCmdRegisterArgList(const ARGLIST *listptr, DWORD numar
 extern "C" BOOL APIENTRY SCmdRegisterArgument(
     DWORD        flags,
     DWORD        id,
-    const char  *name,
-    void        *variableptr,
+    LPCSTR       name,
+    LPVOID       variableptr,
     DWORD        variablebytes,
     DWORD        setvalue,
     DWORD        setmask,

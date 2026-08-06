@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *WorldSafeLocsRec::GetFilename() {
+LPCSTR WorldSafeLocsRec::GetFilename() {
   return "DBFilesClient\\WorldSafeLocs.dbc";
 }
 
@@ -19,9 +19,9 @@ WorldSafeLocsRec::WorldSafeLocsRec() {
 WorldSafeLocsRec::~WorldSafeLocsRec() {
 }
 
-bool WorldSafeLocsRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempAreaName_langIndices[8];
+bool WorldSafeLocsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempAreaName_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_continent, sizeof(m_continent), 0, 0, 0) && result;

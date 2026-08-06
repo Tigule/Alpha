@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *TabardBackgroundTexturesRec::GetFilename() {
+LPCSTR TabardBackgroundTexturesRec::GetFilename() {
   return "DBFilesClient\\TabardBackgroundTextures.dbc";
 }
 
@@ -19,9 +19,9 @@ TabardBackgroundTexturesRec::TabardBackgroundTexturesRec() {
 TabardBackgroundTexturesRec::~TabardBackgroundTexturesRec() {
 }
 
-bool TabardBackgroundTexturesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempTorsoTextureIndices[2];
+bool TabardBackgroundTexturesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempTorsoTextureIndices[2];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempTorsoTextureIndices[0], sizeof(tempTorsoTextureIndices[0]), 0, 0, 0) && result;

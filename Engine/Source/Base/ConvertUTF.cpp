@@ -2,25 +2,24 @@
 
 #include "ConvertUTF.h"
 
-typedef unsigned long UCS4;
+typedef DWORD UCS4;
 
-static const unsigned long offsetsFromUTF8[6] = {0x00000000UL, 0x00003080UL, 0x000E2080UL, 0x03C82080UL, 0xFA082080UL, 0x82082080UL};
+static const DWORD offsetsFromUTF8[6] = {0x00000000UL, 0x00003080UL, 0x000E2080UL, 0x03C82080UL, 0xFA082080UL, 0x82082080UL};
 
-static const unsigned char bytesFromUTF8[256] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                                 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5};
+static const BYTE bytesFromUTF8[256] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                        1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5};
 
-static const unsigned long firstByteMark[7] = {0x00UL, 0x00UL, 0xC0UL, 0xE0UL, 0xF0UL, 0xF8UL, 0xFCUL};
+static const DWORD firstByteMark[7] = {0x00UL, 0x00UL, 0xC0UL, 0xE0UL, 0xF0UL, 0xF8UL, 0xFCUL};
 
-int ConvertUTF16toUTF8Length(const unsigned short *src, unsigned int srcMaxChars, unsigned int *srcChars) {
-  const unsigned short *srcStart;
-  const unsigned short *srcEnd;
-  int                   result;
+int ConvertUTF16toUTF8Length(const WORD *src, UINT srcMaxChars, UINT *srcChars) {
+  const WORD *srcStart;
+  const WORD *srcEnd;
+  int         result;
 
   if (!srcMaxChars || !src) {
     if (srcChars) {
@@ -32,7 +31,7 @@ int ConvertUTF16toUTF8Length(const unsigned short *src, unsigned int srcMaxChars
 
   srcStart = src;
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const unsigned short *>(-1);
+    srcEnd = reinterpret_cast<const WORD *>(-1);
   } else {
     srcEnd = src + srcMaxChars;
   }
@@ -81,36 +80,29 @@ sourceExhausted:
 
 finished:
   if (srcChars) {
-    *srcChars = static_cast<unsigned int>(src - srcStart);
+    *srcChars = static_cast<UINT>(src - srcStart);
   }
 
   return result;
 }
 
-int ConvertUTF16toUTF8(
-    char                 *dst,
-    unsigned int          dstMaxChars,
-    const unsigned short *src,
-    unsigned int          srcMaxChars,
-    unsigned int         *dstChars,
-    unsigned int         *srcChars
-) {
-  const unsigned short *srcStart = src;
-  const unsigned short *srcEnd;
-  char                 *dstStart = dst;
-  char                 *dstEnd = dst + dstMaxChars;
-  int                   result = 0;
+int ConvertUTF16toUTF8(char *dst, UINT dstMaxChars, const WORD *src, UINT srcMaxChars, UINT *dstChars, UINT *srcChars) {
+  const WORD *srcStart = src;
+  const WORD *srcEnd;
+  char       *dstStart = dst;
+  char       *dstEnd = dst + dstMaxChars;
+  int         result = 0;
 
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const unsigned short *>(-1);
+    srcEnd = reinterpret_cast<const WORD *>(-1);
   } else {
     srcEnd = src + srcMaxChars;
   }
 
   while (src < srcEnd) {
-    UCS4         ch = src[0];
-    unsigned int srcIndex = 1;
-    unsigned int bytesToWrite;
+    UCS4 ch = src[0];
+    UINT srcIndex = 1;
+    UINT bytesToWrite;
 
     if (ch >= 0xD800 && ch <= 0xDBFF) {
       UCS4 ch2;
@@ -185,19 +177,19 @@ int ConvertUTF16toUTF8(
 
 finished:
   if (srcChars) {
-    *srcChars = static_cast<unsigned int>(src - srcStart);
+    *srcChars = static_cast<UINT>(src - srcStart);
   }
   if (dstChars) {
-    *dstChars = static_cast<unsigned int>(dst - dstStart);
+    *dstChars = static_cast<UINT>(dst - dstStart);
   }
 
   return result;
 }
 
-int ConvertUTF8toUTF16Length(const char *src, unsigned int srcMaxChars, unsigned int *srcChars) {
-  const char *srcStart;
-  const char *srcEnd;
-  int         result;
+int ConvertUTF8toUTF16Length(LPCSTR src, UINT srcMaxChars, UINT *srcChars) {
+  LPCSTR srcStart;
+  LPCSTR srcEnd;
+  int    result;
 
   if (!srcMaxChars || !src) {
     if (srcChars) {
@@ -209,7 +201,7 @@ int ConvertUTF8toUTF16Length(const char *src, unsigned int srcMaxChars, unsigned
 
   srcStart = src;
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const char *>(-1);
+    srcEnd = reinterpret_cast<LPCSTR>(-1);
   } else {
     srcEnd = src + srcMaxChars;
   }
@@ -217,8 +209,8 @@ int ConvertUTF8toUTF16Length(const char *src, unsigned int srcMaxChars, unsigned
   result = 0;
 
   while (src < srcEnd) {
-    unsigned int extraBytes = bytesFromUTF8[static_cast<unsigned char>(*src)];
-    UCS4         ch = 0;
+    UINT extraBytes = bytesFromUTF8[static_cast<BYTE>(*src)];
+    UCS4 ch = 0;
 
     if (src + extraBytes >= srcEnd) {
       result = -1 - static_cast<int>(extraBytes);
@@ -227,22 +219,22 @@ int ConvertUTF8toUTF16Length(const char *src, unsigned int srcMaxChars, unsigned
 
     switch (extraBytes) {
       case 5:
-        ch += static_cast<unsigned char>(*src++);
+        ch += static_cast<BYTE>(*src++);
         ch <<= 6;
       case 4:
-        ch += static_cast<unsigned char>(*src++);
+        ch += static_cast<BYTE>(*src++);
         ch <<= 6;
       case 3:
-        ch += static_cast<unsigned char>(*src++);
+        ch += static_cast<BYTE>(*src++);
         ch <<= 6;
       case 2:
-        ch += static_cast<unsigned char>(*src++);
+        ch += static_cast<BYTE>(*src++);
         ch <<= 6;
       case 1:
-        ch += static_cast<unsigned char>(*src++);
+        ch += static_cast<BYTE>(*src++);
         ch <<= 6;
       case 0:
-        ch += static_cast<unsigned char>(*src++);
+        ch += static_cast<BYTE>(*src++);
     }
     ch -= offsetsFromUTF8[extraBytes];
 
@@ -262,36 +254,29 @@ int ConvertUTF8toUTF16Length(const char *src, unsigned int srcMaxChars, unsigned
 
 finished:
   if (srcChars) {
-    *srcChars = static_cast<unsigned int>(src - srcStart);
+    *srcChars = static_cast<UINT>(src - srcStart);
   }
 
   return result;
 }
 
-int ConvertUTF8toUTF16(
-    unsigned short *dst,
-    unsigned int    dstMaxChars,
-    const char     *src,
-    unsigned int    srcMaxChars,
-    unsigned int   *dstChars,
-    unsigned int   *srcChars
-) {
-  const char     *srcStart = src;
-  const char     *srcEnd;
-  unsigned short *dstStart = dst;
-  unsigned short *dstEnd = dst + dstMaxChars;
-  int             result = 0;
+int ConvertUTF8toUTF16(WORD *dst, UINT dstMaxChars, LPCSTR src, UINT srcMaxChars, UINT *dstChars, UINT *srcChars) {
+  LPCSTR srcStart = src;
+  LPCSTR srcEnd;
+  WORD  *dstStart = dst;
+  WORD  *dstEnd = dst + dstMaxChars;
+  int    result = 0;
 
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const char *>(-1);
+    srcEnd = reinterpret_cast<LPCSTR>(-1);
   } else {
     srcEnd = src + srcMaxChars;
   }
 
   while (src < srcEnd) {
-    unsigned int extraBytes = bytesFromUTF8[static_cast<unsigned char>(*src)];
-    unsigned int srcIndex = 0;
-    UCS4         ch = 0;
+    UINT extraBytes = bytesFromUTF8[static_cast<BYTE>(*src)];
+    UINT srcIndex = 0;
+    UCS4 ch = 0;
 
     if (src + extraBytes >= srcEnd) {
       result = -1 - static_cast<int>(extraBytes);
@@ -300,22 +285,22 @@ int ConvertUTF8toUTF16(
 
     switch (extraBytes) {
       case 5:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 4:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 3:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 2:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 1:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
         ch <<= 6;
       case 0:
-        ch += static_cast<unsigned char>(src[srcIndex++]);
+        ch += static_cast<BYTE>(src[srcIndex++]);
     }
     ch -= offsetsFromUTF8[extraBytes];
 
@@ -325,7 +310,7 @@ int ConvertUTF8toUTF16(
     }
 
     if (ch <= 0xFFFF) {
-      *dst++ = static_cast<unsigned short>(ch);
+      *dst++ = static_cast<WORD>(ch);
       if (!ch) {
         goto finished;
       }
@@ -338,8 +323,8 @@ int ConvertUTF8toUTF16(
       }
 
       ch -= 0x10000;
-      *dst++ = static_cast<unsigned short>((ch >> 10) + 0xD800);
-      *dst++ = static_cast<unsigned short>((ch & 0x3FF) + 0xDC00);
+      *dst++ = static_cast<WORD>((ch >> 10) + 0xD800);
+      *dst++ = static_cast<WORD>((ch & 0x3FF) + 0xDC00);
     }
 
     src += srcIndex;
@@ -349,29 +334,29 @@ int ConvertUTF8toUTF16(
 
 finished:
   if (srcChars) {
-    *srcChars = static_cast<unsigned int>(src - srcStart);
+    *srcChars = static_cast<UINT>(src - srcStart);
   }
   if (dstChars) {
-    *dstChars = static_cast<unsigned int>(dst - dstStart);
+    *dstChars = static_cast<UINT>(dst - dstStart);
   }
 
   return result;
 }
 
-unsigned int sgetu8(const unsigned char *strptr, int *chars) {
-  unsigned int c;
-  int          remaining;
+UINT sgetu8(const BYTE *strptr, int *chars) {
+  UINT c;
+  int  remaining;
 
   if (chars) {
     *chars = 0;
   }
   if (!strptr) {
-    return static_cast<unsigned int>(-1);
+    return static_cast<UINT>(-1);
   }
 
   c = *strptr++;
   if (!c) {
-    return static_cast<unsigned int>(-1);
+    return static_cast<UINT>(-1);
   }
   if (chars) {
     ++*chars;
@@ -401,10 +386,10 @@ unsigned int sgetu8(const unsigned char *strptr, int *chars) {
   }
 
   while (remaining-- > 0) {
-    unsigned int next = *strptr++;
+    UINT next = *strptr++;
 
     if (!next) {
-      return static_cast<unsigned int>(-1);
+      return static_cast<UINT>(-1);
     }
     if (chars) {
       ++*chars;
@@ -419,7 +404,7 @@ unsigned int sgetu8(const unsigned char *strptr, int *chars) {
   return c;
 }
 
-char *sputu8(unsigned int c, char *strptr) {
+char *sputu8(UINT c, char *strptr) {
   char *result = strptr;
 
   if (!strptr) {

@@ -175,12 +175,12 @@ enum ANIMENUMERATION {
   INVALID_ANIMATION = -1
 };
 
-extern const char *g_animationNames[];
+extern LPCSTR g_animationNames[];
 
 struct SEQFINISHINFO {
-  int(*handler)(void *, CGUnit_C *);
-  unsigned int callbackFlags;
-  unsigned int flags;
+  int (*handler)(LPVOID, CGUnit_C *);
+  UINT callbackFlags;
+  UINT flags;
 };
 
 extern SEQFINISHINFO g_seqInformation[NUM_OBJECTANIMATIONS];

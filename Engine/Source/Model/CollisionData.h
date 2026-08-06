@@ -5,17 +5,21 @@
 
 struct CCollisionData : public CHandleObject {
   TSFixedArray<NTempest::C3Vector> vertices;
-  TSFixedArray<unsigned short>     indices;
+  TSFixedArray<WORD>               indices;
   TSFixedArray<NTempest::C3Vector> surfaceNormals;
   NTempest::CAaBox                 extents;
 };
 
 HCOLLISIONDATA CollisionDataCreate(const NTempest::CAaBox &bounds);
-HMODEL CollisionDataCreateModel(HCOLLISIONDATA collide);
-void CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, void *param);
-void ModelGetCollisionExtents(HMODEL model, NTempest::CAaBox *extents);
-int ModelCollisionVectorIntersect(
-    HMODEL model, const NTempest::C34Matrix &basis, const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, float &t
+HMODEL         CollisionDataCreateModel(HCOLLISIONDATA collide);
+void           CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, LPVOID param);
+void           ModelGetCollisionExtents(HMODEL model, NTempest::CAaBox *extents);
+int            ModelCollisionVectorIntersect(
+    HMODEL                     model,
+    const NTempest::C34Matrix &basis,
+    const NTempest::C3Vector  &p0,
+    const NTempest::C3Vector  &p1,
+    float                     &t
 );
 void ModelAddCollisionFacets(
     HMODEL                             model,

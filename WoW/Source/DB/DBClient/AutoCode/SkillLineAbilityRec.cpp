@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SkillLineAbilityRec::GetFilename() {
+LPCSTR SkillLineAbilityRec::GetFilename() {
   return "DBFilesClient\\SkillLineAbility.dbc";
 }
 
@@ -19,7 +19,7 @@ SkillLineAbilityRec::SkillLineAbilityRec() {
 SkillLineAbilityRec::~SkillLineAbilityRec() {
 }
 
-bool SkillLineAbilityRec::Read(SFile *f, const char *stringBuffer) {
+bool SkillLineAbilityRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

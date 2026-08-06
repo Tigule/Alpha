@@ -4,17 +4,17 @@
 #include <stpl.h>
 
 struct TrainerServiceInfo {
-  int           spellID;
-  int           skillLine;
-  unsigned int  moneyCost;
-  unsigned char pointCost[2];
-  unsigned char reqLevel;
-  unsigned int  reqSkillLine;
-  unsigned int  reqSkillRank;
-  unsigned int  reqSkillStep;
-  int           reqAbility[3];
-  unsigned char usable;
-  int           enabled;
+  int  spellID;
+  int  skillLine;
+  UINT moneyCost;
+  BYTE pointCost[2];
+  BYTE reqLevel;
+  UINT reqSkillLine;
+  UINT reqSkillRank;
+  UINT reqSkillStep;
+  int  reqAbility[3];
+  BYTE usable;
+  int  enabled;
 };
 
 enum TRAINER_SERVICE {
@@ -28,11 +28,11 @@ enum TRAINER_SERVICE {
 };
 
 struct TrainerSkillLineInfo {
-  int          skillLine;
-  unsigned int numSkills[NUM_TRAINER_SERVICE_TYPES];
-  int          enabled;
-  int          collapsed;
-  int          allCostPoints;
+  int  skillLine;
+  UINT numSkills[NUM_TRAINER_SERVICE_TYPES];
+  int  enabled;
+  int  collapsed;
+  int  allCostPoints;
 
   void ClearSkills() {
     memset(numSkills, 0, sizeof(numSkills));
@@ -40,9 +40,9 @@ struct TrainerSkillLineInfo {
   }
 };
 
-int __cdecl QSortServices_General(const void *a, const void *b);
-int __cdecl QSortServices_Tradeskill(const void *a, const void *b);
-int __cdecl QSortServices_Talent(const void *a, const void *b);
+int __cdecl QSortServices_General(LPCVOID a, LPCVOID b);
+int __cdecl QSortServices_Tradeskill(LPCVOID a, LPCVOID b);
+int __cdecl QSortServices_Talent(LPCVOID a, LPCVOID b);
 
 enum TRAINER_TYPE {
   TRAINER_TYPE_GENERAL = 0,
@@ -58,39 +58,39 @@ class CGClassTrainer {
   static void ShutdownGame();
   static void EnterWorld();
   static void LeaveWorld();
-  static void SetTrainer(unsigned __int64 trainerGUID, TRAINER_TYPE type);
+  static void SetTrainer(DWORDLONG trainerGUID, TRAINER_TYPE type);
   static void AddServices(
-      unsigned int   count,
-      int           *spellID,
-      unsigned int  *moneyCost,
-      unsigned char **pointCost,
-      unsigned char  *reqLevel,
-      unsigned int  *reqSkillLine,
-      unsigned int  *reqSkillRank,
-      unsigned int  *reqSkillStep,
-      int          **reqAbility,
-      unsigned char  *usable,
-      const char    *greeting
+      UINT   count,
+      int   *spellID,
+      UINT  *moneyCost,
+      BYTE **pointCost,
+      BYTE  *reqLevel,
+      UINT  *reqSkillLine,
+      UINT  *reqSkillRank,
+      UINT  *reqSkillStep,
+      int  **reqAbility,
+      BYTE  *usable,
+      LPCSTR greeting
   );
-  static void SetSelection(unsigned int index);
-  static int GetSelectionIndex();
-  static void RefreshList();
-  static void FilterAndSortServices();
-  static const TrainerServiceInfo *GetService(unsigned int index);
-  static int GetNumServices() {
+  static void                      SetSelection(UINT index);
+  static int                       GetSelectionIndex();
+  static void                      RefreshList();
+  static void                      FilterAndSortServices();
+  static const TrainerServiceInfo *GetService(UINT index);
+  static int                       GetNumServices() {
     return m_filteredServices;
   }
-  static const char *GetServiceName(unsigned int index);
-  static const char *GetServiceSubtext(unsigned int index);
-  static const char *GetServiceType(unsigned int index);
-  static unsigned int GetNumSkillLines() {
+  static LPCSTR GetServiceName(UINT index);
+  static LPCSTR GetServiceSubtext(UINT index);
+  static LPCSTR GetServiceType(UINT index);
+  static UINT   GetNumSkillLines() {
     return m_numSkillLines;
   }
-  static int GetSkillLine(unsigned int index) {
+  static int GetSkillLine(UINT index) {
     return index < m_numSkillLines ? m_skillLines[index]->skillLine : 0;
   }
-  static int GetSkillLineIndexFromService(unsigned int index);
-  static int IsCollpasedHeader(unsigned int index);
+  static int GetSkillLineIndexFromService(UINT index);
+  static int IsCollpasedHeader(UINT index);
   static int GetServiceTypeFilter() {
     return m_serviceTypeFilter;
   }
@@ -100,14 +100,14 @@ class CGClassTrainer {
   static int GetCollapseFilter() {
     return m_collapseFilter;
   }
-  static void SetServiceTypeFilter(int filter);
-  static void SetSkillLineFilter(int filter);
-  static void SetCollapseFilter(int filter);
-  static const char *GetGreetingText() {
+  static void   SetServiceTypeFilter(int filter);
+  static void   SetSkillLineFilter(int filter);
+  static void   SetCollapseFilter(int filter);
+  static LPCSTR GetGreetingText() {
     return m_greetingText;
   }
 
-  static unsigned __int64 GetTrainer() {
+  static DWORDLONG GetTrainer() {
     return m_trainer;
   }
 
@@ -116,15 +116,15 @@ class CGClassTrainer {
   }
 
  private:
-  friend int __cdecl                             QSortServices_General(const void *a, const void *b);
-  friend int __cdecl                             QSortServices_Tradeskill(const void *a, const void *b);
-  friend int __cdecl                             QSortServices_Talent(const void *a, const void *b);
-  static unsigned __int64                        m_trainer;
+  friend int __cdecl                             QSortServices_General(LPCVOID a, LPCVOID b);
+  friend int __cdecl                             QSortServices_Tradeskill(LPCVOID a, LPCVOID b);
+  friend int __cdecl                             QSortServices_Talent(LPCVOID a, LPCVOID b);
+  static DWORDLONG                               m_trainer;
   static TRAINER_TYPE                            m_trainerType;
   static int                                     m_currentSelection;
-  static unsigned int                            m_numServices;
-  static unsigned int                            m_numSkillLines;
-  static unsigned int                            m_filteredServices;
+  static UINT                                    m_numServices;
+  static UINT                                    m_numSkillLines;
+  static UINT                                    m_filteredServices;
   static int                                     m_serviceTypeFilter;
   static int                                     m_skillLineFilter;
   static int                                     m_collapseFilter;

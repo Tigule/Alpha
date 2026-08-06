@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *EmotesRec::GetFilename() {
+LPCSTR EmotesRec::GetFilename() {
   return "DBFilesClient\\Emotes.dbc";
 }
 
@@ -19,7 +19,7 @@ EmotesRec::EmotesRec() {
 EmotesRec::~EmotesRec() {
 }
 
-bool EmotesRec::Read(SFile *f, const char *stringBuffer) {
+bool EmotesRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

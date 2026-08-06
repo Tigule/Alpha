@@ -5,7 +5,7 @@
 #include <string.h>
 #include <time.h>
 
-static const char *s_WeekDays[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+static LPCSTR s_WeekDays[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
 WowTime::WowTime() : m_minute(-1), m_hour(-1), m_weekday(-1), m_monthDay(-1), m_month(-1), m_year(-1), m_flags(0) {
 }
@@ -151,7 +151,7 @@ bool WowTime::operator!=(const WowTime &cmpTime) const {
   return !(*this == cmpTime);
 }
 
-void WowTime::WowEncodeTime(unsigned int &value, int minute, int hour, int weekday, int monthday, int month, int year, int flags) {
+void WowTime::WowEncodeTime(UINT &value, int minute, int hour, int weekday, int monthday, int month, int year, int flags) {
   ASSERT(minute == -1 || (minute >= 0 && minute < 60));
   ASSERT(hour == -1 || (hour >= 0 && hour < 24));
   ASSERT(weekday == -1 || (weekday >= 0 && weekday < 7));
@@ -164,7 +164,7 @@ void WowTime::WowEncodeTime(unsigned int &value, int minute, int hour, int weekd
           ((month & ((1 << 4) - 1)) << 20) | ((year & ((1 << 5) - 1)) << 24) | ((flags & ((1 << 2) - 1)) << 29);
 }
 
-void WowTime::WowDecodeTime(unsigned int value, int *minute, int *hour, int *weekday, int *monthday, int *month, int *year, int *flags) {
+void WowTime::WowDecodeTime(UINT value, int *minute, int *hour, int *weekday, int *monthday, int *month, int *year, int *flags) {
   int decoded;
 
   if (minute) {
@@ -197,27 +197,27 @@ void WowTime::WowDecodeTime(unsigned int value, int *minute, int *hour, int *wee
   }
 }
 
-void WowTime::WowEncodeTime(unsigned int &value, const WowTime *time) {
+void WowTime::WowEncodeTime(UINT &value, const WowTime *time) {
   WowEncodeTime(value, time->m_minute, time->m_hour, time->m_weekday, time->m_monthDay, time->m_month, time->m_year, time->m_flags);
 }
 
-void WowTime::WowDecodeTime(unsigned int value, WowTime *time) {
+void WowTime::WowDecodeTime(UINT value, WowTime *time) {
   WowDecodeTime(value, &time->m_minute, &time->m_hour, &time->m_weekday, &time->m_monthDay, &time->m_month, &time->m_year, &time->m_flags);
 }
 
-const char *WowTime::WowGetTimeString(unsigned int value, char *string, int maxlen) {
+LPCSTR WowTime::WowGetTimeString(UINT value, char *string, int maxlen) {
   WowTime time(value);
   return WowGetTimeString(&time, string, maxlen);
 }
 
-const char *WowTime::WowGetTimeString(WowTime *time, char *string, int maxlen) {
-  unsigned int value;
-  char         buffMonth[8];
-  char         buffmonthDay[8];
-  char         buffYear[8];
-  char         buffWeekDay[8];
-  char         buffHour[8];
-  char         buffMinute[8];
+LPCSTR WowTime::WowGetTimeString(WowTime *time, char *string, int maxlen) {
+  UINT value;
+  char buffMonth[8];
+  char buffmonthDay[8];
+  char buffYear[8];
+  char buffWeekDay[8];
+  char buffHour[8];
+  char buffMinute[8];
 
   WowEncodeTime(value, time);
   if (!value) {

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *AreaTableRec::GetFilename() {
+LPCSTR AreaTableRec::GetFilename() {
   return "DBFilesClient\\AreaTable.dbc";
 }
 
@@ -19,9 +19,9 @@ AreaTableRec::AreaTableRec() {
 AreaTableRec::~AreaTableRec() {
 }
 
-bool AreaTableRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempAreaName_langIndices[8];
+bool AreaTableRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempAreaName_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_AreaNumber, sizeof(m_AreaNumber), 0, 0, 0) && result;

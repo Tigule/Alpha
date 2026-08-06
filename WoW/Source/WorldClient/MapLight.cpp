@@ -18,11 +18,11 @@
 
 static const float OO_COORD_TO_CHUNK = 1.0f / ((150.0f / 36.0f) * 8);
 
-HTEXTURE__                        *CMapLight::s_hPointAttenTex;
+HTEXTURE__ *CMapLight::s_hPointAttenTex;
 LISTDECLEX(CMapBaseObjLink, refLink, CMapLight::dirLightLinkList);
-unsigned int                       CMapLight::maxLights = 4;
-float                              CMapLight::bucketSize = 33.33f;
-float                              CMapLight::halfBucketSize = 16.665f;
+UINT  CMapLight::maxLights = 4;
+float CMapLight::bucketSize = 33.33f;
+float CMapLight::halfBucketSize = 16.665f;
 
 void CMap::ProjectLights() {
 }
@@ -41,33 +41,33 @@ void CMap::GxuLightInitialize() {
 void CMap::GxuLightShutdown() {
 }
 
-unsigned long CMap::GxuLightCreate() {
-  return reinterpret_cast<unsigned long>(CreateLight(true));
+DWORD CMap::GxuLightCreate() {
+  return reinterpret_cast<DWORD>(CreateLight(true));
 }
 
-void CMap::GxuLightDestroy(unsigned long lightId) {
+void CMap::GxuLightDestroy(DWORD lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
   DestroyLight(light);
 }
 
-CGxLight *CMap::GxuLightLock(unsigned long lightId) {
+CGxLight *CMap::GxuLightLock(DWORD lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
   return &light->gxLight;
 }
 
-void CMap::GxuLightUnlock(unsigned long lightId) {
+void CMap::GxuLightUnlock(DWORD lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
   UpdateLight(light);
 }
 
-void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
-  unsigned int whichLight = 0;
+void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
+  UINT whichLight = 0;
 
   oldSelectLightParm = 0;
   if (bActive) {
@@ -92,14 +92,14 @@ void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector 
   }
 }
 
-int CMap::GxuLightEnable(unsigned long lightId) {
+int CMap::GxuLightEnable(DWORD lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
   return (light->flags & CMapBaseObj::Flag_Enabled) != 0;
 }
 
-void CMap::GxuLightEnableSet(unsigned long lightId, int enable) {
+void CMap::GxuLightEnableSet(DWORD lightId, int enable) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
@@ -110,7 +110,7 @@ void CMap::GxuLightEnableSet(unsigned long lightId, int enable) {
   }
 }
 
-void CMap::GxuLightSetMaxLights(unsigned int maxLightsToUse) {
+void CMap::GxuLightSetMaxLights(UINT maxLightsToUse) {
 }
 
 float CMap::GxuLightBucketSize() {
@@ -135,12 +135,7 @@ CMapLight::~CMapLight() {
 void CMapLight::CreatePointAtten() {
   CStatus lame;
 
-  s_hPointAttenTex = TextureCreate(
-      "Textures\\PointAtten.blp",
-      CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
-      &lame,
-      0
-  );
+  s_hPointAttenTex = TextureCreate("Textures\\PointAtten.blp", CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &lame, 0);
 }
 
 void CMapLight::DestroyPointAtten() {
@@ -171,20 +166,20 @@ void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
       FATALASSERT(0);
   }
 
-  unsigned short vidx = batch->GetMinIndex();
-  for (unsigned int i = 0; i < batch->GetVertexCount(); ++i, ++vidx) {
+  WORD vidx = batch->GetMinIndex();
+  for (UINT i = 0; i < batch->GetVertexCount(); ++i, ++vidx) {
     vertices[i].p = batch->GetVertex(vidx);
     vertices[i].n = batch->GetNormal(vidx);
   }
 
-  unsigned short *indices = 0;
+  WORD *indices = 0;
   switch (cmd.index.op) {
     case GxBufOp_Fill:
-      indices = static_cast<unsigned short *>(*cmd.index.mem[GxVM_Indices]);
+      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
       break;
 
     case GxBufOp_Assign:
-      indices = static_cast<unsigned short *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*indices)));
+      indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*indices)));
       *cmd.index.mem[GxVM_Indices] = indices;
       break;
 
@@ -192,7 +187,7 @@ void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
       FATALASSERT(0);
   }
 
-  for (unsigned int j = 0; j < batch->GetIndexCount(); ++j) {
+  for (UINT j = 0; j < batch->GetIndexCount(); ++j) {
     indices[j] = batch->GetIndex(j) - batch->GetMinIndex();
   }
 }
@@ -214,12 +209,7 @@ void CMapLight::Project() {
   texMtx0.d2 += 0.5f;
 
   texMtx1 = worldTransMat * texScale;
-  NTempest::C44Matrix rotateToScreen(
-      0.0f, 0.0f, 1.0f, 0.0f,
-      0.0f, 0.0f, 0.0f, 0.0f,
-      1.0f, 0.0f, 0.0f, 0.0f,
-      0.0f, 0.0f, 0.0f, 1.0f
-  );
+  NTempest::C44Matrix rotateToScreen(0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
   texMtx1 *= rotateToScreen;
   texMtx1.d0 += 0.5f;
   texMtx1.d1 += 0.5f;
@@ -237,9 +227,9 @@ void CMapLight::Project() {
   NTempest::C44Matrix worldMtx;
   worldMtx.Translate(-CWorldScene::camPos);
 
-  for (unsigned int i = 0; i < triData.GetNumBatches(); ++i) {
+  for (UINT i = 0; i < triData.GetNumBatches(); ++i) {
     const CWTriData::Batch &batch = triData.GetBatch(i);
-    NTempest::C44Matrix batchMtx = *batch.matrix * worldMtx;
+    NTempest::C44Matrix     batchMtx = *batch.matrix * worldMtx;
     GxXformSet(GxXform_World, batchMtx);
     buf->UserArgSet(const_cast<CWTriData::Batch *>(&batch));
     buf->CountSet(batch.GetVertexCount(), batch.GetIndexCount());
@@ -355,7 +345,7 @@ void CMap::SelectLight(CMapBaseObj *baseObj) {
   }
 }
 
-void CMap::SelectLight(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse) {
+void CMap::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
   CMapBaseObj *baseObj = static_cast<CMapBaseObj *>(parm);
 
   ASSERT(baseObj);
@@ -396,11 +386,9 @@ void CMap::LinkLightToMapObjDefs(CMapLight *light) {
             group->lightLinkList.LinkNode(lightLink, LIST_TAIL, 0);
             group->UpdateLights();
           }
-
         }
       }
     }
-
   }
 }
 

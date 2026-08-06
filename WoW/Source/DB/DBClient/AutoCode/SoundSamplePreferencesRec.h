@@ -7,13 +7,13 @@ class SoundSamplePreferencesRec {
   SoundSamplePreferencesRec();
   ~SoundSamplePreferencesRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 21;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 84;
   }
 
@@ -28,7 +28,7 @@ class SoundSamplePreferencesRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
   int   m_ID;
   float m_EAX1EffectLevel;

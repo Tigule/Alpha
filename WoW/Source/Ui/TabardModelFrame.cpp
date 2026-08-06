@@ -28,27 +28,18 @@
 #include <string.h>
 #include <stdlib.h>
 
-static void GuildCallback(int id, const unsigned __int64 &guid, void *, bool granted);
+static void GuildCallback(int id, const DWORDLONG &guid, LPVOID, bool granted);
 
-static const unsigned int s_maxVariations[TABARDVARS_NUMVARS] = {42, 4, 2, 4, 19};
+static const UINT s_maxVariations[TABARDVARS_NUMVARS] = {42, 4, 2, 4, 19};
 
-static void EmblemTextureUpdate(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+static void EmblemTextureUpdate(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Latch) {
     texelStrideInBytes = 4 * w;
     texels = static_cast<TSFixedArray<NTempest::CImVector> *>(userArg)->Ptr();
   }
 }
 
-static void GuildCallback(int id, const unsigned __int64 &guid, void *, bool granted) {
+static void GuildCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(359);
   }
@@ -113,7 +104,7 @@ void CGTabardModelFrame::InitializeTabardColors(const CGPlayer_C *playerPtr) {
   } else {
     NTempest::CRndSeed seed;
     seed.SetSeed(OsGetAsyncTimeMs());
-  for (unsigned int i = 0; i < TABARDVARS_NUMVARS; ++i) {
+    for (UINT i = 0; i < TABARDVARS_NUMVARS; ++i) {
       m_variations[i] = NTempest::CMath::mulhwu_(s_maxVariations[i], NTempest::CRandom::uint32_(seed));
     }
   }
@@ -149,9 +140,9 @@ int CGTabardModelFrame::CanSaveTabard() {
          guild->m_borderColor == -1 && guild->m_backgroundColor == -1;
 }
 
-void CGTabardModelFrame::CycleVariation(unsigned int index, int delta) {
+void CGTabardModelFrame::CycleVariation(UINT index, int delta) {
   FATALASSERT(index < TABARDVARS_NUMVARS);
-  if (static_cast<unsigned int>(abs(delta)) < s_maxVariations[index]) {
+  if (static_cast<UINT>(abs(delta)) < s_maxVariations[index]) {
     m_variations[index] = (m_variations[index] + delta + s_maxVariations[index]) % s_maxVariations[index];
     UpdateTabard();
   }
@@ -178,7 +169,7 @@ static int CGTabardModelFrame_CycleVariation(lua_State *L) {
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
     return luaL_error(L, "Usage: CycleVariation(index, delta)");
   }
-  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 2)) - 1;
+  UINT index = static_cast<UINT>(lua_tonumber(L, 2)) - 1;
   if (index >= 5) {
     return luaL_error(L, "Invalid variation index");
   }
@@ -241,11 +232,11 @@ static int CGTabardModelFrame_GetUpperEmblemTexture(lua_State *L) {
   if (image.Open(file)) {
     FATALASSERT(image.Width() == 128);
     FATALASSERT(image.Height() == 64);
-    unsigned char *imageData;
-    unsigned int   stride;
+    BYTE *imageData;
+    UINT  stride;
     if (image.Lock(PIXEL_ARGB8888, 0, imageData, stride)) {
-      for (unsigned int i = 0; i < pixels.Count(); ++i) {
-        pixels[i] = NTempest::CImVector(0x00FFFFFF | (static_cast<unsigned long>(imageData[4 * i + 3]) << 24));
+      for (UINT i = 0; i < pixels.Count(); ++i) {
+        pixels[i] = NTempest::CImVector(0x00FFFFFF | (static_cast<DWORD>(imageData[4 * i + 3]) << 24));
       }
       image.Unlock(0);
     }
@@ -283,11 +274,11 @@ static int CGTabardModelFrame_GetLowerEmblemTexture(lua_State *L) {
   if (image.Open(file)) {
     FATALASSERT(image.Width() == 128);
     FATALASSERT(image.Height() == 64);
-    unsigned char *imageData;
-    unsigned int   stride;
+    BYTE *imageData;
+    UINT  stride;
     if (image.Lock(PIXEL_ARGB8888, 0, imageData, stride)) {
-      for (unsigned int i = 0; i < pixels.Count(); ++i) {
-        pixels[i] = NTempest::CImVector(0x00FFFFFF | (static_cast<unsigned long>(imageData[4 * i + 3]) << 24));
+      for (UINT i = 0; i < pixels.Count(); ++i) {
+        pixels[i] = NTempest::CImVector(0x00FFFFFF | (static_cast<DWORD>(imageData[4 * i + 3]) << 24));
       }
       image.Unlock(0);
     }
@@ -326,7 +317,7 @@ void CGTabardModelFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CGTabardModelFrame::LookupScriptMethod(lua_State *L, const char *name) {
+int CGTabardModelFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

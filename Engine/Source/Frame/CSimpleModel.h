@@ -29,17 +29,17 @@ class CSimpleModel : public CSimpleFrame {
   virtual void  LoadXML_Scripts(const XMLNode *node, CStatus *status);
   virtual float GetWidth();
   virtual float GetHeight();
-  virtual void  OnFrameRender(CRenderBatch *batch, unsigned int layer);
+  virtual void  OnFrameRender(CRenderBatch *batch, UINT layer);
   virtual void  UpdateModel();
 
   void SetModel(HMODEL model);
-  void SetModel(const char *sourcefile, CModelCreate *data, CStatus *status);
+  void SetModel(LPCSTR sourcefile, CModelCreate *data, CStatus *status);
   void SetCamera(HCAMERA camera);
-  void SetCameraByIndex(unsigned int index);
+  void SetCameraByIndex(UINT index);
   void SetLight(const CGxLight &light);
-  void ReplaceTexture(unsigned int materialID, const char *textureName);
+  void ReplaceTexture(UINT materialID, LPCSTR textureName);
 
-  virtual void SetAlpha(unsigned char alpha);
+  virtual void SetAlpha(BYTE alpha);
 
   void SetPosition(const NTempest::C3Vector &position) {
     m_position = position;
@@ -53,8 +53,8 @@ class CSimpleModel : public CSimpleFrame {
     m_scale = scale;
   }
 
-  void SetSequence(unsigned int index);
-  int  SetSequenceTime(unsigned int index, int timeOffset);
+  void SetSequence(UINT index);
+  int  SetSequenceTime(UINT index, int timeOffset);
   int  AdvanceTime();
 
   NTempest::C3Vector GetPosition() {
@@ -91,13 +91,13 @@ class CSimpleModel : public CSimpleFrame {
     m_fogFar = fogFar;
   }
 
-  void SetOnUpdateModelScript(const char *source) {
+  void SetOnUpdateModelScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnUpdateModel", GetName());
     SetEventScript(m_onUpdateModel, source, description);
   }
 
-  void SetOnAnimFinishedScript(const char *source) {
+  void SetOnAnimFinishedScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnAnimFinished", GetName());
     SetEventScript(m_onAnimFinished, source, description);
@@ -121,10 +121,10 @@ class CSimpleModel : public CSimpleFrame {
     return (m_flags & 0x2) != 0;
   }
 
-  int IsModelLoaded() const;
-  int IsUserFlagSet(unsigned int flag) const;
-  void SetUserFlag(unsigned int flag, int set);
-  int IsWaitingForCamera() const;
+  int  IsModelLoaded() const;
+  int  IsUserFlagSet(UINT flag) const;
+  void SetUserFlag(UINT flag, int set);
+  int  IsWaitingForCamera() const;
   void SetWaitingForCamera(int waiting);
 
   const NTempest::CImVector &GetFogColor() {
@@ -146,7 +146,7 @@ class CSimpleModel : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void SetModelLoaded(int loaded);
   void FinishLoadingModel();
@@ -155,21 +155,21 @@ class CSimpleModel : public CSimpleFrame {
   void SetCameraInternal(HCAMERA camera);
 
  public:
-  static void RenderModel(void *param);
+  static void RenderModel(LPVOID param);
 
  protected:
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
   HMODEL m_model;
   union {
-    HCAMERA      m_camera;
-    unsigned int m_cameraIndex;
+    HCAMERA m_camera;
+    UINT    m_cameraIndex;
   };
   CGxLight            m_light;
   NTempest::C3Vector  m_position;
   float               m_facing;
   float               m_scale;
-  unsigned int        m_flags;
+  UINT                m_flags;
   NTempest::CImVector m_fogColor;
   float               m_fogNear;
   float               m_fogFar;

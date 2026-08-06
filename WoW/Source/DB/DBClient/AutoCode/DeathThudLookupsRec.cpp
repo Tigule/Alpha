@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *DeathThudLookupsRec::GetFilename() {
+LPCSTR DeathThudLookupsRec::GetFilename() {
   return "DBFilesClient\\DeathThudLookups.dbc";
 }
 
@@ -19,7 +19,7 @@ DeathThudLookupsRec::DeathThudLookupsRec() {
 DeathThudLookupsRec::~DeathThudLookupsRec() {
 }
 
-bool DeathThudLookupsRec::Read(SFile *f, const char *stringBuffer) {
+bool DeathThudLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

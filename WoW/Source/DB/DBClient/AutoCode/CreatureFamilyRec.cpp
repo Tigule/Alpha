@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CreatureFamilyRec::GetFilename() {
+LPCSTR CreatureFamilyRec::GetFilename() {
   return "DBFilesClient\\CreatureFamily.dbc";
 }
 
@@ -19,7 +19,7 @@ CreatureFamilyRec::CreatureFamilyRec() {
 CreatureFamilyRec::~CreatureFamilyRec() {
 }
 
-bool CreatureFamilyRec::Read(SFile *f, const char *stringBuffer) {
+bool CreatureFamilyRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

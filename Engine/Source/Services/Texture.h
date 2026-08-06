@@ -19,49 +19,33 @@ enum TEXFILETYPE {
   NUM_TEXFILETYPES = 3
 };
 
-void TextureInitialize();
-void TextureCacheFlush();
-void TextureGxCacheFlush();
-void TextureLogGxCache(HSLOG log);
-void TextureLogTextures(HSLOG log);
-void TextureCacheUpdate(unsigned long currentTime, CStatus *status);
-void TextureDestroy();
-const char *TextureGetFilename(HTEXTURE texture);
-HTEXTURE TextureLoadImage(const char *filename);
-HTEXTURE TextureAllocImage(EGxTexFormat format, unsigned int width, unsigned int height);
+void     TextureInitialize();
+void     TextureCacheFlush();
+void     TextureGxCacheFlush();
+void     TextureLogGxCache(HSLOG log);
+void     TextureLogTextures(HSLOG log);
+void     TextureCacheUpdate(DWORD currentTime, CStatus *status);
+void     TextureDestroy();
+LPCSTR   TextureGetFilename(HTEXTURE texture);
+HTEXTURE TextureLoadImage(LPCSTR filename);
+HTEXTURE TextureAllocImage(EGxTexFormat format, UINT width, UINT height);
 HTEXTURE
-TextureCreate(const char *name, unsigned int width, unsigned int height, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags);
-HTEXTURE TextureCreate(const char *name, unsigned int width, unsigned int height, EGxTexFormat format, CGxTexFlags flags);
-MipBits *TextureLoadImage(
-    const char   *filename,
-    unsigned int *width,
-    unsigned int *height,
-    unsigned int *gxTexFormat,
-    int          *isOpaque,
-    CStatus      *status,
-    unsigned int *alphaBits
-);
-MipBits *TextureLoadImage(
-    HTEXTURE      texture,
-    unsigned int *width,
-    unsigned int *height,
-    unsigned int *gxTexFormat,
-    CStatus      *status,
-    unsigned int *alphaBits
-);
-void TextureUnloadImage(MipBits *image);
-HTEXTURE TextureCreate(unsigned int width, unsigned int height, EGxTexFormat format, CGxTexFlags flags);
-HTEXTURE TextureCreate(const char *fileName, CGxTexFlags flags, CStatus *status, int dontCache);
-HTEXTURE TextureCreate(CGxTex *gxTex);
-HTEXTURE TextureCreateSolid(const NTempest::CImVector &color, CStatus *status);
-CGxTex *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status);
-MipBits *TextureGetMips(HTEXTURE texture, int force);
-int
-TextureGetInfo(HTEXTURE texture, unsigned int &width, unsigned int &height, EGxTexFormat &format, int &opaque, unsigned int &alphaBits, int bForce);
-TEXFILETYPE TextureDiscoverFileType(const char *path);
-unsigned int TexturePickAlternateFilename(const char *path, TEXFILETYPE fileType, char *newpath, unsigned int size);
-MipBits *TextureAllocMippedImg(EGxTexFormat format, unsigned int width, unsigned int height);
-unsigned int TextureCalcMipCount(unsigned int width, unsigned int height);
-void TextureFreeMippedImg(MipBits *image);
+TextureCreate(LPCSTR name, UINT width, UINT height, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags);
+HTEXTURE    TextureCreate(LPCSTR name, UINT width, UINT height, EGxTexFormat format, CGxTexFlags flags);
+MipBits    *TextureLoadImage(LPCSTR filename, UINT *width, UINT *height, UINT *gxTexFormat, int *isOpaque, CStatus *status, UINT *alphaBits);
+MipBits    *TextureLoadImage(HTEXTURE texture, UINT *width, UINT *height, UINT *gxTexFormat, CStatus *status, UINT *alphaBits);
+void        TextureUnloadImage(MipBits *image);
+HTEXTURE    TextureCreate(UINT width, UINT height, EGxTexFormat format, CGxTexFlags flags);
+HTEXTURE    TextureCreate(LPCSTR fileName, CGxTexFlags flags, CStatus *status, int dontCache);
+HTEXTURE    TextureCreate(CGxTex *gxTex);
+HTEXTURE    TextureCreateSolid(const NTempest::CImVector &color, CStatus *status);
+CGxTex     *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status);
+MipBits    *TextureGetMips(HTEXTURE texture, int force);
+int         TextureGetInfo(HTEXTURE texture, UINT &width, UINT &height, EGxTexFormat &format, int &opaque, UINT &alphaBits, int bForce);
+TEXFILETYPE TextureDiscoverFileType(LPCSTR path);
+UINT        TexturePickAlternateFilename(LPCSTR path, TEXFILETYPE fileType, char *newpath, UINT size);
+MipBits    *TextureAllocMippedImg(EGxTexFormat format, UINT width, UINT height);
+UINT        TextureCalcMipCount(UINT width, UINT height);
+void        TextureFreeMippedImg(MipBits *image);
 
 #endif

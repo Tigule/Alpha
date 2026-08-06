@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *MaterialRec::GetFilename() {
+LPCSTR MaterialRec::GetFilename() {
   return "DBFilesClient\\Material.dbc";
 }
 
@@ -19,7 +19,7 @@ MaterialRec::MaterialRec() {
 MaterialRec::~MaterialRec() {
 }
 
-bool MaterialRec::Read(SFile *f, const char *stringBuffer) {
+bool MaterialRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_materialID, sizeof(m_materialID), 0, 0, 0) && result;

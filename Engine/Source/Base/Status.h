@@ -17,23 +17,23 @@ class CStatus {
   virtual ~CStatus();
 
   virtual void Display() const;
-  virtual void Add(STATUS_TYPE severity, const char *format, ...);
+  virtual void Add(STATUS_TYPE severity, LPCSTR format, ...);
   virtual void Add(const CStatus &source);
-  virtual void Prepend(STATUS_TYPE severity, const char *format, ...);
+  virtual void Prepend(STATUS_TYPE severity, LPCSTR format, ...);
 
-  int          IsEmpty() const;
-  void         Clear();
-  void         GetErrorStr(char *buffer, unsigned long bufchars, STATUS_TYPE minSeverity) const;
-  unsigned int GetErrorStrLen(STATUS_TYPE minSeverity) const;
-  char        *GetErrorStrAlloc(STATUS_TYPE minSeverity) const;
-  STATUS_TYPE  GetHighestSeverity() const;
+  int         IsEmpty() const;
+  void        Clear();
+  void        GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity) const;
+  UINT        GetErrorStrLen(STATUS_TYPE minSeverity) const;
+  char       *GetErrorStrAlloc(STATUS_TYPE minSeverity) const;
+  STATUS_TYPE GetHighestSeverity() const;
 
  protected:
   TSExplicitList<STATUSENTRY, 8> statusList;
 };
 
 struct CNullStatus : public CStatus {
-  void Add(int, const char *, ...) {
+  void Add(int, LPCSTR, ...) {
   }
 };
 
@@ -42,8 +42,8 @@ struct CStatus::STATUSENTRY {
     FREEIFUSED(text);
   }
 
-  char               *text;
-  STATUS_TYPE         severity;
+  char       *text;
+  STATUS_TYPE severity;
   LINKDECLEX(STATUSENTRY, link);
 };
 

@@ -29,16 +29,21 @@ struct MINIMAPMD5NAME : public TSHashObject<MINIMAPMD5NAME, HASHKEY_STRI> {
 extern CVar *s_minimapZoomCVar;
 extern CVar *s_minimapInsideZoomCVar;
 
-static unsigned int                              s_currentContinent = -1;
-static NTempest::C3Vector                        s_currentPosition(0.0f, 0.0f, -1.0f);
-static NTempest::C2iVector                       s_currentUpperLeftArea(-1);
-static NTempest::C2iVector                       s_currentLowerRightArea(-1);
-static const unsigned int                        s_chunksPerSizeAtZoom[6] = {14, 12, 10, 8, 6, 4};
-static const float                               s_minimapZoomSize[6] = {150.0f, 120.0f, 90.0f, 60.0f, 40.0f, 25.0f};
+static UINT                s_currentContinent = -1;
+static NTempest::C3Vector  s_currentPosition(0.0f, 0.0f, -1.0f);
+static NTempest::C2iVector s_currentUpperLeftArea(-1);
+static NTempest::C2iVector s_currentLowerRightArea(-1);
+static const UINT          s_chunksPerSizeAtZoom[6] = {14, 12, 10, 8, 6, 4};
+static const float         s_minimapZoomSize[6] = {150.0f, 120.0f, 90.0f, 60.0f, 40.0f, 25.0f};
 static const struct {
-  unsigned int xIncrement;
-  unsigned int yIncrement;
-} s_areaCoordOffsets[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+  UINT xIncrement;
+  UINT yIncrement;
+} s_areaCoordOffsets[4] = {
+    {0, 0},
+    {1, 0},
+    {1, 1},
+    {0, 1}
+};
 static const float                               AREA_WORLD_SIZE_X = 533.33331f;
 static const float                               AREA_WORLD_SIZE_Y = 533.33331f;
 static const float                               CLOSEENOUGH = 0.013888889f;
@@ -50,37 +55,37 @@ static const float                               HALF_AREA_WORLD_SIZE_X = AREA_W
 static const float                               HALF_AREA_WORLD_SIZE_Y = AREA_WORLD_SIZE_Y * 0.5f;
 static const float                               HALF_WORLD_SIZE_X = AREA_WORLD_SIZE_X * 64.0f * 0.5f;
 static const float                               HALF_WORLD_SIZE_Y = AREA_WORLD_SIZE_Y * 64.0f * 0.5f;
-static unsigned int                              s_currentZoom = 3;
-static unsigned int                              s_currentInsideZoom = 3;
-static unsigned int                              s_mapObjID;
-static unsigned int                              s_mapObjInstanceID;
-static unsigned int                              s_mapObjGroupID = -1;
-static unsigned char                             s_isInside;
-static unsigned int                              s_flags;
+static UINT                                      s_currentZoom = 3;
+static UINT                                      s_currentInsideZoom = 3;
+static UINT                                      s_mapObjID;
+static UINT                                      s_mapObjInstanceID;
+static UINT                                      s_mapObjGroupID = -1;
+static BYTE                                      s_isInside;
+static UINT                                      s_flags;
 static NTempest::C44Matrix                       s_mapObjInvMtx;
 static NTempest::CAaBox                          s_queryCenterBox;
 static NTempest::C3Vector                        s_queryCenter;
-static const char                               *MINIMAP_MD5_DIR = "Textures\\Minimap";
+static LPCSTR                                    MINIMAP_MD5_DIR = "Textures\\Minimap";
 static AreaPOIRec                                s_questPOI;
 static char                                      s_questPOIName[64];
 static TSFixedArray<const AreaPOIRec *>          s_pointsOfInterest;
 static TSFixedArray<int>                         s_POIIsVisible;
 static TSFixedArray<int>                         s_visibleNoIcon;
 static int                                       s_updatePOI;
-static unsigned int                              s_numPoints;
+static UINT                                      s_numPoints;
 static TSGrowableArray<const AreaPOIRec *>       s_visiblePOI;
 static int                                       s_distantPOI[3];
-static unsigned int                              s_numDistantPOI;
+static UINT                                      s_numDistantPOI;
 static float                                     s_POIRotation[3];
 static int                                       s_updateDistantPOI;
 static int                                       s_lowestVisiblePriority = 3;
 static TSHashTable<MINIMAPMD5NAME, HASHKEY_STRI> s_md5NameHash;
-static const char                               *FILENAME_TEMPLATE = "%s\\map%d_%d.blp";
-static const char                               *s_mapObjTemplate = "%s_%03d_%02d_%02d.blp";
+static LPCSTR                                    FILENAME_TEMPLATE = "%s\\map%d_%d.blp";
+static LPCSTR                                    s_mapObjTemplate = "%s_%03d_%02d_%02d.blp";
 static char                                      s_mapObjDir[260];
 
 static void UpdatePointsOfInterest() {
-  unsigned int       numPOI;
+  UINT               numPOI;
   NTempest::C2Vector dist;
   float              minimapVisRadius;
   float              totalDistance;
@@ -128,11 +133,11 @@ static void UpdatePointsOfInterest() {
     }
   }
 
-  int          priority[3];
-  int          closest[3] = {-1, -1, -1};
-  float        distance[3] = {MAX_POI_DISTANCE, MAX_POI_DISTANCE, MAX_POI_DISTANCE};
-  int          largest = -1;
-  unsigned int numDistantPOI = 0;
+  int   priority[3];
+  int   closest[3] = {-1, -1, -1};
+  float distance[3] = {MAX_POI_DISTANCE, MAX_POI_DISTANCE, MAX_POI_DISTANCE};
+  int   largest = -1;
+  UINT  numDistantPOI = 0;
 
   for (numPOI = 0; numPOI < s_numPoints; ++numPOI) {
     const AreaPOIRec *poi = s_pointsOfInterest[numPOI];
@@ -161,7 +166,7 @@ static void UpdatePointsOfInterest() {
 
     if (numDistantPOI == 3) {
       largest = 0;
-      for (unsigned int i = 1; i < 3; ++i) {
+      for (UINT i = 1; i < 3; ++i) {
         if (priority[i] > priority[largest] || (priority[i] == priority[largest] && distance[i] > distance[largest])) {
           largest = i;
         }
@@ -205,7 +210,7 @@ static NTempest::C3Vector AreaToCoordinate(const NTempest::C2iVector &coords) {
   return NTempest::C3Vector(HALF_WORLD_SIZE_Y - coords.y * AREA_WORLD_SIZE_X, 17066.666f - coords.x * AREA_WORLD_SIZE_Y, 0.0f);
 }
 
-static void BuildPathName(const NTempest::C2iVector &location, char *buffer, unsigned int size) {
+static void BuildPathName(const NTempest::C2iVector &location, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
   buffer[0] = 0;
@@ -225,17 +230,15 @@ static void BuildPathName(const NTempest::C2iVector &location, char *buffer, uns
 }
 
 static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int continentChanged, QUADDATA *quads) {
-  unsigned int i;
+  UINT i;
   for (i = 0; i < 4; ++i) {
     quads[i].m_flags &= ~2u;
   }
 
   if (!continentChanged) {
     for (i = 0; i < 4; ++i) {
-      NTempest::C2iVector currentArea(
-          upperLeftArea.x + s_areaCoordOffsets[i].xIncrement, upperLeftArea.y + s_areaCoordOffsets[i].yIncrement
-      );
-      for (unsigned int n = 0; n < 4; ++n) {
+      NTempest::C2iVector currentArea(upperLeftArea.x + s_areaCoordOffsets[i].xIncrement, upperLeftArea.y + s_areaCoordOffsets[i].yIncrement);
+      for (UINT n = 0; n < 4; ++n) {
         if (quads[n].m_areaNum.x == currentArea.x && quads[n].m_areaNum.y == currentArea.y) {
           if (n != i) {
             if (quads[i].m_texture) {
@@ -255,9 +258,7 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
     if (!(quads[i].m_flags & 2)) {
       char                fileName[260];
       CStatus             status;
-      NTempest::C2iVector currentArea(
-          upperLeftArea.x + s_areaCoordOffsets[i].xIncrement, upperLeftArea.y + s_areaCoordOffsets[i].yIncrement
-      );
+      NTempest::C2iVector currentArea(upperLeftArea.x + s_areaCoordOffsets[i].xIncrement, upperLeftArea.y + s_areaCoordOffsets[i].yIncrement);
       BuildPathName(currentArea, fileName, sizeof(fileName));
       if (!fileName[0]) {
         continue;
@@ -273,9 +274,7 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
   }
 }
 
-static void SetupQuad(
-    const unsigned int groupNum, QUADDATA &quadData, const CWorld::MinimapQuad &wmmQuad, const float localz, const char *wmoName
-) {
+static void SetupQuad(const UINT groupNum, QUADDATA &quadData, const CWorld::MinimapQuad &wmmQuad, const float localz, LPCSTR wmoName) {
   char    fileName[260];
   CStatus status;
 
@@ -309,8 +308,8 @@ static void SetupQuad(
   }
 }
 
-static void SetupMapObj(unsigned long hWorldObject, NTempest::C44Matrix &minimapMtx) {
-  const char *wmoName;
+static void SetupMapObj(DWORD hWorldObject, NTempest::C44Matrix &minimapMtx) {
+  LPCSTR wmoName;
 
   CWorld::QueryMapObjMatrix(hWorldObject, &minimapMtx, &s_mapObjInvMtx);
   float basisMag = minimapMtx.a0 * minimapMtx.a0 + minimapMtx.a1 * minimapMtx.a1 + minimapMtx.a2 * minimapMtx.a2;
@@ -353,18 +352,18 @@ static void SetupMapObj(unsigned long hWorldObject, NTempest::C44Matrix &minimap
 }
 
 void LoadMD5Names() {
-  char        md5file[260];
-  char        line[260];
-  char       *space;
-  void       *buffer;
-  const char *readCursor;
+  char   md5file[260];
+  char   line[260];
+  char  *space;
+  LPVOID buffer;
+  LPCSTR readCursor;
 
   SStrPrintf(md5file, sizeof(md5file), "%s\\md5translate.txt", MINIMAP_MD5_DIR);
   if (!SFile::LoadFile(md5file, &buffer, 0, 1, 0)) {
     return;
   }
 
-  readCursor = static_cast<const char *>(buffer);
+  readCursor = static_cast<LPCSTR>(buffer);
   line[0] = 0;
   do {
     SStrTokenize(&readCursor, line, sizeof(line), "\r\n", 0);
@@ -389,7 +388,7 @@ void LoadMD5Names() {
 }
 
 int MinimapInitialize(int continentID) {
-  unsigned int numPoints = 0;
+  UINT numPoints = 0;
 
   for (int pass = 0; pass < 2; ++pass) {
     if (pass) {
@@ -458,9 +457,7 @@ void MinimapShutdown() {
   s_md5NameHash.Clear();
 }
 
-static int MinimapUpdatePosition(
-    unsigned int continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads
-) {
+static int MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads) {
   FATALASSERT(radius);
   FATALASSERT(centerPoint);
   if (continent == s_currentContinent && pos.x == s_currentPosition.x && pos.y == s_currentPosition.y && pos.z == s_currentPosition.z &&
@@ -508,9 +505,7 @@ static int MinimapUpdatePosition(
   s_flags &= ~1u;
 
   NTempest::C3Vector upperLeftCoordinate = AreaToCoordinate(upperLeftArea);
-  NTempest::CRect    boxBoundary(
-      upperLeftCoordinate.x, upperLeftCoordinate.y, upperLeftCoordinate.x - boxHeight, upperLeftCoordinate.y - boxWidth
-  );
+  NTempest::CRect    boxBoundary(upperLeftCoordinate.x, upperLeftCoordinate.y, upperLeftCoordinate.x - boxHeight, upperLeftCoordinate.y - boxWidth);
   FATALASSERT((pos.x - CLOSEENOUGH) < boxBoundary.t);
   FATALASSERT((pos.x + CLOSEENOUGH) > boxBoundary.b);
   FATALASSERT((pos.y - CLOSEENOUGH) < boxBoundary.l);
@@ -526,25 +521,25 @@ static int MinimapUpdatePosition(
 }
 
 int MinimapUpdate(
-    unsigned long             hWorldObject,
-    unsigned int              continent,
+    DWORD                     hWorldObject,
+    UINT                      continent,
     const NTempest::C3Vector &pos,
     NTempest::C2Vector       &centerPoint,
     float                    &radius,
     QUADDATA                 *quads,
     MinimapTexParams         &mmtp
 ) {
-  unsigned int needsWork = s_flags & 1;
+  UINT needsWork = s_flags & 1;
   mmtp.updateTexture = (s_flags & 1) | mmtp.asyncTexWait;
 
   if (continent == s_currentContinent && pos.x == s_currentPosition.x && pos.y == s_currentPosition.y && !(s_flags & 1)) {
     return 0;
   }
 
-  unsigned int mapObjID;
-  unsigned int instanceID;
-  unsigned int groupID;
-  unsigned int isInside = CWorld::QueryMapObjIDs(hWorldObject, mapObjID, instanceID, groupID);
+  UINT mapObjID;
+  UINT instanceID;
+  UINT groupID;
+  UINT isInside = CWorld::QueryMapObjIDs(hWorldObject, mapObjID, instanceID, groupID);
 
   if (continent != s_currentContinent || pos.x != s_currentPosition.x || pos.y != s_currentPosition.y || pos.z != s_currentPosition.z) {
     needsWork = 1;
@@ -596,28 +591,24 @@ int MinimapUpdate(
   const float halfSize = mmtp.size * 0.5f;
   s_queryCenterBox = NTempest::CAaBox(
       NTempest::C3Vector(
-          static_cast<float>(floor(pos.x / mmtp.size)) * mmtp.size,
-          static_cast<float>(floor(pos.y / mmtp.size)) * mmtp.size,
-          pos.z - halfSize
+          static_cast<float>(floor(pos.x / mmtp.size)) * mmtp.size, static_cast<float>(floor(pos.y / mmtp.size)) * mmtp.size, pos.z - halfSize
       ),
       NTempest::C3Vector(0.0f)
   );
-  s_queryCenterBox.t = NTempest::C3Vector(
-      s_queryCenterBox.b.x + mmtp.size, s_queryCenterBox.b.y + mmtp.size, s_queryCenterBox.b.z + halfSize
-  );
+  s_queryCenterBox.t = NTempest::C3Vector(s_queryCenterBox.b.x + mmtp.size, s_queryCenterBox.b.y + mmtp.size, s_queryCenterBox.b.z + halfSize);
   s_queryCenter = (s_queryCenterBox.b + s_queryCenterBox.t) * 0.5f;
   mmtp.localCenter = s_queryCenter * s_mapObjInvMtx;
   mmtp.localOffset = localPos - mmtp.localCenter;
 
-  unsigned char                     wmmStorage[sizeof(CWorld::MinimapQuad) * 1024];
+  BYTE                              wmmStorage[sizeof(CWorld::MinimapQuad) * 1024];
   TSStackArray<CWorld::MinimapQuad> wmmQuads(wmmStorage, 1024, 0);
-  NTempest::CAaBox queryBox = s_queryCenterBox;
+  NTempest::CAaBox                  queryBox = s_queryCenterBox;
   queryBox.b = queryBox.b - NTempest::C3Vector(mmtp.size);
   queryBox.t += NTempest::C3Vector(mmtp.size);
   CWorld::QueryMapObjMinimap(hWorldObject, queryBox, wmmQuads);
-  unsigned int count = wmmQuads.Count();
-  unsigned int quad;
-  const unsigned int groupNum = count ? wmmQuads[0].groupNum : 0;
+  UINT       count = wmmQuads.Count();
+  UINT       quad;
+  const UINT groupNum = count ? wmmQuads[0].groupNum : 0;
   for (quad = 0; quad < count; ++quad) {
     SetupQuad(groupNum, quads[quad], wmmQuads[quad], localPos.z, s_mapObjDir);
   }
@@ -629,10 +620,10 @@ int MinimapUpdate(
   return needsWork != 0;
 }
 
-void MinimapSetZoom(unsigned int zoomFactor) {
-  char          buf[8];
-  unsigned int &zoom = s_isInside ? s_currentInsideZoom : s_currentZoom;
-  unsigned int  oldZoom = zoom;
+void MinimapSetZoom(UINT zoomFactor) {
+  char  buf[8];
+  UINT &zoom = s_isInside ? s_currentInsideZoom : s_currentZoom;
+  UINT  oldZoom = zoom;
 
   if (zoomFactor >= 5) {
     zoomFactor = 5;
@@ -649,11 +640,11 @@ void MinimapSetZoom(unsigned int zoomFactor) {
   }
 }
 
-unsigned int MinimapGetZoom() {
+UINT MinimapGetZoom() {
   return s_isInside ? s_currentInsideZoom : s_currentZoom;
 }
 
-unsigned int MinimapGetZoomLevels() {
+UINT MinimapGetZoomLevels() {
   return 6;
 }
 
@@ -672,7 +663,7 @@ const TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI) {
 }
 
 int MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData) {
-  unsigned int i;
+  UINT i;
 
   if (s_updateDistantPOI) {
     directionData.SetCount(s_numDistantPOI);
@@ -704,7 +695,7 @@ float MinimapGetWorldRadius() {
   return s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f * 33.333332f;
 }
 
-void MinimapSetQuestPOI(float x, float y, int priority, const char *name) {
+void MinimapSetQuestPOI(float x, float y, int priority, LPCSTR name) {
   s_questPOI.m_x = x;
   s_questPOI.m_y = y;
   s_questPOI.m_importance = priority;
@@ -717,14 +708,14 @@ void MinimapGetPartyMembers(PARTYMEMBERINFO *array) {
     return;
   }
 
-  for (unsigned int index = 0; index < 5; ++index) {
+  for (UINT index = 0; index < 5; ++index) {
     NTempest::C3Vector pos;
-    unsigned __int64   guid;
+    DWORDLONG          guid;
     NTempest::C2Vector dist;
     CGUnit_C          *unit;
 
     if (index == 4) {
-      CGUnit_C *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      CGUnit_C         *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       const CGUnitData *unitData = activePlayer->GetUnitData();
       guid = unitData->charm ? unitData->charm : unitData->summon;
     } else {

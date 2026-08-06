@@ -16,10 +16,10 @@ class CSimpleStatusBar : public CSimpleFrame {
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
-  virtual void  OnLayerUpdate(float elapsedSec);
+  virtual void OnLayerUpdate(float elapsedSec);
 
   void         SetBarTexture(CSimpleTexture *texture, int layer);
-  int          SetBarTexture(const char *texFile, int layer);
+  int          SetBarTexture(LPCSTR texFile, int layer);
   void         SetMinMaxValues(float min, float max);
   virtual void SetValue(float value);
 
@@ -35,13 +35,13 @@ class CSimpleStatusBar : public CSimpleFrame {
     return m_maxValue;
   }
 
-  virtual void SetStatusBarColor(const NTempest::CImVector &color);
+  virtual void  SetStatusBarColor(const NTempest::CImVector &color);
   virtual float GetAnimValue() const;
 
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();
 
-  void SetOnValueChangedScript(const char *source) {
+  void SetOnValueChangedScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnValueChanged", GetName());
     SetEventScript(m_onValueChanged, source, description);
@@ -54,7 +54,7 @@ class CSimpleStatusBar : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 

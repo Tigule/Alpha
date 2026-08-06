@@ -53,13 +53,13 @@ CSimpleEditBox::CSimpleEditBox(CSimpleFrame *parent)
       m_onTabPressed(0),
       m_onTextChanged(0),
       m_onTextSet(0) {
-  unsigned int i;
+  UINT i;
 
   m_textSize = 32;
   m_text = static_cast<char *>(ALLOC(0x20));
   *m_text = 0;
 
-  m_textInfo = static_cast<unsigned int *>(ALLOC(4 * m_textSize));
+  m_textInfo = static_cast<UINT *>(ALLOC(4 * m_textSize));
   memset(m_textInfo, 0, 4 * m_textSize);
 
   m_string = NEW(CSimpleFontString)(this, 2, 1);
@@ -107,7 +107,7 @@ CSimpleEditBox::~CSimpleEditBox() {
 void CSimpleEditBox::LoadXML(const XMLNode *node, CStatus *status) {
   CSimpleFrame::LoadXML(node, status);
 
-  const char *value = node->GetAttributeByName("letters");
+  LPCSTR value = node->GetAttributeByName("letters");
   if (value && *value) {
     m_textLettersMax = SStrToInt(value);
   }
@@ -140,7 +140,7 @@ void CSimpleEditBox::LoadXML(const XMLNode *node, CStatus *status) {
   }
 
   for (const XMLNode *child = node->GetChild(); child; child = child->GetSibling()) {
-    const char *name = child->GetName();
+    LPCSTR name = child->GetName();
 
     if (!SStrCmpI(name, "FontString", INT_MAX)) {
       m_string->LoadXML(child, status);
@@ -154,7 +154,7 @@ void CSimpleEditBox::LoadXML(const XMLNode *node, CStatus *status) {
     } else if (!SStrCmpI(name, "HighlightColor", INT_MAX)) {
       NTempest::CImVector color;
       if (LoadXML_Color(child, color, status)) {
-        for (unsigned int i = 0; i < 3; ++i) {
+        for (UINT i = 0; i < 3; ++i) {
           m_highlight[i]->SetTexture(color);
         }
       }
@@ -175,7 +175,7 @@ void CSimpleEditBox::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
   CSimpleFrame::LoadXML_Scripts(node, status);
 
   for (const XMLNode *script = node->GetChild(); script; script = script->GetSibling()) {
-    const char *name = script->GetName();
+    LPCSTR name = script->GetName();
 
     if (!SStrCmpI(name, "OnEnterPressed", INT_MAX)) {
       SetOnEnterPressedScript(script->GetBody());
@@ -239,8 +239,7 @@ void CSimpleEditBox::OnLayerUpdate(float elapsedSec) {
   int textChanged = m_dirtyFlags & DIRTY_TEXT;
 
   if (m_dirtyFlags & DIRTY_CURSOR) {
-    if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen
-        || (m_imeInputMode && m_clauseRight > m_visiblePos + m_visibleLen)) {
+    if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen || (m_imeInputMode && m_clauseRight > m_visiblePos + m_visibleLen)) {
       m_dirtyFlags |= DIRTY_TEXT;
     }
   }
@@ -681,8 +680,8 @@ void CSimpleEditBox::UpdateSizes(const NTempest::CRect &rect) {
 
     m_string->SetPoint(FRAMEPOINT_TOPLEFT, this, FRAMEPOINT_TOPLEFT, m_editTextInset.l, -m_editTextInset.b, 1);
 
-    float        fontHeight = m_string->m_fontHeight;
-    unsigned int i;
+    float fontHeight = m_string->m_fontHeight;
+    UINT  i;
 
     for (i = 0; i < 3; ++i) {
       m_highlight[i]->ClearAllPoints(0);
@@ -707,16 +706,16 @@ void CSimpleEditBox::UpdateSizes(const NTempest::CRect &rect) {
 }
 
 void CSimpleEditBox::UpdateTextInfo() {
-  const char  *string = m_text;
-  unsigned int offset = 0;
-  unsigned int flags = 0;
+  LPCSTR string = m_text;
+  UINT   offset = 0;
+  UINT   flags = 0;
 
-  memset(m_textInfo, 0, sizeof(unsigned int) * m_textSize);
+  memset(m_textInfo, 0, sizeof(UINT) * m_textSize);
 
   while (*string) {
-    unsigned int advance;
-    unsigned int wide;
-    QUOTEDCODE   code = GxuDetermineQuotedCode(string, advance, 0, 0, wide, m_textLength - offset);
+    UINT       advance;
+    UINT       wide;
+    QUOTEDCODE code = GxuDetermineQuotedCode(string, advance, 0, 0, wide, m_textLength - offset);
 
     ASSERT(advance <= 0xFFFF);
 
@@ -724,7 +723,7 @@ void CSimpleEditBox::UpdateTextInfo() {
       flags |= 0x80000000;
     }
 
-    m_textInfo[offset] = flags | (static_cast<unsigned int>(code) << 16) | advance;
+    m_textInfo[offset] = flags | (static_cast<UINT>(code) << 16) | advance;
 
     offset += advance;
     string += advance;
@@ -736,15 +735,15 @@ void CSimpleEditBox::UpdateTextInfo() {
 }
 
 int CSimpleEditBox::GetNumToLen(int offset, int amount, bool checkHyperLink) {
-  unsigned int *textInfo = m_textInfo;
-  unsigned int *info = &textInfo[offset];
-  int           length = 0;
+  UINT *textInfo = m_textInfo;
+  UINT *info = &textInfo[offset];
+  int   length = 0;
 
   if (amount > 0) {
     while (amount-- > 0 && *info) {
-      unsigned int value;
-      unsigned int advance;
-      unsigned int code;
+      UINT value;
+      UINT advance;
+      UINT code;
 
       do {
         do {
@@ -775,9 +774,9 @@ int CSimpleEditBox::GetNumToLen(int offset, int amount, bool checkHyperLink) {
     int remaining = -amount;
 
     while (remaining-- > 0 && info > textInfo) {
-      unsigned int value;
-      unsigned int advance;
-      unsigned int code;
+      UINT value;
+      UINT advance;
+      UINT code;
 
       do {
         do {
@@ -820,14 +819,14 @@ int CSimpleEditBox::GetNumToLen(int offset, int amount, bool checkHyperLink) {
 }
 
 int CSimpleEditBox::GetLenToNum(int offset, int amount) {
-  unsigned int *textInfo = m_textInfo;
-  unsigned int *info = &textInfo[offset];
-  int           result = 0;
+  UINT *textInfo = m_textInfo;
+  UINT *info = &textInfo[offset];
+  int   result = 0;
 
   if (amount > 0) {
     while (amount-- > 0) {
       if (*info) {
-        unsigned int code = (*info >> 16) & 0xFF;
+        UINT code = (*info >> 16) & 0xFF;
         if (code == CODE_NEWLINE || code == CODE_PIPE || code == CODE_INVALIDCODE) {
           ++result;
         }
@@ -840,7 +839,7 @@ int CSimpleEditBox::GetLenToNum(int offset, int amount) {
     while (remaining-- > 0 && info > textInfo) {
       --info;
       if (*info) {
-        unsigned int code = (*info >> 16) & 0xFF;
+        UINT code = (*info >> 16) & 0xFF;
         if (code == CODE_NEWLINE || code == CODE_PIPE || code == CODE_INVALIDCODE) {
           ++result;
         }
@@ -878,11 +877,11 @@ void CSimpleEditBox::GrowText(int size) {
   if (size + 1 > m_textSize) {
     m_textSize = (size + 32) & ~31;
     m_text = static_cast<char *>(SMemReAlloc(m_text, m_textSize, __FILE__, __LINE__, 0));
-    m_textInfo = static_cast<unsigned int *>(SMemReAlloc(m_textInfo, sizeof(unsigned int) * m_textSize, __FILE__, __LINE__, 0));
+    m_textInfo = static_cast<UINT *>(SMemReAlloc(m_textInfo, sizeof(UINT) * m_textSize, __FILE__, __LINE__, 0));
   }
 }
 
-void CSimpleEditBox::SetText(const char *text) {
+void CSimpleEditBox::SetText(LPCSTR text) {
   if (m_highlightLeft != m_highlightRight) {
     m_highlightRight = 0;
     m_highlightLeft = 0;
@@ -929,10 +928,10 @@ void CSimpleEditBox::DeleteForwardWord() {
   }
 
   int advance;
-  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
     Delete(1);
   }
-  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
     Delete(1);
   }
 }
@@ -952,10 +951,10 @@ void CSimpleEditBox::DeleteBackwardWord() {
   }
 
   int advance;
-  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
+  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
     Delete(-1);
   }
-  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
+  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
     Delete(-1);
   }
 }
@@ -978,7 +977,7 @@ void CSimpleEditBox::DeleteText() {
   DeleteSubstring(0, m_textLength);
 }
 
-void CSimpleEditBox::Insert(const char *utf8string, int isIME) {
+void CSimpleEditBox::Insert(LPCSTR utf8string, int isIME) {
   if ((m_textInfo[m_cursorPos] & 0x80000000) && m_cursorPos > 0 && (m_textInfo[PrevCharOffset(m_cursorPos)] & 0x80000000)) {
     return;
   }
@@ -991,7 +990,7 @@ void CSimpleEditBox::Insert(const char *utf8string, int isIME) {
     utf8string = "";
   }
 
-  unsigned int length = SStrLen(utf8string);
+  UINT length = SStrLen(utf8string);
   GrowText(length + m_textLength);
 
   char *insertion = &m_text[m_cursorPos];
@@ -1054,7 +1053,7 @@ void CSimpleEditBox::Insert(const char *utf8string, int isIME) {
   }
 }
 
-void CSimpleEditBox::Insert(unsigned int utf16) {
+void CSimpleEditBox::Insert(UINT utf16) {
   char utf8string[5];
 
   if (utf16 >= 0x20 && utf16 != 0x7F) {
@@ -1111,7 +1110,7 @@ void CSimpleEditBox::DeleteSubstring(int left, int right) {
   m_cursorPos = start;
 
   memcpy(&m_text[start], &m_text[start + removed], m_textLength - start);
-  memcpy(&m_textInfo[start], &m_textInfo[start + removed], sizeof(unsigned int) * (m_textLength - start));
+  memcpy(&m_textInfo[start], &m_textInfo[start + removed], sizeof(UINT) * (m_textLength - start));
 
   m_text[m_textLength] = 0;
   m_dirtyFlags |= DIRTY_TEXT | DIRTY_CURSOR;
@@ -1152,10 +1151,10 @@ void CSimpleEditBox::MoveForward(int highlight) {
 
 void CSimpleEditBox::MoveForwardWord(int highlight) {
   int advance;
-  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
     Move(1, highlight);
   }
-  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
     Move(1, highlight);
   }
 }
@@ -1168,10 +1167,10 @@ void CSimpleEditBox::MoveBackward(int highlight) {
 
 void CSimpleEditBox::MoveBackwardWord(int highlight) {
   int advance;
-  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
     Move(-1, highlight);
   }
-  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const unsigned char *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
     Move(-1, highlight);
   }
 }
@@ -1284,7 +1283,7 @@ void CSimpleEditBox::SetHistoryLines(int numLines) {
   }
 }
 
-void CSimpleEditBox::AddHistoryLine(const char *line) {
+void CSimpleEditBox::AddHistoryLine(LPCSTR line) {
   if (!m_numHistory) {
     return;
   }
@@ -1333,8 +1332,8 @@ int CSimpleEditBox::ConvertCoordinateToIndex(float x, float y, int &position) {
     return 0;
   }
 
-  unsigned int line = 0;
-  unsigned int lastLine = m_visibleLines.Count() - 2;
+  UINT  line = 0;
+  UINT  lastLine = m_visibleLines.Count() - 2;
   float fontHeight = (m_string->m_fontHeight + m_string->m_spacing) * m_layoutScale;
 
   if (m_multiline) {
@@ -1354,12 +1353,9 @@ int CSimpleEditBox::ConvertCoordinateToIndex(float x, float y, int &position) {
     offset = stringRect.r;
   }
 
-  const char *text = m_password ? m_textHidden : m_text;
+  LPCSTR text = m_password ? m_textHidden : m_text;
   position = m_visibleLines[line];
-  unsigned int amount = m_string->GetNumCharsWithinWidth(
-      text + position,
-      m_visibleLines[line + 1] - position,
-      offset / m_string->m_layoutScale);
+  UINT amount = m_string->GetNumCharsWithinWidth(text + position, m_visibleLines[line + 1] - position, offset / m_string->m_layoutScale);
 
   if (text == m_text) {
     amount = GetNumToLen(position, amount, false);
@@ -1377,7 +1373,7 @@ void CSimpleEditBox::MakeTextVisible(int position, float offset, float stringWid
     return;
   }
 
-  unsigned int amount = m_string->GetNumCharsWithinWidthFromEnd(m_text, position, offset);
+  UINT amount = m_string->GetNumCharsWithinWidthFromEnd(m_text, position, offset);
   m_visiblePos = position - GetNumToLen(position, -static_cast<int>(amount), false);
   if (m_visiblePos < 0) {
     m_visiblePos = 0;
@@ -1397,7 +1393,7 @@ void CSimpleEditBox::UpdateVisibleText() {
 
   char *text;
   if (m_password) {
-    unsigned int length = SStrLen(m_text);
+    UINT length = SStrLen(m_text);
     m_textHidden = static_cast<char *>(SMemReAlloc(m_textHidden, length + 1, __FILE__, __LINE__, 0));
     memset(m_textHidden, '*', length);
     m_textHidden[length] = 0;
@@ -1407,11 +1403,7 @@ void CSimpleEditBox::UpdateVisibleText() {
   }
 
   if (m_multiline) {
-    unsigned int lines = m_string->WrapText(
-        text + m_visiblePos,
-        stringWidth,
-        m_visibleLines.Ptr(),
-        m_visibleLines.Count());
+    UINT lines = m_string->WrapText(text + m_visiblePos, stringWidth, m_visibleLines.Ptr(), m_visibleLines.Count());
 
     if (lines >= m_visibleLines.Count()) {
       m_visibleLines.SetCount(lines + 1);
@@ -1424,7 +1416,7 @@ void CSimpleEditBox::UpdateVisibleText() {
     }
 
     if (m_visiblePos > 0) {
-      for (unsigned int i = 0; i < lines; ++i) {
+      for (UINT i = 0; i < lines; ++i) {
         m_visibleLines[i] += m_visiblePos;
       }
     }
@@ -1433,7 +1425,7 @@ void CSimpleEditBox::UpdateVisibleText() {
     m_visibleLen = m_visibleLines[lines];
     m_visibleLines.SetCount(lines + 1);
   } else {
-    unsigned int amount = m_string->GetNumCharsWithinWidth(text + m_visiblePos, 0, stringWidth);
+    UINT amount = m_string->GetNumCharsWithinWidth(text + m_visiblePos, 0, stringWidth);
     m_visibleLen = amount;
     if (text == m_text) {
       m_visibleLen = GetNumToLen(m_visiblePos, amount, false);
@@ -1455,7 +1447,7 @@ void CSimpleEditBox::UpdateVisibleText() {
     }
   }
 
-  int end = m_visiblePos + m_visibleLen;
+  int  end = m_visiblePos + m_visibleLen;
   char saved = text[end];
   text[end] = 0;
   m_string->SetText(text + m_visiblePos);
@@ -1476,7 +1468,7 @@ void CSimpleEditBox::CopyToClipboard() {
     return;
   }
 
-  unsigned int length = m_highlightRight - m_highlightLeft;
+  UINT  length = m_highlightRight - m_highlightLeft;
   char *buffer = static_cast<char *>(_alloca(length + 1));
   GxuFontStripEscapeCodes(m_text + m_highlightLeft, length, 0x500, buffer, length + 1);
   OsClipboardPutString(buffer);
@@ -1488,17 +1480,17 @@ void CSimpleEditBox::PasteFromClipboard() {
     return;
   }
 
-  const char *position = string;
+  LPCSTR position = string;
   while (*position) {
     int advance;
-    Insert(sgetu8(reinterpret_cast<const unsigned char *>(position), &advance));
+    Insert(sgetu8(reinterpret_cast<const BYTE *>(position), &advance));
     position += advance;
   }
 
   OsClipboardFreeString(string);
 }
 
-void CSimpleEditBox::SetFont(const char *fontName, float fontHeight, unsigned int fontFlags) {
+void CSimpleEditBox::SetFont(LPCSTR fontName, float fontHeight, UINT fontFlags) {
   m_string->SetFont(fontName, fontHeight, fontFlags);
 
   if (m_candidatesFrame) {
@@ -1532,20 +1524,14 @@ void CSimpleEditBox::CreateCandidatesFrame() {
   float fontHeight = m_string->m_fontHeight;
   m_candidatesFrame = NEW(CSimpleMessageFrame)(this);
 
-  const char *fontName = m_string->m_font ? TextBlockGetFontName(m_string->m_font) : 0;
-  unsigned int fontFlags = m_string->m_font ? TextBlockGetFontFlags(m_string->m_font) : 0;
+  LPCSTR fontName = m_string->m_font ? TextBlockGetFontName(m_string->m_font) : 0;
+  UINT   fontFlags = m_string->m_font ? TextBlockGetFontFlags(m_string->m_font) : 0;
   m_candidatesFrame->m_attrib.m_font = fontName;
   m_candidatesFrame->m_attrib.m_fontHeight = fontHeight;
   m_candidatesFrame->m_attrib.m_fontFlags = fontFlags;
   m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT_UPDATE;
   m_candidatesFrame->SetWidth(fontHeight * 10.0f);
-  m_candidatesFrame->SetPoint(
-      FRAMEPOINT_BOTTOMLEFT,
-      m_clauseHighlight,
-      FRAMEPOINT_TOPLEFT,
-      0.0f,
-      0.0f,
-      1);
+  m_candidatesFrame->SetPoint(FRAMEPOINT_BOTTOMLEFT, m_clauseHighlight, FRAMEPOINT_TOPLEFT, 0.0f, 0.0f, 1);
   m_candidatesFrame->SetInsertMode(CSimpleMessageFrame::INSERT_AT_TOP);
 
   CSimpleTexture *background = NEW(CSimpleTexture)(m_candidatesFrame, 0, 1);
@@ -1572,9 +1558,9 @@ void CSimpleEditBox::UpdateLanguageIndicator() {
 }
 
 void CSimpleEditBox::UpdateClauseInfo() {
-  unsigned int clauseLeft;
-  unsigned int clauseRight;
-  unsigned int cursorPos;
+  UINT clauseLeft;
+  UINT clauseRight;
+  UINT cursorPos;
 
   if (OsIMEGetClauseInfo(clauseLeft, clauseRight, cursorPos)) {
     CreateClauseHighlight();
@@ -1585,10 +1571,10 @@ void CSimpleEditBox::UpdateClauseInfo() {
   }
 }
 
-int CSimpleEditBox::PopulateCandidates(unsigned long which) {
-  unsigned int pageSize;
-  unsigned int count;
-  unsigned int selection;
+int CSimpleEditBox::PopulateCandidates(DWORD which) {
+  UINT                            pageSize;
+  UINT                            count;
+  UINT                            selection;
   TSGrowableArray<OsIMECandidate> candidates;
 
   if (!OsIMEGetCandidates(which, pageSize, count, selection, candidates)) {
@@ -1602,28 +1588,16 @@ int CSimpleEditBox::PopulateCandidates(unsigned long which) {
   m_candidatesFrame->SetHeight((pageSize + 1) * fontHeight + fontHeight * 0.1f);
 
   m_candidatesHighlight->ClearAllPoints(1);
-  unsigned int row = selection % pageSize;
-  m_candidatesHighlight->SetPoint(
-      FRAMEPOINT_TOPLEFT,
-      m_candidatesFrame,
-      FRAMEPOINT_TOPLEFT,
-      0.0f,
-      -row * fontHeight,
-      1);
-  m_candidatesHighlight->SetPoint(
-      FRAMEPOINT_BOTTOMRIGHT,
-      m_candidatesFrame,
-      FRAMEPOINT_TOPRIGHT,
-      0.0f,
-      -(row + 1) * fontHeight,
-      1);
+  UINT row = selection % pageSize;
+  m_candidatesHighlight->SetPoint(FRAMEPOINT_TOPLEFT, m_candidatesFrame, FRAMEPOINT_TOPLEFT, 0.0f, -row * fontHeight, 1);
+  m_candidatesHighlight->SetPoint(FRAMEPOINT_BOTTOMRIGHT, m_candidatesFrame, FRAMEPOINT_TOPRIGHT, 0.0f, -(row + 1) * fontHeight, 1);
 
   NTempest::CImVector white(0xFFFFFFFF);
-  char candidate[1024];
+  char                candidate[1024];
   SStrPrintf(candidate, sizeof(candidate), "> %d/%d", selection + 1, count);
   m_candidatesFrame->AddMessage(candidate, white, 0.0f, 0);
 
-  for (unsigned int index = pageSize; index-- > 0;) {
+  for (UINT index = pageSize; index-- > 0;) {
     if (candidates[index].candidate[0]) {
       SStrPrintf(candidate, sizeof(candidate), "%d: %s", index + 1, candidates[index].candidate);
     } else {
@@ -1679,8 +1653,8 @@ void CSimpleEditBox::UpdateVisibleCursor() {
     return;
   }
 
-  unsigned int line = 0;
-  unsigned int maxLines = m_visibleLines.Count() - 2;
+  UINT  line = 0;
+  UINT  maxLines = m_visibleLines.Count() - 2;
   float fontHeight = m_string->m_spacing + m_string->m_fontHeight;
   float offset_y = 0.0f;
 
@@ -1693,10 +1667,8 @@ void CSimpleEditBox::UpdateVisibleCursor() {
   if (m_cursorPos == static_cast<int>(m_visibleLines[line])) {
     offset_x = 0.0f;
   } else {
-    const char *text = m_password ? m_textHidden : m_text;
-    offset_x = m_string->GetTextWidth(
-        text + m_visibleLines[line],
-        m_cursorPos - m_visibleLines[line]);
+    LPCSTR text = m_password ? m_textHidden : m_text;
+    offset_x = m_string->GetTextWidth(text + m_visibleLines[line], m_cursorPos - m_visibleLines[line]);
   }
 
   FRAMEPOINT point = m_multiline ? FRAMEPOINT_TOPLEFT : FRAMEPOINT_LEFT;
@@ -1714,11 +1686,11 @@ void CSimpleEditBox::UpdateHighlightArea(CSimpleRegion *area, int left, int righ
     ASSERT(!m_password);
   }
 
-  const char *text = m_password ? m_textHidden : m_text;
-  unsigned int line = 0;
-  unsigned int lastLine = m_visibleLines.Count() - 2;
-  float fontHeight = m_string->m_spacing + m_string->m_fontHeight;
-  float offsetY = 0.0f;
+  LPCSTR text = m_password ? m_textHidden : m_text;
+  UINT   line = 0;
+  UINT   lastLine = m_visibleLines.Count() - 2;
+  float  fontHeight = m_string->m_spacing + m_string->m_fontHeight;
+  float  offsetY = 0.0f;
 
   while (left >= static_cast<int>(m_visibleLines[line + 1]) && line < lastLine) {
     ++line;
@@ -1739,9 +1711,7 @@ void CSimpleEditBox::UpdateHighlightArea(CSimpleRegion *area, int left, int righ
   if (minPosition == static_cast<int>(m_visibleLines[line])) {
     offsetX = 0.0f;
   } else {
-    offsetX = m_string->GetTextWidth(
-        text + m_visibleLines[line],
-        minPosition - m_visibleLines[line]);
+    offsetX = m_string->GetTextWidth(text + m_visibleLines[line], minPosition - m_visibleLines[line]);
   }
 
   float width;

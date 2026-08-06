@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CreatureModelDataRec::GetFilename() {
+LPCSTR CreatureModelDataRec::GetFilename() {
   return "DBFilesClient\\CreatureModelData.dbc";
 }
 
@@ -19,9 +19,9 @@ CreatureModelDataRec::CreatureModelDataRec() {
 CreatureModelDataRec::~CreatureModelDataRec() {
 }
 
-bool CreatureModelDataRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempModelNameIndices[1];
+bool CreatureModelDataRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempModelNameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_flags, sizeof(m_flags), 0, 0, 0) && result;

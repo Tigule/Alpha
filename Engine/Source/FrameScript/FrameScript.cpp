@@ -6,7 +6,7 @@
 #include <stdarg.h>
 #include <stpl.h>
 
-void __cdecl SOutputDebugString(const char *format, ...);
+void __cdecl SOutputDebugString(LPCSTR format, ...);
 
 NODEDECL(EVENTLISTENERNODE) {
   FrameScript_Object *object;
@@ -18,22 +18,22 @@ class FrameScript_EventObject {
   FrameScript_EventObject(const FrameScript_EventObject &eventObject);
   ~FrameScript_EventObject();
 
-  char                                                    *name;
+  char *name;
   LISTDECL(EVENTLISTENERNODE, list);
 };
 
 static TSFixedArray<FrameScript_Object *>    s_objectStack;
-static unsigned int                          s_objectCount;
+static UINT                                  s_objectCount;
 static char                                  s_debugIndent[128];
 static TSFixedArray<FrameScript_EventObject> s_scriptEvents;
 static lua_State                            *s_context;
 static int                                   s_errorFunction;
 static char                                  s_argName[] = "arg0";
 
-static int getglobal(lua_State *state);
-static int next(lua_State *state);
-static int debuginfo(lua_State *state);
-static void print_variable(lua_State *state, const char *name, int depth);
+static int  getglobal(lua_State *state);
+static int  next(lua_State *state);
+static int  debuginfo(lua_State *state);
+static void print_variable(lua_State *state, LPCSTR name, int depth);
 static void PushThisStack(FrameScript_Object *object);
 static void PopThisStack();
 
@@ -55,7 +55,7 @@ FrameScript_Object::~FrameScript_Object() {
   UnregisterAllScriptEvents();
 }
 
-const char *FrameScript_Object::GetName() const {
+LPCSTR FrameScript_Object::GetName() const {
   return 0;
 }
 
@@ -70,7 +70,7 @@ FrameScript_EventObject::~FrameScript_EventObject() {
   ASSERT(list.IsEmpty());
 }
 
-void FrameScript_Object::RegisterScriptObject(const char *name) {
+void FrameScript_Object::RegisterScriptObject(LPCSTR name) {
   lua_State *state = FrameScript_GetContext();
 
   if (lua_registered) {
@@ -97,7 +97,7 @@ void FrameScript_Object::RegisterScriptObject(const char *name) {
   }
 }
 
-void FrameScript_Object::UnregisterScriptObject(const char *name) {
+void FrameScript_Object::UnregisterScriptObject(LPCSTR name) {
   lua_State *state = FrameScript_GetContext();
 
   if (name) {
@@ -142,11 +142,7 @@ void FrameScript_Object::EmptyScriptMethodTable(TSHashTable<FrameScriptObject_Va
   }
 }
 
-int FrameScript_Object::LookupScriptMethod(
-    lua_State                                            *state,
-    const char                                           *name,
-    TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable
-) {
+int FrameScript_Object::LookupScriptMethod(lua_State *state, LPCSTR name, TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable) {
   FrameScriptObject_Variable *entry = methodTable.Ptr(name);
 
   if (!entry) {
@@ -176,9 +172,9 @@ int FrameScript_Object::LookupScriptMethod(lua_State *state) {
   return 1;
 }
 
-int FrameScript_Object::RegisterScriptEvent(const char *name) {
-  unsigned int             count;
-  unsigned int             index;
+int FrameScript_Object::RegisterScriptEvent(LPCSTR name) {
+  UINT                     count;
+  UINT                     index;
   FrameScript_EventObject *eventObject;
   EVENTLISTENERNODE       *listener;
 
@@ -205,9 +201,9 @@ int FrameScript_Object::RegisterScriptEvent(const char *name) {
   return 0;
 }
 
-void FrameScript_Object::UnregisterScriptEvent(const char *name) {
-  unsigned int             count;
-  unsigned int             index;
+void FrameScript_Object::UnregisterScriptEvent(LPCSTR name) {
+  UINT                     count;
+  UINT                     index;
   FrameScript_EventObject *eventObject;
 
   ASSERT(name && *name);
@@ -230,8 +226,8 @@ void FrameScript_Object::UnregisterScriptEvent(const char *name) {
 }
 
 void FrameScript_Object::UnregisterAllScriptEvents() {
-  unsigned int count = s_scriptEvents.Count();
-  unsigned int index;
+  UINT count = s_scriptEvents.Count();
+  UINT index;
 
   for (index = 0; index < count; ++index) {
     FrameScript_EventObject *eventObject = &s_scriptEvents[index];
@@ -245,7 +241,7 @@ void FrameScript_Object::UnregisterAllScriptEvents() {
   }
 }
 
-void FrameScript_Object::SetEventScript(int &script, const char *source, const char *description) {
+void FrameScript_Object::SetEventScript(int &script, LPCSTR source, LPCSTR description) {
   if (script) {
     FrameScript_ReleaseFunction(script);
   }
@@ -257,14 +253,14 @@ void FrameScript_Object::SetEventScript(int &script, const char *source, const c
   }
 }
 
-void FrameScript_Object::SetOnEventScript(const char *source) {
+void FrameScript_Object::SetOnEventScript(LPCSTR source) {
   char description[1024];
 
   SStrPrintf(description, sizeof(description), "%s:OnEvent", GetName());
   SetEventScript(m_onEvent, source, description);
 }
 
-void FrameScript_Object::OnScriptEvent(const char *name) {
+void FrameScript_Object::OnScriptEvent(LPCSTR name) {
   lua_State *state;
 
   if (!m_onEvent) {
@@ -279,7 +275,7 @@ void FrameScript_Object::OnScriptEvent(const char *name) {
   lua_setglobal(state, "event");
 }
 
-void __cdecl FrameScript_Object::OnScriptEvent(const char *name, const char *format, char *arguments) {
+void __cdecl FrameScript_Object::OnScriptEvent(LPCSTR name, LPCSTR format, char *arguments) {
   lua_State *state;
 
   if (!m_onEvent) {
@@ -295,7 +291,7 @@ void __cdecl FrameScript_Object::OnScriptEvent(const char *name, const char *for
 }
 
 static int getglobal(lua_State *state) {
-  const char *name = lua_tostring(state, 1);
+  LPCSTR name = lua_tostring(state, 1);
 
   lua_getglobal(state, name);
   return 1;
@@ -313,13 +309,13 @@ static int next(lua_State *state) {
 }
 
 static int debuginfo(lua_State *state) {
-  lua_Debug   debugInfo;
-  int         present;
-  char        arg;
-  int         index;
-  const char *name;
-  int         count;
-  char        description[32];
+  lua_Debug debugInfo;
+  int       present;
+  char      arg;
+  int       index;
+  LPCSTR    name;
+  int       count;
+  char      description[32];
 
   SOutputDebugString("// ==========================================================\n");
 
@@ -374,15 +370,15 @@ static int debuginfo(lua_State *state) {
   return 0;
 }
 
-static void print_variable(lua_State *state, const char *name, int depth) {
+static void print_variable(lua_State *state, LPCSTR name, int depth) {
   FrameScript_Object *object;
-  const char         *tableName;
+  LPCSTR              tableName;
   lua_Debug           debugInfo;
   char                keyBuffer[32];
-  const char         *keyName;
+  LPCSTR              keyName;
   int                 type;
 
-  if (static_cast<unsigned int>(depth) < sizeof(s_debugIndent)) {
+  if (static_cast<UINT>(depth) < sizeof(s_debugIndent)) {
     if (depth > 0) {
       s_debugIndent[depth - 1] = ' ';
     }
@@ -456,14 +452,14 @@ static void print_variable(lua_State *state, const char *name, int depth) {
       break;
   }
 
-  if (static_cast<unsigned int>(depth) < sizeof(s_debugIndent) && depth > 0) {
+  if (static_cast<UINT>(depth) < sizeof(s_debugIndent) && depth > 0) {
     s_debugIndent[depth - 1] = 0;
   }
 }
 
 int FrameScript_Initialize() {
-  void         *buffer;
-  unsigned long bytes;
+  LPVOID buffer;
+  DWORD  bytes;
 
   ASSERT(!s_context);
 
@@ -494,7 +490,7 @@ int FrameScript_Initialize() {
   luaopen_math(s_context);
 
   if (SFile::LoadFile("Interface\\FrameXML\\compat.lua", &buffer, &bytes, 0, 0)) {
-    luaL_loadbuffer(s_context, static_cast<const char *>(buffer), bytes, "compat.lua");
+    luaL_loadbuffer(s_context, static_cast<LPCSTR>(buffer), bytes, "compat.lua");
     SFile::Unload(buffer);
 
     if (lua_pcall(s_context, 0, 0, 0)) {
@@ -533,14 +529,14 @@ void FrameScript_MemoryCleanup(int enableGC) {
   }
 }
 
-int FrameScript_LoadTextTables(const char *filename) {
+int FrameScript_LoadTextTables(LPCSTR filename) {
   return FrameScript_ExecuteFile(filename);
 }
 
-const char *FrameScript_GetText(const char *text, int unk, FRAMESCRIPT_GENDER gender) {
-  const char *result = "";
-  lua_State  *state;
-  int         errorIndex;
+LPCSTR FrameScript_GetText(LPCSTR text, int unk, FRAMESCRIPT_GENDER gender) {
+  LPCSTR     result = "";
+  lua_State *state;
+  int        errorIndex;
 
   if (gender == GENDER_NOT_APPLICABLE && unk < 0) {
     FrameScript_GetVariable(text, result);
@@ -574,9 +570,9 @@ const char *FrameScript_GetText(const char *text, int unk, FRAMESCRIPT_GENDER ge
   return result;
 }
 
-unsigned int FrameScript_GetPluralIndex(int value) {
-  unsigned int result = 0;
-  lua_State   *state = FrameScript_GetContext();
+UINT FrameScript_GetPluralIndex(int value) {
+  UINT       result = 0;
+  lua_State *state = FrameScript_GetContext();
 
   GetErrorFunction(state);
   lua_getglobal(state, "GetPluralIndex");
@@ -590,15 +586,15 @@ unsigned int FrameScript_GetPluralIndex(int value) {
   return result;
 }
 
-void FrameScript_CreateEvents(const char **const names, unsigned int count) {
-  unsigned int index;
+void FrameScript_CreateEvents(LPCSTR *const names, UINT count) {
+  UINT index;
 
   s_scriptEvents.Clear();
   s_scriptEvents.SetCount(count);
 
   for (index = 0; index < count; ++index) {
     FrameScript_EventObject *eventObject = &s_scriptEvents[index];
-    const char              *name = names[index];
+    LPCSTR                   name = names[index];
 
     if (name && *name) {
       eventObject->name = SStrDupA(name, __FILE__, __LINE__);
@@ -606,7 +602,7 @@ void FrameScript_CreateEvents(const char **const names, unsigned int count) {
   }
 }
 
-void FrameScript_SignalEvent(unsigned int index) {
+void FrameScript_SignalEvent(UINT index) {
   FrameScript_EventObject *eventObject;
 
   ASSERT(index < s_scriptEvents.Count());
@@ -618,7 +614,7 @@ void FrameScript_SignalEvent(unsigned int index) {
   }
 }
 
-void __cdecl FrameScript_SignalEvent(unsigned int index, const char *format, ...) {
+void __cdecl FrameScript_SignalEvent(UINT index, LPCSTR format, ...) {
   FrameScript_EventObject *eventObject;
   va_list                  arguments;
 
@@ -643,7 +639,7 @@ lua_State *FrameScript_GetContext() {
   ASSERT(s_context);
   return s_context;
 }
-void __cdecl FrameScript_DisplayError(const char *format, ...) {
+void __cdecl FrameScript_DisplayError(LPCSTR format, ...) {
   char       error[1024];
   lua_State *state = FrameScript_GetContext();
   va_list    arguments;
@@ -654,28 +650,28 @@ void __cdecl FrameScript_DisplayError(const char *format, ...) {
   va_end(arguments);
 }
 
-void FrameScript_RegisterFunction(const char *name, int(*function)(lua_State *state)) {
+void FrameScript_RegisterFunction(LPCSTR name, int (*function)(lua_State *state)) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushcfunction(state, function);
   lua_setglobal(state, name);
 }
 
-void FrameScript_UnregisterFunction(const char *name) {
+void FrameScript_UnregisterFunction(LPCSTR name) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushnil(state);
   lua_setglobal(state, name);
 }
 
-void FrameScript_SetVariable(const char *name, int value) {
+void FrameScript_SetVariable(LPCSTR name, int value) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushnumber(state, value);
   lua_setglobal(state, name);
 }
 
-int FrameScript_GetVariable(const char *name, int &value) {
+int FrameScript_GetVariable(LPCSTR name, int &value) {
   int        result = 0;
   lua_State *state = FrameScript_GetContext();
 
@@ -689,14 +685,14 @@ int FrameScript_GetVariable(const char *name, int &value) {
   return result;
 }
 
-void FrameScript_SetVariable(const char *name, float value) {
+void FrameScript_SetVariable(LPCSTR name, float value) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushnumber(state, value);
   lua_setglobal(state, name);
 }
 
-int FrameScript_GetVariable(const char *name, float &value) {
+int FrameScript_GetVariable(LPCSTR name, float &value) {
   int        result = 0;
   lua_State *state = FrameScript_GetContext();
 
@@ -710,7 +706,7 @@ int FrameScript_GetVariable(const char *name, float &value) {
   return result;
 }
 
-void FrameScript_SetVariable(const char *name, const char *value) {
+void FrameScript_SetVariable(LPCSTR name, LPCSTR value) {
   lua_State *state = FrameScript_GetContext();
 
   if (value && *value) {
@@ -721,7 +717,7 @@ void FrameScript_SetVariable(const char *name, const char *value) {
   lua_setglobal(state, name);
 }
 
-int FrameScript_GetVariable(const char *name, const char *&value) {
+int FrameScript_GetVariable(LPCSTR name, LPCSTR &value) {
   int        found = 0;
   lua_State *state = FrameScript_GetContext();
 
@@ -734,17 +730,17 @@ int FrameScript_GetVariable(const char *name, const char *&value) {
   return found;
 }
 
-void FrameScript_UnsetVariable(const char *name) {
+void FrameScript_UnsetVariable(LPCSTR name) {
   lua_State *state = FrameScript_GetContext();
 
   lua_pushnil(state);
   lua_setglobal(state, name);
 }
 
-int FrameScript_ExecuteFile(const char *filename) {
-  void         *buffer;
-  unsigned long bytes;
-  int           result;
+int FrameScript_ExecuteFile(LPCSTR filename) {
+  LPVOID buffer;
+  DWORD  bytes;
+  int    result;
 
   if (!SFile::LoadFile(filename, &buffer, &bytes, 0, 0)) {
     return 0;
@@ -755,11 +751,11 @@ int FrameScript_ExecuteFile(const char *filename) {
   return result;
 }
 
-int FrameScript_ExecuteBuffer(void *buffer, unsigned long bytes, const char *filename) {
+int FrameScript_ExecuteBuffer(LPVOID buffer, DWORD bytes, LPCSTR filename) {
   lua_State *state = FrameScript_GetContext();
 
   GetErrorFunction(state);
-  if (luaL_loadbuffer(state, static_cast<const char *>(buffer), bytes, filename)) {
+  if (luaL_loadbuffer(state, static_cast<LPCSTR>(buffer), bytes, filename)) {
     if (lua_pcall(state, 1, 0, -2)) {
       lua_pop(state, 1);
     }
@@ -776,7 +772,7 @@ int FrameScript_ExecuteBuffer(void *buffer, unsigned long bytes, const char *fil
   return 1;
 }
 
-int FrameScript_CompileFunction(const char *source, const char *description) {
+int FrameScript_CompileFunction(LPCSTR source, LPCSTR description) {
   lua_State *state = FrameScript_GetContext();
 
   if (luaL_loadbuffer(state, source, SStrLen(source), description)) {
@@ -792,7 +788,7 @@ void FrameScript_ReleaseFunction(int function) {
   luaL_unref(state, LUA_REGISTRYINDEX, function);
 }
 
-void FrameScript_Execute(const char *buffer, const char *filename) {
+void FrameScript_Execute(LPCSTR buffer, LPCSTR filename) {
   FrameScript_ExecuteBuffer(const_cast<char *>(buffer), SStrLen(buffer), filename);
 }
 
@@ -847,7 +843,7 @@ static void PopThisStack() {
   }
 }
 
-void __cdecl FrameScript_Execute(int function, FrameScript_Object *objectTHIS, const char *args_fmt, ...) {
+void __cdecl FrameScript_Execute(int function, FrameScript_Object *objectTHIS, LPCSTR args_fmt, ...) {
   va_list arguments;
 
   va_start(arguments, args_fmt);
@@ -855,7 +851,7 @@ void __cdecl FrameScript_Execute(int function, FrameScript_Object *objectTHIS, c
   va_end(arguments);
 }
 
-void __cdecl FrameScript_ExecuteV(int function, FrameScript_Object *objectTHIS, const char *args_fmt, char *arguments) {
+void __cdecl FrameScript_ExecuteV(int function, FrameScript_Object *objectTHIS, LPCSTR args_fmt, char *arguments) {
   lua_State *state;
   int        argCount;
   char       current;
@@ -878,7 +874,7 @@ void __cdecl FrameScript_ExecuteV(int function, FrameScript_Object *objectTHIS, 
           break;
 
         case 'u':
-          lua_pushnumber(state, va_arg(arguments, unsigned int));
+          lua_pushnumber(state, va_arg(arguments, UINT));
           break;
 
         case 'f':
@@ -886,7 +882,7 @@ void __cdecl FrameScript_ExecuteV(int function, FrameScript_Object *objectTHIS, 
           break;
 
         case 's':
-          lua_pushstring(state, va_arg(arguments, const char *));
+          lua_pushstring(state, va_arg(arguments, LPCSTR));
           break;
 
         default:

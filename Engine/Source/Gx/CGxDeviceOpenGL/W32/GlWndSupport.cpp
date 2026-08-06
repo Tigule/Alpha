@@ -3,13 +3,13 @@
 #include <gl/gl.h>
 
 int SetupPixelFormat(HDC hdc, const CGxFormat &format) {
-  unsigned char gBits = 6;
-  unsigned char bBits = 5;
-  unsigned char rBits = 5;
-  unsigned char stencilBits = 0;
-  unsigned char colorBits = 16;
-  unsigned char depthBits = 16;
-  unsigned char alphaBits = 0;
+  BYTE gBits = 6;
+  BYTE bBits = 5;
+  BYTE rBits = 5;
+  BYTE stencilBits = 0;
+  BYTE colorBits = 16;
+  BYTE depthBits = 16;
+  BYTE alphaBits = 0;
 
   switch (format.colorFormat) {
     case CGxFormat::Fmt_Rgb565:

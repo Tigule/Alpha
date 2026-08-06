@@ -21,7 +21,7 @@ enum CMDOPT {
   CMDOPTS = 15
 };
 
-int CmdLineGetBool(CMDOPT opt);
-const char *CmdLineGetString(CMDOPT opt);
-unsigned int CmdLineGetUint(CMDOPT opt);
-int CmdLineProcess();
+int    CmdLineGetBool(CMDOPT opt);
+LPCSTR CmdLineGetString(CMDOPT opt);
+UINT   CmdLineGetUint(CMDOPT opt);
+int    CmdLineProcess();

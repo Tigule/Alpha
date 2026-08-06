@@ -4,7 +4,7 @@
 
 #include <string.h>
 
-CDataAllocator::CDataAllocator(unsigned long bytesPerData, unsigned long dataPerBlock) {
+CDataAllocator::CDataAllocator(DWORD bytesPerData, DWORD dataPerBlock) {
   m_bytesPerData = bytesPerData < 4 ? 4 : bytesPerData;
   m_dataPerBlock = dataPerBlock < 1 ? 1 : dataPerBlock;
   m_dataUsed = 0;
@@ -15,8 +15,8 @@ CDataAllocator::CDataAllocator(unsigned long bytesPerData, unsigned long dataPer
 CDataAllocator::~CDataAllocator() {
 }
 
-void CDataAllocator::Clear(const char *fileName, int lineNumber) {
-  unsigned int dataUsed = m_dataUsed;
+void CDataAllocator::Clear(LPCSTR fileName, int lineNumber) {
+  UINT dataUsed = m_dataUsed;
 
   if (dataUsed) {
     if (!fileName) {
@@ -40,16 +40,16 @@ void CDataAllocator::Clear(const char *fileName, int lineNumber) {
   m_dataList = 0;
 }
 
-void *CDataAllocator::GetData(int zero, const char *fileName, int lineNumber) {
+LPVOID CDataAllocator::GetData(int zero, LPCSTR fileName, int lineNumber) {
   if (m_dataPerBlock == 1) {
     fileName = 0;
     lineNumber = 0;
   }
 
   if (!m_dataList) {
-    unsigned int index;
-    Block       *block;
-    Data        *data;
+    UINT   index;
+    Block *block;
+    Data  *data;
 
     if (!fileName) {
       fileName = __FILE__;
@@ -61,7 +61,7 @@ void *CDataAllocator::GetData(int zero, const char *fileName, int lineNumber) {
     m_dataList = data;
 
     for (index = 0; index < m_dataPerBlock - 1; ++index) {
-      Data *next = reinterpret_cast<Data *>(reinterpret_cast<unsigned char *>(data) + m_bytesPerData);
+      Data *next = reinterpret_cast<Data *>(reinterpret_cast<BYTE *>(data) + m_bytesPerData);
       data->m_next = next;
       data = next;
     }
@@ -80,7 +80,7 @@ void *CDataAllocator::GetData(int zero, const char *fileName, int lineNumber) {
   return data;
 }
 
-void CDataAllocator::PutData(void *data, const char *fileName, int lineNumber) {
+void CDataAllocator::PutData(LPVOID data, LPCSTR fileName, int lineNumber) {
   ASSERT(m_dataUsed > 0);
 
   Data *allocatorData = static_cast<Data *>(data);

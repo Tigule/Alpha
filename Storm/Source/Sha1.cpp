@@ -39,7 +39,7 @@ namespace Private {
     a = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
   }
 
-  void Save(unsigned __int64 a, BYTE *b) {
+  void Save(DWORDLONG a, BYTE *b) {
     int i;
 
     for (i = 7; i >= 0; i--) {
@@ -59,7 +59,7 @@ namespace Private {
 
 }  // namespace Private
 
-void Sha1::Pump(unsigned long *hash, const unsigned char *data) {
+void Sha1::Pump(DWORD *hash, const BYTE *data) {
   DWORD w[80];
   int   i;
   DWORD a;
@@ -127,7 +127,7 @@ void Sha1::Initialize() {
   m_hash[4] = 0xC3D2E1F0;
 }
 
-void Sha1::Append(const void *_data, unsigned long size) {
+void Sha1::Append(LPCVOID _data, DWORD size) {
   const BYTE *cursor;
   DWORD       offset;
 
@@ -162,10 +162,10 @@ void Sha1::Append(const void *_data, unsigned long size) {
   }
 }
 
-void Sha1::Finalize(unsigned char *hash) {
-  BYTE          size[8];
-  unsigned long padBytes;
-  int           i;
+void Sha1::Finalize(BYTE *hash) {
+  BYTE  size[8];
+  DWORD padBytes;
+  int   i;
 
   Private::Save(m_size, size);
   padBytes = (0xFFFFFFF7 - ((DWORD)m_size >> 3)) & DATA_MASK;

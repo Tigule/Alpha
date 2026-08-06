@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *TransportAnimationRec::GetFilename() {
+LPCSTR TransportAnimationRec::GetFilename() {
   return "DBFilesClient\\TransportAnimation.dbc";
 }
 
@@ -19,7 +19,7 @@ TransportAnimationRec::TransportAnimationRec() {
 TransportAnimationRec::~TransportAnimationRec() {
 }
 
-bool TransportAnimationRec::Read(SFile *f, const char *stringBuffer) {
+bool TransportAnimationRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

@@ -7,13 +7,13 @@ class CreatureDisplayInfoRec {
   CreatureDisplayInfoRec();
   ~CreatureDisplayInfoRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 10;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 40;
   }
 
@@ -28,16 +28,16 @@ class CreatureDisplayInfoRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_modelID;
-  int         m_soundID;
-  int         m_extendedDisplayInfoID;
-  float       m_creatureModelScale;
-  int         m_creatureModelAlpha;
-  const char *m_textureVariation[3];
-  int         m_bloodID;
+  int    m_ID;
+  int    m_modelID;
+  int    m_soundID;
+  int    m_extendedDisplayInfoID;
+  float  m_creatureModelScale;
+  int    m_creatureModelAlpha;
+  LPCSTR m_textureVariation[3];
+  int    m_bloodID;
 };
 
 extern WowClientDB<CreatureDisplayInfoRec> g_creatureDisplayInfoDB;

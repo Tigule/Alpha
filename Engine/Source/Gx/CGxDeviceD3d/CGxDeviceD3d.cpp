@@ -9,21 +9,21 @@
 #include <string.h>
 
 struct DISPLAY_DEVICE_TARGET {
-  unsigned int cb;
-  char         DeviceName[32];
-  char         DeviceString[128];
-  unsigned int StateFlags;
-  char         DeviceID[128];
-  char         DeviceKey[128];
+  UINT cb;
+  char DeviceName[32];
+  char DeviceString[128];
+  UINT StateFlags;
+  char DeviceID[128];
+  char DeviceKey[128];
 };
 
 struct DEVMODE_TARGET {
-  char           dmDeviceName[32];
-  unsigned short dmSpecVersion;
-  unsigned short dmDriverVersion;
-  unsigned short dmSize;
-  unsigned short dmDriverExtra;
-  unsigned int   dmFields;
+  char dmDeviceName[32];
+  WORD dmSpecVersion;
+  WORD dmDriverVersion;
+  WORD dmSize;
+  WORD dmDriverExtra;
+  UINT dmFields;
   union {
     struct {
       short dmOrientation;
@@ -33,36 +33,36 @@ struct DEVMODE_TARGET {
     };
     POINTL dmPosition;
   };
-  short          dmScale;
-  short          dmCopies;
-  short          dmDefaultSource;
-  short          dmPrintQuality;
-  short          dmColor;
-  short          dmDuplex;
-  short          dmYResolution;
-  short          dmTTOption;
-  short          dmCollate;
-  char           dmFormName[32];
-  unsigned short dmLogPixels;
-  unsigned int   dmBitsPerPel;
-  unsigned int   dmPelsWidth;
-  unsigned int   dmPelsHeight;
+  short dmScale;
+  short dmCopies;
+  short dmDefaultSource;
+  short dmPrintQuality;
+  short dmColor;
+  short dmDuplex;
+  short dmYResolution;
+  short dmTTOption;
+  short dmCollate;
+  char  dmFormName[32];
+  WORD  dmLogPixels;
+  UINT  dmBitsPerPel;
+  UINT  dmPelsWidth;
+  UINT  dmPelsHeight;
   union {
-    unsigned int dmDisplayFlags;
-    unsigned int dmNup;
+    UINT dmDisplayFlags;
+    UINT dmNup;
   };
-  unsigned int dmDisplayFrequency;
-  unsigned int dmICMMethod;
-  unsigned int dmICMIntent;
-  unsigned int dmMediaType;
-  unsigned int dmDitherType;
-  unsigned int dmReserved1;
-  unsigned int dmReserved2;
-  unsigned int dmPanningWidth;
-  unsigned int dmPanningHeight;
+  UINT dmDisplayFrequency;
+  UINT dmICMMethod;
+  UINT dmICMIntent;
+  UINT dmMediaType;
+  UINT dmDitherType;
+  UINT dmReserved1;
+  UINT dmReserved2;
+  UINT dmPanningWidth;
+  UINT dmPanningHeight;
 };
 
-typedef BOOL(__stdcall *ENUM_DISPLAY_DEVICES)(void *, unsigned long, void *, unsigned long);
+typedef BOOL(__stdcall *ENUM_DISPLAY_DEVICES)(LPVOID, DWORD, LPVOID, DWORD);
 
 #define EnumDisplayDevicesTarget(device, index, displayDevice, flags)                                             \
   (GetProcAddress(GetModuleHandleA("user32.dll"), "EnumDisplayDevicesA") &&                                       \
@@ -74,11 +74,11 @@ static _D3DFORMAT s_depthFormat[4] = {D3DFMT_D16, D3DFMT_D24X8, D3DFMT_D24S8, D3
 static _D3DFORMAT s_colorFormat[4] = {D3DFMT_R5G6B5, D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8, D3DFMT_A2R10G10B10};
 
 template <>
-void TSFixedArray<CGxMonitorMode>::ReallocData(unsigned int count) {
+void TSFixedArray<CGxMonitorMode>::ReallocData(UINT count) {
   CGxMonitorMode *oldData = m_data;
   CGxMonitorMode *newData;
-  unsigned int    copyCount;
-  unsigned int    index;
+  UINT            copyCount;
+  UINT            index;
 
   m_alloc = count;
   newData = static_cast<CGxMonitorMode *>(SMemReAlloc(oldData, count * sizeof(*newData), MemFileName(), MemLineNo(), 0x10));
@@ -102,9 +102,9 @@ void TSFixedArray<CGxMonitorMode>::ReallocData(unsigned int count) {
 }
 
 template <>
-unsigned int TSGrowableArray<CGxMonitorMode>::CalcChunkSize(unsigned int count) {
-  unsigned int chunk = count;
-  unsigned int next;
+UINT TSGrowableArray<CGxMonitorMode>::CalcChunkSize(UINT count) {
+  UINT chunk = count;
+  UINT next;
 
   if (count >= 0x10) {
     m_chunk = 0x10;
@@ -120,25 +120,25 @@ unsigned int TSGrowableArray<CGxMonitorMode>::CalcChunkSize(unsigned int count) 
 }
 
 template <>
-unsigned int TSGrowableArray<CGxMonitorMode>::RoundToChunk(unsigned int count, unsigned int chunk) const {
-  unsigned int remainder = count % chunk;
+UINT TSGrowableArray<CGxMonitorMode>::RoundToChunk(UINT count, UINT chunk) const {
+  UINT remainder = count % chunk;
   return remainder ? count + chunk - remainder : count;
 }
 
 int CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   CGxFormat      fmt;
   D3DDISPLAYMODE dm;
-  unsigned int   nModes;
+  UINT           nModes;
   _D3DFORMAT     format;
   HINSTANCE      d3dLib = 0;
-  unsigned int   mode;
+  UINT           mode;
   IDirect3D9    *d3d = 0;
 
   if (!CGxDeviceD3d::ILoadD3dLib(d3dLib, d3d)) {
     return 0;
   }
 
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     format = s_colorFormat[i];
     nModes = d3d->GetAdapterModeCount(0, format);
     for (mode = 0; mode < nModes; ++mode) {
@@ -163,20 +163,20 @@ CGxDevice *CGxDevice::NewD3d() {
   return NEW(CGxDeviceD3d);
 }
 
-static unsigned short HToI(const char *h, unsigned int count) {
-  unsigned short value = 0;
-  char           c;
-  int            cValue;
+static WORD HToI(LPCSTR h, UINT count) {
+  WORD value = 0;
+  char c;
+  int  cValue;
 
   while (count) {
     c = *h++;
     cValue = c;
-    value = static_cast<unsigned short>(value * 16);
+    value = static_cast<WORD>(value * 16);
     if (isxdigit(cValue)) {
       if (isdigit(cValue)) {
-        value = static_cast<unsigned short>(value + cValue - '0');
+        value = static_cast<WORD>(value + cValue - '0');
       } else {
-        value = static_cast<unsigned short>(value + toupper(cValue) - 'A' + 10);
+        value = static_cast<WORD>(value + toupper(cValue) - 'A' + 10);
       }
     }
     --count;
@@ -185,19 +185,14 @@ static unsigned short HToI(const char *h, unsigned int count) {
   return value;
 }
 
-int CGxDevice::AdapterID(
-    unsigned short &vendorID,
-    unsigned short &deviceID,
-    unsigned long  &driverVersionHi,
-    unsigned long  &driverVersionLow
-) {
+int CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow) {
   D3DADAPTER_IDENTIFIER9 adapterId;
   DISPLAY_DEVICE_TARGET  dd;
   HINSTANCE              d3dLib;
   IDirect3D9            *d3d;
-  unsigned int           displayIndex;
-  unsigned short         parsedVendorID;
-  unsigned short         parsedDeviceID;
+  UINT                   displayIndex;
+  WORD                   parsedVendorID;
+  WORD                   parsedDeviceID;
   int                    retVal;
 
   vendorID = 0xFFFF;
@@ -235,8 +230,8 @@ d3dFallback:
   d3d = 0;
   if (CGxDeviceD3d::ILoadD3dLib(d3dLib, d3d)) {
     if (d3d->GetAdapterIdentifier(0, 0, &adapterId) >= 0) {
-      vendorID = static_cast<unsigned short>(adapterId.VendorId);
-      deviceID = static_cast<unsigned short>(adapterId.DeviceId);
+      vendorID = static_cast<WORD>(adapterId.VendorId);
+      deviceID = static_cast<WORD>(adapterId.DeviceId);
       driverVersionHi = adapterId.DriverVersion.HighPart;
       driverVersionLow = adapterId.DriverVersion.LowPart;
       retVal = 1;
@@ -249,7 +244,7 @@ done:
   return retVal;
 }
 
-int CGxDevice::AdapterInfer(unsigned short &deviceID) {
+int CGxDevice::AdapterInfer(WORD &deviceID) {
   D3DCAPS9    caps;
   HINSTANCE   d3dLib;
   IDirect3D9 *d3d;
@@ -263,7 +258,7 @@ int CGxDevice::AdapterInfer(unsigned short &deviceID) {
   }
 
   if (d3d->GetDeviceCaps(0, D3DDEVTYPE_HAL, &caps) >= 0) {
-    if ((caps.DevCaps & 0x10000) && caps.MaxSimultaneousTextures > 2 && static_cast<unsigned short>(caps.PixelShaderVersion) >= 0x101) {
+    if ((caps.DevCaps & 0x10000) && caps.MaxSimultaneousTextures > 2 && static_cast<WORD>(caps.PixelShaderVersion) >= 0x101) {
       deviceID = 2;
     } else if ((caps.DevCaps & 0x10000) && caps.MaxSimultaneousTextures >= 2) {
       deviceID = 1;
@@ -282,7 +277,7 @@ int CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   DISPLAY_DEVICE_TARGET dd;
   DEVMODE_TARGET        dm;
   CGxMonitorMode       *mode;
-  unsigned int          modeIndex;
+  UINT                  modeIndex;
 
   modes.SetCount(0);
   dd.cb = sizeof(dd);

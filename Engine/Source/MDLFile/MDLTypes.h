@@ -12,7 +12,7 @@
 #ifndef MDL_COMMON_TYPES_DEFINED
 #define MDL_COMMON_TYPES_DEFINED
 
-template <unsigned int Length>
+template <UINT Length>
 class CMdlString {
  public:
   CMdlString() {
@@ -33,15 +33,15 @@ class CMdlString {
     return m_string;
   }
 
-  operator const char *() const {
+  operator LPCSTR() const {
     return m_string;
   }
 
-  char &operator[](unsigned int index) {
+  char &operator[](UINT index) {
     return m_string[index];
   }
 
-  char operator[](unsigned int index) const {
+  char operator[](UINT index) const {
     return m_string[index];
   }
 
@@ -68,9 +68,9 @@ struct CMdlBounds {
 #endif
 
 struct MDLTEXTURESECTION {
-  unsigned int    replaceableId;
+  UINT            replaceableId;
   CMdlString<260> image;
-  unsigned int    flags;
+  UINT            flags;
 };
 
 #ifndef MDL_TRACK_TYPE_DEFINED
@@ -97,32 +97,29 @@ struct MDLKEYFRAME {
 
 template <class T>
 struct MDLKEYTRACK {
-  MDLKEYTRACK(MDLTRACKTYPE trackType = TRACK_HERMITE)
-      : type(trackType),
-        globalSeqId(static_cast<unsigned int>(-1)) {
+  MDLKEYTRACK(MDLTRACKTYPE trackType = TRACK_HERMITE) : type(trackType), globalSeqId(static_cast<UINT>(-1)) {
   }
 
   TSGrowableArray<MDLKEYFRAME<T> > keys;
   MDLTRACKTYPE                     type;
-  unsigned int                     globalSeqId;
+  UINT                             globalSeqId;
 };
 
 struct MDLINTKEY {
   MDLINTKEY() {
   }
 
-  unsigned int time;
-  unsigned int value;
+  UINT time;
+  UINT value;
 };
 
 template <class T>
 struct MDLSIMPLEKEYTRACK {
-  MDLSIMPLEKEYTRACK()
-      : globalSeqId(static_cast<unsigned int>(-1)) {
+  MDLSIMPLEKEYTRACK() : globalSeqId(static_cast<UINT>(-1)) {
   }
 
   TSGrowableArray<T> keys;
-  unsigned int       globalSeqId;
+  UINT               globalSeqId;
 };
 
 enum MDLTEXOP {
@@ -137,28 +134,21 @@ enum MDLTEXOP {
 };
 
 struct MDLTEXLAYER {
-  MDLTEXLAYER()
-      : blendMode(TEXOP_LOAD),
-        flags(0),
-        textureId(0),
-        transformId(static_cast<unsigned int>(-1)),
-        coordId(0),
-        staticAlpha(1.0f) {
+  MDLTEXLAYER() : blendMode(TEXOP_LOAD), flags(0), textureId(0), transformId(static_cast<UINT>(-1)), coordId(0), staticAlpha(1.0f) {
   }
 
   MDLTEXOP                     blendMode;
-  unsigned int                 flags;
-  unsigned int                 textureId;
+  UINT                         flags;
+  UINT                         textureId;
   MDLSIMPLEKEYTRACK<MDLINTKEY> flipKeys;
-  unsigned int                 transformId;
-  unsigned int                 coordId;
+  UINT                         transformId;
+  UINT                         coordId;
   MDLKEYTRACK<float>           alphaKeys;
   float                        staticAlpha;
 };
 
 struct MDLMATERIALSECTION {
-  MDLMATERIALSECTION()
-      : priorityPlane(0) {
+  MDLMATERIALSECTION() : priorityPlane(0) {
   }
 
   TSGrowableArray<MDLTEXLAYER> texLayers;
@@ -166,99 +156,86 @@ struct MDLMATERIALSECTION {
 };
 
 struct MDLPRIMITIVES {
-  void ReserveSpace(unsigned int numPrimitives, unsigned int numVertices) {
+  void ReserveSpace(UINT numPrimitives, UINT numVertices) {
     types.ReserveSpace(numPrimitives);
     counts.ReserveSpace(numPrimitives);
     vertices.ReserveSpace(numVertices);
   }
 
-  void SetCount(unsigned int numPrimitives, unsigned int numVertices) {
+  void SetCount(UINT numPrimitives, UINT numVertices) {
     types.SetCount(numPrimitives);
     counts.SetCount(numPrimitives);
     vertices.SetCount(numVertices);
   }
 
-  TSGrowableArray<unsigned char>  types;
-  TSGrowableArray<unsigned int>   counts;
-  TSGrowableArray<unsigned short> vertices;
+  TSGrowableArray<BYTE> types;
+  TSGrowableArray<UINT> counts;
+  TSGrowableArray<WORD> vertices;
 };
 
 struct MDLGEOSETSECTION {
-  MDLGEOSETSECTION()
-      : materialId(0),
-        bounds(),
-        selectionGroup(0),
-        flags(0) {
+  MDLGEOSETSECTION() : materialId(0), bounds(), selectionGroup(0), flags(0) {
     bounds.radius = 0.0f;
   }
 
   TSGrowableArray<NTempest::C3Vector>                   vertices;
   TSGrowableArray<NTempest::C3Vector>                   normals;
   TSGrowableArray<TSGrowableArray<NTempest::C2Vector> > texCoords;
-  TSGrowableArray<unsigned char>                        vertGroupIndices;
+  TSGrowableArray<BYTE>                                 vertGroupIndices;
   MDLPRIMITIVES                                         primitives;
-  TSGrowableArray<unsigned int>                         groupMatrixCounts;
-  TSGrowableArray<unsigned int>                         matrices;
-  TSGrowableArray<unsigned int>                         boneIndices;
-  TSGrowableArray<unsigned int>                         boneWeights;
-  unsigned int                                          materialId;
+  TSGrowableArray<UINT>                                 groupMatrixCounts;
+  TSGrowableArray<UINT>                                 matrices;
+  TSGrowableArray<UINT>                                 boneIndices;
+  TSGrowableArray<UINT>                                 boneWeights;
+  UINT                                                  materialId;
   CMdlBounds                                            bounds;
   TSGrowableArray<CMdlBounds>                           seqBounds;
-  unsigned int                                          selectionGroup;
-  unsigned int                                          flags;
+  UINT                                                  selectionGroup;
+  UINT                                                  flags;
 };
 
 struct MDLGEOSETANIMSECTION {
-  MDLGEOSETANIMSECTION()
-      : staticAlpha(1.0f),
-        flags(0),
-        staticColor(1.0f, 1.0f, 1.0f),
-        geosetId(0) {
+  MDLGEOSETANIMSECTION() : staticAlpha(1.0f), flags(0), staticColor(1.0f, 1.0f, 1.0f), geosetId(0) {
   }
 
   MDLKEYTRACK<float>   alphaKeys;
   float                staticAlpha;
-  unsigned int         flags;
+  UINT                 flags;
   MDLKEYTRACK<C3Color> colorKeys;
   C3Color              staticColor;
-  unsigned int         geosetId;
+  UINT                 geosetId;
 };
 
 struct MDLGENOBJECT {
-  MDLGENOBJECT(unsigned int objectFlags = 0)
-      : objectId(0),
-        parentId(static_cast<unsigned int>(-1)),
-        flags(objectFlags) {
+  MDLGENOBJECT(UINT objectFlags = 0) : objectId(0), parentId(static_cast<UINT>(-1)), flags(objectFlags) {
     static_cast<char *>(name)[0] = 0;
     transkeys.type = TRACK_HERMITE;
-    transkeys.globalSeqId = static_cast<unsigned int>(-1);
+    transkeys.globalSeqId = static_cast<UINT>(-1);
     rotkeys.type = TRACK_HERMITE;
-    rotkeys.globalSeqId = static_cast<unsigned int>(-1);
+    rotkeys.globalSeqId = static_cast<UINT>(-1);
     scalekeys.type = TRACK_HERMITE;
-    scalekeys.globalSeqId = static_cast<unsigned int>(-1);
+    scalekeys.globalSeqId = static_cast<UINT>(-1);
   }
 
   CMdlString<80>                      name;
-  unsigned int                        objectId;
-  unsigned int                        parentId;
-  unsigned int                        flags;
+  UINT                                objectId;
+  UINT                                parentId;
+  UINT                                flags;
   MDLKEYTRACK<NTempest::C3Vector>     transkeys;
   MDLKEYTRACK<NTempest::C4Quaternion> rotkeys;
   MDLKEYTRACK<NTempest::C3Vector>     scalekeys;
 };
 
 struct MDLATTACHMENTSECTION : public MDLGENOBJECT {
-  MDLATTACHMENTSECTION()
-      : MDLGENOBJECT(0x400),
-        attachmentId(0) {
+  MDLATTACHMENTSECTION() : MDLGENOBJECT(0x400), attachmentId(0) {
     static_cast<char *>(path)[0] = 0;
     visibilityKeys.type = TRACK_HERMITE;
-    visibilityKeys.globalSeqId = static_cast<unsigned int>(-1);
+    visibilityKeys.globalSeqId = static_cast<UINT>(-1);
   }
 
   CMdlString<260>    path;
   MDLKEYTRACK<float> visibilityKeys;
-  unsigned int       attachmentId;
+  UINT               attachmentId;
 };
 
 struct MDLHEADERSECTION {
@@ -269,24 +246,24 @@ struct MDLHEADERSECTION {
 struct MDLMODELSECTION {
   CMdlString<80>  name;
   CMdlString<260> animationFile;
-  unsigned int    geosetCount;
-  unsigned int    geosetAnimCount;
-  unsigned int    boneCount;
-  unsigned int    lightCount;
-  unsigned int    helperCount;
-  unsigned int    attachmentCount;
-  unsigned int    particleCount;
-  unsigned int    particle2Count;
-  unsigned int    ribbonCount;
-  unsigned int    eventCount;
+  UINT            geosetCount;
+  UINT            geosetAnimCount;
+  UINT            boneCount;
+  UINT            lightCount;
+  UINT            helperCount;
+  UINT            attachmentCount;
+  UINT            particleCount;
+  UINT            particle2Count;
+  UINT            ribbonCount;
+  UINT            eventCount;
   CMdlBounds      bounds;
-  unsigned int    blendTime;
-  unsigned char   flags;
+  UINT            blendTime;
+  BYTE            flags;
 };
 
 struct MDLCOLLISION {
   TSGrowableArray<NTempest::C3Vector> vertices;
-  TSGrowableArray<unsigned short>     triIndices;
+  TSGrowableArray<WORD>               triIndices;
   TSGrowableArray<NTempest::C3Vector> facetNormals;
 };
 
@@ -296,17 +273,17 @@ struct MDLSEQUENCESSECTION {
   CMdlString<80>    name;
   NTempest::CiRange time;
   float             movespeed;
-  unsigned int      flags;
+  UINT              flags;
   CMdlBounds        bounds;
   float             frequency;
   NTempest::CiRange replay;
-  unsigned int      blendTime;
+  UINT              blendTime;
 };
 struct MDLGLOBALSEQSECTION {
   MDLGLOBALSEQSECTION() {
   }
 
-  unsigned int length;
+  UINT length;
 };
 struct MDLTEXANIMSECTION {
   MDLKEYTRACK<NTempest::C3Vector>     transkeys;
@@ -314,8 +291,8 @@ struct MDLTEXANIMSECTION {
   MDLKEYTRACK<NTempest::C3Vector>     scalekeys;
 };
 struct MDLBONESECTION : public MDLGENOBJECT {
-  unsigned int geosetId;
-  unsigned int geosetAnimId;
+  UINT geosetId;
+  UINT geosetAnimId;
 };
 enum LIGHT_TYPE {
   LIGHTTYPE_OMNI = 0,
@@ -353,9 +330,7 @@ struct MDLLIGHTSECTION : public MDLGENOBJECT {
 };
 
 struct MDLPARTICLE {
-  MDLPARTICLE()
-      : staticLife(0.0f),
-        staticSpeed(0.0f) {
+  MDLPARTICLE() : staticLife(0.0f), staticSpeed(0.0f) {
     static_cast<char *>(path)[0] = 0;
   }
 
@@ -367,12 +342,7 @@ struct MDLPARTICLE {
 };
 
 struct MDLPARTICLEEMITTER : public MDLGENOBJECT {
-  MDLPARTICLEEMITTER()
-      : MDLGENOBJECT(0x800),
-        staticEmissionRate(0.0f),
-        staticGravity(0.0f),
-        staticLongitude(0.0f),
-        staticLatitude(0.0f) {
+  MDLPARTICLEEMITTER() : MDLGENOBJECT(0x800), staticEmissionRate(0.0f), staticGravity(0.0f), staticLongitude(0.0f), staticLatitude(0.0f) {
   }
 
   MDLKEYTRACK<float> emissionRate;
@@ -387,29 +357,25 @@ struct MDLPARTICLEEMITTER : public MDLGENOBJECT {
   MDLKEYTRACK<float> visibilityKeys;
 };
 struct MDLTARGETSECTION {
-  NTempest::C3Vector                  pivot;
-  MDLKEYTRACK<NTempest::C3Vector>     transkeys;
+  NTempest::C3Vector              pivot;
+  MDLKEYTRACK<NTempest::C3Vector> transkeys;
 };
 #pragma once
 
 struct MDLCAMERASECTION {
-  MDLCAMERASECTION()
-      : pivot(0.0f),
-        fieldOfView(0.0f),
-        farClip(1000.0f),
-        nearClip(8.0f) {
+  MDLCAMERASECTION() : pivot(0.0f), fieldOfView(0.0f), farClip(1000.0f), nearClip(8.0f) {
     static_cast<char *>(name)[0] = 0;
   }
 
-  CMdlString<80>                      name;
-  NTempest::C3Vector                  pivot;
-  float                               fieldOfView;
-  float                               farClip;
-  float                               nearClip;
-  MDLKEYTRACK<NTempest::C3Vector>     transkeys;
-  MDLKEYTRACK<float>                  rollkeys;
-  MDLTARGETSECTION                    target;
-  MDLKEYTRACK<float>                  visibilityKeys;
+  CMdlString<80>                  name;
+  NTempest::C3Vector              pivot;
+  float                           fieldOfView;
+  float                           farClip;
+  float                           nearClip;
+  MDLKEYTRACK<NTempest::C3Vector> transkeys;
+  MDLKEYTRACK<float>              rollkeys;
+  MDLTARGETSECTION                target;
+  MDLKEYTRACK<float>              visibilityKeys;
 };
 struct MDLEVENTKEY {
   MDLEVENTKEY() {
@@ -511,80 +477,80 @@ struct MDLPARTICLEEMITTER2 : public MDLGENOBJECT {
     static_cast<char *>(recursionMdl)[0] = 0;
   }
 
-  PARTICLE_EMITTER_TYPE            emitterType;
-  float                            staticSpeed;
-  MDLKEYTRACK<float>               speed;
-  float                            staticVariation;
-  MDLKEYTRACK<float>               variation;
-  float                            staticLatitude;
-  MDLKEYTRACK<float>               latitude;
-  float                            staticLongitude;
-  MDLKEYTRACK<float>               longitude;
-  float                            staticGravity;
-  MDLKEYTRACK<float>               gravity;
-  float                            staticLife;
-  MDLKEYTRACK<float>               life;
-  float                            staticEmissionRate;
-  MDLKEYTRACK<float>               emissionRate;
-  float                            staticWidth;
-  MDLKEYTRACK<float>               width;
-  float                            staticLength;
-  MDLKEYTRACK<float>               length;
-  float                            staticZsource;
-  MDLKEYTRACK<float>               zsource;
-  PARTICLE_BLEND_MODE              blendMode;
-  unsigned int                     rows;
-  unsigned int                     cols;
-  PARTICLE_TYPE                    type;
-  float                            tailLength;
-  float                            middleTime;
-  C3Color                          startColor;
-  C3Color                          middleColor;
-  C3Color                          endColor;
-  unsigned char                    startAlpha;
-  unsigned char                    middleAlpha;
-  unsigned char                    endAlpha;
-  float                            startScale;
-  float                            middleScale;
-  float                            endScale;
-  unsigned int                     lifespanUVAnimStart;
-  unsigned int                     lifespanUVAnimEnd;
-  unsigned int                     lifespanUVAnimRepeat;
-  unsigned int                     decayUVAnimStart;
-  unsigned int                     decayUVAnimEnd;
-  unsigned int                     decayUVAnimRepeat;
-  unsigned int                     tailUVAnimStart;
-  unsigned int                     tailUVAnimEnd;
-  unsigned int                     tailUVAnimRepeat;
-  unsigned int                     tailDecayUVAnimStart;
-  unsigned int                     tailDecayUVAnimEnd;
-  unsigned int                     tailDecayUVAnimRepeat;
-  MDLKEYTRACK<float>               visibilityKeys;
-  unsigned int                     squirts;
-  unsigned int                     textureId;
-  int                              priorityPlane;
-  unsigned int                     replaceableId;
-  CMdlString<260>                  geometryMdl;
-  CMdlString<260>                  recursionMdl;
-  float                            twinkleFPS;
-  float                            twinkleOnOff;
-  float                            twinkleScaleMin;
-  float                            twinkleScaleMax;
-  float                            ivelScale;
-  float                            tumblexMin;
-  float                            tumblexMax;
-  float                            tumbleyMin;
-  float                            tumbleyMax;
-  float                            tumblezMin;
-  float                            tumblezMax;
-  float                            drag;
-  float                            spin;
-  NTempest::C3Vector               windVector;
-  float                            windTime;
-  float                            followSpeed1;
-  float                            followScale1;
-  float                            followSpeed2;
-  float                            followScale2;
+  PARTICLE_EMITTER_TYPE               emitterType;
+  float                               staticSpeed;
+  MDLKEYTRACK<float>                  speed;
+  float                               staticVariation;
+  MDLKEYTRACK<float>                  variation;
+  float                               staticLatitude;
+  MDLKEYTRACK<float>                  latitude;
+  float                               staticLongitude;
+  MDLKEYTRACK<float>                  longitude;
+  float                               staticGravity;
+  MDLKEYTRACK<float>                  gravity;
+  float                               staticLife;
+  MDLKEYTRACK<float>                  life;
+  float                               staticEmissionRate;
+  MDLKEYTRACK<float>                  emissionRate;
+  float                               staticWidth;
+  MDLKEYTRACK<float>                  width;
+  float                               staticLength;
+  MDLKEYTRACK<float>                  length;
+  float                               staticZsource;
+  MDLKEYTRACK<float>                  zsource;
+  PARTICLE_BLEND_MODE                 blendMode;
+  UINT                                rows;
+  UINT                                cols;
+  PARTICLE_TYPE                       type;
+  float                               tailLength;
+  float                               middleTime;
+  C3Color                             startColor;
+  C3Color                             middleColor;
+  C3Color                             endColor;
+  BYTE                                startAlpha;
+  BYTE                                middleAlpha;
+  BYTE                                endAlpha;
+  float                               startScale;
+  float                               middleScale;
+  float                               endScale;
+  UINT                                lifespanUVAnimStart;
+  UINT                                lifespanUVAnimEnd;
+  UINT                                lifespanUVAnimRepeat;
+  UINT                                decayUVAnimStart;
+  UINT                                decayUVAnimEnd;
+  UINT                                decayUVAnimRepeat;
+  UINT                                tailUVAnimStart;
+  UINT                                tailUVAnimEnd;
+  UINT                                tailUVAnimRepeat;
+  UINT                                tailDecayUVAnimStart;
+  UINT                                tailDecayUVAnimEnd;
+  UINT                                tailDecayUVAnimRepeat;
+  MDLKEYTRACK<float>                  visibilityKeys;
+  UINT                                squirts;
+  UINT                                textureId;
+  int                                 priorityPlane;
+  UINT                                replaceableId;
+  CMdlString<260>                     geometryMdl;
+  CMdlString<260>                     recursionMdl;
+  float                               twinkleFPS;
+  float                               twinkleOnOff;
+  float                               twinkleScaleMin;
+  float                               twinkleScaleMax;
+  float                               ivelScale;
+  float                               tumblexMin;
+  float                               tumblexMax;
+  float                               tumbleyMin;
+  float                               tumbleyMax;
+  float                               tumblezMin;
+  float                               tumblezMax;
+  float                               drag;
+  float                               spin;
+  NTempest::C3Vector                  windVector;
+  float                               windTime;
+  float                               followSpeed1;
+  float                               followScale1;
+  float                               followSpeed2;
+  float                               followScale2;
   TSGrowableArray<NTempest::C3Vector> spline;
 };
 enum GEOM_SHAPE {
@@ -696,15 +662,15 @@ struct MDLRIBBONEMITTER : public MDLGENOBJECT {
   MDLKEYTRACK<float>           alphaKeys;
   C3Color                      staticColor;
   MDLKEYTRACK<C3Color>         colorKeys;
-  unsigned int                 edgesPerSecond;
+  UINT                         edgesPerSecond;
   float                        edgeLifetime;
   float                        gravity;
-  unsigned int                 textureRows;
-  unsigned int                 textureCols;
-  unsigned int                 staticTextureSlot;
+  UINT                         textureRows;
+  UINT                         textureCols;
+  UINT                         staticTextureSlot;
   MDLSIMPLEKEYTRACK<MDLINTKEY> textureSlot;
   MDLKEYTRACK<float>           visibilityKeys;
-  unsigned int                 materialId;
+  UINT                         materialId;
 };
 
 struct MDLBASE {
@@ -714,7 +680,7 @@ struct MDLBASE {
 
   MDLHEADERSECTION                      header;
   MDLMODELSECTION                       model;
-  unsigned int                          version;
+  UINT                                  version;
   TSGrowableArray<MDLSEQUENCESSECTION>  sequences;
   TSGrowableArray<MDLGLOBALSEQSECTION>  globalSeqs;
   TSGrowableArray<MDLMATERIALSECTION>   materials;

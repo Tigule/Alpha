@@ -5,17 +5,17 @@ class CGTabardCreationFrame {
  public:
   static void EnterWorld();
   static void LeaveWorld();
-  static void Open(const unsigned __int64 &vendor);
+  static void Open(const DWORDLONG &vendor);
   static void Close();
   static void ClearVendor() {
     m_vendor = 0;
   }
-  static unsigned __int64 GetVendor() {
+  static DWORDLONG GetVendor() {
     return m_vendor;
   }
 
  private:
-  static unsigned __int64 m_vendor;
+  static DWORDLONG m_vendor;
 };
 
 #endif

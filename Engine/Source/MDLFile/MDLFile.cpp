@@ -11,21 +11,20 @@ namespace MDL {
 
   void InitializeTokenText();
   void DestroyTokenText();
-  int CallTextWriteHandlers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int CallBinWriteHandlers(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int CallBinReadHandler(unsigned long, CMsgBuffer &, unsigned int, MDLDATA &, CMDLStatus *);
-  int CallTextReadHandler(unsigned int, mdl_scan &, MDLDATA &, CMDLStatus *);
+  int  CallTextWriteHandlers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  int  CallBinWriteHandlers(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  int  CallBinReadHandler(DWORD, CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  int  CallTextReadHandler(UINT, mdl_scan &, MDLDATA &, CMDLStatus *);
 
 }  // namespace MDL
 
-int ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
+int   ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
 char *OsGetLastErrorStr();
-void OsFreeLastErrorStr(char *msgBuf);
+void  OsFreeLastErrorStr(char *msgBuf);
 
 class CMdlScanner : public mdl_scan {
  public:
-  CMdlScanner(CMDLStatus *status, const char *input, int size)
-      : mdl_scan(input, size), m_status(status) {
+  CMdlScanner(CMDLStatus *status, LPCSTR input, int size) : mdl_scan(input, size), m_status(status) {
   }
 
   virtual void __cdecl mdlerror(char *format, ...);
@@ -36,7 +35,7 @@ class CMdlScanner : public mdl_scan {
 
 void __cdecl CMdlScanner::mdlerror(char *format, ...) {
   static char buffer[256];
-  va_list args;
+  va_list     args;
   va_start(args, format);
   SStrVPrintf(buffer, sizeof(buffer), format, args);
   va_end(args);
@@ -44,11 +43,11 @@ void __cdecl CMdlScanner::mdlerror(char *format, ...) {
 }
 
 static CNullStatus s_nullStatus;
-static unsigned int s_defaultWriteFormat = 1;
+static UINT        s_defaultWriteFormat = 1;
 
-static int TextToModelData(const void* buffer, MDLDATA& data, CMDLStatus* status) {
-  CMdlScanner scanner(status, static_cast<const char *>(buffer), 255);
-  unsigned int token = scanner.mdllex();
+static int TextToModelData(LPCVOID buffer, MDLDATA &data, CMDLStatus *status) {
+  CMdlScanner scanner(status, static_cast<LPCSTR>(buffer), 255);
+  UINT        token = scanner.mdllex();
   while (token) {
     if (!MDL::CallTextReadHandler(token, scanner, data, status)) {
       return 0;
@@ -58,30 +57,27 @@ static int TextToModelData(const void* buffer, MDLDATA& data, CMDLStatus* status
   return ReadObjectPtrs(&data, status);
 }
 
-static int BinToModelData(CMsgBuffer& buf, unsigned int size, MDLDATA& data, CMDLStatus* status) {
+static int BinToModelData(CMsgBuffer &buf, UINT size, MDLDATA &data, CMDLStatus *status) {
   ASSERT(status);
-  unsigned int totalLength = 4;
+  UINT totalLength = 4;
   if (buf.GetDword() != 0x584C444D) {
     status->Add(STATUS_FATAL, "File is not a binary model file.\n");
     return 0;
   }
 
-  unsigned long lastSectionTag = 0;
-  unsigned int lastOffset = 0;
+  DWORD lastSectionTag = 0;
+  UINT  lastOffset = 0;
   while (totalLength < size) {
-    unsigned long sectionTag = buf.GetDword();
-    unsigned int sectionLength = buf.GetUint();
+    DWORD sectionTag = buf.GetDword();
+    UINT  sectionLength = buf.GetUint();
     totalLength += 8;
     if (sectionLength) {
-      if (sectionLength > static_cast<unsigned int>(buf.Bytes())) {
+      if (sectionLength > static_cast<UINT>(buf.Bytes())) {
         status->Add(STATUS_FATAL, "Section length was greater than bytes remaining in file.\n");
         status->Add(
-            STATUS_FATAL, "Section failed after section '%c%c%c%c' starting at offset %u\n",
-            lastSectionTag ? static_cast<char>(lastSectionTag) : ' ',
-            lastSectionTag >> 8 ? static_cast<char>(lastSectionTag >> 8) : ' ',
-            lastSectionTag >> 16 ? static_cast<char>(lastSectionTag >> 16) : ' ',
-            lastSectionTag >> 24 ? static_cast<char>(lastSectionTag >> 24) : ' ',
-            lastOffset
+            STATUS_FATAL, "Section failed after section '%c%c%c%c' starting at offset %u\n", lastSectionTag ? static_cast<char>(lastSectionTag) : ' ',
+            lastSectionTag >> 8 ? static_cast<char>(lastSectionTag >> 8) : ' ', lastSectionTag >> 16 ? static_cast<char>(lastSectionTag >> 16) : ' ',
+            lastSectionTag >> 24 ? static_cast<char>(lastSectionTag >> 24) : ' ', lastOffset
         );
         return 0;
       }
@@ -104,28 +100,28 @@ static int ModelDataToText(const MDLDATA &data, TSGrowableArray<char> &buffer, C
   return MDL::CallTextWriteHandlers(data, buffer, status);
 }
 
-static int ModelDataToBin(const MDLDATA& data, CMsgBuffer& buffer, CMDLStatus* status) {
+static int ModelDataToBin(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status) {
   buffer.AddDword(0x584C444D);
   return MDL::CallBinWriteHandlers(data, buffer, status);
 }
 
-static int IWriteFile(const char* path, const char* mode, const void* data, unsigned int bytes) {
+static int IWriteFile(LPCSTR path, LPCSTR mode, LPCVOID data, UINT bytes) {
   FILE *file = fopen(path, mode);
   if (!file) {
     return 0;
   }
-  unsigned int written = fwrite(data, 1, bytes, file);
+  UINT written = fwrite(data, 1, bytes, file);
   return !fclose(file) && written == bytes;
 }
 
-static void FileReadError(const char *path, CMDLStatus *status) {
+static void FileReadError(LPCSTR path, CMDLStatus *status) {
   char lpMsgBuf[256];
 
   SErrGetErrorStr(SErrGetLastError(), lpMsgBuf, sizeof(lpMsgBuf));
   status->Add(STATUS_FATAL, "%s: %s\n", path, lpMsgBuf);
 }
 
-static unsigned int PickAlternateFilename(char* path, unsigned int type) {
+static UINT PickAlternateFilename(char *path, UINT type) {
   char *extension = SStrChrR(path, '.');
   if (extension) {
     *extension = 0;
@@ -141,14 +137,14 @@ static unsigned int PickAlternateFilename(char* path, unsigned int type) {
   return type;
 }
 
-static void FileWriteError(const char* path, CMDLStatus* status) {
+static void FileWriteError(LPCSTR path, CMDLStatus *status) {
   char *errorText = OsGetLastErrorStr();
   status->Add(STATUS_FATAL, "%s: %s\n", path, errorText);
   OsFreeLastErrorStr(errorText);
 }
 
-static unsigned int DiscoverFileType(const char* path) {
-  const char *extension = SStrChrR(path, '.');
+static UINT DiscoverFileType(LPCSTR path) {
+  LPCSTR extension = SStrChrR(path, '.');
   if (!extension || SStrLen(extension) != 4 || SStrCmpI(extension, ".md", 3)) {
     return s_defaultWriteFormat;
   }
@@ -169,14 +165,14 @@ void MDLFileDestroy() {
   MDL::DestroyTokenText();
 }
 
-static int IWriteMdlFile(const char* path, const MDLDATA& mdldata, CMDLStatus* status) {
+static int IWriteMdlFile(LPCSTR path, const MDLDATA &mdldata, CMDLStatus *status) {
   if (DiscoverFileType(path)) {
     CMsgBuffer buffer(1);
     if (!ModelDataToBin(mdldata, buffer, status)) {
       return 0;
     }
-    int bytes = buffer.Bytes();
-    const void *data = buffer.GetData(bytes);
+    int     bytes = buffer.Bytes();
+    LPCVOID data = buffer.GetData(bytes);
     if (IWriteFile(path, "wb", data, bytes)) {
       return 1;
     }
@@ -195,12 +191,12 @@ static int IWriteMdlFile(const char* path, const MDLDATA& mdldata, CMDLStatus* s
   return 0;
 }
 
-void MDLFileSetDefaultWriteFormat(const char* extension) {
+void MDLFileSetDefaultWriteFormat(LPCSTR extension) {
   FATALASSERT(extension);
   s_defaultWriteFormat = DiscoverFileType(extension);
 }
 
-int MDLFileWrite(const char* path, const MDLDATA& mdldata, CStatus* status) {
+int MDLFileWrite(LPCSTR path, const MDLDATA &mdldata, CStatus *status) {
   FATALASSERT(path);
   FATALASSERT(path[0]);
   if (!status) {
@@ -209,7 +205,7 @@ int MDLFileWrite(const char* path, const MDLDATA& mdldata, CStatus* status) {
   return IWriteMdlFile(path, mdldata, static_cast<CMDLStatus *>(status));
 }
 
-static void *LoadMdlData(char *path, unsigned long *bytes) {
+static LPVOID LoadMdlData(char *path, DWORD *bytes) {
   SFile *fileHandle;
 
   if (!SFile::Open(path, &fileHandle)) {
@@ -219,8 +215,8 @@ static void *LoadMdlData(char *path, unsigned long *bytes) {
   int success = SFile::GetActualFileName(fileHandle, path, 260);
   ASSERT(success);
 
-  unsigned int fileBytes = SFile::GetFileSize(fileHandle, 0);
-  void        *fileData = SMemAlloc(fileBytes + 1, __FILE__, __LINE__, 0x8);
+  UINT   fileBytes = SFile::GetFileSize(fileHandle, 0);
+  LPVOID fileData = SMemAlloc(fileBytes + 1, __FILE__, __LINE__, 0x8);
 
   if (!SFile::Read(fileHandle, fileData, fileBytes, bytes, 0, 0)) {
     SMemFree(fileData, __FILE__, __LINE__, 0);
@@ -231,15 +227,15 @@ static void *LoadMdlData(char *path, unsigned long *bytes) {
   return fileData;
 }
 
-static void *LoadMdlData(const char *path, unsigned long *bytes) {
+static LPVOID LoadMdlData(LPCSTR path, DWORD *bytes) {
   SFile *fileHandle;
 
   if (!SFile::Open(path, &fileHandle)) {
     return 0;
   }
 
-  unsigned int fileBytes = SFile::GetFileSize(fileHandle, 0);
-  void        *fileData = SMemAlloc(fileBytes + 1, __FILE__, __LINE__, 0x8);
+  UINT   fileBytes = SFile::GetFileSize(fileHandle, 0);
+  LPVOID fileData = SMemAlloc(fileBytes + 1, __FILE__, __LINE__, 0x8);
 
   if (!SFile::Read(fileHandle, fileData, fileBytes, bytes, 0, 0)) {
     SMemFree(fileData, __FILE__, __LINE__, 0);
@@ -250,15 +246,15 @@ static void *LoadMdlData(const char *path, unsigned long *bytes) {
   return fileData;
 }
 
-static int ReadMdlFile(char* path, MDLDATA* mdldata, CMDLStatus* status) {
-  unsigned int type = DiscoverFileType(path);
+static int ReadMdlFile(char *path, MDLDATA *mdldata, CMDLStatus *status) {
+  UINT type = DiscoverFileType(path);
   if (type == 2) {
     status->Add(STATUS_FATAL, "%s: bad model file name.\n", path);
     return 0;
   }
 
-  unsigned long size = 0;
-  void *fileData = LoadMdlData(path, &size);
+  DWORD  size = 0;
+  LPVOID fileData = LoadMdlData(path, &size);
   if (!fileData) {
     type = PickAlternateFilename(path, type);
     fileData = LoadMdlData(path, &size);
@@ -271,7 +267,7 @@ static int ReadMdlFile(char* path, MDLDATA* mdldata, CMDLStatus* status) {
   int result;
   if (type == 1) {
     CMsgBuffer buf(0);
-    buf.SetData(static_cast<unsigned char *>(fileData), size, 0);
+    buf.SetData(static_cast<BYTE *>(fileData), size, 0);
     result = BinToModelData(buf, size, *mdldata, status);
     if (buf.Bytes()) {
       result = 0;
@@ -285,7 +281,7 @@ static int ReadMdlFile(char* path, MDLDATA* mdldata, CMDLStatus* status) {
   return result;
 }
 
-int MDLFileRead(const char* path, MDLDATA* mdldata, CStatus* status) {
+int MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status) {
   FATALASSERT(path && SStrLen(path));
   FATALASSERT(mdldata);
   if (!status) {
@@ -300,74 +296,74 @@ int MDLFileRead(const char* path, MDLDATA* mdldata, CStatus* status) {
   return 0;
 }
 
-unsigned char *MDLFileBinaryLoad(char *path, unsigned int *fileBytes, CStatus *status) {
+BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status) {
   ASSERT(path);
 
   if (!status) {
     status = &s_nullStatus;
   }
 
-  unsigned char *fileData = static_cast<unsigned char *>(LoadMdlData(path, reinterpret_cast<unsigned long *>(fileBytes)));
+  BYTE *fileData = static_cast<BYTE *>(LoadMdlData(path, reinterpret_cast<DWORD *>(fileBytes)));
   if (!fileData) {
     FileReadError(path, static_cast<CMDLStatus *>(status));
     return 0;
   }
 
-  if (*reinterpret_cast<unsigned int *>(fileData) != 0x584C444D) {
+  if (*reinterpret_cast<UINT *>(fileData) != 0x584C444D) {
     SFile::Unload(fileData);
     status->Add(STATUS_FATAL, "%s\nFile is not a binary model file.\n", path);
     return 0;
   }
 
-  *fileBytes -= sizeof(unsigned int);
-  return fileData + sizeof(unsigned int);
+  *fileBytes -= sizeof(UINT);
+  return fileData + sizeof(UINT);
 }
 
-unsigned char *MDLFileBinaryLoad(const char *path, unsigned int *fileBytes, CStatus *status) {
+BYTE *MDLFileBinaryLoad(LPCSTR path, UINT *fileBytes, CStatus *status) {
   ASSERT(path);
 
   if (!status) {
     status = &s_nullStatus;
   }
 
-  unsigned char *fileData = static_cast<unsigned char *>(LoadMdlData(path, reinterpret_cast<unsigned long *>(fileBytes)));
+  BYTE *fileData = static_cast<BYTE *>(LoadMdlData(path, reinterpret_cast<DWORD *>(fileBytes)));
   if (!fileData) {
     FileReadError(path, static_cast<CMDLStatus *>(status));
     return 0;
   }
 
-  if (*reinterpret_cast<unsigned int *>(fileData) != 0x584C444D) {
+  if (*reinterpret_cast<UINT *>(fileData) != 0x584C444D) {
     SFile::Unload(fileData);
     status->Add(STATUS_FATAL, "%s\nFile is not a binary model file.\n", path);
     return 0;
   }
 
-  *fileBytes -= sizeof(unsigned int);
-  return fileData + sizeof(unsigned int);
+  *fileBytes -= sizeof(UINT);
+  return fileData + sizeof(UINT);
 }
 
-void MDLFileBinaryUnload(unsigned char *fileData) {
-  SFile::Unload(fileData - sizeof(unsigned int));
+void MDLFileBinaryUnload(BYTE *fileData) {
+  SFile::Unload(fileData - sizeof(UINT));
 }
 
-unsigned char *MDLFileBinarySeek(unsigned char *fileData, unsigned int fileBytes, unsigned long sectionTag) {
+BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag) {
   FATALASSERT(fileData);
 
-  unsigned char *fileEnd = fileData + fileBytes;
+  BYTE *fileEnd = fileData + fileBytes;
   while (fileData < fileEnd) {
-    unsigned int tag = *reinterpret_cast<unsigned int *>(fileData);
-    fileData += sizeof(unsigned int);
+    UINT tag = *reinterpret_cast<UINT *>(fileData);
+    fileData += sizeof(UINT);
     if (tag == sectionTag) {
       return fileData;
     }
 
-    unsigned int sectionBytes = *reinterpret_cast<unsigned int *>(fileData);
-    fileData += sizeof(unsigned int) + sectionBytes;
+    UINT sectionBytes = *reinterpret_cast<UINT *>(fileData);
+    fileData += sizeof(UINT) + sectionBytes;
   }
 
   return 0;
 }
 
-int MDLFileBinaryWrite(const char* path, const unsigned char* fileData, unsigned int fileBytes) {
+int MDLFileBinaryWrite(LPCSTR path, const BYTE *fileData, UINT fileBytes) {
   return IWriteFile(path, "wb", fileData - 4, fileBytes + 4);
 }

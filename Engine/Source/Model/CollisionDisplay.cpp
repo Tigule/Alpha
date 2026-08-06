@@ -7,17 +7,17 @@
 
 #include <malloc.h>
 
-static const unsigned short boxIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1, 16, 16, 1, 4,  2,  8,  5,  5,  8,  11,
-                                              7,  19, 10, 10, 19, 22, 3,  9, 15, 15, 9, 21, 17, 23, 14, 14, 23, 20};
+static const WORD boxIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1, 16, 16, 1, 4,  2,  8,  5,  5,  8,  11,
+                                    7,  19, 10, 10, 19, 22, 3,  9, 15, 15, 9, 21, 17, 23, 14, 14, 23, 20};
 
 static void CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace);
 
 static HMODEL CreateSimpleModel(
     const NTempest::C3Vector *positions,
     const NTempest::C3Vector *normals,
-    unsigned int              numVertices,
-    const unsigned short     *primVertIndices,
-    unsigned int              numIndices
+    UINT                      numVertices,
+    const WORD               *primVertIndices,
+    UINT                      numIndices
 ) {
   NTempest::CImVector textureColor;
   textureColor.Set(0x7FFFFFFF);
@@ -34,11 +34,11 @@ static HMODEL CreateSimpleModel(
 }
 
 static int CreateCollisionDisplayNormals(const CCollisionData &collide, HMODEL model) {
-  unsigned int                     numFacets = collide.surfaceNormals.Count();
+  UINT                             numFacets = collide.surfaceNormals.Count();
   TSStackArray<NTempest::C3Vector> position(_alloca(numFacets * 2 * sizeof(NTempest::C3Vector)), numFacets * 2, numFacets * 2);
   TSStackArray<NTempest::C3Vector> normal(_alloca(numFacets * 2 * sizeof(NTempest::C3Vector)), numFacets * 2, numFacets * 2);
   TSStackArray<NTempest::C2Vector> texCoord(_alloca(numFacets * 2 * sizeof(NTempest::C2Vector)), numFacets * 2, numFacets * 2);
-  TSStackArray<unsigned short>     indices(_alloca(numFacets * 2 * sizeof(unsigned short)), numFacets * 2, numFacets * 2);
+  TSStackArray<WORD>               indices(_alloca(numFacets * 2 * sizeof(WORD)), numFacets * 2, numFacets * 2);
   normal.Zero();
   texCoord.Zero();
 
@@ -56,7 +56,7 @@ static int CreateCollisionDisplayNormals(const CCollisionData &collide, HMODEL m
     normalScale = 1.0f;
   }
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < numFacets; ++i) {
     NTempest::C3Vector average = collide.vertices[collide.indices[i * 3]];
     average += collide.vertices[collide.indices[i * 3 + 1]];
@@ -70,12 +70,12 @@ static int CreateCollisionDisplayNormals(const CCollisionData &collide, HMODEL m
         average.x + collide.surfaceNormals[i].x * normalScale, average.y + collide.surfaceNormals[i].y * normalScale,
         average.z + collide.surfaceNormals[i].z * normalScale
     );
-    indices[i * 2] = static_cast<unsigned short>(i * 2);
-    indices[i * 2 + 1] = static_cast<unsigned short>(i * 2 + 1);
+    indices[i * 2] = static_cast<WORD>(i * 2);
+    indices[i * 2 + 1] = static_cast<WORD>(i * 2 + 1);
   }
 
   NTempest::CImVector textureColor;
-  textureColor.Set(static_cast<unsigned char>(255), static_cast<unsigned char>(255), static_cast<unsigned char>(0), static_cast<unsigned char>(0));
+  textureColor.Set(static_cast<BYTE>(255), static_cast<BYTE>(255), static_cast<BYTE>(0), static_cast<BYTE>(0));
   HTEXTURE            texture = TextureCreateSolid(textureColor, 0);
   NTempest::CImVector color(255, 255, 255, 255);
   int                 result = ModelGeosetAdd(
@@ -87,14 +87,14 @@ static int CreateCollisionDisplayNormals(const CCollisionData &collide, HMODEL m
 }
 
 static HMODEL CreateCollisionDisplayMesh(const CCollisionData &collide) {
-  unsigned int                     numTriangles = collide.indices.Count();
+  UINT                             numTriangles = collide.indices.Count();
   TSStackArray<NTempest::C3Vector> positions(_alloca(numTriangles * sizeof(NTempest::C3Vector)), numTriangles, numTriangles);
   TSStackArray<NTempest::C3Vector> normals(_alloca(numTriangles * sizeof(NTempest::C3Vector)), numTriangles, numTriangles);
-  TSStackArray<unsigned short>     primVertIndices(_alloca(numTriangles * sizeof(unsigned short)), numTriangles, numTriangles);
+  TSStackArray<WORD>               primVertIndices(_alloca(numTriangles * sizeof(WORD)), numTriangles, numTriangles);
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < numTriangles; ++i) {
-    primVertIndices[i] = static_cast<unsigned short>(i);
+    primVertIndices[i] = static_cast<WORD>(i);
     positions[i] = collide.vertices[collide.indices[i]];
   }
 
@@ -112,9 +112,9 @@ static void BuildDisplayBox(
     const NTempest::C3Vector boxNormals[6],
     NTempest::C3Vector      *debugVerts,
     NTempest::C3Vector      *debugNormals,
-    const unsigned short   **debugIndices
+    const WORD             **debugIndices
 ) {
-  unsigned int index;
+  UINT index;
   for (index = 0; index < 8; ++index) {
     debugVerts[index * 3] = boxVerts[index];
     debugVerts[index * 3 + 1] = boxVerts[index];
@@ -125,9 +125,9 @@ static void BuildDisplayBox(
   NTempest::C3Vector normY[2] = {boxNormals[2], boxNormals[3]};
   NTempest::C3Vector normZ[2] = {boxNormals[5], boxNormals[4]};
   index = 0;
-  for (unsigned int z = 0; z < 2; ++z) {
-    for (unsigned int y = 0; y < 2; ++y) {
-      for (unsigned int x = 0; x < 2; ++x) {
+  for (UINT z = 0; z < 2; ++z) {
+    for (UINT y = 0; y < 2; ++y) {
+      for (UINT x = 0; x < 2; ++x) {
         debugNormals[index++] = normX[x];
         debugNormals[index++] = normY[y];
         debugNormals[index++] = normZ[z];
@@ -146,7 +146,7 @@ HMODEL CollisionDataCreateModel(HCOLLISIONDATA handle) {
   return model;
 }
 
-void CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, void *param) {
+void CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, LPVOID param) {
   CModelShared *shared;
   IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared);
   ASSERT(shared);
@@ -162,10 +162,10 @@ static void CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest
   NTempest::C3Vector        boxNormals[6] = {NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(-1.0f, 0.0f, 0.0f),
                                              NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.0f, -1.0f, 0.0f),
                                              NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, -1.0f)};
-  const unsigned short     *renderIndices;
+  const WORD               *renderIndices;
   const NTempest::C3Vector *verts[2] = {&box.b, &box.t};
-  unsigned int              y;
-  unsigned int              z;
+  UINT                      y;
+  UINT                      z;
   for (z = 0; z < 2; ++z) {
     for (y = 0; y < 2; ++y) {
       boxVerts[z * 4 + y * 2] = NTempest::C3Vector(verts[0]->x, verts[y]->y, verts[z]->z);

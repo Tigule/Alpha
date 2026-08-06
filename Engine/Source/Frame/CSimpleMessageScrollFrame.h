@@ -11,7 +11,7 @@ class CSimpleHyperlinkButton;
 
 class CSimpleFontStringRecord : public CSimpleFontString, public TRefCnt {
  public:
-  CSimpleFontStringRecord(CSimpleFrame *frame, unsigned int drawlayer, int show) : CSimpleFontString(frame, drawlayer, show) {
+  CSimpleFontStringRecord(CSimpleFrame *frame, UINT drawlayer, int show) : CSimpleFontString(frame, drawlayer, show) {
   }
 };
 
@@ -49,13 +49,13 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
 
-  void                               SetMaxLines(int maxLines);
-  void                               SetMessageFrameInsets(float right, float left, float top, float bottom);
-  void                               SetTextLength(int size);
-  void SetFont(const char *font, float fontHeight, int fontFlags) {
+  void SetMaxLines(int maxLines);
+  void SetMessageFrameInsets(float right, float left, float top, float bottom);
+  void SetTextLength(int size);
+  void SetFont(LPCSTR font, float fontHeight, int fontFlags) {
     m_attrib.SetFont(font, fontHeight, fontFlags);
   }
-  void SetHorizontalAlignment(unsigned int alignment) {
+  void SetHorizontalAlignment(UINT alignment) {
     m_attrib.SetHorizontalAlignment(alignment);
   }
   void SetColor(const NTempest::CImVector &color) {
@@ -79,22 +79,22 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   void SetFadeDuration(float fadeDuration) {
     m_fadeDuration = fadeDuration;
   }
-  void         AddMessage(const char *text, const CSimpleFontStringAttributes *attrib);
-  unsigned int AddMultiLine(char *text, const CSimpleFontStringAttributes *attrib);
-  void         Clear();
-  int          ScrollUp();
-  int          ScrollDown();
-  int          CanScroll() {
+  void AddMessage(LPCSTR text, const CSimpleFontStringAttributes *attrib);
+  UINT AddMultiLine(char *text, const CSimpleFontStringAttributes *attrib);
+  void Clear();
+  int  ScrollUp();
+  int  ScrollDown();
+  int  CanScroll() {
     return m_numMessages > m_numDisplayed;
   }
-  void         PageUp();
-  void         PageDown();
-  void         ScrollToTop();
-  void         ScrollToBottom();
-  int          GetNumDisplayLines() {
+  void PageUp();
+  void PageDown();
+  void ScrollToTop();
+  void ScrollToBottom();
+  int  GetNumDisplayLines() {
     return m_numDisplayed;
   }
-  int          AtBottom() {
+  int AtBottom() {
     return m_atBottom;
   }
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
@@ -104,7 +104,7 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   static void UnregisterScriptMethods();
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void ScrollMessages(int start);
   void UpdateNode(CSimpleMessageScrollFrameDisplayNode *node, CSimpleMessageScrollFrameLine *line, int resetTimers);

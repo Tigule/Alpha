@@ -13,7 +13,7 @@ class NETEVENTQUEUE;
 class WowConnection;
 struct NETCONNADDR;
 
-void ClientNetGetRealms(const char *serverAddress, void(*fcn)(CDataStore *, void *), void *userData);
+void ClientNetGetRealms(LPCSTR serverAddress, void (*fcn)(CDataStore *, LPVOID), LPVOID userData);
 
 enum NETSTATE {
   NS_UNINITIALIZED = 0,
@@ -540,10 +540,10 @@ class NetClient : public WowConnectionResponse {
   virtual void Destroy();
   virtual int  DelayedDelete();
 
-  void Connect(const char *hostName);
+  void Connect(LPCSTR hostName);
   void Disconnect();
   void Send(CDataStore *msg);
-  void SetMessageHandler(NETMESSAGE msgId, int(*handler)(void *, NETMESSAGE, unsigned long, CDataStore *), void *param);
+  void SetMessageHandler(NETMESSAGE msgId, int (*handler)(LPVOID, NETMESSAGE, DWORD, CDataStore *), LPVOID param);
   void ClearMessageHandler(NETMESSAGE msgId);
 
   NETSTATE GetState() {
@@ -552,7 +552,7 @@ class NetClient : public WowConnectionResponse {
 
   void HandleIdle();
 
-  virtual int HandleData(unsigned long timeReceived, void *data, int size);
+  virtual int HandleData(DWORD timeReceived, LPVOID data, int size);
   virtual int HandleConnect();
   virtual int HandleDisconnect();
   virtual int HandleCantConnect();
@@ -574,18 +574,18 @@ class NetClient : public WowConnectionResponse {
     m_deleteMe = 1;
   }
 
-  unsigned char GetDelete() {
+  BYTE GetDelete() {
     return m_deleteMe;
   }
 
-  void GetNetStats(float &bandwidthIn, float &bandwidthOut, unsigned long &latency);
+  void GetNetStats(float &bandwidthIn, float &bandwidthOut, DWORD &latency);
 
   void SetObjMgr(ClntObjMgr *objMgr) {
     m_objMgr = objMgr;
   }
 
-  void         PollEventQueue();
-  unsigned int GetAddr();
+  void PollEventQueue();
+  UINT GetAddr();
 
  private:
   friend class NetClientRedirect;
@@ -594,25 +594,25 @@ class NetClient : public WowConnectionResponse {
       HNETCONN__        *conn,
       const NETCONNADDR *connAddr,
       NETNOTE            note,
-      void              *user,
-      const void        *data,
-      unsigned long      bytes,
-      unsigned long     *bytesProcessed
+      LPVOID             user,
+      LPCVOID            data,
+      DWORD              bytes,
+      DWORD             *bytesProcessed
   );
 
-  int  Connect(const char *hostName, unsigned short port);
+  int  Connect(LPCSTR hostName, WORD port);
   void CancelRedirect();
-  void ProcessMessage(unsigned long timeStamp, CDataStore *msg);
+  void ProcessMessage(DWORD timeStamp, CDataStore *msg);
   void PushObjMgr();
   void PopObjMgr();
   void PongHandler(CDataStore *msg);
   void Ping();
   void DisplayNetworkStats();
 
-  virtual void WCMessageReady(WowConnection *conn, unsigned long timeStamp, CDataStore *msg);
-  virtual void WCConnected(WowConnection *conn, WowConnection *inbound, unsigned long timeStamp, const NETCONNADDR *addr);
-  virtual void WCCantConnect(WowConnection *conn, unsigned long timeStamp, const NETCONNADDR *addr);
-  virtual void WCDisconnected(WowConnection *conn, unsigned long timeStamp, const NETCONNADDR *addr);
+  virtual void WCMessageReady(WowConnection *conn, DWORD timeStamp, CDataStore *msg);
+  virtual void WCConnected(WowConnection *conn, WowConnection *inbound, DWORD timeStamp, const NETCONNADDR *addr);
+  virtual void WCCantConnect(WowConnection *conn, DWORD timeStamp, const NETCONNADDR *addr);
+  virtual void WCDisconnected(WowConnection *conn, DWORD timeStamp, const NETCONNADDR *addr);
 
   static int s_clientCount;
 
@@ -620,20 +620,20 @@ class NetClient : public WowConnectionResponse {
   int         m_redirectBytesRead;
   char        m_redirectHostPort[0x401];
   NETSTATE    m_netState;
-  int(*m_handlers[NUM_MSG_TYPES])(void *, NETMESSAGE, unsigned long, CDataStore *);
-  void              *m_handlerParams[NUM_MSG_TYPES];
+  int (*m_handlers[NUM_MSG_TYPES])(LPVOID, NETMESSAGE, DWORD, CDataStore *);
+  LPVOID             m_handlerParams[NUM_MSG_TYPES];
   NETEVENTQUEUE     *m_netEventQueue;
   WowConnection     *m_serverConnection;
   int                m_refCount;
-  unsigned char      m_deleteMe;
-  unsigned long      m_pingSent;
-  unsigned long      m_pingSequence;
-  unsigned long      m_latency[16];
-  unsigned long      m_latencyStart;
-  unsigned long      m_latencyEnd;
-  unsigned long      m_bytesSent;
-  unsigned long      m_bytesReceived;
-  unsigned long      m_connectedTimestamp;
+  BYTE               m_deleteMe;
+  DWORD              m_pingSent;
+  DWORD              m_pingSequence;
+  DWORD              m_latency[16];
+  DWORD              m_latencyStart;
+  DWORD              m_latencyEnd;
+  DWORD              m_bytesSent;
+  DWORD              m_bytesReceived;
+  DWORD              m_connectedTimestamp;
   SCritSect          m_pingLock;
   ClntObjMgr        *m_objMgr;
   ClntObjMgr        *m_saveObjMgr;

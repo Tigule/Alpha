@@ -22,27 +22,28 @@
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Os/OsTime.h"
+#include "SRP/SHA.h"
 #include "SRP/SRP6.h"
 #include "Os/W32/OSSystem.h"
 #include "Ui/GameUI.h"
 #include "WowServices/WDataStore.h"
 #include "WowSvcs/WowSvcsClient/ClientConnection.h"
 
-void BotClientSetAccount(const char *accountName, const char *password);
+void BotClientSetAccount(LPCSTR accountName, LPCSTR password);
 
-static char                   text[0x100];
-static const char            *s_vendors[4] = {"Unknown", "intel", "AMD", "PPC"};
-static unsigned __int64       mhzCutoff = 990000000ui64;
-static const char             verstr[0x43] = "WoW [Release Assertions Enabled] Build 3368 (Dec 11 2003 18:01:27)";
-static const char            *s_sexNames[3] = {"Male", "Female", "Neuter"};
-static unsigned char          s_accountNameValid;
-static char                   s_accountName[64];
-static char                   s_redirectServer[64];
-ClientConnection             *g_clientConnection;
-static ClientConnection      *s_currentConnection;
-static CVar                  *s_realmListVar;
-static SRP6_Random            s_srpRandom(OsGetAsyncTimeMs());
-static const char            *s_errorCodeTokens[0x42] = {
+static char              text[0x100];
+static LPCSTR            s_vendors[4] = {"Unknown", "intel", "AMD", "PPC"};
+static DWORDLONG         mhzCutoff = 990000000ui64;
+static const char        verstr[0x43] = "WoW [Release Assertions Enabled] Build 3368 (Dec 11 2003 18:01:27)";
+static LPCSTR            s_sexNames[3] = {"Male", "Female", "Neuter"};
+static BYTE              s_accountNameValid;
+static char              s_accountName[64];
+static char              s_redirectServer[64];
+ClientConnection        *g_clientConnection;
+static ClientConnection *s_currentConnection;
+static CVar             *s_realmListVar;
+static SRP6_Random       s_srpRandom(OsGetAsyncTimeMs());
+static LPCSTR            s_errorCodeTokens[0x42] = {
     "RESPONSE_SUCCESS",
     "RESPONSE_FAILURE",
     "RESPONSE_CANCELLED",
@@ -110,10 +111,10 @@ static const char            *s_errorCodeTokens[0x42] = {
     "CHAR_NAME_FAILURE",
     "CHAR_NAME_SUCCESS"
 };
-extern CVar           *g_realmNameVar;
-static void RealmEnum_InternalCallback(CDataStore *data, void *param);
+extern CVar *g_realmNameVar;
+static void  RealmEnum_InternalCallback(CDataStore *data, LPVOID param);
 
-static int ConsoleCommand_Logout(const char *command, const char *arguments) {
+static int ConsoleCommand_Logout(LPCSTR command, LPCSTR arguments) {
   ASSERT(s_currentConnection);
 
   if (s_currentConnection->IsInGame()) {
@@ -123,7 +124,7 @@ static int ConsoleCommand_Logout(const char *command, const char *arguments) {
   return 1;
 }
 
-static int ClientServices_MessageHandler(void *param, NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+static int ClientServices_MessageHandler(LPVOID param, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(param);
 
   ClientConnection *connection = static_cast<ClientConnection *>(param);
@@ -270,12 +271,12 @@ int ClientConnection::PollStatus(WOWCS_OPS &op, int &errorCode, int &result) {
   return m_statusComplete;
 }
 
-int ClientServices_PollStatus(WOWCS_OPS &op, const char *&msg, int &result, int &errorCode) {
+int ClientServices_PollStatus(WOWCS_OPS &op, LPCSTR &msg, int &result, int &errorCode) {
   ASSERT(s_currentConnection);
 
   int status = s_currentConnection->PollStatus(op, errorCode, result);
   if (status) {
-    const char *localized = 0;
+    LPCSTR localized = 0;
     if (errorCode >= 0 && errorCode < 0x42) {
       localized = FrameScript_GetText(s_errorCodeTokens[errorCode], -1, GENDER_NOT_APPLICABLE);
     }
@@ -296,7 +297,7 @@ int ClientServices_PollStatus(WOWCS_OPS &op, const char *&msg, int &result, int 
   return status;
 }
 
-const char *ClientServices_GetErrorToken(int errorCode) {
+LPCSTR ClientServices_GetErrorToken(int errorCode) {
   if (errorCode <= 0 || errorCode >= LAST_CHAR_NAME_RESULT) {
     return "";
   }
@@ -304,12 +305,12 @@ const char *ClientServices_GetErrorToken(int errorCode) {
   return s_errorCodeTokens[errorCode];
 }
 
-unsigned int ClientServices_GetWaitCount() {
+UINT ClientServices_GetWaitCount() {
   ASSERT(s_currentConnection);
   return s_currentConnection->GetWaitCount();
 }
 
-int ClientServices_ValidDisconnect(const void *message) {
+int ClientServices_ValidDisconnect(LPCVOID message) {
   const ClientConnection *client = static_cast<const ClientConnection *>(message);
 
   ASSERT(client);
@@ -410,12 +411,12 @@ void ClientConnection::AccountLogin_Finish(int reason) {
   m_statusResult = reason == 12;
 }
 
-int ClientConnection::HandleAuthChallenge(NETMESSAGE addr, unsigned long __formal, CDataStore *msg) {
+int ClientConnection::HandleAuthChallenge(NETMESSAGE addr, DWORD, CDataStore *msg) {
   SHA1_CONTEXT ctx;
-  unsigned int localDigest[5];
+  UINT         localDigest[5];
   int          localChallenge;
-  unsigned int loginServerID;
-  unsigned int challenge;
+  UINT         loginServerID;
+  UINT         challenge;
 
   ASSERT(addr == SMSG_AUTH_CHALLENGE);
 
@@ -434,13 +435,13 @@ int ClientConnection::HandleAuthChallenge(NETMESSAGE addr, unsigned long __forma
   loginServerID = m_loginData.m_loginServerID;
 
   SHA1_Init(&ctx);
-  SHA1_Update(&ctx, reinterpret_cast<const unsigned char *>(m_loginData.m_account), SStrLen(m_loginData.m_account));
-  SHA1_Update(&ctx, reinterpret_cast<const unsigned char *>(&addr), sizeof(addr));
-  SHA1_Update(&ctx, reinterpret_cast<const unsigned char *>(&localChallenge), sizeof(localChallenge));
-  SHA1_Update(&ctx, reinterpret_cast<const unsigned char *>(&loginServerID), sizeof(loginServerID));
-  SHA1_Update(&ctx, reinterpret_cast<const unsigned char *>(&challenge), sizeof(challenge));
+  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(m_loginData.m_account), SStrLen(m_loginData.m_account));
+  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&addr), sizeof(addr));
+  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&localChallenge), sizeof(localChallenge));
+  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&loginServerID), sizeof(loginServerID));
+  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&challenge), sizeof(challenge));
   SHA1_Update(&ctx, m_loginData.m_sessionKey, sizeof(m_loginData.m_sessionKey));
-  SHA1_Final(reinterpret_cast<unsigned char *>(localDigest), &ctx);
+  SHA1_Final(reinterpret_cast<BYTE *>(localDigest), &ctx);
 
   resp.PutData(localDigest, sizeof(localDigest));
   resp.Finalize();
@@ -448,10 +449,10 @@ int ClientConnection::HandleAuthChallenge(NETMESSAGE addr, unsigned long __forma
   return 1;
 }
 
-int ClientConnection::HandleAuthResponse(NETMESSAGE msgId, unsigned long __formal, CDataStore *msg) {
+int ClientConnection::HandleAuthResponse(NETMESSAGE msgId, DWORD, CDataStore *msg) {
   ASSERT(msgId == SMSG_AUTH_RESPONSE);
 
-  unsigned char result;
+  BYTE result;
   msg->Get(result);
 
   if (result == 27) {
@@ -467,7 +468,7 @@ int ClientConnection::HandleAuthResponse(NETMESSAGE msgId, unsigned long __forma
   return 1;
 }
 
-void ClientConnection::AccountLogin(const char *name, const char *password, int region, WOW_LOCALE locale) {
+void ClientConnection::AccountLogin(LPCSTR name, LPCSTR password, int region, WOW_LOCALE locale) {
   ASSERT(m_initialized);
   ASSERT(m_statusComplete == 1);
   ASSERT(name);
@@ -483,12 +484,12 @@ void ClientConnection::AccountLogin(const char *name, const char *password, int 
   }
 }
 
-void ClientServices_AccountLogin(const char *name, const char *password, int region, WOW_LOCALE locale) {
+void ClientServices_AccountLogin(LPCSTR name, LPCSTR password, int region, WOW_LOCALE locale) {
   ASSERT(s_currentConnection);
   s_currentConnection->AccountLogin(name, password, region, locale);
 }
 
-void ClientServices_SetAccountName(const char *accountName) {
+void ClientServices_SetAccountName(LPCSTR accountName) {
   ASSERT(accountName);
   SStrCopy(s_accountName, accountName, sizeof(s_accountName));
   s_accountNameValid = 1;
@@ -504,14 +505,14 @@ void ClientServices_AccountLogout() {
   s_currentConnection->AccountLogout();
 }
 
-int ClientConnection::HandleCharEnum(NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+int ClientConnection::HandleCharEnum(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_CHAR_ENUM);
 
-  unsigned char count;
+  BYTE count;
   msg->Get(count);
   m_characterList.SetCount(count);
 
-  for (unsigned char i = 0; i < count; ++i) {
+  for (BYTE i = 0; i < count; ++i) {
     CHARACTER_INFO &character = m_characterList[i];
 
     msg->Get(character.guid);
@@ -535,8 +536,8 @@ int ClientConnection::HandleCharEnum(NETMESSAGE msgId, unsigned long time, CData
     msg->Get(character.petExperienceLevel);
     msg->Get(character.petCreatureFamilyID);
 
-    for (unsigned int item = 0; item < 20; ++item) {
-      unsigned char type;
+    for (UINT item = 0; item < 20; ++item) {
+      BYTE type;
       msg->Get(character.inventoryItemDisplayID[item]);
       msg->Get(type);
       character.inventoryItemType[item] = type;
@@ -591,7 +592,7 @@ int ClientServices_GetCharacterListCount() {
   return s_currentConnection->GetCharacterListCount();
 }
 
-int ClientConnection::EnumerateCharacters(void(*fcn)(CHARACTER_INFO &info, void *param), void *param) {
+int ClientConnection::EnumerateCharacters(void (*fcn)(CHARACTER_INFO &info, LPVOID param), LPVOID param) {
   ASSERT(fcn);
 
   int enumCount = m_characterList.Count();
@@ -602,15 +603,15 @@ int ClientConnection::EnumerateCharacters(void(*fcn)(CHARACTER_INFO &info, void 
   return enumCount;
 }
 
-int ClientServices_EnumerateCharacters(void(*fcn)(CHARACTER_INFO &info, void *param), void *param) {
+int ClientServices_EnumerateCharacters(void (*fcn)(CHARACTER_INFO &info, LPVOID param), LPVOID param) {
   ASSERT(s_currentConnection);
   return s_currentConnection->EnumerateCharacters(fcn, param);
 }
 
-int ClientConnection::HandleCharacterCreate(NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+int ClientConnection::HandleCharacterCreate(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_CHAR_CREATE);
 
-  unsigned char result;
+  BYTE result;
   msg->Get(result);
   if (!msg->IsRead()) {
     msg->Reset();
@@ -655,10 +656,10 @@ void ClientServices_CharacterCreate(const CHARACTER_CREATE_INFO &info) {
   s_currentConnection->CharacterCreate(info);
 }
 
-int ClientConnection::HandleCharacterLoginFailed(NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+int ClientConnection::HandleCharacterLoginFailed(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_CHARACTER_LOGIN_FAILED);
 
-  unsigned char reason;
+  BYTE reason;
   msg->Get(reason);
   ASSERT(msg->IsRead());
 
@@ -690,7 +691,7 @@ int ClientConnection::HandleCharacterLoginFailed(NETMESSAGE msgId, unsigned long
   return 1;
 }
 
-void ClientConnection::CharacterLogin(unsigned __int64 id) {
+void ClientConnection::CharacterLogin(DWORDLONG id) {
   m_cleanup = 0;
   m_statusCop = COP_LOGIN_CHARACTER;
   m_errorCode = 48;
@@ -709,7 +710,7 @@ void ClientConnection::CharacterLogin(unsigned __int64 id) {
   m_playing = 1;
 }
 
-void ClientServices_CharacterLogin(unsigned __int64 id, unsigned int continentID, NTempest::C3Vector position) {
+void ClientServices_CharacterLogin(DWORDLONG id, UINT continentID, NTempest::C3Vector position) {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterLogin(id);
 }
@@ -731,7 +732,7 @@ int ClientServices_CharacterIsInGame() {
   return s_currentConnection && s_currentConnection->IsInGame();
 }
 
-int ClientConnection::HandleLogoutComplete(NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+int ClientConnection::HandleLogoutComplete(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_LOGOUT_COMPLETE);
   ASSERT(msg->IsRead());
 
@@ -740,7 +741,7 @@ int ClientConnection::HandleLogoutComplete(NETMESSAGE msgId, unsigned long time,
     ClientDestroyGame(1, 1, 0);
   }
 
-  unsigned char exitAfterLogout = m_exitAfterLogout;
+  BYTE exitAfterLogout = m_exitAfterLogout;
   m_loggingOut = 0;
   if (exitAfterLogout) {
     ClientPostClose();
@@ -749,10 +750,10 @@ int ClientConnection::HandleLogoutComplete(NETMESSAGE msgId, unsigned long time,
   return 1;
 }
 
-int ClientConnection::HandleLogoutResponse(NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+int ClientConnection::HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_LOGOUT_RESPONSE);
 
-  unsigned char result = 0;
+  BYTE result = 0;
   msg->Get(result);
   ASSERT(msg->IsRead());
 
@@ -780,7 +781,7 @@ void ClientServices_CharacterRemoveFromGame() {
   ClientDestroyGame(1, 1, 0);
 }
 
-int ClientConnection::HandleLogoutAbortAck(NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+int ClientConnection::HandleLogoutAbortAck(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_LOGOUT_CANCEL_ACK);
   ASSERT(msg->IsRead());
 
@@ -849,10 +850,10 @@ void ClientServices_Exit() {
   s_currentConnection->CharacterLogout(true, false);
 }
 
-int ClientConnection::HandleCharacterDelete(NETMESSAGE msgId, unsigned long time, CDataStore *msg) {
+int ClientConnection::HandleCharacterDelete(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_CHAR_DELETE);
 
-  unsigned char result;
+  BYTE result;
   msg->Get(result);
   if (!msg->IsRead()) {
     msg->Reset();
@@ -873,7 +874,7 @@ int ClientConnection::HandleCharacterDelete(NETMESSAGE msgId, unsigned long time
   return 1;
 }
 
-void ClientConnection::CharacterDelete(unsigned __int64 guid) {
+void ClientConnection::CharacterDelete(DWORDLONG guid) {
   m_cleanup = 0;
   m_statusCop = COP_DELETE_CHARACTER;
   m_errorCode = 45;
@@ -891,7 +892,7 @@ void ClientConnection::CharacterDelete(unsigned __int64 guid) {
   Send(&netMsg);
 }
 
-void ClientServices_CharacterDelete(unsigned __int64 guid) {
+void ClientServices_CharacterDelete(DWORDLONG guid) {
   ASSERT(s_currentConnection);
   s_currentConnection->CharacterDelete(guid);
 }
@@ -916,7 +917,7 @@ void ClientConnection::SetPlaying(int value) {
 }
 
 void ClientConnection::ConnectToSelectedServer() {
-  unsigned int index = 0;
+  UINT index = 0;
 
   if (m_realmList.Count() > 0) {
     do {
@@ -938,8 +939,8 @@ found:
 }
 
 void ClientConnection::RealmEnumCallback(CDataStore *data) {
-  unsigned char count;
-  unsigned char id;
+  BYTE count;
+  BYTE id;
 
   if (!data) {
     Cleanup();
@@ -993,7 +994,7 @@ error:
   m_statusComplete = 1;
 }
 
-static void RealmEnum_InternalCallback(CDataStore *data, void *param) {
+static void RealmEnum_InternalCallback(CDataStore *data, LPVOID param) {
   ClientConnection *client = static_cast<ClientConnection *>(param);
 
   ASSERT(client);
@@ -1026,7 +1027,7 @@ int ClientServices_GetRealmListCount() {
   return s_currentConnection->GetRealmListCount();
 }
 
-int ClientConnection::EnumerateRealms(void(*fcn)(REALM_INFO &info, void *param), void *param) {
+int ClientConnection::EnumerateRealms(void (*fcn)(REALM_INFO &info, LPVOID param), LPVOID param) {
   ASSERT(fcn);
 
   int enumCount = m_realmList.Count();
@@ -1037,7 +1038,7 @@ int ClientConnection::EnumerateRealms(void(*fcn)(REALM_INFO &info, void *param),
   return enumCount;
 }
 
-int ClientServices_EnumerateRealms(void(*fcn)(REALM_INFO &info, void *param), void *param) {
+int ClientServices_EnumerateRealms(void (*fcn)(REALM_INFO &info, LPVOID param), LPVOID param) {
   ASSERT(s_currentConnection);
   return s_currentConnection->EnumerateRealms(fcn, param);
 }
@@ -1061,8 +1062,7 @@ void ClientServices_Send(CDataStore *msg) {
   }
 }
 
-void
-ClientServices_SetMessageHandler(NETMESSAGE msgId, int(*handler)(void *, NETMESSAGE, unsigned long, CDataStore *), void *param) {
+void ClientServices_SetMessageHandler(NETMESSAGE msgId, int (*handler)(LPVOID, NETMESSAGE, DWORD, CDataStore *), LPVOID param) {
   ASSERT(s_currentConnection);
   ASSERT(handler);
 
@@ -1075,23 +1075,23 @@ void ClientServices_ClearMessageHandler(NETMESSAGE msgId) {
   s_currentConnection->ClearMessageHandler(msgId);
 }
 
-void ClientServices_SelectRealm(const char *realmName, const char *redirectServerAddress) {
+void ClientServices_SelectRealm(LPCSTR realmName, LPCSTR redirectServerAddress) {
   g_realmNameVar->Set(realmName, true, false, false);
 }
 
-const char *ClientServices_GetSelectedRealmName() {
+LPCSTR ClientServices_GetSelectedRealmName() {
   return g_realmNameVar->GetString();
 }
 
-const char *ClientServices_GetSelectedRealmAddress() {
+LPCSTR ClientServices_GetSelectedRealmAddress() {
   return s_redirectServer;
 }
 
-CHAR_NAME_RESULT ClientServices_CharacterValidateName(const char *name) {
+CHAR_NAME_RESULT ClientServices_CharacterValidateName(LPCSTR name) {
   return static_cast<CHAR_NAME_RESULT>(ValidateCharacterName(CURRENT_LANGUAGE, name) + CHAR_NAME_RESULT_START);
 }
 
-int ClientServices_AccountValidateName(const char *name) {
+int ClientServices_AccountValidateName(LPCSTR name) {
   while (*name) {
     if (!isalnum(*name) && *name != '.' && *name != '-') {
       return 0;
@@ -1102,7 +1102,7 @@ int ClientServices_AccountValidateName(const char *name) {
   return 1;
 }
 
-const char *ClientServices_GetAccountName() {
+LPCSTR ClientServices_GetAccountName() {
   return s_accountNameValid ? s_accountName : 0;
 }
 
@@ -1114,7 +1114,7 @@ bool ClientServices_ReportScreenshot() {
   return true;
 }
 
-bool ClientServices_Report(unsigned int reportType, const char *text, const char *category) {
+bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
   if (!text) {
     return false;
   }
@@ -1125,10 +1125,10 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
     return false;
   }
 
-  char          message[0x1000];
-  char          name[0x100];
-  char          line[0x40];
-  unsigned long nameLen;
+  char  message[0x1000];
+  char  name[0x100];
+  char  line[0x40];
+  DWORD nameLen;
 
   SStrCopy(message, text, sizeof(message));
   SStrPack(message, "\n\n\n", sizeof(message));
@@ -1156,9 +1156,9 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
   SStrPrintf(line, sizeof(line), "Processor vendor:\t%s\n", s_vendors[vendor]);
   SStrPack(message, line, sizeof(message));
 
-  unsigned __int64 clocksPerSecond = OsGetAsyncClocksPerSecond();
-  unsigned __int64 scaledClocks;
-  char             clockUnit;
+  DWORDLONG clocksPerSecond = OsGetAsyncClocksPerSecond();
+  DWORDLONG scaledClocks;
+  char      clockUnit;
   if (clocksPerSecond >= mhzCutoff) {
     scaledClocks = clocksPerSecond / 1000000ui64;
     clockUnit = 'G';
@@ -1166,7 +1166,7 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
     scaledClocks = clocksPerSecond / 1000ui64;
     clockUnit = 'M';
   }
-  SStrPrintf(line, sizeof(line), "Processor speed:\t%6.2f%cHz\n", static_cast<double>(static_cast<__int64>(scaledClocks)) * 0.001, clockUnit);
+  SStrPrintf(line, sizeof(line), "Processor speed:\t%6.2f%cHz\n", static_cast<double>(static_cast<LONGLONG>(scaledClocks)) * 0.001, clockUnit);
   SStrPack(message, line, sizeof(message));
 
   SStrPrintf(line, sizeof(line), "Memory:\t%uMB\n", OsGetPhysicalMemory() >> 20);
@@ -1180,7 +1180,7 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
   SStrPrintf(line, sizeof(line), "Version:\t%s\n", verstr);
   SStrPack(message, line, sizeof(message));
 
-  const char *accountName = ClientServices_GetAccountName();
+  LPCSTR accountName = ClientServices_GetAccountName();
   if (accountName) {
     SStrPrintf(line, sizeof(line), "Realm:\t%s (%s)\n", ClientServices_GetSelectedRealmName(), ClientServices_GetSelectedRealmAddress());
     SStrPack(message, line, sizeof(message));
@@ -1189,24 +1189,24 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
     SStrPack(message, line, sizeof(message));
 
     if (s_currentConnection && s_currentConnection->IsInGame()) {
-      unsigned __int64 playerGuid = ClntObjMgrGetActivePlayer();
-      CGObject_C      *object = ClntObjMgrObjectPtr(playerGuid, __FILE__, __LINE__);
-      CGPlayer_C      *player = static_cast<CGPlayer_C *>(object);
+      DWORDLONG   playerGuid = ClntObjMgrGetActivePlayer();
+      CGObject_C *object = ClntObjMgrObjectPtr(playerGuid, __FILE__, __LINE__);
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(object);
       if (player) {
         const CGUnitData *unitData = player->GetUnitData();
-        const char       *gender = s_sexNames[unitData->sex];
+        LPCSTR            gender = s_sexNames[unitData->sex];
         if (!gender) {
           gender = "Unknown gender";
         }
 
         const ChrRacesRec   *race = g_chrRacesDB.GetRecord(unitData->race);
         const ChrClassesRec *unitClass = g_chrClassesDB.GetRecord(unitData->classId);
-        const char          *raceName = race ? race->m_name_lang[CURRENT_LANGUAGE] : "Unknown";
-        const char          *className = unitClass ? unitClass->m_name_lang[CURRENT_LANGUAGE] : "Unknown";
+        LPCSTR               raceName = race ? race->m_name_lang[CURRENT_LANGUAGE] : "Unknown";
+        LPCSTR               className = unitClass ? unitClass->m_name_lang[CURRENT_LANGUAGE] : "Unknown";
         SStrPrintf(line, sizeof(line), "Character:\t%s (level %i %s %s %s)\n", player->GetUnitName(), unitData->level, raceName, gender, className);
         SStrPack(message, line, sizeof(message));
 
-        unsigned int  continentID = CGPlayer_C::GetNewContinentID();
+        UINT          continentID = CGPlayer_C::GetNewContinentID();
         const MapRec *map = g_mapDB.GetRecord(continentID);
         if (map) {
           SStrPrintf(line, sizeof(line), "Map:\t\t%u (%s)\n", continentID, map->m_Directory);
@@ -1215,12 +1215,12 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
         }
         SStrPack(message, line, sizeof(message));
 
-        const char *zoneText = CGGameUI::GetZoneText();
+        LPCSTR zoneText = CGGameUI::GetZoneText();
         if (zoneText && *zoneText) {
           SStrPrintf(line, sizeof(line), "Zone:\t\t%s", zoneText);
           SStrPack(message, line, sizeof(message));
 
-          const char *subZoneText = CGGameUI::GetSubZoneText();
+          LPCSTR subZoneText = CGGameUI::GetSubZoneText();
           if (subZoneText && *subZoneText) {
             SStrPrintf(line, sizeof(line), " - %s", subZoneText);
             SStrPack(message, line, sizeof(message));
@@ -1233,7 +1233,7 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
         SStrPrintf(line, sizeof(line), "Position:\t%f %f %f, %f\n", v.x, v.y, v.z, player->GetFacing());
         SStrPack(message, line, sizeof(message));
 
-        const unsigned __int64 &lockedTarget = CGGameUI::GetLockedTarget();
+        const DWORDLONG &lockedTarget = CGGameUI::GetLockedTarget();
         if (lockedTarget) {
           CGObject_C *targetObject = ClntObjMgrObjectPtr(lockedTarget, __FILE__, __LINE__);
           CGUnit_C   *target = static_cast<CGUnit_C *>(targetObject);
@@ -1245,14 +1245,14 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
 
         SStrPrintf(line, sizeof(line), "Auras:\n");
         SStrPack(message, line, sizeof(message));
-        for (unsigned int auraIndex = 0; auraIndex < 56; ++auraIndex) {
+        for (UINT auraIndex = 0; auraIndex < 56; ++auraIndex) {
           int spellID = unitData->auras[auraIndex];
           if (!spellID) {
             continue;
           }
 
           const SpellRec *spell = g_spellDB.GetRecord(spellID);
-          const char     *spellName = spell ? spell->m_name_lang[0] : "UNKNOWN";
+          LPCSTR          spellName = spell ? spell->m_name_lang[0] : "UNKNOWN";
           SStrPrintf(line, sizeof(line), "\t%s(%d)\n", spellName, spellID);
           SStrPack(message, line, sizeof(message));
         }
@@ -1260,9 +1260,9 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
     }
   }
 
-  unsigned int reportLength = SStrLen(message) + 1;
-  unsigned int categoryLength = SStrLen(category) + 1;
-  CDataStore   msg;
+  UINT       reportLength = SStrLen(message) + 1;
+  UINT       categoryLength = SStrLen(category) + 1;
+  CDataStore msg;
   msg.Put(static_cast<int>(CMSG_BUG));
   msg.Put(static_cast<int>(reportType));
   msg.Put(static_cast<int>(reportLength));
@@ -1274,7 +1274,7 @@ bool ClientServices_Report(unsigned int reportType, const char *text, const char
   return true;
 }
 
-void ClientServices_GetNetStats(float &bandwidthIn, float &bandwidthOut, unsigned long &latency) {
+void ClientServices_GetNetStats(float &bandwidthIn, float &bandwidthOut, DWORD &latency) {
   s_currentConnection->GetNetStats(bandwidthIn, bandwidthOut, latency);
 }
 

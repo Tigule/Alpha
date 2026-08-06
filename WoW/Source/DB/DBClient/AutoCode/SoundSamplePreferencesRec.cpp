@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SoundSamplePreferencesRec::GetFilename() {
+LPCSTR SoundSamplePreferencesRec::GetFilename() {
   return "DBFilesClient\\SoundSamplePreferences.dbc";
 }
 
@@ -19,7 +19,7 @@ SoundSamplePreferencesRec::SoundSamplePreferencesRec() {
 SoundSamplePreferencesRec::~SoundSamplePreferencesRec() {
 }
 
-bool SoundSamplePreferencesRec::Read(SFile *f, const char *stringBuffer) {
+bool SoundSamplePreferencesRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFileReadTyped(f, &m_ID) && result;

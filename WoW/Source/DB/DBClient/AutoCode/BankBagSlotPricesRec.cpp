@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *BankBagSlotPricesRec::GetFilename() {
+LPCSTR BankBagSlotPricesRec::GetFilename() {
   return "DBFilesClient\\BankBagSlotPrices.dbc";
 }
 
@@ -19,7 +19,7 @@ BankBagSlotPricesRec::BankBagSlotPricesRec() {
 BankBagSlotPricesRec::~BankBagSlotPricesRec() {
 }
 
-bool BankBagSlotPricesRec::Read(SFile *f, const char *stringBuffer) {
+bool BankBagSlotPricesRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

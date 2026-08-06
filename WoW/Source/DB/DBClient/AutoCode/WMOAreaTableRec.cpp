@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *WMOAreaTableRec::GetFilename() {
+LPCSTR WMOAreaTableRec::GetFilename() {
   return "DBFilesClient\\WMOAreaTable.dbc";
 }
 
@@ -19,9 +19,9 @@ WMOAreaTableRec::WMOAreaTableRec() {
 WMOAreaTableRec::~WMOAreaTableRec() {
 }
 
-bool WMOAreaTableRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempAreaName_langIndices[NUM_LOCALES];
+bool WMOAreaTableRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempAreaName_langIndices[NUM_LOCALES];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_WMOID, sizeof(m_WMOID), 0, 0, 0) && result;

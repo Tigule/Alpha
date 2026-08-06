@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <wctype.h>
 
-unsigned int                                         g_heightPixels;
-unsigned int                                         g_widthPixels;
+UINT g_heightPixels;
+UINT g_widthPixels;
 LISTDECL(TEXTLINETEXTURE, g_freeTextLineTextures);
 LISTDECL(IGXUTEXTLINE, g_freeTextLines);
 LISTDECL(CGxString, g_freeStrings);
@@ -25,42 +25,35 @@ static float                                        topPixelAdjustment;
 static int                                          adjustmentsInitialized;
 static int                                          pixelCenterOnEdge;
 static int                                          initialized;
-static const unsigned char                          pixelsLitLevels[10] = {0x00, 0x1F, 0x1F, 0x3F, 0x5F, 0x7F, 0x9F, 0xBF, 0xDF, 0xFF};
+static const BYTE                                   pixelsLitLevels[10] = {0x00, 0x1F, 0x1F, 0x3F, 0x5F, 0x7F, 0x9F, 0xBF, 0xDF, 0xFF};
 static TSHashTable<STRINGVIEWMATRICES, HASHKEY_PTR> s_stringViewMatrices;
 static LISTDECLEX(STRINGVIEWMATRICES, m_freeLink, s_freeStringMatrices);
-static HASHKEY_NONE                                 s_nullHashKey;
-static const float                                  ONEOVERTEXSIZE = 1.0f / 256.0f;
-static const float                                  ONEHALFONEOVERTEXSIZE = ONEOVERTEXSIZE * 0.5f;
+static HASHKEY_NONE s_nullHashKey;
+static const float  ONEOVERTEXSIZE = 1.0f / 256.0f;
+static const float  ONEHALFONEOVERTEXSIZE = ONEOVERTEXSIZE * 0.5f;
 
-QUOTEDCODE GxuDetermineQuotedCode(
-    const char          *text,
-    unsigned int        &advance,
-    NTempest::CImVector *color,
-    unsigned int         flags,
-    unsigned int        &wide,
-    unsigned int         remainingBytes
-) {
-  int          ignoreNewlines = flags & 0x200;
-  int          ignoreColors = flags & 0x100;
-  int          ignoreHyperlinks = flags & 0x400;
-  int          ignorePipes = flags & 0x800;
-  const char  *firstText;
-  const char  *codePtr;
-  unsigned int firstCharAdvance;
-  unsigned int comps[4];
-  char         hex[3];
-  char        *error;
-  QUOTEDCODE   result;
-  unsigned int i;
+QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVector *color, UINT flags, UINT &wide, UINT remainingBytes) {
+  int        ignoreNewlines = flags & 0x200;
+  int        ignoreColors = flags & 0x100;
+  int        ignoreHyperlinks = flags & 0x400;
+  int        ignorePipes = flags & 0x800;
+  LPCSTR     firstText;
+  LPCSTR     codePtr;
+  UINT       firstCharAdvance;
+  UINT       comps[4];
+  char       hex[3];
+  char      *error;
+  QUOTEDCODE result;
+  UINT       i;
 
   ASSERT(text);
   ASSERT(*text);
 
   firstText = text;
-  wide = sgetu8(reinterpret_cast<const unsigned char *>(text), reinterpret_cast<int *>(&advance));
+  wide = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
   firstCharAdvance = advance;
 
-  if (wide == static_cast<unsigned int>(-1)) {
+  if (wide == static_cast<UINT>(-1)) {
     return CODE_INVALIDCODE;
   }
 
@@ -74,7 +67,7 @@ QUOTEDCODE GxuDetermineQuotedCode(
   }
 
   codePtr = text + advance;
-  wide = sgetu8(reinterpret_cast<const unsigned char *>(codePtr), reinterpret_cast<int *>(&advance));
+  wide = sgetu8(reinterpret_cast<const BYTE *>(codePtr), reinterpret_cast<int *>(&advance));
 
   switch (*codePtr) {
     case 'H':
@@ -94,21 +87,21 @@ QUOTEDCODE GxuDetermineQuotedCode(
 
       codePtr += advance;
       while (*codePtr) {
-        wide = sgetu8(reinterpret_cast<const unsigned char *>(codePtr), reinterpret_cast<int *>(&advance));
+        wide = sgetu8(reinterpret_cast<const BYTE *>(codePtr), reinterpret_cast<int *>(&advance));
         codePtr += advance;
 
         if (wide != '|') {
           continue;
         }
 
-        wide = sgetu8(reinterpret_cast<const unsigned char *>(codePtr), reinterpret_cast<int *>(&advance));
+        wide = sgetu8(reinterpret_cast<const BYTE *>(codePtr), reinterpret_cast<int *>(&advance));
         codePtr += advance;
 
         if (wide != 'h') {
           goto invalidQuotedCode;
         }
 
-        advance = static_cast<unsigned int>(codePtr - firstText);
+        advance = static_cast<UINT>(codePtr - firstText);
         if (advance == 4 || (codePtr[0] == '|' && codePtr[1] == 'h')) {
           goto invalidQuotedCode;
         }
@@ -172,7 +165,7 @@ QUOTEDCODE GxuDetermineQuotedCode(
         hex[1] = *codePtr++;
         error = 0;
 
-        unsigned long component = strtol(hex, &error, 16);
+        DWORD component = strtol(hex, &error, 16);
         if (error && *error) {
           advance = firstCharAdvance;
           wide = '|';
@@ -180,14 +173,11 @@ QUOTEDCODE GxuDetermineQuotedCode(
           break;
         }
 
-        comps[i] = static_cast<unsigned char>(component);
+        comps[i] = static_cast<BYTE>(component);
       }
 
       if (color) {
-        color->Set(
-            0xFF000000ul | (static_cast<unsigned long>(comps[1]) << 16) | (static_cast<unsigned long>(comps[2]) << 8) |
-            static_cast<unsigned long>(comps[3])
-        );
+        color->Set(0xFF000000ul | (static_cast<DWORD>(comps[1]) << 16) | (static_cast<DWORD>(comps[2]) << 8) | static_cast<DWORD>(comps[3]));
       }
       return result;
   }
@@ -198,7 +188,7 @@ invalidQuotedCode:
   return CODE_INVALIDCODE;
 }
 
-static int CanWrapBetween(unsigned int lastChar, unsigned int wideChar, unsigned int flags) {
+static int CanWrapBetween(UINT lastChar, UINT wideChar, UINT flags) {
   int value;
 
   if (!lastChar) {
@@ -207,7 +197,7 @@ static int CanWrapBetween(unsigned int lastChar, unsigned int wideChar, unsigned
   if (lastChar == '-') {
     return 1;
   }
-  if (wideChar == static_cast<unsigned int>(-1)) {
+  if (wideChar == static_cast<UINT>(-1)) {
     return 1;
   }
   if (iswspace(static_cast<wint_t>(lastChar))) {
@@ -383,13 +373,13 @@ checkWideCharacterRange:
   return 1;
 }
 
-static unsigned int FindWrappingIndex(const char *currentText, unsigned int lineBytes, unsigned int flags, const char **nextText) {
-  const char  *startingText;
-  const char  *scan;
-  unsigned int wrapIndex;
-  unsigned int lastChar;
-  unsigned int wideChar;
-  unsigned int advance;
+static UINT FindWrappingIndex(LPCSTR currentText, UINT lineBytes, UINT flags, LPCSTR *nextText) {
+  LPCSTR startingText;
+  LPCSTR scan;
+  UINT   wrapIndex;
+  UINT   lastChar;
+  UINT   wideChar;
+  UINT   advance;
 
   ASSERT(nextText);
 
@@ -411,10 +401,10 @@ static unsigned int FindWrappingIndex(const char *currentText, unsigned int line
       scan = startingText + wrapIndex;
 
       while (scan < *nextText) {
-        unsigned int code = sgetu8(reinterpret_cast<const unsigned char *>(scan), reinterpret_cast<int *>(&advance));
+        UINT code = sgetu8(reinterpret_cast<const BYTE *>(scan), reinterpret_cast<int *>(&advance));
         scan += advance;
         if (!iswspace(static_cast<wint_t>(code))) {
-          wrapIndex = static_cast<unsigned int>(scan - startingText);
+          wrapIndex = static_cast<UINT>(scan - startingText);
         }
       }
       return wrapIndex;
@@ -422,7 +412,7 @@ static unsigned int FindWrappingIndex(const char *currentText, unsigned int line
 
     if (quotedCode == CODE_INVALIDCODE) {
       if (CanWrapBetween(lastChar, wideChar, flags)) {
-        wrapIndex = static_cast<unsigned int>(currentText - startingText);
+        wrapIndex = static_cast<UINT>(currentText - startingText);
       }
       lastChar = wideChar;
     }
@@ -434,16 +424,16 @@ static unsigned int FindWrappingIndex(const char *currentText, unsigned int line
   if (GxuDetermineQuotedCode(currentText, advance, 0, flags, wideChar, SStrLen(currentText)) == CODE_INVALIDCODE &&
       CanWrapBetween(lastChar, wideChar, flags))
   {
-    wrapIndex = static_cast<unsigned int>(currentText - startingText);
+    wrapIndex = static_cast<UINT>(currentText - startingText);
   }
 
   if (!wrapIndex) {
-    wrapIndex = static_cast<unsigned int>(currentText - startingText);
+    wrapIndex = static_cast<UINT>(currentText - startingText);
   }
 
   scan = startingText + wrapIndex;
   while (*scan) {
-    unsigned int code = sgetu8(reinterpret_cast<const unsigned char *>(scan), reinterpret_cast<int *>(&advance));
+    UINT code = sgetu8(reinterpret_cast<const BYTE *>(scan), reinterpret_cast<int *>(&advance));
     if (!iswspace(static_cast<wint_t>(code))) {
       break;
     }
@@ -455,7 +445,7 @@ static unsigned int FindWrappingIndex(const char *currentText, unsigned int line
 }
 
 static STRINGVIEWMATRICES *GetNewStringMatrix(CGxString *stringPtr) {
-  STRINGVIEWMATRICES *head = s_stringViewMatrices.Ptr(reinterpret_cast<unsigned int>(stringPtr), HASHKEY_PTR(stringPtr));
+  STRINGVIEWMATRICES *head = s_stringViewMatrices.Ptr(reinterpret_cast<UINT>(stringPtr), HASHKEY_PTR(stringPtr));
 
   if (head) {
     ASSERT(!head->m_freeLink.IsLinked());
@@ -469,28 +459,28 @@ static STRINGVIEWMATRICES *GetNewStringMatrix(CGxString *stringPtr) {
     head = s_freeStringMatrices.NewNode(LIST_TAIL, 0, 0);
   }
 
-  s_stringViewMatrices.Insert(head, reinterpret_cast<unsigned int>(stringPtr), HASHKEY_PTR(stringPtr));
+  s_stringViewMatrices.Insert(head, reinterpret_cast<UINT>(stringPtr), HASHKEY_PTR(stringPtr));
   return head;
 }
 
 void CGxString::InitializeTextLine(
-    const char               *currentText,
-    unsigned int              numBytes,
+    LPCSTR                    currentText,
+    UINT                      numBytes,
     NTempest::CImVector      &workingColor,
     const NTempest::C3Vector &position,
-    unsigned int             *texturePagesUsedFlag,
+    UINT                     *texturePagesUsedFlag,
     HYPERLINKPARSEINFO       &info
 ) {
-  unsigned int       i;
-  unsigned int       advance;
-  unsigned int       wide;
-  unsigned int       charsInTexturePage[8] = {0};
+  UINT               i;
+  UINT               advance;
+  UINT               wide;
+  UINT               charsInTexturePage[8] = {0};
   int                fixedCharWidths;
   IGXUTEXTLINE      *newLine;
   NTempest::C3Vector currPos(position);
   float              glyphPixelHeight;
-  const char        *scan;
-  unsigned int       scanBytes;
+  LPCSTR             scan;
+  UINT               scanBytes;
 
   ASSERT(m_currentFace);
   ASSERT(currentText);
@@ -543,7 +533,7 @@ void CGxString::InitializeTextLine(
   }
 
   for (i = 0; i < newLine->m_texturePages.Count(); ++i) {
-    unsigned int vertexCount = charsInTexturePage[i] * 4;
+    UINT vertexCount = charsInTexturePage[i] * 4;
     newLine->m_texturePages[i]->m_vert.ReserveSpace(vertexCount);
 
     if (!(m_flags & 0x8)) {
@@ -578,8 +568,8 @@ void CGxString::InitializeTextLine(
     offset3.y = static_cast<float>(floor(ScreenToPixelHeight(0, offset3.y)));
   }
 
-  unsigned int prevCode = 0;
-  float        step = 0.0f;
+  UINT  prevCode = 0;
+  float step = 0.0f;
 
   while (*currentText && numBytes) {
     NTempest::CImVector color(0ul);
@@ -613,8 +603,8 @@ void CGxString::InitializeTextLine(
 
       case CODE_HYPERLINKSTART:
         if (info.hyperlinkParseMode != HYPERLINKDISPLAY) {
-          const char  *link = currentText - advance + 2;
-          unsigned int linkLength = advance - 4;
+          LPCSTR link = currentText - advance + 2;
+          UINT   linkLength = advance - 4;
 
           info.currentParseInfo.extent.l = currPos.x + step;
           info.hyperlinkParseMode = HYPERLINKDISPLAY;
@@ -642,7 +632,7 @@ void CGxString::InitializeTextLine(
 
         ASSERT(code->dataValid);
 
-        unsigned int textureNumber = code->textureNumber;
+        UINT textureNumber = code->textureNumber;
         ASSERT(textureNumber < (sizeof(m_currentFace->m_textureCache) / sizeof(m_currentFace->m_textureCache[0])));
         ASSERT(m_currentFace->m_textureCache[textureNumber].GetTexturePtr());
 
@@ -655,7 +645,7 @@ void CGxString::InitializeTextLine(
             sColors[i] = workingColor;
           }
 
-          unsigned int oldIndex = textLinePage->m_colors.Add(4, sColors);
+          UINT oldIndex = textLinePage->m_colors.Add(4, sColors);
 
           if (m_flags & 0x1000) {
             NTempest::CImVector *ptrArray[4];
@@ -670,7 +660,7 @@ void CGxString::InitializeTextLine(
                 sColors[i] = m_shadowColor;
               }
 
-              unsigned int oldShadowIndex = textLinePage->m_shadowColors.Add(4, sColors);
+              UINT oldShadowIndex = textLinePage->m_shadowColors.Add(4, sColors);
               ptrArray[0] = &textLinePage->m_shadowColors[oldShadowIndex];
               ptrArray[1] = &textLinePage->m_shadowColors[oldShadowIndex + 3];
               ptrArray[2] = &textLinePage->m_shadowColors[oldShadowIndex + 1];
@@ -713,7 +703,7 @@ void CGxString::InitializeTextLine(
         }
 
         TSGrowableArray<VERT> &verts = textLinePage->m_vert;
-        unsigned int           oldIndex = verts.Count();
+        UINT                   oldIndex = verts.Count();
         verts.SetCount(oldIndex + 4);
         for (i = 0; i < 4; ++i) {
           verts[oldIndex + i] = vert;
@@ -770,19 +760,19 @@ CGxString *CGxString::Duplicate() const {
 }
 
 void CalcWrapPoint(
-    CGxFont      *face,
-    const char   *currentText,
-    float         fontHeight,
-    float         blockWidth,
-    unsigned int *numBytes,
-    float        *pExtent,
-    const char  **pNextText,
-    unsigned int  flags
+    CGxFont *face,
+    LPCSTR   currentText,
+    float    fontHeight,
+    float    blockWidth,
+    UINT    *numBytes,
+    float   *pExtent,
+    LPCSTR  *pNextText,
+    UINT     flags
 ) {
-  unsigned int lineBytes = currentText ? SStrLen(currentText) : 0;
-  unsigned int bytesInString;
-  const char  *nextText;
-  float        extent;
+  UINT   lineBytes = currentText ? SStrLen(currentText) : 0;
+  UINT   bytesInString;
+  LPCSTR nextText;
+  float  extent;
 
   InternalGetMaxCharsWithinWidth(face, currentText, fontHeight, blockWidth, lineBytes, &extent, flags, &bytesInString, 0, 0);
 
@@ -807,7 +797,7 @@ GLYPHBITMAPDATA::~GLYPHBITMAPDATA() {
   Clear();
 }
 
-void CHARCODEDESC::GenerateTextureCoords(unsigned int rowNumber, unsigned int glyphSide) {
+void CHARCODEDESC::GenerateTextureCoords(UINT rowNumber, UINT glyphSide) {
   CGxCaps gxCaps;
   int     top;
   float   pr;
@@ -821,7 +811,7 @@ void CHARCODEDESC::GenerateTextureCoords(unsigned int rowNumber, unsigned int gl
     pixelCenterOnEdge = gxCaps.m_pixelCenterOnEdge;
   }
 
-  unsigned int width = bitmapData->m_glyphCellWidth;
+  UINT width = bitmapData->m_glyphCellWidth;
   ASSERT(width);
 
   top = rowNumber * glyphSide;
@@ -833,7 +823,7 @@ void CHARCODEDESC::GenerateTextureCoords(unsigned int rowNumber, unsigned int gl
   bitmapData->m_textureValid = 1;
 }
 
-unsigned int CHARCODEDESC::GapToNextTexture() const {
+UINT CHARCODEDESC::GapToNextTexture() const {
   ASSERT(ValidBlockEndPoints());
 
   const CHARCODEDESC *next = textureRowLink.Next();
@@ -845,7 +835,7 @@ unsigned int CHARCODEDESC::GapToNextTexture() const {
   return next->glyphStartPixel - glyphEndPixel - 1;
 }
 
-unsigned int CHARCODEDESC::GapToPreviousTexture() const {
+UINT CHARCODEDESC::GapToPreviousTexture() const {
   ASSERT(ValidBlockEndPoints());
 
   const CHARCODEDESC *previous = textureRowLink.Prev();
@@ -857,34 +847,34 @@ unsigned int CHARCODEDESC::GapToPreviousTexture() const {
   return glyphStartPixel - previous->glyphEndPixel - 1;
 }
 
-void TEXTURECACHE::PasteGlyphOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, unsigned long *dst, int thick) {
+void TEXTURECACHE::PasteGlyphOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, DWORD *dst, int thick) {
   ASSERT(glyphData);
   ASSERT(dst);
 
-  unsigned int scratch[32][256];
+  UINT scratch[32][256];
   memset(scratch, 0, sizeof(scratch));
 
-  const unsigned char *src = static_cast<const unsigned char *>(glyphData->m_data);
-  unsigned int         glyphX = 1 + (thick ? 1 : 0);
-  unsigned int         glyphY = glyphData->m_yStart + 1;
-  for (unsigned int y = 0; y < glyphData->m_glyphHeight; ++y) {
-    for (unsigned int x = 0; x < glyphData->m_glyphWidth; ++x) {
+  const BYTE *src = static_cast<const BYTE *>(glyphData->m_data);
+  UINT        glyphX = 1 + (thick ? 1 : 0);
+  UINT        glyphY = glyphData->m_yStart + 1;
+  for (UINT y = 0; y < glyphData->m_glyphHeight; ++y) {
+    for (UINT x = 0; x < glyphData->m_glyphWidth; ++x) {
       scratch[glyphY + y][glyphX + x] = (src[x >> 3] >> (7 - (x & 7))) & 1;
     }
     src += glyphData->m_glyphPitch;
   }
 
-  unsigned int cellHeight = m_theFace->m_cellHeight;
+  UINT cellHeight = m_theFace->m_cellHeight;
   ASSERT(cellHeight);
-  unsigned int cellWidth = glyphData->m_glyphCellWidth;
-  unsigned int passes = 1 + (thick ? 1 : 0);
+  UINT cellWidth = glyphData->m_glyphCellWidth;
+  UINT passes = 1 + (thick ? 1 : 0);
 
-  for (unsigned int pass = 0; pass < passes; ++pass) {
-    unsigned int source = pass ? 4 : 1;
-    unsigned int replacement = pass ? 2 : 4;
+  for (UINT pass = 0; pass < passes; ++pass) {
+    UINT source = pass ? 4 : 1;
+    UINT replacement = pass ? 2 : 4;
 
-    for (unsigned int y = 0; y < cellHeight; ++y) {
-      for (unsigned int x = 0; x < cellWidth; ++x) {
+    for (UINT y = 0; y < cellHeight; ++y) {
+      for (UINT x = 0; x < cellWidth; ++x) {
         if ((!pass && scratch[y][x] == 1) || (pass && scratch[y][x] != 0)) {
           continue;
         }
@@ -962,8 +952,8 @@ void TEXTURECACHE::PasteGlyphOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, unsi
     }
   }
 
-  for (unsigned int outputY = 0; outputY < cellHeight; ++outputY) {
-    for (unsigned int x = 0; x < cellWidth; ++x) {
+  for (UINT outputY = 0; outputY < cellHeight; ++outputY) {
+    for (UINT x = 0; x < cellWidth; ++x) {
       switch (scratch[outputY][x]) {
         case 1:
           dst[x] = 0xFFFFFFFF;
@@ -983,23 +973,23 @@ void TEXTURECACHE::PasteGlyphOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, unsi
   }
 }
 
-void TEXTURECACHE::PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, unsigned long *dst) {
+void TEXTURECACHE::PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, DWORD *dst) {
   ASSERT(glyphData);
   ASSERT(dst);
 
-  char        *src = static_cast<char *>(glyphData->m_data);
-  unsigned int pitch = glyphData->m_glyphPitch;
-  unsigned int dstCellStride = 4 * glyphData->m_glyphCellWidth;
+  char *src = static_cast<char *>(glyphData->m_data);
+  UINT  pitch = glyphData->m_glyphPitch;
+  UINT  dstCellStride = 4 * glyphData->m_glyphCellWidth;
 
-  unsigned int y;
-  for (y = 0; y < static_cast<unsigned int>(glyphData->m_yStart); ++y) {
+  UINT y;
+  for (y = 0; y < static_cast<UINT>(glyphData->m_yStart); ++y) {
     memset(dst, 0, dstCellStride);
     dst += 256;
   }
 
   for (y = 0; y < glyphData->m_glyphHeight; ++y) {
-    for (unsigned int x = 0; x < glyphData->m_glyphWidth; ++x) {
-      unsigned int bit = (src[x >> 3] >> (7 - (x & 7))) & 1;
+    for (UINT x = 0; x < glyphData->m_glyphWidth; ++x) {
+      UINT bit = (src[x >> 3] >> (7 - (x & 7))) & 1;
       dst[x] = bit ? 0xFFFFFFFF : 0;
     }
     dst += 256;
@@ -1014,24 +1004,24 @@ void TEXTURECACHE::PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, u
   }
 }
 
-void TEXTURECACHE::PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned long *dst, int thick) {
+void TEXTURECACHE::PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, DWORD *dst, int thick) {
   ASSERT(glyphData);
   ASSERT(dst);
   ASSERT(glyphData->m_data);
 
-  unsigned int outlineScratch[32][256];
-  unsigned int savedGlyphScratch[32][256];
-  unsigned int blurScratch[32][256];
+  UINT outlineScratch[32][256];
+  UINT savedGlyphScratch[32][256];
+  UINT blurScratch[32][256];
   memset(outlineScratch, 0, sizeof(outlineScratch));
   memset(savedGlyphScratch, 0, sizeof(savedGlyphScratch));
 
-  const unsigned char *src = static_cast<const unsigned char *>(glyphData->m_data);
-  unsigned int         glyphX = 1 + (thick ? 1 : 0);
-  unsigned int         glyphY = glyphData->m_yStart + 1;
-  unsigned int        *savedGlyphScratchDst = &savedGlyphScratch[glyphY][glyphX];
-  for (unsigned int y = 0; y < glyphData->m_glyphHeight; ++y) {
-    for (unsigned int x = 0; x < glyphData->m_glyphWidth; ++x) {
-      unsigned int alpha = src[x];
+  const BYTE *src = static_cast<const BYTE *>(glyphData->m_data);
+  UINT        glyphX = 1 + (thick ? 1 : 0);
+  UINT        glyphY = glyphData->m_yStart + 1;
+  UINT       *savedGlyphScratchDst = &savedGlyphScratch[glyphY][glyphX];
+  for (UINT y = 0; y < glyphData->m_glyphHeight; ++y) {
+    for (UINT x = 0; x < glyphData->m_glyphWidth; ++x) {
+      UINT alpha = src[x];
       if (alpha) {
         outlineScratch[glyphY + y][glyphX + x] = 1;
         savedGlyphScratchDst[x] = alpha;
@@ -1041,16 +1031,16 @@ void TEXTURECACHE::PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned lon
     savedGlyphScratchDst += 256;
   }
 
-  unsigned int cellHeight = m_theFace->m_cellHeight;
-  unsigned int cellWidth = glyphData->m_glyphCellWidth;
-  unsigned int passes = 1 + (thick ? 1 : 0);
+  UINT cellHeight = m_theFace->m_cellHeight;
+  UINT cellWidth = glyphData->m_glyphCellWidth;
+  UINT passes = 1 + (thick ? 1 : 0);
 
-  for (unsigned int pass = 0; pass < passes; ++pass) {
-    unsigned int sourceMask = pass ? 3 : 1;
-    unsigned int writeBit = pass ? 4 : 2;
+  for (UINT pass = 0; pass < passes; ++pass) {
+    UINT sourceMask = pass ? 3 : 1;
+    UINT writeBit = pass ? 4 : 2;
 
-    for (unsigned int y = 0; y < cellHeight; ++y) {
-      for (unsigned int x = 0; x < cellWidth; ++x) {
+    for (UINT y = 0; y < cellHeight; ++y) {
+      for (UINT x = 0; x < cellWidth; ++x) {
         if (outlineScratch[y][x] & sourceMask) {
           continue;
         }
@@ -1112,9 +1102,9 @@ void TEXTURECACHE::PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned lon
   }
 
   memset(blurScratch, 0, sizeof(blurScratch));
-  for (unsigned int lightY = 0; lightY < cellHeight; ++lightY) {
-    for (unsigned int x = 0; x < cellWidth; ++x) {
-      unsigned int pixelsLit = outlineScratch[lightY][x] != 0;
+  for (UINT lightY = 0; lightY < cellHeight; ++lightY) {
+    for (UINT x = 0; x < cellWidth; ++x) {
+      UINT pixelsLit = outlineScratch[lightY][x] != 0;
 
       if (!lightY) {
         if (!x) {
@@ -1175,12 +1165,12 @@ void TEXTURECACHE::PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned lon
     }
   }
 
-  for (unsigned int outputY = 0; outputY < cellHeight; ++outputY) {
-    for (unsigned int x = 0; x < cellWidth; ++x) {
+  for (UINT outputY = 0; outputY < cellHeight; ++outputY) {
+    for (UINT x = 0; x < cellWidth; ++x) {
       if (!outlineScratch[outputY][x]) {
         dst[x] = 0;
       } else if (savedGlyphScratch[outputY][x]) {
-        unsigned int gray = (255 * savedGlyphScratch[outputY][x]) >> 8;
+        UINT gray = (255 * savedGlyphScratch[outputY][x]) >> 8;
         dst[x] = (blurScratch[outputY][x] << 24) | (gray << 16) | (gray << 8) | gray;
       } else {
         dst[x] = blurScratch[outputY][x] << 24;
@@ -1190,23 +1180,23 @@ void TEXTURECACHE::PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned lon
   }
 }
 
-void TEXTURECACHE::PasteGlyphNonOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned long *dst) {
+void TEXTURECACHE::PasteGlyphNonOutlinedAA(GLYPHBITMAPDATA *glyphData, DWORD *dst) {
   ASSERT(glyphData);
   ASSERT(dst);
 
-  char        *src = static_cast<char *>(glyphData->m_data);
-  unsigned int pitch = glyphData->m_glyphPitch;
-  unsigned int dstCellStride = 4 * glyphData->m_glyphCellWidth;
+  char *src = static_cast<char *>(glyphData->m_data);
+  UINT  pitch = glyphData->m_glyphPitch;
+  UINT  dstCellStride = 4 * glyphData->m_glyphCellWidth;
 
-  unsigned int y;
-  for (y = 0; y < static_cast<unsigned int>(glyphData->m_yStart); ++y) {
+  UINT y;
+  for (y = 0; y < static_cast<UINT>(glyphData->m_yStart); ++y) {
     memset(dst, 0, dstCellStride);
     dst += 256;
   }
 
   for (y = 0; y < glyphData->m_glyphHeight; ++y) {
-    for (unsigned int x = 0; x < glyphData->m_glyphWidth; ++x) {
-      dst[x] = (static_cast<unsigned int>(src[x]) << 24) | 0x00FFFFFF;
+    for (UINT x = 0; x < glyphData->m_glyphWidth; ++x) {
+      dst[x] = (static_cast<UINT>(src[x]) << 24) | 0x00FFFFFF;
     }
     src += pitch;
     dst += 256;
@@ -1220,7 +1210,7 @@ void TEXTURECACHE::PasteGlyphNonOutlinedAA(GLYPHBITMAPDATA *glyphData, unsigned 
   }
 }
 
-void TEXTURECACHE::PasteGlyph(GLYPHBITMAPDATA *data, unsigned long *dst, int thick) {
+void TEXTURECACHE::PasteGlyph(GLYPHBITMAPDATA *data, DWORD *dst, int thick) {
   ASSERT(m_theFace);
 
   if (m_theFace->m_flags & 0x1) {
@@ -1254,7 +1244,7 @@ void CGxString::SetStringPosition(const NTempest::C3Vector &position) {
 }
 
 void CGxString::SetColor(const NTempest::CImVector &color) {
-  if (*reinterpret_cast<const unsigned long *>(&m_fontColor) == *reinterpret_cast<const unsigned long *>(&color)) {
+  if (*reinterpret_cast<const DWORD *>(&m_fontColor) == *reinterpret_cast<const DWORD *>(&color)) {
     return;
   }
 
@@ -1283,8 +1273,8 @@ void CGxString::InternalRender() {
 
   ASSERT(m_currentFace);
 
-  for (unsigned int line = 0; line < m_textBlock.m_lines.Count(); ++line) {
-    for (unsigned int i = 0; i < m_textBlock.m_lines[line]->m_texturePages.Count(); ++i) {
+  for (UINT line = 0; line < m_textBlock.m_lines.Count(); ++line) {
+    for (UINT i = 0; i < m_textBlock.m_lines[line]->m_texturePages.Count(); ++i) {
       m_textBlock.m_lines[line]->m_texturePages[i]->InternalRenderTexture(
           i, m_currentFace, m_flags & 0x1, m_shadowColor, m_shadowOffset, m_fontColor
       );
@@ -1358,19 +1348,19 @@ void CGxString::CreateGeometry() {
   HYPERLINKPARSEINFO  info;
   NTempest::C3Vector  linePos;
   int                 gStart = m_lastGradientStart;
-  unsigned int        advance;
+  UINT                advance;
   NTempest::CImVector workingColor;
-  unsigned int        wide;
+  UINT                wide;
   int                 gLength = m_lastGradientLength;
-  unsigned int        texturePagesUsedFlag;
-  unsigned int        numBytes;
+  UINT                texturePagesUsedFlag;
+  UINT                numBytes;
   float               widestLineExtent;
-  const char         *nextText;
+  LPCSTR              nextText;
   float               height;
-  unsigned int        loop;
+  UINT                loop;
   float               lineHeight;
   float               extent;
-  const char         *currentText;
+  LPCSTR              currentText;
 
   ClearInstanceData();
 
@@ -1393,7 +1383,7 @@ void CGxString::CreateGeometry() {
   widestLineExtent = 0.0f;
 
   height = m_blockHeight / (m_spacing + m_currentFontHeight);
-  loop = static_cast<unsigned int>(NTempest::CMath::fuint_n(height));
+  loop = static_cast<UINT>(NTempest::CMath::fuint_n(height));
 
   if (currentText) {
     while (loop-- && *currentText) {
@@ -1461,8 +1451,8 @@ void CGxString::CreateGeometry() {
 }
 
 void CGxString::InitializeViewportOffsets() {
-  unsigned int lineCount = m_textBlock.m_lines.Count();
-  float        tHeight =
+  UINT  lineCount = m_textBlock.m_lines.Count();
+  float tHeight =
       (static_cast<float>(lineCount - 1) * m_spacing + static_cast<float>(lineCount) * m_currentFontHeight) * static_cast<float>(g_heightPixels);
   float              blockWidth = static_cast<float>(g_widthPixels) * m_blockWidth;
   float              blockHeight = static_cast<float>(g_heightPixels) * m_blockHeight;
@@ -1496,31 +1486,31 @@ void CGxString::InitializeViewportOffsets() {
   m_viewportOffset.y = position.y / (maxy - miny);
 }
 
-void CGxString::TexturePageEvicted(unsigned int pageNumber) {
+void CGxString::TexturePageEvicted(UINT pageNumber) {
   if ((1 << pageNumber) & m_texturePagesUsed) {
     m_textureEvicted = 1;
   }
 }
 
 void CGxString::GenerateVertexIndices() {
-  static const unsigned short baseIndices[6] = {0, 1, 3, 1, 2, 3};
-  IGXUTEXTLINE              **textLine;
-  TEXTLINETEXTURE           **textureLine;
+  static const WORD baseIndices[6] = {0, 1, 3, 1, 2, 3};
+  IGXUTEXTLINE    **textLine;
+  TEXTLINETEXTURE **textureLine;
 
   for (textLine = m_textBlock.m_lines.Ptr(); textLine < m_textBlock.m_lines.Ptr() + m_textBlock.m_lines.Count(); ++textLine) {
     for (textureLine = (*textLine)->m_texturePages.Ptr(); textureLine < (*textLine)->m_texturePages.Ptr() + (*textLine)->m_texturePages.Count();
          ++textureLine)
     {
       TEXTLINETEXTURE *page = *textureLine;
-      unsigned int     numVerts = page->m_vert.Count();
+      UINT             numVerts = page->m_vert.Count();
       ASSERT(!(numVerts % 4));
 
-      unsigned int numQuads = numVerts / 4;
+      UINT numQuads = numVerts / 4;
       page->m_vertIndices.SetCount(numQuads * 6);
 
-      for (unsigned int quad = 0; quad < numQuads; ++quad) {
-        for (unsigned int index = 0; index < 6; ++index) {
-          page->m_vertIndices[quad * 6 + index] = static_cast<unsigned short>(quad * 4 + baseIndices[index]);
+      for (UINT quad = 0; quad < numQuads; ++quad) {
+        for (UINT index = 0; index < 6; ++index) {
+          page->m_vertIndices[quad * 6 + index] = static_cast<WORD>(quad * 4 + baseIndices[index]);
         }
       }
     }
@@ -1604,7 +1594,7 @@ void CGxString::RemoveShadow() {
   m_flags &= ~m_flags & 0x1;
 }
 
-void CGxFont::RegisterEvictNotice(unsigned int pageNumber) {
+void CGxFont::RegisterEvictNotice(UINT pageNumber) {
   ASSERT(pageNumber < 8);
 
   ITERATELIST(CGxString, m_strings, string) {
@@ -1612,7 +1602,7 @@ void CGxFont::RegisterEvictNotice(unsigned int pageNumber) {
   }
 }
 
-int CGxFont::CheckStringGlyphs(const char *string) {
+int CGxFont::CheckStringGlyphs(LPCSTR string) {
   while (*string) {
     if (*string != '\n' && !m_activeCharacters.Ptr(static_cast<signed char>(*string), s_nullHashKey)) {
       return 0;
@@ -1645,7 +1635,7 @@ int CGxFont::UpdateDimensions() {
   ASSERT(theFace);
 
   float baseLine = theFace->ascender / (fabs(static_cast<float>(theFace->descender)) + theFace->ascender) * m_pixelSize;
-  m_baseline = static_cast<unsigned int>(baseLine + SignOf(baseLine) * 0.5f);
+  m_baseline = static_cast<UINT>(baseLine + SignOf(baseLine) * 0.5f);
 
   m_cellHeight = m_pixelSize;
   if (m_flags & 0x1) {
@@ -1661,7 +1651,7 @@ int CGxFont::UpdateDimensions() {
   return !error;
 }
 
-const CHARCODEDESC *CGxFont::NewCodeDesc(unsigned int code) {
+const CHARCODEDESC *CGxFont::NewCodeDesc(UINT code) {
   CHARCODEDESC *desc = m_activeCharacters.Ptr(code, s_nullHashKey);
   if (desc) {
     m_activeCharacterCache.LinkNode(desc, LIST_HEAD, 0);
@@ -1682,7 +1672,7 @@ const CHARCODEDESC *CGxFont::NewCodeDesc(unsigned int code) {
     m_glyphBitmapData.Insert(data, code, s_nullHashKey);
   }
 
-  unsigned int textureNumber = 0;
+  UINT textureNumber = 0;
   while (textureNumber < 8 && m_textureCache[textureNumber].m_texture) {
     desc = m_textureCache[textureNumber].AllocateNewGlyph(data);
     if (desc) {
@@ -1708,7 +1698,7 @@ const CHARCODEDESC *CGxFont::NewCodeDesc(unsigned int code) {
       textureNumber = oldestDesc->textureNumber;
       ASSERT(textureNumber < (sizeof(m_textureCache) / sizeof(m_textureCache[0])));
 
-      unsigned int  rowNumber = oldestDesc->rowNumber;
+      UINT          rowNumber = oldestDesc->rowNumber;
       TEXTURECACHE *texture = &m_textureCache[textureNumber];
       ASSERT(rowNumber < texture->m_textureRows.Count());
 
@@ -1737,7 +1727,7 @@ const CHARCODEDESC *CGxFont::NewCodeDesc(unsigned int code) {
   return desc;
 }
 
-int CGxFont::GetGlyphData(GLYPHBITMAPDATA *glyphData, FT_Face face, unsigned int code) {
+int CGxFont::GetGlyphData(GLYPHBITMAPDATA *glyphData, FT_Face face, UINT code) {
   ASSERT(face);
   ASSERT(glyphData);
 
@@ -1778,14 +1768,14 @@ int CGxString::Initialize(
     float                      blockWidth,
     float                      blockHeight,
     CGxFont                   *face,
-    const char                *text,
+    LPCSTR                     text,
     EGxFontVJusts              vertJust,
     EGxFontHJusts              horzJust,
     float                      spacing,
-    unsigned int               flags,
+    UINT                       flags,
     const NTempest::CImVector &color
 ) {
-  unsigned int textLen;
+  UINT textLen;
 
   ASSERT(text);
   ASSERT(face);
@@ -1825,11 +1815,11 @@ int CGxString::Initialize(
   return 1;
 }
 
-unsigned int CGxFont::GetNumCurrentTextures() {
-  unsigned int count = 0;
-  int          emptyFound = 0;
+UINT CGxFont::GetNumCurrentTextures() {
+  UINT count = 0;
+  int  emptyFound = 0;
 
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     if (m_textureCache[i].m_texture) {
       ASSERT(!emptyFound);
       ++count;
@@ -1841,20 +1831,20 @@ unsigned int CGxFont::GetNumCurrentTextures() {
   return count;
 }
 
-float CGxFont::GetCharAdvance(unsigned int code) {
+float CGxFont::GetCharAdvance(UINT code) {
   GLYPHBITMAPDATA *glyph = m_glyphBitmapData.Ptr(code, s_nullHashKey);
 
   ASSERT(glyph);
   return glyph->m_glyphAdvance * m_pixelsPerUnit;
 }
 
-int CGxFont::Initialize(const char *name, unsigned int newFlags, float fontHeight) {
+int CGxFont::Initialize(LPCSTR name, UINT newFlags, float fontHeight) {
   ASSERT(name && *name);
 
   SStrPrintf(m_fontName, sizeof(m_fontName), "%s", name);
   m_requestedFontHeight = fontHeight;
   m_currentFontHeight = max(fontHeight, 2.0f / static_cast<float>(g_heightPixels));
-  m_pixelSize = min(static_cast<unsigned int>(ScreenToPixelHeight(0, m_currentFontHeight)), 32u);
+  m_pixelSize = min(static_cast<UINT>(ScreenToPixelHeight(0, m_currentFontHeight)), 32u);
 
   if (!m_pixelSize) {
     FATALERROR(
@@ -1877,7 +1867,7 @@ int CGxFont::Initialize(const char *name, unsigned int newFlags, float fontHeigh
   return UpdateDimensions();
 }
 
-float CGxFont::ComputeStep(unsigned int currentCode, unsigned int nextCode) {
+float CGxFont::ComputeStep(UINT currentCode, UINT nextCode) {
   KERNNODE *node = m_kernInfo.Ptr(currentCode, KERNINGHASHKEY(currentCode, nextCode));
 
   if (node && (node->flags & 0x2)) {
@@ -1889,8 +1879,8 @@ float CGxFont::ComputeStep(unsigned int currentCode, unsigned int nextCode) {
   FT_Face theFace = FontFaceGetFace(m_faceHandle);
   ASSERT(theFace);
 
-  unsigned int currentGlyph;
-  FT_Vector    vector;
+  UINT      currentGlyph;
+  FT_Vector vector;
 
   currentGlyph = FT_Get_Char_Index(theFace, currentCode);
   vector.x = 0;
@@ -1913,7 +1903,7 @@ float CGxFont::ComputeStep(unsigned int currentCode, unsigned int nextCode) {
   return node->proporportionalSpacing;
 }
 
-float CGxFont::ComputeStepFixedWidth(unsigned int currentCode, unsigned int nextCode) {
+float CGxFont::ComputeStepFixedWidth(UINT currentCode, UINT nextCode) {
   KERNNODE *node = m_kernInfo.Ptr(currentCode, KERNINGHASHKEY(currentCode, nextCode));
 
   if (node && (node->flags & 0x1)) {
@@ -1925,25 +1915,25 @@ float CGxFont::ComputeStepFixedWidth(unsigned int currentCode, unsigned int next
   nextGlyph = m_glyphBitmapData.Ptr(nextCode, s_nullHashKey);
 
   if (currentGlyph && nextGlyph) {
-    unsigned int currentAdvance = static_cast<unsigned int>(currentGlyph->m_glyphAdvance * m_pixelsPerUnit);
+    UINT currentAdvance = static_cast<UINT>(currentGlyph->m_glyphAdvance * m_pixelsPerUnit);
 
     if (currentAdvance >= m_cellHeight) {
       return static_cast<float>(m_cellHeight);
     }
 
-    unsigned int currentPadding = m_cellHeight - currentAdvance;
+    UINT currentPadding = m_cellHeight - currentAdvance;
     if (currentPadding & 0x1) {
       --currentPadding;
     }
 
-    unsigned int spacing = m_cellHeight - currentPadding / 2;
-    unsigned int nextAdvance = static_cast<unsigned int>(nextGlyph->m_glyphAdvance * m_pixelsPerUnit);
+    UINT spacing = m_cellHeight - currentPadding / 2;
+    UINT nextAdvance = static_cast<UINT>(nextGlyph->m_glyphAdvance * m_pixelsPerUnit);
 
     if (nextAdvance >= m_cellHeight) {
       return static_cast<float>(spacing);
     }
 
-    unsigned int nextPadding = m_cellHeight - nextAdvance;
+    UINT nextPadding = m_cellHeight - nextAdvance;
     if (nextPadding & 0x1) {
       --nextPadding;
     }
@@ -1972,7 +1962,7 @@ void CGxString::HandleScreenSizeChange() {
   CreateGeometry();
 }
 
-const char *CGxFont::GetName() const {
+LPCSTR CGxFont::GetName() const {
   ASSERT(m_faceHandle);
   return FontFaceGetFontName(m_faceHandle);
 }
@@ -2005,7 +1995,7 @@ void CGxFont::Clear() {
 }
 
 void CGxFont::ClearGlyphs() {
-  unsigned int i;
+  UINT i;
 
   for (i = 0; i < 8; ++i) {
     m_textureCache[i].Clear();
@@ -2025,7 +2015,7 @@ CGxFont::~CGxFont() {
 }
 
 void CGxFont::UpdateTextures() {
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     m_textureCache[i].Update();
   }
 }
@@ -2034,7 +2024,7 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC *&desc) {
   ASSERT(desc);
   ASSERT(desc->bitmapData);
 
-  unsigned int pixelsNeeded = desc->bitmapData->m_glyphCellWidth;
+  UINT pixelsNeeded = desc->bitmapData->m_glyphCellWidth;
   ASSERT(pixelsNeeded);
 
   CHARCODEDESC *current = glyphList.Head();
@@ -2046,9 +2036,9 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC *&desc) {
     FATALERROR(("Error, can't locate cell in the row to evict!"));
   }
 
-  unsigned int freedPixels = 0;
+  UINT freedPixels = 0;
   while (desc && freedPixels < pixelsNeeded) {
-    unsigned int currentCellUsage = desc->glyphEndPixel - desc->glyphStartPixel + 1;
+    UINT currentCellUsage = desc->glyphEndPixel - desc->glyphStartPixel + 1;
     ASSERT(currentCellUsage);
     freedPixels += currentCellUsage + desc->GapToNextTexture();
     desc = glyphList.DeleteNode(desc);
@@ -2057,7 +2047,7 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC *&desc) {
   if (!desc && freedPixels < pixelsNeeded) {
     desc = glyphList.Tail();
     while (desc && freedPixels < pixelsNeeded) {
-      unsigned int currentCellUsage = desc->glyphEndPixel - desc->glyphStartPixel + 1;
+      UINT currentCellUsage = desc->glyphEndPixel - desc->glyphStartPixel + 1;
       ASSERT(currentCellUsage);
       freedPixels += currentCellUsage + desc->GapToPreviousTexture();
       desc = glyphList.DeleteNode(desc);
@@ -2068,7 +2058,7 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC *&desc) {
   current = glyphList.Head();
   widestFreeSlot = current ? current->GapToPreviousTexture() : 0;
   while (current) {
-    unsigned int gap = current->GapToNextTexture();
+    UINT gap = current->GapToNextTexture();
     if (gap > widestFreeSlot) {
       widestFreeSlot = gap;
     }
@@ -2076,9 +2066,9 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC *&desc) {
   }
 }
 
-CHARCODEDESC *TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA *data, unsigned int rowNumber, unsigned int glyphCellHeight) {
+CHARCODEDESC *TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA *data, UINT rowNumber, UINT glyphCellHeight) {
   int           inserted;
-  unsigned int  glyphWidth = data->m_glyphCellWidth;
+  UINT          glyphWidth = data->m_glyphCellWidth;
   CHARCODEDESC *next;
   CHARCODEDESC *current;
   CHARCODEDESC *newNode;
@@ -2158,14 +2148,14 @@ CHARCODEDESC *TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA *data, unsigned int
 TEXTURECACHE::TEXTURECACHE() : m_anyDirtyGlyphs(1), m_data(0), m_texture(0), m_theFace(0), m_page(0) {
 }
 
-void TEXTURECACHE::Initialize(CGxFont *face, unsigned int thePage, unsigned int pixelSize) {
+void TEXTURECACHE::Initialize(CGxFont *face, UINT thePage, UINT pixelSize) {
   m_theFace = face;
   m_page = thePage;
   ASSERT(pixelSize);
 
-  unsigned int rowCount = 256 / pixelSize;
+  UINT rowCount = 256 / pixelSize;
   m_textureRows.SetCount(rowCount);
-  for (unsigned int row = 0; row < rowCount; ++row) {
+  for (UINT row = 0; row < rowCount; ++row) {
     m_textureRows[row].widestFreeSlot = 256;
   }
 }
@@ -2192,13 +2182,13 @@ void TEXTURECACHE::Update() {
 
 void TEXTURECACHE::TextureCallback(
     EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
+    UINT          w,
+    UINT          h,
+    UINT          d,
+    UINT          mipLevel,
+    LPVOID        userArg,
+    UINT         &texelStrideInBytes,
+    LPCVOID      &texels
 ) {
   ASSERT(w);
   ASSERT(h);
@@ -2207,14 +2197,7 @@ void TEXTURECACHE::TextureCallback(
   static_cast<TEXTURECACHE *>(userArg)->TextureCallbackHandler(cmd, w, h, mipLevel, texelStrideInBytes, texels);
 }
 
-void TEXTURECACHE::TextureCallbackHandler(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  mipLevel,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+void TEXTURECACHE::TextureCallbackHandler(EGxTexCommand cmd, UINT w, UINT h, UINT mipLevel, UINT &texelStrideInBytes, LPCVOID &texels) {
   ASSERT(w);
   ASSERT(h);
 
@@ -2223,7 +2206,7 @@ void TEXTURECACHE::TextureCallbackHandler(
   }
 
   if (!m_data) {
-    unsigned int dataSize = 4 * w * h;
+    UINT dataSize = 4 * w * h;
     m_data = ALLOC(dataSize);
     memset(m_data, 0, dataSize);
   }
@@ -2235,11 +2218,11 @@ void TEXTURECACHE::TextureCallbackHandler(
     return;
   }
 
-  unsigned int glyphHeight = m_theFace->m_cellHeight;
+  UINT glyphHeight = m_theFace->m_cellHeight;
   ASSERT(glyphHeight);
 
-  unsigned int count = m_textureRows.Count();
-  for (unsigned int row = 0; row < count; ++row) {
+  UINT count = m_textureRows.Count();
+  for (UINT row = 0; row < count; ++row) {
     ITERATELIST(CHARCODEDESC, m_textureRows[row].glyphList, current) {
       if (!current->bitmapData->m_dirty) {
         continue;
@@ -2253,7 +2236,7 @@ void TEXTURECACHE::TextureCallbackHandler(
 
       GLYPHBITMAPDATA *glyphData = current->bitmapData;
       ASSERT(glyphData->m_yStart <= glyphHeight);
-      unsigned long *dst = static_cast<unsigned long *>(m_data) + row * glyphHeight * 256 + current->glyphStartPixel;
+      DWORD *dst = static_cast<DWORD *>(m_data) + row * glyphHeight * 256 + current->glyphStartPixel;
       PasteGlyph(glyphData, dst, m_theFace->m_flags & 0x8);
     }
   }
@@ -2265,8 +2248,8 @@ CHARCODEDESC *TEXTURECACHE::AllocateNewGlyph(GLYPHBITMAPDATA *data) {
   ASSERT(data);
   ASSERT(m_theFace);
 
-  unsigned int count = m_textureRows.Count();
-  for (unsigned int row = 0; row < count; ++row) {
+  UINT count = m_textureRows.Count();
+  for (UINT row = 0; row < count; ++row) {
     CHARCODEDESC *desc = m_textureRows[row].CreateNewDesc(data, row, m_theFace->m_cellHeight);
     if (desc) {
       m_anyDirtyGlyphs = 1;
@@ -2279,7 +2262,7 @@ CHARCODEDESC *TEXTURECACHE::AllocateNewGlyph(GLYPHBITMAPDATA *data) {
 }
 
 void IGXUTEXTBLOCK::Destroy() {
-  for (unsigned int i = 0; i < m_lines.Count(); ++i) {
+  for (UINT i = 0; i < m_lines.Count(); ++i) {
     if (m_lines[i]) {
       DEL(m_lines[i]);
     }
@@ -2287,7 +2270,7 @@ void IGXUTEXTBLOCK::Destroy() {
 }
 
 void IGXUTEXTBLOCK::Recycle() {
-  for (unsigned int i = 0; i < m_lines.Count(); ++i) {
+  for (UINT i = 0; i < m_lines.Count(); ++i) {
     m_lines[i]->Recycle();
   }
 
@@ -2313,7 +2296,7 @@ IGXUTEXTLINE *IGXUTEXTLINE::NewGxuTextLine() {
 }
 
 void IGXUTEXTLINE::Destroy() {
-  for (unsigned int i = 0; i < m_texturePages.Count(); ++i) {
+  for (UINT i = 0; i < m_texturePages.Count(); ++i) {
     if (m_texturePages[i]) {
       DEL(m_texturePages[i]);
     }
@@ -2321,7 +2304,7 @@ void IGXUTEXTLINE::Destroy() {
 }
 
 void IGXUTEXTLINE::Recycle() {
-  for (unsigned int i = 0; i < m_texturePages.Count(); ++i) {
+  for (UINT i = 0; i < m_texturePages.Count(); ++i) {
     m_texturePages[i]->Recycle();
   }
 
@@ -2329,8 +2312,8 @@ void IGXUTEXTLINE::Recycle() {
   g_freeTextLines.LinkNode(this, LIST_TAIL, 0);
 }
 
-void IGXUTEXTLINE::Reserve(unsigned int numTextLineTextures) {
-  unsigned int i;
+void IGXUTEXTLINE::Reserve(UINT numTextLineTextures) {
+  UINT i;
 
   for (i = 0; i < m_texturePages.Count(); ++i) {
     m_texturePages[i]->Recycle();
@@ -2377,7 +2360,7 @@ void BATCHEDRENDERFONTDESC::RenderBatch() {
   float                     maxx;
   float                     miny;
   float                     maxy;
-  unsigned int              i;
+  UINT                      i;
 
   ASSERT(face);
 
@@ -2398,7 +2381,7 @@ void BATCHEDRENDERFONTDESC::RenderBatch() {
       GxRsSet(GxRs_DepthTest, depth);
       GxRsSet(GxRs_Fog, depth);
 
-      matrices = s_stringViewMatrices.Ptr(reinterpret_cast<unsigned int>(string), HASHKEY_PTR(string));
+      matrices = s_stringViewMatrices.Ptr(reinterpret_cast<UINT>(string), HASHKEY_PTR(string));
       if (!matrices) {
         matrices = GetNewStringMatrix(string);
         string->BuildProjection(&matrices->projection, minx, maxx, miny, maxy, pixWidth, pixHeight);
@@ -2421,8 +2404,8 @@ BATCHEDRENDERFONTDESC::~BATCHEDRENDERFONTDESC() {
 }
 
 void CGxStringBatch::RenderBatch() {
-  NTempest::C44Matrix    oldView;
-  NTempest::C44Matrix    oldProjection;
+  NTempest::C44Matrix oldView;
+  NTempest::C44Matrix oldProjection;
 
   GxVertexShaderSelect(GxVS_PassThru);
   GxXformProjection(oldProjection);
@@ -2443,9 +2426,9 @@ void CGxStringBatch::AddString(CGxString *string) {
   currentFace = string->GetCurrentFace();
   ASSERT(currentFace);
 
-  BATCHEDRENDERFONTDESC *batchDesc = m_fontBatch.Ptr(reinterpret_cast<unsigned int>(currentFace), HASHKEY_PTR(currentFace));
+  BATCHEDRENDERFONTDESC *batchDesc = m_fontBatch.Ptr(reinterpret_cast<UINT>(currentFace), HASHKEY_PTR(currentFace));
   if (!batchDesc) {
-    batchDesc = m_fontBatch.New(reinterpret_cast<unsigned int>(currentFace), HASHKEY_PTR(currentFace), 0, 0);
+    batchDesc = m_fontBatch.New(reinterpret_cast<UINT>(currentFace), HASHKEY_PTR(currentFace), 0, 0);
     batchDesc->face = currentFace;
   } else {
     ASSERT(batchDesc->face == currentFace);
@@ -2455,7 +2438,7 @@ void CGxStringBatch::AddString(CGxString *string) {
 }
 
 inline void CGxString::ClearStringMatrixEntry() {
-  STRINGVIEWMATRICES *matrices = s_stringViewMatrices.Ptr(reinterpret_cast<unsigned int>(this), HASHKEY_PTR(this));
+  STRINGVIEWMATRICES *matrices = s_stringViewMatrices.Ptr(reinterpret_cast<UINT>(this), HASHKEY_PTR(this));
 
   if (matrices) {
     s_stringViewMatrices.Unlink(matrices);
@@ -2483,8 +2466,8 @@ void CGxString::CheckEvictedTextures() {
   }
 }
 
-unsigned int CGxString::GetHyperLinkInfo(const GXUFONTHYPERLINKINFO *&list) const {
-  unsigned int count = m_hyperlinkInfo.Count();
+UINT CGxString::GetHyperLinkInfo(const GXUFONTHYPERLINKINFO *&list) const {
+  UINT count = m_hyperlinkInfo.Count();
 
   if (!count || !g_widthPixels || !g_heightPixels) {
     return 0;
@@ -2495,7 +2478,7 @@ unsigned int CGxString::GetHyperLinkInfo(const GXUFONTHYPERLINKINFO *&list) cons
 }
 
 int CGxString::SetGradient(int startCharacter, int length) {
-  unsigned int flags;
+  UINT flags;
 
   if (startCharacter < 0 || length < 0) {
     return 2;
@@ -2523,7 +2506,7 @@ int CGxString::SetGradient(int startCharacter, int length) {
   return SetGradient(startCharacter, length, m_colorGradients, m_fontColor.a);
 }
 
-int CGxString::SetGradient(int startCharacter, int length, const TSGrowableArray<NTempest::CImVector *> &array, unsigned char alpha) {
+int CGxString::SetGradient(int startCharacter, int length, const TSGrowableArray<NTempest::CImVector *> &array, BYTE alpha) {
   int verts = static_cast<int>(array.Count());
   int startIndex;
   int index;
@@ -2551,7 +2534,7 @@ int CGxString::SetGradient(int startCharacter, int length, const TSGrowableArray
     while (1) {
       array[index++]->a = alpha;
       array[index++]->a = alpha;
-      alpha = static_cast<unsigned char>(max(static_cast<int>(alpha) - gradient, 0));
+      alpha = static_cast<BYTE>(max(static_cast<int>(alpha) - gradient, 0));
       array[index++]->a = alpha;
       array[index++]->a = alpha;
 
@@ -2583,13 +2566,13 @@ void IGxuStringShutdown() {
   s_freeStringMatrices.Clear();
 }
 
-void InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numBytes, float height, float *extent, unsigned int flags) {
-  float        width = 0.0f;
-  float        lastWidth = 0.0f;
-  float        maxWidth = 0.0f;
-  unsigned int advance;
-  unsigned int wide;
-  unsigned int prevCode = 0;
+void InternalGetTextExtent(CGxFont *face, LPCSTR text, UINT numBytes, float height, float *extent, UINT flags) {
+  float width = 0.0f;
+  float lastWidth = 0.0f;
+  float maxWidth = 0.0f;
+  UINT  advance;
+  UINT  wide;
+  UINT  prevCode = 0;
 
   FATALASSERT(face);
 
@@ -2602,7 +2585,7 @@ void InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numByte
   }
 
   while (*text && numBytes) {
-    QUOTEDCODE   quoted = GxuDetermineQuotedCode(text, advance, 0, flags, wide, numBytes);
+    QUOTEDCODE quoted = GxuDetermineQuotedCode(text, advance, 0, flags, wide, numBytes);
 
     text += advance;
     numBytes -= advance;
@@ -2659,29 +2642,29 @@ void InternalGetTextExtent(CGxFont *face, const char *text, unsigned int numByte
   }
 }
 
-unsigned int InternalGetMaxCharsWithinWidth(
-    CGxFont      *face,
-    const char   *text,
-    float         height,
-    float         maxWidth,
-    unsigned int  lineBytes,
-    float        *extent,
-    unsigned int  flags,
-    unsigned int *bytesInString,
-    float        *widthArray,
-    float        *widthArrayGuard
+UINT InternalGetMaxCharsWithinWidth(
+    CGxFont *face,
+    LPCSTR   text,
+    float    height,
+    float    maxWidth,
+    UINT     lineBytes,
+    float   *extent,
+    UINT     flags,
+    UINT    *bytesInString,
+    float   *widthArray,
+    float   *widthArrayGuard
 ) {
-  unsigned int numChars = 0;
-  float        pixelWidth;
-  float        pixelHeight;
-  unsigned int pixWidth;
-  float        pixelScale;
-  float        width = 0.0f;
-  float        lastWidth = 0.0f;
-  unsigned int advance;
-  unsigned int wide;
-  unsigned int prevCode = 0;
-  const char  *originalText;
+  UINT   numChars = 0;
+  float  pixelWidth;
+  float  pixelHeight;
+  UINT   pixWidth;
+  float  pixelScale;
+  float  width = 0.0f;
+  float  lastWidth = 0.0f;
+  UINT   advance;
+  UINT   wide;
+  UINT   prevCode = 0;
+  LPCSTR originalText;
 
   FATALASSERT(face);
 
@@ -2698,12 +2681,12 @@ unsigned int InternalGetMaxCharsWithinWidth(
   if (pixelHeight < 1.0f) {
     pixelHeight = 1.0f;
   }
-  pixWidth = static_cast<unsigned int>(pixelWidth / pixelHeight + 1.0f);
+  pixWidth = static_cast<UINT>(pixelWidth / pixelHeight + 1.0f);
   pixelScale = ScreenToPixelHeight(flags & 0x80, height) / face->m_pixelSize;
   originalText = text;
 
   while (*text && lineBytes) {
-    QUOTEDCODE   quoted = GxuDetermineQuotedCode(text, advance, 0, flags, wide, lineBytes);
+    QUOTEDCODE quoted = GxuDetermineQuotedCode(text, advance, 0, flags, wide, lineBytes);
 
     text += advance;
     lineBytes -= advance;
@@ -2768,7 +2751,7 @@ unsigned int InternalGetMaxCharsWithinWidth(
   }
 
   if (bytesInString) {
-    *bytesInString = static_cast<unsigned int>(text - originalText);
+    *bytesInString = static_cast<UINT>(text - originalText);
   }
 
   return numChars;
@@ -2785,7 +2768,7 @@ void CGxString::RenderTexture(bool initGxRenderStates, int texture) {
     GxRsSet(GxRs_Blend, GxBlend_Alpha);
   }
 
-  unsigned int line = m_textBlock.m_lines.Count();
+  UINT line = m_textBlock.m_lines.Count();
   while (line) {
     --line;
     RenderTexture(static_cast<int>(line), texture);
@@ -2825,7 +2808,7 @@ void TEXTLINETEXTURE::InternalRenderTexture(
   GxRsSet(GxRs_Texture0, texture);
   face->UpdateTextures();
 
-  unsigned int numVerts = m_vert.Count();
+  UINT numVerts = m_vert.Count();
   if (!numVerts) {
     return;
   }
@@ -2834,7 +2817,7 @@ void TEXTLINETEXTURE::InternalRenderTexture(
   const NTempest::CImVector *shadowPointer;
   const NTempest::CImVector *colorPointer;
   int                        shadowStride;
-  unsigned int               colorStride;
+  UINT                       colorStride;
 
   if (m_shadowColors.Count()) {
     shadowPointer = m_shadowColors.Ptr();
@@ -2890,8 +2873,8 @@ void CGxString::AddShadow(const NTempest::C2Vector &offset, const NTempest::CImV
 void CGxString::AddShadowFixedGeometry() {
   NTempest::C3Vector offset3;
   TEXTLINETEXTURE   *p;
-  unsigned int       i;
-  unsigned int       ti;
+  UINT               i;
+  UINT               ti;
   IGXUTEXTLINE     **curr;
 
   offset3.x = static_cast<float>(floor(ScreenToPixelWidth(false, m_shadowOffset.x)));
@@ -2904,10 +2887,9 @@ void CGxString::AddShadowFixedGeometry() {
       p = (*curr)->m_texturePages[ti];
       p->m_shadowColors.SetCount(p->m_vert.Count());
 
-      for (unsigned int vi = 0; vi < p->m_vert.Count(); ++vi) {
+      for (UINT vi = 0; vi < p->m_vert.Count(); ++vi) {
         p->m_shadowColors[vi] = m_shadowColor;
       }
     }
   }
 }
-

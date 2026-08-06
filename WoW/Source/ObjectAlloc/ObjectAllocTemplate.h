@@ -3,36 +3,36 @@
 
 #include <storm.h>
 
-int ObjectAlloc(unsigned int heapId, unsigned int *memHandle);
-unsigned int ObjectAllocAddHeap(unsigned int objectSize, unsigned int objsPerBlock, const char *name);
-void ObjectAllocDestroy();
-void ObjectAllocInitialize();
-unsigned int ObjectAllocUsage(unsigned int heapId);
-void ObjectFree(unsigned int memHandle);
-void *ObjectPtr(unsigned int memHandle);
+int    ObjectAlloc(UINT heapId, UINT *memHandle);
+UINT   ObjectAllocAddHeap(UINT objectSize, UINT objsPerBlock, LPCSTR name);
+void   ObjectAllocDestroy();
+void   ObjectAllocInitialize();
+UINT   ObjectAllocUsage(UINT heapId);
+void   ObjectFree(UINT memHandle);
+LPVOID ObjectPtr(UINT memHandle);
 
 class TObjectAllocMemHandle {
  public:
-  unsigned int GetMemHandle() {
+  UINT GetMemHandle() {
     return memHandle;
   }
 
-  void SetMemHandle(unsigned int handle) {
+  void SetMemHandle(UINT handle) {
     memHandle = handle;
   }
 
-  unsigned int memHandle;
+  UINT memHandle;
 };
 
 template <class T>
 class TObjectAlloc {
  public:
-  TObjectAlloc(const char *heapName, unsigned int objectsPerBlock) : m_ID(ObjectAllocAddHeap(sizeof(T), objectsPerBlock, heapName)) {
+  TObjectAlloc(LPCSTR heapName, UINT objectsPerBlock) : m_ID(ObjectAllocAddHeap(sizeof(T), objectsPerBlock, heapName)) {
   }
 
   T *New() {
-    unsigned int memHandle;
-    T           *obj = 0;
+    UINT memHandle;
+    T   *obj = 0;
 
     if (ObjectAlloc(m_ID, &memHandle)) {
       obj = static_cast<T *>(ObjectPtr(memHandle));
@@ -48,7 +48,7 @@ class TObjectAlloc {
   }
 
  private:
-  unsigned int m_ID;
+  UINT m_ID;
 };
 
 #endif

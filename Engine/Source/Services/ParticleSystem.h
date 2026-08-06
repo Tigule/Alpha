@@ -57,30 +57,32 @@ class CParticleEmitter {
   CParticleEmitter &operator=(const CParticleEmitter &rhs);
   ~CParticleEmitter();
 
-  float Velocity();
-  float Acceleration();
-  float Scale();
-  float Latitude();
-  float Longitude();
-  float ParticleEmissionRate();
-  float ParticleLifeSpan();
-  void Enabled(int enable);
-  void Enabled2(int enable);
-  void Update(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector);
-  void AddToModelScene();
-  void Render();
-  void Flush();
-  void SetVelocity(float vel);
-  void SetAcceleration(float accel);
-  void SetScale(float scale);
-  void SetLatitude(float latInDegrees);
-  void SetLongitude(float longitudeInDegrees);
-  void SetParticleEmissionRate(float particlesPerSec);
-  void SetParticleLifeSpan(float lifeInSec);
-  void SetModel(HMODEL hmodel);
-  HMODEL GetModel() { return m_hmodel; }
+  float  Velocity();
+  float  Acceleration();
+  float  Scale();
+  float  Latitude();
+  float  Longitude();
+  float  ParticleEmissionRate();
+  float  ParticleLifeSpan();
+  void   Enabled(int enable);
+  void   Enabled2(int enable);
+  void   Update(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector);
+  void   AddToModelScene();
+  void   Render();
+  void   Flush();
+  void   SetVelocity(float vel);
+  void   SetAcceleration(float accel);
+  void   SetScale(float scale);
+  void   SetLatitude(float latInDegrees);
+  void   SetLongitude(float longitudeInDegrees);
+  void   SetParticleEmissionRate(float particlesPerSec);
+  void   SetParticleLifeSpan(float lifeInSec);
+  void   SetModel(HMODEL hmodel);
+  HMODEL GetModel() {
+    return m_hmodel;
+  }
   CParticleEmitter *AddRef();
-  void DecRef();
+  void              DecRef();
 
  private:
   void Init();
@@ -91,7 +93,7 @@ class CParticleEmitter {
   void MoveParticle(CParticle &p, float elapsedTime);
   void Destroy();
 
-  unsigned int               m_refCount;
+  UINT                       m_refCount;
   float                      m_numNew;
   int                        m_enabled;
   int                        m_enabled2;

@@ -5,13 +5,13 @@
 #include <malloc.h>
 
 struct CAnimNameHash : public TSHashObject<CAnimNameHash, HASHKEY_CONSTSTRI> {
-  unsigned int index;
+  UINT index;
 };
 
 typedef TSHashTable<CAnimNameHash, HASHKEY_CONSTSTRI> CAnimNameHashTable;
 
 int CAnimData::Animates() {
-  unsigned int index;
+  UINT index;
   for (index = 0; index < geo.Count(); ++index) {
     if (geo[index].visibility.TotalKeys() || geo[index].color.TotalKeys()) {
       return 1;
@@ -41,7 +41,7 @@ int CAnimData::Animates() {
       return 1;
     }
   }
-  unsigned int numEventEmitters = eventObjs.Count();
+  UINT numEventEmitters = eventObjs.Count();
   for (index = 0; index < numEventEmitters; ++index) {
     CAnimEventObj &eventObject = eventObjs[index];
     if (eventObject.Animates() || (eventObject.flags & 0x3F) || eventObject.events.TotalKeys()) {
@@ -60,21 +60,20 @@ int CAnimTransform::Animates() {
   return translation.TotalKeys() || rotation.TotalKeys() || scale.TotalKeys();
 }
 
-unsigned int CAnimTransform::Bytes() const {
-  return translation.CKeyFrameTrackBase::Bytes() + rotation.CKeyFrameTrackBase::Bytes() +
-         scale.CKeyFrameTrackBase::Bytes();
+UINT CAnimTransform::Bytes() const {
+  return translation.CKeyFrameTrackBase::Bytes() + rotation.CKeyFrameTrackBase::Bytes() + scale.CKeyFrameTrackBase::Bytes();
 }
 
 int CAnimVisibleObj::Animates() {
   return visibility.TotalKeys() != 0;
 }
 
-unsigned int CAnimVisibleObj::Bytes() const {
+UINT CAnimVisibleObj::Bytes() const {
   return visibility.CKeyFrameTrackBase::Bytes();
 }
 
 int CAnimData::Moves() {
-  for (unsigned int index = 0; index < boneObjs.Count(); ++index) {
+  for (UINT index = 0; index < boneObjs.Count(); ++index) {
     CAnimBoneObj &bone = boneObjs[index];
     if (bone.CAnimTransform::Animates() || (bone.flags & 0x3F)) {
       return 1;
@@ -83,8 +82,8 @@ int CAnimData::Moves() {
   return 0;
 }
 
-static void HashNameList(const char **names, unsigned int numNames, CAnimNameHashTable *table) {
-  unsigned int i;
+static void HashNameList(LPCSTR *names, UINT numNames, CAnimNameHashTable *table) {
+  UINT i;
 
   for (i = 0; i < numNames; ++i) {
     ASSERT(!table->Ptr(names[i]));
@@ -94,8 +93,8 @@ static void HashNameList(const char **names, unsigned int numNames, CAnimNameHas
   }
 }
 
-static void SetObjectIndexOrdering(const CAnimNameHashTable &table, unsigned int *ordering, CAnimObj **itemList, unsigned int numItems) {
-  unsigned int i;
+static void SetObjectIndexOrdering(const CAnimNameHashTable &table, UINT *ordering, CAnimObj **itemList, UINT numItems) {
+  UINT i;
 
   for (i = 0; i < numItems; ++i) {
     const CAnimNameHash *nameHash = table.Ptr(itemList[i]->name);
@@ -106,9 +105,8 @@ static void SetObjectIndexOrdering(const CAnimNameHashTable &table, unsigned int
   }
 }
 
-static void
-SetCameraIndexOrdering(const CAnimNameHashTable &table, unsigned int *ordering, CAnimCameraObj *itemList, unsigned int numItems) {
-  unsigned int i;
+static void SetCameraIndexOrdering(const CAnimNameHashTable &table, UINT *ordering, CAnimCameraObj *itemList, UINT numItems) {
+  UINT i;
 
   for (i = 0; i < numItems; ++i) {
     const CAnimNameHash *nameHash = table.Ptr(itemList[i].name);
@@ -120,18 +118,18 @@ SetCameraIndexOrdering(const CAnimNameHashTable &table, unsigned int *ordering, 
 }
 
 static void SetSeqFrequencies(const CArray<CVariations> &ordering, CArray<CAnimSequence> *itemList) {
-  unsigned int numAnimations = ordering.Count();
-  unsigned int variation;
-  unsigned int i;
+  UINT numAnimations = ordering.Count();
+  UINT variation;
+  UINT i;
 
   for (i = 0; i < numAnimations; ++i) {
     if (ordering[i].primary == 0xFF) {
       continue;
     }
 
-    unsigned int numVariations = ordering[i].variation.Count();
-    unsigned int numMissingFreq = 1;
-    unsigned int defaultFreq = 0;
+    UINT numVariations = ordering[i].variation.Count();
+    UINT numMissingFreq = 1;
+    UINT defaultFreq = 0;
 
     for (variation = 0; variation < numVariations; ++variation) {
       CAnimSequence &sequence = (*itemList)[ordering[i].variation[variation]];
@@ -155,16 +153,16 @@ static void SetSeqFrequencies(const CArray<CVariations> &ordering, CArray<CAnimS
 }
 
 static void SetSeqIndexOrdering(const CAnimNameHashTable &table, CArray<CVariations> *ordering, const CArray<CAnimSequence> &itemList) {
-  unsigned int                                  numSeqTypes = ordering->Count();
-  TSStackArray<TSGrowableArray<unsigned char> > variations(_alloca(numSeqTypes * sizeof(TSGrowableArray<unsigned char>)), numSeqTypes, numSeqTypes);
-  const char                                    whitespace[3] = "\t ";
-  unsigned int                                  numItems = itemList.Count();
-  unsigned int                                  i;
+  UINT                                 numSeqTypes = ordering->Count();
+  TSStackArray<TSGrowableArray<BYTE> > variations(_alloca(numSeqTypes * sizeof(TSGrowableArray<BYTE>)), numSeqTypes, numSeqTypes);
+  const char                           whitespace[3] = "\t ";
+  UINT                                 numItems = itemList.Count();
+  UINT                                 i;
 
   for (i = 0; i < numItems; ++i) {
-    const char *name = reinterpret_cast<const char *>(&itemList[i].name);
-    const char *source = name;
-    char        seqName[80];
+    LPCSTR name = reinterpret_cast<LPCSTR>(&itemList[i].name);
+    LPCSTR source = name;
+    char   seqName[80];
 
     SStrTokenize(&source, seqName, sizeof(seqName), whitespace, 0);
 
@@ -179,22 +177,22 @@ static void SetSeqIndexOrdering(const CAnimNameHashTable &table, CArray<CVariati
       continue;
     }
 
-    const char *primaryName = reinterpret_cast<const char *>(&itemList[sequenceOrder.primary].name);
+    LPCSTR primaryName = reinterpret_cast<LPCSTR>(&itemList[sequenceOrder.primary].name);
     if (SStrLen(name) < SStrLen(primaryName)) {
-      unsigned char previousPrimary = sequenceOrder.primary;
+      BYTE previousPrimary = sequenceOrder.primary;
       variations[nameHash->index].Add(1, &previousPrimary);
       sequenceOrder.primary = i;
     } else {
-      variations[nameHash->index].Add(1, reinterpret_cast<const unsigned char *>(&i));
+      variations[nameHash->index].Add(1, reinterpret_cast<const BYTE *>(&i));
     }
   }
 
-  for (unsigned int seqType = 0; seqType < numSeqTypes; ++seqType) {
+  for (UINT seqType = 0; seqType < numSeqTypes; ++seqType) {
     (*ordering)[seqType].variation.Exchange(&variations[seqType]);
   }
 }
 
-static int ApplyObjectLookAtType(HANIM anim, unsigned int objectId, const NTempest::C3Vector &target, unsigned int lookAtTypeFlag) {
+static int ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3Vector &target, UINT lookAtTypeFlag) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -202,7 +200,7 @@ static int ApplyObjectLookAtType(HANIM anim, unsigned int objectId, const NTempe
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<unsigned int>(-1)) {
+  if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
   ASSERT(objectId < unique->status.Count());
@@ -218,7 +216,7 @@ static int ApplyObjectLookAtType(HANIM anim, unsigned int objectId, const NTempe
     unique->lookAtTarget[status->lookAtId] = target;
   } else {
     ASSERT(unique->lookAtTarget.Count() < 0xFF);
-    status->lookAtId = static_cast<unsigned char>(unique->lookAtTarget.Count());
+    status->lookAtId = static_cast<BYTE>(unique->lookAtTarget.Count());
     unique->lookAtTarget.Add(1, &target);
   }
 
@@ -229,7 +227,7 @@ static int ApplyObjectLookAtType(HANIM anim, unsigned int objectId, const NTempe
   return 1;
 }
 
-static int RemoveObjectLookAtType(HANIM anim, unsigned int objectId, unsigned int lookAtTypeFlag) {
+static int RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -237,23 +235,22 @@ static int RemoveObjectLookAtType(HANIM anim, unsigned int objectId, unsigned in
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<unsigned int>(-1)) {
+  if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
   ASSERT(objectId < unique->status.Count());
 
   CAnimObjStatus *status = unique->status[objectId];
   if (status->base.flags & lookAtTypeFlag) {
-    unsigned int lookAtId = status->lookAtId;
+    UINT lookAtId = status->lookAtId;
     status->base.flags = (status->base.flags & ~lookAtTypeFlag) | 4;
 
     if (lookAtId < unique->lookAtTarget.Count() - 1) {
       memmove(
-          &unique->lookAtTarget[lookAtId],
-          &unique->lookAtTarget[lookAtId + 1],
+          &unique->lookAtTarget[lookAtId], &unique->lookAtTarget[lookAtId + 1],
           (unique->lookAtTarget.Count() - 1 - lookAtId) * sizeof(NTempest::C3Vector)
       );
-      for (unsigned int i = 0; i < unique->status.Count(); ++i) {
+      for (UINT i = 0; i < unique->status.Count(); ++i) {
         if (unique->status[i]->lookAtId > lookAtId) {
           --unique->status[i]->lookAtId;
         }
@@ -268,7 +265,7 @@ static int RemoveObjectLookAtType(HANIM anim, unsigned int objectId, unsigned in
   return 1;
 }
 
-static int AnimObjectUsingLookAtType(HANIM anim, unsigned int objectId, unsigned int lookAtTypeFlag) {
+static int AnimObjectUsingLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -277,7 +274,7 @@ static int AnimObjectUsingLookAtType(HANIM anim, unsigned int objectId, unsigned
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<unsigned int>(-1)) {
+  if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
 
@@ -294,8 +291,8 @@ void AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks) {
   unique->appEvent.callback = 0;
   unique->appEvent.param = 0;
 
-  unsigned int numSequences = unique->seq.Count();
-  unsigned int index;
+  UINT numSequences = unique->seq.Count();
+  UINT index;
   if (onlyResetCallbacks) {
     for (index = 0; index < numSequences; ++index) {
       unique->seq[index].finished.callback = 0;
@@ -310,7 +307,7 @@ void AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks) {
   }
   unique->seqLastTime = IAnimGetCurrTimeMs();
 
-  unsigned int numObjects = unique->status.Count();
+  UINT numObjects = unique->status.Count();
   for (index = 0; index < numObjects; ++index) {
     unique->status[index]->base.flags = 0x10;
   }
@@ -340,9 +337,9 @@ void AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks) {
   }
 }
 
-void AnimEnumObjects(HANIM anim, int(*callbackfcn)(unsigned int, const char *, void *), void *param) {
-  CAnim       *unique = reinterpret_cast<CAnim *>(anim);
-  unsigned int numObjects;
+void AnimEnumObjects(HANIM anim, int (*callbackfcn)(UINT, LPCSTR, LPVOID), LPVOID param) {
+  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  UINT   numObjects;
 
   ASSERT(unique);
   ASSERT(callbackfcn);
@@ -351,7 +348,7 @@ void AnimEnumObjects(HANIM anim, int(*callbackfcn)(unsigned int, const char *, v
   ASSERT(ptr);
 
   numObjects = ptr->obj.Count();
-  for (unsigned int i = 0; i < numObjects; ++i) {
+  for (UINT i = 0; i < numObjects; ++i) {
     ASSERT(ptr->obj[i]);
     if (!callbackfcn(i, ptr->obj[i]->name, param)) {
       break;
@@ -359,7 +356,7 @@ void AnimEnumObjects(HANIM anim, int(*callbackfcn)(unsigned int, const char *, v
   }
 }
 
-int AnimGetSequenceDuration(HANIM anim, unsigned int seqIndex, unsigned int *duration) {
+int AnimGetSequenceDuration(HANIM anim, UINT seqIndex, UINT *duration) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   ASSERT(duration);
@@ -376,7 +373,7 @@ int AnimGetSequenceDuration(HANIM anim, unsigned int seqIndex, unsigned int *dur
   return 1;
 }
 
-int AnimGetSequenceName(HANIM anim, unsigned int seqIndex, char *buffer, unsigned int buffLength) {
+int AnimGetSequenceName(HANIM anim, UINT seqIndex, char *buffer, UINT buffLength) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   ASSERT(buffer);
@@ -390,11 +387,11 @@ int AnimGetSequenceName(HANIM anim, unsigned int seqIndex, char *buffer, unsigne
     return 0;
   }
 
-  SStrCopy(buffer, reinterpret_cast<const char *>(&shared->seq[selection.primary].name), buffLength);
+  SStrCopy(buffer, reinterpret_cast<LPCSTR>(&shared->seq[selection.primary].name), buffLength);
   return 1;
 }
 
-int AnimGetSequenceMoveSpeed(HANIM anim, unsigned int seqIndex, float *moveSpeed) {
+int AnimGetSequenceMoveSpeed(HANIM anim, UINT seqIndex, float *moveSpeed) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   ASSERT(moveSpeed);
@@ -411,7 +408,7 @@ int AnimGetSequenceMoveSpeed(HANIM anim, unsigned int seqIndex, float *moveSpeed
   return 1;
 }
 
-int AnimHasSequenceId(HANIM anim, unsigned int seqIndex) {
+int AnimHasSequenceId(HANIM anim, UINT seqIndex) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -420,7 +417,7 @@ int AnimHasSequenceId(HANIM anim, unsigned int seqIndex) {
   return shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary != 0xFF;
 }
 
-unsigned int AnimGetNumSequences(HANIM anim) {
+UINT AnimGetNumSequences(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -429,7 +426,7 @@ unsigned int AnimGetNumSequences(HANIM anim) {
   return shared->seq.Count();
 }
 
-void AnimSetObjectOrdering(HANIM anim, const char **boneNames, unsigned int numBones) {
+void AnimSetObjectOrdering(HANIM anim, LPCSTR *boneNames, UINT numBones) {
   if (!numBones) {
     return;
   }
@@ -448,12 +445,10 @@ void AnimSetObjectOrdering(HANIM anim, const char **boneNames, unsigned int numB
   shared->objectOrder.SetCount(numBones);
   memset(shared->objectOrder.Ptr(), 0xFF, shared->objectOrder.Bytes());
 
-  SetObjectIndexOrdering(
-      objNameHashTable, shared->objectOrder.Ptr(), shared->obj.Ptr(), shared->obj.Count()
-  );
+  SetObjectIndexOrdering(objNameHashTable, shared->objectOrder.Ptr(), shared->obj.Ptr(), shared->obj.Count());
 }
 
-void AnimResetObjectOrdering(HANIM__* anim) {
+void AnimResetObjectOrdering(HANIM__ *anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -461,7 +456,7 @@ void AnimResetObjectOrdering(HANIM__* anim) {
 
   shared->objectOrder.ReserveSpace(shared->obj.Count());
   shared->objectOrder.SetCount(shared->obj.Count());
-  for (unsigned int i = 0; i < shared->obj.Count(); ++i) {
+  for (UINT i = 0; i < shared->obj.Count(); ++i) {
     shared->objectOrder[i] = i;
   }
 }
@@ -473,16 +468,16 @@ void AnimSetSequenceOrderingDefault(HANIM anim) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < shared->seqOrder.Count(); ++i) {
     if (!shared->seqOrder[i].nameListUsed) {
-      unique->seqMapIndex = static_cast<unsigned char>(i);
+      unique->seqMapIndex = static_cast<BYTE>(i);
       return;
     }
   }
 
   ASSERT(shared->seqOrder.Count() < 0xFE);
-  unique->seqMapIndex = static_cast<unsigned char>(shared->seqOrder.Count());
+  unique->seqMapIndex = static_cast<BYTE>(shared->seqOrder.Count());
 
   CSeqOrdering *sequenceOrder = shared->seqOrder.New();
   sequenceOrder->nameListUsed = 0;
@@ -494,7 +489,7 @@ void AnimSetSequenceOrderingDefault(HANIM anim) {
   }
 }
 
-void AnimSetSequenceOrdering(HANIM anim, const char **sequenceNames, unsigned int numSequences) {
+void AnimSetSequenceOrdering(HANIM anim, LPCSTR *sequenceNames, UINT numSequences) {
   if (!numSequences) {
     return;
   }
@@ -506,7 +501,7 @@ void AnimSetSequenceOrdering(HANIM anim, const char **sequenceNames, unsigned in
   ASSERT(shared);
   ASSERT(sequenceNames);
 
-  for (unsigned char index = 0; index < shared->seqOrder.Count(); ++index) {
+  for (BYTE index = 0; index < shared->seqOrder.Count(); ++index) {
     if (shared->seqOrder[index].nameListUsed == sequenceNames) {
       unique->seqMapIndex = index;
       SetSeqFrequencies(shared->seqOrder[index].order, &shared->seq);
@@ -518,7 +513,7 @@ void AnimSetSequenceOrdering(HANIM anim, const char **sequenceNames, unsigned in
   HashNameList(sequenceNames, numSequences, &seqNameHashTable);
 
   ASSERT(shared->seqOrder.Count() < 0xFE);
-  unique->seqMapIndex = static_cast<unsigned char>(shared->seqOrder.Count());
+  unique->seqMapIndex = static_cast<BYTE>(shared->seqOrder.Count());
 
   CSeqOrdering *sequenceOrder = shared->seqOrder.New();
   sequenceOrder->order.ReserveSpace(numSequences);
@@ -529,7 +524,7 @@ void AnimSetSequenceOrdering(HANIM anim, const char **sequenceNames, unsigned in
   SetSeqFrequencies(sequenceOrder->order, &shared->seq);
 }
 
-void AnimSetCameraOrdering(HANIM anim, const char **cameraNames, unsigned int numCameras, TSFixedArray<unsigned int> *cameraOrder) {
+void AnimSetCameraOrdering(HANIM anim, LPCSTR *cameraNames, UINT numCameras, TSFixedArray<UINT> *cameraOrder) {
   if (!numCameras) {
     return;
   }
@@ -545,28 +540,26 @@ void AnimSetCameraOrdering(HANIM anim, const char **cameraNames, unsigned int nu
   HashNameList(cameraNames, numCameras, &objNameHashTable);
 
   cameraOrder->SetCount(numCameras);
-  memset(cameraOrder->Ptr(), 0xFF, numCameras * sizeof(unsigned int));
+  memset(cameraOrder->Ptr(), 0xFF, numCameras * sizeof(UINT));
 
-  SetCameraIndexOrdering(
-      objNameHashTable, cameraOrder->Ptr(), shared->cameraObjs.Ptr(), shared->cameraObjs.Count()
-  );
+  SetCameraIndexOrdering(objNameHashTable, cameraOrder->Ptr(), shared->cameraObjs.Ptr(), shared->cameraObjs.Count());
 }
 
-void AnimResetCameraOrdering(HANIM anim, TSFixedArray<unsigned int> *cameraOrder) {
+void AnimResetCameraOrdering(HANIM anim, TSFixedArray<UINT> *cameraOrder) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  unsigned int numCameras = shared->cameraObjs.Count();
+  UINT numCameras = shared->cameraObjs.Count();
   cameraOrder->SetCount(numCameras);
-  for (unsigned int i = 0; i < numCameras; ++i) {
+  for (UINT i = 0; i < numCameras; ++i) {
     (*cameraOrder)[i] = i;
   }
 }
 
-unsigned int AnimGetFlags(HANIM anim) {
+UINT AnimGetFlags(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -575,15 +568,15 @@ unsigned int AnimGetFlags(HANIM anim) {
   return shared->flags;
 }
 
-unsigned int AnimGetTotalKeys(HANIM anim) {
+UINT AnimGetTotalKeys(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  unsigned int totalKeys = 0;
-  unsigned int i;
+  UINT totalKeys = 0;
+  UINT i;
   for (i = 0; i < shared->geo.Count(); ++i) {
     totalKeys += shared->geo[i].visibility.TotalKeys();
     totalKeys += shared->geo[i].color.TotalKeys();
@@ -632,7 +625,7 @@ unsigned int AnimGetTotalKeys(HANIM anim) {
   return totalKeys;
 }
 
-unsigned int AnimGetAttachmentObjId(HANIM__* anim, unsigned int index) {
+UINT AnimGetAttachmentObjId(HANIM__ *anim, UINT index) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -641,7 +634,7 @@ unsigned int AnimGetAttachmentObjId(HANIM__* anim, unsigned int index) {
   return index < shared->modelObjs.Count() ? shared->modelObjs[index].animObjId : 0;
 }
 
-BOOL AnimIsAttachmentEnabled(HANIM anim, unsigned int index) {
+BOOL AnimIsAttachmentEnabled(HANIM anim, UINT index) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
 
   ASSERT(unique);
@@ -650,7 +643,7 @@ BOOL AnimIsAttachmentEnabled(HANIM anim, unsigned int index) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  unsigned int geosetId = shared->modelObjs[index].geosetId;
+  UINT geosetId = shared->modelObjs[index].geosetId;
 
   if (!unique->modelStatus[index].IsVisible()) {
     return 0;
@@ -667,7 +660,7 @@ BOOL AnimIsAttachmentEnabled(HANIM anim, unsigned int index) {
   return 0;
 }
 
-int AnimIsCameraEnabled(HANIM anim, unsigned int index) {
+int AnimIsCameraEnabled(HANIM anim, UINT index) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
 
   ASSERT(unique);
@@ -676,7 +669,7 @@ int AnimIsCameraEnabled(HANIM anim, unsigned int index) {
   return unique->cameraStatus[index].IsVisible();
 }
 
-void AnimSetSeqFinishedHandler(HANIM anim, ANIMSEQFINISHEDHANDLER callback, void *param) {
+void AnimSetSeqFinishedHandler(HANIM anim, ANIMSEQFINISHEDHANDLER callback, LPVOID param) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
 
   ASSERT(unique);
@@ -684,7 +677,7 @@ void AnimSetSeqFinishedHandler(HANIM anim, ANIMSEQFINISHEDHANDLER callback, void
   unique->anySeqFinished.param = param;
 }
 
-void AnimSetSeqFinishedHandler(HANIM anim, unsigned int sequence, ANIMSEQFINISHEDHANDLER callback, void *param) {
+void AnimSetSeqFinishedHandler(HANIM anim, UINT sequence, ANIMSEQFINISHEDHANDLER callback, LPVOID param) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -699,8 +692,8 @@ void AnimSetSeqFinishedHandler(HANIM anim, unsigned int sequence, ANIMSEQFINISHE
 
   unique->seq[sequences.primary].finished.callback = callback;
   unique->seq[sequences.primary].finished.param = param;
-  unsigned int   numVariations = sequences.variation.Count();
-  unsigned char *variation = sequences.variation.Ptr();
+  UINT  numVariations = sequences.variation.Count();
+  BYTE *variation = sequences.variation.Ptr();
   while (numVariations) {
     unique->seq[*variation].finished.callback = callback;
     unique->seq[*variation].finished.param = param;
@@ -709,7 +702,7 @@ void AnimSetSeqFinishedHandler(HANIM anim, unsigned int sequence, ANIMSEQFINISHE
   }
 }
 
-int AnimGetPrimarySequence(HANIM anim, unsigned int *sequence) {
+int AnimGetPrimarySequence(HANIM anim, UINT *sequence) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
 
   ASSERT(unique);
@@ -740,8 +733,8 @@ float AnimGetPrimarySequenceCompletion(HANIM anim) {
     return 0.0f;
   }
 
-  float completion = static_cast<float>(unique->seq[unique->primarySeq].elapsed - sequence.time.l) /
-                     static_cast<float>(sequence.time.h - sequence.time.l);
+  float completion =
+      static_cast<float>(unique->seq[unique->primarySeq].elapsed - sequence.time.l) / static_cast<float>(sequence.time.h - sequence.time.l);
   if (completion < 0.0f) {
     return 0.0f;
   }
@@ -770,7 +763,7 @@ int AnimNeedsSequenceBounds(HANIM anim) {
   return 0;
 }
 
-void AnimSetEventCallback(HANIM anim, void(*callback)(const char *, const NTempest::C3Vector &, void *), void *param) {
+void AnimSetEventCallback(HANIM anim, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
 
   ASSERT(unique);
@@ -778,23 +771,23 @@ void AnimSetEventCallback(HANIM anim, void(*callback)(const char *, const NTempe
   unique->appEvent.param = param;
 }
 
-int AnimObjectUsingLookAt(HANIM anim, unsigned int objectId) {
+int AnimObjectUsingLookAt(HANIM anim, UINT objectId) {
   return AnimObjectUsingLookAtType(anim, objectId, 2);
 }
 
-int AnimApplyObjectLookAt(HANIM anim, unsigned int objectId, const NTempest::C3Vector &target) {
+int AnimApplyObjectLookAt(HANIM anim, UINT objectId, const NTempest::C3Vector &target) {
   return ApplyObjectLookAtType(anim, objectId, target, 2);
 }
 
-int AnimRemoveObjectLookAt(HANIM anim, unsigned int objectId) {
+int AnimRemoveObjectLookAt(HANIM anim, UINT objectId) {
   return RemoveObjectLookAtType(anim, objectId, 2);
 }
 
-int AnimObjectUsingFaceDir(HANIM anim, unsigned int objectId) {
+int AnimObjectUsingFaceDir(HANIM anim, UINT objectId) {
   return AnimObjectUsingLookAtType(anim, objectId, 0x40);
 }
 
-int AnimApplyObjectFaceDir(HANIM anim, unsigned int objectId, NTempest::C3Vector direction) {
+int AnimApplyObjectFaceDir(HANIM anim, UINT objectId, NTempest::C3Vector direction) {
   float magnitude = direction.Mag();
   if (NTempest::CMath::fabs_(magnitude) >= 0.00000023841858f) {
     float inverseMagnitude = 1.0f / magnitude;
@@ -805,7 +798,7 @@ int AnimApplyObjectFaceDir(HANIM anim, unsigned int objectId, NTempest::C3Vector
   return ApplyObjectLookAtType(anim, objectId, direction, 0x40);
 }
 
-int AnimRemoveObjectFaceDir(HANIM anim, unsigned int objectId) {
+int AnimRemoveObjectFaceDir(HANIM anim, UINT objectId) {
   return RemoveObjectLookAtType(anim, objectId, 0x40);
 }
 
@@ -822,7 +815,7 @@ void AnimEnableBlending(HANIM anim, int enable) {
 
   if (enable) {
     unique->flags |= 0x10;
-    unsigned int numObjects = unique->status.Count();
+    UINT numObjects = unique->status.Count();
     unique->blendStatus.ReserveSpace(numObjects);
     unique->blendStatus.SetCount(numObjects);
   } else {
@@ -832,13 +825,13 @@ void AnimEnableBlending(HANIM anim, int enable) {
   }
 }
 
-int AnimMarkFootstepSequence(HANIM anim, unsigned int index) {
+int AnimMarkFootstepSequence(HANIM anim, UINT index) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  unsigned int sequence = shared->seqOrder[unique->seqMapIndex].order[index].primary;
+  UINT sequence = shared->seqOrder[unique->seqMapIndex].order[index].primary;
   if (sequence == 0xFF) {
     return 0;
   }
@@ -847,15 +840,15 @@ int AnimMarkFootstepSequence(HANIM anim, unsigned int index) {
   return 1;
 }
 
-int AnimLockObjectSequence(HANIM anim, unsigned int objectId, int set) {
+int AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
-  unsigned int sharedObjectId = shared->objectOrder[objectId];
-  if (sharedObjectId == static_cast<unsigned int>(-1)) {
+  UINT sharedObjectId = shared->objectOrder[objectId];
+  if (sharedObjectId == static_cast<UINT>(-1)) {
     return 0;
   }
   ASSERT(sharedObjectId < shared->obj.Count());
@@ -868,7 +861,7 @@ int AnimLockObjectSequence(HANIM anim, unsigned int objectId, int set) {
   return 1;
 }
 
-int AnimHasObjectId(HANIM anim, unsigned int objectId) {
+int AnimHasObjectId(HANIM anim, UINT objectId) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -876,10 +869,10 @@ int AnimHasObjectId(HANIM anim, unsigned int objectId) {
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
-  return shared->objectOrder[objectId] != static_cast<unsigned int>(-1);
+  return shared->objectOrder[objectId] != static_cast<UINT>(-1);
 }
 
-int AnimEventEmitterHasKeysThisSeq(HANIM anim, unsigned int objectId) {
+int AnimEventEmitterHasKeysThisSeq(HANIM anim, UINT objectId) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -888,7 +881,7 @@ int AnimEventEmitterHasKeysThisSeq(HANIM anim, unsigned int objectId) {
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<unsigned int>(-1)) {
+  if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
 
@@ -901,15 +894,14 @@ int AnimEventEmitterHasKeysThisSeq(HANIM anim, unsigned int objectId) {
   ASSERT(status);
 
   CAnimEventObj *eventObject = static_cast<CAnimEventObj *>(currobj);
-  unsigned int   sequence = status->base.currSeq;
+  UINT           sequence = status->base.currSeq;
   if (!eventObject->events.SequenceChanges()) {
     return eventObject->events.TotalKeys() != 0;
   }
   return eventObject->events.NumKeysThisSeq(sequence) != 0;
 }
 
-int
-AnimGetObjectPosition(HANIM anim, unsigned int objectId, const TSFixedArray<NTempest::C3Vector> &positions, NTempest::C3Vector *position) {
+int AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempest::C3Vector> &positions, NTempest::C3Vector *position) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -918,7 +910,7 @@ AnimGetObjectPosition(HANIM anim, unsigned int objectId, const TSFixedArray<NTem
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<unsigned int>(-1)) {
+  if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
 
@@ -927,7 +919,7 @@ AnimGetObjectPosition(HANIM anim, unsigned int objectId, const TSFixedArray<NTem
   return 1;
 }
 
-int AnimGetEventObjectPosition(HANIM anim, unsigned int objectId, NTempest::C3Vector *position) {
+int AnimGetEventObjectPosition(HANIM anim, UINT objectId, NTempest::C3Vector *position) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -936,7 +928,7 @@ int AnimGetEventObjectPosition(HANIM anim, unsigned int objectId, NTempest::C3Ve
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<unsigned int>(-1)) {
+  if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
 

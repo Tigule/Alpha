@@ -1,6 +1,8 @@
 #ifndef ENGINE_SOURCE_IMAGES_BLIT_H
 #define ENGINE_SOURCE_IMAGES_BLIT_H
 
+#include <Base/Base.h>
+
 namespace NTempest {
   class C2iVector;
 }
@@ -28,13 +30,13 @@ enum BlitAlpha {
 void Blit(
     const NTempest::C2iVector &size,
     BlitAlpha                  alpha,
-    const void                *src,
-    unsigned int               srcStride,
+    LPCVOID                    src,
+    UINT                       srcStride,
     BlitFormat                 srcFmt,
-    void                      *dst,
-    unsigned int               dstStride,
+    LPVOID                     dst,
+    UINT                       dstStride,
     BlitFormat                 dstFmt
 );
-unsigned int CalcRowStride(BlitFormat format, unsigned int width);
+UINT CalcRowStride(BlitFormat format, UINT width);
 
 #endif

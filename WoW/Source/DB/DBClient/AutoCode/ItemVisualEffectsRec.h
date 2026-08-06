@@ -7,13 +7,13 @@ class ItemVisualEffectsRec {
   ItemVisualEffectsRec();
   ~ItemVisualEffectsRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 2;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 8;
   }
 
@@ -28,10 +28,10 @@ class ItemVisualEffectsRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_Model;
+  int    m_ID;
+  LPCSTR m_Model;
 };
 
 extern WowClientDB<ItemVisualEffectsRec> g_itemVisualEffectsDB;

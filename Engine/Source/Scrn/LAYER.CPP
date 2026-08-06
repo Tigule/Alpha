@@ -14,30 +14,30 @@
 #include <new>
 
 class CILayer : public CHandleObject {
-public:
-  RECTF rect;
-  RECTF visible;
-  float zorder;
-  unsigned long flags;
-  void *param;
-  void (*paintfunc)(void *, const RECTF *, const RECTF *, float);
+ public:
+  RECTF  rect;
+  RECTF  visible;
+  float  zorder;
+  DWORD  flags;
+  LPVOID param;
+  void (*paintfunc)(LPVOID, const RECTF *, const RECTF *, float);
   LINKDECLEX(CILayer, zorderlink);
 };
 
 typedef char CILayerSizeCheck[sizeof(CILayer) == 0x40 ? 1 : -1];
 
 static const RECTF defaultrect = {0.0f, 0.0f, 1.0f, 1.0f};
-static float s_elapsedSec;
+static float       s_elapsedSec;
 static void (*s_captureScreen)(int);
 static int s_ScrnDisable;
 static LISTDECLEX(CILayer, zorderlink, s_zorderlist);
 
 static int CaptureScreen() {
-  char path[0x104];
-  char timestamp[0x104];
-  CTgaFile tga;
-  unsigned int w;
-  unsigned int h;
+  char                       path[0x104];
+  char                       timestamp[0x104];
+  CTgaFile                   tga;
+  UINT                       w;
+  UINT                       h;
   const NTempest::CImVector *pixels;
 
   GxDevReadScreenShot(w, h, pixels);
@@ -45,11 +45,7 @@ static int CaptureScreen() {
   if (pixels) {
     OsCreateDirectory("Screenshots", 0);
     OsGetTimeStamp(timestamp, sizeof(timestamp));
-    SStrPrintf(path,
-               sizeof(path),
-               "%s\\WoWScrnShot_%s.tga",
-               "Screenshots",
-               timestamp);
+    SStrPrintf(path, sizeof(path), "%s\\WoWScrnShot_%s.tga", "Screenshots", timestamp);
     tga.SetImage(pixels, w, h, 0x20, 8, 1, 0);
     tga.Write(path);
     tga.Close();
@@ -58,22 +54,22 @@ static int CaptureScreen() {
   return pixels != 0;
 }
 
-static int OnIdle(const EVENT_DATA_IDLE *data, void *__formal) {
+static int OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
   s_elapsedSec += data->elapsedSec;
   return 1;
 }
 
-static int OnPaint(const void *, void *) {
+static int OnPaint(LPCVOID, LPVOID) {
   CILayer *layer;
   CILayer *nextLayer;
-  HSRGN rgn;
-  RECTF baseRect;
-  float minX;
-  float maxX;
-  float minY;
-  float maxY;
-  float minZ;
-  float maxZ;
+  HSRGN    rgn;
+  RECTF    baseRect;
+  float    minX;
+  float    maxX;
+  float    minY;
+  float    maxY;
+  float    minZ;
+  float    maxZ;
 
   if (s_ScrnDisable || !GxCapsIsWindowVisible()) {
     return 1;
@@ -92,18 +88,10 @@ static int OnPaint(const void *, void *) {
     CILayer *previousLayer;
 
     SRgnGetBoundingRectf(rgn, &layer->visible);
-    layer->visible.left = layer->rect.left < layer->visible.left
-                            ? layer->visible.left
-                            : layer->rect.left;
-    layer->visible.bottom = layer->rect.bottom < layer->visible.bottom
-                              ? layer->visible.bottom
-                              : layer->rect.bottom;
-    layer->visible.right = layer->rect.right > layer->visible.right
-                             ? layer->visible.right
-                             : layer->rect.right;
-    layer->visible.top = layer->rect.top > layer->visible.top
-                           ? layer->visible.top
-                           : layer->rect.top;
+    layer->visible.left = layer->rect.left < layer->visible.left ? layer->visible.left : layer->rect.left;
+    layer->visible.bottom = layer->rect.bottom < layer->visible.bottom ? layer->visible.bottom : layer->rect.bottom;
+    layer->visible.right = layer->rect.right > layer->visible.right ? layer->visible.right : layer->rect.right;
+    layer->visible.top = layer->rect.top > layer->visible.top ? layer->visible.top : layer->rect.top;
 
     if (!(layer->flags & 1)) {
       SRgnCombineRectf(rgn, &layer->rect, 0, 4);
@@ -120,38 +108,23 @@ static int OnPaint(const void *, void *) {
   while (layer) {
     nextLayer = s_zorderlist.Next(layer);
 
-    if (!(layer->visible.right <= layer->visible.left) &&
-        !(layer->visible.top <= layer->visible.bottom)) {
+    if (!(layer->visible.right <= layer->visible.left) && !(layer->visible.top <= layer->visible.bottom)) {
       if (layer->flags & 4) {
         GxXformSetViewport(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
       } else {
-        GxXformSetViewport(layer->visible.left,
-                          layer->visible.right,
-                          layer->visible.bottom,
-                          layer->visible.top,
-                          0.0f,
-                          1.0f);
+        GxXformSetViewport(layer->visible.left, layer->visible.right, layer->visible.bottom, layer->visible.top, 0.0f, 1.0f);
       }
 
       if (layer->flags & 2) {
         NTempest::C44Matrix identity;
         NTempest::C44Matrix orthoProj;
 
-        GxuXformCreateOrtho(layer->visible.left,
-                            layer->visible.right,
-                            layer->visible.bottom,
-                            layer->visible.top,
-                            0.0f,
-                            500.0f,
-                            orthoProj);
+        GxuXformCreateOrtho(layer->visible.left, layer->visible.right, layer->visible.bottom, layer->visible.top, 0.0f, 500.0f, orthoProj);
         GxXformSetView(identity);
         GxXformSetProjection(orthoProj);
       }
 
-      layer->paintfunc(layer->param,
-                       &layer->rect,
-                       &layer->visible,
-                       s_elapsedSec);
+      layer->paintfunc(layer->param, &layer->rect, &layer->visible, s_elapsedSec);
     }
 
     layer = nextLayer;
@@ -191,14 +164,15 @@ void ILayerPaint() {
 
 void ScrnLayerCreate(
     const RECTF *rect,
-    float zorder,
-    unsigned long flags,
-    void *param,
-    void (*paintfunc)(void *, const RECTF *, const RECTF *, float),
-    HLAYER__ **layer) {
+    float        zorder,
+    DWORD        flags,
+    LPVOID       param,
+    void (*paintfunc)(LPVOID, const RECTF *, const RECTF *, float),
+    HLAYER__ **layer
+) {
   CILayer *newLayer;
   CILayer *existingLayer;
-  void *memory;
+  LPVOID   memory;
 
   if (!rect) {
     rect = &defaultrect;
@@ -220,19 +194,18 @@ void ScrnLayerCreate(
   }
 
   s_zorderlist.LinkNode(newLayer, LIST_LINK_AFTER, existingLayer);
-  *layer = reinterpret_cast<HLAYER__ *>(
-      HandleCreate(newLayer, "HLAYER"));
+  *layer = reinterpret_cast<HLAYER__ *>(HandleCreate(newLayer, "HLAYER"));
 }
 
 void ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect) {
   reinterpret_cast<CILayer *>(layer)->rect = *rect;
 }
 
-unsigned int ScrnLayerGetFlags(HLAYER__ *layer) {
+UINT ScrnLayerGetFlags(HLAYER__ *layer) {
   return reinterpret_cast<CILayer *>(layer)->flags;
 }
 
-void ScrnLayerSetFlags(HLAYER__ *layer, unsigned int flags) {
+void ScrnLayerSetFlags(HLAYER__ *layer, UINT flags) {
   reinterpret_cast<CILayer *>(layer)->flags = flags;
 }
 

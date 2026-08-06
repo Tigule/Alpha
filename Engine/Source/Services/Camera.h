@@ -27,7 +27,7 @@ class CAngle : public TManaged<float> {
   virtual void Set_(const float &angle);
 
  private:
-  void Calc();
+  void  Calc();
   float ClampTo2Pi(float angle);
   float m_cos;
   float m_sin;
@@ -56,7 +56,7 @@ class CCamera : public CDataMgr {
     AddManaged(&m_roll, 5, 0);
     AddManaged(&m_rotation, 6, 0);
   }
-  void SetupWorldProjection(const NTempest::CRect &projectionRect, unsigned int flags);
+  void SetupWorldProjection(const NTempest::CRect &projectionRect, UINT flags);
 
   friend HCAMERA CameraDuplicate(HCAMERA source);
 
@@ -77,6 +77,6 @@ HCAMERA CameraDuplicate(HCAMERA source);
 
 void CameraGetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
 
-void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, unsigned int flags);
+void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, UINT flags);
 
 void CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NTempest::C2Vector &screenPoint, float depth);

@@ -35,10 +35,10 @@ CBackdropGenerator::CBackdropGenerator()
 }
 
 void CBackdropGenerator::LoadXML(const XMLNode *node, CStatus *status) {
-  const char *bgFile = node->GetAttributeByName("bgFile");
-  const char *edgeFile = node->GetAttributeByName("edgeFile");
-  const char *tileString = node->GetAttributeByName("tile");
-  int         tile = 0;
+  LPCSTR bgFile = node->GetAttributeByName("bgFile");
+  LPCSTR edgeFile = node->GetAttributeByName("edgeFile");
+  LPCSTR tileString = node->GetAttributeByName("tile");
+  int    tile = 0;
 
   if (tileString && tileString[0]) {
     tile = StringToBOOL(tileString);

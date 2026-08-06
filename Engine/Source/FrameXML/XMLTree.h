@@ -5,9 +5,9 @@
 
 struct XMLTree;
 
-void __cdecl begin_element(void *userData, const char *name, const char **attributes);
-void __cdecl end_element(void *userData, const char *name);
-void __cdecl handle_body(void *userData, const char *body, int length);
+void __cdecl begin_element(LPVOID userData, LPCSTR name, LPCSTR *attributes);
+void __cdecl end_element(LPVOID userData, LPCSTR name);
+void __cdecl handle_body(LPVOID userData, LPCSTR body, int length);
 
 class XMLNode {
  public:
@@ -16,23 +16,23 @@ class XMLNode {
     char *value;
   };
 
-  XMLNode(XMLNode *parent, const char *name);
+  XMLNode(XMLNode *parent, LPCSTR name);
   ~XMLNode();
 
-  const char *GetName() const {
+  LPCSTR GetName() const {
     return m_name;
   }
 
-  const char *GetBody() const {
+  LPCSTR GetBody() const {
     return m_body;
   }
   int GetNumAttributes() const {
     return m_num_attributes;
   }
-  const char *GetAttributeNameByIndex(int index) const;
-  const char *GetAttributeValueByIndex(int index) const;
-  const char *GetAttributeByName(const char *name) const;
-  int         GetParentBodyOffset() const {
+  LPCSTR GetAttributeNameByIndex(int index) const;
+  LPCSTR GetAttributeValueByIndex(int index) const;
+  LPCSTR GetAttributeByName(LPCSTR name) const;
+  int    GetParentBodyOffset() const {
     return m_offset;
   }
 
@@ -40,16 +40,16 @@ class XMLNode {
     return m_child;
   }
 
-  const XMLNode *GetChildByName(const char *name) const;
+  const XMLNode *GetChildByName(LPCSTR name) const;
 
   const XMLNode *GetSibling() const {
     return m_next;
   }
 
  private:
-  friend void __cdecl begin_element(void *userData, const char *name, const char **attributes);
-  friend void __cdecl end_element(void *userData, const char *name);
-  friend void __cdecl handle_body(void *userData, const char *body, int length);
+  friend void __cdecl begin_element(LPVOID userData, LPCSTR name, LPCSTR *attributes);
+  friend void __cdecl end_element(LPVOID userData, LPCSTR name);
+  friend void __cdecl handle_body(LPVOID userData, LPCSTR body, int length);
 
   XMLNode      *m_parent;
   XMLNode      *m_child;
@@ -61,8 +61,8 @@ class XMLNode {
   XMLNode      *m_next;
 };
 
-XMLTree *XMLTree_Load(const char *buffer, unsigned int bytes);
-void XMLTree_Free(XMLTree *tree);
+XMLTree       *XMLTree_Load(LPCSTR buffer, UINT bytes);
+void           XMLTree_Free(XMLTree *tree);
 const XMLNode *XMLTree_GetRoot(XMLTree *tree);
 
 #endif

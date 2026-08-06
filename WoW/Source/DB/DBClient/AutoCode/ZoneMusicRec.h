@@ -7,13 +7,13 @@ class ZoneMusicRec {
   ZoneMusicRec();
   ~ZoneMusicRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 16;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 64;
   }
 
@@ -28,17 +28,17 @@ class ZoneMusicRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  float       m_VolumeFloat;
-  const char *m_MusicFile[2];
-  int         m_SilenceIntervalMin[2];
-  int         m_SilenceIntervalMax[2];
-  int         m_SegmentLength[2];
-  int         m_SegmentPlayMin[2];
-  int         m_SegmentPlayMax[2];
-  int         m_Sounds[2];
+  int    m_ID;
+  float  m_VolumeFloat;
+  LPCSTR m_MusicFile[2];
+  int    m_SilenceIntervalMin[2];
+  int    m_SilenceIntervalMax[2];
+  int    m_SegmentLength[2];
+  int    m_SegmentPlayMin[2];
+  int    m_SegmentPlayMax[2];
+  int    m_Sounds[2];
 };
 
 extern WowClientDB<ZoneMusicRec> g_zoneMusicDB;

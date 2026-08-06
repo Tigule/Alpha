@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *FactionTemplateRec::GetFilename() {
+LPCSTR FactionTemplateRec::GetFilename() {
   return "DBFilesClient\\FactionTemplate.dbc";
 }
 
@@ -19,7 +19,7 @@ FactionTemplateRec::FactionTemplateRec() {
 FactionTemplateRec::~FactionTemplateRec() {
 }
 
-bool FactionTemplateRec::Read(SFile *f, const char *stringBuffer) {
+bool FactionTemplateRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

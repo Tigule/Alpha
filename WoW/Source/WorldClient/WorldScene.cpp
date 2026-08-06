@@ -18,43 +18,43 @@
 #include <new>
 #include <string.h>
 
-void ShadowRender(HMODEL hModel, const NTempest::C44Matrix &basis, void *param);
+void ShadowRender(HMODEL hModel, const NTempest::C44Matrix &basis, LPVOID param);
 
 LISTDECLEX(CWFrustum, sceneLink, CWorldScene::frustumFreeList);
-CSortTable                      CWorldScene::sortTable;
-NTempest::C4Vector              CWorldScene::clipVertexBuffer[9];
-float                           CWorldScene::clipBuffer[128];
-CMapEntity                     *CWorldScene::camTargEntity;
-CMapObjDef                     *CWorldScene::viewerMapObjDef;
-TSGrowableArray<unsigned int>   CWorldScene::viewerMapObjGroups;
-unsigned int                    CWorldScene::bspStateBits;
-float                           CWorldScene::cullSmallThreshold = 0.01f;
-float                           CWorldScene::cullDistance = 500.0f;
-NTempest::CAaBox                CWorldScene::camFrustumBounds;
-NTempest::C3Vector              CWorldScene::camFrustumCorners[8];
-CWFrustum                       CWorldScene::frustumStack[16];
-int                             CWorldScene::frustumIndex;
-NTempest::C3Vector              CWorldScene::camPos;
-NTempest::C3Vector              CWorldScene::camTarg;
-NTempest::C3Vector              CWorldScene::camVec;
-NTempest::C4Plane               CWorldScene::camPlaneXY;
-unsigned int                    CWorldScene::camLiquid;
-CMapObjDef                     *CWorldScene::camMapObjDef;
-CMapObj                        *CWorldScene::camMapObj;
-CMapObjGroup                   *CWorldScene::camMapObjGroup;
-NTempest::C44Matrix             CWorldScene::mvp;
-NTempest::C44Matrix             CWorldScene::mv;
-NTempest::C44Matrix             CWorldScene::mp;
-NTempest::C3Vector              CWorldScene::vpMinPos;
-NTempest::C3Vector              CWorldScene::vpMaxPos;
-NTempest::C4Plane               CWorldScene::vpPlanes[4];
-NTempest::C4Vector              CWorldScene::mvpCol3;
-NTempest::C44Matrix             CWorldScene::gxViewMat;
-unsigned int                    CWorldScene::nPrimsRendered;
-unsigned int                    CWorldScene::nChunksRendered;
-unsigned int                    CWorldScene::nDoodadsRendered;
-unsigned int                    CWorldScene::nObjectsRendered;
-char                            CWorldScene::currentChunkName[64];
+CSortTable            CWorldScene::sortTable;
+NTempest::C4Vector    CWorldScene::clipVertexBuffer[9];
+float                 CWorldScene::clipBuffer[128];
+CMapEntity           *CWorldScene::camTargEntity;
+CMapObjDef           *CWorldScene::viewerMapObjDef;
+TSGrowableArray<UINT> CWorldScene::viewerMapObjGroups;
+UINT                  CWorldScene::bspStateBits;
+float                 CWorldScene::cullSmallThreshold = 0.01f;
+float                 CWorldScene::cullDistance = 500.0f;
+NTempest::CAaBox      CWorldScene::camFrustumBounds;
+NTempest::C3Vector    CWorldScene::camFrustumCorners[8];
+CWFrustum             CWorldScene::frustumStack[16];
+int                   CWorldScene::frustumIndex;
+NTempest::C3Vector    CWorldScene::camPos;
+NTempest::C3Vector    CWorldScene::camTarg;
+NTempest::C3Vector    CWorldScene::camVec;
+NTempest::C4Plane     CWorldScene::camPlaneXY;
+UINT                  CWorldScene::camLiquid;
+CMapObjDef           *CWorldScene::camMapObjDef;
+CMapObj              *CWorldScene::camMapObj;
+CMapObjGroup         *CWorldScene::camMapObjGroup;
+NTempest::C44Matrix   CWorldScene::mvp;
+NTempest::C44Matrix   CWorldScene::mv;
+NTempest::C44Matrix   CWorldScene::mp;
+NTempest::C3Vector    CWorldScene::vpMinPos;
+NTempest::C3Vector    CWorldScene::vpMaxPos;
+NTempest::C4Plane     CWorldScene::vpPlanes[4];
+NTempest::C4Vector    CWorldScene::mvpCol3;
+NTempest::C44Matrix   CWorldScene::gxViewMat;
+UINT                  CWorldScene::nPrimsRendered;
+UINT                  CWorldScene::nChunksRendered;
+UINT                  CWorldScene::nDoodadsRendered;
+UINT                  CWorldScene::nObjectsRendered;
+char                  CWorldScene::currentChunkName[64];
 
 void CSortTable::Initialize() {
 }
@@ -63,7 +63,7 @@ void CSortTable::Destroy() {
 }
 
 void CSortTable::Clear() {
-  for (unsigned int index = 0; index < 26; ++index) {
+  for (UINT index = 0; index < 26; ++index) {
     CMapChunk *chunk = table[index].chunkList.Head();
     while (chunk) {
       CMapChunk *next = table[index].chunkList.Next(chunk);
@@ -71,7 +71,7 @@ void CSortTable::Clear() {
       chunk = next;
     }
 
-    for (unsigned int type = 0; type < 4; ++type) {
+    for (UINT type = 0; type < 4; ++type) {
       CChunkLiquid *liquid = table[index].liquidList[type].Head();
       while (liquid) {
         CChunkLiquid *next = table[index].liquidList[type].Next(liquid);
@@ -136,7 +136,7 @@ void CWorldScene::Destroy() {
 CWFrustum *CWorldScene::AllocFrustum() {
   CWFrustum *frustum = frustumFreeList.Head();
   if (!frustum) {
-    void *storage = SMemAlloc(sizeof(CWFrustum), typeid(CWFrustum).INTERNALRAWNAME(), -2, 8);
+    LPVOID storage = SMemAlloc(sizeof(CWFrustum), typeid(CWFrustum).INTERNALRAWNAME(), -2, 8);
     frustum = storage ? new (storage) CWFrustum : 0;
     frustumFreeList.LinkNode(frustum, LIST_TAIL, 0);
     FATALASSERT(frustum);
@@ -156,10 +156,10 @@ void CWorldScene::PrepareRenderLiquid() {
   NTempest::C3Vector lqDir(0.0f, 0.0f, 0.0f);
   NTempest::C3Vector camQueryPos = camPos;
   float              lqSurface;
-  unsigned int       newLiquid = 15;
+  UINT               newLiquid = 15;
   int                forceFullUpdate = 0;
 
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     if (camFrustumCorners[i].z < camQueryPos.z) {
       camQueryPos.z = camFrustumCorners[i].z;
     }
@@ -242,7 +242,7 @@ void CWorldScene::Render() {
   max = saveMax - (saveMax - saveMin) * 0.05f;
   GxXformSetViewport(saveMin.x, saveMax.x, saveMin.y, saveMax.y, saveMin.z, max.z);
 
-  for (unsigned int i = 0; i < GxCaps().m_numTmus; ++i) {
+  for (UINT i = 0; i < GxCaps().m_numTmus; ++i) {
     GxRsSet(static_cast<EGxRenderState>(GxRs_TexLodBias0 + i), -CWorld::texLodBias);
   }
 
@@ -262,7 +262,7 @@ void CWorldScene::Render() {
     ClipBufferClear();
     CullMapObjDef(viewerMapObjDef, viewerMapObjGroups);
     s_extViewList.Set(CMapObj::extViewList.Count(), CMapObj::extViewList.Ptr());
-    for (unsigned int i = 0; i < s_extViewList.Count(); ++i) {
+    for (UINT i = 0; i < s_extViewList.Count(); ++i) {
       ClipBufferClear();
       CullSortTable(s_extViewList[i]);
     }
@@ -355,7 +355,7 @@ void CWorldScene::AddMapChunk(CMapChunk *chunk, float sortDist) {
   sortTable.table[sortIndex].chunkList.LinkNode(chunk, LIST_TAIL, 0);
 }
 
-void CWorldScene::AddChunkLiquid(CChunkLiquid *liquid, unsigned int type) {
+void CWorldScene::AddChunkLiquid(CChunkLiquid *liquid, UINT type) {
   FATALASSERT(liquid);
   FATALASSERT(type < 4);
   int sortIndex = static_cast<int>(liquid->chunk->camDist * 0.03f - 0.5f);
@@ -381,12 +381,7 @@ void CWorldScene::AddMapEntity(CMapEntity *entity) {
   sortTable.table[sortIndex].entityList.LinkNode(entity, LIST_TAIL, 0);
 }
 
-void CWorldScene::ClipBufferUpdate(
-    const NTempest::C3Vector *vertices,
-    const int                *indicies,
-    const int                 nVertices,
-    const NTempest::C3Vector &corner
-) {
+void CWorldScene::ClipBufferUpdate(const NTempest::C3Vector *vertices, const int *indicies, const int nVertices, const NTempest::C3Vector &corner) {
   FATALASSERT(vertices);
   FATALASSERT(indicies);
   int i;
@@ -433,24 +428,24 @@ void CWorldScene::ClipBufferUpdate(
   }
 }
 
-void CWorldScene::ClipPortal(NTempest::C4Vector *inList, unsigned int &inCount) {
+void CWorldScene::ClipPortal(NTempest::C4Vector *inList, UINT &inCount) {
   static NTempest::C4Vector outList[16];
   NTempest::C4Plane         plane;
-  unsigned int              c[2] = {inCount, 0};
+  UINT                      c[2] = {inCount, 0};
   NTempest::C4Vector       *v[2] = {inList, outList};
 
-  for (unsigned int p = 0; p < 4; ++p) {
+  for (UINT p = 0; p < 4; ++p) {
     plane = vpPlanes[p];
-    unsigned int from = p & 1;
-    unsigned int to = (p - 1) & 1;
+    UINT from = p & 1;
+    UINT to = (p - 1) & 1;
     c[to] = 0;
     if (!c[from]) {
       inCount = 0;
       return;
     }
 
-    for (unsigned int cnt = 0; cnt < c[from]; ++cnt) {
-      unsigned int        idx1 = (cnt + 1) % c[from];
+    for (UINT cnt = 0; cnt < c[from]; ++cnt) {
+      UINT                idx1 = (cnt + 1) % c[from];
       NTempest::C4Vector *v0 = &v[from][cnt];
       NTempest::C4Vector *v1 = &v[from][idx1];
       float               d0 = plane.n.x * v0->x + plane.n.y * v0->y + plane.n.z * v0->w;
@@ -504,8 +499,8 @@ void CWorldScene::LocateViewer() {
   }
 }
 
-void CWorldScene::AddViewerGroup2(unsigned int groupNum) {
-  for (unsigned int i = 0; i < viewerMapObjGroups.Count(); ++i) {
+void CWorldScene::AddViewerGroup2(UINT groupNum) {
+  for (UINT i = 0; i < viewerMapObjGroups.Count(); ++i) {
     if (viewerMapObjGroups[i] == groupNum) {
       return;
     }
@@ -533,14 +528,14 @@ void CWorldScene::LocateViewer3() {
   NTempest::C3Vector lEnd = camPos;
   lEnd.z -= 1760.0f;
 
-  CMapChunk   *chunk;
-  float        chunkT = 1.0f;
-  unsigned int hitChunk = CMap::VectorIntersectTerrain(&lCen, &lEnd, &chunkT, 0, &chunk);
+  CMapChunk *chunk;
+  float      chunkT = 1.0f;
+  UINT       hitChunk = CMap::VectorIntersectTerrain(&lCen, &lEnd, &chunkT, 0, &chunk);
 
-  CMapObjDef  *mapObjDef = 0;
-  unsigned int mapObjDefGroupIDs[2];
-  float        mapObjT = 1.0f;
-  unsigned int hitMapObj = CMap::LocateViewerMapObjs(lCen, lEnd, mapObjT, mapObjDef, mapObjDefGroupIDs);
+  CMapObjDef *mapObjDef = 0;
+  UINT        mapObjDefGroupIDs[2];
+  float       mapObjT = 1.0f;
+  UINT        hitMapObj = CMap::LocateViewerMapObjs(lCen, lEnd, mapObjT, mapObjDef, mapObjDefGroupIDs);
 
   if ((!hitChunk || (hitMapObj && chunkT >= mapObjT)) && hitMapObj) {
     camMapObjDef = mapObjDef;
@@ -595,7 +590,7 @@ void CWorldScene::FrustumSet(const NTempest::CRect &sRect) {
   NTempest::C3Vector br;
   NTempest::C3Vector bl;
 
-  for (unsigned int i = 0; i < 8; i += 4) {
+  for (UINT i = 0; i < 8; i += 4) {
     td = camFrustumCorners[i + FRUST_TR] - camFrustumCorners[i + FRUST_TL];
     tl = camFrustumCorners[i + FRUST_TL] + td * sRect.l;
     tr = camFrustumCorners[i + FRUST_TL] + td * sRect.r;
@@ -631,7 +626,7 @@ void CWorldScene::FrustumSet(const NTempest::C3Vector *corners, const NTempest::
   NTempest::C3Vector b;
   NTempest::C3Vector rd;
 
-  for (unsigned int i = 0; i < 8; i += 4) {
+  for (UINT i = 0; i < 8; i += 4) {
     td = corners[i + 2] - corners[i + 1];
     tl = corners[i + 1] + td * sRect.l;
     tr = corners[i + 1] + td * sRect.r;
@@ -686,7 +681,7 @@ void CWorldScene::FrustumPop() {
 void CWorldScene::CullSortTable(const NTempest::CRect &sRect) {
   FrustumPush();
   FrustumSet(sRect);
-  for (unsigned int index = 0; index < 26; ++index) {
+  for (UINT index = 0; index < 26; ++index) {
     CSortEntry *sortEntry = &sortTable.table[index];
     CullEntitys(sortEntry);
     CullDoodads(sortEntry);
@@ -801,7 +796,7 @@ void CWorldScene::CullDoodads(CSortEntry *sortEntry) {
   }
 }
 
-void CWorldScene::CullDoodads(LISTEX(CMapBaseObjLink, refLink) &doodadDefLinkList) {
+void CWorldScene::CullDoodads(LISTEX(CMapBaseObjLink, refLink) & doodadDefLinkList) {
   NTempest::CAaSphere doodadSphere;
   ITERATELIST(CMapBaseObjLink, doodadDefLinkList, link) {
     CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(link->owner);
@@ -824,7 +819,7 @@ void CWorldScene::CullDoodads(LISTEX(CMapBaseObjLink, refLink) &doodadDefLinkLis
   }
 }
 
-void CWorldScene::CullChunkLiquid(CSortEntry *sortEntry, unsigned int type) {
+void CWorldScene::CullChunkLiquid(CSortEntry *sortEntry, UINT type) {
   NTempest::CAaBox aaBox;
   FATALASSERT(sortEntry);
   CChunkLiquid *liquid = sortEntry->liquidList[type].Head();
@@ -933,20 +928,21 @@ void CWorldScene::RenderDoodads() {
         ModelAnimate(
             doodadDef->model,
             NTempest::C34Matrix(
-                transform.a0, transform.a1, transform.a2, transform.b0, transform.b1, transform.b2,
-                transform.c0, transform.c1, transform.c2, transform.d0, transform.d1, transform.d2),
-            doodadDef->scale,
-            camPos,
-            camTarg - camPos);
+                transform.a0, transform.a1, transform.a2, transform.b0, transform.b1, transform.b2, transform.c0, transform.c1, transform.c2,
+                transform.d0, transform.d1, transform.d2
+            ),
+            doodadDef->scale, camPos, camTarg - camPos
+        );
 
         transform.d0 += camPos.x;
         transform.d1 += camPos.y;
         transform.d2 += camPos.z;
         ModelProcessEvents(
-            doodadDef->model,
-            NTempest::C34Matrix(
-                transform.a0, transform.a1, transform.a2, transform.b0, transform.b1, transform.b2,
-                transform.c0, transform.c1, transform.c2, transform.d0, transform.d1, transform.d2));
+            doodadDef->model, NTempest::C34Matrix(
+                                  transform.a0, transform.a1, transform.a2, transform.b0, transform.b1, transform.b2, transform.c0, transform.c1,
+                                  transform.c2, transform.d0, transform.d1, transform.d2
+                              )
+        );
         ModelAddToScene(doodadDef->model, doodadDef->camDist <= CWorld::farFog ? 0 : 7);
       }
     }
@@ -1026,7 +1022,7 @@ void CWorldScene::RenderChunks() {
   }
 }
 
-int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, unsigned int cullFlags) {
+int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, UINT cullFlags) {
   NTempest::C4Vector v(center.x, center.y, center.z, 1.0f);
   NTempest::C4Vector vr(radius, radius, 0.0f, 0.0f);
   if (!(CWorld::enables & CWorld::Enable_Culling) || NTempest::CMath::fabs_(radius) < 2.38418579e-7f) {
@@ -1057,7 +1053,7 @@ int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, 
   return first > last;
 }
 
-int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, unsigned int cullFlags) {
+int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags) {
   NTempest::C3Vector  aaBoxMin = aaBox.b;
   NTempest::C3Vector  aaBoxMax = aaBox.t;
   NTempest::C3Vector *aaBoxMinMax[2] = {&aaBoxMin, &aaBoxMax};
@@ -1068,7 +1064,7 @@ int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, unsigned int cull
   float minX = 3.4028235e38f;
   float maxX = -3.4028235e38f;
   float maxY = -3.4028235e38f;
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     NTempest::C3Vector corner(aaBoxMinMax[(i >> 0) & 1]->x, aaBoxMinMax[(i >> 1) & 1]->y, aaBoxMinMax[(i >> 2) & 1]->z);
     NTempest::C4Vector v(corner.x, corner.y, corner.z, 1.0f);
     v = v * mvp;
@@ -1287,7 +1283,7 @@ void CWorldScene::CullMapObjDefs(CSortEntry *sortEntry, const NTempest::CRect &s
   }
 }
 
-void CWorldScene::CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<unsigned int> &inGroups) {
+void CWorldScene::CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<UINT> &inGroups) {
   NTempest::C44Matrix mapObjM;
   CMapObj            *mapObj;
   NTempest::C44Matrix gxWm;
@@ -1309,8 +1305,8 @@ void CWorldScene::CullMapObjDef(CMapObjDef *mapObjDef, TSGrowableArray<unsigned 
   mapObjDef->sceneLink.Unlink();
 }
 
-void CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, const void *userParam, const int rDrawSharedLiquidToggle) {
-  CMapObjDef      *mapObjDef = const_cast<CMapObjDef *>(static_cast<const CMapObjDef *>(userParam));
+void CWorldScene::CullMapObjDefGroup(const UINT groupNum, LPCVOID userParam, const int rDrawSharedLiquidToggle) {
+  CMapObjDef *mapObjDef = const_cast<CMapObjDef *>(static_cast<const CMapObjDef *>(userParam));
   FATALASSERT(mapObjDef);
 
   CMapObjDefGroup *mapObjDefGroup = 0;
@@ -1359,7 +1355,7 @@ void CWorldScene::CullMapObjDefGroup(const unsigned int groupNum, const void *us
 }
 
 void CWorldScene::ClipBufferClear() {
-  for (unsigned int i = 0; i < 128; ++i) {
+  for (UINT i = 0; i < 128; ++i) {
     clipBuffer[i] = -1.0f;
   }
 }
@@ -1387,7 +1383,7 @@ CWFrustum::CWFrustum(const NTempest::C3Vector *c) {
 }
 
 void CWFrustum::CalcPlanesFromCorners(const NTempest::C3Vector *c) {
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     corners[i] = c[i];
   }
   CalcPlanesFromCorners();
@@ -1403,7 +1399,7 @@ void CWFrustum::CalcPlanesFromCorners() {
 }
 
 void CWFrustum::Translate(const NTempest::C3Vector &t) {
-  unsigned int i; 
+  UINT i;
   for (i = 0; i < 8; ++i) {
     corners[i] = corners[i] + t;
   }
@@ -1415,7 +1411,7 @@ void CWFrustum::Translate(const NTempest::C3Vector &t) {
 }
 
 void CWFrustum::Transform(const NTempest::C44Matrix &mat) {
-  for (unsigned int i = 0; i < 8; ++i) {
+  for (UINT i = 0; i < 8; ++i) {
     corners[i] = corners[i] * mat;
   }
   CalcPlanesFromCorners();
@@ -1426,7 +1422,7 @@ void CWFrustum::Transform(const NTempest::C44Matrix &mat) {
 
 WorldCullStatus CWFrustum::Cull(const NTempest::CAaBox &aabox) const {
   const float *corner[2] = {&aabox.t.x, &aabox.b.x};
-  for (unsigned int p = 0; p < 6; ++p) {
+  for (UINT p = 0; p < 6; ++p) {
     NTempest::C3Vector point(corner[planes[p].n.x < 0.0f][0], corner[planes[p].n.y < 0.0f][1], corner[planes[p].n.z < 0.0f][2]);
     if (planes[p].DistSigned(point) < -0.019444443f) {
       return WorldCull_outside;
@@ -1456,7 +1452,7 @@ WorldCullStatus CWFrustum::Cull(const NTempest::C3Vector &center, float radius) 
 }
 
 WorldCullStatus CWFrustum::Cull(const NTempest::CAaSphere &sphere) const {
-  for (unsigned int p = 0; p < 6; ++p) {
+  for (UINT p = 0; p < 6; ++p) {
     if (planes[p].DistSigned(sphere.c) < -sphere.r) {
       return WorldCull_outside;
     }
@@ -1465,7 +1461,7 @@ WorldCullStatus CWFrustum::Cull(const NTempest::CAaSphere &sphere) const {
 }
 
 WorldCullStatus CWFrustum::Cull(const NTempest::C3Vector &point) const {
-  for (unsigned int p = 0; p < 6; ++p) {
+  for (UINT p = 0; p < 6; ++p) {
     if (planes[p].DistSigned(point) < -0.019444443f) {
       return WorldCull_outside;
     }
@@ -1473,9 +1469,9 @@ WorldCullStatus CWFrustum::Cull(const NTempest::C3Vector &point) const {
   return WorldCull_notOutside;
 }
 
-void CWFrustum::Cull(const NTempest::C3Vector &point, unsigned int &cullFlags) const {
+void CWFrustum::Cull(const NTempest::C3Vector &point, UINT &cullFlags) const {
   cullFlags = 0;
-  for (unsigned int p = 0; p < 6; ++p) {
+  for (UINT p = 0; p < 6; ++p) {
     if (planes[p].DistSigned(point) < -0.019444443f) {
       cullFlags |= 1 << p;
     }
@@ -1483,9 +1479,9 @@ void CWFrustum::Cull(const NTempest::C3Vector &point, unsigned int &cullFlags) c
 }
 
 WorldCullStatus CWFrustum::Cull(const NTempest::C4Plane &plane) const {
-  unsigned int outside = 0;
-  unsigned int inside = 0;
-  for (unsigned int i = 0; i < 8; ++i) {
+  UINT outside = 0;
+  UINT inside = 0;
+  for (UINT i = 0; i < 8; ++i) {
     float distance = plane.DistSigned(corners[i]);
     if (distance > 0.019444443f) {
       ++inside;
@@ -1502,9 +1498,9 @@ WorldCullStatus CWFrustum::Cull(const NTempest::C4Plane &plane) const {
 }
 
 struct ClipInfo {
-  float        bc[6];
-  unsigned int mask;
-  unsigned int filler;
+  float bc[6];
+  UINT  mask;
+  UINT  filler;
 
   void Set(const NTempest::C3Vector *v);
 };
@@ -1517,7 +1513,7 @@ void ClipInfo::Set(const NTempest::C3Vector *v) {
   bc[4] = v->z;
   bc[5] = 1.0f - v->z;
   mask = 0;
-  for (unsigned int i = 0; i < 6; ++i) {
+  for (UINT i = 0; i < 6; ++i) {
     if (bc[i] < 0.0f) {
       mask |= 0x80000000 >> i;
     }
@@ -1527,9 +1523,9 @@ void ClipInfo::Set(const NTempest::C3Vector *v) {
 struct ClipFrame {
   NTempest::C3Vector **points;
   ClipInfo           **info;
-  unsigned int         count;
+  UINT                 count;
 
-  ClipFrame(NTempest::C3Vector **points, ClipInfo **info, unsigned int count) : points(points), info(info), count(count) {
+  ClipFrame(NTempest::C3Vector **points, ClipInfo **info, UINT count) : points(points), info(info), count(count) {
   }
 };
 
@@ -1537,7 +1533,7 @@ static NTempest::C3Vector  sPointPool[32];
 static NTempest::C3Vector *sInPointPtrs[32];
 static NTempest::C3Vector *sOutPointPtrs[32];
 
-int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTempest::C3Vector **&p_outVerts, unsigned int &p_outCount) {
+int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3Vector **&p_outVerts, UINT &p_outCount) {
   ClipInfo  sInInfo[32];
   ClipInfo  infoPool[32];
   ClipInfo *inInfoPtrs[32];
@@ -1548,9 +1544,9 @@ int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTemp
     return 0;
   }
 
-  unsigned int andMask = 0xFFFFFFFF;
-  unsigned int orMask = 0;
-  for (unsigned int i = 0; i < p_inCount; ++i) {
+  UINT andMask = 0xFFFFFFFF;
+  UINT orMask = 0;
+  for (UINT i = 0; i < p_inCount; ++i) {
     sInInfo[i].Set(&p_inVerts[i]);
     inInfoPtrs[i] = &sInInfo[i];
     sInPointPtrs[i] = &p_inVerts[i];
@@ -1574,17 +1570,17 @@ int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, unsigned int p_inCount, NTemp
   NTempest::C3Vector *pointPool = sPointPool;
   ClipInfo           *sInfoPool = infoPool;
 
-  unsigned int planeMask = 0x80000000;
-  for (unsigned int plane = 0; plane < 6; ++plane, planeMask >>= 1) {
+  UINT planeMask = 0x80000000;
+  for (UINT plane = 0; plane < 6; ++plane, planeMask >>= 1) {
     if (!(orMask & planeMask)) {
       continue;
     }
 
     out->count = 0;
-    unsigned int from = in->count - 1;
-    unsigned int fromMask = in->info[from]->mask & planeMask;
-    for (unsigned int to = 0; to < in->count; ++to) {
-      unsigned int toMask = in->info[to]->mask & planeMask;
+    UINT from = in->count - 1;
+    UINT fromMask = in->info[from]->mask & planeMask;
+    for (UINT to = 0; to < in->count; ++to) {
+      UINT toMask = in->info[to]->mask & planeMask;
       if (fromMask != toMask) {
         float denominator = in->info[from]->bc[plane] - in->info[to]->bc[plane];
         if (denominator == 0.0f) {

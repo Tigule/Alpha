@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *TerrainTypeSoundsRec::GetFilename() {
+LPCSTR TerrainTypeSoundsRec::GetFilename() {
   return "DBFilesClient\\TerrainTypeSounds.dbc";
 }
 
@@ -19,7 +19,7 @@ TerrainTypeSoundsRec::TerrainTypeSoundsRec() {
 TerrainTypeSoundsRec::~TerrainTypeSoundsRec() {
 }
 
-bool TerrainTypeSoundsRec::Read(SFile *f, const char *stringBuffer) {
+bool TerrainTypeSoundsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

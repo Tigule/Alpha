@@ -33,10 +33,10 @@ enum {
   OS_PROCESSOR_VENDOR_PPC = 3
 };
 
-static const unsigned char s_vendorGenuineIntel[12] = {'G', 'e', 'n', 'u', 'i', 'n', 'e', 'I', 'n', 't', 'e', 'l'};
-static const unsigned char s_vendorAuthenticAMD[12] = {'A', 'u', 't', 'h', 'e', 'n', 't', 'i', 'c', 'A', 'M', 'D'};
-static const unsigned char s_vendorCentaurHalls[12] = {'C', 'e', 'n', 't', 'a', 'u', 'r', 'H', 'a', 'u', 'l', 's'};
-static const unsigned char s_vendorCyrixInstead[12] = {'C', 'y', 'r', 'i', 'x', 'I', 'n', 's', 't', 'e', 'a', 'd'};
+static const BYTE s_vendorGenuineIntel[12] = {'G', 'e', 'n', 'u', 'i', 'n', 'e', 'I', 'n', 't', 'e', 'l'};
+static const BYTE s_vendorAuthenticAMD[12] = {'A', 'u', 't', 'h', 'e', 'n', 't', 'i', 'c', 'A', 'M', 'D'};
+static const BYTE s_vendorCentaurHalls[12] = {'C', 'e', 'n', 't', 'a', 'u', 'r', 'H', 'a', 'u', 'l', 's'};
+static const BYTE s_vendorCyrixInstead[12] = {'C', 'y', 'r', 'i', 'x', 'I', 'n', 's', 't', 'e', 'a', 'd'};
 
 static const char s_xtoi[256] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -52,16 +52,16 @@ static const char s_xtoi[256] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-static const char *s_osNames[OsType_Last] = {"Unknown", "Win95",   "Win95OSR2", "Win98",  "Win98SE", "WinME",
-                                             "WinNT4",  "Win2000", "WinXP",     "MacOS9", "MacOSX",  "Linux"};
+static LPCSTR s_osNames[OsType_Last] = {"Unknown", "Win95",   "Win95OSR2", "Win98",  "Win98SE", "WinME",
+                                        "WinNT4",  "Win2000", "WinXP",     "MacOS9", "MacOSX",  "Linux"};
 
-static unsigned long s_processorFeatures;
-static int           s_processorVendor;
+static DWORD s_processorFeatures;
+static int   s_processorVendor;
 
 int   s_sleepInBackground = 1;
 DWORD s_backgroundSleepMs;
 
-static int __cdecl IOsGetProcessorFeatures(unsigned char *const vendor, unsigned long *featuresStd, unsigned long *featuresExt) {
+static int __cdecl IOsGetProcessorFeatures(BYTE *const vendor, DWORD *featuresStd, DWORD *featuresExt) {
   int result = 1;
 
   memset(vendor, 0, 12);
@@ -84,11 +84,11 @@ static int __cdecl IOsGetProcessorFeatures(unsigned char *const vendor, unsigned
   return result;
 }
 
-unsigned long OsGetProcessorFeaturesEx(int &vendorID) {
-  unsigned char vendor[12];
-  unsigned long featuresStd;
-  unsigned long featuresExt;
-  unsigned long features = 0;
+DWORD OsGetProcessorFeaturesEx(int &vendorID) {
+  BYTE  vendor[12];
+  DWORD featuresStd;
+  DWORD featuresExt;
+  DWORD features = 0;
 
   vendorID = s_processorVendor;
   if (!s_processorFeatures) {
@@ -123,12 +123,12 @@ unsigned long OsGetProcessorFeaturesEx(int &vendorID) {
   return s_processorFeatures;
 }
 
-unsigned long OsGetProcessorFeatures() {
+DWORD OsGetProcessorFeatures() {
   int manufacturer;
   return OsGetProcessorFeaturesEx(manufacturer);
 }
 
-unsigned int OsGetProcessorCount() {
+UINT OsGetProcessorCount() {
   SYSTEM_INFO si;
   memset(&si, 0, sizeof(si));
   GetSystemInfo(&si);
@@ -140,7 +140,7 @@ unsigned int OsGetProcessorCount() {
   return si.dwNumberOfProcessors;
 }
 
-void OsSleep(unsigned long ms) {
+void OsSleep(DWORD ms) {
   Sleep(ms);
 }
 
@@ -220,7 +220,7 @@ OsType OsGetVersion() {
 }
 
 void OsGetVersionString(char *string, int length) {
-  const char *osName = s_osNames[OsGetVersion()];
+  LPCSTR osName = s_osNames[OsGetVersion()];
   if (!osName) {
     osName = s_osNames[OsType_Unknown];
   }
@@ -228,25 +228,25 @@ void OsGetVersionString(char *string, int length) {
   SStrCopy(string, osName, length);
 }
 
-int OsGetComputerName(char *computerName, unsigned long *computerNameLen) {
+int OsGetComputerName(char *computerName, DWORD *computerNameLen) {
   return GetComputerName(computerName, computerNameLen);
 }
 
-int OsGetUserName(char *userName, unsigned long *userNameLen) {
+int OsGetUserName(char *userName, DWORD *userNameLen) {
   return GetUserName(userName, userNameLen);
 }
 
-unsigned long OsGetPhysicalMemory() {
+DWORD OsGetPhysicalMemory() {
   MEMORYSTATUS mem;
   GlobalMemoryStatus(&mem);
   return mem.dwTotalPhys;
 }
 
-void OsSystemObjectCreate(const char *inName) {
+void OsSystemObjectCreate(LPCSTR inName) {
   CreateEventA(NULL, TRUE, FALSE, inName);
 }
 
-int OsSystemObjectExists(const char *inName) {
+int OsSystemObjectExists(LPCSTR inName) {
   HANDLE handle;
   DWORD  error;
 
@@ -260,14 +260,14 @@ int OsSystemObjectExists(const char *inName) {
   return error == ERROR_ALREADY_EXISTS ? 1 : 0;
 }
 
-int OsLaunchURL(const char *url) {
-  HWND        activeWindow;
-  char        fixedURL[1024];
-  char        browserFilename[256];
-  char       *fixedURLPos;
-  const char *urlPos;
-  char        urlChar;
-  HINSTANCE   launchResult;
+int OsLaunchURL(LPCSTR url) {
+  HWND      activeWindow;
+  char      fixedURL[1024];
+  char      browserFilename[256];
+  char     *fixedURLPos;
+  LPCSTR    urlPos;
+  char      urlChar;
+  HINSTANCE launchResult;
 
   if (!url || !*url) {
     return 0;
@@ -306,7 +306,7 @@ int OsLaunchURL(const char *url) {
 
   *fixedURLPos = 0;
   launchResult = ShellExecuteA(activeWindow, "open", fixedURL, 0, 0, SW_SHOWNORMAL);
-  if (reinterpret_cast<unsigned long>(launchResult) > 32) {
+  if (reinterpret_cast<DWORD>(launchResult) > 32) {
     return 1;
   }
 
@@ -314,12 +314,12 @@ int OsLaunchURL(const char *url) {
   fclose(file);
 
   launchResult = FindExecutableA("8BLZ2112.HTM", 0, browserFilename);
-  if (reinterpret_cast<unsigned long>(launchResult) > 32) {
+  if (reinterpret_cast<DWORD>(launchResult) > 32) {
     launchResult = ShellExecuteA(activeWindow, "open", browserFilename, fixedURL, 0, SW_SHOWNORMAL);
   }
 
   DeleteFileA("8BLZ2112.HTM");
-  return reinterpret_cast<unsigned long>(launchResult) > 32;
+  return reinterpret_cast<DWORD>(launchResult) > 32;
 }
 
 void OsClearFP(int errCheck) {

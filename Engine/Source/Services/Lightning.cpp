@@ -9,12 +9,12 @@
 
 #include <math.h>
 
-static NTempest::CRndSeed sRandSeed;
+static NTempest::CRndSeed                            sRandSeed;
 static TSFixedArray_<NTempest::C3Vector, 'Ligh', 74> sPoints;
-static NTempest::C44Matrix identity;
-static NTempest::C44Matrix worldToView;
-static NTempest::C44Matrix particleToView;
-static NTempest::C3Vector zup;
+static NTempest::C44Matrix                           identity;
+static NTempest::C44Matrix                           worldToView;
+static NTempest::C44Matrix                           particleToView;
+static NTempest::C3Vector                            zup;
 
 CLightning::CLightning() : mAvgSegLen(-2.0f), mWidth(1.0f), mRebuildPoints(1), mAccTime(0.0f), mTexture(0) {
 }
@@ -22,7 +22,7 @@ CLightning::CLightning() : mAvgSegLen(-2.0f), mWidth(1.0f), mRebuildPoints(1), m
 void CLightning::BuildStroke(TSFixedArray<NTempest::C3Vector> &points) {
   NTempest::C3Vector diff = mDstPos - mSrcPos;
   float              length = diff.Mag();
-  unsigned int       numPoints = static_cast<unsigned int>(length / mAvgSegLen + 2.0f);
+  UINT               numPoints = static_cast<UINT>(length / mAvgSegLen + 2.0f);
   float              ooNumPoints = 1.0f / numPoints;
   float              noiseScale = length * mNoiseScale;
 
@@ -30,7 +30,7 @@ void CLightning::BuildStroke(TSFixedArray<NTempest::C3Vector> &points) {
   points[0] = mSrcPos;
   points[numPoints] = mDstPos;
 
-  for (unsigned int i = 1; i != numPoints; ++i) {
+  for (UINT i = 1; i != numPoints; ++i) {
     NTempest::C3Vector tmp = mSrcPos + diff * (static_cast<float>(i) * ooNumPoints);
     tmp += NTempest::C3Vector(NTempest::CRandom::reals_(sRandSeed), NTempest::CRandom::reals_(sRandSeed), NTempest::CRandom::reals_(sRandSeed)) *
            noiseScale;
@@ -48,20 +48,20 @@ void CLightning::Update(float elapsed) {
   if (mRebuildPoints) {
     BuildStroke(mPoints);
 
-    unsigned int numPos = 2 * mPoints.Count();
-    unsigned int end = numPos - 2;
-    float        ooNumPos = 1.0f / end;
+    UINT  numPos = 2 * mPoints.Count();
+    UINT  end = numPos - 2;
+    float ooNumPos = 1.0f / end;
 
     mPos.SetCount(numPos);
     mTexCoords.SetCount(numPos);
     mIndices.SetCount(numPos);
 
-    for (unsigned int i = 0; i < numPos; i += 2) {
+    for (UINT i = 0; i < numPos; i += 2) {
       float x = static_cast<float>(i) * ooNumPos;
       mTexCoords[i] = NTempest::C2Vector(x, 0.0f);
       mTexCoords[i + 1] = NTempest::C2Vector(x, 1.0f);
-      mIndices[i] = static_cast<unsigned short>(i);
-      mIndices[i + 1] = static_cast<unsigned short>(i + 1);
+      mIndices[i] = static_cast<WORD>(i);
+      mIndices[i + 1] = static_cast<WORD>(i + 1);
     }
 
     mTexCoords[1] = NTempest::C2Vector(0.0f, 0.5f);
@@ -73,8 +73,8 @@ void CLightning::Update(float elapsed) {
 
   BuildStroke(sPoints);
 
-  unsigned int end = mPoints.Count() - 1;
-  for (unsigned int i = 1; i < end; ++i) {
+  UINT end = mPoints.Count() - 1;
+  for (UINT i = 1; i < end; ++i) {
     mPoints[i] = sPoints[i] * 0.25f + mPoints[i] * 0.75f;
   }
 }
@@ -85,7 +85,7 @@ CLightning::~CLightning() {
   }
 }
 
-void CLightning::Render(unsigned int boltId, const NTempest::C3Vector &cameraPos) {
+void CLightning::Render(UINT boltId, const NTempest::C3Vector &cameraPos) {
   if (mCoordUpdateData.callback) {
     NTempest::C3Vector sourcePos = mSrcPos;
     NTempest::C3Vector destPos = mDstPos;
@@ -105,13 +105,13 @@ void CLightning::Render(unsigned int boltId, const NTempest::C3Vector &cameraPos
   translate.Translate(-cameraPos);
   particleToView = translate * worldToView;
 
-  unsigned int numPoints = mPoints.Count();
+  UINT numPoints = mPoints.Count();
   mPos[0] *= 0.0f;
   mPos[1] *= 0.0f;
 
   NTempest::C3Vector p = mPoints[0] * particleToView;
-  unsigned int       end = 2 * numPoints - 2;
-  for (unsigned int i = 2; i < end; i += 2) {
+  UINT               end = 2 * numPoints - 2;
+  for (UINT i = 2; i < end; i += 2) {
     NTempest::C3Vector q = mPoints[i / 2] * particleToView;
     NTempest::C3Vector d = q - p;
     NTempest::C3Vector perp(-d.y, d.x, 0.0f);
@@ -163,7 +163,7 @@ void CLightning::SetTexture(HTEXTURE texture) {
 }
 
 CLightningManager::~CLightningManager() {
-  unsigned int count = mLiveBolts.Count();
+  UINT count = mLiveBolts.Count();
 
   while (count) {
     CLightning *lightning = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[--count]) & ~NOTUSEDFLAG);
@@ -177,15 +177,15 @@ CLightningManager::CLightningManager() {
 BoltID CLightningManager::Add(
     const NTempest::C3Vector &source,
     const NTempest::C3Vector &dest,
-    float               avgSegLen,
-    float               width,
-    NTempest::CImVector color,
-    float               noiseScale,
-    float               texCoordScale,
-    float               duration,
-    HTEXTURE            texture,
-    void(*updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
-    void *context
+    float                     avgSegLen,
+    float                     width,
+    NTempest::CImVector       color,
+    float                     noiseScale,
+    float                     texCoordScale,
+    float                     duration,
+    HTEXTURE                  texture,
+    void (*updateproc)(LPVOID, UINT, NTempest::C3Vector *, NTempest::C3Vector *),
+    LPVOID context
 ) {
   BoltID      boltId;
   CLightning *lightning;
@@ -215,7 +215,7 @@ BoltID CLightningManager::Add(
 }
 
 void CLightningManager::Update(float elapsed) {
-  unsigned int count = mLiveBolts.Count();
+  UINT count = mLiveBolts.Count();
 
   while (count) {
     --count;
@@ -238,11 +238,7 @@ void CLightningManager::Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C
   }
 }
 
-void CLightningManager::SetCoordUpdate(
-    BoltID boltId,
-    void(*updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
-    void *context
-) {
+void CLightningManager::SetCoordUpdate(BoltID boltId, void (*updateproc)(LPVOID, UINT, NTempest::C3Vector *, NTempest::C3Vector *), LPVOID context) {
   ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
   ASSERT(0 == (NOTUSEDFLAG & reinterpret_cast<ulong>(mLiveBolts[boltId])));
 
@@ -275,7 +271,7 @@ float CLightningManager::GetDuration(BoltID boltId) {
 }
 
 void CLightningManager::Render(const NTempest::C3Vector &cameraPos) {
-  unsigned int count = mLiveBolts.Count();
+  UINT count = mLiveBolts.Count();
 
   while (count) {
     --count;

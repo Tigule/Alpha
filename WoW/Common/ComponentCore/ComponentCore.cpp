@@ -16,31 +16,31 @@
 #include <storm.h>
 
 struct NULLSTATUS : public CStatus {
-  virtual void Add(STATUS_TYPE severity, const char *format, ...);
+  virtual void Add(STATUS_TYPE severity, LPCSTR format, ...);
   virtual void Add(const CStatus &source);
-  virtual void Prepend(STATUS_TYPE severity, const char *format, ...);
+  virtual void Prepend(STATUS_TYPE severity, LPCSTR format, ...);
 };
 
-void NULLSTATUS::Add(STATUS_TYPE, const char *, ...) {
+void NULLSTATUS::Add(STATUS_TYPE, LPCSTR, ...) {
 }
 
 void NULLSTATUS::Add(const CStatus &) {
 }
 
-void NULLSTATUS::Prepend(STATUS_TYPE, const char *, ...) {
+void NULLSTATUS::Prepend(STATUS_TYPE, LPCSTR, ...) {
 }
 
 static NULLSTATUS s_nullStatus;
 
-static const unsigned int s_tabardSectionFlags = 0x60;
-static const char        *s_tabardSectionSuffix[NUM_TEXCOMPONENT_SECTIONS] = {0, 0, 0, 0, 0, 0, "_TU", "_TL", 0, 0};
+static const UINT s_tabardSectionFlags = 0x60;
+static LPCSTR     s_tabardSectionSuffix[NUM_TEXCOMPONENT_SECTIONS] = {0, 0, 0, 0, 0, 0, "_TU", "_TL", 0, 0};
 
 static HTEXTURECACHE         s_textureCacheHandle;
-static unsigned int          s_numSectionsMask;
-static const char           *s_boneNames[3] = {"$WTB", "$WTT", "$CCH"};
-static const unsigned int    NUM_UNDERWEARHIDESECTIONS = 2;
+static UINT                  s_numSectionsMask;
+static LPCSTR                s_boneNames[3] = {"$WTB", "$WTT", "$CCH"};
+static const UINT            NUM_UNDERWEARHIDESECTIONS = 2;
 static TEXCOMPONENT_SECTIONS s_underwearSections[2] = {TCS_UPPERTORSO, TCS_LEGUPPER};
-static const unsigned int    s_underwearSectionHideInfo[NUM_TEXCOMPONENT_SECTIONS] = {-1, -1, -1, -1, -1, 0, -1, 1, -1, -1};
+static const UINT            s_underwearSectionHideInfo[NUM_TEXCOMPONENT_SECTIONS] = {-1, -1, -1, -1, -1, 0, -1, 1, -1, -1};
 static const int             s_underwearHideSections[INDEX_NUMSLOTS][NUM_UNDERWEARHIDESECTIONS] = {
     {0, 0},
     {0, 0},
@@ -73,9 +73,8 @@ static const int             s_underwearHideSections[INDEX_NUMSLOTS][NUM_UNDERWE
 static TEXCOMPONENT_SECTIONS s_tabardSections[2] = {TCS_UPPERTORSO, TCS_LOWERTORSO};
 
 static HMODEL ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, const ItemDisplayInfoRec *displayInfoRec);
-static void AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, unsigned int numSubComponents, unsigned int inventoryType);
-static void
-DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, unsigned int numSubComponents, unsigned int race, unsigned int sex);
+static void   AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, UINT numSubComponents, UINT inventoryType);
+static void   DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, UINT numSubComponents, UINT race, UINT sex);
 
 MipBits    *CTexturePiece::m_destImage;
 TEXTUREINFO CTexturePiece::m_destTextureInfo;
@@ -85,14 +84,14 @@ static void PasteOpaque(
     const MipBits      *srcMips,
     NTempest::C2iVector dstPos,
     NTempest::C2iVector srcPos,
-    unsigned int        width,
-    unsigned int        height,
-    unsigned int        levels,
-    unsigned int        dstPitch,
-    unsigned int        srcPitch
+    UINT                width,
+    UINT                height,
+    UINT                levels,
+    UINT                dstPitch,
+    UINT                srcPitch
 ) {
-  unsigned int byteWidth;
-  unsigned int level;
+  UINT byteWidth;
+  UINT level;
 
   ASSERT(dstMips);
   ASSERT(srcMips);
@@ -104,9 +103,9 @@ static void PasteOpaque(
 
   byteWidth = 4 * width;
   for (level = 0; level < levels; ++level) {
-    unsigned char       *dstLine = reinterpret_cast<unsigned char *>(dstMips->mip[level]) + dstPos.y * dstPitch + 4 * dstPos.x;
-    const unsigned char *srcLine = reinterpret_cast<const unsigned char *>(srcMips->mip[level]) + srcPos.y * srcPitch + 4 * srcPos.x;
-    unsigned int         row;
+    BYTE       *dstLine = reinterpret_cast<BYTE *>(dstMips->mip[level]) + dstPos.y * dstPitch + 4 * dstPos.x;
+    const BYTE *srcLine = reinterpret_cast<const BYTE *>(srcMips->mip[level]) + srcPos.y * srcPitch + 4 * srcPos.x;
+    UINT        row;
 
     for (row = 0; row < height; ++row) {
       memcpy(dstLine, srcLine, byteWidth);
@@ -130,13 +129,13 @@ static void PasteTransparentOneBit(
     const MipBits      *srcMips,
     NTempest::C2iVector dstPos,
     NTempest::C2iVector srcPos,
-    unsigned int        width,
-    unsigned int        height,
-    unsigned int        levels,
-    unsigned int        dstPitch,
-    unsigned int        srcPitch
+    UINT                width,
+    UINT                height,
+    UINT                levels,
+    UINT                dstPitch,
+    UINT                srcPitch
 ) {
-  unsigned int level;
+  UINT level;
 
   ASSERT(dstMips);
   ASSERT(srcMips);
@@ -147,15 +146,15 @@ static void PasteTransparentOneBit(
   ASSERT(srcPitch);
 
   for (level = 0; level < levels; ++level) {
-    C4Pixel       *dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<unsigned char *>(dstMips->mip[level]) + dstPos.y * dstPitch + 4 * dstPos.x);
+    C4Pixel       *dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(dstMips->mip[level]) + dstPos.y * dstPitch + 4 * dstPos.x);
     const C4Pixel *srcLine =
-        reinterpret_cast<const C4Pixel *>(reinterpret_cast<const unsigned char *>(srcMips->mip[level]) + srcPos.y * srcPitch + 4 * srcPos.x);
-    unsigned int row;
+        reinterpret_cast<const C4Pixel *>(reinterpret_cast<const BYTE *>(srcMips->mip[level]) + srcPos.y * srcPitch + 4 * srcPos.x);
+    UINT row;
 
     for (row = 0; row < height; ++row) {
       C4Pixel       *dstPixel = dstLine;
       const C4Pixel *srcPixel = srcLine;
-      unsigned int   column;
+      UINT           column;
 
       for (column = 0; column < width; ++column) {
         if (srcPixel->a) {
@@ -168,8 +167,8 @@ static void PasteTransparentOneBit(
         ++srcPixel;
       }
 
-      dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<unsigned char *>(dstLine) + dstPitch);
-      srcLine = reinterpret_cast<const C4Pixel *>(reinterpret_cast<const unsigned char *>(srcLine) + srcPitch);
+      dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(dstLine) + dstPitch);
+      srcLine = reinterpret_cast<const C4Pixel *>(reinterpret_cast<const BYTE *>(srcLine) + srcPitch);
     }
 
     width = max(width >> 1, 1U);
@@ -188,13 +187,13 @@ static void PasteTransparentFull(
     const MipBits      *srcMips,
     NTempest::C2iVector dstPos,
     NTempest::C2iVector srcPos,
-    unsigned int        width,
-    unsigned int        height,
-    unsigned int        levels,
-    unsigned int        dstPitch,
-    unsigned int        srcPitch
+    UINT                width,
+    UINT                height,
+    UINT                levels,
+    UINT                dstPitch,
+    UINT                srcPitch
 ) {
-  unsigned int level;
+  UINT level;
 
   ASSERT(dstMips);
   ASSERT(srcMips);
@@ -205,35 +204,35 @@ static void PasteTransparentFull(
   ASSERT(srcPitch);
 
   for (level = 0; level < levels; ++level) {
-    C4Pixel       *dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<unsigned char *>(dstMips->mip[level]) + dstPos.y * dstPitch + 4 * dstPos.x);
+    C4Pixel       *dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(dstMips->mip[level]) + dstPos.y * dstPitch + 4 * dstPos.x);
     const C4Pixel *srcLine =
-        reinterpret_cast<const C4Pixel *>(reinterpret_cast<const unsigned char *>(srcMips->mip[level]) + srcPos.y * srcPitch + 4 * srcPos.x);
-    unsigned int row;
+        reinterpret_cast<const C4Pixel *>(reinterpret_cast<const BYTE *>(srcMips->mip[level]) + srcPos.y * srcPitch + 4 * srcPos.x);
+    UINT row;
 
     for (row = 0; row < height; ++row) {
       C4Pixel       *dstPixel = dstLine;
       const C4Pixel *srcPixel = srcLine;
-      unsigned int   column;
+      UINT           column;
 
       for (column = 0; column < width; ++column) {
-        unsigned int alpha = srcPixel->a;
+        UINT alpha = srcPixel->a;
 
         if (alpha == 0xFF) {
           dstPixel->b = srcPixel->b;
           dstPixel->g = srcPixel->g;
           dstPixel->r = srcPixel->r;
         } else if (alpha) {
-          dstPixel->b += static_cast<unsigned short>(alpha * (srcPixel->b - dstPixel->b)) >> 8;
-          dstPixel->g += static_cast<unsigned short>(alpha * (srcPixel->g - dstPixel->g)) >> 8;
-          dstPixel->r += static_cast<unsigned short>(alpha * (srcPixel->r - dstPixel->r)) >> 8;
+          dstPixel->b += static_cast<WORD>(alpha * (srcPixel->b - dstPixel->b)) >> 8;
+          dstPixel->g += static_cast<WORD>(alpha * (srcPixel->g - dstPixel->g)) >> 8;
+          dstPixel->r += static_cast<WORD>(alpha * (srcPixel->r - dstPixel->r)) >> 8;
         }
 
         ++dstPixel;
         ++srcPixel;
       }
 
-      dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<unsigned char *>(dstLine) + dstPitch);
-      srcLine = reinterpret_cast<const C4Pixel *>(reinterpret_cast<const unsigned char *>(srcLine) + srcPitch);
+      dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(dstLine) + dstPitch);
+      srcLine = reinterpret_cast<const C4Pixel *>(reinterpret_cast<const BYTE *>(srcLine) + srcPitch);
     }
 
     width = max(width >> 1, 1U);
@@ -252,8 +251,8 @@ void CTextureLayer::AllocBlankTexture(
     CStatus              *status,
     TEXCOMPONENT_LAYERS   layer,
     EGxTexFormat          format,
-    unsigned int          width,
-    unsigned int          height,
+    UINT                  width,
+    UINT                  height,
     int                   opaque
 ) {
   int priority;
@@ -283,9 +282,9 @@ int CTextureLayer::SetTexture(
     LAYERPRIORITY         priority,
     CStatus              *status,
     int                   checkExistingTexture,
-    const char           *fileName,
-    unsigned int          expectedWidth,
-    unsigned int          expectedHeight
+    LPCSTR                fileName,
+    UINT                  expectedWidth,
+    UINT                  expectedHeight
 ) {
   return m_priorities[priority].SetTexture(section, layer, priority, status, checkExistingTexture, fileName, expectedWidth, expectedHeight);
 }
@@ -300,9 +299,9 @@ int CTexturePiece::SetTexture(
     LAYERPRIORITY         priority,
     CStatus              *status,
     int                   checkExistingTexture,
-    const char           *fileName,
-    unsigned int          expectedWidth,
-    unsigned int          expectedHeight
+    LPCSTR                fileName,
+    UINT                  expectedWidth,
+    UINT                  expectedHeight
 ) {
   if (checkExistingTexture && fileName && *fileName && m_mippedTexture) {
     status->Add(STATUS_WARNING, "sec%d layer%d pri%d file\"%s\"", section, layer, priority, m_fileName);
@@ -355,7 +354,7 @@ void CTexturePiece::SetTexture(int checkExistingTexture, const CTexturePiece &so
   }
 }
 
-void CTexturePiece::AllocBlankTexture(EGxTexFormat format, unsigned int width, unsigned int height, int opaque) {
+void CTexturePiece::AllocBlankTexture(EGxTexFormat format, UINT width, UINT height, int opaque) {
   ASSERT(0);
   ASSERT(!m_mippedTexture);
 
@@ -370,7 +369,7 @@ int CTexturePiece::IsLoaded() const {
 void CTexturePiece::PasteOpaque(const CTexturePiece &source, NTempest::C2iVector dstPos, NTempest::C2iVector srcPos, NTempest::C2iVector size) {
   const MipBits *srcMips = TextureCacheGetImage(source.m_mippedTexture);
   MipBits       *dstMips = m_destImage;
-  unsigned int   levels;
+  UINT           levels;
 
   ASSERT(srcMips);
   ASSERT(dstMips);
@@ -389,7 +388,7 @@ void CTexturePiece::PasteTransparentOneBit(
 ) {
   const MipBits *srcMips = TextureCacheGetImage(source.m_mippedTexture);
   MipBits       *dstMips = m_destImage;
-  unsigned int   levels;
+  UINT           levels;
 
   ASSERT(srcMips);
   ASSERT(dstMips);
@@ -408,7 +407,7 @@ void CTexturePiece::PasteTransparentFull(
 ) {
   const MipBits *srcMips = TextureCacheGetImage(source.m_mippedTexture);
   MipBits       *dstMips = m_destImage;
-  unsigned int   levels;
+  UINT           levels;
 
   ASSERT(srcMips);
   ASSERT(dstMips);
@@ -420,8 +419,8 @@ void CTexturePiece::PasteTransparentFull(
 }
 
 int CTexturePiece::Paste(const CTexturePiece &source, int x, int y) {
-  unsigned int        width = source.m_textureInfo.width;
-  unsigned int        height = source.m_textureInfo.height;
+  UINT                width = source.m_textureInfo.width;
+  UINT                height = source.m_textureInfo.height;
   NTempest::C2iVector dstPos(x, y);
   NTempest::C2iVector srcPos(0, 0);
   NTempest::C2iVector size(width, height);
@@ -505,11 +504,11 @@ void CTexComponent::PasteTabardTexture(CStatus *status, TEXCOMPONENT_SECTIONS se
   CTexturePiece       emblem;
   CTexturePiece       border;
   TEXCOMPONENT_LAYERS layer;
-  unsigned int        x;
-  unsigned int        width;
-  unsigned int        y;
+  UINT                x;
+  UINT                width;
+  UINT                y;
   LAYERPRIORITY       priority;
-  unsigned int        height;
+  UINT                height;
 
   if (!CompUtilGetSectionOffset(section, &x, &y) || !CompUtilGetSectionDimensions(section, &width, &height)) {
     return;
@@ -543,10 +542,10 @@ void CTexComponent::PasteTabardTexture(CStatus *status, TEXCOMPONENT_SECTIONS se
 }
 
 void CTexComponent::UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section, int bUpdate) {
-  unsigned int        width;
-  unsigned int        height;
-  unsigned int        y;
-  unsigned int        x;
+  UINT                width;
+  UINT                height;
+  UINT                y;
+  UINT                x;
   TEXCOMPONENT_LAYERS layer;
 
   ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
@@ -568,7 +567,7 @@ void CTexComponent::UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section
     }
   }
 
-  while (static_cast<unsigned int>(layer) < NUM_TEXLAYERS) {
+  while (static_cast<UINT>(layer) < NUM_TEXLAYERS) {
     Paste(status, section, layer, x, y, width, height);
     layer = static_cast<TEXCOMPONENT_LAYERS>(layer + 1);
   }
@@ -580,8 +579,8 @@ void CTexComponent::UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section
 }
 
 int CTexComponent::CheckSection(TEXCOMPONENT_SECTIONS section, int bForce) {
-  unsigned int j;
-  unsigned int priority;
+  UINT j;
+  UINT priority;
 
   ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
 
@@ -660,17 +659,17 @@ int CTexComponent::CheckPastingRules(TEXCOMPONENT_SECTIONS section, TEXCOMPONENT
   return !m_sections[TCS_LEGUPPER].m_layers[chestLayer].m_priorities[chestPriority].HasImage();
 }
 
-void CTexComponent::BuildSkinPieces(CStatus *status, unsigned int *layerHoldSectionFlags) {
-  unsigned int x;
-  unsigned int y;
-  const char  *fileName;
-  unsigned int width;
-  unsigned int height;
+void CTexComponent::BuildSkinPieces(CStatus *status, UINT *layerHoldSectionFlags) {
+  UINT   x;
+  UINT   y;
+  LPCSTR fileName;
+  UINT   width;
+  UINT   height;
 
   fileName = TextureGetFilename(m_texture);
   FATALASSERT(fileName);
 
-  unsigned int section;
+  UINT section;
   for (section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
     int success = CompUtilGetSectionOffset(section, &x, &y);
     FATALASSERT(success);
@@ -687,12 +686,12 @@ void CTexComponent::BuildSkinPieces(CStatus *status, unsigned int *layerHoldSect
   }
 
   if (layerHoldSectionFlags) {
-    unsigned int layer;
+    UINT layer;
     for (layer = 0; layer < NUM_TEXLAYERS; ++layer) {
       if (layerHoldSectionFlags[layer]) {
         for (section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
           if (layerHoldSectionFlags[layer] & (1 << section)) {
-            unsigned int priority;
+            UINT priority;
             for (priority = 0; priority < NUM_LAYERPRIORITIES; ++priority) {
               m_sections[section].m_layers[layer].m_priorities[priority].SetHold(1);
             }
@@ -703,9 +702,9 @@ void CTexComponent::BuildSkinPieces(CStatus *status, unsigned int *layerHoldSect
   }
 }
 
-void CTexComponent::BuildNakedPieces(CStatus *status, unsigned int race, unsigned int sex, unsigned int skinID, int isNPC) {
-  char         buffer[128];
-  unsigned int underwearSection;
+void CTexComponent::BuildNakedPieces(CStatus *status, UINT race, UINT sex, UINT skinID, int isNPC) {
+  char buffer[128];
+  UINT underwearSection;
 
   for (underwearSection = 0; underwearSection < NUM_UNDERWEARHIDESECTIONS; ++underwearSection) {
     if (CharCustomizationGetNakedSectionName(race, sex, skinID, underwearSection, buffer, sizeof(buffer), isNPC) && *buffer) {
@@ -716,13 +715,13 @@ void CTexComponent::BuildNakedPieces(CStatus *status, unsigned int race, unsigne
   }
 }
 
-void CTexComponent::HideUnderwear(unsigned int underwearSection) {
+void CTexComponent::HideUnderwear(UINT underwearSection) {
   ASSERT(underwearSection < NUM_UNDERWEARHIDESECTIONS);
 
   m_sections[s_underwearSections[underwearSection]].m_layers[TEXLAYER_SKIN].m_priorities[LAYERPRIORITY_1].ClearHold(2);
 }
 
-void CTexComponent::ShowUnderwear(unsigned int underwearSection) {
+void CTexComponent::ShowUnderwear(UINT underwearSection) {
   ASSERT(underwearSection < NUM_UNDERWEARHIDESECTIONS);
 
   m_sections[s_underwearSections[underwearSection]].m_layers[TEXLAYER_SKIN].m_priorities[LAYERPRIORITY_1].SetHold(2);
@@ -741,12 +740,12 @@ void CTexComponent::SetTexture(int checkExistingTexture, HTEXTURE texture) {
 void CTexComponent::SetTexture(
     CStatus              *status,
     int                   checkExistingTexture,
-    const char           *fileName,
+    LPCSTR                fileName,
     TEXCOMPONENT_SECTIONS section,
     TEXCOMPONENT_LAYERS   layer,
     LAYERPRIORITY         priority,
-    unsigned int          expectedWidth,
-    unsigned int          expectedHeight
+    UINT                  expectedWidth,
+    UINT                  expectedHeight
 ) {
   ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
   ASSERT(layer < NUM_TEXLAYERS);
@@ -758,7 +757,7 @@ void CTexComponent::SetTexture(
 }
 
 void CTexComponent::UpdateUnderwearVisibility() {
-  unsigned int section;
+  UINT section;
   for (section = 0; section < NUM_UNDERWEARHIDESECTIONS; ++section) {
     if (m_underwearHideCounts[section]) {
       HideUnderwear(section);
@@ -769,7 +768,7 @@ void CTexComponent::UpdateUnderwearVisibility() {
 }
 
 void CTexComponent::IncUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SECTIONS sectionID) {
-  unsigned int section = s_underwearSectionHideInfo[sectionID];
+  UINT section = s_underwearSectionHideInfo[sectionID];
   if (section != -1) {
     ASSERT(section < NUM_UNDERWEARHIDESECTIONS);
     if (s_underwearHideSections[itemInventoryType][section]) {
@@ -779,7 +778,7 @@ void CTexComponent::IncUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SE
 }
 
 void CTexComponent::DecUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SECTIONS sectionID) {
-  unsigned int section = s_underwearSectionHideInfo[sectionID];
+  UINT section = s_underwearSectionHideInfo[sectionID];
   if (section != -1) {
     ASSERT(section < NUM_UNDERWEARHIDESECTIONS);
     if (s_underwearHideSections[itemInventoryType][section]) {
@@ -789,16 +788,7 @@ void CTexComponent::DecUnderwearHideCount(int itemInventoryType, TEXCOMPONENT_SE
   }
 }
 
-void UpdateComponentTexture(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+void UpdateComponentTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   FATALASSERT(userArg);
 
   CStatus        status;
@@ -807,7 +797,7 @@ void UpdateComponentTexture(
   switch (cmd) {
     case GxTex_Lock:
       if (!component->m_dirtyFlags) {
-        unsigned int section;
+        UINT section;
         for (section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
           component->m_dirtyFlags |= 1 << section;
         }
@@ -824,8 +814,8 @@ void UpdateComponentTexture(
 }
 
 HTEXCOMPONENT
-TexComponentCreate(HTEXTURE texture, unsigned int race, unsigned int sex, unsigned int skinID, int isNPC, int ignoreExistingTexture) {
-  unsigned int sectionFlags[NUM_TEXLAYERS];
+TexComponentCreate(HTEXTURE texture, UINT race, UINT sex, UINT skinID, int isNPC, int ignoreExistingTexture) {
+  UINT sectionFlags[NUM_TEXLAYERS];
 
   CharCustomizationGetTextureLayerHolds(race, sex, sectionFlags, NUM_TEXLAYERS);
 
@@ -847,7 +837,7 @@ TexComponentCreate(HTEXTURE texture, unsigned int race, unsigned int sex, unsign
   component->BuildSkinPieces(&status, sectionFlags);
   component->BuildNakedPieces(&status, race, sex, skinID, isNPC);
 
-  unsigned int section;
+  UINT section;
   for (section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
     component->m_dirtyFlags |= 1 << section;
   }
@@ -868,9 +858,9 @@ void TexComponentAdd(
   LAYERPRIORITY         priorityList[6];
   TEXCOMPONENT_LAYERS   layerList[6];
   TEXCOMPONENT_SECTIONS sectionList[6];
-  unsigned int          height;
-  unsigned int          width;
-  unsigned int          numTextureComponents;
+  UINT                  height;
+  UINT                  width;
+  UINT                  numTextureComponents;
 
   ASSERT(playerSex < UNITSEX_LAST);
 
@@ -883,7 +873,7 @@ void TexComponentAdd(
     return;
   }
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < numTextureComponents; ++i) {
     if (!sectionArt.path[i][0]) {
       continue;
@@ -917,14 +907,13 @@ void TexComponentRemove(HTEXCOMPONENT component, const ItemDisplayInfoRec *displ
   LAYERPRIORITY         priorityList[6];
   TEXCOMPONENT_LAYERS   layerList[6];
   TEXCOMPONENT_SECTIONS sectionList[6];
-  unsigned int          numTextureComponents;
-  if (!displayInfoRec ||
-      !CompUtilItemSectionInfo(displayInfoRec, itemInventoryType, &numTextureComponents, sectionList, layerList, priorityList, 0))
+  UINT                  numTextureComponents;
+  if (!displayInfoRec || !CompUtilItemSectionInfo(displayInfoRec, itemInventoryType, &numTextureComponents, sectionList, layerList, priorityList, 0))
   {
     return;
   }
 
-  for (unsigned int i = 0; i < numTextureComponents; ++i) {
+  for (UINT i = 0; i < numTextureComponents; ++i) {
     TEXCOMPONENT_SECTIONS section = sectionList[i];
     if (section >= NUM_TEXCOMPONENT_SECTIONS) {
       continue;
@@ -940,17 +929,15 @@ void TexComponentRemove(HTEXCOMPONENT component, const ItemDisplayInfoRec *displ
   componentptr->UpdateUnderwearVisibility();
 }
 
-void TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperHead, const char *lowerHead, unsigned int layer) {
+void TexComponentChangeCharacterHead(HTEXCOMPONENT component, LPCSTR upperHead, LPCSTR lowerHead, UINT layer) {
   CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
   FATALASSERT(componentptr);
 
-  unsigned int uWidth;
-  unsigned int uHeight;
-  unsigned int lWidth;
-  unsigned int lHeight;
-  if (!CompUtilGetSectionDimensions(TCS_UPPERHEAD, &uWidth, &uHeight) ||
-      !CompUtilGetSectionDimensions(TCS_LOWERHEAD, &lWidth, &lHeight))
-  {
+  UINT uWidth;
+  UINT uHeight;
+  UINT lWidth;
+  UINT lHeight;
+  if (!CompUtilGetSectionDimensions(TCS_UPPERHEAD, &uWidth, &uHeight) || !CompUtilGetSectionDimensions(TCS_LOWERHEAD, &lWidth, &lHeight)) {
     return;
   }
 
@@ -971,11 +958,11 @@ void TexComponentChangeCharacterHead(HTEXCOMPONENT component, const char *upperH
   componentptr->SetTexture(&status, 0, lowerHead, TCS_LOWERHEAD, static_cast<TEXCOMPONENT_LAYERS>(layer), LAYERPRIORITY_3, lWidth, lHeight);
 }
 
-void CTexComponent::SetUpperHeadTexture(const char *upperHead) {
+void CTexComponent::SetUpperHeadTexture(LPCSTR upperHead) {
   SStrCopy(m_upperFaceTexture, upperHead, sizeof(m_upperFaceTexture));
 }
 
-void CTexComponent::SetLowerHeadTexture(const char *lowerHead) {
+void CTexComponent::SetLowerHeadTexture(LPCSTR lowerHead) {
   SStrCopy(m_lowerFaceTexture, lowerHead, sizeof(m_lowerFaceTexture));
 }
 
@@ -986,16 +973,16 @@ static const HelmetGeosetVisDataRec *GetHelmGeosetHideData(const ItemDisplayInfo
 void HeadGeosetHideCharGeosets(
     HCHARGEOSET               geosetHandle,
     const ItemDisplayInfoRec *displayInfoRec,
-    unsigned int              raceID,
-    const unsigned int       *preferredGeosets,
-    unsigned int              numPreferredGeosets
+    UINT                      raceID,
+    const UINT               *preferredGeosets,
+    UINT                      numPreferredGeosets
 ) {
   if (!geosetHandle) {
     return;
   }
 
   FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
+  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(!preferredGeosets || numPreferredGeosets == NUM_CHARGEOSETS);
 
   const HelmetGeosetVisDataRec *helmData = GetHelmGeosetHideData(displayInfoRec);
@@ -1004,9 +991,9 @@ void HeadGeosetHideCharGeosets(
   }
 
   FATALASSERT(raceID < sizeof(helmData->m_DefaultFlags) / sizeof(helmData->m_DefaultFlags[0]));
-  unsigned int section;
+  UINT section;
   for (section = 0; section < NUM_CHARGEOSETS; ++section) {
-    unsigned int sectionFlag = 1 << section;
+    UINT sectionFlag = 1 << section;
     if (!(sectionFlag & 0x8F)) {
       continue;
     }
@@ -1022,7 +1009,7 @@ void HeadGeosetHideCharGeosets(
   }
 }
 
-void HeadGeosetUnhideCharGeosets(HCHARGEOSET geosetHandle, const unsigned int *preferredGeosets, unsigned int numPreferredGeosets) {
+void HeadGeosetUnhideCharGeosets(HCHARGEOSET geosetHandle, const UINT *preferredGeosets, UINT numPreferredGeosets) {
   if (!geosetHandle) {
     return;
   }
@@ -1030,18 +1017,14 @@ void HeadGeosetUnhideCharGeosets(HCHARGEOSET geosetHandle, const unsigned int *p
   FATALASSERT(numPreferredGeosets == NUM_CHARGEOSETS);
   FATALASSERT(preferredGeosets);
 
-  for (unsigned int section = 0; section < NUM_CHARGEOSETS; ++section) {
+  for (UINT section = 0; section < NUM_CHARGEOSETS; ++section) {
     if ((1 << section) & 0x8F) {
-      CharCustomizationShowGeoset(
-          geosetHandle,
-          static_cast<CHARACTER_GEOSET_SECTIONS>(section),
-          preferredGeosets[section]
-      );
+      CharCustomizationShowGeoset(geosetHandle, static_cast<CHARACTER_GEOSET_SECTIONS>(section), preferredGeosets[section]);
     }
   }
 }
 
-static void UpdateSubComponentPathNames(SUBCOMPONENTDESC *subComponent, const char *modelName) {
+static void UpdateSubComponentPathNames(SUBCOMPONENTDESC *subComponent, LPCSTR modelName) {
   FATALASSERT(subComponent);
   if (subComponent->pathName) {
     SMemFree(subComponent->pathName, __FILE__, __LINE__, 0);
@@ -1052,17 +1035,16 @@ static void UpdateSubComponentPathNames(SUBCOMPONENTDESC *subComponent, const ch
   }
 }
 
-static void AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, unsigned int numSubComponents, unsigned int inventoryType) {
-  static const char *const inventoryNames[INDEX_NUMSLOTS] = {"UNUSED", "Head",   "Neck",   "Shoulder", "Body",   "Chest",   "Waist",
-                                                             "Legs",   "Feet",   "Wrist",  "Hand",     "Finger", "Trinket", "Weapon",
-                                                             "Shield", "Weapon", "Ammo",   "Weapon",   "Bag",    "UNUSED",  "UNUSED",
-                                                             "Weapon", "Weapon", "Weapon", "Ammo",     "Weapon", "Weapon"};
+static void AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, UINT numSubComponents, UINT inventoryType) {
+  static LPCSTR const inventoryNames[INDEX_NUMSLOTS] = {"UNUSED", "Head",   "Neck",   "Shoulder", "Body",   "Chest",  "Waist",  "Legs",   "Feet",
+                                                        "Wrist",  "Hand",   "Finger", "Trinket",  "Weapon", "Shield", "Weapon", "Ammo",   "Weapon",
+                                                        "Bag",    "UNUSED", "UNUSED", "Weapon",   "Weapon", "Weapon", "Ammo",   "Weapon", "Weapon"};
   if (!subcomponents || !numSubComponents) {
     return;
   }
   ASSERT(inventoryType < INDEX_NUMSLOTS);
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < numSubComponents; ++i) {
     char buffer[MAX_PATH];
     SStrPrintf(buffer, sizeof(buffer), "Item\\ObjectComponents\\%s\\%s", inventoryNames[inventoryType], subcomponents[i].pathName);
@@ -1075,16 +1057,15 @@ static void AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, unsigned in
   }
 }
 
-static void
-DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, unsigned int numSubComponents, unsigned int race, unsigned int sex) {
+static void DecorateComponentFileNames(SUBCOMPONENTDESC *subComponents, UINT numSubComponents, UINT race, UINT sex) {
   if (!subComponents || !numSubComponents) {
     return;
   }
   FATALASSERT(race != 0);
-  FATALASSERT(race <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
+  FATALASSERT(race <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sex < UNITSEX_LAST);
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < numSubComponents; ++i) {
     char mBuffer[MAX_PATH];
     CompDecorateObjName(subComponents[i].pathName, mBuffer, sizeof(mBuffer), race, sex);
@@ -1113,8 +1094,7 @@ static HMODEL ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, cons
   ModelSetSequence(subCompModel, 0, 0);
 
   if (subComponent->textureName && *subComponent->textureName) {
-    HTEXTURE texture =
-        TextureCreate(subComponent->textureName, CGxTexFlags(GxTex_LinearMipLinear, 0, 0, 0, 0, 0, 1), &s_nullStatus, 0);
+    HTEXTURE texture = TextureCreate(subComponent->textureName, CGxTexFlags(GxTex_LinearMipLinear, 0, 0, 0, 0, 0, 1), &s_nullStatus, 0);
     if (!texture) {
       SysMsgPrintf(SYSMSG_ERROR, 2, "TEXCOMPONENTNOTEXTURE|%d:%s!", displayInfoRec->m_ID, subComponent->textureName);
       return subCompModel;
@@ -1137,11 +1117,11 @@ int ObjComponentAdd(
     int                       useAlternateSlot,
     HMODEL                    existingModel,
     OBJCALLBACK               callback,
-    void                     *param,
-    unsigned int              inventorySlot
+    LPVOID                    param,
+    UINT                      inventorySlot
 ) {
   SUBCOMPONENTDESC subComponents[2];
-  unsigned int     numSubComponents = CompUtilGetObjComponents(displayInfoRec, itemInventoryType, subComponents, 2, useAlternateSlot);
+  UINT             numSubComponents = CompUtilGetObjComponents(displayInfoRec, itemInventoryType, subComponents, 2, useAlternateSlot);
   if (!numSubComponents) {
     return 1;
   }
@@ -1151,7 +1131,7 @@ int ObjComponentAdd(
   }
   AddSubcomponentPrefixes(subComponents, numSubComponents, itemInventoryType);
 
-  unsigned int componentIndex;
+  UINT componentIndex;
   for (componentIndex = 0; componentIndex < numSubComponents; ++componentIndex) {
     HMODEL itemModel = existingModel && numSubComponents == 1 ? static_cast<HMODEL>(HandleDuplicate(existingModel))
                                                               : ObjComponentBuildSubComponent(&subComponents[componentIndex], displayInfoRec);
@@ -1171,13 +1151,13 @@ int ObjComponentAdd(
   return 1;
 }
 
-HMODEL ObjComponentCreate(unsigned int itemClass, unsigned int itemInventoryType, const ItemDisplayInfoRec *displayInfoRec) {
+HMODEL ObjComponentCreate(UINT itemClass, UINT itemInventoryType, const ItemDisplayInfoRec *displayInfoRec) {
   if (itemClass != 2 && itemInventoryType != 23 && itemInventoryType != 14) {
     return 0;
   }
 
   SUBCOMPONENTDESC subComponents[2];
-  unsigned int numSubComponents = CompUtilGetObjComponents(displayInfoRec, itemInventoryType, subComponents, 2, 0);
+  UINT             numSubComponents = CompUtilGetObjComponents(displayInfoRec, itemInventoryType, subComponents, 2, 0);
   if (!numSubComponents) {
     return 0;
   }
@@ -1186,12 +1166,12 @@ HMODEL ObjComponentCreate(unsigned int itemClass, unsigned int itemInventoryType
   return ObjComponentBuildSubComponent(&subComponents[0], displayInfoRec);
 }
 
-void ObjComponentRemove(HMODEL charModel, unsigned int inventoryType) {
+void ObjComponentRemove(HMODEL charModel, UINT inventoryType) {
   if (!charModel || inventoryType >= INDEX_NUMSLOTS) {
     return;
   }
 
-  for (unsigned int componentIndex = 0; componentIndex < 2; ++componentIndex) {
+  for (UINT componentIndex = 0; componentIndex < 2; ++componentIndex) {
     int link = g_geometryComponentLookups[inventoryType].itemLinks[componentIndex];
     if (link != -1) {
       ModelClearLink(charModel, link);
@@ -1205,17 +1185,17 @@ void ObjComponentRemove(HMODEL charModel, unsigned int inventoryType) {
 
 HMODEL ObjComponentRemove(
     HMODEL            charModel,
-    unsigned int      unitRace,
-    unsigned int      unitSex,
-    unsigned int      slot,
+    UINT              unitRace,
+    UINT              unitSex,
+    UINT              slot,
     int               returnModelIfOnlyOneSubcomponent,
     OBJREMOVECALLBACK callback,
-    void             *callbackParam
+    LPVOID            callbackParam
 ) {
   FATALASSERT(charModel);
 
   HMODEL savedSubComponent = 0;
-  for (unsigned int componentLink = 0; componentLink < 36; ++componentLink) {
+  for (UINT componentLink = 0; componentLink < 36; ++componentLink) {
     HMODEL subComponent = callback ? callback(callbackParam, slot, componentLink) : 0;
     if (!subComponent) {
       continue;
@@ -1267,15 +1247,15 @@ int TexComponentCheckSections(HTEXCOMPONENT component, int bForce) {
   return 0;
 }
 
-void CTexComponent::RemoveSections(const TEXCOMPONENT_SECTIONS *sectionPointers, const unsigned int *startLayerList, unsigned int size) {
+void CTexComponent::RemoveSections(const TEXCOMPONENT_SECTIONS *sectionPointers, const UINT *startLayerList, UINT size) {
   FATALASSERT(sectionPointers);
   FATALASSERT(startLayerList);
   FATALASSERT(size);
 
-  for (unsigned int entry = 0; entry < size; ++entry) {
+  for (UINT entry = 0; entry < size; ++entry) {
     TEXCOMPONENT_SECTIONS section = sectionPointers[entry];
-    for (unsigned int layer = startLayerList[entry]; layer < NUM_TEXLAYERS; ++layer) {
-      for (unsigned int priority = 0; priority < NUM_LAYERPRIORITIES; ++priority) {
+    for (UINT layer = startLayerList[entry]; layer < NUM_TEXLAYERS; ++layer) {
+      for (UINT priority = 0; priority < NUM_LAYERPRIORITIES; ++priority) {
         m_sections[section].m_layers[layer].m_priorities[priority].SetTexture(0, 0);
       }
     }
@@ -1315,9 +1295,9 @@ void CTexComponent::RemoveHold(INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS 
 }
 
 void CTexComponent::RemoveHolds() {
-  for (unsigned int section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
-    for (unsigned int layer = 0; layer < NUM_TEXLAYERS; ++layer) {
-      for (unsigned int priority = 0; priority < NUM_LAYERPRIORITIES; ++priority) {
+  for (UINT section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
+    for (UINT layer = 0; layer < NUM_TEXLAYERS; ++layer) {
+      for (UINT priority = 0; priority < NUM_LAYERPRIORITIES; ++priority) {
         CTexturePiece &piece = m_sections[section].m_layers[layer].m_priorities[priority];
         int            hadHolds = piece.m_holds != 0;
         piece.m_holds &= ~1u;
@@ -1329,12 +1309,7 @@ void CTexComponent::RemoveHolds() {
   }
 }
 
-void TexComponentRemoveSections(
-    HTEXCOMPONENT                component,
-    const TEXCOMPONENT_SECTIONS *sectionPointers,
-    const unsigned int          *startLayerList,
-    unsigned int                 size
-) {
+void TexComponentRemoveSections(HTEXCOMPONENT component, const TEXCOMPONENT_SECTIONS *sectionPointers, const UINT *startLayerList, UINT size) {
   CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
   if (componentPtr && sectionPointers && startLayerList && size) {
     componentPtr->RemoveSections(sectionPointers, startLayerList, size);
@@ -1360,7 +1335,7 @@ void TexComponentRemoveHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, 
 }
 
 void ComponentInitialize() {
-  unsigned int section;
+  UINT section;
 
   if (s_textureCacheHandle) {
     HandleClose(s_textureCacheHandle);
@@ -1390,8 +1365,16 @@ void ComponentShutdown() {
   TextureFreeMippedImg(CTexturePiece::m_destImage);
 }
 
-int
-GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool isPlayer, bool useAlternate, HMODEL *models, int *attachmentPoints) {
+int GetObjComponentInfo(
+    int     race,
+    int     sex,
+    int     displayID,
+    int     inventoryType,
+    bool    isPlayer,
+    bool    useAlternate,
+    HMODEL *models,
+    int    *attachmentPoints
+) {
   SUBCOMPONENTDESC subComponents[2];
   int              added;
 
@@ -1399,7 +1382,7 @@ GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool is
   FATALASSERT(attachmentPoints);
 
   const ItemDisplayInfoRec *displayInfoRec = g_itemDisplayInfoDB.GetRecord(displayID);
-  unsigned int              numSubComponents = CompUtilGetObjComponents(displayInfoRec, inventoryType, subComponents, 2, useAlternate);
+  UINT                      numSubComponents = CompUtilGetObjComponents(displayInfoRec, inventoryType, subComponents, 2, useAlternate);
   if (!numSubComponents) {
     return 0;
   }
@@ -1410,7 +1393,7 @@ GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool is
   AddSubcomponentPrefixes(subComponents, numSubComponents, inventoryType);
 
   added = 0;
-  for (unsigned int componentIndex = 0; componentIndex < numSubComponents; ++componentIndex) {
+  for (UINT componentIndex = 0; componentIndex < numSubComponents; ++componentIndex) {
     HMODEL model = ObjComponentBuildSubComponent(&subComponents[componentIndex], displayInfoRec);
     if (model) {
       models[added] = model;
@@ -1506,7 +1489,7 @@ CTexComponent &CTexComponent::operator=(const CTexComponent &rhs) {
     m_underwearHideCounts[0] = rhs.m_underwearHideCounts[0];
     m_underwearHideCounts[1] = rhs.m_underwearHideCounts[1];
 
-    for (unsigned int i = 0; i < NUM_TEXCOMPONENT_SECTIONS; ++i) {
+    for (UINT i = 0; i < NUM_TEXCOMPONENT_SECTIONS; ++i) {
       m_sections[i] = rhs.m_sections[i];
       m_dirtyFlags |= 1 << i;
     }
@@ -1519,7 +1502,7 @@ CTexComponent &CTexComponent::operator=(const CTexComponent &rhs) {
 
 CSection &CSection::operator=(const CSection &rhs) {
   if (this != &rhs) {
-    for (unsigned int i = 0; i < NUM_TEXLAYERS; ++i) {
+    for (UINT i = 0; i < NUM_TEXLAYERS; ++i) {
       m_layers[i] = rhs.m_layers[i];
     }
   }
@@ -1529,7 +1512,7 @@ CSection &CSection::operator=(const CSection &rhs) {
 
 CTextureLayer &CTextureLayer::operator=(const CTextureLayer &rhs) {
   if (this != &rhs) {
-    for (unsigned int i = 0; i < NUM_LAYERPRIORITIES; ++i) {
+    for (UINT i = 0; i < NUM_LAYERPRIORITIES; ++i) {
       m_priorities[i] = rhs.m_priorities[i];
     }
   }
@@ -1551,16 +1534,15 @@ CTexturePiece &CTexturePiece::operator=(const CTexturePiece &rhs) {
   return *this;
 }
 
-HMODEL ObjComponentBuildAmmoModel(const ItemDisplayInfoRec *displayInfoRec, unsigned int inventoryType, unsigned int &seqDuration) {
+HMODEL ObjComponentBuildAmmoModel(const ItemDisplayInfoRec *displayInfoRec, UINT inventoryType, UINT &seqDuration) {
   seqDuration = 0;
   if (!displayInfoRec || !displayInfoRec->m_modelName[1] || !displayInfoRec->m_modelTexture[1] || !inventoryType || inventoryType >= INDEX_NUMSLOTS) {
     return 0;
   }
 
-  static const char *const inventoryNames[INDEX_NUMSLOTS] = {"UNUSED", "Head",   "Neck",   "Shoulder", "Body",   "Chest",   "Waist",
-                                                             "Legs",   "Feet",   "Wrist",  "Hand",     "Finger", "Trinket", "Weapon",
-                                                             "Shield", "Weapon", "Ammo",   "Weapon",   "Bag",    "UNUSED",  "UNUSED",
-                                                             "Weapon", "Weapon", "Weapon", "Ammo",     "Weapon", "Weapon"};
+  static LPCSTR const inventoryNames[INDEX_NUMSLOTS] = {"UNUSED", "Head",   "Neck",   "Shoulder", "Body",   "Chest",  "Waist",  "Legs",   "Feet",
+                                                        "Wrist",  "Hand",   "Finger", "Trinket",  "Weapon", "Shield", "Weapon", "Ammo",   "Weapon",
+                                                        "Bag",    "UNUSED", "UNUSED", "Weapon",   "Weapon", "Weapon", "Ammo",   "Weapon", "Weapon"};
 
   char texturePath[MAX_PATH];
   char modelPath[MAX_PATH];

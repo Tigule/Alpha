@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ChrRacesRec::GetFilename() {
+LPCSTR ChrRacesRec::GetFilename() {
   return "DBFilesClient\\ChrRaces.dbc";
 }
 
@@ -19,11 +19,11 @@ ChrRacesRec::ChrRacesRec() {
 ChrRacesRec::~ChrRacesRec() {
 }
 
-bool ChrRacesRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempname_langIndices[NUM_LOCALES];
-  unsigned int tempclientFileStringIndices[1];
-  unsigned int tempClientPrefixIndices[1];
+bool ChrRacesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempname_langIndices[NUM_LOCALES];
+  UINT tempclientFileStringIndices[1];
+  UINT tempClientPrefixIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_flags, sizeof(m_flags), 0, 0, 0) && result;

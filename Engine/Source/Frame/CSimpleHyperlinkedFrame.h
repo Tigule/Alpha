@@ -33,43 +33,43 @@ class CSimpleHyperlinkedFrame : public CSimpleFrame {
   virtual ~CSimpleHyperlinkedFrame();
 
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
-  virtual void OnHyperlinkEnter(const char *link);
-  virtual void OnHyperlinkLeave(const char *link);
-  virtual void OnHyperlinkClick(const char *link, MOUSEBUTTON button);
+  virtual void OnHyperlinkEnter(LPCSTR link);
+  virtual void OnHyperlinkLeave(LPCSTR link);
+  virtual void OnHyperlinkClick(LPCSTR link, MOUSEBUTTON button);
 
-  void SetOnHyperlinkEnterScript(const char *source) {
+  void SetOnHyperlinkEnterScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnHyperlinkEnter", GetName());
     SetEventScript(m_onHyperlinkEnter, source, description);
   }
 
-  void SetOnHyperlinkLeaveScript(const char *source) {
+  void SetOnHyperlinkLeaveScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnHyperlinkLeave", GetName());
     SetEventScript(m_onHyperlinkLeave, source, description);
   }
 
-  void SetOnHyperlinkClickScript(const char *source) {
+  void SetOnHyperlinkClickScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnHyperlinkClick", GetName());
     SetEventScript(m_onHyperlinkClick, source, description);
   }
 
-  void RunOnHyperlinkEnterScript(const char *link) {
+  void RunOnHyperlinkEnterScript(LPCSTR link) {
     if (m_onHyperlinkEnter) {
       FrameScript_Execute(m_onHyperlinkEnter, this, "%s", link);
     }
   }
 
-  void RunOnHyperlinkLeaveScript(const char *link) {
+  void RunOnHyperlinkLeaveScript(LPCSTR link) {
     if (m_onHyperlinkLeave) {
       FrameScript_Execute(m_onHyperlinkLeave, this, "%s", link);
     }
   }
 
-  void RunOnHyperlinkClickScript(const char *link, MOUSEBUTTON button) {
+  void RunOnHyperlinkClickScript(LPCSTR link, MOUSEBUTTON button) {
     if (m_onHyperlinkClick) {
-      const char *buttonName;
+      LPCSTR buttonName;
 
       switch (button) {
         case MOUSE_BUTTON_LEFT:
@@ -101,9 +101,9 @@ class CSimpleHyperlinkedFrame : public CSimpleFrame {
   void                    ReleaseHyperlinkButton(CSimpleHyperlinkButton *button);
 
   LISTDECLEX(CSimpleHyperlinkButton, m_link, m_hyperlinkButtons);
-  int                                         m_onHyperlinkEnter;
-  int                                         m_onHyperlinkLeave;
-  int                                         m_onHyperlinkClick;
+  int m_onHyperlinkEnter;
+  int m_onHyperlinkLeave;
+  int m_onHyperlinkClick;
 };
 
 #endif

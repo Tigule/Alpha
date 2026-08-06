@@ -21,7 +21,7 @@
 #include <stdarg.h>
 #include <stpl.h>
 
-void __cdecl operator delete(void *, void *) {
+void __cdecl operator delete(LPVOID, LPVOID) {
 }
 
 class CFrameXMLStatus : public CStatus {
@@ -29,7 +29,7 @@ class CFrameXMLStatus : public CStatus {
   CFrameXMLStatus();
   virtual ~CFrameXMLStatus();
 
-  virtual void Add(int severity, const char *format, ...);
+  virtual void Add(int severity, LPCSTR format, ...);
 };
 
 struct HashedNode : public TSHashObject<HashedNode, HASHKEY_STRI> {
@@ -52,8 +52,8 @@ static TSHashTable<FrameFactoryNode, HASHKEY_STRI> s_frameFactories;
 static CFrameXMLStatus                             s_defaultStatus;
 static int                                         s_debugLevel;
 static LISTDECL(TREENODE, s_treeList);
-static int                                         s_loadNesting;
-static FRAMELOADPROGRESSCALLBACK                   s_loadProgressCallback;
+static int                       s_loadNesting;
+static FRAMELOADPROGRESSCALLBACK s_loadProgressCallback;
 
 CFrameXMLStatus::CFrameXMLStatus() {
 }
@@ -61,7 +61,7 @@ CFrameXMLStatus::CFrameXMLStatus() {
 CFrameXMLStatus::~CFrameXMLStatus() {
 }
 
-void CFrameXMLStatus::Add(int, const char *format, ...) {
+void CFrameXMLStatus::Add(int, LPCSTR format, ...) {
   char    buffer[0x200];
   va_list arguments;
 
@@ -77,10 +77,10 @@ TREENODE::~TREENODE() {
   XMLTree_Free(tree);
 }
 
-static int GuessNumFiles(const char *string);
-static XMLTree *FrameXML_LoadXML(const char *filename, CStatus *status);
-int FrameXML_ProcessFile(const char *filename, CStatus *status);
-void FrameXML_StoreHashNode(const XMLNode *node, const char *name, CStatus *status);
+static int      GuessNumFiles(LPCSTR string);
+static XMLTree *FrameXML_LoadXML(LPCSTR filename, CStatus *status);
+int             FrameXML_ProcessFile(LPCSTR filename, CStatus *status);
+void            FrameXML_StoreHashNode(const XMLNode *node, LPCSTR name, CStatus *status);
 
 void FrameXML_SetDebugLevel(int level) {
   s_debugLevel = level;
@@ -90,10 +90,10 @@ int FrameXML_GetDebugLevel() {
   return s_debugLevel;
 }
 
-int FrameXML_CreateFrames(const char *path, CStatus *status) {
-  void       *buffer;
-  const char *string;
-  int         total;
+int FrameXML_CreateFrames(LPCSTR path, CStatus *status) {
+  LPVOID buffer;
+  LPCSTR string;
+  int    total;
 
   if (!status) {
     status = &s_defaultStatus;
@@ -108,7 +108,7 @@ int FrameXML_CreateFrames(const char *path, CStatus *status) {
     return 0;
   }
 
-  string = static_cast<const char *>(buffer);
+  string = static_cast<LPCSTR>(buffer);
   total = GuessNumFiles(string);
 
   char filename[0x104] = "";
@@ -117,7 +117,7 @@ int FrameXML_CreateFrames(const char *path, CStatus *status) {
   int index = 0;
 
   for (;;) {
-    const char *suffix;
+    LPCSTR suffix;
 
     SStrTokenize(&string, filename, sizeof(filename), " \r\n\"", 0);
 
@@ -159,9 +159,9 @@ int FrameXML_CreateFrames(const char *path, CStatus *status) {
   return 1;
 }
 
-static int GuessNumFiles(const char *string) {
-  const char *line;
-  int         count;
+static int GuessNumFiles(LPCSTR string) {
+  LPCSTR line;
+  int    count;
 
   if (!string || !*string) {
     return 0;
@@ -181,7 +181,7 @@ static int GuessNumFiles(const char *string) {
   return count;
 }
 
-int FrameXML_ProcessFile(const char *filename, CStatus *status) {
+int FrameXML_ProcessFile(LPCSTR filename, CStatus *status) {
   XMLTree       *tree;
   const XMLNode *node;
 
@@ -199,14 +199,14 @@ int FrameXML_ProcessFile(const char *filename, CStatus *status) {
 
   while (node) {
     if (!SStrCmpI(node->GetName(), "Script", 0x7FFFFFFF)) {
-      const char *scriptFile = node->GetAttributeByName("file");
+      LPCSTR scriptFile = node->GetAttributeByName("file");
 
       if (scriptFile) {
         char scriptPath[0x104];
 
         SStrCopy(scriptPath, scriptFile, sizeof(scriptPath));
         if (!SStrChrR(scriptFile, '\\')) {
-          const char *slash = SStrChrR(filename, '\\');
+          LPCSTR slash = SStrChrR(filename, '\\');
 
           if (slash) {
             int directoryLength = slash - filename + 1;
@@ -225,7 +225,7 @@ int FrameXML_ProcessFile(const char *filename, CStatus *status) {
       }
 
       {
-        const char *body = node->GetBody();
+        LPCSTR body = node->GetBody();
 
         if (body && *body) {
           char description[0x110];
@@ -235,10 +235,10 @@ int FrameXML_ProcessFile(const char *filename, CStatus *status) {
         }
       }
     } else {
-      const char *isVirtual = node->GetAttributeByName("virtual");
+      LPCSTR isVirtual = node->GetAttributeByName("virtual");
 
       if (isVirtual && !SStrCmpI(isVirtual, "true", 0x7FFFFFFF)) {
-        const char *name = node->GetAttributeByName("name");
+        LPCSTR name = node->GetAttributeByName("name");
 
         if (name && *name) {
           FrameXML_StoreHashNode(node, name, status);
@@ -256,17 +256,17 @@ int FrameXML_ProcessFile(const char *filename, CStatus *status) {
   return 1;
 }
 
-static XMLTree *FrameXML_LoadXML(const char *filename, CStatus *status) {
-  void         *buffer;
-  unsigned long bytes;
-  XMLTree      *tree;
+static XMLTree *FrameXML_LoadXML(LPCSTR filename, CStatus *status) {
+  LPVOID   buffer;
+  DWORD    bytes;
+  XMLTree *tree;
 
   if (!SFile::LoadFile(filename, &buffer, &bytes, 0, 0)) {
     status->Add(STATUS_ERROR, "Couldn't open %s", filename);
     return 0;
   }
 
-  tree = XMLTree_Load(static_cast<const char *>(buffer), bytes);
+  tree = XMLTree_Load(static_cast<LPCSTR>(buffer), bytes);
   if (!tree) {
     status->Add(STATUS_ERROR, "Couldn't parse XML in %s", filename);
   }
@@ -276,7 +276,7 @@ static XMLTree *FrameXML_LoadXML(const char *filename, CStatus *status) {
 }
 
 CSimpleFrame *FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, CStatus *status) {
-  const char       *name;
+  LPCSTR            name;
   FrameFactoryNode *factoryNode;
   CSimpleFrame     *frame;
 
@@ -316,7 +316,7 @@ CSimpleFrame *FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, CS
   return frame;
 }
 
-void FrameXML_StoreHashNode(const XMLNode *node, const char *name, CStatus *status) {
+void FrameXML_StoreHashNode(const XMLNode *node, LPCSTR name, CStatus *status) {
   HashedNode *hashedNode;
 
   if (FrameXML_GetDebugLevel() > 0) {
@@ -332,7 +332,7 @@ void FrameXML_StoreHashNode(const XMLNode *node, const char *name, CStatus *stat
   hashedNode->node = node;
 }
 
-const XMLNode *FrameXML_FindHashNode(const char *name) {
+const XMLNode *FrameXML_FindHashNode(LPCSTR name) {
   HashedNode *hashedNode = s_hashedNodes.Ptr(name);
 
   if (hashedNode) {
@@ -346,7 +346,7 @@ void FrameXML_ClearFactories() {
   s_frameFactories.Clear();
 }
 
-int FrameXML_RegisterFactory(const char *type, FRAMEFACTORY factory) {
+int FrameXML_RegisterFactory(LPCSTR type, FRAMEFACTORY factory) {
   FrameFactoryNode *node;
 
   if (s_frameFactories.Ptr(type)) {

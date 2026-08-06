@@ -8,8 +8,7 @@
 #include <Tempest/c44matrix.h>
 #include <Tempest/crect.h>
 
-static void
-FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
+static void FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
   ASSERT(NTempest::CMath::fnotequal_(direction.SquaredMag(), 0.0f));
 
   *xprime = direction;
@@ -54,8 +53,7 @@ static void FaceDirectionWithRoll(
   *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
 }
 
-static void
-BuildBillboardMatrixWithRoll(const NTempest::C3Vector &direction, const NTempest::C3Vector &up, NTempest::C33Matrix *rotation) {
+static void BuildBillboardMatrixWithRoll(const NTempest::C3Vector &direction, const NTempest::C3Vector &up, NTempest::C33Matrix *rotation) {
   NTempest::C3Vector zprime;
   NTempest::C3Vector yprime;
   NTempest::C3Vector xprime;

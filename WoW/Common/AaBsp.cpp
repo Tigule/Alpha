@@ -5,7 +5,7 @@
 #include <storm.h>
 #include <string.h>
 
-static const unsigned char s_faceBitsMask[8] = {1, 2, 4, 8, 16, 32, 64, 128};
+static const BYTE s_faceBitsMask[8] = {1, 2, 4, 8, 16, 32, 64, 128};
 
 class CFaceQuery {
  public:
@@ -13,7 +13,7 @@ class CFaceQuery {
     memset(faceBits, 0, sizeof(faceBits));
   }
 
-  void AddFace(unsigned short face) {
+  void AddFace(WORD face) {
     if (!(faceBits[face >> 3] & s_faceBitsMask[face & 7])) {
       indices[count++] = face;
       FATALASSERT(count < maxCount);
@@ -21,15 +21,15 @@ class CFaceQuery {
   }
 
   void ClearFaceBits() {
-    for (unsigned int i = 0; i < count; ++i) {
+    for (UINT i = 0; i < count; ++i) {
       faceBits[indices[i] >> 3] = 0;
     }
   }
 
-  unsigned short *indices;
-  unsigned int    maxCount;
-  unsigned int    count;
-  unsigned char   faceBits[8192];
+  WORD *indices;
+  UINT  maxCount;
+  UINT  count;
+  BYTE  faceBits[8192];
 };
 
 static CFaceQuery s_faceQuery;
@@ -51,7 +51,7 @@ void CAaBsp::operator=(const CAaBsp &rhs) {
   FATALASSERT(nodes);
   rootNode = nodes;
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < nNodes; ++i) {
     nodes[i].flags = rhs.nodes[i].flags;
     nodes[i].negChild = rhs.nodes[i].negChild;
@@ -62,7 +62,7 @@ void CAaBsp::operator=(const CAaBsp &rhs) {
   }
 
   nNodeFaceIndices = rhs.nNodeFaceIndices;
-  nodeFaceIndices = static_cast<unsigned short *>(SMemAlloc(sizeof(unsigned short) * nNodeFaceIndices, 0, 0, 0));
+  nodeFaceIndices = static_cast<WORD *>(SMemAlloc(sizeof(WORD) * nNodeFaceIndices, 0, 0, 0));
   FATALASSERT(nodeFaceIndices);
   for (i = 0; i < nNodeFaceIndices; ++i) {
     nodeFaceIndices[i] = rhs.nodeFaceIndices[i];
@@ -80,13 +80,7 @@ void CAaBsp::Clear() {
   Init();
 }
 
-void CAaBsp::Set(
-    CAaBspNode *nodeList,
-    unsigned int nNodes,
-    unsigned short *faceIndices,
-    unsigned int nFaceIndices,
-    const NTempest::CAaBox &box
-) {
+void CAaBsp::Set(CAaBspNode *nodeList, UINT nNodes, WORD *faceIndices, UINT nFaceIndices, const NTempest::CAaBox &box) {
   FATALASSERT(nodeList);
   FATALASSERT(faceIndices);
 

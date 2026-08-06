@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ZoneMusicRec::GetFilename() {
+LPCSTR ZoneMusicRec::GetFilename() {
   return "DBFilesClient\\ZoneMusic.dbc";
 }
 
@@ -19,9 +19,9 @@ ZoneMusicRec::ZoneMusicRec() {
 ZoneMusicRec::~ZoneMusicRec() {
 }
 
-bool ZoneMusicRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempMusicFileIndices[2];
+bool ZoneMusicRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempMusicFileIndices[2];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_VolumeFloat, sizeof(m_VolumeFloat), 0, 0, 0) && result;

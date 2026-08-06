@@ -2,11 +2,11 @@
 #define WOW_SOURCE_OBJECT_MIRROR_H
 
 struct ObjDataDescriptor {
-  const char  *debugName;
-  unsigned int fieldName;
-  unsigned int fieldSize;
-  unsigned int fieldMirrorType;
-  unsigned int fieldMirrorFlags;
+  LPCSTR debugName;
+  UINT   fieldName;
+  UINT   fieldSize;
+  UINT   fieldMirrorType;
+  UINT   fieldMirrorFlags;
 };
 
 void MirrorInitialize();

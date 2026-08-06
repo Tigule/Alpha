@@ -51,7 +51,7 @@ bool ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
   return 1;
 }
 
-bool LoadLightsAndFog(const char *filename, LightGroup *lightgroup) {
+bool LoadLightsAndFog(LPCSTR filename, LightGroup *lightgroup) {
   int    versionNumber;
   int    lightCount;
   SFile *lightdata = 0;
@@ -102,10 +102,10 @@ void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTe
   }
 
   TSFixedArray<LightMarker> &markers = lightdata->m_highlightMarker[band];
-  for (unsigned int n = 0; n < markers.Count(); ++n) {
-    unsigned int next = (n + 1) % markers.Count();
-    int          x1 = markers[n].time;
-    int          t2 = markers[next].time;
+  for (UINT n = 0; n < markers.Count(); ++n) {
+    UINT next = (n + 1) % markers.Count();
+    int  x1 = markers[n].time;
+    int  t2 = markers[next].time;
 
     if (t2 > x1) {
       if (time < x1 || time > t2) {
@@ -161,18 +161,18 @@ void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTe
       }
     } else {
       int col1 = markers[n].color.r;
-      color->r = static_cast<unsigned char>(col1 + i * (markers[next].color.r - col1) / w);
+      color->r = static_cast<BYTE>(col1 + i * (markers[next].color.r - col1) / w);
       col1 = markers[n].color.g;
-      color->g = static_cast<unsigned char>(col1 + i * (markers[next].color.g - col1) / w);
+      color->g = static_cast<BYTE>(col1 + i * (markers[next].color.g - col1) / w);
       col1 = markers[n].color.b;
-      color->b = static_cast<unsigned char>(col1 + i * (markers[next].color.b - col1) / w);
+      color->b = static_cast<BYTE>(col1 + i * (markers[next].color.b - col1) / w);
       color->a = 255;
     }
     break;
   }
 }
 
-static unsigned long BlendLightValue(unsigned long base, unsigned long storm, int stormpercent) {
+static DWORD BlendLightValue(DWORD base, DWORD storm, int stormpercent) {
   return stormpercent * storm / 100 + (100 - stormpercent) * base / 100;
 }
 

@@ -27,7 +27,7 @@ static int CSimpleModel_SetModel(lua_State *L) {
     luaL_error(L, "Usage: SetModel(\"file\")");
   }
 
-  const char *filename = lua_tostring(L, 2);
+  LPCSTR filename = lua_tostring(L, 2);
   model->SetModel(filename, 0, 0);
   if (!model->GetModel()) {
     char message[512];
@@ -85,7 +85,7 @@ static int CSimpleModel_SetSequence(lua_State *L) {
     luaL_error(L, "Usage: SetSequence(sequence)");
   }
 
-  object->SetSequence(static_cast<unsigned int>(lua_tonumber(L, 2)));
+  object->SetSequence(static_cast<UINT>(lua_tonumber(L, 2)));
   return 0;
 }
 
@@ -96,7 +96,7 @@ static int CSimpleModel_SetSequenceTime(lua_State *L) {
     luaL_error(L, "Usage: SetSequenceTime(sequence, time)");
   }
 
-  object->SetSequenceTime(static_cast<unsigned int>(lua_tonumber(L, 2)), static_cast<int>(lua_tonumber(L, 3)));
+  object->SetSequenceTime(static_cast<UINT>(lua_tonumber(L, 2)), static_cast<int>(lua_tonumber(L, 3)));
   return 0;
 }
 
@@ -107,7 +107,7 @@ static int CSimpleModel_SetAlpha(lua_State *L) {
     luaL_error(L, "Usage: SetAlpha(alpha)");
   }
 
-  object->SetAlpha(static_cast<unsigned char>(lua_tonumber(L, 2)));
+  object->SetAlpha(static_cast<BYTE>(lua_tonumber(L, 2)));
   return 0;
 }
 
@@ -118,7 +118,7 @@ static int CSimpleModel_SetCamera(lua_State *L) {
     luaL_error(L, "Usage: SetCamera(index)");
   }
 
-  object->SetCameraByIndex(static_cast<unsigned int>(lua_tonumber(L, 2)));
+  object->SetCameraByIndex(static_cast<UINT>(lua_tonumber(L, 2)));
   return 0;
 }
 
@@ -294,7 +294,7 @@ void CSimpleModel::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleModel::LookupScriptMethod(lua_State *L, const char *name) {
+int CSimpleModel::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

@@ -7,13 +7,13 @@ class LockTypeRec {
   LockTypeRec();
   ~LockTypeRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 28;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 112;
   }
 
@@ -28,15 +28,15 @@ class LockTypeRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_name_lang[8];
-  int         m_name_flag;
-  const char *m_resourceName_lang[8];
-  int         m_resourceName_flag;
-  const char *m_verb_lang[8];
-  int         m_verb_flag;
+  int    m_ID;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+  LPCSTR m_resourceName_lang[8];
+  int    m_resourceName_flag;
+  LPCSTR m_verb_lang[8];
+  int    m_verb_flag;
 };
 
 extern WowClientDB<LockTypeRec> g_lockTypeDB;

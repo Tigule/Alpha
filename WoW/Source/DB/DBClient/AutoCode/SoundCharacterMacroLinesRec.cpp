@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SoundCharacterMacroLinesRec::GetFilename() {
+LPCSTR SoundCharacterMacroLinesRec::GetFilename() {
   return "DBFilesClient\\SoundCharacterMacroLines.dbc";
 }
 
@@ -19,7 +19,7 @@ SoundCharacterMacroLinesRec::SoundCharacterMacroLinesRec() {
 SoundCharacterMacroLinesRec::~SoundCharacterMacroLinesRec() {
 }
 
-bool SoundCharacterMacroLinesRec::Read(SFile *f, const char *stringBuffer) {
+bool SoundCharacterMacroLinesRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

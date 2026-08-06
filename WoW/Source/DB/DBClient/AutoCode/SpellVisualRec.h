@@ -7,13 +7,13 @@ class SpellVisualRec {
   SpellVisualRec();
   ~SpellVisualRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 21;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 69;
   }
 
@@ -28,29 +28,29 @@ class SpellVisualRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int           m_ID;
-  int           m_precastKit;
-  int           m_castKit;
-  int           m_impactKit;
-  int           m_stateKit;
-  int           m_channelKit;
-  int           m_hasMissile;
-  int           m_missileModel;
-  int           m_missilePathType;
-  int           m_missileDestinationAttachment;
-  int           m_missileSound;
-  int           m_hasAreaEffect;
-  int           m_areaModel;
-  int           m_areaKit;
-  int           m_animEventSoundID;
-  unsigned char m_weaponTrailRed;
-  unsigned char m_weaponTrailGreen;
-  unsigned char m_weaponTrailBlue;
-  unsigned char m_weaponTrailAlpha;
-  unsigned char m_weaponTrailFadeoutRate;
-  int           m_weaponTrailDuration;
+  int  m_ID;
+  int  m_precastKit;
+  int  m_castKit;
+  int  m_impactKit;
+  int  m_stateKit;
+  int  m_channelKit;
+  int  m_hasMissile;
+  int  m_missileModel;
+  int  m_missilePathType;
+  int  m_missileDestinationAttachment;
+  int  m_missileSound;
+  int  m_hasAreaEffect;
+  int  m_areaModel;
+  int  m_areaKit;
+  int  m_animEventSoundID;
+  BYTE m_weaponTrailRed;
+  BYTE m_weaponTrailGreen;
+  BYTE m_weaponTrailBlue;
+  BYTE m_weaponTrailAlpha;
+  BYTE m_weaponTrailFadeoutRate;
+  int  m_weaponTrailDuration;
 };
 
 extern WowClientDB<SpellVisualRec> g_spellVisualDB;

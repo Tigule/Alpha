@@ -11,37 +11,37 @@
 
 #include <stdio.h>
 
-static DNInfo        s_dnInfo;
-static int           s_initialized;
-static int           s_paused;
-static DNSky         s_sky;
-static DNClouds      s_clouds;
-static CurrentLight  s_magmaLight;
-static CurrentLight  s_slimeLight;
-static CVar         *s_cloudLODCvar;
-LightGroup           g_areaLights;
-static float         valueTable[256];
-static unsigned char perm[256] = {
-    225, 155, 210, 108, 175, 199, 221, 144, 203, 116, 70,  213, 69,  158, 33,  252, 5,   82,  173, 133, 222, 139, 174, 27,  9,   71,  90,  246, 75,
-    130, 91,  191, 169, 138, 2,   151, 194, 235, 81,  7,   25,  113, 228, 159, 205, 253, 134, 142, 248, 65,  224, 217, 22,  121, 229, 63,  89,  103,
-    96,  104, 156, 17,  201, 129, 36,  8,   165, 110, 237, 117, 231, 56,  132, 211, 152, 20,  181, 111, 239, 218, 170, 163, 51,  172, 157, 47,  80,
-    212, 176, 250, 87,  49,  99,  242, 136, 189, 162, 115, 44,  43,  124, 94,  150, 16,  141, 247, 32,  10,  198, 223, 255, 72,  53,  131, 84,  57,
-    220, 197, 58,  50,  208, 11,  241, 28,  3,   192, 62,  202, 18,  215, 153, 24,  76,  41,  15,  179, 39,  46,  55,  6,   128, 167, 23,  188, 106,
-    34,  187, 140, 164, 73,  112, 182, 244, 195, 227, 13,  35,  77,  196, 185, 26,  200, 226, 119, 31,  123, 168, 125, 249, 68,  183, 230, 177, 135,
-    160, 180, 12,  1,   243, 148, 102, 166, 38,  238, 251, 37,  240, 126, 64,  74,  161, 40,  184, 149, 171, 178, 101, 66,  29,  59,  146, 61,  254,
-    107, 42,  86,  154, 4,   236, 232, 120, 21,  233, 209, 45,  98,  193, 114, 78,  19,  206, 14,  118, 127, 48,  79,  147, 85,  30,  207, 219, 54,
-    88,  234, 190, 122, 95,  67,  143, 109, 137, 214, 145, 93,  92,  100, 245, 0,   216, 186, 60,  83,  105, 97,  204, 52
-};
-static unsigned char cloudTable[256];
-static float         coserpTable[256];
+static DNInfo       s_dnInfo;
+static int          s_initialized;
+static int          s_paused;
+static DNSky        s_sky;
+static DNClouds     s_clouds;
+static CurrentLight s_magmaLight;
+static CurrentLight s_slimeLight;
+static CVar        *s_cloudLODCvar;
+LightGroup          g_areaLights;
+static float        valueTable[256];
+static BYTE  perm[256] = {225, 155, 210, 108, 175, 199, 221, 144, 203, 116, 70,  213, 69,  158, 33,  252, 5,   82,  173, 133, 222, 139, 174, 27,
+                          9,   71,  90,  246, 75,  130, 91,  191, 169, 138, 2,   151, 194, 235, 81,  7,   25,  113, 228, 159, 205, 253, 134, 142,
+                          248, 65,  224, 217, 22,  121, 229, 63,  89,  103, 96,  104, 156, 17,  201, 129, 36,  8,   165, 110, 237, 117, 231, 56,
+                          132, 211, 152, 20,  181, 111, 239, 218, 170, 163, 51,  172, 157, 47,  80,  212, 176, 250, 87,  49,  99,  242, 136, 189,
+                          162, 115, 44,  43,  124, 94,  150, 16,  141, 247, 32,  10,  198, 223, 255, 72,  53,  131, 84,  57,  220, 197, 58,  50,
+                          208, 11,  241, 28,  3,   192, 62,  202, 18,  215, 153, 24,  76,  41,  15,  179, 39,  46,  55,  6,   128, 167, 23,  188,
+                          106, 34,  187, 140, 164, 73,  112, 182, 244, 195, 227, 13,  35,  77,  196, 185, 26,  200, 226, 119, 31,  123, 168, 125,
+                          249, 68,  183, 230, 177, 135, 160, 180, 12,  1,   243, 148, 102, 166, 38,  238, 251, 37,  240, 126, 64,  74,  161, 40,
+                          184, 149, 171, 178, 101, 66,  29,  59,  146, 61,  254, 107, 42,  86,  154, 4,   236, 232, 120, 21,  233, 209, 45,  98,
+                          193, 114, 78,  19,  206, 14,  118, 127, 48,  79,  147, 85,  30,  207, 219, 54,  88,  234, 190, 122, 95,  67,  143, 109,
+                          137, 214, 145, 93,  92,  100, 245, 0,   216, 186, 60,  83,  105, 97,  204, 52};
+static BYTE  cloudTable[256];
+static float coserpTable[256];
 
-unsigned long      DNClouds::m_tmSizeTable[] = {128, 256, 512, 1024, 2048};
-unsigned long      DNClouds::m_tmShiftTable[] = {7, 8, 9, 10, 11};
-const float        DNClouds::BUMPFADETIME = 0.027777778f;
+DWORD                    DNClouds::m_tmSizeTable[] = {128, 256, 512, 1024, 2048};
+DWORD                    DNClouds::m_tmShiftTable[] = {7, 8, 9, 10, 11};
+const float              DNClouds::BUMPFADETIME = 0.027777778f;
 const NTempest::C2Vector DNClouds::m_bumpFadeTable[] = {NTempest::C2Vector(0.16666667f, 1.0f), NTempest::C2Vector(0.19444445f, 0.0f),
-                                                  NTempest::C2Vector(0.2013889f, 0.0f),  NTempest::C2Vector(0.22916667f, 1.0f),
-                                                  NTempest::C2Vector(0.89583331f, 1.0f), NTempest::C2Vector(0.9236111f, 0.0f),
-                                                  NTempest::C2Vector(0.8888889f, 0.0f),  NTempest::C2Vector(0.91666669f, 1.0f)};
+                                                        NTempest::C2Vector(0.2013889f, 0.0f),  NTempest::C2Vector(0.22916667f, 1.0f),
+                                                        NTempest::C2Vector(0.89583331f, 1.0f), NTempest::C2Vector(0.9236111f, 0.0f),
+                                                        NTempest::C2Vector(0.8888889f, 0.0f),  NTempest::C2Vector(0.91666669f, 1.0f)};
 
 static NTempest::C2Vector s_sidnTable[4] = {
     NTempest::C2Vector(0.25f, 1.0f), NTempest::C2Vector(0.29166667f, 0.0f), NTempest::C2Vector(0.85416669f, 0.0f),
@@ -67,7 +67,7 @@ NTempest::C3Vector GlareBase::m_geov[4] = {
     NTempest::C3Vector(0.0f, -0.5f, 0.5f), NTempest::C3Vector(0.0f, 0.5f, 0.5f), NTempest::C3Vector(0.0f, -0.5f, -0.5f),
     NTempest::C3Vector(0.0f, 0.5f, -0.5f)
 };
-unsigned short GlareBase::m_idx[4] = {0, 2, 1, 3};
+WORD GlareBase::m_idx[4] = {0, 2, 1, 3};
 
 const float              DNSky::m_stripSizes[DNSky::SKY_NUMBANDS] = {0.0f, 0.35f, 0.41f, 0.46f, 0.49f, 0.5f, 1.0f};
 const NTempest::C2Vector DNSky::m_fadeTable[] = {NTempest::C2Vector(0.125f, 1.0f), NTempest::C2Vector(0.375f, 0.0f),
@@ -117,21 +117,21 @@ class LightQE {
 static NTempest::CImVector BlendColor(NTempest::CImVector from, NTempest::CImVector to, float scale) {
   NTempest::CImVector color;
   color.Set(
-      static_cast<unsigned char>(Interp(from.a, to.a, scale)), static_cast<unsigned char>(Interp(from.r, to.r, scale)),
-      static_cast<unsigned char>(Interp(from.g, to.g, scale)), static_cast<unsigned char>(Interp(from.b, to.b, scale))
+      static_cast<BYTE>(Interp(from.a, to.a, scale)), static_cast<BYTE>(Interp(from.r, to.r, scale)), static_cast<BYTE>(Interp(from.g, to.g, scale)),
+      static_cast<BYTE>(Interp(from.b, to.b, scale))
   );
   return color;
 }
 
-static float InterpTable(const NTempest::C2Vector *table, unsigned long size, float key) {
-  unsigned long next;
+static float InterpTable(const NTempest::C2Vector *table, DWORD size, float key) {
+  DWORD next;
   for (next = 0; next < size; ++next) {
     if (key <= table[next].x) {
       break;
     }
   }
 
-  unsigned long previous;
+  DWORD previous;
   if (next == size) {
     next = 0;
     previous = size - 1;
@@ -157,7 +157,7 @@ static float InterpTable(const NTempest::C2Vector *table, unsigned long size, fl
 static void ScaleOutputs(CurrentLight &globalLight, CurrentLight &areaLight, float scale) {
   globalLight.DirectColor = BlendColor(globalLight.DirectColor, areaLight.DirectColor, scale);
   globalLight.AmbientColor = BlendColor(globalLight.AmbientColor, areaLight.AmbientColor, scale);
-  unsigned int i;
+  UINT i;
   for (i = 0; i < 6; ++i) {
     globalLight.SkyArray[i] = BlendColor(globalLight.SkyArray[i], areaLight.SkyArray[i], scale);
   }
@@ -179,7 +179,7 @@ static void ScaleOutputs(CurrentLight &globalLight, CurrentLight &areaLight, flo
 static void DoAreaLights(int underWater) {
   NTempest::CPriorityQ<LightQE, LightQE> lightq;
 
-  for (unsigned int i = 1; i < g_areaLights.m_lightData.Count(); ++i) {
+  for (UINT i = 1; i < g_areaLights.m_lightData.Count(); ++i) {
     LightData         &light = g_areaLights.m_lightData[i];
     NTempest::C3Vector delta = s_dnInfo.cameraPos - light.m_lightlist.m_lightLocation;
     float              dist = delta.Mag();
@@ -202,9 +202,7 @@ static void DoAreaLights(int underWater) {
     }
 
     CurrentLight areaLight;
-    CalcLightColors(
-        static_cast<int>(s_dnInfo.dayProgression * 2880.0f - 0.5f), &areaLight, lightdata, stormdata, 0
-    );
+    CalcLightColors(static_cast<int>(s_dnInfo.dayProgression * 2880.0f - 0.5f), &areaLight, lightdata, stormdata, 0);
 
     float alpha = 1.0f;
     if (entry.dist > light.m_lightlist.m_lightRadius) {
@@ -214,7 +212,7 @@ static void DoAreaLights(int underWater) {
   }
 }
 
-static void BlendRGB255(NTempest::CImVector &from, NTempest::CImVector to, unsigned int amount) {
+static void BlendRGB255(NTempest::CImVector &from, NTempest::CImVector to, UINT amount) {
   if (!amount) {
     return;
   }
@@ -224,9 +222,9 @@ static void BlendRGB255(NTempest::CImVector &from, NTempest::CImVector to, unsig
     from.b = to.b;
     return;
   }
-  from.r = static_cast<unsigned char>(from.r + ((amount * (to.r - from.r)) >> 8));
-  from.g = static_cast<unsigned char>(from.g + ((amount * (to.g - from.g)) >> 8));
-  from.b = static_cast<unsigned char>(from.b + ((amount * (to.b - from.b)) >> 8));
+  from.r = static_cast<BYTE>(from.r + ((amount * (to.r - from.r)) >> 8));
+  from.g = static_cast<BYTE>(from.g + ((amount * (to.g - from.g)) >> 8));
+  from.b = static_cast<BYTE>(from.b + ((amount * (to.b - from.b)) >> 8));
 }
 
 static void ResetLightPos() {
@@ -236,8 +234,8 @@ static void ResetLightPos() {
     offset.y = 17066.666f;
   }
 
-  unsigned int count;
-  for (unsigned int lp = 0; lp < g_areaLights.m_lightData.Count(); ++lp) {
+  UINT count;
+  for (UINT lp = 0; lp < g_areaLights.m_lightData.Count(); ++lp) {
     LightData &light = g_areaLights.m_lightData[lp];
     if (lp) {
       NTempest::C3Vector pos = light.m_lightlist.m_lightLocation * 0.027777778f;
@@ -246,7 +244,7 @@ static void ResetLightPos() {
       light.m_lightlist.m_lightDropoff *= 0.027777778f;
     }
 
-    unsigned int i; 
+    UINT i;
     count = light.m_lightdata.m_fogData.Count();
     for (i = 0; i < count; ++i) {
       light.m_lightdata.m_fogData[i].m_fogEnd *= 0.027777778f;
@@ -273,8 +271,8 @@ static NTempest::CImVector DarkenColor(const NTempest::CImVector clr, float amou
   hsv.z *= amount;
   NTempest::HSVtoRGB(hsv, rgb);
   return NTempest::CImVector(
-      clr.a, static_cast<unsigned char>(NTempest::CMath::fuint_n(rgb.x * 255.0f)),
-      static_cast<unsigned char>(NTempest::CMath::fuint_n(rgb.y * 255.0f)), static_cast<unsigned char>(NTempest::CMath::fuint_n(rgb.z * 255.0f))
+      clr.a, static_cast<BYTE>(NTempest::CMath::fuint_n(rgb.x * 255.0f)), static_cast<BYTE>(NTempest::CMath::fuint_n(rgb.y * 255.0f)),
+      static_cast<BYTE>(NTempest::CMath::fuint_n(rgb.z * 255.0f))
   );
 }
 
@@ -283,16 +281,13 @@ static void SetLightColors() {
   s_dnInfo.lightInfo.ambColor = s_dnInfo.light.AmbientColor;
   s_dnInfo.lightInfo.windowDirColor = BlendColor(s_dnInfo.light.DirectColor, s_dnInfo.light.AmbientColor, 0.5f);
   s_dnInfo.lightInfo.windowAmbColor = BlendColor(s_dnInfo.light.AmbientColor, s_dnInfo.light.DirectColor, 0.5f);
-  s_dnInfo.lightInfo.windowAmbColor.r =
-      static_cast<unsigned char>(s_dnInfo.lightInfo.windowAmbColor.r > 239 ? 255 : s_dnInfo.lightInfo.windowAmbColor.r + 16);
-  s_dnInfo.lightInfo.windowAmbColor.g =
-      static_cast<unsigned char>(s_dnInfo.lightInfo.windowAmbColor.g > 239 ? 255 : s_dnInfo.lightInfo.windowAmbColor.g + 16);
-  s_dnInfo.lightInfo.windowAmbColor.b =
-      static_cast<unsigned char>(s_dnInfo.lightInfo.windowAmbColor.b > 239 ? 255 : s_dnInfo.lightInfo.windowAmbColor.b + 16);
+  s_dnInfo.lightInfo.windowAmbColor.r = static_cast<BYTE>(s_dnInfo.lightInfo.windowAmbColor.r > 239 ? 255 : s_dnInfo.lightInfo.windowAmbColor.r + 16);
+  s_dnInfo.lightInfo.windowAmbColor.g = static_cast<BYTE>(s_dnInfo.lightInfo.windowAmbColor.g > 239 ? 255 : s_dnInfo.lightInfo.windowAmbColor.g + 16);
+  s_dnInfo.lightInfo.windowAmbColor.b = static_cast<BYTE>(s_dnInfo.lightInfo.windowAmbColor.b > 239 ? 255 : s_dnInfo.lightInfo.windowAmbColor.b + 16);
 
   s_dnInfo.shadowClr.Set(
-      s_dnInfo.light.ShadowOpacity.r, static_cast<unsigned char>((s_dnInfo.light.AmbientColor.r + 3) / 3),
-      static_cast<unsigned char>((s_dnInfo.light.AmbientColor.g + 3) / 3), static_cast<unsigned char>((s_dnInfo.light.AmbientColor.b + 3) / 3)
+      s_dnInfo.light.ShadowOpacity.r, static_cast<BYTE>((s_dnInfo.light.AmbientColor.r + 3) / 3),
+      static_cast<BYTE>((s_dnInfo.light.AmbientColor.g + 3) / 3), static_cast<BYTE>((s_dnInfo.light.AmbientColor.b + 3) / 3)
   );
 
   NTempest::C3Vector rgb = s_dnInfo.lightInfo.ambColor;
@@ -324,7 +319,7 @@ static void SetFogColors() {
     return;
   }
 
-  unsigned int liquid = CWorld::SceneCamLiquidStatus();
+  UINT liquid = CWorld::SceneCamLiquidStatus();
   if (liquid != 15) {
     liquid &= 3;
   }
@@ -346,7 +341,7 @@ void DNSky::SetColors() {
   NTempest::CImVector midColors[6];
   float               darkness = InterpTable(m_darkTable, 6, s_dnInfo.dayProgression) * s_dnInfo.light.Darkness;
 
-  for (unsigned int i = 0; i < 5; ++i) {
+  for (UINT i = 0; i < 5; ++i) {
     midColors[i + 1] = BlendColor(s_dnInfo.light.SkyArray[i + 1], s_dnInfo.light.SkyArray[0], darkness);
   }
 
@@ -354,7 +349,7 @@ void DNSky::SetColors() {
   NTempest::CImVector  topColor = DarkenColor(s_dnInfo.light.SkyArray[0], 1.0f);
   *color++ = topColor;
 
-  for (unsigned int band = 1; band <= 4; ++band) {
+  for (UINT band = 1; band <= 4; ++band) {
     float angle = s_dnInfo.faceAngle * 0.15915494f + 0.25f;
     if (angle > 1.0f) {
       angle -= 1.0f;
@@ -489,8 +484,8 @@ static void SetPlanets() {
 }
 
 static void SetColors() {
-  unsigned int camLiquid = CWorld::SceneCamLiquidStatus();
-  int          underWater = (camLiquid & 0xF) == 0 || (camLiquid & 0xF) == 1;
+  UINT camLiquid = CWorld::SceneCamLiquidStatus();
+  int  underWater = (camLiquid & 0xF) == 0 || (camLiquid & 0xF) == 1;
 
   if (g_areaLights.m_lightData.Count()) {
     if (camLiquid == 15 || underWater) {
@@ -609,7 +604,7 @@ float DNClouds::GetDensity(const NTempest::C3Vector &worldPoint, float area) {
 
   NTempest::C2Vector texv;
   WorldToTexture(worldPoint, texv);
-  unsigned int index = static_cast<unsigned int>(texv.x) + (static_cast<unsigned int>(texv.y) << m_tmShift);
+  UINT index = static_cast<UINT>(texv.x) + (static_cast<UINT>(texv.y) << m_tmShift);
   return static_cast<float>(m_height[index]) * 0.0039215689f;
 }
 
@@ -620,7 +615,7 @@ float DNMoonGlare::GetCloudDensityFade() {
 
 void DNClouds::BumpMap() {
   NTempest::C2Vector  *clbump = &m_bump[m_updateRow << m_tmShift];
-  unsigned char       *clheight = &m_height[m_updateRow << m_tmShift];
+  BYTE                *clheight = &m_height[m_updateRow << m_tmShift];
   NTempest::CImVector *cltexels = &m_texels[m_updateRow << m_tmShift];
   NTempest::C3Vector   sunLightPos;
   NTempest::C3Vector   rayOrg(0.0f);
@@ -643,17 +638,17 @@ void DNClouds::BumpMap() {
   NTempest::C3Vector emsColor = s_dnInfo.light.CloudArray[3];
   float              sunScaler = InterpTable(m_bumpFadeTable, 8, s_dnInfo.dayProgression);
 
-  for (unsigned long y = 0; y < m_updateSize; ++y) {
-    for (unsigned long x = 0; x < m_tmSize; ++x) {
+  for (DWORD y = 0; y < m_updateSize; ++y) {
+    for (DWORD x = 0; x < m_tmSize; ++x) {
       if (*clheight) {
         NTempest::C3Vector texelLightPos(texPt.x - static_cast<float>(x), texPt.y - static_cast<float>(y + m_updateRow), 16.0f);
         NTempest::C3Vector rayDir(clbump->x, clbump->y, 1.0f);
         float              dot = (texelLightPos.x * rayDir.x + texelLightPos.y * rayDir.y + 16.0f) /
                                  NTempest::CMath::sqrt_(rayDir.SquaredMag() * texelLightPos.SquaredMag());
         NTempest::C3Vector color(
-            emsColor.x + ambColor.x * (static_cast<unsigned char>(((255 - *clheight) >> 1) + 64) * 0.0039215689f),
-            emsColor.y + ambColor.y * (static_cast<unsigned char>(((255 - *clheight) >> 1) + 64) * 0.0039215689f),
-            emsColor.z + ambColor.z * (static_cast<unsigned char>(((255 - *clheight) >> 1) + 64) * 0.0039215689f)
+            emsColor.x + ambColor.x * (static_cast<BYTE>(((255 - *clheight) >> 1) + 64) * 0.0039215689f),
+            emsColor.y + ambColor.y * (static_cast<BYTE>(((255 - *clheight) >> 1) + 64) * 0.0039215689f),
+            emsColor.z + ambColor.z * (static_cast<BYTE>(((255 - *clheight) >> 1) + 64) * 0.0039215689f)
         );
         if (dot > 0.0f) {
           dot *= sunScaler;
@@ -668,9 +663,8 @@ void DNClouds::BumpMap() {
         if (color.z > 1.0f)
           color.z = 1.0f;
         cltexels->Set(
-            *clheight, static_cast<unsigned char>(NTempest::CMath::fuint_n(color.x * 255.0f)),
-            static_cast<unsigned char>(NTempest::CMath::fuint_n(color.y * 255.0f)),
-            static_cast<unsigned char>(NTempest::CMath::fuint_n(color.z * 255.0f))
+            *clheight, static_cast<BYTE>(NTempest::CMath::fuint_n(color.x * 255.0f)), static_cast<BYTE>(NTempest::CMath::fuint_n(color.y * 255.0f)),
+            static_cast<BYTE>(NTempest::CMath::fuint_n(color.z * 255.0f))
         );
       } else if (x) {
         *cltexels = *(cltexels - 1);
@@ -687,7 +681,7 @@ void DNClouds::BumpMap() {
 void DNClouds::FullUpdate() {
   m_updateRow = 0;
   m_waitTime = 0.0f;
-  unsigned long updateSize = m_updateSize;
+  DWORD updateSize = m_updateSize;
   m_updateSize = m_tmSize;
   Update();
   m_updateSize = updateSize;
@@ -723,7 +717,7 @@ void DNGlare::Update(float elapsedSec) {
   }
   float pct = (dot - m_dotMin) / (1.0f - m_dotMin);
   m_curScale = ((m_scaleMax - m_scaleMin) * pct + m_scaleMin) * m_baseScale * s_dnInfo.sunMoonPath;
-  m_color.a = static_cast<unsigned char>(((m_alphaMax - m_alphaMin) * pct + m_alphaMin) * m_opacity * 255.0f);
+  m_color.a = static_cast<BYTE>(((m_alphaMax - m_alphaMin) * pct + m_alphaMin) * m_opacity * 255.0f);
 }
 
 void DNSky::GenSphere(float sphRadius) {
@@ -733,7 +727,7 @@ void DNSky::GenSphere(float sphRadius) {
   m_indices.SetCount(204);
 
   NTempest::C3Vector *newVert = m_geoVerts.Ptr();
-  unsigned short     *newIndex = m_indices.Ptr();
+  WORD               *newIndex = m_indices.Ptr();
   float               prevPhi = 0.0f;
   int                 prevRowIdx = 0;
   for (int phiStep = 0; phiStep < SKY_NUMBANDS; ++phiStep) {
@@ -755,10 +749,11 @@ void DNSky::GenSphere(float sphRadius) {
 
     if (phiStep > 0) {
       for (int thetaStep = 0; thetaStep <= m_sphThetaTess; ++thetaStep) {
-        *newIndex++ = static_cast<unsigned short>(
-            prevRowIdx + (NTempest::CMath::fabs_(prevPhi) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess)));
-        *newIndex++ = static_cast<unsigned short>(
-            thisRowIdx + (NTempest::CMath::fabs_(phi - PI) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % m_sphThetaTess)));
+        *newIndex++ =
+            static_cast<WORD>(prevRowIdx + (NTempest::CMath::fabs_(prevPhi) < 0.00000095367432f ? 0 : static_cast<WORD>(thetaStep % m_sphThetaTess)));
+        *newIndex++ = static_cast<WORD>(
+            thisRowIdx + (NTempest::CMath::fabs_(phi - PI) < 0.00000095367432f ? 0 : static_cast<WORD>(thetaStep % m_sphThetaTess))
+        );
       }
     }
 
@@ -766,21 +761,12 @@ void DNSky::GenSphere(float sphRadius) {
     prevPhi = phi;
   }
 
-  m_nVerts = static_cast<unsigned short>(newVert - m_geoVerts.Ptr());
+  m_nVerts = static_cast<WORD>(newVert - m_geoVerts.Ptr());
   m_nIndices = 204;
   m_sphRadius = sphRadius;
 }
 
-void DNClouds::Callback_GxTex(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&gxTexels
-) {
+void DNClouds::Callback_GxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &gxTexels) {
   if (cmd == GxTex_Latch && mipLevel == 0) {
     DNClouds *clouds = static_cast<DNClouds *>(userArg);
     texelStrideInBytes = w * sizeof(NTempest::CImVector);
@@ -799,10 +785,10 @@ void DNClouds::OverrideDensitySharpness(float newDensity, float newSharpness) {
 }
 
 void DNClouds::SetSharpness(float newSharpness) {
-  float cldelta = static_cast<float>(255 - static_cast<unsigned char>(m_density)) / 256.0f;
+  float cldelta = static_cast<float>(255 - static_cast<BYTE>(m_density)) / 256.0f;
   m_sharpness = newSharpness;
-  for (unsigned int i = 0; i < 256; ++i) {
-    cloudTable[i] = static_cast<unsigned char>(255.0f - pow(m_sharpness, i * cldelta) * 255.0f);
+  for (UINT i = 0; i < 256; ++i) {
+    cloudTable[i] = static_cast<BYTE>(255.0f - pow(m_sharpness, i * cldelta) * 255.0f);
   }
 }
 
@@ -810,10 +796,10 @@ void DNClouds::SetDensity(float newDensity) {
   if (m_densityOverride != 0.0f) {
     newDensity = m_densityOverride;
   }
-  m_density = static_cast<unsigned char>((1.0f - newDensity) * 255.0f);
+  m_density = static_cast<BYTE>((1.0f - newDensity) * 255.0f);
 }
 
-void DNClouds::SetLOD(unsigned long newlod, unsigned long newUpdateSize) {
+void DNClouds::SetLOD(DWORD newlod, DWORD newUpdateSize) {
   if (m_texid) {
     GxTexDestroy(m_texid);
     m_texid = 0;
@@ -829,7 +815,7 @@ void DNClouds::SetLOD(unsigned long newlod, unsigned long newUpdateSize) {
   m_updateSize = newUpdateSize ? newUpdateSize : 32;
   m_wrapMask = m_tmSize - 1;
   m_tmShift = m_tmShiftTable[newlod];
-  unsigned long texelCount = m_tmSize * m_tmSize;
+  DWORD texelCount = m_tmSize * m_tmSize;
   m_texels.SetCount(texelCount);
   m_height.SetCount(texelCount);
   m_noise.SetCount(texelCount);
@@ -850,7 +836,7 @@ DNClouds::DNClouds() {
 }
 
 void DNClouds::Update() {
-  static const unsigned short deltaTable[5][5] = {
+  static const WORD deltaTable[5][5] = {
       {16, 32, 64, 128, 256},
       { 8, 16, 32,  64, 128},
       { 4,  8, 16,  32,  64},
@@ -870,16 +856,16 @@ void DNClouds::Update() {
   m_waitTime = 0.1f;
   SetDensity(s_dnInfo.light.CloudData[1]);
 
-  Octave       octaves[5];
-  unsigned int permz0 = perm[static_cast<unsigned char>(m_timeX >> 8)];
-  unsigned int permz1 = perm[static_cast<unsigned char>((m_timeX >> 8) + 1)];
-  unsigned int oct;
+  Octave octaves[5];
+  UINT   permz0 = perm[static_cast<BYTE>(m_timeX >> 8)];
+  UINT   permz1 = perm[static_cast<BYTE>((m_timeX >> 8) + 1)];
+  UINT   oct;
   for (oct = 0; oct < m_nOctaves; ++oct) {
-    Octave        &o = octaves[oct];
-    unsigned short delta = deltaTable[m_lod][oct];
+    Octave &o = octaves[oct];
+    WORD    delta = deltaTable[m_lod][oct];
     memset(&o, 0, sizeof(o));
     o.value.x = 0;
-    o.value.y = static_cast<unsigned short>(delta * m_updateRow);
+    o.value.y = static_cast<WORD>(delta * m_updateRow);
     o.value.z = m_timeX;
     o.delta.x = delta;
     o.delta.y = delta;
@@ -893,20 +879,20 @@ void DNClouds::Update() {
   memset(cn, 0, sizeof(float) * m_tmSize * m_updateSize);
   NTempest::C2Vector *clbump = &m_bump[m_updateRow << m_tmShift];
 
-  unsigned int y;
+  UINT y;
   for (y = 0; y < m_updateSize; ++y) {
     float lastBumpNoiseX = 0.0f;
-    for (unsigned int x = 0; x < m_tmSize; ++x) {
+    for (UINT x = 0; x < m_tmSize; ++x) {
       float x2 = 0.0f;
       for (oct = 0; oct < m_nOctaves; ++oct) {
         Octave             &o = octaves[oct];
         NTempest::C3iVector fv(o.value.x & 0xFF, o.value.y & 0xFF, o.value.z & 0xFF);
-        unsigned int        ix0 = (o.value.x >> 8) & 0xFF;
-        unsigned int        iy0 = (o.value.y >> 8) & 0xFF;
-        unsigned int        iz0 = (o.value.z >> 8) & 0xFF;
-        unsigned int        ix1 = (ix0 + 1) & 0xFF;
-        unsigned int        iy1 = (iy0 + 1) & 0xFF;
-        unsigned int        iz1 = (iz0 + 1) & 0xFF;
+        UINT                ix0 = (o.value.x >> 8) & 0xFF;
+        UINT                iy0 = (o.value.y >> 8) & 0xFF;
+        UINT                iz0 = (o.value.z >> 8) & 0xFF;
+        UINT                ix1 = (ix0 + 1) & 0xFF;
+        UINT                iy1 = (iy0 + 1) & 0xFF;
+        UINT                iz1 = (iz0 + 1) & 0xFF;
 
         o.permy00 = perm[(perm[ix0] + iy0) & 0xFF];
         o.permy10 = perm[(perm[ix1] + iy0) & 0xFF];
@@ -932,7 +918,7 @@ void DNClouds::Update() {
         float y1 = x01 + (x11 - x01) * fy;
         x2 += (y0 + (y1 - y0) * fz) * o.amplitude;
 
-        o.value.x = static_cast<unsigned short>(o.value.x + o.delta.x);
+        o.value.x = static_cast<WORD>(o.value.x + o.delta.x);
         if (oct == 2) {
           float scale = static_cast<float>(1 << (m_tmShift - 7));
           clbump[x].x = scale * (lastBumpNoiseX - x2);
@@ -946,17 +932,17 @@ void DNClouds::Update() {
 
     for (oct = 0; oct < m_nOctaves; ++oct) {
       octaves[oct].value.x = 0;
-      octaves[oct].value.y = static_cast<unsigned short>(octaves[oct].value.y + octaves[oct].delta.y);
+      octaves[oct].value.y = static_cast<WORD>(octaves[oct].value.y + octaves[oct].delta.y);
     }
     cn += m_tmSize;
     clbump += m_tmSize;
   }
 
-  unsigned char *clheight = &m_height[m_updateRow << m_tmShift];
+  BYTE *clheight = &m_height[m_updateRow << m_tmShift];
   cn = &m_noise[m_updateRow << m_tmShift];
   for (y = 0; y < m_updateSize; ++y) {
-    for (unsigned int x = 0; x < m_tmSize; ++x) {
-      int height = static_cast<unsigned char>(NTempest::CMath::fuint_n(cn[x] * 64.0f + 128.0f)) - static_cast<unsigned char>(m_density);
+    for (UINT x = 0; x < m_tmSize; ++x) {
+      int height = static_cast<BYTE>(NTempest::CMath::fuint_n(cn[x] * 64.0f + 128.0f)) - static_cast<BYTE>(m_density);
       clheight[x] = height < 0 ? 0 : cloudTable[height];
     }
     cn += m_tmSize;
@@ -986,7 +972,7 @@ void DNClouds::GenSphere(float size) {
 
   NTempest::C3Vector *newGeoVert = m_geoVerts.Ptr();
   NTempest::C2Vector *newTexVert = m_texVerts.Ptr();
-  unsigned short     *newIndex = m_indices.Ptr();
+  WORD               *newIndex = m_indices.Ptr();
   for (int phiStep = 0; phiStep < 4; ++phiStep) {
     float phi = phiStep * phiDelta;
     float cosPhi = static_cast<float>(cos(phi));
@@ -1011,10 +997,10 @@ void DNClouds::GenSphere(float size) {
 
     if (phiStep > 0) {
       for (int thetaStep = 0; thetaStep < 17; ++thetaStep) {
-        unsigned short prev = NTempest::CMath::fabs_(prevPhi) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % 16);
-        unsigned short current = NTempest::CMath::fabs_(phi - PI * 2.0f) < 0.00000095367432f ? 0 : static_cast<unsigned short>(thetaStep % 16);
-        *newIndex++ = static_cast<unsigned short>(prevRowIdx + prev);
-        *newIndex++ = static_cast<unsigned short>(thisRowIdx + current);
+        WORD prev = NTempest::CMath::fabs_(prevPhi) < 0.00000095367432f ? 0 : static_cast<WORD>(thetaStep % 16);
+        WORD current = NTempest::CMath::fabs_(phi - PI * 2.0f) < 0.00000095367432f ? 0 : static_cast<WORD>(thetaStep % 16);
+        *newIndex++ = static_cast<WORD>(prevRowIdx + prev);
+        *newIndex++ = static_cast<WORD>(thisRowIdx + current);
       }
     }
 
@@ -1022,41 +1008,41 @@ void DNClouds::GenSphere(float size) {
     prevPhi = phi;
   }
 
-  m_nVerts = static_cast<unsigned short>(newGeoVert - m_geoVerts.Ptr());
+  m_nVerts = static_cast<WORD>(newGeoVert - m_geoVerts.Ptr());
   m_nIndices = 102;
 }
 
-void DNSky::GenTexture(unsigned int w, unsigned int h, NTempest::CImVector *texels) {
-  unsigned int         halfh = h >> 1;
+void DNSky::GenTexture(UINT w, UINT h, NTempest::CImVector *texels) {
+  UINT                 halfh = h >> 1;
   float                halfhFloat = static_cast<float>(halfh);
   NTempest::CImVector *texptr = texels;
 
   {
-    for (unsigned int i = 0; i < 5; ++i) {
-      unsigned int startY = static_cast<unsigned int>((m_stripSizes[i] + m_stripSizes[i]) * halfhFloat);
-      unsigned int endY = static_cast<unsigned int>((m_stripSizes[i + 1] + m_stripSizes[i + 1]) * halfhFloat);
-      float        blend = 0.0f;
-      unsigned int next = i + 1;
-      float        delta = 1.0f / (endY - startY + 1);
+    for (UINT i = 0; i < 5; ++i) {
+      UINT  startY = static_cast<UINT>((m_stripSizes[i] + m_stripSizes[i]) * halfhFloat);
+      UINT  endY = static_cast<UINT>((m_stripSizes[i + 1] + m_stripSizes[i + 1]) * halfhFloat);
+      float blend = 0.0f;
+      UINT  next = i + 1;
+      float delta = 1.0f / (endY - startY + 1);
 
       if (i == 4) {
         next = 4;
       }
 
-      for (unsigned int y = startY; y < endY; ++y) {
-        unsigned char       b = static_cast<unsigned char>(NTempest::CMath::fint_mi(
+      for (UINT y = startY; y < endY; ++y) {
+        BYTE                b = static_cast<BYTE>(NTempest::CMath::fint_mi(
             Interp(static_cast<float>(s_dnInfo.light.SkyArray[i].b), static_cast<float>(s_dnInfo.light.SkyArray[next].b), blend)
         ));
-        unsigned char       g = static_cast<unsigned char>(NTempest::CMath::fint_mi(
+        BYTE                g = static_cast<BYTE>(NTempest::CMath::fint_mi(
             Interp(static_cast<float>(s_dnInfo.light.SkyArray[i].g), static_cast<float>(s_dnInfo.light.SkyArray[next].g), blend)
         ));
-        unsigned char       r = static_cast<unsigned char>(NTempest::CMath::fint_mi(
+        BYTE                r = static_cast<BYTE>(NTempest::CMath::fint_mi(
             Interp(static_cast<float>(s_dnInfo.light.SkyArray[i].r), static_cast<float>(s_dnInfo.light.SkyArray[next].r), blend)
         ));
         NTempest::CImVector clr;
 
         clr.Set(0xFF, r, g, b);
-        for (unsigned int x = 0; x < w; ++x) {
+        for (UINT x = 0; x < w; ++x) {
           texptr[x] = clr;
         }
 
@@ -1068,8 +1054,8 @@ void DNSky::GenTexture(unsigned int w, unsigned int h, NTempest::CImVector *texe
 
   NTempest::CImVector *src = texptr - w;
   {
-    for (unsigned int mirrorY = 0; mirrorY < halfh; ++mirrorY) {
-      for (unsigned int mirrorX = 0; mirrorX < w; ++mirrorX) {
+    for (UINT mirrorY = 0; mirrorY < halfh; ++mirrorY) {
+      for (UINT mirrorX = 0; mirrorX < w; ++mirrorX) {
         texptr[mirrorX] = src[mirrorX];
       }
 
@@ -1083,9 +1069,9 @@ void DNPlanet::GenGeometry(
     NTempest::C3Vector  *geov,
     NTempest::C2Vector  *texv,
     NTempest::CImVector *clrv,
-    unsigned short      *idx,
-    unsigned long       &vertCount,
-    unsigned long       &idxCount
+    WORD                *idx,
+    DWORD               &vertCount,
+    DWORD               &idxCount
 ) {
   static const NTempest::C3Vector s_geov[6] = {NTempest::C3Vector(0.0f, -0.5f, 0.5f),   NTempest::C3Vector(0.0f, 0.5f, 0.5f),
                                                NTempest::C3Vector(0.0f, -0.5f, -0.5f),  NTempest::C3Vector(0.0f, 0.5f, -0.5f),
@@ -1093,7 +1079,7 @@ void DNPlanet::GenGeometry(
   static const NTempest::C2Vector s_texv[6] = {NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(0.0f, 1.0f),   NTempest::C2Vector(1.0f, 0.0f),
                                                NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(100.0f, 0.0f), NTempest::C2Vector(100.0f, 1.0f)};
 
-  for (unsigned int i = 0; i < 6; ++i) {
+  for (UINT i = 0; i < 6; ++i) {
     geov[i] = s_geov[i] * m_period;
     texv[i] = s_texv[i];
     clrv[i] = m_color;
@@ -1138,16 +1124,16 @@ void DNPlanet::GenGeometry(
       texv[4].y = texv[5].y = texv[0].y + (texv[2].y - texv[0].y) * clipt;
     }
 
-    for (unsigned int i = 0; i < vertCount; ++i) {
+    for (UINT i = 0; i < vertCount; ++i) {
       float fade = localZ + geov[i].z - fadeBegin;
       if (fade < 0.001f) {
-        clrv[i].a = static_cast<unsigned char>((fadeBegin - -fade) / fadeBegin * 255.0f);
+        clrv[i].a = static_cast<BYTE>((fadeBegin - -fade) / fadeBegin * 255.0f);
       }
     }
   }
 }
 
-static int ConsoleCommand_SkyCloudDensity(const char *__formal, const char *args) {
+static int ConsoleCommand_SkyCloudDensity(LPCSTR, LPCSTR args) {
   char  msg[256];
   float density;
 
@@ -1172,7 +1158,7 @@ static int ConsoleCommand_SkyCloudDensity(const char *__formal, const char *args
   return 0;
 }
 
-static bool CloudLODCallback(CVar *h, const char *oldValue, const char *newValue, void *arg) {
+static bool CloudLODCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   char message[64];
   int  lod = SStrToInt(newValue);
 
@@ -1190,10 +1176,10 @@ static bool CloudLODCallback(CVar *h, const char *oldValue, const char *newValue
   return true;
 }
 
-static int ConsoleCommand_SkyCloudLayers(const char *__formal, const char *args) {
+static int ConsoleCommand_SkyCloudLayers(LPCSTR, LPCSTR args) {
   int layers = -1;
   sscanf(args, "%d", &layers);
-  if (static_cast<unsigned int>(layers) > 1) {
+  if (static_cast<UINT>(layers) > 1) {
     ConsoleWrite("CloudLayers must be in the range [0, 1]", DEFAULT_COLOR);
     return 0;
   }
@@ -1203,7 +1189,7 @@ static int ConsoleCommand_SkyCloudLayers(const char *__formal, const char *args)
   return 1;
 }
 
-static int ConsoleCommand_SkySunGlare(const char *__formal, const char *args) {
+static int ConsoleCommand_SkySunGlare(LPCSTR, LPCSTR args) {
   int glareOn;
   if (sscanf(args, "%d", &glareOn) && glareOn) {
     ConsoleWrite("SunGlare enabled.  Don't look directly at it.", DEFAULT_COLOR);
@@ -1222,7 +1208,7 @@ void DNStars::Update() {
   m_color.a = InterpTable(m_fadeTable, 4, s_dnInfo.dayProgression) * 254.0f + 1.0f;
 }
 
-static int ConsoleCommand_SkyShow(const char *__formal, const char *args) {
+static int ConsoleCommand_SkyShow(LPCSTR, LPCSTR args) {
   int skyOn;
   if (sscanf(args, "%d", &skyOn) && skyOn) {
     ConsoleWrite("Sky enabled", DEFAULT_COLOR);
@@ -1234,7 +1220,7 @@ static int ConsoleCommand_SkyShow(const char *__formal, const char *args) {
   return 1;
 }
 
-void DayNightInitialize(const char *litFile) {
+void DayNightInitialize(LPCSTR litFile) {
   LoadLightsAndFog(litFile, &g_areaLights);
   ResetLightPos();
 
@@ -1317,7 +1303,7 @@ void DayNightDestroy() {
   if (s_initialized) {
     s_clouds.Destroy();
 
-    for (unsigned int i = 0; i < 3; ++i) {
+    for (UINT i = 0; i < 3; ++i) {
       s_planets[i].Destroy();
     }
 
@@ -1359,7 +1345,7 @@ void DayNightSetEclipse(NTempest::CImVector color, float amount) {
   FATALASSERT(amount >= 0.0f && amount <= 1.0f);
 
   s_dnInfo.eclipseColor = color;
-  s_dnInfo.eclipseAmount = static_cast<unsigned char>(NTempest::CMath::fuint_n(amount * 255.0f));
+  s_dnInfo.eclipseAmount = static_cast<BYTE>(NTempest::CMath::fuint_n(amount * 255.0f));
 }
 
 float DayNightSI(float offset) {
@@ -1391,7 +1377,7 @@ void DayNightRenderSky() {
 
       s_sky.Render();
       s_stars.Render();
-      for (unsigned int i = 0; i < 3; ++i) {
+      for (UINT i = 0; i < 3; ++i) {
         s_planets[i].Render();
       }
       s_clouds.Render();
@@ -1405,16 +1391,7 @@ void DayNightRenderSky() {
   }
 }
 
-void DayNightSkyTexCallback(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+void DayNightSkyTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Latch && mipLevel == 0) {
     texelStrideInBytes = w * sizeof(NTempest::CImVector);
     s_sky.GenTexture(w, h, static_cast<NTempest::CImVector *>(userArg));

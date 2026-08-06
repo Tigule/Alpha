@@ -5,10 +5,10 @@
 #include "Object/MovementData.h"
 
 struct CARgbColor {
-  unsigned char a;
-  unsigned char r;
-  unsigned char g;
-  unsigned char b;
+  BYTE a;
+  BYTE r;
+  BYTE g;
+  BYTE b;
 
   operator NTempest::CImVector() const {
     return NTempest::CImVector(a, r, g, b);
@@ -22,27 +22,27 @@ static CARgbColor s_facetColor[NUM_FACET_COLORS] = {
     {0x80, 0xFF, 0x00, 0x00}
 };
 
-TSGrowableArray<unsigned short>      g_debugBoxIndices;
+TSGrowableArray<WORD>                g_debugBoxIndices;
 TSGrowableArray<NTempest::C3Vector>  g_debugBoxNormals;
-TSGrowableArray<unsigned short>      g_debugIndices;
+TSGrowableArray<WORD>                g_debugIndices;
 TSGrowableArray<NTempest::C3Vector>  g_debugNormalVerts;
 TSGrowableArray<NTempest::C3Vector>  g_debugVerts;
-TSGrowableArray<unsigned short>      g_debugNormalIndices;
+TSGrowableArray<WORD>                g_debugNormalIndices;
 static TSGrowableArray<FACET_COLOR>  s_debugFacetColors;
 TSGrowableArray<NTempest::C3Vector>  g_debugBoxVerts;
 TSGrowableArray<NTempest::CImVector> g_debugVertColors;
-static unsigned __int64              s_currentWatchGUID;
+static DWORDLONG                     s_currentWatchGUID;
 static int                           s_acceptingFacets;
 
 void AddTriangle(
     const NTempest::CFacet               &face,
     FACET_COLOR                           color,
     TSGrowableArray<NTempest::C3Vector>  *debugVerts,
-    TSGrowableArray<unsigned short>      *debugIndices,
+    TSGrowableArray<WORD>                *debugIndices,
     TSGrowableArray<NTempest::CImVector> *debugVertColors
 ) {
-  unsigned int numVerts = debugVerts->Count();
-  unsigned int numIndices = debugIndices->Count();
+  UINT numVerts = debugVerts->Count();
+  UINT numIndices = debugIndices->Count();
 
   debugVerts->SetCount(numVerts + 3);
   (*debugVerts)[numVerts] = face.vertices[0];
@@ -50,9 +50,9 @@ void AddTriangle(
   (*debugVerts)[numVerts + 2] = face.vertices[2];
 
   debugIndices->SetCount(numIndices + 3);
-  (*debugIndices)[numIndices] = static_cast<unsigned short>(numVerts);
-  (*debugIndices)[numIndices + 1] = static_cast<unsigned short>(numVerts + 1);
-  (*debugIndices)[numIndices + 2] = static_cast<unsigned short>(numVerts + 2);
+  (*debugIndices)[numIndices] = static_cast<WORD>(numVerts);
+  (*debugIndices)[numIndices + 1] = static_cast<WORD>(numVerts + 1);
+  (*debugIndices)[numIndices + 2] = static_cast<WORD>(numVerts + 2);
 
   debugVertColors->SetCount(numVerts + 3);
   (*debugVertColors)[numVerts] = s_facetColor[color];
@@ -65,18 +65,18 @@ void AddNormalLine(
     const NTempest::C3Vector            &position,
     float                                scale,
     TSGrowableArray<NTempest::C3Vector> *debugVerts,
-    TSGrowableArray<unsigned short>     *debugIndices
+    TSGrowableArray<WORD>               *debugIndices
 ) {
   NTempest::C3Vector normalVert = position + normal * scale;
-  unsigned int       numVerts = debugVerts->Count();
-  unsigned int       numIndices = debugIndices->Count();
+  UINT               numVerts = debugVerts->Count();
+  UINT               numIndices = debugIndices->Count();
 
   debugVerts->SetCount(numVerts + 2);
   (*debugVerts)[numVerts] = position;
   (*debugVerts)[numVerts + 1] = normalVert;
   debugIndices->SetCount(numIndices + 2);
-  (*debugIndices)[numIndices] = static_cast<unsigned short>(numVerts);
-  (*debugIndices)[numIndices + 1] = static_cast<unsigned short>(numVerts + 1);
+  (*debugIndices)[numIndices] = static_cast<WORD>(numVerts);
+  (*debugIndices)[numIndices + 1] = static_cast<WORD>(numVerts + 1);
 }
 
 void AddNormalLine(const NTempest::CFacet &face) {
@@ -90,20 +90,20 @@ void BuildDisplayBox(
     const NTempest::C3Vector             boxNormals[6],
     TSGrowableArray<NTempest::C3Vector> *debugVerts,
     TSGrowableArray<NTempest::C3Vector> *debugNormals,
-    TSGrowableArray<unsigned short>     *debugIndices,
+    TSGrowableArray<WORD>               *debugIndices,
     int                                  displayNormals
 ) {
-  NTempest::C3Vector   normZ[2] = {boxNormals[5], boxNormals[4]};
-  NTempest::C3Vector   normX[2] = {boxNormals[1], boxNormals[0]};
-  NTempest::C3Vector   normY[2] = {boxNormals[2], boxNormals[3]};
-  const unsigned short boxIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1, 16, 16, 1, 4,  2,  8,  5,  5,  8,  11,
-                                         7,  19, 10, 10, 19, 22, 3,  9, 15, 15, 9, 21, 17, 23, 14, 14, 23, 20};
-  NTempest::C3Vector  *norm;
-  NTempest::C3Vector  *dst;
-  unsigned int         index;
-  unsigned int         z;
-  unsigned int         y;
-  unsigned int         x;
+  NTempest::C3Vector  normZ[2] = {boxNormals[5], boxNormals[4]};
+  NTempest::C3Vector  normX[2] = {boxNormals[1], boxNormals[0]};
+  NTempest::C3Vector  normY[2] = {boxNormals[2], boxNormals[3]};
+  const WORD          boxIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1, 16, 16, 1, 4,  2,  8,  5,  5,  8,  11,
+                                        7,  19, 10, 10, 19, 22, 3,  9, 15, 15, 9, 21, 17, 23, 14, 14, 23, 20};
+  NTempest::C3Vector *norm;
+  NTempest::C3Vector *dst;
+  UINT                index;
+  UINT                z;
+  UINT                y;
+  UINT                x;
 
   debugVerts->SetCount(24);
   dst = debugVerts->Ptr();
@@ -141,7 +141,7 @@ void BuildDisplayBox(
   }
 }
 
-void CollisionInfoSetWatchGUID(const unsigned __int64 &guid) {
+void CollisionInfoSetWatchGUID(const DWORDLONG &guid) {
   s_currentWatchGUID = guid;
 }
 
@@ -157,8 +157,8 @@ void CollisionInfoReset() {
   g_debugBoxNormals.SetCount(0);
 }
 
-void CollisionInfoSetFaces(const unsigned __int64 &guid, const TSGrowableArray<NTempest::CFacet> &faces) {
-  unsigned int numFaces;
+void CollisionInfoSetFaces(const DWORDLONG &guid, const TSGrowableArray<NTempest::CFacet> &faces) {
+  UINT numFaces;
 
   if (guid != s_currentWatchGUID) {
     s_acceptingFacets = 0;
@@ -174,14 +174,14 @@ void CollisionInfoSetFaces(const unsigned __int64 &guid, const TSGrowableArray<N
   s_debugFacetColors.SetCount(0);
 
   numFaces = faces.Count();
-  for (unsigned int faceId = 0; faceId < numFaces; ++faceId) {
+  for (UINT faceId = 0; faceId < numFaces; ++faceId) {
     AddTriangle(faces[faceId], FACET_UNTESTED, &g_debugVerts, &g_debugIndices, &g_debugVertColors);
     *s_debugFacetColors.NewElement() = FACET_UNTESTED;
     AddNormalLine(faces[faceId]);
   }
 }
 
-void CollisionInfoColorFace(unsigned int faceId, FACET_COLOR color) {
+void CollisionInfoColorFace(UINT faceId, FACET_COLOR color) {
   if (!s_acceptingFacets || color <= s_debugFacetColors[faceId]) {
     return;
   }
@@ -193,20 +193,20 @@ void CollisionInfoColorFace(unsigned int faceId, FACET_COLOR color) {
 }
 
 void CollisionInfoSetFallBox(const NTempest::C3Vector &position, float boxHalfDepth, float boxHeight) {
-  NTempest::C3Vector   normY[2] = {NTempest::C3Vector(0.0f, -1.0f, 0.0f), NTempest::C3Vector(0.0f, 1.0f, 0.0f)};
-  NTempest::C3Vector   normX[2] = {NTempest::C3Vector(-1.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f)};
-  const unsigned short boxIndices[42] = {0, 6,  12, 12, 6,  20, 1, 13, 4, 4,  13, 17, 21, 7,  25, 25, 7,  10, 16, 24, 3,
-                                         3, 24, 9,  5,  11, 2,  2, 11, 8, 15, 29, 19, 18, 28, 26, 27, 31, 23, 22, 30, 14};
-  NTempest::C3Vector   normZY[2] = {NTempest::C3Vector(0.0f, -0.87964189f, -0.4756366f), NTempest::C3Vector(0.0f, 0.87964189f, -0.4756366f)};
-  NTempest::C3Vector   start;
-  float                halfBoxHeight;
-  NTempest::C3Vector   normZX[2] = {NTempest::C3Vector(-0.87964189f, 0.0f, -0.4756366f), NTempest::C3Vector(0.87964189f, 0.0f, -0.4756366f)};
-  NTempest::C3Vector   verts[2];
-  NTempest::C3Vector   normal;
-  unsigned int         y;
-  unsigned int         x;
-  unsigned int         repeat;
-  unsigned int         index;
+  NTempest::C3Vector normY[2] = {NTempest::C3Vector(0.0f, -1.0f, 0.0f), NTempest::C3Vector(0.0f, 1.0f, 0.0f)};
+  NTempest::C3Vector normX[2] = {NTempest::C3Vector(-1.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f)};
+  const WORD         boxIndices[42] = {0, 6,  12, 12, 6,  20, 1, 13, 4, 4,  13, 17, 21, 7,  25, 25, 7,  10, 16, 24, 3,
+                                       3, 24, 9,  5,  11, 2,  2, 11, 8, 15, 29, 19, 18, 28, 26, 27, 31, 23, 22, 30, 14};
+  NTempest::C3Vector normZY[2] = {NTempest::C3Vector(0.0f, -0.87964189f, -0.4756366f), NTempest::C3Vector(0.0f, 0.87964189f, -0.4756366f)};
+  NTempest::C3Vector start;
+  float              halfBoxHeight;
+  NTempest::C3Vector normZX[2] = {NTempest::C3Vector(-0.87964189f, 0.0f, -0.4756366f), NTempest::C3Vector(0.87964189f, 0.0f, -0.4756366f)};
+  NTempest::C3Vector verts[2];
+  NTempest::C3Vector normal;
+  UINT               y;
+  UINT               x;
+  UINT               repeat;
+  UINT               index;
 
   if (!s_acceptingFacets) {
     return;
@@ -286,14 +286,14 @@ void CollisionInfoAddBox(const NTempest::C3Vector &boxMin, const NTempest::C3Vec
                                              NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.0f, -1.0f, 0.0f),
                                              NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, -1.0f)};
   const NTempest::C3Vector *verts[2] = {&boxMin, &boxMax};
-  unsigned int              z;
+  UINT                      z;
 
   if (!s_acceptingFacets) {
     return;
   }
 
   for (z = 0; z < 2; ++z) {
-    for (unsigned int y = 0; y < 2; ++y) {
+    for (UINT y = 0; y < 2; ++y) {
       boxVerts[z * 4 + y * 2] = NTempest::C3Vector(verts[0]->x, verts[y]->y, verts[z]->z);
       boxVerts[z * 4 + y * 2 + 1] = NTempest::C3Vector(verts[1]->x, verts[y]->y, verts[z]->z);
     }

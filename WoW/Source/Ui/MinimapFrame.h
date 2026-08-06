@@ -20,23 +20,22 @@ namespace NTempest {
 
 class CGMinimapFrame : public CSimpleFrame {
  public:
-
-  static void Initialize(int continentID);
-  static void Shutdown();
+  static void          Initialize(int continentID);
+  static void          Shutdown();
   static CSimpleFrame *Create(CSimpleFrame *parent) {
     return NEW(CGMinimapFrame)(parent);
   }
 
   virtual void PostLoadXML(const XMLNode *node, CStatus *status);
   virtual void OnLayerUpdate(float elapsedSec);
-  virtual void OnFrameRender(CRenderBatch *batch, unsigned int layer);
+  virtual void OnFrameRender(CRenderBatch *batch, UINT layer);
   virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnLayerCursorExit();
 
-  static void RenderCallback(void *param);
+  static void                      RenderCallback(LPVOID param);
   void                             ForceUpdateGeometry();
   int                              OnEvent(const CEvent &event);
-  static void SetPingPosition(const unsigned __int64 &sender, const NTempest::C2Vector &pos);
+  static void                      SetPingPosition(const DWORDLONG &sender, const NTempest::C2Vector &pos);
   static const NTempest::C2Vector &GetPingPosition() {
     return m_pingPosition;
   }
@@ -47,9 +46,9 @@ class CGMinimapFrame : public CSimpleFrame {
   static void UnregisterScriptMethods();
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
- static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
+  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
  private:
   CGMinimapFrame(const CGMinimapFrame &);
@@ -64,25 +63,11 @@ class CGMinimapFrame : public CSimpleFrame {
   void UpdateGeometry(const NTempest::C2Vector &centerPoint, float radius);
   void RenderObjectBlips(const DNInfo *dnInfo);
 
-  static int ObjectEnumProc(unsigned __int64 object, void *param);
-  static NTempest::C2Vector WorldPosToMinimapFrameCoords(
-      const NTempest::C3Vector centerPoint,
-      float                     radius,
-      float                     x,
-      float                     y,
-      float                     scale
-  );
-  static void MinimapTextureCallback(
-      EGxTexCommand cmd,
-      unsigned int  w,
-      unsigned int  h,
-      unsigned int  d,
-      unsigned int  mipLevel,
-      void         *userArg,
-      unsigned int &texelStrideInBytes,
-      const void  *&texels
-  );
-  void                   RenderInside(float minimapSize, const NTempest::C2Vector &localOffset);
+  static int                ObjectEnumProc(DWORDLONG object, LPVOID param);
+  static NTempest::C2Vector WorldPosToMinimapFrameCoords(const NTempest::C3Vector centerPoint, float radius, float x, float y, float scale);
+  static void
+       MinimapTextureCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
+  void RenderInside(float minimapSize, const NTempest::C2Vector &localOffset);
   static void RenderInsideTexture();
   static void RenderInsideSortQuads(QUADDATA *&rHead);
   static void RenderInsideQuad(QUADDATA *q);
@@ -94,7 +79,7 @@ class CGMinimapFrame : public CSimpleFrame {
   CSimpleModel             *m_playerArrowFrame;
   float                     m_lastFacing;
   static NTempest::C2Vector m_pingPosition;
-  unsigned int              m_lastBlipUpdate;
+  UINT                      m_lastBlipUpdate;
   static MinimapTexParams   s_minimapTexParams;
 };
 

@@ -1,6 +1,6 @@
 #pragma once
 
-int OsClipboardGetString(char *buf, unsigned int bufSize);
+int   OsClipboardGetString(char *buf, UINT bufSize);
 char *OsClipboardGetString();
-void OsClipboardFreeString(char *string);
-int OsClipboardPutString(const char *string);
+void  OsClipboardFreeString(char *string);
+int   OsClipboardPutString(LPCSTR string);

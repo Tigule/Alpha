@@ -27,9 +27,8 @@ enum ModelIntersectResult {
   MODEL_INTERSECT_HIT_MODEL = 3
 };
 
-unsigned int GetInvalidMatrixId();
-void
-GxuLightSelectCallback(void *parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, unsigned int maxLightsToUse);
+UINT GetInvalidMatrixId();
+void GxuLightSelectCallback(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
 
 DECLARE_DERIVED_HANDLE(HCOLLISIONDATA, HOBJECT);
 
@@ -132,40 +131,33 @@ struct CPrimitive {
   CPrimitive() : type(GxPrim_Triangles), vertexCount(0) {
   }
 
-  EGxPrim      type;
-  unsigned int vertexCount;
+  EGxPrim type;
+  UINT    vertexCount;
 };
 
 typedef TSFixedArray_<NTempest::C2Vector, 'IMod', 266> CModelTexCoordArray;
 
 struct CGeosetShared {
-  CGeosetShared()
-      : vertexShader(GxVS_PassThru),
-        materialId(0),
-        centroid(0.0f),
-        radius(0.0f),
-        selectionGroup(0),
-        geosetId(0),
-        flags(0) {
+  CGeosetShared() : vertexShader(GxVS_PassThru), materialId(0), centroid(0.0f), radius(0.0f), selectionGroup(0), geosetId(0), flags(0) {
   }
 
   TSFixedArray_<NTempest::C3Vector, 'IMod', 276>  position;
-  TSFixedArray_<unsigned char, 'IMod', 277>       boneWeights;
+  TSFixedArray_<BYTE, 'IMod', 277>                boneWeights;
   TSFixedArray_<NTempest::C3Vector, 'IMod', 278>  normal;
   TSFixedArray_<CModelTexCoordArray, 'IMod', 279> texCoord;
   TSFixedArray_<CPrimitive, 'IMod', 280>          primitive;
-  TSFixedArray_<unsigned short, 'IMod', 281>      primitiveVertices;
-  TSFixedArray_<unsigned int, 'IMod', 282>        groupMatrixCounts;
-  TSFixedArray_<unsigned int, 'IMod', 283>        matrices;
-  TSFixedArray_<unsigned int, 'IMod', 284>        hwBoneIndices;
-  TSFixedArray_<unsigned int, 'IMod', 285>        hwBoneWeights;
+  TSFixedArray_<WORD, 'IMod', 281>                primitiveVertices;
+  TSFixedArray_<UINT, 'IMod', 282>                groupMatrixCounts;
+  TSFixedArray_<UINT, 'IMod', 283>                matrices;
+  TSFixedArray_<UINT, 'IMod', 284>                hwBoneIndices;
+  TSFixedArray_<UINT, 'IMod', 285>                hwBoneWeights;
   EGxVertexShader                                 vertexShader;
-  unsigned int                                    materialId;
+  UINT                                            materialId;
   NTempest::C3Vector                              centroid;
   float                                           radius;
-  unsigned int                                    selectionGroup;
-  unsigned int                                    geosetId;
-  unsigned int                                    flags;
+  UINT                                            selectionGroup;
+  UINT                                            geosetId;
+  UINT                                            flags;
 };
 
 struct CGeoset {
@@ -174,14 +166,14 @@ struct CGeoset {
     weightedBones = GetInvalidMatrixId();
   }
 
-  unsigned int weightedBones;
-  unsigned int flags;
+  UINT weightedBones;
+  UINT flags;
 };
 
 struct CCustomGeoset {
   NTempest::C3Vector position;
-  void(*renderCallback)(HMODEL, const NTempest::C34Matrix &, void *);
-  void *renderParam;
+  void (*renderCallback)(HMODEL, const NTempest::C34Matrix &, LPVOID);
+  LPVOID renderParam;
 };
 
 struct CModelTexture {
@@ -195,23 +187,23 @@ struct CModelTexture {
   }
   CModelTexture &operator=(const CModelTexture &source);
 
-  HTEXTURE     handle;
-  unsigned int replaceableId;
+  HTEXTURE handle;
+  UINT     replaceableId;
 };
 
 class CModelBase {
  public:
-  CModelBase(unsigned int flags = 0);
+  CModelBase(UINT flags = 0);
   ~CModelBase();
 
-  void(*m_PickLights)(void *, NTempest::C3Vector, const NTempest::C3Vector &, unsigned int);
-  void               *m_pickLightsParm;
-  unsigned int        m_flags;
+  void (*m_PickLights)(LPVOID, NTempest::C3Vector, const NTempest::C3Vector &, UINT);
+  LPVOID              m_pickLightsParm;
+  UINT                m_flags;
   NTempest::C34Matrix m_modelToWorld;
-  unsigned int        m_texBones;
+  UINT                m_texBones;
   HANIM               m_anim;
   HMODEL              m_boundsModel;
-  unsigned int        m_aaBoxCustGeoId;
+  UINT                m_aaBoxCustGeoId;
   HMODEL              m_collideModel;
 
  protected:
@@ -221,7 +213,7 @@ class CModelBase {
   CModelBase &operator=(const CModelBase &source);
 };
 
-inline CModelBase::CModelBase(unsigned int flags)
+inline CModelBase::CModelBase(UINT flags)
     : m_PickLights(GxuLightSelectCallback),
       m_pickLightsParm(0),
       m_flags(flags),
@@ -264,25 +256,25 @@ struct CModelShared : public CHandleObject {
     }
   }
 
-  virtual const char *GetObjectName() {
+  virtual LPCSTR GetObjectName() {
     return name;
   }
 
   TSFixedArray<CBoundsData>                      seqBounds;
-  TSFixedArray<unsigned int>                     attachIdToIndex;
+  TSFixedArray<UINT>                             attachIdToIndex;
   TSFixedArray_<NTempest::C3Vector, 'IMod', 376> positions;
   TSFixedArray<CHitTest>                         hitTest;
   TSFixedArray<CGeosetShared>                    geosets;
-  TSFixedArray<unsigned int>                     emitter2Order;
-  TSFixedArray<unsigned int>                     ribbonOrder;
-  unsigned int                                   numBones;
-  unsigned int                                   numTexBones;
+  TSFixedArray<UINT>                             emitter2Order;
+  TSFixedArray<UINT>                             ribbonOrder;
+  UINT                                           numBones;
+  UINT                                           numTexBones;
   GROUND_TRACK                                   groundTrack;
   HCOLLISIONDATA                                 collision;
   char                                           name[260];
   CBoundsData                                    bounds;
-  unsigned char                                  numGeosets;
-  unsigned char                                  numLayers;
+  BYTE                                           numGeosets;
+  BYTE                                           numLayers;
 
  private:
 };
@@ -290,35 +282,35 @@ struct CModelShared : public CHandleObject {
 void ModelEnableLights(HMODEL model, int enable);
 void ModelShowBoundingSphere(HMODEL model);
 void ModelShowBoundingBox(HMODEL model);
-int ModelGeosetAdd(
+int  ModelGeosetAdd(
     HMODEL                    model,
-    unsigned int              numVertices,
+    UINT                      numVertices,
     const NTempest::C3Vector *position,
     const NTempest::C3Vector *normal,
     const NTempest::C2Vector *texCoord,
     EGxPrim                   primitiveType,
-    const unsigned short     *primitiveVertices,
-    unsigned int              numPrimVertices,
+    const WORD               *primitiveVertices,
+    UINT                      numPrimVertices,
     HTEXTURE                  texture,
     EGxBlend                  blendMode,
-    unsigned int              disables,
+    UINT                      disables,
     NTempest::CImVector       color,
-    unsigned int              replaceableId
+    UINT                      replaceableId
 );
 HMODEL ModelCreateSimpleMesh(
-    const char               *name,
-    unsigned int              numVertices,
+    LPCSTR                    name,
+    UINT                      numVertices,
     const NTempest::C3Vector *position,
     const NTempest::C3Vector *normal,
     const NTempest::C2Vector *texCoord,
     EGxPrim                   primitiveType,
-    const unsigned short     *primitiveVertices,
-    unsigned int              numPrimVertices,
+    const WORD               *primitiveVertices,
+    UINT                      numPrimVertices,
     HTEXTURE                  texture,
     EGxBlend                  blendMode,
-    unsigned int              disables,
+    UINT                      disables,
     NTempest::CImVector       color,
-    unsigned int              replaceableId
+    UINT                      replaceableId
 );
 HMODEL CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode);
 
@@ -349,20 +341,20 @@ class CModelComplex : public CModelBase {
   CModelComplex(const CModelComplex &source);
   ~CModelComplex();
 
-  TSGrowableArray<CGeoset>                                  m_geosets;
-  TSGrowableArray<CGeosetShared>                            m_addlGeosets;
-  TSGrowableArray<CGeosetColor>                             m_geosetColor;
-  TSGrowableArray<CCustomGeoset>                            m_custGeosets;
-  TSGrowableArray<HMATERIAL>                                m_materials;
-  TSGrowableArray<CModelTexture>                            m_textures;
-  TSFixedArray<unsigned long>                               m_lights;
-  TSFixedArray<LIST(LINKUNIQUE)>                            m_attached;
-  TSFixedArray_<unsigned char, 'MDLF', 484>                 m_attachmentFlags;
-  TSFixedArray<CParticleEmitter2 *>                         m_emitters2;
-  TSFixedArray<CRibbonEmitter *>                            m_ribbons;
-  TSFixedArray<HCAMERA>                                     m_cameras;
-  TSFixedArray<unsigned int>                                m_cameraOrder;
-  TSFixedArray<NTempest::C34Matrix>                         m_hitTestMtx;
+  TSGrowableArray<CGeoset>          m_geosets;
+  TSGrowableArray<CGeosetShared>    m_addlGeosets;
+  TSGrowableArray<CGeosetColor>     m_geosetColor;
+  TSGrowableArray<CCustomGeoset>    m_custGeosets;
+  TSGrowableArray<HMATERIAL>        m_materials;
+  TSGrowableArray<CModelTexture>    m_textures;
+  TSFixedArray<DWORD>               m_lights;
+  TSFixedArray<LIST(LINKUNIQUE)>    m_attached;
+  TSFixedArray_<BYTE, 'MDLF', 484>  m_attachmentFlags;
+  TSFixedArray<CParticleEmitter2 *> m_emitters2;
+  TSFixedArray<CRibbonEmitter *>    m_ribbons;
+  TSFixedArray<HCAMERA>             m_cameras;
+  TSFixedArray<UINT>                m_cameraOrder;
+  TSFixedArray<NTempest::C34Matrix> m_hitTestMtx;
 
  private:
   CModelComplex &operator=(const CModelSimple &source);
@@ -375,8 +367,8 @@ class CModelComplex : public CModelBase {
 };
 
 NODEDECL(CModelModItem) {
-  EModelModQ    action;
-  unsigned char paramData[16];
+  EModelModQ action;
+  BYTE       paramData[16];
 };
 
 class CModel : public CHandleObject {
@@ -394,51 +386,43 @@ class CModel : public CHandleObject {
     CModelBase   *data;
     HMODEL        dupSource;
   };
-  CModelCreate                                    *createData;
-  HMODELSHARED                                     shared;
-  EModelLoad                                       state;
+  CModelCreate *createData;
+  HMODELSHARED  shared;
+  EModelLoad    state;
   LISTDECL(CModelModItem, modelModQueue);
 
  private:
   CModel &operator=(const CModel &source);
-  void RemoveModelCommandsFromQueue();
+  void    RemoveModelCommandsFromQueue();
 };
 
 struct CModelRenderData {
   CGeoset       *m_geosets;
   CGeosetColor  *m_geosetColor;
-  unsigned int   m_numGeosets;
+  UINT           m_numGeosets;
   HMATERIAL     *m_materials;
   CModelTexture *m_textures;
   CModel        *m_model;
   CModelShared  *m_shared;
-  unsigned int   m_renderFlags;
+  UINT           m_renderFlags;
 };
 
-void                            EnqueueModelCommand(CModel *model, EModelModQ command, ...);
-HMATERIAL BuildSimpleMaterial(
-    CModelTexture *modelTexture,
-    unsigned int textureId,
-    HTEXTURE texture,
-    EGxBlend blendMode,
-    unsigned int disables,
-    unsigned int replaceableId
-);
-unsigned int MatrixAlloc(unsigned int numMatrices);
-NTempest::C34Matrix *MatrixDeref(unsigned int handle);
-int IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared);
-int IModelDerefHandle(CModel *model, CModelBase **unique);
-int IModelDerefHandle(CModel *model, CModelShared **shared);
+void      EnqueueModelCommand(CModel *model, EModelModQ command, ...);
+HMATERIAL BuildSimpleMaterial(CModelTexture *modelTexture, UINT textureId, HTEXTURE texture, EGxBlend blendMode, UINT disables, UINT replaceableId);
+UINT      MatrixAlloc(UINT numMatrices);
+NTempest::C34Matrix *MatrixDeref(UINT handle);
+int                  IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared);
+int                  IModelDerefHandle(CModel *model, CModelBase **unique);
+int                  IModelDerefHandle(CModel *model, CModelShared **shared);
 
-void MdxReadCameras(unsigned char *data, unsigned int fileBytes, TSFixedArray<HCAMERA> *cameras);
+void MdxReadCameras(BYTE *data, UINT fileBytes, TSFixedArray<HCAMERA> *cameras);
 
-void MdxReadLights(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr);
+void MdxReadLights(BYTE *data, UINT fileBytes, CModelComplex *modelptr);
 
-HCOLLISIONDATA CollisionDataCreate(unsigned char *fileData, unsigned int fileBytes);
+HCOLLISIONDATA CollisionDataCreate(BYTE *fileData, UINT fileBytes);
 
-void
-MdxReadAttachments(unsigned char *data, unsigned int fileBytes, unsigned int flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status);
+void MdxReadAttachments(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status);
 
-void MdxReadRibbonEmitters(unsigned char *data, unsigned int fileBytes, CModelComplex *modelptr, CModelShared *shared);
+void MdxReadRibbonEmitters(BYTE *data, UINT fileBytes, CModelComplex *modelptr, CModelShared *shared);
 
 #endif

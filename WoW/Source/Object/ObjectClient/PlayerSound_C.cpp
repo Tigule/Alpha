@@ -16,19 +16,17 @@
 int GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType);
 int CheckUnitSoundTimer(UNITSOUNDTYPE soundType);
 
-static unsigned int s_playerSoundChances[16] = {35, 100, 30, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
+static UINT s_playerSoundChances[16] = {35, 100, 30, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 
 static int CheckPlayerPlaySound(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
-  unsigned int random = NTempest::CRandom::uint32_(g_rndSeed);
-  unsigned int value = NTempest::CMath::mulhwu_(random, 101);
+  UINT random = NTempest::CRandom::uint32_(g_rndSeed);
+  UINT value = NTempest::CMath::mulhwu_(random, 101);
   return s_playerSoundChances[soundType] >= value;
 }
 
 void CGPlayer_C::PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const {
-  if (soundType != UNITSOUNDTYPE_FOOTFALL &&
-      (alwaysPlay || CheckPlayerPlaySound(soundType)) &&
-      CheckUnitSoundTimer(soundType)) {
+  if (soundType != UNITSOUNDTYPE_FOOTFALL && (alwaysPlay || CheckPlayerPlaySound(soundType)) && CheckUnitSoundTimer(soundType)) {
     int soundID = GetSoundID(GetSoundData(), soundType);
     if (soundID) {
       NTempest::C3Vector position = GetPosition();
@@ -42,8 +40,7 @@ void CGPlayer_C::PlayFoleySound() const {
   const CGBag_C *inventory = GetBag();
   FATALASSERT(inventory);
 
-  CGItem_C *item =
-      static_cast<CGItem_C *>(ClntObjMgrObjectPtr(inventory->GetItem(4), __FILE__, __LINE__));
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(inventory->GetItem(4), __FILE__, __LINE__));
   if (item) {
     SndInterfacePlayFoleySound(item->GetMaterial(), GetPosition());
   }
@@ -60,7 +57,7 @@ void CGPlayer_C::HandleSpellEventSound() {
     return;
   }
 
-  SpellVisualRec visRecData;
+  SpellVisualRec        visRecData;
   const SpellVisualRec *visual = GetAppropriateSpellVisual(spell, visRecData);
   if (!visual) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d", spell->m_spellVisualID);
@@ -74,10 +71,9 @@ void CGPlayer_C::HandleSpellEventSound() {
   }
 }
 
-unsigned int CGPlayer_C::GetImpactType() const {
+UINT CGPlayer_C::GetImpactType() const {
   const CGBag_C *inventory = GetBag();
-  CGItem_C *item =
-      static_cast<CGItem_C *>(ClntObjMgrObjectPtr(inventory->GetItem(4), __FILE__, __LINE__));
+  CGItem_C      *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(inventory->GetItem(4), __FILE__, __LINE__));
   if (!item) {
     return 0;
   }

@@ -9,30 +9,30 @@
 
 struct ZipFileFCB;
 
-unsigned long ZipFileOpenArchive(const char *archivename);
-int ZipFileCloseArchive(unsigned long handle);
-ZipFileFCB *ZipFileOpenFile(const char *filename, unsigned long archive);
-int ZipFileCloseFile(ZipFileFCB *fcb);
-int ZipFileReadFile(ZipFileFCB *fcb, void *buffer, unsigned int bytesToRead, unsigned int *bytesRead);
-int ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin);
-unsigned long ZipFileGetFilePointer(ZipFileFCB *fcb);
-unsigned long ZipFileGetFileSize(ZipFileFCB *fcb);
-int ZipFileFileExists(const char *filename);
-int ZipFileList(unsigned long archive, int(*cb)(const char *filename, void *param), void *param);
-void __cdecl             SOutputDebugString(const char *format, ...);
+DWORD        ZipFileOpenArchive(LPCSTR archivename);
+int          ZipFileCloseArchive(DWORD handle);
+ZipFileFCB  *ZipFileOpenFile(LPCSTR filename, DWORD archive);
+int          ZipFileCloseFile(ZipFileFCB *fcb);
+int          ZipFileReadFile(ZipFileFCB *fcb, LPVOID buffer, UINT bytesToRead, UINT *bytesRead);
+int          ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin);
+DWORD        ZipFileGetFilePointer(ZipFileFCB *fcb);
+DWORD        ZipFileGetFileSize(ZipFileFCB *fcb);
+int          ZipFileFileExists(LPCSTR filename);
+int          ZipFileList(DWORD archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param);
+void __cdecl SOutputDebugString(LPCSTR format, ...);
 
 NODEDECL(ASYNCREAD) {
  public:
   SFile       *fileptr;
-  void        *buffer;
+  LPVOID       buffer;
   DWORD        bytestoread;
   SOVERLAPPED *overlapped;
 };
 
 struct NoPaqCompHdr {
-  unsigned int uncompressedSize;
-  char         signature[4];
-  MD5          md5;
+  UINT uncompressedSize;
+  char signature[4];
+  MD5  md5;
 };
 
 struct FILEMAP : TSHashObject<FILEMAP, HASHKEY_STRI> {
@@ -53,23 +53,23 @@ bool s_useOldFindFile;
 
 typedef TSHashTable<FILEMAP, HASHKEY_STRI> FileMapTable;
 
-static FileMapTable                             s_fileMap;
-static unsigned char                            s_exitReadThread;
-static unsigned char                            s_readThreadInitialized;
-static SEvent                                   s_readQueueEvent(FALSE, FALSE);
-static SCritSect                                s_readQueueLock;
-static SThread                                  s_readThread;
+static FileMapTable s_fileMap;
+static BYTE         s_exitReadThread;
+static BYTE         s_readThreadInitialized;
+static SEvent       s_readQueueEvent(FALSE, FALSE);
+static SCritSect    s_readQueueLock;
+static SThread      s_readThread;
 static LISTDECL(ASYNCREAD, s_readQueue);
-static unsigned long                            s_directaccess;
-static char                                     s_basepath[MAX_PATH];
-static char                                     s_datapath[MAX_PATH];
-static char                                     s_datapath2[MAX_PATH];
-static char                                     s_initialbasepath[MAX_PATH];
+static DWORD s_directaccess;
+static char  s_basepath[MAX_PATH];
+static char  s_datapath[MAX_PATH];
+static char  s_datapath2[MAX_PATH];
+static char  s_initialbasepath[MAX_PATH];
 
 MD5::MD5() {
 }
 
-static void AddDirectoryToHash(const char *top, const char *sub, SDIR *dir) {
+static void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
   char         namebuf[MAX_PATH];
   struct _stat stats;
   DWORD        toplen;
@@ -156,10 +156,10 @@ static void AddDirectoryToHash(const char *top, const char *sub, SDIR *dir) {
 }
 
 static void BuildFileSystemHash() {
-  const char *base;
-  SDIR       *basedir;
-  SDIR       *dir;
-  char        datapath[MAX_PATH];
+  LPCSTR base;
+  SDIR  *basedir;
+  SDIR  *dir;
+  char   datapath[MAX_PATH];
 
   base = s_basepath;
   basedir = SFile::OpenDir(base);
@@ -193,11 +193,11 @@ static void BuildFileSystemHash() {
   s_findFileHashInitialized = true;
 }
 
-static int OldFindFile(const char *filename, char *realname, int len, DWORD flags, SFILE_TYPE *type);
+static int OldFindFile(LPCSTR filename, char *realname, int len, DWORD flags, SFILE_TYPE *type);
 
-static int FindFile(const char *filename, char *realname, int len, DWORD flags, SFILE_TYPE *type) {
-  const char *base;
-  FILEMAP    *mapped;
+static int FindFile(LPCSTR filename, char *realname, int len, DWORD flags, SFILE_TYPE *type) {
+  LPCSTR   base;
+  FILEMAP *mapped;
 
   if (s_useOldFindFile || (filename[0] == '\\' && filename[1] == '\\') || filename[1] == ':') {
     return OldFindFile(filename, realname, len, flags, type);
@@ -256,9 +256,9 @@ void APIENTRY SFile::RebuildHash() {
   s_findFileHashInitialized = false;
 }
 
-static int OldFindFile(const char *filename, char *realname, int len, DWORD flags, SFILE_TYPE *type) {
+static int OldFindFile(LPCSTR filename, char *realname, int len, DWORD flags, SFILE_TYPE *type) {
   struct _stat stats;
-  const char  *backslash;
+  LPCSTR       backslash;
 
   SStrCopy(realname, s_basepath, len);
   SStrPack(realname, filename, len);
@@ -463,7 +463,7 @@ void SFile::DoAsyncRead(ASYNCREAD *ptr) {
   }
 }
 
-unsigned int APIENTRY SFile::ReadProc(void *__formal) {
+UINT APIENTRY SFile::ReadProc(LPVOID) {
   ASYNCREAD *request;
 
   for (;;) {
@@ -496,7 +496,7 @@ void SFile::InitializeReadThread() {
   }
 }
 
-void SFile::QueueReadRequest(SFile *fileptr, void *buffer, DWORD bytestoread, SOVERLAPPED *overlapped) {
+void SFile::QueueReadRequest(SFile *fileptr, LPVOID buffer, DWORD bytestoread, SOVERLAPPED *overlapped) {
   ASYNCREAD *request;
 
   ASSERT(!fileptr->m_asyncCount);
@@ -512,7 +512,7 @@ void SFile::QueueReadRequest(SFile *fileptr, void *buffer, DWORD bytestoread, SO
   s_readQueueLock.Leave();
 }
 
-int SFile::DoZRead(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread) {
+int SFile::DoZRead(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread) {
   int result;
   int read;
 
@@ -548,17 +548,17 @@ int SFile::DoZRead(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytes
   }
 }
 
-DWORD APIENTRY SFile::Open(const char *filename, SFile **file) {
+DWORD APIENTRY SFile::Open(LPCSTR filename, SFile **file) {
   return SFile::OpenEx(NULL, filename, BuildDefaultOpenFlags(), file);
 }
 
-DWORD APIENTRY SFile::OpenEx(SArchive *archive, const char *filename, DWORD flags, SFile **file) {
+DWORD APIENTRY SFile::OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SFile **file) {
   SArchive   *archiveData;
   HSFILE      sfile;
   SFILE_TYPE  type;
   char        realname[MAX_PATH];
   char       *extension;
-  const char *basename;
+  LPCSTR      basename;
   ZipFileFCB *md5file;
 
   *file = NULL;
@@ -719,7 +719,7 @@ open_failed:
 }
 
 DWORD APIENTRY
-SFile::Read(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread, SOVERLAPPED *overlapped, _TASYNCPARAMBLOCK *asyncparam) {
+SFile::Read(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, SOVERLAPPED *overlapped, _TASYNCPARAMBLOCK *asyncparam) {
   SCritSect *lock;
   int        result;
 
@@ -771,7 +771,7 @@ SFile::Read(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread, S
         DWORD localBytesRead;
 
         localBytesRead = 0;
-        result = ZipFileReadFile((ZipFileFCB *)fileptr->m_zipFile, buffer, bytestoread, (unsigned int *)&localBytesRead) || localBytesRead > 0;
+        result = ZipFileReadFile((ZipFileFCB *)fileptr->m_zipFile, buffer, bytestoread, (UINT *)&localBytesRead) || localBytesRead > 0;
         if (bytesread) {
           *bytesread = localBytesRead;
         }
@@ -790,12 +790,11 @@ SFile::Read(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread, S
   return TRUE;
 }
 
-DWORD APIENTRY SFile::LoadFile(const char *filename, void **buffer, DWORD *bytes, DWORD extraBytes, SOVERLAPPED *overlapped) {
+DWORD APIENTRY SFile::LoadFile(LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, SOVERLAPPED *overlapped) {
   return SFile::Load(NULL, filename, buffer, bytes, extraBytes, BuildDefaultOpenFlags(), overlapped);
 }
 
-DWORD APIENTRY
-SFile::Load(SArchive *archive, const char *filename, void **buffer, DWORD *bytes, DWORD extraBytes, DWORD flags, SOVERLAPPED *overlapped) {
+DWORD APIENTRY SFile::Load(SArchive *archive, LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, DWORD flags, SOVERLAPPED *overlapped) {
   SFile *file;
   BYTE  *target;
   DWORD  size;
@@ -830,7 +829,7 @@ SFile::Load(SArchive *archive, const char *filename, void **buffer, DWORD *bytes
   return TRUE;
 }
 
-int APIENTRY SFile::Unload(void *buffer) {
+int APIENTRY SFile::Unload(LPVOID buffer) {
   FREE(buffer);
   return TRUE;
 }
@@ -902,7 +901,7 @@ int APIENTRY SFile::GetBasePath(char *buffer, DWORD bufferchars) {
   return TRUE;
 }
 
-int APIENTRY SFile::SetBasePath(const char *path) {
+int APIENTRY SFile::SetBasePath(LPCSTR path) {
   SStrCopy(s_basepath, path, MAX_PATH);
   if (*s_basepath && s_basepath[SStrLen(s_basepath) - 1] != '\\') {
     SStrPack(s_basepath, "\\", MAX_PATH);
@@ -911,7 +910,7 @@ int APIENTRY SFile::SetBasePath(const char *path) {
   return TRUE;
 }
 
-int APIENTRY SFile::SetDataPath(const char *path) {
+int APIENTRY SFile::SetDataPath(LPCSTR path) {
   SStrCopy(s_datapath, path, MAX_PATH);
   if (*s_datapath && s_datapath[SStrLen(s_datapath) - 1] != '\\') {
     SStrPack(s_datapath, "\\", MAX_PATH);
@@ -919,7 +918,7 @@ int APIENTRY SFile::SetDataPath(const char *path) {
   return TRUE;
 }
 
-int APIENTRY SFile::SetDataPathAlternate(const char *path) {
+int APIENTRY SFile::SetDataPathAlternate(LPCSTR path) {
   SStrCopy(s_datapath2, path, MAX_PATH);
   if (*s_datapath2 && s_datapath[SStrLen(s_datapath2) - 1] != '\\') {
     SStrPack(s_datapath2, "\\", MAX_PATH);
@@ -927,7 +926,7 @@ int APIENTRY SFile::SetDataPathAlternate(const char *path) {
   return TRUE;
 }
 
-int APIENTRY SFile::FileExists(const char *filename) {
+int APIENTRY SFile::FileExists(LPCSTR filename) {
   char realname[MAX_PATH];
 
   return FindFile(filename, realname, MAX_PATH, BuildDefaultOpenFlags(), reinterpret_cast<SFILE_TYPE *>(&filename));
@@ -1075,9 +1074,9 @@ void SFile::Destroy() {
   s_findFileHashInitialized = false;
 }
 
-int APIENTRY SFile::OpenArchive(const char *archivename, int priority, DWORD flags, SArchive **handle) {
-  const char *dot;
-  int         result;
+int APIENTRY SFile::OpenArchive(LPCSTR archivename, int priority, DWORD flags, SArchive **handle) {
+  LPCSTR dot;
+  int    result;
 
   *handle = NEW(SArchive);
   (*handle)->m_archive = NULL;
@@ -1087,7 +1086,7 @@ int APIENTRY SFile::OpenArchive(const char *archivename, int priority, DWORD fla
     result = SFileOpenArchive(archivename, priority, flags, (HSARCHIVE *)&(*handle)->m_archive);
   } else {
     (*handle)->m_type = SARCHIVE_ZIP;
-    (*handle)->m_archive = (void *)ZipFileOpenArchive(archivename);
+    (*handle)->m_archive = (LPVOID)ZipFileOpenArchive(archivename);
     result = (*handle)->m_archive != NULL;
   }
   if (!result) {
@@ -1119,14 +1118,14 @@ int APIENTRY SFile::GetMD5(SFile *file, MD5 &sum) {
   return TRUE;
 }
 
-int APIENTRY SFile::List(SArchive *archive, int(*cb)(const char *filename, void *param), void *param) {
-  unsigned int *list;
-  BYTE         *cursor;
-  BYTE         *end;
-  DWORD         size;
-  char          line[MAX_PATH];
-  char         *output;
-  const char   *extension;
+int APIENTRY SFile::List(SArchive *archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param) {
+  UINT  *list;
+  BYTE  *cursor;
+  BYTE  *end;
+  DWORD  size;
+  char   line[MAX_PATH];
+  char  *output;
+  LPCSTR extension;
 
   ASSERT(archive);
   switch (archive->m_type) {
@@ -1137,7 +1136,7 @@ int APIENTRY SFile::List(SArchive *archive, int(*cb)(const char *filename, void 
     default:
       goto list_failed;
   }
-  if (!SFile::Load(archive, "(listfile)", (void **)&list, &size, 0, 0, NULL)) {
+  if (!SFile::Load(archive, "(listfile)", (LPVOID *)&list, &size, 0, 0, NULL)) {
     goto list_failed;
   }
 

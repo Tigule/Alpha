@@ -12,55 +12,27 @@ static float Row0Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &
 
 namespace NTempest {
 
-  bool operator==(
-      const C44Matrix &l,
-      const C44Matrix &r
-  ) {
-    return l.a0 == r.a0 && l.a1 == r.a1
-        && l.a2 == r.a2 && l.a3 == r.a3
-        && l.b0 == r.b0 && l.b1 == r.b1
-        && l.b2 == r.b2 && l.b3 == r.b3
-        && l.c0 == r.c0 && l.c1 == r.c1
-        && l.c2 == r.c2 && l.c3 == r.c3
-        && l.d0 == r.d0 && l.d1 == r.d1
-        && l.d2 == r.d2 && l.d3 == r.d3;
+  bool operator==(const C44Matrix &l, const C44Matrix &r) {
+    return l.a0 == r.a0 && l.a1 == r.a1 && l.a2 == r.a2 && l.a3 == r.a3 && l.b0 == r.b0 && l.b1 == r.b1 && l.b2 == r.b2 && l.b3 == r.b3 &&
+           l.c0 == r.c0 && l.c1 == r.c1 && l.c2 == r.c2 && l.c3 == r.c3 && l.d0 == r.d0 && l.d1 == r.d1 && l.d2 == r.d2 && l.d3 == r.d3;
   }
 
-  bool operator!=(
-      const C44Matrix &l,
-      const C44Matrix &r
-  ) {
-    return l.a0 != r.a0 || l.a1 != r.a1
-        || l.a2 != r.a2 || l.a3 != r.a3
-        || l.b0 != r.b0 || l.b1 != r.b1
-        || l.b2 != r.b2 || l.b3 != r.b3
-        || l.c0 != r.c0 || l.c1 != r.c1
-        || l.c2 != r.c2 || l.c3 != r.c3
-        || l.d0 != r.d0 || l.d1 != r.d1
-        || l.d2 != r.d2 || l.d3 != r.d3;
+  bool operator!=(const C44Matrix &l, const C44Matrix &r) {
+    return l.a0 != r.a0 || l.a1 != r.a1 || l.a2 != r.a2 || l.a3 != r.a3 || l.b0 != r.b0 || l.b1 != r.b1 || l.b2 != r.b2 || l.b3 != r.b3 ||
+           l.c0 != r.c0 || l.c1 != r.c1 || l.c2 != r.c2 || l.c3 != r.c3 || l.d0 != r.d0 || l.d1 != r.d1 || l.d2 != r.d2 || l.d3 != r.d3;
   }
 
-  C44Matrix operator+(
-      const C44Matrix &l,
-      const C44Matrix &r
-  ) {
+  C44Matrix operator+(const C44Matrix &l, const C44Matrix &r) {
     return C44Matrix(
-        l.a0 + r.a0, l.a1 + r.a1, l.a2 + r.a2, l.a3 + r.a3,
-        l.b0 + r.b0, l.b1 + r.b1, l.b2 + r.b2, l.b3 + r.b3,
-        l.c0 + r.c0, l.c1 + r.c1, l.c2 + r.c2, l.c3 + r.c3,
-        l.d0 + r.d0, l.d1 + r.d1, l.d2 + r.d2, l.d3 + r.d3
+        l.a0 + r.a0, l.a1 + r.a1, l.a2 + r.a2, l.a3 + r.a3, l.b0 + r.b0, l.b1 + r.b1, l.b2 + r.b2, l.b3 + r.b3, l.c0 + r.c0, l.c1 + r.c1, l.c2 + r.c2,
+        l.c3 + r.c3, l.d0 + r.d0, l.d1 + r.d1, l.d2 + r.d2, l.d3 + r.d3
     );
   }
 
-  C44Matrix operator+(
-      const C44Matrix &l,
-      float r
-  ) {
+  C44Matrix operator+(const C44Matrix &l, float r) {
     return C44Matrix(
-        l.a0 + r, l.a1 + r, l.a2 + r, l.a3 + r,
-        l.b0 + r, l.b1 + r, l.b2 + r, l.b3 + r,
-        l.c0 + r, l.c1 + r, l.c2 + r, l.c3 + r,
-        l.d0 + r, l.d1 + r, l.d2 + r, l.d3 + r
+        l.a0 + r, l.a1 + r, l.a2 + r, l.a3 + r, l.b0 + r, l.b1 + r, l.b2 + r, l.b3 + r, l.c0 + r, l.c1 + r, l.c2 + r, l.c3 + r, l.d0 + r, l.d1 + r,
+        l.d2 + r, l.d3 + r
     );
   }
 
@@ -68,27 +40,17 @@ namespace NTempest {
     return r + l;
   }
 
-  C44Matrix operator-(
-      const C44Matrix &l,
-      const C44Matrix &r
-  ) {
+  C44Matrix operator-(const C44Matrix &l, const C44Matrix &r) {
     return C44Matrix(
-        l.a0 - r.a0, l.a1 - r.a1, l.a2 - r.a2, l.a3 - r.a3,
-        l.b0 - r.b0, l.b1 - r.b1, l.b2 - r.b2, l.b3 - r.b3,
-        l.c0 - r.c0, l.c1 - r.c1, l.c2 - r.c2, l.c3 - r.c3,
-        l.d0 - r.d0, l.d1 - r.d1, l.d2 - r.d2, l.d3 - r.d3
+        l.a0 - r.a0, l.a1 - r.a1, l.a2 - r.a2, l.a3 - r.a3, l.b0 - r.b0, l.b1 - r.b1, l.b2 - r.b2, l.b3 - r.b3, l.c0 - r.c0, l.c1 - r.c1, l.c2 - r.c2,
+        l.c3 - r.c3, l.d0 - r.d0, l.d1 - r.d1, l.d2 - r.d2, l.d3 - r.d3
     );
   }
 
-  C44Matrix operator-(
-      const C44Matrix &l,
-      float r
-  ) {
+  C44Matrix operator-(const C44Matrix &l, float r) {
     return C44Matrix(
-        l.a0 - r, l.a1 - r, l.a2 - r, l.a3 - r,
-        l.b0 - r, l.b1 - r, l.b2 - r, l.b3 - r,
-        l.c0 - r, l.c1 - r, l.c2 - r, l.c3 - r,
-        l.d0 - r, l.d1 - r, l.d2 - r, l.d3 - r
+        l.a0 - r, l.a1 - r, l.a2 - r, l.a3 - r, l.b0 - r, l.b1 - r, l.b2 - r, l.b3 - r, l.c0 - r, l.c1 - r, l.c2 - r, l.c3 - r, l.d0 - r, l.d1 - r,
+        l.d2 - r, l.d3 - r
     );
   }
 
@@ -127,10 +89,7 @@ namespace NTempest {
     return result;
   }
 
-  C3Vector operator*(
-      const C44Matrix &l,
-      const C3Vector &v
-  ) {
+  C3Vector operator*(const C44Matrix &l, const C3Vector &v) {
     C3Vector result = C44Matrix::mul3v33m_(l, v);
     result += C3Vector(l.a3, l.b3, l.c3);
     return result;
@@ -147,15 +106,10 @@ namespace NTempest {
     );
   }
 
-  C4Vector operator*(
-      const C44Matrix &l,
-      const C4Vector &v
-  ) {
+  C4Vector operator*(const C44Matrix &l, const C4Vector &v) {
     return C4Vector(
-        l.a0 * v.x + l.a1 * v.y + l.a2 * v.z + l.a3 * v.w,
-        l.b0 * v.x + l.b1 * v.y + l.b2 * v.z + l.b3 * v.w,
-        l.c0 * v.x + l.c1 * v.y + l.c2 * v.z + l.c3 * v.w,
-        l.d0 * v.x + l.d1 * v.y + l.d2 * v.z + l.d3 * v.w
+        l.a0 * v.x + l.a1 * v.y + l.a2 * v.z + l.a3 * v.w, l.b0 * v.x + l.b1 * v.y + l.b2 * v.z + l.b3 * v.w,
+        l.c0 * v.x + l.c1 * v.y + l.c2 * v.z + l.c3 * v.w, l.d0 * v.x + l.d1 * v.y + l.d2 * v.z + l.d3 * v.w
     );
   }
 
@@ -185,49 +139,26 @@ namespace NTempest {
   }
 
   C44Matrix C44Matrix::Transpose() const {
-    return C44Matrix(
-        a0, b0, c0, d0,
-        a1, b1, c1, d1,
-        a2, b2, c2, d2,
-        a3, b3, c3, d3
-    );
+    return C44Matrix(a0, b0, c0, d0, a1, b1, c1, d1, a2, b2, c2, d2, a3, b3, c3, d3);
   }
 
-  float C44Matrix::Det(
-      float a, float b, float c,
-      float d, float e, float f,
-      float g, float h, float i
-  ) {
-    return a * (e * i - f * h)
-        - b * (d * i - f * g)
-        + c * (d * h - e * g);
+  float C44Matrix::Det(float a, float b, float c, float d, float e, float f, float g, float h, float i) {
+    return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
   }
 
   float C44Matrix::Determinant() const {
-    return a0 * Det(b1, b2, b3, c1, c2, c3, d1, d2, d3)
-        - a1 * Det(b0, b2, b3, c0, c2, c3, d0, d2, d3)
-        + a2 * Det(b0, b1, b3, c0, c1, c3, d0, d1, d3)
-        - a3 * Det(b0, b1, b2, c0, c1, c2, d0, d1, d2);
+    return a0 * Det(b1, b2, b3, c1, c2, c3, d1, d2, d3) - a1 * Det(b0, b2, b3, c0, c2, c3, d0, d2, d3) +
+           a2 * Det(b0, b1, b3, c0, c1, c3, d0, d1, d3) - a3 * Det(b0, b1, b2, c0, c1, c2, d0, d1, d2);
   }
 
   C44Matrix C44Matrix::Cofactors() const {
     return C44Matrix(
-         Det(b1,b2,b3,c1,c2,c3,d1,d2,d3),
-        -Det(b0,b2,b3,c0,c2,c3,d0,d2,d3),
-         Det(b0,b1,b3,c0,c1,c3,d0,d1,d3),
-        -Det(b0,b1,b2,c0,c1,c2,d0,d1,d2),
-        -Det(a1,a2,a3,c1,c2,c3,d1,d2,d3),
-         Det(a0,a2,a3,c0,c2,c3,d0,d2,d3),
-        -Det(a0,a1,a3,c0,c1,c3,d0,d1,d3),
-         Det(a0,a1,a2,c0,c1,c2,d0,d1,d2),
-         Det(a1,a2,a3,b1,b2,b3,d1,d2,d3),
-        -Det(a0,a2,a3,b0,b2,b3,d0,d2,d3),
-         Det(a0,a1,a3,b0,b1,b3,d0,d1,d3),
-        -Det(a0,a1,a2,b0,b1,b2,d0,d1,d2),
-        -Det(a1,a2,a3,b1,b2,b3,c1,c2,c3),
-         Det(a0,a2,a3,b0,b2,b3,c0,c2,c3),
-        -Det(a0,a1,a3,b0,b1,b3,c0,c1,c3),
-         Det(a0,a1,a2,b0,b1,b2,c0,c1,c2)
+        Det(b1, b2, b3, c1, c2, c3, d1, d2, d3), -Det(b0, b2, b3, c0, c2, c3, d0, d2, d3), Det(b0, b1, b3, c0, c1, c3, d0, d1, d3),
+        -Det(b0, b1, b2, c0, c1, c2, d0, d1, d2), -Det(a1, a2, a3, c1, c2, c3, d1, d2, d3), Det(a0, a2, a3, c0, c2, c3, d0, d2, d3),
+        -Det(a0, a1, a3, c0, c1, c3, d0, d1, d3), Det(a0, a1, a2, c0, c1, c2, d0, d1, d2), Det(a1, a2, a3, b1, b2, b3, d1, d2, d3),
+        -Det(a0, a2, a3, b0, b2, b3, d0, d2, d3), Det(a0, a1, a3, b0, b1, b3, d0, d1, d3), -Det(a0, a1, a2, b0, b1, b2, d0, d1, d2),
+        -Det(a1, a2, a3, b1, b2, b3, c1, c2, c3), Det(a0, a2, a3, b0, b2, b3, c0, c2, c3), -Det(a0, a1, a3, b0, b1, b3, c0, c1, c3),
+        Det(a0, a1, a2, b0, b1, b2, c0, c1, c2)
     );
   }
 
@@ -250,28 +181,15 @@ namespace NTempest {
     if (CMath::fequal4_(scale, 1.0f)) {
       return AffineInverse();
     }
-    C44Matrix matrix(
-        a0, b0, c0, 0.0f,
-        a1, b1, c1, 0.0f,
-        a2, b2, c2, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f
-    );
+    C44Matrix matrix(a0, b0, c0, 0.0f, a1, b1, c1, 0.0f, a2, b2, c2, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
     matrix.Scale(1.0f / (scale * scale));
     matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
   }
 
   C44Matrix C44Matrix::AffineInverse(const C3Vector &scale) const {
-    C3Vector s(
-        1.0f / scale.x,
-        1.0f / scale.y,
-        1.0f / scale.z
-    );
-    C33Matrix rotationScale(
-        a0, a1, a2,
-        b0, b1, b2,
-        c0, c1, c2
-    );
+    C3Vector  s(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z);
+    C33Matrix rotationScale(a0, a1, a2, b0, b1, b2, c0, c1, c2);
     rotationScale.Scale(s);
     rotationScale = rotationScale.Transpose();
     C44Matrix matrix(rotationScale);

@@ -63,46 +63,46 @@ class CGInputControl {
   void OnMouseMove(const CMouseEvent &event);
   void OnMouseMoveRel(const CMouseEvent &evt);
   void Reset();
-  void UpdatePlayer(unsigned long now);
+  void UpdatePlayer(DWORD now);
   void SetReleaseAction(CGInputReleaseAction action);
-  void SetControlBit(INPUT_CONTROL bit, int set, unsigned long now, int sticky);
+  void SetControlBit(INPUT_CONTROL bit, int set, DWORD now, int sticky);
   int  CameraCanTurnPlayer() const;
-  void CameraTurnPlayer(unsigned long timestamp, float yaw, float pitch, bool setSmoothFacing);
+  void CameraTurnPlayer(DWORD timestamp, float yaw, float pitch, bool setSmoothFacing);
   int  IsMovingForward() const;
   int  IsAutoRunning() const {
     return (m_controlFlags & INPUT_MOVE_PLAYER_AUTORUN) != 0;
   }
-  int  IsFreeLooking() const;
-  int  IsMouseDragMoving() const;
-  int  HasPlayerMoved() const {
+  int IsFreeLooking() const;
+  int IsMouseDragMoving() const;
+  int HasPlayerMoved() const {
     return (m_controlFlags & INPUT_PLAYER_MOVED) != 0;
   }
-  int  HasCameraMoved() const {
+  int HasCameraMoved() const {
     return (m_controlFlags & INPUT_CAMERA_MOVED) != 0;
   }
-  unsigned long GetInitializeTime() const {
+  DWORD GetInitializeTime() const {
     return m_initializeTime;
   }
 
-private:
-    friend class CGGameUI;
+ private:
+  friend class CGGameUI;
 
   static CGInputControl *s_inputControl;
 
-  unsigned long        m_initializeTime;
-  unsigned int         m_controlFlags;
+  DWORD                m_initializeTime;
+  UINT                 m_controlFlags;
   float                m_mouseChangeX;
   float                m_mouseChangeY;
-  unsigned int         m_lastFrameMouseMoved;
-  unsigned long        m_mouseDownTime;
+  UINT                 m_lastFrameMouseMoved;
+  DWORD                m_mouseDownTime;
   CGInputReleaseAction m_releaseAction;
 
   int  SetControlBit(INPUT_CONTROL bit);
   int  UnsetControlBit(INPUT_CONTROL bit, int sticky);
-  void MovePlayer(unsigned long now, CGUnit_C *player);
-  void StrafePlayer(unsigned long now, CGUnit_C *player);
-  void TurnPlayer(unsigned long now, CGUnit_C *player);
-  void PitchPlayer(unsigned long now, CGUnit_C *player);
+  void MovePlayer(DWORD now, CGUnit_C *player);
+  void StrafePlayer(DWORD now, CGUnit_C *player);
+  void TurnPlayer(DWORD now, CGUnit_C *player);
+  void PitchPlayer(DWORD now, CGUnit_C *player);
   int  IsMouseDragging() const;
 };
 

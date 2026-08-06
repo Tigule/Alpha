@@ -43,7 +43,7 @@ class CGCursor {
   CGCursor(const CGCursor &);
   ~CGCursor();
 
-  void SetArt(const char *art);
+  void SetArt(LPCSTR art);
   void Drop();
   void Grab(HMODEL model);
 
@@ -73,8 +73,8 @@ extern CGCursor *g_cursor;
 
 void CursorInitialize();
 void CursorDestroy();
-int CursorGrabSpell(HMODEL model);
-int CursorGrabSpell(const char *filename);
+int  CursorGrabSpell(HMODEL model);
+int  CursorGrabSpell(LPCSTR filename);
 void CursorDropMoney();
 void CursorDropSpell();
 void CursorModelSetSequence(CURSORANIMATIONS sequence);

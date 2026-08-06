@@ -12,7 +12,7 @@ COsSharedMemory::~COsSharedMemory() {
   Destroy();
 }
 
-bool COsSharedMemory::Initialize(const char *name, unsigned int size, int mode) {
+bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
   DWORD  access = FILE_MAP_WRITE;
   HANDLE mapping = 0;
 

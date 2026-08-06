@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellEffectCameraShakesRec::GetFilename() {
+LPCSTR SpellEffectCameraShakesRec::GetFilename() {
   return "DBFilesClient\\SpellEffectCameraShakes.dbc";
 }
 
@@ -19,7 +19,7 @@ SpellEffectCameraShakesRec::SpellEffectCameraShakesRec() {
 SpellEffectCameraShakesRec::~SpellEffectCameraShakesRec() {
 }
 
-bool SpellEffectCameraShakesRec::Read(SFile *f, const char *stringBuffer) {
+bool SpellEffectCameraShakesRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

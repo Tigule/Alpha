@@ -9,19 +9,19 @@
 
 class CSimpleModel;
 
-extern const char *g_glueBgObjNames[2];
+extern LPCSTR g_glueBgObjNames[2];
 
 struct CustomizationSelections {
   CustomizationSelections() {
   }
 
-  uint classID;
-  uint outfit;
-  uint skinColor;
-  uint hairColor;
-  uint hairStyle;
-  uint facialStyle;
-  uint face;
+  UINT classID;
+  UINT outfit;
+  UINT skinColor;
+  UINT hairColor;
+  UINT hairStyle;
+  UINT facialStyle;
+  UINT face;
 };
 
 struct CHARCREATEINFO {
@@ -37,7 +37,7 @@ struct CHARCREATEINFO {
     memset(selections, 0, sizeof(selections));
     memset(currentGeosets, 0, sizeof(currentGeosets));
 
-    for (uint sex = 0; sex < 2; ++sex) {
+    for (UINT sex = 0; sex < 2; ++sex) {
       characterModel[sex] = 0;
       geosetHandle[sex] = 0;
       characterComponent[sex] = 0;
@@ -45,21 +45,21 @@ struct CHARCREATEINFO {
   }
 
   void Shutdown();
-  void UpdateOutfit(int increment, uint race, uint sex);
-  void ResetOutfitSelection(uint raceID, uint sex);
-  void CommitGeoset(uint sex);
-  void UpdateCharacterInfo(uint race, uint sex);
-  void ChangeHairGeosets(uint race, uint sex);
-  void UpdateEquipment(int doNotCommitGeosets, uint race, uint sex);
-  void ChangeSkinTexture(int doNotCommitGeosets, uint race, uint sex);
-  void ChangeFaceTexture(uint race, uint sex);
-  void ChangeFacialHairTexture(uint race, uint sex);
-  void RefreshVisibleGeosets(uint sex) {
+  void UpdateOutfit(int increment, UINT race, UINT sex);
+  void ResetOutfitSelection(UINT raceID, UINT sex);
+  void CommitGeoset(UINT sex);
+  void UpdateCharacterInfo(UINT race, UINT sex);
+  void ChangeHairGeosets(UINT race, UINT sex);
+  void UpdateEquipment(int doNotCommitGeosets, UINT race, UINT sex);
+  void ChangeSkinTexture(int doNotCommitGeosets, UINT race, UINT sex);
+  void ChangeFaceTexture(UINT race, UINT sex);
+  void ChangeFacialHairTexture(UINT race, UINT sex);
+  void RefreshVisibleGeosets(UINT sex) {
   }
-  void ChangeFacialHairGeosets(uint sex, uint beardGeoset, uint sideburnGeoset, uint moustacheGeoset);
-  void ChangeScalpHairTexture(uint race, uint sex);
-  void UpdateGeosets(uint beardGeoset, uint sideBurnGeoset, uint moustacheGeoset, uint sex);
-  void FindRange(uint group, uint *start, uint *end);
+  void ChangeFacialHairGeosets(UINT sex, UINT beardGeoset, UINT sideburnGeoset, UINT moustacheGeoset);
+  void ChangeScalpHairTexture(UINT race, UINT sex);
+  void UpdateGeosets(UINT beardGeoset, UINT sideBurnGeoset, UINT moustacheGeoset, UINT sex);
+  void FindRange(UINT group, UINT *start, UINT *end);
   void CommitTexture(int race, int sex);
 
   HMODEL                  characterModel[2];
@@ -69,74 +69,74 @@ struct CHARCREATEINFO {
   float                   cameraHeight[2][2];
   float                   cameraRadius[2][2];
   float                   targetHeight[2][2];
-  uint                    currentGeosets[3][15];
+  UINT                    currentGeosets[3][15];
 };
 
 class CCharCreateInfo {
  public:
-  static void CreateCharacter(const char *name);
-  static void CycleCharCustomization(uint index, int delta);
-  static const char *GetClassNameByIndex(uint index);
-  static float GetCharFacing() {
+  static void   CreateCharacter(LPCSTR name);
+  static void   CycleCharCustomization(UINT index, int delta);
+  static LPCSTR GetClassNameByIndex(UINT index);
+  static float  GetCharFacing() {
     return m_charFacing;
   }
-  static uint GetNumCharCustomizations(uint index);
-  static uint GetNumClasses() {
+  static UINT GetNumCharCustomizations(UINT index);
+  static UINT GetNumClasses() {
     return m_classIndex.Count();
   }
-  static uint GetNumRaces() {
+  static UINT GetNumRaces() {
     return m_raceIndex.Count();
   }
-  static const char *GetRaceNameByIndex(uint index);
-  static uint GetSelectedClassID();
-  static uint GetSelectedClassIndex() {
+  static LPCSTR GetRaceNameByIndex(UINT index);
+  static UINT   GetSelectedClassID();
+  static UINT   GetSelectedClassIndex() {
     return m_selectedClass;
   }
-  static uint GetSelectedRaceID();
-  static uint GetSelectedRaceIndex() {
+  static UINT GetSelectedRaceID();
+  static UINT GetSelectedRaceIndex() {
     return m_selectedRace;
   }
-  static uint GetSelectedSexID();
-  static uint GetNumOutfits(uint raceID, uint classID, uint sexID);
-  static const class CharStartOutfitRec *GetOutfit(uint raceID, uint classID, uint sexID, uint outfitID);
-  static void Initialize();
-  static void RandomizeCharCustomization();
-  static void ResetCharCustomizeInfo();
-  static void SetCharCustomizeFrame(CSimpleModel *frame);
-  static void SetCharCustomizeModel(const char *filename);
-  static void SetCharFacing(float facing);
-  static void SetSelectedClass(uint index);
-  static void SetSelectedRace(uint index, int updateModel);
-  static void SetSelectedSex(uint sex);
-  static void Shutdown();
-  static void UpdateAvailableClasses();
+  static UINT                            GetSelectedSexID();
+  static UINT                            GetNumOutfits(UINT raceID, UINT classID, UINT sexID);
+  static const class CharStartOutfitRec *GetOutfit(UINT raceID, UINT classID, UINT sexID, UINT outfitID);
+  static void                            Initialize();
+  static void                            RandomizeCharCustomization();
+  static void                            ResetCharCustomizeInfo();
+  static void                            SetCharCustomizeFrame(CSimpleModel *frame);
+  static void                            SetCharCustomizeModel(LPCSTR filename);
+  static void                            SetCharFacing(float facing);
+  static void                            SetSelectedClass(UINT index);
+  static void                            SetSelectedRace(UINT index, int updateModel);
+  static void                            SetSelectedSex(UINT sex);
+  static void                            Shutdown();
+  static void                            UpdateAvailableClasses();
 
  protected:
-  static void UpdateAllCharacterInfo(int race, uint sex);
-  static void InitializeCharacterInfo(uint sex, int doNotCommitGeosets);
-  static void UpdateCharacterInfo(uint sex);
-  static void UpdateGeosets(uint sex);
-  static void UpdateEquipment(int doNotUpdateGeosets, uint sex);
-  static void ChangeSkinTexture(int doNotCommitGeosets, uint sex);
-  static void ChangeFaceTexture(uint sex);
-  static void ChangeFacialHairTexture(uint sex);
-  static void ChangeScalpHairTexture(uint sex);
-  static void ChangeHairGeosets(uint sex);
-  static void ChangeFacialHairGeosets(uint sex);
-  static void CommitCurrentGeoset(uint sex);
+  static void UpdateAllCharacterInfo(int race, UINT sex);
+  static void InitializeCharacterInfo(UINT sex, int doNotCommitGeosets);
+  static void UpdateCharacterInfo(UINT sex);
+  static void UpdateGeosets(UINT sex);
+  static void UpdateEquipment(int doNotUpdateGeosets, UINT sex);
+  static void ChangeSkinTexture(int doNotCommitGeosets, UINT sex);
+  static void ChangeFaceTexture(UINT sex);
+  static void ChangeFacialHairTexture(UINT sex);
+  static void ChangeScalpHairTexture(UINT sex);
+  static void ChangeHairGeosets(UINT sex);
+  static void ChangeFacialHairGeosets(UINT sex);
+  static void CommitCurrentGeoset(UINT sex);
 
  private:
   static CSimpleModel         *m_charCustomizeFrame;
-  static TSFixedArray<uint>    m_factionIndex;
-  static TSFixedArray<uint>    m_raceIndex;
+  static TSFixedArray<UINT>    m_factionIndex;
+  static TSFixedArray<UINT>    m_raceIndex;
   static int                   m_selectedRace;
-  static TSGrowableArray<uint> m_classIndex;
+  static TSGrowableArray<UINT> m_classIndex;
   static int                   m_selectedClass;
-  static uint                  m_selectedSex;
+  static UINT                  m_selectedSex;
   static float                 m_charFacing;
   static CHARCREATEINFO        m_charInfo;
 };
 
 void CharCreateRegisterScriptFunctions();
 void CharCreateUnregisterScriptFunctions();
-void ReportMissingComponentTextures(uint race, uint sex);
+void ReportMissingComponentTextures(UINT race, UINT sex);

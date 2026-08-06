@@ -20,11 +20,11 @@ const NTempest::C3Vector CMapStaticEntity::interiorSunDir(-0.30822f, -0.30822f, 
 void CMapStaticEntity::AdjustLightmap(
     const NTempest::CImVector &lmColor,
     NTempest::CImVector       &dirColor,
-    unsigned char              minDir,
+    BYTE                       minDir,
     NTempest::CImVector       &ambColor,
-    unsigned char              maxAmbient
+    BYTE                       maxAmbient
 ) {
-  unsigned int maxMag = lmColor.r;
+  UINT maxMag = lmColor.r;
   if (lmColor.g > maxMag) {
     maxMag = lmColor.g;
   }
@@ -47,10 +47,10 @@ void CMapStaticEntity::AdjustLightmap(
 
   ambColor = lmColor;
   if (maxMag > maxAmbient) {
-    unsigned int scale = static_cast<unsigned int>(static_cast<float>(maxAmbient) * 255.0f / maxMag);
-    ambColor.r = static_cast<unsigned char>((scale * ambColor.r + 255) >> 8);
-    ambColor.g = static_cast<unsigned char>((scale * ambColor.g + 255) >> 8);
-    ambColor.b = static_cast<unsigned char>((scale * ambColor.b + 255) >> 8);
+    UINT scale = static_cast<UINT>(static_cast<float>(maxAmbient) * 255.0f / maxMag);
+    ambColor.r = static_cast<BYTE>((scale * ambColor.r + 255) >> 8);
+    ambColor.g = static_cast<BYTE>((scale * ambColor.g + 255) >> 8);
+    ambColor.b = static_cast<BYTE>((scale * ambColor.b + 255) >> 8);
   }
 }
 
@@ -65,7 +65,7 @@ void CMapStaticEntity::FindLights() {
   ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     CMapBaseObj *parent = parentLink->ref;
     if (parent->GetType() & Type_Chunk) {
-      CMapChunk       *chunk = static_cast<CMapChunk *>(parent);
+      CMapChunk *chunk = static_cast<CMapChunk *>(parent);
       ITERATELIST(CMapBaseObjLink, chunk->lightLinkList, lightLink) {
         CreateCacheLight(static_cast<CMapLight *>(lightLink->owner));
       }
@@ -89,7 +89,7 @@ void CMapStaticEntity::CreateCacheLight(CMapLight *light) {
     return;
   }
 
-  float dirIntensity;
+  float              dirIntensity;
   NTempest::C3Vector lightDir(pos.x - light->gxLight.m_dir.x, pos.y - light->gxLight.m_dir.y, pos.z + 1.1666666f - light->gxLight.m_dir.z);
   float              lightDist = lightDir.Mag();
   if (lightDist >= light->attenEnd) {
@@ -154,7 +154,7 @@ void CMapStaticEntity::SelectLights() {
 
   GxLightSet(0, gxLight, CWorldScene::camPos);
 
-  unsigned int whichLight = 1;
+  UINT whichLight = 1;
   ITERATELIST(CMapCacheLight, cacheLightList, cacheLight) {
     if (whichLight >= 8) {
       break;
@@ -202,7 +202,7 @@ void CMapDoodadDef::SelectLights() {
 
   GxLightSet(0, gxLight, CWorldScene::camPos);
 
-  unsigned int whichLight = 1;
+  UINT whichLight = 1;
   ITERATELIST(CMapCacheLight, cacheLightList, cacheLight) {
     if (whichLight >= 8) {
       break;
@@ -261,7 +261,7 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
   CMapObj                  *mapObj = mapObjDef->mapObj;
   float                     invScale = 1.0f / static_cast<float>(sqrt(lMat.a0 * lMat.a0 + lMat.a1 * lMat.a1 + lMat.a2 * lMat.a2));
   NTempest::CImVector       closestC;
-  unsigned int              tries;
+  UINT                      tries;
   NTempest::CImVector       lmColor;
   float                     dirDist;
   float                     closestT;
@@ -271,7 +271,7 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
     for (tries = 0; tries < 2; ++tries) {
       closestT = FLT_MAX;
       closestC = NTempest::CImVector(0ul);
-      for (unsigned int i = 0; i < 6; ++i) {
+      for (UINT i = 0; i < 6; ++i) {
         localRadVec.x = dirs[i].x * lMat.a0 + dirs[i].y * lMat.b0 + dirs[i].z * lMat.c0;
         localRadVec.y = dirs[i].x * lMat.a1 + dirs[i].y * lMat.b1 + dirs[i].z * lMat.c1;
         localRadVec.z = dirs[i].x * lMat.a2 + dirs[i].y * lMat.b2 + dirs[i].z * lMat.c2;
@@ -295,6 +295,6 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
   }
 
   // authentically double-set
-  ambient = NTempest::CImVector(0xFF808080); // grey
-  ambient = NTempest::CImVector(0xFFFFFF00); // yellow
+  ambient = NTempest::CImVector(0xFF808080);  // grey
+  ambient = NTempest::CImVector(0xFFFFFF00);  // yellow
 }

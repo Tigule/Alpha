@@ -24,15 +24,15 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-int Spell_C_GetSpellCooldown(int spell, int isPet, unsigned int *duration, unsigned long *startTime, unsigned int *enable);
+int Spell_C_GetSpellCooldown(int spell, int isPet, UINT *duration, DWORD *startTime, UINT *enable);
 
 static const char s_petModeTokens[3][32] = {"PASSIVE", "DEFENSIVE", "AGGRESSIVE"};
 static const char s_petOrdersTokens[4][32] = {"WAIT", "FOLLOW", "ATTACK", "DISMISS"};
 
-unsigned __int64 CGPetInfo::m_pet;
-unsigned int     CGPetInfo::m_petMode;
-PetAction        CGPetInfo::m_actions[10];
-unsigned long    CGPetInfo::m_expirationTime;
+DWORDLONG CGPetInfo::m_pet;
+UINT      CGPetInfo::m_petMode;
+PetAction CGPetInfo::m_actions[10];
+DWORD     CGPetInfo::m_expirationTime;
 
 void CGPetInfo::InitializeGame() {
 }
@@ -48,7 +48,7 @@ void CGPetInfo::LeaveWorld() {
 void CGPetInfo::ShutdownGame() {
 }
 
-void CGPetInfo::SetPet(unsigned __int64 pet, unsigned long expirationTime) {
+void CGPetInfo::SetPet(DWORDLONG pet, DWORD expirationTime) {
   m_pet = pet;
   if (expirationTime) {
     m_expirationTime = OsGetAsyncTimeMs() + expirationTime;
@@ -60,23 +60,23 @@ void CGPetInfo::SetPet(unsigned __int64 pet, unsigned long expirationTime) {
   if (CGClassTrainer::GetTrainer() && CGClassTrainer::GetTrainerType() == TRAINER_TYPE_PET) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
-      const unsigned __int64 trainer = CGClassTrainer::GetTrainer();
+      const DWORDLONG trainer = CGClassTrainer::GetTrainer();
       player->TalkToTrainer(trainer);
     }
   }
 }
 
-void CGPetInfo::SetPetModeAndOrders(unsigned int petMode) {
+void CGPetInfo::SetPetModeAndOrders(UINT petMode) {
   m_petMode = petMode;
 }
 
-void CGPetInfo::SetPetMode(unsigned int mode) {
+void CGPetInfo::SetPetMode(UINT mode) {
   FATALASSERT(mode < 256);
   m_petMode = mode | m_petMode & 0xFFFFFF00;
   FrameScript_SignalEvent(333);
 }
 
-void CGPetInfo::SetPetOrders(unsigned int orders) {
+void CGPetInfo::SetPetOrders(UINT orders) {
   FATALASSERT(orders < 256);
   m_petMode = orders << 8 | m_petMode & 0xFF;
   FrameScript_SignalEvent(333);
@@ -86,11 +86,11 @@ void CGPetInfo::ClearActions() {
   memset(m_actions, 0, sizeof(m_actions));
 }
 
-void CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
+void CGPetInfo::SetAction(UINT index, PetAction &action, int save) {
   FATALASSERT(index < (sizeof(m_actions) / sizeof(m_actions[0])));
 
-  unsigned int &rawAction = action;
-  if (rawAction == static_cast<const unsigned int &>(m_actions[index])) {
+  UINT &rawAction = action;
+  if (rawAction == static_cast<const UINT &>(m_actions[index])) {
     return;
   }
   if ((rawAction >> 24 & 0x3F) == 1) {
@@ -101,8 +101,8 @@ void CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
   }
 
   int oldSlot = -1;
-  for (unsigned int slot = 0; slot < sizeof(m_actions) / sizeof(m_actions[0]); ++slot) {
-    unsigned int &slotAction = m_actions[slot];
+  for (UINT slot = 0; slot < sizeof(m_actions) / sizeof(m_actions[0]); ++slot) {
+    UINT &slotAction = m_actions[slot];
     if ((slotAction & 0x3FFFFFFF) == (rawAction & 0x3FFFFFFF) && slot != index) {
       slotAction = 0;
       oldSlot = slot;
@@ -110,8 +110,8 @@ void CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
     }
   }
 
-  unsigned int &currentAction = m_actions[index];
-  unsigned int  currentType = currentAction >> 24 & 0x3F;
+  UINT &currentAction = m_actions[index];
+  UINT  currentType = currentAction >> 24 & 0x3F;
   if (oldSlot < 0 && (currentType == 6 || currentType == 7)) {
     return;
   }
@@ -120,34 +120,34 @@ void CGPetInfo::SetAction(unsigned int index, PetAction &action, int save) {
     rawAction |= 0x40000000;
   }
   if (oldSlot >= 0) {
-    static_cast<unsigned int &>(m_actions[oldSlot]) = currentAction;
+    static_cast<UINT &>(m_actions[oldSlot]) = currentAction;
   }
   currentAction = rawAction;
 
   if (save) {
     CDataStore msg;
-    msg.Put(static_cast<unsigned int>(CMSG_PET_SET_ACTION));
+    msg.Put(static_cast<UINT>(CMSG_PET_SET_ACTION));
     msg.Put(m_pet);
     if (oldSlot >= 0) {
       msg.Put(oldSlot);
-      msg.Put(static_cast<const unsigned int &>(m_actions[oldSlot]));
+      msg.Put(static_cast<const UINT &>(m_actions[oldSlot]));
     }
     msg.Put(index);
-    msg.Put(static_cast<const unsigned int &>(m_actions[index]));
+    msg.Put(static_cast<const UINT &>(m_actions[index]));
     msg.Finalize();
     ClientServices_Send(&msg);
     FrameScript_SignalEvent(333);
   }
 }
 
-void CGPetInfo::ToggleAutocast(unsigned int index) {
+void CGPetInfo::ToggleAutocast(UINT index) {
   FATALASSERT(index < 10);
-  unsigned int &action = m_actions[index];
+  UINT &action = m_actions[index];
   if (static_cast<int>(action) < 0) {
     action ^= 0x40000000;
 
     CDataStore msg;
-    msg.Put(static_cast<unsigned int>(CMSG_PET_SET_ACTION));
+    msg.Put(static_cast<UINT>(CMSG_PET_SET_ACTION));
     msg.Put(m_pet);
     msg.Put(index);
     msg.Put(action);
@@ -157,26 +157,26 @@ void CGPetInfo::ToggleAutocast(unsigned int index) {
   }
 }
 
-void CGPetInfo::PutActionInSlot(PetAction &action, unsigned int slot) {
-  unsigned int rawAction = action;
-  for (unsigned int i = 0; i < 10; ++i) {
-    unsigned int current = m_actions[i];
+void CGPetInfo::PutActionInSlot(PetAction &action, UINT slot) {
+  UINT rawAction = action;
+  for (UINT i = 0; i < 10; ++i) {
+    UINT current = m_actions[i];
     if ((current & 0x3FFFFFFF) == (rawAction & 0x3FFFFFFF)) {
       rawAction = current & 0x80000000 | rawAction & 0x7FFFFFFF;
       rawAction = current & 0x40000000 | rawAction & 0xBFFFFFFF;
       break;
     }
   }
-  static_cast<unsigned int &>(action) = rawAction;
+  static_cast<UINT &>(action) = rawAction;
   SetAction(slot, action, 1);
 }
 
-const char *CGPetInfo::GetModeToken(unsigned int id) {
+LPCSTR CGPetInfo::GetModeToken(UINT id) {
   FATALASSERT(id < (sizeof(s_petModeTokens) / sizeof(s_petModeTokens[0])));
   return s_petModeTokens[id];
 }
 
-const char *CGPetInfo::GetOrdersToken(unsigned int id) {
+LPCSTR CGPetInfo::GetOrdersToken(UINT id) {
   FATALASSERT(id < (sizeof(s_petOrdersTokens) / sizeof(s_petOrdersTokens[0])));
   return s_petOrdersTokens[id];
 }
@@ -193,14 +193,14 @@ void CGPetInfo::UpdateCooldowns() {
   FrameScript_SignalEvent(334);
 }
 
-void CGPetInfo::SendPetAction(const PetAction &action, const unsigned __int64 &target) {
-  unsigned __int64 actionTarget = target ? target : CGGameUI::GetLockedTarget();
-  unsigned int     rawAction = action;
-  unsigned int     actionType = rawAction >> 24 & 0x3F;
+void CGPetInfo::SendPetAction(const PetAction &action, const DWORDLONG &target) {
+  DWORDLONG actionTarget = target ? target : CGGameUI::GetLockedTarget();
+  UINT      rawAction = action;
+  UINT      actionType = rawAction >> 24 & 0x3F;
   if (actionType == 6) {
     SetPetMode(rawAction & 0xFFFF);
   } else if (actionType == 7) {
-    unsigned int id = rawAction & 0xFFFF;
+    UINT id = rawAction & 0xFFFF;
     if (id <= 1) {
       SetPetOrders(id);
     } else if (id == 2) {
@@ -220,7 +220,7 @@ void CGPetInfo::SendPetAction(const PetAction &action, const unsigned __int64 &t
   }
 
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_PET_ACTION));
+  msg.Put(static_cast<UINT>(CMSG_PET_ACTION));
   msg.Put(m_pet);
   msg.Put(rawAction);
   msg.Put(actionTarget);
@@ -253,7 +253,7 @@ void CGPetInfo::PetFollow() {
   SendPetAction(action, 0);
 }
 
-void CGPetInfo::PetAttackTarget(const unsigned __int64 &targetGUID) {
+void CGPetInfo::PetAttackTarget(const DWORDLONG &targetGUID) {
   PetAction action(0x07000002);
   SendPetAction(action, targetGUID);
 }
@@ -266,13 +266,13 @@ void CGPetInfo::PetDismiss() {
 
 void CGPetInfo::PetAbandon() {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_PET_ABANDON));
+  msg.Put(static_cast<UINT>(CMSG_PET_ABANDON));
   msg.Put(m_pet);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
-void CGPetInfo::PetRename(const char *newName) {
+void CGPetInfo::PetRename(LPCSTR newName) {
   CGUnit_C *pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_pet, __FILE__, __LINE__));
   if (!pet) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(217));
@@ -295,7 +295,7 @@ void CGPetInfo::PetRename(const char *newName) {
   SStrPrintf(petName, sizeof(petName), "%s", newName);
   petName[sizeof(petName) - 1] = 0;
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_PET_RENAME));
+  msg.Put(static_cast<UINT>(CMSG_PET_RENAME));
   msg.Put(m_pet);
   msg.PutString(petName);
   msg.Finalize();
@@ -313,10 +313,10 @@ static int Script_PetHasActionBar(lua_State *L) {
 static int Script_GetPetActionInfo(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetPetActionInfo(index)");
-  unsigned int     index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT             index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   const PetAction *action = CGPetInfo::GetAction(index);
-  unsigned int     raw = action ? *action : 0;
-  unsigned int     type = raw >> 24 & 0x3F;
+  UINT             raw = action ? *action : 0;
+  UINT             type = raw >> 24 & 0x3F;
   if (!CGPetInfo::GetPet() || !raw) {
     for (int i = 0; i < 7; ++i)
       lua_pushnil(L);
@@ -340,15 +340,15 @@ static int Script_GetPetActionInfo(lua_State *L) {
     lua_pushnil(L);
     lua_pushnil(L);
   } else {
-    char        buf[64];
-    const char *token = type == 6 ? CGPetInfo::GetModeToken(raw & 0xFFFF) : CGPetInfo::GetOrdersToken(raw & 0xFFFF);
+    char   buf[64];
+    LPCSTR token = type == 6 ? CGPetInfo::GetModeToken(raw & 0xFFFF) : CGPetInfo::GetOrdersToken(raw & 0xFFFF);
     SStrPrintf(buf, sizeof(buf), type == 6 ? "PET_MODE_%s" : "PET_ACTION_%s", token);
     lua_pushstring(L, buf);
     lua_pushnil(L);
     SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", token);
     lua_pushstring(L, buf);
     lua_pushnumber(L, 1.0);
-    unsigned int current = type == 6 ? CGPetInfo::GetPetMode() : CGPetInfo::GetPetOrders();
+    UINT current = type == 6 ? CGPetInfo::GetPetMode() : CGPetInfo::GetPetOrders();
     if (current == (raw & 0xFFFF))
       lua_pushnumber(L, 1.0);
     else
@@ -368,12 +368,12 @@ static int Script_GetPetActionInfo(lua_State *L) {
 static int Script_GetPetActionCooldown(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: GetPetActionCooldown(index)");
-  const PetAction *action = CGPetInfo::GetAction(static_cast<unsigned int>(lua_tonumber(L, 1)) - 1);
-  unsigned int     duration = 0, enable = 0;
-  unsigned long    startTime = 0;
+  const PetAction *action = CGPetInfo::GetAction(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  UINT             duration = 0, enable = 0;
+  DWORD            startTime = 0;
   if (action) {
-    unsigned int raw = *action;
-    unsigned int type = raw >> 24 & 0x3F;
+    UINT raw = *action;
+    UINT type = raw >> 24 & 0x3F;
     if (raw && type >= 1 && type <= 5)
       Spell_C_GetSpellCooldown(raw & 0xFFFF, 1, &duration, &startTime, &enable);
   }
@@ -387,13 +387,12 @@ static int Script_PickupPetAction(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: PickupPetAction(index)");
   }
-  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (index >= 10) {
     return luaL_error(L, "Invalid slot in PickupPetAction");
   }
 
-  unsigned int cursorSpell =
-      CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
+  UINT      cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
   PetAction cursorAction(CGGameUI::m_cursorPetAction);
   CGGameUI::ClearCursor(1);
   if (cursorSpell) {
@@ -409,11 +408,11 @@ static int Script_PickupPetAction(lua_State *L) {
   if (!action) {
     return 0;
   }
-  unsigned int raw = *action;
+  UINT raw = *action;
   if (!raw) {
     return 0;
   }
-  unsigned int type = raw >> 24 & 0x3F;
+  UINT type = raw >> 24 & 0x3F;
   if (type == 1) {
     CGGameUI::SetCursorSpell(raw & 0xFFFF, 1);
   } else if (type > 1 && type <= 7) {
@@ -426,12 +425,11 @@ static int Script_TogglePetAutocast(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: TogglePetAutocast(index)");
   }
-  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (index >= 10) {
     return luaL_error(L, "Invalid slot in TogglePetAutocast");
   }
-  unsigned int cursorSpell =
-      CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
+  UINT      cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
   PetAction cursorAction(CGGameUI::m_cursorPetAction);
   CGGameUI::ClearCursor(1);
   if (cursorSpell) {
@@ -448,12 +446,11 @@ static int Script_CastPetAction(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return luaL_error(L, "Usage: CastPetAction(index)");
   }
-  unsigned int index = static_cast<unsigned int>(lua_tonumber(L, 1)) - 1;
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (index >= 10) {
     return luaL_error(L, "Invalid slot in CastPetAction");
   }
-  unsigned int cursorSpell =
-      CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
+  UINT      cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
   PetAction cursorAction(CGGameUI::m_cursorPetAction);
   CGGameUI::ClearCursor(1);
   if (cursorSpell) {
@@ -470,42 +467,42 @@ static int Script_CastPetAction(lua_State *L) {
   return 0;
 }
 
-static int Script_PetPassiveMode(lua_State *__formal) {
+static int Script_PetPassiveMode(lua_State *) {
   CGPetInfo::PetPassiveMode();
   return 0;
 }
 
-static int Script_PetDefensiveMode(lua_State *__formal) {
+static int Script_PetDefensiveMode(lua_State *) {
   CGPetInfo::PetDefensiveMode();
   return 0;
 }
 
-static int Script_PetAggressiveMode(lua_State *__formal) {
+static int Script_PetAggressiveMode(lua_State *) {
   CGPetInfo::PetAggressiveMode();
   return 0;
 }
 
-static int Script_PetWait(lua_State *__formal) {
+static int Script_PetWait(lua_State *) {
   CGPetInfo::PetWait();
   return 0;
 }
 
-static int Script_PetFollow(lua_State *__formal) {
+static int Script_PetFollow(lua_State *) {
   CGPetInfo::PetFollow();
   return 0;
 }
 
-static int Script_PetAttack(lua_State *__formal) {
+static int Script_PetAttack(lua_State *) {
   CGPetInfo::PetAttackTarget(CGGameUI::GetLockedTarget());
   return 0;
 }
 
-static int Script_PetAbandon(lua_State *__formal) {
+static int Script_PetAbandon(lua_State *) {
   CGPetInfo::PetAbandon();
   return 0;
 }
 
-static int Script_PetDismiss(lua_State *__formal) {
+static int Script_PetDismiss(lua_State *) {
   CGPetInfo::PetDismiss();
   return 0;
 }
@@ -536,9 +533,9 @@ static int Script_PetCanBeRenamed(lua_State *L) {
 }
 
 static int Script_GetPetTimeRemaining(lua_State *L) {
-  unsigned long expiration = CGPetInfo::GetExpirationTime();
+  DWORD expiration = CGPetInfo::GetExpirationTime();
   if (expiration) {
-    unsigned long now = OsGetAsyncTimeMs();
+    DWORD now = OsGetAsyncTimeMs();
     lua_pushnumber(L, static_cast<double>(expiration == now ? 0 : expiration - now));
   } else {
     lua_pushnil(L);
@@ -568,13 +565,13 @@ static FrameScript_Method s_ScriptFunctions[18] = {
 };
 
 void PetInfoRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 18; ++i) {
+  for (UINT i = 0; i < 18; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void PetInfoUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 18; ++i) {
+  for (UINT i = 0; i < 18; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

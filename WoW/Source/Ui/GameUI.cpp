@@ -79,27 +79,27 @@
 #include <storm.h>
 
 namespace {
-extern FrameScript_Method s_ScriptFunctions[126];
+  extern FrameScript_Method s_ScriptFunctions[126];
 }
-extern char **Script_GetNamesFromGUID(const unsigned __int64 &guid, int &numnames);
+extern char **Script_GetNamesFromGUID(const DWORDLONG &guid, int &numnames);
 #include <ctype.h>
 #include <float.h>
 #include <stdlib.h>
 
-void PortraitInitialize();
-void PortraitShutdown();
-void UpdatePortraitTexture(const unsigned __int64 &guid);
-void Trade_C_CancelTrade();
-void Trade_C_BeginTrade();
-CGUnit_C *Script_GetUnitFromName(const char *name);
-unsigned __int64 Script_GetGUIDFromName(const char *name);
-void Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
-bool Spell_C_IsTargeting();
-bool Spell_C_WorldObjectHousing();
-void Spell_C_WorldObjectRotate();
-void Spell_C_StopTargeting();
+void      PortraitInitialize();
+void      PortraitShutdown();
+void      UpdatePortraitTexture(const DWORDLONG &guid);
+void      Trade_C_CancelTrade();
+void      Trade_C_BeginTrade();
+CGUnit_C *Script_GetUnitFromName(LPCSTR name);
+DWORDLONG Script_GetGUIDFromName(LPCSTR name);
+void      Script_SendUnitSignal(const DWORDLONG &guid, int signal);
+bool      Spell_C_IsTargeting();
+bool      Spell_C_WorldObjectHousing();
+void      Spell_C_WorldObjectRotate();
+void      Spell_C_StopTargeting();
 
-extern const char *g_scriptEvents[0x177];
+extern LPCSTR g_scriptEvents[0x177];
 
 void InputControlRegisterScriptFunctions();
 void InputControlUnregisterScriptFunctions();
@@ -166,11 +166,11 @@ void PetitionInfoUnregisterScriptFunctions();
 
 static void LoadScriptFunctions();
 static void UnloadScriptFunctions();
-static int CCommand_Script(const char *command, const char *arguments);
-static int CCommand_ScaleUI(const char *__formal, const char *arguments);
+static int  CCommand_Script(LPCSTR command, LPCSTR arguments);
+static int  CCommand_ScaleUI(LPCSTR, LPCSTR arguments);
 static void LoadPlacedFrames();
-static int SavePlacedFrames(CSimpleTop *top);
-static int PlacedFrameCallback(CSimpleFrame *frame, void *param);
+static int  SavePlacedFrames(CSimpleTop *top);
+static int  PlacedFrameCallback(CSimpleFrame *frame, LPVOID param);
 static void PlaceFrame(CSimpleFrame *frame, int framelevel, int x, int y, int w, int h);
 
 CVar *s_minimapZoomCVar;
@@ -190,10 +190,10 @@ class CGWorldMap {
 
 class CWorld {
  public:
-  static float GetFramerate();
-  static void GetCounts(int *const counts);
-  static const char *QueryChunkName();
-  static void Preload(const NTempest::C3Vector &position);
+  static float  GetFramerate();
+  static void   GetCounts(int *const counts);
+  static LPCSTR QueryChunkName();
+  static void   Preload(const NTempest::C3Vector &position);
 };
 
 class CGBuffBar {
@@ -206,10 +206,10 @@ class CGBuffBar {
 
 class CGBankInfo {
  public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void CloseBank();
-  static unsigned __int64 m_unit;
+  static void      EnterWorld();
+  static void      LeaveWorld();
+  static void      CloseBank();
+  static DWORDLONG m_unit;
 };
 
 class CGTradeSkillInfo {
@@ -239,12 +239,12 @@ class CGPetitionInfo {
 
 void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
-unsigned int CurrencyTotal(int coins[3]);
-int CursorGrabMoney(unsigned int amount);
-int CursorGrabSpell(const char *filename);
-unsigned int CursorGetCursorMode();
-void CursorSetHeldItem(unsigned __int64 itemGuid);
-void CursorSetHeldVirtualItem(unsigned int displayID);
+UINT CurrencyTotal(int coins[3]);
+int  CursorGrabMoney(UINT amount);
+int  CursorGrabSpell(LPCSTR filename);
+UINT CursorGetCursorMode();
+void CursorSetHeldItem(DWORDLONG itemGuid);
+void CursorSetHeldVirtualItem(UINT displayID);
 void CursorSetCursorMode(CURSORANIMATIONS mode);
 
 enum ERROR_TEXT_PLACEMENT {
@@ -256,9 +256,9 @@ enum ERROR_TEXT_PLACEMENT {
 
 struct GAMEERRORDESC {
   GAMEERRORDESC(
-      const char          *_stringToken,
+      LPCSTR               _stringToken,
       ERROR_TEXT_PLACEMENT _textPlacement,
-      const char          *_soundName,
+      LPCSTR               _soundName,
       VOCALUISOUNDS        _voiceID,
       int                  _supressText,
       SLASH_COMMAND_ID     _slashCmd
@@ -271,9 +271,9 @@ struct GAMEERRORDESC {
         slashCmd(_slashCmd) {
   }
 
-  const char          *stringToken;
+  LPCSTR               stringToken;
   ERROR_TEXT_PLACEMENT textPlacement;
-  const char          *soundName;
+  LPCSTR               soundName;
   VOCALUISOUNDS        voiceID;
   int                  supressText;
   SLASH_COMMAND_ID     slashCmd;
@@ -2623,79 +2623,75 @@ static GAMEERRORDESC s_gameErrors[GERR_NUM_TYPES] = {
     )
 };
 
-bool             CGGameUI::m_reloadUI;
-unsigned int     CGGameUI::m_stackSplit;
-unsigned __int64 CGGameUI::m_cursorItem;
-unsigned __int64 CGGameUI::m_cursorItemContainer;
-unsigned int     CGGameUI::m_cursorItemSlot;
-unsigned int     CGGameUI::m_cursorMoney;
-int              CGGameUI::m_cursorSpell;
-unsigned int     CGGameUI::m_cursorPetAction;
-unsigned int     CGGameUI::m_cursorVirtualID;
-unsigned int     CGGameUI::m_cursorVirtualDisplay;
-unsigned int     CGGameUI::m_cursorVirtualSlot;
-int              CGGameUI::m_cursorHasAction;
-UICURSORTYPE     CGGameUI::m_cursorItemType;
-unsigned __int64 CGGameUI::m_currentObjectTrack;
-float            CGGameUI::m_interactMaxDist;
-unsigned __int64 CGGameUI::m_interactTarget;
-unsigned __int64 CGGameUI::m_lockedTarget;
-unsigned __int64 CGGameUI::m_lastEnemyTarget;
-char            *CGGameUI::m_zoneText;
-char            *CGGameUI::m_subZoneText;
-char            *CGGameUI::m_minimapZoneText;
-int              CGGameUI::m_areaID;
-CSimpleFrame    *CGGameUI::m_UISimpleParent;
-CSimpleTop      *CGGameUI::m_simpleTop;
-CGTooltip       *CGGameUI::m_gameTooltip;
-int              CGGameUI::m_screenWidth;
-int              CGGameUI::m_hasControl;
-CinematicData    CGGameUI::m_cinematic;
-char             CGGameUI::s_lastErrorString[512];
+bool          CGGameUI::m_reloadUI;
+UINT          CGGameUI::m_stackSplit;
+DWORDLONG     CGGameUI::m_cursorItem;
+DWORDLONG     CGGameUI::m_cursorItemContainer;
+UINT          CGGameUI::m_cursorItemSlot;
+UINT          CGGameUI::m_cursorMoney;
+int           CGGameUI::m_cursorSpell;
+UINT          CGGameUI::m_cursorPetAction;
+UINT          CGGameUI::m_cursorVirtualID;
+UINT          CGGameUI::m_cursorVirtualDisplay;
+UINT          CGGameUI::m_cursorVirtualSlot;
+int           CGGameUI::m_cursorHasAction;
+UICURSORTYPE  CGGameUI::m_cursorItemType;
+DWORDLONG     CGGameUI::m_currentObjectTrack;
+float         CGGameUI::m_interactMaxDist;
+DWORDLONG     CGGameUI::m_interactTarget;
+DWORDLONG     CGGameUI::m_lockedTarget;
+DWORDLONG     CGGameUI::m_lastEnemyTarget;
+char         *CGGameUI::m_zoneText;
+char         *CGGameUI::m_subZoneText;
+char         *CGGameUI::m_minimapZoneText;
+int           CGGameUI::m_areaID;
+CSimpleFrame *CGGameUI::m_UISimpleParent;
+CSimpleTop   *CGGameUI::m_simpleTop;
+CGTooltip    *CGGameUI::m_gameTooltip;
+int           CGGameUI::m_screenWidth;
+int           CGGameUI::m_hasControl;
+CinematicData CGGameUI::m_cinematic;
+char          CGGameUI::s_lastErrorString[512];
 
-static unsigned int s_nearestIndex;
+static UINT s_nearestIndex;
 struct NearestEnemyData {
-  unsigned __int64 guid;
-  float            distSq;
+  DWORDLONG guid;
+  float     distSq;
 };
 static TSGrowableArray<NearestEnemyData> s_nearestList;
-static unsigned int                      s_nearestListTime;
-static unsigned int                      s_sameTargetTime;
-static const char                       *compasDirStr[8] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-static const char *s_spellMissReasons[10] = {
-    "NONE", "PHYSICAL", "RESIST", "IMMUNE", "EVADED", "DODGED", "PARRIED", "BLOCKED", "TEMPIMMUNE", "DEFLECTED"
-};
-static const char                       *s_combatEvent[9] = {
-    "MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT"
-};
-static const float                       s_distCullValues[3] = {350.0f, 550.0f, 750.0f};
-static const float                       s_smallCullValues[3] = {0.07f, 0.04f, 0.01f};
-static const float                       MAX_CAMERA_SHIFT = 50.0f;
-static const float                       TARGET_NEAREST_MAX_DISTANCE_SQUARED = 400.0f;
-static const float                       CinematicFadeTime = 0.25f;
-static const char                       *s_screenResolutions[4] = {"800x600", "1024x768", "1280x1024", "1600x1200"};
+static UINT                              s_nearestListTime;
+static UINT                              s_sameTargetTime;
+static LPCSTR                            compasDirStr[8] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+static LPCSTR s_spellMissReasons[10] = {"NONE", "PHYSICAL", "RESIST", "IMMUNE", "EVADED", "DODGED", "PARRIED", "BLOCKED", "TEMPIMMUNE", "DEFLECTED"};
+static LPCSTR s_combatEvent[9] = {"MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT"};
+static const float s_distCullValues[3] = {350.0f, 550.0f, 750.0f};
+static const float s_smallCullValues[3] = {0.07f, 0.04f, 0.01f};
+static const float MAX_CAMERA_SHIFT = 50.0f;
+static const float TARGET_NEAREST_MAX_DISTANCE_SQUARED = 400.0f;
+static const float CinematicFadeTime = 0.25f;
+static LPCSTR      s_screenResolutions[4] = {"800x600", "1024x768", "1280x1024", "1600x1200"};
 
 struct ItemPushInfo {
-  unsigned __int64 player;
-  int              slot;
-  int              pushed;
-  int              display;
+  DWORDLONG player;
+  int       slot;
+  int       pushed;
+  int       display;
 };
 
 bool Spell_C_IsTargeting();
 bool Spell_C_HandleSpriteClick(CGObject_C *object);
 bool Spell_C_HandleTerrainClick(const CTerrainClickEvent &evt);
-void Trade_C_InitiateTrade(unsigned __int64 target, int useCursorItem);
+void Trade_C_InitiateTrade(DWORDLONG target, int useCursorItem);
 
-static int CCommand_Script(const char *__formal, const char *arguments) {
+static int CCommand_Script(LPCSTR, LPCSTR arguments) {
   FrameScript_Execute(arguments, arguments);
   return 1;
 }
 
-void EnableFadingScreen(float fadeTime, void(*fadedCallback)(void *), void *param);
-void DisableFadingScreen(float fadeTime, void(*fadedCallback)(void *), void *param);
+void EnableFadingScreen(float fadeTime, void (*fadedCallback)(LPVOID), LPVOID param);
+void DisableFadingScreen(float fadeTime, void (*fadedCallback)(LPVOID), LPVOID param);
 
-static int CCommand_ScaleUI(const char *__formal, const char *arguments) {
+static int CCommand_ScaleUI(LPCSTR, LPCSTR arguments) {
   float scale = SStrToFloat(arguments);
   if (scale > 0.0f) {
     CGGameUI::ScaleUI(scale, 0);
@@ -2775,14 +2771,14 @@ static int Script_GetDebugStats(lua_State *L) {
       facing += 360.0;
     }
     int direction = static_cast<int>(facing * 0.022222223);
-    if (static_cast<unsigned int>(direction) > 7) {
+    if (static_cast<UINT>(direction) > 7) {
       direction = direction < 0 ? 0 : 7;
     }
     SStrPrintf(tempBuffer, sizeof(tempBuffer), "%-2s\n", compasDirStr[direction]);
     SStrPack(buffer, tempBuffer, sizeof(buffer));
   }
 
-  const char *chunkName = CWorld::QueryChunkName();
+  LPCSTR chunkName = CWorld::QueryChunkName();
   if (!chunkName || !*chunkName) {
     chunkName = "none";
   }
@@ -2847,7 +2843,7 @@ static int Script_SetCVar(lua_State *L) {
     luaL_error(L, message);
   }
 
-  const char *value = lua_tostring(L, 2);
+  LPCSTR value = lua_tostring(L, 2);
   if (!value) {
     value = "0";
   }
@@ -2879,7 +2875,7 @@ static int Script_SetWorldDetail(lua_State *L) {
   }
 
   int terrainDetail = static_cast<int>(lua_tonumber(L, 1));
-  if (static_cast<unsigned int>(terrainDetail) > 2) {
+  if (static_cast<UINT>(terrainDetail) > 2) {
     luaL_error(L, "value must be in the range 0, 2");
   }
 
@@ -2993,35 +2989,36 @@ static int Script_SetGamma(lua_State *L) {
   return 0;
 }
 
-static int Script_ToggleTris(lua_State *__formal) {
+static int Script_ToggleTris(lua_State *) {
   return 0;
 }
 
-static int Script_TogglePortals(lua_State *__formal) {
+static int Script_TogglePortals(lua_State *) {
   return 0;
 }
 
-static int Script_ToggleCollision(lua_State *__formal) {
+static int Script_ToggleCollision(lua_State *) {
   return 0;
 }
 
-static int Script_ToggleCollisionDisplay(lua_State *__formal) {
+static int Script_ToggleCollisionDisplay(lua_State *) {
   return 0;
 }
 
-static int Script_Logout(lua_State *__formal) {
+static int Script_Logout(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     const CGUnitData *unitData = player->GetUnitData();
-    unsigned int      flags = unitData->flags;
-    if ((flags & 0x01000000) || ((player->GetType() & TYPE_PLAYER) && !unitData->charmedBy && ((flags & 2) || !(flags & 0x00C00004)) && !(flags & 1))) {
+    UINT              flags = unitData->flags;
+    if ((flags & 0x01000000) || ((player->GetType() & TYPE_PLAYER) && !unitData->charmedBy && ((flags & 2) || !(flags & 0x00C00004)) && !(flags & 1)))
+    {
       ClientServices_CharacterLogout(false);
     }
   }
   return 0;
 }
 
-static int Script_Quit(lua_State *__formal) {
+static int Script_Quit(lua_State *) {
   ClientServices_Exit();
   return 0;
 }
@@ -3037,33 +3034,33 @@ static int Script_GetFramerate(lua_State *L) {
   return 1;
 }
 
-static int Script_TogglePerformanceDisplay(lua_State *__formal) {
+static int Script_TogglePerformanceDisplay(lua_State *) {
   ScrnPerfEnable(!ScrnPerfIsEnabled());
   return 0;
 }
 
-static int Script_TogglePerformanceValues(lua_State *__formal) {
+static int Script_TogglePerformanceValues(lua_State *) {
   ScrnPerfToggleDisplayedValues();
   return 0;
 }
 
-static int Script_ResetPerformanceValues(lua_State *__formal) {
+static int Script_ResetPerformanceValues(lua_State *) {
   ScrnPerfResetTimePeaks();
   return 0;
 }
 
-static int Script_TogglePlayerBounds(lua_State *__formal) {
+static int Script_TogglePlayerBounds(lua_State *) {
   CGPlayer_C::TogglePlayerBounds();
   return 0;
 }
 
-static int Script_ShowNameplates(lua_State *__formal) {
+static int Script_ShowNameplates(lua_State *) {
   CGUnit_C::NamePlateShow(1);
   PlayerNameShow(0);
   return 0;
 }
 
-static int Script_HideNameplates(lua_State *__formal) {
+static int Script_HideNameplates(lua_State *) {
   CGUnit_C::NamePlateShow(0);
   PlayerNameShow(1);
   return 0;
@@ -3072,7 +3069,7 @@ static int Script_HideNameplates(lua_State *__formal) {
 static int Script_SetCursor(lua_State *L) {
   struct {
     CURSORANIMATIONS animation;
-    const char      *string;
+    LPCSTR           string;
   } array[8] = {
       {       POINT_CURSOR,        "POINT_CURSOR"},
       {        CAST_CURSOR,         "CAST_CURSOR"},
@@ -3088,7 +3085,7 @@ static int Script_SetCursor(lua_State *L) {
     luaL_error(L, "Usage: SetCursor(\"cursor\")");
   }
 
-  int         i;
+  int i;
   for (i = 0; i < 8; ++i) {
     if (!SStrCmp(array[i].string, lua_tostring(L, 1), INT_MAX)) {
       break;
@@ -3129,9 +3126,9 @@ int Script_CursorHasMoney(lua_State *L) {
 }
 
 static int Script_EquipCursorItem(lua_State *L) {
-  unsigned __int64 cursorItemPack;
-  unsigned __int64 cursorItem;
-  unsigned int     cursorItemSlot;
+  DWORDLONG cursorItemPack;
+  DWORDLONG cursorItem;
+  UINT      cursorItemSlot;
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: EquipCursorItem(slot)");
   }
@@ -3151,21 +3148,21 @@ static int Script_EquipCursorItem(lua_State *L) {
   return 0;
 }
 
-int Script_DeleteCursorItem(lua_State *__formal) {
-  CDataStore       msg;
-  unsigned __int64 cursorItemPack;
-  unsigned __int64 cursorItem;
-  unsigned int     cursorItemSlot;
-  unsigned int     cursorItemPackIndex;
+int Script_DeleteCursorItem(lua_State *) {
+  CDataStore msg;
+  DWORDLONG  cursorItemPack;
+  DWORDLONG  cursorItem;
+  UINT       cursorItemSlot;
+  UINT       cursorItemPackIndex;
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
     if (cursorItem) {
       cursorItemPackIndex = player->FindSlotIndex(cursorItemPack);
-      msg.Put(static_cast<unsigned int>(CMSG_DESTROYITEM));
-      msg.Put(static_cast<unsigned char>(cursorItemPackIndex));
-      msg.Put(static_cast<unsigned char>(cursorItemSlot));
+      msg.Put(static_cast<UINT>(CMSG_DESTROYITEM));
+      msg.Put(static_cast<BYTE>(cursorItemPackIndex));
+      msg.Put(static_cast<BYTE>(cursorItemSlot));
       msg.Put(CGGameUI::m_stackSplit);
       msg.Finalize();
       ClientServices_Send(&msg);
@@ -3182,7 +3179,7 @@ static int Script_EquipPendingItem(lua_State *L) {
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->ClearPendingEquip(static_cast<unsigned int>(lua_tonumber(L, 1)), 1);
+    player->ClearPendingEquip(static_cast<UINT>(lua_tonumber(L, 1)), 1);
   }
   return 0;
 }
@@ -3193,7 +3190,7 @@ static int Script_CancelPendingEquip(lua_State *L) {
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->ClearPendingEquip(static_cast<unsigned int>(lua_tonumber(L, 1)), 0);
+    player->ClearPendingEquip(static_cast<UINT>(lua_tonumber(L, 1)), 0);
   }
   return 0;
 }
@@ -3203,7 +3200,7 @@ static int Script_TargetUnit(lua_State *L) {
     luaL_error(L, "Usage: TargetUnit(\"unit\")");
   }
 
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   if (!ClntObjMgrObjectPtr(guid, __FILE__, __LINE__) && !CGPartyInfo::IsMember(guid)) {
     return 0;
   }
@@ -3221,7 +3218,7 @@ static int Script_TargetUnitsPet(lua_State *L) {
     return 0;
   }
 
-  unsigned __int64 petGUID = unit->GetUnitData()->charm;
+  DWORDLONG petGUID = unit->GetUnitData()->charm;
   if (!petGUID) {
     petGUID = unit->GetUnitData()->summon;
   }
@@ -3242,15 +3239,15 @@ static int Script_TargetNearestEnemy(lua_State *L) {
   return 0;
 }
 
-int Script_TargetLastEnemy(lua_State *__formal) {
-  unsigned __int64 target = CGGameUI::m_lastEnemyTarget;
+int Script_TargetLastEnemy(lua_State *) {
+  DWORDLONG target = CGGameUI::m_lastEnemyTarget;
   if (target) {
     CGGameUI::Target(target, 0);
   }
   return 0;
 }
 
-static int Script_AttackTarget(lua_State *__formal) {
+static int Script_AttackTarget(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->OnAttackIconPressed();
@@ -3259,7 +3256,7 @@ static int Script_AttackTarget(lua_State *__formal) {
 }
 
 static int Script_AssistUnit(lua_State *L) {
-  unsigned __int64 newTarget = 0;
+  DWORDLONG newTarget = 0;
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: AssistUnit(\"unit\")");
   }
@@ -3298,7 +3295,7 @@ static int Script_FollowUnit(lua_State *L) {
     luaL_error(L, "Usage: FollowUnit(\"unit\")");
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  CGUnit_C *target = Script_GetUnitFromName(lua_tostring(L, 1));
+  CGUnit_C   *target = Script_GetUnitFromName(lua_tostring(L, 1));
   if (!player || !target) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(168));
   } else if ((target->GetType() & TYPE_PLAYER) && target->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
@@ -3318,7 +3315,7 @@ static int Script_FollowByName(lua_State *L) {
 }
 
 static int Script_ClearTarget(lua_State *L) {
-  int                    hadTarget = CGGameUI::GetLockedTarget() != 0;
+  int hadTarget = CGGameUI::GetLockedTarget() != 0;
   CGGameUI::Target(0, 0);
   if (hadTarget) {
     lua_pushnumber(L, 1.0);
@@ -3328,7 +3325,7 @@ static int Script_ClearTarget(lua_State *L) {
   return 1;
 }
 
-static int Script_AutoEquipCursorItem(lua_State *__formal) {
+static int Script_AutoEquipCursorItem(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->AutoEquipCursorItem(0);
@@ -3336,7 +3333,7 @@ static int Script_AutoEquipCursorItem(lua_State *__formal) {
   return 0;
 }
 
-static int Script_ToggleSheath(lua_State *__formal) {
+static int Script_ToggleSheath(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->ToggleSheathe(0);
@@ -3345,16 +3342,16 @@ static int Script_ToggleSheath(lua_State *__formal) {
 }
 
 static int Script_ToggleRun(lua_State *L) {
-  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
-  CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+  DWORD     eventTime = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
-    unsigned int moveFlags = mover->GetMoveFlags();
+    UINT moveFlags = mover->GetMoveFlags();
     if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
       eventTime = mover->GetMoveStartTime();
     }
 
     const CGUnitData *unitData = mover->GetUnitData();
-    unsigned int      flags = unitData->flags;
+    UINT              flags = unitData->flags;
     if (unitData->health > 0 &&
         ((flags & 0x01000000) ||
          ((mover->GetType() & TYPE_PLAYER) && !unitData->charmedBy && ((flags & 2) || !(flags & 0x00C00004)) && !(flags & 1))) &&
@@ -3367,21 +3364,21 @@ static int Script_ToggleRun(lua_State *L) {
 }
 
 static int Script_Jump(lua_State *L) {
-  unsigned long eventTime = lua_isnumber(L, 1) ? static_cast<unsigned long>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
-  CGUnit_C     *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+  DWORD     eventTime = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
     if ((mover->GetMoveFlags() & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
       eventTime = mover->GetMoveStartTime();
     }
 
     const CGUnitData *unitData = mover->GetUnitData();
-    unsigned int      flags = unitData->flags;
+    UINT              flags = unitData->flags;
     if (unitData->health > 0 &&
         ((flags & 0x01000000) ||
          ((mover->GetType() & TYPE_PLAYER) && !unitData->charmedBy && ((flags & 2) || !(flags & 0x00C00004)) && !(flags & 1))) &&
         !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & 0x2400))
     {
-      unsigned int standState = unitData->standState;
+      UINT standState = unitData->standState;
       if (standState != 1 && standState != 3 && (standState < 4 || standState > 6)) {
         mover->OnJumpLocal(eventTime);
       } else {
@@ -3393,19 +3390,19 @@ static int Script_Jump(lua_State *L) {
 }
 
 static int Script_GetZoneText(lua_State *L) {
-  const char *text = CGGameUI::GetZoneText();
+  LPCSTR text = CGGameUI::GetZoneText();
   lua_pushstring(L, text ? text : "");
   return 1;
 }
 
 static int Script_GetSubZoneText(lua_State *L) {
-  const char *text = CGGameUI::GetSubZoneText();
+  LPCSTR text = CGGameUI::GetSubZoneText();
   lua_pushstring(L, text ? text : "");
   return 1;
 }
 
 static int Script_GetMinimapZoneText(lua_State *L) {
-  const char *text = CGGameUI::GetMinimapZoneText();
+  LPCSTR text = CGGameUI::GetMinimapZoneText();
   lua_pushstring(L, text ? text : "");
   return 1;
 }
@@ -3414,7 +3411,7 @@ static int Script_InitiateTrade(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: InitiateTrade(\"unit\")");
   }
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   if (guid) {
     Trade_C_InitiateTrade(guid, 0);
   }
@@ -3437,7 +3434,7 @@ static int Script_InviteToParty(lua_State *L) {
     luaL_error(L, "Usage: InviteToParty(\"unit\")");
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   if (player && guid) {
     player->InviteToGroup(guid);
   }
@@ -3449,7 +3446,7 @@ static int Script_InviteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: InviteByName(\"name\")");
   }
-  msg.Put(static_cast<unsigned int>(CMSG_GROUP_INVITE));
+  msg.Put(static_cast<UINT>(CMSG_GROUP_INVITE));
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3461,7 +3458,7 @@ static int Script_UninviteFromParty(lua_State *L) {
     luaL_error(L, "Usage: UninviteFromParty(\"unit\")");
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   if (player && guid) {
     player->Uninvite(guid);
   }
@@ -3473,7 +3470,7 @@ static int Script_UninviteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UninviteByName(\"name\")");
   }
-  msg.Put(static_cast<unsigned int>(CMSG_GROUP_UNINVITE));
+  msg.Put(static_cast<UINT>(CMSG_GROUP_UNINVITE));
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3485,7 +3482,7 @@ static int Script_PromoteToPartyLeader(lua_State *L) {
     luaL_error(L, "Usage: PromoteToPartyLeader(\"unit\")");
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned __int64 guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   if (player && guid) {
     player->SetNewLeader(guid);
   }
@@ -3497,22 +3494,22 @@ static int Script_PromoteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: PromoteByName(\"name\")");
   }
-  msg.Put(static_cast<unsigned int>(CMSG_GROUP_SET_LEADER));
+  msg.Put(static_cast<UINT>(CMSG_GROUP_SET_LEADER));
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
 }
 
-static int Script_RequestTimePlayed(lua_State *__formal) {
+static int Script_RequestTimePlayed(lua_State *) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_PLAYED_TIME));
+  msg.Put(static_cast<UINT>(CMSG_PLAYED_TIME));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
 }
 
-static int Script_RepopMe(lua_State *__formal) {
+static int Script_RepopMe(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->HandleRepopRequest();
@@ -3520,7 +3517,7 @@ static int Script_RepopMe(lua_State *__formal) {
   return 0;
 }
 
-static int Script_AcceptResurrect(lua_State *__formal) {
+static int Script_AcceptResurrect(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->AcceptResurrectRequest(1);
@@ -3528,7 +3525,7 @@ static int Script_AcceptResurrect(lua_State *__formal) {
   return 0;
 }
 
-static int Script_DeclineResurrect(lua_State *__formal) {
+static int Script_DeclineResurrect(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->AcceptResurrectRequest(0);
@@ -3536,17 +3533,17 @@ static int Script_DeclineResurrect(lua_State *__formal) {
   return 0;
 }
 
-static int Script_BeginTrade(lua_State *__formal) {
+static int Script_BeginTrade(lua_State *) {
   Trade_C_BeginTrade();
   return 0;
 }
 
-static int Script_CancelTrade(lua_State *__formal) {
+static int Script_CancelTrade(lua_State *) {
   Trade_C_CancelTrade();
   return 0;
 }
 
-static int Script_AcceptGroup(lua_State *__formal) {
+static int Script_AcceptGroup(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->AcceptGroup();
@@ -3554,7 +3551,7 @@ static int Script_AcceptGroup(lua_State *__formal) {
   return 0;
 }
 
-static int Script_DeclineGroup(lua_State *__formal) {
+static int Script_DeclineGroup(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->DeclineGroup();
@@ -3562,7 +3559,7 @@ static int Script_DeclineGroup(lua_State *__formal) {
   return 0;
 }
 
-static int Script_AcceptGuild(lua_State *__formal) {
+static int Script_AcceptGuild(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->AcceptGuild();
@@ -3570,7 +3567,7 @@ static int Script_AcceptGuild(lua_State *__formal) {
   return 0;
 }
 
-static int Script_DeclineGuild(lua_State *__formal) {
+static int Script_DeclineGuild(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->DeclineGuild();
@@ -3578,17 +3575,17 @@ static int Script_DeclineGuild(lua_State *__formal) {
   return 0;
 }
 
-static int Script_CancelLogout(lua_State *__formal) {
+static int Script_CancelLogout(lua_State *) {
   ClientServices_CharacterAbortLogout();
   return 0;
 }
 
-static int Script_ForceLogout(lua_State *__formal) {
+static int Script_ForceLogout(lua_State *) {
   ClientServices_CharacterForceLogout();
   return 0;
 }
 
-static int Script_ForceQuit(lua_State *__formal) {
+static int Script_ForceQuit(lua_State *) {
   EventPostClose();
   return 0;
 }
@@ -3616,7 +3613,7 @@ static int Script_GetCursorMoney(lua_State *L) {
   return 1;
 }
 
-static int Script_DropCursorMoney(lua_State *__formal) {
+static int Script_DropCursorMoney(lua_State *) {
   if (CGGameUI::GetCursorMoney()) {
     CGGameUI::SetCursorMoney(0);
   }
@@ -3628,14 +3625,14 @@ static int Script_PickupPlayerMoney(lua_State *L) {
     luaL_error(L, "Usage: PickupPlayerMoney(amount)");
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned int amount = static_cast<unsigned int>(lua_tonumber(L, 1));
+  UINT        amount = static_cast<UINT>(lua_tonumber(L, 1));
   if (player && amount && amount <= player->GetUnitData()->coinage) {
     CGGameUI::SetCursorMoney(amount);
   }
   return 0;
 }
 
-static int Script_HideSellCursor(lua_State *__formal) {
+static int Script_HideSellCursor(lua_State *) {
   CURSORANIMATIONS mode = static_cast<CURSORANIMATIONS>(CursorGetCursorMode());
   if (mode == BUY_CURSOR || mode == BUY_ERROR_CURSOR) {
     CursorSetCursorMode(POINT_CURSOR);
@@ -3666,7 +3663,7 @@ static int Script_JoinChannelByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: JoinChannelByName(\"name\")");
   }
-  msg.Put(static_cast<unsigned int>(CMSG_JOIN_CHANNEL));
+  msg.Put(static_cast<UINT>(CMSG_JOIN_CHANNEL));
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3678,7 +3675,7 @@ static int Script_LeaveChannelByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: LeaveChannelByName(\"name\")");
   }
-  msg.Put(static_cast<unsigned int>(CMSG_LEAVE_CHANNEL));
+  msg.Put(static_cast<UINT>(CMSG_LEAVE_CHANNEL));
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3686,13 +3683,13 @@ static int Script_LeaveChannelByName(lua_State *L) {
 }
 
 static int Script_GuildInviteByName(lua_State *L) {
-  CDataStore  msg;
-  const char *name = lua_isstring(L, 1) ? lua_tostring(L, 1) : 0;
+  CDataStore msg;
+  LPCSTR     name = lua_isstring(L, 1) ? lua_tostring(L, 1) : 0;
   if (!name || !*name) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(278));
     return 0;
   }
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_INVITE));
+  msg.Put(static_cast<UINT>(CMSG_GUILD_INVITE));
   msg.PutString(name);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3704,7 +3701,7 @@ static int Script_GuildUninviteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildUninviteByName(\"name\")");
   }
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_REMOVE));
+  msg.Put(static_cast<UINT>(CMSG_GUILD_REMOVE));
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3716,7 +3713,7 @@ static int Script_GuildPromoteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildPromoteByName(\"name\")");
   }
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_PROMOTE));
+  msg.Put(static_cast<UINT>(CMSG_GUILD_PROMOTE));
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3728,7 +3725,7 @@ static int Script_GuildDemoteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildDemoteByName(\"name\")");
   }
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_DEMOTE));
+  msg.Put(static_cast<UINT>(CMSG_GUILD_DEMOTE));
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3740,8 +3737,8 @@ static int Script_GuildSetLeaderByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildSetLeaderByName(\"name\")");
   }
-  const char *name = lua_tostring(L, 1);
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_LEADER));
+  LPCSTR name = lua_tostring(L, 1);
+  msg.Put(static_cast<UINT>(CMSG_GUILD_LEADER));
   if (*name && SStrCmpI(name, "target", INT_MAX)) {
     msg.PutString(name);
   }
@@ -3755,8 +3752,8 @@ static int Script_GuildSetMOTD(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildSetMOTD(\"message\")");
   }
-  const char *message = lua_tostring(L, 1);
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_MOTD));
+  LPCSTR message = lua_tostring(L, 1);
+  msg.Put(static_cast<UINT>(CMSG_GUILD_MOTD));
   if (*message) {
     msg.PutString(message);
   }
@@ -3767,7 +3764,7 @@ static int Script_GuildSetMOTD(lua_State *L) {
 
 static int Script_GuildLeave(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_LEAVE));
+  msg.Put(static_cast<UINT>(CMSG_GUILD_LEAVE));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3775,7 +3772,7 @@ static int Script_GuildLeave(lua_State *L) {
 
 static int Script_GuildDisband(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_DISBAND));
+  msg.Put(static_cast<UINT>(CMSG_GUILD_DISBAND));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3783,7 +3780,7 @@ static int Script_GuildDisband(lua_State *L) {
 
 static int Script_GuildInfo(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_INFO));
+  msg.Put(static_cast<UINT>(CMSG_GUILD_INFO));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3791,7 +3788,7 @@ static int Script_GuildInfo(lua_State *L) {
 
 static int Script_GuildRoster(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_GUILD_ROSTER));
+  msg.Put(static_cast<UINT>(CMSG_GUILD_ROSTER));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3815,7 +3812,7 @@ static int Script_GetScreenHeight(lua_State *L) {
 
 static int Script_PVPPort(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_PVP_PORT));
+  msg.Put(static_cast<UINT>(CMSG_PVP_PORT));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3835,7 +3832,7 @@ static int Script_GetReleaseTimeRemaining(lua_State *L) {
 
 static int Script_GetBindZone(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_GETDEATHBINDZONE));
+  msg.Put(static_cast<UINT>(CMSG_GETDEATHBINDZONE));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3847,8 +3844,8 @@ static int Script_SplitMoney(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: SplitMoney(\"gold silver copper\")");
   }
-  const char *text = lua_tostring(L, 1);
-  int         count = 0;
+  LPCSTR text = lua_tostring(L, 1);
+  int    count = 0;
   while (*text && count < 3) {
     while (*text == ' ') {
       ++text;
@@ -3868,11 +3865,11 @@ static int Script_SplitMoney(lua_State *L) {
   for (i = 0; i < 3 - count; ++i) {
     coins[i] = 0;
   }
-  unsigned int money = CurrencyTotal(coins);
+  UINT money = CurrencyTotal(coins);
   if (!money) {
     luaL_error(L, "Usage: SplitMoney(\"gold silver copper\")");
   }
-  msg.Put(static_cast<unsigned int>(MSG_SPLIT_MONEY));
+  msg.Put(static_cast<UINT>(MSG_SPLIT_MONEY));
   msg.Put(money);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3916,9 +3913,9 @@ static int Script_GetCursorPosition(lua_State *L) {
 }
 
 static int Script_GetNetStats(lua_State *L) {
-  unsigned long latency;
-  float         out;
-  float         in;
+  DWORD latency;
+  float out;
+  float in;
   ClientServices_GetNetStats(in, out, latency);
   lua_pushnumber(L, in);
   lua_pushnumber(L, out);
@@ -3926,7 +3923,7 @@ static int Script_GetNetStats(lua_State *L) {
   return 3;
 }
 
-static int Script_SitOrStand(lua_State *__formal) {
+static int Script_SitOrStand(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->ChangeStandState(player->GetUnitData()->standState ? 0 : 1);
@@ -3934,14 +3931,14 @@ static int Script_SitOrStand(lua_State *__formal) {
   return 0;
 }
 
-static int Script_StopCinematic(lua_State *__formal) {
+static int Script_StopCinematic(lua_State *) {
   CGGameUI::StopCinematic(0);
   return 0;
 }
 
 static int Script_RunScript(lua_State *L) {
   if (lua_isstring(L, 1)) {
-    const char *script = lua_tostring(L, 1);
+    LPCSTR script = lua_tostring(L, 1);
     if (*script) {
       FrameScript_Execute(script, script);
     }
@@ -3950,9 +3947,7 @@ static int Script_RunScript(lua_State *L) {
 }
 
 static int Script_CheckInteractDistance(lua_State *L) {
-  static float s_interactDistances[3] = {
-      MAX_INSPECT_DISTANCE_SQUARED, MAX_TRADE_DISTANCE_SQUARED, MAX_DUEL_DISTANCE_SQUARED
-  };
+  static float s_interactDistances[3] = {MAX_INSPECT_DISTANCE_SQUARED, MAX_TRADE_DISTANCE_SQUARED, MAX_DUEL_DISTANCE_SQUARED};
 
   CGUnit_C *unit;
   if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
@@ -3960,8 +3955,8 @@ static int Script_CheckInteractDistance(lua_State *L) {
   }
   unit = Script_GetUnitFromName(lua_tostring(L, 1));
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned int index = static_cast<int>(lua_tonumber(L, 2)) - 1;
-  int          inRange = 0;
+  UINT        index = static_cast<int>(lua_tonumber(L, 2)) - 1;
+  int         inRange = 0;
   if (player && unit && index < 3) {
     NTempest::C3Vector unitPos;
     NTempest::C3Vector playerPos;
@@ -3979,7 +3974,7 @@ static int Script_CheckInteractDistance(lua_State *L) {
 }
 
 static int Script_GetScreenResolutions(lua_State *L) {
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     lua_pushstring(L, s_screenResolutions[i]);
   }
   return 4;
@@ -4004,7 +3999,7 @@ static int Script_SetScreenResolution(lua_State *L) {
   int index = 0;
   if (lua_isnumber(L, 1)) {
     int candidate = static_cast<int>(lua_tonumber(L, 1)) - 1;
-    index = static_cast<unsigned int>(candidate) <= 4 ? candidate : 4;
+    index = static_cast<UINT>(candidate) <= 4 ? candidate : 4;
   }
   CVar *cvar = CVar::Lookup("gxResolution");
   if (cvar && SStrCmp(cvar->GetString(), s_screenResolutions[index], INT_MAX)) {
@@ -4027,7 +4022,7 @@ static int Script_RandomRoll(lua_State *L) {
   int min = SStrToInt(lua_tostring(L, 1));
   int max = SStrToInt(lua_tostring(L, 2));
   if ((min || max) && min >= 0 && max >= min) {
-    msg.Put(static_cast<unsigned int>(MSG_RANDOM_ROLL));
+    msg.Put(static_cast<UINT>(MSG_RANDOM_ROLL));
     msg.Put(min);
     msg.Put(max);
     msg.Finalize();
@@ -4038,7 +4033,7 @@ static int Script_RandomRoll(lua_State *L) {
 
 static int Script_OpeningCinematic(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_OPENING_CINEMATIC));
+  msg.Put(static_cast<UINT>(CMSG_OPENING_CINEMATIC));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -4051,7 +4046,7 @@ static void LoadScriptFunctions() {
   CGCharacterModelBase::RegisterScriptMethods();
   CGTabardModelFrame::RegisterScriptMethods();
 
-  for (unsigned int i = 0; i < 126; ++i) {
+  for (UINT i = 0; i < 126; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 
@@ -4100,7 +4095,7 @@ static void UnloadScriptFunctions() {
   CGCharacterModelBase::UnregisterScriptMethods();
   CGTabardModelFrame::UnregisterScriptMethods();
 
-  for (unsigned int i = 0; i < 126; ++i) {
+  for (UINT i = 0; i < 126; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 
@@ -4138,11 +4133,11 @@ static void UnloadScriptFunctions() {
   PetitionInfoUnregisterScriptFunctions();
 }
 
-static int PlacedFrameCallback(CSimpleFrame *frame, void *param) {
+static int PlacedFrameCallback(CSimpleFrame *frame, LPVOID param) {
   char            line[128];
   NTempest::CRect toprect;
   NTempest::CRect rect;
-  unsigned long   count;
+  DWORD           count;
 
   if (!frame->GetName() || !frame->GetName()[0] || !frame->IsUserPlaced() || (!frame->IsMovable() && !frame->IsResizable())) {
     return 1;
@@ -4224,8 +4219,8 @@ static void PlaceFrame(CSimpleFrame *frame, int framelevel, int x, int y, int w,
 
 static void LoadPlacedFrames() {
   char          line[128];
-  void         *buffer;
-  const char   *readCursor;
+  LPVOID        buffer;
+  LPCSTR        readCursor;
   int           h = 0;
   CSimpleFrame *frame = 0;
   int           framelevel = -1;
@@ -4237,7 +4232,7 @@ static void LoadPlacedFrames() {
     return;
   }
 
-  readCursor = static_cast<const char *>(buffer);
+  readCursor = static_cast<LPCSTR>(buffer);
   do {
     SStrTokenize(&readCursor, line, sizeof(line), "\r\n", 0);
     if (!SStrCmp(line, "Frame: ", SStrLen("Frame: "))) {
@@ -4274,134 +4269,134 @@ void CGGameUI::ResetCamera() {
 }
 
 namespace {
-FrameScript_Method s_ScriptFunctions[126] = {
-    {          "FrameXML_Debug",           Script_FrameXML_Debug},
-    {                "ReloadUI",                 Script_ReloadUI},
-    {           "SetLayoutMode",            Script_SetLayoutMode},
-    {          "IsShiftKeyDown",           Script_IsShiftKeyDown},
-    {        "IsControlKeyDown",         Script_IsControlKeyDown},
-    {            "IsAltKeyDown",             Script_IsAltKeyDown},
-    {              "Screenshot",               Script_Screenshot},
-    {            "GetFramerate",             Script_GetFramerate},
-    {"TogglePerformanceDisplay", Script_TogglePerformanceDisplay},
-    { "TogglePerformanceValues",  Script_TogglePerformanceValues},
-    {  "ResetPerformanceValues",   Script_ResetPerformanceValues},
-    {           "GetDebugStats",            Script_GetDebugStats},
-    {                 "GetCVar",                  Script_GetCVar},
-    {                 "SetCVar",                  Script_SetCVar},
-    {          "GetWorldDetail",           Script_GetWorldDetail},
-    {          "SetWorldDetail",           Script_SetWorldDetail},
-    {          "GetWaterDetail",           Script_GetWaterDetail},
-    {          "SetWaterDetail",           Script_SetWaterDetail},
-    {              "GetFarclip",               Script_GetFarclip},
-    {              "SetFarclip",               Script_SetFarclip},
-    {           "GetTerrainMip",            Script_GetTerrainMip},
-    {           "SetTerrainMip",            Script_SetTerrainMip},
-    {           "GetDoodadAnim",            Script_GetDoodadAnim},
-    {           "SetDoodadAnim",            Script_SetDoodadAnim},
-    {           "GetTexLodBias",            Script_GetTexLodBias},
-    {           "SetTexLodBias",            Script_SetTexLodBias},
-    {                "GetGamma",                 Script_GetGamma},
-    {                "SetGamma",                 Script_SetGamma},
-    {              "ToggleTris",               Script_ToggleTris},
-    {           "TogglePortals",            Script_TogglePortals},
-    {         "ToggleCollision",          Script_ToggleCollision},
-    {  "ToggleCollisionDisplay",   Script_ToggleCollisionDisplay},
-    {      "TogglePlayerBounds",       Script_TogglePlayerBounds},
-    {                  "Logout",                   Script_Logout},
-    {                    "Quit",                     Script_Quit},
-    {          "ShowNameplates",           Script_ShowNameplates},
-    {          "HideNameplates",           Script_HideNameplates},
-    {               "SetCursor",                Script_SetCursor},
-    {           "CursorHasItem",            Script_CursorHasItem},
-    {          "CursorHasSpell",           Script_CursorHasSpell},
-    {          "CursorHasMoney",           Script_CursorHasMoney},
-    {         "EquipCursorItem",          Script_EquipCursorItem},
-    {        "DeleteCursorItem",         Script_DeleteCursorItem},
-    {        "EquipPendingItem",         Script_EquipPendingItem},
-    {      "CancelPendingEquip",       Script_CancelPendingEquip},
-    {              "TargetUnit",               Script_TargetUnit},
-    {          "TargetUnitsPet",           Script_TargetUnitsPet},
-    {      "TargetNearestEnemy",       Script_TargetNearestEnemy},
-    {         "TargetLastEnemy",          Script_TargetLastEnemy},
-    {            "AttackTarget",             Script_AttackTarget},
-    {              "AssistUnit",               Script_AssistUnit},
-    {            "AssistByName",             Script_AssistByName},
-    {              "FollowUnit",               Script_FollowUnit},
-    {            "FollowByName",             Script_FollowByName},
-    {             "ClearTarget",              Script_ClearTarget},
-    {     "AutoEquipCursorItem",      Script_AutoEquipCursorItem},
-    {            "ToggleSheath",             Script_ToggleSheath},
-    {               "ToggleRun",                Script_ToggleRun},
-    {                    "Jump",                     Script_Jump},
-    {             "GetZoneText",              Script_GetZoneText},
-    {          "GetSubZoneText",           Script_GetSubZoneText},
-    {      "GetMinimapZoneText",       Script_GetMinimapZoneText},
-    {           "InitiateTrade",            Script_InitiateTrade},
-    {           "NotifyInspect",            Script_NotifyInspect},
-    {           "InviteToParty",            Script_InviteToParty},
-    {            "InviteByName",             Script_InviteByName},
-    {       "UninviteFromParty",        Script_UninviteFromParty},
-    {          "UninviteByName",           Script_UninviteByName},
-    {    "PromoteToPartyLeader",     Script_PromoteToPartyLeader},
-    {           "PromoteByName",            Script_PromoteByName},
-    {       "RequestTimePlayed",        Script_RequestTimePlayed},
-    {                 "RepopMe",                  Script_RepopMe},
-    {         "AcceptResurrect",          Script_AcceptResurrect},
-    {        "DeclineResurrect",         Script_DeclineResurrect},
-    {              "BeginTrade",               Script_BeginTrade},
-    {             "CancelTrade",              Script_CancelTrade},
-    {             "AcceptGroup",              Script_AcceptGroup},
-    {            "DeclineGroup",             Script_DeclineGroup},
-    {             "AcceptGuild",              Script_AcceptGuild},
-    {            "DeclineGuild",             Script_DeclineGuild},
-    {            "CancelLogout",             Script_CancelLogout},
-    {             "ForceLogout",              Script_ForceLogout},
-    {               "ForceQuit",                Script_ForceQuit},
-    {               "ReportBug",                Script_ReportBug},
-    {        "ReportSuggestion",         Script_ReportSuggestion},
-    {              "ReportNote",               Script_ReportNote},
-    {          "GetCursorMoney",           Script_GetCursorMoney},
-    {         "DropCursorMoney",          Script_DropCursorMoney},
-    {       "PickupPlayerMoney",        Script_PickupPlayerMoney},
-    {          "HideSellCursor",           Script_HideSellCursor},
-    {            "HasSoulstone",             Script_HasSoulstone},
-    {            "UseSoulstone",             Script_UseSoulstone},
-    {       "JoinChannelByName",        Script_JoinChannelByName},
-    {      "LeaveChannelByName",       Script_LeaveChannelByName},
-    {       "GuildInviteByName",        Script_GuildInviteByName},
-    {     "GuildUninviteByName",      Script_GuildUninviteByName},
-    {      "GuildPromoteByName",       Script_GuildPromoteByName},
-    {       "GuildDemoteByName",        Script_GuildDemoteByName},
-    {    "GuildSetLeaderByName",     Script_GuildSetLeaderByName},
-    {            "GuildSetMOTD",             Script_GuildSetMOTD},
-    {              "GuildLeave",               Script_GuildLeave},
-    {            "GuildDisband",             Script_GuildDisband},
-    {               "GuildInfo",                Script_GuildInfo},
-    {             "GuildRoster",              Script_GuildRoster},
-    {          "GetScreenWidth",           Script_GetScreenWidth},
-    {         "GetScreenHeight",          Script_GetScreenHeight},
-    {                 "PVPPort",                  Script_PVPPort},
-    {      "GetDamageBonusStat",       Script_GetDamageBonusStat},
-    { "GetReleaseTimeRemaining",  Script_GetReleaseTimeRemaining},
-    {             "GetBindZone",              Script_GetBindZone},
-    {              "SplitMoney",               Script_SplitMoney},
-    {                 "GetDate",                  Script_GetDate},
-    {         "GetBuildVersion",          Script_GetBuildVersion},
-    {      "GetCurrentPosition",       Script_GetCurrentPosition},
-    {       "GetCursorPosition",        Script_GetCursorPosition},
-    {             "GetNetStats",              Script_GetNetStats},
-    {              "SitOrStand",               Script_SitOrStand},
-    {           "StopCinematic",            Script_StopCinematic},
-    {               "RunScript",                Script_RunScript},
-    {   "CheckInteractDistance",    Script_CheckInteractDistance},
-    {    "GetScreenResolutions",     Script_GetScreenResolutions},
-    {    "GetCurrentResolution",     Script_GetCurrentResolution},
-    {     "SetScreenResolution",      Script_SetScreenResolution},
-    {                   "Stuck",                    Script_Stuck},
-    {              "RandomRoll",               Script_RandomRoll},
-    {        "OpeningCinematic",         Script_OpeningCinematic}
-};
+  FrameScript_Method s_ScriptFunctions[126] = {
+      {          "FrameXML_Debug",           Script_FrameXML_Debug},
+      {                "ReloadUI",                 Script_ReloadUI},
+      {           "SetLayoutMode",            Script_SetLayoutMode},
+      {          "IsShiftKeyDown",           Script_IsShiftKeyDown},
+      {        "IsControlKeyDown",         Script_IsControlKeyDown},
+      {            "IsAltKeyDown",             Script_IsAltKeyDown},
+      {              "Screenshot",               Script_Screenshot},
+      {            "GetFramerate",             Script_GetFramerate},
+      {"TogglePerformanceDisplay", Script_TogglePerformanceDisplay},
+      { "TogglePerformanceValues",  Script_TogglePerformanceValues},
+      {  "ResetPerformanceValues",   Script_ResetPerformanceValues},
+      {           "GetDebugStats",            Script_GetDebugStats},
+      {                 "GetCVar",                  Script_GetCVar},
+      {                 "SetCVar",                  Script_SetCVar},
+      {          "GetWorldDetail",           Script_GetWorldDetail},
+      {          "SetWorldDetail",           Script_SetWorldDetail},
+      {          "GetWaterDetail",           Script_GetWaterDetail},
+      {          "SetWaterDetail",           Script_SetWaterDetail},
+      {              "GetFarclip",               Script_GetFarclip},
+      {              "SetFarclip",               Script_SetFarclip},
+      {           "GetTerrainMip",            Script_GetTerrainMip},
+      {           "SetTerrainMip",            Script_SetTerrainMip},
+      {           "GetDoodadAnim",            Script_GetDoodadAnim},
+      {           "SetDoodadAnim",            Script_SetDoodadAnim},
+      {           "GetTexLodBias",            Script_GetTexLodBias},
+      {           "SetTexLodBias",            Script_SetTexLodBias},
+      {                "GetGamma",                 Script_GetGamma},
+      {                "SetGamma",                 Script_SetGamma},
+      {              "ToggleTris",               Script_ToggleTris},
+      {           "TogglePortals",            Script_TogglePortals},
+      {         "ToggleCollision",          Script_ToggleCollision},
+      {  "ToggleCollisionDisplay",   Script_ToggleCollisionDisplay},
+      {      "TogglePlayerBounds",       Script_TogglePlayerBounds},
+      {                  "Logout",                   Script_Logout},
+      {                    "Quit",                     Script_Quit},
+      {          "ShowNameplates",           Script_ShowNameplates},
+      {          "HideNameplates",           Script_HideNameplates},
+      {               "SetCursor",                Script_SetCursor},
+      {           "CursorHasItem",            Script_CursorHasItem},
+      {          "CursorHasSpell",           Script_CursorHasSpell},
+      {          "CursorHasMoney",           Script_CursorHasMoney},
+      {         "EquipCursorItem",          Script_EquipCursorItem},
+      {        "DeleteCursorItem",         Script_DeleteCursorItem},
+      {        "EquipPendingItem",         Script_EquipPendingItem},
+      {      "CancelPendingEquip",       Script_CancelPendingEquip},
+      {              "TargetUnit",               Script_TargetUnit},
+      {          "TargetUnitsPet",           Script_TargetUnitsPet},
+      {      "TargetNearestEnemy",       Script_TargetNearestEnemy},
+      {         "TargetLastEnemy",          Script_TargetLastEnemy},
+      {            "AttackTarget",             Script_AttackTarget},
+      {              "AssistUnit",               Script_AssistUnit},
+      {            "AssistByName",             Script_AssistByName},
+      {              "FollowUnit",               Script_FollowUnit},
+      {            "FollowByName",             Script_FollowByName},
+      {             "ClearTarget",              Script_ClearTarget},
+      {     "AutoEquipCursorItem",      Script_AutoEquipCursorItem},
+      {            "ToggleSheath",             Script_ToggleSheath},
+      {               "ToggleRun",                Script_ToggleRun},
+      {                    "Jump",                     Script_Jump},
+      {             "GetZoneText",              Script_GetZoneText},
+      {          "GetSubZoneText",           Script_GetSubZoneText},
+      {      "GetMinimapZoneText",       Script_GetMinimapZoneText},
+      {           "InitiateTrade",            Script_InitiateTrade},
+      {           "NotifyInspect",            Script_NotifyInspect},
+      {           "InviteToParty",            Script_InviteToParty},
+      {            "InviteByName",             Script_InviteByName},
+      {       "UninviteFromParty",        Script_UninviteFromParty},
+      {          "UninviteByName",           Script_UninviteByName},
+      {    "PromoteToPartyLeader",     Script_PromoteToPartyLeader},
+      {           "PromoteByName",            Script_PromoteByName},
+      {       "RequestTimePlayed",        Script_RequestTimePlayed},
+      {                 "RepopMe",                  Script_RepopMe},
+      {         "AcceptResurrect",          Script_AcceptResurrect},
+      {        "DeclineResurrect",         Script_DeclineResurrect},
+      {              "BeginTrade",               Script_BeginTrade},
+      {             "CancelTrade",              Script_CancelTrade},
+      {             "AcceptGroup",              Script_AcceptGroup},
+      {            "DeclineGroup",             Script_DeclineGroup},
+      {             "AcceptGuild",              Script_AcceptGuild},
+      {            "DeclineGuild",             Script_DeclineGuild},
+      {            "CancelLogout",             Script_CancelLogout},
+      {             "ForceLogout",              Script_ForceLogout},
+      {               "ForceQuit",                Script_ForceQuit},
+      {               "ReportBug",                Script_ReportBug},
+      {        "ReportSuggestion",         Script_ReportSuggestion},
+      {              "ReportNote",               Script_ReportNote},
+      {          "GetCursorMoney",           Script_GetCursorMoney},
+      {         "DropCursorMoney",          Script_DropCursorMoney},
+      {       "PickupPlayerMoney",        Script_PickupPlayerMoney},
+      {          "HideSellCursor",           Script_HideSellCursor},
+      {            "HasSoulstone",             Script_HasSoulstone},
+      {            "UseSoulstone",             Script_UseSoulstone},
+      {       "JoinChannelByName",        Script_JoinChannelByName},
+      {      "LeaveChannelByName",       Script_LeaveChannelByName},
+      {       "GuildInviteByName",        Script_GuildInviteByName},
+      {     "GuildUninviteByName",      Script_GuildUninviteByName},
+      {      "GuildPromoteByName",       Script_GuildPromoteByName},
+      {       "GuildDemoteByName",        Script_GuildDemoteByName},
+      {    "GuildSetLeaderByName",     Script_GuildSetLeaderByName},
+      {            "GuildSetMOTD",             Script_GuildSetMOTD},
+      {              "GuildLeave",               Script_GuildLeave},
+      {            "GuildDisband",             Script_GuildDisband},
+      {               "GuildInfo",                Script_GuildInfo},
+      {             "GuildRoster",              Script_GuildRoster},
+      {          "GetScreenWidth",           Script_GetScreenWidth},
+      {         "GetScreenHeight",          Script_GetScreenHeight},
+      {                 "PVPPort",                  Script_PVPPort},
+      {      "GetDamageBonusStat",       Script_GetDamageBonusStat},
+      { "GetReleaseTimeRemaining",  Script_GetReleaseTimeRemaining},
+      {             "GetBindZone",              Script_GetBindZone},
+      {              "SplitMoney",               Script_SplitMoney},
+      {                 "GetDate",                  Script_GetDate},
+      {         "GetBuildVersion",          Script_GetBuildVersion},
+      {      "GetCurrentPosition",       Script_GetCurrentPosition},
+      {       "GetCursorPosition",        Script_GetCursorPosition},
+      {             "GetNetStats",              Script_GetNetStats},
+      {              "SitOrStand",               Script_SitOrStand},
+      {           "StopCinematic",            Script_StopCinematic},
+      {               "RunScript",                Script_RunScript},
+      {   "CheckInteractDistance",    Script_CheckInteractDistance},
+      {    "GetScreenResolutions",     Script_GetScreenResolutions},
+      {    "GetCurrentResolution",     Script_GetCurrentResolution},
+      {     "SetScreenResolution",      Script_SetScreenResolution},
+      {                   "Stuck",                    Script_Stuck},
+      {              "RandomRoll",               Script_RandomRoll},
+      {        "OpeningCinematic",         Script_OpeningCinematic}
+  };
 }
 
 void CGGameUI::StartCinematic(int cinematicID) {
@@ -4427,7 +4422,7 @@ void CGGameUI::BeginCinematic() {
   EnableFadingScreen(CinematicFadeTime, BeginCinematicInternal, 0);
 }
 
-void CGGameUI::BeginCinematicInternal(void *) {
+void CGGameUI::BeginCinematicInternal(LPVOID) {
   DisableLoadingScreen();
   FrameScript_SignalEvent(353);
   if (!StartCinematicCamera()) {
@@ -4435,9 +4430,7 @@ void CGGameUI::BeginCinematicInternal(void *) {
   }
 }
 
-static unsigned char GetCinematicStartingCameraPosition(
-    const char *modelFile, NTempest::C3Vector &origin, float facing, NTempest::C3Vector &position
-) {
+static BYTE GetCinematicStartingCameraPosition(LPCSTR modelFile, NTempest::C3Vector &origin, float facing, NTempest::C3Vector &position) {
   CStatus status;
   HMODEL  model = ModelCreate(modelFile, 0, &status);
   if (!model) {
@@ -4468,12 +4461,13 @@ int CGGameUI::StartCinematicCamera() {
     return 0;
   }
 
-  const char         *cameraModel = cinematicCamera->m_model;
-  float               cameraFacing = cinematicCamera->m_originFacing;
+  LPCSTR             cameraModel = cinematicCamera->m_model;
+  float              cameraFacing = cinematicCamera->m_originFacing;
   NTempest::C3Vector cameraOrigin(cinematicCamera->m_originX, cinematicCamera->m_originY, cinematicCamera->m_originZ);
   NTempest::C3Vector initialPosition(0.0f);
   if (GetCinematicStartingCameraPosition(cameraModel, cameraOrigin, cameraFacing, initialPosition) &&
-      (camera->Position() - initialPosition).SquaredMag() > MAX_CAMERA_SHIFT * MAX_CAMERA_SHIFT) {
+      (camera->Position() - initialPosition).SquaredMag() > MAX_CAMERA_SHIFT * MAX_CAMERA_SHIFT)
+  {
     CWorld::Preload(initialPosition);
   }
 
@@ -4492,19 +4486,18 @@ int CGGameUI::StartCinematicCamera() {
   return 1;
 }
 
-int CGGameUI::NextCinematic(void *) {
+int CGGameUI::NextCinematic(LPVOID) {
   EnableFadingScreen(CinematicFadeTime, NextCinematicInternal, 0);
   return 1;
 }
 
-void CGGameUI::NextCinematicInternal(void *) {
+void CGGameUI::NextCinematicInternal(LPVOID) {
   m_cinematic.camera = 0;
   Sound::KillSound(m_cinematic.cameraMusic);
 
-  if (m_cinematic.sequence && ++m_cinematic.currentCamera < 8 &&
-      m_cinematic.sequence->m_camera[m_cinematic.currentCamera]) {
+  if (m_cinematic.sequence && ++m_cinematic.currentCamera < 8 && m_cinematic.sequence->m_camera[m_cinematic.currentCamera]) {
     CDataStore msg;
-    msg.Put(static_cast<unsigned int>(CMSG_NEXT_CINEMATIC_CAMERA));
+    msg.Put(static_cast<UINT>(CMSG_NEXT_CINEMATIC_CAMERA));
     msg.Finalize();
     ClientServices_Send(&msg);
     m_cinematic.camera = g_cinematicCameraDB.GetRecord(m_cinematic.sequence->m_camera[m_cinematic.currentCamera]);
@@ -4515,13 +4508,13 @@ void CGGameUI::NextCinematicInternal(void *) {
   }
 }
 
-int CGGameUI::StopCinematic(void *__formal) {
+int CGGameUI::StopCinematic(LPVOID) {
   Sound::KillSound(m_cinematic.sequenceMusic);
   EnableFadingScreen(CinematicFadeTime, StopCinematicInternal, 0);
   return 1;
 }
 
-void CGGameUI::StopCinematicInternal(void *) {
+void CGGameUI::StopCinematicInternal(LPVOID) {
   CGCamera *camera = CGWorldFrame::GetActiveCamera();
   FATALASSERT(camera);
 
@@ -4541,7 +4534,7 @@ void CGGameUI::StopCinematicInternal(void *) {
   }
 
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_COMPLETE_CINEMATIC));
+  msg.Put(static_cast<UINT>(CMSG_COMPLETE_CINEMATIC));
   msg.Finalize();
   ClientServices_Send(&msg);
   ShowCursor();
@@ -4554,13 +4547,13 @@ void CGGameUI::CloseLoot(bool send, bool moving) {
     playerPtr->m_lootingUnit = 0;
   }
 
-  unsigned __int64 object = CGLootInfo::m_object;
+  DWORDLONG object = CGLootInfo::m_object;
   if (object) {
     CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
     if (!moving || !objectPtr || !(objectPtr->GetType() & TYPE_ITEM)) {
       if (send) {
         CDataStore lootRelease;
-        lootRelease.Put(static_cast<unsigned int>(CMSG_LOOT_RELEASE));
+        lootRelease.Put(static_cast<UINT>(CMSG_LOOT_RELEASE));
         lootRelease.Put(object);
         lootRelease.Finalize();
         ClientServices_Send(&lootRelease);
@@ -4578,7 +4571,7 @@ void CGGameUI::CloseLoot(bool send, bool moving) {
   }
 }
 
-void CGGameUI::ClearLootSlot(unsigned char slot) {
+void CGGameUI::ClearLootSlot(BYTE slot) {
   CGLootInfo::ClearSlot(slot);
 }
 
@@ -4589,11 +4582,11 @@ void CGGameUI::OpenLoot(CGObject_C *object, int coins, LOOT_ACQUIRE lootType) {
   CGLootInfo::SetObject(object, coins, lootType);
 }
 
-void CGGameUI::OpenResurrectRequest(const char *inviter) {
+void CGGameUI::OpenResurrectRequest(LPCSTR inviter) {
   FrameScript_SignalEvent(261, "%s", inviter);
 }
 
-void CGGameUI::OpenPartyInvite(const char *inviter) {
+void CGGameUI::OpenPartyInvite(LPCSTR inviter) {
   FrameScript_SignalEvent(262, "%s", inviter);
 }
 
@@ -4601,7 +4594,7 @@ void CGGameUI::CancelPartyInvite() {
   FrameScript_SignalEvent(263);
 }
 
-void CGGameUI::OpenGuildInvite(const char *inviter, const char *guildName) {
+void CGGameUI::OpenGuildInvite(LPCSTR inviter, LPCSTR guildName) {
   FrameScript_SignalEvent(264, "%s%s", inviter, guildName);
 }
 
@@ -4609,7 +4602,7 @@ void CGGameUI::CancelGuildInvite() {
   FrameScript_SignalEvent(265);
 }
 
-void CGGameUI::SysMsgDisplay(const char *msg, SYSMSG_TYPE severity) {
+void CGGameUI::SysMsgDisplay(LPCSTR msg, SYSMSG_TYPE severity) {
   char  string[512];
   float b;
   float r;
@@ -4848,23 +4841,23 @@ void CGGameUI::Reload() {
   m_reloadUI = true;
 }
 
-int CGGameUI::IsPartyMember(const unsigned __int64 &guid) {
+int CGGameUI::IsPartyMember(const DWORDLONG &guid) {
   return CGPartyInfo::IsMember(guid);
 }
 
-void CGGameUI::EnablePartyMember(unsigned __int64 guid, int enable) {
+void CGGameUI::EnablePartyMember(DWORDLONG guid, int enable) {
   CGPartyInfo::EnableMember(guid, enable);
 }
 
-unsigned __int64 CGGameUI::GetPartyMember(unsigned int index) {
+DWORDLONG CGGameUI::GetPartyMember(UINT index) {
   return CGPartyInfo::GetMember(index);
 }
 
-void CGGameUI::SetPartyLeader(unsigned __int64 guid) {
+void CGGameUI::SetPartyLeader(DWORDLONG guid) {
   CGPartyInfo::SetLeader(guid);
 }
 
-void CGGameUI::AddPartyMember(unsigned __int64 guid, int connected) {
+void CGGameUI::AddPartyMember(DWORDLONG guid, int connected) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
     unit->RegisterScript();
@@ -4873,7 +4866,7 @@ void CGGameUI::AddPartyMember(unsigned __int64 guid, int connected) {
 }
 
 void CGGameUI::RemoveAllPartyMembers() {
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGPartyInfo::GetMember(i), __FILE__, __LINE__));
     if (unit) {
       unit->UnregisterScript();
@@ -4882,11 +4875,11 @@ void CGGameUI::RemoveAllPartyMembers() {
   CGPartyInfo::RemoveAll();
 }
 
-void CGGameUI::SetLootMethod(LOOT_METHOD method, unsigned __int64 master) {
+void CGGameUI::SetLootMethod(LOOT_METHOD method, DWORDLONG master) {
   CGPartyInfo::SetLootMethod(method, master);
 }
 
-void CGGameUI::UnitNameUpdate(const unsigned __int64 &guid) {
+void CGGameUI::UnitNameUpdate(const DWORDLONG &guid) {
   if (m_gameTooltip && m_gameTooltip->GetUnit() == guid) {
     m_gameTooltip->SetUnit(0);
     m_gameTooltip->SetUnit(guid);
@@ -4899,11 +4892,11 @@ void CGGameUI::UnitNameUpdate(const unsigned __int64 &guid) {
   Script_SendUnitSignal(guid, 180);
 }
 
-void CGGameUI::UnitPortraitUpdate(const unsigned __int64 &guid) {
+void CGGameUI::UnitPortraitUpdate(const DWORDLONG &guid) {
   UpdatePortraitTexture(guid);
 }
 
-void ItemPushItemStatsCallback(int id, const unsigned __int64 &, void *arg, bool granted) {
+void ItemPushItemStatsCallback(int id, const DWORDLONG &, LPVOID arg, bool granted) {
   if (granted) {
     ItemPushInfo *info = static_cast<ItemPushInfo *>(arg);
     FATALASSERT(info);
@@ -4912,7 +4905,7 @@ void ItemPushItemStatsCallback(int id, const unsigned __int64 &, void *arg, bool
   }
 }
 
-void CGGameUI::OnItemPush(unsigned __int64 player, int slot, int itemID, int pushed, int display) {
+void CGGameUI::OnItemPush(DWORDLONG player, int slot, int itemID, int pushed, int display) {
   const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, 0, 0, 0);
   if (!stats) {
     ItemPushInfo *info = NEW(ItemPushInfo);
@@ -4925,10 +4918,10 @@ void CGGameUI::OnItemPush(unsigned __int64 player, int slot, int itemID, int pus
     return;
   }
 
-  const char *colorString = stats->m_overallQualityID < 3 ? "" : CGTooltip::GetItemQualityColorString(stats->m_overallQualityID);
-  const char *colorEnd = *colorString ? "|r" : "";
-  const char *temp;
-  char        buffer[260];
+  LPCSTR colorString = stats->m_overallQualityID < 3 ? "" : CGTooltip::GetItemQualityColorString(stats->m_overallQualityID);
+  LPCSTR colorEnd = *colorString ? "|r" : "";
+  LPCSTR temp;
+  char   buffer[260];
 
   if (player == ClntObjMgrGetActivePlayer()) {
     temp = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
@@ -4937,14 +4930,14 @@ void CGGameUI::OnItemPush(unsigned __int64 player, int slot, int itemID, int pus
     FrameScript_SignalEvent(249, "%d%s", slot == 255 ? 0 : slot + 1, buffer);
 
     if (display) {
-      const char *format = FrameScript_GetText(pushed ? "LOOT_ITEM_PUSHED_SELF" : "LOOT_ITEM_SELF", -1, GENDER_NOT_APPLICABLE);
+      LPCSTR format = FrameScript_GetText(pushed ? "LOOT_ITEM_PUSHED_SELF" : "LOOT_ITEM_SELF", -1, GENDER_NOT_APPLICABLE);
       SStrPrintf(buffer, sizeof(buffer), format, colorString, itemID, stats->m_displayName[0], colorEnd);
       CGChat::AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(24), 0, 0, 0, 0, 0);
     }
   } else if (!pushed && display) {
     CGObject_C *object = ClntObjMgrObjectPtr(player, __FILE__, __LINE__);
     if (object) {
-      const char *format = FrameScript_GetText("LOOT_ITEM", -1, GENDER_NOT_APPLICABLE);
+      LPCSTR format = FrameScript_GetText("LOOT_ITEM", -1, GENDER_NOT_APPLICABLE);
       SStrPrintf(
           buffer, sizeof(buffer), format, static_cast<CGUnit_C *>(object)->GetUnitName(), colorString, itemID, stats->m_displayName[0], colorEnd
       );
@@ -4965,7 +4958,7 @@ int CGGameUI::OnTerrainClick(const CTerrainClickEvent &evt) {
   return player->OnTerrainClick(evt);
 }
 
-unsigned __int64 CGGameUI::GetCursorItem() {
+DWORDLONG CGGameUI::GetCursorItem() {
   if (m_cursorItemType == UICURSOR_ITEM) {
     return m_cursorItem;
   }
@@ -4973,13 +4966,13 @@ unsigned __int64 CGGameUI::GetCursorItem() {
   return 0;
 }
 
-void CGGameUI::GetCursorItem(unsigned __int64 &cursorItem, unsigned __int64 &containerGUID, unsigned int &slot) {
+void CGGameUI::GetCursorItem(DWORDLONG &cursorItem, DWORDLONG &containerGUID, UINT &slot) {
   cursorItem = m_cursorItem;
   containerGUID = m_cursorItemContainer;
   slot = m_cursorItemSlot;
 }
 
-int CGGameUI::OnSpriteLeftClick(unsigned __int64 object, float x, float y) {
+int CGGameUI::OnSpriteLeftClick(DWORDLONG object, float x, float y) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -5006,7 +4999,7 @@ int CGGameUI::OnSpriteLeftClick(unsigned __int64 object, float x, float y) {
   return 1;
 }
 
-int CGGameUI::OnSpriteRightClick(unsigned __int64 object, float x, float y) {
+int CGGameUI::OnSpriteRightClick(DWORDLONG object, float x, float y) {
   if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     return 1;
   }
@@ -5038,13 +5031,13 @@ void CGGameUI::OnTargetContextAction() {
   OnSpriteRightClick(m_lockedTarget, position.x, position.y);
 }
 
-void CGGameUI::HandleObjectTrackChange(unsigned __int64 object, unsigned __int64 oldGUID, float x, float y) {
+void CGGameUI::HandleObjectTrackChange(DWORDLONG object, DWORDLONG oldGUID, float x, float y) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return;
   }
 
-  unsigned __int64 untrack = oldGUID ? oldGUID : m_currentObjectTrack;
+  DWORDLONG untrack = oldGUID ? oldGUID : m_currentObjectTrack;
   if (untrack) {
     player->SetLocalTarget(0);
     m_currentObjectTrack = 0;
@@ -5181,7 +5174,7 @@ void CGGameUI::HandleScreenshot(int success) {
   FrameScript_SignalEvent(success ? 199 : 200);
 }
 
-void CGGameUI::SetInteractTarget(const unsigned __int64 &target, float maxDist) {
+void CGGameUI::SetInteractTarget(const DWORDLONG &target, float maxDist) {
   if (m_interactTarget != target) {
     if (m_interactTarget) {
       ClearInteractTarget(m_interactTarget);
@@ -5203,7 +5196,7 @@ void CGGameUI::SetInteractTarget(const unsigned __int64 &target, float maxDist) 
   }
 }
 
-void CGGameUI::ClearInteractTarget(const unsigned __int64 &target) {
+void CGGameUI::ClearInteractTarget(const DWORDLONG &target) {
   if (m_interactTarget && m_interactTarget == target) {
     CloseInteraction();
   }
@@ -5225,7 +5218,7 @@ void CGGameUI::UpdateInteractTarget() {
 
 struct ClosestObjectMatchData {
   OBJECT_TYPE type;
-  const char *match;
+  LPCSTR      match;
   CGUnit_C   *source;
   CGObject_C *object;
   int         best_match;
@@ -5233,7 +5226,7 @@ struct ClosestObjectMatchData {
 };
 
 void CGGameUI::CloseInteraction() {
-  unsigned __int64 target = m_interactTarget;
+  DWORDLONG target = m_interactTarget;
   if (target) {
     m_interactTarget = 0;
     if (target == CGQuestInfo::GetQuestGiver()) {
@@ -5268,7 +5261,7 @@ void CGGameUI::CloseInteraction() {
   }
 }
 
-void CGGameUI::Target(const unsigned __int64 &target, int usingNearest) {
+void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
   if (!usingNearest) {
     s_nearestListTime = 0;
   }
@@ -5291,7 +5284,7 @@ void CGGameUI::Target(const unsigned __int64 &target, int usingNearest) {
   ClearTarget(m_lockedTarget, 0);
 
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_SET_SELECTION));
+  msg.Put(static_cast<UINT>(CMSG_SET_SELECTION));
   msg.Put(target);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -5346,7 +5339,7 @@ void CGGameUI::Target(const unsigned __int64 &target, int usingNearest) {
   }
 }
 
-void CGGameUI::ClearTarget(unsigned __int64 guid, int sendTarget) {
+void CGGameUI::ClearTarget(DWORDLONG guid, int sendTarget) {
   if (!m_lockedTarget || (guid && guid != m_lockedTarget)) {
     return;
   }
@@ -5382,7 +5375,7 @@ void CGGameUI::ClearTarget(unsigned __int64 guid, int sendTarget) {
 
   if (sendTarget) {
     CDataStore msg;
-    msg.Put(static_cast<unsigned int>(CMSG_SET_SELECTION));
+    msg.Put(static_cast<UINT>(CMSG_SET_SELECTION));
     msg.Put(m_lockedTarget);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -5391,14 +5384,14 @@ void CGGameUI::ClearTarget(unsigned __int64 guid, int sendTarget) {
   FrameScript_SignalEvent(191);
 }
 
-static int ClosestObjectMatchProc(unsigned __int64 guid, void *param) {
+static int ClosestObjectMatchProc(DWORDLONG guid, LPVOID param) {
   ClosestObjectMatchData *data = static_cast<ClosestObjectMatchData *>(param);
   CGObject_C             *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (!object || !(object->GetType() & data->type)) {
     return 1;
   }
 
-  const char *name = 0;
+  LPCSTR name = 0;
   if (object->GetType() & TYPE_UNIT) {
     name = static_cast<CGUnit_C *>(object)->GetUnitName();
   }
@@ -5406,7 +5399,7 @@ static int ClosestObjectMatchProc(unsigned __int64 guid, void *param) {
     return 1;
   }
 
-  const char *match = data->match;
+  LPCSTR match = data->match;
   while (*match && *name && toupper(*match) == toupper(*name)) {
     ++match;
     ++name;
@@ -5427,7 +5420,7 @@ static int ClosestObjectMatchProc(unsigned __int64 guid, void *param) {
   return 1;
 }
 
-unsigned __int64 CGGameUI::ClosestObjectMatch(const char *match, OBJECT_TYPE type) {
+DWORDLONG CGGameUI::ClosestObjectMatch(LPCSTR match, OBJECT_TYPE type) {
   CGUnit_C *source = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!source) {
     return 0;
@@ -5444,12 +5437,11 @@ unsigned __int64 CGGameUI::ClosestObjectMatch(const char *match, OBJECT_TYPE typ
   return data.object ? data.object->GetGUID() : 0;
 }
 
-void CGGameUI::AssistByName(const char *name) {
-  CGUnit_C *unit = static_cast<CGUnit_C *>(
-      ClntObjMgrObjectPtr(name && *name ? ClosestObjectMatch(name, TYPE_UNIT) : m_lockedTarget, __FILE__, __LINE__)
-  );
+void CGGameUI::AssistByName(LPCSTR name) {
+  CGUnit_C *unit =
+      static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(name && *name ? ClosestObjectMatch(name, TYPE_UNIT) : m_lockedTarget, __FILE__, __LINE__));
   if (unit) {
-    unsigned __int64 newTarget;
+    DWORDLONG newTarget;
     if (unit->GetType() & TYPE_PLAYER) {
       newTarget = static_cast<CGPlayer_C *>(unit)->GetLocalTarget();
     } else {
@@ -5471,10 +5463,10 @@ void CGGameUI::AssistByName(const char *name) {
   }
 }
 
-void CGGameUI::FollowByName(const char *name) {
-  unsigned __int64 target = name && *name ? ClosestObjectMatch(name, TYPE_UNIT) : m_lockedTarget;
-  CGUnit_C        *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
-  CGUnit_C        *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+void CGGameUI::FollowByName(LPCSTR name) {
+  DWORDLONG target = name && *name ? ClosestObjectMatch(name, TYPE_UNIT) : m_lockedTarget;
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!unit) {
     DisplayError(static_cast<GAME_ERROR_TYPE>(name && *name ? 268 : 168));
   } else if (player && (unit->GetType() & TYPE_PLAYER) && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
@@ -5484,7 +5476,7 @@ void CGGameUI::FollowByName(const char *name) {
   }
 }
 
-static int TargetUpdateProc(unsigned __int64 guid, void *__formal) {
+static int TargetUpdateProc(DWORDLONG guid, LPVOID) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!unit || !(unit->GetType() & TYPE_UNIT)) {
     return 1;
@@ -5505,7 +5497,7 @@ static int TargetUpdateProc(unsigned __int64 guid, void *__formal) {
   return 1;
 }
 
-static int __cdecl QSortCompareNearestEnemy(const void *a, const void *b) {
+static int __cdecl QSortCompareNearestEnemy(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   const NearestEnemyData *left = static_cast<const NearestEnemyData *>(a);
@@ -5517,7 +5509,7 @@ static int __cdecl QSortCompareNearestEnemy(const void *a, const void *b) {
 }
 
 void CGGameUI::TargetNearestEnemy(int reverse) {
-  unsigned int now = OsGetAsyncTimeMs();
+  UINT now = OsGetAsyncTimeMs();
   if (!s_nearestListTime || !s_sameTargetTime || s_sameTargetTime + 3000 <= now || !s_nearestList.Count()) {
     s_nearestList.SetCount(0);
     s_nearestIndex = 0;
@@ -5549,7 +5541,7 @@ void CGGameUI::TargetNearestEnemy(int reverse) {
   }
 
   s_sameTargetTime = OsGetAsyncTimeMs();
-  unsigned int index = s_nearestIndex;
+  UINT index = s_nearestIndex;
   for (;;) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_nearestList[index].guid, __FILE__, __LINE__));
     if (unit && unit->GetUnitData()->health > 0) {
@@ -5608,7 +5600,7 @@ int CGGameUI::HandleMouseUp(const CMouseEvent &evt) {
   return 0;
 }
 
-void CGGameUI::NamePlateClicked(unsigned __int64 unit, MOUSEBUTTON button) {
+void CGGameUI::NamePlateClicked(DWORDLONG unit, MOUSEBUTTON button) {
   FATALASSERT(unit);
 
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
@@ -5620,13 +5612,13 @@ void CGGameUI::NamePlateClicked(unsigned __int64 unit, MOUSEBUTTON button) {
   }
 }
 
-void CGGameUI::AddErrorMessage(const char *string, int error) {
+void CGGameUI::AddErrorMessage(LPCSTR string, int error) {
   if (string && *string) {
     FrameScript_SignalEvent(error ? 215 : 216, "%s", string);
   }
 }
 
-unsigned int CGGameUI::GetCursorVirtualItem() {
+UINT CGGameUI::GetCursorVirtualItem() {
   return m_cursorVirtualID;
 }
 
@@ -5636,12 +5628,12 @@ void CGGameUI::UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object) {
   }
 }
 
-void CGGameUI::GetCursorVirtualItem(unsigned int &cursorItem, unsigned int &slot) {
+void CGGameUI::GetCursorVirtualItem(UINT &cursorItem, UINT &slot) {
   cursorItem = m_cursorVirtualID;
   slot = m_cursorVirtualSlot;
 }
 
-void CGGameUI::ShowHealingFeedback(const unsigned __int64 &guid, int amount) {
+void CGGameUI::ShowHealingFeedback(const DWORDLONG &guid, int amount) {
   int    numnames;
   char **names = Script_GetNamesFromGUID(guid, numnames);
   for (int index = 0; index < numnames; ++index) {
@@ -5649,8 +5641,8 @@ void CGGameUI::ShowHealingFeedback(const unsigned __int64 &guid, int amount) {
   }
 }
 
-void CGGameUI::ShowSpellMissFeedback(unsigned __int64 victim, int reason) {
-  FATALASSERT(static_cast<unsigned int>(reason) < sizeof(s_spellMissReasons) / sizeof(s_spellMissReasons[0]));
+void CGGameUI::ShowSpellMissFeedback(DWORDLONG victim, int reason) {
+  FATALASSERT(static_cast<UINT>(reason) < sizeof(s_spellMissReasons) / sizeof(s_spellMissReasons[0]));
   int    numnames;
   char **names = Script_GetNamesFromGUID(victim, numnames);
   for (int index = 0; index < numnames; ++index) {
@@ -5658,13 +5650,13 @@ void CGGameUI::ShowSpellMissFeedback(unsigned __int64 victim, int reason) {
   }
 }
 
-void CGGameUI::ShowAutoFollowChange(unsigned __int64 newTarget, unsigned __int64 oldTarget, int type) {
+void CGGameUI::ShowAutoFollowChange(DWORDLONG newTarget, DWORDLONG oldTarget, int type) {
   if (type != 2) {
     return;
   }
 
-  int              event;
-  unsigned __int64 target;
+  int       event;
+  DWORDLONG target;
   if (newTarget) {
     event = 350;
     target = newTarget;
@@ -5681,7 +5673,7 @@ void CGGameUI::ShowAutoFollowChange(unsigned __int64 newTarget, unsigned __int64
   }
 }
 
-void CGGameUI::NewZoneFeedback(int areaID, const char *zoneString, const char *subZoneString) {
+void CGGameUI::NewZoneFeedback(int areaID, LPCSTR zoneString, LPCSTR subZoneString) {
   int zoneChanged = 0;
 
   int firstArea = !m_areaID;
@@ -5717,7 +5709,7 @@ void CGGameUI::NewZoneFeedback(int areaID, const char *zoneString, const char *s
   }
 }
 
-void CGGameUI::SetMinimapZoneText(const char *areaName) {
+void CGGameUI::SetMinimapZoneText(LPCSTR areaName) {
   if (areaName && *areaName) {
     if (m_minimapZoneText && !SStrCmp(m_minimapZoneText, areaName, 0x7FFFFFFF)) {
       return;
@@ -5731,13 +5723,7 @@ void CGGameUI::SetMinimapZoneText(const char *areaName) {
   }
 }
 
-void CGGameUI::SetCursorItem(
-    unsigned __int64 itemGUID,
-    unsigned __int64 containerGUID,
-    unsigned int     slot,
-    int              unlock,
-    unsigned int     stackSplit
-) {
+void CGGameUI::SetCursorItem(DWORDLONG itemGUID, DWORDLONG containerGUID, UINT slot, int unlock, UINT stackSplit) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player && (m_hasControl || (player->GetUnitData()->flags & 0x100000))) {
     ClearCursor(unlock);
@@ -5771,7 +5757,7 @@ void CGGameUI::DeleteCursorItem() {
   }
 }
 
-void CGGameUI::SetCursorMoney(unsigned int money) {
+void CGGameUI::SetCursorMoney(UINT money) {
   if (m_hasControl && (money || m_cursorItemType == UICURSOR_MONEY)) {
     ClearCursor(1);
     if (money) {
@@ -5786,8 +5772,8 @@ void CGGameUI::SetCursorMoney(unsigned int money) {
 
 void CGGameUI::SetCursorSpell(int spellId, int pet) {
   if ((m_hasControl || !pet) && spellId >= 0) {
-    const SpellRec     *spell = g_spellDB.GetRecord(spellId);
-    const char   *texture = 0;
+    const SpellRec *spell = g_spellDB.GetRecord(spellId);
+    LPCSTR          texture = 0;
     if (spell && spell->m_effect[0] == 78) {
       texture = CGActionBar::GetAttackTexture();
     } else if (spell) {
@@ -5821,10 +5807,10 @@ void CGGameUI::SetCursorPetAction(const PetAction &action) {
     return;
   }
 
-  unsigned int value = action;
-  unsigned int type = value >> 24 & 0x3F;
-  unsigned int id = value & 0xFFFF;
-  const char  *texture = 0;
+  UINT   value = action;
+  UINT   type = value >> 24 & 0x3F;
+  UINT   id = value & 0xFFFF;
+  LPCSTR texture = 0;
   switch (type) {
     case 1:
     case 2:
@@ -5873,7 +5859,7 @@ void CGGameUI::ShowCombatFeedback(const ATTACKROUNDINFO *info) {
   FATALASSERT(info);
   FATALASSERT(info->newVictimState < (sizeof(s_combatEvent) / sizeof(s_combatEvent[0])));
 
-  const char *flagText = "";
+  LPCSTR flagText = "";
   if (info->flags & 0x10000) {
     flagText = "ABSORB";
   } else if (info->flags & 8) {
@@ -5884,13 +5870,7 @@ void CGGameUI::ShowCombatFeedback(const ATTACKROUNDINFO *info) {
   char **names = Script_GetNamesFromGUID(info->victim, numnames);
   for (int index = 0; index < numnames; ++index) {
     FrameScript_SignalEvent(
-        178,
-        "%s%s%s%d%d",
-        names[index],
-        s_combatEvent[info->newVictimState],
-        flagText,
-        info->dmg.totalDamage,
-        info->dmg.damageType[0]
+        178, "%s%s%s%d%d", names[index], s_combatEvent[info->newVictimState], flagText, info->dmg.totalDamage, info->dmg.damageType[0]
     );
   }
 }
@@ -5907,7 +5887,7 @@ void CGGameUI::ShowCombatFeedback(const SPELLLOG &log) {
     }
   }
 
-  unsigned __int64 pet = 0;
+  DWORDLONG pet = 0;
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     const CGUnitData *unitData = player->GetUnitData();
@@ -5921,7 +5901,7 @@ void CGGameUI::ShowCombatFeedback(const SPELLLOG &log) {
   if (log.flags & 2) {
     ShowHealingFeedback(log.victim, log.dmg.totalDamage);
   } else if (log.dmg.damageType[0] != -1) {
-    unsigned int flags = 0;
+    UINT flags = 0;
     if (log.dmg.absorbed[0] == log.dmg.damage[0]) {
       flags = 0x10000;
     }
@@ -5932,8 +5912,8 @@ void CGGameUI::ShowCombatFeedback(const SPELLLOG &log) {
   }
 }
 
-void CGGameUI::ShowCombatFeedback(const unsigned __int64 &guid, int amount, int damageClass, unsigned int flags) {
-  const char *flagText = "";
+void CGGameUI::ShowCombatFeedback(const DWORDLONG &guid, int amount, int damageClass, UINT flags) {
+  LPCSTR flagText = "";
   if (flags & 0x10000) {
     flagText = "ABSORB";
   } else if (flags & 0x8) {
@@ -5959,7 +5939,7 @@ int CGGameUI::GetCursorSpell() {
   return m_cursorSpell;
 }
 
-void CGGameUI::SetCursorVirtualItem(unsigned int itemID, unsigned int displayID, unsigned int slot, UICURSORTYPE type) {
+void CGGameUI::SetCursorVirtualItem(UINT itemID, UINT displayID, UINT slot, UICURSORTYPE type) {
   if (m_hasControl || type == UICURSOR_ACTIONBAR) {
     ClearCursor(1);
     if (itemID) {
@@ -6047,7 +6027,7 @@ void CGGameUI::ClearCursor(int unlock) {
   FrameScript_SignalEvent(272);
 }
 
-void CGGameUI::LockItem(unsigned __int64 itemGUID) {
+void CGGameUI::LockItem(DWORDLONG itemGUID) {
   if (itemGUID) {
     CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
     if (item) {
@@ -6057,7 +6037,7 @@ void CGGameUI::LockItem(unsigned __int64 itemGUID) {
   }
 }
 
-void CGGameUI::UnlockItem(unsigned __int64 itemGUID) {
+void CGGameUI::UnlockItem(DWORDLONG itemGUID) {
   if (itemGUID) {
     CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
     if (item) {
@@ -6073,9 +6053,9 @@ void CGGameUI::UnlockAllItems() {
     return;
   }
 
-  CGBag_C     *bag = player->GetBag();
-  unsigned int numSlots = bag->NumSlots();
-  for (unsigned int slot = 0; slot < numSlots; ++slot) {
+  CGBag_C *bag = player->GetBag();
+  UINT     numSlots = bag->NumSlots();
+  for (UINT slot = 0; slot < numSlots; ++slot) {
     CGObject_C *item = ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__);
     if (!item) {
       continue;
@@ -6084,7 +6064,7 @@ void CGGameUI::UnlockAllItems() {
     static_cast<CGItem_C *>(item)->Unlock();
     if (item->IsA(TYPE_CONTAINER)) {
       if (item->GetBag()) {
-        for (unsigned int bagSlot = 0; bagSlot < item->GetBag()->NumSlots(); ++bagSlot) {
+        for (UINT bagSlot = 0; bagSlot < item->GetBag()->NumSlots(); ++bagSlot) {
           CGItem_C *bagItem = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item->GetBag()->GetItem(slot), __FILE__, __LINE__));
           if (bagItem) {
             bagItem->Unlock();
@@ -6097,7 +6077,7 @@ void CGGameUI::UnlockAllItems() {
   FrameScript_SignalEvent(184);
 }
 
-int CGGameUI::Idle(const void *, void *) {
+int CGGameUI::Idle(LPCVOID, LPVOID) {
   if (m_reloadUI) {
     Shutdown();
     Initialize();
@@ -6106,8 +6086,8 @@ int CGGameUI::Idle(const void *, void *) {
 }
 
 void CGGameUI::UpdateActivePlayer() {
-  unsigned __int64 guid = ClntObjMgrGetActivePlayer();
-  CGUnit_C        *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  DWORDLONG guid = ClntObjMgrGetActivePlayer();
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(player);
 
   if (player->GetUnitData()->health > 0) {
@@ -6159,8 +6139,8 @@ void __cdecl CGGameUI::DisplayError(GAME_ERROR_TYPE errorType, ...) {
     return;
   }
 
-  char        format[256];
-  const char *text = FrameScript_GetText(desc.stringToken, -1, GENDER_NOT_APPLICABLE);
+  char   format[256];
+  LPCSTR text = FrameScript_GetText(desc.stringToken, -1, GENDER_NOT_APPLICABLE);
   SStrCopy(format, text, sizeof(format));
   if (!*text) {
     return;
@@ -6189,7 +6169,7 @@ void __cdecl CGGameUI::DisplayError(GAME_ERROR_TYPE errorType, ...) {
   }
 }
 
-const char *CGGameUI::GetLastErrorString() {
+LPCSTR CGGameUI::GetLastErrorString() {
   return s_lastErrorString;
 }
 

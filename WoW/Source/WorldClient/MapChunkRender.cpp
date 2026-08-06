@@ -13,38 +13,38 @@
 
 #include <string.h>
 
-extern unsigned int g_holeMask[4][4];
+extern UINT g_holeMask[4][4];
 
 struct STPrimRemap {
-  unsigned short  nIndicies;
-  unsigned short *indicies;
+  WORD  nIndicies;
+  WORD *indicies;
 };
 
 struct STPrimGroup {
-  unsigned short  nIndicies;
-  unsigned short  primType;
-  unsigned short *indicies;
+  WORD  nIndicies;
+  WORD  primType;
+  WORD *indicies;
 };
 
-static unsigned short s_vertexRemap0[10] = {0, 3, 8, 1, 72, 2, 136, 4, 144, 0};
-static unsigned short s_primGroup0_0[5] = {0, 1, 2, 3, 4};
-static unsigned short s_primGroup0_1[3] = {2, 4, 0};
+static WORD s_vertexRemap0[10] = {0, 3, 8, 1, 72, 2, 136, 4, 144, 0};
+static WORD s_primGroup0_0[5] = {0, 1, 2, 3, 4};
+static WORD s_primGroup0_1[3] = {2, 4, 0};
 
-static unsigned short s_vertexRemap1[26] = {0, 0, 4, 4, 8, 6, 36, 2, 40, 5, 68, 1, 72, 3, 76, 7, 104, 10, 108, 8, 136, 9, 140, 11, 144, 12};
-static unsigned short s_primGroup1_0[25] = {0, 1, 2, 3, 4, 5, 6, 7, 7, 5, 5, 3, 7, 8, 8, 9, 9, 9, 1, 10, 3, 11, 8, 12, 7};
-static unsigned short s_primGroup1_1[6] = {2, 4, 0, 10, 9, 11};
+static WORD s_vertexRemap1[26] = {0, 0, 4, 4, 8, 6, 36, 2, 40, 5, 68, 1, 72, 3, 76, 7, 104, 10, 108, 8, 136, 9, 140, 11, 144, 12};
+static WORD s_primGroup1_0[25] = {0, 1, 2, 3, 4, 5, 6, 7, 7, 5, 5, 3, 7, 8, 8, 9, 9, 9, 1, 10, 3, 11, 8, 12, 7};
+static WORD s_primGroup1_1[6] = {2, 4, 0, 10, 9, 11};
 
-static unsigned short s_vertexRemap2[82] = {0,  34,  2,  35,  4,  37,  6,  38,  8,  40,  18, 26,  20,  36,  22,  18,  24,  39,  34,  27, 36,
-                                            25, 38,  17, 40,  0,  42,  1,  52,  28, 54,  24, 56,  16,  58,  2,   68,  29,  70,  23,  72, 15,
-                                            74, 4,   76, 3,   86, 30,  88, 22,  90, 14,  92, 5,   102, 31,  104, 21,  106, 13,  108, 6,  110,
-                                            7,  120, 32, 122, 20, 124, 12, 126, 8,  136, 33, 138, 19,  140, 11,  142, 10,  144, 9};
-static unsigned short s_primGroup2_0[69] = {0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 10, 10, 10, 10, 11, 12, 13, 6,  14, 4,  15,
-                                            16, 17, 0,  18, 18, 19, 19, 19, 11, 20, 13, 21, 22, 23, 15, 24, 17, 25, 25, 26, 26, 25, 27,
-                                            28, 29, 23, 30, 21, 31, 32, 33, 19, 19, 27, 27, 34, 26, 35, 25, 36, 17, 37, 18, 38, 0,  39};
-static unsigned short s_primGroup2_1[48] = {39, 0,  1,  39, 1, 40, 39, 40, 38, 16, 4,  0,  2,  0,  4,  28, 23, 25, 24, 25, 23, 14, 15, 13,
-                                            22, 13, 15, 8,  6, 10, 12, 10, 6,  20, 21, 19, 32, 19, 21, 36, 37, 35, 5,  7,  3,  30, 29, 31};
+static WORD s_vertexRemap2[82] = {0,  34,  2,  35,  4,  37,  6,  38,  8,  40,  18, 26,  20,  36,  22,  18,  24,  39,  34,  27, 36,
+                                  25, 38,  17, 40,  0,  42,  1,  52,  28, 54,  24, 56,  16,  58,  2,   68,  29,  70,  23,  72, 15,
+                                  74, 4,   76, 3,   86, 30,  88, 22,  90, 14,  92, 5,   102, 31,  104, 21,  106, 13,  108, 6,  110,
+                                  7,  120, 32, 122, 20, 124, 12, 126, 8,  136, 33, 138, 19,  140, 11,  142, 10,  144, 9};
+static WORD s_primGroup2_0[69] = {0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 10, 10, 10, 10, 11, 12, 13, 6,  14, 4,  15,
+                                  16, 17, 0,  18, 18, 19, 19, 19, 11, 20, 13, 21, 22, 23, 15, 24, 17, 25, 25, 26, 26, 25, 27,
+                                  28, 29, 23, 30, 21, 31, 32, 33, 19, 19, 27, 27, 34, 26, 35, 25, 36, 17, 37, 18, 38, 0,  39};
+static WORD s_primGroup2_1[48] = {39, 0,  1,  39, 1, 40, 39, 40, 38, 16, 4,  0,  2,  0,  4,  28, 23, 25, 24, 25, 23, 14, 15, 13,
+                                  22, 13, 15, 8,  6, 10, 12, 10, 6,  20, 21, 19, 32, 19, 21, 36, 37, 35, 5,  7,  3,  30, 29, 31};
 
-static unsigned short s_vertexRemap3[290] = {
+static WORD s_vertexRemap3[290] = {
     0,   75,  1,   77,  2,   78,  3,   80,  4,   81,  5,   84,  6,   86,  7,   2,   8,   4,   9,   76,  10,  72,  11,  79,  12,  73,  13,  82,  14,
     85,  15,  0,   16,  3,   17,  64,  18,  66,  19,  68,  20,  70,  21,  74,  22,  83,  23,  87,  24,  1,   25,  5,   26,  65,  27,  67,  28,  69,
     29,  71,  30,  90,  31,  88,  32,  7,   33,  6,   34,  57,  35,  58,  36,  60,  37,  62,  38,  89,  39,  91,  40,  92,  41,  8,   42,  9,   43,
@@ -56,7 +56,7 @@ static unsigned short s_vertexRemap3[290] = {
     116, 144, 117, 142, 118, 133, 119, 122, 120, 116, 121, 109, 122, 104, 123, 97,  124, 98,  125, 141, 126, 134, 127, 135, 128, 121, 129, 115, 130,
     107, 131, 103, 132, 96,  133, 143, 134, 140, 135, 136, 136, 120, 137, 114, 138, 108, 139, 102, 140, 95,  141, 94,  142, 139, 143, 138, 144, 137
 };
-static unsigned short s_primGroup3_0[392] = {
+static WORD s_primGroup3_0[392] = {
     0,   1,   2,   3,   4,   5,   5,   6,   6,   5,   1,   3,   3,   7,   7,   7,   1,   8,   6,   9,   5,   5,   10,  10,  8,   11,  12,  13,
     9,   9,   14,  14,  14,  15,  16,  17,  18,  11,  19,  10,  10,  20,  20,  16,  19,  18,  18,  19,  19,  21,  20,  22,  16,  23,  14,  24,
     24,  25,  25,  26,  24,  27,  14,  28,  29,  29,  24,  24,  30,  22,  31,  32,  33,  21,  34,  34,  30,  30,  30,  31,  35,  36,  36,  37,
@@ -72,11 +72,10 @@ static unsigned short s_primGroup3_0[392] = {
     50,  11,  11,  11,  13,  125, 126, 17,  127, 128, 129, 130, 131, 132, 133, 133, 132, 132, 133, 134, 135, 136, 137, 138, 138, 139, 139, 138,
     140, 134, 141, 142, 28,  132, 29,  128, 14,  15,  15,  94,  94,  139, 143, 141, 98,  144, 26,  28,  27,  27,  143, 143, 143, 98,  94,  96
 };
-static unsigned short s_primGroup3_1[90] = {136, 134, 138, 142, 134, 132, 130, 128, 132, 15,  128, 17,  125, 11,  17,  65,  57,  58,
-                                            59,  60,  58,  69,  60,  62,  63,  89,  62,  90,  89,  91,  93,  92,  91,  7,   92,  8,
-                                            12,  9,   8,   32,  22,  21,  23,  22,  24,  110, 111, 109, 115, 108, 109, 79,  80,  78,
-                                            61,  46,  40,  54,  55,  53,  82,  84,  81,  0,   2,   86,  127, 129, 126, 133, 135, 131,
-                                            140, 141, 139, 144, 141, 28,  124, 52,  123, 42,  43,  41,  121, 122, 120, 76,  77,  75};
+static WORD s_primGroup3_1[90] = {136, 134, 138, 142, 134, 132, 130, 128, 132, 15,  128, 17,  125, 11, 17, 65,  57,  58,  59, 60, 58,  69,  60,
+                                  62,  63,  89,  62,  90,  89,  91,  93,  92,  91,  7,   92,  8,   12, 9,  8,   32,  22,  21, 23, 22,  24,  110,
+                                  111, 109, 115, 108, 109, 79,  80,  78,  61,  46,  40,  54,  55,  53, 82, 84,  81,  0,   2,  86, 127, 129, 126,
+                                  133, 135, 131, 140, 141, 139, 144, 141, 28,  124, 52,  123, 42,  43, 41, 121, 122, 120, 76, 77, 75};
 
 static STPrimRemap s_tPrimRemap[4] = {
     {  5, s_vertexRemap0},
@@ -94,9 +93,9 @@ static STPrimGroup s_tPrimGroups[4][2] = {
 
 static float s_tempTexSpeed[8] = {64.0f, 48.0f, 32.0f, 16.0f, 8.0f, 4.0f, 2.0f, 1.0f};
 
-static int          s_neighborMask[4] = {0xFFFFFF00, 0xFFFF00FF, 0xFF00FFFF, 0x00FFFFFF};
-static int          s_neighborShft[4] = {0, 8, 16, 24};
-static unsigned int s_realPrimCnt[4] = {4, 16, 64, 256};
+static int  s_neighborMask[4] = {0xFFFFFF00, 0xFFFF00FF, 0xFF00FFFF, 0x00FFFFFF};
+static int  s_neighborShft[4] = {0, 8, 16, 24};
+static UINT s_realPrimCnt[4] = {4, 16, 64, 256};
 
 static const float OO_COORD_TO_SHADOW = 0.24f;
 static const float DETAIL_VARY = 2.0833333f;
@@ -125,7 +124,7 @@ void CMapChunk::Render() {
   int neighborLOD = 0;
 
   if (CWorld::enables & CWorld::Enable_Lod) {
-    for (unsigned int i = 0; i < 4; ++i) {
+    for (UINT i = 0; i < 4; ++i) {
       if (neighbor[i] && neighbor[i]->lod > lod) {
         neighborLOD = (neighborLOD & s_neighborMask[i]) | (neighbor[i]->lod << s_neighborShft[i]);
       }
@@ -147,11 +146,11 @@ void CMapChunk::Render() {
     return;
   }
 
-  unsigned int indexCount = s_tPrimGroups[lod][0].nIndicies + s_tPrimGroups[lod][1].nIndicies;
+  UINT indexCount = s_tPrimGroups[lod][0].nIndicies + s_tPrimGroups[lod][1].nIndicies;
   if (!gxBuf) {
     gxBuf = AllocGxBuf(indexCount);
     gxBuf->UserArgSet(this);
-    remapLod = static_cast<unsigned int>(-1);
+    remapLod = static_cast<UINT>(-1);
   }
 
   if (remapLod != lod) {
@@ -183,33 +182,33 @@ void CMapChunk::FillGxBufVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
 
   FATALASSERT(vtxBase);
 
-  for (unsigned int j = 0; j < s_tPrimRemap[lod].nIndicies; ++j) {
+  for (UINT j = 0; j < s_tPrimRemap[lod].nIndicies; ++j) {
     vtxBase[s_tPrimRemap[lod].indicies[2 * j + 1]].p = vertexList[s_tPrimRemap[lod].indicies[2 * j]];
     vtxBase[s_tPrimRemap[lod].indicies[2 * j + 1]].n = normalList[s_tPrimRemap[lod].indicies[2 * j]];
   }
 }
 
 void CMapChunk::FillGxBufIndex(const CGxBufCommand &cmd, CGxBuf *buf) {
-  unsigned short *indices = 0;
+  WORD *indices = 0;
 
   switch (cmd.index.op) {
     case GxBufOp_Nop:
       return;
 
     case GxBufOp_Fill:
-      indices = static_cast<unsigned short *>(*cmd.index.mem[GxVM_Indices]);
+      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
       break;
 
     case GxBufOp_Assign:
-      indices = static_cast<unsigned short *>(GxAllocIndexMem(buf->IndexCount() * sizeof(unsigned short)));
+      indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
       *cmd.index.mem[GxVM_Indices] = indices;
       break;
   }
 
   FATALASSERT(indices);
 
-  memcpy(indices, s_tPrimGroups[lod][0].indicies, s_tPrimGroups[lod][0].nIndicies * sizeof(unsigned short));
-  memcpy(indices + s_tPrimGroups[lod][0].nIndicies, s_tPrimGroups[lod][1].indicies, s_tPrimGroups[lod][1].nIndicies * sizeof(unsigned short));
+  memcpy(indices, s_tPrimGroups[lod][0].indicies, s_tPrimGroups[lod][0].nIndicies * sizeof(WORD));
+  memcpy(indices + s_tPrimGroups[lod][0].nIndicies, s_tPrimGroups[lod][1].indicies, s_tPrimGroups[lod][1].nIndicies * sizeof(WORD));
 }
 
 void CMapChunk::FillGxBufDynVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
@@ -231,35 +230,37 @@ void CMapChunk::FillGxBufDynVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
   }
 
   ASSERT(vertices);
-  for (unsigned int index = 0; index < 145; ++index) {
+  for (UINT index = 0; index < 145; ++index) {
     vertices[index].p = vertexList[index];
     vertices[index].n = normalList[index];
   }
 }
 
 void CMapChunk::FillGxBufDynIndex(const CGxBufCommand &cmd, CGxBuf *buf) {
-  unsigned short *indices = 0;
+  WORD *indices = 0;
 
   switch (cmd.index.op) {
     case GxBufOp_Nop:
       return;
 
     case GxBufOp_Fill:
-      indices = static_cast<unsigned short *>(*cmd.index.mem[GxVM_Indices]);
+      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
       break;
 
     case GxBufOp_Assign:
-      indices = static_cast<unsigned short *>(GxAllocIndexMem(buf->IndexCount() * sizeof(unsigned short)));
+      indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
       *cmd.index.mem[GxVM_Indices] = indices;
       break;
   }
 
   ASSERT(indices);
-  memcpy(indices, primList, (primPtr - primList) * sizeof(unsigned short));
+  memcpy(indices, primList, (primPtr - primList) * sizeof(WORD));
 }
 
 void CMapChunk::RenderLayers() {
-  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) || !nLayers || camDist >= CWorld::farFog) {
+  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) || !nLayers ||
+      camDist >= CWorld::farFog)
+  {
     RenderLayersColor();
     return;
   }
@@ -321,19 +322,19 @@ void CMapChunk::RenderLayers() {
     GxRsSet(GxRs_PixelShader, CMap::psTerrain);
   }
 
-  unsigned int        nLayersTest = nLayers;
+  UINT                nLayersTest = nLayers;
   NTempest::CImVector mattDiffuse(0xFFFFFFFF);
   if (camDist > CWorld::textureLodDist) {
     float fade = camDist - CWorld::textureLodDist;
     if (fade < 64.0f) {
-      mattDiffuse.a = static_cast<unsigned char>(NTempest::CMath::fuint_n((64.0f - fade) * 0.015625f * 255.0f));
+      mattDiffuse.a = static_cast<BYTE>(NTempest::CMath::fuint_n((64.0f - fade) * 0.015625f * 255.0f));
     } else {
       nLayersTest = 1;
     }
   }
   GxRsSet(GxRs_MatDiffuse, mattDiffuse);
 
-  for (unsigned int i = 0; i < nLayersTest; ++i) {
+  for (UINT i = 0; i < nLayersTest; ++i) {
     CChunkLayer *layer = layerList[i];
     CGxTex      *texture = TextureGetGxTex(layer->texId, 0, 0);
     if (!texture) {
@@ -365,7 +366,7 @@ void CMapChunk::RenderLayers() {
       GxRsSet(GxRs_Texture1, layer->gxTexture);
     } else {
       GxRsSet(GxRs_Blend, GxBlend_Opaque);
-      GxRsSet(GxRs_Texture1, static_cast<void *>(0));
+      GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
     }
 
     GxBufRender(rmGxBatchList[lod], 2);
@@ -379,11 +380,11 @@ void CMapChunk::RenderLayers() {
   }
 
   if (CMap::EnableSpecularTerrain()) {
-    GxRsSet(GxRs_PixelShader, static_cast<void *>(0));
+    GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
     GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0ul));
     GxRsSet(GxRs_MatSpecularExp, 0.0f);
   } else if (CMap::EnableTerrainShader()) {
-    GxRsSet(GxRs_PixelShader, static_cast<void *>(0));
+    GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
   } else if (shadowGxTexture && (CWorld::enables & CWorld::Enable_Shadow)) {
     GxRsSet(GxRs_MatDiffuse, CWorld::shadowColor);
     GxRsSet(GxRs_Blend, GxBlend_Alpha);
@@ -394,7 +395,7 @@ void CMapChunk::RenderLayers() {
     GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   }
 
-  GxRsSet(GxRs_Texture1, static_cast<void *>(0));
+  GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
   GxBufUnlock();
   GxXformPop(GxXform_Tex0);
   GxXformPop(GxXform_Tex1);
@@ -405,7 +406,9 @@ void CMapChunk::RenderLayers() {
 }
 
 void CMapChunk::RenderLayersDyn() {
-  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) || !nLayers || camDist >= CWorld::farFog) {
+  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) || !nLayers ||
+      camDist >= CWorld::farFog)
+  {
     RenderLayersColorDyn();
     return;
   }
@@ -467,19 +470,19 @@ void CMapChunk::RenderLayersDyn() {
     GxRsSet(GxRs_PixelShader, CMap::psTerrain);
   }
 
-  unsigned int        nLayersTest = nLayers;
+  UINT                nLayersTest = nLayers;
   NTempest::CImVector mattDiffuse(0xFFFFFFFF);
   if (camDist > CWorld::textureLodDist) {
     float fade = camDist - CWorld::textureLodDist;
     if (fade < 64.0f) {
-      mattDiffuse.a = static_cast<unsigned char>(NTempest::CMath::fuint_n((64.0f - fade) * 0.015625f * 255.0f));
+      mattDiffuse.a = static_cast<BYTE>(NTempest::CMath::fuint_n((64.0f - fade) * 0.015625f * 255.0f));
     } else {
       nLayersTest = 1;
     }
   }
   GxRsSet(GxRs_MatDiffuse, mattDiffuse);
 
-  for (unsigned int i = 0; i < nLayersTest; ++i) {
+  for (UINT i = 0; i < nLayersTest; ++i) {
     CChunkLayer *layer = layerList[i];
     CGxTex      *texture = TextureGetGxTex(layer->texId, 0, 0);
     if (!texture) {
@@ -509,7 +512,7 @@ void CMapChunk::RenderLayersDyn() {
       GxRsSet(GxRs_Texture1, layer->gxTexture);
     } else {
       GxRsSet(GxRs_Blend, GxBlend_Opaque);
-      GxRsSet(GxRs_Texture1, static_cast<void *>(0));
+      GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
     }
     GxBufRender(gxBatch);
     if (layer->props & 0x80) {
@@ -521,11 +524,11 @@ void CMapChunk::RenderLayersDyn() {
   }
 
   if (CMap::EnableSpecularTerrain()) {
-    GxRsSet(GxRs_PixelShader, static_cast<void *>(0));
+    GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
     GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0ul));
     GxRsSet(GxRs_MatSpecularExp, 0.0f);
   } else if (CMap::EnableTerrainShader()) {
-    GxRsSet(GxRs_PixelShader, static_cast<void *>(0));
+    GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
   } else if (shadowGxTexture && (CWorld::enables & CWorld::Enable_Shadow)) {
     GxRsSet(GxRs_MatDiffuse, CWorld::shadowColor);
     GxRsSet(GxRs_Blend, GxBlend_Alpha);
@@ -536,7 +539,7 @@ void CMapChunk::RenderLayersDyn() {
     GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   }
 
-  GxRsSet(GxRs_Texture1, static_cast<void *>(0));
+  GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
   GxBufUnlock();
   GxXformPop(GxXform_Tex0);
   GxXformPop(GxXform_Tex1);
@@ -550,8 +553,8 @@ void CMapChunk::RenderLayersColor() {
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   GxRsSet(GxRs_Blend, GxBlend_Opaque);
-  GxRsSet(GxRs_Texture0, static_cast<void *>(0));
-  GxRsSet(GxRs_Texture1, static_cast<void *>(0));
+  GxRsSet(GxRs_Texture0, static_cast<LPVOID>(0));
+  GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
   GxBufLock(gxBuf);
   GxBufRender(rmGxBatchList[lod], 2);
   GxBufUnlock();
@@ -562,8 +565,8 @@ void CMapChunk::RenderLayersColorDyn() {
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   GxRsSet(GxRs_Blend, GxBlend_Opaque);
-  GxRsSet(GxRs_Texture0, static_cast<void *>(0));
-  GxRsSet(GxRs_Texture1, static_cast<void *>(0));
+  GxRsSet(GxRs_Texture0, static_cast<LPVOID>(0));
+  GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
   GxBufLock(gxBufDyn);
   GxBufRender(gxBatch);
   GxBufUnlock();
@@ -571,7 +574,7 @@ void CMapChunk::RenderLayersColorDyn() {
 
 void CMapChunk::CreateDetailDoodads() {
   NTempest::C2iVector splatList[128];
-  unsigned int        i;
+  UINT                i;
 
   if (!nLayers) {
     return;
@@ -580,7 +583,7 @@ void CMapChunk::CreateDetailDoodads() {
   detailDoodadInst = CDetailDoodad::AllocInst();
   FATALASSERT(detailDoodadInst);
 
-  unsigned int n = CWorld::detailDoodadTest ? 64 : CWorld::detailDoodadDensity;
+  UINT n = CWorld::detailDoodadTest ? 64 : CWorld::detailDoodadDensity;
 
   for (i = 0; i < n; ++i) {
     if (CWorld::detailDoodadTest) {
@@ -595,41 +598,41 @@ void CMapChunk::CreateDetailDoodads() {
   const float smolTileSize = 150.0f / 36.0f;
   for (i = 0; i < n; ++i) {
     NTempest::C2iVector splat = splatList[i];
-    unsigned int        x = splat.x;
-    unsigned int        y = splat.y;
-    unsigned int        noEffect = reinterpret_cast<unsigned char *>(noEffectDoodad)[y];
+    UINT                x = splat.x;
+    UINT                y = splat.y;
+    UINT                noEffect = reinterpret_cast<BYTE *>(noEffectDoodad)[y];
     if ((noEffect & (1 << x)) || (holes & g_holeMask[y >> 1][x >> 1])) {
       continue;
     }
 
-    unsigned int layerIndex = (predTex[y] >> (2 * x)) & 3;
+    UINT layerIndex = (predTex[y] >> (2 * x)) & 3;
     if (!layerList[layerIndex]) {
       continue;
     }
-    unsigned int            effectId = layerList[layerIndex]->effectId;
+    UINT                          effectId = layerList[layerIndex]->effectId;
     const GroundEffectTextureRec *effectTex = g_groundEffectTextureDB.GetRecordByIndex(effectId);
     if (!effectTex) {
       continue;
     }
 
-    unsigned long clumpDensity = effectTex->m_density;
+    DWORD clumpDensity = effectTex->m_density;
     if (!clumpDensity) {
       clumpDensity = 8;
     }
 
-    for (unsigned int d = 0; d < clumpDensity; ++d) {
+    for (UINT d = 0; d < clumpDensity; ++d) {
       int doodadId = effectTex->m_doodadId[(i + d) & 3];
       if (doodadId == -1) {
         continue;
       }
 
-      float         fx = (NTempest::CRandom::reals_(rSeed) + 1.0f) * (smolTileSize * 0.5f);
-      float         fy = (NTempest::CRandom::reals_(rSeed) + 1.0f) * (smolTileSize * 0.5f);
-      float         sx = (fx + x * smolTileSize) * DETAIL_VARY;
-      float         sy = (fy + y * smolTileSize) * DETAIL_VARY;
-      int           shadowX = static_cast<int>(sx - 0.5f);
-      int           shadowY = static_cast<int>(sy - 0.5f);
-      unsigned long flags = shadowX >= 0 && shadowX < 32 && shadowY >= 0 && shadowY < 32 && (shadowBits[shadowY] & (1UL << shadowX)) ? 1 : 0;
+      float fx = (NTempest::CRandom::reals_(rSeed) + 1.0f) * (smolTileSize * 0.5f);
+      float fy = (NTempest::CRandom::reals_(rSeed) + 1.0f) * (smolTileSize * 0.5f);
+      float sx = (fx + x * smolTileSize) * DETAIL_VARY;
+      float sy = (fy + y * smolTileSize) * DETAIL_VARY;
+      int   shadowX = static_cast<int>(sx - 0.5f);
+      int   shadowY = static_cast<int>(sy - 0.5f);
+      DWORD flags = shadowX >= 0 && shadowX < 32 && shadowY >= 0 && shadowY < 32 && (shadowBits[shadowY] & (1UL << shadowX)) ? 1 : 0;
 
       NTempest::C3Vector cPos(-fy - y * smolTileSize, -fx - x * smolTileSize, 0.0f);
       int                triangle = cPos.y - cPos.x < 0.0f;

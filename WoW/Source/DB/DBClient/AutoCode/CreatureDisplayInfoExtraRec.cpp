@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CreatureDisplayInfoExtraRec::GetFilename() {
+LPCSTR CreatureDisplayInfoExtraRec::GetFilename() {
   return "DBFilesClient\\CreatureDisplayInfoExtra.dbc";
 }
 
@@ -19,9 +19,9 @@ CreatureDisplayInfoExtraRec::CreatureDisplayInfoExtraRec() {
 CreatureDisplayInfoExtraRec::~CreatureDisplayInfoExtraRec() {
 }
 
-bool CreatureDisplayInfoExtraRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempBakeNameIndices[1];
+bool CreatureDisplayInfoExtraRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempBakeNameIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_DisplayRaceID, sizeof(m_DisplayRaceID), 0, 0, 0) && result;

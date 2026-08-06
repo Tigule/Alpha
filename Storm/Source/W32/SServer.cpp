@@ -20,7 +20,7 @@ void SServerDestroy() {
   }
 }
 
-int STryEnterCriticalSection(void *opaqueData) {
+int STryEnterCriticalSection(LPVOID opaqueData) {
   if (!s_tryEnterPtr) {
     FATALERROR(("TryEnterCriticalSection not found on this OS."));
   }

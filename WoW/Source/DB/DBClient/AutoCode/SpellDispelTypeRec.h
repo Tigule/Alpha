@@ -7,13 +7,13 @@ class SpellDispelTypeRec {
   SpellDispelTypeRec();
   ~SpellDispelTypeRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 10;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 40;
   }
 
@@ -28,11 +28,11 @@ class SpellDispelTypeRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  const char *m_name_lang[8];
-  int         m_name_flag;
+  int    m_ID;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
 };
 
 extern WowClientDB<SpellDispelTypeRec> g_spellDispelTypeDB;

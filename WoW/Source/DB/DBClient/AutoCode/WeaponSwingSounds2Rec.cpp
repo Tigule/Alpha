@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *WeaponSwingSounds2Rec::GetFilename() {
+LPCSTR WeaponSwingSounds2Rec::GetFilename() {
   return "DBFilesClient\\WeaponSwingSounds2.dbc";
 }
 
@@ -19,7 +19,7 @@ WeaponSwingSounds2Rec::WeaponSwingSounds2Rec() {
 WeaponSwingSounds2Rec::~WeaponSwingSounds2Rec() {
 }
 
-bool WeaponSwingSounds2Rec::Read(SFile *f, const char *stringBuffer) {
+bool WeaponSwingSounds2Rec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

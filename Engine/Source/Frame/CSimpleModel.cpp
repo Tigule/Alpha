@@ -12,7 +12,7 @@
 #include "Tempest/c2vector.h"
 #include "Tempest/c44matrix.h"
 
-static int AnimFinishedCallback(void *param) {
+static int AnimFinishedCallback(LPVOID param) {
   CSimpleModel *model = static_cast<CSimpleModel *>(param);
 
   model->RunOnAnimFinishedScript();
@@ -35,12 +35,12 @@ CSimpleModel::CSimpleModel(CSimpleFrame *parent)
   m_light.m_enabled = 0;
   m_light.m_isOmni = 1;
   m_light.m_ambColor.Set(
-      static_cast<unsigned char>(NTempest::CMath::fuint_n(255.0f)), static_cast<unsigned char>(NTempest::CMath::fuint_n(255.0f)),
-      static_cast<unsigned char>(255), static_cast<unsigned char>(255)
+      static_cast<BYTE>(NTempest::CMath::fuint_n(255.0f)), static_cast<BYTE>(NTempest::CMath::fuint_n(255.0f)), static_cast<BYTE>(255),
+      static_cast<BYTE>(255)
   );
   m_light.m_dirColor.Set(
-      static_cast<unsigned char>(NTempest::CMath::fuint_n(255.0f)), static_cast<unsigned char>(NTempest::CMath::fuint_n(255.0f)),
-      static_cast<unsigned char>(255), static_cast<unsigned char>(255)
+      static_cast<BYTE>(NTempest::CMath::fuint_n(255.0f)), static_cast<BYTE>(NTempest::CMath::fuint_n(255.0f)), static_cast<BYTE>(255),
+      static_cast<BYTE>(255)
   );
   m_light.m_ambIntensity = 1.0f;
   m_light.m_dirIntensity = 1.0f;
@@ -58,7 +58,7 @@ CSimpleModel::~CSimpleModel() {
 void CSimpleModel::LoadXML(const XMLNode *node, CStatus *status) {
   CSimpleFrame::LoadXML(node, status);
 
-  const char *value = node->GetAttributeByName("file");
+  LPCSTR value = node->GetAttributeByName("file");
   if (value && *value) {
     SetModel(value, 0, status);
     if (!m_model) {
@@ -111,7 +111,7 @@ void CSimpleModel::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
   }
 }
 
-void CSimpleModel::SetModel(const char *sourcefile, CModelCreate *data, CStatus *status) {
+void CSimpleModel::SetModel(LPCSTR sourcefile, CModelCreate *data, CStatus *status) {
   HMODEL model = 0;
 
   if (sourcefile && *sourcefile) {
@@ -168,7 +168,7 @@ void CSimpleModel::SetCamera(HCAMERA camera) {
   SetCameraInternal(static_cast<HCAMERA>(HandleDuplicate(camera)));
 }
 
-void CSimpleModel::SetCameraByIndex(unsigned int index) {
+void CSimpleModel::SetCameraByIndex(UINT index) {
   ASSERT(m_model);
 
   if (m_flags & 0x1) {
@@ -187,13 +187,13 @@ void CSimpleModel::SetLight(const CGxLight &light) {
   m_light = light;
 }
 
-void CSimpleModel::SetSequence(unsigned int index) {
+void CSimpleModel::SetSequence(UINT index) {
   if (m_model) {
     ModelSetSequence(m_model, index, 8);
   }
 }
 
-int CSimpleModel::SetSequenceTime(unsigned int index, int timeOffset) {
+int CSimpleModel::SetSequenceTime(UINT index, int timeOffset) {
   if (m_model) {
     return ModelForceSequenceTime(m_model, index, timeOffset, 0);
   }
@@ -209,7 +209,7 @@ int CSimpleModel::AdvanceTime() {
   return 1;
 }
 
-void CSimpleModel::ReplaceTexture(unsigned int materialID, const char *textureName) {
+void CSimpleModel::ReplaceTexture(UINT materialID, LPCSTR textureName) {
   if (m_model) {
     CStatus  status;
     HTEXTURE texture = TextureCreate(textureName, CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
@@ -246,7 +246,7 @@ float CSimpleModel::GetHeight() {
   return height;
 }
 
-void CSimpleModel::SetAlpha(unsigned char alpha) {
+void CSimpleModel::SetAlpha(BYTE alpha) {
   CSimpleFrame::SetAlpha(alpha);
 
   if (m_model) {
@@ -254,7 +254,7 @@ void CSimpleModel::SetAlpha(unsigned char alpha) {
   }
 }
 
-void CSimpleModel::OnFrameRender(CRenderBatch *batch, unsigned int layer) {
+void CSimpleModel::OnFrameRender(CRenderBatch *batch, UINT layer) {
   CSimpleFrame::OnFrameRender(batch, layer);
 
   if (m_model && layer == 2) {
@@ -286,7 +286,7 @@ void CSimpleModel::UpdateModel() {
   );
 }
 
-void CSimpleModel::RenderModel(void *param) {
+void CSimpleModel::RenderModel(LPVOID param) {
   CSimpleModel *simpleModel = static_cast<CSimpleModel *>(param);
   if (!simpleModel->m_model) {
     return;
@@ -351,14 +351,14 @@ void CSimpleModel::RenderModel(void *param) {
 
     CGxLight nullLight;
     nullLight.m_enabled = 0;
-    unsigned int             whichLight = 0;
-    HMODEL                   model = simpleModel->m_model;
+    UINT   whichLight = 0;
+    HMODEL model = simpleModel->m_model;
 
     if (simpleModel->m_light.m_enabled) {
       GxLightSet(0, simpleModel->m_light, NTempest::C3Vector(0.0f));
       whichLight = 1;
     } else {
-      const unsigned int numLights = ModelGetNumLights(model);
+      const UINT numLights = ModelGetNumLights(model);
       for (; whichLight < numLights; ++whichLight) {
         const CGxLight *modelLight = ModelGetLight(model, whichLight);
         ASSERT(modelLight);

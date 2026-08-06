@@ -7,13 +7,13 @@ class TerrainTypeRec {
   TerrainTypeRec();
   ~TerrainTypeRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 6;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 24;
   }
 
@@ -29,15 +29,15 @@ class TerrainTypeRec {
     m_generatedID = id;
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_TerrainID;
-  const char *m_TerrainDesc;
-  int         m_FootstepSprayRun;
-  int         m_FootstepSprayWalk;
-  int         m_SoundID;
-  int         m_Flags;
-  int         m_generatedID;
+  int    m_TerrainID;
+  LPCSTR m_TerrainDesc;
+  int    m_FootstepSprayRun;
+  int    m_FootstepSprayWalk;
+  int    m_SoundID;
+  int    m_Flags;
+  int    m_generatedID;
 };
 
 extern WowClientDB<TerrainTypeRec> g_terrainTypeDB;

@@ -29,9 +29,9 @@ class CStringRep : public TRefCnt, public TSHashObject<CStringRep, HASHKEY_STR> 
 
   virtual void DecrRef();
 
-  int IsString(const char *str) const;
+  int IsString(LPCSTR str) const;
 
-  int operator==(const char *str) const {
+  int operator==(LPCSTR str) const {
     return IsString(str);
   }
 
@@ -44,7 +44,7 @@ class CStringManager : public TSHashTable<CStringRep, HASHKEY_STR> {
 
  protected:
   static CStringManager *Get();
-  static CStringManager            *s_stringManager;
+  static CStringManager *s_stringManager;
 
  public:
   CStringManager() {
@@ -54,8 +54,8 @@ class CStringManager : public TSHashTable<CStringRep, HASHKEY_STR> {
 
   virtual ~CStringManager();
 
-  CStringRep &Add(const char *str);
-  CStringRep &Find(const char *str);
+  CStringRep &Add(LPCSTR str);
+  CStringRep &Find(LPCSTR str);
 
   static void DestroyManager();
 };
@@ -65,13 +65,13 @@ class RCString : public TRefCnt {
   static RCString s_nullString;
 
  protected:
-  void     Copy(const char *source);
+  void     Copy(LPCSTR source);
   void     Copy(const RCString &source);
   void     Free();
-  RCString Cat(const char *lstr, const char *rstr);
+  RCString Cat(LPCSTR lstr, LPCSTR rstr);
 
  public:
-  RCString(const char *str = 0) {
+  RCString(LPCSTR str = 0) {
     Copy(str);
   }
 
@@ -88,21 +88,21 @@ class RCString : public TRefCnt {
     return *this;
   }
 
-  RCString &operator=(const char *str) {
+  RCString &operator=(LPCSTR str) {
     Copy(str);
     return *this;
   }
 
-  int operator==(const char *str) const;
+  int operator==(LPCSTR str) const;
   int operator==(const RCString &r) const;
 
-  RCString &operator+=(const char *rstr);
+  RCString &operator+=(LPCSTR rstr);
   RCString &operator+=(const RCString &r);
 
-  RCString    SubString(RCStringIndex start, RCStringIndex end) const;
-  const char *GetString() const;
+  RCString SubString(RCStringIndex start, RCStringIndex end) const;
+  LPCSTR   GetString() const;
 
-  operator const char *() const;
+  operator LPCSTR() const;
 
   void Get(char *buf, RCStringIndex bufSize) const;
 
@@ -112,13 +112,13 @@ class RCString : public TRefCnt {
 
 class RCStaticString : public RCString {
  public:
-  RCStaticString &operator=(const char *str) {
+  RCStaticString &operator=(LPCSTR str) {
     Copy(str);
     return *this;
   }
 
-  operator const char *() const {
-    const char *itemstring = GetString();
+  operator LPCSTR() const {
+    LPCSTR itemstring = GetString();
     return itemstring ? itemstring : "";
   }
 };

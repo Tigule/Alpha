@@ -24,18 +24,18 @@
 #include <stdio.h>
 #include <storm.h>
 
-void Script_SendUnitSignal(const unsigned __int64 &guid, int signal);
+void Script_SendUnitSignal(const DWORDLONG &guid, int signal);
 
 #define PORTRAIT_SIZE_SMALL 64
 
-static int CCommand_PLightInfo(const char *command, const char *arguments);
-static int CCommand_PLightEnable(const char *command, const char *arguments);
-static int CCommand_PLightOmni(const char *command, const char *arguments);
-static int CCommand_PLightDir(const char *command, const char *arguments);
-static int CCommand_PLightAmbColor(const char *command, const char *arguments);
-static int CCommand_PLightDirColor(const char *command, const char *arguments);
-static int CCommand_PLightAmbIntens(const char *command, const char *arguments);
-static int CCommand_PLightDirIntens(const char *command, const char *arguments);
+static int CCommand_PLightInfo(LPCSTR command, LPCSTR arguments);
+static int CCommand_PLightEnable(LPCSTR command, LPCSTR arguments);
+static int CCommand_PLightOmni(LPCSTR command, LPCSTR arguments);
+static int CCommand_PLightDir(LPCSTR command, LPCSTR arguments);
+static int CCommand_PLightAmbColor(LPCSTR command, LPCSTR arguments);
+static int CCommand_PLightDirColor(LPCSTR command, LPCSTR arguments);
+static int CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments);
+static int CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments);
 
 struct PortraitData {
   HTEXTURE                             texture;
@@ -43,7 +43,7 @@ struct PortraitData {
 };
 
 struct PLAYERPORTRAIT : public TSHashObject<PLAYERPORTRAIT, CHashKeyGUID> {
-  unsigned int dirty;
+  UINT         dirty;
   PortraitData portrait;
 };
 
@@ -56,11 +56,11 @@ struct ITEMPORTRAIT : public TSHashObject<ITEMPORTRAIT, HASHKEY_STR> {
 };
 
 NODEDECL(DIRTYFACE) {
-  unsigned __int64 guid;
+  DWORDLONG guid;
 };
 
 static NTempest::C44Matrix                       identity;
-static TSFixedArray<unsigned char>               alphaMasks[2];
+static TSFixedArray<BYTE>                        alphaMasks[2];
 static TSHashTable<PLAYERPORTRAIT, CHashKeyGUID> s_playerPortraits;
 static TSHashTable<UNITPORTRAIT, HASHKEY_NONE>   s_unitPortraits;
 static TSHashTable<ITEMPORTRAIT, HASHKEY_STR>    s_itemPortraits;
@@ -68,18 +68,18 @@ static HASHKEY_NONE                              s_nullHashKey;
 static LISTDECL(DIRTYFACE, s_dirtyFaces);
 static LISTDECL(DIRTYFACE, s_freeDirtyFaces);
 
-static const TSFixedArray<unsigned char> &GetAlphaMask(unsigned int size) {
-  CBLPFile                     image;
-  CTgaFile                     alpha;
-  unsigned int                 stride;
-  int                          loaded = 0;
-  unsigned char               *imageData = 0;
-  TSFixedArray<unsigned char> &mask = alphaMasks[size == 64];
+static const TSFixedArray<BYTE> &GetAlphaMask(UINT size) {
+  CBLPFile            image;
+  CTgaFile            alpha;
+  UINT                stride;
+  int                 loaded = 0;
+  BYTE               *imageData = 0;
+  TSFixedArray<BYTE> &mask = alphaMasks[size == 64];
 
   if (!mask.Count()) {
     mask.SetCount(size * size);
 
-    const char *alphaFile = 0;
+    LPCSTR alphaFile = 0;
     if (size == 128) {
       alphaFile = "Interface\\CharacterFrame\\TempPortraitAlphaMask.tga";
     } else if (size == 64) {
@@ -98,7 +98,7 @@ static const TSFixedArray<unsigned char> &GetAlphaMask(unsigned int size) {
       }
     }
 
-    const char *imageFile = 0;
+    LPCSTR imageFile = 0;
     if (size == 128) {
       imageFile = "Interface\\CharacterFrame\\TempPortraitAlphaMask.blp";
     } else if (size == 64) {
@@ -111,7 +111,7 @@ static const TSFixedArray<unsigned char> &GetAlphaMask(unsigned int size) {
       ASSERT(image.Width() == size);
       ASSERT(image.Height() == size);
       if (image.Lock(PIXEL_ARGB8888, 0, imageData, stride)) {
-        for (unsigned int i = 0; i < mask.Count(); ++i) {
+        for (UINT i = 0; i < mask.Count(); ++i) {
           mask[i] = imageData[4 * i];
         }
         loaded = 1;
@@ -129,16 +129,7 @@ static const TSFixedArray<unsigned char> &GetAlphaMask(unsigned int size) {
   return mask;
 }
 
-static void TextureUpdate(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+static void TextureUpdate(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Latch) {
     texelStrideInBytes = 4 * w;
     texels = static_cast<TSGrowableArray<NTempest::CImVector> *>(userArg)->Ptr();
@@ -164,16 +155,16 @@ static struct {
     {1, 1, -1.0f, -1.0f, 1.0f,  0.0f,  0.0f, 0.0f, 0.02f, 0.53f, 0.68f,  0.0f, 0.5f}
 };
 
-static int CCommand_PLightInfo(const char *command, const char *arguments) {
-  unsigned int index = SStrToInt(arguments);
+static int CCommand_PLightInfo(LPCSTR command, LPCSTR arguments) {
+  UINT index = SStrToInt(arguments);
 
   if (index > 2) {
     ConsoleWriteA("Invalid index", ERROR_COLOR);
     return 1;
   }
 
-  const char *enabled = s_lightInfo[index].enable ? "on" : "off";
-  const char *type = s_lightInfo[index].omni ? "omni" : "directional";
+  LPCSTR enabled = s_lightInfo[index].enable ? "on" : "off";
+  LPCSTR type = s_lightInfo[index].omni ? "omni" : "directional";
   ConsoleWriteA("Portrait light %d(%s) is %s", DEFAULT_COLOR, index, type, enabled);
   ConsoleWriteA(
       "%s: (%.2f, %.2f, %.2f)", DEFAULT_COLOR, s_lightInfo[index].omni ? "Position" : "Direction", s_lightInfo[index].dirx, s_lightInfo[index].diry,
@@ -190,9 +181,9 @@ static int CCommand_PLightInfo(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_PLightEnable(const char *command, const char *arguments) {
-  unsigned int enable;
-  unsigned int index;
+static int CCommand_PLightEnable(LPCSTR command, LPCSTR arguments) {
+  UINT enable;
+  UINT index;
 
   if (sscanf(arguments, "%d %d", &index, &enable) && index < 2) {
     s_lightInfo[index].enable = enable != 0;
@@ -203,9 +194,9 @@ static int CCommand_PLightEnable(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_PLightOmni(const char *command, const char *arguments) {
-  unsigned int omni;
-  unsigned int index;
+static int CCommand_PLightOmni(LPCSTR command, LPCSTR arguments) {
+  UINT omni;
+  UINT index;
 
   if (sscanf(arguments, "%d %d", &index, &omni) && index < 2) {
     s_lightInfo[index].omni = omni != 0;
@@ -216,11 +207,11 @@ static int CCommand_PLightOmni(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_PLightDir(const char *command, const char *arguments) {
-  float        z;
-  float        y;
-  float        x;
-  unsigned int index;
+static int CCommand_PLightDir(LPCSTR command, LPCSTR arguments) {
+  float z;
+  float y;
+  float x;
+  UINT  index;
 
   if (sscanf(arguments, "%d %f %f %f", &index, &x, &y, &z) && index < 2) {
     s_lightInfo[index].dirx = x;
@@ -233,11 +224,11 @@ static int CCommand_PLightDir(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_PLightAmbColor(const char *command, const char *arguments) {
-  float        b;
-  float        g;
-  float        r;
-  unsigned int index;
+static int CCommand_PLightAmbColor(LPCSTR command, LPCSTR arguments) {
+  float b;
+  float g;
+  float r;
+  UINT  index;
 
   if (sscanf(arguments, "%d %f %f %f", &index, &r, &g, &b) && index < 2) {
     s_lightInfo[index].ambColorr = r;
@@ -250,11 +241,11 @@ static int CCommand_PLightAmbColor(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_PLightDirColor(const char *command, const char *arguments) {
-  float        b;
-  float        g;
-  float        r;
-  unsigned int index;
+static int CCommand_PLightDirColor(LPCSTR command, LPCSTR arguments) {
+  float b;
+  float g;
+  float r;
+  UINT  index;
 
   if (sscanf(arguments, "%d %f %f %f", &index, &r, &g, &b) && index < 2) {
     s_lightInfo[index].dirColorr = r;
@@ -267,9 +258,9 @@ static int CCommand_PLightDirColor(const char *command, const char *arguments) {
   return 1;
 }
 
-static int CCommand_PLightAmbIntens(const char *command, const char *arguments) {
-  float        intens;
-  unsigned int index;
+static int CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments) {
+  float intens;
+  UINT  index;
 
   if (sscanf(arguments, "%d %f", &index, &intens) && index < 2) {
     s_lightInfo[index].ambIntens = intens;
@@ -280,9 +271,9 @@ static int CCommand_PLightAmbIntens(const char *command, const char *arguments) 
   return 1;
 }
 
-static int CCommand_PLightDirIntens(const char *command, const char *arguments) {
-  float        intens;
-  unsigned int index;
+static int CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments) {
+  float intens;
+  UINT  index;
 
   if (sscanf(arguments, "%d %f", &index, &intens) && index < 2) {
     s_lightInfo[index].dirIntens = intens;
@@ -322,10 +313,10 @@ void PortraitShutdown() {
 
 void UpdatePortraits() {
   while (DIRTYFACE *dirty = s_dirtyFaces.Head()) {
-    unsigned __int64 guid = dirty->guid;
-    CHashKeyGUID     hashkey(guid);
-    unsigned int     hashval = static_cast<unsigned int>(guid);
-    PLAYERPORTRAIT  *portrait = s_playerPortraits.Ptr(hashval, hashkey);
+    DWORDLONG       guid = dirty->guid;
+    CHashKeyGUID    hashkey(guid);
+    UINT            hashval = static_cast<UINT>(guid);
+    PLAYERPORTRAIT *portrait = s_playerPortraits.Ptr(hashval, hashkey);
     if (portrait) {
       portrait->dirty = 1;
     }
@@ -335,7 +326,7 @@ void UpdatePortraits() {
   }
 }
 
-void UpdatePortraitTexture(const unsigned __int64 &guid) {
+void UpdatePortraitTexture(const DWORDLONG &guid) {
   DIRTYFACE *dirty;
   ITERATELIST(DIRTYFACE, s_dirtyFaces, existingDirty) {
     if (existingDirty->guid == guid) {
@@ -353,7 +344,7 @@ void UpdatePortraitTexture(const unsigned __int64 &guid) {
   dirty->guid = guid;
 }
 
-void SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int sex, unsigned __int64 guid) {
+void SetPortraitTexture(CSimpleTexture *texture, UINT race, UINT sex, DWORDLONG guid) {
   char buf[64];
 
   if (!texture) {
@@ -362,7 +353,7 @@ void SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int
 
   if (guid) {
     CHashKeyGUID    hashkey(guid);
-    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<unsigned int>(guid), hashkey);
+    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(guid), hashkey);
     if (playerPortrait && playerPortrait->portrait.texture) {
       texture->SetTexture(playerPortrait->portrait.texture);
       return;
@@ -370,7 +361,7 @@ void SetPortraitTexture(CSimpleTexture *texture, unsigned int race, unsigned int
   }
 
   ASSERT(race != 0);
-  ASSERT(race <= static_cast<unsigned int>(g_chrRacesDB.GetMaxID()));
+  ASSERT(race <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
   ASSERT(sex < 3);
 
   SStrPrintf(
@@ -400,7 +391,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
 
   if (unit->GetType() & TYPE_PLAYER) {
     CHashKeyGUID    hashkey(unit->GetGUID());
-    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<unsigned int>(unit->GetGUID()), hashkey);
+    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(unit->GetGUID()), hashkey);
     if (playerPortrait) {
       if (playerPortrait->dirty) {
         portrait = &playerPortrait->portrait;
@@ -477,7 +468,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   GxXformSetViewport(viewRect.l, viewRect.r, viewRect.t, viewRect.b, 0.0f, 1.0f);
   GxSceneClear(3);
 
-  for (unsigned int lightIndex = 0; lightIndex < 2; ++lightIndex) {
+  for (UINT lightIndex = 0; lightIndex < 2; ++lightIndex) {
     CGxLight light;
     light.m_enabled = s_lightInfo[lightIndex].enable;
     light.m_isOmni = s_lightInfo[lightIndex].omni;
@@ -492,7 +483,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
 
   CGxLight noLight;
   noLight.m_enabled = 0;
-  for (unsigned int disabledLightIndex = 2; disabledLightIndex < Gx_MaxLights; ++disabledLightIndex) {
+  for (UINT disabledLightIndex = 2; disabledLightIndex < Gx_MaxLights; ++disabledLightIndex) {
     GxLightSet(disabledLightIndex, noLight, NTempest::C3Vector());
   }
 
@@ -503,9 +494,9 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
 
   if (unit->GetType() & TYPE_PLAYER) {
     CHashKeyGUID    hashkey(unit->GetGUID());
-    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<unsigned int>(unit->GetGUID()), hashkey);
+    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(unit->GetGUID()), hashkey);
     if (!playerPortrait) {
-      playerPortrait = s_playerPortraits.New(static_cast<unsigned int>(unit->GetGUID()), hashkey, 0, 0);
+      playerPortrait = s_playerPortraits.New(static_cast<UINT>(unit->GetGUID()), hashkey, 0, 0);
     }
     playerPortrait->dirty = 0;
     portrait = &playerPortrait->portrait;
@@ -518,9 +509,9 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   GxDevReadPixels(pixRect, portrait->pixels);
   GxSceneClear(3);
 
-  const TSFixedArray<unsigned char> &alphaMask = GetAlphaMask(64);
+  const TSFixedArray<BYTE> &alphaMask = GetAlphaMask(64);
   ASSERT(portrait->pixels.Count() == alphaMask.Count());
-  for (unsigned int i = 0; i < portrait->pixels.Count(); ++i) {
+  for (UINT i = 0; i < portrait->pixels.Count(); ++i) {
     portrait->pixels[i].a = alphaMask[i];
   }
 
@@ -543,7 +534,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   HandleClose(camera);
 }
 
-void SetPortraitTexture(CSimpleTexture *texture, const char *textureFile) {
+void SetPortraitTexture(CSimpleTexture *texture, LPCSTR textureFile) {
   if (!textureFile || !*textureFile) {
     return;
   }
@@ -566,27 +557,25 @@ void SetPortraitTexture(CSimpleTexture *texture, const char *textureFile) {
       pixels.SetCount(PORTRAIT_SIZE_SMALL * PORTRAIT_SIZE_SMALL);
     }
 
-    unsigned char *texData;
-    unsigned int   stride;
+    BYTE *texData;
+    UINT  stride;
     if (texFile.Lock(PIXEL_ARGB8888, 0, texData, stride)) {
-      for (unsigned int i = 0; i < pixels.Count(); ++i) {
+      for (UINT i = 0; i < pixels.Count(); ++i) {
         pixels[i] = NTempest::CImVector(texData[4 * i + 3], texData[4 * i + 2], texData[4 * i + 1], texData[4 * i]);
       }
     }
     texFile.Unlock(0);
     texFile.Close();
 
-    const TSFixedArray<unsigned char> &alphaMask = GetAlphaMask(PORTRAIT_SIZE_SMALL);
+    const TSFixedArray<BYTE> &alphaMask = GetAlphaMask(PORTRAIT_SIZE_SMALL);
     ASSERT(pixels.Count() == alphaMask.Count());
-    for (unsigned int i = 0; i < pixels.Count(); ++i) {
+    for (UINT i = 0; i < pixels.Count(); ++i) {
       pixels[i].a = alphaMask[i];
     }
 
     CGxTex     *gxTex;
     CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-    GxTexCreate(
-        PORTRAIT_SIZE_SMALL, PORTRAIT_SIZE_SMALL, GxTex_Argb8888, flags, &pixels, TextureUpdate, gxTex
-    );
+    GxTexCreate(PORTRAIT_SIZE_SMALL, PORTRAIT_SIZE_SMALL, GxTex_Argb8888, flags, &pixels, TextureUpdate, gxTex);
     HTEXTURE portraitTexture = TextureCreate(gxTex);
     texture->SetTexture(portraitTexture);
     itemPortrait->portrait.texture = portraitTexture;

@@ -14,8 +14,8 @@
 #include <FrameScript/FrameScript.h>
 #include <storm.h>
 
-static const float XOFFSET = 0.008f;
-static const float YOFFSET = 0.008f;
+static const float         XOFFSET = 0.008f;
+static const float         YOFFSET = 0.008f;
 static NTempest::CImVector s_playerColor(0xFF0000FF);
 static NTempest::CImVector s_friendlyColor(0xFF00FF00);
 static NTempest::CImVector s_neutralColor(0xFFFFFF00);

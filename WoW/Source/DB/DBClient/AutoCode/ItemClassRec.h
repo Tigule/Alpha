@@ -7,13 +7,13 @@ class ItemClassRec {
   ItemClassRec();
   ~ItemClassRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 12;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 48;
   }
 
@@ -29,14 +29,14 @@ class ItemClassRec {
     m_generatedID = id;
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_classID;
-  int         m_subclassMapID;
-  int         m_flags;
-  const char *m_className_lang[NUM_LOCALES];
-  int         m_className_flag;
-  int         m_generatedID;
+  int    m_classID;
+  int    m_subclassMapID;
+  int    m_flags;
+  LPCSTR m_className_lang[NUM_LOCALES];
+  int    m_className_flag;
+  int    m_generatedID;
 };
 
 extern WowClientDB<ItemClassRec> g_itemClassDB;

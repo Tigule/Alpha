@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CharTextureVariationsV2Rec::GetFilename() {
+LPCSTR CharTextureVariationsV2Rec::GetFilename() {
   return "DBFilesClient\\CharTextureVariationsV2.dbc";
 }
 
@@ -19,9 +19,9 @@ CharTextureVariationsV2Rec::CharTextureVariationsV2Rec() {
 CharTextureVariationsV2Rec::~CharTextureVariationsV2Rec() {
 }
 
-bool CharTextureVariationsV2Rec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempTextureNameIndices[1];
+bool CharTextureVariationsV2Rec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempTextureNameIndices[1];
 
   result = SFileReadTyped(f, &m_ID) && result;
   result = SFileReadTyped(f, &m_RaceID) && result;

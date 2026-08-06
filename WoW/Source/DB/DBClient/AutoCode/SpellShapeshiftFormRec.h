@@ -7,13 +7,13 @@ class SpellShapeshiftFormRec {
   SpellShapeshiftFormRec();
   ~SpellShapeshiftFormRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 12;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 48;
   }
 
@@ -28,13 +28,13 @@ class SpellShapeshiftFormRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_bonusActionBar;
-  const char *m_name_lang[NUM_LOCALES];
-  int         m_name_flag;
-  int         m_flags;
+  int    m_ID;
+  int    m_bonusActionBar;
+  LPCSTR m_name_lang[NUM_LOCALES];
+  int    m_name_flag;
+  int    m_flags;
 };
 
 extern WowClientDB<SpellShapeshiftFormRec> g_spellShapeshiftFormDB;

@@ -96,11 +96,11 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual void          LoadXML_Scripts(const XMLNode *node, CStatus *status);
   virtual void          PostLoadXML(const XMLNode *node, CStatus *status);
   virtual CLayoutFrame *GetLayoutParent();
-  virtual const char   *GetName() const {
+  virtual LPCSTR        GetName() const {
     return m_frameName;
   }
-  virtual void SetAlpha(unsigned char alpha);
-  virtual int  FrameDefPostInitialize(unsigned int createContext, void *context) {
+  virtual void SetAlpha(BYTE alpha);
+  virtual int  FrameDefPostInitialize(UINT createContext, LPVOID context) {
     return 1;
   }
   virtual int  TestHitRect(const NTempest::C2Vector &pt);
@@ -109,7 +109,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual void OnLayerUpdate(float elapsedSec);
   virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnFrameRender();
-  virtual void OnFrameRender(CRenderBatch *batch, unsigned int layer);
+  virtual void OnFrameRender(CRenderBatch *batch, UINT layer);
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
   virtual void OnFrameSizeChanged(float w, float h);
   virtual void OnLayerCursorEnter();
@@ -177,7 +177,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return frame;
   }
 
-  unsigned char GetAlpha() const {
+  BYTE GetAlpha() const {
     return m_alpha;
   }
 
@@ -247,7 +247,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return m_shown;
   }
 
-  void RegisterForDrag(unsigned int buttons) {
+  void RegisterForDrag(UINT buttons) {
     m_lookForDrag = buttons;
   }
 
@@ -259,136 +259,136 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return CLayoutFrame::DragBy(reinterpret_cast<CLayoutFrame *>(m_top), deltaX, deltaY, anchor, rect);
   }
 
-  void AddFrameRegion(CSimpleRegion *region, unsigned int drawlayer);
-  int  AddToFrameRegistry(const char *frameName, unsigned int context);
+  void AddFrameRegion(CSimpleRegion *region, UINT drawlayer);
+  int  AddToFrameRegistry(LPCSTR frameName, UINT context);
   void ClearFromSimpleRegistry();
-  void DisableDrawLayer(unsigned int drawlayer);
+  void DisableDrawLayer(UINT drawlayer);
   void DisableEvent(CSimpleEventType event);
-  void EnableDrawLayer(unsigned int drawlayer);
+  void EnableDrawLayer(UINT drawlayer);
   int  GetHitRect(NTempest::CRect &rect);
   void NotifyDrawLayersChanged();
-  void NotifyDrawLayerChanged(unsigned int drawlayer);
-  void OnUpdateBatch(unsigned int layer);
+  void NotifyDrawLayerChanged(UINT drawlayer);
+  void OnUpdateBatch(UINT layer);
   void Lower();
   void Raise();
   void RegisterRegion(CSimpleRegion *region);
   void RegisterForEvents();
-  void RemoveFrameRegion(CSimpleRegion *region, unsigned int drawlayer);
-  void SetOnCharScript(const char *source) {
+  void RemoveFrameRegion(CSimpleRegion *region, UINT drawlayer);
+  void SetOnCharScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnChar", GetName());
     SetEventScript(m_onChar, source, description);
   }
 
-  void SetOnDragStartScript(const char *source) {
+  void SetOnDragStartScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<unsigned int>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
     }
     SStrPrintf(description, sizeof(description), "%s:OnDragStart", GetName());
     SetEventScript(m_onDragStart, source, description);
   }
 
-  void SetOnDragStopScript(const char *source) {
+  void SetOnDragStopScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnDragStop", GetName());
     SetEventScript(m_onDragStop, source, description);
   }
 
-  void SetOnEnterScript(const char *source) {
+  void SetOnEnterScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<unsigned int>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
     }
     SStrPrintf(description, sizeof(description), "%s:OnEnter", GetName());
     SetEventScript(m_onEnter, source, description);
   }
 
-  void SetOnHideScript(const char *source) {
+  void SetOnHideScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnHide", GetName());
     SetEventScript(m_onHide, source, description);
   }
 
-  void SetOnKeyDownScript(const char *source) {
+  void SetOnKeyDownScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnKeyDown", GetName());
     SetEventScript(m_onKeyDown, source, description);
   }
 
-  void SetOnKeyUpScript(const char *source) {
+  void SetOnKeyUpScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnKeyUp", GetName());
     SetEventScript(m_onKeyUp, source, description);
   }
 
-  void SetOnLeaveScript(const char *source) {
+  void SetOnLeaveScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<unsigned int>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
     }
     SStrPrintf(description, sizeof(description), "%s:OnLeave", GetName());
     SetEventScript(m_onLeave, source, description);
   }
 
-  void SetOnLoadScript(const char *source) {
+  void SetOnLoadScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnLoad", GetName());
     SetEventScript(m_onLoad, source, description);
   }
 
-  void SetOnMouseDownScript(const char *source) {
+  void SetOnMouseDownScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<unsigned int>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
     }
     SStrPrintf(description, sizeof(description), "%s:OnMouseDown", GetName());
     SetEventScript(m_onMouseDown, source, description);
   }
 
-  void SetOnMouseUpScript(const char *source) {
+  void SetOnMouseUpScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<unsigned int>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
     }
     SStrPrintf(description, sizeof(description), "%s:OnMouseUp", GetName());
     SetEventScript(m_onMouseUp, source, description);
   }
 
-  void SetOnMouseWheelScript(const char *source) {
+  void SetOnMouseWheelScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSEWHEEL, static_cast<unsigned int>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSEWHEEL, static_cast<UINT>(-1));
     }
     SStrPrintf(description, sizeof(description), "%s:OnMouseWheel", GetName());
     SetEventScript(m_onMouseWheel, source, description);
   }
 
-  void SetOnReceiveDragScript(const char *source) {
+  void SetOnReceiveDragScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnReceiveDrag", GetName());
     SetEventScript(m_onReceiveDrag, source, description);
   }
 
-  void SetOnShowScript(const char *source) {
+  void SetOnShowScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnShow", GetName());
     SetEventScript(m_onShow, source, description);
   }
 
-  void SetOnSizeChangedScript(const char *source) {
+  void SetOnSizeChangedScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnSizeChanged", GetName());
     SetEventScript(m_onSizeChanged, source, description);
   }
 
-  void SetOnUpdateScript(const char *source) {
+  void SetOnUpdateScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnUpdate", GetName());
     SetEventScript(m_onUpdate, source, description);
   }
 
-  void RunOnCharScript(const char *character) {
+  void RunOnCharScript(LPCSTR character) {
     ASSERT(!m_loading);
     if (m_onChar) {
       FrameScript_Execute(m_onChar, this, "%s", character);
@@ -396,7 +396,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   }
 
   void RunOnDragStartScript(MOUSEBUTTON button) {
-    const char *buttonName;
+    LPCSTR buttonName;
 
     switch (button) {
       case MOUSE_BUTTON_LEFT:
@@ -445,14 +445,14 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     }
   }
 
-  void RunOnKeyDownScript(const char *key) {
+  void RunOnKeyDownScript(LPCSTR key) {
     ASSERT(!m_loading);
     if (m_onKeyDown) {
       FrameScript_Execute(m_onKeyDown, this, "%s", key);
     }
   }
 
-  void RunOnKeyUpScript(const char *key) {
+  void RunOnKeyUpScript(LPCSTR key) {
     ASSERT(!m_loading);
     if (m_onKeyUp) {
       FrameScript_Execute(m_onKeyUp, this, "%s", key);
@@ -473,7 +473,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   }
 
   void RunOnMouseDownScript(MOUSEBUTTON button) {
-    const char *buttonName;
+    LPCSTR buttonName;
 
     switch (button) {
       case MOUSE_BUTTON_LEFT:
@@ -503,7 +503,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   }
 
   void RunOnMouseUpScript(MOUSEBUTTON button) {
-    const char *buttonName;
+    LPCSTR buttonName;
 
     switch (button) {
       case MOUSE_BUTTON_LEFT:
@@ -565,19 +565,19 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     }
   }
 
-  void EnableEvent(CSimpleEventType event, unsigned int priority);
-  void SetBeingScrolled(int on);
-  void SetBackdrop(CBackdropGenerator *backdrop);
+  void                EnableEvent(CSimpleEventType event, UINT priority);
+  void                SetBeingScrolled(int on);
+  void                SetBackdrop(CBackdropGenerator *backdrop);
   CBackdropGenerator *GetBackdrop() {
     return m_backdrop;
   }
-  LIST(REGIONNODE) &GetRegions() {
+  LIST(REGIONNODE) & GetRegions() {
     return m_regions;
   }
-  LIST(SIMPLEFRAMENODE) &GetChildren() {
+  LIST(SIMPLEFRAMENODE) & GetChildren() {
     return m_children;
   }
-  int  SetHighlight(const char *texFile, EGxBlend blendMode);
+  int  SetHighlight(LPCSTR texFile, EGxBlend blendMode);
   int  SetHighlight(CSimpleTexture *texture, EGxBlend blendMode);
   void SetFrameFlag(int flag, int on);
   void SetFrameLevel(int level, int shiftChildren);
@@ -610,17 +610,17 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void                  UnregisterForEvents();
   virtual void          SetDeferredResize(int enable);
   virtual void          SetLayoutScale(float scale, bool resize);
-  virtual CLayoutFrame *GetLayoutFrameByName(const char *name);
+  virtual CLayoutFrame *GetLayoutFrameByName(LPCSTR name);
 
  protected:
-  virtual int  LookupScriptMethod(lua_State *L, const char *name);
+  virtual int  LookupScriptMethod(lua_State *L, LPCSTR name);
   virtual int  HideThis();
   virtual int  ShowThis();
   virtual void ClearChildrenFromSimpleRegistry();
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
-  void AnchorDrawRegion(CSimpleRegion *region, unsigned int drawlayer);
+  void AnchorDrawRegion(CSimpleRegion *region, UINT drawlayer);
   void UnanchorDrawRegion(CSimpleRegion *region);
   void ParentFrame(CSimpleFrame *frame);
   void UnparentFrame(CSimpleFrame *frame);
@@ -635,47 +635,47 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     STATE_DESTROYED = 2,
     STATE_DELETED = 3
   } m_initialized_state;
-  int                                                  m_id;
-  char                                                *m_frameName;
-  unsigned int                                         m_frameRegContext;
-  unsigned int                                         m_flags;
-  int                                                  m_strata;
-  int                                                  m_level;
-  unsigned char                                        m_alpha;
-  unsigned int                                         m_eventmask;
-  int                                                  m_shown;
-  int                                                  m_visible;
-  NTempest::CRect                                      m_hitRect;
-  NTempest::CRect                                      m_hitOffset;
-  int                                                  m_highlightLocked;
-  unsigned int                                         m_lookForDrag;
-  int                                                  m_mouseDown;
-  int                                                  m_dragging;
-  MOUSEBUTTON                                          m_dragButton;
-  NTempest::C2Vector                                   m_clickPoint;
-  int                                                  m_loading;
-  int                                                  m_onLoad;
-  int                                                  m_onSizeChanged;
-  int                                                  m_onUpdate;
-  int                                                  m_onShow;
-  int                                                  m_onHide;
-  int                                                  m_onEnter;
-  int                                                  m_onLeave;
-  int                                                  m_onMouseDown;
-  int                                                  m_onMouseUp;
-  int                                                  m_onMouseWheel;
-  int                                                  m_onDragStart;
-  int                                                  m_onDragStop;
-  int                                                  m_onReceiveDrag;
-  int                                                  m_onChar;
-  int                                                  m_onKeyDown;
-  int                                                  m_onKeyUp;
-  int                                                  m_drawenabled[5];
-  CBackdropGenerator                                  *m_backdrop;
+  int                 m_id;
+  char               *m_frameName;
+  UINT                m_frameRegContext;
+  UINT                m_flags;
+  int                 m_strata;
+  int                 m_level;
+  BYTE                m_alpha;
+  UINT                m_eventmask;
+  int                 m_shown;
+  int                 m_visible;
+  NTempest::CRect     m_hitRect;
+  NTempest::CRect     m_hitOffset;
+  int                 m_highlightLocked;
+  UINT                m_lookForDrag;
+  int                 m_mouseDown;
+  int                 m_dragging;
+  MOUSEBUTTON         m_dragButton;
+  NTempest::C2Vector  m_clickPoint;
+  int                 m_loading;
+  int                 m_onLoad;
+  int                 m_onSizeChanged;
+  int                 m_onUpdate;
+  int                 m_onShow;
+  int                 m_onHide;
+  int                 m_onEnter;
+  int                 m_onLeave;
+  int                 m_onMouseDown;
+  int                 m_onMouseUp;
+  int                 m_onMouseWheel;
+  int                 m_onDragStart;
+  int                 m_onDragStop;
+  int                 m_onReceiveDrag;
+  int                 m_onChar;
+  int                 m_onKeyDown;
+  int                 m_onKeyUp;
+  int                 m_drawenabled[5];
+  CBackdropGenerator *m_backdrop;
   LISTDECL(REGIONNODE, m_regions);
   LISTDECL(REGIONNODE, m_drawlayers[5]);
-  unsigned int                                         m_batchDirty;
-  CRenderBatch                                         m_batch[5];
+  UINT         m_batchDirty;
+  CRenderBatch m_batch[5];
   LISTDECLEX(CRenderBatch, renderLink, m_renderList);
   LISTDECL(SIMPLEFRAMENODE, m_children);
 

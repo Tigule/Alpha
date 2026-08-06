@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *WorldMapAreaRec::GetFilename() {
+LPCSTR WorldMapAreaRec::GetFilename() {
   return "DBFilesClient\\WorldMapArea.dbc";
 }
 
@@ -19,9 +19,9 @@ WorldMapAreaRec::WorldMapAreaRec() {
 WorldMapAreaRec::~WorldMapAreaRec() {
 }
 
-bool WorldMapAreaRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempareaNameIndices[1];
+bool WorldMapAreaRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempareaNameIndices[1];
 
   result = SFileReadTyped(f, &m_ID) && result;
   result = SFileReadTyped(f, &m_mapID) && result;

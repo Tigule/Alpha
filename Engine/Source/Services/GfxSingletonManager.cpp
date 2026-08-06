@@ -8,7 +8,7 @@
 ParticleSystemManager *ParticleSystemManager::manager = 0;
 float                  ParticleSystemManager::scaler = 1.0f;
 float                  ParticleSystemManager::sm_projectDistance;
-int(*ParticleSystemManager::sm_projectCallback)(const NTempest::C3Segment &, float &);
+int (*ParticleSystemManager::sm_projectCallback)(const NTempest::C3Segment &, float &);
 RibbonManager *RibbonManager::manager = 0;
 
 void ParticleSystemManager::SetScaler(float scaler) {
@@ -33,7 +33,7 @@ ParticleSystemManager *ParticleSystemManager::GetInstance() {
 
     NTempest::CRndSeed randSeed;
     randSeed.SetSeed((rand() << 16) | rand());
-    for (unsigned int i = 0; i < 128; ++i) {
+    for (UINT i = 0; i < 128; ++i) {
       CParticleEmitter2::m_rndTable[i] = NTempest::CRandom::real_(randSeed);
     }
 
@@ -52,7 +52,7 @@ ParticleSystemManager::~ParticleSystemManager() {
 }
 
 void ParticleSystemManager::Flush() {
-  unsigned int index;
+  UINT index;
 
   index = modelEmitters.Count();
   while (index) {
@@ -120,7 +120,7 @@ CParticleEmitter2 *ParticleSystemManager::DuplicateEmitter(const CParticleEmitte
 }
 
 void ParticleSystemManager::UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
-  unsigned int index = modelEmitters.Count();
+  UINT index = modelEmitters.Count();
   while (index) {
     modelEmitters[--index]->Update(elapsedTime, cameraPos, cameraTarg);
   }
@@ -153,16 +153,16 @@ void ParticleSystemManager::UpdateEmitters(float elapsedTime, const NTempest::C3
   }
 }
 
-void ParticleSystemManager::RenderParticleEmitter2(void *param1, int param2) {
+void ParticleSystemManager::RenderParticleEmitter2(LPVOID param1, int param2) {
   static_cast<CParticleEmitter2 *>(param1)->Render();
 }
 
-void ParticleSystemManager::RenderParticleEmitter(void *param1, int param2) {
+void ParticleSystemManager::RenderParticleEmitter(LPVOID param1, int param2) {
   static_cast<CParticleEmitter *>(param1)->Render();
 }
 
 void ParticleSystemManager::RenderEmitters() {
-  unsigned int index = deletedEmitter2s.Count();
+  UINT index = deletedEmitter2s.Count();
   while (index) {
     CParticleEmitter2 *emitter = deletedEmitter2s[--index];
     ModelAddToScene(*reinterpret_cast<NTempest::C3Vector *>(&emitter->m_modelToWorld.d0), 0, RenderParticleEmitter2, emitter, 0);
@@ -172,7 +172,7 @@ void ParticleSystemManager::RenderEmitters() {
 void ParticleSystemManager::DeleteEmitter2(CParticleEmitter2 *emitter) {
   FATALASSERT(emitter);
   emitter->DecRef();
-  unsigned int index = emitter2s.Count();
+  UINT index = emitter2s.Count();
   while (index) {
     --index;
     if (emitter2s[index] == emitter) {
@@ -187,7 +187,7 @@ void ParticleSystemManager::DeleteEmitter2(CParticleEmitter2 *emitter) {
 void ParticleSystemManager::DeleteModelEmitter(CParticleEmitter *emitter) {
   FATALASSERT(emitter);
   emitter->DecRef();
-  unsigned int index = modelEmitters.Count();
+  UINT index = modelEmitters.Count();
   while (index) {
     --index;
     if (modelEmitters[index] == emitter) {
@@ -216,7 +216,7 @@ RibbonManager::~RibbonManager() {
 }
 
 void RibbonManager::Flush() {
-  unsigned int index;
+  UINT index;
 
   index = emitters.Count();
   while (index) {
@@ -247,7 +247,7 @@ CRibbonEmitter *RibbonManager::DuplicateEmitter(const CRibbonEmitter *emitter) {
 }
 
 void RibbonManager::UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
-  unsigned int index = emitters.Count();
+  UINT index = emitters.Count();
   while (index) {
     emitters[--index]->SingletonMgrUpdate(elapsedTime, cameraPos, 1);
   }
@@ -264,12 +264,12 @@ void RibbonManager::UpdateEmitters(float elapsedTime, const NTempest::C3Vector &
   }
 }
 
-void RibbonManager::RenderEmitter(void *param1, int param2) {
+void RibbonManager::RenderEmitter(LPVOID param1, int param2) {
   static_cast<CRibbonEmitter *>(param1)->Render();
 }
 
 void RibbonManager::RenderEmitters() {
-  unsigned int index = deletedEmitters.Count();
+  UINT index = deletedEmitters.Count();
   while (index) {
     CRibbonEmitter *emitter = deletedEmitters[--index];
     ModelAddToScene(emitter->m_currPos, 0, RenderEmitter, emitter, 0);
@@ -280,7 +280,7 @@ void RibbonManager::DeleteEmitter(CRibbonEmitter *emitter) {
   FATALASSERT(emitter);
   emitter->DecRef();
 
-  unsigned int index = emitters.Count();
+  UINT index = emitters.Count();
   while (index) {
     --index;
     if (emitters[index] == emitter) {

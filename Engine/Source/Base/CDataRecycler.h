@@ -12,16 +12,16 @@ class TExtraInstanceRecyclable {
   friend class TExtraInstanceRecycler<T>;
 
  protected:
-  void SetRecycleBytes(unsigned long recycleBytes) {
+  void SetRecycleBytes(DWORD recycleBytes) {
     m_recycleBytes = recycleBytes;
   }
 
-  unsigned long GetRecycleBytes() const {
+  DWORD GetRecycleBytes() const {
     return m_recycleBytes;
   }
 
  private:
-  unsigned long m_recycleBytes;
+  DWORD m_recycleBytes;
 };
 
 class CDataRecycler {
@@ -35,9 +35,9 @@ class CDataRecycler {
   };
 
   struct Node {
-    Node         *m_next;
-    void         *m_data;
-    unsigned long m_bytes;
+    Node  *m_next;
+    LPVOID m_data;
+    DWORD  m_bytes;
   };
 
   struct NodeBlock {
@@ -45,42 +45,40 @@ class CDataRecycler {
     Node       m_nodes[1];
   };
 
-  CDataRecycler(
-      unsigned int nodesPerBlock = eDefaultNodesPerBlock,
-      long maxNodes = eDefaultMaxNodes);
+  CDataRecycler(UINT nodesPerBlock = eDefaultNodesPerBlock, long maxNodes = eDefaultMaxNodes);
   CDataRecycler(const CDataRecycler &);
   virtual ~CDataRecycler();
 
-  virtual void  Clear();
-  virtual void *AllocData(unsigned long allocBytes, unsigned long *bytes, const char *fileName, int lineNumber);
-  virtual void *ReallocData(void *data, unsigned long allocBytes, unsigned long *bytes, const char *fileName, int lineNumber);
-  virtual void  FreeData(void *data, const char *fileName, int lineNumber);
+  virtual void   Clear();
+  virtual LPVOID AllocData(DWORD allocBytes, DWORD *bytes, LPCSTR fileName, int lineNumber);
+  virtual LPVOID ReallocData(LPVOID data, DWORD allocBytes, DWORD *bytes, LPCSTR fileName, int lineNumber);
+  virtual void   FreeData(LPVOID data, LPCSTR fileName, int lineNumber);
 
-  void GetData(void *&data, unsigned long &bytes, const char *fileName, int lineNumber);
-  void GetAndResizeData(unsigned long allocBytes, void *&data, unsigned long &bytes, const char *fileName, int lineNumber) {
+  void GetData(LPVOID &data, DWORD &bytes, LPCSTR fileName, int lineNumber);
+  void GetAndResizeData(DWORD allocBytes, LPVOID &data, DWORD &bytes, LPCSTR fileName, int lineNumber) {
     GetData(data, bytes, fileName, lineNumber);
     if (bytes < allocBytes) {
       data = ReallocData(data, allocBytes, &bytes, fileName, lineNumber);
     }
   }
-  void PutData(void *data, unsigned long bytes, const char *fileName, int lineNumber);
+  void PutData(LPVOID data, DWORD bytes, LPCSTR fileName, int lineNumber);
 
  private:
   CDataRecycler &operator=(const CDataRecycler &);
 
-  void  Link(void **list, void *item, int nextOffset);
-  void  Link(NodeBlock **list, NodeBlock *nodeBlock);
-  void  Link(Node **list, Node *node);
-  void *Unlink(void **list, int nextOffset);
+  void       Link(LPVOID *list, LPVOID item, int nextOffset);
+  void       Link(NodeBlock **list, NodeBlock *nodeBlock);
+  void       Link(Node **list, Node *node);
+  LPVOID     Unlink(LPVOID *list, int nextOffset);
   NodeBlock *Unlink(NodeBlock **list);
   Node      *Unlink(Node **list);
-  void  Link(Node **list, NodeBlock *nodeBlock);
+  void       Link(Node **list, NodeBlock *nodeBlock);
 
-  long         m_nodesRecyclable;
-  unsigned int m_nodesPerBlock;
-  NodeBlock   *m_nodeBlockList;
-  Node        *m_nodeFullList;
-  Node        *m_nodeEmptyList;
+  long       m_nodesRecyclable;
+  UINT       m_nodesPerBlock;
+  NodeBlock *m_nodeBlockList;
+  Node      *m_nodeFullList;
+  Node      *m_nodeEmptyList;
 };
 
 template <class T>
@@ -90,10 +88,7 @@ class TExtraInstanceRecycler : protected CDataRecycler {
     eDefaultMaxBytesPerInstance = -1
   };
 
-  TExtraInstanceRecycler(
-      unsigned int nodesPerBlock = 0,
-      long maxNodes = 0,
-      unsigned long maxBytesPerInstance = eDefaultMaxBytesPerInstance)
+  TExtraInstanceRecycler(UINT nodesPerBlock = 0, long maxNodes = 0, DWORD maxBytesPerInstance = eDefaultMaxBytesPerInstance)
       : CDataRecycler(nodesPerBlock, maxNodes), m_maxBytesPerInstance(maxBytesPerInstance) {
   }
 
@@ -104,9 +99,9 @@ class TExtraInstanceRecycler : protected CDataRecycler {
     CDataRecycler::Clear();
   }
 
-  T *Get(unsigned long bytes) {
-    unsigned long recycleBytes;
-    void         *data;
+  T *Get(DWORD bytes) {
+    DWORD  recycleBytes;
+    LPVOID data;
 
     if (bytes > m_maxBytesPerInstance) {
       data = AllocData(bytes, &recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
@@ -123,7 +118,7 @@ class TExtraInstanceRecycler : protected CDataRecycler {
   }
 
   void Put(T *instance) {
-    unsigned long recycleBytes = instance->GetRecycleBytes();
+    DWORD recycleBytes = instance->GetRecycleBytes();
 
     instance->~T();
     if (recycleBytes > m_maxBytesPerInstance) {
@@ -136,5 +131,5 @@ class TExtraInstanceRecycler : protected CDataRecycler {
  private:
   TExtraInstanceRecycler &operator=(const TExtraInstanceRecycler &);
 
-  unsigned long m_maxBytesPerInstance;
+  DWORD m_maxBytesPerInstance;
 };

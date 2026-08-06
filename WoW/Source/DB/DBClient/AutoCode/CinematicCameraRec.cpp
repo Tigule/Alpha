@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CinematicCameraRec::GetFilename() {
+LPCSTR CinematicCameraRec::GetFilename() {
   return "DBFilesClient\\CinematicCamera.dbc";
 }
 
@@ -19,9 +19,9 @@ CinematicCameraRec::CinematicCameraRec() {
 CinematicCameraRec::~CinematicCameraRec() {
 }
 
-bool CinematicCameraRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempmodelIndices[1];
+bool CinematicCameraRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempmodelIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempmodelIndices[0], sizeof(tempmodelIndices[0]), 0, 0, 0) && result;

@@ -7,13 +7,13 @@ class FactionRec {
   FactionRec();
   ~FactionRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 23;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 92;
   }
 
@@ -28,15 +28,15 @@ class FactionRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_reputationIndex;
-  int         m_reputationRaceMask[4];
-  int         m_reputationClassMask[4];
-  int         m_reputationBase[4];
-  const char *m_name_lang[8];
-  int         m_name_flag;
+  int    m_ID;
+  int    m_reputationIndex;
+  int    m_reputationRaceMask[4];
+  int    m_reputationClassMask[4];
+  int    m_reputationBase[4];
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
 };
 
 extern WowClientDB<FactionRec> g_factionDB;

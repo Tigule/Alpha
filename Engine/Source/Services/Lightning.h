@@ -7,15 +7,15 @@
 
 #include <stpl.h>
 
-typedef unsigned long ulong;
-typedef unsigned int  BoltID;
+typedef DWORD ulong;
+typedef UINT  BoltID;
 
 const BoltID BADBOLT = static_cast<BoltID>(-1);
 const ulong  NOTUSEDFLAG = 0x80000000;
 
 struct LightningCoordUpdateData {
-  void(*callback)(void *context, unsigned int time, NTempest::C3Vector *source, NTempest::C3Vector *destination);
-  void *context;
+  void (*callback)(LPVOID context, UINT time, NTempest::C3Vector *source, NTempest::C3Vector *destination);
+  LPVOID context;
 };
 
 class CLightning {
@@ -23,7 +23,7 @@ class CLightning {
   CLightning();
   ~CLightning();
   void Update(float elapsed);
-  void Render(unsigned int boltId, const NTempest::C3Vector &cameraPos);
+  void Render(UINT boltId, const NTempest::C3Vector &cameraPos);
   void SetTexture(HTEXTURE texture);
   void SetSrcPos(const NTempest::C3Vector &position) {
     mSrcPos = position;
@@ -103,7 +103,7 @@ class CLightning {
   TSFixedArray_<NTempest::C3Vector, 'Ligh', 38> mPoints;
   TSFixedArray_<NTempest::C3Vector, 'Ligh', 39> mPos;
   TSFixedArray_<NTempest::C2Vector, 'Ligh', 40> mTexCoords;
-  TSFixedArray_<unsigned short, 'Ligh', 41>     mIndices;
+  TSFixedArray_<WORD, 'Ligh', 41>               mIndices;
   float                                         mAccTime;
   HTEXTURE                                      mTexture;
   LightningCoordUpdateData                      mCoordUpdateData;
@@ -116,28 +116,24 @@ class CLightningManager {
   BoltID Add(
       const NTempest::C3Vector &source,
       const NTempest::C3Vector &dest,
-      float               avgSegLen,
-      float               width,
-      NTempest::CImVector color,
-      float               noiseScale,
-      float               texCoordScale,
-      float               duration,
-      HTEXTURE            texture,
-      void(*updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
-      void *context
+      float                     avgSegLen,
+      float                     width,
+      NTempest::CImVector       color,
+      float                     noiseScale,
+      float                     texCoordScale,
+      float                     duration,
+      HTEXTURE                  texture,
+      void (*updateproc)(LPVOID, UINT, NTempest::C3Vector *, NTempest::C3Vector *),
+      LPVOID context
   );
-  void Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C3Vector *dst);
-  void SetCoordUpdate(
-      BoltID boltId,
-      void(*updateproc)(void *, unsigned int, NTempest::C3Vector *, NTempest::C3Vector *),
-      void *context
-  );
+  void  Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C3Vector *dst);
+  void  SetCoordUpdate(BoltID boltId, void (*updateproc)(LPVOID, UINT, NTempest::C3Vector *, NTempest::C3Vector *), LPVOID context);
   void  SetColor(BoltID boltId, NTempest::CImVector color);
   void  GetColor(BoltID boltId, NTempest::CImVector &color);
   float GetDuration(BoltID boltId);
-  void Update(float elapsed);
-  void Render(const NTempest::C3Vector &cameraPos);
-  void Remove(BoltID boltId);
+  void  Update(float elapsed);
+  void  Render(const NTempest::C3Vector &cameraPos);
+  void  Remove(BoltID boltId);
 
  private:
   friend void SpellVisualsInitialize();

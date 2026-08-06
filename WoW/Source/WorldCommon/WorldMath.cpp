@@ -13,8 +13,7 @@ int CWorldMath::EdgeIntersectEdge(
     const NTempest::C3Vector &d,
     NTempest::C2Vector       &p
 ) {
-  float denominator =
-      (a.y - b.y) * c.x + (c.y - d.y) * b.x + (b.y - a.y) * d.x + (d.y - c.y) * a.x;
+  float denominator = (a.y - b.y) * c.x + (c.y - d.y) * b.x + (b.y - a.y) * d.x + (d.y - c.y) * a.x;
   if (denominator == 0.0f) {
     return 0;
   }
@@ -37,16 +36,16 @@ int CWorldMath::RayIntersectTri(
     const NTempest::C3Vector &v0,
     const NTempest::C3Vector &v1,
     const NTempest::C3Vector &v2,
-    float                     &dist
+    float                    &dist
 ) {
   NTempest::C3Vector edge1 = v1 - v0;
   NTempest::C3Vector edge2 = v2 - v0;
   NTempest::C3Vector pvec = NTempest::C3Vector::Cross(rayDir, edge2);
-  float               det = NTempest::C3Vector::Dot(edge1, pvec);
+  float              det = NTempest::C3Vector::Dot(edge1, pvec);
   NTempest::C3Vector tvec = rayOrig - v0;
   NTempest::C3Vector qvec = NTempest::C3Vector::Cross(tvec, edge1);
-  float               u = NTempest::C3Vector::Dot(tvec, pvec);
-  float               v = NTempest::C3Vector::Dot(rayDir, qvec);
+  float              u = NTempest::C3Vector::Dot(tvec, pvec);
+  float              v = NTempest::C3Vector::Dot(rayDir, qvec);
 
   if (det > 0.000001f) {
     if (u < 0.0f || u > det || v < 0.0f || u + v > det) {
@@ -73,8 +72,8 @@ static void TransformAABox(
 ) {
   const float *m[3] = {&row0->x, &row1->x, &row2->x};
 
-  for (unsigned int i = 0; i < 3; ++i) {
-    for (unsigned int j = 0; j < 3; ++j) {
+  for (UINT i = 0; i < 3; ++i) {
+    for (UINT j = 0; j < 3; ++j) {
       float a = box.b[j] * m[j][i];
       float b = box.t[j] * m[j][i];
 
@@ -120,12 +119,12 @@ void CWorldMath::TransformAABox(const NTempest::C44Matrix &m, const NTempest::CA
 }
 
 int CWorldMath::SphereIntersectAABox(const NTempest::CAaBox &box, const NTempest::C3Vector &center, float radius) {
-  float squaredDistance = 0.0f;
+  float        squaredDistance = 0.0f;
   const float *bottom = &box.b.x;
   const float *top = &box.t.x;
   const float *point = &center.x;
 
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     float delta;
     if (point[i] < bottom[i]) {
       delta = point[i] - bottom[i];
@@ -140,14 +139,14 @@ int CWorldMath::SphereIntersectAABox(const NTempest::CAaBox &box, const NTempest
   return squaredDistance <= radius * radius;
 }
 
-unsigned int CWorldMath::AABoxIntersectPlane(const NTempest::CAaBox &box, const NTempest::C4Plane &plane) {
-  float       diagMin[3];
-  float       diagMax[3];
+UINT CWorldMath::AABoxIntersectPlane(const NTempest::CAaBox &box, const NTempest::C4Plane &plane) {
+  float        diagMin[3];
+  float        diagMax[3];
   const float *normal = plane.Access();
   const float *bottom = &box.b.x;
   const float *top = &box.t.x;
 
-  for (unsigned int i = 0; i < 3; ++i) {
+  for (UINT i = 0; i < 3; ++i) {
     if (normal[i] < 0.0f) {
       diagMin[i] = top[i];
       diagMax[i] = bottom[i];
@@ -175,16 +174,16 @@ float CWorldMath::TriSqrDistance(
     const NTempest::C3Vector &edge1
 ) {
   NTempest::C3Vector diff = origin - point;
-  float a00 = NTempest::C3Vector::Dot(edge0, edge0);
-  float a01 = NTempest::C3Vector::Dot(edge0, edge1);
-  float a11 = NTempest::C3Vector::Dot(edge1, edge1);
-  float b0 = NTempest::C3Vector::Dot(diff, edge0);
-  float b1 = NTempest::C3Vector::Dot(diff, edge1);
-  float c = NTempest::C3Vector::Dot(diff, diff);
-  float det = fabs(a00 * a11 - a01 * a01);
-  float s = a01 * b1 - a11 * b0;
-  float t = a01 * b0 - a00 * b1;
-  float squaredDistance;
+  float              a00 = NTempest::C3Vector::Dot(edge0, edge0);
+  float              a01 = NTempest::C3Vector::Dot(edge0, edge1);
+  float              a11 = NTempest::C3Vector::Dot(edge1, edge1);
+  float              b0 = NTempest::C3Vector::Dot(diff, edge0);
+  float              b1 = NTempest::C3Vector::Dot(diff, edge1);
+  float              c = NTempest::C3Vector::Dot(diff, diff);
+  float              det = fabs(a00 * a11 - a01 * a01);
+  float              s = a01 * b1 - a11 * b0;
+  float              t = a01 * b0 - a00 * b1;
+  float              squaredDistance;
 
   if (s + t <= det) {
     if (s < 0.0f) {
@@ -240,9 +239,7 @@ float CWorldMath::TriSqrDistance(
       float inverseDet = 1.0f / det;
       s *= inverseDet;
       t *= inverseDet;
-      squaredDistance =
-          s * (a00 * s + a01 * t + 2.0f * b0) +
-          t * (a01 * s + a11 * t + 2.0f * b1) + c;
+      squaredDistance = s * (a00 * s + a01 * t + 2.0f * b0) + t * (a01 * s + a11 * t + 2.0f * b1) + c;
     }
   } else {
     if (s < 0.0f) {
@@ -258,9 +255,7 @@ float CWorldMath::TriSqrDistance(
         } else {
           s = numerator / denominator;
           t = 1.0f - s;
-          squaredDistance =
-              s * (a00 * s + a01 * t + 2.0f * b0) +
-              t * (a01 * s + a11 * t + 2.0f * b1) + c;
+          squaredDistance = s * (a00 * s + a01 * t + 2.0f * b0) + t * (a01 * s + a11 * t + 2.0f * b1) + c;
         }
       } else {
         s = 0.0f;
@@ -288,9 +283,7 @@ float CWorldMath::TriSqrDistance(
         } else {
           t = numerator / denominator;
           s = 1.0f - t;
-          squaredDistance =
-              s * (a00 * s + a01 * t + 2.0f * b0) +
-              t * (a01 * s + a11 * t + 2.0f * b1) + c;
+          squaredDistance = s * (a00 * s + a01 * t + 2.0f * b0) + t * (a01 * s + a11 * t + 2.0f * b1) + c;
         }
       } else {
         t = 0.0f;
@@ -320,9 +313,7 @@ float CWorldMath::TriSqrDistance(
         } else {
           s = numerator / denominator;
           t = 1.0f - s;
-          squaredDistance =
-              s * (a00 * s + a01 * t + 2.0f * b0) +
-              t * (a01 * s + a11 * t + 2.0f * b1) + c;
+          squaredDistance = s * (a00 * s + a01 * t + 2.0f * b0) + t * (a01 * s + a11 * t + 2.0f * b1) + c;
         }
       }
     }
@@ -332,15 +323,15 @@ float CWorldMath::TriSqrDistance(
 }
 
 int CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
-  float         dir[3] = {end.x - start.x, end.y - start.y, end.z - start.z};
-  unsigned long i;
-  int           Inside = 1;
-  float         maxT[3] = {-1.0f, -1.0f, -1.0f};
-  float         coord[3];
-  const float  *fStart = &start.x;
-  const float  *fEnd = &end.x;
-  const float  *fMin = &box.b.x;
-  const float  *fMax = &box.t.x;
+  float        dir[3] = {end.x - start.x, end.y - start.y, end.z - start.z};
+  DWORD        i;
+  int          Inside = 1;
+  float        maxT[3] = {-1.0f, -1.0f, -1.0f};
+  float        coord[3];
+  const float *fStart = &start.x;
+  const float *fEnd = &end.x;
+  const float *fMin = &box.b.x;
+  const float *fMax = &box.t.x;
 
   for (i = 0; i < 3; ++i) {
     if (fStart[i] < fMin[i]) {
@@ -372,7 +363,7 @@ int CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempes
     return 1;
   }
 
-  unsigned long WhichPlane = 0;
+  DWORD WhichPlane = 0;
   if (maxT[1] > maxT[0]) {
     WhichPlane = 1;
   }

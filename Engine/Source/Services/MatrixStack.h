@@ -19,7 +19,7 @@ class CMatrixStack {
   }
 
   void Pop() {
-    unsigned int stackCount = m_stack.Count();
+    UINT stackCount = m_stack.Count();
 
     ASSERT(stackCount > 1);
     m_stack.SetCount(stackCount - 1);
@@ -30,7 +30,7 @@ class CMatrixStack {
   }
 
   void Mult(const T &value);
-  void Remove(unsigned int removeFlags);
+  void Remove(UINT removeFlags);
   void Identity();
 
   T &Get() {

@@ -34,8 +34,7 @@ class CSimpleMessageFrameLine {
   CSimpleMessageFrameLine() : offsetX(0.0f), offsetY(0.0f), stringNode(NEW(CSimpleMessageFrameLineNode)) {
     stringNode->IncrRef();
   }
-  CSimpleMessageFrameLine(const CSimpleMessageFrameLine &line)
-      : offsetX(line.offsetX), offsetY(line.offsetY), stringNode(line.stringNode) {
+  CSimpleMessageFrameLine(const CSimpleMessageFrameLine &line) : offsetX(line.offsetX), offsetY(line.offsetY), stringNode(line.stringNode) {
     stringNode->IncrRef();
   }
   ~CSimpleMessageFrameLine() {
@@ -63,16 +62,16 @@ class CSimpleMessageFrame : public CSimpleFrame {
   static void UnregisterScriptMethods();
 
   virtual void LoadXML(const XMLNode *node, CStatus *status);
-  virtual void AddMessage(const char *text, const NTempest::CImVector &color, float timeVisible, int permanent);
+  virtual void AddMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent);
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
   virtual void OnLayerUpdate(float elapsedSec);
 
   void SetMessageFrameInsets(float right, float left, float top, float bottom);
   void SetTextLength(int size);
-  void SetFont(const char *font, float fontHeight, int fontFlags) {
+  void SetFont(LPCSTR font, float fontHeight, int fontFlags) {
     m_attrib.SetFont(font, fontHeight, fontFlags);
   }
-  void SetHorizontalAlignment(unsigned int alignment) {
+  void SetHorizontalAlignment(UINT alignment) {
     m_attrib.SetHorizontalAlignment(alignment);
   }
   void SetColor(const NTempest::CImVector &color) {
@@ -92,17 +91,17 @@ class CSimpleMessageFrame : public CSimpleFrame {
   void ClearPending();
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
 
-  void AddPendingMessage(const char *text, const NTempest::CImVector &color, float timeVisible, int permanent);
-  void ScrollMessages(unsigned int start);
+  void AddPendingMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent);
+  void ScrollMessages(UINT start);
   void HideLineNode(CSimpleMessageFrameLineNode *node);
   void ShowLineNode(CSimpleMessageFrameLineNode *node, float timeVisible, float fadeDuration, int permanent);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
-  unsigned int                             m_rows;
-  unsigned int                             m_numVisible;
+  UINT                                     m_rows;
+  UINT                                     m_numVisible;
   NTempest::CRect                          m_messageFrameArea;
   NTempest::CRect                          m_messageFrameInset;
   int                                      m_textMaxSize;

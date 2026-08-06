@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 int WowLogInitialize() {
   return 1;
 }
@@ -5,11 +7,11 @@ int WowLogInitialize() {
 void WowLogDestroy() {
 }
 
-void __cdecl WLog(unsigned int logMask, unsigned int priority, const char* fmt, ...) {
+void __cdecl WLog(UINT logMask, UINT priority, LPCSTR fmt, ...) {
 }
 
-void WVLog(unsigned int logMask, unsigned int priority, const char *fmt, char *arglist) {
+void WVLog(UINT logMask, UINT priority, LPCSTR fmt, char *arglist) {
 }
 
-void WLogDumpHex(unsigned int logMask, unsigned int priority, unsigned char* data, unsigned long len) {
+void WLogDumpHex(UINT logMask, UINT priority, BYTE *data, DWORD len) {
 }

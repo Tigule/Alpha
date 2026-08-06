@@ -22,8 +22,8 @@
 #include <Os/OsTime.h>
 
 struct DEATTHUDSOUNDINFO {
-  unsigned int landSound;
-  unsigned int waterSound;
+  UINT landSound;
+  UINT waterSound;
 
   DEATTHUDSOUNDINFO() : landSound(0), waterSound(0) {
   }
@@ -31,21 +31,21 @@ struct DEATTHUDSOUNDINFO {
 
 static TSFixedArray<DEATTHUDSOUNDINFO> s_deathThudSounds[5];
 
-static unsigned int s_creatureIpactSounds[4] = {0, 8, 7, 9};
-static unsigned int s_unitSoundTimeouts[NUM_UNITSOUNDTYPES] = {0, 0, 0, 0, 0, 0, 0, 10000, 0, 0, 0, 0, 0, 0, 0, 0};
-static unsigned int s_unitSoundChances[NUM_UNITSOUNDTYPES] = {70, 100, 60, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
-static unsigned int s_unitSoundTimers[NUM_UNITSOUNDTYPES];
-static CVar        *s_footstepSoundCVar;
-static int          soundDataOffsets[NUM_UNITSOUNDTYPES] = {4, 8, 12, 16, 24, 28, 32, 0, 36, 40, 44, 52, 20, 48, 100, 104};
+static UINT  s_creatureIpactSounds[4] = {0, 8, 7, 9};
+static UINT  s_unitSoundTimeouts[NUM_UNITSOUNDTYPES] = {0, 0, 0, 0, 0, 0, 0, 10000, 0, 0, 0, 0, 0, 0, 0, 0};
+static UINT  s_unitSoundChances[NUM_UNITSOUNDTYPES] = {70, 100, 60, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
+static UINT  s_unitSoundTimers[NUM_UNITSOUNDTYPES];
+static CVar *s_footstepSoundCVar;
+static int   soundDataOffsets[NUM_UNITSOUNDTYPES] = {4, 8, 12, 16, 24, 28, 32, 0, 36, 40, 44, 52, 20, 48, 100, 104};
 
 int GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
   FATALASSERT(soundData);
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   int offset = soundDataOffsets[soundType];
-  return offset ? *reinterpret_cast<const int *>(reinterpret_cast<const unsigned char *>(soundData) + offset) : 0;
+  return offset ? *reinterpret_cast<const int *>(reinterpret_cast<const BYTE *>(soundData) + offset) : 0;
 }
 
-int GetFidgetSoundID(const CreatureSoundDataRec* soundData, unsigned int soundType) {
+int GetFidgetSoundID(const CreatureSoundDataRec *soundData, UINT soundType) {
   FATALASSERT(soundData);
   FATALASSERT(soundType < 4);
   return soundData->m_soundFidget[soundType];
@@ -53,14 +53,14 @@ int GetFidgetSoundID(const CreatureSoundDataRec* soundData, unsigned int soundTy
 
 static int CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
-  unsigned int random = NTempest::CRandom::uint32_(g_rndSeed);
-  unsigned int value = NTempest::CMath::mulhwu_(random, 101);
+  UINT random = NTempest::CRandom::uint32_(g_rndSeed);
+  UINT value = NTempest::CMath::mulhwu_(random, 101);
   return s_unitSoundChances[soundType] >= value;
 }
 
 void GenerateDeathThudSounds() {
-  int maxTerrainFootstepID = g_terrainTypeSoundsDB.GetMaxID();
-  unsigned int count = 5;
+  int                              maxTerrainFootstepID = g_terrainTypeSoundsDB.GetMaxID();
+  UINT                             count = 5;
   TSFixedArray<DEATTHUDSOUNDINFO> *deathThudSounds = s_deathThudSounds;
   while (count) {
     deathThudSounds->SetCount(maxTerrainFootstepID + 1);
@@ -72,7 +72,7 @@ void GenerateDeathThudSounds() {
   while (count) {
     const DeathThudLookupsRec *rec = g_deathThudLookupsDB.GetRecordByIndex(--count);
     FATALASSERT(rec);
-    if (static_cast<unsigned int>(rec->m_SizeClass) < 5 && rec->m_TerrainTypeSoundID <= maxTerrainFootstepID) {
+    if (static_cast<UINT>(rec->m_SizeClass) < 5 && rec->m_TerrainTypeSoundID <= maxTerrainFootstepID) {
       s_deathThudSounds[rec->m_SizeClass][rec->m_TerrainTypeSoundID].landSound = rec->m_SoundEntryID;
       s_deathThudSounds[rec->m_SizeClass][rec->m_TerrainTypeSoundID].waterSound = rec->m_SoundEntryIDWater;
     }
@@ -80,7 +80,7 @@ void GenerateDeathThudSounds() {
 }
 
 void ClearDeathThudSounds() {
-  for (unsigned int i = 0; i < 5; ++i) {
+  for (UINT i = 0; i < 5; ++i) {
     s_deathThudSounds[i].Clear();
   }
 }
@@ -93,8 +93,8 @@ void UnitSoundShutdown() {
 void UnitSoundInitialize() {
   GenerateDeathThudSounds();
   SndInterfaceSetPositionCallback();
-  unsigned long currentTime = OsGetAsyncTimeMs();
-  for (unsigned int i = 0; i < NUM_UNITSOUNDTYPES; ++i) {
+  DWORD currentTime = OsGetAsyncTimeMs();
+  for (UINT i = 0; i < NUM_UNITSOUNDTYPES; ++i) {
     s_unitSoundTimers[i] = currentTime;
   }
   s_footstepSoundCVar = CVar::Register("FootstepSounds", 0, 0, "1", 0, DEFAULT, false, 0);
@@ -102,8 +102,8 @@ void UnitSoundInitialize() {
 
 int CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
-  unsigned long currentTime = OsGetAsyncTimeMs();
-  int           canPlay = 0;
+  DWORD currentTime = OsGetAsyncTimeMs();
+  int   canPlay = 0;
   if (static_cast<long>(currentTime - s_unitSoundTimers[soundType]) > 0) {
     canPlay = 1;
   }
@@ -111,9 +111,9 @@ int CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
   return canPlay;
 }
 
-const ItemSubClassRec *SDBItemSubclassGetSubClassRec(unsigned int classID, unsigned int subClassID);
+const ItemSubClassRec *SDBItemSubclassGetSubClassRec(UINT classID, UINT subClassID);
 
-void CGUnit_C::HandlePlayStandSound(unsigned long code, const char *eventName) {
+void CGUnit_C::HandlePlayStandSound(DWORD code, LPCSTR eventName) {
   if (code == 0x58444624) {
     PlayStandSound();
     return;
@@ -133,7 +133,7 @@ void CGUnit_C::HandleFootfallAnimEvent(const NTempest::C3Vector &position) {
   PlayFoleySound();
 }
 
-void CGUnit_C::PlayFidgetSound(unsigned int fidgetNumber) {
+void CGUnit_C::PlayFidgetSound(UINT fidgetNumber) {
   int soundID = GetFidgetSoundID(GetSoundData(), fidgetNumber);
   if (soundID) {
     NTempest::C3Vector position = GetPosition();
@@ -143,9 +143,7 @@ void CGUnit_C::PlayFidgetSound(unsigned int fidgetNumber) {
 }
 
 void CGUnit_C::PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const {
-  if (soundType != UNITSOUNDTYPE_FOOTFALL &&
-      (alwaysPlay || CheckUnitPlaySound(soundType)) &&
-      CheckUnitSoundTimer(soundType)) {
+  if (soundType != UNITSOUNDTYPE_FOOTFALL && (alwaysPlay || CheckUnitPlaySound(soundType)) && CheckUnitSoundTimer(soundType)) {
     int soundID = GetSoundID(GetSoundData(), soundType);
     if (soundID) {
       NTempest::C3Vector position = GetPosition();
@@ -158,8 +156,8 @@ void CGUnit_C::PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const {
 void CGUnit_C::PlayParrySound(bool ignoreMainHand, const ATTACKROUNDINFO *roundInfo, const NTempest::C3Vector &position) const {
   FATALASSERT(roundInfo);
 
-  CGUnit_C             *attacker = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo->attacker, __FILE__, __LINE__));
-  COMBATHAND            attackingHand = (roundInfo->flags & 0x200) ? COMBAT_OFFHAND : COMBAT_MAINHAND;
+  CGUnit_C              *attacker = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo->attacker, __FILE__, __LINE__));
+  COMBATHAND             attackingHand = (roundInfo->flags & 0x200) ? COMBAT_OFFHAND : COMBAT_MAINHAND;
   const VirtualItemInfo *attackingWeapon = attacker ? attacker->GetAttackingWeapon(attackingHand) : 0;
   const VirtualItemInfo *defendingItem = GetParryingItem(ignoreMainHand);
   if (defendingItem) {
@@ -167,7 +165,7 @@ void CGUnit_C::PlayParrySound(bool ignoreMainHand, const ATTACKROUNDINFO *roundI
   }
 }
 
-void CGUnit_C::PlayImpactSound(unsigned __int64 attacker, int criticalHit, COMBATHAND hand) const {
+void CGUnit_C::PlayImpactSound(DWORDLONG attacker, int criticalHit, COMBATHAND hand) const {
   CGUnit_C *attackerPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__));
   if (!attackerPtr) {
     return;
@@ -194,20 +192,18 @@ void CGUnit_C::PlayStandSound() const {
 void CGUnit_C::PlayDeathThud() const {
   NTempest::C3Vector flowDir(0.0f);
   NTempest::C3Vector pos = GetPosition();
-  unsigned int       liquid;
+  UINT               liquid;
   int                deep;
   float              surfaceIntersect;
   int                inLiquid = CWorld::QueryObjectLiquid(GetWorldObject(), liquid, surfaceIntersect, flowDir, deep);
   if (surfaceIntersect - pos.z <= 2.0f) {
-    unsigned int size = GetUnitSize();
+    UINT size = GetUnitSize();
     if (size < 5) {
       int terrainType = m_terrain;
       if (terrainType < s_deathThudSounds[size].Count() && terrainType >= 0) {
         const TerrainTypeRec *terrain = g_terrainTypeDB.GetRecord(terrainType);
         if (terrain) {
-          int soundID = inLiquid
-              ? s_deathThudSounds[size][terrain->m_SoundID].waterSound
-              : s_deathThudSounds[size][terrain->m_SoundID].landSound;
+          int soundID = inLiquid ? s_deathThudSounds[size][terrain->m_SoundID].waterSound : s_deathThudSounds[size][terrain->m_SoundID].landSound;
           SndInterfacePlaySound(soundID, GetPosition(), -1, 1.0f);
         }
       }
@@ -265,7 +261,7 @@ void CGUnit_C::InitializeLoopSound() {
   }
 }
 
-int CGUnit_C::PlayNPCSound(NPCSOUNDS sound, unsigned int index) {
+int CGUnit_C::PlayNPCSound(NPCSOUNDS sound, UINT index) {
   FATALASSERT(sound < NUM_NPCSOUNDS);
   if (!m_NPCSoundsRec) {
     return 0;
@@ -296,7 +292,7 @@ bool CGUnit_C::GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type) {
   return subClass != 0;
 }
 
-unsigned int CGUnit_C::GetImpactType() const {
+UINT CGUnit_C::GetImpactType() const {
   if (m_soundData && m_soundData->m_creatureImpactType < 4) {
     return s_creatureIpactSounds[m_soundData->m_creatureImpactType];
   }

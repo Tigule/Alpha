@@ -13,17 +13,13 @@
 namespace NTempest {
 
   bool operator==(const C34Matrix &l, const C34Matrix &r) {
-    return l.a0 == r.a0 && l.a1 == r.a1 && l.a2 == r.a2
-        && l.b0 == r.b0 && l.b1 == r.b1 && l.b2 == r.b2
-        && l.c0 == r.c0 && l.c1 == r.c1 && l.c2 == r.c2
-        && l.d0 == r.d0 && l.d1 == r.d1 && l.d2 == r.d2;
+    return l.a0 == r.a0 && l.a1 == r.a1 && l.a2 == r.a2 && l.b0 == r.b0 && l.b1 == r.b1 && l.b2 == r.b2 && l.c0 == r.c0 && l.c1 == r.c1 &&
+           l.c2 == r.c2 && l.d0 == r.d0 && l.d1 == r.d1 && l.d2 == r.d2;
   }
 
   bool operator!=(const C34Matrix &l, const C34Matrix &r) {
-    return l.a0 != r.a0 || l.a1 != r.a1 || l.a2 != r.a2
-        || l.b0 != r.b0 || l.b1 != r.b1 || l.b2 != r.b2
-        || l.c0 != r.c0 || l.c1 != r.c1 || l.c2 != r.c2
-        || l.d0 != r.d0 || l.d1 != r.d1 || l.d2 != r.d2;
+    return l.a0 != r.a0 || l.a1 != r.a1 || l.a2 != r.a2 || l.b0 != r.b0 || l.b1 != r.b1 || l.b2 != r.b2 || l.c0 != r.c0 || l.c1 != r.c1 ||
+           l.c2 != r.c2 || l.d0 != r.d0 || l.d1 != r.d1 || l.d2 != r.d2;
   }
 
   C34Matrix operator+(const C34Matrix &l, const C34Matrix &r) {
@@ -34,12 +30,7 @@ namespace NTempest {
   }
 
   C34Matrix operator+(const C34Matrix &l, float a) {
-    return C34Matrix(
-        l.a0 + a, l.a1 + a, l.a2 + a,
-        l.b0 + a, l.b1 + a, l.b2 + a,
-        l.c0 + a, l.c1 + a, l.c2 + a,
-        l.d0 + a, l.d1 + a, l.d2 + a
-    );
+    return C34Matrix(l.a0 + a, l.a1 + a, l.a2 + a, l.b0 + a, l.b1 + a, l.b2 + a, l.c0 + a, l.c1 + a, l.c2 + a, l.d0 + a, l.d1 + a, l.d2 + a);
   }
 
   C34Matrix operator+(float a, const C34Matrix &r) {
@@ -48,20 +39,13 @@ namespace NTempest {
 
   C34Matrix operator-(const C34Matrix &l, const C34Matrix &r) {
     return C34Matrix(
-        l.a0 - r.a0, l.a1 - r.a1, l.a2 - r.a2,
-        l.b0 - r.b0, l.b1 - r.b1, l.b2 - r.b2,
-        l.c0 - r.c0, l.c1 - r.c1, l.c2 - r.c2,
-        l.d0 - r.d0, l.d1 - r.d1, l.d2 - r.d2
+        l.a0 - r.a0, l.a1 - r.a1, l.a2 - r.a2, l.b0 - r.b0, l.b1 - r.b1, l.b2 - r.b2, l.c0 - r.c0, l.c1 - r.c1, l.c2 - r.c2, l.d0 - r.d0, l.d1 - r.d1,
+        l.d2 - r.d2
     );
   }
 
   C34Matrix operator-(const C34Matrix &l, float a) {
-    return C34Matrix(
-        l.a0 - a, l.a1 - a, l.a2 - a,
-        l.b0 - a, l.b1 - a, l.b2 - a,
-        l.c0 - a, l.c1 - a, l.c2 - a,
-        l.d0 - a, l.d1 - a, l.d2 - a
-    );
+    return C34Matrix(l.a0 - a, l.a1 - a, l.a2 - a, l.b0 - a, l.b1 - a, l.b2 - a, l.c0 - a, l.c1 - a, l.c2 - a, l.d0 - a, l.d1 - a, l.d2 - a);
   }
 
   C34Matrix operator*(const C34Matrix &l, const C34Matrix &r) {
@@ -87,12 +71,7 @@ namespace NTempest {
   }
 
   C34Matrix operator*(const C34Matrix &l, float a) {
-    return C34Matrix(
-        l.a0 * a, l.a1 * a, l.a2 * a,
-        l.b0 * a, l.b1 * a, l.b2 * a,
-        l.c0 * a, l.c1 * a, l.c2 * a,
-        l.d0 * a, l.d1 * a, l.d2 * a
-    );
+    return C34Matrix(l.a0 * a, l.a1 * a, l.a2 * a, l.b0 * a, l.b1 * a, l.b2 * a, l.c0 * a, l.c1 * a, l.c2 * a, l.d0 * a, l.d1 * a, l.d2 * a);
   }
 
   C34Matrix operator*(float a, const C34Matrix &r) {
@@ -111,18 +90,14 @@ namespace NTempest {
 
   C4Vector operator*(const C4Vector &l, const C34Matrix &r) {
     return C4Vector(
-        l.x * r.a0 + l.y * r.b0 + l.z * r.c0 + l.w * r.d0,
-        l.x * r.a1 + l.y * r.b1 + l.z * r.c1 + l.w * r.d1,
-        l.x * r.a2 + l.y * r.b2 + l.z * r.c2 + l.w * r.d2,
-        l.w
+        l.x * r.a0 + l.y * r.b0 + l.z * r.c0 + l.w * r.d0, l.x * r.a1 + l.y * r.b1 + l.z * r.c1 + l.w * r.d1,
+        l.x * r.a2 + l.y * r.b2 + l.z * r.c2 + l.w * r.d2, l.w
     );
   }
 
   C4Vector operator*(const C34Matrix &l, const C4Vector &r) {
     return C4Vector(
-        l.a0 * r.x + l.a1 * r.y + l.a2 * r.z,
-        l.b0 * r.x + l.b1 * r.y + l.b2 * r.z,
-        l.c0 * r.x + l.c1 * r.y + l.c2 * r.z,
+        l.a0 * r.x + l.a1 * r.y + l.a2 * r.z, l.b0 * r.x + l.b1 * r.y + l.b2 * r.z, l.c0 * r.x + l.c1 * r.y + l.c2 * r.z,
         l.d0 * r.x + l.d1 * r.y + l.d2 * r.z + r.w
     );
   }
@@ -189,15 +164,13 @@ namespace NTempest {
   }
 
   C34Matrix C34Matrix::AffineInverse(const C3Vector &scale) const {
-    C3Vector s(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z);
+    C3Vector  s(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z);
     C33Matrix rotationScale(a0, a1, a2, b0, b1, b2, c0, c1, c2);
     rotationScale.Scale(s);
 
     C34Matrix matrix(
-        rotationScale.a0, rotationScale.b0, rotationScale.c0,
-        rotationScale.a1, rotationScale.b1, rotationScale.c1,
-        rotationScale.a2, rotationScale.b2, rotationScale.c2,
-        0.0f, 0.0f, 0.0f
+        rotationScale.a0, rotationScale.b0, rotationScale.c0, rotationScale.a1, rotationScale.b1, rotationScale.c1, rotationScale.a2,
+        rotationScale.b2, rotationScale.c2, 0.0f, 0.0f, 0.0f
     );
     matrix.Scale(s);
     matrix.Translate(C3Vector(-d0, -d1, -d2));

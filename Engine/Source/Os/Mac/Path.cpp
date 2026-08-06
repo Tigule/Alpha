@@ -2,7 +2,7 @@
 
 #include <storm.h>
 
-DWORD OsPathGetRootChars(const char *path) {
+DWORD OsPathGetRootChars(LPCSTR path) {
   DWORD pathChars = SStrLen(path);
 
   if (pathChars && path[0] == '/') {
@@ -18,8 +18,8 @@ DWORD OsPathGetRootChars(const char *path) {
   }
 
   if (path[0] == '\\' && path[1] == '\\') {
-    const char *rootEnd = path + 2;
-    int         i;
+    LPCSTR rootEnd = path + 2;
+    int    i;
 
     for (i = 0; i < 2; ++i) {
       if (rootEnd) {
@@ -64,10 +64,10 @@ void OsPathStripLastDir(char *buffer) {
   OsPathStripFilename(buffer);
 }
 
-void OsPathGetFilename(const char *path, char *buffer, unsigned int size) {
-  const char *lastBackslash;
-  const char *lastSlash;
-  const char *last;
+void OsPathGetFilename(LPCSTR path, char *buffer, UINT size) {
+  LPCSTR lastBackslash;
+  LPCSTR lastSlash;
+  LPCSTR last;
 
   ASSERT(path && buffer && size);
 
@@ -84,6 +84,6 @@ void OsPathGetFilename(const char *path, char *buffer, unsigned int size) {
   }
 }
 
-void OsBuildFontFilePath(const char *fileName, char *buffer, unsigned int size) {
+void OsBuildFontFilePath(LPCSTR fileName, char *buffer, UINT size) {
   SStrPrintf(buffer, size, "fonts\\%s", fileName);
 }

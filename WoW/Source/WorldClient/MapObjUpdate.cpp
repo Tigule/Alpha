@@ -11,13 +11,13 @@
 
 void CMapObjGroup::UpdateLightmapTex(
     EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
+    UINT          w,
+    UINT          h,
+    UINT          d,
+    UINT          mipLevel,
+    LPVOID        userArg,
+    UINT         &texelStrideInBytes,
+    LPCVOID      &texels
 ) {
   SMOLightmapTex *lightmapTex = static_cast<SMOLightmapTex *>(userArg);
   FATALASSERT(lightmapTex);
@@ -31,7 +31,7 @@ void CMapObjGroup::UpdateLightmapTex(
 void CMapObjGroup::CreateLightmaps() {
   lightmapTexFlushTime = 30.0f;
 
-  for (unsigned int i = 0; i < lightmapTexCount; ++i) {
+  for (UINT i = 0; i < lightmapTexCount; ++i) {
     SMOLightmapTex &lightmapTex = lightmapTexList[i];
     if (!lightmapTex.hTexture) {
       EGxTexFormat format = LIGHTMAP_FORMAT;
@@ -39,7 +39,7 @@ void CMapObjGroup::CreateLightmaps() {
         format = GxTex_Rgb565;
       }
 
-        lightmapTex.hTexture = TextureCreate("Lightmap", 256, 256, format, LIGHTMAP_FORMAT, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1));
+      lightmapTex.hTexture = TextureCreate("Lightmap", 256, 256, format, LIGHTMAP_FORMAT, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1));
       CGxTex *texture = TextureGetGxTex(lightmapTex.hTexture, 1, 0);
       GxTexSetUserData(texture, UpdateLightmapTex, &lightmapTex);
     }
@@ -47,9 +47,9 @@ void CMapObjGroup::CreateLightmaps() {
 }
 
 void CMapObjGroup::FreeLightmaps() {
-  unsigned int freed = 0;
+  UINT freed = 0;
 
-  unsigned int i;
+  UINT i;
   for (i = 0; i < lightmapTexCount; ++i) {
     if (lightmapTexList[i].hTexture) {
       HandleClose(lightmapTexList[i].hTexture);

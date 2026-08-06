@@ -2,9 +2,9 @@
 
 #ifndef __PLACEMENT_NEW_INLINE
 #define __PLACEMENT_NEW_INLINE
-inline void *__cdecl operator new(size_t, void *ptr) throw() {
+inline LPVOID __cdecl operator new(size_t, LPVOID ptr) throw() {
   return ptr;
 }
 
-void __cdecl operator delete(void *, void *);
+void __cdecl operator delete(LPVOID, LPVOID);
 #endif

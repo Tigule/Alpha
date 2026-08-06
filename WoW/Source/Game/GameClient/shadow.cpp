@@ -33,19 +33,19 @@ static const float BLOB_BELOW = FeetToWorld(5.0f);
 static const float BLOB_ABOVE = FeetToWorld(3.0f);
 static const float SHADOW_POLY_OFFSET = 0.0625f;
 
-static int ConsoleCommand_ShadowLOD(const char *__formal, const char *args);
+static int ConsoleCommand_ShadowLOD(LPCSTR, LPCSTR args);
 
 CGxTex *ProjectTex2dGetFade() {
   return s_fadeTex;
 }
 
 void ProjectTex2dMakeMatrices(
-    NTempest::C44Matrix &texmat0,
-    NTempest::C44Matrix &texmat1,
-    const NTempest::CAaBox &box,
+    NTempest::C44Matrix       &texmat0,
+    NTempest::C44Matrix       &texmat1,
+    const NTempest::CAaBox    &box,
     const NTempest::C44Matrix *basis,
-    float                fadeOffset,
-    int                  inWorldSpace
+    float                      fadeOffset,
+    int                        inWorldSpace
 ) {
   NTempest::C3Vector cameraPos;
   CGWorldFrame::GetCameraPosition(&cameraPos);
@@ -91,8 +91,8 @@ static void ProjectTexRenderVerticesPN(const CGxBufCommand &cmd, CGxBuf *buf) {
       FATALASSERT(0);
   }
 
-  unsigned short vidx = s_batch->GetMinIndex();
-  for (unsigned int i = 0; i < s_batch->GetVertexCount(); ++i, ++vidx) {
+  WORD vidx = s_batch->GetMinIndex();
+  for (UINT i = 0; i < s_batch->GetVertexCount(); ++i, ++vidx) {
     vertices[i].p = s_batch->GetVertex(vidx);
     vertices[i].n = s_batch->GetNormal(vidx);
   }
@@ -113,28 +113,28 @@ static void ProjectTexRenderVerticesPC(const CGxBufCommand &cmd, CGxBuf *buf) {
       FATALASSERT(0);
   }
 
-  unsigned short vidx = s_batch->GetMinIndex();
-  for (unsigned int i = 0; i < s_batch->GetVertexCount(); ++i, ++vidx) {
+  WORD vidx = s_batch->GetMinIndex();
+  for (UINT i = 0; i < s_batch->GetVertexCount(); ++i, ++vidx) {
     vertices[i].p = s_batch->GetVertex(vidx);
     vertices[i].c = s_color;
   }
 }
 
 static void ProjectTexRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
-  unsigned short *indices = 0;
+  WORD *indices = 0;
   switch (cmd.index.op) {
     case GxBufOp_Fill:
-      indices = static_cast<unsigned short *>(*cmd.index.mem[GxVM_Indices]);
+      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
       break;
     case GxBufOp_Assign:
-      indices = static_cast<unsigned short *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*indices)));
+      indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*indices)));
       *cmd.index.mem[GxVM_Indices] = indices;
       break;
     default:
       FATALASSERT(0);
   }
 
-  for (unsigned int i = 0; i < s_batch->GetIndexCount(); ++i) {
+  for (UINT i = 0; i < s_batch->GetIndexCount(); ++i) {
     indices[i] = s_batch->GetIndex(i) - s_batch->GetMinIndex();
   }
 }
@@ -191,7 +191,7 @@ void ProjectTex2d(const NTempest::CAaBox &box, NTempest::CImVector color, const 
   worldMtx.Translate(-cameraPos);
   GxXformPush(GxXform_World);
 
-  for (unsigned int i = 0; i < triData.GetNumBatches(); ++i) {
+  for (UINT i = 0; i < triData.GetNumBatches(); ++i) {
     const CWTriData::Batch &batch = triData.GetBatch(i);
     if ((batch.GetMinIndex() == 0xFFFF || batch.GetVertexCount() <= Gx_MaxVertices) && batch.GetIndexCount() <= Gx_MaxIndices) {
       NTempest::C44Matrix batchMtx = *batch.matrix * worldMtx;
@@ -211,7 +211,7 @@ void ProjectTex2d(const NTempest::CAaBox &box, NTempest::CImVector color, const 
   GxRsPop();
 }
 
-void ShadowRender_LOD1(HMODEL hModel, const NTempest::C44Matrix &basis, void *param) {
+void ShadowRender_LOD1(HMODEL hModel, const NTempest::C44Matrix &basis, LPVOID param) {
   NTempest::C3Vector cameraPos;
   CGWorldFrame::GetCameraPosition(&cameraPos);
 
@@ -259,14 +259,14 @@ void ShadowRender_LOD1(HMODEL hModel, const NTempest::C44Matrix &basis, void *pa
   );
 
   NTempest::CImVector shadowColor = CWorld::shadowColor;
-  unsigned int        alpha = static_cast<unsigned int>(shadowColor.a * SHADOW_ALPHA_SCALE);
+  UINT                alpha = static_cast<UINT>(shadowColor.a * SHADOW_ALPHA_SCALE);
   if (alpha > 255) {
     alpha = 255;
   }
-  shadowColor.a = static_cast<unsigned char>(alpha);
-  shadowColor.r = static_cast<unsigned char>(shadowColor.r * 0.65f);
-  shadowColor.g = static_cast<unsigned char>(shadowColor.g * 0.65f);
-  shadowColor.b = static_cast<unsigned char>(shadowColor.b * 0.65f);
+  shadowColor.a = static_cast<BYTE>(alpha);
+  shadowColor.r = static_cast<BYTE>(shadowColor.r * 0.65f);
+  shadowColor.g = static_cast<BYTE>(shadowColor.g * 0.65f);
+  shadowColor.b = static_cast<BYTE>(shadowColor.b * 0.65f);
 
   GxRsPush();
   GxRsSet(GxRs_Blend, GxBlend_Alpha);
@@ -278,34 +278,25 @@ void ShadowRender_LOD1(HMODEL hModel, const NTempest::C44Matrix &basis, void *pa
   GxRsPop();
 }
 
-static void s_BlobFadeTex(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+static void s_BlobFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Lock) {
     s_texels.SetCount(w * h);
   } else if (cmd == GxTex_Latch && !mipLevel) {
     texelStrideInBytes = w * sizeof(NTempest::CImVector);
     texels = s_texels.Ptr();
 
-    unsigned int fadeCount = static_cast<unsigned int>(w * 0.05f);
-    unsigned int fadeBase = w - fadeCount - 1;
-    for (unsigned int row = 0; row < h; ++row) {
+    UINT fadeCount = static_cast<UINT>(w * 0.05f);
+    UINT fadeBase = w - fadeCount - 1;
+    for (UINT row = 0; row < h; ++row) {
       NTempest::CImVector *texel = s_texels.Ptr() + row * w;
-      for (unsigned int column = 0; column < w; ++column) {
-        unsigned char alpha;
+      for (UINT column = 0; column < w; ++column) {
+        BYTE alpha;
         if (!column || column == w - 1) {
           alpha = 0;
         } else if (column < fadeBase) {
           alpha = 255;
         } else {
-          alpha = static_cast<unsigned char>((1.0f - static_cast<float>(column - fadeBase) / static_cast<float>(fadeCount)) * 255.0f);
+          alpha = static_cast<BYTE>((1.0f - static_cast<float>(column - fadeBase) / static_cast<float>(fadeCount)) * 255.0f);
         }
         texel[column].Set(alpha, 255, 255, 255);
       }
@@ -313,25 +304,16 @@ static void s_BlobFadeTex(
   }
 }
 
-static void s_ProjFadeTex(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+static void s_ProjFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Lock) {
     s_texels.SetCount(w * h);
   } else if (cmd == GxTex_Latch && !mipLevel) {
     texelStrideInBytes = w * sizeof(NTempest::CImVector);
     texels = s_texels.Ptr();
 
-    for (unsigned int row = 0; row < h; ++row) {
+    for (UINT row = 0; row < h; ++row) {
       NTempest::CImVector *texel = s_texels.Ptr() + row * w;
-      for (unsigned int column = 0; column < w; ++column) {
+      for (UINT column = 0; column < w; ++column) {
         float position = static_cast<float>(column) / static_cast<float>(w - 1) * 12.0f;
         float alpha;
         if (position < 2.0f) {
@@ -344,13 +326,13 @@ static void s_ProjFadeTex(
             alpha = 0.0f;
           }
         }
-        texel[column].Set(static_cast<unsigned char>(alpha * 255.0f), 255, 255, 255);
+        texel[column].Set(static_cast<BYTE>(alpha * 255.0f), 255, 255, 255);
       }
     }
   }
 }
 
-void ShadowRender(HMODEL hModel, const NTempest::C44Matrix &basis, void *param) {
+void ShadowRender(HMODEL hModel, const NTempest::C44Matrix &basis, LPVOID param) {
   if (hModel && s_shadowLOD == 1) {
     ShadowRender_LOD1(hModel, basis, param);
   }
@@ -370,7 +352,7 @@ void ShadowDestroy() {
   s_fadeTex = 0;
 }
 
-static int ConsoleCommand_ShadowLOD(const char *__formal, const char *args) {
+static int ConsoleCommand_ShadowLOD(LPCSTR, LPCSTR args) {
   int lod;
   sscanf(args, "%d", &lod);
   if (lod >= 0 && lod <= 1) {
@@ -378,7 +360,7 @@ static int ConsoleCommand_ShadowLOD(const char *__formal, const char *args) {
     ConsoleWrite("Shadow LOD set", DEFAULT_COLOR);
 
     NTempest::CiRect updRect(0, 0, 8, 64);
-    void(* fadeFunc)(EGxTexCommand, unsigned int, unsigned int, unsigned int, unsigned int, void *, unsigned int &, const void *&);
+    void (*fadeFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &);
     if (lod == 1) {
       fadeFunc = s_ProjFadeTex;
     } else if (lod == 2) {

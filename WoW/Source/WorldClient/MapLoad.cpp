@@ -18,16 +18,16 @@
 
 #include <float.h>
 
-static const char *s_animationNames[1] = {"Stand"};
+static LPCSTR s_animationNames[1] = {"Stand"};
 
-static int OnPickNextFidget(void *param) {
+static int OnPickNextFidget(LPVOID param) {
   ModelSetRandomSequenceFidget(static_cast<HMODEL>(param), 0, 0);
   return 1;
 }
 
-static void DoodadEventCallback(const char *eventName, const NTempest::C3Vector &position, void *param) {
+static void DoodadEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
   CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(param);
-  unsigned int   event = *reinterpret_cast<const unsigned int *>(eventName);
+  UINT           event = *reinterpret_cast<const UINT *>(eventName);
 
   if (event == 0x4C534424) {
     if (!doodadDef->doodadSoundHandle) {
@@ -38,7 +38,7 @@ static void DoodadEventCallback(const char *eventName, const NTempest::C3Vector 
   }
 }
 
-void CMap::Load(const char *fileName) {
+void CMap::Load(LPCSTR fileName) {
   char lightPath[256];
 
   enablePixelShaders = (CWorld::enables & CWorld::Enable_PixelShaders) != 0;
@@ -79,14 +79,14 @@ void CMap::Load(const char *fileName) {
 }
 
 void CMap::LoadWdl() {
-  short         heights[545];
-  char          wdlFilename[256];
-  unsigned long version;
-  SIffChunk     iffChunk;
-  unsigned int  index;
-  float         min;
-  SFile        *wdlFile;
-  float         temp;
+  short     heights[545];
+  char      wdlFilename[256];
+  DWORD     version;
+  SIffChunk iffChunk;
+  UINT      index;
+  float     min;
+  SFile    *wdlFile;
+  float     temp;
 
   SStrPrintf(wdlFilename, sizeof(wdlFilename), "%s\\%s.wdl", mapPath, mapName);
   SFile::Open(wdlFilename, &wdlFile);
@@ -103,8 +103,8 @@ void CMap::LoadWdl() {
   SFile::Read(wdlFile, areaLowOffsets, sizeof(areaLowOffsets), 0, 0, 0);
 
   index = 0;
-  for (unsigned int y = 0; y < 64 * 16; y += 16) {
-    for (unsigned int x = 0; x < 64 * 16; x += 16) {
+  for (UINT y = 0; y < 64 * 16; y += 16) {
+    for (UINT x = 0; x < 64 * 16; x += 16) {
       if (areaLowOffsets[index]) {
         SFile::SetFilePointer(wdlFile, areaLowOffsets[index], 0, FILE_BEGIN);
         SFile::Read(wdlFile, &iffChunk, sizeof(iffChunk), 0, 0, 0);
@@ -117,7 +117,7 @@ void CMap::LoadWdl() {
 
         min = FLT_MAX;
         temp = -FLT_MAX;
-        for (unsigned int h = 0; h < 545; ++h) {
+        for (UINT h = 0; h < 545; ++h) {
           mapAreaLow->heights[h] = static_cast<float>(heights[h]);
           if (mapAreaLow->heights[h] < min) {
             min = mapAreaLow->heights[h];
@@ -195,9 +195,9 @@ void CMap::Open() {
 }
 
 void CMap::LoadDoodadNames() {
-  SIffChunk     iffChunk;
-  unsigned long bRead;
-  unsigned int  cnt;
+  SIffChunk iffChunk;
+  DWORD     bRead;
+  UINT      cnt;
 
   SFile::Read(wdtFile, &iffChunk, sizeof(iffChunk), 0, 0, 0);
   FATALASSERT(iffChunk.token == 'MDNM');
@@ -208,7 +208,7 @@ void CMap::LoadDoodadNames() {
     SFile::Read(wdtFile, doodadNames.Ptr(), iffChunk.size, &bRead, 0, 0);
 
     cnt = 0;
-    for (unsigned int i = 0; i < doodadNames.Count(); ++i) {
+    for (UINT i = 0; i < doodadNames.Count(); ++i) {
       doodadNamesIndex[cnt++] = i;
       while (doodadNames.Ptr()[i]) {
         ++i;
@@ -218,9 +218,9 @@ void CMap::LoadDoodadNames() {
 }
 
 void CMap::LoadMapObjNames() {
-  SIffChunk     iffChunk;
-  unsigned long bRead;
-  unsigned int  cnt;
+  SIffChunk iffChunk;
+  DWORD     bRead;
+  UINT      cnt;
 
   SFile::Read(wdtFile, &iffChunk, sizeof(iffChunk), 0, 0, 0);
   FATALASSERT(iffChunk.token == 'MONM');
@@ -231,7 +231,7 @@ void CMap::LoadMapObjNames() {
     SFile::Read(wdtFile, mapObjNames.Ptr(), iffChunk.size, &bRead, 0, 0);
 
     cnt = 0;
-    for (unsigned int i = 0; i < mapObjNames.Count(); ++i) {
+    for (UINT i = 0; i < mapObjNames.Count(); ++i) {
       mapObjNamesIndex[cnt++] = i;
       while (mapObjNames.Ptr()[i]) {
         ++i;
@@ -240,12 +240,10 @@ void CMap::LoadMapObjNames() {
   }
 }
 
-CMapDoodadDef *CMap::CreateDoodadDef(
-    const char *fileName, NTempest::C3Vector &pos, float angle, int bWait
-) {
+CMapDoodadDef *CMap::CreateDoodadDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, int bWait) {
   FATALASSERT(fileName);
 
-  unsigned int id = uniqueId--;
+  UINT          id = uniqueId--;
   HASHKEY_DWORD key;
   FATALASSERT(!doodadDefHash.Ptr(id, key));
 
@@ -309,13 +307,8 @@ CMapDoodadDef *CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vecto
   return doodadDef;
 }
 
-CMapDoodadDef *CMap::CreateDoodadDef(
-    unsigned int         doodadRef,
-    SMODoodadDef        &smoDoodadDef,
-    const char          *fileName,
-    unsigned int         mapObjDefId,
-    NTempest::C44Matrix &mapObjDefMat
-) {
+CMapDoodadDef *
+CMap::CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileName, UINT mapObjDefId, NTempest::C44Matrix &mapObjDefMat) {
   HASHKEY_DWORD  key(mapObjDefId);
   CMapDoodadDef *doodadDef = doodadDefHash.Ptr(doodadRef, key);
   if (doodadDef) {
@@ -350,12 +343,10 @@ CMapDoodadDef *CMap::CreateDoodadDef(
   return doodadDef;
 }
 
-CMapObjDef *CMap::CreateMapObjDef(
-    const char *fileName, NTempest::C3Vector &pos, float angle, int bWait
-) {
+CMapObjDef *CMap::CreateMapObjDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, int bWait) {
   FATALASSERT(fileName);
 
-  unsigned int id = uniqueId--;
+  UINT id = uniqueId--;
   FATALASSERT(!mapObjDefHash.Ptr(id, nullHashKey));
 
   CMapObjDef *mapObjDef = AllocMapObjDef();
@@ -410,11 +401,7 @@ CMapObjDef *CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &
   mapObjDef->pos.Set(-smMapObjDef.pos.z, -smMapObjDef.pos.x, smMapObjDef.pos.y);
   mapObjDef->pos += pos;
 
-  NTempest::C3Vector rot(
-      smMapObjDef.rot.z * 0.017453292f,
-      smMapObjDef.rot.x * 0.017453292f,
-      smMapObjDef.rot.y * 0.017453292f + 3.1415927f
-  );
+  NTempest::C3Vector rot(smMapObjDef.rot.z * 0.017453292f, smMapObjDef.rot.x * 0.017453292f, smMapObjDef.rot.y * 0.017453292f + 3.1415927f);
   mapObjDef->flags = 0;
   mapObjDef->nameId = smMapObjDef.nameId;
   mapObjDef->doodadSet = smMapObjDef.doodadSet;
@@ -531,7 +518,7 @@ void CMap::CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef) {
   FATALASSERT(mapObj);
   FATALASSERT(mapObjDef);
 
-  for (unsigned int i = 0; i < mapObj->groupCount; ++i) {
+  for (UINT i = 0; i < mapObj->groupCount; ++i) {
     CMapObjDefGroup *mapObjDefGroup = AllocMapObjDefGroup();
     CMapBaseObjLink *link = AllocBaseObjLink(mapObjDefGroup);
     link->ref = mapObjDef;
@@ -555,33 +542,22 @@ void CMap::CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef) {
   }
 }
 
-void CMap::CreateMapObjDefGroupDoodads(
-    CMapObj         *mapObj,
-    CMapObjGroup    *mapObjGroup,
-    CMapObjDef      *mapObjDef,
-    CMapObjDefGroup *mapObjDefGroup
-) {
+void CMap::CreateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
   FATALASSERT(mapObj);
   FATALASSERT(mapObjGroup);
   FATALASSERT(mapObjDef);
   FATALASSERT(mapObjDefGroup);
 
-  for (unsigned int i = 0; i < mapObjGroup->doodadRefCount; ++i) {
-    unsigned int doodadRef = mapObjGroup->doodadRefList[i];
-    unsigned int doodadSet = mapObj->GetDoodadSet(doodadRef);
+  for (UINT i = 0; i < mapObjGroup->doodadRefCount; ++i) {
+    UINT doodadRef = mapObjGroup->doodadRefList[i];
+    UINT doodadSet = mapObj->GetDoodadSet(doodadRef);
     if (doodadSet && doodadSet != mapObjDef->doodadSet) {
       continue;
     }
 
     SMODoodadDef  &smoDoodadDef = mapObj->doodadDefList[doodadRef];
     CMapDoodadDef *doodadDef =
-        CreateDoodadDef(
-            doodadRef,
-            smoDoodadDef,
-            mapObj->doodadNameList + smoDoodadDef.nameIndex,
-            mapObjDef->GetHashValue() + 1,
-            mapObjDef->mat
-        );
+        CreateDoodadDef(doodadRef, smoDoodadDef, mapObj->doodadNameList + smoDoodadDef.nameIndex, mapObjDef->GetHashValue() + 1, mapObjDef->mat);
     if (doodadDef) {
       CMapBaseObjLink *link = AllocBaseObjLink(doodadDef);
       link->ref = mapObjDefGroup;
@@ -602,9 +578,9 @@ void CMap::CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMa
   FATALASSERT(mapObjDef);
   FATALASSERT(mapObjDefGroup);
 
-  for (unsigned int i = 0; i < mapObjGroup->lightRefCount; ++i) {
-    unsigned int idx = mapObjGroup->lightRefList[i];
-    SMOLight    *sLight = &mapObj->lightList[idx];
+  for (UINT i = 0; i < mapObjGroup->lightRefCount; ++i) {
+    UINT      idx = mapObjGroup->lightRefList[i];
+    SMOLight *sLight = &mapObj->lightList[idx];
     if (sLight->type) {
       continue;
     }
@@ -638,7 +614,7 @@ void CMap::CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMa
   mapObjDefGroup->flags |= CMapBaseObj::Flag_HasLights;
 }
 
-void DNPlanet::Initialize(const char *filename) {
+void DNPlanet::Initialize(LPCSTR filename) {
   CStatus status;
   m_texid = TextureCreate(filename, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 2);
@@ -653,7 +629,7 @@ void DNStars::Initialize() {
   SysMsgAdd(status, 16);
 }
 
-void DNGlare::Initialize(const char *filename) {
+void DNGlare::Initialize(LPCSTR filename) {
   CStatus status;
   m_texid = TextureCreate(filename, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 2);

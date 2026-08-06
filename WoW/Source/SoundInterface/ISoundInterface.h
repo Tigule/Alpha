@@ -39,20 +39,20 @@ struct FILENAMEENTRY {
 
   const FILENAMEENTRY &operator=(const FILENAMEENTRY &rhs) {
     if (this != &rhs) {
-      unsigned int frequency = rhs.accumulatedFreq;
+      UINT frequency = rhs.accumulatedFreq;
       SStrCopy(fileName, rhs.fileName, sizeof(fileName));
       accumulatedFreq = frequency;
     }
     return *this;
   }
 
-  void SetName(const char *name, unsigned int frequency) {
+  void SetName(LPCSTR name, UINT frequency) {
     SStrCopy(fileName, name, sizeof(fileName));
     accumulatedFreq = frequency;
   }
 
-  char         fileName[260];
-  unsigned int accumulatedFreq;
+  char fileName[260];
+  UINT accumulatedFreq;
 };
 
 struct WEAPONSOUNDS {
@@ -63,7 +63,7 @@ struct WEAPONSOUNDS {
   const WEAPONSOUNDS &operator=(const WEAPONSOUNDS &rhs);
   void                Clear();
 
-  unsigned int soundList[2];
+  UINT soundList[2];
 };
 
 struct IMPACTSOUNDDESC {
@@ -71,7 +71,7 @@ struct IMPACTSOUNDDESC {
   }
 
   IMPACTSOUNDDESC(const IMPACTSOUNDDESC &rhs) {
-    for (unsigned int i = 0; i < 2; ++i) {
+    for (UINT i = 0; i < 2; ++i) {
       materialSounds[i] = rhs.materialSounds[i];
     }
   }
@@ -95,10 +95,10 @@ struct SOUNDDEFINITION : public TSHashObject<SOUNDDEFINITION, HASHKEY_NONE> {
 
   const SOUNDDEFINITION &operator=(const SOUNDDEFINITION &rhs);
 
-  const char *GetRandomFileName(int index);
-  int         GetOsFlags() const;
-  void        Set3DParams(Sound *sound, const NTempest::C3Vector *pos);
-  void        SetFrequencyAndVolume(Sound *sound, float volumeScaler, bool neverVaryVolume) const;
+  LPCSTR GetRandomFileName(int index);
+  int    GetOsFlags() const;
+  void   Set3DParams(Sound *sound, const NTempest::C3Vector *pos);
+  void   SetFrequencyAndVolume(Sound *sound, float volumeScaler, bool neverVaryVolume) const;
 
  private:
   float GetVolume(float volumeScale, bool neverVary) const;
@@ -109,34 +109,34 @@ struct SOUNDDEFINITION : public TSHashObject<SOUNDDEFINITION, HASHKEY_NONE> {
   float                       m_volume;
   float                       m_pitch;
   float                       m_pitchVariation;
-  unsigned int                m_priority;
-  unsigned int                m_channel;
-  unsigned int                m_flags;
+  UINT                        m_priority;
+  UINT                        m_channel;
+  UINT                        m_flags;
   float                       m_minDistance;
   float                       m_maxDistance;
   float                       m_distanceCutoffSquared;
-  unsigned int                m_totalFrequency;
-  unsigned int                m_lastPlayed;
-  unsigned int                m_loopCounter;
-  unsigned int                m_primeStepIndex;
+  UINT                        m_totalFrequency;
+  UINT                        m_lastPlayed;
+  UINT                        m_loopCounter;
+  UINT                        m_primeStepIndex;
   int                         m_equalFreqs;
   int                         m_reverbPrefIndex;
 };
 
 struct SHEATHSOUNDHASH : public TSHashObject<SHEATHSOUNDHASH, HASHKEY_NONE> {
-  TSFixedArray<unsigned int> materialSheathSound;
-  TSFixedArray<unsigned int> materialUnsheathSound;
+  TSFixedArray<UINT> materialSheathSound;
+  TSFixedArray<UINT> materialUnsheathSound;
 };
 
 struct UISOUNDLOOKUP : public TSHashObject<UISOUNDLOOKUP, HASHKEY_STRI> {
-  unsigned int soundID;
+  UINT soundID;
 };
 
 struct REVERBINFO {
   REVERBINFO() : inUse(0) {
   }
 
-  unsigned char                    inUse;
+  BYTE                             inUse;
   _FSOUND_REVERB_CHANNELPROPERTIES prefs;
 };
 
@@ -145,7 +145,7 @@ extern TSHashTable<UISOUNDLOOKUP, HASHKEY_STRI>   g_uiSoundLookups;
 extern TSFixedArray<IMPACTSOUNDARRAY>             g_impactSounds;
 extern WEAPONSOUNDS                               g_weaponSwingSounds[3];
 
-SOUNDDEFINITION *ISndInterfaceGetSndEntry(unsigned int soundID);
+SOUNDDEFINITION                  *ISndInterfaceGetSndEntry(UINT soundID);
 _FSOUND_REVERB_CHANNELPROPERTIES *GetReverbType(int index);
 
 #endif

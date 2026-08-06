@@ -27,12 +27,12 @@ class NameCache {
     return *this;
   }
 
-  char             m_name[0x30];
-  unsigned __int64 m_guid;
-  unsigned int     m_race;
-  unsigned int     m_sex;
-  unsigned char    m_temp;
-  unsigned int     m_class;
+  char      m_name[0x30];
+  DWORDLONG m_guid;
+  UINT      m_race;
+  UINT      m_sex;
+  BYTE      m_temp;
+  UINT      m_class;
 };
 
 #endif

@@ -64,56 +64,54 @@ enum BAG_RESULT {
 
 class CGBag {
  public:
-  CGBag(unsigned __int64 guid, unsigned int *slotCount, unsigned __int64 *slots, unsigned char isInventory)
+  CGBag(DWORDLONG guid, UINT *slotCount, DWORDLONG *slots, BYTE isInventory)
       : m_slotCount(slotCount), m_slots(slots), m_guid(guid), m_isInventory(isInventory) {
   }
 
-  unsigned __int64 GetItem(unsigned int slot) const {
+  DWORDLONG GetItem(UINT slot) const {
     return slot < *m_slotCount ? m_slots[slot] : 0;
   }
-  int GetIndexOfObject(unsigned __int64 guid) const {
-    for (unsigned int index = 0; index < NumSlots(); ++index) {
+  int GetIndexOfObject(DWORDLONG guid) const {
+    for (UINT index = 0; index < NumSlots(); ++index) {
       if (GetItem(index) == guid) {
         return index;
       }
     }
     return -1;
   }
-  unsigned int NumItems() const;
-  unsigned int NumSlots() const {
+  UINT NumItems() const;
+  UINT NumSlots() const {
     return *m_slotCount;
   }
   int IsInventory() const {
     return m_isInventory;
   }
-  unsigned __int64 GetGUID() const {
+  DWORDLONG GetGUID() const {
     return m_guid;
   }
 
  protected:
-  unsigned int     *m_slotCount;
-  unsigned __int64 *m_slots;
-  unsigned __int64  m_guid;
-  unsigned char     m_isInventory;
+  UINT      *m_slotCount;
+  DWORDLONG *m_slots;
+  DWORDLONG  m_guid;
+  BYTE       m_isInventory;
 };
 
 class CGBag_C : public CGBag {
  public:
-  CGBag_C(unsigned __int64 guid, unsigned int *slotCount, unsigned __int64 *slots, unsigned char isInventory)
-      : CGBag(guid, slotCount, slots, isInventory) {
+  CGBag_C(DWORDLONG guid, UINT *slotCount, DWORDLONG *slots, BYTE isInventory) : CGBag(guid, slotCount, slots, isInventory) {
   }
   ~CGBag_C() {
   }
 
-  int                               GetItemTypeCount(int entryID, unsigned int flags) const;
-  int                               GetWidth(unsigned int offset) const;
-  int                               GetHeight(unsigned int offset) const;
+  int                    GetItemTypeCount(int entryID, UINT flags) const;
+  int                    GetWidth(UINT offset) const;
+  int                    GetHeight(UINT offset) const;
   static GAME_ERROR_TYPE GetGameError(BAG_RESULT result);
-  CGItem_C                         *FindItem(int(*func)(const CGItem_C *, void *), void *param, unsigned int flags) const;
-  CGItem_C                         *FindItemOfType(int entryID, unsigned int flags) const;
-  CGItem_C                         *FindItemOfType(int entryID, unsigned __int64 &bagGUID, unsigned int &slot, unsigned int flags) const;
-  CGItem_C                         *FindItemOfClass(int classID, int subclassMask, unsigned int flags) const;
-  CGItem_C *FindItemOfClass(int classID, int subclassMask, unsigned __int64 &bagGUID, unsigned int &slot, unsigned int flags) const;
-  CGItem_C *
-  FindItem(int(*func)(const CGItem_C *, void *), void *param, unsigned __int64 &bagGUID, unsigned int &slot, unsigned int flags) const;
+  CGItem_C              *FindItem(int (*func)(const CGItem_C *, LPVOID), LPVOID param, UINT flags) const;
+  CGItem_C              *FindItemOfType(int entryID, UINT flags) const;
+  CGItem_C              *FindItemOfType(int entryID, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
+  CGItem_C              *FindItemOfClass(int classID, int subclassMask, UINT flags) const;
+  CGItem_C              *FindItemOfClass(int classID, int subclassMask, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
+  CGItem_C              *FindItem(int (*func)(const CGItem_C *, LPVOID), LPVOID param, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
 };

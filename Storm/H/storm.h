@@ -24,8 +24,8 @@
 
 #include <sapibase.h>
 
-const unsigned int INFINITY_ENCODING = 0x7F800000;
-const float        INFINITY = *reinterpret_cast<const float *>(&INFINITY_ENCODING);
+const UINT  INFINITY_ENCODING = 0x7F800000;
+const float INFINITY = *reinterpret_cast<const float *>(&INFINITY_ENCODING);
 
 #define DECLARE_STRICT_HANDLE(name) \
   typedef struct name##__ {         \
@@ -37,34 +37,37 @@ const float        INFINITY = *reinterpret_cast<const float *>(&INFINITY_ENCODIN
   } *name
 
 #ifdef _MSC_VER
-  #ifdef _INC_TYPEINFO
-    #define  INTERNALRAWNAME  raw_name
-  #else
-    #define  INTERNALRAWNAME  internal_raw_name
-    class type_info {
-      public:
-        virtual ~type_info ();
-        const char * internal_raw_name () const { return _m_d_name; };
-      private:
-        void *_m_data;
-        char _m_d_name[1];
-        type_info (const type_info& rhs);
-        type_info& operator= (const type_info& rhs);
-    };
-  #endif
+#ifdef _INC_TYPEINFO
+#define INTERNALRAWNAME raw_name
 #else
-  #if defined(MAC) && !defined(__typeinfo__)
-     #include <typeinfo>
-  #endif
-  #define  INTERNALRAWNAME  name
+#define INTERNALRAWNAME internal_raw_name
+class type_info {
+ public:
+  virtual ~type_info();
+  LPCSTR internal_raw_name() const {
+    return _m_d_name;
+  };
+
+ private:
+  LPVOID _m_data;
+  char   _m_d_name[1];
+  type_info(const type_info &rhs);
+  type_info &operator=(const type_info &rhs);
+};
+#endif
+#else
+#if defined(MAC) && !defined(__typeinfo__)
+#include <typeinfo>
+#endif
+#define INTERNALRAWNAME name
 #endif
 
-#define  LIST_UNLINKED                 0
-#define  LIST_HEAD                     1
-#define  LIST_TAIL                     2
+#define LIST_UNLINKED 0
+#define LIST_HEAD     1
+#define LIST_TAIL     2
 
-#define  LIST_LINK_AFTER               LIST_HEAD
-#define  LIST_LINK_BEFORE              LIST_TAIL
+#define LIST_LINK_AFTER  LIST_HEAD
+#define LIST_LINK_BEFORE LIST_TAIL
 
 // --------------------------------
 // Error codes
@@ -123,7 +126,7 @@ const float        INFINITY = *reinterpret_cast<const float *>(&INFINITY_ENCODIN
 typedef BOOL(APIENTRY *SERRHANDLER)(DWORD errorcode, LPCSTR errorstr, LPCSTR filename, int linenumber, LPCSTR description);
 typedef int(APIENTRY *SERRLOGCALLBACK)(LPSTR buffer, DWORD bufferchars);
 
-void SErrInitialize();
+void                      SErrInitialize();
 extern "C" BOOL APIENTRY  SErrDestroy();
 extern "C" BOOL APIENTRY  SErrCheckDebugSymbolLibrary(BOOL warnnotfound);
 extern "C" void APIENTRY  SErrPrepareAppFatal(LPCSTR filename, int linenumber);
@@ -158,11 +161,11 @@ extern "C" void APIENTRY  SErrCatchUnhandledExceptions();
 // Event functions
 // --------------------------------
 
-typedef void(APIENTRY *SEVTHANDLER)(void *data);
+typedef void(APIENTRY *SEVTHANDLER)(LPVOID data);
 
-extern "C" BOOL APIENTRY SEvtBreakHandlerChain(void *data);
+extern "C" BOOL APIENTRY SEvtBreakHandlerChain(LPVOID data);
 extern "C" BOOL APIENTRY SEvtDestroy();
-extern "C" BOOL APIENTRY SEvtDispatch(DWORD type, DWORD subtype, DWORD id, void *data);
+extern "C" BOOL APIENTRY SEvtDispatch(DWORD type, DWORD subtype, DWORD id, LPVOID data);
 extern "C" BOOL APIENTRY SEvtPopState(DWORD type, DWORD subtype);
 extern "C" BOOL APIENTRY SEvtPushState(DWORD type, DWORD subtype);
 extern "C" BOOL APIENTRY SEvtRegisterHandler(DWORD type, DWORD subtype, DWORD id, DWORD flags, SEVTHANDLER handler);
@@ -176,14 +179,14 @@ extern "C" BOOL APIENTRY SEvtUnregisterType(DWORD type, DWORD subtype);
 typedef BOOL(APIENTRY *SMSGIDLEPROC)(DWORD count);
 
 typedef struct _PARAMS {
-  HWND  window;
-  UINT  message;
-  UINT  wparam;
-  LONG  lparam;
-  UINT  notifycode;
-  void *extra;
-  BOOL  useresult;
-  LONG  result;
+  HWND   window;
+  UINT   message;
+  UINT   wparam;
+  LONG   lparam;
+  UINT   notifycode;
+  LPVOID extra;
+  BOOL   useresult;
+  LONG   result;
 } SMSGPARAMS, *LPSMSGPARAMS;
 
 typedef void(APIENTRY *SMSGHANDLER)(SMSGPARAMS *params);
@@ -235,38 +238,38 @@ extern "C" BOOL APIENTRY    SMsgUnregisterMessage(HWND window, UINT id, SMSGHAND
 #define SCMD_TYPE_MASK    (SCMD_TYPE_BOOL | SCMD_TYPE_NUMERIC | SCMD_TYPE_STRING)
 
 typedef struct _CMDERROR {
-  DWORD       errorcode;
-  const char *itemstr;
-  const char *errorstr;
+  DWORD  errorcode;
+  LPCSTR itemstr;
+  LPCSTR errorstr;
 } CMDERROR, *CMDERRORPTR;
 
 typedef CMDERROR  SCMDERROR;
 typedef CMDERROR *LPSCMDERROR;
 
 typedef struct _CMDPARAMS {
-  DWORD       flags;
-  DWORD       id;
-  const char *name;
-  void       *variable;
-  DWORD       setvalue;
-  DWORD       setmask;
+  DWORD  flags;
+  DWORD  id;
+  LPCSTR name;
+  LPVOID variable;
+  DWORD  setvalue;
+  DWORD  setmask;
   union {
-    BOOL        boolvalue;
-    LONG        signedvalue;
-    DWORD       unsignedvalue;
-    const char *stringvalue;
+    BOOL   boolvalue;
+    LONG   signedvalue;
+    DWORD  unsignedvalue;
+    LPCSTR stringvalue;
   };
 } CMDPARAMS, *CMDPARAMSPTR;
 
-typedef BOOL(APIENTRY *SCMDPROCESSCALLBACK)(const char *value);
-typedef BOOL(APIENTRY *SCMDCALLBACK)(CMDPARAMSPTR params, const char *value);
+typedef BOOL(APIENTRY *SCMDPROCESSCALLBACK)(LPCSTR value);
+typedef BOOL(APIENTRY *SCMDCALLBACK)(CMDPARAMSPTR params, LPCSTR value);
 typedef void(APIENTRY *SCMDERRORCALLBACK)(CMDERRORPTR error);
 typedef SCMDCALLBACK SCMDARGCALLBACK;
 
 typedef struct _ARGLIST {
   DWORD        flags;
   DWORD        id;
-  const char  *name;
+  LPCSTR       name;
   SCMDCALLBACK callback;
 } ARGLIST, *LPARGLIST;
 
@@ -276,14 +279,14 @@ extern "C" BOOL APIENTRY  SCmdGetBool(DWORD id);
 extern "C" DWORD APIENTRY SCmdGetNum(DWORD id);
 extern "C" BOOL APIENTRY  SCmdGetString(DWORD id, char *buffer, DWORD bufferchars);
 extern "C" BOOL APIENTRY  SCmdGetStringAlloc(DWORD id, char **buffer);
-extern "C" BOOL APIENTRY  SCmdProcess(const char *cmdline, int skipprogname, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback);
+extern "C" BOOL APIENTRY  SCmdProcess(LPCSTR cmdline, int skipprogname, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback);
 extern "C" BOOL APIENTRY  SCmdProcessCommandLine(SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback);
 extern "C" BOOL APIENTRY  SCmdRegisterArgList(const ARGLIST *listptr, DWORD numargs);
 extern "C" BOOL APIENTRY  SCmdRegisterArgument(
     DWORD        flags,
     DWORD        id,
-    const char  *name,
-    void        *variableptr,
+    LPCSTR       name,
+    LPVOID       variableptr,
     DWORD        variablebytes,
     DWORD        setvalue,
     DWORD        setmask,
@@ -301,9 +304,9 @@ extern "C" BOOL APIENTRY  SCmdRegisterArgument(
 #define SCOMP_IMA_ADPCM_STEREO 0x00000080
 
 extern "C" int APIENTRY
-SCompCompress(void *dest, DWORD *destsize, const void *source, DWORD sourcesize, DWORD compressiontypes, DWORD hint, DWORD optimization);
-extern "C" int APIENTRY SCompDecompress(void *dest, DWORD *destsize, const void *source, DWORD sourcesize);
-int APIENTRY            SCompDecompress2(void *dest, DWORD *destsize, const void *source, DWORD sourcesize, const char *filename);
+SCompCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD compressiontypes, DWORD hint, DWORD optimization);
+extern "C" int APIENTRY SCompDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize);
+int APIENTRY            SCompDecompress2(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename);
 BOOL                    SCompPkwareDecompressBuffer(BYTE *dest, DWORD *destsize, const BYTE *source, DWORD sourcesize);
 extern "C" int APIENTRY SCompDestroy();
 
@@ -324,9 +327,9 @@ extern "C" void APIENTRY SBigDec(BigData *a, const BigData &b);
 extern "C" void APIENTRY SBigDel(BigData *num);
 extern "C" void APIENTRY SBigDiv(BigData *a, const BigData &b, const BigData &c);
 extern "C" void APIENTRY SBigFindPrime(BigData *a, UINT bits, const BigData &c, const BigData &d);
-extern "C" void APIENTRY SBigFromBinary(BigData *num, const void *data, UINT bytes);
-extern "C" void APIENTRY SBigFromStr(BigData *num, const char *str);
-extern "C" void APIENTRY SBigFromStream(BigData *num, const void *data, UINT maxBytes, UINT *bytes);
+extern "C" void APIENTRY SBigFromBinary(BigData *num, LPCVOID data, UINT bytes);
+extern "C" void APIENTRY SBigFromStr(BigData *num, LPCSTR str);
+extern "C" void APIENTRY SBigFromStream(BigData *num, LPCVOID data, UINT maxBytes, UINT *bytes);
 extern "C" void APIENTRY SBigFromUnsigned(BigData *num, UINT val);
 extern "C" void APIENTRY SBigGcd(BigData *a, const BigData &b, const BigData &c);
 extern "C" void APIENTRY SBigInc(BigData *a, const BigData &b);
@@ -353,14 +356,14 @@ extern "C" void APIENTRY SBigShr(BigData *a, const BigData &b, UINT bits);
 extern "C" void APIENTRY SBigSquare(BigData *a, const BigData &b);
 extern "C" void APIENTRY SBigSub(BigData *a, const BigData &b, const BigData &c);
 extern "C" void APIENTRY SBigToBinaryArray(const BigData &num, TSGrowableArray<BYTE> *array, int append);
-extern "C" void APIENTRY SBigToBinaryBuffer(const BigData &num, void *data, UINT maxBytes, UINT *bytes);
-extern "C" void APIENTRY SBigToBinaryPtr(const BigData &num, const void **data, UINT *bytes);
+extern "C" void APIENTRY SBigToBinaryBuffer(const BigData &num, LPVOID data, UINT maxBytes, UINT *bytes);
+extern "C" void APIENTRY SBigToBinaryPtr(const BigData &num, LPCVOID *data, UINT *bytes);
 extern "C" void APIENTRY SBigToStrArray(const BigData &num, TSGrowableArray<char> *array, int append);
 extern "C" void APIENTRY SBigToStrBuffer(const BigData &num, char *str, UINT chars);
-extern "C" void APIENTRY SBigToStrPtr(const BigData &num, const char **str);
+extern "C" void APIENTRY SBigToStrPtr(const BigData &num, LPCSTR *str);
 extern "C" void APIENTRY SBigToStreamArray(const BigData &num, TSGrowableArray<BYTE> *array, int append);
-extern "C" void APIENTRY SBigToStreamBuffer(const BigData &num, void *data, UINT maxBytes, UINT *bytes);
-extern "C" void APIENTRY SBigToStreamPtr(const BigData &num, const void **data, UINT *bytes);
+extern "C" void APIENTRY SBigToStreamBuffer(const BigData &num, LPVOID data, UINT maxBytes, UINT *bytes);
+extern "C" void APIENTRY SBigToStreamPtr(const BigData &num, LPCVOID *data, UINT *bytes);
 extern "C" void APIENTRY SBigToUnsigned(const BigData &num, UINT *val);
 extern "C" void APIENTRY SBigXor(BigData *a, const BigData &b, const BigData &c);
 
@@ -368,33 +371,22 @@ extern "C" void APIENTRY SBigXor(BigData *a, const BigData &b, const BigData &c)
 // Machine-state logging
 // --------------------------------
 
-typedef void(__cdecl *LOGMACHINESTATEPROC)(void *param, const char *format, ...);
+typedef void(__cdecl *LOGMACHINESTATEPROC)(LPVOID param, LPCSTR format, ...);
 
-void
-LogComputerInfoHeader(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, const char *title, SYSTEMTIME *localTime);
-void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, void *logLineProcParam, UINT stackFramesToSkip, CONTEXT *context);
+void LogComputerInfoHeader(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, LPCSTR title, SYSTEMTIME *localTime);
+void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, UINT stackFramesToSkip, CONTEXT *context);
 
 // --------------------------------
 // Utility functions
 // --------------------------------
 
-int __cdecl vsnoprintf(char *out, int outSize, const char *format, char *argumentList);
-int __cdecl vsoprintf(char *out, const char *format, char *argumentList);
-int __cdecl snoprintf(char *out, int maxchars, const char *format, ...);
-int __cdecl soprintf(char *out, const char *format, ...);
+int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList);
+int __cdecl vsoprintf(char *out, LPCSTR format, char *argumentList);
+int __cdecl snoprintf(char *out, int maxchars, LPCSTR format, ...);
+int __cdecl soprintf(char *out, LPCSTR format, ...);
 
-DWORD CrcBuffer(const void *buffer, DWORD len, DWORD *pcrc, DWORD stage);
-extern "C" DWORD APIENTRY SCrcBuffer(const void *buffer, DWORD len, DWORD *pcrc, DWORD stage);
-
-typedef struct SHA1_CONTEXT {
-  unsigned int  state[5];
-  unsigned int  count[2];
-  unsigned char buffer[64];
-} SHA1_CONTEXT;
-
-void SHA1_Init(SHA1_CONTEXT *context);
-void SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int len);
-void SHA1_Final(unsigned char *digest, SHA1_CONTEXT *context);
+DWORD                     CrcBuffer(LPCVOID buffer, DWORD len, DWORD *pcrc, DWORD stage);
+extern "C" DWORD APIENTRY SCrcBuffer(LPCVOID buffer, DWORD len, DWORD *pcrc, DWORD stage);
 
 class Sha1 {
  public:
@@ -405,31 +397,31 @@ class Sha1 {
   };
 
   void Initialize();
-  void Append(const void *_data, unsigned long size);
-  void Append(const char *data);
-  void Finalize(unsigned char *hash);
+  void Append(LPCVOID _data, DWORD size);
+  void Append(LPCSTR data);
+  void Finalize(BYTE *hash);
 
-  static void Hash(unsigned char *hash, const void *data, unsigned long size);
-  static void Hash(unsigned char *hash, const char *data);
+  static void Hash(BYTE *hash, LPCVOID data, DWORD size);
+  static void Hash(BYTE *hash, LPCSTR data);
 
  private:
-  static void Pump(unsigned long *hash, const unsigned char *data);
+  static void Pump(DWORD *hash, const BYTE *data);
 
-  unsigned __int64 m_size;
-  unsigned long    m_hash[5];
-  unsigned char    m_data[DATA_SIZE];
+  DWORDLONG m_size;
+  DWORD     m_hash[5];
+  BYTE      m_data[DATA_SIZE];
 };
 
 class BigNum {
  public:
   BigNum();
-  BigNum(const char *value);
-  BigNum(unsigned int value);
+  BigNum(LPCSTR value);
+  BigNum(UINT value);
   BigNum(const BigNum &copy);
   ~BigNum();
 
-  BigNum &operator=(const char *value);
-  BigNum &operator=(unsigned int value);
+  BigNum &operator=(LPCSTR value);
+  BigNum &operator=(UINT value);
   BigNum &operator=(const BigNum &copy);
 
   BigNum &Add(const BigNum &a, const BigNum &b);
@@ -443,20 +435,20 @@ class BigNum {
   BigNum &Not(const BigNum &a);
   BigNum &Dec(const BigNum &a);
   BigNum &Inc(const BigNum &a);
-  BigNum &Shl(const BigNum &a, unsigned int bits);
-  BigNum &Shr(const BigNum &a, unsigned int bits);
+  BigNum &Shl(const BigNum &a, UINT bits);
+  BigNum &Shr(const BigNum &a, UINT bits);
 
-  BigNum operator+(const BigNum &value);
-  BigNum operator-(const BigNum &value);
-  BigNum operator*(const BigNum &value);
-  BigNum operator/(const BigNum &value);
-  BigNum operator%(const BigNum &value);
-  BigNum operator&(const BigNum &value);
-  BigNum operator|(const BigNum &value);
-  BigNum operator^(const BigNum &value);
-  BigNum operator<<(unsigned int bits);
-  BigNum operator>>(unsigned int bits);
-  BigNum operator~();
+  BigNum  operator+(const BigNum &value);
+  BigNum  operator-(const BigNum &value);
+  BigNum  operator*(const BigNum &value);
+  BigNum  operator/(const BigNum &value);
+  BigNum  operator%(const BigNum &value);
+  BigNum  operator&(const BigNum &value);
+  BigNum  operator|(const BigNum &value);
+  BigNum  operator^(const BigNum &value);
+  BigNum  operator<<(UINT bits);
+  BigNum  operator>>(UINT bits);
+  BigNum  operator~();
   BigNum &operator--();
   BigNum  operator--(int);
   BigNum &operator++();
@@ -469,8 +461,8 @@ class BigNum {
   BigNum &operator&=(const BigNum &value);
   BigNum &operator|=(const BigNum &value);
   BigNum &operator^=(const BigNum &value);
-  BigNum &operator<<=(unsigned int bits);
-  BigNum &operator>>=(unsigned int bits);
+  BigNum &operator<<=(UINT bits);
+  BigNum &operator>>=(UINT bits);
 
   int Compare(const BigNum &value);
   int operator==(const BigNum &value);
@@ -480,34 +472,34 @@ class BigNum {
   int operator<(const BigNum &value);
   int operator>(const BigNum &value);
 
-  BigNum &FindPrime(unsigned int bits, const BigNum &seed);
-  BigNum &FindPrime(unsigned int bits, const BigNum &minimum, const BigNum &maximum);
+  BigNum &FindPrime(UINT bits, const BigNum &seed);
+  BigNum &FindPrime(UINT bits, const BigNum &minimum, const BigNum &maximum);
   BigNum &Gcd(const BigNum &value);
   BigNum &Gcd(const BigNum &a, const BigNum &b);
   BigNum &InvMod(const BigNum &value);
   BigNum &InvMod(const BigNum &a, const BigNum &b);
   BigNum &MulMod(const BigNum &a, const BigNum &b);
   BigNum &MulMod(const BigNum &a, const BigNum &b, const BigNum &modulus);
-  BigNum &Pow(unsigned int exponent);
-  BigNum &Pow(const BigNum &value, unsigned int exponent);
+  BigNum &Pow(UINT exponent);
+  BigNum &Pow(const BigNum &value, UINT exponent);
   BigNum &PowMod(const BigNum &value, const BigNum &modulus);
   BigNum &PowMod(const BigNum &b, const BigNum &c, const BigNum &d);
   BigNum &Rand(const BigNum &maximum, BigNum *seed);
   BigNum &Square();
   BigNum &Square(const BigNum &value);
 
-  char        *ToStr(char *buffer, unsigned int bytes) const;
-  void        *ToBinaryBuffer(void *data, unsigned int bytes) const;
-  operator unsigned int();
-  void         FromBinary(const void *data, unsigned int bytes);
-  int          IsEven();
-  int          IsOdd();
-  int          IsOne();
-  int          IsPrime();
-  int          IsZero();
-  BigNum      &Set2Exp(unsigned int exponent);
-  BigNum      &SetOne();
-  BigNum      &SetZero();
+  char   *ToStr(char *buffer, UINT bytes) const;
+  LPVOID  ToBinaryBuffer(LPVOID data, UINT bytes) const;
+          operator UINT();
+  void    FromBinary(LPCVOID data, UINT bytes);
+  int     IsEven();
+  int     IsOdd();
+  int     IsOne();
+  int     IsPrime();
+  int     IsZero();
+  BigNum &Set2Exp(UINT exponent);
+  BigNum &SetOne();
+  BigNum &SetZero();
 
  private:
   BigData *m_data;
@@ -534,8 +526,8 @@ inline BigNum &BigNum::operator=(const BigNum &copy) {
 namespace Crypt {
   class RSA {
    public:
-    void Prepare(const void *modulus, unsigned long mLength, const void *exponent, unsigned long eLength);
-    void Process(unsigned char *data, unsigned long size);
+    void Prepare(LPCVOID modulus, DWORD mLength, LPCVOID exponent, DWORD eLength);
+    void Process(BYTE *data, DWORD size);
 
    private:
     BigNum m_modulus;
@@ -545,27 +537,20 @@ namespace Crypt {
 
 class SSignatureData;
 
-extern "C" void SSignatureVerifyStream_Begin(SSignatureData **token, unsigned long modulusSize, unsigned long pubExponentSize);
-extern "C" unsigned long SSignatureVerifyStream_GetSignatureLength(SSignatureData *token);
-extern "C" void SSignatureVerifyStream_ProvideData(SSignatureData *token, const unsigned char *data, unsigned long size);
-extern "C" int SSignatureVerifyStream_Finish(SSignatureData *token, const unsigned char *modulus, const unsigned char *pubExponent);
-extern "C" int SSignatureVerify(
-    const unsigned char *data,
-    unsigned long        size,
-    const unsigned char *modulus,
-    unsigned long        modulusSize,
-    const unsigned char *pubExponent,
-    unsigned long        pubExponentSize
-);
+extern "C" void  SSignatureVerifyStream_Begin(SSignatureData **token, DWORD modulusSize, DWORD pubExponentSize);
+extern "C" DWORD SSignatureVerifyStream_GetSignatureLength(SSignatureData *token);
+extern "C" void  SSignatureVerifyStream_ProvideData(SSignatureData *token, const BYTE *data, DWORD size);
+extern "C" int   SSignatureVerifyStream_Finish(SSignatureData *token, const BYTE *modulus, const BYTE *pubExponent);
+extern "C" int SSignatureVerify(const BYTE *data, DWORD size, const BYTE *modulus, DWORD modulusSize, const BYTE *pubExponent, DWORD pubExponentSize);
 extern "C" int SSignatureGenerate(
-    unsigned char       *data,
-    unsigned long       &size,
-    const unsigned char *modulus,
-    unsigned long        modulusSize,
-    const unsigned char *privExponent,
-    unsigned long        privExponentSize,
-    const unsigned char *pubExponent,
-    unsigned long        pubExponentSize
+    BYTE       *data,
+    DWORD      &size,
+    const BYTE *modulus,
+    DWORD       modulusSize,
+    const BYTE *privExponent,
+    DWORD       privExponentSize,
+    const BYTE *pubExponent,
+    DWORD       pubExponentSize
 );
 
 // clang-format off
@@ -681,14 +666,14 @@ typedef struct SMemReportByCallerInfo {
   char  fileName[0x100];
 } SMemReportByCallerInfo;
 
-typedef void(APIENTRY *SMEMREPORTPROC)(HOUTPUTCONTEXT outputcontext, const char *report);
-typedef void(APIENTRY *SMEMDUMPPROC)(HOUTPUTCONTEXT outputcontext, const char *text);
+typedef void(APIENTRY *SMEMREPORTPROC)(HOUTPUTCONTEXT outputcontext, LPCSTR report);
+typedef void(APIENTRY *SMEMDUMPPROC)(HOUTPUTCONTEXT outputcontext, LPCSTR text);
 
 extern "C" LPVOID APIENTRY SMemAlloc(DWORD bytes, LPCSTR filename = NULL, int linenumber = 0, DWORD flags = 0);
 extern "C" BOOL APIENTRY   SMemDestroy();
 extern "C" BOOL APIENTRY   SMemDumpState(SMEMDUMPPROC outputproc, HOUTPUTCONTEXT outputcontext);
 BOOL APIENTRY              SMemDumpStateEx(char *arglist);
-void SMemGenerateReport(SMEMREPORTTYPE reporttype, SMEMREPORTPROC outputproc, HOUTPUTCONTEXT outputcontext);
+void                       SMemGenerateReport(SMEMREPORTTYPE reporttype, SMEMREPORTPROC outputproc, HOUTPUTCONTEXT outputcontext);
 BOOL APIENTRY              SMemMarkAllHeapsEx(char *arglist);
 extern "C" BOOL APIENTRY   SMemFindNextBlock(HSHEAP heap, LPVOID prevblock, LPVOID *nextblock, LPSMEMBLOCKDETAILS details);
 extern "C" void APIENTRY   SMemHeapGetDetails(HSHEAP heap, LPSMEMHEAPDETAILS details);
@@ -715,29 +700,29 @@ extern "C" void __cdecl    SMemTrace(LPCSTR format, ...);
 // Interlocked functions
 // --------------------------------
 
-void *SInterlockedExchangePointer(void **destPtr, void *exchange);
-void *SInterlockedCompareExchangePointer(void **destPtr, void *exchange, void *comperand);
-long SInterlockedIncrement(long *valuePtr);
-long SInterlockedDecrement(long *valuePtr);
-long SInterlockedExchangeAdd(long *valuePtr, long delta);
-long SInterlockedExchangeSub(long *valuePtr, long delta);
-long SInterlockedExchange(long *destPtr, long exchange);
-long SInterlockedCompareExchange(long *destPtr, long exchange, long comperand);
-__int64 SInterlockedIncrement(__int64 *valuePtr);
-__int64 SInterlockedDecrement(__int64 *valuePtr);
-__int64 SInterlockedExchangeAdd(__int64 *valuePtr, long delta);
-__int64 SInterlockedExchangeSub(__int64 *valuePtr, long delta);
-__int64 SInterlockedExchangeAdd(__int64 *valuePtr, const __int64 &delta);
-__int64 SInterlockedExchangeSub(__int64 *valuePtr, const __int64 &delta);
-__int64 SInterlockedRead(const __int64 *sourcePtr);
-__int64 SInterlockedExchange(__int64 *destPtr, const __int64 &exchange);
-__int64 SInterlockedCompareExchange(__int64 *destPtr, const __int64 &exchange, const __int64 &comperand);
-void SInterlockedIncrementNonAtomic(__int64 *valuePtr);
-void SInterlockedDecrementNonAtomic(__int64 *valuePtr);
-void SInterlockedAddNonAtomic(__int64 *valuePtr, long delta);
-void SInterlockedSubNonAtomic(__int64 *valuePtr, long delta);
-void SInterlockedAddNonAtomic(__int64 *valuePtr, const __int64 &delta);
-void SInterlockedSubNonAtomic(__int64 *valuePtr, const __int64 &delta);
+LPVOID   SInterlockedExchangePointer(LPVOID *destPtr, LPVOID exchange);
+LPVOID   SInterlockedCompareExchangePointer(LPVOID *destPtr, LPVOID exchange, LPVOID comperand);
+long     SInterlockedIncrement(long *valuePtr);
+long     SInterlockedDecrement(long *valuePtr);
+long     SInterlockedExchangeAdd(long *valuePtr, long delta);
+long     SInterlockedExchangeSub(long *valuePtr, long delta);
+long     SInterlockedExchange(long *destPtr, long exchange);
+long     SInterlockedCompareExchange(long *destPtr, long exchange, long comperand);
+LONGLONG SInterlockedIncrement(LONGLONG *valuePtr);
+LONGLONG SInterlockedDecrement(LONGLONG *valuePtr);
+LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, long delta);
+LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, long delta);
+LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, const LONGLONG &delta);
+LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, const LONGLONG &delta);
+LONGLONG SInterlockedRead(const LONGLONG *sourcePtr);
+LONGLONG SInterlockedExchange(LONGLONG *destPtr, const LONGLONG &exchange);
+LONGLONG SInterlockedCompareExchange(LONGLONG *destPtr, const LONGLONG &exchange, const LONGLONG &comperand);
+void     SInterlockedIncrementNonAtomic(LONGLONG *valuePtr);
+void     SInterlockedDecrementNonAtomic(LONGLONG *valuePtr);
+void     SInterlockedAddNonAtomic(LONGLONG *valuePtr, long delta);
+void     SInterlockedSubNonAtomic(LONGLONG *valuePtr, long delta);
+void     SInterlockedAddNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta);
+void     SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta);
 
 // --------------------------------
 // Synchronization functions
@@ -745,7 +730,7 @@ void SInterlockedSubNonAtomic(__int64 *valuePtr, const __int64 &delta);
 
 class SCritSect {
  private:
-  unsigned char m_opaqueData[0x18];
+  BYTE m_opaqueData[0x18];
   SCritSect(const SCritSect &);
 
  public:
@@ -761,7 +746,7 @@ class SCritSect {
 
 class CDebugSCritSect : private SCritSect {
  private:
-  unsigned char m_debugData[0x0C];
+  BYTE m_debugData[0x0C];
 
   CDebugSCritSect();
   CDebugSCritSect(const CDebugSCritSect &);
@@ -769,15 +754,15 @@ class CDebugSCritSect : private SCritSect {
 
  public:
   ~CDebugSCritSect();
-  void        Enter(const char *fileName, unsigned long line);
-  void        Leave(const char *fileName, unsigned long line);
-  int         TryEnter(const char *fileName, unsigned long line);
+  void        Enter(LPCSTR fileName, DWORD line);
+  void        Leave(LPCSTR fileName, DWORD line);
+  int         TryEnter(LPCSTR fileName, DWORD line);
   static void DumpAllEntries();
 };
 
 class CSRWLock {
  private:
-  unsigned char m_opaqueData[0x0C];
+  BYTE m_opaqueData[0x0C];
   CSRWLock(const CSRWLock &);
 
  public:
@@ -793,7 +778,7 @@ class CSRWLock {
 
 class CDebugSRWLock : private CSRWLock {
  private:
-  unsigned char m_debugData[0x0C];
+  BYTE m_debugData[0x0C];
 
   CDebugSRWLock();
   CDebugSRWLock(const CDebugSRWLock &);
@@ -801,35 +786,35 @@ class CDebugSRWLock : private CSRWLock {
 
  public:
   ~CDebugSRWLock();
-  void        Enter(int forwriting, const char *fileName, unsigned long line);
-  void        Leave(int fromwriting, const char *fileName, unsigned long line);
-  int         TryEnter(int forwriting, const char *fileName, unsigned long line);
+  void        Enter(int forwriting, LPCSTR fileName, DWORD line);
+  void        Leave(int fromwriting, LPCSTR fileName, DWORD line);
+  int         TryEnter(int forwriting, LPCSTR fileName, DWORD line);
   static void DumpAllEntries();
 };
 
 class SSyncObject {
-  friend unsigned long WaitMultiplePtr(unsigned int, SSyncObject **const, int, unsigned long);
+  friend DWORD WaitMultiplePtr(UINT, SSyncObject **const, int, DWORD);
 
  public:
   SSyncObject();
   SSyncObject(const SSyncObject &rhs);
   ~SSyncObject();
-  SSyncObject  &operator=(const SSyncObject &rhs);
-  int           Valid();
-  void          Close();
-  unsigned long Wait(unsigned long timeoutMs);
+  SSyncObject &operator=(const SSyncObject &rhs);
+  int          Valid();
+  void         Close();
+  DWORD        Wait(DWORD timeoutMs);
 
  protected:
-  unsigned char m_opaqueData[0x04];
+  BYTE m_opaqueData[0x04];
 
   void Copy(const SSyncObject &rhs);
 };
 
 class SInitCritSect {
  private:
-  LONG          m_spinLock;
-  SCritSect    *m_critsect;
-  unsigned char m_critsectData[0x18];
+  LONG       m_spinLock;
+  SCritSect *m_critsect;
+  BYTE       m_critsectData[0x18];
 
  public:
   int  Enter();
@@ -842,38 +827,38 @@ class SEvent : public SSyncObject {
   ~SEvent() {
   }
   SEvent &operator=(const SEvent &rhs);
-  int Set();
-  int Reset();
+  int     Set();
+  int     Reset();
 };
 
 class SSemaphore : public SSyncObject {
  public:
-  SSemaphore(unsigned int initialCount, unsigned int maximumCount);
+  SSemaphore(UINT initialCount, UINT maximumCount);
   ~SSemaphore() {
   }
   SSemaphore &operator=(const SSemaphore &rhs);
-  int Signal(unsigned int count);
+  int         Signal(UINT count);
 };
 
 class SMutex : public SSyncObject {
  public:
   SMutex();
-  SMutex(int initialOwner, const char *name);
-  SMutex(const char *name);
+  SMutex(int initialOwner, LPCSTR name);
+  SMutex(LPCSTR name);
   ~SMutex();
   SMutex &operator=(const SMutex &rhs);
-  void Create(int initialOwner, const char *name);
-  void Open(const char *name);
-  int  Release();
+  void    Create(int initialOwner, LPCSTR name);
+  void    Open(LPCSTR name);
+  int     Release();
 };
 
-unsigned long WaitMultiple(unsigned int count, SSyncObject *const objects, int waitAll, unsigned long timeoutMs);
-unsigned long WaitMultiplePtr(unsigned int count, SSyncObject **const objectPtrs, int waitAll, unsigned long timeoutMs);
-void SServerInitialize();
-void SServerDestroy();
-int STryEnterCriticalSection(void *opaqueData);
+DWORD WaitMultiple(UINT count, SSyncObject *const objects, int waitAll, DWORD timeoutMs);
+DWORD WaitMultiplePtr(UINT count, SSyncObject **const objectPtrs, int waitAll, DWORD timeoutMs);
+void  SServerInitialize();
+void  SServerDestroy();
+int   STryEnterCriticalSection(LPVOID opaqueData);
 
-typedef unsigned int(APIENTRY *STHREADPROC)(void *);
+typedef UINT(APIENTRY *STHREADPROC)(LPVOID);
 
 class SThread : public SSyncObject {
  public:
@@ -882,43 +867,41 @@ class SThread : public SSyncObject {
   ~SThread() {
   }
 
-  SThread &operator=(const SThread &rhs);
-  static int Create(STHREADPROC proc, void *param, SThread &thread, char *name);
+  SThread   &operator=(const SThread &rhs);
+  static int Create(STHREADPROC proc, LPVOID param, SThread &thread, char *name);
 };
 
-void *SCreateThread(DWORD stackSize, STHREADPROC proc, void *param, DWORD flags, unsigned int *threadId, char *name);
-void *SCreateThread(STHREADPROC lpStartAddress, void *lpParameter, unsigned int *lpThreadId, void *linuxData, char *threadName);
-unsigned long SGetCurrentThreadId();
-int SGetCurrentThreadPriority();
-void SSetCurrentThreadPriority(int priority);
+LPVOID SCreateThread(DWORD stackSize, STHREADPROC proc, LPVOID param, DWORD flags, UINT *threadId, char *name);
+LPVOID SCreateThread(STHREADPROC lpStartAddress, LPVOID lpParameter, UINT *lpThreadId, LPVOID linuxData, char *threadName);
+DWORD  SGetCurrentThreadId();
+int    SGetCurrentThreadPriority();
+void   SSetCurrentThreadPriority(int priority);
 
 // --------------------------------
 // Unicode functions
 // --------------------------------
 
-extern "C" int APIENTRY SUniConvertUTF16to8Len(const unsigned short *src, DWORD srcMaxChars, DWORD *srcChars);
-extern "C" int APIENTRY
-SUniConvertUTF16to8(char *dst, DWORD dstMaxChars, const unsigned short *src, DWORD srcMaxChars, DWORD *dstChars, DWORD *srcChars);
-extern "C" int APIENTRY SUniConvertUTF8to16Len(const char *src, DWORD srcMaxChars, DWORD *srcChars);
-extern "C" int APIENTRY
-SUniConvertUTF8to16(unsigned short *dst, DWORD dstMaxChars, const char *src, DWORD srcMaxChars, DWORD *dstChars, DWORD *srcChars);
-extern "C" unsigned int APIENTRY SUniSGetUTF8(const unsigned char *strptr, int *chars);
-extern "C" char *APIENTRY        SUniSPutUTF8(unsigned long c, char *strptr);
-extern "C" int APIENTRY          SUniFindUTF8ChrStart(const char *utf8String, int index);
-extern "C" int APIENTRY          SUniFindAfterUTF8Chr(const char *utf8String, int index);
-extern "C" DWORD APIENTRY        SUniConvertUTF16ToWin(char *dest, const unsigned short *source, DWORD destsize);
-extern "C" DWORD APIENTRY        SUniConvertUTF16ToMac(char *dest, const unsigned short *source, DWORD destsize);
-extern "C" DWORD APIENTRY        SUniConvertUTF16ToDos(char *dest, const unsigned short *source, DWORD destsize);
-extern "C" DWORD APIENTRY        SUniConvertWinToUTF16(unsigned short *dest, const char *source, DWORD destsize);
-extern "C" DWORD APIENTRY        SUniConvertMacToUTF16(unsigned short *dest, const char *source, DWORD destsize);
-extern "C" DWORD APIENTRY        SUniConvertDosToUTF16(unsigned short *dest, const char *source, DWORD destsize);
+extern "C" int APIENTRY   SUniConvertUTF16to8Len(const WORD *src, DWORD srcMaxChars, DWORD *srcChars);
+extern "C" int APIENTRY   SUniConvertUTF16to8(char *dst, DWORD dstMaxChars, const WORD *src, DWORD srcMaxChars, DWORD *dstChars, DWORD *srcChars);
+extern "C" int APIENTRY   SUniConvertUTF8to16Len(LPCSTR src, DWORD srcMaxChars, DWORD *srcChars);
+extern "C" int APIENTRY   SUniConvertUTF8to16(WORD *dst, DWORD dstMaxChars, LPCSTR src, DWORD srcMaxChars, DWORD *dstChars, DWORD *srcChars);
+extern "C" UINT APIENTRY  SUniSGetUTF8(const BYTE *strptr, int *chars);
+extern "C" char *APIENTRY SUniSPutUTF8(DWORD c, char *strptr);
+extern "C" int APIENTRY   SUniFindUTF8ChrStart(LPCSTR utf8String, int index);
+extern "C" int APIENTRY   SUniFindAfterUTF8Chr(LPCSTR utf8String, int index);
+extern "C" DWORD APIENTRY SUniConvertUTF16ToWin(char *dest, const WORD *source, DWORD destsize);
+extern "C" DWORD APIENTRY SUniConvertUTF16ToMac(char *dest, const WORD *source, DWORD destsize);
+extern "C" DWORD APIENTRY SUniConvertUTF16ToDos(char *dest, const WORD *source, DWORD destsize);
+extern "C" DWORD APIENTRY SUniConvertWinToUTF16(WORD *dest, LPCSTR source, DWORD destsize);
+extern "C" DWORD APIENTRY SUniConvertMacToUTF16(WORD *dest, LPCSTR source, DWORD destsize);
+extern "C" DWORD APIENTRY SUniConvertDosToUTF16(WORD *dest, LPCSTR source, DWORD destsize);
 
 // --------------------------------
 // System functions
 // --------------------------------
 
 typedef struct OSFILETIME {
-  unsigned __int64 m_value;
+  DWORDLONG m_value;
 } OSFILETIME, *LPOSFILETIME;
 
 typedef struct OSSYSTEMTIME {
@@ -932,18 +915,18 @@ typedef struct OSSYSTEMTIME {
   WORD milliseconds;
 } OSSYSTEMTIME, *LPOSSYSTEMTIME;
 
-void OsGetSystemTime(OSSYSTEMTIME *sysTime);
-void OsGetLocalTime(OSSYSTEMTIME *sysTime);
-int OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTime2);
-void OsTimeToFileTime(DWORD time, OSFILETIME *fileTime);
-void OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME *localFileTime);
-void OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime);
-void OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime);
-void OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime);
-int OsDirectoryExists(const char *dirName);
-DWORD OsGetFileAttributes(const char *fileName);
-void OsSystemObjectCreate(const char *name);
-int OsSystemObjectExists(const char *name);
+void  OsGetSystemTime(OSSYSTEMTIME *sysTime);
+void  OsGetLocalTime(OSSYSTEMTIME *sysTime);
+int   OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTime2);
+void  OsTimeToFileTime(DWORD time, OSFILETIME *fileTime);
+void  OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME *localFileTime);
+void  OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime);
+void  OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime);
+void  OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime);
+int   OsDirectoryExists(LPCSTR dirName);
+DWORD OsGetFileAttributes(LPCSTR fileName);
+void  OsSystemObjectCreate(LPCSTR name);
+int   OsSystemObjectExists(LPCSTR name);
 
 // --------------------------------
 // Directory functions
@@ -1006,7 +989,7 @@ class SArchive {
 
  public:
   SARCHIVE_TYPE m_type;
-  void         *m_archive;
+  LPVOID        m_archive;
 };
 
 typedef struct SOVERLAPPED {
@@ -1022,83 +1005,83 @@ class SFile {
   ~SFile();
   SFile &operator=(const SFile &);
 
-  static void DoAsyncRead(ASYNCREAD *ptr);
-  static unsigned int APIENTRY ReadProc(void *__formal);
-  static void InitializeReadThread();
-  static void QueueReadRequest(SFile *fileptr, void *buffer, DWORD bytestoread, SOVERLAPPED *overlapped);
-  static int DoZRead(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread);
+  static void          DoAsyncRead(ASYNCREAD *ptr);
+  static UINT APIENTRY ReadProc(LPVOID);
+  static void          InitializeReadThread();
+  static void          QueueReadRequest(SFile *fileptr, LPVOID buffer, DWORD bytestoread, SOVERLAPPED *overlapped);
+  static int           DoZRead(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread);
 
   SFILE_TYPE  m_type;
-  void       *m_fileptr;
+  LPVOID      m_fileptr;
   SArchive   *m_archive;
   char       *m_filename;
   char       *m_actualname;
-  unsigned int m_size;
-  BYTE        *m_zbuffer;
+  UINT        m_size;
+  BYTE       *m_zbuffer;
   z_stream_s *m_zstream;
-  unsigned int m_curOffset;
+  UINT        m_curOffset;
   SCritSect   m_lock;
-  void       *m_hsfile;
+  LPVOID      m_hsfile;
   ZipFileFCB *m_zipFile;
   MD5         m_md5;
   int         m_haveMD5;
   int         m_closeAfterLoad;
-  unsigned int m_asyncCount;
+  UINT        m_asyncCount;
 
  public:
   SFILE_TYPE GetDiskType();
   DWORD      GetFileSize();
   int        GetMD5(MD5 &sum);
 
-  static DWORD APIENTRY Open(const char *filename, SFile **file);
-  static DWORD APIENTRY OpenEx(SArchive *archive, const char *filename, DWORD flags, SFile **file);
+  static DWORD APIENTRY Open(LPCSTR filename, SFile **file);
+  static DWORD APIENTRY OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SFile **file);
   static DWORD APIENTRY Close(SFile *file);
   static DWORD APIENTRY
-  Read(SFile *fileptr, void *buffer, DWORD bytestoread, DWORD *bytesread, SOVERLAPPED *overlapped, _TASYNCPARAMBLOCK *asyncparam);
-  static DWORD APIENTRY LoadFile(const char *filename, void **buffer, DWORD *bytes, DWORD extraBytes, SOVERLAPPED *overlapped);
+  Read(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, SOVERLAPPED *overlapped, _TASYNCPARAMBLOCK *asyncparam);
+  static DWORD APIENTRY LoadFile(LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, SOVERLAPPED *overlapped);
   static DWORD APIENTRY
-  Load(SArchive *archive, const char *filename, void **buffer, DWORD *bytes, DWORD extraBytes, DWORD flags, SOVERLAPPED *overlapped);
-  static int APIENTRY      Unload(void *buffer);
+                      Load(SArchive *archive, LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, DWORD flags, SOVERLAPPED *overlapped);
+  static int APIENTRY Unload(LPVOID buffer);
   static DWORD APIENTRY    GetFileSize(SFile *file, DWORD *filesizehigh);
   static DWORD APIENTRY    SetFilePointer(SFile *file, LONG distancetomove, LONG *distancetomovehigh, DWORD movemethod);
   static int APIENTRY      GetActualFileName(SFile *file, char *buffer, DWORD bufferchars);
   static int APIENTRY      GetBasePath(char *buffer, DWORD bufferchars);
-  static int APIENTRY      SetBasePath(const char *path);
-  static int APIENTRY      SetDataPath(const char *path);
-  static int APIENTRY      SetDataPathAlternate(const char *path);
-  static int APIENTRY      FileExists(const char *filename);
+  static int APIENTRY      SetBasePath(LPCSTR path);
+  static int APIENTRY      SetDataPath(LPCSTR path);
+  static int APIENTRY      SetDataPathAlternate(LPCSTR path);
+  static int APIENTRY      FileExists(LPCSTR filename);
   static int APIENTRY      EnableDirectAccess(DWORD access);
   static void APIENTRY     DisableSFileCheckDisk();
   static void APIENTRY     DisableSFileCritSection();
   static void APIENTRY     EnableHash(bool enable);
   static void APIENTRY     RebuildHash();
-  static void Destroy();
-  static int APIENTRY      OpenArchive(const char *archivename, int priority, DWORD flags, SArchive **handle);
+  static void              Destroy();
+  static int APIENTRY      OpenArchive(LPCSTR archivename, int priority, DWORD flags, SArchive **handle);
   static int APIENTRY      CloseArchive(SArchive *archive);
-  static int APIENTRY      List(SArchive *archive, int(*cb)(const char *filename, void *param), void *param);
+  static int APIENTRY      List(SArchive *archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param);
   static int APIENTRY      GetMD5(SFile *file, MD5 &sum);
   static void APIENTRY     CreateOverlapped(SOVERLAPPED *overlapped);
   static void APIENTRY     DestroyOverlapped(SOVERLAPPED *overlapped);
   static void APIENTRY     ResetOverlapped(SOVERLAPPED *overlapped);
   static int APIENTRY      PollOverlapped(SOVERLAPPED *overlapped);
   static void APIENTRY     WaitOverlapped(SOVERLAPPED *overlapped);
-  static SDIR *APIENTRY    OpenDir(const char *path);
+  static SDIR *APIENTRY    OpenDir(LPCSTR path);
   static SDIRENT *APIENTRY ReadDir(SDIR *dir);
   static void APIENTRY     CloseDir(SDIR *dir);
 };
 
-extern "C" DWORD APIENTRY SFileOpenFile(const char *filename, HSFILE *handle);
-extern "C" BOOL APIENTRY  SFileOpenFileAsArchive(HSARCHIVE ownerarchive, const char *filename, int priority, DWORD flags, HSARCHIVE *handle);
-extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, const char *filename, DWORD flags, HSFILE *handle);
-extern "C" DWORD APIENTRY SFileFileExists(const char *filename);
-extern "C" DWORD APIENTRY SFileFileExistsEx(HSARCHIVE archivehandle, const char *filename, DWORD flags);
+extern "C" DWORD APIENTRY SFileOpenFile(LPCSTR filename, HSFILE *handle);
+extern "C" BOOL APIENTRY  SFileOpenFileAsArchive(HSARCHIVE ownerarchive, LPCSTR filename, int priority, DWORD flags, HSARCHIVE *handle);
+extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags, HSFILE *handle);
+extern "C" DWORD APIENTRY SFileFileExists(LPCSTR filename);
+extern "C" DWORD APIENTRY SFileFileExistsEx(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags);
 extern "C" BOOL APIENTRY  SFileCloseFile(HSFILE handle);
-extern "C" BOOL APIENTRY  SFileReadFile(HSFILE handle, void *buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped);
+extern "C" BOOL APIENTRY  SFileReadFile(HSFILE handle, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped);
 extern "C" BOOL APIENTRY
-SFileReadFileEx(HSFILE handle, void *buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped, _TASYNCPARAMBLOCK *asyncparam);
+SFileReadFileEx(HSFILE handle, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped, _TASYNCPARAMBLOCK *asyncparam);
 extern "C" BOOL APIENTRY SFileReadFileEx2(
     HSFILE             handle,
-    void              *buffer,
+    LPVOID             buffer,
     DWORD              bytestoread,
     DWORD             *bytesread,
     OVERLAPPED        *overlapped,
@@ -1108,55 +1091,49 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
 extern "C" DWORD APIENTRY SFileGetFileSize(HSFILE handle, DWORD *filesizehigh);
 extern "C" DWORD APIENTRY SFileGetFileCompressedSize(HSFILE handle, DWORD *fileSizeHigh);
 extern "C" DWORD APIENTRY SFileSetFilePointer(HSFILE handle, LONG distancetomove, LONG *distancetomovehigh, DWORD movemethod);
-extern "C" BOOL APIENTRY  SFileLoadFile(const char *filename, void **buffer, DWORD *bytes, DWORD extraBytes, OVERLAPPED *overlapped);
+extern "C" BOOL APIENTRY  SFileLoadFile(LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, OVERLAPPED *overlapped);
 extern "C" BOOL APIENTRY
-SFileLoadFileEx(HSARCHIVE archive, const char *filename, void **buffer, DWORD *bytes, DWORD extraBytes, DWORD flags, OVERLAPPED *overlapped);
+SFileLoadFileEx(HSARCHIVE archive, LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, DWORD flags, OVERLAPPED *overlapped);
 extern "C" BOOL APIENTRY SFileLoadFileEx2(
     HSARCHIVE   archive,
-    const char *filename,
-    void      **buffer,
+    LPCSTR      filename,
+    LPVOID     *buffer,
     DWORD      *bytes,
     DWORD       extraBytes,
     DWORD       flags,
     OVERLAPPED *overlapped,
     LONG        overlappedpriority
 );
-extern "C" BOOL APIENTRY  SFileUnloadFile(void *buffer);
-extern "C" BOOL APIENTRY  SFileOpenArchive(const char *archivename, int priority, DWORD flags, HSARCHIVE *handle);
+extern "C" BOOL APIENTRY  SFileUnloadFile(LPVOID buffer);
+extern "C" BOOL APIENTRY  SFileOpenArchive(LPCSTR archivename, int priority, DWORD flags, HSARCHIVE *handle);
 extern "C" BOOL APIENTRY  SFileCloseArchive(HSARCHIVE handle);
 extern "C" BOOL APIENTRY  SFileGetArchiveName(HSARCHIVE archive, char *buffer, DWORD bufferchars);
 extern "C" BOOL APIENTRY  SFileGetArchiveInfo(HSARCHIVE archive, int *priority, int *cdrom);
 extern "C" BOOL APIENTRY  SFileGetFileArchive(HSFILE file, HSARCHIVE *archive);
-extern "C" DWORD APIENTRY SFileCalcFileCrc(const char *filename);
+extern "C" DWORD APIENTRY SFileCalcFileCrc(LPCSTR filename);
 extern "C" DWORD APIENTRY SFileGetFileCrc(HSFILE handle);
 extern "C" BOOL APIENTRY  SFileGetFileMD5(HSFILE handle, BYTE *md5);
 extern "C" BOOL APIENTRY  SFileGetFileTime(HSFILE handle, FILETIME *filetime);
 extern "C" BOOL APIENTRY  SFileGetActualFileName(HSFILE file, char *buffer, DWORD bufferchars);
-extern "C" BOOL APIENTRY  SFileSetBasePath(const char *path);
+extern "C" BOOL APIENTRY  SFileSetBasePath(LPCSTR path);
 extern "C" BOOL APIENTRY  SFileGetBasePath(char *buffer, DWORD bufferchars);
 extern "C" BOOL APIENTRY  SFileGetFileName(HSFILE file, char *buffer, DWORD bufferchars);
 extern "C" void APIENTRY  SFileSetAsyncBudget(DWORD bytesPerSec);
 extern "C" void APIENTRY  SFileSetDataChunkSize(DWORD bytes);
-extern "C" BOOL APIENTRY  SFileSetIoErrorMode(DWORD errormode, int(APIENTRY *errorproc)(const char *, DWORD, DWORD));
+extern "C" BOOL APIENTRY  SFileSetIoErrorMode(DWORD errormode, int(APIENTRY *errorproc)(LPCSTR, DWORD, DWORD));
 extern "C" void APIENTRY  SFileSetLocale(DWORD lcid);
 extern "C" WORD APIENTRY  SFileGetLocale();
 extern "C" void APIENTRY  SFileSetPlatform(DWORD platformId);
-extern "C" void APIENTRY  SFileCancelRequest(void *buffer);
-extern "C" BOOL APIENTRY  SFileCancelRequestEx(void *buffer);
-extern "C" void APIENTRY  SFilePrioritizeRequest(void *buffer, LONG overlappedpriority);
-extern "C" void APIENTRY  SFileRegisterLoadNotifyProc(void(APIENTRY *f)(const char *, void *), void *opaqueData);
+extern "C" void APIENTRY  SFileCancelRequest(LPVOID buffer);
+extern "C" BOOL APIENTRY  SFileCancelRequestEx(LPVOID buffer);
+extern "C" void APIENTRY  SFilePrioritizeRequest(LPVOID buffer, LONG overlappedpriority);
+extern "C" void APIENTRY  SFileRegisterLoadNotifyProc(void(APIENTRY *f)(LPCSTR, LPVOID), LPVOID opaqueData);
 extern "C" BOOL APIENTRY  SFileEnableArchive(HSARCHIVE archive, int enable);
 extern "C" BOOL APIENTRY  SFileEnableDirectAccess(DWORD access);
 extern "C" void APIENTRY  SFileEnableSeekOptimization(int enable);
 extern "C" BOOL APIENTRY  SFileAuthenticateArchive(HSARCHIVE handle, DWORD *extendedresult);
-extern "C" BOOL APIENTRY  SFileAuthenticateArchiveEx(
-    HSARCHIVE    handle,
-    DWORD       *extendedresult,
-    const BYTE  *modulus,
-    DWORD        modulusSize,
-    const BYTE  *exponent,
-    DWORD        exponentSize
-);
+extern "C" BOOL APIENTRY
+SFileAuthenticateArchiveEx(HSARCHIVE handle, DWORD *extendedresult, const BYTE *modulus, DWORD modulusSize, const BYTE *exponent, DWORD exponentSize);
 extern "C" BOOL APIENTRY SFileDdaInitialize(IDirectSound *directsound);
 extern "C" BOOL APIENTRY SFileDdaDestroy();
 extern "C" BOOL APIENTRY SFileDestroy();
@@ -1177,21 +1154,21 @@ extern "C" void APIENTRY SFileArchiveDump();
 DECLARE_STRICT_HANDLE(HSLOG);
 
 extern "C" void APIENTRY SLogClose(HSLOG log);
-extern "C" BOOL APIENTRY SLogCreate(const char *filename, DWORD flags, HSLOG *log);
+extern "C" BOOL APIENTRY SLogCreate(LPCSTR filename, DWORD flags, HSLOG *log);
 extern "C" void APIENTRY SLogDestroy();
-extern "C" void APIENTRY SLogDump(HSLOG log, const void *data, DWORD bytes);
+extern "C" void APIENTRY SLogDump(HSLOG log, LPCVOID data, DWORD bytes);
 extern "C" void APIENTRY SLogFlush(HSLOG log);
 extern "C" void APIENTRY SLogFlushAll();
 extern "C" void APIENTRY SLogGetDefaultDirectory(char *dirname, DWORD dirnamesize);
 extern "C" void APIENTRY SLogInitialize();
 extern "C" BOOL APIENTRY SLogIsInitialized();
-extern "C" void __cdecl  SLogPend(HSLOG log, const char *format, ...);
+extern "C" void __cdecl  SLogPend(HSLOG log, LPCSTR format, ...);
 extern "C" long APIENTRY SLogSetAbsIndent(HSLOG log, long indent);
-extern "C" void APIENTRY SLogSetDefaultDirectory(const char *dirname);
+extern "C" void APIENTRY SLogSetDefaultDirectory(LPCSTR dirname);
 extern "C" long APIENTRY SLogSetIndent(HSLOG log, long deltaIndent);
 extern "C" void APIENTRY SLogSetTimestamp(HSLOG log, BOOL timeStamp);
-extern "C" void APIENTRY SLogVWrite(HSLOG log, const char *format, char *arglist);
-extern "C" void __cdecl  SLogWrite(HSLOG log, const char *format, ...);
+extern "C" void APIENTRY SLogVWrite(HSLOG log, LPCSTR format, char *arglist);
+extern "C" void __cdecl  SLogWrite(HSLOG log, LPCSTR format, ...);
 
 // --------------------------------
 // Region functions
@@ -1207,16 +1184,16 @@ typedef struct RECTF {
 } RECTF, *LPRECTF;
 
 extern "C" void APIENTRY SRgnClear(HSRGN handle);
-extern "C" void APIENTRY SRgnCombineRectf(HSRGN handle, const RECTF *rect, void *param, int combinemode);
-extern "C" void APIENTRY SRgnCombineRecti(HSRGN handle, const RECT *rect, void *param, int combinemode);
+extern "C" void APIENTRY SRgnCombineRectf(HSRGN handle, const RECTF *rect, LPVOID param, int combinemode);
+extern "C" void APIENTRY SRgnCombineRecti(HSRGN handle, const RECT *rect, LPVOID param, int combinemode);
 extern "C" void APIENTRY SRgnCreate(HSRGN *handle, DWORD reserved);
 extern "C" void APIENTRY SRgnDelete(HSRGN handle);
 extern "C" void APIENTRY SRgnDestroy();
 extern "C" void APIENTRY SRgnDuplicate(HSRGN orighandle, HSRGN *handle, DWORD reserved);
 extern "C" void APIENTRY SRgnGetBoundingRectf(HSRGN handle, RECTF *rect);
 extern "C" void APIENTRY SRgnGetBoundingRecti(HSRGN handle, RECT *rect);
-extern "C" void APIENTRY SRgnGetRectParamsf(HSRGN handle, const RECTF *rect, DWORD *numparams, void **buffer);
-extern "C" void APIENTRY SRgnGetRectParamsi(HSRGN handle, const RECT *rect, DWORD *numparams, void **buffer);
+extern "C" void APIENTRY SRgnGetRectParamsf(HSRGN handle, const RECTF *rect, DWORD *numparams, LPVOID *buffer);
+extern "C" void APIENTRY SRgnGetRectParamsi(HSRGN handle, const RECT *rect, DWORD *numparams, LPVOID *buffer);
 extern "C" void APIENTRY SRgnGetRectsf(HSRGN handle, DWORD *numrects, RECTF *buffer);
 extern "C" void APIENTRY SRgnGetRectsi(HSRGN handle, DWORD *numrects, RECT *buffer);
 extern "C" BOOL APIENTRY SRgnIsPointInRegionf(HSRGN handle, float x, float y);
@@ -1237,25 +1214,25 @@ class CSRgn {
   CSRgn(const CSRgn &copy);
   ~CSRgn();
   CSRgn &operator=(const CSRgn &copy);
-  void AddParamf(const RECTF *rect, void *param);
-  void AddParami(const RECT *rect, void *param);
-  void AddRectf(const RECTF *rect, void *param);
-  void AddRecti(const RECT *rect, void *param);
-  void Clear();
-  void CombineRectf(const RECTF *rect, void *param, int combinemode);
-  void CombineRecti(const RECT *rect, void *param, int combinemode);
-  void GetBoundingRectf(RECTF *rect);
-  void GetBoundingRecti(RECT *rect);
-  void GetRectsf(DWORD *numrects, RECTF *buffer);
-  void GetRectsi(DWORD *numrects, RECT *buffer);
-  void GetRectParamsf(const RECTF *rect, DWORD *numparams, void **buffer);
-  void GetRectParamsi(const RECT *rect, DWORD *numparams, void **buffer);
-  int IsPointInRegionf(float x, float y);
-  int IsPointInRegioni(int x, int y);
-  int IsRectInRegionf(const RECTF *rect);
-  int IsRectInRegioni(const RECT *rect);
-  void Offsetf(float xoffset, float yoffset);
-  void Offseti(int xoffset, int yoffset);
+  void   AddParamf(const RECTF *rect, LPVOID param);
+  void   AddParami(const RECT *rect, LPVOID param);
+  void   AddRectf(const RECTF *rect, LPVOID param);
+  void   AddRecti(const RECT *rect, LPVOID param);
+  void   Clear();
+  void   CombineRectf(const RECTF *rect, LPVOID param, int combinemode);
+  void   CombineRecti(const RECT *rect, LPVOID param, int combinemode);
+  void   GetBoundingRectf(RECTF *rect);
+  void   GetBoundingRecti(RECT *rect);
+  void   GetRectsf(DWORD *numrects, RECTF *buffer);
+  void   GetRectsi(DWORD *numrects, RECT *buffer);
+  void   GetRectParamsf(const RECTF *rect, DWORD *numparams, LPVOID *buffer);
+  void   GetRectParamsi(const RECT *rect, DWORD *numparams, LPVOID *buffer);
+  int    IsPointInRegionf(float x, float y);
+  int    IsPointInRegioni(int x, int y);
+  int    IsRectInRegionf(const RECTF *rect);
+  int    IsRectInRegioni(const RECT *rect);
+  void   Offsetf(float xoffset, float yoffset);
+  void   Offseti(int xoffset, int yoffset);
 };
 
 // --------------------------------
@@ -1278,20 +1255,20 @@ extern STORMOPTIONS g_opt;
 extern "C" void APIENTRY      StormInitialize();
 extern "C" void APIENTRY      StormDestroy();
 extern "C" HINSTANCE APIENTRY StormGetInstance();
-extern "C" BOOL APIENTRY      StormGetOption(int optname, void *optval, LPDWORD optlen);
-extern "C" BOOL APIENTRY      StormSetOption(int optname, void *optval, DWORD optlen);
+extern "C" BOOL APIENTRY      StormGetOption(int optname, LPVOID optval, LPDWORD optlen);
+extern "C" BOOL APIENTRY      StormSetOption(int optname, LPVOID optval, DWORD optlen);
 extern "C" int __cdecl        StormCallService(int service, ...);
-void StormRtlInitialize();
-void StormRtlDestroy();
-void IncrementAllocCount();
-void IncrementFreeCount();
+void                          StormRtlInitialize();
+void                          StormRtlDestroy();
+void                          IncrementAllocCount();
+void                          IncrementFreeCount();
 
 namespace STypeCache {
-  void Shutdown();
-  void Grow();
-  int GetProbe(const char *rawname);
-  const char *Get(const char *rawname);
-  const char *Set(const char *rawname, const char *decname);
+  void   Shutdown();
+  void   Grow();
+  int    GetProbe(LPCSTR rawname);
+  LPCSTR Get(LPCSTR rawname);
+  LPCSTR Set(LPCSTR rawname, LPCSTR decname);
 }
 
 // --------------------------------
@@ -1317,34 +1294,34 @@ extern "C" BOOL APIENTRY SRegGetNumSubKeys(LPCSTR keyName, UINT flags, UINT *num
 extern "C" void APIENTRY SStrInitialize();
 extern "C" void APIENTRY SStrDestroy();
 
-const char *SStrChr(const char *string, char ch);
-char *SStrChr(char *string, char ch);
-const char *SStrChrR(const char *string, char ch);
-char *SStrChrR(char *string, char ch);
-int APIENTRY           SStrCmp(LPCSTR string1, LPCSTR string2, DWORD maxchars);
-int APIENTRY           SStrCmpI(LPCSTR string1, LPCSTR string2, DWORD maxchars);
-DWORD APIENTRY         SStrCopy(char *dest, LPCSTR source, DWORD destsize);
-char *APIENTRY         SStrDupA(LPCSTR string, LPCSTR fileName, unsigned int lineNumber);
-DWORD APIENTRY         SStrLen(LPCSTR string);
-DWORD APIENTRY         SStrLen(const unsigned short *string);
-DWORD APIENTRY         SStrPack(char *dest, LPCSTR source, DWORD destsize);
-DWORD __cdecl          SStrPrintf(char *dest, DWORD maxchars, LPCSTR format, ...);
-DWORD __cdecl          SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, char *arglist);
-double APIENTRY        SStrToDouble(LPCSTR string);
-float APIENTRY         SStrToFloat(LPCSTR string);
-int APIENTRY           SStrToInt(LPCSTR string);
-__int64 APIENTRY       SStrToInt64(LPCSTR string);
-unsigned int APIENTRY  SStrToUnsigned(LPCSTR string);
-void APIENTRY          SStrTokenize(LPCSTR *string, char *buffer, DWORD bufferchars, LPCSTR whitespace, int *quoted);
-DWORD APIENTRY         SStrHash(LPCSTR string, DWORD flags, DWORD seed);
-__int64 APIENTRY       SStrHash64(LPCSTR string, DWORD flags, __int64 seed);
-DWORD APIENTRY         SStrHashHT(LPCSTR string);
-void APIENTRY          SStrUpper(char *string);
-void APIENTRY          SStrLower(char *string);
-const char *SStrStr(const char *string, const char *search);
-char *SStrStr(char *string, const char *search);
-const char *SStrStrI(const char *string, const char *search);
-char *SStrStrI(char *string, const char *search);
+LPCSTR            SStrChr(LPCSTR string, char ch);
+char             *SStrChr(char *string, char ch);
+LPCSTR            SStrChrR(LPCSTR string, char ch);
+char             *SStrChrR(char *string, char ch);
+int APIENTRY      SStrCmp(LPCSTR string1, LPCSTR string2, DWORD maxchars);
+int APIENTRY      SStrCmpI(LPCSTR string1, LPCSTR string2, DWORD maxchars);
+DWORD APIENTRY    SStrCopy(char *dest, LPCSTR source, DWORD destsize);
+char *APIENTRY    SStrDupA(LPCSTR string, LPCSTR fileName, UINT lineNumber);
+DWORD APIENTRY    SStrLen(LPCSTR string);
+DWORD APIENTRY    SStrLen(const WORD *string);
+DWORD APIENTRY    SStrPack(char *dest, LPCSTR source, DWORD destsize);
+DWORD __cdecl     SStrPrintf(char *dest, DWORD maxchars, LPCSTR format, ...);
+DWORD __cdecl     SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, char *arglist);
+double APIENTRY   SStrToDouble(LPCSTR string);
+float APIENTRY    SStrToFloat(LPCSTR string);
+int APIENTRY      SStrToInt(LPCSTR string);
+LONGLONG APIENTRY SStrToInt64(LPCSTR string);
+UINT APIENTRY     SStrToUnsigned(LPCSTR string);
+void APIENTRY     SStrTokenize(LPCSTR *string, char *buffer, DWORD bufferchars, LPCSTR whitespace, int *quoted);
+DWORD APIENTRY    SStrHash(LPCSTR string, DWORD flags, DWORD seed);
+LONGLONG APIENTRY SStrHash64(LPCSTR string, DWORD flags, LONGLONG seed);
+DWORD APIENTRY    SStrHashHT(LPCSTR string);
+void APIENTRY     SStrUpper(char *string);
+void APIENTRY     SStrLower(char *string);
+LPCSTR            SStrStr(LPCSTR string, LPCSTR search);
+char             *SStrStr(char *string, LPCSTR search);
+LPCSTR            SStrStrI(LPCSTR string, LPCSTR search);
+char             *SStrStrI(char *string, LPCSTR search);
 
 #define ALLOC(bytes)     SMemAlloc(bytes, __FILE__, __LINE__, 0)
 #define ALLOCZERO(bytes) SMemAlloc(bytes, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY)

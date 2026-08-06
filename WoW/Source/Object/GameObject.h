@@ -4,12 +4,9 @@
 #include "Tempest/c44matrix.h"
 
 namespace NTempest {
-class C3Vector;
+  class C3Vector;
 }
 
-void GenerateChairPoints(
-    const NTempest::C44Matrix &matrix,
-    unsigned int slots,
-    NTempest::C3Vector *out);
+void GenerateChairPoints(const NTempest::C44Matrix &matrix, UINT slots, NTempest::C3Vector *out);
 
 #endif

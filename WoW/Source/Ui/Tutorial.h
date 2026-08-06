@@ -40,7 +40,7 @@ class CGTutorial {
   static FBitField m_tutorialFlags;
 
  private:
-  static int OnTutorialFlags(void *__formal, NETMESSAGE msgId, unsigned long eventTime, CDataStore *msg);
+  static int OnTutorialFlags(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 };
 
 #endif

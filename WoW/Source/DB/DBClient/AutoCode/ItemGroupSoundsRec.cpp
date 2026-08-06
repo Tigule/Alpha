@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *ItemGroupSoundsRec::GetFilename() {
+LPCSTR ItemGroupSoundsRec::GetFilename() {
   return "DBFilesClient\\ItemGroupSounds.dbc";
 }
 
@@ -19,7 +19,7 @@ ItemGroupSoundsRec::ItemGroupSoundsRec() {
 ItemGroupSoundsRec::~ItemGroupSoundsRec() {
 }
 
-bool ItemGroupSoundsRec::Read(SFile *f, const char *stringBuffer) {
+bool ItemGroupSoundsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

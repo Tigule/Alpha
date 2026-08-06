@@ -3,10 +3,10 @@
 #include <storm.h>
 
 namespace MDL {
-  const char *TokenText(unsigned int token);
+  LPCSTR TokenText(UINT token);
 }
 
-void CMDLStatus::FatalDuplicate(const char *found, int lineno) {
+void CMDLStatus::FatalDuplicate(LPCSTR found, int lineno) {
   if (lineno == -1) {
     Add(STATUS_FATAL, "Error: Found duplicate \"%s\"\n", found);
   } else {
@@ -14,13 +14,7 @@ void CMDLStatus::FatalDuplicate(const char *found, int lineno) {
   }
 }
 
-void CMDLStatus::FatalUnmatched(
-    const char *item1,
-    unsigned int count1,
-    const char *item2,
-    unsigned int count2,
-    int lineno
-) {
+void CMDLStatus::FatalUnmatched(LPCSTR item1, UINT count1, LPCSTR item2, UINT count2, int lineno) {
   if (lineno == -1) {
     Add(STATUS_FATAL, "Error: found %d \"%s\", but %d \"%s\", counts must match\n", count1, item1, count2, item2);
   } else {
@@ -28,7 +22,7 @@ void CMDLStatus::FatalUnmatched(
   }
 }
 
-void CMDLStatus::FatalNotFound(const char *expected, int lineno) {
+void CMDLStatus::FatalNotFound(LPCSTR expected, int lineno) {
   if (lineno == -1) {
     Add(STATUS_FATAL, "Error: Expected \"%s\"\n", expected);
   } else {
@@ -36,11 +30,11 @@ void CMDLStatus::FatalNotFound(const char *expected, int lineno) {
   }
 }
 
-void CMDLStatus::FatalNotFound(unsigned int what, int lineno) {
+void CMDLStatus::FatalNotFound(UINT what, int lineno) {
   FatalNotFound(MDL::TokenText(what), lineno);
 }
 
-void CMDLStatus::FatalUnexpected(const char *found, int lineno) {
+void CMDLStatus::FatalUnexpected(LPCSTR found, int lineno) {
   if (lineno == -1) {
     Add(STATUS_FATAL, "Error: Unexpected token \"%s\"\n", found);
   } else {
@@ -48,7 +42,7 @@ void CMDLStatus::FatalUnexpected(const char *found, int lineno) {
   }
 }
 
-void CMDLStatus::FatalExpected(const char *expected, const char *found, int lineno) {
+void CMDLStatus::FatalExpected(LPCSTR expected, LPCSTR found, int lineno) {
   if (lineno == -1) {
     Add(STATUS_FATAL, "Error: Expected \"%s\", but found \"%s\"\n", expected, found);
   } else {
@@ -56,7 +50,7 @@ void CMDLStatus::FatalExpected(const char *expected, const char *found, int line
   }
 }
 
-void CMDLStatus::FatalExpected(unsigned int what, const char *found, int lineno) {
+void CMDLStatus::FatalExpected(UINT what, LPCSTR found, int lineno) {
   FatalExpected(MDL::TokenText(what), found, lineno);
 }
 
@@ -68,7 +62,7 @@ void CMDLStatus::FatalEOF(int lineno) {
   }
 }
 
-void CMDLStatus::WarningCount(const char *item, long expected, long actual, int lineno) {
+void CMDLStatus::WarningCount(LPCSTR item, long expected, long actual, int lineno) {
   if (lineno == -1) {
     Add(STATUS_WARNING, "Warning: Expected %d \"%s\", but found %d\n", expected, item, actual);
   } else {
@@ -76,7 +70,7 @@ void CMDLStatus::WarningCount(const char *item, long expected, long actual, int 
   }
 }
 
-void CMDLStatus::FatalOverran(const char *section, int lineno) {
+void CMDLStatus::FatalOverran(LPCSTR section, int lineno) {
   if (lineno == -1) {
     Add(STATUS_FATAL, "Error: Section %s overran remaining buffer.\n", section);
   } else {
@@ -84,7 +78,7 @@ void CMDLStatus::FatalOverran(const char *section, int lineno) {
   }
 }
 
-void CMDLStatus::FatalFlunked(const char *section, int lineno) {
+void CMDLStatus::FatalFlunked(LPCSTR section, int lineno) {
   if (lineno == -1) {
     Add(STATUS_FATAL, "Error: Could not create new %s section (out of memory?)\n", section);
   } else {
@@ -92,8 +86,8 @@ void CMDLStatus::FatalFlunked(const char *section, int lineno) {
   }
 }
 
-void CMDLStatus::FatalBadFileName(const char *path) {
-  const char *extension = SStrChrR(path, '.');
+void CMDLStatus::FatalBadFileName(LPCSTR path) {
+  LPCSTR extension = SStrChrR(path, '.');
   if (!extension) {
     extension = "";
   }

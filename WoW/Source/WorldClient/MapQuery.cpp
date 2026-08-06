@@ -8,12 +8,12 @@
 
 #include "DB/DBClient/AutoCode/GroundEffectTextureRec.h"
 
-extern unsigned int g_holeMask[4][4];
+extern UINT g_holeMask[4][4];
 
-unsigned short g_2bitSplatMask[8] = {0x0003, 0x000C, 0x0030, 0x00C0, 0x0300, 0x0C00, 0x3000, 0xC000};
-unsigned long  g_2bitSplatShft[8] = {0, 2, 4, 6, 8, 10, 12, 14};
+WORD  g_2bitSplatMask[8] = {0x0003, 0x000C, 0x0030, 0x00C0, 0x0300, 0x0C00, 0x3000, 0xC000};
+DWORD g_2bitSplatShft[8] = {0, 2, 4, 6, 8, 10, 12, 14};
 
-unsigned int CMap::QueryAreaId(float x, float y) {
+UINT CMap::QueryAreaId(float x, float y) {
   float mx = -(y - 17066.666f);
   float my = -(x - 17066.666f);
 
@@ -34,12 +34,12 @@ unsigned int CMap::QueryAreaId(float x, float y) {
   return chunk ? chunk->zoneId : 0;
 }
 
-bool CMap::QueryGroundType(const NTempest::C3Vector &pos, unsigned int &groundType) {
+bool CMap::QueryGroundType(const NTempest::C3Vector &pos, UINT &groundType) {
   float mx = -(pos.y - 17066.666f);
   float my = -(pos.x - 17066.666f);
 
   ASSERT(mx >= 0.0f && my >= 0.0f);
-  ASSERT(mx < ((64*16)*((150.0f/36.0f)*8)) && my < ((64*16)*((150.0f/36.0f)*8)));
+  ASSERT(mx < ((64 * 16) * ((150.0f / 36.0f) * 8)) && my < ((64 * 16) * ((150.0f / 36.0f) * 8)));
 
   float msx = mx * 0.24f;
   float msy = my * 0.24f;
@@ -65,8 +65,8 @@ bool CMap::QueryGroundType(const NTempest::C3Vector &pos, unsigned int &groundTy
     return false;
   }
 
-  unsigned int layer = (chunk->predTex[ly] & g_2bitSplatMask[lx]) >> g_2bitSplatShft[lx];
-  unsigned int effectId = chunk->layerList[layer]->effectId;
+  UINT layer = (chunk->predTex[ly] & g_2bitSplatMask[lx]) >> g_2bitSplatShft[lx];
+  UINT effectId = chunk->layerList[layer]->effectId;
   if (effectId == 0xFFFF || effectId >= g_groundEffectTextureDB.GetNumRecords()) {
     return false;
   }
@@ -107,7 +107,7 @@ bool CMap::QueryShadow(const NTempest::C3Vector &pos) {
 bool CMap::QueryLiquidFishableMapObjsExt(const NTempest::C3Vector &point, int &fishable) {
   ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
     NTempest::C3Vector p = point * mapObjDef->invMat;
-    CMapObj            *mapObj = mapObjDef->mapObj;
+    CMapObj           *mapObj = mapObjDef->mapObj;
     FATALASSERT(mapObj);
     if (mapObj->QueryLiquidFishable(0x2000, p, fishable)) {
       return true;
@@ -124,7 +124,7 @@ bool CMap::QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable) {
   float mx = -(point.y - 17066.666f);
   float my = -(point.x - 17066.666f);
   FATALASSERT(mx >= 0.0f && my >= 0.0f);
-  FATALASSERT(mx < ((64*16)*((150.0f/36.0f)*8)) && my < ((64*16)*((150.0f/36.0f)*8)));
+  FATALASSERT(mx < ((64 * 16) * ((150.0f / 36.0f) * 8)) && my < ((64 * 16) * ((150.0f / 36.0f) * 8)));
 
   float msx = mx * 0.24f;
   float msy = my * 0.24f;
@@ -143,13 +143,13 @@ bool CMap::QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable) {
 
   int lx = sx & 7;
   int ly = sy & 7;
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     CChunkLiquid *liquid = chunk->liquids[i];
     if (!liquid) {
       continue;
     }
 
-    unsigned char tile = liquid->tiles.tiles[ly][lx];
+    BYTE tile = liquid->tiles.tiles[ly][lx];
     if ((tile & 0xF) != 0xF) {
       fishable = (tile >> 6) & 1;
       return true;
@@ -159,12 +159,7 @@ bool CMap::QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable) {
   return false;
 }
 
-bool CMap::QueryLiquidStatusMapObjsExt(
-    const NTempest::C3Vector &point,
-    unsigned int             &liquid,
-    float                    &surface,
-    NTempest::C3Vector       &waterDir
-) {
+bool CMap::QueryLiquidStatusMapObjsExt(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir) {
   ITERATELIST(CMapObjDef, CMap::mapObjDefHash, mapObjDef) {
     FATALASSERT(mapObjDef->mapObj);
     NTempest::C3Vector p = point * mapObjDef->invMat;
@@ -179,12 +174,12 @@ bool CMap::QueryLiquidStatusMapObjsExt(
 }
 
 static void GetHeightFlow(
-    const CChunkLiquid         *cl,
-    const NTempest::C3Vector   &point,
-    const NTempest::C2Vector   &frac,
-    const NTempest::C2iVector  &lsub,
-    float                      &surface,
-    NTempest::C3Vector         &flow
+    const CChunkLiquid        *cl,
+    const NTempest::C3Vector  &point,
+    const NTempest::C2Vector  &frac,
+    const NTempest::C2iVector &lsub,
+    float                     &surface,
+    NTempest::C3Vector        &flow
 ) {
   int   index = lsub.x + 9 * lsub.y;
   float h0 = cl->verts[index].waterVert.height + (cl->verts[index + 1].waterVert.height - cl->verts[index].waterVert.height) * frac.x;
@@ -223,13 +218,7 @@ static void GetHeightFlow(
   }
 }
 
-bool CMap::QueryLiquidStatus(
-    const NTempest::C3Vector &point,
-    unsigned int             &liquid,
-    float                    &surface,
-    NTempest::C3Vector       &waterDir,
-    int                      &deep
-) {
+bool CMap::QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir, int &deep) {
   if (QueryLiquidStatusMapObjsExt(point, liquid, surface, waterDir)) {
     deep = 0;
     return 1;
@@ -257,14 +246,14 @@ bool CMap::QueryLiquidStatus(
   NTempest::C2iVector lsub(sx & 7, sy & 7);
   NTempest::C2Vector  frac(msx - static_cast<int>(msx - 0.5f), msy - static_cast<int>(msy - 0.5f));
 
-  for (unsigned int i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < 4; ++i) {
     CChunkLiquid *cl = chunk->liquids[i];
     if (!cl) {
       continue;
     }
 
-    unsigned char tile = cl->tiles.tiles[lsub.y][lsub.x];
-    unsigned int  liquidType = tile & 3;
+    BYTE tile = cl->tiles.tiles[lsub.y][lsub.x];
+    UINT liquidType = tile & 3;
     deep = tile >> 7;
 
     if (liquidType == 1) {

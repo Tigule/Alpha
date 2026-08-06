@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *TerrainTypeRec::GetFilename() {
+LPCSTR TerrainTypeRec::GetFilename() {
   return "DBFilesClient\\TerrainType.dbc";
 }
 
@@ -19,9 +19,9 @@ TerrainTypeRec::TerrainTypeRec() {
 TerrainTypeRec::~TerrainTypeRec() {
 }
 
-bool TerrainTypeRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempTerrainDescIndices[1];
+bool TerrainTypeRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempTerrainDescIndices[1];
 
   result = SFile::Read(f, &m_TerrainID, sizeof(m_TerrainID), 0, 0, 0) && result;
   result = SFile::Read(f, &tempTerrainDescIndices[0], sizeof(tempTerrainDescIndices[0]), 0, 0, 0) && result;

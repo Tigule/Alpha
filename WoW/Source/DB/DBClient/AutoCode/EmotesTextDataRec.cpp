@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *EmotesTextDataRec::GetFilename() {
+LPCSTR EmotesTextDataRec::GetFilename() {
   return "DBFilesClient\\EmotesTextData.dbc";
 }
 
@@ -19,9 +19,9 @@ EmotesTextDataRec::EmotesTextDataRec() {
 EmotesTextDataRec::~EmotesTextDataRec() {
 }
 
-bool EmotesTextDataRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int temptext_langIndices[NUM_LOCALES];
+bool EmotesTextDataRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT temptext_langIndices[NUM_LOCALES];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &temptext_langIndices[0], sizeof(temptext_langIndices[0]), 0, 0, 0) && result;

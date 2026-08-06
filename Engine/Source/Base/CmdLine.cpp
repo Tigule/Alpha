@@ -28,12 +28,12 @@ int CmdLineGetBool(CMDOPT opt) {
   return SCmdGetBool(opt);
 }
 
-const char *CmdLineGetString(CMDOPT opt) {
+LPCSTR CmdLineGetString(CMDOPT opt) {
   SCmdGetString(opt, buffer, sizeof(buffer));
   return buffer;
 }
 
-unsigned int CmdLineGetUint(CMDOPT opt) {
+UINT CmdLineGetUint(CMDOPT opt) {
   return SCmdGetNum(opt);
 }
 

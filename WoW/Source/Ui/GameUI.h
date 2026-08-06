@@ -29,7 +29,7 @@ struct SPELLLOG;
 struct HMODEL__;
 struct lua_State;
 
-static int DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
+static int DebugAIStateHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *);
 static int Script_PickupPetAction(lua_State *L);
 static int Script_TogglePetAutocast(lua_State *L);
 static int Script_CastPetAction(lua_State *L);
@@ -40,11 +40,11 @@ enum SYSMSG_TYPE;
 
 struct CinematicData {
   const CinematicSequencesRec *sequence;
-  Sound                 *sequenceMusic;
-  int                    currentCamera;
-  const CinematicCameraRec *camera;
-  Sound                 *cameraMusic;
-  int                    zoneMusicPaused;
+  Sound                       *sequenceMusic;
+  int                          currentCamera;
+  const CinematicCameraRec    *camera;
+  Sound                       *cameraMusic;
+  int                          zoneMusicPaused;
 };
 
 enum GAME_ERROR_TYPE {
@@ -363,160 +363,159 @@ enum UICURSORTYPE {
 
 class CGGameUI {
  public:
-  static void ClearClientControls();
-  static void InitializeGame();
-  static void Initialize();
-  static void Shutdown();
-  static void RegisterFrameFactories();
-  static void Reload();
-  static void ShutdownGame();
-  static void UpdateActivePlayer();
+  static void       ClearClientControls();
+  static void       InitializeGame();
+  static void       Initialize();
+  static void       Shutdown();
+  static void       RegisterFrameFactories();
+  static void       Reload();
+  static void       ShutdownGame();
+  static void       UpdateActivePlayer();
   static CGTooltip *GetGameTooltip() {
     return m_gameTooltip;
   }
-  static void UnitNameUpdate(const unsigned __int64 &guid);
-  static void UnitPortraitUpdate(const unsigned __int64 &guid);
-  static void SetPartyLeader(unsigned __int64 guid);
-  static void AddPartyMember(unsigned __int64 guid, int connected);
-  static void RemoveAllPartyMembers();
-  static void SetLootMethod(LOOT_METHOD method, unsigned __int64 master);
-  static void ClearLootSlot(unsigned char slot);
-  static void OpenLoot(CGObject_C *object, int coins, LOOT_ACQUIRE lootType);
-  static void Target(const unsigned __int64 &target, int usingNearest);
-  static unsigned __int64 ClosestObjectMatch(const char *match, OBJECT_TYPE type);
-  static void TargetNearestEnemy(int reverse);
-  static void AssistByName(const char *name);
-  static void FollowByName(const char *name);
-  static int IsPartyMember(const unsigned __int64 &guid);
-  static void EnablePartyMember(unsigned __int64 guid, int enable);
-  static unsigned __int64 GetPartyMember(unsigned int index);
-  static void ClearTarget(unsigned __int64 guid, int sendTarget);
-  static void ClearInteractTarget();
-  static void ClearInteractTarget(const unsigned __int64 &target);
-  static void TargetIfNone(const unsigned __int64 &target);
-  static void SetInteractTarget(const unsigned __int64 &target, float maxDist);
-  static void CloseInteraction();
-  static void ResetCamera();
-  static void SysMsgDisplay(const char *msg, SYSMSG_TYPE severity);
-  static int FilterMouseDown(const CMouseEvent &evt);
-  static int HandleMouseDown(const CMouseEvent &evt);
-  static int HandleMouseUp(const CMouseEvent &evt);
-  static int HandleDisplaySizeChanged(const CSizeEvent &evt);
-  static void ScaleUI(float scale, int force);
-  static void NamePlateClicked(unsigned __int64 unit, MOUSEBUTTON button);
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void UpdateInteractTarget();
-  static unsigned __int64 GetCursorItem();
-  static void
-  SetCursorItem(unsigned __int64 itemGUID, unsigned __int64 containerGUID, unsigned int slot, int unlock, unsigned int stackSplit);
-  static unsigned int GetCursorMoney() {
+  static void      UnitNameUpdate(const DWORDLONG &guid);
+  static void      UnitPortraitUpdate(const DWORDLONG &guid);
+  static void      SetPartyLeader(DWORDLONG guid);
+  static void      AddPartyMember(DWORDLONG guid, int connected);
+  static void      RemoveAllPartyMembers();
+  static void      SetLootMethod(LOOT_METHOD method, DWORDLONG master);
+  static void      ClearLootSlot(BYTE slot);
+  static void      OpenLoot(CGObject_C *object, int coins, LOOT_ACQUIRE lootType);
+  static void      Target(const DWORDLONG &target, int usingNearest);
+  static DWORDLONG ClosestObjectMatch(LPCSTR match, OBJECT_TYPE type);
+  static void      TargetNearestEnemy(int reverse);
+  static void      AssistByName(LPCSTR name);
+  static void      FollowByName(LPCSTR name);
+  static int       IsPartyMember(const DWORDLONG &guid);
+  static void      EnablePartyMember(DWORDLONG guid, int enable);
+  static DWORDLONG GetPartyMember(UINT index);
+  static void      ClearTarget(DWORDLONG guid, int sendTarget);
+  static void      ClearInteractTarget();
+  static void      ClearInteractTarget(const DWORDLONG &target);
+  static void      TargetIfNone(const DWORDLONG &target);
+  static void      SetInteractTarget(const DWORDLONG &target, float maxDist);
+  static void      CloseInteraction();
+  static void      ResetCamera();
+  static void      SysMsgDisplay(LPCSTR msg, SYSMSG_TYPE severity);
+  static int       FilterMouseDown(const CMouseEvent &evt);
+  static int       HandleMouseDown(const CMouseEvent &evt);
+  static int       HandleMouseUp(const CMouseEvent &evt);
+  static int       HandleDisplaySizeChanged(const CSizeEvent &evt);
+  static void      ScaleUI(float scale, int force);
+  static void      NamePlateClicked(DWORDLONG unit, MOUSEBUTTON button);
+  static void      EnterWorld();
+  static void      LeaveWorld();
+  static void      UpdateInteractTarget();
+  static DWORDLONG GetCursorItem();
+  static void      SetCursorItem(DWORDLONG itemGUID, DWORDLONG containerGUID, UINT slot, int unlock, UINT stackSplit);
+  static UINT      GetCursorMoney() {
     return m_cursorMoney;
   }
-  static unsigned int GetCursorStackSplit() {
+  static UINT GetCursorStackSplit() {
     return m_stackSplit;
   }
-  static void SetCursorMoney(unsigned int money);
-  static void SetCursorSpell(int spellId, int pet);
-  static void DropCursorSpell();
-  static void SetCursorPetAction(const PetAction &action);
-  static void DropCursorPetAction();
-  static int GetCursorSpell();
-  static void GetCursorItem(unsigned __int64 &cursorItem, unsigned __int64 &containerGUID, unsigned int &slot);
-  static unsigned int GetCursorVirtualItem();
-  static unsigned int GetCursorVirtualItem(UICURSORTYPE type);
-  static void SetCursorVirtualItem(unsigned int itemID, unsigned int displayID, unsigned int slot, UICURSORTYPE type);
-  static void GetCursorVirtualItem(unsigned int &cursorItem, unsigned int &slot);
-  static unsigned int GetCursorPetAction();
-  static UICURSORTYPE GetCursorType();
-  static int IsCursorEmpty();
-  static int IsCursorPetSpell();
-  static void UnlockItem(unsigned __int64 itemGUID);
-  static void UnlockAllItems();
-  static void LockItem(unsigned __int64 itemGUID);
-  static void CloseLoot(bool send, bool moving);
-  static void NewZoneFeedback(int areaID, const char *zoneString, const char *subZoneString);
-  static void SetMinimapZoneText(const char *areaName);
-  static void ClearCursor(int unlock);
-  static void DeleteCursorItem();
-  static void PlayerCombatModeChanged(int newState);
-  static void StartCinematic(int cinematicID);
-  static void BeginCinematic();
-  static void BeginCinematicInternal(void *);
-  static int StartCinematicCamera();
-  static int NextCinematic(void *);
-  static void NextCinematicInternal(void *);
-  static int StopCinematic(void *__formal);
-  static void StopCinematicInternal(void *);
-  static void HideCursor();
-  static void ShowCursor();
-  static void ShowHealingFeedback(const unsigned __int64 &guid, int amount);
-  static void ShowSpellMissFeedback(unsigned __int64 victim, int reason);
-  static void OnClientControlChanged(int hasControl);
-  static void ShowCombatFeedback(const ATTACKROUNDINFO *info);
-  static void ShowCombatFeedback(const SPELLLOG &log);
-  static void ShowCombatFeedback(const unsigned __int64 &guid, int amount, int damageClass, unsigned int flags);
-  static void ShowCombatFeedback(const MIRRORTIMERDAMAGE &log);
-  static void OnItemPush(unsigned __int64 player, int slot, int itemID, int pushed, int display);
-  static void OpenPartyInvite(const char *inviter);
-  static void OpenResurrectRequest(const char *inviter);
-  static void CancelPartyInvite();
-  static void OpenGuildInvite(const char *inviter, const char *guildName);
-  static void CancelGuildInvite();
-  static void AddErrorMessage(const char *string, int error);
-  static void __cdecl            DisplayError(GAME_ERROR_TYPE errorType, ...);
-  static const char *GetLastErrorString();
-  static void ShowAutoFollowChange(unsigned __int64 newTarget, unsigned __int64 oldTarget, int type);
-  static int HandleSpriteClick(const CSpriteClickEvent &evt);
-  static int HandleTerrainClick(const CTerrainClickEvent &evt);
-  static int HandleWorldClick(const CWorldClickEvent &evt);
-  static void HandleSpriteTrack(const CObjectTrackEvent &evt);
-  static void HandleScreenshot(int success);
-  static void HandleObjectTrackChange(unsigned __int64 object, unsigned __int64 oldGUID, float x, float y);
+  static void          SetCursorMoney(UINT money);
+  static void          SetCursorSpell(int spellId, int pet);
+  static void          DropCursorSpell();
+  static void          SetCursorPetAction(const PetAction &action);
+  static void          DropCursorPetAction();
+  static int           GetCursorSpell();
+  static void          GetCursorItem(DWORDLONG &cursorItem, DWORDLONG &containerGUID, UINT &slot);
+  static UINT          GetCursorVirtualItem();
+  static UINT          GetCursorVirtualItem(UICURSORTYPE type);
+  static void          SetCursorVirtualItem(UINT itemID, UINT displayID, UINT slot, UICURSORTYPE type);
+  static void          GetCursorVirtualItem(UINT &cursorItem, UINT &slot);
+  static UINT          GetCursorPetAction();
+  static UICURSORTYPE  GetCursorType();
+  static int           IsCursorEmpty();
+  static int           IsCursorPetSpell();
+  static void          UnlockItem(DWORDLONG itemGUID);
+  static void          UnlockAllItems();
+  static void          LockItem(DWORDLONG itemGUID);
+  static void          CloseLoot(bool send, bool moving);
+  static void          NewZoneFeedback(int areaID, LPCSTR zoneString, LPCSTR subZoneString);
+  static void          SetMinimapZoneText(LPCSTR areaName);
+  static void          ClearCursor(int unlock);
+  static void          DeleteCursorItem();
+  static void          PlayerCombatModeChanged(int newState);
+  static void          StartCinematic(int cinematicID);
+  static void          BeginCinematic();
+  static void          BeginCinematicInternal(LPVOID);
+  static int           StartCinematicCamera();
+  static int           NextCinematic(LPVOID);
+  static void          NextCinematicInternal(LPVOID);
+  static int           StopCinematic(LPVOID);
+  static void          StopCinematicInternal(LPVOID);
+  static void          HideCursor();
+  static void          ShowCursor();
+  static void          ShowHealingFeedback(const DWORDLONG &guid, int amount);
+  static void          ShowSpellMissFeedback(DWORDLONG victim, int reason);
+  static void          OnClientControlChanged(int hasControl);
+  static void          ShowCombatFeedback(const ATTACKROUNDINFO *info);
+  static void          ShowCombatFeedback(const SPELLLOG &log);
+  static void          ShowCombatFeedback(const DWORDLONG &guid, int amount, int damageClass, UINT flags);
+  static void          ShowCombatFeedback(const MIRRORTIMERDAMAGE &log);
+  static void          OnItemPush(DWORDLONG player, int slot, int itemID, int pushed, int display);
+  static void          OpenPartyInvite(LPCSTR inviter);
+  static void          OpenResurrectRequest(LPCSTR inviter);
+  static void          CancelPartyInvite();
+  static void          OpenGuildInvite(LPCSTR inviter, LPCSTR guildName);
+  static void          CancelGuildInvite();
+  static void          AddErrorMessage(LPCSTR string, int error);
+  static void __cdecl  DisplayError(GAME_ERROR_TYPE errorType, ...);
+  static LPCSTR        GetLastErrorString();
+  static void          ShowAutoFollowChange(DWORDLONG newTarget, DWORDLONG oldTarget, int type);
+  static int           HandleSpriteClick(const CSpriteClickEvent &evt);
+  static int           HandleTerrainClick(const CTerrainClickEvent &evt);
+  static int           HandleWorldClick(const CWorldClickEvent &evt);
+  static void          HandleSpriteTrack(const CObjectTrackEvent &evt);
+  static void          HandleScreenshot(int success);
+  static void          HandleObjectTrackChange(DWORDLONG object, DWORDLONG oldGUID, float x, float y);
   static CSimpleFrame *GetUISimpleParent();
-  static int GetCurrentAreaID();
-  static int HasPlayerControl();
+  static int           GetCurrentAreaID();
+  static int           HasPlayerControl();
 
  private:
-  static int OnTerrainClick(const CTerrainClickEvent &evt);
-  static int OnSpriteLeftClick(unsigned __int64 object, float x, float y);
-  static int OnSpriteRightClick(unsigned __int64 object, float x, float y);
+  static int  OnTerrainClick(const CTerrainClickEvent &evt);
+  static int  OnSpriteLeftClick(DWORDLONG object, float x, float y);
+  static int  OnSpriteRightClick(DWORDLONG object, float x, float y);
   static void UpdatePlayerAlpha(float alpha);
   static void ResetStaticVars();
 
  public:
   static void OnTargetContextAction();
 
-  static const unsigned __int64 &GetCurrentObjectTrack() {
+  static const DWORDLONG &GetCurrentObjectTrack() {
     return m_currentObjectTrack;
   }
 
-  static const unsigned __int64 &GetInteractTarget() {
+  static const DWORDLONG &GetInteractTarget() {
     return m_interactTarget;
   }
 
-  static const unsigned __int64 &GetLockedTarget() {
+  static const DWORDLONG &GetLockedTarget() {
     return m_lockedTarget;
   }
 
-  static const unsigned __int64 &GetLastEnemyTarget() {
+  static const DWORDLONG &GetLastEnemyTarget() {
     return m_lastEnemyTarget;
   }
 
-  static const char *GetZoneText() {
+  static LPCSTR GetZoneText() {
     return m_zoneText;
   }
 
-  static const char *GetSubZoneText() {
+  static LPCSTR GetSubZoneText() {
     return m_subZoneText;
   }
 
-  static const char *GetMinimapZoneText() {
+  static LPCSTR GetMinimapZoneText() {
     return m_minimapZoneText;
   }
 
  private:
-  friend int DebugAIStateHandler(void *, NETMESSAGE, unsigned long, CDataStore *);
+  friend int DebugAIStateHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *);
 
   static void UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object);
   friend class CGTooltip;
@@ -534,40 +533,40 @@ class CGGameUI {
   friend int Script_CursorHasSpell(lua_State *L);
   friend int Script_CursorHasMoney(lua_State *L);
   friend int Script_HasFullControl(lua_State *L);
-  friend int Script_DeleteCursorItem(lua_State *__formal);
-  friend int Script_TargetLastEnemy(lua_State *__formal);
+  friend int Script_DeleteCursorItem(lua_State *);
+  friend int Script_TargetLastEnemy(lua_State *);
 
-  static int Idle(const void *data, void *param);
+  static int Idle(LPCVOID data, LPVOID param);
 
-  static CSimpleFrame    *m_UISimpleParent;
-  static CSimpleTop      *m_simpleTop;
-  static bool             m_reloadUI;
-  static unsigned int     m_stackSplit;
-  static unsigned __int64 m_cursorItem;
-  static unsigned __int64 m_cursorItemContainer;
-  static unsigned int     m_cursorItemSlot;
-  static unsigned int     m_cursorMoney;
-  static int              m_cursorSpell;
-  static unsigned int     m_cursorPetAction;
-  static unsigned int     m_cursorVirtualID;
-  static unsigned int     m_cursorVirtualDisplay;
-  static unsigned int     m_cursorVirtualSlot;
-  static int              m_cursorHasAction;
-  static UICURSORTYPE     m_cursorItemType;
-  static unsigned __int64 m_currentObjectTrack;
-  static float            m_interactMaxDist;
-  static unsigned __int64 m_interactTarget;
-  static unsigned __int64 m_lockedTarget;
-  static unsigned __int64 m_lastEnemyTarget;
-  static char            *m_zoneText;
-  static char            *m_subZoneText;
-  static char            *m_minimapZoneText;
-  static int              m_areaID;
-  static int              m_hasControl;
-  static int              m_screenWidth;
-  static CGTooltip       *m_gameTooltip;
-  static CinematicData    m_cinematic;
-  static char             s_lastErrorString[512];
+  static CSimpleFrame *m_UISimpleParent;
+  static CSimpleTop   *m_simpleTop;
+  static bool          m_reloadUI;
+  static UINT          m_stackSplit;
+  static DWORDLONG     m_cursorItem;
+  static DWORDLONG     m_cursorItemContainer;
+  static UINT          m_cursorItemSlot;
+  static UINT          m_cursorMoney;
+  static int           m_cursorSpell;
+  static UINT          m_cursorPetAction;
+  static UINT          m_cursorVirtualID;
+  static UINT          m_cursorVirtualDisplay;
+  static UINT          m_cursorVirtualSlot;
+  static int           m_cursorHasAction;
+  static UICURSORTYPE  m_cursorItemType;
+  static DWORDLONG     m_currentObjectTrack;
+  static float         m_interactMaxDist;
+  static DWORDLONG     m_interactTarget;
+  static DWORDLONG     m_lockedTarget;
+  static DWORDLONG     m_lastEnemyTarget;
+  static char         *m_zoneText;
+  static char         *m_subZoneText;
+  static char         *m_minimapZoneText;
+  static int           m_areaID;
+  static int           m_hasControl;
+  static int           m_screenWidth;
+  static CGTooltip    *m_gameTooltip;
+  static CinematicData m_cinematic;
+  static char          s_lastErrorString[512];
 };
 
 #endif

@@ -54,28 +54,101 @@ namespace NTempest {
       return a.x * b.x + a.y * b.y;
     }
 
-    C2iVector &operator+=(long a) { x += a; y += a; return *this; }
-    C2iVector &operator+=(const C2iVector &a) { x += a.x; y += a.y; return *this; }
-    C2iVector &operator-=(long a) { x -= a; y -= a; return *this; }
-    C2iVector &operator-=(const C2iVector &a) { x -= a.x; y -= a.y; return *this; }
-    C2iVector &operator*=(long a) { x *= a; y *= a; return *this; }
-    C2iVector &operator*=(const C2iVector &a) { x *= a.x; y *= a.y; return *this; }
-    C2iVector &operator/=(long a) { x /= a; y /= a; return *this; }
-    C2iVector &operator/=(const C2iVector &a) { x /= a.x; y /= a.y; return *this; }
-    C2iVector &operator>>=(long a) { x >>= a; y >>= a; return *this; }
-    C2iVector &operator>>=(const C2iVector &a) { x >>= a.x; y >>= a.y; return *this; }
-    C2iVector &operator<<=(long a) { x <<= a; y <<= a; return *this; }
-    C2iVector &operator<<=(const C2iVector &a) { x <<= a.x; y <<= a.y; return *this; }
-    C2iVector operator-() const { return C2iVector(-x, -y); }
+    C2iVector &operator+=(long a) {
+      x += a;
+      y += a;
+      return *this;
+    }
+    C2iVector &operator+=(const C2iVector &a) {
+      x += a.x;
+      y += a.y;
+      return *this;
+    }
+    C2iVector &operator-=(long a) {
+      x -= a;
+      y -= a;
+      return *this;
+    }
+    C2iVector &operator-=(const C2iVector &a) {
+      x -= a.x;
+      y -= a.y;
+      return *this;
+    }
+    C2iVector &operator*=(long a) {
+      x *= a;
+      y *= a;
+      return *this;
+    }
+    C2iVector &operator*=(const C2iVector &a) {
+      x *= a.x;
+      y *= a.y;
+      return *this;
+    }
+    C2iVector &operator/=(long a) {
+      x /= a;
+      y /= a;
+      return *this;
+    }
+    C2iVector &operator/=(const C2iVector &a) {
+      x /= a.x;
+      y /= a.y;
+      return *this;
+    }
+    C2iVector &operator>>=(long a) {
+      x >>= a;
+      y >>= a;
+      return *this;
+    }
+    C2iVector &operator>>=(const C2iVector &a) {
+      x >>= a.x;
+      y >>= a.y;
+      return *this;
+    }
+    C2iVector &operator<<=(long a) {
+      x <<= a;
+      y <<= a;
+      return *this;
+    }
+    C2iVector &operator<<=(const C2iVector &a) {
+      x <<= a.x;
+      y <<= a.y;
+      return *this;
+    }
+    C2iVector operator-() const {
+      return C2iVector(-x, -y);
+    }
 
-    long SquaredMag() const { return x * x + y * y; }
-    long Mag() const { return static_cast<long>(sqrt(static_cast<double>(SquaredMag()))); }
-    long SumC() const { return x + y; }
-    bool IsUnit() const { return SquaredMag() == 1; }
-    void Normalize() { *this /= Mag(); }
-    void Scale(const long magnitude) { Normalize(); *this *= magnitude; }
-    void Minimize(const C2iVector &a) { if (a.x < x) x = a.x; if (a.y < y) y = a.y; }
-    void Maximize(const C2iVector &a) { if (a.x > x) x = a.x; if (a.y > y) y = a.y; }
+    long SquaredMag() const {
+      return x * x + y * y;
+    }
+    long Mag() const {
+      return static_cast<long>(sqrt(static_cast<double>(SquaredMag())));
+    }
+    long SumC() const {
+      return x + y;
+    }
+    bool IsUnit() const {
+      return SquaredMag() == 1;
+    }
+    void Normalize() {
+      *this /= Mag();
+    }
+    void Scale(const long magnitude) {
+      Normalize();
+      *this *= magnitude;
+    }
+    void Minimize(const C2iVector &a) {
+      if (a.x < x)
+        x = a.x;
+      if (a.y < y)
+        y = a.y;
+    }
+    void Maximize(const C2iVector &a) {
+      if (a.x > x)
+        x = a.x;
+      if (a.y > y)
+        y = a.y;
+    }
 
     long x;
     long y;

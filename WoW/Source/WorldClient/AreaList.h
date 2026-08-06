@@ -7,8 +7,8 @@ namespace NTempest {
 void AreaListInitialize();
 void AreaListShutdown();
 
-int AreaListGetName(unsigned int continentID, unsigned int areaID, unsigned int subAreaID, char *buffer, unsigned int size, int fullName);
+int AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer, UINT size, int fullName);
 
-void AreaListRegisterLocation(const NTempest::C3Vector &location, unsigned int continent, unsigned long worldObject);
+void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent, DWORD worldObject);
 
-int AreaListZoneHasBreathParticles(unsigned long worldObject, unsigned int continentID, const NTempest::C3Vector &position);
+int AreaListZoneHasBreathParticles(DWORD worldObject, UINT continentID, const NTempest::C3Vector &position);

@@ -15,27 +15,25 @@ struct CTmuPassUnique {
   CTmuPassUnique() : combiner(GxTexBlend_Mod), textureId(-1) {
   }
 
-  static int Compare(
-      const CModelTexture *, const CModelTexture *, const CTmuPassUnique &, const CTmuPassUnique &
-  );
+  static int Compare(const CModelTexture *, const CModelTexture *, const CTmuPassUnique &, const CTmuPassUnique &);
 
-  EGxTexBlend  combiner;
-  unsigned int textureId;
+  EGxTexBlend combiner;
+  UINT        textureId;
 };
 
 struct CTmuPassShared {
   CTmuPassShared() : transformId(-1), coordId(0), textureShader(GxTS_PassThru), flags(0) {
   }
 
-  unsigned int     transformId;
-  unsigned int     coordId;
+  UINT             transformId;
+  UINT             coordId;
   EGxTextureShader textureShader;
-  unsigned int     flags;
+  UINT             flags;
 };
 
 struct CTexLayer {
   CTexLayer() : vertexFormat(GxVBF_PCT0), disables(0), blendMode(GxBlend_Opaque), layerAlpha(255) {
-    for (unsigned int i = 0; i < 2; ++i) {
+    for (UINT i = 0; i < 2; ++i) {
       tmuPass[i].combiner = GxTexBlend_Mod;
     }
   }
@@ -45,17 +43,17 @@ struct CTexLayer {
   EGxVertexBufferFormat vertexFormat;
   union {
     struct {
-      unsigned long lighting : 1;
-      unsigned long fog : 1;
-      unsigned long depthTest : 1;
-      unsigned long depthWrite : 1;
-      unsigned long culling : 1;
+      DWORD lighting : 1;
+      DWORD fog : 1;
+      DWORD depthTest : 1;
+      DWORD depthWrite : 1;
+      DWORD culling : 1;
     } disable;
-    unsigned long disables;
+    DWORD disables;
   };
   EGxBlend       blendMode;
   CTmuPassUnique tmuPass[2];
-  unsigned char  layerAlpha;
+  BYTE           layerAlpha;
 };
 
 struct CTexLayerShared {

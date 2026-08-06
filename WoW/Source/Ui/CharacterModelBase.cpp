@@ -16,7 +16,7 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-unsigned __int64 Script_GetGUIDFromName(const char *name);
+DWORDLONG Script_GetGUIDFromName(LPCSTR name);
 
 static int Script_SetUnit(lua_State *L);
 static int Script_UpdateModel(lua_State *L);
@@ -71,7 +71,7 @@ void CGCharacterModelBase::ConfigureCamera() {
   }
 }
 
-void CGCharacterModelBase::SetUnit(unsigned __int64 unitGUID) {
+void CGCharacterModelBase::SetUnit(DWORDLONG unitGUID) {
   m_unit = unitGUID;
 
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unitGUID, __FILE__, __LINE__));
@@ -152,7 +152,7 @@ void CGCharacterModelBase::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CGCharacterModelBase::LookupScriptMethod(lua_State *L, const char *name) {
+int CGCharacterModelBase::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

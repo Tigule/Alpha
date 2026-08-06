@@ -12,10 +12,10 @@
 #define SLOG_FLAG_OPENONCREATE 0x00000001
 #define SLOG_FLAG_NOFILE       0x00000002
 
-#define SLOG_BUCKETS      4
-#define SLOG_BUFFER_SIZE  0x10000
-#define SLOG_FLUSH_SIZE   0xC000
-#define SLOG_MAX_INDENT   128
+#define SLOG_BUCKETS        4
+#define SLOG_BUFFER_SIZE    0x10000
+#define SLOG_FLUSH_SIZE     0xC000
+#define SLOG_MAX_INDENT     128
 #define SLOG_TIMESTAMP_SIZE 0x40
 
 struct LOGRECORD {
@@ -93,8 +93,8 @@ static void UnlockLog(int bucket) {
 }
 
 static int OpenLogFile(LOGRECORD *record) {
-  const char *filename = record->filename;
-  char        combined[0x100];
+  LPCSTR filename = record->filename;
+  char   combined[0x100];
 
   if (record->file) {
     return 1;
@@ -155,8 +155,8 @@ static void WriteLinePrefix(LOGRECORD *record, int stamp) {
     broken = localtime(&now);
 
     SStrPrintf(
-        s_timestamp, sizeof(s_timestamp), "%u/%u %02u:%02u:%02u.%03u  ", broken->tm_mon, broken->tm_mday, broken->tm_hour,
-        broken->tm_min, broken->tm_sec, ms % 1000
+        s_timestamp, sizeof(s_timestamp), "%u/%u %02u:%02u:%02u.%03u  ", broken->tm_mon, broken->tm_mday, broken->tm_hour, broken->tm_min,
+        broken->tm_sec, ms % 1000
     );
 
     s_timestampLen = SStrLen(s_timestamp);
@@ -202,7 +202,7 @@ extern "C" BOOL APIENTRY SLogIsInitialized() {
   return s_initialized;
 }
 
-extern "C" BOOL APIENTRY SLogCreate(const char *filename, DWORD flags, HSLOG *log) {
+extern "C" BOOL APIENTRY SLogCreate(LPCSTR filename, DWORD flags, HSLOG *log) {
   LOGRECORD *record;
   int        bucket;
 
@@ -242,7 +242,7 @@ extern "C" BOOL APIENTRY SLogCreate(const char *filename, DWORD flags, HSLOG *lo
   return TRUE;
 }
 
-extern "C" void APIENTRY SLogVWrite(HSLOG log, const char *format, char *arglist) {
+extern "C" void APIENTRY SLogVWrite(HSLOG log, LPCSTR format, char *arglist) {
   LOGRECORD *record;
   int        bucket;
 
@@ -273,7 +273,7 @@ extern "C" void APIENTRY SLogVWrite(HSLOG log, const char *format, char *arglist
   UnlockLog(bucket);
 }
 
-extern "C" void __cdecl SLogWrite(HSLOG log, const char *format, ...) {
+extern "C" void __cdecl SLogWrite(HSLOG log, LPCSTR format, ...) {
   va_list args;
 
   va_start(args, format);
@@ -420,7 +420,7 @@ extern "C" void APIENTRY SLogDestroy() {
   s_initialized = 0;
 }
 
-extern "C" void APIENTRY SLogSetDefaultDirectory(const char *dirname) {
+extern "C" void APIENTRY SLogSetDefaultDirectory(LPCSTR dirname) {
   s_directoryLock.Enter();
   SStrCopy(s_defaultDirectory, dirname, sizeof(s_defaultDirectory));
   s_directoryLock.Leave();

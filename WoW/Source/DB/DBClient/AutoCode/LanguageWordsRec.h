@@ -7,13 +7,13 @@ class LanguageWordsRec {
   LanguageWordsRec();
   ~LanguageWordsRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 3;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 12;
   }
 
@@ -28,11 +28,11 @@ class LanguageWordsRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_languageID;
-  const char *m_word;
+  int    m_ID;
+  int    m_languageID;
+  LPCSTR m_word;
 };
 
 extern WowClientDB<LanguageWordsRec> g_languageWordsDB;

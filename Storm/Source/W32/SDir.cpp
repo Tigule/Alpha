@@ -2,16 +2,16 @@
 
 #include <sys/stat.h>
 
-SDIR *APIENTRY SFile::OpenDir(const char *name) {
+SDIR *APIENTRY SFile::OpenDir(LPCSTR name) {
   SDIR        *dir;
   struct _stat stats;
   char        *end;
 
   dir = static_cast<SDIR *>(SMemAlloc(sizeof(SDIR), __FILE__, __LINE__, 0));
   {
-    char        ch;
-    const char *in;
-    char       *out;
+    char   ch;
+    LPCSTR in;
+    char  *out;
 
     in = name;
     out = dir->name;
@@ -51,9 +51,9 @@ SDIRENT *APIENTRY SFile::ReadDir(SDIR *dir) {
     }
 
     {
-      char        ch;
-      const char *in;
-      char       *out;
+      char   ch;
+      LPCSTR in;
+      char  *out;
 
       in = dir->findData.cFileName;
       out = dir->dirent.d_name;
@@ -65,9 +65,9 @@ SDIRENT *APIENTRY SFile::ReadDir(SDIR *dir) {
   } else if (!FindNextFileA(dir->handle, &dir->findData)) {
     return NULL;
   } else {
-    char        ch;
-    const char *in;
-    char       *out;
+    char   ch;
+    LPCSTR in;
+    char  *out;
 
     in = dir->findData.cFileName;
     out = dir->dirent.d_name;

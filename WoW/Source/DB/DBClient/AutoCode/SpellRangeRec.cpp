@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *SpellRangeRec::GetFilename() {
+LPCSTR SpellRangeRec::GetFilename() {
   return "DBFilesClient\\SpellRange.dbc";
 }
 
@@ -19,10 +19,10 @@ SpellRangeRec::SpellRangeRec() {
 SpellRangeRec::~SpellRangeRec() {
 }
 
-bool SpellRangeRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempdisplayName_langIndices[8];
-  unsigned int tempdisplayNameShort_langIndices[8];
+bool SpellRangeRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempdisplayName_langIndices[8];
+  UINT tempdisplayNameShort_langIndices[8];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_rangeMin, sizeof(m_rangeMin), 0, 0, 0) && result;

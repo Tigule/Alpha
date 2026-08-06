@@ -39,6 +39,9 @@ typedef char                        *PSZ;
 typedef long                                   *LPLONG;
 typedef unsigned long   DWORD,      *PDWORD,   *LPDWORD;
 
+typedef long long          LONGLONG;
+typedef unsigned long long DWORDLONG;
+
 typedef char            *LPSTR;
 typedef const char      *LPCSTR;
 // clang-format on

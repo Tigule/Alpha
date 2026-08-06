@@ -1,6 +1,5 @@
 #include <Base/Base.h>
 
-
 #include <Component/Component.h>
 
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
@@ -10,9 +9,9 @@
 
 #include <string.h>
 
-static const char *s_itemVisualAnimNames[1] = {"stand"};
+static LPCSTR s_itemVisualAnimNames[1] = {"stand"};
 
-void ComponentUtilAddItemVisual(HMODEL itemModel, int index, const char *name) {
+void ComponentUtilAddItemVisual(HMODEL itemModel, int index, LPCSTR name) {
   if (ModelIsLoaded(itemModel, 1) && !ModelHasLinkPoint(itemModel, index)) {
     return;
   }
@@ -35,18 +34,18 @@ HMODEL ComponentUtilGetChildModel(HMODEL parent, int index) {
     return 0;
   }
 
-  HMODEL       model = 0;
-  unsigned int max = 1;
+  HMODEL model = 0;
+  UINT   max = 1;
   ModelGetLinkPoint(parent, index, &model, &max);
   return model;
 }
 
 struct SECTIONDESC {
-  char        *m_columnName;
-  unsigned int x;
-  unsigned int y;
-  unsigned int width;
-  unsigned int height;
+  char *m_columnName;
+  UINT  x;
+  UINT  y;
+  UINT  width;
+  UINT  height;
 };
 
 static const SECTIONDESC s_sectionTable[NUM_TEXCOMPONENT_SECTIONS] = {
@@ -62,8 +61,8 @@ static const SECTIONDESC s_sectionTable[NUM_TEXCOMPONENT_SECTIONS] = {
     {      "FootTexture", 128, 224, 128, 32}
 };
 
-static const unsigned int s_sectionFlags[INDEX_NUMSLOTS] = {0, 0, 0, 0, 0x0E3, 0x0E3, 0x080, 0x180, 0x300, 0x002, 0x006, 0, 0, 0,
-                                                            0, 0, 0, 0, 0,     0,     0x0E0, 0x1E3, 0,     0,     0,     0, 0};
+static const UINT s_sectionFlags[INDEX_NUMSLOTS] = {0, 0, 0, 0, 0x0E3, 0x0E3, 0x080, 0x180, 0x300, 0x002, 0x006, 0, 0, 0,
+                                                    0, 0, 0, 0, 0,     0,     0x0E0, 0x1E3, 0,     0,     0,     0, 0};
 
 static const int s_textureSections[NUM_TEXCOMPONENT_SECTIONS] = {0, 1, 2, -1, -1, 3, 4, 5, 6, 7};
 
@@ -181,7 +180,7 @@ extern const SECTIONPRIORITIES g_sectionPriorities[INDEX_NUMSLOTS] = {
       LAYERPRIORITY_0, LAYERPRIORITY_0}}
 };
 
-int CompUtilGetSectionDimensions(unsigned int sectionIndex, unsigned int *width, unsigned int *height) {
+int CompUtilGetSectionDimensions(UINT sectionIndex, UINT *width, UINT *height) {
   ASSERT(width);
   ASSERT(height);
 
@@ -194,7 +193,7 @@ int CompUtilGetSectionDimensions(unsigned int sectionIndex, unsigned int *width,
   return 1;
 }
 
-int CompUtilGetSectionOffset(unsigned int sectionIndex, unsigned int *xCoord, unsigned int *yCoord) {
+int CompUtilGetSectionOffset(UINT sectionIndex, UINT *xCoord, UINT *yCoord) {
   ASSERT(xCoord);
   ASSERT(yCoord);
 
@@ -208,19 +207,19 @@ int CompUtilGetSectionOffset(unsigned int sectionIndex, unsigned int *xCoord, un
 }
 
 int CompUtilItemSectionInfo(
-    const ItemDisplayInfoRec    *displayInfoRec,
-    unsigned int                 inventoryType,
-    unsigned int                *numTextureComponents,
-    TEXCOMPONENT_SECTIONS        sectionList[6],
-    TEXCOMPONENT_LAYERS          layerList[6],
-    LAYERPRIORITY                priorityList[6],
-    CSectionFileNames           *fileNameList
+    const ItemDisplayInfoRec *displayInfoRec,
+    UINT                      inventoryType,
+    UINT                     *numTextureComponents,
+    TEXCOMPONENT_SECTIONS     sectionList[6],
+    TEXCOMPONENT_LAYERS       layerList[6],
+    LAYERPRIORITY             priorityList[6],
+    CSectionFileNames        *fileNameList
 ) {
   ASSERT(inventoryType < INDEX_NUMSLOTS);
   ASSERT(numTextureComponents);
 
-  unsigned int numSections = 0;
-  unsigned int section;
+  UINT numSections = 0;
+  UINT section;
   for (section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
     if (!(s_sectionFlags[inventoryType] & (1 << section))) {
       continue;
@@ -231,7 +230,7 @@ int CompUtilItemSectionInfo(
     priorityList[numSections] = g_sectionPriorities[inventoryType].priorities[section];
 
     if (fileNameList) {
-      const char *fileName = CompUtilGetTextureSectionName(displayInfoRec, section);
+      LPCSTR fileName = CompUtilGetTextureSectionName(displayInfoRec, section);
       if (fileName && *fileName) {
         SStrCopy(fileNameList->path[numSections], fileName, MAX_PATH);
       } else {
@@ -261,7 +260,7 @@ int CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS secti
   return 1;
 }
 
-const char *CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, unsigned int textureSection) {
+LPCSTR CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, UINT textureSection) {
   if (!displayInfoRec || textureSection >= NUM_TEXCOMPONENT_SECTIONS) {
     return 0;
   }
@@ -271,8 +270,7 @@ const char *CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoR
   return displayInfoRec->m_texture[textureIndex];
 }
 
-static int
-ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichComponent, unsigned int inventoryType, SUBCOMPONENTDESC *subComp) {
+static int ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, UINT whichComponent, UINT inventoryType, SUBCOMPONENTDESC *subComp) {
   ASSERT(inventoryType < INDEX_NUMSLOTS);
   ASSERT(displayInfoRec);
   ASSERT(whichComponent < 2);
@@ -291,7 +289,7 @@ ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichCom
   if (!displayInfoRec) {
     return 0;
   }
-  const char *modelName = displayInfoRec->m_modelName[whichComponent];
+  LPCSTR modelName = displayInfoRec->m_modelName[whichComponent];
   if (!modelName || !*modelName) {
     return 0;
   }
@@ -300,7 +298,7 @@ ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichCom
   }
 
   subComp->pathName = SStrDupA(modelName, __FILE__, __LINE__);
-  const char *textureName = displayInfoRec->m_modelTexture[whichComponent];
+  LPCSTR textureName = displayInfoRec->m_modelTexture[whichComponent];
   if (textureName && *textureName) {
     char buffer[MAX_PATH];
     if (TextureDiscoverFileType(textureName) == TEXFILETYPE_TGA) {
@@ -312,11 +310,11 @@ ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, unsigned int whichCom
   return 1;
 }
 
-unsigned int CompUtilGetObjComponents(
+UINT CompUtilGetObjComponents(
     const ItemDisplayInfoRec *displayInfoRec,
     int                       itemInventoryType,
     SUBCOMPONENTDESC         *subComponents,
-    unsigned int              numSubComponents,
+    UINT                      numSubComponents,
     int                       useAlternate
 ) {
   ASSERT(numSubComponents == 2);
@@ -325,28 +323,27 @@ unsigned int CompUtilGetObjComponents(
     return 0;
   }
 
-  unsigned int count = 0;
-  unsigned int whichComponent;
+  UINT count = 0;
+  UINT whichComponent;
   for (whichComponent = 0; whichComponent < 2 && count < numSubComponents; ++whichComponent) {
     if (ReadSubComponent(displayInfoRec, whichComponent, itemInventoryType, &subComponents[count])) {
-      subComponents[count].connectionPointIndex =
-          useAlternate ? g_geometryComponentLookups[itemInventoryType].altItemLinks[count]
-                       : g_geometryComponentLookups[itemInventoryType].itemLinks[count];
+      subComponents[count].connectionPointIndex = useAlternate ? g_geometryComponentLookups[itemInventoryType].altItemLinks[count]
+                                                               : g_geometryComponentLookups[itemInventoryType].itemLinks[count];
       ++count;
     }
   }
   return count;
 }
 
-unsigned int CompUtilGetObjComponentSlotFlags(const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType, int useAlternateSlot) {
+UINT CompUtilGetObjComponentSlotFlags(const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType, int useAlternateSlot) {
   if (!displayInfoRec || !g_geometryComponentLookups[itemInventoryType].allowedSlots) {
     return 0;
   }
 
-  unsigned int flags = 0;
-  unsigned int componentIndex = 0;
-  for (unsigned int componentLink = 0; componentLink < 36 && componentIndex < 2; ++componentLink) {
-    if (!(g_geometryComponentLookups[itemInventoryType].allowedSlots & (static_cast<__int64>(1) << componentLink))) {
+  UINT flags = 0;
+  UINT componentIndex = 0;
+  for (UINT componentLink = 0; componentLink < 36 && componentIndex < 2; ++componentLink) {
+    if (!(g_geometryComponentLookups[itemInventoryType].allowedSlots & (static_cast<LONGLONG>(1) << componentLink))) {
       continue;
     }
     if (ReadSubComponent(displayInfoRec, componentIndex, itemInventoryType, 0)) {

@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *CharBaseInfoRec::GetFilename() {
+LPCSTR CharBaseInfoRec::GetFilename() {
   return "DBFilesClient\\CharBaseInfo.dbc";
 }
 
@@ -19,7 +19,7 @@ CharBaseInfoRec::CharBaseInfoRec() {
 CharBaseInfoRec::~CharBaseInfoRec() {
 }
 
-bool CharBaseInfoRec::Read(SFile *f, const char *stringBuffer) {
+bool CharBaseInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_raceID, sizeof(m_raceID), 0, 0, 0) && result;

@@ -5,11 +5,11 @@
 #include <string.h>
 #include <time.h>
 
-SRP6_Random::SRP6_Random(unsigned int seed) {
+SRP6_Random::SRP6_Random(UINT seed) {
   struct {
-    time_t       ltime;
-    unsigned int msec;
-    int          random;
+    time_t ltime;
+    UINT   msec;
+    int    random;
   } preseed;
   SHA1_CONTEXT context;
 
@@ -19,7 +19,7 @@ SRP6_Random::SRP6_Random(unsigned int seed) {
   preseed.random = rand();
 
   SHA1_Init(&context);
-  SHA1_Update(&context, reinterpret_cast<unsigned char *>(&preseed), sizeof(preseed));
+  SHA1_Update(&context, reinterpret_cast<BYTE *>(&preseed), sizeof(preseed));
   SHA1_Final(this->m_randkey1, &context);
 
   memcpy(this->m_randkey2, this->m_randkey1, sizeof(this->m_randkey2));
@@ -27,7 +27,7 @@ SRP6_Random::SRP6_Random(unsigned int seed) {
   this->m_inpool = 0;
 }
 
-void SRP6_Random::GenerateRandomBytes(unsigned char *data, unsigned int size) {
+void SRP6_Random::GenerateRandomBytes(BYTE *data, UINT size) {
   SHA1_CONTEXT context;
 
   while (size > this->m_inpool) {

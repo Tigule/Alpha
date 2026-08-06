@@ -14,16 +14,16 @@ void CCombat::SetClientInitData(const CClientObjCreate &init) {
   m_victim = init.victim;
 }
 
-unsigned __int64 CCombat::IsAttacking() const {
+DWORDLONG CCombat::IsAttacking() const {
   return m_victim;
 }
 
-void CCombat::SetAttacking(unsigned __int64 victim) {
+void CCombat::SetAttacking(DWORDLONG victim) {
   FATALASSERT(victim);
   m_victim = victim;
 }
 
-void CCombatClient::SetAttackSent(unsigned __int64 victim) {
+void CCombatClient::SetAttackSent(DWORDLONG victim) {
   m_victim = victim;
   m_attackSent = 1;
 }

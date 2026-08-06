@@ -17,8 +17,7 @@ namespace NTempest {
       FromAngleAxis(angle, axis);
     }
 
-    C4Quaternion(const C4Vector &vector)
-        : C4Vector(vector.x, vector.y, vector.z, vector.w) {
+    C4Quaternion(const C4Vector &vector) : C4Vector(vector.x, vector.y, vector.z, vector.w) {
     }
 
     ~C4Quaternion() {
@@ -56,7 +55,7 @@ namespace NTempest {
       x = y = z = w = 0.0f;
     }
 
-    unsigned char IsValid() const {
+    BYTE IsValid() const {
       return x == x && y == y && z == z && w == w;
     }
 
@@ -113,8 +112,8 @@ namespace NTempest {
     void ToRotationMatrixInv(C33Matrix &r) const {
       r = static_cast<C33Matrix>(*this).Transpose();
     }
-    void FromAngleAxis(const float angle, const C3Vector &axis);
-    void ToAngleAxis(float &angle, C3Vector &axis) const;
+    void         FromAngleAxis(const float angle, const C3Vector &axis);
+    void         ToAngleAxis(float &angle, C3Vector &axis) const;
     C4Quaternion Conjugate() const {
       return C4Quaternion(w, -x, -y, -z);
     }
@@ -127,32 +126,20 @@ namespace NTempest {
     C4Quaternion Log() const;
 
     static C4Quaternion Slerp(float ratio, const C4Quaternion &start, const C4Quaternion &end);
-    static void SquadInterm(
-        const C4Quaternion &q0,
-        const C4Quaternion &q1,
-        const C4Quaternion &q2,
-        C4Quaternion &a,
-        C4Quaternion &b
-    );
-    static void SquadIntermMaxCompat(
-        const C4Quaternion &q0,
-        const C4Quaternion &q1,
-        const C4Quaternion &q2,
-        C4Quaternion &a,
-        C4Quaternion &b
-    );
+    static void         SquadInterm(const C4Quaternion &q0, const C4Quaternion &q1, const C4Quaternion &q2, C4Quaternion &a, C4Quaternion &b);
+    static void SquadIntermMaxCompat(const C4Quaternion &q0, const C4Quaternion &q1, const C4Quaternion &q2, C4Quaternion &a, C4Quaternion &b);
     static void SquadIntermTCB(
         const C4Quaternion &q0,
         const C4Quaternion &q1,
         const C4Quaternion &q2,
-        float time0,
-        float time1,
-        float time2,
-        float tension,
-        float continuity,
-        float bias,
-        C4Quaternion &a,
-        C4Quaternion &b
+        float               time0,
+        float               time1,
+        float               time2,
+        float               tension,
+        float               continuity,
+        float               bias,
+        C4Quaternion       &a,
+        C4Quaternion       &b
     );
     static C4Quaternion
     Squad(float ratio, const C4Quaternion &start, const C4Quaternion &end, const C4Quaternion &outTangent, const C4Quaternion &inTangent);
@@ -160,9 +147,7 @@ namespace NTempest {
 
   inline C4Quaternion operator*(const C4Quaternion &l, const C4Quaternion &r) {
     return C4Quaternion(
-        l.w * r.w - l.x * r.x - l.y * r.y - l.z * r.z,
-        l.w * r.x + l.x * r.w + l.y * r.z - l.z * r.y,
-        l.w * r.y + l.y * r.w + l.z * r.x - l.x * r.z,
+        l.w * r.w - l.x * r.x - l.y * r.y - l.z * r.z, l.w * r.x + l.x * r.w + l.y * r.z - l.z * r.y, l.w * r.y + l.y * r.w + l.z * r.x - l.x * r.z,
         l.w * r.z + l.z * r.w + l.x * r.y - l.y * r.x
     );
   }

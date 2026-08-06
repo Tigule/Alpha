@@ -17,13 +17,13 @@
 #include <storm.h>
 
 static TSHashTable<AREAHASHOBJECT, AREAHASHKEY> s_areaHash;
-static unsigned int                             s_currentZoneID = -1;
-static unsigned int                             s_currentSubZoneID = -1;
-static unsigned int                             s_currentContinent = -1;
+static UINT                                     s_currentZoneID = -1;
+static UINT                                     s_currentSubZoneID = -1;
+static UINT                                     s_currentContinent = -1;
 static int                                      s_indoors = -1;
-static unsigned int                             s_currentChunkID = -1;
+static UINT                                     s_currentChunkID = -1;
 
-static AREAHASHOBJECT *GetZone(unsigned int cont, unsigned int zName, unsigned int subZone) {
+static AREAHASHOBJECT *GetZone(UINT cont, UINT zName, UINT subZone) {
   AREAHASHKEY key(cont, zName, subZone);
 
   return s_areaHash.Ptr(zName, key);
@@ -88,15 +88,15 @@ static void InitializeMusic() {
 }
 
 static void LoadAreaTable() {
-  unsigned int numEntries = g_areaTableDB.GetNumRecords();
+  UINT numEntries = g_areaTableDB.GetNumRecords();
 
   s_areaHash.SetTableSize(numEntries);
 
-  for (unsigned int i = 0; i < numEntries; ++i) {
+  for (UINT i = 0; i < numEntries; ++i) {
     const AreaTableRec *rec = g_areaTableDB.GetRecordByIndex(i);
-    unsigned int        continentID = rec->m_ContinentID;
-    unsigned int        areaID = rec->m_AreaNumber >> 16;
-    unsigned int        subArea = rec->m_AreaNumber & 0xFFFF;
+    UINT                continentID = rec->m_ContinentID;
+    UINT                areaID = rec->m_AreaNumber >> 16;
+    UINT                subArea = rec->m_AreaNumber & 0xFFFF;
     AREAHASHKEY         key(continentID, areaID, subArea);
 
     AREAHASHOBJECT *area = s_areaHash.Ptr(areaID, key);
@@ -112,8 +112,8 @@ static void LoadAreaTable() {
   InitializeMusic();
 }
 
-static int MIDISetHandler(const char* command, const char* arguments) {
-  unsigned int enabled = SStrToUnsigned(arguments);
+static int MIDISetHandler(LPCSTR command, LPCSTR arguments) {
+  UINT            enabled = SStrToUnsigned(arguments);
   AREAHASHOBJECT *zone = GetZone(s_currentContinent, s_currentZoneID, s_currentSubZoneID);
   if (enabled && zone) {
     SndInterfaceSetMIDIArea(zone->midi, zone->midiUnderwater);
@@ -136,7 +136,7 @@ void AreaListShutdown() {
   s_areaHash.Clear();
 }
 
-int AreaListGetName(unsigned int continentID, unsigned int areaID, unsigned int subAreaID, char *buffer, unsigned int size, int fullName) {
+int AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer, UINT size, int fullName) {
   AREAHASHOBJECT *area;
   AREAHASHOBJECT *parent;
   int             badRec;
@@ -187,12 +187,12 @@ static void SendZoneUpdate(AREAHASHOBJECT *hash) {
   }
 }
 
-static bool HandleIndoorZoneChange(unsigned long worldObject, const char *&zoneName, const char *&subZoneName, bool &clearMusic) {
+static bool HandleIndoorZoneChange(DWORD worldObject, LPCSTR &zoneName, LPCSTR &subZoneName, bool &clearMusic) {
   const WMOAreaTableRec *globalRec = 0;
   const WMOAreaTableRec *rec = 0;
-  const char            *szName = 0;
-  const char            *zName = 0;
-  unsigned int           chunk = 0;
+  LPCSTR                 szName = 0;
+  LPCSTR                 zName = 0;
+  UINT                   chunk = 0;
 
   CWorld::QueryMapObjZoneName(worldObject, zName);
   CWorld::QueryMapObjSubzoneName(worldObject, szName, chunk);
@@ -234,7 +234,7 @@ static bool HandleIndoorZoneChange(unsigned long worldObject, const char *&zoneN
   return true;
 }
 
-static bool HandleOutdoorZoneChange(unsigned int zoneID, unsigned int subZoneID, unsigned int continent, bool &clearMusic) {
+static bool HandleOutdoorZoneChange(UINT zoneID, UINT subZoneID, UINT continent, bool &clearMusic) {
   if (!s_indoors && zoneID == s_currentZoneID && subZoneID == s_currentSubZoneID && continent == s_currentContinent) {
     return false;
   }
@@ -257,16 +257,16 @@ static bool HandleOutdoorZoneChange(unsigned int zoneID, unsigned int subZoneID,
   return true;
 }
 
-void AreaListRegisterLocation(const NTempest::C3Vector &location, unsigned int continent, unsigned long worldObject) {
+void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent, DWORD worldObject) {
   FATALASSERT(worldObject);
 
-  int          indoors = CWorld::QueryObjectInside(worldObject) != 0;
-  unsigned int areaID = CWorld::QueryAreaId(location.x, location.y);
-  unsigned int zoneID = areaID >> 16;
-  unsigned int subZoneID = areaID & 0xFFFF;
-  int          parentAreaID = 0;
-  const char  *zoneName = 0;
-  const char  *subZoneName = 0;
+  int    indoors = CWorld::QueryObjectInside(worldObject) != 0;
+  UINT   areaID = CWorld::QueryAreaId(location.x, location.y);
+  UINT   zoneID = areaID >> 16;
+  UINT   subZoneID = areaID & 0xFFFF;
+  int    parentAreaID = 0;
+  LPCSTR zoneName = 0;
+  LPCSTR subZoneName = 0;
 
   AREAHASHOBJECT *hash = GetZone(continent, zoneID, subZoneID);
   if (hash) {
@@ -318,7 +318,7 @@ void AreaListRegisterLocation(const NTempest::C3Vector &location, unsigned int c
   s_indoors = indoors;
 }
 
-int AreaListZoneHasBreathParticles(unsigned long worldObject, unsigned int continentID, const NTempest::C3Vector &position) {
+int AreaListZoneHasBreathParticles(DWORD worldObject, UINT continentID, const NTempest::C3Vector &position) {
   const WMOAreaTableRec *globalRec;
 
   if (CWorld::QueryObjectInside(worldObject)) {
@@ -335,7 +335,7 @@ int AreaListZoneHasBreathParticles(unsigned long worldObject, unsigned int conti
     return 0;
   }
 
-  unsigned int    areaID = CWorld::QueryAreaId(position.x, position.y);
+  UINT            areaID = CWorld::QueryAreaId(position.x, position.y);
   AREAHASHOBJECT *hash = GetZone(continentID, areaID >> 16, areaID & 0xFFFF);
   if (!hash) {
     return 0;

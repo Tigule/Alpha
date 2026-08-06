@@ -15,7 +15,7 @@
 #include "Tempest/cmath.h"
 #include "Tempest/crandom.h"
 
-unsigned int g_sndInterfaceFlags;
+UINT g_sndInterfaceFlags;
 
 TSHashTable<SHEATHSOUNDHASH, HASHKEY_NONE>        g_sheathSoundList;
 TSFixedArray<IMPACTSOUNDARRAY>                    g_impactSounds;
@@ -23,10 +23,10 @@ WEAPONSOUNDS                                      g_weaponSwingSounds[3];
 TSHashTable<UISOUNDLOOKUP, HASHKEY_STRI>          g_uiSoundLookups;
 static HASHKEY_NONE                               s_nullHashKey;
 static TSHashTable<SOUNDDEFINITION, HASHKEY_NONE> s_fileNameHash;
-static unsigned int                               s_numFileNameEntries;
+static UINT                                       s_numFileNameEntries;
 static TSGrowableArray<REVERBINFO>                s_reverbTable;
 
-static const unsigned int s_primes[272] = {
+static const UINT s_primes[272] = {
     1667U, 1669U, 1693U, 1697U, 647U,  653U,  659U,  661U,  1733U, 1741U, 1747U, 1753U, 673U,  677U,  683U,  691U,  701U,  709U,  719U,  727U,  1277U,
     1279U, 1283U, 1289U, 701U,  709U,  719U,  727U,  1583U, 1597U, 1601U, 1607U, 733U,  739U,  743U,  751U,  1481U, 1483U, 1487U, 1489U, 757U,  761U,
     769U,  773U,  1307U, 1319U, 1321U, 1327U, 983U,  991U,  997U,  1009U, 1307U, 1319U, 1321U, 1327U, 787U,  797U,  809U,  811U,  1399U, 1409U, 1423U,
@@ -42,19 +42,19 @@ static const unsigned int s_primes[272] = {
     1361U, 1367U, 1373U, 1381U, 1667U, 1669U, 1693U, 1697U, 1699U, 1709U, 1721U, 1723U, 673U,  677U,  683U,  691U,  1733U, 1741U, 1747U, 1753U
 };
 
-static bool             InitializePrefTable(int index);
-static void             ReadFiles();
-static void             InitializeInterfaceSounds();
-static void             InitializeUISounds();
-static void             InitializeSheatheSounds();
-static void             InitializeUnitCombatSounds();
-static void             GenerateWeaponSwingCombatSounds();
-static void             InitializeWeaponImpactCombatSounds();
-static void             ParseWeaponImpactArmorField(const WeaponImpactSoundsRec *rec);
-unsigned int BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *rec, const char *directory, int *equalFreqsPtr);
+static bool InitializePrefTable(int index);
+static void ReadFiles();
+static void InitializeInterfaceSounds();
+static void InitializeUISounds();
+static void InitializeSheatheSounds();
+static void InitializeUnitCombatSounds();
+static void GenerateWeaponSwingCombatSounds();
+static void InitializeWeaponImpactCombatSounds();
+static void ParseWeaponImpactArmorField(const WeaponImpactSoundsRec *rec);
+UINT        BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *rec, LPCSTR directory, int *equalFreqsPtr);
 
-const char *SOUNDDEFINITION::GetRandomFileName(int index) {
-  unsigned int targetFreq;
+LPCSTR SOUNDDEFINITION::GetRandomFileName(int index) {
+  UINT targetFreq;
 
   if (!m_fileNames.Count() || !m_totalFrequency) {
     return 0;
@@ -76,7 +76,7 @@ const char *SOUNDDEFINITION::GetRandomFileName(int index) {
     }
   } else {
     m_lastPlayed = m_fileNames.Count() - 1;
-    if (m_lastPlayed >= static_cast<unsigned int>(index)) {
+    if (m_lastPlayed >= static_cast<UINT>(index)) {
       m_lastPlayed = index;
     }
     m_loopCounter = 0;
@@ -150,16 +150,15 @@ void SOUNDDEFINITION::Clear() {
   m_fileNames.SetCount(0);
 }
 
-unsigned int
-BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *rec, const char *directory, int *equalFreqsPtr) {
+UINT BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *rec, LPCSTR directory, int *equalFreqsPtr) {
   char           buff[260];
   int            lastFreq = 0;
   int            equalFreqs = 1;
-  unsigned int   i;
-  unsigned int   totalFreq = 0;
-  const char    *separator;
-  const char    *lastSlash;
-  unsigned int   index;
+  UINT           i;
+  UINT           totalFreq = 0;
+  LPCSTR         separator;
+  LPCSTR         lastSlash;
+  UINT           index;
   FILENAMEENTRY *newNode;
 
   for (i = 0; i < 10; ++i) {
@@ -197,9 +196,9 @@ BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *re
 }
 
 static void ReadFiles() {
-  unsigned int           numNewEntries = 0;
-  unsigned int           numEntries = g_soundEntriesDB.GetNumRecords();
-  unsigned int           i;
+  UINT                   numNewEntries = 0;
+  UINT                   numEntries = g_soundEntriesDB.GetNumRecords();
+  UINT                   i;
   const SoundEntriesRec *rec;
   SOUNDDEFINITION       *sound;
 
@@ -237,8 +236,8 @@ static void ReadFiles() {
 }
 
 static void InitializeUISounds() {
-  unsigned int           numEntries = g_soundEntriesDB.GetNumRecords();
-  unsigned int           i;
+  UINT                   numEntries = g_soundEntriesDB.GetNumRecords();
+  UINT                   i;
   const SoundEntriesRec *rec;
   UISOUNDLOOKUP         *lookup;
 
@@ -257,9 +256,9 @@ static void InitializeUISounds() {
 }
 
 static void InitializeSheatheSounds() {
-  unsigned int                  numMaterials = g_materialDB.GetMaxID() + 1;
-  unsigned int                  i;
-  unsigned int                  j;
+  UINT                          numMaterials = g_materialDB.GetMaxID() + 1;
+  UINT                          i;
+  UINT                          j;
   const SheatheSoundLookupsRec *rec;
   SHEATHSOUNDHASH              *hash;
 
@@ -280,7 +279,7 @@ static void InitializeSheatheSounds() {
     }
 
     if (rec->m_checkMaterial) {
-      if (static_cast<unsigned int>(rec->m_material) < numMaterials) {
+      if (static_cast<UINT>(rec->m_material) < numMaterials) {
         hash->materialSheathSound[rec->m_material] = rec->m_sheatheSound;
         hash->materialUnsheathSound[rec->m_material] = rec->m_unsheatheSound;
       }
@@ -299,7 +298,7 @@ static void InitializeInterfaceSounds() {
 }
 
 static void GenerateWeaponSwingCombatSounds() {
-  unsigned int                 i;
+  UINT                         i;
   const WeaponSwingSounds2Rec *rec;
 
   for (i = g_weaponSwingSounds2DB.GetNumRecords(); i; --i) {
@@ -311,7 +310,7 @@ static void GenerateWeaponSwingCombatSounds() {
 }
 
 static void ParseWeaponImpactArmorField(const WeaponImpactSoundsRec *rec) {
-  unsigned int armor;
+  UINT armor;
 
   ASSERT(rec);
   ASSERT(rec->m_WeaponSubClassID < static_cast<int>(ClientDBGetNumWeaponSubclasses()));
@@ -330,7 +329,7 @@ static void ParseWeaponImpactArmorField(const WeaponImpactSoundsRec *rec) {
 }
 
 static void InitializeWeaponImpactCombatSounds() {
-  unsigned int                 i;
+  UINT                         i;
   const WeaponImpactSoundsRec *rec;
 
   g_impactSounds.SetCount(ClientDBGetNumWeaponSubclasses());
@@ -361,7 +360,7 @@ void ISndInterfaceShutdown() {
   s_reverbTable.Clear();
 }
 
-SOUNDDEFINITION *ISndInterfaceGetSndEntry(unsigned int soundID) {
+SOUNDDEFINITION *ISndInterfaceGetSndEntry(UINT soundID) {
   return s_fileNameHash.Ptr(soundID, s_nullHashKey);
 }
 

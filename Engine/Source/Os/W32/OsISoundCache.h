@@ -3,19 +3,19 @@
 #include <stpl.h>
 
 struct SoundFileInstance {
-  unsigned char inUse;
-  int           currentOffset;
+  BYTE inUse;
+  int  currentOffset;
 };
 
 struct SoundFileObject {
-  char                    filename[260];
-  unsigned int            hash;
-  SFile                  *file;
-  unsigned int            baseHandle;
-  unsigned int            size;
-  unsigned int            openInstances;
-  unsigned int            bigFileCacheBlockOffset;
-  SoundFileInstance       instances[16];
+  char              filename[260];
+  UINT              hash;
+  SFile            *file;
+  UINT              baseHandle;
+  UINT              size;
+  UINT              openInstances;
+  UINT              bigFileCacheBlockOffset;
+  SoundFileInstance instances[16];
   LINKDECLEX(SoundFileObject, link);
 };
 
@@ -25,7 +25,7 @@ struct SoundFileObjectCacheNode : public TSHashObject<SoundFileObjectCacheNode, 
 
 struct SoundFileDataCacheBlock : public TSHashObject<SoundFileDataCacheBlock, HASHKEY_LONGLONG> {
   LINKDECLEX(SoundFileDataCacheBlock, link);
-  unsigned char                   data[4096];
+  BYTE data[4096];
 };
 
 class SoundFileCache {
@@ -33,9 +33,9 @@ class SoundFileCache {
   static void Initialize(int cacheSizeMB);
   static void Shutdown();
 
-  static unsigned int __stdcall Open(const char *filename);
-  static int __stdcall          Read(void *buffer, int size, unsigned int handle);
-  static int __stdcall          Seek(unsigned int handle, int pos, signed char mode);
-  static int __stdcall          Tell(unsigned int handle);
-  static void __stdcall         Close(unsigned int handle);
+  static UINT __stdcall Open(LPCSTR filename);
+  static int __stdcall  Read(LPVOID buffer, int size, UINT handle);
+  static int __stdcall  Seek(UINT handle, int pos, signed char mode);
+  static int __stdcall  Tell(UINT handle);
+  static void __stdcall Close(UINT handle);
 };

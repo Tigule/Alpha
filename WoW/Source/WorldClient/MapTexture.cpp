@@ -9,7 +9,7 @@
 
 #include <storm.h>
 
-HTEXTURE CMap::LoadTexture(const char *fileName) {
+HTEXTURE CMap::LoadTexture(LPCSTR fileName) {
   CStatus     status;
   CGxTexFlags texFlags(
       CWorld::enables & CWorld::Enable_Anisotropic ? GxTex_Anisotropic

@@ -22,7 +22,7 @@ void ShutdownGlueMusic() {
   s_musicFile[0] = 0;
 }
 
-void SndInterfaceSetGlueMusic(const char *musicFile) {
+void SndInterfaceSetGlueMusic(LPCSTR musicFile) {
   if (!musicFile || !CGlueMgr::Initialized() || CGlueMgr::Suspended()) {
     SndInterfaceStopGlueMusic(FADEOUT_TIME);
     s_musicFile[0] = 0;

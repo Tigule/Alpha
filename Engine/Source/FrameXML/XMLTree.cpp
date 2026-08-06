@@ -12,12 +12,12 @@ struct XMLTree {
   XMLNode *current;
 };
 
-void __cdecl begin_element(void *userData, const char *name, const char **attributes) {
-  XMLTree     *tree = static_cast<XMLTree *>(userData);
-  XMLNode     *node = new (ALLOC(sizeof(XMLNode))) XMLNode(tree->current, name);
-  XMLNode     *child;
-  const char **attribute;
-  int          index;
+void __cdecl begin_element(LPVOID userData, LPCSTR name, LPCSTR *attributes) {
+  XMLTree *tree = static_cast<XMLTree *>(userData);
+  XMLNode *node = new (ALLOC(sizeof(XMLNode))) XMLNode(tree->current, name);
+  XMLNode *child;
+  LPCSTR  *attribute;
+  int      index;
 
   if (tree->current) {
     child = tree->current->m_child;
@@ -49,12 +49,12 @@ void __cdecl begin_element(void *userData, const char *name, const char **attrib
   }
 }
 
-void __cdecl end_element(void *userData, const char *) {
+void __cdecl end_element(LPVOID userData, LPCSTR) {
   XMLTree *tree = static_cast<XMLTree *>(userData);
   tree->current = tree->current->m_parent;
 }
 
-void __cdecl handle_body(void *userData, const char *body, int length) {
+void __cdecl handle_body(LPVOID userData, LPCSTR body, int length) {
   XMLTree *tree = static_cast<XMLTree *>(userData);
   XMLNode *node = tree->current;
   int      bodyLength;
@@ -88,7 +88,7 @@ void __cdecl handle_body(void *userData, const char *body, int length) {
   *output = 0;
 }
 
-XMLTree *XMLTree_Load(const char *buffer, unsigned int bytes) {
+XMLTree *XMLTree_Load(LPCSTR buffer, UINT bytes) {
   XML_Parser parser = XML_ParserCreate(0);
   XMLTree   *tree;
 
@@ -124,7 +124,7 @@ const XMLNode *XMLTree_GetRoot(XMLTree *tree) {
   return tree->root;
 }
 
-XMLNode::XMLNode(XMLNode *parent, const char *name) {
+XMLNode::XMLNode(XMLNode *parent, LPCSTR name) {
   m_parent = parent;
   m_child = 0;
   m_name = SStrDupA(name, __FILE__, __LINE__);
@@ -162,7 +162,7 @@ XMLNode::~XMLNode() {
   }
 }
 
-const XMLNode *XMLNode::GetChildByName(const char *name) const {
+const XMLNode *XMLNode::GetChildByName(LPCSTR name) const {
   const XMLNode *node = GetChild();
 
   while (node) {
@@ -176,7 +176,7 @@ const XMLNode *XMLNode::GetChildByName(const char *name) const {
   return 0;
 }
 
-const char *XMLNode::GetAttributeNameByIndex(int index) const {
+LPCSTR XMLNode::GetAttributeNameByIndex(int index) const {
   if (index < 0 || index >= m_num_attributes) {
     return 0;
   }
@@ -184,7 +184,7 @@ const char *XMLNode::GetAttributeNameByIndex(int index) const {
   return m_attributes[index].name;
 }
 
-const char *XMLNode::GetAttributeValueByIndex(int index) const {
+LPCSTR XMLNode::GetAttributeValueByIndex(int index) const {
   if (index < 0 || index >= m_num_attributes) {
     return 0;
   }
@@ -192,7 +192,7 @@ const char *XMLNode::GetAttributeValueByIndex(int index) const {
   return m_attributes[index].value;
 }
 
-const char *XMLNode::GetAttributeByName(const char *name) const {
+LPCSTR XMLNode::GetAttributeByName(LPCSTR name) const {
   int index;
 
   for (index = 0; index < m_num_attributes; ++index) {

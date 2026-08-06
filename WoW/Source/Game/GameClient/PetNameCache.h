@@ -26,9 +26,9 @@ class PetNameCache {
     return *this;
   }
 
-  char         m_name[0x30];
-  unsigned int m_ID;
-  unsigned int m_timestamp;
+  char m_name[0x30];
+  UINT m_ID;
+  UINT m_timestamp;
 };
 
 #endif

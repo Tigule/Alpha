@@ -33,18 +33,18 @@ class CArray {
   }
 
   void Exchange(TSGrowableArray<T> *source) {
-    unsigned int alloc;
+    UINT alloc;
 
     delete[] m_data;
     source->Detach(&m_data, &m_count, &alloc);
   }
 
-  void ReserveSpace(unsigned int elements) {
+  void ReserveSpace(UINT elements) {
     delete[] m_data;
     m_data = elements ? new T[elements] : 0;
   }
 
-  void Set(unsigned int elements, const T *data) {
+  void Set(UINT elements, const T *data) {
     ReserveSpace(elements);
     m_count = elements;
     if (elements) {
@@ -53,11 +53,11 @@ class CArray {
     }
   }
 
-  unsigned int Count() const {
+  UINT Count() const {
     return m_count;
   }
 
-  unsigned int Bytes() const {
+  UINT Bytes() const {
     return m_count * sizeof(T);
   }
 
@@ -77,7 +77,7 @@ class CArray {
     return m_data;
   }
 
-  void SetCount(unsigned int count) {
+  void SetCount(UINT count) {
     m_count = count;
   }
 
@@ -85,39 +85,38 @@ class CArray {
     memset(m_data, 0, Bytes());
   }
 
-  T &operator[](unsigned int index) {
+  T &operator[](UINT index) {
     ASSERT(index < m_count);
     return m_data[index];
   }
 
-  const T &operator[](unsigned int index) const {
+  const T &operator[](UINT index) const {
     ASSERT(index < m_count);
     return m_data[index];
   }
 
  private:
-  T           *m_data;
-  unsigned int m_count;
+  T   *m_data;
+  UINT m_count;
 };
 
 struct CBaseStatus {
   CBaseStatus() : currSeq(0), flags(0x10) {
   }
 
-  unsigned char currSeq;
-  unsigned char flags;
+  BYTE currSeq;
+  BYTE flags;
 };
 
 struct CKeyTrackStatus {
   CKeyTrackStatus() : currKey(0), nextKey(0), timepastkey(0) {
   }
-  CKeyTrackStatus(const CKeyTrackStatus &source)
-      : currKey(source.currKey), nextKey(source.nextKey), timepastkey(source.timepastkey) {
+  CKeyTrackStatus(const CKeyTrackStatus &source) : currKey(source.currKey), nextKey(source.nextKey), timepastkey(source.timepastkey) {
   }
 
-  unsigned int currKey;
-  unsigned int nextKey;
-  int          timepastkey;
+  UINT currKey;
+  UINT nextKey;
+  int  timepastkey;
 };
 
 struct CAnimObjStatus {
@@ -126,18 +125,14 @@ struct CAnimObjStatus {
     base.flags = 0x10;
   }
   CAnimObjStatus(const CAnimObjStatus &source)
-      : translation(source.translation),
-        rotation(source.rotation),
-        scale(source.scale),
-        base(source.base),
-        lookAtId(source.lookAtId) {
+      : translation(source.translation), rotation(source.rotation), scale(source.scale), base(source.base), lookAtId(source.lookAtId) {
   }
 
   CKeyTrackStatus translation;
   CKeyTrackStatus rotation;
   CKeyTrackStatus scale;
   CBaseStatus     base;
-  unsigned char   lookAtId;
+  BYTE            lookAtId;
 };
 
 struct CAnimEventObjStatus : public CAnimObjStatus {

@@ -15,8 +15,8 @@
 
 static const float EVENT_PRIORITY_ABOVE_NORMAL = 1.0f;
 
-static void PaintCursor(void *, const RECTF *, const RECTF *, float);
-static void PaintScreen(void *, const RECTF *, const RECTF *, float elapsedSec);
+static void PaintCursor(LPVOID, const RECTF *, const RECTF *, float);
+static void PaintScreen(LPVOID, const RECTF *, const RECTF *, float elapsedSec);
 
 CSimpleTop *CSimpleTop::s_instance;
 
@@ -34,7 +34,7 @@ CMouseEvent &CMouseEvent::operator=(const EVENT_DATA_MOUSE &rhs) {
 
 int CFrameStrataNode::BuildBatches() {
   if (batchDirty) {
-    unsigned int layer;
+    UINT layer;
 
     for (layer = 0; layer < NUM_SIMPLEFRAME_DRAWLAYERS; ++layer) {
       CRenderBatch *batch = &batches[layer];
@@ -65,8 +65,8 @@ int CFrameStrataNode::BuildBatches() {
 }
 
 CFrameStrata::~CFrameStrata() {
-  unsigned int count = levels.Count();
-  unsigned int i;
+  UINT count = levels.Count();
+  UINT i;
 
   for (i = 0; i < count; ++i) {
     DELIFUSED(levels[i]);
@@ -77,7 +77,7 @@ CFrameStrata::~CFrameStrata() {
 int CFrameStrata::FrameOccluded(CSimpleFrame *thisFrame) {
   NTempest::CRect otherRect;
   NTempest::CRect thisRect;
-  unsigned int    level = thisFrame->GetFrameLevel();
+  UINT            level = thisFrame->GetFrameLevel();
 
   while (level < topLevel) {
     ITERATELIST(CSimpleFrame, levels[level]->frames, otherFrame) {
@@ -98,7 +98,7 @@ int CFrameStrata::FrameOccluded(CSimpleFrame *thisFrame) {
 }
 
 void CFrameStrata::CheckOcclusion() {
-  unsigned int i;
+  UINT i;
 
   for (i = 0; i < topLevel; ++i) {
     ITERATELIST(CSimpleFrame, levels[i]->frames, frame) {
@@ -109,7 +109,7 @@ void CFrameStrata::CheckOcclusion() {
   }
 }
 
-static void PaintCursor(void *, const RECTF *, const RECTF *, float) {
+static void PaintCursor(LPVOID, const RECTF *, const RECTF *, float) {
   ActivityBegin(ACTIVITY_FRAMEMANAGER);
 
   CSimpleTop *top = CSimpleTop::GetInstance();
@@ -119,7 +119,7 @@ static void PaintCursor(void *, const RECTF *, const RECTF *, float) {
   ActivityEnd(ACTIVITY_FRAMEMANAGER);
 }
 
-static void PaintScreen(void *, const RECTF *, const RECTF *, float elapsedSec) {
+static void PaintScreen(LPVOID, const RECTF *, const RECTF *, float elapsedSec) {
   ActivityBegin(ACTIVITY_FRAMEMANAGER);
 
   CSimpleTop *top = CSimpleTop::GetInstance();
@@ -132,9 +132,9 @@ static void PaintScreen(void *, const RECTF *, const RECTF *, float elapsedSec) 
 
 CSimpleTop::CSimpleTop()
     : m_cursor(0), m_cursorVisible(1), m_mouseFocus(0), m_mouseCapture(0), m_checkFocus(1), m_mouseButtonCallback(0), m_displaySizeCallback(0) {
-  float        x;
-  float        y;
-  unsigned int i;
+  float x;
+  float y;
+  UINT  i;
 
   ASSERT(!s_instance);
   s_instance = this;
@@ -163,8 +163,8 @@ CSimpleTop::CSimpleTop()
 
 CSimpleTop::~CSimpleTop() {
   SIMPLEFRAMENODE *node;
-  unsigned int     i;
-  unsigned int     strata;
+  UINT             i;
+  UINT             strata;
 
   SetCursor(0);
 
@@ -193,8 +193,8 @@ CSimpleTop::~CSimpleTop() {
   s_instance = 0;
 }
 
-void CSimpleTop::EnumerateFrames(int(*callback)(CSimpleFrame *, void *), void *param) {
-  unsigned int i;
+void CSimpleTop::EnumerateFrames(int (*callback)(CSimpleFrame *, LPVOID), LPVOID param) {
+  UINT i;
 
   for (i = 0; i < NUM_FRAME_STRATA; ++i) {
     if (!m_strata[i]->EnumerateFrames(callback, param)) {
@@ -239,11 +239,11 @@ void CSimpleTop::NotifyFrameMovedOrResized(CSimpleFrame *frame) {
   m_checkFocus = 1;
 }
 
-void CSimpleTop::NotifyFrameLayerChanged(CSimpleFrame *frame, unsigned int layer) {
+void CSimpleTop::NotifyFrameLayerChanged(CSimpleFrame *frame, UINT layer) {
   m_strata[frame->GetFrameStrata()]->OnFrameLayerChanged(frame, layer);
 }
 
-void CSimpleTop::RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, unsigned int priority) {
+void CSimpleTop::RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, UINT priority) {
   CSimpleSortedArray<FRAMEPRIORITY *> *queue;
   FRAMEPRIORITY                       *entry;
 
@@ -252,7 +252,7 @@ void CSimpleTop::RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, u
   ASSERT(event < NUM_SIMPLE_EVENTS);
 
   queue = &m_eventqueue[event][frame->GetFrameStrata()];
-  if (priority == static_cast<unsigned int>(-1)) {
+  if (priority == static_cast<UINT>(-1)) {
     priority = frame->GetFrameLevel();
   }
 
@@ -269,8 +269,8 @@ void CSimpleTop::RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, u
 void CSimpleTop::UnregisterForEvent(CSimpleFrame *frame, CSimpleEventType event) {
   CSimpleSortedArray<FRAMEPRIORITY *> *queue;
   FRAMEPRIORITY                       *entry = 0;
-  unsigned int                         count;
-  unsigned int                         i;
+  UINT                                 count;
+  UINT                                 i;
 
   ASSERT(event < NUM_SIMPLE_EVENTS);
 
@@ -328,7 +328,7 @@ void CSimpleTop::SetCursor(HMODEL cursor) {
 }
 
 int CSimpleTop::RaiseFrame(const NTempest::C2Vector &pt) {
-  unsigned int i = NUM_SIMPLEFRAME_DRAWLAYERS;
+  UINT i = NUM_SIMPLEFRAME_DRAWLAYERS;
 
   while (i) {
     CSimpleFrame *frame = m_strata[--i]->GetToplevelFrame(pt);
@@ -351,7 +351,7 @@ int CSimpleTop::RaiseFrame(CSimpleFrame *frame, int checkOcclusion) {
 
   if (checkOcclusion) {
     CFrameStrata   *strata;
-    unsigned int    level;
+    UINT            level;
     NTempest::CRect frameRect;
     NTempest::CRect otherRect;
     int             occluded = 0;
@@ -462,7 +462,7 @@ int CSimpleTop::StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &s
 
 int CSimpleTop::StartMoveOrResizeFrame(const CMouseEvent &start, int resize) {
   CSimpleFrame *frame = 0;
-  unsigned int  strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  UINT          strata = NUM_SIMPLEFRAME_DRAWLAYERS;
 
   while (strata && !frame) {
     NTempest::C2Vector point(start.x, start.y);
@@ -502,7 +502,7 @@ void CSimpleTop::StopMoveOrResizeFrame() {
 
 void CSimpleTop::OnLayerUpdate(float elapsedSec) {
   SIMPLEFRAMENODE *node;
-  unsigned int     strata;
+  UINT             strata;
 
   ITERATELIST(SIMPLEFRAMENODE, m_destroyed, iterNode) {
     DELIFUSED(iterNode->frame);
@@ -531,7 +531,7 @@ void CSimpleTop::OnLayerUpdate(float elapsedSec) {
 void CSimpleTop::OnLayerRender() {
   CameraSetupScreenProjection(m_rect, NTempest::C2Vector(0.0f), 0.0f);
 
-  for (unsigned int strataIndex = 0; strataIndex < NUM_FRAME_STRATA; ++strataIndex) {
+  for (UINT strataIndex = 0; strataIndex < NUM_FRAME_STRATA; ++strataIndex) {
     if (m_strata[strataIndex]->levelsDirty) {
       if (!m_mouseCapture) {
         m_strata[strataIndex]->CompressLevels();
@@ -593,11 +593,11 @@ void CSimpleTop::DrawCursor() {
   }
 }
 
-int CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, void *param) {
-  CSimpleTop  *top = static_cast<CSimpleTop *>(param);
-  CCharEvent   charEvent(*pCharEvtData);
-  unsigned int strata = NUM_SIMPLEFRAME_DRAWLAYERS;
-  int          eaten = 0;
+int CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param) {
+  CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  CCharEvent  charEvent(*pCharEvtData);
+  UINT        strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  int         eaten = 0;
 
   charEvent.SetId(0x40060067);
   while (strata && !eaten) {
@@ -615,11 +615,11 @@ int CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, void *param) {
   return !eaten;
 }
 
-int CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, void *param) {
-  CSimpleTop  *top = static_cast<CSimpleTop *>(param);
-  CImeEvent    imeEvent(*pImeData);
-  unsigned int strata = NUM_SIMPLEFRAME_DRAWLAYERS;
-  int          eaten = 0;
+int CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, LPVOID param) {
+  CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  CImeEvent   imeEvent(*pImeData);
+  UINT        strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  int         eaten = 0;
 
   imeEvent.SetId(0x40060068);
   while (strata && !eaten) {
@@ -637,11 +637,11 @@ int CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, void *param) {
   return !eaten;
 }
 
-int CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, void *param) {
-  CSimpleTop  *top = static_cast<CSimpleTop *>(param);
-  CKeyEvent    keyEvent(*pKeyData);
-  unsigned int strata = NUM_SIMPLEFRAME_DRAWLAYERS;
-  int          eaten = 0;
+int CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
+  CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  CKeyEvent   keyEvent(*pKeyData);
+  UINT        strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  int         eaten = 0;
 
   top->m_eventTime = keyEvent.time;
   keyEvent.SetId(0x40060064);
@@ -665,7 +665,7 @@ int CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, void *param) {
   return !eaten;
 }
 
-int CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, void *param) {
+int CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_keydownCapture[pKeyData->key];
   int           eaten = 0;
@@ -687,7 +687,7 @@ int CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, void *param) {
   return !eaten;
 }
 
-int CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, void *param) {
+int CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_keydownCapture[pKeyData->key];
 
@@ -703,12 +703,12 @@ int CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, void *param) {
   return 1;
 }
 
-int CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CMouseEvent   mouseEvent;
   CSimpleFrame *last_focus = top->m_mouseFocus;
   CSimpleFrame *next_focus = 0;
-  unsigned int  strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  UINT          strata = NUM_SIMPLEFRAME_DRAWLAYERS;
 
   mouseEvent = *pMouseData;
   mouseEvent.SetId(0x400500CA);
@@ -753,7 +753,7 @@ int CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, void *param) {
   return next_focus == 0;
 }
 
-int CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_mouseFocus;
 
@@ -769,7 +769,7 @@ int CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, void *pa
   return 1;
 }
 
-int CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CMouseEvent   mouseEvent;
   CSimpleFrame *frame;
@@ -795,7 +795,7 @@ int CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, void *param) {
     if (frame) {
       frame->Raise();
       if (frame->GetTitleRegion()) {
-        CLayoutFrame      *title = reinterpret_cast<CLayoutFrame *>(frame->GetTitleRegion());
+        CLayoutFrame *title = reinterpret_cast<CLayoutFrame *>(frame->GetTitleRegion());
 
         if (title->PtInFrameRect(NTempest::C2Vector(mouseEvent.x, mouseEvent.y))) {
           top->StartMoveOrResizeFrame(frame, mouseEvent, 0);
@@ -814,7 +814,7 @@ int CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, void *param) {
   return !eaten;
 }
 
-int CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_mouseCapture;
 
@@ -838,11 +838,11 @@ int CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, void *param) {
   return 1;
 }
 
-int CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, void *param) {
+int CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   CSimpleTop        *top = static_cast<CSimpleTop *>(param);
   CMouseEvent        mouseEvent;
   NTempest::C2Vector pt;
-  unsigned int       strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  UINT               strata = NUM_SIMPLEFRAME_DRAWLAYERS;
   int                eaten = 0;
 
   mouseEvent = *pMouseData;
@@ -868,7 +868,7 @@ int CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, void *param) {
   return !eaten;
 }
 
-int CSimpleTop::OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, void *param) {
+int CSimpleTop::OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, LPVOID param) {
   CSimpleTop *top = static_cast<CSimpleTop *>(param);
 
   GxuFontWindowSizeChanged();

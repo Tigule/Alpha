@@ -28,26 +28,26 @@ class SpellCast {
   void BuildFullZoneUpdate(CDataStore *msg);
   void UnpackFullZoneUpdate(CDataStore *msg);
 
-  unsigned __int64   caster;
-  unsigned __int64   casterUnit;
+  DWORDLONG          caster;
+  DWORDLONG          casterUnit;
   int                spellID;
-  unsigned short     targets;
-  unsigned __int64   unitTarget;
-  unsigned __int64   itemTarget;
-  unsigned __int64   selectedTarget;
+  WORD               targets;
+  DWORDLONG          unitTarget;
+  DWORDLONG          itemTarget;
+  DWORDLONG          selectedTarget;
   NTempest::C3Vector sourceLocation;
   NTempest::C3Vector destLocation;
   float              destFacing;
-  unsigned int       destZoneID;
-  unsigned int       castTime;
-  unsigned int       castEndTime;
+  UINT               destZoneID;
+  UINT               castTime;
+  UINT               castEndTime;
   int                spellIndex;
-  unsigned int       spellLevel;
-  unsigned __int64   ammoItem;
-  unsigned __int64   reflector;
+  UINT               spellLevel;
+  DWORDLONG          ammoItem;
+  DWORDLONG          reflector;
   char               targetString[128];
   int                overrideRank;
-  unsigned short     flags;
+  WORD               flags;
 };
 
 void SpellPutCastTargets(SpellCast *cast, CDataStore *msg) {
@@ -73,7 +73,7 @@ void SpellPutCastTargets(SpellCast *cast, CDataStore *msg) {
   }
 }
 
-void SpellGetCastTargets(SpellCast* cast, CDataStore* msg) {
+void SpellGetCastTargets(SpellCast *cast, CDataStore *msg) {
   msg->Get(cast->targets);
   if (cast->targets & 0x802) {
     msg->Get(cast->unitTarget);
@@ -92,6 +92,6 @@ void SpellGetCastTargets(SpellCast* cast, CDataStore* msg) {
     msg->Get(cast->destLocation.z);
   }
   if (cast->targets & 0x2000) {
-    msg->GetArray(reinterpret_cast<unsigned char *>(cast->targetString), sizeof(cast->targetString));
+    msg->GetArray(reinterpret_cast<BYTE *>(cast->targetString), sizeof(cast->targetString));
   }
 }

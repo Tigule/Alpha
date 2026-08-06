@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *UnitBloodRec::GetFilename() {
+LPCSTR UnitBloodRec::GetFilename() {
   return "DBFilesClient\\UnitBlood.dbc";
 }
 
@@ -19,9 +19,9 @@ UnitBloodRec::UnitBloodRec() {
 UnitBloodRec::~UnitBloodRec() {
 }
 
-bool UnitBloodRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempGroundBloodIndices[5];
+bool UnitBloodRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempGroundBloodIndices[5];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, m_CombatBloodSpurtFront, sizeof(m_CombatBloodSpurtFront), 0, 0, 0) && result;

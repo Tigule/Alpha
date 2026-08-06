@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *NPCSoundsRec::GetFilename() {
+LPCSTR NPCSoundsRec::GetFilename() {
   return "DBFilesClient\\NPCSounds.dbc";
 }
 
@@ -19,7 +19,7 @@ NPCSoundsRec::NPCSoundsRec() {
 NPCSoundsRec::~NPCSoundsRec() {
 }
 
-bool NPCSoundsRec::Read(SFile *f, const char *stringBuffer) {
+bool NPCSoundsRec::Read(SFile *f, LPCSTR stringBuffer) {
   bool result = true;
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;

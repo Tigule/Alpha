@@ -7,13 +7,13 @@ class AttackAnimTypesRec {
   AttackAnimTypesRec();
   ~AttackAnimTypesRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 2;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 8;
   }
 
@@ -28,10 +28,10 @@ class AttackAnimTypesRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_AnimID;
-  const char *m_AnimName;
+  int    m_AnimID;
+  LPCSTR m_AnimName;
 };
 
 extern WowClientDB<AttackAnimTypesRec> g_attackAnimTypesDB;

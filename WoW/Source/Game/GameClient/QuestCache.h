@@ -8,7 +8,7 @@ class CDataStore;
 class QuestCache {
  public:
   QuestCache() {
-    unsigned int index;
+    UINT index;
 
     m_questId = 0;
     m_questType = 0;
@@ -54,7 +54,7 @@ class QuestCache {
   void Unpack(CDataStore *msg);
 
   QuestCache &operator=(const QuestCache &rhs) {
-    unsigned int index;
+    UINT index;
 
     m_questId = rhs.m_questId;
     m_questType = rhs.m_questType;

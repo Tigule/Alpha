@@ -33,9 +33,9 @@ CMAKE_EXE_UNIX="$DRIVE_C/Program Files/CMake/bin/cmake.exe"
 WOW_EXE=${WOW_EXE:-"$SCRIPT_DIR/WoW/Wow.exe"}
 WOW_CLIENT_DIR="$SCRIPT_DIR/../WoW/Client"
 WOW_CLIENT_EXE="$WOW_CLIENT_DIR/TiguleClient.exe"
-WOW_REF_EXE="$WOW_CLIENT_DIR/WoWClient.exe"
+WOW_REF_EXE="$WOW_CLIENT_DIR/WowClient.exe"
 if [ "$(uname -s)" = Darwin ]; then
-    WOW_REF_EXE="$WOW_CLIENT_DIR/WoWMacClient.exe"
+    WOW_REF_EXE="$WOW_CLIENT_DIR/WowMacClient.exe"
 fi
 
 die() {
@@ -52,7 +52,7 @@ Commands:
   setup    Configure this checkout with VC6 NMake makefiles
   build    Build the configured tree with nmake
   run      Copy Wow.exe into WoW/Client and start TiguleClient.exe
-  run-ref  Start the original reference client (WoWMacClient.exe on macOS)
+  run-ref  Start the original reference client (WowMacClient.exe on macOS)
   all      Run install, setup, then build
 
 Environment:

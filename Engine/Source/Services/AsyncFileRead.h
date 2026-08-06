@@ -5,26 +5,26 @@
 
 class CAsyncObject {
  public:
-  SFile       *file;
-  unsigned long offset;
-  void        *buffer;
-  unsigned long size;
-  void        *userArg;
-  void(*userPostloadCallback)(void *);
-  SCritSect           *critSect;
-  unsigned char        isLoaded;
-  unsigned char        canReorder;
+  SFile *file;
+  DWORD  offset;
+  LPVOID buffer;
+  DWORD  size;
+  LPVOID userArg;
+  void (*userPostloadCallback)(LPVOID);
+  SCritSect *critSect;
+  BYTE       isLoaded;
+  BYTE       canReorder;
   LINKDECLEX(CAsyncObject, link);
 };
 
-void AsyncFileReadInitialize();
-void AsyncFileReadDestroy();
-void AsyncFileReadAddHandler(void(*handler)());
+void          AsyncFileReadInitialize();
+void          AsyncFileReadDestroy();
+void          AsyncFileReadAddHandler(void (*handler)());
 CAsyncObject *AsyncFileReadCreateObject();
-void AsyncFileReadDestroyObject(CAsyncObject *object);
-void AsyncFileReadObject(CAsyncObject *object);
-void AsyncFileReadWait(CAsyncObject *object);
-void AsyncFileReadWaitAll();
-bool AsyncFileReadIsReading();
+void          AsyncFileReadDestroyObject(CAsyncObject *object);
+void          AsyncFileReadObject(CAsyncObject *object);
+void          AsyncFileReadWait(CAsyncObject *object);
+void          AsyncFileReadWaitAll();
+bool          AsyncFileReadIsReading();
 
 #endif

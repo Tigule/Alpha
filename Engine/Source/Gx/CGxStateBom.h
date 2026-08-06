@@ -12,7 +12,7 @@ class CGxStateBom {
   float               GetAsFloat();
   NTempest::CImVector GetAsCArgb();
   NTempest::C3Vector  GetAsC3Vector();
-  void               *GetAsPointer();
+  LPVOID              GetAsPointer();
 
   const CGxStateBom &operator=(int value) {
     mData[0] = value;
@@ -38,7 +38,7 @@ class CGxStateBom {
 struct CGxPushedRenderState {
   EGxRenderState mWhich;
   CGxStateBom    mValue;
-  unsigned long  mStackDepth;
+  DWORD          mStackDepth;
 };
 
 struct CGxAppRenderState {
@@ -49,6 +49,6 @@ struct CGxAppRenderState {
   }
 
   CGxStateBom mValue;
-  unsigned long mStackDepth;
-  int mDirty;
+  DWORD       mStackDepth;
+  int         mDirty;
 };

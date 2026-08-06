@@ -5,14 +5,15 @@
 #include "Gx/Gx.h"
 #include "Services/AsyncFileRead.h"
 
-typedef unsigned long DWORD_PTR;
+typedef DWORD DWORD_PTR;
 
 // embeds guids into object file
 #include <initguid.h>
 #include <dmusici.h>
 
 struct ASYNCLOADER {
-  ASYNCLOADER() : asyncLoader(0) {}
+  ASYNCLOADER() : asyncLoader(0) {
+  }
   ASYNCLOADER(const ASYNCLOADER &);
   ~ASYNCLOADER();
 
@@ -31,19 +32,19 @@ class CMyLoader : public IDirectMusicLoader {
  public:
   CMyLoader();
   ~CMyLoader();
-  long                            Init();
-  virtual long __stdcall          QueryInterface(const GUID &iid, void **ppv);
-  virtual unsigned long __stdcall AddRef();
-  virtual unsigned long __stdcall Release();
-  virtual long __stdcall          GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, void **ppv);
-  virtual long __stdcall          SetObject(DMUS_OBJECTDESC *);
-  virtual long __stdcall          SetSearchDirectory(const GUID &, wchar_t *, int);
-  virtual long __stdcall          ScanDirectory(const GUID &, wchar_t *, wchar_t *);
-  virtual long __stdcall          CacheObject(IDirectMusicObject *__formal);
-  virtual long __stdcall          ReleaseObject(IDirectMusicObject *__formal);
-  virtual long __stdcall          ClearCache(const GUID &);
-  virtual long __stdcall          EnableCache(const GUID &, int);
-  virtual long __stdcall          EnumObject(const GUID &, unsigned long, DMUS_OBJECTDESC *);
+  long                    Init();
+  virtual long __stdcall  QueryInterface(const GUID &iid, LPVOID *ppv);
+  virtual DWORD __stdcall AddRef();
+  virtual DWORD __stdcall Release();
+  virtual long __stdcall  GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv);
+  virtual long __stdcall  SetObject(DMUS_OBJECTDESC *);
+  virtual long __stdcall  SetSearchDirectory(const GUID &, wchar_t *, int);
+  virtual long __stdcall  ScanDirectory(const GUID &, wchar_t *, wchar_t *);
+  virtual long __stdcall  CacheObject(IDirectMusicObject *);
+  virtual long __stdcall  ReleaseObject(IDirectMusicObject *);
+  virtual long __stdcall  ClearCache(const GUID &);
+  virtual long __stdcall  EnableCache(const GUID &, int);
+  virtual long __stdcall  EnumObject(const GUID &, DWORD, DMUS_OBJECTDESC *);
 
  private:
   long    m_cRef;
@@ -57,28 +58,28 @@ class CMyIStream : public IStream, public IDirectMusicGetLoader {
   ~CMyIStream() {
     Detach();
   }
-  long                            Attach(const char *tzFile, IDirectMusicLoader *pLoader);
-  void                            Detach();
-  virtual long __stdcall          QueryInterface(const GUID &iid, void **ppv);
-  virtual unsigned long __stdcall AddRef();
-  virtual unsigned long __stdcall Release();
-  virtual long __stdcall          Read(void *pv, unsigned long cb, unsigned long *pcb);
-  virtual long __stdcall          Write(const void *, unsigned long, unsigned long *);
-  virtual long __stdcall          Seek(LARGE_INTEGER dlibMove, unsigned long dwOrigin, ULARGE_INTEGER *out);
-  virtual long __stdcall          SetSize(ULARGE_INTEGER);
-  virtual long __stdcall          CopyTo(IStream *, ULARGE_INTEGER, ULARGE_INTEGER *, ULARGE_INTEGER *);
-  virtual long __stdcall          Commit(unsigned long __formal);
-  virtual long __stdcall          Revert();
-  virtual long __stdcall          LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, unsigned long);
-  virtual long __stdcall          UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, unsigned long);
-  virtual long __stdcall          Stat(STATSTG *, unsigned long);
-  virtual long __stdcall          Clone(IStream **ppstm);
-  virtual long __stdcall          GetLoader(IDirectMusicLoader **ppLoader);
+  long                    Attach(LPCSTR tzFile, IDirectMusicLoader *pLoader);
+  void                    Detach();
+  virtual long __stdcall  QueryInterface(const GUID &iid, LPVOID *ppv);
+  virtual DWORD __stdcall AddRef();
+  virtual DWORD __stdcall Release();
+  virtual long __stdcall  Read(LPVOID pv, DWORD cb, DWORD *pcb);
+  virtual long __stdcall  Write(LPCVOID, DWORD, DWORD *);
+  virtual long __stdcall  Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *out);
+  virtual long __stdcall  SetSize(ULARGE_INTEGER);
+  virtual long __stdcall  CopyTo(IStream *, ULARGE_INTEGER, ULARGE_INTEGER *, ULARGE_INTEGER *);
+  virtual long __stdcall  Commit(DWORD);
+  virtual long __stdcall  Revert();
+  virtual long __stdcall  LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+  virtual long __stdcall  UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+  virtual long __stdcall  Stat(STATSTG *, DWORD);
+  virtual long __stdcall  Clone(IStream **ppstm);
+  virtual long __stdcall  GetLoader(IDirectMusicLoader **ppLoader);
 
  private:
   long                m_cRef;
   IDirectMusicLoader *m_pLoader;
-  __int64             m_cursor;
+  LONGLONG            m_cursor;
 
  public:
   ASYNCLOADER *m_loader;
@@ -90,14 +91,14 @@ static IDirectMusicPerformance8 *s_dmusicPerformance;
 static IDirectMusicSegment8     *s_dmusicSegment;
 static IDirectMusicAudioPath    *s_dmusicPath;
 static IDirectMusicCollection   *s_dmusicCollection;
-static unsigned char s_comInitialized;
-static unsigned char s_initialized;
-static ASYNCLOADER  s_MID;
-static ASYNCLOADER  s_DLS;
+static BYTE                      s_comInitialized;
+static BYTE                      s_initialized;
+static ASYNCLOADER               s_MID;
+static ASYNCLOADER               s_DLS;
 
-void PostLoadCallback(void *userArg);
+void PostLoadCallback(LPVOID userArg);
 
-long __stdcall CMyIStream::Write(const void *, unsigned long, unsigned long *) {
+long __stdcall CMyIStream::Write(LPCVOID, DWORD, DWORD *) {
   return E_NOTIMPL;
 }
 
@@ -112,7 +113,7 @@ long __stdcall CMyIStream::CopyTo(IStream *, ULARGE_INTEGER, ULARGE_INTEGER *, U
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::Commit(unsigned long __formal) {
+long __stdcall CMyIStream::Commit(DWORD) {
   return E_NOTIMPL;
 }
 
@@ -120,15 +121,15 @@ long __stdcall CMyIStream::Revert() {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, unsigned long) {
+long __stdcall CMyIStream::LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, unsigned long) {
+long __stdcall CMyIStream::UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::Stat(STATSTG *, unsigned long) {
+long __stdcall CMyIStream::Stat(STATSTG *, DWORD) {
   return E_NOTIMPL;
 }
 
@@ -144,11 +145,11 @@ long __stdcall CMyLoader::ScanDirectory(const GUID &, wchar_t *, wchar_t *) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::CacheObject(IDirectMusicObject *__formal) {
+long __stdcall CMyLoader::CacheObject(IDirectMusicObject *) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::ReleaseObject(IDirectMusicObject *__formal) {
+long __stdcall CMyLoader::ReleaseObject(IDirectMusicObject *) {
   return E_NOTIMPL;
 }
 
@@ -160,7 +161,7 @@ long __stdcall CMyLoader::EnableCache(const GUID &, int) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::EnumObject(const GUID &, unsigned long, DMUS_OBJECTDESC *) {
+long __stdcall CMyLoader::EnumObject(const GUID &, DWORD, DMUS_OBJECTDESC *) {
   return E_NOTIMPL;
 }
 
@@ -178,7 +179,7 @@ static void MIDI_CleanupSegment() {
   }
 }
 
-void PostLoadCallback(void *userArg) {
+void PostLoadCallback(LPVOID userArg) {
   if (!s_MID.asyncLoader || !s_MID.asyncLoader->isLoaded || !s_DLS.asyncLoader || !s_DLS.asyncLoader->isLoaded) {
     return;
   }
@@ -189,9 +190,9 @@ void PostLoadCallback(void *userArg) {
   objDesc.guidClass = CLSID_DirectMusicSegment;
   objDesc.asyncLoader = &s_MID;
   objDesc.llMemLength = s_MID.buffer.Count();
-  objDesc.pbMemData = reinterpret_cast<unsigned char *>(s_MID.buffer.Ptr());
+  objDesc.pbMemData = reinterpret_cast<BYTE *>(s_MID.buffer.Ptr());
   objDesc.pStream = 0;
-  if (s_loader.GetObjectA(&objDesc, IID_IDirectMusicSegment8, reinterpret_cast<void **>(&s_dmusicSegment))) {
+  if (s_loader.GetObjectA(&objDesc, IID_IDirectMusicSegment8, reinterpret_cast<LPVOID *>(&s_dmusicSegment))) {
     MIDI_CleanupSegment();
     return;
   }
@@ -199,9 +200,9 @@ void PostLoadCallback(void *userArg) {
   objDesc.guidClass = CLSID_DirectMusicCollection;
   objDesc.asyncLoader = &s_DLS;
   objDesc.llMemLength = s_DLS.buffer.Count();
-  objDesc.pbMemData = reinterpret_cast<unsigned char *>(s_DLS.buffer.Ptr());
+  objDesc.pbMemData = reinterpret_cast<BYTE *>(s_DLS.buffer.Ptr());
   objDesc.pStream = 0;
-  if (s_loader.GetObjectA(&objDesc, IID_IDirectMusicCollection, reinterpret_cast<void **>(&s_dmusicCollection))) {
+  if (s_loader.GetObjectA(&objDesc, IID_IDirectMusicCollection, reinterpret_cast<LPVOID *>(&s_dmusicCollection))) {
     MIDI_CleanupSegment();
     return;
   }
@@ -226,14 +227,14 @@ void PostLoadCallback(void *userArg) {
   }
 }
 
-static void InitLoader(ASYNCLOADER &loader, const char *fileName) {
+static void InitLoader(ASYNCLOADER &loader, LPCSTR fileName) {
   loader.Clear();
 
   SFile *file = 0;
   if (SFile::Open(fileName, &file)) {
     CAsyncObject *asyncLoader = AsyncFileReadCreateObject();
     if (asyncLoader) {
-      unsigned int size = SFile::GetFileSize(file, 0);
+      UINT size = SFile::GetFileSize(file, 0);
       loader.buffer.SetCount(size);
       asyncLoader->isLoaded = 0;
       asyncLoader->userPostloadCallback = PostLoadCallback;
@@ -256,22 +257,11 @@ int Sound::MIDI_Initialize() {
   }
 
   HRESULT result = CoCreateInstance(
-      CLSID_DirectMusicPerformance,
-      0,
-      CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER,
-      IID_IDirectMusicPerformance8,
-      reinterpret_cast<void **>(&s_dmusicPerformance)
+      CLSID_DirectMusicPerformance, 0, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER, IID_IDirectMusicPerformance8,
+      reinterpret_cast<LPVOID *>(&s_dmusicPerformance)
   );
   if (result == S_OK) {
-    result = s_dmusicPerformance->InitAudio(
-        0,
-        0,
-        reinterpret_cast<HWND>(GxDevWindow()),
-        0,
-        0,
-        63,
-        0
-    );
+    result = s_dmusicPerformance->InitAudio(0, 0, reinterpret_cast<HWND>(GxDevWindow()), 0, 0, 63, 0);
     if (result == S_OK) {
       result = s_dmusicPerformance->CreateStandardAudioPath(8, 16, true, &s_dmusicPath);
     }
@@ -295,7 +285,7 @@ void Sound::MIDI_Shutdown() {
   s_DLS.Clear();
 }
 
-void Sound::MIDI_Play(const char *midiFilename, const char *dlsFilename) {
+void Sound::MIDI_Play(LPCSTR midiFilename, LPCSTR dlsFilename) {
   if (s_initialized && midiFilename && *midiFilename && dlsFilename && *dlsFilename) {
     InitLoader(s_MID, midiFilename);
     InitLoader(s_DLS, dlsFilename);
@@ -329,16 +319,16 @@ long CMyLoader::Init() {
   return S_OK;
 }
 
-long __stdcall CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, void **ppv) {
-  wchar_t         wzExt[256];
-  DMUS_OBJECTDESC DESC;
-  wchar_t         wzFileName[260];
-  char            name[260];
+long __stdcall CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv) {
+  wchar_t             wzExt[256];
+  DMUS_OBJECTDESC     DESC;
+  wchar_t             wzFileName[260];
+  char                name[260];
   IDirectMusicObject *pObject = 0;
-  IPersistStream *pPersistStream = 0;
-  const GUID     *pGUID = &myDesc->guidClass;
+  IPersistStream     *pPersistStream = 0;
+  const GUID         *pGUID = &myDesc->guidClass;
 
-  long status = CoCreateInstance(*pGUID, 0, CLSCTX_INPROC_SERVER, IID_IDirectMusicObject, reinterpret_cast<void **>(&pObject));
+  long status = CoCreateInstance(*pGUID, 0, CLSCTX_INPROC_SERVER, IID_IDirectMusicObject, reinterpret_cast<LPVOID *>(&pObject));
   if (status >= 0) {
     if (myDesc->dwValidData & 0x400) {
       _wmakepath(wzFileName, 0, m_wzSearchPath, myDesc->wszFileName, 0);
@@ -354,7 +344,7 @@ long __stdcall CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, 
         status = stream->Attach(name, this);
       }
       if (status >= 0) {
-        status = pObject->QueryInterface(IID_IPersistStream, reinterpret_cast<void **>(&pPersistStream));
+        status = pObject->QueryInterface(IID_IPersistStream, reinterpret_cast<LPVOID *>(&pPersistStream));
         if (status >= 0) {
           status = pPersistStream->Load(stream);
         }
@@ -382,13 +372,13 @@ long __stdcall CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, 
   return status;
 }
 
-long CMyIStream::Attach(const char *tzFile, IDirectMusicLoader *pLoader) {
+long CMyIStream::Attach(LPCSTR tzFile, IDirectMusicLoader *pLoader) {
   m_pLoader = pLoader;
   m_pLoader->AddRef();
   return S_OK;
 }
 
-unsigned long __stdcall CMyIStream::Release() {
+DWORD __stdcall CMyIStream::Release() {
   long ref = InterlockedDecrement(&m_cRef);
   if (!ref) {
     delete this;
@@ -397,11 +387,11 @@ unsigned long __stdcall CMyIStream::Release() {
   return ref;
 }
 
-unsigned long __stdcall CMyIStream::AddRef() {
+DWORD __stdcall CMyIStream::AddRef() {
   return InterlockedIncrement(&m_cRef);
 }
 
-long __stdcall CMyIStream::QueryInterface(const GUID &iid, void **ppv) {
+long __stdcall CMyIStream::QueryInterface(const GUID &iid, LPVOID *ppv) {
   *ppv = 0;
   if (!memcmp(&iid, &IID_IUnknown, sizeof(iid)) || !memcmp(&iid, &IID_ISequentialStream, sizeof(iid)) || !memcmp(&iid, &IID_IStream, sizeof(iid))) {
     *ppv = static_cast<IStream *>(this);
@@ -422,14 +412,14 @@ void CMyIStream::Detach() {
   m_pLoader = 0;
 }
 
-long __stdcall CMyIStream::Read(void *pv, unsigned long cb, unsigned long *pcb) {
+long __stdcall CMyIStream::Read(LPVOID pv, DWORD cb, DWORD *pcb) {
   if (!m_loader->asyncLoader->buffer || m_loader->buffer.Count() < m_cursor + cb) {
     return E_FAIL;
   }
 
-  unsigned char *source = reinterpret_cast<unsigned char *>(m_loader->buffer.Ptr()) + static_cast<unsigned long>(m_cursor);
-  unsigned char *destination = static_cast<unsigned char *>(pv);
-  for (unsigned long i = 0; i < cb; ++i) {
+  BYTE *source = reinterpret_cast<BYTE *>(m_loader->buffer.Ptr()) + static_cast<DWORD>(m_cursor);
+  BYTE *destination = static_cast<BYTE *>(pv);
+  for (DWORD i = 0; i < cb; ++i) {
     *destination++ = *source++;
   }
   if (pcb) {
@@ -439,8 +429,8 @@ long __stdcall CMyIStream::Read(void *pv, unsigned long cb, unsigned long *pcb) 
   return S_OK;
 }
 
-long __stdcall CMyIStream::Seek(LARGE_INTEGER dlibMove, unsigned long dwOrigin, ULARGE_INTEGER *out) {
-  unsigned __int64 origin = 0;
+long __stdcall CMyIStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *out) {
+  DWORDLONG origin = 0;
   if (dwOrigin == STREAM_SEEK_CUR) {
     origin = m_cursor;
   } else if (dwOrigin == STREAM_SEEK_END) {
@@ -466,7 +456,7 @@ long __stdcall CMyIStream::Clone(IStream **ppstm) {
   return S_OK;
 }
 
-unsigned long __stdcall CMyLoader::Release() {
+DWORD __stdcall CMyLoader::Release() {
   long ref = InterlockedDecrement(&m_cRef);
   if (ref <= 0) {
     delete this;
@@ -474,11 +464,11 @@ unsigned long __stdcall CMyLoader::Release() {
   return ref;
 }
 
-unsigned long __stdcall CMyLoader::AddRef() {
+DWORD __stdcall CMyLoader::AddRef() {
   return InterlockedIncrement(&m_cRef);
 }
 
-long __stdcall CMyLoader::QueryInterface(const GUID &iid, void **ppv) {
+long __stdcall CMyLoader::QueryInterface(const GUID &iid, LPVOID *ppv) {
   *ppv = 0;
   if (memcmp(&iid, &IID_IUnknown, sizeof(iid)) && memcmp(&iid, &IID_IDirectMusicLoader, sizeof(iid))) {
     return E_NOINTERFACE;

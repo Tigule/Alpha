@@ -9,12 +9,10 @@ class AREAHASHKEY {
   AREAHASHKEY() : cont(0), area(0), subArea(0) {
   }
 
-  AREAHASHKEY(unsigned int continent, unsigned int areaID, unsigned int subAreaID)
-      : cont(continent), area(areaID), subArea(subAreaID) {
+  AREAHASHKEY(UINT continent, UINT areaID, UINT subAreaID) : cont(continent), area(areaID), subArea(subAreaID) {
   }
 
-  AREAHASHKEY(const AREAHASHKEY &rhs)
-      : cont(rhs.cont), area(rhs.area), subArea(rhs.subArea) {
+  AREAHASHKEY(const AREAHASHKEY &rhs) : cont(rhs.cont), area(rhs.area), subArea(rhs.subArea) {
   }
 
   AREAHASHKEY &operator=(const AREAHASHKEY &rhs) {
@@ -31,14 +29,14 @@ class AREAHASHKEY {
     return cont == rhs.cont && area == rhs.area && subArea == rhs.subArea;
   }
 
-  unsigned int GetAreaID() const {
+  UINT GetAreaID() const {
     return area << 16 | subArea;
   }
 
  private:
-  unsigned int cont;
-  unsigned int area;
-  unsigned int subArea;
+  UINT cont;
+  UINT area;
+  UINT subArea;
 };
 
 struct AREAHASHOBJECT : TSHashObject<AREAHASHOBJECT, AREAHASHKEY> {
@@ -56,7 +54,7 @@ struct AREAHASHOBJECT : TSHashObject<AREAHASHOBJECT, AREAHASHKEY> {
   int                 reverbUnderwater;
   int                 zoneIntroID;
   int                 zoneIntroIDPriority;
-  unsigned int        continent;
-  unsigned int        area;
-  unsigned int        subArea;
+  UINT                continent;
+  UINT                area;
+  UINT                subArea;
 };

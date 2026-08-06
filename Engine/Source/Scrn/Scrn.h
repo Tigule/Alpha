@@ -23,32 +23,32 @@ void ScrnDestroy();
 void ScrnPaint();
 
 void ScrnLayerCreate(
-    const RECTF  *rect,
-    float         zorder,
-    unsigned long flags,
-    void         *param,
-    void(*paintfunc)(void *, const RECTF *, const RECTF *, float),
+    const RECTF *rect,
+    float        zorder,
+    DWORD        flags,
+    LPVOID       param,
+    void (*paintfunc)(LPVOID, const RECTF *, const RECTF *, float),
     HLAYER__ **layer
 );
 void ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect);
-unsigned int ScrnLayerGetFlags(HLAYER__ *layer);
-void ScrnLayerSetFlags(HLAYER__ *layer, unsigned int flags);
+UINT ScrnLayerGetFlags(HLAYER__ *layer);
+void ScrnLayerSetFlags(HLAYER__ *layer, UINT flags);
 void ScrnLayerDisable(int disable);
-int ScrnLayerIsDisabled();
-void ScrnScreenshot(void(*callback)(int));
+int  ScrnLayerIsDisabled();
+void ScrnScreenshot(void (*callback)(int));
 
 HTEXTFONT__ *ScrnGetStockFont(SCRNSTOCK id);
-void ScrnSetStockFont(SCRNSTOCK stockID, const char *fontTexturePath);
-float ScrnGetStockFontHeight(SCRNSTOCK stockID);
+void         ScrnSetStockFont(SCRNSTOCK stockID, LPCSTR fontTexturePath);
+float        ScrnGetStockFontHeight(SCRNSTOCK stockID);
 
-void ScrnPerfEnable(int enable);
-int ScrnPerfIsEnabled();
-int ScrnPerfRemoteShutdown();
-int ScrnPerfRemoteStartup();
-void ScrnPerfRemoteSetMode(PERF_REMOTE_MODE mode);
+void             ScrnPerfEnable(int enable);
+int              ScrnPerfIsEnabled();
+int              ScrnPerfRemoteShutdown();
+int              ScrnPerfRemoteStartup();
+void             ScrnPerfRemoteSetMode(PERF_REMOTE_MODE mode);
 PERF_REMOTE_MODE ScrnPerfRemoteGetMode();
-void ScrnPerfRemoteLogString(const char *prompt);
-void ScrnPerfRemoteLogPerfCounters();
-void ScrnPerfSetTextFunction(void(*inFunc)(char *, int, void *), void *inParam);
-void ScrnPerfToggleDisplayedValues();
-void ScrnPerfResetTimePeaks();
+void             ScrnPerfRemoteLogString(LPCSTR prompt);
+void             ScrnPerfRemoteLogPerfCounters();
+void             ScrnPerfSetTextFunction(void (*inFunc)(char *, int, LPVOID), LPVOID inParam);
+void             ScrnPerfToggleDisplayedValues();
+void             ScrnPerfResetTimePeaks();

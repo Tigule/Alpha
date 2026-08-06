@@ -34,7 +34,7 @@ namespace NTempest {
       return Used() > eRootIndex;
     }
 
-    unsigned long EntriesInQueue() const {
+    DWORD EntriesInQueue() const {
       ASSERT(Used() > 0);
       return Used() - eRootIndex;
     }
@@ -46,9 +46,9 @@ namespace NTempest {
     void Enqueue(T value) {
       Grow();
 
-      unsigned long entry = Used() - 1;
+      DWORD entry = Used() - 1;
       while (entry > eRootIndex) {
-        unsigned long parent = entry >> 1;
+        DWORD parent = entry >> 1;
         if (!B::HasHigherPriority(value, CDynTable<T>::operator[](parent))) {
           break;
         }
@@ -67,12 +67,12 @@ namespace NTempest {
       CDynTable<T>::RemoveLast();
 
       if (CDynTable<T>::Used() >= 2) {
-        unsigned long entry = eRootIndex;
-        unsigned long hbound = CDynTable<T>::Used() - 1;
-        unsigned long lbound = hbound >> 1;
+        DWORD entry = eRootIndex;
+        DWORD hbound = CDynTable<T>::Used() - 1;
+        DWORD lbound = hbound >> 1;
 
         while (entry <= lbound) {
-          unsigned long child = entry << 1;
+          DWORD child = entry << 1;
           if (child < hbound && B::HasHigherPriority(CDynTable<T>::operator[](child + 1), CDynTable<T>::operator[](child))) {
             ++child;
           }

@@ -106,10 +106,10 @@ static const BYTE s_probability[SCOMP_HINTS][HUFFMAN_SYMBOLS] = {
      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  0,   0,  0,   0}
 };
 
-static void      *s_DecompressBuffer;
-CCritSect         s_decompCrit;
-static DWORD      s_DecompressBufferSize;
-static DWORD      s_DecompressBufferTID;
+static LPVOID s_DecompressBuffer;
+CCritSect     s_decompCrit;
+static DWORD  s_DecompressBufferSize;
+static DWORD  s_DecompressBufferTID;
 
 NODEDECL(HUFFNODE) {
   int       symbol;
@@ -126,7 +126,7 @@ namespace {
 
   class CBitInput {
    public:
-    CBitInput(const void *source);
+    CBitInput(LPCVOID source);
 
     inline DWORD InputBits(DWORD count, DWORD mask);
     inline DWORD PeekBits(DWORD count, DWORD mask);
@@ -141,7 +141,7 @@ namespace {
 
   class CBitOutput {
    public:
-    CBitOutput(void *dest, DWORD destsize);
+    CBitOutput(LPVOID dest, DWORD destsize);
 
     DWORD       GetTotalBytes();
     void        Pad();
@@ -167,18 +167,18 @@ class CHuffman {
   void             BuildTree(BYTE mode);
   inline void      IncrementWeight(HUFFNODE *node);
 
-  int                                    m_adaptive;
-  DWORD                                  m_changesequence;
-  HUFFNODE                               m_nodebuffer[0x203];
+  int      m_adaptive;
+  DWORD    m_changesequence;
+  HUFFNODE m_nodebuffer[0x203];
   LISTDECL(HUFFNODE, m_nodefreelist);
   LISTDECL(HUFFNODE, m_nodelist);
-  DWORD                                  m_nodesused;
-  HUFFNODE                              *m_symbol[HUFFMAN_SYMBOLS];
+  DWORD     m_nodesused;
+  HUFFNODE *m_symbol[HUFFMAN_SYMBOLS];
 };
 
 class CHuffmanEncoder : public CHuffman {
  public:
-  DWORD Compress(CBitOutput *output, const void *source, DWORD sourcebytes, BYTE mode);
+  DWORD Compress(CBitOutput *output, LPCVOID source, DWORD sourcebytes, BYTE mode);
 
  private:
   inline void EncodeSymbol(CBitOutput *output, int symbol);
@@ -197,7 +197,7 @@ class CHuffmanDecoder : public CHuffman {
  public:
   CHuffmanDecoder();
 
-  DWORD Decompress(void *dest, DWORD destbytes, CBitInput *input);
+  DWORD Decompress(LPVOID dest, DWORD destbytes, CBitInput *input);
 
  private:
   inline int DecodeSymbol(CBitInput *input);
@@ -220,15 +220,15 @@ struct ZlibCompressAllocBuffer : ZlibAllocBufferHeader {
 };
 
 struct _PKWAREINFO {
-  void          *dest;
-  unsigned long  destpos;
-  unsigned long  destsize;
-  const void    *source;
-  unsigned long  sourcepos;
-  unsigned long  sourcesize;
+  LPVOID  dest;
+  DWORD   destpos;
+  DWORD   destsize;
+  LPCVOID source;
+  DWORD   sourcepos;
+  DWORD   sourcesize;
 };
 
-CBitInput::CBitInput(const void *source) {
+CBitInput::CBitInput(LPCVOID source) {
   m_currsource = static_cast<const DWORD *>(source);
   m_rack = *m_currsource;
   ++m_currsource;
@@ -271,7 +271,7 @@ inline void CBitInput::RemoveBits(DWORD count) {
   m_rackbits -= count;
 }
 
-CBitOutput::CBitOutput(void *dest, DWORD destsize) {
+CBitOutput::CBitOutput(LPVOID dest, DWORD destsize) {
   m_basedest = (BYTE *)dest;
   m_bytesleft = destsize;
   m_currdest = (BYTE *)dest;
@@ -542,7 +542,7 @@ inline int CHuffmanDecoder::DecodeSymbol(CBitInput *input) {
   return currnode->symbol;
 }
 
-DWORD CHuffmanDecoder::Decompress(void *dest, DWORD destsize, CBitInput *input) {
+DWORD CHuffmanDecoder::Decompress(LPVOID dest, DWORD destsize, CBitInput *input) {
   BYTE  hint;
   BYTE *currdest;
 
@@ -581,7 +581,7 @@ DWORD CHuffmanDecoder::Decompress(void *dest, DWORD destsize, CBitInput *input) 
   return (DWORD)(currdest - (BYTE *)dest);
 }
 
-DWORD CHuffmanEncoder::Compress(CBitOutput *output, const void *source, DWORD sourcesize, BYTE hint) {
+DWORD CHuffmanEncoder::Compress(CBitOutput *output, LPCVOID source, DWORD sourcesize, BYTE hint) {
   const BYTE *currsource;
 
   BuildTree(hint);
@@ -918,12 +918,11 @@ namespace {
 
 }  // namespace
 
-static void
-HuffmanCompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, unsigned long *hint, unsigned long optimization);
+static void HuffmanCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD *hint, DWORD optimization);
 
-static unsigned int __cdecl PkwareBufferRead(char *buffer, unsigned int *size, void *param) {
+static UINT __cdecl PkwareBufferRead(char *buffer, UINT *size, LPVOID param) {
   _PKWAREINFO *info = (_PKWAREINFO *)param;
-  unsigned int readsize = info->sourcesize - info->sourcepos;
+  UINT         readsize = info->sourcesize - info->sourcepos;
 
   if (*size < readsize) {
     readsize = *size;
@@ -933,9 +932,9 @@ static unsigned int __cdecl PkwareBufferRead(char *buffer, unsigned int *size, v
   return readsize;
 }
 
-static void __cdecl PkwareBufferWrite(char *buffer, unsigned int *size, void *param) {
+static void __cdecl PkwareBufferWrite(char *buffer, UINT *size, LPVOID param) {
   _PKWAREINFO *info = (_PKWAREINFO *)param;
-  unsigned int writesize = *size;
+  UINT         writesize = *size;
 
   if (*size >= info->destsize - info->destpos) {
     writesize = info->destsize - info->destpos;
@@ -944,8 +943,7 @@ static void __cdecl PkwareBufferWrite(char *buffer, unsigned int *size, void *pa
   info->destpos += writesize;
 }
 
-static void
-PkwareCompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, unsigned long *hint, unsigned long optimization) {
+static void PkwareCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD *hint, DWORD optimization) {
   (void)dest;
   (void)source;
   (void)optimization;
@@ -955,7 +953,7 @@ PkwareCompress(void *dest, unsigned long *destsize, const void *source, unsigned
   }
 }
 
-static void PkwareDecompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, const char *filename) {
+static void PkwareDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
   (void)dest;
   (void)source;
   (void)sourcesize;
@@ -963,7 +961,7 @@ static void PkwareDecompress(void *dest, unsigned long *destsize, const void *so
   *destsize = 0;
 }
 
-static void *ZlibAlloc(void *opaque, unsigned int items, unsigned int size) {
+static LPVOID ZlibAlloc(LPVOID opaque, UINT items, UINT size) {
   ZlibAllocBufferHeader *buffer = (ZlibAllocBufferHeader *)opaque;
   DWORD                  bytes;
   BYTE                  *result;
@@ -983,15 +981,14 @@ static void *ZlibAlloc(void *opaque, unsigned int items, unsigned int size) {
   return SMemAlloc(bytes, __FILE__, __LINE__, 0);
 }
 
-static void ZlibFree(void *opaque, void *ptr) {
+static void ZlibFree(LPVOID opaque, LPVOID ptr) {
   ZlibAllocBufferHeader *buffer = (ZlibAllocBufferHeader *)opaque;
   if ((BYTE *)ptr < buffer->bufStart || (BYTE *)ptr >= buffer->bufStart + buffer->bufSize) {
     SMemFree(ptr, __FILE__, __LINE__, 0);
   }
 }
 
-extern "C" int __stdcall
-zlib_compress(unsigned char *dest, unsigned long *destLen, const unsigned char *source, unsigned long sourceLen, int level) {
+extern "C" int __stdcall zlib_compress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen, int level) {
   ZlibCompressAllocBuffer buffer;
   z_stream                stream;
   int                     result;
@@ -1021,8 +1018,7 @@ zlib_compress(unsigned char *dest, unsigned long *destLen, const unsigned char *
   return result;
 }
 
-static void
-ZlibCompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, unsigned long *hint, unsigned long optimization) {
+static void ZlibCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD *hint, DWORD optimization) {
   DWORD finalsize;
   int   result;
   int   level;
@@ -1039,21 +1035,14 @@ ZlibCompress(void *dest, unsigned long *destsize, const void *source, unsigned l
       break;
   }
   finalsize = *destsize;
-  result = zlib_compress(
-      static_cast<unsigned char *>(dest),
-      &finalsize,
-      static_cast<const unsigned char *>(source),
-      sourcesize,
-      level
-  );
+  result = zlib_compress(static_cast<BYTE *>(dest), &finalsize, static_cast<const BYTE *>(source), sourcesize, level);
   if (result == Z_OK) {
     *destsize = finalsize;
   }
   *hint = SCOMP_HINT_NONE;
 }
 
-extern "C" int __stdcall
-zlib_uncompress(unsigned char *dest, unsigned long *destLen, const unsigned char *source, unsigned long sourceLen) {
+extern "C" int __stdcall zlib_uncompress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen) {
   ZlibUncompressAllocBuffer buffer;
   z_stream                  stream;
   int                       result;
@@ -1081,64 +1070,41 @@ zlib_uncompress(unsigned char *dest, unsigned long *destLen, const unsigned char
   return inflateEnd(&stream);
 }
 
-static void ZlibDecompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, const char *filename) {
+static void ZlibDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
   DWORD size;
 
   size = *destsize;
-  if (zlib_uncompress(
-          static_cast<unsigned char *>(dest),
-          &size,
-          static_cast<const unsigned char *>(source),
-          sourcesize
-      )
-      != Z_OK) {
+  if (zlib_uncompress(static_cast<BYTE *>(dest), &size, static_cast<const BYTE *>(source), sourcesize) != Z_OK) {
     SErrDisplayError(0x85100083, filename, -4, NULL, TRUE, 0);
   }
   *destsize = size;
 }
 
-static void ImaAdpcmMonoCompress(
-    void          *dest,
-    unsigned long *destsize,
-    const void    *source,
-    unsigned long  sourcesize,
-    unsigned long *hint,
-    unsigned long  optimization
-) {
+static void ImaAdpcmMonoCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD *hint, DWORD optimization) {
   BYTE bitspersample;
 
   ImaAdpcmCheckOptimization(optimization, &bitspersample, hint);
   *destsize = ImaAdpcmCompress((BYTE *)dest, *destsize, (const SHORT *)source, sourcesize, 1, bitspersample);
 }
 
-static void
-ImaAdpcmMonoDecompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, const char *filename) {
+static void ImaAdpcmMonoDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
   (void)filename;
   *destsize = ImaAdpcmDecompress((SHORT *)dest, *destsize, (const BYTE *)source, sourcesize, 1);
 }
 
-static void ImaAdpcmStereoCompress(
-    void          *dest,
-    unsigned long *destsize,
-    const void    *source,
-    unsigned long  sourcesize,
-    unsigned long *hint,
-    unsigned long  optimization
-) {
+static void ImaAdpcmStereoCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD *hint, DWORD optimization) {
   BYTE bitspersample;
 
   ImaAdpcmCheckOptimization(optimization, &bitspersample, hint);
   *destsize = ImaAdpcmCompress((BYTE *)dest, *destsize, (const SHORT *)source, sourcesize, 2, bitspersample);
 }
 
-static void
-ImaAdpcmStereoDecompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, const char *filename) {
+static void ImaAdpcmStereoDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
   (void)filename;
   *destsize = ImaAdpcmDecompress((SHORT *)dest, *destsize, (const BYTE *)source, sourcesize, 2);
 }
 
-static void
-HuffmanCompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, unsigned long *hint, unsigned long optimization) {
+static void HuffmanCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD *hint, DWORD optimization) {
   CBitOutput      output(dest, *destsize);
   CHuffmanEncoder huff;
 
@@ -1146,7 +1112,7 @@ HuffmanCompress(void *dest, unsigned long *destsize, const void *source, unsigne
   *destsize = huff.Compress(&output, source, sourcesize, (BYTE)*hint);
 }
 
-static void HuffmanDecompress(void *dest, unsigned long *destsize, const void *source, unsigned long sourcesize, const char *filename) {
+static void HuffmanDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
   CBitInput       input(source);
   CHuffmanDecoder huff;
 
@@ -1155,7 +1121,7 @@ static void HuffmanDecompress(void *dest, unsigned long *destsize, const void *s
   *destsize = huff.Decompress(dest, *destsize, &input);
 }
 
-static int BuffersOverlap(const void *buf1, const void *buf2, unsigned long length) {
+static int BuffersOverlap(LPCVOID buf1, LPCVOID buf2, DWORD length) {
   const BYTE *leftBytes;
   const BYTE *rightBytes;
 
@@ -1164,9 +1130,9 @@ static int BuffersOverlap(const void *buf1, const void *buf2, unsigned long leng
   return leftBytes + length > rightBytes && rightBytes + length > leftBytes;
 }
 
-static void *s_AllocDecompressBuffer(unsigned long size, int *global) {
-  DWORD tid;
-  void *result;
+static LPVOID s_AllocDecompressBuffer(DWORD size, int *global) {
+  DWORD  tid;
+  LPVOID result;
 
   s_decompCrit.Enter();
   tid = GetCurrentThreadId();
@@ -1198,7 +1164,7 @@ static void *s_AllocDecompressBuffer(unsigned long size, int *global) {
   return result;
 }
 
-static void s_FreeDecompressBuffer(void *buf, int global) {
+static void s_FreeDecompressBuffer(LPVOID buf, int global) {
   if (buf) {
     s_decompCrit.Enter();
     if (global) {
@@ -1210,8 +1176,8 @@ static void s_FreeDecompressBuffer(void *buf, int global) {
   }
 }
 
-typedef void(*SCOMP_COMPRESS_CALLBACK)(void *, unsigned long *, const void *, unsigned long, unsigned long *, unsigned long);
-typedef void(*SCOMP_DECOMPRESS_CALLBACK)(void *, unsigned long *, const void *, unsigned long, const char *);
+typedef void (*SCOMP_COMPRESS_CALLBACK)(LPVOID, DWORD *, LPCVOID, DWORD, DWORD *, DWORD);
+typedef void (*SCOMP_DECOMPRESS_CALLBACK)(LPVOID, DWORD *, LPCVOID, DWORD, LPCSTR);
 
 struct _COMPRESSALGORITHM {
   DWORD                   id;
@@ -1240,7 +1206,7 @@ static const _DECOMPRESSALGORITHM s_decompressalgorithm[ALGORITHMS] = {
 };
 
 extern "C" int APIENTRY
-SCompCompress(void *dest, DWORD *destsize, const void *source, DWORD sourcesize, DWORD compressiontypes, DWORD hint, DWORD optimization) {
+SCompCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD compressiontypes, DWORD hint, DWORD optimization) {
   BYTE       *work;
   const BYTE *current;
   DWORD       targetsize;
@@ -1318,11 +1284,11 @@ SCompCompress(void *dest, DWORD *destsize, const void *source, DWORD sourcesize,
   return TRUE;
 }
 
-extern "C" int APIENTRY SCompDecompress(void *dest, DWORD *destsize, const void *source, DWORD sourcesize) {
+extern "C" int APIENTRY SCompDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize) {
   return SCompDecompress2(dest, destsize, source, sourcesize, NULL);
 }
 
-int APIENTRY SCompDecompress2(void *dest, DWORD *destsize, const void *source, DWORD sourcesize, const char *filename) {
+int APIENTRY SCompDecompress2(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
   BYTE        compressiontypes;
   BYTE       *work;
   const BYTE *current;
@@ -1389,7 +1355,7 @@ int APIENTRY SCompDecompress2(void *dest, DWORD *destsize, const void *source, D
     targetsize = outSize;
   }
 
-  if ((const void *)dest != (const void *)current && targetsize) {
+  if ((LPCVOID)dest != (LPCVOID)current && targetsize) {
     memcpy(dest, current, targetsize);
   }
   *destsize = targetsize;

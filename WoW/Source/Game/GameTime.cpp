@@ -24,7 +24,7 @@ void CGameTime::Destroy() {
 
 void CGameTime::SetTimeDateBias(int timeBias, int dateBias, bool update) {
   if (m_timeBias) {
-    unsigned int minutes = GetHourAndMinutes() - m_timeBias;
+    UINT minutes = GetHourAndMinutes() - m_timeBias;
 
     if (minutes < 1440) {
       minutes += 1440;
@@ -58,7 +58,7 @@ void CGameTime::GameTimeSetTime(const WowTime &time) {
     if (minutes < 0) {
       minutes += 1440;
     } else {
-      minutes = static_cast<unsigned int>(minutes) % 1440;
+      minutes = static_cast<UINT>(minutes) % 1440;
     }
 
     biasTime.SetHourAndMinutes(minutes);
@@ -85,11 +85,11 @@ void CGameTime::GameTimeSetTime(const WowTime &time) {
 }
 
 void CGameTime::GameTimeUpdate(float elapsedSeconds) {
-  unsigned int timeDifferential = m_timeDifferential;
+  UINT timeDifferential = m_timeDifferential;
   m_gameMinutesThisTick = elapsedSeconds * m_gameMinutesPerRealSecond + m_gameMinutesThisTick;
 
   if (timeDifferential && m_gameMinutesThisTick >= 1.0f) {
-    unsigned int correction = static_cast<unsigned int>(m_gameMinutesThisTick);
+    UINT correction = static_cast<UINT>(m_gameMinutesThisTick);
     if (timeDifferential < correction) {
       correction = timeDifferential;
     }
@@ -113,7 +113,7 @@ void CGameTime::GameTimeSync(const WowTime &time, bool reset) {
     if (minutes < 0) {
       minutes += 1440;
     } else {
-      minutes = static_cast<unsigned int>(minutes) % 1440;
+      minutes = static_cast<UINT>(minutes) % 1440;
     }
 
     biasTime.SetHourAndMinutes(minutes);
@@ -125,7 +125,7 @@ void CGameTime::GameTimeSync(const WowTime &time, bool reset) {
 
   int delta = biasTime.GetHourAndMinutes() - GetHourAndMinutes();
   if (reset || delta > 0) {
-    unsigned int forward = static_cast<unsigned int>(delta + 1440) % 1440;
+    UINT forward = static_cast<UINT>(delta + 1440) % 1440;
     while (forward) {
       TickMinute();
       --forward;
@@ -139,7 +139,7 @@ void CGameTime::GameTimeSync(const WowTime &time, bool reset) {
 
   if (delta) {
     m_timeDifferential += delta;
-    SetHourAndMinutes(static_cast<unsigned int>(GetHourAndMinutes() + delta) % 1440);
+    SetHourAndMinutes(static_cast<UINT>(GetHourAndMinutes() + delta) % 1440);
   }
 }
 
@@ -170,7 +170,7 @@ void CGameTime::GameTimeSync(bool reset) {
   }
 }
 
-HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, void *), void *user) {
+HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, LPVOID), LPVOID user) {
   FATALASSERT(callback);
 
   if (time.m_hour < 0 || time.m_minute < 0) {
@@ -182,8 +182,8 @@ HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(
   newCallback->userData = user;
   newCallback->callback = callback;
 
-  int            hourAndMinutes = time.GetHourAndMinutes();
-  HASHKEY_NONE   key;
+  int              hourAndMinutes = time.GetHourAndMinutes();
+  HASHKEY_NONE     key;
   TIMESTAMPSTRUCT *timestamp = m_callbackLists.Ptr(hourAndMinutes, key);
 
   if (!timestamp) {
@@ -225,7 +225,7 @@ float CGameTime::GameTimeGetDayProgression() {
 }
 
 void CGameTime::TickMinute() {
-  int minutes = static_cast<unsigned int>(GetHourAndMinutes() + 1) % 1440;
+  int minutes = static_cast<UINT>(GetHourAndMinutes() + 1) % 1440;
 
   SetHourAndMinutes(minutes);
   ++m_gameMinutesElapsed;
@@ -239,7 +239,7 @@ void CGameTime::PerformCallbacks(int minutes) {
     return;
   }
 
-  unsigned int     slot = minutes & m_callbackLists.m_slotmask;
+  UINT             slot = minutes & m_callbackLists.m_slotmask;
   TIMESTAMPSTRUCT *timestamp = m_callbackLists.m_slotlistarray[slot].Head();
 
   while (reinterpret_cast<long>(timestamp) > 0 && timestamp->GetHashValue() != minutes) {

@@ -7,13 +7,13 @@ class WorldSafeLocsRec {
   WorldSafeLocsRec();
   ~WorldSafeLocsRec();
 
-  static const char *GetFilename();
+  static LPCSTR GetFilename();
 
-  static unsigned int GetNumColumns() {
+  static UINT GetNumColumns() {
     return 14;
   }
 
-  static unsigned int GetRowSize() {
+  static UINT GetRowSize() {
     return 56;
   }
 
@@ -28,15 +28,15 @@ class WorldSafeLocsRec {
   void SetID(int id) {
   }
 
-  bool Read(SFile *f, const char *stringBuffer);
+  bool Read(SFile *f, LPCSTR stringBuffer);
 
-  int         m_ID;
-  int         m_continent;
-  float       m_locX;
-  float       m_locY;
-  float       m_locZ;
-  const char *m_AreaName_lang[8];
-  int         m_AreaName_flag;
+  int    m_ID;
+  int    m_continent;
+  float  m_locX;
+  float  m_locY;
+  float  m_locZ;
+  LPCSTR m_AreaName_lang[8];
+  int    m_AreaName_flag;
 };
 
 extern WowClientDB<WorldSafeLocsRec> g_worldSafeLocsDB;

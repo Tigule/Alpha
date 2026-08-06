@@ -21,14 +21,14 @@ class CGTabardModelFrame : public CGCharacterModelBase {
 
   void SaveTabard();
   int  CanSaveTabard();
-  void CycleVariation(unsigned int index, int delta);
+  void CycleVariation(UINT index, int delta);
 
-  virtual void         InitializeModel(HMODEL model);
+  virtual void InitializeModel(HMODEL model);
   virtual bool GetUniquePaperDollModel() {
     return true;
   }
 
-  int GetVariation(unsigned int index) {
+  int GetVariation(UINT index) {
     FATALASSERT(index < TABARDVARS_NUMVARS);
     return m_variations[index];
   }
@@ -39,7 +39,7 @@ class CGTabardModelFrame : public CGCharacterModelBase {
       HandleClose(m_charComponent);
     }
   }
-  virtual int LookupScriptMethod(lua_State *L, const char *name);
+  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
   void        UpdateTabard();
 
   CGTabardModelFrame(const CGTabardModelFrame &);
@@ -49,7 +49,7 @@ class CGTabardModelFrame : public CGCharacterModelBase {
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
  private:
-  int              m_variations[TABARDVARS_NUMVARS];
+  int           m_variations[TABARDVARS_NUMVARS];
   HTEXCOMPONENT m_charComponent;
 };
 

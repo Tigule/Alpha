@@ -9,7 +9,7 @@ namespace {
 
 }  // namespace
 
-const char *GroundEffectDoodadRec::GetFilename() {
+LPCSTR GroundEffectDoodadRec::GetFilename() {
   return "DBFilesClient\\GroundEffectDoodad.dbc";
 }
 
@@ -19,9 +19,9 @@ GroundEffectDoodadRec::GroundEffectDoodadRec() {
 GroundEffectDoodadRec::~GroundEffectDoodadRec() {
 }
 
-bool GroundEffectDoodadRec::Read(SFile *f, const char *stringBuffer) {
-  bool         result = true;
-  unsigned int tempdoodadpathIndices[1];
+bool GroundEffectDoodadRec::Read(SFile *f, LPCSTR stringBuffer) {
+  bool result = true;
+  UINT tempdoodadpathIndices[1];
 
   result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
   result = SFile::Read(f, &m_doodadIdTag, sizeof(m_doodadIdTag), 0, 0, 0) && result;

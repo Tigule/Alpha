@@ -20,8 +20,8 @@ static int                       s_continent = -1;
 static NTempest::CRect           s_taxiTextureRect;
 static NTempest::CRect           s_visibleWorldRect;
 static int                       s_currentTaxiNode;
-static __int64                   s_currentReachable;
-static __int64                   s_knownNodes;
+static LONGLONG                  s_currentReachable;
+static LONGLONG                  s_knownNodes;
 static HTEXTURE                  s_solidColor;
 static TSGrowableArray<TAXILINE> s_lines;
 
@@ -44,16 +44,7 @@ static void FixupRegionRect(NTempest::CRect &rect) {
   rect.b += ySlide;
 }
 
-static void TextureUpdateFunc(
-    EGxTexCommand cmd,
-    unsigned int  w,
-    unsigned int  h,
-    unsigned int  d,
-    unsigned int  mipLevel,
-    void         *userArg,
-    unsigned int &texelStrideInBytes,
-    const void  *&texels
-) {
+static void TextureUpdateFunc(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Latch) {
     texelStrideInBytes = 4 * w;
     texels = s_textureData;
@@ -61,7 +52,7 @@ static void TextureUpdateFunc(
 }
 
 static void UglifyMapTexture() {
-  unsigned int index;
+  UINT index;
 
   for (index = 0; index < 512 * 512; ++index) {
     s_textureData[index] = C4Pixel(0xFFFF00FF);
@@ -80,12 +71,12 @@ static bool UpdateTexture(int continentID) {
     return false;
   }
 
-  unsigned int width;
-  unsigned int height;
-  unsigned int format;
-  int          isOpaque;
-  CStatus      status;
-  MipBits     *bits = TextureLoadImage(fileName, &width, &height, &format, &isOpaque, &status, 0);
+  UINT     width;
+  UINT     height;
+  UINT     format;
+  int      isOpaque;
+  CStatus  status;
+  MipBits *bits = TextureLoadImage(fileName, &width, &height, &format, &isOpaque, &status, 0);
   if (!bits) {
     return false;
   }
@@ -94,10 +85,10 @@ static bool UpdateTexture(int continentID) {
     return false;
   }
 
-  for (unsigned int y = 0; y < 512; ++y) {
+  for (UINT y = 0; y < 512; ++y) {
     C4Pixel *src = &bits->mip[0][y * 512];
     C4Pixel *dst = &s_textureData[y * 512];
-    for (unsigned int x = 0; x < 512; ++x) {
+    for (UINT x = 0; x < 512; ++x) {
       dst[x] = src[x];
     }
   }
@@ -116,7 +107,7 @@ static NTempest::C2Vector CalculateNormalizedCoords(const NTempest::C2Vector &ve
   return v;
 }
 
-static void GenerateRouteInfo(__int64 allNodes, int currentContinent) {
+static void GenerateRouteInfo(LONGLONG allNodes, int currentContinent) {
   int i;
   int j;
 
@@ -125,7 +116,7 @@ static void GenerateRouteInfo(__int64 allNodes, int currentContinent) {
   }
 
   for (i = 0; i < 64; ++i) {
-    __int64       mask = static_cast<__int64>(1) << i;
+    LONGLONG            mask = static_cast<LONGLONG>(1) << i;
     const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(i + 1);
     if ((allNodes & mask) && (!node || node->m_ContinentID != currentContinent)) {
       allNodes &= ~mask;
@@ -136,8 +127,8 @@ static void GenerateRouteInfo(__int64 allNodes, int currentContinent) {
   memset(grid, 0, sizeof(grid));
   for (i = g_taxiPathDB.GetNumRecords() - 1; i >= 0; --i) {
     const TaxiPathRec *path = g_taxiPathDB.GetRecordByIndex(i);
-    __int64      srcMask = static_cast<__int64>(1) << (path->m_FromTaxiNode - 1);
-    __int64      dstMask = static_cast<__int64>(1) << (path->m_ToTaxiNode - 1);
+    LONGLONG           srcMask = static_cast<LONGLONG>(1) << (path->m_FromTaxiNode - 1);
+    LONGLONG           dstMask = static_cast<LONGLONG>(1) << (path->m_ToTaxiNode - 1);
     if ((allNodes & (srcMask | dstMask)) == (srcMask | dstMask)) {
       int src = path->m_FromTaxiNode - 1;
       int dst = path->m_ToTaxiNode - 1;
@@ -235,7 +226,7 @@ HTEXTURE TaxiMapGetTexture() {
   return s_texture;
 }
 
-int TaxiMapUpdatePosition(int currentTaxiNode, __int64 reachable, __int64 known, NTempest::CRect &rect) {
+int TaxiMapUpdatePosition(int currentTaxiNode, LONGLONG reachable, LONGLONG known, NTempest::CRect &rect) {
   const TaxiNodesRec *currentNode = g_taxiNodesDB.GetRecord(currentTaxiNode);
   if (currentTaxiNode >= 0 && currentNode && UpdateTexture(currentNode->m_ContinentID)) {
     s_currentTaxiNode = currentTaxiNode;
@@ -264,7 +255,7 @@ int TaxiMapUpdatePosition(int currentTaxiNode, __int64 reachable, __int64 known,
   return 0;
 }
 
-unsigned int TaxiNodeCost(unsigned int srcNode, unsigned int dstNode) {
+UINT TaxiNodeCost(UINT srcNode, UINT dstNode) {
   if (srcNode && dstNode && srcNode <= 63 && dstNode <= 63) {
     const TaxiPathRec *path = s_taxiPathCosts[srcNode][dstNode];
     if (path) {
@@ -287,7 +278,7 @@ TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
     return TAXINODE_NONE;
   }
 
-  __int64 mask = static_cast<__int64>(1) << (nodeID - 1);
+  LONGLONG mask = static_cast<LONGLONG>(1) << (nodeID - 1);
   if (s_currentReachable & mask) {
     return TAXINODE_REACHABLE;
   }
@@ -302,7 +293,7 @@ TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
 }
 
 HMODEL TaxiGetRouteModel(float width, float height) {
-  unsigned int lines = s_lines.Count();
+  UINT lines = s_lines.Count();
   if (!lines) {
     return 0;
   }
@@ -310,13 +301,13 @@ HMODEL TaxiGetRouteModel(float width, float height) {
   TSGrowableArray<NTempest::C3Vector> verts;
   TSGrowableArray<NTempest::C3Vector> normals;
   TSGrowableArray<NTempest::C2Vector> texCoords;
-  TSGrowableArray<unsigned short>     primVerts;
+  TSGrowableArray<WORD>               primVerts;
   verts.SetCount(lines * 4);
   normals.SetCount(lines * 4);
   texCoords.SetCount(lines * 4);
   primVerts.SetCount(lines * 6);
 
-  for (unsigned int i = 0; i < lines; ++i) {
+  for (UINT i = 0; i < lines; ++i) {
     NTempest::C2Vector bot(s_lines[i].src.x * width, s_lines[i].src.y * height);
     NTempest::C2Vector top(s_lines[i].dst.x * width, s_lines[i].dst.y * height);
     float              dx = top.x - bot.x;
@@ -325,27 +316,27 @@ HMODEL TaxiGetRouteModel(float width, float height) {
     if (mag == 0.0f) {
       mag = 1.0f;
     }
-    float        x = -dy / mag;
-    float        y = dx / mag;
-    unsigned int vertex = i * 4;
+    float x = -dy / mag;
+    float y = dx / mag;
+    UINT  vertex = i * 4;
     verts[vertex].Set(bot.x + x, bot.y + y, 0.0f);
     verts[vertex + 1].Set(bot.x - x, bot.y - y, 0.0f);
     verts[vertex + 2].Set(top.x + x, top.y + y, 0.0f);
     verts[vertex + 3].Set(top.x - x, top.y - y, 0.0f);
-    for (unsigned int j = 0; j < 4; ++j) {
+    for (UINT j = 0; j < 4; ++j) {
       normals[vertex + j].Set(0.0f, 0.0f, 1.0f);
     }
     texCoords[vertex] = NTempest::C2Vector(0.0f, 0.0f);
     texCoords[vertex + 1] = NTempest::C2Vector(1.0f, 0.0f);
     texCoords[vertex + 2] = NTempest::C2Vector(0.0f, 1.0f);
     texCoords[vertex + 3] = NTempest::C2Vector(1.0f, 1.0f);
-    unsigned int index = i * 6;
-    primVerts[index] = static_cast<unsigned short>(vertex);
-    primVerts[index + 1] = static_cast<unsigned short>(vertex + 1);
-    primVerts[index + 2] = static_cast<unsigned short>(vertex + 2);
-    primVerts[index + 3] = static_cast<unsigned short>(vertex + 2);
-    primVerts[index + 4] = static_cast<unsigned short>(vertex + 1);
-    primVerts[index + 5] = static_cast<unsigned short>(vertex + 3);
+    UINT index = i * 6;
+    primVerts[index] = static_cast<WORD>(vertex);
+    primVerts[index + 1] = static_cast<WORD>(vertex + 1);
+    primVerts[index + 2] = static_cast<WORD>(vertex + 2);
+    primVerts[index + 3] = static_cast<WORD>(vertex + 2);
+    primVerts[index + 4] = static_cast<WORD>(vertex + 1);
+    primVerts[index + 5] = static_cast<WORD>(vertex + 3);
   }
 
   return ModelCreateSimpleMesh(
@@ -357,4 +348,3 @@ HMODEL TaxiGetRouteModel(float width, float height) {
 bool TaxiRouteExists(int fromNode, int toNode) {
   return fromNode && toNode && fromNode <= 63 && toNode <= 63 && s_taxiPathCosts[fromNode][toNode];
 }
-

@@ -22,36 +22,35 @@ bool Spell_C_CanTargetItems();
 bool Spell_C_HandleSpriteClick(CGObject_C *object);
 void Spell_C_StopTargeting();
 
-
 class CGBankInfo {
  public:
-  static void EnterWorld();
-  static void LeaveWorld();
-  static void OpenBank(const unsigned __int64 &guid);
-  static void CloseBank();
-  static void OnCloseBank();
-  static void PickupItem(int slot, int isBag, int slotIsButtonID);
-  static void SplitItem(int slot, int split);
-  static unsigned __int64 GetBanker() {
+  static void      EnterWorld();
+  static void      LeaveWorld();
+  static void      OpenBank(const DWORDLONG &guid);
+  static void      CloseBank();
+  static void      OnCloseBank();
+  static void      PickupItem(int slot, int isBag, int slotIsButtonID);
+  static void      SplitItem(int slot, int split);
+  static DWORDLONG GetBanker() {
     return m_unit;
   }
-  static unsigned __int64 m_unit;
+  static DWORDLONG m_unit;
 };
 
-unsigned __int64 CGBankInfo::m_unit;
+DWORDLONG CGBankInfo::m_unit;
 
-static unsigned int GetBankSlotCost(int bankSlot) {
+static UINT GetBankSlotCost(int bankSlot) {
   const BankBagSlotPricesRec *record = g_bankBagSlotPricesDB.GetRecord(bankSlot);
   return record ? record->m_Cost : 0;
 }
 
-static inline unsigned int GetPlayerBankSlots(CGPlayer_C *player) {
+static inline UINT GetPlayerBankSlots(CGPlayer_C *player) {
   return player ? player->GetNumBankSlots() : 0;
 }
 
 static int Script_GetBankSlotCost(lua_State *L) {
-  CGPlayer_C  *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  unsigned int cost = player ? GetBankSlotCost(GetPlayerBankSlots(player) + 1) : 0;
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  UINT        cost = player ? GetBankSlotCost(GetPlayerBankSlots(player) + 1) : 0;
   lua_pushnumber(L, static_cast<double>(cost));
   return 1;
 }
@@ -130,7 +129,7 @@ static int Script_PurchaseSlot(lua_State *L) {
   if (!player) {
     return 0;
   }
-  unsigned int slots = GetPlayerBankSlots(player);
+  UINT slots = GetPlayerBankSlots(player);
   if (slots >= 6) {
     SignalBankSlotsChanged();
     return 0;
@@ -141,7 +140,7 @@ static int Script_PurchaseSlot(lua_State *L) {
   }
 
   CDataStore msg;
-  msg.Put(static_cast<unsigned int>(CMSG_BUY_BANK_SLOT));
+  msg.Put(static_cast<UINT>(CMSG_BUY_BANK_SLOT));
   msg.Put(CGGameUI::GetInteractTarget());
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -158,14 +157,14 @@ static int Script_PickupBagFromBankSlot(lua_State *L) {
   }
   int slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
   if (slot >= 63 && slot <= 68) {
-    unsigned __int64 cursorItem;
-    unsigned __int64 cursorItemPack;
-    unsigned int     cursorItemSlot;
+    DWORDLONG cursorItem;
+    DWORDLONG cursorItemPack;
+    UINT      cursorItemSlot;
     CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
     if (cursorItem) {
       CGGameUI::ClearCursor(0);
     }
-    unsigned __int64 itemGUID = player->GetBag()->GetItem(slot);
+    DWORDLONG itemGUID = player->GetBag()->GetItem(slot);
     if (!itemGUID) {
       CGBankInfo::PickupItem(slot, 1, 0);
       return 0;
@@ -180,7 +179,7 @@ static int Script_PickupBagFromBankSlot(lua_State *L) {
   return 0;
 }
 
-static int BankUpdateHandler(unsigned __int64, unsigned int, unsigned int, const void *, void *) {
+static int BankUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   SignalBankSlotsChanged();
   return 1;
 }
@@ -197,16 +196,16 @@ void CGBankInfo::PickupItem(int slot, int isBag, int slotIsButtonID) {
     slot = ButtonIDToSlotID(slot, isBag);
   }
 
-  unsigned __int64 cursorItem;
-  unsigned __int64 cursorItemPack;
-  unsigned int     cursorItemSlot;
+  DWORDLONG cursorItem;
+  DWORDLONG cursorItemPack;
+  UINT      cursorItemSlot;
   CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
-  unsigned int virtualItem;
-  unsigned int virtualSlot;
+  UINT virtualItem;
+  UINT virtualSlot;
   CGGameUI::GetCursorVirtualItem(virtualItem, virtualSlot);
 
-  CGBag_C         *inventory = player->GetBag();
-  unsigned __int64 slotItem = inventory->GetItem(slot);
+  CGBag_C  *inventory = player->GetBag();
+  DWORDLONG slotItem = inventory->GetItem(slot);
   if (!cursorItem && !virtualItem) {
     if (slotItem) {
       CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(slotItem, __FILE__, __LINE__));
@@ -253,16 +252,16 @@ void CGBankInfo::SplitItem(int slot, int split) {
     return;
   }
   slot = ButtonIDToSlotID(slot, 0);
-  unsigned __int64 cursorItem;
-  unsigned __int64 cursorItemPack;
-  unsigned int     cursorItemSlot;
+  DWORDLONG cursorItem;
+  DWORDLONG cursorItemPack;
+  UINT      cursorItemSlot;
   CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
-  unsigned int virtualItem;
-  unsigned int virtualSlot;
+  UINT virtualItem;
+  UINT virtualSlot;
   CGGameUI::GetCursorVirtualItem(virtualItem, virtualSlot);
-  CGBag_C         *inventory = player->GetBag();
-  unsigned __int64 itemGUID = inventory->GetItem(slot);
-  CGItem_C        *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
+  CGBag_C  *inventory = player->GetBag();
+  DWORDLONG itemGUID = inventory->GetItem(slot);
+  CGItem_C *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
   if (!itemPtr || !itemPtr->IsUnlocked() || split < 1 || split > itemPtr->GetStackCount()) {
     return;
   }
@@ -272,7 +271,7 @@ void CGBankInfo::SplitItem(int slot, int split) {
   CGGameUI::LockItem(itemGUID);
 }
 
-void CGBankInfo::OpenBank(const unsigned __int64 &guid) {
+void CGBankInfo::OpenBank(const DWORDLONG &guid) {
   OnCloseBank();
   if (guid) {
     m_unit = guid;
@@ -293,15 +292,15 @@ void CGBankInfo::OnCloseBank() {
 }
 
 void CGBankInfo::EnterWorld() {
-  unsigned __int64 player = ClntObjMgrGetActivePlayer();
-  unsigned int     playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
+  DWORDLONG player = ClntObjMgrGetActivePlayer();
+  UINT      playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
   ClntObjMgrSetObjMirrorHandler(player, playerOffset + 1370, 1, BankUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   SignalBankSlotsChanged();
 }
 
 void CGBankInfo::LeaveWorld() {
-  unsigned __int64 player = ClntObjMgrGetActivePlayer();
-  unsigned int     playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
+  DWORDLONG player = ClntObjMgrGetActivePlayer();
+  UINT      playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
   ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + 1370, BankUpdateHandler, 0);
 }
 
@@ -319,13 +318,13 @@ static FrameScript_Method s_ScriptFunctions[10] = {
 };
 
 void BankRegisterScriptFunctions() {
-  for (unsigned int i = 0; i < 10; ++i) {
+  for (UINT i = 0; i < 10; ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void BankUnregisterScriptFunctions() {
-  for (unsigned int i = 0; i < 10; ++i) {
+  for (UINT i = 0; i < 10; ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }

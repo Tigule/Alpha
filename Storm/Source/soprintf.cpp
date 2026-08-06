@@ -16,19 +16,19 @@ enum ArgumentSize {
 };
 
 struct SpecifierRange {
-  const char *start;
-  int         length;
-  int         ordering;
+  LPCSTR start;
+  int    length;
+  int    ordering;
 };
 
 union ArgumentType {
-  unsigned __int64 integer;
-  double           real;
+  DWORDLONG integer;
+  double    real;
 };
 
-static int ParseFormatSpecifier(const char **specifierPtr, ArgumentSize *size, int *orderingPtr) {
-  const char *specifier;
-  int         currentNumber;
+static int ParseFormatSpecifier(LPCSTR *specifierPtr, ArgumentSize *size, int *orderingPtr) {
+  LPCSTR specifier;
+  int    currentNumber;
 
   specifier = *specifierPtr;
   currentNumber = 0;
@@ -129,23 +129,23 @@ static void FixUpLongLongFormatSpecifier(char *specifier) {
   specifier[2] = '4';
 }
 
-int __cdecl vsnoprintf(char *out, int outSize, const char *format, char *argumentList) {
-  SpecifierRange    specifierRange[256];
-  ArgumentSize      argumentSizeList[256];
-  ArgumentType      orderedArgumentList[256];
-  char              individualFormatSpecifier[256];
-  ArgumentSize      argumentSize;
-  const char *const start = out;
-  int               argumentIndex;
-  const char       *formatAt;
-  const char       *end;
-  int               argumentCount;
-  SpecifierRange   *range;
-  int               ordering;
-  int               specifierCount;
-  int               hasArgument;
-  int               written;
-  char              ch;
+int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList) {
+  SpecifierRange  specifierRange[256];
+  ArgumentSize    argumentSizeList[256];
+  ArgumentType    orderedArgumentList[256];
+  char            individualFormatSpecifier[256];
+  ArgumentSize    argumentSize;
+  LPCSTR const    start = out;
+  int             argumentIndex;
+  LPCSTR          formatAt;
+  LPCSTR          end;
+  int             argumentCount;
+  SpecifierRange *range;
+  int             ordering;
+  int             specifierCount;
+  int             hasArgument;
+  int             written;
+  char            ch;
 
   memset(argumentSizeList, 0, sizeof(argumentSizeList));
   memset(orderedArgumentList, 0, sizeof(orderedArgumentList));
@@ -181,8 +181,8 @@ int __cdecl vsnoprintf(char *out, int outSize, const char *format, char *argumen
         argumentList += sizeof(DWORD);
         break;
       case e_longLongSized:
-        orderedArgumentList[argumentIndex].integer = *(unsigned __int64 *)argumentList;
-        argumentList += sizeof(unsigned __int64);
+        orderedArgumentList[argumentIndex].integer = *(DWORDLONG *)argumentList;
+        argumentList += sizeof(DWORDLONG);
         break;
       case e_doubleSized:
         orderedArgumentList[argumentIndex].real = *(double *)argumentList;
@@ -233,11 +233,11 @@ int __cdecl vsnoprintf(char *out, int outSize, const char *format, char *argumen
   return out - start;
 }
 
-int __cdecl vsoprintf(char *out, const char *format, char *argumentList) {
+int __cdecl vsoprintf(char *out, LPCSTR format, char *argumentList) {
   return vsnoprintf(out, PRINTF_DEFAULT_LIMIT, format, argumentList);
 }
 
-int __cdecl snoprintf(char *out, int outSize, const char *format, ...) {
+int __cdecl snoprintf(char *out, int outSize, LPCSTR format, ...) {
   int     result;
   va_list arglist;
 
@@ -247,7 +247,7 @@ int __cdecl snoprintf(char *out, int outSize, const char *format, ...) {
   return result;
 }
 
-int __cdecl soprintf(char *out, const char *format, ...) {
+int __cdecl soprintf(char *out, LPCSTR format, ...) {
   int     result;
   va_list arglist;
 

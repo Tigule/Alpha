@@ -52,8 +52,8 @@ void CSimpleScrollFrame::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
 
   const XMLNode *script;
   for (script = node->GetChild(); script; script = script->GetSibling()) {
-    const char *name = script->GetName();
-    const char *source = script->GetBody();
+    LPCSTR name = script->GetName();
+    LPCSTR source = script->GetBody();
 
     if (!SStrCmpI(name, "OnHorizontalScroll", 0x7FFFFFFF)) {
       SetOnHorizontalScrollScript(source);
@@ -147,8 +147,7 @@ void CSimpleScrollFrame::UpdateScrollChildRect(float w, float h) {
     m_scrollRange.x = inverseScale * (horizontalRange > 0.0f ? horizontalRange : 0.0f);
     m_scrollRange.y = inverseScale * (verticalRange > 0.0f ? verticalRange : 0.0f);
 
-    if (fabs(m_scrollRange.x - lastRange.x) >= EPSILON ||
-        fabs(m_scrollRange.y - lastRange.y) >= EPSILON) {
+    if (fabs(m_scrollRange.x - lastRange.x) >= EPSILON || fabs(m_scrollRange.y - lastRange.y) >= EPSILON) {
       RunOnScrollRangeChangedScript();
     }
   }
@@ -175,7 +174,7 @@ void CSimpleScrollFrame::OnLayerUpdate(float elapsedSec) {
   }
 }
 
-void CSimpleScrollFrame::OnFrameRender(CRenderBatch *batch, unsigned int layer) {
+void CSimpleScrollFrame::OnFrameRender(CRenderBatch *batch, UINT layer) {
   CSimpleFrame::OnFrameRender(batch, layer);
 
   if (layer == 4) {
@@ -188,13 +187,11 @@ void CSimpleScrollFrame::OnFrameSizeChanged(float w, float h) {
   m_updateScrollChild = 1;
 }
 
-void CSimpleScrollFrame::RenderScrollChild(void *param) {
+void CSimpleScrollFrame::RenderScrollChild(LPVOID param) {
   CSimpleScrollFrame *scrollFrame = static_cast<CSimpleScrollFrame *>(param);
   NTempest::CRect     viewRect(0.0f);
 
-  if (scrollFrame->GetHitRect(viewRect) &&
-      scrollFrame->m_scrollChild &&
-      scrollFrame->m_scrollChild->IsVisible()) {
+  if (scrollFrame->GetHitRect(viewRect) && scrollFrame->m_scrollChild && scrollFrame->m_scrollChild->IsVisible()) {
     NTempest::C44Matrix savedProjection;
     NTempest::C44Matrix savedView;
     float               minX;
