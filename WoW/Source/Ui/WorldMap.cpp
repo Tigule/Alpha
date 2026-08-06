@@ -4,6 +4,7 @@
 
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Ui/GameUI.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Base/CDataStore.h>
@@ -210,7 +211,7 @@ void CGWorldMap::SetMapToCurrentZone() {
   int zone = -1;
   for (unsigned int i = 0; i < m_continents[continent].zoneList.Count(); ++i) {
     const WorldMapAreaRec *rec = g_worldMapAreaDB.GetRecord(m_continents[continent].zoneList[i]);
-    if (rec && rec->m_mapID == static_cast<int>(ClntObjMgrGetMapID())) {
+    if (rec && rec->m_areaID == CGGameUI::m_areaID) {
       zone = i;
       break;
     }
