@@ -581,10 +581,10 @@ class CMovement : public CMovementData {
   unsigned int Fall(unsigned int fallenSoFar, unsigned int timeIncrement);
   float        FindCeilingDistanceAbove(float distanceToJump);
   float        FindGroundDistanceBelow(float distanceToFall, unsigned __int64 *gameObjHit);
-  void         ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
-  void         ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
-  void         ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
-  void         ExtrudeDownPosYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
+  void         ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane);
+  void         ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane);
+  void         ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane);
+  void         ExtrudeDownPosYFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane);
   float        ExtrudeSlideBoxDownHill(const NTempest::C3Vector &unitMove, float distanceWanted, CRedirect *hitInfo);
   void         ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides);
   void         ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides);

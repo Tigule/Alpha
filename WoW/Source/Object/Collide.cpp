@@ -585,6 +585,7 @@ int CMovement::IsJumpingUp(unsigned long eventTime) {
   if (velocity > s_terminalVelocity) {
     velocity = s_terminalVelocity;
   }
+  FallLogWrite("0x%016I64X: Fall velocity at (0x%08X) is (%g)\n", m_guid, eventTime, static_cast<double>(velocity));
   return velocity < 0.0f;
 }
 
@@ -599,9 +600,11 @@ int CMovement::FallFromTransport() {
 
 void CMovement::StartFalling(unsigned long eventTime) {
   FallFromTransport();
+  float startElevation = m_position.z;
   m_fallStartElevation = m_position.z;
   m_moveFlags |= 0x4000;
   m_fallStartTime = eventTime;
+  FallLogWrite("0x%016I64X: Started to fall at (0x%08X) from (%g elevation)\n", m_guid, eventTime, static_cast<double>(startElevation));
 }
 
 void CMovement::StopFalling() {
@@ -612,6 +615,7 @@ void CMovement::StopFalling() {
 }
 
 void CMovement::ProcessFallReset(unsigned long eventTime) {
+  BothLogWrite("0x%016I64X: Hit ceiling (%g)\n", m_guid, static_cast<double>(m_position.z));
   m_jumpVelocity = 0.0f;
   m_fallStartTime = eventTime;
   m_fallStartElevation = m_position.z;
@@ -629,6 +633,7 @@ void CMovement::CheckFallenFar(unsigned long eventTime) {
     return;
   }
   m_moveFlags |= 0x8000;
+  FallLogWrite("0x%016I64X: Fallen far\n", m_guid);
 }
 
 void CMovement::ProcessFalling(unsigned long eventTime) {
@@ -638,40 +643,108 @@ void CMovement::ProcessFalling(unsigned long eventTime) {
   CheckFallenFar(eventTime);
 }
 
-void CMovement::ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane) {
-  startPlane->Set(0.87964189f, 0.0f, 0.4756366f, -m_position.z * 0.4756366f - m_position.x * 0.87964189f);
-  sides[0].Set(-0.87964189f, 0.0f, -0.4756366f, m_position.x * 0.87964189f + (m_position.z - distance) * 0.4756366f);
-  sides[1].Set(0.0f, 0.0f, 1.0f, -m_position.z - m_stepUpHeight);
-  sides[2].Set(-1.0f, 0.0f, 0.0f, m_position.x - m_collisionBoxHalfDepth);
-  sides[3].Set(0.70710677f, 0.70710677f, 0.0f, -(m_position.x + m_position.y) * 0.70710677f);
-  sides[4].Set(0.70710677f, -0.70710677f, 0.0f, (m_position.y - m_position.x) * 0.70710677f);
+void CMovement::ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane) {
+  NTempest::C3Vector bottomPoint(m_position.x, m_position.y, m_position.z - distance);
+  NTempest::C3Vector topVector(0.87964189f, 0.0f, 0.4756366f);
+  NTempest::C3Vector posYNorm(0.70710677f, 0.70710677f, 0.0f);
+  NTempest::C3Vector negYNorm(0.70710677f, -0.70710677f, 0.0f);
+
+  startPlane->n = topVector;
+  startPlane->d = -NTempest::C3Vector::Dot(topVector, m_position);
+
+  topVector.Set(-0.87964189f, 0.0f, -0.4756366f);
+  sides[0].n = topVector;
+  sides[0].d = -NTempest::C3Vector::Dot(topVector, bottomPoint);
+
+  sides[1].n.Set(0.0f, 0.0f, 1.0f);
+  sides[1].d = -m_position.z - m_stepUpHeight;
+
+  sides[2].n.Set(-1.0f, 0.0f, 0.0f);
+  sides[2].d = m_position.x - m_collisionBoxHalfDepth;
+
+  sides[3].n = posYNorm;
+  sides[3].d = -NTempest::C3Vector::Dot(posYNorm, m_position);
+
+  sides[4].n = negYNorm;
+  sides[4].d = -NTempest::C3Vector::Dot(negYNorm, m_position);
 }
 
-void CMovement::ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane) {
-  startPlane->Set(-0.87964189f, 0.0f, 0.4756366f, -m_position.z * 0.4756366f + m_position.x * 0.87964189f);
-  sides[0].Set(0.87964189f, 0.0f, -0.4756366f, -m_position.x * 0.87964189f + (m_position.z - distance) * 0.4756366f);
-  sides[1].Set(0.0f, 0.0f, 1.0f, -m_position.z - m_stepUpHeight);
-  sides[2].Set(1.0f, 0.0f, 0.0f, -m_position.x - m_collisionBoxHalfDepth);
-  sides[3].Set(-0.70710677f, 0.70710677f, 0.0f, (m_position.x - m_position.y) * 0.70710677f);
-  sides[4].Set(-0.70710677f, -0.70710677f, 0.0f, (m_position.x + m_position.y) * 0.70710677f);
+void CMovement::ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane) {
+  NTempest::C3Vector bottomPoint(m_position.x, m_position.y, m_position.z - distance);
+  NTempest::C3Vector topVector(-0.87964189f, 0.0f, 0.4756366f);
+  NTempest::C3Vector posYNorm(-0.70710677f, 0.70710677f, 0.0f);
+  NTempest::C3Vector negYNorm(-0.70710677f, -0.70710677f, 0.0f);
+
+  startPlane->n = topVector;
+  startPlane->d = -NTempest::C3Vector::Dot(topVector, m_position);
+
+  topVector.Set(0.87964189f, 0.0f, -0.4756366f);
+  sides[0].n = topVector;
+  sides[0].d = -NTempest::C3Vector::Dot(topVector, bottomPoint);
+
+  sides[1].n.Set(0.0f, 0.0f, 1.0f);
+  sides[1].d = -m_position.z - m_stepUpHeight;
+
+  sides[2].n.Set(1.0f, 0.0f, 0.0f);
+  sides[2].d = -m_position.x - m_collisionBoxHalfDepth;
+
+  sides[3].n = posYNorm;
+  sides[3].d = -NTempest::C3Vector::Dot(posYNorm, m_position);
+
+  sides[4].n = negYNorm;
+  sides[4].d = -NTempest::C3Vector::Dot(negYNorm, m_position);
 }
 
-void CMovement::ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane) {
-  startPlane->Set(0.0f, 0.87964189f, 0.4756366f, -m_position.y * 0.87964189f - m_position.z * 0.4756366f);
-  sides[0].Set(0.0f, -0.87964189f, -0.4756366f, m_position.y * 0.87964189f + (m_position.z - distance) * 0.4756366f);
-  sides[1].Set(0.0f, 0.0f, 1.0f, -m_position.z - m_stepUpHeight);
-  sides[2].Set(0.0f, -1.0f, 0.0f, m_position.y - m_collisionBoxHalfDepth);
-  sides[3].Set(0.70710677f, 0.70710677f, 0.0f, -(m_position.x + m_position.y) * 0.70710677f);
-  sides[4].Set(-0.70710677f, 0.70710677f, 0.0f, (m_position.x - m_position.y) * 0.70710677f);
+void CMovement::ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane) {
+  NTempest::C3Vector bottomPoint(m_position.x, m_position.y, m_position.z - distance);
+  NTempest::C3Vector topVector(0.0f, 0.87964189f, 0.4756366f);
+  NTempest::C3Vector posYNorm(0.70710677f, 0.70710677f, 0.0f);
+  NTempest::C3Vector negYNorm(-0.70710677f, 0.70710677f, 0.0f);
+
+  startPlane->n = topVector;
+  startPlane->d = -NTempest::C3Vector::Dot(topVector, m_position);
+
+  topVector.Set(0.0f, -0.87964189f, -0.4756366f);
+  sides[0].n = topVector;
+  sides[0].d = -NTempest::C3Vector::Dot(topVector, bottomPoint);
+
+  sides[1].n.Set(0.0f, 0.0f, 1.0f);
+  sides[1].d = -m_position.z - m_stepUpHeight;
+
+  sides[2].n.Set(0.0f, -1.0f, 0.0f);
+  sides[2].d = m_position.y - m_collisionBoxHalfDepth;
+
+  sides[3].n = posYNorm;
+  sides[3].d = -NTempest::C3Vector::Dot(posYNorm, m_position);
+
+  sides[4].n = negYNorm;
+  sides[4].d = -NTempest::C3Vector::Dot(negYNorm, m_position);
 }
 
-void CMovement::ExtrudeDownPosYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane) {
-  startPlane->Set(0.0f, -0.87964189f, 0.4756366f, m_position.y * 0.87964189f - m_position.z * 0.4756366f);
-  sides[0].Set(0.0f, 0.87964189f, -0.4756366f, -m_position.y * 0.87964189f + (m_position.z - distance) * 0.4756366f);
-  sides[1].Set(0.0f, 0.0f, 1.0f, -m_position.z - m_stepUpHeight);
-  sides[2].Set(0.0f, 1.0f, 0.0f, -m_position.y - m_collisionBoxHalfDepth);
-  sides[3].Set(0.70710677f, -0.70710677f, 0.0f, (m_position.y - m_position.x) * 0.70710677f);
-  sides[4].Set(-0.70710677f, -0.70710677f, 0.0f, (m_position.x + m_position.y) * 0.70710677f);
+void CMovement::ExtrudeDownPosYFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane) {
+  NTempest::C3Vector bottomPoint(m_position.x, m_position.y, m_position.z - distance);
+  NTempest::C3Vector topVector(0.0f, -0.87964189f, 0.4756366f);
+  NTempest::C3Vector posYNorm(0.70710677f, -0.70710677f, 0.0f);
+  NTempest::C3Vector negYNorm(-0.70710677f, -0.70710677f, 0.0f);
+
+  startPlane->n = topVector;
+  startPlane->d = -NTempest::C3Vector::Dot(topVector, m_position);
+
+  topVector.Set(0.0f, 0.87964189f, -0.4756366f);
+  sides[0].n = topVector;
+  sides[0].d = -NTempest::C3Vector::Dot(topVector, bottomPoint);
+
+  sides[1].n.Set(0.0f, 0.0f, 1.0f);
+  sides[1].d = -m_position.z - m_stepUpHeight;
+
+  sides[2].n.Set(0.0f, 1.0f, 0.0f);
+  sides[2].d = -m_position.y - m_collisionBoxHalfDepth;
+
+  sides[3].n = posYNorm;
+  sides[3].d = -NTempest::C3Vector::Dot(posYNorm, m_position);
+
+  sides[4].n = negYNorm;
+  sides[4].d = -NTempest::C3Vector::Dot(negYNorm, m_position);
 }
 
 float CMovement::FindCeilingDistanceAbove(float distanceToJump) {
@@ -719,9 +792,10 @@ static int AddNormal(const NTempest::C3Vector &normal, unsigned int maxNormals, 
 static int GetSlidingDirection(
     unsigned __int64 guid, const NTempest::C3Vector *normalList, unsigned int numNormals, NTempest::C3Vector *direction
 ) {
-  CMovement::LogWrite("0x%016I64X: Getting slide direction from %u normals\n", guid, numNormals);
+  CMovement::FallLogWrite("0x%016I64X: Getting slide direction from %u normals\n", guid, numNormals);
   direction->Set(0.0f, 0.0f, 0.0f);
   if (numNormals == 1) {
+    CMovement::FallLogWrite("0x%016I64X: Normal: (%g,%g,%g)\n", guid, normalList[0].x, normalList[0].y, normalList[0].z);
     NTempest::C2Vector downCrossSurfaceNorm(-normalList[0].y, normalList[0].x);
     float magnitude = static_cast<float>(sqrt(downCrossSurfaceNorm.x * downCrossSurfaceNorm.x + downCrossSurfaceNorm.y * downCrossSurfaceNorm.y));
     if (NTempest::CMath::fabs_(magnitude) >= 0.00000023841858f) {
@@ -731,11 +805,19 @@ static int GetSlidingDirection(
     NTempest::C3Vector down(downCrossSurfaceNorm.x, downCrossSurfaceNorm.y, 0.0f);
     *direction = NTempest::C3Vector::Cross(down, normalList[0]);
   } else if (numNormals == 2) {
+    CMovement::FallLogWrite(
+        "0x%016I64X: Normals: (%g,%g,%g), (%g,%g,%g)\n", guid, normalList[0].x, normalList[0].y, normalList[0].z, normalList[1].x,
+        normalList[1].y, normalList[1].z
+    );
     *direction = NTempest::C3Vector::Cross(normalList[0], normalList[1]);
     if (NTempest::CMath::fabs_(direction->Mag()) >= 0.00000023841858f) {
       direction->Normalize();
     }
   } else if (numNormals == 3) {
+    CMovement::FallLogWrite(
+        "0x%016I64X: Normals: (%g,%g,%g), (%g,%g,%g), (%g,%g,%g)\n", guid, normalList[0].x, normalList[0].y, normalList[0].z,
+        normalList[1].x, normalList[1].y, normalList[1].z, normalList[2].x, normalList[2].y, normalList[2].z
+    );
     NTempest::C3Vector intermed1 = NTempest::C3Vector::Cross(normalList[0], normalList[1]);
     if (NTempest::CMath::fabs_(intermed1.Mag()) >= 0.00000023841858f) {
       intermed1.Normalize();
@@ -749,6 +831,11 @@ static int GetSlidingDirection(
       direction->Normalize();
     }
   } else if (numNormals == 4) {
+    CMovement::FallLogWrite(
+        "0x%016I64X: Normals: (%g,%g,%g), (%g,%g,%g), (%g,%g,%g), (%g,%g,%g)\n", guid, normalList[0].x, normalList[0].y, normalList[0].z,
+        normalList[1].x, normalList[1].y, normalList[1].z, normalList[2].x, normalList[2].y, normalList[2].z, normalList[3].x,
+        normalList[3].y, normalList[3].z
+    );
     NTempest::C3Vector intermed1 = NTempest::C3Vector::Cross(normalList[0], normalList[1]);
     if (NTempest::CMath::fabs_(intermed1.Mag()) >= 0.00000023841858f) {
       intermed1.Normalize();
@@ -762,17 +849,16 @@ static int GetSlidingDirection(
       direction->Normalize();
     }
   } else {
-    CMovement::LogWrite("0x%016I64X: TOO MANY NORMALS, failed to get slide direction!!!\n", guid);
+    CMovement::FallLogWrite("0x%016I64X: TOO MANY NORMALS, failed to get slide direction!!!\n", guid);
   }
 
   if (NTempest::CMath::fabs_(direction->z) <= 0.76604444f) {
-    NTempest::C3Vector minIncline(0.0f, 0.0f, 1.0f);
-    float              highestZ = 0.0f;
+    NTempest::C3Vector minIncline(0.0f, 1.0f, 0.0f);
     for (unsigned int i = 0; i < numNormals; ++i) {
-      if (normalList[i].z > highestZ) {
+      if (normalList[i].z > minIncline.z) {
         minIncline.x = normalList[i].x;
         minIncline.y = normalList[i].y;
-        highestZ = normalList[i].z;
+        minIncline.z = normalList[i].z;
       }
     }
     NTempest::C2Vector downCrossSurfaceNorm(-minIncline.y, minIncline.x);
@@ -783,12 +869,13 @@ static int GetSlidingDirection(
     }
     NTempest::C3Vector down(downCrossSurfaceNorm.x, downCrossSurfaceNorm.y, 0.0f);
     *direction = NTempest::C3Vector::Cross(down, minIncline);
+    CMovement::FallLogWrite("0x%016I64X: Slope too flat, readjusting slide dir\n", guid);
   }
 
   if (direction->z > 0.0f) {
     *direction = -*direction;
   }
-  CMovement::LogWrite("0x%016I64X: New slide dir (%g,%g,%g)\n", guid, direction->x, direction->y, direction->z);
+  CMovement::FallLogWrite("0x%016I64X: New slide dir (%g,%g,%g)\n", guid, direction->x, direction->y, direction->z);
   return NTempest::CMath::fabs_(direction->z) > 0.76604444f;
 }
 
@@ -1092,16 +1179,36 @@ float CMovement::ExtrudeSlideBoxDownHill(const NTempest::C3Vector &unitMove, flo
   int   pyrSideX = ExtrudePyramidSideX(unitMove, distanceWanted, boxPlanes[2]);
   int   pyrSideY = ExtrudePyramidSideY(unitMove, distanceWanted, boxPlanes[3]);
   distanceWanted = FLT_MAX;
-  for (int side = 0; side < 2; ++side) {
-    startPlanes[side] = boxPlanes[side][0];
-    startPlanes[side].d += 0.027777778f;
-    FindObstacles(unitMove, boxPlanes[side], 6, startPlanes[side], 0, &distanceWanted, hitInfo);
-  }
+  startPlanes[0] = boxPlanes[0][0];
+  startPlanes[0].d += 0.027777778f;
+  startPlanes[1] = boxPlanes[1][0];
+  startPlanes[1].d += 0.027777778f;
+
+  FallLogWrite("0x%016I64X: Checking X side:\n", m_guid);
+  FindObstacles(unitMove, boxPlanes[0], 6, startPlanes[0], 0, &distanceWanted, hitInfo);
+  FallLogWrite("0x%016I64X: Hit info flags X: ", m_guid);
+  LogHitInfoFlags(hitInfo->flags);
+  FallLogWrite("\n");
+
+  FallLogWrite("0x%016I64X: Checking Y side:\n", m_guid);
+  FindObstacles(unitMove, boxPlanes[1], 6, startPlanes[1], 0, &distanceWanted, hitInfo);
+  FallLogWrite("0x%016I64X: Hit info flags Y: ", m_guid);
+  LogHitInfoFlags(hitInfo->flags);
+  FallLogWrite("\n");
+
   if (pyrSideX) {
+    FallLogWrite("0x%016I64X: Checking Pyramid X side:\n", m_guid);
     FindObstacles(unitMove, boxPlanes[2], 5, boxPlanes[2][0], 1, &distanceWanted, hitInfo);
+    FallLogWrite("0x%016I64X: Hit info flags Pyramid X: ", m_guid);
+    LogHitInfoFlags(hitInfo->flags);
+    FallLogWrite("\n");
   }
   if (pyrSideY) {
+    FallLogWrite("0x%016I64X: Checking Pyramid Y side:\n", m_guid);
     FindObstacles(unitMove, boxPlanes[3], 5, boxPlanes[3][0], 1, &distanceWanted, hitInfo);
+    FallLogWrite("0x%016I64X: Hit info flags Pyramid Y: ", m_guid);
+    LogHitInfoFlags(hitInfo->flags);
+    FallLogWrite("\n");
   }
   return distanceWanted > 0.0f ? distanceWanted : 0.0f;
 }
@@ -1361,7 +1468,7 @@ unsigned int CMovement::Slide(unsigned int fallenSoFar, unsigned int timeIncreme
   }
 
   float distToFall = RelDistanceFallen(fallenSoFar + timeIncrement);
-  LogWrite(
+  FallLogWrite(
       "0x%016I64X: ====| Starting new slide: fallenSoFar (%u) increment (%u) distance to fall (%g)\n", m_guid, fallenSoFar, timeIncrement, distToFall
   );
   if (NTempest::CMath::fabs_(distToFall) < 0.00000023841858f) {
@@ -1399,7 +1506,7 @@ unsigned int CMovement::Slide(unsigned int fallenSoFar, unsigned int timeIncreme
     m_moveFlags &= ~0x01000000U;
   }
 
-  LogWrite(
+  FallLogWrite(
       "0x%016I64X: ====| Wanted to slide (%g) (%g,%g,%g), slid (%g) to (%g,%g,%g)\n", m_guid, distance, moveWanted.x, moveWanted.y, moveWanted.z,
       distanceSlid, m_position.x, m_position.y, m_position.z
   );
@@ -1413,7 +1520,7 @@ unsigned int CMovement::Fall(unsigned int fallenSoFar, unsigned int timeIncremen
   }
 
   unsigned int fallEndTime = fallenSoFar + timeIncrement;
-  LogWrite("0x%016I64X: ====| Starting new fall: fallenSoFar (%u) increment (%u)\n", m_guid, fallenSoFar, timeIncrement);
+  FallLogWrite("0x%016I64X: ====| Starting new fall: fallenSoFar (%u) increment (%u)\n", m_guid, fallenSoFar, timeIncrement);
   float distToFall = RelDistanceFallen(fallEndTime);
   float distFallen = distToFall;
 
@@ -1461,7 +1568,7 @@ unsigned int CMovement::Fall(unsigned int fallenSoFar, unsigned int timeIncremen
     CheckFallenFar(fallEndTime + m_fallStartTime);
   }
 
-  LogWrite("0x%016I64X: ====| Wanted to fall (%g), fell (%g) to Z(%g)\n", m_guid, distToFall, distFallen, m_position.z);
+  FallLogWrite("0x%016I64X: ====| Wanted to fall (%g), fell (%g) to Z(%g)\n", m_guid, distToFall, distFallen, m_position.z);
   m_groundNormal.Set(0.0f, 0.0f, 1.0f);
   return timeIncrement;
 }
@@ -1654,7 +1761,9 @@ int CMovement::CollideRequestMove(
     unsigned long lastUpdateTime, unsigned int timeElapsed, const NTempest::C3Vector &moveVector
 ) {
   float distance = moveVector.Mag();
-  LogWrite("0x%016I64X: ====| Starting new move: elapsed (%u), requested vector (%g,%g)\n", m_guid, timeElapsed, distance, moveVector.z);
+  FallLogWrite(
+      "0x%016I64X: ====| Starting new move: elapsed (%u), requested vector (%g,%g)\n", m_guid, timeElapsed, moveVector.x, moveVector.y
+  );
   if (!timeElapsed) {
     return 0;
   }
@@ -1663,7 +1772,7 @@ int CMovement::CollideRequestMove(
   float currSpeed = distance / elapsedSecs;
   if (!(m_moveFlags & 0x30)) {
     float expectedSpeed = GetCurrentSpeed();
-    LogWrite("0x%016I64X: requested move (%g), should be (%g) for (%u ms)\n", m_guid, distance, expectedSpeed * elapsedSecs, timeElapsed);
+    FallLogWrite("0x%016I64X: requested move (%g), should be (%g) for (%u ms)\n", m_guid, distance, expectedSpeed * elapsedSecs, timeElapsed);
   }
 
   NTempest::C3Vector moveDirWanted;
@@ -1694,7 +1803,7 @@ int CMovement::CollideRequestMove(
 
     int          wasRedirected = (m_moveFlags & 0x1000) != 0;
     unsigned int timeJustUsed;
-    LogWrite("0x%016I64X: lastUpdateTime (0x%08X), timeUsed (%d)\n", m_guid, lastUpdateTime, timeUsed);
+    FallLogWrite("0x%016I64X: lastUpdateTime (0x%08X), timeUsed (%d)\n", m_guid, lastUpdateTime, timeUsed);
 
     if (m_moveFlags & 0x02000000) {
       NTempest::C3Vector moveWanted = unitMove * distanceLeft;
@@ -1715,13 +1824,17 @@ int CMovement::CollideRequestMove(
       timeJustUsed = TraceSurface(lastUpdateTime + timeUsed, timeLeft, distanceLeft, unitMove2d, moveDirWanted2d);
     }
 
-    LogWrite("0x%016I64X: move consumed (%d) ms\n", m_guid, timeJustUsed);
+    FallLogWrite("0x%016I64X: move consumed (%d) ms\n", m_guid, timeJustUsed);
     if (timeJustUsed + 1 >= timeLeft) {
       if (wasRedirected) {
         m_moveFlags &= ~0x1000U;
         moveModified = 1;
         UpdateAnchors(lastUpdateTime + timeUsed);
       }
+      FallLogWrite(
+          "0x%016I64X: unit moved full distance: wanted (%g) moved (%g)\n", m_guid, distanceLeft,
+          static_cast<double>(timeUsed + timeJustUsed) * 0.001 * currSpeed
+      );
       timeUsed += timeJustUsed;
       break;
     }
@@ -1732,28 +1845,37 @@ int CMovement::CollideRequestMove(
         ++zeroMoves;
       }
       if (zeroMoves >= 5) {
-        LogWrite("0x%016I64X: unit executed five zero-time moves\n", m_guid);
+        FallLogWrite("0x%016I64X: unit executed five zero-time moves\n", m_guid);
         StopFalling();
         unsigned long eventTime = lastUpdateTime + timeUsed;
         HandlePendingActions(eventTime);
         Halt(eventTime);
       }
       if (!(m_moveFlags & 0x400F) || (m_moveFlags & 0x10000000)) {
-        timeUsed += timeJustUsed;
+        FallLogWrite(
+            "0x%016I64X: unit blocked, moved (%g) instead of (%g)\n", m_guid,
+            static_cast<double>(timeUsed + timeJustUsed) * 0.001 * currSpeed, distanceLeft
+        );
         break;
       }
       timeUsed += timeJustUsed;
+      FallLogWrite(
+          "0x%016I64X: unit redirected, moved (%g) instead of (%g)\n", m_guid, static_cast<double>(timeUsed) * 0.001 * currSpeed,
+          distanceLeft
+      );
       if (timeUsed > timeElapsed) {
         timeUsed = timeElapsed;
       }
     } else {
       RestoreMoveState(state);
+      FallLogWrite("0x%016I64X: unit was and still is redirected\n", m_guid);
     }
 
     if (!(m_moveFlags & 0x1000)) {
       continue;
     }
 
+    FallLogWrite("0x%016I64X: attempting to redirect\n", m_guid);
     unsigned int redirectedTimeLeft = timeElapsed - timeUsed;
     float        speedFactor = NTempest::C3Vector::Dot(moveDirWanted, m_reDirection);
     if (speedFactor < 0.0f) {
@@ -1764,7 +1886,7 @@ int CMovement::CollideRequestMove(
     float redirectedDistance = speedFactor * static_cast<float>(redirectedTimeLeft) * 0.001f * currSpeed;
     GetMoveFacets(redirectedDistance, moveEndFallTime, m_reDirection);
 
-    LogWrite("0x%016I64X: (redir) lastUpdateTime (0x%08X), timeUsed (%d)\n", m_guid, lastUpdateTime, timeUsed);
+    FallLogWrite("0x%016I64X: (redir) lastUpdateTime (0x%08X), timeUsed (%d)\n", m_guid, lastUpdateTime, timeUsed);
     unsigned int redirectedTimeUsed = timeJustUsed;
     if (m_moveFlags & 0x02000000) {
       NTempest::C3Vector moveWanted = m_reDirection * redirectedDistance;
@@ -1784,7 +1906,7 @@ int CMovement::CollideRequestMove(
       redirectedTimeUsed = TraceSurface(lastUpdateTime + timeUsed, redirectedTimeLeft, redirectedDistance, redirectedMove, moveDirWanted2d);
     }
 
-    LogWrite("0x%016I64X: redir move consumed (%d) ms\n", m_guid, redirectedTimeUsed);
+    FallLogWrite("0x%016I64X: redir move consumed (%d) ms\n", m_guid, redirectedTimeUsed);
     if (redirectedTimeUsed < redirectedTimeLeft) {
       moveModified = 1;
     }
@@ -1798,14 +1920,17 @@ int CMovement::CollideRequestMove(
       Halt(eventTime);
     }
     if (!(m_moveFlags & 0x400F) || (m_moveFlags & 0x10000000)) {
-      timeUsed += redirectedTimeUsed;
+      FallLogWrite(
+          "0x%016I64X: unit blocked on redirect, moved (%g) instead of (%g)\n", m_guid,
+          static_cast<double>(timeUsed + redirectedTimeUsed) * 0.001 * speedFactor * currSpeed, redirectedDistance
+      );
       break;
     }
     timeUsed += redirectedTimeUsed;
   }
 
   SetOrientation();
-  LogWrite("0x%016I64X: ====| Completed move request\n", m_guid);
+  FallLogWrite("0x%016I64X: ====| Completed move request\n", m_guid);
   ShowCollisionBox(moveDirWanted, oldMoveFlags);
   return moveModified;
 }
@@ -1829,7 +1954,7 @@ float CMovement::CalcFallSurfaceProjection(
       platformNorm = -platformNorm;
     }
     platform->Set(platformNorm, position);
-    LogWrite(
+    FallLogWrite(
         "0x%016I64X: moveNormal(%g,%g,%g) fallVector(%g,%g,%g) hitPoint(%g,%g,%g)\n", m_guid, moveNormal.x, moveNormal.y, moveNormal.z, fallVector.x,
         fallVector.y, fallVector.z, hitPoint.x, hitPoint.y, hitPoint.z
     );
@@ -1839,14 +1964,14 @@ float CMovement::CalcFallSurfaceProjection(
     } else if (cosTheta > 1.0f) {
       cosTheta = 1.0f;
     }
-    LogWrite(
+    FallLogWrite(
         "0x%016I64X: unit position(%g,%g,%g), platform (%g,%g,%g,%g) (%g deg slope), fall (%g)\n", m_guid, position.x, position.y, position.z,
         platform->n.x, platform->n.y, platform->n.z, platform->d, acos(cosTheta) * 57.29578, distToFall
     );
     return distToFall;
   }
   platform->Set(NTempest::C3Vector(0.0f, 0.0f, 1.0f), position);
-  LogWrite("0x%016I64X: unit position(%g,%g,%g), flat platform\n", m_guid, position.x, position.y, position.z);
+  FallLogWrite("0x%016I64X: unit position(%g,%g,%g), flat platform\n", m_guid, position.x, position.y, position.z);
   return 0.0f;
 }
 
@@ -1860,29 +1985,29 @@ float CMovement::AttemptMove(
 ) {
   float distance = move.Mag();
   if (NTempest::CMath::fabs_(distance) < 0.00000023841858f) {
-    LogWrite("0x%016I64X: insignificant distance to move (%g), not moving\n", m_guid, distance);
+    FallLogWrite("0x%016I64X: insignificant distance to move (%g), not moving\n", m_guid, distance);
     return 0.0f;
   }
 
   float nearestObstacleDist = ExtrudeCollisionShape(eventTime, move, distance, unitMoveWanted, ground.n);
   if (nearestObstacleDist >= distance2d) {
-    LogWrite(
+    FallLogWrite(
         "0x%016I64X: No obstacles hit, moving (%g,%g,%g) from (%g,%g,%g) to ", m_guid, move.x, move.y, move.z, m_position.x, m_position.y,
         m_position.z
     );
     m_position += move;
-    LogWrite("(%g,%g,%g)\n", m_position.x, m_position.y, m_position.z);
-    LogWrite("0x%016I64X: Nearest obstacle (%g) away, wanted to move (%g)\n", m_guid, nearestObstacleDist, distance2d);
+    FallLogWrite("(%g,%g,%g)\n", m_position.x, m_position.y, m_position.z);
+    FallLogWrite("0x%016I64X: Nearest obstacle (%g) away, wanted to move (%g)\n", m_guid, nearestObstacleDist, distance2d);
     return distance2d;
   }
 
   NTempest::C2Vector adjustedMove(nearestObstacleDist * unitMove.x, nearestObstacleDist * unitMove.y);
-  LogWrite("0x%016I64X: Obstacle hit (%g) away, from (%g,%g,%g) ", m_guid, nearestObstacleDist, m_position.x, m_position.y, m_position.z);
+  FallLogWrite("0x%016I64X: Obstacle hit (%g) away, from (%g,%g,%g) ", m_guid, nearestObstacleDist, m_position.x, m_position.y, m_position.z);
   m_position.x += adjustedMove.x;
   m_position.y += adjustedMove.y;
   float newElevation = ground.SolveForZ(m_position.x, m_position.y);
   float adjustedElevation = newElevation - m_position.z;
-  LogWrite("moving (%g,%g,%g) to ", adjustedMove.x, adjustedMove.y, adjustedElevation);
+  FallLogWrite("moving (%g,%g,%g) to ", adjustedMove.x, adjustedMove.y, adjustedElevation);
   if (adjustedElevation < 0.0f) {
     float maxDrop = -(nearestObstacleDist * 1.1917536f + 0.0013888889f);
     if (maxDrop > adjustedElevation) {
@@ -1890,10 +2015,10 @@ float CMovement::AttemptMove(
     }
   }
   m_position.z += adjustedElevation;
-  LogWrite("(%g,%g,%g)\n", m_position.x, m_position.y, m_position.z);
+  FallLogWrite("(%g,%g,%g)\n", m_position.x, m_position.y, m_position.z);
   if (NTempest::IsUnitVector(m_reDirection) && (m_moveFlags & 0xF)) {
     m_moveFlags |= 0x1000;
-    LogWrite("0x%016I64X: Setting redirected (D:\\build\\buildWoW\\WoW\\Source\\Object\\Collide.cpp: %d)\n", m_guid, 2470);
+    FallLogWrite("0x%016I64X: Setting redirected (D:\\build\\buildWoW\\WoW\\Source\\Object\\Collide.cpp: %d)\n", m_guid, 2470);
   } else {
     Halt(eventTime);
   }
@@ -1942,7 +2067,7 @@ int CMovement::IsTooLow(
     }
   }
   minElevation = position.z - (surface->farDist - distanceMoved) * 1.1917536f;
-  LogWrite(
+  FallLogWrite(
       "0x%016I64X: Checking if face is below: LPOC(%g), minElevation(%g), unit(%g)\n", m_guid, surface->lastPtOfContact.z, minElevation, position.z
   );
   if (minElevation - 0.0013888889f <= surface->lastPtOfContact.z) {
@@ -1995,7 +2120,7 @@ int CMovement::IsTooLow(
       }
     }
     minElevation = position.z - RelDistanceFallen(timeToFall);
-    LogWrite(
+    FallLogWrite(
         "0x%016I64X: Checking if face is below: FPOC(%g), minElevation(%g), unit(%g)\n", m_guid, surface->firstPtOfContact.z, minElevation, position.z
     );
   } else {
@@ -2152,7 +2277,7 @@ int CMovement::NextSurfaceIsWalkable(
     TSGrowableArray<CWalkableSurface> *surfacePool
 ) {
   FATALASSERT(surface);
-  LogWrite("0x%016I64X: ------>Checking next walkable surface\n", m_guid);
+  FallLogWrite("0x%016I64X: ------>Checking next walkable surface\n", m_guid);
   NTempest::C3Vector position = surface->lastPtOfContact;
   NTempest::C3Vector above = position;
   above.z += m_collisionBoxHeight;
@@ -2172,24 +2297,24 @@ int CMovement::NextSurfaceIsWalkable(
     } else if (cosTheta > 1.0f) {
       cosTheta = 1.0f;
     }
-    LogWrite("0x%016I64X: Next surface: step hgt(%g), incline(%g degrees)", m_guid, stepHeight, acos(cosTheta) * 57.29578f);
+    FallLogWrite("0x%016I64X: Next surface: step hgt(%g), incline(%g degrees)", m_guid, stepHeight, acos(cosTheta) * 57.29578f);
     if (stepHeight > m_stepUpHeight) {
-      LogWrite(" - Surface was too high\n");
-      LogWrite("0x%016I64X: ------>Done checking next walkable surface\n", m_guid);
+      FallLogWrite(" - Surface was too high\n");
+      FallLogWrite("0x%016I64X: ------>Done checking next walkable surface\n", m_guid);
       return 0;
     }
     if (nextPlane.n.z > 0.64278764f) {
-      LogWrite(" - Surface is walkable\n");
-      LogWrite("0x%016I64X: ------>Done checking next walkable surface\n", m_guid);
+      FallLogWrite(" - Surface is walkable\n");
+      FallLogWrite("0x%016I64X: ------>Done checking next walkable surface\n", m_guid);
       return 1;
     }
-    LogWrite(" - Surface is too steep, continuing\n");
+    FallLogWrite(" - Surface is too steep, continuing\n");
     position = next->lastPtOfContact;
     above = position;
     above.z += m_collisionBoxHeight;
     currentCeiling.Set(-nextPlane.n.x, -nextPlane.n.y, -nextPlane.n.z, NTempest::C3Vector::Dot(nextPlane.n, above));
   }
-  LogWrite("0x%016I64X: Ran out of facets, failing\n", m_guid);
+  FallLogWrite("0x%016I64X: Ran out of facets, failing\n", m_guid);
   return 0;
 }
 
@@ -2200,12 +2325,12 @@ static void LogSurface(unsigned __int64 guid, const CWalkableSurface &surface) {
   } else if (cosTheta > 1.0f) {
     cosTheta = 1.0f;
   }
-  CMovement::LogWrite(
+  CMovement::FallLogWrite(
       "0x%016I64X: facet close(%g) far(%g) FPOC(%g,%g,%g) LPOC(%g,%g,%g) incline(%g degrees)\n", guid, surface.closeDist, surface.farDist,
       surface.firstPtOfContact.x, surface.firstPtOfContact.y, surface.firstPtOfContact.z, surface.lastPtOfContact.x, surface.lastPtOfContact.y,
       surface.lastPtOfContact.z, acos(cosTheta) * 57.29578f
   );
-  CMovement::LogWrite(
+  CMovement::FallLogWrite(
       "0x%016I64X: plane eq(%g, %g, %g, %g)\n", guid, s_facetData.facets[surface.facetId].plane.n.x, s_facetData.facets[surface.facetId].plane.n.y,
       s_facetData.facets[surface.facetId].plane.n.z, s_facetData.facets[surface.facetId].plane.d
   );
@@ -2227,15 +2352,15 @@ CWalkableSurface *CMovement::GetNextSurface(
   LogSurface(m_guid, *surface);
   NTempest::C4Plane &plane = s_facetData.facets[surface->facetId].plane;
   if (plane.n.z <= 0.0f) {
-    LogWrite("0x%016I64X: facet faces downward (z: %g), skipping\n", m_guid, plane.n.z);
+    FallLogWrite("0x%016I64X: facet faces downward (z: %g), skipping\n", m_guid, plane.n.z);
     return 0;
   }
   if (distanceMoved + 0.0013888889f > surface->farDist) {
-    LogWrite("0x%016I64X: facet already passed\n", m_guid);
+    FallLogWrite("0x%016I64X: facet already passed\n", m_guid);
     return 0;
   }
   if (IsTooLow(position, eventTime, surface, distanceMoved, currSpeedInv)) {
-    LogWrite("0x%016I64X: facet too low\n", m_guid);
+    FallLogWrite("0x%016I64X: facet too low\n", m_guid);
     return 0;
   }
   float startDistFromTop = currentCeiling.DistSigned(surface->firstPtOfContact);
@@ -2243,7 +2368,7 @@ CWalkableSurface *CMovement::GetNextSurface(
   if (startDistFromTop >= 0.0013888889f || endDistFromTop >= 0.0013888889f) {
     return surface;
   }
-  LogWrite("0x%016I64X: facet too high, start(%g) end(%g)\n", m_guid, startDistFromTop, endDistFromTop);
+  FallLogWrite("0x%016I64X: facet too high, start(%g) end(%g)\n", m_guid, startDistFromTop, endDistFromTop);
   return 0;
 }
 
@@ -2252,21 +2377,21 @@ int CMovement::HandlePendingActions(unsigned long eventTime) {
 
   if (m_moveFlags & 0x00010000) {
     m_moveFlags &= ~3U;
-    LogWrite("0x%016I64X: Executing pending stop at (%g,%g,%g)\n", m_guid, m_position.x, m_position.y, m_position.z);
+    BothLogWrite("0x%016I64X: Executing pending stop at (%g,%g,%g)\n", m_guid, m_position.x, m_position.y, m_position.z);
   }
   if (m_moveFlags & 0x00020000) {
     m_moveFlags &= ~0xCU;
-    LogWrite("0x%016I64X: Executing pending unstrafe at (%g,%g,%g)\n", m_guid, m_position.x, m_position.y, m_position.z);
+    BothLogWrite("0x%016I64X: Executing pending unstrafe at (%g,%g,%g)\n", m_guid, m_position.x, m_position.y, m_position.z);
   }
   if (!(m_moveFlags & 0xF)) {
     m_moveFlags &= ~0x1000U;
   }
   if (m_moveFlags & 0x00180000) {
-    LogWrite("0x%016I64X: Executing pending move start at (%g,%g,%g)\n", m_guid, m_position.x, m_position.y, m_position.z);
+    BothLogWrite("0x%016I64X: Executing pending move start at (%g,%g,%g)\n", m_guid, m_position.x, m_position.y, m_position.z);
     StartMove(eventTime, (m_moveFlags & 0x00080000) != 0);
   }
   if (m_moveFlags & 0x00600000) {
-    LogWrite("0x%016I64X: Executing pending strafe start at (%g,%g,%g)\n", m_guid, m_position.x, m_position.y, m_position.z);
+    BothLogWrite("0x%016I64X: Executing pending strafe start at (%g,%g,%g)\n", m_guid, m_position.x, m_position.y, m_position.z);
     StartStrafe(eventTime, (m_moveFlags & 0x00200000) != 0);
   }
   if (m_moveFlags & 0x00040000) {
@@ -2288,7 +2413,7 @@ void CMovement::CheckSurfaceObstacles(
 ) {
   float cosTheta = surface->firstPtOfContact.z - m_position.z;
   if (cosTheta > m_stepUpHeight) {
-    LogWrite(
+    FallLogWrite(
         "0x%016I64X: Facet too high (facet: %g, unit: %g, step hgt: %g), obstructing\n", m_guid, surface->firstPtOfContact.z, m_position.z,
         m_stepUpHeight
     );
@@ -2303,7 +2428,7 @@ void CMovement::CheckSurfaceObstacles(
   }
 
   if (cosTheta > 0.0013888889f && !TestStepUp(surface->firstPtOfContact)) {
-    LogWrite(
+    FallLogWrite(
         "0x%016I64X: Step up blocked (facet: %g, unit: %g, step hgt: %g), obstructing\n", m_guid, surface->firstPtOfContact.z, m_position.z,
         m_stepUpHeight
     );
@@ -2324,7 +2449,7 @@ void CMovement::CheckSurfaceObstacles(
     } else if (cosTheta > 1.0f) {
       cosTheta = 1.0f;
     }
-    LogWrite("0x%016I64X: Facet too steep (%g degree slope), but moving down-hill\n", m_guid, acos(cosTheta) * 57.29578f);
+    FallLogWrite("0x%016I64X: Facet too steep (%g degree slope), but moving down-hill\n", m_guid, acos(cosTheta) * 57.29578f);
     m_moveFlags |= 0x40000;
     return;
   }
@@ -2338,7 +2463,7 @@ void CMovement::CheckSurfaceObstacles(
     } else if (cosTheta > 1.0f) {
       cosTheta = 1.0f;
     }
-    LogWrite("0x%016I64X: Facet too steep (%g degree slope), but low enough to step over\n", m_guid, acos(cosTheta) * 57.29578f);
+    FallLogWrite("0x%016I64X: Facet too steep (%g degree slope), but low enough to step over\n", m_guid, acos(cosTheta) * 57.29578f);
     return;
   }
 
@@ -2348,7 +2473,7 @@ void CMovement::CheckSurfaceObstacles(
   } else if (cosTheta > 1.0f) {
     cosTheta = 1.0f;
   }
-  LogWrite(
+  FallLogWrite(
       "0x%016I64X: Facet too steep (%g degree slope), highest elev (%g), unit Z(%g) obstructing\n", m_guid, acos(cosTheta) * 57.29578f,
       surface->highestElevation, m_position.z
   );
@@ -2371,7 +2496,7 @@ unsigned int CMovement::Swim(
     return 0;
   }
 
-  LogWrite("0x%016I64X: ====| Starting new swim: time to move (%u)\n", m_guid, timeToMove);
+  FallLogWrite("0x%016I64X: ====| Starting new swim: time to move (%u)\n", m_guid, timeToMove);
   NTempest::C3Vector move = moveWanted;
   float              distance = move.Mag();
   if (NTempest::CMath::fabs_(distance) < 0.00000023841858f) {
@@ -2410,7 +2535,7 @@ unsigned int CMovement::Swim(
     ProcessLocalMoveEvent(204);
   }
 
-  LogWrite(
+  FallLogWrite(
       "0x%016I64X: ====| Swam (%g) (%g,%g,%g) to (%g,%g,%g)\n", m_guid, distanceMoved, move.x, move.y, move.z, m_position.x, m_position.y,
       m_position.z
   );
@@ -2437,7 +2562,7 @@ CMovement::ProjectileFall(
     return 0;
   }
 
-  LogWrite(
+  FallLogWrite(
       "0x%016I64X: ====| Starting new projectile fall: time to move (%u), time fallen so far (%d)\n", m_guid, timeToMove, eventTime - m_fallStartTime
   );
   float              distToFall = RelDistanceFallen(eventTime, static_cast<float>(timeToMove) * 0.001f);
@@ -2449,7 +2574,7 @@ CMovement::ProjectileFall(
 
   float              inverseDistance = 1.0f / distance;
   NTempest::C3Vector unitMove = move * inverseDistance;
-  LogWrite("0x%016I64X: ====| Wanted to projectile fall (%g) (%g,%g,%g)\n", m_guid, distance, move.x, move.y, move.z);
+  FallLogWrite("0x%016I64X: ====| Wanted to projectile fall (%g) (%g,%g,%g)\n", m_guid, distance, move.x, move.y, move.z);
 
   unsigned __int64 gameObjHit = 0;
   float            distanceMoved = FLT_MAX;
@@ -2492,7 +2617,7 @@ CMovement::ProjectileFall(
   if (!(m_moveFlags & 0x4000)) {
     HandlePendingActions(eventTime + timeUsed);
   }
-  LogWrite(
+  FallLogWrite(
       "0x%016I64X: ====| Projectile fell (%g) (%g,%g,%g) to (%g,%g,%g)\n", m_guid, distanceMoved, move.x, move.y, move.z, m_position.x, m_position.y,
       m_position.z
   );
@@ -2538,7 +2663,7 @@ unsigned int CMovement::TraceSurface(
   float              adjustedDist;
   NTempest::C3Vector fullMoveVector;
 
-  LogWrite(
+  FallLogWrite(
       "0x%016I64X: *** Requesting new move vector(%g,%g), current time (0x%08X), elapsed (%u), distance (%g)\n", m_guid, moveVector.x, moveVector.y,
       eventTime, timeToMove, distance
   );
@@ -2590,7 +2715,7 @@ unsigned int CMovement::TraceSurface(
         fullMoveVector.z = -(adjustedDist * 1.1917536f + 0.0013888889f);
       }
       segmentDist = adjustedDist;
-      LogWrite(
+      FallLogWrite(
           "0x%016I64X: Completing move at start of facet, attempting to move (%g,%g,%g)\n", m_guid, fullMoveVector.x, fullMoveVector.y,
           fullMoveVector.z
       );
@@ -2600,7 +2725,7 @@ unsigned int CMovement::TraceSurface(
       if (fullMoveVector.z < -(segmentDist * 1.1917536f + 0.0013888889f)) {
         fullMoveVector.z = -(segmentDist * 1.1917536f + 0.0013888889f);
       }
-      LogWrite("0x%016I64X: moving to end of facet, attempting to move (%g,%g,%g)\n", m_guid, fullMoveVector.x, fullMoveVector.y, fullMoveVector.z);
+      FallLogWrite("0x%016I64X: moving to end of facet, attempting to move (%g,%g,%g)\n", m_guid, fullMoveVector.x, fullMoveVector.y, fullMoveVector.z);
     } else {
       fullMoveVector *= adjustedDist;
       fullMoveVector.z =
@@ -2609,7 +2734,7 @@ unsigned int CMovement::TraceSurface(
         fullMoveVector.z = -(adjustedDist * 1.1917536f + 0.0013888889f);
       }
       segmentDist = adjustedDist;
-      LogWrite("0x%016I64X: Completing move on facet, attempting to move (%g,%g,%g)\n", m_guid, fullMoveVector.x, fullMoveVector.y, fullMoveVector.z);
+      FallLogWrite("0x%016I64X: Completing move on facet, attempting to move (%g,%g,%g)\n", m_guid, fullMoveVector.x, fullMoveVector.y, fullMoveVector.z);
     }
 
     distMoved = AttemptMove(currEventTime, fullMoveVector, segmentDist, unitMove, unitMoveWanted, s_facetData.facets[surface->facetId].plane);
@@ -2638,7 +2763,7 @@ unsigned int CMovement::TraceSurface(
     } else if (cosTheta > 1.0f) {
       cosTheta = 1.0f;
     }
-    LogWrite(
+    FallLogWrite(
         "0x%016I64X: setting platform (%g,%g,%g,%g) (%g deg slope)\n", m_guid, currentPlatform.n.x, currentPlatform.n.y, currentPlatform.n.z,
         currentPlatform.d, acos(cosTheta) * 57.29578f
     );
@@ -2650,7 +2775,7 @@ unsigned int CMovement::TraceSurface(
   }
 
   if (distance > 0.00000095367432f || timeUsed != timeToMove) {
-    LogWrite("0x%016I64X: no more facets, falling\n", m_guid);
+    FallLogWrite("0x%016I64X: no more facets, falling\n", m_guid);
     ProcessFalling(eventTime + timeUsed);
   }
   return timeUsed < timeToMove ? timeUsed : timeToMove;
@@ -2894,6 +3019,7 @@ void CMovement::FindObstacles(
       if (facetId < s_facetData.gameObjects.Count() && s_facetData.gameObjects[facetId]) {
         hitInfo->gameObjHit = s_facetData.gameObjects[facetId];
       }
+      FallLogWrite("0x%016I64X: Hit another obstacle at (%g,%g)\n", m_guid, closest.x, closest.y);
 
       if (NTempest::CMath::fabs_(sqDist) < 0.000048225309f) {
         float newDot = NTempest::C3Vector::Dot(s_facetData.facets[facetId].plane.n, unitMoveVector);
@@ -2903,13 +3029,20 @@ void CMovement::FindObstacles(
           if (newDot >= oldDot) {
             hitInfo->surfaceNorm[1] = s_facetData.facets[facetId].plane.n;
           } else {
+            FallLogWrite("0x%016I64X: Obstacle replaces previous edge\n", m_guid);
             hitInfo->surfaceNorm[1] = hitInfo->surfaceNorm[0];
             hitInfo->surfaceNorm[0] = s_facetData.facets[facetId].plane.n;
           }
         }
-      } else if (DetermineHitType(hitType, unitMoveVector, minDist, facetId, hitInfo)) {
-        *closestDist = minDist;
-        CollisionInfoColorFace(facetId, FACET_BLOCKING);
+      } else {
+        FallLogWrite("0x%016I64X: Obstacle is multi-hit, sq dist(%g)\n", m_guid, static_cast<double>(sqDist));
+        FallLogWrite(
+            "0x%016I64X: closest(%g,%g) hitInfo->hitPoint(%g,%g)\n", m_guid, closest.x, closest.y, hitInfo->hitPoint.x, hitInfo->hitPoint.y
+        );
+        if (DetermineHitType(hitType, unitMoveVector, minDist, facetId, hitInfo)) {
+          *closestDist = minDist;
+          CollisionInfoColorFace(facetId, FACET_BLOCKING);
+        }
       }
       continue;
     }
@@ -2930,6 +3063,7 @@ void CMovement::FindObstacles(
       continue;
     }
 
+    FallLogWrite("0x%016I64X: Hit new obstacle at (%g,%g)\n", m_guid, closest.x, closest.y);
     hitInfo->surfaceNorm[0] = s_facetData.facets[facetId].plane.n;
     hitInfo->gameObjHit = facetId < s_facetData.gameObjects.Count() ? s_facetData.gameObjects[facetId] : 0;
     hitInfo->hitPoint = closest;
