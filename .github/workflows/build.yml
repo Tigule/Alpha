@@ -43,6 +43,17 @@ jobs:
           file_path: DXSDK90.zip
           extract_dir: DXSDK
 
+      - name: Download Platform SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/PSDK2001.zip" -OutFile "PSDK2001.zip"
+
+      - name: Extract Platform SDK
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: PSDK2001.zip
+          extract_dir: PSDK
+
       - name: Replace VCVARS32 absolute paths
         uses: richardrigutins/replace-in-files@v3
         with:
@@ -68,6 +79,7 @@ jobs:
         shell: cmd
         env:
           DXSDK_DIR: ${{ github.workspace }}\DXSDK
+          PSDK_DIR: ${{ github.workspace }}\PSDK
         run: |
           call "VC6\VC98\Bin\VCVARS32.BAT"
           cd Build

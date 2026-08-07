@@ -28,8 +28,8 @@ Firstly, you'll need to install CMake no matter what OS you're on: [cmake.org](h
 
 We are targeting **VC6 + x86 + Windows ONLY** at this stage. Once this reaches parity we will support other platform and architecture targets.
 
-You can save time by using my CI dependencies: [VC6SP5.zip](https://tigule.org/files/ci/VC6SP5.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip)  
-If those are unavailable: [Service Pack 5 for Microsoft Visual Studio 6.0](https://archive.org/details/X08-02111), [DirectX 9.0b SDK](https://archive.org/details/dx90bsdk)
+You can save time by using my CI dependencies: [VC6SP5.zip](https://tigule.org/files/ci/VC6SP5.zip), [PSDK2001.zip](https://tigule.org/files/ci/PSDK2001.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip)  
+If those are unavailable: [Service Pack 5 for Microsoft Visual Studio 6.0](https://archive.org/details/X08-02111), [Microsoft Platform SDK November 2001](https://archive.org/download/msdn-full/Platform%20SDK%20and%20DDKs/), [DirectX 9.0b SDK](https://archive.org/details/dx90bsdk)
 
 ### Windows
 
@@ -63,10 +63,11 @@ Original executables:
 
 Toolchain:
 * Visual C++ 6.0 SP5 (12.00.8804)
+* Microsoft Platform SDK November 2001 (5.2.3590.2)
 
 Libraries:
+* `DirectX` 9.0b
 * `Expat` 1.95.5
 * `FreeType` 2.0
 * `Lua` 5.0
 * `Zlib` 1.1.4
-* `DirectX` 9.0b

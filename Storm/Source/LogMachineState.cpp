@@ -26,35 +26,6 @@ typedef BOOL(WINAPI *PFN_STACKWALK)(
 typedef LPVOID(WINAPI *PFN_SYMFUNCTIONTABLEACCESS)(HANDLE process, DWORD addressBase);
 typedef DWORD(WINAPI *PFN_SYMGETMODULEBASE)(HANDLE process, DWORD returnAddress);
 
-typedef enum _MINIDUMP_TYPE {
-  MiniDumpNormal = 0,
-  MiniDumpWithDataSegs = 1,
-  MiniDumpWithFullMemory = 2,
-  MiniDumpWithHandleData = 4,
-  MiniDumpFilterMemory = 8,
-  MiniDumpScanMemory = 16,
-  MiniDumpWithIndirectlyReferencedMemory = 64
-} MINIDUMP_TYPE;
-
-typedef struct _MINIDUMP_EXCEPTION_INFORMATION {
-  DWORD               ThreadId;
-  EXCEPTION_POINTERS *ExceptionPointers;
-  BOOL                ClientPointers;
-} MINIDUMP_EXCEPTION_INFORMATION;
-
-typedef struct _MINIDUMP_USER_STREAM {
-  UINT  Type;
-  DWORD BufferSize;
-  PVOID Buffer;
-} MINIDUMP_USER_STREAM;
-
-typedef struct _MINIDUMP_USER_STREAM_INFORMATION {
-  DWORD                 UserStreamCount;
-  MINIDUMP_USER_STREAM *UserStreamArray;
-} MINIDUMP_USER_STREAM_INFORMATION;
-
-typedef struct _MINIDUMP_CALLBACK_INFORMATION MINIDUMP_CALLBACK_INFORMATION;
-
 typedef BOOL(WINAPI *PFN_MINIDUMPWRITEDUMP)(
     HANDLE                                  process,
     DWORD                                   processId,
@@ -1042,7 +1013,8 @@ static DWORD WINAPI MiniDumpThreadProc(LPVOID param) {
     miniDumpUserStreamInfo.UserStreamArray = miniDumpUserStreamArray;
 
     ((MiniDumpParam *)param)->result = sgDbgHelpDll.MiniDumpWriteDump(
-        GetCurrentProcess(), GetCurrentProcessId(), ((MiniDumpParam *)param)->logfile, MiniDumpWithIndirectlyReferencedMemory,
+        // 0x40: MiniDumpWithIndirectlyReferencedMemory
+        GetCurrentProcess(), GetCurrentProcessId(), ((MiniDumpParam *)param)->logfile, static_cast<MINIDUMP_TYPE>(0x40),
         ((MiniDumpParam *)param)->exceptionPointers ? &miniDumpExceptionInfo : NULL, &miniDumpUserStreamInfo, NULL
     );
   } else {

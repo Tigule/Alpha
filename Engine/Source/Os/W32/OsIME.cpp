@@ -9,11 +9,6 @@
 #include <windows.h>
 #include <imm.h>
 
-#ifndef IACE_DEFAULT
-#define IACE_DEFAULT 0x0010
-extern "C" BOOL WINAPI ImmAssociateContextEx(HWND, HIMC, DWORD);
-#endif
-
 struct HIMC__;
 static HIMC__ *s_IMC;
 static int     s_IMEActive;

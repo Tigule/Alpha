@@ -5,7 +5,7 @@ LPVOID SInterlockedExchangePointer(LPVOID *destPtr, LPVOID exchange) {
 }
 
 LPVOID SInterlockedCompareExchangePointer(LPVOID *destPtr, LPVOID exchange, LPVOID comperand) {
-  return InterlockedCompareExchange(destPtr, exchange, comperand);
+  return (LPVOID)InterlockedCompareExchange((LPLONG)destPtr, (LONG)exchange, (LONG)comperand);
 }
 
 long SInterlockedIncrement(long *valuePtr) {
@@ -29,7 +29,7 @@ long SInterlockedExchange(long *destPtr, long exchange) {
 }
 
 long SInterlockedCompareExchange(long *destPtr, long exchange, long comperand) {
-  return (long)InterlockedCompareExchange((LPVOID *)destPtr, (LPVOID)exchange, (LPVOID)comperand);
+  return InterlockedCompareExchange(destPtr, exchange, comperand);
 }
 
 LONGLONG SInterlockedIncrement(LONGLONG *valuePtr) {

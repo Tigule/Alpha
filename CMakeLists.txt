@@ -9,6 +9,13 @@ if(MSVC AND MSVC_VERSION GREATER_EQUAL 1400)
 endif()
 
 if(MSVC_VERSION EQUAL 1200)
+    if(DEFINED ENV{PSDK_DIR})
+        include_directories(BEFORE "$ENV{PSDK_DIR}/Include")
+    else()
+        message(FATAL_ERROR
+            "PSDK_DIR is not set. Please install the November 2001 Platform SDK and configure your system.")
+    endif()
+    add_definitions(-DWINVER=0x0501)
     add_compile_options(/G6 /Ob1 /Oy- /Z7 /GX-)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG /MAP")
 endif()

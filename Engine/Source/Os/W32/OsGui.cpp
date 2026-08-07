@@ -10,21 +10,6 @@
 #include <commctrl.h>
 #include <malloc.h>
 
-struct WINDOWINFO_TIGULE {
-  DWORD cbSize;
-  RECT  rcWindow;
-  RECT  rcClient;
-  DWORD dwStyle;
-  DWORD dwExStyle;
-  DWORD dwWindowStatus;
-  UINT  cxWindowBorders;
-  UINT  cyWindowBorders;
-  ATOM  atomWindowType;
-  WORD  wCreatorVersion;
-};
-
-extern "C" BOOL WINAPI GetWindowInfo(HWND hwnd, WINDOWINFO_TIGULE *windowInfo);
-
 #pragma pack(push, 2)
 class CBasicDlgTemplate {
  public:
@@ -219,7 +204,7 @@ static void sCiRectToWinRect(const NTempest::CiRect *inRect, tagRECT *outRect) {
 }
 
 NTempest::CiRect OsGuiGetWindowRect(LPVOID inWindow, int inClientOnly) {
-  WINDOWINFO_TIGULE windInfo;
+  WINDOWINFO windInfo;
   windInfo.cbSize = sizeof(windInfo);
   GetWindowInfo(static_cast<HWND>(inWindow), &windInfo);
 
@@ -1488,7 +1473,7 @@ void COsDialog::SetPosition(int inX, int inY) {
 }
 
 void COsDialog::GetPosition(int *outX, int *outY, int inClient) {
-  WINDOWINFO_TIGULE wInfo;
+  WINDOWINFO wInfo;
   wInfo.cbSize = sizeof(wInfo);
   GetWindowInfo(static_cast<HWND>(mHandle), &wInfo);
   const RECT &rect = inClient ? wInfo.rcClient : wInfo.rcWindow;
