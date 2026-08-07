@@ -151,7 +151,7 @@ void SOUNDDEFINITION::Clear() {
 }
 
 UINT BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *rec, LPCSTR directory, int *equalFreqsPtr) {
-  char           buff[260];
+  char           buff[MAX_PATH];
   int            lastFreq = 0;
   int            equalFreqs = 1;
   UINT           i;

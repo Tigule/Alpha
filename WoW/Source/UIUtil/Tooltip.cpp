@@ -393,7 +393,7 @@ BOOL CGTooltip::SetUnit(const DWORDLONG &unit) {
   }
 
   if (m_unit && m_statusBar) {
-    ClntObjMgrUnsetObjMirrorHandler(m_unit, CGUnit_C::OffsetOf(ID_UNIT) + 64, HealthUpdateHandler, m_statusBar);
+    ClntObjMgrUnsetObjMirrorHandler(m_unit, CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, health), HealthUpdateHandler, m_statusBar);
   }
 
   m_unit = unit;
@@ -406,7 +406,7 @@ BOOL CGTooltip::SetUnit(const DWORDLONG &unit) {
   }
 
   if (m_statusBar) {
-    ClntObjMgrSetObjMirrorHandler(m_unit, CGUnit_C::OffsetOf(ID_UNIT) + 64, 4, HealthUpdateHandler, m_statusBar, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(m_unit, CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, health), sizeof(((CGUnitData *)0)->health), HealthUpdateHandler, m_statusBar, HANDLER_PRIORITY_NORMAL);
     m_statusBar->SetMinMaxValues(0.0f, static_cast<float>(unitPtr->GetUnitData()->maxHealth));
     m_statusBar->SetValue(static_cast<float>(unitPtr->GetUnitData()->health));
     m_statusBar->Show();

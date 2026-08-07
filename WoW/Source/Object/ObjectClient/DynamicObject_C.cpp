@@ -215,9 +215,9 @@ LPCSTR CGDynamicObject_C::GetModelFileName() const {
 
 void CGDynamicObject_C::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position) {
   UINT event = *reinterpret_cast<const UINT *>(eventName);
-  if (event == 0x444E5324) {  // $SND
+  if (event == 'DNS$') {  // $SND
     SpellSoundEffectCallback(eventName + 4, position);
-  } else if (event == 0x4B485324) {  // $SHK
+  } else if (event == 'KHS$') {  // $SHK
     SpellCameraShakeCallback(eventName + 4, position);
   } else {
     SysMsgPrintf(SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|CGDynamicObject_C|CGDynamicObject_C::HandleAnimEvent", eventName);

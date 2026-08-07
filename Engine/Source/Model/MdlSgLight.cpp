@@ -71,7 +71,7 @@ void MdxReadLights(BYTE *data, UINT fileBytes, CModelComplex *modelptr) {
   ASSERT(data);
   ASSERT(modelptr);
 
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 0x4554494C);
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'ETIL');
   if (!section) {
     return;
   }

@@ -36,7 +36,7 @@ void MdxReadCameras(BYTE *data, UINT fileBytes, TSFixedArray<HCAMERA> *cameras) 
   ASSERT(data);
   ASSERT(cameras);
 
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 0x534D4143);
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'SMAC');
   if (!section) {
     return;
   }

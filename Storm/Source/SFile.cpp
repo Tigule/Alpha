@@ -79,14 +79,14 @@ namespace Storm {
 
       CCritSect      sync;
       LONG           refcount;
-      char           archivename[260];
+      char           archivename[MAX_PATH];
       LPVOID         handle;
       int            dontCheckDisk;
       int            priority;
       _ARCHIVEHEADER header;
       HSFILE         ownerarchivefile;
       HSARCHIVE      parentArchive;
-      char           pathPrefix[260];
+      char           pathPrefix[MAX_PATH];
       LPVOID         sectorfile;
       DWORD          sectorlocation;
       DWORD          sectorsize;
@@ -106,7 +106,7 @@ namespace Storm {
 
       CCritSect   sync;
       LONG        refcount;
-      char        name[260];
+      char        name[MAX_PATH];
       char       *actualName;
       LPVOID      handle;
       ARCHIVEREC *archive;
@@ -163,7 +163,7 @@ namespace Storm {
       DWORD WAVECHUNKSIZE;
       UINT  s_asyncBudget;
       DWORD s_directaccess;
-      char  s_basepath[260];
+      char  s_basepath[MAX_PATH];
       void(APIENTRY *s_loadNotifyProc)(LPCSTR, LPVOID);
       LPVOID s_loadNotifyData;
     };
@@ -2037,7 +2037,7 @@ static int CheckForCdRom(LPCSTR path) {
 }
 
 static void ConvertRelativePathName(LPCSTR inputpath, char *outputpath, int strippath) {
-  char                  absolutepath[260];
+  char                  absolutepath[MAX_PATH];
   Storm::SFile::UseGlob glob;
 
   if (!glob->s_basepath[0]) {
@@ -2553,12 +2553,12 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
   if (!SFileReadFileEx2(handle, &mmck, 12, NULL, NULL, 0, NULL)) {
     goto invalidData;
   }
-  if (mmck.ckid != 0x46464952 || mmck.fccType != 0x45564157) {
+  if (mmck.ckid != 'FFIR' || mmck.fccType != 'EVAW') {
     goto invalidData;
   }
 
   memset(&info, 0, sizeof(info));
-  if (!FindChunk(handle, 0x20746D66, &info)) {
+  if (!FindChunk(handle, ' tmf', &info)) {
     goto invalidData;
   }
   {
@@ -2576,7 +2576,7 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
     memcpy(&format, &pcm, sizeof(pcm));
     format.cbSize = 0;
   }
-  if (!FindChunk(handle, 0x61746164, &info)) {
+  if (!FindChunk(handle, 'atad', &info)) {
     goto invalidData;
   }
 

@@ -40,7 +40,7 @@ class BigStack {
   void       UnmakeDistinct(BigBuffer &orig, BigBuffer &distinct);
 };
 
-typedef TSGrowableArray_<BYTE, 0x53424947, 102> SBigOutputArray;
+typedef TSGrowableArray_<BYTE, 'SBIG', __LINE__> SBigOutputArray;
 
 class BigData {
  private:

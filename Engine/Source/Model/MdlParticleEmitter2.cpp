@@ -279,7 +279,7 @@ HTEXTURE LoadModelTexture(LPCSTR texturePath, UINT modelLoadFlags, CGxTexFlags t
     return TextureCreate(texturePath, texLoadFlags, status, 0);
   }
 
-  char path[260];
+  char path[MAX_PATH];
   SStrCopy(path, WOW_DATA_PATH, sizeof(path));
   SStrPack(path, texturePath, sizeof(path));
   return TextureCreate(path, texLoadFlags, status, 0);
@@ -355,11 +355,11 @@ static BYTE *CreateChildEmitter(BYTE *emitterData, UINT flags, CStatus *status, 
     return emitterData;
   }
 
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x53584554);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SXET');
   ASSERT(section);
   const MDLTEXTURESECTION *textures = reinterpret_cast<const MDLTEXTURESECTION *>(section + 4);
 
-  section = MDLFileBinarySeek(fileData, fileBytes, 0x32455250);
+  section = MDLFileBinarySeek(fileData, fileBytes, '2ERP');
   ASSERT(section);
   UINT numEmitters = *reinterpret_cast<UINT *>(section + 4);
   if (numEmitters > 4) {
@@ -573,12 +573,12 @@ void MdxReadEmitters2(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *mod
   ASSERT(modelptr);
   ASSERT(status);
 
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 0x32455250);
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, '2ERP');
   if (!section) {
     return;
   }
 
-  BYTE *texData = MDLFileBinarySeek(data, fileBytes, 0x53584554);
+  BYTE *texData = MDLFileBinarySeek(data, fileBytes, 'SXET');
   ASSERT(texData);
   const MDLTEXTURESECTION *textures = reinterpret_cast<const MDLTEXTURESECTION *>(texData + 4);
 

@@ -9,7 +9,7 @@ DECLARE_STRICT_HANDLE(HOSFILE);
 struct OS_FILE_DATA {
   DWORD size;
   DWORD flags;
-  char  fileName[260];
+  char  fileName[MAX_PATH];
 };
 
 HOSFILE

@@ -32,7 +32,7 @@ struct CQuestLogData {
 };
 
 struct CGPlayerData {
-  DWORDLONG       invSlots[69];
+  DWORDLONG       invSlots[PLAYER_INVENTORY_SLOTS];
   DWORDLONG       selection;
   DWORDLONG       farsightObject;
   DWORDLONG       duelArbiter;
@@ -540,8 +540,8 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   TSHashTable<TRADESKILLLINE, HASHKEY_NONE> m_tradeSkillLines;
   TSGrowableArray<int>                      m_craftSpells[4];
   int                                       m_craftActivators[4];
-  HMODEL                                    m_components[23][36];
-  TexComponentInfo                          m_texComponentInfo[23];
+  HMODEL                                    m_components[NUM_INVENTORY_SLOTS][36];
+  TexComponentInfo                          m_texComponentInfo[NUM_INVENTORY_SLOTS];
   DWORDLONG                                 m_lootingUnit;
   DWORDLONG                                 m_lootingUnitSent;
   CGBag_C                                   m_inventory;

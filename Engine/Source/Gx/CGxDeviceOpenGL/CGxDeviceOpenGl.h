@@ -238,7 +238,7 @@ class CGxDeviceOpenGl : public CGxDevice {
   BOOL SetFormatMode(const CGxFormat &format);
   void UnlockArrays();
 
-  virtual void ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &params, int forceForBind);
+  virtual void ISetShaderParamList(LISTEX(CGxShaderParam, lameAssLink) &params, int forceForBind);
 
   UINT             m_deviceState[43];
   UINT             m_lockedArrays;

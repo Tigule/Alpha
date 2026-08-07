@@ -88,7 +88,7 @@ namespace OsNet {
   }
 
   template <>
-  void TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator::Advance() {
+  void SLOTTEDLISTEX(TCPLISTEN, m_link, 1)::Iterator::Advance() {
     m_curr = m_next;
     if (!m_curr) {
       long markSlot = m_slot;
@@ -106,7 +106,7 @@ namespace OsNet {
   }
 
   template <>
-  void TSSlottedListEx<NETCONNECT, 8, 1>::Iterator::Advance() {
+  void SLOTTEDLISTEX(NETCONNECT, m_link, 1)::Iterator::Advance() {
     m_curr = m_next;
     if (!m_curr) {
       long markSlot = m_slot;
@@ -784,8 +784,8 @@ namespace OsNet {
   UINT __stdcall TCPNET::SlPumpThread(LPVOID lpnet) {
     TCPNET                                    *net = static_cast<TCPNET *>(lpnet);
     NETSELECTSETS                              selectSets(net);
-    TSSlottedListEx<NETCONN, 8, 8>::Iterator   connIt(net->m_connList[CONNLIST_TCP_CONNECTED]);
-    TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator listenIt(net->m_listenList);
+    NETCONNLIST::Iterator   connIt(net->m_connList[CONNLIST_TCP_CONNECTED]);
+    TCPLISTENLIST::Iterator listenIt(net->m_listenList);
 
     while (!s_pumpShutdown) {
       DWORD listenCount;
@@ -816,8 +816,8 @@ namespace OsNet {
       listenCount = selsockCount;
 
       {
-        TSExplicitList<NETCONN, 8> disconnectList;
-        NETCONN                   *conn = connIt.CycleInit();
+        NETCONNSIMPLELIST disconnectList;
+        NETCONN          *conn = connIt.CycleInit();
 
         while (conn && selsockCount < 64) {
           if (conn->IsClosed()) {
@@ -856,7 +856,7 @@ namespace OsNet {
   UINT __stdcall TCPNET::ListenThread(LPVOID lpnet) {
     TCPNET                                    *net = static_cast<TCPNET *>(lpnet);
     NETSELECTSETS                              selectSets(net);
-    TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator listenIt(net->m_listenList);
+    TCPLISTENLIST::Iterator listenIt(net->m_listenList);
 
     while (!s_tcpShutdown) {
       DWORD      selsockCount = 0;
@@ -902,7 +902,6 @@ namespace OsNet {
         m_port(0),
         m_hostAddrInfoCount(0),
         m_hostAddrInfoId(0) {
-    LISTEXSETLINK(LOOPCONN, m_loopDisconnectList, m_linkNet);
   }
 
   BOOL TCPNET::BaseInitialize(DWORD hints) {
@@ -1180,7 +1179,7 @@ namespace OsNet {
     CloseHandle(m_udpPumpEvent);
     m_udpPumpEvent = 0;
 
-    TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator listenIt(m_listenList);
+    TCPLISTENLIST::Iterator listenIt(m_listenList);
     TCPLISTEN                                 *listen = listenIt.CycleInit();
     while (listen) {
       listen->Close();
@@ -1278,7 +1277,7 @@ namespace OsNet {
       return 0;
     }
 
-    TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator listenIt(m_listenList);
+    TCPLISTENLIST::Iterator listenIt(m_listenList);
     DWORD                                      acceptCount = 0;
     TCPLISTEN                                 *listen = listenIt.CycleInit();
     while (listen) {
@@ -1313,7 +1312,7 @@ namespace OsNet {
   }
 
   void TCPNET::TcpListenEnable(WORD port, int enable) {
-    TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator listenIt(m_listenList);
+    TCPLISTENLIST::Iterator listenIt(m_listenList);
     TCPLISTEN                                 *listen = listenIt.CycleInit();
 
     while (listen) {
@@ -1342,7 +1341,7 @@ namespace OsNet {
 
   void TCPNET::TcpConnectInit(TCPCONNECT *pconnect) {
     if (!pconnect->m_eventProc) {
-      TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator listenIt(m_listenList);
+      TCPLISTENLIST::Iterator listenIt(m_listenList);
       TCPLISTEN                                 *listen = listenIt.CycleInit();
 
       while (listen) {
@@ -1487,8 +1486,7 @@ namespace OsNet {
 
       {
         LISTDECLEX(LOOPCONN::INPUT, m_linkNet, loopInputList);
-        LISTEXDYN(LOOPCONN) loopDisconnectList;
-        LISTEXSETLINK(LOOPCONN, loopDisconnectList, m_linkNet);
+        LISTLOOPCONN     loopDisconnectList;
         LOOPCONN::INPUT *pinput;
         LOOPCONN        *conn;
 
@@ -1723,7 +1721,7 @@ namespace OsNet {
   void TCPNET::TcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID user, LPCVOID data, DWORD bytes) {
     if (!nodeNumber) {
       NETEVENTPROC                               eventProcDst = 0;
-      TSSlottedListEx<TCPLISTEN, 8, 1>::Iterator listenIt(m_listenList);
+      TCPLISTENLIST::Iterator listenIt(m_listenList);
       TCPLISTEN                                 *listen = listenIt.CycleInit();
 
       while (listen) {
@@ -1759,7 +1757,7 @@ namespace OsNet {
   UINT __stdcall TCPNET::UdpPumpThread(LPVOID lpnet) {
     TCPNET                                  *net = static_cast<TCPNET *>(lpnet);
     NETSELECTSETS                            selectSets(net);
-    TSSlottedListEx<NETCONN, 8, 8>::Iterator connIt(net->m_connList[CONNLIST_UDP_CONNECTED]);
+    NETCONNLIST::Iterator connIt(net->m_connList[CONNLIST_UDP_CONNECTED]);
 
     for (;;) {
       while (!net->m_connList[CONNLIST_UDP_CONNECTED].Count()) {
@@ -1774,9 +1772,9 @@ namespace OsNet {
 
       selectSets.Clear();
       {
-        TSExplicitList<NETCONN, 8> disconnectList;
-        long                       selsockCount = 0;
-        NETCONN                   *conn = connIt.CycleInit();
+        NETCONNSIMPLELIST disconnectList;
+        long              selsockCount = 0;
+        NETCONN          *conn = connIt.CycleInit();
 
         while (conn && selsockCount < 64) {
           if (conn->IsClosed()) {

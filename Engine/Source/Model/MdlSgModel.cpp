@@ -195,18 +195,18 @@ static void LoadGeosetPrimitiveTypes(const BYTE *primTypes, const UINT *primVert
 }
 
 static BYTE *LoadGeosetPrimitiveData(BYTE *geosetData, CGeosetShared *geoShared) {
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x50595450);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'PYTP');
   UINT  numPrimTypes = *reinterpret_cast<const UINT *>(geosetData + 4);
   BYTE *primTypes = geosetData + 8;
   geosetData = primTypes + numPrimTypes;
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x544E4350);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'TNCP');
   UINT numPrimCounts = *reinterpret_cast<const UINT *>(geosetData + 4);
   ASSERT(numPrimCounts == numPrimTypes);
   const UINT *primVertCounts = reinterpret_cast<const UINT *>(geosetData + 8);
   geosetData += 8 + numPrimCounts * sizeof(UINT);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x58545650);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'XTVP');
   geoShared->primitiveVertices.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
   if (geoShared->primitiveVertices.Count()) {
     memcpy(geoShared->primitiveVertices.Ptr(), geosetData + 8, geoShared->primitiveVertices.Count() * sizeof(WORD));
@@ -242,27 +242,27 @@ static BYTE *LoadGeosetTransformGroups(BYTE *geosetData, UINT loadFlags, CGeoset
     return geosetData;
   }
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x58444E47);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'XDNG');
   geoShared->boneWeights.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
   memcpy(geoShared->boneWeights.Ptr(), geosetData + 8, geoShared->boneWeights.Count());
   geosetData += 8 + geoShared->boneWeights.Count();
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x4347544D);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'CGTM');
   geoShared->groupMatrixCounts.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
   memcpy(geoShared->groupMatrixCounts.Ptr(), geosetData + 8, geoShared->groupMatrixCounts.Count() * sizeof(UINT));
   geosetData += 8 + geoShared->groupMatrixCounts.Count() * sizeof(UINT);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x5354414D);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'STAM');
   geoShared->matrices.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
   memcpy(geoShared->matrices.Ptr(), geosetData + 8, geoShared->matrices.Count() * sizeof(UINT));
   geosetData += 8 + geoShared->matrices.Count() * sizeof(UINT);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x58444942);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'XDIB');
   geoShared->hwBoneIndices.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
   memcpy(geoShared->hwBoneIndices.Ptr(), geosetData + 8, geoShared->hwBoneIndices.Count() * sizeof(UINT));
   geosetData += 8 + geoShared->hwBoneIndices.Count() * sizeof(UINT);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x54475742);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'TGWB');
   geoShared->hwBoneWeights.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
   memcpy(geoShared->hwBoneWeights.Ptr(), geosetData + 8, geoShared->hwBoneWeights.Count() * sizeof(UINT));
   geosetData += 8 + geoShared->hwBoneWeights.Count() * sizeof(UINT);
@@ -271,20 +271,20 @@ static BYTE *LoadGeosetTransformGroups(BYTE *geosetData, UINT loadFlags, CGeoset
 
 static void LoadGeosetData(BYTE *geosetData, UINT bytesLeft, UINT loadFlags, UINT geosetId, CGeosetShared *geoShared) {
   BYTE *sectionDone = geosetData + bytesLeft;
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x58545256);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'XTRV');
   UINT numVertices = *reinterpret_cast<const UINT *>(geosetData + 4);
   ASSERT(numVertices <= 0xFFFF);
   geoShared->position.SetCount(numVertices);
   memcpy(geoShared->position.Ptr(), geosetData + 8, numVertices * sizeof(NTempest::C3Vector));
   geosetData += 8 + numVertices * sizeof(NTempest::C3Vector);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 0x534D524E);
+  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'SMRN');
   ASSERT(numVertices == *reinterpret_cast<const UINT *>(geosetData + 4));
   geoShared->normal.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
   memcpy(geoShared->normal.Ptr(), geosetData + 8, geoShared->normal.Count() * sizeof(NTempest::C3Vector));
   geosetData += 8 + geoShared->normal.Count() * sizeof(NTempest::C3Vector);
 
-  if (*reinterpret_cast<const UINT *>(geosetData) == 0x53415655) {
+  if (*reinterpret_cast<const UINT *>(geosetData) == 'SAVU') {
     UINT numMappingChannels = *reinterpret_cast<const UINT *>(geosetData + 4);
     geosetData += 8;
     geoShared->texCoord.SetCount(numMappingChannels);
@@ -639,7 +639,7 @@ BOOL MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared 
 void MdxLoadGlobalProperties(BYTE *data, UINT fileBytes, UINT *loadFlags, CModelShared *modelShared) {
   ASSERT(modelShared);
   ASSERT(loadFlags);
-  data = MDLFileBinarySeek(data, fileBytes, 0x4C444F4D);
+  data = MDLFileBinarySeek(data, fileBytes, 'LDOM');
   ASSERT(data != 0);
 
   BYTE globalFlags = data[0x174];
@@ -652,7 +652,7 @@ void MdxLoadGlobalProperties(BYTE *data, UINT fileBytes, UINT *loadFlags, CModel
 void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CStatus *status) {
   ASSERT(data);
   ASSERT(modelptr);
-  data = MDLFileBinarySeek(data, fileBytes, 0x53584554);
+  data = MDLFileBinarySeek(data, fileBytes, 'SXET');
   if (!data) {
     return;
   }
@@ -667,7 +667,7 @@ void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *mode
 void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *modelptr, CStatus *status) {
   ASSERT(data);
   ASSERT(modelptr);
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 0x53584554);
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'SXET');
   if (!section) {
     return;
   }
@@ -680,7 +680,7 @@ void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *model
 }
 
 void MdxReadMaterials(BYTE *fileData, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x534C544D);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SLTM');
   if (!section) {
     return;
   }
@@ -700,7 +700,7 @@ void MdxReadMaterials(BYTE *fileData, UINT fileBytes, UINT flags, CModelComplex 
 }
 
 void MdxReadMaterials(BYTE *fileData, UINT fileBytes, UINT flags, CModelSimple *modelptr, CModelShared *shared) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x534C544D);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SLTM');
   if (!section) {
     return;
   }
@@ -722,7 +722,7 @@ void MdxReadMaterials(BYTE *fileData, UINT fileBytes, UINT flags, CModelSimple *
 void MdxReadGeosets(BYTE *fileData, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x534F4547);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SOEG');
   if (!section) {
     return;
   }
@@ -746,7 +746,7 @@ void MdxReadGeosets(BYTE *fileData, UINT fileBytes, UINT flags, CModelComplex *m
   }
   ASSERT(data == done);
 
-  section = MDLFileBinarySeek(fileData, fileBytes, 0x414F4547);
+  section = MDLFileBinarySeek(fileData, fileBytes, 'AOEG');
   if (!section) {
     return;
   }
@@ -774,7 +774,7 @@ void MdxReadGeosets(BYTE *fileData, UINT fileBytes, UINT flags, CModelComplex *m
 void MdxReadGeosets(BYTE *fileData, UINT fileBytes, UINT flags, CModelSimple *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x534F4547);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SOEG');
   if (!section) {
     return;
   }
@@ -798,7 +798,7 @@ void MdxReadGeosets(BYTE *fileData, UINT fileBytes, UINT flags, CModelSimple *mo
   }
   ASSERT(data == done);
 
-  section = MDLFileBinarySeek(fileData, fileBytes, 0x414F4547);
+  section = MDLFileBinarySeek(fileData, fileBytes, 'AOEG');
   if (!section) {
     return;
   }
@@ -827,7 +827,7 @@ void MdxReadAttachments(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *m
   ASSERT(modelptr);
   ASSERT(shared);
 
-  data = MDLFileBinarySeek(data, fileBytes, 0x48435441);
+  data = MDLFileBinarySeek(data, fileBytes, 'HCTA');
   if (!data) {
     return;
   }

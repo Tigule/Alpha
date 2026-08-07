@@ -344,6 +344,14 @@ def normalize_line_template_arguments(name: str) -> str:
     return name
 
 
+MANGLED_LINE_ARGUMENT = re.compile(r"(\$0[A-P]{8}@)\$0[A-P]{1,6}@")
+
+def normalize_mangled_line_arguments(name: str) -> str:
+    if "TSFixedArray_" not in name and "TSGrowableArray_" not in name:
+        return name
+    return MANGLED_LINE_ARGUMENT.sub(lambda match: match.group(1) + "$0LINE@", name)
+
+
 def pascal_string(data: bytes, offset: int) -> tuple[str, int]:
     if offset >= len(data):
         raise ValidationError("truncated CodeView string")
@@ -2414,10 +2422,23 @@ def unique_function_map(
         if compiland is not None and symbol.obj != compiland:
             continue
         grouped[(symbol.obj, symbol.name)].append(symbol)
-    return {
+    exact = {
         key: min(values, key=lambda item: item.address)
         for key, values in grouped.items()
     }
+    by_line: dict[tuple[str, str], list[MapSymbol]] = collections.defaultdict(list)
+    for (obj, name), symbol in exact.items():
+        by_line[(obj, normalize_mangled_line_arguments(name))].append(symbol)
+    unique: dict[tuple[str, ...], MapSymbol] = {}
+    for key, symbols in by_line.items():
+        if len(symbols) == 1:
+            unique[key] = symbols[0]
+            continue
+        for index, symbol in enumerate(
+            sorted(symbols, key=lambda item: item.address)
+        ):
+            unique[key + (str(index),)] = symbol
+    return unique
 
 
 def compare_bytecode(

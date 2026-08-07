@@ -825,17 +825,17 @@ static void IWriteBinParticleEmitter2(const MDLPARTICLEEMITTER2 &section, CMsgBu
     buf.AddFloatArray(&section.spline[0].x, 3 * section.spline.Count());
   }
   buf.AddUint(section.squirts);
-  WriteBinFloatKeyFrames(section.emissionRate, 0x4532504B, buf);
-  WriteBinFloatKeyFrames(section.gravity, 0x4732504B, buf);
-  WriteBinFloatKeyFrames(section.longitude, 0x4E4C504B, buf);
-  WriteBinFloatKeyFrames(section.latitude, 0x4C32504B, buf);
-  WriteBinFloatKeyFrames(section.speed, 0x5332504B, buf);
-  WriteBinFloatKeyFrames(section.variation, 0x5232504B, buf);
-  WriteBinFloatKeyFrames(section.length, 0x4E32504B, buf);
-  WriteBinFloatKeyFrames(section.width, 0x5732504B, buf);
-  WriteBinFloatKeyFrames(section.zsource, 0x5A32504B, buf);
-  WriteBinFloatKeyFrames(section.visibilityKeys, 0x5349564B, buf);
-  WriteBinFloatKeyFrames(section.life, 0x46494C4B, buf);
+  WriteBinFloatKeyFrames(section.emissionRate, 'E2PK', buf);
+  WriteBinFloatKeyFrames(section.gravity, 'G2PK', buf);
+  WriteBinFloatKeyFrames(section.longitude, 'NLPK', buf);
+  WriteBinFloatKeyFrames(section.latitude, 'L2PK', buf);
+  WriteBinFloatKeyFrames(section.speed, 'S2PK', buf);
+  WriteBinFloatKeyFrames(section.variation, 'R2PK', buf);
+  WriteBinFloatKeyFrames(section.length, 'N2PK', buf);
+  WriteBinFloatKeyFrames(section.width, 'W2PK', buf);
+  WriteBinFloatKeyFrames(section.zsource, 'Z2PK', buf);
+  WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buf);
+  WriteBinFloatKeyFrames(section.life, 'FILK', buf);
 }
 
 static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit, CMDLStatus *status, UINT &totalRead) {
@@ -940,37 +940,37 @@ static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit,
     localBytesRead += 4;
     int ok = 1;
     switch (tag) {
-      case 0x4532504B:
+      case 'E2PK':
         ok = ReadBinFloatKeyFrames(pEmit->emissionRate, buf, localBytesRead);
         break;
-      case 0x4732504B:
+      case 'G2PK':
         ok = ReadBinFloatKeyFrames(pEmit->gravity, buf, localBytesRead);
         break;
-      case 0x4E4C504B:
+      case 'NLPK':
         ok = ReadBinFloatKeyFrames(pEmit->longitude, buf, localBytesRead);
         break;
-      case 0x4C32504B:
+      case 'L2PK':
         ok = ReadBinFloatKeyFrames(pEmit->latitude, buf, localBytesRead);
         break;
-      case 0x5332504B:
+      case 'S2PK':
         ok = ReadBinFloatKeyFrames(pEmit->speed, buf, localBytesRead);
         break;
-      case 0x5232504B:
+      case 'R2PK':
         ok = ReadBinFloatKeyFrames(pEmit->variation, buf, localBytesRead);
         break;
-      case 0x4E32504B:
+      case 'N2PK':
         ok = ReadBinFloatKeyFrames(pEmit->length, buf, localBytesRead);
         break;
-      case 0x5732504B:
+      case 'W2PK':
         ok = ReadBinFloatKeyFrames(pEmit->width, buf, localBytesRead);
         break;
-      case 0x5A32504B:
+      case 'Z2PK':
         ok = ReadBinFloatKeyFrames(pEmit->zsource, buf, localBytesRead);
         break;
-      case 0x5349564B:
+      case 'SIVK':
         ok = ReadBinFloatKeyFrames(pEmit->visibilityKeys, buf, localBytesRead);
         break;
-      case 0x46494C4B:
+      case 'FILK':
         ok = ReadBinFloatKeyFrames(pEmit->life, buf, localBytesRead);
         break;
       default:

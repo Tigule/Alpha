@@ -294,14 +294,14 @@ void CGBankInfo::OnCloseBank() {
 void CGBankInfo::EnterWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
   UINT      playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  ClntObjMgrSetObjMirrorHandler(player, playerOffset + 1370, 1, BankUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, numBankSlots), sizeof(((CGPlayerData *)0)->numBankSlots), BankUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   SignalBankSlotsChanged();
 }
 
 void CGBankInfo::LeaveWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
   UINT      playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + 1370, BankUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, numBankSlots), BankUpdateHandler, 0);
 }
 
 static FrameScript_Method s_ScriptFunctions[10] = {

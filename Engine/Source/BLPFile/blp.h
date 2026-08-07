@@ -86,7 +86,7 @@ class CBLPFile {
     m_noColorTrimming = 0,
     m_firstMapIndex = 0,
     m_lastMapIndex = 255,
-    m_versionMagic = 0x32504C42
+    m_versionMagic = '2PLB'
   };
 
   CBLPFile() : m_images(0), m_quality(100) {
@@ -205,7 +205,7 @@ class CBLPFile {
 
   void SharedInit() {
     memset(&m_header, 0, sizeof(m_header));
-    m_header.magic = 0x32504C42;
+    m_header.magic = m_versionMagic;
     m_header.formatVersion = 1;
     m_header.preferredFormat = PIXEL_ARGB8888;
     m_inMemoryImage = 0;

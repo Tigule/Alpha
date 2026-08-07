@@ -82,7 +82,7 @@ static int                                       s_lowestVisiblePriority = 3;
 static TSHashTable<MINIMAPMD5NAME, HASHKEY_STRI> s_md5NameHash;
 static LPCSTR                                    FILENAME_TEMPLATE = "%s\\map%d_%d.blp";
 static LPCSTR                                    s_mapObjTemplate = "%s_%03d_%02d_%02d.blp";
-static char                                      s_mapObjDir[260];
+static char                                      s_mapObjDir[MAX_PATH];
 
 static void UpdatePointsOfInterest() {
   UINT               numPOI;
@@ -256,7 +256,7 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
 
   for (i = 0; i < 4; ++i) {
     if (!(quads[i].m_flags & 2)) {
-      char                fileName[260];
+      char                fileName[MAX_PATH];
       CStatus             status;
       NTempest::C2iVector currentArea(upperLeftArea.x + s_areaCoordOffsets[i].xIncrement, upperLeftArea.y + s_areaCoordOffsets[i].yIncrement);
       BuildPathName(currentArea, fileName, sizeof(fileName));
@@ -275,7 +275,7 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
 }
 
 static void SetupQuad(const UINT groupNum, QUADDATA &quadData, const CWorld::MinimapQuad &wmmQuad, const float localz, LPCSTR wmoName) {
-  char    fileName[260];
+  char    fileName[MAX_PATH];
   CStatus status;
 
   quadData.m_flags |= 2;
@@ -352,8 +352,8 @@ static void SetupMapObj(DWORD hWorldObject, NTempest::C44Matrix &minimapMtx) {
 }
 
 void LoadMD5Names() {
-  char   md5file[260];
-  char   line[260];
+  char   md5file[MAX_PATH];
+  char   line[MAX_PATH];
   char  *space;
   LPVOID buffer;
   LPCSTR readCursor;

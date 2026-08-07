@@ -218,7 +218,7 @@ void CursorSetHeldItem(DWORDLONG itemGuid) {
   LPCSTR  path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   LPCSTR  art = item->GetInventoryArt();
   LPCSTR  separator = path && *path && art && *art ? "\\" : "";
-  char    buffer[260];
+  char    buffer[MAX_PATH];
   SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, art);
 
   g_cursor->Drop();
@@ -249,7 +249,7 @@ void CursorSetHeldVirtualItem(UINT displayID) {
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   LPCSTR art = CGItem_C::GetInventoryArt(displayID);
   LPCSTR separator = path && *path && art && *art ? "\\" : "";
-  char   buffer[260];
+  char   buffer[MAX_PATH];
   SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, art);
 
   CStatus     status;

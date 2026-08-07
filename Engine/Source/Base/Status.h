@@ -12,7 +12,15 @@ enum STATUS_TYPE {
 
 class CStatus {
  public:
-  struct STATUSENTRY;
+  struct STATUSENTRY {
+    ~STATUSENTRY() {
+      FREEIFUSED(text);
+    }
+
+    char       *text;
+    STATUS_TYPE severity;
+    LINKDECLEX(STATUSENTRY, link);
+  };
 
   virtual ~CStatus();
 
@@ -29,22 +37,12 @@ class CStatus {
   STATUS_TYPE GetHighestSeverity() const;
 
  protected:
-  TSExplicitList<STATUSENTRY, 8> statusList;
+  LISTDECLEX(STATUSENTRY, link, statusList);
 };
 
 struct CNullStatus : public CStatus {
   void Add(int, LPCSTR, ...) {
   }
-};
-
-struct CStatus::STATUSENTRY {
-  ~STATUSENTRY() {
-    FREEIFUSED(text);
-  }
-
-  char       *text;
-  STATUS_TYPE severity;
-  LINKDECLEX(STATUSENTRY, link);
 };
 
 CStatus &GetGlobalStatusObj();

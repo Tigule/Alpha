@@ -100,10 +100,10 @@ class CLightning {
   float                                         mTexCoordScale;
   float                                         mDuration;
   BOOL                                          mRebuildPoints;
-  TSFixedArray_<NTempest::C3Vector, 'Ligh', 38> mPoints;
-  TSFixedArray_<NTempest::C3Vector, 'Ligh', 39> mPos;
-  TSFixedArray_<NTempest::C2Vector, 'Ligh', 40> mTexCoords;
-  TSFixedArray_<WORD, 'Ligh', 41>               mIndices;
+  TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> mPoints;
+  TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> mPos;
+  TSFixedArray_<NTempest::C2Vector, 'Ligh', __LINE__> mTexCoords;
+  TSFixedArray_<WORD, 'Ligh', __LINE__>               mIndices;
   float                                         mAccTime;
   HTEXTURE                                      mTexture;
   LightningCoordUpdateData                      mCoordUpdateData;

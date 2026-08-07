@@ -8,7 +8,7 @@ struct SoundFileInstance {
 };
 
 struct SoundFileObject {
-  char              filename[260];
+  char              filename[MAX_PATH];
   UINT              hash;
   SFile            *file;
   UINT              baseHandle;

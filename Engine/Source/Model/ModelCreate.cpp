@@ -108,7 +108,7 @@ class CHashKeyFilePath {
     return *this;
   }
 
-  char path[260];
+  char path[MAX_PATH];
 };
 
 struct CModelHash : public TSHashObject<CModelHash, CHashKeyFilePath> {
@@ -221,7 +221,7 @@ static void ProcessAnimReorders(CModelBase *modelptr, CModelCreate *data) {
 
 static HMODEL GetModel(LPCSTR modelFName, CModelCreate *data) {
   ASSERT(modelFName);
-  char fileName[260];
+  char fileName[MAX_PATH];
   SStrCopy(fileName, modelFName, sizeof(fileName));
   char *extension = SStrChrR(fileName, '.');
   if (extension) {
@@ -242,7 +242,7 @@ static HMODEL GetModel(LPCSTR modelFName, CModelCreate *data) {
 }
 
 static void HashNewModel(LPCSTR modelFName, HMODEL model, UINT createFlags, CStatus *status) {
-  char  filePath[260];
+  char  filePath[MAX_PATH];
   DWORD currentTime;
 
   ASSERT(modelFName);
@@ -283,7 +283,7 @@ static BOOL MdlReadLoadNumMatrices(const MDLDATA &data, CModelShared *shared, UI
 static void MdxReadNumMatrices(BYTE *data, UINT fileBytes, UINT flags, CModelShared *shared) {
   ASSERT(shared);
 
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 0x454E4F42);
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'ENOB');
   if (!section) {
     shared->numBones = 0;
     return;
@@ -296,13 +296,13 @@ static void MdxReadNumMatrices(BYTE *data, UINT fileBytes, UINT flags, CModelSha
 
   shared->numBones = *reinterpret_cast<UINT *>(section + 4);
   if (flags & 0x20) {
-    section = MDLFileBinarySeek(data, fileBytes, 0x54535448);
+    section = MDLFileBinarySeek(data, fileBytes, 'TSTH');
     if (section) {
       shared->numBones += *reinterpret_cast<UINT *>(section + 4);
     }
   }
 
-  section = MDLFileBinarySeek(data, fileBytes, 0x4E415854);
+  section = MDLFileBinarySeek(data, fileBytes, 'NAXT');
   if (section) {
     shared->numTexBones = *reinterpret_cast<UINT *>(section + 4);
   }
@@ -363,7 +363,7 @@ static void MdxReadHitTestData(BYTE *data, UINT fileBytes, CModelComplex *modelp
   FATALASSERT(modelptr);
   FATALASSERT(shared);
 
-  data = MDLFileBinarySeek(data, fileBytes, 0x54535448);
+  data = MDLFileBinarySeek(data, fileBytes, 'TSTH');
   if (!data) {
     return;
   }
@@ -540,11 +540,11 @@ static void MdxReadExtents(BYTE *data, UINT fileBytes, CModelBase *modelptr, CMo
   ASSERT(modelptr);
   ASSERT(shared);
 
-  BYTE *globalData = MDLFileBinarySeek(data, fileBytes, 0x4C444F4D);
+  BYTE *globalData = MDLFileBinarySeek(data, fileBytes, 'LDOM');
   ASSERT(globalData);
   LoadBoundsData(globalData + 0x158, &shared->bounds);
 
-  globalData = MDLFileBinarySeek(data, fileBytes, 0x53514553);
+  globalData = MDLFileBinarySeek(data, fileBytes, 'SQES');
   if (!globalData) {
     return;
   }
@@ -563,7 +563,7 @@ static void MdxReadExtents(BYTE *data, UINT fileBytes, CModelBase *modelptr, CMo
       globalData += 0x10;
     }
   } else if (NTempest::CMath::fabs_(shared->bounds.sphere.r) < 0.00000023841858f) {
-    globalData = MDLFileBinarySeek(data, fileBytes, 0x53514553);
+    globalData = MDLFileBinarySeek(data, fileBytes, 'SQES');
     if (globalData) {
       LoadBoundsData(globalData + 0x68, &shared->bounds);
     }
@@ -601,7 +601,7 @@ static BOOL MdlReadLoadPositions(const MDLDATA &data, UINT flags, CModelShared *
 }
 
 static void MdxReadPositions(BYTE *fileData, UINT fileBytes, UINT flags, CModelShared *shared) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x54564950);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'TVIP');
   if (!section) {
     return;
   }
@@ -659,20 +659,20 @@ static UINT GetSectionCount(BYTE *fileData, UINT fileBytes, DWORD sectionTag) {
 }
 
 static UINT GetTextureCount(BYTE *fileData, UINT fileBytes) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x53584554);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SXET');
   return section ? *reinterpret_cast<UINT *>(section) / 0x10C : 0;
 }
 
 static BOOL IsSimpleModel(BYTE *fileData, UINT fileBytes) {
-  if (GetSectionCount(fileData, fileBytes, 0x534C544D) > 4 || GetTextureCount(fileData, fileBytes) > 4 ||
-      GetSectionCount(fileData, fileBytes, 0x534F4547) > 5)
+  if (GetSectionCount(fileData, fileBytes, 'SLTM') > 4 || GetTextureCount(fileData, fileBytes) > 4 ||
+      GetSectionCount(fileData, fileBytes, 'SOEG') > 5)
   {
     return 0;
   }
 
-  if (GetSectionCount(fileData, fileBytes, 0x4554494C) || GetSectionCount(fileData, fileBytes, 0x48435441) ||
-      GetSectionCount(fileData, fileBytes, 0x32455250) || GetSectionCount(fileData, fileBytes, 0x42424952) ||
-      GetSectionCount(fileData, fileBytes, 0x534D4143) || GetSectionCount(fileData, fileBytes, 0x54535448))
+  if (GetSectionCount(fileData, fileBytes, 'ETIL') || GetSectionCount(fileData, fileBytes, 'HCTA') ||
+      GetSectionCount(fileData, fileBytes, '2ERP') || GetSectionCount(fileData, fileBytes, 'BBIR') ||
+      GetSectionCount(fileData, fileBytes, 'SMAC') || GetSectionCount(fileData, fileBytes, 'TSTH'))
   {
     return 0;
   }
@@ -891,7 +891,7 @@ void ModelCacheFlush() {
 }
 
 void ModelRemoveFromCache(LPCSTR sourcefile) {
-  char        filePath[260];
+  char        filePath[MAX_PATH];
   char       *extension;
   CModelHash *modelHash;
 
@@ -1047,7 +1047,7 @@ static void AsnycModelPostLoadCallback(LPVOID userArg) {
   ASSERT(shared);
 
   fileData = static_cast<BYTE *>(model->asyncObject->buffer);
-  ASSERT(*reinterpret_cast<UINT *>(fileData) == 0x584C444D);
+  ASSERT(*reinterpret_cast<UINT *>(fileData) == 'XLDM');
   fileBytes = model->asyncObject->size - 4;
   fileData += 4;
   CModelBase *modelptr;
@@ -1153,7 +1153,7 @@ HMODEL ModelCreate(LPCSTR sourcefile, CModelCreate *data, CStatus *status) {
     return model;
   }
 
-  char actualPath[260];
+  char actualPath[MAX_PATH];
   SStrCopy(actualPath, sourcefile, sizeof(actualPath));
   if (IsBinaryFile(actualPath)) {
     return IModelCreate(sourcefile, actualPath, data, useStatus);

@@ -88,7 +88,7 @@ NODEDECL(CMirrorHandler) {
   LPVOID                             param;
   UINT                               blocksLeft;
   UINT                               offset;
-  TSGrowableArray_<BYTE, 'OMGR', 71> previous;
+  TSGrowableArray_<BYTE, 'OMGR', __LINE__> previous;
   HANDLER_PRIORITY                   priority;
 };
 

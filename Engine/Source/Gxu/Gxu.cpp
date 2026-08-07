@@ -10,11 +10,8 @@
 #include <stpl.h>
 #include <windows.h>
 
-#ifdef INFINITY
-#undef INFINITY
-#endif
 static NTempest::CImVector                            image[64];
-static TSFixedArray_<NTempest::C3Vector, 'GxuT', 759> tmpVtx;
+static TSFixedArray_<NTempest::C3Vector, 'GxuT', __LINE__> tmpVtx;
 
 static float D3dCeil(float f) {
   return static_cast<float>(ceil(floor(f * 16.0f + 0.5f) * 0.0625f));

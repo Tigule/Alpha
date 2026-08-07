@@ -10,6 +10,7 @@
 #include "DB/WowLocale.h"
 #include "Object/ItemStats.h"
 #include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Container_C.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Player_C.h"
@@ -67,11 +68,11 @@ static BOOL InvUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
 
 void CGContainerInfo::EnterWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
-  ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + 152, 32, InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  for (UINT offset = 184; offset <= 304; offset += 8) {
-    ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offset, 8, UpdateInvContents, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + INVSLOT_BAG0 * sizeof(DWORDLONG), NUM_BAG_SLOTS * sizeof(DWORDLONG), InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  for (UINT offset = BACKPACK_FIRST * sizeof(DWORDLONG); offset <= BACKPACK_LAST * sizeof(DWORDLONG); offset += sizeof(DWORDLONG)) {
+    ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + offset, sizeof(DWORDLONG), UpdateInvContents, 0, HANDLER_PRIORITY_NORMAL);
   }
-  ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + 504, 48, InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + BANKBAG_FIRST * sizeof(DWORDLONG), NUM_BANKBAG_SLOTS * sizeof(DWORDLONG), InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   memset(m_containers, 0, sizeof(m_containers));
   UpdateContainers();
 }
@@ -85,7 +86,7 @@ void CGContainerInfo::LeaveWorld() {
       if (object) {
         CGBag_C *bag = object->GetBag();
         for (UINT slot = 0; slot < bag->NumSlots(); ++slot) {
-          ClntObjMgrUnsetObjMirrorHandler(container, containerOffset + 8 * slot + 8, UpdateContainerContents, 0);
+          ClntObjMgrUnsetObjMirrorHandler(container, containerOffset + offsetof(CGContainerData, m_slots) + slot * sizeof(DWORDLONG), UpdateContainerContents, 0);
         }
       }
       FrameScript_SignalEvent(306, "%d", i + 1);
@@ -94,11 +95,11 @@ void CGContainerInfo::LeaveWorld() {
 
   DWORDLONG player = ClntObjMgrGetActivePlayer();
   UINT      playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  for (UINT offset = 184; offset <= 304; offset += 8) {
-    ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offset, UpdateInvContents, 0);
+  for (UINT offset = BACKPACK_FIRST * sizeof(DWORDLONG); offset <= BACKPACK_LAST * sizeof(DWORDLONG); offset += sizeof(DWORDLONG)) {
+    ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, invSlots) + offset, UpdateInvContents, 0);
   }
-  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + 152, InvUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + 504, InvUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, invSlots) + INVSLOT_BAG0 * sizeof(DWORDLONG), InvUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, invSlots) + BANKBAG_FIRST * sizeof(DWORDLONG), InvUpdateHandler, 0);
 }
 
 void CGContainerInfo::UpdateContainers() {
@@ -110,7 +111,7 @@ void CGContainerInfo::UpdateContainers() {
   CGBag_C *inventory = object->GetBag();
   UINT     containerOffset = CGUnit_C::OffsetOf(ID_CONTAINER);
   for (UINT index = 0; index < 10; ++index) {
-    UINT      slot = index < 4 ? index + 19 : index + 59;
+    UINT      slot = index < NUM_BAG_SLOTS ? INVSLOT_BAG0 + index : BANKBAG_FIRST + index - NUM_BAG_SLOTS;
     DWORDLONG container = inventory->GetItem(slot);
     if (container == m_containers[index]) {
       continue;
@@ -121,7 +122,7 @@ void CGContainerInfo::UpdateContainers() {
       if (oldObject) {
         CGBag_C *oldBag = oldObject->GetBag();
         for (UINT item = 0; item < oldBag->NumSlots(); ++item) {
-          ClntObjMgrUnsetObjMirrorHandler(m_containers[index], containerOffset + 8 * item + 8, UpdateContainerContents, 0);
+          ClntObjMgrUnsetObjMirrorHandler(m_containers[index], containerOffset + offsetof(CGContainerData, m_slots) + item * sizeof(DWORDLONG), UpdateContainerContents, 0);
         }
       }
       FrameScript_SignalEvent(306, "%d", index + 1);
@@ -132,7 +133,7 @@ void CGContainerInfo::UpdateContainers() {
       if (newObject) {
         CGBag_C *newBag = newObject->GetBag();
         for (UINT item = 0; item < newBag->NumSlots(); ++item) {
-          ClntObjMgrSetObjMirrorHandler(container, containerOffset + 8 * item + 8, 8, UpdateContainerContents, 0, HANDLER_PRIORITY_NORMAL);
+          ClntObjMgrSetObjMirrorHandler(container, containerOffset + offsetof(CGContainerData, m_slots) + item * sizeof(DWORDLONG), sizeof(DWORDLONG), UpdateContainerContents, 0, HANDLER_PRIORITY_NORMAL);
         }
       }
     }
@@ -213,7 +214,7 @@ static int Script_GetContainerItemInfo(lua_State *L) {
   }
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   LPCSTR separator = path && *path ? "\\" : "";
-  char   buffer[260];
+  char   buffer[MAX_PATH];
   SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, item->GetInventoryArt());
   lua_pushstring(L, buffer);
   lua_pushnumber(L, static_cast<double>(item->GetStackCount()));
@@ -478,7 +479,7 @@ static int Script_SetBagPortaitTexture(lua_State *L) {
   if (item) {
     LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     LPCSTR separator = path && *path ? "\\" : "";
-    char   buffer[260];
+    char   buffer[MAX_PATH];
     SStrPrintf(buffer, sizeof(buffer), "%s%s%s.blp", path, separator, item->GetInventoryArt());
     SetPortraitTexture(texture, buffer);
   }

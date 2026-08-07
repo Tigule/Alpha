@@ -48,7 +48,7 @@ class CMyLoader : public IDirectMusicLoader {
 
  private:
   long    m_cRef;
-  wchar_t m_wzSearchPath[260];
+  wchar_t m_wzSearchPath[MAX_PATH];
 };
 
 class CMyIStream : public IStream, public IDirectMusicGetLoader {
@@ -322,8 +322,8 @@ long CMyLoader::Init() {
 long __stdcall CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv) {
   wchar_t             wzExt[256];
   DMUS_OBJECTDESC     DESC;
-  wchar_t             wzFileName[260];
-  char                name[260];
+  wchar_t             wzFileName[MAX_PATH];
+  char                name[MAX_PATH];
   IDirectMusicObject *pObject = 0;
   IPersistStream     *pPersistStream = 0;
   const GUID         *pGUID = &myDesc->guidClass;

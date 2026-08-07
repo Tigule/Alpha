@@ -135,22 +135,22 @@ struct CPrimitive {
   UINT    vertexCount;
 };
 
-typedef TSFixedArray_<NTempest::C2Vector, 'IMod', 266> CModelTexCoordArray;
+typedef TSFixedArray_<NTempest::C2Vector, 'IMod', __LINE__> CModelTexCoordArray;
 
 struct CGeosetShared {
   CGeosetShared() : vertexShader(GxVS_PassThru), materialId(0), centroid(0.0f), radius(0.0f), selectionGroup(0), geosetId(0), flags(0) {
   }
 
-  TSFixedArray_<NTempest::C3Vector, 'IMod', 276>  position;
-  TSFixedArray_<BYTE, 'IMod', 277>                boneWeights;
-  TSFixedArray_<NTempest::C3Vector, 'IMod', 278>  normal;
-  TSFixedArray_<CModelTexCoordArray, 'IMod', 279> texCoord;
-  TSFixedArray_<CPrimitive, 'IMod', 280>          primitive;
-  TSFixedArray_<WORD, 'IMod', 281>                primitiveVertices;
-  TSFixedArray_<UINT, 'IMod', 282>                groupMatrixCounts;
-  TSFixedArray_<UINT, 'IMod', 283>                matrices;
-  TSFixedArray_<UINT, 'IMod', 284>                hwBoneIndices;
-  TSFixedArray_<UINT, 'IMod', 285>                hwBoneWeights;
+  TSFixedArray_<NTempest::C3Vector, 'IMod', __LINE__>  position;
+  TSFixedArray_<BYTE, 'IMod', __LINE__>                boneWeights;
+  TSFixedArray_<NTempest::C3Vector, 'IMod', __LINE__>  normal;
+  TSFixedArray_<CModelTexCoordArray, 'IMod', __LINE__> texCoord;
+  TSFixedArray_<CPrimitive, 'IMod', __LINE__>          primitive;
+  TSFixedArray_<WORD, 'IMod', __LINE__>                primitiveVertices;
+  TSFixedArray_<UINT, 'IMod', __LINE__>                groupMatrixCounts;
+  TSFixedArray_<UINT, 'IMod', __LINE__>                matrices;
+  TSFixedArray_<UINT, 'IMod', __LINE__>                hwBoneIndices;
+  TSFixedArray_<UINT, 'IMod', __LINE__>                hwBoneWeights;
   EGxVertexShader                                 vertexShader;
   UINT                                            materialId;
   NTempest::C3Vector                              centroid;
@@ -262,7 +262,7 @@ struct CModelShared : public CHandleObject {
 
   TSFixedArray<CBoundsData>                      seqBounds;
   TSFixedArray<UINT>                             attachIdToIndex;
-  TSFixedArray_<NTempest::C3Vector, 'IMod', 376> positions;
+  TSFixedArray_<NTempest::C3Vector, 'IMod', __LINE__> positions;
   TSFixedArray<CHitTest>                         hitTest;
   TSFixedArray<CGeosetShared>                    geosets;
   TSFixedArray<UINT>                             emitter2Order;
@@ -271,7 +271,7 @@ struct CModelShared : public CHandleObject {
   UINT                                           numTexBones;
   GROUND_TRACK                                   groundTrack;
   HCOLLISIONDATA                                 collision;
-  char                                           name[260];
+  char                                           name[MAX_PATH];
   CBoundsData                                    bounds;
   BYTE                                           numGeosets;
   BYTE                                           numLayers;
@@ -349,7 +349,7 @@ class CModelComplex : public CModelBase {
   TSGrowableArray<CModelTexture>    m_textures;
   TSFixedArray<DWORD>               m_lights;
   TSFixedArray<LIST(LINKUNIQUE)>    m_attached;
-  TSFixedArray_<BYTE, 'MDLF', 484>  m_attachmentFlags;
+  TSFixedArray_<BYTE, 'MDLF', __LINE__>  m_attachmentFlags;
   TSFixedArray<CParticleEmitter2 *> m_emitters2;
   TSFixedArray<CRibbonEmitter *>    m_ribbons;
   TSFixedArray<HCAMERA>             m_cameras;

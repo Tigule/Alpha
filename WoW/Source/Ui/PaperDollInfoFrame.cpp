@@ -82,14 +82,14 @@ void CGCharacterInfo::LeaveWorld() {
 void CGCharacterInfo::InstallMirrorHandlers(DWORDLONG player) {
   if (player) {
     UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-    ClntObjMgrSetObjMirrorHandler(player, playerOffset + 1756, 8, PlayerCharacterPointsUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, characterPoints), sizeof(((CGPlayerData *)0)->characterPoints), PlayerCharacterPointsUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   }
 }
 
 void CGCharacterInfo::RemoveMirrorHandlers(DWORDLONG player) {
   if (player) {
     UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-    ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + 1756, PlayerCharacterPointsUpdateHandler, 0);
+    ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, characterPoints), PlayerCharacterPointsUpdateHandler, 0);
   }
 }
 
@@ -460,7 +460,7 @@ static int Script_GetInventoryItemTexture(lua_State *L) {
   }
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   LPCSTR separator = path && *path ? "\\" : "";
-  char   buffer[260];
+  char   buffer[MAX_PATH];
   SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, item->GetInventoryArt());
   lua_pushstring(L, buffer);
   return 1;
@@ -708,7 +708,7 @@ static int Script_SetInventoryPortaitTexture(lua_State *L) {
   if (item) {
     LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     LPCSTR separator = path && *path ? "\\" : "";
-    char   buffer[260];
+    char   buffer[MAX_PATH];
     SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, item->GetInventoryArt());
     SetPortraitTexture(texture, buffer);
   }

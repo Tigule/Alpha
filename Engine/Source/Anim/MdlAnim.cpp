@@ -137,9 +137,9 @@ GenericHandlerAnim(BYTE *fileData, CAnimData *shared, CAnimObj *currobj, const U
   AnimObjectSetIndex(shared, currobj, objectId);
   currobj->flags = GetObjectFlags(*reinterpret_cast<UINT *>(fileData + 92));
   fileData += 96;
-  fileData = AddKeyFramesType(fileData, dataDone - fileData, 0x5254474B, shared, &currobj->translation, forceType);
+  fileData = AddKeyFramesType(fileData, dataDone - fileData, 'RTGK', shared, &currobj->translation, forceType);
   fileData = AnimObjectSetRotation(fileData, dataDone - fileData, shared, currobj, forceType);
-  fileData = AddKeyFramesType(fileData, dataDone - fileData, 0x4353474B, shared, &currobj->scale, forceType);
+  fileData = AddKeyFramesType(fileData, dataDone - fileData, 'CSGK', shared, &currobj->scale, forceType);
   FATALASSERT(fileData == dataDone);
   return fileData;
 }
@@ -191,17 +191,17 @@ BYTE *CreateParticleEmitter2(BYTE *fileData, CAnimData *shared, const UINT *idCo
   data += *reinterpret_cast<UINT *>(data);
   currobj->squirts = *reinterpret_cast<UINT *>(data);
   data += sizeof(UINT);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x4532504B, shared, &currobj->emissionRate, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x4732504B, shared, &currobj->gravity, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x4E4C504B, shared, &currobj->longitude, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x4C32504B, shared, &currobj->latitude, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x5332504B, shared, &currobj->particleSpeed, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x5232504B, shared, &currobj->variation, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x4E32504B, shared, &currobj->length, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x5732504B, shared, &currobj->width, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x5A32504B, shared, &currobj->zsource, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x5349564B, shared, &currobj->visibility, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x46494C4B, shared, &currobj->lifeSpan, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'E2PK', shared, &currobj->emissionRate, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'G2PK', shared, &currobj->gravity, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'NLPK', shared, &currobj->longitude, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'L2PK', shared, &currobj->latitude, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'S2PK', shared, &currobj->particleSpeed, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'R2PK', shared, &currobj->variation, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'N2PK', shared, &currobj->length, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'W2PK', shared, &currobj->width, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'Z2PK', shared, &currobj->zsource, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'SIVK', shared, &currobj->visibility, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'FILK', shared, &currobj->lifeSpan, forceType);
   ASSERT(data == (fileData + sectionLength));
   return data;
 }
@@ -249,7 +249,7 @@ BYTE *CreateAttachmentPoint(BYTE *fileData, CAnimData *shared, const UINT *idCon
   BYTE *data = GenericHandlerAnim(fileData + 4, shared, currobj, idConversion, parentIds, forceType);
   currobj->geosetId = *(data + 4);
   data += 0x109;
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 0x5349564B, shared, &currobj->visibility, forceType);
+  data = AddKeyFramesType(data, fileData + sectionLength - data, 'SIVK', shared, &currobj->visibility, forceType);
   ASSERT(data == (fileData + sectionLength));
   return data;
 }
@@ -280,7 +280,7 @@ void BuildHierarchy(CAnimData *shared, const UINT *parentIds, const UINT *idConv
 }
 
 UINT GetGenObjectCount(BYTE *fileData, UINT fileBytes) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x4C444F4D);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'LDOM');
   ASSERT(section);
   return *reinterpret_cast<UINT *>(section + 373);
 }
@@ -334,7 +334,7 @@ UINT AnimBuildObjectIdTranslation(BYTE *fileData, UINT fileBytes, UINT flags, UI
 
   UINT numRemoved = 0;
   if (!(flags & 1)) {
-    BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x54535448);
+    BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'TSTH');
     if (section) {
       UINT count = *reinterpret_cast<UINT *>(section + 4);
       UINT firstObject = *reinterpret_cast<UINT *>(section + 96);
@@ -352,7 +352,7 @@ UINT AnimBuildObjectIdTranslation(BYTE *fileData, UINT fileBytes, UINT flags, UI
     return numRemoved;
   }
 
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x4554494C);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'ETIL');
   if (!section) {
     return numRemoved;
   }
@@ -563,7 +563,7 @@ static void IAnimCreateObjects(CAnimData *shared, const MDLDATA &data, UINT flag
 void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT flags, const UINT *idConversion, UINT *parentIds) {
   MDLTRACKTYPE forceType = (flags & 4) ? TRACK_LINEAR : NUM_TRACK_TYPES;
 
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x454E4F42);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'ENOB');
   if (section) {
     BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
     UINT  count = *reinterpret_cast<UINT *>(section + 4);
@@ -575,7 +575,7 @@ void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT 
   }
 
   if (flags & 1) {
-    section = MDLFileBinarySeek(fileData, fileBytes, 0x54535448);
+    section = MDLFileBinarySeek(fileData, fileBytes, 'TSTH');
     if (section) {
       BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
       UINT  count = *reinterpret_cast<UINT *>(section + 4);
@@ -588,7 +588,7 @@ void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT 
   }
 
   if (!(flags & 2)) {
-    section = MDLFileBinarySeek(fileData, fileBytes, 0x4554494C);
+    section = MDLFileBinarySeek(fileData, fileBytes, 'ETIL');
     if (section) {
       BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
       UINT  count = *reinterpret_cast<UINT *>(section + 4);
@@ -600,7 +600,7 @@ void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT 
     }
   }
 
-  section = MDLFileBinarySeek(fileData, fileBytes, 0x504C4548);
+  section = MDLFileBinarySeek(fileData, fileBytes, 'PLEH');
   if (section) {
     BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
     UINT  count = *reinterpret_cast<UINT *>(section + 4);
@@ -611,7 +611,7 @@ void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT 
     ASSERT(data == dataDone);
   }
 
-  section = MDLFileBinarySeek(fileData, fileBytes, 0x48435441);
+  section = MDLFileBinarySeek(fileData, fileBytes, 'HCTA');
   if (section) {
     BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
     UINT  count = *reinterpret_cast<UINT *>(section + 4);
@@ -622,7 +622,7 @@ void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT 
     ASSERT(data == dataDone);
   }
 
-  section = MDLFileBinarySeek(fileData, fileBytes, 0x32455250);
+  section = MDLFileBinarySeek(fileData, fileBytes, '2ERP');
   if (section) {
     BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
     UINT  count = *reinterpret_cast<UINT *>(section + 4);
@@ -633,7 +633,7 @@ void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT 
     ASSERT(data == dataDone);
   }
 
-  section = MDLFileBinarySeek(fileData, fileBytes, 0x42424952);
+  section = MDLFileBinarySeek(fileData, fileBytes, 'BBIR');
   if (section) {
     BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
     UINT  count = *reinterpret_cast<UINT *>(section + 4);
@@ -644,7 +644,7 @@ void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT 
     ASSERT(data == dataDone);
   }
 
-  section = MDLFileBinarySeek(fileData, fileBytes, 0x53545645);
+  section = MDLFileBinarySeek(fileData, fileBytes, 'STVE');
   if (section) {
     BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
     UINT  count = *reinterpret_cast<UINT *>(section + 4);
@@ -697,25 +697,25 @@ static UINT CountSectionEntries(BYTE *fileData, UINT fileBytes, DWORD tag) {
 
 HANIM AnimCreate(BYTE *fileData, UINT fileBytes, UINT flags) {
   UINT  animatedLayers = 0;
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x534C544D);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SLTM');
   if (section) {
     animatedLayers = *reinterpret_cast<UINT *>(section + 8);
   }
 
   UINT objectCounts[7];
-  objectCounts[0] = CountSectionEntries(fileData, fileBytes, 0x504C4548);
-  objectCounts[1] = (flags & 2) ? 0 : CountSectionEntries(fileData, fileBytes, 0x4554494C);
-  objectCounts[2] = CountSectionEntries(fileData, fileBytes, 0x48435441);
-  objectCounts[3] = CountSectionEntries(fileData, fileBytes, 0x454E4F42);
+  objectCounts[0] = CountSectionEntries(fileData, fileBytes, 'PLEH');
+  objectCounts[1] = (flags & 2) ? 0 : CountSectionEntries(fileData, fileBytes, 'ETIL');
+  objectCounts[2] = CountSectionEntries(fileData, fileBytes, 'HCTA');
+  objectCounts[3] = CountSectionEntries(fileData, fileBytes, 'ENOB');
   if (flags & 1) {
-    objectCounts[3] += CountSectionEntries(fileData, fileBytes, 0x54535448);
+    objectCounts[3] += CountSectionEntries(fileData, fileBytes, 'TSTH');
   }
-  objectCounts[4] = CountSectionEntries(fileData, fileBytes, 0x32455250);
-  objectCounts[5] = CountSectionEntries(fileData, fileBytes, 0x42424952);
-  objectCounts[6] = CountSectionEntries(fileData, fileBytes, 0x53545645);
+  objectCounts[4] = CountSectionEntries(fileData, fileBytes, '2ERP');
+  objectCounts[5] = CountSectionEntries(fileData, fileBytes, 'BBIR');
+  objectCounts[6] = CountSectionEntries(fileData, fileBytes, 'STVE');
 
-  UINT   numGeosets = CountSectionEntries(fileData, fileBytes, 0x414F4547);
-  UINT   numCameras = CountSectionEntries(fileData, fileBytes, 0x534D4143);
+  UINT   numGeosets = CountSectionEntries(fileData, fileBytes, 'AOEG');
+  UINT   numCameras = CountSectionEntries(fileData, fileBytes, 'SMAC');
   CAnim *unique = AnimCreate(objectCounts, numGeosets, numCameras, animatedLayers);
   if (!AnimBuild(fileData, fileBytes, unique, flags)) {
     return 0;

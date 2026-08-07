@@ -574,7 +574,7 @@ static int Script_GetQuestItemInfo(lua_State *L) {
   if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
     return luaL_error(L, "Invalid quest item in GetQuestItemInfo(\"type\", index)");
   }
-  char texture[260];
+  char texture[MAX_PATH];
   char name[256];
   int  quality;
   int  usable;

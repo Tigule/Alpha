@@ -1192,20 +1192,20 @@ void ScriptEventsRegisterUnit(CGUnit_C *unit) {
       bytes = 24;
     }
 
-    ClntObjMgrSetObjMirrorHandler(guid, unitOffset + 4 * event, bytes, UnitUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(guid, unitOffset + event * sizeof(UINT), bytes, UnitUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
     Script_SendUnitSignal(guid, event);
   }
 
   if (unit->GetType() & TYPE_PLAYER) {
     UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-    for (UINT offset = 0; offset <= 176; offset += 8) {
-      ClntObjMgrSetObjMirrorHandler(guid, playerOffset + offset, 8, UnitInventoryUpdate, 0, HANDLER_PRIORITY_NORMAL);
+    for (UINT offset = 0; offset <= INVSLOT_LAST * sizeof(DWORDLONG); offset += sizeof(DWORDLONG)) {
+      ClntObjMgrSetObjMirrorHandler(guid, playerOffset + offsetof(CGPlayerData, invSlots) + offset, sizeof(DWORDLONG), UnitInventoryUpdate, 0, HANDLER_PRIORITY_NORMAL);
     }
     Script_SendUnitSignal(guid, 183);
 
     if (guid == ClntObjMgrGetActivePlayer()) {
-      ClntObjMgrSetObjMirrorHandler(guid, playerOffset + 592, 4, PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-      ClntObjMgrSetObjMirrorHandler(guid, playerOffset + 596, 4, PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+      ClntObjMgrSetObjMirrorHandler(guid, playerOffset + offsetof(CGPlayerData, XP), sizeof(((CGPlayerData *)0)->XP), PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+      ClntObjMgrSetObjMirrorHandler(guid, playerOffset + offsetof(CGPlayerData, nextLevelXP), sizeof(((CGPlayerData *)0)->nextLevelXP), PlayerXPUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
       FrameScript_SignalEvent(185);
     }
   }
@@ -1220,18 +1220,18 @@ void ScriptEventsUnregisterUnit(CGUnit_C *unit) {
   UINT      unitOffset = CGPlayer_C::OffsetOf(ID_UNIT);
   for (UINT event = 0; event < 178; ++event) {
     if (g_scriptEvents[event]) {
-      ClntObjMgrUnsetObjMirrorHandler(guid, unitOffset + 4 * event, UnitUpdateHandler, 0);
+      ClntObjMgrUnsetObjMirrorHandler(guid, unitOffset + event * sizeof(UINT), UnitUpdateHandler, 0);
     }
   }
 
   if (unit->GetType() & TYPE_PLAYER) {
     UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-    for (UINT offset = 0; offset <= 176; offset += 8) {
-      ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + offset, UnitInventoryUpdate, 0);
+    for (UINT offset = 0; offset <= INVSLOT_LAST * sizeof(DWORDLONG); offset += sizeof(DWORDLONG)) {
+      ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + offsetof(CGPlayerData, invSlots) + offset, UnitInventoryUpdate, 0);
     }
     if (guid == ClntObjMgrGetActivePlayer()) {
-      ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + 592, PlayerXPUpdateHandler, 0);
-      ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + 596, PlayerXPUpdateHandler, 0);
+      ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + offsetof(CGPlayerData, XP), PlayerXPUpdateHandler, 0);
+      ClntObjMgrUnsetObjMirrorHandler(guid, playerOffset + offsetof(CGPlayerData, nextLevelXP), PlayerXPUpdateHandler, 0);
     }
   }
 }

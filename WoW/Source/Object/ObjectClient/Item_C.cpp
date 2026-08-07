@@ -97,8 +97,8 @@ CGItem_C::~CGItem_C() {
 
 void CGItem_C::InstallObjMirrorHandlers() {
   UINT offset = OffsetOf(ID_ITEM);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), offset, 8, OnUpdateOwner, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), offset + offsetof(CGItemData, m_stackCount), 4, OnUpdateStackCount, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), offset + offsetof(CGItemData, m_owner), sizeof(((CGItemData *)0)->m_owner), OnUpdateOwner, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), offset + offsetof(CGItemData, m_stackCount), sizeof(((CGItemData *)0)->m_stackCount), OnUpdateStackCount, 0, HANDLER_PRIORITY_NORMAL);
   ClntObjMgrSetObjMirrorHandler(
       GetGUID(), offset + offsetof(CGItemData, m_enchantment), sizeof(m_item->m_enchantment), OnUpdateEnchantments, 0, HANDLER_PRIORITY_NORMAL
   );
@@ -285,8 +285,8 @@ void CGItem_C::Disable(int shutdown) {
 
   UINT offset = OffsetOf(ID_ITEM);
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset, OnUpdateOwner, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset + 24, OnUpdateStackCount, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset + 56, OnUpdateEnchantments, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset + offsetof(CGItemData, m_stackCount), OnUpdateStackCount, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset + offsetof(CGItemData, m_enchantment), OnUpdateEnchantments, 0);
 
   if (CGGameUI::GetCursorItem() == GetGUID()) {
     CGGameUI::ClearCursor(0);

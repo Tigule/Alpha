@@ -277,7 +277,7 @@ static BOOL IsBinaryModelFile(char *path) {
 BOOL CDetailDoodadData::Load() {
   FATALASSERT(fileName);
 
-  char pathName[260];
+  char pathName[MAX_PATH];
   SStrCopy(pathName, "World\\NoDXT\\Detail\\", sizeof(pathName));
   SStrPack(pathName, fileName, sizeof(pathName));
 
@@ -303,7 +303,7 @@ void CDetailDoodadData::MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailD
   FATALASSERT(detailDoodad);
   FATALASSERT(detailDoodad->geom == 0);
 
-  BYTE *texSection = MDLFileBinarySeek(fileData, fileBytes, 0x53584554);
+  BYTE *texSection = MDLFileBinarySeek(fileData, fileBytes, 'SXET');
   FATALASSERT(texSection);
   UINT sectionBytes = *reinterpret_cast<UINT *>(texSection);
   FATALASSERT(sectionBytes == 268);
@@ -315,39 +315,39 @@ void CDetailDoodadData::MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailD
   detailDoodad->geom = geom;
   geom->texture = 0;
 
-  BYTE *geoSection = MDLFileBinarySeek(fileData, fileBytes, 0x534F4547);
+  BYTE *geoSection = MDLFileBinarySeek(fileData, fileBytes, 'SOEG');
   FATALASSERT(geoSection);
   UINT *data = reinterpret_cast<UINT *>(geoSection);
   FATALASSERT(data[1] == 1);
   data += 3;
 
-  FATALASSERT(*data++ == 0x58545256);
+  FATALASSERT(*data++ == 'XTRV');
   UINT nVertices = *data++;
   geom->vertexList.SetCount(nVertices);
   memcpy(geom->vertexList.Ptr(), data, nVertices * sizeof(NTempest::C3Vector));
   data += 3 * nVertices;
 
-  FATALASSERT(*data++ == 0x534D524E);
+  FATALASSERT(*data++ == 'SMRN');
   FATALASSERT(*data++ == nVertices);
   geom->normalList.SetCount(nVertices);
   memcpy(geom->normalList.Ptr(), data, nVertices * sizeof(NTempest::C3Vector));
   data += 3 * nVertices;
 
-  FATALASSERT(*data++ == 0x53415655);
+  FATALASSERT(*data++ == 'SAVU');
   FATALASSERT(*data++ == 1);
   geom->tVertexList.SetCount(nVertices);
   memcpy(geom->tVertexList.Ptr(), data, nVertices * sizeof(NTempest::C2Vector));
   data += 2 * nVertices;
 
-  FATALASSERT(*data++ == 0x50595450);
+  FATALASSERT(*data++ == 'PYTP');
   UINT primitiveTypeBytes = *data++;
   data = reinterpret_cast<UINT *>(reinterpret_cast<BYTE *>(data) + primitiveTypeBytes);
 
-  FATALASSERT(*data++ == 0x544E4350);
+  FATALASSERT(*data++ == 'TNCP');
   UINT primitiveCount = *data++;
   data += primitiveCount;
 
-  FATALASSERT(*data++ == 0x58545650);
+  FATALASSERT(*data++ == 'XTVP');
   UINT nPrims = *data++;
   geom->indexList.SetCount(nPrims);
   memcpy(geom->indexList.Ptr(), data, nPrims * sizeof(WORD));

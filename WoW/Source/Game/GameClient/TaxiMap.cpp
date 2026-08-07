@@ -64,7 +64,7 @@ static bool UpdateTexture(int continentID) {
     return true;
   }
 
-  char fileName[260];
+  char fileName[MAX_PATH];
   SStrPrintf(fileName, sizeof(fileName), "Textures\\TaxiMaps\\TaxiMap%02d", continentID);
   s_continent = continentID;
   if (!fileName[0]) {

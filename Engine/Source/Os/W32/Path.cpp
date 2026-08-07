@@ -126,7 +126,7 @@ void OsPathGetFilename(LPCSTR path, char *buffer, UINT size) {
 void OsPathGetLastDirectory(LPCSTR string, char *buffer, UINT size) {
   FATALASSERT(string && buffer && size);
 
-  char path[260];
+  char path[MAX_PATH];
   SStrCopy(path, string, sizeof(path));
   OsPathStripFilename(path);
 
@@ -171,7 +171,7 @@ BOOL OsFileNameIsValid(LPCSTR filename) {
     return 0;
   }
 
-  char   filenameNoExt[260];
+  char   filenameNoExt[MAX_PATH];
   LPCSTR extension = SStrChrR(filename, '.');
   UINT   chars = extension ? static_cast<UINT>(extension - filename + 1) : sizeof(filenameNoExt);
   if (chars >= sizeof(filenameNoExt)) {

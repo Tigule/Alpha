@@ -201,48 +201,6 @@ struct TEXTURECACHE {
   TSFixedArray<TEXTURECACHEROW> m_textureRows;
 };
 
-NODEDECL(CGxFont) {
-  CGxFont();
-  ~CGxFont();
-
-  int                 Initialize(LPCSTR name, UINT newFlags, float fontHeight);
-  void                HandleScreenSizeChange();
-  LPCSTR              GetName() const;
-  void                Clear();
-  void                ClearGlyphs();
-  int                 UpdateDimensions();
-  void                UpdateTextures();
-  int                 CheckStringGlyphs(LPCSTR string);
-  UINT                GetNumCurrentTextures();
-  const CHARCODEDESC *NewCodeDesc(UINT code);
-  int                 GetGlyphData(GLYPHBITMAPDATA * glyphData, FT_FaceRec_ * face, UINT code);
-  void                RegisterEvictNotice(UINT pageNumber);
-  float               ComputeStep(UINT currentCode, UINT nextCode);
-  float               ComputeStepFixedWidth(UINT currentCode, UINT nextCode);
-  float               GetCharAdvance(UINT code);
-  UINT                GetFlags() const {
-    return m_flags;
-  }
-
-  TSExplicitList<CGxString, 8> m_strings;
-  LINKDECLEX(CGxFont, m_batchedRenderLink);
-  TSHashTable<GLYPHBITMAPDATA, HASHKEY_NONE> m_glyphBitmapData;
-  TSHashTable<CHARCODEDESC, HASHKEY_NONE>    m_activeCharacters;
-  TSHashTable<KERNNODE, KERNINGHASHKEY>      m_kernInfo;
-  LISTDECLEX(CHARCODEDESC, fontGlyphLink, m_activeCharacterCache);
-  HFACE__     *m_faceHandle;
-  UINT         m_pixelSize;
-  UINT         m_rasterPixelSize;
-  char         m_fontName[0x104];
-  UINT         m_cellHeight;
-  UINT         m_baseline;
-  UINT         m_flags;
-  float        m_requestedFontHeight;
-  float        m_currentFontHeight;
-  float        m_pixelsPerUnit;
-  TEXTURECACHE m_textureCache[8];
-};
-
 struct GXUFONTHYPERLINKINFO {
   NTempest::CRect extent;
   LPCSTR          link;
@@ -414,6 +372,48 @@ NODEDECL(CGxString) {
   void        RenderTexture(int line, int texture);
 
   friend struct BATCHEDRENDERFONTDESC;
+};
+
+NODEDECL(CGxFont) {
+  CGxFont();
+  ~CGxFont();
+
+  int                 Initialize(LPCSTR name, UINT newFlags, float fontHeight);
+  void                HandleScreenSizeChange();
+  LPCSTR              GetName() const;
+  void                Clear();
+  void                ClearGlyphs();
+  int                 UpdateDimensions();
+  void                UpdateTextures();
+  int                 CheckStringGlyphs(LPCSTR string);
+  UINT                GetNumCurrentTextures();
+  const CHARCODEDESC *NewCodeDesc(UINT code);
+  int                 GetGlyphData(GLYPHBITMAPDATA * glyphData, FT_FaceRec_ * face, UINT code);
+  void                RegisterEvictNotice(UINT pageNumber);
+  float               ComputeStep(UINT currentCode, UINT nextCode);
+  float               ComputeStepFixedWidth(UINT currentCode, UINT nextCode);
+  float               GetCharAdvance(UINT code);
+  UINT                GetFlags() const {
+    return m_flags;
+  }
+
+  LISTDECLEX(CGxString, m_fontStringLink, m_strings);
+  LINKDECLEX(CGxFont, m_batchedRenderLink);
+  TSHashTable<GLYPHBITMAPDATA, HASHKEY_NONE> m_glyphBitmapData;
+  TSHashTable<CHARCODEDESC, HASHKEY_NONE>    m_activeCharacters;
+  TSHashTable<KERNNODE, KERNINGHASHKEY>      m_kernInfo;
+  LISTDECLEX(CHARCODEDESC, fontGlyphLink, m_activeCharacterCache);
+  HFACE__     *m_faceHandle;
+  UINT         m_pixelSize;
+  UINT         m_rasterPixelSize;
+  char         m_fontName[MAX_PATH];
+  UINT         m_cellHeight;
+  UINT         m_baseline;
+  UINT         m_flags;
+  float        m_requestedFontHeight;
+  float        m_currentFontHeight;
+  float        m_pixelsPerUnit;
+  TEXTURECACHE m_textureCache[8];
 };
 
 struct BATCHEDRENDERFONTDESC : public TSHashObject<BATCHEDRENDERFONTDESC, HASHKEY_PTR> {

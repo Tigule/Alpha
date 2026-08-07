@@ -10,7 +10,7 @@
 #include <math.h>
 
 static NTempest::CRndSeed                            sRandSeed;
-static TSFixedArray_<NTempest::C3Vector, 'Ligh', 74> sPoints;
+static TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> sPoints;
 static NTempest::C44Matrix                           identity;
 static NTempest::C44Matrix                           worldToView;
 static NTempest::C44Matrix                           particleToView;

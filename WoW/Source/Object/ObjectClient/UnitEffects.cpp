@@ -137,10 +137,10 @@ void PreloadModelsByKit(int record, CStatus *status) {
 static void SpellAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
   UINT event = *reinterpret_cast<const UINT *>(eventName);
   switch (event) {
-    case 0x444E5324:  // $SND
-    case 0x58444E53:  // SNDX
+    case 'DNS$':
+    case 'XDNS':
       break;
-    case 0x4B485324:  // $SHK
+    case 'KHS$':
       SpellCameraShakeCallback(eventName + 4, position);
       break;
     default:
@@ -271,9 +271,9 @@ static void SpellUnitAnimEventCallback(LPCSTR eventName, const NTempest::C3Vecto
   UINT               event = *reinterpret_cast<const UINT *>(eventName);
 
   switch (event) {
-    case 0x50504324:  // $CPP
-    case 0x48414324:  // $ACH
-    case 0x53534324:  // $CSS
+    case 'PPC$':
+    case 'HAC$':  // $ACH
+    case 'SSC$':
       if (node) {
         CGObject_C *object = ClntObjMgrObjectPtr(node->objectGUID, __FILE__, __LINE__);
         if (object && (object->GetType() & TYPE_UNIT)) {
@@ -281,13 +281,13 @@ static void SpellUnitAnimEventCallback(LPCSTR eventName, const NTempest::C3Vecto
         }
       }
       break;
-    case 0x48544424:  // $DTH
+    case 'HTD$':
       if (node) {
         node->ReleaseDeathHolds();
       }
       break;
-    case 0x444E5324:    // $SND
-    case 0x58444E53: {  // SNDX
+    case 'DNS$':
+    case 'XDNS': {  // SNDX
       NTempest::C3Vector soundPos = position;
       if (node && node->objectGUID) {
         CGObject_C *object = ClntObjMgrObjectPtr(node->objectGUID, __FILE__, __LINE__);
@@ -298,10 +298,10 @@ static void SpellUnitAnimEventCallback(LPCSTR eventName, const NTempest::C3Vecto
       SpellSoundEffectCallback(eventName + 4, soundPos);
       break;
     }
-    case 0x4B485324:  // $SHK
+    case 'KHS$':
       SpellCameraShakeCallback(eventName + 4, position);
       break;
-    case 0x54494824:  // $HIT
+    case 'TIH$':
       if (node) {
         CGObject_C *object = ClntObjMgrObjectPtr(node->objectGUID, __FILE__, __LINE__);
         if (object && (object->GetType() & TYPE_UNIT)) {
@@ -332,20 +332,20 @@ static void SpellAreaAnimEventCallback(LPCSTR eventName, const NTempest::C3Vecto
   UINT                         event = *reinterpret_cast<const UINT *>(eventName);
 
   switch (event) {
-    case 0x4B485324:  // $SHK
+    case 'KHS$':
       SpellCameraShakeCallback(eventName + 4, position);
       break;
-    case 0x48544424:  // $DTH
+    case 'HTD$':
       if (node) {
         node->ReleaseDeathHolds();
       }
       break;
-    case 0x444E5324:    // $SND
-    case 0x58444E53: {  // SNDX
+    case 'DNS$':
+    case 'XDNS': {  // SNDX
       SpellSoundEffectCallback(eventName + 4, position);
       break;
     }
-    case 0x54494824:  // $HIT
+    case 'TIH$':
       if (node) {
         for (UINT index = 0; index < node->objects.Count(); ++index) {
           CGObject_C *object = ClntObjMgrObjectPtr(node->objects[index], __FILE__, __LINE__);

@@ -756,7 +756,7 @@ static int Script_GetTrainerServiceIcon(lua_State *L) {
               learned->m_effectItemType[0], static_cast<DWORDLONG>(learned->m_ID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0
           );
           if (stats) {
-            char   buffer[260];
+            char   buffer[MAX_PATH];
             LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
             SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
             SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));

@@ -597,7 +597,7 @@ static int Script_GetTradeSkillIcon(lua_State *L) {
               )
             : 0;
   if (stats) {
-    char   buffer[260];
+    char   buffer[MAX_PATH];
     LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
     SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
@@ -695,7 +695,7 @@ static int Script_GetTradeSkillReagentInfo(lua_State *L) {
         g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
     if (stats) {
       lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
-      char   buffer[260];
+      char   buffer[MAX_PATH];
       LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
       SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
       SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));

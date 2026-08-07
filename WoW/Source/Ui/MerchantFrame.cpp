@@ -141,7 +141,7 @@ static int Script_GetMerchantItemInfo(lua_State *L) {
   }
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   LPCSTR separator = path && *path ? "\\" : "";
-  char   buffer[260];
+  char   buffer[MAX_PATH];
   SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
   SStrCopy(buffer + strlen(buffer), CGItem_C::GetInventoryArt(item->m_itemDisplayID), sizeof(buffer) - strlen(buffer));
   lua_pushstring(L, buffer);

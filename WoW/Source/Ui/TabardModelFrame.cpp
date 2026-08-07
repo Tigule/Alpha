@@ -179,32 +179,32 @@ static int CGTabardModelFrame_CycleVariation(lua_State *L) {
 
 static int CGTabardModelFrame_GetUpperBackgroundFileName(lua_State *L) {
   GET_TABARD_MODEL_THIS(L, object);
-  char string[260];
-  GetTabardBackgroundFileName(5, object->GetVariation(4), string, 260);
+  char string[MAX_PATH];
+  GetTabardBackgroundFileName(5, object->GetVariation(4), string, MAX_PATH);
   lua_pushstring(L, string);
   return 1;
 }
 
 static int CGTabardModelFrame_GetLowerBackgroundFileName(lua_State *L) {
   GET_TABARD_MODEL_THIS(L, object);
-  char string[260];
-  GetTabardBackgroundFileName(6, object->GetVariation(4), string, 260);
+  char string[MAX_PATH];
+  GetTabardBackgroundFileName(6, object->GetVariation(4), string, MAX_PATH);
   lua_pushstring(L, string);
   return 1;
 }
 
 static int CGTabardModelFrame_GetUpperEmblemFileName(lua_State *L) {
   GET_TABARD_MODEL_THIS(L, object);
-  char string[260];
-  GetTabardEmblemFileName(5, object->GetVariation(0), object->GetVariation(1), string, 260);
+  char string[MAX_PATH];
+  GetTabardEmblemFileName(5, object->GetVariation(0), object->GetVariation(1), string, MAX_PATH);
   lua_pushstring(L, string);
   return 1;
 }
 
 static int CGTabardModelFrame_GetLowerEmblemFileName(lua_State *L) {
   GET_TABARD_MODEL_THIS(L, object);
-  char string[260];
-  GetTabardEmblemFileName(6, object->GetVariation(0), object->GetVariation(1), string, 260);
+  char string[MAX_PATH];
+  GetTabardEmblemFileName(6, object->GetVariation(0), object->GetVariation(1), string, MAX_PATH);
   lua_pushstring(L, string);
   return 1;
 }
@@ -224,8 +224,8 @@ static int CGTabardModelFrame_GetUpperEmblemTexture(lua_State *L) {
     pixels.SetCount(128 * 64);
   }
 
-  char file[260];
-  GetTabardEmblemFileName(5, object->GetVariation(0), object->GetVariation(1), file, 260);
+  char file[MAX_PATH];
+  GetTabardEmblemFileName(5, object->GetVariation(0), object->GetVariation(1), file, MAX_PATH);
   strncat(file, ".BLP", 259 - strlen(file));
 
   CBLPFile image;
@@ -266,8 +266,8 @@ static int CGTabardModelFrame_GetLowerEmblemTexture(lua_State *L) {
     pixels.SetCount(128 * 64);
   }
 
-  char file[260];
-  GetTabardEmblemFileName(6, object->GetVariation(0), object->GetVariation(1), file, 260);
+  char file[MAX_PATH];
+  GetTabardEmblemFileName(6, object->GetVariation(0), object->GetVariation(1), file, MAX_PATH);
   strncat(file, ".BLP", 259 - strlen(file));
 
   CBLPFile image;

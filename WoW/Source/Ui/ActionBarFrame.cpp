@@ -484,7 +484,7 @@ void CGActionBar::PutActionInSlot(int id) {
 }
 
 LPCSTR CGActionBar::GetAttackTexture() {
-  static char buffer[260];
+  static char buffer[MAX_PATH];
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
@@ -507,7 +507,7 @@ LPCSTR CGActionBar::GetAttackTexture() {
 }
 
 LPCSTR CGActionBar::GetTexture(int id) {
-  static char buffer[260];
+  static char buffer[MAX_PATH];
 
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!player || !HasAction(id)) {

@@ -832,7 +832,7 @@ UINT CGGameObject_C::CreateWorldObject(DWORDLONG guid) {
 
 void CGGameObject_C::SetMirrorHandlers() {
   ClntObjMgrSetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_GAMEOBJECT) + offsetof(CGGameObjectData, m_state), 4, OnUpdateState, 0, HANDLER_PRIORITY_NORMAL
+      GetGUID(), OffsetOf(ID_GAMEOBJECT) + offsetof(CGGameObjectData, m_state), sizeof(((CGGameObjectData *)0)->m_state), OnUpdateState, 0, HANDLER_PRIORITY_NORMAL
   );
 }
 
@@ -901,26 +901,26 @@ void CGGameObject_C_TypeAnimated::HandleAnimEvent(LPCSTR eventName, const NTempe
 
   UINT event = *reinterpret_cast<const UINT *>(eventName);
   switch (event) {
-    case 0x304F4724:  // $GO0
-    case 0x314F4724:  // $GO1
-    case 0x324F4724:  // $GO2
-    case 0x334F4724:  // $GO3
-    case 0x344F4724:  // $GO4
-    case 0x354F4724:  // $GO5
+    case '0OG$':
+    case '1OG$':
+    case '2OG$':
+    case '3OG$':
+    case '4OG$':
+    case '5OG$':
       PlayAnimatedSound(eventName[3] - '0', position);
       break;
-    case 0x30434724:  // $GC0
-    case 0x31434724:  // $GC1
-    case 0x32434724:  // $GC2
-    case 0x33434724:  // $GC3
+    case '0CG$':
+    case '1CG$':
+    case '2CG$':
+    case '3CG$':
       PlayAnimatedSound(eventName[3] - '*', position);
       break;
-    case 0x444E5324:  // $SND
+    case 'DNS$':
       if (eventName[4]) {
         SndInterfacePlaySound(SStrToInt(eventName + 4), position, -1, 1.0f);
       }
       break;
-    case 0x4B485324:  // $SHK
+    case 'KHS$':
       if (eventName[4]) {
         SpellVisualsPlayCameraShakeID(SStrToInt(eventName + 4), position);
       }

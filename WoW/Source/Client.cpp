@@ -399,7 +399,7 @@ static BOOL TransferAbortedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
 }
 
 void MovementInit() {
-  char buffer[260];
+  char buffer[MAX_PATH];
 
   if (!SRegLoadString("Wow\\Client", "MoveLogFile", 0, buffer, sizeof(buffer)) || !buffer[0]) {
     SRegSaveString("Wow\\Client", "MoveLogFile", 0, "ClientMovement.txt");

@@ -279,13 +279,13 @@ static void IWriteBinParticleEmitter(const MDLPARTICLEEMITTER &section, CMsgBuff
   buf.AddTcharArray(section.particle.path, 260, 1);
   buf.AddFloat(section.particle.staticLife);
   buf.AddFloat(section.particle.staticSpeed);
-  WriteBinFloatKeyFrames(section.emissionRate, 0x4545504B, buf);
-  WriteBinFloatKeyFrames(section.gravity, 0x4745504B, buf);
-  WriteBinFloatKeyFrames(section.longitude, 0x4E4C504B, buf);
-  WriteBinFloatKeyFrames(section.latitude, 0x544C504B, buf);
-  WriteBinFloatKeyFrames(section.particle.life, 0x4C45504B, buf);
-  WriteBinFloatKeyFrames(section.particle.speed, 0x5345504B, buf);
-  WriteBinFloatKeyFrames(section.visibilityKeys, 0x5349564B, buf);
+  WriteBinFloatKeyFrames(section.emissionRate, 'EEPK', buf);
+  WriteBinFloatKeyFrames(section.gravity, 'GEPK', buf);
+  WriteBinFloatKeyFrames(section.longitude, 'NLPK', buf);
+  WriteBinFloatKeyFrames(section.latitude, 'TLPK', buf);
+  WriteBinFloatKeyFrames(section.particle.life, 'LEPK', buf);
+  WriteBinFloatKeyFrames(section.particle.speed, 'SEPK', buf);
+  WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buf);
 }
 
 static BOOL ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, CMDLStatus *status, UINT &totalRead) {
@@ -308,25 +308,25 @@ static BOOL ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, C
     localBytesRead += 4;
     int ok = 1;
     switch (tag) {
-      case 0x4545504B:
+      case 'EEPK':
         ok = ReadBinFloatKeyFrames(pEmit->emissionRate, buf, localBytesRead);
         break;
-      case 0x4745504B:
+      case 'GEPK':
         ok = ReadBinFloatKeyFrames(pEmit->gravity, buf, localBytesRead);
         break;
-      case 0x4E4C504B:
+      case 'NLPK':
         ok = ReadBinFloatKeyFrames(pEmit->longitude, buf, localBytesRead);
         break;
-      case 0x544C504B:
+      case 'TLPK':
         ok = ReadBinFloatKeyFrames(pEmit->latitude, buf, localBytesRead);
         break;
-      case 0x4C45504B:
+      case 'LEPK':
         ok = ReadBinFloatKeyFrames(pEmit->particle.life, buf, localBytesRead);
         break;
-      case 0x5345504B:
+      case 'SEPK':
         ok = ReadBinFloatKeyFrames(pEmit->particle.speed, buf, localBytesRead);
         break;
-      case 0x5349564B:
+      case 'SIVK':
         ok = ReadBinFloatKeyFrames(pEmit->visibilityKeys, buf, localBytesRead);
         break;
       default:

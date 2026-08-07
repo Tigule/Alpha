@@ -29,7 +29,7 @@ void   SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit);
 void   CurrencyBreakdown(int money, int *coins);
 LPCSTR CurrencyAbbreviation(int coinType);
 
-static char buffer[260];
+static char buffer[MAX_PATH];
 static char moneyBuf[128];
 
 DWORDLONG    CGLootInfo::m_object;

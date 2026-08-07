@@ -123,7 +123,7 @@ void MdxReadRibbonEmitters(BYTE *data, UINT fileBytes, CModelComplex *modelptr, 
   ASSERT(modelptr);
   ASSERT(shared);
 
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 0x42424952);
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'BBIR');
   if (!section) {
     return;
   }

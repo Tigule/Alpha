@@ -192,7 +192,7 @@ template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::Load() {
   const DWORD  HeaderSize = 16;
   UINT         data[0x800];
-  char         fileName[260];
+  char         fileName[MAX_PATH];
   int          recVersion;
   DWORD        recSize;
   int          build;

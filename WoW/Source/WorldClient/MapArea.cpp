@@ -185,9 +185,9 @@ void CMapArea::LoadTextures(char *texNames, DWORD size) {
 
     if (CMap::EnableSpecularTerrain()) {
       static const char specExt[] = "_s";
-      char              specFileName[260];
+      char              specFileName[MAX_PATH];
 
-      FATALASSERT(SStrLen(&texNames[i]) + SStrLen(specExt) < 260);
+      FATALASSERT(SStrLen(&texNames[i]) + SStrLen(specExt) < MAX_PATH);
       SStrCopy(specFileName, &texNames[i], 0x7FFFFFFF);
       char *extension = SStrChrR(specFileName, '.');
       FATALASSERT(extension);

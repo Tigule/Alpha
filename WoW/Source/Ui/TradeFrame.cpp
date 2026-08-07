@@ -344,7 +344,7 @@ static int Script_GetTradeTargetItemInfo(lua_State *L) {
   lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   LPCSTR separator = path && *path ? "\\" : "";
-  char   buffer[260];
+  char   buffer[MAX_PATH];
   SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
   SStrCopy(buffer + strlen(buffer), CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer) - strlen(buffer));
   lua_pushstring(L, buffer);
@@ -400,7 +400,7 @@ static int Script_GetTradePlayerItemInfo(lua_State *L) {
   }
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   LPCSTR separator = path && *path ? "\\" : "";
-  char   buffer[260];
+  char   buffer[MAX_PATH];
   SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
   SStrCopy(buffer + strlen(buffer), item->GetInventoryArt(), sizeof(buffer) - strlen(buffer));
   lua_pushstring(L, buffer);

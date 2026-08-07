@@ -851,10 +851,10 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
   }
 
   switch (value) {
-    case 0x30484124:  // $AH0
-    case 0x31484124:  // $AH1
-    case 0x32484124:  // $AH2
-    case 0x33484124:  // $AH3
+    case '0HA$':
+    case '1HA$':
+    case '2HA$':
+    case '3HA$':
       if (victimPtr && m_soundData) {
         UINT index = SStrToInt(eventName + 3);
         if (index < 4) {
@@ -862,7 +862,7 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
         }
       }
       // Fall through.
-    case 0x48414324:  // $CAH
+    case 'HAC$':
       if (m_currentBaseAnimState == ANIM_STATE_SPELLCAST) {
         CheckPendingMissileRelease(&position);
       }
@@ -874,7 +874,7 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
       CheckPendingVictimFeedback();
       break;
 
-    case 0x50504324:  // $CPP
+    case 'PPC$':
       if (m_currentDamageInfo && victimPtr) {
         ATTACKROUNDINFO &roundInfo = m_currentDamageInfo->roundInfo;
         if ((roundInfo.flags & 2) && ((1 << roundInfo.newVictimState) & 0x14C)) {
@@ -884,12 +884,12 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
       }
       break;
 
-    case 0x48544424:  // $DTH
+    case 'HTD$':
       PlayDeathThud();
       CGUnit_C::PlayDeathThudCameraShake();
       break;
 
-    case 0x50574224: {  // $BWP
+    case 'PWB$': {  // $BWP
       m_flags = m_flags & ~0xC00u | 0x400;
       UINT currentTime = OsGetAsyncTimeMsPrecise();
       if (m_animEndTime > currentTime) {
@@ -902,7 +902,7 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
       break;
     }
 
-    case 0x53534324: {  // $CSS
+    case 'SSC$': {  // $CSS
       WEAPONSWING_SOUNDTYPES type = WEAPONSWING_LIGHT;
       if (m_currentDamageInfo && GetWeaponSwingType(!(m_currentDamageInfo->roundInfo.flags & 0x200), type)) {
         SndInterfacePlayWeaponSwooshSound(type, m_currentDamageInfo->roundInfo.flags & 8, position, m_currentDamageInfo->roundInfo.flags & 1);
@@ -1332,15 +1332,15 @@ void CGUnit_C::CheckPendingVictimFeedback() {
   }
 
   BYTE     *nodeData = reinterpret_cast<BYTE *>(node);
-  DWORDLONG victimGUID = *reinterpret_cast<DWORDLONG *>(nodeData + 32);
+  DWORDLONG victimGUID = *reinterpret_cast<DWORDLONG *>(nodeData + offsetof(ANIMQUEUENODE, roundInfo) + offsetof(ATTACKROUNDINFO, victim));
   CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(victimGUID, __FILE__, __LINE__));
   FATALASSERT(victimPtr != this);
 
   m_currentDamageInfo = 0;
   if (victimPtr) {
-    DoVictimFeedback(reinterpret_cast<ATTACKROUNDINFO *>(nodeData + 16), 1);
+    DoVictimFeedback(reinterpret_cast<ATTACKROUNDINFO *>(nodeData + offsetof(ANIMQUEUENODE, roundInfo)), 1);
   }
-  if (*reinterpret_cast<UINT *>(nodeData + 88) & 0x1000) {
+  if (*reinterpret_cast<UINT *>(nodeData + offsetof(ANIMQUEUENODE, roundInfo) + offsetof(ATTACKROUNDINFO, flags)) & 0x1000) {
     if (GetGUID() == ClntObjMgrGetActivePlayer()) {
       CGPlayer_C::ProcessDeferredDamage();
       CGPlayer_C::ProcessDeferredSpellMiss();

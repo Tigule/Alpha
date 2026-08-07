@@ -622,6 +622,8 @@ namespace OsNet {
     friend struct TCPNET;
   };
 
+#define SLOTTEDLISTEX(structname, linkname, slots) TSSlottedListEx<structname, (int)&(((structname *)0)->linkname), slots>
+
   NODEDECL(TCPACCEPT) {
     TCPACCEPT(TCPLISTEN * listen);
     ~TCPACCEPT();
@@ -795,13 +797,13 @@ namespace OsNet {
       CONNECTLISTS = 4
     };
 
-    typedef TSExplicitList<LOOPCONN, 108>      LISTLOOPCONN;
-    typedef TSExplicitList<LOOPCONN::INPUT, 8> LISTLOOPCONNINPUT;
-    typedef TSSlottedListEx<NETCONNECT, 8, 1>  NETCONNECTLIST;
-    typedef TSExplicitList<NETCONNECT, 8>      NETCONNECTSIMPLELIST;
-    typedef TSSlottedListEx<NETCONN, 8, 8>     NETCONNLIST;
-    typedef TSExplicitList<NETCONN, 8>         NETCONNSIMPLELIST;
-    typedef TSSlottedListEx<TCPLISTEN, 8, 1>   TCPLISTENLIST;
+    typedef LISTEX(LOOPCONN, m_linkNet)          LISTLOOPCONN;
+    typedef LISTEX(LOOPCONN::INPUT, m_linkNet)   LISTLOOPCONNINPUT;
+    typedef SLOTTEDLISTEX(NETCONNECT, m_link, 1) NETCONNECTLIST;
+    typedef LISTEX(NETCONNECT, m_link)           NETCONNECTSIMPLELIST;
+    typedef SLOTTEDLISTEX(NETCONN, m_link, 8)    NETCONNLIST;
+    typedef LISTEX(NETCONN, m_link)              NETCONNSIMPLELIST;
+    typedef SLOTTEDLISTEX(TCPLISTEN, m_link, 1)  TCPLISTENLIST;
 
     LOCKEDLONG              m_refCount;
     DWORD                   m_pumpThreadCount;
@@ -811,7 +813,7 @@ namespace OsNet {
     CCritSect               m_loopLock;
     LISTLOOPCONNINPUT       m_loopInputRecycleList;
     LISTLOOPCONNINPUT       m_loopInputList;
-    LISTEXDYN(LOOPCONN) m_loopDisconnectList;
+    LISTLOOPCONN            m_loopDisconnectList;
     NETCONNLIST    m_connList[CONNLISTS];
     LPVOID         m_listenThread;
     TCPLISTENLIST  m_listenList;

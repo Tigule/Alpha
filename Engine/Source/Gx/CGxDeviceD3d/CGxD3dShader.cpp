@@ -50,7 +50,7 @@ void CGxDeviceD3d::PixelShaderDestroy(CGxPixelShader *&ps) {
   CGxDevice::PixelShaderDestroy(ps);
 }
 
-void CGxDeviceD3d::ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &params, int forceForBind) {
+void CGxDeviceD3d::ISetShaderParamList(LISTEX(CGxShaderParam, lameAssLink) &params, int forceForBind) {
   ITERATELIST(CGxShaderParam, params, param) {
     if (param->dirty || forceForBind) {
       m_d3dDevice->SetPixelShaderConstantF(param->index, param->f, CGxShaderParam::TypeCountTable[param->type]);

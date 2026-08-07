@@ -898,7 +898,7 @@ void COsControl::GetTextSize(LPCSTR inText, int *outW, int *outH) {
 }
 
 void COsControl::GetTextSize(int *outW, int *outH) {
-  char text[260];
+  char text[MAX_PATH];
   GetText(text, sizeof(text));
   GetTextSize(text, outW, outH);
 }
@@ -1043,7 +1043,7 @@ void COsMenu::AppendHotkeyText(char *inText, const OsGuiMenuHotkey &inHotkey) {
 }
 
 void COsMenu::AddTextItem(int inPos, LPCSTR inText, OsGuiMenuHotkey *inHotkey) {
-  char itemText[260];
+  char itemText[MAX_PATH];
   SStrCopy(itemText, inText, 0x7FFFFFFF);
   if (inHotkey) {
     AppendHotkeyText(itemText, *inHotkey);
@@ -1111,8 +1111,8 @@ void COsMenu::CheckItem(int inPos, int inVal) {
 }
 
 void COsMenu::SetItemText(int inPos, LPCSTR inText) {
-  char itemText[260];
-  char oldText[260];
+  char itemText[MAX_PATH];
+  char oldText[MAX_PATH];
   SStrCopy(itemText, inText, 0x7FFFFFFF);
   OsGuiMenuHotkey hotkey;
   if (GetHotkey(inPos, &hotkey)) {
@@ -1711,7 +1711,7 @@ void COsCheckbox::OnTextChange() {
 
 void COsCheckbox::OnSizeChange() {
   if (!mSettingSize) {
-    char text[260];
+    char text[MAX_PATH];
     GetText(text, sizeof(text));
     OsOutputDebugString("Unnecessary COsCheckbox::SetSize for '%s'\n", text);
     OnTextChange();
@@ -2568,7 +2568,7 @@ BOOL COsTextButton::OnDraw(LPVOID inContext, UINT inState, NTempest::CiRect &inR
   HBRUSH bgBrush = CreateSolidBrush(GetBkColor(dc));
   FillRect(dc, &drawRect, bgBrush);
 
-  char text[260];
+  char text[MAX_PATH];
   GetText(text, sizeof(text));
   int textLength = SStrLen(text);
   DrawTextA(dc, text, textLength, &drawRect, 0x10);

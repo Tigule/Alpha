@@ -29,11 +29,11 @@ static void DoodadEventCallback(LPCSTR eventName, const NTempest::C3Vector &posi
   CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(param);
   UINT           event = *reinterpret_cast<const UINT *>(eventName);
 
-  if (event == 0x4C534424) {
+  if (event == 'LSD$') {
     if (!doodadDef->doodadSoundHandle) {
       doodadDef->doodadSoundHandle = SndInterfaceHandleDoodadLoopStart(SStrToUnsigned(eventName + 4), position);
     }
-  } else if (event == 0x4F534424) {
+  } else if (event == 'OSD$') {
     SndInterfaceHandleDoodadOneShot(SStrToUnsigned(eventName + 4), position);
   }
 }

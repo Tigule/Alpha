@@ -121,7 +121,7 @@ class CGxShader {
 class CGxPixelShader : public CGxShader, public TSHashObject<CGxPixelShader, HASHKEY_STRI> {
  public:
   enum {
-    Magic = 0x47585053
+    Magic = 'GXPS'
   };
 
   enum {
@@ -149,7 +149,7 @@ class CGxPixelShader : public CGxShader, public TSHashObject<CGxPixelShader, HAS
 class CGxVertexShader : public CGxShader, public TSHashObject<CGxVertexShader, HASHKEY_STRI> {
  public:
   enum {
-    Magic = 0x47585653
+    Magic = 'GXVS'
   };
 
   enum {
@@ -454,7 +454,7 @@ class CGxDevice {
   void                   ITexBind(CGxTex *texId);
   virtual void           ITexMarkAsUpdated(CGxTex *texId);
   virtual void           IRsSendToHw(EGxRenderState which) = 0;
-  virtual void           ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &params, int forceForBind) = 0;
+  virtual void           ISetShaderParamList(CGxShader::ParamList &params, int forceForBind) = 0;
   void                   ISetShaderParameters(CGxShader *sh, int forceForBind);
   UINT                   IMatAlphaRef(EGxBlend op);
   BOOL                   IVbHasColor(EGxVertexBufferFormat format);

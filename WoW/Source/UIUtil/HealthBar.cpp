@@ -66,14 +66,14 @@ void CGSimpleHealthBar::InstallMirrorHandlers() {
   if (!m_unitGUID) {
     return;
   }
-  ClntObjMgrSetObjMirrorHandler(m_unitGUID, CGUnit_C::OffsetOf(ID_UNIT) + 64, 4, SimpleHealthUpdateHandler, this, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(m_unitGUID, CGUnit_C::OffsetOf(ID_UNIT) + 84, 4, SimpleHealthUpdateHandler, this, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(m_unitGUID, CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, health), sizeof(((CGUnitData *)0)->health), SimpleHealthUpdateHandler, this, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(m_unitGUID, CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, maxHealth), sizeof(((CGUnitData *)0)->maxHealth), SimpleHealthUpdateHandler, this, HANDLER_PRIORITY_NORMAL);
 }
 
 void CGSimpleHealthBar::RemoveMirrorHandlers() {
   if (!m_unitGUID) {
     return;
   }
-  ClntObjMgrUnsetObjMirrorHandler(m_unitGUID, CGUnit_C::OffsetOf(ID_UNIT) + 64, SimpleHealthUpdateHandler, this);
-  ClntObjMgrUnsetObjMirrorHandler(m_unitGUID, CGUnit_C::OffsetOf(ID_UNIT) + 84, SimpleHealthUpdateHandler, this);
+  ClntObjMgrUnsetObjMirrorHandler(m_unitGUID, CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, health), SimpleHealthUpdateHandler, this);
+  ClntObjMgrUnsetObjMirrorHandler(m_unitGUID, CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, maxHealth), SimpleHealthUpdateHandler, this);
 }

@@ -2,7 +2,7 @@
 
 #include <malloc.h>
 
-#define SIGNATURE_MAGIC 0x5349474E
+#define SIGNATURE_MAGIC 'SIGN'
 
 class SSignatureData {
  public:

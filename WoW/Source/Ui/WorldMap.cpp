@@ -145,7 +145,7 @@ void CGWorldMap::InitializeGame() {
     continent.hitRect.b = (continentRec->m_bottomBoundary - 10.125f) * 0.023952097f;
 
     if (mapArea && mapArea->m_areaName) {
-      char   buf[260];
+      char   buf[MAX_PATH];
       LPVOID fileData;
       DWORD  fileBytes;
       SStrPrintf(buf, sizeof(buf), "Interface\\WorldMap\\%s.zmp", mapArea->m_areaName);

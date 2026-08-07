@@ -281,7 +281,7 @@ struct CMovementGlobals {
     fallingLog = 0;
   }
 
-  char  logFileName[260];
+  char  logFileName[MAX_PATH];
   FILE *movementLog;
   FILE *fallingLog;
   LISTDECLEX(CMovementData, moveLink, movers);

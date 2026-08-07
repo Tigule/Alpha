@@ -601,9 +601,9 @@ void CMapChunk::Create(BYTE *data) {
       if (!liquids[i]) {
         liquids[i] = CMap::AllocChunkLiquid();
       }
-      memcpy(liquids[i], liquidData, 804);
+      memcpy(liquids[i], liquidData, offsetof(CChunkLiquid, chunk));
       liquids[i]->chunk = this;
-      liquidData += 804;
+      liquidData += offsetof(CChunkLiquid, chunk);
     } else if (liquids[i]) {
       CMap::FreeChunkLiquid(liquids[i]);
     }
@@ -614,7 +614,7 @@ void CMapChunk::Create(BYTE *data) {
     BYTE *emitterData = liquidData;
     for (UINT i = 0; i < mChunk->nSndEmitters; ++i) {
       CMapSoundEmitter *emitter = CMap::AllocSoundEmitter();
-      memcpy(&emitter->data, emitterData, 32);
+      memcpy(&emitter->data, emitterData, offsetof(CWSoundEmitter, startTime));
       emitter->data.startTime = *reinterpret_cast<WORD *>(emitterData + 32);
       emitter->data.endTime = *reinterpret_cast<WORD *>(emitterData + 34);
       emitter->data.mode = *reinterpret_cast<WORD *>(emitterData + 36);

@@ -142,7 +142,7 @@ void CGxDeviceOpenGl::PixelShaderDestroy(CGxPixelShader *&ps) {
   CGxDevice::PixelShaderDestroy(ps);
 }
 
-void CGxDeviceOpenGl::ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &params, int forceForBind) {
+void CGxDeviceOpenGl::ISetShaderParamList(LISTEX(CGxShaderParam, lameAssLink) &params, int forceForBind) {
   ITERATELIST(CGxShaderParam, params, param) {
     if (param->dirty || forceForBind) {
       for (UINT i = 0; i < CGxShaderParam::TypeCountTable[param->type]; ++i) {

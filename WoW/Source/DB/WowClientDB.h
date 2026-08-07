@@ -28,7 +28,7 @@ class WowClientDB {
       FATALERROR(("Unable to open %s", RECORD::GetFilename()));
     }
     SFileReadTyped(f, &signature);
-    if (signature != 0x43424457) {
+    if (signature != 'CBDW') {
       SFile::Close(f);
       return;
     }

@@ -89,14 +89,14 @@ void CGBuffBar::ShutdownGame() {
 void CGBuffBar::EnterWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
   UINT      unitOffset = CGUnit_C::OffsetOf(ID_UNIT);
-  ClntObjMgrSetObjMirrorHandler(player, unitOffset + 200, 252, AuraUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(player, unitOffset + offsetof(CGUnitData, auras), sizeof(((CGUnitData *)0)->auras) + sizeof(((CGUnitData *)0)->auraFlags), AuraUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   UpdateBuffs();
 }
 
 void CGBuffBar::LeaveWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
   UINT      unitOffset = CGUnit_C::OffsetOf(ID_UNIT);
-  ClntObjMgrUnsetObjMirrorHandler(player, unitOffset + 200, AuraUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(player, unitOffset + offsetof(CGUnitData, auras), AuraUpdateHandler, 0);
 }
 
 void CGBuffBar::UpdateBuffs() {

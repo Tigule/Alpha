@@ -18,17 +18,17 @@ static BOOL ReceivePageText(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
 static BOOL ReceivePetName(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
 static BOOL ReceivePetition(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
 
-DBCache<CreatureStats_C, int, HASHKEY_INT> g_creatureDBCache(0x574D4F42, "creaturecache.wdb", CMSG_CREATURE_QUERY, MSG_NULL_ACTION, true, true);
+DBCache<CreatureStats_C, int, HASHKEY_INT> g_creatureDBCache('WMOB', "creaturecache.wdb", CMSG_CREATURE_QUERY, MSG_NULL_ACTION, true, true);
 DBCache<GameObjectStats_C, int, HASHKEY_INT>
-                                       g_gameObjectDBCache(0x57474F42, "gameobjectcache.wdb", CMSG_GAMEOBJECT_QUERY, MSG_NULL_ACTION, true, true);
-DBCache<ItemStats_C, int, HASHKEY_INT> g_itemDBCache(0x57494442, "itemcache.wdb", CMSG_ITEM_QUERY_SINGLE, CMSG_ITEM_QUERY_MULTIPLE, true, true);
-DBCache<NPCText, int, HASHKEY_INT>     g_npcTextDBCache(0x574E5043, "npccache.wdb", CMSG_NPC_TEXT_QUERY, MSG_NULL_ACTION, true, true);
-DBCache<NameCache, DWORDLONG, CHashKeyGUID> g_nameDBCache(0x574E414D, "namecache.wdb", CMSG_NAME_QUERY, MSG_NULL_ACTION, false, false);
-DBCache<GuildStats_C, int, HASHKEY_INT>     g_guildInfoCache(0x57474C44, "guildcache.wdb", CMSG_GUILD_QUERY, MSG_NULL_ACTION, false, false);
-DBCache<QuestCache, int, HASHKEY_INT>       g_questDBCache(0x57515354, "questcache.wdb", CMSG_QUEST_QUERY, MSG_NULL_ACTION, false, true);
-DBCache<PageTextCache_C, int, HASHKEY_INT>  g_pageTextCache(0x57505458, "pagetextcache.wdb", CMSG_PAGE_TEXT_QUERY, MSG_NULL_ACTION, true, true);
-DBCache<PetNameCache, int, HASHKEY_INT>     g_petNameCache(0x57504E4D, "petnamecache.wdb", CMSG_PET_NAME_QUERY, MSG_NULL_ACTION, true, false);
-DBCache<CGPetition, int, HASHKEY_INT>       g_petitionCache(0x5750544E, "petitioncache.wdb", CMSG_PETITION_QUERY, MSG_NULL_ACTION, true, false);
+                                       g_gameObjectDBCache('WGOB', "gameobjectcache.wdb", CMSG_GAMEOBJECT_QUERY, MSG_NULL_ACTION, true, true);
+DBCache<ItemStats_C, int, HASHKEY_INT> g_itemDBCache('WIDB', "itemcache.wdb", CMSG_ITEM_QUERY_SINGLE, CMSG_ITEM_QUERY_MULTIPLE, true, true);
+DBCache<NPCText, int, HASHKEY_INT>     g_npcTextDBCache('WNPC', "npccache.wdb", CMSG_NPC_TEXT_QUERY, MSG_NULL_ACTION, true, true);
+DBCache<NameCache, DWORDLONG, CHashKeyGUID> g_nameDBCache('WNAM', "namecache.wdb", CMSG_NAME_QUERY, MSG_NULL_ACTION, false, false);
+DBCache<GuildStats_C, int, HASHKEY_INT>     g_guildInfoCache('WGLD', "guildcache.wdb", CMSG_GUILD_QUERY, MSG_NULL_ACTION, false, false);
+DBCache<QuestCache, int, HASHKEY_INT>       g_questDBCache('WQST', "questcache.wdb", CMSG_QUEST_QUERY, MSG_NULL_ACTION, false, true);
+DBCache<PageTextCache_C, int, HASHKEY_INT>  g_pageTextCache('WPTX', "pagetextcache.wdb", CMSG_PAGE_TEXT_QUERY, MSG_NULL_ACTION, true, true);
+DBCache<PetNameCache, int, HASHKEY_INT>     g_petNameCache('WPNM', "petnamecache.wdb", CMSG_PET_NAME_QUERY, MSG_NULL_ACTION, true, false);
+DBCache<CGPetition, int, HASHKEY_INT>       g_petitionCache('WPTN', "petitioncache.wdb", CMSG_PETITION_QUERY, MSG_NULL_ACTION, true, false);
 
 static void LoadDBCaches() {
   g_creatureDBCache.Load();

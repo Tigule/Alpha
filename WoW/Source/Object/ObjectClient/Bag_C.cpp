@@ -95,8 +95,9 @@ CGItem_C *CGBag_C::FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param
   }
 
   for (index = 0; index < NumSlots(); ++index) {
-    if (IsInventory() && !((index <= 18 && (flags & 1)) || (index >= 19 && index <= 22 && (flags & 2)) ||
-                           (index >= 23 && index <= 38 && (flags & 4)) || (index >= 39 && index <= 62 && (flags & 8))))
+    if (IsInventory() && !((index <= EQUIPPED_LAST && (flags & 1)) || (index >= INVSLOT_BAGFIRST && index <= INVSLOT_BAGLAST && (flags & 2)) ||
+                           (index >= BACKPACK_FIRST && index <= BACKPACK_LAST && (flags & 4)) ||
+                           (index >= BANKGENERIC_FIRST && index <= BANKGENERIC_LAST && (flags & 8))))
     {
       continue;
     }

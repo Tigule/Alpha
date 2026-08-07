@@ -2036,7 +2036,7 @@ void CMovement::StartFallLogging() {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   ASSERT(globals);
 
-  char fileName[260];
+  char fileName[MAX_PATH];
   char exten[5];
   SStrCopy(fileName, globals->logFileName, sizeof(fileName));
 

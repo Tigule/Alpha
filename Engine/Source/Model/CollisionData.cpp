@@ -177,7 +177,7 @@ void ModelCustGeosetAdd(
 void ModelCustGeosetRemove(HMODEL model, UINT custGeosetId);
 
 HCOLLISIONDATA CollisionDataCreate(BYTE *fileData, UINT fileBytes) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 0x44494C43);
+  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'DILC');
   if (!section) {
     return 0;
   }

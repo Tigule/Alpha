@@ -608,7 +608,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   void        RenderMagma(const CMapObjGroup *group, UINT liquid);
   void        QueryMapObjMinimapGroup(UINT groupID, UINT parentID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
 
-  char                name[260];
+  char                name[MAX_PATH];
   SMOHeader          *header;
   char               *textureNameList;
   char               *groupNameList;

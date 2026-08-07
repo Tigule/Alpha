@@ -51,7 +51,7 @@ struct FILENAMEENTRY {
     accumulatedFreq = frequency;
   }
 
-  char fileName[260];
+  char fileName[MAX_PATH];
   UINT accumulatedFreq;
 };
 

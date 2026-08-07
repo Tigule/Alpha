@@ -222,7 +222,7 @@ static void ShardEventCallback(LPCSTR eventName, const NTempest::C3Vector &posit
   static UINT counter;
 
   ++counter;
-  if ((counter & 1) && *reinterpret_cast<const UINT *>(eventName) == 0x444E5324) {
+  if ((counter & 1) && *reinterpret_cast<const UINT *>(eventName) == 'DNS$') {
     SndInterfacePlayInterfaceSound(eventName + 4);
   }
 }

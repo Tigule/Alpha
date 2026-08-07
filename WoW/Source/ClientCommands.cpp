@@ -942,7 +942,7 @@ static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
 
 static BOOL CCommand_Mem(LPCSTR command, LPCSTR arguments) {
   CMemCmdDump memDump;
-  memset(&memDump, 0, 24);
+  memset(&memDump, 0, offsetof(CMemCmdDump, m_items));
   memDump.m_items.SetChunkSize(256);
   SMemDumpState(reinterpret_cast<SMEMDUMPPROC>(CmdMemOutput), reinterpret_cast<HOUTPUTCONTEXT>(&memDump));
   if (memDump.m_items.Count()) {

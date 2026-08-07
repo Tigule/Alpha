@@ -47,7 +47,7 @@ struct WORLDTEXTCREATEPARAMS {
   UINT                enlargeTime;
   UINT                shrinkTime;
   UINT                flags;
-  char                fontName[260];
+  char                fontName[MAX_PATH];
   float               fontHeight;
 };
 

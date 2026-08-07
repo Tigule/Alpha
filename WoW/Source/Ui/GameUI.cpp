@@ -4921,7 +4921,7 @@ void CGGameUI::OnItemPush(DWORDLONG player, int slot, int itemID, int pushed, in
   LPCSTR colorString = stats->m_overallQualityID < 3 ? "" : CGTooltip::GetItemQualityColorString(stats->m_overallQualityID);
   LPCSTR colorEnd = *colorString ? "|r" : "";
   LPCSTR temp;
-  char   buffer[260];
+  char   buffer[MAX_PATH];
 
   if (player == ClntObjMgrGetActivePlayer()) {
     temp = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);

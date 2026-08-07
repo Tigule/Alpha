@@ -297,7 +297,7 @@ class CGxDeviceD3d : public CGxDevice {
   void         ITexCreate(CGxTex *gxTex, UINT w, UINT h, UINT startLevel, UINT endLevel);
   void         ITexUpload(CGxTex *texId, UINT w, UINT h, UINT startLevel, UINT endLevel);
   virtual void ITexMarkAsUpdated(CGxTex *texId);
-  virtual void ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &params, int forceForBind);
+  virtual void ISetShaderParamList(LISTEX(CGxShaderParam, lameAssLink) &params, int forceForBind);
 
   static const EGxTexFormat      s_tolerableTexFmtMapping[GxTexFormats_Last];
   static const _D3DFORMAT        s_GxTexFmtToD3dFmt[GxTexFormats_Last];

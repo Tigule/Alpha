@@ -321,7 +321,7 @@ CGObject_C::CGObject_C(DWORD *storage, DWORD, CClientObjCreate *)
       m_startAlpha(0),
       m_endAlpha(0),
       m_maxAlpha(255) {
-  char modelFileName[260] = {0};
+  char modelFileName[MAX_PATH] = {0};
   if (!InitModelFileName(modelFileName, sizeof(modelFileName))) {
     return;
   }

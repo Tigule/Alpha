@@ -114,7 +114,7 @@ BOOL CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
 const ItemSubClassRec *SDBItemSubclassGetSubClassRec(UINT classID, UINT subClassID);
 
 void CGUnit_C::HandlePlayStandSound(DWORD code, LPCSTR eventName) {
-  if (code == 0x58444624) {
+  if (code == 'XDF$') {
     PlayStandSound();
     return;
   }

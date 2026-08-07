@@ -78,7 +78,7 @@ static void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
   SDIRENT     *entry;
 
   toplen = SStrLen(top);
-  ASSERT(toplen + SStrLen(sub) < 260 - 1);
+  ASSERT(toplen + SStrLen(sub) < MAX_PATH - 1);
 
   SStrCopy(namebuf, top, MAX_PATH);
   if (namebuf[toplen - 1] != '\\') {

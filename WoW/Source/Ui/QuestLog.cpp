@@ -113,7 +113,7 @@ void CGQuestLog::ShutdownGame() {
 void CGQuestLog::EnterWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
   UINT      playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  ClntObjMgrSetObjMirrorHandler(player, playerOffset + 1372, 384, QuestLogUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, questLog), sizeof(((CGPlayerData *)0)->questLog), QuestLogUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   ClientServices_SetMessageHandler(SMSG_QUERY_TIME_RESPONSE, OnQueryTimeResponse, 0);
 
   CDataStore msg;
@@ -127,7 +127,7 @@ void CGQuestLog::EnterWorld() {
 void CGQuestLog::LeaveWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
   UINT      playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + 1372, QuestLogUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, questLog), QuestLogUpdateHandler, 0);
   ClientServices_ClearMessageHandler(SMSG_QUERY_TIME_RESPONSE);
 }
 
@@ -776,7 +776,7 @@ static int Script_GetQuestLogRewardInfo(lua_State *L) {
     lua_pushnil(L);
     return 5;
   }
-  static char texture[260];
+  static char texture[MAX_PATH];
   LPCSTR      path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   SStrPrintf(texture, sizeof(texture), "%s%s", path, *path ? "\\" : "");
   SStrPack(texture, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(texture));
@@ -810,7 +810,7 @@ static int Script_GetQuestLogChoiceInfo(lua_State *L) {
     lua_pushnil(L);
     return 5;
   }
-  static char texture[260];
+  static char texture[MAX_PATH];
   LPCSTR      path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   SStrPrintf(texture, sizeof(texture), "%s%s", path, *path ? "\\" : "");
   SStrPack(texture, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(texture));

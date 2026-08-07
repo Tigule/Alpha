@@ -1245,11 +1245,11 @@ static void MountedAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector 
 
 void CGUnit_C::HandleMountedAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position) {
   DWORD eventCode = *reinterpret_cast<const DWORD *>(eventName);
-  if (eventCode == 0x47475724) {
+  if (eventCode == 'GGW$') {
     PlayUnitSound(UNITSOUNDTYPE_WINGGLIDE, 0);
-  } else if (eventCode == 0x474E5724) {
+  } else if (eventCode == 'GNW$') {
     PlayUnitSound(UNITSOUNDTYPE_WINGFLAP, 0);
-  } else if (eventCode == 0x48544224) {
+  } else if (eventCode == 'HTB$') {
     BreathHandler(1);
   } else {
     HandleAnimEvent(eventName, position);
@@ -3791,7 +3791,7 @@ void CGUnit_C::ReinitializeUnitArtwork() {
     SetObjectModel(0);
   }
 
-  char modelFileName[260] = "";
+  char modelFileName[MAX_PATH] = "";
   if (!InitModelFileName(modelFileName, sizeof(modelFileName))) {
     return;
   }
@@ -4274,11 +4274,11 @@ void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, UINT effect, UINT 
 }
 
 void CGUnit_C::SetAuraMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)) {
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 4 * slot + 200, 4, handler, 0, HANDLER_PRIORITY_HIGH);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, auras) + slot * sizeof(((CGUnitData *)0)->auras[0]), sizeof(((CGUnitData *)0)->auras[0]), handler, 0, HANDLER_PRIORITY_HIGH);
 }
 
 void CGUnit_C::UnsetAuraMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)) {
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 4 * slot + 200, handler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, auras) + slot * sizeof(((CGUnitData *)0)->auras[0]), handler, 0);
 }
 
 void CGUnit_C::OnAuraChanged(UINT slot, int previousValue) {
@@ -4380,77 +4380,77 @@ void CGUnit_C::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos) 
   memcpy(&code, eventName, sizeof(code));
 
   switch (code) {
-    case 0x304C4224:  // $BL0
-    case 0x304C4624:  // $FL0
-    case 0x304C5224:  // $RL0
-    case 0x304C5324:  // $SL0
-    case 0x304C5724:  // $WL0
-    case 0x314C4224:  // $BL1
-    case 0x314C4624:  // $FL1
-    case 0x314C5224:  // $RL1
-    case 0x314C5324:  // $SL1
-    case 0x314C5724:  // $WL1
-    case 0x324C4224:  // $BL2
-    case 0x324C4624:  // $FL2
-    case 0x324C5224:  // $RL2
-    case 0x324C5324:  // $SL2
-    case 0x324C5724:  // $WL2
-    case 0x334C4224:  // $BL3
-    case 0x334C4624:  // $FL3
-    case 0x334C5224:  // $RL3
-    case 0x334C5324:  // $SL3
-    case 0x334C5724:  // $WL3
+    case '0LB$':
+    case '0LF$':
+    case '0LR$':
+    case '0LS$':
+    case '0LW$':
+    case '1LB$':
+    case '1LF$':
+    case '1LR$':
+    case '1LS$':
+    case '1LW$':
+    case '2LB$':
+    case '2LF$':
+    case '2LR$':
+    case '2LS$':
+    case '2LW$':
+    case '3LB$':
+    case '3LF$':
+    case '3LR$':
+    case '3LS$':
+    case '3LW$':
       FootstepAnimEventHit(pos, 1);
       return;
 
-    case 0x30524224:  // $BR0
-    case 0x30524624:  // $FR0
-    case 0x30525224:  // $RR0
-    case 0x30525324:  // $SR0
-    case 0x30525724:  // $WR0
-    case 0x31524224:  // $BR1
-    case 0x31524624:  // $FR1
-    case 0x31525224:  // $RR1
-    case 0x31525324:  // $SR1
-    case 0x31525724:  // $WR1
-    case 0x32524224:  // $BR2
-    case 0x32524624:  // $FR2
-    case 0x32525224:  // $RR2
-    case 0x32525324:  // $SR2
-    case 0x32525724:  // $WR2
-    case 0x33524224:  // $BR3
-    case 0x33524624:  // $FR3
-    case 0x33525224:  // $RR3
-    case 0x33525324:  // $SR3
-    case 0x33525724:  // $WR3
+    case '0RB$':
+    case '0RF$':
+    case '0RR$':
+    case '0RS$':
+    case '0RW$':
+    case '1RB$':
+    case '1RF$':
+    case '1RR$':
+    case '1RS$':
+    case '1RW$':
+    case '2RB$':
+    case '2RF$':
+    case '2RR$':
+    case '2RS$':
+    case '2RW$':
+    case '3RB$':
+    case '3RF$':
+    case '3RR$':
+    case '3RS$':
+    case '3RW$':
       FootstepAnimEventHit(pos, 0);
       return;
 
-    case 0x30484124:  // $AH0
-    case 0x31484124:  // $AH1
-    case 0x32484124:  // $AH2
-    case 0x33484124:  // $AH3
-    case 0x48414324:  // $CAH
-    case 0x48544424:  // $DTH
-    case 0x50504324:  // $CPP
-    case 0x53534324:  // $CSS
+    case '0HA$':
+    case '1HA$':
+    case '2HA$':
+    case '3HA$':
+    case 'HAC$':
+    case 'HTD$':
+    case 'PPC$':
+    case 'SSC$':
       HandleCombatAnimEvent(eventName, code, pos);
       return;
 
-    case 0x31444624:  // $FD1
-    case 0x32444624:  // $FD2
-    case 0x33444624:  // $FD3
-    case 0x34444624:  // $FD4
-    case 0x35444624:  // $FD5
-    case 0x36444624:  // $FD6
-    case 0x37444624:  // $FD7
-    case 0x38444624:  // $FD8
-    case 0x39444624:  // $FD9
-    case 0x58444624:  // $FDX
+    case '1DF$':
+    case '2DF$':
+    case '3DF$':
+    case '4DF$':
+    case '5DF$':
+    case '6DF$':
+    case '7DF$':
+    case '8DF$':
+    case '9DF$':
+    case 'XDF$':
       HandlePlayStandSound(code, eventName);
       return;
 
-    case 0x44534624:  // $FSD
+    case 'DSF$':
     {
       UINT groundType;
       if (CWorld::QueryGroundType(m_worldObject, groundType)) {
@@ -4460,32 +4460,32 @@ void CGUnit_C::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos) 
       HandleFootfallAnimEvent(pos);
       return;
 
-    case 0x48544224:  // $BTH
+    case 'HTB$':
       BreathHandler(0);
       return;
 
-    case 0x47475724:  // $WGG
+    case 'GGW$':
       PlayUnitSound(UNITSOUNDTYPE_WINGGLIDE, 0);
       return;
 
-    case 0x474E5724:  // $WNG
+    case 'GNW$':
       PlayUnitSound(UNITSOUNDTYPE_WINGFLAP, 0);
       return;
 
-    case 0x44525424:  // $TRD
+    case 'DRT$':
       HandleSpellEventSound();
       return;
 
-    case 0x4C485324:  // $SHL
-    case 0x52485324:  // $SHR
+    case 'LHS$':
+    case 'RHS$':
       HandleSheatheAnimEvent(0, 0);
       return;
 
-    case 0x4C534324:  // $CSL
-    case 0x50574224:  // $BWP
-    case 0x52534324:  // $CSR
-    case 0x52574224:  // $BWR
-    case 0x54534324:  // $CST
+    case 'LSC$':
+    case 'PWB$':
+    case 'RSC$':
+    case 'RWB$':
+    case 'TSC$':
       if (m_currentTorsoAnimState == 38) {
         CheckPendingSpellAnimHits();
       }
@@ -7219,26 +7219,26 @@ void CGUnit_C::RefreshDataPointers() {
 
 void CGUnit_C::SetMirrorHandlers() {
   SetAuraMirrorHandlers();
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 104, 4, UnitLevelUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_OBJECT) + 12, 4, UnitModeUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 64, 4, UnitHealthUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 192, 4, UnitFlagUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 16, 16, UnitCharmedUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 580, 4, DisplayIDUpdateHandler, 0, HANDLER_PRIORITY_HIGH);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 664, 1, StandStateUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 665, 1, NPCFlagsHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 667, 1, WeaponModeUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 672, 4, PetNameChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 156, 4, VirtualItemChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, level), sizeof(((CGUnitData *)0)->level), UnitLevelUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_OBJECT) + offsetof(CGObjectData, m_entryID), sizeof(((CGObjectData *)0)->m_entryID), UnitModeUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, health), sizeof(((CGUnitData *)0)->health), UnitHealthUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, flags), sizeof(((CGUnitData *)0)->flags), UnitFlagUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, charmedBy), sizeof(((CGUnitData *)0)->charmedBy) + sizeof(((CGUnitData *)0)->summonedBy), UnitCharmedUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, displayID), sizeof(((CGUnitData *)0)->displayID), DisplayIDUpdateHandler, 0, HANDLER_PRIORITY_HIGH);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, standState), sizeof(((CGUnitData *)0)->standState), StandStateUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, npcFlags), sizeof(((CGUnitData *)0)->npcFlags), NPCFlagsHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, weaponMode), sizeof(((CGUnitData *)0)->weaponMode), WeaponModeUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, petNameTimestamp), sizeof(((CGUnitData *)0)->petNameTimestamp), PetNameChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, virtualItemDisplay) + VIRTUAL_MONSTER_SLOT_MAINHAND * sizeof(((CGUnitData *)0)->virtualItemDisplay[0]), sizeof(((CGUnitData *)0)->virtualItemDisplay[0]), VirtualItemChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
   ClntObjMgrSetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_UNIT) + 160, 4, VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_OFFHAND), HANDLER_PRIORITY_NORMAL
+      GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, virtualItemDisplay) + VIRTUAL_MONSTER_SLOT_OFFHAND * sizeof(((CGUnitData *)0)->virtualItemDisplay[0]), sizeof(((CGUnitData *)0)->virtualItemDisplay[0]), VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_OFFHAND), HANDLER_PRIORITY_NORMAL
   );
   ClntObjMgrSetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_UNIT) + 164, 4, VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_RANGED), HANDLER_PRIORITY_NORMAL
+      GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, virtualItemDisplay) + VIRTUAL_MONSTER_SLOT_RANGED * sizeof(((CGUnitData *)0)->virtualItemDisplay[0]), sizeof(((CGUnitData *)0)->virtualItemDisplay[0]), VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_RANGED), HANDLER_PRIORITY_NORMAL
   );
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 684, 4, DynamicFlagsChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 688, 4, EmoteStateChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 692, 4, ChannelSpellChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, dynamicFlags), sizeof(((CGUnitData *)0)->dynamicFlags), DynamicFlagsChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, emoteState), sizeof(((CGUnitData *)0)->emoteState), EmoteStateChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, channelSpell), sizeof(((CGUnitData *)0)->channelSpell), ChannelSpellChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
 }
 
 IMPACTEFFECTDESC::~IMPACTEFFECTDESC() {
@@ -7251,26 +7251,26 @@ IMPACTEFFECTDESC::~IMPACTEFFECTDESC() {
 
 void CGUnit_C::UnsetMirrorHandlers() {
   UnsetAuraMirrorHandlers();
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 104, UnitLevelUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_OBJECT) + 12, UnitModeUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 64, UnitHealthUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 192, UnitFlagUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 16, UnitCharmedUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 580, DisplayIDUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 664, StandStateUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 665, NPCFlagsHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 667, WeaponModeUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 672, PetNameChangeHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 156, VirtualItemChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, level), UnitLevelUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_OBJECT) + offsetof(CGObjectData, m_entryID), UnitModeUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, health), UnitHealthUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, flags), UnitFlagUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, charmedBy), UnitCharmedUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, displayID), DisplayIDUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, standState), StandStateUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, npcFlags), NPCFlagsHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, weaponMode), WeaponModeUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, petNameTimestamp), PetNameChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, virtualItemDisplay) + VIRTUAL_MONSTER_SLOT_MAINHAND * sizeof(((CGUnitData *)0)->virtualItemDisplay[0]), VirtualItemChangeHandler, 0);
   ClntObjMgrUnsetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_UNIT) + 160, VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_OFFHAND)
+      GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, virtualItemDisplay) + VIRTUAL_MONSTER_SLOT_OFFHAND * sizeof(((CGUnitData *)0)->virtualItemDisplay[0]), VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_OFFHAND)
   );
   ClntObjMgrUnsetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_UNIT) + 164, VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_RANGED)
+      GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, virtualItemDisplay) + VIRTUAL_MONSTER_SLOT_RANGED * sizeof(((CGUnitData *)0)->virtualItemDisplay[0]), VirtualItemChangeHandler, reinterpret_cast<LPVOID>(VIRTUAL_MONSTER_SLOT_RANGED)
   );
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 684, DynamicFlagsChangeHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 688, EmoteStateChangeHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + 692, ChannelSpellChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, dynamicFlags), DynamicFlagsChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, emoteState), EmoteStateChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_UNIT) + offsetof(CGUnitData, channelSpell), ChannelSpellChangeHandler, 0);
 }
 
 void CGUnit_C::StandStateChanged(UINT oldState) {
@@ -7846,8 +7846,10 @@ void CGUnit_C::InitializeNPCItems() {
     return;
   }
 
-  static const int s_inventoryTypes[10] = {1, 3, 4, 5, 6, 7, 8, 9, 10, 19};
-  static const int s_inventorySlots[10] = {0, 2, 3, 4, 5, 6, 7, 8, 9, 18};
+  static const int s_inventoryTypes[10] = {INDEX_HEAD_TYPE,  INDEX_SHOULDER_TYPE, INDEX_BODY_TYPE, INDEX_CHEST_TYPE, INDEX_WAIST_TYPE,
+                                          INDEX_LEGS_TYPE,  INDEX_FEET_TYPE,     INDEX_WRIST_TYPE, INDEX_HAND_TYPE, INDEX_TABARD_TYPE};
+  static const int s_inventorySlots[10] = {INVSLOT_HEAD, INVSLOT_SHOULDER, INVSLOT_BODY,  INVSLOT_CHEST, INVSLOT_WAIST,
+                                          INVSLOT_LEGS, INVSLOT_FEET,     INVSLOT_WRIST, INVSLOT_HAND,  INVSLOT_TABARD};
 
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
@@ -10042,7 +10044,7 @@ UINT CGUnit_C::UpdateUnitNameString(UINT, UINT otherUnitsFlags, char *buffer, UI
   FATALASSERT(bufferSize);
 
   UINT added = 0;
-  char temp[260];
+  char temp[MAX_PATH];
 
   GetAFKText(temp, sizeof(temp));
   SStrPack(buffer, temp, bufferSize);

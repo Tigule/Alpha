@@ -60,7 +60,7 @@ static int TextToModelData(LPCVOID buffer, MDLDATA &data, CMDLStatus *status) {
 static int BinToModelData(CMsgBuffer &buf, UINT size, MDLDATA &data, CMDLStatus *status) {
   ASSERT(status);
   UINT totalLength = 4;
-  if (buf.GetDword() != 0x584C444D) {
+  if (buf.GetDword() != 'XLDM') {
     status->Add(STATUS_FATAL, "File is not a binary model file.\n");
     return 0;
   }
@@ -101,7 +101,7 @@ static int ModelDataToText(const MDLDATA &data, TSGrowableArray<char> &buffer, C
 }
 
 static int ModelDataToBin(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status) {
-  buffer.AddDword(0x584C444D);
+  buffer.AddDword('XLDM');
   return MDL::CallBinWriteHandlers(data, buffer, status);
 }
 
@@ -127,11 +127,11 @@ static UINT PickAlternateFilename(char *path, UINT type) {
     *extension = 0;
   }
   if (type == 0) {
-    SStrPack(path, ".mdx", 260);
+    SStrPack(path, ".mdx", MAX_PATH);
     return 1;
   }
   if (type == 1) {
-    SStrPack(path, ".mdl", 260);
+    SStrPack(path, ".mdl", MAX_PATH);
     return 0;
   }
   return type;
@@ -212,7 +212,7 @@ static LPVOID LoadMdlData(char *path, DWORD *bytes) {
     return 0;
   }
 
-  int success = SFile::GetActualFileName(fileHandle, path, 260);
+  int success = SFile::GetActualFileName(fileHandle, path, MAX_PATH);
   ASSERT(success);
 
   UINT   fileBytes = SFile::GetFileSize(fileHandle, 0);
@@ -309,7 +309,7 @@ BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status) {
     return 0;
   }
 
-  if (*reinterpret_cast<UINT *>(fileData) != 0x584C444D) {
+  if (*reinterpret_cast<UINT *>(fileData) != 'XLDM') {
     SFile::Unload(fileData);
     status->Add(STATUS_FATAL, "%s\nFile is not a binary model file.\n", path);
     return 0;
@@ -332,7 +332,7 @@ BYTE *MDLFileBinaryLoad(LPCSTR path, UINT *fileBytes, CStatus *status) {
     return 0;
   }
 
-  if (*reinterpret_cast<UINT *>(fileData) != 0x584C444D) {
+  if (*reinterpret_cast<UINT *>(fileData) != 'XLDM') {
     SFile::Unload(fileData);
     status->Add(STATUS_FATAL, "%s\nFile is not a binary model file.\n", path);
     return 0;

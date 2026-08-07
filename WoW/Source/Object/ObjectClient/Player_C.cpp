@@ -340,7 +340,7 @@ void CGPlayer_C::ReinitializeUnitArtwork() {
   FATALASSERT(!m_texComponent);
   FATALASSERT(!m_geosetHandle);
   for (UINT attachment = 0; attachment < 36; ++attachment) {
-    for (UINT component = 0; component < 23; ++component) {
+    for (UINT component = 0; component < NUM_INVENTORY_SLOTS; ++component) {
       HMODEL model = m_components[component][attachment];
       if (!model) {
         continue;
@@ -371,7 +371,7 @@ void CGPlayer_C::PostReinitializeArtwork() {
   if (!m_texComponent) {
     return;
   }
-  for (UINT slot = 0; slot < 23; ++slot) {
+  for (UINT slot = 0; slot < NUM_INVENTORY_SLOTS; ++slot) {
     if (m_texComponentInfo[slot].m_displayID && m_texComponentInfo[slot].m_inventoryType) {
       AddComponent(m_texComponentInfo[slot].m_displayID, m_texComponentInfo[slot].m_inventoryType, slot, 0);
     }
@@ -3018,39 +3018,39 @@ static BOOL SetLocalPlayerInGame(LPCVOID eventData, LPVOID param) {
 }
 
 void CGPlayer_C::SetInventoryMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)) {
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGPlayer_C::OffsetOf(ID_PLAYER) + 8 * slot, 8, handler, 0, HANDLER_PRIORITY_HIGH);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + slot * sizeof(DWORDLONG), sizeof(DWORDLONG), handler, 0, HANDLER_PRIORITY_HIGH);
 }
 
 void CGPlayer_C::UnsetInventoryMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)) {
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGPlayer_C::OffsetOf(ID_PLAYER) + 8 * slot, handler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + slot * sizeof(DWORDLONG), handler, 0);
 }
 
 void CGPlayer_C::SetPlayerMirrorHandlers() {
-  for (UINT slot = 0; slot < 23; ++slot) {
+  for (UINT slot = 0; slot < NUM_INVENTORY_SLOTS; ++slot) {
     if ((1 << slot) & 0x783FD) {
       SetInventoryMirrorHandler(slot, OnUpdateInventoryComponent);
     }
   }
 
   UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + 580, 4, GuildIDUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + 1776, 4, DuelTeamUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + 1368, 1, OnUpdatePlayerFlags, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + 1796, 4, OnUpdateGuild, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + offsetof(CGPlayerData, guildID), sizeof(((CGPlayerData *)0)->guildID), GuildIDUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + offsetof(CGPlayerData, duelTeam), sizeof(((CGPlayerData *)0)->duelTeam), DuelTeamUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + offsetof(CGPlayerData, playerFlags), sizeof(((CGPlayerData *)0)->playerFlags), OnUpdatePlayerFlags, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), playerOffset + offsetof(CGPlayerData, guildTimeStamp), sizeof(((CGPlayerData *)0)->guildTimeStamp), OnUpdateGuild, 0, HANDLER_PRIORITY_NORMAL);
 }
 
 void CGPlayer_C::UnsetPlayerMirrorHandlers() {
-  for (UINT slot = 0; slot < 23; ++slot) {
+  for (UINT slot = 0; slot < NUM_INVENTORY_SLOTS; ++slot) {
     if ((1 << slot) & 0x783FD) {
       UnsetInventoryMirrorHandler(slot, OnUpdateInventoryComponent);
     }
   }
 
   UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 580, GuildIDUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 1776, DuelTeamUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 1368, OnUpdatePlayerFlags, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 1796, OnUpdateGuild, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + offsetof(CGPlayerData, guildID), GuildIDUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + offsetof(CGPlayerData, duelTeam), DuelTeamUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + offsetof(CGPlayerData, playerFlags), OnUpdatePlayerFlags, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + offsetof(CGPlayerData, guildTimeStamp), OnUpdateGuild, 0);
 }
 
 static BOOL SummonChangeHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
@@ -3102,52 +3102,52 @@ void CGPlayer_C::CommitTexture(int force) {
 void CGPlayer_C::SetActiveMirrorHandlers() {
   UINT component;
 
-  for (component = 312; component <= 496; component += 8) {
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + component, 8, OnUpdateInventoryComponent, 0, HANDLER_PRIORITY_NORMAL);
+  for (component = BANKGENERIC_FIRST * sizeof(DWORDLONG); component <= BANKGENERIC_LAST * sizeof(DWORDLONG); component += sizeof(DWORDLONG)) {
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + component, sizeof(DWORDLONG), OnUpdateInventoryComponent, 0, HANDLER_PRIORITY_NORMAL);
   }
-  for (component = 504; component <= 544; component += 8) {
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + component, 8, OnUpdateInventoryComponent, 0, HANDLER_PRIORITY_NORMAL);
+  for (component = BANKBAG_FIRST * sizeof(DWORDLONG); component <= BANKBAG_LAST * sizeof(DWORDLONG); component += sizeof(DWORDLONG)) {
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + component, sizeof(DWORDLONG), OnUpdateInventoryComponent, 0, HANDLER_PRIORITY_NORMAL);
   }
-  for (component = 0; component < 384; component += 24) {
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 1372 + component, 24, OnUpdateQuest, 0, HANDLER_PRIORITY_NORMAL);
+  for (component = 0; component < sizeof(((CGPlayerData *)0)->questLog); component += sizeof(CQuestLogData)) {
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, questLog) + component, sizeof(CQuestLogData), OnUpdateQuest, 0, HANDLER_PRIORITY_NORMAL);
   }
 
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 196, 1, OnUpdateMoney, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 16, 8, CharmChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT), 16, SummonChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 666, 1, FarsightChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 560, 8, PetChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, coinage), 1, OnUpdateMoney, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, charmedBy), sizeof(((CGUnitData *)0)->charmedBy), CharmChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, charm), sizeof(((CGUnitData *)0)->charm) + sizeof(((CGUnitData *)0)->summon), SummonChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, shapeshiftForm), sizeof(((CGUnitData *)0)->shapeshiftForm), FarsightChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, farsightObject), sizeof(((CGPlayerData *)0)->farsightObject), PetChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
 
-  for (component = 0; component < 768; component += 12) {
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 602 + component, 2, SkillRankChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 604 + component, 2, SkillMaxRankChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
-    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 606 + component, 2, SkillModifierChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+  for (component = 0; component < sizeof(((CGPlayerData *)0)->skillInfo); component += sizeof(MirrorSkillInfo)) {
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, skillInfo) + offsetof(MirrorSkillInfo, m_skillRank) + component, sizeof(((MirrorSkillInfo *)0)->m_skillRank), SkillRankChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, skillInfo) + offsetof(MirrorSkillInfo, m_skillMaxRank) + component, sizeof(((MirrorSkillInfo *)0)->m_skillMaxRank), SkillMaxRankChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, skillInfo) + offsetof(MirrorSkillInfo, m_skillModifier) + component, sizeof(((MirrorSkillInfo *)0)->m_skillModifier), SkillModifierChangeHandler, 0, HANDLER_PRIORITY_NORMAL);
   }
 }
 
 void CGPlayer_C::UnsetActiveMirrorHandlers() {
   UINT component;
 
-  for (component = 312; component <= 496; component += 8) {
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + component, OnUpdateInventoryComponent, 0);
+  for (component = BANKGENERIC_FIRST * sizeof(DWORDLONG); component <= BANKGENERIC_LAST * sizeof(DWORDLONG); component += sizeof(DWORDLONG)) {
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + component, OnUpdateInventoryComponent, 0);
   }
-  for (component = 504; component <= 544; component += 8) {
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + component, OnUpdateInventoryComponent, 0);
+  for (component = BANKBAG_FIRST * sizeof(DWORDLONG); component <= BANKBAG_LAST * sizeof(DWORDLONG); component += sizeof(DWORDLONG)) {
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + component, OnUpdateInventoryComponent, 0);
   }
-  for (component = 0; component < 384; component += 24) {
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 1372 + component, OnUpdateQuest, 0);
+  for (component = 0; component < sizeof(((CGPlayerData *)0)->questLog); component += sizeof(CQuestLogData)) {
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, questLog) + component, OnUpdateQuest, 0);
   }
 
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 196, OnUpdateMoney, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 16, CharmChangeHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT), SummonChangeHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 560, PetChangeHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + 666, FarsightChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, coinage), OnUpdateMoney, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, charmedBy), CharmChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, charm), SummonChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, farsightObject), PetChangeHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, shapeshiftForm), FarsightChangeHandler, 0);
 
-  for (component = 0; component < 768; component += 12) {
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 602 + component, SkillRankChangeHandler, 0);
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 604 + component, SkillMaxRankChangeHandler, 0);
-    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + 606 + component, SkillModifierChangeHandler, 0);
+  for (component = 0; component < sizeof(((CGPlayerData *)0)->skillInfo); component += sizeof(MirrorSkillInfo)) {
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, skillInfo) + offsetof(MirrorSkillInfo, m_skillRank) + component, SkillRankChangeHandler, 0);
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, skillInfo) + offsetof(MirrorSkillInfo, m_skillMaxRank) + component, SkillMaxRankChangeHandler, 0);
+    ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, skillInfo) + offsetof(MirrorSkillInfo, m_skillModifier) + component, SkillModifierChangeHandler, 0);
   }
 }
 
@@ -3164,7 +3164,7 @@ void CGPlayer_C::PostInit(const CClientObjCreate &init) {
   SetPlayerMirrorHandlers();
 
   time1 = OsGetAsyncTimeMs();
-  for (UINT slot = 0; slot < 23; ++slot) {
+  for (UINT slot = 0; slot < NUM_INVENTORY_SLOTS; ++slot) {
     if (slot == INVSLOT_RANGED || !((1 << slot) & 0x783FD) || !IsSlotComponented(slot, 1)) {
       continue;
     }
@@ -3418,7 +3418,7 @@ void CGPlayer_C::AddComponent(int displayID, UINT inventoryType, int slot, int c
     }
 
     if (displayInfo) {
-      if (slot == 18 && inventoryType == 19) {
+      if (slot == INVSLOT_TABARD && inventoryType == INDEX_TABARD_TYPE) {
         OnGuildChanged();
       }
       CharCustomizationAddItemGeosets(m_geosetHandle, displayInfo, inventoryType, m_texComponent, m_unit->race, commit == 0);
@@ -3624,7 +3624,7 @@ bool CGPlayer_C::OnGuildChanged() {
   FATALASSERT(inventory);
 
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(inventory->GetItem(18), __FILE__, __LINE__));
-  if (!item || item->GetInventoryType() != 19 || item->GetDisplayID() <= 0) {
+  if (!item || item->GetInventoryType() != INDEX_TABARD_TYPE || item->GetDisplayID() <= 0) {
     return 0;
   }
 
@@ -3708,8 +3708,8 @@ void CGPlayer_C::SwapItems(DWORDLONG cursorItem, DWORDLONG cursorContainer, int 
     msg.Put(newContainerSlot);
     msg.Put(static_cast<BYTE>(slotB));
   } else {
-    int cursorEquipped = cursorContainer == GetGUID() && cursorSlot < 23;
-    int destinationEquipped = containerB == GetGUID() && slotB < 23;
+    int cursorEquipped = cursorContainer == GetGUID() && cursorSlot < NUM_INVENTORY_SLOTS;
+    int destinationEquipped = containerB == GetGUID() && slotB < NUM_INVENTORY_SLOTS;
     if (cursorEquipped != destinationEquipped) {
       DWORDLONG   equipContainer = cursorEquipped ? containerB : cursorContainer;
       UINT        equipSlot = cursorEquipped ? slotB : cursorSlot;
@@ -3850,7 +3850,7 @@ void CGPlayer_C::AutoEquipCursorItem(int force) {
     return;
   }
 
-  if (cursorItemPack == GetGUID() && cursorItemSlot < 23) {
+  if (cursorItemPack == GetGUID() && cursorItemSlot < NUM_INVENTORY_SLOTS) {
     CGGameUI::ClearCursor(0);
     return;
   }
@@ -7285,7 +7285,7 @@ void CGPlayer_C::DecrementPendingItemStats() {
 }
 
 void CGPlayer_C::FixComponenting(CGItem_C *item) {
-  for (UINT slot = 0; slot < 23; ++slot) {
+  for (UINT slot = 0; slot < NUM_INVENTORY_SLOTS; ++slot) {
     if (m_inventory.GetItem(slot) != item->GetGUID() || !((1 << slot) & 0x783FD)) {
       continue;
     }
