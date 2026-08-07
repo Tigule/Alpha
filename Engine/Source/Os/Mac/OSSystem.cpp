@@ -17,7 +17,7 @@ void OsLaunchURLSetCallback(void (*callback)()) {
   s_launchUrlCallback = callback;
 }
 
-int OsLaunchURL(LPCSTR url) {
+BOOL OsLaunchURL(LPCSTR url) {
   CFStringRef urlString;
   CFURLRef    urlRef;
   OSStatus    status;
@@ -103,7 +103,7 @@ void OsGetVersionString(char *string, int length) {
   }
 }
 
-int OsGetComputerName(char *computerName, DWORD *computerNameLen) {
+BOOL OsGetComputerName(char *computerName, DWORD *computerNameLen) {
   CFStringRef name = CSCopyMachineName();
 
   if (!name) {
@@ -119,7 +119,7 @@ int OsGetComputerName(char *computerName, DWORD *computerNameLen) {
   return 1;
 }
 
-int OsGetUserName(char *userName, DWORD *userNameLen) {
+BOOL OsGetUserName(char *userName, DWORD *userNameLen) {
   CFStringRef name = CSCopyUserName(0);
 
   if (!name) {

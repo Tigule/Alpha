@@ -44,7 +44,7 @@ OS_IME_LANGUAGEMODE OsIMEGetLanguageMode() {
   return mode;
 }
 
-static int GetCompositionString(int which, char *string, int maxlen) {
+static BOOL GetCompositionString(int which, char *string, int maxlen) {
   memset(string, 0, maxlen);
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
   HIMC context = ImmGetContext(wnd);
@@ -69,7 +69,7 @@ int OsIMEGetCompositionResult(char *string, UINT maxlen) {
   return GetCompositionString(GCS_RESULTSTR, string, maxlen);
 }
 
-int OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
+BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   UINT codepage = OsInputGetCodePage();
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
   HIMC context = ImmGetContext(wnd);
@@ -125,7 +125,7 @@ int OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   return 1;
 }
 
-int OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates) {
+BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates) {
   candidates.Clear();
 
   HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));

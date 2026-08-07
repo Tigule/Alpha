@@ -108,10 +108,10 @@ class CGxDeviceOpenGl : public CGxDevice {
   void                 DeviceQueryPbuffer();
   void                 DeviceDestroyPbuffer();
   virtual ~CGxDeviceOpenGl();
-  virtual int   DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
-  virtual int   DeviceCreate(UINT clienthwnd, const CGxFormat &format);
+  virtual BOOL  DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
+  virtual BOOL  DeviceCreate(UINT clienthwnd, const CGxFormat &format);
   virtual void  DeviceDestroy();
-  virtual int   DeviceSetFormat(const CGxFormat &format);
+  virtual BOOL  DeviceSetFormat(const CGxFormat &format);
   virtual void  DeviceSetBaseMipLevel(UINT baseMipLevel);
   virtual void  DeviceSetGamma(float gamma);
   virtual void  DeviceSetGamma(const CGxGammaRamp &ramp);
@@ -165,7 +165,7 @@ class CGxDeviceOpenGl : public CGxDevice {
   virtual void BufUnlock();
   virtual void BufDestroy(CGxBuf *&b);
   virtual void BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, UINT numVertices, UINT numIndices);
-  virtual int  TexCreate(
+  virtual BOOL TexCreate(
       UINT         width,
       UINT         height,
       EGxTexFormat format,
@@ -206,7 +206,7 @@ class CGxDeviceOpenGl : public CGxDevice {
   void ITexForceRecreation();
   void BindTexture(CGxTex *texId, UINT tmu);
   void GetError();
-  int  IDevAttachGlContext(const CGxFormat &format);
+  BOOL IDevAttachGlContext(const CGxFormat &format);
   void IDevRemoveGlContext();
   void IDevSetFocus(int focus, const CGxFormat &format);
   void ISceneBegin(UINT mask);
@@ -235,7 +235,7 @@ class CGxDeviceOpenGl : public CGxDevice {
   void IXformSetProjection(const NTempest::C44Matrix &m);
   void IXformSet(EGxXform xform);
   void LockArrays(UINT count);
-  int  SetFormatMode(const CGxFormat &format);
+  BOOL SetFormatMode(const CGxFormat &format);
   void UnlockArrays();
 
   virtual void ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &params, int forceForBind);
@@ -243,12 +243,12 @@ class CGxDeviceOpenGl : public CGxDevice {
   UINT             m_deviceState[43];
   UINT             m_lockedArrays;
   EColorSource     m_colorSource;
-  int              m_colorSourceDirty;
+  BOOL             m_colorSourceDirty;
   ColorSourceColor m_colorSourceColor[3];
   LPVOID           m_nvvarMem;
   UINT             m_nvvarBytes;
   UINT             m_nvvarNext;
-  int              m_bufRealloc;
+  BOOL             m_bufRealloc;
 
  protected:
   void IBufSetBuffers(CGxBufOgl *buf);
@@ -284,5 +284,5 @@ class CGxDeviceOpenGl : public CGxDevice {
   EGxPrim                           m_primType;
   UINT                              m_primIndexCount;
   const WORD                       *m_primIndices;
-  int                               m_worldViewChange;
+  BOOL                              m_worldViewChange;
 };

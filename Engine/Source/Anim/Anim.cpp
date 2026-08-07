@@ -630,7 +630,7 @@ static void ApplyFaceDir(const AnimInfo &animInfo, CAnimObj *currobj) {
   WorldMatrixRotate(transform);
 }
 
-static int ApplyLookAt(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos) {
+static BOOL ApplyLookAt(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos) {
   CAnimObjStatus *status = animInfo.unique->status[currobj->animObjId];
   status->base.flags &= ~4;
   if (!(status->base.flags & 2)) {

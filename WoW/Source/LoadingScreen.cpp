@@ -114,7 +114,7 @@ static void CleanupProgressBar() {
   FrameXML_RegisterLoadProgressCallback(0);
 }
 
-static int EatEvent(LPCVOID data, LPVOID param) {
+static BOOL EatEvent(LPCVOID data, LPVOID param) {
   return 0;
 }
 
@@ -213,7 +213,7 @@ static void TextureCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipL
 static void LoadImage(TEXTURETYPE image) {
   UINT width;
   UINT height;
-  int  isOpaque;
+  BOOL isOpaque;
 
   s_mipBits[image] = TextureLoadImage(s_textureInfo[image].name, &width, &height, reinterpret_cast<UINT *>(&s_textureFormat[image]), &isOpaque, 0, 0);
 

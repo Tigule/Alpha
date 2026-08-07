@@ -25,7 +25,7 @@ struct HCOLLISIONDATA__;
 struct HMODEL__;
 struct WorldObjCollisionHandlerData;
 
-int ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
+BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
 
 struct CGGameObjectData {
   int                    m_displayID;
@@ -121,7 +121,7 @@ class CGGameObject_C_TypeBase {
   virtual float              GetFacing() const;
   virtual void               AddPassenger(CMovementData *passenger);
   virtual NTempest::C3Vector GetCurrentMoveVector() const;
-  virtual int                IsPointInside(const NTempest::C3Vector &point) const;
+  virtual BOOL               IsPointInside(const NTempest::C3Vector &point) const;
   virtual void               PostInit();
   virtual void               Reenable();
   virtual void               Disable(int shutdown);
@@ -236,7 +236,7 @@ class CGGameObject_C_Type_MapObjTransport : public CGGameObject_C_Type_MapObj {
   virtual NTempest::C3Vector GetPosition() const;
   virtual float              GetFacing() const;
   virtual void               AddPassenger(CMovementData *passenger);
-  virtual int                IsPointInside(const NTempest::C3Vector &point) const;
+  virtual BOOL               IsPointInside(const NTempest::C3Vector &point) const;
   virtual void               Reenable();
   virtual void               Disable(int shutdown);
   virtual void               UpdateMovement(DWORD eventTime, float elapsed);
@@ -289,7 +289,7 @@ class CGGameObject_C_Type_Transport : public CGGameObject_C_TypeAnimated {
   virtual void               AddPassenger(CMovementData *passenger);
   virtual NTempest::C3Vector GetCurrentMoveVector() const;
   virtual bool               CanUse() const;
-  virtual int                IsPointInside(const NTempest::C3Vector &point) const;
+  virtual BOOL               IsPointInside(const NTempest::C3Vector &point) const;
   virtual void               Reenable();
   virtual void               Disable(int shutdown);
   virtual void               UpdateMovement(DWORD eventTime, float elapsed);
@@ -335,7 +335,7 @@ class CGGameObject_C_Type_Ritual : public CGGameObject_C_TypeAnimated {
 };
 
 class CGGameObject_C : public CGObject_C, public CGGameObject {
-  friend int ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
+  friend BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
   friend class CGGameObject_C_TypeAnimated;
   friend class CGGameObject_C_Type_AreaDamage;
   friend class CGGameObject_C_Type_Door;
@@ -352,8 +352,8 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   virtual void Disable(int shutdown);
   virtual void Reenable();
   virtual void PostReenable();
-  virtual int  UpdateModelLoadStatus();
-  int          SetBlock(UINT i, DWORD data);
+  virtual BOOL UpdateModelLoadStatus();
+  BOOL         SetBlock(UINT i, DWORD data);
   void         SetData(LPCVOID data, UINT bytes);
 
   virtual NTempest::C3Vector  GetPosition() const;
@@ -361,19 +361,19 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   virtual float               GetFacing() const;
   virtual NTempest::C3Vector  GetCurrentMoveVector() const;
   virtual LPCSTR              GetModelFileName() const;
-  virtual int                 CanHighlight() const;
-  virtual int                 IsSolidSelectable() const;
-  virtual int                 IsSolidCollidable() const;
-  virtual int                 FloatingTooltip() const;
+  virtual BOOL                CanHighlight() const;
+  virtual BOOL                IsSolidSelectable() const;
+  virtual BOOL                IsSolidCollidable() const;
+  virtual BOOL                FloatingTooltip() const;
   virtual void                OnRightClick();
-  virtual int                 IsPointInside(const NTempest::C3Vector &point) const;
+  virtual BOOL                IsPointInside(const NTempest::C3Vector &point) const;
   virtual NTempest::C34Matrix GetMatrix() const;
   virtual LPCSTR              GetObjectName() const;
   virtual int                 GetPageTextID(void (*func)(int, const DWORDLONG &, LPVOID, bool)) const;
   virtual void                GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
   virtual void ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
 
-  int                IsTransport() const;
+  BOOL               IsTransport() const;
   int                GetPageTextLanguage() const;
   int                GetPageTextMaterial() const;
   void               LoadBaseObject(const GameObjectStats *stats);

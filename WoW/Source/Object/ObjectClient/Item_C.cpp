@@ -58,10 +58,10 @@ class CGTradeSkillInfo {
   static void RefreshList(int resetFilters);
 };
 
-static int OnUpdateEnchantments(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
-static int OnUpdateItemID(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
+static BOOL OnUpdateEnchantments(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
+static BOOL OnUpdateItemID(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
 
-static int OnUpdateOwner(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL OnUpdateOwner(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   FATALASSERT(prevValue);
@@ -81,7 +81,7 @@ static int OnUpdateOwner(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevVa
   return 1;
 }
 
-static int OnUpdateStackCount(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL OnUpdateStackCount(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
@@ -151,7 +151,7 @@ struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
 static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryTextures;
 static HASHKEY_NONE                            s_nullHashKey;
 
-static int OnUpdateEnchantments(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
+static BOOL OnUpdateEnchantments(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (item) {
     item->UpdateEnchantments();
@@ -166,7 +166,7 @@ static void ItemIDChangedCacheCallback(int id, const DWORDLONG &guid, LPVOID arg
   }
 }
 
-static int OnUpdateItemID(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL OnUpdateItemID(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   FATALASSERT(prevValue);
@@ -342,7 +342,7 @@ LPCSTR CGItem_C::GetModelFileName() const {
   return 0;
 }
 
-int CGItem_C::CanBeUsed() {
+BOOL CGItem_C::CanBeUsed() {
   const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), ClntObjMgrGetActivePlayer(), 0, 0);
   if (!stats) {
     return 0;
@@ -523,7 +523,7 @@ int CGItem_C::GetDisplayID() const {
   return stats ? stats->m_displayInfoID : 0;
 }
 
-int CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
+BOOL CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
   const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
   return stats && (stats->m_flags & flags) == flags;
 }
@@ -533,11 +533,11 @@ int CGItem_C::GetMaterial() const {
   return stats ? stats->m_material : 0;
 }
 
-int CGItem_C::IsMetal() const {
+BOOL CGItem_C::IsMetal() const {
   return IsMetal(GetMaterial());
 }
 
-int CGItem_C::IsMetal(UINT material) {
+BOOL CGItem_C::IsMetal(UINT material) {
   const MaterialRec *rec = g_materialDB.GetRecord(material);
   return rec && (rec->m_flags & 1);
 }
@@ -546,7 +546,7 @@ const ItemStats *CGItem_C::GetStats() const {
   return g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
 }
 
-int CGItem_C::SetBlock(UINT i, DWORD data) {
+BOOL CGItem_C::SetBlock(UINT i, DWORD data) {
   if (i < OffsetOf(ID_ITEM)) {
     return CGObject_C::SetBlock(i, data);
   }
@@ -570,7 +570,7 @@ UINT CGItem_C::OffsetOf(OBJECT_TYPE_ID type) {
   return CGObject::TotalFields() * sizeof(DWORD);
 }
 
-int CGItem_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
+BOOL CGItem_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
   FATALASSERT(outPtr);
   *outPtr = NTempest::CImVector(0xFFFFFFFF);
   return 1;
@@ -608,7 +608,7 @@ bool CGItem_C::IsExotic() const {
   return GetItemStaticFlag(ITEM_FLAG_EXOTIC) != 0;
 }
 
-int CGItem_C::CanGoInSlot(UINT slot) const {
+BOOL CGItem_C::CanGoInSlot(UINT slot) const {
   return slot >= 23 || (g_ITEMTYPEARRAY[GetInventoryType()] & (1 << slot)) != 0;
 }
 

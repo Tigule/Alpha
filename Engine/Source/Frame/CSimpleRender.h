@@ -185,7 +185,7 @@ class CSimpleRegion : public CLayoutFrame {
   }
   void Show();
   void Hide();
-  int  IsVisible() {
+  BOOL IsVisible() {
     return m_visible;
   }
   CSimpleFrame *GetParentFrame() {
@@ -200,7 +200,7 @@ class CSimpleRegion : public CLayoutFrame {
   const NTempest::CImVector *m_GxColor;
   CSimpleFrame              *m_frame;
   UINT                       m_drawlayer;
-  int                        m_visible;
+  BOOL                       m_visible;
 };
 
 class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
@@ -228,11 +228,11 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   virtual void          SetLayoutScale(float scale, bool force);
   void                  PreLoadXML(const XMLNode *node, CStatus *status);
   void                  PostLoadXML(const XMLNode *node, CStatus *status);
-  int                   AddToRegistry(LPCSTR name, UINT context);
+  BOOL                  AddToRegistry(LPCSTR name, UINT context);
   void                  SetAttributes(CSimpleFontStringAttributes &attrib) {
     attrib.UpdateString(this, 0);
   }
-  int    SetFont(LPCSTR font, float fontHeight, UINT fontFlags);
+  BOOL   SetFont(LPCSTR font, float fontHeight, UINT fontFlags);
   void   SetTextLength(int size);
   void   SetText(LPCSTR text);
   void   SetText(int value);
@@ -260,7 +260,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   void  SetSpacing(float spacing);
   void  AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset);
   void  RemoveShadow();
-  int   HasShadow() const {
+  BOOL  HasShadow() const {
     return (m_styleFlags & 0x100) != 0;
   }
   LPCSTR GetFontName() const {
@@ -306,7 +306,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   UINT GetStyleFlags() const {
     return m_styleFlags;
   }
-  void SetCanWrapOnSpace(int canWrap) {
+  void SetCanWrapOnSpace(BOOL canWrap) {
     ChangeStyleFlags(0x1000, canWrap ? 0x1000 : 0);
   }
   void SetFixedColor(int fixed) {
@@ -329,7 +329,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   virtual void ClearFromSimpleRegistry();
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void ChangeStyleFlags(UINT mask, int flags) {
     UINT styleFlags = (m_styleFlags & ~mask) | flags;
@@ -383,10 +383,10 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
   virtual CLayoutFrame *GetLayoutFrameByName(LPCSTR name);
   void                  PreLoadXML(const XMLNode *node, CStatus *status);
   void                  PostLoadXML(const XMLNode *node, CStatus *status);
-  int                   AddToRegistry(LPCSTR name, UINT context);
-  int                   SetTexture(HTEXTURE__ *texHandle);
-  int                   SetTexture(LPCSTR file, int uvWrapping);
-  int                   SetTexture(const NTempest::CImVector &color);
+  BOOL                  AddToRegistry(LPCSTR name, UINT context);
+  BOOL                  SetTexture(HTEXTURE__ *texHandle);
+  BOOL                  SetTexture(LPCSTR file, int uvWrapping);
+  BOOL                  SetTexture(const NTempest::CImVector &color);
   void                  SetBlendMode(EGxBlend mode);
   void                  SetTexCoord(const NTempest::CRect &rect);
   void                  SetTexCoord(const NTempest::C2Vector *texCoord);
@@ -418,7 +418,7 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
   virtual void ClearFromSimpleRegistry();
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   static EGxTexFilter                                         s_textureFilterMode;
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;

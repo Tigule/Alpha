@@ -9,7 +9,7 @@
 
 void __cdecl SOutputDebugString(LPCSTR format, ...);
 
-int OsBeep(DWORD dwFreq, DWORD dwDuration) {
+BOOL OsBeep(DWORD dwFreq, DWORD dwDuration) {
   return 0;
 }
 

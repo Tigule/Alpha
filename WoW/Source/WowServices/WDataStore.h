@@ -15,7 +15,7 @@ class WDataStore : public CDataStore {
 
   virtual void InternalInitialize(BYTE *&data, UINT &base, UINT &alloc);
   virtual void InternalDestroy(BYTE *&data, UINT &base, UINT &alloc);
-  virtual int  InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber);
+  virtual BOOL InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber);
 
   static void   StaticInitialize();
   static void   StaticDestroy();

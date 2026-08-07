@@ -61,7 +61,7 @@ class CGameTime : public WowTime {
 
 extern CGameTime g_clientGameTime;
 
-int  ClientGameTimeTickHandler(LPCVOID data, LPVOID);
+BOOL ClientGameTimeTickHandler(LPCVOID data, LPVOID);
 void ClientInitializeGameTime();
 void ClientDestroyGameTime();
 void SetGameTimeForcedChangeCallback(int set, void (*callback)(UINT oldTime, UINT newTime));

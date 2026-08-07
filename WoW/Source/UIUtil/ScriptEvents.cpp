@@ -280,12 +280,12 @@ static FrameScript_Method s_UnitFunctions[38] = {
     {          "IsInGuild",           Script_IsInGuild}
 };
 
-static int UnitUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL UnitUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   Script_SendUnitSignal(guid, offset >> 2);
   return 1;
 }
 
-static int UnitInventoryUpdate(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL UnitInventoryUpdate(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object && guid == ClntObjMgrGetActivePlayer()) {
     CGBag_C  *bag = object->GetBag();
@@ -298,7 +298,7 @@ static int UnitInventoryUpdate(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID 
   return 1;
 }
 
-static int PlayerXPUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL PlayerXPUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   FrameScript_SignalEvent(185);
   return 1;
 }

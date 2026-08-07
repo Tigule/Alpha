@@ -3,7 +3,7 @@
 
 #include <storm.h>
 
-void TSet::Add(UINT token, int needed, int allowDuplicates) {
+void TSet::Add(UINT token, int needed, BOOL allowDuplicates) {
   FATALASSERT(count != 64);
   set[count].token = token;
   set[count].needed = needed;
@@ -11,7 +11,7 @@ void TSet::Add(UINT token, int needed, int allowDuplicates) {
   set[count++].seen = 0;
 }
 
-int TSet::Check(UINT token) {
+BOOL TSet::Check(UINT token) {
   for (int i = 0; i < count; ++i) {
     if (set[i].token == token) {
       if (set[i].seen && !set[i].dupsOk) {

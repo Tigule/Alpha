@@ -64,7 +64,7 @@ struct CGPlayerData {
 };
 
 class CGPlayer {
-  friend int Spell_C_GetManaCost(int id, int isPet);
+  friend int Spell_C_GetManaCost(int id, BOOL isPet);
 
  public:
   static UINT               GetDataSize();
@@ -131,7 +131,7 @@ class CGPlayer {
     return m_plyr->playerFlags;
   }
   int              GetPVPEnabled() const;
-  int              IsPartyLeader() const;
+  BOOL             IsPartyLeader() const;
   const DWORDLONG &GetDuelArbiter() const {
     return m_plyr->duelArbiter;
   }
@@ -194,7 +194,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   ~CGPlayer_C();
   virtual void      Disable(int shutdown);
   virtual void      Reenable();
-  virtual int       ShouldRender(DWORD worldStatus);
+  virtual BOOL      ShouldRender(DWORD worldStatus);
   virtual void      PreAnimate(CGWorldFrame *worldFrame);
   virtual void      GetAFKText(char *buffer, int size) const;
   virtual void      GetDNDText(char *buffer, int size) const;
@@ -233,7 +233,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
  public:
   virtual const VirtualItemInfo *GetVirtualItem(UINT slot, bool ignoreDisarmFlag) const;
   virtual int                    GetVirtualItemDisplayID(UINT slot) const;
-  virtual int                    ShouldRenderUnitName(UINT mode) const;
+  virtual BOOL                   ShouldRenderUnitName(UINT mode) const;
   virtual void                   CommitTexture(int force);
   virtual UINT                   UpdateUnitNameString(UINT localPlayerFlags, UINT otherUnitsFlags, char *buffer, UINT bufferSize) const;
   virtual float                  GetMountScale() const;
@@ -242,7 +242,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual bool                   CanBeMounted();
 
  protected:
-  virtual void CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
+  virtual void CleanupUnitArtwork(int playerModelChanged, BOOL wasPlayerModel);
   virtual void ReinitializeUnitArtwork();
   virtual void PostReinitializeArtwork();
 
@@ -314,13 +314,13 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void             SetFarSightFocus(CGObject_C *obj);
   void             ToggleFarSight();
   void             ClearFarSight();
-  int              IsInFarSight() {
+  BOOL             IsInFarSight() {
     return (m_flags & 0x800) != 0;
   }
   void        BotMove(DWORD now, NTempest::C3Vector *points, int count, DWORD duration, UINT flags);
   int         BotSpline();
   CGUnit_C   *GetPossessedUnit();
-  int         CanLoot(CGUnit_C *unitPtr);
+  BOOL        CanLoot(CGUnit_C *unitPtr);
   static bool IsGiftWrapping();
   static void CancelGiftWrap();
   void        SetCombatMode(int state);
@@ -347,7 +347,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void           ToggleSheathe(bool ignoreAnim);
   void           KillExitCombatModeSheatheTimer();
   void           StartSheatheAnim(INVENTORY_SLOTS slot, int hip, int both);
-  int            CanEngageTarget(const CGUnit_C *unitPtr);
+  BOOL           CanEngageTarget(const CGUnit_C *unitPtr);
   void           OnSpellFailed(const SpellRec *spellRec, UINT reason);
   void           SaveTabard(int eStyle, int eColor, int bStyle, int bColor, int bg, DWORDLONG vendor) const;
   bool           OnGuildChanged();
@@ -374,9 +374,9 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   static void SellItem(DWORDLONG merchant, DWORDLONG item, UINT amount);
   void        AutoEquipCursorItem(int force);
   void        ClearPendingEquip(UINT index, int equip);
-  int         HasEquipped(int classID, int subclassID);
-  int         OnAttackIconPressed();
-  int         CanUseItem(const ItemStats *stats, GAME_ERROR_TYPE &reason);
+  BOOL        HasEquipped(int classID, int subclassID);
+  BOOL        OnAttackIconPressed();
+  BOOL        CanUseItem(const ItemStats *stats, GAME_ERROR_TYPE &reason);
   void        QueryQuest(const DWORDLONG &questGiver, int questID);
   void        AcceptQuest(const DWORDLONG &questGiver, int questID);
   void        CompleteQuest(const DWORDLONG &questGiver, int questID);
@@ -394,11 +394,11 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   static void StartGiftWrap(CGItem_C *wrapper);
   void        GiftWrap(CGItem_C *item);
   void        RequestPetitionSignatures(DWORDLONG item);
-  int         InviteToGroup(DWORDLONG target);
+  BOOL        InviteToGroup(DWORDLONG target);
   void        InviteToGroup(LPCSTR target);
   int         Uninvite(DWORDLONG target);
   void        Uninvite(LPCSTR target);
-  int         SetNewLeader(DWORDLONG target);
+  BOOL        SetNewLeader(DWORDLONG target);
   void        SetNewLeader(LPCSTR target);
   void        AcceptGroup();
   void        DeclineGroup();
@@ -406,12 +406,12 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void        SetLootMethod(LOOT_METHOD method, DWORDLONG master);
   void        AcceptGuild();
   void        DeclineGuild();
-  int         SetBlock(UINT index, DWORD data);
+  BOOL        SetBlock(UINT index, DWORD data);
   void        SetData(LPCVOID data, UINT bytes);
-  int         OnTerrainClick(const CTerrainClickEvent &);
+  BOOL        OnTerrainClick(const CTerrainClickEvent &);
   UINT        GetPlayerAnimState();
-  int         OnAttackBreakHandler();
-  int         ReportBagItemSubtypeMismatch(BYTE bagSlot) const;
+  BOOL        OnAttackBreakHandler();
+  BOOL        ReportBagItemSubtypeMismatch(BYTE bagSlot) const;
   void        SaveDeathMessage(DWORDLONG guid);
   void        CheckKillerFeedback();
   void        OnUnitDeath(DWORDLONG guid);
@@ -433,33 +433,33 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   CGItem_C   *GetSoulstone() const;
   void        UseSoulstone() const;
   void        HandleRepopRequest();
-  int         OnPetitionShowList(CDataStore *msg);
+  BOOL        OnPetitionShowList(CDataStore *msg);
   void        BuyPetition(const DWORDLONG &petitionUnit, CGPetition *petition);
   void        TurnInGuildCharter();
   void        SendTextEmote(const EmotesTextRec *rec, const DWORDLONG &target) const;
-  int         OnPetitionShowSignatures(CDataStore *msg);
-  int         OnSignedResults(CDataStore *msg);
-  int         OnTurnInPetitionResults(CDataStore *msg);
-  int         OnVendorInventory(CDataStore *msg);
-  int         OnBuyFailed(CDataStore *msg);
-  int         OnBuySucceeded(CDataStore *msg);
-  int         OnSellResponse(CDataStore *msg);
-  int         OnQuestGiverListQuests(CDataStore *msg);
-  int         OnQuestGiverInvalidQuest(CDataStore *msg);
-  int         OnQuestGiverSendQuest(CDataStore *msg);
-  int         OnQuestGiverRequestItems(CDataStore *msg);
-  int         OnQuestGiverChooseReward(CDataStore *msg);
-  int         OnQuestGiverQuestComplete(CDataStore *msg);
-  int         OnQuestGiverQuestFailed(CDataStore *msg);
-  int         OnQuestGiverStatus(CDataStore *msg);
-  int         OnTrainerList(CDataStore *msg);
-  int         OnLootResponse(UINT eventTime, CDataStore *msg);
-  int         OnLootReleaseResponse(CDataStore *msg);
-  int         OnLootRemoved(CDataStore *msg);
-  int         OnLootMoneyNotify(CDataStore *msg);
-  int         OnLootClearMoney(CDataStore *msg);
-  int         OnLootItemNotify(CDataStore *msg);
-  int         OnSplitMoneyNotify(CDataStore *msg);
+  BOOL        OnPetitionShowSignatures(CDataStore *msg);
+  BOOL        OnSignedResults(CDataStore *msg);
+  BOOL        OnTurnInPetitionResults(CDataStore *msg);
+  BOOL        OnVendorInventory(CDataStore *msg);
+  BOOL        OnBuyFailed(CDataStore *msg);
+  BOOL        OnBuySucceeded(CDataStore *msg);
+  BOOL        OnSellResponse(CDataStore *msg);
+  BOOL        OnQuestGiverListQuests(CDataStore *msg);
+  BOOL        OnQuestGiverInvalidQuest(CDataStore *msg);
+  BOOL        OnQuestGiverSendQuest(CDataStore *msg);
+  BOOL        OnQuestGiverRequestItems(CDataStore *msg);
+  BOOL        OnQuestGiverChooseReward(CDataStore *msg);
+  BOOL        OnQuestGiverQuestComplete(CDataStore *msg);
+  BOOL        OnQuestGiverQuestFailed(CDataStore *msg);
+  BOOL        OnQuestGiverStatus(CDataStore *msg);
+  BOOL        OnTrainerList(CDataStore *msg);
+  BOOL        OnLootResponse(UINT eventTime, CDataStore *msg);
+  BOOL        OnLootReleaseResponse(CDataStore *msg);
+  BOOL        OnLootRemoved(CDataStore *msg);
+  BOOL        OnLootMoneyNotify(CDataStore *msg);
+  BOOL        OnLootClearMoney(CDataStore *msg);
+  BOOL        OnLootItemNotify(CDataStore *msg);
+  BOOL        OnSplitMoneyNotify(CDataStore *msg);
   void        AddKnownSpell(int spellID, int slot, int learned, int addToBook);
   void        DelKnownSpell(int spellID);
   void        DeleteWornItems() const;
@@ -473,7 +473,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void        UpdateTaxiStatus(CGUnit_C *unit);
   int         LootUnit(CGUnit_C *unit);
   void        ShopFromMerchant(const DWORDLONG &merchant);
-  int         IsQuestUnit(CGUnit_C *unit);
+  BOOL        IsQuestUnit(CGUnit_C *unit);
   void        TalkToQuestUnit(const DWORDLONG &unit);
   int         QueryTaxiNodes(const DWORDLONG &unit);
   void        TalkToTrainer(const DWORDLONG &trainerUnit);
@@ -484,9 +484,9 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void        TalkToTabardVendor(const DWORDLONG &tabardUnit);
   void        ReadItem(BYTE packSlot, BYTE slot);
   void        ReadItem(DWORDLONG containerGUID, BYTE slot);
-  int         DeathBindDistanceCompare(const NTempest::C3Vector &bindStonePosition);
+  BOOL        DeathBindDistanceCompare(const NTempest::C3Vector &bindStonePosition);
   static const NTempest::C3Vector &GetBindPoint();
-  int                              GetLanguageSkill(UINT language, UINT &skill);
+  BOOL                             GetLanguageSkill(UINT language, UINT &skill);
   UINT                             GetDefaultLanguage();
   const TSGrowableArray<int>      *GetTradeSkills(int skillLine) const;
   const TSGrowableArray<int>      *GetCraftSkills(SPELL_CAST_UI_TYPE type) const;
@@ -511,7 +511,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   void         DecrementPendingItemStats();
   void         FixComponenting(CGItem_C *item);
 
-  int IsInCombatMode() const {
+  BOOL IsInCombatMode() const {
     return (m_flags & 0x400) != 0;
   }
 
@@ -553,7 +553,7 @@ class CreatureModelDataRec;
 const CreatureModelDataRec *Player_C_GetModelName(UINT race, UINT sex);
 UINT                        Player_C_GetDisplayId(UINT race, UINT sex);
 int                         Player_C_AppFocusMovementHandler(int focus);
-int                         Player_C_ZoneUpdateHandler(LPCVOID eventData, LPVOID arg);
+BOOL                        Player_C_ZoneUpdateHandler(LPCVOID eventData, LPVOID arg);
 int                         Player_C_SetPlayerRender(int enable);
 void                        Player_C_ClearGuildIDs();
 void                        PlayerClientInitialize();

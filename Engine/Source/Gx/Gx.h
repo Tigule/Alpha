@@ -487,8 +487,8 @@ class CGxTex;
 
 typedef long (*GXWINDOWPROC)(LPVOID, UINT, UINT, long);
 
-int        GxAdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow);
-int        GxAdapterInfer(WORD &deviceID);
+BOOL       GxAdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow);
+BOOL       GxAdapterInfer(WORD &deviceID);
 int        GxAdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes);
 int        GxAdapterDesktopMode(CGxMonitorMode &mode);
 CGxDevice *GxDevCreate(EGxApi api, GXWINDOWPROC windowProc, const CGxFormat &format);
@@ -505,8 +505,8 @@ void       GxDevOverride(EGxOverride override, DWORD value);
 void       GxDevTakeScreenShot();
 void       GxDevReadScreenShot(UINT &w, UINT &h, const NTempest::CImVector *&pixels);
 void       GxDevClearScreenShot();
-int        GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId);
-int        GxTexCreate(
+BOOL       GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId);
+BOOL       GxTexCreate(
     EGxTexTarget target,
     UINT         width,
     UINT         height,
@@ -518,7 +518,7 @@ int        GxTexCreate(
     void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
     CGxTex *&texId
 );
-int GxTexCreate(
+BOOL GxTexCreate(
     UINT         width,
     UINT         height,
     EGxTexFormat format,
@@ -566,15 +566,15 @@ void GxuTexScale(
     UINT         dstH,
     UINT         dstStrideInBytes
 );
-int GxuTestRayAndSphere(
+BOOL GxuTestRayAndSphere(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     const NTempest::C3Vector &sphereCenter,
     float                     sphereRadius,
     float                    &distance
 );
-int GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector *planes);
-int GxuTestRayAndTriangle(
+BOOL GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector *planes);
+BOOL GxuTestRayAndTriangle(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     const NTempest::C3Vector &v0,
@@ -582,7 +582,7 @@ int GxuTestRayAndTriangle(
     const NTempest::C3Vector &v2,
     float                    &distance
 );
-int GxuTestRayAndMesh(
+BOOL GxuTestRayAndMesh(
     const NTempest::C3Vector  &rayStart,
     const NTempest::C3Vector  &rayDirection,
     const NTempest::C34Matrix *modelToWorldMatrices,
@@ -599,7 +599,7 @@ int GxuTestRayAndMesh(
     float                     &distance,
     UINT                      &primIntersected
 );
-int GxuTestRayAndRigidMeshInModelSpace(
+BOOL GxuTestRayAndRigidMeshInModelSpace(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     UINT                      posCount,
@@ -716,7 +716,7 @@ void                              GxPrimPointSize(float s);
 void                              GxPrimLineWidth(float w);
 void                              GxSceneSetClearColor(NTempest::CImVector clearColor);
 NTempest::CImVector               GxSceneClearColor();
-int                               GxTexCreate(const CGxTexParms &parms, CGxTex *&texId);
+BOOL                              GxTexCreate(const CGxTexParms &parms, CGxTex *&texId);
 int                               GxTexNeedsUpdate(CGxTex *texId);
 void                              GxTexParameters(const CGxTex *texId, CGxTexParms &parms);
 void                              GxTexFlags(const CGxTex *texId, CGxTexFlags &flags);

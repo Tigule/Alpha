@@ -29,7 +29,7 @@ class CStringRep : public TRefCnt, public TSHashObject<CStringRep, HASHKEY_STR> 
 
   virtual void DecrRef();
 
-  int IsString(LPCSTR str) const;
+  BOOL IsString(LPCSTR str) const;
 
   int operator==(LPCSTR str) const {
     return IsString(str);

@@ -17,14 +17,14 @@ class CWorldMath {
     SIDE_NEG = 2
   };
 
-  static int EdgeIntersectEdge(
+  static BOOL EdgeIntersectEdge(
       const NTempest::C2Vector &a,
       const NTempest::C2Vector &b,
       const NTempest::C2Vector &c,
       const NTempest::C3Vector &d,
       NTempest::C2Vector       &p
   );
-  static int RayIntersectTri(
+  static BOOL RayIntersectTri(
       const NTempest::C3Vector &rayOrig,
       const NTempest::C3Vector &rayDir,
       const NTempest::C3Vector &v0,
@@ -36,9 +36,9 @@ class CWorldMath {
   static void TransformAABox(const NTempest::C34Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox);
   static void TransformAABox(const NTempest::C44Matrix &m, const NTempest::CAaBox &box, NTempest::CAaBox &nBox);
 
-  static int  VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end);
-  static int  VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Segment &seg);
-  static int  SphereIntersectAABox(const NTempest::CAaBox &box, const NTempest::C3Vector &center, float radius);
+  static BOOL VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end);
+  static BOOL VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Segment &seg);
+  static BOOL SphereIntersectAABox(const NTempest::CAaBox &box, const NTempest::C3Vector &center, float radius);
   static UINT AABoxIntersectPlane(const NTempest::CAaBox &box, const NTempest::C4Plane &plane);
   static float
   TriSqrDistance(const NTempest::C3Vector &point, const NTempest::C3Vector &origin, const NTempest::C3Vector &edge0, const NTempest::C3Vector &edge1);

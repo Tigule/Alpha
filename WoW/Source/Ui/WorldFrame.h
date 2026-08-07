@@ -15,7 +15,7 @@ struct HTEXCOMPONENT__;
 class CGObject_C;
 class CGUnit_C;
 class CGGameObject_C;
-int UnitUpdateProc(DWORDLONG guid, LPVOID param);
+BOOL UnitUpdateProc(DWORDLONG guid, LPVOID param);
 
 struct CWorldClickEvent {
   UINT button;
@@ -44,7 +44,7 @@ struct CObjectTrackEvent {
 };
 
 class CGWorldFrame : public CSimpleFrame {
-  friend int UnitUpdateProc(DWORDLONG guid, LPVOID param);
+  friend BOOL UnitUpdateProc(DWORDLONG guid, LPVOID param);
 
  public:
   enum HIT_TYPE {
@@ -90,15 +90,15 @@ class CGWorldFrame : public CSimpleFrame {
  protected:
   virtual ~CGWorldFrame();
   virtual void OnLayerUpdate(float elapsedSec);
-  virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
+  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnFrameRender(CRenderBatch *batch, UINT layer);
   virtual void OnLayerCursorExit();
-  virtual int  OnLayerKeyDown(CKeyEvent &evt);
-  virtual int  OnLayerKeyUp(CKeyEvent &evt);
-  virtual int  OnLayerMouseDown(CMouseEvent &evt);
-  virtual int  OnLayerMouseUp(CMouseEvent &evt);
-  virtual int  OnLayerMouseWheel(CMouseEvent &evt);
-  virtual int  OnLayerMouseMoveRelative(CMouseEvent &evt);
+  virtual BOOL OnLayerKeyDown(CKeyEvent &evt);
+  virtual BOOL OnLayerKeyUp(CKeyEvent &evt);
+  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseWheel(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseMoveRelative(CMouseEvent &evt);
 
  public:
   static CSimpleFrame *Create(CSimpleFrame *parent) {
@@ -132,9 +132,9 @@ class CGWorldFrame : public CSimpleFrame {
   void               SetPlayerFadeCameraValue(BYTE value);
   void               SetSpriteClickButtons(UINT buttons);
   void               SetTerrainClickButtons(UINT buttons);
-  int                PerformDefaultAction(MOUSEBUTTON button, UINT timestamp);
+  BOOL               PerformDefaultAction(MOUSEBUTTON button, UINT timestamp);
   DWORDLONG          GetObjectUnderMouse();
-  int                TogglePlayerRender();
+  BOOL               TogglePlayerRender();
   int                SetPlayerRender(int state);
   void               OnMouseModeNormal();
   void               OnMouseModeRelative();
@@ -159,14 +159,14 @@ class CGWorldFrame : public CSimpleFrame {
   UINT          GeometryTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector);
   void          ReduceToClosestModel();
   CModelRecord *HigherPriorityModel(CModelRecord *a, CModelRecord *b);
-  int           IsLegalSelection(CModelRecord *record, UINT hitFilter);
-  int           IsUnitLegalSelection(const CGUnit_C *unit, UINT hitFilter);
+  BOOL          IsLegalSelection(CModelRecord *record, UINT hitFilter);
+  BOOL          IsUnitLegalSelection(const CGUnit_C *unit, UINT hitFilter);
   void          MoveToFreeList(CModelRecord *record);
   void          MoveToFreeList(LISTPTR(CModelRecord) objList);
   HIT_TYPE      HitTest(const NTempest::C3Vector &a, const NTempest::C3Vector &b, UINT hitFilter, HitTestResult *hitTestResult);
   HIT_TYPE      HitTestPoint(float x, float y, HitTestResult *hitTestResult);
-  int           SendObjectTrackEvent(DWORDLONG guid, float x, float y);
-  int           SendUnitFadeEvent(DWORDLONG guid);
+  BOOL          SendObjectTrackEvent(DWORDLONG guid, float x, float y);
+  BOOL          SendUnitFadeEvent(DWORDLONG guid);
   void          OnLayerTrackTerrain(const HitTestResult &hitTestResult);
   void          OnLayerTrackObject(const HitTestResult &hitTestResult, float x, float y);
   void          CursorTrackUnit(CGUnit_C *unit);
@@ -186,7 +186,7 @@ class CGWorldFrame : public CSimpleFrame {
   static void RenderWorld(LPVOID param);
 
  private:
-  int GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
+  BOOL GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b);
 
   LISTDECL(CModelRecord, m_models);
   LISTDECL(CModelRecord, m_filteredModels);

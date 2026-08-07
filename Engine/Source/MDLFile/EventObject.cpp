@@ -58,7 +58,7 @@ void WriteEventKeyFrames(const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, TSGrow
   }
 }
 
-int ReadBinEventKeyFrames(MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer &buf, UINT *totalRead) {
+BOOL ReadBinEventKeyFrames(MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer &buf, UINT *totalRead) {
   if (buf.Bytes() < 8) {
     return 0;
   }
@@ -96,7 +96,7 @@ UINT GetBinEventKeyFramesSize(const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes) {
 
 namespace MDL {
 
-  int ReadEventObject(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadEventObject(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet             errors;
     MDLEVENTSECTION *eventObject = data.events.New();
     AddObjectErrors(errors);
@@ -123,7 +123,7 @@ namespace MDL {
     return !parse.FoundError();
   }
 
-  int WriteEventObjects(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteEventObjects(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
       int                    needObjIds = data.events.Count() != data.objects.Count();
       const MDLEVENTSECTION *eventObject = data.events.Ptr();
@@ -137,7 +137,7 @@ namespace MDL {
     return 1;
   }
 
-  int WriteBinEventObjects(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
+  BOOL WriteBinEventObjects(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     UINT numEvents = data.events.Count();
     UINT totalSize = 4;
     UINT n = 0;
@@ -163,7 +163,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinEventObjects(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinEventObjects(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT numEvents = buf.GetUint();
     UINT totalRead = 4;
     data.events.SetCount(0);

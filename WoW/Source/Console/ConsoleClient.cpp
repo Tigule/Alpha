@@ -107,19 +107,19 @@ static UINT                s_highlightRightCharIndex;
 static float               s_charSpacing;
 static UINT                s_baseTextFlags = 8;
 
-static int ConsoleCommand_FontColor(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_BackGroundColor(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_HighLightColor(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_FontSize(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_Font(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_BufferSize(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_ClearConsole(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_Proportional(LPCSTR cmd, LPCSTR args);
-static int ConsoleCommand_CharSpacing(LPCSTR cmd, LPCSTR args);
-static int ConsoleCommand_CurrentSettings(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_DefaultSettings(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_CloseConsole(LPCSTR cmd, LPCSTR arguments);
-static int ConsoleCommand_RepeatHandler(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_FontColor(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_BackGroundColor(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_HighLightColor(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_FontSize(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_Font(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_BufferSize(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_ClearConsole(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_Proportional(LPCSTR cmd, LPCSTR args);
+static BOOL ConsoleCommand_CharSpacing(LPCSTR cmd, LPCSTR args);
+static BOOL ConsoleCommand_CurrentSettings(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_DefaultSettings(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_CloseConsole(LPCSTR cmd, LPCSTR arguments);
+static BOOL ConsoleCommand_RepeatHandler(LPCSTR cmd, LPCSTR arguments);
 
 static LPCSTR s_consoleCommands[13] = {"fontcolor",        "bgcolor", "highlightcolor", "fontsize", "font",         "consolelines", "clear",
                                        "proportionaltext", "spacing", "settings",       "default",  "closeconsole", "repeat"};
@@ -172,14 +172,14 @@ static void         PasteInInputLine(LPCSTR characters);
 static void         ResetHighlight();
 static void         UpdateHighlight();
 
-static int OnChar(const EVENT_DATA_CHAR *data, LPVOID);
-static int OnIdle(const EVENT_DATA_IDLE *data, LPVOID);
-static int OnKeyDown(const EVENT_DATA_KEY *data, LPVOID);
-static int OnKeyDownRepeat(const EVENT_DATA_KEY *data, LPVOID);
-static int OnKeyUp(const EVENT_DATA_KEY *data, LPVOID);
-static int OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID);
-static int OnMouseUp(const EVENT_DATA_MOUSE *data, LPVOID);
-static int OnMouseMove(const EVENT_DATA_MOUSE *data, LPVOID);
+static BOOL OnChar(const EVENT_DATA_CHAR *data, LPVOID);
+static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID);
+static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID);
+static BOOL OnKeyDownRepeat(const EVENT_DATA_KEY *data, LPVOID);
+static BOOL OnKeyUp(const EVENT_DATA_KEY *data, LPVOID);
+static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID);
+static BOOL OnMouseUp(const EVENT_DATA_MOUSE *data, LPVOID);
+static BOOL OnMouseMove(const EVENT_DATA_MOUSE *data, LPVOID);
 
 long OsWindowProc(LPVOID _window, UINT message, UINT wparam, long lparam);
 void OsGuiSetGxWindow(LPVOID window);
@@ -401,7 +401,7 @@ static void PaintText(LPVOID, const RECTF *, const RECTF *, float elapsedSec) {
   GxuFontRenderInternalBatch();
 }
 
-static int OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
+static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
   float finalPos;
 
   if (s_active) {
@@ -531,7 +531,7 @@ static void ResetHighlight() {
   s_hRect.bottom = 0.0f;
 }
 
-static int OnChar(const EVENT_DATA_CHAR *data, LPVOID) {
+static BOOL OnChar(const EVENT_DATA_CHAR *data, LPVOID) {
   char character[2];
 
   if (EventIsKeyDown(KEY_TILDE) || !s_active) {
@@ -572,7 +572,7 @@ static void UpdateHighlight() {
       GxuFontGetMaxCharsWithinWidth(font, s_copyText, s_fontHeight, right, length, &s_hRect.right, s_charSpacing, s_baseTextFlags);
 }
 
-static int OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
+static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
   float        clickPos;
   float        visibleHeight;
   int          lineIndex;
@@ -607,7 +607,7 @@ static int OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
   return 0;
 }
 
-static int OnMouseUp(const EVENT_DATA_MOUSE *data, LPVOID) {
+static BOOL OnMouseUp(const EVENT_DATA_MOUSE *data, LPVOID) {
   if (!EventIsKeyDown(KEY_TILDE) && s_active) {
     s_highlightState = HS_ENDHIGHLIGHT;
     s_consoleResizeState = CS_NONE;
@@ -615,7 +615,7 @@ static int OnMouseUp(const EVENT_DATA_MOUSE *data, LPVOID) {
   return 1;
 }
 
-static int OnMouseMove(const EVENT_DATA_MOUSE *data, LPVOID) {
+static BOOL OnMouseMove(const EVENT_DATA_MOUSE *data, LPVOID) {
   if (EventIsKeyDown(KEY_TILDE) || !s_active) {
     return 1;
   }
@@ -687,7 +687,7 @@ static void MoveLinePtr(int direction, int modifier) {
   }
 }
 
-static int OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
+static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
   CONSOLELINE *inputLine;
   LPCSTR       history;
   UINT         historyIndex;
@@ -696,7 +696,7 @@ static int OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
   char        *clipboard;
 
   if (data->key == KEY_TILDE) {
-    int wasActive = s_active;
+    BOOL wasActive = s_active;
     s_active = !s_active;
     if (wasActive) {
       ResetHighlight();
@@ -850,7 +850,7 @@ static int OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
   return 0;
 }
 
-static int OnKeyDownRepeat(const EVENT_DATA_KEY *data, LPVOID) {
+static BOOL OnKeyDownRepeat(const EVENT_DATA_KEY *data, LPVOID) {
   CONSOLELINE *inputLine;
   LPCSTR       history;
   UINT         historyIndex;
@@ -927,7 +927,7 @@ static int OnKeyDownRepeat(const EVENT_DATA_KEY *data, LPVOID) {
   return 0;
 }
 
-static int OnKeyUp(const EVENT_DATA_KEY *data, LPVOID) {
+static BOOL OnKeyUp(const EVENT_DATA_KEY *data, LPVOID) {
   return !s_active;
 }
 
@@ -959,7 +959,7 @@ static void RegenerateFontStrings() {
   }
 }
 
-static int ConsoleCommand_ClearConsole(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_ClearConsole(LPCSTR cmd, LPCSTR arguments) {
   CONSOLELINE *line;
 
   s_NumLines = 0;
@@ -973,13 +973,13 @@ static int ConsoleCommand_ClearConsole(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_Proportional(LPCSTR cmd, LPCSTR args) {
+static BOOL ConsoleCommand_Proportional(LPCSTR cmd, LPCSTR args) {
   s_baseTextFlags ^= 0x10;
   RegenerateFontStrings();
   return 1;
 }
 
-static int ConsoleCommand_CharSpacing(LPCSTR cmd, LPCSTR args) {
+static BOOL ConsoleCommand_CharSpacing(LPCSTR cmd, LPCSTR args) {
   if (args && args[0]) {
     s_charSpacing = SStrToFloat(args);
   } else {
@@ -989,7 +989,7 @@ static int ConsoleCommand_CharSpacing(LPCSTR cmd, LPCSTR args) {
   return 1;
 }
 
-static int ConsoleCommand_DefaultSettings(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_DefaultSettings(LPCSTR cmd, LPCSTR arguments) {
   s_colorArray[DEFAULT_COLOR] = NTempest::CImVector(255, 255, 255, 255);
   s_colorArray[INPUT_COLOR] = NTempest::CImVector(255, 255, 255, 255);
   s_colorArray[ECHO_COLOR] = NTempest::CImVector(255, 128, 128, 128);
@@ -1012,12 +1012,12 @@ static int ConsoleCommand_DefaultSettings(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_CloseConsole(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_CloseConsole(LPCSTR cmd, LPCSTR arguments) {
   s_active = 0;
   return 0;
 }
 
-static int ConsoleCommand_RepeatHandler(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_RepeatHandler(LPCSTR cmd, LPCSTR arguments) {
   LPCSTR command;
   UINT   count;
   UINT   length;
@@ -1046,7 +1046,7 @@ static int ConsoleCommand_RepeatHandler(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_CurrentSettings(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_CurrentSettings(LPCSTR cmd, LPCSTR arguments) {
   char buffer[0x104];
 
   SStrPrintf(buffer, sizeof(buffer), "Font Height is %f", s_fontHeight);
@@ -1058,7 +1058,7 @@ static int ConsoleCommand_CurrentSettings(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_FontColor(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_FontColor(LPCSTR cmd, LPCSTR arguments) {
   char                colorType[32];
   UINT                blue;
   UINT                green;
@@ -1111,7 +1111,7 @@ static int ConsoleCommand_FontColor(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_BufferSize(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_BufferSize(LPCSTR cmd, LPCSTR arguments) {
   float height;
 
   if (arguments && arguments[0]) {
@@ -1132,7 +1132,7 @@ static int ConsoleCommand_BufferSize(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_FontSize(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_FontSize(LPCSTR cmd, LPCSTR arguments) {
   s_fontHeight = SStrToFloat(arguments) * 0.001f;
   if (s_fontHeight < 0.01f) {
     s_fontHeight = 0.01f;
@@ -1150,7 +1150,7 @@ static int ConsoleCommand_FontSize(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_Font(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_Font(LPCSTR cmd, LPCSTR arguments) {
   char         buffer[0x104] = "Fonts\\";
   HTEXTFONT__ *font;
 
@@ -1168,7 +1168,7 @@ static int ConsoleCommand_Font(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_BackGroundColor(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_BackGroundColor(LPCSTR cmd, LPCSTR arguments) {
   UINT blue;
   UINT alpha;
   UINT green;
@@ -1187,7 +1187,7 @@ static int ConsoleCommand_BackGroundColor(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_HighLightColor(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_HighLightColor(LPCSTR cmd, LPCSTR arguments) {
   UINT blue;
   UINT alpha;
   UINT green;
@@ -1414,7 +1414,7 @@ static void SetGxCVars(const CGxFormat &format) {
   UpdateGxCVars();
 }
 
-static int CCGxRestart(LPCSTR, LPCSTR args) {
+static BOOL CCGxRestart(LPCSTR, LPCSTR args) {
   ValidateFormatMonitor(s_requestedFormat);
   if (GxDevSetFormat(s_requestedFormat)) {
     s_lastGoodFormat = s_requestedFormat;
@@ -1648,7 +1648,7 @@ void ConsoleDeviceDestroy() {
   GxLogClose();
 }
 
-static int EventCloseCallback(LPVOID param) {
+static BOOL EventCloseCallback(LPVOID param) {
   ConsolePostClose();
   return 0;
 }

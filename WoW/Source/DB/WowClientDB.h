@@ -126,5 +126,5 @@ class WowClientDB {
   int      m_numRecords;
   RECORD **m_recordsById;
   int      m_maxID;
-  int      m_loaded;
+  BOOL     m_loaded;
 };

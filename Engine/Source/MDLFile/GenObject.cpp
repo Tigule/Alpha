@@ -170,7 +170,7 @@ static void INormalizeQuats(TSGrowableArray<MDLKEYFRAME<NTempest::C4Quaternion> 
   }
 }
 
-int ReadObjectBody(Parser &parse, UINT savedtoken, NTempest::C3Vector *pivot, MDLGENOBJECT *obj, CMDLStatus *status) {
+BOOL ReadObjectBody(Parser &parse, UINT savedtoken, NTempest::C3Vector *pivot, MDLGENOBJECT *obj, CMDLStatus *status) {
   switch (savedtoken) {
     case 0x129:
       obj->flags |= 8;
@@ -243,7 +243,7 @@ void ReadObjectEnd(TSet &errors, MDLDATA &data, MDLGENOBJECT *object, DWORD list
   data.objects[object->objectId] = reinterpret_cast<MDLGENOBJECT *>(listMask | listIndex);
 }
 
-int IExpectAnimation(Parser &parse, UINT *savedtoken, LPCSTR *tokenText) {
+BOOL IExpectAnimation(Parser &parse, UINT *savedtoken, LPCSTR *tokenText) {
   if (*savedtoken == 0x1BB) {
     *savedtoken = parse.Token(tokenText, 0);
     return 0;
@@ -471,7 +471,7 @@ int ReadBinFloatKeyFrames(MDLKEYTRACK<NTempest::C3Vector> &track, CMsgBuffer &bu
 
 #undef READ_BIN_FLOAT_KEYFRAMES
 
-int ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &track, CMsgBuffer &buffer, UINT &totalRead) {
+BOOL ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &track, CMsgBuffer &buffer, UINT &totalRead) {
   if (buffer.Bytes() < 8) {
     return 0;
   }
@@ -555,7 +555,7 @@ void WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes,
   }
 }
 
-int ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
+BOOL ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
   if (buf.Bytes() < 12) {
     return 0;
   }
@@ -596,7 +596,7 @@ int ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, CMsgBuf
   return 1;
 }
 
-int WriteBinGenObject(const MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *) {
+BOOL WriteBinGenObject(const MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *) {
   buf.AddUint(GetBinGenObjectSize(obj));
   buf.AddTcharArray(obj.name, 80, 1);
   buf.AddUint(obj.objectId);
@@ -631,7 +631,7 @@ int WriteBinGenObject(const MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *) {
   return 1;
 }
 
-int ReadBinGenObject(MDLGENOBJECT &object, CMsgBuffer &buffer, CMDLStatus *status, UINT &totalRead) {
+BOOL ReadBinGenObject(MDLGENOBJECT &object, CMsgBuffer &buffer, CMDLStatus *status, UINT &totalRead) {
   if (!status) {
     return 0;
   }
@@ -703,7 +703,7 @@ void ReadBinObjectEnd(MDLDATA &data, MDLGENOBJECT *obj, DWORD listIndex, DWORD l
   data.objects[obj->objectId] = reinterpret_cast<MDLGENOBJECT *>(listMask | listIndex);
 }
 
-int ReadObjectPtrs(MDLDATA *data, CMDLStatus *status) {
+BOOL ReadObjectPtrs(MDLDATA *data, CMDLStatus *status) {
   for (UINT i = 0; i < data->objects.Count(); ++i) {
     UINT encoded = reinterpret_cast<UINT>(data->objects[i]);
     UINT index = encoded & 0x0FFFFFFF;

@@ -46,7 +46,7 @@ static UINT APIENTRY ProcessCompletionCallbackThread(LPVOID vdata) {
   return 0;
 }
 
-int SCreateProcess(LPCSTR appName, char *commandLine, SPROCESSCOMPLETIONPROC callbackWhenProcessCompletes, LPVOID callbackData) {
+BOOL SCreateProcess(LPCSTR appName, char *commandLine, SPROCESSCOMPLETIONPROC callbackWhenProcessCompletes, LPVOID callbackData) {
   WCHAR               appNameW[MAX_PATH];
   WCHAR               commandLineW[MAX_PATH];
   STARTUPINFOW        startInfo;

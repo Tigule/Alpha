@@ -152,7 +152,7 @@ struct CAnimModelObjStatus : public CAnimObjStatus {
     visible = 1.0f;
   }
 
-  int IsVisible() const {
+  BOOL IsVisible() const {
     return visible > 0.0f;
   }
 
@@ -187,7 +187,7 @@ struct CAnimCameraObjStatus {
     base.flags = 0x10;
   }
 
-  int IsVisible() const {
+  BOOL IsVisible() const {
     return visible > 0.0f;
   }
 
@@ -256,7 +256,7 @@ struct CAnimGeosetObjStatus {
     base.flags = 0x11;
   }
 
-  int IsVisible() const {
+  BOOL IsVisible() const {
     return base.flags & 1;
   }
 

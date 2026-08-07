@@ -12,7 +12,7 @@ void OsNetPump(DWORD timeout);
 void   OsCallInitialize(LPCSTR name);
 void   OsCallDestroy();
 LPVOID OsCallInitializeContext(LPCSTR name);
-int    s_watchdogActive;
+BOOL   s_watchdogActive;
 
 static UINT      s_hThread;
 static int       s_netServer;
@@ -45,7 +45,7 @@ inline EvtContext::EvtContext(DWORD idleTime, DWORD flags, UINT weight, LPVOID c
       m_startWatchdog(startWatchdog) {
 }
 
-static int           SynthesizeInitialize(EvtContext *context);
+static BOOL          SynthesizeInitialize(EvtContext *context);
 static void          SynthesizeDestroy(EvtContext *context);
 static void          SynthesizeIdle(EvtContext *context);
 static void          SynthesizePoll(EvtContext *context);
@@ -60,7 +60,7 @@ HEVENTCONTEXT        AttachContextToThread(EvtContext *context);
 static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread);
 static UINT APIENTRY ShutdownThreadProc(LPVOID pEvent);
 
-static int SynthesizeInitialize(EvtContext *context) {
+static BOOL SynthesizeInitialize(EvtContext *context) {
   if (context->SchedGetFlags(0x1)) {
     return 0;
   }
@@ -647,7 +647,7 @@ IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVEN
   return AttachContextToThread(context);
 }
 
-int IEvtSchedulerIsContextInteractive(EvtContext *context) {
+BOOL IEvtSchedulerIsContextInteractive(EvtContext *context) {
   return context->SchedGetFlags(0x2) != 0;
 }
 

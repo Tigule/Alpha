@@ -40,7 +40,7 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
   bool SetText(LPCSTR text, CStatus *status);
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void ClearContent();
   void ParseBODY(const XMLNode *node, CStatus *status);

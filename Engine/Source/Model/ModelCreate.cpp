@@ -25,8 +25,8 @@ void           AnimInitialize();
 void           AnimDestroy();
 void           MDLFileInitialize();
 void           MDLFileDestroy();
-int            MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status);
-int            MdlReadValidate(const MDLDATA &data, CStatus *status);
+BOOL           MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status);
+BOOL           MdlReadValidate(const MDLDATA &data, CStatus *status);
 HMODEL         ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status);
 void           ModelAnimateInitialize();
 void           ModelAnimateDestroy();
@@ -54,13 +54,13 @@ HCOLLISIONDATA CollisionDataCreate(BYTE *, UINT);
 HCOLLISIONDATA CollisionDataCreate(const MDLDATA &);
 HANIM          AnimCreate(const MDLDATA &, UINT, CStatus *);
 UINT           AnimBuildObjectIdTranslation(const MDLDATA &, UINT, TSStackArray<UINT> *);
-int            MdlReadCameras(const MDLDATA &, TSFixedArray<HCAMERA> *);
+BOOL           MdlReadCameras(const MDLDATA &, TSFixedArray<HCAMERA> *);
 void           MdlReadLoadGlobalProperties(const MDLDATA &, CModelShared *, UINT *);
-int            MdlReadLoadModel(const MDLDATA &, CModelComplex *, CModelShared *, UINT, CStatus *);
-int            MdlReadLoadModel(const MDLDATA &, CModelSimple *, CModelShared *, UINT, CStatus *);
-int            MdlReadLoadRibbonEmitters(const MDLDATA &, CModelComplex *, CModelShared *);
-int            MdlReadLoadEmitters2(const MDLDATA &, CModelComplex *, CModelShared *, UINT, CStatus *);
-int            MdlReadLoadLights(const MDLDATA &, CModelComplex *);
+BOOL           MdlReadLoadModel(const MDLDATA &, CModelComplex *, CModelShared *, UINT, CStatus *);
+BOOL           MdlReadLoadModel(const MDLDATA &, CModelSimple *, CModelShared *, UINT, CStatus *);
+BOOL           MdlReadLoadRibbonEmitters(const MDLDATA &, CModelComplex *, CModelShared *);
+BOOL           MdlReadLoadEmitters2(const MDLDATA &, CModelComplex *, CModelShared *, UINT, CStatus *);
+BOOL           MdlReadLoadLights(const MDLDATA &, CModelComplex *);
 void           ExecuteQueuedActions(CModel *model);
 void           IModelEnableFullAlpha(CModelBase *unique, int enable);
 
@@ -69,8 +69,8 @@ void ModelEnableAnimBlending(HMODEL model, int enabled);
 void ModelHideBounds(HMODEL model);
 void ModelHideGeosets(HMODEL model, UINT selectionGroup, int hide);
 void ModelHideGeosetsRange(HMODEL model, UINT selectionStart, UINT selectionEnd, int hide);
-int  ModelOptimizeVisibleGeosets(HMODEL model);
-int  ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child);
+BOOL ModelOptimizeVisibleGeosets(HMODEL model);
+BOOL ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child);
 void ModelSetEmissiveColor(HMODEL model, const NTempest::CImVector &color, int doLinkedModels);
 void ModelShowCollision(HMODEL model, int show);
 void ModelShowCollisionAaBox(HMODEL model, int show);
@@ -188,7 +188,7 @@ HMODEL ModelDuplicate(HMODEL sourceModel, UINT flags);
 HMODEL IModelCreateBlocking(LPCSTR fileName, char *actualPath, CModelCreate *data, CStatus *status);
 HMODEL CreateDefaultModel(LPCSTR fileName, UINT modelLoadFlags, CStatus *status);
 
-static int ModelIsUsed(HMODEL model) {
+static BOOL ModelIsUsed(HMODEL model) {
   CModelShared *shared;
 
   IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared);
@@ -264,7 +264,7 @@ static void HashNewModel(LPCSTR modelFName, HMODEL model, UINT createFlags, CSta
   entry->timeStamp = currentTime;
 }
 
-static int MdlReadLoadNumMatrices(const MDLDATA &data, CModelShared *shared, UINT flags) {
+static BOOL MdlReadLoadNumMatrices(const MDLDATA &data, CModelShared *shared, UINT flags) {
   ASSERT(shared);
   if (flags & 0x100) {
     shared->numBones = 1;
@@ -327,7 +327,7 @@ static UINT ConvertAnimCreateFlags(UINT loadFlags) {
   return createFlags;
 }
 
-static int MdlReadLoadAnim(const MDLDATA &data, CModelBase *modelptr, UINT loadFlags, CStatus *status) {
+static BOOL MdlReadLoadAnim(const MDLDATA &data, CModelBase *modelptr, UINT loadFlags, CStatus *status) {
   modelptr->m_anim = AnimCreate(data, ConvertAnimCreateFlags(loadFlags), status);
   if (!modelptr->m_anim) {
     return 0;
@@ -340,7 +340,7 @@ static int MdlReadLoadAnim(const MDLDATA &data, CModelBase *modelptr, UINT loadF
   return 1;
 }
 
-static int MdxReadAnimation(BYTE *fileData, UINT fileBytes, CModelBase *modelptr, UINT loadFlags) {
+static BOOL MdxReadAnimation(BYTE *fileData, UINT fileBytes, CModelBase *modelptr, UINT loadFlags) {
   modelptr->m_anim = AnimCreate(fileData, fileBytes, ConvertAnimCreateFlags(loadFlags));
   if (!modelptr->m_anim) {
     return 0;
@@ -421,7 +421,7 @@ static void MdxReadHitTestData(BYTE *data, UINT fileBytes, CModelComplex *modelp
   FATALASSERT(dataDone == reinterpret_cast<UINT *>(data));
 }
 
-static int MdlReadLoadHitTestData(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared) {
+static BOOL MdlReadLoadHitTestData(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
 
@@ -499,7 +499,7 @@ static void IModelComputeBounds(CModelShared *shared) {
   ComputeBoundingRadius(shared->geosets.Ptr(), shared->geosets.Count(), shared->bounds.sphere.c, &shared->bounds.sphere.r);
 }
 
-static int MdlReadLoadExtents(const MDLDATA &data, CModelBase *modelptr, CModelShared *shared) {
+static BOOL MdlReadLoadExtents(const MDLDATA &data, CModelBase *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
 
@@ -570,7 +570,7 @@ static void MdxReadExtents(BYTE *data, UINT fileBytes, CModelBase *modelptr, CMo
   }
 }
 
-static int MdlReadLoadPositions(const MDLDATA &data, UINT flags, CModelShared *shared) {
+static BOOL MdlReadLoadPositions(const MDLDATA &data, UINT flags, CModelShared *shared) {
   ASSERT(shared);
   UINT numPivots = data.pivotPoints.Count();
   if (!numPivots) {
@@ -647,7 +647,7 @@ static CModelShared *CreateSharedModelData(LPCSTR fileName) {
   return shared;
 }
 
-int IsSimpleModel(const MDLDATA &source) {
+BOOL IsSimpleModel(const MDLDATA &source) {
   return source.geosets.Count() <= 5 && source.materials.Count() <= 4 && source.textures.Count() <= 4 && !source.lights.Count() &&
          !source.attachments.Count() && !source.particleEmitters2.Count() && !source.ribbonEmitters.Count() && !source.cameras.Count() &&
          !source.hitTestShapes.Count();
@@ -663,7 +663,7 @@ static UINT GetTextureCount(BYTE *fileData, UINT fileBytes) {
   return section ? *reinterpret_cast<UINT *>(section) / 0x10C : 0;
 }
 
-static int IsSimpleModel(BYTE *fileData, UINT fileBytes) {
+static BOOL IsSimpleModel(BYTE *fileData, UINT fileBytes) {
   if (GetSectionCount(fileData, fileBytes, 0x534C544D) > 4 || GetTextureCount(fileData, fileBytes) > 4 ||
       GetSectionCount(fileData, fileBytes, 0x534F4547) > 5)
   {
@@ -730,7 +730,7 @@ static void BuildModelFromMdxData(BYTE *fileData, UINT fileBytes, CModelBase *ba
   MdxReadCameras(fileData, fileBytes, &modelptr->m_cameras);
 }
 
-static int BuildSimpleModelFromMdlData(const MDLDATA &source, CModelSimple *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
+static BOOL BuildSimpleModelFromMdlData(const MDLDATA &source, CModelSimple *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
   if (!MdlReadLoadModel(source, modelptr, shared, flags, status)) {
     return 0;
   }
@@ -916,7 +916,7 @@ void ModelRemoveFromCache(LPCSTR sourcefile) {
   s_modelCache.Delete(modelHash);
 }
 
-int ModelCacheUpdate(DWORD currentTime, CStatus *status) {
+BOOL ModelCacheUpdate(DWORD currentTime, CStatus *status) {
   UINT numModelsFlushed = 0;
 
   while (CModelHash *modelHash = s_modelCacheLRU.Head()) {
@@ -1125,7 +1125,7 @@ static HMODEL IModelCreate(LPCSTR fileName, char *actualPath, CModelCreate *crea
   return handle;
 }
 
-static int IsBinaryFile(char *path) {
+static BOOL IsBinaryFile(char *path) {
   UINT length = SStrLen(path);
   char lastCharacter = path[length - 1];
 
@@ -1268,7 +1268,7 @@ HMODEL ModelCreateSimpleMesh(
   return static_cast<HMODEL>(HandleCreate(model, "HMODEL"));
 }
 
-int ModelGeosetAdd(
+BOOL ModelGeosetAdd(
     HMODEL                    model,
     UINT                      numVertices,
     const NTempest::C3Vector *position,
@@ -1647,7 +1647,7 @@ void CModel::RemoveModelCommandsFromQueue() {
   s_freeModItems.Combine(&modelModQueue, LIST_TAIL, 0);
 }
 
-int ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
+BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
   CModel        *modelptr;
   CModelBase    *base;
   CModelComplex *complex;
@@ -1682,7 +1682,7 @@ int ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
 
   return 1;
 }
-int IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared) {
+BOOL IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared) {
   FATALASSERT(model);
 
   *unique = 0;
@@ -1697,7 +1697,7 @@ int IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared)
   return 1;
 }
 
-int IModelDerefHandle(CModel *model, CModelBase **unique) {
+BOOL IModelDerefHandle(CModel *model, CModelBase **unique) {
   FATALASSERT(model);
 
   *unique = 0;
@@ -1709,7 +1709,7 @@ int IModelDerefHandle(CModel *model, CModelBase **unique) {
   return 1;
 }
 
-int IModelDerefHandle(CModel *model, CModelShared **shared) {
+BOOL IModelDerefHandle(CModel *model, CModelShared **shared) {
   FATALASSERT(model);
 
   *shared = reinterpret_cast<CModelShared *>(model->shared);

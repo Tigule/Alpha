@@ -143,7 +143,7 @@ namespace MDL {
     parse.Expect('}', token, tokenText);
   }
 
-  int ReadRibbonEmitter(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadRibbonEmitter(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     FATALASSERT(status);
     TSet              errors;
     MDLRIBBONEMITTER *emitter = data.ribbonEmitters.New();
@@ -199,7 +199,7 @@ namespace MDL {
     WriteObjectTrailer(emitter, buffer);
   }
 
-  int WriteRibbonEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteRibbonEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
       for (UINT i = 0; i < data.ribbonEmitters.Count(); ++i) {
         IWriteRibbonEmitter(data, data.ribbonEmitters.Ptr()[i], data.ribbonEmitters.Count() != data.objects.Count(), buffer);
@@ -286,7 +286,7 @@ namespace MDL {
     WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buffer);
   }
 
-  int WriteBinRibbonEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
+  BOOL WriteBinRibbonEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.ribbonEmitters.Count()) {
       buf.AddDword('BBIR');
       UINT totalSize = 4;
@@ -303,7 +303,7 @@ namespace MDL {
     return 1;
   }
 
-  static int ReadBinRibbonEmitter(CMsgBuffer &buffer, MDLRIBBONEMITTER *ribbon, CMDLStatus *status, UINT &totalRead) {
+  static BOOL ReadBinRibbonEmitter(CMsgBuffer &buffer, MDLRIBBONEMITTER *ribbon, CMDLStatus *status, UINT &totalRead) {
     UINT sectionLength = buffer.GetUint();
     UINT localRead = 4;
     if (!ReadBinGenObject(*ribbon, buffer, status, localRead)) {
@@ -375,7 +375,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinRibbonEmitters(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinRibbonEmitters(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT totalRead = 4;
     UINT numEmitters = buf.GetUint();
     data.ribbonEmitters.SetCount(0);

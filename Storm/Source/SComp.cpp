@@ -1121,7 +1121,7 @@ static void HuffmanDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWOR
   *destsize = huff.Decompress(dest, *destsize, &input);
 }
 
-static int BuffersOverlap(LPCVOID buf1, LPCVOID buf2, DWORD length) {
+static BOOL BuffersOverlap(LPCVOID buf1, LPCVOID buf2, DWORD length) {
   const BYTE *leftBytes;
   const BYTE *rightBytes;
 

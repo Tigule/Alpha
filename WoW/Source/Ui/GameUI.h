@@ -29,10 +29,10 @@ struct SPELLLOG;
 struct HMODEL__;
 struct lua_State;
 
-static int DebugAIStateHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *);
-static int Script_PickupPetAction(lua_State *L);
-static int Script_TogglePetAutocast(lua_State *L);
-static int Script_CastPetAction(lua_State *L);
+static BOOL DebugAIStateHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *);
+static int  Script_PickupPetAction(lua_State *L);
+static int  Script_TogglePetAutocast(lua_State *L);
+static int  Script_CastPetAction(lua_State *L);
 class CMouseEvent;
 class CSizeEvent;
 class PetAction;
@@ -387,7 +387,7 @@ class CGGameUI {
   static void      TargetNearestEnemy(int reverse);
   static void      AssistByName(LPCSTR name);
   static void      FollowByName(LPCSTR name);
-  static int       IsPartyMember(const DWORDLONG &guid);
+  static BOOL      IsPartyMember(const DWORDLONG &guid);
   static void      EnablePartyMember(DWORDLONG guid, int enable);
   static DWORDLONG GetPartyMember(UINT index);
   static void      ClearTarget(DWORDLONG guid, int sendTarget);
@@ -398,10 +398,10 @@ class CGGameUI {
   static void      CloseInteraction();
   static void      ResetCamera();
   static void      SysMsgDisplay(LPCSTR msg, SYSMSG_TYPE severity);
-  static int       FilterMouseDown(const CMouseEvent &evt);
-  static int       HandleMouseDown(const CMouseEvent &evt);
-  static int       HandleMouseUp(const CMouseEvent &evt);
-  static int       HandleDisplaySizeChanged(const CSizeEvent &evt);
+  static BOOL      FilterMouseDown(const CMouseEvent &evt);
+  static BOOL      HandleMouseDown(const CMouseEvent &evt);
+  static BOOL      HandleMouseUp(const CMouseEvent &evt);
+  static BOOL      HandleDisplaySizeChanged(const CSizeEvent &evt);
   static void      ScaleUI(float scale, int force);
   static void      NamePlateClicked(DWORDLONG unit, MOUSEBUTTON button);
   static void      EnterWorld();
@@ -428,8 +428,8 @@ class CGGameUI {
   static void          GetCursorVirtualItem(UINT &cursorItem, UINT &slot);
   static UINT          GetCursorPetAction();
   static UICURSORTYPE  GetCursorType();
-  static int           IsCursorEmpty();
-  static int           IsCursorPetSpell();
+  static BOOL          IsCursorEmpty();
+  static BOOL          IsCursorPetSpell();
   static void          UnlockItem(DWORDLONG itemGUID);
   static void          UnlockAllItems();
   static void          LockItem(DWORDLONG itemGUID);
@@ -442,16 +442,16 @@ class CGGameUI {
   static void          StartCinematic(int cinematicID);
   static void          BeginCinematic();
   static void          BeginCinematicInternal(LPVOID);
-  static int           StartCinematicCamera();
-  static int           NextCinematic(LPVOID);
+  static BOOL          StartCinematicCamera();
+  static BOOL          NextCinematic(LPVOID);
   static void          NextCinematicInternal(LPVOID);
-  static int           StopCinematic(LPVOID);
+  static BOOL          StopCinematic(LPVOID);
   static void          StopCinematicInternal(LPVOID);
   static void          HideCursor();
   static void          ShowCursor();
   static void          ShowHealingFeedback(const DWORDLONG &guid, int amount);
   static void          ShowSpellMissFeedback(DWORDLONG victim, int reason);
-  static void          OnClientControlChanged(int hasControl);
+  static void          OnClientControlChanged(BOOL hasControl);
   static void          ShowCombatFeedback(const ATTACKROUNDINFO *info);
   static void          ShowCombatFeedback(const SPELLLOG &log);
   static void          ShowCombatFeedback(const DWORDLONG &guid, int amount, int damageClass, UINT flags);
@@ -466,20 +466,20 @@ class CGGameUI {
   static void __cdecl  DisplayError(GAME_ERROR_TYPE errorType, ...);
   static LPCSTR        GetLastErrorString();
   static void          ShowAutoFollowChange(DWORDLONG newTarget, DWORDLONG oldTarget, int type);
-  static int           HandleSpriteClick(const CSpriteClickEvent &evt);
-  static int           HandleTerrainClick(const CTerrainClickEvent &evt);
-  static int           HandleWorldClick(const CWorldClickEvent &evt);
+  static BOOL          HandleSpriteClick(const CSpriteClickEvent &evt);
+  static BOOL          HandleTerrainClick(const CTerrainClickEvent &evt);
+  static BOOL          HandleWorldClick(const CWorldClickEvent &evt);
   static void          HandleSpriteTrack(const CObjectTrackEvent &evt);
   static void          HandleScreenshot(int success);
   static void          HandleObjectTrackChange(DWORDLONG object, DWORDLONG oldGUID, float x, float y);
   static CSimpleFrame *GetUISimpleParent();
   static int           GetCurrentAreaID();
-  static int           HasPlayerControl();
+  static BOOL          HasPlayerControl();
 
  private:
   static int  OnTerrainClick(const CTerrainClickEvent &evt);
-  static int  OnSpriteLeftClick(DWORDLONG object, float x, float y);
-  static int  OnSpriteRightClick(DWORDLONG object, float x, float y);
+  static BOOL OnSpriteLeftClick(DWORDLONG object, float x, float y);
+  static BOOL OnSpriteRightClick(DWORDLONG object, float x, float y);
   static void UpdatePlayerAlpha(float alpha);
   static void ResetStaticVars();
 
@@ -515,7 +515,7 @@ class CGGameUI {
   }
 
  private:
-  friend int DebugAIStateHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *);
+  friend BOOL DebugAIStateHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *);
 
   static void UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object);
   friend class CGTooltip;
@@ -536,7 +536,7 @@ class CGGameUI {
   friend int Script_DeleteCursorItem(lua_State *);
   friend int Script_TargetLastEnemy(lua_State *);
 
-  static int Idle(LPCVOID data, LPVOID param);
+  static BOOL Idle(LPCVOID data, LPVOID param);
 
   static CSimpleFrame *m_UISimpleParent;
   static CSimpleTop   *m_simpleTop;

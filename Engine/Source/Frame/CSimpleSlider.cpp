@@ -174,7 +174,7 @@ void CSimpleSlider::OnLayerUpdate(float elapsedSec) {
   }
 }
 
-int CSimpleSlider::OnLayerTrackUpdate(const CMouseEvent &evt) {
+BOOL CSimpleSlider::OnLayerTrackUpdate(const CMouseEvent &evt) {
   if (m_buttonDown) {
     float area;
     float offset;
@@ -195,13 +195,13 @@ void CSimpleSlider::OnFrameSizeChanged(const NTempest::CRect &rect) {
   m_changed = 1;
 }
 
-int CSimpleSlider::OnLayerMouseDown(CMouseEvent &evt) {
+BOOL CSimpleSlider::OnLayerMouseDown(CMouseEvent &evt) {
   m_buttonDown = 1;
   OnLayerTrackUpdate(evt);
   return CSimpleFrame::OnLayerMouseDown(evt);
 }
 
-int CSimpleSlider::OnLayerMouseUp(CMouseEvent &evt) {
+BOOL CSimpleSlider::OnLayerMouseUp(CMouseEvent &evt) {
   m_buttonDown = 0;
   return CSimpleFrame::OnLayerMouseUp(evt);
 }

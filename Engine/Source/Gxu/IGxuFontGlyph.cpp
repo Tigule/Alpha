@@ -4,7 +4,7 @@
 
 #include <freetype/freetype.h>
 
-static int FREETYPE_RenderGlyph(FT_Face face, UINT charCode, int noHinting, int monochrome) {
+static BOOL FREETYPE_RenderGlyph(FT_Face face, UINT charCode, int noHinting, int monochrome) {
   ASSERT(face);
 
   FT_UInt glyphIndex = FT_Get_Char_Index(face, charCode);
@@ -53,7 +53,7 @@ static void CalculateYOffset(FT_Face face, UINT *yOffsetPtr, UINT *glyphYStart, 
   }
 }
 
-int IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT baseLine, GLYPHDATA *dataPtr, int noHinting, int monochrome) {
+BOOL IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT baseLine, GLYPHDATA *dataPtr, int noHinting, int monochrome) {
   FATALASSERT(face);
 
   FATALASSERT(pixelHeight);

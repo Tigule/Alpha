@@ -83,7 +83,7 @@ enum OBJECTTYPE {
 
 void      AnimObjectSetIndex(CAnimData *shared, CAnimObj *objptr, UINT index);
 CAnimObj *GetNodeByIndex(CAnimData *shared, UINT nodeIndex);
-int       AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, UINT parentIndex);
+BOOL      AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, UINT parentIndex);
 
 BYTE *AnimObjectSetEventTrack(BYTE *data, UINT bytesLeft, CAnimData *shared, CAnimEventObj *objptr);
 BYTE *AnimObjectSetRibbonSlot(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimRibbonObj *objptr);
@@ -295,11 +295,11 @@ class CKeyFrameTrackBase {
     return NumKeysThisSeq(sequence);
   }
 
-  int SequenceChanges() const {
+  BOOL SequenceChanges() const {
     return m_globalSeqId == -1;
   }
 
-  int SequenceNeverChanges() const {
+  BOOL SequenceNeverChanges() const {
     return m_globalSeqId != -1;
   }
 
@@ -350,7 +350,7 @@ class CKeyFrameTrackBase {
   UINT             KeyFrameSize() const {
     return m_keyFrameSize;
   }
-  int JustPastKeyForward(
+  BOOL JustPastKeyForward(
       int                    elapsedTime,
       const CAnimSequence   &seqShared,
       int                    seqElapsed,
@@ -358,7 +358,7 @@ class CKeyFrameTrackBase {
       const CKeyTrackStatus &prev,
       const CKeyTrackStatus &curr
   ) const;
-  int JustPastKeyBackward(
+  BOOL JustPastKeyBackward(
       int                    elapsedTime,
       const CAnimSequence   &seqShared,
       int                    seqElapsed,
@@ -543,7 +543,7 @@ struct CAnimBoneObj : public CAnimObj {
   }
 
   UINT Bytes() const;
-  int  IsVisible(const CAnim &anim) const;
+  BOOL IsVisible(const CAnim &anim) const;
 
   BYTE geosetId;
 };

@@ -77,9 +77,9 @@ TREENODE::~TREENODE() {
   XMLTree_Free(tree);
 }
 
-static int      GuessNumFiles(LPCSTR string);
+static BOOL     GuessNumFiles(LPCSTR string);
 static XMLTree *FrameXML_LoadXML(LPCSTR filename, CStatus *status);
-int             FrameXML_ProcessFile(LPCSTR filename, CStatus *status);
+BOOL            FrameXML_ProcessFile(LPCSTR filename, CStatus *status);
 void            FrameXML_StoreHashNode(const XMLNode *node, LPCSTR name, CStatus *status);
 
 void FrameXML_SetDebugLevel(int level) {
@@ -90,7 +90,7 @@ int FrameXML_GetDebugLevel() {
   return s_debugLevel;
 }
 
-int FrameXML_CreateFrames(LPCSTR path, CStatus *status) {
+BOOL FrameXML_CreateFrames(LPCSTR path, CStatus *status) {
   LPVOID buffer;
   LPCSTR string;
   int    total;
@@ -159,7 +159,7 @@ int FrameXML_CreateFrames(LPCSTR path, CStatus *status) {
   return 1;
 }
 
-static int GuessNumFiles(LPCSTR string) {
+static BOOL GuessNumFiles(LPCSTR string) {
   LPCSTR line;
   int    count;
 
@@ -181,7 +181,7 @@ static int GuessNumFiles(LPCSTR string) {
   return count;
 }
 
-int FrameXML_ProcessFile(LPCSTR filename, CStatus *status) {
+BOOL FrameXML_ProcessFile(LPCSTR filename, CStatus *status) {
   XMLTree       *tree;
   const XMLNode *node;
 
@@ -346,7 +346,7 @@ void FrameXML_ClearFactories() {
   s_frameFactories.Clear();
 }
 
-int FrameXML_RegisterFactory(LPCSTR type, FRAMEFACTORY factory) {
+BOOL FrameXML_RegisterFactory(LPCSTR type, FRAMEFACTORY factory) {
   FrameFactoryNode *node;
 
   if (s_frameFactories.Ptr(type)) {

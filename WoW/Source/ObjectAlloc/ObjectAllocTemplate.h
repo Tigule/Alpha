@@ -3,7 +3,7 @@
 
 #include <storm.h>
 
-int    ObjectAlloc(UINT heapId, UINT *memHandle);
+BOOL   ObjectAlloc(UINT heapId, UINT *memHandle);
 UINT   ObjectAllocAddHeap(UINT objectSize, UINT objsPerBlock, LPCSTR name);
 void   ObjectAllocDestroy();
 void   ObjectAllocInitialize();

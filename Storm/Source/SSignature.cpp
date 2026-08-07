@@ -16,7 +16,7 @@ class SSignatureData {
 
 namespace Signature {
 
-  int HasMagic(const BYTE *data, DWORD size, DWORD modulusSize, DWORD &dataSize) {
+  BOOL HasMagic(const BYTE *data, DWORD size, DWORD modulusSize, DWORD &dataSize) {
     dataSize = size - modulusSize - sizeof(DWORD);
     return size >= modulusSize + sizeof(DWORD) && *(const DWORD *)(data + dataSize) == SIGNATURE_MAGIC;
   }

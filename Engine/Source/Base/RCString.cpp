@@ -60,7 +60,7 @@ void CStringRep::DecrRef() {
   }
 }
 
-int CStringRep::IsString(LPCSTR str) const {
+BOOL CStringRep::IsString(LPCSTR str) const {
   LPCSTR thisString = GetString();
 
   if (!thisString) {

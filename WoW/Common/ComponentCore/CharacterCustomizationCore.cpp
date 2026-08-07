@@ -172,7 +172,7 @@ class CharGeosetInfo {
 
   void Clear();
 
-  int ShowingSameGeosetsAs(const CharGeosetInfo &rhs);
+  BOOL ShowingSameGeosetsAs(const CharGeosetInfo &rhs);
 
   void ShowInventoryTypeTextureHolds(HTEXCOMPONENT component, UINT inventoryType, int adding) {
     FATALASSERT(component);
@@ -391,7 +391,7 @@ CharGeosetInfo::CharGeosetInfo(const CharGeosetInfo &rhs) {
   }
 }
 
-int CharGeosetInfo::ShowingSameGeosetsAs(const CharGeosetInfo &rhs) {
+BOOL CharGeosetInfo::ShowingSameGeosetsAs(const CharGeosetInfo &rhs) {
   UINT group;
   for (group = 0; group < 9; ++group) {
     if ((flags[group] & 1) != (rhs.flags[group] & 1) || ((flags[group] ^ rhs.flags[group]) & 2) != 0 ||
@@ -866,7 +866,7 @@ void CharCustomizationGetNumSkinTextures(UINT raceID, UINT sexID, int *pcVars, i
   }
 }
 
-HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, int isNPC) {
+HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC) {
   FATALASSERT(characterModel);
   FATALASSERT(skinName);
   FATALASSERT(raceID != 0);
@@ -909,7 +909,7 @@ HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT 
   return texture;
 }
 
-HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID, UINT textureNumber, int isNPC) {
+HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC) {
   FATALASSERT(characterModel);
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
@@ -952,14 +952,14 @@ HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID
   return texture;
 }
 
-int CharCustomizationGetNakedSectionName(
+BOOL CharCustomizationGetNakedSectionName(
     UINT  raceID,
     UINT  sexID,
     UINT  skinID,
     UINT  underwearSection,
     char *outBuffer,
     UINT  outBufferSize,
-    int   isNPC
+    BOOL  isNPC
 ) {
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
@@ -1010,7 +1010,7 @@ void CharCustomizationSetFaceTexture(
     UINT          sexID,
     UINT          varID,
     UINT          colorID,
-    int           isNPC
+    BOOL          isNPC
 ) {
   FATALASSERT(characterModel);
   FATALASSERT(texComponent);
@@ -1111,7 +1111,7 @@ UINT CharCustomizationNumBeardStyles(UINT raceID, UINT sexID) {
   return s_characterVariations[raceID][sexID].facialVariations.facialGeosets.Count();
 }
 
-int CharCustomizationGetBeardStyle(UINT raceID, UINT sexID, UINT facialHairID, BEARDSTYLEDATA *facialHairStyleData) {
+BOOL CharCustomizationGetBeardStyle(UINT raceID, UINT sexID, UINT facialHairID, BEARDSTYLEDATA *facialHairStyleData) {
   FATALASSERT(raceID != 0);
   FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
   FATALASSERT(sexID < UNITSEX_LAST);

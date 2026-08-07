@@ -90,7 +90,7 @@ namespace MDL {
     parse.Expect('}', token, tokenText);
   }
 
-  int ReadAttachment(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadAttachment(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet                  errors;
     MDLATTACHMENTSECTION *attachment = data.attachments.New();
     IAddAttachmentErrors(errors);
@@ -104,7 +104,7 @@ namespace MDL {
     return !parse.FoundError();
   }
 
-  int WriteAttachments(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteAttachments(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
       int                         needObjIds = data.attachments.Count() != data.objects.Count();
       const MDLATTACHMENTSECTION *attachment = data.attachments.Ptr();
@@ -191,7 +191,7 @@ namespace MDL {
     }
   }
 
-  static int ReadBinAttachment(CMsgBuffer &buffer, MDLATTACHMENTSECTION *attachment, CMDLStatus *status, UINT &totalRead) {
+  static BOOL ReadBinAttachment(CMsgBuffer &buffer, MDLATTACHMENTSECTION *attachment, CMDLStatus *status, UINT &totalRead) {
     UINT sectionLength = buffer.GetUint();
     UINT localRead = 4;
     if (!ReadBinGenObject(*attachment, buffer, status, localRead)) {
@@ -246,7 +246,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinAttachments(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinAttachments(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT totalRead = 8;
     UINT numAttached = buf.GetUint();
     buf.GetUint();
@@ -286,7 +286,7 @@ namespace MDL {
     }
   }
 
-  int WriteBinAttachments(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
+  BOOL WriteBinAttachments(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.attachments.Count()) {
       buf.AddDword('HCTA');
       UINT totalSize = 8;

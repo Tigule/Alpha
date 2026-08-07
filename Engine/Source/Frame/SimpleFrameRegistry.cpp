@@ -111,8 +111,8 @@ static SIMPLEFONTSTRINGREGHASH *GetSimpleFontStringHash(LPCSTR name, UINT contex
   return hash;
 }
 
-int SimpleFrameRegistryAddEntry(LPCSTR name, CSimpleFrame *object, UINT context) {
-  int                 alreadyExisted;
+BOOL SimpleFrameRegistryAddEntry(LPCSTR name, CSimpleFrame *object, UINT context) {
+  BOOL                alreadyExisted;
   SIMPLEFRAMEREGHASH *hash;
 
   FATALASSERT(name);
@@ -132,7 +132,7 @@ int SimpleFrameRegistryAddEntry(LPCSTR name, CSimpleFrame *object, UINT context)
   return 1;
 }
 
-int SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT context) {
+BOOL SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT context) {
   int                   alreadyExisted;
   SIMPLETEXTUREREGHASH *hash;
 
@@ -153,7 +153,7 @@ int SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT cont
   return 1;
 }
 
-int SimpleFontStringRegistryAddEntry(LPCSTR name, CSimpleFontString *object, UINT context) {
+BOOL SimpleFontStringRegistryAddEntry(LPCSTR name, CSimpleFontString *object, UINT context) {
   int                      alreadyExisted;
   SIMPLEFONTSTRINGREGHASH *hash;
 

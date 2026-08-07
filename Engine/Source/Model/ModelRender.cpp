@@ -74,7 +74,7 @@ static void RenderGeosetOneUvMapping(
 static void
 RenderSortedGeoset(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, UINT firstLayerId, int geosetChanged, CStatus *status);
 static void Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color);
-static int  SingleUvMapping(CMaterial *uniqueMtl);
+static BOOL SingleUvMapping(CMaterial *uniqueMtl);
 static void RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status);
 static void RenderGeosetLayers(CModelRenderData *modelptr, CGeosetShared *geoShared, CStatus *status);
 static void RenderGeoset(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared *geoShared, CStatus *status);
@@ -253,7 +253,7 @@ static void AddGeosetToScene(
     HMATERIAL     *materials,
     UINT           numMaterials
 );
-static int IsOpaque(CMaterial *uniqueMtl);
+static BOOL IsOpaque(CMaterial *uniqueMtl);
 static void
 EnqueueTransparentGeoset(CModel *model, CGeoset *geoUnique, CGeosetShared *geoShared, const NTempest::C3Vector &position, UINT priorityPlane);
 static NTempest::C3Vector GetGeosetSortPos(CModelBase *modelUnique, CGeosetShared *geoShared);
@@ -363,7 +363,7 @@ bool COpaqueLayer::HasHigherPriority(COpaqueLayer *a, COpaqueLayer *b) {
   return CompareTexLayers(a, b) <= 0;
 }
 
-static int IsOpaque(CMaterial *uniqueMtl) {
+static BOOL IsOpaque(CMaterial *uniqueMtl) {
   ASSERT(uniqueMtl);
 
   TSGrowableArray<CTexLayer> &layers = uniqueMtl->layers;
@@ -979,7 +979,7 @@ static void RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared
   }
 }
 
-static int SingleUvMapping(CMaterial *uniqueMtl) {
+static BOOL SingleUvMapping(CMaterial *uniqueMtl) {
   if (uniqueMtl->layers.Count() <= 1) {
     return 1;
   }
@@ -1281,7 +1281,7 @@ static void IModelGetExtents(CModelBase *modelptr, CModelShared *shared, NTempes
   }
 }
 
-static int IModelGetExtents(CModelBase *modelptr, CModelShared *shared, UINT seqnum, NTempest::CAaBox *extents) {
+static BOOL IModelGetExtents(CModelBase *modelptr, CModelShared *shared, UINT seqnum, NTempest::CAaBox *extents) {
   ASSERT(modelptr);
   ASSERT(shared);
   ASSERT(extents);
@@ -1298,7 +1298,7 @@ static int IModelGetExtents(CModelBase *modelptr, CModelShared *shared, UINT seq
   return 1;
 }
 
-static int GeosetTestRay(
+static BOOL GeosetTestRay(
     CGeoset                  *geoUnique,
     CGeosetShared            *geoShared,
     CGeosetColor             *geosetColor,
@@ -2181,7 +2181,7 @@ void ModelSceneCalcFrustumPlanes() {
   GxuXformCalcFrustumPlanes(viewProj, s_frustumPlanes);
 }
 
-int ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float scale, int testLinkedModels) {
+BOOL ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float scale, int testLinkedModels) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2385,7 +2385,7 @@ static int LineSegmentIntersectBox(
   return 1;
 }
 
-static int LineSegmentIntersectCylinder(
+static BOOL LineSegmentIntersectCylinder(
     const NTempest::C34Matrix &cylToWorld,
     float                      cylScale,
     const NTempest::C3Vector  &cylBottom,
@@ -2424,7 +2424,7 @@ static int LineSegmentIntersectCylinder(
   return closest.SquaredMag() <= cylRadius * cylRadius;
 }
 
-static int LineSegmentIntersectSphere(
+static BOOL LineSegmentIntersectSphere(
     const NTempest::C34Matrix &sphToWorld,
     float                      sphScale,
     const NTempest::C3Vector  &sphCenter,
@@ -2456,7 +2456,7 @@ static int LineSegmentIntersectSphere(
   return closest.SquaredMag() <= radius * radius;
 }
 
-static int IModelTestCollisionVolumes(
+static BOOL IModelTestCollisionVolumes(
     CModelComplex            *modelptr,
     CModelShared             *shared,
     float                     scale,
@@ -2513,7 +2513,7 @@ static int IModelTestCollisionVolumes(
   return hitVolume;
 }
 
-int ModelTestSphere(
+BOOL ModelTestSphere(
     HMODEL                    model,
     const NTempest::C3Vector &position,
     float                     rotationAngle,
@@ -2892,7 +2892,7 @@ static void AddHitTestGeometryGeoset(HMODEL__ *modelHandle, HTEXTURE__ *tex) {
   );
 }
 
-int ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
+BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2939,7 +2939,7 @@ int ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, c
   return 0;
 }
 
-int ModelHasHitTestVolumes(HMODEL model) {
+BOOL ModelHasHitTestVolumes(HMODEL model) {
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared)) {
     return 0;
@@ -2948,7 +2948,7 @@ int ModelHasHitTestVolumes(HMODEL model) {
   return shared->hitTest.Count() != 0;
 }
 
-int ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
+BOOL ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -2983,7 +2983,7 @@ int ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, 
   return 0;
 }
 
-int ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
+BOOL ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
@@ -3164,7 +3164,7 @@ void ModelHideHitTestGeometry(HMODEL__ *model) {
   }
 }
 
-int ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {
+BOOL ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelShared *shared;
 
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared)) {
@@ -3175,7 +3175,7 @@ int ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {
   return 1;
 }
 
-int ModelGetSeqExtents(HMODEL model, NTempest::CAaBox *extents) {
+BOOL ModelGetSeqExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -3187,7 +3187,7 @@ int ModelGetSeqExtents(HMODEL model, NTempest::CAaBox *extents) {
   return 1;
 }
 
-int ModelGetSeqExtents(HMODEL model, UINT seqnum, NTempest::CAaBox *extents) {
+BOOL ModelGetSeqExtents(HMODEL model, UINT seqnum, NTempest::CAaBox *extents) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -3198,7 +3198,7 @@ int ModelGetSeqExtents(HMODEL model, UINT seqnum, NTempest::CAaBox *extents) {
   return IModelGetExtents(unique, shared, seqnum, extents);
 }
 
-int ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds) {
+BOOL ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds) {
   CModelBase   *unique;
   CModelShared *shared;
 

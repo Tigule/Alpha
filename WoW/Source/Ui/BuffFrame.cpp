@@ -71,7 +71,7 @@ class CGBuffBar {
 CGBuffDesc CGBuffBar::m_buffs[56];
 UINT       CGBuffBar::m_durations[56];
 
-static int AuraUpdateHandler(DWORDLONG, UINT offset, UINT bytes, LPCVOID, LPVOID) {
+static BOOL AuraUpdateHandler(DWORDLONG, UINT offset, UINT bytes, LPCVOID, LPVOID) {
   CGBuffBar::UpdateBuffs();
   return 1;
 }

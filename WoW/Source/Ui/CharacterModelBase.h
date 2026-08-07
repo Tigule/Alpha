@@ -23,8 +23,8 @@ class CGCharacterModelBase : public CSimpleModel {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
-  void        ConfigureCamera();
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
+  void         ConfigureCamera();
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 

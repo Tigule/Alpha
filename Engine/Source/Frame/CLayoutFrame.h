@@ -43,7 +43,7 @@ class CLayoutFrame {
 
  protected:
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
-  virtual int  OnFrameResize();
+  virtual BOOL OnFrameResize();
 
  public:
   virtual ~CLayoutFrame();
@@ -53,11 +53,11 @@ class CLayoutFrame {
   }
   virtual void          SetDeferredResize(int enable);
   virtual int           SetRect(NTempest::CRect &rect);
-  virtual int           GetRect(NTempest::CRect *rect) const;
+  virtual BOOL          GetRect(NTempest::CRect *rect) const;
   virtual void          SetLayoutScale(float scale, bool force);
   virtual float         GetWidth();
   virtual float         GetHeight();
-  virtual int           IsAttachmentOrigin();
+  virtual BOOL          IsAttachmentOrigin();
   virtual CLayoutFrame *GetLayoutFrameByName(LPCSTR name);
 
   float       Left();
@@ -66,7 +66,7 @@ class CLayoutFrame {
   float       Bottom();
   float       CenterY();
   float       CenterX();
-  int         CalculateRect(NTempest::CRect *rect);
+  BOOL        CalculateRect(NTempest::CRect *rect);
   void        SetPoint(FRAMEPOINT point, float x, float y, int doResize);
   void        SetPoint(FRAMEPOINT point, CLayoutFrame *relative, FRAMEPOINT relativePoint, float offsetX, float offsetY, int doResize);
   void        SetAllPoints(CLayoutFrame *relative, int doResize);
@@ -74,12 +74,12 @@ class CLayoutFrame {
   void        ClearAllPoints(int doResize);
   void        RegisterResize(CLayoutFrame *frame, UINT dependency);
   void        UnregisterResize(const CLayoutFrame *frame);
-  int         IsResizeDependency(CLayoutFrame *pNewDependentFrame);
-  int         FlattenFrame(CLayoutFrame *top, float width, float height, float delta_x, float delta_y, NTempest::CRect *finalrect);
+  BOOL        IsResizeDependency(CLayoutFrame *pNewDependentFrame);
+  BOOL        FlattenFrame(CLayoutFrame *top, float width, float height, float delta_x, float delta_y, NTempest::CRect *finalrect);
   int         ScaleBy(CLayoutFrame *top, float scale_x, float scale_y, FRAMEPOINT anchorpoint, NTempest::CRect *finalrect);
   int         DragBy(CLayoutFrame *top, float delta_x, float delta_y, FRAMEPOINT dragpoint, NTempest::CRect *finalrect);
-  int         IsResizePending();
-  int         PtInFrameRect(const NTempest::C2Vector &pt);
+  BOOL        IsResizePending();
+  BOOL        PtInFrameRect(const NTempest::C2Vector &pt);
   void        Resize(int force);
   static UINT ResizePending();
   static void ClearResizePendingList();
@@ -97,15 +97,15 @@ class CLayoutFrame {
     return m_layoutScale;
   }
 
-  int IsResizeDeferred() const {
+  BOOL IsResizeDeferred() const {
     return (m_flags & 0x2) != 0;
   }
 
-  int IsRectValid() const {
+  BOOL IsRectValid() const {
     return (m_flags & 0x1) != 0;
   }
 
-  int HasPoints() {
+  BOOL HasPoints() {
     return m_points.Count() != 0;
   }
 

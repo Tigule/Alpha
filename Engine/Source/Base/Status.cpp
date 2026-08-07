@@ -100,7 +100,7 @@ void CStatus::Add(const CStatus &source) {
   }
 }
 
-int CStatus::IsEmpty() const {
+BOOL CStatus::IsEmpty() const {
   return statusList.IsEmpty();
 }
 

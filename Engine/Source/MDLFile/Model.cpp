@@ -146,7 +146,7 @@ namespace MDL {
     parse.Expect('}', token, tokenText);
   }
 
-  int ReadModelGlobals(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadModelGlobals(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet errors;
     IModelAddErrors(errors);
     LPCSTR name = parse.ExpectString();
@@ -209,7 +209,7 @@ namespace MDL {
     }
   }
 
-  int WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     const MDLMODELSECTION &model = data.model;
     if (SStrLen(model.name) || data.helpers.Count() || data.lights.Count() || data.bones.Count() || data.geosets.Count() ||
         data.attachments.Count() || data.particleEmitters.Count() || data.events.Count() || data.ribbonEmitters.Count() ||
@@ -234,7 +234,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinModelGlobals(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinModelGlobals(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
     FATALASSERT(status);
     if (len != 373) {
       status->Add(STATUS_ERROR, "Invalid MODL section detected in model.\n");
@@ -250,7 +250,7 @@ namespace MDL {
     return 1;
   }
 
-  int WriteBinModelGlobals(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+  BOOL WriteBinModelGlobals(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
     buffer.AddDword('LDOM');
     buffer.AddUint(373);
     buffer.AddTcharArray(data.model.name, 80, 1);

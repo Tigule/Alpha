@@ -81,8 +81,8 @@ class CGxBufD3d : public CGxBuf {
   void                 UnlockIB();
   CGxVertexBuffer_D3d *GetVB();
   CGxIndexBuffer_D3d  *GetIB();
-  int                  VBLValid();
-  int                  IBValid();
+  BOOL                 VBLValid();
+  BOOL                 IBValid();
   void                 Release();
 
  private:
@@ -157,10 +157,10 @@ class CGxDeviceD3d : public CGxDevice {
     return m_thisDevice;
   }
 
-  virtual int   DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
-  virtual int   DeviceCreate(UINT hwnd, const CGxFormat &format);
+  virtual BOOL  DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
+  virtual BOOL  DeviceCreate(UINT hwnd, const CGxFormat &format);
   virtual void  DeviceDestroy();
-  virtual int   DeviceSetFormat(const CGxFormat &format);
+  virtual BOOL  DeviceSetFormat(const CGxFormat &format);
   virtual void  DeviceSetBaseMipLevel(UINT baseMipLevel);
   virtual void  DeviceSetGamma(float gamma);
   virtual void  DeviceSetGamma(const CGxGammaRamp &ramp);
@@ -212,7 +212,7 @@ class CGxDeviceD3d : public CGxDevice {
   virtual void BufUnlock();
   virtual void BufDestroy(CGxBuf *&b);
   virtual void BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, UINT numVertices, UINT numIndices);
-  virtual int  TexCreate(
+  virtual BOOL TexCreate(
       UINT         width,
       UINT         height,
       EGxTexFormat format,
@@ -221,7 +221,7 @@ class CGxDeviceD3d : public CGxDevice {
       void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
       CGxTex *&texId
   );
-  virtual int TexCreate(
+  virtual BOOL TexCreate(
       EGxTexTarget target,
       UINT         width,
       UINT         height,
@@ -237,7 +237,7 @@ class CGxDeviceD3d : public CGxDevice {
   virtual void PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename);
   virtual void PixelShaderDestroy(CGxPixelShader *&ps);
 
-  static int              ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d);
+  static BOOL             ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d);
   static void             IUnloadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d);
   static LRESULT CALLBACK WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -251,18 +251,18 @@ class CGxDeviceD3d : public CGxDevice {
   CGxDeviceD3d(const CGxDeviceD3d &);
   const CGxDeviceD3d &operator=(const CGxDeviceD3d &);
 
-  int          ICheckTextureFormat(DWORD usage, _D3DFORMAT textureFormat);
+  BOOL         ICheckTextureFormat(DWORD usage, _D3DFORMAT textureFormat);
   _D3DFORMAT   IDepthStencilBitsToFormat(UINT depthBits, UINT stencilBits);
   _D3DFORMAT   IColorAlphaBitsToFormat(UINT colorBits, UINT alphaBits);
   DWORD        DsGet(EDeviceState state);
-  int          ICreateD3d();
+  BOOL         ICreateD3d();
   void         IDestroyD3d();
-  int          IAllocBuffers();
+  BOOL         IAllocBuffers();
   void         ICreateBuffers(EGxVertexBufferFormat vbFormat, UINT numVertices, CVertexBufferList &vbl, UINT numIndices, CGxIndexBuffer_D3d *&ib);
   void         ICreateD3dVB(EGxVertexBufferFormat format, UINT &numVertices, IDirect3DVertexBuffer9 *&vb);
   void         ICreateD3dIB(UINT &numIndices, IDirect3DIndexBuffer9 *&ib);
   void         IBufSetBuffers(CGxBufD3d *buf);
-  int          ICreateD3dDevice(const CGxFormat &format);
+  BOOL         ICreateD3dDevice(const CGxFormat &format);
   void         IDestroyD3dDevice();
   void         ISetPresentParms(D3DPRESENT_PARAMETERS &d3dpp, const CGxFormat &format);
   void         ISetCaps();
@@ -314,18 +314,18 @@ class CGxDeviceD3d : public CGxDevice {
   IDirect3DDevice9    *m_d3dDevice;
   _D3DCAPS9            m_d3dCaps;
   int                  m_d3dIsHwDevice;
-  int                  m_d3dNeedsReset;
+  BOOL                 m_d3dNeedsReset;
   CVertexBufferList    m_VBL[4][9];
   CGxIndexBuffer_D3d  *m_IB[4][9];
   CGxVertexBuffer_D3d *m_vertexBuffer;
   EGxPrim              m_primType;
   UINT                 m_primIndexCount;
-  int                  m_processedVertexPtrs;
-  int                  m_processedIndexPtrs;
-  int                  m_windowVisible;
+  BOOL                 m_processedVertexPtrs;
+  BOOL                 m_processedIndexPtrs;
+  BOOL                 m_windowVisible;
   _D3DDISPLAYMODE      m_desktopDisplayMode;
   int                  m_deviceSupports32BitTextures;
-  int                  m_inScene;
+  BOOL                 m_inScene;
   _D3DFORMAT           m_devDepthFormat;
   _D3DFORMAT           m_devAdapterFormat;
   IDirect3DSurface9   *m_rttColorSurface;

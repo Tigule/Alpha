@@ -122,7 +122,7 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
   }
 }
 
-int CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   if (format.window) {
     format.apiSpecificModeID = 0;
     return 1;
@@ -149,7 +149,7 @@ int CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   return 0;
 }
 
-int CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
   FATALASSERT(m_hdc == 0 && m_hglrc == 0);
   m_hdc = GetDC(m_hwnd);
   if (m_hdc) {
@@ -263,7 +263,7 @@ void CGxDeviceOpenGl::DeviceWM(EGxWM wm, long param1, long param2) {
   }
 }
 
-int CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
   m_ownhwnd = 1;
   HDC hDC = GetDC(0);
   if (GetDeviceGammaRamp(hDC, &m_systemGammaRamp)) {
@@ -278,7 +278,7 @@ int CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &form
   return 0;
 }
 
-int CGxDeviceOpenGl::DeviceCreate(UINT clienthwnd, const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::DeviceCreate(UINT clienthwnd, const CGxFormat &format) {
   s_inCreateOrDestroy = 1;
   m_ownhwnd = 0;
   HDC hDC = GetDC(0);
@@ -311,7 +311,7 @@ void CGxDeviceOpenGl::DeviceDestroy() {
   s_inCreateOrDestroy = 0;
 }
 
-int CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
   FATALASSERT(m_ownhwnd);
   Log("CGxDeviceOpenGl::DeviceSetFormat():");
   Log(format);
@@ -397,11 +397,11 @@ DWORD CGxDeviceOpenGl::DeviceWindow() {
   return reinterpret_cast<DWORD>(m_hwnd);
 }
 
-static int IsGlDisplayModeGood(const DEVMODEA &dm) {
+static BOOL IsGlDisplayModeGood(const DEVMODEA &dm) {
   return (dm.dmBitsPerPel == 16 || dm.dmBitsPerPel == 32) && dm.dmPelsWidth >= 640 && dm.dmPelsHeight >= 480;
 }
 
-int CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
+BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   DISPLAY_DEVICEA dd;
   DEVMODEA        dm;
   CGxFormat       fmt;

@@ -99,7 +99,7 @@ class CLightning {
   float                                         mNoiseScale;
   float                                         mTexCoordScale;
   float                                         mDuration;
-  int                                           mRebuildPoints;
+  BOOL                                          mRebuildPoints;
   TSFixedArray_<NTempest::C3Vector, 'Ligh', 38> mPoints;
   TSFixedArray_<NTempest::C3Vector, 'Ligh', 39> mPos;
   TSFixedArray_<NTempest::C2Vector, 'Ligh', 40> mTexCoords;

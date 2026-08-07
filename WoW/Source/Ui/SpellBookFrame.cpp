@@ -35,7 +35,7 @@ int Spell_C_GetModalSpell();
 class CGItem_C;
 int  Spell_C_GetTargettingSpell();
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
-int  Spell_C_GetSpellCooldown(int spell, int isPet, UINT *duration, DWORD *startTime, UINT *enable);
+int  Spell_C_GetSpellCooldown(int spell, BOOL isPet, UINT *duration, DWORD *startTime, UINT *enable);
 void Spell_C_StopTargeting();
 void Spell_C_CancelAura(int spellID);
 
@@ -409,7 +409,7 @@ void CGSpellBook::PickupSpell(int slot, UI_SPELL_TYPE type) {
       return;
     }
 
-    int isAbility = (spell->m_attributes & 0x10) != 0;
+    BOOL isAbility = (spell->m_attributes & 0x10) != 0;
     if ((type == PET_SPELL && !cursorWasPetSpell) || (type == PLAYER_ABILITY && !isAbility) || (type == PLAYER_SPELL && isAbility)) {
       return;
     }
@@ -473,7 +473,7 @@ void CGSpellBook::CastSpell(int slot, UI_SPELL_TYPE type) {
   PlaySpellCastSound(type);
 }
 
-int CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
+BOOL CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
   ASSERT(slot >= 0);
   ASSERT(slot < MAXIMUM_LEARNED_SPELLS);
 
@@ -514,7 +514,7 @@ int CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
   return form && player && player->GetUnitData()->shapeshiftForm == form;
 }
 
-int CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
+BOOL CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
   ASSERT(slot >= 0);
   ASSERT(slot < MAXIMUM_LEARNED_SPELLS);
 
@@ -540,7 +540,7 @@ int CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
   return active;
 }
 
-static int GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &type) {
+static BOOL GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &type) {
   if (!lua_isnumber(L, 1) || !lua_isstring(L, 2)) {
     return 0;
   }

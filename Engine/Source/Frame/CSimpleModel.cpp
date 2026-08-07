@@ -12,7 +12,7 @@
 #include "Tempest/c2vector.h"
 #include "Tempest/c44matrix.h"
 
-static int AnimFinishedCallback(LPVOID param) {
+static BOOL AnimFinishedCallback(LPVOID param) {
   CSimpleModel *model = static_cast<CSimpleModel *>(param);
 
   model->RunOnAnimFinishedScript();
@@ -201,7 +201,7 @@ int CSimpleModel::SetSequenceTime(UINT index, int timeOffset) {
   return 1;
 }
 
-int CSimpleModel::AdvanceTime() {
+BOOL CSimpleModel::AdvanceTime() {
   if (m_model) {
     return ModelAdvanceTime(m_model);
   }
@@ -220,7 +220,7 @@ void CSimpleModel::ReplaceTexture(UINT materialID, LPCSTR textureName) {
   }
 }
 
-int CSimpleModel::ModelJustLoaded() const {
+BOOL CSimpleModel::ModelJustLoaded() const {
   return m_model && !(m_flags & 0x1) && ModelIsLoaded(m_model, 1);
 }
 

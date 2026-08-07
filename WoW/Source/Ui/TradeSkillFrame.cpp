@@ -85,9 +85,9 @@ class CGTradeSkillInfo {
   static TradeSkillSubClassInfo *GetSubClass(UINT index) {
     return index < m_numSubClasses ? m_subClasses[index] : 0;
   }
-  static int GetSubClassIndexFromSkill(UINT index);
-  static int IsCollpasedHeader(UINT index);
-  static int GetSubClassFilter() {
+  static int  GetSubClassIndexFromSkill(UINT index);
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetSubClassFilter() {
     return m_subClassFilter;
   }
   static int GetInvTypeFilter() {
@@ -497,7 +497,7 @@ int CGTradeSkillInfo::GetSubClassIndexFromSkill(UINT index) {
   return -1;
 }
 
-int CGTradeSkillInfo::IsCollpasedHeader(UINT index) {
+BOOL CGTradeSkillInfo::IsCollpasedHeader(UINT index) {
   int subClass = GetSubClassIndexFromSkill(index);
   return subClass >= 0 && !(m_collapseFilter & (1 << subClass));
 }

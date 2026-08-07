@@ -261,7 +261,7 @@ void CHUNKDATA::Render() {
   }
 }
 
-int CHUNKDATA::GetVertCount(const CWTriData::Batch &batch, int &lowest, int &highest) {
+BOOL CHUNKDATA::GetVertCount(const CWTriData::Batch &batch, int &lowest, int &highest) {
   int indexCount = batch.GetIndexCount();
   if (!indexCount) {
     return 0;

@@ -188,7 +188,7 @@ static void GetTextureFormats(
     const PIXEL_FORMAT preferredFormat,
     const UINT         alphaBits
 );
-static int          AsyncTextureLoadImageCreate(CTexture *texture);
+static BOOL         AsyncTextureLoadImageCreate(CTexture *texture);
 static void         FillInSolidTexture(const NTempest::CImVector &color, CTexture *texture);
 static void         AsyncCreateBlpTextureCallback(LPVOID arg);
 static void         AsyncTextureLoadImageCallback(LPVOID arg);
@@ -564,7 +564,7 @@ static HTEXTURE CreateTgaTexture(LPCSTR file, CGxTexFlags flags, CStatus *status
   return handle;
 }
 
-static int LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *height, EGxTexFormat *format, int *isOpaque, UINT *alphaBits) {
+static BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *height, EGxTexFormat *format, int *isOpaque, UINT *alphaBits) {
   CBLPFile     texFile;
   EGxTexFormat gxFormat = GxTex_Argb8888;
   PIXEL_FORMAT pixelFormat = PIXEL_ARGB8888;
@@ -897,7 +897,7 @@ static void GetTextureFormats(
   }
 }
 
-static int PumpBlpTextureAsync(CTexture *texture) {
+static BOOL PumpBlpTextureAsync(CTexture *texture) {
   CBLPFile image;
 
   if (!image.Source(texture->asyncObject->buffer)) {
@@ -942,7 +942,7 @@ static int PumpBlpTextureAsync(CTexture *texture) {
   return 1;
 }
 
-static int AsyncTextureLoadImageCreate(CTexture *texture) {
+static BOOL AsyncTextureLoadImageCreate(CTexture *texture) {
   CBLPFile image;
 
   if (!image.Source(texture->asyncObject->buffer)) {
@@ -1651,7 +1651,7 @@ LPCSTR TextureGetFilename(HTEXTURE texture) {
   return reinterpret_cast<CTexture *>(texture)->filename;
 }
 
-int TextureGetInfo(HTEXTURE texture, UINT &width, UINT &height, EGxTexFormat &format, int &opaque, UINT &alphaBits, int bForce) {
+BOOL TextureGetInfo(HTEXTURE texture, UINT &width, UINT &height, EGxTexFormat &format, int &opaque, UINT &alphaBits, BOOL bForce) {
   CTexture *textureObject = reinterpret_cast<CTexture *>(texture);
 
   if (!textureObject->mipBits) {

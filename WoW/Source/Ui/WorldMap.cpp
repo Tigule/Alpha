@@ -38,7 +38,7 @@ struct WorldMapLandmarkInfo {
   int   id;
   float x;
   float y;
-  int   isPort;
+  BOOL  isPort;
 };
 
 class CGWorldMap {
@@ -81,7 +81,7 @@ class CGWorldMap {
 
  private:
   static int  GetMapAreaFromPos(float x, float y);
-  static int  GetWorldLocFromPos(float x, float y, NTempest::C2Vector &loc, int &mapID);
+  static BOOL GetWorldLocFromPos(float x, float y, NTempest::C2Vector &loc, int &mapID);
   static void GetWorldPosition(const NTempest::C2Vector &pos, int mapID, float &x, float &y);
 
  protected:
@@ -305,7 +305,7 @@ int CGWorldMap::GetMapAreaFromPos(float x, float y) {
   return m_continents[m_currentContinent].chunkZones[row][column];
 }
 
-int CGWorldMap::GetWorldLocFromPos(float x, float y, NTempest::C2Vector &loc, int &mapID) {
+BOOL CGWorldMap::GetWorldLocFromPos(float x, float y, NTempest::C2Vector &loc, int &mapID) {
   if (m_currentContinent == -1) {
     for (UINT continent = 0; continent < m_continents.Count(); ++continent) {
       WorldMapContinentInfo &info = m_continents[continent];

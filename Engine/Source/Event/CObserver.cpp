@@ -30,8 +30,8 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   void UnregisterEvent(CObserver *pObserver);
   void CleanupCallbacks();
   void CleanupEvents();
-  int  IsCallbackRegistered(EVENTCALLBACK callback) const;
-  int  IsEventRegistered(CObserver *pObserver) const;
+  BOOL IsCallbackRegistered(EVENTCALLBACK callback) const;
+  BOOL IsEventRegistered(CObserver *pObserver) const;
   int  DispatchCallback(CEvent &event);
   int  DispatchEvent(CEvent &event);
 
@@ -44,16 +44,16 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
     flags &= ~flag;
   }
 
-  int TestFlag(DWORD flag) const {
+  BOOL TestFlag(DWORD flag) const {
     return (flags & flag) != 0;
   }
 
  public:
-  int IsEmpty() const {
+  BOOL IsEmpty() const {
     return !callbackList.Head() && !dispatchList.Head();
   }
 
-  int Locked() {
+  BOOL Locked() {
     return (flags & 0x0FFFFFFF) != 0;
   }
 
@@ -65,7 +65,7 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
     --flags;
   }
 
-  int Changed() {
+  BOOL Changed() {
     return (flags & 0x80000000) != 0;
   }
 
@@ -194,11 +194,11 @@ EventReg *CObserver::GetEventReg(UINT eventId, int create) {
   return reg;
 }
 
-int CObserver::DispatchEvent(CEvent &event) {
+BOOL CObserver::DispatchEvent(CEvent &event) {
   return DispatchEvent(event.Id(), event);
 }
 
-int CObserver::DispatchEvent(int id, CEvent &event) {
+BOOL CObserver::DispatchEvent(int id, CEvent &event) {
   EventReg *reg = GetEventReg(id, 0);
   if (!reg) {
     return 0;
@@ -272,12 +272,12 @@ void CObserver::UnregisterEvent(UINT id, CObserver *pObserver) {
   }
 }
 
-int CObserver::IsEventRegistered(UINT id) {
+BOOL CObserver::IsEventRegistered(UINT id) {
   EventReg *reg = GetEventReg(id, 0);
   return reg && !reg->IsEmpty();
 }
 
-int CObserver::IsEventRegisteredBy(UINT id, CObserver *pObserver) {
+BOOL CObserver::IsEventRegisteredBy(UINT id, CObserver *pObserver) {
   EventReg *reg = GetEventReg(id, 0);
   return reg && reg->IsEventRegistered(pObserver);
 }
@@ -394,7 +394,7 @@ void EventReg::CleanupEvents() {
   }
 }
 
-int EventReg::IsCallbackRegistered(EVENTCALLBACK callback) const {
+BOOL EventReg::IsCallbackRegistered(EVENTCALLBACK callback) const {
   const EVENTCALLBACKREG *entry;
   for (entry = callbackList.Head(); entry; entry = callbackList.Next(entry)) {
     if (entry->callback == callback) {
@@ -404,7 +404,7 @@ int EventReg::IsCallbackRegistered(EVENTCALLBACK callback) const {
   return 0;
 }
 
-int EventReg::IsEventRegistered(CObserver *pObserver) const {
+BOOL EventReg::IsEventRegistered(CObserver *pObserver) const {
   const EVENTDISPATCHREG *entry;
   for (entry = dispatchList.Head(); entry; entry = dispatchList.Next(entry)) {
     if (entry->pObserver == pObserver) {
@@ -414,7 +414,7 @@ int EventReg::IsEventRegistered(CObserver *pObserver) const {
   return 0;
 }
 
-int EventReg::DispatchCallback(CEvent &event) {
+BOOL EventReg::DispatchCallback(CEvent &event) {
   IncLock();
   EVENTCALLBACKREG endOfList;
   callbackList.LinkNode(&endOfList, LIST_TAIL, 0);
@@ -434,7 +434,7 @@ int EventReg::DispatchCallback(CEvent &event) {
   return handled;
 }
 
-int EventReg::DispatchEvent(CEvent &event) {
+BOOL EventReg::DispatchEvent(CEvent &event) {
   IncLock();
   EVENTDISPATCHREG endOfList;
   dispatchList.LinkNode(&endOfList, LIST_TAIL, 0);

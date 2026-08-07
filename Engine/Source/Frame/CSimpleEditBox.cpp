@@ -282,7 +282,7 @@ void CSimpleEditBox::OnLayerUpdate(float elapsedSec) {
   }
 }
 
-int CSimpleEditBox::OnLayerTrackUpdate(const CMouseEvent &evt) {
+BOOL CSimpleEditBox::OnLayerTrackUpdate(const CMouseEvent &evt) {
   if (!CSimpleFrame::OnLayerTrackUpdate(evt)) {
     return 0;
   }
@@ -312,7 +312,7 @@ void CSimpleEditBox::OnFrameSizeChanged(const NTempest::CRect &rect) {
   }
 }
 
-int CSimpleEditBox::OnLayerChar(CCharEvent &evt) {
+BOOL CSimpleEditBox::OnLayerChar(CCharEvent &evt) {
   if (!m_visible) {
     return 0;
   }
@@ -337,7 +337,7 @@ int CSimpleEditBox::OnLayerChar(CCharEvent &evt) {
   return 1;
 }
 
-int CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
+BOOL CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
   if (!m_visible) {
     return 0;
   }
@@ -396,7 +396,7 @@ int CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
   return 1;
 }
 
-int CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
+BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
   if (!m_visible) {
     return 0;
   }
@@ -596,7 +596,7 @@ int CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
   return 1;
 }
 
-int CSimpleEditBox::OnLayerKeyDownRepeat(CKeyEvent &evt) {
+BOOL CSimpleEditBox::OnLayerKeyDownRepeat(CKeyEvent &evt) {
   if (!m_visible) {
     return 0;
   }
@@ -610,7 +610,7 @@ int CSimpleEditBox::OnLayerKeyDownRepeat(CKeyEvent &evt) {
   return OnLayerKeyDown(evt);
 }
 
-int CSimpleEditBox::OnLayerKeyUp(CKeyEvent &evt) {
+BOOL CSimpleEditBox::OnLayerKeyUp(CKeyEvent &evt) {
   if (!m_visible) {
     return 0;
   }
@@ -622,7 +622,7 @@ int CSimpleEditBox::OnLayerKeyUp(CKeyEvent &evt) {
   return s_currentFocus == this;
 }
 
-int CSimpleEditBox::OnLayerMouseDown(CMouseEvent &evt) {
+BOOL CSimpleEditBox::OnLayerMouseDown(CMouseEvent &evt) {
   int handled = CSimpleFrame::OnLayerMouseDown(evt);
 
   if (!handled) {
@@ -656,7 +656,7 @@ int CSimpleEditBox::OnLayerMouseDown(CMouseEvent &evt) {
   return handled;
 }
 
-int CSimpleEditBox::OnLayerMouseUp(CMouseEvent &evt) {
+BOOL CSimpleEditBox::OnLayerMouseUp(CMouseEvent &evt) {
   int handled = CSimpleFrame::OnLayerMouseUp(evt);
 
   if (!handled && m_highlightDrag) {
@@ -818,7 +818,7 @@ int CSimpleEditBox::GetNumToLen(int offset, int amount, bool checkHyperLink) {
   return length;
 }
 
-int CSimpleEditBox::GetLenToNum(int offset, int amount) {
+BOOL CSimpleEditBox::GetLenToNum(int offset, int amount) {
   UINT *textInfo = m_textInfo;
   UINT *info = &textInfo[offset];
   int   result = 0;
@@ -862,7 +862,7 @@ int CSimpleEditBox::PrevCharOffset(int offset) {
   return offset;
 }
 
-int CSimpleEditBox::GetOffsetToLine(int offset) {
+BOOL CSimpleEditBox::GetOffsetToLine(int offset) {
   int maxLines = 0;
   int maxLine = m_visibleLines.Count() - 2;
 
@@ -977,7 +977,7 @@ void CSimpleEditBox::DeleteText() {
   DeleteSubstring(0, m_textLength);
 }
 
-void CSimpleEditBox::Insert(LPCSTR utf8string, int isIME) {
+void CSimpleEditBox::Insert(LPCSTR utf8string, BOOL isIME) {
   if ((m_textInfo[m_cursorPos] & 0x80000000) && m_cursorPos > 0 && (m_textInfo[PrevCharOffset(m_cursorPos)] & 0x80000000)) {
     return;
   }
@@ -1326,7 +1326,7 @@ void CSimpleEditBox::BackwardHistory() {
   }
 }
 
-int CSimpleEditBox::ConvertCoordinateToIndex(float x, float y, int &position) {
+BOOL CSimpleEditBox::ConvertCoordinateToIndex(float x, float y, int &position) {
   NTempest::CRect stringRect;
   if (!m_string->GetRect(&stringRect)) {
     return 0;
@@ -1571,7 +1571,7 @@ void CSimpleEditBox::UpdateClauseInfo() {
   }
 }
 
-int CSimpleEditBox::PopulateCandidates(DWORD which) {
+BOOL CSimpleEditBox::PopulateCandidates(DWORD which) {
   UINT                            pageSize;
   UINT                            count;
   UINT                            selection;

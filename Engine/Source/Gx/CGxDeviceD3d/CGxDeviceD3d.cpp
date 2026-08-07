@@ -125,7 +125,7 @@ UINT TSGrowableArray<CGxMonitorMode>::RoundToChunk(UINT count, UINT chunk) const
   return remainder ? count + chunk - remainder : count;
 }
 
-int CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
+BOOL CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   CGxFormat      fmt;
   D3DDISPLAYMODE dm;
   UINT           nModes;
@@ -185,7 +185,7 @@ static WORD HToI(LPCSTR h, UINT count) {
   return value;
 }
 
-int CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow) {
+BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow) {
   D3DADAPTER_IDENTIFIER9 adapterId;
   DISPLAY_DEVICE_TARGET  dd;
   HINSTANCE              d3dLib;
@@ -244,7 +244,7 @@ done:
   return retVal;
 }
 
-int CGxDevice::AdapterInfer(WORD &deviceID) {
+BOOL CGxDevice::AdapterInfer(WORD &deviceID) {
   D3DCAPS9    caps;
   HINSTANCE   d3dLib;
   IDirect3D9 *d3d;
@@ -273,7 +273,7 @@ int CGxDevice::AdapterInfer(WORD &deviceID) {
   return retVal;
 }
 
-int CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
+BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   DISPLAY_DEVICE_TARGET dd;
   DEVMODE_TARGET        dm;
   CGxMonitorMode       *mode;
@@ -302,7 +302,7 @@ int CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   return modes.Count() != 0;
 }
 
-int CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
+BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
   DISPLAY_DEVICE_TARGET dd;
   DEVMODE_TARGET        dm;
 

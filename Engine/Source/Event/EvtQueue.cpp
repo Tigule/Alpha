@@ -98,7 +98,7 @@ void IEvtQueueDestroy() {
   s_messageRecycler.Clear();
 }
 
-int IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
+BOOL IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
   FATALASSERT(context);
 
   LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
@@ -115,7 +115,7 @@ int IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
   return 0;
 }
 
-int IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button) {
+BOOL IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button) {
   FATALASSERT(context);
 
   return context->QueueGetSyncButtonState(button) != 0;
@@ -197,16 +197,16 @@ void IEvtQueueDispatch(EvtContext *context, EVENTID id, LPCVOID data) {
   }
 }
 
-int IEvtQueueHasMessages(EvtContext *context) {
+BOOL IEvtQueueHasMessages(EvtContext *context) {
   FATALASSERT(context);
 
   LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
-  int hasMessages = messageList.Head() != 0;
+  BOOL hasMessages = messageList.Head() != 0;
   context->QueueUnlockMessageList();
   return hasMessages;
 }
 
-int IEvtQueueDispatchNext(EvtContext *context) {
+BOOL IEvtQueueDispatchNext(EvtContext *context) {
   FATALASSERT(context);
 
   LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
@@ -214,7 +214,7 @@ int IEvtQueueDispatchNext(EvtContext *context) {
   if (message) {
     message->link.Unlink();
   }
-  int hasMore = messageList.Head() != 0;
+  BOOL hasMore = messageList.Head() != 0;
   context->QueueUnlockMessageList();
 
   if (!message) {

@@ -35,13 +35,13 @@ class CInitCritSect {
   BYTE       m_critsectData[sizeof(pthread_mutex_t)];
 
  public:
-  int  Enter();
+  BOOL Enter();
   void Leave();
 };
 
 #include <sclass.h>
 
-inline int CInitCritSect::Enter() {
+inline BOOL CInitCritSect::Enter() {
   int initialized = 0;
 
   if (!m_critsect) {

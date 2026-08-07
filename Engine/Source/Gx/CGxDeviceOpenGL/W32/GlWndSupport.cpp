@@ -2,7 +2,7 @@
 
 #include <gl/gl.h>
 
-int SetupPixelFormat(HDC hdc, const CGxFormat &format) {
+BOOL SetupPixelFormat(HDC hdc, const CGxFormat &format) {
   BYTE gBits = 6;
   BYTE bBits = 5;
   BYTE rBits = 5;

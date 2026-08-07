@@ -128,7 +128,7 @@ void CSimpleEditBox::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleEditBox::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CSimpleEditBox::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

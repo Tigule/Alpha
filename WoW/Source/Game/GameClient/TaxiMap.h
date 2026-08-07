@@ -27,7 +27,7 @@ enum TAXNODE_TYPE {
 void            TaxiMapInitialize();
 void            TaxiMapShutdown();
 HTEXTURE        TaxiMapGetTexture();
-int             TaxiMapUpdatePosition(int currentTaxiNode, LONGLONG reachable, LONGLONG known, NTempest::CRect &rect);
+BOOL            TaxiMapUpdatePosition(int currentTaxiNode, LONGLONG reachable, LONGLONG known, NTempest::CRect &rect);
 UINT            TaxiNodeCost(UINT srcNode, UINT dstNode);
 NTempest::CRect TaxiMapGetRect();
 TAXNODE_TYPE    TaxiNodeGetNodeType(int nodeID);

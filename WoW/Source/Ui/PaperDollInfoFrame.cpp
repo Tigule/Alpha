@@ -51,7 +51,7 @@ static const CharBaseInfoRec *GetCharBaseInfo(int raceID, int classID);
 static const ItemSubClassRec *FindItemSubClassRecord(int classID, int subClassID);
 static int __cdecl            QSortCompareProficiency(LPCVOID a, LPCVOID b);
 
-static int PlayerCharacterPointsUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
+static BOOL PlayerCharacterPointsUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   CGCharacterInfo::UpdateAllSkillLines();
   return 1;
 }
@@ -145,7 +145,7 @@ void CGCharacterInfo::PickupBag(int slot) {
   PickupItem(slot + 19);
 }
 
-int CGCharacterInfo::PutItemInBag(int slot) {
+BOOL CGCharacterInfo::PutItemInBag(int slot) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || (slot != 255 && (slot < 0 || slot >= 4))) {
     return 0;
@@ -416,7 +416,7 @@ const SkillInfo *CGCharacterInfo::GetSkillInfoByIndex(int index) {
   return index >= 0 && static_cast<UINT>(index) < m_numSkills ? &m_skillInfoList[index] : 0;
 }
 
-static int GetSlotFromLua(lua_State *L, int &slot, int index) {
+static BOOL GetSlotFromLua(lua_State *L, int &slot, int index) {
   if (!lua_isnumber(L, index)) {
     return 0;
   }

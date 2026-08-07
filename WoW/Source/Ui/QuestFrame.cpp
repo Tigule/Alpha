@@ -244,7 +244,7 @@ void CGQuestInfo::QuestGiverFinished() {
   }
 }
 
-int CGQuestInfo::IsCompletable() {
+BOOL CGQuestInfo::IsCompletable() {
   if (!m_completable) {
     return 0;
   }
@@ -319,7 +319,7 @@ void CGQuestInfo::GiveQuestItems() {
   }
 }
 
-int CGQuestInfo::GetReward(int choice) {
+BOOL CGQuestInfo::GetReward(int choice) {
   if (m_state != QUEST_REWARD) {
     return 1;
   }

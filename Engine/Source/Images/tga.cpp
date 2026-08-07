@@ -20,7 +20,7 @@ void CTgaFile::Close() {
   m_colorMap = 0;
 }
 
-int CTgaFile::Open(LPCSTR filename) {
+BOOL CTgaFile::Open(LPCSTR filename) {
   FATALASSERT(filename);
 
   FATALASSERT(*filename);
@@ -61,7 +61,7 @@ int CTgaFile::Open(LPCSTR filename) {
   return 1;
 }
 
-int CTgaFile::ValidateColorDepth() {
+BOOL CTgaFile::ValidateColorDepth() {
   if (m_header.bPixelDepth - m_header.Desc.bAlphaChannelBits == 24) {
     return 1;
   }
@@ -196,7 +196,7 @@ void CTgaFile::AddAlphaChannel(BYTE *pAlphaData, BYTE *pNoAlphaData, const BYTE 
   m_imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
 }
 
-int CTgaFile::ReadRawImage(UINT flags) {
+BOOL CTgaFile::ReadRawImage(UINT flags) {
   int addAlpha = (flags & 1) && m_header.Desc.bAlphaChannelBits == 0;
 
   if (SFile::SetFilePointer(m_file, PreImageBytes(), 0, FILE_BEGIN) == static_cast<DWORD>(-1)) {
@@ -222,7 +222,7 @@ int CTgaFile::ReadRawImage(UINT flags) {
   return 1;
 }
 
-int CTgaFile::ReadRleImage(UINT flags) {
+BOOL CTgaFile::ReadRleImage(UINT flags) {
   int  addAlpha = (flags & 1) && m_header.Desc.bAlphaChannelBits == 0;
   UINT imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
   ASSERT(m_image == 0);
@@ -263,7 +263,7 @@ int CTgaFile::ReadRleImage(UINT flags) {
   return 1;
 }
 
-int CTgaFile::RLEDecompressImage(BYTE *pRLEData, BYTE *pData) {
+BOOL CTgaFile::RLEDecompressImage(BYTE *pRLEData, BYTE *pData) {
   ASSERT(pRLEData);
 
   int  pixelsRemaining = m_header.wWidth * m_header.wHeight;
@@ -301,7 +301,7 @@ int CTgaFile::RLEDecompressImage(BYTE *pRLEData, BYTE *pData) {
   return 1;
 }
 
-int CTgaFile::AddAlphaChannel(LPCVOID pImg) {
+BOOL CTgaFile::AddAlphaChannel(LPCVOID pImg) {
   if (!Image()) {
     return 0;
   }
@@ -327,7 +327,7 @@ int CTgaFile::AddAlphaChannel(LPCVOID pImg) {
   return 1;
 }
 
-int CTgaFile::SetTopDown(int set) {
+BOOL CTgaFile::SetTopDown(int set) {
   if ((set && m_header.Desc.bTopBottomOrder) || (!set && !m_header.Desc.bTopBottomOrder)) {
     return 1;
   }
@@ -401,7 +401,7 @@ const TGA32Pixel *CTgaFile::ImageTGA32Pixel() const {
   return reinterpret_cast<const TGA32Pixel *>(m_image);
 }
 
-int CTgaFile::RemoveAlphaChannels() {
+BOOL CTgaFile::RemoveAlphaChannels() {
   if (!Image()) {
     return 0;
   }
@@ -444,7 +444,7 @@ void CTgaFile::RemoveHeaderTrailer() {
   m_header.bIDLength = 0;
 }
 
-int CTgaFile::SetImage(const CTgaFile &source) {
+BOOL CTgaFile::SetImage(const CTgaFile &source) {
   if (!source.Image()) {
     return 0;
   }
@@ -455,7 +455,7 @@ int CTgaFile::SetImage(const CTgaFile &source) {
   );
 }
 
-int CTgaFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, BYTE bAlphaBits, int bTopDown, int bRightToLeft) {
+BOOL CTgaFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, BYTE bAlphaBits, BOOL bTopDown, BOOL bRightToLeft) {
   FATALASSERT(pImg);
 
   FATALASSERT((bPixelDepth == 32) || (bPixelDepth == 24));
@@ -486,7 +486,7 @@ int CTgaFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, 
   return 1;
 }
 
-int CTgaFile::CountRun(BYTE *pImage, int nMax) {
+BOOL CTgaFile::CountRun(BYTE *pImage, int nMax) {
   ASSERT(pImage != 0);
 
   UINT pixelBytes = (m_header.bPixelDepth + 7) / 8;
@@ -511,7 +511,7 @@ int CTgaFile::CountRun(BYTE *pImage, int nMax) {
   return nCount;
 }
 
-int CTgaFile::RleCompressLine(BYTE **uncompressed, BYTE **compressed) {
+BOOL CTgaFile::RleCompressLine(BYTE **uncompressed, BYTE **compressed) {
   ASSERT(uncompressed != 0);
   ASSERT(*uncompressed != 0);
   ASSERT(compressed != 0);
@@ -563,7 +563,7 @@ int CTgaFile::RleCompressLine(BYTE **uncompressed, BYTE **compressed) {
   return 1;
 }
 
-int CTgaFile::Compress() {
+BOOL CTgaFile::Compress() {
   if (!m_image) {
     SErrSetLastError(0xF7200081);
     return 0;
@@ -599,7 +599,7 @@ int CTgaFile::Compress() {
   return 1;
 }
 
-int CTgaFile::Write(LPCSTR path) {
+BOOL CTgaFile::Write(LPCSTR path) {
   HOSFILE fileHandle;
   int     success;
   DWORD   byteswritten;

@@ -20,7 +20,7 @@
 
 static LPCSTR s_animationNames[1] = {"Stand"};
 
-static int OnPickNextFidget(LPVOID param) {
+static BOOL OnPickNextFidget(LPVOID param) {
   ModelSetRandomSequenceFidget(static_cast<HMODEL>(param), 0, 0);
   return 1;
 }
@@ -240,7 +240,7 @@ void CMap::LoadMapObjNames() {
   }
 }
 
-CMapDoodadDef *CMap::CreateDoodadDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, int bWait) {
+CMapDoodadDef *CMap::CreateDoodadDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, BOOL bWait) {
   FATALASSERT(fileName);
 
   UINT          id = uniqueId--;
@@ -343,7 +343,7 @@ CMap::CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileNam
   return doodadDef;
 }
 
-CMapObjDef *CMap::CreateMapObjDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, int bWait) {
+CMapObjDef *CMap::CreateMapObjDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, BOOL bWait) {
   FATALASSERT(fileName);
 
   UINT id = uniqueId--;
@@ -443,7 +443,7 @@ void CMap::InitializeDoodadBounds(CMapDoodadDef *doodadDef) {
   CWorldMath::TransformAABox(doodadDef->mat, localCollExtents, doodadDef->collideExt);
 }
 
-int CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait) {
+int CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, BOOL bWait) {
   FATALASSERT(doodadDef);
 
   CModelCreate createData;

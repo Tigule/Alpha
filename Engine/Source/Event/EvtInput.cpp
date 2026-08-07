@@ -312,7 +312,7 @@ void IEvtInputInitialize() {
   OsInputInitialize();
 }
 
-int IEvtInputProcess(EvtContext *context, int *shutdown) {
+BOOL IEvtInputProcess(EvtContext *context, int *shutdown) {
   FATALASSERT(context);
 
   SErrPingWatchdog();

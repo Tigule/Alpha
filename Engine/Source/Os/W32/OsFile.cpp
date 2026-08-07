@@ -52,7 +52,7 @@ void OsCloseFile(HOSFILE fileHandle) {
   CloseHandle(reinterpret_cast<HANDLE>(fileHandle));
 }
 
-int OsFileExists(LPCSTR path) {
+BOOL OsFileExists(LPCSTR path) {
   DWORD attributes;
 
   if (!path || !path[0]) {
@@ -63,7 +63,7 @@ int OsFileExists(LPCSTR path) {
   return attributes != 0xFFFFFFFF && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
-int OsDirectoryExists(LPCSTR dirName) {
+BOOL OsDirectoryExists(LPCSTR dirName) {
   if (!dirName || !dirName[0]) {
     return 0;
   }
@@ -72,17 +72,15 @@ int OsDirectoryExists(LPCSTR dirName) {
   return attributes != 0xFFFFFFFF && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
-int OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
+BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
   FATALASSERT(buffer);
-
   FATALASSERT(bytesRead);
 
   return ReadFile(reinterpret_cast<HANDLE>(fileHandle), buffer, bytesToRead, bytesRead, 0);
 }
 
-int OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
+BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
   FATALASSERT(buffer);
-
   FATALASSERT(bytesWritten);
 
   return WriteFile(reinterpret_cast<HANDLE>(fileHandle), buffer, bytesToWrite, bytesWritten, 0);
@@ -165,7 +163,7 @@ int OsSetFileAttributes(LPCSTR fileName, DWORD attributes) {
   return SetFileAttributesW(reinterpret_cast<LPCWSTR>(fileName16), attributes);
 }
 
-int OsMoveFile(LPCSTR existingFileName, LPCSTR newFileName) {
+BOOL OsMoveFile(LPCSTR existingFileName, LPCSTR newFileName) {
   WORD existingFileName16[MAX_PATH];
   WORD newFileName16[MAX_PATH];
   FATALASSERT(existingFileName);
@@ -183,7 +181,7 @@ int OsCopyFile(LPCSTR existingFileName, LPCSTR newFileName, int failIfExists) {
   return CopyFileW(reinterpret_cast<LPCWSTR>(existingFileName16), reinterpret_cast<LPCWSTR>(newFileName16), failIfExists);
 }
 
-int OsDeleteFile(LPCSTR fileName) {
+BOOL OsDeleteFile(LPCSTR fileName) {
   FATALASSERT(fileName);
 
   WORD *fileName16 = static_cast<WORD *>(_alloca(MAX_PATH * sizeof(WORD)));
@@ -191,7 +189,7 @@ int OsDeleteFile(LPCSTR fileName) {
   return DeleteFileW(reinterpret_cast<LPCWSTR>(fileName16));
 }
 
-int OsCreateDirectory(LPCSTR pathName, int recursive) {
+BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
   char tempName[MAX_PATH];
   WORD pathName16[MAX_PATH];
 
@@ -226,7 +224,7 @@ struct RemoveDirectoryRecurseData {
   DWORD  flags;
 };
 
-int OsFileList(LPCSTR inDir, LPCSTR inPattern, int (*inCallback)(OS_FILE_DATA &, LPVOID), LPVOID inCBParam, int returnHidden) {
+BOOL OsFileList(LPCSTR inDir, LPCSTR inPattern, int (*inCallback)(OS_FILE_DATA &, LPVOID), LPVOID inCBParam, int returnHidden) {
   char             findPath[MAX_PATH];
   WORD             findPath16[MAX_PATH];
   WIN32_FIND_DATAW findData;
@@ -266,7 +264,7 @@ int OsFileList(LPCSTR inDir, LPCSTR inPattern, int (*inCallback)(OS_FILE_DATA &,
   return result;
 }
 
-static int EnumRemoveDirectoryRecurse(OS_FILE_DATA &file, LPVOID param) {
+static BOOL EnumRemoveDirectoryRecurse(OS_FILE_DATA &file, LPVOID param) {
   RemoveDirectoryRecurseData *data = static_cast<RemoveDirectoryRecurseData *>(param);
   LPCSTR                      pathSlash;
   char                        relPath[MAX_PATH];
@@ -305,7 +303,7 @@ int OsRemoveDirectoryRecurse(LPCSTR pathName, DWORD flags) {
   return OsRemoveDirectory(pathName);
 }
 
-int OsSetCurrentDirectory(LPCSTR pathName) {
+BOOL OsSetCurrentDirectory(LPCSTR pathName) {
   WORD dst[MAX_PATH];
 
   FATALASSERT(pathName);
@@ -314,7 +312,7 @@ int OsSetCurrentDirectory(LPCSTR pathName) {
   return SetCurrentDirectoryW(reinterpret_cast<LPCWSTR>(dst));
 }
 
-int OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
+BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   FATALASSERT(pathName);
   WORD pathNameW[MAX_PATH];
   int  result = GetCurrentDirectoryW(MAX_PATH, reinterpret_cast<LPWSTR>(pathNameW));
@@ -324,7 +322,7 @@ int OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   return result;
 }
 
-int OsFileAssocGetIdentifier(LPCSTR inFileExt, char *inBuffer, int inBufSize) {
+BOOL OsFileAssocGetIdentifier(LPCSTR inFileExt, char *inBuffer, int inBufSize) {
   HKEY key;
   if (RegOpenKeyExA(HKEY_CLASSES_ROOT, inFileExt, 0, KEY_READ, &key)) {
     return 0;
@@ -344,7 +342,7 @@ void OsFileAssocSetIdentifier(LPCSTR inFileExt, LPCSTR inIdentifier) {
   }
 }
 
-int OsFileAssocGetValue(LPCSTR inFileExt, int inAssocType, char *inBuffer, int inBufSize) {
+BOOL OsFileAssocGetValue(LPCSTR inFileExt, int inAssocType, char *inBuffer, int inBufSize) {
   static LPCSTR sFileAssocKey[2] = {"", "\\shell\\open\\command"};
   FATALASSERT(inAssocType >= 0 && inAssocType < 2);
 

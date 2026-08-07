@@ -1133,7 +1133,7 @@ void DNPlanet::GenGeometry(
   }
 }
 
-static int ConsoleCommand_SkyCloudDensity(LPCSTR, LPCSTR args) {
+static BOOL ConsoleCommand_SkyCloudDensity(LPCSTR, LPCSTR args) {
   char  msg[256];
   float density;
 
@@ -1176,7 +1176,7 @@ static bool CloudLODCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID a
   return true;
 }
 
-static int ConsoleCommand_SkyCloudLayers(LPCSTR, LPCSTR args) {
+static BOOL ConsoleCommand_SkyCloudLayers(LPCSTR, LPCSTR args) {
   int layers = -1;
   sscanf(args, "%d", &layers);
   if (static_cast<UINT>(layers) > 1) {
@@ -1189,7 +1189,7 @@ static int ConsoleCommand_SkyCloudLayers(LPCSTR, LPCSTR args) {
   return 1;
 }
 
-static int ConsoleCommand_SkySunGlare(LPCSTR, LPCSTR args) {
+static BOOL ConsoleCommand_SkySunGlare(LPCSTR, LPCSTR args) {
   int glareOn;
   if (sscanf(args, "%d", &glareOn) && glareOn) {
     ConsoleWrite("SunGlare enabled.  Don't look directly at it.", DEFAULT_COLOR);
@@ -1208,7 +1208,7 @@ void DNStars::Update() {
   m_color.a = InterpTable(m_fadeTable, 4, s_dnInfo.dayProgression) * 254.0f + 1.0f;
 }
 
-static int ConsoleCommand_SkyShow(LPCSTR, LPCSTR args) {
+static BOOL ConsoleCommand_SkyShow(LPCSTR, LPCSTR args) {
   int skyOn;
   if (sscanf(args, "%d", &skyOn) && skyOn) {
     ConsoleWrite("Sky enabled", DEFAULT_COLOR);

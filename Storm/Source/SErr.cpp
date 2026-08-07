@@ -288,7 +288,7 @@ void SErrInitialize() {
   SErrRegisterThread(GetCurrentThread(), GetCurrentThreadId());
 }
 
-static int CanBreakToDebugger() {
+static BOOL CanBreakToDebugger() {
   HMODULE kernel;
   FARPROC proc;
   int     present;

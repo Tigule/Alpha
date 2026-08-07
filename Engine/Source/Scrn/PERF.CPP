@@ -38,7 +38,7 @@ static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed
 static void IPerfGetPerfTimes(float *perfTime);
 static void IPerfRemoteQueuePerfData(float *perfTime);
 void        IPerfRemoteQueueOnRingBuffer(LPVOID dataToQueue, DWORD size);
-int         IPerfRemoteSpaceAvail(DWORD size);
+BOOL        IPerfRemoteSpaceAvail(DWORD size);
 void        IPerfRemoteInitSimpleHdr(SimplePerfHdr *h, DWORD packetSize, WORD id);
 void        IPerfRemoteQueuePerfLabels();
 void        IPerfRemoteQueueLogString(LPCSTR prompt);
@@ -377,7 +377,7 @@ ChatEventProc(HNETCONN__ *conn, const NETCONNADDR *conAddr, NETNOTE note, LPVOID
   return 0;
 }
 
-int IPerfRemoteLoggingIni() {
+BOOL IPerfRemoteLoggingIni() {
   SSyncObject *waitObjectPtrs[2] = {s_ProfStartupEvent, s_ProfShutdownEvent};
   s_ProfStartupEvent->Reset();
   if (!OsNetGetHostAddrs(s_hostNameList, 0x17EB, IPerfHostAddrProc, 0) || WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
@@ -493,7 +493,7 @@ UINT __stdcall IPerfRemoteLoggingThread(LPVOID) {
   return 0;
 }
 
-int IPerfRemoteSpaceAvail(DWORD size) {
+BOOL IPerfRemoteSpaceAvail(DWORD size) {
   DWORD space;
 
   if (s_ProfRingBufTail > s_ProfRingBufHead) {
@@ -635,7 +635,7 @@ void IPerfRemoteQueueLogString(LPCSTR prompt) {
   IPerfRemoteQueueOnRingBuffer(&queuePromptBuf, packetBytes);
 }
 
-int IPerfRemoteLoggingStartup() {
+BOOL IPerfRemoteLoggingStartup() {
   if (SInterlockedIncrement(&s_ProfStartup) <= 1) {
     if (!SRegLoadString("Internal", "Engine PerfServer", 0, s_hostNameList, sizeof(s_hostNameList))) {
       s_hostNameList[0] = 0;

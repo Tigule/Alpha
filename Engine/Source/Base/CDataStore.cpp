@@ -18,11 +18,11 @@ void CDataStore::InternalDestroy(BYTE *&data, UINT &base, UINT &alloc) {
   alloc = 0;
 }
 
-int CDataStore::InternalFetchRead(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc) {
+BOOL CDataStore::InternalFetchRead(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc) {
   return 0;
 }
 
-int CDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber) {
+BOOL CDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber) {
   alloc = (pos + bytes + 0xFF) & 0xFFFFFF00;
   data = Realloc(data, alloc, fileName, lineNumber);
 

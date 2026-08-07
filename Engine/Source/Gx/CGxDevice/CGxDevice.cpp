@@ -375,13 +375,13 @@ void CGxDevice::CreateDynamicBufs() {
   }
 }
 
-int CGxDevice::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
+BOOL CGxDevice::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
   m_windowProc = windowProc;
   CreateDynamicBufs();
   return DeviceSetFormat(format);
 }
 
-int CGxDevice::DeviceCreate(UINT hwnd, const CGxFormat &format) {
+BOOL CGxDevice::DeviceCreate(UINT hwnd, const CGxFormat &format) {
   CreateDynamicBufs();
   m_format = format;
   return 1;
@@ -392,7 +392,7 @@ void CGxDevice::DeviceDestroy() {
   DestroyDynamicBufs();
 }
 
-int CGxDevice::DeviceSetFormat(const CGxFormat &format) {
+BOOL CGxDevice::DeviceSetFormat(const CGxFormat &format) {
   m_format = format;
   return 1;
 }
@@ -612,7 +612,7 @@ void CGxDevice::VertexShaderSelect(EGxVertexShader shader) {
   m_vertexShader = shader;
 }
 
-int CGxDevice::IVbHasColor(EGxVertexBufferFormat format) {
+BOOL CGxDevice::IVbHasColor(EGxVertexBufferFormat format) {
   switch (format) {
     case GxVBF_PNC:
     case GxVBF_PNCT0:
@@ -862,11 +862,11 @@ void CGxDevice::LightEnable(UINT whichLight, int enable) {
   }
 }
 
-int CGxDevice::EnableState(DWORD app, DWORD appDisables, UINT flagPos) {
+BOOL CGxDevice::EnableState(DWORD app, DWORD appDisables, UINT flagPos) {
   return (app & ~appDisables & (1UL << flagPos)) != 0;
 }
 
-int CGxDevice::NeedsUpdate(DWORD app, DWORD hw, DWORD appDisables, DWORD hwDisables, UINT flagPos, int &enable) {
+BOOL CGxDevice::NeedsUpdate(DWORD app, DWORD hw, DWORD appDisables, DWORD hwDisables, UINT flagPos, int &enable) {
   enable = EnableState(app, appDisables, flagPos);
   return enable != EnableState(hw, hwDisables, flagPos);
 }
@@ -895,7 +895,7 @@ void CGxDevice::MasterEnableSet(EGxMasterEnables state, int enable) {
   }
 }
 
-int CGxDevice::MasterEnable(EGxMasterEnables state) {
+BOOL CGxDevice::MasterEnable(EGxMasterEnables state) {
   return ((1U << state) & m_appState.m_masterEnables) != 0;
 }
 
@@ -1249,7 +1249,7 @@ CGxBuf *CGxDevice::BufGetDynamic(EGxVertexBufferFormat format) {
   return m_dynBuf[format];
 }
 
-int CGxDevice::TexCreate(
+BOOL CGxDevice::TexCreate(
     UINT         width,
     UINT         height,
     EGxTexFormat format,
@@ -1266,7 +1266,7 @@ int CGxDevice::TexCreate(
   return 1;
 }
 
-int CGxDevice::TexCreate(
+BOOL CGxDevice::TexCreate(
     EGxTexTarget target,
     UINT         width,
     UINT         height,

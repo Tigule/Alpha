@@ -773,7 +773,7 @@ class CSBasePriority {
 
   CSBasePriority &operator=(const CSBasePriority &);
 
-  int IsLinked() const {
+  BOOL IsLinked() const {
     return m_queue != 0;
   }
 
@@ -797,7 +797,7 @@ class TSTimerPriority : public CSBasePriority {
   TSTimerPriority() : m_val(0) {
   }
 
-  int Compare(CSBasePriority *priority) const {
+  BOOL Compare(CSBasePriority *priority) const {
     TSTimerPriority<T> *timerPriority = static_cast<TSTimerPriority<T> *>(priority);
     return static_cast<long>(m_val - timerPriority->m_val) <= 0;
   }
@@ -1070,7 +1070,7 @@ class TSLink {
     return m_next;
   }
 
-  int IsLinked() const;
+  BOOL IsLinked() const;
 
   void Unlink();
 };
@@ -1115,7 +1115,7 @@ class TSLinkedNode {
     Unlink();
   }
 
-  int IsLinked() const {
+  BOOL IsLinked() const {
     return m_link.IsLinked();
   }
 
@@ -1250,11 +1250,11 @@ class TSList {
     return m_terminator.Prev();
   }
 
-  int IsEmpty() const {
+  BOOL IsEmpty() const {
     return m_terminator.Next() == 0;
   }
 
-  int IsLinked(const T *instance) const {
+  BOOL IsLinked(const T *instance) const {
     return Link(instance)->IsLinked();
   }
 
@@ -1731,7 +1731,7 @@ class TSHashTable {
   void GrowListArray(UINT newarraysize);
   void Initialize();
 
-  int Initialized() {
+  BOOL Initialized() {
     return m_slotmask != 0xFFFFFFFF;
   }
 
@@ -1955,7 +1955,7 @@ class TSExportTableSimple : public TSHashTableReuse<T, HASHKEY_NONE, REUSE> {
  private:
   HASHKEY_NONE m_key;
   UINT         m_sequence;
-  int          m_wrapped;
+  BOOL         m_wrapped;
 
   HANDLE GenerateUniqueHandle();
 
@@ -1973,7 +1973,7 @@ class TSExportTableSync : public TSExportTableSimple<T, HANDLE, REUSE> {
  private:
   SYNC m_sync;
 
-  int  IsForWriting(LOCKED lockedhandle);
+  BOOL IsForWriting(LOCKED lockedhandle);
   void SyncEnterLock(LOCKED *lockedhandle, int forwriting);
   void SyncLeaveLock(LOCKED lockedhandle);
 

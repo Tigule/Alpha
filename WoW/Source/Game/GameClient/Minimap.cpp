@@ -457,7 +457,7 @@ void MinimapShutdown() {
   s_md5NameHash.Clear();
 }
 
-static int MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads) {
+static BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads) {
   FATALASSERT(radius);
   FATALASSERT(centerPoint);
   if (continent == s_currentContinent && pos.x == s_currentPosition.x && pos.y == s_currentPosition.y && pos.z == s_currentPosition.z &&
@@ -520,7 +520,7 @@ static int MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, 
   return 1;
 }
 
-int MinimapUpdate(
+BOOL MinimapUpdate(
     DWORD                     hWorldObject,
     UINT                      continent,
     const NTempest::C3Vector &pos,
@@ -662,7 +662,7 @@ const TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI) {
   return s_visiblePOI;
 }
 
-int MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData) {
+BOOL MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData) {
   UINT i;
 
   if (s_updateDistantPOI) {

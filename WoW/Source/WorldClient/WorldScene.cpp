@@ -661,15 +661,15 @@ void CWorldScene::FrustumXform(const NTempest::C44Matrix &mat) {
   FrustumGet().Transform(mat);
 }
 
-int CWorldScene::FrustumCull(const NTempest::C3Vector &center, float radius) {
+BOOL CWorldScene::FrustumCull(const NTempest::C3Vector &center, float radius) {
   return FrustumGet().Cull(center, radius) == WorldCull_outside;
 }
 
-int CWorldScene::FrustumCull(const NTempest::CAaBox &aaBox) {
+BOOL CWorldScene::FrustumCull(const NTempest::CAaBox &aaBox) {
   return FrustumGet().Cull(aaBox) == WorldCull_outside;
 }
 
-int CWorldScene::FrustumCull(const NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
+BOOL CWorldScene::FrustumCull(const NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
   return FrustumGet().Cull(aaBox, basis, pos) == WorldCull_outside;
 }
 
@@ -1533,7 +1533,7 @@ static NTempest::C3Vector  sPointPool[32];
 static NTempest::C3Vector *sInPointPtrs[32];
 static NTempest::C3Vector *sOutPointPtrs[32];
 
-int CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3Vector **&p_outVerts, UINT &p_outCount) {
+BOOL CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3Vector **&p_outVerts, UINT &p_outCount) {
   ClipInfo  sInInfo[32];
   ClipInfo  infoPool[32];
   ClipInfo *inInfoPtrs[32];

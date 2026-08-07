@@ -37,7 +37,7 @@ static CategoryTranslation s_translation[8] = {
     {   SOUND,    "sound"}
 };
 
-static int ValidateFileName(LPCSTR arguments) {
+static BOOL ValidateFileName(LPCSTR arguments) {
   LPCSTR extension;
 
   if (strstr(arguments, "..") || strstr(arguments, "\\")) {
@@ -54,7 +54,7 @@ static int ValidateFileName(LPCSTR arguments) {
   return 1;
 }
 
-static int CreateWTFFilePath(char *filename, UINT size) {
+static BOOL CreateWTFFilePath(char *filename, UINT size) {
   char  buffer[MAX_PATH] = "";
   char *extension;
 
@@ -74,7 +74,7 @@ static int CreateWTFFilePath(char *filename, UINT size) {
   return 1;
 }
 
-static int ConsoleCommand_Help(LPCSTR command, LPCSTR arguments) {
+static BOOL ConsoleCommand_Help(LPCSTR command, LPCSTR arguments) {
   UINT            index;
   UINT            categoryCount;
   CONSOLECOMMAND *entry;
@@ -154,21 +154,21 @@ static int ConsoleCommand_Help(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_Quit(LPCSTR command, LPCSTR arguments) {
+static BOOL ConsoleCommand_Quit(LPCSTR command, LPCSTR arguments) {
   (void)command;
   (void)arguments;
   ConsolePostClose();
   return 1;
 }
 
-static int ConsoleCommand_Ver(LPCSTR command, LPCSTR arguments) {
+static BOOL ConsoleCommand_Ver(LPCSTR command, LPCSTR arguments) {
   (void)command;
   (void)arguments;
   ConsoleWrite(verstr, DEFAULT_COLOR);
   return 1;
 }
 
-int ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments) {
+BOOL ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments) {
   char   filename[MAX_PATH];
   char   errorString[MAX_PATH];
   char   tmp[MAX_PATH];
@@ -229,7 +229,7 @@ int ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_CreateExec(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_CreateExec(LPCSTR cmd, LPCSTR arguments) {
   char  folder[MAX_PATH];
   char  filePath[MAX_PATH];
   char *lastSlash;
@@ -269,7 +269,7 @@ static int ConsoleCommand_CreateExec(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_AppendExec(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_AppendExec(LPCSTR cmd, LPCSTR arguments) {
   char errorString[MAX_PATH];
   char filePath[MAX_PATH];
 
@@ -297,7 +297,7 @@ static int ConsoleCommand_AppendExec(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_CloseExec(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_CloseExec(LPCSTR cmd, LPCSTR arguments) {
   char       filePath[MAX_PATH];
   HOSFILE__ *file;
   DWORD      count;
@@ -336,7 +336,7 @@ static int ConsoleCommand_CloseExec(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_TypeExec(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_TypeExec(LPCSTR cmd, LPCSTR arguments) {
   char   errorString[MAX_PATH];
   char   filePath[MAX_PATH];
   char   lineBuffer[128];
@@ -383,7 +383,7 @@ static int ConsoleCommand_TypeExec(LPCSTR cmd, LPCSTR arguments) {
   return 1;
 }
 
-static int ConsoleCommand_DirWtf(LPCSTR cmd, LPCSTR arguments) {
+static BOOL ConsoleCommand_DirWtf(LPCSTR cmd, LPCSTR arguments) {
   char   line[80];
   LPCSTR readBuffer;
   char   endOfLine[4] = " \r\n";
@@ -443,7 +443,7 @@ LPCSTR ConsoleCommandHistory(UINT offset) {
   return g_commandHistory[(g_commandHistoryIndex - offset - 1) & 0x1F];
 }
 
-int ConsoleCommandRegister(LPCSTR command, CONSOLECOMMANDHANDLER handler, CATEGORY category, LPCSTR helpText) {
+BOOL ConsoleCommandRegister(LPCSTR command, CONSOLECOMMANDHANDLER handler, CATEGORY category, LPCSTR helpText) {
   CONSOLECOMMAND *entry;
 
   ASSERT(command);
@@ -474,7 +474,7 @@ void ConsoleCommandUnregister(LPCSTR command) {
   g_consoleCommandHash.Delete(entry);
 }
 
-int ConsoleCommandComplete(LPCSTR partial, LPCSTR *previous, int direction) {
+BOOL ConsoleCommandComplete(LPCSTR partial, LPCSTR *previous, int direction) {
   UINT            partialLength;
   CONSOLECOMMAND *entry;
 

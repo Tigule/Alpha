@@ -214,7 +214,7 @@ namespace NTempest {
     float z;
   };
 
-  inline int IsUnitVector(const C3Vector &vector) {
+  inline BOOL IsUnitVector(const C3Vector &vector) {
     return CMath::fabs_(vector.SquaredMag() - 1.0f) < 0.0009765625f;
   }
 

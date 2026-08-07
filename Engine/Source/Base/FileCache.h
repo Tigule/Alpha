@@ -2,7 +2,7 @@
 
 void BaseFileInitialize();
 void BaseFileDestroy();
-int  BaseFilePrefetch(LPCSTR fileName);
+BOOL BaseFilePrefetch(LPCSTR fileName);
 int  BaseFileIsFetched(LPCSTR fileName);
 int  BaseFileLoad(LPCSTR fileName, LPVOID *fileBuffer, DWORD *fileSize);
 void BaseFileFlush();

@@ -6,7 +6,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-int OsBeep(DWORD dwFreq, DWORD dwDuration) {
+BOOL OsBeep(DWORD dwFreq, DWORD dwDuration) {
   return Beep(dwFreq, dwDuration);
 }
 

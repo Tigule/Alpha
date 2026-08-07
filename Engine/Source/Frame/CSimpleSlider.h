@@ -18,10 +18,10 @@ class CSimpleSlider : public CSimpleFrame {
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
   virtual void OnLayerUpdate(float elapsedSec);
-  virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
+  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
-  virtual int  OnLayerMouseDown(CMouseEvent &evt);
-  virtual int  OnLayerMouseUp(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
 
   void SetThumbTexture(CSimpleTexture *texture, int layer);
   void SetOrientation(SLIDER_ORIENTATION orientation);
@@ -49,11 +49,11 @@ class CSimpleSlider : public CSimpleFrame {
     return m_orientation;
   }
 
-  int IsHorizontal() const {
+  BOOL IsHorizontal() const {
     return m_orientation == SLIDER_HORIZONTAL;
   }
 
-  int IsVertical() const {
+  BOOL IsVertical() const {
     return m_orientation == SLIDER_VERTICAL;
   }
 
@@ -73,8 +73,8 @@ class CSimpleSlider : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
-  float       StepValue(float value) {
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
+  float        StepValue(float value) {
     if (m_valueStep != 0.0f) {
       float delta = value - m_baseValue;
       float halfStep = m_valueStep * 0.5f;

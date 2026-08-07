@@ -260,7 +260,7 @@ CDetailDoodadData::~CDetailDoodadData() {
   }
 }
 
-static int IsBinaryModelFile(char *path) {
+static BOOL IsBinaryModelFile(char *path) {
   int length = SStrLen(path);
   if (path[length - 1] == 'x' || path[length - 1] == 'X') {
     if (SFile::FileExists(path)) {
@@ -274,7 +274,7 @@ static int IsBinaryModelFile(char *path) {
   return 0;
 }
 
-int CDetailDoodadData::Load() {
+BOOL CDetailDoodadData::Load() {
   FATALASSERT(fileName);
 
   char pathName[260];

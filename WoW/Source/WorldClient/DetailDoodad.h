@@ -37,7 +37,7 @@ class CDetailDoodadData {
   CDetailDoodadData(LPCSTR mdlName);
   ~CDetailDoodadData();
 
-  int Load();
+  BOOL Load();
 
   LPCSTR             fileName;
   int                loaded;
@@ -63,7 +63,7 @@ class CDetailDoodadInst {
   void AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags, NTempest::C4Plane &plane);
   void Render();
   void RenderAlpha();
-  int  HasBufs();
+  BOOL HasBufs();
 
   CDetailDoodadGeom *geom[2];
   CGxBuf            *gxBuf[2];

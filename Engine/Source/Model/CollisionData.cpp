@@ -14,7 +14,7 @@ BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 
 static WORD vertIndices[36] = {4, 6, 0, 0, 6, 2, 4, 0, 5, 5, 0, 1, 0, 2, 1, 1, 2, 3, 2, 6, 3, 3, 6, 7, 1, 3, 5, 5, 3, 7, 5, 7, 4, 4, 7, 6};
 
-static int TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts) {
+static BOOL TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts) {
   return (triVerts[0].x < bounds.b.x && triVerts[1].x < bounds.b.x && triVerts[2].x < bounds.b.x) ||
          (triVerts[0].x > bounds.t.x && triVerts[1].x > bounds.t.x && triVerts[2].x > bounds.t.x) ||
          (triVerts[0].y < bounds.b.y && triVerts[1].y < bounds.b.y && triVerts[2].y < bounds.b.y) ||
@@ -70,7 +70,7 @@ static void CollisionDataAddFacets(
   facets->SetCount(existing + numFacets - rejects);
 }
 
-static int CollisionDataVectorIntersect(
+static BOOL CollisionDataVectorIntersect(
     HCOLLISIONDATA__          *hDC,
     const NTempest::C34Matrix &basis,
     const NTempest::C3Vector  &p0,

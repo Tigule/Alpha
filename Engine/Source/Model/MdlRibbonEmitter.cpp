@@ -74,7 +74,7 @@ static void LoadEmitterData(BYTE *emitterData, CModelComplex *modelptr, CRibbonE
   ribbon->SetGravity(gravity);
 }
 
-int MdlReadLoadRibbonEmitters(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared) {
+BOOL MdlReadLoadRibbonEmitters(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared) {
   FATALASSERT(modelptr);
   FATALASSERT(shared);
 

@@ -103,10 +103,10 @@ extern GEOCOMPONENTINFO        g_geometryComponentLookups[INDEX_NUMSLOTS];
 extern const LAYERIDS          g_sectionLayers[INDEX_NUMSLOTS];
 extern const SECTIONPRIORITIES g_sectionPriorities[INDEX_NUMSLOTS];
 
-int CompUtilGetSectionDimensions(UINT sectionIndex, UINT *width, UINT *height);
-int CompUtilGetSectionOffset(UINT sectionIndex, UINT *xCoord, UINT *yCoord);
-int CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority);
-int CompUtilItemSectionInfo(
+BOOL CompUtilGetSectionDimensions(UINT sectionIndex, UINT *width, UINT *height);
+BOOL CompUtilGetSectionOffset(UINT sectionIndex, UINT *xCoord, UINT *yCoord);
+BOOL CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority);
+BOOL CompUtilItemSectionInfo(
     const ItemDisplayInfoRec *displayInfoRec,
     UINT                      inventoryType,
     UINT                     *numTextureComponents,
@@ -124,7 +124,16 @@ UINT   CompUtilGetObjComponents(
     int                       useAlternate
 );
 UINT CompUtilGetObjComponentSlotFlags(const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType, int useAlternateSlot);
-int GetObjComponentInfo(int race, int sex, int displayID, int inventoryType, bool isPlayer, bool useAlternate, HMODEL *models, int *attachmentPoints);
+BOOL GetObjComponentInfo(
+    int     race,
+    int     sex,
+    int     displayID,
+    int     inventoryType,
+    bool    isPlayer,
+    bool    useAlternate,
+    HMODEL *models,
+    int    *attachmentPoints
+);
 HMODEL ObjComponentBuildAmmoModel(const ItemDisplayInfoRec *displayInfoRec, UINT inventoryType, UINT &seqDuration);
 void   ComponentUtilAddItemVisual(HMODEL itemModel, int index, LPCSTR name);
 HMODEL ComponentUtilGetChildModel(HMODEL parent, int index);
@@ -147,21 +156,21 @@ class CTexturePiece : public CHandleObject {
     }
   }
 
-  int IsOpaque() const {
+  BOOL IsOpaque() const {
     return m_textureInfo.opaque || !m_textureInfo.alphaBits;
   }
 
-  int HasImage() const {
+  BOOL HasImage() const {
     return m_mippedTexture != 0;
   }
 
-  int IsLoaded() const;
+  BOOL IsLoaded() const;
 
-  int HasHolds() const {
+  BOOL HasHolds() const {
     return m_holds != 0;
   }
 
-  int HasHold(UINT hold) const;
+  BOOL HasHold(UINT hold) const;
 
   void SetHold(UINT hold) {
     m_holds |= 1 << hold;
@@ -171,7 +180,7 @@ class CTexturePiece : public CHandleObject {
     m_holds &= ~(1 << hold);
   }
 
-  int SetTexture(
+  BOOL SetTexture(
       TEXCOMPONENT_SECTIONS section,
       TEXCOMPONENT_LAYERS   layer,
       LAYERPRIORITY         priority,
@@ -209,7 +218,7 @@ class CTexturePiece : public CHandleObject {
 class CTextureLayer {
  public:
   CTextureLayer &operator=(const CTextureLayer &rhs);
-  int            IsOpaque() const;
+  BOOL           IsOpaque() const;
   void           SetTexture(int priority, int checkExistingTexture, HTEXTURE texture);
   void           SetTexture(int priority, int checkExistingTexture, const CTexturePiece &source);
   void           AllocBlankTexture(
@@ -235,9 +244,9 @@ class CTextureLayer {
   PasteOpaque(const CTexturePiece &source, NTempest::C2iVector dstPos, NTempest::C2iVector srcPos, UINT width, UINT height, LAYERPRIORITY priority);
   void SetHold(int priority, UINT hold);
   void ClearHold(int priority, UINT hold);
-  int  HasHold(int priority, UINT hold) const;
-  int  HasHolds(int priority) const;
-  int  HasImage(int priority) const;
+  BOOL HasHold(int priority, UINT hold) const;
+  BOOL HasHolds(int priority) const;
+  BOOL HasImage(int priority) const;
 
   CTexturePiece m_priorities[4];
 };
@@ -247,10 +256,10 @@ class CSection {
   CSection &operator=(const CSection &rhs);
   void      SetHold(int layer, int priority, UINT hold);
   void      ClearHold(int layer, int priority, UINT hold);
-  int       HasHold(int layer, int priority, UINT hold) const;
-  int       HasHolds(int layer, int priority) const;
-  int       HasImage(int layer, int priority) const;
-  int       IsLayerOpaque(UINT layer);
+  BOOL      HasHold(int layer, int priority, UINT hold) const;
+  BOOL      HasHolds(int layer, int priority) const;
+  BOOL      HasImage(int layer, int priority) const;
+  BOOL      IsLayerOpaque(UINT layer);
   void      SetTexture(int layer, int priority, int checkExistingTexture, HTEXTURE texture);
   void      SetTexture(int layer, int priority, int checkExistingTexture, const CTexturePiece &texture);
   int       SetTexture(
@@ -319,16 +328,16 @@ class CTexComponent : public CTexturePiece {
 
   void SetIgnoreExistingTexture(int ignore);
   bool IsTabardSectionLayerAndPriority(TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, LAYERPRIORITY priority) const;
-  int  CheckPastingRules(TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, LAYERPRIORITY priority);
+  BOOL CheckPastingRules(TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, LAYERPRIORITY priority);
   bool HasTabard() const;
-  int  CheckSections(int bForce);
-  void UpdateSections(CStatus *status, int bUpdate);
-  int  CheckSection(TEXCOMPONENT_SECTIONS section, int bForce);
-  void UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section, int bUpdate);
+  BOOL CheckSections(BOOL bForce);
+  void UpdateSections(CStatus *status, BOOL bUpdate);
+  BOOL CheckSection(TEXCOMPONENT_SECTIONS section, BOOL bForce);
+  void UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section, BOOL bUpdate);
   int  Paste(CStatus *status, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, int x, int y, int width, int height);
   void PasteTabardTexture(CStatus *status, TEXCOMPONENT_SECTIONS section);
   void BuildSkinPieces(CStatus *status, UINT *layerHoldSectionFlags);
-  void BuildNakedPieces(CStatus *status, UINT race, UINT sex, UINT skinID, int isNPC);
+  void BuildNakedPieces(CStatus *status, UINT race, UINT sex, UINT skinID, BOOL isNPC);
   void HideUnderwear(UINT underwearSection);
   void ShowUnderwear(UINT underwearSection);
   void SetTexture(int checkExistingTexture, HTEXTURE texture);
@@ -372,14 +381,14 @@ bool ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle, int eColor
 void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfo, int inventoryType);
 void ComponentForceTabardDraw(HTEXCOMPONENT component);
 void TexComponentCopy(HTEXCOMPONENT d, HTEXCOMPONENT s);
-int  TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce);
-int  TexComponentCheckSections(HTEXCOMPONENT component, int bForce);
+BOOL TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, BOOL bForce);
+int  TexComponentCheckSections(HTEXCOMPONENT component, BOOL bForce);
 void TexComponentRemoveSections(HTEXCOMPONENT component, const TEXCOMPONENT_SECTIONS *sectionPointers, const UINT *startLayerList, UINT size);
 void TexComponentRemoveAllHolds(HTEXCOMPONENT component);
 void TexComponentAddHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
 void TexComponentRemoveHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section);
 HTEXCOMPONENT
-TexComponentCreate(HTEXTURE texture, UINT race, UINT sex, UINT skinID, int isNPC, int ignoreExistingTexture);
+TexComponentCreate(HTEXTURE texture, UINT race, UINT sex, UINT skinID, BOOL isNPC, int ignoreExistingTexture);
 void TexComponentAdd(
     CStatus                  *status,
     int                       playerSex,

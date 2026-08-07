@@ -137,19 +137,19 @@ static UINT thailookup[0x100] = {
 };
 
 LPVOID OsGuiGetWindow(int inWindowType);
-int    OsGuiProcessMessage(LPVOID inMsgData);
-int    OsGuiIsModifierKeyDown(int inKey);
+BOOL   OsGuiProcessMessage(LPVOID inMsgData);
+BOOL   OsGuiIsModifierKeyDown(int inKey);
 int    OsSleepInBackground();
 DWORD  OsGetBackgroundSleepMs();
 
-static int  OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3);
+static BOOL OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3);
 static void OsQueueSetParam(int index, int param);
 static void CenterMouse();
 static void RestoreMouse();
 static void SaveMouse(HWND window, const POINT &pt);
 static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param3);
-static int  ConvertKeyCode(int vkey, KEY *key);
-static int  ConvertButton(UINT message, UINT wparam, MOUSEBUTTON *button);
+static BOOL ConvertKeyCode(int vkey, KEY *key);
+static BOOL ConvertButton(UINT message, UINT wparam, MOUSEBUTTON *button);
 
 static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param3) {
   int nextHead;
@@ -167,7 +167,7 @@ static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param
   s_queueHead = nextHead;
 }
 
-static int OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
+static BOOL OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
   if (s_queueTail == s_queueHead) {
     return 0;
   }
@@ -201,7 +201,7 @@ static void OsQueueSetParam(int index, int param) {
   }
 }
 
-static int ConvertKeyCode(int vkey, KEY *key) {
+static BOOL ConvertKeyCode(int vkey, KEY *key) {
   if (vkey >= '0' && vkey <= '9') {
     *key = static_cast<KEY>(vkey);
     return 1;
@@ -385,7 +385,7 @@ static void CenterMouse() {
   SetCursorPos(s_mouseCenter.x, s_mouseCenter.y);
 }
 
-static int ConvertButton(UINT message, UINT wparam, MOUSEBUTTON *button) {
+static BOOL ConvertButton(UINT message, UINT wparam, MOUSEBUTTON *button) {
   switch (message) {
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
@@ -431,7 +431,7 @@ static void SaveMouse(HWND window, const POINT &pt) {
   s_mousePos = pt;
 }
 
-int OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
+BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
   MSG message;
   int messageAvailable;
 
@@ -555,7 +555,7 @@ void OsInputSetMousePosition(int x, int y) {
   SetCursorPos(pt.x, pt.y);
 }
 
-int OsGetDefaultWindowRect(RECT *rect) {
+BOOL OsGetDefaultWindowRect(RECT *rect) {
   FATALASSERT(rect);
 
   if ((!s_defaultwindowrect.right || !s_defaultwindowrect.bottom) && !GetClientRect(static_cast<HWND>(OsGuiGetWindow(0)), &s_defaultwindowrect)) {

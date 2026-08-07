@@ -19,7 +19,7 @@ void SCritSect::Enter() {
   pthread_mutex_lock((pthread_mutex_t *)m_opaqueData);
 }
 
-int SCritSect::TryEnter() {
+BOOL SCritSect::TryEnter() {
   return pthread_mutex_trylock((pthread_mutex_t *)m_opaqueData) == 0;
 }
 

@@ -293,7 +293,7 @@ class CGxMemBuffer {
   UINT m_count;
   UINT m_base;
   UINT m_next;
-  int  m_discard;
+  BOOL m_discard;
   LISTEXDYN(CGxBuf) m_bufList;
 };
 
@@ -409,7 +409,7 @@ class CGxMatrixStack {
   UINT Flags();
 
   UINT                m_level;
-  BYTE                m_dirty;
+  BOOL                m_dirty;
   NTempest::C44Matrix m_mtx[4];
   UINT                m_flags[4];
 };
@@ -449,15 +449,15 @@ class CGxDevice {
   static const UINT s_texFormatBitDepth[];
 
   UINT                   ITexComputeByteSize(const CGxTex *texId, const UINT width, const UINT height);
-  int                    EnableState(DWORD app, DWORD appDisables, UINT flagPos);
-  int                    NeedsUpdate(DWORD app, DWORD hw, DWORD appDisables, DWORD hwDisables, UINT flagPos, int &enable);
+  BOOL                   EnableState(DWORD app, DWORD appDisables, UINT flagPos);
+  BOOL                   NeedsUpdate(DWORD app, DWORD hw, DWORD appDisables, DWORD hwDisables, UINT flagPos, int &enable);
   void                   ITexBind(CGxTex *texId);
   virtual void           ITexMarkAsUpdated(CGxTex *texId);
   virtual void           IRsSendToHw(EGxRenderState which) = 0;
   virtual void           ISetShaderParamList(TSExplicitList<CGxShaderParam, 108> &params, int forceForBind) = 0;
   void                   ISetShaderParameters(CGxShader *sh, int forceForBind);
   UINT                   IMatAlphaRef(EGxBlend op);
-  int                    IVbHasColor(EGxVertexBufferFormat format);
+  BOOL                   IVbHasColor(EGxVertexBufferFormat format);
   EGxVertexBufferFormat  IGiveVbColor(EGxVertexBufferFormat format);
   void                   DeviceScreenShot();
   int                    IDevIsWindowed();
@@ -480,10 +480,10 @@ class CGxDevice {
  public:
   CGxDevice();
   virtual ~CGxDevice();
-  virtual int         DeviceCreate(UINT hwnd, const CGxFormat &format);
-  virtual int         DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
+  virtual BOOL        DeviceCreate(UINT hwnd, const CGxFormat &format);
+  virtual BOOL        DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
   virtual void        DeviceDestroy();
-  virtual int         DeviceSetFormat(const CGxFormat &format);
+  virtual BOOL        DeviceSetFormat(const CGxFormat &format);
   virtual void        DeviceSetBaseMipLevel(UINT baseMipLevel);
   virtual void        DeviceSetGamma(const CGxGammaRamp &ramp);
   virtual void        DeviceSetGamma(float gamma);
@@ -555,7 +555,7 @@ class CGxDevice {
   virtual void BufDestroy(CGxBuf *&buf);
   virtual void BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, UINT numVertices, UINT numIndices);
   CGxBuf      *BufGetDynamic(EGxVertexBufferFormat format);
-  virtual int  TexCreate(
+  virtual BOOL TexCreate(
       EGxTexTarget target,
       UINT         width,
       UINT         height,
@@ -567,7 +567,7 @@ class CGxDevice {
       void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
       CGxTex *&texId
   );
-  virtual int TexCreate(
+  virtual BOOL TexCreate(
       UINT         width,
       UINT         height,
       EGxTexFormat format,
@@ -594,12 +594,12 @@ class CGxDevice {
 
   static CGxDevice *NewD3d();
   static CGxDevice *NewOpenGl();
-  static int        AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow);
-  static int        AdapterInfer(WORD &deviceID);
-  static int        AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes);
-  static int        AdapterDesktopMode(CGxMonitorMode &mode);
-  static int        D3dEnumFormats(TSGrowableArray<CGxFormat> &formats);
-  static int        OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats);
+  static BOOL       AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow);
+  static BOOL       AdapterInfer(WORD &deviceID);
+  static BOOL       AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes);
+  static BOOL       AdapterDesktopMode(CGxMonitorMode &mode);
+  static BOOL       D3dEnumFormats(TSGrowableArray<CGxFormat> &formats);
+  static BOOL       OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats);
 
   const CGxFormat &DeviceFormat();
   UINT             DeviceBaseMipLevel();
@@ -639,7 +639,7 @@ class CGxDevice {
   void             RsPop();
   void             RsInit();
   UINT             RsStackOffset();
-  int              MasterEnable(EGxMasterEnables state);
+  BOOL             MasterEnable(EGxMasterEnables state);
   void             Light(UINT whichLight, CGxLight &lightInfo);
 
   static void         LogOpen();
@@ -671,8 +671,8 @@ class CGxDevice {
   UINT                                  m_perfCountersAcc[13];
   EGxPrim                               m_primType;
   UINT                                  m_primIndexCount;
-  int                                   m_indexLocked;
-  int                                   m_vertexLocked;
+  BOOL                                  m_indexLocked;
+  BOOL                                  m_vertexLocked;
   int                                   m_inBeginEnd;
   NTempest::C3Vector                    m_primVertex;
   NTempest::C2Vector                    m_primTexCoord[4];
@@ -688,7 +688,7 @@ class CGxDevice {
   NTempest::CRect                       m_curWindowRect;
 
  protected:
-  int                                                m_context;
+  BOOL                                               m_context;
   EGxApi                                             m_api;
   DWORD                                              m_cpuFeatures;
   CGxFormat                                          m_format;

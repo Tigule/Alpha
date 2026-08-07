@@ -2,9 +2,9 @@
 #define WOW_SOURCE_UI_QUESTLOG_H
 
 struct QuestLogInfo {
-  int questID;
-  int logIndex;
-  int isHeader;
+  int  questID;
+  int  logIndex;
+  BOOL isHeader;
 };
 
 int __cdecl QSortQuestSortTypes(LPCVOID a, LPCVOID b);
@@ -47,7 +47,7 @@ class CGQuestLog {
   static LPCSTR GetQuestName(int index);
   static LPCSTR GetQuestTag(int index);
   static int    GetQuestLevel(int index);
-  static int    IsQuestHeader(int index) {
+  static BOOL   IsQuestHeader(int index) {
     return index >= 0 && static_cast<UINT>(index) < m_numQuests ? m_quests[index].isHeader : 0;
   }
   static int GetQuestSortIndex(UINT index);
@@ -58,12 +58,12 @@ class CGQuestLog {
   static int GetQuestSortID(UINT index) {
     return index < m_numSortTypes ? m_sortTypes[index] : 0;
   }
-  static int IsSortHeaderCollapsed(UINT index) {
+  static BOOL IsSortHeaderCollapsed(UINT index) {
     return index < 16 && !(m_collapseFilter & (1 << index));
   }
   static void CollapseHeader(UINT index, int collapse);
-  static int  IsSelectedQuestExpired();
-  static int  IsQuestExpired(UINT index);
+  static BOOL IsSelectedQuestExpired();
+  static BOOL IsQuestExpired(UINT index);
   static void SetQuestExpired(UINT index);
   static void UpdateServerTime(int serverTime);
 

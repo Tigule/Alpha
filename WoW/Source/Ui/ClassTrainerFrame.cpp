@@ -39,8 +39,8 @@ TSGrowableArray<TrainerServiceInfo *>   CGClassTrainer::m_services;
 TSGrowableArray<TrainerSkillLineInfo *> CGClassTrainer::m_skillLines;
 char                                    CGClassTrainer::m_greetingText[512];
 
-void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, UINT level, int isPet);
-int  SpellParserParseText(const SpellRec *spell, char *buf, UINT size, int isPet);
+void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, UINT level, BOOL isPet);
+BOOL SpellParserParseText(const SpellRec *spell, char *buf, UINT size, BOOL isPet);
 
 static void TrainerItemCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (granted) {
@@ -556,7 +556,7 @@ void CGClassTrainer::FilterAndSortServices() {
   m_filteredServices = m_numServices;
   for (UINT lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
     TrainerSkillLineInfo *line = m_skillLines[lineIndex];
-    int                   hasService = 0;
+    BOOL                  hasService = 0;
     for (UINT type = 0; type < NUM_TRAINER_SERVICE_TYPES; ++type) {
       if ((m_serviceTypeFilter & (1 << type)) && line->numSkills[type]) {
         hasService = 1;
@@ -648,7 +648,7 @@ int CGClassTrainer::GetSkillLineIndexFromService(UINT index) {
   return -1;
 }
 
-int CGClassTrainer::IsCollpasedHeader(UINT index) {
+BOOL CGClassTrainer::IsCollpasedHeader(UINT index) {
   int line = GetSkillLineIndexFromService(index);
   return line >= 0 && !(m_collapseFilter & (1 << line));
 }

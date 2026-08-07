@@ -190,7 +190,7 @@ static int Script_GetPetitionNameInfo(lua_State *L) {
 
 static int Script_CanSignPetition(lua_State *L) {
   const CGPetition *petition = CGPetitionInfo::GetPetitionStats();
-  int               canSign = petition != 0;
+  BOOL              canSign = petition != 0;
   CGPlayer_C       *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (petition && (petition->m_flags & 1) &&
       ((!player || player->GetBag()->GetItem(0)) || CGPetitionInfo::GetNumSignatures() >= static_cast<UINT>(petition->m_maxSignatures)))

@@ -80,7 +80,7 @@ class CSimpleScrollFrame : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void        UpdateScrollChildRect(float w, float h);
   void        UpdateScrollChild();
@@ -88,7 +88,7 @@ class CSimpleScrollFrame : public CSimpleFrame {
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
-  int                m_updateScrollChild;
+  BOOL               m_updateScrollChild;
   CSimpleFrame      *m_scrollChild;
   NTempest::C2Vector m_scrollRange;
   NTempest::C2Vector m_scrollOffset;

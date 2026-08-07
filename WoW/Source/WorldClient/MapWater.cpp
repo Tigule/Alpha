@@ -1178,7 +1178,7 @@ void Particulate::InitParticles(UINT l) {
   liquid = l & 3;
 }
 
-int WaterRadWave::Update(float deltat) {
+BOOL WaterRadWave::Update(float deltat) {
   curTime += deltat;
   if (curTime > timeLength) {
     return 0;

@@ -10,8 +10,8 @@ class TSet {
   TSet() : count(0) {
   }
 
-  void Add(UINT token, int needed, int allowDuplicates);
-  int  Check(UINT token);
+  void Add(UINT token, int needed, BOOL allowDuplicates);
+  BOOL Check(UINT token);
   int  Found(UINT token);
   int  NotFound(UINT token);
   void Complete(CMDLStatus *status);

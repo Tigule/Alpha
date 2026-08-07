@@ -513,6 +513,6 @@ void CSimpleFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CSimpleFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   return FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods);
 }

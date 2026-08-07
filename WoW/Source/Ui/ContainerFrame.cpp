@@ -34,7 +34,7 @@ void SetPortraitTexture(CSimpleTexture *texture, LPCSTR textureFile);
 
 DWORDLONG CGContainerInfo::m_containers[10];
 
-static int UpdateContainerContents(DWORDLONG guid, UINT offset, UINT, LPCVOID prevValue, LPVOID) {
+static BOOL UpdateContainerContents(DWORDLONG guid, UINT offset, UINT, LPCVOID prevValue, LPVOID) {
   CGContainerInfo::UpdateContents(guid);
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
@@ -47,7 +47,7 @@ static int UpdateContainerContents(DWORDLONG guid, UINT offset, UINT, LPCVOID pr
   return 1;
 }
 
-static int UpdateInvContents(DWORDLONG guid, UINT offset, UINT, LPCVOID prevValue, LPVOID) {
+static BOOL UpdateInvContents(DWORDLONG guid, UINT offset, UINT, LPCVOID prevValue, LPVOID) {
   CGContainerInfo::UpdateContents(guid);
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
@@ -60,7 +60,7 @@ static int UpdateInvContents(DWORDLONG guid, UINT offset, UINT, LPCVOID prevValu
   return 1;
 }
 
-static int InvUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
+static BOOL InvUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   CGContainerInfo::UpdateContainers();
   return 1;
 }

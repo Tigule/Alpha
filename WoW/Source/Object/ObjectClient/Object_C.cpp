@@ -183,7 +183,7 @@ void CGObject_C::SetTypeID(OBJECT_TYPE_ID typeID) {
   }
 }
 
-int CGObject_C::ObjectModelSetSequence(HMODEL__ *model, UINT sequence, UINT flags, LPCSTR modelName) {
+BOOL CGObject_C::ObjectModelSetSequence(HMODEL__ *model, UINT sequence, UINT flags, LPCSTR modelName) {
   if (sequence > NUM_OBJECTANIMATIONS) {
     SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIMMODEL|%d|%s", sequence, modelName);
     return 0;
@@ -210,7 +210,7 @@ int CGObject_C::ObjectModelSetSequence(HMODEL__ *model, UINT sequence, UINT flag
   return 0;
 }
 
-int CGObject_C::ObjectModelSetBoneSequence(HMODEL__ *model, UINT sequence, UINT objectID, UINT flags) {
+BOOL CGObject_C::ObjectModelSetBoneSequence(HMODEL__ *model, UINT sequence, UINT objectID, UINT flags) {
   if (sequence > 135) {
     SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIM|%d", sequence);
     return 0;
@@ -247,7 +247,7 @@ int CGObject_C::ObjectModelSetBoneSequence(HMODEL__ *model, UINT sequence, UINT 
   return 0;
 }
 
-int CGObject_C::InitModelFileName(char *modelFileName, UINT size) {
+BOOL CGObject_C::InitModelFileName(char *modelFileName, UINT size) {
   FATALASSERT(modelFileName);
 
   LPCSTR name = 0;
@@ -412,7 +412,7 @@ void CGObject_C::RemoveWorldObject() {
   }
 }
 
-int CGObject_C::SetBlock(UINT i, DWORD data) {
+BOOL CGObject_C::SetBlock(UINT i, DWORD data) {
   switch (GetType()) {
     case HIER_TYPE_OBJECT:
       FATALASSERT(i < CGObject::TotalFields());
@@ -557,7 +557,7 @@ void CGObject_C::Reenable() {
   DoFade(255, ShouldFadeIn() ? 2000 : 0);
 }
 
-int CGObject_C::ShouldRender(DWORD worldStatus) {
+BOOL CGObject_C::ShouldRender(DWORD worldStatus) {
   if (worldStatus & 1) {
     m_flags |= 0x10;
     return 1;
@@ -703,7 +703,7 @@ void CGObject_C::Animate(const NTempest::C34Matrix &camRelativeMatrix) {
   ModelAnimate(m_model, camRelativeMatrix, GetScale() * m_renderScale, camera->Position(), camera->Forward());
 }
 
-int CGObject_C::IsObjectModelLoaded() const {
+BOOL CGObject_C::IsObjectModelLoaded() const {
   return m_flags & 0x20;
 }
 
@@ -711,7 +711,7 @@ int CGObject_C::AreAttachmentsLoaded() const {
   return m_flags & 0x40;
 }
 
-int CGObject_C::UpdateAttachmentLoadStatus() {
+BOOL CGObject_C::UpdateAttachmentLoadStatus() {
   if ((m_flags & 0x40) || !m_model || !ModelIsLoaded(m_model, 1)) {
     return 0;
   }
@@ -733,7 +733,7 @@ void CGObject_C::SetCircleRenderStates() const {
   GxRsSet(GxRs_Texture1, s_fadeTex);
 }
 
-int CGObject_C::UpdateModelLoadStatus() {
+BOOL CGObject_C::UpdateModelLoadStatus() {
   int modelLoaded = m_model ? ModelIsLoaded(m_model, 0) : 0;
   if ((m_flags & 0x20) || !m_model || !modelLoaded) {
     return 0;
@@ -765,7 +765,7 @@ void CGObject_C::PostReenable() {
   m_flags &= ~4U;
 }
 
-int CGObject_C::IsPostInited() const {
+BOOL CGObject_C::IsPostInited() const {
   return m_flags & 8;
 }
 
@@ -933,11 +933,11 @@ int CGObject_C::ObjectIsRendering() const {
   return m_flags & 0x10;
 }
 
-int CGObject_C::IsDisabled() const {
+BOOL CGObject_C::IsDisabled() const {
   return m_flags & 2;
 }
 
-int CGObject_C::IsInReenable() const {
+BOOL CGObject_C::IsInReenable() const {
   return m_flags & 4;
 }
 
@@ -962,7 +962,7 @@ bool Object_C_AnimHasHitEvent(int anim) {
   FATALASSERT(anim < NUM_OBJECTANIMATIONS);
   return g_seqInformation[anim].flags & 1;
 }
-static int UpdateAllWorldObjectsCallback(DWORDLONG obj, LPVOID) {
+static BOOL UpdateAllWorldObjectsCallback(DWORDLONG obj, LPVOID) {
   CGObject_C *object = ClntObjMgrObjectPtr(obj, __FILE__, __LINE__);
   if (object) {
     object->UpdateWorldObject();

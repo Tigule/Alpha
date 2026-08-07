@@ -15,8 +15,8 @@ enum SYSMSG_TYPE {
 
 typedef void (*SYSMSGCALLBACK)(LPCSTR msg, SYSMSG_TYPE severity);
 
-int         SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask);
-int         SysMsgAdd(const CStatus &status, UINT categoryMask);
+BOOL        SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask);
+BOOL        SysMsgAdd(const CStatus &status, UINT categoryMask);
 int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, char *arglist);
 int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, ...);
 

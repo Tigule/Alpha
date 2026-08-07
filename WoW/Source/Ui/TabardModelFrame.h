@@ -20,7 +20,7 @@ class CGTabardModelFrame : public CGCharacterModelBase {
   static void UnregisterScriptMethods();
 
   void SaveTabard();
-  int  CanSaveTabard();
+  BOOL CanSaveTabard();
   void CycleVariation(UINT index, int delta);
 
   virtual void InitializeModel(HMODEL model);
@@ -39,8 +39,8 @@ class CGTabardModelFrame : public CGCharacterModelBase {
       HandleClose(m_charComponent);
     }
   }
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
-  void        UpdateTabard();
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
+  void         UpdateTabard();
 
   CGTabardModelFrame(const CGTabardModelFrame &);
   CGTabardModelFrame(CSimpleFrame *parent);

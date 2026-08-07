@@ -51,7 +51,7 @@ void CursorDestroy() {
   }
 }
 
-int CursorGrabMoney(HMODEL model) {
+BOOL CursorGrabMoney(HMODEL model) {
   if (!g_cursor || g_cursor->GetItemType() != CURSOR_EMPTY) {
     return 0;
   }
@@ -60,7 +60,7 @@ int CursorGrabMoney(HMODEL model) {
   return 1;
 }
 
-int CursorGrabSpell(HMODEL model) {
+BOOL CursorGrabSpell(HMODEL model) {
   if (!g_cursor || g_cursor->GetItemType() != CURSOR_EMPTY) {
     return 0;
   }
@@ -90,7 +90,7 @@ static void CreateCursorIconModel(HTEXTURE texture) {
   FATALASSERT(s_cursorModel);
 }
 
-int CursorGrabMoney(UINT amount) {
+BOOL CursorGrabMoney(UINT amount) {
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
   LPCSTR separator = path && *path ? "\\" : "";
   char   buffer[MAX_PATH];
@@ -129,7 +129,7 @@ int CursorGrabMoney(UINT amount) {
   return CursorGrabMoney(s_cursorModel);
 }
 
-int CursorGrabSpell(LPCSTR filename) {
+BOOL CursorGrabSpell(LPCSTR filename) {
   if (!filename) {
     return 0;
   }
@@ -165,7 +165,7 @@ void CursorDropSpell() {
   }
 }
 
-int CursorHasSpell() {
+BOOL CursorHasSpell() {
   return g_cursor && g_cursor->GetItemType() == CURSOR_SPELL;
 }
 

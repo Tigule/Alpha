@@ -18,10 +18,10 @@ class CGActionBar {
   static void UpdateSelection();
   static void UpdateCooldowns();
   static void UpdateUsable();
-  static int  IsSpell(int id) {
+  static BOOL IsSpell(int id) {
     return id >= 0 && id < NUM_ACTION_BUTTONS && m_slotActions[id] > 0;
   }
-  static int IsItem(int id) {
+  static BOOL IsItem(int id) {
     return id >= 0 && id < NUM_ACTION_BUTTONS && m_slotActions[id] < 0;
   }
   static int GetSpell(int id) {
@@ -30,16 +30,16 @@ class CGActionBar {
   static int GetItem(int id) {
     return IsItem(id) ? -m_slotActions[id] : 0;
   }
-  static int HasAction(int id) {
+  static BOOL HasAction(int id) {
     return id >= 0 && id < NUM_ACTION_BUTTONS && m_slotActions[id] != 0;
   }
-  static int    IsAttackAction(int id);
-  static int    IsUsableAction(int id, int &noMana);
-  static int    IsCurrentAction(int id);
-  static int    IsToggledAction(int id);
+  static BOOL   IsAttackAction(int id);
+  static BOOL   IsUsableAction(int id, BOOL &noMana);
+  static BOOL   IsCurrentAction(int id);
+  static BOOL   IsToggledAction(int id);
   static void   UpdateItem(int entryID);
   static void   AddAction(int action);
-  static void   UseAction(int id, int checkCursor);
+  static void   UseAction(int id, BOOL checkCursor);
   static void   PickupAction(int id);
   static void   PutActionInSlot(int id);
   static LPCSTR GetAttackTexture();

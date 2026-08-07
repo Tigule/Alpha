@@ -271,7 +271,7 @@ void OsCloseFile(HOSFILE fileHandle) {
   }
 }
 
-int OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
+BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
   size_t read;
 
   FATALASSERT(buffer);
@@ -286,7 +286,7 @@ int OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *byte
   return read != 0;
 }
 
-int OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
+BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
   size_t written;
 
   FATALASSERT(buffer);
@@ -345,7 +345,7 @@ DWORD OsGetFileAttributes(LPCSTR fileName) {
   return attributes;
 }
 
-int OsFileExists(LPCSTR path) {
+BOOL OsFileExists(LPCSTR path) {
   DWORD attributes;
 
   if (!path || !path[0]) {
@@ -356,7 +356,7 @@ int OsFileExists(LPCSTR path) {
   return attributes != 0xFFFFFFFF && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 }
 
-int OsDirectoryExists(LPCSTR dirName) {
+BOOL OsDirectoryExists(LPCSTR dirName) {
   DWORD attributes;
 
   if (!dirName || !dirName[0]) {
@@ -367,7 +367,7 @@ int OsDirectoryExists(LPCSTR dirName) {
   return attributes != 0xFFFFFFFF && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
-int OsCreateDirectory(LPCSTR pathName, int recursive) {
+BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
   struct stat stats;
   char        nativePath[0x400];
 
@@ -398,7 +398,7 @@ int OsCreateDirectory(LPCSTR pathName, int recursive) {
   return mkdir(nativePath, 0755) == 0;
 }
 
-int OsSetCurrentDirectory(LPCSTR pathName) {
+BOOL OsSetCurrentDirectory(LPCSTR pathName) {
   char nativePath[0x400];
 
   FATALASSERT(pathName);
@@ -409,7 +409,7 @@ int OsSetCurrentDirectory(LPCSTR pathName) {
   return !nativePath[0] || chdir(nativePath) == 0;
 }
 
-int OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
+BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   char *curr;
 
   FATALASSERT(pathName);
@@ -427,7 +427,7 @@ int OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   return 1;
 }
 
-static int ListNativePattern(LPCSTR pattern, int (*inCallback)(OS_FILE_DATA &, LPVOID), LPVOID inCBParam, int returnHidden) {
+static BOOL ListNativePattern(LPCSTR pattern, int (*inCallback)(OS_FILE_DATA &, LPVOID), LPVOID inCBParam, int returnHidden) {
   glob_t       results;
   struct stat  stats;
   OS_FILE_DATA osfData;
@@ -482,7 +482,7 @@ int OsFileList(LPCSTR inDir, LPCSTR inPattern, int (*inCallback)(OS_FILE_DATA &,
   return ListNativePattern(pattern, inCallback, inCBParam, returnHidden);
 }
 
-int OsDeleteFile(LPCSTR fileName) {
+BOOL OsDeleteFile(LPCSTR fileName) {
   char nativePath[0x400];
 
   FATALASSERT(fileName);

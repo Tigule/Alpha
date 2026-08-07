@@ -91,7 +91,7 @@ void CHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
   }
 }
 
-int SndDebugListChunksINDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL SndDebugListChunksINDOORS(LPCSTR command, LPCSTR arguments) {
   UINT i;
   for (i = 0; i < s_chunkList.Count(); ++i) {
     ASSERT(s_chunkList[i]);
@@ -101,7 +101,7 @@ int SndDebugListChunksINDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CreateChunkINDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL CreateChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!object) {
     ConsoleWrite("Error, can't locate player!", DEFAULT_COLOR);
@@ -145,7 +145,7 @@ int CreateChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int SetCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL SetCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     UINT chunk = SStrToUnsigned(arguments);
     if (chunk < s_chunkList.Count()) {
@@ -160,7 +160,7 @@ int SetCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int ShowCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL ShowCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   if (!s_chunkList.Count()) {
     ConsoleWrite("No chunks created!", DEFAULT_COLOR);
   } else if (s_currentChunk >= s_chunkList.Count()) {
@@ -172,7 +172,7 @@ int ShowCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int SetChunkPropertyINDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL SetChunkPropertyINDOORS(LPCSTR command, LPCSTR arguments) {
   if (s_currentChunk > s_chunkList.Count()) {
     ConsoleWrite("Error, the current chunk is invalid!", DEFAULT_COLOR);
     return 1;
@@ -259,7 +259,7 @@ int SetChunkPropertyINDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int DumpChunksINDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL DumpChunksINDOORS(LPCSTR command, LPCSTR arguments) {
   UINT chunks = s_chunkList.Count();
   if (!chunks) {
     ConsoleWrite("Error, no chunk information to dump!", DEFAULT_COLOR);

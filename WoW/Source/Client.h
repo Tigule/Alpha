@@ -31,8 +31,8 @@ class CWOWClientStatus : public CStatus {
 
 extern NTempest::CRndSeed g_rndSeed;
 
-typedef int (*CLIENTTIMERHANDLER)(LPCVOID data, LPVOID param);
-typedef int (*CLIENTGUIDTIMERHANDLER)(LPCVOID data, DWORDLONG guid, LPVOID param);
+typedef BOOL (*CLIENTTIMERHANDLER)(LPCVOID data, LPVOID param);
+typedef BOOL (*CLIENTGUIDTIMERHANDLER)(LPCVOID data, DWORDLONG guid, LPVOID param);
 
 UINT ClientSetTimer(UINT timeout, CLIENTTIMERHANDLER handler, LPVOID param);
 UINT ClientSetTimer(UINT timeout, CLIENTGUIDTIMERHANDLER handler, DWORDLONG guid, LPVOID param);

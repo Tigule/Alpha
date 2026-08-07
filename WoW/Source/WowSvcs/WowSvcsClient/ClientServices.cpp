@@ -114,7 +114,7 @@ static LPCSTR            s_errorCodeTokens[0x42] = {
 extern CVar *g_realmNameVar;
 static void  RealmEnum_InternalCallback(CDataStore *data, LPVOID param);
 
-static int ConsoleCommand_Logout(LPCSTR command, LPCSTR arguments) {
+static BOOL ConsoleCommand_Logout(LPCSTR command, LPCSTR arguments) {
   ASSERT(s_currentConnection);
 
   if (s_currentConnection->IsInGame()) {
@@ -124,7 +124,7 @@ static int ConsoleCommand_Logout(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int ClientServices_MessageHandler(LPVOID param, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
+static BOOL ClientServices_MessageHandler(LPVOID param, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(param);
 
   ClientConnection *connection = static_cast<ClientConnection *>(param);
@@ -170,7 +170,7 @@ ClientConnection::~ClientConnection() {
   Destroy();
 }
 
-int ClientConnection::Initialize(LoginData *loginData) {
+BOOL ClientConnection::Initialize(LoginData *loginData) {
   if (!m_statusComplete) {
     Cancel(1);
   }
@@ -310,7 +310,7 @@ UINT ClientServices_GetWaitCount() {
   return s_currentConnection->GetWaitCount();
 }
 
-int ClientServices_ValidDisconnect(LPCVOID message) {
+BOOL ClientServices_ValidDisconnect(LPCVOID message) {
   const ClientConnection *client = static_cast<const ClientConnection *>(message);
 
   ASSERT(client);
@@ -345,7 +345,7 @@ void ClientServices_Cleanup() {
   s_currentConnection->Cleanup();
 }
 
-int ClientConnection::HandleConnect() {
+BOOL ClientConnection::HandleConnect() {
   Cleanup();
   m_statusResult = 1;
   m_errorCode = 5;
@@ -354,14 +354,14 @@ int ClientConnection::HandleConnect() {
   return NetClient::HandleConnect();
 }
 
-int ClientConnection::HandleDisconnect() {
+BOOL ClientConnection::HandleDisconnect() {
   Cleanup();
   m_statusComplete = 1;
   m_connected = 0;
   return NetClient::HandleDisconnect();
 }
 
-int ClientConnection::HandleCantConnect() {
+BOOL ClientConnection::HandleCantConnect() {
   Cleanup();
   m_statusResult = 0;
   m_errorCode = 4;
@@ -399,7 +399,7 @@ void ClientServices_Connect() {
   s_currentConnection->Connect();
 }
 
-int ClientServices_IsConnected() {
+BOOL ClientServices_IsConnected() {
   ASSERT(s_currentConnection);
   return s_currentConnection->IsConnected();
 }
@@ -411,7 +411,7 @@ void ClientConnection::AccountLogin_Finish(int reason) {
   m_statusResult = reason == 12;
 }
 
-int ClientConnection::HandleAuthChallenge(NETMESSAGE addr, DWORD, CDataStore *msg) {
+BOOL ClientConnection::HandleAuthChallenge(NETMESSAGE addr, DWORD, CDataStore *msg) {
   SHA1_CONTEXT ctx;
   UINT         localDigest[5];
   int          localChallenge;
@@ -449,7 +449,7 @@ int ClientConnection::HandleAuthChallenge(NETMESSAGE addr, DWORD, CDataStore *ms
   return 1;
 }
 
-int ClientConnection::HandleAuthResponse(NETMESSAGE msgId, DWORD, CDataStore *msg) {
+BOOL ClientConnection::HandleAuthResponse(NETMESSAGE msgId, DWORD, CDataStore *msg) {
   ASSERT(msgId == SMSG_AUTH_RESPONSE);
 
   BYTE result;
@@ -505,7 +505,7 @@ void ClientServices_AccountLogout() {
   s_currentConnection->AccountLogout();
 }
 
-int ClientConnection::HandleCharEnum(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
+BOOL ClientConnection::HandleCharEnum(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_CHAR_ENUM);
 
   BYTE count;
@@ -608,7 +608,7 @@ int ClientServices_EnumerateCharacters(void (*fcn)(CHARACTER_INFO &info, LPVOID 
   return s_currentConnection->EnumerateCharacters(fcn, param);
 }
 
-int ClientConnection::HandleCharacterCreate(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
+BOOL ClientConnection::HandleCharacterCreate(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_CHAR_CREATE);
 
   BYTE result;
@@ -656,7 +656,7 @@ void ClientServices_CharacterCreate(const CHARACTER_CREATE_INFO &info) {
   s_currentConnection->CharacterCreate(info);
 }
 
-int ClientConnection::HandleCharacterLoginFailed(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
+BOOL ClientConnection::HandleCharacterLoginFailed(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_CHARACTER_LOGIN_FAILED);
 
   BYTE reason;
@@ -728,11 +728,11 @@ void ClientServices_CharacterSetInGame(int state) {
   s_currentConnection->CharacterSetInGame(state);
 }
 
-int ClientServices_CharacterIsInGame() {
+BOOL ClientServices_CharacterIsInGame() {
   return s_currentConnection && s_currentConnection->IsInGame();
 }
 
-int ClientConnection::HandleLogoutComplete(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
+BOOL ClientConnection::HandleLogoutComplete(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_LOGOUT_COMPLETE);
   ASSERT(msg->IsRead());
 
@@ -750,7 +750,7 @@ int ClientConnection::HandleLogoutComplete(NETMESSAGE msgId, DWORD time, CDataSt
   return 1;
 }
 
-int ClientConnection::HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
+BOOL ClientConnection::HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_LOGOUT_RESPONSE);
 
   BYTE result = 0;
@@ -781,7 +781,7 @@ void ClientServices_CharacterRemoveFromGame() {
   ClientDestroyGame(1, 1, 0);
 }
 
-int ClientConnection::HandleLogoutAbortAck(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
+BOOL ClientConnection::HandleLogoutAbortAck(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_LOGOUT_CANCEL_ACK);
   ASSERT(msg->IsRead());
 
@@ -836,11 +836,11 @@ void ClientServices_CharacterLogout(bool instant) {
   s_currentConnection->CharacterLogout(false, instant);
 }
 
-int ClientConnection::CharacterLoggingOut() {
+BOOL ClientConnection::CharacterLoggingOut() {
   return m_loggingOut;
 }
 
-int ClientServices_CharacterLoggingOut() {
+BOOL ClientServices_CharacterLoggingOut() {
   ASSERT(s_currentConnection);
   return s_currentConnection->CharacterLoggingOut();
 }
@@ -850,7 +850,7 @@ void ClientServices_Exit() {
   s_currentConnection->CharacterLogout(true, false);
 }
 
-int ClientConnection::HandleCharacterDelete(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
+BOOL ClientConnection::HandleCharacterDelete(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_CHAR_DELETE);
 
   BYTE result;
@@ -897,7 +897,7 @@ void ClientServices_CharacterDelete(DWORDLONG guid) {
   s_currentConnection->CharacterDelete(guid);
 }
 
-int ClientConnection::Disconnect() {
+BOOL ClientConnection::Disconnect() {
   if (!m_connected) {
     return 0;
   }
@@ -907,7 +907,7 @@ int ClientConnection::Disconnect() {
   return 1;
 }
 
-int ClientServices_Disconnect() {
+BOOL ClientServices_Disconnect() {
   ASSERT(s_currentConnection);
   return s_currentConnection->Disconnect();
 }
@@ -1062,7 +1062,7 @@ void ClientServices_Send(CDataStore *msg) {
   }
 }
 
-void ClientServices_SetMessageHandler(NETMESSAGE msgId, int (*handler)(LPVOID, NETMESSAGE, DWORD, CDataStore *), LPVOID param) {
+void ClientServices_SetMessageHandler(NETMESSAGE msgId, BOOL (*handler)(LPVOID, NETMESSAGE, DWORD, CDataStore *), LPVOID param) {
   ASSERT(s_currentConnection);
   ASSERT(handler);
 
@@ -1091,7 +1091,7 @@ CHAR_NAME_RESULT ClientServices_CharacterValidateName(LPCSTR name) {
   return static_cast<CHAR_NAME_RESULT>(ValidateCharacterName(CURRENT_LANGUAGE, name) + CHAR_NAME_RESULT_START);
 }
 
-int ClientServices_AccountValidateName(LPCSTR name) {
+BOOL ClientServices_AccountValidateName(LPCSTR name) {
   while (*name) {
     if (!isalnum(*name) && *name != '.' && *name != '-') {
       return 0;

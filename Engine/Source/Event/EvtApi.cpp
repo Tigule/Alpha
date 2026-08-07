@@ -4,8 +4,8 @@ void ObserverInitialize();
 void ObserverDestroy();
 void InputObserverInitialize();
 void InputObserverDestroy();
-int  IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
-int  IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
+BOOL IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
+BOOL IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
 void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, LPVOID param);
 void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER callback, LPVOID param);
 
@@ -123,7 +123,7 @@ void EventPostCloseEx(HEVENTCONTEXT hContext) {
   EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
-int EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, LPCVOID data, UINT bytes) {
+BOOL EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, LPCVOID data, UINT bytes) {
   INSTANCELOCK instanceLock;
   DWORD        contextId = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
@@ -138,7 +138,7 @@ int EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, LPCVOID data, UINT bytes)
   return result;
 }
 
-int EventQueueScan(EVENTSCANHANDLER scanner, LPVOID param) {
+BOOL EventQueueScan(EVENTSCANHANDLER scanner, LPVOID param) {
   INSTANCELOCK instanceLock;
   DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);

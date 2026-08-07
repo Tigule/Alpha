@@ -45,8 +45,8 @@ class CMatrixGroupTree {
   UINT MatrixCount() const {
     return numMatrices;
   }
-  int GroupsEqual(const UINT *matrixGroup1, UINT numMatrices1, const UINT *matrixGroup2, UINT numMatrices2);
-  int GroupLessThan(const UINT *matrixGroup1, UINT numMatrices1, const UINT *matrixGroup2, UINT numMatrices2);
+  BOOL GroupsEqual(const UINT *matrixGroup1, UINT numMatrices1, const UINT *matrixGroup2, UINT numMatrices2);
+  int  GroupLessThan(const UINT *matrixGroup1, UINT numMatrices1, const UINT *matrixGroup2, UINT numMatrices2);
 
  private:
   UINT                          AddNode(UINT *matrixGroup, UINT numMatrices);
@@ -74,7 +74,7 @@ CTexLayer::CTexLayer(const CTexLayer &a) : vertexFormat(a.vertexFormat), disable
   }
 }
 
-static int MaterialUsedOnce(HMATERIAL material) {
+static BOOL MaterialUsedOnce(HMATERIAL material) {
   CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(material);
 
   ASSERT(uniqueMtl);
@@ -487,7 +487,7 @@ static UINT ComplexModelReplaceTexture(CModelComplex *unique, UINT replaceableId
   return numReplaced;
 }
 
-int ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int doLinkedModels) {
+BOOL ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int doLinkedModels) {
   CModelBase *unique;
 
   FATALASSERT(model);
@@ -529,7 +529,7 @@ UINT ModelGetMatrixCount(HMODEL model) {
   return 0;
 }
 
-int ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entriesInOut) {
+BOOL ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entriesInOut) {
   CModelShared *shared;
   CModelBase   *unique;
   UINT          added = 0;
@@ -562,7 +562,7 @@ int ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entries
   return 1;
 }
 
-int ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked) {
+BOOL ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked) {
   CModelShared *shared;
   CModelBase   *unique;
 
@@ -586,7 +586,7 @@ int ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked) {
   return 1;
 }
 
-int ModelHasLinkPoint(HMODEL model, UINT index) {
+BOOL ModelHasLinkPoint(HMODEL model, UINT index) {
   CModelShared *shared;
 
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared)) {
@@ -607,7 +607,7 @@ UINT ModelGetNumLinkPoints(HMODEL model) {
   return 0;
 }
 
-int ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
+BOOL ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
   CModelBase    *parentBase;
   CModelShared  *parentdata;
   CModelComplex *parentptr;
@@ -646,7 +646,7 @@ int ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
   return 1;
 }
 
-int ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
+BOOL ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
   CModelBase   *parentBase;
   CModelShared *parentdata;
 
@@ -684,7 +684,7 @@ int ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
   return 1;
 }
 
-int ModelClearLink(HMODEL parent, UINT parentIndex) {
+BOOL ModelClearLink(HMODEL parent, UINT parentIndex) {
   CModelBase    *parentBase;
   CModelShared  *parentdata;
   CModelComplex *parentptr;
@@ -803,19 +803,19 @@ int ModelIsCameraEnabled(HMODEL model, UINT index) {
   return AnimIsCameraEnabled(unique->m_anim, index);
 }
 
-int ModelIsShowingBoundingSphere(HMODEL model) {
+BOOL ModelIsShowingBoundingSphere(HMODEL model) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_boundsModel && (unique->m_flags & 1);
 }
 
-int ModelIsShowingBoundingBox(HMODEL model) {
+BOOL ModelIsShowingBoundingBox(HMODEL model) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_boundsModel && !(unique->m_flags & 1);
 }
 
-int ModelIsShowingHitTestGeometry(HMODEL model) {
+BOOL ModelIsShowingHitTestGeometry(HMODEL model) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && (unique->m_flags & 8);
@@ -1066,7 +1066,7 @@ UINT CMatrixGroupTree::Insert(UINT *matrixGroup, UINT numMatrices) {
   }
 }
 
-int CMatrixGroupTree::GroupsEqual(const UINT *matrixGroup1, UINT numMatrices1, const UINT *matrixGroup2, UINT numMatrices2) {
+BOOL CMatrixGroupTree::GroupsEqual(const UINT *matrixGroup1, UINT numMatrices1, const UINT *matrixGroup2, UINT numMatrices2) {
   UINT count = numMatrices1;
   if (count >= numMatrices2) {
     count = numMatrices2;
@@ -1263,7 +1263,7 @@ static void IModelOptimizeVisibleGeosets(CModelComplex *unique, CModelShared *sh
   ASSERT(unique->m_geosets.Count() == unique->m_geosetColor.Count());
 }
 
-int ModelOptimizeVisibleGeosets(HMODEL model) {
+BOOL ModelOptimizeVisibleGeosets(HMODEL model) {
   FATALASSERT(model);
 
   CModelBase   *unique;
@@ -1598,7 +1598,7 @@ void ModelHideUnselectable(HMODEL model) {
   }
 }
 
-int GeosetIsShowingUnselectable(CGeosetShared *geosets, UINT numGeosets) {
+BOOL GeosetIsShowingUnselectable(CGeosetShared *geosets, UINT numGeosets) {
   ASSERT(geosets);
 
   for (UINT i = 0; i < numGeosets; ++i) {
@@ -1609,7 +1609,7 @@ int GeosetIsShowingUnselectable(CGeosetShared *geosets, UINT numGeosets) {
   return 0;
 }
 
-int ModelIsShowingUnselectable(HMODEL model) {
+BOOL ModelIsShowingUnselectable(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
@@ -1818,7 +1818,7 @@ void ModelEnableAnimBlending(HMODEL model, int enabled) {
   }
 }
 
-int ModelUsesBlending(HMODEL model) {
+BOOL ModelUsesBlending(HMODEL model) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimUsesBlending(unique->m_anim);
@@ -1912,7 +1912,7 @@ void ModelEnableFullAlpha(HMODEL model, int enable) {
   IModelEnableFullAlpha(unique, enable);
 }
 
-int ModelAnimHasObjectId(HMODEL model, UINT objectId) {
+BOOL ModelAnimHasObjectId(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimHasObjectId(unique->m_anim, objectId);

@@ -83,7 +83,7 @@ void CSimpleStatusBar::SetBarTexture(CSimpleTexture *texture, int layer) {
   m_changed = 1;
 }
 
-int CSimpleStatusBar::SetBarTexture(LPCSTR texFile, int layer) {
+BOOL CSimpleStatusBar::SetBarTexture(LPCSTR texFile, int layer) {
   if (m_barTexture) {
     m_barTexture->SetTexture(texFile, 0);
     return 1;

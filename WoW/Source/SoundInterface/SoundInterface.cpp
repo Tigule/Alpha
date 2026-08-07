@@ -347,7 +347,7 @@ void SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, int itemDisplayID) {
   }
 }
 
-static int WorldIdle(LPCVOID dataPtr, LPVOID) {
+static BOOL WorldIdle(LPCVOID dataPtr, LPVOID) {
   s_elapsed += static_cast<int>(*static_cast<const float *>(dataPtr) * 1000.0f);
   if (s_elapsed >= 1000) {
     s_elapsed -= 1000;

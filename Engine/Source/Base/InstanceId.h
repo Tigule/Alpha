@@ -186,7 +186,7 @@ class TInstanceIdTable {
 
   SCritSect m_idCritsect;
   DWORD     m_id;
-  int       m_idWrapped;
+  BOOL      m_idWrapped;
   CSRWLock  m_idLock[SLOTCOUNT];
   LISTDECL(T, m_idList[SLOTCOUNT]);
 };

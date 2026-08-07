@@ -166,11 +166,11 @@ void PetitionInfoUnregisterScriptFunctions();
 
 static void LoadScriptFunctions();
 static void UnloadScriptFunctions();
-static int  CCommand_Script(LPCSTR command, LPCSTR arguments);
-static int  CCommand_ScaleUI(LPCSTR, LPCSTR arguments);
+static BOOL CCommand_Script(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_ScaleUI(LPCSTR, LPCSTR arguments);
 static void LoadPlacedFrames();
-static int  SavePlacedFrames(CSimpleTop *top);
-static int  PlacedFrameCallback(CSimpleFrame *frame, LPVOID param);
+static BOOL SavePlacedFrames(CSimpleTop *top);
+static BOOL PlacedFrameCallback(CSimpleFrame *frame, LPVOID param);
 static void PlaceFrame(CSimpleFrame *frame, int framelevel, int x, int y, int w, int h);
 
 CVar *s_minimapZoomCVar;
@@ -240,8 +240,8 @@ class CGPetitionInfo {
 void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 UINT CurrencyTotal(int coins[3]);
-int  CursorGrabMoney(UINT amount);
-int  CursorGrabSpell(LPCSTR filename);
+BOOL CursorGrabMoney(UINT amount);
+BOOL CursorGrabSpell(LPCSTR filename);
 UINT CursorGetCursorMode();
 void CursorSetHeldItem(DWORDLONG itemGuid);
 void CursorSetHeldVirtualItem(UINT displayID);
@@ -2683,7 +2683,7 @@ bool Spell_C_HandleSpriteClick(CGObject_C *object);
 bool Spell_C_HandleTerrainClick(const CTerrainClickEvent &evt);
 void Trade_C_InitiateTrade(DWORDLONG target, int useCursorItem);
 
-static int CCommand_Script(LPCSTR, LPCSTR arguments) {
+static BOOL CCommand_Script(LPCSTR, LPCSTR arguments) {
   FrameScript_Execute(arguments, arguments);
   return 1;
 }
@@ -2691,7 +2691,7 @@ static int CCommand_Script(LPCSTR, LPCSTR arguments) {
 void EnableFadingScreen(float fadeTime, void (*fadedCallback)(LPVOID), LPVOID param);
 void DisableFadingScreen(float fadeTime, void (*fadedCallback)(LPVOID), LPVOID param);
 
-static int CCommand_ScaleUI(LPCSTR, LPCSTR arguments) {
+static BOOL CCommand_ScaleUI(LPCSTR, LPCSTR arguments) {
   float scale = SStrToFloat(arguments);
   if (scale > 0.0f) {
     CGGameUI::ScaleUI(scale, 0);
@@ -4133,7 +4133,7 @@ static void UnloadScriptFunctions() {
   PetitionInfoUnregisterScriptFunctions();
 }
 
-static int PlacedFrameCallback(CSimpleFrame *frame, LPVOID param) {
+static BOOL PlacedFrameCallback(CSimpleFrame *frame, LPVOID param) {
   char            line[128];
   NTempest::CRect toprect;
   NTempest::CRect rect;
@@ -4173,7 +4173,7 @@ static int PlacedFrameCallback(CSimpleFrame *frame, LPVOID param) {
   return 1;
 }
 
-static int SavePlacedFrames(CSimpleTop *top) {
+static BOOL SavePlacedFrames(CSimpleTop *top) {
   if (!top) {
     return 0;
   }
@@ -4452,7 +4452,7 @@ static BYTE GetCinematicStartingCameraPosition(LPCSTR modelFile, NTempest::C3Vec
   return 1;
 }
 
-int CGGameUI::StartCinematicCamera() {
+BOOL CGGameUI::StartCinematicCamera() {
   CGCamera *camera = CGWorldFrame::GetActiveCamera();
   FATALASSERT(camera);
 
@@ -4486,7 +4486,7 @@ int CGGameUI::StartCinematicCamera() {
   return 1;
 }
 
-int CGGameUI::NextCinematic(LPVOID) {
+BOOL CGGameUI::NextCinematic(LPVOID) {
   EnableFadingScreen(CinematicFadeTime, NextCinematicInternal, 0);
   return 1;
 }
@@ -4508,7 +4508,7 @@ void CGGameUI::NextCinematicInternal(LPVOID) {
   }
 }
 
-int CGGameUI::StopCinematic(LPVOID) {
+BOOL CGGameUI::StopCinematic(LPVOID) {
   Sound::KillSound(m_cinematic.sequenceMusic);
   EnableFadingScreen(CinematicFadeTime, StopCinematicInternal, 0);
   return 1;
@@ -4841,7 +4841,7 @@ void CGGameUI::Reload() {
   m_reloadUI = true;
 }
 
-int CGGameUI::IsPartyMember(const DWORDLONG &guid) {
+BOOL CGGameUI::IsPartyMember(const DWORDLONG &guid) {
   return CGPartyInfo::IsMember(guid);
 }
 
@@ -4972,7 +4972,7 @@ void CGGameUI::GetCursorItem(DWORDLONG &cursorItem, DWORDLONG &containerGUID, UI
   slot = m_cursorItemSlot;
 }
 
-int CGGameUI::OnSpriteLeftClick(DWORDLONG object, float x, float y) {
+BOOL CGGameUI::OnSpriteLeftClick(DWORDLONG object, float x, float y) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -4999,7 +4999,7 @@ int CGGameUI::OnSpriteLeftClick(DWORDLONG object, float x, float y) {
   return 1;
 }
 
-int CGGameUI::OnSpriteRightClick(DWORDLONG object, float x, float y) {
+BOOL CGGameUI::OnSpriteRightClick(DWORDLONG object, float x, float y) {
   if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     return 1;
   }
@@ -5096,7 +5096,7 @@ void CGGameUI::HandleObjectTrackChange(DWORDLONG object, DWORDLONG oldGUID, floa
   }
 }
 
-int CGGameUI::FilterMouseDown(const CMouseEvent &evt) {
+BOOL CGGameUI::FilterMouseDown(const CMouseEvent &evt) {
   if (evt.button == MOUSE_BUTTON_RIGHT &&
       (m_cursorItem || m_cursorMoney || m_cursorSpell || m_cursorPetAction > 0 || m_cursorVirtualID || Spell_C_IsTargeting()))
   {
@@ -5106,7 +5106,7 @@ int CGGameUI::FilterMouseDown(const CMouseEvent &evt) {
   return 0;
 }
 
-int CGGameUI::HandleTerrainClick(const CTerrainClickEvent &evt) {
+BOOL CGGameUI::HandleTerrainClick(const CTerrainClickEvent &evt) {
   if (evt.button == MOUSE_BUTTON_RIGHT || m_cursorItemType != UICURSOR_EMPTY) {
     ClearCursor(1);
   }
@@ -5117,7 +5117,7 @@ int CGGameUI::HandleTerrainClick(const CTerrainClickEvent &evt) {
   return 1;
 }
 
-int CGGameUI::HandleSpriteClick(const CSpriteClickEvent &evt) {
+BOOL CGGameUI::HandleSpriteClick(const CSpriteClickEvent &evt) {
   if (m_cursorItemType != UICURSOR_EMPTY) {
     ClearCursor(1);
   }
@@ -5128,7 +5128,7 @@ int CGGameUI::HandleSpriteClick(const CSpriteClickEvent &evt) {
   return OnSpriteRightClick(evt.objectGUID, evt.pos.x, evt.pos.y);
 }
 
-int CGGameUI::HandleWorldClick(const CWorldClickEvent &evt) {
+BOOL CGGameUI::HandleWorldClick(const CWorldClickEvent &evt) {
   int cursorWasEmpty = m_cursorItemType == UICURSOR_EMPTY;
   if (evt.button == MOUSE_BUTTON_RIGHT || !m_cursorItem || !m_cursorItemContainer) {
     ClearCursor(1);
@@ -5150,7 +5150,7 @@ void CGGameUI::HandleSpriteTrack(const CObjectTrackEvent &evt) {
   HandleObjectTrackChange(evt.object, evt.oldGUID, evt.x, evt.y);
 }
 
-int CGGameUI::HandleDisplaySizeChanged(const CSizeEvent &evt) {
+BOOL CGGameUI::HandleDisplaySizeChanged(const CSizeEvent &evt) {
   if (m_screenWidth <= 0 || m_screenWidth != evt.w) {
     m_screenWidth = evt.w;
     if (evt.w < 1024) {
@@ -5384,7 +5384,7 @@ void CGGameUI::ClearTarget(DWORDLONG guid, int sendTarget) {
   FrameScript_SignalEvent(191);
 }
 
-static int ClosestObjectMatchProc(DWORDLONG guid, LPVOID param) {
+static BOOL ClosestObjectMatchProc(DWORDLONG guid, LPVOID param) {
   ClosestObjectMatchData *data = static_cast<ClosestObjectMatchData *>(param);
   CGObject_C             *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (!object || !(object->GetType() & data->type)) {
@@ -5476,7 +5476,7 @@ void CGGameUI::FollowByName(LPCSTR name) {
   }
 }
 
-static int TargetUpdateProc(DWORDLONG guid, LPVOID) {
+static BOOL TargetUpdateProc(DWORDLONG guid, LPVOID) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!unit || !(unit->GetType() & TYPE_UNIT)) {
     return 1;
@@ -5580,7 +5580,7 @@ void CGGameUI::ShowCursor() {
   m_simpleTop->m_cursorVisible = 1;
 }
 
-int CGGameUI::HandleMouseDown(const CMouseEvent &evt) {
+BOOL CGGameUI::HandleMouseDown(const CMouseEvent &evt) {
   if (evt.button == MOUSE_BUTTON_RIGHT) {
     if (Spell_C_IsTargeting()) {
       if (Spell_C_WorldObjectHousing()) {
@@ -5596,7 +5596,7 @@ int CGGameUI::HandleMouseDown(const CMouseEvent &evt) {
   return 0;
 }
 
-int CGGameUI::HandleMouseUp(const CMouseEvent &evt) {
+BOOL CGGameUI::HandleMouseUp(const CMouseEvent &evt) {
   return 0;
 }
 
@@ -6077,7 +6077,7 @@ void CGGameUI::UnlockAllItems() {
   FrameScript_SignalEvent(184);
 }
 
-int CGGameUI::Idle(LPCVOID, LPVOID) {
+BOOL CGGameUI::Idle(LPCVOID, LPVOID) {
   if (m_reloadUI) {
     Shutdown();
     Initialize();
@@ -6097,7 +6097,7 @@ void CGGameUI::UpdateActivePlayer() {
   }
 }
 
-void CGGameUI::OnClientControlChanged(int hasControl) {
+void CGGameUI::OnClientControlChanged(BOOL hasControl) {
   if (hasControl != m_hasControl) {
     m_hasControl = hasControl;
     if (hasControl) {

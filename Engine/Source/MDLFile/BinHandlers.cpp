@@ -4,51 +4,51 @@
 
 namespace MDL {
 
-  typedef int (*BINHANDLER)(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  typedef BOOL (*BINHANDLER)(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
 
-  int ReadBinHelpers(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinTextureAnims(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinParticleEmitters(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinAttachments(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinModelGlobals(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinLights(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinCollision(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinBone(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinRibbonEmitters(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinParticleEmitters2(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinGeosetAnim(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinVersion(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinGeosets(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinSequences(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinCameras(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinGlobalSequences(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinMaterials(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinHitTests(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinEventObjects(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinTextures(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int ReadBinPivotPoints(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinHelpers(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinTextureAnims(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinParticleEmitters(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinAttachments(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinModelGlobals(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinLights(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinCollision(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinBone(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinRibbonEmitters(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinParticleEmitters2(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinGeosetAnim(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinVersion(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinGeosets(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinSequences(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinCameras(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinGlobalSequences(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinMaterials(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinHitTests(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinEventObjects(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinTextures(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL ReadBinPivotPoints(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
 
-  int WriteBinVersion(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinModelGlobals(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinSequences(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinGlobalSequences(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinMaterials(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinTextures(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinTextureAnims(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinGeosets(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinGeosetAnims(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinBones(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinLights(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinHelpers(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinAttachments(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinPivotPoints(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinParticleEmitters(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinParticleEmitters2(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinRibbonEmitters(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinCameras(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinEventObjects(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinHitTests(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int WriteBinCollision(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinVersion(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinModelGlobals(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinSequences(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinGlobalSequences(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinMaterials(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinTextures(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinTextureAnims(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinGeosets(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinGeosetAnims(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinBones(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinLights(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinHelpers(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinAttachments(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinPivotPoints(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinParticleEmitters(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinParticleEmitters2(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinRibbonEmitters(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinCameras(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinEventObjects(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinHitTests(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL WriteBinCollision(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
 
   static BINHANDLER s_binHandlers[21] = {WriteBinVersion,        WriteBinModelGlobals, WriteBinSequences,        WriteBinGlobalSequences,
                                          WriteBinMaterials,      WriteBinTextures,     WriteBinTextureAnims,     WriteBinGeosets,
@@ -108,7 +108,7 @@ namespace MDL {
     return 1;
   }
 
-  int CallBinWriteHandlers(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status) {
+  BOOL CallBinWriteHandlers(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status) {
     for (UINT i = 0; i < 21; ++i) {
       if (!s_binHandlers[i](data, buffer, status)) {
         return 0;

@@ -12,7 +12,7 @@ namespace MDL {
   LPCSTR       TokenText(UINT token);
   void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...);
 
-  int ReadHitTest(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadHitTest(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet             errors;
     MDLHITTESTSHAPE *section = data.hitTestShapes.New();
     AddObjectErrors(errors);
@@ -132,7 +132,7 @@ namespace MDL {
     WriteObjectTrailer(section, buffer);
   }
 
-  int WriteHitTests(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteHitTests(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     int needObjIds = data.hitTestShapes.Count() != data.objects.Count();
     for (UINT i = 0; i < data.hitTestShapes.Count(); ++i) {
       IWriteHitTestSection(data, data.hitTestShapes.Ptr()[i], needObjIds, buffer);
@@ -140,7 +140,7 @@ namespace MDL {
     return 1;
   }
 
-  int WriteBinHitTests(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status) {
+  BOOL WriteBinHitTests(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status) {
     if (data.hitTestShapes.Count()) {
       buffer.AddDword('TSTH');
       UINT totalSize = 4;
@@ -210,7 +210,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinHitTests(CMsgBuffer &buffer, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinHitTests(CMsgBuffer &buffer, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT count = buffer.GetUint();
     UINT totalRead = 4;
     data.hitTestShapes.SetCount(0);

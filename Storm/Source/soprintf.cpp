@@ -143,7 +143,7 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
   SpecifierRange *range;
   int             ordering;
   int             specifierCount;
-  int             hasArgument;
+  BOOL            hasArgument;
   int             written;
   char            ch;
 

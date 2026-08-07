@@ -91,7 +91,7 @@ class CDbgHelpDll {
   ~CDbgHelpDll();
   int  Load();
   void Unload();
-  int  IsLoaded() {
+  BOOL IsLoaded() {
     return hInstance != NULL;
   }
 };

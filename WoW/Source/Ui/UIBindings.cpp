@@ -25,7 +25,7 @@ class CGUIBindingsStatus : public CStatus {
 
 static CGUIBindingsStatus s_nullStatus;
 
-int ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments);
+BOOL ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments);
 
 void CGUIBindingsStatus::Add(int, LPCSTR format, ...) {
   char    buffer[512];
@@ -37,7 +37,7 @@ void CGUIBindingsStatus::Add(int, LPCSTR format, ...) {
   OsOutputDebugString(buffer);
 }
 
-static int Bind_CommandHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL Bind_CommandHandler(LPCSTR command, LPCSTR arguments) {
   char keyName[32];
 
   if (!*arguments) {
@@ -140,7 +140,7 @@ static struct {
     {    KEY_ALT,   "ALT-"}
 };
 
-int CGUIBindings::AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen) {
+BOOL CGUIBindings::AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen) {
   for (int index = 2; index >= 0; --index) {
     if (metaKeyState & (1 << metaList[index].metaKey)) {
       int length = SStrLen(metaList[index].metaStr);
@@ -361,7 +361,7 @@ CGUIBindings::~CGUIBindings() {
   m_commands.Clear();
 }
 
-int CGUIBindings::Load(LPCSTR commandsFile, CStatus *status) {
+BOOL CGUIBindings::Load(LPCSTR commandsFile, CStatus *status) {
   char           headerBuf[64];
   XMLTree       *tree;
   LPCSTR         script;
@@ -452,7 +452,7 @@ int CGUIBindings::Load(LPCSTR commandsFile, CStatus *status) {
   return 1;
 }
 
-int CGUIBindings::Bind(LPCSTR keystring, LPCSTR command) {
+BOOL CGUIBindings::Bind(LPCSTR keystring, LPCSTR command) {
   if (!keystring || !command) {
     return 0;
   }
@@ -497,7 +497,7 @@ int CGUIBindings::ExecKey(LPCSTR keystring, DWORD timestamp, int down) const {
   return ExecCommand(command, timestamp, down);
 }
 
-int CGUIBindings::ExecCommand(LPCSTR command, DWORD timestamp, int down) const {
+BOOL CGUIBindings::ExecCommand(LPCSTR command, DWORD timestamp, int down) const {
   if (!command || !*command) {
     return 0;
   }

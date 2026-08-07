@@ -184,10 +184,10 @@ enum OS_MOUSE_MODE {
   OS_MOUSE_MODES = 2
 };
 
-typedef int (*EVENTHANDLER)(LPCVOID data, LPVOID param);
-typedef int (*EVENTGUIDHANDLER)(LPCVOID data, DWORDLONG guid, LPVOID param);
+typedef BOOL (*EVENTHANDLER)(LPCVOID data, LPVOID param);
+typedef BOOL (*EVENTGUIDHANDLER)(LPCVOID data, DWORDLONG guid, LPVOID param);
 typedef void (*EVENTSCANHANDLER)(EVENTID id, LPCVOID data, LPVOID param);
-typedef int (*EVENTCONFIRMCLOSEHANDLER)(LPVOID param);
+typedef BOOL (*EVENTCONFIRMCLOSEHANDLER)(LPVOID param);
 
 const float EVENT_PRIORITY_NORMAL = 0.0f;
 
@@ -260,8 +260,8 @@ int           EventIsButtonDown(MOUSEBUTTON button);
 int           EventIsKeyDown(KEY key);
 void          EventInputGetMousePosition(float *x, float *y);
 void          EventInputSetMousePosition(float x, float y);
-int           EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, LPCVOID data, UINT bytes);
-int           EventQueueScan(EVENTSCANHANDLER scanner, LPVOID param);
+BOOL          EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, LPCVOID data, UINT bytes);
+BOOL          EventQueueScan(EVENTSCANHANDLER scanner, LPVOID param);
 void          EventSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, LPVOID inParam);
 int           EventInputProcess(HEVENTCONTEXT hContext);
 void          EventSetMouseMode(MOUSEMODE mode, UINT holdButton);

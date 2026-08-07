@@ -21,7 +21,7 @@ class CStatus {
   virtual void Add(const CStatus &source);
   virtual void Prepend(STATUS_TYPE severity, LPCSTR format, ...);
 
-  int         IsEmpty() const;
+  BOOL        IsEmpty() const;
   void        Clear();
   void        GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity) const;
   UINT        GetErrorStrLen(STATUS_TYPE minSeverity) const;

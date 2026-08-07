@@ -66,8 +66,8 @@ class CGQuestInfo {
   static int GetCurrentQuest() {
     return m_currentQuest;
   }
-  static int IsCompletable();
-  static int GetLastChosenItem() {
+  static BOOL IsCompletable();
+  static int  GetLastChosenItem() {
     return m_lastChosenItem;
   }
   static void ClearLastChosenItem() {
@@ -96,7 +96,7 @@ class CGQuestInfo {
   static void AcceptQuest();
   static void DeclineQuest();
   static void GiveQuestItems();
-  static int  GetReward(int choice);
+  static BOOL GetReward(int choice);
   static int  GetRewardMoney() {
     return m_rewardMoney;
   }

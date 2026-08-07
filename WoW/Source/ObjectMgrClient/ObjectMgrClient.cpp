@@ -52,12 +52,12 @@ static UINT s_objHeapId[7];
 static int  s_localPlayerUpdates;
 static LISTDECL(CMirrorHandler, s_mirrorHandlers[8][634]);
 
-static int           MirrorHandlerRemoveQueued(DWORDLONG guid, CMirrorHandler *mirror);
+static BOOL          MirrorHandlerRemoveQueued(DWORDLONG guid, CMirrorHandler *mirror);
 static void          ProcessObjHandlersQueue();
 static C_OBJECTHASH *AllocNewObj();
 void                 SkipCreateObject(CDataStore *msg);
 
-static int IsMaskBitSet(const UINT *changeMask, UINT dwordNum) {
+static BOOL IsMaskBitSet(const UINT *changeMask, UINT dwordNum) {
   return changeMask[dwordNum >> 5] & (1 << (dwordNum & 0x1F));
 }
 
@@ -145,7 +145,7 @@ static C_OBJECTHASH *FindActiveObj(DWORDLONG guid) {
   return s_curMgr->m_objects.Ptr(guid, CHashKeyGUID(guid));
 }
 
-static int SetObjectBlock(CGObject_C *obj, UINT i, DWORD data) {
+static BOOL SetObjectBlock(CGObject_C *obj, UINT i, DWORD data) {
   FATALASSERT(obj);
   return obj->SetBlock(i, data);
 }
@@ -200,7 +200,7 @@ static void MirrorHandlerAdvanceBlock(LISTPTREX(CMirrorHandler) handlerList) {
   }
 }
 
-static int GetMirrorHandler(LISTPTR(CMirrorHandler) mirrorHandlers, LISTPTREX(CMirrorHandler) handlerList) {
+static BOOL GetMirrorHandler(LISTPTR(CMirrorHandler) mirrorHandlers, LISTPTREX(CMirrorHandler) handlerList) {
   UINT offDword;
 
   FATALASSERT(handlerList);
@@ -662,7 +662,7 @@ static C_OBJECTHASH *AllocNewObj() {
   return hash;
 }
 
-static int CreateObject(DWORD eventTime, CDataStore *msg) {
+static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
   CClientObjCreate init;
   DWORDLONG        guid;
   UINT             memHandle;
@@ -748,7 +748,7 @@ static int CreateObject(DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-static int UpdateObjectMovement(DWORD eventTime, CDataStore *msg) {
+static BOOL UpdateObjectMovement(DWORD eventTime, CDataStore *msg) {
   CClientMoveUpdate update;
   DWORDLONG         guid;
 
@@ -770,7 +770,7 @@ static int UpdateObjectMovement(DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-static int UpdateObject(CDataStore *msg) {
+static BOOL UpdateObject(CDataStore *msg) {
   DWORDLONG guid;
   msg->Get(guid);
   s_curMgr->m_legalGuidDeref = guid;
@@ -891,7 +891,7 @@ static void SkipSetOfObjects(CDataStore *msg) {
   msg->GetDataInSitu(junkData, count * sizeof(DWORDLONG));
 }
 
-static int ObjectUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
+static BOOL ObjectUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
   DWORDLONG oldActive;
   BYTE      marker1 = 0;
   int       success;
@@ -991,7 +991,7 @@ static int ObjectUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *
   return success;
 }
 
-static int ObjectCompressedUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
+static BOOL ObjectCompressedUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
   WDataStore realmsg;
   LPVOID     data;
   UINT       origSize;
@@ -1034,14 +1034,14 @@ static void UnassignMirrorHandler(LISTPTR(CMirrorHandler) handlerList, int (*han
   }
 }
 
-static int OnObjectDestroy(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL OnObjectDestroy(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG guid;
   msg->Get(guid);
   ClntObjMgrFreeObject(guid);
   return 1;
 }
 
-static int CCommand_ObjUsage(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_ObjUsage(LPCSTR command, LPCSTR arguments) {
   UINT numVisible = 0;
   UINT numActive = 0;
   UINT numWaiting = 0;
@@ -1108,7 +1108,7 @@ ClntObjMgr *ClntObjMgrGetCurrent() {
   return s_curMgr;
 }
 
-int ClntObjMgrIsValid(int forWriting) {
+BOOL ClntObjMgrIsValid(int forWriting) {
   if (!s_curMgr) {
     return 0;
   }
@@ -1176,7 +1176,7 @@ void ClntObjMgrSetObjMirrorHandler(
   }
 }
 
-static int MirrorHandlerRemoveQueued(DWORDLONG guid, CMirrorHandler *mirror) {
+static BOOL MirrorHandlerRemoveQueued(DWORDLONG guid, CMirrorHandler *mirror) {
   ITERATELIST(OBJHANDLERREQUEST, s_curMgr->m_pendingObjHandlerRequests, request) {
     if (!request->set && request->offset == mirror->offset && request->guid == guid && request->handler == mirror->handler &&
         request->param == mirror->param)
@@ -1272,7 +1272,7 @@ void ClntObjMgrShowObject(DWORDLONG guid) {
   }
 }
 
-int ClntObjMgrEnumVisibleObjects(int (*handler)(DWORDLONG, LPVOID), LPVOID param) {
+BOOL ClntObjMgrEnumVisibleObjects(BOOL (*handler)(DWORDLONG, LPVOID), LPVOID param) {
   ActivityBegin(ACTIVITY_OBJMGR);
 
   int success = 1;

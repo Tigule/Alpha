@@ -35,8 +35,8 @@ class CGxBufOgl : public CGxBuf {
 
  public:
   CGxBufOgl();
-  int  LockVB();
-  int  LockIB();
+  BOOL LockVB();
+  BOOL LockIB();
   void UnlockVB();
   void UnlockIB();
 
@@ -60,7 +60,7 @@ class CGxBufOgl : public CGxBuf {
 CGxBufOgl::CGxBufOgl() : m_vb(0), m_ib(0) {
 }
 
-int CGxBufOgl::LockVB() {
+BOOL CGxBufOgl::LockVB() {
   if (!m_vb) {
     memset(vertexPtr, 0, sizeof(vertexPtr));
     return 0;
@@ -83,7 +83,7 @@ int CGxBufOgl::LockVB() {
   return 1;
 }
 
-int CGxBufOgl::LockIB() {
+BOOL CGxBufOgl::LockIB() {
   if (m_ib) {
     FATALASSERT(0);
   } else {

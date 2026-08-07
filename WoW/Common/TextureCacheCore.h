@@ -22,5 +22,5 @@ HTEXTURECACHE  TextureCacheCreateInstanceCache(UINT instances);
 HTEXTURECACHE  TextureCacheCreatTimeCache(UINT milliSeconds);
 HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, LPCSTR fileName, TEXTUREINFO *info);
 const MipBits *TextureCacheGetImage(HMIPPEDTEXTURE texture);
-int            TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, int bForce);
+BOOL           TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, BOOL bForce);
 HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, UINT width, UINT height, TEXTUREINFO *textureInfo);

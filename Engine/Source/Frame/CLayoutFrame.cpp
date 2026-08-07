@@ -318,7 +318,7 @@ void CLayoutFrame::LoadXML(const XMLNode *node, CStatus *status) {
   }
 }
 
-int CLayoutFrame::CalculateRect(NTempest::CRect *rect) {
+BOOL CLayoutFrame::CalculateRect(NTempest::CRect *rect) {
   return (rect->l = Left()) != CFramePoint::UNDEFINED && (rect->t = Bottom()) != CFramePoint::UNDEFINED &&
          (rect->r = Right()) != CFramePoint::UNDEFINED && (rect->b = Top()) != CFramePoint::UNDEFINED;
 }
@@ -436,7 +436,7 @@ void CLayoutFrame::UnregisterResize(const CLayoutFrame *frame) {
   }
 }
 
-int CLayoutFrame::IsResizeDependency(CLayoutFrame *pNewDependentFrame) {
+BOOL CLayoutFrame::IsResizeDependency(CLayoutFrame *pNewDependentFrame) {
   UINT whichPoint;
 
   for (whichPoint = 0; whichPoint < FRAMEPOINT_NUMPOINTS; ++whichPoint) {
@@ -528,7 +528,7 @@ void CLayoutFrame::Resize(int force) {
   m_resizeCounter = 6;
 }
 
-int CLayoutFrame::IsResizePending() {
+BOOL CLayoutFrame::IsResizePending() {
   return s_resizePendingList.IsLinked(this);
 }
 
@@ -544,7 +544,7 @@ int CLayoutFrame::SetRect(NTempest::CRect &rect) {
   return m_flags & 0x1;
 }
 
-int CLayoutFrame::GetRect(NTempest::CRect *rect) const {
+BOOL CLayoutFrame::GetRect(NTempest::CRect *rect) const {
   if (!(m_flags & 0x1)) {
     return 0;
   }
@@ -584,7 +584,7 @@ float CLayoutFrame::GetWidth() {
   return m_width;
 }
 
-int CLayoutFrame::FlattenFrame(CLayoutFrame *top, float width, float height, float delta_x, float delta_y, NTempest::CRect *finalrect) {
+BOOL CLayoutFrame::FlattenFrame(CLayoutFrame *top, float width, float height, float delta_x, float delta_y, NTempest::CRect *finalrect) {
   NTempest::CRect toprect;
   NTempest::CRect rect;
 
@@ -743,7 +743,7 @@ int CLayoutFrame::DragBy(CLayoutFrame *top, float delta_x, float delta_y, FRAMEP
   return FlattenFrame(top, newwidth, newheight, delta_x, delta_y, finalrect);
 }
 
-int CLayoutFrame::PtInFrameRect(const NTempest::C2Vector &pt) {
+BOOL CLayoutFrame::PtInFrameRect(const NTempest::C2Vector &pt) {
   return IsRectValid() && pt.x >= m_rect.l && pt.x <= m_rect.r && pt.y >= m_rect.t && pt.y <= m_rect.b;
 }
 
@@ -797,7 +797,7 @@ void CLayoutFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   }
 }
 
-int CLayoutFrame::OnFrameResize() {
+BOOL CLayoutFrame::OnFrameResize() {
   NTempest::CRect rect;
 
   if (CalculateRect(&rect)) {

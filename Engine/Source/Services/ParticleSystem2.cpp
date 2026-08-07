@@ -374,7 +374,7 @@ void CParticleEmitter2::CreateParticle(CParticle2_Model &p, float elapsedTime, c
   }
 }
 
-int CParticleEmitter2::MoveParticle(CParticle2 &p, float elapsedTime) {
+BOOL CParticleEmitter2::MoveParticle(CParticle2 &p, float elapsedTime) {
   if (p.m_age < m_windTime) {
     p.m_velocity.x += elapsedTime * m_windVector.x;
     p.m_velocity.y += elapsedTime * m_windVector.y;
@@ -412,7 +412,7 @@ int CParticleEmitter2::MoveParticle(CParticle2 &p, float elapsedTime) {
   return !m_0XKill || move.x * p.m_position.x + move.y * p.m_position.y + move.z * p.m_position.z <= 0.0f;
 }
 
-int CParticleEmitter2::MoveParticle(CParticle2_Model &p, float elapsedTime) {
+BOOL CParticleEmitter2::MoveParticle(CParticle2_Model &p, float elapsedTime) {
   float velMag = p.m_rotVelocity.Mag();
   if (velMag > 0.0001f) {
     float angle = velMag * elapsedTime * 0.5f;
@@ -425,7 +425,7 @@ int CParticleEmitter2::MoveParticle(CParticle2_Model &p, float elapsedTime) {
   return MoveParticle(static_cast<CParticle2 &>(p), elapsedTime);
 }
 
-int CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
+BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
   UINT randomIndex = 0;
   if (m_twinkleOnOff < 1.0f || m_twinkleScaleRange != 0.0f) {
     randomIndex = ((reinterpret_cast<DWORD>(&p) >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & 0x7F;
@@ -702,7 +702,7 @@ void CParticleEmitter2::RenderParticles() {
   GxXformSetView(worldToView);
 }
 
-int CParticleEmitter2::RenderParticle(CParticle2_Model &p) {
+BOOL CParticleEmitter2::RenderParticle(CParticle2_Model &p) {
   UINT randomIndex = 0;
   if (m_twinkleOnOff < 1.0f || m_twinkleScaleRange != 0.0f) {
     randomIndex = ((reinterpret_cast<DWORD>(&p) >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & 0x7F;
@@ -891,7 +891,7 @@ void CParticleEmitter2::SetTextureDimensions(UINT rows, UINT columns) {
   m_ooTextureHeight = 1.0f / static_cast<float>(rows);
 }
 
-void CParticleEmitter2::SetParticleStyle(int hasHead, int hasTail, float tailLength, bool tailGrows) {
+void CParticleEmitter2::SetParticleStyle(BOOL hasHead, BOOL hasTail, float tailLength, bool tailGrows) {
   m_particleHasHead = hasHead;
   m_particleHasTail = hasTail;
   m_particleTailLength = tailLength;

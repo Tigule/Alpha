@@ -16,8 +16,8 @@ struct OsIMECandidate {
 OS_IME_LANGUAGEMODE OsIMEGetLanguageMode();
 int                 OsIMEGetCompositionString(char *string, UINT maxlen);
 int                 OsIMEGetCompositionResult(char *string, UINT maxlen);
-int                 OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos);
-int                 OsIMEGetCandidates(DWORD which, UINT &pageSize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates);
+BOOL                OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos);
+BOOL                OsIMEGetCandidates(DWORD which, UINT &pageSize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates);
 void                OsIMEEnable(int enabled);
 void                OsIMEInitialize();
 void                OsIMEDestroy();

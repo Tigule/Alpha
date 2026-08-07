@@ -114,8 +114,8 @@ class SpellHistory {
       int   startRecoveryCategory,
       UINT  startRecoveryTime
   );
-  int  GetCooldown(int spellID, int itemID, UINT *duration, DWORD *startTime, UINT *enable);
-  int  IsOnHold(int spellID, int itemID);
+  BOOL GetCooldown(int spellID, int itemID, UINT *duration, DWORD *startTime, UINT *enable);
+  BOOL IsOnHold(int spellID, int itemID);
   void RemoveHold(int spellID, DWORD startTime, bool clear);
   void ClearHistory();
   void GarbageCollect(DWORD timestamp);
@@ -273,7 +273,7 @@ void SpellHistory::GarbageCollect(DWORD timestamp) {
   }
 }
 
-int SpellHistory::IsOnHold(int spellID, int itemID) {
+BOOL SpellHistory::IsOnHold(int spellID, int itemID) {
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
     return 0;
@@ -302,7 +302,7 @@ int SpellHistory::IsOnHold(int spellID, int itemID) {
   return 0;
 }
 
-int SpellHistory::GetCooldown(int spellID, int itemID, UINT *duration, DWORD *startTime, UINT *enable) {
+BOOL SpellHistory::GetCooldown(int spellID, int itemID, UINT *duration, DWORD *startTime, UINT *enable) {
   if (enable) {
     *enable = 1;
   }
@@ -593,7 +593,7 @@ void Spell_C_SpellFailed(int spellID, BYTE reason, int arg1, int arg2) {
   UINT            numEntries = 0;
   CGPlayer_C     *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
-  int             isPet = 0;
+  BOOL            isPet = 0;
   int             first = 1;
   GAME_ERROR_TYPE error = GERR_SPELL_FAILED_S;
 
@@ -1035,7 +1035,7 @@ void Spell_C_SetCooldownLeft(
     int  recoveryLeft,
     int  categoryRecoveryLeft,
     bool needsEvent,
-    int  isPet,
+    BOOL isPet,
     int  startRecoveryTimeLeft
 ) {
   UINT             spellRecoveryTime = 0;
@@ -1109,7 +1109,7 @@ static void ItemStatsCooldownCallback(int id, const DWORDLONG &guid, LPVOID, boo
   }
 }
 
-int Spell_C_GetSpellCooldown(int spell, int isPet, UINT *duration, DWORD *startTime, UINT *enable) {
+int Spell_C_GetSpellCooldown(int spell, BOOL isPet, UINT *duration, DWORD *startTime, UINT *enable) {
   return s_spellHistory[isPet].GetCooldown(spell, 0, duration, startTime, enable);
 }
 
@@ -1136,7 +1136,7 @@ int Spell_C_GetItemCooldown(int itemID, UINT *duration, DWORD *startTime, UINT *
   return 0;
 }
 
-int Spell_C_NeedsCooldownEvent(const SpellRec *srec, int isPet) {
+int Spell_C_NeedsCooldownEvent(const SpellRec *srec, BOOL isPet) {
   return s_spellHistory[isPet].IsOnHold(srec->m_ID, 0);
 }
 
@@ -1154,7 +1154,7 @@ int Spell_C_NeedsCooldownEvent(int itemID) {
   return 0;
 }
 
-static void Spell_C_CooldownEventTriggered(int spellID, DWORD receivedTime, int isPet, int clear) {
+static void Spell_C_CooldownEventTriggered(int spellID, DWORD receivedTime, BOOL isPet, int clear) {
   s_spellHistory[isPet].RemoveHold(spellID, receivedTime, clear != 0);
   if (isPet) {
     CGPetInfo::UpdateCooldowns();
@@ -1165,7 +1165,7 @@ static void Spell_C_CooldownEventTriggered(int spellID, DWORD receivedTime, int 
   }
 }
 
-static void Spell_C_ClearCooldowns(int isPet) {
+static void Spell_C_ClearCooldowns(BOOL isPet) {
   s_spellHistory[isPet].ClearHistory();
   if (isPet) {
     CGPetInfo::UpdateCooldowns();
@@ -1188,7 +1188,7 @@ int Spell_C_GetSpellByName(LPCSTR name) {
   return -1;
 }
 
-int Spell_C_GetSpellLevel(int id, int isPet) {
+int Spell_C_GetSpellLevel(int id, BOOL isPet) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (isPet) {
     if (!unit) {
@@ -1203,7 +1203,7 @@ int Spell_C_GetSpellLevel(int id, int isPet) {
   return unit ? unit->GetSpellLevel(id) : 0;
 }
 
-int Spell_C_GetManaCost(int id, int isPet) {
+int Spell_C_GetManaCost(int id, BOOL isPet) {
   const SpellRec *spell = g_spellDB.GetRecord(id);
   if (!spell) {
     return -1;
@@ -1217,7 +1217,7 @@ int Spell_C_GetManaCost(int id, int isPet) {
   return spell->m_manaCost + Spell_C_GetSpellLevel(id, isPet) * spell->m_manaCostPerLevel;
 }
 
-int Spell_C_GetManaCostPerSecond(int id, int isPet) {
+int Spell_C_GetManaCostPerSecond(int id, BOOL isPet) {
   const SpellRec *spellRec = g_spellDB.GetRecord(id);
   if (!spellRec) {
     return -1;
@@ -1225,7 +1225,7 @@ int Spell_C_GetManaCostPerSecond(int id, int isPet) {
   return spellRec->m_manaPerSecond + Spell_C_GetSpellLevel(id, isPet) * spellRec->m_manaPerSecondPerLevel;
 }
 
-int Spell_C_GetCastTime(int id, int isPet) {
+int Spell_C_GetCastTime(int id, BOOL isPet) {
   const SpellRec *spellRec = g_spellDB.GetRecord(id);
   if (!spellRec) {
     return 0;
@@ -1270,7 +1270,7 @@ void Spell_C_GetMinMaxRange(int id, float *min, float *max) {
   }
 }
 
-void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, UINT level, int isPet) {
+void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, UINT level, BOOL isPet) {
   *min = 0;
   *max = 0;
   if (!srec) {
@@ -1508,7 +1508,7 @@ struct FindAmmoData {
   UINT exoticAmmo;
 };
 
-static int FindAmmoCallback(const CGItem_C *item, LPVOID param) {
+static BOOL FindAmmoCallback(const CGItem_C *item, LPVOID param) {
   FindAmmoData *data = static_cast<FindAmmoData *>(param);
   if (item->GetClassID() != 6 || item->GetSubtypeID() != data->ammoType) {
     return 0;
@@ -2124,7 +2124,7 @@ bool Spell_C_WaitingForStringInput() {
   return (s_needTargets >> 13) & 1;
 }
 
-int Spell_C_TargetTradeItem(int tradeIndex) {
+BOOL Spell_C_TargetTradeItem(int tradeIndex) {
   if (!(s_needTargets & 0x4010) || tradeIndex < 0 || tradeIndex >= 8 || !CGTradeInfo::GetTargetTradeItem(tradeIndex)) {
     return 0;
   }
@@ -2165,14 +2165,14 @@ void Spell_C_WorldObjectRotate() {
   }
 }
 
-static int CCommand_Cast(LPCSTR, LPCSTR arguments) {
+static BOOL CCommand_Cast(LPCSTR, LPCSTR arguments) {
   Spell_C_CastSpell(arguments);
   return 1;
 }
 
 DWORDLONG Script_GetGUIDFromName(LPCSTR name);
 
-static int CastResultHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL CastResultHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   int  spellID;
   BYTE status;
   BYTE reason = 0;
@@ -2266,7 +2266,7 @@ static void SpellStart(DWORDLONG casterGUID, DWORDLONG casterUnit, int spellID, 
   }
 }
 
-static int SpellDelayed(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL SpellDelayed(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG caster;
   DWORD     delay;
   msg->Get(caster);
@@ -2281,7 +2281,7 @@ static int SpellDelayed(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-static int SpellChannelStart(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL SpellChannelStart(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   int   spellID;
   DWORD time;
   msg->Get(spellID);
@@ -2295,14 +2295,14 @@ static int SpellChannelStart(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-static int SpellChannelUpdate(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL SpellChannelUpdate(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORD time;
   msg->Get(time);
   FrameScript_SignalEvent(0x141, "%d", time);
   return 1;
 }
 
-static int SpellAddDynamicTarget(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL SpellAddDynamicTarget(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG dynObjGUID;
   DWORDLONG targetGUID;
   msg->Get(dynObjGUID);
@@ -2450,7 +2450,7 @@ static void SpellGo(const DWORDLONG &casterGUID, const DWORDLONG &casterUnit, in
   }
 }
 
-static int SpellStartHandler(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) {
+static BOOL SpellStartHandler(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) {
   DWORDLONG casterGUID;
   DWORDLONG casterUnit;
   int       spellID;
@@ -2465,7 +2465,7 @@ static int SpellStartHandler(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) {
   return 1;
 }
 
-static int SpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL SpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG casterGUID;
   int       spellID;
   BYTE      reason;
@@ -2485,7 +2485,7 @@ static int SpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-static int PetSpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL PetSpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   int  spellID;
   BYTE reason;
   msg->Get(spellID);
@@ -2511,7 +2511,7 @@ static int PetSpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-static int SpellCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
+static BOOL SpellCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
   int       spellID;
   DWORDLONG guid;
   WORD      recoveryTime;
@@ -2519,7 +2519,7 @@ static int SpellCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore 
   msg->Get(guid);
   msg->Get(recoveryTime);
 
-  int isPet;
+  BOOL isPet;
   if (guid == ClntObjMgrGetActivePlayer()) {
     isPet = 0;
   } else if (guid == CGPetInfo::GetPet()) {
@@ -2546,7 +2546,7 @@ static int SpellCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore 
   return 1;
 }
 
-static int ItemCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
+static BOOL ItemCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
   DWORDLONG itemGUID;
   int       spellID;
   msg->Get(itemGUID);
@@ -2563,13 +2563,13 @@ static int ItemCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *
   return 1;
 }
 
-static int CooldownEvent(LPVOID, NETMESSAGE msgID, DWORD timeReceived, CDataStore *msg) {
+static BOOL CooldownEvent(LPVOID, NETMESSAGE msgID, DWORD timeReceived, CDataStore *msg) {
   int       spellID;
   DWORDLONG guid;
   msg->Get(spellID);
   msg->Get(guid);
 
-  int isPet;
+  BOOL isPet;
   if (guid == ClntObjMgrGetActivePlayer()) {
     isPet = 0;
   } else if (guid == CGPetInfo::GetPet()) {
@@ -2586,7 +2586,7 @@ static int CooldownEvent(LPVOID, NETMESSAGE msgID, DWORD timeReceived, CDataStor
   return 1;
 }
 
-static int CooldownCheat(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL CooldownCheat(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG guid;
   msg->Get(guid);
   if (guid == ClntObjMgrGetActivePlayer()) {
@@ -2597,7 +2597,7 @@ static int CooldownCheat(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-static int PetTameFailure(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL PetTameFailure(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   BYTE reason;
   msg->Get(reason);
 
@@ -2641,7 +2641,7 @@ static int PetTameFailure(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-static int PlaySpellVisualKit(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL PlaySpellVisualKit(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG target;
   UINT      id;
   msg->Get(target);
@@ -2653,7 +2653,7 @@ static int PlaySpellVisualKit(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-static int CCommand_Learn(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Learn(LPCSTR command, LPCSTR arguments) {
   int spellID;
   if (isdigit(*arguments)) {
     spellID = SStrToInt(arguments);
@@ -2673,7 +2673,7 @@ static int CCommand_Learn(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_Cooldown(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Cooldown(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(40);
   msg.Put(ClntObjMgrGetActivePlayer());
@@ -2681,7 +2681,7 @@ static int CCommand_Cooldown(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_CooldownPet(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_CooldownPet(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(40);
   msg.Put(CGPetInfo::GetPet());
@@ -2689,7 +2689,7 @@ static int CCommand_CooldownPet(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_UseSkill(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_UseSkill(LPCSTR command, LPCSTR arguments) {
   int offset = 0;
   int id;
   if (isdigit(*arguments)) {
@@ -2724,7 +2724,7 @@ static int CCommand_UseSkill(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_SetSkill(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_SetSkill(LPCSTR command, LPCSTR arguments) {
   LPCSTR name = arguments;
   if (!isdigit(*name)) {
     ConsolePrintf("Unknown skill line");
@@ -2756,7 +2756,7 @@ static int CCommand_SetSkill(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_CancelAura(LPCSTR, LPCSTR arguments) {
+static BOOL CCommand_CancelAura(LPCSTR, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(297);
   msg.Put(SStrToInt(arguments));
@@ -2764,7 +2764,7 @@ static int CCommand_CancelAura(LPCSTR, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_SpellString(LPCSTR, LPCSTR arguments) {
+static BOOL CCommand_SpellString(LPCSTR, LPCSTR arguments) {
   if (arguments && *arguments) {
     SStrPrintf(s_spellTargetString, sizeof(s_spellTargetString), "%s", arguments);
     if (Spell_C_IsTargeting()) {

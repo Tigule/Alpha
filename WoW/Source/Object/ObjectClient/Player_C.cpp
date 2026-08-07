@@ -242,7 +242,7 @@ static const int                 s_clearLinkPointFlags[2][4] = {
     {27, 30, 33, 28}
 };
 
-int IsSitStandSleepTransition(UINT animState);
+BOOL IsSitStandSleepTransition(UINT animState);
 
 LPCSTR CGUnit_C::GetObjectName() const {
   return GetUnitName();
@@ -264,19 +264,19 @@ NTempest::C3Vector CGUnit_C::GetGroundNormal() const {
   return m_move.m_groundNormal;
 }
 
-int CGUnit_C::ShouldFadeIn() const {
+BOOL CGUnit_C::ShouldFadeIn() const {
   return !(m_unit->flags & 2);
 }
 
-int CGUnit_C::IsSolidSelectable() const {
+BOOL CGUnit_C::IsSolidSelectable() const {
   return 1;
 }
 
-int CGUnit_C::IsSolidCollidable() const {
+BOOL CGUnit_C::IsSolidCollidable() const {
   return 0;
 }
 
-int CGUnit_C::CanBeTargetted() const {
+BOOL CGUnit_C::CanBeTargetted() const {
   return CanHighlight();
 }
 
@@ -331,7 +331,7 @@ int CGPlayer_C::GetSpellCastingTime(int spellID) const {
   return result > 0 ? result : 0;
 }
 
-void CGPlayer_C::CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel) {
+void CGPlayer_C::CleanupUnitArtwork(int playerModelChanged, BOOL wasPlayerModel) {
   CGUnit_C::CleanupUnitArtwork(playerModelChanged, wasPlayerModel);
 }
 
@@ -472,7 +472,7 @@ void Spell_C_SetCooldownLeft(
     int  recoveryLeft,
     int  categoryRecoveryLeft,
     bool needsEvent,
-    int  isPet,
+    BOOL isPet,
     int  startRecoveryTimeLeft
 );
 void                   PlayerInitializeSounds();
@@ -501,85 +501,85 @@ class CGMerchantInfo {
 void   CurrencyBreakdown(int money, int *coins);
 LPCSTR CurrencyAbbreviation(int coinType);
 
-int OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnVendorEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnLootEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnLearnedSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnSupercededSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnInitialSpells(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnActionButtons(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnPetSpells(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnGroupInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGroupCancel(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGroupDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGroupUninvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGroupNewLeader(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGroupDestroy(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGroupCommandResult(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnQuestGiverEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnTrainerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnProficiency(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnResurrectRequest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnInspectNotify(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnFactionUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnReadItemResult(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg);
-int OnCancelCombat(LPVOID, NETMESSAGE, DWORD, CDataStore *);
-int OnGuildInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGuildDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGuildInfo(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGuildRoster(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnGuildEvent(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnGuildCommandResult(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnGuildEmblemError(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnGuildEmblemActivate(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnNpcPetitionEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnPlayEmote(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int HandlePartyMemberStats(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
-int OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnQuestConfirm(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnMirrorTimerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnItemEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnVendorEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnLootEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnLearnedSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnSupercededSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnInitialSpells(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnActionButtons(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnPetSpells(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnGroupInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGroupCancel(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGroupDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGroupUninvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGroupNewLeader(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGroupDestroy(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGroupCommandResult(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnQuestGiverEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnTrainerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnProficiency(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnResurrectRequest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnInspectNotify(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnFactionUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnReadItemResult(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg);
+BOOL OnCancelCombat(LPVOID, NETMESSAGE, DWORD, CDataStore *);
+BOOL OnGuildInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGuildDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGuildInfo(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGuildRoster(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnGuildEvent(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnGuildCommandResult(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnGuildEmblemError(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnGuildEmblemActivate(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnNpcPetitionEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnPlayEmote(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL HandlePartyMemberStats(LPVOID, NETMESSAGE, DWORD, CDataStore *msg);
+BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnQuestConfirm(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnMirrorTimerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnItemEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
-int BootMeHandler(LPCSTR command, LPCSTR arguments);
-int RepopPlayerHandler(LPCSTR command, LPCSTR arguments);
-int WhoCommandHandler(LPCSTR command, LPCSTR arguments);
-int BuyCommandHandler(LPCSTR command, LPCSTR arguments);
-int UndressMeHandler(LPCSTR command, LPCSTR arguments);
-int GodmodeHandler(LPCSTR command, LPCSTR arguments);
-int CCommand_LevelUp(LPCSTR command, LPCSTR arguments);
-int CCommand_SetFaction(LPCSTR command, LPCSTR arguments);
-int CCommand_Invite(LPCSTR command, LPCSTR arguments);
-int CCommand_Accept(LPCSTR command, LPCSTR arguments);
-int CCommand_Decline(LPCSTR command, LPCSTR arguments);
-int CCommand_Disband(LPCSTR command, LPCSTR arguments);
-int CCommand_NewLeader(LPCSTR command, LPCSTR arguments);
-int CCommand_Uninvite(LPCSTR command, LPCSTR arguments);
-int CCommand_AcceptRes(LPCSTR, LPCSTR);
-int CCommand_DeclineRes(LPCSTR, LPCSTR);
-int CCommand_ShowPet(LPCSTR, LPCSTR);
-int CCommand_TaxiShowNodes(LPCSTR, LPCSTR);
-int CCommand_GuildCreate(LPCSTR command, LPCSTR arguments);
-int CCommand_TogglePVP(LPCSTR command, LPCSTR arguments);
-int CCommand_Cinematic(LPCSTR command, LPCSTR arguments);
-int CCommand_ForceActionSet(LPCSTR command, LPCSTR arguments);
-int CCommand_ForceActionUnset(LPCSTR command, LPCSTR arguments);
-int CCommand_ForceActionOnOtherSet(LPCSTR command, LPCSTR arguments);
-int CCommand_ForceActionOnOtherUnset(LPCSTR command, LPCSTR arguments);
-int CCommand_ForceActionShowFlags(LPCSTR command, LPCSTR arguments);
-int CCommand_ForceMonsterAnim(LPCSTR, LPCSTR arguments);
-int CCommand_ResetMonsterAnim(LPCSTR, LPCSTR);
-int CCommand_DumpDeathHoldLogs(LPCSTR, LPCSTR);
+BOOL BootMeHandler(LPCSTR command, LPCSTR arguments);
+BOOL RepopPlayerHandler(LPCSTR command, LPCSTR arguments);
+BOOL WhoCommandHandler(LPCSTR command, LPCSTR arguments);
+BOOL BuyCommandHandler(LPCSTR command, LPCSTR arguments);
+BOOL UndressMeHandler(LPCSTR command, LPCSTR arguments);
+BOOL GodmodeHandler(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_LevelUp(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_SetFaction(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_Invite(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_Accept(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_Decline(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_Disband(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_NewLeader(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_Uninvite(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_AcceptRes(LPCSTR, LPCSTR);
+BOOL CCommand_DeclineRes(LPCSTR, LPCSTR);
+BOOL CCommand_ShowPet(LPCSTR, LPCSTR);
+BOOL CCommand_TaxiShowNodes(LPCSTR, LPCSTR);
+BOOL CCommand_GuildCreate(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_TogglePVP(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_Cinematic(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_ForceActionSet(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_ForceActionUnset(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_ForceActionOnOtherSet(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_ForceActionOnOtherUnset(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_ForceActionShowFlags(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_ForceMonsterAnim(LPCSTR, LPCSTR arguments);
+BOOL CCommand_ResetMonsterAnim(LPCSTR, LPCSTR);
+BOOL CCommand_DumpDeathHoldLogs(LPCSTR, LPCSTR);
 
-int         AreaTriggerCheck(LPCVOID eventData, LPVOID arg);
+BOOL        AreaTriggerCheck(LPCVOID eventData, LPVOID arg);
 static void AreaTriggersInitialize();
 static void AreaTriggersShutdown();
 
-static int  CountWeaponItemSubclasses(int *number);
-static int  FindFirstSetBit(UINT field, int *whichBitSet);
+static BOOL CountWeaponItemSubclasses(int *number);
+static BOOL FindFirstSetBit(UINT field, int *whichBitSet);
 static void InitializeWeaponSubclassSpells();
 
-int PlayerAttackBreakHandler(LPCVOID data, DWORDLONG guid, LPVOID param) {
+BOOL PlayerAttackBreakHandler(LPCVOID data, DWORDLONG guid, LPVOID param) {
   if (ClntObjMgrGetPlayerType() != PLAYER_BOT) {
     FATALASSERT(s_attackBreakTimer);
     s_attackBreakTimer = 0;
@@ -599,7 +599,7 @@ int PlayerAttackBreakHandler(LPCVOID data, DWORDLONG guid, LPVOID param) {
   return 1;
 }
 
-static int PlayerCombatModeHandler(LPCVOID data, DWORDLONG guid, LPVOID param) {
+static BOOL PlayerCombatModeHandler(LPCVOID data, DWORDLONG guid, LPVOID param) {
   s_combatModeTimer = 0;
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
@@ -608,7 +608,7 @@ static int PlayerCombatModeHandler(LPCVOID data, DWORDLONG guid, LPVOID param) {
   return 1;
 }
 
-int Player_C_ZoneUpdateHandler(LPCVOID eventData, LPVOID arg) {
+BOOL Player_C_ZoneUpdateHandler(LPCVOID eventData, LPVOID arg) {
   static int ticks;
 
   if (++ticks >= 10) {
@@ -623,7 +623,7 @@ int Player_C_ZoneUpdateHandler(LPCVOID eventData, LPVOID arg) {
   return 1;
 }
 
-int RepopPlayerHandler(LPCSTR command, LPCSTR arguments) {
+BOOL RepopPlayerHandler(LPCSTR command, LPCSTR arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->HandleRepopRequest();
@@ -631,7 +631,7 @@ int RepopPlayerHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int WhoCommandHandler(LPCSTR command, LPCSTR arguments) {
+BOOL WhoCommandHandler(LPCSTR command, LPCSTR arguments) {
   g_friendList->SendWho(arguments);
   return 1;
 }
@@ -664,7 +664,7 @@ void RandomRollNameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool
   FREE(info);
 }
 
-static int BankInvHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL BankInvHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     UINT      slot = offset >> 3;
@@ -677,7 +677,7 @@ static int BankInvHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevV
   return 1;
 }
 
-int OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   switch (msgId) {
@@ -1012,7 +1012,7 @@ int OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   }
 }
 
-int OnItemEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnItemEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   DWORDLONG itemGUID;
@@ -1051,7 +1051,7 @@ int OnItemEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 0;
 }
 
-int OnNpcPetitionEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnNpcPetitionEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -1071,7 +1071,7 @@ int OnNpcPetitionEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *ms
   }
 }
 
-int HandlePartyMemberStats(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL HandlePartyMemberStats(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG guid;
   int       maxPower;
   msg->Get(guid);
@@ -1105,7 +1105,7 @@ int HandlePartyMemberStats(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int OnVendorEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnVendorEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -1125,7 +1125,7 @@ int OnVendorEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   }
 }
 
-int OnFactionUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnFactionUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   switch (msgId) {
     case SMSG_INITIALIZE_FACTIONS:
       CGReputationInfo::OnInitializeFactions(msg);
@@ -1147,7 +1147,7 @@ int OnFactionUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) 
   return 1;
 }
 
-int OnQuestGiverEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnQuestGiverEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -1178,7 +1178,7 @@ int OnQuestGiverEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
   }
 }
 
-static int OnQuestItemLoot(const QuestCache *quest, int itemID, int quantity) {
+static BOOL OnQuestItemLoot(const QuestCache *quest, int itemID, int quantity) {
   ItemStats *stats;
 
   if (!quest) {
@@ -1224,7 +1224,7 @@ static void QuestLootQuestQueryCallback(int id, const DWORDLONG &, LPVOID arg, b
   delete item;
 }
 
-int OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG   monsterGUID;
   CGPlayer_C *player;
   int         monsterID = 0;
@@ -1338,7 +1338,7 @@ int OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   }
 }
 
-int OnQuestConfirm(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnQuestConfirm(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char      questTitle[1024];
   DWORDLONG initiatedBy;
   int       questID;
@@ -1352,7 +1352,7 @@ int OnQuestConfirm(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-int OnTrainerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnTrainerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   if (!activePlayer) {
     return 0;
@@ -1386,7 +1386,7 @@ int OnTrainerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 0;
 }
 
-int OnLootEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnLootEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   FATALASSERT(playerPtr);
 
@@ -1410,7 +1410,7 @@ int OnLootEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   }
 }
 
-int BootMeHandler(LPCSTR command, LPCSTR arguments) {
+BOOL BootMeHandler(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_BOOTME));
   msg.Finalize();
@@ -1418,7 +1418,7 @@ int BootMeHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int OnLearnedSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnLearnedSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   short slot;
   WORD  spell;
 
@@ -1437,7 +1437,7 @@ int OnLearnedSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-int OnSupercededSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnSupercededSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   WORD oldSpell;
   WORD newSpell;
 
@@ -1470,7 +1470,7 @@ int OnSupercededSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
   return 1;
 }
 
-int OnInitialSpells(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnInitialSpells(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   int  recoveryTime;
   BYTE onHold;
   int  categoryRecoveryTime;
@@ -1504,7 +1504,7 @@ int OnInitialSpells(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) 
   return 1;
 }
 
-int OnActionButtons(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnActionButtons(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   for (UINT index = 0; index < 120; ++index) {
     msg->Get(s_initialButtons[index]);
   }
@@ -1512,7 +1512,7 @@ int OnActionButtons(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int OnPetSpells(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnPetSpells(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG petGUID;
   int       spellDuration;
   UINT      petMode;
@@ -1567,7 +1567,7 @@ int OnPetSpells(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int OnPlayEmote(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnPlayEmote(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG guid;
   int       emoteID;
 
@@ -1582,7 +1582,7 @@ int OnPlayEmote(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int OnGroupInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGroupInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
   CGGameUI::OpenPartyInvite(name);
@@ -1590,7 +1590,7 @@ int OnGroupInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-int OnGroupCancel(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGroupCancel(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char string[256];
   char name[48];
   msg->GetString(name, sizeof(name));
@@ -1600,14 +1600,14 @@ int OnGroupCancel(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-int OnGroupDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGroupDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
   CGGameUI::DisplayError(GERR_DECLINE_GROUP_S, name);
   return 1;
 }
 
-int OnGroupNewLeader(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGroupNewLeader(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
 
@@ -1621,21 +1621,21 @@ int OnGroupNewLeader(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg)
   return 1;
 }
 
-int OnGroupUninvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGroupUninvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGGameUI::RemoveAllPartyMembers();
   CGGameUI::SetPartyLeader(0);
   CGGameUI::DisplayError(GERR_UNINVITE_YOU);
   return 1;
 }
 
-int OnGroupDestroy(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGroupDestroy(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGGameUI::RemoveAllPartyMembers();
   CGGameUI::SetPartyLeader(0);
   CGGameUI::DisplayError(GERR_GROUP_DISBANDED);
   return 1;
 }
 
-int OnGroupCommandResult(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGroupCommandResult(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char name[48];
   int  command;
   int  result;
@@ -1684,14 +1684,14 @@ int OnGroupCommandResult(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *
   return 1;
 }
 
-int OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG newMembers[5];
   char      string[32];
   DWORDLONG oldMembers[5];
-  int       wasInGroup;
+  BOOL      wasInGroup;
   UINT      count;
   UINT      i;
-  int       isLeader;
+  BOOL      isLeader;
   DWORDLONG guid;
   DWORDLONG lootMaster;
   BYTE      connected;
@@ -1777,7 +1777,7 @@ int OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-int OnGuildInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGuildInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char guildName[96];
   char name[48];
   msg->GetString(name, sizeof(name));
@@ -1787,14 +1787,14 @@ int OnGuildInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-int OnGuildDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGuildDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
   CGGameUI::DisplayError(GERR_GUILD_DECLINE_S, name);
   return 1;
 }
 
-int OnGuildInfo(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGuildInfo(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char name[96];
   char buf[128];
   char temp[64];
@@ -1822,7 +1822,7 @@ int OnGuildInfo(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-int OnGuildRoster(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGuildRoster(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char name[256];
   char ranks[5][32];
   char guildname[96];
@@ -1860,14 +1860,14 @@ int OnGuildRoster(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   return 1;
 }
 
-int OnGuildEmblemActivate(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnGuildEmblemActivate(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG vendor;
   msg->Get(vendor);
   CGTabardCreationFrame::Open(vendor);
   return 1;
 }
 
-int OnGuildEmblemError(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnGuildEmblemError(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   int error;
   msg->Get(error);
   if (static_cast<UINT>(error) < 7) {
@@ -1876,7 +1876,7 @@ int OnGuildEmblemError(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int OnGuildEvent(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnGuildEvent(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   char            string[2][256];
   BYTE            numStrings;
   BYTE            event;
@@ -1935,7 +1935,7 @@ int OnGuildEvent(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int OnGuildCommandResult(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnGuildCommandResult(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   char name[96];
   int  result;
   int  command;
@@ -2037,7 +2037,7 @@ LPCSTR MirrorTimerLabel(int timer, int spellID) {
   return FrameScript_GetText(label, -1, GENDER_NOT_APPLICABLE);
 }
 
-int OnMirrorTimerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnMirrorTimerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   switch (msgId) {
     case SMSG_START_MIRROR_TIMER: {
       int  value;
@@ -2076,7 +2076,7 @@ int OnMirrorTimerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *ms
   return 1;
 }
 
-int CGPlayer_C::OnVendorInventory(CDataStore *msg) {
+BOOL CGPlayer_C::OnVendorInventory(CDataStore *msg) {
   DWORDLONG vendorGuid;
   BYTE      reason = 0xFF;
   BYTE      count;
@@ -2127,7 +2127,7 @@ int CGPlayer_C::OnVendorInventory(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnQuestGiverListQuests(CDataStore *msg) {
+BOOL CGPlayer_C::OnQuestGiverListQuests(CDataStore *msg) {
   char                initialText[8][64];
   char                greetText[256];
   DWORDLONG           questGiverGuid;
@@ -2171,7 +2171,7 @@ int CGPlayer_C::OnQuestGiverListQuests(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnQuestGiverInvalidQuest(CDataStore *msg) {
+BOOL CGPlayer_C::OnQuestGiverInvalidQuest(CDataStore *msg) {
   int failureReason;
   msg->Get(failureReason);
 
@@ -2187,7 +2187,7 @@ int CGPlayer_C::OnQuestGiverInvalidQuest(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
+BOOL CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
   char      questText[1024];
   char      logDescription[512];
   char      questTitle[64];
@@ -2255,7 +2255,7 @@ int CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnQuestGiverRequestItems(CDataStore *msg) {
+BOOL CGPlayer_C::OnQuestGiverRequestItems(CDataStore *msg) {
   char                questText[1024];
   char                questTitle[64];
   int                 itemDispID[6];
@@ -2300,7 +2300,7 @@ int CGPlayer_C::OnQuestGiverRequestItems(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
+BOOL CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
   char      questText[1024];
   char      questTitle[64];
   int       chooseRewardQty[6];
@@ -2398,7 +2398,7 @@ void QuestRewardItemCallback(int id, const DWORDLONG &, LPVOID, bool granted) {
   }
 }
 
-int CGPlayer_C::OnQuestGiverQuestComplete(CDataStore *msg) {
+BOOL CGPlayer_C::OnQuestGiverQuestComplete(CDataStore *msg) {
   char        buf[128];
   char        coinBuf[3][64];
   int         itemsQty[5];
@@ -2492,7 +2492,7 @@ void QuestFailedCallback(int id, const DWORDLONG &, LPVOID, bool granted) {
   }
 }
 
-int CGPlayer_C::OnQuestGiverQuestFailed(CDataStore *msg) {
+BOOL CGPlayer_C::OnQuestGiverQuestFailed(CDataStore *msg) {
   int questFailedID;
   msg->Get(questFailedID);
   msg->Get(s_questFailedReason);
@@ -2515,7 +2515,7 @@ int CGPlayer_C::OnQuestGiverQuestFailed(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnQuestGiverStatus(CDataStore *msg) {
+BOOL CGPlayer_C::OnQuestGiverStatus(CDataStore *msg) {
   DWORDLONG questGiverGuid;
   int       hasquest;
   msg->Get(questGiverGuid);
@@ -2529,7 +2529,7 @@ int CGPlayer_C::OnQuestGiverStatus(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnTrainerList(CDataStore *msg) {
+BOOL CGPlayer_C::OnTrainerList(CDataStore *msg) {
   char      greeting[512];
   int      *reqAbilities[3];
   BYTE     *pointCosts[2];
@@ -2586,7 +2586,7 @@ int CGPlayer_C::OnTrainerList(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnBuyFailed(CDataStore *msg) {
+BOOL CGPlayer_C::OnBuyFailed(CDataStore *msg) {
   char      buf[256];
   DWORDLONG vendorGUID;
   UINT      muid;
@@ -2652,7 +2652,7 @@ int CGPlayer_C::OnBuyFailed(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnBuySucceeded(CDataStore *msg) {
+BOOL CGPlayer_C::OnBuySucceeded(CDataStore *msg) {
   DWORDLONG vendorGUID;
   int       newQuantity;
   DWORD     muid;
@@ -2671,7 +2671,7 @@ int CGPlayer_C::OnBuySucceeded(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnSellResponse(CDataStore *msg) {
+BOOL CGPlayer_C::OnSellResponse(CDataStore *msg) {
   DWORDLONG vendorGUID;
   DWORDLONG itemGUID;
   BYTE      reason;
@@ -2701,7 +2701,7 @@ int CGPlayer_C::OnSellResponse(CDataStore *msg) {
   return 1;
 }
 
-static int GuildIDUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL GuildIDUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     player->OnGuildChanged();
@@ -2709,7 +2709,7 @@ static int GuildIDUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID
   return 1;
 }
 
-static int DuelTeamUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL DuelTeamUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     player->UpdatePlayerName();
@@ -2721,7 +2721,7 @@ static int DuelTeamUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOI
 void CGPlayer_C::KillExitCombatModeSheatheTimer() {
 }
 
-int OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!player) {
     return 1;
@@ -2860,7 +2860,7 @@ int OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID 
   return 1;
 }
 
-static int OnUpdateMoney(DWORDLONG, UINT offset, UINT bytes, LPCVOID, LPVOID) {
+static BOOL OnUpdateMoney(DWORDLONG, UINT offset, UINT bytes, LPCVOID, LPVOID) {
   CGActionBar::UpdateUsable();
   return 1;
 }
@@ -2875,7 +2875,7 @@ static void QuestAcceptedCallback(int id, const DWORDLONG &, LPVOID, BYTE grante
   }
 }
 
-static int OnUpdateQuest(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL OnUpdateQuest(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     player->UpdateQuestStatusAll();
@@ -2883,14 +2883,14 @@ static int OnUpdateQuest(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevVa
   return 1;
 }
 
-static int OnUpdateShapeshiftForm(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL OnUpdateShapeshiftForm(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGSpellBook::UpdateSelection();
   CGActionBar::UpdateSelection();
   CGActionBar::UpdateBonusBar();
   return 1;
 }
 
-static int OnUpdatePlayerFlags(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL OnUpdatePlayerFlags(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     player->PlayerFlagsChanged(*static_cast<const BYTE *>(prevValue));
@@ -2907,7 +2907,7 @@ static void GuildTimestampChanged(int id, const DWORDLONG &guid, LPVOID arg, boo
   }
 }
 
-static int OnUpdateGuild(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL OnUpdateGuild(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (player) {
     g_guildInfoCache.Invalidate(player->GetGuildID());
@@ -2916,12 +2916,12 @@ static int OnUpdateGuild(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevVa
   return 1;
 }
 
-static int CharmChangeHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
+static BOOL CharmChangeHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   CGActionBar::UpdateSelection();
   return 1;
 }
 
-static int PetChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOID) {
+static BOOL PetChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOID) {
   FATALASSERT(unit == ClntObjMgrGetActivePlayer());
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (player) {
@@ -2930,12 +2930,12 @@ static int PetChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOID
   return 1;
 }
 
-static int FarsightChangeHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
+static BOOL FarsightChangeHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   FrameScript_SignalEvent(326);
   return 1;
 }
 
-static int SkillRankChangeHandler(DWORDLONG player, UINT offset, UINT, LPCVOID oldValue, LPVOID) {
+static BOOL SkillRankChangeHandler(DWORDLONG player, UINT offset, UINT, LPCVOID oldValue, LPVOID) {
   UINT skillOffset = (offset - 602) / 12;
   FATALASSERT(skillOffset < 64);
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(player, __FILE__, __LINE__));
@@ -2952,13 +2952,13 @@ static int SkillRankChangeHandler(DWORDLONG player, UINT offset, UINT, LPCVOID o
   return 1;
 }
 
-static int SkillMaxRankChangeHandler(DWORDLONG, UINT offset, UINT, LPCVOID, LPVOID) {
+static BOOL SkillMaxRankChangeHandler(DWORDLONG, UINT offset, UINT, LPCVOID, LPVOID) {
   CGActionBar::UpdateUsable();
   CGCharacterInfo::UpdateAllSkillLines();
   return 1;
 }
 
-static int SkillModifierChangeHandler(DWORDLONG, UINT offset, UINT, LPCVOID, LPVOID) {
+static BOOL SkillModifierChangeHandler(DWORDLONG, UINT offset, UINT, LPCVOID, LPVOID) {
   CGChat::UpdateLanguages();
   return 1;
 }
@@ -3002,7 +3002,7 @@ CGPlayer_C::CGPlayer_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
   memset(m_texComponentInfo, 0, sizeof(m_texComponentInfo));
 }
 
-static int SetLocalPlayerInGame(LPCVOID eventData, LPVOID param) {
+static BOOL SetLocalPlayerInGame(LPCVOID eventData, LPVOID param) {
   ClntObjMgrSetCurrent(static_cast<ClntObjMgr *>(param));
   ClientServices_CharacterSetInGame(1);
   AsyncFileReadWaitAll();
@@ -3053,12 +3053,12 @@ void CGPlayer_C::UnsetPlayerMirrorHandlers() {
   ClntObjMgrUnsetObjMirrorHandler(GetGUID(), playerOffset + 1796, OnUpdateGuild, 0);
 }
 
-static int SummonChangeHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
+static BOOL SummonChangeHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   CGCharacterInfo::UpdateAllSkillLines();
   return 1;
 }
 
-int CGPlayer_C::ShouldRender(DWORD worldStatus) {
+BOOL CGPlayer_C::ShouldRender(DWORD worldStatus) {
   if (s_renderPlayer || GetGUID() != ClntObjMgrGetActivePlayer()) {
     return CGUnit_C::ShouldRender(worldStatus);
   }
@@ -3069,7 +3069,7 @@ int CGPlayer_C::ShouldRender(DWORD worldStatus) {
   return 0;
 }
 
-int CGPlayer_C::ShouldRenderUnitName(UINT mode) const {
+BOOL CGPlayer_C::ShouldRenderUnitName(UINT mode) const {
   if ((m_unit->flags & 0x18000) && CGGameUI::GetLockedTarget() != m_obj->m_guid) {
     return 0;
   }
@@ -3343,7 +3343,7 @@ void CGPlayer_C::InitComponents() {
   CharCustomizationSetFacialTexture(charModel, m_texComponent, m_unit->race, m_unit->sex, GetFacialHair(), GetHairColorID());
 
   BEARDSTYLEDATA facialData;
-  int            hasFacialData = CharCustomizationGetBeardStyle(m_unit->race, m_unit->sex, GetFacialHair(), &facialData);
+  BOOL           hasFacialData = CharCustomizationGetBeardStyle(m_unit->race, m_unit->sex, GetFacialHair(), &facialData);
 
   m_geosetHandle = CharCustomizationCreateGeosetHandle(charModel);
   FATALASSERT(m_geosetHandle);
@@ -3478,7 +3478,7 @@ void CGPlayer_C::ShopFromMerchant(const DWORDLONG &merchant) {
   ClientServices_Send(&invMsg);
 }
 
-int CGPlayer_C::IsQuestUnit(CGUnit_C *unit) {
+BOOL CGPlayer_C::IsQuestUnit(CGUnit_C *unit) {
   if (unit->m_unit->npcFlags & 2) {
     return 1;
   }
@@ -3545,7 +3545,7 @@ void CGPlayer_C::TalkToTabardVendor(const DWORDLONG &tabardUnit) {
   ClientServices_Send(&hello);
 }
 
-int CGPlayer_C::OnTerrainClick(const CTerrainClickEvent &) {
+BOOL CGPlayer_C::OnTerrainClick(const CTerrainClickEvent &) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -3651,7 +3651,7 @@ bool CGPlayer_C::OnGuildChanged() {
   return 1;
 }
 
-int CGPlayer_C::CanEngageTarget(const CGUnit_C *unitPtr) {
+BOOL CGPlayer_C::CanEngageTarget(const CGUnit_C *unitPtr) {
   FATALASSERT(unitPtr);
   if ((GetPosition() - unitPtr->GetPosition()).SquaredMag() < 10.45f * 10.45f) {
     return 1;
@@ -4009,7 +4009,7 @@ void CGPlayer_C::XBuyItem(DWORDLONG merchant, UINT itemID, BYTE quantity, bool a
   ClientServices_Send(&buyMsg);
 }
 
-int BuyCommandHandler(LPCSTR command, LPCSTR arguments) {
+BOOL BuyCommandHandler(LPCSTR command, LPCSTR arguments) {
   UINT itemID = SStrToInt(arguments);
   if (!itemID) {
     ConsoleWrite("Usage: buy <muid>, where <muid> is the item id", DEFAULT_COLOR);
@@ -4025,7 +4025,7 @@ int BuyCommandHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int UndressMeHandler(LPCSTR command, LPCSTR arguments) {
+BOOL UndressMeHandler(LPCSTR command, LPCSTR arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->DeleteWornItems();
@@ -4033,7 +4033,7 @@ int UndressMeHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int GodmodeHandler(LPCSTR command, LPCSTR arguments) {
+BOOL GodmodeHandler(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_GODMODE));
   msg.Put(static_cast<BYTE>(SStrToInt(arguments) != 0));
@@ -4042,7 +4042,7 @@ int GodmodeHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_LevelUp(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_LevelUp(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_LEVELUP_CHEAT));
   msg.Finalize();
@@ -4050,7 +4050,7 @@ int CCommand_LevelUp(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_SetFaction(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_SetFaction(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   int        level;
   int        i;
@@ -4090,7 +4090,7 @@ int CCommand_SetFaction(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_Invite(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_Invite(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_GROUP_INVITE));
   msg.PutString(arguments);
@@ -4099,7 +4099,7 @@ int CCommand_Invite(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_Accept(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_Accept(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_GROUP_ACCEPT));
   msg.Finalize();
@@ -4107,7 +4107,7 @@ int CCommand_Accept(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_Decline(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_Decline(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_GROUP_DECLINE));
   msg.Finalize();
@@ -4115,7 +4115,7 @@ int CCommand_Decline(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_Disband(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_Disband(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_GROUP_DISBAND));
   msg.Finalize();
@@ -4123,7 +4123,7 @@ int CCommand_Disband(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_NewLeader(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_NewLeader(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_GROUP_SET_LEADER));
   msg.PutString(arguments);
@@ -4132,7 +4132,7 @@ int CCommand_NewLeader(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_Uninvite(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_Uninvite(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_GROUP_UNINVITE));
   msg.PutString(arguments);
@@ -4141,7 +4141,7 @@ int CCommand_Uninvite(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_AcceptRes(LPCSTR, LPCSTR) {
+BOOL CCommand_AcceptRes(LPCSTR, LPCSTR) {
   if (s_resurrectOffer) {
     CDataStore msg;
     msg.Put(static_cast<UINT>(CMSG_RESURRECT_RESPONSE));
@@ -4154,7 +4154,7 @@ int CCommand_AcceptRes(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CCommand_DeclineRes(LPCSTR, LPCSTR) {
+BOOL CCommand_DeclineRes(LPCSTR, LPCSTR) {
   if (s_resurrectOffer) {
     CDataStore msg;
     msg.Put(static_cast<UINT>(CMSG_RESURRECT_RESPONSE));
@@ -4167,7 +4167,7 @@ int CCommand_DeclineRes(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CCommand_ForceMonsterAnim(LPCSTR, LPCSTR arguments) {
+BOOL CCommand_ForceMonsterAnim(LPCSTR, LPCSTR arguments) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
   if (unit) {
     unit->SetForcedAnimation(arguments);
@@ -4177,7 +4177,7 @@ int CCommand_ForceMonsterAnim(LPCSTR, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_ResetMonsterAnim(LPCSTR, LPCSTR) {
+BOOL CCommand_ResetMonsterAnim(LPCSTR, LPCSTR) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
   if (unit) {
     unit->ResetForcedAnimation();
@@ -4185,7 +4185,7 @@ int CCommand_ResetMonsterAnim(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int DumpDeathLogEnumHandler(DWORDLONG object, LPVOID param) {
+BOOL DumpDeathLogEnumHandler(DWORDLONG object, LPVOID param) {
   ASSERT(param);
   CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
   if (objectPtr && (objectPtr->GetType() & TYPE_UNIT)) {
@@ -4194,7 +4194,7 @@ int DumpDeathLogEnumHandler(DWORDLONG object, LPVOID param) {
   return 1;
 }
 
-int CCommand_DumpDeathHoldLogs(LPCSTR, LPCSTR) {
+BOOL CCommand_DumpDeathHoldLogs(LPCSTR, LPCSTR) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     HSLOG log;
@@ -4207,7 +4207,7 @@ int CCommand_DumpDeathHoldLogs(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CCommand_ShowPet(LPCSTR, LPCSTR) {
+BOOL CCommand_ShowPet(LPCSTR, LPCSTR) {
   char        buffer[256];
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
@@ -4219,7 +4219,7 @@ int CCommand_ShowPet(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CCommand_TaxiShowNodes(LPCSTR, LPCSTR) {
+BOOL CCommand_TaxiShowNodes(LPCSTR, LPCSTR) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_TAXISHOWNODES));
   msg.Finalize();
@@ -4227,7 +4227,7 @@ int CCommand_TaxiShowNodes(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CCommand_GuildCreate(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_GuildCreate(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     CDataStore msg;
     msg.Put(static_cast<UINT>(CMSG_GUILD_CREATE));
@@ -4257,7 +4257,7 @@ void SendForceActionMessage(int set, int onSelf, UINT argument) {
   ClientServices_Send(&msg);
 }
 
-int CCommand_ForceActionSet(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_ForceActionSet(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     UINT argument = SStrToUnsigned(arguments);
     if (argument < 18) {
@@ -4271,7 +4271,7 @@ int CCommand_ForceActionSet(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_ForceActionUnset(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_ForceActionUnset(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     UINT argument = SStrToUnsigned(arguments);
     if (argument < 18) {
@@ -4285,7 +4285,7 @@ int CCommand_ForceActionUnset(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_ForceActionOnOtherSet(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_ForceActionOnOtherSet(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     UINT argument = SStrToUnsigned(arguments);
     if (argument < 18) {
@@ -4299,7 +4299,7 @@ int CCommand_ForceActionOnOtherSet(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_ForceActionOnOtherUnset(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_ForceActionOnOtherUnset(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     UINT argument = SStrToUnsigned(arguments);
     if (argument < 18) {
@@ -4313,7 +4313,7 @@ int CCommand_ForceActionOnOtherUnset(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_ForceActionShowFlags(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_ForceActionShowFlags(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_FORCEACTIONSHOW));
   msg.Finalize();
@@ -4321,7 +4321,7 @@ int CCommand_ForceActionShowFlags(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_TogglePVP(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_TogglePVP(LPCSTR command, LPCSTR arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     BYTE       enable = !(player->GetUnitData()->flags & 1);
@@ -4335,7 +4335,7 @@ int CCommand_TogglePVP(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CCommand_Cinematic(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_Cinematic(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(static_cast<UINT>(CMSG_TRIGGER_CINEMATIC_CHEAT));
   msg.Put(static_cast<UINT>(SStrToInt(arguments)));
@@ -4344,7 +4344,7 @@ int CCommand_Cinematic(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int OnProficiency(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnProficiency(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   BYTE proficiencyClass;
   UINT proficiencyMask;
   msg->Get(proficiencyClass);
@@ -4367,7 +4367,7 @@ void ResurrectNameQueryCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
   }
 }
 
-int OnResurrectRequest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnResurrectRequest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG guid;
   msg->Get(guid);
   s_resurrectOffer = guid;
@@ -4383,7 +4383,7 @@ int OnResurrectRequest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int OnInspectNotify(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+BOOL OnInspectNotify(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG guid;
   msg->Get(guid);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
@@ -4405,7 +4405,7 @@ void CGPlayer_C::UpdateQuestStatus(CGUnit_C *unit) {
   UpdateQuestStatus(unit->GetGUID());
 }
 
-int OnReadItemResult(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) {
+BOOL OnReadItemResult(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->ReadItemResult(msgID, msg);
@@ -4413,7 +4413,7 @@ int OnReadItemResult(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int OnCancelCombat(LPVOID, NETMESSAGE, DWORD, CDataStore *) {
+BOOL OnCancelCombat(LPVOID, NETMESSAGE, DWORD, CDataStore *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     player->SetCombatMode(0);
@@ -4421,7 +4421,7 @@ int OnCancelCombat(LPVOID, NETMESSAGE, DWORD, CDataStore *) {
   return 1;
 }
 
-int AreaTriggerCheck(LPCVOID eventData, LPVOID arg) {
+BOOL AreaTriggerCheck(LPCVOID eventData, LPVOID arg) {
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
 
   if (playerPtr) {
@@ -4794,7 +4794,7 @@ int Player_C_AppFocusMovementHandler(int focus) {
   return 1;
 }
 
-static int CountWeaponItemSubclasses(int *number) {
+static BOOL CountWeaponItemSubclasses(int *number) {
   int maxSubclass = 0;
   int found = 0;
 
@@ -4814,7 +4814,7 @@ static int CountWeaponItemSubclasses(int *number) {
   return found;
 }
 
-static int FindFirstSetBit(UINT field, int *whichBitSet) {
+static BOOL FindFirstSetBit(UINT field, int *whichBitSet) {
   int result = field && !((field - 1) & field);
   int firstBit = 0x7FFFFFFF;
 
@@ -5211,7 +5211,7 @@ UINT CGPlayer_C::GetNewContinentID() {
   return ClntObjMgrGetMapID();
 }
 
-int CGPlayer_C::OnAttackBreakHandler() {
+BOOL CGPlayer_C::OnAttackBreakHandler() {
   DWORDLONG target = m_combat.IsAttacking();
   if (!target) {
     return 0;
@@ -5245,7 +5245,7 @@ void CGPlayer_C::LootMoney() {
   }
 }
 
-int CGPlayer_C::CanUseItem(const ItemStats *stats, GAME_ERROR_TYPE &reason) {
+BOOL CGPlayer_C::CanUseItem(const ItemStats *stats, GAME_ERROR_TYPE &reason) {
   reason = GERR_NUM_TYPES;
   if (!stats) {
     reason = GERR_ITEM_NOT_FOUND;
@@ -5353,7 +5353,7 @@ void CGPlayer_C::TrainerBuySpell(const DWORDLONG &trainer, int spellID) {
   ClientServices_Send(&msg);
 }
 
-int QuestUpdateProc(DWORDLONG guid, LPVOID) {
+BOOL QuestUpdateProc(DWORDLONG guid, LPVOID) {
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -5383,7 +5383,7 @@ void CGPlayer_C::UpdateTaxiStatus(CGUnit_C *unit) {
   }
 }
 
-int TaxiUpdateProc(DWORDLONG guid, LPVOID param) {
+BOOL TaxiUpdateProc(DWORDLONG guid, LPVOID param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit && (unit->GetType() & TYPE_UNIT) && (unit->GetUnitData()->npcFlags & 4)) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -5404,7 +5404,7 @@ void CGPlayer_C::UpdateBindStatus(CGUnit_C *unit) {
   }
 }
 
-int BindUpdateProc(DWORDLONG guid, LPVOID param) {
+BOOL BindUpdateProc(DWORDLONG guid, LPVOID param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit && (unit->GetType() & TYPE_UNIT) && (unit->GetUnitData()->npcFlags & 0x10)) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -5446,7 +5446,7 @@ void CGPlayer_C::ToggleSheathe(bool ignoreAnim) {
   }
 }
 
-int CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
+BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
   CDataStore  lootRelease;
   DWORDLONG   objectGUID;
   CGObject_C *lootobject;
@@ -5540,7 +5540,7 @@ UINT CGPlayer_C::GetLootItemQuantity(UINT slot) {
   return s_lootItems[slot].m_quantity;
 }
 
-int CGPlayer_C::OnLootRemoved(CDataStore *msg) {
+BOOL CGPlayer_C::OnLootRemoved(CDataStore *msg) {
   BYTE slot;
   msg->Get(slot);
   if (ClntObjMgrObjectPtr(m_lootingUnit, __FILE__, __LINE__)) {
@@ -5552,7 +5552,7 @@ int CGPlayer_C::OnLootRemoved(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnLootMoneyNotify(CDataStore *msg) {
+BOOL CGPlayer_C::OnLootMoneyNotify(CDataStore *msg) {
   char string[128];
   char buf[128];
   char coinBuf[64];
@@ -5584,12 +5584,12 @@ int CGPlayer_C::OnLootMoneyNotify(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnLootClearMoney(CDataStore *msg) {
+BOOL CGPlayer_C::OnLootClearMoney(CDataStore *msg) {
   CGLootInfo::CoinsCleared();
   return 1;
 }
 
-int CGPlayer_C::OnLootItemNotify(CDataStore *msg) {
+BOOL CGPlayer_C::OnLootItemNotify(CDataStore *msg) {
   char      itemName[64];
   DWORDLONG player;
   int       displayID;
@@ -5603,7 +5603,7 @@ int CGPlayer_C::OnLootItemNotify(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnLootReleaseResponse(CDataStore *msg) {
+BOOL CGPlayer_C::OnLootReleaseResponse(CDataStore *msg) {
   DWORDLONG packGUID;
   BYTE      success;
   msg->Get(packGUID);
@@ -5652,7 +5652,7 @@ void CGPlayer_C::ReadItem(DWORDLONG containerGUID, BYTE slot) {
   }
 }
 
-int CGPlayer_C::CanLoot(CGUnit_C *unitPtr) {
+BOOL CGPlayer_C::CanLoot(CGUnit_C *unitPtr) {
   FATALASSERT(unitPtr);
   return (GetPosition() - unitPtr->GetPosition()).SquaredMag() <=
              (m_unit->combatReach + m_unit->boundingRadius + unitPtr->m_unit->combatReach + unitPtr->m_unit->boundingRadius + 1.333333373f) *
@@ -5922,7 +5922,7 @@ float CGPlayer_C::GetMountScale() const {
   return rec->m_MountScale;
 }
 
-int CGPlayer_C::GetLanguageSkill(UINT language, UINT &skill) {
+BOOL CGPlayer_C::GetLanguageSkill(UINT language, UINT &skill) {
   skill = 0;
   if (GetGUID() != ClntObjMgrGetActivePlayer()) {
     return 0;
@@ -5947,7 +5947,7 @@ int CGPlayer_C::GetLanguageSkill(UINT language, UINT &skill) {
   return 1;
 }
 
-int Player_C_TogglePlayerRender() {
+BOOL Player_C_TogglePlayerRender() {
   s_renderPlayer = !s_renderPlayer;
   return s_renderPlayer;
 }
@@ -6034,7 +6034,7 @@ void CGPlayer_C::SetCombatMode(int state) {
   }
 }
 
-int CGPlayer_C::OnAttackIconPressed() {
+BOOL CGPlayer_C::OnAttackIconPressed() {
   FATALASSERT(GetGUID() == GetActive());
   if (!CGGameUI::m_hasControl) {
     return 0;
@@ -6097,11 +6097,11 @@ void CGPlayer_C::KillCombatModeTimer() {
   }
 }
 
-static int GuildIDUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
-static int DuelTeamUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
-int        OnUpdateInventoryComponent(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
-static int OnUpdatePlayerFlags(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
-static int OnUpdateGuild(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
+static BOOL GuildIDUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
+static BOOL DuelTeamUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
+BOOL        OnUpdateInventoryComponent(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
+static BOOL OnUpdatePlayerFlags(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
+static BOOL OnUpdateGuild(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
 
 void CGPlayer_C::ResetCombatModeTimer(int newCombat) {
   if (!s_combatModeTimer) {
@@ -6196,7 +6196,7 @@ DWORDLONG CGPlayer_C::GetLocalTarget() const {
   return m_targetUnit;
 }
 
-int CGPlayer_C::DeathBindDistanceCompare(const NTempest::C3Vector &bindStonePosition) {
+BOOL CGPlayer_C::DeathBindDistanceCompare(const NTempest::C3Vector &bindStonePosition) {
   float              bindRadiusCheckSquared = MAX_BIND_DISTANCE * 1.5f;
   NTempest::C3Vector diff = s_bindPosition - bindStonePosition;
   bindRadiusCheckSquared *= bindRadiusCheckSquared;
@@ -6239,7 +6239,7 @@ void CGPlayer_C::PlayVocalMacro(int category) {
   }
 }
 
-static int SoulStoneCompare(const CGItem_C *item, LPVOID) {
+static BOOL SoulStoneCompare(const CGItem_C *item, LPVOID) {
   const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
   if (!stats) {
     return 0;
@@ -6346,7 +6346,7 @@ void CGPlayer_C::OpenWrappedItem(CGItem_C *item) {
   ClientServices_Send(&msg);
 }
 
-int CGPlayer_C::InviteToGroup(DWORDLONG target) {
+BOOL CGPlayer_C::InviteToGroup(DWORDLONG target) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
   if (!unit) {
     return 0;
@@ -6385,7 +6385,7 @@ void CGPlayer_C::Uninvite(LPCSTR target) {
   ClientServices_Send(&msg);
 }
 
-int CGPlayer_C::SetNewLeader(DWORDLONG target) {
+BOOL CGPlayer_C::SetNewLeader(DWORDLONG target) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
   if (!unit) {
     return 0;
@@ -6402,7 +6402,7 @@ void CGPlayer_C::SetNewLeader(LPCSTR target) {
   ClientServices_Send(&msg);
 }
 
-int CGPlayer_C::ReportBagItemSubtypeMismatch(BYTE bagSlot) const {
+BOOL CGPlayer_C::ReportBagItemSubtypeMismatch(BYTE bagSlot) const {
   if (bagSlot == 0xFF) {
     return 0;
   }
@@ -6422,7 +6422,7 @@ int CGPlayer_C::ReportBagItemSubtypeMismatch(BYTE bagSlot) const {
   return 1;
 }
 
-int CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
+BOOL CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
   char      string[128];
   char      buf[128];
   char      shareMoneyBuf[64];
@@ -6631,7 +6631,7 @@ CGUnit_C *CGPlayer_C::GetPossessedUnit() {
   return unit;
 }
 
-int CGPlayer_C::OnPetitionShowList(CDataStore *msg) {
+BOOL CGPlayer_C::OnPetitionShowList(CDataStore *msg) {
   DWORDLONG petitionNpcGUID;
   BYTE      count = 0;
   msg->Get(petitionNpcGUID);
@@ -6662,7 +6662,7 @@ void CGPlayer_C::BuyPetition(const DWORDLONG &petitionUnit, CGPetition *petition
   ClientServices_Send(&msg);
 }
 
-int CGPlayer_C::OnPetitionShowSignatures(CDataStore *msg) {
+BOOL CGPlayer_C::OnPetitionShowSignatures(CDataStore *msg) {
   DWORDLONG itemGUID;
   DWORDLONG ownerGUID;
   int       petitionID;
@@ -6699,7 +6699,7 @@ void CGPlayer_C::RequestPetitionSignatures(DWORDLONG item) {
   ClientServices_Send(&msg);
 }
 
-int CGPlayer_C::OnSignedResults(CDataStore *msg) {
+BOOL CGPlayer_C::OnSignedResults(CDataStore *msg) {
   PETITION_ERROR results;
   msg->Get(*reinterpret_cast<int *>(&results));
   switch (results) {
@@ -6723,7 +6723,7 @@ int CGPlayer_C::OnSignedResults(CDataStore *msg) {
   return 1;
 }
 
-int CGPlayer_C::OnTurnInPetitionResults(CDataStore *msg) {
+BOOL CGPlayer_C::OnTurnInPetitionResults(CDataStore *msg) {
   PETITION_ERROR results;
   msg->Get(*reinterpret_cast<int *>(&results));
   switch (results) {

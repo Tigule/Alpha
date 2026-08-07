@@ -484,7 +484,7 @@ void CSimpleFrame::SetBackdrop(CBackdropGenerator *backdrop) {
   m_backdrop = backdrop;
 }
 
-int CSimpleFrame::SetHighlight(LPCSTR texFile, EGxBlend blendMode) {
+BOOL CSimpleFrame::SetHighlight(LPCSTR texFile, EGxBlend blendMode) {
   CSimpleTexture *texture = NEW(CSimpleTexture)(this, 4, 1);
 
   if (texture->SetTexture(texFile, 0)) {
@@ -497,7 +497,7 @@ int CSimpleFrame::SetHighlight(LPCSTR texFile, EGxBlend blendMode) {
   return 0;
 }
 
-int CSimpleFrame::SetHighlight(CSimpleTexture *texture, EGxBlend blendMode) {
+BOOL CSimpleFrame::SetHighlight(CSimpleTexture *texture, EGxBlend blendMode) {
   if (!texture) {
     return 0;
   }
@@ -590,7 +590,7 @@ void CSimpleFrame::NotifyDrawLayersChanged() {
   }
 }
 
-int CSimpleFrame::AddToFrameRegistry(LPCSTR frameName, UINT context) {
+BOOL CSimpleFrame::AddToFrameRegistry(LPCSTR frameName, UINT context) {
   if (m_frameName) {
     UnregisterScriptObject(m_frameName);
     SimpleFrameRegistryRemoveEntry(m_frameName, m_frameRegContext);
@@ -725,7 +725,7 @@ void CSimpleFrame::SetLayoutScale(float scale, bool force) {
   }
 }
 
-int CSimpleFrame::HideThis() {
+BOOL CSimpleFrame::HideThis() {
   if (m_visible) {
     if (this == m_top->m_mouseFocus) {
       OnLayerCursorExit();
@@ -744,7 +744,7 @@ int CSimpleFrame::HideThis() {
   return 1;
 }
 
-int CSimpleFrame::ShowThis() {
+BOOL CSimpleFrame::ShowThis() {
   int shown = 0;
 
   if (m_shown && IsParentDrawn()) {
@@ -819,7 +819,7 @@ void CSimpleFrame::UnregisterForEvents() {
   }
 }
 
-int CSimpleFrame::TestHitRect(const NTempest::C2Vector &pt) {
+BOOL CSimpleFrame::TestHitRect(const NTempest::C2Vector &pt) {
   if (!(CLayoutFrame::m_flags & 0x1)) {
     return 0;
   }
@@ -861,7 +861,7 @@ void CSimpleFrame::SetHitRectInsets(float left, float right, float top, float bo
   m_hitOffset.t = bottom;
 }
 
-int CSimpleFrame::GetHitRect(NTempest::CRect &rect) {
+BOOL CSimpleFrame::GetHitRect(NTempest::CRect &rect) {
   if (!(CLayoutFrame::m_flags & 0x1)) {
     return 0;
   }
@@ -882,7 +882,7 @@ void CSimpleFrame::OnLayerUpdate(float elapsedSec) {
   RunOnUpdateScript(elapsedSec);
 }
 
-int CSimpleFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
+BOOL CSimpleFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
   NTempest::C2Vector pt(evt.x, evt.y);
 
   if (m_mouseDown && !m_dragging) {
@@ -1008,7 +1008,7 @@ void CSimpleFrame::OnLayerCursorExit() {
   RunOnLeaveScript();
 }
 
-int CSimpleFrame::OnLayerChar(CCharEvent &evt) {
+BOOL CSimpleFrame::OnLayerChar(CCharEvent &evt) {
   char utf8string[6];
 
   if (!m_visible || !m_onChar) {
@@ -1020,7 +1020,7 @@ int CSimpleFrame::OnLayerChar(CCharEvent &evt) {
   return 1;
 }
 
-int CSimpleFrame::OnLayerKeyDown(CKeyEvent &evt) {
+BOOL CSimpleFrame::OnLayerKeyDown(CKeyEvent &evt) {
   LPCSTR keyName;
 
   if (!m_visible || !m_onKeyDown) {
@@ -1162,7 +1162,7 @@ int CSimpleFrame::OnLayerKeyDown(CKeyEvent &evt) {
   return 1;
 }
 
-int CSimpleFrame::OnLayerKeyUp(CKeyEvent &evt) {
+BOOL CSimpleFrame::OnLayerKeyUp(CKeyEvent &evt) {
   LPCSTR keyName;
 
   if (!m_visible || !m_onKeyUp) {
@@ -1304,7 +1304,7 @@ int CSimpleFrame::OnLayerKeyUp(CKeyEvent &evt) {
   return 1;
 }
 
-int CSimpleFrame::OnLayerMouseDown(CMouseEvent &evt) {
+BOOL CSimpleFrame::OnLayerMouseDown(CMouseEvent &evt) {
   if (m_lookForDrag & evt.button) {
     m_mouseDown = 1;
     m_dragging = 0;
@@ -1317,7 +1317,7 @@ int CSimpleFrame::OnLayerMouseDown(CMouseEvent &evt) {
   return 0;
 }
 
-int CSimpleFrame::OnLayerMouseUp(CMouseEvent &evt) {
+BOOL CSimpleFrame::OnLayerMouseUp(CMouseEvent &evt) {
   if (m_lookForDrag & evt.button) {
     int dragging = m_dragging;
 
@@ -1336,7 +1336,7 @@ int CSimpleFrame::OnLayerMouseUp(CMouseEvent &evt) {
   return 0;
 }
 
-int CSimpleFrame::OnLayerMouseWheel(CMouseEvent &evt) {
+BOOL CSimpleFrame::OnLayerMouseWheel(CMouseEvent &evt) {
   if (!m_visible || !m_onMouseWheel) {
     return 0;
   }

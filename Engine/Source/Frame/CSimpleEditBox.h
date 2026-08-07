@@ -25,15 +25,15 @@ class CSimpleEditBox : public CSimpleFrame {
   virtual void OnLayerShow();
   virtual void OnLayerHide();
   virtual void OnLayerUpdate(float elapsedSec);
-  virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
+  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
-  virtual int  OnLayerChar(CCharEvent &evt);
-  virtual int  OnLayerIme(CImeEvent &evt);
-  virtual int  OnLayerKeyDown(CKeyEvent &evt);
-  virtual int  OnLayerKeyDownRepeat(CKeyEvent &evt);
-  virtual int  OnLayerKeyUp(CKeyEvent &evt);
-  virtual int  OnLayerMouseDown(CMouseEvent &evt);
-  virtual int  OnLayerMouseUp(CMouseEvent &evt);
+  virtual BOOL OnLayerChar(CCharEvent &evt);
+  virtual BOOL OnLayerIme(CImeEvent &evt);
+  virtual BOOL OnLayerKeyDown(CKeyEvent &evt);
+  virtual BOOL OnLayerKeyDownRepeat(CKeyEvent &evt);
+  virtual BOOL OnLayerKeyUp(CKeyEvent &evt);
+  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
 
   void SetMultiLine(int enabled);
   void SetAutoFocus(int enabled);
@@ -52,7 +52,7 @@ class CSimpleEditBox : public CSimpleFrame {
   LPCSTR GetText() {
     return m_text;
   }
-  void Insert(LPCSTR utf8string, int isIME);
+  void Insert(LPCSTR utf8string, BOOL isIME);
   void Insert(UINT utf16);
   void SetHistoryLines(int numLines);
   void AddHistoryLine(LPCSTR line);
@@ -192,16 +192,16 @@ class CSimpleEditBox : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void UpdateSizes(const NTempest::CRect &rect);
   void UpdateTextInfo();
   void UpdateVisibleCursor();
   int  GetNumToLen(int offset, int amount, bool checkHyperLink);
-  int  GetLenToNum(int offset, int amount);
+  BOOL GetLenToNum(int offset, int amount);
   int  NextCharOffset(int offset);
   int  PrevCharOffset(int offset);
-  int  GetOffsetToLine(int offset);
+  BOOL GetOffsetToLine(int offset);
   void GrowText(int size);
   void Delete(int amount);
   void DeleteForward();
@@ -222,7 +222,7 @@ class CSimpleEditBox : public CSimpleFrame {
   void MoveLine(int distance, int highlight);
   void MoveForwardLine(int highlight);
   void MoveBackwardLine(int highlight);
-  int  IsHighlighted() {
+  BOOL IsHighlighted() {
     return m_highlightLeft != m_highlightRight;
   }
   void StartHighlight();
@@ -237,7 +237,7 @@ class CSimpleEditBox : public CSimpleFrame {
   void DeleteHighlight();
   void ForwardHistory();
   void BackwardHistory();
-  int  ConvertCoordinateToIndex(float x, float y, int &index);
+  BOOL ConvertCoordinateToIndex(float x, float y, int &index);
   void MakeTextVisible(int position, float extentLeft, float extentRight);
   void UpdateVisibleText();
   void UpdateVisibleHighlight();
@@ -250,7 +250,7 @@ class CSimpleEditBox : public CSimpleFrame {
   void CreateCandidatesFrame();
   void UpdateLanguageIndicator();
   void UpdateClauseInfo();
-  int  PopulateCandidates(DWORD selection);
+  BOOL PopulateCandidates(DWORD selection);
   void DispatchAction(int action);
   void RegisterAction(int action, UINT id, CObserver *observer) {
     m_actions[action].id = id;
@@ -291,7 +291,7 @@ class CSimpleEditBox : public CSimpleFrame {
   CSimpleTexture       *m_highlight[3];
   int                   m_highlightLeft;
   int                   m_highlightRight;
-  int                   m_highlightDrag;
+  BOOL                  m_highlightDrag;
   CSimpleTexture       *m_cursor;
   int                   m_cursorPos;
   float                 m_cursorBlinkSpeed;
@@ -307,7 +307,7 @@ class CSimpleEditBox : public CSimpleFrame {
     UINT       id;
     CObserver *obj;
   } m_actions[NUM_EDITBOX_ACTIONS];
-  int                  m_imeInputMode;
+  BOOL                 m_imeInputMode;
   CSimpleTexture      *m_clauseHighlight;
   int                  m_clauseLeft;
   int                  m_clauseRight;

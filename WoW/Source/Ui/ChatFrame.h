@@ -45,11 +45,11 @@ class CGChat {
   static void ShutdownGame();
   static void EnterWorld();
   static void LeaveWorld();
-  static int  IsPaused();
-  static int  ChatHandler(CDataStore *msg);
+  static BOOL IsPaused();
+  static BOOL ChatHandler(CDataStore *msg);
   static void ChannelList(CDataStore *msg);
   static void ChannelNotify(CDataStore *msg);
-  static int  HandleTextEmote(CDataStore *msg);
+  static BOOL HandleTextEmote(CDataStore *msg);
 
   static void FilterChat(int filter) {
     m_filterChat = filter;

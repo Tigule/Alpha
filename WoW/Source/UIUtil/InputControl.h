@@ -66,18 +66,18 @@ class CGInputControl {
   void UpdatePlayer(DWORD now);
   void SetReleaseAction(CGInputReleaseAction action);
   void SetControlBit(INPUT_CONTROL bit, int set, DWORD now, int sticky);
-  int  CameraCanTurnPlayer() const;
+  BOOL CameraCanTurnPlayer() const;
   void CameraTurnPlayer(DWORD timestamp, float yaw, float pitch, bool setSmoothFacing);
-  int  IsMovingForward() const;
-  int  IsAutoRunning() const {
+  BOOL IsMovingForward() const;
+  BOOL IsAutoRunning() const {
     return (m_controlFlags & INPUT_MOVE_PLAYER_AUTORUN) != 0;
   }
-  int IsFreeLooking() const;
-  int IsMouseDragMoving() const;
-  int HasPlayerMoved() const {
+  BOOL IsFreeLooking() const;
+  BOOL IsMouseDragMoving() const;
+  BOOL HasPlayerMoved() const {
     return (m_controlFlags & INPUT_PLAYER_MOVED) != 0;
   }
-  int HasCameraMoved() const {
+  BOOL HasCameraMoved() const {
     return (m_controlFlags & INPUT_CAMERA_MOVED) != 0;
   }
   DWORD GetInitializeTime() const {
@@ -97,13 +97,13 @@ class CGInputControl {
   DWORD                m_mouseDownTime;
   CGInputReleaseAction m_releaseAction;
 
-  int  SetControlBit(INPUT_CONTROL bit);
-  int  UnsetControlBit(INPUT_CONTROL bit, int sticky);
+  BOOL SetControlBit(INPUT_CONTROL bit);
+  BOOL UnsetControlBit(INPUT_CONTROL bit, int sticky);
   void MovePlayer(DWORD now, CGUnit_C *player);
   void StrafePlayer(DWORD now, CGUnit_C *player);
   void TurnPlayer(DWORD now, CGUnit_C *player);
   void PitchPlayer(DWORD now, CGUnit_C *player);
-  int  IsMouseDragging() const;
+  BOOL IsMouseDragging() const;
 };
 
 void InputControlInitialize();

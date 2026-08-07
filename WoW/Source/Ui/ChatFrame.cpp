@@ -637,7 +637,7 @@ void CGChat::GetPendingChatMessages() {
 
 extern bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
 
-int CGChat::ChatHandler(CDataStore *msg) {
+BOOL CGChat::ChatHandler(CDataStore *msg) {
   char       message[512] = "";
   char       buffer[512] = "";
   char       name[48] = "";
@@ -699,7 +699,7 @@ int CGChat::ChatHandler(CDataStore *msg) {
   return 1;
 }
 
-int CGChat::HandleTextEmote(CDataStore *msg) {
+BOOL CGChat::HandleTextEmote(CDataStore *msg) {
   char      target[128];
   DWORDLONG sender;
   int       textEmoteID;
@@ -748,7 +748,7 @@ void CGChat::HandleFlagsChanged(DWORDLONG guid, BYTE oldFlags, BYTE newFlags, LP
   CheckFlagChanged(guid, nc, oldFlags, newFlags, channel, 4, "SET_VOICE", "UNSET_VOICE");
 }
 
-static int StringToChatType(LPCSTR string, SLASH_COMMAND_ID &slashCmd) {
+static BOOL StringToChatType(LPCSTR string, SLASH_COMMAND_ID &slashCmd) {
   const struct {
     LPCSTR name;
     int    type;
@@ -773,7 +773,7 @@ static int StringToChatType(LPCSTR string, SLASH_COMMAND_ID &slashCmd) {
   return 0;
 }
 
-static int StringToLanguage(LPCSTR string, UINT &language) {
+static BOOL StringToLanguage(LPCSTR string, UINT &language) {
   int numEntries = g_languagesDB.GetNumRecords();
   for (int i = 0; i < numEntries; ++i) {
     const LanguagesRec *rec = g_languagesDB.GetRecordByIndex(i);

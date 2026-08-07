@@ -80,11 +80,11 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
   }
   virtual void   Disable(int shutdown);
   virtual void   Reenable();
-  int            SetBlock(UINT i, DWORD data);
+  BOOL           SetBlock(UINT i, DWORD data);
   void           SetData(LPCVOID data, UINT bytes);
   static UINT    OffsetOf(OBJECT_TYPE_ID type);
   virtual LPCSTR GetModelFileName() const;
-  virtual int    ShouldRender(DWORD worldStatus);
+  virtual BOOL   ShouldRender(DWORD worldStatus);
   virtual void   GetPosition(NTempest::C3Vector &vec) const {
     vec = m_corpse->m_position;
   }
@@ -95,7 +95,7 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
     return m_corpse->m_facing;
   }
   virtual void GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
-  virtual int  CanHighlight() const {
+  virtual BOOL CanHighlight() const {
     return 1;
   }
   virtual void OnLeftClick();

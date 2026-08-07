@@ -29,7 +29,7 @@ class CGBankInfo {
   static void      OpenBank(const DWORDLONG &guid);
   static void      CloseBank();
   static void      OnCloseBank();
-  static void      PickupItem(int slot, int isBag, int slotIsButtonID);
+  static void      PickupItem(int slot, BOOL isBag, int slotIsButtonID);
   static void      SplitItem(int slot, int split);
   static DWORDLONG GetBanker() {
     return m_unit;
@@ -86,7 +86,7 @@ static int Script_SplitBankGenericItem(lua_State *L) {
   return 0;
 }
 
-static int ButtonIDToSlotID(int ID, int isBag) {
+static int ButtonIDToSlotID(int ID, BOOL isBag) {
   return isBag ? ID + 59 : ID + 39;
 }
 
@@ -94,8 +94,8 @@ static int Script_BankButtonIDToInvSlotID(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return 0;
   }
-  int ID = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  int isBag = lua_isnumber(L, 2);
+  int  ID = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  BOOL isBag = lua_isnumber(L, 2);
   lua_pushnumber(L, static_cast<double>(ButtonIDToSlotID(ID, isBag) + 1));
   return 1;
 }
@@ -179,12 +179,12 @@ static int Script_PickupBagFromBankSlot(lua_State *L) {
   return 0;
 }
 
-static int BankUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
+static BOOL BankUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   SignalBankSlotsChanged();
   return 1;
 }
 
-void CGBankInfo::PickupItem(int slot, int isBag, int slotIsButtonID) {
+void CGBankInfo::PickupItem(int slot, BOOL isBag, int slotIsButtonID) {
   if (!CGGameUI::m_hasControl) {
     return;
   }

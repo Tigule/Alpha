@@ -52,7 +52,7 @@ CGDynamicObject_C::~CGDynamicObject_C() {
   ClearSound();
 }
 
-int CGDynamicObject_C::UpdateModelLoadStatus() {
+BOOL CGDynamicObject_C::UpdateModelLoadStatus() {
   if (!CGObject_C::UpdateModelLoadStatus()) {
     return 0;
   }
@@ -85,7 +85,7 @@ static void AnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &positi
   static_cast<CGDynamicObject_C *>(param)->HandleAnimEvent(eventName, position);
 }
 
-static int AnimFinishedCallback(LPVOID param) {
+static BOOL AnimFinishedCallback(LPVOID param) {
   if (param) {
     static_cast<CGDynamicObject_C *>(param)->AnimFinished();
   }
@@ -160,7 +160,7 @@ void CGDynamicObject_C::Reenable() {
   AddWorldObject();
 }
 
-int CGDynamicObject_C::SetBlock(UINT, DWORD) {
+BOOL CGDynamicObject_C::SetBlock(UINT, DWORD) {
   FATALASSERT(0);
   return 1;
 }

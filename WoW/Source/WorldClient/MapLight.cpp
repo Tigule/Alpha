@@ -92,7 +92,7 @@ void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector 
   }
 }
 
-int CMap::GxuLightEnable(DWORD lightId) {
+BOOL CMap::GxuLightEnable(DWORD lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);

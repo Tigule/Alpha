@@ -72,7 +72,7 @@ void CMapObj::AsyncPostloadCallbackAll(LPVOID userArg) {
   mapObj->CreateData();
 }
 
-int CMapObj::Read(LPCSTR fileName) {
+BOOL CMapObj::Read(LPCSTR fileName) {
   DWORD bRead;
 
   FATALASSERT(file == 0);

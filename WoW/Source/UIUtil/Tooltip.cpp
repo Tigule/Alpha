@@ -107,11 +107,11 @@ class CGCraftInfo {
   static TSGrowableArray<CraftInfo *> m_skills;
 };
 
-int Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot);
+BOOL Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot);
 
 DWORDLONG Script_GetGUIDFromName(LPCSTR name);
 CGUnit_C *Script_GetUnitFromName(LPCSTR name);
-int       SpellParserParseText(const SpellRec *spell, char *buf, UINT size, int isPet);
+BOOL      SpellParserParseText(const SpellRec *spell, char *buf, UINT size, BOOL isPet);
 int       Spell_C_GetSpellCooldown(int spell, int isPet, UINT *duration, DWORD *startTime, UINT *enable);
 int       Spell_C_GetItemCooldown(int itemID, UINT *duration, DWORD *startTime, UINT *enable);
 
@@ -250,7 +250,7 @@ static const SpellAuraNamesRec *GetAuraNameRec(int enumID) {
   return 0;
 }
 
-static int HealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID param) {
+static BOOL HealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID param) {
   CSimpleStatusBar *statusBar = static_cast<CSimpleStatusBar *>(param);
   FATALASSERT(statusBar);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
@@ -387,7 +387,7 @@ void CGTooltip::PostLoadXML(const XMLNode *node, CStatus *status) {
   m_statusBar = reinterpret_cast<CSimpleStatusBar *>(SimpleFrameRegistryGetEntry(buf, 0));
 }
 
-int CGTooltip::SetUnit(const DWORDLONG &unit) {
+BOOL CGTooltip::SetUnit(const DWORDLONG &unit) {
   if (unit == m_unit) {
     return 0;
   }
@@ -476,7 +476,7 @@ void CGTooltip::SetCorpse(const DWORDLONG &corpseGUID) {
   Show();
 }
 
-int CGTooltip::SetItem(
+BOOL CGTooltip::SetItem(
     int                      itemID,
     const DWORDLONG         &refGUID,
     const DWORDLONG         &itemGUID,
@@ -509,7 +509,7 @@ int CGTooltip::SetItem(
   return 1;
 }
 
-int CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, int isPet) {
+BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPet) {
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
     return 0;
@@ -608,7 +608,15 @@ void CGTooltip::SetOwner(CLayoutFrame *owner, float x, float y) {
   m_owner = owner;
 }
 
-void CGTooltip::GetSpellEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, int isPet, TOOLTIP_DETAIL detail) {
+void CGTooltip::GetSpellEffectString(
+    char           *buf,
+    UINT            bufSize,
+    const SpellRec *spell,
+    UINT            effectIndex,
+    UINT            level,
+    BOOL            isPet,
+    TOOLTIP_DETAIL  detail
+) {
   if (!buf || !bufSize) {
     return;
   }
@@ -620,7 +628,7 @@ void CGTooltip::GetSpellEffectString(char *buf, UINT bufSize, const SpellRec *sp
   SStrPrintf(buf, bufSize, "%d", points);
 }
 
-void CGTooltip::GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, int isPet, TOOLTIP_DETAIL detail) {
+void CGTooltip::GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, BOOL isPet, TOOLTIP_DETAIL detail) {
   GetSpellEffectString(buf, bufSize, spell, effectIndex, level, isPet, detail);
 }
 
@@ -835,11 +843,11 @@ void CGTooltip::CalculateSize() {
   Resize(1);
 }
 
-int CGTooltip::HideThis() {
+BOOL CGTooltip::HideThis() {
   return CSimpleFrame::HideThis();
 }
 
-int CGTooltip::ShowThis() {
+BOOL CGTooltip::ShowThis() {
   if (m_owner && m_lines) {
     CSimpleFrame::SetAlpha(255);
     m_fading = 0;
@@ -1175,7 +1183,7 @@ int CGTooltip_SetSpell(lua_State *L) {
 
 int CGTooltip_SetInventoryItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
-  int hasCooldown = 0;
+  BOOL hasCooldown = 0;
   if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
     return luaL_error(L, "Usage: SetInventoryItem(\"unit\", slot)");
   }
@@ -1509,7 +1517,7 @@ void CGTooltip::UnregisterScriptMethods() {
 
 #undef GET_TOOLTIP_THIS
 
-int CGTooltip::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CGTooltip::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

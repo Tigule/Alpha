@@ -63,11 +63,11 @@ CGxFormat::CGxFormat(
   vsync = p_vsync;
 }
 
-int GxAdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow) {
+BOOL GxAdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow) {
   return CGxDevice::AdapterID(vendorID, deviceID, driverVersionHi, driverVersionLow);
 }
 
-int GxAdapterInfer(WORD &deviceID) {
+BOOL GxAdapterInfer(WORD &deviceID) {
   return CGxDevice::AdapterInfer(deviceID);
 }
 
@@ -727,7 +727,7 @@ CGxTexFlags::CGxTexFlags(EGxTexFilter filter, DWORD wrapU, DWORD wrapV, DWORD fo
   ASSERT(filter == GxTex_Anisotropic ? GxCaps().m_texFilterAnisotropic : 1);
 }
 
-int GxTexCreate(
+BOOL GxTexCreate(
     UINT         width,
     UINT         height,
     EGxTexFormat format,
@@ -767,11 +767,11 @@ int GxTexCreate(
   return g_theGxDevicePtr->TexCreate(width, height, format, flags, userArg, userFunc, texId);
 }
 
-int GxTexCreate(const CGxTexParms &parms, CGxTex *&texId) {
+BOOL GxTexCreate(const CGxTexParms &parms, CGxTex *&texId) {
   return GxTexCreate(parms.width, parms.height, parms.format, parms.flags, parms.userArg, parms.userFunc, texId);
 }
 
-int GxTexCreate(
+BOOL GxTexCreate(
     EGxTexTarget target,
     UINT         width,
     UINT         height,
@@ -818,7 +818,7 @@ int GxTexCreate(
   return g_theGxDevicePtr->TexCreate(target, width, height, depth, format, dataFormat, flags, userArg, userFunc, texId);
 }
 
-int GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId) {
+BOOL GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId) {
   return GxTexCreate(
       parms.target, parms.width, parms.height, parms.depth, parms.format, parms.dataFormat, parms.flags, parms.userArg, parms.userFunc, texId
   );

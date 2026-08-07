@@ -35,14 +35,14 @@ typedef void (*MODELPROJECT2DCALLBACK)(const NTempest::CAaBox &bounds, NTempest:
 
 DECLARE_DERIVED_HANDLE(HMODEL, HOBJECT);
 
-int ModelGetEventObjectPosition(HMODEL model, UINT objectId, int modelSpace, NTempest::C3Vector *position);
+BOOL ModelGetEventObjectPosition(HMODEL model, UINT objectId, int modelSpace, NTempest::C3Vector *position);
 
 void ModelInitialize();
 void ModelDestroy();
 void ModelCacheFlush();
 void ModelRemoveFromCache(LPCSTR sourcefile);
-int  ModelCacheUpdate(DWORD currentTime, CStatus *status);
-int  ModelIsLoaded(HMODEL modelHandle, int doLinkedModels);
+BOOL ModelCacheUpdate(DWORD currentTime, CStatus *status);
+BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels);
 void ModelProcessEvents(HMODEL model, const NTempest::C34Matrix &orientation);
 void ModelProcessEvents(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale);
 void ModelGetStandingMatrix(
@@ -63,38 +63,38 @@ void ModelForceStandingMatrix(
     float                     blendRatio,
     NTempest::C34Matrix      *orientation
 );
-int    ModelAdvanceTime(HMODEL model);
-int    ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags);
-int    ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags);
+BOOL   ModelAdvanceTime(HMODEL model);
+BOOL   ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags);
+BOOL   ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags);
 int    ModelMatchSequence(HMODEL model, UINT objectId, UINT sameAsObjectId, UINT flags);
 int    ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT flags);
 int    ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT objectId, UINT flags);
 int    ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT flags);
 int    ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT objectId, UINT flags);
 UINT   ModelGetNumSequenceFidgets(HMODEL model, UINT seqIndex);
-int    ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration);
+BOOL   ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration);
 int    ModelGetSequenceTime(HMODEL model, UINT seqIndex);
 float  ModelGetPrimarySequenceCompletion(HMODEL model);
-int    ModelHasSequenceId(HMODEL model, UINT seqIndex);
+BOOL   ModelHasSequenceId(HMODEL model, UINT seqIndex);
 HMODEL ModelCreate(LPCSTR sourcefile, CModelCreate *data, CStatus *status);
 HMODEL ModelCreateSolidSphere(float radius, HTEXTURE texture);
 HMODEL ModelCreateBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode);
 HMODEL ModelDuplicate(HMODEL sourceModel, UINT flags);
-int    ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale);
-int    ModelClearLink(HMODEL parent, UINT parentIndex);
-int    ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child);
+BOOL   ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale);
+BOOL   ModelClearLink(HMODEL parent, UINT parentIndex);
+BOOL   ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child);
 void   ModelClearAllLinks(HMODEL parent);
-int    ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entriesInOut);
-int    ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked);
-int    ModelHasLinkPoint(HMODEL model, UINT index);
+BOOL   ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entriesInOut);
+BOOL   ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked);
+BOOL   ModelHasLinkPoint(HMODEL model, UINT index);
 UINT   ModelGetNumLinkPoints(HMODEL model);
-int    ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int doLinkedModels);
-int    ModelGetExtents(HMODEL model, NTempest::CAaBox *extents);
-int    ModelGetSeqExtents(HMODEL model, UINT seqnum, NTempest::CAaBox *extents);
-int    ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds);
+BOOL   ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int doLinkedModels);
+BOOL   ModelGetExtents(HMODEL model, NTempest::CAaBox *extents);
+BOOL   ModelGetSeqExtents(HMODEL model, UINT seqnum, NTempest::CAaBox *extents);
+BOOL   ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds);
 void   ModelSceneCalcFrustumPlanes();
-int    ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float scale, int testLinkedModels);
-int    ModelTestSphere(
+BOOL   ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float scale, int testLinkedModels);
+BOOL   ModelTestSphere(
     HMODEL                    model,
     const NTempest::C3Vector &position,
     float                     rotationAngle,
@@ -102,17 +102,17 @@ int    ModelTestSphere(
     float                     scale,
     int                       testLinkedModels
 );
-int ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
-int ModelHasHitTestVolumes(HMODEL model);
-int ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
-int ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
-int ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot);
+BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
+BOOL ModelHasHitTestVolumes(HMODEL model);
+BOOL ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
+BOOL ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
+BOOL ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot);
 HCAMERA         ModelGetCamera(HMODEL model, UINT index);
 UINT            ModelGetNumCameras(HMODEL model);
 int             ModelIsCameraEnabled(HMODEL model, UINT index);
-int             ModelIsShowingBoundingSphere(HMODEL model);
-int             ModelIsShowingBoundingBox(HMODEL model);
-int             ModelIsShowingHitTestGeometry(HMODEL model);
+BOOL            ModelIsShowingBoundingSphere(HMODEL model);
+BOOL            ModelIsShowingBoundingBox(HMODEL model);
+BOOL            ModelIsShowingHitTestGeometry(HMODEL model);
 void            ModelRestoreBlendMode(HMODEL model, int doLinkedModels);
 void            ModelSetBlendMode(HMODEL model, EGxBlend blendMode, int doLinkedModels);
 UINT            ModelGetNumLights(HMODEL model);
@@ -123,7 +123,7 @@ void            ModelSetEmissiveColor(HMODEL model, const NTempest::CImVector &c
 void            ModelHideBounds(HMODEL model);
 void            ModelHideGeosets(HMODEL model, UINT selectionGroup, int hide);
 void            ModelHideGeosetsRange(HMODEL model, UINT selectionStart, UINT selectionEnd, int hide);
-int             ModelOptimizeVisibleGeosets(HMODEL model);
+BOOL            ModelOptimizeVisibleGeosets(HMODEL model);
 void            ModelShowCollision(HMODEL model, int show);
 void            ModelShowCollisionAaBox(HMODEL model, int show);
 void            ModelShowModel(HMODEL model, int show);
@@ -137,14 +137,14 @@ void            ModelSetLightSelectCallback(
     int    doLinkedModels
 );
 void ModelSetEventCallback(HMODEL model, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param, int doLinkedModels);
-int  ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLinkedModels);
-int  ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels);
-int  ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed);
-int  ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *position);
+BOOL ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLinkedModels);
+BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels);
+BOOL ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed);
+BOOL ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *position);
 void ModelSetSeqFinishedHandler(HMODEL model, int (*callback)(LPVOID), LPVOID param);
 void ModelSetSeqFinishedHandler(HMODEL model, UINT sequence, int (*callback)(LPVOID), LPVOID param);
 void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels);
-int  ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int doLinkedModels);
+BOOL ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int doLinkedModels);
 int  ModelApplyObjectLookAt(HMODEL model, UINT objectId, const NTempest::C3Vector &target);
 int  ModelRemoveObjectLookAt(HMODEL model, UINT objectId);
 int  ModelApplyObjectFaceDir(HMODEL model, UINT objectId, const NTempest::C3Vector &direction);
@@ -155,7 +155,7 @@ void ModelSetVertexColor(HMODEL model, BYTE red, BYTE green, BYTE blue, int doLi
 void ModelGetVertexColor(HMODEL model, BYTE &red, BYTE &green, BYTE &blue);
 void ModelShowUnselectable(HMODEL model, BYTE red, BYTE green, BYTE blue);
 void ModelHideUnselectable(HMODEL model);
-int  ModelIsShowingUnselectable(HMODEL model);
+BOOL ModelIsShowingUnselectable(HMODEL model);
 void ModelSetVertexAlpha(HMODEL model, BYTE alpha, int doLinkedModels);
 BYTE ModelGetVertexAlpha(HMODEL model);
 void ModelCustGeosetMove(HMODEL model, UINT custGeosetId, const NTempest::C3Vector &modelSpacePosition);
@@ -168,11 +168,11 @@ void ModelCustGeosetAdd(
     UINT  *custGeosetId
 );
 UINT ModelGetPrimarySequence(HMODEL model);
-int  ModelUsesBlending(HMODEL model);
+BOOL ModelUsesBlending(HMODEL model);
 void ModelEnumAnimObjects(HMODEL model, int (*callbackfcn)(UINT, LPCSTR, LPVOID), LPVOID param);
 void ModelEnableEmitters(HMODEL model, int enable, int doLinkedModels);
 void ModelEnableRibbons(HMODEL model, int enable);
-int  ModelAnimHasObjectId(HMODEL model, UINT objectId);
+BOOL ModelAnimHasObjectId(HMODEL model, UINT objectId);
 UINT ModelGetNumTextures(HMODEL model);
 UINT ModelGetTextureReplaceableId(HMODEL model, UINT textureId);
 void ModelAnimate(

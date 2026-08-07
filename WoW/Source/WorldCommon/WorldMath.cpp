@@ -6,7 +6,7 @@
 
 #include <math.h>
 
-int CWorldMath::EdgeIntersectEdge(
+BOOL CWorldMath::EdgeIntersectEdge(
     const NTempest::C2Vector &a,
     const NTempest::C2Vector &b,
     const NTempest::C2Vector &c,
@@ -30,7 +30,7 @@ int CWorldMath::EdgeIntersectEdge(
   return 0;
 }
 
-int CWorldMath::RayIntersectTri(
+BOOL CWorldMath::RayIntersectTri(
     const NTempest::C3Vector &rayOrig,
     const NTempest::C3Vector &rayDir,
     const NTempest::C3Vector &v0,
@@ -118,7 +118,7 @@ void CWorldMath::TransformAABox(const NTempest::C44Matrix &m, const NTempest::CA
   ::TransformAABox(&row0, &row1, &row2, box, nBox);
 }
 
-int CWorldMath::SphereIntersectAABox(const NTempest::CAaBox &box, const NTempest::C3Vector &center, float radius) {
+BOOL CWorldMath::SphereIntersectAABox(const NTempest::CAaBox &box, const NTempest::C3Vector &center, float radius) {
   float        squaredDistance = 0.0f;
   const float *bottom = &box.b.x;
   const float *top = &box.t.x;
@@ -322,7 +322,7 @@ float CWorldMath::TriSqrDistance(
   return fabs(squaredDistance);
 }
 
-int CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
+BOOL CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
   float        dir[3] = {end.x - start.x, end.y - start.y, end.z - start.z};
   DWORD        i;
   int          Inside = 1;
@@ -388,6 +388,6 @@ int CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempes
   return 1;
 }
 
-int CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Segment &seg) {
+BOOL CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Segment &seg) {
   return VectorIntersectAABox2(box, seg.start, seg.end);
 }

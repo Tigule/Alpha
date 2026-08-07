@@ -96,7 +96,7 @@ UINT CKeyFrameTrackBase::SetAnimTime(const CBaseStatus &sequence, CKeyTrackStatu
   return numKeys;
 }
 
-int CKeyFrameTrackBase::JustPastKeyForward(
+BOOL CKeyFrameTrackBase::JustPastKeyForward(
     int                    elapsedTime,
     const CAnimSequence   &seqShared,
     int                    seqElapsed,
@@ -122,7 +122,7 @@ int CKeyFrameTrackBase::JustPastKeyForward(
   return timePastKey + seqShared.time.l - seqShared.time.h >= 0;
 }
 
-int CKeyFrameTrackBase::JustPastKeyBackward(
+BOOL CKeyFrameTrackBase::JustPastKeyBackward(
     int                    elapsedTime,
     const CAnimSequence   &seqShared,
     int                    seqElapsed,

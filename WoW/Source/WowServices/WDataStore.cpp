@@ -73,7 +73,7 @@ void WDataStore::InternalDestroy(BYTE *&data, UINT &base, UINT &alloc) {
   alloc = 0;
 }
 
-int WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber) {
+BOOL WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber) {
   if (!s_heapsInitialized) {
     StaticInitialize();
   }

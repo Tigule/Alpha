@@ -68,7 +68,7 @@ namespace MDL {
     errors.Complete(status);
   }
 
-  int ReadTextureAnims(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadTextureAnims(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     UINT   token;
     LPCSTR tokenText;
     long   expected = parse.GetOptionalInt(&token, &tokenText, 0);
@@ -151,7 +151,7 @@ namespace MDL {
     WriteLine(buffer, "\t}\n");
   }
 
-  int WriteTextureAnims(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteTextureAnims(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.textureanims.Count()) {
       WriteLine(buffer, "%s %d {\n", TokenText(0x107), data.textureanims.Count());
       for (UINT i = 0; i < data.textureanims.Count(); ++i) {
@@ -205,7 +205,7 @@ namespace MDL {
     }
   }
 
-  int WriteBinTextureAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
+  BOOL WriteBinTextureAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.textureanims.Count()) {
       buf.AddDword('NAXT');
       UINT totalSize = 4;
@@ -222,7 +222,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinTextureAnims(CMsgBuffer &buffer, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinTextureAnims(CMsgBuffer &buffer, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT count = buffer.GetUint();
     UINT totalRead = 4;
     data.textureanims.SetCount(0);

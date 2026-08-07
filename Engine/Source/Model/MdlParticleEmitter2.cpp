@@ -13,7 +13,7 @@ static const char WOW_DATA_PATH[35] = "\\\\Guldan\\Drive2\\Projects\\WoW\\Data\\
 
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status);
-int   MDLFileRead(LPCSTR path, MDLDATA *data, CStatus *status);
+BOOL  MDLFileRead(LPCSTR path, MDLDATA *data, CStatus *status);
 
 CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTION *textures, UINT flags, CStatus *status);
 static CParticleEmitter2 *
@@ -553,7 +553,7 @@ CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTION *tex
   return emitter;
 }
 
-int MdlReadLoadEmitters2(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
+BOOL MdlReadLoadEmitters2(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
   FATALASSERT(modelptr);
   FATALASSERT(shared);
 

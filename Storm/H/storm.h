@@ -492,11 +492,11 @@ class BigNum {
   LPVOID  ToBinaryBuffer(LPVOID data, UINT bytes) const;
           operator UINT();
   void    FromBinary(LPCVOID data, UINT bytes);
-  int     IsEven();
-  int     IsOdd();
-  int     IsOne();
-  int     IsPrime();
-  int     IsZero();
+  BOOL    IsEven();
+  BOOL    IsOdd();
+  BOOL    IsOne();
+  BOOL    IsPrime();
+  BOOL    IsZero();
   BigNum &Set2Exp(UINT exponent);
   BigNum &SetOne();
   BigNum &SetZero();
@@ -738,7 +738,7 @@ class SCritSect {
   ~SCritSect();
   void Enter();
   void Leave();
-  int  TryEnter();
+  BOOL TryEnter();
 
  private:
   SCritSect &operator=(const SCritSect &);
@@ -756,7 +756,7 @@ class CDebugSCritSect : private SCritSect {
   ~CDebugSCritSect();
   void        Enter(LPCSTR fileName, DWORD line);
   void        Leave(LPCSTR fileName, DWORD line);
-  int         TryEnter(LPCSTR fileName, DWORD line);
+  BOOL        TryEnter(LPCSTR fileName, DWORD line);
   static void DumpAllEntries();
 };
 
@@ -770,7 +770,7 @@ class CSRWLock {
   ~CSRWLock();
   void Enter(int forwriting);
   void Leave(int fromwriting);
-  int  TryEnter(int forwriting);
+  BOOL TryEnter(int forwriting);
 
  private:
   CSRWLock &operator=(const CSRWLock &);
@@ -788,7 +788,7 @@ class CDebugSRWLock : private CSRWLock {
   ~CDebugSRWLock();
   void        Enter(int forwriting, LPCSTR fileName, DWORD line);
   void        Leave(int fromwriting, LPCSTR fileName, DWORD line);
-  int         TryEnter(int forwriting, LPCSTR fileName, DWORD line);
+  BOOL        TryEnter(int forwriting, LPCSTR fileName, DWORD line);
   static void DumpAllEntries();
 };
 
@@ -800,7 +800,7 @@ class SSyncObject {
   SSyncObject(const SSyncObject &rhs);
   ~SSyncObject();
   SSyncObject &operator=(const SSyncObject &rhs);
-  int          Valid();
+  BOOL         Valid();
   void         Close();
   DWORD        Wait(DWORD timeoutMs);
 
@@ -817,7 +817,7 @@ class SInitCritSect {
   BYTE       m_critsectData[0x18];
 
  public:
-  int  Enter();
+  BOOL Enter();
   void Leave();
 };
 
@@ -827,8 +827,8 @@ class SEvent : public SSyncObject {
   ~SEvent() {
   }
   SEvent &operator=(const SEvent &rhs);
-  int     Set();
-  int     Reset();
+  BOOL    Set();
+  BOOL    Reset();
 };
 
 class SSemaphore : public SSyncObject {
@@ -837,7 +837,7 @@ class SSemaphore : public SSyncObject {
   ~SSemaphore() {
   }
   SSemaphore &operator=(const SSemaphore &rhs);
-  int         Signal(UINT count);
+  BOOL        Signal(UINT count);
 };
 
 class SMutex : public SSyncObject {
@@ -867,8 +867,8 @@ class SThread : public SSyncObject {
   ~SThread() {
   }
 
-  SThread   &operator=(const SThread &rhs);
-  static int Create(STHREADPROC proc, LPVOID param, SThread &thread, char *name);
+  SThread    &operator=(const SThread &rhs);
+  static BOOL Create(STHREADPROC proc, LPVOID param, SThread &thread, char *name);
 };
 
 LPVOID SCreateThread(DWORD stackSize, STHREADPROC proc, LPVOID param, DWORD flags, UINT *threadId, char *name);
@@ -923,10 +923,10 @@ void  OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME *localFil
 void  OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime);
 void  OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime);
 void  OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime);
-int   OsDirectoryExists(LPCSTR dirName);
+BOOL  OsDirectoryExists(LPCSTR dirName);
 DWORD OsGetFileAttributes(LPCSTR fileName);
 void  OsSystemObjectCreate(LPCSTR name);
-int   OsSystemObjectExists(LPCSTR name);
+BOOL  OsSystemObjectExists(LPCSTR name);
 
 // --------------------------------
 // Directory functions
@@ -1227,10 +1227,10 @@ class CSRgn {
   void   GetRectsi(DWORD *numrects, RECT *buffer);
   void   GetRectParamsf(const RECTF *rect, DWORD *numparams, LPVOID *buffer);
   void   GetRectParamsi(const RECT *rect, DWORD *numparams, LPVOID *buffer);
-  int    IsPointInRegionf(float x, float y);
-  int    IsPointInRegioni(int x, int y);
-  int    IsRectInRegionf(const RECTF *rect);
-  int    IsRectInRegioni(const RECT *rect);
+  BOOL   IsPointInRegionf(float x, float y);
+  BOOL   IsPointInRegioni(int x, int y);
+  BOOL   IsRectInRegionf(const RECTF *rect);
+  BOOL   IsRectInRegioni(const RECT *rect);
   void   Offsetf(float xoffset, float yoffset);
   void   Offseti(int xoffset, int yoffset);
 };

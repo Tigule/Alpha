@@ -32,7 +32,7 @@ void ClntObjMgrShowObject(DWORDLONG guid);
 static TInstanceAllocator<CORPSEANIMDATA> s_freeAnimData(20);
 static const char                         NONAME[7] = "NoName";
 
-static int DrownAnimCallback(LPVOID param) {
+static BOOL DrownAnimCallback(LPVOID param) {
   CORPSEANIMDATA *animData = static_cast<CORPSEANIMDATA *>(param);
   CGObject_C     *object = ClntObjMgrObjectPtr(animData->guid, __FILE__, __LINE__);
   if (object) {
@@ -108,7 +108,7 @@ void CGCorpse_C::Reenable() {
   DoFade(255, 0);
 }
 
-int CGCorpse_C::SetBlock(UINT i, DWORD data) {
+BOOL CGCorpse_C::SetBlock(UINT i, DWORD data) {
   if (i < OffsetOf(ID_CORPSE)) {
     return CGObject_C::SetBlock(i, data);
   }
@@ -151,12 +151,12 @@ LPCSTR CGCorpse_C::GetModelFileName() const {
   return modelData->m_ModelName;
 }
 
-int CGCorpse_C::ShouldRender(DWORD worldStatus) {
+BOOL CGCorpse_C::ShouldRender(DWORD worldStatus) {
   if (m_texComponent && !reinterpret_cast<CTexComponent *>(m_texComponent)->CheckSections(0)) {
     worldStatus &= ~1u;
   }
 
-  int shouldRender = CGObject_C::ShouldRender(worldStatus);
+  BOOL shouldRender = CGObject_C::ShouldRender(worldStatus);
   if (m_texComponent && shouldRender) {
     CommitTexture(0);
   }
@@ -178,7 +178,7 @@ void CGCorpse_C::InitPreferredGeosets() {
   m_preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_hairStyleID);
 
   BEARDSTYLEDATA beardStyleData;
-  int            hasFacialInfo = CharCustomizationGetBeardStyle(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, &beardStyleData);
+  BOOL           hasFacialInfo = CharCustomizationGetBeardStyle(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, &beardStyleData);
   m_preferredGeosets[CHARGEOSET_EAR] = 2;
   if (hasFacialInfo) {
     m_preferredGeosets[CHARGEOSET_BEARD] = beardStyleData.beardGeoset;
@@ -218,7 +218,7 @@ void CGCorpse_C::InitComponents() {
   );
 
   BEARDSTYLEDATA facialData;
-  int            hasFacialData = CharCustomizationGetBeardStyle(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, &facialData);
+  BOOL           hasFacialData = CharCustomizationGetBeardStyle(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, &facialData);
 
   m_geosetHandle = CharCustomizationCreateGeosetHandle(model);
   FATALASSERT(m_geosetHandle);

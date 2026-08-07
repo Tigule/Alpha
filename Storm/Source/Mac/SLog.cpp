@@ -92,7 +92,7 @@ static void UnlockLog(int bucket) {
   }
 }
 
-static int OpenLogFile(LOGRECORD *record) {
+static BOOL OpenLogFile(LOGRECORD *record) {
   LPCSTR filename = record->filename;
   char   combined[0x100];
 

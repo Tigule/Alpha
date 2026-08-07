@@ -52,7 +52,7 @@ static HOSFILE        s_osFile;
 static SYSMSGCALLBACK s_callback;
 
 static void GenerateMaskString(char *buffer, UINT size, UINT maskString);
-static int  DetermineFileName(LPCSTR curDir, char *buffer, UINT size);
+static BOOL DetermineFileName(LPCSTR curDir, char *buffer, UINT size);
 
 void MSGBUFFER::SetInfo(LPCSTR newString, SYSMSG_TYPE newSeverity, UINT categories) {
   FREEIFUSED(string);
@@ -80,7 +80,7 @@ static void GenerateMaskString(char *buffer, UINT size, UINT maskString) {
   );
 }
 
-static int DetermineFileName(LPCSTR curDir, char *buffer, UINT size) {
+static BOOL DetermineFileName(LPCSTR curDir, char *buffer, UINT size) {
   UINT index;
 
   for (index = 0; index < 1000; ++index) {
@@ -95,7 +95,7 @@ static int DetermineFileName(LPCSTR curDir, char *buffer, UINT size) {
   return 0;
 }
 
-int SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask) {
+BOOL SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask) {
   char string[512];
   char maskString[32] = "";
 
@@ -119,7 +119,7 @@ int SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask) {
   return 1;
 }
 
-int SysMsgAdd(const CStatus &status, UINT categoryMask) {
+BOOL SysMsgAdd(const CStatus &status, UINT categoryMask) {
   char *msg;
   int   result;
 

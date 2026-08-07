@@ -38,7 +38,7 @@ enum EXECMODE {
   EM_NUM_EXECMODES = 5
 };
 
-typedef int (*CONSOLECOMMANDHANDLER)(LPCSTR command, LPCSTR arguments);
+typedef BOOL (*CONSOLECOMMANDHANDLER)(LPCSTR command, LPCSTR arguments);
 
 struct CONSOLECOMMAND : public TSHashObject<CONSOLECOMMAND, HASHKEY_CONSTSTRI> {
   CONSOLECOMMAND() : m_helpText(0) {
@@ -56,7 +56,7 @@ extern char                                           g_commandHistory[32][80];
 extern CONSOLECOMMANDHANDLER                          g_defaultCommand;
 extern TSHashTable<CONSOLECOMMAND, HASHKEY_CONSTSTRI> g_consoleCommandHash;
 
-int  AddLineToExecFile(LPCSTR currentLine);
+BOOL AddLineToExecFile(LPCSTR currentLine);
 void AddToHistory(LPCSTR command);
 
 CONSOLECOMMAND *ParseCommand(LPCSTR commandLine, LPCSTR *command, LPCSTR *arguments);
@@ -64,9 +64,9 @@ CONSOLECOMMAND *ParseCommand(LPCSTR commandLine, LPCSTR *command, LPCSTR *argume
 void   ConsoleCommandExecute(LPCSTR commandLine, int addToHistory);
 UINT   ConsoleCommandHistoryDepth();
 LPCSTR ConsoleCommandHistory(UINT offset);
-int    ConsoleCommandRegister(LPCSTR command, CONSOLECOMMANDHANDLER handler, CATEGORY category, LPCSTR helpText);
+BOOL   ConsoleCommandRegister(LPCSTR command, CONSOLECOMMANDHANDLER handler, CATEGORY category, LPCSTR helpText);
 void   ConsoleCommandUnregister(LPCSTR command);
-int    ConsoleCommandComplete(LPCSTR partial, LPCSTR *previous, int direction);
+BOOL   ConsoleCommandComplete(LPCSTR partial, LPCSTR *previous, int direction);
 void   ConsoleCommandWriteHelp(LPCSTR cmd);
 void   ConsoleCommandRegisterDefault(CONSOLECOMMANDHANDLER handler);
 void   ConsoleCommandInitialize();

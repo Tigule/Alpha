@@ -11,7 +11,7 @@ enum {
   MAX_HEAPS = 32
 };
 
-int CCommand_HeapUsage(LPCSTR command, LPCSTR arguments);
+BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments);
 
 class CObjectHeap {
  public:
@@ -21,12 +21,12 @@ class CObjectHeap {
   CObjectHeap(const CObjectHeap &heap);
   ~CObjectHeap();
 
-  int    Allocate(UINT objSize, UINT heapObjects);
-  int    New(UINT objSize, UINT heapObjects, UINT *index);
+  BOOL   Allocate(UINT objSize, UINT heapObjects);
+  BOOL   New(UINT objSize, UINT heapObjects, UINT *index);
   void   Delete(UINT index, UINT objSize, UINT heapObjects);
   LPVOID Ptr(UINT index, UINT objSize, UINT heapObjects);
   UINT   BlocksAllocated() const;
-  int    IsFull(UINT heapObjects) const;
+  BOOL   IsFull(UINT heapObjects) const;
 
  private:
   CObjectHeap &operator=(const CObjectHeap &heap);
@@ -50,7 +50,7 @@ class CObjectHeapList {
   UINT   GetObjectsPerBlock() const;
   UINT   GetHeapBytes() const;
   UINT   GetBytesAllocated() const;
-  int    New(UINT *index);
+  BOOL   New(UINT *index);
   LPVOID Ptr(UINT index);
   void   Delete(UINT index);
   UINT   HeapsAvailable() const;
@@ -60,10 +60,10 @@ class CObjectHeapList {
   LPCSTR GetName() const;
 
  private:
-  friend int  CCommand_HeapUsage(LPCSTR command, LPCSTR arguments);
+  friend BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments);
   friend UINT ObjectAllocAddHeap(UINT objectSize, UINT objsPerBlock, LPCSTR name);
 
-  int IsHeapFull(UINT heap) const;
+  BOOL IsHeapFull(UINT heap) const;
 
   TSGrowableArray<CObjectHeap> m_heaps;
   UINT                         m_objSize;
@@ -100,7 +100,7 @@ CObjectHeap &CObjectHeap::operator=(const CObjectHeap &heap) {
   return *this;
 }
 
-int CObjectHeap::Allocate(UINT objSize, UINT heapObjects) {
+BOOL CObjectHeap::Allocate(UINT objSize, UINT heapObjects) {
   UINT index;
 
   ASSERT(m_obj == 0);
@@ -117,7 +117,7 @@ int CObjectHeap::Allocate(UINT objSize, UINT heapObjects) {
   return m_obj != 0;
 }
 
-int CObjectHeapList::New(UINT *index) {
+BOOL CObjectHeapList::New(UINT *index) {
   UINT         heapIndex;
   CObjectHeap *heap;
 
@@ -183,7 +183,7 @@ LPVOID CObjectHeapList::Ptr(UINT index) {
   return m_heaps[heap].Ptr(object, m_objSize, m_objsPerBlock);
 }
 
-int CObjectHeap::New(UINT objSize, UINT heapObjects, UINT *index) {
+BOOL CObjectHeap::New(UINT objSize, UINT heapObjects, UINT *index) {
   ASSERT(index);
   ASSERT(m_obj != 0);
 
@@ -216,7 +216,7 @@ LPVOID CObjectHeap::Ptr(UINT index, UINT objSize, UINT heapObjects) {
   return static_cast<char *>(m_obj) + objSize * index;
 }
 
-int CCommand_HeapUsage(LPCSTR command, LPCSTR arguments) {
+BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments) {
   OBJALLOCGLOBALS *globals = &s_globals;
   UINT             numHeaps;
   UINT             totalBytes = 0;
@@ -281,7 +281,7 @@ UINT ObjectAllocUsage(UINT heapId) {
   return usage;
 }
 
-int ObjectAlloc(UINT heapId, UINT *memHandle) {
+BOOL ObjectAlloc(UINT heapId, UINT *memHandle) {
   OBJALLOCGLOBALS *globals = &s_globals;
   UINT             index;
 

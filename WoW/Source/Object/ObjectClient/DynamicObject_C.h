@@ -79,7 +79,7 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
   }
   virtual void                    Disable(int shutdown);
   virtual void                    Reenable();
-  int                             SetBlock(UINT i, DWORD data);
+  BOOL                            SetBlock(UINT i, DWORD data);
   void                            SetData(LPCVOID data, UINT bytes);
   static UINT                     OffsetOf(OBJECT_TYPE_ID type);
   const SpellVisualEffectNameRec *GetVisualEffectNameRec() const;
@@ -98,10 +98,10 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
   virtual float GetScale() const {
     return m_dynamicScale;
   }
-  virtual int UpdateModelLoadStatus();
-  void        UpdateDisplay(DWORD displayID);
-  void        ObjectVisKitProc();
-  void        ClearSound();
+  virtual BOOL UpdateModelLoadStatus();
+  void         UpdateDisplay(DWORD displayID);
+  void         ObjectVisKitProc();
+  void         ClearSound();
 
  private:
   CGDynamicObject_C &operator=(const CGDynamicObject_C &);

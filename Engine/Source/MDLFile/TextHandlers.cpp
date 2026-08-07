@@ -9,52 +9,52 @@
 
 namespace MDL {
 
-  typedef int (*TEXTHANDLER)(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  typedef BOOL (*TEXTHANDLER)(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
 
-  int ReadVersion(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadModelGlobals(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadSequences(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadGlobalSequences(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadTextureAnims(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadTextures(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadMaterials(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadGeoset(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadGeosetAnim(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadBone(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadLight(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadHelper(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadAttachment(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadPivotPoints(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadParticleEmitter(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadParticleEmitter2(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadCamera(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadEventObject(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadHitTest(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadRibbonEmitter(Parser &, MDLDATA &, CMDLStatus *);
-  int ReadCollision(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadVersion(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadModelGlobals(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadSequences(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadGlobalSequences(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadTextureAnims(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadTextures(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadMaterials(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadGeoset(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadGeosetAnim(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadBone(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadLight(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadHelper(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadAttachment(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadPivotPoints(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadParticleEmitter(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadParticleEmitter2(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadCamera(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadEventObject(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadHitTest(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadRibbonEmitter(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL ReadCollision(Parser &, MDLDATA &, CMDLStatus *);
 
-  int WriteHeaderComment(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteVersion(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteModelGlobals(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteSequences(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteGlobalSequences(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteTextures(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteMaterials(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteTextureAnims(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteGeosets(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteGeosetAnims(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteBones(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteLights(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteHelpers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteAttachments(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WritePivotPoints(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteParticleEmitters(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteParticleEmitters2(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteRibbonEmitters(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteCameras(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteEventObjects(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteHitTests(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int WriteCollision(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteHeaderComment(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteVersion(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteModelGlobals(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteSequences(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteGlobalSequences(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteTextures(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteMaterials(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteTextureAnims(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteGeosets(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteGeosetAnims(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteBones(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteLights(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteHelpers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteAttachments(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WritePivotPoints(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteParticleEmitters(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteParticleEmitters2(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteRibbonEmitters(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteCameras(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteEventObjects(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteHitTests(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL WriteCollision(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
 
   static TEXTHANDLER s_handlers[22] = {WriteHeaderComment,     WriteVersion,        WriteModelGlobals, WriteSequences,
                                        WriteGlobalSequences,   WriteTextures,       WriteMaterials,    WriteTextureAnims,
@@ -130,7 +130,7 @@ namespace MDL {
     return 0;
   }
 
-  int CallTextWriteHandlers(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *status) {
+  BOOL CallTextWriteHandlers(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *status) {
     for (UINT i = 0; i < 22; ++i) {
       if (!s_handlers[i](data, buffer, status)) {
         return 0;

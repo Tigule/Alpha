@@ -32,7 +32,7 @@ static void UpdateTime() {
   ConsoleWrite(buffer, DEFAULT_COLOR);
 }
 
-int CCommand_ShowLocalGameTime(LPCSTR, LPCSTR) {
+BOOL CCommand_ShowLocalGameTime(LPCSTR, LPCSTR) {
   char buffer[128];
 
   SStrPrintf(buffer, sizeof(buffer), "Current game time is %02d:%02d", g_clientGameTime.m_hour, g_clientGameTime.m_minute);
@@ -40,7 +40,7 @@ int CCommand_ShowLocalGameTime(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CCommand_ShowServerGameTime(LPCSTR, LPCSTR) {
+BOOL CCommand_ShowServerGameTime(LPCSTR, LPCSTR) {
   CDataStore message;
 
   message.Put(CMSG_SERVERTIME);
@@ -49,7 +49,7 @@ int CCommand_ShowServerGameTime(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CCommand_GameTime(LPCSTR, LPCSTR time) {
+BOOL CCommand_GameTime(LPCSTR, LPCSTR time) {
   UINT   hour = SStrToInt(time);
   LPCSTR minuteText = SStrChr(time, ' ');
   UINT   minute;
@@ -84,7 +84,7 @@ int CCommand_GameTime(LPCSTR, LPCSTR time) {
   return 1;
 }
 
-int CCommand_LocalTime(LPCSTR, LPCSTR time) {
+BOOL CCommand_LocalTime(LPCSTR, LPCSTR time) {
   UINT   hour = SStrToInt(time);
   LPCSTR minuteText = SStrChr(time, ' ');
   UINT   minute;
@@ -109,7 +109,7 @@ int CCommand_LocalTime(LPCSTR, LPCSTR time) {
   return 1;
 }
 
-int CCommand_SpawnTime(LPCSTR, LPCSTR time) {
+BOOL CCommand_SpawnTime(LPCSTR, LPCSTR time) {
   UINT   hour = SStrToInt(time);
   LPCSTR minuteText = SStrChr(time, ' ');
   UINT   minute;
@@ -131,7 +131,7 @@ int CCommand_SpawnTime(LPCSTR, LPCSTR time) {
   return 1;
 }
 
-int CCommand_GameSpeed(LPCSTR, LPCSTR speed) {
+BOOL CCommand_GameSpeed(LPCSTR, LPCSTR speed) {
   CDataStore message;
 
   message.Put(CMSG_GAMESPEED_SET);
@@ -141,7 +141,7 @@ int CCommand_GameSpeed(LPCSTR, LPCSTR speed) {
   return 1;
 }
 
-int ReceiveNewGameSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+BOOL ReceiveNewGameSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   float newSpeed;
   msg->Get(newSpeed);
 
@@ -157,7 +157,7 @@ int ReceiveNewGameSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int ReceiveNewTimeSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+BOOL ReceiveNewTimeSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   UINT  gameTime;
   float newSpeed;
   msg->Get(gameTime);
@@ -177,7 +177,7 @@ int ReceiveNewTimeSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int ReceiveGameTimeUpdate(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+BOOL ReceiveGameTimeUpdate(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   UINT gameTime;
   msg->Get(gameTime);
 
@@ -190,7 +190,7 @@ int ReceiveGameTimeUpdate(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int ReceiveServerTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+BOOL ReceiveServerTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   UINT gameTime;
   msg->Get(gameTime);
 
@@ -208,7 +208,7 @@ int ReceiveServerTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int ReceiveNewGameTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+BOOL ReceiveNewGameTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   UINT gameTime;
   msg->Get(gameTime);
 
@@ -222,7 +222,7 @@ int ReceiveNewGameTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int ClientGameTimeTickHandler(LPCVOID data, LPVOID) {
+BOOL ClientGameTimeTickHandler(LPCVOID data, LPVOID) {
   FATALASSERT(data);
   g_clientGameTime.GameTimeUpdate(*static_cast<const float *>(data));
   return 1;

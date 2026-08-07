@@ -296,8 +296,8 @@ class CMapStaticEntity : public CMapBaseObj {
   virtual void QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup) = 0;
 
   void AdjustLightmap(const NTempest::CImVector &lmColor, NTempest::CImVector &dirColor, BYTE minDir, NTempest::CImVector &ambColor, BYTE maxAmbient);
-  int  GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapObj, CMapObjDefGroup *&mapObjDefGroup, CMapObjGroup *&mapObjGroup);
-  int  GetMapObjDef(CMapObjDef *&mapObjDef);
+  BOOL GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapObj, CMapObjDefGroup *&mapObjDefGroup, CMapObjGroup *&mapObjGroup);
+  BOOL GetMapObjDef(CMapObjDef *&mapObjDef);
   void FindLights();
   void CreateCacheLight(CMapLight *light);
 
@@ -585,7 +585,7 @@ class CMapChunk : public CMapBaseObj {
   NTempest::C2iVector sOffset;
   NTempest::C2iVector cOffset;
   float               freeTime;
-  int                 bLoaded;
+  BOOL                bLoaded;
   CChunkLayer        *layerList[4];
   UINT                nLayers;
   CChunkTex          *shadowTexture;

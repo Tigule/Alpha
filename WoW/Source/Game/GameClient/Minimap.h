@@ -68,7 +68,7 @@ struct PARTYMEMBERINFO {
 
 int  MinimapInitialize(int continentID);
 void MinimapShutdown();
-int  MinimapUpdate(
+BOOL MinimapUpdate(
     DWORD                     hWorldObject,
     UINT                      continent,
     const NTempest::C3Vector &pos,
@@ -82,7 +82,7 @@ UINT                                       MinimapGetZoom();
 UINT                                       MinimapGetZoomLevels();
 float                                      MinimapGetViewRadius();
 const TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI);
-int                                        MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData);
+BOOL                                       MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData);
 float                                      MinimapGetWorldRadius();
 void                                       MinimapSetQuestPOI(float x, float y, int priority, LPCSTR name);
 void                                       MinimapGetPartyMembers(PARTYMEMBERINFO *array);

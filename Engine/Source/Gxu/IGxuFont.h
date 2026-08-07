@@ -98,7 +98,7 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
   UINT GapToNextTexture() const;
   UINT GapToPreviousTexture() const;
 
-  int ValidBlockEndPoints() const {
+  BOOL ValidBlockEndPoints() const {
     return glyphStartPixel <= glyphEndPixel;
   }
 
@@ -193,7 +193,7 @@ struct TEXTURECACHE {
     m_textureRows.Clear();
   }
 
-  int                           m_anyDirtyGlyphs;
+  BOOL                          m_anyDirtyGlyphs;
   LPVOID                        m_data;
   CGxTex                       *m_texture;
   CGxFont                      *m_theFace;
@@ -339,7 +339,7 @@ NODEDECL(CGxString) {
   int  SetGradient(int startCharacter, int length, const TSGrowableArray<NTempest::CImVector *> &array, BYTE alpha);
   void SetColor(const NTempest::CImVector &color);
   void SetStringPosition(const NTempest::C3Vector &position);
-  int  IsBillboarded() const {
+  BOOL IsBillboarded() const {
     return (m_flags & 0x80) != 0;
   }
   float GetStringHeight() const {
@@ -396,7 +396,7 @@ NODEDECL(CGxString) {
   UINT                                   m_flags;
   NTempest::C2Vector                     m_viewportOffset;
   UINT                                   m_texturePagesUsed;
-  int                                    m_textureEvicted;
+  BOOL                                   m_textureEvicted;
   float                                  m_stringHeight;
   float                                  m_savedWidth;
   TSGrowableArray<GXUFONTHYPERLINKINFO>  m_hyperlinkInfo;
@@ -493,7 +493,7 @@ void       CalcWrapPoint(
     LPCSTR  *pNextText,
     UINT     flags
 );
-int IGxuFontGlyphRenderGlyph(FT_FaceRec_ *face, UINT pixelHeight, UINT code, UINT baseLine, GLYPHDATA *dataPtr, int noHinting, int monochrome);
+BOOL IGxuFontGlyphRenderGlyph(FT_FaceRec_ *face, UINT pixelHeight, UINT code, UINT baseLine, GLYPHDATA *dataPtr, int noHinting, int monochrome);
 
 void GxuFontInitialize();
 void GxuFontShutdown();
@@ -540,12 +540,12 @@ int   GxuFontRenderString(
 );
 
 CGxStringBatch *GxuFontCreateBatch();
-int             GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string);
-int             GxuFontRemoveFromBatch(CGxString *string);
-int             GxuFontRenderBatch(CGxStringBatch *batch);
-int             GxuFontClearBatch(CGxStringBatch *batch);
-int             GxuFontDestroyBatch(CGxStringBatch *batch);
-int             GxuFontAddToInternalBatch(CGxString *string);
+BOOL            GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string);
+BOOL            GxuFontRemoveFromBatch(CGxString *string);
+BOOL            GxuFontRenderBatch(CGxStringBatch *batch);
+BOOL            GxuFontClearBatch(CGxStringBatch *batch);
+BOOL            GxuFontDestroyBatch(CGxStringBatch *batch);
+BOOL            GxuFontAddToInternalBatch(CGxString *string);
 void            GxuFontRenderInternalBatch();
 
 void GxuFontGetTextExtent(CGxFont *face, LPCSTR text, UINT numBytes, float height, float *extent, float charSpacing, UINT flags);
@@ -582,15 +582,15 @@ UINT GxuFontGetMaxCharsWithinWidthFromEnd(
 );
 LPCSTR
 GxuFontStripEscapeCodes(LPCSTR inputString, UINT numBytes, UINT flags, char *buffer, UINT bufferSize);
-int        GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *color);
-int        GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVector &color);
+BOOL       GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *color);
+BOOL       GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVector &color);
 int        GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor);
 void       GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos);
 void       GxuFontSetCharSpacing(CGxString *string, float spacing);
 void       GxuFontRemoveShadow(CGxString *string);
 CGxString *GxuFontDuplicateString(const CGxString *rhs);
-int        GxuFontGetStringWidth(CGxString *string, float *width);
-int        GxuFontGetStringHeight(CGxString *string, float *height);
+BOOL       GxuFontGetStringWidth(CGxString *string, float *width);
+BOOL       GxuFontGetStringHeight(CGxString *string, float *height);
 
 void IGxuStringInitialize();
 void IGxuStringShutdown();

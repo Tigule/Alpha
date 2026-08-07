@@ -36,19 +36,19 @@ class CInputObserver : public CObserver {
 
  private:
   static CInputObserver *GetInputObserver();
-  static int             OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param);
-  static int             OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param);
-  static int             OnKeyRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param);
-  static int             OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param);
-  static int             OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int             OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int             OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int             OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int             OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int             OnMouseModeChanged(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int             OnIme(const EVENT_DATA_IME *pImeData, LPVOID param);
-  static int             OnWindowSize(const EVENT_DATA_SIZE *pSizeData, LPVOID param);
-  static int             OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, LPVOID param);
+  static BOOL            OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param);
+  static BOOL            OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param);
+  static BOOL            OnKeyRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param);
+  static BOOL            OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param);
+  static BOOL            OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL            OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL            OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL            OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL            OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL            OnMouseModeChanged(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL            OnIme(const EVENT_DATA_IME *pImeData, LPVOID param);
+  static BOOL            OnWindowSize(const EVENT_DATA_SIZE *pSizeData, LPVOID param);
+  static BOOL            OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, LPVOID param);
 };
 
 #endif

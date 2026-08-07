@@ -22,7 +22,7 @@ namespace MDL {
     errors.Add(0x188, 0, 0);
   }
 
-  static int IllegalStaticToken(UINT token) {
+  static BOOL IllegalStaticToken(UINT token) {
     switch (token) {
       case 0x11F:
       case 0x120:
@@ -92,7 +92,7 @@ namespace MDL {
     parse.Expect(',');
   }
 
-  static int IReadLightProperties(Parser &parse, UINT savedToken, MDLLIGHTSECTION *light, UINT) {
+  static BOOL IReadLightProperties(Parser &parse, UINT savedToken, MDLLIGHTSECTION *light, UINT) {
     switch (savedToken) {
       case 0x121:
         light->type = LIGHTTYPE_AMBIENT;
@@ -134,7 +134,7 @@ namespace MDL {
     parse.Expect('}', token, tokenText);
   }
 
-  int ReadLight(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadLight(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     FATALASSERT(status);
     TSet                errors;
     MDLLIGHTSECTION    *light = data.lights.New();
@@ -200,7 +200,7 @@ namespace MDL {
     WriteObjectTrailer(section, buffer);
   }
 
-  int WriteLights(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteLights(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
       for (UINT i = 0; i < data.lights.Count(); ++i) {
         IWriteLightSection(data, data.lights.Ptr()[i], data.lights.Count() != data.objects.Count(), buffer);
@@ -279,7 +279,7 @@ namespace MDL {
     WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buffer);
   }
 
-  int WriteBinLights(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
+  BOOL WriteBinLights(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.lights.Count()) {
       buf.AddDword('ETIL');
       UINT totalSize = 4;
@@ -296,7 +296,7 @@ namespace MDL {
     return 1;
   }
 
-  static int ReadBinLight(CMsgBuffer &buffer, MDLLIGHTSECTION *light, CMDLStatus *status, UINT &totalRead, UINT version) {
+  static BOOL ReadBinLight(CMsgBuffer &buffer, MDLLIGHTSECTION *light, CMDLStatus *status, UINT &totalRead, UINT version) {
     UINT sectionLength = buffer.GetUint();
     UINT localRead = 4;
     if (!ReadBinGenObject(*light, buffer, status, localRead)) {
@@ -365,7 +365,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinLights(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinLights(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT numLights = buf.GetUint();
     UINT totalRead = 4;
     data.lights.SetCount(0);

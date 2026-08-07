@@ -6,7 +6,7 @@
 
 #include <storm.h>
 
-int StringToFramePoint(LPCSTR string, FRAMEPOINT &point) {
+BOOL StringToFramePoint(LPCSTR string, FRAMEPOINT &point) {
   struct FRAMEPOINTNAME {
     FRAMEPOINT point;
     LPCSTR     name;
@@ -35,7 +35,7 @@ int StringToFramePoint(LPCSTR string, FRAMEPOINT &point) {
   return 0;
 }
 
-int StringToDrawLayer(LPCSTR string, UINT &drawLayer) {
+BOOL StringToDrawLayer(LPCSTR string, UINT &drawLayer) {
   struct DRAWLAYERNAME {
     UINT   drawLayer;
     LPCSTR name;
@@ -60,7 +60,7 @@ int StringToDrawLayer(LPCSTR string, UINT &drawLayer) {
   return 0;
 }
 
-int StringToBlendMode(LPCSTR string, EGxBlend &blendMode) {
+BOOL StringToBlendMode(LPCSTR string, EGxBlend &blendMode) {
   struct BLENDMODENAME {
     EGxBlend blendMode;
     LPCSTR   name;
@@ -84,7 +84,7 @@ int StringToBlendMode(LPCSTR string, EGxBlend &blendMode) {
   return 0;
 }
 
-int StringToJustify(LPCSTR string, UINT &justify) {
+BOOL StringToJustify(LPCSTR string, UINT &justify) {
   struct JUSTIFYNAME {
     UINT   justify;
     LPCSTR name;
@@ -110,7 +110,7 @@ int StringToJustify(LPCSTR string, UINT &justify) {
   return 0;
 }
 
-int StringToBOOL(LPCSTR string) {
+BOOL StringToBOOL(LPCSTR string) {
   if (string && !SStrCmpI(string, "true", 0x7FFFFFFF)) {
     return 1;
   }
@@ -122,7 +122,7 @@ int StringToBOOL(LPCSTR string) {
   return 0;
 }
 
-int LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
+BOOL LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
   const XMLNode *child;
   LPCSTR         attribute;
 
@@ -156,7 +156,7 @@ int LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
   return 0;
 }
 
-int LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatus *status) {
+BOOL LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatus *status) {
   const XMLNode *child;
   LPCSTR         value;
 
@@ -201,7 +201,7 @@ int LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatus
   return 0;
 }
 
-int LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, float &bottom, CStatus *status) {
+BOOL LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, float &bottom, CStatus *status) {
   const XMLNode *child;
   LPCSTR         attribute;
 

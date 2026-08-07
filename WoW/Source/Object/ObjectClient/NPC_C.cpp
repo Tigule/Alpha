@@ -18,7 +18,7 @@ static BYTE      s_numQuestsOffered;
 static DWORDLONG s_npcGUID;
 static int       s_pendingNPCQuest;
 
-static int NPCResponseHandler(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+static BOOL NPCResponseHandler(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   DWORDLONG npcGUID;
   msg->Get(npcGUID);
   if (!npcGUID) {

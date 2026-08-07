@@ -87,12 +87,12 @@ static void ItemQueryCallback(int id, const DWORDLONG &guid, LPVOID, bool grante
   }
 }
 
-static int QuestLogUpdateHandler(DWORDLONG, UINT offset, UINT bytes, LPCVOID, LPVOID) {
+static BOOL QuestLogUpdateHandler(DWORDLONG, UINT offset, UINT bytes, LPCVOID, LPVOID) {
   CGQuestLog::Update(1);
   return 1;
 }
 
-static int OnQueryTimeResponse(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnQueryTimeResponse(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   int currentServerTime;
   msg->Get(currentServerTime);
   CGQuestLog::UpdateServerTime(currentServerTime);
@@ -468,12 +468,12 @@ int CGQuestLog::GetQuestItemID(LPCSTR type, int index) {
   return 0;
 }
 
-int CGQuestLog::IsSelectedQuestExpired() {
+BOOL CGQuestLog::IsSelectedQuestExpired() {
   int index = GetSelectionIndex();
   return index >= 0 && (m_expiredQuests & (1 << index));
 }
 
-int CGQuestLog::IsQuestExpired(UINT index) {
+BOOL CGQuestLog::IsQuestExpired(UINT index) {
   return index < m_numQuests && (m_expiredQuests & (1 << index));
 }
 

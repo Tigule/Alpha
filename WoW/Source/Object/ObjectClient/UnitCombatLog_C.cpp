@@ -284,7 +284,7 @@ static bool ShouldLogAttacker(
   return (s_activePlayer->GetPosition() - unitPtr->GetPosition()).SquaredMag() <= dist * dist;
 }
 
-static int ShouldLog(
+static BOOL ShouldLog(
     DWORDLONG        object,
     UNITAFFILIATION &aAff,
     CGObject_C     *&objectPtr,
@@ -638,12 +638,12 @@ static void WriteMessage(LPCSTR message) {
 
 void UnitCombatDebugLogEnable(int enable);
 
-static int CCommand_PlayerCombatLogDebug(LPCSTR, LPCSTR arguments) {
+static BOOL CCommand_PlayerCombatLogDebug(LPCSTR, LPCSTR arguments) {
   UnitCombatDebugLogEnable(arguments && SStrToInt(arguments));
   return 1;
 }
 
-static int DebugCombatLogHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL DebugCombatLogHandler(LPCSTR command, LPCSTR arguments) {
   UnitCombatDebugLogEnable(arguments && SStrToInt(arguments));
   return 1;
 }

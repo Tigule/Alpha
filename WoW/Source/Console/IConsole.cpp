@@ -10,7 +10,7 @@ UINT     g_commandHistoryIndex;
 char     g_ExecBuffer[0x2000];
 EXECMODE g_ExecCreateMode = EM_NOTACTIVE;
 
-int AddLineToExecFile(LPCSTR currentLine) {
+BOOL AddLineToExecFile(LPCSTR currentLine) {
   char stringToWrite[0x104];
   int  spaceRemaining;
 

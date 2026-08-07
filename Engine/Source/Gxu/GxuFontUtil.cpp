@@ -188,7 +188,7 @@ invalidQuotedCode:
   return CODE_INVALIDCODE;
 }
 
-static int CanWrapBetween(UINT lastChar, UINT wideChar, UINT flags) {
+static BOOL CanWrapBetween(UINT lastChar, UINT wideChar, UINT flags) {
   int value;
 
   if (!lastChar) {
@@ -1602,7 +1602,7 @@ void CGxFont::RegisterEvictNotice(UINT pageNumber) {
   }
 }
 
-int CGxFont::CheckStringGlyphs(LPCSTR string) {
+BOOL CGxFont::CheckStringGlyphs(LPCSTR string) {
   while (*string) {
     if (*string != '\n' && !m_activeCharacters.Ptr(static_cast<signed char>(*string), s_nullHashKey)) {
       return 0;
@@ -1727,7 +1727,7 @@ const CHARCODEDESC *CGxFont::NewCodeDesc(UINT code) {
   return desc;
 }
 
-int CGxFont::GetGlyphData(GLYPHBITMAPDATA *glyphData, FT_Face face, UINT code) {
+BOOL CGxFont::GetGlyphData(GLYPHBITMAPDATA *glyphData, FT_Face face, UINT code) {
   ASSERT(face);
   ASSERT(glyphData);
 
@@ -2067,7 +2067,7 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC *&desc) {
 }
 
 CHARCODEDESC *TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA *data, UINT rowNumber, UINT glyphCellHeight) {
-  int           inserted;
+  BOOL          inserted;
   UINT          glyphWidth = data->m_glyphCellWidth;
   CHARCODEDESC *next;
   CHARCODEDESC *current;

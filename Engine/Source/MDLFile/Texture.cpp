@@ -96,7 +96,7 @@ static void IWriteTexture(const MDLTEXTURESECTION &texture, TSGrowableArray<char
 
 namespace MDL {
 
-  int ReadTextures(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadTextures(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     UINT   savedtoken;
     LPCSTR tokentext;
     long   count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
@@ -123,7 +123,7 @@ namespace MDL {
     return !parse.FoundError();
   }
 
-  int WriteTextures(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteTextures(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     FATALASSERT(data.textures.Count() > 0 || data.bones.Count() == 0);
     if (data.textures.Count()) {
       WriteLine(buffer, "%s %d {\n", TokenText(0x108), data.textures.Count());
@@ -135,7 +135,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinTextures(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinTextures(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     FATALASSERT(status);
     if (length % 268) {
       status->Add(STATUS_ERROR, "Invalid TEXS section detected in model.\n");
@@ -152,7 +152,7 @@ namespace MDL {
     return 1;
   }
 
-  int WriteBinTextures(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
+  BOOL WriteBinTextures(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
     FATALASSERT(data.textures.Count() > 0 || data.bones.Count() == 0);
     if (data.textures.Count()) {
       buf.AddDword('SXET');

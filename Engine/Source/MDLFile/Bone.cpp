@@ -9,10 +9,10 @@
 namespace MDL {
   LPCSTR       TokenText(UINT token);
   void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...);
-  int          ReadBone(Parser &, MDLDATA &, CMDLStatus *);
-  int          WriteBones(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int          WriteBinBones(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
-  int          ReadBinBone(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL         ReadBone(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL         WriteBones(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL         WriteBinBones(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL         ReadBinBone(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
 }  // namespace MDL
 
 static void IAddBoneErrors(TSet &errors) {
@@ -35,7 +35,7 @@ static void IReadGeosetId(Parser &parse, UINT *geosetId) {
   *geosetId = token == 0x175 ? static_cast<UINT>(-1) : parse.ExpectInt(token, tokentext, &savedvalue);
 }
 
-int MDL::ReadBone(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+BOOL MDL::ReadBone(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   FATALASSERT(status);
   TSet                errors;
   MDLBONESECTION     *bone = data.bones.New();
@@ -88,7 +88,7 @@ static void IWriteBoneSection(const MDLDATA &data, const MDLBONESECTION &section
   WriteObjectTrailer(section, buffer);
 }
 
-int MDL::WriteBones(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+BOOL MDL::WriteBones(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
     int needObjIds = data.bones.Count() != data.objects.Count();
     for (UINT i = 0; i < data.bones.Count(); ++i) {
@@ -108,7 +108,7 @@ static void IWriteBinBoneSection(const MDLBONESECTION &section, CMsgBuffer &buf,
   buf.AddUint(section.geosetAnimId);
 }
 
-int MDL::WriteBinBones(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
+BOOL MDL::WriteBinBones(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
   if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.bones.Count()) {
     buf.AddDword('ENOB');
     UINT numBones = data.bones.Count();
@@ -126,7 +126,7 @@ int MDL::WriteBinBones(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status)
   return 1;
 }
 
-int MDL::ReadBinBone(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+BOOL MDL::ReadBinBone(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
   UINT numBones = buf.GetUint();
   UINT totalRead = 4;
   data.bones.SetCount(0);

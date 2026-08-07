@@ -25,7 +25,7 @@ class Parser {
   void   FatalExpected(LPCSTR expected, LPCSTR found);
   void   FatalEOF();
   void   WarningCount(LPCSTR item, long expected, long actual);
-  int    FoundError();
+  BOOL   FoundError();
   void   Expect(UINT what, UINT cachedToken, LPCSTR tokenText);
   void   Expect(UINT what);
   long   ExpectInt(UINT cachedToken, LPCSTR tokenText, UTokenData *cachedValue);
@@ -35,8 +35,8 @@ class Parser {
   LPCSTR ExpectString();
   long   GetOptionalInt(UINT cachedToken, UTokenData *cachedValue, UINT *token, LPCSTR *tokenText);
   long   GetOptionalInt(UINT *token, LPCSTR *tokenText, UTokenData *savedValue);
-  int    GetOptionalToken(UINT expected, UINT cachedToken, UINT *token, LPCSTR *tokenText);
-  int    GetOptionalToken(UINT expected, UINT *token, LPCSTR *tokenText);
+  BOOL   GetOptionalToken(UINT expected, UINT cachedToken, UINT *token, LPCSTR *tokenText);
+  BOOL   GetOptionalToken(UINT expected, UINT *token, LPCSTR *tokenText);
   UINT   Token(LPCSTR *tokenText, UTokenData *data);
   int    GetLineNumber();
 

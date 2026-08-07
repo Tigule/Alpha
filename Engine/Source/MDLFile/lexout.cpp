@@ -190,7 +190,7 @@ int mdl_scan::mdllex() {
     }
 
     if (isdigit(character) || character == '-' || character == '+' || (character == '.' && isdigit(static_cast<BYTE>(*mdlin)))) {
-      int isFloat = character == '.';
+      BOOL isFloat = character == '.';
       while (*mdlin) {
         int next = static_cast<BYTE>(*mdlin);
         if (!isdigit(next) && next != '.' && next != 'e' && next != 'E' && next != '-' && next != '+') {

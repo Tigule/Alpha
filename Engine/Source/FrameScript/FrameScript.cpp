@@ -142,7 +142,7 @@ void FrameScript_Object::EmptyScriptMethodTable(TSHashTable<FrameScriptObject_Va
   }
 }
 
-int FrameScript_Object::LookupScriptMethod(lua_State *state, LPCSTR name, TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable) {
+BOOL FrameScript_Object::LookupScriptMethod(lua_State *state, LPCSTR name, TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable) {
   FrameScriptObject_Variable *entry = methodTable.Ptr(name);
 
   if (!entry) {
@@ -172,7 +172,7 @@ int FrameScript_Object::LookupScriptMethod(lua_State *state) {
   return 1;
 }
 
-int FrameScript_Object::RegisterScriptEvent(LPCSTR name) {
+BOOL FrameScript_Object::RegisterScriptEvent(LPCSTR name) {
   UINT                     count;
   UINT                     index;
   FrameScript_EventObject *eventObject;
@@ -772,7 +772,7 @@ int FrameScript_ExecuteBuffer(LPVOID buffer, DWORD bytes, LPCSTR filename) {
   return 1;
 }
 
-int FrameScript_CompileFunction(LPCSTR source, LPCSTR description) {
+BOOL FrameScript_CompileFunction(LPCSTR source, LPCSTR description) {
   lua_State *state = FrameScript_GetContext();
 
   if (luaL_loadbuffer(state, source, SStrLen(source), description)) {

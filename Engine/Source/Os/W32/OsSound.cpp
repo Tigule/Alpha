@@ -165,7 +165,7 @@ static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVO
 static LPVOID __stdcall      FSoundAllocCallback(UINT size);
 static LPVOID __stdcall      FSoundReallocCallback(LPVOID ptr, UINT size);
 static void __stdcall        FSoundFreeCallback(LPVOID ptr);
-static int                   SoundIdle(LPCVOID, LPVOID);
+static BOOL                  SoundIdle(LPCVOID, LPVOID);
 static int                   CheckInitError(char success, LPCSTR function, int parameter);
 static void
 InitializeParams(InitParams &params, SOUND_GET_PARAM_INT GetParamInt, SOUND_GET_PARAM_FLOAT GetParamFloat, SOUND_GET_PARAM_STRING GetParamString);
@@ -192,7 +192,7 @@ static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVO
   return 0;
 }
 
-static int SoundIdle(LPCVOID, LPVOID) {
+static BOOL SoundIdle(LPCVOID, LPVOID) {
   if (!s_globalPause) {
     Sound::Update();
   }

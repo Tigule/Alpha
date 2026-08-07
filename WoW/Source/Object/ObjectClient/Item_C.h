@@ -160,14 +160,14 @@ class CGItem_C : public CGObject_C, public CGItem {
   static LPCSTR    GetInventoryArt(int displayID);
   virtual LPCSTR   GetModelFileName() const;
   int              GetDisplayID() const;
-  int              CanBeUsed();
+  BOOL             CanBeUsed();
   int              GetUseSpell();
   int              GetClassID() const;
   int              GetSubtypeID() const;
   int              GetSheatheType() const;
-  int              IsMetal() const;
-  static int       IsMetal(UINT material);
-  int              GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const;
+  BOOL             IsMetal() const;
+  static BOOL      IsMetal(UINT material);
+  BOOL             GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const;
   int              GetMaterial() const;
   const ItemStats *GetStats() const;
   void             Lock() {
@@ -183,16 +183,16 @@ class CGItem_C : public CGObject_C, public CGItem {
   UINT GetInventoryType() const;
   int  GetMaxCount() const;
   bool IsExotic() const;
-  int  CanGoInSlot(UINT slot) const;
+  BOOL CanGoInSlot(UINT slot) const;
   int  GetSheatheInvisible() const;
   bool IsWrapper() const;
   bool Use();
 
   void           SetStorage(DWORD *storage);
-  int            SetBlock(UINT i, DWORD data);
+  BOOL           SetBlock(UINT i, DWORD data);
   void           SetData(LPCVOID data, UINT bytes);
   static UINT    OffsetOf(OBJECT_TYPE_ID type);
-  virtual int    GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
+  virtual BOOL   GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
   virtual void   OnRightClick();
   virtual int    GetPageTextID(void (*func)(int, const DWORDLONG &, LPVOID, bool)) const;
   virtual LPCSTR GetObjectName() const;
@@ -202,7 +202,7 @@ class CGItem_C : public CGObject_C, public CGItem {
   }
 
   const VirtualItemInfo *GetVirtualInfo();
-  int                    IsLocked() {
+  BOOL                   IsLocked() {
     return m_flags & 1;
   }
 

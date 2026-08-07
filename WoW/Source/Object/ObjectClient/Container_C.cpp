@@ -58,7 +58,7 @@ int CGContainer_C::GetHeight() const {
   return m_bag.GetHeight(0);
 }
 
-int CGContainer_C::SetBlock(UINT, DWORD) {
+BOOL CGContainer_C::SetBlock(UINT, DWORD) {
   FATALASSERT(0);
   return 1;
 }

@@ -21,7 +21,7 @@
   }                                                               \
   ASSERT(object)
 
-static int StringToButtonState(LPCSTR string, CSimpleButtonState &state) {
+static BOOL StringToButtonState(LPCSTR string, CSimpleButtonState &state) {
   struct ButtonStateName {
     LPCSTR             string;
     CSimpleButtonState state;
@@ -352,7 +352,7 @@ void CSimpleButton::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleButton::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CSimpleButton::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

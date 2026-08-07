@@ -122,7 +122,7 @@ struct SMOLTile {
   void SetShared(int);
   void SetFishable(int);
 
-  int IsLiquid() const {
+  BOOL IsLiquid() const {
     return GetLiquid() != LIQUID_NONE;
   }
 
@@ -380,7 +380,7 @@ class CMapObjGroup {
   CMapObj             *parent;
   float                flushTime;
   CAsyncObject        *asyncObject;
-  BYTE                 bLoaded;
+  BOOL                 bLoaded;
 
  public:
   LINKDECLEX(CMapObjGroup, lameAssLink);
@@ -558,7 +558,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   static UINT                          MAX_SOUND_RLEVEL;
   static NTempest::C3Vector            localCamPos;
   static CMapObjDef                   *curMapObjDef;
-  static int                           bIntRender;
+  static BOOL                          bIntRender;
   static UINT                          sMinimapTag;
 
  private:
@@ -569,7 +569,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   static void AsyncPostloadCallbackHeader(LPVOID userArg);
   static void AsyncPostloadCallback(LPVOID userArg);
   static void AsyncPostloadCallbackAll(LPVOID userArg);
-  int         Read(LPCSTR fileName);
+  BOOL        Read(LPCSTR fileName);
   void        CreateData();
   void        AllocGroups();
   void        CreateAllGroups();
@@ -649,7 +649,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   int           refCount;
   float         flushTime;
   CAsyncObject *asyncObject;
-  BYTE          bLoaded;
+  BOOL          bLoaded;
   SMOMaterial  *materialList;
   UINT          materialCount;
   UINT          nGroupsRead;

@@ -20,8 +20,8 @@
 #include <storm.h>
 
 void      Trade_C_CancelTrade();
-int       Trade_C_UseCursorItem();
-int       Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot);
+BOOL      Trade_C_UseCursorItem();
+BOOL      Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot);
 UINT      Trade_C_GetPlayerTradeGold();
 UINT      Trade_C_GetTargetTradeGold();
 DWORDLONG Trade_C_GetTradeTarget();
@@ -217,7 +217,7 @@ void CGTradeInfo::SetTradePartner(DWORDLONG partner) {
   FrameScript_SignalEvent(296);
 }
 
-int CGTradeInfo::SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot) {
+BOOL CGTradeInfo::SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot) {
   if (index < 0 || index >= 8) {
     return 0;
   }

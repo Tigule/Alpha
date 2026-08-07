@@ -11,7 +11,7 @@ namespace MDL {
   LPCSTR       TokenText(UINT token);
   void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...);
 
-  int ReadVersion(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadVersion(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet errors;
     errors.Add(0x14C, 1, 0);
     parse.Expect('{');
@@ -40,14 +40,14 @@ namespace MDL {
     return !parse.FoundError();
   }
 
-  int WriteVersion(const MDLDATA &, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteVersion(const MDLDATA &, TSGrowableArray<char> &buffer, CMDLStatus *) {
     WriteLine(buffer, "%s {\n", TokenText(0x103));
     WriteLine(buffer, "\t%s %d,\n", TokenText(0x14C), 0x514);
     WriteLine(buffer, "}\n");
     return 1;
   }
 
-  int ReadBinVersion(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinVersion(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
     FATALASSERT(status);
     if (len == 4) {
       data.version = buf.GetUint();
@@ -57,7 +57,7 @@ namespace MDL {
     return 0;
   }
 
-  int WriteBinVersion(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
+  BOOL WriteBinVersion(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
     buffer.AddDword('SREV');
     buffer.AddUint(4);
     buffer.AddUint(data.version);

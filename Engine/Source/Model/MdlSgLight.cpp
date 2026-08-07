@@ -56,7 +56,7 @@ static DWORD CreateGxLight(BYTE *lightData) {
   return lightId;
 }
 
-int MdlReadLoadLights(const MDLDATA &data, CModelComplex *modelptr) {
+BOOL MdlReadLoadLights(const MDLDATA &data, CModelComplex *modelptr) {
   FATALASSERT(modelptr);
   UINT numLights = data.lights.Count();
   modelptr->m_lights.SetCount(numLights);

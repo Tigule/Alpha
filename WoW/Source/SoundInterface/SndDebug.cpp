@@ -14,23 +14,23 @@
 #include <stdio.h>
 #include <storm.h>
 
-static int  PingSound(LPCSTR command, LPCSTR arguments);
-static int  RoomType(LPCSTR command, LPCSTR arguments);
-static int  DebugTickHandler(LPCVOID dataPtr, LPVOID param);
+static BOOL PingSound(LPCSTR command, LPCSTR arguments);
+static BOOL RoomType(LPCSTR command, LPCSTR arguments);
+static BOOL DebugTickHandler(LPCVOID dataPtr, LPVOID param);
 static void SndDebugTick();
 
-int  DumpChunksINDOORS(LPCSTR command, LPCSTR arguments);
-int  ShowCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments);
-int  SetChunkPropertyINDOORS(LPCSTR command, LPCSTR arguments);
-int  SetCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments);
-int  CreateChunkINDOORS(LPCSTR command, LPCSTR arguments);
-int  SndDebugListChunksINDOORS(LPCSTR command, LPCSTR arguments);
-int  DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments);
-int  ShowCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments);
-int  SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments);
-int  SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments);
-int  CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments);
-int  SndDebugListChunksOUTDOORS(LPCSTR command, LPCSTR arguments);
+BOOL DumpChunksINDOORS(LPCSTR command, LPCSTR arguments);
+BOOL ShowCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments);
+BOOL SetChunkPropertyINDOORS(LPCSTR command, LPCSTR arguments);
+BOOL SetCurrentChunkINDOORS(LPCSTR command, LPCSTR arguments);
+BOOL CreateChunkINDOORS(LPCSTR command, LPCSTR arguments);
+BOOL SndDebugListChunksINDOORS(LPCSTR command, LPCSTR arguments);
+BOOL DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments);
+BOOL ShowCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments);
+BOOL SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments);
+BOOL SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments);
+BOOL CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments);
+BOOL SndDebugListChunksOUTDOORS(LPCSTR command, LPCSTR arguments);
 void SndDebugRegisterContinent(UINT continent);
 
 static UINT               s_pingSound;
@@ -38,7 +38,7 @@ static UINT               s_pingFrequency;
 static UINT               s_lastPingTime;
 static NTempest::C3Vector s_pingPosition;
 
-static int PingSound(LPCSTR command, LPCSTR arguments) {
+static BOOL PingSound(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     s_lastPingTime = 0;
     sscanf(arguments, "%d %d", &s_pingSound, &s_pingFrequency);
@@ -66,7 +66,7 @@ static int PingSound(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int RoomType(LPCSTR command, LPCSTR arguments) {
+static BOOL RoomType(LPCSTR command, LPCSTR arguments) {
   SNDROOMTYPE roomType;
 
   if (!arguments || (roomType = static_cast<SNDROOMTYPE>(SStrToInt(arguments))) <= SNDROOMTYPE_PSYCHOTIC) {
@@ -91,7 +91,7 @@ static void SndDebugTick() {
   }
 }
 
-static int DebugTickHandler(LPCVOID dataPtr, LPVOID param) {
+static BOOL DebugTickHandler(LPCVOID dataPtr, LPVOID param) {
   SndDebugTick();
   return 1;
 }

@@ -41,7 +41,7 @@ HTEXTURE    TextureCreate(CGxTex *gxTex);
 HTEXTURE    TextureCreateSolid(const NTempest::CImVector &color, CStatus *status);
 CGxTex     *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status);
 MipBits    *TextureGetMips(HTEXTURE texture, int force);
-int         TextureGetInfo(HTEXTURE texture, UINT &width, UINT &height, EGxTexFormat &format, int &opaque, UINT &alphaBits, int bForce);
+BOOL        TextureGetInfo(HTEXTURE texture, UINT &width, UINT &height, EGxTexFormat &format, int &opaque, UINT &alphaBits, BOOL bForce);
 TEXFILETYPE TextureDiscoverFileType(LPCSTR path);
 UINT        TexturePickAlternateFilename(LPCSTR path, TEXFILETYPE fileType, char *newpath, UINT size);
 MipBits    *TextureAllocMippedImg(EGxTexFormat format, UINT width, UINT height);

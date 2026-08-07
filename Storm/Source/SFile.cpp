@@ -70,10 +70,10 @@ namespace Storm {
     NODEDECL(ARCHIVEREC) {
       ~ARCHIVEREC();
 
-      int IsReopenedArchive() {
+      BOOL IsReopenedArchive() {
         return parentArchive != NULL;
       }
-      int IsSubArchive() {
+      BOOL IsSubArchive() {
         return ownerarchivefile != NULL;
       }
 
@@ -212,8 +212,8 @@ namespace Storm {
 
     ARCHIVEREC *GetArchivePtr(HSARCHIVE hArchive);
     int         ReleaseArchivePtr(ARCHIVEREC *archive);
-    int         IsSubArchive(HSARCHIVE archive);
-    int         IsReopenedArchive(HSARCHIVE archive);
+    BOOL        IsSubArchive(HSARCHIVE archive);
+    BOOL        IsReopenedArchive(HSARCHIVE archive);
     FILEREC    *GetFilePtr(HSFILE hFile);
     int         ReleaseFilePtr(FILEREC *file);
     void        AddArchiveRef(ARCHIVEREC *archive);
@@ -1072,7 +1072,7 @@ static int ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, 
   return FALSE;
 }
 
-static int ReadFileWin32(SFileRecData *fileptr, DWORD offset, LPVOID buffer, DWORD bytestoread, DWORD *bytesread) {
+static BOOL ReadFileWin32(SFileRecData *fileptr, DWORD offset, LPVOID buffer, DWORD bytestoread, DWORD *bytesread) {
   DWORD localbytesread;
   DWORD newlocation;
 
@@ -1298,7 +1298,7 @@ static int CancelRequest(LPVOID buffer, IDirectSoundBuffer *soundbuffer) {
   return cancelled;
 }
 
-static int CanProcessRequest(SFileRequestData *request) {
+static BOOL CanProcessRequest(SFileRequestData *request) {
   if (request->bufferbegin) {
     if (request->Prev() && request->Prev()->bufferbegin == request->bufferbegin) {
       return FALSE;

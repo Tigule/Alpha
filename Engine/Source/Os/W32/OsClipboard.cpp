@@ -17,7 +17,7 @@ static void FailureMessage(LPCSTR title) {
   LocalFree(msgBuffer);
 }
 
-int OsClipboardGetString(char *buf, UINT bufSize) {
+BOOL OsClipboardGetString(char *buf, UINT bufSize) {
   HWND   hWnd = GetActiveWindow();
   HANDLE globalObjectHandle;
   char  *clipboardString;
@@ -105,7 +105,7 @@ void OsClipboardFreeString(char *string) {
   FREEIFUSED(string);
 }
 
-int OsClipboardPutString(LPCSTR string) {
+BOOL OsClipboardPutString(LPCSTR string) {
   HWND    hWnd = GetActiveWindow();
   UINT    stringBytes;
   HGLOBAL clipboardData;

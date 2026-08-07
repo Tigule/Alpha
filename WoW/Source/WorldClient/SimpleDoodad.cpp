@@ -13,7 +13,7 @@
 
 class CStatus;
 
-int MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status);
+BOOL MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status);
 
 TSHashTable<CSimpleDoodad, HASHKEY_NONE> CSimpleDoodad::simpleDoodadHash;
 CGxBuf                                  *CSimpleDoodad::gxBufDyn;
@@ -131,7 +131,7 @@ int CSimpleDoodad::Read(LPCSTR fileName, CSimpleDoodad *simpleDoodad) {
   return MdlReadCallback(mdlData, simpleDoodad);
 }
 
-int CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad) {
+BOOL CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad) {
   ASSERT(simpleDoodad);
 
   if (data.materials.Count() > 4) {

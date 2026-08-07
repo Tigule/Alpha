@@ -59,20 +59,20 @@ class CTgaFile {
   }
 
   void              Close();
-  int               Open(LPCSTR filename);
+  BOOL              Open(LPCSTR filename);
   int               LoadImageData(UINT flags);
-  int               AddAlphaChannel(LPCVOID pImg);
-  int               SetTopDown(int set);
+  BOOL              AddAlphaChannel(LPCVOID pImg);
+  BOOL              SetTopDown(int set);
   BYTE             *Image();
   const BYTE       *Image() const;
   TGA32Pixel       *ImageTGA32Pixel();
   const TGA32Pixel *ImageTGA32Pixel() const;
-  int               RemoveAlphaChannels();
+  BOOL              RemoveAlphaChannels();
   void              RemoveHeaderTrailer();
-  int               SetImage(const CTgaFile &source);
-  int               SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, BYTE bAlphaBits, int bTopDown, int bRightToLeft);
-  int               Compress();
-  int               Write(LPCSTR path);
+  BOOL              SetImage(const CTgaFile &source);
+  BOOL              SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, BYTE bAlphaBits, BOOL bTopDown, BOOL bRightToLeft);
+  BOOL              Compress();
+  BOOL              Write(LPCSTR path);
 
   UINT Width() const {
     return m_header.wWidth;
@@ -102,15 +102,15 @@ class CTgaFile {
     return m_header.bPixelDepth;
   }
 
-  int IsRightToLeft() const {
+  BOOL IsRightToLeft() const {
     return m_header.Desc.bLeftRightOrder;
   }
 
-  int IsTopDown() const {
+  BOOL IsTopDown() const {
     return m_header.Desc.bTopBottomOrder;
   }
 
-  int IsColorMapped() const {
+  BOOL IsColorMapped() const {
     return m_header.bColorMapType != 0;
   }
 
@@ -140,21 +140,21 @@ class CTgaFile {
     return m_colorMap;
   }
 
-  int IsCompressed() const {
+  BOOL IsCompressed() const {
     return m_header.bImageType >= 9 && m_header.bImageType <= 11;
   }
 
  private:
-  int   ValidateColorDepth();
+  BOOL  ValidateColorDepth();
   void  ConvertColorMapped(UINT flags);
   int   ReadColorMappedImage(UINT flags);
   DWORD PreImageBytes();
   void  AddAlphaChannel(BYTE *pAlphaData, BYTE *pNoAlphaData, const BYTE *alpha);
-  int   ReadRawImage(UINT flags);
-  int   ReadRleImage(UINT flags);
-  int   RLEDecompressImage(BYTE *pRLEData, BYTE *pData);
-  int   CountRun(BYTE *pImage, int nMax);
-  int   RleCompressLine(BYTE **uncompressed, BYTE **compressed);
+  BOOL  ReadRawImage(UINT flags);
+  BOOL  ReadRleImage(UINT flags);
+  BOOL  RLEDecompressImage(BYTE *pRLEData, BYTE *pData);
+  BOOL  CountRun(BYTE *pImage, int nMax);
+  BOOL  RleCompressLine(BYTE **uncompressed, BYTE **compressed);
 
  private:
   SFile    *m_file;

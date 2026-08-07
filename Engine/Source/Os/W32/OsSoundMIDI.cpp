@@ -251,7 +251,7 @@ static void InitLoader(ASYNCLOADER &loader, LPCSTR fileName) {
   }
 }
 
-int Sound::MIDI_Initialize() {
+BOOL Sound::MIDI_Initialize() {
   if (CoInitialize(0) == S_OK) {
     s_comInitialized = 1;
   }

@@ -56,7 +56,7 @@ void OsGetStormName(char *buffer, DWORD chars) {
   GetModuleFileNameA(StormGetInstance(), buffer, chars);
 }
 
-int OsGetModuleName(DWORD moduleId, char *buffer, DWORD chars) {
+BOOL OsGetModuleName(DWORD moduleId, char *buffer, DWORD chars) {
   buffer[0] = 0;
   for (UINT i = 0; i < 8; ++i) {
     if (s_modules[i].m_id == moduleId) {
@@ -67,7 +67,7 @@ int OsGetModuleName(DWORD moduleId, char *buffer, DWORD chars) {
   return 0;
 }
 
-int OsSetModuleHandle(DWORD moduleId, HINSTANCE__ *moduleHandle) {
+BOOL OsSetModuleHandle(DWORD moduleId, HINSTANCE__ *moduleHandle) {
   FATALASSERT(moduleId);
   FATALASSERT(moduleHandle);
 
@@ -142,11 +142,11 @@ void OsPathGetLastDirectory(LPCSTR string, char *buffer, UINT size) {
   }
 }
 
-int OsPathIsRelative(LPCSTR path) {
+BOOL OsPathIsRelative(LPCSTR path) {
   return OsPathGetRootChars(path) == 0;
 }
 
-int OsPathHasInvalidChars(LPCSTR path) {
+BOOL OsPathHasInvalidChars(LPCSTR path) {
   LPCSTR invalidChars = "*/:><|&+^?\"";
   while (*invalidChars) {
     if (SStrChr(path, *invalidChars++)) {
@@ -156,7 +156,7 @@ int OsPathHasInvalidChars(LPCSTR path) {
   return 0;
 }
 
-int OsFileNameHasInvalidChars(LPCSTR filename) {
+BOOL OsFileNameHasInvalidChars(LPCSTR filename) {
   LPCSTR invalidChars = "\\*/:><|&+^?\"";
   while (*invalidChars) {
     if (SStrChr(filename, *invalidChars++)) {
@@ -166,7 +166,7 @@ int OsFileNameHasInvalidChars(LPCSTR filename) {
   return 0;
 }
 
-int OsFileNameIsValid(LPCSTR filename) {
+BOOL OsFileNameIsValid(LPCSTR filename) {
   if (OsFileNameHasInvalidChars(filename)) {
     return 0;
   }

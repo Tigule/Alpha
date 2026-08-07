@@ -50,7 +50,7 @@ namespace MDL {
     errors.Complete(status);
   }
 
-  int ReadCamera(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadCamera(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet              errors;
     MDLCAMERASECTION *camera = data.cameras.New();
     AddCameraErrors(errors);
@@ -149,7 +149,7 @@ namespace MDL {
     WriteLine(buffer, "}\n");
   }
 
-  int WriteCameras(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteCameras(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     for (UINT i = 0; i < data.cameras.Count(); ++i) {
       IWriteCamera(data.cameras.Ptr()[i], buffer);
     }
@@ -213,7 +213,7 @@ namespace MDL {
     WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buffer);
   }
 
-  int WriteBinCameras(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
+  BOOL WriteBinCameras(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
     UINT numCameras = data.cameras.Count();
     if (numCameras) {
       buf.AddDword('SMAC');
@@ -231,7 +231,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinCamera(CMsgBuffer &buffer, MDLCAMERASECTION *camera, CMDLStatus *status, UINT &totalLength) {
+  BOOL ReadBinCamera(CMsgBuffer &buffer, MDLCAMERASECTION *camera, CMDLStatus *status, UINT &totalLength) {
     UINT sectionLength = buffer.GetUint();
     buffer.GetTcharArray(camera->name, 80);
     buffer.GetFloatArray(&camera->pivot.x, 3);
@@ -275,7 +275,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinCameras(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinCameras(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT numCameras;
     numCameras = buf.GetUint();
     UINT totalRead = 4;

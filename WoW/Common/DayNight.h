@@ -66,7 +66,7 @@ class GlareBase {
  public:
   virtual void Update(float elapsedSec) = 0;
   virtual void Render() = 0;
-  virtual int  IsVisible() = 0;
+  virtual BOOL IsVisible() = 0;
 
   static int          m_masterEnable;
   int                 m_enabled;
@@ -85,7 +85,7 @@ class DNGlare : public GlareBase {
   void         Initialize(LPCSTR filename);
   virtual void Update(float elapsedSec);
   virtual void Render();
-  virtual int  IsVisible();
+  virtual BOOL IsVisible();
 
   void Destroy();
 

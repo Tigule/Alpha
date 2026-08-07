@@ -116,8 +116,8 @@ void             SpellVisualsTick(float elapsed);
 void             UpdatePortraits();
 void             ModelRenderSceneOpaque(CStatus *status);
 void             ModelRenderSceneTransparent(CStatus *status);
-int              ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32);
-int              ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
+BOOL             ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32);
+BOOL             ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
 
 static LPCSTR s_spellShadowName[2] = {"Interface\\SpellShadow\\Spell-Shadow-Acceptable.blp", "Interface\\SpellShadow\\Spell-Shadow-Unacceptable.blp"};
 static CVar  *s_playerFadeCVar;
@@ -141,7 +141,7 @@ static float                                     s_spellShadowSize;
 static HTEXTURE                                  s_spellShadowTexture[2];
 static TSHashTable<FADEOUTHASHOBJ, CHashKeyGUID> s_fadeOutModelTable;
 
-static int CheckFadeOutModels(LPCSTR command, LPCSTR arguments) {
+static BOOL CheckFadeOutModels(LPCSTR command, LPCSTR arguments) {
   int  count = 0;
   UINT currentTime = OsGetAsyncTimeMs();
   ITERATELIST(FADEOUTHASHOBJ, s_fadeOutModelTable, fade) {
@@ -218,7 +218,7 @@ void DrawCursorShadow() {
 
 CGWorldFrame *CGWorldFrame::s_currentWorldFrame;
 
-int CGWorldFrame::IsUnitLegalSelection(const CGUnit_C *unit, UINT hitFilter) {
+BOOL CGWorldFrame::IsUnitLegalSelection(const CGUnit_C *unit, UINT hitFilter) {
   if (hitFilter & 0x70000) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if ((hitFilter & 0x10000) && player->IsUnitInGroup(unit)) {
@@ -277,7 +277,7 @@ CGWorldFrame::~CGWorldFrame() {
   GxMasterEnableSet(GxMasterEnable_ClearOnPresent, 1);
 }
 
-int CGWorldFrame::IsLegalSelection(CModelRecord *record, UINT hitFilter) {
+BOOL CGWorldFrame::IsLegalSelection(CModelRecord *record, UINT hitFilter) {
   CGObject_C *object = ClntObjMgrObjectPtr(record->guid, __FILE__, __LINE__);
   FATALASSERT(object);
 
@@ -538,7 +538,7 @@ CGWorldFrame::HIT_TYPE CGWorldFrame::HitTestPoint(float x, float y, HitTestResul
   return hitType;
 }
 
-int CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b) {
+BOOL CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b) {
   if (!PtInFrameRect(NTempest::C2Vector(x, y))) {
     return 0;
   }
@@ -553,7 +553,7 @@ int CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempe
   return 1;
 }
 
-int ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32) {
+BOOL ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32) {
   CGWorldFrame *worldFrame = static_cast<CGWorldFrame *>(param);
   FATALASSERT(worldFrame);
 
@@ -569,7 +569,7 @@ int ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32)
   return 1;
 }
 
-int ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data) {
+BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data) {
   FATALASSERT(data);
 
   CGObject_C *object = ClntObjMgrObjectPtr(param64, __FILE__, __LINE__);
@@ -765,7 +765,7 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
   GxMasterEnableSet(GxMasterEnable_ClearOnPresent, 0);
 }
 
-int CGWorldFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
+BOOL CGWorldFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
   int result = CSimpleFrame::OnLayerTrackUpdate(evt);
   if (result) {
     CGInputControl::GetActive();
@@ -791,7 +791,7 @@ void CGWorldFrame::OnLayerCursorExit() {
   s_spellShadowStyle = SPELL_NONE;
 }
 
-int CGWorldFrame::OnLayerKeyDown(CKeyEvent &evt) {
+BOOL CGWorldFrame::OnLayerKeyDown(CKeyEvent &evt) {
   if (CSimpleFrame::OnLayerKeyDown(evt)) {
     return 1;
   }
@@ -801,7 +801,7 @@ int CGWorldFrame::OnLayerKeyDown(CKeyEvent &evt) {
   return 0;
 }
 
-int CGWorldFrame::OnLayerKeyUp(CKeyEvent &evt) {
+BOOL CGWorldFrame::OnLayerKeyUp(CKeyEvent &evt) {
   if (CSimpleFrame::OnLayerKeyUp(evt)) {
     return 1;
   }
@@ -824,7 +824,7 @@ int CGWorldFrame::OnLayerKeyUp(CKeyEvent &evt) {
   return result;
 }
 
-int CGWorldFrame::OnLayerMouseDown(CMouseEvent &evt) {
+BOOL CGWorldFrame::OnLayerMouseDown(CMouseEvent &evt) {
   if (CSimpleFrame::OnLayerMouseDown(evt)) {
     return 1;
   }
@@ -838,7 +838,7 @@ int CGWorldFrame::OnLayerMouseDown(CMouseEvent &evt) {
   return 0;
 }
 
-int CGWorldFrame::OnLayerMouseUp(CMouseEvent &evt) {
+BOOL CGWorldFrame::OnLayerMouseUp(CMouseEvent &evt) {
   if (CSimpleFrame::OnLayerMouseUp(evt)) {
     return 1;
   }
@@ -852,7 +852,7 @@ int CGWorldFrame::OnLayerMouseUp(CMouseEvent &evt) {
   return 0;
 }
 
-int CGWorldFrame::OnLayerMouseWheel(CMouseEvent &evt) {
+BOOL CGWorldFrame::OnLayerMouseWheel(CMouseEvent &evt) {
   if (CSimpleFrame::OnLayerMouseWheel(evt)) {
     return 1;
   }
@@ -863,7 +863,7 @@ int CGWorldFrame::OnLayerMouseWheel(CMouseEvent &evt) {
   return 0;
 }
 
-int CGWorldFrame::OnLayerMouseMoveRelative(CMouseEvent &evt) {
+BOOL CGWorldFrame::OnLayerMouseMoveRelative(CMouseEvent &evt) {
   CGInputControl::GetActive()->OnMouseMoveRel(evt);
   return 1;
 }
@@ -877,7 +877,7 @@ float CGWorldFrame::GetSkyProgress() {
   return (g_clientGameTime.GetHourAndMinutes() + 720) % 1440 * 0.00069444446f * m_skyAnimDuration;
 }
 
-int CGWorldFrame::TogglePlayerRender() {
+BOOL CGWorldFrame::TogglePlayerRender() {
   m_renderPlayer = !m_renderPlayer;
   return m_renderPlayer;
 }
@@ -915,7 +915,7 @@ void CGWorldFrame::SetTerrainClickButtons(UINT buttons) {
   m_terrainButtons = buttons;
 }
 
-int CGWorldFrame::PerformDefaultAction(MOUSEBUTTON button, UINT timestamp) {
+BOOL CGWorldFrame::PerformDefaultAction(MOUSEBUTTON button, UINT timestamp) {
   NTempest::C2Vector mousePos;
   NDCToDDC(m_top->m_mousePosition.x, m_top->m_mousePosition.y, &mousePos.x, &mousePos.y);
 
@@ -942,7 +942,7 @@ int CGWorldFrame::PerformDefaultAction(MOUSEBUTTON button, UINT timestamp) {
   return CGGameUI::HandleWorldClick(worldClickEvent);
 }
 
-int CGWorldFrame::SendUnitFadeEvent(DWORDLONG guid) {
+BOOL CGWorldFrame::SendUnitFadeEvent(DWORDLONG guid) {
   if (guid == m_lastUnitFade) {
     return 0;
   }
@@ -952,7 +952,7 @@ int CGWorldFrame::SendUnitFadeEvent(DWORDLONG guid) {
   return 1;
 }
 
-int CGWorldFrame::SendObjectTrackEvent(DWORDLONG guid, float x, float y) {
+BOOL CGWorldFrame::SendObjectTrackEvent(DWORDLONG guid, float x, float y) {
   if (guid == m_lastObjectTrack) {
     return 0;
   }
@@ -1203,7 +1203,7 @@ void CGWorldFrame::HandleUnitFade(int nowTracking, int immediateFade) {
   }
 }
 
-int UnitUpdateProc(DWORDLONG guid, LPVOID param) {
+BOOL UnitUpdateProc(DWORDLONG guid, LPVOID param) {
   CGWorldFrame *pWorldFrame = static_cast<CGWorldFrame *>(param);
   FATALASSERT(pWorldFrame);
 
@@ -1438,7 +1438,7 @@ void CGWorldFrame::RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT 
   fade->startAlpha = startAlpha;
 }
 
-int CLayoutFrame::IsAttachmentOrigin() {
+BOOL CLayoutFrame::IsAttachmentOrigin() {
   return 0;
 }
 

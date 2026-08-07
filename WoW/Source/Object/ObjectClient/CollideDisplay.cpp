@@ -11,7 +11,7 @@
 
 static int s_debugCollision;
 
-int ToggleCollisionInfo() {
+BOOL ToggleCollisionInfo() {
   DWORDLONG watchTarget = 0;
 
   s_debugCollision = !s_debugCollision;

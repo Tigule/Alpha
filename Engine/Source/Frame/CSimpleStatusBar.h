@@ -19,7 +19,7 @@ class CSimpleStatusBar : public CSimpleFrame {
   virtual void OnLayerUpdate(float elapsedSec);
 
   void         SetBarTexture(CSimpleTexture *texture, int layer);
-  int          SetBarTexture(LPCSTR texFile, int layer);
+  BOOL         SetBarTexture(LPCSTR texFile, int layer);
   void         SetMinMaxValues(float min, float max);
   virtual void SetValue(float value);
 
@@ -54,7 +54,7 @@ class CSimpleStatusBar : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 

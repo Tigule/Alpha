@@ -57,7 +57,7 @@ static void PlayMusic() {
   }
 }
 
-static int ZoneMusicIdle(LPCVOID dataPtr, LPVOID ptr) {
+static BOOL ZoneMusicIdle(LPCVOID dataPtr, LPVOID ptr) {
   const EVENT_DATA_IDLE *data = static_cast<const EVENT_DATA_IDLE *>(dataPtr);
   if (!(s_flags & 1) && s_currentMusic && (s_currentMusic->m_Sounds[0] || s_currentMusic->m_Sounds[1])) {
     if (s_sound && !s_sound->IsPlaying()) {

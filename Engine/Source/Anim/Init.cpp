@@ -165,7 +165,7 @@ CAnimObj *GetNodeByIndex(CAnimData *shared, UINT nodeIndex) {
   return shared->obj[nodeIndex];
 }
 
-int AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, UINT parentIndex) {
+BOOL AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, UINT parentIndex) {
   ASSERT(shared);
   ASSERT(objptr);
   if (parentIndex == static_cast<UINT>(-1)) {

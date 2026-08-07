@@ -19,7 +19,7 @@ void SndInterfaceZoneIntroIdler() {
   }
 }
 
-static int CCommand_ZoneIntroReset(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_ZoneIntroReset(LPCSTR command, LPCSTR arguments) {
   s_lastPlayTime = -1;
   return 1;
 }

@@ -45,7 +45,7 @@ class ClientConnection : public NetClient {
   ClientConnection(const ClientConnection &connection);
   virtual ~ClientConnection();
 
-  virtual int  Initialize(LoginData *loginData);
+  virtual BOOL Initialize(LoginData *loginData);
   virtual void Destroy();
 
   void              Cancel(int errorCode);
@@ -63,16 +63,16 @@ class ClientConnection : public NetClient {
   void              CharacterCreate(const CHARACTER_CREATE_INFO &info);
   void              CharacterDelete(DWORDLONG guid);
   void              CharacterLogin(DWORDLONG id);
-  int               Disconnect();
+  BOOL              Disconnect();
   void              CharacterSetInGame(int state);
   void              CharacterLogout(bool exitAfterLogout, bool instant);
   void              CharacterRemoveFromGame();
   void              CharacterAbortLogout();
   void              CharacterForceLogout();
-  int               CharacterLoggingOut();
+  BOOL              CharacterLoggingOut();
   void              SetPlaying(int value);
   void              SetIsBot(int value);
-  int               IsBot();
+  BOOL              IsBot();
   int               PollStatus(WOWCS_OPS &op, int &errorCode, int &result);
   void              RealmEnumCallback(CDataStore *data);
   LPCSTR            GetCharacterName();
@@ -81,27 +81,27 @@ class ClientConnection : public NetClient {
     return m_waitCount;
   }
 
-  int IsInGame() {
+  BOOL IsInGame() {
     return m_inGame;
   }
 
-  int IsConnected() {
+  BOOL IsConnected() {
     return m_connected;
   }
 
-  virtual int HandleConnect();
-  virtual int HandleDisconnect();
-  virtual int HandleCantConnect();
+  virtual BOOL HandleConnect();
+  virtual BOOL HandleDisconnect();
+  virtual BOOL HandleCantConnect();
 
-  int HandleAuthChallenge(NETMESSAGE msgId, DWORD, CDataStore *msg);
-  int HandleAuthResponse(NETMESSAGE msgId, DWORD, CDataStore *msg);
-  int HandleCharEnum(NETMESSAGE msgId, DWORD time, CDataStore *msg);
-  int HandleCharacterCreate(NETMESSAGE msgId, DWORD time, CDataStore *msg);
-  int HandleCharacterDelete(NETMESSAGE msgId, DWORD time, CDataStore *msg);
-  int HandleCharacterLoginFailed(NETMESSAGE msgId, DWORD time, CDataStore *msg);
-  int HandleLogoutComplete(NETMESSAGE msgId, DWORD time, CDataStore *msg);
-  int HandleLogoutAbortAck(NETMESSAGE msgId, DWORD time, CDataStore *msg);
-  int HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  BOOL HandleAuthChallenge(NETMESSAGE msgId, DWORD, CDataStore *msg);
+  BOOL HandleAuthResponse(NETMESSAGE msgId, DWORD, CDataStore *msg);
+  BOOL HandleCharEnum(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  BOOL HandleCharacterCreate(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  BOOL HandleCharacterDelete(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  BOOL HandleCharacterLoginFailed(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  BOOL HandleLogoutComplete(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  BOOL HandleLogoutAbortAck(NETMESSAGE msgId, DWORD time, CDataStore *msg);
+  BOOL HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataStore *msg);
 
  private:
   ClientConnection &operator=(const ClientConnection &connection);
@@ -118,17 +118,17 @@ class ClientConnection : public NetClient {
   int                          m_initialized;
   int                          m_connected;
   int                          m_playing;
-  int                          m_statusComplete;
+  BOOL                         m_statusComplete;
   int                          m_statusResult;
   WOWCS_OPS                    m_statusCop;
   int                          m_errorCode;
-  int                          m_inGame;
+  BOOL                         m_inGame;
   BYTE                         m_exitAfterLogout;
-  BYTE                         m_loggingOut;
+  BOOL                         m_loggingOut;
   LoginData                    m_loginData;
   TSFixedArray<CHARACTER_INFO> m_characterList;
   TSFixedArray<REALM_INFO>     m_realmList;
-  int                          m_isBot;
+  BOOL                         m_isBot;
   UINT                         m_waitCount;
   void (ClientConnection::*m_cleanup)();
 };

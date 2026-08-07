@@ -38,9 +38,9 @@ class FrameScript_Object {
   static void FillScriptMethodTable(FrameScript_Method *methods, int methodCount, TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable);
   static void EmptyScriptMethodTable(TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable);
   static int  LookupScriptMethod(lua_State *state);
-  static int  LookupScriptMethod(lua_State *state, LPCSTR name, TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable);
+  static BOOL LookupScriptMethod(lua_State *state, LPCSTR name, TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable);
 
-  int          RegisterScriptEvent(LPCSTR name);
+  BOOL         RegisterScriptEvent(LPCSTR name);
   void         UnregisterScriptEvent(LPCSTR name);
   void         UnregisterAllScriptEvents();
   void         SetEventScript(int &script, LPCSTR source, LPCSTR description);
@@ -49,7 +49,7 @@ class FrameScript_Object {
   void __cdecl OnScriptEvent(LPCSTR name, LPCSTR format, char *arguments);
 
  protected:
-  virtual int LookupScriptMethod(lua_State *state, LPCSTR name) = 0;
+  virtual BOOL LookupScriptMethod(lua_State *state, LPCSTR name) = 0;
 
   int lua_registered;
   int lua_objectRef;
@@ -75,7 +75,7 @@ int          FrameScript_GetVariable(LPCSTR name, float &value);
 void         FrameScript_SetVariable(LPCSTR name, LPCSTR value);
 int          FrameScript_ExecuteFile(LPCSTR filename);
 int          FrameScript_ExecuteBuffer(LPVOID buffer, DWORD bytes, LPCSTR filename);
-int          FrameScript_CompileFunction(LPCSTR source, LPCSTR description);
+BOOL         FrameScript_CompileFunction(LPCSTR source, LPCSTR description);
 void         FrameScript_ReleaseFunction(int function);
 void         FrameScript_UnsetVariable(LPCSTR name);
 void         FrameScript_Execute(LPCSTR buffer, LPCSTR filename);

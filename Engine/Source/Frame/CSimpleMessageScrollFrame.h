@@ -26,7 +26,7 @@ class CSimpleMessageScrollFrameLine {
 
   char                       *string;
   CSimpleFontStringAttributes attrib;
-  int                         isVisible;
+  BOOL                        isVisible;
   float                       timeLeft;
   float                       fadeLeft;
 };
@@ -70,7 +70,7 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   const CSimpleFontStringAttributes *GetTextAttributes() const {
     return &m_attrib;
   }
-  void SetFade(int fading) {
+  void SetFade(BOOL fading) {
     m_fading = fading;
   }
   void SetTimeVisible(float timeVisible) {
@@ -82,9 +82,9 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   void AddMessage(LPCSTR text, const CSimpleFontStringAttributes *attrib);
   UINT AddMultiLine(char *text, const CSimpleFontStringAttributes *attrib);
   void Clear();
-  int  ScrollUp();
-  int  ScrollDown();
-  int  CanScroll() {
+  BOOL ScrollUp();
+  BOOL ScrollDown();
+  BOOL CanScroll() {
     return m_numMessages > m_numDisplayed;
   }
   void PageUp();
@@ -94,7 +94,7 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   int  GetNumDisplayLines() {
     return m_numDisplayed;
   }
-  int AtBottom() {
+  BOOL AtBottom() {
     return m_atBottom;
   }
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
@@ -104,7 +104,7 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   static void UnregisterScriptMethods();
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void ScrollMessages(int start);
   void UpdateNode(CSimpleMessageScrollFrameDisplayNode *node, CSimpleMessageScrollFrameLine *line, int resetTimers);
@@ -118,11 +118,11 @@ class CSimpleMessageScrollFrame : public CSimpleHyperlinkedFrame {
   int                                                   m_currentLine;
   int                                                   m_currentScroll;
   int                                                   m_numDisplayed;
-  int                                                   m_atTop;
-  int                                                   m_atBottom;
+  BOOL                                                  m_atTop;
+  BOOL                                                  m_atBottom;
   int                                                   m_textMaxSize;
   CSimpleFontStringAttributes                           m_attrib;
-  int                                                   m_fading;
+  BOOL                                                  m_fading;
   float                                                 m_fadeDuration;
   float                                                 m_timeVisible;
   NTempest::CRect                                       m_messageFrameArea;

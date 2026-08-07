@@ -409,7 +409,7 @@ void CRibbonEmitter::Update(float elapsedSec, int suppressNewEdges) {
   m_singletonUpdated = 0;
 }
 
-int CRibbonEmitter::Render() {
+BOOL CRibbonEmitter::Render() {
   ASSERT(m_initialized);
 
   if (m_readPos == m_writePos) {
@@ -457,7 +457,7 @@ int CRibbonEmitter::Render() {
   return 1;
 }
 
-int CRibbonEmitter::IsDead() {
+BOOL CRibbonEmitter::IsDead() {
   return m_readPos == m_writePos;
 }
 

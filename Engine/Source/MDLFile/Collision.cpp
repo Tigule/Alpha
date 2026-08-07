@@ -9,15 +9,15 @@
 void ReadVertices(Parser &, LPCSTR, TSGrowableArray<NTempest::C3Vector> *);
 void WriteVertices(const TSGrowableArray<NTempest::C3Vector> &, UINT, TSGrowableArray<char> &);
 void WriteBinC3VectorSection(CMsgBuffer &, DWORD, const TSGrowableArray<NTempest::C3Vector> &);
-int  ReadBinC3VectorSection(CMsgBuffer &, DWORD, LPCSTR, TSGrowableArray<NTempest::C3Vector> *, UINT *, CMDLStatus *);
+BOOL ReadBinC3VectorSection(CMsgBuffer &, DWORD, LPCSTR, TSGrowableArray<NTempest::C3Vector> *, UINT *, CMDLStatus *);
 
 namespace MDL {
   LPCSTR       TokenText(UINT token);
   void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...);
-  int          ReadCollision(Parser &, MDLDATA &, CMDLStatus *);
-  int          WriteCollision(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int          ReadBinCollision(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
-  int          WriteBinCollision(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL         ReadCollision(Parser &, MDLDATA &, CMDLStatus *);
+  BOOL         WriteCollision(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL         ReadBinCollision(CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
+  BOOL         WriteBinCollision(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
 }  // namespace MDL
 
 static void ICollisionAddErrors(TSet &errors) {
@@ -66,7 +66,7 @@ static UINT GetSectionSize(const MDLCOLLISION &collision) {
   return 24 + 12 * (collision.vertices.Count() + collision.facetNormals.Count()) + 2 * collision.triIndices.Count();
 }
 
-int MDL::ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+BOOL MDL::ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   TSet errors;
   ICollisionAddErrors(errors);
   parse.Expect('{');
@@ -92,7 +92,7 @@ int MDL::ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   return !parse.FoundError();
 }
 
-int MDL::WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+BOOL MDL::WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (data.collision.vertices.Count()) {
     WriteLine(buffer, "%s {\n", TokenText(0x119));
     WriteVertices(data.collision.vertices, 0x1D8, buffer);
@@ -103,7 +103,7 @@ int MDL::WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDL
   return 1;
 }
 
-int MDL::ReadBinCollision(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+BOOL MDL::ReadBinCollision(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
   UINT totalRead = 0;
   if (!length) {
     return 1;
@@ -132,7 +132,7 @@ int MDL::ReadBinCollision(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatu
   return totalRead >= length;
 }
 
-int MDL::WriteBinCollision(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
+BOOL MDL::WriteBinCollision(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   if (data.collision.vertices.Count()) {
     buf.AddDword('DILC');
     buf.AddUint(GetSectionSize(data.collision));

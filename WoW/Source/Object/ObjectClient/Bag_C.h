@@ -83,7 +83,7 @@ class CGBag {
   UINT NumSlots() const {
     return *m_slotCount;
   }
-  int IsInventory() const {
+  BOOL IsInventory() const {
     return m_isInventory;
   }
   DWORDLONG GetGUID() const {
@@ -108,10 +108,10 @@ class CGBag_C : public CGBag {
   int                    GetWidth(UINT offset) const;
   int                    GetHeight(UINT offset) const;
   static GAME_ERROR_TYPE GetGameError(BAG_RESULT result);
-  CGItem_C              *FindItem(int (*func)(const CGItem_C *, LPVOID), LPVOID param, UINT flags) const;
+  CGItem_C              *FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param, UINT flags) const;
   CGItem_C              *FindItemOfType(int entryID, UINT flags) const;
   CGItem_C              *FindItemOfType(int entryID, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
   CGItem_C              *FindItemOfClass(int classID, int subclassMask, UINT flags) const;
   CGItem_C              *FindItemOfClass(int classID, int subclassMask, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
-  CGItem_C              *FindItem(int (*func)(const CGItem_C *, LPVOID), LPVOID param, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
+  CGItem_C              *FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
 };

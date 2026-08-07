@@ -262,7 +262,7 @@ void CHARINFO::ChangeSkinTexture() {
   UINT                      preferredGeosets[NUM_CHARGEOSETS];
   CStatus                   status;
   BEARDSTYLEDATA            facialData;
-  int                       hasFacialInfo;
+  BOOL                      hasFacialInfo;
   HCHARGEOSET               geosetHandle;
   const ItemDisplayInfoRec *displayInfoRec;
   int                       i;

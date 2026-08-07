@@ -78,8 +78,8 @@ class Flags {
   Flags();
   void Set(UINT bit);
   void Clear(UINT bit);
-  int  IsSet(UINT bit);
-  int  IsClear(UINT bit);
+  BOOL IsSet(UINT bit);
+  BOOL IsClear(UINT bit);
 
  private:
   UINT m_value;
@@ -120,7 +120,7 @@ struct ZipFileFCB {
 
   ZipFileFCB();
   ~ZipFileFCB();
-  int SetFault();
+  BOOL SetFault();
 };
 
 typedef TSHashTable<ZipFileDirEntry, HASHKEY_CONSTSTRI> ZipDirTable;
@@ -199,7 +199,7 @@ ZipFileDirEntry *ZipDirTable::InternalNew(ZipDirList *listptr, DWORD extrabytes,
 }
 
 template <>
-int ZipDirTable::MonitorFullness(UINT slot) {
+BOOL ZipDirTable::MonitorFullness(UINT slot) {
   if (m_slotmask >= 0x1FFF) {
     return 0;
   }
@@ -322,11 +322,11 @@ void Flags::Clear(UINT bit) {
   m_value &= ~bit;
 }
 
-int Flags::IsSet(UINT bit) {
+BOOL Flags::IsSet(UINT bit) {
   return m_value & bit;
 }
 
-int Flags::IsClear(UINT bit) {
+BOOL Flags::IsClear(UINT bit) {
   return (m_value & bit) == 0;
 }
 
@@ -339,7 +339,7 @@ ZipFileFCB::~ZipFileFCB() {
   }
 }
 
-int ZipFileFCB::SetFault() {
+BOOL ZipFileFCB::SetFault() {
   if (flags.IsSet(4)) {
     inflateEnd(&zlibStream);
     flags.Clear(4);
@@ -367,7 +367,7 @@ ZipFileArchive::~ZipFileArchive() {
   }
 }
 
-int ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader) {
+BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader) {
   if (fseek(file, 0, SEEK_END)) {
     return 0;
   }
@@ -415,7 +415,7 @@ int ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader
   return cdirHeader.thisDiskNumber == cdirHeader.directoryStartDiskNumber && cdirHeader.directoryEntriesThisDisk == cdirHeader.directoryEntriesTotal;
 }
 
-int ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader) {
+BOOL ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader) {
   DWORD i;
 
   if (fseek(file, (long)cdirHeader.centralDirectoryOffset, SEEK_SET) != 0) {
@@ -438,7 +438,7 @@ static void ConvertFromZip(char *str) {
   }
 }
 
-int ZipFileArchive::ReadCentralDirectoryFileHeader() {
+BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
   char                       localFilename[0x100];
   char                       cdirFilename[0x100];
   CentralDirectoryFileHeader cdirFileHeader;
@@ -523,7 +523,7 @@ ZipFileDirEntry::ZipFileDirEntry() {
   startOffset = 0;
 }
 
-static int GetDirEntry(LPCSTR filename, ZipFileDirEntry **dirEntry) {
+static BOOL GetDirEntry(LPCSTR filename, ZipFileDirEntry **dirEntry) {
   ZipFileDirEntry *found = s_directory.Ptr(filename);
 
   if (!found) {
@@ -562,7 +562,7 @@ DWORD ZipFileOpenArchive(LPCSTR archivename) {
   return 0;
 }
 
-int ZipFileCloseArchive(DWORD handle) {
+BOOL ZipFileCloseArchive(DWORD handle) {
   FATALASSERT(((ZipFileArchive *)handle)->openFileCount == 0);
   s_archives.DeleteNode((ZipFileArchive *)handle);
   return 1;
@@ -613,7 +613,7 @@ ZipFileFCB *ZipFileOpenFile(LPCSTR filename, DWORD archive) {
   return fcb;
 }
 
-int ZipFileCloseFile(ZipFileFCB *fcb) {
+BOOL ZipFileCloseFile(ZipFileFCB *fcb) {
   --fcb->dirEntry->archive->openFileCount;
   delete fcb;
   return 1;
@@ -788,7 +788,7 @@ int ZipFileReadFile(ZipFileFCB *fcb, LPVOID buffer, UINT bytesToRead, UINT *byte
   return 1;
 }
 
-int ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
+BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
   z_stream         stream;
   ZipFileDirEntry *dirEntry;
   BYTE            *compressedData;
@@ -853,7 +853,7 @@ void ZipFileUnloadFile(LPVOID buffer) {
   SMemFree(buffer, __FILE__, __LINE__, 0);
 }
 
-int ZipFileList(DWORD archive, int (*cb)(LPCSTR, LPVOID), LPVOID param) {
+BOOL ZipFileList(DWORD archive, int (*cb)(LPCSTR, LPVOID), LPVOID param) {
   ZipFileArchive *archiveptr = (ZipFileArchive *)archive;
 
   ITERATELIST(ZipFileDirEntry, s_directory, entry) {
@@ -870,7 +870,7 @@ TestFile::TestFile(WowFileSystemProvider *provider, FILE *f) : WowFile(provider)
 TestFileSystemProvider::TestFileSystemProvider() {
 }
 
-int ZipFileArchive::Open(LPCSTR archivename) {
+BOOL ZipFileArchive::Open(LPCSTR archivename) {
   FATALASSERT(archivename);
   file = fopen(archivename, "rb");
   if (!file) {

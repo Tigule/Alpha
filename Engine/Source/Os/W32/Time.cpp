@@ -45,7 +45,7 @@ class OsTimeManager {
   SThread timeMgrThread;
   SEvent  shutdownEvt;
   DWORD   sleepVal;
-  int     hasQPF;
+  BOOL    hasQPF;
 };
 
 static OsTimeManager *s_OsTimeMgr;

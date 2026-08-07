@@ -309,7 +309,7 @@ void GxuUpdateSingleColorTexture(
   }
 }
 
-int GxuTestRayAndSphere(
+BOOL GxuTestRayAndSphere(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     const NTempest::C3Vector &sphereCenter,
@@ -331,7 +331,7 @@ int GxuTestRayAndSphere(
   return 1;
 }
 
-int GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &sphereCenterInWorld, float radius, const NTempest::C4Vector *planes) {
+BOOL GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &sphereCenterInWorld, float radius, const NTempest::C4Vector *planes) {
   for (UINT i = 0; i < 6; ++i) {
     if (planes[i].x * sphereCenterInWorld.x + planes[i].y * sphereCenterInWorld.y + planes[i].z * sphereCenterInWorld.z + planes[i].w > radius) {
       return 0;
@@ -340,7 +340,7 @@ int GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &sphereCenterInWorld,
   return 1;
 }
 
-int GxuTestRayAndTriangle(
+BOOL GxuTestRayAndTriangle(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     const NTempest::C3Vector &v0,
@@ -379,7 +379,7 @@ int GxuTestRayAndTriangle(
   distance = NTempest::C3Vector::Dot(e2, q) * f;
   return 1;
 }
-int GxuTestRayAndMesh(
+BOOL GxuTestRayAndMesh(
     const NTempest::C3Vector  &rayStart,
     const NTempest::C3Vector  &rayDirection,
     const NTempest::C34Matrix *modelToWorldMatrices,
@@ -468,7 +468,7 @@ int GxuTestRayAndMesh(
   return distance != INFINITY;
 }
 
-int GxuTestRayAndRigidMeshInModelSpace(
+BOOL GxuTestRayAndRigidMeshInModelSpace(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
     UINT                      posCount,

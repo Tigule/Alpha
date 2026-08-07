@@ -89,9 +89,9 @@ class CGClassTrainer {
   static int GetSkillLine(UINT index) {
     return index < m_numSkillLines ? m_skillLines[index]->skillLine : 0;
   }
-  static int GetSkillLineIndexFromService(UINT index);
-  static int IsCollpasedHeader(UINT index);
-  static int GetServiceTypeFilter() {
+  static int  GetSkillLineIndexFromService(UINT index);
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetServiceTypeFilter() {
     return m_serviceTypeFilter;
   }
   static int GetSkillLineFilter() {

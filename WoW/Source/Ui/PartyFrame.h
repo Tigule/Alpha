@@ -32,7 +32,7 @@ class CGPartyInfo {
   static void      EnterWorld();
   static void      LeaveWorld();
   static void      ShutdownGame();
-  static int       IsMember(const DWORDLONG &guid);
+  static BOOL      IsMember(const DWORDLONG &guid);
   static DWORDLONG GetMemberByName(LPCSTR name);
   static DWORDLONG GetLeader() {
     return m_leader;
@@ -40,7 +40,7 @@ class CGPartyInfo {
   static int GetLeaderIndex() {
     return m_leaderIndex;
   }
-  static int InParty() {
+  static BOOL InParty() {
     return NumMembers() != 0;
   }
   static UINT         NumMembers();
@@ -64,7 +64,7 @@ class CGPartyInfo {
   static DWORDLONG GetMasterLooter() {
     return m_lootMaster;
   }
-  static int IsLookingForGroup() {
+  static BOOL IsLookingForGroup() {
     return m_lookingForGroup;
   }
 

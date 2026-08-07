@@ -180,7 +180,7 @@ extern const SECTIONPRIORITIES g_sectionPriorities[INDEX_NUMSLOTS] = {
       LAYERPRIORITY_0, LAYERPRIORITY_0}}
 };
 
-int CompUtilGetSectionDimensions(UINT sectionIndex, UINT *width, UINT *height) {
+BOOL CompUtilGetSectionDimensions(UINT sectionIndex, UINT *width, UINT *height) {
   ASSERT(width);
   ASSERT(height);
 
@@ -193,7 +193,7 @@ int CompUtilGetSectionDimensions(UINT sectionIndex, UINT *width, UINT *height) {
   return 1;
 }
 
-int CompUtilGetSectionOffset(UINT sectionIndex, UINT *xCoord, UINT *yCoord) {
+BOOL CompUtilGetSectionOffset(UINT sectionIndex, UINT *xCoord, UINT *yCoord) {
   ASSERT(xCoord);
   ASSERT(yCoord);
 
@@ -206,7 +206,7 @@ int CompUtilGetSectionOffset(UINT sectionIndex, UINT *xCoord, UINT *yCoord) {
   return 1;
 }
 
-int CompUtilItemSectionInfo(
+BOOL CompUtilItemSectionInfo(
     const ItemDisplayInfoRec *displayInfoRec,
     UINT                      inventoryType,
     UINT                     *numTextureComponents,
@@ -245,7 +245,7 @@ int CompUtilItemSectionInfo(
   return 1;
 }
 
-int CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority) {
+BOOL CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority) {
   ASSERT(invType < INDEX_NUMSLOTS);
   ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
   ASSERT(layer);
@@ -270,7 +270,7 @@ LPCSTR CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, U
   return displayInfoRec->m_texture[textureIndex];
 }
 
-static int ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, UINT whichComponent, UINT inventoryType, SUBCOMPONENTDESC *subComp) {
+static BOOL ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, UINT whichComponent, UINT inventoryType, SUBCOMPONENTDESC *subComp) {
   ASSERT(inventoryType < INDEX_NUMSLOTS);
   ASSERT(displayInfoRec);
   ASSERT(whichComponent < 2);

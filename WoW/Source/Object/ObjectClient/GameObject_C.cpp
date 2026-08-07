@@ -95,13 +95,13 @@ void ClntObjMgrHideObject(DWORDLONG guid);
 void ClntObjMgrShowObject(DWORDLONG guid);
 void MovementAddTransport(CGGameObject_C *transport);
 void MovementRemoveTransport(CGGameObject_C *transport);
-void Spell_C_GetMinMaxPoints(const SpellRec *spell, int effectIndex, int *min, int *max, UINT level, int isPet);
+void Spell_C_GetMinMaxPoints(const SpellRec *spell, int effectIndex, int *min, int *max, UINT level, BOOL isPet);
 void Spell_C_GetMinMaxRange(int spellID, float *min, float *max);
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 bool Spell_C_HandleSpriteClick(CGObject_C *object);
 void SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position);
 
-static int PageTextHandler(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL PageTextHandler(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
   DWORDLONG gameObject;
   msg->Get(gameObject);
@@ -112,7 +112,7 @@ static int PageTextHandler(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDat
   return 1;
 }
 
-static int CustomAnimHandler(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL CustomAnimHandler(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
   DWORDLONG gameObject;
   UINT      anim;
@@ -240,7 +240,7 @@ static void AnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &positi
   object->m_baseObj->HandleAnimEvent(eventName, position);
 }
 
-static int AnimFinishedCallback(LPVOID param) {
+static BOOL AnimFinishedCallback(LPVOID param) {
   FATALASSERT(param);
   CGGameObject_C *object = static_cast<CGGameObject_C *>(param);
   FATALASSERT(object->m_baseObj);
@@ -248,7 +248,7 @@ static int AnimFinishedCallback(LPVOID param) {
   return 1;
 }
 
-static int OnUpdateState(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+static BOOL OnUpdateState(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGGameObject_C *object = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(object);
   FATALASSERT(object->m_baseObj);
@@ -394,7 +394,7 @@ NTempest::C3Vector CGGameObject_C_TypeBase::GetCurrentMoveVector() const {
   return NTempest::C3Vector();
 }
 
-int CGGameObject_C_TypeBase::IsPointInside(const NTempest::C3Vector &) const {
+BOOL CGGameObject_C_TypeBase::IsPointInside(const NTempest::C3Vector &) const {
   return 0;
 }
 
@@ -456,7 +456,7 @@ float CGGameObject_C::GetFacing() const {
   return m_baseObj->GetFacing();
 }
 
-int CGGameObject_C::IsPointInside(const NTempest::C3Vector &point) const {
+BOOL CGGameObject_C::IsPointInside(const NTempest::C3Vector &point) const {
   FATALASSERT(m_baseObj);
   return m_baseObj->IsPointInside(point);
 }
@@ -474,7 +474,7 @@ void CGGameObject_C::PostInit(const CClientObjCreate &init) {
   }
 }
 
-int CGGameObject_C::UpdateModelLoadStatus() {
+BOOL CGGameObject_C::UpdateModelLoadStatus() {
   if (!CGObject_C::UpdateModelLoadStatus()) {
     return 0;
   }
@@ -522,7 +522,7 @@ void CGGameObject_C::PostReenable() {
   }
 }
 
-int CGGameObject_C::SetBlock(UINT, DWORD) {
+BOOL CGGameObject_C::SetBlock(UINT, DWORD) {
   FATALASSERT(0);
   return 1;
 }
@@ -735,26 +735,26 @@ void CGGameObject_C::CloseInteraction() {
   m_baseObj->CloseInteraction();
 }
 
-int CGGameObject_C::IsTransport() const {
+BOOL CGGameObject_C::IsTransport() const {
   FATALASSERT(m_stats);
   UINT type = *reinterpret_cast<const UINT *>(m_stats);
   return type == 11 || type == 15;
 }
 
-int CGGameObject_C::CanHighlight() const {
+BOOL CGGameObject_C::CanHighlight() const {
   FATALASSERT(m_baseObj);
   return m_baseObj->CanHighlight();
 }
 
-int CGGameObject_C::IsSolidSelectable() const {
+BOOL CGGameObject_C::IsSolidSelectable() const {
   return m_isSolid || CanHighlight();
 }
 
-int CGGameObject_C::IsSolidCollidable() const {
+BOOL CGGameObject_C::IsSolidCollidable() const {
   return m_isSolid;
 }
 
-int CGGameObject_C::FloatingTooltip() const {
+BOOL CGGameObject_C::FloatingTooltip() const {
   return GetPropertyValue(CGameObjectDef::GetPropNum(GetType(), 19)) != 0;
 }
 
@@ -1203,7 +1203,7 @@ void CGGameObject_C_Type_MapObjTransport::AddPassenger(CMovementData *passenger)
   );
 }
 
-int CGGameObject_C_Type_MapObjTransport::IsPointInside(const NTempest::C3Vector &point) const {
+BOOL CGGameObject_C_Type_MapObjTransport::IsPointInside(const NTempest::C3Vector &point) const {
   return CWorld::ObjectTestConvexVolume(m_objectId, point);
 }
 
@@ -1378,7 +1378,7 @@ bool CGGameObject_C_Type_Transport::CanUse() const {
   return 0;
 }
 
-int CGGameObject_C_Type_Transport::IsPointInside(const NTempest::C3Vector &point) const {
+BOOL CGGameObject_C_Type_Transport::IsPointInside(const NTempest::C3Vector &point) const {
   UINT numPlanes = m_interior.Count();
   while (numPlanes) {
     --numPlanes;

@@ -457,7 +457,7 @@ void CGInputControl::SetReleaseAction(CGInputReleaseAction action) {
   }
 }
 
-int CGInputControl::SetControlBit(INPUT_CONTROL bit) {
+BOOL CGInputControl::SetControlBit(INPUT_CONTROL bit) {
   if (m_controlFlags & bit) {
     return 0;
   }
@@ -495,7 +495,7 @@ void CGInputControl::SetControlBit(INPUT_CONTROL bit, int set, DWORD now, int st
   }
 }
 
-int CGInputControl::IsMouseDragging() const {
+BOOL CGInputControl::IsMouseDragging() const {
   if (static_cast<int>(OsGetAsyncTimeMs() - m_mouseDownTime - 800) >= 0) {
     return 1;
   }
@@ -507,7 +507,7 @@ int CGInputControl::IsMouseDragging() const {
   return 0;
 }
 
-int CGInputControl::IsMouseDragMoving() const {
+BOOL CGInputControl::IsMouseDragMoving() const {
   if (!IsMouseDragging()) {
     return 0;
   }
@@ -524,7 +524,7 @@ void CGInputControl::OnMouseMoveRel(const CMouseEvent &evt) {
   }
 }
 
-int CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
+BOOL CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
   if (!(m_controlFlags & bit)) {
     return 0;
   }
@@ -643,7 +643,7 @@ void CGInputControl::PitchPlayer(DWORD now, CGUnit_C *player) {
   }
 }
 
-int CGInputControl::CameraCanTurnPlayer() const {
+BOOL CGInputControl::CameraCanTurnPlayer() const {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;

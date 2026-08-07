@@ -59,7 +59,7 @@ class CGContainer_C : public CGItem_C, public CGContainer {
   float            GetSlotYOffset() const;
   int              GetWidth() const;
   int              GetHeight() const;
-  int              SetBlock(UINT i, DWORD data);
+  BOOL             SetBlock(UINT i, DWORD data);
   void             SetData(LPCVOID data, UINT bytes);
   static UINT      OffsetOf(OBJECT_TYPE_ID type);
   virtual CGBag_C *GetBag() {

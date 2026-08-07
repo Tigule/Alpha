@@ -24,7 +24,7 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-int Spell_C_GetSpellCooldown(int spell, int isPet, UINT *duration, DWORD *startTime, UINT *enable);
+int Spell_C_GetSpellCooldown(int spell, BOOL isPet, UINT *duration, DWORD *startTime, UINT *enable);
 
 static const char s_petModeTokens[3][32] = {"PASSIVE", "DEFENSIVE", "AGGRESSIVE"};
 static const char s_petOrdersTokens[4][32] = {"WAIT", "FOLLOW", "ATTACK", "DISMISS"};

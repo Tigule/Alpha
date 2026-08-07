@@ -106,11 +106,11 @@ void CGxBufD3d::LockIB(LPVOID &mem) {
   }
 }
 
-int CGxBufD3d::VBLValid() {
+BOOL CGxBufD3d::VBLValid() {
   return m_vbl && m_vbl->m_maxContiguousVertices >= m_numVertices;
 }
 
-int CGxBufD3d::IBValid() {
+BOOL CGxBufD3d::IBValid() {
   return m_ib && m_ib->m_count >= m_numIndices;
 }
 

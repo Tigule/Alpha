@@ -55,7 +55,7 @@ class CSimpleModel : public CSimpleFrame {
 
   void SetSequence(UINT index);
   int  SetSequenceTime(UINT index, int timeOffset);
-  int  AdvanceTime();
+  BOOL AdvanceTime();
 
   NTempest::C3Vector GetPosition() {
     return m_position;
@@ -69,7 +69,7 @@ class CSimpleModel : public CSimpleFrame {
     return m_scale;
   }
 
-  int ModelJustLoaded() const;
+  BOOL ModelJustLoaded() const;
 
   void SetFog(int fog) {
     if (fog) {
@@ -117,14 +117,14 @@ class CSimpleModel : public CSimpleFrame {
     return (m_flags & 0x4) ? 0 : m_camera;
   }
 
-  int HasFog() const {
+  BOOL HasFog() const {
     return (m_flags & 0x2) != 0;
   }
 
-  int  IsModelLoaded() const;
-  int  IsUserFlagSet(UINT flag) const;
+  BOOL IsModelLoaded() const;
+  BOOL IsUserFlagSet(UINT flag) const;
   void SetUserFlag(UINT flag, int set);
-  int  IsWaitingForCamera() const;
+  BOOL IsWaitingForCamera() const;
   void SetWaitingForCamera(int waiting);
 
   const NTempest::CImVector &GetFogColor() {
@@ -146,7 +146,7 @@ class CSimpleModel : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void SetModelLoaded(int loaded);
   void FinishLoadingModel();

@@ -8,11 +8,11 @@ struct CRibbonMat {
   CRibbonMat() : enableLighting(1), enableFog(1), enableDepthTest(1), enableDepthWrite(1), enableCulling(1), alpha(GxBlend_Opaque) {
   }
 
-  int      enableLighting : 1;
-  int      enableFog : 1;
-  int      enableDepthTest : 1;
-  int      enableDepthWrite : 1;
-  int      enableCulling : 1;
+  BOOL     enableLighting : 1;
+  BOOL     enableFog : 1;
+  BOOL     enableDepthTest : 1;
+  BOOL     enableDepthWrite : 1;
+  BOOL     enableCulling : 1;
   EGxBlend alpha;
 };
 
@@ -56,8 +56,8 @@ class CRibbonEmitter {
   void SetColor(const float r, const float g, const float b);
   void SetAlpha(const float a);
   void SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, int suppressNewEdges);
-  int  Render();
-  int  IsDead();
+  BOOL Render();
+  BOOL IsDead();
   void Update(float elapsedSec, int suppressNewEdges);
   UINT ReplaceTexture(UINT replaceableId, HTEXTURE texture);
   void MaterialDisableLight(int disable);

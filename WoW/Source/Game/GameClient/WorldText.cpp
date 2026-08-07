@@ -476,7 +476,7 @@ void WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matri
   }
 }
 
-int WorldTextIsTextDone(HWORLDTEXT__ *handle) {
+BOOL WorldTextIsTextDone(HWORLDTEXT__ *handle) {
   WORLDTEXTSTRING *text = reinterpret_cast<WORLDTEXTSTRING *>(handle);
   if (!text) {
     return 1;

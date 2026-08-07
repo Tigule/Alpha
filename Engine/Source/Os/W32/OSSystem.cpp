@@ -228,11 +228,11 @@ void OsGetVersionString(char *string, int length) {
   SStrCopy(string, osName, length);
 }
 
-int OsGetComputerName(char *computerName, DWORD *computerNameLen) {
+BOOL OsGetComputerName(char *computerName, DWORD *computerNameLen) {
   return GetComputerName(computerName, computerNameLen);
 }
 
-int OsGetUserName(char *userName, DWORD *userNameLen) {
+BOOL OsGetUserName(char *userName, DWORD *userNameLen) {
   return GetUserName(userName, userNameLen);
 }
 
@@ -246,7 +246,7 @@ void OsSystemObjectCreate(LPCSTR inName) {
   CreateEventA(NULL, TRUE, FALSE, inName);
 }
 
-int OsSystemObjectExists(LPCSTR inName) {
+BOOL OsSystemObjectExists(LPCSTR inName) {
   HANDLE handle;
   DWORD  error;
 
@@ -260,7 +260,7 @@ int OsSystemObjectExists(LPCSTR inName) {
   return error == ERROR_ALREADY_EXISTS ? 1 : 0;
 }
 
-int OsLaunchURL(LPCSTR url) {
+BOOL OsLaunchURL(LPCSTR url) {
   HWND      activeWindow;
   char      fixedURL[1024];
   char      browserFilename[256];

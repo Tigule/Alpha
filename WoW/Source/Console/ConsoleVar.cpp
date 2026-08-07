@@ -13,7 +13,7 @@ typedef TSHashTable<CVar, HASHKEY_STRI> CVarHashTable;
 
 static CVarHashTable s_registeredCVars;
 static LPCSTR        s_filename;
-static int           s_CreatePathDirectories(LPCSTR szPath) {
+static BOOL          s_CreatePathDirectories(LPCSTR szPath) {
   char   dwPartialPath[MAX_PATH];
   int    success = 1;
   LPCSTR separator;
@@ -58,7 +58,7 @@ CVar::~CVar() {
   FREEIFUSED(m_latchedValue);
 }
 
-static int CvarCommandHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL CvarCommandHandler(LPCSTR command, LPCSTR arguments) {
   CVar *cvar = CVar::Lookup(command);
   ASSERT(cvar);
 
@@ -75,7 +75,7 @@ static int CvarCommandHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int SetCommandHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL SetCommandHandler(LPCSTR command, LPCSTR arguments) {
   char cvarValue[256];
   char cvarName[32];
 
@@ -92,7 +92,7 @@ static int SetCommandHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CvarResetCommandHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL CvarResetCommandHandler(LPCSTR command, LPCSTR arguments) {
   char cvarName[32];
 
   SStrTokenize(&arguments, cvarName, sizeof(cvarName), whitespace, 0);
@@ -115,7 +115,7 @@ static int CvarResetCommandHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CvarDefaultCommandHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL CvarDefaultCommandHandler(LPCSTR command, LPCSTR arguments) {
   char cvarName[32];
 
   SStrTokenize(&arguments, cvarName, sizeof(cvarName), whitespace, 0);
@@ -138,7 +138,7 @@ static int CvarDefaultCommandHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CvarListCommandHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL CvarListCommandHandler(LPCSTR command, LPCSTR arguments) {
   char text[256];
   char text2[256];
   ITERATELIST(CVar, s_registeredCVars, cvar) {
@@ -167,7 +167,7 @@ static int CVarLoadFile() {
   return 1;
 }
 
-static int CVarSaveFile() {
+static BOOL CVarSaveFile() {
   char  buffer[MAX_PATH];
   char  fileName[MAX_PATH];
   DWORD count;

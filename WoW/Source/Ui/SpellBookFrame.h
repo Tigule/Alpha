@@ -65,8 +65,8 @@ class CGSpellBook {
     }
     return type == PET_SPELL ? m_petSpells[slot] : 0;
   }
-  static int                         IsSelectedSlot(int slot, UI_SPELL_TYPE type);
-  static int                         IsToggledSpell(int slot, UI_SPELL_TYPE type);
+  static BOOL                        IsSelectedSlot(int slot, UI_SPELL_TYPE type);
+  static BOOL                        IsToggledSpell(int slot, UI_SPELL_TYPE type);
   static const TSGrowableArray<int> &GetUnlockSpells();
   static const TSGrowableArray<int> &GetShapeshiftForms() {
     return m_shapeshiftForms;

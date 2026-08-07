@@ -388,7 +388,7 @@ void CSimpleTexture::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleTexture::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CSimpleTexture::LookupScriptMethod(lua_State *L, LPCSTR name) {
   return FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods);
 }
 
@@ -436,6 +436,6 @@ void CSimpleFontString::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleFontString::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CSimpleFontString::LookupScriptMethod(lua_State *L, LPCSTR name) {
   return FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods);
 }

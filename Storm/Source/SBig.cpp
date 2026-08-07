@@ -17,7 +17,7 @@ class BigBuffer {
   UINT  operator[](UINT index) const;
   void  Clear();
   UINT  Count() const;
-  int   IsUsed(UINT index) const;
+  BOOL  IsUsed(UINT index) const;
   void  SetCount(UINT count);
   void  SetOffset(UINT offset);
   void  Trim() const;
@@ -91,11 +91,11 @@ static void      FindPrime(BigBuffer &a, UINT b, const BigBuffer &c, const BigBu
 static void      Gcd(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
 static UINT      HighBitPos(const BigBuffer &a);
 static void      InvMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
-static int       IsEven(const BigBuffer &a);
-static int       IsOdd(const BigBuffer &a);
-static int       IsOne(const BigBuffer &a);
-static int       IsPrime(const BigBuffer &a, BigStack &stack);
-static int       IsZero(const BigBuffer &a);
+static BOOL      IsEven(const BigBuffer &a);
+static BOOL      IsOdd(const BigBuffer &a);
+static BOOL      IsOne(const BigBuffer &a);
+static BOOL      IsPrime(const BigBuffer &a, BigStack &stack);
+static BOOL      IsZero(const BigBuffer &a);
 static UINT      LowBitPos(const BigBuffer &a);
 static void      Mul(BigBuffer &a, const BigBuffer &b, DWORDLONG c);
 static void      Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack);
@@ -150,7 +150,7 @@ UINT BigBuffer::Count() const {
   return m_data.Count() - m_offset;
 }
 
-int BigBuffer::IsUsed(UINT index) const {
+BOOL BigBuffer::IsUsed(UINT index) const {
   return m_offset + index < m_data.Count();
 }
 
@@ -453,20 +453,20 @@ static void InvMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStac
   stack.Free(allocCount);
 }
 
-static int IsEven(const BigBuffer &a) {
+static BOOL IsEven(const BigBuffer &a) {
   return !a.Count() || !(a[0] & 1);
 }
 
-static int IsOdd(const BigBuffer &a) {
+static BOOL IsOdd(const BigBuffer &a) {
   return a.Count() && (a[0] & 1);
 }
 
-static int IsOne(const BigBuffer &a) {
+static BOOL IsOne(const BigBuffer &a) {
   a.Trim();
   return a.Count() == 1 && a[0] == 1;
 }
 
-static int IsPrime(const BigBuffer &a, BigStack &stack) {
+static BOOL IsPrime(const BigBuffer &a, BigStack &stack) {
   UINT       b;
   UINT       remainder;
   UINT       j;
@@ -525,7 +525,7 @@ static int IsPrime(const BigBuffer &a, BigStack &stack) {
   return result;
 }
 
-static int IsZero(const BigBuffer &a) {
+static BOOL IsZero(const BigBuffer &a) {
   a.Trim();
   return !a.Count();
 }

@@ -38,12 +38,12 @@ namespace MDL {
     }
   }
 
-  int ReadPivotPoints(Parser &parse, MDLDATA &data, CMDLStatus *) {
+  BOOL ReadPivotPoints(Parser &parse, MDLDATA &data, CMDLStatus *) {
     IReadPivots(parse, &data.pivotPoints);
     return !parse.FoundError();
   }
 
-  int WritePivotPoints(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WritePivotPoints(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (data.pivotPoints.Count()) {
       WriteLine(buffer, "%s %d {\n", TokenText(0x111), data.pivotPoints.Count());
       for (UINT i = 0; i < data.pivotPoints.Count(); ++i) {
@@ -55,7 +55,7 @@ namespace MDL {
     return 1;
   }
 
-  int WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
+  BOOL WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
     if (data.pivotPoints.Count()) {
       buf.AddDword('TVIP');
       buf.AddUint(12 * data.pivotPoints.Count());
@@ -64,7 +64,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinPivotPoints(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinPivotPoints(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     data.pivotPoints.SetCount(0);
     data.pivotPoints.ReserveSpace(length / 12);
 

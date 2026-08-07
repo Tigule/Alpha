@@ -241,17 +241,33 @@ struct VARIATIONS {
 void     CharCustomizationInitialize();
 void     CharCustomizationShutdown();
 void     CharCustomizationGetNumSkinTextures(UINT raceID, UINT sexID, int *pcVars, int *npcVars);
-HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, int isNPC);
-HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID, UINT textureNumber, int isNPC);
-int CharCustomizationGetNakedSectionName(UINT raceID, UINT sexID, UINT skinID, UINT underwearSection, char *outBuffer, UINT outBufferSize, int isNPC);
+HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
+HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
+BOOL     CharCustomizationGetNakedSectionName(
+    UINT  raceID,
+    UINT  sexID,
+    UINT  skinID,
+    UINT  underwearSection,
+    char *outBuffer,
+    UINT  outBufferSize,
+    BOOL  isNPC
+);
 void CharCustomizationNumFaces(UINT raceID, UINT sexID, int *pcVars, int *npcVars);
-void CharCustomizationSetFaceTexture(HMODEL characterModel, HTEXCOMPONENT texComponent, UINT raceID, UINT sexID, UINT varID, UINT colorID, int isNPC);
+void CharCustomizationSetFaceTexture(
+    HMODEL        characterModel,
+    HTEXCOMPONENT texComponent,
+    UINT          raceID,
+    UINT          sexID,
+    UINT          varID,
+    UINT          colorID,
+    BOOL          isNPC
+);
 void CharCustomizationSetHairTexture(HMODEL characterModel, HTEXCOMPONENT texComponent, UINT raceID, UINT sexID, UINT hairID, UINT colorID);
 UINT CharCustomizationGetHairGeoset(UINT race, UINT sex, UINT hair);
 UINT CharCustomizationNumHairStyles(UINT raceID, UINT sexID);
 UINT CharCustomizationNumHairColors(UINT raceID, UINT sexID);
 UINT CharCustomizationNumBeardStyles(UINT raceID, UINT sexID);
-int  CharCustomizationGetBeardStyle(UINT raceID, UINT sexID, UINT facialHairID, BEARDSTYLEDATA *facialHairStyleData);
+BOOL CharCustomizationGetBeardStyle(UINT raceID, UINT sexID, UINT facialHairID, BEARDSTYLEDATA *facialHairStyleData);
 void CharCustomizationSetFacialTexture(HMODEL characterModel, HTEXCOMPONENT texComponent, UINT raceID, UINT sexID, UINT facialID, UINT colorID);
 HCHARGEOSET CharCustomizationCreateGeosetHandle(HMODEL characterModel);
 void        CharCustomizationSetPaperDollGeoset(HCHARGEOSET handle, HMODEL paperDollModel);

@@ -11,7 +11,7 @@ void OsGetTimeStr(char *timeBuffer, DWORD length);
 namespace MDL {
   void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...);
 
-  int WriteHeaderComment(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteHeaderComment(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     char timebuf[80];
     WriteLine(buffer, "// MDLFile version\tDec 11 2003 17:58:18\n");
     OsGetTimeStr(timebuf, sizeof(timebuf));

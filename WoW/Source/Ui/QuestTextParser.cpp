@@ -19,10 +19,10 @@
 static LPCSTR token;
 static int    s_lastNumber;
 
-int  Spell_C_GetSpellLevel(int id, int isPet);
-int  Spell_C_GetManaCost(int id, int isPet);
-int  Spell_C_GetManaCostPerSecond(int id, int isPet);
-void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, UINT level, int isPet);
+int  Spell_C_GetSpellLevel(int id, BOOL isPet);
+int  Spell_C_GetManaCost(int id, BOOL isPet);
+int  Spell_C_GetManaCostPerSecond(int id, BOOL isPet);
+void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, int *max, UINT level, BOOL isPet);
 
 bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
 
@@ -260,7 +260,7 @@ bool SpellParserPluralConditional(char *buf, UINT size, int ordinal) {
   return true;
 }
 
-int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, int level, int isPet) {
+int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, int level, BOOL isPet) {
   if (!spell) {
     return 0;
   }
@@ -404,7 +404,7 @@ int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, int leve
   return 1;
 }
 
-int SpellParserParseText(const SpellRec *spell, char *buf, UINT size, int isPet) {
+BOOL SpellParserParseText(const SpellRec *spell, char *buf, UINT size, BOOL isPet) {
   FATALASSERT(spell);
   FATALASSERT(buf);
   buf[0] = 0;

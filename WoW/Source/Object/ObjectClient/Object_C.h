@@ -39,7 +39,7 @@ class CGObject_C : public CGObject {
   void PostInit(const CClientObjCreate &init);
   void PostMovementUpdate() {
   }
-  int IsPostInited() const;
+  BOOL IsPostInited() const;
 
   static void Initialize();
   static void Shutdown();
@@ -74,13 +74,13 @@ class CGObject_C : public CGObject {
     return m_model;
   }
   void SetObjectModel(HMODEL__ *model);
-  int  IsObjectModelLoaded() const;
+  BOOL IsObjectModelLoaded() const;
   int  AreAttachmentsLoaded() const;
   int  AddAttachment(HMODEL__ *parent, UINT parentIndex, HMODEL__ *child, float scale);
-  int  IsDisabled() const;
-  int  IsInReenable() const;
+  BOOL IsDisabled() const;
+  BOOL IsInReenable() const;
 
-  int         SetBlock(UINT i, DWORD data);
+  BOOL        SetBlock(UINT i, DWORD data);
   void        SetData(LPCVOID data, UINT bytes);
   static UINT OffsetOf(OBJECT_TYPE_ID type);
 
@@ -98,21 +98,21 @@ class CGObject_C : public CGObject {
 
  protected:
   virtual LPCSTR GetModelFileName() const = 0;
-  int            InitModelFileName(char *modelFileName, UINT size);
+  BOOL           InitModelFileName(char *modelFileName, UINT size);
   void           ReportMissingAnimation(UINT sequence, LPCSTR modelName) const;
   void           ReportMissingBone(UINT objectID, LPCSTR modelName) const;
   void           ReportMissingAttachment(UINT objectID, LPCSTR modelName) const;
   void           ReportNoAnimation(LPCSTR modelName);
-  int            ObjectModelSetSequence(HMODEL__ *model, UINT sequence, UINT flags, LPCSTR modelName);
-  int            ObjectModelSetBoneSequence(HMODEL__ *model, UINT sequence, UINT objectID, UINT flags);
+  BOOL           ObjectModelSetSequence(HMODEL__ *model, UINT sequence, UINT flags, LPCSTR modelName);
+  BOOL           ObjectModelSetBoneSequence(HMODEL__ *model, UINT sequence, UINT objectID, UINT flags);
   int            ObjectIsRendering() const;
 
  public:
   void UpdateObjectHeight(HMODEL__ *model);
 
  private:
-  void        ReportMissingAnimObj(LPCSTR message, UINT objectID, LPCSTR modelName) const;
-  virtual int GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
+  void         ReportMissingAnimObj(LPCSTR message, UINT objectID, LPCSTR modelName) const;
+  virtual BOOL GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
     FATALASSERT(outPtr);
     outPtr->Set(0xFFFFFFFF);
     return 1;
@@ -127,9 +127,9 @@ class CGObject_C : public CGObject {
   }
   virtual void RenderTargetSelection() const {
   }
-  virtual int UpdateModelLoadStatus();
-  virtual int UpdateAttachmentLoadStatus();
-  virtual int UpdateTexComponentLoadStatus() {
+  virtual BOOL UpdateModelLoadStatus();
+  virtual BOOL UpdateAttachmentLoadStatus();
+  virtual BOOL UpdateTexComponentLoadStatus() {
     return 0;
   }
   virtual void PreRender(int currentTime, float elapsed) {
@@ -140,7 +140,7 @@ class CGObject_C : public CGObject {
   virtual void GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
   void         Animate();
   void         Animate(const NTempest::C34Matrix &camRelativeMatrix);
-  virtual int  ShouldRender(DWORD worldStatus);
+  virtual BOOL ShouldRender(DWORD worldStatus);
   virtual void ObjectPostAnimate(float renderFacing, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
   }
   virtual void ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
@@ -154,19 +154,19 @@ class CGObject_C : public CGObject {
   }
   virtual void UpdatePlayerName() {
   }
-  virtual int IsSolidSelectable() const {
+  virtual BOOL IsSolidSelectable() const {
     return 1;
   }
-  virtual int IsSolidCollidable() const {
+  virtual BOOL IsSolidCollidable() const {
     return 1;
   }
-  virtual int CanHighlight() const {
+  virtual BOOL CanHighlight() const {
     return 0;
   }
-  virtual int CanBeTargetted() const {
+  virtual BOOL CanBeTargetted() const {
     return 0;
   }
-  virtual int FloatingTooltip() const {
+  virtual BOOL FloatingTooltip() const {
     return 0;
   }
   virtual void OnLeftClick() {
@@ -181,7 +181,7 @@ class CGObject_C : public CGObject {
   void ShowHighlightType(HIGHLIGHTTYPE type);
 
  protected:
-  virtual int ShouldFadeIn() const {
+  virtual BOOL ShouldFadeIn() const {
     return 1;
   }
   void ObjectSetNotRendering();

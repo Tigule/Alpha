@@ -28,7 +28,7 @@ namespace ProfileInternal {
   static const char FALSESTR[] = "false";
 
   NODEDECL(STRINGBLOCK) {
-    int Contains(LPCSTR string) const {
+    BOOL Contains(LPCSTR string) const {
       return string >= m_data && string < m_data + m_dataSize;
     }
 
@@ -69,15 +69,15 @@ namespace ProfileInternal {
   };
 
   static int       IReadFile(PROFILE *profile, LPCSTR rawPath);
-  static int       IWriteFile(PROFILE *profile, LPCSTR path);
-  static int       IReadBuffer(PROFILE *profile, LPCVOID buffer, DWORD bufferBytes);
+  static BOOL      IWriteFile(PROFILE *profile, LPCSTR path);
+  static BOOL      IReadBuffer(PROFILE *profile, LPCVOID buffer, DWORD bufferBytes);
   static void      TokenizeStringValues(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName, char *value);
   static void      ISetValue(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName, LPCSTR value, int clear, int inSitu);
   static LPCSTR    IGetValue(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName, UINT index);
   static UINT      IGetNumValues(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName);
   static KEYVALUE *GetKeyValue(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName);
   static void      WriteLine(TSGrowableArray<char> &buffer, LPCSTR pszFmt, ...);
-  static int       WriteFileBuffer(LPCSTR path, const TSGrowableArray<char> &buffer);
+  static BOOL      WriteFileBuffer(LPCSTR path, const TSGrowableArray<char> &buffer);
   static void      WriteKey(KEYVALUE *key, TSGrowableArray<char> &buffer);
   static void      WriteSection(SECTION *section, TSGrowableArray<char> &buffer);
   static int       PrfStrToInt(LPCSTR str);
@@ -247,7 +247,7 @@ namespace ProfileInternal {
     }
   }
 
-  static int IReadBuffer(PROFILE *profile, LPCVOID buffer, DWORD bufferBytes) {
+  static BOOL IReadBuffer(PROFILE *profile, LPCVOID buffer, DWORD bufferBytes) {
     enum {
       STATE_NEWLINE = 0,
       STATE_COMMENT = 1,
@@ -364,7 +364,7 @@ namespace ProfileInternal {
     return result;
   }
 
-  static int WriteFileBuffer(LPCSTR path, const TSGrowableArray<char> &buffer) {
+  static BOOL WriteFileBuffer(LPCSTR path, const TSGrowableArray<char> &buffer) {
     FILE *file;
     UINT  bytesWritten;
 
@@ -411,7 +411,7 @@ namespace ProfileInternal {
     WriteLine(buffer, "\n");
   }
 
-  static int IWriteFile(PROFILE *profile, LPCSTR path) {
+  static BOOL IWriteFile(PROFILE *profile, LPCSTR path) {
     TSGrowableArray<char> buffer;
     SECTION              *section;
 
@@ -465,14 +465,14 @@ int ProfileReadBuffer(HPROFILE handle, LPCVOID buffer, DWORD bufferBytes) {
   return ProfileInternal::IReadBuffer(static_cast<ProfileInternal::PROFILE *>(handle), buffer, bufferBytes);
 }
 
-int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool value) {
+BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
   return ProfileAddValue(handle, section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR);
 }
 
-int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
+BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -481,7 +481,7 @@ int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
   return ProfileAddValue(handle, section, key, strValue);
 }
 
-int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value) {
+BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -490,7 +490,7 @@ int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value)
   return ProfileAddValue(handle, section, key, strValue);
 }
 
-int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
+BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -499,7 +499,7 @@ int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
   return ProfileAddValue(handle, section, key, strValue);
 }
 
-int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &value) {
+BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -509,7 +509,7 @@ int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &v
   return 1;
 }
 
-int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) {
+BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) {
   FATALASSERT(section);
   FATALASSERT(key);
   FATALASSERT(value);
@@ -518,14 +518,14 @@ int ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) {
   return 1;
 }
 
-int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool value) {
+BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
   return ProfileSetValue(handle, section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR);
 }
 
-int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
+BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -534,7 +534,7 @@ int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
   return ProfileSetValue(handle, section, key, strValue);
 }
 
-int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value) {
+BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -543,7 +543,7 @@ int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value)
   return ProfileSetValue(handle, section, key, strValue);
 }
 
-int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
+BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -552,7 +552,7 @@ int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
   return ProfileSetValue(handle, section, key, strValue);
 }
 
-int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &value) {
+BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &value) {
   FATALASSERT(section);
   FATALASSERT(key);
 
@@ -562,7 +562,7 @@ int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &v
   return 1;
 }
 
-int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) {
+BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) {
   FATALASSERT(section);
   FATALASSERT(key);
   FATALASSERT(value);
@@ -571,7 +571,7 @@ int ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) {
   return 1;
 }
 
-int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool *value, UINT index) {
+BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool *value, UINT index) {
   LPCSTR string;
 
   FATALASSERT(section);
@@ -588,7 +588,7 @@ int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool *value, UI
   return 1;
 }
 
-int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int *value, UINT index) {
+BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int *value, UINT index) {
   LPCSTR string;
 
   FATALASSERT(section);
@@ -607,7 +607,7 @@ int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int *value, UIN
   return 1;
 }
 
-int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG *value, UINT index) {
+BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG *value, UINT index) {
   LPCSTR string;
 
   FATALASSERT(section);
@@ -624,7 +624,7 @@ int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG *value
   return 1;
 }
 
-int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float *value, UINT index) {
+BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float *value, UINT index) {
   LPCSTR string;
 
   FATALASSERT(section);
@@ -641,7 +641,7 @@ int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float *value, U
   return 1;
 }
 
-int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, unreal *value, UINT index) {
+BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, unreal *value, UINT index) {
   LPCSTR string;
 
   FATALASSERT(section);
@@ -658,7 +658,7 @@ int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, unreal *value, 
   return 1;
 }
 
-int ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, char *value, UINT maxChars, UINT index) {
+BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, char *value, UINT maxChars, UINT index) {
   LPCSTR string;
 
   FATALASSERT(section);
@@ -738,7 +738,7 @@ void ProfileEnumSections(HPROFILE handle, PROFILEENUMSECTIONCALLBACK callback, L
   }
 }
 
-int ProfileSectionExists(HPROFILE profile, LPCSTR section) {
+BOOL ProfileSectionExists(HPROFILE profile, LPCSTR section) {
   ProfileInternal::PROFILE *profilePtr;
 
   profilePtr = static_cast<ProfileInternal::PROFILE *>(profile);

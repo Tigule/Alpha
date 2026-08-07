@@ -322,7 +322,7 @@ void PARTYKILLLOG::UI(CDataStore &msg) {
   msg.Get(victim);
 }
 
-int OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   switch (msgId) {
@@ -454,7 +454,7 @@ int OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
   }
 }
 
-int OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG attacker;
   DWORDLONG guid;
   int       damage;
@@ -476,11 +476,11 @@ int OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg)
   return 1;
 }
 
-int OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
-int OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG guid;
   UINT      flags;
   BYTE      damage;
@@ -501,12 +501,12 @@ void CGUnit_C::SetDebugHitRolls(const ATTACKROUNDINFO &info) {
   m_hitInformation.attackInfo = info;
 }
 
-int CGUnit_C::IsPreemptableWoundAnimState(UINT state) {
+BOOL CGUnit_C::IsPreemptableWoundAnimState(UINT state) {
   return state == ANIM_STATE_WOUND || state == ANIM_STATE_CRITICALWOUND || state == ANIM_STATE_PARRY || state == ANIM_STATE_DODGE ||
          state == ANIM_STATE_BLOCK;
 }
 
-int CGUnit_C::IsAttackAnimState(UINT state) {
+BOOL CGUnit_C::IsAttackAnimState(UINT state) {
   return state == ANIM_STATE_ATTACK_MISS || state == ANIM_STATE_ATTACK_HIT || state == ANIM_STATE_ATTACKOFF_HIT || state == ANIM_STATE_ATTACKOFF_MISS;
 }
 
@@ -598,7 +598,7 @@ void CGUnit_C::SetVictimAnimation(VICTIMSTATES newState, int unitDead, int criti
   SetTorsoAnimation(sequence, victimRoundDuration, 16);
 }
 
-int CGUnit_C::SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int processNow) {
+BOOL CGUnit_C::SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int processNow) {
   FATALASSERT(roundInfo);
 
   COMBATHAND hand = COMBAT_MAINHAND;

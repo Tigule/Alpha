@@ -9,7 +9,7 @@
 
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 
-int MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
+BOOL MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
   ASSERT(cameras);
 
   cameras->SetCount(data.cameras.Count());

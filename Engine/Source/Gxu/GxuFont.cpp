@@ -276,35 +276,35 @@ CGxStringBatch *GxuFontCreateBatch() {
 
   return batch;
 }
-int GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string) {
+BOOL GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string) {
   if (!batch || !string) {
     return 0;
   }
   batch->AddString(string);
   return 1;
 }
-int GxuFontRemoveFromBatch(CGxString *string) {
+BOOL GxuFontRemoveFromBatch(CGxString *string) {
   if (!string) {
     return 0;
   }
   string->m_batchedStringLink.Unlink();
   return 1;
 }
-int GxuFontRenderBatch(CGxStringBatch *batch) {
+BOOL GxuFontRenderBatch(CGxStringBatch *batch) {
   if (!batch) {
     return 0;
   }
   batch->RenderBatch();
   return 1;
 }
-int GxuFontClearBatch(CGxStringBatch *batch) {
+BOOL GxuFontClearBatch(CGxStringBatch *batch) {
   if (!batch) {
     return 0;
   }
   batch->Clear();
   return 1;
 }
-int GxuFontDestroyBatch(CGxStringBatch *batch) {
+BOOL GxuFontDestroyBatch(CGxStringBatch *batch) {
   if (!batch) {
     return 0;
   }
@@ -312,7 +312,7 @@ int GxuFontDestroyBatch(CGxStringBatch *batch) {
   s_unusedBatches.LinkNode(batch, LIST_TAIL, 0);
   return 1;
 }
-int GxuFontAddToInternalBatch(CGxString *string) {
+BOOL GxuFontAddToInternalBatch(CGxString *string) {
   if (!string) {
     return 0;
   }
@@ -614,7 +614,7 @@ done:
   buffer[outputBytes] = 0;
   return buffer;
 }
-int GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *color) {
+BOOL GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *color) {
   UINT                wide;
   UINT                advance;
   NTempest::CImVector colorCode;
@@ -640,7 +640,7 @@ int GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *c
   }
   return found;
 }
-int GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVector &color) {
+BOOL GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVector &color) {
   if (!buf || bufSize < 11) {
     return 0;
   }
@@ -672,7 +672,7 @@ void GxuFontRemoveShadow(CGxString *string) {
 CGxString *GxuFontDuplicateString(const CGxString *rhs) {
   return rhs ? rhs->Duplicate() : 0;
 }
-int GxuFontGetStringWidth(CGxString *string, float *width) {
+BOOL GxuFontGetStringWidth(CGxString *string, float *width) {
   FATALASSERT(width);
 
   if (string) {
@@ -680,7 +680,7 @@ int GxuFontGetStringWidth(CGxString *string, float *width) {
   }
   return string != 0;
 }
-int GxuFontGetStringHeight(CGxString *string, float *height) {
+BOOL GxuFontGetStringHeight(CGxString *string, float *height) {
   FATALASSERT(height);
 
   if (string) {

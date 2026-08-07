@@ -19,7 +19,7 @@ class CSimpleMessageFrameLineNode : public TRefCnt {
   float               timeLeft;
   float               fadeLeft;
   int                 permanent : 1;
-  int                 isVisible : 1;
+  BOOL                isVisible : 1;
 };
 
 struct MessageData {
@@ -91,7 +91,7 @@ class CSimpleMessageFrame : public CSimpleFrame {
   void ClearPending();
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   void AddPendingMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent);
   void ScrollMessages(UINT start);

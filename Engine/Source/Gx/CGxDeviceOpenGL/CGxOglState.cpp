@@ -291,7 +291,7 @@ void CGxDeviceOpenGl::IStateSyncColorSource() {
 
 void CGxDeviceOpenGl::IStateSyncLights() {
   NTempest::C44Matrix mwv;
-  int                 haveSetView;
+  BOOL                haveSetView;
   NTempest::C4Vector  glTmp;
   int                 updateNeeded;
 

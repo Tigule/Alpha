@@ -24,7 +24,7 @@
 
 static void LoadScriptFunctions();
 static void UnloadScriptFunctions();
-static int  CCommand_Script(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_Script(LPCSTR command, LPCSTR arguments);
 void        EnableLoadingScreen();
 
 static const char REGKEY[11] = "WoW\\Client";
@@ -297,7 +297,7 @@ void CGlueMgr::GetRealmList() {
   ClientServices_GetRealmList();
 }
 
-int CGlueMgr::Idle(LPCVOID, LPVOID) {
+BOOL CGlueMgr::Idle(LPCVOID, LPVOID) {
   NTempest::C3Vector position;
   WOWCS_OPS          op;
   LPCSTR             msg;
@@ -469,7 +469,7 @@ int CGlueMgr::Idle(LPCVOID, LPVOID) {
   return 1;
 }
 
-int CGlueMgr::NetDisconnectHandler(LPCVOID eventData, LPVOID) {
+BOOL CGlueMgr::NetDisconnectHandler(LPCVOID eventData, LPVOID) {
   WOWCS_OPS op;
   int       errorCode;
   LPCSTR    msg;
@@ -508,7 +508,7 @@ int CGlueMgr::NetDisconnectHandler(LPCVOID eventData, LPVOID) {
   return 1;
 }
 
-static int CCommand_Script(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Script(LPCSTR command, LPCSTR arguments) {
   FrameScript_Execute(arguments, arguments);
   return 1;
 }

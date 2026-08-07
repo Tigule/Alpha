@@ -72,7 +72,7 @@ void SSyncObject::Copy(const SSyncObject &rhs) {
   memcpy(m_opaqueData, rhs.m_opaqueData, sizeof(m_opaqueData));
 }
 
-int SSyncObject::Valid() {
+BOOL SSyncObject::Valid() {
   return SyncData(m_opaqueData)->type != SYNC_CLOSED;
 }
 
@@ -156,7 +156,7 @@ SEvent &SEvent::operator=(const SEvent &rhs) {
   return *this;
 }
 
-int SEvent::Set() {
+BOOL SEvent::Set() {
   SYNCDATA *sync = SyncData(m_opaqueData);
 
   pthread_mutex_lock(&sync->mutex);
@@ -167,7 +167,7 @@ int SEvent::Set() {
   return 1;
 }
 
-int SEvent::Reset() {
+BOOL SEvent::Reset() {
   SYNCDATA *sync = SyncData(m_opaqueData);
 
   pthread_mutex_lock(&sync->mutex);
@@ -191,7 +191,7 @@ SSemaphore &SSemaphore::operator=(const SSemaphore &rhs) {
   return *this;
 }
 
-int SSemaphore::Signal(UINT count) {
+BOOL SSemaphore::Signal(UINT count) {
   SYNCDATA *sync = SyncData(m_opaqueData);
 
   pthread_mutex_lock(&sync->mutex);
@@ -222,7 +222,7 @@ void CSRWLock::Leave(int fromwriting) {
   pthread_rwlock_unlock(reinterpret_cast<pthread_rwlock_t *>(m_opaqueData));
 }
 
-int CSRWLock::TryEnter(int forwriting) {
+BOOL CSRWLock::TryEnter(int forwriting) {
   if (forwriting) {
     return pthread_rwlock_trywrlock(reinterpret_cast<pthread_rwlock_t *>(m_opaqueData)) == 0;
   }
@@ -248,7 +248,7 @@ void __cdecl SOutputDebugString(LPCSTR format, ...) {
   printf("%s", buffer);
 }
 
-int SThread::Create(STHREADPROC proc, LPVOID param, SThread &thread, char *name) {
+BOOL SThread::Create(STHREADPROC proc, LPVOID param, SThread &thread, char *name) {
   return SCreateThread(0, proc, param, 0, 0, name) != 0;
 }
 

@@ -44,7 +44,7 @@ class CParticleStack {
     Pop();
   }
 
-  int IsEmpty() {
+  BOOL IsEmpty() {
     return m_stackPointer == 0;
   }
 

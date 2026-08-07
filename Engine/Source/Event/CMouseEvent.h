@@ -47,9 +47,9 @@ class CCharEvent : public CEvent, public EVENT_DATA_CHAR {
     return *this;
   }
 
-  static int IsShiftDown();
-  static int IsControlDown();
-  static int IsAltDown();
+  static BOOL IsShiftDown();
+  static BOOL IsControlDown();
+  static BOOL IsAltDown();
 
   virtual ~CCharEvent() {
   }
@@ -105,9 +105,9 @@ class CKeyEvent : public CEvent, public EVENT_DATA_KEY {
     return *this;
   }
 
-  static int IsShiftDown();
-  static int IsControlDown();
-  static int IsAltDown();
+  static BOOL IsShiftDown();
+  static BOOL IsControlDown();
+  static BOOL IsAltDown();
 
   virtual ~CKeyEvent() {
   }

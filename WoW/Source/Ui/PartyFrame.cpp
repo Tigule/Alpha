@@ -28,7 +28,7 @@ LOOT_METHOD              CGPartyInfo::m_lootMethod;
 DWORDLONG                CGPartyInfo::m_lootMaster;
 int                      CGPartyInfo::m_lookingForGroup;
 
-static int OnLFGResponse(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnLFGResponse(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   int looking;
   msg->Get(looking);
   CGPartyInfo::SetLookingForGroup(looking);
@@ -62,7 +62,7 @@ void CGPartyInfo::LeaveWorld() {
 void CGPartyInfo::ShutdownGame() {
 }
 
-int CGPartyInfo::IsMember(const DWORDLONG &guid) {
+BOOL CGPartyInfo::IsMember(const DWORDLONG &guid) {
   if (!guid) {
     return 0;
   }

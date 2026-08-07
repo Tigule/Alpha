@@ -108,8 +108,8 @@ class CDataStore {
  protected:
   virtual void InternalInitialize(BYTE *&data, UINT &base, UINT &alloc);
   virtual void InternalDestroy(BYTE *&data, UINT &base, UINT &alloc);
-  virtual int  InternalFetchRead(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc);
-  virtual int  InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber);
+  virtual BOOL InternalFetchRead(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc);
+  virtual BOOL InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber);
 
   void Initialize() {
     if (m_alloc != static_cast<UINT>(-1)) {
@@ -123,7 +123,7 @@ class CDataStore {
     }
   }
 
-  int FetchRead(UINT pos, UINT bytes) {
+  BOOL FetchRead(UINT pos, UINT bytes) {
     if (pos + bytes > m_size) {
       Seek(m_size + 1);
       return 0;
@@ -142,7 +142,7 @@ class CDataStore {
     return 1;
   }
 
-  int FetchWrite(UINT pos, UINT bytes, LPCSTR fileName, int lineNumber) {
+  BOOL FetchWrite(UINT pos, UINT bytes, LPCSTR fileName, int lineNumber) {
     if (pos < m_base || pos + bytes > m_base + m_alloc) {
       if (!InternalFetchWrite(pos, bytes, m_data, m_base, m_alloc, fileName, lineNumber)) {
         return 0;
@@ -176,15 +176,15 @@ class CDataStore {
     Destroy();
   }
 
-  int IsFinal() const {
+  BOOL IsFinal() const {
     return m_read != static_cast<UINT>(-1);
   }
 
-  int IsValid() const {
+  BOOL IsValid() const {
     return m_read <= m_size;
   }
 
-  int IsReadOnly() const {
+  BOOL IsReadOnly() const {
     return m_alloc == static_cast<UINT>(-1);
   }
 
@@ -202,7 +202,7 @@ class CDataStore {
     m_read = m_size + 1;
   }
 
-  virtual int  IsRead() const;
+  virtual BOOL IsRead() const;
   virtual void Reset();
   virtual void Finalize() {
     ASSERT(!IsFinal());

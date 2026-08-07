@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-static int isIdent;
+static BOOL isIdent;
 
 void CGxDeviceD3d::XformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
   CGxDevice::XformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);

@@ -294,7 +294,7 @@ void CSimpleModel::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleModel::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CSimpleModel::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

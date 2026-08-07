@@ -53,7 +53,7 @@ void  OnCollideStuck(DWORDLONG unit, DWORD eventTime);
 void  OnCollideFallLand(DWORDLONG unit, DWORD eventTime);
 void  OnCollideFalling(DWORDLONG unit, DWORD eventTime);
 void  UnitNotifyStopped(const DWORDLONG &guid, bool moveComplete);
-int   UnitGetObjectPosition(const DWORDLONG &guid, NTempest::C3Vector *position);
+BOOL  UnitGetObjectPosition(const DWORDLONG &guid, NTempest::C3Vector *position);
 float UnitCalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination);
 enum FACET_COLOR {
   FACET_UNTESTED = 0,
@@ -79,7 +79,7 @@ void CollisionInfoColorFace(UINT faceId, FACET_COLOR color);
 void CollisionInfoSetFallBox(const NTempest::C3Vector &position, float boxHalfDepth, float boxHeight);
 void CollisionInfoAddBox(const NTempest::C3Vector &boxMin, const NTempest::C3Vector &boxMax);
 void CollisionInfoAddVector(const NTempest::C3Vector &position, const NTempest::C3Vector &vector);
-int  ToggleCollisionInfo();
+BOOL ToggleCollisionInfo();
 void RenderCollisionInfo();
 void ProcessLocalMoveEvent(UINT msgId);
 
@@ -163,52 +163,52 @@ class CMovementData {
   DWORDLONG GetGUID() const {
     return m_guid;
   }
-  int IsInMotion() const;
-  int IsMovingOrTurning() const;
-  int IsMovingAndTurning() const;
-  int IsMovingOrFalling() const;
-  int IsMovingOrStrafing() const;
-  int IsMovingStrafingOrFalling() const;
-  int IsMovingAndStrafing() const;
-  int IsMovingTurningOrStrafing() const;
-  int IsMoving() const;
-  int IsMovingForward() const;
-  int IsMovingBackwards() const;
-  int IsTurning() const;
-  int IsTurningOrFalling() const;
-  int IsTurningLeft() const;
-  int IsTurningRight() const;
-  int IsTurningOrPitching() const;
-  int IsTurningAndPitching() const;
-  int IsStrafingLeft() const;
-  int IsStrafingRight() const;
-  int IsStrafing() const;
-  int IsFalling() const;
-  int IsJumping() const;
-  int HasFallenFar() const;
-  int IsWalking() const;
-  int Moved() const;
-  int TimeIsValid() const;
-  int IsImmobilized() const;
-  int IsRooted() const;
-  int IsSwimming() const;
-  int IsSwimmingOrFalling() const;
-  int IsPitching() const;
-  int IsPitchingUp() const;
-  int IsPitchingDown() const;
-  int IsMovingStrafingOrSwimming() const;
-  int IsMovingStrafingFallingOrSwimming() const;
-  int IsSplineMover() const {
+  BOOL IsInMotion() const;
+  BOOL IsMovingOrTurning() const;
+  BOOL IsMovingAndTurning() const;
+  BOOL IsMovingOrFalling() const;
+  BOOL IsMovingOrStrafing() const;
+  BOOL IsMovingStrafingOrFalling() const;
+  BOOL IsMovingAndStrafing() const;
+  BOOL IsMovingTurningOrStrafing() const;
+  BOOL IsMoving() const;
+  BOOL IsMovingForward() const;
+  BOOL IsMovingBackwards() const;
+  BOOL IsTurning() const;
+  BOOL IsTurningOrFalling() const;
+  BOOL IsTurningLeft() const;
+  BOOL IsTurningRight() const;
+  BOOL IsTurningOrPitching() const;
+  BOOL IsTurningAndPitching() const;
+  BOOL IsStrafingLeft() const;
+  BOOL IsStrafingRight() const;
+  BOOL IsStrafing() const;
+  BOOL IsFalling() const;
+  BOOL IsJumping() const;
+  BOOL HasFallenFar() const;
+  BOOL IsWalking() const;
+  int  Moved() const;
+  int  TimeIsValid() const;
+  BOOL IsImmobilized() const;
+  BOOL IsRooted() const;
+  BOOL IsSwimming() const;
+  BOOL IsSwimmingOrFalling() const;
+  BOOL IsPitching() const;
+  BOOL IsPitchingUp() const;
+  BOOL IsPitchingDown() const;
+  BOOL IsMovingStrafingOrSwimming() const;
+  BOOL IsMovingStrafingFallingOrSwimming() const;
+  BOOL IsSplineMover() const {
     return (m_moveFlags & 0x04000000) != 0;
   }
   int   IgnoresCollision() const;
-  int   IsHalted() const;
+  BOOL  IsHalted() const;
   int   WasNudged() const;
   float GetCollisionBoxHeight() const {
     return m_collisionBoxHeight;
   }
   void SetWaterSurfaceElevation(float elevation);
-  int  ForceSetTransport(DWORDLONG guid);
+  BOOL ForceSetTransport(DWORDLONG guid);
   int  SetTransport(DWORDLONG guid);
   void RemoveFromMoversList();
 
@@ -219,8 +219,8 @@ class CMovementData {
   friend class CGGameObject_C_Type_Chair;
   friend class CGGameObject_C_Type_MapObjTransport;
   friend class CGGameObject_C_Type_Transport;
-  friend int MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
-  friend int Player_C_AppFocusMovementHandler(int focus);
+  friend BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
+  friend int  Player_C_AppFocusMovementHandler(int focus);
 
   LINKDECLEX(CMovementData, moveLink);
   LINKDECLEX(CMovementData, transportLink);
@@ -228,7 +228,7 @@ class CMovementData {
  protected:
   void CalcDirection();
   void RemoveSpline();
-  int  IsLocalPlayer();
+  BOOL IsLocalPlayer();
 
  private:
   CMovementData &operator=(const CMovementData &);
@@ -302,7 +302,7 @@ class CMovement : public CMovementData {
   void UpdateStatus(DWORD eventTime, const CMovementStatus &update);
   void UpdateStatusLocal(DWORD eventTime, const CMovementStatus &update);
   void OnTeleportLocal(DWORD eventTime, const NTempest::C3Vector &position, float facing);
-  int  SetCollisionBox(const NTempest::CAaBox &box, float scale);
+  BOOL SetCollisionBox(const NTempest::CAaBox &box, float scale);
 
   float GetCurrentTurnRate() const;
   float GetCurrentPitchRate() const;
@@ -312,18 +312,18 @@ class CMovement : public CMovementData {
   static void         StartLogging();
   static void         StopLogging();
   static int          ToggleLogging();
-  static int          IsLoggingOn();
+  static BOOL         IsLoggingOn();
   static void __cdecl LogWrite(LPCSTR format, ...);
   static void __cdecl BothLogWrite(LPCSTR format, ...);
 
   static void         StartFallLogging();
   static void         StopFallLogging();
   static int          ToggleFallLogging();
-  static int          IsFallLoggingOn();
+  static BOOL         IsFallLoggingOn();
   static void __cdecl FallLogWrite(LPCSTR format, ...);
 
   static void StopAllLogging();
-  static int  MoversOnList();
+  static BOOL MoversOnList();
   static void MoveUnits(DWORD timeNow, DWORD lastUpdate);
   void        MoveUnit(DWORD timeNow, DWORD lastUpdate, LPVOID obj);
   void        MoveLocalPlayer(DWORD timeNow, DWORD lastUpdate);
@@ -344,9 +344,9 @@ class CMovement : public CMovementData {
   void        OnSwimStartLocal(DWORD eventTime);
   void        OnSwimStopLocal(DWORD eventTime);
   void        OnMoveStart(DWORD eventTime, int forward);
-  int         OnMoveStop(DWORD eventTime);
+  BOOL        OnMoveStop(DWORD eventTime);
   void        OnStrafeStart(DWORD eventTime, int left);
-  int         OnStrafeStop(DWORD eventTime);
+  BOOL        OnStrafeStop(DWORD eventTime);
   void        OnJump(DWORD eventTime);
   void        OnFall(DWORD eventTime);
   void        OnTurnStart(DWORD eventTime, int left);
@@ -364,16 +364,16 @@ class CMovement : public CMovementData {
   void        OnSplineDoneFace(float facing);
   void        OnSplineDoneFace(const DWORDLONG &guid);
   void        OnSplineDoneFace(const NTempest::C3Vector &spot);
-  int         OnRunSpeedChange(DWORD eventTime, float speed);
-  int         OnWalkSpeedChange(DWORD eventTime, float speed);
-  int         OnSwimSpeedChange(DWORD eventTime, float speed);
-  int         OnTurnRateChange(DWORD eventTime, float rate);
+  BOOL        OnRunSpeedChange(DWORD eventTime, float speed);
+  BOOL        OnWalkSpeedChange(DWORD eventTime, float speed);
+  BOOL        OnSwimSpeedChange(DWORD eventTime, float speed);
+  BOOL        OnTurnRateChange(DWORD eventTime, float rate);
   void        OnCollideRedirServer(DWORD eventTime, const NTempest::C3Vector &position, float facing, const NTempest::C3Vector &redirection);
   void        OnStuckServer(DWORD eventTime);
   float       GetCurrentSpeed();
   UINT        GetExportMoveFlags() const;
   UINT        GetLocalMoveFlags() const;
-  int         IsSplineFlyer() const;
+  BOOL        IsSplineFlyer() const;
   float       FallDistance() const;
   UINT        FallTime() const;
   float       GetFallStartElevation() const;
@@ -385,7 +385,7 @@ class CMovement : public CMovementData {
   void        Root();
   void        UnRoot();
   void        ToggleCollision(DWORD eventTime);
-  int         IsSpline() const;
+  BOOL        IsSpline() const;
   void        GetUpdateInfo(CClientMoveUpdate *init) const;
   void        BuildFullZoneUpdate(CDataStore *msg);
   void        UnpackFullZoneUpdate(CDataStore *msg);
@@ -394,8 +394,8 @@ class CMovement : public CMovementData {
   void        GetHandoffData(CDataStore *msg);
   static void SkipHandoffData(CDataStore *msg);
   void        SetIdleUpdates();
-  int         CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const NTempest::C3Vector &moveVector);
-  int         GetMoveEventMsgId(UINT oldMoveFlags, int wasJumping);
+  BOOL        CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const NTempest::C3Vector &moveVector);
+  int         GetMoveEventMsgId(UINT oldMoveFlags, BOOL wasJumping);
   void        UpdateLastSentRedirection();
 
  private:
@@ -403,10 +403,10 @@ class CMovement : public CMovementData {
 
   CMovement &operator=(const CMovement &);
   void       AddPlayerMoveEvent(DWORD eventTime, int eventType, float facing);
-  int        UpdatePlayerMovement(DWORD timeNow);
+  BOOL       UpdatePlayerMovement(DWORD timeNow);
   void       ApplyMovement(DWORD eventTime, UINT fallTime, UINT moveTime, UINT elapsed);
-  int        PlotUnitMovement(UINT moveTime, NTempest::C3Vector *move);
-  int        PlotUnitSplineMovement(DWORD eventTime, NTempest::C3Vector *move);
+  BOOL       PlotUnitMovement(UINT moveTime, NTempest::C3Vector *move);
+  BOOL       PlotUnitSplineMovement(DWORD eventTime, NTempest::C3Vector *move);
   void       GetMovingDirection(NTempest::C3Vector *direction) const;
   void       GetStrafingDirection(NTempest::C3Vector *direction) const;
   void       GetDiagonalDirection(NTempest::C3Vector *direction) const;
@@ -430,10 +430,10 @@ class CMovement : public CMovementData {
   void       PlotDiagonalPitchingCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove);
   void       PlotNormalSpiralPosition(float secsElapsed, NTempest::C3Vector *totalMove);
   void       PlotDiagonalSpiralPosition(float secsElapsed, NTempest::C3Vector *totalMove);
-  int        CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT moveTime);
-  void       ApplyAdjustedMove(DWORD timeStemp, const NTempest::C3Vector &moveWanted, int wasAdjusted, UINT oldMoveFlags);
+  BOOL       CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT moveTime);
+  void       ApplyAdjustedMove(DWORD timeStemp, const NTempest::C3Vector &moveWanted, BOOL wasAdjusted, UINT oldMoveFlags);
   void       SimpleRequestMove(UINT fallTime, const NTempest::C3Vector &moveVector);
-  void       CallMoveEventHandlers(DWORD eventTime, int moveAdjusted, UINT oldMoveFlags, int wasJumping);
+  void       CallMoveEventHandlers(DWORD eventTime, int moveAdjusted, UINT oldMoveFlags, BOOL wasJumping);
   void       SaveMoveState(CMoveState *state) const;
   void       RestoreMoveState(const CMoveState &state);
   void       LogUpdateInfo(const CClientMoveUpdate &init);
@@ -450,12 +450,12 @@ class CMovement : public CMovementData {
   void Halt(DWORD eventTime);
   void UpdateAnchors(DWORD eventTime);
   void UpdateCurrentSpeed();
-  int  StartMove(DWORD eventTime, int forward);
-  int  StartStrafe(DWORD eventTime, int left);
-  int  StopMove(DWORD eventTime);
+  BOOL StartMove(DWORD eventTime, int forward);
+  BOOL StartStrafe(DWORD eventTime, int left);
+  BOOL StopMove(DWORD eventTime);
   void ForceStopMove(DWORD eventTime);
-  int  StopStrafe(DWORD eventTime);
-  int  Jump(DWORD eventTime);
+  BOOL StopStrafe(DWORD eventTime);
+  BOOL Jump(DWORD eventTime);
   void StartTurn(DWORD eventTime, int left);
   void StopTurn(DWORD eventTime);
   void StartPitch(DWORD eventTime, int up);
@@ -540,8 +540,8 @@ class CMovement : public CMovementData {
   void  ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides);
   void  ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides);
   void  ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides);
-  int   ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides);
-  int   ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides);
+  BOOL  ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides);
+  BOOL  ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides);
   float ExtrudeCollisionShape(
       DWORD                     timeStamp,
       const NTempest::C3Vector &moveVector,
@@ -549,7 +549,7 @@ class CMovement : public CMovementData {
       const NTempest::C2Vector &unitMoveWanted,
       const NTempest::C3Vector &platformNorm
   );
-  int   TestStepUp(const NTempest::C3Vector &destination);
+  BOOL  TestStepUp(const NTempest::C3Vector &destination);
   float AttemptMove(
       DWORD                     eventTime,
       const NTempest::C3Vector &move,
@@ -567,7 +567,7 @@ class CMovement : public CMovementData {
       const NTempest::C3Vector &moveNormal,
       NTempest::C4Plane        *platform
   );
-  int  IsTooLow(const NTempest::C3Vector &position, DWORD moveStartTime, CWalkableSurface *surface, float distanceMoved, float currSpeedInv);
+  BOOL IsTooLow(const NTempest::C3Vector &position, DWORD moveStartTime, CWalkableSurface *surface, float distanceMoved, float currSpeedInv);
   void ClipFacetsWithOneAnother(const NTempest::C4Plane &startPlane, TSGrowableArray<CWalkableSurface> *surfacePool);
   int  NextSurfaceIsWalkable(
       CWalkableSurface                  *surface,
@@ -605,11 +605,11 @@ class CMovement : public CMovementData {
   );
   int   DetermineHitType(int hitType, const NTempest::C3Vector &unitMove, float distance, UINT facetId, CRedirect *hitInfo);
   void  DeterminePyramidHitType(const NTempest::C3Vector &unitMove, float distance, UINT facetId, CRedirect *hitInfo);
-  int   DetermineBoxHitType(const NTempest::C3Vector &unitMove, float distance, UINT facetId, float baseHeight, CRedirect *hitInfo);
-  int   IsJumpingUp(DWORD eventTime);
-  int   IsRedirected() const;
-  int   IsSliding() const;
-  int   FallFromTransport();
+  BOOL  DetermineBoxHitType(const NTempest::C3Vector &unitMove, float distance, UINT facetId, float baseHeight, CRedirect *hitInfo);
+  BOOL  IsJumpingUp(DWORD eventTime);
+  BOOL  IsRedirected() const;
+  BOOL  IsSliding() const;
+  BOOL  FallFromTransport();
   float RelDistanceFallen(DWORD currentTime, float updateFallTimeSecs);
   float RelDistanceFallen(UINT fallTimeMS);
   void  UpdateStatusInternal(DWORD eventTime, const CMovementStatus &update);
@@ -624,7 +624,7 @@ void   MovementLockMoversList(int forWriting);
 void   MovementUnlockMoversList(int fromWriting);
 void   MovementDestroy();
 void   MovementInitialize(LPCSTR logFileName, bool needLocalHeap);
-int    MovementIdleMoveUnits(LPCVOID packetData, LPVOID param);
+BOOL   MovementIdleMoveUnits(LPCVOID packetData, LPVOID param);
 LPVOID MovementTryLock(DWORDLONG guid);
 void   MovementUnlock(LPVOID obj);
 void   MovementUpdateProxMap(LPVOID obj);

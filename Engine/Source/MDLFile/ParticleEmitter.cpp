@@ -126,7 +126,7 @@ static void IReadParticleEmitterStaticData(Parser &parse, UINT savedtoken, LPCST
   parse.Expect(',');
 }
 
-static int IReadParticleEmitterFlags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER *emitter) {
+static BOOL IReadParticleEmitterFlags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER *emitter) {
   if (savedtoken == 0x145) {
     emitter->flags |= 0x8000;
   } else if (savedtoken == 0x146) {
@@ -161,7 +161,7 @@ static void IReadParticleEmitter(Parser &parse, TSet &errors, MDLPARTICLEEMITTER
 
 namespace MDL {
 
-  int ReadParticleEmitter(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadParticleEmitter(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet                errors;
     MDLPARTICLEEMITTER *emitter = data.particleEmitters.New();
     IAddParticleEmitterErrors(errors);
@@ -232,7 +232,7 @@ static void IWriteParticleEmitter(const MDLDATA &data, const MDLPARTICLEEMITTER 
 
 namespace MDL {
 
-  int WriteParticleEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteParticleEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
       for (UINT i = 0; i < data.particleEmitters.Count(); ++i) {
         IWriteParticleEmitter(data, data.particleEmitters[i], data.particleEmitters.Count() != data.objects.Count(), buffer);
@@ -288,7 +288,7 @@ static void IWriteBinParticleEmitter(const MDLPARTICLEEMITTER &section, CMsgBuff
   WriteBinFloatKeyFrames(section.visibilityKeys, 0x5349564B, buf);
 }
 
-static int ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, CMDLStatus *status, UINT &totalRead) {
+static BOOL ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, CMDLStatus *status, UINT &totalRead) {
   UINT sectionLength = buf.GetUint();
   UINT localBytesRead = 4;
   if (!ReadBinGenObject(*pEmit, buf, status, localBytesRead)) {
@@ -348,7 +348,7 @@ static int ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, CM
 
 namespace MDL {
 
-  int WriteBinParticleEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
+  BOOL WriteBinParticleEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.particleEmitters.Count()) {
       buf.AddDword('MERP');
       UINT totalSize = 4;
@@ -365,7 +365,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinParticleEmitters(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinParticleEmitters(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT totalRead = 4;
     UINT numEmitters = buf.GetUint();
     data.particleEmitters.SetCount(0);

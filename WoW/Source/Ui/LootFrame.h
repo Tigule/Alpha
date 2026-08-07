@@ -54,7 +54,7 @@ class CGLootInfo {
   static LOOT_ACQUIRE m_lootType;
   static UINT         m_itemsPending;
 
-  static int HasLoot();
+  static BOOL HasLoot();
 
   static void LootButtonItemStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
 };

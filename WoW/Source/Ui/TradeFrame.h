@@ -45,7 +45,7 @@ class CGTradeInfo {
   static void            TargetAccept(int accept);
   static void            ClearAccept();
   static void            HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
-  static int             SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot);
+  static BOOL            SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot);
   static DWORDLONG       GetPlayerTradeSlot(int index);
   static void            RemovePlayerItem(DWORDLONG guid);
   static void            UpdatePlayerItem(DWORDLONG guid);

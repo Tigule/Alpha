@@ -13,12 +13,12 @@
 #include "Services/SysMessage.h"
 #include "SoundInterface/SoundInterface.h"
 
-int GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType);
-int CheckUnitSoundTimer(UNITSOUNDTYPE soundType);
+int  GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType);
+BOOL CheckUnitSoundTimer(UNITSOUNDTYPE soundType);
 
 static UINT s_playerSoundChances[16] = {35, 100, 30, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 
-static int CheckPlayerPlaySound(UNITSOUNDTYPE soundType) {
+static BOOL CheckPlayerPlaySound(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   UINT random = NTempest::CRandom::uint32_(g_rndSeed);
   UINT value = NTempest::CMath::mulhwu_(random, 101);

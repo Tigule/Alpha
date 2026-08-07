@@ -14,12 +14,12 @@
 
 #include <storm.h>
 
-static int   EnvironmentHandler(LPCSTR command, LPCSTR arguments);
-static int   EnvironmentListHandler(LPCSTR command, LPCSTR arguments);
+static BOOL  EnvironmentHandler(LPCSTR command, LPCSTR arguments);
+static BOOL  EnvironmentListHandler(LPCSTR command, LPCSTR arguments);
 static float InterpFloat(float progress, float start, float end);
 static int   InterpInt(float progress, int start, int end);
 static void  StopWorldIdleHandler();
-static int   WorldIdleHandler(LPCVOID dataPtr, LPVOID param);
+static BOOL  WorldIdleHandler(LPCVOID dataPtr, LPVOID param);
 static void  StartProviderPrefFade(const _FSOUND_REVERB_PROPERTIES &rec, UINT duration);
 static void  StartWorldIdleHandler();
 static void  StopProviderPrefFade();
@@ -85,7 +85,7 @@ void SndInterfaceFadeProviderPrefs(const EVENT_DATA_IDLE *data) {
   Sound::SetReverbProperties(&s_currentProviderDesc);
 }
 
-static int WorldIdleHandler(LPCVOID dataPtr, LPVOID param) {
+static BOOL WorldIdleHandler(LPCVOID dataPtr, LPVOID param) {
   SndInterfaceFadeProviderPrefs(static_cast<const EVENT_DATA_IDLE *>(dataPtr));
   return 1;
 }
@@ -224,7 +224,7 @@ void SndSetRoomType(SNDROOMTYPE roomType) {
   }
 }
 
-static int EnvironmentHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL EnvironmentHandler(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     UINT index = SStrToUnsigned(arguments);
 
@@ -234,7 +234,7 @@ static int EnvironmentHandler(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int EnvironmentListHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL EnvironmentListHandler(LPCSTR command, LPCSTR arguments) {
   int i = g_soundProviderPreferencesDB.GetNumRecords();
 
   while (i) {

@@ -46,10 +46,10 @@ static DWORDLONG s_lastTarget;
 
 int  ModelRenderSceneLogToggle(LPCSTR fileName);
 int  ModelAnimateLogToggle(LPCSTR fileName);
-int  Player_C_TogglePlayerRender();
+BOOL Player_C_TogglePlayerRender();
 void ModelShowBoundingSphere(HMODEL model);
 
-static int CCommand_DBLookup(LPCSTR command, LPCSTR string) {
+static BOOL CCommand_DBLookup(LPCSTR command, LPCSTR string) {
   CDataStore message;
   message.Put(2);
   message.PutString(string);
@@ -58,24 +58,24 @@ static int CCommand_DBLookup(LPCSTR command, LPCSTR string) {
   return 1;
 }
 
-static int CCommand_DrawLog(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_DrawLog(LPCSTR command, LPCSTR arguments) {
   ConsoleWrite(ModelRenderSceneLogToggle("RenderLog.txt") ? "Model render logging started" : "Model render logging stopped", DEFAULT_COLOR);
   return 1;
 }
 
-static int CCommand_AnimLog(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_AnimLog(LPCSTR command, LPCSTR arguments) {
   ConsoleWrite(ModelAnimateLogToggle("AnimLog.txt") ? "Model animation logging started" : "Model animation logging stopped", DEFAULT_COLOR);
   return 1;
 }
 
-static int CCommand_TogglePlayer(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_TogglePlayer(LPCSTR command, LPCSTR arguments) {
   if (CGWorldFrame::GetActive()) {
     ConsoleWrite(Player_C_TogglePlayerRender() ? "player visible" : "player hidden", DEFAULT_COLOR);
   }
   return 1;
 }
 
-static int CCommand_ToggleAnimBlending(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_ToggleAnimBlending(LPCSTR command, LPCSTR arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(CGGameUI::GetCurrentObjectTrack(), __FILE__, __LINE__);
   if (!object) {
     object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
@@ -95,7 +95,7 @@ static int CCommand_ToggleAnimBlending(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_ShowBounds(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_ShowBounds(LPCSTR command, LPCSTR arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(CGGameUI::GetCurrentObjectTrack(), __FILE__, __LINE__);
   if (!object) {
     object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
@@ -113,7 +113,7 @@ static int CCommand_ShowBounds(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_Loc(LPCSTR, LPCSTR) {
+static BOOL CCommand_Loc(LPCSTR, LPCSTR) {
   CDataStore msg;
   msg.Put(4);
   msg.Put(ClntObjMgrGetActivePlayer());
@@ -122,7 +122,7 @@ static int CCommand_Loc(LPCSTR, LPCSTR) {
   return 1;
 }
 
-static int CCommand_TerminalVelocity(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_TerminalVelocity(LPCSTR command, LPCSTR arguments) {
   float metersPerSec;
   if (*arguments) {
     metersPerSec = static_cast<float>(atof(arguments));
@@ -139,7 +139,7 @@ static int CCommand_TerminalVelocity(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_DLoc(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_DLoc(LPCSTR command, LPCSTR arguments) {
   CGObject_C        *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   NTempest::C3Vector position;
   player->GetPosition(position);
@@ -147,7 +147,7 @@ static int CCommand_DLoc(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_TargetLoc(LPCSTR, LPCSTR) {
+static BOOL CCommand_TargetLoc(LPCSTR, LPCSTR) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     CGObject_C *target = ClntObjMgrObjectPtr(player->GetLocalTarget(), __FILE__, __LINE__);
@@ -183,7 +183,7 @@ static int CCommand_TargetLoc(LPCSTR, LPCSTR) {
   return 1;
 }
 
-static int CCommand_Facing(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Facing(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(6);
   msg.Put(ClntObjMgrGetActivePlayer());
@@ -192,13 +192,13 @@ static int CCommand_Facing(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_DFacing(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_DFacing(LPCSTR command, LPCSTR arguments) {
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   ConsoleWriteA("%g degrees", DEFAULT_COLOR, player->GetFacing() * 57.29578f);
   return 1;
 }
 
-static int CCommand_Speed(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Speed(LPCSTR command, LPCSTR arguments) {
   float speed = SStrToFloat(arguments);
   if (speed > 0.0f) {
     DWORD     eventTime = OsGetAsyncTimeMs();
@@ -210,7 +210,7 @@ static int CCommand_Speed(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_WalkSpeed(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_WalkSpeed(LPCSTR command, LPCSTR arguments) {
   float speed = SStrToFloat(arguments);
   if (speed > 0.0f) {
     DWORD     eventTime = OsGetAsyncTimeMs();
@@ -222,7 +222,7 @@ static int CCommand_WalkSpeed(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_SwimSpeed(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_SwimSpeed(LPCSTR command, LPCSTR arguments) {
   float speed = SStrToFloat(arguments);
   if (speed > 0.0f) {
     DWORD     eventTime = OsGetAsyncTimeMs();
@@ -234,7 +234,7 @@ static int CCommand_SwimSpeed(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_TurnSpeed(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_TurnSpeed(LPCSTR command, LPCSTR arguments) {
   float rate = SStrToFloat(arguments);
   if (rate > 0.0f) {
     DWORD     eventTime = OsGetAsyncTimeMs();
@@ -246,7 +246,7 @@ static int CCommand_TurnSpeed(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_Money(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Money(LPCSTR command, LPCSTR arguments) {
   char       currArg[64];
   const char whitespace[] = "\t\r\n\" ";
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
@@ -262,7 +262,7 @@ static int CCommand_Money(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
   CGObject_C        *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   NTempest::C3Vector position = player->GetPosition();
   float              facing = player->GetFacing();
@@ -311,7 +311,7 @@ static int CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!player) {
     return 1;
@@ -363,7 +363,7 @@ static int CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_CreateItem(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_CreateItem(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(19);
   msg.Put(SStrToInt(arguments));
@@ -372,7 +372,7 @@ static int CCommand_CreateItem(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_CreateGameObject(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_CreateGameObject(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(20);
   msg.Put(SStrToInt(arguments));
@@ -381,7 +381,7 @@ static int CCommand_CreateGameObject(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_CreateMonster(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_CreateMonster(LPCSTR command, LPCSTR arguments) {
   char type[32];
   SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
   CDataStore msg;
@@ -392,7 +392,7 @@ static int CCommand_CreateMonster(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_CreatePet(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_CreatePet(LPCSTR command, LPCSTR arguments) {
   char type[32];
   SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
   CDataStore msg;
@@ -403,7 +403,7 @@ static int CCommand_CreatePet(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_DestroyMonster(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_DestroyMonster(LPCSTR command, LPCSTR arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     CGObject_C *target = ClntObjMgrObjectPtr(player->GetLocalTarget(), __FILE__, __LINE__);
@@ -420,7 +420,7 @@ static int CCommand_DestroyMonster(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_AttackPlayer(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_AttackPlayer(LPCSTR command, LPCSTR arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     CGObject_C *target = ClntObjMgrObjectPtr(player->GetLocalTarget(), __FILE__, __LINE__);
@@ -437,7 +437,7 @@ static int CCommand_AttackPlayer(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_TargetAttack(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_TargetAttack(LPCSTR command, LPCSTR arguments) {
   if (!arguments || !*arguments) {
     ConsoleWrite("GUID needed!", DEFAULT_COLOR);
     return 1;
@@ -467,7 +467,7 @@ static int CCommand_TargetAttack(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_Save(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Save(LPCSTR command, LPCSTR arguments) {
   CDataStore message;
   message.Put(CMSG_SAVE_PLAYER);
   message.Finalize();
@@ -475,7 +475,7 @@ static int CCommand_Save(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_BindPoint(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_BindPoint(LPCSTR command, LPCSTR arguments) {
   DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   if (activePlayer) {
     CGObject_C *player = ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__);
@@ -491,7 +491,7 @@ static int CCommand_BindPoint(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_Beastmaster(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Beastmaster(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(33);
   msg.Put(static_cast<BYTE>(SStrCmpI(arguments, "off", 0x7FFFFFFF) != 0));
@@ -500,7 +500,7 @@ static int CCommand_Beastmaster(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_SendEvent(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_SendEvent(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(45);
   msg.Put(SStrToInt(arguments));
@@ -509,7 +509,7 @@ static int CCommand_SendEvent(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_Recharge(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Recharge(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(CMSG_RECHARGE);
   msg.Finalize();
@@ -517,7 +517,7 @@ static int CCommand_Recharge(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_Level(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Level(LPCSTR command, LPCSTR arguments) {
   int level = SStrToInt(arguments);
   if (level <= 0 || level > 100) {
     ConsoleWrite("Invalid level specified\n", DEFAULT_COLOR);
@@ -531,7 +531,7 @@ static int CCommand_Level(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_PetLevel(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_PetLevel(LPCSTR command, LPCSTR arguments) {
   int level = SStrToInt(arguments);
   if (level <= 0 || level > 100) {
     ConsoleWrite("Invalid level specified\n", DEFAULT_COLOR);
@@ -545,7 +545,7 @@ static int CCommand_PetLevel(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_ClearQuest(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_ClearQuest(LPCSTR command, LPCSTR arguments) {
   int quest = SStrToInt(arguments);
   if (quest < 0) {
     ConsoleWrite("Invalid quest specified\n", DEFAULT_COLOR);
@@ -559,7 +559,7 @@ static int CCommand_ClearQuest(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_FlagQuest(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_FlagQuest(LPCSTR command, LPCSTR arguments) {
   int quest = SStrToInt(arguments);
   if (quest < 1) {
     ConsoleWrite("Invalid quest specified\n", DEFAULT_COLOR);
@@ -573,7 +573,7 @@ static int CCommand_FlagQuest(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_FlagQuestFinish(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_FlagQuestFinish(LPCSTR command, LPCSTR arguments) {
   int quest = SStrToInt(arguments);
   if (quest < 1) {
     ConsoleWrite("Invalid quest specified\n", DEFAULT_COLOR);
@@ -622,7 +622,7 @@ static void QuestLogRemoveQuest(int entry) {
   ClientServices_Send(&msg);
 }
 
-static int CCommand_QuestCommand(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_QuestCommand(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -651,7 +651,7 @@ static int CCommand_QuestCommand(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_TaxiClearAllNodes(LPCSTR, LPCSTR) {
+static BOOL CCommand_TaxiClearAllNodes(LPCSTR, LPCSTR) {
   CDataStore msg;
   msg.Put(CMSG_TAXICLEARALLNODES);
   msg.Finalize();
@@ -659,7 +659,7 @@ static int CCommand_TaxiClearAllNodes(LPCSTR, LPCSTR) {
   return 1;
 }
 
-static int CCommand_TaxiEnableAllNodes(LPCSTR, LPCSTR) {
+static BOOL CCommand_TaxiEnableAllNodes(LPCSTR, LPCSTR) {
   CDataStore msg;
   msg.Put(CMSG_TAXIENABLEALLNODES);
   msg.Finalize();
@@ -667,7 +667,7 @@ static int CCommand_TaxiEnableAllNodes(LPCSTR, LPCSTR) {
   return 1;
 }
 
-static int CCommand_ChangeCellZone(LPCSTR, LPCSTR args) {
+static BOOL CCommand_ChangeCellZone(LPCSTR, LPCSTR args) {
   CDataStore msg;
   msg.Put(12);
   msg.Put(SStrToInt(args));
@@ -676,7 +676,7 @@ static int CCommand_ChangeCellZone(LPCSTR, LPCSTR args) {
   return 1;
 }
 
-static int CCommand_Played(LPCSTR, LPCSTR) {
+static BOOL CCommand_Played(LPCSTR, LPCSTR) {
   CDataStore msg;
   msg.Put(CMSG_PLAYED_TIME);
   msg.Finalize();
@@ -684,7 +684,7 @@ static int CCommand_Played(LPCSTR, LPCSTR) {
   return 1;
 }
 
-static int CCommand_LootMethod(LPCSTR, LPCSTR args) {
+static BOOL CCommand_LootMethod(LPCSTR, LPCSTR args) {
   CDataStore msg;
   msg.Put(122);
   switch (*args) {
@@ -712,7 +712,7 @@ static int CCommand_LootMethod(LPCSTR, LPCSTR args) {
   return 1;
 }
 
-static int CCommand_CameraTarget(LPCSTR, LPCSTR) {
+static BOOL CCommand_CameraTarget(LPCSTR, LPCSTR) {
   CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
   CGObject_C   *target = ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__);
   if (target) {
@@ -721,7 +721,7 @@ static int CCommand_CameraTarget(LPCSTR, LPCSTR) {
   return 1;
 }
 
-static int CCommand_Reclaim(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Reclaim(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -739,7 +739,7 @@ static int CCommand_Reclaim(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_BuySpell(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_BuySpell(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -762,7 +762,7 @@ static int CCommand_BuySpell(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -793,7 +793,7 @@ static int CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_BuyItem(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_BuyItem(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -826,7 +826,7 @@ static int CCommand_BuyItem(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_BuyItemInSlot(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_BuyItemInSlot(LPCSTR command, LPCSTR arguments) {
   char buffer[64];
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   if (!buffer[0]) {
@@ -940,7 +940,7 @@ static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
   fclose(file);
 }
 
-static int CCommand_Mem(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Mem(LPCSTR command, LPCSTR arguments) {
   CMemCmdDump memDump;
   memset(&memDump, 0, 24);
   memDump.m_items.SetChunkSize(256);

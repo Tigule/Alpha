@@ -16,7 +16,7 @@
 
 static BYTE s_zoneIDMap[256][256];
 
-static int ReceiveZoneMap(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL ReceiveZoneMap(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   BYTE *next = &s_zoneIDMap[0][0];
 
   while (!msg->IsRead()) {

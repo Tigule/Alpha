@@ -536,14 +536,14 @@ class NetClient : public WowConnectionResponse {
 
   NetClient &operator=(const NetClient &client);
 
-  virtual int  Initialize();
+  virtual BOOL Initialize();
   virtual void Destroy();
-  virtual int  DelayedDelete();
+  virtual BOOL DelayedDelete();
 
   void Connect(LPCSTR hostName);
   void Disconnect();
   void Send(CDataStore *msg);
-  void SetMessageHandler(NETMESSAGE msgId, int (*handler)(LPVOID, NETMESSAGE, DWORD, CDataStore *), LPVOID param);
+  void SetMessageHandler(NETMESSAGE msgId, BOOL (*handler)(LPVOID, NETMESSAGE, DWORD, CDataStore *), LPVOID param);
   void ClearMessageHandler(NETMESSAGE msgId);
 
   NETSTATE GetState() {
@@ -552,10 +552,10 @@ class NetClient : public WowConnectionResponse {
 
   void HandleIdle();
 
-  virtual int HandleData(DWORD timeReceived, LPVOID data, int size);
-  virtual int HandleConnect();
-  virtual int HandleDisconnect();
-  virtual int HandleCantConnect();
+  virtual BOOL HandleData(DWORD timeReceived, LPVOID data, int size);
+  virtual BOOL HandleConnect();
+  virtual BOOL HandleDisconnect();
+  virtual BOOL HandleCantConnect();
 
   void AddRef() {
     long newval = SInterlockedIncrement((long *)&m_refCount);
@@ -620,7 +620,7 @@ class NetClient : public WowConnectionResponse {
   int         m_redirectBytesRead;
   char        m_redirectHostPort[0x401];
   NETSTATE    m_netState;
-  int (*m_handlers[NUM_MSG_TYPES])(LPVOID, NETMESSAGE, DWORD, CDataStore *);
+  BOOL (*m_handlers[NUM_MSG_TYPES])(LPVOID, NETMESSAGE, DWORD, CDataStore *);
   LPVOID             m_handlerParams[NUM_MSG_TYPES];
   NETEVENTQUEUE     *m_netEventQueue;
   WowConnection     *m_serverConnection;

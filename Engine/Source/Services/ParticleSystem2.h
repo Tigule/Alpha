@@ -102,9 +102,9 @@ struct CParticleMat {
   }
 
   EGxBlend alpha;
-  int      enableLighting : 1;
-  int      enableFog : 1;
-  int      enableDepthWrites : 1;
+  BOOL     enableLighting : 1;
+  BOOL     enableFog : 1;
+  BOOL     enableDepthWrites : 1;
 };
 
 struct CSortableParticleRecord {
@@ -172,19 +172,19 @@ class CParticleEmitter2 {
 
   float                     CalcVelocity();
   void                      ProjectParticle(CParticle2 &p);
-  int                       MoveParticle(CParticle2 &p, float elapsedTime);
-  int                       MoveParticle(CParticle2_Model &p, float elapsedTime);
+  BOOL                      MoveParticle(CParticle2 &p, float elapsedTime);
+  BOOL                      MoveParticle(CParticle2_Model &p, float elapsedTime);
   void                      UpdateXform(const NTempest::C34Matrix &modelToWorld, const NTempest::C3Vector &cameraWorldPos);
   void                      InternalUpdate(float elapsedTime, int suppressNewParticles);
   void                      StepUpdate(float elapsedTime, int suppressNewParticles);
   void                      SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, int suppressNewParticles);
-  int                       IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx);
+  BOOL                      IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx);
   void                      IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf);
   void                      IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf);
   static void               BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf);
   void                      RenderParticles();
-  int                       RenderParticle(CParticle2_Model &p);
-  int                       RenderParticle(CParticle2 &p, const NTempest::C34Matrix &basis, UINT headCell, UINT tailCell);
+  BOOL                      RenderParticle(CParticle2_Model &p);
+  BOOL                      RenderParticle(CParticle2 &p, const NTempest::C34Matrix &basis, UINT headCell, UINT tailCell);
   void                      RenderParticleModels();
   __forceinline CParticle2 *GetParticle(UINT index) {
     return m_particleType == PT_MODEL ? static_cast<CParticle2 *>(&m_modelParticles[index]) : &m_particles[index];
@@ -244,7 +244,7 @@ class CParticleEmitter2 {
   void                ParticleStyle(int &hasHead, int &hasTail, float &tailLength);
   void                SetKey(UINT keyNdx, const CParticleKey &key);
   void                SetTextureDimensions(UINT rows, UINT columns);
-  void                SetParticleStyle(int hasHead, int hasTail, float tailLength, bool tailGrows);
+  void                SetParticleStyle(BOOL hasHead, BOOL hasTail, float tailLength, bool tailGrows);
   void                SetSortZ(int sortZ);
   void                SetPriorityPlane(int priorityPlane) {
     m_priorityPlane = priorityPlane;
@@ -333,7 +333,7 @@ class CParticleEmitter2 {
   CParticleEmitter2 &operator=(const CParticleEmitter2 &);
   void               SyncReserve(UINT arraySize, UINT oldSize, UINT oldReserve);
   void               SyncAllocation(UINT arraySize);
-  int                IsEnabled() {
+  BOOL               IsEnabled() {
     return m_enabled && m_enabled2;
   }
   void EmitNewParticles(float elapsedTime, const NTempest::C34Matrix &basis);
@@ -533,6 +533,6 @@ class CSplineParticleEmitter : public CParticleEmitter2 {
   float                      m_end;
   float                      m_latitude;
   float                      m_radius;
-  int                        m_emitAtEnd;
+  BOOL                       m_emitAtEnd;
   NTempest::C3Spline_Bezier3 m_spline;
 };

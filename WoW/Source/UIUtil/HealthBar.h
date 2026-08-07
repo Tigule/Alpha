@@ -19,7 +19,7 @@ class CGSimpleHealthBar : public CSimpleStatusBar {
   void RemoveMirrorHandlers();
 
   DWORDLONG m_unitGUID;
-  int       m_scaleColor;
+  BOOL      m_scaleColor;
 };
 
 #endif

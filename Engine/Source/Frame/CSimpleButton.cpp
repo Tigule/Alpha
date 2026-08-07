@@ -180,7 +180,7 @@ void CSimpleButton::SetPressedOffset(const NTempest::C2Vector &offset) {
   m_pressedOffset = offset;
 }
 
-int CSimpleButton::SetStateTexture(CSimpleButtonState state, LPCSTR texFile) {
+BOOL CSimpleButton::SetStateTexture(CSimpleButtonState state, LPCSTR texFile) {
   if (m_textures[state]) {
     m_textures[state]->SetTexture(texFile, 0);
     return 1;
@@ -234,7 +234,7 @@ void CSimpleButton::OnLayerHide() {
   CSimpleFrame::OnLayerHide();
 }
 
-int CSimpleButton::OnLayerMouseDown(CMouseEvent &evt) {
+BOOL CSimpleButton::OnLayerMouseDown(CMouseEvent &evt) {
   int handled = CSimpleFrame::OnLayerMouseDown(evt);
   if (!handled && m_state != BUTTONSTATE_DISABLED && IsMouseButtonHandled(evt.button)) {
     NTempest::C2Vector pt(evt.x, evt.y);
@@ -251,7 +251,7 @@ int CSimpleButton::OnLayerMouseDown(CMouseEvent &evt) {
   return handled;
 }
 
-int CSimpleButton::OnLayerMouseUp(CMouseEvent &evt) {
+BOOL CSimpleButton::OnLayerMouseUp(CMouseEvent &evt) {
   int handled = CSimpleFrame::OnLayerMouseUp(evt);
   if (!handled && m_state != BUTTONSTATE_DISABLED) {
     handled = m_state == BUTTONSTATE_PUSHED;

@@ -63,7 +63,7 @@ void CSimpleMessageFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CSimpleMessageFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CSimpleMessageFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

@@ -73,8 +73,8 @@ extern CGCursor *g_cursor;
 
 void CursorInitialize();
 void CursorDestroy();
-int  CursorGrabSpell(HMODEL model);
-int  CursorGrabSpell(LPCSTR filename);
+BOOL CursorGrabSpell(HMODEL model);
+BOOL CursorGrabSpell(LPCSTR filename);
 void CursorDropMoney();
 void CursorDropSpell();
 void CursorModelSetSequence(CURSORANIMATIONS sequence);

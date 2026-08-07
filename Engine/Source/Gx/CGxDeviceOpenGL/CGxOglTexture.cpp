@@ -40,7 +40,7 @@ void CGxDeviceOpenGl::BindTexture(CGxTex *texId, UINT tmu) {
   glBindTexture(GL_TEXTURE_2D, reinterpret_cast<UINT>(texId->m_apiSpecificData));
 }
 
-int CGxDeviceOpenGl::TexCreate(
+BOOL CGxDeviceOpenGl::TexCreate(
     UINT         width,
     UINT         height,
     EGxTexFormat format,

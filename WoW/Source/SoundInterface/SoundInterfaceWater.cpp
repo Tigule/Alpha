@@ -128,7 +128,7 @@ static void HandleWaterAmbiences() {
   s_flags &= ~2;
 }
 
-static int WaterHandler(LPCVOID dataPtr, LPVOID param) {
+static BOOL WaterHandler(LPCVOID dataPtr, LPVOID param) {
   HandleWaterAmbiences();
   return 1;
 }
@@ -175,7 +175,7 @@ void LIQUIDINFO::StartSound(UINT subType, const NTempest::C3Vector &listenerPos)
   }
 }
 
-int LIQUIDINFO::Update(const NTempest::C3Vector &listenerPos) {
+BOOL LIQUIDINFO::Update(const NTempest::C3Vector &listenerPos) {
   UINT subType;
   for (subType = 0; subType < 3 && !m_subTypes[subType]; ++subType) {
   }

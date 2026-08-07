@@ -2,7 +2,7 @@
 
 #include "Os/OsTime.h"
 
-int IEvtTimerDispatch(EvtContext *context) {
+BOOL IEvtTimerDispatch(EvtContext *context) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   DWORD                   currTime;

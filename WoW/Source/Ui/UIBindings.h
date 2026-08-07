@@ -46,11 +46,11 @@ class CGUIBindings {
   CGUIBindings();
   ~CGUIBindings();
 
-  int Load(LPCSTR commandsFile, CStatus *status);
-  int Bind(LPCSTR keystring, LPCSTR command);
-  int ExecKey(LPCSTR keystring, DWORD timestamp, int down) const;
-  int ExecCommand(LPCSTR command, DWORD timestamp, int down) const;
-  int GetNumCommands() const {
+  BOOL Load(LPCSTR commandsFile, CStatus *status);
+  BOOL Bind(LPCSTR keystring, LPCSTR command);
+  int  ExecKey(LPCSTR keystring, DWORD timestamp, int down) const;
+  BOOL ExecCommand(LPCSTR command, DWORD timestamp, int down) const;
+  int  GetNumCommands() const {
     return m_numCommands;
   }
   int GetNumHiddenCommands() const {
@@ -67,7 +67,7 @@ class CGUIBindings {
   }
 
  protected:
-  static int AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen);
+  static BOOL AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen);
 
  private:
   static CGUIBindings *s_bindings;

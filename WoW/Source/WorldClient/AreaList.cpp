@@ -112,7 +112,7 @@ static void LoadAreaTable() {
   InitializeMusic();
 }
 
-static int MIDISetHandler(LPCSTR command, LPCSTR arguments) {
+static BOOL MIDISetHandler(LPCSTR command, LPCSTR arguments) {
   UINT            enabled = SStrToUnsigned(arguments);
   AREAHASHOBJECT *zone = GetZone(s_currentContinent, s_currentZoneID, s_currentSubZoneID);
   if (enabled && zone) {
@@ -136,7 +136,7 @@ void AreaListShutdown() {
   s_areaHash.Clear();
 }
 
-int AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer, UINT size, int fullName) {
+BOOL AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer, UINT size, int fullName) {
   AREAHASHOBJECT *area;
   AREAHASHOBJECT *parent;
   int             badRec;

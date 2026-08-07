@@ -23,7 +23,7 @@ static char      s_ghostNameRequested[256];
 static DWORDLONG s_realActivePlayer;
 
 static void MaybeSendGhostRequest();
-int         OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL        OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
 void CGPlayer_C::SetRealActivePlayer(DWORDLONG guid) {
   s_realActivePlayer = guid;
@@ -34,7 +34,7 @@ DWORDLONG CGPlayer_C::GetRealActivePlayer() {
   return s_realActivePlayer;
 }
 
-int OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   switch (msgId) {
     case CMSG_GHOST: {
       s_ghostRequestPending = 0;

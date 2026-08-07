@@ -45,8 +45,8 @@ enum COLOR_FILE_FORMAT {
   COLOR_DXT = 2
 };
 
-static int LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *height, EGxTexFormat *format, int *isOpaque, UINT *alphaBits);
-static int PumpBlpTextureAsync(CTexture *texture);
+static BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *height, EGxTexFormat *format, int *isOpaque, UINT *alphaBits);
+static BOOL PumpBlpTextureAsync(CTexture *texture);
 
 struct BlpPalPixel {
   BYTE b;
@@ -76,8 +76,8 @@ struct BLPHeader {
 };
 
 class CBLPFile {
-  friend int LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *height, EGxTexFormat *format, int *isOpaque, UINT *alphaBits);
-  friend int PumpBlpTextureAsync(CTexture *texture);
+  friend BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *height, EGxTexFormat *format, int *isOpaque, UINT *alphaBits);
+  friend BOOL PumpBlpTextureAsync(CTexture *texture);
 
  public:
   enum {
@@ -101,14 +101,14 @@ class CBLPFile {
 
   void      Close();
   int       Open(LPCSTR filename);
-  int       Source(LPVOID fileBits);
+  BOOL      Source(LPVOID fileBits);
   int       Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride);
   int       Unlock(UINT mipLevel);
-  int       LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
-  int       LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
-  int       SetImage(CBLPFile &source, UINT mipLevel, CStatus *status);
-  int       SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, UINT mipLevel, CStatus *status);
-  int       SetAlphaBits(UINT alpha);
+  BOOL      LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
+  BOOL      LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
+  BOOL      SetImage(CBLPFile &source, UINT mipLevel, CStatus *status);
+  BOOL      SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, UINT mipLevel, CStatus *status);
+  BOOL      SetAlphaBits(UINT alpha);
   MIPS_TYPE HasMips() const;
   void      SetHasMips(MIPS_TYPE hasMips);
   UINT      Bytes() const;
@@ -171,15 +171,15 @@ class CBLPFile {
 
  protected:
   BYTE            *Image(UINT level);
-  int              CreateMipLevels(UINT width, UINT height);
-  int              IsValidMip(UINT level) const;
-  int              GetFormatSize(PIXEL_FORMAT format, UINT mipLevel, UINT *size, UINT *stride) const;
+  BOOL             CreateMipLevels(UINT width, UINT height);
+  BOOL             IsValidMip(UINT level) const;
+  BOOL             GetFormatSize(PIXEL_FORMAT format, UINT mipLevel, UINT *size, UINT *stride) const;
   void             DecompPalFastPath(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
   void             DecompPalARGB8888(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
   void             DecompPalARGB4444(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
   void             DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
   void             DecompPalARGB565(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
-  int              DecompPal(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, LPCVOID tempBuffer);
+  BOOL             DecompPal(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, LPCVOID tempBuffer);
   int              DecompJPEG(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT dataSize, LPCVOID source, UINT &stride);
   int              GetOctreePal(tagPALETTEENTRY *palette, UINT count);
   int              AddSourceImages(HCOLORLIST__ *colors);

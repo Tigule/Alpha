@@ -11,14 +11,14 @@ namespace MDL {
 
   void InitializeTokenText();
   void DestroyTokenText();
-  int  CallTextWriteHandlers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
-  int  CallBinWriteHandlers(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
+  BOOL CallTextWriteHandlers(const MDLDATA &, TSGrowableArray<char> &, CMDLStatus *);
+  BOOL CallBinWriteHandlers(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
   int  CallBinReadHandler(DWORD, CMsgBuffer &, UINT, MDLDATA &, CMDLStatus *);
   int  CallTextReadHandler(UINT, mdl_scan &, MDLDATA &, CMDLStatus *);
 
 }  // namespace MDL
 
-int   ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
+BOOL  ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
 char *OsGetLastErrorStr();
 void  OsFreeLastErrorStr(char *msgBuf);
 
@@ -105,7 +105,7 @@ static int ModelDataToBin(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *s
   return MDL::CallBinWriteHandlers(data, buffer, status);
 }
 
-static int IWriteFile(LPCSTR path, LPCSTR mode, LPCVOID data, UINT bytes) {
+static BOOL IWriteFile(LPCSTR path, LPCSTR mode, LPCVOID data, UINT bytes) {
   FILE *file = fopen(path, mode);
   if (!file) {
     return 0;
@@ -165,7 +165,7 @@ void MDLFileDestroy() {
   MDL::DestroyTokenText();
 }
 
-static int IWriteMdlFile(LPCSTR path, const MDLDATA &mdldata, CMDLStatus *status) {
+static BOOL IWriteMdlFile(LPCSTR path, const MDLDATA &mdldata, CMDLStatus *status) {
   if (DiscoverFileType(path)) {
     CMsgBuffer buffer(1);
     if (!ModelDataToBin(mdldata, buffer, status)) {
@@ -281,7 +281,7 @@ static int ReadMdlFile(char *path, MDLDATA *mdldata, CMDLStatus *status) {
   return result;
 }
 
-int MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status) {
+BOOL MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status) {
   FATALASSERT(path && SStrLen(path));
   FATALASSERT(mdldata);
   if (!status) {

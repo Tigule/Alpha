@@ -58,7 +58,7 @@ class RangeList {
     return m_numranges;
   }
 
-  int GetRange(int index, float &min, float &max) {
+  BOOL GetRange(int index, float &min, float &max) {
     min = 0.0f;
     max = 0.0f;
     if (index >= 0 && index < m_numranges) {
@@ -454,7 +454,7 @@ CGCamera::CGCamera()
   SetTarget(0);
 }
 
-int CGCamera::FinishLoadingModel() {
+BOOL CGCamera::FinishLoadingModel() {
   m_flags |= 0x40;
   m_modelCamera = ModelGetCamera(m_model, 0);
   if (!m_modelCamera) {
@@ -484,7 +484,7 @@ void CGCamera::ClearModelCamera() {
   }
 }
 
-int CGCamera::FinishLoadingTarget(CGObject_C *target) {
+BOOL CGCamera::FinishLoadingTarget(CGObject_C *target) {
   HMODEL model = target->m_model;
   if (!model || !ModelIsLoaded(model, 1)) {
     return 0;
@@ -660,7 +660,7 @@ float CGCamera::GetCameraDistance(float cameraDist, const NTempest::C3Vector &ta
   return cameraDist;
 }
 
-int CGCamera::CCommand_CameraClip(LPCSTR command, LPCSTR arguments) {
+BOOL CGCamera::CCommand_CameraClip(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     s_clipCamera = SStrToInt(arguments);
   } else {
@@ -1196,7 +1196,7 @@ void CGCamera::CheckUnderwater() {
   }
 }
 
-int CGCamera::UpdateCallback(LPCVOID, LPVOID param) {
+BOOL CGCamera::UpdateCallback(LPCVOID, LPVOID param) {
   if (param) {
     CGCamera *camera = static_cast<CGCamera *>(param);
     DWORD     timestamp = OsGetAsyncTimeMs();
@@ -1377,7 +1377,7 @@ void CGCamera::ResetModelCamera() {
   }
 }
 
-int CGCamera::SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param) {
+BOOL CGCamera::SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param) {
   ClearModelCamera();
 
   CStatus status;

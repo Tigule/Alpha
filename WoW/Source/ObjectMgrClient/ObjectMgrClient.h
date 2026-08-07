@@ -84,7 +84,7 @@ enum HANDLER_PRIORITY {
 
 NODEDECL(CMirrorHandler) {
   LINKDECLEX(CMirrorHandler, callLink);
-  int (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
+  BOOL (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
   LPVOID                             param;
   UINT                               blocksLeft;
   UINT                               offset;
@@ -99,7 +99,7 @@ NODEDECL(OBJHANDLERREQUEST) {
   DWORDLONG guid;
   UINT      offset;
   UINT      bytes;
-  int (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
+  BOOL (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
   LPVOID           param;
   HANDLER_PRIORITY priority;
   BYTE             set;
@@ -147,7 +147,7 @@ class ClntObjMgr {
 ClntObjMgr       *ClntObjMgrGetCurrent();
 ClntObjMgr       *ClntObjMgrCreate(PLAYER_TYPE type, LPVOID clientPtr);
 void              ClntObjMgrSetCurrent(ClntObjMgr *mgr);
-int               ClntObjMgrIsValid(int forWriting);
+BOOL              ClntObjMgrIsValid(int forWriting);
 void              ClntObjMgrInitializeShared();
 void              ClntObjMgrInitialize();
 void              ClntObjMgrDestroy();
@@ -159,7 +159,7 @@ void              ClntObjMgrSetMovementGlobals(LPVOID ptr);
 CGObject_C       *ClntObjMgrObjectPtr(DWORDLONG guid, LPCSTR fileName, UINT lineNumber);
 UINT              ClntObjMgrGetMapID();
 void              ClntObjMgrSetMapID(UINT mapID);
-int               ClntObjMgrEnumVisibleObjects(int (*handler)(DWORDLONG object, LPVOID param), LPVOID param);
+BOOL              ClntObjMgrEnumVisibleObjects(BOOL (*handler)(DWORDLONG object, LPVOID param), LPVOID param);
 void              ClntObjMgrObjectInRange(DWORDLONG guid);
 void              ClntObjMgrHideObject(DWORDLONG guid);
 void              ClntObjMgrObjectOutOfRange(DWORDLONG guid, int shutdown);
@@ -173,19 +173,19 @@ void              ClntObjMgrSetObjMirrorHandler(
     DWORDLONG guid,
     UINT      offset,
     UINT      bytes,
-    int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID),
+    BOOL (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID),
     LPVOID           param,
     HANDLER_PRIORITY priority
 );
-void ClntObjMgrUnsetObjMirrorHandler(DWORDLONG guid, UINT offset, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID), LPVOID param);
+void ClntObjMgrUnsetObjMirrorHandler(DWORDLONG guid, UINT offset, BOOL (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID), LPVOID param);
 void ClntObjMgrSetTypeMirrorHandler(
     OBJECT_TYPE hierType,
     UINT        offset,
     UINT        bytes,
-    int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID),
+    BOOL (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID),
     LPVOID           param,
     HANDLER_PRIORITY priority
 );
-void ClntObjMgrUnsetTypeMirrorHandler(OBJECT_TYPE hierType, UINT offset, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
+void ClntObjMgrUnsetTypeMirrorHandler(OBJECT_TYPE hierType, UINT offset, BOOL (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
 
 #endif

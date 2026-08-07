@@ -108,7 +108,7 @@ class CAaBsp {
   UINT                buildFaceIndicesNext;
   UINT                treeDepth;
   UINT                avgNodeFaces;
-  int                 bFree;
+  BOOL                bFree;
   NTempest::CAaBox    aaBox;
 };
 

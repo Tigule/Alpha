@@ -124,7 +124,7 @@ CGMinimapFrame::WorldPosToMinimapFrameCoords(const NTempest::C3Vector centerPoin
   return NTempest::C2Vector(halfSize - halfSize * (y - centerPoint.y) * ooRadius, halfSize + halfSize * (x - centerPoint.x) * ooRadius);
 }
 
-int CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
+BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
   MINIMAPINFO *info = static_cast<MINIMAPINFO *>(param);
   FATALASSERT(info);
 
@@ -228,7 +228,7 @@ void CGMinimapFrame::OnLayerUpdate(float elapsedSec) {
   }
 }
 
-int CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
+BOOL CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
   s_tooltipDisplayDistant = -1;
   s_tooltipDisplayParty = -1;
   s_tooltipDisplay = 0;
@@ -1147,7 +1147,7 @@ void CGMinimapFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CGMinimapFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CGMinimapFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

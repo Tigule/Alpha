@@ -59,7 +59,7 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
   }
 }
 
-int CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   if (format.window) {
     format.apiSpecificModeID = 0;
     return 1;
@@ -89,7 +89,7 @@ int CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   return 0;
 }
 
-int CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
   FATALASSERT(m_hdc == 0 && m_hglrc == 0);
 
   LPVOID view = GxMacWindowContentView(reinterpret_cast<LPVOID>(m_hwnd));
@@ -182,7 +182,7 @@ void CGxDeviceOpenGl::DeviceWM(EGxWM wm, intptr_t param1, intptr_t param2) {
   }
 }
 
-int CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
   m_ownhwnd = 1;
   m_gammaRamp = m_systemGammaRamp;
 
@@ -194,7 +194,7 @@ int CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &form
   return 0;
 }
 
-int CGxDeviceOpenGl::DeviceCreate(UINT clienthwnd, const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::DeviceCreate(UINT clienthwnd, const CGxFormat &format) {
   s_inCreateOrDestroy = 1;
   m_ownhwnd = 0;
   m_gammaRamp = m_systemGammaRamp;
@@ -226,7 +226,7 @@ void CGxDeviceOpenGl::DeviceDestroy() {
   s_inCreateOrDestroy = 0;
 }
 
-int CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
   FATALASSERT(m_ownhwnd);
   Log("CGxDeviceOpenGl::DeviceSetFormat():");
   Log(format);
@@ -355,11 +355,11 @@ void CGxDeviceOpenGl::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
   dst.b = static_cast<float>(b);
 }
 
-static int IsGlDisplayModeGood(CGDisplayModeRef mode) {
+static BOOL IsGlDisplayModeGood(CGDisplayModeRef mode) {
   return CGDisplayModeGetWidth(mode) >= 640 && CGDisplayModeGetHeight(mode) >= 480;
 }
 
-int CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
+BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   CFArrayRef modes = CGDisplayCopyAllDisplayModes(kCGDirectMainDisplay, 0);
   CFIndex    count;
   CFIndex    index;
@@ -390,7 +390,7 @@ int CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   return formats.Count() != 0;
 }
 
-int CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
+BOOL CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   return 0;
 }
 
@@ -398,7 +398,7 @@ CGxDevice *CGxDevice::NewD3d() {
   return 0;
 }
 
-int CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, UINT &driverVersionHi, UINT &driverVersionLow) {
+BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, UINT &driverVersionHi, UINT &driverVersionLow) {
   vendorID = 0;
   deviceID = 0;
   driverVersionHi = 0;
@@ -406,12 +406,12 @@ int CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, UINT &driverVersionHi, 
   return 0;
 }
 
-int CGxDevice::AdapterInfer(WORD &deviceID) {
+BOOL CGxDevice::AdapterInfer(WORD &deviceID) {
   deviceID = 0;
   return 0;
 }
 
-int CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
+BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   CFArrayRef displayModes = CGDisplayCopyAllDisplayModes(kCGDirectMainDisplay, 0);
   CFIndex    count;
   CFIndex    index;
@@ -437,7 +437,7 @@ int CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   return modes.Count() != 0;
 }
 
-int CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
+BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
   CGDisplayModeRef displayMode = CGDisplayCopyDisplayMode(kCGDirectMainDisplay);
 
   if (!displayMode) {

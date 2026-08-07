@@ -75,7 +75,7 @@ NODEDECL(BlizzardObject) {
   NTempest::CAaSphere boundSphere;
   LISTDECL(Shard, shards);
 
-  static int    ShardSeqFinished(LPVOID param);
+  static BOOL   ShardSeqFinished(LPVOID param);
   static Shard *AllocShard();
   static void   FreeShard(Shard * &shard);
   void          UpdateBounds();
@@ -148,7 +148,7 @@ static void             RenderFishingLines();
 static bool             GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos);
 SPELL_VISUAL_ATTACHMENT GetMissileTargetLocation(DWORDLONG caster, UINT spellID);
 void                    GetMissileTargetPosition(CGObject_C *target, SPELL_VISUAL_ATTACHMENT hitLocation, NTempest::C3Vector &position);
-int                     Spell_C_GetCastTime(int id, int isPet);
+int                     Spell_C_GetCastTime(int id, BOOL isPet);
 
 LISTDECL(BlizzardObject::Shard, BlizzardObject::shardPool);
 
@@ -160,7 +160,7 @@ static TSCArray<float, 201>                  s_segmentPoints;
 LightningObject::LightningObject() : refCount(1) {
 }
 
-int BlizzardObject::ShardSeqFinished(LPVOID param) {
+BOOL BlizzardObject::ShardSeqFinished(LPVOID param) {
   return 0;
 }
 

@@ -92,7 +92,7 @@ void OUTDOORSCHUNKHASHOBJ::PrintInfo(FILE *outFile) {
   fprintf(outFile, "%d\n", desc.Environment);
 }
 
-int DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
   UINT chunks = s_chunkList.Count();
   if (!chunks) {
     ConsoleWrite("Error, no chunk information to dump!", DEFAULT_COLOR);
@@ -122,7 +122,7 @@ int DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int ShowCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL ShowCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (!s_chunkList.Count()) {
     ConsoleWrite("No chunks created!", DEFAULT_COLOR);
   } else if (s_currentChunk >= s_chunkList.Count()) {
@@ -134,7 +134,7 @@ int ShowCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (s_currentChunk > s_chunkList.Count()) {
     ConsoleWrite("Error, the current chunk is invalid!", DEFAULT_COLOR);
     return 1;
@@ -221,7 +221,7 @@ int SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     UINT chunk = SStrToUnsigned(arguments);
     if (chunk < s_chunkList.Count()) {
@@ -236,7 +236,7 @@ int SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!object) {
     ConsoleWrite("Error, can't locate player!", DEFAULT_COLOR);
@@ -273,7 +273,7 @@ int CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-int SndDebugListChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
+BOOL SndDebugListChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
   UINT i;
   for (i = 0; i < s_chunkList.Count(); ++i) {
     ASSERT(s_chunkList[i]);

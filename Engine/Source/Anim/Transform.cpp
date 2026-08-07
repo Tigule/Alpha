@@ -250,7 +250,7 @@ static void SetGlobalSequenceTime(CAnim *anim, CAnimData *data, int elapsedTime)
   }
 }
 
-static int CallSeqFinishedHandlers(CAnim *unique, UINT seqIndex) {
+static BOOL CallSeqFinishedHandlers(CAnim *unique, UINT seqIndex) {
   ASSERT(unique);
 
   if (unique->anySeqFinished.callback && !unique->anySeqFinished.callback(unique->anySeqFinished.param)) {
@@ -395,7 +395,7 @@ static void SetSequence(CAnim *unique, CAnimData *shared, BYTE sequence, UINT fl
   const UINT prevSeq = unique->primarySeq;
   const int  seqStartTime = shared->seq[sequence].time.l;
   const int  resetTime = !(flags & 2);
-  const int  wasInited = unique->flags & 0x40;
+  const BOOL wasInited = unique->flags & 0x40;
 
   if (!wasInited || !(unique->flags & 0x10)) {
     flags |= 4;
@@ -446,7 +446,7 @@ void GetWorldTransform(InterpInfo *animInfo) {
   WorldMatrixGetRow(3, &animInfo->basisPosition);
 }
 
-static int AdvanceTime(CAnim *unique, CAnimData *shared) {
+static BOOL AdvanceTime(CAnim *unique, CAnimData *shared) {
   ASSERT(unique);
   ASSERT(shared);
 
@@ -559,7 +559,7 @@ void CalcGeosetColor(const InterpInfo &animInfo, CAnimGeoset *geoset, CAnimGeose
   }
 }
 
-int CAnimBoneObj::IsVisible(const CAnim &anim) const {
+BOOL CAnimBoneObj::IsVisible(const CAnim &anim) const {
   if (geosetId == 0xFF) {
     return 1;
   }
@@ -663,7 +663,7 @@ void AnimSetTimeScale(HANIM anim, float timeScale) {
   unique->seq[unique->primarySeq].seqTimeScale = timeScale;
 }
 
-int AnimSetObjectTimeScale(HANIM anim, UINT objectId, float timeScale) {
+BOOL AnimSetObjectTimeScale(HANIM anim, UINT objectId, float timeScale) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -744,7 +744,7 @@ int AnimForceSequenceTime(HANIM anim, UINT index, int time) {
   return SetSequenceTime(unique, sequence, &shared->seq[sequence], &unique->seq[sequence], time);
 }
 
-int AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT flags) {
+BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -776,7 +776,7 @@ UINT AnimGetNumSequenceFidgets(HANIM anim, UINT seqIndex) {
   return ordering.variation.Count() + 1;
 }
 
-int AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
+BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -799,7 +799,7 @@ int AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT objectId, UINT f
   return 1;
 }
 
-int AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT flags) {
+BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -817,7 +817,7 @@ int AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT flags) 
   return 1;
 }
 
-int AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT objectId, UINT flags) {
+BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT objectId, UINT flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -840,7 +840,7 @@ int AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT objectI
   return 1;
 }
 
-int AnimSetSequence(HANIM anim, UINT seqIndex, UINT flags) {
+BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -868,7 +868,7 @@ int AnimSetSequence(HANIM anim, UINT seqIndex, UINT flags) {
   return 1;
 }
 
-int AnimSetSequence(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
+BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -892,7 +892,7 @@ int AnimSetSequence(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
   return 1;
 }
 
-int AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flags) {
+BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flags) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);

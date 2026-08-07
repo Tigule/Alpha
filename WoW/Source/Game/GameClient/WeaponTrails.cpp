@@ -79,7 +79,7 @@ void ModelCustGeosetAdd(
     UINT  *custGeosetId
 );
 void ModelCustGeosetRemove(HMODEL model, UINT custGeosetId);
-int  ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot);
+BOOL ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot);
 
 static TInstanceAllocator<WTOBJECT> s_unusedObjects(100);
 static TInstanceAllocator<SWING>    s_freeSwings(100);
@@ -91,7 +91,7 @@ static int                     ALPHAFADEOUTRATE = 24;
 static int                     s_masterEnable = 1;
 static CVar                   *s_consoleVarHandle;
 
-static int DiscontinueTimerHandler(LPCVOID data, LPVOID userArg);
+static BOOL DiscontinueTimerHandler(LPCVOID data, LPVOID userArg);
 
 SWING::SWING() : m_flags(0) {
   m_trail.SetChunkSize(128);
@@ -235,7 +235,7 @@ static void GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis,
   static_cast<WTOBJECT *>(param)->Render(renderBasis);
 }
 
-static int DiscontinueTimerHandler(LPCVOID data, LPVOID userArg) {
+static BOOL DiscontinueTimerHandler(LPCVOID data, LPVOID userArg) {
   WTOBJECT *trail = static_cast<WTOBJECT *>(userArg);
   FATALASSERT(trail);
 

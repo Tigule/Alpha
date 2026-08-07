@@ -19,7 +19,7 @@ struct FindItemClassData {
 
 static const UINT inventoryFlags = 7;
 
-static int GetItemTypeCountCallback(const CGItem_C *item, LPVOID param) {
+static BOOL GetItemTypeCountCallback(const CGItem_C *item, LPVOID param) {
   GetItemTypeCountData *data = static_cast<GetItemTypeCountData *>(param);
   if (item->GetEntryID() == data->entryID || data->entryID == -1) {
     data->count += item->GetStackCount();
@@ -27,7 +27,7 @@ static int GetItemTypeCountCallback(const CGItem_C *item, LPVOID param) {
   return 0;
 }
 
-static int FindItemIDCallback(const CGItem_C *item, LPVOID param) {
+static BOOL FindItemIDCallback(const CGItem_C *item, LPVOID param) {
   return item->GetEntryID() == *static_cast<int *>(param);
 }
 
@@ -58,7 +58,7 @@ int CGBag_C::GetItemTypeCount(int entryID, UINT flags) const {
   return data.count;
 }
 
-static int FindItemClassCallback(const CGItem_C *item, LPVOID param) {
+static BOOL FindItemClassCallback(const CGItem_C *item, LPVOID param) {
   FindItemClassData *data = static_cast<FindItemClassData *>(param);
   return item->GetClassID() == data->classID && (data->subclassMask & (1 << item->GetSubtypeID()));
 }
@@ -79,13 +79,13 @@ CGItem_C *CGBag_C::FindItemOfClass(int classID, int subclassMask, DWORDLONG &bag
   return FindItem(FindItemClassCallback, &data, bagGUID, slot, flags);
 }
 
-CGItem_C *CGBag_C::FindItem(int (*func)(const CGItem_C *, LPVOID), LPVOID param, UINT flags) const {
+CGItem_C *CGBag_C::FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param, UINT flags) const {
   DWORDLONG bagGUID;
   UINT      slot;
   return FindItem(func, param, bagGUID, slot, flags);
 }
 
-CGItem_C *CGBag_C::FindItem(int (*func)(const CGItem_C *, LPVOID), LPVOID param, DWORDLONG &bagGUID, UINT &slot, UINT flags) const {
+CGItem_C *CGBag_C::FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param, DWORDLONG &bagGUID, UINT &slot, UINT flags) const {
   FATALASSERT(func);
 
   UINT index;

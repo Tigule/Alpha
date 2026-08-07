@@ -73,12 +73,12 @@ class CGlueMgr {
 
   static void GetCharacterList();
   static void GetRealmList();
-  static int  NetDisconnectHandler(LPCVOID eventData, LPVOID);
+  static BOOL NetDisconnectHandler(LPCVOID eventData, LPVOID);
 
  private:
   friend void ClientDestroyGame(int connected, int resumeUI, int loginError);
 
-  static int Idle(LPCVOID eventData, LPVOID param);
+  static BOOL Idle(LPCVOID eventData, LPVOID param);
 
  protected:
   static void InitCursor();

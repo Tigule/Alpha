@@ -54,7 +54,7 @@ static LOOPEDDOODADDESC *FindFreeDoodadLoop(int soundID, int &freeSlot, int &sou
   return 0;
 }
 
-int DoodadLoopHandler(LPCVOID dataPtr, LPVOID param) {
+BOOL DoodadLoopHandler(LPCVOID dataPtr, LPVOID param) {
   s_elapsed += static_cast<int>(*static_cast<const float *>(dataPtr) * 1000.0f);
   NTempest::C3Vector lPos(0.0f);
   Sound::GetListenerPosition(lPos);
@@ -135,7 +135,7 @@ int LOOPEDDOODADDESC::GetClosestIndex(const NTempest::C3Vector &listener) {
   return closestIndex;
 }
 
-int LOOPEDDOODADDESC::FindFreeSlot() const {
+BOOL LOOPEDDOODADDESC::FindFreeSlot() const {
   for (int slot = 0; slot < 8; ++slot) {
     if (!((1 << slot) & posInUseFlags)) {
       return slot;

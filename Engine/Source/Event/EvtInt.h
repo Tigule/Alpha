@@ -167,7 +167,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     OsCallDestroyContext(m_callContext);
   }
 
-  int IsCurrentContext() const {
+  BOOL IsCurrentContext() const {
     return !Id() || reinterpret_cast<LPVOID>(Id()) == PropGet(PROP_EVENTCONTEXT);
   }
 
@@ -197,7 +197,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     PropSelectContext(0);
   }
 
-  int SchedGetClosed() {
+  BOOL SchedGetClosed() {
     int closed;
 
     m_critsect.Enter();
@@ -214,7 +214,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_critsect.Leave();
   }
 
-  int SchedGetDestroyed() {
+  BOOL SchedGetDestroyed() {
     int destroyed;
 
     m_critsect.Enter();
@@ -379,14 +379,14 @@ void IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, LP
 void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, LPVOID param, UINT flags);
 void IEvtQueueDispatch(EvtContext *context, EVENTID id, LPCVOID data);
 void IEvtQueueDispatchAll(EvtContext *context);
-int  IEvtQueueHasMessages(EvtContext *context);
-int  IEvtQueueDispatchNext(EvtContext *context);
+BOOL IEvtQueueHasMessages(EvtContext *context);
+BOOL IEvtQueueDispatchNext(EvtContext *context);
 void IEvtQueuePost(EvtContext *context, EVENTID id, LPCVOID data, UINT bytes);
 void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, LPVOID param);
-int  IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
-int  IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
+BOOL IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key);
+BOOL IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button);
 
-int   IEvtTimerDispatch(EvtContext *context);
+BOOL  IEvtTimerDispatch(EvtContext *context);
 UINT  IEvtTimerGetNextTime(EvtContext *context, DWORD currTime);
 float IEvtTimerGetRemaining(EvtContext *context, UINT id);
 void  IEvtTimerKill(EvtContext *context, UINT id, EVENTHANDLER handlerFunction, LPCSTR functionName);
@@ -420,7 +420,7 @@ UINT IEvtTimerSetAbsolute(
 
 void IEvtInputInitialize();
 void IEvtInputDestroy();
-int  IEvtInputProcess(EvtContext *context, int *shutdown);
+BOOL IEvtInputProcess(EvtContext *context, int *shutdown);
 void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, UINT holdButton);
 void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, LPVOID inParam);
 void IEvtInputGetMousePosition(float *x, float *y);
@@ -438,4 +438,4 @@ void IEvtSchedulerProcess();
 void IEvtSchedulerShutdown();
 HEVENTCONTEXT
 IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags);
-int IEvtSchedulerIsContextInteractive(EvtContext *context);
+BOOL IEvtSchedulerIsContextInteractive(EvtContext *context);

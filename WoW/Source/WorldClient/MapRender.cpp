@@ -196,7 +196,7 @@ static void Billboard(const NTempest::C3Vector &dir, NTempest::C44Matrix &mat) {
   mat.c2 = mat.b1 * mat.a0 - mat.b0 * mat.a1;
 }
 
-int DNGlare::IsVisible() {
+BOOL DNGlare::IsVisible() {
   if (!m_masterEnable || !m_enabled || !m_color.a) {
     return 0;
   }

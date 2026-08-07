@@ -26,7 +26,7 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
     m_texture = 0;
   }
 
-  int IsInUse() {
+  BOOL IsInUse() {
     return GetRefCount() > 1;
   }
 
@@ -270,7 +270,7 @@ const MipBits *TextureCacheGetImage(HMIPPEDTEXTURE texture) {
   return TextureGetMips(object->m_texture, 1);
 }
 
-int TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, int bForce) {
+BOOL TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, BOOL bForce) {
   CACHEENTRY *object = reinterpret_cast<CACHEENTRY *>(texture);
 
   if (!object) {

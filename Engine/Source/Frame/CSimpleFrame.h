@@ -100,33 +100,33 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return m_frameName;
   }
   virtual void SetAlpha(BYTE alpha);
-  virtual int  FrameDefPostInitialize(UINT createContext, LPVOID context) {
+  virtual BOOL FrameDefPostInitialize(UINT createContext, LPVOID context) {
     return 1;
   }
-  virtual int  TestHitRect(const NTempest::C2Vector &pt);
+  virtual BOOL TestHitRect(const NTempest::C2Vector &pt);
   virtual void OnLayerShow();
   virtual void OnLayerHide();
   virtual void OnLayerUpdate(float elapsedSec);
-  virtual int  OnLayerTrackUpdate(const CMouseEvent &evt);
+  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
   virtual void OnFrameRender();
   virtual void OnFrameRender(CRenderBatch *batch, UINT layer);
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
   virtual void OnFrameSizeChanged(float w, float h);
   virtual void OnLayerCursorEnter();
   virtual void OnLayerCursorExit();
-  virtual int  OnLayerIme(CImeEvent &evt) {
+  virtual BOOL OnLayerIme(CImeEvent &evt) {
     return 0;
   }
-  virtual int OnLayerKeyDownRepeat(CKeyEvent &evt) {
+  virtual BOOL OnLayerKeyDownRepeat(CKeyEvent &evt) {
     return 0;
   }
-  virtual int OnLayerChar(CCharEvent &evt);
-  virtual int OnLayerKeyDown(CKeyEvent &evt);
-  virtual int OnLayerKeyUp(CKeyEvent &evt);
-  virtual int OnLayerMouseDown(CMouseEvent &evt);
-  virtual int OnLayerMouseUp(CMouseEvent &evt);
-  virtual int OnLayerMouseWheel(CMouseEvent &evt);
-  virtual int OnLayerMouseMoveRelative(CMouseEvent &evt) {
+  virtual BOOL OnLayerChar(CCharEvent &evt);
+  virtual BOOL OnLayerKeyDown(CKeyEvent &evt);
+  virtual BOOL OnLayerKeyUp(CKeyEvent &evt);
+  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseWheel(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseMoveRelative(CMouseEvent &evt) {
     return 0;
   }
   virtual void OnDragStart(CMouseEvent &evt);
@@ -134,12 +134,12 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual void OnReceiveDrag(CMouseEvent &evt);
   virtual void LockHighlight(int lock);
 
-  int Hide() {
+  BOOL Hide() {
     m_shown = 0;
     return HideThis();
   }
 
-  int Show() {
+  BOOL Show() {
     m_shown = 1;
     return ShowThis();
   }
@@ -185,11 +185,11 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return m_strata;
   }
 
-  int IsDialog() {
+  BOOL IsDialog() {
     return m_strata == 4;
   }
 
-  int IsTooltip() {
+  BOOL IsTooltip() {
     return m_strata == 5;
   }
 
@@ -197,11 +197,11 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return m_titleRegion;
   }
 
-  int IsBeingScrolled() const {
+  BOOL IsBeingScrolled() const {
     return (m_flags >> 13) & 1;
   }
 
-  int IsAncestor(CSimpleFrame *frame) const {
+  BOOL IsAncestor(CSimpleFrame *frame) const {
     CSimpleFrame *parent = m_parent;
 
     while (parent && parent != frame) {
@@ -211,39 +211,39 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return parent != 0;
   }
 
-  int IsInitialized() {
+  BOOL IsInitialized() {
     return m_initialized_state == STATE_INITIALIZED;
   }
 
-  int IsMovable() const {
+  BOOL IsMovable() const {
     return (m_flags & 0x100) != 0;
   }
 
-  int IsOccluded() const {
+  BOOL IsOccluded() const {
     return (m_flags & 0x10) != 0;
   }
 
-  int IsParentDrawn() const {
+  BOOL IsParentDrawn() const {
     return !m_parent || m_parent->m_visible;
   }
 
-  int IsResizable() const {
+  BOOL IsResizable() const {
     return (m_flags & 0x200) != 0;
   }
 
-  int IsToplevel() const {
+  BOOL IsToplevel() const {
     return (m_flags & 0x1) != 0;
   }
 
-  int IsUserPlaced() const {
+  BOOL IsUserPlaced() const {
     return (m_flags & 0x1000) != 0;
   }
 
-  int IsVisible() const {
+  BOOL IsVisible() const {
     return m_visible;
   }
 
-  int IsShown() const {
+  BOOL IsShown() const {
     return m_shown;
   }
 
@@ -260,12 +260,12 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   }
 
   void AddFrameRegion(CSimpleRegion *region, UINT drawlayer);
-  int  AddToFrameRegistry(LPCSTR frameName, UINT context);
+  BOOL AddToFrameRegistry(LPCSTR frameName, UINT context);
   void ClearFromSimpleRegistry();
   void DisableDrawLayer(UINT drawlayer);
   void DisableEvent(CSimpleEventType event);
   void EnableDrawLayer(UINT drawlayer);
-  int  GetHitRect(NTempest::CRect &rect);
+  BOOL GetHitRect(NTempest::CRect &rect);
   void NotifyDrawLayersChanged();
   void NotifyDrawLayerChanged(UINT drawlayer);
   void OnUpdateBatch(UINT layer);
@@ -577,8 +577,8 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   LIST(SIMPLEFRAMENODE) & GetChildren() {
     return m_children;
   }
-  int  SetHighlight(LPCSTR texFile, EGxBlend blendMode);
-  int  SetHighlight(CSimpleTexture *texture, EGxBlend blendMode);
+  BOOL SetHighlight(LPCSTR texFile, EGxBlend blendMode);
+  BOOL SetHighlight(CSimpleTexture *texture, EGxBlend blendMode);
   void SetFrameFlag(int flag, int on);
   void SetFrameLevel(int level, int shiftChildren);
   void SetFrameStrata(int strata);
@@ -613,9 +613,9 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual CLayoutFrame *GetLayoutFrameByName(LPCSTR name);
 
  protected:
-  virtual int  LookupScriptMethod(lua_State *L, LPCSTR name);
-  virtual int  HideThis();
-  virtual int  ShowThis();
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL HideThis();
+  virtual BOOL ShowThis();
   virtual void ClearChildrenFromSimpleRegistry();
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
@@ -643,17 +643,17 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   int                 m_level;
   BYTE                m_alpha;
   UINT                m_eventmask;
-  int                 m_shown;
-  int                 m_visible;
+  BOOL                m_shown;
+  BOOL                m_visible;
   NTempest::CRect     m_hitRect;
   NTempest::CRect     m_hitOffset;
   int                 m_highlightLocked;
   UINT                m_lookForDrag;
-  int                 m_mouseDown;
-  int                 m_dragging;
+  BOOL                m_mouseDown;
+  BOOL                m_dragging;
   MOUSEBUTTON         m_dragButton;
   NTempest::C2Vector  m_clickPoint;
-  int                 m_loading;
+  BOOL                m_loading;
   int                 m_onLoad;
   int                 m_onSizeChanged;
   int                 m_onUpdate;

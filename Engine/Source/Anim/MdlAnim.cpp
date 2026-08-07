@@ -7,11 +7,11 @@
 #include <stpl.h>
 
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
-int   MDLFileRead(LPCSTR path, MDLDATA *data, CStatus *status);
+BOOL  MDLFileRead(LPCSTR path, MDLDATA *data, CStatus *status);
 
 CAnim *AnimCreate(UINT *const objectCounts, UINT numGeosets, UINT numCameras, UINT numMaterialLayers);
 HANIM  AnimCreate(LPCSTR sourcefile, UINT flags, CStatus *status);
-int    AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags);
+BOOL   AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags);
 
 void  AnimAddSequences(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimData *shared);
 void  AnimAddCameras(BYTE *fileData, UINT fileBytes, CAnimData *shared, MDLTRACKTYPE forceType);
@@ -655,7 +655,7 @@ void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT 
     ASSERT(data == dataDone);
   }
 }
-int AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags) {
+BOOL AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags) {
   if (!unique) {
     return 0;
   }
@@ -728,7 +728,7 @@ HANIM AnimCreate(BYTE *fileData, UINT fileBytes, UINT flags) {
   return anim;
 }
 
-static int AnimBuild(const MDLDATA &data, CAnim *unique, UINT flags) {
+static BOOL AnimBuild(const MDLDATA &data, CAnim *unique, UINT flags) {
   if (!unique) {
     return 0;
   }

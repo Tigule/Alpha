@@ -48,7 +48,7 @@ class mdl_scan {
  protected:
   UINT *state;
   int   size;
-  int   mustfree;
+  BOOL  mustfree;
   int   mdl_end;
   int   mdl_start;
   int   mdl_lastc;

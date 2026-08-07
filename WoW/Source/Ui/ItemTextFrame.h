@@ -21,7 +21,7 @@ class CGItemText {
   static LPCSTR GetText() {
     return m_text;
   }
-  static int HasNextPage() {
+  static BOOL HasNextPage() {
     return m_pages[m_currentPage + 1] != 0;
   }
   static void PrevPage();

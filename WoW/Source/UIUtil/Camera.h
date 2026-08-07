@@ -49,7 +49,7 @@ class CGCamera : public CSimpleCamera {
   void SetTarget(CGObject_C *target);
   void SetPositionAndTarget(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
   void SetPositionAndFacing(const NTempest::C3Vector &position, const NTempest::C3Vector &facing);
-  int  SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param);
+  BOOL SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param);
   void ClearModelCamera();
   void ResetModelCamera();
   void SetupWorldProjection(const NTempest::CRect &projectionRect);
@@ -79,19 +79,19 @@ class CGCamera : public CSimpleCamera {
   NTempest::C3Vector         Facing() const;
   int                        InFreeLookMode() const;
   int                        GetView() const;
-  static int                 UpdateCallback(LPCVOID, LPVOID param);
+  static BOOL                UpdateCallback(LPCVOID, LPVOID param);
 
  private:
   friend class CGWorldFrame;
   friend class CGInputControl;
   friend class CGUnit_C;
 
-  int                 FinishLoadingModel();
-  int                 FinishLoadingTarget(CGObject_C *target);
+  BOOL                FinishLoadingModel();
+  BOOL                FinishLoadingTarget(CGObject_C *target);
   int                 CompletedAngle() const;
   void                SetViewFlags(int flags);
   NTempest::C33Matrix ParentToWorld() const;
-  static int          CCommand_CameraClip(LPCSTR command, LPCSTR arguments);
+  static BOOL         CCommand_CameraClip(LPCSTR command, LPCSTR arguments);
   void                SetTargetFadeValue(BYTE value);
   void                SetModeNormal();
   void                SetModeFreeLook();

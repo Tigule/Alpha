@@ -10,7 +10,7 @@ struct CAnimNameHash : public TSHashObject<CAnimNameHash, HASHKEY_CONSTSTRI> {
 
 typedef TSHashTable<CAnimNameHash, HASHKEY_CONSTSTRI> CAnimNameHashTable;
 
-int CAnimData::Animates() {
+BOOL CAnimData::Animates() {
   UINT index;
   for (index = 0; index < geo.Count(); ++index) {
     if (geo[index].visibility.TotalKeys() || geo[index].color.TotalKeys()) {
@@ -56,7 +56,7 @@ int CAnimData::Animates() {
   return 0;
 }
 
-int CAnimTransform::Animates() {
+BOOL CAnimTransform::Animates() {
   return translation.TotalKeys() || rotation.TotalKeys() || scale.TotalKeys();
 }
 
@@ -64,7 +64,7 @@ UINT CAnimTransform::Bytes() const {
   return translation.CKeyFrameTrackBase::Bytes() + rotation.CKeyFrameTrackBase::Bytes() + scale.CKeyFrameTrackBase::Bytes();
 }
 
-int CAnimVisibleObj::Animates() {
+BOOL CAnimVisibleObj::Animates() {
   return visibility.TotalKeys() != 0;
 }
 
@@ -72,7 +72,7 @@ UINT CAnimVisibleObj::Bytes() const {
   return visibility.CKeyFrameTrackBase::Bytes();
 }
 
-int CAnimData::Moves() {
+BOOL CAnimData::Moves() {
   for (UINT index = 0; index < boneObjs.Count(); ++index) {
     CAnimBoneObj &bone = boneObjs[index];
     if (bone.CAnimTransform::Animates() || (bone.flags & 0x3F)) {
@@ -192,7 +192,7 @@ static void SetSeqIndexOrdering(const CAnimNameHashTable &table, CArray<CVariati
   }
 }
 
-static int ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3Vector &target, UINT lookAtTypeFlag) {
+static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3Vector &target, UINT lookAtTypeFlag) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -227,7 +227,7 @@ static int ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3Ve
   return 1;
 }
 
-static int RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
+static BOOL RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -356,7 +356,7 @@ void AnimEnumObjects(HANIM anim, int (*callbackfcn)(UINT, LPCSTR, LPVOID), LPVOI
   }
 }
 
-int AnimGetSequenceDuration(HANIM anim, UINT seqIndex, UINT *duration) {
+BOOL AnimGetSequenceDuration(HANIM anim, UINT seqIndex, UINT *duration) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   ASSERT(duration);
@@ -373,7 +373,7 @@ int AnimGetSequenceDuration(HANIM anim, UINT seqIndex, UINT *duration) {
   return 1;
 }
 
-int AnimGetSequenceName(HANIM anim, UINT seqIndex, char *buffer, UINT buffLength) {
+BOOL AnimGetSequenceName(HANIM anim, UINT seqIndex, char *buffer, UINT buffLength) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   ASSERT(buffer);
@@ -391,7 +391,7 @@ int AnimGetSequenceName(HANIM anim, UINT seqIndex, char *buffer, UINT buffLength
   return 1;
 }
 
-int AnimGetSequenceMoveSpeed(HANIM anim, UINT seqIndex, float *moveSpeed) {
+BOOL AnimGetSequenceMoveSpeed(HANIM anim, UINT seqIndex, float *moveSpeed) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   ASSERT(moveSpeed);
@@ -408,7 +408,7 @@ int AnimGetSequenceMoveSpeed(HANIM anim, UINT seqIndex, float *moveSpeed) {
   return 1;
 }
 
-int AnimHasSequenceId(HANIM anim, UINT seqIndex) {
+BOOL AnimHasSequenceId(HANIM anim, UINT seqIndex) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -702,7 +702,7 @@ void AnimSetSeqFinishedHandler(HANIM anim, UINT sequence, ANIMSEQFINISHEDHANDLER
   }
 }
 
-int AnimGetPrimarySequence(HANIM anim, UINT *sequence) {
+BOOL AnimGetPrimarySequence(HANIM anim, UINT *sequence) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
 
   ASSERT(unique);
@@ -744,7 +744,7 @@ float AnimGetPrimarySequenceCompletion(HANIM anim) {
   return completion;
 }
 
-int AnimNeedsSequenceBounds(HANIM anim) {
+BOOL AnimNeedsSequenceBounds(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
 
   ASSERT(unique);
@@ -825,7 +825,7 @@ void AnimEnableBlending(HANIM anim, int enable) {
   }
 }
 
-int AnimMarkFootstepSequence(HANIM anim, UINT index) {
+BOOL AnimMarkFootstepSequence(HANIM anim, UINT index) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -840,7 +840,7 @@ int AnimMarkFootstepSequence(HANIM anim, UINT index) {
   return 1;
 }
 
-int AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
+BOOL AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
@@ -861,7 +861,7 @@ int AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
   return 1;
 }
 
-int AnimHasObjectId(HANIM anim, UINT objectId) {
+BOOL AnimHasObjectId(HANIM anim, UINT objectId) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -872,7 +872,7 @@ int AnimHasObjectId(HANIM anim, UINT objectId) {
   return shared->objectOrder[objectId] != static_cast<UINT>(-1);
 }
 
-int AnimEventEmitterHasKeysThisSeq(HANIM anim, UINT objectId) {
+BOOL AnimEventEmitterHasKeysThisSeq(HANIM anim, UINT objectId) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -901,7 +901,7 @@ int AnimEventEmitterHasKeysThisSeq(HANIM anim, UINT objectId) {
   return eventObject->events.NumKeysThisSeq(sequence) != 0;
 }
 
-int AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempest::C3Vector> &positions, NTempest::C3Vector *position) {
+BOOL AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempest::C3Vector> &positions, NTempest::C3Vector *position) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
@@ -919,7 +919,7 @@ int AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempest
   return 1;
 }
 
-int AnimGetEventObjectPosition(HANIM anim, UINT objectId, NTempest::C3Vector *position) {
+BOOL AnimGetEventObjectPosition(HANIM anim, UINT objectId, NTempest::C3Vector *position) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 

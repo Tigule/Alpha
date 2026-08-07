@@ -744,7 +744,7 @@ void ModelAnimate(
   ModelAnimate(model, orientation, fakeScale, cameraWorldPos, cameraVector);
 }
 
-int ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
+BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -773,7 +773,7 @@ int ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
   return 1;
 }
 
-int ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
+BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -909,7 +909,7 @@ UINT ModelGetNumSequences(HMODEL model) {
   return 0;
 }
 
-int ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration) {
+BOOL ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration) {
   FATALASSERT(duration);
   *duration = 0;
 
@@ -918,7 +918,7 @@ int ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration) {
          AnimGetSequenceDuration(unique->m_anim, seqIndex, duration);
 }
 
-int ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed) {
+BOOL ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed) {
   FATALASSERT(moveSpeed);
   *moveSpeed = 0.0f;
 
@@ -927,7 +927,7 @@ int ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed) {
          AnimGetSequenceMoveSpeed(unique->m_anim, seqIndex, moveSpeed);
 }
 
-int ModelGetSequenceName(HMODEL model, UINT seqIndex, char *buffer, UINT buffLength) {
+BOOL ModelGetSequenceName(HMODEL model, UINT seqIndex, char *buffer, UINT buffLength) {
   FATALASSERT(buffer);
   if (buffLength) {
     buffer[0] = 0;
@@ -938,7 +938,7 @@ int ModelGetSequenceName(HMODEL model, UINT seqIndex, char *buffer, UINT buffLen
          AnimGetSequenceName(unique->m_anim, seqIndex, buffer, buffLength);
 }
 
-int ModelHasSequenceId(HMODEL model, UINT seqIndex) {
+BOOL ModelHasSequenceId(HMODEL model, UINT seqIndex) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimHasSequenceId(unique->m_anim, seqIndex);
@@ -1022,7 +1022,7 @@ void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
   }
 }
 
-int ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int doLinkedModels) {
+BOOL ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int doLinkedModels) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1083,7 +1083,7 @@ float ModelGetObjectTimeScale(HMODEL model, UINT objectId) {
   return 0.0f;
 }
 
-int ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels) {
+BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1125,7 +1125,7 @@ int ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMode
   return 1;
 }
 
-int ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLinkedModels) {
+BOOL ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLinkedModels) {
   FATALASSERT(model);
 
   CModelBase *unique;
@@ -1171,7 +1171,7 @@ int ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLi
   return 1;
 }
 
-int ModelAdvanceTime(HMODEL model) {
+BOOL ModelAdvanceTime(HMODEL model) {
   CModelBase *unique;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
     return 0;
@@ -1210,7 +1210,7 @@ int ModelAdvanceTime(HMODEL model) {
   return 1;
 }
 
-int ModelAdvanceTime(HMODEL model, int timeChange) {
+BOOL ModelAdvanceTime(HMODEL model, int timeChange) {
   CModelBase *unique;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
     return 0;
@@ -1362,7 +1362,7 @@ int ModelRemoveObjectLookAt(HMODEL model, UINT objectId) {
   return unique->m_anim ? AnimRemoveObjectLookAt(unique->m_anim, objectId) : 0;
 }
 
-int ModelObjectUsingLookAt(HMODEL model, UINT objectId) {
+BOOL ModelObjectUsingLookAt(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimObjectUsingLookAt(unique->m_anim, objectId);
@@ -1392,7 +1392,7 @@ int ModelRemoveObjectFaceDir(HMODEL model, UINT objectId) {
   return unique->m_anim ? AnimRemoveObjectFaceDir(unique->m_anim, objectId) : 0;
 }
 
-int ModelObjectUsingFaceDir(HMODEL model, UINT objectId) {
+BOOL ModelObjectUsingFaceDir(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimObjectUsingFaceDir(unique->m_anim, objectId);
@@ -1484,13 +1484,13 @@ float ModelGetPrimarySequenceCompletion(HMODEL model) {
   return 0.0f;
 }
 
-int ModelEventEmitterHasKeysThisSeq(HMODEL model, UINT objectId) {
+BOOL ModelEventEmitterHasKeysThisSeq(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimEventEmitterHasKeysThisSeq(unique->m_anim, objectId);
 }
 
-int ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot) {
+BOOL ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -1498,7 +1498,7 @@ int ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *piv
          AnimGetObjectPosition(unique->m_anim, objectId, shared->positions, pivot);
 }
 
-int ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *position) {
+BOOL ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *position) {
   CModelBase   *unique;
   CModelShared *shared;
 
@@ -1512,7 +1512,7 @@ int ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *posi
   return 1;
 }
 
-int ModelGetEventObjectPosition(HMODEL model, UINT objectId, int modelSpace, NTempest::C3Vector *position) {
+BOOL ModelGetEventObjectPosition(HMODEL model, UINT objectId, int modelSpace, NTempest::C3Vector *position) {
   CModelBase *unique;
 
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) || !unique->m_anim ||

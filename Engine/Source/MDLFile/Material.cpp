@@ -52,7 +52,7 @@ namespace MDL {
     }
   }
 
-  static int IReadAlpha(Parser &parse, int expectAnimation, MDLTEXLAYER *layer) {
+  static BOOL IReadAlpha(Parser &parse, int expectAnimation, MDLTEXLAYER *layer) {
     if (expectAnimation) {
       ReadObjectFloatKeyframes(parse, &layer->alphaKeys);
       return 1;
@@ -61,7 +61,7 @@ namespace MDL {
     return 0;
   }
 
-  static int IReadFlipbook(Parser &parse, int expectAnimation, MDLTEXLAYER *layer) {
+  static BOOL IReadFlipbook(Parser &parse, int expectAnimation, MDLTEXLAYER *layer) {
     if (!expectAnimation) {
       layer->textureId = parse.ExpectInt();
       return 0;
@@ -92,7 +92,7 @@ namespace MDL {
     return 1;
   }
 
-  static int IllegalStaticToken(UINT token) {
+  static BOOL IllegalStaticToken(UINT token) {
     return token != 0x11C && token != 0x1C3;
   }
 
@@ -206,7 +206,7 @@ namespace MDL {
     errors.Complete(status);
   }
 
-  int ReadMaterials(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadMaterials(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     UINT   savedtoken;
     LPCSTR tokentext;
     long   actual = 0;
@@ -305,7 +305,7 @@ namespace MDL {
     WriteLine(buffer, "\t}\n");
   }
 
-  int WriteMaterials(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteMaterials(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     UINT numMaterials = data.materials.Count();
     if (numMaterials) {
       WriteLine(buffer, "%s %d {\n", TokenText(0x109), numMaterials);
@@ -317,7 +317,7 @@ namespace MDL {
     return 1;
   }
 
-  static int ReadBinLayer(CMsgBuffer &buffer, CMDLStatus *status, UINT *bytesRead, MDLTEXLAYER *layer) {
+  static BOOL ReadBinLayer(CMsgBuffer &buffer, CMDLStatus *status, UINT *bytesRead, MDLTEXLAYER *layer) {
     UINT sectionLength = buffer.GetUint();
     layer->blendMode = static_cast<MDLTEXOP>(buffer.GetUint());
     layer->flags = buffer.GetUint();
@@ -345,7 +345,7 @@ namespace MDL {
     return 1;
   }
 
-  static int ReadBinMaterial(CMsgBuffer &buffer, UINT sectionLength, MDLMATERIALSECTION *material, CMDLStatus *status, UINT &bytesRead) {
+  static BOOL ReadBinMaterial(CMsgBuffer &buffer, UINT sectionLength, MDLMATERIALSECTION *material, CMDLStatus *status, UINT &bytesRead) {
     UINT localRead = 4;
     material->priorityPlane = buffer.GetInt();
     UINT numLayers = buffer.GetUint();
@@ -364,7 +364,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinMaterials(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinMaterials(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT bytesRead = 8;
     UINT numMaterials = buf.GetUint();
     buf.GetUint();
@@ -423,7 +423,7 @@ namespace MDL {
     }
   }
 
-  int WriteBinMaterials(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
+  BOOL WriteBinMaterials(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
     UINT numLayers;
     UINT numMaterials = data.materials.Count();
     UINT animatedLayers;

@@ -27,8 +27,8 @@ class CSimpleButton : public CSimpleFrame {
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
   virtual void Enable(int enabled);
   virtual void OnLayerHide();
-  virtual int  OnLayerMouseDown(CMouseEvent &evt);
-  virtual int  OnLayerMouseUp(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
   virtual void OnDragStart(CMouseEvent &evt);
   virtual void OnLayerCursorEnter();
   virtual void OnLayerCursorExit();
@@ -47,9 +47,9 @@ class CSimpleButton : public CSimpleFrame {
   void SetHighlightTextColor(const NTempest::CImVector &color);
   void SetPressedOffset(const NTempest::C2Vector &offset);
   void SetStateTexture(CSimpleButtonState state, CSimpleTexture *texture);
-  int  SetStateTexture(CSimpleButtonState state, LPCSTR texFile);
+  BOOL SetStateTexture(CSimpleButtonState state, LPCSTR texFile);
   void SetClickAction(UINT action);
-  int  IsMouseButtonHandled(MOUSEBUTTON button) {
+  BOOL IsMouseButtonHandled(MOUSEBUTTON button) {
     return (m_clickAction & (button | (button << 8))) != 0;
   }
   void RegisterClick(UINT eventId, CObserver *observer);
@@ -81,7 +81,7 @@ class CSimpleButton : public CSimpleFrame {
     return m_textures[state];
   }
 
-  int IsEnabled() {
+  BOOL IsEnabled() {
     return m_state != BUTTONSTATE_DISABLED;
   }
 
@@ -90,7 +90,7 @@ class CSimpleButton : public CSimpleFrame {
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 

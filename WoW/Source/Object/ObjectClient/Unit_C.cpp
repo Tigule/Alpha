@@ -135,12 +135,12 @@ void               SpellVisualsFishingLineDestroy(FishingLineObject *object);
 void               SpellVisualFishingLineSetVisible(FishingLineObject *object);
 void               SpellVisualClearLightning(LightningObject *lightning);
 void SpellVisualGetLightning(const CGUnit_C *unitPtr, const SpellVisualKitRec *kitRec, int spellID, LightningObject **objects, int numObjects);
-int  SpellFizzleTimer(LPCVOID data, LPVOID userData);
+BOOL SpellFizzleTimer(LPCVOID data, LPVOID userData);
 void UpdatePortraitTexture(const DWORDLONG &guid);
 bool Spell_C_IsModal();
-int  Spell_C_GetSpellCooldown(int spellID, int isPet, UINT *duration, DWORD *startTime, UINT *enable);
+int  Spell_C_GetSpellCooldown(int spellID, BOOL isPet, UINT *duration, DWORD *startTime, UINT *enable);
 int  Spell_C_GetItemCooldown(int itemID, UINT *duration, DWORD *startTime, UINT *enable);
-int  Spell_C_GetManaCost(int spellID, int isPet);
+int  Spell_C_GetManaCost(int spellID, BOOL isPet);
 void Spell_C_SpellFailed(int spellID, BYTE reason, int arg1, int arg2);
 const DWORDLONG &Spell_C_GetCurrentTarget();
 void             Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
@@ -170,7 +170,7 @@ static const float UNDERWATER_BUBBLE_THRESHOLD = 5.0f;
 static UINT        s_lootCooldownTime;
 static const float MOUSE_LOOK_SEND_FACING_DELTA = 0.1f;
 
-int OnPickNextStandHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL OnPickNextStandHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->OnPickNextStandHandler();
   return 1;
 }
@@ -302,37 +302,37 @@ void CGUnit_C::ProcessChannelObject() {
   }
 }
 
-int DeathAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL DeathAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->DeathAnimEndHandler();
   return 1;
 }
 
-int PickNextRunHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL PickNextRunHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->PickNextRunHandler();
   return 1;
 }
 
-int WoundAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL WoundAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->WoundAnimEndHandler();
   return 1;
 }
 
-int SpellAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL SpellAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->SpellAnimEndHandler();
   return 1;
 }
 
-int NPCAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL NPCAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->NPCAnimEndHandler();
   return 1;
 }
 
-int JumpTakeOffFinishedHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL JumpTakeOffFinishedHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->JumpTakeOffFinishedHandler();
   return 1;
 }
 
-int JumpLandFinishedHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL JumpLandFinishedHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->JumpLandFinishedHandler();
   return 1;
 }
@@ -395,7 +395,7 @@ static LISTDECL(FREENAMEPLATE, s_freeNamePlateList);
 static TSHashTable<NAMEPLATEDESC, CHashKeyGUID> s_monsterNamePlateList;
 static CGWorldFrame                            *s_namePlateWorldFrame;
 
-int RangedWeaponAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL RangedWeaponAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->RangedWeaponAnimEndHandler();
   return 1;
 }
@@ -441,7 +441,7 @@ static const int s_savedSheathToAttachPoints[8] = {-1, 26, 27, 30, 31, 32, 33, 2
 void             WeaponTrailClose(int trail);
 int              WeaponTrailCreate(HMODEL model);
 void             WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, UINT duration);
-int              Spell_C_GetCastTime(int id, int isPet);
+int              Spell_C_GetCastTime(int id, BOOL isPet);
 int              UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber);
 void             UnitEffectOneShot(
     UNITEFFECTSPECIALS        effectNumber,
@@ -452,7 +452,7 @@ void             UnitEffectOneShot(
     bool                      forceEffectOnMount
 );
 void UnitCombatLogAuraAddedOrRemoved(CGUnit_C *unitPtr, int spellID, bool added, int auraSlot);
-int  GetObjComponentInfo(
+BOOL GetObjComponentInfo(
     int     race,
     int     sex,
     int     displayID,
@@ -472,7 +472,7 @@ GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT at
 HMODEL            UnitEffectCreateAuraModel(UINT effectID);
 bool              UnitEffectIsAuraWorldObject(UINT effectID, bool &isWorldObj);
 DWORD             UnitEffectCreateWorldModelAura(UINT effect, const NTempest::C3Vector &location, float facing);
-int               OnFirstAuraSequenceFinished(LPVOID param);
+BOOL              OnFirstAuraSequenceFinished(LPVOID param);
 bool              AnimSheathesWeapon(UINT anim);
 int               GetObjAnimFlags(int unitAnimFlags);
 UINT              SpellGetRangedPrecastHoldAnim(UINT loadAnim);
@@ -501,9 +501,9 @@ AuraDecayNode::~AuraDecayNode() {
   visual.Clear();
 }
 
-int OnAuraDecayFinished(LPVOID param);
+BOOL OnAuraDecayFinished(LPVOID param);
 
-int AuraMirrorHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
+BOOL AuraMirrorHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
 #define DECLARE_UNIT_MIRROR_HANDLER(name) int name(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)
 DECLARE_UNIT_MIRROR_HANDLER(UnitFlagUpdateHandler);
 DECLARE_UNIT_MIRROR_HANDLER(UnitLevelUpdateHandler);
@@ -651,7 +651,7 @@ CGUnit_C::~CGUnit_C() {
   ClearAnimCallbackData();
 }
 
-int LootAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL LootAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   if (ptr->GetType() & TYPE_PLAYER) {
     static_cast<CGPlayer_C *>(ptr)->CGPlayer_C::LootAnimEndHandler();
   } else {
@@ -660,32 +660,32 @@ int LootAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   return 1;
 }
 
-int SheatheAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL SheatheAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->SheatheAnimEndHandler();
   return 1;
 }
 
-int SitSleepAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL SitSleepAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->SitSleepAnimEndHandler();
   return 1;
 }
 
-int RangedPrecastEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL RangedPrecastEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->RangedPrecastEndHandler();
   return 1;
 }
 
-int ThrowAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL ThrowAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->ThrowAnimEndHandler();
   return 1;
 }
 
-int AttackAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL AttackAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->AttackAnimEndHandler();
   return 1;
 }
 
-int DodgeAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
+BOOL DodgeAnimEndHandler(LPVOID param, CGUnit_C *ptr) {
   ptr->DodgeAnimEndHandler();
   return 1;
 }
@@ -1107,22 +1107,22 @@ void CGUnit_C::PreRender(int currentTime, float elapsed) {
 
 static NTempest::CImVector COLOR_GOLD(0xFFFFDE00);
 
-int OnPickNextStandHandler(LPVOID param, CGUnit_C *ptr);
-int DeathAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int PickNextRunHandler(LPVOID param, CGUnit_C *ptr);
-int WoundAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int SpellAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int NPCAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int JumpTakeOffFinishedHandler(LPVOID param, CGUnit_C *ptr);
-int JumpLandFinishedHandler(LPVOID param, CGUnit_C *ptr);
-int RangedWeaponAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int LootAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int SheatheAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int SitSleepAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int RangedPrecastEndHandler(LPVOID param, CGUnit_C *ptr);
-int ThrowAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int AttackAnimEndHandler(LPVOID param, CGUnit_C *ptr);
-int DodgeAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL OnPickNextStandHandler(LPVOID param, CGUnit_C *ptr);
+BOOL DeathAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL PickNextRunHandler(LPVOID param, CGUnit_C *ptr);
+BOOL WoundAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL SpellAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL NPCAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL JumpTakeOffFinishedHandler(LPVOID param, CGUnit_C *ptr);
+BOOL JumpLandFinishedHandler(LPVOID param, CGUnit_C *ptr);
+BOOL RangedWeaponAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL LootAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL SheatheAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL SitSleepAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL RangedPrecastEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL ThrowAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL AttackAnimEndHandler(LPVOID param, CGUnit_C *ptr);
+BOOL DodgeAnimEndHandler(LPVOID param, CGUnit_C *ptr);
 
 static void ClearQuestIconHandles(int reinitialize) {
   for (UINT i = 0; i < 5; ++i) {
@@ -1205,14 +1205,14 @@ void CGUnit_C::RemoveObjectLookAt() {
   m_animFlags &= ~0x1000u;
 }
 
-int SpellFizzleTimer(LPCVOID, LPVOID userData) {
+BOOL SpellFizzleTimer(LPCVOID, LPVOID userData) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(userData);
   FATALASSERT(unitPtr);
   unitPtr->EndSpellEffects(2);
   return 1;
 }
 
-static int RangedStandTimerHandler(LPCVOID, LPVOID userData) {
+static BOOL RangedStandTimerHandler(LPCVOID, LPVOID userData) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(userData);
   FATALASSERT(unitPtr);
   unitPtr->OnRangedStandTimer();
@@ -1318,7 +1318,7 @@ void CGUnit_C::ProcessBreathParticles(int currentTime) {
   }
 }
 
-static int GenericAnimEndHandler(LPVOID param) {
+static BOOL GenericAnimEndHandler(LPVOID param) {
   FATALASSERT(param);
   ANIMENDDATA *data = static_cast<ANIMENDDATA *>(param);
   FATALASSERT(data->animID < NUM_OBJECTANIMATIONS);
@@ -1329,7 +1329,7 @@ static int GenericAnimEndHandler(LPVOID param) {
   return 1;
 }
 
-int UnitFlagUpdateHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOID) {
+BOOL UnitFlagUpdateHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOID) {
   FATALASSERT(oldValue);
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   FATALASSERT(unitPtr);
@@ -1337,7 +1337,7 @@ int UnitFlagUpdateHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOID) 
   return 1;
 }
 
-int UnitLevelUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL UnitLevelUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   int       oldLevel = *static_cast<const int *>(oldValue);
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unitPtr->GetUnitData()->level != oldLevel) {
@@ -1346,7 +1346,7 @@ int UnitLevelUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldV
   return 1;
 }
 
-int UnitModeUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL UnitModeUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   FATALASSERT(oldValue);
   CGUnit_C              *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   const CreatureStats_C *stats = g_creatureDBCache.GetRecord(unitPtr->m_obj->m_entryID, guid, CreatureQueryCallback, 0);
@@ -1357,7 +1357,7 @@ int UnitModeUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldVa
   return 1;
 }
 
-int UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   FATALASSERT(oldValue);
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   int       oldHealth = *static_cast<const int *>(oldValue);
@@ -1394,7 +1394,7 @@ int UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID old
   return 1;
 }
 
-int UnitCharmedUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL UnitCharmedUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->OnCharmedChanged();
@@ -1402,7 +1402,7 @@ int UnitCharmedUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID ol
   return 1;
 }
 
-int DisplayIDUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL DisplayIDUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->UpdateDisplayInfo();
@@ -1410,7 +1410,7 @@ int DisplayIDUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldV
   return 1;
 }
 
-int StandStateUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL StandStateUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->StandStateChanged(*static_cast<const BYTE *>(oldValue));
@@ -1570,7 +1570,7 @@ static const TRACKTYPEINFO s_trackTypeInfo[3] = {
 static const float TRACKMOVETHRESHOLDSQ = 4.0f;
 static const float TRACKRUNTHRESHOLDSQ = 16.0f;
 
-int NPCFlagsHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL NPCFlagsHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->NPCFlagChanged(*static_cast<const BYTE *>(oldValue));
@@ -1578,7 +1578,7 @@ int NPCFlagsHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, L
   return 1;
 }
 
-int WeaponModeUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL WeaponModeUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->WeaponModeChanged();
@@ -1586,7 +1586,7 @@ int WeaponModeUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID old
   return 1;
 }
 
-int PetNameChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID, LPVOID) {
+BOOL PetNameChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID, LPVOID) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     const CGUnitData *unitData = unitPtr->GetUnitData();
@@ -1600,7 +1600,7 @@ int PetNameChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID, LPVOID) {
   return 1;
 }
 
-int VirtualItemChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL VirtualItemChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->VirtualComponentChanged(reinterpret_cast<int>(param), *static_cast<const int *>(oldValue));
@@ -1608,7 +1608,7 @@ int VirtualItemChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID ol
   return 1;
 }
 
-int DynamicFlagsChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL DynamicFlagsChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->OnDynamicFlagsChanged(*static_cast<const UINT *>(oldValue));
@@ -1616,7 +1616,7 @@ int DynamicFlagsChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID o
   return 1;
 }
 
-int EmoteStateChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL EmoteStateChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->ClearTorsoAnimation(0);
@@ -1641,7 +1641,7 @@ void ACTIVEATTACHMENTINFO::ClearAttachmentFromModel(HMODEL charModel, HMODEL pap
   }
 }
 
-int ChannelSpellChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
+BOOL ChannelSpellChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param) {
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   if (unitPtr) {
     unitPtr->OnChannelSpellChanged(*static_cast<const UINT *>(oldValue));
@@ -1649,7 +1649,7 @@ int ChannelSpellChangeHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID o
   return 1;
 }
 
-int CGUnit_C::OnMoveEvent(NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL CGUnit_C::OnMoveEvent(NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CMovementStatus update;
   msg->Get(update.transport);
   msg->Get(update.transRelPosition.x);
@@ -1979,7 +1979,7 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
   }
 }
 
-int CGUnit_C::OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *msg) {
+BOOL CGUnit_C::OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *msg) {
   switch (msgID) {
     case SMSG_FORCE_SPEED_CHANGE: {
       float speed;
@@ -2110,7 +2110,7 @@ void CGUnit_C::OnMoveHeartBeat(DWORD eventTime, const CMovementStatus &update) {
 }
 
 void CGUnit_C::OnRunSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg) {
-  int   wasWalking = IsWalking();
+  BOOL  wasWalking = IsWalking();
   float speed;
   msg->Get(speed);
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
@@ -2122,7 +2122,7 @@ void CGUnit_C::OnRunSpeedChange(DWORD eventTime, const CMovementStatus &update, 
 }
 
 void CGUnit_C::OnWalkSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg) {
-  int   wasWalking = IsWalking();
+  BOOL  wasWalking = IsWalking();
   float speed;
   msg->Get(speed);
   static_cast<CMovement &>(m_move).UpdateStatus(eventTime, update);
@@ -2209,7 +2209,7 @@ void CGUnit_C::OnTeleportAck(DWORD eventTime, const CMovementStatus &update) {
   ClientServices_Send(&outBound);
 }
 
-static int OnUnitMoveEvent(NETMESSAGE msgId, DWORD eventTime, DWORDLONG guid, CDataStore *msg) {
+static BOOL OnUnitMoveEvent(NETMESSAGE msgId, DWORD eventTime, DWORDLONG guid, CDataStore *msg) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
     return unit->OnMoveEvent(msgId, eventTime, msg);
@@ -2220,12 +2220,12 @@ static int OnUnitMoveEvent(NETMESSAGE msgId, DWORD eventTime, DWORDLONG guid, CD
   return 0;
 }
 
-static int OnUnitMoveEventActive(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnUnitMoveEventActive(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
   return OnUnitMoveEvent(msgId, eventTime, CGUnit_C::GetActiveMover(), msg);
 }
 
-static int OnUnitMoveEventNoActive(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnUnitMoveEventNoActive(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   DWORDLONG guid;
@@ -2238,7 +2238,7 @@ static int OnUnitMoveEventNoActive(LPVOID param, NETMESSAGE msgId, DWORD eventTi
   return 1;
 }
 
-static int OnMonsterMoveEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnMonsterMoveEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG guid;
   msg->Get(guid);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
@@ -2252,7 +2252,7 @@ static int OnMonsterMoveEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, C
   return 0;
 }
 
-static int OnForceMoveChange(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnForceMoveChange(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (unit) {
     return unit->OnForceMoveChange(eventTime, msgId, msg);
@@ -2260,7 +2260,7 @@ static int OnForceMoveChange(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSto
   return 1;
 }
 
-static int OnUnitMountCancelledEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnUnitMountCancelledEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   ASSERT(msg);
   DWORDLONG guid;
   msg->Get(guid);
@@ -2271,7 +2271,7 @@ static int OnUnitMountCancelledEvent(LPVOID param, NETMESSAGE msgId, DWORD event
   return 1;
 }
 
-static int OnSpecialMountAnim(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnSpecialMountAnim(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   ASSERT(msg);
   DWORDLONG guid;
   msg->Get(guid);
@@ -2282,7 +2282,7 @@ static int OnSpecialMountAnim(LPVOID param, NETMESSAGE msgId, DWORD eventTime, C
   return 1;
 }
 
-static int OnUnitReaction(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+static BOOL OnUnitReaction(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   ASSERT(msgId == SMSG_AI_REACTION);
   DWORDLONG unitGUID;
   int       reaction;
@@ -2295,7 +2295,7 @@ static int OnUnitReaction(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
   return 1;
 }
 
-int AuraMirrorHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+BOOL AuraMirrorHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   UINT slot = (offset - 200) >> 2;
   FATALASSERT(prevValue);
   int       previousValue = *static_cast<const int *>(prevValue);
@@ -2306,7 +2306,7 @@ int AuraMirrorHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue
   return 1;
 }
 
-static int TargetMirrorHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
+static BOOL TargetMirrorHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   ASSERT(unit);
   if (guid != ClntObjMgrGetActivePlayer()) {
@@ -2315,7 +2315,7 @@ static int TargetMirrorHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
   return 1;
 }
 
-static int ChannelObjectMirrorHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
+static BOOL ChannelObjectMirrorHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
     unit->ClearFishingObject();
@@ -2628,7 +2628,7 @@ void OnMoveUpdate(DWORDLONG unit, DWORD eventTime) {
   }
 }
 
-int UnitGetObjectPosition(const DWORDLONG &guid, NTempest::C3Vector *position) {
+BOOL UnitGetObjectPosition(const DWORDLONG &guid, NTempest::C3Vector *position) {
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (!object) {
     return 0;
@@ -2845,7 +2845,7 @@ void CGUnit_C::InitializeExtendedDisplay() {
   }
 
   BEARDSTYLEDATA facialData;
-  int            hasFacialInfo = CharCustomizationGetBeardStyle(race, sex, FacialHairID(), &facialData);
+  BOOL           hasFacialInfo = CharCustomizationGetBeardStyle(race, sex, FacialHairID(), &facialData);
 
   HCHARGEOSET &geosetHandle = m_geosetHandle;
   if (geosetHandle) {
@@ -2993,7 +2993,7 @@ void CGUnit_C::InitializeTextureVariations(const CreatureDisplayInfoRec *display
   }
 }
 
-int CGUnit_C::IsWalking() const {
+BOOL CGUnit_C::IsWalking() const {
   return const_cast<CMovement &>(static_cast<const CMovement &>(m_move)).GetCurrentSpeed() <= m_move.m_walkSpeed + m_move.m_walkSpeed;
 }
 
@@ -3078,7 +3078,7 @@ void CGUnit_C::GenericAnimEndHandler(ANIMENUMERATION animID, LPVOID param) {
   }
 }
 
-int IsSitStandSleepTransition(UINT animState);
+BOOL IsSitStandSleepTransition(UINT animState);
 
 int CGUnit_C::PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget, bool &checkImpacts) {
   checkImpacts = false;
@@ -3231,7 +3231,7 @@ void CGUnit_C::UpdateMountAnimation(UINT newState, UINT flags) {
   }
 }
 
-int CGUnit_C::SetTorsoSequence(float timeScale, int flags) {
+BOOL CGUnit_C::SetTorsoSequence(float timeScale, int flags) {
   CheckPendingThrownWeaponReattach(0);
   CheckPendingVictimFeedback();
   CheckPendingMissileRelease(0);
@@ -3497,7 +3497,7 @@ void CGUnit_C::UpdateLookAtTarget() {
   }
 }
 
-int OnAuraDecayFinished(LPVOID param) {
+BOOL OnAuraDecayFinished(LPVOID param) {
   AuraDecayNode *decay = static_cast<AuraDecayNode *>(param);
   CGObject_C    *object = ClntObjMgrObjectPtr(decay->unit, __FILE__, __LINE__);
 
@@ -3640,7 +3640,7 @@ const VirtualItemInfo *CGUnit_C::GetVirtualItem(UINT slot, bool ignoreDisarmFlag
   return item;
 }
 
-int CGUnit_C::ShouldRenderUnitName(UINT mode) const {
+BOOL CGUnit_C::ShouldRenderUnitName(UINT mode) const {
   if ((m_unit->flags & 0x18000) && CGGameUI::GetLockedTarget() != m_obj->m_guid) {
     return 0;
   }
@@ -3735,7 +3735,7 @@ void CGUnit_C::RefreshAttachmentInfo(HMODEL model) {
   }
 }
 
-void CGUnit_C::CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel) {
+void CGUnit_C::CleanupUnitArtwork(int playerModelChanged, BOOL wasPlayerModel) {
   if (SheatheAnimPlaying() && !(m_animFlags & 0x10000)) {
     HandleSheatheAnimEvent(1, 1);
   }
@@ -3861,7 +3861,7 @@ void CGUnit_C::SetTempCharModel(HMODEL model) {
   m_tempCharModel = model;
 }
 
-int CGUnit_C::UpdateAttachmentLoadStatus() {
+BOOL CGUnit_C::UpdateAttachmentLoadStatus() {
   int result = CGObject_C::UpdateAttachmentLoadStatus();
   if (result) {
     ReinitializeWeaponTrails();
@@ -4218,7 +4218,7 @@ void CGUnit_C::AddAuraEffect(UINT slot, bool startNow) {
   }
 }
 
-int OnFirstAuraSequenceFinished(LPVOID param) {
+BOOL OnFirstAuraSequenceFinished(LPVOID param) {
   ModelSetRandomSequenceFidget(reinterpret_cast<HMODEL>(param), 1, 0);
   return 1;
 }
@@ -4319,8 +4319,8 @@ void CGUnit_C::OnFlagChanged(UINT oldFlags) {
 
   if ((xorBits & 0x00C40004) && GetGUID() == ClntObjMgrGetActivePlayer()) {
     if (xorBits & 0x00C00004) {
-      int hasControl = (newFlags & 0x01000000) ||
-                       ((m_obj->m_type & TYPE_PLAYER) && !m_unit->charmedBy && ((newFlags & 2) || !(newFlags & 0x00C00004)) && !(newFlags & 1));
+      BOOL hasControl = (newFlags & 0x01000000) ||
+                        ((m_obj->m_type & TYPE_PLAYER) && !m_unit->charmedBy && ((newFlags & 2) || !(newFlags & 0x00C00004)) && !(newFlags & 1));
       CGGameUI::OnClientControlChanged(hasControl);
     }
     CGInputControl::GetActive()->UpdatePlayer(currentTime);
@@ -4496,7 +4496,7 @@ void CGUnit_C::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos) 
   SysMsgPrintf(SYSMSG_WARNING, 16, "OBSOLETEANIMEVENT|%s", eventName);
 }
 
-void CGUnit_C::FootstepAnimEventHit(const NTempest::C3Vector &position, int isLeftFoot) {
+void CGUnit_C::FootstepAnimEventHit(const NTempest::C3Vector &position, BOOL isLeftFoot) {
   UINT               textureID;
   NTempest::C2Vector size(0.0f);
   GetFootprintInfo(&textureID, &size);
@@ -4550,7 +4550,7 @@ LPCSTR CGUnit_C::GetModelFileName() const {
   return modelData->m_ModelName;
 }
 
-int CGUnit_C::CanBeLooted(DWORD currentTime) const {
+BOOL CGUnit_C::CanBeLooted(DWORD currentTime) const {
   return m_unit->health <= 0 && (m_animFlags & 0x2000) && static_cast<int>(currentTime - m_deathTime) >= 0 && (m_unit->dynamicFlags & 1);
 }
 
@@ -4579,7 +4579,7 @@ void CGUnit_C::OnDynamicFlagsChanged(UINT oldValue) {
   }
 }
 
-int MoveHeartBeatHandler(LPCVOID packetData, LPVOID param) {
+BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (unit && !(unit->m_move.m_moveFlags & 0x10000000)) {
     unit->SendMovementUpdate(MSG_MOVE_HEARTBEAT);
@@ -4643,7 +4643,7 @@ bool CGUnit_C::IsTurningState() const {
   return state == 18 || state == 19;
 }
 
-int CGUnit_C::ShouldShuffle() const {
+BOOL CGUnit_C::ShouldShuffle() const {
   DWORDLONG unitBeingLooted = 0;
   if (m_obj->m_type & TYPE_PLAYER) {
     unitBeingLooted = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetUnitBeingLooted();
@@ -5099,7 +5099,7 @@ void CGUnit_C::SetLocalTarget(DWORDLONG target) {
   LookAtTarget();
 }
 
-int CGUnit_C::IsSplashing(const NTempest::C3Vector &position) {
+BOOL CGUnit_C::IsSplashing(const NTempest::C3Vector &position) {
   UINT               liquid = 15;
   float              surfaceColPt = 0.0f;
   NTempest::C3Vector waterDir(0.0f, 0.0f, 0.0f);
@@ -5116,7 +5116,7 @@ bool CGUnit_C::IsShapeShifted() const {
   return !(form->m_flags & 1);
 }
 
-int CGUnit_C::IsUnderWater() const {
+BOOL CGUnit_C::IsUnderWater() const {
   float              surfaceColPt = 0.0f;
   UINT               liquidStatus = 0;
   NTempest::C3Vector waterDir;
@@ -5991,7 +5991,7 @@ void CGUnit_C::QueryMountModelStats() {
   }
 }
 
-int CGUnit_C::UpdateModelLoadStatus() {
+BOOL CGUnit_C::UpdateModelLoadStatus() {
   if (!CGObject_C::UpdateModelLoadStatus()) {
     return 0;
   }
@@ -6043,7 +6043,7 @@ void CGUnit_C::RenderTargetSelection() const {
   GxRsPop();
 }
 
-int CGUnit_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
+BOOL CGUnit_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
   static NTempest::CImVector s_reactionTypeColors[NUM_UNIT_REACTIONS] = {NTempest::CImVector(0xFFFF0000),       NTempest::CImVector(0xFFFF0000),
                                                                          NTempest::CImVector(255, 255, 128, 0), NTempest::CImVector(255, 255, 255, 0),
                                                                          NTempest::CImVector(255, 0, 255, 0),   NTempest::CImVector(255, 0, 255, 0),
@@ -6306,7 +6306,7 @@ void CGUnit_C::PlayerNameVisibilityChanged(int nameVisible) {
   }
 }
 
-static int IsInSitSleepPosition(UINT animState) {
+static BOOL IsInSitSleepPosition(UINT animState) {
   return animState < 64 ? (s_animInfo[animState].flags >> 19) & 1 : 0;
 }
 
@@ -6575,7 +6575,7 @@ static CGNamePlateFrame *GetNewNameplateFrame(CSimpleFrame *parent) {
   return NEW(CGNamePlateFrame)(parent);
 }
 
-static int CalculateScreenSortOrder(CGWorldFrame *worldFrame, NAMEPLATEDESC *desc) {
+static BOOL CalculateScreenSortOrder(CGWorldFrame *worldFrame, NAMEPLATEDESC *desc) {
   FATALASSERT(worldFrame);
   FATALASSERT(desc);
   FATALASSERT(desc->unit);
@@ -6722,7 +6722,7 @@ void CGUnit_C::UpdatePlayerNameWorldText() {
   PlayerNameUpdateWorldText(m_unitNameHandle);
 }
 
-int CGUnit_C::ShouldRender(DWORD worldStatus) {
+BOOL CGUnit_C::ShouldRender(DWORD worldStatus) {
   if (m_animFlags & 0x8000) {
     UnitEffectOneShot(SPECIALEFFECT_LEVELUP, GetGUID(), 0, 0.0f, 1.0f, false);
   }
@@ -6735,7 +6735,7 @@ int CGUnit_C::ShouldRender(DWORD worldStatus) {
     worldStatus &= ~1U;
   }
 
-  int shouldRender = CGObject_C::ShouldRender(worldStatus);
+  BOOL shouldRender = CGObject_C::ShouldRender(worldStatus);
   if (m_texComponent && shouldRender && TexComponentCheckSections(m_texComponent, 0)) {
     CommitTexture(0);
   }
@@ -6762,7 +6762,7 @@ static bool IsMountSpell(const SpellRec *rec) {
   return 0;
 }
 
-int CGUnit_C::QueueAnim(ANIMQUEUETYPE type, const ATTACKROUNDINFO *roundInfo) {
+BOOL CGUnit_C::QueueAnim(ANIMQUEUETYPE type, const ATTACKROUNDINFO *roundInfo) {
   FATALASSERT(type < ANIMQUEUE_NUMTYPES);
   if (type == ANIMQUEUE_NONE) {
     return 0;
@@ -7120,8 +7120,8 @@ void CGUnit_C::UpdateDisplay(DWORD now) {
 }
 
 void CGUnit_C::UpdateDisplayInfo() {
-  int playerModelChanged;
-  int wasPlayerModel;
+  int  playerModelChanged;
+  BOOL wasPlayerModel;
   if (!DisplayInfoNeedsUpdate(playerModelChanged, wasPlayerModel)) {
     return;
   }
@@ -7154,7 +7154,7 @@ void CGUnit_C::UpdateDisplayInfo() {
   ReinitializePaperdollModel();
 }
 
-int CGUnit_C::DisplayInfoNeedsUpdate(int &playerModelChanged, int &wasPlayerModel) const {
+BOOL CGUnit_C::DisplayInfoNeedsUpdate(int &playerModelChanged, int &wasPlayerModel) const {
   FATALASSERT(m_modelData);
   playerModelChanged = 0;
   wasPlayerModel = 0;
@@ -7564,7 +7564,7 @@ ANIMQUEUENODE *CGUnit_C::ProcessAnimQueue() {
   return 0;
 }
 
-int CGUnit_C::IsPlayingSittingOrStandingAnim() const {
+BOOL CGUnit_C::IsPlayingSittingOrStandingAnim() const {
   switch (m_currentBaseAnimState) {
     case 50:
     case 52:
@@ -7641,7 +7641,7 @@ static SpellProcHandler const s_spellProcHandlerFunctions[11] = {
     SpellProcEclipseHandler, SpellProcStandWalkAnimHandler, SpellProcWeaponTrailHandler, 0, 0
 };
 
-int CGUnit_C::EmoteProcType(UINT emoteID, EMOTESPECPROCS &proc) const {
+BOOL CGUnit_C::EmoteProcType(UINT emoteID, EMOTESPECPROCS &proc) const {
   const EmotesRec *rec = g_emotesDB.GetRecord(emoteID);
   if (!rec || ((1 << rec->m_EmoteSpecProc) & 7) == 0) {
     return 0;
@@ -7749,7 +7749,7 @@ bool AnimSheathesWeapon(UINT anim) {
   return (g_seqInformation[anim].flags >> 4) & 1;
 }
 
-int CGUnit_C::IsModelComponentable() const {
+BOOL CGUnit_C::IsModelComponentable() const {
   return m_displayInfoExtra != 0;
 }
 
@@ -7832,7 +7832,7 @@ void CGUnit_C::InitPreferredGeosets() {
   preferredGeosets[CHARGEOSET_HAIR] = HairStyleID();
 
   BEARDSTYLEDATA beardStyleData;
-  int            hasFacialInfo = CharCustomizationGetBeardStyle(GetDisplayRace(), GetDisplaySex(), FacialHairID(), &beardStyleData);
+  BOOL           hasFacialInfo = CharCustomizationGetBeardStyle(GetDisplayRace(), GetDisplaySex(), FacialHairID(), &beardStyleData);
   preferredGeosets[CHARGEOSET_EAR] = 2;
   if (hasFacialInfo) {
     preferredGeosets[CHARGEOSET_BEARD] = beardStyleData.beardGeoset;
@@ -8198,18 +8198,18 @@ int CGUnit_C::GetAnimPriority(int state) {
   return s_animInfo[state].basePriority;
 }
 
-int CGUnit_C::IsInStandSitTransition() {
+BOOL CGUnit_C::IsInStandSitTransition() {
   if (m_flags & 0x40000) {
     return 1;
   }
   return IsSitStandSleepTransition(m_currentBaseAnimState);
 }
 
-int IsSitStandSleepTransition(UINT animState) {
+BOOL IsSitStandSleepTransition(UINT animState) {
   return animState < 64 ? (s_animInfo[animState].flags >> 16) & 1 : 0;
 }
 
-int CGUnit_C::IsInSitSleepPosition() {
+BOOL CGUnit_C::IsInSitSleepPosition() {
   if (m_flags & 0x40000) {
     return 0;
   }
@@ -8575,7 +8575,7 @@ void CGUnit_C::SetRangedWeaponPullAnim(int duration) {
   }
 }
 
-int CGUnit_C::UpdateTexComponentLoadStatus() {
+BOOL CGUnit_C::UpdateTexComponentLoadStatus() {
   int sectionsReady = !m_texComponent || TexComponentCheckSections(m_texComponent, 0);
   if (m_flags & 0x100) {
     return 0;
@@ -8754,7 +8754,7 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
   }
 }
 
-int CGUnit_C::SetCastingSpell(int spellID, bool force, bool precastAnimSuccessful) {
+BOOL CGUnit_C::SetCastingSpell(int spellID, bool force, bool precastAnimSuccessful) {
   int &castingSpell = m_castingSpell;
   if (castingSpell && !force) {
     return 1;
@@ -8980,7 +8980,7 @@ void CGUnit_C::VirtualComponentChanged(int slot, int oldValue) {
   }
 }
 
-int CGUnit_C::CanHighlight() const {
+BOOL CGUnit_C::CanHighlight() const {
   return !m_stats || !(m_stats->m_flags & 0x200);
 }
 
@@ -9357,13 +9357,13 @@ void CGUnit_C::CreatePaperdollModel() {
   ModelForceSequenceTime(paperDollModel, 0, sequenceTime, 0);
 }
 
-int CGUnit_C::ShouldDelayLevelupAnim() {
+BOOL CGUnit_C::ShouldDelayLevelupAnim() {
   UINT state = m_currentTorsoAnimState;
   FATALASSERT(state < 64);
   return ShouldDelayLevelupAnim(state);
 }
 
-int CGUnit_C::ShouldDelayLevelupAnim(UINT state) {
+BOOL CGUnit_C::ShouldDelayLevelupAnim(UINT state) {
   FATALASSERT(state < 64);
   return s_animInfo[state].flags & 0x200;
 }

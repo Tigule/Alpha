@@ -15,7 +15,7 @@
 #include <lua.h>
 #include <storm.h>
 
-int OsLaunchURL(LPCSTR url);
+BOOL OsLaunchURL(LPCSTR url);
 
 static const char REGKEY[11] = "WoW\\Client";
 static const char REGVAL_ACCOUNTNAME[12] = "AccountName";

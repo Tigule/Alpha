@@ -10,15 +10,15 @@
 struct ZipFileFCB;
 
 DWORD        ZipFileOpenArchive(LPCSTR archivename);
-int          ZipFileCloseArchive(DWORD handle);
+BOOL         ZipFileCloseArchive(DWORD handle);
 ZipFileFCB  *ZipFileOpenFile(LPCSTR filename, DWORD archive);
-int          ZipFileCloseFile(ZipFileFCB *fcb);
+BOOL         ZipFileCloseFile(ZipFileFCB *fcb);
 int          ZipFileReadFile(ZipFileFCB *fcb, LPVOID buffer, UINT bytesToRead, UINT *bytesRead);
 int          ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin);
 DWORD        ZipFileGetFilePointer(ZipFileFCB *fcb);
 DWORD        ZipFileGetFileSize(ZipFileFCB *fcb);
 int          ZipFileFileExists(LPCSTR filename);
-int          ZipFileList(DWORD archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param);
+BOOL         ZipFileList(DWORD archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param);
 void __cdecl SOutputDebugString(LPCSTR format, ...);
 
 NODEDECL(ASYNCREAD) {

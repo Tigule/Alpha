@@ -167,7 +167,7 @@ namespace OsNet {
     virtual void Selected(TCPNET *net, SELECTSET selectSet) = 0;
 
    public:
-    virtual int  IsClosed() const;
+    virtual BOOL IsClosed() const;
     virtual void AddToSelectSets(NETSELECTSETS *selectSets) = 0;
 
     UINT m_sock;
@@ -187,7 +187,7 @@ namespace OsNet {
     void Clear();
     void AddSelSock(NETSELSOCK *selsock);
     void AddToSet(NETSELSOCK *selsock, SELECTSET selectSet);
-    int  Select(DWORD timeoutTotal, long selsockTotal);
+    BOOL Select(DWORD timeoutTotal, long selsockTotal);
 
    private:
     TCPNET                                          *m_net;
@@ -257,7 +257,7 @@ namespace OsNet {
     virtual void    Send(LPCVOID data, DWORD bytes) = 0;
     virtual OS_SEND SendSync(LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout) = 0;
     virtual void    SetNagle(int enable);
-    virtual int     SetWindow(DWORD size);
+    virtual BOOL    SetWindow(DWORD size);
     virtual void    SetRecvTimeout(DWORD timeoutMs);
   };
 
@@ -277,7 +277,7 @@ namespace OsNet {
     virtual void    Send(LPCVOID data, DWORD bytes);
     virtual OS_SEND SendSync(LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout);
     virtual void    SetNagle(int enable);
-    virtual int     SetWindow(DWORD size);
+    virtual BOOL    SetWindow(DWORD size);
     virtual void    SetRecvTimeout(DWORD timeoutMs);
 
    protected:
@@ -328,10 +328,10 @@ namespace OsNet {
    public:
     FILECONN(TCPNET *net, LPVOID file, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     virtual ~FILECONN();
-    virtual int  IsClosed() const;
+    virtual BOOL IsClosed() const;
     virtual void AddToSelectSets(NETSELECTSETS *);
-    int          Write(DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId);
-    int          Read(DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId);
+    BOOL         Write(DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId);
+    BOOL         Read(DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId);
 
    protected:
     virtual void IncIo();
@@ -398,7 +398,7 @@ namespace OsNet {
   };
 
   struct LOOPCONNECT : public NETCONNECT {
-    virtual int  IsClosed() const;
+    virtual BOOL IsClosed() const;
     virtual void AddToSelectSets(NETSELECTSETS *);
     virtual void Fail();
     virtual void Complete(TCPNET *pnet);
@@ -424,7 +424,7 @@ namespace OsNet {
   };
 
   struct FILECONNECT : public NETCONNECT {
-    virtual int  IsClosed() const;
+    virtual BOOL IsClosed() const;
     virtual void AddToSelectSets(NETSELECTSETS *);
     virtual void Fail();
     virtual void Complete(TCPNET *pnet);
@@ -455,7 +455,7 @@ namespace OsNet {
     virtual void    Send(LPCVOID data, DWORD bytes);
     virtual OS_SEND SendSync(LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout);
     virtual void    Close();
-    virtual int     IsClosed() const;
+    virtual BOOL    IsClosed() const;
 
    private:
     LOOPCONN *m_loopConn;
@@ -640,7 +640,7 @@ namespace OsNet {
     TCPLISTEN(UINT sock, WORD port, NETEVENTPROC eventProc, LPVOID user, DWORD acceptCount);
     ~TCPLISTEN();
 
-    int          Enable(int enable);
+    BOOL         Enable(int enable);
     void         Close();
     virtual void AddToSelectSets(NETSELECTSETS *selectSets);
 
@@ -689,19 +689,19 @@ namespace OsNet {
    public:
     ~TCPNET();
 
-    static int     Initialize(DWORD hints, DWORD parts);
+    static BOOL    Initialize(DWORD hints, DWORD parts);
     static void    Destroy(DWORD parts);
     static TCPNET *Net() {
       return s_pnet;
     }
 
     void             Pump(DWORD timeout);
-    int              TcpListen(WORD port, NETEVENTPROC eventProc, LPVOID user);
+    BOOL             TcpListen(WORD port, NETEVENTPROC eventProc, LPVOID user);
     void             TcpListenEnable(WORD port, int enable);
     void             TcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID user, LPCVOID data, DWORD bytes);
     void             UdpConnect(const NETADDR *addr, WORD portMin, WORD portMax, NETEVENTPROC eventProc, LPVOID user);
     void             FileConnCreate(LPCSTR fileName, NETEVENTPROC eventProc, LPVOID user, int readOnly);
-    int              GetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user);
+    BOOL             GetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user);
     TCPHOSTADDRINFO *LockedFindHostAddrInfo(DWORD infoId);
     void             LoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, LPVOID user, LPCVOID data, DWORD bytes);
     void             LoopCompleteConnect(LOOPCONNECT *pconnect);
@@ -735,13 +735,13 @@ namespace OsNet {
     static LPVOID IoCompletionPresent(DWORD *pumpThreadCount);
     static void   IncludeDependantParts(DWORD *parts);
 
-    int  BaseInitialize(DWORD hints);
+    BOOL BaseInitialize(DWORD hints);
     void BaseDestroy();
-    int  WinsockInitialize(DWORD hints);
+    BOOL WinsockInitialize(DWORD hints);
     void WinsockDestroy();
-    int  IoInitialize(DWORD hints);
+    BOOL IoInitialize(DWORD hints);
     void IoDestroy();
-    int  TcpInitialize(DWORD hints);
+    BOOL TcpInitialize(DWORD hints);
     void TcpDestroy();
     void IncRef();
     void DecRef();
@@ -768,7 +768,7 @@ namespace OsNet {
     }
 
    private:
-    int  PumpThreadsInitialize();
+    BOOL PumpThreadsInitialize();
     void PumpThreadsDestroy();
 
     static UINT __stdcall IoPumpThread(LPVOID lpnet);

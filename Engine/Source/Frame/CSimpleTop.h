@@ -45,13 +45,13 @@ class CFrameStrataNode {
     renderList.UnlinkAll();
   }
 
-  int BuildBatches();
+  BOOL BuildBatches();
 
-  int IsEmpty() {
+  BOOL IsEmpty() {
     return frames.IsEmpty();
   }
 
-  int AddFrame(CSimpleFrame *frame) {
+  BOOL AddFrame(CSimpleFrame *frame) {
     ASSERT(!frames.IsLinked(frame));
     frames.LinkNode(frame, LIST_TAIL, 0);
 
@@ -66,7 +66,7 @@ class CFrameStrataNode {
     return batchDirty != 0;
   }
 
-  int DelFrame(CSimpleFrame *frame) {
+  BOOL DelFrame(CSimpleFrame *frame) {
     ASSERT(frames.IsLinked(frame));
     frames.UnlinkNode(frame);
 
@@ -108,7 +108,7 @@ class CFrameStrata {
 
   ~CFrameStrata();
 
-  int EnumerateFrames(int (*callback)(CSimpleFrame *, LPVOID), LPVOID param) {
+  BOOL EnumerateFrames(BOOL (*callback)(CSimpleFrame *, LPVOID), LPVOID param) {
     UINT i;
 
     for (i = 0; i < topLevel; ++i) {
@@ -122,7 +122,7 @@ class CFrameStrata {
     return 1;
   }
 
-  int  FrameOccluded(CSimpleFrame *thisFrame);
+  BOOL FrameOccluded(CSimpleFrame *thisFrame);
   void CheckOcclusion();
 
   void AddFrame(CSimpleFrame *frame) {
@@ -177,7 +177,7 @@ class CFrameStrata {
     }
   }
 
-  int BuildBatches(int) {
+  BOOL BuildBatches(int) {
     UINT level;
 
     batchDirty = 0;
@@ -297,15 +297,15 @@ class CSimpleTop : public CLayoutFrame {
   }
 
   void DrawCursor();
-  void EnumerateFrames(int (*callback)(CSimpleFrame *, LPVOID), LPVOID param);
+  void EnumerateFrames(BOOL (*callback)(CSimpleFrame *, LPVOID), LPVOID param);
   void MoveOrResizeFrame(const CMouseEvent &evt);
   void NotifyFrameLayerChanged(CSimpleFrame *frame, UINT layer);
   void NotifyFrameMovedOrResized(CSimpleFrame *frame);
   void OnLayerRender();
   void OnLayerUpdate(float elapsedSec);
-  int  LowerFrame(CSimpleFrame *frame);
-  int  RaiseFrame(const NTempest::C2Vector &pt);
-  int  RaiseFrame(CSimpleFrame *frame, int checkOcclusion);
+  BOOL LowerFrame(CSimpleFrame *frame);
+  BOOL RaiseFrame(const NTempest::C2Vector &pt);
+  BOOL RaiseFrame(CSimpleFrame *frame, int checkOcclusion);
   void RegisterForDelete(CSimpleFrame *frame);
   void RegisterForMouseButton(int (*callback)(const CMouseEvent &)) {
     ASSERT(!m_mouseButtonCallback);
@@ -328,10 +328,10 @@ class CSimpleTop : public CLayoutFrame {
   void SetLayoutMode(int enabled) {
     m_layout.enabled = enabled;
   }
-  int IsLayoutEnabled() {
+  BOOL IsLayoutEnabled() {
     return m_layout.enabled;
   }
-  int IsMovingOrResizing() {
+  BOOL IsMovingOrResizing() {
     return m_layout.frame != 0;
   }
   void SetCursor(HMODEL cursor);
@@ -347,8 +347,8 @@ class CSimpleTop : public CLayoutFrame {
   CSimpleFrame *GetLayerUnderCursor() {
     return m_mouseFocus;
   }
-  int   StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &start, int resize);
-  int   StartMoveOrResizeFrame(const CMouseEvent &start, int resize);
+  BOOL  StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &start, int resize);
+  BOOL  StartMoveOrResizeFrame(const CMouseEvent &start, int resize);
   void  StopMoveOrResizeFrame();
   DWORD GetLastEventTime() {
     return m_eventTime;
@@ -374,25 +374,25 @@ class CSimpleTop : public CLayoutFrame {
   frame_layout                        m_layout;
   CSimpleSortedArray<FRAMEPRIORITY *> m_eventqueue[4][5];
   DWORD                               m_eventTime;
-  int                                 m_checkFocus;
+  BOOL                                m_checkFocus;
   EVENT_DATA_MOUSE                    m_mousePosition;
   int (*m_mouseButtonCallback)(const CMouseEvent &event);
-  int (*m_displaySizeCallback)(const CSizeEvent &event);
+  BOOL (*m_displaySizeCallback)(const CSizeEvent &event);
 
   void EnableEvents();
   void DisableEvents();
 
-  static int OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param);
-  static int OnIme(const EVENT_DATA_IME *pImeData, LPVOID param);
-  static int OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param);
-  static int OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param);
-  static int OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param);
-  static int OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
-  static int OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, LPVOID param);
+  static BOOL OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param);
+  static BOOL OnIme(const EVENT_DATA_IME *pImeData, LPVOID param);
+  static BOOL OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param);
+  static BOOL OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param);
+  static BOOL OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param);
+  static BOOL OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
+  static BOOL OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, LPVOID param);
 
   static CSimpleTop *s_instance;
 };

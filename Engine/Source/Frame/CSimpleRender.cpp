@@ -164,7 +164,7 @@ void CSimpleFontStringAttributes::CopyFlags(const CSimpleFontStringAttributes &r
   m_flags = rhs.m_flags;
 }
 
-int CSimpleTexture::SetTexture(LPCSTR file, int uvWrapping) {
+BOOL CSimpleTexture::SetTexture(LPCSTR file, int uvWrapping) {
   if (m_texture) {
     HandleClose(m_texture);
     m_texture = 0;
@@ -184,7 +184,7 @@ int CSimpleTexture::SetTexture(LPCSTR file, int uvWrapping) {
   return 1;
 }
 
-int CSimpleTexture::SetTexture(HTEXTURE__ *texHandle) {
+BOOL CSimpleTexture::SetTexture(HTEXTURE__ *texHandle) {
   int result = 1;
 
   if (m_texture) {
@@ -205,7 +205,7 @@ int CSimpleTexture::SetTexture(HTEXTURE__ *texHandle) {
   return result;
 }
 
-int CSimpleTexture::SetTexture(const NTempest::CImVector &color) {
+BOOL CSimpleTexture::SetTexture(const NTempest::CImVector &color) {
   int result = 1;
 
   if (m_texture) {
@@ -426,7 +426,7 @@ void CSimpleTexture::PostLoadXML(const XMLNode *node, CStatus *status) {
   }
 }
 
-int CSimpleTexture::AddToRegistry(LPCSTR name, UINT context) {
+BOOL CSimpleTexture::AddToRegistry(LPCSTR name, UINT context) {
   if (m_name) {
     UnregisterScriptObject(m_name);
     SimpleTextureRegistryRemoveEntry(m_name, m_registryContext);
@@ -448,7 +448,7 @@ int CSimpleTexture::AddToRegistry(LPCSTR name, UINT context) {
   return 1;
 }
 
-int CSimpleFontString::SetFont(LPCSTR font, float fontHeight, UINT fontFlags) {
+BOOL CSimpleFontString::SetFont(LPCSTR font, float fontHeight, UINT fontFlags) {
   int okay = 1;
 
   m_fontHeight = fontHeight;
@@ -881,7 +881,7 @@ void CSimpleFontString::PostLoadXML(const XMLNode *node, CStatus *status) {
   }
 }
 
-int CSimpleFontString::AddToRegistry(LPCSTR name, UINT context) {
+BOOL CSimpleFontString::AddToRegistry(LPCSTR name, UINT context) {
   if (m_name) {
     UnregisterScriptObject(m_name);
     SimpleFontStringRegistryRemoveEntry(m_name, m_registryContext);

@@ -93,7 +93,7 @@ HASHKEY_STR &HASHKEY_STR::operator=(LPCSTR str) {
   return *this;
 }
 
-int IBaseFileLoad(LPCSTR fileName, LPCVOID *fileBuffer, DWORD *fileSize) {
+BOOL IBaseFileLoad(LPCSTR fileName, LPCVOID *fileBuffer, DWORD *fileSize) {
   PrefetchNode *theFile = IBaseFileStartLoad(fileName);
   if (!theFile) {
     return 0;
@@ -129,7 +129,7 @@ void BaseFileDestroy() {
   s_critSect.Leave();
 }
 
-int BaseFilePrefetch(LPCSTR fileName) {
+BOOL BaseFilePrefetch(LPCSTR fileName) {
   FATALASSERT(fileName);
 
   s_critSect.Enter();

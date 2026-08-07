@@ -178,7 +178,7 @@ enum ANIMENUMERATION {
 extern LPCSTR g_animationNames[];
 
 struct SEQFINISHINFO {
-  int (*handler)(LPVOID, CGUnit_C *);
+  BOOL (*handler)(LPVOID, CGUnit_C *);
   UINT callbackFlags;
   UINT flags;
 };

@@ -262,7 +262,7 @@ void CTextureLayer::AllocBlankTexture(
   }
 }
 
-int CTextureLayer::IsOpaque() const {
+BOOL CTextureLayer::IsOpaque() const {
   int priority;
 
   for (priority = NUM_LAYERPRIORITIES - 1; priority >= LAYERPRIORITY_0; --priority) {
@@ -293,7 +293,7 @@ void CTextureLayer::SetTexture(int priority, int checkExistingTexture, const CTe
   m_priorities[priority].SetTexture(checkExistingTexture, source);
 }
 
-int CTexturePiece::SetTexture(
+BOOL CTexturePiece::SetTexture(
     TEXCOMPONENT_SECTIONS section,
     TEXCOMPONENT_LAYERS   layer,
     LAYERPRIORITY         priority,
@@ -362,7 +362,7 @@ void CTexturePiece::AllocBlankTexture(EGxTexFormat format, UINT width, UINT heig
   m_textureInfo.opaque = opaque;
 }
 
-int CTexturePiece::IsLoaded() const {
+BOOL CTexturePiece::IsLoaded() const {
   return TextureCacheGetImage(m_mippedTexture) != 0;
 }
 
@@ -455,7 +455,7 @@ int CTexturePiece::Paste(const CTexturePiece &source, int x, int y, int width, i
   return 1;
 }
 
-void CTexComponent::UpdateSections(CStatus *status, int bUpdate) {
+void CTexComponent::UpdateSections(CStatus *status, BOOL bUpdate) {
   TEXCOMPONENT_SECTIONS section;
 
   for (section = TCS_UPPERARM; section < NUM_TEXCOMPONENT_SECTIONS; section = static_cast<TEXCOMPONENT_SECTIONS>(section + 1)) {
@@ -467,7 +467,7 @@ void CTexComponent::UpdateSections(CStatus *status, int bUpdate) {
   m_dirtyFlags = 0;
 }
 
-int CTexComponent::CheckSections(int bForce) {
+BOOL CTexComponent::CheckSections(BOOL bForce) {
   TEXCOMPONENT_SECTIONS section;
 
   for (section = TCS_UPPERARM; section < NUM_TEXCOMPONENT_SECTIONS; section = static_cast<TEXCOMPONENT_SECTIONS>(section + 1)) {
@@ -541,7 +541,7 @@ void CTexComponent::PasteTabardTexture(CStatus *status, TEXCOMPONENT_SECTIONS se
   piece.Paste(border, x, y);
 }
 
-void CTexComponent::UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section, int bUpdate) {
+void CTexComponent::UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section, BOOL bUpdate) {
   UINT                width;
   UINT                height;
   UINT                y;
@@ -578,7 +578,7 @@ void CTexComponent::UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section
   }
 }
 
-int CTexComponent::CheckSection(TEXCOMPONENT_SECTIONS section, int bForce) {
+BOOL CTexComponent::CheckSection(TEXCOMPONENT_SECTIONS section, BOOL bForce) {
   UINT j;
   UINT priority;
 
@@ -620,7 +620,7 @@ int CTexComponent::Paste(CStatus *status, TEXCOMPONENT_SECTIONS section, TEXCOMP
   return CTexturePiece::Paste(source.m_priorities[priority], x, y);
 }
 
-int CTexComponent::CheckPastingRules(TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, LAYERPRIORITY priority) {
+BOOL CTexComponent::CheckPastingRules(TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, LAYERPRIORITY priority) {
   ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
   ASSERT(layer < NUM_TEXLAYERS);
   ASSERT(priority < NUM_LAYERPRIORITIES);
@@ -702,7 +702,7 @@ void CTexComponent::BuildSkinPieces(CStatus *status, UINT *layerHoldSectionFlags
   }
 }
 
-void CTexComponent::BuildNakedPieces(CStatus *status, UINT race, UINT sex, UINT skinID, int isNPC) {
+void CTexComponent::BuildNakedPieces(CStatus *status, UINT race, UINT sex, UINT skinID, BOOL isNPC) {
   char buffer[128];
   UINT underwearSection;
 
@@ -814,7 +814,7 @@ void UpdateComponentTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipL
 }
 
 HTEXCOMPONENT
-TexComponentCreate(HTEXTURE texture, UINT race, UINT sex, UINT skinID, int isNPC, int ignoreExistingTexture) {
+TexComponentCreate(HTEXTURE texture, UINT race, UINT sex, UINT skinID, BOOL isNPC, int ignoreExistingTexture) {
   UINT sectionFlags[NUM_TEXLAYERS];
 
   CharCustomizationGetTextureLayerHolds(race, sex, sectionFlags, NUM_TEXLAYERS);
@@ -1222,7 +1222,7 @@ HMODEL ObjComponentRemove(
   return savedSubComponent;
 }
 
-int TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bForce) {
+BOOL TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, BOOL bForce) {
   CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
 
   if (!componentPtr) {
@@ -1240,7 +1240,7 @@ int TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, int bFo
   return 1;
 }
 
-int TexComponentCheckSections(HTEXCOMPONENT component, int bForce) {
+int TexComponentCheckSections(HTEXCOMPONENT component, BOOL bForce) {
   if (component) {
     return reinterpret_cast<CTexComponent *>(component)->CheckSections(bForce);
   }
@@ -1365,7 +1365,7 @@ void ComponentShutdown() {
   TextureFreeMippedImg(CTexturePiece::m_destImage);
 }
 
-int GetObjComponentInfo(
+BOOL GetObjComponentInfo(
     int     race,
     int     sex,
     int     displayID,

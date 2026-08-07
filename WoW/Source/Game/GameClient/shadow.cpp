@@ -33,7 +33,7 @@ static const float BLOB_BELOW = FeetToWorld(5.0f);
 static const float BLOB_ABOVE = FeetToWorld(3.0f);
 static const float SHADOW_POLY_OFFSET = 0.0625f;
 
-static int ConsoleCommand_ShadowLOD(LPCSTR, LPCSTR args);
+static BOOL ConsoleCommand_ShadowLOD(LPCSTR, LPCSTR args);
 
 CGxTex *ProjectTex2dGetFade() {
   return s_fadeTex;
@@ -352,7 +352,7 @@ void ShadowDestroy() {
   s_fadeTex = 0;
 }
 
-static int ConsoleCommand_ShadowLOD(LPCSTR, LPCSTR args) {
+static BOOL ConsoleCommand_ShadowLOD(LPCSTR, LPCSTR args) {
   int lod;
   sscanf(args, "%d", &lod);
   if (lod >= 0 && lod <= 1) {

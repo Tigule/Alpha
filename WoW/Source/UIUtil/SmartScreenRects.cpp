@@ -62,7 +62,7 @@ static BFSNODE *GetBFSNode() {
   return node;
 }
 
-static int RectCollides(SCREENRECTGRIDS grid, NTempest::CRect &rect, TEST_DIRECTION direction, float *offset) {
+static BOOL RectCollides(SCREENRECTGRIDS grid, NTempest::CRect &rect, TEST_DIRECTION direction, float *offset) {
   ASSERT(offset);
   ASSERT(grid < NUM_SRECTGRIDS);
   ASSERT(rect.t >= rect.b && rect.r >= rect.l);
@@ -92,7 +92,7 @@ static int RectCollides(SCREENRECTGRIDS grid, NTempest::CRect &rect, TEST_DIRECT
   return 0;
 }
 
-static int CheckRect(const NTempest::CRect &rect, int checkPosition) {
+static BOOL CheckRect(const NTempest::CRect &rect, int checkPosition) {
   return (!checkPosition || (rect.t >= 0.0f && rect.l >= 0.0f && rect.b >= 0.0f && rect.r >= 0.0f && rect.t <= 0.6f && rect.l <= 0.8f &&
                              rect.b <= 0.6f && rect.r <= 0.8f)) &&
          rect.t >= rect.b && rect.r >= rect.l;

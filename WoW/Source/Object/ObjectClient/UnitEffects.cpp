@@ -36,7 +36,7 @@
 #include <stpl.h>
 #include <storm.h>
 
-int         DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param);
+BOOL        DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param);
 void        SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position);
 HMODEL      InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param);
 static void DecorateEffectFilename(LPCSTR fileName, int raceSexSpecific, const CGObject_C *object, char *buffer, UINT size);
@@ -44,9 +44,9 @@ static void SpellUnitAnimEventCallback(LPCSTR eventName, const NTempest::C3Vecto
 void        SpellCameraShakeCallback(LPCSTR eventName, const NTempest::C3Vector &position);
 void        SpellSoundEffectCallback(LPCSTR eventName, const NTempest::C3Vector &position);
 void        UnitCombatLogSpellMissed(UINT missReason, UINT spellID, DWORDLONG caster, DWORDLONG victim);
-static int  OneShotEndHandler(LPVOID param);
+static BOOL OneShotEndHandler(LPVOID param);
 static void SpellAreaAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param);
-static int  PurgeTimerHandler(LPCVOID timerData, LPVOID userData);
+static BOOL PurgeTimerHandler(LPCVOID timerData, LPVOID userData);
 void        UnitEffectOneShot(
     const SpellVisualEffectNameRec *effectRec,
     const NTempest::C3Vector       &location,
@@ -361,7 +361,7 @@ static void SpellAreaAnimEventCallback(LPCSTR eventName, const NTempest::C3Vecto
   }
 }
 
-static int OneShotEndHandler(LPVOID param) {
+static BOOL OneShotEndHandler(LPVOID param) {
   FATALASSERT(param);
 
   ONESHOTEFFECTNODE *node = static_cast<ONESHOTEFFECTNODE *>(param);
@@ -571,7 +571,7 @@ static void RenderMissiles(CGCamera *camera) {
   }
 }
 
-int DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param) {
+BOOL DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param) {
   FATALASSERT(param);
 
   NODEBASE *node = static_cast<NODEBASE *>(param);
@@ -764,7 +764,7 @@ static void CheckReinitTimer(int current, UINT duration) {
   s_purgeTime = triggerTime;
 }
 
-static int PurgeTimerHandler(LPCVOID timerData, LPVOID userData) {
+static BOOL PurgeTimerHandler(LPCVOID timerData, LPVOID userData) {
   s_purgeTimer = 0;
 
   int                          current = static_cast<const EvtContext *>(timerData)->GetCurrTime();

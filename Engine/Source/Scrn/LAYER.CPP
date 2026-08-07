@@ -32,7 +32,7 @@ static void (*s_captureScreen)(int);
 static int s_ScrnDisable;
 static LISTDECLEX(CILayer, zorderlink, s_zorderlist);
 
-static int CaptureScreen() {
+static BOOL CaptureScreen() {
   char                       path[0x104];
   char                       timestamp[0x104];
   CTgaFile                   tga;
@@ -54,12 +54,12 @@ static int CaptureScreen() {
   return pixels != 0;
 }
 
-static int OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
+static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
   s_elapsedSec += data->elapsedSec;
   return 1;
 }
 
-static int OnPaint(LPCVOID, LPVOID) {
+static BOOL OnPaint(LPCVOID, LPVOID) {
   CILayer *layer;
   CILayer *nextLayer;
   HSRGN    rgn;

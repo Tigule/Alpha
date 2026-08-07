@@ -342,7 +342,7 @@ int CGLootInfo::LootSlot(UINT slot, int force) {
   return 1;
 }
 
-int CGLootInfo::HasLoot() {
+BOOL CGLootInfo::HasLoot() {
   FATALASSERT(m_object);
 
   if (m_coins > 0) {

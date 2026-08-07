@@ -27,15 +27,15 @@
 #include <storm.h>
 
 bool                       Spell_C_CastSpell(int spellID, const CGItem_C *item);
-int                        Spell_C_GetManaCost(int id, int isPet);
-int                        Spell_C_GetSpellCooldown(int spell, int isPet, UINT *duration, DWORD *startTime, UINT *enable);
+int                        Spell_C_GetManaCost(int id, BOOL isPet);
+int                        Spell_C_GetSpellCooldown(int spell, BOOL isPet, UINT *duration, DWORD *startTime, UINT *enable);
 int                        Spell_C_GetItemCooldown(int itemID, UINT *duration, DWORD *startTime, UINT *enable);
 int                        Spell_C_GetModalSpell();
 const DWORDLONG           &Spell_C_GetModalItem();
 int                        Spell_C_GetTargettingSpell();
 bool                       Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
 bool                       Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
-int                        Spell_C_NeedsCooldownEvent(const SpellRec *spell, int isPet);
+int                        Spell_C_NeedsCooldownEvent(const SpellRec *spell, BOOL isPet);
 int                        Spell_C_NeedsCooldownEvent(int itemID);
 void                       Spell_C_StopTargeting();
 void                       Spell_C_CancelAura(int spellID);
@@ -90,7 +90,7 @@ void CGActionBar::UpdateBonusBar() {
   FrameScript_SignalEvent(208);
 }
 
-int CGActionBar::IsUsableAction(int id, int &noMana) {
+BOOL CGActionBar::IsUsableAction(int id, BOOL &noMana) {
   noMana = 0;
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -159,7 +159,7 @@ int CGActionBar::IsUsableAction(int id, int &noMana) {
   return 0;
 }
 
-int CGActionBar::IsCurrentAction(int id) {
+BOOL CGActionBar::IsCurrentAction(int id) {
   int action = m_slotActions[id];
   if (!action) {
     return 0;
@@ -213,7 +213,7 @@ int CGActionBar::IsCurrentAction(int id) {
   return form && player && player->GetUnitData()->shapeshiftForm == form;
 }
 
-int CGActionBar::IsToggledAction(int id) {
+BOOL CGActionBar::IsToggledAction(int id) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -257,7 +257,7 @@ void CGActionBar::SlotChanged(int id) {
   FrameScript_SignalEvent(204, "%d", id + 1);
 }
 
-int CGActionBar::IsAttackAction(int id) {
+BOOL CGActionBar::IsAttackAction(int id) {
   const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
   return spell && spell->m_effect[0] == 78;
 }
@@ -344,7 +344,7 @@ void CGActionBar::ReplaceSpell(int oldSpell, int newSpell) {
   }
 }
 
-void CGActionBar::UseAction(int id, int checkCursor) {
+void CGActionBar::UseAction(int id, BOOL checkCursor) {
   ASSERT(id >= 0);
   ASSERT(id < NUM_ACTION_BUTTONS);
 
@@ -618,7 +618,7 @@ static int Script_HasAction(lua_State *L) {
 static int Script_UseAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: UseAction(slot)");
-  int checkCursor = 0;
+  BOOL checkCursor = 0;
   if (lua_isstring(L, 2)) {
     checkCursor = StringToBOOL(lua_tostring(L, 2));
   }
@@ -665,8 +665,8 @@ static int Script_IsCurrentAction(lua_State *L) {
 static int Script_IsUsableAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
     return luaL_error(L, "Usage: IsUsableAction(slot)");
-  int noMana;
-  int usable = CGActionBar::IsUsableAction(static_cast<int>(lua_tonumber(L, 1)) - 1, noMana);
+  BOOL noMana;
+  int  usable = CGActionBar::IsUsableAction(static_cast<int>(lua_tonumber(L, 1)) - 1, noMana);
   if (usable) {
     lua_pushnumber(L, 1.0);
   } else {

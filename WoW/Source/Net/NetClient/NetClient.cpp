@@ -176,7 +176,7 @@ static void InitializePropContext() {
   }
 }
 
-int NetClient::Initialize() {
+BOOL NetClient::Initialize() {
   ASSERT(m_netState == NS_UNINITIALIZED);
 
   if (!s_clientCount) {
@@ -234,7 +234,7 @@ void NetClient::Destroy() {
   }
 }
 
-int NetClient::DelayedDelete() {
+BOOL NetClient::DelayedDelete() {
   if (m_netState != NS_UNINITIALIZED) {
     Disconnect();
     m_netEventQueue->AddEvent(EVENT_ID_NET_DESTROY, 0, this, 0, 0);
@@ -307,7 +307,7 @@ void NetClient::Send(CDataStore *msg) {
   }
 }
 
-void NetClient::SetMessageHandler(NETMESSAGE msgId, int (*handler)(LPVOID, NETMESSAGE, DWORD, CDataStore *), LPVOID param) {
+void NetClient::SetMessageHandler(NETMESSAGE msgId, BOOL (*handler)(LPVOID, NETMESSAGE, DWORD, CDataStore *), LPVOID param) {
   ASSERT(msgId < NUM_MSG_TYPES);
   ASSERT(handler);
   ASSERT(m_handlers[msgId] == 0);
@@ -397,7 +397,7 @@ void NetClient::WCCantConnect(WowConnection *conn, DWORD timeStamp, const NETCON
   m_netEventQueue->AddEvent(EVENT_ID_NET_CANTCONNECT, conn, this, 0, 0);
 }
 
-int NetClient::HandleData(DWORD timeReceived, LPVOID data, int size) {
+BOOL NetClient::HandleData(DWORD timeReceived, LPVOID data, int size) {
   PushObjMgr();
 
   ASSERT(m_netState == NS_CONNECTED || m_netState == NS_DISCONNECTING);
@@ -412,7 +412,7 @@ int NetClient::HandleData(DWORD timeReceived, LPVOID data, int size) {
   return 1;
 }
 
-int NetClient::HandleConnect() {
+BOOL NetClient::HandleConnect() {
   PushObjMgr();
 
   ASSERT(m_netState == NS_CONNECTING);
@@ -422,7 +422,7 @@ int NetClient::HandleConnect() {
   return 1;
 }
 
-int NetClient::HandleDisconnect() {
+BOOL NetClient::HandleDisconnect() {
   PushObjMgr();
 
   ASSERT(m_netState == NS_CONNECTED || m_netState == NS_DISCONNECTING);
@@ -433,7 +433,7 @@ int NetClient::HandleDisconnect() {
   return 1;
 }
 
-int NetClient::HandleCantConnect() {
+BOOL NetClient::HandleCantConnect() {
   PushObjMgr();
 
   ASSERT(m_netState == NS_CONNECTING);

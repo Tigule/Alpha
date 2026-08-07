@@ -8,7 +8,7 @@ namespace MDL {
   LPCSTR       TokenText(UINT token);
   void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...);
 
-  int ReadHelper(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadHelper(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet                errors;
     MDLGENOBJECT       *helper = data.helpers.New();
     NTempest::C3Vector *pivot = data.pivotPoints.Count() < 500 ? data.pivotPoints.New() : 0;
@@ -34,7 +34,7 @@ namespace MDL {
     return !parse.FoundError();
   }
 
-  int WriteHelpers(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteHelpers(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
       int needObjIds = data.helpers.Count() != data.objects.Count();
       for (UINT i = 0; i < data.helpers.Count(); ++i) {
@@ -45,7 +45,7 @@ namespace MDL {
     return 1;
   }
 
-  int WriteBinHelpers(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
+  BOOL WriteBinHelpers(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.helpers.Count()) {
       buf.AddDword('PLEH');
       UINT totalSize = 4;
@@ -62,7 +62,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinHelpers(CMsgBuffer &buffer, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinHelpers(CMsgBuffer &buffer, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT totalRead = 4;
     UINT count = buffer.GetUint();
     data.helpers.SetCount(0);

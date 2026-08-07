@@ -43,10 +43,10 @@ static SRGNEXPORTTABLE s_rgntable;
 
 static void        AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const RECTF *rect);
 static void        AddSourceRect(TSGrowableArray<SRGNSOURCE> *, const RECTF *, LPVOID, int, DWORD);
-static int         CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect);
+static BOOL        CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect);
 static void        ClearRegion(RGN *rgnptr);
 static void        CombineRectangles(TSGrowableArray<RECTF> *combinedarray);
-static int         CompareRects(const RECTF *rect1, const RECTF *rect2);
+static BOOL        CompareRects(const RECTF *rect1, const RECTF *rect2);
 static void        DeleteCombinedRect(TSGrowableArray<RECTF> *combinedarray, DWORD index);
 static void        DeleteRect(RECTF *rect);
 static void        DeleteSourceRect(TSGrowableArray<SRGNSOURCE> *, DWORD);
@@ -54,7 +54,7 @@ static void        FindSourceParams(RGN *rgnptr, const RECTF *rect);
 static void        FragmentCombinedRectangles(TSGrowableArray<RECTF> *combinedarray, DWORD firstindex, DWORD lastindex, const RECTF *rect);
 static void        FragmentSourceRectangles(TSGrowableArray<SRGNSOURCE> *, DWORD, DWORD, BOOL, const RECTF *, LPVOID, int);
 static void        InvalidateRegion(RGN *rgnptr);
-static int         IsNullRect(const RECTF *rect);
+static BOOL        IsNullRect(const RECTF *rect);
 static void        OptimizeSource(TSGrowableArray<SRGNSOURCE> *);
 static void        ProcessBooleanOperation(TSGrowableArray<SRGNSOURCE> *, int);
 static void        ProduceCombinedRectangles(RGN *rgnptr);
@@ -84,7 +84,7 @@ static inline void AddSourceRect(TSGrowableArray<SRGNSOURCE> *sourcearray, const
   source->flags = flags;
 }
 
-static int CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect) {
+static BOOL CheckForIntersection(const RECTF *sourcerect, const RECTF *targetrect) {
   return sourcerect->left < targetrect->right && sourcerect->bottom < targetrect->top && sourcerect->right > targetrect->left &&
          sourcerect->top > targetrect->bottom;
 }
@@ -172,7 +172,7 @@ static void CombineRectangles(TSGrowableArray<RECTF> *combinedarray) {
   }
 }
 
-static int CompareRects(const RECTF *rect1, const RECTF *rect2) {
+static BOOL CompareRects(const RECTF *rect1, const RECTF *rect2) {
   return rect1->left == rect2->left && rect1->bottom == rect2->bottom && rect1->right == rect2->right && rect1->top == rect2->top;
 }
 
@@ -371,7 +371,7 @@ static void InvalidateRegion(RGN *rgnptr) {
   DeleteRect(&rgnptr->foundparamsrect);
 }
 
-static int IsNullRect(const RECTF *rect) {
+static BOOL IsNullRect(const RECTF *rect) {
   return !(rect->left < rect->right && rect->bottom < rect->top);
 }
 

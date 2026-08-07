@@ -20,18 +20,18 @@ namespace SRWLock {
   void IDestroy();
   void IOsRWLockIncRef();
   void IOsRWLockDecRef();
-  int  IWaitAndCheckForDeadlock(LPVOID hevent);
+  BOOL IWaitAndCheckForDeadlock(LPVOID hevent);
   long IAllocEvent(DWORD evtype);
   void IFreeEvent(DWORD evtype, long event, int forcereset);
   int  IWaitForEvent(DWORD evtype, long event);
   void ISetEvent(DWORD evtype, long event);
   long IEventIncRefCountOnly(long volatile *eventptr, long increment);
   long IAllocEventOrIncRefCount(DWORD evtype, long volatile *eventptr, long increment);
-  int  IDecRefCountAndFreeEvent(DWORD evtype, long volatile *eventptr, long finalevent, long decrement);
+  BOOL IDecRefCountAndFreeEvent(DWORD evtype, long volatile *eventptr, long finalevent, long decrement);
   void SUNNLockInitialize(SUNNLOCK volatile *sunnlock);
   void SUNNLockDelete(SUNNLOCK volatile *sunnlock);
   void SUNNLockEnter(SUNNLOCK volatile *sunnlock);
-  int  SUNNLockTryEnter(SUNNLOCK volatile *sunnlock);
+  BOOL SUNNLockTryEnter(SUNNLOCK volatile *sunnlock);
   void SUNNLockLeave(SUNNLOCK volatile *sunnlock);
   void SURWLockInitialize(SURWLOCK volatile *surwlock);
   void SURWLockDelete(SURWLOCK volatile *surwlock);
@@ -198,7 +198,7 @@ void SRWLock::IOsRWLockDecRef() {
   s_initCritsect.Leave();
 }
 
-int SRWLock::IWaitAndCheckForDeadlock(LPVOID hevent) {
+BOOL SRWLock::IWaitAndCheckForDeadlock(LPVOID hevent) {
   if (WaitForSingleObject((HANDLE)hevent, 60000) == WAIT_OBJECT_0) {
     return 1;
   }
@@ -308,7 +308,7 @@ long SRWLock::IAllocEventOrIncRefCount(DWORD evtype, long volatile *eventptr, lo
   return allocated;
 }
 
-int SRWLock::IDecRefCountAndFreeEvent(DWORD evtype, long volatile *eventptr, long finalevent, long decrement) {
+BOOL SRWLock::IDecRefCountAndFreeEvent(DWORD evtype, long volatile *eventptr, long finalevent, long decrement) {
   long previous;
 
   previous = SInterlockedCompareExchange((long *)eventptr, 0, finalevent);
@@ -372,7 +372,7 @@ void SRWLock::SUNNLockEnter(SUNNLOCK volatile *sunnlock) {
   }
 }
 
-int SRWLock::SUNNLockTryEnter(SUNNLOCK volatile *sunnlock) {
+BOOL SRWLock::SUNNLockTryEnter(SUNNLOCK volatile *sunnlock) {
   return SInterlockedExchange((long *)&sunnlock->m_state, 0) != 0;
 }
 
@@ -725,7 +725,7 @@ void SCritSect::Enter() {
   EnterCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
 }
 
-int SCritSect::TryEnter() {
+BOOL SCritSect::TryEnter() {
   return STryEnterCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
 }
 
@@ -749,7 +749,7 @@ void CDebugSCritSect::Enter(LPCSTR fileName, DWORD line) {
   CDebugLock<CDebugSCritSect>::IEnterEntry(entry);
 }
 
-int CDebugSCritSect::TryEnter(LPCSTR fileName, DWORD line) {
+BOOL CDebugSCritSect::TryEnter(LPCSTR fileName, DWORD line) {
   CDebugLockData *data;
   DWORD           e;
   DWORD           threadId;
@@ -792,7 +792,7 @@ void CDebugSCritSect::DumpAllEntries() {
   CDebugLock<CDebugSCritSect>::ILeave();
 }
 
-int SInitCritSect::Enter() {
+BOOL SInitCritSect::Enter() {
   int created;
 
   created = 0;
@@ -838,7 +838,7 @@ void CSRWLock::Leave(int fromwriting) {
   SRWLock::SURWLockLeave((SRWLock::SURWLOCK *)m_opaqueData, fromwriting);
 }
 
-int CSRWLock::TryEnter(int forwriting) {
+BOOL CSRWLock::TryEnter(int forwriting) {
   return SRWLock::SURWLockTryEnter((SRWLock::SURWLOCK *)m_opaqueData, forwriting);
 }
 
@@ -872,7 +872,7 @@ void CDebugSRWLock::Enter(int forwriting, LPCSTR fileName, DWORD line) {
   CDebugLock<CDebugSRWLock>::IEnterEntry(entry);
 }
 
-int CDebugSRWLock::TryEnter(int forwriting, LPCSTR fileName, DWORD line) {
+BOOL CDebugSRWLock::TryEnter(int forwriting, LPCSTR fileName, DWORD line) {
   CDebugLockData *data;
   DWORD           e;
   DWORD           threadId;
@@ -951,7 +951,7 @@ SSyncObject &SSyncObject::operator=(const SSyncObject &rhs) {
   return *this;
 }
 
-int SSyncObject::Valid() {
+BOOL SSyncObject::Valid() {
   return *(HANDLE *)m_opaqueData != NULL;
 }
 
@@ -1003,11 +1003,11 @@ SEvent::SEvent(int manualReset, int initialValue) {
   }
 }
 
-int SEvent::Set() {
+BOOL SEvent::Set() {
   return SetEvent(*(HANDLE *)m_opaqueData);
 }
 
-int SEvent::Reset() {
+BOOL SEvent::Reset() {
   return ResetEvent(*(HANDLE *)m_opaqueData);
 }
 
@@ -1015,11 +1015,11 @@ SSemaphore::SSemaphore(UINT initialCount, UINT maximumCount) {
   *(HANDLE *)m_opaqueData = CreateSemaphoreA(NULL, initialCount, maximumCount, NULL);
 }
 
-int SSemaphore::Signal(UINT count) {
+BOOL SSemaphore::Signal(UINT count) {
   return ReleaseSemaphore(*(HANDLE *)m_opaqueData, count, NULL);
 }
 
-int SThread::Create(STHREADPROC threadProc, LPVOID param, SThread &thread, char *threadName) {
+BOOL SThread::Create(STHREADPROC threadProc, LPVOID param, SThread &thread, char *threadName) {
   UINT id;
 
   (void)threadName;

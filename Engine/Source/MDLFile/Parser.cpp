@@ -80,7 +80,7 @@ void Parser::WarningCount(LPCSTR item, long expected, long actual) {
   m_status->WarningCount(item, expected, actual, GetLineNumber());
 }
 
-int Parser::FoundError() {
+BOOL Parser::FoundError() {
   return m_flags & 1;
 }
 
@@ -164,7 +164,7 @@ long Parser::GetOptionalInt(UINT cachedToken, UTokenData *cachedValue, UINT *tok
   return -1;
 }
 
-int Parser::GetOptionalToken(UINT expected, UINT *token, LPCSTR *tokenText) {
+BOOL Parser::GetOptionalToken(UINT expected, UINT *token, LPCSTR *tokenText) {
   *token = Token(tokenText, 0);
   if (*token != expected) {
     return 0;
@@ -173,7 +173,7 @@ int Parser::GetOptionalToken(UINT expected, UINT *token, LPCSTR *tokenText) {
   return 1;
 }
 
-int Parser::GetOptionalToken(UINT expected, UINT cachedToken, UINT *token, LPCSTR *tokenText) {
+BOOL Parser::GetOptionalToken(UINT expected, UINT cachedToken, UINT *token, LPCSTR *tokenText) {
   if (cachedToken == expected) {
     *token = Token(tokenText, 0);
     return 1;

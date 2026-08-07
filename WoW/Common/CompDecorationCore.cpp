@@ -133,7 +133,7 @@ void CompDecorateTexName(LPCSTR string, TEXCOMPONENT_SECTIONS section, char *buf
   }
 }
 
-int CompDecorateUndecorateObjName(LPCSTR string, char *buffer, UINT size) {
+BOOL CompDecorateUndecorateObjName(LPCSTR string, char *buffer, UINT size) {
   enum STATES {
     FINDING_PERIOD = 0,
     FINDING_DIRECTORYSEPARATOR = 1,
@@ -181,7 +181,7 @@ int CompDecorateUndecorateObjName(LPCSTR string, char *buffer, UINT size) {
   return 0;
 }
 
-int CompDecorateUndecorateTexName(LPCSTR string, char *buffer, UINT size) {
+BOOL CompDecorateUndecorateTexName(LPCSTR string, char *buffer, UINT size) {
   enum STATES {
     FINDING_PERIOD = 0,
     FINDING_UNDERSCORE = 1

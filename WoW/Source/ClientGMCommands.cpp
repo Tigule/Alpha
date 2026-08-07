@@ -10,7 +10,7 @@
 #include <Base/CDataStore.h>
 #include <ctype.h>
 
-static int CCommand_Ghost(LPCSTR command, LPCSTR args) {
+static BOOL CCommand_Ghost(LPCSTR command, LPCSTR args) {
   CDataStore msg;
   msg.Put(471);
   if (!args || SStrCmpI(args, "off", 0x7FFFFFFF)) {
@@ -29,7 +29,7 @@ static int CCommand_Ghost(LPCSTR command, LPCSTR args) {
   return 1;
 }
 
-static int CCommand_Invis(LPCSTR command, LPCSTR args) {
+static BOOL CCommand_Invis(LPCSTR command, LPCSTR args) {
   CDataStore msg;
   msg.Put(471);
   msg.Put(!args || SStrCmpI(args, "off", 0x7FFFFFFF) ? 1 : 0);
@@ -37,7 +37,7 @@ static int CCommand_Invis(LPCSTR command, LPCSTR args) {
   return 1;
 }
 
-static int CCommand_BindPlayer(LPCSTR command, LPCSTR args) {
+static BOOL CCommand_BindPlayer(LPCSTR command, LPCSTR args) {
   CDataStore msg;
   msg.Put(473);
   if (args && *args) {
@@ -51,7 +51,7 @@ static int CCommand_BindPlayer(LPCSTR command, LPCSTR args) {
   return 1;
 }
 
-static int CCommand_Summon(LPCSTR command, LPCSTR args) {
+static BOOL CCommand_Summon(LPCSTR command, LPCSTR args) {
   CDataStore msg;
   msg.Put(474);
   msg.PutString(args);
@@ -59,7 +59,7 @@ static int CCommand_Summon(LPCSTR command, LPCSTR args) {
   return 1;
 }
 
-static int CCommand_ShowLabel(LPCSTR command, LPCSTR args) {
+static BOOL CCommand_ShowLabel(LPCSTR command, LPCSTR args) {
   CDataStore msg;
   msg.Put(480);
   msg.Put(SStrToInt(args));
@@ -67,7 +67,7 @@ static int CCommand_ShowLabel(LPCSTR command, LPCSTR args) {
   return 1;
 }
 
-static int CCommand_SetSecurity(LPCSTR command, LPCSTR args) {
+static BOOL CCommand_SetSecurity(LPCSTR command, LPCSTR args) {
   char   name[50];
   char  *namePtr = name;
   LPCSTR argPtr = args;
@@ -90,7 +90,7 @@ static int CCommand_SetSecurity(LPCSTR command, LPCSTR args) {
   return 1;
 }
 
-static int CCommand_Nuke(LPCSTR command, LPCSTR args) {
+static BOOL CCommand_Nuke(LPCSTR command, LPCSTR args) {
   CDataStore msg;
   msg.Put(491);
   msg.PutString(args);

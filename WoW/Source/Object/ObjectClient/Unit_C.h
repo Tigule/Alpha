@@ -31,12 +31,12 @@ template <class T>
 class TSStackArray;
 
 void UnitUpdateMovementAnim(const DWORDLONG &unit);
-int  UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
+BOOL UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
 void OnMoveUpdate(DWORDLONG unit, DWORD eventTime);
-int  MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
-int  OnUnitCombatEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
+BOOL OnUnitCombatEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 int  Player_C_AppFocusMovementHandler(int focus);
-int  OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
+BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
 
 enum UNITEFFECTSPECIALS {
   SPECIALEFFECT_NONE = -1,
@@ -631,7 +631,7 @@ class CGUnit {
   friend class CGGameObject_C_Type_Chair;
   friend class CGInputControl;
   friend void OnMoveUpdate(DWORDLONG unit, DWORD eventTime);
-  friend int  MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
+  friend BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
   friend int  Player_C_AppFocusMovementHandler(int focus);
 
  public:
@@ -661,7 +661,7 @@ class CGUnit {
   int                    GetLevel() const;
   UINT                   GetMinDamage() const;
   UINT                   GetMaxDamage() const;
-  int                    IsCombatLoggingActive() const;
+  BOOL                   IsCombatLoggingActive() const;
   int                    GetCurrentStat(UINT stat) const;
   int                    GetEffectiveStat(UINT stat) const;
   int                    GetBaseStat(UINT stat) const;
@@ -723,38 +723,38 @@ class CGUnit {
   UINT                   GetMoveFlags() const {
     return m_move.GetMoveFlags();
   }
-  int   IsInMotion() const;
-  int   IsMovingOrTurning() const;
-  int   IsMovingOrFalling() const;
-  int   IsMoving() const;
-  int   IsMovingOrStrafing() const;
-  int   IsMovingTurningOrStrafing() const;
-  int   IsMovingStrafingOrFalling() const;
-  int   IsMovingForward() const;
-  int   IsMovingBackwards() const;
-  int   IsWalking() const;
-  int   IsRunning() const;
-  int   IsTurning() const;
-  int   IsTurningLeft() const;
-  int   IsTurningRight() const;
-  int   IsStrafingLeft() const;
-  int   IsStrafingRight() const;
-  int   IsStrafing() const;
-  int   IsFalling() const;
-  int   IsImmobilized() const;
+  BOOL  IsInMotion() const;
+  BOOL  IsMovingOrTurning() const;
+  BOOL  IsMovingOrFalling() const;
+  BOOL  IsMoving() const;
+  BOOL  IsMovingOrStrafing() const;
+  BOOL  IsMovingTurningOrStrafing() const;
+  BOOL  IsMovingStrafingOrFalling() const;
+  BOOL  IsMovingForward() const;
+  BOOL  IsMovingBackwards() const;
+  BOOL  IsWalking() const;
+  BOOL  IsRunning() const;
+  BOOL  IsTurning() const;
+  BOOL  IsTurningLeft() const;
+  BOOL  IsTurningRight() const;
+  BOOL  IsStrafingLeft() const;
+  BOOL  IsStrafingRight() const;
+  BOOL  IsStrafing() const;
+  BOOL  IsFalling() const;
+  BOOL  IsImmobilized() const;
   int   Moved() const;
   DWORD GetMoveStartTime() const {
     return m_move.GetMoveStartTime();
   }
   NTempest::C3Vector GetRedirection() const;
   int                MoveTimeIsValid() const;
-  int                IsSwimming() const;
-  int                IsSwimmingOrFalling() const;
-  int                IsMovingStrafingOrSwimming() const;
-  int                IsMovingStrafingFallingOrSwimming() const;
+  BOOL               IsSwimming() const;
+  BOOL               IsSwimmingOrFalling() const;
+  BOOL               IsMovingStrafingOrSwimming() const;
+  BOOL               IsMovingStrafingFallingOrSwimming() const;
   float              GetCollisionBoxHeight() const;
   int                IgnoresCollision() const;
-  int                IsHalted() const;
+  BOOL               IsHalted() const;
   void               BuildMovementUpdate(CDataStore *msg) const;
   float              LinearDistanceSquared(const NTempest::C3Vector &position) const;
   int                GetAura(int index) const;
@@ -829,13 +829,13 @@ class CGUnit {
 };
 
 class CGUnit_C : public CGObject_C, public CGUnit {
-  friend int OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
+  friend BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
   friend class CGInputControl;
   friend class CGObject_C;
   friend class CGPlayer_C;
   friend struct ACTIVEATTACHMENTINFO;
-  friend int UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
-  friend int OnUnitCombatEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  friend BOOL UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
+  friend BOOL OnUnitCombatEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
  public:
   CGUnit_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init);
@@ -869,7 +869,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual void      HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log);
 
  protected:
-  virtual int  QueueAnim(ANIMQUEUETYPE type, const ATTACKROUNDINFO *roundInfo);
+  virtual BOOL QueueAnim(ANIMQUEUETYPE type, const ATTACKROUNDINFO *roundInfo);
   virtual void ProcessDiscardedAnim(ANIMQUEUENODE *node, bool doNotProcess);
   virtual void ProcessAnim(ANIMQUEUENODE *node);
 
@@ -897,7 +897,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual void                   OnFlagChanged(UINT oldFlags);
   virtual const VirtualItemInfo *GetVirtualItem(UINT slot, bool ignoreDisarmFlag) const;
   virtual int                    GetVirtualItemDisplayID(UINT slot) const;
-  virtual int                    ShouldRenderUnitName(UINT mode) const;
+  virtual BOOL                   ShouldRenderUnitName(UINT mode) const;
   virtual void                   CommitTexture(int force);
   virtual UINT                   UpdateUnitNameString(UINT localPlayerFlags, UINT otherUnitsFlags, char *buffer, UINT bufferSize) const;
   virtual void                   OnPickNextStandHandler();
@@ -907,7 +907,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual bool                   CanBeMounted();
 
  protected:
-  virtual void CleanupUnitArtwork(int playerModelChanged, int wasPlayerModel);
+  virtual void CleanupUnitArtwork(int playerModelChanged, BOOL wasPlayerModel);
   virtual void ReinitializeUnitArtwork();
   virtual void PostReinitializeArtwork();
 
@@ -953,17 +953,17 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   static int  GetAnimPriority(int state);
   static void NamePlateShow(int show);
   int         GetCreatureType() const;
-  int         CanBeLooted(DWORD currentTime) const;
+  BOOL        CanBeLooted(DWORD currentTime) const;
   static void UpdateUnitNameplates(CGWorldFrame *worldFrame);
   static void RemoveAllNamePlates();
 
   virtual LPCSTR GetObjectName() const;
 
  protected:
-  virtual int ShouldFadeIn() const;
+  virtual BOOL ShouldFadeIn() const;
 
  public:
-  virtual int  GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
+  virtual BOOL GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
   virtual void RenderTargetSelection() const;
   void         BuildSelectionRotMatrix(NTempest::C44Matrix &matrix) const;
   LPCSTR       GetUnitName() const;
@@ -1000,10 +1000,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual void   UpdatePlayerName();
   virtual void   PostAnimate(CGWorldFrame *worldFrame);
   virtual void   OnSpecialMountAnim();
-  virtual int    ShouldRender(DWORD worldStatus);
+  virtual BOOL   ShouldRender(DWORD worldStatus);
   virtual HMODEL GetCharacterModel(int *mountedPtr) const;
   virtual LPCSTR GetModelFileName() const;
-  virtual int    UpdateModelLoadStatus();
+  virtual BOOL   UpdateModelLoadStatus();
   void           RequestTalkEmote(TALKANIMATION talkAnim);
   virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
 
@@ -1020,7 +1020,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void QueryMountModelStats();
   void GetSwimMatrix(NTempest::C34Matrix *worldMatrix) const;
   void UpdateDisplayFacing();
-  int  ShouldShuffle() const;
+  BOOL ShouldShuffle() const;
 
  private:
   void      UpdateBaseRadius(HMODEL model);
@@ -1029,16 +1029,16 @@ class CGUnit_C : public CGObject_C, public CGUnit {
  public:
   friend void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit);
   friend void CreatureQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
-  friend int  UnitModeUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
-  friend int  OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  friend BOOL UnitModeUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
+  friend BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
   static void InitializeTextureVariations(const CreatureDisplayInfoRec *displayInfo, HMODEL theModel, const CreatureModelDataRec *modelData);
 
  public:
   void PostSetClientInitData(const CClientMoveUpdate &update);
-  int  OnMoveEvent(NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  BOOL OnMoveEvent(NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
   void OnMonsterMove(DWORD eventTime, CDataStore *msg);
-  int  OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *msg);
+  BOOL OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *msg);
   void OnMoveStopLocalNoUpdate(DWORD eventTime);
   void OnSetRunModeLocalNoUpdate(DWORD eventTime, int run);
   void OnSetFacingLocalNoUpdate(DWORD eventTime, float facing);
@@ -1077,7 +1077,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void StopSpellFizzleTimer(int spellID, BYTE status);
   void SpellDelayed(int delay);
   void EndSpellEffects(BYTE status);
-  int  SetCastingSpell(int spellID, bool force, bool precastAnimSuccessful);
+  BOOL SetCastingSpell(int spellID, bool force, bool precastAnimSuccessful);
   bool SetSpellCastingAnimation(ANIMENUMERATION anim, UINT castKit, UINT soundID, int shakeID, ANIMENUMERATION &result);
   void ClearSpellCastAnimInfo();
   void AddHitAnimHolds(int spellID, const TSStackArray<DWORDLONG> &targets);
@@ -1108,7 +1108,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   UINT GetAnimationState();
 
  public:
-  int                IsWalking() const;
+  BOOL               IsWalking() const;
   int                SetTorsoAnimation(UINT state, DWORD duration, UINT flags);
   void               CheckLevelUpAnimFlag(int oldState, int newState);
   void               HandleCastAnimEvent();
@@ -1131,11 +1131,11 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void SetTorsoAnim(UINT newAnim);
 
  protected:
-  int IsSplashing(const NTempest::C3Vector &position);
+  BOOL IsSplashing(const NTempest::C3Vector &position);
 
  public:
   bool IsShapeShifted() const;
-  int  IsUnderWater() const;
+  BOOL IsUnderWater() const;
   UINT GetRunSequence() const;
   UINT GetStopSequence() const;
   int  GetWalkStateAnim() const;
@@ -1144,12 +1144,12 @@ class CGUnit_C : public CGObject_C, public CGUnit {
 
  protected:
   float GetAnimTimeScale(UINT sequence, UINT duration, UINT flags);
-  int   SetTorsoSequence(float timeScale, int flags);
+  BOOL  SetTorsoSequence(float timeScale, int flags);
 
  public:
   bool TorsoAnimOverridesBase() const;
-  int  IsPreemptableWoundAnimState(UINT state);
-  int  IsAttackAnimState(UINT state);
+  BOOL IsPreemptableWoundAnimState(UINT state);
+  BOOL IsAttackAnimState(UINT state);
   bool QueueVictimAnim(VICTIMSTATES newState, int unitDead, int criticalHit, UINT victimRoundDuration);
 
  protected:
@@ -1274,9 +1274,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   UINT          GetDisplayRace() const;
   UINT          GetDisplaySex() const;
   HTEXCOMPONENT GetTexComponent() const;
-  virtual int   UpdateAttachmentLoadStatus();
-  virtual int   UpdateTexComponentLoadStatus();
-  int           IsModelComponentable() const;
+  virtual BOOL  UpdateAttachmentLoadStatus();
+  virtual BOOL  UpdateTexComponentLoadStatus();
+  BOOL          IsModelComponentable() const;
   LPCSTR        GetDisplayTextureName() const;
   UINT          SkinVariationID() const;
   UINT          FaceID() const;
@@ -1314,7 +1314,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void SetDebugHitRolls(const ATTACKROUNDINFO &info);
 
  private:
-  int SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int processNow);
+  BOOL SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int processNow);
 
  public:
   void InitializeResEffectModel();
@@ -1389,14 +1389,14 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   UINT GetCurrentBaseAnim() const {
     return m_currentBaseAnim;
   }
-  int          IsInStandSitTransition();
-  int          IsInSitSleepPosition();
-  int          IsPlayingSittingOrStandingAnim() const;
+  BOOL         IsInStandSitTransition();
+  BOOL         IsInSitSleepPosition();
+  BOOL         IsPlayingSittingOrStandingAnim() const;
   int          GetFactionTemplate() const;
-  virtual int  IsSolidSelectable() const;
-  virtual int  IsSolidCollidable() const;
-  virtual int  CanHighlight() const;
-  virtual int  CanBeTargetted() const;
+  virtual BOOL IsSolidSelectable() const;
+  virtual BOOL IsSolidCollidable() const;
+  virtual BOOL CanHighlight() const;
+  virtual BOOL CanBeTargetted() const;
   virtual void OnLeftClick();
   virtual void OnRightClick();
   int          GetSpellLevel(int spellID) const {
@@ -1447,12 +1447,12 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void AddAuraEffect(UINT slot, bool startNow);
 
  public:
-  int  ShouldDelayLevelupAnim();
-  int  ShouldDelayLevelupAnim(UINT state);
+  BOOL ShouldDelayLevelupAnim();
+  BOOL ShouldDelayLevelupAnim(UINT state);
   void PerformLevelUpAnim(int force);
   void OnCharmedChanged();
   void UpdateDisplayInfo();
-  int  DisplayInfoNeedsUpdate(int &playerModelChanged, int &wasPlayerModel) const;
+  BOOL DisplayInfoNeedsUpdate(int &playerModelChanged, int &wasPlayerModel) const;
 
  protected:
   void RefreshDataPointers();
@@ -1526,7 +1526,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void             SetEmoteQueue(TSStackArray<QUESTGIVEREMOTENODE> &list);
 
  protected:
-  int EmoteProcType(UINT emoteID, EMOTESPECPROCS &proc) const;
+  BOOL EmoteProcType(UINT emoteID, EMOTESPECPROCS &proc) const;
 
  public:
   void AddWorldXPGainText(int xpGain);
@@ -1603,29 +1603,29 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   DWORDLONG          IsAttackingNow() const;
   void               ClearAttackSent();
   bool               CanAttackNow(const CGUnit_C *unit) const;
-  int                IsStunned() const;
-  int                IsPacified() const;
-  int                IsDisarmed() const;
-  int                IsPlayingDeathAnim() const;
-  int                IsPlayingLayDownAnim() const;
-  int                IsPlayingSleepAnim() const;
-  int                IsPlayingGetUpAnim() const;
-  int                HasBloodRec() const;
+  BOOL               IsStunned() const;
+  BOOL               IsPacified() const;
+  BOOL               IsDisarmed() const;
+  BOOL               IsPlayingDeathAnim() const;
+  BOOL               IsPlayingLayDownAnim() const;
+  BOOL               IsPlayingSleepAnim() const;
+  BOOL               IsPlayingGetUpAnim() const;
+  BOOL               HasBloodRec() const;
   void               GetResistanceAndBuffs(int r, int &realResistance, int &effectiveResistance, int &buffPositive, int &buffNegative) const;
   bool               IsFriend(const CGUnit_C *unit) const;
   bool               IsPeaceful(const CGUnit_C *unit) const;
   bool               IsEnemy(const CGUnit_C *unit) const;
   void               SetDead();
-  int                SetBlock(UINT i, DWORD data);
+  BOOL               SetBlock(UINT i, DWORD data);
   void               SetData(LPCVOID data, UINT bytes);
-  int                HasInteractIcon();
+  BOOL               HasInteractIcon();
   QUEST_GIVER_STATUS GetQuestGiverStatus();
   void               SetQuestGiverStatus(QUEST_GIVER_STATUS status);
   int                GetDebugStateInfo(ATTACKROUNDINFO *attackInfo);
   void               ClearDebugFlags();
   void               SetUnitBadFacing();
-  int                IsBadFacing();
-  int                IsDeathFlagSet() const {
+  BOOL               IsBadFacing();
+  BOOL               IsDeathFlagSet() const {
     return (m_animFlags & 0x2000) != 0;
   }
   void RemoveForceDisplayFacingFlag();
@@ -1637,13 +1637,13 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void        UpdateReadyAnim(const ItemStats *stats);
   UINT        GetDeathHolds() const;
   void        SetReattachThrownWeapon(int reattach);
-  int         ShouldReattachThrownWeapon() const;
+  BOOL        ShouldReattachThrownWeapon() const;
   void        SetDebugPathPosition(const NTempest::C3Vector &position);
   HCHARGEOSET GetGeosetHandle() const;
   const UINT *GetPreferredGeosets() const;
   UINT        GetNumPreferredGeosets() const;
   int         GetDisplayHealth() const;
-  int         IsTexComponentLoaded() const;
+  BOOL        IsTexComponentLoaded() const;
   void        SetTexComponentLoaded(int loaded);
   bool        IsBeingStalked() const;
   bool        GetLootPermission() const;
@@ -1667,7 +1667,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   UINT GetFlags() const;
   int  CurrentAnimIncludesHit() const;
   int  GotRangedWeaponRelease() const;
-  void FootstepAnimEventHit(const NTempest::C3Vector &position, int isLeftFoot);
+  void FootstepAnimEventHit(const NTempest::C3Vector &position, BOOL isLeftFoot);
   void HandleFootstepAnimEvent(const NTempest::C3Vector &position);
   void GetFootprintInfo(UINT *id, NTempest::C2Vector *size);
   bool WeaponAttached(COMBATHAND hand) const;

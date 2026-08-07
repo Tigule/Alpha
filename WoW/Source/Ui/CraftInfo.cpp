@@ -46,7 +46,7 @@ static int __cdecl QSortPetSkills(LPCVOID a, LPCVOID b);
 static int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b);
 
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
-int  SpellParserParseText(const SpellRec *spell, char *buf, UINT size, int isPet);
+BOOL SpellParserParseText(const SpellRec *spell, char *buf, UINT size, BOOL isPet);
 
 class CGCraftInfo {
  public:
@@ -73,7 +73,7 @@ class CGCraftInfo {
   static int  GetSkillLineIndexFromCraft(UINT index);
   static void SetCraftType(SPELL_CAST_UI_TYPE type);
   static void RefreshList();
-  static int  IsCollpasedHeader(UINT index);
+  static BOOL IsCollpasedHeader(UINT index);
   static int  GetCollapseFilter() {
     return m_collapseFilter;
   }
@@ -391,7 +391,7 @@ int CGCraftInfo::GetSkillLineIndexFromCraft(UINT index) {
   return -1;
 }
 
-int CGCraftInfo::IsCollpasedHeader(UINT index) {
+BOOL CGCraftInfo::IsCollpasedHeader(UINT index) {
   int line = GetSkillLineIndexFromCraft(index);
   return line >= 0 && !(m_collapseFilter & (1 << line));
 }

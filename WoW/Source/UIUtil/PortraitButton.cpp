@@ -28,14 +28,14 @@ void Script_SendUnitSignal(const DWORDLONG &guid, int signal);
 
 #define PORTRAIT_SIZE_SMALL 64
 
-static int CCommand_PLightInfo(LPCSTR command, LPCSTR arguments);
-static int CCommand_PLightEnable(LPCSTR command, LPCSTR arguments);
-static int CCommand_PLightOmni(LPCSTR command, LPCSTR arguments);
-static int CCommand_PLightDir(LPCSTR command, LPCSTR arguments);
-static int CCommand_PLightAmbColor(LPCSTR command, LPCSTR arguments);
-static int CCommand_PLightDirColor(LPCSTR command, LPCSTR arguments);
-static int CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments);
-static int CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_PLightInfo(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_PLightEnable(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_PLightOmni(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_PLightDir(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_PLightAmbColor(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_PLightDirColor(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments);
 
 struct PortraitData {
   HTEXTURE                             texture;
@@ -155,7 +155,7 @@ static struct {
     {1, 1, -1.0f, -1.0f, 1.0f,  0.0f,  0.0f, 0.0f, 0.02f, 0.53f, 0.68f,  0.0f, 0.5f}
 };
 
-static int CCommand_PLightInfo(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_PLightInfo(LPCSTR command, LPCSTR arguments) {
   UINT index = SStrToInt(arguments);
 
   if (index > 2) {
@@ -181,7 +181,7 @@ static int CCommand_PLightInfo(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_PLightEnable(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_PLightEnable(LPCSTR command, LPCSTR arguments) {
   UINT enable;
   UINT index;
 
@@ -194,7 +194,7 @@ static int CCommand_PLightEnable(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_PLightOmni(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_PLightOmni(LPCSTR command, LPCSTR arguments) {
   UINT omni;
   UINT index;
 
@@ -207,7 +207,7 @@ static int CCommand_PLightOmni(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_PLightDir(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_PLightDir(LPCSTR command, LPCSTR arguments) {
   float z;
   float y;
   float x;
@@ -224,7 +224,7 @@ static int CCommand_PLightDir(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_PLightAmbColor(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_PLightAmbColor(LPCSTR command, LPCSTR arguments) {
   float b;
   float g;
   float r;
@@ -241,7 +241,7 @@ static int CCommand_PLightAmbColor(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_PLightDirColor(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_PLightDirColor(LPCSTR command, LPCSTR arguments) {
   float b;
   float g;
   float r;
@@ -258,7 +258,7 @@ static int CCommand_PLightDirColor(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments) {
   float intens;
   UINT  index;
 
@@ -271,7 +271,7 @@ static int CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments) {
   float intens;
   UINT  index;
 

@@ -129,7 +129,7 @@ void CGTabardModelFrame::SaveTabard() {
   }
 }
 
-int CGTabardModelFrame::CanSaveTabard() {
+BOOL CGTabardModelFrame::CanSaveTabard() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return 0;
@@ -317,7 +317,7 @@ void CGTabardModelFrame::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
 
-int CGTabardModelFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
+BOOL CGTabardModelFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
     return 1;
   }

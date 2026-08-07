@@ -7,7 +7,7 @@ namespace NTempest {
 void AreaListInitialize();
 void AreaListShutdown();
 
-int AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer, UINT size, int fullName);
+BOOL AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer, UINT size, int fullName);
 
 void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent, DWORD worldObject);
 

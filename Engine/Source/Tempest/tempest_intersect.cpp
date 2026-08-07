@@ -485,12 +485,12 @@ bool NTempest::Intersect(const C2Vector &a0, const C2Vector &a1, const C2Vector 
   return s >= 0.0f && s <= 1.0f && t >= 0.0f && t <= 1.0f;
 }
 
-static int
+static BOOL
 EdgeIntersectTriEdge(NTempest::C2Vector &a0, NTempest::C2Vector &a1, NTempest::C2Vector &b0, NTempest::C2Vector &b1, NTempest::C2Vector &b2) {
   return NTempest::Intersect(a0, a1, b0, b1) || NTempest::Intersect(a0, a1, b1, b2) || NTempest::Intersect(a0, a1, b2, b0);
 }
 
-static int PointInTri(NTempest::C2Vector &p, NTempest::C2Vector &a0, NTempest::C2Vector &a1, NTempest::C2Vector &a2) {
+static BOOL PointInTri(NTempest::C2Vector &p, NTempest::C2Vector &a0, NTempest::C2Vector &a1, NTempest::C2Vector &a2) {
   float ab = (a1.y - a0.y) * (p.x - a0.x) - (a1.x - a0.x) * (p.y - a0.y);
   float bc = (a2.y - a1.y) * (p.x - a1.x) - (a2.x - a1.x) * (p.y - a1.y);
   float ca = (a0.y - a2.y) * (p.x - a2.x) - (a0.x - a2.x) * (p.y - a2.y);

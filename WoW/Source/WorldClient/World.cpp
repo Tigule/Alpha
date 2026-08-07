@@ -418,7 +418,7 @@ int CWorld::QueryMapObjFog(DWORD hWorldObject, SMOFog::Fogs &oFogs, float &oPct)
   return 0;
 }
 
-int CWorld::QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep) {
+BOOL CWorld::QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
 
   FATALASSERT(entity);
@@ -494,7 +494,7 @@ bool CWorld::QueryMountAllowed(DWORD hWorldObject, bool &allowed) {
   return true;
 }
 
-UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, int bWait, int bSnap, DWORDLONG param64) {
+UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOOL bWait, BOOL bSnap, DWORDLONG param64) {
   CMapBaseObj     *baseObj;
   CMapBaseObjLink *link;
 
@@ -527,7 +527,7 @@ UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, int
   return reinterpret_cast<UINT>(baseObj);
 }
 
-void CWorld::ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, int bSnap) {
+void CWorld::ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, BOOL bSnap) {
   FATALASSERT(reinterpret_cast<CMapBaseObj *>(id));
   if (bSnap) {
     CMap::SnapBaseObjToSubChunk(reinterpret_cast<CMapBaseObj *>(id), pos, angle);
@@ -552,7 +552,7 @@ void CWorld::ObjectGetExtents(UINT id, NTempest::CAaBox &extents) {
   }
 }
 
-void CWorld::ObjectEnableCollision(UINT id, int bEnable) {
+void CWorld::ObjectEnableCollision(UINT id, BOOL bEnable) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
   ASSERT(baseObj);
   if (bEnable) {
@@ -1031,7 +1031,7 @@ void CWorld::ModelGeoProjectCallback(const NTempest::CAaBox &worldBox, NTempest:
   ProjectTex2d(worldBox, color, &basis, 0.5f);
 }
 
-int CWorld::ParticleProjectCallback(const NTempest::C3Segment &seg, float &z) {
+BOOL CWorld::ParticleProjectCallback(const NTempest::C3Segment &seg, float &z) {
   NTempest::C4Plane facet;
   float             segT = 1.0f;
 
@@ -1043,7 +1043,7 @@ int CWorld::ParticleProjectCallback(const NTempest::C3Segment &seg, float &z) {
   return 1;
 }
 
-int CWorld::AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z) {
+BOOL CWorld::AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z) {
   NTempest::C4Plane facet;
   float             segT = 1.0f;
 
@@ -1055,7 +1055,7 @@ int CWorld::AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowDetailDoodads(LPCSTR, LPCSTR) {
+BOOL CWorld::ConsoleCommand_ShowDetailDoodads(LPCSTR, LPCSTR) {
   if (enables & Enable_DetailDoodads) {
     ConsoleWrite("Detail doodads disabled.", DEFAULT_COLOR);
     enables &= ~Enable_DetailDoodads;
@@ -1067,7 +1067,7 @@ int CWorld::ConsoleCommand_ShowDetailDoodads(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments) {
+BOOL CWorld::ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments) {
   UINT maxLod;
 
   sscanf(arguments, "%d", &maxLod);
@@ -1082,7 +1082,7 @@ int CWorld::ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowCull(LPCSTR, LPCSTR) {
+BOOL CWorld::ConsoleCommand_ShowCull(LPCSTR, LPCSTR) {
   if (enables & Enable_Culling) {
     ConsoleWrite("Terrain culling disabled.", DEFAULT_COLOR);
     enables &= ~Enable_Culling;
@@ -1094,7 +1094,7 @@ int CWorld::ConsoleCommand_ShowCull(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments) {
+BOOL CWorld::ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments) {
   float               color[4];
   NTempest::CImVector argb;
 
@@ -1118,7 +1118,7 @@ shadowColorRangeInvalid:
   return 0;
 }
 
-int CWorld::ConsoleCommand_MapObjLightMode(LPCSTR, LPCSTR) {
+BOOL CWorld::ConsoleCommand_MapObjLightMode(LPCSTR, LPCSTR) {
   if (enables & Enable_VertexLight) {
     ConsoleWrite("MapObj lightmaps enabled.", DEFAULT_COLOR);
     enables &= ~Enable_VertexLight;
@@ -1130,7 +1130,7 @@ int CWorld::ConsoleCommand_MapObjLightMode(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterShow(LPCSTR, LPCSTR) {
+BOOL CWorld::ConsoleCommand_WaterShow(LPCSTR, LPCSTR) {
   if (enables & Enable_Water) {
     ConsoleWrite("Water disabled", DEFAULT_COLOR);
     enables &= ~Enable_Water;
@@ -1142,7 +1142,7 @@ int CWorld::ConsoleCommand_WaterShow(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterMaxLOD(LPCSTR, LPCSTR arguments) {
+BOOL CWorld::ConsoleCommand_WaterMaxLOD(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterMaxLOD);
   if (CMapArea::ccWaterMaxLOD > 4) {
     CMapArea::ccWaterMaxLOD = 4;
@@ -1154,22 +1154,22 @@ int CWorld::ConsoleCommand_WaterMaxLOD(LPCSTR, LPCSTR arguments) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterWaves(LPCSTR, LPCSTR arguments) {
+BOOL CWorld::ConsoleCommand_WaterWaves(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterWaves);
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterSpecular(LPCSTR, LPCSTR arguments) {
+BOOL CWorld::ConsoleCommand_WaterSpecular(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterSpecular);
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterRipples(LPCSTR, LPCSTR arguments) {
+BOOL CWorld::ConsoleCommand_WaterRipples(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterRipples);
   return 1;
 }
 
-int CWorld::ConsoleCommand_WaterParticulates(LPCSTR, LPCSTR) {
+BOOL CWorld::ConsoleCommand_WaterParticulates(LPCSTR, LPCSTR) {
   if (enables & Enable_Particulates) {
     ConsoleWrite("Particulates disabled", DEFAULT_COLOR);
     enables &= ~Enable_Particulates;
@@ -1181,7 +1181,7 @@ int CWorld::ConsoleCommand_WaterParticulates(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments) {
+BOOL CWorld::ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments) {
   UINT alphaRef;
 
   sscanf(arguments, "%d", &alphaRef);
@@ -1193,7 +1193,7 @@ int CWorld::ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowShadow(LPCSTR, LPCSTR) {
+BOOL CWorld::ConsoleCommand_ShowShadow(LPCSTR, LPCSTR) {
   if (enables & Enable_Shadow) {
     ConsoleWrite("Terrain shadow disabled.", DEFAULT_COLOR);
     enables &= ~Enable_Shadow;
@@ -1205,7 +1205,7 @@ int CWorld::ConsoleCommand_ShowShadow(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowLowDetail(LPCSTR, LPCSTR) {
+BOOL CWorld::ConsoleCommand_ShowLowDetail(LPCSTR, LPCSTR) {
   if (enables & Enable_LowDetail) {
     ConsoleWrite("Terrain low detail disabled.", DEFAULT_COLOR);
     enables &= ~Enable_LowDetail;
@@ -1217,7 +1217,7 @@ int CWorld::ConsoleCommand_ShowLowDetail(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_ShowSimpleDoodads(LPCSTR, LPCSTR) {
+BOOL CWorld::ConsoleCommand_ShowSimpleDoodads(LPCSTR, LPCSTR) {
   if (bShowSimpleDoodads) {
     ConsoleWrite("Simple doodads disabled.", DEFAULT_COLOR);
     bShowSimpleDoodads = 0;
@@ -1229,7 +1229,7 @@ int CWorld::ConsoleCommand_ShowSimpleDoodads(LPCSTR, LPCSTR) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name) {
+BOOL CWorld::ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name) {
   char  buffer[256];
   char  timeStamp[256];
   HSLOG log;
@@ -1248,7 +1248,7 @@ int CWorld::ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name) {
   return 1;
 }
 
-int CWorld::ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name) {
+BOOL CWorld::ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name) {
   char  buffer[256];
   char  timeStamp[256];
   HSLOG log;

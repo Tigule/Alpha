@@ -30,11 +30,11 @@ class CGDuelInfo {
   static void CancelDuel();
 
  private:
-  static int OnDuelRequested(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-  static int OnDuelOutOfBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-  static int OnDuelInBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-  static int OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-  static int OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  static BOOL OnDuelRequested(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  static BOOL OnDuelOutOfBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  static BOOL OnDuelInBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  static BOOL OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  static BOOL OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
  protected:
   static DWORDLONG m_arbiter;
@@ -76,7 +76,7 @@ void CGDuelInfo::CancelDuel() {
   ClientServices_Send(&msg);
 }
 
-int CGDuelInfo::OnDuelRequested(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL CGDuelInfo::OnDuelRequested(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG requestedBy;
   msg->Get(m_arbiter);
   msg->Get(requestedBy);
@@ -96,17 +96,17 @@ int CGDuelInfo::OnDuelRequested(LPVOID, NETMESSAGE msgId, DWORD eventTime, CData
   return 1;
 }
 
-int CGDuelInfo::OnDuelOutOfBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL CGDuelInfo::OnDuelOutOfBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FrameScript_SignalEvent(364);
   return 1;
 }
 
-int CGDuelInfo::OnDuelInBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL CGDuelInfo::OnDuelInBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FrameScript_SignalEvent(365);
   return 1;
 }
 
-int CGDuelInfo::OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL CGDuelInfo::OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   BYTE started;
   msg->Get(started);
   if (m_arbiter) {
@@ -119,7 +119,7 @@ int CGDuelInfo::OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataS
   return 1;
 }
 
-int CGDuelInfo::OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL CGDuelInfo::OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   UINT fled;
   char message[1024];
   char beaten[48];

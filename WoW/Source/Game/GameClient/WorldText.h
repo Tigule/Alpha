@@ -94,4 +94,4 @@ HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object,
 void          WorldTextShow(HWORLDTEXT__ *text, int show);
 void          WorldTextRender(HWORLDTEXT__ *text);
 void          WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position);
-int           WorldTextIsTextDone(HWORLDTEXT__ *text);
+BOOL          WorldTextIsTextDone(HWORLDTEXT__ *text);

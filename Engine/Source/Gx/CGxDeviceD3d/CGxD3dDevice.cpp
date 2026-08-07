@@ -153,7 +153,7 @@ CGxDeviceD3d::~CGxDeviceD3d() {
   m_thisDevice = 0;
 }
 
-int CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
+BOOL CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
   typedef IDirect3D9 *(__stdcall * D3dCreateProc)(UINT);
 
   D3dCreateProc d3dCreateProc;
@@ -245,7 +245,7 @@ void CGxDeviceD3d::ISetCaps() {
   m_caps.m_rttFormat[GxTex_Rgb565] = ICheckTextureFormat(1, D3DFMT_R5G6B5);
 }
 
-int CGxDeviceD3d::ICreateD3d() {
+BOOL CGxDeviceD3d::ICreateD3d() {
   if (!ILoadD3dLib(m_d3dLib, m_d3d) || m_d3d->GetDeviceCaps(0, D3DDEVTYPE_HAL, &m_d3dCaps) < 0) {
     IDestroyD3d();
     return 0;
@@ -268,11 +268,11 @@ void CGxDeviceD3d::IDestroyD3d() {
   IUnloadD3dLib(m_d3dLib, m_d3d);
 }
 
-int CGxDeviceD3d::ICheckTextureFormat(DWORD usage, _D3DFORMAT textureFormat) {
+BOOL CGxDeviceD3d::ICheckTextureFormat(DWORD usage, _D3DFORMAT textureFormat) {
   return m_d3d->CheckDeviceFormat(0, D3DDEVTYPE_HAL, m_devAdapterFormat, usage, D3DRTYPE_TEXTURE, textureFormat) == 0;
 }
 
-int CGxDeviceD3d::IAllocBuffers() {
+BOOL CGxDeviceD3d::IAllocBuffers() {
   for (UINT format = 0; format < GxVertexBufferFormats_Last; ++format) {
     ICreateBuffers(static_cast<EGxVertexBufferFormat>(format), 0x4000, m_VBL[GxBWF_Dynamic][format], 0xC000, m_IB[GxBWF_Dynamic][0]);
 
@@ -291,7 +291,7 @@ int CGxDeviceD3d::IAllocBuffers() {
   return 1;
 }
 
-int CGxDeviceD3d::ICreateD3dDevice(const CGxFormat &format) {
+BOOL CGxDeviceD3d::ICreateD3dDevice(const CGxFormat &format) {
   bool hwTnL = format.hwTnL;
   if (hwTnL && !(m_d3dCaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT)) {
     hwTnL = false;
@@ -419,7 +419,7 @@ void CGxDeviceD3d::IReleaseD3dResources(int freeTextures) {
   }
 }
 
-int CGxDeviceD3d::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
+BOOL CGxDeviceD3d::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
   m_ownhwnd = 1;
 
   HDC hDC = GetDC(0);
@@ -437,7 +437,7 @@ int CGxDeviceD3d::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format)
   return 0;
 }
 
-int CGxDeviceD3d::DeviceCreate(UINT hwnd, const CGxFormat &format) {
+BOOL CGxDeviceD3d::DeviceCreate(UINT hwnd, const CGxFormat &format) {
   m_ownhwnd = 0;
   CGxDevice::DeviceCreate(hwnd, format);
   m_hwnd = reinterpret_cast<HWND>(hwnd);
@@ -460,7 +460,7 @@ void CGxDeviceD3d::DeviceDestroy() {
   }
 }
 
-int CGxDeviceD3d::DeviceSetFormat(const CGxFormat &format) {
+BOOL CGxDeviceD3d::DeviceSetFormat(const CGxFormat &format) {
   ASSERT(m_ownhwnd);
   Log("CGxDeviceD3d::DeviceSetFormat():");
   Log(format);

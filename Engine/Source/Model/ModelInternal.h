@@ -282,7 +282,7 @@ struct CModelShared : public CHandleObject {
 void ModelEnableLights(HMODEL model, int enable);
 void ModelShowBoundingSphere(HMODEL model);
 void ModelShowBoundingBox(HMODEL model);
-int  ModelGeosetAdd(
+BOOL ModelGeosetAdd(
     HMODEL                    model,
     UINT                      numVertices,
     const NTempest::C3Vector *position,
@@ -411,9 +411,9 @@ void      EnqueueModelCommand(CModel *model, EModelModQ command, ...);
 HMATERIAL BuildSimpleMaterial(CModelTexture *modelTexture, UINT textureId, HTEXTURE texture, EGxBlend blendMode, UINT disables, UINT replaceableId);
 UINT      MatrixAlloc(UINT numMatrices);
 NTempest::C34Matrix *MatrixDeref(UINT handle);
-int                  IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared);
-int                  IModelDerefHandle(CModel *model, CModelBase **unique);
-int                  IModelDerefHandle(CModel *model, CModelShared **shared);
+BOOL                 IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared);
+BOOL                 IModelDerefHandle(CModel *model, CModelBase **unique);
+BOOL                 IModelDerefHandle(CModel *model, CModelShared **shared);
 
 void MdxReadCameras(BYTE *data, UINT fileBytes, TSFixedArray<HCAMERA> *cameras);
 

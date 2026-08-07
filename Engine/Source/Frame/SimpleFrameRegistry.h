@@ -5,11 +5,11 @@ class CSimpleFontString;
 class CSimpleFrame;
 class CSimpleTexture;
 
-int                SimpleFrameRegistryAddEntry(LPCSTR name, CSimpleFrame *object, UINT context);
+BOOL               SimpleFrameRegistryAddEntry(LPCSTR name, CSimpleFrame *object, UINT context);
 void               SimpleFrameRegistryRemoveEntry(LPCSTR name, UINT context);
-int                SimpleFontStringRegistryAddEntry(LPCSTR name, CSimpleFontString *object, UINT context);
+BOOL               SimpleFontStringRegistryAddEntry(LPCSTR name, CSimpleFontString *object, UINT context);
 void               SimpleFontStringRegistryRemoveEntry(LPCSTR name, UINT context);
-int                SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT context);
+BOOL               SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT context);
 void               SimpleTextureRegistryRemoveEntry(LPCSTR name, UINT context);
 CSimpleFrame      *SimpleFrameRegistryGetEntry(LPCSTR name, UINT context);
 CSimpleTexture    *SimpleTextureRegistryGetEntry(LPCSTR name, UINT context);

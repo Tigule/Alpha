@@ -134,7 +134,7 @@ static void IReadSpline(Parser &parse, TSGrowableArray<NTempest::C3Vector> &spli
   parse.Expect('}');
 }
 
-static int ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
+static BOOL ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   switch (savedtoken) {
     case 0x11A:
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_ADD;
@@ -158,7 +158,7 @@ static int ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPART
   return 1;
 }
 
-static int IReadParticleEmitter2EmitterType(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
+static BOOL IReadParticleEmitter2EmitterType(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   if (savedtoken != 0x1D0) {
     return 0;
   }
@@ -167,7 +167,7 @@ static int IReadParticleEmitter2EmitterType(Parser &parse, UINT savedtoken, MDLP
   return 1;
 }
 
-static int ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
+static BOOL ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   switch (savedtoken) {
     case 0x133:
       emitter->type = MDLPARTICLEEMITTER2::PT_BOTH;
@@ -185,7 +185,7 @@ static int ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLEE
   return 1;
 }
 
-static int IReadParticleEmitter2Flags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
+static BOOL IReadParticleEmitter2Flags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   UINT flag = 0;
   switch (savedtoken) {
     case 0x169:
@@ -472,7 +472,7 @@ static void IReadParticleEmitter2(Parser &parse, TSet &errors, MDLPARTICLEEMITTE
 
 namespace MDL {
 
-  int ReadParticleEmitter2(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadParticleEmitter2(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet                 errors;
     MDLPARTICLEEMITTER2 *emitter = data.particleEmitters2.New();
     IAddParticleEmitter2Errors(errors);
@@ -693,7 +693,7 @@ static void IWriteParticleEmitter2(const MDLDATA &data, const MDLPARTICLEEMITTER
 
 namespace MDL {
 
-  int WriteParticleEmitters2(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  BOOL WriteParticleEmitters2(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
       for (UINT i = 0; i < data.particleEmitters2.Count(); ++i) {
         IWriteParticleEmitter2(data, data.particleEmitters2[i], data.particleEmitters2.Count() != data.objects.Count(), buffer);
@@ -838,7 +838,7 @@ static void IWriteBinParticleEmitter2(const MDLPARTICLEEMITTER2 &section, CMsgBu
   WriteBinFloatKeyFrames(section.life, 0x46494C4B, buf);
 }
 
-static int ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit, CMDLStatus *status, UINT &totalRead) {
+static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit, CMDLStatus *status, UINT &totalRead) {
   UINT sectionLength = buf.GetUint();
   UINT localBytesRead = 4;
   if (!ReadBinGenObject(*pEmit, buf, status, localBytesRead)) {
@@ -992,7 +992,7 @@ static int ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit, 
 
 namespace MDL {
 
-  int WriteBinParticleEmitters2(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
+  BOOL WriteBinParticleEmitters2(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.particleEmitters2.Count()) {
       buf.AddDword('2ERP');
       UINT totalSize = 4;
@@ -1009,7 +1009,7 @@ namespace MDL {
     return 1;
   }
 
-  int ReadBinParticleEmitters2(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  BOOL ReadBinParticleEmitters2(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT totalRead = 4;
     UINT numEmitters = buf.GetUint();
     data.particleEmitters2.SetCount(0);

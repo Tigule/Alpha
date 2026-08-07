@@ -74,7 +74,7 @@ static bool UpdateTexture(int continentID) {
   UINT     width;
   UINT     height;
   UINT     format;
-  int      isOpaque;
+  BOOL     isOpaque;
   CStatus  status;
   MipBits *bits = TextureLoadImage(fileName, &width, &height, &format, &isOpaque, &status, 0);
   if (!bits) {
@@ -226,7 +226,7 @@ HTEXTURE TaxiMapGetTexture() {
   return s_texture;
 }
 
-int TaxiMapUpdatePosition(int currentTaxiNode, LONGLONG reachable, LONGLONG known, NTempest::CRect &rect) {
+BOOL TaxiMapUpdatePosition(int currentTaxiNode, LONGLONG reachable, LONGLONG known, NTempest::CRect &rect) {
   const TaxiNodesRec *currentNode = g_taxiNodesDB.GetRecord(currentTaxiNode);
   if (currentTaxiNode >= 0 && currentNode && UpdateTexture(currentNode->m_ContinentID)) {
     s_currentTaxiNode = currentTaxiNode;

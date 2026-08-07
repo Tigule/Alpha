@@ -71,7 +71,7 @@ static UINT APIENTRY NetPumpThread(LPVOID) {
   return 0;
 }
 
-int OsNetInitialize(DWORD hints, DWORD parts) {
+BOOL OsNetInitialize(DWORD hints, DWORD parts) {
   if (s_initialized) {
     return 1;
   }
@@ -153,7 +153,7 @@ DWORD OsNetGetHostAddr(LPCSTR hostName) {
   return address;
 }
 
-int OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user) {
+BOOL OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user) {
   LPCSTR cursor = hostNameList;
   DWORD  count = 0;
 

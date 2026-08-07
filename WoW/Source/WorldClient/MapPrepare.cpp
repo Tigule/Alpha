@@ -123,7 +123,7 @@ void CMap::QueryLightmap(CMapDoodadDef *doodadDef) {
 }
 
 void CMap::UpdateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
-  int bFini = 1;
+  BOOL bFini = 1;
   FATALASSERT(mapObj);
   FATALASSERT(mapObjGroup);
   FATALASSERT(mapObjDef);

@@ -32,7 +32,7 @@ void CGxDeviceD3d::ITexForceRecreation(int freeTextures) {
   }
 }
 
-int CGxDeviceD3d::TexCreate(
+BOOL CGxDeviceD3d::TexCreate(
     UINT         width,
     UINT         height,
     EGxTexFormat format,
@@ -44,7 +44,7 @@ int CGxDeviceD3d::TexCreate(
   return CGxDevice::TexCreate(width, height, format, flags, userArg, userFunc, texId);
 }
 
-int CGxDeviceD3d::TexCreate(
+BOOL CGxDeviceD3d::TexCreate(
     EGxTexTarget target,
     UINT         width,
     UINT         height,

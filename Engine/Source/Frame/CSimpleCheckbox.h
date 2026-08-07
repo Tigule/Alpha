@@ -19,16 +19,16 @@ class CSimpleCheckbox : public CSimpleButton {
 
   void SetChecked(int state, int force);
   void SetCheckedTexture(CSimpleTexture *texture);
-  int  SetCheckedTexture(LPCSTR texFile);
+  BOOL SetCheckedTexture(LPCSTR texFile);
   void SetDisabledCheckedTexture(CSimpleTexture *texture);
-  int  SetDisabledCheckedTexture(LPCSTR texFile);
+  BOOL SetDisabledCheckedTexture(LPCSTR texFile);
 
   int GetChecked() {
     return m_checked;
   }
 
  protected:
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 

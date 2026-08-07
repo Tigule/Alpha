@@ -49,7 +49,7 @@ void CGTutorial::ResetTutorials() {
   ClientServices_Send(&msg);
 }
 
-int CGTutorial::OnTutorialFlags(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+BOOL CGTutorial::OnTutorialFlags(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   UINT   byteCount = msg->Size() - msg->Tell();
   LPVOID data;
 

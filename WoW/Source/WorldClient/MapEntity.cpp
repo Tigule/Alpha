@@ -30,7 +30,7 @@ class FogQ {
   int   subscript;
 };
 
-int CMapStaticEntity::GetMapObjDef(CMapObjDef *&mapObjDef) {
+BOOL CMapStaticEntity::GetMapObjDef(CMapObjDef *&mapObjDef) {
   ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
       CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
@@ -47,7 +47,7 @@ CMapEntity::~CMapEntity() {
   FATALASSERT(refCount == 0);
 }
 
-int CMapStaticEntity::GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapObj, CMapObjDefGroup *&mapObjDefGroup, CMapObjGroup *&mapObjGroup) {
+BOOL CMapStaticEntity::GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapObj, CMapObjDefGroup *&mapObjDefGroup, CMapObjGroup *&mapObjGroup) {
   if (!flagInside) {
     return 0;
   }
@@ -93,7 +93,7 @@ void CMapEntity::QueryLiquidSounds(int *lbool, NTempest::C3Vector *ldelta, float
   }
 }
 
-int CMapEntity::QueryMapObjZoneName(LPCSTR &zoneName) {
+BOOL CMapEntity::QueryMapObjZoneName(LPCSTR &zoneName) {
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup;
   CMapObj         *mapObj;
@@ -110,7 +110,7 @@ int CMapEntity::QueryMapObjZoneName(LPCSTR &zoneName) {
   return 1;
 }
 
-int CMapEntity::QueryMapObjSubzoneName(LPCSTR &subzoneName, UINT &subzoneId) {
+BOOL CMapEntity::QueryMapObjSubzoneName(LPCSTR &subzoneName, UINT &subzoneId) {
   CMapObjDef      *mapObjDef;
   CMapObj         *mapObj;
   CMapObjGroup    *mapObjGroup;
@@ -144,7 +144,7 @@ bool CMapEntity::QueryMapObjAreaTable(const WMOAreaTableRec *&subzoneRec, const 
   return SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, -1, globalRec);
 }
 
-int CMapEntity::QueryMapObjFileName(LPCSTR &fileName) {
+BOOL CMapEntity::QueryMapObjFileName(LPCSTR &fileName) {
   CMapObjDef      *mapObjDef;
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup;
@@ -157,7 +157,7 @@ int CMapEntity::QueryMapObjFileName(LPCSTR &fileName) {
   return 1;
 }
 
-int CMapEntity::QueryMapObjListenerId(UINT &listenerId) {
+BOOL CMapEntity::QueryMapObjListenerId(UINT &listenerId) {
   CMapObjGroup    *mapObjGroup;
   CMapObjDefGroup *mapObjDefGroup;
   CMapObj         *mapObj;
@@ -254,7 +254,7 @@ float ComputeFogBlend(const SMOFog &fog, float dist) {
   return 1.0f;
 }
 
-int CMapEntity::QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct) {
+BOOL CMapEntity::QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct) {
   CMapObjDef      *mapObjDef;
   CMapObj         *mapObj;
   CMapObjDefGroup *mapObjDefGroup;
@@ -303,7 +303,7 @@ int CMapEntity::QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct) {
   return 1;
 }
 
-int CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
+BOOL CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
   CMapObjDef   *mapObjDef = CWorldScene::camMapObjDef;
   CMapObj      *mapObj = CWorldScene::camMapObj;
   CMapObjGroup *mapObjGroup = CWorldScene::camMapObjGroup;

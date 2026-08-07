@@ -2,7 +2,7 @@
 #define WOW_SOURCE_UI_PAPERDOLLINFOFRAME_H
 
 struct SkillInfo {
-  int  isProf;
+  BOOL isProf;
   int  skillID;
   int  profLevel;
   char profName[64];
@@ -21,7 +21,7 @@ class CGCharacterInfo {
   static void             PickupItem(int slot);
   static void             UseItem(int slot);
   static void             PickupBag(int slot);
-  static int              PutItemInBag(int slot);
+  static BOOL             PutItemInBag(int slot);
   static int              PutItemInBackpack();
   static int              GetSkillOffsetFromString(LPCSTR string, int &offset);
   static const SkillInfo *GetSkillInfoByIndex(int index);

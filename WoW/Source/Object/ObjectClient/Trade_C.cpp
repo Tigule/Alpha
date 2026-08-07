@@ -65,7 +65,7 @@ void Trade_C_CancelTrade();
 bool Trade_C_AddItem(DWORDLONG item, DWORDLONG itemContainer, UINT itemSlot, UINT tradeSlot);
 void Trade_C_RemoveItem(UINT slot);
 
-static int CCommand_Trade(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Trade(LPCSTR command, LPCSTR arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     Trade_C_InitiateTrade(player->GetLocalTarget(), 0);
@@ -73,7 +73,7 @@ static int CCommand_Trade(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_AddTradeItem(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_AddTradeItem(LPCSTR command, LPCSTR arguments) {
   DWORDLONG cursorItem;
   DWORDLONG cursorItemContainer;
   UINT      cursorItemSlot;
@@ -83,14 +83,14 @@ static int CCommand_AddTradeItem(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_ClearTradeItem(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_ClearTradeItem(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     Trade_C_RemoveItem(arguments && *arguments ? SStrToInt(arguments) : 0);
   }
   return 1;
 }
 
-static int CCommand_ClearTrade(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_ClearTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     CDataStore msg;
     msg.Put(static_cast<UINT>(CMSG_CLEAR_TRADE_ITEM));
@@ -101,21 +101,21 @@ static int CCommand_ClearTrade(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_AcceptTrade(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_AcceptTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     Trade_C_AcceptTrade();
   }
   return 1;
 }
 
-static int CCommand_CancelTrade(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_CancelTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     Trade_C_CancelTrade();
   }
   return 1;
 }
 
-static int CCommand_ShowTrade(LPCSTR, LPCSTR) {
+static BOOL CCommand_ShowTrade(LPCSTR, LPCSTR) {
   for (BYTE player = 0; player < 2; ++player) {
     ConsoleWrite(player ? "He is offering:" : "You are offering:", DEFAULT_COLOR);
     for (UINT slot = 0; slot < 8; ++slot) {
@@ -125,7 +125,7 @@ static int CCommand_ShowTrade(LPCSTR, LPCSTR) {
   return 1;
 }
 
-static int CCommand_TradeGold(LPCSTR, LPCSTR arguments) {
+static BOOL CCommand_TradeGold(LPCSTR, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(CMSG_SET_TRADE_GOLD);
   msg.Put(arguments ? SStrToInt(arguments) : 0);
@@ -134,12 +134,12 @@ static int CCommand_TradeGold(LPCSTR, LPCSTR arguments) {
   return 1;
 }
 
-static int CCommand_UnacceptTrade(LPCSTR, LPCSTR) {
+static BOOL CCommand_UnacceptTrade(LPCSTR, LPCSTR) {
   Trade_C_UnacceptTrade();
   return 1;
 }
 
-static int TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
+static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
   UINT statusint;
   netmsg->Get(statusint);
   TRADE_STATUS status = static_cast<TRADE_STATUS>(statusint);
@@ -258,7 +258,7 @@ static int TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
   return 1;
 }
 
-static int TradeExtendedStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL TradeExtendedStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   BYTE whichPlayer;
   msg->Get(whichPlayer);
   FATALASSERT(whichPlayer < 2);
@@ -295,11 +295,11 @@ int Trade_C_IsInitiator() {
   return s_initiator;
 }
 
-int Trade_C_UseCursorItem() {
+BOOL Trade_C_UseCursorItem() {
   return s_initiator && s_useCursorItem;
 }
 
-int Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot) {
+BOOL Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot) {
   int enchantment = s_tradeProposedEnchantment[player];
   if (enchantment <= 0) {
     return 0;

@@ -39,8 +39,8 @@ class CGTooltip : public CSimpleFrame {
  public:
   static CSimpleFrame *Create(CSimpleFrame *parent);
   static LPCSTR        GetItemQualityColorString(UINT quality);
-  static void GetSpellEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, int isPet, TOOLTIP_DETAIL detail);
-  static void GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, int isPet, TOOLTIP_DETAIL detail);
+  static void GetSpellEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, BOOL isPet, TOOLTIP_DETAIL detail);
+  static void GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, BOOL isPet, TOOLTIP_DETAIL detail);
   static void GetItemEnchantString(char *buf, UINT bufSize, const SpellItemEnchantmentRec *enchant, UINT effectIndex, TOOLTIP_DETAIL detail);
   static void GetSpellTargetString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex);
   static void GetSummonedByString(const CGUnit_C *unitPtr, char *string, UINT size);
@@ -63,10 +63,10 @@ class CGTooltip : public CSimpleFrame {
   void AppendText(LPCSTR text);
   void SetTooltipPadding(float right);
   void CalculateSize();
-  int  SetUnit(const DWORDLONG &unit);
+  BOOL SetUnit(const DWORDLONG &unit);
   void SetObject(const DWORDLONG &object);
-  int  SetItem(int itemID, const DWORDLONG &refGUID, const DWORDLONG &itemGUID, int nameOnly, int showComparison, TooltipExtendedItemInfo *info);
-  int  SetSpell(int spellID, int nameOnly, UINT cooldownTime, int isPet);
+  BOOL SetItem(int itemID, const DWORDLONG &refGUID, const DWORDLONG &itemGUID, int nameOnly, int showComparison, TooltipExtendedItemInfo *info);
+  BOOL SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPet);
   void SetBuff(int spellID, BYTE flags);
   void SetCorpse(const DWORDLONG &corpseGUID);
   const DWORDLONG &GetObjectGUID() const {
@@ -96,9 +96,9 @@ class CGTooltip : public CSimpleFrame {
   CGTooltip(CSimpleFrame *parent);
   virtual ~CGTooltip();
 
-  virtual int LookupScriptMethod(lua_State *L, LPCSTR name);
-  virtual int HideThis();
-  virtual int ShowThis();
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
+  virtual BOOL HideThis();
+  virtual BOOL ShowThis();
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
@@ -109,7 +109,7 @@ class CGTooltip : public CSimpleFrame {
   TOOLTIP_ANCHORPOINT               m_anchorPoint;
   UINT                              m_lines;
   UINT                              m_linesMax;
-  int                               m_reposition;
+  BOOL                              m_reposition;
   TSFixedArray<CSimpleFontString *> m_leftStrings;
   TSFixedArray<CSimpleFontString *> m_rightStrings;
   TSFixedArray<int>                 m_wrapLine;
@@ -120,7 +120,7 @@ class CGTooltip : public CSimpleFrame {
   DWORDLONG                         m_itemGUID;
   DWORDLONG                         m_corpseGUID;
   UINT                              m_itemID;
-  int                               m_fading;
+  BOOL                              m_fading;
   float                             m_fadeTime;
   float                             m_padding;
 };

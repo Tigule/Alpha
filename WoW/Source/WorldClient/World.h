@@ -333,14 +333,14 @@ class CWorld {
   static bool   QueryMapObjMatrix(DWORD hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
   static LPCSTR QueryChunkName();
   static bool   QueryMapObjAreaTable(DWORD hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
-  static int    QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep);
+  static BOOL   QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep);
   static int    QueryGroundType(DWORD hWorldObject, UINT &groundType);
   static bool   QueryMountAllowed(DWORD hWorldObject, bool &allowed);
   static int    QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir);
   static int    QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable);
   static void   UpdateObject(DWORD hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox);
-  static void   ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, int bSnap);
-  static UINT   ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, int bWait, int bSnap, DWORDLONG param64);
+  static void   ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, BOOL bSnap);
+  static UINT   ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOOL bWait, BOOL bSnap, DWORDLONG param64);
   static void   TickObject(DWORD hWorldObject);
   static void   WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq);
   static float  GetCurTimeSec() {
@@ -389,7 +389,7 @@ class CWorld {
   static bool GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags);
   static void DBGShowQuery(bool show);
   static void SetSoundEmitterHandlers(void (*create)(CWSoundEmitter &), void (*destroy)(DWORD));
-  static int  NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3Vector **&p_outVerts, UINT &p_outCount);
+  static BOOL NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3Vector **&p_outVerts, UINT &p_outCount);
   static bool NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate);
 
  private:
@@ -405,51 +405,51 @@ class CWorld {
   friend class CMapArea;
   friend class CMapObjGroup;
   friend void        ShadowRender_LOD1(HMODEL__ *hModel, const NTempest::C44Matrix &basis, LPVOID param);
-  friend HTEXTURE__ *CharCustomizationLoadSkin(HMODEL__ *characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, int isNPC);
-  friend HTEXTURE__ *CharCustomizationSetSkin(HMODEL__ *characterModel, UINT raceID, UINT sexID, UINT textureNumber, int isNPC);
+  friend HTEXTURE__ *CharCustomizationLoadSkin(HMODEL__ *characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
+  friend HTEXTURE__ *CharCustomizationSetSkin(HMODEL__ *characterModel, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
 
   static void ModelGeoProjectCallback(const NTempest::CAaBox &worldBox, NTempest::CImVector color, const NTempest::C44Matrix &basis);
-  static int  ParticleProjectCallback(const NTempest::C3Segment &seg, float &z);
-  static int  AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z);
+  static BOOL ParticleProjectCallback(const NTempest::C3Segment &seg, float &z);
+  static BOOL AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z);
   static void CalcFPS();
   static void PrepareAreaOfInterest(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
 
-  static int ConsoleCommand_ShowDetailDoodads(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowMapObjBSP(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_DebugBSP(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowTerrain(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowDoodads(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowAABoxes(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowCollision(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments);
-  static int ConsoleCommand_ShowCull(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments);
-  static int ConsoleCommand_ShowMapObjLight(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_MapObjLightMode(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowMapObjTex(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowCrappyBatches(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowMapObjs(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowPortals(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_PortalVis(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_WaterShow(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_WaterMaxLOD(LPCSTR, LPCSTR arguments);
-  static int ConsoleCommand_WaterWaves(LPCSTR, LPCSTR arguments);
-  static int ConsoleCommand_WaterSpecular(LPCSTR, LPCSTR arguments);
-  static int ConsoleCommand_WaterRipples(LPCSTR, LPCSTR arguments);
-  static int ConsoleCommand_WaterParticulates(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_Proj(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowTris(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowNormals(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_DebugZones(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowQuery(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_DetailDoodadTest(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments);
-  static int ConsoleCommand_GroupOnly(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowShadow(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowLowDetail(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_ShowSimpleDoodads(LPCSTR command, LPCSTR arguments);
-  static int ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name);
-  static int ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name);
+  static BOOL ConsoleCommand_ShowDetailDoodads(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowMapObjBSP(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_DebugBSP(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowTerrain(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowDoodads(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowAABoxes(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowCollision(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_ShowCull(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments);
+  static int  ConsoleCommand_ShowMapObjLight(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_MapObjLightMode(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowMapObjTex(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowCrappyBatches(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowMapObjs(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowPortals(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_PortalVis(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterShow(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterMaxLOD(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterWaves(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterSpecular(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterRipples(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterParticulates(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_Proj(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowTris(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowNormals(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_DebugZones(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowQuery(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_DetailDoodadTest(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments);
+  static int  ConsoleCommand_GroupOnly(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_ShowShadow(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_ShowLowDetail(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_ShowSimpleDoodads(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name);
+  static BOOL ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name);
 
   static DWORD               enables;
   static float               curTimeSec;
@@ -500,8 +500,8 @@ class CWorld {
   static UINT                alphaMipLevel;
   static NTempest::CImVector shadowColor;
   static UINT                shadowModColor[64];
-  static int                 bLoadSimpleDoodads;
-  static int                 bShowSimpleDoodads;
+  static BOOL                bLoadSimpleDoodads;
+  static BOOL                bShowSimpleDoodads;
 };
 
 #include "WorldClient/Map.h"
@@ -585,11 +585,11 @@ class CMap {
   static void           Open();
   static void           GetCounts(int counts[]);
   static CMapDoodadDef *CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos);
-  static CMapDoodadDef *CreateDoodadDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, int bWait);
+  static CMapDoodadDef *CreateDoodadDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, BOOL bWait);
   static CMapDoodadDef *
   CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileName, UINT mapObjDefId, NTempest::C44Matrix &mapObjDefMat);
   static CMapObjDef *CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &pos);
-  static CMapObjDef *CreateMapObjDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, int bWait);
+  static CMapObjDef *CreateMapObjDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, BOOL bWait);
   static void        CreateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
   static void        CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
   static HTEXTURE__ *LoadTexture(LPCSTR fileName);
@@ -643,7 +643,7 @@ class CMap {
   static void       GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
   static void       SelectLight(CMapBaseObj *baseObj);
   static void       SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
-  static int        GxuLightEnable(DWORD lightId);
+  static BOOL       GxuLightEnable(DWORD lightId);
   static void       GxuLightEnableSet(DWORD lightId, int enable);
   static void       GxuLightSetMaxLights(UINT maxLightsToUse);
   static float      GxuLightBucketSize();
@@ -714,7 +714,7 @@ class CMap {
   static void        FreeDoodadDef(CMapDoodadDef *doodadDef);
   static void        FreeEntity(CMapEntity *entity);
   static void        InitializeDoodadBounds(CMapDoodadDef *doodadDef);
-  static int         LoadDoodadModel(CMapDoodadDef *doodadDef, int bWait);
+  static int         LoadDoodadModel(CMapDoodadDef *doodadDef, BOOL bWait);
   static void        PurgeDoodadDef(CMapDoodadDef *doodadDef);
   static void        FreeChunkLiquid(CChunkLiquid *&cl);
   static void        FreeSoundEmitter(CMapSoundEmitter *soundEmitter);
@@ -748,7 +748,7 @@ class CMap {
   static SFile       *wdtFile;
   static DWORD        version;
   static SMMapHeader  header;
-  static int          bDungeon;
+  static BOOL         bDungeon;
   static SMAreaInfo   areaInfo[4096];
   static CMapArea    *areaTable[4096];
   static DWORD        areaLowOffsets[4096];
@@ -807,8 +807,8 @@ class CMap {
   static CGxPixelShader       *psUTerrain;
   static CGxShaderParam       *psUTerrain_LayerMask;
   static CGxBuf               *gxBufDynLowDetail;
-  static int                   bActive;
-  static int                   bPreload;
+  static BOOL                  bActive;
+  static BOOL                  bPreload;
   static LPVOID                oldSelectLightParm;
   static TSGrowableArray<UINT> scCollideList;
   static UINT                  scCollideCnt;
@@ -1086,9 +1086,9 @@ class CWorldScene {
   static void       FrustumSet(const CWFrustum &frustum);
   static CWFrustum &FrustumGet();
   static void       FrustumXform(const NTempest::C44Matrix &mat);
-  static int        FrustumCull(const NTempest::C3Vector &center, float radius);
-  static int        FrustumCull(const NTempest::CAaBox &aaBox);
-  static int        FrustumCull(const NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos);
+  static BOOL       FrustumCull(const NTempest::C3Vector &center, float radius);
+  static BOOL       FrustumCull(const NTempest::CAaBox &aaBox);
+  static BOOL       FrustumCull(const NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos);
   static void       FrustumPop();
   static CWFrustum *AllocFrustum();
   static void       FreeFrustum(CWFrustum *frustum);

@@ -51,7 +51,7 @@ int GetFidgetSoundID(const CreatureSoundDataRec *soundData, UINT soundType) {
   return soundData->m_soundFidget[soundType];
 }
 
-static int CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
+static BOOL CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   UINT random = NTempest::CRandom::uint32_(g_rndSeed);
   UINT value = NTempest::CMath::mulhwu_(random, 101);
@@ -100,10 +100,10 @@ void UnitSoundInitialize() {
   s_footstepSoundCVar = CVar::Register("FootstepSounds", 0, 0, "1", 0, DEFAULT, false, 0);
 }
 
-int CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
+BOOL CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   DWORD currentTime = OsGetAsyncTimeMs();
-  int   canPlay = 0;
+  BOOL  canPlay = 0;
   if (static_cast<long>(currentTime - s_unitSoundTimers[soundType]) > 0) {
     canPlay = 1;
   }

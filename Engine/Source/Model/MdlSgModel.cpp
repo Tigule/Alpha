@@ -583,7 +583,7 @@ void MdlReadLoadGlobalProperties(const MDLDATA &data, CModelShared *shared, UINT
   }
 }
 
-int MdlReadLoadModel(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
+BOOL MdlReadLoadModel(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
   ASSERT(modelptr);
   ASSERT(shared);
 
@@ -610,7 +610,7 @@ int MdlReadLoadModel(const MDLDATA &data, CModelComplex *modelptr, CModelShared 
   return 1;
 }
 
-int MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
+BOOL MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
   ASSERT(modelptr);
   ASSERT(shared);
 

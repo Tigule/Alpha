@@ -287,7 +287,7 @@ void CSimpleMessageScrollFrame::PageDown() {
   ScrollUp();
 }
 
-int CSimpleMessageScrollFrame::ScrollUp() {
+BOOL CSimpleMessageScrollFrame::ScrollUp() {
   if (m_currentLine == -1) {
     return 0;
   }
@@ -304,7 +304,7 @@ int CSimpleMessageScrollFrame::ScrollUp() {
   return 1;
 }
 
-int CSimpleMessageScrollFrame::ScrollDown() {
+BOOL CSimpleMessageScrollFrame::ScrollDown() {
   if (m_currentLine == -1) {
     return 0;
   }

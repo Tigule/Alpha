@@ -47,7 +47,7 @@ void OsInputInitialize() {
 void OsInputDestroy() {
 }
 
-int OsGetDefaultWindowRect(RECT *rect) {
+BOOL OsGetDefaultWindowRect(RECT *rect) {
   int width;
   int height;
 
@@ -99,7 +99,7 @@ void OsInputSetMousePosition(int x, int y) {
   s_mousePos.y = y;
 }
 
-int OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
+BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
   OSMACEVENT event;
 
   *id = static_cast<OSINPUT>(-1);

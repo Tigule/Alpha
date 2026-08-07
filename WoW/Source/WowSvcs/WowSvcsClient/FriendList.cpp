@@ -74,7 +74,7 @@ FriendList::FriendList() : m_friendNamesPending(0), m_selectedFriend(0), m_ignor
   memset(m_ignore, 0, sizeof(m_ignore));
 }
 
-static int FriendListStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL FriendListStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   BYTE      result;
   DWORDLONG guid;
   msg->Get(result);
@@ -133,31 +133,31 @@ static void IgnoreListNameCallback(int id, const DWORDLONG &guid, LPVOID arg, bo
 FriendList::~FriendList() {
 }
 
-static int FriendListHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL FriendListHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   if (g_friendList) {
     g_friendList->AddFriends(msg);
   }
   return 1;
 }
 
-static int CCommand_Friends(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_Friends(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(102);
   ClientServices_Send(&msg);
   return 1;
 }
 
-static int CCommand_AddFriend(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_AddFriend(LPCSTR command, LPCSTR arguments) {
   g_friendList->AddFriend(arguments);
   return 1;
 }
 
-static int CCommand_RemoveFriend(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_RemoveFriend(LPCSTR command, LPCSTR arguments) {
   g_friendList->RemoveFriend(arguments);
   return 1;
 }
 
-static int WhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL WhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   char name[256];
   msg->GetString(name, 0x7FFFFFFF);
   ConsoleWrite(name, DEFAULT_COLOR);
@@ -190,7 +190,7 @@ void FriendList::RemoveFriend(UINT index) {
   RemoveFriend(entry->guid);
 }
 
-static int ReverseWhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL ReverseWhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   UINT numAccounts = 0;
   msg->Get(numAccounts);
   if (numAccounts == static_cast<UINT>(-1)) {
@@ -220,7 +220,7 @@ static int ReverseWhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *ms
   return 1;
 }
 
-static int CCommand_Whois(LPCSTR, LPCSTR args) {
+static BOOL CCommand_Whois(LPCSTR, LPCSTR args) {
   CDataStore msg;
   msg.Put(100);
   msg.PutString(args);
@@ -228,7 +228,7 @@ static int CCommand_Whois(LPCSTR, LPCSTR args) {
   return 1;
 }
 
-static int CCommand_RWhois(LPCSTR, LPCSTR args) {
+static BOOL CCommand_RWhois(LPCSTR, LPCSTR args) {
   CDataStore msg;
   msg.Put(494);
   msg.PutString(args);
@@ -460,7 +460,7 @@ static void PrintWho(LPCSTR name, LPCSTR guild, int level, int classID, int race
   CGChat::AddChatMessage(fullLine, static_cast<SLASH_COMMAND_ID>(1), 0, 0, 0, 0, 0);
 }
 
-static int OnWhoList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnWhoList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
   UINT count;
   msg->Get(count);
@@ -501,7 +501,7 @@ static int OnWhoList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg)
   return 1;
 }
 
-static int OnIgnoreList(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
+static BOOL OnIgnoreList(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   if (g_friendList) {
     g_friendList->IgnoreList(msg);
   }
