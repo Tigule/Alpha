@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-VC6_URL="https://tigule.org/files/ci/VC6.zip"
+VC6_URL="https://tigule.org/files/ci/VC6SP5.zip"
 DXSDK_URL="https://tigule.org/files/ci/DXSDK90.zip"
 CMAKE_URL="https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-windows-x86_64.msi"
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -68,7 +68,7 @@ require_command() {
 }
 
 require_wine_prefix() {
-    [ -x "$WINE" ] || die "Wine runner was not found: $WINE"
+    command -v "$WINE" >/dev/null 2>&1 || die "Wine runner was not found: $WINE"
     [ -d "$DRIVE_C" ] || die "Wine prefix is not initialized: $DRIVE_C"
 }
 
@@ -105,11 +105,11 @@ patch_vcvars() {
 
     [ -f "$VCVARS_BAT" ] || die "VCVARS32.BAT was not found at $VCVARS_BAT"
 
-    perl -0pi -e 's|set VSCommonDir=C:\\PROGRA~2\\Microsoft Visual Studio 6.0\\Common|set VSCommonDir=C:\\VC6\\Common|g; s|set MSDevDir=C:\\PROGRA~2\\Microsoft Visual Studio 6.0\\Common\\msdev98|set MSDevDir=C:\\VC6\\Common\\MSDev98|g; s|set MSVCDir=C:\\PROGRA~2\\Microsoft Visual Studio 6.0\\VC98|set MSVCDir=C:\\VC6\\VC98|g' "$VCVARS_BAT"
+    perl -0pi -e 's|set VSCommonDir=C:\\PROGRA~1\\MICROS~2\\Common|set VSCommonDir=C:\\VC6\\Common|g; s|set MSDevDir=C:\\PROGRA~1\\MICROS~2\\Common\\msdev98|set MSDevDir=C:\\VC6\\Common\\MSDev98|g; s|set MSVCDir=C:\\PROGRA~1\\MICROS~2\\VC98|set MSVCDir=C:\\VC6\\VC98|g' "$VCVARS_BAT"
 }
 
 install_vc6() {
-    vc6_zip="$CACHE_DIR/VC6.zip"
+    vc6_zip="$CACHE_DIR/VC6SP5.zip"
 
     download "$VC6_URL" "$vc6_zip"
 
