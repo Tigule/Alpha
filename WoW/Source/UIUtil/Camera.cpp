@@ -135,14 +135,14 @@ void RangeList::RemoveRange(float iMin, float iMax) {
 }
 
 NODEDECL(CameraShake) {
-  int   type;
-  int   direction;
-  float amplitude;
-  float frequency;
-  float duration;
-  float phase;
-  float coefficient;
-  DWORD timestamp;
+  CGCameraShakeType m_shakeType;
+  CGCameraDir       m_direction;
+  float             m_amplitude;
+  float             m_frequency;
+  float             m_duration;
+  float             m_phase;
+  float             m_coefficient;
+  DWORD             m_timestamp;
 };
 
 void CGCamera::AddShake(
@@ -156,14 +156,14 @@ void CGCamera::AddShake(
 ) {
   CameraShake *shake = m_shakes.NewNode(LIST_TAIL, 0, 0);
   if (shake) {
-    shake->type = shakeType;
-    shake->direction = direction;
-    shake->amplitude = amplitude;
-    shake->frequency = frequency;
-    shake->duration = duration;
-    shake->phase = phase;
-    shake->coefficient = coefficient;
-    shake->timestamp = OsGetAsyncTimeMs();
+    shake->m_shakeType = shakeType;
+    shake->m_direction = direction;
+    shake->m_amplitude = amplitude;
+    shake->m_frequency = frequency;
+    shake->m_duration = duration;
+    shake->m_phase = phase;
+    shake->m_coefficient = coefficient;
+    shake->m_timestamp = OsGetAsyncTimeMs();
   }
 }
 
@@ -212,22 +212,6 @@ int CGCamera::s_clipCamera = 1;
 static const float TARGET_RADIUS = 0.8888889f;
 
 static const float CAMERA_SMOOTH_TIME = 1.0f;
-
-static const struct {
-  float slope;
-  float angle;
-} tanTable[10] = {
-    {0.00f, 0.00000000f},
-    {0.09f, 0.08726646f},
-    {0.18f, 0.17453292f},
-    {0.27f, 0.26179939f},
-    {0.36f, 0.34906584f},
-    {0.47f, 0.43633231f},
-    {0.58f, 0.52359879f},
-    {0.70f, 0.61086523f},
-    {0.84f, 0.69813168f},
-    {1.00f, 0.78539818f},
-};
 
 static bool ValidateIsInRange(LPCSTR strValue, float min, float max) {
   float value = SStrToFloat(strValue);
@@ -1161,24 +1145,24 @@ void CGCamera::RunShakes() {
     float yaw = target->GetSmoothFacing();
 
     ITERATELIST(CameraShake, m_shakes, shake) {
-      float time = (timestamp - shake->timestamp) * 0.001f + shake->phase;
-      if (time >= shake->duration) {
+      float time = (timestamp - shake->m_timestamp) * 0.001f + shake->m_phase;
+      if (time >= shake->m_duration) {
         ITERATE_DELETE
       }
 
-      float amount = static_cast<float>(sin(time * shake->frequency * 6.2831855f)) * shake->amplitude;
-      if (shake->type == 1) {
-        amount *= static_cast<float>(exp(-time * shake->coefficient));
+      float amount = static_cast<float>(sin(time * shake->m_frequency * 6.2831855f)) * shake->m_amplitude;
+      if (shake->m_shakeType == 1) {
+        amount *= static_cast<float>(exp(-time * shake->m_coefficient));
       }
 
-      if (shake->direction == 0) {
+      if (shake->m_direction == 0) {
         shakeOffset.x += static_cast<float>(cos(yaw)) * amount;
         shakeOffset.y += static_cast<float>(sin(yaw)) * amount;
-      } else if (shake->direction == 1) {
+      } else if (shake->m_direction == 1) {
         float right = yaw + 1.5707964f;
         shakeOffset.x += static_cast<float>(cos(right)) * amount;
         shakeOffset.y += static_cast<float>(sin(right)) * amount;
-      } else if (shake->direction == 2) {
+      } else if (shake->m_direction == 2) {
         shakeOffset.z += amount;
       }
     }
@@ -1514,6 +1498,22 @@ void CGCamera::SetSmoothingAngle(float smoothingAngle, DWORD timestamp, int quic
 
 void CGCamera::PerformTerrainTilt(DWORD timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly) {
   int quickly;
+  static const struct {
+    float slope;
+    float angle;
+  } tanTable[10] = {
+      {0.00f, 0.00000000f},
+      {0.09f, 0.08726646f},
+      {0.18f, 0.17453292f},
+      {0.27f, 0.26179939f},
+      {0.36f, 0.34906584f},
+      {0.47f, 0.43633231f},
+      {0.58f, 0.52359879f},
+      {0.70f, 0.61086523f},
+      {0.84f, 0.69813168f},
+      {1.00f, 0.78539818f},
+  };
+
   if (!s_cameraSmooth->GetInt()) {
     return;
   }

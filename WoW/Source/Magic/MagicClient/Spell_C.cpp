@@ -1505,7 +1505,7 @@ bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *rec, bool repor
 
 struct FindAmmoData {
   int  ammoType;
-  UINT exoticAmmo;
+  BYTE exoticAmmo;
 };
 
 static BOOL FindAmmoCallback(const CGItem_C *item, LPVOID param) {

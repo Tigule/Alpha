@@ -49,6 +49,7 @@ class type_info {
   LPCSTR internal_raw_name() const {
     return _m_d_name;
   };
+  LPCSTR name() const;
 
  private:
   LPVOID _m_data;

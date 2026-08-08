@@ -750,23 +750,23 @@ void CGChat::HandleFlagsChanged(DWORDLONG guid, BYTE oldFlags, BYTE newFlags, LP
 
 static BOOL StringToChatType(LPCSTR string, SLASH_COMMAND_ID &slashCmd) {
   const struct {
-    LPCSTR name;
-    int    type;
+    SLASH_COMMAND_ID id;
+    LPCSTR           string;
   } array[10] = {
-      {    "SAY",  0},
-      {  "PARTY",  1},
-      {   "RAID",  2},
-      {  "GUILD",  3},
-      {"OFFICER",  4},
-      {"WHISPER",  5},
-      {   "YELL",  6},
-      {"CHANNEL", 13},
-      {    "AFK", 19},
-      {    "DND", 20}
+      { static_cast<SLASH_COMMAND_ID>(0),     "SAY"},
+      { static_cast<SLASH_COMMAND_ID>(1),   "PARTY"},
+      { static_cast<SLASH_COMMAND_ID>(2),    "RAID"},
+      { static_cast<SLASH_COMMAND_ID>(3),   "GUILD"},
+      { static_cast<SLASH_COMMAND_ID>(4), "OFFICER"},
+      { static_cast<SLASH_COMMAND_ID>(5), "WHISPER"},
+      { static_cast<SLASH_COMMAND_ID>(6),    "YELL"},
+      {static_cast<SLASH_COMMAND_ID>(13), "CHANNEL"},
+      {static_cast<SLASH_COMMAND_ID>(19),     "AFK"},
+      {static_cast<SLASH_COMMAND_ID>(20),     "DND"}
   };
   for (UINT i = 0; i < 10; ++i) {
-    if (!SStrCmpI(string, array[i].name, 0x7FFFFFFF)) {
-      slashCmd = static_cast<SLASH_COMMAND_ID>(array[i].type);
+    if (!SStrCmpI(string, array[i].string, 0x7FFFFFFF)) {
+      slashCmd = array[i].id;
       return 1;
     }
   }

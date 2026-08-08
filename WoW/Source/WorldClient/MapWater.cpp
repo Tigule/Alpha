@@ -112,6 +112,8 @@ static NTempest::C2Vector oceanfft[4096];
 static float              phase;
 static float              phase2;
 
+const float WaterRadWave::PERTURB = 40.0f;
+
 void WaterRadWave::Init(const NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq) {
   pos = p_pos;
   length = len;

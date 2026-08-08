@@ -26,51 +26,51 @@ static CVar                 *s_fontFadeAscendDistance;
 static CVar                 *s_fontCharSpacing;
 static CVar                 *s_fontConeAngle;
 
-struct WORLDTEXTRANGE {
-  float startProgress;
-  float endProgress;
-  float startScale;
-  float endScale;
-};
-
-struct WORLDTEXTJUMP {
+static struct {
   float startProgress;
   float endProgress;
   float heightScale;
-};
-
-struct WORLDTEXTFONTCOLOR {
-  BYTE  r;
-  BYTE  g;
-  BYTE  b;
-  BYTE  pad;
-  float unused[3];
-  float startProgress;
-  float endProgress;
-};
-
-static WORLDTEXTJUMP s_jumps[3] = {
+} s_jumps[3] = {
     {-0.33f, 0.33f, 1.5f},
     { 0.33f,  0.5f, 0.2f},
     {  0.5f, 0.66f, 0.1f}
 };
-static WORLDTEXTRANGE s_critHeights[3] = {
-    {0.0f, 0.1f, 0.1f, 0.0f},
-    {0.1f, 0.2f, 0.0f, 1.0f},
+static const struct {
+  float startProgress;
+  float endProgress;
+  float startHeightScale;
+  float endHeightScaleScale;
+} s_critHeights[3] = {
+    {0.0f, 0.1f, 0.1f, 2.0f},
+    {0.1f, 0.2f, 2.0f, 1.0f},
     {0.2f, 1.0f, 1.0f, 1.0f}
 };
-static WORLDTEXTRANGE s_critFades[3] = {
+static const struct {
+  float startProgress;
+  float endProgress;
+  float startAlpha;
+  float endAlpha;
+} s_critFades[3] = {
     {0.0f, 0.1f, 0.0f, 1.0f},
     {0.1f, 0.5f, 1.0f, 1.0f},
     {0.5f, 1.0f, 1.0f, 0.0f}
 };
-static WORLDTEXTFONTCOLOR s_fontColors[1] = {
-    {255, 0, 0, 0, {0.0f, 0.0f, 0.0f}, 0.0f, 0.33f}
+static struct {
+  int   r;
+  int   g;
+  int   b;
+  float startProgress;
+  float endProgress;
+} s_fontColors[1] = {
+    {255, 0, 0, 0.0f, 0.33f}
 };
 
 static UINT const worldTextFlags[NUM_WORLDTEXTTYPES] = {0x48, 0x48, 0x10, 0x8, 0x48, 0, 0};
 
 WORLDTEXTCREATEPARAMS::WORLDTEXTCREATEPARAMS() {
+}
+
+WORLDTEXTCREATEPARAMS::~WORLDTEXTCREATEPARAMS() {
 }
 
 void WORLDTEXTCREATEPARAMS::Defaults() {
@@ -373,7 +373,7 @@ void WORLDTEXTSTRING::CalculateTextHeight(UINT elapsed) {
       ASSERT(s_critHeights[i].startProgress <= s_critHeights[i].endProgress);
       if (progress >= s_critHeights[i].startProgress && progress < s_critHeights[i].endProgress) {
         float range = (progress - s_critHeights[i].startProgress) / (s_critHeights[i].endProgress - s_critHeights[i].startProgress);
-        heightScale = (range * (s_critHeights[i].endScale - s_critHeights[i].startScale) + s_critHeights[i].startScale) * params.endFontHeight;
+        heightScale = (range * (s_critHeights[i].endHeightScaleScale - s_critHeights[i].startHeightScale) + s_critHeights[i].startHeightScale) * params.endFontHeight;
         break;
       }
     }
@@ -435,7 +435,7 @@ void WORLDTEXTSTRING::CalculateNewColor(UINT elapsed) {
       ASSERT(s_critFades[i].startProgress <= s_critFades[i].endProgress);
       if (progress >= s_critFades[i].startProgress && progress < s_critFades[i].endProgress) {
         float range = (progress - s_critFades[i].startProgress) / (s_critFades[i].endProgress - s_critFades[i].startProgress);
-        scale = range * (s_critFades[i].endScale - s_critFades[i].startScale) + s_critFades[i].startScale;
+        scale = range * (s_critFades[i].endAlpha - s_critFades[i].startAlpha) + s_critFades[i].startAlpha;
         break;
       }
     }

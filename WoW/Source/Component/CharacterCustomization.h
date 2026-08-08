@@ -103,7 +103,7 @@ struct STRINGWANNABE {
     string = value;
   }
 
-  LPCSTR GetString() {
+  LPCSTR GetString() const {
     return string;
   }
 

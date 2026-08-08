@@ -46,7 +46,7 @@ static float s_terrainLODDist[4] = {80.0f, 80.0f, 100.0f, 100.0f};
 
 static UINT s_detailDoodadDensity[4] = {8, 12, 16, 24};
 
-static UINT s_animatingDoodads[2][2] = {
+static BYTE s_animatingDoodads[2][2] = {
     {0, 0},
     {0, 1}
 };

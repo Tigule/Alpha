@@ -43,7 +43,7 @@ struct PortraitData {
 };
 
 struct PLAYERPORTRAIT : public TSHashObject<PLAYERPORTRAIT, CHashKeyGUID> {
-  UINT         dirty;
+  BYTE         dirty;
   PortraitData portrait;
 };
 

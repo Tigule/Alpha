@@ -66,10 +66,10 @@ static float      s_volume;
 static int        s_paused = -1;
 static int        s_elapsed;
 static CVar      *s_cvar;
-static float      FADEINTIME = 5.0f;
-static float      FADEOUTTIME = 5.0f;
-static float      PANNING_DIST = 9.0f;
-static float      PANNING_DIST_SQUARED = PANNING_DIST * PANNING_DIST;
+static const float FADEINTIME = 5.0f;
+static const float FADEOUTTIME = 5.0f;
+static const float PANNING_DIST = 100.0f;
+static const float PANNING_DIST_SQUARED = PANNING_DIST * PANNING_DIST;
 
 void LIQUIDINFO::StopSound(int immediate) {
   if (m_sound) {

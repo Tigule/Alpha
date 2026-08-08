@@ -532,16 +532,16 @@ class CMovement : public CMovementData {
   UINT  Fall(UINT fallenSoFar, UINT timeIncrement);
   float FindCeilingDistanceAbove(float distanceToJump);
   float FindGroundDistanceBelow(float distanceToFall, DWORDLONG *gameObjHit);
-  void  ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane);
-  void  ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane);
-  void  ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane);
-  void  ExtrudeDownPosYFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane);
+  void  ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
+  void  ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
+  void  ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
+  void  ExtrudeDownPosYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane);
   float ExtrudeSlideBoxDownHill(const NTempest::C3Vector &unitMove, float distanceWanted, CRedirect *hitInfo);
-  void  ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides);
-  void  ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides);
-  void  ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides);
-  BOOL  ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides);
-  BOOL  ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides);
+  void  ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides);
+  void  ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides);
+  void  ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides);
+  BOOL  ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides);
+  BOOL  ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides);
   float ExtrudeCollisionShape(
       DWORD                     timeStamp,
       const NTempest::C3Vector &moveVector,

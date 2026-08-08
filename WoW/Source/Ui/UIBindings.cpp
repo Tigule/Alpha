@@ -131,16 +131,16 @@ void CGUIBindings::SaveBindings() {
   FrameScript_SignalEvent(369);
 }
 
-static struct {
-  UINT   metaKey;
-  LPCSTR metaStr;
-} metaList[3] = {
-    {  KEY_SHIFT, "SHIFT-"},
-    {KEY_CONTROL,  "CTRL-"},
-    {    KEY_ALT,   "ALT-"}
-};
-
 BOOL CGUIBindings::AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen) {
+  static struct {
+    UINT   metaKey;
+    LPCSTR metaStr;
+  } metaList[3] = {
+      {  KEY_SHIFT, "SHIFT-"},
+      {KEY_CONTROL,  "CTRL-"},
+      {    KEY_ALT,   "ALT-"}
+  };
+
   for (int index = 2; index >= 0; --index) {
     if (metaKeyState & (1 << metaList[index].metaKey)) {
       int length = SStrLen(metaList[index].metaStr);

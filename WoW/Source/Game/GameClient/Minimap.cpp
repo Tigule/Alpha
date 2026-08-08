@@ -35,15 +35,6 @@ static NTempest::C2iVector s_currentUpperLeftArea(-1);
 static NTempest::C2iVector s_currentLowerRightArea(-1);
 static const UINT          s_chunksPerSizeAtZoom[6] = {14, 12, 10, 8, 6, 4};
 static const float         s_minimapZoomSize[6] = {150.0f, 120.0f, 90.0f, 60.0f, 40.0f, 25.0f};
-static const struct {
-  UINT xIncrement;
-  UINT yIncrement;
-} s_areaCoordOffsets[4] = {
-    {0, 0},
-    {1, 0},
-    {1, 1},
-    {0, 1}
-};
 static const float                               AREA_WORLD_SIZE_X = 533.33331f;
 static const float                               AREA_WORLD_SIZE_Y = 533.33331f;
 static const float                               CLOSEENOUGH = 0.013888889f;
@@ -231,6 +222,16 @@ static void BuildPathName(const NTempest::C2iVector &location, char *buffer, UIN
 
 static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int continentChanged, QUADDATA *quads) {
   UINT i;
+  static const struct {
+    UINT xIncrement;
+    UINT yIncrement;
+  } s_areaCoordOffsets[4] = {
+      {0, 0},
+      {1, 0},
+      {1, 1},
+      {0, 1}
+  };
+
   for (i = 0; i < 4; ++i) {
     quads[i].m_flags &= ~2u;
   }

@@ -18,7 +18,7 @@
 static CGxTex                            *s_fadeTex;
 static HTEXTURE                           s_hTexture;
 static TSCArray<NTempest::CImVector, 512> s_texels;
-static CWTriData::Batch                  *s_batch;
+static const CWTriData::Batch            *s_batch;
 static NTempest::C3Vector                 s_zup(0.0f, 0.0f, 1.0f);
 static NTempest::CImVector                s_color;
 static int                                s_shadowLOD = 1;

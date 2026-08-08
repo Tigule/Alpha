@@ -30,7 +30,7 @@
 
 static void GuildCallback(int id, const DWORDLONG &guid, LPVOID, bool granted);
 
-static const UINT s_maxVariations[TABARDVARS_NUMVARS] = {42, 4, 2, 4, 19};
+static const int s_maxVariations[TABARDVARS_NUMVARS] = {42, 4, 2, 4, 19};
 
 static void EmblemTextureUpdate(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Latch) {

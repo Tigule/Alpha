@@ -31,7 +31,7 @@ struct DEATTHUDSOUNDINFO {
 
 static TSFixedArray<DEATTHUDSOUNDINFO> s_deathThudSounds[5];
 
-static UINT  s_creatureIpactSounds[4] = {0, 8, 7, 9};
+static const UINT  s_creatureIpactSounds[4] = {0, 8, 7, 9};
 static UINT  s_unitSoundTimeouts[NUM_UNITSOUNDTYPES] = {0, 0, 0, 0, 0, 0, 0, 10000, 0, 0, 0, 0, 0, 0, 0, 0};
 static UINT  s_unitSoundChances[NUM_UNITSOUNDTYPES] = {70, 100, 60, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 static UINT  s_unitSoundTimers[NUM_UNITSOUNDTYPES];

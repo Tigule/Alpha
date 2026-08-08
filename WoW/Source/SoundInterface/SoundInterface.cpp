@@ -69,7 +69,7 @@ static int s_elapsed;
 AMBIENCE   g_currentAmbience;
 
 static int                      MIXRATE = 22050;
-static const FrameScript_Method s_ScriptFunctions[2] = {
+static FrameScript_Method s_ScriptFunctions[2] = {
     {"PlaySound", Script_PlaySound},
     {"PlayMusic", Script_PlayMusic}
 };
@@ -840,11 +840,11 @@ static BYTE SoundPositionCallback(LONGLONG handle, NTempest::C3Vector &pos) {
 }
 
 void SndInterfaceSetPositionCallback() {
-  Sound::m_positionUpdateCallback = SoundPositionCallback;
+  Sound::SetPositionUpdateCallback(SoundPositionCallback);
 }
 
 void SndInterfaceClearPositionCallback() {
-  Sound::m_positionUpdateCallback = 0;
+  Sound::SetPositionUpdateCallback(0);
 }
 
 float SOUNDDEFINITION::GetVolume(float volumeScale, bool neverVary) const {

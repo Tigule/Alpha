@@ -409,7 +409,7 @@ class CGxMatrixStack {
   UINT Flags();
 
   UINT                m_level;
-  BOOL                m_dirty;
+  BYTE                m_dirty;
   NTempest::C44Matrix m_mtx[4];
   UINT                m_flags[4];
 };
@@ -666,7 +666,7 @@ class CGxDevice {
 
   TSGrowableArray<CGxPushedRenderState> mPushedStates;
   TSGrowableArray<DWORD>                mStackOffsets;
-  TSGrowableArray<EGxRenderState>       mDirtyStates;
+  TSGrowableArray<enum EGxRenderState>  mDirtyStates;
   UINT                                  m_perfCountersLatched[13];
   UINT                                  m_perfCountersAcc[13];
   EGxPrim                               m_primType;

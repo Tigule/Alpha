@@ -54,7 +54,7 @@ class WowConnectionNet {
 
   SThread m_thread;
   SEvent  m_stopEvent;
-  BOOL    m_stop;
+  BYTE    m_stop;
   int     m_numWorkers;
   Worker  m_workers[8];
   LISTDECLEX(WowConnection, netlink, m_connections);

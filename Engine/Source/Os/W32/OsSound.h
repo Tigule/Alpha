@@ -171,10 +171,9 @@ NODEDECL(Sound) {
   void          Suspend();
   void          Resume();
 
- public:
+ private:
   static BYTE (*m_positionUpdateCallback)(LONGLONG handle, NTempest::C3Vector &position);
 
- private:
   int                m_channel;
   FSOUND_STREAM     *m_stream;
   UINT               m_flags;

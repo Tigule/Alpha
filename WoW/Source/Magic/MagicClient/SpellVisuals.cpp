@@ -63,6 +63,10 @@ NODEDECL(BlizzardObject) {
     }
   };
 
+  typedef Shard        Shard_HuhHuhHuh_Huh;
+  typedef Shard       *PShard;
+  typedef const Shard *PCShard;
+
   static LISTDECL(Shard, shardPool);
 
   HMODEL              shardModel;
@@ -71,7 +75,7 @@ NODEDECL(BlizzardObject) {
   float               radius;
   float               numEmitted;
   float               emissionRate;
-  UINT                dead;
+  BYTE                dead;
   NTempest::CAaSphere boundSphere;
   LISTDECL(Shard, shards);
 
@@ -382,7 +386,7 @@ static LPCSTR modelNames[4] = {
 static LISTDECL(BlizzardObject, s_blizzardPool);
 static LISTDECL(BlizzardObject, s_blizzard);
 static TSGrowableArray<const SpellAuraNamesRec *> s_auraNames;
-static TSFixedArray<ANIMENUMERATION>              s_precastAnimTransitions;
+static TSFixedArray<enum ANIMENUMERATION>         s_precastAnimTransitions;
 static LISTDECL(LightningObject, s_lightning);
 static CLightningManager *s_lightningManager;
 static EclipseObject      s_eclipseObject;

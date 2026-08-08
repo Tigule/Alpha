@@ -29,8 +29,8 @@ static BYTE       s_sha1Zero;
 
 void SHA1_Transform(unsigned int *state, const unsigned char *buffer) {
   union CHAR64LONG16 {
-    BYTE  c[64];
-    DWORD l[16];
+    BYTE c[64];
+    UINT l[16];
   };
 
   CHAR64LONG16 words;

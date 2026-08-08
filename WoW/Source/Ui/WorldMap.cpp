@@ -35,10 +35,10 @@ struct WorldMapContinentInfo {
 };
 
 struct WorldMapLandmarkInfo {
-  int   id;
+  int   entryID;
   float x;
   float y;
-  BOOL  isPort;
+  BOOL  isPortLoc;
 };
 
 class CGWorldMap {
@@ -245,10 +245,10 @@ void CGWorldMap::SetMap(int continent, int zone) {
       if (m_landmarks.Count() <= m_numLandmarks) {
         m_landmarks.SetCount(m_landmarks.Count() * 2);
       }
-      m_landmarks[m_numLandmarks].id = rec->m_ID;
+      m_landmarks[m_numLandmarks].entryID = rec->m_ID;
       m_landmarks[m_numLandmarks].x = x;
       m_landmarks[m_numLandmarks].y = y;
-      m_landmarks[m_numLandmarks].isPort = 0;
+      m_landmarks[m_numLandmarks].isPortLoc = 0;
       ++m_numLandmarks;
     }
   }
@@ -263,10 +263,10 @@ void CGWorldMap::SetMap(int continent, int zone) {
       if (m_landmarks.Count() <= m_numLandmarks) {
         m_landmarks.SetCount(m_landmarks.Count() * 2);
       }
-      m_landmarks[m_numLandmarks].id = rec->m_ID;
+      m_landmarks[m_numLandmarks].entryID = rec->m_ID;
       m_landmarks[m_numLandmarks].x = x;
       m_landmarks[m_numLandmarks].y = y;
-      m_landmarks[m_numLandmarks].isPort = 1;
+      m_landmarks[m_numLandmarks].isPortLoc = 1;
       ++m_numLandmarks;
     }
   }
@@ -726,12 +726,12 @@ static int Script_GetMapLandmarkInfo(lua_State *L) {
   if (!info) {
     return 0;
   }
-  if (info->isPort) {
-    const WorldSafeLocsRec *rec = g_worldSafeLocsDB.GetRecord(info->id);
+  if (info->isPortLoc) {
+    const WorldSafeLocsRec *rec = g_worldSafeLocsDB.GetRecord(info->entryID);
     lua_pushstring(L, rec ? rec->m_AreaName_lang[CURRENT_LANGUAGE] : 0);
     lua_pushnumber(L, 6.0);
   } else {
-    const AreaPOIRec *rec = g_areaPOIDB.GetRecord(info->id);
+    const AreaPOIRec *rec = g_areaPOIDB.GetRecord(info->entryID);
     lua_pushstring(L, rec ? rec->m_name_lang[CURRENT_LANGUAGE] : 0);
     lua_pushnumber(L, rec ? static_cast<double>(rec->m_icon) : 0.0);
   }

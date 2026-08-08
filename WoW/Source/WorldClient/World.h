@@ -507,6 +507,8 @@ class CWorld {
 #include "WorldClient/Map.h"
 
 NODEDECL(WaterRadWave) {
+  static const float PERTURB;
+
   int                Update(float deltat);
   void               Init(const NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq);
   float              decay;

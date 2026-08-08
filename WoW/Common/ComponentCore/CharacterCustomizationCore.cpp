@@ -23,7 +23,7 @@ static const UINT                               NUM_UNDERWEARHIDESECTIONS = 2;
 static const UINT                               s_defaultGeosets[NUM_CHARGEOSETS] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0};
 UINT                                            g_defaultGeosetIDOffsets[NUM_CHARGEOSETS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0};
 static const UINT                               s_baseGeosets[NUM_CHARGEOSETS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-static CHARACTER_GEOSET_SECTIONS                s_clothingGeosetRanges[9] = {CHARGEOSET_GLOVE,  CHARGEOSET_BOOT,    CHARGEOSET_SLEEVES,
+static const CHARACTER_GEOSET_SECTIONS          s_clothingGeosetRanges[9] = {CHARGEOSET_GLOVE,  CHARGEOSET_BOOT,    CHARGEOSET_SLEEVES,
                                                                              CHARGEOSET_PANTS,  CHARGEOSET_DOUBLET, CHARGEOSET_PANTDOUBLET,
                                                                              CHARGEOSET_TABARD, CHARGEOSET_ROBE,    CHARGEOSET_LOINCLOTH};
 
@@ -87,7 +87,9 @@ static const int s_overridePriorities[INDEX_NUMSLOTS][9] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
-static const UINT s_inventoryAndGeosetDisables[INDEX_NUMSLOTS][9] = {
+static struct {
+  UINT disableGeosetFlags[9];
+} s_inventoryAndGeosetDisables[INDEX_NUMSLOTS] = {
     {0, 0, 0, 0, 0, 0,  0,   0, 0},
     {0, 0, 0, 0, 0, 0,  0,   0, 0},
     {0, 0, 0, 0, 0, 0,  0,   0, 0},
@@ -247,7 +249,7 @@ class CharGeosetInfo {
         }
       }
 
-      UINT disables = s_inventoryAndGeosetDisables[itemInventoryType][group];
+      UINT disables = s_inventoryAndGeosetDisables[itemInventoryType].disableGeosetFlags[group];
       if (group >= 5 && group <= 7) {
         disables |= 1u << INDEX_FEET_TYPE;
       }
@@ -322,7 +324,7 @@ class CharGeosetInfo {
         }
       }
 
-      UINT thisGroupDisablesFlags = s_inventoryAndGeosetDisables[inventoryType][group];
+      UINT thisGroupDisablesFlags = s_inventoryAndGeosetDisables[inventoryType].disableGeosetFlags[group];
       if (group >= 5 && group <= 7) {
         thisGroupDisablesFlags |= 1u << INDEX_FEET_TYPE;
       }

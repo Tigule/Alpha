@@ -53,7 +53,7 @@ static int                                s_currentTime;
 static NTempest::C3Vector                 s_currentCamera;
 static NTempest::C44Matrix                s_currentWorld;
 static const float                        s_maxPurgeDist = 100.0f;
-static NTempest::C2Vector                 s_splatSizes[5] = {
+static const NTempest::C2Vector           s_splatSizes[5] = {
     NTempest::C2Vector(0.66666669f), NTempest::C2Vector(1.0f), NTempest::C2Vector(1.3333334f), NTempest::C2Vector(1.6666666f),
     NTempest::C2Vector(2.0f)
 };

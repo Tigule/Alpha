@@ -279,7 +279,7 @@ struct GAMEERRORDESC {
   SLASH_COMMAND_ID     slashCmd;
 };
 
-static GAMEERRORDESC s_gameErrors[GERR_NUM_TYPES] = {
+static const GAMEERRORDESC s_gameErrors[GERR_NUM_TYPES] = {
     GAMEERRORDESC(
         "ERR_INV_FULL",
         static_cast<ERROR_TEXT_PLACEMENT>(2),
@@ -2661,9 +2661,9 @@ struct NearestEnemyData {
 static TSGrowableArray<NearestEnemyData> s_nearestList;
 static UINT                              s_nearestListTime;
 static UINT                              s_sameTargetTime;
-static LPCSTR                            compasDirStr[8] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-static LPCSTR s_spellMissReasons[10] = {"NONE", "PHYSICAL", "RESIST", "IMMUNE", "EVADED", "DODGED", "PARRIED", "BLOCKED", "TEMPIMMUNE", "DEFLECTED"};
-static LPCSTR s_combatEvent[9] = {"MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT"};
+static LPSTR compasDirStr[8] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+static LPSTR s_spellMissReasons[10] = {"NONE", "PHYSICAL", "RESIST", "IMMUNE", "EVADED", "DODGED", "PARRIED", "BLOCKED", "TEMPIMMUNE", "DEFLECTED"};
+static LPSTR s_combatEvent[9] = {"MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT"};
 static const float s_distCullValues[3] = {350.0f, 550.0f, 750.0f};
 static const float s_smallCullValues[3] = {0.07f, 0.04f, 0.01f};
 static const float MAX_CAMERA_SHIFT = 50.0f;
@@ -4414,8 +4414,8 @@ void CGGameUI::StartCinematic(int cinematicID) {
 }
 
 void CGGameUI::BeginCinematic() {
-  m_cinematic.zoneMusicPaused = SndInterfaceIsZoneMusicPaused();
-  if (m_cinematic.zoneMusicPaused) {
+  m_cinematic.zoneMusicWasEnabled = SndInterfaceIsZoneMusicPaused();
+  if (m_cinematic.zoneMusicWasEnabled) {
     SndInterfacePauseZoneMusic(1);
   }
   HideCursor();
@@ -4495,12 +4495,12 @@ void CGGameUI::NextCinematicInternal(LPVOID) {
   m_cinematic.camera = 0;
   Sound::KillSound(m_cinematic.cameraMusic);
 
-  if (m_cinematic.sequence && ++m_cinematic.currentCamera < 8 && m_cinematic.sequence->m_camera[m_cinematic.currentCamera]) {
+  if (m_cinematic.sequence && ++m_cinematic.sequenceIndex < 8 && m_cinematic.sequence->m_camera[m_cinematic.sequenceIndex]) {
     CDataStore msg;
     msg.Put(static_cast<UINT>(CMSG_NEXT_CINEMATIC_CAMERA));
     msg.Finalize();
     ClientServices_Send(&msg);
-    m_cinematic.camera = g_cinematicCameraDB.GetRecord(m_cinematic.sequence->m_camera[m_cinematic.currentCamera]);
+    m_cinematic.camera = g_cinematicCameraDB.GetRecord(m_cinematic.sequence->m_camera[m_cinematic.sequenceIndex]);
   }
 
   if (!StartCinematicCamera()) {
@@ -4529,7 +4529,7 @@ void CGGameUI::StopCinematicInternal(LPVOID) {
   CGObject_C::UpdateAllWorldObjects();
   AsyncFileReadWaitAll();
   Sound::KillSound(m_cinematic.sequenceMusic);
-  if (m_cinematic.zoneMusicPaused) {
+  if (m_cinematic.zoneMusicWasEnabled) {
     SndInterfacePauseZoneMusic(0);
   }
 
@@ -6126,7 +6126,7 @@ void CGGameUI::RegisterFrameFactories() {
 void __cdecl CGGameUI::DisplayError(GAME_ERROR_TYPE errorType, ...) {
   FATALASSERT(errorType < GERR_NUM_TYPES);
 
-  GAMEERRORDESC &desc = s_gameErrors[errorType];
+  const GAMEERRORDESC &desc = s_gameErrors[errorType];
   if (desc.voiceID != static_cast<VOCALUISOUNDS>(66)) {
     if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
       SndInterfacePlayVocalUISound(desc.voiceID);

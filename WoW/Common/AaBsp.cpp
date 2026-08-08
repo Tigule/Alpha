@@ -5,7 +5,7 @@
 #include <storm.h>
 #include <string.h>
 
-static const BYTE s_faceBitsMask[8] = {1, 2, 4, 8, 16, 32, 64, 128};
+static BYTE s_faceBitsMask[8] = {1, 2, 4, 8, 16, 32, 64, 128};
 
 class CFaceQuery {
  public:

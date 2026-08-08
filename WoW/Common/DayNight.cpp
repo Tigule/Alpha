@@ -43,11 +43,11 @@ const NTempest::C2Vector DNClouds::m_bumpFadeTable[] = {NTempest::C2Vector(0.166
                                                         NTempest::C2Vector(0.89583331f, 1.0f), NTempest::C2Vector(0.9236111f, 0.0f),
                                                         NTempest::C2Vector(0.8888889f, 0.0f),  NTempest::C2Vector(0.91666669f, 1.0f)};
 
-static NTempest::C2Vector s_sidnTable[4] = {
+static const NTempest::C2Vector s_sidnTable[4] = {
     NTempest::C2Vector(0.25f, 1.0f), NTempest::C2Vector(0.29166667f, 0.0f), NTempest::C2Vector(0.85416669f, 0.0f),
     NTempest::C2Vector(0.89583331f, 1.0f)
 };
-static NTempest::C2Vector s_unitColorTable[2] = {NTempest::C2Vector(0.083333336f, 0.25f), NTempest::C2Vector(0.5f, 1.0f)};
+static const NTempest::C2Vector s_unitColorTable[2] = {NTempest::C2Vector(0.083333336f, 0.25f), NTempest::C2Vector(0.5f, 1.0f)};
 
 const NTempest::C2Vector DNStars::m_fadeTable[4] = {
     NTempest::C2Vector(0.22916667f - 0.10416666f, 1.0f), NTempest::C2Vector(0.22916667f - 0.041666668f, 0.0f),

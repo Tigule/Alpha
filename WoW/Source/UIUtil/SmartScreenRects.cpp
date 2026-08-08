@@ -229,7 +229,14 @@ static NTempest::CRect TestDown(SCREENRECTGRIDS grid, NTempest::CRect rect) {
 }
 
 typedef NTempest::CRect (*RECTTEST)(SCREENRECTGRIDS, NTempest::CRect);
-static RECTTEST             s_testFunctions[4] = {TestUp, TestLeft, TestRight, TestDown};
+static const struct {
+  RECTTEST function;
+} s_testFunctions[4] = {
+    {   TestUp},
+    { TestLeft},
+    {TestRight},
+    { TestDown}
+};
 static const TEST_DIRECTION s_testDirections[9][4] = {
     {  TEST_UP, TEST_RIGHT,  TEST_DOWN,  TEST_LEFT},
     {TEST_LEFT,    TEST_UP, TEST_RIGHT,    TEST_UP},
@@ -265,7 +272,7 @@ static NTempest::CRect FindFreeRect(SCREENRECTGRIDS grid, const NTempest::CRect 
       if (RectOutsideBorder(firstNode->nodeRect, 0, 1)) {
         continue;
       }
-      NTempest::CRect newRect = s_testFunctions[direction](grid, firstNode->nodeRect);
+      NTempest::CRect newRect = s_testFunctions[direction].function(grid, firstNode->nodeRect);
       if (newRect.t == firstNode->nodeRect.t && newRect.l == firstNode->nodeRect.l && newRect.b == firstNode->nodeRect.b &&
           newRect.r == firstNode->nodeRect.r)
       {

@@ -13,6 +13,9 @@ struct GetItemTypeCountData {
 };
 
 struct FindItemClassData {
+  FindItemClassData(int classID, int subclassMask) : classID(classID), subclassMask(subclassMask) {
+  }
+
   int classID;
   int subclassMask;
 };
@@ -66,16 +69,12 @@ static BOOL FindItemClassCallback(const CGItem_C *item, LPVOID param) {
 CGItem_C *CGBag_C::FindItemOfClass(int classID, int subclassMask, UINT flags) const {
   DWORDLONG         bagGUID;
   UINT              slot;
-  FindItemClassData data;
-  data.classID = classID;
-  data.subclassMask = subclassMask;
+  FindItemClassData data(classID, subclassMask);
   return FindItem(FindItemClassCallback, &data, bagGUID, slot, flags);
 }
 
 CGItem_C *CGBag_C::FindItemOfClass(int classID, int subclassMask, DWORDLONG &bagGUID, UINT &slot, UINT flags) const {
-  FindItemClassData data;
-  data.classID = classID;
-  data.subclassMask = subclassMask;
+  FindItemClassData data(classID, subclassMask);
   return FindItem(FindItemClassCallback, &data, bagGUID, slot, flags);
 }
 

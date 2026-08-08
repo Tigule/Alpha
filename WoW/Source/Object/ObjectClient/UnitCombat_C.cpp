@@ -83,8 +83,8 @@ static HASHKEY_NONE                       s_nullHashKey;
 static BYTE                               s_didHitConnect[NUM_VICTIMSTATES] = {0, 1, 0, 0, 1, 1, 0, 0, 1};
 static ANIM_STATE                         s_attackAnimHitStates[NUMHANDS] = {ANIM_STATE_ATTACK_HIT, ANIM_STATE_ATTACKOFF_HIT};
 static ANIM_STATE                         s_attackAnimMissStates[NUMHANDS] = {ANIM_STATE_ATTACK_MISS, ANIM_STATE_ATTACKOFF_MISS};
-static ANIMENUMERATION                    s_unarmedSequences[NUMHANDS] = {ANIM_ATTACKUNARMED, ANIM_ATTACKUNARMEDOFF};
-static struct {
+static const ANIMENUMERATION              s_unarmedSequences[NUMHANDS] = {ANIM_ATTACKUNARMED, ANIM_ATTACKUNARMEDOFF};
+static const struct {
   LPCSTR          animName;
   ANIMENUMERATION anim;
 } s_attackerAnimLookups[7] = {

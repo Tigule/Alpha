@@ -208,7 +208,7 @@ static int Script_CameraOrSelectOrMoveStop(lua_State *L) {
   return 0;
 }
 
-static const FrameScript_Method s_ScriptFunctions[21] = {
+static FrameScript_Method s_ScriptFunctions[21] = {
     {            "ToggleAutoRun",             Script_ToggleAutoRun},
     {         "MoveForwardStart",          Script_MoveForwardStart},
     {          "MoveForwardStop",           Script_MoveForwardStop},

@@ -27,6 +27,7 @@ enum WORLDTEXTTYPE {
 
 struct WORLDTEXTCREATEPARAMS {
   WORLDTEXTCREATEPARAMS();
+  ~WORLDTEXTCREATEPARAMS();
 
   void Defaults();
   void Clear();

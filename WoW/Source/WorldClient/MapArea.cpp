@@ -12,7 +12,7 @@ static SCritSect              s_fileCritSect;
 static TSCArray<BYTE, 163840> s_asyncLoadBuffers[4];
 static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
 static BYTE *s_freeAsyncBuffer;
-static UINT  s_asyncBuffersInitialized;
+static BYTE  s_asyncBuffersInitialized;
 
 void CMapArea::FreeAsyncLoadBuffer(BYTE *buffer) {
   *reinterpret_cast<BYTE **>(buffer) = s_freeAsyncBuffer;

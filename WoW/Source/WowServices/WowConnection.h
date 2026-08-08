@@ -206,7 +206,7 @@ class WowConnection {
   long      m_serviceCount;
   LPVOID    m_event;
   WOWC_TYPE m_type;
-  BOOL      m_wantWriteNotification;
+  BYTE      m_wantWriteNotification;
 };
 
 #endif

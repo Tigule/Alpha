@@ -490,8 +490,8 @@ static void sGetHotkeyText(int keyID, int modID, char *buf, int bufSize) {
 
 static int sNCodeToItemCode(int nCode, int ctrlType) {
   struct OsGuiCodeTranslation {
-    int winCode;
     int ctrlType;
+    int winCode;
     int osGuiCode;
   };
 

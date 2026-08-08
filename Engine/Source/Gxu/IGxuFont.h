@@ -214,6 +214,8 @@ enum HYPERLINKPARSEMODE {
 };
 
 struct HYPERLINKPARSEINFO {
+  HYPERLINKPARSEINFO();
+
   HYPERLINKPARSEMODE   hyperlinkParseMode;
   GXUFONTHYPERLINKINFO currentParseInfo;
   LPCSTR               lastLinkStartPtr;
@@ -271,6 +273,23 @@ struct IGXUTEXTBLOCK {
   IGXUTEXTLINE *NewLine();
   void          Recycle();
 
+  TSGrowableArray<IGXUTEXTLINE *> &GetLines() {
+    return m_lines;
+  }
+
+  UINT NumLines() {
+    return m_lines.Count();
+  }
+
+  float YOffset() {
+    return m_offsetY;
+  }
+
+  void SetYOffset(float offsetY) {
+    m_offsetY = offsetY;
+  }
+
+ private:
   float                           m_offsetY;
   TSGrowableArray<IGXUTEXTLINE *> m_lines;
 };

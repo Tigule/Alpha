@@ -380,7 +380,7 @@ class CMapObjGroup {
   CMapObj             *parent;
   float                flushTime;
   CAsyncObject        *asyncObject;
-  BOOL                 bLoaded;
+  BYTE                 bLoaded;
 
  public:
   LINKDECLEX(CMapObjGroup, lameAssLink);
@@ -649,7 +649,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   int           refCount;
   float         flushTime;
   CAsyncObject *asyncObject;
-  BOOL          bLoaded;
+  BYTE          bLoaded;
   SMOMaterial  *materialList;
   UINT          materialCount;
   UINT          nGroupsRead;

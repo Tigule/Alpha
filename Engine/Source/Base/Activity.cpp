@@ -10,7 +10,7 @@
 
 const UINT MAX_STACK_DEPTH = 100;
 
-static TSGrowableArray<ACTIVITY> s_activityStack;
+static TSGrowableArray<enum ACTIVITY> s_activityStack;
 static LONGLONG                  s_firstTime;
 static LONGLONG                  s_lastTime;
 static LONGLONG                  s_periodStartTimeClocks;

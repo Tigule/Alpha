@@ -16,14 +16,16 @@ enum ArgumentSize {
 };
 
 struct SpecifierRange {
-  LPCSTR start;
+  LPCSTR begin;
   int    length;
-  int    ordering;
+  int    argument;
 };
 
 union ArgumentType {
-  DWORDLONG integer;
-  double    real;
+  int       asInt;
+  LONGLONG  asLongLong;
+  double    asDouble;
+  LPVOID    asPointer;
 };
 
 static int ParseFormatSpecifier(LPCSTR *specifierPtr, ArgumentSize *size, int *orderingPtr) {
@@ -159,10 +161,10 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
     ch = *formatAt++;
     if (ch == '%') {
       range = &specifierRange[specifierCount++];
-      range->start = formatAt - 1;
+      range->begin = formatAt - 1;
       hasArgument = ParseFormatSpecifier(&formatAt, &argumentSize, &ordering);
-      range->length = formatAt - range->start;
-      range->ordering = ordering;
+      range->length = formatAt - range->begin;
+      range->argument = ordering;
       if (hasArgument > 0) {
         argumentSizeList[ordering] = argumentSize;
         ++ordering;
@@ -177,19 +179,19 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
     switch (argumentSizeList[argumentIndex]) {
       case e_intSized:
       case e_pointerSized:
-        orderedArgumentList[argumentIndex].integer = *(DWORD *)argumentList;
+        orderedArgumentList[argumentIndex].asInt = *(int *)argumentList;
         argumentList += sizeof(DWORD);
         break;
       case e_longLongSized:
-        orderedArgumentList[argumentIndex].integer = *(DWORDLONG *)argumentList;
+        orderedArgumentList[argumentIndex].asLongLong = *(LONGLONG *)argumentList;
         argumentList += sizeof(DWORDLONG);
         break;
       case e_doubleSized:
-        orderedArgumentList[argumentIndex].real = *(double *)argumentList;
+        orderedArgumentList[argumentIndex].asDouble = *(double *)argumentList;
         argumentList += sizeof(double);
         break;
       default:
-        orderedArgumentList[argumentIndex].integer = 0;
+        orderedArgumentList[argumentIndex].asLongLong = 0;
         break;
     }
   }
@@ -198,10 +200,10 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
   range = specifierRange;
   while (out < end && (ch = *format++) != 0) {
     if (ch == '%') {
-      memcpy(individualFormatSpecifier, range->start, range->length);
+      memcpy(individualFormatSpecifier, range->begin, range->length);
       individualFormatSpecifier[range->length] = 0;
       RemoveOrderingFromFormatSpecifier(individualFormatSpecifier);
-      ordering = range->ordering;
+      ordering = range->argument;
       if (argumentSizeList[ordering] == e_longLongSized) {
         FixUpLongLongFormatSpecifier(individualFormatSpecifier);
       }
@@ -210,11 +212,11 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
       switch (argumentSizeList[ordering]) {
         case e_intSized:
         case e_pointerSized:
-          written = _snprintf(out, end - out + 1, individualFormatSpecifier, (DWORD)orderedArgumentList[ordering].integer);
+          written = _snprintf(out, end - out + 1, individualFormatSpecifier, orderedArgumentList[ordering].asInt);
           break;
         case e_longLongSized:
         case e_doubleSized:
-          written = _snprintf(out, end - out + 1, individualFormatSpecifier, orderedArgumentList[ordering].integer);
+          written = _snprintf(out, end - out + 1, individualFormatSpecifier, orderedArgumentList[ordering].asLongLong);
           break;
         case e_takesNoSpace:
           written = _snprintf(out, end - out + 1, individualFormatSpecifier);

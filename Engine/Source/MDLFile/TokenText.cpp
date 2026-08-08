@@ -1,12 +1,9 @@
 #include <Base/Base.h>
 
-namespace MDL {
-
-  static char s_singletoktbl[256][2];
-  static const struct {
-    UINT   token;
-    LPCSTR text;
-  } s_tokentext[224] = {
+static const struct {
+  UINT   token;
+  LPCSTR text;
+} s_tokentext[224] = {
       {0x100,         "Literal Long"},
       {0x101,        "Literal Float"},
       {0x102,       "Literal String"},
@@ -231,7 +228,11 @@ namespace MDL {
       {0x1DD,            "WrapWidth"},
       {0x1DE,                  "Yaw"},
       {0x1DF,              "Unknown"}
-  };
+};
+
+namespace MDL {
+
+  static char s_singletoktbl[256][2];
 
   void InitializeTokenText() {
     UINT index = 256;

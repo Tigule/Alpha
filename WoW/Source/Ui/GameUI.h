@@ -41,10 +41,10 @@ enum SYSMSG_TYPE;
 struct CinematicData {
   const CinematicSequencesRec *sequence;
   Sound                       *sequenceMusic;
-  int                          currentCamera;
+  int                          sequenceIndex;
   const CinematicCameraRec    *camera;
   Sound                       *cameraMusic;
-  int                          zoneMusicPaused;
+  int                          zoneMusicWasEnabled;
 };
 
 enum GAME_ERROR_TYPE {

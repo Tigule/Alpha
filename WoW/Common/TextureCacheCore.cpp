@@ -26,7 +26,7 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
     m_texture = 0;
   }
 
-  BOOL IsInUse() {
+  BOOL IsInUse() const {
     return GetRefCount() > 1;
   }
 

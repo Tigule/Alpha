@@ -73,7 +73,7 @@ struct StateAnimInfo {
   BYTE neverUseFallback;
 };
 
-static const StateAnimInfo s_stateAnimInfo[11] = {
+static StateAnimInfo s_stateAnimInfo[11] = {
     { 1, 1, 0, 0},
     { 2, 0, 0, 1},
     { 3, 0, 1, 0},

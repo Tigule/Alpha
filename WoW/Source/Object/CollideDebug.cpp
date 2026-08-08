@@ -28,7 +28,7 @@ TSGrowableArray<WORD>                g_debugIndices;
 TSGrowableArray<NTempest::C3Vector>  g_debugNormalVerts;
 TSGrowableArray<NTempest::C3Vector>  g_debugVerts;
 TSGrowableArray<WORD>                g_debugNormalIndices;
-static TSGrowableArray<FACET_COLOR>  s_debugFacetColors;
+static TSGrowableArray<enum FACET_COLOR>  s_debugFacetColors;
 TSGrowableArray<NTempest::C3Vector>  g_debugBoxVerts;
 TSGrowableArray<NTempest::CImVector> g_debugVertColors;
 static DWORDLONG                     s_currentWatchGUID;

@@ -356,7 +356,7 @@ static INTERACTICONTYPEINFO s_interactIconModelInfo[5] = {
 
 static LPCSTR s_interactIconAnimNames[2] = {"stand", "StandHigh"};
 
-static INTERACTICONTYPE s_questIconInfo[5] = {
+static const INTERACTICONTYPE s_questIconInfo[5] = {
     INTERACTICON_NONE, INTERACTICON_NONE, INTERACTICON_FUTURE, INTERACTICON_COMPLETION, INTERACTICON_NORMAL
 };
 
@@ -430,7 +430,7 @@ enum SAVEDSHEATHATTACHPOINTS {
   SHEATHATTACH_NUM_SAVESSHEATHATTACHPOINTS = 8
 };
 
-static SAVEDSHEATHATTACHPOINTS s_sheathePoints[2][9] = {
+static const SAVEDSHEATHATTACHPOINTS s_sheathePoints[2][9] = {
     {SHEATHATTACH_NONE, SHEATHATTACH_MAINHAND, SHEATHATTACH_LARGEWEAPONRIGHT,  SHEATHATTACH_HIPWEAPONLEFT, SHEATHATTACH_SHIELD, SHEATHATTACH_NONE,
      SHEATHATTACH_NONE, SHEATHATTACH_NONE, SHEATHATTACH_NONE},
     {SHEATHATTACH_NONE,  SHEATHATTACH_OFFHAND,  SHEATHATTACH_LARGEWEAPONLEFT, SHEATHATTACH_HIPWEAPONRIGHT, SHEATHATTACH_SHIELD, SHEATHATTACH_NONE,
@@ -542,16 +542,14 @@ const VIRTUAL_MONSTER_SLOT g_monsterHands[NUMHANDS] = {VIRTUAL_MONSTER_SLOT_MAIN
 static BYTE                s_canHideslots[OBJATTACH_NUM] = {0, 0, 1, 0, 1};
 static int                 WEAPONTYPE = 0x00622000;
 
-static OBJATTACHMENTPOINTS s_handAttachments[NUMHANDS] = {OBJATTACH_MAINHAND, OBJATTACH_OFFHAND};
+static const OBJATTACHMENTPOINTS s_handAttachments[NUMHANDS] = {OBJATTACH_MAINHAND, OBJATTACH_OFFHAND};
 static int                 flags = 3;
 
-struct ForcedAnimationInfo {
-  LPCSTR          name;
+static const struct {
+  LPCSTR          animName;
   ANIMENUMERATION anim;
-  UINT            flag;
-};
-
-static const ForcedAnimationInfo s_forceAnimDescs[8] = {
+  int             crit;
+} s_forceAnimDescs[8] = {
     {            "stand",         ANIM_STAND, 0},
     {            "death",         ANIM_DEATH, 0},
     {             "walk",          ANIM_WALK, 0},
@@ -1015,7 +1013,7 @@ struct UnitAnimationInfo {
   }
 };
 
-static UnitAnimationInfo s_animInfo[64] = {
+static const UnitAnimationInfo s_animInfo[64] = {
     UnitAnimationInfo(0, "ANIM_STATE_NONE", 0x20000, 0, 0),
     UnitAnimationInfo(1, "ANIM_STATE_DEAD", 1033, 1000, 0),
     UnitAnimationInfo(2, "ANIM_STATE_SPELL", 0, 50, 0),
@@ -1556,12 +1554,10 @@ SEQFINISHINFO g_seqInformation[NUM_OBJECTANIMATIONS] = {
     {                         0, 1,  0}
 };
 
-struct TRACKTYPEINFO {
-  bool  hasMovement;
+static struct {
+  BYTE  hasMovement;
   float disengageDistance;
-};
-
-static const TRACKTYPEINFO s_trackTypeInfo[3] = {
+} s_trackTypeInfo[3] = {
     {0, 100000.0f},
     {0, 100000.0f},
     {1,     30.0f}
@@ -5255,7 +5251,7 @@ void CGUnit_C::OnBadAttackFacing(DWORDLONG victimGUID) {
 
 int GetForcedAnimIndex(LPCSTR token) {
   for (UINT i = 0; i < 8; ++i) {
-    if (!SStrCmp(s_forceAnimDescs[i].name, token, 0x7FFFFFFF)) {
+    if (!SStrCmp(s_forceAnimDescs[i].animName, token, 0x7FFFFFFF)) {
       return i;
     }
   }
@@ -5306,7 +5302,7 @@ void CGUnit_C::SetForcedAnimation(LPCSTR string) {
 
   UINT &flags = m_animFlags;
   flags |= 1;
-  if (s_forceAnimDescs[animIndex].flag) {
+  if (s_forceAnimDescs[animIndex].crit) {
     flags |= 2;
   } else {
     flags &= ~2u;
@@ -5319,11 +5315,11 @@ void CGUnit_C::SetForcedAnimation(LPCSTR string) {
       break;
     case 4:
     case 6:
-      PlayUnitSound(s_forceAnimDescs[animIndex].flag ? UNITSOUNDTYPE_EXERTIONCRITICAL : UNITSOUNDTYPE_EXERTION, 1);
+      PlayUnitSound(s_forceAnimDescs[animIndex].crit ? UNITSOUNDTYPE_EXERTIONCRITICAL : UNITSOUNDTYPE_EXERTION, 1);
       break;
     case 5:
     case 7:
-      PlayUnitSound(s_forceAnimDescs[animIndex].flag ? UNITSOUNDTYPE_INJURYCRITICAL : UNITSOUNDTYPE_INJURY, 1);
+      PlayUnitSound(s_forceAnimDescs[animIndex].crit ? UNITSOUNDTYPE_INJURYCRITICAL : UNITSOUNDTYPE_INJURY, 1);
       break;
   }
 }

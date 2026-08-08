@@ -39,7 +39,7 @@ static HTEXTURECACHE         s_textureCacheHandle;
 static UINT                  s_numSectionsMask;
 static LPCSTR                s_boneNames[3] = {"$WTB", "$WTT", "$CCH"};
 static const UINT            NUM_UNDERWEARHIDESECTIONS = 2;
-static TEXCOMPONENT_SECTIONS s_underwearSections[2] = {TCS_UPPERTORSO, TCS_LEGUPPER};
+static const TEXCOMPONENT_SECTIONS s_underwearSections[2] = {TCS_UPPERTORSO, TCS_LEGUPPER};
 static const UINT            s_underwearSectionHideInfo[NUM_TEXCOMPONENT_SECTIONS] = {-1, -1, -1, -1, -1, 0, -1, 1, -1, -1};
 static const int             s_underwearHideSections[INDEX_NUMSLOTS][NUM_UNDERWEARHIDESECTIONS] = {
     {0, 0},
@@ -70,7 +70,7 @@ static const int             s_underwearHideSections[INDEX_NUMSLOTS][NUM_UNDERWE
     {0, 0},
     {0, 0}
 };
-static TEXCOMPONENT_SECTIONS s_tabardSections[2] = {TCS_UPPERTORSO, TCS_LOWERTORSO};
+static const TEXCOMPONENT_SECTIONS s_tabardSections[2] = {TCS_UPPERTORSO, TCS_LOWERTORSO};
 
 static HMODEL ObjComponentBuildSubComponent(SUBCOMPONENTDESC *subComponent, const ItemDisplayInfoRec *displayInfoRec);
 static void   AddSubcomponentPrefixes(SUBCOMPONENTDESC *subcomponents, UINT numSubComponents, UINT inventoryType);

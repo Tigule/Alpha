@@ -613,7 +613,7 @@ void CMovement::ProcessFalling(DWORD eventTime) {
   CheckFallenFar(eventTime);
 }
 
-void CMovement::ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane) {
+void CMovement::ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane) {
   NTempest::C3Vector bottomPoint(m_position.x, m_position.y, m_position.z - distance);
   NTempest::C3Vector topVector(0.87964189f, 0.0f, 0.4756366f);
   NTempest::C3Vector posYNorm(0.70710677f, 0.70710677f, 0.0f);
@@ -639,7 +639,7 @@ void CMovement::ExtrudeDownNegXFacet(float distance, NTempest::C4Plane *const si
   sides[4].d = -NTempest::C3Vector::Dot(negYNorm, m_position);
 }
 
-void CMovement::ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane) {
+void CMovement::ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane) {
   NTempest::C3Vector bottomPoint(m_position.x, m_position.y, m_position.z - distance);
   NTempest::C3Vector topVector(-0.87964189f, 0.0f, 0.4756366f);
   NTempest::C3Vector posYNorm(-0.70710677f, 0.70710677f, 0.0f);
@@ -665,7 +665,7 @@ void CMovement::ExtrudeDownPosXFacet(float distance, NTempest::C4Plane *const si
   sides[4].d = -NTempest::C3Vector::Dot(negYNorm, m_position);
 }
 
-void CMovement::ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane) {
+void CMovement::ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane) {
   NTempest::C3Vector bottomPoint(m_position.x, m_position.y, m_position.z - distance);
   NTempest::C3Vector topVector(0.0f, 0.87964189f, 0.4756366f);
   NTempest::C3Vector posYNorm(0.70710677f, 0.70710677f, 0.0f);
@@ -691,7 +691,7 @@ void CMovement::ExtrudeDownNegYFacet(float distance, NTempest::C4Plane *const si
   sides[4].d = -NTempest::C3Vector::Dot(negYNorm, m_position);
 }
 
-void CMovement::ExtrudeDownPosYFacet(float distance, NTempest::C4Plane *const sides, NTempest::C4Plane *startPlane) {
+void CMovement::ExtrudeDownPosYFacet(float distance, NTempest::C4Plane *sides, NTempest::C4Plane *startPlane) {
   NTempest::C3Vector bottomPoint(m_position.x, m_position.y, m_position.z - distance);
   NTempest::C3Vector topVector(0.0f, -0.87964189f, 0.4756366f);
   NTempest::C3Vector posYNorm(0.70710677f, -0.70710677f, 0.0f);
@@ -3240,7 +3240,7 @@ BOOL CMovement::TestStepUp(const NTempest::C3Vector &destination) {
   return distance >= distWanted;
 }
 
-void CMovement::ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides) {
+void CMovement::ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
   int posZ = moveVector.z >= 0.0f;
 
   NTempest::C4Plane basePlane;
@@ -3293,7 +3293,7 @@ void CMovement::ExtrudeBoxSideZ(const NTempest::C3Vector &moveVector, float bott
   boxSides[5].d = -NTempest::C3Vector::Dot(leftPoint, negXNorm);
 }
 
-void CMovement::ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides) {
+void CMovement::ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
   int posY = moveVector.y >= 0.0f;
 
   NTempest::C4Plane basePlane;
@@ -3346,7 +3346,7 @@ void CMovement::ExtrudeBoxSideY(const NTempest::C3Vector &moveVector, float bott
   boxSides[5].d = -NTempest::C3Vector::Dot(botPoint, negZNorm);
 }
 
-void CMovement::ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *const boxSides) {
+void CMovement::ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bottom, NTempest::C4Plane *boxSides) {
   int posX = moveVector.x >= 0.0f;
 
   NTempest::C4Plane basePlane;
@@ -3394,7 +3394,7 @@ void CMovement::ExtrudeBoxSideX(const NTempest::C3Vector &moveVector, float bott
   boxSides[5].d = -NTempest::C3Vector::Dot(botPoint, negZNorm);
 }
 
-BOOL CMovement::ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides) {
+BOOL CMovement::ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides) {
   if (NTempest::CMath::fabs_(unitMove.x) < 0.00000023841858f && NTempest::CMath::fabs_(unitMove.z) < 0.00000023841858f) {
     return 0;
   }
@@ -3442,7 +3442,7 @@ BOOL CMovement::ExtrudePyramidSideX(const NTempest::C3Vector &unitMove, float di
   return 1;
 }
 
-BOOL CMovement::ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *const boxSides) {
+BOOL CMovement::ExtrudePyramidSideY(const NTempest::C3Vector &unitMove, float distance, NTempest::C4Plane *boxSides) {
   if (NTempest::CMath::fabs_(unitMove.y) < 0.00000023841858f && NTempest::CMath::fabs_(unitMove.z) < 0.00000023841858f) {
     return 0;
   }

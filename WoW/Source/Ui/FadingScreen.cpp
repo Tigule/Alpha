@@ -13,13 +13,13 @@
 
 static WORD indices[4] = {0, 1, 2, 3};
 
-static UINT      s_fadingScreenEnabled;
-static UINT      s_drawingFadingScreen;
+static BYTE      s_fadingScreenEnabled;
+static BYTE      s_drawingFadingScreen;
 static HLAYER__ *s_fadingScreenLayer;
 static int       s_fadingMode;
 static float     s_fadingTime;
 static DWORD     s_fadingStart;
-static UINT      s_fadingComplete;
+static BYTE      s_fadingComplete;
 static void (*s_fadedCallback)(LPVOID);
 static LPVOID  s_fadedCallbackParam;
 static CGxTex *s_textureHandle;

@@ -124,7 +124,7 @@ class ClientConnection : public NetClient {
   int                          m_errorCode;
   BOOL                         m_inGame;
   BYTE                         m_exitAfterLogout;
-  BOOL                         m_loggingOut;
+  BYTE                         m_loggingOut;
   LoginData                    m_loginData;
   TSFixedArray<CHARACTER_INFO> m_characterList;
   TSFixedArray<REALM_INFO>     m_realmList;

@@ -3,7 +3,15 @@
 #include <DB/WowLocale.h>
 
 static CVar *s_violenceLevel;
-static int   s_maxViolenceLevels[8] = {2, 1, 1, 1, 1, 1, 1, 1};
+enum VIOLENCELEVELS {
+  VIOLENCELEVEL_NONE = 0,
+  VIOLENCELEVEL_MEDIUM = 1,
+  VIOLENCELEVEL_HIGH = 2,
+  VIOLENCELEVEL_NUMVIOLENCELEVELS = 3
+};
+
+static VIOLENCELEVELS s_maxViolenceLevels[8] = {VIOLENCELEVEL_HIGH,   VIOLENCELEVEL_MEDIUM, VIOLENCELEVEL_MEDIUM, VIOLENCELEVEL_MEDIUM,
+                                                VIOLENCELEVEL_MEDIUM, VIOLENCELEVEL_MEDIUM, VIOLENCELEVEL_MEDIUM, VIOLENCELEVEL_MEDIUM};
 
 void ViolenceLevelsShutdown() {
 }

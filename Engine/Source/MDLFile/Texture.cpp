@@ -15,7 +15,7 @@ namespace MDL {
 }  // namespace MDL
 
 struct TOKENFLAG {
-  UINT flag;
+  UINT mask;
   UINT token;
 };
 
@@ -26,7 +26,7 @@ static TOKENFLAG s_textureFlags[2] = {
 
 void IWriteTextureFlags(UINT flags, TSGrowableArray<char> &buffer) {
   for (UINT i = 0; i < 2; ++i) {
-    if (flags & s_textureFlags[i].flag) {
+    if (flags & s_textureFlags[i].mask) {
       MDL::WriteLine(buffer, "\t\t%s,\n", MDL::TokenText(s_textureFlags[i].token));
     }
   }

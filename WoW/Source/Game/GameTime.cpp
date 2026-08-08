@@ -7,6 +7,9 @@
 
 #include <time.h>
 
+TIMESTAMPSTRUCT::~TIMESTAMPSTRUCT() {
+}
+
 CGameTime::CGameTime()
     : m_timeBias(0),
       m_dateBias(0),

@@ -11,6 +11,9 @@
 #include <stdlib.h>
 #include <wctype.h>
 
+HYPERLINKPARSEINFO::HYPERLINKPARSEINFO() {
+}
+
 UINT g_heightPixels;
 UINT g_widthPixels;
 LISTDECL(TEXTLINETEXTURE, g_freeTextLineTextures);
@@ -1273,9 +1276,9 @@ void CGxString::InternalRender() {
 
   ASSERT(m_currentFace);
 
-  for (UINT line = 0; line < m_textBlock.m_lines.Count(); ++line) {
-    for (UINT i = 0; i < m_textBlock.m_lines[line]->m_texturePages.Count(); ++i) {
-      m_textBlock.m_lines[line]->m_texturePages[i]->InternalRenderTexture(
+  for (UINT line = 0; line < m_textBlock.NumLines(); ++line) {
+    for (UINT i = 0; i < m_textBlock.GetLines()[line]->m_texturePages.Count(); ++i) {
+      m_textBlock.GetLines()[line]->m_texturePages[i]->InternalRenderTexture(
           i, m_currentFace, m_flags & 0x1, m_shadowColor, m_shadowOffset, m_fontColor
       );
     }
@@ -1301,7 +1304,7 @@ void CGxString::ClearInstanceData() {
 }
 
 void CGxString::Render(const NTempest::C44Matrix &xform) {
-  if (m_textBlock.m_lines.Count()) {
+  if (m_textBlock.NumLines()) {
     CheckEvictedTextures();
     GxXformPush(GxXform_World, xform);
     InternalRender();
@@ -1323,7 +1326,7 @@ void CGxString::Render() {
   float               pixWidth;
   float               pixHeight;
 
-  if (!m_textBlock.m_lines.Count()) {
+  if (!m_textBlock.NumLines()) {
     return;
   }
 
@@ -1451,7 +1454,7 @@ void CGxString::CreateGeometry() {
 }
 
 void CGxString::InitializeViewportOffsets() {
-  UINT  lineCount = m_textBlock.m_lines.Count();
+  UINT  lineCount = m_textBlock.NumLines();
   float tHeight =
       (static_cast<float>(lineCount - 1) * m_spacing + static_cast<float>(lineCount) * m_currentFontHeight) * static_cast<float>(g_heightPixels);
   float              blockWidth = static_cast<float>(g_widthPixels) * m_blockWidth;
@@ -1497,7 +1500,7 @@ void CGxString::GenerateVertexIndices() {
   IGXUTEXTLINE    **textLine;
   TEXTLINETEXTURE **textureLine;
 
-  for (textLine = m_textBlock.m_lines.Ptr(); textLine < m_textBlock.m_lines.Ptr() + m_textBlock.m_lines.Count(); ++textLine) {
+  for (textLine = m_textBlock.GetLines().Ptr(); textLine < m_textBlock.GetLines().Ptr() + m_textBlock.NumLines(); ++textLine) {
     for (textureLine = (*textLine)->m_texturePages.Ptr(); textureLine < (*textLine)->m_texturePages.Ptr() + (*textLine)->m_texturePages.Count();
          ++textureLine)
     {
@@ -2768,7 +2771,7 @@ void CGxString::RenderTexture(bool initGxRenderStates, int texture) {
     GxRsSet(GxRs_Blend, GxBlend_Alpha);
   }
 
-  UINT line = m_textBlock.m_lines.Count();
+  UINT line = m_textBlock.NumLines();
   while (line) {
     --line;
     RenderTexture(static_cast<int>(line), texture);
@@ -2780,11 +2783,11 @@ void CGxString::RenderTexture(bool initGxRenderStates, int texture) {
 }
 
 void CGxString::RenderTexture(int line, int texture) {
-  if (line >= static_cast<int>(m_textBlock.m_lines.Count())) {
+  if (line >= static_cast<int>(m_textBlock.NumLines())) {
     return;
   }
 
-  IGXUTEXTLINE *textLine = m_textBlock.m_lines[line];
+  IGXUTEXTLINE *textLine = m_textBlock.GetLines()[line];
   if (!textLine || texture >= static_cast<int>(textLine->m_texturePages.Count())) {
     return;
   }
@@ -2881,8 +2884,8 @@ void CGxString::AddShadowFixedGeometry() {
   offset3.y = static_cast<float>(floor(ScreenToPixelHeight(false, m_shadowOffset.y)));
   offset3.z = 0.0f;
 
-  curr = m_textBlock.m_lines.Ptr();
-  for (i = 0; i < m_textBlock.m_lines.Count(); ++i, ++curr) {
+  curr = m_textBlock.GetLines().Ptr();
+  for (i = 0; i < m_textBlock.NumLines(); ++i, ++curr) {
     for (ti = 0; ti < (*curr)->m_texturePages.Count(); ++ti) {
       p = (*curr)->m_texturePages[ti];
       p->m_shadowColors.SetCount(p->m_vert.Count());

@@ -26,7 +26,7 @@ struct SimplePerfHdr {
   WORD     len;
   LONGLONG timestamp;
   LONGLONG frame;
-  UINT     updateCount;
+  DWORD    updateCount;
   WORD     id;
   WORD     size;
 };
