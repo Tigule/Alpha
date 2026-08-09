@@ -456,9 +456,13 @@
 #if defined( TT_CONFIG_OPTION_BYTECODE_INTERPRETER ) || \
     defined( TT_CONFIG_OPTION_EMBEDDED_BITMAPS )
 
+#ifdef TT_CONFIG_OPTION_BYTECODE_INTERPRETER
+
   Fail_Exec:
     if ( !size->debug )
       TT_Done_Context( exec );
+
+#endif
 
   Fail_Memory:
 

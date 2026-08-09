@@ -353,10 +353,11 @@
     /* execution context tied to the instance    */
     /* object rather than asking it on demand.   */
 
-    FT_Bool            debug;
     TT_ExecContext     context;
 
 #endif /* TT_CONFIG_OPTION_BYTECODE_INTERPRETER */
+
+    FT_Bool            debug;
 
   } TT_SizeRec;
 
