@@ -297,7 +297,7 @@ add_library(WowShared STATIC
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(WowShared PRIVATE /Gr)
+    target_compile_options(WowShared PRIVATE /Gr /Z7)
 
     set_source_files_properties(
         Source/Ui/GameUI.cpp
@@ -734,7 +734,7 @@ if(WIN32)
     )
 
     if(MSVC_VERSION EQUAL 1200)
-        target_compile_options(Wow PRIVATE /Gr /GX- /GR- /Oy-)
+        target_compile_options(Wow PRIVATE /Gr /GX- /GR- /Oy- /Z7)
         target_compile_definitions(Wow PRIVATE WOW_STORM_ENTRYPOINT=1)
         set_property(TARGET Wow APPEND_STRING PROPERTY LINK_FLAGS " /ENTRY:StormStaticEntryPoint")
     endif()
@@ -766,7 +766,7 @@ if(WIN32)
     )
 
     if(MSVC_VERSION EQUAL 1200)
-        target_compile_options(UpdateClient PRIVATE /Gr)
+        target_compile_options(UpdateClient PRIVATE /Gr /Z7)
     endif()
 
     target_link_libraries(UpdateClient Storm)
@@ -777,7 +777,7 @@ if(WIN32)
     )
 
     if(MSVC_VERSION EQUAL 1200)
-        target_compile_options(WowError PRIVATE /Gr)
+        target_compile_options(WowError PRIVATE /Gr /Z7)
     endif()
 
     target_link_libraries(WowError Storm)
@@ -788,7 +788,7 @@ if(WIN32)
     )
 
     if(MSVC_VERSION EQUAL 1200)
-        target_compile_options(WowUpdateHelper PRIVATE /Gr)
+        target_compile_options(WowUpdateHelper PRIVATE /Gr /Z7)
     endif()
 
     target_link_libraries(WowUpdateHelper Storm)

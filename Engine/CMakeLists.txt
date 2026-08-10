@@ -214,7 +214,7 @@ if (WIN32)
 endif()
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Engine PRIVATE /Gr)
+    target_compile_options(Engine PRIVATE /Gr /Z7)
 
     set_source_files_properties(
         Source/regex/regfree.c
