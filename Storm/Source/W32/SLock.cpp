@@ -967,7 +967,7 @@ DWORD SSyncObject::Wait(DWORD timeoutMs) {
   return WaitForSingleObject(*(HANDLE *)m_opaqueData, timeoutMs);
 }
 
-DWORD WaitMultiple(UINT count, SSyncObject *const objects, int waitAll, DWORD timeoutMs) {
+DWORD WaitMultiple(UINT count, SSyncObject *objects, int waitAll, DWORD timeoutMs) {
   if (count > MAXIMUM_WAIT_OBJECTS) {
     return 0xFFFFFFFF;
   }
@@ -975,7 +975,7 @@ DWORD WaitMultiple(UINT count, SSyncObject *const objects, int waitAll, DWORD ti
   return WaitForMultipleObjects(count, (const HANDLE *)objects, waitAll, timeoutMs);
 }
 
-DWORD WaitMultiplePtr(UINT count, SSyncObject **const objectPtrs, int waitAll, DWORD timeoutMs) {
+DWORD WaitMultiplePtr(UINT count, SSyncObject **objectPtrs, int waitAll, DWORD timeoutMs) {
   HANDLE objects[MAXIMUM_WAIT_OBJECTS];
   UINT   i;
   UINT   handlecount;

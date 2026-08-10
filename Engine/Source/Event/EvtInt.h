@@ -109,7 +109,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     SCHEDSTATE_ACTIVE = 0,
     SCHEDSTATE_CLOSED = 1,
     SCHEDSTATE_DESTROYED = 2,
-    _UNIQUE_SYMBOL_SCHEDSTATE_96 = -1
+    _UNIQUE_SYMBOL_SCHEDSTATE_96 = -1 // todo: `_UNIQUE_SYMBOL_NAME_LINE = -1` macro?
   };
 
  private:

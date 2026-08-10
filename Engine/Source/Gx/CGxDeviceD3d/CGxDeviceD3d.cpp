@@ -8,68 +8,6 @@
 #include <new>
 #include <string.h>
 
-struct DISPLAY_DEVICE_TARGET {
-  UINT cb;
-  char DeviceName[32];
-  char DeviceString[128];
-  UINT StateFlags;
-  char DeviceID[128];
-  char DeviceKey[128];
-};
-
-struct DEVMODE_TARGET {
-  char dmDeviceName[32];
-  WORD dmSpecVersion;
-  WORD dmDriverVersion;
-  WORD dmSize;
-  WORD dmDriverExtra;
-  UINT dmFields;
-  union {
-    struct {
-      short dmOrientation;
-      short dmPaperSize;
-      short dmPaperLength;
-      short dmPaperWidth;
-    };
-    POINTL dmPosition;
-  };
-  short dmScale;
-  short dmCopies;
-  short dmDefaultSource;
-  short dmPrintQuality;
-  short dmColor;
-  short dmDuplex;
-  short dmYResolution;
-  short dmTTOption;
-  short dmCollate;
-  char  dmFormName[32];
-  WORD  dmLogPixels;
-  UINT  dmBitsPerPel;
-  UINT  dmPelsWidth;
-  UINT  dmPelsHeight;
-  union {
-    UINT dmDisplayFlags;
-    UINT dmNup;
-  };
-  UINT dmDisplayFrequency;
-  UINT dmICMMethod;
-  UINT dmICMIntent;
-  UINT dmMediaType;
-  UINT dmDitherType;
-  UINT dmReserved1;
-  UINT dmReserved2;
-  UINT dmPanningWidth;
-  UINT dmPanningHeight;
-};
-
-typedef BOOL(__stdcall *ENUM_DISPLAY_DEVICES)(LPVOID, DWORD, LPVOID, DWORD);
-
-#define EnumDisplayDevicesTarget(device, index, displayDevice, flags)                                             \
-  (GetProcAddress(GetModuleHandleA("user32.dll"), "EnumDisplayDevicesA") &&                                       \
-   reinterpret_cast<ENUM_DISPLAY_DEVICES>(GetProcAddress(GetModuleHandleA("user32.dll"), "EnumDisplayDevicesA"))( \
-       device, index, displayDevice, flags                                                                        \
-   ))
-
 static _D3DFORMAT s_depthFormat[4] = {D3DFMT_D16, D3DFMT_D24X8, D3DFMT_D24S8, D3DFMT_D32};
 static _D3DFORMAT s_colorFormat[4] = {D3DFMT_R5G6B5, D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8, D3DFMT_A2R10G10B10};
 
@@ -187,7 +125,7 @@ static WORD HToI(LPCSTR h, UINT count) {
 
 BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow) {
   D3DADAPTER_IDENTIFIER9 adapterId;
-  DISPLAY_DEVICE_TARGET  dd;
+  DISPLAY_DEVICEA  dd;
   HINSTANCE              d3dLib;
   IDirect3D9            *d3d;
   UINT                   displayIndex;
@@ -204,12 +142,12 @@ BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi
   displayIndex = 0;
   retVal = 0;
   dd.cb = sizeof(dd);
-  if (!EnumDisplayDevicesTarget(0, displayIndex, &dd, 0)) {
+  if (!EnumDisplayDevicesA(0, displayIndex, &dd, 0)) {
     goto d3dFallback;
   }
   while (!(dd.StateFlags & 4)) {
     ++displayIndex;
-    if (!EnumDisplayDevicesTarget(0, displayIndex, &dd, 0)) {
+    if (!EnumDisplayDevicesA(0, displayIndex, &dd, 0)) {
       goto d3dFallback;
     }
   }
@@ -274,21 +212,21 @@ BOOL CGxDevice::AdapterInfer(WORD &deviceID) {
 }
 
 BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
-  DISPLAY_DEVICE_TARGET dd;
-  DEVMODE_TARGET        dm;
+  DISPLAY_DEVICEA dd;
+  DEVMODEA        dm;
   CGxMonitorMode       *mode;
   UINT                  modeIndex;
 
   modes.SetCount(0);
   dd.cb = sizeof(dd);
-  EnumDisplayDevicesTarget(0, 0, &dd, 0);
+  EnumDisplayDevicesA(0, 0, &dd, 0);
   if (!(dd.StateFlags & 1)) {
     return 0;
   }
 
   modeIndex = 0;
   dm.dmSize = sizeof(dm);
-  while (EnumDisplaySettingsA(dd.DeviceName, modeIndex, reinterpret_cast<DEVMODEA *>(&dm))) {
+  while (EnumDisplaySettingsA(dd.DeviceName, modeIndex, &dm)) {
     if (dm.dmPelsWidth >= 0x280 && dm.dmPelsHeight >= 0x1E0 && dm.dmBitsPerPel >= 0x10 && dm.dmDisplayFrequency >= 0x3C) {
       mode = modes.New();
       mode->size.x = dm.dmPelsWidth;
@@ -303,17 +241,17 @@ BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
 }
 
 BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
-  DISPLAY_DEVICE_TARGET dd;
-  DEVMODE_TARGET        dm;
+  DISPLAY_DEVICEA dd;
+  DEVMODEA        dm;
 
   dd.cb = sizeof(dd);
-  EnumDisplayDevicesTarget(0, 0, &dd, 0);
+  EnumDisplayDevicesA(0, 0, &dd, 0);
   if (!(dd.StateFlags & 1)) {
     return 0;
   }
 
   dm.dmSize = sizeof(dm);
-  if (!EnumDisplaySettingsA(dd.DeviceName, 0xFFFFFFFF, reinterpret_cast<DEVMODEA *>(&dm))) {
+  if (!EnumDisplaySettingsA(dd.DeviceName, 0xFFFFFFFF, &dm)) {
     return 0;
   }
 

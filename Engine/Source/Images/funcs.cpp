@@ -102,7 +102,7 @@ void MippedImgSet(UINT fourCC, UINT width, UINT height, MipBits *bits) {
   ASSERT(offset == levelDataSize);
 }
 
-void FullShrink(C4Pixel *dest, UINT destWidth, UINT destHeight, const C4Pixel *const source, UINT sourceWidth, UINT sourceHeight) {
+void FullShrink(C4Pixel *dest, UINT destWidth, UINT destHeight, const C4Pixel *source, UINT sourceWidth, UINT sourceHeight) {
   UINT           xScale = sourceWidth / destWidth;
   UINT           yScale = sourceHeight / destHeight;
   const C4Pixel *sourcePixel = source;

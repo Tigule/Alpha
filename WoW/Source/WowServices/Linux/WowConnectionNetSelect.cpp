@@ -1,4 +1,3 @@
-#define FD_SETSIZE 1024
 #include <winsock2.h>
 #include <Base/Base.h>
 

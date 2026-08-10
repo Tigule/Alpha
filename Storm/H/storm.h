@@ -796,7 +796,7 @@ class CDebugSRWLock : private CSRWLock {
 };
 
 class SSyncObject {
-  friend DWORD WaitMultiplePtr(UINT, SSyncObject **const, int, DWORD);
+  friend DWORD WaitMultiplePtr(UINT, SSyncObject **, int, DWORD);
 
  public:
   SSyncObject();
@@ -855,8 +855,8 @@ class SMutex : public SSyncObject {
   int     Release();
 };
 
-DWORD WaitMultiple(UINT count, SSyncObject *const objects, int waitAll, DWORD timeoutMs);
-DWORD WaitMultiplePtr(UINT count, SSyncObject **const objectPtrs, int waitAll, DWORD timeoutMs);
+DWORD WaitMultiple(UINT count, SSyncObject *objects, int waitAll, DWORD timeoutMs);
+DWORD WaitMultiplePtr(UINT count, SSyncObject **objectPtrs, int waitAll, DWORD timeoutMs);
 void  SServerInitialize();
 void  SServerDestroy();
 int   STryEnterCriticalSection(LPVOID opaqueData);

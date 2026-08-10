@@ -638,11 +638,11 @@ Sound *Sound::Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool st
     return 0;
   }
 
-  FSOUND_Stream_SetEndCallback(sound->m_stream, FSoundStreamEndCallback, reinterpret_cast<int>(sound));
+  FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(sound->m_stream), FSoundStreamEndCallback, reinterpret_cast<int>(sound));
   sound->m_category = category;
 
   if (!startPaused) {
-    sound->m_channel = FSOUND_Stream_PlayEx(-1, sound->m_stream, 0, 0);
+    sound->m_channel = FSOUND_Stream_PlayEx(-1, static_cast<FSOUND_STREAM *>(sound->m_stream), 0, 0);
     if (sound->m_channel == -1) {
       s_soundListFree.Put(sound);
       return 0;
@@ -698,13 +698,13 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCoun
   }
 
   if (loopCount) {
-    FSOUND_Stream_SetLoopCount(sound->m_stream, loopCount);
-    FSOUND_Stream_SetEndCallback(sound->m_stream, FSoundStreamEndCallback, reinterpret_cast<int>(sound));
+    FSOUND_Stream_SetLoopCount(static_cast<FSOUND_STREAM *>(sound->m_stream), loopCount);
+    FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(sound->m_stream), FSoundStreamEndCallback, reinterpret_cast<int>(sound));
   }
 
   sound->m_category = category;
   if (!startPaused) {
-    sound->m_channel = FSOUND_Stream_PlayEx(-1, sound->m_stream, 0, 0);
+    sound->m_channel = FSOUND_Stream_PlayEx(-1, static_cast<FSOUND_STREAM *>(sound->m_stream), 0, 0);
     if (sound->m_channel == -1) {
       s_soundListFree.Put(sound);
       return 0;
@@ -836,7 +836,7 @@ void Sound::Suspend() {
   }
 
   if (m_stream) {
-    FSOUND_Stream_SetEndCallback(m_stream, 0, 0);
+    FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(m_stream), 0, 0);
   }
 
   DecrementCategory(m_category);
@@ -849,7 +849,7 @@ void Sound::Suspend() {
   }
 
   if (m_stream) {
-    FSOUND_Stream_Stop(m_stream);
+    FSOUND_Stream_Stop(static_cast<FSOUND_STREAM *>(m_stream));
   }
 
   m_suspendedFlags = m_flags;
@@ -863,8 +863,8 @@ void Sound::Resume() {
     return;
   }
 
-  FSOUND_Stream_SetEndCallback(m_stream, FSoundStreamEndCallback, reinterpret_cast<int>(this));
-  m_channel = FSOUND_Stream_PlayEx(-1, m_stream, 0, 1);
+  FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(m_stream), FSoundStreamEndCallback, reinterpret_cast<int>(this));
+  m_channel = FSOUND_Stream_PlayEx(-1, static_cast<FSOUND_STREAM *>(m_stream), 0, 1);
   if (m_channel == -1) {
     Stop();
     return;
@@ -889,7 +889,7 @@ void Sound::Resume() {
 
 void Sound::Stop() {
   if (m_stream) {
-    FSOUND_Stream_SetEndCallback(m_stream, 0, 0);
+    FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(m_stream), 0, 0);
   }
 
   DecrementCategory(m_category);
@@ -902,8 +902,8 @@ void Sound::Stop() {
   }
 
   if (m_stream) {
-    FSOUND_Stream_Stop(m_stream);
-    FSOUND_Stream_Close(m_stream);
+    FSOUND_Stream_Stop(static_cast<FSOUND_STREAM *>(m_stream));
+    FSOUND_Stream_Close(static_cast<FSOUND_STREAM *>(m_stream));
     m_stream = 0;
   }
 
@@ -961,7 +961,7 @@ bool Sound::SetPaused(bool state) {
     return true;
   }
 
-  m_channel = FSOUND_Stream_PlayEx(-1, m_stream, 0, 1);
+  m_channel = FSOUND_Stream_PlayEx(-1, static_cast<FSOUND_STREAM *>(m_stream), 0, 1);
   if (m_channel == -1) {
     return false;
   }
@@ -979,12 +979,12 @@ bool Sound::SetPaused(bool state) {
 
 int Sound::GetLengthMs() {
   ASSERT(m_stream);
-  return FSOUND_Stream_GetLengthMs(m_stream);
+  return FSOUND_Stream_GetLengthMs(static_cast<FSOUND_STREAM *>(m_stream));
 }
 
 int Sound::SetPositionMs(int milliseconds) {
   ASSERT(m_stream);
-  return FSOUND_Stream_SetTime(m_stream, milliseconds);
+  return FSOUND_Stream_SetTime(static_cast<FSOUND_STREAM *>(m_stream), milliseconds);
 }
 
 void Sound::SetPosition(const NTempest::C3Vector &worldPosition, const NTempest::C3Vector *vel) {
@@ -1085,7 +1085,7 @@ void Sound::SetFrequency(int freq) {
 
 void Sound::SetDistances(float min, float max) {
   if (m_stream && (m_flags & 0x08000000)) {
-    FSOUND_SAMPLE *sample = FSOUND_Stream_GetSample(m_stream);
+    FSOUND_SAMPLE *sample = FSOUND_Stream_GetSample(static_cast<FSOUND_STREAM *>(m_stream));
     if (sample) {
       FSOUND_Sample_SetMinMaxDistance(sample, min, max);
     }

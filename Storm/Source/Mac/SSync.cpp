@@ -257,7 +257,7 @@ SThread &SThread::operator=(const SThread &rhs) {
   return *this;
 }
 
-DWORD WaitMultiplePtr(UINT count, SSyncObject **const objectPtrs, int waitAll, DWORD timeoutMs) {
+DWORD WaitMultiplePtr(UINT count, SSyncObject **objectPtrs, int waitAll, DWORD timeoutMs) {
   UINT index;
 
   for (index = 0; index < count; ++index) {

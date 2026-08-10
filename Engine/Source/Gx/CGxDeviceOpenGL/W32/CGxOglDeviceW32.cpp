@@ -6,14 +6,6 @@
 #include <gl/gl.h>
 #include <string.h>
 
-typedef BOOL(WINAPI *EnumDisplayDevicesAProc)(LPCSTR device, DWORD deviceNum, DISPLAY_DEVICEA *displayDevice, DWORD flags);
-
-static BOOL EnumDisplayDevicesTarget(LPCSTR device, DWORD deviceNum, DISPLAY_DEVICEA *displayDevice, DWORD flags) {
-  static EnumDisplayDevicesAProc enumDisplayDevices =
-      reinterpret_cast<EnumDisplayDevicesAProc>(GetProcAddress(GetModuleHandleA("user32.dll"), "EnumDisplayDevicesA"));
-  return enumDisplayDevices && enumDisplayDevices(device, deviceNum, displayDevice, flags);
-}
-
 static const char s_WndClassName[] = "GxWindowClassOpenGl";
 
 static int s_inCreateOrDestroy;
@@ -111,7 +103,7 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
     memset(&dm, 0, sizeof(dm));
     dd.cb = sizeof(dd);
     dm.dmSize = sizeof(dm);
-    EnumDisplayDevicesTarget(0, 0, &dd, 0);
+    EnumDisplayDevicesA(0, 0, &dd, 0);
     EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), format.apiSpecificModeID, &dm);
     FATALASSERT(ChangeDisplaySettingsExA(reinterpret_cast<LPCSTR>(dd.DeviceName), &dm, 0, CDS_FULLSCREEN, 0) == DISP_CHANGE_SUCCESSFUL);
     SetWindowPos(m_hwnd, 0, 0, 0, format.size.x, format.size.y, SWP_DEFERERASE | SWP_NOCOPYBITS | SWP_NOREDRAW);
@@ -131,7 +123,7 @@ BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   DISPLAY_DEVICEA dd;
   DEVMODEA        dm;
   dd.cb = sizeof(dd);
-  EnumDisplayDevicesTarget(0, 0, &dd, 0);
+  EnumDisplayDevicesA(0, 0, &dd, 0);
 
   UINT mode = 0;
   UINT bitsPerPixel = format.colorFormat ? 32 : 16;
@@ -408,7 +400,7 @@ BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   UINT            mode;
 
   dd.cb = sizeof(dd);
-  EnumDisplayDevicesTarget(0, 0, &dd, 0);
+  EnumDisplayDevicesA(0, 0, &dd, 0);
   if (!(dd.StateFlags & 1)) {
     return 0;
   }

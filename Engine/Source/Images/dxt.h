@@ -215,6 +215,6 @@ UINT     CalcLevelCount(UINT width, UINT height);
 UINT     MippedImgCalcSize(UINT fourCC, UINT width, UINT height);
 MipBits *MippedImgAllocA(UINT fourCC, UINT width, UINT height, LPCSTR fileName, int lineNumber);
 void     MippedImgSet(UINT fourCC, UINT width, UINT height, MipBits *bits);
-void     FullShrink(C4Pixel *dest, UINT destWidth, UINT destHeight, const C4Pixel *const source, UINT sourceWidth, UINT sourceHeight);
+void     FullShrink(C4Pixel *dest, UINT destWidth, UINT destHeight, const C4Pixel *source, UINT sourceWidth, UINT sourceHeight);
 
 #endif

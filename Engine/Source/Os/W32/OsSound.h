@@ -175,7 +175,7 @@ NODEDECL(Sound) {
   static BYTE (*m_positionUpdateCallback)(LONGLONG handle, NTempest::C3Vector &position);
 
   int                m_channel;
-  FSOUND_STREAM     *m_stream;
+  void              *m_stream;
   UINT               m_flags;
   UINT               m_suspendedFlags;
   UINT               m_fadeStartTime;
