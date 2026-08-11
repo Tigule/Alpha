@@ -814,8 +814,11 @@ class CGUnit {
 
  protected:
   CGUnit(const CGUnit &);
-  CGUnit(DWORD *storage, const NTempest::C3Vector &position, float facing, const DWORDLONG &guid);
-  ~CGUnit();
+  CGUnit(DWORD *storage, const NTempest::C3Vector &position, float facing, const DWORDLONG &guid)
+      : m_unit(reinterpret_cast<CGUnitData *>(storage)), m_move(position, facing, guid) {
+  }
+  ~CGUnit() {
+  }
 
   CGUnitData       *Unit();
   const CGUnitData *Unit() const;
@@ -1273,7 +1276,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
  public:
   UINT          GetDisplayRace() const;
   UINT          GetDisplaySex() const;
-  HTEXCOMPONENT GetTexComponent() const;
+  HTEXCOMPONENT GetTexComponent() const {
+    return m_texComponent;
+  }
   virtual BOOL  UpdateAttachmentLoadStatus();
   virtual BOOL  UpdateTexComponentLoadStatus();
   BOOL          IsModelComponentable() const;

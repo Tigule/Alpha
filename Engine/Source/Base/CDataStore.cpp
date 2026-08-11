@@ -29,21 +29,6 @@ BOOL CDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
   return 1;
 }
 
-void CDataStore::SetSize(UINT size) {
-  ASSERT(!IsFinal());
-  if (size > m_size) {
-    AssertFetchWrite(m_size, size - m_size, 0, 0);
-  }
-  m_size = size;
-}
-
-void CDataStore::Reserve(UINT bytes, LPCSTR fileName, int lineNumber) {
-  ASSERT(!IsFinal());
-  if (bytes > m_alloc) {
-    AssertFetchWrite(0, bytes, fileName, lineNumber);
-  }
-}
-
 #define DATASTORE_SET(type)                                 \
   CDataStore &CDataStore::Set(UINT pos, type val) {         \
     ASSERT(!IsFinal());                                     \

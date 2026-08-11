@@ -14,7 +14,8 @@ union UTokenData {
 
 class Parser {
  public:
-  Parser(CMDLStatus *status, mdl_scan &scanner);
+  Parser(CMDLStatus *status, mdl_scan &scanner) : m_scanner(scanner), m_status(status), m_flags(0) {
+  }
 
   void   FatalDuplicate(LPCSTR found);
   void   FatalUnmatched(LPCSTR item1, UINT count1, LPCSTR item2, UINT count2);
@@ -25,7 +26,9 @@ class Parser {
   void   FatalExpected(LPCSTR expected, LPCSTR found);
   void   FatalEOF();
   void   WarningCount(LPCSTR item, long expected, long actual);
-  BOOL   FoundError();
+  BOOL   FoundError() {
+    return m_flags & 1;
+  }
   void   Expect(UINT what, UINT cachedToken, LPCSTR tokenText);
   void   Expect(UINT what);
   long   ExpectInt(UINT cachedToken, LPCSTR tokenText, UTokenData *cachedValue);

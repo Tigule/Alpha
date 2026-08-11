@@ -571,7 +571,14 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   static void AsyncPostloadCallbackAll(LPVOID userArg);
   BOOL        Read(LPCSTR fileName);
   void        CreateData();
-  void        AllocGroups();
+  void        AllocGroups() {
+    FATALASSERT(groupPtrList.Count() == 0);
+    groupPtrList.SetCount(groupCount);
+    for (UINT n = 0; n < groupCount; ++n) {
+      groupPtrList[n] = CMap::AllocMapObjGroup();
+      FATALASSERT(groupPtrList[n]);
+    }
+  }
   void        CreateAllGroups();
   void        ReadExtGroups();
   SIffChunk  *ReadChunkHeader(BYTE *&pData, DWORD expectedToken);

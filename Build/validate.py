@@ -94,6 +94,7 @@ LF_ONEMETHOD = 0x140B
 LF_VFUNCOFF = 0x140C
 
 CV_PROP_FORWARD_REF = 0x0080
+CV_METHOD_COMPGENX = 0x0100
 
 # CodeView symbol records used for function locals. VC6 emits the *_ST
 # variants, whose names are length-prefixed; the non-ST variants use
@@ -1692,6 +1693,51 @@ def global_fingerprint(
     )
 
 
+def declared_methods(pdb: Pdb2) -> set[tuple[str, str]]:
+    result: set[tuple[str, str]] = set()
+    for (_, owner), layout in pdb.types.named_layouts().items():
+        if not isinstance(layout, tuple) or len(layout) < 5:
+            continue
+        for field in layout[4]:
+            if not isinstance(field, tuple) or not field:
+                continue
+            if field[0] == "method":
+                if not field[2] & CV_METHOD_COMPGENX:
+                    result.add((owner, field[1]))
+            elif field[0] == "methods":
+                for overload in field[3]:
+                    if not overload[0] & CV_METHOD_COMPGENX:
+                        result.add((owner, field[1]))
+                        break
+    return result
+
+
+def compare_method_inlining(reference: Pdb2, actual: Pdb2) -> Comparison:
+    reference_methods = declared_methods(reference)
+    actual_methods = declared_methods(actual)
+    reference_emitted = {procedure.name for procedure in reference.procedures}
+    actual_emitted = {procedure.name for procedure in actual.procedures}
+    result = Comparison(
+        "Class method inlining", len(reference_methods), len(actual_methods)
+    )
+    for owner, method in sorted(reference_methods & actual_methods):
+        qualified = f"{owner}::{method}"
+        reference_inline = qualified not in reference_emitted
+        actual_inline = qualified not in actual_emitted
+        if reference_inline == actual_inline:
+            result.matched += 1
+            continue
+        result.differences.append(
+            Difference(
+                "inlined-here" if actual_inline else "emitted-here",
+                qualified,
+                "inline" if reference_inline else "out-of-line",
+                "inline" if actual_inline else "out-of-line",
+            )
+        )
+    return result
+
+
 def compare_globals(
     reference: Pdb2,
     actual: Pdb2,
@@ -2661,10 +2707,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 reference_pdb, actual_pdb, args.compiland
             )
             comparisons.append(signature_result)
-            if args.compiland is None:
-                comparisons.append(layout_result)
             type_difference = bool(signature_result.differences)
             if args.compiland is None:
+                inlining_result = compare_method_inlining(reference_pdb, actual_pdb)
+                comparisons.extend((layout_result, inlining_result))
                 type_difference = type_difference or bool(layout_result.differences)
         if not args.skip_globals:
             assert reference_pdb is not None and actual_pdb is not None

@@ -27,7 +27,8 @@ enum WORLDTEXTTYPE {
 
 struct WORLDTEXTCREATEPARAMS {
   WORLDTEXTCREATEPARAMS();
-  ~WORLDTEXTCREATEPARAMS();
+  ~WORLDTEXTCREATEPARAMS() {
+  }
 
   void Defaults();
   void Clear();
@@ -53,7 +54,11 @@ struct WORLDTEXTCREATEPARAMS {
 };
 
 struct WORLDTEXTSTRING : public CHandleObject {
-  WORLDTEXTSTRING();
+  WORLDTEXTSTRING()
+      : worldTextType(NUM_WORLDTEXTTYPES), elapsedTime(0), totalTime(0), object(0), hidden(0), m_flags(0), string(0) {
+    params.Defaults();
+    savedStringText[0] = 0;
+  }
   void Update(float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *basePosition);
   void Reset();
   void CalculateNewColor(UINT elapsed);

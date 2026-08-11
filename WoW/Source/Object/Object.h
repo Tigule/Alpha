@@ -170,7 +170,9 @@ class CGObject {
   BYTE IsA(OBJECT_TYPE type) const {
     return (GetType() & type) != 0;
   }
-  BYTE IsExactlyA(OBJECT_TYPE_ID type) const;
+  BYTE IsExactlyA(OBJECT_TYPE_ID type) const {
+    return GetType() == g_heirTypeFlags[type];
+  }
 
   DWORDLONG GetGUID() const {
     return *reinterpret_cast<const DWORDLONG *>(m_obj);

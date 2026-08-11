@@ -144,7 +144,10 @@ class CGGameObject_C_Type_Null : public CGGameObject_C_TypeBase {
 
 class CGGameObject_C_TypeAnimated : public CGGameObject_C_TypeBase {
  public:
-  CGGameObject_C_TypeAnimated(CGGameObject_C *owner);
+  CGGameObject_C_TypeAnimated(CGGameObject_C *owner)
+      : CGGameObject_C_TypeBase(owner), m_animState(0), m_loopingSound(0), m_animPresent(0) {
+    memset(m_useFallbackAnim, 0, sizeof(m_useFallbackAnim));
+  }
   virtual ~CGGameObject_C_TypeAnimated();
   virtual void   UpdateState(int oldState, int newState);
   virtual void   HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position);
@@ -232,7 +235,8 @@ class CGGameObject_C_Type_MapObj : public CGGameObject_C_TypeBase {
 class CGGameObject_C_Type_MapObjTransport : public CGGameObject_C_Type_MapObj {
  public:
   CGGameObject_C_Type_MapObjTransport(CGGameObject_C *owner);
-  virtual ~CGGameObject_C_Type_MapObjTransport();
+  virtual ~CGGameObject_C_Type_MapObjTransport() {
+  }
   virtual NTempest::C3Vector GetPosition() const;
   virtual float              GetFacing() const;
   virtual void               AddPassenger(CMovementData *passenger);

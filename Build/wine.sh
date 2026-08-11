@@ -222,6 +222,7 @@ setup() {
 }
 
 build() {
+    rm -f Storm/*.lib Engine/*.lib WoW/*.pdb WoW/*.map WoW/*.exe
     run_vc6_cmd "nmake"
 }
 

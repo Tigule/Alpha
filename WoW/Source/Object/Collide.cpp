@@ -118,18 +118,6 @@ float MovementGetTerminalVelocity() {
   return s_terminalVelocity * 0.91439998f;
 }
 
-CRedirect::CRedirect() {
-  Reset();
-}
-
-void CRedirect::Reset() {
-  hitPoint = NTempest::C3Vector(0.0f);
-  surfaceNorm[0] = NTempest::C3Vector(0.0f);
-  surfaceNorm[1] = NTempest::C3Vector(0.0f);
-  gameObjHit = 0;
-  flags = 0;
-}
-
 static BOOL PolygonIntersectsPlane(const NTempest::C4Plane &plane, const CClippedTriangle &poly) {
   int allPositive = 1;
   int allNegative = 1;

@@ -60,18 +60,6 @@ BOOL CAnimTransform::Animates() {
   return translation.TotalKeys() || rotation.TotalKeys() || scale.TotalKeys();
 }
 
-UINT CAnimTransform::Bytes() const {
-  return translation.CKeyFrameTrackBase::Bytes() + rotation.CKeyFrameTrackBase::Bytes() + scale.CKeyFrameTrackBase::Bytes();
-}
-
-BOOL CAnimVisibleObj::Animates() {
-  return visibility.TotalKeys() != 0;
-}
-
-UINT CAnimVisibleObj::Bytes() const {
-  return visibility.CKeyFrameTrackBase::Bytes();
-}
-
 BOOL CAnimData::Moves() {
   for (UINT index = 0; index < boneObjs.Count(); ++index) {
     CAnimBoneObj &bone = boneObjs[index];

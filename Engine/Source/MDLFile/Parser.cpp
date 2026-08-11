@@ -6,9 +6,6 @@ namespace MDL {
   LPCSTR TokenText(UINT token);
 }
 
-Parser::Parser(CMDLStatus *status, mdl_scan &scanner) : m_scanner(scanner), m_status(status), m_flags(0) {
-}
-
 int Parser::GetLineNumber() {
   return m_scanner.mdllineno;
 }
@@ -78,10 +75,6 @@ void Parser::FatalEOF() {
 
 void Parser::WarningCount(LPCSTR item, long expected, long actual) {
   m_status->WarningCount(item, expected, actual, GetLineNumber());
-}
-
-BOOL Parser::FoundError() {
-  return m_flags & 1;
 }
 
 void Parser::Expect(UINT what) {

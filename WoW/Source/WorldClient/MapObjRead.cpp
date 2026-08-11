@@ -144,15 +144,6 @@ BOOL CMapObj::Read(LPCSTR fileName) {
   return 1;
 }
 
-void CMapObj::AllocGroups() {
-  FATALASSERT(groupPtrList.Count() == 0);
-  groupPtrList.SetCount(groupCount);
-  for (UINT n = 0; n < groupCount; ++n) {
-    groupPtrList[n] = CMap::AllocMapObjGroup();
-    FATALASSERT(groupPtrList[n]);
-  }
-}
-
 void CMapObj::CreateData() {
   UINT n;
 

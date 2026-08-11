@@ -70,9 +70,6 @@ static UINT const worldTextFlags[NUM_WORLDTEXTTYPES] = {0x48, 0x48, 0x10, 0x8, 0
 WORLDTEXTCREATEPARAMS::WORLDTEXTCREATEPARAMS() {
 }
 
-WORLDTEXTCREATEPARAMS::~WORLDTEXTCREATEPARAMS() {
-}
-
 void WORLDTEXTCREATEPARAMS::Defaults() {
   ascendDistance = 24.0f;
   totalTime = 3000;
@@ -90,11 +87,6 @@ void WORLDTEXTCREATEPARAMS::Defaults() {
   enlargeTime = 0;
   shrinkTime = 0;
   flags = 0;
-}
-
-WORLDTEXTSTRING::WORLDTEXTSTRING() : worldTextType(NUM_WORLDTEXTTYPES), elapsedTime(0), totalTime(0), object(0), hidden(0), m_flags(0), string(0) {
-  params.Defaults();
-  savedStringText[0] = 0;
 }
 
 static int IntInterp(float progress, int start, int end) {

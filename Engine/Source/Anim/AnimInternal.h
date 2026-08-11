@@ -515,7 +515,9 @@ void CKeyFrameTrack<C3Color, C3Color>::Interpolate(const CKeyTrackStatus &keySta
 
 struct CAnimTransform {
   int  Animates();
-  UINT Bytes() const;
+  UINT Bytes() const {
+    return translation.CKeyFrameTrackBase::Bytes() + rotation.CKeyFrameTrackBase::Bytes() + scale.CKeyFrameTrackBase::Bytes();
+  }
 
   CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector>                   translation;
   CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion> rotation;
@@ -549,8 +551,12 @@ struct CAnimBoneObj : public CAnimObj {
 };
 
 struct CAnimVisibleObj {
-  int  Animates();
-  UINT Bytes() const;
+  int  Animates() {
+    return visibility.TotalKeys() != 0;
+  }
+  UINT Bytes() const {
+    return visibility.CKeyFrameTrackBase::Bytes();
+  }
 
   CKeyFrameTrack<float, float> visibility;
 };

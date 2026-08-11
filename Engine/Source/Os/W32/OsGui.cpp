@@ -2764,9 +2764,6 @@ BOOL COsEditBox::IsCharacterAllowed(char inChar) {
   return sIsCharacterAllowed(inChar, mFilters);
 }
 
-COsTabControl::COsTabControl(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 15, inID, inFlags) {
-}
-
 void COsTabControl::SetValue(int inVal) {
   SendMessageA(static_cast<HWND>(mHandle), TCM_SETCURSEL, inVal, 0);
 }

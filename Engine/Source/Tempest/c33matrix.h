@@ -184,7 +184,9 @@ namespace NTempest {
     void      FromEulerAnglesYZX(float y, float z, float x);
     void      FromEulerAnglesZXY(float z, float x, float y);
     void      FromEulerAnglesZYX(float yaw, float pitch, float roll);
-    C33Matrix Transpose() const;
+    C33Matrix Transpose() const {
+      return C33Matrix(a0, b0, c0, a1, b1, c1, a2, b2, c2);
+    }
 
     float a0;
     float a1;

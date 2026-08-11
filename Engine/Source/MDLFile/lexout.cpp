@@ -56,10 +56,6 @@ void __cdecl mdl_scan::mdlerror(char *format, ...) {
   va_end(args);
 }
 
-int mdl_scan::mdlgetc() {
-  return input();
-}
-
 int mdl_scan::input() {
   int result = static_cast<BYTE>(*mdlin);
   if (result) {
@@ -91,33 +87,6 @@ void mdl_scan::mdl_reset() {
   mdllineno = 1;
 }
 
-void mdl_scan::setinput(LPCSTR inputBuffer) {
-  mdlin = inputBuffer;
-}
-
-void mdl_scan::setoutput(FILE *outputFile) {
-  mdlout = outputFile;
-}
-
-void mdl_scan::NLSTATE() {
-}
-
-void mdl_scan::YY_INIT() {
-}
-
-void mdl_scan::YY_USER() {
-}
-
-void mdl_scan::YY_SCANNER() {
-}
-
-void mdl_scan::mdlless(int count) {
-  while (mdlleng > count) {
-    unput(static_cast<BYTE>(mdltext[--mdlleng]));
-  }
-  mdltext[mdlleng] = 0;
-}
-
 void mdl_scan::mdlcomment(char *material) {
   char *scan = material;
   while (*scan) {
@@ -135,10 +104,6 @@ void mdl_scan::mdlcomment(char *material) {
       }
     }
   }
-}
-
-int mdl_scan::mdlmapch(int character, int) {
-  return character;
 }
 
 int mdl_scan::mdllex() {

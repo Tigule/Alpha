@@ -2649,13 +2649,6 @@ void UnitUpdateMovementAnim(const DWORDLONG &unit) {
 void UnitNotifyStopped(const DWORDLONG &guid, bool moveComplete) {
 }
 
-CGUnit::CGUnit(DWORD *storage, const NTempest::C3Vector &position, float facing, const DWORDLONG &guid)
-    : m_unit(reinterpret_cast<CGUnitData *>(storage)), m_move(position, facing, guid) {
-}
-
-CGUnit::~CGUnit() {
-}
-
 UNITAFFILIATION CGUnit::GetGUIDAffiliation(DWORDLONG) const {
   return AFFILIATION_OTHER;
 }
@@ -4584,10 +4577,6 @@ BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param) {
 
   s_moveHeartBeatTimer = ClientSetTimer(500, MoveHeartBeatHandler, 0);
   return 1;
-}
-
-HTEXCOMPONENT CGUnit_C::GetTexComponent() const {
-  return m_texComponent;
 }
 
 void CGUnit_C::SetActiveMover(const DWORDLONG &guid) {

@@ -223,8 +223,19 @@ class CDataStore {
     return m_size;
   }
 
-  void SetSize(UINT size);
-  void Reserve(UINT bytes, LPCSTR fileName = 0, int lineNumber = 0);
+  void SetSize(UINT size) {
+    ASSERT(!IsFinal());
+    if (size > m_size) {
+      AssertFetchWrite(m_size, size - m_size, 0, 0);
+    }
+    m_size = size;
+  }
+  void Reserve(UINT bytes, LPCSTR fileName = 0, int lineNumber = 0) {
+    ASSERT(!IsFinal());
+    if (bytes > m_alloc) {
+      AssertFetchWrite(0, bytes, fileName, lineNumber);
+    }
+  }
 
   virtual void GetBufferParams(LPCVOID *data, UINT *size, UINT *alloc) const;
   virtual void DetachBuffer(LPVOID *data, UINT *size, UINT *alloc);

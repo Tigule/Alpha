@@ -872,11 +872,6 @@ void CGGameObject_C::UpdateMatrix() {
   CWorldMath::TransformAABox(m_matrix, localExtents, m_collideExtents);
 }
 
-CGGameObject_C_TypeAnimated::CGGameObject_C_TypeAnimated(CGGameObject_C *owner)
-    : CGGameObject_C_TypeBase(owner), m_animState(0), m_loopingSound(0), m_animPresent(0) {
-  memset(m_useFallbackAnim, 0, sizeof(m_useFallbackAnim));
-}
-
 CGGameObject_C_TypeAnimated::~CGGameObject_C_TypeAnimated() {
   CloseLoopingSound();
 }
@@ -1180,9 +1175,6 @@ CGGameObject_C_Type_MapObjTransport::CGGameObject_C_Type_MapObjTransport(CGGameO
   }
 
   UpdateMovement(OsGetAsyncTimeMs(), 0.0f);
-}
-
-CGGameObject_C_Type_MapObjTransport::~CGGameObject_C_Type_MapObjTransport() {
 }
 
 NTempest::C3Vector CGGameObject_C_Type_MapObjTransport::GetPosition() const {

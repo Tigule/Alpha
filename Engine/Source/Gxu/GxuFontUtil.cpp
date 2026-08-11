@@ -11,9 +11,6 @@
 #include <stdlib.h>
 #include <wctype.h>
 
-HYPERLINKPARSEINFO::HYPERLINKPARSEINFO() {
-}
-
 UINT g_heightPixels;
 UINT g_widthPixels;
 LISTDECL(TEXTLINETEXTURE, g_freeTextLineTextures);

@@ -31,19 +31,36 @@ class mdl_scan {
   }
 
   int  mdllex();
-  int  mdlgetc();
+  int  mdlgetc() {
+    return input();
+  }
   int  input();
   int  unput(int character);
   void mdl_reset();
-  void setinput(LPCSTR);
-  void setoutput(FILE *);
-  void NLSTATE();
-  void YY_INIT();
-  void YY_USER();
-  void YY_SCANNER();
-  void mdlless(int);
+  void setinput(LPCSTR inputBuffer) {
+    mdlin = inputBuffer;
+  }
+  void setoutput(FILE *outputFile) {
+    mdlout = outputFile;
+  }
+  void NLSTATE() {
+  }
+  void YY_INIT() {
+  }
+  void YY_USER() {
+  }
+  void YY_SCANNER() {
+  }
+  void mdlless(int count) {
+    while (mdlleng > count) {
+      unput(static_cast<BYTE>(mdltext[--mdlleng]));
+    }
+    mdltext[mdlleng] = 0;
+  }
   void mdlcomment(char *material);
-  int  mdlmapch(int character, int count);
+  int  mdlmapch(int character, int) {
+    return character;
+  }
 
  protected:
   UINT *state;

@@ -298,8 +298,4 @@ namespace NTempest {
     *this = (z_ * (y_ * x_)).Transpose();
   }
 
-  C33Matrix C33Matrix::Transpose() const {
-    return C33Matrix(a0, b0, c0, a1, b1, c1, a2, b2, c2);
-  }
-
 }  // namespace NTempest

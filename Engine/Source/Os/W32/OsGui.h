@@ -766,7 +766,8 @@ class COsSpinButton : public COsControl {
 
 class COsTabControl : public COsControl {
  public:
-  COsTabControl(COsDialog *inDialog, short inID, UINT inFlags);
+  COsTabControl(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 15, inID, inFlags) {
+  }
 
   virtual void SetValue(int inVal);
   virtual int  GetValue();
