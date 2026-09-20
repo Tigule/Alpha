@@ -46,6 +46,153 @@ def _hex(value: Any) -> str:
     return "Not reported" if not isinstance(value, int) else f"0x{value:x}"
 
 
+def _byte_window(value: Any) -> str:
+    if not isinstance(value, str) or not re.fullmatch(r"(?:[0-9a-fA-F]{2}){0,16}", value):
+        return "Not reported"
+    return " ".join(value[index:index + 2].lower() for index in range(0, len(value), 2)) or "No bytes"
+
+
+def _function_raw_evidence(receipt: Any) -> str:
+    if not isinstance(receipt, dict):
+        return ""
+    original = receipt.get("original") if isinstance(receipt.get("original"), dict) else {}
+    rebuilt = receipt.get("rebuilt") if isinstance(receipt.get("rebuilt"), dict) else {}
+    if receipt.get("equal") is True:
+        size = original.get("size")
+        digest = original.get("sha256")
+        return f'''<section class="raw-evidence"><h4>Raw byte comparison</h4><p><strong>Bytes identical:</strong> {_escape(_number(size))} bytes · SHA-256 <code>{_escape(digest or "Not reported")}</code></p><p class="muted">Original starts at RVA {_escape(_hex(original.get("function_rva")))}, file offset {_escape(_hex(original.get("function_file_offset")))} · Rebuilt starts at RVA {_escape(_hex(rebuilt.get("function_rva")))}, file offset {_escape(_hex(rebuilt.get("function_file_offset")))}</p></section>'''
+    first = receipt.get("first_difference_function_offset")
+    first_text = f"function offset +{_hex(first)}" if isinstance(first, int) else "function offset not reported"
+
+    def side(label: str, value: dict[str, Any]) -> str:
+        offset = value.get("window_start_function_offset")
+        size = value.get("size")
+        eof = isinstance(offset, int) and isinstance(size, int) and offset >= size
+        point = "EOF" if eof else "Difference"
+        window_start = f"function +{_hex(offset)}" if isinstance(offset, int) else "Not reported"
+        window = _byte_window(value.get("window_hex"))
+        return f'''<article class="raw-side"><h5>{label}</h5><dl class="raw-facts"><div><dt>Size</dt><dd>{_escape(_number(size))} bytes</dd></div><div><dt>SHA-256</dt><dd><code>{_escape(value.get("sha256") or "Not reported")}</code></dd></div><div><dt>Function start</dt><dd>RVA {_escape(_hex(value.get("function_rva")))} · file {_escape(_hex(value.get("function_file_offset")))}</dd></div><div><dt>{point}</dt><dd>RVA {_escape(_hex(value.get("difference_rva")))} · file {_escape(_hex(value.get("difference_file_offset")))}</dd></div></dl><p class="window-label">Window from {window_start}{" (empty side)" if eof else ""}</p><pre class="hex-window">{_escape(window)}</pre></article>'''
+
+    return f'''<section class="raw-evidence"><h4>Raw byte comparison</h4><p>First difference: {first_text}.</p><div class="raw-pair">{side("Original", original)}{side("Rebuilt", rebuilt)}</div></section>'''
+
+
+def _disassembly_evidence(evidence: Any) -> str:
+    if not isinstance(evidence, dict) or evidence.get("kind") not in {"instructions", "data"}:
+        return '<p class="disassembly-unavailable">Regenerate report to include disassembly.</p>'
+    kind = evidence["kind"]
+    label = "Disassembly" if kind == "instructions" else "Embedded data"
+    rows = evidence.get("rows")
+    rows = rows if isinstance(rows, list) else []
+    status_labels = {
+        "context": "Context",
+        "changed": "Changed",
+        "inserted": "Added",
+        "deleted": "Removed",
+    }
+
+    def side(record: Any, label: str) -> str:
+        if not isinstance(record, dict):
+            return f'<td class="disassembly-empty" aria-label="No {label.lower()} row">—</td>'
+        function_offset = record.get("function_offset")
+        relative = f"+{_hex(function_offset)}" if isinstance(function_offset, int) else "Not reported"
+        va = record.get("va")
+        va_title = f' title="Virtual address {_escape(_hex(va))}"' if isinstance(va, int) else ""
+        address = f'''<div class="disassembly-address"><span{va_title}>RVA {_escape(_hex(record.get("rva")))}</span><span>Function {_escape(relative)}</span></div>'''
+        if kind == "data":
+            text = record.get("text")
+            if not isinstance(text, str) or not text:
+                text = record.get("directive")
+            text = text if isinstance(text, str) and text else "Data directive not reported"
+        else:
+            mnemonic = record.get("mnemonic")
+            operands = record.get("operands")
+            if isinstance(mnemonic, str) and mnemonic:
+                text = f"{mnemonic} {operands}" if isinstance(operands, str) and operands else mnemonic
+            else:
+                text = record.get("text")
+            text = text if isinstance(text, str) and text else "Instruction text not reported"
+        details = []
+        if kind == "data":
+            for key, detail_label in (("dispatch_instruction_indexes", "Dispatch instruction indexes"),
+                                      ("target_instruction_indexes", "Target instruction indexes")):
+                indexes = record.get(key)
+                if isinstance(indexes, list):
+                    values = ", ".join(
+                        str(index) for index in indexes
+                        if isinstance(index, int) and not isinstance(index, bool)
+                    )
+                    if values:
+                        details.append(f'<span class="disassembly-reference">{_escape(detail_label)}: {_escape(values)}</span>')
+        extra = "".join(details)
+        return f'<td><div class="disassembly-line">{address}<code>{_escape(text)}</code>{extra}</div></td>'
+
+    rendered_rows = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        status = row.get("status")
+        status_key = status if isinstance(status, str) and status in status_labels else "context"
+        status_class = status_key
+        status_label = status_labels[status_key]
+        focused = row.get("focus") is True
+        if focused:
+            status_label = f"Focus · {status_label}"
+        note = row.get("note")
+        note_text = " ".join(note.split()) if isinstance(note, str) and note.strip() else ""
+        generic_note = note_text.lower().rstrip(".") in {"instruction differs", "bytes differ"}
+        note_title = (
+            f' title="{_escape(note_text)}" aria-label="{_escape(status_label)}. {_escape(note_text)}"'
+            if generic_note else ""
+        )
+        note_row = (
+            f'<tr class="disassembly-note-row"><td colspan="3"><span class="disassembly-note">{_escape(note_text)}</span></td></tr>'
+            if note_text and not generic_note else ""
+        )
+        rendered_rows.append(
+            f'<tr class="disassembly-row status-{status_class}{" focus" if focused else ""}">'
+            f'<th scope="row"><span class="change-marker"{note_title}>{_escape(status_label)}</span></th>'
+            f'{side(row.get("original"), "Original")}{side(row.get("rebuilt"), "Rebuilt")}</tr>{note_row}'
+        )
+    if not rendered_rows:
+        rendered_rows.append('<tr><td class="disassembly-none" colspan="3">No disassembly rows reported.</td></tr>')
+
+    counts = ""
+    if kind == "instructions":
+        counts = f'<p class="disassembly-counts">Original: {_escape(_number(evidence.get("original_instruction_count")))} instructions · Rebuilt: {_escape(_number(evidence.get("rebuilt_instruction_count")))} instructions</p>'
+    omitted_before = evidence.get("omitted_before")
+    omitted_after = evidence.get("omitted_after")
+    omitted_parts = []
+    if isinstance(omitted_before, int) and omitted_before > 0:
+        omitted_parts.append(f'{_escape(_number(omitted_before))} rows omitted before')
+    if isinstance(omitted_after, int) and omitted_after > 0:
+        omitted_parts.append(f'{_escape(_number(omitted_after))} rows omitted after')
+    omitted = f'<p class="disassembly-omitted">… {" · ".join(omitted_parts)} …</p>' if omitted_parts else ""
+    table = f'''<div class="disassembly-scroll" tabindex="0" aria-label="Side-by-side {"instruction disassembly" if kind == "instructions" else "embedded data"}"><table class="disassembly-table"><thead><tr><th scope="col">Change</th><th scope="col">Original</th><th scope="col">Rebuilt</th></tr></thead><tbody>{"".join(rendered_rows)}</tbody></table></div>'''
+    return f'''<section class="disassembly-evidence"><h4>{label}</h4>{counts}{omitted}{table}</section>'''
+
+
+def _whole_image_raw_evidence(receipt: Any) -> str:
+    if not isinstance(receipt, dict):
+        return ""
+    original = receipt.get("original") if isinstance(receipt.get("original"), dict) else {}
+    rebuilt = receipt.get("rebuilt") if isinstance(receipt.get("rebuilt"), dict) else {}
+    if receipt.get("equal") is True:
+        size = original.get("size")
+        digest = original.get("sha256")
+        return f'''<details class="whole-image-evidence"><summary>Whole executable bytes</summary><p><strong>Bytes identical:</strong> {_escape(_number(size))} bytes · SHA-256 <code>{_escape(digest or "Not reported")}</code></p></details>'''
+    first = receipt.get("first_difference_file_offset")
+    first_text = _hex(first) if isinstance(first, int) else "not reported"
+
+    def side(label: str, value: dict[str, Any]) -> str:
+        offset = value.get("window_start_file_offset")
+        size = value.get("size")
+        eof = isinstance(offset, int) and offset >= size if isinstance(size, int) else False
+        window = _byte_window(value.get("window_hex"))
+        return f'''<article class="raw-side"><h5>{label}</h5><dl class="raw-facts"><div><dt>Size</dt><dd>{_escape(_number(size))} bytes</dd></div><div><dt>SHA-256</dt><dd><code>{_escape(value.get("sha256") or "Not reported")}</code></dd></div><div><dt>First difference</dt><dd>File offset {_escape(_hex(first))}{" (EOF)" if eof else ""}</dd></div></dl><p class="window-label">Window from file offset {_escape(_hex(offset))}{" (empty side)" if eof else ""}</p><pre class="hex-window">{_escape(window)}</pre></article>'''
+
+    return f'''<details class="whole-image-evidence"><summary>Whole executable bytes</summary><p>First difference: file offset {first_text}.</p><div class="raw-pair">{side("Original", original)}{side("Rebuilt", rebuilt)}</div></details>'''
+
+
 def _slug(identity: str) -> str:
     label = re.sub(r"[^a-z0-9]+", "-", identity.lower()).strip("-")[:54] or "compiland"
     digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:12]
@@ -201,6 +348,20 @@ def _aggregate(functions: list[dict[str, Any]], supplied: Any) -> dict[str, Any]
     return values
 
 
+def _implemented_metric(functions: list[dict[str, Any]]) -> dict[str, Any]:
+    total = len(functions)
+    implemented = sum(
+        row.get("rebuilt") is not None
+        and _status(row.get("category")) not in ("missing", "ambiguous")
+        for row in functions
+    )
+    return {
+        "matched_count": implemented,
+        "total_count": total,
+        "count_percent": None if not total else 100 * implemented / total,
+    }
+
+
 def _function_row(row: dict[str, Any]) -> str:
     original = row.get("original") or {}
     rebuilt = row.get("rebuilt") or {}
@@ -214,15 +375,17 @@ def _function_row(row: dict[str, Any]) -> str:
         "aliases": row.get("aliases", []),
         "identity": row.get("identity"),
         "matching_basis": row.get("matching_basis"),
+        "matching_evidence": row.get("matching_evidence", []),
         "audit": row.get("audit", []),
     }
     signature_notice = "" if signature == "matched" else f'<p class="signature-note"><strong>Signature:</strong> {_escape(row.get("signature_reason", "Not reported"))}</p>'
+    raw_evidence = _disassembly_evidence(row.get("disassembly_difference")) if category == "mismatch" else _function_raw_evidence(row.get("raw_difference"))
     search = " ".join(str(row.get(key, "")) for key in ("display_name", "identity", "reason", "signature_reason", "matching_basis"))
     return f'''<article class="function-row filter-row" data-search="{_escape(search.lower())}" data-category="{_escape(category)}" data-signature="{_escape(signature)}" data-size="{_escape(original_size or 0)}" data-rva="{_escape(original.get("rva", 0))}" data-name="{_escape(str(row.get("display_name", row.get("identity", ""))).lower())}">
 <div class="function-head"><div><h3>{_escape(row.get("display_name", row.get("identity", "Unnamed function")))}</h3><div class="pills">{_pill(category)}{_pill(f"signature_{signature}")}</div></div><div class="size">{_escape(_number(original_size))} bytes</div></div>
 <p class="explanation">{_escape(_reason_explanation(category, str(row.get("reason", ""))))}</p>
 {signature_notice}
-<details><summary>Details</summary><dl class="function-facts"><div><dt>Original</dt><dd>RVA {_escape(_hex(original.get("rva")))} · {_escape(_number(original_size))} bytes</dd></div><div><dt>Rebuilt</dt><dd>RVA {_escape(_hex(rebuilt.get("rva")))} · {_escape(_number(rebuilt_size))} bytes</dd></div><div><dt>Byte delta</dt><dd>{_escape(f"{delta:+,}" if isinstance(delta, int) else "n/a")}</dd></div><div><dt>Mismatch offset</dt><dd>{_escape(_hex(offset)) if isinstance(offset, int) else "n/a"}</dd></div></dl><p><strong>Code reason:</strong> {_escape(row.get("reason", "Not reported"))}</p><p><strong>Signature reason:</strong> {_escape(row.get("signature_reason", "Not reported"))}</p><h4>Normalization audit</h4><pre>{_escape(_json_text(details))}</pre></details>
+<details><summary>Details</summary><dl class="function-facts"><div><dt>Original</dt><dd>RVA {_escape(_hex(original.get("rva")))} · {_escape(_number(original_size))} bytes</dd></div><div><dt>Rebuilt</dt><dd>RVA {_escape(_hex(rebuilt.get("rva")))} · {_escape(_number(rebuilt_size))} bytes</dd></div><div><dt>Byte delta</dt><dd>{_escape(f"{delta:+,}" if isinstance(delta, int) else "n/a")}</dd></div><div><dt>Code mismatch offset (original)</dt><dd>{_escape(_hex(offset)) if isinstance(offset, int) else "n/a"}</dd></div></dl><p><strong>Code reason:</strong> {_escape(row.get("reason", "Not reported"))}</p><p><strong>Signature reason:</strong> {_escape(row.get("signature_reason", "Not reported"))}</p>{raw_evidence}<h4>Normalization audit</h4><pre>{_escape(_json_text(details))}</pre></details>
 </article>'''
 
 
@@ -284,10 +447,11 @@ def _index_page(report: dict[str, Any], groups: list[dict[str, Any]]) -> str:
         for kind, artifact in artifacts.items():
             inputs.append(f'<tr><th scope="row">{_escape(side)} {_escape(kind)}</th><td class="path">{_escape(artifact.get("path", "Not reported"))}</td><td><code>{_escape(artifact.get("sha256", "Not reported"))}</code></td><td>{_escape(_number(artifact.get("size")))} bytes</td></tr>')
     identity = report.get("identity", {})
+    whole_image_evidence = _whole_image_raw_evidence(report.get("whole_image_raw_difference"))
     body = f'''<section class="hero"><h1>Rebuild progress</h1></section>
 <section class="metrics">{cards}</section><div class="secondary-metrics"><span><strong>{_escape(_percent(types.get("count_percent")))}</strong> types <small>{_number(types.get("matched_count"))} / {_number(types.get("total_count"))}</small></span><span><strong>{_escape(_percent(compilands.get("count_percent")))}</strong> compiland metadata <small>{_number(compilands.get("matched_count"))} / {_number(compilands.get("total_count"))}</small></span></div>
 <section id="compilands"><div class="section-head"><div><h2>Compilands</h2></div><span class="result-count" data-result-count>{len(groups):,} shown</span></div><div class="controls" data-filter-root><label>Search compilands<input type="search" data-search-input placeholder="Source, library or metadata status"></label><label>Sort<select data-sort><option value="name">Name</option><option value="percent-desc">Highest code match</option><option value="percent">Lowest code match</option><option value="count-desc">Most functions</option></select></label></div><div class="table-wrap"><table class="listing"><caption>Verified = code + signature.</caption><thead><tr><th>Compiland group</th><th>Code functions</th><th>Verified functions</th><th>Different / missing</th><th>Metadata</th></tr></thead><tbody data-filter-list>{''.join(rows)}</tbody></table></div><p class="zero-results hidden" data-zero-results>No compilands match this search.</p></section>
-<section class="split" id="report-details"><article><h2>Function categories</h2><div class="table-wrap"><table><thead><tr><th>Status</th><th>Functions</th><th>Bytes</th></tr></thead><tbody>{category_rows}</tbody></table></div></article><article><details><summary>Validation rules</summary><h3>Limitations</h3><ul class="limitations">{limits}</ul></details></article></section>
+<section class="split" id="report-details"><article><h2>Function categories</h2><div class="table-wrap"><table><thead><tr><th>Status</th><th>Functions</th><th>Bytes</th></tr></thead><tbody>{category_rows}</tbody></table></div></article><article><details><summary>Validation rules</summary><h3>Limitations</h3><ul class="limitations">{limits}</ul></details>{whole_image_evidence}</article></section>
 <section><h2>Input hashes</h2><details><summary>Identity checks</summary><p>Original identity verified: {_escape(_display((identity.get("original") or {}).get("verified")))} · {_escape((identity.get("original") or {}).get("reason", "No reason reported"))}<br>Rebuilt identity verified: {_escape(_display((identity.get("rebuilt") or {}).get("verified")))} · {_escape((identity.get("rebuilt") or {}).get("reason", "No reason reported"))}</p></details><div class="table-wrap"><table><thead><tr><th>Input</th><th>Path</th><th>SHA-256</th><th>Size</th></tr></thead><tbody>{''.join(inputs)}</tbody></table></div></section>'''
     return _page("Validation overview", body, current="overview")
 
@@ -305,9 +469,10 @@ def _types_page(report: dict[str, Any]) -> str:
     return _page("Types", body, current="types")
 
 
-def _badge(label: str, matched: Any, total: Any, percent: Any) -> str:
+def _badge(label: str, matched: Any, total: Any, percent: Any, description: str | None = None) -> str:
     shown = "n/a" if not total or percent is None else f"{float(percent):.2f}%"
-    description = f"{_number(matched)} of {_number(total)} {label.lower()} matched" if total else f"No {label.lower()} denominator was reported"
+    if description is None:
+        description = f"{_number(matched)} of {_number(total)} {label.lower()} matched" if total else f"No {label.lower()} denominator was reported"
     label_width = max(90, len(label) * 7 + 18)
     value_width = max(52, len(shown) * 8 + 18)
     width = label_width + value_width
@@ -391,10 +556,12 @@ def export_report(report: dict[str, Any], output_dir: str | Path, *, strict: boo
     (assets / "styles.css").write_text(css, encoding="utf-8")
     (assets / "app.js").write_text(js, encoding="utf-8")
     (output / ".nojekyll").write_text("", encoding="utf-8")
-    metrics = report["metrics"]
+    metrics = dict(report["metrics"])
+    metrics["implemented"] = _implemented_metric(report["functions"])
     badge_specs = {
         "code-bytes.svg": ("Code bytes", metrics["code"].get("matched_bytes"), metrics["code"].get("total_bytes"), metrics["code"].get("byte_percent")),
-        "code-functions.svg": ("Code functions", metrics["code"].get("matched_count"), metrics["code"].get("total_count"), metrics["code"].get("count_percent")),
+        "code-functions.svg": ("Accuracy", metrics["code"].get("matched_count"), metrics["code"].get("total_count"), metrics["code"].get("count_percent"), f'{_number(metrics["code"].get("matched_count"))} of {_number(metrics["code"].get("total_count"))} original functions match bytecode'),
+        "implemented.svg": ("Implemented", metrics["implemented"].get("matched_count"), metrics["implemented"].get("total_count"), metrics["implemented"].get("count_percent"), f'{_number(metrics["implemented"].get("matched_count"))} of {_number(metrics["implemented"].get("total_count"))} original functions have rebuilt counterparts'),
         "verified-bytes.svg": ("Code + signature bytes", metrics["code_and_signature"].get("matched_bytes"), metrics["code_and_signature"].get("total_bytes"), metrics["code_and_signature"].get("byte_percent")),
         "verified-functions.svg": ("Code + signature functions", metrics["code_and_signature"].get("matched_count"), metrics["code_and_signature"].get("total_count"), metrics["code_and_signature"].get("count_percent")),
         "types.svg": ("Types", metrics["types"].get("matched_count"), metrics["types"].get("total_count"), metrics["types"].get("count_percent")),
@@ -411,9 +578,13 @@ def export_report(report: dict[str, Any], output_dir: str | Path, *, strict: boo
         "report": {"schema_version": report["schema_version"], "normalization_policy_version": report.get("normalization_policy_version")},
         "compiland_policy": report["compiland_policy"],
         "metrics": metrics,
+        "inputs": report["inputs"],
         "compiland_pages": mapping,
         "badges": badge_paths,
         "files": sorted(generated + ["summary.json"]),
     }
+    for key in ("identity", "whole_image_raw_difference"):
+        if key in report:
+            manifest[key] = report[key]
     (output / "summary.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n", encoding="utf-8")
     return manifest

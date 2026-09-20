@@ -594,11 +594,11 @@ def _module_symbols(data: bytes, byte_count: int, module: str) -> tuple[str | No
     return compiler, language, flags, options, functions
 
 
-def parse_pdb(path: str | Path) -> PDBData:
+def parse_pdb(path: str | Path, data: bytes | None = None) -> PDBData:
     diagnostics: list[str] = []
     try:
-        data = Path(path).read_bytes()
-        msf = _MSF2(data)
+        raw = Path(path).read_bytes() if data is None else data
+        msf = _MSF2(raw)
         info = msf.stream(1)
         if len(info) < 12: raise PDBError("truncated PDB information stream")
         version, signature, age = struct.unpack_from("<III", info)

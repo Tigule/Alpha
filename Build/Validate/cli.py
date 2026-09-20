@@ -36,6 +36,112 @@ def _format_percent(value: float | None) -> str:
     return "n/a" if value is None else f"{value:.3f}%"
 
 
+def _raw_diagnostic(receipt: Any) -> list[str]:
+    if not isinstance(receipt, dict):
+        return []
+    original = receipt.get("original") if isinstance(receipt.get("original"), dict) else {}
+    rebuilt = receipt.get("rebuilt") if isinstance(receipt.get("rebuilt"), dict) else {}
+
+    def offset(value: Any) -> str:
+        return f"0x{value:x}" if isinstance(value, int) else "n/a"
+
+    def details(label: str, side: dict[str, Any]) -> str:
+        size = side.get("size")
+        size_text = f"{size:,}" if isinstance(size, int) else "n/a"
+        digest = side.get("sha256") or "n/a"
+        function_offset = side.get("window_start_function_offset")
+        window_start = f"function+0x{function_offset:x}" if isinstance(function_offset, int) else "function+n/a"
+        window = side.get("window_hex")
+        if isinstance(window, str):
+            window = window[:32]
+            if len(window) % 2:
+                window = window[:-1]
+        else:
+            window = ""
+        window_bytes = " ".join(window[i:i + 2] for i in range(0, len(window), 2))
+        eof = isinstance(function_offset, int) and isinstance(size, int) and function_offset >= size
+        point = "EOF" if eof else f"RVA {offset(side.get('difference_rva'))}, file {offset(side.get('difference_file_offset'))}"
+        return (f"    {label}: {size_text} bytes sha256={digest}; function RVA {offset(side.get('function_rva'))}, "
+                f"file {offset(side.get('function_file_offset'))}; difference {point}; "
+                f"window at {window_start}: {window_bytes or ('EOF' if eof else 'no bytes reported')}")
+
+    if receipt.get("equal") is True:
+        size = original.get("size")
+        size_text = f"{size:,}" if isinstance(size, int) else "n/a"
+        return [f"    Raw bytes (diagnostic): identical, {size_text} bytes, sha256={original.get('sha256') or 'n/a'}"]
+    first = receipt.get("first_difference_function_offset")
+    first_text = f"function+0x{first:x}" if isinstance(first, int) else "function offset n/a"
+    return [f"    Raw bytes (diagnostic): differ at {first_text}",
+            details("original", original), details("rebuilt", rebuilt)]
+
+
+def _disassembly_diagnostic(evidence: Any) -> list[str]:
+    if not isinstance(evidence, dict) or evidence.get("kind") not in {"instructions", "data"}:
+        return ["    Disassembly: Regenerate report to include disassembly."]
+    kind = evidence["kind"]
+    label = "Disassembly" if kind == "instructions" else "Embedded data"
+    lines = [f"    {label}:"]
+    if kind == "instructions":
+        lines.append(
+            f"      Original: {evidence.get('original_instruction_count', 'n/a')} instructions; "
+            f"rebuilt: {evidence.get('rebuilt_instruction_count', 'n/a')} instructions"
+        )
+    omitted_before = evidence.get("omitted_before")
+    omitted_after = evidence.get("omitted_after")
+    omitted = []
+    if isinstance(omitted_before, int) and omitted_before > 0:
+        omitted.append(f"{omitted_before:,} rows omitted before")
+    if isinstance(omitted_after, int) and omitted_after > 0:
+        omitted.append(f"{omitted_after:,} rows omitted after")
+    if omitted:
+        lines.append("      … " + " · ".join(omitted) + " …")
+    lines.append("      Change   Original                                      Rebuilt")
+    status_labels = {"context": "CONTEXT", "changed": "CHANGED", "inserted": "ADDED", "deleted": "REMOVED"}
+
+    def side(record: Any) -> str:
+        if not isinstance(record, dict):
+            return "—"
+        relative = record.get("function_offset")
+        relative_text = f"+0x{relative:x}" if isinstance(relative, int) else "n/a"
+        rva = record.get("rva")
+        rva_text = f"0x{rva:x}" if isinstance(rva, int) else "n/a"
+        if kind == "data":
+            text = record.get("text") or record.get("directive") or "Data directive not reported"
+        else:
+            mnemonic = record.get("mnemonic")
+            operands = record.get("operands")
+            text = f"{mnemonic} {operands}" if mnemonic and operands else mnemonic or record.get("text") or "Instruction text not reported"
+        return f"RVA {rva_text} · Function {relative_text}  {text}"
+
+    for row in evidence.get("rows", []) if isinstance(evidence.get("rows"), list) else []:
+        if not isinstance(row, dict):
+            continue
+        status = row.get("status")
+        marker = status_labels.get(status, "CONTEXT") if isinstance(status, str) else "CONTEXT"
+        if row.get("focus") is True:
+            marker = f"FOCUS {marker}"
+        lines.append(f"      {marker:12s} {side(row.get('original')):46s} {side(row.get('rebuilt'))}")
+        note = row.get("note")
+        note_text = " ".join(note.split()) if isinstance(note, str) and note.strip() else ""
+        if note_text and note_text.lower().rstrip(".") not in {"instruction differs", "bytes differ"}:
+            lines.append(f"               Note: {note_text}")
+        for side_name in ("original", "rebuilt"):
+            record = row.get(side_name)
+            if not isinstance(record, dict):
+                continue
+            for key, detail_label in (("dispatch_instruction_indexes", "dispatch instruction indexes"),
+                                      ("target_instruction_indexes", "target instruction indexes")):
+                indexes = record.get(key)
+                if isinstance(indexes, list):
+                    values = ", ".join(
+                        str(index) for index in indexes
+                        if isinstance(index, int) and not isinstance(index, bool)
+                    )
+                    if values:
+                        lines.append(f"               {side_name.title()} {detail_label}: {values}")
+    return lines
+
+
 def render_text(report: dict[str, Any], details: Sequence[str], top: int) -> str:
     metrics = report["metrics"]
     lines = [
@@ -75,6 +181,10 @@ def render_text(report: dict[str, Any], details: Sequence[str], top: int) -> str
             label = row.get("display_name", row["identity"])
             lines.append(f"  {row['original']['size']:7,} bytes  {label} @ RVA 0x{row['original']['rva']:x} "
                          f"[{row['identity']}]{offset}: {row['reason']}")
+            if row.get("category") == "mismatch":
+                lines.extend(_disassembly_diagnostic(row.get("disassembly_difference")))
+            else:
+                lines.extend(_raw_diagnostic(row.get("raw_difference")))
     type_failures = [row for row in report["types"] if row["status"] != "matched"][:limit]
     lines.extend(("", "Top type failures:"))
     lines.extend((f"  {row['identity']} ({row['status']}): {row['reason']}" for row in type_failures))

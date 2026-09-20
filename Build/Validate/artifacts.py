@@ -310,9 +310,11 @@ def _map_fail(path: Path, message: str) -> None:
 def _parse_map(
     path: Path,
     image_base: int,
+    data: bytes | None = None,
 ) -> tuple[int, int, tuple[tuple[int, int, int, str], ...], tuple[MapSymbol, ...]]:
     try:
-        lines = path.read_bytes().decode("latin-1").splitlines()
+        raw = path.read_bytes() if data is None else data
+        lines = raw.decode("latin-1").splitlines()
     except OSError as exc:
         raise ArtifactParseError(f"{path}: cannot read MAP file: {exc}") from exc
     timestamp: int | None = None
@@ -506,16 +508,29 @@ def _map_layout_diagnostics(
     return diagnostics
 
 
-def load_artifacts(pe_path: str | Path, map_path: str | Path) -> ArtifactData:
+def load_artifacts(
+    pe_path: str | Path,
+    map_path: str | Path,
+    *,
+    pe_data: bytes | None = None,
+    map_data: bytes | None = None,
+) -> ArtifactData:
 
     pe_path = Path(pe_path)
     map_path = Path(map_path)
-    try:
-        pe_bytes = pe_path.read_bytes()
-    except OSError as exc:
-        raise ArtifactParseError(f"{pe_path}: cannot read PE file: {exc}") from exc
+    if pe_data is None:
+        try:
+            pe_bytes = pe_path.read_bytes()
+        except OSError as exc:
+            raise ArtifactParseError(f"{pe_path}: cannot read PE file: {exc}") from exc
+    else:
+        pe_bytes = pe_data
     pe = _PE(pe_path, pe_bytes)
-    map_timestamp, map_base, map_sections, map_symbols = _parse_map(map_path, pe.identity.image_base)
+    map_timestamp, map_base, map_sections, map_symbols = _parse_map(
+        map_path,
+        pe.identity.image_base,
+        map_data,
+    )
     diagnostics: list[Diagnostic] = []
     diagnostics.extend(
         Diagnostic(

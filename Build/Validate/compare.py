@@ -6,11 +6,14 @@ from dataclasses import asdict, dataclass
 from hashlib import sha256
 from pathlib import Path
 import math
+import posixpath
 from typing import Any, Mapping, Sequence
 
 from .model import ArtifactData
 from .compiland_policy import apply_compiland_policy
 from .decode import DecodedProcedure, decode_procedure
+from .disassembly import disassembly_difference
+from .input_snapshot import capture_inputs
 from .normalize import DecodeFailure, DecodeUnavailable, Evidence, compare_code, decode_x86
 from .symbols import Compiland, FunctionSymbol, PDBData, parse_pdb
 
@@ -26,14 +29,71 @@ class _Function:
     symbols: tuple[FunctionSymbol, ...]
     identities: tuple[str, ...]
     compiland: str
+    owner_contexts: tuple[tuple[str, str, tuple[str, ...]], ...] = ()
 
 
-def _file_record(path: Path) -> dict[str, Any]:
-    digest, size = sha256(), 0
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block); size += len(block)
-    return {"path": str(path), "size": size, "sha256": digest.hexdigest()}
+def _file_offset(artifact: ArtifactData, rva: int) -> int | None:
+    for section in artifact.sections:
+        offset = rva - section.rva
+        if 0 <= offset < min(section.raw_size, len(section.data)):
+            return section.raw_offset + offset
+    return None
+
+
+def _raw_difference(original_artifact: ArtifactData, original_rva: int, original: bytes,
+                    rebuilt_artifact: ArtifactData, rebuilt_rva: int, rebuilt: bytes) -> dict[str, Any]:
+    common = min(len(original), len(rebuilt))
+    first = next((offset for offset in range(common) if original[offset] != rebuilt[offset]), None)
+    if first is None and len(original) != len(rebuilt):
+        first = common
+    equal = first is None
+
+    def side(artifact: ArtifactData, function_rva: int, raw: bytes) -> dict[str, Any]:
+        offset = None if equal else first
+        difference_rva = None if offset is None else function_rva + offset
+        function_file_offset = _file_offset(artifact, function_rva)
+        return {
+            "size": len(raw),
+            "sha256": sha256(raw).hexdigest(),
+            "function_rva": function_rva,
+            "function_file_offset": function_file_offset,
+            "difference_rva": difference_rva,
+            "difference_file_offset": (None if offset is None or function_file_offset is None
+                                       else function_file_offset + offset),
+            "window_start_function_offset": offset,
+            "window_hex": "" if offset is None or offset >= len(raw) else raw[offset:offset + 16].hex(),
+        }
+
+    return {
+        "equal": equal,
+        "first_difference_function_offset": first,
+        "original": side(original_artifact, original_rva, original),
+        "rebuilt": side(rebuilt_artifact, rebuilt_rva, rebuilt),
+    }
+
+
+def _whole_image_raw_difference(original: bytes, original_sha256: str,
+                                rebuilt: bytes, rebuilt_sha256: str) -> dict[str, Any]:
+    common = min(len(original), len(rebuilt))
+    first = next((offset for offset in range(common) if original[offset] != rebuilt[offset]), None)
+    if first is None and len(original) != len(rebuilt):
+        first = common
+    equal = first is None
+
+    def side(raw: bytes, digest: str) -> dict[str, Any]:
+        return {
+            "size": len(raw),
+            "sha256": digest,
+            "window_start_file_offset": first,
+            "window_hex": "" if first is None or first >= len(raw) else raw[first:first + 16].hex(),
+        }
+
+    return {
+        "equal": equal,
+        "first_difference_file_offset": first,
+        "original": side(original, original_sha256),
+        "rebuilt": side(rebuilt, rebuilt_sha256),
+    }
 
 
 def _pct(numerator: int, denominator: int) -> float | None:
@@ -60,6 +120,87 @@ def _object_key(path: str) -> str:
             name = name[: -len(suffix)] + ".obj"
             break
     return name.rsplit(":", 1)[-1]
+
+
+def _archive_key(path: str) -> str | None:
+    normalized = posixpath.normpath(path.replace("\\", "/")).lower()
+    if normalized.endswith(".lib"):
+        return normalized[:-4]
+    separator = normalized.rfind(":")
+    drive_separator = 1 if len(normalized) >= 3 and normalized[1:3] == ":/" else -1
+    if separator >= 0 and separator != drive_separator:
+        archive = normalized[:separator]
+        return archive[:-4] if archive.endswith(".lib") else (archive or None)
+    return None
+
+
+def _owner_key(path: str) -> str:
+    normalized = posixpath.normpath(path.replace("\\", "/")).lower()
+    for suffix in (".cpp.obj", ".cxx.obj", ".cc.obj", ".c.obj"):
+        if normalized.endswith(suffix):
+            normalized = normalized[: -len(suffix)] + ".obj"
+            break
+    return normalized
+
+
+def _member_key(path: str) -> str:
+    normalized = _owner_key(path)
+    separator = normalized.rfind(":")
+    drive_separator = 1 if len(normalized) >= 3 and normalized[1:3] == ":/" else -1
+    return normalized[separator + 1:] if separator >= 0 and separator != drive_separator else normalized
+
+
+def _archive_matches(map_archive: str | None, pdb_archive: str | None) -> bool:
+    if map_archive is None:
+        return True
+    if pdb_archive is None:
+        return False
+    if "/" in map_archive and "/" in pdb_archive:
+        return map_archive == pdb_archive
+    return map_archive.rsplit("/", 1)[-1] == pdb_archive.rsplit("/", 1)[-1]
+
+
+def _member_matches(map_member: str, pdb_member: str) -> bool:
+    if "/" in map_member and "/" in pdb_member:
+        return map_member == pdb_member
+    return map_member.rsplit("/", 1)[-1] == pdb_member.rsplit("/", 1)[-1]
+
+
+def _source_path_key(path: str) -> str | None:
+    normalized = posixpath.normpath(path.replace("\\", "/")).lower()
+    parts = [part for part in normalized.split("/") if part and part != "."]
+    if len(parts) < 2 or normalized in {".", ".."}:
+        return None
+    anchors = [index for index in range(len(parts) - 1)
+               if parts[index] in {"wow", "engine", "storm"} and parts[index + 1] == "source"]
+    if len(anchors) > 1:
+        return None
+    if anchors:
+        return "/".join(parts[anchors[0]:])
+    return normalized
+
+
+def _compiland_owner_contexts(
+    pdb: PDBData,
+) -> dict[str, set[tuple[str | None, str, tuple[str, ...]]]]:
+    result: dict[str, set[tuple[str | None, str, tuple[str, ...]]]] = defaultdict(set)
+    for compiland in pdb.compilands:
+        module_member = _member_key(compiland.module_name)
+        object_member = _member_key(compiland.object_name) if compiland.object_name else ""
+        member = module_member if module_member.endswith(".obj") else object_member
+        source_files = [source for source in compiland.source_files
+                        if _basename(source).endswith((".c", ".cc", ".cpp", ".cxx"))]
+        source_keys = [_source_path_key(source) for source in source_files]
+        sources = (() if any(key is None for key in source_keys)
+                   else tuple(sorted(set(source_keys))))
+        if member and sources:
+            result[compiland.module_name].add((_archive_key(compiland.object_name), member, sources))
+    return result
+
+
+def _map_owner_identity(name: str, owner: str, sources: tuple[str, ...]) -> str:
+    source_digest = sha256("\0".join(sources).encode("utf-8")).hexdigest()
+    return f"map-owner:{_owner_key(owner)}:{source_digest}:{name}"
 
 
 def _compiland_key(compiland: Compiland) -> str:
@@ -95,9 +236,12 @@ def _section_rva(artifact: ArtifactData, section_number: int, offset: int) -> in
 
 def _functions(artifact: ArtifactData, pdb: PDBData) -> tuple[list[_Function], list[dict[str, Any]]]:
     module_keys = _module_keys(pdb)
+    module_owner_contexts = _compiland_owner_contexts(pdb)
     map_name_rvas: dict[str, set[int]] = defaultdict(set)
     map_names_at_rva: dict[int, set[str]] = defaultdict(set)
+    map_symbols_at_rva: dict[int, list[Any]] = defaultdict(list)
     for map_symbol in artifact.map_symbols:
+        map_symbols_at_rva[map_symbol.rva].append(map_symbol)
         if "static" not in map_symbol.flags:
             map_name_rvas[map_symbol.name].add(map_symbol.rva)
             map_names_at_rva[map_symbol.rva].add(map_symbol.name)
@@ -114,8 +258,27 @@ def _functions(artifact: ArtifactData, pdb: PDBData) -> tuple[list[_Function], l
     for (rva, size), symbols in sorted(grouped.items()):
         identities = {value for symbol in symbols if (value := _symbol_identity(symbol, module_keys))}
         identities.update(f"map:{name}" for name in map_names_at_rva.get(rva, ()) if len(map_name_rvas[name]) == 1)
+        pdb_owner_contexts = {
+            context
+            for symbol in symbols
+            for context in module_owner_contexts.get(symbol.module, ())
+        }
+        owner_contexts: set[tuple[str, str, tuple[str, ...]]] = set()
+        for map_symbol in map_symbols_at_rva.get(rva, ()):
+            owner = map_symbol.object_name
+            if not owner:
+                continue
+            member = _member_key(owner)
+            archive = _archive_key(owner)
+            for pdb_archive, pdb_member, sources in pdb_owner_contexts:
+                if not _member_matches(member, pdb_member) or not _archive_matches(archive, pdb_archive):
+                    continue
+                identity = _map_owner_identity(map_symbol.name, owner, sources)
+                identities.add(identity)
+                owner_contexts.add((identity, owner, sources))
         compilands = sorted({module_keys.get(symbol.module, "unknown") for symbol in symbols})
-        functions.append(_Function(rva, size, tuple(symbols), tuple(sorted(identities)), "|".join(compilands)))
+        functions.append(_Function(rva, size, tuple(symbols), tuple(sorted(identities)),
+                                   "|".join(compilands), tuple(sorted(owner_contexts))))
     for left, right in zip(functions, functions[1:]):
         if right.rva < left.rva + left.size:
             rejected.append({"name": left.identities[0] if left.identities else f"0x{left.rva:x}",
@@ -132,24 +295,42 @@ def _index_functions(functions: Sequence[_Function]) -> dict[str, list[_Function
 
 
 def _candidate(original: _Function, rebuilt_index: Mapping[str, list[_Function]],
-               original_identity_counts: Mapping[str, int]) -> tuple[_Function | None, str | None, str | None]:
+               original_identity_counts: Mapping[str, int]) -> tuple[_Function | None, str | None, str | None, str | None]:
     strong = [identity for identity in original.identities if identity.startswith("map:")]
     candidates = {(function.rva, function.size): function for identity in strong
                   for function in rebuilt_index.get(identity, ())}
     if len(candidates) == 1:
-        return next(iter(candidates.values())), None, "exact_decorated_map_name"
+        return next(iter(candidates.values())), None, "exact_decorated_map_name", None
     if len(candidates) != 1:
         if candidates:
-            return None, "ambiguous", None
-    fallback = [identity for identity in original.identities if not identity.startswith("map:")
+            return None, "ambiguous", None, None
+    owner_identities = [identity for identity in original.identities if identity.startswith("map-owner:")]
+    owner = [identity for identity in owner_identities
+             if original_identity_counts.get(identity) == 1
+             and len(rebuilt_index.get(identity, ())) == 1]
+    owner_ambiguous = any(
+        rebuilt_index.get(identity)
+        and (original_identity_counts.get(identity) != 1 or len(rebuilt_index[identity]) != 1)
+        for identity in owner_identities
+    )
+    owner_candidates = {(function.rva, function.size): (function, identity) for identity in owner
+                        for function in rebuilt_index.get(identity, ())}
+    if len(owner_candidates) == 1:
+        function, identity = next(iter(owner_candidates.values()))
+        return function, None, "unique_owner_qualified_map_name", identity
+    if len(owner_candidates) > 1:
+        return None, "ambiguous", None, None
+    fallback = [identity for identity in original.identities if not identity.startswith(("map:", "map-owner:"))
                 and original_identity_counts.get(identity) == 1 and len(rebuilt_index.get(identity, ())) == 1]
     fallback_candidates = {(function.rva, function.size): function for identity in fallback
                            for function in rebuilt_index.get(identity, ())}
     if len(fallback_candidates) == 1:
-        return next(iter(fallback_candidates.values())), None, "unique_pdb_name_and_compiland"
+        return next(iter(fallback_candidates.values())), None, "unique_pdb_name_and_compiland", None
     if len(fallback_candidates) > 1:
-        return None, "ambiguous", None
-    return None, "missing", None
+        return None, "ambiguous", None, None
+    if owner_ambiguous:
+        return None, "ambiguous", None, None
+    return None, "missing", None, None
 
 
 def _signature(original: _Function, rebuilt: _Function, original_pdb: PDBData,
@@ -187,8 +368,11 @@ def _target_maps(artifact: ArtifactData, functions: Sequence[_Function]) -> tupl
     for function in functions:
         for identity in function.identities:
             identity_rvas[identity].add(function.rva)
-    function_targets = {function.rva: function.identities[0] for function in functions
-                        if len(function.identities) == 1 and len(identity_rvas[function.identities[0]]) == 1}
+    function_targets: dict[int, str] = {}
+    for function in functions:
+        prior_identities = [identity for identity in function.identities if not identity.startswith("map-owner:")]
+        if len(prior_identities) == 1 and len(identity_rvas[prior_identities[0]]) == 1:
+            function_targets[function.rva] = prior_identities[0]
     targets: dict[int, list[str]] = defaultdict(list)
     name_rvas: dict[str, set[int]] = defaultdict(set)
     for symbol in artifact.map_symbols:
@@ -197,6 +381,18 @@ def _target_maps(artifact: ArtifactData, functions: Sequence[_Function]) -> tupl
     for symbol in artifact.map_symbols:
         if "static" not in symbol.flags and len(name_rvas[symbol.name]) == 1:
             targets[symbol.rva].append(f"map:{symbol.name}")
+    owner_rvas: dict[str, set[int]] = defaultdict(set)
+    owner_at_rva: dict[int, set[str]] = defaultdict(set)
+    for function in functions:
+        for identity, _, _ in function.owner_contexts:
+            owner_rvas[identity].add(function.rva)
+            owner_at_rva[function.rva].add(identity)
+    for rva, identities in owner_at_rva.items():
+        if targets.get(rva):
+            continue
+        unique = [identity for identity in identities if len(owner_rvas[identity]) == 1]
+        if len(unique) == 1:
+            targets[rva].append(unique[0])
     return function_targets, {rva: tuple(sorted(set(values))) for rva, values in targets.items()}
 
 
@@ -444,10 +640,15 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
     for original in original_functions:
         cm = per_compiland[original.compiland]; cm["total_count"] += 1; cm["total_bytes"] += original.size
         if same_artifact:
-            rebuilt, selection, matching_basis = rebuilt_by_range.get((original.rva, original.size)), None, "identical_artifact_range"
+            rebuilt, selection, matching_basis, matching_identity = (
+                rebuilt_by_range.get((original.rva, original.size)), None,
+                "identical_parsed_function_range", None
+            )
             if rebuilt is None: selection = "missing"
         else:
-            rebuilt, selection, matching_basis = _candidate(original, rebuilt_index, original_identity_counts)
+            rebuilt, selection, matching_basis, matching_identity = _candidate(
+                original, rebuilt_index, original_identity_counts
+            )
         identity = original.identities[0] if len(original.identities) == 1 else f"range:0x{original.rva:x}"
         result: dict[str, Any] = {"identity": identity, "aliases": list(original.identities),
                                   "display_name": _display_name(original), "compiland": original.compiland,
@@ -459,12 +660,28 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
         else:
             result["rebuilt"] = {"rva": rebuilt.rva, "size": rebuilt.size}
             result["matching_basis"] = matching_basis
+            if matching_identity is not None:
+                result["matching_evidence"] = {
+                    "identity": matching_identity,
+                    "original_owners": sorted(owner for identity, owner, _ in original.owner_contexts
+                                              if identity == matching_identity),
+                    "rebuilt_owners": sorted(owner for identity, owner, _ in rebuilt.owner_contexts
+                                             if identity == matching_identity),
+                    "source_context": sorted({source for identity, _, sources in original.owner_contexts
+                                              if identity == matching_identity for source in sources}),
+                }
             signature_status, signature_reason = _signature(original, rebuilt, original_pdb, rebuilt_pdb)
             left_code = original_artifact.read_rva(original.rva, original.size)
             right_code = rebuilt_artifact.read_rva(rebuilt.rva, rebuilt.size)
+            left_decoded = right_decoded = None
+            outcome = None
             if left_code is None or right_code is None:
                 category, reason, audit, code_matched = "unsupported", "procedure bytes unavailable", (), False
             else:
+                result["raw_difference"] = _raw_difference(
+                    original_artifact, original.rva, left_code,
+                    rebuilt_artifact, rebuilt.rva, right_code,
+                )
                 try:
                     left_address = original_artifact.identity.image_base + original.rva
                     right_address = rebuilt_artifact.identity.image_base + rebuilt.rva
@@ -491,6 +708,15 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                     category, reason, audit, code_matched = "unsupported", str(exc), (), False
             result.update({"category": category, "code_matched": code_matched, "signature_status": signature_status,
                            "signature_reason": signature_reason, "reason": reason, "audit": list(audit)})
+            if (category == "mismatch" and outcome is not None
+                    and left_decoded is not None and right_decoded is not None
+                    and left_code is not None and right_code is not None):
+                result["disassembly_difference"] = disassembly_difference(
+                    left_code, right_code, original.rva, rebuilt.rva,
+                    original_artifact.identity.image_base + original.rva,
+                    rebuilt_artifact.identity.image_base + rebuilt.rva,
+                    left_decoded, right_decoded, reason, outcome.mismatch_offset, audit,
+                )
             if code_matched:
                 code_count += 1; code_bytes += original.size; cm["code_matched_count"] += 1; cm["code_matched_bytes"] += original.size
                 if signature_status == "matched":
@@ -529,10 +755,38 @@ def compare_artifacts(original_exe: str | Path, original_pdb_path: str | Path, o
     from .artifacts import load_artifacts
     paths = [Path(value) for value in (original_exe, original_pdb_path, original_map,
                                         rebuilt_exe, rebuilt_pdb_path, rebuilt_map)]
-    report = compare_loaded(load_artifacts(paths[0], paths[2]), parse_pdb(paths[1]),
-                            load_artifacts(paths[3], paths[5]), parse_pdb(paths[4]), strict=strict)
-    report["inputs"] = {"original": {"exe": _file_record(paths[0]), "pdb": _file_record(paths[1]), "map": _file_record(paths[2])},
-                        "rebuilt": {"exe": _file_record(paths[3]), "pdb": _file_record(paths[4]), "map": _file_record(paths[5])}}
+    snapshots = capture_inputs(paths)
+    original_exe_snapshot, original_pdb_snapshot, original_map_snapshot = snapshots[:3]
+    rebuilt_exe_snapshot, rebuilt_pdb_snapshot, rebuilt_map_snapshot = snapshots[3:]
+    report = compare_loaded(
+        load_artifacts(
+            original_exe_snapshot.path,
+            original_map_snapshot.path,
+            pe_data=original_exe_snapshot.data,
+            map_data=original_map_snapshot.data,
+        ),
+        parse_pdb(original_pdb_snapshot.path, data=original_pdb_snapshot.data),
+        load_artifacts(
+            rebuilt_exe_snapshot.path,
+            rebuilt_map_snapshot.path,
+            pe_data=rebuilt_exe_snapshot.data,
+            map_data=rebuilt_map_snapshot.data,
+        ),
+        parse_pdb(rebuilt_pdb_snapshot.path, data=rebuilt_pdb_snapshot.data),
+        strict=strict,
+    )
+    report["inputs"] = {
+        "original": {"exe": original_exe_snapshot.record(), "pdb": original_pdb_snapshot.record(),
+                     "map": original_map_snapshot.record()},
+        "rebuilt": {"exe": rebuilt_exe_snapshot.record(), "pdb": rebuilt_pdb_snapshot.record(),
+                    "map": rebuilt_map_snapshot.record()},
+    }
+    report["whole_image_raw_difference"] = _whole_image_raw_difference(
+        original_exe_snapshot.data,
+        original_exe_snapshot.sha256,
+        rebuilt_exe_snapshot.data,
+        rebuilt_exe_snapshot.sha256,
+    )
     return report
 
 

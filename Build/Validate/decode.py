@@ -25,6 +25,7 @@ class Instruction:
     regs_read: tuple[str, ...] = ()
     regs_write: tuple[str, ...] = ()
     register_access_known: bool = False
+    op_str: str = ""
 
 
 @dataclass(frozen=True)
@@ -127,6 +128,7 @@ def _instruction(decoder: Any, x86: Any, code: bytes, address: int, offset: int)
         regs_read=regs_read,
         regs_write=regs_write,
         register_access_known=access_known,
+        op_str=raw_instruction.op_str,
     )
 
 

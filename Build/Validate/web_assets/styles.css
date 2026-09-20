@@ -518,6 +518,217 @@ tbody tr:last-child>* {
   overflow-wrap:anywhere
 }
 
+.raw-evidence {
+  border-top:1px solid var(--border);
+  margin-top:16px;
+  padding-top:10px
+}
+
+.raw-evidence h4 {
+  margin-top:8px
+}
+
+.disassembly-evidence {
+  border-top:1px solid var(--border);
+  margin-top:16px;
+  padding-top:10px
+}
+
+.disassembly-evidence h4 {
+  margin-top:8px
+}
+
+.disassembly-counts,.disassembly-omitted,.disassembly-unavailable {
+  color:var(--text-secondary);
+  font-size:12px;
+  margin:4px 0 10px
+}
+
+.disassembly-omitted {
+  color:var(--text-muted)
+}
+
+.disassembly-unavailable {
+  margin:12px 0 0
+}
+
+.disassembly-scroll {
+  overflow-x:auto;
+  border:1px solid var(--border);
+  border-radius:6px;
+  background:var(--inset)
+}
+
+.disassembly-scroll:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px
+}
+
+.disassembly-table {
+  min-width:820px;
+  table-layout:fixed
+}
+
+.disassembly-table th:first-child {
+  width:104px
+}
+
+.disassembly-table td,.disassembly-table th {
+  padding:8px 10px;
+  border-bottom:1px solid var(--border)
+}
+
+.disassembly-table tbody th {
+  background:var(--panel);
+  color:var(--text-secondary);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.04em
+}
+
+.disassembly-table tbody tr:last-child>* {
+  border-bottom:0
+}
+
+.change-marker {
+  white-space:nowrap
+}
+
+.disassembly-note {
+  display:block;
+  color:var(--text-secondary);
+  font-size:11px;
+  white-space:normal;
+  overflow-wrap:anywhere
+}
+
+.disassembly-note-row td {
+  padding-top:4px;
+  padding-bottom:8px
+}
+
+.disassembly-row.focus + .disassembly-note-row td {
+  background:var(--difference-bg)
+}
+
+.disassembly-row.status-changed .change-marker {
+  color:var(--difference)
+}
+
+.disassembly-row.status-inserted .change-marker {
+  color:var(--accent)
+}
+
+.disassembly-row.status-deleted .change-marker {
+  color:var(--missing)
+}
+
+.disassembly-row.focus>* {
+  background:var(--difference-bg)
+}
+
+.disassembly-line {
+  min-width:0
+}
+
+.disassembly-address {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  color:var(--text-muted);
+  font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  white-space:nowrap
+}
+
+.disassembly-line code {
+  display:block;
+  margin-top:2px;
+  color:var(--text);
+  font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere
+}
+
+.disassembly-reference {
+  display:block;
+  margin-top:3px;
+  color:var(--text-secondary);
+  font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  overflow-wrap:anywhere
+}
+
+.disassembly-empty,.disassembly-none {
+  color:var(--text-muted);
+  text-align:center
+}
+
+.window-label {
+  color:var(--text-secondary);
+  font-size:12px;
+  margin:4px 0 10px
+}
+
+.raw-pair {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px
+}
+
+.raw-side {
+  min-width:0;
+  background:var(--inset);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:12px
+}
+
+.raw-side h5 {
+  margin:0 0 8px;
+  color:var(--text-secondary);
+  font-size:10px;
+  letter-spacing:.06em;
+  text-transform:uppercase
+}
+
+.raw-facts {
+  display:grid;
+  gap:7px;
+  margin:0
+}
+
+.raw-facts dt {
+  color:var(--text-muted);
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase
+}
+
+.raw-facts dd {
+  margin:0;
+  overflow-wrap:anywhere
+}
+
+.hex-window {
+  background:var(--canvas);
+  border-radius:4px;
+  margin:0;
+  overflow-wrap:anywhere;
+  padding:8px
+}
+
+.whole-image-evidence {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:6px;
+  margin-top:12px;
+  padding:12px
+}
+
+.whole-image-evidence summary {
+  cursor:pointer;
+  font-weight:700
+}
+
 .function-row details {
   margin-top:12px;
   border-top:1px solid var(--border);
@@ -662,6 +873,10 @@ tbody tr:last-child>* {
   }
 
   .split {
+    grid-template-columns:1fr
+  }
+
+  .raw-pair {
     grid-template-columns:1fr
   }
 

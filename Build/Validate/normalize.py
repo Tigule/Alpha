@@ -190,7 +190,7 @@ def _selector_table_evidence(procedure: DecodedProcedure) -> list[Evidence]:
     return result
 
 
-def _data_tokens(procedure: DecodedProcedure) -> tuple[tuple[Any, ...], ...]:
+def located_data_tokens(procedure: DecodedProcedure) -> tuple[tuple[int, tuple[Any, ...]], ...]:
     instruction_indexes = {instruction.offset: index for index, instruction in enumerate(procedure.instructions)}
     table_groups: dict[int, list[JumpTable]] = {}
     for table in procedure.jump_tables:
@@ -217,7 +217,7 @@ def _data_tokens(procedure: DecodedProcedure) -> tuple[tuple[Any, ...], ...]:
         for table in procedure.jump_tables
         for byte in range(table.offset, table.offset + table.entry_size * len(table.targets))
     }
-    tokens: list[tuple[Any, ...]] = []
+    tokens: list[tuple[int, tuple[Any, ...]]] = []
     emitted_alignments: set[int] = set()
     for region in procedure.data_regions:
         cursor = region.offset
@@ -226,7 +226,7 @@ def _data_tokens(procedure: DecodedProcedure) -> tuple[tuple[Any, ...], ...]:
             alignment = alignments.get(cursor)
             if alignment is not None and cursor not in emitted_alignments:
                 table_offset, fill, size = alignment
-                tokens.append(("table_alignment", fill, size))
+                tokens.append((cursor, ("table_alignment", fill, size)))
                 emitted_alignments.add(cursor)
                 cursor = table_offset
                 continue
@@ -235,7 +235,7 @@ def _data_tokens(procedure: DecodedProcedure) -> tuple[tuple[Any, ...], ...]:
                 targets = tuple(instruction_indexes[target] for target in table.targets)
                 dispatches = tuple(sorted(instruction_indexes[value.instruction_offset]
                                           for value in table_groups[table.offset]))
-                tokens.append(("jump_table", dispatches, targets))
+                tokens.append((cursor, ("jump_table", dispatches, targets)))
                 cursor += table.entry_size * len(table.targets)
                 continue
             start = cursor
@@ -243,8 +243,12 @@ def _data_tokens(procedure: DecodedProcedure) -> tuple[tuple[Any, ...], ...]:
                 if cursor in table_bytes:
                     raise DecodeFailure(f"partial jump table in data partition at byte {cursor}")
                 cursor += 1
-            tokens.append(("data", region.raw[start - region.offset:cursor - region.offset]))
+            tokens.append((start, ("data", region.raw[start - region.offset:cursor - region.offset])))
     return tuple(tokens)
+
+
+def _data_tokens(procedure: DecodedProcedure) -> tuple[tuple[Any, ...], ...]:
+    return tuple(token for _, token in located_data_tokens(procedure))
 
 
 def _compare_data_tokens(left: tuple[tuple[Any, ...], ...], right: tuple[tuple[Any, ...], ...],

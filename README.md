@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Tigule Alpha</h1>
 
-<a href="https://tigule.github.io/Alpha"><img src="https://tigule.github.io/Alpha/badges/code-functions.svg"></a>
+<a href="https://tigule.github.io/Alpha"><img src="https://tigule.github.io/Alpha/badges/implemented.svg"></a> <a href="https://tigule.github.io/Alpha"><img src="https://tigule.github.io/Alpha/badges/code-functions.svg"></a>
 
 This project has 3 goals: to **understand and document**, **recompile**, and **preserve** an alpha version of World of Warcraft - version 0.5.3 (build 3368) released on 2003-12-11.
 </div>
