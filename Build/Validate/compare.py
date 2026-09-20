@@ -211,6 +211,60 @@ def _compiland_key(compiland: Compiland) -> str:
     return "object:" + _object_key(compiland.object_name or compiland.module_name)
 
 
+def _resolve_compiland(pdb: PDBData, selector: str) -> tuple[Compiland, str]:
+    requested = selector.strip().replace("\\", "/").casefold()
+    if not requested:
+        raise ValueError("--compiland must not be empty")
+
+    grouped: dict[str, list[Compiland]] = defaultdict(list)
+    for compiland in pdb.compilands:
+        grouped[_compiland_key(compiland).casefold()].append(compiland)
+
+    identity = requested
+    occurrence: int | None = None
+    if requested.startswith(("source:", "object:")):
+        head, separator, suffix = requested.rpartition("#")
+        if separator and suffix.isdecimal():
+            identity, occurrence = head, int(suffix)
+
+    candidates: list[tuple[Compiland, str]] = []
+    if identity.startswith(("source:", "object:")):
+        matches = grouped.get(identity, [])
+        if occurrence is not None:
+            if occurrence < len(matches):
+                candidates = [(matches[occurrence], f"{identity}#{occurrence}")]
+        else:
+            candidates = [(value, f"{identity}#{index}") for index, value in enumerate(matches)]
+    else:
+        normalized = posixpath.normpath(identity)
+        for key, values in grouped.items():
+            for index, value in enumerate(values):
+                sources = [posixpath.normpath(source.replace("\\", "/")).casefold()
+                           for source in value.source_files]
+                source_matches = []
+                for source in sources:
+                    if "/" not in normalized:
+                        source_matches.append(_basename(source) == normalized)
+                    else:
+                        source_matches.append(source == normalized or source.endswith("/" + normalized))
+                if any(source_matches):
+                    candidates.append((value, f"{key}#{index}"))
+        if not candidates and "/" not in normalized and normalized.endswith(".obj"):
+            key = "object:" + normalized
+            candidates = [(value, f"{key}#{index}") for index, value in enumerate(grouped.get(key, []))]
+
+    candidates = list({(module.module_name, canonical): (module, canonical)
+                       for module, canonical in candidates}.values())
+    if not candidates:
+        raise ValueError(
+            f"no original PDB compiland matches {selector!r}; use a source path or a source:/object: identity"
+        )
+    if len(candidates) > 1:
+        choices = ", ".join(canonical for _, canonical in candidates)
+        raise ValueError(f"compiland selector {selector!r} is ambiguous; choose one of: {choices}")
+    return candidates[0]
+
+
 def _module_keys(pdb: PDBData) -> dict[str, str]:
     grouped: dict[str, set[str]] = defaultdict(set)
     for compiland in pdb.compilands:
@@ -596,13 +650,14 @@ def _compare_compilands(original: PDBData, rebuilt: PDBData) -> tuple[list[dict[
 
 def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                    rebuilt_artifact: ArtifactData, rebuilt_pdb: PDBData, *,
-                   strict: bool = False) -> dict[str, Any]:
+                   strict: bool = False, compiland: str | None = None) -> dict[str, Any]:
     original_identity = _identity_report(original_artifact, original_pdb)
     rebuilt_identity = _identity_report(rebuilt_artifact, rebuilt_pdb)
     if original_artifact.fatal or rebuilt_artifact.fatal or original_pdb.fatal or rebuilt_pdb.fatal:
         raise ValueError("one or more input artifacts could not be parsed")
     if not original_identity["verified"] or not rebuilt_identity["verified"]:
         raise ValueError("PE/PDB identity verification failed")
+    selected_compiland = _resolve_compiland(original_pdb, compiland) if compiland is not None else None
     original_functions, original_rejected = _functions(original_artifact, original_pdb)
     rebuilt_functions, rebuilt_rejected = _functions(rebuilt_artifact, rebuilt_pdb)
     if original_rejected or rebuilt_rejected:
@@ -631,13 +686,17 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
     )
     original_function_targets, original_map_targets = _target_maps(original_artifact, original_functions)
     rebuilt_function_targets, rebuilt_map_targets = _target_maps(rebuilt_artifact, rebuilt_functions)
+    functions_to_compare = (original_functions if selected_compiland is None else
+                            [function for function in original_functions
+                             if any(symbol.module == selected_compiland[0].module_name
+                                    for symbol in function.symbols)])
     function_results: list[dict[str, Any]] = []
     categories: dict[str, dict[str, int]] = defaultdict(lambda: {"count": 0, "bytes": 0})
     code_count = code_bytes = signature_count = signature_bytes = 0
-    total_bytes = sum(function.size for function in original_functions)
+    total_bytes = sum(function.size for function in functions_to_compare)
     per_compiland: dict[str, dict[str, int]] = defaultdict(lambda: {"total_count": 0, "total_bytes": 0,
         "code_matched_count": 0, "code_matched_bytes": 0, "signature_matched_count": 0, "signature_matched_bytes": 0})
-    for original in original_functions:
+    for original in functions_to_compare:
         cm = per_compiland[original.compiland]; cm["total_count"] += 1; cm["total_bytes"] += original.size
         if same_artifact:
             rebuilt, selection, matching_basis, matching_identity = (
@@ -724,16 +783,31 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                     cm["signature_matched_count"] += 1; cm["signature_matched_bytes"] += original.size
         categories[result["category"]]["count"] += 1; categories[result["category"]]["bytes"] += original.size
         function_results.append(result)
-    type_results, type_metrics = _compare_types(original_pdb, rebuilt_pdb)
+    if selected_compiland is None:
+        type_results, type_metrics = _compare_types(original_pdb, rebuilt_pdb)
+    else:
+        type_results = []
+        type_metrics = {"total_count": 0, "matched_count": 0, "count_percent": None}
     compiland_results, compiland_metrics = _compare_compilands(original_pdb, rebuilt_pdb)
+    if selected_compiland is not None:
+        selected_identity = selected_compiland[1]
+        compiland_results = [row for row in compiland_results if row["identity"] == selected_identity]
+        compiland_metrics = {
+            "total_count": len(compiland_results),
+            "matched_count": sum(row["status"] == "matched" for row in compiland_results),
+            "count_percent": _pct(sum(row["status"] == "matched" for row in compiland_results),
+                                  len(compiland_results)),
+        }
     report = {"schema_version": SCHEMA_VERSION, "normalization_policy_version": NORMALIZATION_POLICY_VERSION,
             "identity": {"original": original_identity, "rebuilt": rebuilt_identity},
-            "metrics": {"code": _metric(len(original_functions), total_bytes, code_count, code_bytes),
-                "code_and_signature": _metric(len(original_functions), total_bytes, signature_count, signature_bytes),
+            "metrics": {"code": _metric(len(functions_to_compare), total_bytes, code_count, code_bytes),
+                "code_and_signature": _metric(len(functions_to_compare), total_bytes, signature_count, signature_bytes),
                 "executable_coverage": {"known_function_bytes": total_bytes,
                     "executable_raw_bytes": original_artifact.executable_code_bytes,
                     "percent": _pct(total_bytes, original_artifact.executable_code_bytes),
-                    "note": "coverage only; bytes outside unique PDB procedure ranges are not counted as matched or mismatched"},
+                    "note": ("selected compiland function bytes; bytes outside unique PDB procedure ranges are not counted as matched or mismatched"
+                             if selected_compiland is not None else
+                             "coverage only; bytes outside unique PDB procedure ranges are not counted as matched or mismatched")},
                 "types": type_metrics, "compilands": compiland_metrics, "categories": dict(sorted(categories.items()))},
             "functions": function_results, "types": type_results, "compilands": compiland_results,
             "per_compiland": dict(sorted(per_compiland.items())),
@@ -746,12 +820,23 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                 "Executable coverage is separate and does not claim validation outside PDB procedure ranges.",
                 "The supplied images have stripped PE relocations; changed address fields require exact semantic target evidence.",
                 "Macro normalization requires diagnosed known-sink argument-pair evidence; absent evidence remains a mismatch."]}
-    return apply_compiland_policy(report, strict=strict)
+    result = apply_compiland_policy(report, strict=strict)
+    if selected_compiland is not None:
+        result["scope"] = {
+            "kind": "compiland",
+            "identity": selected_compiland[1],
+            "selector": compiland,
+            "named_types": "omitted; per-function signatures are compared",
+        }
+        result["limitations"].append(
+            "Targeted scope compares only the selected compiland's procedures and metadata; the named-type catalog is omitted."
+        )
+    return result
 
 
 def compare_artifacts(original_exe: str | Path, original_pdb_path: str | Path, original_map: str | Path,
                       rebuilt_exe: str | Path, rebuilt_pdb_path: str | Path, rebuilt_map: str | Path, *,
-                      strict: bool = False) -> dict[str, Any]:
+                      strict: bool = False, compiland: str | None = None) -> dict[str, Any]:
     from .artifacts import load_artifacts
     paths = [Path(value) for value in (original_exe, original_pdb_path, original_map,
                                         rebuilt_exe, rebuilt_pdb_path, rebuilt_map)]
@@ -774,6 +859,7 @@ def compare_artifacts(original_exe: str | Path, original_pdb_path: str | Path, o
         ),
         parse_pdb(rebuilt_pdb_snapshot.path, data=rebuilt_pdb_snapshot.data),
         strict=strict,
+        compiland=compiland,
     )
     report["inputs"] = {
         "original": {"exe": original_exe_snapshot.record(), "pdb": original_pdb_snapshot.record(),

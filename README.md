@@ -13,7 +13,6 @@ This isn't a reimplementation project taking advantage of modern standards. We'r
 1. C/C++ standards must be restricted to the features available in Visual C++ 6.0 (1998)
 2. Use [Windows datatypes](https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types). All platforms used the same datatypes at the time.
 3. All of the original source file paths have been created. You do not need to add any new files.
-4. To check if your changes match the reference or caused something to regress: run `python validate_bytecode.py --json validation.json --text validation.txt --web explorer` in the Build folder. You can open Build/explorer/index.html in your web browser or view the text report after it completes.
 
 As far as how to get it "right" - I use IDA Pro to disassemble code and separately I'll parse the PDB for extra information. I don't have any tools I can provide you.
 
@@ -22,14 +21,18 @@ We will source functions from **0.5.5 (build 3494)** (OS X) and **0.7.0 (build 3
 
 ## Building
 
-Install CMake: [cmake.org](https://cmake.org/download/).
+Install these dependencies:
+- CMake: [cmake.org](https://cmake.org/download/).
+- Visual Studio 6.0 Professional Edition: [archive.org](https://archive.org/details/vsp600enu)
+- Service Pack 5 for Microsoft Visual Studio 6.0: [archive.org](https://archive.org/details/X08-02111)
+- Microsoft Platform SDK November 2001: [archive.org](https://archive.org/download/msdn-full/Platform%20SDK%20and%20DDKs/)
+- DirectX 9.0b SDK: [archive.org](https://archive.org/details/dx90bsdk)
 
-You can save time by using my CI dependencies: [VC6SP5.zip](https://tigule.org/files/ci/VC6SP5.zip), [PSDK2001.zip](https://tigule.org/files/ci/PSDK2001.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip)  
-If those are unavailable: [Service Pack 5 for Microsoft Visual Studio 6.0](https://archive.org/details/X08-02111), [Microsoft Platform SDK November 2001](https://archive.org/download/msdn-full/Platform%20SDK%20and%20DDKs/), [DirectX 9.0b SDK](https://archive.org/details/dx90bsdk)
+You will save time by using my CI files directly: [VC6SP5.zip](https://tigule.org/files/ci/VC6SP5.zip), [PSDK2001.zip](https://tigule.org/files/ci/PSDK2001.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip)
 
 ### Windows
 
-- `vc6-setup.bat`: Produce NMake makefiles for Visual C++ 6.0. Visual C++ 6.0 must be installed to `C:\Program Files (x86)\Microsoft Visual Studio 6.0\`
+- `vc6-setup.bat`: Produce NMake makefiles for Visual C++ 6.0. Visual C++ 6.0 must be installed to `C:\Program Files (x86)\Microsoft Visual Studio 6.0\VC98`, or you need to edit the vc6 script's paths.
 
 ### macOS
 
@@ -39,6 +42,30 @@ If those are unavailable: [Service Pack 5 for Microsoft Visual Studio 6.0](https
 ### Linux
 
 - `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take up to 15 minutes the first time.**
+
+## Validation
+
+### Full
+
+The full validation process may take a couple minutes to run. It's not meant for quick iterative development, rather double checking your work.
+
+1. Install validation dependencies once from Build/Validate/:
+`pip install -r requirements.txt`
+
+2. From Build/:
+`python validate_bytecode.py --json validation.json --text validation.txt --web explorer`
+
+3. Open Build/explorer/index.html in your web browser.
+
+### Targeted
+
+The targeted validation process produces a quick report on one compiland. This is what you should use when working on a file.
+
+1. Install validation dependencies once from Build/Validate/:
+`pip install -r requirements.txt`
+
+2. From Build/, select a source path:
+`python validate_bytecode.py --compiland WoW/Source/Client.cpp --text validation.txt`
 
 ## Running
 
