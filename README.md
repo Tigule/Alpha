@@ -1,6 +1,8 @@
 <div align="center">
 <h1>Tigule Alpha</h1>
 
+<a href="https://tigule.github.io/Alpha"><img src="https://tigule.github.io/Alpha/badges/code-functions.svg"></a>
+
 This project has 3 goals: to **understand and document**, **recompile**, and **preserve** an alpha version of World of Warcraft - version 0.5.3 (build 3368) released on 2003-12-11.  
 The significance of this build is because it includes pdb/map files for its Windows executables **and it's the earliest patch we have currently**.
 </div>
@@ -9,9 +11,6 @@ The significance of this build is because it includes pdb/map files for its Wind
 > **UNDERGOING HEAVY RECONSTRUCTION RIGHT NOW. CHECK BACK LATER**
 
 Cross-platform support is a secondary goal after producing a functional Windows client. We can source functions from **0.5.5 (build 3494)** (OS X) and **0.7.0 (build 3694)** (Linux). The result would be an approximation of a cross-platform 0.5.3 client however we can't confirm what's authentic for the time.
-
-> [!IMPORTANT]
-> I won't provide a link to the original install disc - try checking Google/archive.org for `"World of Warcraft Alpha 0.5.3 3368"`
 
 ## Contribution Guide
 

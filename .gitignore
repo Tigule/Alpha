@@ -39,3 +39,7 @@ Makefile
 *.dylib
 *.so
 WoW/Wow
+
+# Python
+__pycache__/
+.venv/
