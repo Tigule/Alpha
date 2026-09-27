@@ -1624,7 +1624,7 @@ void CModel::RemoveModelCommandsFromQueue() {
       switch (type) {
         case MPARAM_HANDLE:
           HandleClose(*reinterpret_cast<HOBJECT *>(paramData));
-          // Fall through: handles occupy four bytes in the command buffer.
+          // intentional fallthrough
         case MPARAM_UINT:
         case MPARAM_FLOAT:
         case MPARAM_CARGB:

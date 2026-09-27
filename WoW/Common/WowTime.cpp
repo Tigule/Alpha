@@ -11,13 +11,7 @@ WowTime::WowTime() : m_minute(-1), m_hour(-1), m_weekday(-1), m_monthDay(-1), m_
 }
 
 int WowTime::GetDaysSinceEpoch() const {
-  if (m_year < 0) {
-    return 0;
-  }
-  if (m_month < 0) {
-    return 0;
-  }
-  if (m_monthDay < 0) {
+  if (m_year < 0 || m_month < 0 || m_monthDay < 0) {
     return 0;
   }
 
@@ -44,10 +38,7 @@ void WowTime::SetDaysSinceEpoch(int days) {
 }
 
 int WowTime::GetHourAndMinutes() const {
-  if (m_hour < 0) {
-    return 0;
-  }
-  if (m_minute < 0) {
+  if (m_hour < 0 || m_minute < 0) {
     return 0;
   }
 
@@ -60,34 +51,38 @@ void WowTime::SetHourAndMinutes(int minutes) {
 }
 
 int WowTime::CompareYear(const WowTime &compareTime) const {
-  return m_year < compareTime.m_year ? -1 : m_year > compareTime.m_year;
+  return m_year > compareTime.m_year ? 1 : m_year < compareTime.m_year ? -1 : 0;
 }
 
 int WowTime::CompareMonth(const WowTime &compareTime) const {
-  return m_month < compareTime.m_month ? -1 : m_month > compareTime.m_month;
+  return m_month > compareTime.m_month ? 1 : m_month < compareTime.m_month ? -1 : 0;
 }
 
 int WowTime::CompareDay(const WowTime &compareTime) const {
-  return m_monthDay < compareTime.m_monthDay ? -1 : m_monthDay > compareTime.m_monthDay;
+  return m_monthDay > compareTime.m_monthDay ? 1 : m_monthDay < compareTime.m_monthDay ? -1 : 0;
 }
 
 int WowTime::CompareWeekday(const WowTime &compareTime) const {
-  return m_weekday < compareTime.m_weekday ? -1 : m_weekday > compareTime.m_weekday;
+  return m_weekday > compareTime.m_weekday ? 1 : m_weekday < compareTime.m_weekday ? -1 : 0;
 }
 
 int WowTime::CompareHour(const WowTime &compareTime) const {
-  return m_hour < compareTime.m_hour ? -1 : m_hour > compareTime.m_hour;
+  return m_hour > compareTime.m_hour ? 1 : m_hour < compareTime.m_hour ? -1 : 0;
 }
 
 int WowTime::CompareMinute(const WowTime &compareTime) const {
-  return m_minute < compareTime.m_minute ? -1 : m_minute > compareTime.m_minute;
+  return m_minute > compareTime.m_minute ? 1 : m_minute < compareTime.m_minute ? -1 : 0;
 }
 
 bool WowTime::InRange(const WowTime &valMin, const WowTime &valMax) const {
   if (valMin <= valMax) {
-    return *this >= valMin && *this < valMax;
+    if (*this >= valMin && *this < valMax) {
+      return true;
+    }
+  } else if (*this >= valMin || *this < valMax) {
+    return true;
   }
-  return *this >= valMin || *this < valMax;
+  return false;
 }
 
 bool WowTime::operator<(const WowTime &cmpTime) const {
@@ -95,22 +90,44 @@ bool WowTime::operator<(const WowTime &cmpTime) const {
     return false;
   }
 
-  if (cmpTime.m_year >= 0 && m_year >= 0 && CompareYear(cmpTime)) {
-    return CompareYear(cmpTime) < 0;
+  int result;
+  if (cmpTime.m_year >= 0 && m_year >= 0) {
+    result = CompareYear(cmpTime);
+    if (result) {
+      return result < 0;
+    }
   }
-  if (cmpTime.m_month >= 0 && m_month >= 0 && CompareMonth(cmpTime)) {
-    return CompareMonth(cmpTime) < 0;
+  if (cmpTime.m_month >= 0 && m_month >= 0) {
+    result = CompareMonth(cmpTime);
+    if (result) {
+      return result < 0;
+    }
   }
-  if (cmpTime.m_monthDay >= 0 && m_monthDay >= 0 && CompareDay(cmpTime)) {
-    return CompareDay(cmpTime) < 0;
+  if (cmpTime.m_monthDay >= 0 && m_monthDay >= 0) {
+    result = CompareDay(cmpTime);
+    if (result) {
+      return result < 0;
+    }
   }
-  if (cmpTime.m_weekday >= 0 && m_weekday >= 0 && CompareWeekday(cmpTime)) {
-    return CompareWeekday(cmpTime) < 0;
+  if (cmpTime.m_weekday >= 0 && m_weekday >= 0) {
+    result = CompareWeekday(cmpTime);
+    if (result) {
+      return result < 0;
+    }
   }
-  if (cmpTime.m_hour >= 0 && m_hour >= 0 && CompareHour(cmpTime)) {
-    return CompareHour(cmpTime) < 0;
+  if (cmpTime.m_hour >= 0 && m_hour >= 0) {
+    result = CompareHour(cmpTime);
+    if (result) {
+      return result < 0;
+    }
   }
-  return cmpTime.m_minute >= 0 && m_minute >= 0 && CompareMinute(cmpTime) < 0;
+  if (cmpTime.m_minute >= 0 && m_minute >= 0) {
+    result = CompareMinute(cmpTime);
+    if (result) {
+      return result < 0;
+    }
+  }
+  return false;
 }
 
 bool WowTime::operator<=(const WowTime &cmpTime) const {
@@ -118,7 +135,48 @@ bool WowTime::operator<=(const WowTime &cmpTime) const {
 }
 
 bool WowTime::operator>(const WowTime &cmpTime) const {
-  return cmpTime < *this;
+  if (&cmpTime == this) {
+    return false;
+  }
+
+  int result;
+  if (cmpTime.m_year >= 0 && m_year >= 0) {
+    result = CompareYear(cmpTime);
+    if (result) {
+      return result > 0;
+    }
+  }
+  if (cmpTime.m_month >= 0 && m_month >= 0) {
+    result = CompareMonth(cmpTime);
+    if (result) {
+      return result > 0;
+    }
+  }
+  if (cmpTime.m_monthDay >= 0 && m_monthDay >= 0) {
+    result = CompareDay(cmpTime);
+    if (result) {
+      return result > 0;
+    }
+  }
+  if (cmpTime.m_weekday >= 0 && m_weekday >= 0) {
+    result = CompareWeekday(cmpTime);
+    if (result) {
+      return result > 0;
+    }
+  }
+  if (cmpTime.m_hour >= 0 && m_hour >= 0) {
+    result = CompareHour(cmpTime);
+    if (result) {
+      return result > 0;
+    }
+  }
+  if (cmpTime.m_minute >= 0 && m_minute >= 0) {
+    result = CompareMinute(cmpTime);
+    if (result) {
+      return result > 0;
+    }
+  }
+  return false;
 }
 
 bool WowTime::operator>=(const WowTime &cmpTime) const {
@@ -126,25 +184,25 @@ bool WowTime::operator>=(const WowTime &cmpTime) const {
 }
 
 bool WowTime::operator==(const WowTime &cmpTime) const {
-  if (&cmpTime == this) {
-    return true;
-  }
-  if (cmpTime.m_year >= 0 && m_year >= 0 && CompareYear(cmpTime)) {
+  if (cmpTime.m_year > 0 && m_year > 0 && cmpTime.m_year != m_year) {
     return false;
   }
-  if (cmpTime.m_month >= 0 && m_month >= 0 && CompareMonth(cmpTime)) {
+  if (cmpTime.m_month > 0 && m_month > 0 && cmpTime.m_month != m_month) {
     return false;
   }
-  if (cmpTime.m_monthDay >= 0 && m_monthDay >= 0 && CompareDay(cmpTime)) {
+  if (cmpTime.m_monthDay > 0 && m_monthDay > 0 && cmpTime.m_monthDay != m_monthDay) {
     return false;
   }
-  if (cmpTime.m_weekday >= 0 && m_weekday >= 0 && CompareWeekday(cmpTime)) {
+  if (cmpTime.m_weekday > 0 && m_weekday > 0 && cmpTime.m_weekday != m_weekday) {
     return false;
   }
-  if (cmpTime.m_hour >= 0 && m_hour >= 0 && CompareHour(cmpTime)) {
+  if (cmpTime.m_hour > 0 && m_hour > 0 && cmpTime.m_hour != m_hour) {
     return false;
   }
-  return cmpTime.m_minute < 0 || m_minute < 0 || !CompareMinute(cmpTime);
+  if (cmpTime.m_minute > 0 && m_minute > 0 && cmpTime.m_minute != m_minute) {
+    return false;
+  }
+  return true;
 }
 
 bool WowTime::operator!=(const WowTime &cmpTime) const {
@@ -157,8 +215,8 @@ void WowTime::WowEncodeTime(UINT &value, int minute, int hour, int weekday, int 
   ASSERT(weekday == -1 || (weekday >= 0 && weekday < 7));
   ASSERT(monthday == -1 || (monthday >= 0 && monthday < 32));
   ASSERT(month == -1 || (month >= 0 && month < 12));
-  ASSERT(year == -1 || year >= 0 && year <= ((1 << 5) - 1));
-  ASSERT(flags >= 0 && flags <= ((1 << 2) - 1));
+  ASSERT(year == -1 || year >= 0 && year <= ((1<<5)-1));
+  ASSERT(flags >= 0 && flags <= ((1<<2)-1));
 
   value = (minute & ((1 << 6) - 1)) | ((hour & ((1 << 5) - 1)) << 6) | ((weekday & ((1 << 3) - 1)) << 11) | ((monthday & ((1 << 6) - 1)) << 14) |
           ((month & ((1 << 4) - 1)) << 20) | ((year & ((1 << 5) - 1)) << 24) | ((flags & ((1 << 2) - 1)) << 29);
@@ -169,31 +227,59 @@ void WowTime::WowDecodeTime(UINT value, int *minute, int *hour, int *weekday, in
 
   if (minute) {
     decoded = value & ((1 << 6) - 1);
-    *minute = decoded == ((1 << 6) - 1) ? -1 : decoded;
+    if (decoded == ((1 << 6) - 1)) {
+      *minute = -1;
+    } else {
+      *minute = decoded;
+    }
   }
   if (hour) {
     decoded = (value >> 6) & ((1 << 5) - 1);
-    *hour = decoded == ((1 << 5) - 1) ? -1 : decoded;
+    if (decoded == ((1 << 5) - 1)) {
+      *hour = -1;
+    } else {
+      *hour = decoded;
+    }
   }
   if (weekday) {
     decoded = (value >> 11) & ((1 << 3) - 1);
-    *weekday = decoded == ((1 << 3) - 1) ? -1 : decoded;
+    if (decoded == ((1 << 3) - 1)) {
+      *weekday = -1;
+    } else {
+      *weekday = decoded;
+    }
   }
   if (monthday) {
     decoded = (value >> 14) & ((1 << 6) - 1);
-    *monthday = decoded == ((1 << 6) - 1) ? -1 : decoded;
+    if (decoded == ((1 << 6) - 1)) {
+      *monthday = -1;
+    } else {
+      *monthday = decoded;
+    }
   }
   if (month) {
     decoded = (value >> 20) & ((1 << 4) - 1);
-    *month = decoded == ((1 << 4) - 1) ? -1 : decoded;
+    if (decoded == ((1 << 4) - 1)) {
+      *month = -1;
+    } else {
+      *month = decoded;
+    }
   }
   if (year) {
     decoded = (value >> 24) & ((1 << 5) - 1);
-    *year = decoded == ((1 << 5) - 1) ? -1 : decoded;
+    if (decoded == ((1 << 5) - 1)) {
+      *year = -1;
+    } else {
+      *year = decoded;
+    }
   }
   if (flags) {
     decoded = (value >> 29) & ((1 << 2) - 1);
-    *flags = decoded == ((1 << 2) - 1) ? -1 : decoded;
+    if (decoded == ((1 << 2) - 1)) {
+      *flags = -1;
+    } else {
+      *flags = decoded;
+    }
   }
 }
 
@@ -211,19 +297,21 @@ LPCSTR WowTime::WowGetTimeString(UINT value, char *string, int maxlen) {
 }
 
 LPCSTR WowTime::WowGetTimeString(WowTime *time, char *string, int maxlen) {
-  UINT value;
+  {
+    UINT value;
+    WowEncodeTime(value, time);
+    if (!value) {
+      SStrPrintf(string, maxlen, "Not Set");
+      return string;
+    }
+  }
+
   char buffMonth[8];
   char buffmonthDay[8];
   char buffYear[8];
   char buffWeekDay[8];
   char buffHour[8];
   char buffMinute[8];
-
-  WowEncodeTime(value, time);
-  if (!value) {
-    SStrPrintf(string, maxlen, "Not Set");
-    return string;
-  }
 
   if (time->m_year < 0) {
     SStrPrintf(buffYear, sizeof(buffYear), "A");

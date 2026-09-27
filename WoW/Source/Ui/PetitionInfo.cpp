@@ -5,6 +5,7 @@
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Ui/GameUI.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Base/CDataStore.h>
@@ -221,7 +222,7 @@ static int Script_SignPetition(lua_State *L) {
   DWORDLONG petitionGUID = CGPetitionInfo::GetPetition();
   if (petitionGUID) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_PETITION_SIGN));
+    msg.Put(CMSG_PETITION_SIGN);
     msg.Put(petitionGUID);
     msg.Put(choice);
     msg.Finalize();
@@ -232,10 +233,10 @@ static int Script_SignPetition(lua_State *L) {
 
 static int Script_OfferPetition(lua_State *) {
   DWORDLONG petition = CGPetitionInfo::GetPetition();
-  DWORDLONG target = Script_GetGUIDFromName("target");
+  DWORDLONG target = CGGameUI::GetLockedTarget();
   if (petition && target) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_OFFER_PETITION));
+    msg.Put(CMSG_OFFER_PETITION);
     msg.Put(petition);
     msg.Put(target);
     msg.Finalize();

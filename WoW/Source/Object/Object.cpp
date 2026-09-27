@@ -39,17 +39,6 @@ void CClientMoveUpdate::Skip(CDataStore *packet) {
   }
 }
 
-namespace NTempest {
-
-  CDataStore &operator<<(CDataStore &s_, const C3Vector &d_) {
-    s_ << d_.x;
-    s_ << d_.y;
-    s_ << d_.z;
-    return s_;
-  }
-
-}  // namespace NTempest
-
 CDataStore &operator<<(CDataStore &packet, const CClientMoveUpdate &update) {
   packet << update.status.transport << update.status.transRelPosition.x << update.status.transRelPosition.y << update.status.transRelPosition.z
          << update.status.transRelFacing;
@@ -68,7 +57,7 @@ CDataStore &operator<<(CDataStore &packet, const CClientMoveUpdate &update) {
     if (update.spline.flags & 0x00040000) {
       packet << update.spline.face.facing;
     }
-    packet << static_cast<DWORD>(OsGetAsyncTimeMs() - update.spline.start) << update.spline.time;
+    packet << static_cast<int>(OsGetAsyncTimeMs() - update.spline.start) << update.spline.time;
     UINT pointCount = update.spline.spline.NumPoints();
     packet << pointCount;
     for (UINT i = 0; i < pointCount; ++i) {
@@ -111,9 +100,10 @@ CDataStore &operator>>(CDataStore &packet, CClientMoveUpdate &update) {
     if (update.spline.flags & 0x00040000) {
       packet.Get(update.spline.face.facing);
     }
-    DWORD elapsed;
+    DWORD timeNow = OsGetAsyncTimeMs();
+    int elapsed;
     packet.Get(elapsed);
-    update.spline.start = OsGetAsyncTimeMs() - elapsed;
+    update.spline.start = timeNow - elapsed;
     packet.Get(update.spline.time);
     UINT pointCount = 0;
     packet.Get(pointCount);

@@ -343,7 +343,7 @@ struct QUESTGIVEREMOTENODE {
   UINT delay;
   UINT emoteID;
 
-  QUESTGIVEREMOTENODE() {
+  QUESTGIVEREMOTENODE() : delay(0), emoteID(0) {
   }
 };
 struct LightningObject;
@@ -849,7 +849,6 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual void PreRender(int currentTime, float elapsed);
   virtual void PreAnimate(CGWorldFrame *worldFrame);
 
-  // CGUnit_C virtuals, in primary-vtable order.
   virtual void      GetAFKText(char *buffer, int size) const;
   virtual void      GetDNDText(char *buffer, int size) const;
   virtual void      GetGMText(char *buffer, int size) const;

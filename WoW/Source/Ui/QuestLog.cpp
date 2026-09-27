@@ -120,7 +120,7 @@ void CGQuestLog::EnterWorld() {
   msg.Put(CMSG_QUERY_TIME);
   msg.Finalize();
   ClientServices_Send(&msg);
-  m_expiredQuests = 0;
+  s_questCallbackCount = 0;
   Update(1);
 }
 
@@ -241,6 +241,7 @@ void CGQuestLog::Update(int resetFilters) {
   m_numQuests = 0;
   m_numSortTypes = 0;
   m_expiredQuests = 0;
+  s_questCallbackCount = 0;
   m_collapseFilter = -1;
   for (i = 0; i < 16; ++i) {
     const CQuestLogData *entry = player->GetQuestLogData(i);
@@ -253,7 +254,7 @@ void CGQuestLog::Update(int resetFilters) {
       }
       m_quests[m_numQuests].questID = questID;
       m_quests[m_numQuests].logIndex = i;
-      if (entry->m_questFailureTime && static_cast<int>(entry->m_questFlags) >= 0 && offset + entry->m_questFailureTime - OsGetTime() - 1 < 0) {
+      if (entry->m_questFailureTime && static_cast<int>(entry->m_questFlags) >= 0 && static_cast<int>(offset + entry->m_questFailureTime - OsGetTime() - 1) < 0) {
         m_expiredQuests |= 1 << i;
       }
       ++m_numQuests;
@@ -275,7 +276,7 @@ void CGQuestLog::Update(int resetFilters) {
   }
   FilterAndSortQuests();
   FrameScript_SignalEvent(285);
-  if (s_nextTimeUpdate && OsGetTime() > s_nextTimeUpdate) {
+  if (s_nextTimeUpdate && static_cast<int>(OsGetTime()) > s_nextTimeUpdate) {
     CDataStore msg;
     msg.Put(CMSG_QUERY_TIME);
     msg.Finalize();

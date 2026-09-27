@@ -35,7 +35,7 @@ void CGTutorial::ClearTutorials() {
   m_tutorialFlags.SetAll();
 
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_TUTORIAL_CLEAR));
+  msg.Put(CMSG_TUTORIAL_CLEAR);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -44,7 +44,7 @@ void CGTutorial::ResetTutorials() {
   m_tutorialFlags.ClearAll();
 
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_TUTORIAL_RESET));
+  msg.Put(CMSG_TUTORIAL_RESET);
   msg.Finalize();
   ClientServices_Send(&msg);
 }

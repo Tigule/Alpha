@@ -115,7 +115,9 @@ class CGItem {
   int                    GetEnchantmentID(int index) const;
   int                    GetEnchantmentExpiration(int index) const;
   int                    GetEnchantmentCharges(int index) const;
-  int                    GetPetitionID() const;
+  int GetPetitionID() const {
+    return (m_item->m_staticFlags & ITEM_FLAG_PETITION) ? m_item->m_enchantment[0].id : 0;
+  }
   int                    GetNumPetitionSignatures() const;
   BYTE                  *GetData(UINT index);
   void                   SetStorage(DWORD *storage) {
@@ -144,6 +146,7 @@ class CGItem {
 class CGItem_C : public CGObject_C, public CGItem {
   friend class CGItemText;
   friend class CGPlayer_C;
+  friend bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
   friend void SendCast(SpellCast *cast);
 
  public:

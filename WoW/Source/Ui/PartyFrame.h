@@ -48,7 +48,6 @@ class CGPartyInfo {
   static RemoteStats *GetRemoteStatsByIndex(int index);
   static void         OnNameCacheCallback();
   static DWORDLONG    GetMember(UINT index) {
-    FATALASSERT(index < 4);
     return m_members[index];
   }
   static void        SetLeader(DWORDLONG guid);

@@ -11,6 +11,7 @@
 #include "DayNight.h"
 
 #include <Base/Activity.h>
+#include <Base/CDataStore.h>
 #include <Base/Handle.h>
 #include <Anim/AnimTypes.h>
 #include <Console/ConsoleClient.h>
@@ -27,6 +28,8 @@
 #include <float.h>
 #include <stdio.h>
 #include <storm.h>
+
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 NTempest::C44Matrix CWTriData::matrices[CWTriData::MaxBatches];
 WORD                CWTriData::vertexIndices[CWTriData::MaxVertexIndices];
@@ -1190,6 +1193,26 @@ BOOL CWorld::ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments) {
   } else {
     detailDoodadAlphaRef = alphaRef;
   }
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_DebugZones(LPCSTR, LPCSTR) {
+  BYTE on;
+  if (enables & Enable_ZoneBounds) {
+    ConsoleWrite("Zone boundary visuals disabled", DEFAULT_COLOR);
+    enables &= ~Enable_ZoneBounds;
+    on = 0;
+  } else {
+    ConsoleWrite("Zone boundary visuals enabled", DEFAULT_COLOR);
+    enables |= Enable_ZoneBounds;
+    on = 1;
+  }
+
+  CDataStore msg;
+  msg.Put(CMSG_ZONE_MAP);
+  msg.Put(on);
+  msg.Finalize();
+  ClientServices_Send(&msg);
   return 1;
 }
 

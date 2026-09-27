@@ -88,7 +88,7 @@ void CGameTime::GameTimeUpdate(float elapsedSeconds) {
   UINT timeDifferential = m_timeDifferential;
   m_gameMinutesThisTick = elapsedSeconds * m_gameMinutesPerRealSecond + m_gameMinutesThisTick;
 
-  if (timeDifferential && m_gameMinutesThisTick >= 1.0f) {
+  if (timeDifferential && m_gameMinutesThisTick >= 1.0) {
     UINT correction = static_cast<UINT>(m_gameMinutesThisTick);
     if (timeDifferential < correction) {
       correction = timeDifferential;

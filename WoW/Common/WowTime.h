@@ -6,12 +6,20 @@
 
 class WowTime {
  public:
+  int m_minute;
+  int m_hour;
+  int m_weekday;
+  int m_monthDay;
+  int m_month;
+  int m_year;
+  int m_flags;
+
   WowTime();
   WowTime(const WowTime &time) {
     memcpy(this, &time, sizeof(*this));
   }
-  WowTime(int, int);
   WowTime(UINT value);
+  WowTime(int, int);
 
   int  GetDaysSinceEpoch() const;
   void SetDaysSinceEpoch(int days);
@@ -32,20 +40,12 @@ class WowTime {
   bool operator!=(const WowTime &cmpTime) const;
        operator UINT() const;
 
-  static void   WowEncodeTime(UINT &value, const WowTime *time);
   static void   WowEncodeTime(UINT &value, int minute, int hour, int weekday, int monthday, int month, int year, int flags);
-  static void   WowDecodeTime(UINT value, WowTime *time);
+  static void   WowEncodeTime(UINT &value, const WowTime *time);
   static void   WowDecodeTime(UINT value, int *minute, int *hour, int *weekday, int *monthday, int *month, int *year, int *flags);
-  static LPCSTR WowGetTimeString(WowTime *time, char *string, int maxlen);
+  static void   WowDecodeTime(UINT value, WowTime *time);
   static LPCSTR WowGetTimeString(UINT value, char *string, int maxlen);
-
-  int m_minute;
-  int m_hour;
-  int m_weekday;
-  int m_monthDay;
-  int m_month;
-  int m_year;
-  int m_flags;
+  static LPCSTR WowGetTimeString(WowTime *time, char *string, int maxlen);
 };
 
 inline WowTime::WowTime(UINT value) {

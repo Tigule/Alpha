@@ -93,8 +93,8 @@ static BOOL CCommand_ClearTradeItem(LPCSTR command, LPCSTR arguments) {
 static BOOL CCommand_ClearTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_CLEAR_TRADE_ITEM));
-    msg.Put(0xFFu);
+    msg.Put(CMSG_CLEAR_TRADE_ITEM);
+    msg.Put(static_cast<BYTE>(0xFF));
     msg.Finalize();
     ClientServices_Send(&msg);
   }
@@ -127,8 +127,7 @@ static BOOL CCommand_ShowTrade(LPCSTR, LPCSTR) {
 
 static BOOL CCommand_TradeGold(LPCSTR, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(CMSG_SET_TRADE_GOLD);
-  msg.Put(arguments ? SStrToInt(arguments) : 0);
+  msg.Put(CMSG_SET_TRADE_GOLD) << static_cast<UINT>(arguments ? SStrToInt(arguments) : 0);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -144,7 +143,7 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
   netmsg->Get(statusint);
   TRADE_STATUS status = static_cast<TRADE_STATUS>(statusint);
   BAG_RESULT   bagResult = BAG_OK;
-  BYTE         myFailure = 0;
+  BYTE         failureForMe = 0;
   int          itemID = 0;
   LPCSTR       message = 0;
   char         buf[256];
@@ -219,7 +218,7 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
       break;
     case 12:
       netmsg->Get(reinterpret_cast<int &>(bagResult));
-      netmsg->Get(myFailure);
+      netmsg->Get(failureForMe);
       netmsg->Get(itemID);
       SStrCopy(buf, FrameScript_GetText("TRADE_FAILED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
       message = buf;
@@ -247,7 +246,7 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
       break;
   }
 
-  CGTradeInfo::HandleTradeMessage(status, bagResult, myFailure != 0, itemID);
+  CGTradeInfo::HandleTradeMessage(status, bagResult, failureForMe != 0, itemID);
   if (clearTrade) {
     s_initiator = 0;
     s_tradePartner = 0;
@@ -269,7 +268,7 @@ static BOOL TradeExtendedStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *ms
   msg->Get(s_tradeProposedEnchantment[whichPlayer]);
   msg->Get(s_tradeProposedEnchantmentSlot[whichPlayer]);
 
-  while (!msg->IsRead()) {
+  while (msg->Tell() < msg->Size()) {
     BYTE index;
     msg->Get(index);
     TradeItemData &item = s_tradeItems[whichPlayer][index];
@@ -357,7 +356,7 @@ void Trade_C_PlayerIgnored() {
 void Trade_C_AcceptTrade() {
   CDataStore msg;
   msg.Put(CMSG_ACCEPT_TRADE);
-  msg.Put(s_tradeFlags[1]);
+  msg.Put(static_cast<int>(s_tradeFlags[1]));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -387,11 +386,11 @@ bool Trade_C_AddItem(DWORDLONG item, DWORDLONG itemContainer, UINT itemSlot, UIN
     return false;
   }
 
-  UINT       itemContainerIndex = player->FindSlotIndex(itemContainer);
+  BYTE       itemContainerIndex = player->FindSlotIndex(itemContainer);
   CDataStore msg;
   msg.Put(CMSG_SET_TRADE_ITEM);
   msg.Put(static_cast<BYTE>(tradeSlot));
-  msg.Put(static_cast<BYTE>(itemContainerIndex));
+  msg.Put(itemContainerIndex);
   msg.Put(static_cast<BYTE>(itemSlot));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -435,11 +434,6 @@ UINT Trade_C_GetTargetTradeGold() {
 }
 
 void Trade_C_Initialize() {
-  memset(s_tradeItems, 0, sizeof(s_tradeItems));
-  memset(s_tradeProposedEnchantment, 0, sizeof(s_tradeProposedEnchantment));
-  memset(s_tradeProposedEnchantmentSlot, 0, sizeof(s_tradeProposedEnchantmentSlot));
-  memset(s_tradeGold, 0, sizeof(s_tradeGold));
-  memset(s_tradeFlags, 0, sizeof(s_tradeFlags));
   ConsoleCommandRegister("trade", CCommand_Trade, GAME, 0);
   ConsoleCommandRegister("addtradeitem", CCommand_AddTradeItem, GAME, 0);
   ConsoleCommandRegister("cleartradeitem", CCommand_ClearTradeItem, GAME, 0);

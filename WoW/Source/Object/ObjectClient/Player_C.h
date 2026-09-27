@@ -186,6 +186,7 @@ enum SPELL_CAST_UI_TYPE {
 
 class CGPlayer_C : public CGUnit_C, public CGPlayer {
   friend class CGUnit_C;
+  friend bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
   friend bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
   friend bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
 

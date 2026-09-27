@@ -58,6 +58,7 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const DWORDLONG &
   }
 
   entry = m_table.New(static_cast<UINT>(id), HASHKEY(id), 0, 0);
+  entry->m_dbkey = id;
   callbackEntry = entry->m_callbacks.NewNode(LIST_TAIL, 0, 0);
   callbackEntry->m_callback = cb;
   callbackEntry->m_guid = guid;
@@ -191,7 +192,7 @@ void DBCache<RECORD, KEY, HASHKEY>::CancelCallback(KEY id, DBCACHECALLBACKPROC c
 template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::Load() {
   const DWORD  HeaderSize = 16;
-  UINT         data[0x800];
+  BYTE         data[0x800];
   char         fileName[MAX_PATH];
   int          recVersion;
   DWORD        recSize;
@@ -242,7 +243,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
   }
 
   header.Get(recVersion);
-  if (recVersion == 1) {
+  if (recVersion == RECORD::Version()) {
     for (;;) {
       OsReadFile(file, data, sizeof(DWORD) + sizeof(KEY), &bytesRead);
       ASSERT(bytesRead == sizeof(DWORD) + sizeof(KEY));
@@ -291,15 +292,19 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
   OsCreateDirectory("WDB", 0);
   SStrPrintf(fileName, sizeof(fileName), "%s/%s", "WDB", m_fileName);
   file = OsCreateFile(fileName, 0x40000000, 1, 2, 0x80, 0x3F3F3F3F);
-  FATALASSERT(file != HOSFILE_INVALID);
+  if (file == HOSFILE_INVALID) {
+    FATALERROR(("file != HOSFILE_INVALID"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return;
+  }
 
   CDataStore store;
   LPVOID     ptr;
 
-  store.Put(m_fileTag);
+  store.Put(static_cast<int>(m_fileTag));
   store.Put(3368);
-  store.Put(static_cast<DWORD>(sizeof(RECORD)));
-  store.Put(1);
+  store.Put(static_cast<int>(sizeof(RECORD)));
+  store.Put(RECORD::Version());
   store.Finalize();
   store.GetDataInSitu(ptr, store.Size());
   OsWriteFile(file, ptr, store.Size(), &bytesWritten);
@@ -311,7 +316,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
     if (entry->m_haveData && !entry->m_temp) {
       r.Reset();
       r.Put(entry->m_dbkey);
-      r.Put(static_cast<DWORD>(0));
+      r.Put(0);
       entry->m_record.Pack(&r);
       r.Set(sizeof(KEY), r.Size() - sizeof(KEY) - sizeof(DWORD));
       r.Finalize();

@@ -8,6 +8,7 @@
 #include "DB/DBClient/DBClient.h"
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
 #include "FrameScript/FrameScript.h"
+#include "FrameXML/LoadXML.h"
 #include "Object/ItemStats.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Player_C.h"
@@ -458,7 +459,7 @@ static int Script_CloseLoot(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     displayError = static_cast<int>(lua_tonumber(L, 1));
   } else if (lua_isstring(L, 1)) {
-    displayError = lua_toboolean(L, 1);
+    displayError = StringToBOOL(lua_tostring(L, 1));
   }
   if (displayError) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(122));

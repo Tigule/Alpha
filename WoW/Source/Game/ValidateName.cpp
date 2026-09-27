@@ -124,6 +124,27 @@ VALIDATE_NAME_RESULT ValidateCharacterName(WOW_LOCALE locale, LPCSTR name) {
   return result;
 }
 
+VALIDATE_NAME_RESULT ValidateGuildName(WOW_LOCALE locale, LPCSTR name) {
+  WORD validChars[2] = {' ', 0};
+  UINT length;
+  CHARSET charset;
+  VALIDATE_NAME_RESULT result = ValidateName(locale, validChars, name, length, charset);
+  if (result == NAME_SUCCESS && length > (charset == CHARSET_LATIN1 ? 24U : 16U)) {
+    return NAME_TOO_LONG;
+  }
+  return result;
+}
+
+VALIDATE_NAME_RESULT ValidatePetName(WOW_LOCALE locale, LPCSTR name) {
+  UINT length;
+  CHARSET charset;
+  VALIDATE_NAME_RESULT result = ValidateName(locale, 0, name, length, charset);
+  if (result == NAME_SUCCESS && length > (charset == CHARSET_LATIN1 ? 12U : 8U)) {
+    return NAME_TOO_LONG;
+  }
+  return result;
+}
+
 static CHARSET GetCharSet(WORD ch) {
   if (IsLatin1(ch)) {
     return CHARSET_LATIN1;

@@ -5,6 +5,12 @@
 class CGxDevice;
 
 class CGxStateBom {
+ private:
+  friend class CGxDevice;
+
+  int mData[3];
+  int filler;
+
  public:
   int                 operator!=(const CGxStateBom &value);
   CGxStateBom         operator~();
@@ -27,12 +33,6 @@ class CGxStateBom {
     *reinterpret_cast<float *>(&mData[2]) = value;
     return *this;
   }
-
- private:
-  friend class CGxDevice;
-
-  int mData[3];
-  int filler;
 };
 
 struct CGxPushedRenderState {

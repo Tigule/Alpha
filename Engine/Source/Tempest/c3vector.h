@@ -10,14 +10,18 @@ namespace NTempest {
 
   class C3Vector {
    public:
+    float x;
+    float y;
+    float z;
+
+    enum {
+      eComponents = 3
+    };
+
     enum EAxis {
       C3AXIS_X = 0,
       C3AXIS_Y = 1,
       C3AXIS_Z = 2
-    };
-
-    enum {
-      eComponents = 3
     };
 
     C3Vector(float value = 0.0f) : x(value), y(value), z(value) {
@@ -46,85 +50,14 @@ namespace NTempest {
       ty = y;
       tz = z;
     }
-    operator C2Vector() const {
-      return C2Vector(x, y);
-    }
-
     void Set(float tx, float ty, float tz) {
       x = tx;
       y = ty;
       z = tz;
     }
 
-    float SquaredMag() const {
-      return x * x + y * y + z * z;
-    }
-
-    float Mag() const {
-      return CMath::sqrt_(SquaredMag());
-    }
-
-    void Normalize() {
-      float ooMag = 1.0f / Mag();
-
-      x *= ooMag;
-      y *= ooMag;
-      z *= ooMag;
-    }
-
-    EAxis MajorAxis() const;
-    EAxis MinorAxis() const;
-
-    static C3Vector Min(const C3Vector &a, const C3Vector &b) {
-      return C3Vector(b.x <= a.x ? b.x : a.x, b.y <= a.y ? b.y : a.y, b.z <= a.z ? b.z : a.z);
-    }
-
-    static C3Vector Max(const C3Vector &a, const C3Vector &b) {
-      return C3Vector(b.x >= a.x ? b.x : a.x, b.y >= a.y ? b.y : a.y, b.z >= a.z ? b.z : a.z);
-    }
-
-    static C3Vector Lerp(const C3Vector &a, const C3Vector &b, const C3Vector &t) {
-      return C3Vector(a.x + (b.x - a.x) * t.x, a.y + (b.y - a.y) * t.y, a.z + (b.z - a.z) * t.z);
-    }
-
-    void Maximize(const C3Vector &a) {
-      x = a.x > x ? a.x : x;
-      y = a.y > y ? a.y : y;
-      z = a.z > z ? a.z : z;
-    }
-
-    static float Dot(const C3Vector &l, const C3Vector &r) {
-      return l.x * r.x + l.y * r.y + l.z * r.z;
-    }
-
-    static C3Vector Cross(const C3Vector &l, const C3Vector &r) {
-      return C3Vector(l.y * r.z - l.z * r.y, l.z * r.x - l.x * r.z, l.x * r.y - l.y * r.x);
-    }
-
-    static C3Vector Cross(const C3Vector &l, const C2Vector &r) {
-      return C3Vector(-l.z * r.y, l.z * r.x, l.x * r.y - l.y * r.x);
-    }
-
-    static C3Vector Cross(const C2Vector &l, const C3Vector &r) {
-      return C3Vector(l.y * r.z, -l.x * r.z, l.x * r.y - l.y * r.x);
-    }
-
-    static C3Vector ProjectionOnPlane(const C3Vector &vector, const C3Vector &normal) {
-      float distance = Dot(vector, normal);
-      return C3Vector(vector.x - normal.x * distance, vector.y - normal.y * distance, vector.z - normal.z * distance);
-    }
-
-    static C3Vector NearestOnPlane(const C3Vector &point, const C3Vector &planePoint, const C3Vector &normal) {
-      C3Vector offset(point.x - planePoint.x, point.y - planePoint.y, point.z - planePoint.z);
-      float    distance = Dot(offset, normal);
-      return C3Vector(point.x - normal.x * distance, point.y - normal.y * distance, point.z - normal.z * distance);
-    }
-
-    C3Vector &operator+=(float a) {
-      x += a;
-      y += a;
-      z += a;
-      return *this;
+    operator C2Vector() const {
+      return C2Vector(x, y);
     }
 
     C3Vector &operator+=(const C3Vector &a) {
@@ -134,10 +67,10 @@ namespace NTempest {
       return *this;
     }
 
-    C3Vector &operator-=(float a) {
-      x -= a;
-      y -= a;
-      z -= a;
+    C3Vector &operator+=(float a) {
+      x += a;
+      y += a;
+      z += a;
       return *this;
     }
 
@@ -145,6 +78,13 @@ namespace NTempest {
       x -= a.x;
       y -= a.y;
       z -= a.z;
+      return *this;
+    }
+
+    C3Vector &operator-=(float a) {
+      x -= a;
+      y -= a;
+      z -= a;
       return *this;
     }
 
@@ -162,15 +102,15 @@ namespace NTempest {
       return *this;
     }
 
-    C3Vector &operator/=(float a) {
-      return *this *= 1.0f / a;
-    }
-
     C3Vector &operator/=(const C3Vector &a) {
       x /= a.x;
       y /= a.y;
       z /= a.z;
       return *this;
+    }
+
+    C3Vector &operator/=(float a) {
+      return *this *= 1.0f / a;
     }
 
     C3Vector operator-() const {
@@ -187,12 +127,29 @@ namespace NTempest {
       return (&x)[sub];
     }
 
+    float SquaredMag() const {
+      return x * x + y * y + z * z;
+    }
+
+    float Mag() const {
+      return CMath::sqrt_(SquaredMag());
+    }
+
     float SumC() const {
       return x + y + z;
     }
     bool IsUnit() const {
       return CMath::fabs_(SquaredMag() - 1.0f) < 0.0009765625f;
     }
+
+    void Normalize() {
+      float ooMag = 1.0f / Mag();
+
+      x *= ooMag;
+      y *= ooMag;
+      z *= ooMag;
+    }
+
     void SafeNormalize() {
       float squaredMag = SquaredMag();
       if (squaredMag > 0.0f) {
@@ -203,15 +160,61 @@ namespace NTempest {
       SafeNormalize();
       *this *= magnitude;
     }
+
+    EAxis MajorAxis() const;
+    EAxis MinorAxis() const;
+
+    static C3Vector Min(const C3Vector &a, const C3Vector &b) {
+      return C3Vector(b.x <= a.x ? b.x : a.x, b.y <= a.y ? b.y : a.y, b.z <= a.z ? b.z : a.z);
+    }
+
+    static C3Vector Max(const C3Vector &a, const C3Vector &b) {
+      return C3Vector(b.x >= a.x ? b.x : a.x, b.y >= a.y ? b.y : a.y, b.z >= a.z ? b.z : a.z);
+    }
+
     void Minimize(const C3Vector &a) {
       x = a.x < x ? a.x : x;
       y = a.y < y ? a.y : y;
       z = a.z < z ? a.z : z;
     }
 
-    float x;
-    float y;
-    float z;
+    void Maximize(const C3Vector &a) {
+      x = a.x > x ? a.x : x;
+      y = a.y > y ? a.y : y;
+      z = a.z > z ? a.z : z;
+    }
+
+    static C3Vector Lerp(const C3Vector &a, const C3Vector &b, const C3Vector &t) {
+      return C3Vector(a.x + (b.x - a.x) * t.x, a.y + (b.y - a.y) * t.y, a.z + (b.z - a.z) * t.z);
+    }
+
+    static float Dot(const C3Vector &l, const C3Vector &r) {
+      return l.x * r.x + l.y * r.y + l.z * r.z;
+    }
+
+    static C3Vector Cross(const C3Vector &l, const C3Vector &r) {
+      return C3Vector(l.y * r.z - l.z * r.y, l.z * r.x - l.x * r.z, l.x * r.y - l.y * r.x);
+    }
+
+    static C3Vector Cross(const C2Vector &l, const C3Vector &r) {
+      return C3Vector(l.y * r.z, -l.x * r.z, l.x * r.y - l.y * r.x);
+    }
+
+    static C3Vector Cross(const C3Vector &l, const C2Vector &r) {
+      return C3Vector(-l.z * r.y, l.z * r.x, l.x * r.y - l.y * r.x);
+    }
+
+    static C3Vector ProjectionOnPlane(const C3Vector &vector, const C3Vector &normal) {
+      float distance = Dot(vector, normal);
+      return C3Vector(vector.x - normal.x * distance, vector.y - normal.y * distance, vector.z - normal.z * distance);
+    }
+
+    static C3Vector NearestOnPlane(const C3Vector &point, const C3Vector &planePoint, const C3Vector &normal) {
+      C3Vector offset(point.x - planePoint.x, point.y - planePoint.y, point.z - planePoint.z);
+      float    distance = Dot(offset, normal);
+      return C3Vector(point.x - normal.x * distance, point.y - normal.y * distance, point.z - normal.z * distance);
+    }
+
   };
 
   inline BOOL IsUnitVector(const C3Vector &vector) {

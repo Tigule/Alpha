@@ -1102,24 +1102,25 @@ static int CGMinimapFrame_PingLocation(lua_State *L) {
   float viewSize = MinimapGetViewRadius() * 2.0f;
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
     GET_MINIMAP_THIS(L, object);
-    y = -static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f * 0.8f / object->GetHeight() * viewSize;
-    x = static_cast<float>(lua_tonumber(L, 3)) * 0.0009765625f * 0.8f / object->GetWidth() * viewSize;
+    y = -static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f);
+    x = static_cast<float>(lua_tonumber(L, 3) * 0.0009765625f * 0.8f);
+    x = x / object->GetWidth() * viewSize;
+    y = y / object->GetHeight() * viewSize;
   }
 
-  NTempest::C3Vector playerPosition = player->GetPosition();
-  x += playerPosition.x;
-  y += playerPosition.y;
+  x += player->GetPosition().x;
+  y += player->GetPosition().y;
 
   if (CGGameUI::GetPartyMember(0)) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(MSG_MINIMAP_PING));
+    msg.Put(MSG_MINIMAP_PING);
     msg.Put(x);
     msg.Put(y);
     msg.Finalize();
     ClientServices_Send(&msg);
   } else {
     NTempest::C2Vector position(x, y);
-    CGMinimapFrame::SetPingPosition(player->GetGUID(), position);
+    CGMinimapFrame::SetPingPosition(ClntObjMgrGetActivePlayer(), position);
   }
   return 0;
 }

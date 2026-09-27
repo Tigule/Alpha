@@ -102,12 +102,67 @@ static int Script_BankButtonIDToInvSlotID(lua_State *L) {
 
 static int Script_PutItemInBankBag(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: Script_PutItemInBankBag(unit, slot)");
+    luaL_error(L, "Usage: Script_PutItemInBankBag(unit, slot)");
+    return 0;
   }
   int slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  if (slot >= 63 && slot <= 68) {
-    CGBankInfo::PickupItem(slot, 1, 0);
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (slot < 63 || slot > 68 || !player || !CGGameUI::HasPlayerControl()) {
+    return 0;
   }
+  DWORDLONG cursorItem;
+  DWORDLONG cursorItemPack;
+  UINT cursorItemSlot;
+  CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
+  UINT virtualItem;
+  UINT virtualSlot;
+  CGGameUI::GetCursorVirtualItem(virtualItem, virtualSlot);
+  DWORDLONG slotItem = player->CGPlayer_C::GetBag()->GetItem(slot);
+  if (!slotItem) {
+    CGBankInfo::PickupItem(slot, 1, 0);
+    return 0;
+  }
+  if (cursorItem == slotItem) {
+    CGGameUI::ClearCursor(1);
+    return 1;
+  }
+  if (cursorItem || virtualItem) {
+    CGItem_C *slotItemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(slotItem, __FILE__, __LINE__));
+    if (slotItemPtr && slotItemPtr->IsA(TYPE_CONTAINER)) {
+      if ((cursorItemPack != slotItem || (cursorItemPack == player->GetGUID() && cursorItemSlot <= 23)) && cursorItem) {
+        if (CGGameUI::GetCursorStackSplit()) {
+          player->SplitItem(cursorItem, cursorItemPack, cursorItemSlot, slotItem, 255, CGGameUI::GetCursorStackSplit());
+          CGGameUI::ClearCursor(0);
+          return 0;
+        }
+        CGItem_C *cursorItemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(cursorItem, __FILE__, __LINE__));
+        if (player->ValidateSlot(slot, cursorItem) && cursorItemPtr && cursorItemPtr->IsA(TYPE_CONTAINER)) {
+          player->SwapItems(cursorItem, cursorItemPack, cursorItemSlot, player->GetGUID(), slot, 0);
+        } else {
+          player->AutoStoreItemInBag(cursorItem, cursorItemPack, cursorItemSlot, slotItem, 0);
+        }
+        CGGameUI::ClearCursor(0);
+        lua_pushnumber(L, 1.0);
+        return 1;
+      }
+    } else if (slotItem != cursorItem) {
+      slotItemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(slotItem, __FILE__, __LINE__));
+      if (!slotItemPtr || !slotItemPtr->IsLocked()) {
+        if (player->ValidateSlot(slot, cursorItem)) {
+          player->SwapItems(cursorItem, cursorItemPack, cursorItemSlot, player->GetGUID(), slot, 0);
+          CGGameUI::ClearCursor(1);
+        } else {
+          if (cursorItemPack != player->GetGUID() || cursorItemSlot >= 19) {
+            player->AutoEquipCursorItem(0);
+          }
+          CGGameUI::ClearCursor(1);
+        }
+        lua_pushnumber(L, 1.0);
+        return 1;
+      }
+    }
+  }
+  CGGameUI::ClearCursor(1);
   return 0;
 }
 
@@ -134,13 +189,13 @@ static int Script_PurchaseSlot(lua_State *L) {
     SignalBankSlotsChanged();
     return 0;
   }
-  if (player->GetUnitData()->coinage < GetBankSlotCost(slots)) {
+  if (player->GetUnitData()->coinage < GetBankSlotCost(slots + 1)) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(231));
     return 0;
   }
 
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_BUY_BANK_SLOT));
+  msg.Put(CMSG_BUY_BANK_SLOT);
   msg.Put(CGGameUI::GetInteractTarget());
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -149,30 +204,31 @@ static int Script_PurchaseSlot(lua_State *L) {
 
 static int Script_PickupBagFromBankSlot(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
+  if (!player || !CGGameUI::HasPlayerControl()) {
     return 0;
   }
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: PickupBagFromBankSlot(invSlot)");
+    luaL_error(L, "Usage: PickupBagFromBankSlot(invSlot)");
+    return 0;
   }
-  int slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int slot = static_cast<int>(lua_tonumber(L, 1) - 1.0);
   if (slot >= 63 && slot <= 68) {
     DWORDLONG cursorItem;
     DWORDLONG cursorItemPack;
     UINT      cursorItemSlot;
     CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
     if (cursorItem) {
-      CGGameUI::ClearCursor(0);
+      CGGameUI::ClearCursor(1);
     }
-    DWORDLONG itemGUID = player->GetBag()->GetItem(slot);
+    DWORDLONG itemGUID = player->CGPlayer_C::GetBag()->GetItem(slot);
     if (!itemGUID) {
       CGBankInfo::PickupItem(slot, 1, 0);
       return 0;
     }
     CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
     FATALASSERT(item->IsA(TYPE_CONTAINER));
-    if (item->IsUnlocked()) {
-      CGGameUI::SetCursorItem(itemGUID, player->GetGUID(), slot, 0, 0);
+    if (!item->IsLocked()) {
+      CGGameUI::SetCursorItem(itemGUID, player->GetGUID(), slot, 1, 0);
       CGGameUI::LockItem(itemGUID);
     }
   }
@@ -204,16 +260,16 @@ void CGBankInfo::PickupItem(int slot, BOOL isBag, int slotIsButtonID) {
   UINT virtualSlot;
   CGGameUI::GetCursorVirtualItem(virtualItem, virtualSlot);
 
-  CGBag_C  *inventory = player->GetBag();
+  CGBag_C  *inventory = player->CGPlayer_C::GetBag();
   DWORDLONG slotItem = inventory->GetItem(slot);
-  if (!cursorItem && !virtualItem) {
-    if (slotItem) {
+  if (!cursorItem) {
+    if (!virtualItem && slotItem) {
       CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(slotItem, __FILE__, __LINE__));
-      if (!item || item->IsUnlocked()) {
+      if (!item || !item->IsLocked()) {
         if (Spell_C_IsTargeting() && Spell_C_CanTargetItems()) {
           Spell_C_HandleSpriteClick(item);
         } else {
-          CGGameUI::SetCursorItem(slotItem, player->GetGUID(), slot, 0, 0);
+          CGGameUI::SetCursorItem(slotItem, player->GetGUID(), slot, 1, 0);
           CGGameUI::LockItem(slotItem);
         }
       }
@@ -231,11 +287,11 @@ void CGBankInfo::PickupItem(int slot, BOOL isBag, int slotIsButtonID) {
       return;
     }
     CGItem_C *slotItemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(slotItem, __FILE__, __LINE__));
-    if (!slotItemPtr || slotItemPtr->IsUnlocked()) {
+    if (!slotItemPtr || !slotItemPtr->IsLocked()) {
       if (player->ValidateSlot(slot, cursorItem)) {
         player->SwapItems(cursorItem, cursorItemPack, cursorItemSlot, player->GetGUID(), slot, 0);
       } else if (cursorItemPack == player->GetGUID() && cursorItemSlot < 19) {
-        CGGameUI::ClearCursor(0);
+        CGGameUI::ClearCursor(1);
       } else {
         player->AutoEquipCursorItem(0);
       }
@@ -259,15 +315,15 @@ void CGBankInfo::SplitItem(int slot, int split) {
   UINT virtualItem;
   UINT virtualSlot;
   CGGameUI::GetCursorVirtualItem(virtualItem, virtualSlot);
-  CGBag_C  *inventory = player->GetBag();
+  CGBag_C  *inventory = player->CGPlayer_C::GetBag();
   DWORDLONG itemGUID = inventory->GetItem(slot);
   CGItem_C *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
-  if (!itemPtr || !itemPtr->IsUnlocked() || split < 1 || split > itemPtr->GetStackCount()) {
+  if (!itemPtr || itemPtr->IsLocked() || split < 1 || split > itemPtr->GetStackCount()) {
     return;
   }
   CGGameUI::ClearCursor(1);
   Spell_C_StopTargeting();
-  CGGameUI::SetCursorItem(itemGUID, player->GetGUID(), slot, 0, split == itemPtr->GetStackCount() ? 0 : split);
+  CGGameUI::SetCursorItem(itemGUID, player->GetGUID(), slot, 1, split == itemPtr->GetStackCount() ? 0 : split);
   CGGameUI::LockItem(itemGUID);
 }
 

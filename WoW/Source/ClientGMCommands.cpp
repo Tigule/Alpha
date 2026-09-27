@@ -7,22 +7,28 @@
 #include "Ui/GameUI.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
-#include <Base/CDataStore.h>
 #include <ctype.h>
 
+#include "WowServices/WDataStore.h"
+
 static BOOL CCommand_Ghost(LPCSTR command, LPCSTR args) {
-  CDataStore msg;
-  msg.Put(471);
+  WDataStore msg;
+  msg.Put(CMSG_GM_INVIS);
   if (!args || SStrCmpI(args, "off", 0x7FFFFFFF)) {
-    msg.Put(1);
-    ClientServices_Send(&msg);
     if (*args) {
+      msg.Put(1);
+      msg.Finalize();
+      ClientServices_Send(&msg);
       CGPlayer_C::StartGhosting(args);
     } else {
+      msg.Put(1);
+      msg.Finalize();
+      ClientServices_Send(&msg);
       CGPlayer_C::StartGhosting(CGGameUI::GetLockedTarget());
     }
   } else {
     msg.Put(0);
+    msg.Finalize();
     ClientServices_Send(&msg);
     CGPlayer_C::StopGhosting();
   }
@@ -30,16 +36,21 @@ static BOOL CCommand_Ghost(LPCSTR command, LPCSTR args) {
 }
 
 static BOOL CCommand_Invis(LPCSTR command, LPCSTR args) {
-  CDataStore msg;
-  msg.Put(471);
-  msg.Put(!args || SStrCmpI(args, "off", 0x7FFFFFFF) ? 1 : 0);
+  WDataStore msg;
+  msg.Put(CMSG_GM_INVIS);
+  if (!args || SStrCmpI(args, "off", 0x7FFFFFFF)) {
+    msg.Put(1);
+  } else {
+    msg.Put(0);
+  }
+  msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
 static BOOL CCommand_BindPlayer(LPCSTR command, LPCSTR args) {
-  CDataStore msg;
-  msg.Put(473);
+  WDataStore msg;
+  msg.Put(MSG_GM_BIND_OTHER);
   if (args && *args) {
     msg.Put(static_cast<BYTE>(1));
     msg.PutString(args);
@@ -47,22 +58,25 @@ static BOOL CCommand_BindPlayer(LPCSTR command, LPCSTR args) {
     msg.Put(static_cast<BYTE>(0));
     msg.Put(CGGameUI::GetLockedTarget());
   }
+  msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
 static BOOL CCommand_Summon(LPCSTR command, LPCSTR args) {
-  CDataStore msg;
-  msg.Put(474);
+  WDataStore msg;
+  msg.Put(MSG_GM_SUMMON);
   msg.PutString(args);
+  msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
 static BOOL CCommand_ShowLabel(LPCSTR command, LPCSTR args) {
-  CDataStore msg;
-  msg.Put(480);
+  WDataStore msg;
+  msg.Put(MSG_GM_SHOWLABEL);
   msg.Put(SStrToInt(args));
+  msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
@@ -82,18 +96,20 @@ static BOOL CCommand_SetSecurity(LPCSTR command, LPCSTR args) {
   UINT security = SStrToInt(argPtr);
   ConsolePrintf("Setting '%s' to security group %d", name, security);
 
-  CDataStore msg;
-  msg.Put(490);
+  WDataStore msg;
+  msg.Put(CMSG_GM_SET_SECURITY_GROUP);
   msg.PutString(name);
   msg.Put(security);
+  msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
 static BOOL CCommand_Nuke(LPCSTR command, LPCSTR args) {
-  CDataStore msg;
-  msg.Put(491);
+  WDataStore msg;
+  msg.Put(CMSG_GM_NUKE);
   msg.PutString(args);
+  msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }

@@ -53,11 +53,19 @@ void CGGuildRegistrar::BuyGuildCharter(LPCSTR guildName) {
   if (!guildName || !*guildName || !m_registrar) {
     return;
   }
-  CGPetition petition;
-  SStrCopy(petition.m_title, guildName, sizeof(petition.m_title));
-  petition.m_muid = m_petition.m_muid;
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
+    if (player->GetGuildID()) {
+      CGGameUI::DisplayError(GERR_ALREADY_IN_GUILD);
+      return;
+    }
+    if (player->GetUnitData()->coinage < static_cast<UINT>(m_petition.m_price)) {
+      CGGameUI::DisplayError(GERR_NOT_ENOUGH_MONEY);
+      return;
+    }
+    CGPetition petition;
+    SStrCopy(petition.m_title, guildName, sizeof(petition.m_title));
+    petition.m_muid = m_petition.m_muid;
     player->BuyPetition(m_registrar, &petition);
   }
 }
@@ -74,13 +82,27 @@ static int Script_GetGuildCharterCost(lua_State *L) {
 
 static int Script_BuyGuildCharter(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: BuyGuildCharter(guildName)");
+    luaL_error(L, "Usage: BuyGuildCharter(guildName)");
+    return 0;
   }
   LPCSTR name = lua_tostring(L, 1);
-  if (ValidateCharacterName(CURRENT_LANGUAGE, name) == NAME_SUCCESS) {
+  VALIDATE_NAME_RESULT result = ValidateGuildName(CURRENT_LANGUAGE, name);
+  if (result == NAME_SUCCESS) {
     CGGuildRegistrar::BuyGuildCharter(name);
     lua_pushnumber(L, 1.0);
   } else {
+    switch (result) {
+      case NAME_NO_NAME: CGGameUI::DisplayError(GERR_GUILD_ENTER_NAME); break;
+      case NAME_TOO_SHORT: CGGameUI::DisplayError(GERR_GUILD_NAME_TOO_SHORT); break;
+      case NAME_STARTS_WITH_GRAVE:
+      case NAME_TWO_GRAVES:
+      case NAME_INVALID_CHARACTER:
+      case NAME_FAILURE: CGGameUI::DisplayError(GERR_GUILD_NAME_INVALID); break;
+      case NAME_MIXED_LANGUAGES: CGGameUI::DisplayError(GERR_GUILD_NAME_MIXED_LANGUAGES); break;
+      case NAME_PROFANE: CGGameUI::DisplayError(GERR_GUILD_NAME_PROFANE); break;
+      case NAME_RESERVED: CGGameUI::DisplayError(GERR_GUILD_NAME_RESERVED); break;
+      default: break;
+    }
     lua_pushnil(L);
   }
   return 1;

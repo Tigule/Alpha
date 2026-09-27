@@ -13,130 +13,26 @@ namespace NTempest {
    public:
     enum {
       eTransparent = 0,
-      eOpaque8bit = 255,
-      eOpaque = 256
+      eOpaque = 256,
+      eOpaque8bit = 255
     };
-    enum {
-      eBlueMask = 0x000000FF,
-      eGreenMask = 0x0000FF00,
-      eRedMask = 0x00FF0000,
-      eAlphaMask = 0xFF000000,
-      eNotBlueMask = ~eBlueMask,
-      eNotGreenMask = ~eGreenMask,
-      eNotRedMask = ~eRedMask,
-      eNotAlphaMask = ~eAlphaMask
-    };
-    enum {
-      eAlphaS = 24,
-      eRedS = 16,
-      eGreenS = 8,
-      eBlueS = 0
-    };
-
-    CImVector(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
-      Set(alpha, red, green, blue);
-    }
-
-    CImVector(DWORD n = 0);
-
-    CImVector(BYTE red, BYTE green, BYTE blue) {
-      Set(0, red, green, blue);
-    }
-
-    CImVector(const CImVector *value) {
-      *reinterpret_cast<DWORD *>(this) = *reinterpret_cast<const DWORD *>(value);
-    }
-
-    CImVector(const CImVector &value) {
-      *reinterpret_cast<DWORD *>(this) = *reinterpret_cast<const DWORD *>(&value);
-    }
-
-    ~CImVector() {
-    }
-
-    static DWORD MakeARGB(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
-      return (static_cast<DWORD>(alpha) << 24) | (static_cast<DWORD>(red) << 16) | (static_cast<DWORD>(green) << 8) | static_cast<DWORD>(blue);
-    }
-
-    DWORD *IV_() const {
-      return reinterpret_cast<DWORD *>(const_cast<CImVector *>(this));
-    }
-
-    void Set(float alpha, float red, float green, float blue) {
-      *IV_() = MakeARGB(
-          static_cast<BYTE>(CMath::fuint_n(alpha * 255.0f)), static_cast<BYTE>(CMath::fuint_n(red * 255.0f)),
-          static_cast<BYTE>(CMath::fuint_n(green * 255.0f)), static_cast<BYTE>(CMath::fuint_n(blue * 255.0f))
-      );
-    }
-
-    void Set(DWORD value) {
-      *IV_() = value;
-    }
-
-    CImVector &operator=(DWORD n) {
-      *IV_() = n;
-      return *this;
-    }
-
-    void Set(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
-      *IV_() = MakeARGB(alpha, red, green, blue);
-    }
-
-    void From565(BYTE r5, BYTE g6, BYTE b5);
-
-    CImVector &operator=(const CRgb565 &c);
-    CImVector &operator=(const CArgb1555 &c);
-    CImVector &operator=(const CArgb4444 &c);
-    CImVector &operator=(const CImVector &c) {
-      *IV_() = *c.IV_();
-      return *this;
-    }
-    static DWORD MakeRGB(BYTE red, BYTE green, BYTE blue);
-    static DWORD A_(DWORD value);
-    DWORD        A_() const;
-    static DWORD R_(DWORD value);
-    DWORD        R_() const;
-    static DWORD G_(DWORD value);
-    DWORD        G_() const;
-    static DWORD B_(DWORD value);
-    DWORD        B_() const;
-    static void  Get_(DWORD value, float &alpha, float &red, float &green, float &blue);
-    static void  Get_(DWORD value, DWORD &alpha, DWORD &red, DWORD &green, DWORD &blue);
-    static void  Get_(DWORD value, DWORD &red, DWORD &green, DWORD &blue);
-    static DWORD Neg(DWORD value);
-    void         Neg();
-    static DWORD NegRGB(DWORD value);
-    void         NegRGB();
-    static DWORD Desaturate(DWORD value);
-    void         Desaturate();
-    static DWORD NegA(DWORD value);
-    void         NegA();
-    static DWORD NegR(DWORD value);
-    void         NegR();
-    static DWORD NegG(DWORD value);
-    void         NegG();
-    static DWORD NegB(DWORD value);
-    void         NegB();
-    static BYTE  Gray(DWORD value);
-    BYTE         Gray() const;
-    CImVector   &operator=(const C3Vector &c);
-                 operator C3Vector() const;
 
    protected:
+    static BYTE s_a1Table[];
+    static BYTE s_a4Table[];
+
     DWORD       SetC_(DWORD value, DWORD mask, DWORD shift) const;
     static BYTE ScaleC(DWORD value, DWORD scale);
-    static BYTE ScaleC255(DWORD value, DWORD scale);
-    static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination);
     void        Scale_(DWORD scale);
     void        ScaleRGB_(DWORD scale);
-    void        Scale255RGB_(DWORD scale);
-    void        Multiply_(const CImVector *source);
-    void        Blend_(DWORD alpha, const CImVector *source);
-    void        BlendARGB_(DWORD alpha, const CImVector *source);
+    static BYTE ScaleC255(DWORD value, DWORD scale);
 
     void Scale255_(DWORD scale) {
       Set(0, static_cast<BYTE>((scale * r + 255) >> 8), static_cast<BYTE>((scale * g + 255) >> 8), static_cast<BYTE>((scale * b + 255) >> 8));
     }
+
+    void        Scale255RGB_(DWORD scale);
+    void        Multiply_(const CImVector *source);
 
     void MultiplyRGB_(const CImVector *s) {
       CImVector d(*this);
@@ -145,12 +41,17 @@ namespace NTempest {
       Set(d.a, static_cast<BYTE>((sa.r * d.r + 255) >> 8), static_cast<BYTE>((sa.g * d.g + 255) >> 8), static_cast<BYTE>((sa.b * d.b + 255) >> 8));
     }
 
+    static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination);
+    void        Blend_(DWORD alpha, const CImVector *source);
+
     void BlendRGB_(DWORD alpha, const CImVector *source) {
       CImVector destination(*this);
       Set(destination.a, static_cast<BYTE>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
           static_cast<BYTE>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
           static_cast<BYTE>(destination.b + ((alpha * (source->b - destination.b)) >> 8)));
     }
+
+    void        BlendARGB_(DWORD alpha, const CImVector *source);
 
     void Blend255_(DWORD alpha, const CImVector *source) {
       if (alpha == 255) {
@@ -177,21 +78,123 @@ namespace NTempest {
     }
 
    public:
-    void  Get(float &alpha, float &red, float &green, float &blue) const;
-    void  Get(DWORD &alpha, DWORD &red, DWORD &green, DWORD &blue) const;
-    void  Get(DWORD &red, DWORD &green, DWORD &blue) const;
+    BYTE b;
+    BYTE g;
+    BYTE r;
+    BYTE a;
+
+    enum {
+      eAlphaMask = 0xFF000000,
+      eNotAlphaMask = ~eAlphaMask,
+      eRedMask = 0x00FF0000,
+      eNotRedMask = ~eRedMask,
+      eGreenMask = 0x0000FF00,
+      eNotGreenMask = ~eGreenMask,
+      eBlueMask = 0x000000FF,
+      eNotBlueMask = ~eBlueMask
+    };
+    enum {
+      eAlphaS = 24,
+      eRedS = 16,
+      eGreenS = 8,
+      eBlueS = 0
+    };
+
+    CImVector(DWORD n = 0);
+
+    CImVector(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
+      Set(alpha, red, green, blue);
+    }
+
+    CImVector(BYTE red, BYTE green, BYTE blue) {
+      Set(0, red, green, blue);
+    }
+
+    CImVector(const CImVector *value) {
+      *reinterpret_cast<DWORD *>(this) = *reinterpret_cast<const DWORD *>(value);
+    }
+
+    CImVector(const CImVector &value) {
+      *reinterpret_cast<DWORD *>(this) = *reinterpret_cast<const DWORD *>(&value);
+    }
+
+    ~CImVector() {
+    }
+
+    static DWORD MakeARGB(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
+      return (static_cast<DWORD>(alpha) << 24) | (static_cast<DWORD>(red) << 16) | (static_cast<DWORD>(green) << 8) | static_cast<DWORD>(blue);
+    }
+
+    static DWORD MakeRGB(BYTE red, BYTE green, BYTE blue);
+    static DWORD A_(DWORD value);
+    DWORD        A_() const;
+    static DWORD R_(DWORD value);
+    DWORD        R_() const;
+    static DWORD G_(DWORD value);
+    DWORD        G_() const;
+    static DWORD B_(DWORD value);
+    DWORD        B_() const;
+    static void  Get_(DWORD value, DWORD &red, DWORD &green, DWORD &blue);
+    static void  Get_(DWORD value, DWORD &alpha, DWORD &red, DWORD &green, DWORD &blue);
+    static void  Get_(DWORD value, float &alpha, float &red, float &green, float &blue);
+    static DWORD Neg(DWORD value);
+    void         Neg();
+    static DWORD NegRGB(DWORD value);
+    void         NegRGB();
+    static DWORD Desaturate(DWORD value);
+    void         Desaturate();
+    static DWORD NegA(DWORD value);
+    void         NegA();
+    static DWORD NegR(DWORD value);
+    void         NegR();
+    static DWORD NegG(DWORD value);
+    void         NegG();
+    static DWORD NegB(DWORD value);
+    void         NegB();
+    static BYTE  Gray(DWORD value);
+    BYTE         Gray() const;
+    DWORD *IV_() const {
+      return reinterpret_cast<DWORD *>(const_cast<CImVector *>(this));
+    }
+
     DWORD Get() const;
+    void  Get(DWORD &red, DWORD &green, DWORD &blue) const;
+    void  Get(DWORD &alpha, DWORD &red, DWORD &green, DWORD &blue) const;
+    void  Get(float &alpha, float &red, float &green, float &blue) const;
     DWORD GetRGB() const;
     void  SetA(BYTE alpha);
     void  SetR(BYTE red);
     void  SetG(BYTE green);
     void  SetB(BYTE blue);
-    void  Set(const CImVector *value);
-    void  Set(const CImVector &value);
+
+    void Set(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
+      *IV_() = MakeARGB(alpha, red, green, blue);
+    }
+
     void  Set(BYTE red, BYTE green, BYTE blue);
-    void  SetRGB(DWORD value);
-    void  SetRGB(const CImVector &value);
+
+    void  Set(const CImVector &value);
+    void  Set(const CImVector *value);
+
+    void Set(DWORD value) {
+      *IV_() = value;
+    }
+
+    void Set(float alpha, float red, float green, float blue) {
+      *IV_() = MakeARGB(
+          static_cast<BYTE>(CMath::fuint_n(alpha * 255.0f)), static_cast<BYTE>(CMath::fuint_n(red * 255.0f)),
+          static_cast<BYTE>(CMath::fuint_n(green * 255.0f)), static_cast<BYTE>(CMath::fuint_n(blue * 255.0f))
+      );
+    }
+
     void  SetRGB(BYTE red, BYTE green, BYTE blue);
+    void  SetRGB(const CImVector &value);
+    void SetRGB(const CImVector *source) {
+      *IV_() ^= (*IV_() ^ *source->IV_()) & 0x00FFFFFF;
+    }
+    void  SetRGB(DWORD value);
+
+    void  From565(BYTE r5, BYTE g6, BYTE b5);
     void  From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void  From4444(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void  FromARGB(BYTE alpha, const CImVector &rgb);
@@ -210,44 +213,48 @@ namespace NTempest {
       MultiplyRGB_(s);
     }
 
-    void Blend(DWORD alpha, DWORD source);
-    void Blend(DWORD alpha, const CImVector *source);
-    void Blend(DWORD source);
     void Blend(const CImVector *source);
-    void BlendRGB(DWORD alpha, DWORD source);
-    void BlendRGB(DWORD alpha, const CImVector *source);
-    void BlendRGB(DWORD source);
+    void Blend(DWORD source);
+    void Blend(DWORD alpha, const CImVector *source);
+    void Blend(DWORD alpha, DWORD source);
+
     void BlendRGB(const CImVector *source);
-    void BlendARGB(DWORD alpha, DWORD source);
+    void BlendRGB(DWORD source);
+    void BlendRGB(DWORD alpha, const CImVector *source);
+    void BlendRGB(DWORD alpha, DWORD source);
+
     void BlendARGB(DWORD alpha, const CImVector *source);
-    void Blend255(DWORD alpha, DWORD source);
+    void BlendARGB(DWORD alpha, DWORD source);
     void Blend255(DWORD alpha, const CImVector *source);
-    void Blend255RGB(DWORD alpha, DWORD source);
+    void Blend255(DWORD alpha, DWORD source);
+
     void Blend255RGB(DWORD alpha, const CImVector *source);
+    void Blend255RGB(DWORD alpha, DWORD source);
 
-    void SetRGB(const CImVector *source) {
-      *IV_() ^= (*IV_() ^ *source->IV_()) & 0x00FFFFFF;
+    CImVector &operator=(const CImVector &c) {
+      *IV_() = *c.IV_();
+      return *this;
     }
+    CImVector &operator=(DWORD n) {
+      *IV_() = n;
+      return *this;
+    }
+    CImVector &operator=(const CRgb565 &c);
+    CImVector &operator=(const CArgb1555 &c);
+    CImVector &operator=(const CArgb4444 &c);
+    CImVector &operator=(const C3Vector &c);
 
-    BYTE &operator[](DWORD index) {
-      ASSERT(index < 4);
-      return (&b)[index];
-    }
+    operator C3Vector() const;
 
     const BYTE &operator[](DWORD index) const {
       ASSERT(index < 4);
       return (&b)[index];
     }
 
-   protected:
-    static BYTE s_a1Table[];
-    static BYTE s_a4Table[];
-
-   public:
-    BYTE b;
-    BYTE g;
-    BYTE r;
-    BYTE a;
+    BYTE &operator[](DWORD index) {
+      ASSERT(index < 4);
+      return (&b)[index];
+    }
   };
 
   inline CImVector::CImVector(DWORD n) {

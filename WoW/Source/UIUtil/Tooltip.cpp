@@ -5,6 +5,10 @@
 #include "Tooltip.h"
 
 #include "Console/ConsoleVar.h"
+#include "DB/DBClient/AutoCode/ChrClassesRec.h"
+#include "DB/DBClient/AutoCode/ChrRacesRec.h"
+#include "DB/DBClient/AutoCode/LockRec.h"
+#include "DB/DBClient/AutoCode/LockTypeRec.h"
 #include "DB/DBClient/AutoCode/SpellRec.h"
 #include "DB/DBClient/AutoCode/SpellAuraNamesRec.h"
 #include "DB/DBClient/AutoCode/SpellEffectNamesRec.h"
@@ -24,12 +28,18 @@
 #include "Ui/GameUI.h"
 #include "Ui/LootFrame.h"
 #include "Ui/MerchantFrame.h"
+#include "Ui/PartyFrame.h"
 #include "Ui/QuestLog.h"
 #include "Ui/QuestFrame.h"
 #include "Ui/SpellBookFrame.h"
 #include "Ui/TradeFrame.h"
 
+#include "WorldClient/AreaList.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+
+#include <Base/CDataStore.h>
 #include <Base/Coordinate.h>
+#include <Frame/CBackdropGenerator.h>
 #include <Frame/CSimpleRender.h>
 #include <Frame/CSimpleStatusBar.h>
 #include <Frame/CSimpleTop.h>
@@ -178,6 +188,9 @@ static int                                           s_showComparison;
 static int                                           s_itemsWaiting;
 static NTempest::CImVector                           s_defaultColor(0xFFFFD200UL);
 static NTempest::CImVector                           s_normalColor(0xFFFFFFFFUL);
+static NTempest::CImVector                           s_errorColor(0xFFFF2020UL);
+static NTempest::CImVector                           s_playerColor(0xFF002E5AUL);
+static LPCSTR s_summonTypeTokens[] = {"UNITNAME_TITLE_PET", "UNITNAME_TITLE_MINION", "UNITNAME_TITLE_CHARM", "UNITNAME_TITLE_GUARDIAN", "UNITNAME_TITLE_CREATION"};
 
 static void FrameScriptGetSpellString(
     TOOLTIP_DETAIL detail,
@@ -261,7 +274,7 @@ static BOOL HealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID para
   return 1;
 }
 
-static void TooltipObjectLockItemStatsCallback(int id, const DWORDLONG &, LPVOID arg, BYTE granted) {
+static void TooltipObjectLockItemStatsCallback(int id, const DWORDLONG &, LPVOID arg, bool granted) {
   if (granted) {
     CGTooltip *tooltip = static_cast<CGTooltip *>(arg);
     FATALASSERT(tooltip);
@@ -398,37 +411,193 @@ BOOL CGTooltip::SetUnit(const DWORDLONG &unit) {
 
   m_unit = unit;
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
-  if (!unitPtr) {
+  CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStats(unit);
+  if (!unitPtr && !stats) {
     if (m_statusBar) {
       m_statusBar->Hide();
     }
     return 0;
   }
 
+  const NameCache *nc = g_nameDBCache.GetRecord(unit, 0, 0, 0);
   if (m_statusBar) {
     ClntObjMgrSetObjMirrorHandler(m_unit, CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, health), sizeof(((CGUnitData *)0)->health), HealthUpdateHandler, m_statusBar, HANDLER_PRIORITY_NORMAL);
-    m_statusBar->SetMinMaxValues(0.0f, static_cast<float>(unitPtr->GetUnitData()->maxHealth));
-    m_statusBar->SetValue(static_cast<float>(unitPtr->GetUnitData()->health));
+    m_statusBar->SetMinMaxValues(0.0f, static_cast<float>(unitPtr ? unitPtr->GetUnitData()->maxHealth : stats->maxHealth));
+    m_statusBar->SetValue(static_cast<float>(unitPtr ? unitPtr->GetUnitData()->health : stats->health));
     m_statusBar->Show();
   }
 
   ClearLines();
-  static const NTempest::CImVector color(0xFFFFFFFFUL);
-  AddLine(unitPtr->GetUnitName(), color, 0);
+  char buf[128];
+  CVar *var = CVar::Lookup("showGUIDs");
+  if (var && var->GetInt()) {
+    SStrPrintf(buf, sizeof(buf), "0x%016I64X", m_unit);
+    AddLine(buf, s_defaultColor, 0);
+  }
+  if (unitPtr) {
+    AddLine(unitPtr->GetUnitName(), s_defaultColor, 0);
+  } else if (nc) {
+    AddLine(nc->m_name, s_defaultColor, 0);
+  }
+
+  buf[0] = 0;
+  GetSummonedByString(unitPtr, buf, sizeof(buf));
+  if (buf[0]) {
+    AddLine(buf, s_normalColor, 0);
+  }
+
+  if ((unitPtr && unitPtr->IsA(TYPE_PLAYER)) || nc) {
+    const ChrRacesRec *race = g_chrRacesDB.GetRecord(unitPtr ? unitPtr->GetUnitData()->race : nc->m_race);
+    const ChrClassesRec *classRec = g_chrClassesDB.GetRecord(unitPtr ? unitPtr->GetUnitData()->classId : stats ? stats->classID : 1);
+    if (race && classRec) {
+      SStrPrintf(buf, sizeof(buf), "%s %s", race->m_name_lang[CURRENT_LANGUAGE], classRec->m_name_lang[CURRENT_LANGUAGE]);
+      AddLine(buf, s_normalColor, 0);
+    }
+  } else if (unitPtr) {
+    LPCSTR title = unitPtr->GetUnitTitle();
+    if (title && *title) {
+      AddLine(title, s_normalColor, 0);
+    }
+  }
+
+  if (unitPtr) {
+    if (unitPtr->GetUnitData()->health <= 0 || (unitPtr->GetUnitData()->flags & 0x4000)) {
+      SStrPrintf(buf, sizeof(buf), FrameScript_GetText("UNIT_LEVEL_DEAD_TEMPLATE", -1, GENDER_NOT_APPLICABLE), unitPtr->GetUnitData()->level);
+    } else {
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player && unitPtr->UnitReaction(player) <= UNIT_REACTION_HOSTILE && player->GetUnitData()->level <= unitPtr->GetUnitData()->level - 15) {
+        SStrCopy(buf, FrameScript_GetText("UNIT_LETHAL_LEVEL_TEMPLATE", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+      } else {
+        SStrPrintf(buf, sizeof(buf), FrameScript_GetText((unitPtr->GetUnitData()->flags & 0x40) ? "UNIT_PLUS_LEVEL_TEMPLATE" : "UNIT_LEVEL_TEMPLATE", -1, GENDER_NOT_APPLICABLE), unitPtr->GetUnitData()->level);
+      }
+    }
+  } else {
+    SStrPrintf(buf, sizeof(buf), FrameScript_GetText("UNIT_LEVEL_TEMPLATE", -1, GENDER_NOT_APPLICABLE), stats->level);
+  }
+  AddLine(buf, s_normalColor, 0);
+
+  if (CGPartyInfo::IsMember(unit) && unit != ClntObjMgrGetActivePlayer()) {
+    if (unitPtr) {
+      AddLine(CGGameUI::GetZoneText(), s_normalColor, 0);
+    } else if (stats && AreaListGetName(stats->mapID, (stats->areaID >> 16) & 0xFFFF, 0, buf, sizeof(buf), 0)) {
+      AddLine(buf, s_normalColor, 0);
+    }
+  }
+
+  int debugInfo = 0;
+  var = CVar::Lookup("debugTargetInfo");
+  if (var && var->GetInt()) {
+    debugInfo = 1;
+  }
+  if (unitPtr && debugInfo) {
+    const ChrClassesRec *classRec = g_chrClassesDB.GetRecord(unitPtr->GetUnitData()->classId);
+    if (classRec) {
+      AddLine(classRec->m_name_lang[CURRENT_LANGUAGE], static_cast<LPCSTR>(0), 0);
+    }
+    SStrPrintf(buf, sizeof(buf), "Health: %d / %d, Power(%d): %d / %d", unitPtr->GetUnitData()->health, unitPtr->GetUnitData()->maxHealth,
+               unitPtr->GetUnitData()->displayPower, unitPtr->GetUnitData()->power[unitPtr->GetUnitData()->displayPower], unitPtr->GetUnitData()->maxPower[unitPtr->GetUnitData()->displayPower]);
+    AddLine(buf, static_cast<LPCSTR>(0), 0);
+    CDataStore msg;
+    msg.Put(CMSG_DEBUG_AISTATE);
+    msg.Put(unit);
+    msg.Finalize();
+    ClientServices_Send(&msg);
+    m_debugUnit = unit;
+  }
   Show();
   return 0;
 }
 
 void CGTooltip::SetObject(const DWORDLONG &object) {
-  CGGameObject_C *gameObject = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(object, __FILE__, __LINE__));
-  if (!gameObject) {
+  CGGameObject_C *objectPtr = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(object, __FILE__, __LINE__));
+  if (!objectPtr) {
     return;
   }
 
   m_objectGUID = object;
   ClearLines();
-  static const NTempest::CImVector color(0xFFFFFFFFUL);
-  AddLine(gameObject->GetName(), color, 0);
+  if (m_backdrop) {
+    m_backdrop->SetVertexColor(s_playerColor);
+  }
+  char buf[128];
+  char fmt[128];
+  CVar *var = CVar::Lookup("showGUIDs");
+  if (var && var->GetInt()) {
+    SStrPrintf(buf, sizeof(buf), "0x%016I64X", object);
+    AddLine(buf, s_defaultColor, 0);
+  }
+  AddLine(objectPtr->GetName(), s_defaultColor, 0);
+  NTempest::CImVector textColor = s_normalColor;
+  const LockRec *lock = objectPtr->GetLockRec();
+  if (objectPtr->GameObject()->m_flags & 2) {
+    textColor = s_errorColor;
+    if (lock && objectPtr->IsValidOpenAction(lock->m_Action[0]) && lock->m_Type[0] == 2) {
+      int spellID = 0;
+      int spellSkill = 0;
+      int lockSkill = 0;
+      objectPtr->IsLocked(&spellID, &spellSkill, &lockSkill, 0, 0);
+      if (spellID) {
+        if (spellSkill >= lockSkill + 100) {
+          textColor.Set(1.0f, 0.5f, 0.5f, 0.5f);
+        } else if (spellSkill >= lockSkill + 50) {
+          textColor.Set(1.0f, 0.25f, 0.75f, 0.25f);
+        } else if (spellSkill >= lockSkill + 25) {
+          textColor.Set(1.0f, 1.0f, 1.0f, 0.0f);
+        } else if (spellSkill >= lockSkill) {
+          textColor.Set(1.0f, 1.0f, 0.5f, 0.25f);
+        }
+      }
+    }
+    AddLine(FrameScript_GetText("LOCKED", -1, GENDER_NOT_APPLICABLE), textColor, 0);
+  } else if (lock && objectPtr->IsValidOpenAction(lock->m_Action[0])) {
+    if (lock->m_Type[0] == 1) {
+      const ItemStats_C *item = g_itemDBCache.GetRecord(lock->m_Index[0], objectPtr->GetGUID(), TooltipObjectLockItemStatsCallback, this);
+      if (!item) {
+        return;
+      }
+      SStrPrintf(buf, sizeof(buf), FrameScript_GetText("LOCKED_WITH_ITEM", -1, GENDER_NOT_APPLICABLE), item->m_displayName[0]);
+      AddLine(buf, textColor, 0);
+    } else if (lock->m_Type[0] == 2) {
+      int spellID = 0;
+      int spellSkill = 0;
+      int lockSkill = 0;
+      objectPtr->IsLocked(&spellID, &spellSkill, &lockSkill, 0, 0);
+      if (spellID) {
+        if (spellSkill >= lockSkill + 100) {
+          textColor.Set(1.0f, 0.5f, 0.5f, 0.5f);
+        } else if (spellSkill >= lockSkill + 50) {
+          textColor.Set(1.0f, 0.25f, 0.75f, 0.25f);
+        } else if (spellSkill >= lockSkill + 25) {
+          textColor.Set(1.0f, 1.0f, 1.0f, 0.0f);
+        } else if (spellSkill >= lockSkill) {
+          textColor.Set(1.0f, 1.0f, 0.5f, 0.25f);
+        } else {
+          textColor = s_errorColor;
+        }
+        SStrCopy(fmt, FrameScript_GetText("LOCKED_WITH_SPELL_KNOWN", -1, GENDER_NOT_APPLICABLE), sizeof(fmt));
+      } else if (!(objectPtr->GameObject()->m_flags & 2)) {
+        textColor.Set(1.0f, 1.0f, 0.0f, 0.0f);
+        SStrCopy(fmt, FrameScript_GetText("LOCKED_WITH_SPELL", -1, GENDER_NOT_APPLICABLE), sizeof(fmt));
+      }
+      if (spellID || !(objectPtr->GameObject()->m_flags & 2)) {
+        const LockTypeRec *lockType = g_lockTypeDB.GetRecord(lock->m_Index[0]);
+        SStrPrintf(buf, sizeof(buf), fmt, lockType ? lockType->m_name_lang[CURRENT_LANGUAGE] : "UNKNOWN");
+        AddLine(buf, textColor, 0);
+      }
+    }
+  }
+
+  var = CVar::Lookup("debugTargetInfo");
+  if (var && var->GetInt()) {
+    AddLine(objectPtr->GetTypeName(), static_cast<LPCSTR>(0), 0);
+    AddLine(objectPtr->GetDebugStatus(), static_cast<LPCSTR>(0), 0);
+    CDataStore msg;
+    msg.Put(CMSG_DEBUG_AISTATE);
+    msg.Put(object);
+    msg.Finalize();
+    ClientServices_Send(&msg);
+    m_debugUnit = object;
+  }
   Show();
 }
 
@@ -656,8 +825,7 @@ void CGTooltip::AddLine(LPCSTR leftText, LPCSTR rightText, const NTempest::CImVe
 }
 
 void CGTooltip::AddLine(LPCSTR leftText, LPCSTR rightText, int wrapped) {
-  static const NTempest::CImVector color(0xFFFFFFFFUL);
-  AddLine(leftText, rightText, color, color, wrapped);
+  AddLine(leftText, rightText, s_defaultColor, s_defaultColor, wrapped);
 }
 
 void CGTooltip::AddLine(LPCSTR text, const NTempest::CImVector &color, int wrapped) {
@@ -692,12 +860,45 @@ void CGTooltip::GetSpellTargetString(char *buf, UINT bufSize, const SpellRec *sp
 }
 
 void CGTooltip::GetSummonedByString(const CGUnit_C *unitPtr, char *string, UINT size) {
-  if (!string || !size) {
+  if (!unitPtr || !string) {
     return;
   }
-  string[0] = 0;
-  if (unitPtr && unitPtr->GetUnitName()) {
-    SStrPrintf(string, size, FrameScript_GetText("UNITNAME_SUMMONED_BY", -1, GENDER_NOT_APPLICABLE), unitPtr->GetUnitName());
+  DWORDLONG ownerGUID = unitPtr->GetUnitData()->charmedBy;
+  int summonType = 1;
+  if (ownerGUID) {
+    summonType = 2;
+  } else {
+    ownerGUID = unitPtr->GetUnitData()->createdBy;
+    if (!ownerGUID) {
+      return;
+    }
+    const SpellRec *spell = g_spellDB.GetRecord(unitPtr->GetUnitData()->createdBySpell);
+    if (spell) {
+      switch (spell->m_effect[0]) {
+        case 28:
+        case 73:
+          summonType = 1;
+          break;
+        case 42:
+          summonType = 3;
+          break;
+        case 50:
+        case 74:
+          summonType = 4;
+          break;
+        case 56:
+          summonType = 0;
+          break;
+        default:
+          return;
+      }
+    }
+  }
+  if (ownerGUID) {
+    const CGUnit_C *owner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ownerGUID, __FILE__, __LINE__));
+    if (owner) {
+      SStrPrintf(string, size, FrameScript_GetText(s_summonTypeTokens[summonType], -1, GENDER_NOT_APPLICABLE), owner->GetUnitName());
+    }
   }
 }
 

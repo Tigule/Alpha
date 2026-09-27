@@ -40,6 +40,7 @@
 #include "SoundInterface/SoundInterface.h"
 #include "Ui/ChatFrame.h"
 #include "Ui/GameUI.h"
+#include "Ui/WorldFrame.h"
 #include "UIUtil/InputControl.h"
 #include "WowSvcs/WowSvcsClient/ClientConnection.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
@@ -275,9 +276,9 @@ static BOOL DebugAIStateHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CData
     tooltip = 0;
   }
 
-  int count;
-  msg->Get(count);
-  for (int i = 0; i < count; ++i) {
+  int numStrings;
+  msg->Get(numStrings);
+  for (int i = 0; i < numStrings; ++i) {
     char string[128];
     msg->GetString(string, sizeof(string));
     if (tooltip) {
@@ -419,16 +420,19 @@ static BOOL LoadNewWorld(LPCVOID eventData, LPVOID param) {
   ClntObjMgrDestroy();
   ClntObjMgrDestruct(ClntObjMgrGetCurrent());
 
-  ClntObjMgr *mgr = ClntObjMgrCreate(PLAYER_NORMAL, 0);
-  ClntObjMgrSetCurrent(mgr);
-  g_clientConnection->SetObjMgr(mgr);
+  ClntObjMgrSetCurrent(ClntObjMgrCreate(PLAYER_NORMAL, 0));
+  g_clientConnection->SetObjMgr(ClntObjMgrGetCurrent());
   ClntObjMgrSetNet(g_clientConnection);
-  ClntObjMgrSetCurrent(mgr);
   ClntObjMgrInitialize();
   MovementInit();
   ClntObjMgrSetMapID(s_newZoneID);
 
   CWorld::LoadMap(s_newMapname, s_newPosition, 1);
+
+  CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+  FATALASSERT(worldFrame);
+  worldFrame->Camera()->SetPosition(s_newPosition);
+  worldFrame->Camera()->SetFacing(s_newFacing, 0.0f, 0.0f);
 
   CDataStore msg;
   msg.Put(MSG_MOVE_WORLDPORT_ACK);
@@ -1221,10 +1225,13 @@ void ClientInitializeGame(UINT continentID, NTempest::C3Vector position) {
   ClientServices_SetMessageHandler(SMSG_CHANNEL_NOTIFY, ChannelNotifyHandler, 0);
   ClientServices_SetMessageHandler(SMSG_CHANNEL_LIST, ClientChannelListHandler, 0);
 
-  FATALASSERT(g_mapDB.GetRecord(continentID));
+  const MapRec *map = g_mapDB.GetRecord(continentID);
+  if (!map) {
+    FATALERROR(("Bad zone ID %i", continentID));
+  }
   ClntObjMgrSetMapID(continentID);
   ViolenceLevelsInitialize();
-  CWorld::LoadMap(g_mapDB.GetRecord(continentID)->m_Directory, position, 1);
+  CWorld::LoadMap(map->m_Directory, position, 1);
   LoadingScreenRegisterWorldLoaded();
   clientGameInitialized = 1;
 }

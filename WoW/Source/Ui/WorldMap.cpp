@@ -444,9 +444,10 @@ void CGWorldMap::RunNearestPortLoc(float x, float y) {
     return;
   }
 
+  DWORD eventTime = OsGetAsyncTimeMs();
   CDataStore msg;
   msg.Put(CMSG_WORLD_TELEPORT);
-  msg.Put(OsGetAsyncTimeMs());
+  msg.Put(eventTime);
   msg.Put(static_cast<BYTE>(nearest->m_continent));
   msg.Put(nearest->m_locX);
   msg.Put(nearest->m_locY);

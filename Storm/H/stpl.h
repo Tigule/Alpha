@@ -235,6 +235,10 @@ class TSCArray {
 template <class T>
 class TSBaseArray {
  protected:
+  UINT m_alloc;
+  UINT m_count;
+  T   *m_data;
+
   void Constructor() {
     m_alloc = 0;
     m_count = 0;
@@ -249,13 +253,26 @@ class TSBaseArray {
     return -2;
   }
 
+ protected:
+  void CheckArrayBounds(UINT index) const {
+    if (index >= m_count) {
+      SErrDisplayErrorFmt(0x85100080, MemFileName(), MemLineNo(), TRUE, 1, "index (0x%08X), array size (0x%08X)", index, m_count);
+    }
+  }
+
  public:
   UINT Count() const {
     return m_count;
   }
 
-  UINT SizeOfElement() const {
-    return sizeof(T);
+  T &operator[](UINT index) {
+    CheckArrayBounds(index);
+    return m_data[index];
+  }
+
+  const T &operator[](UINT index) const {
+    CheckArrayBounds(index);
+    return m_data[index];
   }
 
   UINT Bytes() const {
@@ -270,6 +287,10 @@ class TSBaseArray {
     return m_data;
   }
 
+  UINT SizeOfElement() const {
+    return sizeof(T);
+  }
+
   T *Top() {
     return m_count ? &m_data[m_count - 1] : 0;
   }
@@ -278,46 +299,29 @@ class TSBaseArray {
     return m_count ? &m_data[m_count - 1] : 0;
   }
 
-  T &operator[](UINT index) {
-    CheckArrayBounds(index);
-    return m_data[index];
-  }
-
-  const T &operator[](UINT index) const {
-    CheckArrayBounds(index);
-    return m_data[index];
-  }
-
   UINT NumElements() const {
     return Count();
   }
-
- protected:
-  void CheckArrayBounds(UINT index) const {
-    if (index >= m_count) {
-      SErrDisplayErrorFmt(0x85100080, MemFileName(), MemLineNo(), TRUE, 1, "index (0x%08X), array size (0x%08X)", index, m_count);
-    }
-  }
-
-  UINT m_alloc;
-  UINT m_count;
-  T   *m_data;
 };
 
 template <class T>
 class TSFixedArray : public TSBaseArray<T> {
+ protected:
+  void ReallocAndClearData(UINT count);
+  void ReallocData(UINT count);
+
  public:
   TSFixedArray() {
     this->Constructor();
   }
 
-  TSFixedArray(const TSBaseArray<T> &source);
   TSFixedArray(const TSFixedArray<T> &source);
-
-  inline TSFixedArray<T> &operator=(const TSBaseArray<T> &source);
-  inline TSFixedArray<T> &operator=(const TSFixedArray<T> &source);
+  TSFixedArray(const TSBaseArray<T> &source);
 
   ~TSFixedArray();
+
+  inline TSFixedArray<T> &operator=(const TSFixedArray<T> &source);
+  inline TSFixedArray<T> &operator=(const TSBaseArray<T> &source);
 
   void Clear();
   void Detach(T **data, UINT *count, UINT *alloc);
@@ -327,14 +331,21 @@ class TSFixedArray : public TSBaseArray<T> {
   void SetCount(UINT count);
   void SetOptional(UINT count, const T *data);
   void Zero();
-
- protected:
-  void ReallocAndClearData(UINT count);
-  void ReallocData(UINT count);
 };
 
 template <class T>
 class TSGrowableArray : public TSFixedArray<T> {
+ private:
+  UINT m_chunk;
+
+  UINT CalcChunkSize(UINT count);
+
+  UINT RoundToChunk(UINT count, UINT chunk) const;
+
+  void Reserve(UINT count, int round);
+
+  friend class CSBasePriorityQueue;
+
  public:
   TSGrowableArray() {
     m_chunk = 0;
@@ -342,6 +353,17 @@ class TSGrowableArray : public TSFixedArray<T> {
 
   TSGrowableArray(const TSGrowableArray<T> &source) : TSFixedArray<T>(source), m_chunk(source.m_chunk) {
   }
+
+  UINT Add(UINT count, const T *data);
+  UINT Add(UINT count, int, const T *data) {
+    return Add(count, data);
+  }
+
+  UINT Add(const T *data) {
+    return Add(1, data);
+  }
+
+  void GrowToFit(UINT index, int zero);
 
   T *New() {
     T *value;
@@ -369,6 +391,14 @@ class TSGrowableArray : public TSFixedArray<T> {
     return m_alloc - m_count;
   }
 
+  void ReserveSpace(UINT count) {
+    Reserve(count, 0);
+  }
+
+  void SetChunkSize(UINT chunk) {
+    m_chunk = chunk;
+  }
+
   void SetCount(UINT count) {
     UINT index;
 
@@ -386,27 +416,8 @@ class TSGrowableArray : public TSFixedArray<T> {
     this->m_count = count;
   }
 
-  void ReserveSpace(UINT count) {
-    Reserve(count, 0);
-  }
-
-  void SetChunkSize(UINT chunk) {
-    m_chunk = chunk;
-  }
-
   void TrimUnusedSpace() {
     this->ReallocData(this->m_count);
-  }
-
-  void GrowToFit(UINT index, int zero);
-
-  UINT Add(const T *data) {
-    return Add(1, data);
-  }
-
-  UINT Add(UINT count, const T *data);
-  UINT Add(UINT count, int, const T *data) {
-    return Add(count, data);
   }
 
   UINT AddElement(const T *data) {
@@ -424,17 +435,6 @@ class TSGrowableArray : public TSFixedArray<T> {
   void SetNumElements(UINT count) {
     SetCount(count);
   }
-
- private:
-  void Reserve(UINT count, int round);
-
-  UINT CalcChunkSize(UINT count);
-
-  UINT RoundToChunk(UINT count, UINT chunk) const;
-
-  friend class CSBasePriorityQueue;
-
-  UINT m_chunk;
 };
 
 template <class T, UINT TAG, int LINE>

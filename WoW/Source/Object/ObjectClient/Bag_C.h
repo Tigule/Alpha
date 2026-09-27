@@ -79,7 +79,15 @@ class CGBag {
     }
     return -1;
   }
-  UINT NumItems() const;
+  UINT NumItems() const {
+    UINT count = 0;
+    for (UINT index = 0; index < *m_slotCount; ++index) {
+      if (m_slots[index]) {
+        ++count;
+      }
+    }
+    return count;
+  }
   UINT NumSlots() const {
     return *m_slotCount;
   }

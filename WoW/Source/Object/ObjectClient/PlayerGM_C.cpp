@@ -39,19 +39,17 @@ BOOL OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
     case CMSG_GHOST: {
       s_ghostRequestPending = 0;
 
-      if (msg->Size() - msg->Tell() >= sizeof(s_ghostTarget)) {
+      if (msg->Tell() - msg->Size() >= sizeof(s_ghostTarget)) {
         msg->Get(s_ghostTarget);
       } else {
+        msg->Seek(msg->Tell());
         s_ghostTarget = 0;
       }
 
-      if (!s_ghostTarget) {
-        s_ghostTarget = s_realActivePlayer;
-      }
-
-      CGPlayer_C *target = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(s_ghostTarget, __FILE__, __LINE__));
+      CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+      CGPlayer_C *target = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(s_ghostTarget ? s_ghostTarget : s_realActivePlayer, __FILE__, __LINE__));
       if (target) {
-        CGWorldFrame::GetActive()->SetCameraTarget(target);
+        worldFrame->SetCameraTarget(target);
 
         CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(s_realActivePlayer, __FILE__, __LINE__));
         if (player) {
@@ -112,7 +110,7 @@ void CGPlayer_C::UninstallGMHandlers() {
 
 void CGPlayer_C::StartGhosting(LPCSTR name) {
   WDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GHOST));
+  msg.Put(CMSG_GHOST);
   msg.Put(static_cast<BYTE>(1));
   msg.PutString(name);
   msg.Finalize();
@@ -128,7 +126,7 @@ void CGPlayer_C::StartGhosting(LPCSTR name) {
 
 void CGPlayer_C::StartGhosting(DWORDLONG guid) {
   WDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GHOST));
+  msg.Put(CMSG_GHOST);
   msg.Put(static_cast<BYTE>(0));
   msg.Put(guid);
   msg.Finalize();
@@ -142,7 +140,7 @@ void CGPlayer_C::StartGhosting(DWORDLONG guid) {
 
 void CGPlayer_C::StopGhosting() {
   WDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GHOST));
+  msg.Put(CMSG_GHOST);
   msg.Put(static_cast<BYTE>(0));
   msg.Put(static_cast<DWORDLONG>(0));
   msg.Finalize();

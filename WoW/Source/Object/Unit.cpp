@@ -25,3 +25,8 @@ int CGUnit::StandStateValid(UNITSTANDSTATE newState) const {
   FATALASSERT(newState < UNIT_NUMSTANDSTATES);
   return s_stateTransitions[oldState][newState];
 }
+
+void CGUnit::BuildMovementUpdate(CDataStore *msg) const {
+  *msg << m_move.m_transportGUID << m_move.GetRawPosition() << m_move.GetRawFacing() << m_move.GetPosition()
+       << m_move.GetFacing() << m_move.GetPitch() << (m_move.GetMoveFlags() & 0xFAFF0BFF);
+}

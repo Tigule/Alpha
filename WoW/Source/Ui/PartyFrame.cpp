@@ -50,7 +50,7 @@ void CGPartyInfo::EnterWorld() {
   ClientServices_SetMessageHandler(MSG_LOOKING_FOR_GROUP, OnLFGResponse, 0);
 
   CDataStore msg;
-  msg.Put(static_cast<UINT>(MSG_LOOKING_FOR_GROUP));
+  msg.Put(MSG_LOOKING_FOR_GROUP);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -228,7 +228,7 @@ CGPartyInfo::RemoteStats *CGPartyInfo::GetRemoteStats(DWORDLONG guid) {
 void CGPartyInfo::SetLookingForGroup(int looking) {
   if (m_lookingForGroup != looking) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_SET_LOOKING_FOR_GROUP));
+    msg.Put(CMSG_SET_LOOKING_FOR_GROUP);
     msg.Put(looking);
     msg.Finalize();
     ClientServices_Send(&msg);

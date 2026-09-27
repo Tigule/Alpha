@@ -3149,19 +3149,19 @@ static int Script_EquipCursorItem(lua_State *L) {
 }
 
 int Script_DeleteCursorItem(lua_State *) {
-  CDataStore msg;
   DWORDLONG  cursorItemPack;
   DWORDLONG  cursorItem;
   UINT       cursorItemSlot;
-  UINT       cursorItemPackIndex;
+  BYTE       cursorItemPackIndex;
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
     if (cursorItem) {
       cursorItemPackIndex = player->FindSlotIndex(cursorItemPack);
-      msg.Put(static_cast<UINT>(CMSG_DESTROYITEM));
-      msg.Put(static_cast<BYTE>(cursorItemPackIndex));
+      CDataStore msg;
+      msg.Put(CMSG_DESTROYITEM);
+      msg.Put(cursorItemPackIndex);
       msg.Put(static_cast<BYTE>(cursorItemSlot));
       msg.Put(CGGameUI::m_stackSplit);
       msg.Finalize();
@@ -3446,7 +3446,7 @@ static int Script_InviteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: InviteByName(\"name\")");
   }
-  msg.Put(static_cast<UINT>(CMSG_GROUP_INVITE));
+  msg.Put(CMSG_GROUP_INVITE);
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3470,7 +3470,7 @@ static int Script_UninviteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UninviteByName(\"name\")");
   }
-  msg.Put(static_cast<UINT>(CMSG_GROUP_UNINVITE));
+  msg.Put(CMSG_GROUP_UNINVITE);
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3494,7 +3494,7 @@ static int Script_PromoteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: PromoteByName(\"name\")");
   }
-  msg.Put(static_cast<UINT>(CMSG_GROUP_SET_LEADER));
+  msg.Put(CMSG_GROUP_SET_LEADER);
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3503,7 +3503,7 @@ static int Script_PromoteByName(lua_State *L) {
 
 static int Script_RequestTimePlayed(lua_State *) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_PLAYED_TIME));
+  msg.Put(CMSG_PLAYED_TIME);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3663,7 +3663,7 @@ static int Script_JoinChannelByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: JoinChannelByName(\"name\")");
   }
-  msg.Put(static_cast<UINT>(CMSG_JOIN_CHANNEL));
+  msg.Put(CMSG_JOIN_CHANNEL);
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3675,7 +3675,7 @@ static int Script_LeaveChannelByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: LeaveChannelByName(\"name\")");
   }
-  msg.Put(static_cast<UINT>(CMSG_LEAVE_CHANNEL));
+  msg.Put(CMSG_LEAVE_CHANNEL);
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3683,14 +3683,14 @@ static int Script_LeaveChannelByName(lua_State *L) {
 }
 
 static int Script_GuildInviteByName(lua_State *L) {
-  CDataStore msg;
-  LPCSTR     name = lua_isstring(L, 1) ? lua_tostring(L, 1) : 0;
+  LPCSTR name = lua_isstring(L, 1) ? lua_tostring(L, 1) : 0;
   if (!name || !*name) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(278));
     return 0;
   }
-  msg.Put(static_cast<UINT>(CMSG_GUILD_INVITE));
-  msg.PutString(name);
+  CDataStore msg;
+  msg.Put(CMSG_GUILD_INVITE);
+  msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3701,7 +3701,7 @@ static int Script_GuildUninviteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildUninviteByName(\"name\")");
   }
-  msg.Put(static_cast<UINT>(CMSG_GUILD_REMOVE));
+  msg.Put(CMSG_GUILD_REMOVE);
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3713,7 +3713,7 @@ static int Script_GuildPromoteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildPromoteByName(\"name\")");
   }
-  msg.Put(static_cast<UINT>(CMSG_GUILD_PROMOTE));
+  msg.Put(CMSG_GUILD_PROMOTE);
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3725,7 +3725,7 @@ static int Script_GuildDemoteByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildDemoteByName(\"name\")");
   }
-  msg.Put(static_cast<UINT>(CMSG_GUILD_DEMOTE));
+  msg.Put(CMSG_GUILD_DEMOTE);
   msg.PutString(lua_tostring(L, 1));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3737,10 +3737,9 @@ static int Script_GuildSetLeaderByName(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildSetLeaderByName(\"name\")");
   }
-  LPCSTR name = lua_tostring(L, 1);
-  msg.Put(static_cast<UINT>(CMSG_GUILD_LEADER));
-  if (*name && SStrCmpI(name, "target", INT_MAX)) {
-    msg.PutString(name);
+  msg.Put(CMSG_GUILD_LEADER);
+  if (*lua_tostring(L, 1) && SStrCmpI(lua_tostring(L, 1), "target", INT_MAX)) {
+    msg.PutString(lua_tostring(L, 1));
   }
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3752,10 +3751,9 @@ static int Script_GuildSetMOTD(lua_State *L) {
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GuildSetMOTD(\"message\")");
   }
-  LPCSTR message = lua_tostring(L, 1);
-  msg.Put(static_cast<UINT>(CMSG_GUILD_MOTD));
-  if (*message) {
-    msg.PutString(message);
+  msg.Put(CMSG_GUILD_MOTD);
+  if (*lua_tostring(L, 1)) {
+    msg.PutString(lua_tostring(L, 1));
   }
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3764,7 +3762,7 @@ static int Script_GuildSetMOTD(lua_State *L) {
 
 static int Script_GuildLeave(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GUILD_LEAVE));
+  msg.Put(CMSG_GUILD_LEAVE);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3772,7 +3770,7 @@ static int Script_GuildLeave(lua_State *L) {
 
 static int Script_GuildDisband(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GUILD_DISBAND));
+  msg.Put(CMSG_GUILD_DISBAND);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3780,7 +3778,7 @@ static int Script_GuildDisband(lua_State *L) {
 
 static int Script_GuildInfo(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GUILD_INFO));
+  msg.Put(CMSG_GUILD_INFO);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3788,7 +3786,7 @@ static int Script_GuildInfo(lua_State *L) {
 
 static int Script_GuildRoster(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GUILD_ROSTER));
+  msg.Put(CMSG_GUILD_ROSTER);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3812,7 +3810,7 @@ static int Script_GetScreenHeight(lua_State *L) {
 
 static int Script_PVPPort(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_PVP_PORT));
+  msg.Put(CMSG_PVP_PORT);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -3832,44 +3830,48 @@ static int Script_GetReleaseTimeRemaining(lua_State *L) {
 
 static int Script_GetBindZone(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GETDEATHBINDZONE));
+  msg.Put(CMSG_GETDEATHBINDZONE);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
 }
 
 static int Script_SplitMoney(lua_State *L) {
-  CDataStore msg;
-  int        coins[3] = {0, 0, 0};
+  int coins[3];
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: SplitMoney(\"gold silver copper\")");
   }
   LPCSTR text = lua_tostring(L, 1);
-  int    count = 0;
-  while (*text && count < 3) {
-    while (*text == ' ') {
-      ++text;
-    }
-    if (!*text) {
+  int count;
+  for (count = 2; count >= 0; --count) {
+    if (!*text || !isdigit(*text)) {
       break;
     }
-    coins[count++] = SStrToInt(text);
-    while (*text && *text != ' ') {
-      ++text;
+    coins[count] = SStrToInt(text);
+    if (count > 0) {
+      while (*text && isdigit(*text)) {
+        ++text;
+      }
+      while (*text && isspace(*text)) {
+        ++text;
+      }
     }
   }
-  int i;
-  for (i = count - 1; i >= 0; --i) {
-    coins[3 - count + i] = coins[i];
+  if (count >= 0) {
+    int i;
+    for (i = 0; i < 2 - count; ++i) {
+      coins[i] = coins[i + count + 1];
+    }
+    for (; i < 3; ++i) {
+      coins[i] = 0;
+    }
   }
-  for (i = 0; i < 3 - count; ++i) {
-    coins[i] = 0;
-  }
-  UINT money = CurrencyTotal(coins);
+  int money = CurrencyTotal(coins);
   if (!money) {
     luaL_error(L, "Usage: SplitMoney(\"gold silver copper\")");
   }
-  msg.Put(static_cast<UINT>(MSG_SPLIT_MONEY));
+  CDataStore msg;
+  msg.Put(MSG_SPLIT_MONEY);
   msg.Put(money);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -4015,14 +4017,14 @@ int Script_Stuck(lua_State *L) {
 }
 
 static int Script_RandomRoll(lua_State *L) {
-  CDataStore msg;
   if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
     luaL_error(L, "Usage: RandomRoll(\"max\") or RandomRoll(\"min\", \"max\")");
   }
   int min = SStrToInt(lua_tostring(L, 1));
   int max = SStrToInt(lua_tostring(L, 2));
   if ((min || max) && min >= 0 && max >= min) {
-    msg.Put(static_cast<UINT>(MSG_RANDOM_ROLL));
+    CDataStore msg;
+    msg.Put(MSG_RANDOM_ROLL);
     msg.Put(min);
     msg.Put(max);
     msg.Finalize();
@@ -4033,7 +4035,7 @@ static int Script_RandomRoll(lua_State *L) {
 
 static int Script_OpeningCinematic(lua_State *L) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_OPENING_CINEMATIC));
+  msg.Put(CMSG_OPENING_CINEMATIC);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 0;
@@ -4495,9 +4497,9 @@ void CGGameUI::NextCinematicInternal(LPVOID) {
   m_cinematic.camera = 0;
   Sound::KillSound(m_cinematic.cameraMusic);
 
-  if (m_cinematic.sequence && ++m_cinematic.sequenceIndex < 8 && m_cinematic.sequence->m_camera[m_cinematic.sequenceIndex]) {
+  if (m_cinematic.sequence && ++m_cinematic.sequenceIndex < 8u && m_cinematic.sequence->m_camera[m_cinematic.sequenceIndex]) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_NEXT_CINEMATIC_CAMERA));
+    msg.Put(CMSG_NEXT_CINEMATIC_CAMERA);
     msg.Finalize();
     ClientServices_Send(&msg);
     m_cinematic.camera = g_cinematicCameraDB.GetRecord(m_cinematic.sequence->m_camera[m_cinematic.sequenceIndex]);
@@ -4520,7 +4522,7 @@ void CGGameUI::StopCinematicInternal(LPVOID) {
 
   FrameScript_SignalEvent(354);
   CGObject_C *target = ClntObjMgrObjectPtr(camera->GetTarget(), __FILE__, __LINE__);
-  if (target && (camera->Position() - target->GetPosition()).SquaredMag() > MAX_CAMERA_SHIFT * MAX_CAMERA_SHIFT) {
+  if (target && MAX_CAMERA_SHIFT * MAX_CAMERA_SHIFT < (camera->Position() - target->GetPosition()).SquaredMag()) {
     CWorld::Preload(target->GetPosition());
   }
 
@@ -4534,7 +4536,7 @@ void CGGameUI::StopCinematicInternal(LPVOID) {
   }
 
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_COMPLETE_CINEMATIC));
+  msg.Put(CMSG_COMPLETE_CINEMATIC);
   msg.Finalize();
   ClientServices_Send(&msg);
   ShowCursor();
@@ -4544,7 +4546,7 @@ void CGGameUI::StopCinematicInternal(LPVOID) {
 void CGGameUI::CloseLoot(bool send, bool moving) {
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (playerPtr) {
-    playerPtr->m_lootingUnit = 0;
+    playerPtr->m_lootingUnitSent = 0;
   }
 
   DWORDLONG object = CGLootInfo::m_object;
@@ -4553,7 +4555,7 @@ void CGGameUI::CloseLoot(bool send, bool moving) {
     if (!moving || !objectPtr || !(objectPtr->GetType() & TYPE_ITEM)) {
       if (send) {
         CDataStore lootRelease;
-        lootRelease.Put(static_cast<UINT>(CMSG_LOOT_RELEASE));
+        lootRelease.Put(CMSG_LOOT_RELEASE);
         lootRelease.Put(object);
         lootRelease.Finalize();
         ClientServices_Send(&lootRelease);
@@ -4563,7 +4565,7 @@ void CGGameUI::CloseLoot(bool send, bool moving) {
       }
 
       CGLootInfo::SetObject(0, 0, LOOT_ACQUIRE_FAILED);
-      ClearTarget(object, 0);
+      ClearTarget(object, 1);
       if (m_cursorItemType == UICURSOR_LOOT) {
         ClearCursor(1);
       }
@@ -5284,7 +5286,7 @@ void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
   ClearTarget(m_lockedTarget, 0);
 
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_SET_SELECTION));
+  msg.Put(CMSG_SET_SELECTION);
   msg.Put(target);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -5297,44 +5299,43 @@ void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
   CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
   if (!object) {
     SndInterfacePlayInterfaceSound("igCharacterSelect");
-    FrameScript_SignalEvent(191);
-    return;
-  }
+  } else {
+    object->ShowHighlightType(HT_OBJSELECTION);
+    object->UpdatePlayerName();
 
-  object->ShowHighlightType(HT_OBJSELECTION);
-  object->UpdatePlayerName();
+    if (object->GetType() & TYPE_UNIT) {
+      CGUnit_C *unit = static_cast<CGUnit_C *>(object);
+      unit->RegisterScript();
 
-  if (object->GetType() & TYPE_UNIT) {
-    CGUnit_C *unit = static_cast<CGUnit_C *>(object);
-    unit->RegisterScript();
+      if (player && player->GetUnitData()->health > 0 && !(player->GetUnitData()->flags & 0x2000) && unit->GetUnitData()->health > 0 &&
+          player->CanAttack(unit))
+      {
+        m_lastEnemyTarget = target;
+      }
 
-    if (player && player->GetUnitData()->health > 0 && !(player->GetUnitData()->flags & 0x2000) && unit->GetUnitData()->health > 0 &&
-        player->CanAttack(unit))
-    {
-      m_lastEnemyTarget = target;
+      CGTutorial::TriggerTutorial(TUTORIAL_TARGETING);
+      if (player->CanCooperate(unit)) {
+        CGTutorial::TriggerTutorial(TUTORIAL_GROUPING);
+      }
+      if (player->CanAttack(unit)) {
+        CGTutorial::TriggerTutorial(TUTORIAL_TARGETING_ENEMY);
+      }
+
+      if (unit->GetUnitData()->npcFlags) {
+        SndInterfacePlayInterfaceSound("igCharacterNPCSelect");
+      } else if (object->GetType() & TYPE_PLAYER) {
+        SndInterfacePlayInterfaceSound("igCharacterSelect");
+      } else if (unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
+        SndInterfacePlayInterfaceSound("igCreatureAggroSelect");
+      } else {
+        SndInterfacePlayInterfaceSound("igCreatureNeutralSelect");
+      }
     }
 
-    CGTutorial::TriggerTutorial(TUTORIAL_TARGETING);
-    if (player && player->CanCooperate(unit)) {
-      CGTutorial::TriggerTutorial(TUTORIAL_GROUPING);
-    }
-    if (player && player->CanAttack(unit)) {
-      CGTutorial::TriggerTutorial(TUTORIAL_TARGETING_ENEMY);
-    }
-
-    if (unit->GetUnitData()->npcFlags & 0xFF00) {
-      SndInterfacePlayInterfaceSound("igCharacterNPCSelect");
-    } else if (object->GetType() & TYPE_PLAYER) {
-      SndInterfacePlayInterfaceSound("igCharacterSelect");
-    } else if (unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
-      SndInterfacePlayInterfaceSound("igCreatureAggroSelect");
-    } else {
-      SndInterfacePlayInterfaceSound("igCreatureNeutralSelect");
-    }
   }
 
   FrameScript_SignalEvent(191);
-  if (enterCombatMode && player && m_lockedTarget != player->GetGUID()) {
+  if (enterCombatMode && m_lockedTarget != player->GetGUID()) {
     player->SetCombatMode(1);
   }
 }
@@ -5356,7 +5357,7 @@ void CGGameUI::ClearTarget(DWORDLONG guid, int sendTarget) {
     if (object->GetType() & TYPE_UNIT) {
       CGUnit_C *unit = static_cast<CGUnit_C *>(object);
       unit->UnregisterScript();
-      if (unit->GetUnitData()->npcFlags & 0xFF00) {
+      if (unit->GetUnitData()->npcFlags) {
         SndInterfacePlayInterfaceSound("igCharacterNPCDeselect");
       } else if (object->GetType() & TYPE_PLAYER) {
         SndInterfacePlayInterfaceSound("igCharacterDeselect");
@@ -5375,7 +5376,7 @@ void CGGameUI::ClearTarget(DWORDLONG guid, int sendTarget) {
 
   if (sendTarget) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_SET_SELECTION));
+    msg.Put(CMSG_SET_SELECTION);
     msg.Put(m_lockedTarget);
     msg.Finalize();
     ClientServices_Send(&msg);

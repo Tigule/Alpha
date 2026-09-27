@@ -78,9 +78,14 @@ DATASTORE_PUT(float)
 CDataStore &CDataStore::PutString(LPCSTR pval) {
   ASSERT(!IsFinal());
 
-  FATALASSERT(pval);
+  if (!pval) {
+    FATALERROR(("pval"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
 
-  return PutArray(reinterpret_cast<const BYTE *>(pval), SStrLen(pval) + 1);
+  PutArray(reinterpret_cast<const BYTE *>(pval), SStrLen(pval) + 1);
+  return *this;
 }
 
 CDataStore &CDataStore::PutString(const WORD *pval) {

@@ -64,14 +64,16 @@ void CGDuelInfo::StartDuel() {
 
 void CGDuelInfo::AcceptDuel() {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_DUEL_ACCEPTED));
+  msg.Put(CMSG_DUEL_ACCEPTED);
+  msg.Put(m_arbiter);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
 void CGDuelInfo::CancelDuel() {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_DUEL_CANCELLED));
+  msg.Put(CMSG_DUEL_CANCELLED);
+  msg.Put(m_arbiter);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -120,11 +122,11 @@ BOOL CGDuelInfo::OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CData
 }
 
 BOOL CGDuelInfo::OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
-  UINT fled;
+  BYTE fled;
   char message[1024];
   char beaten[48];
   char winner[48];
-  msg->Get(reinterpret_cast<BYTE &>(fled));
+  msg->Get(fled);
   msg->GetString(winner, sizeof(winner));
   msg->GetString(beaten, sizeof(beaten));
   LPCSTR format = FrameScript_GetText(fled ? "DUEL_WINNER_RETREAT" : "DUEL_WINNER_KNOCKOUT", -1, GENDER_NOT_APPLICABLE);

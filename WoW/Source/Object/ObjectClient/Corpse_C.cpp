@@ -288,7 +288,7 @@ void CGCorpse_C::OnLeftClick() {
 void CGCorpse_C::OnRightClick() {
   if (m_corpse->m_owner == ClntObjMgrGetActivePlayer()) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_RECLAIM_CORPSE));
+    msg.Put(CMSG_RECLAIM_CORPSE);
     msg.Put(GetGUID());
     msg.Finalize();
     ClientServices_Send(&msg);

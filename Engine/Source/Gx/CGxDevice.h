@@ -426,243 +426,10 @@ class CGxStateRegister {
 };
 
 class CGxDevice {
- public:
-  enum {
-    PrimMask_Vertex = 1,
-    PrimMask_TexCoord = 2,
-    PrimMask_Normal = 32,
-    PrimMask_Color = 64
-  };
-
-  enum {
-    MinD3dBufVertices = 256,
-    MinD3dBufIndices = 768
-  };
-
-  struct TextureTarget {
-    CGxTex *m_texture;
-    UINT    m_plane;
-    LPVOID  m_apiSpecific;
-  };
-
- protected:
-  static const UINT s_texFormatBitDepth[];
-
-  UINT                   ITexComputeByteSize(const CGxTex *texId, const UINT width, const UINT height);
-  BOOL                   EnableState(DWORD app, DWORD appDisables, UINT flagPos);
-  BOOL                   NeedsUpdate(DWORD app, DWORD hw, DWORD appDisables, DWORD hwDisables, UINT flagPos, int &enable);
-  void                   ITexBind(CGxTex *texId);
-  virtual void           ITexMarkAsUpdated(CGxTex *texId);
-  virtual void           IRsSendToHw(EGxRenderState which) = 0;
-  virtual void           ISetShaderParamList(CGxShader::ParamList &params, int forceForBind) = 0;
-  void                   ISetShaderParameters(CGxShader *sh, int forceForBind);
-  UINT                   IMatAlphaRef(EGxBlend op);
-  BOOL                   IVbHasColor(EGxVertexBufferFormat format);
-  EGxVertexBufferFormat  IGiveVbColor(EGxVertexBufferFormat format);
-  void                   DeviceScreenShot();
-  int                    IDevIsWindowed();
-  void                   ClampRectToWindow(NTempest::CiRect &rect);
-  const NTempest::CRect &DeviceCurWindow();
-  void                   DeviceSetDefWindow(const NTempest::CRect &rect);
-  const NTempest::CRect &DeviceDefWindow();
-  void                   DeviceSetCurWindow(const NTempest::CRect &rect);
-  void                   CreateDynamicBufs();
-  void                   DestroyDynamicBufs();
-  void                   Log(const CGxCaps &caps) const;
-  void                   Log(const CGxFormat &format) const;
-  void                   PerfAcc(EGxPerfCounter counter, UINT value) {
-    m_perfCountersAcc[counter] += value;
-  }
-
- private:
-  CGxDevice(const CGxDevice &);
-
- public:
-  CGxDevice();
-  virtual ~CGxDevice();
-  virtual BOOL        DeviceCreate(UINT hwnd, const CGxFormat &format);
-  virtual BOOL        DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
-  virtual void        DeviceDestroy();
-  virtual BOOL        DeviceSetFormat(const CGxFormat &format);
-  virtual void        DeviceSetBaseMipLevel(UINT baseMipLevel);
-  virtual void        DeviceSetGamma(const CGxGammaRamp &ramp);
-  virtual void        DeviceSetGamma(float gamma);
-  virtual void        DeviceSetTextureQuality(int force32);
-  virtual DWORD       DeviceWindow() = 0;
-  virtual void        DeviceTakeScreenShot();
-  virtual void        DeviceReadScreenShot(UINT &w, UINT &h, const NTempest::CImVector *&pixels);
-  virtual void        DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels) = 0;
-  virtual void        DeviceReadDepths(NTempest::CiRect &rect, TSGrowableArray<float> &depths) = 0;
-  virtual void        DeviceWM(EGxWM wm, long param1, long param2) = 0;
-  virtual void        DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *texture, UINT plane);
-  virtual void        DeviceOverride(EGxOverride override, DWORD value);
-  virtual void        CapsWindowSize(NTempest::CRect &dst) = 0;
-  virtual void        CapsWindowSizeInScreenCoords(NTempest::CRect &dst) = 0;
-  virtual int         CapsIsWindowVisible() = 0;
-  virtual void        SceneSetClearColor(NTempest::CImVector clearColor);
-  NTempest::CImVector SceneClearColor();
-  virtual void        ScenePresent(UINT mask);
-  virtual void        SceneClear(UINT mask);
-  virtual void        XformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
-  virtual void        XformSetProjection(const NTempest::C44Matrix &matrix);
-  virtual void        XformSetView(const NTempest::C44Matrix &matrix);
-  virtual void        XformSetBones(UINT numBones, const NTempest::C34Matrix *matrices);
-  virtual void        VertexShaderSelect(EGxVertexShader shader);
-  virtual void        PrimLockAndProcessVertexPtrs(
-      UINT                       vertexCount,
-      const NTempest::C3Vector  *position,
-      UINT                       positionStride,
-      const NTempest::C3Vector  *normal,
-      UINT                       normalStride,
-      const NTempest::CImVector *color,
-      UINT                       colorStride,
-      const BYTE                *bone,
-      UINT                       boneStride,
-      const NTempest::C2Vector  *tex0,
-      UINT                       tex0Stride,
-      const NTempest::C2Vector  *tex1,
-      UINT                       tex1Stride
-  );
-  virtual void PrimLockIndexPtr(EGxPrim primType, UINT indexCount, const WORD *indices);
-  virtual void PrimDrawElements();
-  virtual void PrimUnlockIndexPtr();
-  virtual void PrimUnlockVertexPtrs();
-  virtual void PrimBegin(EGxPrim primType);
-  virtual void PrimEnd();
-  virtual void PrimVertex(const NTempest::C3Vector &v);
-  virtual void PrimTexCoord(UINT tmu, const NTempest::C2Vector &t);
-  virtual void PrimNormal(const NTempest::C3Vector &n);
-  virtual void PrimColor(const NTempest::CImVector &c);
-  virtual void PrimPointSize(float s) {
-  }
-  virtual void PrimLineWidth(float w) {
-  }
-  UINT            PrimCalcCount(EGxPrim primType, UINT indexCount);
-  virtual void    LightSet(UINT whichLight, const CGxLight &lightInfo, const NTempest::C3Vector &cameraPos);
-  virtual void    LightEnable(UINT whichLight, int enable);
-  virtual void    MasterEnableSet(EGxMasterEnables state, int enable);
-  virtual CGxBuf *BufCreate(
-      EGxBufWriteFreq       writeFreq,
-      EGxVertexBufferFormat format,
-      UINT                  numVertices,
-      UINT                  numIndices,
-      void (*userCallback)(CGxBufCommand &, CGxBuf *),
-      LPVOID userArg
-  );
-  virtual void BufLock(CGxBuf *buf);
-  virtual void BufRender(const CGxBatch *batches, UINT count);
-  virtual void BufUnlock();
-  virtual void BufDestroy(CGxBuf *&buf);
-  virtual void BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, UINT numVertices, UINT numIndices);
-  CGxBuf      *BufGetDynamic(EGxVertexBufferFormat format);
-  virtual BOOL TexCreate(
-      EGxTexTarget target,
-      UINT         width,
-      UINT         height,
-      UINT         depth,
-      EGxTexFormat format,
-      EGxTexFormat dataFormat,
-      CGxTexFlags  flags,
-      LPVOID       userArg,
-      void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
-      CGxTex *&texId
-  );
-  virtual BOOL TexCreate(
-      UINT         width,
-      UINT         height,
-      EGxTexFormat format,
-      CGxTexFlags  flags,
-      LPVOID       userArg,
-      void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
-      CGxTex *&texId
-  );
-  virtual void TexDestroy(CGxTex *texId);
-  void         TexMarkForUpdate(CGxTex *texId, const NTempest::CiRect &updateRect, int immediate);
-  int          TexNeedsUpdate(CGxTex *texId);
-  void         TexSetFlags(CGxTex *texId, CGxTexFlags flags);
-  void         TexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat);
-  void         TexSetUserData(CGxTex *texId, void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &), LPVOID userArg);
-  LPVOID       TexUserArg(CGxTex *texId);
-  void         TexGetDimensions(const CGxTex *texId, UINT *width, UINT *height);
-  void         TexParameters(const CGxTex *texId, CGxTexParms &parms);
-  void         TexParameters(const CGxTex *texId, CGxTexParmsEx &parms);
-  void         TexFlags(const CGxTex *texId, CGxTexFlags &flags);
-  virtual void PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename);
-  virtual void PixelShaderDestroy(CGxPixelShader *&ps);
-  virtual void VertexShaderCreate(CGxVertexShader *&vs, LPCSTR filename);
-  virtual void VertexShaderDestroy(CGxVertexShader *&vs);
-
-  static CGxDevice *NewD3d();
-  static CGxDevice *NewOpenGl();
-  static BOOL       AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow);
-  static BOOL       AdapterInfer(WORD &deviceID);
-  static BOOL       AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes);
-  static BOOL       AdapterDesktopMode(CGxMonitorMode &mode);
-  static BOOL       D3dEnumFormats(TSGrowableArray<CGxFormat> &formats);
-  static BOOL       OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats);
-
-  const CGxFormat &DeviceFormat();
-  UINT             DeviceBaseMipLevel();
-  void             DeviceGamma(CGxGammaRamp &ramp);
-  void             DeviceSystemGamma(CGxGammaRamp &ramp);
-  int              DeviceTextureQuality();
-  EGxApi           DeviceApi();
-  const CGxCaps   &Caps() const;
-  void             DeviceClearScreenShot();
-  UINT             PerfCounter(EGxPerfCounter counter);
-  static float     CpuFrequency();
-  static LONGLONG  CpuTicks();
-  void             XformProjection(NTempest::C44Matrix &matrix);
-  void             XformView(NTempest::C44Matrix &matrix);
-  void             XformBone(UINT ndx, NTempest::C34Matrix &matrix);
-  void             Xform(EGxXform xf, NTempest::C44Matrix &matrix);
-  void             XformPush(EGxXform xf);
-  void             XformPush(EGxXform xf, const NTempest::C44Matrix &matrix);
-  void             XformPop(EGxXform xf);
-  void             XformIdentity(EGxXform xf);
-  void             XformSet(EGxXform xf, const NTempest::C44Matrix &matrix);
-  void             XformTranslate(EGxXform xf, const NTempest::C3Vector &t);
-  void             XformScale(EGxXform xf, const NTempest::C3Vector &s);
-  void             XformMult(EGxXform xf, const NTempest::C44Matrix &m);
-  void             XformViewport(float &minX, float &maxX, float &minY, float &maxY, float &minZ, float &maxZ);
-  void             RsSet(EGxRenderState which, int value);
-  void             RsSet(EGxRenderState which, float value);
-  void             RsSet(EGxRenderState which, NTempest::CImVector value);
-  void             RsSet(EGxRenderState which, const NTempest::C3Vector &value);
-  void             RsSet(EGxRenderState which, LPVOID value);
-  void             RsGet(EGxRenderState which, int &value);
-  void             RsGet(EGxRenderState which, float &value);
-  void             RsGet(EGxRenderState which, NTempest::CImVector &value);
-  void             RsGet(EGxRenderState which, NTempest::C3Vector &value);
-  void             RsGet(EGxRenderState which, LPVOID &value);
-  void             RsPush();
-  void             RsPop();
-  void             RsInit();
-  UINT             RsStackOffset();
-  BOOL             MasterEnable(EGxMasterEnables state);
-  void             Light(UINT whichLight, CGxLight &lightInfo);
-
-  static void         LogOpen();
-  static void         LogClose();
-  static void __cdecl Log(LPCSTR format, ...);
-  static void __cdecl DbgPrintf(LPCSTR format, ...);
-
  private:
   friend HTEXTURE__ *TextureAllocImage(EGxTexFormat format, UINT width, UINT height);
   friend class CGxDeviceD3d;
   friend class CGxDeviceOpenGl;
-
-  const CGxDevice &operator=(const CGxDevice &);
-  void             IRsInit();
-
- protected:
-  void IRsForceUpdate(EGxRenderState ndx_);
-  void IRsForceUpdate();
-  void IRsSync(int force);
-
- private:
-  void IRsSet(EGxRenderState which, const CGxStateBom &value);
-  void PerfCountersLatch();
 
   TSGrowableArray<CGxPushedRenderState> mPushedStates;
   TSGrowableArray<DWORD>                mStackOffsets;
@@ -683,12 +450,37 @@ class CGxDevice {
   TSGrowableArray<NTempest::C3Vector>   m_primNormalArray;
   TSGrowableArray<NTempest::CImVector>  m_primColorArray;
   TSGrowableArray<WORD>                 m_primIndexArray;
+
+ public:
+  enum {
+    PrimMask_Vertex = 1,
+    PrimMask_TexCoord = 2,
+    PrimMask_Normal = 32,
+    PrimMask_Color = 64
+  };
+
+ private:
   UINT                                  m_primMask;
+
+  CGxDevice(const CGxDevice &);
+  const CGxDevice &operator=(const CGxDevice &);
+  void             IRsInit();
+  void             IRsSet(EGxRenderState which, const CGxStateBom &value);
+  void             PerfCountersLatch();
+
   NTempest::CRect                       m_defWindowRect;
   NTempest::CRect                       m_curWindowRect;
 
  protected:
   BOOL                                               m_context;
+
+ public:
+  enum {
+    MinD3dBufVertices = 256,
+    MinD3dBufIndices = 768
+  };
+
+ protected:
   EGxApi                                             m_api;
   DWORD                                              m_cpuFeatures;
   CGxFormat                                          m_format;
@@ -712,6 +504,10 @@ class CGxDevice {
   TSHashTableReuse<CGxVertexShader, HASHKEY_STRI, 1> m_vertexShaderList;
   CGxStateRegister                                   m_appState;
   CGxStateRegister                                   m_hwState;
+
+  BOOL EnableState(DWORD app, DWORD appDisables, UINT flagPos);
+  BOOL NeedsUpdate(DWORD app, DWORD hw, DWORD appDisables, DWORD hwDisables, UINT flagPos, int &enable);
+
   LISTDECLEX(CGxBuf, linkGx, m_bufList);
   CGxBuf                              *m_bufLocked;
   UINT                                 m_VBReserve[4][9];
@@ -720,11 +516,219 @@ class CGxDevice {
   TSFixedArray<CGxAppRenderState>      mAppRenderStates;
   TSFixedArray<CGxStateBom>            mHwRenderStates;
   TSGrowableArray<CGxTex *>            m_textures;
+
+  static const UINT s_texFormatBitDepth[];
+
+ public:
+  struct TextureTarget {
+    CGxTex *m_texture;
+    UINT    m_plane;
+    LPVOID  m_apiSpecific;
+  };
+
+ protected:
   TextureTarget                        m_textureTarget[2];
   int                                  m_scrShotClick;
   UINT                                 m_scrShotWidth;
   UINT                                 m_scrShotHeight;
   TSGrowableArray<NTempest::CImVector> m_scrShotPixels;
 
+  virtual void          ITexMarkAsUpdated(CGxTex *texId);
+  UINT                  ITexComputeByteSize(const CGxTex *texId, const UINT width, const UINT height);
+  void                  ITexBind(CGxTex *texId);
+  UINT                  IMatAlphaRef(EGxBlend op);
+  int                   IDevIsWindowed();
+  BOOL                  IVbHasColor(EGxVertexBufferFormat format);
+  EGxVertexBufferFormat IGiveVbColor(EGxVertexBufferFormat format);
+  virtual void          IRsSendToHw(EGxRenderState which) = 0;
+  void                  IRsForceUpdate(EGxRenderState ndx_);
+  void                  IRsForceUpdate();
+  void                  IRsSync(int force);
+  void                  DeviceScreenShot();
+  void                  ClampRectToWindow(NTempest::CiRect &rect);
+  void                  ISetShaderParameters(CGxShader *sh, int forceForBind);
+  virtual void          ISetShaderParamList(CGxShader::ParamList &params, int forceForBind) = 0;
+  void                  Log(const CGxCaps &caps) const;
+  void                  Log(const CGxFormat &format) const;
+  void                  PerfAcc(EGxPerfCounter counter, UINT value) {
+    m_perfCountersAcc[counter] += value;
+  }
+  const NTempest::CRect &DeviceCurWindow();
+  const NTempest::CRect &DeviceDefWindow();
+  void                   DeviceSetDefWindow(const NTempest::CRect &rect);
+  void                   DeviceSetCurWindow(const NTempest::CRect &rect);
+  void                   CreateDynamicBufs();
+  void                   DestroyDynamicBufs();
+
   static HSLOG m_log;
+
+ public:
+  CGxDevice();
+  virtual ~CGxDevice();
+
+  static BOOL       OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats);
+  static BOOL       D3dEnumFormats(TSGrowableArray<CGxFormat> &formats);
+  static CGxDevice *NewOpenGl();
+  static CGxDevice *NewD3d();
+  static void       LogOpen();
+  static void       LogClose();
+
+  virtual BOOL DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
+  virtual BOOL DeviceCreate(UINT hwnd, const CGxFormat &format);
+  virtual void DeviceDestroy();
+  virtual BOOL DeviceSetFormat(const CGxFormat &format);
+  virtual void DeviceSetBaseMipLevel(UINT baseMipLevel);
+  virtual void DeviceSetGamma(float gamma);
+  virtual void DeviceSetGamma(const CGxGammaRamp &ramp);
+  virtual void DeviceSetTextureQuality(int force32);
+
+  const CGxFormat &DeviceFormat();
+  UINT             DeviceBaseMipLevel();
+  void             DeviceGamma(CGxGammaRamp &ramp);
+  void             DeviceSystemGamma(CGxGammaRamp &ramp);
+  int              DeviceTextureQuality();
+  virtual DWORD    DeviceWindow() = 0;
+  EGxApi           DeviceApi();
+  virtual void     DeviceTakeScreenShot();
+  virtual void     DeviceReadScreenShot(UINT &w, UINT &h, const NTempest::CImVector *&pixels);
+  void             DeviceClearScreenShot();
+  virtual void     DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels) = 0;
+  virtual void     DeviceReadDepths(NTempest::CiRect &rect, TSGrowableArray<float> &depths) = 0;
+  virtual void     DeviceWM(EGxWM wm, long param1, long param2) = 0;
+  virtual void     DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *texture, UINT plane);
+  virtual void     DeviceOverride(EGxOverride override, DWORD value);
+  static BOOL      AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow);
+  static BOOL      AdapterInfer(WORD &deviceID);
+  static BOOL      AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes);
+  static BOOL      AdapterDesktopMode(CGxMonitorMode &mode);
+  const CGxCaps   &Caps() const;
+  virtual void     CapsWindowSize(NTempest::CRect &dst) = 0;
+  virtual void     CapsWindowSizeInScreenCoords(NTempest::CRect &dst) = 0;
+  virtual int      CapsIsWindowVisible() = 0;
+  virtual void     SceneSetClearColor(NTempest::CImVector clearColor);
+  NTempest::CImVector SceneClearColor();
+  virtual void        ScenePresent(UINT mask);
+  virtual void        SceneClear(UINT mask);
+  virtual void        XformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ);
+  virtual void        XformSetProjection(const NTempest::C44Matrix &matrix);
+  virtual void        XformSetView(const NTempest::C44Matrix &matrix);
+  virtual void        XformSetBones(UINT numBones, const NTempest::C34Matrix *matrices);
+  void                XformViewport(float &minX, float &maxX, float &minY, float &maxY, float &minZ, float &maxZ);
+  void                XformProjection(NTempest::C44Matrix &matrix);
+  void                XformView(NTempest::C44Matrix &matrix);
+  void                XformBone(UINT ndx, NTempest::C34Matrix &matrix);
+  void                XformPush(EGxXform xf);
+  void                XformPush(EGxXform xf, const NTempest::C44Matrix &matrix);
+  void                XformPop(EGxXform xf);
+  void                XformIdentity(EGxXform xf);
+  void                XformSet(EGxXform xf, const NTempest::C44Matrix &matrix);
+  void                XformTranslate(EGxXform xf, const NTempest::C3Vector &t);
+  void                XformScale(EGxXform xf, const NTempest::C3Vector &s);
+  void                XformMult(EGxXform xf, const NTempest::C44Matrix &m);
+  void                Xform(EGxXform xf, NTempest::C44Matrix &matrix);
+  virtual void        VertexShaderSelect(EGxVertexShader shader);
+  virtual void        PrimLockAndProcessVertexPtrs(
+      UINT                       vertexCount,
+      const NTempest::C3Vector  *position,
+      UINT                       positionStride,
+      const NTempest::C3Vector  *normal,
+      UINT                       normalStride,
+      const NTempest::CImVector *color,
+      UINT                       colorStride,
+      const BYTE                *bone,
+      UINT                       boneStride,
+      const NTempest::C2Vector  *tex0,
+      UINT                       tex0Stride,
+      const NTempest::C2Vector  *tex1,
+      UINT                       tex1Stride
+  );
+  virtual void PrimLockIndexPtr(EGxPrim primType, UINT indexCount, const WORD *indices);
+  virtual void PrimDrawElements();
+  virtual void PrimUnlockIndexPtr();
+  virtual void PrimUnlockVertexPtrs();
+  UINT         PrimCalcCount(EGxPrim primType, UINT indexCount);
+  virtual void PrimBegin(EGxPrim primType);
+  virtual void PrimEnd();
+  virtual void PrimVertex(const NTempest::C3Vector &v);
+  virtual void PrimTexCoord(UINT tmu, const NTempest::C2Vector &t);
+  virtual void PrimNormal(const NTempest::C3Vector &n);
+  virtual void PrimColor(const NTempest::CImVector &c);
+  virtual void PrimPointSize(float s) {
+  }
+  virtual void PrimLineWidth(float w) {
+  }
+  virtual void LightSet(UINT whichLight, const CGxLight &lightInfo, const NTempest::C3Vector &cameraPos);
+  void         Light(UINT whichLight, CGxLight &lightInfo);
+  virtual void LightEnable(UINT whichLight, int enable);
+  virtual void MasterEnableSet(EGxMasterEnables state, int enable);
+  BOOL         MasterEnable(EGxMasterEnables state);
+  void         RsSet(EGxRenderState which, int value);
+  void         RsSet(EGxRenderState which, float value);
+  void         RsSet(EGxRenderState which, NTempest::CImVector value);
+  void         RsSet(EGxRenderState which, const NTempest::C3Vector &value);
+  void         RsSet(EGxRenderState which, LPVOID value);
+  void         RsGet(EGxRenderState which, int &value);
+  void         RsGet(EGxRenderState which, float &value);
+  void         RsGet(EGxRenderState which, NTempest::CImVector &value);
+  void         RsGet(EGxRenderState which, NTempest::C3Vector &value);
+  void         RsGet(EGxRenderState which, LPVOID &value);
+  void         RsPush();
+  void         RsPop();
+  void         RsInit();
+  UINT         RsStackOffset();
+  virtual CGxBuf *BufCreate(
+      EGxBufWriteFreq       writeFreq,
+      EGxVertexBufferFormat format,
+      UINT                  numVertices,
+      UINT                  numIndices,
+      void (*userCallback)(CGxBufCommand &, CGxBuf *),
+      LPVOID userArg
+  );
+  virtual void BufLock(CGxBuf *buf);
+  virtual void BufRender(const CGxBatch *batches, UINT count);
+  virtual void BufUnlock();
+  virtual void BufDestroy(CGxBuf *&buf);
+  virtual void BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, UINT numVertices, UINT numIndices);
+  CGxBuf      *BufGetDynamic(EGxVertexBufferFormat format);
+  virtual BOOL TexCreate(
+      UINT         width,
+      UINT         height,
+      EGxTexFormat format,
+      CGxTexFlags  flags,
+      LPVOID       userArg,
+      void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
+      CGxTex *&texId
+  );
+  virtual BOOL TexCreate(
+      EGxTexTarget target,
+      UINT         width,
+      UINT         height,
+      UINT         depth,
+      EGxTexFormat format,
+      EGxTexFormat dataFormat,
+      CGxTexFlags  flags,
+      LPVOID       userArg,
+      void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
+      CGxTex *&texId
+  );
+  void         TexMarkForUpdate(CGxTex *texId, const NTempest::CiRect &updateRect, int immediate);
+  int          TexNeedsUpdate(CGxTex *texId);
+  void         TexSetUserData(CGxTex *texId, void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &), LPVOID userArg);
+  void         TexSetFlags(CGxTex *texId, CGxTexFlags flags);
+  LPVOID       TexUserArg(CGxTex *texId);
+  void         TexGetDimensions(const CGxTex *texId, UINT *width, UINT *height);
+  virtual void TexDestroy(CGxTex *texId);
+  void         TexParameters(const CGxTex *texId, CGxTexParms &parms);
+  void         TexParameters(const CGxTex *texId, CGxTexParmsEx &parms);
+  void         TexFlags(const CGxTex *texId, CGxTexFlags &flags);
+  void         TexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat);
+  virtual void PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename);
+  virtual void PixelShaderDestroy(CGxPixelShader *&ps);
+  virtual void VertexShaderCreate(CGxVertexShader *&vs, LPCSTR filename);
+  virtual void VertexShaderDestroy(CGxVertexShader *&vs);
+  UINT         PerfCounter(EGxPerfCounter counter);
+  static float CpuFrequency();
+  static LONGLONG CpuTicks();
+  static void __cdecl DbgPrintf(LPCSTR format, ...);
+  static void __cdecl Log(LPCSTR format, ...);
 };

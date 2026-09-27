@@ -427,7 +427,9 @@ class CGGameUI {
   static void          SetCursorVirtualItem(UINT itemID, UINT displayID, UINT slot, UICURSORTYPE type);
   static void          GetCursorVirtualItem(UINT &cursorItem, UINT &slot);
   static UINT          GetCursorPetAction();
-  static UICURSORTYPE  GetCursorType();
+  static UICURSORTYPE  GetCursorType() {
+    return m_cursorItemType;
+  }
   static BOOL          IsCursorEmpty();
   static BOOL          IsCursorPetSpell();
   static void          UnlockItem(DWORDLONG itemGUID);
@@ -474,7 +476,9 @@ class CGGameUI {
   static void          HandleObjectTrackChange(DWORDLONG object, DWORDLONG oldGUID, float x, float y);
   static CSimpleFrame *GetUISimpleParent();
   static int           GetCurrentAreaID();
-  static BOOL          HasPlayerControl();
+  static BOOL          HasPlayerControl() {
+    return m_hasControl;
+  }
 
  private:
   static int  OnTerrainClick(const CTerrainClickEvent &evt);

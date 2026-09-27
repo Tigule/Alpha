@@ -261,13 +261,16 @@ static void SkipPartialObjectUpdate(CDataStore *msg) {
 }
 
 static void PartialUpdateFromFullUpdate(DWORD eventTime, C_OBJECTHASH *foundObj, CDataStore *msg) {
-  CClientObjCreate createData;
-  CGObject_C      *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
-  FATALASSERT(object);
+  FATALASSERT(foundObj);
+  FATALASSERT(msg);
+  SysMsgAdd("Updating unit data", SYSMSG_INFO, 0x20);
+  CGObject_C *obj = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
+  FATALASSERT(obj);
 
-  if (object->IsA(TYPE_UNIT)) {
+  if (obj->IsA(TYPE_UNIT)) {
+    CClientObjCreate createData;
     createData.Get(msg);
-    static_cast<CGUnit_C *>(object)->SetClientInitData(eventTime, createData, object->GetGUID() == ClntObjMgrGetActivePlayer());
+    static_cast<CGUnit_C *>(obj)->SetClientInitData(eventTime, createData, obj->GetGUID() == ClntObjMgrGetActivePlayer());
   } else {
     CClientObjCreate::Skip(msg);
   }
@@ -291,36 +294,45 @@ static void FillInPartialObjectData(C_OBJECTHASH *foundObj, CDataStore *msg, boo
 
   msg->Get(updateMaskBlocks);
   FATALASSERT(updateMaskBlocks <= 20);
-  for (block = 0; block < updateMaskBlocks; ++block) {
-    msg->Get(changeMasks[block]);
+  UINT i;
+  for (i = 0; i < updateMaskBlocks; ++i) {
+    msg->Get(changeMasks[i]);
   }
 
   numBlocks = GetNumDwordBlocks(obj->GetType());
   blockOffset = 0;
   objectTypeId = ID_OBJECT;
-  for (block = 0; block < numBlocks; ++block) {
-    if (block >= s_objMirrorBlocks[objectTypeId]) {
+  for (i = 0; i < numBlocks; ++i) {
+    if (i >= s_objMirrorBlocks[objectTypeId]) {
       blockOffset = s_objMirrorBlocks[objectTypeId];
       objectTypeId = IncTypeId(obj, objectTypeId);
     }
 
     if (!forFullUpdate) {
       MirrorHandlerAdvanceBlock(&handlerList);
-      if (GetMirrorHandler(&s_mirrorHandlers[objectTypeId][block - blockOffset], &handlerList)) {
-        SavePreviousValue(&s_mirrorHandlers[objectTypeId][block - blockOffset], obj);
+      LISTPTR(CMirrorHandler) classHandlers =
+          GetMirrorHandler(&s_mirrorHandlers[objectTypeId][i - blockOffset], &handlerList)
+              ? &s_mirrorHandlers[objectTypeId][i - blockOffset]
+              : 0;
+      LISTPTR(CMirrorHandler) objectHandlers = GetMirrorHandler(&foundObj->mirrorHandlers[i], &handlerList)
+                                                 ? &foundObj->mirrorHandlers[i]
+                                                 : 0;
+      if (classHandlers) {
+        SavePreviousValue(classHandlers, obj);
       }
-      if (GetMirrorHandler(&foundObj->mirrorHandlers[block], &handlerList)) {
-        SavePreviousValue(&foundObj->mirrorHandlers[block], obj);
+      if (objectHandlers) {
+        SavePreviousValue(objectHandlers, obj);
       }
     }
 
-    DWORD data = 0;
-    if (IsMaskBitSet(changeMasks, block)) {
-      msg->Get(data);
+    if (IsMaskBitSet(changeMasks, i)) {
+      msg->Get(block);
     } else if (!zeroZeroBits) {
       continue;
+    } else {
+      block = 0;
     }
-    FATALASSERT(SetObjectBlock(obj, block, data));
+    FATALASSERT(SetObjectBlock(obj, i, block));
   }
 }
 
@@ -490,7 +502,6 @@ static CGObject_C *GetObjectPtr(DWORDLONG guid) {
 }
 
 static void PostInitObject(CDataStore *msg) {
-  CClientObjCreate init;
   DWORDLONG        guid;
   OBJECT_TYPE_ID   type;
   BYTE             btype = 0;
@@ -500,6 +511,7 @@ static void PostInitObject(CDataStore *msg) {
   type = static_cast<OBJECT_TYPE_ID>(btype);
   CGObject_C *object = GetObjectPtr(guid);
   FATALASSERT(object);
+  CClientObjCreate init;
   init.Get(msg);
 
   if (object->IsPostInited()) {
@@ -663,7 +675,6 @@ static C_OBJECTHASH *AllocNewObj() {
 }
 
 static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
-  CClientObjCreate init;
   DWORDLONG        guid;
   UINT             memHandle;
   OBJECT_TYPE_ID   type;
@@ -727,7 +738,7 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
       if (!foundObj) {
         return 0;
       }
-      SysMsgAdd("NOFREEOBJECTSALLOCATING", SYSMSG_INFO, 0x20);
+      SysMsgAdd("NOFREEOBJECTSALLOCATING", SYSMSG_WARNING, 0x20);
     }
   }
 
@@ -737,9 +748,10 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
     return 0;
   }
 
-  foundObj->memHandle = memHandle;
   CHashKeyGUID hashKey(guid);
   s_curMgr->m_objects.Insert(foundObj, guid, hashKey);
+  foundObj->memHandle = memHandle;
+  CClientObjCreate init;
   SetupObjectStorage(type, memHandle);
   FillInObjectData(foundObj, msg, &init, type);
   s_curMgr->m_visibleObjects.LinkNode(foundObj, LIST_TAIL, 0);
@@ -749,13 +761,13 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
 }
 
 static BOOL UpdateObjectMovement(DWORD eventTime, CDataStore *msg) {
-  CClientMoveUpdate update;
-  DWORDLONG         guid;
+  DWORDLONG guid;
 
   msg->Get(guid);
   s_curMgr->m_legalGuidDeref = guid;
+  CClientMoveUpdate update;
   *msg >> update;
-  if (guid == ClntObjMgrGetActivePlayer()) {
+  if (guid == CGUnit_C::GetActiveMover()) {
     return 1;
   }
 
@@ -763,20 +775,20 @@ static BOOL UpdateObjectMovement(DWORD eventTime, CDataStore *msg) {
   if (!foundObj) {
     return 0;
   }
-  CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
-  FATALASSERT(object);
-  FATALASSERT(object->IsA(TYPE_UNIT));
-  static_cast<CGUnit_C *>(object)->UpdateMoveInfo(eventTime, update);
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ObjectPtr(foundObj->memHandle));
+  FATALASSERT(unit);
+  unit->UpdateMoveInfo(eventTime, update);
   return 1;
 }
 
 static BOOL UpdateObject(CDataStore *msg) {
+  FATALASSERT(msg);
   DWORDLONG guid;
   msg->Get(guid);
-  s_curMgr->m_legalGuidDeref = guid;
   if (guid == ClntObjMgrGetActivePlayer()) {
     ++s_localPlayerUpdates;
   }
+  s_curMgr->m_legalGuidDeref = guid;
 
   C_OBJECTHASH *foundObj = GetUpdateObject(guid);
   if (!foundObj) {
@@ -788,13 +800,19 @@ static BOOL UpdateObject(CDataStore *msg) {
 }
 
 static void PostMovementUpdate(CDataStore *msg) {
-  CClientMoveUpdate update;
-  DWORDLONG         guid;
+  FATALASSERT(msg);
+  DWORDLONG guid;
   msg->Get(guid);
+  CClientMoveUpdate update;
   *msg >> update;
   CGObject_C *object = GetObjectPtr(guid);
-  if (object && object->IsA(TYPE_UNIT)) {
-    static_cast<CGUnit_C *>(object)->PostMovementUpdate(update);
+  if (object) {
+    switch (object->GetType()) {
+      case HIER_TYPE_UNIT:
+      case HIER_TYPE_PLAYER:
+        static_cast<CGUnit_C *>(object)->PostMovementUpdate(update);
+        break;
+    }
   }
 }
 
@@ -992,7 +1010,6 @@ static BOOL ObjectUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore 
 }
 
 static BOOL ObjectCompressedUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
-  WDataStore realmsg;
   LPVOID     data;
   UINT       origSize;
   DWORD      destSize;
@@ -1004,9 +1021,10 @@ static BOOL ObjectCompressedUpdateHandler(LPVOID, NETMESSAGE, DWORD eventTime, C
   destSize = origSize;
   zlib_uncompress(static_cast<BYTE *>(dest), &destSize, static_cast<const BYTE *>(data), compressedSize);
   FATALASSERT(destSize == origSize);
+  WDataStore realmsg;
   realmsg.PutData(dest, destSize);
   realmsg.Finalize();
-  return ObjectUpdateHandler(0, MSG_NULL_ACTION, eventTime, &realmsg);
+  return ObjectUpdateHandler(0, SMSG_UPDATE_OBJECT, eventTime, &realmsg);
 }
 
 static void AssignMirrorHandler(

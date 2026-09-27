@@ -147,11 +147,19 @@ class CMovementData {
     return GetPosition(m_position);
   }
   NTempest::C3Vector GetPosition(const NTempest::C3Vector &position) const;
-  NTempest::C3Vector GetRawPosition() const;
-  float              GetFacing() const;
+  NTempest::C3Vector GetRawPosition() const {
+    return m_position;
+  }
+  float GetFacing() const {
+    return GetFacing(m_facing);
+  }
   float              GetFacing(float facing) const;
-  float              GetRawFacing() const;
-  float              GetPitch() const;
+  float GetRawFacing() const {
+    return m_facing;
+  }
+  float GetPitch() const {
+    return m_pitch;
+  }
   NTempest::C3Vector GetAnchorPosition() const;
   float              GetAnchorFacing() const;
   float              GetAnchorPitch() const;
@@ -221,6 +229,7 @@ class CMovementData {
   void RemoveFromMoversList();
 
   friend void OnMoveUpdate(DWORDLONG unit, DWORD eventTime);
+  friend class CGUnit;
   friend class CGUnit_C;
   friend class CGPlayer_C;
   friend class CGInputControl;

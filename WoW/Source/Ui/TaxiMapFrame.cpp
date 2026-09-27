@@ -63,7 +63,7 @@ void CGTaxiMap::SetupMap(const DWORDLONG &unit, UINT node, LONGLONG destNodes, L
   }
 
   destNodes |= knownNodes;
-  CGGameUI::SetInteractTarget(unit, 0.0f);
+  CGGameUI::SetInteractTarget(unit, MAX_SHOP_DISTANCE_SQUARED);
   m_unit = unit;
   m_startNode = node;
 
@@ -196,17 +196,19 @@ static int Script_TaxiNodeName(lua_State *L) {
 
 static int Script_TaxiNodePosition(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: TaxiNodeTaxiNodeLocation(slot)");
+    luaL_error(L, "Usage: TaxiNodeTaxiNodeLocation(slot)");
+    return 0;
   }
   UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot > CGTaxiMap::NumTaxiNodes()) {
-    return luaL_error(L, "Invalid taxi node slot");
+    luaL_error(L, "Invalid taxi node slot");
+    return 0;
   }
   float x;
   float y;
   CGTaxiMap::TaxiNodePosition(slot, x, y);
-  lua_pushnumber(L, y);
   lua_pushnumber(L, x);
+  lua_pushnumber(L, y);
   return 2;
 }
 

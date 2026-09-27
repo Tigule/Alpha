@@ -27,5 +27,7 @@ enum CHARSET {
 void                 ValidateNameInitialize();
 void                 ValidateNameDestroy();
 VALIDATE_NAME_RESULT ValidateCharacterName(WOW_LOCALE locale, LPCSTR name);
+VALIDATE_NAME_RESULT ValidatePetName(WOW_LOCALE locale, LPCSTR name);
+VALIDATE_NAME_RESULT ValidateGuildName(WOW_LOCALE locale, LPCSTR name);
 
 #endif

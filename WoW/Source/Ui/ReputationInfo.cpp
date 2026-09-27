@@ -77,7 +77,7 @@ int CGReputationInfo::IndexToFaction(int index) {
 void CGReputationInfo::OnInitializeFactions(CDataStore *msg) {
   int  standing;
   int  numFactions;
-  UINT flags;
+  BYTE flags;
 
   memset(m_factionSorting, 0, sizeof(m_factionSorting));
   m_numFactions = 0;
@@ -85,7 +85,7 @@ void CGReputationInfo::OnInitializeFactions(CDataStore *msg) {
   FATALASSERT(numFactions == 64);
 
   for (int index = 0; index < numFactions; ++index) {
-    msg->Get(reinterpret_cast<BYTE &>(flags));
+    msg->Get(flags);
     SetFactionFlags(index, flags);
     msg->Get(standing);
     SetFactionStanding(index, standing);
@@ -174,7 +174,7 @@ void CGReputationInfo::SetAtWar(int faction, bool state) {
   }
   SetFactionFlags(index, static_cast<BYTE>(flags));
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_SET_FACTION_ATWAR));
+  msg.Put(CMSG_SET_FACTION_ATWAR);
   msg.Put(index);
   msg.Put(static_cast<BYTE>(state != 0));
   msg.Finalize();
@@ -187,9 +187,9 @@ bool CGReputationInfo::IsAtWar(int faction) {
 
 void CGReputationInfo::SetFactionStanding(int factionIndex, int standing) {
   FATALASSERT(factionIndex >= 0 && factionIndex < 64);
-  m_factionStandings[factionIndex] = standing;
-  int faction = IndexToFaction(factionIndex);
-  UnitCombatLogFactionChanged(faction, GetFactionStanding(faction));
+  standing -= m_factionStandings[factionIndex];
+  m_factionStandings[factionIndex] += standing;
+  UnitCombatLogFactionChanged(IndexToFaction(factionIndex), standing);
 }
 
 int CGReputationInfo::GetFactionStanding(int faction) {

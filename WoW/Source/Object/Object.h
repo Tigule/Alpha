@@ -3,6 +3,17 @@
 #include "Base/CDataStore.h"
 #include "Tempest/c3spline.h"
 
+namespace NTempest {
+
+  inline CDataStore &operator<<(CDataStore &s_, const C3Vector &d_) {
+    s_ << d_.x;
+    s_ << d_.y;
+    s_ << d_.z;
+    return s_;
+  }
+
+}
+
 struct CMovementStatus {
   CMovementStatus() : transport(0), transRelPosition(0.0f), transRelFacing(0.0f), worldPosition(0.0f), worldFacing(0.0f), pitch(0.0f), moveFlags(0) {
   }

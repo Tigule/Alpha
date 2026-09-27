@@ -25,7 +25,9 @@ namespace NTempest {
     BYTE         Encloses(const CAaSphere &sphere) const;
     BYTE         Encloses(const C3Vector &point) const;
     BYTE         Contains(const CAaSphere &sphere) const;
-    BYTE         Contains(const C3Vector &point) const;
+    BYTE         Contains(const C3Vector &point) const {
+      return (c - point).SquaredMag() < r * r;
+    }
     float        Diameter() const;
     float        Area() const;
     float        Volume() const;

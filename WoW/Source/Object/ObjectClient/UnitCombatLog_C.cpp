@@ -926,7 +926,7 @@ void UnitCombatLogShutdown() {
 
 void UnitCombatDebugLogEnable(int enable) {
   CDataStore msg;
-  msg.Put(static_cast<int>(CMSG_ENABLEDEBUGCOMBATLOGGING));
+  msg.Put(CMSG_ENABLEDEBUGCOMBATLOGGING);
   msg.Put(enable);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -1285,8 +1285,6 @@ void UnitCombatLogSetActivePlayer(const CGPlayer_C *playerPtr) {
 }
 
 void UnitCombatLogXPGain(const DWORDLONG &victim, CDataStore *msg, UINT count) {
-  FATALASSERT(msg);
-
   for (UINT i = 0; i < count; ++i) {
     DWORDLONG guid;
     int       xp;
@@ -1300,7 +1298,7 @@ void UnitCombatLogXPGain(const DWORDLONG &victim, CDataStore *msg, UINT count) {
     if (playerPtr->GetGUID() == ClntObjMgrGetActivePlayer()) {
       CGObject_C *victimPtr = ClntObjMgrObjectPtr(victim, __FILE__, __LINE__);
       if (victimPtr && (victimPtr->GetType() & TYPE_UNIT)) {
-        UnitCombatLogShowXPGained(victim, xp);
+        static_cast<CGUnit_C *>(victimPtr)->StoreXPGain(xp);
       }
     }
   }

@@ -126,7 +126,7 @@ void CGPetInfo::SetAction(UINT index, PetAction &action, int save) {
 
   if (save) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_PET_SET_ACTION));
+    msg.Put(CMSG_PET_SET_ACTION);
     msg.Put(m_pet);
     if (oldSlot >= 0) {
       msg.Put(oldSlot);
@@ -141,13 +141,12 @@ void CGPetInfo::SetAction(UINT index, PetAction &action, int save) {
 }
 
 void CGPetInfo::ToggleAutocast(UINT index) {
-  FATALASSERT(index < 10);
   UINT &action = m_actions[index];
   if (static_cast<int>(action) < 0) {
     action ^= 0x40000000;
 
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_PET_SET_ACTION));
+    msg.Put(CMSG_PET_SET_ACTION);
     msg.Put(m_pet);
     msg.Put(index);
     msg.Put(action);
@@ -220,7 +219,7 @@ void CGPetInfo::SendPetAction(const PetAction &action, const DWORDLONG &target) 
   }
 
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_PET_ACTION));
+  msg.Put(CMSG_PET_ACTION);
   msg.Put(m_pet);
   msg.Put(rawAction);
   msg.Put(actionTarget);
@@ -266,7 +265,7 @@ void CGPetInfo::PetDismiss() {
 
 void CGPetInfo::PetAbandon() {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_PET_ABANDON));
+  msg.Put(CMSG_PET_ABANDON);
   msg.Put(m_pet);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -295,7 +294,7 @@ void CGPetInfo::PetRename(LPCSTR newName) {
   SStrPrintf(petName, sizeof(petName), "%s", newName);
   petName[sizeof(petName) - 1] = 0;
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_PET_RENAME));
+  msg.Put(CMSG_PET_RENAME);
   msg.Put(m_pet);
   msg.PutString(petName);
   msg.Finalize();

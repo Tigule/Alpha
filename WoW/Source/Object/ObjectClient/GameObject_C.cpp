@@ -107,7 +107,7 @@ static BOOL PageTextHandler(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDa
   msg->Get(gameObject);
   CGObject_C *object = ClntObjMgrObjectPtr(gameObject, __FILE__, __LINE__);
   if (object) {
-    CGItemText::SetItem(object->GetGUID(), 1);
+    CGItemText::SetItem(object->GetGUID(), 0);
   }
   return 1;
 }
@@ -115,12 +115,12 @@ static BOOL PageTextHandler(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDa
 static BOOL CustomAnimHandler(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
   DWORDLONG gameObject;
-  UINT      anim;
+  UINT      customAnim;
   msg->Get(gameObject);
-  msg->Get(anim);
+  msg->Get(customAnim);
   CGGameObject_C *object = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(gameObject, __FILE__, __LINE__));
-  if (object && anim < 4) {
-    object->ActivateCustomAnim(anim);
+  if (object && customAnim < 4) {
+    object->ActivateCustomAnim(customAnim);
   }
   return 1;
 }
@@ -323,7 +323,7 @@ bool CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE *reason) const {
 }
 
 bool CGGameObject_C_TypeBase::Use(const DWORDLONG &) {
-  FATALASSERT(CanUseNow(0));
+  FATALASSERT(CanUseNow());
 
   int       spellID = 0;
   CGItem_C *item = 0;

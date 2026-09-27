@@ -59,7 +59,8 @@ class TSBitField {
 
   void Load(LPCVOID data, UINT byteCount) {
     ASSERT((byteCount & (m_array.SizeOfElement() - 1)) == 0);
-    SetCount(byteCount * 8);
+    m_numBits = byteCount * 8;
+    m_array.SetCount((m_numBits - 1) / (m_array.SizeOfElement() * 8) + 1);
     memcpy(m_array.Ptr(), data, byteCount);
   }
 

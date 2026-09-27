@@ -110,7 +110,7 @@ class CGGameObject_C_TypeBase {
   virtual bool               CanHighlight() const;
   virtual bool               CanChangeCursor() const;
   virtual bool               CanUse() const;
-  virtual bool               CanUseNow(GAME_ERROR_TYPE *reason) const;
+  virtual bool               CanUseNow(GAME_ERROR_TYPE *reason = 0) const;
   virtual bool               Use(const DWORDLONG &activator);
   virtual void               UpdateState(int oldState, int newState);
   virtual void               HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position);

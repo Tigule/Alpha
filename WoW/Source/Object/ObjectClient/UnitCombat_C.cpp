@@ -153,13 +153,14 @@ void ATTACKROUNDINFO::UI(CDataStore &msg) {
   msg.Get(victim);
   msg.Get(dmg.totalDamage);
 
-  BYTE d;
-  msg.Get(d);
-  for (UINT i = 0; i < d; ++i) {
-    msg.Get(dmg.damageType[i]);
-    msg.Get(dmg.damageFloat[i]);
-    msg.Get(dmg.damage[i]);
-    msg.Get(dmg.absorbed[i]);
+  int  d;
+  BYTE c;
+  msg.Get(c);
+  for (d = 0; d < c; ++d) {
+    msg.Get(dmg.damageType[d]);
+    msg.Get(dmg.damageFloat[d]);
+    msg.Get(dmg.damage[d]);
+    msg.Get(dmg.absorbed[d]);
   }
 
   msg.Get(reinterpret_cast<UINT &>(newVictimState));
@@ -185,9 +186,9 @@ void ATTACKROUNDINFO::UI(CDataStore &msg) {
     msg.Get(blockRollFloat);
     msg.Get(blockRollNeededFloat);
     msg.Get(delayTime);
-    for (UINT i = 0; i < 5; ++i) {
-      msg.Get(dmg.minDamage[i]);
-      msg.Get(dmg.maxDamage[i]);
+    for (d = 0; d < 5; ++d) {
+      msg.Get(dmg.minDamage[d]);
+      msg.Get(dmg.maxDamage[d]);
     }
     msg.Get(netDamageMultiplier);
     msg.Get(scaledDamage);
@@ -354,8 +355,9 @@ BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *ms
       if (unit) {
         unit->m_combat.ClearAttackSent();
         unit->OnAttackStart(victim);
+        return 1;
       }
-      return 1;
+      return 0;
     }
     case SMSG_ATTACKSTOP: {
       DWORDLONG attacker;
@@ -462,16 +464,16 @@ BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
   UINT      flags;
   int       spellID;
 
-  msg->Get(attacker);
+  msg->Get(guid);
   msg->Get(damage);
   msg->Get(normalCombatDamage);
   msg->Get(flags);
   msg->Get(spellID);
-  msg->Get(guid);
+  msg->Get(attacker);
 
-  CGUnit_C *attackerPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__));
+  CGUnit_C *attackerPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (attackerPtr) {
-    attackerPtr->AddDamageDone(damage, normalCombatDamage, flags, guid, spellID);
+    attackerPtr->AddDamageDone(damage, normalCombatDamage, flags, attacker, spellID);
   }
   return 1;
 }
@@ -483,15 +485,15 @@ BOOL OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *ms
 BOOL OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG guid;
   UINT      flags;
-  BYTE      damage;
-  int       amount;
+  BYTE      damageClass;
+  int       damage;
 
   msg->Get(guid);
+  msg->Get(damageClass);
   msg->Get(damage);
-  msg->Get(amount);
   msg->Get(flags);
-  if (amount > 0) {
-    CGGameUI::ShowCombatFeedback(guid, amount, damage, flags);
+  if (damage > 0) {
+    CGGameUI::ShowCombatFeedback(guid, damage, damageClass, flags);
   }
   return 1;
 }
@@ -861,7 +863,7 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
           victimPtr->SetCustomAttackSound(m_soundData->m_customAttack[index], position);
         }
       }
-      // Fall through.
+      // intentional fallthrough
     case 'HAC$':
       if (m_currentBaseAnimState == ANIM_STATE_SPELLCAST) {
         CheckPendingMissileRelease(&position);
@@ -913,9 +915,9 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
 }
 
 void CGUnit_C::OnAttackSwing(DWORDLONG victimGUID, UINT clientTimeStamp) {
-  if (m_combat.StopBeenSent() || (!m_combat.IsAttacking() && !m_combat.AttackBeenSent())) {
+  if ((!m_combat.IsAttacking() && !m_combat.AttackBeenSent()) || m_combat.StopBeenSent()) {
     CDataStore msg;
-    msg.Put(static_cast<int>(CMSG_ATTACKSWING));
+    msg.Put(CMSG_ATTACKSWING);
     msg.Put(victimGUID);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -925,7 +927,7 @@ void CGUnit_C::OnAttackSwing(DWORDLONG victimGUID, UINT clientTimeStamp) {
 
 void CGUnit_C::StopAttack() {
   CDataStore message;
-  message.Put(static_cast<int>(CMSG_ATTACKSTOP));
+  message.Put(CMSG_ATTACKSTOP);
   message.Finalize();
   ClientServices_Send(&message);
   m_combat.SetStopSent(1);

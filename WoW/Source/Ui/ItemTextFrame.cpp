@@ -51,7 +51,7 @@ void CGItemText::ItemTextCallback(int id, const DWORDLONG &guid, LPVOID, bool gr
 }
 
 void CGItemText::SetItem(const DWORDLONG &item, int callback) {
-  if (!callback && !item && item == m_itemGUID) {
+  if (!callback && item && item == m_itemGUID) {
     CGGameUI::ClearInteractTarget(m_itemGUID);
     FrameScript_SignalEvent(276);
     return;
@@ -91,13 +91,13 @@ void CGItemText::SetItem(const DWORDLONG &item, int callback) {
   FrameScript_SignalEvent(273);
 
   if (!(object->GetType() & TYPE_ITEM)) {
-    DisplayText(item, callback);
+    DisplayText(item, 1);
     return;
   }
 
   CGItem_C *itemObject = static_cast<CGItem_C *>(object);
   if (itemObject->IsTranslated()) {
-    DisplayText(item, callback);
+    DisplayText(item, 1);
     return;
   }
 

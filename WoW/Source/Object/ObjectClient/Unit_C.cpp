@@ -1416,7 +1416,7 @@ BOOL StandStateUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID ol
   return 1;
 }
 
-SEQFINISHINFO g_seqInformation[NUM_OBJECTANIMATIONS] = {
+SEQFINISHINFO g_seqInformation[FIRST_ITEMANIMATION + NUM_ITEMANIMATIONS] = {
     {    OnPickNextStandHandler, 3,  0},
     {       DeathAnimEndHandler, 1,  6},
     {                         0, 0,  0},
@@ -1803,23 +1803,23 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
   m_debugPathPoints.Clear();
   m_serverLoc = serverLoc;
 
-  UINT moveIndex;
-  BYTE facingType;
-  msg->Get(moveIndex);
-  msg->Get(facingType);
+  UINT msgIndex;
+  BYTE eventType;
+  msg->Get(msgIndex);
+  msg->Get(eventType);
 
-  NTempest::C3Vector finalFacingSpot;
-  DWORDLONG          finalFacingGUID = 0;
-  float              finalFacingAngle = 0.0f;
-  switch (facingType) {
+  NTempest::C3Vector final_facingSpot;
+  DWORDLONG          final_facingGUID = 0;
+  float              final_facingAngle = 0.0f;
+  switch (eventType) {
     case 1:
       OnMoveStopLocalNoUpdate(eventTime);
       return;
     case 3:
-      msg->Get(finalFacingGUID);
+      msg->Get(final_facingGUID);
       break;
     case 4:
-      msg->Get(finalFacingAngle);
+      msg->Get(final_facingAngle);
       break;
   }
 
@@ -1850,15 +1850,16 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
     msg->Get(endPoint.y);
     msg->Get(endPoint.z);
     for (UINT i = 1; i < numPoints; ++i) {
-      UINT packedDeltas;
+      DWORD packedDeltas;
       msg->Get(packedDeltas);
-      int xDelta = static_cast<int>(packedDeltas << 20) >> 20;
-      int yDelta = static_cast<int>(packedDeltas << 8) >> 20;
-      int zDelta = static_cast<signed char>(packedDeltas >> 24);
+      NTempest::C3iVector iDelta(
+          static_cast<LONG>(packedDeltas << 20) >> 20, static_cast<LONG>(packedDeltas << 8) >> 20,
+          static_cast<signed char>(packedDeltas >> 24)
+      );
       points.New(
           NTempest::C3Vector(
-              endPoint.x - static_cast<float>(xDelta) * 0.125f, endPoint.y - static_cast<float>(yDelta) * 0.125f,
-              endPoint.z - static_cast<float>(zDelta) * 0.125f
+              endPoint.x - static_cast<float>(iDelta.x) * 0.125f, endPoint.y - static_cast<float>(iDelta.y) * 0.125f,
+              endPoint.z - static_cast<float>(iDelta.z) * 0.125f
           )
       );
     }
@@ -1866,37 +1867,37 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
   }
 
   points.New(points[points.Count() - 1]);
-  if (facingType == 2) {
-    finalFacingSpot = endPoint;
+  if (eventType == 2) {
+    final_facingSpot = endPoint;
   }
 
   if (points.Count() > 4) {
     position = GetPosition();
-    float closestDistance = FLT_MAX;
+    float closest_distance = FLT_MAX;
     UINT  closest_index = 1;
     for (UINT i = 2; i < points.Count() - 1; ++i) {
       NTempest::C3Vector offset = position - points[i];
       float              distance = offset.SquaredMag();
-      if (distance <= closestDistance) {
-        closestDistance = distance;
+      if (distance <= closest_distance) {
+        closest_distance = distance;
         closest_index = i;
       }
     }
     FATALASSERT(closest_index > 1);
 
     if (closest_index < points.Count() - 2) {
-      NTempest::C3Vector direction = points[closest_index + 1] - points[closest_index];
-      direction.Normalize();
-      NTempest::C4Plane plane(direction, points[closest_index]);
+      NTempest::C3Vector normal = points[closest_index + 1] - points[closest_index];
+      normal.Normalize();
+      NTempest::C4Plane plane(normal, points[closest_index]);
       if (plane.DistSigned(position) >= 0.0f) {
         ++closest_index;
       }
     }
 
     if (closest_index != 2) {
-      UINT newCount = points.Count() - (closest_index - 2);
-      memmove(&points[2], &points[closest_index], sizeof(NTempest::C3Vector) * (newCount - 2));
-      points.SetCount(newCount);
+      UINT count = points.Count() - (closest_index - 2);
+      memmove(&points[2], &points[closest_index], sizeof(NTempest::C3Vector) * (count - 2));
+      points.SetCount(count);
     }
   }
 
@@ -1907,10 +1908,10 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
     if (zDelta < 1.0f) {
       zDelta = 0.0f;
     }
-    float squaredDistance =
+    float squaredDist =
         (position.x - destination.x) * (position.x - destination.x) + (position.y - destination.y) * (position.y - destination.y) + zDelta * zDelta;
-    if (squaredDistance > 0.027777778f) {
-      float distance = NTempest::CMath::sqrt_(squaredDistance);
+    if (squaredDist > 0.027777778f) {
+      float distance = NTempest::CMath::sqrt_(squaredDist);
       float speed = m_move.m_runSpeed * 2.0f;
       if (flags & 0x200) {
         speed = m_move.m_runSpeed * 10.0f;
@@ -1922,8 +1923,14 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
         }
       }
       if (speed > 0.00000095367432f) {
-        int duration = static_cast<int>(distance / speed * 1000.0f);
-        moveTime = duration > 1 ? duration : 1;
+        squaredDist = distance / speed * 1000.0f;
+        __asm {
+          fld squaredDist
+          fistp moveTime
+        }
+        if (static_cast<int>(moveTime) <= 1) {
+          moveTime = 1;
+        }
 
         m_debugPathPoints.Add(points.Count(), points.Ptr());
         m_numDebugPathNodes = points.Count() + 1;
@@ -1931,28 +1938,28 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
           position = GetPosition();
           m_debugPathPoints.Add(1, &position);
 
-          NTempest::C3Spline_CatmullRom debugSpline;
-          debugSpline.SetPoints(points.Ptr(), points.Count());
-          float step = 1.0f / (debugSpline.cachedLength * 3.0f);
+          NTempest::C3Spline_CatmullRom spline;
+          spline.SetPoints(points.Ptr(), points.Count());
+          float step = 1.0f / (spline.cachedLength * 3.0f);
           for (float t = 0.0f; t < 1.0f; t += step) {
             NTempest::C34Matrix matrix;
             matrix.Identity();
-            debugSpline.Frame(t, matrix, NTempest::C3Spline::EVAL_ARCLENGTH);
+            spline.Frame(t, matrix, NTempest::C3Spline::EVAL_ARCLENGTH);
             NTempest::C3Vector sample(matrix.d0, matrix.d1, matrix.d2);
             m_debugPathPoints.Add(1, &sample);
           }
         }
 
         static_cast<CMovement &>(m_move).OnSpline(OsGetAsyncTimeMs(), points.Ptr(), points.Count(), moveTime, flags);
-        switch (facingType) {
+        switch (eventType) {
           case 2:
-            static_cast<CMovement &>(m_move).OnSplineDoneFace(finalFacingSpot);
+            static_cast<CMovement &>(m_move).OnSplineDoneFace(final_facingSpot);
             break;
           case 3:
-            static_cast<CMovement &>(m_move).OnSplineDoneFace(finalFacingGUID);
+            static_cast<CMovement &>(m_move).OnSplineDoneFace(final_facingGUID);
             break;
           case 4:
-            static_cast<CMovement &>(m_move).OnSplineDoneFace(finalFacingAngle);
+            static_cast<CMovement &>(m_move).OnSplineDoneFace(final_facingAngle);
             break;
         }
         return;
@@ -1961,16 +1968,16 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
   }
 
   OnMoveStopLocalNoUpdate(eventTime);
-  switch (facingType) {
+  switch (eventType) {
     case 2:
       position = GetPosition();
-      OnSetFacingLocalNoUpdate(eventTime, CalculateFacingTo(position, finalFacingSpot));
+      OnSetFacingLocalNoUpdate(eventTime, CalculateFacingTo(position, final_facingSpot));
       break;
     case 3:
-      OnSetFacingGUIDLocalNoUpdate(eventTime, finalFacingGUID);
+      OnSetFacingGUIDLocalNoUpdate(eventTime, final_facingGUID);
       break;
     case 4:
-      OnSetFacingLocalNoUpdate(eventTime, finalFacingAngle);
+      OnSetFacingLocalNoUpdate(eventTime, final_facingAngle);
       break;
   }
 }
@@ -2187,14 +2194,12 @@ void CGUnit_C::OnTeleport(DWORD eventTime, const CMovementStatus &update) {
 
 void CGUnit_C::OnTeleportAck(DWORD eventTime, const CMovementStatus &update) {
   (void)ClntObjMgrGetPlayerType();
-  NTempest::C3Vector oldPos;
-  GetPosition(oldPos);
+  NTempest::C3Vector oldPos = GetPosition();
   FATALASSERT(GetGUID() == CGUnit_C::GetActiveMover());
   static_cast<CMovement &>(m_move).UpdateStatusLocal(eventTime, update);
   OnTeleportLocalNoUpdate(eventTime, GetPosition(), GetFacing());
 
-  NTempest::C3Vector delta = m_move.GetPosition() - oldPos;
-  if (delta.SquaredMag() > MAX_SHORT_RANGE_TELEPORT * MAX_SHORT_RANGE_TELEPORT) {
+  if ((m_move.GetPosition() - oldPos).SquaredMag() > MAX_SHORT_RANGE_TELEPORT * MAX_SHORT_RANGE_TELEPORT) {
     CWorld::Preload(GetPosition());
     CGObject_C::UpdateAllWorldObjects();
   }
@@ -4590,26 +4595,15 @@ void CGUnit_C::SetActiveMover(const DWORDLONG &guid) {
 }
 
 void CGUnit_C::BuildMovementUpdate(NETMESSAGE messageId, CDataStore *msg) const {
-  msg->Put(static_cast<UINT>(messageId));
-  const NTempest::C3Vector &position = m_move.GetPosition(m_move.m_position);
-  msg->Put(m_move.m_transportGUID)
-      .Put(m_move.m_position.x)
-      .Put(m_move.m_position.y)
-      .Put(m_move.m_position.z)
-      .Put(m_move.m_facing)
-      .Put(position.x)
-      .Put(position.y)
-      .Put(position.z)
-      .Put(m_move.GetFacing(m_move.m_facing))
-      .Put(m_move.m_pitch)
-      .Put(m_move.m_moveFlags & 0xFAFF0BFF);
+  msg->Put(messageId);
+  *msg << m_move.m_transportGUID << m_move.GetRawPosition() << m_move.GetRawFacing() << m_move.GetPosition()
+       << m_move.GetFacing() << m_move.GetPitch() << (m_move.GetMoveFlags() & 0xFAFF0BFF);
 }
 
 void CGUnit_C::SendMovementUpdate(NETMESSAGE messageId) {
+  CDataStore msg;
   m_lastSentFacing = GetFacing();
   m_lastSentPitch = m_move.m_pitch;
-
-  CDataStore msg;
   BuildMovementUpdate(messageId, &msg);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -4973,7 +4967,7 @@ void CGUnit_C::Initialize() {
 
   g_unitSeqEndList.Clear();
   g_mountSeqEndList.Clear();
-  for (UINT animID = 0; animID < NUM_OBJECTANIMATIONS; ++animID) {
+  for (UINT animID = 0; animID < sizeof(g_seqInformation) / sizeof(g_seqInformation[0]); ++animID) {
     if (g_seqInformation[animID].callbackFlags & 1) {
       *g_unitSeqEndList.New() = animID;
     }
@@ -5077,7 +5071,7 @@ void CGUnit_C::SetLocalTarget(DWORDLONG target) {
 
   m_targetUnit = target;
   CDataStore msg;
-  msg.Put(static_cast<int>(CMSG_SET_TARGET));
+  msg.Put(CMSG_SET_TARGET);
   msg.Put(target);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -7641,7 +7635,7 @@ void CGUnit_C::ChangeStandState(UINT standState) {
 
   if (!IsInStandSitTransition() && !m_castingSpell && !IsMounted() && StandStateValid(static_cast<UNITSTANDSTATE>(standState))) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_STANDSTATECHANGE));
+    msg.Put(CMSG_STANDSTATECHANGE);
     msg.Put(standState);
     msg.Finalize();
     ClientServices_Send(&msg);

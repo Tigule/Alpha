@@ -51,7 +51,7 @@ void ModelShowBoundingSphere(HMODEL model);
 
 static BOOL CCommand_DBLookup(LPCSTR command, LPCSTR string) {
   CDataStore message;
-  message.Put(2);
+  message.Put(CMSG_DBLOOKUP);
   message.PutString(string);
   message.Finalize();
   ClientServices_Send(&message);
@@ -115,7 +115,7 @@ static BOOL CCommand_ShowBounds(LPCSTR command, LPCSTR arguments) {
 
 static BOOL CCommand_Loc(LPCSTR, LPCSTR) {
   CDataStore msg;
-  msg.Put(4);
+  msg.Put(CMSG_QUERY_OBJECT_POSITION);
   msg.Put(ClntObjMgrGetActivePlayer());
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -160,32 +160,31 @@ static BOOL CCommand_TargetLoc(LPCSTR, LPCSTR) {
     }
 
     s_lastTarget = target->GetGUID();
-    NTempest::C3Vector targetPosition = target->GetPosition();
-    NTempest::C3Vector playerPosition = player->GetPosition();
-    NTempest::C3Vector distance(playerPosition.x - targetPosition.x, playerPosition.y - targetPosition.y, playerPosition.z - targetPosition.z);
+    NTempest::C3Vector distance = player->GetPosition() - target->GetPosition();
+    NTempest::C3Vector pos = target->GetPosition();
     ConsoleWriteA(
-        "%016I64X: Local Pos: %g, %g, %g, facing: %g distance: %g", DEFAULT_COLOR, target->GetGUID(), targetPosition.x, targetPosition.y,
-        targetPosition.z, target->GetFacing(), distance.Mag()
+        "%016I64X: Local Pos: %g, %g, %g, facing: %g distance: %g", DEFAULT_COLOR, target->GetGUID(), pos.x, pos.y,
+        pos.z, target->GetFacing(), distance.Mag()
     );
 
-    CDataStore locMsg;
-    locMsg.Put(4);
-    locMsg.Put(target->GetGUID());
-    locMsg.Finalize();
-    ClientServices_Send(&locMsg);
+    CDataStore msg;
+    msg.Put(CMSG_QUERY_OBJECT_POSITION);
+    msg.Put(target->GetGUID());
+    msg.Finalize();
+    ClientServices_Send(&msg);
 
-    CDataStore facingMsg;
-    facingMsg.Put(6);
-    facingMsg.Put(target->GetGUID());
-    facingMsg.Finalize();
-    ClientServices_Send(&facingMsg);
+    msg.Reset();
+    msg.Put(CMSG_QUERY_OBJECT_ROTATION);
+    msg.Put(target->GetGUID());
+    msg.Finalize();
+    ClientServices_Send(&msg);
   }
   return 1;
 }
 
 static BOOL CCommand_Facing(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(6);
+  msg.Put(CMSG_QUERY_OBJECT_ROTATION);
   msg.Put(ClntObjMgrGetActivePlayer());
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -255,8 +254,7 @@ static BOOL CCommand_Money(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
   CDataStore msg;
-  msg.Put(36);
-  msg.Put(SStrToUnsigned(currArg));
+  msg.Put(CMSG_CHEAT_SETMONEY) << SStrToUnsigned(currArg);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -299,8 +297,7 @@ static BOOL CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
   }
 
   CDataStore msg;
-  msg.Put(8);
-  msg.Put(OsGetAsyncTimeMs());
+  msg.Put(CMSG_WORLD_TELEPORT) << OsGetAsyncTimeMs();
   msg.Put(static_cast<BYTE>(mapID));
   msg.Put(position.x);
   msg.Put(position.y);
@@ -317,9 +314,9 @@ static BOOL CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
     return 1;
   }
 
-  if (!isdigit(static_cast<BYTE>(*arguments)) && *arguments != '-') {
+  if (!isdigit(*arguments) && *arguments != '-') {
     CDataStore msg;
-    msg.Put(9);
+    msg.Put(CMSG_TELEPORT_TO_PLAYER);
     msg.PutString(arguments);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -332,31 +329,31 @@ static BOOL CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
   if (!currArg[0]) {
     return 0;
   }
-  float x = SStrToFloat(currArg);
+  NTempest::C3Vector position;
+  position.x = SStrToFloat(currArg);
 
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
     return 0;
   }
-  float y = SStrToFloat(currArg);
+  position.y = SStrToFloat(currArg);
 
-  float mapX = 17066.666f - x;
-  float mapY = 17066.666f - y;
-  if (mapX < 0.0f || mapX >= 34133.332f || mapY < 0.0f || mapY >= 34133.332f) {
+  float testy = 17066.666f - position.y;
+  if (17066.666f - position.x < 0.0f || 17066.666f - position.x >= 34133.332f || testy < 0.0f || testy >= 34133.332f) {
     ConsoleWrite("Coordinates out of range\n", DEFAULT_COLOR);
     return 1;
   }
 
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
-  float z = currArg[0] ? SStrToFloat(currArg) : CWorld::CalcAltitude(x, y, 0.0f);
+  position.z = currArg[0] ? SStrToFloat(currArg) : CWorld::CalcAltitude(position.x, position.y, 0.0f);
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   float facing = currArg[0] ? SStrToFloat(currArg) * 0.017453292f : player->GetFacing();
 
   CDataStore msg;
-  msg.Put(198);
-  msg.Put(x);
-  msg.Put(y);
-  msg.Put(z);
+  msg.Put(MSG_MOVE_TELEPORT_CHEAT);
+  msg.Put(position.x);
+  msg.Put(position.y);
+  msg.Put(position.z);
   msg.Put(facing);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -365,8 +362,7 @@ static BOOL CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
 
 static BOOL CCommand_CreateItem(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(19);
-  msg.Put(SStrToInt(arguments));
+  msg.Put(CMSG_CREATEITEM) << SStrToInt(arguments);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -374,8 +370,7 @@ static BOOL CCommand_CreateItem(LPCSTR command, LPCSTR arguments) {
 
 static BOOL CCommand_CreateGameObject(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(20);
-  msg.Put(SStrToInt(arguments));
+  msg.Put(CMSG_CREATEGAMEOBJECT) << SStrToInt(arguments);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -385,8 +380,7 @@ static BOOL CCommand_CreateMonster(LPCSTR command, LPCSTR arguments) {
   char type[32];
   SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
   CDataStore msg;
-  msg.Put(17);
-  msg.Put(atoi(type));
+  msg.Put(CMSG_CREATEMONSTER) << atoi(type);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -396,8 +390,7 @@ static BOOL CCommand_CreatePet(LPCSTR command, LPCSTR arguments) {
   char type[32];
   SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
   CDataStore msg;
-  msg.Put(17);
-  msg.Put(-atoi(type));
+  msg.Put(CMSG_CREATEMONSTER) << -atoi(type);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -412,7 +405,7 @@ static BOOL CCommand_DestroyMonster(LPCSTR command, LPCSTR arguments) {
       return 1;
     }
     CDataStore msg;
-    msg.Put(18);
+    msg.Put(CMSG_DESTROYMONSTER);
     msg.Put(target->GetGUID());
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -429,7 +422,7 @@ static BOOL CCommand_AttackPlayer(LPCSTR command, LPCSTR arguments) {
       return 1;
     }
     CDataStore msg;
-    msg.Put(21);
+    msg.Put(CMSG_MAKEMONSTERATTACKME);
     msg.Put(target->GetGUID());
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -459,7 +452,7 @@ static BOOL CCommand_TargetAttack(LPCSTR command, LPCSTR arguments) {
   }
 
   CDataStore msg;
-  msg.Put(22);
+  msg.Put(CMSG_MAKEMONSTERATTACKGUID);
   msg.Put(target);
   msg.Put(victimGUID);
   msg.Finalize();
@@ -480,10 +473,9 @@ static BOOL CCommand_BindPoint(LPCSTR command, LPCSTR arguments) {
   if (activePlayer) {
     CGObject_C *player = ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__);
     if (player) {
-      NTempest::C3Vector position;
-      player->GetPosition(position);
+      NTempest::C3Vector position = player->GetPosition();
       CDataStore message;
-      message.Put(327);
+      message.Put(CMSG_SETDEATHBINDPOINT);
       message.Finalize();
       ClientServices_Send(&message);
     }
@@ -493,7 +485,7 @@ static BOOL CCommand_BindPoint(LPCSTR command, LPCSTR arguments) {
 
 static BOOL CCommand_Beastmaster(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(33);
+  msg.Put(CMSG_BEASTMASTER);
   msg.Put(static_cast<BYTE>(SStrCmpI(arguments, "off", 0x7FFFFFFF) != 0));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -502,7 +494,7 @@ static BOOL CCommand_Beastmaster(LPCSTR command, LPCSTR arguments) {
 
 static BOOL CCommand_SendEvent(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(45);
+  msg.Put(CMSG_SEND_EVENT);
   msg.Put(SStrToInt(arguments));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -523,7 +515,7 @@ static BOOL CCommand_Level(LPCSTR command, LPCSTR arguments) {
     ConsoleWrite("Invalid level specified\n", DEFAULT_COLOR);
   } else {
     CDataStore msg;
-    msg.Put(37);
+    msg.Put(CMSG_LEVEL_CHEAT);
     msg.Put(level);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -537,7 +529,7 @@ static BOOL CCommand_PetLevel(LPCSTR command, LPCSTR arguments) {
     ConsoleWrite("Invalid level specified\n", DEFAULT_COLOR);
   } else {
     CDataStore msg;
-    msg.Put(38);
+    msg.Put(CMSG_PET_LEVEL_CHEAT);
     msg.Put(level);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -551,7 +543,7 @@ static BOOL CCommand_ClearQuest(LPCSTR command, LPCSTR arguments) {
     ConsoleWrite("Invalid quest specified\n", DEFAULT_COLOR);
   } else {
     CDataStore msg;
-    msg.Put(44);
+    msg.Put(CMSG_CLEAR_QUEST);
     msg.Put(quest);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -565,7 +557,7 @@ static BOOL CCommand_FlagQuest(LPCSTR command, LPCSTR arguments) {
     ConsoleWrite("Invalid quest specified\n", DEFAULT_COLOR);
   } else {
     CDataStore msg;
-    msg.Put(42);
+    msg.Put(CMSG_FLAG_QUEST);
     msg.Put(quest);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -579,7 +571,7 @@ static BOOL CCommand_FlagQuestFinish(LPCSTR command, LPCSTR arguments) {
     ConsoleWrite("Invalid quest specified\n", DEFAULT_COLOR);
   } else {
     CDataStore msg;
-    msg.Put(43);
+    msg.Put(CMSG_FLAG_QUEST_FINISH);
     msg.Put(quest);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -589,7 +581,7 @@ static BOOL CCommand_FlagQuestFinish(LPCSTR command, LPCSTR arguments) {
 
 static void QueryQuest(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
-  msg.Put(386);
+  msg.Put(CMSG_QUESTGIVER_QUERY_QUEST);
   msg.Put(questGiver);
   msg.Put(questID);
   msg.Finalize();
@@ -598,7 +590,7 @@ static void QueryQuest(const DWORDLONG &questGiver, int questID) {
 
 static void AcceptQuest(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
-  msg.Put(389);
+  msg.Put(CMSG_QUESTGIVER_ACCEPT_QUEST);
   msg.Put(questGiver);
   msg.Put(questID);
   msg.Finalize();
@@ -607,7 +599,7 @@ static void AcceptQuest(const DWORDLONG &questGiver, int questID) {
 
 static void CompleteQuest(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
-  msg.Put(390);
+  msg.Put(CMSG_QUESTGIVER_COMPLETE_QUEST);
   msg.Put(questGiver);
   msg.Put(questID);
   msg.Finalize();
@@ -616,7 +608,7 @@ static void CompleteQuest(const DWORDLONG &questGiver, int questID) {
 
 static void QuestLogRemoveQuest(int entry) {
   CDataStore msg;
-  msg.Put(400);
+  msg.Put(CMSG_QUESTLOG_REMOVE_QUEST);
   msg.Put(static_cast<BYTE>(entry));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -669,7 +661,7 @@ static BOOL CCommand_TaxiEnableAllNodes(LPCSTR, LPCSTR) {
 
 static BOOL CCommand_ChangeCellZone(LPCSTR, LPCSTR args) {
   CDataStore msg;
-  msg.Put(12);
+  msg.Put(CMSG_DEBUG_CHANGECELLZONE);
   msg.Put(SStrToInt(args));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -686,7 +678,7 @@ static BOOL CCommand_Played(LPCSTR, LPCSTR) {
 
 static BOOL CCommand_LootMethod(LPCSTR, LPCSTR args) {
   CDataStore msg;
-  msg.Put(122);
+  msg.Put(CMSG_LOOT_METHOD);
   switch (*args) {
     case 'F':
     case 'f':
@@ -732,7 +724,7 @@ static BOOL CCommand_Reclaim(LPCSTR command, LPCSTR arguments) {
   DWORDLONG corpseGUID;
   sscanf(buffer, "%I64X", &corpseGUID);
   CDataStore msg;
-  msg.Put(451);
+  msg.Put(CMSG_RECLAIM_CORPSE);
   msg.Put(corpseGUID);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -754,7 +746,7 @@ static BOOL CCommand_BuySpell(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
   CDataStore msg;
-  msg.Put(420);
+  msg.Put(CMSG_TRAINER_BUY_SPELL);
   msg.Put(trainer);
   msg.Put(SStrToInt(buffer));
   msg.Finalize();
@@ -784,7 +776,7 @@ static BOOL CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
     amount = static_cast<BYTE>(SStrToInt(buffer));
   }
   CDataStore sellMsg;
-  sellMsg.Put(368);
+  sellMsg.Put(CMSG_SELL_ITEM);
   sellMsg.Put(merchant);
   sellMsg.Put(item);
   sellMsg.Put(amount);
@@ -816,11 +808,7 @@ static BOOL CCommand_BuyItem(LPCSTR command, LPCSTR arguments) {
   UINT quantity = SStrToInt(buffer);
   SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
   CDataStore buyMsg;
-  buyMsg.Put(370);
-  buyMsg.Put(merchant);
-  buyMsg.Put(muid);
-  buyMsg.Put(quantity);
-  buyMsg.Put(static_cast<BYTE>(buffer[0] && SStrToInt(buffer) != 0));
+  buyMsg.Put(CMSG_BUY_ITEM) << merchant << muid << quantity << static_cast<BYTE>(buffer[0] && SStrToInt(buffer) != 0);
   buyMsg.Finalize();
   ClientServices_Send(&buyMsg);
   return 1;
@@ -860,7 +848,7 @@ static BOOL CCommand_BuyItemInSlot(LPCSTR command, LPCSTR arguments) {
     slot = static_cast<BYTE>(SStrToInt(buffer));
   }
   CDataStore buyMsg;
-  buyMsg.Put(371);
+  buyMsg.Put(CMSG_BUY_ITEM_IN_SLOT);
   buyMsg.Put(merchant);
   buyMsg.Put(muid);
   buyMsg.Put(container);

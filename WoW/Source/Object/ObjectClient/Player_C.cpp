@@ -17,6 +17,7 @@
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
 #include "DB/DBClient/AutoCode/CreatureDisplayInfoRec.h"
 #include "DB/DBClient/AutoCode/CreatureModelDataRec.h"
+#include "DB/DBClient/AutoCode/EmotesRec.h"
 #include "DB/DBClient/AutoCode/EmotesTextRec.h"
 #include "DB/DBClient/AutoCode/FactionRec.h"
 #include "DB/DBClient/AutoCode/ItemSubClassRec.h"
@@ -52,6 +53,7 @@
 #include "Ui/GameUI.h"
 #include "Ui/GuildRegistrar.h"
 #include "Ui/ItemTextFrame.h"
+#include "Ui/TabardCreationFrame.h"
 #include "Ui/PaperDollInfoFrame.h"
 #include "Ui/PetInfo.h"
 #include "Ui/PartyFrame.h"
@@ -225,6 +227,7 @@ static TSFixedArray<UINT>        s_weaponSubclassSpells;
 static UINT                      s_defenseSkillID;
 static TSGrowableArray<ITEMSWAP> s_pendingSwaps;
 static DWORDLONG                 s_lastVendorListReceived;
+DWORDLONG                        s_lastTrainerRequest;
 DWORDLONG                        s_giftWrapItem;
 static DWORDLONG                 s_lastBinderID;
 static int                       s_lastQuestList[32];
@@ -295,8 +298,8 @@ void CGPlayer_C::SetBaseAnimState(UINT newState) {
 
 void CGPlayer_C::SetEmoteState(UINT emoteID) {
   CDataStore msg;
-  msg.Put(static_cast<int>(CMSG_EMOTE));
-  msg.Put(static_cast<int>(emoteID));
+  msg.Put(CMSG_EMOTE);
+  msg.Put(emoteID);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -485,11 +488,6 @@ const ItemSubClassRec *SDBItemSubclassGetSubClassRec(UINT classID, UINT subClass
 int                    SheatheTypeToSheathePoint(int sheatheType, int invSlot);
 void                   Script_SendUnitSignal(const DWORDLONG &guid, int signal);
 
-class CGTabardCreationFrame {
- public:
-  static void Open(const DWORDLONG &vendor);
-};
-
 class CGPetitionInfo {
  public:
   static void SetPetition(DWORDLONG petition, int petitionID);
@@ -548,6 +546,18 @@ BOOL OnItemEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 BOOL BootMeHandler(LPCSTR command, LPCSTR arguments);
 BOOL RepopPlayerHandler(LPCSTR command, LPCSTR arguments);
 BOOL WhoCommandHandler(LPCSTR command, LPCSTR arguments);
+void CGPlayer_C::XBuyItemInSlot(DWORDLONG merchant, UINT itemID, BYTE quantity, DWORDLONG container, BYTE slot) {
+  CDataStore buyMsg;
+  buyMsg.Put(CMSG_BUY_ITEM_IN_SLOT);
+  buyMsg.Put(merchant);
+  buyMsg.Put(itemID);
+  buyMsg.Put(container);
+  buyMsg.Put(slot);
+  buyMsg.Put(quantity);
+  buyMsg.Finalize();
+  ClientServices_Send(&buyMsg);
+}
+
 BOOL BuyCommandHandler(LPCSTR command, LPCSTR arguments);
 BOOL UndressMeHandler(LPCSTR command, LPCSTR arguments);
 BOOL GodmodeHandler(LPCSTR command, LPCSTR arguments);
@@ -656,7 +666,7 @@ void RandomRollNameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool
   FATALASSERT(info);
 
   if (granted) {
-    const NameCache *name = g_nameDBCache.GetRecord(guid, guid, 0, 0);
+    const NameCache *name = g_nameDBCache.GetRecord(guid, 0, 0, 0);
     if (name) {
       SStrPrintf(
           buf, sizeof(buf), FrameScript_GetText("RANDOM_ROLL_RESULT", -1, GENDER_NOT_APPLICABLE), name->m_name, info->result, info->min, info->max
@@ -665,7 +675,7 @@ void RandomRollNameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool
     }
   }
 
-  FREE(info);
+  delete info;
 }
 
 static BOOL BankInvHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
@@ -719,9 +729,9 @@ BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
       }
 
       GAME_ERROR_TYPE error = CGBag_C::GetGameError(static_cast<BAG_RESULT>(result));
-      int             itemID = 0;
+      int             level = 0;
       if (result == BAG_LEVEL_MISMATCH) {
-        msg->Get(itemID);
+        msg->Get(level);
       }
 
       DWORDLONG item1;
@@ -732,7 +742,7 @@ BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
       msg->Get(containerBSlot);
 
       if (result == BAG_LEVEL_MISMATCH) {
-        CGGameUI::DisplayError(error, itemID);
+        CGGameUI::DisplayError(error, level);
       } else {
         int displayError = 1;
         if (result == BAG_ITEM_SUBTYPE_MISMATCH) {
@@ -764,7 +774,7 @@ BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
 
     case SMSG_UPDATE_AURA_DURATION: {
       BYTE slot = 0;
-      UINT duration;
+      int  duration;
       msg->Get(slot);
       msg->Get(duration);
       CGBuffBar::UpdateDuration(slot, duration);
@@ -799,7 +809,7 @@ BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
       char string[256];
       msg->Get(mapID);
       msg->Get(areaID);
-      if (AreaListGetName(mapID, areaID & 0xFFFF, static_cast<UINT>(areaID) >> 16, buf, sizeof(buf), 0)) {
+      if (AreaListGetName(mapID, static_cast<UINT>(areaID) >> 16, areaID & 0xFFFF, buf, sizeof(buf), 0)) {
         SStrPrintf(string, sizeof(string), FrameScript_GetText("BIND_ZONE_DISPLAY", -1, GENDER_NOT_APPLICABLE), buf);
         CGChat::AddChatMessage(string, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
       }
@@ -827,15 +837,15 @@ BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
 
     case SMSG_ITEM_PUSH_RESULT: {
       DWORDLONG player;
-      int       slot;
+      int       pushed;
       int       itemID;
-      BYTE      pushed = 0;
+      BYTE      slot;
       int       displayText;
       msg->Get(player);
-      msg->Get(slot);
-      msg->Get(itemID);
       msg->Get(pushed);
       msg->Get(displayText);
+      msg->Get(slot);
+      msg->Get(itemID);
       CGGameUI::OnItemPush(player, slot, itemID, pushed, displayText);
       return 1;
     }
@@ -844,7 +854,7 @@ BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
     case SMSG_DISMOUNTRESULT: {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if (player) {
-        BYTE result = 0;
+        UINT result = 0;
         msg->Get(result);
         if (msgId == SMSG_MOUNTRESULT) {
           player->HandleMountResult(result);
@@ -932,10 +942,10 @@ BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
         return 1;
       }
 
-      UINT classID = player->GetUnitData()->classId;
+      BYTE race = player->GetUnitData()->race;
       for (UINT index = 0; index < 2; ++index) {
         points[index] = CHARACTER_POINTS_PER_LEVEL[index];
-        if (classID == 1 && level % LEVELS_PER_CHARACTER_POINT_BONUS[index] == 0) {
+        if (race == 1 && level % LEVELS_PER_CHARACTER_POINT_BONUS[index] == 0) {
           points[index] += CHARACTER_POINTS_PER_BONUS[index];
         }
         if (CHARACTER_POINT_BONUS_PER_THRESHOLD[index]) {
@@ -999,14 +1009,11 @@ BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
       msg->Get(sender);
 
       RandomRollInfo *info = NEW(RandomRollInfo);
-      info->min = min;
-      info->max = max;
-      info->result = result;
-      const NameCache *name = g_nameDBCache.GetRecord(sender, sender, RandomRollNameQueryCallback, info);
+      const NameCache *name = g_nameDBCache.GetRecord(sender, sender, RandomRollNameQueryCallback, &info);
       if (name) {
         SStrPrintf(buf, sizeof(buf), FrameScript_GetText("RANDOM_ROLL_RESULT", -1, GENDER_NOT_APPLICABLE), name->m_name, result, min, max);
         CGChat::AddChatMessage(buf, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
-        FREE(info);
+        delete info;
       }
       return 1;
     }
@@ -1090,10 +1097,10 @@ BOOL HandlePartyMemberStats(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     stats->powerType = static_cast<POWER_TYPE>(powerType);
     msg->Get(stats->power);
     msg->Get(stats->maxPower);
-    msg->Get(stats->classID);
     msg->Get(stats->level);
     msg->Get(stats->mapID);
     msg->Get(stats->areaID);
+    msg->Get(stats->classID);
     msg->Get(stats->pos.x);
     msg->Get(stats->pos.y);
     msg->Get(stats->pos.z);
@@ -1244,7 +1251,7 @@ BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
 
   QuestCache *quest = const_cast<QuestCache *>(g_questDBCache.GetRecord(questID, 0, 0, 0));
   if (!quest) {
-    ConsolePrintf("Unkown questID (%d) in QuestUpdate", questID);
+    ConsoleWriteA("Unkown questID (%d) in QuestUpdate", DEFAULT_COLOR, questID);
   }
 
   switch (msgId) {
@@ -1294,7 +1301,7 @@ BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
         CGObject_C *victim = ClntObjMgrObjectPtr(monsterGUID, __FILE__, __LINE__);
         if (victim && victim->IsA(TYPE_UNIT)) {
           CGUnit_C *victimPtr = static_cast<CGUnit_C *>(victim);
-          if (victimPtr->m_stats) {
+          if (victimPtr->m_deathHolds) {
             FATALASSERT(victimPtr->GetEntryID() == monsterID);
             victimPtr->SaveQuestAddItemMessage(quantity, numNeeded);
             return 1;
@@ -1379,11 +1386,11 @@ BOOL OnTrainerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) 
     msg->Get(reason);
 
     if (reason == 1) {
-      ConsolePrintf("Not enough money for trainer service %d", spellID);
+      ConsoleWriteA("Not enough money for trainer service %d", DEFAULT_COLOR, spellID);
     } else if (reason == 2) {
-      ConsolePrintf("Not enough skill points for trainer service %d", spellID);
+      ConsoleWriteA("Not enough skill points for trainer service %d", DEFAULT_COLOR, spellID);
     } else if (!reason) {
-      ConsolePrintf("Trainer service %d unavailable", spellID);
+      ConsoleWriteA("Trainer service %d unavailable", DEFAULT_COLOR, spellID);
     }
     return 1;
   }
@@ -1416,7 +1423,7 @@ BOOL OnLootEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
 
 BOOL BootMeHandler(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_BOOTME));
+  msg.Put(CMSG_BOOTME);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -1476,6 +1483,7 @@ BOOL OnSupercededSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *ms
 
 BOOL OnInitialSpells(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   int  recoveryTime;
+  BYTE initial;
   BYTE onHold;
   int  categoryRecoveryTime;
   WORD spellID;
@@ -1484,7 +1492,7 @@ BOOL OnInitialSpells(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg)
   WORD count;
   WORD index;
 
-  msg->Get(onHold);
+  msg->Get(initial);
   msg->Get(count);
   s_initialSpells.SetCount(count);
 
@@ -1523,6 +1531,7 @@ BOOL OnPetSpells(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORD     timelimit = 0;
   int       categoryDuration;
   WORD      category;
+  BYTE      count;
   BYTE      onHold;
   UINT      index;
 
@@ -1540,16 +1549,16 @@ BOOL OnPetSpells(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
       CGPetInfo::SetAction(index, action, 0);
     }
 
-    msg->Get(onHold);
+    msg->Get(count);
     CGSpellBook::ClearPetSpells();
-    for (index = 0; index < onHold; ++index) {
+    for (index = 0; index < count; ++index) {
       WORD spellID;
       msg->Get(spellID);
       CGSpellBook::AddPetSpell(spellID);
     }
 
-    msg->Get(onHold);
-    for (index = 0; index < onHold; ++index) {
+    msg->Get(count);
+    for (index = 0; index < count; ++index) {
       WORD spellID;
       msg->Get(spellID);
       msg->Get(category);
@@ -1677,8 +1686,8 @@ BOOL OnGroupCommandResult(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
     }
   } else if (command) {
     if (command == 2) {
-      CGPartyInfo::RemoveAll();
-      CGPartyInfo::SetLeader(0);
+      CGGameUI::RemoveAllPartyMembers();
+      CGGameUI::SetPartyLeader(0);
       CGGameUI::DisplayError(GERR_LEFT_GROUP_YOU);
     }
   } else {
@@ -1708,13 +1717,13 @@ BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   isLeader = 0;
 
   for (i = 0; i < 5; ++i) {
-    oldMembers[i] = CGPartyInfo::GetMember(i);
+    oldMembers[i] = CGGameUI::GetPartyMember(i);
     if (oldMembers[i]) {
       wasInGroup = 1;
     }
   }
 
-  CGPartyInfo::RemoveAll();
+  CGGameUI::RemoveAllPartyMembers();
 
   for (i = 0; i < count; ++i) {
     msg->GetString(string, sizeof(string));
@@ -1724,7 +1733,7 @@ BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
 
     if (guid == ClntObjMgrGetActivePlayer()) {
       if (!i) {
-        CGPartyInfo::SetLeader(guid);
+        CGGameUI::SetPartyLeader(guid);
         isLeader = 1;
       }
       continue;
@@ -1745,9 +1754,9 @@ BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
       CGGameUI::DisplayError(GERR_JOINED_GROUP_S, string);
     }
 
-    CGPartyInfo::AddMember(guid, connected != 0);
+    CGGameUI::AddPartyMember(guid, connected != 0);
     if (!i) {
-      CGPartyInfo::SetLeader(guid);
+      CGGameUI::SetPartyLeader(guid);
     }
   }
 
@@ -1765,7 +1774,7 @@ BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
     }
 
     if (newIndex == count) {
-      const NameCache *name = g_nameDBCache.GetRecord(guid, guid, 0, 0);
+      const NameCache *name = g_nameDBCache.GetRecord(guid, 0, 0, 0);
       if (name) {
         CGGameUI::DisplayError(GERR_LEFT_GROUP_S, name->m_name);
       }
@@ -1775,7 +1784,7 @@ BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   if (count) {
     msg->Get(lootMethod);
     msg->Get(lootMaster);
-    CGPartyInfo::SetLootMethod(static_cast<LOOT_METHOD>(lootMethod), lootMaster);
+    CGGameUI::SetLootMethod(static_cast<LOOT_METHOD>(lootMethod), lootMaster);
   }
 
   return 1;
@@ -1820,7 +1829,7 @@ BOOL OnGuildInfo(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGChat::AddChatMessage(buf, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
 
   SStrCopy(temp, FrameScript_GetText("GUILD_INFO_TEMPLATE", -1, GENDER_NOT_APPLICABLE), sizeof(temp));
-  SStrPrintf(buf, sizeof(buf), temp, numChars, numAccounts, year, month, day);
+  SStrPrintf(buf, sizeof(buf), temp, month, day, year, numChars, numAccounts);
   CGChat::AddChatMessage(buf, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
 
   return 1;
@@ -2136,8 +2145,6 @@ BOOL CGPlayer_C::OnQuestGiverListQuests(CDataStore *msg) {
   char                greetText[256];
   DWORDLONG           questGiverGuid;
   QUESTGIVEREMOTENODE node;
-  node.delay = 0;
-  node.emoteID = 0;
 
   {
     BYTE count;
@@ -2240,8 +2247,8 @@ BOOL CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
     msg->Get(numEmotes);
     TSStackArray<QUESTGIVEREMOTENODE> emotes(_alloca(numEmotes * sizeof(QUESTGIVEREMOTENODE)), numEmotes, numEmotes);
     for (index = 0; index < numEmotes; ++index) {
-      msg->Get(emotes[index].delay);
       msg->Get(emotes[index].emoteID);
+      msg->Get(emotes[index].delay);
     }
 
     CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
@@ -2278,8 +2285,8 @@ BOOL CGPlayer_C::OnQuestGiverRequestItems(CDataStore *msg) {
   msg->Get(questID);
   msg->GetString(questTitle, 0x7FFFFFFF);
   msg->GetString(questText, 0x7FFFFFFF);
-  msg->Get(node.emoteID);
   msg->Get(node.delay);
+  msg->Get(node.emoteID);
   msg->Get(autoLaunched);
   msg->Get(itemCount);
 
@@ -2290,12 +2297,12 @@ BOOL CGPlayer_C::OnQuestGiverRequestItems(CDataStore *msg) {
     msg->Get(itemDispID[index]);
   }
 
+  msg->Get(maskmatch);
   msg->Get(hasitems);
   msg->Get(hasfaction);
-  msg->Get(maskmatch);
 
   CGQuestInfo::SetState(questGiverGuid, QUEST_ACCEPTED, questText, questID);
-  CGQuestInfo::AddItemRequest(questTitle, items, itemAmounts, itemDispID, itemCount, hasitems && hasfaction && maskmatch, autoLaunched);
+  CGQuestInfo::AddItemRequest(questTitle, items, itemAmounts, itemDispID, itemCount, maskmatch && hasitems && hasfaction, autoLaunched);
 
   CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
   if (object && (object->GetType() & TYPE_UNIT)) {
@@ -2436,7 +2443,7 @@ BOOL CGPlayer_C::OnQuestGiverQuestComplete(CDataStore *msg) {
 
   if (xp) {
     CGGameUI::DisplayError(GERR_QUEST_REWARD_EXP_I, xp);
-    StoreXPGain(xp);
+    AddWorldXPGainText(xp);
   }
 
   if (money) {
@@ -2488,7 +2495,7 @@ void QuestFailedCallback(int id, const DWORDLONG &, LPVOID, bool granted) {
 
   if (s_questFailedReason == 4 || s_questFailedReason == 48) {
     CGGameUI::DisplayError(GERR_QUEST_FAILED_BAG_FULL_S, quest->m_logTitle);
-    CGGameUI::DisplayError(GERR_NONE);
+    CGGameUI::DisplayError(GERR_INV_FULL);
   } else if (s_questFailedReason == 16) {
     CGGameUI::DisplayError(GERR_QUEST_FAILED_MAX_COUNT_S, quest->m_logTitle);
   } else {
@@ -2507,7 +2514,7 @@ BOOL CGPlayer_C::OnQuestGiverQuestFailed(CDataStore *msg) {
   if (quest) {
     if (s_questFailedReason == 4 || s_questFailedReason == 48) {
       CGGameUI::DisplayError(GERR_QUEST_FAILED_BAG_FULL_S, quest->m_logTitle);
-      CGGameUI::DisplayError(GERR_NONE);
+      CGGameUI::DisplayError(GERR_INV_FULL);
     } else if (s_questFailedReason == 16) {
       CGGameUI::DisplayError(GERR_QUEST_FAILED_MAX_COUNT_S, quest->m_logTitle);
     } else {
@@ -2580,7 +2587,7 @@ BOOL CGPlayer_C::OnTrainerList(CDataStore *msg) {
   reqAbilities[1] = reqAbility1.Ptr();
   reqAbilities[2] = reqAbility2.Ptr();
 
-  if (trainerGUID == CGClassTrainer::GetTrainer()) {
+  if (trainerGUID == s_lastTrainerRequest) {
     CGClassTrainer::SetTrainer(trainerGUID, static_cast<TRAINER_TYPE>(trainerType));
     CGClassTrainer::AddServices(
         count, spellID.Ptr(), moneyCost.Ptr(), pointCosts, reqLevel.Ptr(), reqSkillLine.Ptr(), reqSkillRank.Ptr(), reqSkillStep.Ptr(), reqAbilities,
@@ -2647,7 +2654,7 @@ BOOL CGPlayer_C::OnBuyFailed(CDataStore *msg) {
       break;
     default:
       CGGameUI::DisplayError(GERR_ITEM_NOT_FOUND);
-      error = "";
+      error = "NFI";
       break;
   }
 
@@ -3266,7 +3273,7 @@ void CGPlayer_C::InspectPlayer(const DWORDLONG &guid) {
     return;
   }
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_INSPECT));
+  msg.Put(CMSG_INSPECT);
   msg.Put(guid);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3441,11 +3448,11 @@ void CGPlayer_C::AddComponent(int displayID, UINT inventoryType, int slot, int c
 }
 
 void CGPlayer_C::TalkToTrainer(const DWORDLONG &trainerUnit) {
-  s_lastVendorListReceived = trainerUnit;
+  s_lastTrainerRequest = trainerUnit;
   CGClassTrainer::SetTrainer(0, TRAINER_TYPE_GENERAL);
 
   CDataStore hello;
-  hello.Put(static_cast<UINT>(CMSG_TRAINER_LIST));
+  hello.Put(CMSG_TRAINER_LIST);
   hello.Put(trainerUnit);
   hello.Finalize();
   ClientServices_Send(&hello);
@@ -3453,10 +3460,10 @@ void CGPlayer_C::TalkToTrainer(const DWORDLONG &trainerUnit) {
 
 int CGPlayer_C::LootUnit(CGUnit_C *unit) {
   if (CanLoot(unit) && unit->CanBeLooted(OsGetAsyncTimeMs()) && !(m_move.GetMoveFlags() & 0x40FF)) {
-    CGGameUI::CloseLoot(1, 1);
+    CGGameUI::CloseLoot(1, 0);
 
     CDataStore lootMsg;
-    lootMsg.Put(static_cast<UINT>(CMSG_LOOT));
+    lootMsg.Put(CMSG_LOOT);
     lootMsg.Put(unit->GetGUID());
     lootMsg.Finalize();
     ClientServices_Send(&lootMsg);
@@ -3476,7 +3483,7 @@ void CGPlayer_C::ShopFromMerchant(const DWORDLONG &merchant) {
   }
 
   CDataStore invMsg;
-  invMsg.Put(static_cast<UINT>(CMSG_LIST_INVENTORY));
+  invMsg.Put(CMSG_LIST_INVENTORY);
   invMsg.Put(merchant);
   invMsg.Finalize();
   ClientServices_Send(&invMsg);
@@ -3497,7 +3504,7 @@ BOOL CGPlayer_C::IsQuestUnit(CGUnit_C *unit) {
 
 void CGPlayer_C::TalkToQuestUnit(const DWORDLONG &unit) {
   CDataStore hello;
-  hello.Put(static_cast<UINT>(CMSG_QUESTGIVER_HELLO));
+  hello.Put(CMSG_QUESTGIVER_HELLO);
   hello.Put(unit);
   hello.Finalize();
   ClientServices_Send(&hello);
@@ -3505,7 +3512,7 @@ void CGPlayer_C::TalkToQuestUnit(const DWORDLONG &unit) {
 
 int CGPlayer_C::QueryTaxiNodes(const DWORDLONG &unit) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_TAXIQUERYAVAILABLENODES));
+  msg.Put(CMSG_TAXIQUERYAVAILABLENODES);
   msg.Put(unit);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3519,7 +3526,7 @@ void CGPlayer_C::TalkToBinder(const DWORDLONG &binder) {
   }
 
   CDataStore hello;
-  hello.Put(static_cast<UINT>(CMSG_BINDER_ACTIVATE));
+  hello.Put(CMSG_BINDER_ACTIVATE);
   hello.Put(binder);
   hello.Finalize();
   ClientServices_Send(&hello);
@@ -3527,7 +3534,7 @@ void CGPlayer_C::TalkToBinder(const DWORDLONG &binder) {
 
 void CGPlayer_C::TalkToBanker(const DWORDLONG &banker) {
   CDataStore hello;
-  hello.Put(static_cast<UINT>(CMSG_BANKER_ACTIVATE));
+  hello.Put(CMSG_BANKER_ACTIVATE);
   hello.Put(banker);
   hello.Finalize();
   ClientServices_Send(&hello);
@@ -3535,15 +3542,18 @@ void CGPlayer_C::TalkToBanker(const DWORDLONG &banker) {
 
 void CGPlayer_C::TalkToNpcPetition(const DWORDLONG &vendor) {
   CDataStore hello;
-  hello.Put(static_cast<UINT>(CMSG_PETITION_SHOWLIST));
+  hello.Put(CMSG_PETITION_SHOWLIST);
   hello.Put(vendor);
   hello.Finalize();
   ClientServices_Send(&hello);
 }
 
 void CGPlayer_C::TalkToTabardVendor(const DWORDLONG &tabardUnit) {
+  if (CGTabardCreationFrame::GetVendor() == tabardUnit) {
+    return;
+  }
   CDataStore hello;
-  hello.Put(static_cast<UINT>(MSG_TABARDVENDOR_ACTIVATE));
+  hello.Put(MSG_TABARDVENDOR_ACTIVATE);
   hello.Put(tabardUnit);
   hello.Finalize();
   ClientServices_Send(&hello);
@@ -3561,14 +3571,13 @@ BOOL CGPlayer_C::OnTerrainClick(const CTerrainClickEvent &) {
   CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorSlot);
   CGGameUI::ClearCursor(0);
 
-  if (ClntObjMgrObjectPtr(cursorItemPack, __FILE__, __LINE__) && cursorItem) {
-    BYTE               packSlot = FindSlotIndex(cursorItem);
-    NTempest::C3Vector position = GetPosition();
-
+  if (ClntObjMgrObjectPtr(cursorItem, __FILE__, __LINE__) && cursorItemPack) {
+    BYTE packSlot = FindSlotIndex(cursorItemPack);
     CDataStore msg;
+    NTempest::C3Vector position = GetPosition();
     msg.Put(CMSG_DROP_ITEM);
     msg.Put(packSlot);
-    msg.Put(cursorSlot);
+    msg.Put(static_cast<BYTE>(cursorSlot));
     msg.Put(position.x);
     msg.Put(position.y);
     msg.Put(position.z);
@@ -3605,7 +3614,7 @@ void CGPlayer_C::SaveTabard(int eStyle, int eColor, int bStyle, int bColor, int 
   }
 
   CDataStore msg;
-  msg.Put(static_cast<UINT>(MSG_SAVE_GUILD_EMBLEM));
+  msg.Put(MSG_SAVE_GUILD_EMBLEM);
   msg.Put(eStyle);
   msg.Put(eColor);
   msg.Put(bStyle);
@@ -3667,10 +3676,26 @@ BOOL CGPlayer_C::CanEngageTarget(const CGUnit_C *unitPtr) {
 void CGPlayer_C::HandleRepopRequest() {
   if (m_unit->health <= 0) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_REPOP_REQUEST));
+    msg.Put(CMSG_REPOP_REQUEST);
     msg.Finalize();
     ClientServices_Send(&msg);
   }
+}
+
+int CGPlayer_C::SwapInventorySlots(int slotA, int slotB) {
+  if (slotA == slotB) {
+    return 1;
+  }
+  FATALASSERT(slotA <= 0xFF);
+  FATALASSERT(slotB <= 0xFF);
+
+  CDataStore msg;
+  msg.Put(CMSG_SWAP_INV_ITEM);
+  msg.Put(static_cast<BYTE>(slotB));
+  msg.Put(static_cast<BYTE>(slotA));
+  msg.Finalize();
+  ClientServices_Send(&msg);
+  return 1;
 }
 
 static void SwapItemsStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
@@ -3707,20 +3732,23 @@ void CGPlayer_C::SwapItems(DWORDLONG cursorItem, DWORDLONG cursorContainer, int 
   CDataStore msg;
   if (!cursorContainer) {
     BYTE newContainerSlot = FindSlotIndex(containerB);
-    msg.Put(static_cast<UINT>(CMSG_PICKUP_ITEM));
+    msg.Put(CMSG_PICKUP_ITEM);
     msg.Put(cursorItem);
     msg.Put(newContainerSlot);
     msg.Put(static_cast<BYTE>(slotB));
   } else {
-    int cursorEquipped = cursorContainer == GetGUID() && cursorSlot < NUM_INVENTORY_SLOTS;
+    int cursorIsInv = cursorContainer == GetGUID() && cursorSlot < NUM_INVENTORY_SLOTS;
     int destinationEquipped = containerB == GetGUID() && slotB < NUM_INVENTORY_SLOTS;
-    if (cursorEquipped != destinationEquipped) {
-      DWORDLONG   equipContainer = cursorEquipped ? containerB : cursorContainer;
-      UINT        equipSlot = cursorEquipped ? slotB : cursorSlot;
+    if (cursorIsInv != destinationEquipped) {
+      DWORDLONG   equipContainer = cursorIsInv ? containerB : cursorContainer;
+      UINT        equipSlot = cursorIsInv ? slotB : cursorSlot;
       CGObject_C *containerObject = ClntObjMgrObjectPtr(equipContainer, __FILE__, __LINE__);
-      CGBag      *bag = containerObject ? containerObject->GetBag() : 0;
-      CGItem_C   *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(equipSlot), __FILE__, __LINE__)) : 0;
-      if (item && !item->IsLocked() && !force) {
+      if (!containerObject || !containerObject->GetBag()) {
+        return;
+      }
+      CGBag    *bag = containerObject->GetBag();
+      CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(equipSlot), __FILE__, __LINE__));
+      if (item && !(item->m_item->m_dynamicFlags & ITEM_DFLAG_BOUND) && !force) {
         DWORDLONG          itemGUID = item->GetGUID();
         const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), itemGUID, SwapItemsStatsCallback, 0);
         if (!stats) {
@@ -3750,7 +3778,7 @@ void CGPlayer_C::SwapItems(DWORDLONG cursorItem, DWORDLONG cursorContainer, int 
     }
 
     if (cursorContainer == GetGUID() && containerB == GetGUID()) {
-      msg.Put(static_cast<UINT>(CMSG_SWAP_INV_ITEM));
+      msg.Put(CMSG_SWAP_INV_ITEM);
       msg.Put(static_cast<BYTE>(cursorSlot));
       msg.Put(static_cast<BYTE>(slotB));
     } else {
@@ -3759,7 +3787,7 @@ void CGPlayer_C::SwapItems(DWORDLONG cursorItem, DWORDLONG cursorContainer, int 
       if (newContainerSlot == 0xFF && containerB != GetGUID()) {
         return;
       }
-      msg.Put(static_cast<UINT>(CMSG_SWAP_ITEM));
+      msg.Put(CMSG_SWAP_ITEM);
       msg.Put(newContainerSlot);
       msg.Put(static_cast<BYTE>(slotB));
       msg.Put(cursorItemContainerSlot);
@@ -3783,7 +3811,7 @@ void CGPlayer_C::SplitItem(DWORDLONG cursorItem, DWORDLONG cursorContainer, int 
     BYTE cursorItemContainerSlot = FindSlotIndex(cursorContainer);
     BYTE newContainerSlot = FindSlotIndex(containerB);
 
-    msg.Put(static_cast<UINT>(CMSG_SPLIT_ITEM));
+    msg.Put(CMSG_SPLIT_ITEM);
     msg.Put(cursorItemContainerSlot);
     msg.Put(static_cast<BYTE>(cursorSlot));
     msg.Put(newContainerSlot);
@@ -3794,23 +3822,40 @@ void CGPlayer_C::SplitItem(DWORDLONG cursorItem, DWORDLONG cursorContainer, int 
   }
 }
 
+void CGPlayer_C::DropItemInCursor(DWORDLONG cursorItem, DWORDLONG cursorItemPack, UINT cursorSlot) {
+  if (!ClntObjMgrObjectPtr(cursorItem, __FILE__, __LINE__)) {
+    return;
+  }
+  BYTE packSlot = FindSlotIndex(cursorItemPack);
+  CDataStore msg;
+  NTempest::C3Vector position = GetPosition();
+  msg.Put(CMSG_DROP_ITEM);
+  msg.Put(packSlot);
+  msg.Put(static_cast<BYTE>(cursorSlot));
+  msg.Put(position.x);
+  msg.Put(position.y);
+  msg.Put(position.z);
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
+
 void CGPlayer_C::AutoStoreItemInBag(DWORDLONG cursorItem, DWORDLONG cursorContainer, int cursorSlot, DWORDLONG containerB, int ignoreOwnershipRules) {
   FATALASSERT(cursorSlot <= 0xFF);
   CDataStore msg;
-  if (cursorItem) {
+  if (cursorContainer) {
     BYTE cursorItemContainerSlot = FindSlotIndex(cursorContainer);
     BYTE newContainerSlot = FindSlotIndex(containerB);
     if (newContainerSlot == 0xFF && containerB != GetGUID()) {
       return;
     }
 
-    msg.Put(static_cast<UINT>(CMSG_AUTOSTORE_BAG_ITEM));
+    msg.Put(CMSG_AUTOSTORE_BAG_ITEM);
     msg.Put(cursorItemContainerSlot);
     msg.Put(static_cast<BYTE>(cursorSlot));
     msg.Put(newContainerSlot);
-    msg.Finalize();
-    ClientServices_Send(&msg);
   }
+  msg.Finalize();
+  ClientServices_Send(&msg);
 }
 
 BYTE CGPlayer_C::FindSlotIndex(DWORDLONG obj) {
@@ -3855,7 +3900,7 @@ void CGPlayer_C::AutoEquipCursorItem(int force) {
   }
 
   if (cursorItemPack == GetGUID() && cursorItemSlot < NUM_INVENTORY_SLOTS) {
-    CGGameUI::ClearCursor(0);
+    CGGameUI::ClearCursor(1);
     return;
   }
 
@@ -3867,7 +3912,7 @@ void CGPlayer_C::AutoEquipCursorItem(int force) {
     }
 
     BYTE packSlot = FindSlotIndex(cursorItemPack);
-    if (!item->IsLocked() && !force) {
+    if (!(item->m_item->m_dynamicFlags & ITEM_DFLAG_BOUND) && !force) {
       const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), cursorItem, AutoEquipStatsCallback, 0);
       if (!stats) {
         return;
@@ -3887,11 +3932,11 @@ void CGPlayer_C::AutoEquipCursorItem(int force) {
       }
     }
 
-    msg.Put(static_cast<UINT>(CMSG_AUTOEQUIP_ITEM));
+    msg.Put(CMSG_AUTOEQUIP_ITEM);
     msg.Put(packSlot);
     msg.Put(static_cast<BYTE>(cursorItemSlot));
   } else {
-    msg.Put(static_cast<UINT>(CMSG_AUTOEQUIP_GROUND_ITEM));
+    msg.Put(CMSG_AUTOEQUIP_GROUND_ITEM);
     msg.Put(cursorItem);
   }
   msg.Finalize();
@@ -3913,9 +3958,19 @@ void CGPlayer_C::AutoEquipItem(DWORDLONG container, UINT slot, int force) {
   AutoEquipCursorItem(force);
 }
 
+void CGPlayer_C::PutLootInSlot(DWORDLONG container, BYTE containerSlot, BYTE lootSlot) {
+  CDataStore msg;
+  msg.Put(CMSG_STORE_LOOT_IN_SLOT);
+  msg.Put(FindSlotIndex(container));
+  msg.Put(containerSlot);
+  msg.Put(lootSlot);
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
+
 void CGPlayer_C::AutoStoreLootItem(BYTE slot) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_AUTOSTORE_LOOT_ITEM));
+  msg.Put(CMSG_AUTOSTORE_LOOT_ITEM);
   msg.Put(slot);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -3965,7 +4020,7 @@ void CGPlayer_C::TogglePlayerBounds() {
 
 void CGPlayer_C::SellItem(DWORDLONG merchant, DWORDLONG item, UINT amount) {
   CDataStore sellMsg;
-  sellMsg.Put(static_cast<UINT>(CMSG_SELL_ITEM));
+  sellMsg.Put(CMSG_SELL_ITEM);
   sellMsg.Put(merchant);
   sellMsg.Put(item);
   sellMsg.Put(static_cast<BYTE>(amount));
@@ -4004,7 +4059,7 @@ UINT CGPlayer_C::GetProficiency(BYTE type) {
 
 void CGPlayer_C::XBuyItem(DWORDLONG merchant, UINT itemID, BYTE quantity, bool autoEquip) {
   CDataStore buyMsg;
-  buyMsg.Put(static_cast<UINT>(CMSG_BUY_ITEM));
+  buyMsg.Put(CMSG_BUY_ITEM);
   buyMsg.Put(merchant);
   buyMsg.Put(itemID);
   buyMsg.Put(quantity);
@@ -4039,7 +4094,7 @@ BOOL UndressMeHandler(LPCSTR command, LPCSTR arguments) {
 
 BOOL GodmodeHandler(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GODMODE));
+  msg.Put(CMSG_GODMODE);
   msg.Put(static_cast<BYTE>(SStrToInt(arguments) != 0));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -4048,14 +4103,13 @@ BOOL GodmodeHandler(LPCSTR command, LPCSTR arguments) {
 
 BOOL CCommand_LevelUp(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_LEVELUP_CHEAT));
+  msg.Put(CMSG_LEVELUP_CHEAT);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
 BOOL CCommand_SetFaction(LPCSTR command, LPCSTR arguments) {
-  CDataStore msg;
   int        level;
   int        i;
 
@@ -4075,7 +4129,7 @@ BOOL CCommand_SetFaction(LPCSTR command, LPCSTR arguments) {
   const FactionRec *faction = 0;
   for (i = 0; i < g_factionDB.GetNumRecords(); ++i) {
     const FactionRec *candidate = g_factionDB.GetRecordByIndex(i);
-    if (candidate->m_reputationIndex >= 0 && !SStrCmp(candidate->m_name_lang[CURRENT_LANGUAGE], arguments, SStrLen(arguments))) {
+    if (candidate->m_reputationIndex >= 0 && !SStrCmpI(candidate->m_name_lang[0], arguments, SStrLen(arguments))) {
       faction = candidate;
       break;
     }
@@ -4086,7 +4140,8 @@ BOOL CCommand_SetFaction(LPCSTR command, LPCSTR arguments) {
     return 1;
   }
 
-  msg.Put(static_cast<UINT>(CMSG_SET_FACTION_CHEAT));
+  CDataStore msg;
+  msg.Put(CMSG_SET_FACTION_CHEAT);
   msg.Put(faction->m_ID);
   msg.Put(level);
   msg.Finalize();
@@ -4096,7 +4151,7 @@ BOOL CCommand_SetFaction(LPCSTR command, LPCSTR arguments) {
 
 BOOL CCommand_Invite(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_INVITE));
+  msg.Put(CMSG_GROUP_INVITE);
   msg.PutString(arguments);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -4105,7 +4160,7 @@ BOOL CCommand_Invite(LPCSTR command, LPCSTR arguments) {
 
 BOOL CCommand_Accept(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_ACCEPT));
+  msg.Put(CMSG_GROUP_ACCEPT);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -4113,7 +4168,7 @@ BOOL CCommand_Accept(LPCSTR command, LPCSTR arguments) {
 
 BOOL CCommand_Decline(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_DECLINE));
+  msg.Put(CMSG_GROUP_DECLINE);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -4121,7 +4176,7 @@ BOOL CCommand_Decline(LPCSTR command, LPCSTR arguments) {
 
 BOOL CCommand_Disband(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_DISBAND));
+  msg.Put(CMSG_GROUP_DISBAND);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -4129,7 +4184,7 @@ BOOL CCommand_Disband(LPCSTR command, LPCSTR arguments) {
 
 BOOL CCommand_NewLeader(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_SET_LEADER));
+  msg.Put(CMSG_GROUP_SET_LEADER);
   msg.PutString(arguments);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -4138,7 +4193,7 @@ BOOL CCommand_NewLeader(LPCSTR command, LPCSTR arguments) {
 
 BOOL CCommand_Uninvite(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_UNINVITE));
+  msg.Put(CMSG_GROUP_UNINVITE);
   msg.PutString(arguments);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -4148,7 +4203,7 @@ BOOL CCommand_Uninvite(LPCSTR command, LPCSTR arguments) {
 BOOL CCommand_AcceptRes(LPCSTR, LPCSTR) {
   if (s_resurrectOffer) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_RESURRECT_RESPONSE));
+    msg.Put(CMSG_RESURRECT_RESPONSE);
     msg.Put(s_resurrectOffer);
     msg.Put(static_cast<BYTE>(1));
     msg.Finalize();
@@ -4161,7 +4216,7 @@ BOOL CCommand_AcceptRes(LPCSTR, LPCSTR) {
 BOOL CCommand_DeclineRes(LPCSTR, LPCSTR) {
   if (s_resurrectOffer) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_RESURRECT_RESPONSE));
+    msg.Put(CMSG_RESURRECT_RESPONSE);
     msg.Put(s_resurrectOffer);
     msg.Put(static_cast<BYTE>(0));
     msg.Finalize();
@@ -4225,7 +4280,7 @@ BOOL CCommand_ShowPet(LPCSTR, LPCSTR) {
 
 BOOL CCommand_TaxiShowNodes(LPCSTR, LPCSTR) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_TAXISHOWNODES));
+  msg.Put(CMSG_TAXISHOWNODES);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -4234,7 +4289,7 @@ BOOL CCommand_TaxiShowNodes(LPCSTR, LPCSTR) {
 BOOL CCommand_GuildCreate(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_GUILD_CREATE));
+    msg.Put(CMSG_GUILD_CREATE);
     msg.PutString(arguments);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -4254,9 +4309,9 @@ void PrintForceActionUsage(LPCSTR command) {
 
 void SendForceActionMessage(int set, int onSelf, UINT argument) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(onSelf ? CMSG_FORCEACTION : CMSG_FORCEACTIONONOTHER));
+  msg.Put(onSelf ? CMSG_FORCEACTION : CMSG_FORCEACTIONONOTHER);
   msg.Put(argument);
-  msg.Put(set);
+  msg.Put(static_cast<UINT>(set));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -4319,7 +4374,7 @@ BOOL CCommand_ForceActionOnOtherUnset(LPCSTR command, LPCSTR arguments) {
 
 BOOL CCommand_ForceActionShowFlags(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_FORCEACTIONSHOW));
+  msg.Put(CMSG_FORCEACTIONSHOW);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -4328,9 +4383,9 @@ BOOL CCommand_ForceActionShowFlags(LPCSTR command, LPCSTR arguments) {
 BOOL CCommand_TogglePVP(LPCSTR command, LPCSTR arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    BYTE       enable = !(player->GetUnitData()->flags & 1);
+    BYTE       enable = !(player->GetPlayerFlags() & 1);
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_ENABLE_PVP));
+    msg.Put(CMSG_ENABLE_PVP);
     msg.Put(enable);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -4341,8 +4396,8 @@ BOOL CCommand_TogglePVP(LPCSTR command, LPCSTR arguments) {
 
 BOOL CCommand_Cinematic(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_TRIGGER_CINEMATIC_CHEAT));
-  msg.Put(static_cast<UINT>(SStrToInt(arguments)));
+  msg.Put(CMSG_TRIGGER_CINEMATIC_CHEAT);
+  msg.Put(SStrToInt(arguments));
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -4399,7 +4454,7 @@ BOOL OnInspectNotify(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
 
 void CGPlayer_C::UpdateQuestStatus(const DWORDLONG &guid) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_QUESTGIVER_STATUS_QUERY));
+  msg.Put(CMSG_QUESTGIVER_STATUS_QUERY);
   msg.Put(guid);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -4430,15 +4485,14 @@ BOOL AreaTriggerCheck(LPCVOID eventData, LPVOID arg) {
 
   if (playerPtr) {
     int                worldId = CGPlayer_C::GetNewContinentID();
-    NTempest::C3Vector pos;
-    playerPtr->GetPosition(pos);
+    NTempest::C3Vector pos = playerPtr->GetPosition();
 
     if (currentAreaTrigger) {
       const AreaTriggerRec *rec = g_areaTriggerDB.GetRecord(currentAreaTrigger);
       FATALASSERT(rec);
 
       if (worldId == rec->m_ContinentID) {
-        if ((NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z) - pos).SquaredMag() < (rec->m_radius * 1.1f) * (rec->m_radius * 1.1f)) {
+        if (NTempest::CAaSphere(NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z), rec->m_radius * 1.1f).Contains(pos)) {
           goto reset_timer;
         }
       }
@@ -4451,9 +4505,9 @@ BOOL AreaTriggerCheck(LPCVOID eventData, LPVOID arg) {
       FATALASSERT(rec);
 
       if (rec->m_ContinentID == worldId) {
-        if ((NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z) - pos).SquaredMag() < rec->m_radius * rec->m_radius) {
+        if (NTempest::CAaSphere(NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z), rec->m_radius).Contains(pos)) {
           CDataStore msg;
-          msg.Put(static_cast<UINT>(CMSG_AREATRIGGER));
+          msg.Put(CMSG_AREATRIGGER);
           msg.Put(rec->m_ID);
           msg.Finalize();
           ClientServices_Send(&msg);
@@ -4597,25 +4651,24 @@ void PlayerClientInitialize() {
   ConsoleCommandRegister("setfaction", CCommand_SetFaction, DEBUG, "set your reputation with a faction");
   ConsoleCommandRegister("acceptres", CCommand_AcceptRes, GAME, "Accept resurrect request");
   ConsoleCommandRegister("declineres", CCommand_DeclineRes, GAME, "Decline resurrect request");
-  ConsoleCommandRegister("showpet", CCommand_ShowPet, DEBUG, "Displays GUID of pet");
+  ConsoleCommandRegister("pet", CCommand_ShowPet, DEBUG, "Displays GUID of pet");
   ConsoleCommandRegister("TaxiShowNodes", CCommand_TaxiShowNodes, DEBUG, "show all available taxi nodes");
   ConsoleCommandRegister("guildcreate", CCommand_GuildCreate, GAME, "Create a guild. Usage: 'guildcreate <guild name>'");
   ConsoleCommandRegister("TogglePVP", CCommand_TogglePVP, GAME, "Enable or disable PVP for yourself");
   ConsoleCommandRegister("cinematic", CCommand_Cinematic, DEBUG, "Start an in-game cinematic");
-  ConsoleCommandRegister("CombatDebugForceActionOn", CCommand_ForceActionSet, DEBUG, "Value Name");
-  ConsoleCommandRegister("CombatDebugForceActionOff", CCommand_ForceActionUnset, DEBUG, "Value Name");
-  ConsoleCommandRegister("CombatDebugForceActionOtherOn", CCommand_ForceActionOnOtherSet, DEBUG, "Value Name");
-  ConsoleCommandRegister("CombatDebugForceActionOtherOff", CCommand_ForceActionOnOtherUnset, DEBUG, "Value Name");
-  ConsoleCommandRegister("CombatDebugShowFlags", CCommand_ForceActionShowFlags, DEBUG, "Value Name");
+  ConsoleCommandRegister("CombatDebugForceActionOn", CCommand_ForceActionSet, DEBUG, "");
+  ConsoleCommandRegister("CombatDebugForceActionOff", CCommand_ForceActionUnset, DEBUG, "");
+  ConsoleCommandRegister("CombatDebugForceActionOtherOn", CCommand_ForceActionOnOtherSet, DEBUG, "");
+  ConsoleCommandRegister("CombatDebugForceActionOtherOff", CCommand_ForceActionOnOtherUnset, DEBUG, "");
+  ConsoleCommandRegister("CombatDebugShowFlags", CCommand_ForceActionShowFlags, DEBUG, "");
   ConsoleCommandRegister("forceanim", CCommand_ForceMonsterAnim, DEBUG, "Force a monster animation");
   ConsoleCommandRegister("resetanim", CCommand_ResetMonsterAnim, DEBUG, "Force a monster animation");
-  ConsoleCommandRegister("DumpDeathHoldLogs", CCommand_DumpDeathHoldLogs, DEBUG, "Value Name");
+  ConsoleCommandRegister("DumpDeathHoldLogs", CCommand_DumpDeathHoldLogs, DEBUG, "");
 
   memset(s_playerProficiencies, 0, sizeof(s_playerProficiencies));
-  s_tempCombatModeCooldown = 0;
   s_attackBreakTimer = 0;
   s_combatModeTimer = 0;
-  s_enableDeathHoldLog = 1;
+  s_enableDeathHoldLog = 0;
   s_renderPlayer = 1;
   g_combatModeMaxDistance =
       CVar::Register("CombatModeMaxDistance", "Specifies the range outside of which combat mode is impossible", 0, "30.0f", 0, 3, false, 0);
@@ -4623,6 +4676,7 @@ void PlayerClientInitialize() {
   s_resurrectOffer = 0;
   PlayerInitializeSounds();
   AreaTriggersInitialize();
+  s_guildIDs.Clear();
 }
 
 void PlayerClientShutdown() {
@@ -4934,28 +4988,28 @@ UINT CGPlayer_C::DetermineWoundSequence() const {
 
 void CGPlayer_C::AcceptGroup() {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_ACCEPT));
+  msg.Put(CMSG_GROUP_ACCEPT);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
 void CGPlayer_C::DeclineGroup() {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_DECLINE));
+  msg.Put(CMSG_GROUP_DECLINE);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
 void CGPlayer_C::LeaveGroup() {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_DISBAND));
+  msg.Put(CMSG_GROUP_DISBAND);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
 void CGPlayer_C::SetLootMethod(LOOT_METHOD method, DWORDLONG master) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_LOOT_METHOD));
+  msg.Put(CMSG_LOOT_METHOD);
   msg.Put(static_cast<UINT>(method));
   msg.Put(master);
   msg.Finalize();
@@ -4964,21 +5018,21 @@ void CGPlayer_C::SetLootMethod(LOOT_METHOD method, DWORDLONG master) {
 
 void CGPlayer_C::AcceptGuild() {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GUILD_ACCEPT));
+  msg.Put(CMSG_GUILD_ACCEPT);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
 void CGPlayer_C::DeclineGuild() {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GUILD_DECLINE));
+  msg.Put(CMSG_GUILD_DECLINE);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
 void CGPlayer_C::DeleteWornItems() const {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_UNDRESSPLAYER));
+  msg.Put(CMSG_UNDRESSPLAYER);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -5243,7 +5297,7 @@ BOOL CGPlayer_C::OnAttackBreakHandler() {
 void CGPlayer_C::LootMoney() {
   if (m_lootingUnit) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_LOOT_MONEY));
+    msg.Put(CMSG_LOOT_MONEY);
     msg.Finalize();
     ClientServices_Send(&msg);
   }
@@ -5279,7 +5333,7 @@ BOOL CGPlayer_C::CanUseItem(const ItemStats *stats, GAME_ERROR_TYPE &reason) {
 
 void CGPlayer_C::QueryQuest(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_QUESTGIVER_QUERY_QUEST));
+  msg.Put(CMSG_QUESTGIVER_QUERY_QUEST);
   msg.Put(questGiver);
   msg.Put(questID);
   msg.Finalize();
@@ -5288,7 +5342,7 @@ void CGPlayer_C::QueryQuest(const DWORDLONG &questGiver, int questID) {
 
 void CGPlayer_C::AcceptQuest(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_QUESTGIVER_ACCEPT_QUEST));
+  msg.Put(CMSG_QUESTGIVER_ACCEPT_QUEST);
   msg.Put(questGiver);
   msg.Put(questID);
   msg.Finalize();
@@ -5297,7 +5351,7 @@ void CGPlayer_C::AcceptQuest(const DWORDLONG &questGiver, int questID) {
 
 void CGPlayer_C::CompleteQuest(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_QUESTGIVER_COMPLETE_QUEST));
+  msg.Put(CMSG_QUESTGIVER_COMPLETE_QUEST);
   msg.Put(questGiver);
   msg.Put(questID);
   msg.Finalize();
@@ -5306,7 +5360,7 @@ void CGPlayer_C::CompleteQuest(const DWORDLONG &questGiver, int questID) {
 
 void CGPlayer_C::GiveQuestItems(const DWORDLONG &questGiver, int questID) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_QUESTGIVER_REQUEST_REWARD));
+  msg.Put(CMSG_QUESTGIVER_REQUEST_REWARD);
   msg.Put(questGiver);
   msg.Put(questID);
   msg.Finalize();
@@ -5315,7 +5369,7 @@ void CGPlayer_C::GiveQuestItems(const DWORDLONG &questGiver, int questID) {
 
 void CGPlayer_C::GetQuestReward(const DWORDLONG &questGiver, int questID, int itemChoice) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_QUESTGIVER_CHOOSE_REWARD));
+  msg.Put(CMSG_QUESTGIVER_CHOOSE_REWARD);
   msg.Put(questGiver);
   msg.Put(questID);
   msg.Put(itemChoice);
@@ -5325,7 +5379,7 @@ void CGPlayer_C::GetQuestReward(const DWORDLONG &questGiver, int questID, int it
 
 void CGPlayer_C::CancelQuest(const DWORDLONG &questGiver) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_QUESTGIVER_CANCEL));
+  msg.Put(CMSG_QUESTGIVER_CANCEL);
   msg.Put(questGiver);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -5333,7 +5387,7 @@ void CGPlayer_C::CancelQuest(const DWORDLONG &questGiver) {
 
 void CGPlayer_C::QuestLogRemoveQuest(int entry) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_QUESTLOG_REMOVE_QUEST));
+  msg.Put(CMSG_QUESTLOG_REMOVE_QUEST);
   msg.Put(static_cast<BYTE>(entry));
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -5341,7 +5395,7 @@ void CGPlayer_C::QuestLogRemoveQuest(int entry) {
 
 void CGPlayer_C::QuestLogSwapQuest(int entry1, int entry2) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_QUESTLOG_SWAP_QUEST));
+  msg.Put(CMSG_QUESTLOG_SWAP_QUEST);
   msg.Put(static_cast<BYTE>(entry1));
   msg.Put(static_cast<BYTE>(entry2));
   msg.Finalize();
@@ -5350,7 +5404,7 @@ void CGPlayer_C::QuestLogSwapQuest(int entry1, int entry2) {
 
 void CGPlayer_C::TrainerBuySpell(const DWORDLONG &trainer, int spellID) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_TRAINER_BUY_SPELL));
+  msg.Put(CMSG_TRAINER_BUY_SPELL);
   msg.Put(trainer);
   msg.Put(spellID);
   msg.Finalize();
@@ -5380,7 +5434,7 @@ void CGPlayer_C::UpdateQuestStatusAll() {
 void CGPlayer_C::UpdateTaxiStatus(CGUnit_C *unit) {
   if (unit->UnitReaction(this) > UNIT_REACTION_HOSTILE) {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_TAXINODE_STATUS_QUERY));
+    msg.Put(CMSG_TAXINODE_STATUS_QUERY);
     msg.Put(unit->GetGUID());
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -5451,7 +5505,6 @@ void CGPlayer_C::ToggleSheathe(bool ignoreAnim) {
 }
 
 BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
-  CDataStore  lootRelease;
   DWORDLONG   objectGUID;
   CGObject_C *lootobject;
   UINT        coins;
@@ -5467,7 +5520,8 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
       (m_lootingUnitSent || (accquired != LOOT_ACQUIRE_PICKPOCKET && accquired != LOOT_ACQUIRE_FISHING)))
   {
     if (accquired) {
-      lootRelease.Put(static_cast<UINT>(CMSG_LOOT_RELEASE));
+      CDataStore lootRelease;
+      lootRelease.Put(CMSG_LOOT_RELEASE);
       lootRelease.Put(objectGUID);
       lootRelease.Finalize();
       ClientServices_Send(&lootRelease);
@@ -5486,7 +5540,6 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
     lootobject = ClntObjMgrObjectPtr(objectGUID, __FILE__, __LINE__);
     if (lootobject) {
       m_lootingUnit = objectGUID;
-      s_numLootItems = count;
       memset(s_lootItems, 0, sizeof(s_lootItems));
       for (UINT index = 0; index < count; ++index) {
         msg->Get(slot);
@@ -5494,7 +5547,7 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
         msg->Get(s_lootItems[slot].m_quantity);
         msg->Get(s_lootItems[slot].m_displayID);
       }
-      CGLootInfo::SetObject(lootobject, coins, static_cast<LOOT_ACQUIRE>(accquired));
+      CGGameUI::OpenLoot(lootobject, coins, static_cast<LOOT_ACQUIRE>(accquired));
     } else {
       CGGameUI::DisplayError(GERR_LOOT_DIDNT_KILL);
     }
@@ -5523,7 +5576,7 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
       break;
   }
   m_lootingUnitSent = 0;
-  if (GetPlayerAnimState() == ANIM_STATE_LOOTBEGIN) {
+  if (m_currentBaseAnimState == ANIM_STATE_LOOTBEGIN) {
     UpdateBaseAnimation(0, 0);
   }
   return 1;
@@ -5551,7 +5604,7 @@ BOOL CGPlayer_C::OnLootRemoved(CDataStore *msg) {
     s_lootItems[slot].m_itemID = 0;
     s_lootItems[slot].m_displayID = 0;
     s_lootItems[slot].m_quantity = 0;
-    CGLootInfo::ClearSlot(slot);
+    CGGameUI::ClearLootSlot(slot);
   }
   return 1;
 }
@@ -5581,7 +5634,7 @@ BOOL CGPlayer_C::OnLootMoneyNotify(CDataStore *msg) {
         }
       }
     }
-    SStrCopy(buf, FrameScript_GetText("LOOT_MONEY", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+    SStrCopy(buf, FrameScript_GetText("LOOT_MONEY_SPLIT", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
     SStrPrintf(string, sizeof(string), buf, moneyBuf);
     CGChat::AddChatMessage(string, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
   }
@@ -5614,11 +5667,11 @@ BOOL CGPlayer_C::OnLootReleaseResponse(CDataStore *msg) {
   msg->Get(success);
   if (success && packGUID == m_lootingUnit) {
     m_lootingUnit = 0;
-    if (GetPlayerAnimState() == ANIM_STATE_LOOTBEGIN) {
+    if (m_currentBaseAnimState == ANIM_STATE_LOOTBEGIN) {
       UpdateBaseAnimation(ANIM_STATE_LOOTEND, 0);
     }
     m_flags &= ~0x200;
-    CGLootInfo::SetObject(0, 0, LOOT_ACQUIRE_FAILED);
+    CGGameUI::CloseLoot(false, false);
   }
   return 1;
 }
@@ -5631,7 +5684,7 @@ void CGPlayer_C::LootAnimEndHandler() {
 
 void CGPlayer_C::ReadItem(BYTE packSlot, BYTE slot) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_READ_ITEM));
+  msg.Put(CMSG_READ_ITEM);
   msg.Put(packSlot);
   msg.Put(slot);
   msg.Finalize();
@@ -5847,7 +5900,7 @@ void CGPlayer_C::ReadItemResult(NETMESSAGE msgID, CDataStore *msg) {
     CGItem_C *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item, __FILE__, __LINE__));
     if (itemPtr) {
       itemPtr->SetTranslated();
-      CGItemText::SetItem(item, 1);
+      CGItemText::DisplayText(item, 1);
     }
     return;
   }
@@ -5855,14 +5908,16 @@ void CGPlayer_C::ReadItemResult(NETMESSAGE msgID, CDataStore *msg) {
   msg->Get(subcode);
   switch (subcode) {
     case 0:
-      CGItemText::SetItem(item, 1);
+      CGItemText::DisplayText(item, 1);
       break;
 
-    case 1:
-      CGItemText::SetItem(item, 0);
-      msg->Get(subcode);
-      FrameScript_SignalEvent(274, "%f", static_cast<float>(subcode) * 0.001f);
+    case 1: {
+      CGItemText::DisplayText(item, 0);
+      int delay;
+      msg->Get(delay);
+      FrameScript_SignalEvent(274, "%f", static_cast<float>(delay) * 0.001f);
       break;
+    }
 
     default:
       if (item == CGItemText::GetItem()) {
@@ -5924,6 +5979,10 @@ float CGPlayer_C::GetMountScale() const {
   FATALASSERT(rec);
   FATALASSERT(rec->m_MountScale >= 0.0f);
   return rec->m_MountScale;
+}
+
+UINT CGPlayer_C::GetDefaultLanguage() {
+  return g_chrRacesDB.GetRecord(m_unit->race) ? g_chrRacesDB.GetRecord(m_unit->race)->m_BaseLanguage : 0;
 }
 
 BOOL CGPlayer_C::GetLanguageSkill(UINT language, UINT &skill) {
@@ -6127,7 +6186,7 @@ void CGPlayer_C::OnTaxiNodeStatus(CDataStore *msg) {
 
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(taxiGUID, __FILE__, __LINE__));
   if (unit && (unit->m_unit->npcFlags & 4)) {
-    unit->UpdateInteractIcon(status ? QUEST_GIVER_QUEST : QUEST_GIVER_NONE);
+    unit->UpdateInteractIcon(status ? INTERACTICON_TAXINODE : INTERACTICON_NONE);
   }
 }
 
@@ -6144,22 +6203,22 @@ void CGPlayer_C::ShowTaxiNodes(CDataStore *msg) {
     msg->Get(unit);
     msg->Get(currentNode);
   }
-  msg->Get(known);
   msg->Get(flag);
+  msg->Get(known);
 
-  if (!known) {
+  if (!flag) {
     if (showWindow) {
       CGGameUI::DisplayError(GERR_TAXINOPATHS);
     } else {
       ConsoleWrite("No taxi nodes for you!", DEFAULT_COLOR);
     }
   } else if (showWindow) {
-    if (TaxiMapUpdatePosition(currentNode, known, flag, rect)) {
-      CGTaxiMap::SetupMap(unit, currentNode, known, flag, rect);
+    if (TaxiMapUpdatePosition(currentNode, flag, known, rect)) {
+      CGTaxiMap::SetupMap(unit, currentNode, flag, known, rect);
     }
   } else {
     for (UINT index = 0; index < 64; ++index) {
-      if (known & (static_cast<LONGLONG>(1) << index)) {
+      if (flag & (static_cast<LONGLONG>(1) << index)) {
         const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(index + 1);
         if (node) {
           ConsolePrintf("[%02d]: %s", node->m_ID, node->m_Name_lang[CURRENT_LANGUAGE]);
@@ -6171,7 +6230,7 @@ void CGPlayer_C::ShowTaxiNodes(CDataStore *msg) {
 
 void CGPlayer_C::StartTaxi(DWORDLONG vendor, UINT startNode, UINT destNode) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_ACTIVATETAXI));
+  msg.Put(CMSG_ACTIVATETAXI);
   msg.Put(vendor);
   msg.Put(startNode);
   msg.Put(destNode);
@@ -6225,6 +6284,16 @@ void CGPlayer_C::OnSpellFailed(const SpellRec *spellRec, UINT reason) {
   if (spellRec && (spellRec->m_ID != static_cast<UINT>(m_castingSpell) || reason != SPELL_FAILED_SPELL_IN_PROGRESS) && (spellRec->m_attributes & 2)) {
     DetermineReadySequence(0);
     CGUnit_C::UpdateBaseAnimation(0);
+  }
+}
+
+void CGPlayer_C::PlayMacroSound(int category) const {
+  if (category < 12) {
+    CDataStore msg;
+    msg.Put(CMSG_PLAYER_MACRO);
+    msg.Put(category);
+    msg.Finalize();
+    ClientServices_Send(&msg);
   }
 }
 
@@ -6326,9 +6395,9 @@ void CGPlayer_C::OpenLootItem(CGItem_C *item) {
   if (!GetPackAndSlot(item, packSlot, slot)) {
     return;
   }
-  m_lootingUnit = item->GetGUID();
+  m_lootingUnitSent = item->GetGUID();
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_OPEN_ITEM));
+  msg.Put(CMSG_OPEN_ITEM);
   msg.Put(packSlot);
   msg.Put(slot);
   msg.Finalize();
@@ -6343,7 +6412,7 @@ void CGPlayer_C::OpenWrappedItem(CGItem_C *item) {
   }
   SndInterfacePlayInterfaceSound("UnwrapGift");
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_OPEN_ITEM));
+  msg.Put(CMSG_OPEN_ITEM);
   msg.Put(packSlot);
   msg.Put(slot);
   msg.Finalize();
@@ -6361,7 +6430,7 @@ BOOL CGPlayer_C::InviteToGroup(DWORDLONG target) {
 
 void CGPlayer_C::InviteToGroup(LPCSTR target) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_INVITE));
+  msg.Put(CMSG_GROUP_INVITE);
   msg.PutString(target);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -6373,7 +6442,7 @@ int CGPlayer_C::Uninvite(DWORDLONG target) {
     Uninvite(unit->GetUnitName());
   } else {
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_GROUP_UNINVITE_GUID));
+    msg.Put(CMSG_GROUP_UNINVITE_GUID);
     msg.Put(target);
     msg.Finalize();
     ClientServices_Send(&msg);
@@ -6383,7 +6452,7 @@ int CGPlayer_C::Uninvite(DWORDLONG target) {
 
 void CGPlayer_C::Uninvite(LPCSTR target) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_UNINVITE));
+  msg.Put(CMSG_GROUP_UNINVITE);
   msg.PutString(target);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -6400,7 +6469,7 @@ BOOL CGPlayer_C::SetNewLeader(DWORDLONG target) {
 
 void CGPlayer_C::SetNewLeader(LPCSTR target) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_GROUP_SET_LEADER));
+  msg.Put(CMSG_GROUP_SET_LEADER);
   msg.PutString(target);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -6429,39 +6498,24 @@ BOOL CGPlayer_C::ReportBagItemSubtypeMismatch(BYTE bagSlot) const {
 BOOL CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
   char      string[128];
   char      buf[128];
-  char      shareMoneyBuf[64];
   char      totalMoneyBuf[64];
-  char      coinBuf[64];
+  char      shareMoneyBuf[64];
   char      coinName[32];
-  int       sharecoins[3];
   int       totalcoins[3];
-  UINT      total;
-  DWORDLONG player;
+  int       sharecoins[3];
   UINT      share;
+  DWORDLONG player;
+  UINT      total;
 
   msg->Get(player);
-  msg->Get(share);
   msg->Get(total);
-  if (share && total) {
-    CurrencyBreakdown(share, sharecoins);
+  msg->Get(share);
+  if (total && share) {
     CurrencyBreakdown(total, totalcoins);
+    CurrencyBreakdown(share, sharecoins);
 
     int first = 1;
     int coin;
-    for (coin = 2; coin >= 0; --coin) {
-      if (sharecoins[coin]) {
-        SStrCopy(coinName, FrameScript_GetText(CurrencyAbbreviation(coin), -1, GENDER_NOT_APPLICABLE), sizeof(coinName));
-        if (first) {
-          SStrPrintf(shareMoneyBuf, sizeof(shareMoneyBuf), "%d %s", sharecoins[coin], coinName);
-          first = 0;
-        } else {
-          SStrPrintf(coinBuf, sizeof(coinBuf), ", %d %s", sharecoins[coin], coinName);
-          SStrPack(shareMoneyBuf, coinBuf, sizeof(shareMoneyBuf));
-        }
-      }
-    }
-
-    first = 1;
     for (coin = 2; coin >= 0; --coin) {
       if (totalcoins[coin]) {
         SStrCopy(coinName, FrameScript_GetText(CurrencyAbbreviation(coin), -1, GENDER_NOT_APPLICABLE), sizeof(coinName));
@@ -6469,8 +6523,24 @@ BOOL CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
           SStrPrintf(totalMoneyBuf, sizeof(totalMoneyBuf), "%d %s", totalcoins[coin], coinName);
           first = 0;
         } else {
+          char coinBuf[64];
           SStrPrintf(coinBuf, sizeof(coinBuf), ", %d %s", totalcoins[coin], coinName);
           SStrPack(totalMoneyBuf, coinBuf, sizeof(totalMoneyBuf));
+        }
+      }
+    }
+
+    first = 1;
+    for (coin = 2; coin >= 0; --coin) {
+      if (sharecoins[coin]) {
+        SStrCopy(coinName, FrameScript_GetText(CurrencyAbbreviation(coin), -1, GENDER_NOT_APPLICABLE), sizeof(coinName));
+        if (first) {
+          SStrPrintf(shareMoneyBuf, sizeof(shareMoneyBuf), "%d %s", sharecoins[coin], coinName);
+          first = 0;
+        } else {
+          char coinBuf[64];
+          SStrPrintf(coinBuf, sizeof(coinBuf), ", %d %s", sharecoins[coin], coinName);
+          SStrPack(shareMoneyBuf, coinBuf, sizeof(shareMoneyBuf));
         }
       }
     }
@@ -6479,10 +6549,10 @@ BOOL CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
     if (name) {
       if (player == ClntObjMgrGetActivePlayer()) {
         SStrCopy(buf, FrameScript_GetText("SPLIT_MONEY_SPLIT_SELF", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-        SStrPrintf(string, sizeof(string), buf, shareMoneyBuf);
+        SStrPrintf(string, sizeof(string), buf, totalMoneyBuf);
       } else {
         SStrCopy(buf, FrameScript_GetText("SPLIT_MONEY_SPLIT", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-        SStrPrintf(string, sizeof(string), buf, name->m_name, shareMoneyBuf, totalMoneyBuf);
+        SStrPrintf(string, sizeof(string), buf, name->m_name, totalMoneyBuf, shareMoneyBuf);
       }
       CGChat::AddChatMessage(string, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
     }
@@ -6515,7 +6585,7 @@ void CGPlayer_C::GiftWrap(CGItem_C *item) {
     BYTE itemSlot = FindItemSlot(item->m_item->m_containedIn, item);
 
     CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_WRAP_ITEM));
+    msg.Put(CMSG_WRAP_ITEM);
     msg.Put(wrapperItemContainerSlot);
     msg.Put(wrapperItemSlot);
     msg.Put(itemContainerSlot);
@@ -6659,7 +6729,7 @@ BOOL CGPlayer_C::OnPetitionShowList(CDataStore *msg) {
 
 void CGPlayer_C::BuyPetition(const DWORDLONG &petitionUnit, CGPetition *petition) {
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_PETITION_BUY));
+  msg.Put(CMSG_PETITION_BUY);
   msg.Put(petitionUnit);
   petition->Pack(&msg);
   msg.Finalize();
@@ -6670,16 +6740,16 @@ BOOL CGPlayer_C::OnPetitionShowSignatures(CDataStore *msg) {
   DWORDLONG itemGUID;
   DWORDLONG ownerGUID;
   int       petitionID;
-  BYTE      count = 0;
-  UINT      i;
+  BYTE      count;
+  BYTE      i;
 
   msg->Get(itemGUID);
   msg->Get(ownerGUID);
   msg->Get(petitionID);
   msg->Get(count);
 
-  DWORDLONG *signers = static_cast<DWORDLONG *>(_alloca(sizeof(DWORDLONG) * count));
-  int       *choices = static_cast<int *>(_alloca(sizeof(int) * count));
+  TSStackArray<DWORDLONG> signers(_alloca(sizeof(DWORDLONG) * count), count, count);
+  TSStackArray<int>       choices(_alloca(sizeof(int) * count), count, count);
   for (i = 0; i < count; ++i) {
     msg->Get(signers[i]);
     msg->Get(choices[i]);
@@ -6687,7 +6757,7 @@ BOOL CGPlayer_C::OnPetitionShowSignatures(CDataStore *msg) {
 
   if (!g_friendList->IsIgnored(ownerGUID)) {
     CGPetitionInfo::SetPetition(itemGUID, petitionID);
-    CGPetitionInfo::SetSignatures(count, signers, choices);
+    CGPetitionInfo::SetSignatures(count, signers.Ptr(), choices.Ptr());
   }
   return 1;
 }
@@ -6697,7 +6767,7 @@ void CGPlayer_C::RequestPetitionSignatures(DWORDLONG item) {
     return;
   }
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_PETITION_SHOW_SIGNATURES));
+  msg.Put(CMSG_PETITION_SHOW_SIGNATURES);
   msg.Put(item);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -6758,45 +6828,43 @@ void GuildCharterTurnInCallback(int, const DWORDLONG &, LPVOID, bool granted) {
 
 void CGPlayer_C::TurnInGuildCharter() {
   CGItem_C *item = 0;
+  int       found = 0;
   UINT      j;
 
-  for (j = 23; j <= 38; ++j) {
-    DWORDLONG guid = m_inventory.GetItem(j);
-    item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-    if (item && item->IsA(TYPE_ITEM)) {
-      const CGPetition *petition = g_petitionCache.GetRecord(item->GetEntryID(), guid, GuildCharterTurnInCallback, 0);
-      if (!petition) {
-        return;
-      }
-      if (petition->m_flags & 1) {
-        break;
+  for (UINT index = 23; index <= 38; ++index) {
+    DWORDLONG guid = m_inventory.GetItem(index);
+    if (guid) {
+      item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+      if (item && item->GetItemStaticFlag(ITEM_FLAG_PETITION)) {
+        const CGPetition *petition = g_petitionCache.GetRecord(item->GetPetitionID(), guid, GuildCharterTurnInCallback, 0);
+        if (!petition) {
+          return;
+        }
+        if (petition->m_flags & 1) {
+          goto turn_in;
+        }
       }
     }
-    item = 0;
   }
 
-  int found = item != 0;
-  if (!found) {
-    for (j = 19; j <= 22 && !found; ++j) {
-      CGObject_C *container = ClntObjMgrObjectPtr(m_inventory.GetItem(j), __FILE__, __LINE__);
-      CGBag_C    *bag = container ? container->GetBag() : 0;
-      if (!bag) {
-        continue;
-      }
-      for (UINT slot = 0; slot < bag->NumSlots(); ++slot) {
-        DWORDLONG guid = bag->GetItem(slot);
-        item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-        if (item && item->IsA(TYPE_ITEM)) {
-          const CGPetition *petition = g_petitionCache.GetRecord(item->GetEntryID(), guid, GuildCharterTurnInCallback, 0);
-          if (!petition) {
-            return;
-          }
-          if (petition->m_flags & 1) {
-            found = 1;
-            break;
+  for (index = 19; index <= 22; ++index) {
+    CGObject_C *container = ClntObjMgrObjectPtr(m_inventory.GetItem(index), __FILE__, __LINE__);
+    if (container) {
+      for (j = 0; j < container->GetBag()->NumSlots(); ++j) {
+        DWORDLONG guid = container->GetBag()->GetItem(index);
+        if (guid) {
+          item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+          if (item && item->GetItemStaticFlag(ITEM_FLAG_PETITION)) {
+            const CGPetition *petition = g_petitionCache.GetRecord(item->GetPetitionID(), guid, GuildCharterTurnInCallback, 0);
+            if (!petition) {
+              return;
+            }
+            if (petition->m_flags & 1) {
+              found = 1;
+              break;
+            }
           }
         }
-        item = 0;
       }
     }
   }
@@ -6806,17 +6874,29 @@ void CGPlayer_C::TurnInGuildCharter() {
     return;
   }
 
+turn_in:
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_TURN_IN_PETITION));
+  msg.Put(CMSG_TURN_IN_PETITION);
   msg.Put(item->GetGUID());
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
 void CGPlayer_C::SendTextEmote(const EmotesTextRec *rec, const DWORDLONG &target) const {
+  if (!rec) {
+    return;
+  }
+
+  if (g_emotesDB.GetRecord(rec->m_emoteID) && (g_emotesDB.GetRecord(rec->m_emoteID)->m_EmoteFlags & 0x4000) &&
+      (m_move.GetMoveFlags() & 0x4033))
+  {
+    CGGameUI::DisplayError(GERR_NOEMOTEWHILERUNNING);
+    return;
+  }
+
   CDataStore msg;
-  msg.Put(static_cast<UINT>(CMSG_TEXT_EMOTE));
-  msg.Put(static_cast<UINT>(rec->m_ID));
+  msg.Put(CMSG_TEXT_EMOTE);
+  msg.Put(rec->m_ID);
   msg.Put(target);
   msg.Finalize();
   ClientServices_Send(&msg);

@@ -10,6 +10,10 @@ namespace NTempest {
 
   class C3iVector {
    public:
+    long x;
+    long y;
+    long z;
+
     enum {
       eComponents = 3
     };
@@ -44,38 +48,16 @@ namespace NTempest {
       return C2iVector(x, y);
     }
 
-    static C3iVector Min(const C3iVector &a, const C3iVector &b) {
-      return C3iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z);
-    }
-
-    static C3iVector Max(const C3iVector &a, const C3iVector &b) {
-      return C3iVector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z);
-    }
-
-    static long Dot(const C3iVector &a, const C3iVector &b) {
-      return a.x * b.x + a.y * b.y + a.z * b.z;
-    }
-
-    static C3iVector Cross(const C3iVector &a, const C3iVector &b) {
-      return C3iVector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-    }
-
-    C3iVector &operator+=(long a) {
-      x += a;
-      y += a;
-      z += a;
-      return *this;
-    }
     C3iVector &operator+=(const C3iVector &a) {
       x += a.x;
       y += a.y;
       z += a.z;
       return *this;
     }
-    C3iVector &operator-=(long a) {
-      x -= a;
-      y -= a;
-      z -= a;
+    C3iVector &operator+=(long a) {
+      x += a;
+      y += a;
+      z += a;
       return *this;
     }
     C3iVector &operator-=(const C3iVector &a) {
@@ -84,10 +66,10 @@ namespace NTempest {
       z -= a.z;
       return *this;
     }
-    C3iVector &operator*=(long a) {
-      x *= a;
-      y *= a;
-      z *= a;
+    C3iVector &operator-=(long a) {
+      x -= a;
+      y -= a;
+      z -= a;
       return *this;
     }
     C3iVector &operator*=(const C3iVector &a) {
@@ -96,10 +78,10 @@ namespace NTempest {
       z *= a.z;
       return *this;
     }
-    C3iVector &operator/=(long a) {
-      x /= a;
-      y /= a;
-      z /= a;
+    C3iVector &operator*=(long a) {
+      x *= a;
+      y *= a;
+      z *= a;
       return *this;
     }
     C3iVector &operator/=(const C3iVector &a) {
@@ -108,10 +90,10 @@ namespace NTempest {
       z /= a.z;
       return *this;
     }
-    C3iVector &operator>>=(long a) {
-      x >>= a;
-      y >>= a;
-      z >>= a;
+    C3iVector &operator/=(long a) {
+      x /= a;
+      y /= a;
+      z /= a;
       return *this;
     }
     C3iVector &operator>>=(const C3iVector &a) {
@@ -120,10 +102,10 @@ namespace NTempest {
       z >>= a.z;
       return *this;
     }
-    C3iVector &operator<<=(long a) {
-      x <<= a;
-      y <<= a;
-      z <<= a;
+    C3iVector &operator>>=(long a) {
+      x >>= a;
+      y >>= a;
+      z >>= a;
       return *this;
     }
     C3iVector &operator<<=(const C3iVector &a) {
@@ -132,14 +114,20 @@ namespace NTempest {
       z <<= a.z;
       return *this;
     }
+    C3iVector &operator<<=(long a) {
+      x <<= a;
+      y <<= a;
+      z <<= a;
+      return *this;
+    }
     C3iVector operator-() const {
       return C3iVector(-x, -y, -z);
     }
-    long &operator[](UINT index) {
+    const long &operator[](UINT index) const {
       ASSERT(index < 3);
       return (&x)[index];
     }
-    const long &operator[](UINT index) const {
+    long &operator[](UINT index) {
       ASSERT(index < 3);
       return (&x)[index];
     }
@@ -163,6 +151,14 @@ namespace NTempest {
       Normalize();
       *this *= magnitude;
     }
+    static C3iVector Min(const C3iVector &a, const C3iVector &b) {
+      return C3iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z);
+    }
+
+    static C3iVector Max(const C3iVector &a, const C3iVector &b) {
+      return C3iVector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z);
+    }
+
     void Minimize(const C3iVector &a) {
       if (a.x < x)
         x = a.x;
@@ -180,9 +176,13 @@ namespace NTempest {
         z = a.z;
     }
 
-    long x;
-    long y;
-    long z;
+    static long Dot(const C3iVector &a, const C3iVector &b) {
+      return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+
+    static C3iVector Cross(const C3iVector &a, const C3iVector &b) {
+      return C3iVector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+    }
   };
 
 }  // namespace NTempest

@@ -235,12 +235,12 @@ void ClientInitializeGameTime() {
   ClientServices_SetMessageHandler(SMSG_SERVERTIME, ReceiveServerTime, 0);
   ClientServices_SetMessageHandler(SMSG_GAMETIME_SET, ReceiveNewGameTime, 0);
 
-  ConsoleCommandRegister("dtime", CCommand_ShowLocalGameTime, DEFAULT, 0);
-  ConsoleCommandRegister("time", CCommand_ShowServerGameTime, DEFAULT, 0);
-  ConsoleCommandRegister("gametime", CCommand_GameTime, DEFAULT, 0);
-  ConsoleCommandRegister("localtime", CCommand_LocalTime, DEFAULT, 0);
-  ConsoleCommandRegister("gamespeed", CCommand_GameSpeed, DEFAULT, 0);
-  ConsoleCommandRegister("spawntime", CCommand_SpawnTime, DEFAULT, 0);
+  ConsoleCommandRegister("dtime", CCommand_ShowLocalGameTime, DEBUG, 0);
+  ConsoleCommandRegister("time", CCommand_ShowServerGameTime, DEBUG, 0);
+  ConsoleCommandRegister("gametime", CCommand_GameTime, DEBUG, 0);
+  ConsoleCommandRegister("localtime", CCommand_LocalTime, DEBUG, 0);
+  ConsoleCommandRegister("gamespeed", CCommand_GameSpeed, DEBUG, 0);
+  ConsoleCommandRegister("spawntime", CCommand_SpawnTime, DEBUG, 0);
 
   memset(s_forcedChangeCallbacks, 0, sizeof(s_forcedChangeCallbacks));
 }

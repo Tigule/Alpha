@@ -302,7 +302,7 @@ void CGQuestInfo::DeclineQuest() {
     QuestGiverFinished();
   } else {
     CDataStore hello;
-    hello.Put(static_cast<UINT>(CMSG_QUESTGIVER_HELLO));
+    hello.Put(CMSG_QUESTGIVER_HELLO);
     hello.Put(m_npc);
     hello.Finalize();
     ClientServices_Send(&hello);
@@ -603,14 +603,11 @@ static int Script_QuestChooseRewardError(lua_State *) {
 }
 
 static int Script_ConfirmAcceptQuest(lua_State *) {
-  int quest = CGQuestInfo::GetPendingConfirmQuest();
-  if (quest) {
-    CDataStore msg;
-    msg.Put(static_cast<UINT>(CMSG_QUEST_CONFIRM_ACCEPT));
-    msg.Put(quest);
-    msg.Finalize();
-    ClientServices_Send(&msg);
-  }
+  CDataStore msg;
+  msg.Put(CMSG_QUEST_CONFIRM_ACCEPT);
+  msg.Put(CGQuestInfo::GetPendingConfirmQuest());
+  msg.Finalize();
+  ClientServices_Send(&msg);
   return 0;
 }
 

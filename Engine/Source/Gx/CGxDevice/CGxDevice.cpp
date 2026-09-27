@@ -1580,8 +1580,11 @@ float CGxDevice::CpuFrequency() {
   return frequency;
 }
 
-LONGLONG CGxDevice::CpuTicks() {
-  return OsGetAsyncTimeClocks();
+__declspec(naked) LONGLONG CGxDevice::CpuTicks() {
+  __asm {
+    rdtsc
+    ret
+  }
 }
 
 void __cdecl CGxDevice::DbgPrintf(LPCSTR format, ...) {

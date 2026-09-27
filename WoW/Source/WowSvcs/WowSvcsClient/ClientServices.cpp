@@ -411,14 +411,15 @@ void ClientConnection::AccountLogin_Finish(int reason) {
   m_statusResult = reason == 12;
 }
 
-BOOL ClientConnection::HandleAuthChallenge(NETMESSAGE addr, DWORD, CDataStore *msg) {
+BOOL ClientConnection::HandleAuthChallenge(NETMESSAGE msgId, DWORD, CDataStore *msg) {
   SHA1_CONTEXT ctx;
-  UINT         localDigest[5];
+  BYTE         localDigest[20];
   int          localChallenge;
+  UINT         addr;
   UINT         loginServerID;
   UINT         challenge;
 
-  ASSERT(addr == SMSG_AUTH_CHALLENGE);
+  ASSERT(msgId == SMSG_AUTH_CHALLENGE);
 
   msg->Get(challenge);
 
@@ -431,7 +432,7 @@ BOOL ClientConnection::HandleAuthChallenge(NETMESSAGE addr, DWORD, CDataStore *m
   localChallenge = NTempest::CRandom::uint32_(g_rndSeed);
   resp.Put(localChallenge);
 
-  addr = static_cast<NETMESSAGE>(0);
+  addr = 0;
   loginServerID = m_loginData.m_loginServerID;
 
   SHA1_Init(&ctx);
@@ -441,7 +442,7 @@ BOOL ClientConnection::HandleAuthChallenge(NETMESSAGE addr, DWORD, CDataStore *m
   SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&loginServerID), sizeof(loginServerID));
   SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&challenge), sizeof(challenge));
   SHA1_Update(&ctx, m_loginData.m_sessionKey, sizeof(m_loginData.m_sessionKey));
-  SHA1_Final(reinterpret_cast<BYTE *>(localDigest), &ctx);
+  SHA1_Final(localDigest, &ctx);
 
   resp.PutData(localDigest, sizeof(localDigest));
   resp.Finalize();
@@ -975,7 +976,7 @@ void ClientConnection::RealmEnumCallback(CDataStore *data) {
   }
 
   if (!m_realmList.Count()) {
-    s_redirectServer[0] = 0;
+    s_redirectServer[sizeof(s_redirectServer)] = 0;
   }
 
   if (m_statusCop == COP_CONNECT) {
@@ -1150,7 +1151,7 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
 
   int vendor;
   OsGetProcessorFeaturesEx(vendor);
-  if (vendor > 4) {
+  if (static_cast<UINT>(vendor) > 4) {
     vendor = 0;
   }
   SStrPrintf(line, sizeof(line), "Processor vendor:\t%s\n", s_vendors[vendor]);
@@ -1166,7 +1167,7 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
     scaledClocks = clocksPerSecond / 1000ui64;
     clockUnit = 'M';
   }
-  SStrPrintf(line, sizeof(line), "Processor speed:\t%6.2f%cHz\n", static_cast<double>(static_cast<LONGLONG>(scaledClocks)) * 0.001, clockUnit);
+  SStrPrintf(line, sizeof(line), "Processor speed:\t%6.2f%cHz\n", static_cast<double>(static_cast<LONGLONG>(scaledClocks)) * 0.001f, clockUnit);
   SStrPack(message, line, sizeof(message));
 
   SStrPrintf(line, sizeof(line), "Memory:\t%uMB\n", OsGetPhysicalMemory() >> 20);
@@ -1228,8 +1229,7 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
           SStrPack(message, "\n", sizeof(message));
         }
 
-        NTempest::C3Vector v;
-        player->GetPosition(v);
+        NTempest::C3Vector v = player->GetPosition();
         SStrPrintf(line, sizeof(line), "Position:\t%f %f %f, %f\n", v.x, v.y, v.z, player->GetFacing());
         SStrPack(message, line, sizeof(message));
 
@@ -1261,13 +1261,13 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
   }
 
   UINT       reportLength = SStrLen(message) + 1;
-  UINT       categoryLength = SStrLen(category) + 1;
   CDataStore msg;
-  msg.Put(static_cast<int>(CMSG_BUG));
-  msg.Put(static_cast<int>(reportType));
-  msg.Put(static_cast<int>(reportLength));
+  msg.Put(CMSG_BUG);
+  msg.Put(reportType);
+  msg.Put(reportLength);
   msg.PutData(message, reportLength);
-  msg.Put(static_cast<int>(categoryLength));
+  UINT categoryLength = SStrLen(category) + 1;
+  msg.Put(categoryLength);
   msg.PutData(category, categoryLength);
   msg.Finalize();
   s_currentConnection->Send(&msg);

@@ -386,7 +386,15 @@ void PlaySpellPickupSound(UI_SPELL_TYPE type) {
 }
 
 void PlaySpellCastSound(UI_SPELL_TYPE type) {
-  SndInterfacePlayInterfaceSound("INTERFACESOUND_ACTIONBUTTONDOWN");
+  switch (type) {
+    case PLAYER_SPELL:
+    case PET_SPELL:
+      SndInterfacePlayInterfaceSound("GAMESPELLACTIVATE");
+      break;
+    case PLAYER_ABILITY:
+      SndInterfacePlayInterfaceSound("GAMEABILITYACTIVATE");
+      break;
+  }
 }
 
 void CGSpellBook::PickupSpell(int slot, UI_SPELL_TYPE type) {

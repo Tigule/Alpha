@@ -1229,6 +1229,12 @@ void CMovement::ApplyMovement(DWORD eventTime, UINT fallTime, UINT moveTime, UIN
   }
 }
 
+CMovement::CMovement(const DWORDLONG &guid) : CMovementData(guid) {
+}
+
+CMovementData::CMovementData(const DWORDLONG &guid) : m_guid(guid), m_spline(0) {
+}
+
 CMovementData::CMovementData(const NTempest::C3Vector &position, float facing, const DWORDLONG &guid)
     : m_position(position),
       m_facing(facing),
@@ -1602,6 +1608,160 @@ void CMovement::GetMoveStatus(CMovementStatus *status) const {
 
   if (m_spline && !(m_spline->flags & 0x4)) {
     status->moveFlags |= 0x04000000;
+  }
+}
+
+void CMovement::BuildFullZoneUpdate(CDataStore *msg) {
+  msg->Put(m_position.x);
+  msg->Put(m_position.y);
+  msg->Put(m_position.z);
+  msg->Put(m_facing);
+  msg->Put(m_spline && !(m_spline->flags & 4) ? m_moveFlags : m_moveFlags & ~0x04000000U);
+  msg->Put(m_anchorPosition.x);
+  msg->Put(m_anchorPosition.y);
+  msg->Put(m_anchorPosition.z);
+  msg->Put(m_anchorFacing);
+  msg->Put(m_moveStartTime);
+  msg->Put(m_direction.x);
+  msg->Put(m_direction.y);
+  msg->Put(m_direction.z);
+  msg->Put(m_direction2d.x);
+  msg->Put(m_direction2d.y);
+  msg->Put(m_reDirection.x);
+  msg->Put(m_reDirection.y);
+  msg->Put(m_reDirection.z);
+  msg->Put(m_fallStartTime);
+  msg->Put(m_fallStartElevation);
+  msg->Put(m_walkSpeed);
+  msg->Put(m_runSpeed);
+  msg->Put(m_swimSpeed);
+  msg->Put(m_turnRate);
+  msg->Put(m_collisionBoxHalfDepth);
+  msg->Put(m_collisionBoxHeight);
+  msg->Put(m_stepUpHeight);
+  msg->Put(m_jumpVelocity);
+  msg->Put(m_transportGUID);
+}
+
+void CMovement::UnpackFullZoneUpdate(CDataStore *msg) {
+  msg->Get(m_position.x);
+  msg->Get(m_position.y);
+  msg->Get(m_position.z);
+  msg->Get(m_facing);
+  msg->Get(m_moveFlags);
+  msg->Get(m_anchorPosition.x);
+  msg->Get(m_anchorPosition.y);
+  msg->Get(m_anchorPosition.z);
+  msg->Get(m_anchorFacing);
+  msg->Get(m_moveStartTime);
+  msg->Get(m_direction.x);
+  msg->Get(m_direction.y);
+  msg->Get(m_direction.z);
+  msg->Get(m_direction2d.x);
+  msg->Get(m_direction2d.y);
+  msg->Get(m_reDirection.x);
+  msg->Get(m_reDirection.y);
+  msg->Get(m_reDirection.z);
+  msg->Get(m_fallStartTime);
+  msg->Get(m_fallStartElevation);
+  msg->Get(m_walkSpeed);
+  msg->Get(m_runSpeed);
+  msg->Get(m_swimSpeed);
+  msg->Get(m_turnRate);
+  msg->Get(m_collisionBoxHalfDepth);
+  msg->Get(m_collisionBoxHeight);
+  msg->Get(m_stepUpHeight);
+  msg->Get(m_jumpVelocity);
+  msg->Get(m_transportGUID);
+}
+
+int CMovement::SkipFullZoneUpdate(CDataStore *msg) {
+  DWORDLONG fakeGuid;
+  CMovement fakeMovement(fakeGuid);
+  fakeMovement.UnpackFullZoneUpdate(msg);
+  return fakeMovement.m_moveFlags & 0x04000000;
+}
+
+void CMovement::PutHandoffData(CDataStore *msg) {
+  BuildFullZoneUpdate(msg);
+  if (m_spline && !(m_spline->flags & 4)) {
+    msg->Put(m_spline->flags);
+    if (m_spline->flags & 0x00010000) {
+      msg->Put(m_spline->face.spot.x);
+      msg->Put(m_spline->face.spot.y);
+      msg->Put(m_spline->face.spot.z);
+    }
+    if (m_spline->flags & 0x00020000) {
+      msg->Put(m_spline->face.guid);
+    }
+    if (m_spline->flags & 0x00040000) {
+      msg->Put(m_spline->face.facing);
+    }
+    msg->Put(static_cast<int>(OsGetAsyncTimeMs() - m_spline->start));
+    msg->Put(m_spline->time);
+    UINT pointCount = m_spline->spline.NumPoints();
+    msg->Put(pointCount);
+    for (UINT i = 0; i < pointCount; ++i) {
+      const NTempest::C3Vector &point = m_spline->spline.Point(i);
+      msg->Put(point.x);
+      msg->Put(point.y);
+      msg->Put(point.z);
+    }
+  }
+}
+
+void CMovement::GetHandoffData(CDataStore *msg) {
+  UnpackFullZoneUpdate(msg);
+  if (m_moveFlags & 0x04000000) {
+    AddSpline();
+    msg->Get(m_spline->flags);
+    if (m_spline->flags & 0x00010000) {
+      msg->Get(m_spline->face.spot.x);
+      msg->Get(m_spline->face.spot.y);
+      msg->Get(m_spline->face.spot.z);
+    }
+    if (m_spline->flags & 0x00020000) {
+      msg->Get(m_spline->face.guid);
+    }
+    if (m_spline->flags & 0x00040000) {
+      msg->Get(m_spline->face.facing);
+    }
+    DWORD timeNow = OsGetAsyncTimeMs();
+    int elapsed;
+    msg->Get(elapsed);
+    m_spline->start = timeNow - elapsed;
+    msg->Get(m_spline->time);
+    UINT pointCount = 0;
+    msg->Get(pointCount);
+    if (pointCount) {
+      LPVOID points;
+      msg->GetDataInSitu(points, 12 * pointCount);
+      m_spline->spline.SetPoints(static_cast<const NTempest::C3Vector *>(points), pointCount);
+    }
+  } else {
+    RemoveSpline();
+  }
+}
+
+void CMovement::SkipHandoffData(CDataStore *msg) {
+  if (SkipFullZoneUpdate(msg)) {
+    UINT flags = 0;
+    msg->Get(flags);
+    UINT bytes = 0;
+    if (flags & 0x00010000) {
+      bytes = 12;
+    }
+    if (flags & 0x00020000) {
+      bytes += 8;
+    }
+    if (flags & 0x00040000) {
+      bytes += 4;
+    }
+    LPVOID unused;
+    msg->GetDataInSitu(unused, bytes + 8);
+    UINT pointCount = 0;
+    msg->Get(pointCount);
+    msg->GetDataInSitu(unused, 12 * pointCount);
   }
 }
 

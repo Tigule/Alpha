@@ -583,7 +583,7 @@ void CGItem_C::OnRightClick() {
   }
 
   CDataStore msg;
-  msg.Put(static_cast<int>(CMSG_AUTOSTORE_GROUND_ITEM));
+  msg.Put(CMSG_AUTOSTORE_GROUND_ITEM);
   msg.Put(GetGUID());
   msg.Finalize();
   ClientServices_Send(&msg);
