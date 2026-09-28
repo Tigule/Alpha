@@ -629,7 +629,7 @@ void CMovement::PlotSpiralPosition(const NTempest::C2Vector &direction2d, float 
   totalMove->z = pitchOffset * m_cosAnchorPitch + baseX * m_sinAnchorPitch;
   if (NTempest::CMath::fabs_(overflowTime) >= 0.00000095367432f) {
     float overflow = overflowTime * currentSpeed;
-    totalMove->z += overflowTime > 0.0f ? overflow : -overflow;
+    totalMove->z += NTempest::CMath::fabs_(pitchChange + m_anchorPitch - 1.5707964f) < 0.00000095367432f ? overflow : -overflow;
   }
 }
 
@@ -656,7 +656,7 @@ void CMovement::PlotVertCircularPosition(const NTempest::C2Vector &direction2d, 
   totalMove->z = vertical * m_cosAnchorPitch + horizontal * m_sinAnchorPitch;
   if (NTempest::CMath::fabs_(overflowTime) >= 0.00000095367432f) {
     float overflow = overflowTime * currentSpeed;
-    totalMove->z += overflowTime > 0.0f ? overflow : -overflow;
+    totalMove->z += NTempest::CMath::fabs_(pitchAngle + m_anchorPitch - 1.5707964f) < 0.00000095367432f ? overflow : -overflow;
   }
   LogWrite("0x%016I64X: Want to move (%g,%g,%g) arcing for %g secs\n", m_guid, totalMove->x, totalMove->y, totalMove->z, secsElapsed);
 }
@@ -2804,28 +2804,30 @@ void CMovement::OnSwimStopLocal(DWORD eventTime) {
 
 void CMovement::StartSwimLocal(DWORD eventTime) {
   StartSwim(eventTime);
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
-  FATALASSERT(globals);
-  globals->m_localMover = this;
+  if (!(m_moveFlags & 0xF)) {
+    static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover = 0;
+  }
 }
 
 void CMovement::StopSwimLocal(DWORD eventTime) {
   StopSwim(eventTime);
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
-  FATALASSERT(globals);
-  globals->m_localMover = this;
+  static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover = this;
 }
 
 void CMovement::StartSwim(DWORD eventTime) {
+  BothLogWrite("0x%016I64X: Swim start (0x%X) from (%g,%g,%g), (%g)\n", m_guid, eventTime, m_position.x, m_position.y, m_position.z, m_facing);
   UpdateAnchors(eventTime);
   m_moveFlags |= 0x0A000000;
+  OnDisableGravity(eventTime);
 }
 
 void CMovement::StopSwim(DWORD eventTime) {
+  BothLogWrite("0x%016I64X: Swim stop (0x%X) from (%g,%g,%g), (%g)\n", m_guid, eventTime, m_position.x, m_position.y, m_position.z, m_facing);
   UpdateAnchors(eventTime);
   m_moveFlags = (m_moveFlags & 0xF5FFFF3F) | 0x08000000;
   m_anchorPitch = 0.0f;
   m_pitch = 0.0f;
+  OnEnableGravity(eventTime);
 }
 
 void CMovement::OnPitchStartLocal(DWORD eventTime, int up) {

@@ -752,7 +752,9 @@ class CGUnit {
   BOOL               IsSwimmingOrFalling() const;
   BOOL               IsMovingStrafingOrSwimming() const;
   BOOL               IsMovingStrafingFallingOrSwimming() const;
-  float              GetCollisionBoxHeight() const;
+  float GetCollisionBoxHeight() const {
+    return m_move.GetCollisionBoxHeight();
+  }
   int                IgnoresCollision() const;
   BOOL               IsHalted() const;
   void               BuildMovementUpdate(CDataStore *msg) const;

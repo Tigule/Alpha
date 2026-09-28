@@ -1,6 +1,7 @@
 #include <Base/Base.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <Ftol.h>
 
 #include "World.h"
 #include "CMapObj.h"
@@ -19,6 +20,10 @@
 #include <string.h>
 
 void ShadowRender(HMODEL hModel, const NTempest::C44Matrix &basis, LPVOID param);
+
+static UINT s_boxCornerIndicesX[8] = {0, 1, 1, 0, 0, 1, 1, 0};
+static UINT s_boxCornerIndicesY[8] = {0, 0, 1, 1, 0, 0, 1, 1};
+static UINT s_boxCornerIndicesZ[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 
 LISTDECLEX(CWFrustum, sceneLink, CWorldScene::frustumFreeList);
 CSortTable            CWorldScene::sortTable;
@@ -318,7 +323,7 @@ void CWorldScene::AddDoodadDef(CMapDoodadDef *doodadDef) {
   FATALASSERT(doodadDef);
   doodadDef->GetBounds(bounds);
   doodadDef->camDist = camPlaneXY.DistSigned(bounds.c) - bounds.r;
-  int sortIndex = static_cast<int>(doodadDef->camDist * 0.03f - 0.5f);
+  int sortIndex = Fast_ftol(doodadDef->camDist * 0.03f);
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
@@ -331,7 +336,7 @@ void CWorldScene::AddDoodadDef(CMapDoodadDef *doodadDef) {
 void CWorldScene::AddMapObjDef(CMapObjDef *mapObjDef) {
   FATALASSERT(mapObjDef);
   mapObjDef->camDist = camPlaneXY.DistSigned(mapObjDef->aaSphere.c) - mapObjDef->aaSphere.r;
-  int sortIndex = static_cast<int>(mapObjDef->camDist * 0.03f - 0.5f);
+  int sortIndex = Fast_ftol(mapObjDef->camDist * 0.03f);
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
@@ -344,7 +349,7 @@ void CWorldScene::AddMapObjDef(CMapObjDef *mapObjDef) {
 void CWorldScene::AddMapChunk(CMapChunk *chunk, float sortDist) {
   FATALASSERT(chunk);
 
-  int sortIndex = static_cast<int>(sortDist * 0.03f - 0.5f);
+  int sortIndex = Fast_ftol(sortDist * 0.03f);
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
@@ -358,7 +363,7 @@ void CWorldScene::AddMapChunk(CMapChunk *chunk, float sortDist) {
 void CWorldScene::AddChunkLiquid(CChunkLiquid *liquid, UINT type) {
   FATALASSERT(liquid);
   FATALASSERT(type < 4);
-  int sortIndex = static_cast<int>(liquid->chunk->camDist * 0.03f - 0.5f);
+  int sortIndex = Fast_ftol(liquid->chunk->camDist * 0.03f);
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
@@ -371,7 +376,7 @@ void CWorldScene::AddChunkLiquid(CChunkLiquid *liquid, UINT type) {
 void CWorldScene::AddMapEntity(CMapEntity *entity) {
   FATALASSERT(entity);
   entity->camDist = camPlaneXY.DistSigned(entity->aaSphere.c) - entity->aaSphere.r;
-  int sortIndex = static_cast<int>(entity->camDist * 0.03f - 0.5f);
+  int sortIndex = Fast_ftol(entity->camDist * 0.03f);
   if (sortIndex < 0) {
     sortIndex = 0;
   } else if (sortIndex >= 26) {
@@ -407,8 +412,8 @@ void CWorldScene::ClipBufferUpdate(const NTempest::C3Vector *vertices, const int
     }
 
     float cullValue = v0.y < v1.y ? v0.y : v1.y;
-    int   x0 = static_cast<int>(v0.x * 64.0f - 0.5f);
-    int   x1 = static_cast<int>(v1.x * 64.0f - 0.5f);
+    int   x0 = Fast_ftol(v0.x * 64.0f);
+    int   x1 = Fast_ftol(v1.x * 64.0f);
     if (x1 < x0) {
       int x = x0;
       x0 = x1;
@@ -456,7 +461,7 @@ void CWorldScene::ClipPortal(NTempest::C4Vector *inList, UINT &inCount) {
       if (side0 != 2) {
         v[to][c[to]++] = *v0;
       }
-      if (side1 && side1 != side0) {
+      if (side0 && side1 && side1 != side0) {
         float               t = d0 / (d0 - d1);
         NTempest::C4Vector &out = v[to][c[to]++];
         out.x = v0->x + (v1->x - v0->x) * t;
@@ -1023,12 +1028,12 @@ void CWorldScene::RenderChunks() {
 }
 
 int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, UINT cullFlags) {
-  NTempest::C4Vector v(center.x, center.y, center.z, 1.0f);
-  NTempest::C4Vector vr(radius, radius, 0.0f, 0.0f);
   if (!(CWorld::enables & CWorld::Enable_Culling) || NTempest::CMath::fabs_(radius) < 2.38418579e-7f) {
     return 0;
   }
 
+  NTempest::C4Vector v(center.x, center.y, center.z, 1.0f);
+  NTempest::C4Vector vr(radius, radius, 0.0f, 1.0f);
   v = v * mvp;
   vr = vr * mp;
   if (!(cullFlags & 8) && v.w < 50.0f) {
@@ -1036,59 +1041,80 @@ int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, 
   }
 
   float ooW = 1.0f / v.w;
-  float left = (v.x - NTempest::CMath::fabs_(vr.x)) * ooW + 1.0f;
-  float right = (v.x + NTempest::CMath::fabs_(vr.x)) * ooW + 1.0f;
-  float top = (v.y + NTempest::CMath::fabs_(vr.y)) * ooW;
-  int   first = static_cast<int>(left * 64.0f - 0.5f);
-  int   last = static_cast<int>(right * 64.0f - 0.5f) + 1;
+  v.x = v.x * ooW + 1.0f;
+  v.y *= ooW;
+  vr.x *= ooW;
+  vr.y *= ooW;
+  v.y += vr.x;
+  if (v.y > 1.0f) {
+    v.y = 1.0f;
+  }
+  if ((cullFlags & 4) && v.w - radius > cullDistance) {
+    return 1;
+  }
+  if ((cullFlags & 1) && vr.x < cullSmallThreshold && vr.y < cullSmallThreshold) {
+    return 1;
+  }
+
+  int first = Fast_ftol((v.x - vr.y) * 64.0f);
+  int last = Fast_ftol((v.x + vr.y) * 64.0f) + 1;
   if (first < 0) {
     first = 0;
   }
   if (last > 127) {
     last = 127;
   }
-  while (first <= last && clipBuffer[first] >= top) {
+  while (first <= last && clipBuffer[first] >= v.y) {
     ++first;
   }
   return first > last;
 }
 
 int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags) {
-  NTempest::C3Vector  aaBoxMin = aaBox.b;
-  NTempest::C3Vector  aaBoxMax = aaBox.t;
-  NTempest::C3Vector *aaBoxMinMax[2] = {&aaBoxMin, &aaBoxMax};
   if (!(CWorld::enables & CWorld::Enable_Culling)) {
     return 0;
   }
 
-  float minX = 3.4028235e38f;
-  float maxX = -3.4028235e38f;
-  float maxY = -3.4028235e38f;
+  NTempest::C3Vector aaBoxMin(3.4028235e38f);
+  NTempest::C3Vector aaBoxMax(-3.4028235e38f);
+  const NTempest::C3Vector *aaBoxMinMax[2] = {&aaBox.t, &aaBox.b};
+  NTempest::C4Vector v;
   for (UINT i = 0; i < 8; ++i) {
-    NTempest::C3Vector corner(aaBoxMinMax[(i >> 0) & 1]->x, aaBoxMinMax[(i >> 1) & 1]->y, aaBoxMinMax[(i >> 2) & 1]->z);
-    NTempest::C4Vector v(corner.x, corner.y, corner.z, 1.0f);
+    v.Set(aaBoxMinMax[s_boxCornerIndicesX[i]]->x, aaBoxMinMax[s_boxCornerIndicesY[i]]->y, aaBoxMinMax[s_boxCornerIndicesZ[i]]->z, 1.0f);
     v = v * mvp;
     if (!(cullFlags & 8) && v.w < 50.0f) {
       return 0;
     }
     float ooW = 1.0f / v.w;
-    float x = v.x * ooW;
-    float y = v.y * ooW;
-    if (x < minX)
-      minX = x;
-    if (x > maxX)
-      maxX = x;
-    if (y > maxY)
-      maxY = y;
+    v.x *= ooW;
+    v.y *= ooW;
+    if (v.x < aaBoxMin.x)
+      aaBoxMin.x = v.x;
+    if (v.x > aaBoxMax.x)
+      aaBoxMax.x = v.x;
+    if (v.y < aaBoxMin.y)
+      aaBoxMin.y = v.y;
+    if (v.y > aaBoxMax.y)
+      aaBoxMax.y = v.y;
+    if (v.w < aaBoxMin.z)
+      aaBoxMin.z = v.w;
   }
 
-  int first = static_cast<int>((minX + 1.0f) * 64.0f - 0.5f);
-  int last = static_cast<int>((maxX + 1.0f) * 64.0f - 0.5f) + 1;
+  aaBoxMax.x += 1.0f;
+  if (aaBoxMax.y > 1.0f) {
+    aaBoxMax.y = 1.0f;
+  }
+  if ((cullFlags & 4) && aaBoxMin.z > cullDistance) {
+    return 1;
+  }
+
+  int first = Fast_ftol((aaBoxMin.x + 1.0f) * 64.0f);
+  int last = Fast_ftol(aaBoxMax.x * 64.0f) + 1;
   if (first < 0)
     first = 0;
   if (last > 127)
     last = 127;
-  while (first <= last && clipBuffer[first] >= maxY) {
+  while (first <= last && clipBuffer[first] >= aaBoxMax.y) {
     ++first;
   }
   return first > last;
@@ -1412,19 +1438,20 @@ void CWFrustum::Translate(const NTempest::C3Vector &t) {
 
 void CWFrustum::Transform(const NTempest::C44Matrix &mat) {
   for (UINT i = 0; i < 8; ++i) {
-    corners[i] = corners[i] * mat;
+    corners[i] *= mat;
   }
   CalcPlanesFromCorners();
-  lookPos = lookPos * mat;
-  lookAt = lookAt * mat;
-  lookUp = lookUp * mat;
+  lookPos *= mat;
+  lookAt *= mat;
 }
 
 WorldCullStatus CWFrustum::Cull(const NTempest::CAaBox &aabox) const {
   const float *corner[2] = {&aabox.t.x, &aabox.b.x};
   for (UINT p = 0; p < 6; ++p) {
-    NTempest::C3Vector point(corner[planes[p].n.x < 0.0f][0], corner[planes[p].n.y < 0.0f][1], corner[planes[p].n.z < 0.0f][2]);
-    if (planes[p].DistSigned(point) < -0.019444443f) {
+    if (corner[static_cast<DWORD>(NTempest::CMath::realasint32_(planes[p].n.x)) >> 31][0] * planes[p].n.x +
+            corner[static_cast<DWORD>(NTempest::CMath::realasint32_(planes[p].n.z)) >> 31][2] * planes[p].n.z +
+            corner[static_cast<DWORD>(NTempest::CMath::realasint32_(planes[p].n.y)) >> 31][1] * planes[p].n.y + planes[p].d <
+        -0.019444443f) {
       return WorldCull_outside;
     }
   }
@@ -1433,11 +1460,16 @@ WorldCullStatus CWFrustum::Cull(const NTempest::CAaBox &aabox) const {
 
 WorldCullStatus CWFrustum::Cull(const NTempest::CAaBox &box, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
   NTempest::C33Matrix m = basis.Transpose();
+  const float *corner[2] = {&box.t.x, &box.b.x};
   for (int p = 0; p < 6; ++p) {
     NTempest::C3Vector wv = m * planes[p].n;
-    NTempest::C3Vector corner(wv.x < 0.0f ? box.b.x : box.t.x, wv.y < 0.0f ? box.b.y : box.t.y, wv.z < 0.0f ? box.b.z : box.t.z);
-    corner = basis * corner + pos;
-    if (planes[p].DistSigned(corner) < -0.019444443f) {
+    wv = basis * NTempest::C3Vector(
+                     corner[static_cast<DWORD>(NTempest::CMath::realasint32_(wv.x)) >> 31][0],
+                     corner[static_cast<DWORD>(NTempest::CMath::realasint32_(wv.y)) >> 31][1],
+                     corner[static_cast<DWORD>(NTempest::CMath::realasint32_(wv.z)) >> 31][2]
+                 ) +
+         pos;
+    if (planes[p].DistSigned(wv) < -0.019444443f) {
       return WorldCull_outside;
     }
   }
@@ -1479,22 +1511,20 @@ void CWFrustum::Cull(const NTempest::C3Vector &point, UINT &cullFlags) const {
 }
 
 WorldCullStatus CWFrustum::Cull(const NTempest::C4Plane &plane) const {
-  UINT outside = 0;
-  UINT inside = 0;
+  UINT counts[2] = {0, 0};
   for (UINT i = 0; i < 8; ++i) {
-    float distance = plane.DistSigned(corners[i]);
-    if (distance > 0.019444443f) {
-      ++inside;
-    } else if (distance < -0.019444443f) {
-      ++outside;
+    if (plane.DistSigned(corners[i]) > 0.019444443f) {
+      ++counts[1];
+    } else if (plane.DistSigned(corners[i]) < -0.019444443f) {
+      ++counts[0];
     } else {
       return WorldCull_intersect;
     }
   }
-  if (!inside) {
+  if (!counts[1]) {
     return WorldCull_outside;
   }
-  return outside ? WorldCull_intersect : WorldCull_inside;
+  return counts[0] ? WorldCull_intersect : WorldCull_inside;
 }
 
 struct ClipInfo {

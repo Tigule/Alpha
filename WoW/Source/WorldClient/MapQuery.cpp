@@ -12,6 +12,8 @@ extern UINT g_holeMask[4][4];
 
 WORD  g_2bitSplatMask[8] = {0x0003, 0x000C, 0x0030, 0x00C0, 0x0300, 0x0C00, 0x3000, 0xC000};
 DWORD g_2bitSplatShft[8] = {0, 2, 4, 6, 8, 10, 12, 14};
+WORD  g_1bitSplatMask[8] = {0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020, 0x0040, 0x0080};
+DWORD g_1bitSplatShft[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 
 UINT CMap::QueryAreaId(float x, float y) {
   float mx = -(y - 17066.666f);

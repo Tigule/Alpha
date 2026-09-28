@@ -1456,18 +1456,16 @@ void ModelForceStandingMatrix(
   } else if (NTempest::CMath::fabs_(blendRatio) < 0.00000095367432f) {
     IModelGetStandingMatrix(shared->groundTrack, position, groundNormal, facing, scale, orientation);
   } else {
-    NTempest::C34Matrix standMtx;
-    NTempest::C34Matrix deadMtx;
-    IModelGetStandingMatrix(shared->groundTrack, position, groundNormal, facing, 1.0f, &standMtx);
-    IModelGetStandingMatrix(static_cast<GROUND_TRACK>(enumGroundTrack), position, groundNormal, facing, 1.0f, &deadMtx);
-
-    float        standingRatio = 1.0f - blendRatio;
-    float       *out = &orientation->a0;
-    const float *stand = &standMtx.a0;
-    const float *force = &deadMtx.a0;
-    for (int i = 0; i < 9; ++i) {
-      out[i] = stand[i] * standingRatio + force[i] * blendRatio;
-    }
+    NTempest::C33Matrix standMtx;
+    NTempest::C33Matrix deadMtx;
+    IModelGetStandingBasis(shared->groundTrack, groundNormal, facing, standMtx.Row0AsVec3(), standMtx.Row1AsVec3(), standMtx.Row2AsVec3());
+    IModelGetStandingBasis(
+        static_cast<GROUND_TRACK>(enumGroundTrack), groundNormal, facing, deadMtx.Row0AsVec3(), deadMtx.Row1AsVec3(), deadMtx.Row2AsVec3()
+    );
+    deadMtx = deadMtx * blendRatio;
+    standMtx = standMtx * (1.0f - blendRatio);
+    standMtx += deadMtx;
+    *orientation = NTempest::C34Matrix(standMtx);
     orientation->d0 = position.x;
     orientation->d1 = position.y;
     orientation->d2 = position.z;

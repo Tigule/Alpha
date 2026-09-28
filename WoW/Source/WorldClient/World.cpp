@@ -613,7 +613,7 @@ DWORD CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL__ *hModel, UINT
   entity->param64 = param64;
   entity->param32 = param32;
   entity->pos = NTempest::C3Vector(10000000.0f, 10000000.0f, 10000000.0f);
-  entity->scale = 1.0f;
+  entity->dirLightScale = 1.0f;
   entity->dirLightScaleTarget = 1.0f;
   entity->handler = 0;
   entity->rFrameCount = 0;
@@ -634,7 +634,7 @@ DWORD CWorld::AddDoodad(LPCSTR fileName, HMODEL__ *hModel, const NTempest::C44Ma
   doodad->flagCollidable = (objFlags & 1) != 0;
   doodad->flagCastShadow = (objFlags & 2) == 0;
   doodad->flagAlwaysAnimate = (objFlags & 4) != 0;
-  doodad->refCount = 1;
+  doodad->flags = CMapBaseObj::Flag_LightUpdate;
   doodad->modelName = fileName;
   doodad->mat = mat;
   doodad->scale = NTempest::CMath::sqrt_(mat.a0 * mat.a0 + mat.a1 * mat.a1 + mat.a2 * mat.a2);

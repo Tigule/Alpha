@@ -84,15 +84,19 @@ namespace NTempest {
   }
 
   C3Vector operator*(const C3Vector &v, const C44Matrix &r) {
-    C3Vector result = C44Matrix::mul3v33m_(v, r);
-    result += C3Vector(r.d0, r.d1, r.d2);
-    return result;
+    return C3Vector(
+        v.x * r.a0 + v.y * r.b0 + v.z * r.c0 + r.d0,
+        v.x * r.a1 + v.y * r.b1 + v.z * r.c1 + r.d1,
+        v.x * r.a2 + v.y * r.b2 + v.z * r.c2 + r.d2
+    );
   }
 
   C3Vector operator*(const C44Matrix &l, const C3Vector &v) {
-    C3Vector result = C44Matrix::mul3v33m_(l, v);
-    result += C3Vector(l.a3, l.b3, l.c3);
-    return result;
+    return C3Vector(
+        l.a0 * v.x + l.a1 * v.y + l.a2 * v.z + l.a3,
+        l.b0 * v.x + l.b1 * v.y + l.b2 * v.z + l.b3,
+        l.c0 * v.x + l.c1 * v.y + l.c2 * v.z + l.c3
+    );
   }
 
   C3Vector operator*=(C3Vector &v, const C44Matrix &r) {

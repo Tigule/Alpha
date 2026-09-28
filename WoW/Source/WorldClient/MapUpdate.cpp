@@ -85,10 +85,10 @@ void CMap::UpdateDoodadDef(CMapDoodadDef *doodadDef, NTempest::C3Vector &pos, fl
   doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
   doodadDef->pos = pos;
   doodadDef->scale = 1.0f;
-  doodadDef->mat = NTempest::C44Matrix();
+  doodadDef->mat.Identity();
   doodadDef->mat.Translate(pos);
   doodadDef->mat.Rotate(angle, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
-  doodadDef->lMat = NTempest::C44Matrix();
+  doodadDef->lMat.Identity();
 
   if (ModelIsLoaded(doodadDef->model, 1)) {
     InitializeDoodadBounds(doodadDef);
@@ -113,7 +113,6 @@ void CMap::UpdateMapObjDefs() {
 }
 
 void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float angle) {
-  NTempest::CAaBox aaBox;
   CMapObjGroup    *mapObjGroup;
   SMOLight        *sLight;
   UINT             i;
@@ -121,13 +120,14 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
 
   FATALASSERT(mapObjDef);
   mapObjDef->pos = pos;
-  mapObjDef->mat = NTempest::C44Matrix();
+  mapObjDef->mat.Identity();
   mapObjDef->mat.Translate(pos);
   mapObjDef->mat.Rotate(angle, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
   mapObjDef->invMat = mapObjDef->mat.AffineInverse();
 
-  FATALASSERT(mapObjDef->mapObj);
-  if (!mapObjDef->mapObj->bLoaded) {
+  CMapObj *mapObj = mapObjDef->mapObj;
+  FATALASSERT(mapObj);
+  if (!mapObj->bLoaded) {
     mapObjDef->aaSphere.c = pos;
     mapObjDef->aaSphere.r = 0.0f;
     mapObjDef->aaBox.b = pos;
@@ -135,18 +135,19 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
     return;
   }
 
-  mapObjDef->mapObj->GetBounds(mapObjDef->aaSphere);
+  NTempest::CAaBox aaBox;
+  mapObj->GetBounds(mapObjDef->aaSphere);
   mapObjDef->aaSphere.c *= mapObjDef->mat;
-  mapObjDef->mapObj->GetBounds(aaBox);
+  mapObj->GetBounds(aaBox);
   CWorldMath::TransformAABox(mapObjDef->mat, aaBox, mapObjDef->aaBox);
 
   ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
     mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
     FATALASSERT(mapObjDefGroup);
-    mapObjGroup = mapObjDef->mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
+    mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
     if (mapObjGroup) {
       for (i = 0; i < mapObjGroup->lightRefCount; ++i) {
-        sLight = &mapObjDef->mapObj->lightList[mapObjGroup->lightRefList[i]];
+        sLight = &mapObj->lightList[mapObjGroup->lightRefList[i]];
         if (mapObjDef->lightList[mapObjGroup->lightRefList[i]]) {
           mapObjDef->lightList[mapObjGroup->lightRefList[i]]->gxLight.m_dir = sLight->position * mapObjDef->mat;
           if (!(mapObjDefGroup->flags & CMapBaseObj::Flag_InteriorLit)) {

@@ -2610,19 +2610,19 @@ void OnMoveUpdate(DWORDLONG unit, DWORD eventTime) {
   if (inWater) {
     ripplePos = unitptr->GetPosition();
     depth = surfaceColPt - ripplePos.z;
-    unitptr->m_move.m_waterSurfaceElev = surfaceColPt - unitptr->GetObjectHeight() * 0.75f;
+    unitptr->m_move.m_waterSurfaceElev = surfaceColPt - unitptr->m_move.GetCollisionBoxHeight() * 0.75f;
   }
 
   if (unit == CGUnit_C::GetActiveMover()) {
-    UINT moveFlags = unitptr->m_move.m_moveFlags;
-    if ((moveFlags & 0x01000000) || ((unitptr->GetType() & TYPE_PLAYER) && !unitptr->m_move.m_transportGUID &&
-                                     ((moveFlags & 2) || !(moveFlags & 0x00C00004)) && !(moveFlags & 1)))
+    if ((unitptr->m_unit->flags & 0x01000000) ||
+        ((unitptr->GetType() & TYPE_PLAYER) && !unitptr->m_unit->charmedBy &&
+         ((unitptr->m_unit->flags & 2) || !(unitptr->m_unit->flags & 0x00C00004)) && !(unitptr->m_unit->flags & 1)))
     {
       unitptr->UpdateSwimmingStatus(eventTime, inWater, depth);
     }
   }
 
-  if (inWater && !(liquidStatus & 3) && unitptr->GetObjectHeight() > depth) {
+  if (inWater && !(liquidStatus & 3) && unitptr->m_move.GetCollisionBoxHeight() > depth) {
     ripplePos = unitptr->GetPosition();
     ripplePos.z = surfaceColPt;
     CWorld::WaterRipple(ripplePos, 0.73333335f, 1.0f, 0.16666667f, 6.6666665f, 0.055555556f);
@@ -4848,15 +4848,15 @@ void CGUnit_C::UpdateSwimmingStatus(DWORD eventTime, int inWater, float depth) {
 
   if (inWater) {
     if (!(m_move.m_moveFlags & 0x02000000) && depth > 0.0f) {
-      if (GetObjectHeight() * 0.75f < depth) {
-        static_cast<CMovement &>(m_move).StartSwim(eventTime);
+      if (m_move.GetCollisionBoxHeight() * 0.75f < depth) {
+        OnSwimStartLocal(eventTime);
       }
       if (m_move.m_moveFlags & 0x4000) {
         PlaySplashSound(GetPosition());
       }
     }
   } else if (m_move.m_moveFlags & 0x02000000) {
-    static_cast<CMovement &>(m_move).StopSwim(eventTime);
+    OnSwimStopLocal(eventTime);
   }
 }
 

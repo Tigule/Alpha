@@ -796,28 +796,31 @@ void CMapChunk::CreateVertices(float *heights) {
   float              *ho = heights + 81;
   NTempest::C3Vector *v = vertexList;
 
-  for (int y = 0; y < 9; ++y) {
-    float fx = static_cast<float>(y) * dx + wCorner.x;
-    for (int x = 0; x < 9; ++x) {
-      v->Set(fx, static_cast<float>(x) * dy + wCorner.y, *he++);
+  for (int x = 0; x < 9; ++x) {
+    float fx = static_cast<float>(x) * dx + wCorner.x;
+    for (int y = 0; y < 9; ++y) {
+      v->x = fx;
+      v->y = static_cast<float>(y) * dy + wCorner.y;
+      v->z = *he++;
       aaBox.Enclose(*v);
-      *v = *v - corner;
+      *v -= corner;
       ++v;
     }
 
-    if (y < 8) {
-      for (int x = 0; x < 8; ++x) {
-        v->Set(fx + dx2, static_cast<float>(x) * dy + wCorner.y + dy2, *ho++);
+    if (x < 8) {
+      for (int y = 0; y < 8; ++y) {
+        v->x = fx + dx2;
+        v->y = static_cast<float>(y) * dy + wCorner.y + dy2;
+        v->z = *ho++;
         aaBox.Enclose(*v);
-        *v = *v - corner;
+        *v -= corner;
         ++v;
       }
     }
   }
 
-  NTempest::C3Vector rv = aaBox.b + aaBox.t;
-  aaSphere.c = rv * 0.5f;
-  rv = aaBox.t - aaSphere.c;
+  aaSphere.c = (aaBox.b + aaBox.t) / 2.0f;
+  NTempest::C3Vector rv = aaBox.t - aaSphere.c;
   aaSphere.r = rv.Mag();
 }
 

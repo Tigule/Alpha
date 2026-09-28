@@ -284,7 +284,6 @@ CMapDoodadDef *CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vecto
 
   doodadDef->pos.Set(-smDoodadDef.pos.z, -smDoodadDef.pos.x, smDoodadDef.pos.y);
   doodadDef->pos += pos;
-  doodadDef->corner = doodadDef->pos;
   doodadDef->scale = static_cast<float>(smDoodadDef.scale) * 0.0009765625f;
   doodadDef->aaBox.b = doodadDef->pos;
   doodadDef->aaBox.t = doodadDef->pos;
@@ -319,9 +318,9 @@ CMap::CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileNam
   FATALASSERT(doodadDef);
   doodadDefHash.Insert(doodadDef, doodadRef, key);
 
-  doodadDef->pos = smoDoodadDef.pos * mapObjDefMat;
+  doodadDef->pos = smoDoodadDef.pos;
+  doodadDef->pos *= mapObjDefMat;
   doodadDef->scale = smoDoodadDef.scale;
-  doodadDef->corner = doodadDef->pos;
   doodadDef->aaBox.b = doodadDef->pos;
   doodadDef->aaBox.t = doodadDef->pos;
   doodadDef->aaSphere.c = doodadDef->pos;
@@ -329,9 +328,6 @@ CMap::CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileNam
   doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
   doodadDef->model = 0;
   doodadDef->modelName = fileName;
-  doodadDef->ambient = NTempest::CImVector(0ul);
-  doodadDef->interiorDirColor = NTempest::CImVector(0ul);
-  doodadDef->dirLightScale = 1.0f;
 
   doodadDef->mat = NTempest::C44Matrix();
   doodadDef->mat.Translate(smoDoodadDef.pos);
@@ -406,7 +402,6 @@ CMapObjDef *CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &
   mapObjDef->nameId = smMapObjDef.nameId;
   mapObjDef->doodadSet = smMapObjDef.doodadSet;
   mapObjDef->nameSet = smMapObjDef.nameSet;
-  mapObjDef->zoneName = 0;
   mapObjDef->param64 = 0;
 
   mapObjDef->mat = NTempest::C44Matrix();
@@ -414,7 +409,7 @@ CMapObjDef *CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &
   mapObjDef->mat.Rotate(rot.z, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
   mapObjDef->mat.Rotate(rot.y, NTempest::C3Vector(0.0f, 1.0f, 0.0f), 1);
   mapObjDef->mat.Rotate(rot.x, NTempest::C3Vector(1.0f, 0.0f, 0.0f), 1);
-  mapObjDef->invMat = mapObjDef->mat.AffineInverse();
+  mapObjDef->invMat = mapObjDef->mat.AffineInverse(1.0f);
 
   mapObjDef->aaBox.b.Set(-smMapObjDef.extents.t.z + pos.x, -smMapObjDef.extents.t.x + pos.y, smMapObjDef.extents.b.y + pos.z);
   mapObjDef->aaBox.t.Set(-smMapObjDef.extents.b.z + pos.x, -smMapObjDef.extents.b.x + pos.y, smMapObjDef.extents.t.y + pos.z);

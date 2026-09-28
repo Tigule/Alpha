@@ -1,5 +1,6 @@
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <Ftol.h>
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
@@ -775,14 +776,13 @@ void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
   UINT               ty;
   float              dy;
   NTempest::C3Vector vertWorldPos;
-  NTempest::C2Vector farCorner;
+  NTempest::C2Vector farCorner(
+      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
+  );
   float              dx;
   NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
   float              temp;
 
-  fx = static_cast<float>(chunk->cOffset.x + 1) * 33.333332f;
-  temp = static_cast<float>(chunk->cOffset.y + 1) * 33.333332f;
-  farCorner = NTempest::C2Vector(fx, temp);
   temp = 17066.666f - farCorner.x;
   farCorner.x = 17066.666f - farCorner.y;
   farCorner.y = temp;
@@ -791,10 +791,11 @@ void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
 
   for (ty = 0; ty < 9; ++ty) {
     vrowx = 9 * ty;
-    vertWorldPos.x = static_cast<float>(ty) * dy + chunk->corner.x;
+    fx = static_cast<float>(ty) * dy + chunk->corner.x;
     for (tx = 0; tx < 9; ++tx) {
+      vertWorldPos.x = fx;
       vertWorldPos.y = static_cast<float>(tx) * dx + chunk->corner.y;
-      vtx->p = vertWorldPos - CWorldScene::camPos;
+      vtx->p = vertWorldPos - chunk->corner;
       vtx->n = dumbNormal;
       vtx->tc[0] = NTempest::C2Vector(0.5f, s_oceanDepthCoordTable[verts[vrowx + tx].oceanVert.depth]);
       ++vtx;
@@ -853,15 +854,14 @@ void CChunkLiquid::RenderRiver0V(CGxVertexPNT0 *vtx) {
   float              fx;
   UINT               ty;
   float              dy;
-  NTempest::C2Vector farCorner;
+  NTempest::C2Vector farCorner(
+      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
+  );
   float              dx;
   NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
   float              temp;
   const float        OO_MAX_RIVER_COLOR_DSQ = 1.0f / 225.0f;
 
-  fx = static_cast<float>(chunk->cOffset.x + 1) * 33.333332f;
-  temp = static_cast<float>(chunk->cOffset.y + 1) * 33.333332f;
-  farCorner = NTempest::C2Vector(fx, temp);
   temp = 17066.666f - farCorner.x;
   farCorner.x = 17066.666f - farCorner.y;
   farCorner.y = temp;
@@ -870,12 +870,13 @@ void CChunkLiquid::RenderRiver0V(CGxVertexPNT0 *vtx) {
 
   for (ty = 0; ty < 9; ++ty) {
     vrow1 = 9 * ty;
-    vertWorldPos.x = static_cast<float>(ty) * dy + chunk->corner.x;
+    fx = static_cast<float>(ty) * dy + chunk->corner.x;
     for (tx = 0; tx < 9; ++tx) {
       SWVert &waterVert = verts[vrow1 + tx].waterVert;
+      vertWorldPos.x = fx;
       vertWorldPos.y = static_cast<float>(tx) * dx + chunk->corner.y;
       vertWorldPos.z = waterVert.height;
-      vtx->p = vertWorldPos - CWorldScene::camPos;
+      vtx->p = vertWorldPos - chunk->corner;
       vtx->n = dumbNormal;
       if (CWorldScene::camLiquid) {
         vtx->tc[0] = NTempest::C2Vector(0.5f, s_riverDepthCoordTable[waterVert.depth]);
@@ -895,7 +896,9 @@ void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
   float               fx;
   float               dy;
   const float         MAGMA_TILES = 3.0f;
-  NTempest::C2Vector  farCorner;
+  NTempest::C2Vector  farCorner(
+      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
+  );
   float               dx;
   float               scrollx;
   float               cycles;
@@ -906,10 +909,7 @@ void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
   const float         MAGMA_SCROLL_RATE = 0.025f;
 
   cycles = CWorld::GetCurTimeSec() * MAGMA_SCROLL_RATE;
-  scrollx = cycles - static_cast<float>(static_cast<int>(cycles));
-  fx = static_cast<float>(chunk->cOffset.x + 1) * 33.333332f;
-  temp = static_cast<float>(chunk->cOffset.y + 1) * 33.333332f;
-  farCorner = NTempest::C2Vector(fx, temp);
+  scrollx = cycles - static_cast<float>(Fast_ftol(cycles));
   temp = 17066.666f - farCorner.x;
   farCorner.x = 17066.666f - farCorner.y;
   farCorner.y = temp;
@@ -919,15 +919,16 @@ void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
   v = NTempest::C2iVector(0);
   t = NTempest::C2iVector(0);
   while (static_cast<UINT>(v.y) < 9) {
-    vertWorldPos.x = static_cast<float>(v.y) * dy + chunk->corner.x;
+    fx = static_cast<float>(v.y) * dy + chunk->corner.x;
     v.x = 0;
     t.x = 0;
     while (static_cast<UINT>(v.x) < 9) {
       vrow1 = v.x + 9 * v.y;
       SMVert &magmaVert = verts[vrow1].magmaVert;
+      vertWorldPos.x = fx;
       vertWorldPos.y = static_cast<float>(v.x) * dx + chunk->corner.y;
       vertWorldPos.z = magmaVert.height;
-      vtx->p = vertWorldPos - CWorldScene::camPos;
+      vtx->p = vertWorldPos - chunk->corner;
       vtx->c.Set(0xFFFFFFFFUL);
       vtx->tc[0] = NTempest::C2Vector(static_cast<float>(magmaVert.s) * MAGMA_TEX_SCALE + scrollx, static_cast<float>(magmaVert.t) * MAGMA_TEX_SCALE);
       t.x += v.x > 0;

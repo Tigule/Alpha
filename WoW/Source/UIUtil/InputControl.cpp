@@ -432,7 +432,7 @@ void CGInputControl::UpdatePlayer(DWORD now) {
 
   if (canTurn) {
     TurnPlayer(now, player);
-    if (player->m_flags & 0x2000000) {
+    if (player->m_move.m_moveFlags & 0x2000000) {
       PitchPlayer(now, player);
     }
   } else {
@@ -644,7 +644,7 @@ void CGInputControl::PitchPlayer(DWORD now, CGUnit_C *player) {
 }
 
 BOOL CGInputControl::CameraCanTurnPlayer() const {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (!player) {
     return 0;
   }

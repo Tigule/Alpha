@@ -17,8 +17,7 @@ void WorldMatrixPop() {
 }
 
 void WorldMatrixMult(const NTempest::C34Matrix &matrix) {
-  NTempest::C34Matrix &world = s_worldMatrixStack.Get();
-  world = matrix * world;
+  s_worldMatrixStack.Get() = matrix * s_worldMatrixStack.Get();
 }
 
 void WorldMatrixLoad(const NTempest::C34Matrix &matrix) {
@@ -26,7 +25,7 @@ void WorldMatrixLoad(const NTempest::C34Matrix &matrix) {
 }
 
 void WorldMatrixLoadIdentity() {
-  s_worldMatrixStack.Load(NTempest::C34Matrix());
+  s_worldMatrixStack.Get().Identity();
 }
 
 void WorldMatrixTranslate(const NTempest::C3Vector &move) {
@@ -51,8 +50,7 @@ void WorldMatrixScale(float scale) {
 
 void WorldMatrixBasis(const NTempest::C3Vector &x, const NTempest::C3Vector &y, const NTempest::C3Vector &z) {
   NTempest::C34Matrix  rotationBasis(x, y, z);
-  NTempest::C34Matrix &world = s_worldMatrixStack.Get();
-  world = rotationBasis * world;
+  s_worldMatrixStack.Get() = rotationBasis * s_worldMatrixStack.Get();
 }
 
 void WorldMatrixRemove(UINT removeFlags) {
@@ -60,40 +58,22 @@ void WorldMatrixRemove(UINT removeFlags) {
 
   switch (removeFlags & 6) {
     case 2: {
-      NTempest::C3Vector x(matrix.a0, matrix.a1, matrix.a2);
-      NTempest::C3Vector y(matrix.b0, matrix.b1, matrix.b2);
-      NTempest::C3Vector z(matrix.c0, matrix.c1, matrix.c2);
-
-      x.Normalize();
-      y.Normalize();
-      z.Normalize();
-
-      matrix.a0 = x.x;
-      matrix.a1 = x.y;
-      matrix.a2 = x.z;
-      matrix.b0 = y.x;
-      matrix.b1 = y.y;
-      matrix.b2 = y.z;
-      matrix.c0 = z.x;
-      matrix.c1 = z.y;
-      matrix.c2 = z.z;
+      matrix.Row0AsVec3()->Normalize();
+      matrix.Row1AsVec3()->Normalize();
+      matrix.Row2AsVec3()->Normalize();
       break;
     }
 
     case 4: {
-      NTempest::C3Vector x(matrix.a0, matrix.a1, matrix.a2);
-      NTempest::C3Vector y(matrix.b0, matrix.b1, matrix.b2);
-      NTempest::C3Vector z(matrix.c0, matrix.c1, matrix.c2);
-
-      matrix.a0 = x.Mag();
+      matrix.a0 = matrix.Row0AsVec3()->Mag();
       matrix.a1 = 0.0f;
       matrix.a2 = 0.0f;
+      matrix.b1 = matrix.Row1AsVec3()->Mag();
       matrix.b0 = 0.0f;
-      matrix.b1 = y.Mag();
       matrix.b2 = 0.0f;
+      matrix.c2 = matrix.Row2AsVec3()->Mag();
       matrix.c0 = 0.0f;
       matrix.c1 = 0.0f;
-      matrix.c2 = z.Mag();
       break;
     }
 

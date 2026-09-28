@@ -301,8 +301,10 @@ static void PlaceEventObject(const AnimInfo &animInfo, CAnimEventObj *currobj) {
   WorldMatrixTransform(&eventStatus->position);
 
   NTempest::C34Matrix basis(
-      animInfo.basisX.x, animInfo.basisX.y, animInfo.basisX.z, animInfo.basisY.x, animInfo.basisY.y, animInfo.basisY.z, animInfo.basisZ.x,
-      animInfo.basisZ.y, animInfo.basisZ.z, animInfo.basisPosition.x, animInfo.basisPosition.y, animInfo.basisPosition.z
+      animInfo.basisX.x * animInfo.basisScale.x, animInfo.basisX.y * animInfo.basisScale.x, animInfo.basisX.z * animInfo.basisScale.x,
+      animInfo.basisY.x * animInfo.basisScale.y, animInfo.basisY.y * animInfo.basisScale.y, animInfo.basisY.z * animInfo.basisScale.y,
+      animInfo.basisZ.x * animInfo.basisScale.z, animInfo.basisZ.y * animInfo.basisScale.z, animInfo.basisZ.z * animInfo.basisScale.z,
+      animInfo.basisPosition.x, animInfo.basisPosition.y, animInfo.basisPosition.z
   );
   NTempest::C34Matrix invBasis = basis.AffineInverse(animInfo.basisScale);
   eventStatus->position *= invBasis;

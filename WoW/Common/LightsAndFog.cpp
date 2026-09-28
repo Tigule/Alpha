@@ -226,5 +226,5 @@ void CalcLightColors(int time, CurrentLight *current, LightDataItem *lightdata, 
     current->CloudData[1] = currentStorm.CloudData[1] * stormpercent * 0.01f + current->CloudData[1] * (100 - stormpercent) * 0.01f;
   }
 
-  current->Darkness = static_cast<float>(lightdata->m_cloudMask);
+  current->Darkness = static_cast<float>(lightdata->m_highlightSky);
 }

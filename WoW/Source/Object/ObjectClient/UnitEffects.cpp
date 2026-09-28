@@ -767,7 +767,7 @@ static void CheckReinitTimer(int current, UINT duration) {
 static BOOL PurgeTimerHandler(LPCVOID timerData, LPVOID userData) {
   s_purgeTimer = 0;
 
-  int                          current = static_cast<const EvtContext *>(timerData)->GetCurrTime();
+  int                          current = static_cast<const EVENT_DATA_TIMER *>(timerData)->currTime;
   int                          next = 0x7FFFFFFF;
   int                          found = 0;
   ONESHOTSTANDALONEEFFECTNODE *node = s_standAloneEffects.Head();

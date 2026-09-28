@@ -51,6 +51,10 @@ UINT CMapObj::StabPortals(UINT fromGroupIndex, UINT groupIndex, NTempest::C3Vect
   CMapObjGroup *group = GetGroup(groupIndex, 0);
   FATALASSERT(group);
 
+  if (!portalRefCount) {
+    return groupIndex;
+  }
+
   SMOPortalRef *portalRef = &portalRefList[group->portalStart];
   for (UINT i = 0; i < group->portalCount; ++i, ++portalRef) {
     if (portalRef->groupIndex == fromGroupIndex || portalRef->groupIndex == 0xFFFF) {
@@ -65,7 +69,7 @@ UINT CMapObj::StabPortals(UINT fromGroupIndex, UINT groupIndex, NTempest::C3Vect
     }
 
     const SMOPortal *portal = &portalList[portalRef->portalIndex];
-    for (UINT j = 1; j < portal->count - 1; ++j) {
+    for (WORD j = 1; j < portal->count - 1; ++j) {
       float dist;
       if (CWorldMath::RayIntersectTri(
               rayOrig, rayDir, portalVertexList[portal->startVertex], portalVertexList[portal->startVertex + j],

@@ -471,7 +471,7 @@ void UnitFootprintPlayParticle(CGUnit_C *unit, const NTempest::C3Vector &positio
 
     int inLiquid = CWorld::QueryObjectLiquid(unit->GetWorldObject(), liquid, surfaceColPt, waterDir, deep);
     depth = surfaceColPt - unit->GetPosition().z;
-    if (inLiquid && (liquid & 3) != 2 && unit->GetObjectHeight() * 0.5f > depth) {
+    if (inLiquid && (liquid & 3) != 2 && unit->GetCollisionBoxHeight() * 0.5f > depth) {
       splashPos = position;
       splashPos.z += depth;
       effect = unit->IsWalking() + 35;

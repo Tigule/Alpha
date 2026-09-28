@@ -1041,23 +1041,33 @@ float CMovement::ExtrudeFlyBoxUp(const NTempest::C3Vector &unitMove, const NTemp
     FindObstacles(unitMove, boxPlanes[4], 5, boxPlanes[4][0], 1, &distanceY, &hitInfoY);
   }
 
-  float distance = distanceX;
-  if (distanceY < distance) {
+  float distance;
+  if (distanceX < distanceY && distanceX < distanceZ) {
+    distance = distanceX;
+    if (NTempest::CMath::fabs_(distanceX - distanceY) >= 0.0013888889f) {
+      hitInfoY.flags = 0;
+    }
+    if (NTempest::CMath::fabs_(distanceX - distanceZ) >= 0.0013888889f) {
+      hitInfoZ.flags = 0;
+    }
+  } else if (distanceY < distanceX && distanceY < distanceZ) {
     distance = distanceY;
-  }
-  if (distanceZ < distance) {
+    if (NTempest::CMath::fabs_(distanceY - distanceX) >= 0.0013888889f) {
+      hitInfoX.flags = 0;
+    }
+    if (NTempest::CMath::fabs_(distanceY - distanceZ) >= 0.0013888889f) {
+      hitInfoZ.flags = 0;
+    }
+  } else {
     distance = distanceZ;
+    if (NTempest::CMath::fabs_(distanceZ - distanceX) >= 0.0013888889f) {
+      hitInfoX.flags = 0;
+    }
+    if (NTempest::CMath::fabs_(distanceZ - distanceY) >= 0.0013888889f) {
+      hitInfoY.flags = 0;
+    }
   }
-  if (NTempest::CMath::fabs_(distanceX - distance) >= 0.0013888889f) {
-    hitInfoX.Reset();
-  }
-  if (NTempest::CMath::fabs_(distanceY - distance) >= 0.0013888889f) {
-    hitInfoY.Reset();
-  }
-  if (NTempest::CMath::fabs_(distanceZ - distance) >= 0.0013888889f) {
-    hitInfoZ.Reset();
-  }
-  if (((m_moveFlags & 0x1000) && NTempest::CMath::fabs_(m_direction.z) >= 0.00000023841858f) || hitInfoX.flags || hitInfoY.flags || hitInfoZ.flags) {
+  if (((m_moveFlags & 0x1000) && NTempest::CMath::fabs_(m_reDirection.z) >= 0.00000023841858f) || hitInfoX.flags || hitInfoY.flags || hitInfoZ.flags) {
     FlyRedirect(unitMoveWanted, hitInfoX, hitInfoY, hitInfoZ);
   } else {
     distance = CollideWithWaterSurface(unitMove, unitMoveWanted, distanceWanted);

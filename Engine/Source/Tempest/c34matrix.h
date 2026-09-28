@@ -141,18 +141,8 @@ namespace NTempest {
       a0 = a1 = a2 = b0 = b1 = b2 = c0 = c1 = c2 = d0 = d1 = d2 = 0.0f;
     }
     void Identity() {
-      a0 = 1.0f;
-      a1 = 0.0f;
-      a2 = 0.0f;
-      b0 = 0.0f;
-      b1 = 1.0f;
-      b2 = 0.0f;
-      c0 = 0.0f;
-      c1 = 0.0f;
-      c2 = 1.0f;
-      d0 = 0.0f;
-      d1 = 0.0f;
-      d2 = 0.0f;
+      a0 = b1 = c2 = 1.0f;
+      a1 = a2 = b0 = b2 = c0 = c1 = d0 = d1 = d2 = 0.0f;
     }
     float Trace() const {
       return a0 + b1 + c2;

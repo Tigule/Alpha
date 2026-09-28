@@ -816,7 +816,7 @@ NTempest::C34Matrix CGGameObject_C::GetMatrix() const {
 }
 
 void CGGameObject_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
-  *worldMatrix = CGObject_C::GetMatrix();
+  *worldMatrix = GetMatrix();
 }
 
 void CGGameObject_C::ObjectPostAnimate(const NTempest::C34Matrix &, const NTempest::C3Vector &, const NTempest::C3Vector &) {
@@ -1402,8 +1402,9 @@ void CGGameObject_C_Type_Transport::Disable(int) {
 }
 
 void CGGameObject_C_Type_Transport::UpdateMovement(DWORD eventTime, float elapsed) {
-  NTempest::C3Vector move = m_owner->GameObject()->m_position + GetMovement(eventTime) - m_position;
-  m_position += move;
+  NTempest::C3Vector move = m_position;
+  m_position = m_owner->GameObject()->m_position + GetMovement(eventTime);
+  move = m_position - move;
 
   m_owner->UpdateMatrix();
   m_owner->UpdateWorldObject();
