@@ -10,6 +10,11 @@ namespace NTempest {
 
   class C4iVector {
    public:
+    long x;
+    long y;
+    long z;
+    long w;
+
     enum {
       eComponents = 4
     };
@@ -25,16 +30,6 @@ namespace NTempest {
     C4iVector(const C4Vector &a);
 
     ~C4iVector() {
-    }
-
-    static C4iVector Min(const C4iVector &a, const C4iVector &b) {
-      return C4iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w);
-    }
-    static C4iVector Max(const C4iVector &a, const C4iVector &b) {
-      return C4iVector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w);
-    }
-    static long Dot(const C4iVector &a, const C4iVector &b) {
-      return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     }
 
     void Get(long &tx, long &ty, long &tz, long &tw) const {
@@ -55,13 +50,6 @@ namespace NTempest {
     operator C3iVector() const {
       return C3iVector(x, y, z);
     }
-    C4iVector &operator+=(long a) {
-      x += a;
-      y += a;
-      z += a;
-      w += a;
-      return *this;
-    }
     C4iVector &operator+=(const C4iVector &a) {
       x += a.x;
       y += a.y;
@@ -69,11 +57,12 @@ namespace NTempest {
       w += a.w;
       return *this;
     }
-    C4iVector &operator-=(long a) {
-      x -= a;
-      y -= a;
-      z -= a;
-      w -= a;
+
+    C4iVector &operator+=(long a) {
+      x += a;
+      y += a;
+      z += a;
+      w += a;
       return *this;
     }
     C4iVector &operator-=(const C4iVector &a) {
@@ -83,11 +72,12 @@ namespace NTempest {
       w -= a.w;
       return *this;
     }
-    C4iVector &operator*=(long a) {
-      x *= a;
-      y *= a;
-      z *= a;
-      w *= a;
+
+    C4iVector &operator-=(long a) {
+      x -= a;
+      y -= a;
+      z -= a;
+      w -= a;
       return *this;
     }
     C4iVector &operator*=(const C4iVector &a) {
@@ -97,11 +87,12 @@ namespace NTempest {
       w *= a.w;
       return *this;
     }
-    C4iVector &operator/=(long a) {
-      x /= a;
-      y /= a;
-      z /= a;
-      w /= a;
+
+    C4iVector &operator*=(long a) {
+      x *= a;
+      y *= a;
+      z *= a;
+      w *= a;
       return *this;
     }
     C4iVector &operator/=(const C4iVector &a) {
@@ -111,11 +102,12 @@ namespace NTempest {
       w /= a.w;
       return *this;
     }
-    C4iVector &operator>>=(long a) {
-      x >>= a;
-      y >>= a;
-      z >>= a;
-      w >>= a;
+
+    C4iVector &operator/=(long a) {
+      x /= a;
+      y /= a;
+      z /= a;
+      w /= a;
       return *this;
     }
     C4iVector &operator>>=(const C4iVector &a) {
@@ -125,11 +117,12 @@ namespace NTempest {
       w >>= a.w;
       return *this;
     }
-    C4iVector &operator<<=(long a) {
-      x <<= a;
-      y <<= a;
-      z <<= a;
-      w <<= a;
+
+    C4iVector &operator>>=(long a) {
+      x >>= a;
+      y >>= a;
+      z >>= a;
+      w >>= a;
       return *this;
     }
     C4iVector &operator<<=(const C4iVector &a) {
@@ -137,6 +130,14 @@ namespace NTempest {
       y <<= a.y;
       z <<= a.z;
       w <<= a.w;
+      return *this;
+    }
+
+    C4iVector &operator<<=(long a) {
+      x <<= a;
+      y <<= a;
+      z <<= a;
+      w <<= a;
       return *this;
     }
     C4iVector operator-() const {
@@ -165,6 +166,14 @@ namespace NTempest {
       Normalize();
       *this *= magnitude;
     }
+    static C4iVector Min(const C4iVector &a, const C4iVector &b) {
+      return C4iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w);
+    }
+
+    static C4iVector Max(const C4iVector &a, const C4iVector &b) {
+      return C4iVector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w);
+    }
+
     void Minimize(const C4iVector &a) {
       if (a.x < x)
         x = a.x;
@@ -186,10 +195,9 @@ namespace NTempest {
         w = a.w;
     }
 
-    long x;
-    long y;
-    long z;
-    long w;
+    static long Dot(const C4iVector &a, const C4iVector &b) {
+      return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+    }
   };
 
 }  // namespace NTempest

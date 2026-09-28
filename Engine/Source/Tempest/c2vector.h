@@ -7,6 +7,9 @@ namespace NTempest {
 
   class C2Vector {
    public:
+    float x;
+    float y;
+
     enum {
       eComponents = 2
     };
@@ -38,26 +41,10 @@ namespace NTempest {
       y = ty;
     }
 
-    static C2Vector FromAxisAngle(float angle, float magnitude) {
-      return C2Vector(CMath::cos_(angle) * magnitude, CMath::sin_(angle) * magnitude);
-    }
-    static float AngleToAxisAngle(float angle) {
-      return CMath::fmod_(angle, 6.28318548f);
-    }
-    static C2Vector Min(const C2Vector &a, const C2Vector &b) {
-      return C2Vector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y);
-    }
-    static C2Vector Max(const C2Vector &a, const C2Vector &b) {
-      return C2Vector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y);
-    }
-    static C2Vector Lerp(const C2Vector &a, const C2Vector &b, const C2Vector &t) {
-      return C2Vector(a.x + (b.x - a.x) * t.x, a.y + (b.y - a.y) * t.y);
-    }
-    static float Dot(const C2Vector &a, const C2Vector &b) {
-      return a.x * b.x + a.y * b.y;
-    }
-    static float Cross(const C2Vector &a, const C2Vector &b) {
-      return a.x * b.y - a.y * b.x;
+    C2Vector &operator+=(const C2Vector &a) {
+      x += a.x;
+      y += a.y;
+      return *this;
     }
 
     C2Vector &operator+=(float a) {
@@ -65,24 +52,15 @@ namespace NTempest {
       y += a;
       return *this;
     }
-    C2Vector &operator+=(const C2Vector &a) {
-      x += a.x;
-      y += a.y;
-      return *this;
-    }
-    C2Vector &operator-=(float a) {
-      x -= a;
-      y -= a;
-      return *this;
-    }
     C2Vector &operator-=(const C2Vector &a) {
       x -= a.x;
       y -= a.y;
       return *this;
     }
-    C2Vector &operator*=(float a) {
-      x *= a;
-      y *= a;
+
+    C2Vector &operator-=(float a) {
+      x -= a;
+      y -= a;
       return *this;
     }
     C2Vector &operator*=(const C2Vector &a) {
@@ -90,10 +68,10 @@ namespace NTempest {
       y *= a.y;
       return *this;
     }
-    C2Vector &operator/=(float a) {
-      float inverse = 1.0f / a;
-      x *= inverse;
-      y *= inverse;
+
+    C2Vector &operator*=(float a) {
+      x *= a;
+      y *= a;
       return *this;
     }
     C2Vector &operator/=(const C2Vector &a) {
@@ -101,14 +79,22 @@ namespace NTempest {
       y /= a.y;
       return *this;
     }
+
+    C2Vector &operator/=(float a) {
+      float inverse = 1.0f / a;
+      x *= inverse;
+      y *= inverse;
+      return *this;
+    }
     C2Vector operator-() const {
       return C2Vector(-x, -y);
     }
-    float &operator[](UINT sub) {
+    const float &operator[](UINT sub) const {
       ASSERT(sub < 2);
       return (&x)[sub];
     }
-    const float &operator[](UINT sub) const {
+
+    float &operator[](UINT sub) {
       ASSERT(sub < 2);
       return (&x)[sub];
     }
@@ -127,11 +113,19 @@ namespace NTempest {
     bool IsUnit() const {
       return CMath::fabs_(SquaredMag() - 1.0f) < 0.0009765625f;
     }
+    float AxisAngle(float angle) const {
+      return AngleToAxisAngle(AxisAngle() - angle);
+    }
     float AxisAngle() const {
       return CMath::atan2_(y, x);
     }
-    float AxisAngle(float angle) const {
-      return AngleToAxisAngle(AxisAngle() - angle);
+
+    static C2Vector FromAxisAngle(float angle, float magnitude) {
+      return C2Vector(CMath::cos_(angle) * magnitude, CMath::sin_(angle) * magnitude);
+    }
+
+    static float AngleToAxisAngle(float angle) {
+      return CMath::fmod_(angle, 6.28318548f);
     }
 
     void Normalize() {
@@ -151,6 +145,14 @@ namespace NTempest {
       SafeNormalize();
       *this *= magnitude;
     }
+    static C2Vector Min(const C2Vector &a, const C2Vector &b) {
+      return C2Vector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y);
+    }
+
+    static C2Vector Max(const C2Vector &a, const C2Vector &b) {
+      return C2Vector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y);
+    }
+
     void Minimize(const C2Vector &a) {
       if (a.x < x)
         x = a.x;
@@ -164,8 +166,17 @@ namespace NTempest {
         y = a.y;
     }
 
-    float x;
-    float y;
+    static C2Vector Lerp(const C2Vector &a, const C2Vector &b, const C2Vector &t) {
+      return C2Vector(a.x + (b.x - a.x) * t.x, a.y + (b.y - a.y) * t.y);
+    }
+
+    static float Dot(const C2Vector &a, const C2Vector &b) {
+      return a.x * b.x + a.y * b.y;
+    }
+
+    static float Cross(const C2Vector &a, const C2Vector &b) {
+      return a.x * b.y - a.y * b.x;
+    }
   };
 
   inline C2Vector operator-(const C2Vector &l, const C2Vector &r) {

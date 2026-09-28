@@ -27,8 +27,8 @@ struct OsGuiMenuHotkey {
 
 class COsMenu {
  public:
-  COsMenu();
   COsMenu(BYTE inID, LPCSTR inTitle);
+  COsMenu();
   ~COsMenu();
 
   void Clear();
@@ -37,6 +37,7 @@ class COsMenu {
   void AddSubMenu(int inPos, LPCSTR inTitle, COsMenu *inMenu);
   void AddSeparator(int inPos);
   BOOL GetHotkey(int inPos, OsGuiMenuHotkey *outHotkey);
+  static void AppendHotkeyText(char *inText, const OsGuiMenuHotkey &inHotkey);
   void EnableItem(int inPos, int inVal);
   void DisableItem(int inPos) {
     EnableItem(inPos, 0);
@@ -58,10 +59,6 @@ class COsMenu {
   void AddHotkey(int inPos);
   void RemoveHotkey(int inPos);
 
- public:
-  static void AppendHotkeyText(char *inText, const OsGuiMenuHotkey &inHotkey);
-
- protected:
   BYTE                             mID;
   LPVOID                           mMenuHandle;
   char                             mTitle[32];
@@ -799,6 +796,10 @@ class COsMenuBar {
   COsMenuBar(LPVOID inWindowHandle);
   ~COsMenuBar();
 
+  void Set(TSGrowableArray<COsMenu *> &inMenus);
+  void UpdateAccelerators();
+  void Refresh();
+
   LPVOID GetWindow() {
     return mWindowHandle;
   }
@@ -806,10 +807,6 @@ class COsMenuBar {
   LPVOID GetAccelerators() {
     return mAccelerators;
   }
-
-  void Set(TSGrowableArray<COsMenu *> &inMenus);
-  void UpdateAccelerators();
-  void Refresh();
 
  protected:
   TSGrowableArray<COsMenu *> mMenus;

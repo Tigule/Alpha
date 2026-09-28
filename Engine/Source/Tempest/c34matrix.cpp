@@ -34,7 +34,12 @@ namespace NTempest {
   }
 
   C34Matrix operator+(float a, const C34Matrix &r) {
-    return r + a;
+    return C34Matrix(
+        a + r.a0, a + r.a1, a + r.a2,
+        a + r.b0, a + r.b1, a + r.b2,
+        a + r.c0, a + r.c1, a + r.c2,
+        a + r.d0, a + r.d1, a + r.d2
+    );
   }
 
   C34Matrix operator-(const C34Matrix &l, const C34Matrix &r) {
@@ -75,7 +80,12 @@ namespace NTempest {
   }
 
   C34Matrix operator*(float a, const C34Matrix &r) {
-    return r * a;
+    return C34Matrix(
+        a * r.a0, a * r.a1, a * r.a2,
+        a * r.b0, a * r.b1, a * r.b2,
+        a * r.c0, a * r.c1, a * r.c2,
+        a * r.d0, a * r.d1, a * r.d2
+    );
   }
 
   C3Vector operator*(const C3Vector &l, const C34Matrix &r) {
@@ -105,7 +115,12 @@ namespace NTempest {
   }
 
   C3Vector operator*=(C3Vector &v, const C34Matrix &r) {
-    return v = v * r;
+    v.Set(
+        v.x * r.a0 + v.y * r.b0 + v.z * r.c0 + r.d0,
+        v.x * r.a1 + v.y * r.b1 + v.z * r.c1 + r.d1,
+        v.x * r.a2 + v.y * r.b2 + v.z * r.c2 + r.d2
+    );
+    return v;
   }
 
   C34Matrix operator/(const C34Matrix &l, float a) {
@@ -210,15 +225,9 @@ namespace NTempest {
   }
 
   void C34Matrix::Scale(const C3Vector &scale) {
-    a0 *= scale.x;
-    a1 *= scale.x;
-    a2 *= scale.x;
-    b0 *= scale.y;
-    b1 *= scale.y;
-    b2 *= scale.y;
-    c0 *= scale.z;
-    c1 *= scale.z;
-    c2 *= scale.z;
+    *Row0AsVec3() *= scale.x;
+    *Row1AsVec3() *= scale.y;
+    *Row2AsVec3() *= scale.z;
   }
 
   void C34Matrix::Scale(float scale) {

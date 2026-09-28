@@ -9,16 +9,16 @@
 #include <malloc.h>
 #include <new>
 
-static LPVOID FreeTypeAllocFunction(FT_Memory memory, long size) {
+LPVOID FreeTypeAllocFunction(FT_Memory memory, long size) {
   ASSERT(size > 0);
   return ALLOC(size);
 }
 
-static void FreeTypeFreeFunction(FT_Memory memory, LPVOID block) {
+void FreeTypeFreeFunction(FT_Memory memory, LPVOID block) {
   FREEIFUSED(block);
 }
 
-static LPVOID FreeTypeReallocFunction(FT_Memory memory, long currentSize, long newSize, LPVOID block) {
+LPVOID FreeTypeReallocFunction(FT_Memory memory, long currentSize, long newSize, LPVOID block) {
   ASSERT(newSize > 0);
   return SMemReAlloc(block, newSize, __FILE__, __LINE__, 0);
 }

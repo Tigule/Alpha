@@ -9,6 +9,11 @@ namespace NTempest {
 
   class C4Vector {
    public:
+    float x;
+    float y;
+    float z;
+    float w;
+
     enum {
       eComponents = 4
     };
@@ -57,17 +62,12 @@ namespace NTempest {
       return C3Vector(x, y, z);
     }
 
-    static C4Vector Min(const C4Vector &a, const C4Vector &b) {
-      return C4Vector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w);
-    }
-    static C4Vector Max(const C4Vector &a, const C4Vector &b) {
-      return C4Vector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w);
-    }
-    static C4Vector Lerp(const C4Vector &a, const C4Vector &b, const C4Vector &t) {
-      return C4Vector(a.x + (b.x - a.x) * t.x, a.y + (b.y - a.y) * t.y, a.z + (b.z - a.z) * t.z, a.w + (b.w - a.w) * t.w);
-    }
-    static float Dot(const C4Vector &a, const C4Vector &b) {
-      return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+    C4Vector &operator+=(const C4Vector &a) {
+      x += a.x;
+      y += a.y;
+      z += a.z;
+      w += a.w;
+      return *this;
     }
 
     C4Vector &operator+=(float a) {
@@ -77,20 +77,6 @@ namespace NTempest {
       w += a;
       return *this;
     }
-    C4Vector &operator+=(const C4Vector &a) {
-      x += a.x;
-      y += a.y;
-      z += a.z;
-      w += a.w;
-      return *this;
-    }
-    C4Vector &operator-=(float a) {
-      x -= a;
-      y -= a;
-      z -= a;
-      w -= a;
-      return *this;
-    }
     C4Vector &operator-=(const C4Vector &a) {
       x -= a.x;
       y -= a.y;
@@ -98,11 +84,12 @@ namespace NTempest {
       w -= a.w;
       return *this;
     }
-    C4Vector &operator*=(float a) {
-      x *= a;
-      y *= a;
-      z *= a;
-      w *= a;
+
+    C4Vector &operator-=(float a) {
+      x -= a;
+      y -= a;
+      z -= a;
+      w -= a;
       return *this;
     }
     C4Vector &operator*=(const C4Vector &a) {
@@ -112,8 +99,13 @@ namespace NTempest {
       w *= a.w;
       return *this;
     }
-    C4Vector &operator/=(float a) {
-      return *this *= 1.0f / a;
+
+    C4Vector &operator*=(float a) {
+      x *= a;
+      y *= a;
+      z *= a;
+      w *= a;
+      return *this;
     }
     C4Vector &operator/=(const C4Vector &a) {
       x /= a.x;
@@ -122,14 +114,19 @@ namespace NTempest {
       w /= a.w;
       return *this;
     }
+
+    C4Vector &operator/=(float a) {
+      return *this *= 1.0f / a;
+    }
     C4Vector operator-() const {
       return C4Vector(-x, -y, -z, -w);
     }
-    float &operator[](UINT index) {
+    const float &operator[](UINT index) const {
       ASSERT(index < 4);
       return (&x)[index];
     }
-    const float &operator[](UINT index) const {
+
+    float &operator[](UINT index) {
       ASSERT(index < 4);
       return (&x)[index];
     }
@@ -159,6 +156,14 @@ namespace NTempest {
       SafeNormalize();
       *this *= magnitude;
     }
+    static C4Vector Min(const C4Vector &a, const C4Vector &b) {
+      return C4Vector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z, a.w < b.w ? a.w : b.w);
+    }
+
+    static C4Vector Max(const C4Vector &a, const C4Vector &b) {
+      return C4Vector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z, a.w > b.w ? a.w : b.w);
+    }
+
     void Minimize(const C4Vector &a) {
       if (a.x < x)
         x = a.x;
@@ -180,10 +185,13 @@ namespace NTempest {
         w = a.w;
     }
 
-    float x;
-    float y;
-    float z;
-    float w;
+    static C4Vector Lerp(const C4Vector &a, const C4Vector &b, const C4Vector &t) {
+      return C4Vector(a.x + (b.x - a.x) * t.x, a.y + (b.y - a.y) * t.y, a.z + (b.z - a.z) * t.z, a.w + (b.w - a.w) * t.w);
+    }
+
+    static float Dot(const C4Vector &a, const C4Vector &b) {
+      return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+    }
   };
 
   inline C4Vector operator-(const C4Vector &l, const C4Vector &r) {

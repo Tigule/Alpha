@@ -10,14 +10,14 @@ namespace NTempest {
     C4Quaternion() : C4Vector(0.0f, 0.0f, 0.0f, 1.0f) {
     }
 
+    C4Quaternion(const C4Vector &vector) : C4Vector(vector.x, vector.y, vector.z, vector.w) {
+    }
+
     C4Quaternion(float w, float x, float y, float z) : C4Vector(x, y, z, w) {
     }
 
     C4Quaternion(float angle, const C3Vector &axis) {
       FromAngleAxis(angle, axis);
-    }
-
-    C4Quaternion(const C4Vector &vector) : C4Vector(vector.x, vector.y, vector.z, vector.w) {
     }
 
     ~C4Quaternion() {
@@ -88,12 +88,12 @@ namespace NTempest {
       return *this;
     }
 
-    C4Quaternion operator*(float a) const {
-      return C4Quaternion(w * a, x * a, y * a, z * a);
-    }
-
     C3Vector operator*(const C3Vector &vector) const {
       return static_cast<C33Matrix>(*this) * vector;
+    }
+
+    C4Quaternion operator*(float a) const {
+      return C4Quaternion(w * a, x * a, y * a, z * a);
     }
 
     float Norm() const {

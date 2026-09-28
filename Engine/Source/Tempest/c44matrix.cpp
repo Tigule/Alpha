@@ -6,11 +6,15 @@
 #include "Tempest/c4quaternion.h"
 #include "Tempest/c4vector.h"
 
-static float Row0Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+float Row0Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
   return l.a0 * r.a0 + l.a1 * r.b0 + l.a2 * r.c0 + l.a3 * r.d0;
 }
 
 namespace NTempest {
+
+  float C44Matrix::Det(float a, float b, float c, float d, float e, float f, float g, float h, float i) {
+    return b * f * g + c * d * h + a * e * i - c * e * g - b * d * i - a * f * h;
+  }
 
   bool operator==(const C44Matrix &l, const C44Matrix &r) {
     return l.a0 == r.a0 && l.a1 == r.a1 && l.a2 == r.a2 && l.a3 == r.a3 && l.b0 == r.b0 && l.b1 == r.b1 && l.b2 == r.b2 && l.b3 == r.b3 &&
@@ -36,8 +40,13 @@ namespace NTempest {
     );
   }
 
-  C44Matrix operator+(float l, const C44Matrix &r) {
-    return r + l;
+  C44Matrix operator+(float a, const C44Matrix &r) {
+    return C44Matrix(
+        a + r.a0, a + r.a1, a + r.a2, a + r.a3,
+        a + r.b0, a + r.b1, a + r.b2, a + r.b3,
+        a + r.c0, a + r.c1, a + r.c2, a + r.c3,
+        a + r.d0, a + r.d1, a + r.d2, a + r.d3
+    );
   }
 
   C44Matrix operator-(const C44Matrix &l, const C44Matrix &r) {
@@ -74,8 +83,13 @@ namespace NTempest {
     );
   }
 
-  C44Matrix operator*(float l, const C44Matrix &r) {
-    return r * l;
+  C44Matrix operator*(float a, const C44Matrix &r) {
+    return C44Matrix(
+        a * r.a0, a * r.a1, a * r.a2, a * r.a3,
+        a * r.b0, a * r.b1, a * r.b2, a * r.b3,
+        a * r.c0, a * r.c1, a * r.c2, a * r.c3,
+        a * r.d0, a * r.d1, a * r.d2, a * r.d3
+    );
   }
 
   C44Matrix operator/(const C44Matrix &l, float r) {
@@ -100,7 +114,12 @@ namespace NTempest {
   }
 
   C3Vector operator*=(C3Vector &v, const C44Matrix &r) {
-    return v = v * r;
+    v.Set(
+        v.x * r.a0 + v.y * r.b0 + v.z * r.c0 + r.d0,
+        v.x * r.a1 + v.y * r.b1 + v.z * r.c1 + r.d1,
+        v.x * r.a2 + v.y * r.b2 + v.z * r.c2 + r.d2
+    );
+    return v;
   }
 
   C4Vector operator*(const C4Vector &v, const C44Matrix &r) {
@@ -144,10 +163,6 @@ namespace NTempest {
 
   C44Matrix C44Matrix::Transpose() const {
     return C44Matrix(a0, b0, c0, d0, a1, b1, c1, d1, a2, b2, c2, d2, a3, b3, c3, d3);
-  }
-
-  float C44Matrix::Det(float a, float b, float c, float d, float e, float f, float g, float h, float i) {
-    return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
   }
 
   float C44Matrix::Determinant() const {
@@ -253,15 +268,9 @@ namespace NTempest {
   }
 
   void C44Matrix::Scale(const C3Vector &scale) {
-    a0 *= scale.x;
-    a1 *= scale.x;
-    a2 *= scale.x;
-    b0 *= scale.y;
-    b1 *= scale.y;
-    b2 *= scale.y;
-    c0 *= scale.z;
-    c1 *= scale.z;
-    c2 *= scale.z;
+    *Row0AsVec3() *= scale.x;
+    *Row1AsVec3() *= scale.y;
+    *Row2AsVec3() *= scale.z;
   }
 
   void C44Matrix::Rotate(float angle, const C3Vector &axis, bool unit) {

@@ -141,12 +141,12 @@ static void ISetSequence(CAnim *unique, CAnimObj *currobj, UINT index, UINT prev
   }
 }
 
-static void RemoveRotation(const InterpInfo &animInfo) {
+void RemoveRotation(const InterpInfo &animInfo) {
   WorldMatrixRemove(4);
   WorldMatrixBasis(animInfo.basisX, animInfo.basisY, animInfo.basisZ);
 }
 
-static void RemoveRotationAndScaling(const InterpInfo &animInfo) {
+void RemoveRotationAndScaling(const InterpInfo &animInfo) {
   WorldMatrixRemove(6);
   WorldMatrixScale(animInfo.basisScale);
   WorldMatrixBasis(animInfo.basisX, animInfo.basisY, animInfo.basisZ);
@@ -325,7 +325,7 @@ static int GetSeqSyncTime(CAnim *unique, CAnimData *shared, UINT currSeq, UINT p
   return syncTime < 0.0f ? -static_cast<int>(-syncTime + 0.5f) : static_cast<int>(syncTime + 0.5f);
 }
 
-static void SetObjectSequencesReset(CAnim *unique, CAnimData *shared, UINT sequence, UINT blendTime, int resetTime) {
+void SetObjectSequencesReset(CAnim *unique, CAnimData *shared, UINT sequence, UINT blendTime, int resetTime) {
   CAnimObj **currobj = shared->headarray.Ptr();
   for (UINT objectIndex = 0; objectIndex < shared->headarray.Count(); ++objectIndex, ++currobj) {
     ISetSequenceReset(unique, *currobj, sequence, blendTime, resetTime);
@@ -380,7 +380,7 @@ static int RandomInRange(const NTempest::CiRange &range) {
   return range.l + (rand() >> 2) % delta;
 }
 
-static void SetSequence(CAnim *unique, CAnimData *shared, BYTE sequence, UINT flags) {
+void SetSequence(CAnim *unique, CAnimData *shared, BYTE sequence, UINT flags) {
   ASSERT(unique);
 
   const UINT numSeqs = unique->seq.Count();
@@ -937,7 +937,7 @@ int AnimAdvanceTime(HANIM anim, UINT currentFrame) {
   return AdvanceTime(unique, shared);
 }
 
-static int IAnimManualAdvanceTime(CAnim *unique, CAnimData *shared, int timeChange) {
+int IAnimManualAdvanceTime(CAnim *unique, CAnimData *shared, int timeChange) {
   s_elapsedTime = timeChange;
   s_currTime = unique->seqLastTime + timeChange;
   return AdvanceTime(unique, shared);

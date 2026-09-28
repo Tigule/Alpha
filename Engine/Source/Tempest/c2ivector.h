@@ -9,6 +9,9 @@ namespace NTempest {
 
   class C2iVector {
    public:
+    long x;
+    long y;
+
     enum {
       eComponents = 2
     };
@@ -19,10 +22,10 @@ namespace NTempest {
     C2iVector(long xValue, long yValue) : x(xValue), y(yValue) {
     }
 
+    C2iVector(const C2Vector &vector);
+
     C2iVector(const tagPOINT &point) : x(point.x), y(point.y) {
     }
-
-    C2iVector(const C2Vector &vector);
 
     ~C2iVector() {
     }
@@ -42,16 +45,10 @@ namespace NTempest {
       return point;
     }
 
-    static C2iVector Min(const C2iVector &a, const C2iVector &b) {
-      return C2iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y);
-    }
-
-    static C2iVector Max(const C2iVector &a, const C2iVector &b) {
-      return C2iVector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y);
-    }
-
-    static long Dot(const C2iVector &a, const C2iVector &b) {
-      return a.x * b.x + a.y * b.y;
+    C2iVector &operator+=(const C2iVector &a) {
+      x += a.x;
+      y += a.y;
+      return *this;
     }
 
     C2iVector &operator+=(long a) {
@@ -59,24 +56,15 @@ namespace NTempest {
       y += a;
       return *this;
     }
-    C2iVector &operator+=(const C2iVector &a) {
-      x += a.x;
-      y += a.y;
-      return *this;
-    }
-    C2iVector &operator-=(long a) {
-      x -= a;
-      y -= a;
-      return *this;
-    }
     C2iVector &operator-=(const C2iVector &a) {
       x -= a.x;
       y -= a.y;
       return *this;
     }
-    C2iVector &operator*=(long a) {
-      x *= a;
-      y *= a;
+
+    C2iVector &operator-=(long a) {
+      x -= a;
+      y -= a;
       return *this;
     }
     C2iVector &operator*=(const C2iVector &a) {
@@ -84,9 +72,10 @@ namespace NTempest {
       y *= a.y;
       return *this;
     }
-    C2iVector &operator/=(long a) {
-      x /= a;
-      y /= a;
+
+    C2iVector &operator*=(long a) {
+      x *= a;
+      y *= a;
       return *this;
     }
     C2iVector &operator/=(const C2iVector &a) {
@@ -94,9 +83,10 @@ namespace NTempest {
       y /= a.y;
       return *this;
     }
-    C2iVector &operator>>=(long a) {
-      x >>= a;
-      y >>= a;
+
+    C2iVector &operator/=(long a) {
+      x /= a;
+      y /= a;
       return *this;
     }
     C2iVector &operator>>=(const C2iVector &a) {
@@ -104,14 +94,21 @@ namespace NTempest {
       y >>= a.y;
       return *this;
     }
-    C2iVector &operator<<=(long a) {
-      x <<= a;
-      y <<= a;
+
+    C2iVector &operator>>=(long a) {
+      x >>= a;
+      y >>= a;
       return *this;
     }
     C2iVector &operator<<=(const C2iVector &a) {
       x <<= a.x;
       y <<= a.y;
+      return *this;
+    }
+
+    C2iVector &operator<<=(long a) {
+      x <<= a;
+      y <<= a;
       return *this;
     }
     C2iVector operator-() const {
@@ -137,6 +134,14 @@ namespace NTempest {
       Normalize();
       *this *= magnitude;
     }
+    static C2iVector Min(const C2iVector &a, const C2iVector &b) {
+      return C2iVector(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y);
+    }
+
+    static C2iVector Max(const C2iVector &a, const C2iVector &b) {
+      return C2iVector(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y);
+    }
+
     void Minimize(const C2iVector &a) {
       if (a.x < x)
         x = a.x;
@@ -150,8 +155,9 @@ namespace NTempest {
         y = a.y;
     }
 
-    long x;
-    long y;
+    static long Dot(const C2iVector &a, const C2iVector &b) {
+      return a.x * b.x + a.y * b.y;
+    }
   };
 
 }  // namespace NTempest

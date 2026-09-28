@@ -8,7 +8,22 @@ namespace NTempest {
   class C4Quaternion;
 
   class C33Matrix {
+   protected:
+    static float Det(float a, float b, float c, float d) {
+      return a * d - b * c;
+    }
+
    public:
+    float a0;
+    float a1;
+    float a2;
+    float b0;
+    float b1;
+    float b2;
+    float c0;
+    float c1;
+    float c2;
+
     enum {
       eComponents = 9
     };
@@ -16,11 +31,13 @@ namespace NTempest {
     C33Matrix() : a0(1.0f), a1(0.0f), a2(0.0f), b0(0.0f), b1(1.0f), b2(0.0f), c0(0.0f), c1(0.0f), c2(1.0f) {
     }
 
+    explicit C33Matrix(float value) : a0(value), a1(value), a2(value), b0(value), b1(value), b2(value), c0(value), c1(value), c2(value) {
+    }
+
     C33Matrix(float a0, float a1, float a2, float b0, float b1, float b2, float c0, float c1, float c2)
         : a0(a0), a1(a1), a2(a2), b0(b0), b1(b1), b2(b2), c0(c0), c1(c1), c2(c2) {
     }
-    explicit C33Matrix(float value) : a0(value), a1(value), a2(value), b0(value), b1(value), b2(value), c0(value), c1(value), c2(value) {
-    }
+
     C33Matrix(const C3Vector &a, const C3Vector &b, const C3Vector &c)
         : a0(a.x), a1(a.y), a2(a.z), b0(b.x), b1(b.y), b2(b.z), c0(c.x), c1(c.y), c2(c.z) {
     }
@@ -34,18 +51,23 @@ namespace NTempest {
     const C33Matrix *asFloatPtr() const {
       return this;
     }
-    const float *Access() const {
-      return &a0;
-    }
+
     float *Access() {
       return &a0;
     }
-    const float *operator[](UINT row) const {
-      return &a0 + row * 3;
+
+    const float *Access() const {
+      return &a0;
     }
+
     float *operator[](UINT row) {
       return &a0 + row * 3;
     }
+
+    const float *operator[](UINT row) const {
+      return &a0 + row * 3;
+    }
+
     C2Vector *Row0AsVec2() {
       return reinterpret_cast<C2Vector *>(&a0);
     }
@@ -55,24 +77,31 @@ namespace NTempest {
     C2Vector *Row2AsVec2() {
       return reinterpret_cast<C2Vector *>(&c0);
     }
-    const C3Vector *Row0AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&a0);
-    }
+
     C3Vector *Row0AsVec3() {
       return reinterpret_cast<C3Vector *>(&a0);
     }
-    const C3Vector *Row1AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&b0);
+
+    const C3Vector *Row0AsVec3() const {
+      return reinterpret_cast<const C3Vector *>(&a0);
     }
+
     C3Vector *Row1AsVec3() {
       return reinterpret_cast<C3Vector *>(&b0);
     }
-    const C3Vector *Row2AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&c0);
+
+    const C3Vector *Row1AsVec3() const {
+      return reinterpret_cast<const C3Vector *>(&b0);
     }
+
     C3Vector *Row2AsVec3() {
       return reinterpret_cast<C3Vector *>(&c0);
     }
+
+    const C3Vector *Row2AsVec3() const {
+      return reinterpret_cast<const C3Vector *>(&c0);
+    }
+
     C3Vector Row0() const {
       return C3Vector(a0, a1, a2);
     }
@@ -116,6 +145,9 @@ namespace NTempest {
       c2 -= a.c2;
       return *this;
     }
+
+    C33Matrix &operator*=(const C33Matrix &a);
+
     C33Matrix &operator*=(float a) {
       a0 *= a;
       a1 *= a;
@@ -128,7 +160,7 @@ namespace NTempest {
       c2 *= a;
       return *this;
     }
-    C33Matrix &operator*=(const C33Matrix &a);
+
     C33Matrix &operator/=(float a) {
       return *this *= 1.0f / a;
     }
@@ -143,14 +175,24 @@ namespace NTempest {
       return a0 + b1 + c2;
     }
 
-   protected:
-    static float Det(float a, float b, float c, float d) {
-      return a * d - b * c;
+    void      Scale(const C3Vector &scale);
+
+    void      Scale(float x, float y, float z);
+    void      Scale(float scale);
+
+    void      Scale(const C2Vector &scale);
+
+    void      Scale(float x, float y);
+
+    void      Rotate(float angle, const C3Vector &axis, bool unit);
+    void      Rotate(const C4Quaternion &rotation);
+    void      Rotate(float angle);
+    void      Translate(const C2Vector &move);
+
+    C33Matrix Transpose() const {
+      return C33Matrix(a0, b0, c0, a1, b1, c1, a2, b2, c2);
     }
 
-   public:
-    static C33Matrix Rotation(float angle, const C3Vector &axis, bool unit);
-    static C33Matrix Rotation(float angle);
     float            Determinant() const;
     C33Matrix        Cofactors() const;
     C33Matrix        Adjoint() const;
@@ -163,15 +205,10 @@ namespace NTempest {
     }
     C33Matrix AffineInverse(float scale) const;
     C33Matrix AffineInverse(const C3Vector &scale) const;
-    void      Scale(float x, float y, float z);
-    void      Scale(float scale);
-    void      Scale(const C3Vector &scale);
-    void      Scale(float x, float y);
-    void      Scale(const C2Vector &scale);
-    void      Rotate(float angle, const C3Vector &axis, bool unit);
-    void      Rotate(const C4Quaternion &rotation);
-    void      Rotate(float angle);
-    void      Translate(const C2Vector &move);
+
+    static C33Matrix Rotation(float angle, const C3Vector &axis, bool unit);
+    static C33Matrix Rotation(float angle);
+
     bool      ToEulerAnglesXYZ(float &x, float &y, float &z) const;
     bool      ToEulerAnglesXZY(float &x, float &z, float &y) const;
     bool      ToEulerAnglesYXZ(float &y, float &x, float &z) const;
@@ -184,19 +221,6 @@ namespace NTempest {
     void      FromEulerAnglesYZX(float y, float z, float x);
     void      FromEulerAnglesZXY(float z, float x, float y);
     void      FromEulerAnglesZYX(float yaw, float pitch, float roll);
-    C33Matrix Transpose() const {
-      return C33Matrix(a0, b0, c0, a1, b1, c1, a2, b2, c2);
-    }
-
-    float a0;
-    float a1;
-    float a2;
-    float b0;
-    float b1;
-    float b2;
-    float c0;
-    float c1;
-    float c2;
   };
 
   C33Matrix operator*(const C33Matrix &l, const C33Matrix &r);
