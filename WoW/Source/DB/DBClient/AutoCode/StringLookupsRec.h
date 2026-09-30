@@ -4,6 +4,9 @@
 
 class StringLookupsRec {
  public:
+  int    m_ID;
+  LPCSTR m_String;
+
   StringLookupsRec();
   ~StringLookupsRec();
 
@@ -29,9 +32,6 @@ class StringLookupsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_String;
 };
 
 extern WowClientDB<StringLookupsRec> g_stringLookupsDB;

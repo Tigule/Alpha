@@ -4,6 +4,12 @@
 
 class FootstepTerrainLookupRec {
  public:
+  int m_ID;
+  int m_CreatureFootstepID;
+  int m_TerrainSoundID;
+  int m_SoundID;
+  int m_SoundIDSplash;
+
   FootstepTerrainLookupRec();
   ~FootstepTerrainLookupRec();
 
@@ -29,12 +35,6 @@ class FootstepTerrainLookupRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_CreatureFootstepID;
-  int m_TerrainSoundID;
-  int m_SoundID;
-  int m_SoundIDSplash;
 };
 
 extern WowClientDB<FootstepTerrainLookupRec> g_footstepTerrainLookupDB;

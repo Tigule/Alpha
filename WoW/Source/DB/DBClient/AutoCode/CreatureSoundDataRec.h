@@ -4,6 +4,28 @@
 
 class CreatureSoundDataRec {
  public:
+  int m_ID;
+  int m_soundExertionID;
+  int m_soundExertionCriticalID;
+  int m_soundInjuryID;
+  int m_soundInjuryCriticalID;
+  int m_soundInjuryCrushingBlowID;
+  int m_soundDeathID;
+  int m_soundStunID;
+  int m_soundStandID;
+  int m_soundFootstepID;
+  int m_soundAggroID;
+  int m_soundWingFlapID;
+  int m_soundWingGlideID;
+  int m_soundAlertID;
+  int m_soundFidget[4];
+  int m_customAttack[4];
+  int m_NPCSoundID;
+  int m_loopSoundID;
+  int m_creatureImpactType;
+  int m_soundJumpStartID;
+  int m_soundJumpEndID;
+
   CreatureSoundDataRec();
   ~CreatureSoundDataRec();
 
@@ -29,28 +51,6 @@ class CreatureSoundDataRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_soundExertionID;
-  int m_soundExertionCriticalID;
-  int m_soundInjuryID;
-  int m_soundInjuryCriticalID;
-  int m_soundInjuryCrushingBlowID;
-  int m_soundDeathID;
-  int m_soundStunID;
-  int m_soundStandID;
-  int m_soundFootstepID;
-  int m_soundAggroID;
-  int m_soundWingFlapID;
-  int m_soundWingGlideID;
-  int m_soundAlertID;
-  int m_soundFidget[4];
-  int m_customAttack[4];
-  int m_NPCSoundID;
-  int m_loopSoundID;
-  int m_creatureImpactType;
-  int m_soundJumpStartID;
-  int m_soundJumpEndID;
 };
 
 extern WowClientDB<CreatureSoundDataRec> g_creatureSoundDataDB;

@@ -26,8 +26,8 @@ static float            OneHalfOffset = 0.5f;
 static NTempest::CiRect scBounds(0, 0, 7, 7);
 static const float      OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
 
-void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData);
-void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, DWORDLONG guid, CWFacetData *facetData);
+static void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData);
+static void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, DWORDLONG guid, CWFacetData *facetData);
 
 UINT g_holeMask[4][4] = {
     {   1,    2,     4,     8},
@@ -341,7 +341,7 @@ bool CMap::LocateViewerMapObjs(
     const NTempest::C3Vector &lEnd,
     float                    &maxT,
     CMapObjDef              *&hitMapObjDef,
-    UINT                     *hitGroupIDs
+    UINT                      hitGroupIDs[]
 ) {
   hitMapObjDef = 0;
   hitGroupIDs[0] = 0xFFFF;
@@ -1229,7 +1229,7 @@ bool CMap::GetFacetsMapObjs(const NTempest::CAaBox &aaBox, CWFacetData *facetDat
   return origFacetCount != facetData->facets.Count();
 }
 
-void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData) {
+static void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData) {
   UINT existing = facetData->facets.Count();
   ModelAddCollisionFacets(
       doodadDef->model,
@@ -1247,7 +1247,7 @@ void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CW
   }
 }
 
-void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, DWORDLONG guid, CWFacetData *facetData) {
+static void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, DWORDLONG guid, CWFacetData *facetData) {
   UINT existing = facetData->facets.Count();
   ModelAddCollisionFacets(
       data.model,
@@ -1508,7 +1508,7 @@ bool CMap::GetChunkFacets(int cx, int cy, NTempest::CiRect &sRect, const NTempes
   return origFacetCount != facetData->facets.Count();
 }
 
-void CreateFacet(CWFacetData *facetData, NTempest::C3Vector &corner, NTempest::C3Vector &normal, NTempest::C3Vector &up, NTempest::C3Vector &right) {
+static void CreateFacet(CWFacetData *facetData, NTempest::C3Vector &corner, NTempest::C3Vector &normal, NTempest::C3Vector &up, NTempest::C3Vector &right) {
   NTempest::CFacet *facet = facetData->facets.NewElement();
   facet->plane.n = normal;
   facet->plane.d = -NTempest::C3Vector::Dot(normal, corner);

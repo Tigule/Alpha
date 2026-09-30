@@ -4,6 +4,15 @@
 
 class CharStartOutfitRec {
  public:
+  int  m_ID;
+  BYTE m_raceID;
+  BYTE m_classID;
+  BYTE m_sexID;
+  BYTE m_outfitID;
+  int  m_ItemID[12];
+  int  m_DisplayItemID[12];
+  int  m_InventoryType[12];
+
   CharStartOutfitRec();
   ~CharStartOutfitRec();
 
@@ -29,15 +38,6 @@ class CharStartOutfitRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int  m_ID;
-  BYTE m_raceID;
-  BYTE m_classID;
-  BYTE m_sexID;
-  BYTE m_outfitID;
-  int  m_ItemID[12];
-  int  m_DisplayItemID[12];
-  int  m_InventoryType[12];
 };
 
 extern WowClientDB<CharStartOutfitRec> g_charStartOutfitDB;

@@ -21,10 +21,10 @@
 #include <string.h>
 
 struct LODIndexFix {
-  void Set(WORD, WORD);
-
   WORD from;
   WORD to;
+
+  void Set(WORD, WORD);
 };
 
 struct LODArrays {
@@ -556,7 +556,7 @@ void CMap::UnloadLiquidTexture(UINT liquid) {
 void CMap::UpdateLiquidTextures() {
 }
 
-static void fft2(float *data, DWORD *nn, int ndim, float isign) {
+static void fft2(float data[], DWORD nn[], int ndim, float isign) {
   DWORD ntot = 1;
   int   idim;
   for (idim = 1; idim <= ndim; ++idim) {

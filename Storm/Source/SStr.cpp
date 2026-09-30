@@ -780,7 +780,7 @@ LONGLONG APIENTRY SStrHash64(LPCSTR string, DWORD flags, LONGLONG seed) {
   return result;
 }
 
-static DWORD bjhash(BYTE *k, DWORD length, DWORD initval) {
+DWORD bjhash(BYTE *k, DWORD length, DWORD initval) {
   register DWORD a;
   register DWORD b;
   register DWORD c;

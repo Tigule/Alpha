@@ -340,11 +340,11 @@ enum NPCSOUNDS {
   NUM_NPCSOUNDS = 4
 };
 struct QUESTGIVEREMOTENODE {
-  UINT delay;
-  UINT emoteID;
-
   QUESTGIVEREMOTENODE() : delay(0), emoteID(0) {
   }
+
+  UINT delay;
+  UINT emoteID;
 };
 struct LightningObject;
 struct FishingLineObject;
@@ -499,7 +499,16 @@ enum TRACKTYPE {
 struct AuraVisual {
   AuraVisual() : flags(0), spellID(0), effectID(0), theModel(0) {
   }
+ private:
+  int  flags;
+  UINT spellID;
+  UINT effectID;
+  union {
+    HMODEL theModel;
+    DWORD  obj;
+  };
 
+ public:
   void SetSpellID(UINT id) {
     spellID = id;
   }
@@ -518,6 +527,10 @@ struct AuraVisual {
   void SetEffect(UINT effect) {
     effectID = effect;
   }
+  HMODEL Model() const {
+    return theModel;
+  }
+  void Clear();
   void Set(AuraVisual &visual) {
     Clear();
     flags = visual.flags;
@@ -527,7 +540,6 @@ struct AuraVisual {
     visual.flags &= ~1;
     visual.theModel = 0;
   }
-  void Clear();
   void SetModel(HMODEL model);
   void SetWorldObject(DWORD object);
   void SetPermanent(bool permanent) {
@@ -537,19 +549,7 @@ struct AuraVisual {
       flags &= ~4;
     }
   }
-  HMODEL Model() const {
-    return theModel;
-  }
   HMODEL GetModel();
-
- private:
-  int  flags;
-  UINT spellID;
-  UINT effectID;
-  union {
-    HMODEL theModel;
-    DWORD  obj;
-  };
 };
 
 NODEDECL(ACTIVEAURAINFO) {

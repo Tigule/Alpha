@@ -8,21 +8,21 @@ struct HPBUFFERARB__;
 class CGxBufOgl;
 
 class CGxMemBuffer_VAR : public CGxMemBuffer {
+ private:
+  LPVOID m_mem;
+  UINT   m_fence;
+  void Fence();
  public:
-  CGxMemBuffer_VAR(UINT count, LPVOID mem);
-  virtual ~CGxMemBuffer_VAR();
   virtual void Lock(LPVOID &mem, UINT bytes, UINT base);
   virtual void Unlock() {
   }
-
+  CGxMemBuffer_VAR(UINT count, LPVOID mem);
  private:
   CGxMemBuffer_VAR(const CGxMemBuffer_VAR &);
-
-  void Fence();
-
-  LPVOID m_mem;
-  UINT   m_fence;
+ public:
+  virtual ~CGxMemBuffer_VAR();
 };
+
 
 class CGxDeviceOpenGl : public CGxDevice {
  public:

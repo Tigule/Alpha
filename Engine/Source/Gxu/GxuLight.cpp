@@ -3,7 +3,7 @@
 #include "IGxuLight.h"
 
 #include <Base/Activity.h>
-#include <Gx/CGxDevice.h>
+#include <Gx/Gx.h>
 #include <Tempest/cmath.h>
 #include <Tempest/cpriorityq.h>
 #include <storm.h>

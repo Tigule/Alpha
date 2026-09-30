@@ -10,6 +10,12 @@ namespace NTempest {
   extern const DWORD gnoise32_[64];
 
   class CRndSeed {
+   protected:
+    DWORD rndacc;
+    DWORD rndvls;
+
+    friend class CRandom;
+
    public:
     explicit CRndSeed(DWORD seed = 0);
     explicit CRndSeed(char *password) {
@@ -18,14 +24,8 @@ namespace NTempest {
     ~CRndSeed() {
     }
 
-    void SetSeed(char *password);
     void SetSeed(DWORD seed);
-
-   protected:
-    DWORD rndacc;
-    DWORD rndvls;
-
-    friend class CRandom;
+    void SetSeed(char *password);
   };
 
   inline CRndSeed::CRndSeed(DWORD seed) {
@@ -87,9 +87,6 @@ namespace NTempest {
       return static_cast<long>(uint32_(seed));
     }
 
-    static C3Vector C3Vector_(CRndSeed &seed);
-    static C2Vector C2Vector_(CRndSeed &seed);
-
     static float real_(CRndSeed &seed) {
       DWORD value = uint32_(seed);
       DWORD bits = (value & 0x007FFFFF) | 0x3F800000;
@@ -145,6 +142,9 @@ namespace NTempest {
     static double lrealg_(CRndSeed &seed);
     static double lrealg_(double mean, double variation, CRndSeed &seed);
 
+    static C2Vector C2Vector_(CRndSeed &seed);
+    static C3Vector C3Vector_(CRndSeed &seed);
+
     static DWORD dice_(DWORD sides, CRndSeed &seed) {
       ASSERT(sides > 0);
       return CMath::mulhwu_(sides, uint32_(seed));
@@ -197,18 +197,18 @@ namespace NTempest {
     static void crypt_(char *buf, DWORD size, DWORD seed);
     static void crypt_(char *buf, DWORD size, char *password);
 
-    static void  checksum_(const CRndSeed &seed, DWORD &checksum);
     static DWORD checksum_(DWORD value);
+    static void  checksum_(const CRndSeed &seed, DWORD &checksum);
     static void  checksum8_(DWORD value, DWORD &checksum);
     static void  checksum16_(DWORD value, DWORD &checksum);
     static void  checksum32_(DWORD value, DWORD &checksum);
     static void  checksumr_(float value, DWORD &checksum);
-    static void  checksumm32_(const DWORD *values, DWORD count, DWORD mask, DWORD &checksum);
     static void  checksumm32_(const DWORD *values, DWORD count, DWORD &checksum);
-    static void  checksumm16_(const WORD *values, DWORD count, WORD mask, DWORD &checksum);
+    static void  checksumm32_(const DWORD *values, DWORD count, DWORD mask, DWORD &checksum);
     static void  checksumm16_(const WORD *values, DWORD count, DWORD &checksum);
-    static void  checksumm8_(const BYTE *values, DWORD count, BYTE mask, DWORD &checksum);
+    static void  checksumm16_(const WORD *values, DWORD count, WORD mask, DWORD &checksum);
     static void  checksumm8_(const BYTE *values, DWORD count, DWORD &checksum);
+    static void  checksumm8_(const BYTE *values, DWORD count, BYTE mask, DWORD &checksum);
     static void  checksumms_(LPCSTR *strings, DWORD count, DWORD &checksum);
 
     static DWORD lattice_(long x);

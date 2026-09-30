@@ -4,6 +4,14 @@
 
 class FactionTemplateRec {
  public:
+  int m_ID;
+  int m_faction;
+  int m_factionGroup;
+  int m_friendGroup;
+  int m_enemyGroup;
+  int m_enemies[4];
+  int m_friend[4];
+
   FactionTemplateRec();
   ~FactionTemplateRec();
 
@@ -29,14 +37,6 @@ class FactionTemplateRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_faction;
-  int m_factionGroup;
-  int m_friendGroup;
-  int m_enemyGroup;
-  int m_enemies[4];
-  int m_friend[4];
 };
 
 extern WowClientDB<FactionTemplateRec> g_factionTemplateDB;

@@ -4,6 +4,19 @@
 
 class SkillLineAbilityRec {
  public:
+  int m_ID;
+  int m_skillLine;
+  int m_spell;
+  int m_raceMask;
+  int m_classMask;
+  int m_excludeRace;
+  int m_excludeClass;
+  int m_minSkillLineRank;
+  int m_supercededBySpell;
+  int m_trivialSkillLineRankHigh;
+  int m_trivialSkillLineRankLow;
+  int m_abandonable;
+
   SkillLineAbilityRec();
   ~SkillLineAbilityRec();
 
@@ -29,19 +42,6 @@ class SkillLineAbilityRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_skillLine;
-  int m_spell;
-  int m_raceMask;
-  int m_classMask;
-  int m_excludeRace;
-  int m_excludeClass;
-  int m_minSkillLineRank;
-  int m_supercededBySpell;
-  int m_trivialSkillLineRankHigh;
-  int m_trivialSkillLineRankLow;
-  int m_abandonable;
 };
 
 extern WowClientDB<SkillLineAbilityRec> g_skillLineAbilityDB;

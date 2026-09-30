@@ -3,6 +3,7 @@
 
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/World.h"
+#include "WorldClient/Map.h"
 
 #include "Base/Base.h"
 #include "DB/DBClient/AutoCode/GroundEffectDoodadRec.h"

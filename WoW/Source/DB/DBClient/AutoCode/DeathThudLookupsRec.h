@@ -4,6 +4,12 @@
 
 class DeathThudLookupsRec {
  public:
+  int m_ID;
+  int m_SizeClass;
+  int m_TerrainTypeSoundID;
+  int m_SoundEntryID;
+  int m_SoundEntryIDWater;
+
   DeathThudLookupsRec();
   ~DeathThudLookupsRec();
 
@@ -29,12 +35,6 @@ class DeathThudLookupsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_SizeClass;
-  int m_TerrainTypeSoundID;
-  int m_SoundEntryID;
-  int m_SoundEntryIDWater;
 };
 
 extern WowClientDB<DeathThudLookupsRec> g_deathThudLookupsDB;

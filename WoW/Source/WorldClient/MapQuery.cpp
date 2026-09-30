@@ -175,7 +175,7 @@ bool CMap::QueryLiquidStatusMapObjsExt(const NTempest::C3Vector &point, UINT &li
   return 0;
 }
 
-static void GetHeightFlow(
+void GetHeightFlow(
     const CChunkLiquid        *cl,
     const NTempest::C3Vector  &point,
     const NTempest::C2Vector  &frac,

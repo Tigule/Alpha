@@ -1,13 +1,7 @@
 #include "CreatureDisplayInfoRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR CreatureDisplayInfoRec::GetFilename() {
   return "DBFilesClient\\CreatureDisplayInfo.dbc";
@@ -20,21 +14,18 @@ CreatureDisplayInfoRec::~CreatureDisplayInfoRec() {
 }
 
 bool CreatureDisplayInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT temptextureVariationIndices[3];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_modelID, sizeof(m_modelID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_soundID, sizeof(m_soundID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_extendedDisplayInfoID, sizeof(m_extendedDisplayInfoID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_creatureModelScale, sizeof(m_creatureModelScale), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_creatureModelAlpha, sizeof(m_creatureModelAlpha), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureVariationIndices[0], sizeof(temptextureVariationIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureVariationIndices[1], sizeof(temptextureVariationIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureVariationIndices[2], sizeof(temptextureVariationIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_bloodID, sizeof(m_bloodID), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_modelID) ||
+      !SFileReadTyped(f, &m_soundID) ||
+      !SFileReadTyped(f, &m_extendedDisplayInfoID) ||
+      !SFileReadTyped(f, &m_creatureModelScale) ||
+      !SFileReadTyped(f, &m_creatureModelAlpha) ||
+      !SFileReadTyped(f, &temptextureVariationIndices[0]) ||
+      !SFileReadTyped(f, &temptextureVariationIndices[1]) ||
+      !SFileReadTyped(f, &temptextureVariationIndices[2]) ||
+      !SFileReadTyped(f, &m_bloodID)) {
     ConsoleWrite("Error reading CreatureDisplayInfoRec", DEFAULT_COLOR);
     return false;
   }

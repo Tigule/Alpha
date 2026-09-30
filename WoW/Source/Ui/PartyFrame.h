@@ -32,6 +32,9 @@ class CGPartyInfo {
   static void      EnterWorld();
   static void      LeaveWorld();
   static void      ShutdownGame();
+  static BOOL InParty() {
+    return NumMembers() != 0;
+  }
   static BOOL      IsMember(const DWORDLONG &guid);
   static DWORDLONG GetMemberByName(LPCSTR name);
   static DWORDLONG GetLeader() {
@@ -40,32 +43,29 @@ class CGPartyInfo {
   static int GetLeaderIndex() {
     return m_leaderIndex;
   }
-  static BOOL InParty() {
-    return NumMembers() != 0;
-  }
-  static UINT         NumMembers();
-  static RemoteStats *GetRemoteStats(DWORDLONG guid);
-  static RemoteStats *GetRemoteStatsByIndex(int index);
-  static void         OnNameCacheCallback();
   static DWORDLONG    GetMember(UINT index) {
     return m_members[index];
   }
   static void        SetLeader(DWORDLONG guid);
   static void        AddMember(DWORDLONG guid, int connected);
   static void        EnableMember(DWORDLONG guid, int enable);
-  static void        RemoveActivePlayer(DWORDLONG guid);
   static void        RemoveAll();
+  static void        RemoveActivePlayer(DWORDLONG guid);
+  static UINT         NumMembers();
+  static void         OnNameCacheCallback();
   static void        SetLootMethod(LOOT_METHOD method, DWORDLONG master);
-  static void        SetLookingForGroup(int looking);
   static LOOT_METHOD GetLootMethod() {
     return m_lootMethod;
   }
   static DWORDLONG GetMasterLooter() {
     return m_lootMaster;
   }
+  static RemoteStats *GetRemoteStats(DWORDLONG guid);
+  static RemoteStats *GetRemoteStatsByIndex(int index);
   static BOOL IsLookingForGroup() {
     return m_lookingForGroup;
   }
+  static void        SetLookingForGroup(int looking);
 
  protected:
   static DWORDLONG   m_leader;

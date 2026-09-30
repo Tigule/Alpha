@@ -9,7 +9,20 @@ class CSBasePriorityQueue;
 
 template <class T>
 class TSStackArray {
+ private:
+
+  UINT m_maxCount;
+ protected:
+
+  UINT m_count;
+
+  T   *m_data;
+
+  void FatalArrayBounds() const {
+    SErrDisplayError(STORM_ERROR_ACCESS_OUT_OF_BOUNDS, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0, TRUE, 1);
+  }
  public:
+
   TSStackArray(LPVOID data, UINT maxCount, int count) : m_maxCount(maxCount), m_count(count), m_data(static_cast<T *>(data)) {
     for (UINT index = 0; index < m_count; ++index) {
       new (&m_data[index]) T;
@@ -29,14 +42,14 @@ class TSStackArray {
     return *this;
   }
 
-  const T &operator[](UINT index) const {
+  T &operator[](UINT index) {
     if (index >= m_count) {
       FatalArrayBounds();
     }
     return m_data[index];
   }
 
-  T &operator[](UINT index) {
+  const T &operator[](UINT index) const {
     if (index >= m_count) {
       FatalArrayBounds();
     }
@@ -51,21 +64,21 @@ class TSStackArray {
     return m_count * sizeof(T);
   }
 
+  T *Ptr() {
+    return m_data;
+  }
+
   const T *Ptr() const {
     return m_data;
   }
 
-  T *Ptr() {
-    return m_data;
+  void Set(UINT count, const T *data) {
+    Set(count, 0, data);
   }
 
   void Set(UINT count, int, const T *data) {
     SetCount(0);
     Add(count, 0, data);
-  }
-
-  void Set(UINT count, const T *data) {
-    Set(count, 0, data);
   }
 
   void SetCount(UINT count) {
@@ -89,6 +102,10 @@ class TSStackArray {
     return sizeof(T);
   }
 
+  void Add(UINT count, const T *data) {
+    Add(count, 0, data);
+  }
+
   void Add(UINT count, int, const T *data) {
     if (m_count + count > m_maxCount) {
       FatalArrayBounds();
@@ -97,19 +114,6 @@ class TSStackArray {
     for (UINT index = 0; index < count; ++index) {
       new (&m_data[m_count++]) T(data[index]);
     }
-  }
-
-  void Add(UINT count, const T *data) {
-    Add(count, 0, data);
-  }
-
-  T *New(const T &value) {
-    if (m_count >= m_maxCount) {
-      FatalArrayBounds();
-    }
-    T *result = &m_data[m_count++];
-    new (result) T(value);
-    return result;
   }
 
   T *New() {
@@ -121,22 +125,22 @@ class TSStackArray {
     return result;
   }
 
- protected:
-  void FatalArrayBounds() const {
-    SErrDisplayError(STORM_ERROR_ACCESS_OUT_OF_BOUNDS, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0, TRUE, 1);
+  T *New(const T &value) {
+    if (m_count >= m_maxCount) {
+      FatalArrayBounds();
+    }
+    T *result = &m_data[m_count++];
+    new (result) T(value);
+    return result;
   }
-
- private:
-  UINT m_maxCount;
-
- protected:
-  UINT m_count;
-  T   *m_data;
 };
 
 template <class T, UINT MAXCOUNT>
 class TSCArray {
  protected:
+  UINT m_count;
+  T    m_data[MAXCOUNT];
+
   LPCSTR MemFileName() const {
     return typeid(T).INTERNALRAWNAME();
   }
@@ -164,6 +168,13 @@ class TSCArray {
     return *this;
   }
 
+  T &operator[](UINT index) {
+    if (index >= m_count) {
+      FatalArrayBounds();
+    }
+    return m_data[index];
+  }
+
   const T &operator[](UINT index) const {
     if (index >= m_count) {
       FatalArrayBounds();
@@ -171,11 +182,8 @@ class TSCArray {
     return m_data[index];
   }
 
-  T &operator[](UINT index) {
-    if (index >= m_count) {
-      FatalArrayBounds();
-    }
-    return m_data[index];
+  UINT MaxCount() const {
+    return MAXCOUNT;
   }
 
   UINT Count() const {
@@ -186,11 +194,12 @@ class TSCArray {
     return m_count * sizeof(T);
   }
 
-  void SetCount(UINT count) {
-    if (count > MAXCOUNT) {
-      FatalArrayBounds();
-    }
-    m_count = count;
+  T *Ptr() {
+    return m_data;
+  }
+
+  const T *Ptr() const {
+    return m_data;
   }
 
   void Set(UINT count, const T *data) {
@@ -207,6 +216,13 @@ class TSCArray {
     Set(count, data);
   }
 
+  void SetCount(UINT count) {
+    if (count > MAXCOUNT) {
+      FatalArrayBounds();
+    }
+    m_count = count;
+  }
+
   void Zero() {
     memset(m_data, 0, Bytes());
   }
@@ -214,23 +230,8 @@ class TSCArray {
   UINT SizeOfElement() const {
     return sizeof(T);
   }
-
-  UINT MaxCount() const {
-    return MAXCOUNT;
-  }
-
-  const T *Ptr() const {
-    return m_data;
-  }
-
-  T *Ptr() {
-    return m_data;
-  }
-
- protected:
-  UINT m_count;
-  T    m_data[MAXCOUNT];
 };
+
 
 template <class T>
 class TSBaseArray {
@@ -664,9 +665,7 @@ void TSFixedArray<T>::ReallocData(UINT count) {
 
   copyCount = count < this->m_count ? count : this->m_count;
   for (index = 0; index < copyCount; ++index) {
-    if (this->m_data) {
-      new (&this->m_data[index]) T(oldData[index]);
-    }
+    new (&this->m_data[index]) T(oldData[index]);
   }
 
   SMemFree(oldData, this->MemFileName(), this->MemLineNo(), 0);
@@ -736,27 +735,39 @@ UINT TSGrowableArray<T>::CalcChunkSize(UINT count) {
   UINT       chunk = count;
   UINT       next;
 
-  if (count >= maxChunk) {
+  if (count < maxChunk) {
+    next = (count - 1) & count;
+    while (next) {
+      chunk = next;
+      next = (chunk - 1) & chunk;
+    }
+    if (chunk < 1) {
+      chunk = 1;
+    }
+  } else {
     m_chunk = maxChunk;
-    return maxChunk;
+    chunk = maxChunk;
   }
 
-  next = (count - 1) & count;
-  while (next) {
-    chunk = next;
-    next = (chunk - 1) & chunk;
-  }
-  return chunk < 1 ? 1 : chunk;
+  return chunk;
 }
 
 template <class T>
 UINT TSGrowableArray<T>::RoundToChunk(UINT count, UINT chunk) const {
   UINT remainder = count % chunk;
-  return remainder ? count + chunk - remainder : count;
+
+  if (remainder) {
+    count += chunk - remainder;
+  }
+
+  return count;
 }
 
 class CSBasePriority {
  private:
+  CSBasePriorityQueue *m_queue;
+  UINT                 m_index;
+
   void Construct() {
     m_queue = 0;
     m_index = 0;
@@ -769,9 +780,9 @@ class CSBasePriority {
 
   ~CSBasePriority();
 
-  virtual int Compare(CSBasePriority *priority) const = 0;
-
   CSBasePriority &operator=(const CSBasePriority &);
+
+  virtual int Compare(CSBasePriority *priority) const = 0;
 
   BOOL IsLinked() const {
     return m_queue != 0;
@@ -785,14 +796,13 @@ class CSBasePriority {
   }
 
   void Unlink();
-
- private:
-  CSBasePriorityQueue *m_queue;
-  UINT                 m_index;
 };
 
 template <class T>
 class TSTimerPriority : public CSBasePriority {
+ private:
+  T m_val;
+
  public:
   TSTimerPriority() : m_val(0) {
   }
@@ -812,14 +822,17 @@ class TSTimerPriority : public CSBasePriority {
       Relink();
     }
   }
-
- private:
-  T m_val;
 };
 
 class CSBasePriorityQueue : public TSGrowableArray<LPVOID> {
  private:
   friend class CSBasePriority;
+
+  enum {
+    ROOT_INDEX = 0
+  };
+
+  UINT m_linkOffset;
 
   UINT Child(UINT index) const {
     return index * 2 + 1;
@@ -829,13 +842,13 @@ class CSBasePriorityQueue : public TSGrowableArray<LPVOID> {
     return (index - 1) >> 1;
   }
 
+  CSBasePriority *Link(LPVOID value) const {
+    return reinterpret_cast<CSBasePriority *>(reinterpret_cast<BYTE *>(value) + m_linkOffset);
+  }
+
   CSBasePriority *Link(UINT index) const {
     this->CheckArrayBounds(index);
     return Link(this->m_data[index]);
-  }
-
-  CSBasePriority *Link(LPVOID value) const {
-    return reinterpret_cast<CSBasePriority *>(reinterpret_cast<BYTE *>(value) + m_linkOffset);
   }
 
   void SetLink(UINT index) {
@@ -851,10 +864,6 @@ class CSBasePriorityQueue : public TSGrowableArray<LPVOID> {
   }
 
  public:
-  enum {
-    ROOT_INDEX = 0
-  };
-
   CSBasePriorityQueue(int linkOffset) : m_linkOffset(linkOffset) {
   }
 
@@ -928,9 +937,6 @@ class CSBasePriorityQueue : public TSGrowableArray<LPVOID> {
     (*this)[index] = replacement;
     SetLink(index);
   }
-
- private:
-  UINT m_linkOffset;
 };
 
 template <class T>
@@ -1046,6 +1052,8 @@ class TSLink {
     return *this;
   }
 
+  BOOL IsLinked() const;
+
   T *Next() {
     return reinterpret_cast<int>(m_next) > 0 ? m_next : 0;
   }
@@ -1069,8 +1077,6 @@ class TSLink {
   const T *RawNext() const {
     return m_next;
   }
-
-  BOOL IsLinked() const;
 
   void Unlink();
 };
@@ -1110,6 +1116,9 @@ template <class T>
 class TSLinkedNode {
   friend class TSGetLink<T>;
 
+ private:
+  TSLink<T> m_link;
+
  public:
   ~TSLinkedNode() {
     Unlink();
@@ -1117,10 +1126,6 @@ class TSLinkedNode {
 
   BOOL IsLinked() const {
     return m_link.IsLinked();
-  }
-
-  void Unlink() {
-    m_link.Unlink();
   }
 
   T *Next() {
@@ -1147,8 +1152,9 @@ class TSLinkedNode {
     return m_link.RawNext();
   }
 
- private:
-  TSLink<T> m_link;
+  void Unlink() {
+    m_link.Unlink();
+  }
 };
 
 template <class T>
@@ -1183,12 +1189,12 @@ class TSList {
     InitializeTerminator();
   }
 
-  TSLink<T> *Link(const T *instance) const;
-
   void InitializeTerminator() {
     m_terminator.m_prevlink = &m_terminator;
     m_terminator.m_next = reinterpret_cast<T *>(~reinterpret_cast<DWORD>(&m_terminator));
   }
+
+  TSLink<T> *Link(const T *instance) const;
 
  protected:
   void SetLinkOffset(int linkoffset) {
@@ -1205,8 +1211,6 @@ class TSList {
     CopyConstructor(source);
   }
 
-  TSList<T, GETLINK> &operator=(const TSList<T, GETLINK> &);
-
   TSList(int linkoffset) {
     Constructor();
     SetLinkOffset(linkoffset);
@@ -1216,8 +1220,10 @@ class TSList {
     UnlinkAll();
   }
 
+  TSList<T, GETLINK> &operator=(const TSList<T, GETLINK> &);
+
   void ChangeLinkOffset(int linkoffset) {
-    if (m_linkoffset == linkoffset) {
+    if (linkoffset == m_linkoffset) {
       return;
     }
 
@@ -1232,94 +1238,6 @@ class TSList {
       ptr->~T();
       SMemFree(ptr, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
     }
-  }
-
-  T *Head() {
-    return m_terminator.Next();
-  }
-
-  const T *Head() const {
-    return m_terminator.Next();
-  }
-
-  T *Tail() {
-    return m_terminator.Prev();
-  }
-
-  const T *Tail() const {
-    return m_terminator.Prev();
-  }
-
-  BOOL IsEmpty() const {
-    return m_terminator.Next() == 0;
-  }
-
-  BOOL IsLinked(const T *instance) const {
-    return Link(instance)->IsLinked();
-  }
-
-  T *Next(const T *instance) {
-    return Link(instance)->Next();
-  }
-
-  const T *Next(const T *instance) const {
-    return Link(instance)->Next();
-  }
-
-  T *RawNext(const T *instance) {
-    return Link(instance)->RawNext();
-  }
-
-  const T *RawNext(const T *instance) const {
-    return Link(instance)->RawNext();
-  }
-
-  T *Prev(const T *instance) {
-    TSLink<T> *link = Link(instance);
-    T         *previous = link->m_prevlink->m_prevlink->m_next;
-    return reinterpret_cast<long>(previous) > 0 ? previous : 0;
-  }
-
-  const T *Prev(const T *instance) const {
-    TSLink<T> *link = Link(instance);
-    const T   *previous = link->m_prevlink->m_prevlink->m_next;
-    return reinterpret_cast<long>(previous) > 0 ? previous : 0;
-  }
-
-  void UnlinkNode(T *instance) {
-    Link(instance)->Unlink();
-  }
-
-  void UnlinkAll() {
-    T *instance;
-
-    while ((instance = Head()) != 0) {
-      UnlinkNode(instance);
-    }
-  }
-
-  void LinkNode(T *instance, DWORD linktype, T *existingInstance);
-
-  T *NewNode(DWORD location, DWORD extrabytes, DWORD flags) {
-    T *ptr = static_cast<T *>(SMemAlloc(sizeof(T) + extrabytes, typeid(T).INTERNALRAWNAME(), -2, flags | SMEM_FLAG_ZEROMEMORY));
-
-    if (ptr) {
-      new (ptr) T;
-    }
-
-    if (location) {
-      LinkNode(ptr, location, 0);
-    }
-
-    return ptr;
-  }
-
-  T *DeleteNode(T *ptr) {
-    T *next = Next(ptr);
-
-    ptr->~T();
-    SMemFree(ptr, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
-    return next;
   }
 
   void Combine(TSList<T, GETLINK> *list, DWORD linktype, T *existingInstance) {
@@ -1367,6 +1285,94 @@ class TSList {
     }
 
     list->InitializeTerminator();
+  }
+
+  T *DeleteNode(T *ptr) {
+    T *next = Next(ptr);
+
+    ptr->~T();
+    SMemFree(ptr, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
+    return next;
+  }
+
+  T *Head() {
+    return m_terminator.Next();
+  }
+
+  const T *Head() const {
+    return m_terminator.Next();
+  }
+
+  BOOL IsEmpty() const {
+    return m_terminator.Next() == 0;
+  }
+
+  BOOL IsLinked(const T *instance) const {
+    return Link(instance)->IsLinked();
+  }
+
+  void LinkNode(T *instance, DWORD linktype, T *existingInstance);
+
+  T *NewNode(DWORD location, DWORD extrabytes, DWORD flags) {
+    T *ptr = static_cast<T *>(SMemAlloc(sizeof(T) + extrabytes, typeid(T).INTERNALRAWNAME(), -2, flags | SMEM_FLAG_ZEROMEMORY));
+
+    if (ptr) {
+      new (ptr) T;
+    }
+
+    if (location) {
+      LinkNode(ptr, location, 0);
+    }
+
+    return ptr;
+  }
+
+  T *Next(const T *instance) {
+    return Link(instance)->Next();
+  }
+
+  const T *Next(const T *instance) const {
+    return Link(instance)->Next();
+  }
+
+  T *Prev(const T *instance) {
+    TSLink<T> *link = Link(instance);
+    T         *previous = link->m_prevlink->m_prevlink->m_next;
+    return reinterpret_cast<long>(previous) > 0 ? previous : 0;
+  }
+
+  const T *Prev(const T *instance) const {
+    TSLink<T> *link = Link(instance);
+    const T   *previous = link->m_prevlink->m_prevlink->m_next;
+    return reinterpret_cast<long>(previous) > 0 ? previous : 0;
+  }
+
+  T *RawNext(const T *instance) {
+    return Link(instance)->RawNext();
+  }
+
+  const T *RawNext(const T *instance) const {
+    return Link(instance)->RawNext();
+  }
+
+  T *Tail() {
+    return m_terminator.Prev();
+  }
+
+  const T *Tail() const {
+    return m_terminator.Prev();
+  }
+
+  void UnlinkAll() {
+    T *instance;
+
+    while ((instance = Head()) != 0) {
+      UnlinkNode(instance);
+    }
+  }
+
+  void UnlinkNode(T *instance) {
+    Link(instance)->Unlink();
   }
 };
 
@@ -1482,6 +1488,9 @@ class HASHKEY_NONE {
 };
 
 class HASHKEY_DWORD {
+ private:
+  DWORD m_key;
+
  public:
   HASHKEY_DWORD(DWORD key = 0) : m_key(key) {
   }
@@ -1496,9 +1505,6 @@ class HASHKEY_DWORD {
   DWORD GetDword() const {
     return m_key;
   }
-
- private:
-  DWORD m_key;
 };
 
 struct SoundFileDataCacheBlock;
@@ -1510,16 +1516,18 @@ class TSHashTable;
 
 class HASHKEY_LONGLONG {
  private:
+  LONGLONG m_key;
+
   friend class TSHashObject<SoundFileDataCacheBlock, HASHKEY_LONGLONG>;
 
   friend void                     DataCacheInitialize(int cacheSizeMB);
   friend SoundFileDataCacheBlock *AllocCacheBlock(LONGLONG hashKey);
   friend class SoundFileCache;
 
-  HASHKEY_LONGLONG() : m_key(0) {
+  HASHKEY_LONGLONG(int key) : m_key(key) {
   }
 
-  HASHKEY_LONGLONG(int key) : m_key(key) {
+  HASHKEY_LONGLONG() : m_key(0) {
   }
 
   HASHKEY_LONGLONG(LONGLONG key) : m_key(key) {
@@ -1541,44 +1549,41 @@ class HASHKEY_LONGLONG {
   LONGLONG GetLongLong() const {
     return m_key;
   }
-
- private:
-  LONGLONG m_key;
 };
 
 class HASHKEY_STR {
+ protected:
+  char *m_str;
+
  public:
   HASHKEY_STR() : m_str(0) {
-  }
-
-  HASHKEY_STR(LPCSTR str) : m_str(SStrDupA(str, __FILE__, __LINE__)) {
   }
 
   HASHKEY_STR(const HASHKEY_STR &key) : m_str(SStrDupA(key.m_str, __FILE__, __LINE__)) {
   }
 
-  ~HASHKEY_STR();
+  HASHKEY_STR(LPCSTR str) : m_str(SStrDupA(str, __FILE__, __LINE__)) {
+  }
 
-  HASHKEY_STR &operator=(LPCSTR str);
+  ~HASHKEY_STR();
 
   HASHKEY_STR &operator=(const HASHKEY_STR &key) {
     return operator=(key.m_str);
+  }
+
+  HASHKEY_STR &operator=(LPCSTR str);
+
+  bool operator==(const HASHKEY_STR &key) const {
+    return operator==(key.m_str);
   }
 
   bool operator==(LPCSTR str) const {
     return SStrCmp(m_str, str, 0x7FFFFFFF) == 0;
   }
 
-  bool operator==(const HASHKEY_STR &key) const {
-    return operator==(key.m_str);
-  }
-
   LPCSTR GetString() const {
     return m_str;
   }
-
- protected:
-  char *m_str;
 };
 
 class HASHKEY_STRI : public HASHKEY_STR {
@@ -1586,10 +1591,10 @@ class HASHKEY_STRI : public HASHKEY_STR {
   HASHKEY_STRI() {
   }
 
-  HASHKEY_STRI(LPCSTR str) : HASHKEY_STR(str) {
+  HASHKEY_STRI(const HASHKEY_STRI &key) : HASHKEY_STR(key) {
   }
 
-  HASHKEY_STRI(const HASHKEY_STRI &key) : HASHKEY_STR(key) {
+  HASHKEY_STRI(LPCSTR str) : HASHKEY_STR(str) {
   }
 
   HASHKEY_STRI &operator=(LPCSTR str) {
@@ -1602,16 +1607,19 @@ class HASHKEY_STRI : public HASHKEY_STR {
     return *this;
   }
 
-  bool operator==(LPCSTR str) const {
-    return SStrCmpI(m_str, str, 0x7FFFFFFF) == 0;
-  }
-
   bool operator==(const HASHKEY_STRI &key) const {
     return operator==(key.m_str);
+  }
+
+  bool operator==(LPCSTR str) const {
+    return SStrCmpI(m_str, str, 0x7FFFFFFF) == 0;
   }
 };
 
 class HASHKEY_CONSTSTR {
+ protected:
+  LPCSTR m_str;
+
  public:
   HASHKEY_CONSTSTR() : m_str(0) {
   }
@@ -1619,20 +1627,17 @@ class HASHKEY_CONSTSTR {
   HASHKEY_CONSTSTR(LPCSTR str) : m_str(str) {
   }
 
-  bool operator==(LPCSTR str) const {
-    return SStrCmp(m_str, str, 0x7FFFFFFF) == 0;
-  }
-
   bool operator==(const HASHKEY_CONSTSTR &key) const {
     return operator==(key.m_str);
+  }
+
+  bool operator==(LPCSTR str) const {
+    return SStrCmp(m_str, str, 0x7FFFFFFF) == 0;
   }
 
   LPCSTR GetString() const {
     return m_str;
   }
-
- protected:
-  LPCSTR m_str;
 };
 
 class HASHKEY_CONSTSTRI : public HASHKEY_CONSTSTR {
@@ -1643,16 +1648,19 @@ class HASHKEY_CONSTSTRI : public HASHKEY_CONSTSTR {
   HASHKEY_CONSTSTRI(LPCSTR str) : HASHKEY_CONSTSTR(str) {
   }
 
-  bool operator==(LPCSTR str) const {
-    return m_str == str || SStrCmpI(m_str, str, 0x7FFFFFFF) == 0;
-  }
-
   bool operator==(const HASHKEY_CONSTSTRI &key) const {
     return operator==(key.m_str);
+  }
+
+  bool operator==(LPCSTR str) const {
+    return m_str == str || SStrCmpI(m_str, str, 0x7FFFFFFF) == 0;
   }
 };
 
 class HASHKEY_PTR {
+ private:
+  LPVOID m_key;
+
  public:
   HASHKEY_PTR() : m_key(0) {
   }
@@ -1675,9 +1683,6 @@ class HASHKEY_PTR {
   LPVOID GetPtr() const {
     return m_key;
   }
-
- private:
-  LPVOID m_key;
 };
 
 template <class T, class KEY>
@@ -1701,15 +1706,15 @@ class TSHashObject {
     return *this;
   }
 
-  LPCSTR GetString() const {
-    return m_key.GetString();
-  }
-
   KEY GetKey() const {
     return m_key;
   }
 
   LPCVOID GetData() const;
+
+  LPCSTR GetString() const {
+    return m_key.GetString();
+  }
 
   UINT GetHashValue() const {
     return m_hashval;

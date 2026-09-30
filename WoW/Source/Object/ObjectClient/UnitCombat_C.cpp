@@ -51,21 +51,21 @@ struct CHANCES {
 };
 
 struct WEAPONHANDCHANCES {
-  UINT                     total;
-  TSGrowableArray<CHANCES> chances;
-
   WEAPONHANDCHANCES() : total(0) {
   }
+
+  UINT                     total;
+  TSGrowableArray<CHANCES> chances;
 };
 
 NODEDECL(HITSPRITE) {
+  UINT   start;
+  UINT   duration;
+  HMODEL model;
   HITSPRITE();
   HITSPRITE(const HITSPRITE &);
   ~HITSPRITE();
 
-  UINT   start;
-  UINT   duration;
-  HMODEL model;
 };
 
 HITSPRITE::~HITSPRITE() {
@@ -323,7 +323,7 @@ void PARTYKILLLOG::UI(CDataStore &msg) {
   msg.Get(victim);
 }
 
-BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   switch (msgId) {
@@ -456,7 +456,7 @@ BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *ms
   }
 }
 
-BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG attacker;
   DWORDLONG guid;
   int       damage;
@@ -478,11 +478,11 @@ BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
   return 1;
 }
 
-BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-BOOL OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+static BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+static BOOL OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
-BOOL OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
+static BOOL OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG guid;
   UINT      flags;
   BYTE      damageClass;

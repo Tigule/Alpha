@@ -81,6 +81,8 @@ extern LPCSTR const                g_sexString[UNITSEX_LAST];
 extern const ITEMGEOSETGROUPS      g_geosetGroupsPerItem[];
 
 struct CAMERAFILENAMES {
+  char fileName[UNITSEX_LAST][MAX_PATH];
+
   CAMERAFILENAMES() {
     UINT sex;
 
@@ -88,38 +90,36 @@ struct CAMERAFILENAMES {
       fileName[sex][0] = 0;
     }
   }
-
-  char fileName[UNITSEX_LAST][MAX_PATH];
 };
 
 struct STRINGWANNABE {
-  STRINGWANNABE() : string(0) {
+ private:
+  LPCSTR string;
+ public:
+  LPCSTR GetString() const {
+    return string;
   }
-
   void SetString(LPCSTR prefix, LPCSTR value) {
     char textureName[MAX_PATH];
 
     SStrPrintf(textureName, sizeof(textureName), "%s%s", prefix, value);
     string = value;
   }
-
-  LPCSTR GetString() const {
-    return string;
+  STRINGWANNABE() : string(0) {
   }
-
- private:
-  LPCSTR string;
 };
+
+
 
 struct CHARACTERVARIATIONS {
   ~CHARACTERVARIATIONS() {
   }
 
-  STRINGWANNABE &GetColor(int colorID) {
+  const STRINGWANNABE &GetColor(int colorID) const {
     return color[colorID % color.Count()];
   }
 
-  const STRINGWANNABE &GetColor(int colorID) const {
+  STRINGWANNABE &GetColor(int colorID) {
     return color[colorID % color.Count()];
   }
 
@@ -136,6 +136,11 @@ struct CHARACTERVARIATIONS {
 };
 
 struct CHARACTERSEXVARIATIONS {
+ private:
+  TSGrowableArray<CHARACTERVARIATIONS> names[CHARTEXTURESECTION_NUM];
+ public:
+  int firstNPCVar[CHARTEXTURESECTION_NUM];
+  int lastNPCVar[CHARTEXTURESECTION_NUM];
   CHARACTERSEXVARIATIONS() {
     UINT section;
 
@@ -150,12 +155,12 @@ struct CHARACTERSEXVARIATIONS {
 
   void GetNumVariations(CHARTEXTURESECTIONID section, int *pcVars, int *npcVars);
 
-  CHARACTERVARIATIONS &GetNames(int section, int variation) {
+  const CHARACTERVARIATIONS &GetNames(int section, int variation) const {
     ASSERT(section < (sizeof(names) / sizeof(names[0])));
     return names[section][variation % names[section].Count()];
   }
 
-  const CHARACTERVARIATIONS &GetNames(int section, int variation) const {
+  CHARACTERVARIATIONS &GetNames(int section, int variation) {
     ASSERT(section < (sizeof(names) / sizeof(names[0])));
     return names[section][variation % names[section].Count()];
   }
@@ -165,22 +170,17 @@ struct CHARACTERSEXVARIATIONS {
     return names[section].Count();
   }
 
-  TSGrowableArray<CHARACTERVARIATIONS> &GetSectionData(int section) {
-    ASSERT(section < (sizeof(names) / sizeof(names[0])));
-    return names[section];
-  }
-
   const TSGrowableArray<CHARACTERVARIATIONS> &GetSectionData(int section) const {
     ASSERT(section < (sizeof(names) / sizeof(names[0])));
     return names[section];
   }
 
- private:
-  TSGrowableArray<CHARACTERVARIATIONS> names[CHARTEXTURESECTION_NUM];
+  TSGrowableArray<CHARACTERVARIATIONS> &GetSectionData(int section) {
+    ASSERT(section < (sizeof(names) / sizeof(names[0])));
+    return names[section];
+  }
 
- public:
-  int firstNPCVar[CHARTEXTURESECTION_NUM];
-  int lastNPCVar[CHARTEXTURESECTION_NUM];
+
 };
 
 struct CHARACTERRACEVARIATIONS {
@@ -188,24 +188,24 @@ struct CHARACTERRACEVARIATIONS {
 };
 
 struct FACIALGEOSETS {
-  FACIALGEOSETS() {
-  }
-
   UINT beardGeoset;
   UINT sideBurnGeoset;
   UINT moustacheGeoset;
+
+  FACIALGEOSETS() {
+  }
 };
 
 extern UINT g_defaultGeosetIDOffsets[NUM_CHARGEOSETS];
 
 struct BEARDSTYLEDATA {
-  BEARDSTYLEDATA()
-      : beardGeoset(g_defaultGeosetIDOffsets[1]), sideBurnGeoset(g_defaultGeosetIDOffsets[2]), moustacheGeoset(g_defaultGeosetIDOffsets[3]) {
-  }
-
   UINT beardGeoset;
   UINT sideBurnGeoset;
   UINT moustacheGeoset;
+
+  BEARDSTYLEDATA()
+      : beardGeoset(g_defaultGeosetIDOffsets[1]), sideBurnGeoset(g_defaultGeosetIDOffsets[2]), moustacheGeoset(g_defaultGeosetIDOffsets[3]) {
+  }
 };
 
 struct FACIALVARIATIONS {
@@ -219,14 +219,14 @@ struct FACIALVARIATIONS {
 };
 
 struct INTDATA {
+  int theInt;
+
   INTDATA() {
   }
 
   operator int &() {
     return theInt;
   }
-
-  int theInt;
 };
 
 struct VARIATIONS {

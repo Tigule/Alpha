@@ -187,7 +187,7 @@ void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest:
   }
 }
 
-void GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector *planes) {
+void GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector planes[]) {
   planes[0] = NTempest::C4Vector(viewProj.a0 - viewProj.a3, viewProj.b0 - viewProj.b3, viewProj.c0 - viewProj.c3, viewProj.d0 - viewProj.d3);
   planes[1] = NTempest::C4Vector(-viewProj.a0 - viewProj.a3, -viewProj.b0 - viewProj.b3, -viewProj.c0 - viewProj.c3, -viewProj.d0 - viewProj.d3);
   planes[2] = NTempest::C4Vector(viewProj.a1 - viewProj.a3, viewProj.b1 - viewProj.b3, viewProj.c1 - viewProj.c3, viewProj.d1 - viewProj.d3);
@@ -328,7 +328,7 @@ BOOL GxuTestRayAndSphere(
   return 1;
 }
 
-BOOL GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &sphereCenterInWorld, float radius, const NTempest::C4Vector *planes) {
+BOOL GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &sphereCenterInWorld, float radius, const NTempest::C4Vector planes[]) {
   for (UINT i = 0; i < 6; ++i) {
     if (planes[i].x * sphereCenterInWorld.x + planes[i].y * sphereCenterInWorld.y + planes[i].z * sphereCenterInWorld.z + planes[i].w > radius) {
       return 0;
@@ -538,7 +538,7 @@ UINT GxuClipCalcCode(const NTempest::C44Matrix &viewProj, const NTempest::C3Vect
   return code;
 }
 
-void GxuSnapTexelsToPixels(const NTempest::C3Vector *pos, NTempest::C2Vector *tex, UINT texW, UINT texH) {
+void GxuSnapTexelsToPixels(const NTempest::C3Vector pos[], NTempest::C2Vector tex[], UINT texW, UINT texH) {
   UINT               i;
   NTempest::C3Vector posScr[4];
   NTempest::C3Vector iposScr[4];

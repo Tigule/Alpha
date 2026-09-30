@@ -4,6 +4,16 @@
 
 class ZoneMusicRec {
  public:
+  int    m_ID;
+  float  m_VolumeFloat;
+  LPCSTR m_MusicFile[2];
+  int    m_SilenceIntervalMin[2];
+  int    m_SilenceIntervalMax[2];
+  int    m_SegmentLength[2];
+  int    m_SegmentPlayMin[2];
+  int    m_SegmentPlayMax[2];
+  int    m_Sounds[2];
+
   ZoneMusicRec();
   ~ZoneMusicRec();
 
@@ -29,16 +39,6 @@ class ZoneMusicRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  float  m_VolumeFloat;
-  LPCSTR m_MusicFile[2];
-  int    m_SilenceIntervalMin[2];
-  int    m_SilenceIntervalMax[2];
-  int    m_SegmentLength[2];
-  int    m_SegmentPlayMin[2];
-  int    m_SegmentPlayMax[2];
-  int    m_Sounds[2];
 };
 
 extern WowClientDB<ZoneMusicRec> g_zoneMusicDB;

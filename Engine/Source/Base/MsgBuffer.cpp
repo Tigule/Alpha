@@ -115,12 +115,13 @@ DEFINE_ADD_ARRAY(AddFloatArray, float)
 
 #undef DEFINE_ADD_ARRAY
 
-#define DEFINE_GET_SCALAR(functionName, valueType)                     \
-  valueType CMsgBuffer::functionName() {                               \
-    ASSERT(Bytes() >= sizeof(valueType));                              \
-    valueType value = *reinterpret_cast<valueType *>(m_data + m_read); \
-    m_read += sizeof(valueType);                                       \
-    return value;                                                      \
+#define DEFINE_GET_SCALAR(functionName, valueType)                 \
+  valueType CMsgBuffer::functionName() {                           \
+    valueType val;                                                \
+    ASSERT(Bytes() >= sizeof(val));                               \
+    val = *reinterpret_cast<valueType *>(m_data + m_read);         \
+    m_read += sizeof(val);                                        \
+    return val;                                                   \
   }
 
 DEFINE_GET_SCALAR(GetChar, char)
@@ -178,7 +179,9 @@ LPCVOID CMsgBuffer::GetData(int count) {
 }
 
 void CMsgBuffer::GetData(LPVOID buffer, int count) {
-  memcpy(buffer, GetData(count), count);
+  ASSERT(Bytes() >= count);
+  memcpy(buffer, m_data + m_read, count);
+  m_read += count;
 }
 
 #define DEFINE_GET_ARRAY(functionName, valueType)                \

@@ -5,18 +5,18 @@ class MD5 {
  public:
   MD5();
 
-  MD5(const MD5 &copy) {
-    val[0] = copy.val[0];
-    val[1] = copy.val[1];
-    val[2] = copy.val[2];
-    val[3] = copy.val[3];
-  }
-
   MD5(DWORD a, DWORD b, DWORD c, DWORD d) {
     val[0] = a;
     val[1] = b;
     val[2] = c;
     val[3] = d;
+  }
+
+  MD5(const MD5 &copy) {
+    val[0] = copy.val[0];
+    val[1] = copy.val[1];
+    val[2] = copy.val[2];
+    val[3] = copy.val[3];
   }
 
   const MD5 &operator=(const MD5 &copy) {

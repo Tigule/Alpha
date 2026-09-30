@@ -4,12 +4,6 @@
 class CDataStore;
 
 class unreal {
- protected:
-  union {
-    UINT  bits;
-    float fp;
-  };
-
  public:
   unreal() {
   }
@@ -153,6 +147,12 @@ class unreal {
   bool operator!=(const unreal &value) const {
     return fp != value.fp;
   }
+
+ protected:
+  union {
+    UINT  bits;
+    float fp;
+  };
 
   friend unreal      operator*(const unreal &a, const unreal &b);
   friend unreal      operator/(const unreal &a, const unreal &b);

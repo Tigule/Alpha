@@ -1,5 +1,6 @@
 #include <Base/Base.h>
 
+#include "Frame/CSimpleTop.h"
 #include "Frame/CSimpleModel.h"
 
 #include <lauxlib.h>

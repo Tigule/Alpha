@@ -1,13 +1,7 @@
 #include "QuestSortRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR QuestSortRec::GetFilename() {
   return "DBFilesClient\\QuestSort.dbc";
@@ -20,21 +14,18 @@ QuestSortRec::~QuestSortRec() {
 }
 
 bool QuestSortRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempSortName_langIndices[NUM_LOCALES];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempSortName_langIndices[0], sizeof(tempSortName_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempSortName_langIndices[1], sizeof(tempSortName_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempSortName_langIndices[2], sizeof(tempSortName_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempSortName_langIndices[3], sizeof(tempSortName_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempSortName_langIndices[4], sizeof(tempSortName_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempSortName_langIndices[5], sizeof(tempSortName_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempSortName_langIndices[6], sizeof(tempSortName_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempSortName_langIndices[7], sizeof(tempSortName_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SortName_flag, sizeof(m_SortName_flag), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempSortName_langIndices[0]) ||
+      !SFileReadTyped(f, &tempSortName_langIndices[1]) ||
+      !SFileReadTyped(f, &tempSortName_langIndices[2]) ||
+      !SFileReadTyped(f, &tempSortName_langIndices[3]) ||
+      !SFileReadTyped(f, &tempSortName_langIndices[4]) ||
+      !SFileReadTyped(f, &tempSortName_langIndices[5]) ||
+      !SFileReadTyped(f, &tempSortName_langIndices[6]) ||
+      !SFileReadTyped(f, &tempSortName_langIndices[7]) ||
+      !SFileReadTyped(f, &m_SortName_flag)) {
     ConsoleWrite("Error reading QuestSortRec", DEFAULT_COLOR);
     return false;
   }

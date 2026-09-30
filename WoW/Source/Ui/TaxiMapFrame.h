@@ -20,8 +20,11 @@ class CGTaxiMap {
   static void EnterWorld();
   static void LeaveWorld();
   static void SetupMap(const DWORDLONG &unit, UINT node, LONGLONG destNodes, LONGLONG knownNodes, const NTempest::CRect &visibleArea);
-  static void BuildTaxiNodeLines(LONGLONG nodes, const NTempest::CRect &visibleArea);
   static void CloseMap();
+  static DWORDLONG GetTaxiVendor() {
+    return m_unit;
+  }
+
   static UINT NumTaxiNodes() {
     return m_nodes.Count();
   }
@@ -30,12 +33,9 @@ class CGTaxiMap {
   static void   TaxiNodePosition(UINT slot, float &x, float &y);
   static UINT   TaxiNodeCost(UINT slot);
   static void   TakeTaxiNode(UINT slot);
+  static void BuildTaxiNodeLines(LONGLONG nodes, const NTempest::CRect &visibleArea);
   static void   RegisterScriptFunctions();
   static void   UnregisterScriptFunctions();
-
-  static DWORDLONG GetTaxiVendor() {
-    return m_unit;
-  }
 
  protected:
   static DWORDLONG              m_unit;

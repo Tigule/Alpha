@@ -3,7 +3,7 @@
 DWORD OsTlsAlloc() {
   DWORD tlsIndex = TlsAlloc();
 
-  ASSERT(tlsIndex != (DWORD)-1);
+  ASSERT(tlsIndex!=(DWORD)-1);
 
   return tlsIndex;
 }

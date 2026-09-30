@@ -26,7 +26,7 @@ void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, in
 
 bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
 
-bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &target, const NameCache *nc) {
+static bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &target, const NameCache *nc) {
   char      temp[1024];
   LPCSTR    semi;
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
@@ -77,7 +77,7 @@ bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &target,
   return true;
 }
 
-bool QuestParserReplaceText(char *buf, UINT size, const DWORDLONG &target, const NameCache *nc) {
+static bool QuestParserReplaceText(char *buf, UINT size, const DWORDLONG &target, const NameCache *nc) {
   char      race[32];
   char      classStr[32];
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
@@ -184,7 +184,7 @@ bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &ta
   return error == 0;
 }
 
-bool SpellParserGenderConditional(char *buf, UINT size) {
+static bool SpellParserGenderConditional(char *buf, UINT size) {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return false;
@@ -224,7 +224,7 @@ bool SpellParserGenderConditional(char *buf, UINT size) {
   return true;
 }
 
-bool SpellParserPluralConditional(char *buf, UINT size, int ordinal) {
+static bool SpellParserPluralConditional(char *buf, UINT size, int ordinal) {
   while (*token == ' ') {
     ++token;
   }
@@ -260,7 +260,7 @@ bool SpellParserPluralConditional(char *buf, UINT size, int ordinal) {
   return true;
 }
 
-int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, int level, BOOL isPet) {
+static int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, int level, BOOL isPet) {
   if (!spell) {
     return 0;
   }

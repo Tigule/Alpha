@@ -4,6 +4,11 @@
 
 class CharBaseInfoRec {
  public:
+  BYTE m_raceID;
+  BYTE m_classID;
+  int  m_proficiency;
+  int  m_generatedID;
+
   CharBaseInfoRec();
   ~CharBaseInfoRec();
 
@@ -30,11 +35,6 @@ class CharBaseInfoRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  BYTE m_raceID;
-  BYTE m_classID;
-  int  m_proficiency;
-  int  m_generatedID;
 };
 
 extern WowClientDB<CharBaseInfoRec> g_charBaseInfoDB;

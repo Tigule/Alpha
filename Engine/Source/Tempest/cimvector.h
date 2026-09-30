@@ -264,12 +264,12 @@ namespace NTempest {
   class CRgb565 {
    public:
     enum {
-      eBlueMask = 0x001F,
-      eGreenMask = 0x07C0,
       eRedMask = 0xF800,
-      eNotBlueMask = ~eBlueMask,
+      eNotRedMask = ~eRedMask,
+      eGreenMask = 0x07C0,
       eNotGreenMask = ~eGreenMask,
-      eNotRedMask = ~eRedMask
+      eBlueMask = 0x001F,
+      eNotBlueMask = ~eBlueMask
     };
     enum {
       eRedS = 11,
@@ -333,14 +333,14 @@ namespace NTempest {
   class CArgb1555 {
    public:
     enum {
-      eBlueMask = 0x001F,
-      eGreenMask = 0x03E0,
-      eRedMask = 0x7C00,
       eAlphaMask = 0x8000,
-      eNotBlueMask = ~eBlueMask,
-      eNotGreenMask = ~eGreenMask,
+      eNotAlphaMask = ~eAlphaMask,
+      eRedMask = 0x7C00,
       eNotRedMask = ~eRedMask,
-      eNotAlphaMask = ~eAlphaMask
+      eGreenMask = 0x03E0,
+      eNotGreenMask = ~eGreenMask,
+      eBlueMask = 0x001F,
+      eNotBlueMask = ~eBlueMask
     };
     enum {
       eAlphaS = 15,
@@ -409,14 +409,14 @@ namespace NTempest {
   class CArgb4444 {
    public:
     enum {
-      eBlueMask = 0x000F,
-      eGreenMask = 0x00F0,
-      eRedMask = 0x0F00,
       eAlphaMask = 0xF000,
-      eNotBlueMask = ~eBlueMask,
-      eNotGreenMask = ~eGreenMask,
+      eNotAlphaMask = ~eAlphaMask,
+      eRedMask = 0x0F00,
       eNotRedMask = ~eRedMask,
-      eNotAlphaMask = ~eAlphaMask
+      eGreenMask = 0x00F0,
+      eNotGreenMask = ~eGreenMask,
+      eBlueMask = 0x000F,
+      eNotBlueMask = ~eBlueMask
     };
     enum {
       eAlphaS = 12,

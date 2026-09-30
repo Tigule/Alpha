@@ -4,6 +4,10 @@
 
 class UISoundLookupsRec {
  public:
+  int    m_ID;
+  int    m_SoundID;
+  LPCSTR m_SoundName;
+
   UISoundLookupsRec();
   ~UISoundLookupsRec();
 
@@ -29,10 +33,6 @@ class UISoundLookupsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_SoundID;
-  LPCSTR m_SoundName;
 };
 
 extern WowClientDB<UISoundLookupsRec> g_uISoundLookupsDB;

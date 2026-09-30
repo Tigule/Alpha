@@ -1,13 +1,7 @@
 #include "EmotesRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR EmotesRec::GetFilename() {
   return "DBFilesClient\\Emotes.dbc";
@@ -20,17 +14,15 @@ EmotesRec::~EmotesRec() {
 }
 
 bool EmotesRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_EmoteAnimID, sizeof(m_EmoteAnimID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_EmoteFlags, sizeof(m_EmoteFlags), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_EmoteSpecProc, sizeof(m_EmoteSpecProc), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_EmoteSpecProcParam, sizeof(m_EmoteSpecProcParam), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_EmoteAnimID) ||
+      !SFileReadTyped(f, &m_EmoteFlags) ||
+      !SFileReadTyped(f, &m_EmoteSpecProc) ||
+      !SFileReadTyped(f, &m_EmoteSpecProcParam)) {
     ConsoleWrite("Error reading EmotesRec", DEFAULT_COLOR);
+    return false;
   }
 
-  return result;
+  return true;
 }

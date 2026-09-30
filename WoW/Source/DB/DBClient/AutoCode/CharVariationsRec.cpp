@@ -1,13 +1,7 @@
 #include "CharVariationsRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR CharVariationsRec::GetFilename() {
   return "DBFilesClient\\CharVariations.dbc";
@@ -20,15 +14,13 @@ CharVariationsRec::~CharVariationsRec() {
 }
 
 bool CharVariationsRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_RaceID, sizeof(m_RaceID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SexID, sizeof(m_SexID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_TextureHoldLayer[0], sizeof(m_TextureHoldLayer), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_RaceID) ||
+      !SFileReadTyped(f, &m_SexID) ||
+      !SFile::Read(f, &m_TextureHoldLayer[0], sizeof(m_TextureHoldLayer), 0, 0, 0)) {
     ConsoleWrite("Error reading CharVariationsRec", DEFAULT_COLOR);
+    return false;
   }
 
-  return result;
+  return true;
 }

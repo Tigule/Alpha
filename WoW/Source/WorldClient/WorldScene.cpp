@@ -474,7 +474,7 @@ void CWorldScene::ClipPortal(NTempest::C4Vector *inList, UINT &inCount) {
   inCount = c[0];
 }
 
-void CWorldScene::CalcFrustumCorners(NTempest::C3Vector *corners) {
+void CWorldScene::CalcFrustumCorners(NTempest::C3Vector corners[]) {
   NTempest::C44Matrix lMp;
   NTempest::C44Matrix lMv;
   GxXformView(lMv);
@@ -613,11 +613,11 @@ void CWorldScene::FrustumSet(const NTempest::CRect &sRect) {
   FrustumGet().CalcPlanesFromCorners(newCorners);
 }
 
-void CWorldScene::FrustumSet(const NTempest::C3Vector *corners) {
+void CWorldScene::FrustumSet(const NTempest::C3Vector corners[]) {
   FrustumGet().CalcPlanesFromCorners(corners);
 }
 
-void CWorldScene::FrustumSet(const NTempest::C3Vector *corners, const NTempest::CRect &sRect) {
+void CWorldScene::FrustumSet(const NTempest::C3Vector *const corners, const NTempest::CRect &sRect) {
   NTempest::C3Vector n;
   NTempest::C3Vector newCorners[8];
   NTempest::C3Vector tl;

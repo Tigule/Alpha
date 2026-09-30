@@ -4,6 +4,9 @@
 
 class SpellEffectCameraShakesRec {
  public:
+  int m_ID;
+  int m_CameraShake[3];
+
   SpellEffectCameraShakesRec();
   ~SpellEffectCameraShakesRec();
 
@@ -29,9 +32,6 @@ class SpellEffectCameraShakesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_CameraShake[3];
 };
 
 extern WowClientDB<SpellEffectCameraShakesRec> g_spellEffectCameraShakesDB;

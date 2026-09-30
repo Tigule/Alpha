@@ -30,7 +30,7 @@ static WORD WindowClassCreate() {
   return RegisterClassExA(&wc);
 }
 
-void WindowClassDestroy(WORD &hwndClass) {
+static void WindowClassDestroy(WORD &hwndClass) {
   UnregisterClass(reinterpret_cast<LPCSTR>(hwndClass), GetModuleHandle(0));
   hwndClass = 0;
 }
@@ -44,7 +44,7 @@ static HWND WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
   );
 }
 
-void WindowDestroy(HWND &hwnd) {
+static void WindowDestroy(HWND &hwnd) {
   DestroyWindow(hwnd);
   hwnd = 0;
 }

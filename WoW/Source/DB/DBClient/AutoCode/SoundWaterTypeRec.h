@@ -4,6 +4,11 @@
 
 class SoundWaterTypeRec {
  public:
+  int m_ID;
+  int m_soundType;
+  int m_soundSubtype;
+  int m_SoundID;
+
   SoundWaterTypeRec();
   ~SoundWaterTypeRec();
 
@@ -29,11 +34,6 @@ class SoundWaterTypeRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_soundType;
-  int m_soundSubtype;
-  int m_SoundID;
 };
 
 extern WowClientDB<SoundWaterTypeRec> g_soundWaterTypeDB;

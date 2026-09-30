@@ -4,6 +4,11 @@
 
 class WeaponSwingSounds2Rec {
  public:
+  int m_ID;
+  int m_SwingType;
+  int m_Crit;
+  int m_SoundID;
+
   WeaponSwingSounds2Rec();
   ~WeaponSwingSounds2Rec();
 
@@ -29,11 +34,6 @@ class WeaponSwingSounds2Rec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_SwingType;
-  int m_Crit;
-  int m_SoundID;
 };
 
 extern WowClientDB<WeaponSwingSounds2Rec> g_weaponSwingSounds2DB;

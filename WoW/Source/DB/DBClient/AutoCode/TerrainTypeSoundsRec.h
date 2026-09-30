@@ -4,6 +4,8 @@
 
 class TerrainTypeSoundsRec {
  public:
+  int m_ID;
+
   TerrainTypeSoundsRec();
   ~TerrainTypeSoundsRec();
 
@@ -29,8 +31,6 @@ class TerrainTypeSoundsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
 };
 
 extern WowClientDB<TerrainTypeSoundsRec> g_terrainTypeSoundsDB;

@@ -1,13 +1,7 @@
 #include "SpellVisualEffectNameRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR SpellVisualEffectNameRec::GetFilename() {
   return "DBFilesClient\\SpellVisualEffectName.dbc";
@@ -20,17 +14,14 @@ SpellVisualEffectNameRec::~SpellVisualEffectNameRec() {
 }
 
 bool SpellVisualEffectNameRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempfileNameIndices[1];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempfileNameIndices[0], sizeof(tempfileNameIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_specialID, sizeof(m_specialID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_specialAttachPoint, sizeof(m_specialAttachPoint), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_areaEffectSize, sizeof(m_areaEffectSize), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_VisualEffectNameFlags, sizeof(m_VisualEffectNameFlags), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempfileNameIndices[0]) ||
+      !SFileReadTyped(f, &m_specialID) ||
+      !SFileReadTyped(f, &m_specialAttachPoint) ||
+      !SFileReadTyped(f, &m_areaEffectSize) ||
+      !SFileReadTyped(f, &m_VisualEffectNameFlags)) {
     ConsoleWrite("Error reading SpellVisualEffectNameRec", DEFAULT_COLOR);
     return false;
   }

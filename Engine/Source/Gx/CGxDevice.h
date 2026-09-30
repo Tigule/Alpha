@@ -28,248 +28,31 @@ namespace NTempest {
   class C34Matrix;
 }
 
-class CGxShaderParam {
-  friend class CGxShader;
-  friend class CGxDeviceD3d;
-  friend class CGxDeviceOpenGl;
-
-  static const UINT TypeCountTable[];
-
- public:
-  enum Type {
-    Type_Vector4 = 0,
-    Type_Matrix34 = 1,
-    Type_Matrix44 = 2,
-    Type_Force32Bit = -1
-  };
-
-  enum {
-    NAME_LEN = 0x20
-  };
-
-  LPCSTR GetName() const {
-    return name;
-  }
-
-  Type GetType() const {
-    return type;
-  }
-
-  CGxShaderParam() : dirty(0) {
-    for (UINT i = 0; i < 16; ++i) {
-      f[i] = 0.0f;
-    }
-  }
-
- protected:
-  void Read(SFile *file);
-  void Set(const NTempest::C4Vector &v);
-  void Set(const NTempest::C34Matrix &m);
-  void Set(const NTempest::C44Matrix &m);
-
-  char  name[NAME_LEN];
-  Type  type;
-  UINT  index;
-  int   dirty;
-  float f[16];
-  LINKDECLEX(CGxShaderParam, lameAssLink);
-};
-
-class CGxShader {
-  friend class CGxDevice;
-  friend class CGxDeviceD3d;
-  friend class CGxDeviceOpenGl;
-
- private:
-  UINT refCount;
-
- protected:
-  struct DirEntry {
-    UINT start;
-    UINT count;
-  };
-
-  typedef LISTEX(CGxShaderParam, lameAssLink) ParamList;
-
-  void Read(SFile *file);
-
-  UINT apiSpecific;
-  int  valid;
-  int  paramsDirty;
-  LISTDECLEX(CGxShaderParam, lameAssLink, consts);
-  LISTDECLEX(CGxShaderParam, lameAssLink, params);
-  TSGrowableArray<BYTE> code;
-
- public:
-  CGxShader() : refCount(0), apiSpecific(0), valid(0), paramsDirty(0) {
-  }
-
-  ~CGxShader();
-
-  int Valid() {
-    return valid;
-  }
-
-  void            SetParam(CGxShaderParam *p, const NTempest::C4Vector &v);
-  void            SetParam(CGxShaderParam *p, const NTempest::C34Matrix &m);
-  void            SetParam(CGxShaderParam *p, const NTempest::C44Matrix &m);
-  CGxShaderParam *GetFirstParam();
-  CGxShaderParam *GetNextParam(CGxShaderParam *p);
-  CGxShaderParam *GetParam(LPCSTR name);
-};
-
-class CGxPixelShader : public CGxShader, public TSHashObject<CGxPixelShader, HASHKEY_STRI> {
- public:
-  enum {
-    Magic = 'GXPS'
-  };
-
-  enum {
-    Version = 0x10001
-  };
-
-  enum Target {
-    Target_default = -2,
-    Target_gx = -1,
-    Target_ps_1_1 = 0,
-    Target_ps_1_2 = 1,
-    Target_ps_1_3 = 2,
-    Target_ps_1_4 = 3,
-    Target_ps_2_0 = 4,
-    Target_nvrc = 5,
-    Target_nvts = 6,
-    Target_nvts2 = 7,
-    Target_nvts3 = 8,
-    Target_atifs = 9,
-    Target_arbfp1 = 10,
-    Targets_Last = 11
-  };
-};
-
-class CGxVertexShader : public CGxShader, public TSHashObject<CGxVertexShader, HASHKEY_STRI> {
- public:
-  enum {
-    Magic = 'GXVS'
-  };
-
-  enum {
-    Version = 0x10001
-  };
-
-  enum Target {
-    Target_default = -2,
-    Target_gx = -1,
-    Target_vs_1_1 = 0,
-    Target_vs_2_0 = 1,
-    Target_arbvp1 = 2,
-    Targets_Last = 3
-  };
-};
-
-class CGxCaps {
- public:
-  UINT                    m_numTmus;
-  int                     m_pixelCenterOnEdge;
-  int                     m_texelCenterOnEdge;
-  UINT                    m_maxTextureSize;
-  int                     m_texOpAdd;
-  int                     m_texOpMod2X;
-  EGxColorFormat          m_colorFormat;
-  int                     m_texFmtDxt;
-  UINT                    m_maxIndex;
-  int                     m_generateMipMaps;
-  int                     m_rttFormat[8];
-  int                     m_rttOriginUpperLeft;
-  CGxPixelShader::Target  m_pixelShaderTarget;
-  CGxVertexShader::Target m_vertexShaderTarget;
-  int                     m_texFilterTrilinear;
-  int                     m_texFilterAnisotropic;
-  UINT                    m_maxTexAnisotropy;
-  int                     m_depthBias;
-  int                     m_mipMapLodBias;
-};
-
-struct CGxBuf {
-  enum Status {
-    S_VALID = 0,
-    S_INVALID_DISCARD = 1,
-    S_INVALID_RELOAD = 2
-  };
-
-  static const UINT BASE_NONE;
-
- protected:
-  friend class CGxDevice;
-  friend class CGxIndexBuffer;
-  friend class CGxVertexBuffer;
-  friend class CParticleEmitter2;
-
-  LINKDECLEX(CGxBuf, linkGx);
-  LINKDECLEX(CGxBuf, linkVB);
-  LINKDECLEX(CGxBuf, linkIB);
-  EGxBufWriteFreq       m_writeFreq;
-  EGxVertexBufferFormat m_vbFormat;
-  UINT                  m_numVertices;
-  UINT                  m_numIndices;
-  void (*m_userCallback)(CGxBufCommand &, CGxBuf *);
-  LPVOID m_userArg;
-  UINT   m_vertexBase;
-  UINT   m_indexBase;
-  Status m_vertexStatus;
-  Status m_indexStatus;
-
-  CGxBuf(const CGxBuf &);
-  const CGxBuf &operator=(const CGxBuf &);
-
-  UINT writeFrameTag;
-
- public:
-  CGxBuf();
-  void Invalidate(Status vertexStatus, Status indexStatus);
-
-  UINT VertexCount() const {
-    return m_numVertices;
-  }
-
-  UINT IndexCount() const {
-    return m_numIndices;
-  }
-
-  void CountSet(UINT numVertices, UINT numIndices);
-
-  LPVOID UserArg() const {
-    return m_userArg;
-  }
-
-  void UserArgSet(LPVOID userArg) {
-    m_userArg = userArg;
-  }
-
-  void (*UserCallback() const)(CGxBufCommand &, CGxBuf *) {
-    return m_userCallback;
-  }
-
-  void UserCallbackSet(void (*userCallback)(CGxBufCommand &, CGxBuf *)) {
-    m_userCallback = userCallback;
-  }
-};
-
 class CGxMemBuffer {
   friend class CGxDeviceD3d;
   friend class CGxBufD3d;
   friend class CGxBufOgl;
   friend class CVertexBufferList;
 
+ protected:
+  UINT m_count;
+  UINT m_base;
+  UINT m_next;
+  BOOL m_discard;
+  LISTEXDYN(CGxBuf) m_bufList;
+
+  void InvalidateBufs(CGxBuf::Status vertexStatus, CGxBuf::Status indexStatus);
+
  public:
   CGxMemBuffer(UINT count);
   virtual ~CGxMemBuffer();
 
+  void AddBuf(CGxBuf *buf);
+  void RemoveBuf(CGxBuf *buf);
   virtual void Lock(LPVOID &mem, UINT count, UINT base) = 0;
   virtual void Unlock() = 0;
 
-  void AddBuf(CGxBuf *buf);
   void Discard();
-  void RemoveBuf(CGxBuf *buf);
 
   UINT GetBase() {
     return m_base;
@@ -286,15 +69,6 @@ class CGxMemBuffer {
   int GetDiscard() {
     return m_discard;
   }
-
- protected:
-  void InvalidateBufs(CGxBuf::Status vertexStatus, CGxBuf::Status indexStatus);
-
-  UINT m_count;
-  UINT m_base;
-  UINT m_next;
-  BOOL m_discard;
-  LISTEXDYN(CGxBuf) m_bufList;
 };
 
 class CGxVertexBuffer : public CGxMemBuffer {
@@ -365,53 +139,33 @@ class CGxTex {
   LPVOID m_apiSpecificData;
 };
 
-class CGxLight {
- public:
-  CGxLight();
-
-  int                 m_enabled : 1;
-  int                 m_isOmni : 1;
-  NTempest::C3Vector  m_dir;
-  NTempest::CImVector m_ambColor;
-  NTempest::CImVector m_dirColor;
-  NTempest::CImVector m_specColor;
-  float               m_ambIntensity;
-  float               m_dirIntensity;
-  float               m_specIntensity;
-  float               m_constantAttenuation;
-  float               m_linearAttenuation;
-  float               m_quadraticAttenuation;
-  float               m_attenStart;
-  float               m_attenEnd;
-};
-
 class CGxMatrixStack {
+ private:
+  friend class CGxDevice;
+  friend class CGxDeviceD3d;
+  friend class CGxDeviceOpenGl;
+
+  UINT                m_level;
+  BYTE                m_dirty;
+  NTempest::C44Matrix m_mtx[4];
+  UINT                m_flags[4];
+
+  UINT Flags();
+
  public:
   enum EMatrixFlags {
     F_Identity = 1
   };
 
   CGxMatrixStack();
-  ~CGxMatrixStack();
-  void                       Identity();
   void                       Push();
   void                       Pop();
+  void                       Identity();
   NTempest::C44Matrix       &Top();
   const NTempest::C44Matrix &TopConst() const {
     return m_mtx[m_level];
   }
-
- private:
-  friend class CGxDevice;
-  friend class CGxDeviceD3d;
-  friend class CGxDeviceOpenGl;
-
-  UINT Flags();
-
-  UINT                m_level;
-  BYTE                m_dirty;
-  NTempest::C44Matrix m_mtx[4];
-  UINT                m_flags[4];
+  ~CGxMatrixStack();
 };
 
 class CGxStateRegister {

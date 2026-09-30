@@ -4,32 +4,6 @@
 
 class SpellRec {
  public:
-  SpellRec();
-  ~SpellRec();
-
-  static LPCSTR GetFilename();
-
-  static UINT GetNumColumns() {
-    return 135;
-  }
-
-  static UINT GetRowSize() {
-    return 540;
-  }
-
-  int GetID() const {
-    return m_ID;
-  }
-
-  bool NeedIDAssigned() {
-    return false;
-  }
-
-  void SetID(int id) {
-  }
-
-  bool Read(SFile *f, LPCSTR stringBuffer);
-
   int    m_ID;
   int    m_school;
   int    m_category;
@@ -97,6 +71,32 @@ class SpellRec {
   int    m_manaCostPct;
   int    m_startRecoveryCategory;
   int    m_startRecoveryTime;
+
+  SpellRec();
+  ~SpellRec();
+
+  static LPCSTR GetFilename();
+
+  static UINT GetNumColumns() {
+    return 135;
+  }
+
+  static UINT GetRowSize() {
+    return 540;
+  }
+
+  int GetID() const {
+    return m_ID;
+  }
+
+  bool NeedIDAssigned() {
+    return false;
+  }
+
+  void SetID(int id) {
+  }
+
+  bool Read(SFile *f, LPCSTR stringBuffer);
 };
 
 extern WowClientDB<SpellRec> g_spellDB;

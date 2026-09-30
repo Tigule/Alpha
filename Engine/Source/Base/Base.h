@@ -6,6 +6,8 @@ const float PI = 3.14159265358979323846f;
 const float TWO_PI = PI + PI;
 const float OO_TWO_PI = 1.0f / TWO_PI;
 
+#include <Base/RCString.h>
+
 DECLARE_STRICT_HANDLE(HPROPCONTEXT);
 
 enum PROPERTY {

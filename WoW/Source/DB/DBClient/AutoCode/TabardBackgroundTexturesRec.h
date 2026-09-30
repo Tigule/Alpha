@@ -4,6 +4,9 @@
 
 class TabardBackgroundTexturesRec {
  public:
+  int    m_ID;
+  LPCSTR m_TorsoTexture[2];
+
   TabardBackgroundTexturesRec();
   ~TabardBackgroundTexturesRec();
 
@@ -29,9 +32,6 @@ class TabardBackgroundTexturesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_TorsoTexture[2];
 };
 
 extern WowClientDB<TabardBackgroundTexturesRec> g_tabardBackgroundTexturesDB;

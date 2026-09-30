@@ -15,11 +15,11 @@
 #include <lua.h>
 
 struct MACRODESC {
+  UINT soundID[12][3];
+
   MACRODESC() {
     memset(soundID, 0, sizeof(soundID));
   }
-
-  UINT soundID[12][3];
 };
 
 static TSGrowableArray<MACRODESC> s_macroRaceDescs;

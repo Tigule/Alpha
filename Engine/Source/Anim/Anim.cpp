@@ -81,7 +81,7 @@ void CKeyFrameTrack<T, U>::Interpolate(const CKeyTrackStatus &keyStat, UINT seqT
   }
 }
 
-void FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
+static void FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
   ASSERT(NTempest::CMath::fabs_(direction.SquaredMag()) >= 0.00000023841858f);
   *xprime = direction;
 
@@ -125,7 +125,7 @@ static void LookAtPoint(const NTempest::C3Vector &position, const NTempest::C3Ve
   result->w = parentRotation.w * value.w - parentRotation.x * value.x - parentRotation.y * value.y - parentRotation.z * value.z;
 }
 
-void RotateViewBillboarded(const NTempest::C3Vector &cameraVector) {
+static void RotateViewBillboarded(const NTempest::C3Vector &cameraVector) {
   NTempest::C3Vector xprime;
   NTempest::C3Vector yprime;
   NTempest::C3Vector zprime;
@@ -135,7 +135,7 @@ void RotateViewBillboarded(const NTempest::C3Vector &cameraVector) {
   WorldMatrixBasis(xprime, yprime, zprime);
 }
 
-void RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVector) {
+static void RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVector) {
   ASSERT(NTempest::CMath::fabs_(cameraVector.SquaredMag()) >= 0.00000023841858f);
   NTempest::C3Vector xprime;
   NTempest::C3Vector zprime;
@@ -149,7 +149,7 @@ void RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVector) {
   WorldMatrixBasis(xprime, yprime, zprime);
 }
 
-void RotateViewYAxisBillboarded(const NTempest::C3Vector &cameraVector) {
+static void RotateViewYAxisBillboarded(const NTempest::C3Vector &cameraVector) {
   ASSERT(NTempest::CMath::fabs_(cameraVector.SquaredMag()) >= 0.00000023841858f);
   NTempest::C3Vector xprime;
   NTempest::C3Vector yprime;
@@ -163,7 +163,7 @@ void RotateViewYAxisBillboarded(const NTempest::C3Vector &cameraVector) {
   WorldMatrixBasis(xprime, yprime, zprime);
 }
 
-void RotateViewXAxisBillboarded(const NTempest::C3Vector &cameraVector) {
+static void RotateViewXAxisBillboarded(const NTempest::C3Vector &cameraVector) {
   ASSERT(NTempest::CMath::fabs_(cameraVector.SquaredMag()) >= 0.00000023841858f);
   NTempest::C3Vector yprime;
   NTempest::C3Vector xprime;
@@ -945,7 +945,7 @@ void AnimAnimateCameras(HANIM anim, const TSFixedArray<HCAMERA> &cameras) {
   AnimateAllCameras(&cameraInfo);
 }
 
-void IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnimationData &data) {
+static void IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnimationData &data) {
   ASSERT(shared->flags & 1);
   ASSERT(!(shared->flags & 4));
   ASSERT(data.boneMtx || !data.numBones);

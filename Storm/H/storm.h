@@ -46,10 +46,10 @@ const float INFINITY = *reinterpret_cast<const float *>(&INFINITY_ENCODING);
 class type_info {
  public:
   virtual ~type_info();
+  LPCSTR name() const;
   LPCSTR internal_raw_name() const {
     return _m_d_name;
   };
-  LPCSTR name() const;
 
  private:
   LPVOID _m_data;
@@ -399,6 +399,14 @@ class Sha1 {
     DATA_MASK = 0x3F
   };
 
+ private:
+  DWORDLONG m_size;
+  DWORD     m_hash[5];
+  BYTE      m_data[DATA_SIZE];
+
+  static void Pump(DWORD hash[], const BYTE data[]);
+
+ public:
   void Initialize();
   void Append(LPCVOID _data, DWORD size);
   void Append(LPCSTR data);
@@ -406,16 +414,12 @@ class Sha1 {
 
   static void Hash(BYTE *hash, LPCVOID data, DWORD size);
   static void Hash(BYTE *hash, LPCSTR data);
-
- private:
-  static void Pump(DWORD *hash, const BYTE *data);
-
-  DWORDLONG m_size;
-  DWORD     m_hash[5];
-  BYTE      m_data[DATA_SIZE];
 };
 
 class BigNum {
+ private:
+  BigData *m_data;
+
  public:
   BigNum();
   BigNum(LPCSTR value);
@@ -503,9 +507,6 @@ class BigNum {
   BigNum &Set2Exp(UINT exponent);
   BigNum &SetOne();
   BigNum &SetZero();
-
- private:
-  BigData *m_data;
 };
 
 inline BigNum::BigNum() {
@@ -734,6 +735,7 @@ void     SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta);
 class SCritSect {
  private:
   BYTE m_opaqueData[0x18];
+  SCritSect &operator=(const SCritSect &);
   SCritSect(const SCritSect &);
 
  public:
@@ -742,18 +744,15 @@ class SCritSect {
   void Enter();
   void Leave();
   BOOL TryEnter();
-
- private:
-  SCritSect &operator=(const SCritSect &);
 };
 
 class CDebugSCritSect : private SCritSect {
  private:
   BYTE m_debugData[0x0C];
 
+  CDebugSCritSect &operator=(const CDebugSCritSect &);
   CDebugSCritSect();
   CDebugSCritSect(const CDebugSCritSect &);
-  CDebugSCritSect &operator=(const CDebugSCritSect &);
 
  public:
   ~CDebugSCritSect();
@@ -766,6 +765,7 @@ class CDebugSCritSect : private SCritSect {
 class CSRWLock {
  private:
   BYTE m_opaqueData[0x0C];
+  CSRWLock &operator=(const CSRWLock &);
   CSRWLock(const CSRWLock &);
 
  public:
@@ -774,18 +774,15 @@ class CSRWLock {
   void Enter(int forwriting);
   void Leave(int fromwriting);
   BOOL TryEnter(int forwriting);
-
- private:
-  CSRWLock &operator=(const CSRWLock &);
 };
 
 class CDebugSRWLock : private CSRWLock {
  private:
   BYTE m_debugData[0x0C];
 
+  CDebugSRWLock &operator=(const CDebugSRWLock &);
   CDebugSRWLock();
   CDebugSRWLock(const CDebugSRWLock &);
-  CDebugSRWLock &operator=(const CDebugSRWLock &);
 
  public:
   ~CDebugSRWLock();
@@ -796,7 +793,12 @@ class CDebugSRWLock : private CSRWLock {
 };
 
 class SSyncObject {
-  friend DWORD WaitMultiplePtr(UINT, SSyncObject **, int, DWORD);
+  friend DWORD WaitMultiplePtr(UINT, SSyncObject *[], int, DWORD);
+
+ protected:
+  BYTE m_opaqueData[0x04];
+
+  void Copy(const SSyncObject &rhs);
 
  public:
   SSyncObject();
@@ -806,11 +808,6 @@ class SSyncObject {
   BOOL         Valid();
   void         Close();
   DWORD        Wait(DWORD timeoutMs);
-
- protected:
-  BYTE m_opaqueData[0x04];
-
-  void Copy(const SSyncObject &rhs);
 };
 
 class SInitCritSect {
@@ -855,8 +852,8 @@ class SMutex : public SSyncObject {
   int     Release();
 };
 
-DWORD WaitMultiple(UINT count, SSyncObject *objects, int waitAll, DWORD timeoutMs);
-DWORD WaitMultiplePtr(UINT count, SSyncObject **objectPtrs, int waitAll, DWORD timeoutMs);
+DWORD WaitMultiple(UINT count, SSyncObject objects[], int waitAll, DWORD timeoutMs);
+DWORD WaitMultiplePtr(UINT count, SSyncObject *objectPtrs[], int waitAll, DWORD timeoutMs);
 void  SServerInitialize();
 void  SServerDestroy();
 int   STryEnterCriticalSection(LPVOID opaqueData);
@@ -967,7 +964,9 @@ DECLARE_STRICT_HANDLE(HSARCHIVE);
 #define SREG_FLAG_FLUSHTODISK  0x00000008
 #define SREG_FLAG_MULTISZ      0x00000080
 
-struct _TASYNCPARAMBLOCK;
+struct _TASYNCPARAMBLOCK {
+  LPVOID pvCallback;
+};
 struct IDirectSound;
 struct IDirectSoundBuffer;
 struct ZipFileFCB;
@@ -1008,12 +1007,6 @@ class SFile {
   ~SFile();
   SFile &operator=(const SFile &);
 
-  static void          DoAsyncRead(ASYNCREAD *ptr);
-  static UINT APIENTRY ReadProc(LPVOID);
-  static void          InitializeReadThread();
-  static void          QueueReadRequest(SFile *fileptr, LPVOID buffer, DWORD bytestoread, SOVERLAPPED *overlapped);
-  static int           DoZRead(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread);
-
   SFILE_TYPE  m_type;
   LPVOID      m_fileptr;
   SArchive   *m_archive;
@@ -1031,6 +1024,12 @@ class SFile {
   int         m_closeAfterLoad;
   UINT        m_asyncCount;
 
+  static void          DoAsyncRead(ASYNCREAD *ptr);
+  static UINT APIENTRY ReadProc(LPVOID);
+  static void          InitializeReadThread();
+  static void          QueueReadRequest(SFile *fileptr, LPVOID buffer, DWORD bytestoread, SOVERLAPPED *overlapped);
+  static int           DoZRead(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread);
+
  public:
   SFILE_TYPE GetDiskType();
   DWORD      GetFileSize();
@@ -1038,39 +1037,39 @@ class SFile {
 
   static DWORD APIENTRY Open(LPCSTR filename, SFile **file);
   static DWORD APIENTRY OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SFile **file);
-  static DWORD APIENTRY Close(SFile *file);
   static DWORD APIENTRY
   Read(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, SOVERLAPPED *overlapped, _TASYNCPARAMBLOCK *asyncparam);
-  static DWORD APIENTRY LoadFile(LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, SOVERLAPPED *overlapped);
   static DWORD APIENTRY
                       Load(SArchive *archive, LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, DWORD flags, SOVERLAPPED *overlapped);
-  static int APIENTRY Unload(LPVOID buffer);
-  static DWORD APIENTRY    GetFileSize(SFile *file, DWORD *filesizehigh);
-  static DWORD APIENTRY    SetFilePointer(SFile *file, LONG distancetomove, LONG *distancetomovehigh, DWORD movemethod);
+  static DWORD APIENTRY LoadFile(LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, SOVERLAPPED *overlapped);
+  static int APIENTRY      Unload(LPVOID buffer);
+  static DWORD APIENTRY    Close(SFile *file);
   static int APIENTRY      GetActualFileName(SFile *file, char *buffer, DWORD bufferchars);
   static int APIENTRY      GetBasePath(char *buffer, DWORD bufferchars);
   static int APIENTRY      SetBasePath(LPCSTR path);
   static int APIENTRY      SetDataPath(LPCSTR path);
   static int APIENTRY      SetDataPathAlternate(LPCSTR path);
   static int APIENTRY      FileExists(LPCSTR filename);
+  static DWORD APIENTRY    GetFileSize(SFile *file, DWORD *filesizehigh);
+  static DWORD APIENTRY    SetFilePointer(SFile *file, LONG distancetomove, LONG *distancetomovehigh, DWORD movemethod);
   static int APIENTRY      EnableDirectAccess(DWORD access);
-  static void APIENTRY     DisableSFileCheckDisk();
-  static void APIENTRY     DisableSFileCritSection();
-  static void APIENTRY     EnableHash(bool enable);
-  static void APIENTRY     RebuildHash();
-  static void              Destroy();
-  static int APIENTRY      OpenArchive(LPCSTR archivename, int priority, DWORD flags, SArchive **handle);
-  static int APIENTRY      CloseArchive(SArchive *archive);
-  static int APIENTRY      List(SArchive *archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param);
-  static int APIENTRY      GetMD5(SFile *file, MD5 &sum);
   static void APIENTRY     CreateOverlapped(SOVERLAPPED *overlapped);
   static void APIENTRY     DestroyOverlapped(SOVERLAPPED *overlapped);
   static void APIENTRY     ResetOverlapped(SOVERLAPPED *overlapped);
-  static int APIENTRY      PollOverlapped(SOVERLAPPED *overlapped);
   static void APIENTRY     WaitOverlapped(SOVERLAPPED *overlapped);
+  static int APIENTRY      PollOverlapped(SOVERLAPPED *overlapped);
+  static int APIENTRY      OpenArchive(LPCSTR archivename, int priority, DWORD flags, SArchive **handle);
+  static int APIENTRY      CloseArchive(SArchive *archive);
+  static int APIENTRY      List(SArchive *archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param);
   static SDIR *APIENTRY    OpenDir(LPCSTR path);
-  static SDIRENT *APIENTRY ReadDir(SDIR *dir);
   static void APIENTRY     CloseDir(SDIR *dir);
+  static SDIRENT *APIENTRY ReadDir(SDIR *dir);
+  static void APIENTRY     EnableHash(bool enable);
+  static void APIENTRY     RebuildHash();
+  static void APIENTRY     DisableSFileCheckDisk();
+  static void APIENTRY     DisableSFileCritSection();
+  static int APIENTRY      GetMD5(SFile *file, MD5 &sum);
+  static void              Destroy();
 };
 
 extern "C" DWORD APIENTRY SFileOpenFile(LPCSTR filename, HSFILE *handle);

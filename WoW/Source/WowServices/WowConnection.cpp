@@ -15,28 +15,7 @@ static UINT s_destroyed;
 bool (*WowConnection::m_verifyAddr)(const NETADDR *);
 static WowConnectionNet *s_network;
 
-class WowConnectionInitializer {
-  static UINT count;
-
- public:
-  WowConnectionInitializer() {
-    if (++count == 1) {
-      Initialize();
-    }
-  }
-
-  ~WowConnectionInitializer() {
-    if (--count == 0) {
-      Destroy();
-    }
-  }
-
-  static void Initialize();
-  static void Destroy();
-};
-
-UINT                            WowConnectionInitializer::count;
-static WowConnectionInitializer s_initializer;
+UINT WowConnectionInitializer::count;
 
 int WowConnection::CreateSocket() {
   return socket(AF_INET, SOCK_STREAM, 0);

@@ -4,6 +4,12 @@
 
 class SoundCharacterMacroLinesRec {
  public:
+  int m_ID;
+  int m_Category;
+  int m_Sex;
+  int m_Race;
+  int m_SoundID;
+
   SoundCharacterMacroLinesRec();
   ~SoundCharacterMacroLinesRec();
 
@@ -29,12 +35,6 @@ class SoundCharacterMacroLinesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_Category;
-  int m_Sex;
-  int m_Race;
-  int m_SoundID;
 };
 
 extern WowClientDB<SoundCharacterMacroLinesRec> g_soundCharacterMacroLinesDB;

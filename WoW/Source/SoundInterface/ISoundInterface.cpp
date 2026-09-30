@@ -1,4 +1,9 @@
+#include <Base/Base.h>
+#include "SoundInterface.h"
+#include <Gx/Gx.h>
 #include <WowConst.h>
+#include <Gx/CGxDevice.h>
+#include "ObjectMgrClient/ObjectMgrClient.h"
 
 #include "ISoundInterface.h"
 
@@ -17,14 +22,14 @@
 
 UINT g_sndInterfaceFlags;
 
-TSHashTable<SHEATHSOUNDHASH, HASHKEY_NONE>        g_sheathSoundList;
-TSFixedArray<IMPACTSOUNDARRAY>                    g_impactSounds;
-WEAPONSOUNDS                                      g_weaponSwingSounds[3];
-TSHashTable<UISOUNDLOOKUP, HASHKEY_STRI>          g_uiSoundLookups;
 static HASHKEY_NONE                               s_nullHashKey;
 static TSHashTable<SOUNDDEFINITION, HASHKEY_NONE> s_fileNameHash;
 static UINT                                       s_numFileNameEntries;
 static TSGrowableArray<REVERBINFO>                s_reverbTable;
+TSHashTable<UISOUNDLOOKUP, HASHKEY_STRI>          g_uiSoundLookups;
+TSFixedArray<IMPACTSOUNDARRAY>                    g_impactSounds;
+WEAPONSOUNDS                                      g_weaponSwingSounds[3];
+TSHashTable<SHEATHSOUNDHASH, HASHKEY_NONE>        g_sheathSoundList;
 
 static const UINT s_primes[272] = {
     1667U, 1669U, 1693U, 1697U, 647U,  653U,  659U,  661U,  1733U, 1741U, 1747U, 1753U, 673U,  677U,  683U,  691U,  701U,  709U,  719U,  727U,  1277U,

@@ -4,6 +4,11 @@
 
 class SpellDurationRec {
  public:
+  int m_ID;
+  int m_duration;
+  int m_durationPerLevel;
+  int m_maxDuration;
+
   SpellDurationRec();
   ~SpellDurationRec();
 
@@ -29,11 +34,6 @@ class SpellDurationRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_duration;
-  int m_durationPerLevel;
-  int m_maxDuration;
 };
 
 extern WowClientDB<SpellDurationRec> g_spellDurationDB;

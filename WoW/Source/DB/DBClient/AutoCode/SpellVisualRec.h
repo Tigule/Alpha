@@ -4,6 +4,28 @@
 
 class SpellVisualRec {
  public:
+  int  m_ID;
+  int  m_precastKit;
+  int  m_castKit;
+  int  m_impactKit;
+  int  m_stateKit;
+  int  m_channelKit;
+  int  m_hasMissile;
+  int  m_missileModel;
+  int  m_missilePathType;
+  int  m_missileDestinationAttachment;
+  int  m_missileSound;
+  int  m_hasAreaEffect;
+  int  m_areaModel;
+  int  m_areaKit;
+  int  m_animEventSoundID;
+  BYTE m_weaponTrailRed;
+  BYTE m_weaponTrailGreen;
+  BYTE m_weaponTrailBlue;
+  BYTE m_weaponTrailAlpha;
+  BYTE m_weaponTrailFadeoutRate;
+  int  m_weaponTrailDuration;
+
   SpellVisualRec();
   ~SpellVisualRec();
 
@@ -29,28 +51,6 @@ class SpellVisualRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int  m_ID;
-  int  m_precastKit;
-  int  m_castKit;
-  int  m_impactKit;
-  int  m_stateKit;
-  int  m_channelKit;
-  int  m_hasMissile;
-  int  m_missileModel;
-  int  m_missilePathType;
-  int  m_missileDestinationAttachment;
-  int  m_missileSound;
-  int  m_hasAreaEffect;
-  int  m_areaModel;
-  int  m_areaKit;
-  int  m_animEventSoundID;
-  BYTE m_weaponTrailRed;
-  BYTE m_weaponTrailGreen;
-  BYTE m_weaponTrailBlue;
-  BYTE m_weaponTrailAlpha;
-  BYTE m_weaponTrailFadeoutRate;
-  int  m_weaponTrailDuration;
 };
 
 extern WowClientDB<SpellVisualRec> g_spellVisualDB;

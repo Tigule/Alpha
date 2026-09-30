@@ -4,6 +4,12 @@
 
 class AttackAnimKitsRec {
  public:
+  int m_ID;
+  int m_ItemSubclassID;
+  int m_AnimTypeID;
+  int m_AnimFrequency;
+  int m_WhichHand;
+
   AttackAnimKitsRec();
   ~AttackAnimKitsRec();
 
@@ -29,12 +35,6 @@ class AttackAnimKitsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_ItemSubclassID;
-  int m_AnimTypeID;
-  int m_AnimFrequency;
-  int m_WhichHand;
 };
 
 extern WowClientDB<AttackAnimKitsRec> g_attackAnimKitsDB;

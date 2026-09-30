@@ -27,7 +27,7 @@ static BYTE       s_sha1Zero;
   z += (w ^ x ^ y) + SHA1_BLK(i) + 0xCA62C1D6 + SHA1_ROL(v, 5); \
   w = SHA1_ROL(w, 30)
 
-void SHA1_Transform(unsigned int *state, const unsigned char *buffer) {
+static void SHA1_Transform(unsigned int state[], const unsigned char buffer[]) {
   union CHAR64LONG16 {
     BYTE c[64];
     UINT l[16];
@@ -170,7 +170,7 @@ void SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int 
   memcpy(&context->buffer[j], data + i, len - i);
 }
 
-void SHA1_Final(unsigned char *digest, SHA1_CONTEXT *context) {
+void SHA1_Final(unsigned char digest[], SHA1_CONTEXT *context) {
   BYTE  finalcount[8];
   DWORD i;
 
@@ -189,7 +189,7 @@ void SHA1_Final(unsigned char *digest, SHA1_CONTEXT *context) {
   }
 }
 
-unsigned char *SHA1_InterleaveHash(unsigned char *const digest, const unsigned char *data, unsigned int len) {
+unsigned char *SHA1_InterleaveHash(unsigned char digest[], const unsigned char *data, unsigned int len) {
   SHA1_CONTEXT context;
   BYTE         localDigest[20];
   BYTE        *scratch;

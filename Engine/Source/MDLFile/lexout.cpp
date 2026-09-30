@@ -87,7 +87,7 @@ void mdl_scan::mdl_reset() {
   mdllineno = 1;
 }
 
-void mdl_scan::mdlcomment(char *material) {
+void mdl_scan::mdlcomment(char *const material) {
   char *scan = material;
   while (*scan) {
     int character = input();

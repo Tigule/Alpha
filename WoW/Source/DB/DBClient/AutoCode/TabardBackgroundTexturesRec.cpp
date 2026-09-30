@@ -1,13 +1,7 @@
 #include "TabardBackgroundTexturesRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR TabardBackgroundTexturesRec::GetFilename() {
   return "DBFilesClient\\TabardBackgroundTextures.dbc";
@@ -20,14 +14,11 @@ TabardBackgroundTexturesRec::~TabardBackgroundTexturesRec() {
 }
 
 bool TabardBackgroundTexturesRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempTorsoTextureIndices[2];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempTorsoTextureIndices[0], sizeof(tempTorsoTextureIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempTorsoTextureIndices[1], sizeof(tempTorsoTextureIndices[1]), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempTorsoTextureIndices[0]) ||
+      !SFileReadTyped(f, &tempTorsoTextureIndices[1])) {
     ConsoleWrite("Error reading TabardBackgroundTexturesRec", DEFAULT_COLOR);
     return false;
   }

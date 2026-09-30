@@ -18,8 +18,8 @@ WORD CBLPFile::s_oneBitAlphaShort[2] = {0x0000, 0xF000};
 static BlitFormat blitFmt[NUM_PIXEL_FORMATS] = {BlitFormat_Dxt1,   BlitFormat_Dxt3,    BlitFormat_Argb8888, BlitFormat_Argb1555, BlitFormat_Argb4444,
                                                 BlitFormat_Rgb565, BlitFormat_Unknown, BlitFormat_Dxt5,     BlitFormat_Unknown};
 
+static CNullStatus                              s_nullStatus;
 static TSGrowableArray_<BYTE, 'BLPB', __LINE__> s_blpFileLoadBuffer;
-static CNullStatus                        s_nullStatus;
 
 static BOOL IsLegalDimension(UINT dimension);
 

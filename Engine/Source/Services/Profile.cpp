@@ -28,13 +28,13 @@ namespace ProfileInternal {
   static const char FALSESTR[] = "false";
 
   NODEDECL(STRINGBLOCK) {
-    BOOL Contains(LPCSTR string) const {
-      return string >= m_data && string < m_data + m_dataSize;
-    }
-
     static STRINGBLOCK *AllocBlock(DWORD chars);
     static char        *AllocString(LIST(STRINGBLOCK) & stringBlockList, LPCSTR string, int inSitu);
     static void         FreeString(LIST(STRINGBLOCK) & stringBlockList, char *string);
+
+    BOOL Contains(LPCSTR string) const {
+      return string >= m_data && string < m_data + m_dataSize;
+    }
 
     DWORD m_refCount;
     DWORD m_dataSize;

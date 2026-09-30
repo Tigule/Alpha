@@ -51,19 +51,6 @@ class TRefCntPtr {
     }
   }
 
-  TRefCntPtr<T> &operator=(T *rhs) {
-    if (rhs) {
-      rhs->IncrRef();
-    }
-
-    if (m_ptr) {
-      m_ptr->DecrRef();
-    }
-
-    m_ptr = rhs;
-    return *this;
-  }
-
   TRefCntPtr<T> &operator=(const TRefCntPtr<T> &rhs) {
     if (rhs.m_ptr) {
       rhs.m_ptr->IncrRef();
@@ -74,6 +61,19 @@ class TRefCntPtr {
     }
 
     m_ptr = rhs.m_ptr;
+    return *this;
+  }
+
+  TRefCntPtr<T> &operator=(T *rhs) {
+    if (rhs) {
+      rhs->IncrRef();
+    }
+
+    if (m_ptr) {
+      m_ptr->DecrRef();
+    }
+
+    m_ptr = rhs;
     return *this;
   }
 
@@ -97,20 +97,20 @@ class TRefCntPtr {
     return m_ptr;
   }
 
-  BYTE operator==(const T *rhs) const {
-    return m_ptr == rhs;
-  }
-
   BYTE operator==(const TRefCntPtr<T> &rhs) const {
     return m_ptr == rhs.m_ptr;
   }
 
-  BYTE operator!=(const T *rhs) const {
-    return m_ptr != rhs;
+  BYTE operator==(const T *rhs) const {
+    return m_ptr == rhs;
   }
 
   BYTE operator!=(const TRefCntPtr<T> &rhs) const {
     return m_ptr != rhs.m_ptr;
+  }
+
+  BYTE operator!=(const T *rhs) const {
+    return m_ptr != rhs;
   }
 
   BYTE operator!() const {

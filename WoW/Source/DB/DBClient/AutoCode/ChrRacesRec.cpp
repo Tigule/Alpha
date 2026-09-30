@@ -1,13 +1,7 @@
 #include "ChrRacesRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR ChrRacesRec::GetFilename() {
   return "DBFilesClient\\ChrRaces.dbc";
@@ -20,38 +14,35 @@ ChrRacesRec::~ChrRacesRec() {
 }
 
 bool ChrRacesRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempname_langIndices[NUM_LOCALES];
   UINT tempclientFileStringIndices[1];
   UINT tempClientPrefixIndices[1];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_flags, sizeof(m_flags), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_factionID, sizeof(m_factionID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_MaleDisplayId, sizeof(m_MaleDisplayId), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_FemaleDisplayId, sizeof(m_FemaleDisplayId), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempClientPrefixIndices[0], sizeof(tempClientPrefixIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_MountScale, sizeof(m_MountScale), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_BaseLanguage, sizeof(m_BaseLanguage), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_creatureType, sizeof(m_creatureType), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_LoginEffectSpellID, sizeof(m_LoginEffectSpellID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_CombatStunSpellID, sizeof(m_CombatStunSpellID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_ResSicknessSpellID, sizeof(m_ResSicknessSpellID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SplashSoundID, sizeof(m_SplashSoundID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_startingTaxiNodes, sizeof(m_startingTaxiNodes), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempclientFileStringIndices[0], sizeof(tempclientFileStringIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_cinematicSequenceID, sizeof(m_cinematicSequenceID), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[0], sizeof(tempname_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[1], sizeof(tempname_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[2], sizeof(tempname_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[3], sizeof(tempname_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[4], sizeof(tempname_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[5], sizeof(tempname_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[6], sizeof(tempname_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[7], sizeof(tempname_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_name_flag, sizeof(m_name_flag), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_flags) ||
+      !SFileReadTyped(f, &m_factionID) ||
+      !SFileReadTyped(f, &m_MaleDisplayId) ||
+      !SFileReadTyped(f, &m_FemaleDisplayId) ||
+      !SFileReadTyped(f, &tempClientPrefixIndices[0]) ||
+      !SFileReadTyped(f, &m_MountScale) ||
+      !SFileReadTyped(f, &m_BaseLanguage) ||
+      !SFileReadTyped(f, &m_creatureType) ||
+      !SFileReadTyped(f, &m_LoginEffectSpellID) ||
+      !SFileReadTyped(f, &m_CombatStunSpellID) ||
+      !SFileReadTyped(f, &m_ResSicknessSpellID) ||
+      !SFileReadTyped(f, &m_SplashSoundID) ||
+      !SFileReadTyped(f, &m_startingTaxiNodes) ||
+      !SFileReadTyped(f, &tempclientFileStringIndices[0]) ||
+      !SFileReadTyped(f, &m_cinematicSequenceID) ||
+      !SFileReadTyped(f, &tempname_langIndices[0]) ||
+      !SFileReadTyped(f, &tempname_langIndices[1]) ||
+      !SFileReadTyped(f, &tempname_langIndices[2]) ||
+      !SFileReadTyped(f, &tempname_langIndices[3]) ||
+      !SFileReadTyped(f, &tempname_langIndices[4]) ||
+      !SFileReadTyped(f, &tempname_langIndices[5]) ||
+      !SFileReadTyped(f, &tempname_langIndices[6]) ||
+      !SFileReadTyped(f, &tempname_langIndices[7]) ||
+      !SFileReadTyped(f, &m_name_flag)) {
     ConsoleWrite("Error reading ChrRacesRec", DEFAULT_COLOR);
     return false;
   }

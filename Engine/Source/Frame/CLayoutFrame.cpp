@@ -61,7 +61,7 @@ static float SynthesizeCenter(float side1, float side2, float size) {
   return CFramePoint::UNDEFINED;
 }
 
-float CLayoutFrame::GetFirstPointX(const FRAMEPOINT *pointarray, int elements) {
+float CLayoutFrame::GetFirstPointX(const FRAMEPOINT pointarray[], int elements) {
   for (; elements; --elements, ++pointarray) {
     CFramePoint *point = m_points[*pointarray];
 
@@ -77,7 +77,7 @@ float CLayoutFrame::GetFirstPointX(const FRAMEPOINT *pointarray, int elements) {
   return CFramePoint::UNDEFINED;
 }
 
-float CLayoutFrame::GetFirstPointY(const FRAMEPOINT *pointarray, int elements) {
+float CLayoutFrame::GetFirstPointY(const FRAMEPOINT pointarray[], int elements) {
   for (; elements; --elements, ++pointarray) {
     CFramePoint *point = m_points[*pointarray];
 

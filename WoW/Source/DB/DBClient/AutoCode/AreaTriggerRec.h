@@ -4,6 +4,13 @@
 
 class AreaTriggerRec {
  public:
+  int   m_ID;
+  int   m_ContinentID;
+  float m_x;
+  float m_y;
+  float m_z;
+  float m_radius;
+
   AreaTriggerRec();
   ~AreaTriggerRec();
 
@@ -29,13 +36,6 @@ class AreaTriggerRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int   m_ID;
-  int   m_ContinentID;
-  float m_x;
-  float m_y;
-  float m_z;
-  float m_radius;
 };
 
 extern WowClientDB<AreaTriggerRec> g_areaTriggerDB;

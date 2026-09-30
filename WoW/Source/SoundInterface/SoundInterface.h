@@ -6,6 +6,9 @@
 #include <stpl.h>
 
 struct FOOTSTEPSNDCACHE : public TSHashObject<FOOTSTEPSNDCACHE, HASHKEY_NONE> {
+  TSGrowableArray<UINT> m_soundIDs;
+  TSGrowableArray<UINT> m_splashSoundIDs;
+
   FOOTSTEPSNDCACHE() {
   }
 
@@ -13,9 +16,6 @@ struct FOOTSTEPSNDCACHE : public TSHashObject<FOOTSTEPSNDCACHE, HASHKEY_NONE> {
 
   ~FOOTSTEPSNDCACHE() {
   }
-
-  TSGrowableArray<UINT> m_soundIDs;
-  TSGrowableArray<UINT> m_splashSoundIDs;
 };
 
 class CGItem_C;

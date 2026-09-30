@@ -5,6 +5,7 @@
 #include "Gx/Gx.h"
 #include "MapDefs.h"
 #include "WorldClient/World.h"
+#include "WorldClient/Map.h"
 
 #include "Tempest/c2ivector.h"
 #include "Tempest/c2vector.h"

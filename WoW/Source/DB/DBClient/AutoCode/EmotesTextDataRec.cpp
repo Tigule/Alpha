@@ -1,13 +1,7 @@
 #include "EmotesTextDataRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR EmotesTextDataRec::GetFilename() {
   return "DBFilesClient\\EmotesTextData.dbc";
@@ -20,21 +14,18 @@ EmotesTextDataRec::~EmotesTextDataRec() {
 }
 
 bool EmotesTextDataRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT temptext_langIndices[NUM_LOCALES];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptext_langIndices[0], sizeof(temptext_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptext_langIndices[1], sizeof(temptext_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptext_langIndices[2], sizeof(temptext_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptext_langIndices[3], sizeof(temptext_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptext_langIndices[4], sizeof(temptext_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptext_langIndices[5], sizeof(temptext_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptext_langIndices[6], sizeof(temptext_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptext_langIndices[7], sizeof(temptext_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_text_flag, sizeof(m_text_flag), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &temptext_langIndices[0]) ||
+      !SFileReadTyped(f, &temptext_langIndices[1]) ||
+      !SFileReadTyped(f, &temptext_langIndices[2]) ||
+      !SFileReadTyped(f, &temptext_langIndices[3]) ||
+      !SFileReadTyped(f, &temptext_langIndices[4]) ||
+      !SFileReadTyped(f, &temptext_langIndices[5]) ||
+      !SFileReadTyped(f, &temptext_langIndices[6]) ||
+      !SFileReadTyped(f, &temptext_langIndices[7]) ||
+      !SFileReadTyped(f, &m_text_flag)) {
     ConsoleWrite("Error reading EmotesTextDataRec", DEFAULT_COLOR);
     return false;
   }

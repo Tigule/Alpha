@@ -4,6 +4,9 @@
 
 class ItemVisualEffectsRec {
  public:
+  int    m_ID;
+  LPCSTR m_Model;
+
   ItemVisualEffectsRec();
   ~ItemVisualEffectsRec();
 
@@ -29,9 +32,6 @@ class ItemVisualEffectsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_Model;
 };
 
 extern WowClientDB<ItemVisualEffectsRec> g_itemVisualEffectsDB;

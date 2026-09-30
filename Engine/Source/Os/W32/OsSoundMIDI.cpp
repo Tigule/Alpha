@@ -16,12 +16,12 @@ struct ASYNCLOADER {
   }
   ASYNCLOADER(const ASYNCLOADER &);
   ~ASYNCLOADER();
-
+  void Clear();
   CAsyncObject         *asyncLoader;
   TSGrowableArray<char> buffer;
-
-  void Clear();
 };
+
+
 
 class MY_DMUS_OBJECTDESC : public DMUS_OBJECTDESC {
  public:
@@ -96,7 +96,7 @@ static BYTE                      s_initialized;
 static ASYNCLOADER               s_MID;
 static ASYNCLOADER               s_DLS;
 
-void PostLoadCallback(LPVOID userArg);
+static void PostLoadCallback(LPVOID userArg);
 
 long __stdcall CMyIStream::Write(LPCVOID, DWORD, DWORD *) {
   return E_NOTIMPL;
@@ -179,7 +179,7 @@ static void MIDI_CleanupSegment() {
   }
 }
 
-void PostLoadCallback(LPVOID userArg) {
+static void PostLoadCallback(LPVOID userArg) {
   if (!s_MID.asyncLoader || !s_MID.asyncLoader->isLoaded || !s_DLS.asyncLoader || !s_DLS.asyncLoader->isLoaded) {
     return;
   }

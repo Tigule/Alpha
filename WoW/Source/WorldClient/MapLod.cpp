@@ -3,6 +3,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
+#include "WorldClient/Map.h"
 
 extern UINT g_holeMask[4][4];
 

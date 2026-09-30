@@ -319,7 +319,7 @@ void SndInterfaceDestroy() {
   OsOutputDebugString("Footsteps: requested %u accepted %u\n", s_footstepRequest, s_footstepAccept);
 }
 
-void SoundInterfaceRegisterWorldCVars() {
+static void SoundInterfaceRegisterWorldCVars() {
   CVar::Register("EnableGroupSpeech", "voice macros", 0, "1", 0, SOUND, false, 0);
   CVar::Register("EnableErrorSpeech", "error speech", 0, "1", 0, SOUND, false, 0);
   SoundInterfaceInitializeWorldMIDICVars();

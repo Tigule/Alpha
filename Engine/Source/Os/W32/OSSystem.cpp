@@ -61,7 +61,7 @@ static int   s_processorVendor;
 int   s_sleepInBackground = 1;
 DWORD s_backgroundSleepMs;
 
-static int __cdecl IOsGetProcessorFeatures(BYTE *const vendor, DWORD *featuresStd, DWORD *featuresExt) {
+static int __cdecl IOsGetProcessorFeatures(BYTE *vendor, DWORD *featuresStd, DWORD *featuresExt) {
   int result = 1;
 
   memset(vendor, 0, 12);

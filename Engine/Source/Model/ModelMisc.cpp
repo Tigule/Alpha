@@ -22,36 +22,36 @@ static UINT UpdateRibbonMaterial(CModelComplex *model, UINT replaceableId, HTEXT
 static void UpdateParticleEmitters(CModelComplex *unique, UINT replaceableId, HTEXTURE texture);
 
 struct CMatrixGroup {
-  CMatrixGroup() : matrices(0), numMatrices(0), index(0), leftIndex(static_cast<UINT>(-1)), rightIndex(static_cast<UINT>(-1)) {
-  }
-  CMatrixGroup(UINT *, UINT);
-
   UINT *matrices;
   UINT  numMatrices;
   UINT  index;
   UINT  leftIndex;
   UINT  rightIndex;
+
+  CMatrixGroup() : matrices(0), numMatrices(0), index(0), leftIndex(static_cast<UINT>(-1)), rightIndex(static_cast<UINT>(-1)) {
+  }
+  CMatrixGroup(UINT *, UINT);
 };
 
 class CMatrixGroupTree {
+ private:
+  TSGrowableArray<CMatrixGroup> nodes;
+  UINT                          numMatrices;
+  UINT                          AddNode(UINT *matrixGroup, UINT numMatrices);
+
  public:
   CMatrixGroupTree() : numMatrices(0) {
   }
 
-  UINT Insert(UINT *matrixGroup, UINT numMatrices);
   UINT GroupCount() const {
     return nodes.Count();
   }
   UINT MatrixCount() const {
     return numMatrices;
   }
+  UINT Insert(UINT *matrixGroup, UINT numMatrices);
   BOOL GroupsEqual(const UINT *matrixGroup1, UINT numMatrices1, const UINT *matrixGroup2, UINT numMatrices2);
   int  GroupLessThan(const UINT *matrixGroup1, UINT numMatrices1, const UINT *matrixGroup2, UINT numMatrices2);
-
- private:
-  UINT                          AddNode(UINT *matrixGroup, UINT numMatrices);
-  TSGrowableArray<CMatrixGroup> nodes;
-  UINT                          numMatrices;
 };
 
 CModelTexture::CModelTexture(const CModelTexture &source) {
@@ -1503,7 +1503,7 @@ void ModelSetVertexColor(HMODEL model, BYTE red, BYTE green, BYTE blue, int doLi
   }
 }
 
-void GeosetShowUnselectable(CGeosetShared *geoShared, CGeosetColor *geoColor, HMATERIAL *materials, BYTE red, BYTE green, BYTE blue) {
+static void GeosetShowUnselectable(CGeosetShared *geoShared, CGeosetColor *geoColor, HMATERIAL *materials, BYTE red, BYTE green, BYTE blue) {
   ASSERT(geoShared);
 
   UINT      materialId = geoShared->materialId;
@@ -1550,7 +1550,7 @@ void ModelShowUnselectable(HMODEL model, BYTE red, BYTE green, BYTE blue) {
   }
 }
 
-void GeosetHideUnselectable(CGeosetShared *geoShared, CGeosetColor *geoColor, HMATERIAL *materials) {
+static void GeosetHideUnselectable(CGeosetShared *geoShared, CGeosetColor *geoColor, HMATERIAL *materials) {
   ASSERT(geoShared);
 
   UINT      materialId = geoShared->materialId;
@@ -1598,7 +1598,7 @@ void ModelHideUnselectable(HMODEL model) {
   }
 }
 
-BOOL GeosetIsShowingUnselectable(CGeosetShared *geosets, UINT numGeosets) {
+static BOOL GeosetIsShowingUnselectable(CGeosetShared *geosets, UINT numGeosets) {
   ASSERT(geosets);
 
   for (UINT i = 0; i < numGeosets; ++i) {

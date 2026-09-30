@@ -116,8 +116,8 @@ void             SpellVisualsTick(float elapsed);
 void             UpdatePortraits();
 void             ModelRenderSceneOpaque(CStatus *status);
 void             ModelRenderSceneTransparent(CStatus *status);
-BOOL             ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32);
-BOOL             ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
+static BOOL             ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32);
+static BOOL             ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
 
 static LPCSTR s_spellShadowName[2] = {"Interface\\SpellShadow\\Spell-Shadow-Acceptable.blp", "Interface\\SpellShadow\\Spell-Shadow-Unacceptable.blp"};
 static CVar  *s_playerFadeCVar;
@@ -152,7 +152,7 @@ static BOOL CheckFadeOutModels(LPCSTR command, LPCSTR arguments) {
   return 1;
 }
 
-void RenderFadeOutModels(const NTempest::C3Vector cameraPos, const NTempest::C3Vector cameraTarg) {
+static void RenderFadeOutModels(const NTempest::C3Vector cameraPos, const NTempest::C3Vector cameraTarg) {
   int currentTime = OsGetAsyncTimeMs();
   for (FADEOUTHASHOBJ *curr = s_fadeOutModelTable.Head(); curr;) {
     FATALASSERT(curr->model);
@@ -177,7 +177,7 @@ void RenderFadeOutModels(const NTempest::C3Vector cameraPos, const NTempest::C3V
   }
 }
 
-void DrawCursorShadow() {
+static void DrawCursorShadow() {
   UINT cursor = Spell_C_WorldObjectCursor();
   if (cursor) {
     NTempest::C3Vector position = s_spellShadowPos - CGWorldFrame::GetActiveCamera()->Position();
@@ -553,7 +553,7 @@ BOOL CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTemp
   return 1;
 }
 
-BOOL ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32) {
+static BOOL ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32) {
   CGWorldFrame *worldFrame = static_cast<CGWorldFrame *>(param);
   FATALASSERT(worldFrame);
 
@@ -569,7 +569,7 @@ BOOL ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32
   return 1;
 }
 
-BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data) {
+static BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data) {
   FATALASSERT(data);
 
   CGObject_C *object = ClntObjMgrObjectPtr(param64, __FILE__, __LINE__);
@@ -1203,7 +1203,7 @@ void CGWorldFrame::HandleUnitFade(int nowTracking, int immediateFade) {
   }
 }
 
-BOOL UnitUpdateProc(DWORDLONG guid, LPVOID param) {
+static BOOL UnitUpdateProc(DWORDLONG guid, LPVOID param) {
   CGWorldFrame *pWorldFrame = static_cast<CGWorldFrame *>(param);
   FATALASSERT(pWorldFrame);
 

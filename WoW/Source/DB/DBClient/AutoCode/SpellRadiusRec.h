@@ -4,6 +4,11 @@
 
 class SpellRadiusRec {
  public:
+  int   m_ID;
+  float m_radius;
+  float m_radiusPerLevel;
+  float m_radiusMax;
+
   SpellRadiusRec();
   ~SpellRadiusRec();
 
@@ -29,11 +34,6 @@ class SpellRadiusRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int   m_ID;
-  float m_radius;
-  float m_radiusPerLevel;
-  float m_radiusMax;
 };
 
 extern WowClientDB<SpellRadiusRec> g_spellRadiusDB;

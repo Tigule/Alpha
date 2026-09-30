@@ -40,7 +40,7 @@ class CGTradeInfo {
     return m_tradingPlayer;
   }
   static void            SetTradePartner(DWORDLONG partner);
-  static void            Update(TradeItemData *items);
+  static void            Update(TradeItemData items[]);
   static void            PlayerAccept(int accept);
   static void            TargetAccept(int accept);
   static void            ClearAccept();

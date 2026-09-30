@@ -4,6 +4,15 @@
 
 class WorldMapContinentRec {
  public:
+  int   m_ID;
+  int   m_mapID;
+  int   m_leftBoundary;
+  int   m_rightBoundary;
+  int   m_topBoundary;
+  int   m_bottomBoundary;
+  float m_continentOffsetX;
+  float m_continentOffsetY;
+
   WorldMapContinentRec();
   ~WorldMapContinentRec();
 
@@ -29,15 +38,6 @@ class WorldMapContinentRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int   m_ID;
-  int   m_mapID;
-  int   m_leftBoundary;
-  int   m_rightBoundary;
-  int   m_topBoundary;
-  int   m_bottomBoundary;
-  float m_continentOffsetX;
-  float m_continentOffsetY;
 };
 
 extern WowClientDB<WorldMapContinentRec> g_worldMapContinentDB;

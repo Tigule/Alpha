@@ -4,6 +4,11 @@
 
 class CharVariationsRec {
  public:
+  int m_RaceID;
+  int m_SexID;
+  int m_TextureHoldLayer[4];
+  int m_generatedID;
+
   CharVariationsRec();
   ~CharVariationsRec();
 
@@ -30,11 +35,6 @@ class CharVariationsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_RaceID;
-  int m_SexID;
-  int m_TextureHoldLayer[4];
-  int m_generatedID;
 };
 
 extern WowClientDB<CharVariationsRec> g_charVariationsDB;

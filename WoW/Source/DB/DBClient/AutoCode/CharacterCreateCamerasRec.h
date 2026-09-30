@@ -4,6 +4,14 @@
 
 class CharacterCreateCamerasRec {
  public:
+  int   m_Race;
+  int   m_Sex;
+  int   m_Camera;
+  float m_Height;
+  float m_Radius;
+  float m_Target;
+  int   m_generatedID;
+
   CharacterCreateCamerasRec();
   ~CharacterCreateCamerasRec();
 
@@ -30,14 +38,6 @@ class CharacterCreateCamerasRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int   m_Race;
-  int   m_Sex;
-  int   m_Camera;
-  float m_Height;
-  float m_Radius;
-  float m_Target;
-  int   m_generatedID;
 };
 
 extern WowClientDB<CharacterCreateCamerasRec> g_characterCreateCamerasDB;

@@ -4,6 +4,14 @@
 
 class CinematicCameraRec {
  public:
+  int    m_ID;
+  LPCSTR m_model;
+  int    m_soundID;
+  float  m_originX;
+  float  m_originY;
+  float  m_originZ;
+  float  m_originFacing;
+
   CinematicCameraRec();
   ~CinematicCameraRec();
 
@@ -29,14 +37,6 @@ class CinematicCameraRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_model;
-  int    m_soundID;
-  float  m_originX;
-  float  m_originY;
-  float  m_originZ;
-  float  m_originFacing;
 };
 
 extern WowClientDB<CinematicCameraRec> g_cinematicCameraDB;

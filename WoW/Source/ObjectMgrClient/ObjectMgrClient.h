@@ -36,10 +36,12 @@ class CHashKeyGUID {
   friend class DBCache<NameCache, DWORDLONG, CHashKeyGUID>;
 
  private:
+  DWORDLONG m_guid;
+
   CHashKeyGUID(int guid);
 
  public:
-  CHashKeyGUID(DWORDLONG guid) : m_guid(guid) {
+  CHashKeyGUID() : m_guid(0) {
   }
 
  private:
@@ -47,13 +49,8 @@ class CHashKeyGUID {
   }
 
  public:
-  CHashKeyGUID() : m_guid(0) {
+  CHashKeyGUID(DWORDLONG guid) : m_guid(guid) {
   }
-
- private:
-  DWORDLONG m_guid;
-
- public:
   CHashKeyGUID &operator=(const CHashKeyGUID &key) {
     m_guid = key.m_guid;
     return *this;
@@ -65,6 +62,9 @@ class CHashKeyGUID {
     return m_guid;
   }
 };
+
+
+
 
 struct C_OBJECTHASH : public TSHashObject<C_OBJECTHASH, CHashKeyGUID> {
   C_OBJECTHASH(const C_OBJECTHASH &object);

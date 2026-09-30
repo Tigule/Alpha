@@ -55,7 +55,7 @@ static LISTDECL(CMirrorHandler, s_mirrorHandlers[8][634]);
 static BOOL          MirrorHandlerRemoveQueued(DWORDLONG guid, CMirrorHandler *mirror);
 static void          ProcessObjHandlersQueue();
 static C_OBJECTHASH *AllocNewObj();
-void                 SkipCreateObject(CDataStore *msg);
+static void                 SkipCreateObject(CDataStore *msg);
 
 static BOOL IsMaskBitSet(const UINT *changeMask, UINT dwordNum) {
   return changeMask[dwordNum >> 5] & (1 << (dwordNum & 0x1F));
@@ -481,7 +481,7 @@ static void InitObject(DWORD eventTime, OBJECT_TYPE_ID type, UINT memHandle, CCl
   }
 }
 
-void SkipCreateObject(CDataStore *msg) {
+static void SkipCreateObject(CDataStore *msg) {
   CClientObjCreate::Skip(msg);
   SkipPartialObjectUpdate(msg);
 }

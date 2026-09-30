@@ -4,6 +4,11 @@
 
 class HelmetGeosetVisDataRec {
  public:
+  int m_ID;
+  int m_DefaultFlags[32];
+  int m_PreferredFlags[32];
+  int m_HideFlags[32];
+
   HelmetGeosetVisDataRec();
   ~HelmetGeosetVisDataRec();
 
@@ -29,11 +34,6 @@ class HelmetGeosetVisDataRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_DefaultFlags[32];
-  int m_PreferredFlags[32];
-  int m_HideFlags[32];
 };
 
 extern WowClientDB<HelmetGeosetVisDataRec> g_helmetGeosetVisDataDB;

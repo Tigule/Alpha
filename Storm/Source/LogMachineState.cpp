@@ -58,13 +58,13 @@ class CDbgHelpDll {
   PFN_SYMENUMERATESYMBOLS    SymEnumerateSymbols;
   PFN_MINIDUMPWRITEDUMP      MiniDumpWriteDump;
 
-  CDbgHelpDll();
-  ~CDbgHelpDll();
   int  Load();
   void Unload();
   BOOL IsLoaded() {
     return hInstance != NULL;
   }
+  CDbgHelpDll();
+  ~CDbgHelpDll();
 };
 
 static CRITICAL_SECTION s_CrawlCritsect;
@@ -350,7 +350,7 @@ static void sLogMemory(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID 
     logLineProc(logLineProcParam, "");
   }
 }
-static int __cdecl sModuleCompareProc(LPCVOID elem1, LPCVOID elem2) {
+int __cdecl sModuleCompareProc(LPCVOID elem1, LPCVOID elem2) {
   if (((const ModuleData *)elem1)->baseAddress > ((const ModuleData *)elem2)->baseAddress) {
     return 1;
   }
@@ -1024,7 +1024,7 @@ static DWORD WINAPI MiniDumpThreadProc(LPVOID param) {
   sgDbgHelpDll.Unload();
   return 0;
 }
-int LogMiniDump(LPVOID logfile, EXCEPTION_POINTERS *exceptionPointers, UINT userStringCount, char **userStrings) {
+int LogMiniDump(LPVOID logfile, EXCEPTION_POINTERS *exceptionPointers, UINT userStringCount, char *userStrings[]) {
   MiniDumpParam miniDumpParam;
   DWORD         threadid;
 

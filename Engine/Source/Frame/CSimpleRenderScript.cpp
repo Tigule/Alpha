@@ -24,7 +24,7 @@
   ASSERT(object)
 
 #define DEFINE_RENDER_GET_NAME(TYPE, FUNCTION) \
-  int FUNCTION(lua_State *L) {                 \
+  static int FUNCTION(lua_State *L) {           \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);   \
     LPCSTR name = object->GetName();           \
     if (name && *name) {                       \
@@ -36,7 +36,7 @@
   }
 
 #define DEFINE_RENDER_SET_VERTEX_COLOR(TYPE, FUNCTION)                  \
-  int FUNCTION(lua_State *L) {                                          \
+  static int FUNCTION(lua_State *L) {                                    \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);                            \
     NTempest::CImVector color;                                          \
     float               red = static_cast<float>(lua_tonumber(L, 2));   \
@@ -52,7 +52,7 @@
   }
 
 #define DEFINE_RENDER_SET_ALPHA(TYPE, FUNCTION)              \
-  int FUNCTION(lua_State *L) {                               \
+  static int FUNCTION(lua_State *L) {                         \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);                 \
     if (!lua_isnumber(L, 2)) {                               \
       luaL_error(L, "Usage: SetAlpha(alpha)");               \
@@ -65,21 +65,21 @@
   }
 
 #define DEFINE_RENDER_SHOW(TYPE, FUNCTION)   \
-  int FUNCTION(lua_State *L) {               \
+  static int FUNCTION(lua_State *L) {         \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object); \
     object->Show();                          \
     return 0;                                \
   }
 
 #define DEFINE_RENDER_HIDE(TYPE, FUNCTION)   \
-  int FUNCTION(lua_State *L) {               \
+  static int FUNCTION(lua_State *L) {         \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object); \
     object->Hide();                          \
     return 0;                                \
   }
 
 #define DEFINE_RENDER_IS_VISIBLE(TYPE, FUNCTION) \
-  int FUNCTION(lua_State *L) {                   \
+  static int FUNCTION(lua_State *L) {             \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);     \
     if (object->IsVisible()) {                   \
       lua_pushnumber(L, 1.0);                    \
@@ -90,7 +90,7 @@
   }
 
 #define DEFINE_RENDER_SET_POINT(TYPE, FUNCTION)                                             \
-  int FUNCTION(lua_State *L) {                                                              \
+  static int FUNCTION(lua_State *L) {                                                        \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);                                                \
     if (!lua_isstring(L, 2) || !lua_isstring(L, 3)) {                                       \
       luaL_error(                                                                           \
@@ -129,13 +129,13 @@
   }
 
 #define DEFINE_RENDER_CLEAR_ALL_POINTS(TYPE, FUNCTION) \
-  int FUNCTION(lua_State *L) {                         \
+  static int FUNCTION(lua_State *L) {                   \
     GET_SIMPLE_RENDER_THIS(L, TYPE, object);           \
     object->ClearAllPoints(1);                         \
     return 0;                                          \
   }
 
-int CSimpleTexture_GetAlpha(lua_State *L) {
+static int CSimpleTexture_GetAlpha(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleTexture, object);
 
   NTempest::CImVector color;
@@ -151,7 +151,7 @@ DEFINE_RENDER_SHOW(CSimpleTexture, CSimpleTexture_Show)
 DEFINE_RENDER_HIDE(CSimpleTexture, CSimpleTexture_Hide)
 DEFINE_RENDER_IS_VISIBLE(CSimpleTexture, CSimpleTexture_IsVisible)
 
-int CSimpleTexture_SetTexture(lua_State *L) {
+static int CSimpleTexture_SetTexture(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleTexture, object);
 
   if (lua_isstring(L, 2)) {
@@ -174,7 +174,7 @@ int CSimpleTexture_SetTexture(lua_State *L) {
   return 0;
 }
 
-int CSimpleTexture_SetTexCoord(lua_State *L) {
+static int CSimpleTexture_SetTexCoord(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleTexture, object);
 
   NTempest::CRect rect;
@@ -189,7 +189,7 @@ int CSimpleTexture_SetTexCoord(lua_State *L) {
 DEFINE_RENDER_SET_POINT(CSimpleTexture, CSimpleTexture_SetPoint)
 DEFINE_RENDER_CLEAR_ALL_POINTS(CSimpleTexture, CSimpleTexture_ClearAllPoints)
 
-int CSimpleTexture_GetWidth(lua_State *L) {
+static int CSimpleTexture_GetWidth(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleTexture, object);
 
   float width = object->GetWidth();
@@ -203,7 +203,7 @@ int CSimpleTexture_GetWidth(lua_State *L) {
   return 1;
 }
 
-int CSimpleTexture_SetWidth(lua_State *L) {
+static int CSimpleTexture_SetWidth(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleTexture, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -214,7 +214,7 @@ int CSimpleTexture_SetWidth(lua_State *L) {
   return 0;
 }
 
-int CSimpleTexture_GetHeight(lua_State *L) {
+static int CSimpleTexture_GetHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleTexture, object);
 
   float height = object->GetHeight();
@@ -228,7 +228,7 @@ int CSimpleTexture_GetHeight(lua_State *L) {
   return 1;
 }
 
-int CSimpleTexture_SetHeight(lua_State *L) {
+static int CSimpleTexture_SetHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleTexture, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -259,7 +259,7 @@ static FrameScript_Method SimpleTextureMethods[] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleTexture::s_scriptMethods;
 
-int CSimpleFontString_SetAlphaGradient(lua_State *L) {
+static int CSimpleFontString_SetAlphaGradient(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -277,14 +277,14 @@ int CSimpleFontString_SetAlphaGradient(lua_State *L) {
   return 1;
 }
 
-int CSimpleFontString_SetText(lua_State *L) {
+static int CSimpleFontString_SetText(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   object->SetText(lua_tostring(L, 2));
   return 0;
 }
 
-int CSimpleFontString_GetText(lua_State *L) {
+static int CSimpleFontString_GetText(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   LPCSTR text = object->GetText();
@@ -300,7 +300,7 @@ DEFINE_RENDER_GET_NAME(CSimpleFontString, CSimpleFontString_GetName)
 DEFINE_RENDER_SET_VERTEX_COLOR(CSimpleFontString, CSimpleFontString_SetVertexColor)
 DEFINE_RENDER_SET_ALPHA(CSimpleFontString, CSimpleFontString_SetAlpha)
 
-int CSimpleFontString_SetTextHeight(lua_State *L) {
+static int CSimpleFontString_SetTextHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -315,7 +315,7 @@ DEFINE_RENDER_SHOW(CSimpleFontString, CSimpleFontString_Show)
 DEFINE_RENDER_HIDE(CSimpleFontString, CSimpleFontString_Hide)
 DEFINE_RENDER_IS_VISIBLE(CSimpleFontString, CSimpleFontString_IsVisible)
 
-int CSimpleFontString_SetWidth(lua_State *L) {
+static int CSimpleFontString_SetWidth(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -326,7 +326,7 @@ int CSimpleFontString_SetWidth(lua_State *L) {
   return 0;
 }
 
-int CSimpleFontString_GetWidth(lua_State *L) {
+static int CSimpleFontString_GetWidth(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   lua_pushnumber(L, object->GetWidth() * 1024.0f * 1.25f);
@@ -335,7 +335,7 @@ int CSimpleFontString_GetWidth(lua_State *L) {
 
 DEFINE_RENDER_SET_VERTEX_COLOR(CSimpleFontString, CSimpleFontString_SetTextColor)
 
-int CSimpleFontString_SetHeight(lua_State *L) {
+static int CSimpleFontString_SetHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   if (!lua_isnumber(L, 2)) {
@@ -346,14 +346,14 @@ int CSimpleFontString_SetHeight(lua_State *L) {
   return 0;
 }
 
-int CSimpleFontString_GetHeight(lua_State *L) {
+static int CSimpleFontString_GetHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   lua_pushnumber(L, object->GetHeight() * 1024.0f * 1.25f);
   return 1;
 }
 
-int CSimpleFontString_SetJustifyH(lua_State *L) {
+static int CSimpleFontString_SetJustifyH(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   UINT flag;
@@ -365,7 +365,7 @@ int CSimpleFontString_SetJustifyH(lua_State *L) {
   return 0;
 }
 
-int CSimpleFontString_SetJustifyV(lua_State *L) {
+static int CSimpleFontString_SetJustifyV(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   UINT flag;

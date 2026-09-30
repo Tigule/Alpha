@@ -58,7 +58,17 @@ class CGClassTrainer {
   static void ShutdownGame();
   static void EnterWorld();
   static void LeaveWorld();
+  static void                      SetSelection(UINT index);
+  static int                       GetSelectionIndex();
   static void SetTrainer(DWORDLONG trainerGUID, TRAINER_TYPE type);
+
+  static DWORDLONG GetTrainer() {
+    return m_trainer;
+  }
+
+  static TRAINER_TYPE GetTrainerType() {
+    return m_trainerType;
+  }
   static void AddServices(
       UINT   count,
       int   *spellID,
@@ -68,14 +78,11 @@ class CGClassTrainer {
       UINT  *reqSkillLine,
       UINT  *reqSkillRank,
       UINT  *reqSkillStep,
-      int  **reqAbility,
+      int **reqAbility,
       BYTE  *usable,
       LPCSTR greeting
   );
-  static void                      SetSelection(UINT index);
-  static int                       GetSelectionIndex();
   static void                      RefreshList();
-  static void                      FilterAndSortServices();
   static const TrainerServiceInfo *GetService(UINT index);
   static int                       GetNumServices() {
     return m_filteredServices;
@@ -103,16 +110,9 @@ class CGClassTrainer {
   static void   SetServiceTypeFilter(int filter);
   static void   SetSkillLineFilter(int filter);
   static void   SetCollapseFilter(int filter);
+  static void                      FilterAndSortServices();
   static LPCSTR GetGreetingText() {
     return m_greetingText;
-  }
-
-  static DWORDLONG GetTrainer() {
-    return m_trainer;
-  }
-
-  static TRAINER_TYPE GetTrainerType() {
-    return m_trainerType;
   }
 
  private:

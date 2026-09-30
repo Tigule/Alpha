@@ -85,6 +85,6 @@ const TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI);
 BOOL                                       MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData);
 float                                      MinimapGetWorldRadius();
 void                                       MinimapSetQuestPOI(float x, float y, int priority, LPCSTR name);
-void                                       MinimapGetPartyMembers(PARTYMEMBERINFO *array);
+void                                       MinimapGetPartyMembers(PARTYMEMBERINFO array[]);
 
 #endif

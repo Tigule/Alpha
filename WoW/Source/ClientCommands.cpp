@@ -1,19 +1,25 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <WowConst.h>
-#include <MapDefs.h>
 
 #include "Client.h"
 #include <Base/CDataStore.h>
 
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleCommand.h"
+#include "Glue/CGlueMgr.h"
+#include "UIUtil/Tooltip.h"
+#include "Ui/ChatFrame.h"
+#include "Ui/WorldFrame.h"
+#include "UIUtil/InputControl.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <MapDefs.h>
 #include "DB/DBClient/AutoCode/MapRec.h"
 #include "Object/MovementData.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
-#include "Ui/WorldFrame.h"
 #include "WorldClient/World.h"
-#include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Model/IModel.h>
 #include <Os/OsTime.h>

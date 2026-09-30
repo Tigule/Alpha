@@ -209,4 +209,26 @@ class WowConnection {
   BYTE      m_wantWriteNotification;
 };
 
+class WowConnectionInitializer {
+  static UINT count;
+
+ public:
+  WowConnectionInitializer() {
+    if (++count == 1) {
+      Initialize();
+    }
+  }
+
+  ~WowConnectionInitializer() {
+    if (--count == 0) {
+      Destroy();
+    }
+  }
+
+  static void Initialize();
+  static void Destroy();
+};
+
+static WowConnectionInitializer s_initializer;
+
 #endif

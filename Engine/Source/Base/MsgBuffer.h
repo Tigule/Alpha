@@ -5,9 +5,16 @@
 
 class CMsgBuffer {
  private:
+  UINT m_alloc;
+  int  m_freeData;
+
   void ReallocData(UINT count);
 
  protected:
+  UINT  m_read;
+  UINT  m_write;
+  BYTE *m_data;
+
   void Reserve(UINT count);
 
  public:
@@ -40,27 +47,28 @@ class CMsgBuffer {
   void AddLongLong(LONGLONG val);
   void AddUlongLong(DWORDLONG val);
   void AddFloat(float val);
-  void AddData(LPCVOID data, UINT count);
+
   void AddData(BYTE *data, UINT count);
+  void AddData(LPCVOID data, UINT count);
   void AddWordArray(const WORD *buffer, UINT count);
   void AddDwordArray(const DWORD *buffer, UINT count);
   void AddUintArray(const UINT *buffer, UINT count);
   void AddFloatArray(const float *buffer, UINT count);
 
-  void AddArray(const UINT *buffer, UINT count) {
-    AddUintArray(buffer, count);
-  }
-  void AddArray(const float *buffer, UINT count) {
-    AddFloatArray(buffer, count);
-  }
-  void AddArray(const DWORD *buffer, UINT count) {
-    AddDwordArray(buffer, count);
+  void AddArray(const BYTE *buffer, UINT count) {
+    AddData(buffer, count);
   }
   void AddArray(const WORD *buffer, UINT count) {
     AddWordArray(buffer, count);
   }
-  void AddArray(const BYTE *buffer, UINT count) {
-    AddData(buffer, count);
+  void AddArray(const DWORD *buffer, UINT count) {
+    AddDwordArray(buffer, count);
+  }
+  void AddArray(const float *buffer, UINT count) {
+    AddFloatArray(buffer, count);
+  }
+  void AddArray(const UINT *buffer, UINT count) {
+    AddUintArray(buffer, count);
   }
 
   char      GetChar();
@@ -81,37 +89,29 @@ class CMsgBuffer {
   LONGLONG  GetLongLong();
   DWORDLONG GetUlongLong();
   float     GetFloat();
-  void      GetData(LPVOID buffer, int count);
+
   LPCVOID   GetData(int count);
+  void      GetData(LPVOID buffer, int count);
   void      GetWordArray(WORD *buffer, UINT count);
   void      GetDwordArray(DWORD *buffer, UINT count);
   void      GetFloatArray(float *buffer, UINT count);
   void      GetUintArray(UINT *buffer, UINT count);
 
-  void GetArray(UINT *buffer, UINT count) {
-    GetUintArray(buffer, count);
-  }
-  void GetArray(float *buffer, UINT count) {
-    GetFloatArray(buffer, count);
-  }
-  void GetArray(DWORD *buffer, UINT count) {
-    GetDwordArray(buffer, count);
+  void GetArray(BYTE *buffer, UINT count) {
+    GetData(buffer, count);
   }
   void GetArray(WORD *buffer, UINT count) {
     GetWordArray(buffer, count);
   }
-  void GetArray(BYTE *buffer, UINT count) {
-    GetData(buffer, count);
+  void GetArray(DWORD *buffer, UINT count) {
+    GetDwordArray(buffer, count);
   }
-
- private:
-  UINT m_alloc;
-  int  m_freeData;
-
- protected:
-  UINT  m_read;
-  UINT  m_write;
-  BYTE *m_data;
+  void GetArray(float *buffer, UINT count) {
+    GetFloatArray(buffer, count);
+  }
+  void GetArray(UINT *buffer, UINT count) {
+    GetUintArray(buffer, count);
+  }
 };
 
 inline CMsgBuffer::CMsgBuffer(UINT count)

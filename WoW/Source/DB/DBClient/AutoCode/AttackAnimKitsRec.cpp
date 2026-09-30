@@ -1,13 +1,7 @@
 #include "AttackAnimKitsRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR AttackAnimKitsRec::GetFilename() {
   return "DBFilesClient\\AttackAnimKits.dbc";
@@ -20,17 +14,15 @@ AttackAnimKitsRec::~AttackAnimKitsRec() {
 }
 
 bool AttackAnimKitsRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_ItemSubclassID, sizeof(m_ItemSubclassID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_AnimTypeID, sizeof(m_AnimTypeID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_AnimFrequency, sizeof(m_AnimFrequency), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_WhichHand, sizeof(m_WhichHand), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_ItemSubclassID) ||
+      !SFileReadTyped(f, &m_AnimTypeID) ||
+      !SFileReadTyped(f, &m_AnimFrequency) ||
+      !SFileReadTyped(f, &m_WhichHand)) {
     ConsoleWrite("Error reading AttackAnimKitsRec", DEFAULT_COLOR);
+    return false;
   }
 
-  return result;
+  return true;
 }

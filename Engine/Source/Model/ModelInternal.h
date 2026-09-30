@@ -180,12 +180,12 @@ struct CModelTexture {
   CModelTexture() : handle(0), replaceableId(0) {
   }
   CModelTexture(const CModelTexture &source);
+  CModelTexture &operator=(const CModelTexture &source);
   ~CModelTexture() {
     if (handle) {
       HandleClose(handle);
     }
   }
-  CModelTexture &operator=(const CModelTexture &source);
 
   HTEXTURE handle;
   UINT     replaceableId;
@@ -196,6 +196,9 @@ class CModelBase {
   CModelBase(UINT flags = 0);
   ~CModelBase();
 
+ private:
+  CModelBase &operator=(const CModelBase &source);
+ public:
   void (*m_PickLights)(LPVOID, NTempest::C3Vector, const NTempest::C3Vector &, UINT);
   LPVOID              m_pickLightsParm;
   UINT                m_flags;
@@ -208,9 +211,6 @@ class CModelBase {
 
  protected:
   CModelBase(const CModelBase &source);
-
- private:
-  CModelBase &operator=(const CModelBase &source);
 };
 
 inline CModelBase::CModelBase(UINT flags)

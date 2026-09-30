@@ -4,6 +4,9 @@
 
 class PageTextMaterialRec {
  public:
+  int    m_ID;
+  LPCSTR m_name;
+
   PageTextMaterialRec();
   ~PageTextMaterialRec();
 
@@ -29,9 +32,6 @@ class PageTextMaterialRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_name;
 };
 
 extern WowClientDB<PageTextMaterialRec> g_pageTextMaterialDB;

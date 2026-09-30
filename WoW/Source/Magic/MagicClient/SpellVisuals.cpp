@@ -104,12 +104,6 @@ NODEDECL(LightningObject) {
     BoltID boltID;
   };
 
-  LightningObject();
-  ~LightningObject();
-  void AddRef();
-  void DelRef();
-  bool Tick(UINT currentTime);
-
   TSGrowableArray<DWORDLONG> guids;
   TSGrowableArray<Bolt>      bolts;
   UINT                       deathTime;
@@ -121,6 +115,12 @@ NODEDECL(LightningObject) {
   HTEXTURE                   texture;
   int                        spellID;
   BYTE                       forever;
+
+  LightningObject();
+  ~LightningObject();
+  bool Tick(UINT currentTime);
+  void AddRef();
+  void DelRef();
 
  private:
   int refCount;
@@ -510,7 +510,7 @@ static void InitializeAuraNames() {
   }
 }
 
-void PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT attach, int spellID, bool isCastEffect) {
+static void PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACHPPOINT attach, int spellID, bool isCastEffect) {
   if (effectID) {
     FATALASSERT(object);
     FATALASSERT(attach < NUM_UNITEFFECTATTACHPOINTS);
@@ -713,7 +713,7 @@ void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, BYTE status, BYTE reas
   }
 }
 
-NTempest::C3Vector GetSpellChainEffectSource(const CGUnit_C &unit) {
+static NTempest::C3Vector GetSpellChainEffectSource(const CGUnit_C &unit) {
   NTempest::C3Vector outVect;
   HMODEL             model = unit.GetCharacterModel(0);
 
@@ -814,7 +814,7 @@ bool LightningObject::Tick(UINT currentTime) {
   return forever || currentTime < deathTime;
 }
 
-void SpellVisualsProc_Eclipse(CGUnit_C *caster, const SpellVisualKitRec *kitRec, UINT spellID) {
+static void SpellVisualsProc_Eclipse(CGUnit_C *caster, const SpellVisualKitRec *kitRec, UINT spellID) {
   FATALASSERT(kitRec->m_characterParam[1] >= 0.0f && kitRec->m_characterParam[1] <= 1.0f);
 
   UINT duration = Spell_C_GetCastTime(spellID, 0);
@@ -906,7 +906,7 @@ static void CreateLightningObj(
   }
 }
 
-void SpellVisualsProcedureDispatch(
+static void SpellVisualsProcedureDispatch(
     int                              proc,
     CGUnit_C                        *caster,
     const SpellVisualKitRec         *kitRec,

@@ -156,11 +156,7 @@ class CMdlString {
     return m_string;
   }
 
-  char &operator[](UINT index) {
-    return m_string[index];
-  }
-
-  char operator[](UINT index) const {
+  char operator[](int index) const {
     return m_string[index];
   }
 
@@ -168,7 +164,11 @@ class CMdlString {
     return m_string[index];
   }
 
-  char operator[](int index) const {
+  char operator[](UINT index) const {
+    return m_string[index];
+  }
+
+  char &operator[](UINT index) {
     return m_string[index];
   }
 

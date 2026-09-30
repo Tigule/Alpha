@@ -30,7 +30,7 @@ struct SIMPLECONTEXTHASHOBJ : public TSHashObject<SIMPLECONTEXTHASHOBJ, HASHKEY_
 static TSHashTable<SIMPLECONTEXTHASHOBJ, HASHKEY_NONE> s_contextLookup;
 static HASHKEY_NONE                                    s_nullHashKey;
 
-static SIMPLEFRAMEREGHASH *GetSimpleFrameHash(LPCSTR name, UINT context, int create, int *alreadyExisted) {
+SIMPLEFRAMEREGHASH *GetSimpleFrameHash(LPCSTR name, UINT context, int create, int *alreadyExisted) {
   SIMPLECONTEXTHASHOBJ *contextHash;
   SIMPLEFRAMEREGHASH   *hash;
 
@@ -58,7 +58,7 @@ static SIMPLEFRAMEREGHASH *GetSimpleFrameHash(LPCSTR name, UINT context, int cre
   return hash;
 }
 
-static SIMPLETEXTUREREGHASH *GetSimpleTextureHash(LPCSTR name, UINT context, int create, int *alreadyExisted) {
+SIMPLETEXTUREREGHASH *GetSimpleTextureHash(LPCSTR name, UINT context, int create, int *alreadyExisted) {
   SIMPLECONTEXTHASHOBJ *contextHash;
   SIMPLETEXTUREREGHASH *hash;
 
@@ -86,7 +86,7 @@ static SIMPLETEXTUREREGHASH *GetSimpleTextureHash(LPCSTR name, UINT context, int
   return hash;
 }
 
-static SIMPLEFONTSTRINGREGHASH *GetSimpleFontStringHash(LPCSTR name, UINT context, int create, int *alreadyExisted) {
+SIMPLEFONTSTRINGREGHASH *GetSimpleFontStringHash(LPCSTR name, UINT context, int create, int *alreadyExisted) {
   SIMPLECONTEXTHASHOBJ    *contextHash;
   SIMPLEFONTSTRINGREGHASH *hash;
 

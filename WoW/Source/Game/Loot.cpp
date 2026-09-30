@@ -25,7 +25,7 @@ LPCSTR CurrencyAbbreviation(int coinType) {
   }
 }
 
-void CurrencyBreakdown(int money, int *coins) {
+void CurrencyBreakdown(int money, int coins[]) {
   FATALASSERT(s_lootInitialized);
   FATALASSERT(coins);
 
@@ -41,7 +41,7 @@ void CurrencyBreakdown(int money, int *coins) {
   coins[0] = money;
 }
 
-UINT CurrencyTotal(int *const coins) {
+UINT CurrencyTotal(int coins[]) {
   FATALASSERT(s_lootInitialized);
   FATALASSERT(coins);
 

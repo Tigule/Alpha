@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <WowConst.h>
 #include <MapDefs.h>
 
@@ -1589,7 +1590,7 @@ void CMovement::SetRunMode(DWORD eventTime, int run) {
   LogWrite("0x%016I64X: Switching to %s mode (0x%08X)\n", m_guid, (m_moveFlags & 0x100) ? "walk" : "run", m_moveStartTime);
 }
 
-void DisconnectLocalMover(CMovement *mover) {
+static void DisconnectLocalMover(CMovement *mover) {
   CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
   if (globals && mover == globals->m_localMover) {
     globals->m_localMover = 0;

@@ -4,6 +4,10 @@
 
 class SpellDispelTypeRec {
  public:
+  int    m_ID;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+
   SpellDispelTypeRec();
   ~SpellDispelTypeRec();
 
@@ -29,10 +33,6 @@ class SpellDispelTypeRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_name_lang[8];
-  int    m_name_flag;
 };
 
 extern WowClientDB<SpellDispelTypeRec> g_spellDispelTypeDB;

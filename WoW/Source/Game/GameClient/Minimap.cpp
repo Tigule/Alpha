@@ -352,7 +352,7 @@ static void SetupMapObj(DWORD hWorldObject, NTempest::C44Matrix &minimapMtx) {
   }
 }
 
-void LoadMD5Names() {
+static void LoadMD5Names() {
   char   md5file[MAX_PATH];
   char   line[MAX_PATH];
   char  *space;
@@ -458,7 +458,7 @@ void MinimapShutdown() {
   s_md5NameHash.Clear();
 }
 
-static BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads) {
+BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads) {
   FATALASSERT(radius);
   FATALASSERT(centerPoint);
   if (continent == s_currentContinent && pos.x == s_currentPosition.x && pos.y == s_currentPosition.y && pos.z == s_currentPosition.z &&
@@ -704,7 +704,7 @@ void MinimapSetQuestPOI(float x, float y, int priority, LPCSTR name) {
   s_updatePOI = 1;
 }
 
-void MinimapGetPartyMembers(PARTYMEMBERINFO *array) {
+void MinimapGetPartyMembers(PARTYMEMBERINFO array[]) {
   if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     return;
   }

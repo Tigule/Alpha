@@ -4,6 +4,9 @@
 
 class UnitBloodLevelsRec {
  public:
+  int m_ID;
+  int m_Violencelevel[3];
+
   UnitBloodLevelsRec();
   ~UnitBloodLevelsRec();
 
@@ -29,9 +32,6 @@ class UnitBloodLevelsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_Violencelevel[3];
 };
 
 extern WowClientDB<UnitBloodLevelsRec> g_unitBloodLevelsDB;

@@ -4,6 +4,14 @@
 
 class TerrainTypeRec {
  public:
+  int    m_TerrainID;
+  LPCSTR m_TerrainDesc;
+  int    m_FootstepSprayRun;
+  int    m_FootstepSprayWalk;
+  int    m_SoundID;
+  int    m_Flags;
+  int    m_generatedID;
+
   TerrainTypeRec();
   ~TerrainTypeRec();
 
@@ -30,14 +38,6 @@ class TerrainTypeRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_TerrainID;
-  LPCSTR m_TerrainDesc;
-  int    m_FootstepSprayRun;
-  int    m_FootstepSprayWalk;
-  int    m_SoundID;
-  int    m_Flags;
-  int    m_generatedID;
 };
 
 extern WowClientDB<TerrainTypeRec> g_terrainTypeDB;

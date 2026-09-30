@@ -14,10 +14,10 @@ class CGGuildRegistrar {
   static void      EnterWorld();
   static void      LeaveWorld();
   static void      SetRegistrar(DWORDLONG registrar, const PetitionVendorItem *petition);
-  static void      CloseRegistrar();
   static DWORDLONG GetRegistrar() {
     return m_registrar;
   }
+  static void      CloseRegistrar();
   static UINT GetGuildCharterCost();
   static void BuyGuildCharter(LPCSTR guildName);
 

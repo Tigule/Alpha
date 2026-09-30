@@ -888,7 +888,7 @@ static int Script_SetInventoryPortaitTexture(lua_State *L) {
   return 0;
 }
 
-void GuildNameCallback(int guildID, const DWORDLONG &guid, LPVOID, bool granted) {
+static void GuildNameCallback(int guildID, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     Script_SendUnitSignal(guid, 324);
   }

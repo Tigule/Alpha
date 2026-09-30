@@ -13,15 +13,15 @@
 #include <storm.h>
 
 struct CHUNKHASHOBJ : public TSHashObject<CHUNKHASHOBJ, HASHKEY_STRI> {
-  CHUNKHASHOBJ() {
-  }
-
-  CHUNKHASHOBJ(const CHUNKHASHOBJ &rhs);
-
   char                      zoneName[128];
   char                      subZoneName[128];
   UINT                      chunkNumber;
   _FSOUND_REVERB_PROPERTIES desc;
+
+  CHUNKHASHOBJ() {
+  }
+
+  CHUNKHASHOBJ(const CHUNKHASHOBJ &rhs);
 
   void DumpInfo(int summary, int newlyCreated);
   void PrintInfo(FILE *outFile);

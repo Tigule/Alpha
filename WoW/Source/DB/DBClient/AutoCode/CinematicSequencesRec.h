@@ -4,6 +4,10 @@
 
 class CinematicSequencesRec {
  public:
+  int m_ID;
+  int m_soundID;
+  int m_camera[8];
+
   CinematicSequencesRec();
   ~CinematicSequencesRec();
 
@@ -29,10 +33,6 @@ class CinematicSequencesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_soundID;
-  int m_camera[8];
 };
 
 extern WowClientDB<CinematicSequencesRec> g_cinematicSequencesDB;

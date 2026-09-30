@@ -4,6 +4,10 @@
 
 class GroundEffectDoodadRec {
  public:
+  int    m_ID;
+  int    m_doodadIdTag;
+  LPCSTR m_doodadpath;
+
   GroundEffectDoodadRec();
   ~GroundEffectDoodadRec();
 
@@ -29,10 +33,6 @@ class GroundEffectDoodadRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_doodadIdTag;
-  LPCSTR m_doodadpath;
 };
 
 extern WowClientDB<GroundEffectDoodadRec> g_groundEffectDoodadDB;

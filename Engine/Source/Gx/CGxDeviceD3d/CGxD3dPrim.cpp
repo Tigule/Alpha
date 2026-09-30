@@ -442,7 +442,7 @@ void CGxDeviceD3d::BufDestroy(CGxBuf *&b) {
   b = 0;
 }
 
-static void IPrimSetupPos_PNT0(LPVOID __formal) {
+void IPrimSetupPos_PNT0(LPVOID __formal) {
   LPBYTE dst = static_cast<LPBYTE>(__formal);
 
   for (UINT i = 0; i < s_vertexCount; ++i) {

@@ -4,6 +4,10 @@
 
 class SpellFocusObjectRec {
  public:
+  int    m_ID;
+  LPCSTR m_name_lang[NUM_LOCALES];
+  int    m_name_flag;
+
   SpellFocusObjectRec();
   ~SpellFocusObjectRec();
 
@@ -29,10 +33,6 @@ class SpellFocusObjectRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_name_lang[NUM_LOCALES];
-  int    m_name_flag;
 };
 
 extern WowClientDB<SpellFocusObjectRec> g_spellFocusObjectDB;

@@ -28,11 +28,11 @@ static UINT      s_readPhysicalFile;
 static UINT      s_closeRequests;
 static UINT      s_closePhysicalFile;
 
-SoundFileDataCacheBlock *AllocCacheBlock(LONGLONG hashKey);
-void                     DataCacheInitialize(int cacheSizeMB);
-void                     DataCacheShutdown();
+static SoundFileDataCacheBlock *AllocCacheBlock(LONGLONG hashKey);
+static void                     DataCacheInitialize(int cacheSizeMB);
+static void                     DataCacheShutdown();
 
-void DataCacheInitialize(int cacheSizeMB) {
+static void DataCacheInitialize(int cacheSizeMB) {
   UINT numCacheBlocks;
   UINT i;
 
@@ -50,12 +50,12 @@ void DataCacheInitialize(int cacheSizeMB) {
   s_soundFileDataCache.Clear();
 }
 
-void DataCacheShutdown() {
+static void DataCacheShutdown() {
   s_soundFileDataCacheLRU.UnlinkAll();
   s_soundFileDataCache.Clear();
 }
 
-SoundFileDataCacheBlock *AllocCacheBlock(LONGLONG hashKey) {
+static SoundFileDataCacheBlock *AllocCacheBlock(LONGLONG hashKey) {
   SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCacheLRU.Head();
   s_soundFileDataCacheLRU.UnlinkNode(cacheBlock);
 

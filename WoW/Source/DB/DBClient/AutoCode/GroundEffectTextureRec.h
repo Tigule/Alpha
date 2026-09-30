@@ -4,6 +4,16 @@
 
 class GroundEffectTextureRec {
  public:
+  int    m_ID;
+  int    m_datestamp;
+  int    m_continentId;
+  int    m_zoneId;
+  int    m_textureId;
+  LPCSTR m_textureName;
+  int    m_doodadId[4];
+  int    m_density;
+  int    m_sound;
+
   GroundEffectTextureRec();
   ~GroundEffectTextureRec();
 
@@ -29,16 +39,6 @@ class GroundEffectTextureRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_datestamp;
-  int    m_continentId;
-  int    m_zoneId;
-  int    m_textureId;
-  LPCSTR m_textureName;
-  int    m_doodadId[4];
-  int    m_density;
-  int    m_sound;
 };
 
 extern WowClientDB<GroundEffectTextureRec> g_groundEffectTextureDB;

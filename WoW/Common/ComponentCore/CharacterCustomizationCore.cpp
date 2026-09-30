@@ -171,29 +171,6 @@ class CharGeosetInfo {
  public:
   CharGeosetInfo();
   CharGeosetInfo(const CharGeosetInfo &rhs);
-
-  void Clear();
-
-  BOOL ShowingSameGeosetsAs(const CharGeosetInfo &rhs);
-
-  void ShowInventoryTypeTextureHolds(HTEXCOMPONENT component, UINT inventoryType, int adding) {
-    FATALASSERT(component);
-    FATALASSERT(inventoryType != INDEX_NON_EQUIP_TYPE);
-    UINT i;
-    for (i = 0; i < 2; ++i) {
-      const HOLDINFO &hold = s_itemTypeTextureHolds[inventoryType].holdInfo[i];
-      if (hold.geosetGroup != -1 && hold.holdSection != TCS_INVALIDSECTION && (flags[hold.geosetGroup] & 1) &&
-          !(disabledByFlags[hold.geosetGroup] & (1u << inventoryType)) && currentGeosets[hold.geosetGroup] <= 1)
-      {
-        if (adding) {
-          TexComponentAddHold(component, static_cast<INVENTORY_TYPES>(inventoryType), hold.holdSection);
-        } else {
-          TexComponentRemoveHold(component, static_cast<INVENTORY_TYPES>(inventoryType), hold.holdSection);
-        }
-      }
-    }
-  }
-
   void UpdateGeosetDisplay(const ItemDisplayInfoRec *displayInfoRec, UINT itemInventoryType, HTEXCOMPONENT component, UINT playerRace) {
     if (!displayInfoRec || !playerRace || playerRace > static_cast<UINT>(g_chrRacesDB.GetMaxID())) {
       return;
@@ -278,6 +255,25 @@ class CharGeosetInfo {
     }
   }
 
+  void ShowInventoryTypeTextureHolds(HTEXCOMPONENT component, UINT inventoryType, int adding) {
+    FATALASSERT(component);
+    FATALASSERT(inventoryType != INDEX_NON_EQUIP_TYPE);
+    UINT i;
+    for (i = 0; i < 2; ++i) {
+      const HOLDINFO &hold = s_itemTypeTextureHolds[inventoryType].holdInfo[i];
+      if (hold.geosetGroup != -1 && hold.holdSection != TCS_INVALIDSECTION && (flags[hold.geosetGroup] & 1) &&
+          !(disabledByFlags[hold.geosetGroup] & (1u << inventoryType)) && currentGeosets[hold.geosetGroup] <= 1)
+      {
+        if (adding) {
+          TexComponentAddHold(component, static_cast<INVENTORY_TYPES>(inventoryType), hold.holdSection);
+        } else {
+          TexComponentRemoveHold(component, static_cast<INVENTORY_TYPES>(inventoryType), hold.holdSection);
+        }
+      }
+    }
+  }
+
+  BOOL ShowingSameGeosetsAs(const CharGeosetInfo &rhs);
   void RemoveGeosetInfo(const ItemDisplayInfoRec *displayInfoRec, UINT inventoryType, HTEXCOMPONENT component) {
     FATALASSERT(inventoryType != INDEX_NON_EQUIP_TYPE);
 
@@ -365,6 +361,7 @@ class CharGeosetInfo {
     }
   }
 
+  void Clear();
   int  highestPriority[9];
   UINT currentGeosets[9];
   UINT geosetCurrentlyUsedBy[9];
@@ -372,6 +369,9 @@ class CharGeosetInfo {
   UINT flags[9];
   UINT inventoryTypeGeosets[9][INDEX_NUMSLOTS];
 };
+
+
+
 
 CharGeosetInfo::CharGeosetInfo() {
   Clear();

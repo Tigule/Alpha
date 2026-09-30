@@ -47,13 +47,16 @@ class CBaseManaged {
     UPDATED = 0x8
   };
 
+  LINKDECLEX(CBaseManaged, m_link);
+  BYTE m_dataTypeId;
+  BYTE m_flags;
+  void (*m_updateFcn)(float, LPVOID, LPVOID);
+  LPVOID m_updateData;
+  float  m_updatePriority;
+
   CBaseManaged() : m_dataTypeId(0), m_flags(0), m_updateFcn(0), m_updateData(0), m_updatePriority(0.0f) {
   }
   virtual ~CBaseManaged() {
-  }
-  virtual void Update(float) {
-  }
-  virtual void UpdateR(float) {
   }
   void GetInfo(UpdateInfo *info);
   void SetUpdate(void (*fcn)(float, LPVOID, LPVOID), LPVOID data, float priority) {
@@ -62,18 +65,20 @@ class CBaseManaged {
     m_updatePriority = priority;
   }
 
-  LINKDECLEX(CBaseManaged, m_link);
-  BYTE m_dataTypeId;
-  BYTE m_flags;
-  void (*m_updateFcn)(float, LPVOID, LPVOID);
-  LPVOID m_updateData;
-  float  m_updatePriority;
+  virtual void Update(float) {
+  }
+  virtual void UpdateR(float) {
+  }
+
 };
 
 class CAngle;
 
 template <class T>
 class TManaged : public CBaseManaged {
+ private:
+  T m_data;
+
  public:
   TManaged() : m_data() {
   }
@@ -87,6 +92,17 @@ class TManaged : public CBaseManaged {
       m_flags |= 0x8;
     }
   }
+
+  TManaged<T> &operator+=(const T &data);
+  TManaged<T> &operator-=(const T &data);
+  TManaged<T> &operator*=(const T &data);
+  TManaged<T> &operator/=(const T &data);
+
+  T &Get() {
+    return m_data;
+  }
+
+  void Set(const T &data);
 
   virtual void Update(float elapsedSec) {
     if (m_updateFcn) {
@@ -107,21 +123,9 @@ class TManaged : public CBaseManaged {
     m_flags &= ~REQUIRESUPDATE;
   }
 
-  TManaged<T> &operator+=(const T &data);
-  TManaged<T> &operator-=(const T &data);
-  TManaged<T> &operator*=(const T &data);
-  TManaged<T> &operator/=(const T &data);
-
-  T &Get() {
-    return m_data;
-  }
-
-  void Set(const T &data);
-
  private:
   friend class CAngle;
 
-  T m_data;
 };
 
 template <>

@@ -4,13 +4,6 @@
 
 class CDataAllocator {
  public:
-  struct Block {
-    Block *m_next;
-  };
-
-  struct Data {
-    Data *m_next;
-  };
 
   CDataAllocator(DWORD bytesPerData, DWORD dataPerBlock);
   CDataAllocator(const CDataAllocator &source);
@@ -31,6 +24,14 @@ class CDataAllocator {
 
  private:
   CDataAllocator &operator=(const CDataAllocator &source);
+
+  struct Block {
+    Block *m_next;
+  };
+
+  struct Data {
+    Data *m_next;
+  };
 
   DWORD  m_bytesPerData;
   DWORD  m_dataPerBlock;

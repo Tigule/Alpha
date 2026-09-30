@@ -33,14 +33,14 @@ NODEDECL(PENDINGUSERLIST) {
 };
 
 struct ChatChannel {
+  ~ChatChannel() {
+  }
   int  localID;
   char name[128];
   LISTDECL(PENDINGUSERLIST, pendingNames);
   BYTE channelFlags;
-
-  ~ChatChannel() {
-  }
 };
+
 
 NODEDECL(PENDINGCHAT) {
   PENDINGCHAT() {
@@ -78,6 +78,10 @@ NODEDECL(PENDINGTEXTEMOTE) {
 };
 
 class HASHKEY_LANGUAGE {
+ private:
+  UINT m_languageID;
+  UINT m_length;
+
  public:
   HASHKEY_LANGUAGE(UINT languageID = 0, UINT length = 0);
 
@@ -93,10 +97,6 @@ class HASHKEY_LANGUAGE {
     m_length = key.m_length;
     return *this;
   }
-
- private:
-  UINT m_languageID;
-  UINT m_length;
 };
 
 inline HASHKEY_LANGUAGE::HASHKEY_LANGUAGE(UINT languageID, UINT length) : m_languageID(languageID), m_length(length) {

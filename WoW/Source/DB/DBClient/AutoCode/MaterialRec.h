@@ -4,6 +4,10 @@
 
 class MaterialRec {
  public:
+  int m_materialID;
+  int m_flags;
+  int m_foleySoundID;
+
   MaterialRec();
   ~MaterialRec();
 
@@ -29,10 +33,6 @@ class MaterialRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_materialID;
-  int m_flags;
-  int m_foleySoundID;
 };
 
 extern WowClientDB<MaterialRec> g_materialDB;

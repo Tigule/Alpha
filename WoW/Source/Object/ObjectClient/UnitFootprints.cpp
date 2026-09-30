@@ -231,7 +231,7 @@ bool TIMEDTEXTURE::MakeSpace() {
   return m_currentCount < m_maxCount;
 }
 
-static SPLATDATA *GetSplat() {
+SPLATDATA *GetSplat() {
   SPLATDATA *splat = s_freeList.Head();
   if (splat) {
     s_freeList.UnlinkNode(splat);

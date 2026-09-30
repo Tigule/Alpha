@@ -1,13 +1,7 @@
 #include "FactionTemplateRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR FactionTemplateRec::GetFilename() {
   return "DBFilesClient\\FactionTemplate.dbc";
@@ -20,17 +14,14 @@ FactionTemplateRec::~FactionTemplateRec() {
 }
 
 bool FactionTemplateRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_faction, sizeof(m_faction), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_factionGroup, sizeof(m_factionGroup), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_friendGroup, sizeof(m_friendGroup), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_enemyGroup, sizeof(m_enemyGroup), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_enemies[0], sizeof(m_enemies), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_friend[0], sizeof(m_friend), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_faction) ||
+      !SFileReadTyped(f, &m_factionGroup) ||
+      !SFileReadTyped(f, &m_friendGroup) ||
+      !SFileReadTyped(f, &m_enemyGroup) ||
+      !SFile::Read(f, &m_enemies[0], sizeof(m_enemies), 0, 0, 0) ||
+      !SFile::Read(f, &m_friend[0], sizeof(m_friend), 0, 0, 0)) {
     ConsoleWrite("Error reading FactionTemplateRec", DEFAULT_COLOR);
     return false;
   }

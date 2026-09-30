@@ -4,6 +4,12 @@
 
 class SpellShapeshiftFormRec {
  public:
+  int    m_ID;
+  int    m_bonusActionBar;
+  LPCSTR m_name_lang[NUM_LOCALES];
+  int    m_name_flag;
+  int    m_flags;
+
   SpellShapeshiftFormRec();
   ~SpellShapeshiftFormRec();
 
@@ -29,12 +35,6 @@ class SpellShapeshiftFormRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_bonusActionBar;
-  LPCSTR m_name_lang[NUM_LOCALES];
-  int    m_name_flag;
-  int    m_flags;
 };
 
 extern WowClientDB<SpellShapeshiftFormRec> g_spellShapeshiftFormDB;

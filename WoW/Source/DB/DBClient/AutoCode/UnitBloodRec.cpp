@@ -1,13 +1,7 @@
 #include "UnitBloodRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR UnitBloodRec::GetFilename() {
   return "DBFilesClient\\UnitBlood.dbc";
@@ -20,19 +14,16 @@ UnitBloodRec::~UnitBloodRec() {
 }
 
 bool UnitBloodRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempGroundBloodIndices[5];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, m_CombatBloodSpurtFront, sizeof(m_CombatBloodSpurtFront), 0, 0, 0) && result;
-  result = SFile::Read(f, m_CombatBloodSpurtBack, sizeof(m_CombatBloodSpurtBack), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempGroundBloodIndices[0], sizeof(tempGroundBloodIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempGroundBloodIndices[1], sizeof(tempGroundBloodIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempGroundBloodIndices[2], sizeof(tempGroundBloodIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempGroundBloodIndices[3], sizeof(tempGroundBloodIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempGroundBloodIndices[4], sizeof(tempGroundBloodIndices[4]), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFile::Read(f, m_CombatBloodSpurtFront, sizeof(m_CombatBloodSpurtFront), 0, 0, 0) ||
+      !SFile::Read(f, m_CombatBloodSpurtBack, sizeof(m_CombatBloodSpurtBack), 0, 0, 0) ||
+      !SFileReadTyped(f, &tempGroundBloodIndices[0]) ||
+      !SFileReadTyped(f, &tempGroundBloodIndices[1]) ||
+      !SFileReadTyped(f, &tempGroundBloodIndices[2]) ||
+      !SFileReadTyped(f, &tempGroundBloodIndices[3]) ||
+      !SFileReadTyped(f, &tempGroundBloodIndices[4])) {
     ConsoleWrite("Error reading UnitBloodRec", DEFAULT_COLOR);
     return false;
   }

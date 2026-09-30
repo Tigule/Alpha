@@ -4,6 +4,12 @@
 
 class AreaMIDIAmbiencesRec {
  public:
+  int    m_ID;
+  LPCSTR m_DaySequence;
+  LPCSTR m_NightSequence;
+  LPCSTR m_DLSFile;
+  float  m_volume;
+
   AreaMIDIAmbiencesRec();
   ~AreaMIDIAmbiencesRec();
 
@@ -29,12 +35,6 @@ class AreaMIDIAmbiencesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_DaySequence;
-  LPCSTR m_NightSequence;
-  LPCSTR m_DLSFile;
-  float  m_volume;
 };
 
 extern WowClientDB<AreaMIDIAmbiencesRec> g_areaMIDIAmbiencesDB;

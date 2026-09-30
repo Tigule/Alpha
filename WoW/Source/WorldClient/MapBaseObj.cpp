@@ -2,6 +2,7 @@
 #include <MapDefs.h>
 
 #include "World.h"
+#include "Map.h"
 
 #include "Base/Base.h"
 #include "WorldCommon/WorldMath.h"

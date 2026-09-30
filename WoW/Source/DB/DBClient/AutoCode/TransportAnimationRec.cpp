@@ -1,13 +1,7 @@
 #include "TransportAnimationRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR TransportAnimationRec::GetFilename() {
   return "DBFilesClient\\TransportAnimation.dbc";
@@ -20,18 +14,16 @@ TransportAnimationRec::~TransportAnimationRec() {
 }
 
 bool TransportAnimationRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_TransportID, sizeof(m_TransportID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_TimeIndex, sizeof(m_TimeIndex), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_PosX, sizeof(m_PosX), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_PosY, sizeof(m_PosY), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_PosZ, sizeof(m_PosZ), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_TransportID) ||
+      !SFileReadTyped(f, &m_TimeIndex) ||
+      !SFileReadTyped(f, &m_PosX) ||
+      !SFileReadTyped(f, &m_PosY) ||
+      !SFileReadTyped(f, &m_PosZ)) {
     ConsoleWrite("Error reading TransportAnimationRec", DEFAULT_COLOR);
+    return false;
   }
 
-  return result;
+  return true;
 }

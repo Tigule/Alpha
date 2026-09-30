@@ -1,13 +1,7 @@
 #include "StringLookupsRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR StringLookupsRec::GetFilename() {
   return "DBFilesClient\\StringLookups.dbc";
@@ -20,13 +14,10 @@ StringLookupsRec::~StringLookupsRec() {
 }
 
 bool StringLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempStringIndices[1];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempStringIndices[0], sizeof(tempStringIndices[0]), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempStringIndices[0])) {
     ConsoleWrite("Error reading StringLookupsRec", DEFAULT_COLOR);
     return false;
   }

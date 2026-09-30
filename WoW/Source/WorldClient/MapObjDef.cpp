@@ -2,6 +2,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
+#include "WorldClient/Map.h"
 
 #include "Base/Base.h"
 #include "Gx/Gx.h"

@@ -5,14 +5,19 @@
 class AreaTableRec;
 
 class AREAHASHKEY {
+ private:
+  UINT cont;
+  UINT area;
+  UINT subArea;
+
  public:
   AREAHASHKEY() : cont(0), area(0), subArea(0) {
   }
 
-  AREAHASHKEY(UINT continent, UINT areaID, UINT subAreaID) : cont(continent), area(areaID), subArea(subAreaID) {
+  AREAHASHKEY(const AREAHASHKEY &rhs) : cont(rhs.cont), area(rhs.area), subArea(rhs.subArea) {
   }
 
-  AREAHASHKEY(const AREAHASHKEY &rhs) : cont(rhs.cont), area(rhs.area), subArea(rhs.subArea) {
+  AREAHASHKEY(UINT continent, UINT areaID, UINT subAreaID) : cont(continent), area(areaID), subArea(subAreaID) {
   }
 
   AREAHASHKEY &operator=(const AREAHASHKEY &rhs) {
@@ -32,20 +37,9 @@ class AREAHASHKEY {
   UINT GetAreaID() const {
     return area << 16 | subArea;
   }
-
- private:
-  UINT cont;
-  UINT area;
-  UINT subArea;
 };
 
 struct AREAHASHOBJECT : TSHashObject<AREAHASHOBJECT, AREAHASHKEY> {
-  AREAHASHOBJECT() {
-  }
-  AREAHASHOBJECT(const AREAHASHOBJECT &);
-
-  AREAHASHOBJECT *GetParent() const;
-
   const AreaTableRec *rec;
   int                 midi;
   int                 midiUnderwater;
@@ -57,4 +51,10 @@ struct AREAHASHOBJECT : TSHashObject<AREAHASHOBJECT, AREAHASHKEY> {
   UINT                continent;
   UINT                area;
   UINT                subArea;
+  AREAHASHOBJECT() {
+  }
+  AREAHASHOBJECT(const AREAHASHOBJECT &);
+
+  AREAHASHOBJECT *GetParent() const;
+
 };

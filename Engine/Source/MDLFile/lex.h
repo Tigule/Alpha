@@ -11,9 +11,31 @@ union mdl_data {
 };
 
 class mdl_scan {
+ protected:
+  UINT *state;
+  int   size;
+  BOOL  mustfree;
+  int   mdl_end;
+  int   mdl_start;
+  int   mdl_lastc;
+  int   mdlLexFatal;
+  char  save;
+
  public:
+  mdl_data tokendata;
+  char    *mdltext;
+  LPCSTR   mdlin;
+  FILE    *mdlout;
+  int      mdllineno;
+  int      mdlleng;
+
   mdl_scan(LPCSTR input, int inputSize);
   ~mdl_scan();
+
+  int  mdllex();
+  int  mdlgetc() {
+    return input();
+  }
 
   virtual int mdlwrap() {
     return 1;
@@ -30,10 +52,6 @@ class mdl_scan {
     fputs(mdltext, mdlout);
   }
 
-  int  mdllex();
-  int  mdlgetc() {
-    return input();
-  }
   int  input();
   int  unput(int character);
   void mdl_reset();
@@ -57,28 +75,10 @@ class mdl_scan {
     }
     mdltext[mdlleng] = 0;
   }
-  void mdlcomment(char *material);
+  void mdlcomment(char *const material);
   int  mdlmapch(int character, int) {
     return character;
   }
-
- protected:
-  UINT *state;
-  int   size;
-  BOOL  mustfree;
-  int   mdl_end;
-  int   mdl_start;
-  int   mdl_lastc;
-  int   mdlLexFatal;
-  char  save;
-
- public:
-  mdl_data tokendata;
-  char    *mdltext;
-  LPCSTR   mdlin;
-  FILE    *mdlout;
-  int      mdllineno;
-  int      mdlleng;
 };
 
 #endif

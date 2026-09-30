@@ -4,6 +4,9 @@
 
 class SpellIconRec {
  public:
+  int    m_ID;
+  LPCSTR m_textureFilename;
+
   SpellIconRec();
   ~SpellIconRec();
 
@@ -29,9 +32,6 @@ class SpellIconRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_textureFilename;
 };
 
 extern WowClientDB<SpellIconRec> g_spellIconDB;

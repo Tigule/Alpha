@@ -11,24 +11,24 @@ BOOL  MDLFileRead(LPCSTR path, MDLDATA *data, CStatus *status);
 
 CAnim *AnimCreate(UINT *const objectCounts, UINT numGeosets, UINT numCameras, UINT numMaterialLayers);
 HANIM  AnimCreate(LPCSTR sourcefile, UINT flags, CStatus *status);
-BOOL   AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags);
+static BOOL   AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags);
 
 void  AnimAddSequences(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimData *shared);
 void  AnimAddCameras(BYTE *fileData, UINT fileBytes, CAnimData *shared, MDLTRACKTYPE forceType);
 void  AnimAddGeosets(BYTE *fileData, UINT fileBytes, CAnimData *shared, MDLTRACKTYPE forceType);
 void  AnimAddTextureAnims(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimData *shared, MDLTRACKTYPE forceType);
 void  AnimAddMaterialLayers(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimData *shared, MDLTRACKTYPE forceType);
-UINT  GetGenObjectCount(BYTE *fileData, UINT fileBytes);
-BYTE *CreateBone(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
-BYTE *CreateHitTestShape(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
-BYTE *CreateLight(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
-BYTE *CreateHelper(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
-BYTE *CreateAttachmentPoint(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
-BYTE *CreateParticleEmitter2(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
-BYTE *CreateRibbonEmitter(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
-BYTE *CreateEventObject(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
+static UINT  GetGenObjectCount(BYTE *fileData, UINT fileBytes);
+static BYTE *CreateBone(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
+static BYTE *CreateHitTestShape(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
+static BYTE *CreateLight(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
+static BYTE *CreateHelper(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
+static BYTE *CreateAttachmentPoint(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
+static BYTE *CreateParticleEmitter2(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
+static BYTE *CreateRibbonEmitter(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
+static BYTE *CreateEventObject(BYTE *, CAnimData *, const UINT *, UINT *, MDLTRACKTYPE);
 
-void BuildHierarchy(CAnimData *shared, const UINT *parentIds, const UINT *idConversion, UINT numObjects);
+static void BuildHierarchy(CAnimData *shared, const UINT *parentIds, const UINT *idConversion, UINT numObjects);
 void AnimInit(CAnim *unique, CAnimData *shared);
 void AnimAddSequences(
     CAnim                                      *unique,
@@ -144,7 +144,7 @@ GenericHandlerAnim(BYTE *fileData, CAnimData *shared, CAnimObj *currobj, const U
   return fileData;
 }
 
-BYTE *CreateBone(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
+static BYTE *CreateBone(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
   FATALASSERT(shared);
   CAnimBoneObj *currobj = AnimObjectCreateBone(shared);
   FATALASSERT(currobj);
@@ -154,7 +154,7 @@ BYTE *CreateBone(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UI
   return fileData + 8;
 }
 
-BYTE *CreateHitTestShape(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
+static BYTE *CreateHitTestShape(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
   FATALASSERT(shared);
   CAnimBoneObj *currobj = AnimObjectCreateBone(shared);
   FATALASSERT(currobj);
@@ -164,7 +164,7 @@ BYTE *CreateHitTestShape(BYTE *fileData, CAnimData *shared, const UINT *idConver
   return fileData + sectionLength;
 }
 
-BYTE *CreateLight(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
+static BYTE *CreateLight(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
   FATALASSERT(shared);
   CAnimLightObj *currobj = AnimObjectCreateLight(shared);
   FATALASSERT(currobj);
@@ -181,7 +181,7 @@ BYTE *CreateLight(BYTE *fileData, CAnimData *shared, const UINT *idConversion, U
   return data;
 }
 
-BYTE *CreateParticleEmitter2(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
+static BYTE *CreateParticleEmitter2(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
   FATALASSERT(shared);
   CAnimEmitter2Obj *currobj = AnimObjectCreateEmitter2(shared);
   FATALASSERT(currobj);
@@ -206,7 +206,7 @@ BYTE *CreateParticleEmitter2(BYTE *fileData, CAnimData *shared, const UINT *idCo
   return data;
 }
 
-BYTE *CreateRibbonEmitter(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
+static BYTE *CreateRibbonEmitter(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
   FATALASSERT(shared);
   CAnimRibbonObj *currobj = AnimObjectCreateRibbon(shared);
   FATALASSERT(currobj);
@@ -223,7 +223,7 @@ BYTE *CreateRibbonEmitter(BYTE *fileData, CAnimData *shared, const UINT *idConve
   return data;
 }
 
-BYTE *CreateEventObject(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
+static BYTE *CreateEventObject(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
   FATALASSERT(shared);
   CAnimEventObj *currobj = AnimObjectCreateEvent(shared);
   FATALASSERT(currobj);
@@ -234,14 +234,14 @@ BYTE *CreateEventObject(BYTE *fileData, CAnimData *shared, const UINT *idConvers
   return data;
 }
 
-BYTE *CreateHelper(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
+static BYTE *CreateHelper(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
   FATALASSERT(shared);
   CAnimObj *currobj = AnimObjectCreateHelper(shared);
   FATALASSERT(currobj);
   return GenericHandlerAnim(fileData, shared, currobj, idConversion, parentIds, forceType);
 }
 
-BYTE *CreateAttachmentPoint(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
+static BYTE *CreateAttachmentPoint(BYTE *fileData, CAnimData *shared, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
   FATALASSERT(shared);
   CAnimModelObj *currobj = AnimObjectCreateAttachment(shared);
   FATALASSERT(currobj);
@@ -262,7 +262,7 @@ static void SetObjectParent(CAnimData *shared, UINT object, UINT parent) {
   FATALASSERT(setObjParent);
 }
 
-void BuildHierarchy(CAnimData *shared, const UINT *parentIds, const UINT *idConversion, UINT numObjects) {
+static void BuildHierarchy(CAnimData *shared, const UINT *parentIds, const UINT *idConversion, UINT numObjects) {
   for (UINT oldObjectId = 0; oldObjectId < numObjects; ++oldObjectId) {
     UINT objectId = idConversion[oldObjectId];
     if (objectId == static_cast<UINT>(-1)) {
@@ -279,7 +279,7 @@ void BuildHierarchy(CAnimData *shared, const UINT *parentIds, const UINT *idConv
   }
 }
 
-UINT GetGenObjectCount(BYTE *fileData, UINT fileBytes) {
+static UINT GetGenObjectCount(BYTE *fileData, UINT fileBytes) {
   BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'LDOM');
   ASSERT(section);
   return *reinterpret_cast<UINT *>(section + 373);
@@ -560,7 +560,7 @@ static void IAnimCreateObjects(CAnimData *shared, const MDLDATA &data, UINT flag
   }
 }
 
-void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT flags, const UINT *idConversion, UINT *parentIds) {
+static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT flags, const UINT *idConversion, UINT *parentIds) {
   MDLTRACKTYPE forceType = (flags & 4) ? TRACK_LINEAR : NUM_TRACK_TYPES;
 
   BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'ENOB');
@@ -655,7 +655,7 @@ void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared, UINT 
     ASSERT(data == dataDone);
   }
 }
-BOOL AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags) {
+static BOOL AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags) {
   if (!unique) {
     return 0;
   }

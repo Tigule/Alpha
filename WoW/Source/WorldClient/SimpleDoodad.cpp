@@ -4,6 +4,7 @@
 
 #include "CSimpleDoodad.h"
 #include "WorldClient/World.h"
+#include "WorldClient/Map.h"
 
 #include "MDLFile/MDLTypes.h"
 

@@ -4,6 +4,12 @@
 
 class ChrProficiencyRec {
  public:
+  int m_ID;
+  int m_proficiency_minLevel[16];
+  int m_proficiency_acquireMethod[16];
+  int m_proficiency_itemClass[16];
+  int m_proficiency_itemSubClassMask[16];
+
   ChrProficiencyRec();
   ~ChrProficiencyRec();
 
@@ -29,12 +35,6 @@ class ChrProficiencyRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_proficiency_minLevel[16];
-  int m_proficiency_acquireMethod[16];
-  int m_proficiency_itemClass[16];
-  int m_proficiency_itemSubClassMask[16];
 };
 
 extern WowClientDB<ChrProficiencyRec> g_chrProficiencyDB;

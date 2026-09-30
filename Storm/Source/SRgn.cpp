@@ -2,6 +2,34 @@
 #include <stpl.h>
 #include "W32/ISThread.h"
 
+#undef VALIDATEBEGIN
+#undef VALIDATE
+#undef VALIDATEANDBLANK
+#undef VALIDATEEND
+#undef VALIDATEENDVOID
+#define VALIDATEBEGIN
+#define VALIDATE(a)                            \
+  if (!(a)) {                                  \
+    SErrPrepareAppFatal(__FILE__, __LINE__);   \
+    SErrDisplayAppFatal(#a);                   \
+    goto validatefailed;                       \
+  }
+#define VALIDATEANDBLANK(a) \
+  VALIDATE(a)               \
+  *(a) = 0;
+#define VALIDATEEND                              \
+  if (0) {                                       \
+  validatefailed:                                \
+      SErrSetLastError(ERROR_INVALID_PARAMETER); \
+      return FALSE;                              \
+  }
+#define VALIDATEENDVOID                          \
+  if (0) {                                       \
+  validatefailed:                                \
+      SErrSetLastError(ERROR_INVALID_PARAMETER); \
+      return;                                    \
+  }
+
 #define SF_ADDING    0x00000001
 #define SF_OVERLAPS  0x00000002
 #define SF_TEMPMASK  0x00000003
@@ -65,19 +93,13 @@ static inline void AddCombinedRect(TSGrowableArray<RECTF> *combinedarray, const 
   RECTF *entry;
 
   entry = combinedarray->NewElement();
-  if (entry) {
-    *entry = *rect;
-  }
+  *entry = *rect;
 }
 
 static inline void AddSourceRect(TSGrowableArray<SRGNSOURCE> *sourcearray, const RECTF *rect, LPVOID param, int sequence, DWORD flags) {
   SRGNSOURCEPTR source;
 
   source = sourcearray->NewElement();
-  if (!source) {
-    return;
-  }
-
   source->rect = *rect;
   source->param = param;
   source->sequence = sequence;
@@ -188,10 +210,13 @@ static void DeleteRect(RECTF *rect) {
 }
 
 static void DeleteSourceRect(TSGrowableArray<SRGNSOURCE> *sourcearray, DWORD index) {
-  DeleteRect(&(*sourcearray)[index].rect);
-  (*sourcearray)[index].param = NULL;
-  (*sourcearray)[index].sequence = -1;
-  (*sourcearray)[index].flags = 0;
+  SRGNSOURCEPTR source;
+
+  source = &(*sourcearray)[index];
+  DeleteRect(&source->rect);
+  source->param = NULL;
+  source->sequence = -1;
+  source->flags = 0;
 }
 
 static void FindSourceParams(RGN *rgnptr, const RECTF *rect) {
@@ -297,70 +322,83 @@ static void FragmentSourceRectangles(
 
   overlapsexisting = previousoverlap;
   for (index = firstindex; index < lastindex; ++index) {
-    if (CheckForIntersection(rect, &(*sourcearray)[index].rect)) {
-      if (CompareRects(rect, &(*sourcearray)[index].rect)) {
-        (*sourcearray)[index].flags |= SRGN_SOURCE_OVERLAPS;
-        overlapsexisting = TRUE;
-        continue;
-      }
+    const RECTF *sourcerect;
+    int          maxbottom;
+    int          maxright;
+    int          mintop;
+    int          maxtop;
 
-      overlaprect[0] = rect;
-      overlaprect[1] = &(*sourcearray)[index].rect;
-      minleft = overlaprect[0]->left > overlaprect[1]->left;
-      maxleft = overlaprect[1]->left > overlaprect[0]->left;
-      minright = overlaprect[0]->right > overlaprect[1]->right;
-      minbottom = overlaprect[0]->bottom > overlaprect[1]->bottom;
-
-      newrect[0].left = overlaprect[minbottom]->left;
-      newrect[0].bottom = overlaprect[minbottom]->bottom;
-      newrect[0].right = overlaprect[minbottom]->right;
-      newrect[0].top = overlaprect[overlaprect[1]->bottom > overlaprect[0]->bottom]->bottom;
-
-      newrect[1].left = overlaprect[overlaprect[1]->top > overlaprect[0]->top]->left;
-      newrect[1].bottom = overlaprect[overlaprect[0]->top > overlaprect[1]->top]->top;
-      newrect[1].right = overlaprect[overlaprect[1]->top > overlaprect[0]->top]->right;
-      newrect[1].top = overlaprect[overlaprect[1]->top > overlaprect[0]->top]->top;
-
-      newrect[2].left = overlaprect[minleft]->left;
-      newrect[2].bottom = overlaprect[overlaprect[1]->bottom > overlaprect[0]->bottom]->bottom;
-      newrect[2].right = overlaprect[maxleft]->left;
-      newrect[2].top = overlaprect[overlaprect[0]->top > overlaprect[1]->top]->top;
-
-      newrect[3].left = overlaprect[minright]->right;
-      newrect[3].bottom = overlaprect[overlaprect[1]->bottom > overlaprect[0]->bottom]->bottom;
-      newrect[3].right = overlaprect[overlaprect[1]->right > overlaprect[0]->right]->right;
-      newrect[3].top = overlaprect[overlaprect[0]->top > overlaprect[1]->top]->top;
-
-      newrect[4].left = overlaprect[maxleft]->left;
-      newrect[4].bottom = overlaprect[overlaprect[1]->bottom > overlaprect[0]->bottom]->bottom;
-      newrect[4].right = overlaprect[minright]->right;
-      newrect[4].top = overlaprect[overlaprect[0]->top > overlaprect[1]->top]->top;
-
-      for (loop = 0; loop < 5; ++loop) {
-        if (IsNullRect(&newrect[loop])) {
-          overlaps[loop][0] = FALSE;
-          overlaps[loop][1] = FALSE;
-        } else {
-          overlaps[loop][0] = CheckForIntersection(&newrect[loop], overlaprect[0]);
-          overlaps[loop][1] = CheckForIntersection(&newrect[loop], overlaprect[1]);
-        }
-      }
-
-      for (loop = 0; loop < 5; ++loop) {
-        if (overlaps[loop][0]) {
-          FragmentSourceRectangles(sourcearray, index + 1, lastindex, overlapsexisting || overlaps[loop][1], &newrect[loop], param, sequence);
-        }
-        if (overlaps[loop][1]) {
-          AddSourceRect(
-              sourcearray, &newrect[loop], (*sourcearray)[index].param, (*sourcearray)[index].sequence,
-              ((*sourcearray)[index].flags & ~SRGN_SOURCE_TEMPMASK) | (overlaps[loop][0] ? SRGN_SOURCE_OVERLAPS : 0)
-          );
-        }
-      }
-
-      DeleteSourceRect(sourcearray, index);
-      return;
+    sourcerect = &(*sourcearray)[index].rect;
+    if (!CheckForIntersection(rect, sourcerect)) {
+      continue;
     }
+
+    if (CompareRects(rect, sourcerect)) {
+      (*sourcearray)[index].flags |= SRGN_SOURCE_OVERLAPS;
+      overlapsexisting = TRUE;
+      continue;
+    }
+
+    overlaprect[0] = rect;
+    overlaprect[1] = sourcerect;
+    minleft = overlaprect[0]->left > overlaprect[1]->left;
+    maxleft = overlaprect[1]->left > overlaprect[0]->left;
+    minbottom = overlaprect[0]->bottom > overlaprect[1]->bottom;
+    maxbottom = overlaprect[1]->bottom > overlaprect[0]->bottom;
+    minright = overlaprect[0]->right > overlaprect[1]->right;
+    maxright = overlaprect[1]->right > overlaprect[0]->right;
+    mintop = overlaprect[0]->top > overlaprect[1]->top;
+    maxtop = overlaprect[1]->top > overlaprect[0]->top;
+
+    newrect[0].left = overlaprect[minbottom]->left;
+    newrect[0].bottom = overlaprect[minbottom]->bottom;
+    newrect[0].right = overlaprect[minbottom]->right;
+    newrect[0].top = overlaprect[maxbottom]->bottom;
+
+    newrect[1].left = overlaprect[maxtop]->left;
+    newrect[1].bottom = overlaprect[mintop]->top;
+    newrect[1].right = overlaprect[maxtop]->right;
+    newrect[1].top = overlaprect[maxtop]->top;
+
+    newrect[2].left = overlaprect[minleft]->left;
+    newrect[2].bottom = overlaprect[maxbottom]->bottom;
+    newrect[2].right = overlaprect[maxleft]->left;
+    newrect[2].top = overlaprect[mintop]->top;
+
+    newrect[3].left = overlaprect[minright]->right;
+    newrect[3].bottom = overlaprect[maxbottom]->bottom;
+    newrect[3].right = overlaprect[maxright]->right;
+    newrect[3].top = overlaprect[mintop]->top;
+
+    newrect[4].left = overlaprect[maxleft]->left;
+    newrect[4].bottom = overlaprect[maxbottom]->bottom;
+    newrect[4].right = overlaprect[minright]->right;
+    newrect[4].top = overlaprect[mintop]->top;
+
+    for (loop = 0; loop < 5; ++loop) {
+      if (IsNullRect(&newrect[loop])) {
+        overlaps[loop][0] = overlaps[loop][1] = FALSE;
+      } else {
+        for (DWORD rectloop = 0; rectloop < 2; ++rectloop) {
+          overlaps[loop][rectloop] = CheckForIntersection(&newrect[loop], overlaprect[rectloop]);
+        }
+      }
+    }
+
+    for (loop = 0; loop < 5; ++loop) {
+      if (overlaps[loop][0]) {
+        FragmentSourceRectangles(sourcearray, index + 1, lastindex, overlapsexisting || overlaps[loop][1], &newrect[loop], param, sequence);
+      }
+      if (overlaps[loop][1]) {
+        AddSourceRect(
+            sourcearray, &newrect[loop], (*sourcearray)[index].param, (*sourcearray)[index].sequence,
+            ((*sourcearray)[index].flags & ~SRGN_SOURCE_TEMPMASK) | (overlaps[loop][0] ? SRGN_SOURCE_OVERLAPS : 0)
+        );
+      }
+    }
+
+    DeleteSourceRect(sourcearray, index);
+    return;
   }
 
   AddSourceRect(sourcearray, rect, param, sequence, SRGN_SOURCE_ADDING | (overlapsexisting ? SRGN_SOURCE_OVERLAPS : 0));
@@ -372,17 +410,18 @@ static void InvalidateRegion(RGN *rgnptr) {
 }
 
 static BOOL IsNullRect(const RECTF *rect) {
-  return !(rect->left < rect->right && rect->bottom < rect->top);
+  return rect->left >= rect->right || rect->bottom >= rect->top;
 }
 
 static void OptimizeSource(TSGrowableArray<SRGNSOURCE> *sourcearray) {
   DWORD index;
+  DWORD count;
 
   index = 0;
-  while (index < sourcearray->NumElements()) {
+  while (index < (count = sourcearray->NumElements())) {
     if (IsNullRect(&(*sourcearray)[index].rect)) {
-      (*sourcearray)[index] = (*sourcearray)[sourcearray->NumElements() - 1];
-      sourcearray->SetNumElements(sourcearray->NumElements() - 1);
+      (*sourcearray)[index] = (*sourcearray)[count - 1];
+      sourcearray->SetNumElements(count - 1);
     } else {
       ++index;
     }
@@ -391,53 +430,47 @@ static void OptimizeSource(TSGrowableArray<SRGNSOURCE> *sourcearray) {
 
 static void ProcessBooleanOperation(TSGrowableArray<SRGNSOURCE> *sourcearray, int combinemode) {
   DWORD index;
-  DWORD flags;
-  BOOL  remove;
 
-  index = 0;
-  while (index < sourcearray->NumElements()) {
-    flags = (*sourcearray)[index].flags;
+  for (index = 0; index < sourcearray->NumElements(); ++index) {
+    SRGNSOURCEPTR source;
+    BOOL          remove;
+
+    source = &(*sourcearray)[index];
     remove = FALSE;
-
     switch (combinemode) {
       case 1:
-        remove = !(flags & 2);
-        break;
-      case 2:
-        remove = FALSE;
-        break;
-      case 3:
-        remove = (flags & 2) != 0;
-        break;
-      case 4:
-        remove = (flags & 3) != 0;
+        remove = !(source->flags & SRGN_SOURCE_OVERLAPS);
         break;
       case 5:
-        remove = (flags & 1) != 0;
+        remove = source->flags & SRGN_SOURCE_ADDING;
+        break;
+      case 4:
+        remove = source->flags & SRGN_SOURCE_TEMPMASK;
+        break;
+      case 3:
+        remove = source->flags & SRGN_SOURCE_OVERLAPS;
         break;
     }
 
     if (remove) {
       DeleteSourceRect(sourcearray, index);
     }
-    (*sourcearray)[index].flags = 0;
-    ++index;
+    source->flags = 0;
   }
 }
 
 static void ProduceCombinedRectangles(RGN *rgnptr) {
   DWORD         count;
   SRGNSOURCEPTR source;
+  DWORD         loop;
 
   count = rgnptr->source.NumElements();
   rgnptr->combined.SetNumElements(0);
   source = rgnptr->source.Ptr();
-  while (count) {
-    if (!(source->flags & SRGN_SOURCE_PARAMONLY)) {
-      FragmentCombinedRectangles(&rgnptr->combined, 0, rgnptr->combined.NumElements(), &source->rect);
+  for (loop = 0; loop < count; ++loop) {
+    if (!(source[loop].flags & SRGN_SOURCE_PARAMONLY)) {
+      FragmentCombinedRectangles(&rgnptr->combined, 0, rgnptr->combined.NumElements(), &source[loop].rect);
     }
-    ++source;
-    --count;
   }
 
   CombineRectangles(&rgnptr->combined);
@@ -446,11 +479,11 @@ static void ProduceCombinedRectangles(RGN *rgnptr) {
 
   count = rgnptr->combined.NumElements();
   while (count) {
-    DWORD last = count - 1;
-    if (!IsNullRect(&rgnptr->combined.Ptr()[last])) {
+    --count;
+    if (!IsNullRect(&rgnptr->combined[count])) {
       break;
     }
-    rgnptr->combined.SetNumElements(last);
+    rgnptr->combined.SetNumElements(count);
     count = rgnptr->combined.NumElements();
   }
 }
@@ -486,7 +519,9 @@ extern "C" void APIENTRY SRgnClear(HSRGN handle) {
   HLOCKEDRGN lockedhandle;
   RGN       *rgnptr;
 
-  FATALASSERT(handle);
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATEENDVOID;
 
   rgnptr = s_rgntable.Lock(handle, &lockedhandle, 0);
   if (rgnptr) {
@@ -499,10 +534,12 @@ extern "C" void APIENTRY SRgnCombineRectf(HSRGN handle, const RECTF *rect, LPVOI
   HLOCKEDRGN lockedhandle;
   RGN       *rgnptr;
 
-  FATALASSERT(handle);
-  FATALASSERT(rect);
-  FATALASSERT(combinemode >= 1);
-  FATALASSERT(combinemode <= 6);
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATE(rect);
+  VALIDATE(combinemode >= 1);
+  VALIDATE(combinemode <= 6);
+  VALIDATEENDVOID;
 
   rgnptr = s_rgntable.Lock(handle, &lockedhandle, 0);
   if (rgnptr) {
@@ -526,7 +563,9 @@ extern "C" void APIENTRY SRgnCombineRectf(HSRGN handle, const RECTF *rect, LPVOI
 extern "C" void APIENTRY SRgnCombineRecti(HSRGN handle, const RECT *rect, LPVOID param, int combinemode) {
   RECTF rectf;
 
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(rect);
+  VALIDATEENDVOID;
 
   rectf.left = (float)rect->left;
   rectf.bottom = (float)rect->top;
@@ -539,10 +578,10 @@ extern "C" void APIENTRY SRgnCreate(HSRGN *handle, DWORD reserved) {
   HLOCKEDRGN lockedhandle;
   RGN       *rgnptr;
 
-  FATALASSERT(handle);
-
-  *handle = NULL;
-  FATALASSERT(!reserved);
+  VALIDATEBEGIN;
+  VALIDATEANDBLANK(handle);
+  VALIDATE(!reserved);
+  VALIDATEENDVOID;
 
   rgnptr = s_rgntable.NewLock(handle, &lockedhandle);
   ClearRegion(rgnptr);
@@ -550,7 +589,9 @@ extern "C" void APIENTRY SRgnCreate(HSRGN *handle, DWORD reserved) {
 }
 
 extern "C" void APIENTRY SRgnDelete(HSRGN handle) {
-  FATALASSERT(handle);
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATEENDVOID;
 
   s_rgntable.Delete(handle);
 }
@@ -563,11 +604,11 @@ extern "C" void APIENTRY SRgnDuplicate(HSRGN orighandle, HSRGN *handle, DWORD re
   RGN *original;
   RGN *copy;
 
-  FATALASSERT(handle);
-
-  *handle = NULL;
-  FATALASSERT(orighandle);
-  FATALASSERT(!reserved);
+  VALIDATEBEGIN;
+  VALIDATEANDBLANK(handle);
+  VALIDATE(orighandle);
+  VALIDATE(!reserved);
+  VALIDATEENDVOID;
 
   original = s_rgntable.Lock(orighandle, reinterpret_cast<HLOCKEDRGN *>(&orighandle), 0);
   if (!original) {
@@ -586,8 +627,10 @@ extern "C" void APIENTRY SRgnGetBoundingRectf(HSRGN handle, RECTF *rect) {
   SRGNSOURCEPTR source;
   DWORD         count;
 
-  FATALASSERT(handle);
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATE(rect);
+  VALIDATEENDVOID;
 
   rect->left = SRGN_SENTINEL;
   rect->bottom = SRGN_SENTINEL;
@@ -622,7 +665,9 @@ extern "C" void APIENTRY SRgnGetBoundingRectf(HSRGN handle, RECTF *rect) {
 extern "C" void APIENTRY SRgnGetBoundingRecti(HSRGN handle, RECT *rect) {
   RECTF rectf;
 
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(rect);
+  VALIDATEENDVOID;
 
   SRgnGetBoundingRectf(handle, &rectf);
   rect->left = (LONG)rectf.left;
@@ -637,9 +682,11 @@ extern "C" void APIENTRY SRgnGetRectParamsf(HSRGN handle, const RECTF *rect, DWO
   DWORD      count;
   DWORD      loop;
 
-  FATALASSERT(handle);
-  FATALASSERT(rect);
-  FATALASSERT(numparams);
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATE(rect);
+  VALIDATE(numparams);
+  VALIDATEENDVOID;
 
   if (IsNullRect(rect)) {
     *numparams = 0;
@@ -677,7 +724,9 @@ extern "C" void APIENTRY SRgnGetRectParamsf(HSRGN handle, const RECTF *rect, DWO
 extern "C" void APIENTRY SRgnGetRectParamsi(HSRGN handle, const RECT *rect, DWORD *numparams, LPVOID *buffer) {
   RECTF rectf;
 
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(rect);
+  VALIDATEENDVOID;
 
   rectf.left = (float)rect->left;
   rectf.bottom = (float)rect->top;
@@ -691,8 +740,10 @@ extern "C" void APIENTRY SRgnGetRectsf(HSRGN handle, DWORD *numrects, RECTF *buf
   RGN       *rgnptr;
   DWORD      count;
 
-  FATALASSERT(handle);
-  FATALASSERT(numrects);
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATE(numrects);
+  VALIDATEENDVOID;
 
   rgnptr = s_rgntable.Lock(handle, &lockedhandle, 0);
   if (!rgnptr) {
@@ -721,13 +772,16 @@ extern "C" void APIENTRY SRgnGetRectsi(HSRGN handle, DWORD *numrects, RECT *buff
   DWORD loop;
 
   SRgnGetRectsf(handle, numrects, (RECTF *)buffer);
-  if (buffer && numrects) {
+  if (buffer) {
     for (loop = 0; loop < *numrects; ++loop) {
       RECTF *rectf = (RECTF *)&buffer[loop];
+      float  bottom = rectf->bottom;
+      float  top = rectf->top;
+
       buffer[loop].left = (LONG)rectf->left;
-      buffer[loop].top = (LONG)rectf->bottom;
+      buffer[loop].top = (LONG)bottom;
       buffer[loop].right = (LONG)rectf->right;
-      buffer[loop].bottom = (LONG)rectf->top;
+      buffer[loop].bottom = (LONG)top;
     }
   }
 }
@@ -740,7 +794,9 @@ extern "C" BOOL APIENTRY SRgnIsPointInRegionf(HSRGN handle, float x, float y) {
   DWORD         loop;
   BOOL          result;
 
-  FATALASSERT(handle);
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATEEND;
 
   result = FALSE;
   rgnptr = s_rgntable.Lock(handle, &lockedhandle, 0);
@@ -774,8 +830,10 @@ extern "C" BOOL APIENTRY SRgnIsRectInRegionf(HSRGN handle, const RECTF *rect) {
   DWORD         loop;
   BOOL          result;
 
-  FATALASSERT(handle);
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATE(rect);
+  VALIDATEEND;
 
   rgnptr = s_rgntable.Lock(handle, &lockedhandle, 0);
   if (rgnptr) {
@@ -797,7 +855,9 @@ extern "C" BOOL APIENTRY SRgnIsRectInRegionf(HSRGN handle, const RECTF *rect) {
 extern "C" BOOL APIENTRY SRgnIsRectInRegioni(HSRGN handle, const RECT *rect) {
   RECTF rectf;
 
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(rect);
+  VALIDATEEND;
 
   rectf.left = (float)rect->left;
   rectf.bottom = (float)rect->top;
@@ -812,7 +872,9 @@ extern "C" void APIENTRY SRgnOffsetf(HSRGN handle, float xoffset, float yoffset)
   SRGNSOURCEPTR source;
   DWORD         count;
 
-  FATALASSERT(handle);
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATEENDVOID;
 
   rgnptr = s_rgntable.Lock(handle, &lockedhandle, 0);
   if (rgnptr) {

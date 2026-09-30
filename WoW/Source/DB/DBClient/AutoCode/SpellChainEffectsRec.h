@@ -4,6 +4,15 @@
 
 class SpellChainEffectsRec {
  public:
+  int    m_ID;
+  float  m_AvgSegLen;
+  float  m_Width;
+  float  m_NoiseScale;
+  float  m_TexCoordScale;
+  int    m_SegDuration;
+  int    m_SegDelay;
+  LPCSTR m_Texture;
+
   SpellChainEffectsRec();
   ~SpellChainEffectsRec();
 
@@ -29,15 +38,6 @@ class SpellChainEffectsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  float  m_AvgSegLen;
-  float  m_Width;
-  float  m_NoiseScale;
-  float  m_TexCoordScale;
-  int    m_SegDuration;
-  int    m_SegDelay;
-  LPCSTR m_Texture;
 };
 
 extern WowClientDB<SpellChainEffectsRec> g_spellChainEffectsDB;

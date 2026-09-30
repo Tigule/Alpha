@@ -4,6 +4,9 @@
 
 class BankBagSlotPricesRec {
  public:
+  int m_ID;
+  int m_Cost;
+
   BankBagSlotPricesRec();
   ~BankBagSlotPricesRec();
 
@@ -29,9 +32,6 @@ class BankBagSlotPricesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_Cost;
 };
 
 extern WowClientDB<BankBagSlotPricesRec> g_bankBagSlotPricesDB;

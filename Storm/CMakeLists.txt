@@ -59,13 +59,10 @@ if(MSVC_VERSION EQUAL 1200)
         Source/SRgn.cpp
         Source/SZip.cpp
         Source/W32/SDir.cpp
+        Source/W32/SInterlocked.cpp
         Source/W32/SLock.cpp
         Source/W32/SThread.cpp
         APPEND_STRING PROPERTY COMPILE_FLAGS " /Ob0")
-
-    set_property(SOURCE
-        Source/SZip.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " /Zp1")
 endif()
 
 target_include_directories(Storm

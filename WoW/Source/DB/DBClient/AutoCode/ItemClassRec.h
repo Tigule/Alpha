@@ -4,6 +4,13 @@
 
 class ItemClassRec {
  public:
+  int    m_classID;
+  int    m_subclassMapID;
+  int    m_flags;
+  LPCSTR m_className_lang[NUM_LOCALES];
+  int    m_className_flag;
+  int    m_generatedID;
+
   ItemClassRec();
   ~ItemClassRec();
 
@@ -30,13 +37,6 @@ class ItemClassRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_classID;
-  int    m_subclassMapID;
-  int    m_flags;
-  LPCSTR m_className_lang[NUM_LOCALES];
-  int    m_className_flag;
-  int    m_generatedID;
 };
 
 extern WowClientDB<ItemClassRec> g_itemClassDB;

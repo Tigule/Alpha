@@ -4,6 +4,14 @@
 
 class LockTypeRec {
  public:
+  int    m_ID;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+  LPCSTR m_resourceName_lang[8];
+  int    m_resourceName_flag;
+  LPCSTR m_verb_lang[8];
+  int    m_verb_flag;
+
   LockTypeRec();
   ~LockTypeRec();
 
@@ -29,14 +37,6 @@ class LockTypeRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_name_lang[8];
-  int    m_name_flag;
-  LPCSTR m_resourceName_lang[8];
-  int    m_resourceName_flag;
-  LPCSTR m_verb_lang[8];
-  int    m_verb_flag;
 };
 
 extern WowClientDB<LockTypeRec> g_lockTypeDB;

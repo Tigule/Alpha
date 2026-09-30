@@ -10,6 +10,11 @@
 #include <string.h>
 
 NODEDECL(MSGBUFFER) {
+  char       *string;
+  float       timeVisible;
+  SYSMSG_TYPE severity;
+  UINT        categoryMask;
+
   MSGBUFFER() : string(0), timeVisible(0.0f), severity(SYSMSG_INFO), categoryMask(0) {
   }
 
@@ -18,11 +23,6 @@ NODEDECL(MSGBUFFER) {
   }
 
   void SetInfo(LPCSTR newString, SYSMSG_TYPE newSeverity, UINT categories);
-
-  char       *string;
-  float       timeVisible;
-  SYSMSG_TYPE severity;
-  UINT        categoryMask;
 };
 
 static LISTDECL(MSGBUFFER, s_msgBuffer);

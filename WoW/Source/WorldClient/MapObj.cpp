@@ -1,10 +1,18 @@
-#include <WowConst.h>
-#include <MapDefs.h>
-
-#include "WorldClient/CMapObj.h"
-#include "WorldClient/World.h"
-
 #include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
+#include <WowConst.h>
+#include "AaBsp.h"
+#include <MapDefs.h>
+#include "Gx/CGxDevice.h"
+
+#include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include "Os/W32/Debugging.h"
 #include "Services/AsyncFileRead.h"
 #include "Services/Texture.h"
@@ -15,20 +23,13 @@
 
 #include <math.h>
 
-TSCArray<NTempest::CRect, 16>      CMapObj::extViewList;
-TSCArray<SPortalExt, 2048>         CMapObj::portalExtList;
-UINT                               CMapObj::DEFAULT_RLEVEL = 10;
-UINT                               CMapObj::maxRLevel = CMapObj::DEFAULT_RLEVEL;
 UINT                               CMapObj::MAX_SOUND_RLEVEL;
-NTempest::C3Vector                 CMapObj::localCamPos;
 CMapObjDef                        *CMapObj::curMapObjDef;
-int                                CMapObj::bIntRender;
 UINT                               CMapObj::sMinimapTag;
 TSHashTable<CMapObj, HASHKEY_NONE> CMapObj::mapObjHash;
 HASHKEY_NONE                       CMapObj::nullHashKey;
-void (*CMapObj::gRenderCallback)(const UINT, LPCVOID, const int);
-LPVOID CMapObj::gRenderUserParam;
-UINT   CMapObj::gRenderCount;
+NTempest::C3Vector                 CMapObj::localCamPos;
+UINT                               CMapObj::gRenderCount;
 
 void CMapObj::Initialize() {
   gRenderCount = 0;

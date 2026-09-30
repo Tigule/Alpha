@@ -660,12 +660,6 @@ namespace OsNet {
   };
 
   NODEDECL(TCPHOSTADDRINFO) {
-    ~TCPHOSTADDRINFO();
-    void Fail() {
-      m_hostAddrProc(0, 0, m_user);
-    }
-    void Complete();
-
     char                    *m_hostNameList;
     char                    *m_hostNameCurr;
     DWORD                    m_infoId;
@@ -674,6 +668,12 @@ namespace OsNet {
     LPVOID                   m_user;
     int                      m_ready;
     TSGrowableArray<NETADDR> m_addrs;
+
+    ~TCPHOSTADDRINFO();
+    void Fail() {
+      m_hostAddrProc(0, 0, m_user);
+    }
+    void Complete();
   };
 
   struct TCPHOSTADDRTHREAD {

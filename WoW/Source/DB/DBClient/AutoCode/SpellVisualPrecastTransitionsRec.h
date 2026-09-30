@@ -4,6 +4,10 @@
 
 class SpellVisualPrecastTransitionsRec {
  public:
+  int    m_ID;
+  LPCSTR m_PrecastLoadAnimName;
+  LPCSTR m_PrecastHoldAnimName;
+
   SpellVisualPrecastTransitionsRec();
   ~SpellVisualPrecastTransitionsRec();
 
@@ -29,10 +33,6 @@ class SpellVisualPrecastTransitionsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_PrecastLoadAnimName;
-  LPCSTR m_PrecastHoldAnimName;
 };
 
 extern WowClientDB<SpellVisualPrecastTransitionsRec> g_spellVisualPrecastTransitionsDB;

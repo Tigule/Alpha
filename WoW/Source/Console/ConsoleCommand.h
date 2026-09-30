@@ -41,12 +41,12 @@ enum EXECMODE {
 typedef BOOL (*CONSOLECOMMANDHANDLER)(LPCSTR command, LPCSTR arguments);
 
 struct CONSOLECOMMAND : public TSHashObject<CONSOLECOMMAND, HASHKEY_CONSTSTRI> {
-  CONSOLECOMMAND() : m_helpText(0) {
-  }
-
   CONSOLECOMMANDHANDLER m_handler;
   LPCSTR                m_helpText;
   CATEGORY              m_category;
+
+  CONSOLECOMMAND() : m_helpText(0) {
+  }
 };
 
 extern EXECMODE                                       g_ExecCreateMode;

@@ -76,104 +76,100 @@ struct _FSOUND_REVERB_CHANNELPROPERTIES;
 
 NODEDECL(Sound) {
  public:
-  Sound();
-  ~Sound();
-
   static int  Initialize(bool (*GetParamInt)(LPCSTR, int &), bool (*GetParamFloat)(LPCSTR, float &), bool (*GetParamString)(LPCSTR, LPCSTR &));
   static void Shutdown();
-  static void SetSoundVolume(float volume);
-  static void SetMusicVolume(float volume);
-  static void SetMasterVolume(float volume);
-  static void MuteSFX(bool m);
-  static int  MIDI_Initialize();
-  static void MIDI_Shutdown();
-  static void MIDI_Play(LPCSTR midiFilename, LPCSTR dlsFilename);
-  static void MIDI_Stop();
-  static void MIDI_SetVolume(float volume);
-  static bool MIDI_Playing();
   static void Update();
-  static void GetListenerPosition(NTempest::C3Vector & position);
   static void SetListenerAttributes(
       const NTempest::C3Vector &worldPosition, const NTempest::C3Vector *worldVelocity, const NTempest::C3Vector &worldForward,
       const NTempest::C3Vector &worldUp
   );
+  static void GetListenerPosition(NTempest::C3Vector & position);
+  static void   SetReverbProperties(const _FSOUND_REVERB_PROPERTIES *reverb);
+  void SetReverbProperties(const _FSOUND_REVERB_CHANNELPROPERTIES *reverb);
   static Sound *Play2D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused);
   static Sound *Play3D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused);
   static Sound *Play2DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused);
   static Sound *Play3DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused);
   static void   KillSound(Sound * &sound);
-  static void   SetReverbProperties(const _FSOUND_REVERB_PROPERTIES *reverb);
-
-  void Stop(float fadeTime);
-  void Stop(UINT fadeTime);
+  bool SetPaused(bool state);
   void SetFadeIn(float fadeTime, float volume);
   void SetFadeIn(UINT fadeTime, float volume);
+  void Set3DUpdateHandle(LONGLONG handle);
+  void SetPosition(const NTempest::C3Vector &worldPosition, const NTempest::C3Vector *vel);
+  void SetPanning(float pan);
+  void SetCutoffDistanceSquared(float distanceSquared);
+  void SetDistances(float min, float max);
+  int  GetLengthMs();
+  int  SetPositionMs(int milliseconds);
   bool IsPlaying();
   bool IsStopping();
   bool IsOutOfRange();
-  void Set3DUpdateHandle(LONGLONG handle);
-  bool SetPaused(bool state);
-  int  GetLengthMs();
-  int  SetPositionMs(int milliseconds);
-  void SetPosition(const NTempest::C3Vector &worldPosition, const NTempest::C3Vector *vel);
-  void SetReverbProperties(const _FSOUND_REVERB_CHANNELPROPERTIES *reverb);
-  void SetPanning(float pan);
-  void SetCutoffDistanceSquared(float distanceSquared);
-  void SetFrequency(int freq);
-  void SetDistances(float min, float max);
+  void Stop(float fadeTime);
+  void Stop(UINT fadeTime);
+ private:
+  void          Stop();
+ public:
   void SetVolume(float volume);
-
+ private:
+  void          SetVolume(int volume);
+ public:
+  void SetFrequency(int freq);
   static int    GetNumOutputSystems();
   static LPCSTR GetOutputSystemName(int index);
   static int    GetNumDrivers();
   static LPCSTR GetDriverName(int index);
   static int    GetNumMixers();
   static LPCSTR GetMixerName(int index);
+  static int  MIDI_Initialize();
+  static void MIDI_Shutdown();
+  static void MIDI_Play(LPCSTR midiFilename, LPCSTR dlsFilename);
+  static void MIDI_Stop();
+  static void MIDI_SetVolume(float volume);
+  static bool MIDI_Playing();
+  static void SetSoundVolume(float volume);
+  static void SetMusicVolume(float volume);
+  static void SetMasterVolume(float volume);
+  static void MuteSFX(bool m);
   static int    GetMixRate();
   static void   SetPositionUpdateCallback(BYTE(*callback)(LONGLONG handle, NTempest::C3Vector & position)) {
     m_positionUpdateCallback = callback;
   }
-
+  Sound();
+  ~Sound();
   LINKDECLEX(Sound, link);
   LINKDECLEX(Sound, fadeLink);
   LINKDECLEX(Sound, updateLink);
   LINKDECLEX(Sound, panningLink);
   LINKDECLEX(Sound, cutoffLink);
   LINKDECLEX(Sound, stopLink);
-
  private:
   static Sound *Alloc(LPCSTR name);
-  static Sound *Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool startPaused, int flags);
-  static Sound *PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCount, UINT mode, bool startPaused, int flags);
-  static bool   DupeCheckFailed(SOUNDCATEGORIES category, LPCSTR fileName, int flags);
-  static void   ProcessStopList();
-  static void   ProcessFadeList();
-  static void   ProcessUpdateList();
-  static void   ProcessPanningList(const NTempest::C3Vector &listenerPos);
-  static void   ProcessCutoffList(const NTempest::C3Vector &listenerPos);
-  void          Stop();
-  int           GetVolume();
-  void          SetVolume(int volume);
-  static void   UpdateSoundVolumes(bool music);
-  void          UpdateVolume();
-  void          UpdatePosition();
-  void          AddToFadeList();
-  void          AddToUpdateList();
-  void          AddToPanningList();
-  void          AddToCutoffList();
-  void          RemoveFromFadeList();
-  void          RemoveFromUpdateList();
-  void          RemoveFromPanningList();
-  void          RemoveFromCutoffList();
-  void          IncrementCategory(SOUNDCATEGORIES category);
-  void          DecrementCategory(SOUNDCATEGORIES category);
-  bool          IsSuspended() const;
   void          Suspend();
   void          Resume();
-
- private:
+  static Sound *Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool startPaused, int flags);
+  static Sound *PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCount, UINT mode, bool startPaused, int flags);
+  int           GetVolume();
+  static void   ProcessStopList();
+  void          AddToFadeList();
+  static void   ProcessFadeList();
+  void          RemoveFromFadeList();
+  void          AddToUpdateList();
+  static void   ProcessUpdateList();
+  void          RemoveFromUpdateList();
+  void          AddToPanningList();
+  static void   ProcessPanningList(const NTempest::C3Vector &listenerPos);
+  void          RemoveFromPanningList();
+  void          AddToCutoffList();
+  static void   ProcessCutoffList(const NTempest::C3Vector &listenerPos);
+  void          RemoveFromCutoffList();
   static BYTE (*m_positionUpdateCallback)(LONGLONG handle, NTempest::C3Vector &position);
-
+  static void   UpdateSoundVolumes(bool music);
+  static bool   DupeCheckFailed(SOUNDCATEGORIES category, LPCSTR fileName, int flags);
+  void          IncrementCategory(SOUNDCATEGORIES category);
+  void          DecrementCategory(SOUNDCATEGORIES category);
+  void          UpdateVolume();
+  void          UpdatePosition();
+  bool          IsSuspended() const;
   int                m_channel;
   void              *m_stream;
   UINT               m_flags;

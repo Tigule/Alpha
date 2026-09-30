@@ -21,6 +21,7 @@ extern const FrameScript_Method s_CameraScriptFunctions[20];
 #include "Ui/GameUI.h"
 #include "Ui/WorldFrame.h"
 #include "WorldClient/World.h"
+#include "WorldClient/Map.h"
 
 #include <Model/IModel.h>
 #include <Base/Coordinate.h>

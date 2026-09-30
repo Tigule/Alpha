@@ -228,17 +228,17 @@ static const ItemSubClassRec                *s_unarmedWeaponSubclass;
 static const SoundProviderPreferencesRec    *s_defaultOutdoorProviderPrefs;
 static const SoundProviderPreferencesRec    *s_defaultIndoorProviderPrefs;
 
-void        StaticDBLoadAll();
-void        CheckDamageClassConsistency();
-void        InitTerrainSoundTypeIDs();
-void        InitWeaponSubclasses();
-void        InitSoundProviderPreferences();
+static void        StaticDBLoadAll();
+static void        CheckDamageClassConsistency();
+static void        InitTerrainSoundTypeIDs();
+static void        InitWeaponSubclasses();
+static void        InitSoundProviderPreferences();
 static void LocateWeaponSubclass();
 
 void SDBItemSubclassInitialize();
 void SDBItemSubclassDestroy();
 
-void CheckDamageClassConsistency() {
+static void CheckDamageClassConsistency() {
   UINT numDamageClasses = g_resistancesDB.GetNumRecords();
 
   s_physicalDamageClassID = -1;
@@ -288,7 +288,7 @@ void CheckDamageClassConsistency() {
   }
 }
 
-void InitTerrainSoundTypeIDs() {
+static void InitTerrainSoundTypeIDs() {
   UINT numTerrainTypes = g_terrainTypeDB.GetMaxID() + 1;
   UINT i;
   s_terrainSoundType.SetCount(numTerrainTypes);
@@ -319,7 +319,7 @@ static void LocateWeaponSubclass() {
     ASSERT(!"Error, at least one entry in the ItemClass has to be a weapon!");
 }
 
-void InitWeaponSubclasses() {
+static void InitWeaponSubclasses() {
   int numWeaponSubclasses = 0;
   int weaponClass;
   int i;
@@ -364,7 +364,7 @@ void InitWeaponSubclasses() {
   }
 }
 
-void InitSoundProviderPreferences() {
+static void InitSoundProviderPreferences() {
   int i;
 
   s_defaultOutdoorProviderPrefs = 0;
@@ -469,7 +469,7 @@ const SoundProviderPreferencesRec *ClientDBGetDefaultOutdoorProviderPrefs() {
   return s_defaultOutdoorProviderPrefs;
 }
 
-void StaticDBLoadAll() {
+static void StaticDBLoadAll() {
   g_groundEffectTextureDB.Load();
   g_groundEffectDoodadDB.Load();
   g_cameraShakesDB.Load();

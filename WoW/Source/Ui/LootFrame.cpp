@@ -27,7 +27,7 @@
 class CGUnit_C;
 
 void   SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit);
-void   CurrencyBreakdown(int money, int *coins);
+void   CurrencyBreakdown(int money, int coins[]);
 LPCSTR CurrencyAbbreviation(int coinType);
 
 static char buffer[MAX_PATH];

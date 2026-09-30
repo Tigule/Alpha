@@ -4,6 +4,12 @@
 
 class LockRec {
  public:
+  int m_ID;
+  int m_Type[4];
+  int m_Index[4];
+  int m_Skill[4];
+  int m_Action[4];
+
   LockRec();
   ~LockRec();
 
@@ -29,12 +35,6 @@ class LockRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_Type[4];
-  int m_Index[4];
-  int m_Skill[4];
-  int m_Action[4];
 };
 
 extern WowClientDB<LockRec> g_lockDB;

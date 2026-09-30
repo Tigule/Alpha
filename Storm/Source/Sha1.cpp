@@ -35,11 +35,11 @@ namespace Private {
     w = 0;
   }
 
-  void Load(DWORD &a, const BYTE *b) {
+  void Load(DWORD &a, const BYTE b[]) {
     a = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
   }
 
-  void Save(DWORDLONG a, BYTE *b) {
+  void Save(DWORDLONG a, BYTE b[]) {
     int i;
 
     for (i = 7; i >= 0; i--) {
@@ -48,7 +48,7 @@ namespace Private {
     }
   }
 
-  void Save(DWORD a, BYTE *b) {
+  void Save(DWORD a, BYTE b[]) {
     int i;
 
     for (i = 3; i >= 0; i--) {
@@ -59,7 +59,7 @@ namespace Private {
 
 }  // namespace Private
 
-void Sha1::Pump(DWORD *hash, const BYTE *data) {
+void Sha1::Pump(DWORD hash[], const BYTE data[]) {
   DWORD w[80];
   int   i;
   DWORD a;

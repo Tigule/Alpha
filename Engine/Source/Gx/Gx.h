@@ -366,6 +366,10 @@ struct CGxFormat {
   friend class CGxDevice;
   friend class CGxDeviceOpenGl;
 
+ private:
+  mutable DWORD apiSpecificModeID;
+
+ public:
   enum Format {
     Fmt_Rgb565 = 0,
     Fmt_ArgbX888 = 1,
@@ -378,10 +382,6 @@ struct CGxFormat {
     Formats_Last = 8
   };
 
- private:
-  mutable DWORD apiSpecificModeID;
-
- public:
   bool                hwTnL;
   bool                fixLag;
   bool                window;
@@ -418,6 +418,12 @@ struct CGxGammaRamp {
     ENTRIES = 256
   };
 
+  WORD red[ENTRIES];
+  WORD green[ENTRIES];
+  WORD blue[ENTRIES];
+
+  void Set(float gamma);
+
   CGxGammaRamp() {
   }
   CGxGammaRamp(float gamma) {
@@ -427,12 +433,6 @@ struct CGxGammaRamp {
     memcpy(this, &ramp, sizeof(*this));
     return *this;
   }
-
-  void Set(float gamma);
-
-  WORD red[ENTRIES];
-  WORD green[ENTRIES];
-  WORD blue[ENTRIES];
 };
 
 struct CGxTexFlags {
@@ -479,10 +479,256 @@ struct CGxTexParmsEx {
   void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &);
 };
 
+class SFile;
+class CParticleEmitter2;
+
+class CGxShaderParam {
+  friend class CGxShader;
+  friend class CGxDeviceD3d;
+  friend class CGxDeviceOpenGl;
+  static const UINT TypeCountTable[];
+
+ public:
+  enum Type {
+    Type_Vector4 = 0,
+    Type_Matrix34 = 1,
+    Type_Matrix44 = 2,
+    Type_Force32Bit = -1
+  };
+
+  enum {
+    NAME_LEN = 0x20
+  };
+
+ protected:
+  char  name[NAME_LEN];
+  Type  type;
+  UINT  index;
+  int   dirty;
+  float f[16];
+  LINKDECLEX(CGxShaderParam, lameAssLink);
+
+  void Set(const NTempest::C4Vector &v);
+  void Set(const NTempest::C34Matrix &m);
+  void Set(const NTempest::C44Matrix &m);
+  void Read(SFile *file);
+
+ public:
+  CGxShaderParam() : dirty(0) {
+    for (UINT i = 0; i < 16; ++i) {
+      f[i] = 0.0f;
+    }
+  }
+
+  LPCSTR GetName() const {
+    return name;
+  }
+
+  Type GetType() const {
+    return type;
+  }
+};
+
+class CGxShader {
+  friend class CGxDevice;
+  friend class CGxDeviceD3d;
+  friend class CGxDeviceOpenGl;
+ protected:
+  typedef LISTEX(CGxShaderParam, lameAssLink) ParamList;
+ private:
+  UINT refCount;
+ protected:
+  UINT apiSpecific;
+  int  valid;
+  int  paramsDirty;
+
+  void Read(SFile *file);
+
+  LISTDECLEX(CGxShaderParam, lameAssLink, consts);
+  LISTDECLEX(CGxShaderParam, lameAssLink, params);
+  TSGrowableArray<BYTE> code;
+
+  struct DirEntry {
+    UINT start;
+    UINT count;
+  };
+
+ public:
+  CGxShader() : refCount(0), apiSpecific(0), valid(0), paramsDirty(0) {
+  }
+
+  ~CGxShader();
+
+  int Valid() {
+    return valid;
+  }
+
+  CGxShaderParam *GetFirstParam();
+  CGxShaderParam *GetNextParam(CGxShaderParam *p);
+  CGxShaderParam *GetParam(LPCSTR name);
+
+  void            SetParam(CGxShaderParam *p, const NTempest::C4Vector &v);
+  void            SetParam(CGxShaderParam *p, const NTempest::C34Matrix &m);
+  void            SetParam(CGxShaderParam *p, const NTempest::C44Matrix &m);
+};
+
+class CGxPixelShader : public CGxShader, public TSHashObject<CGxPixelShader, HASHKEY_STRI> {
+ public:
+  enum {
+    Magic = 'GXPS'
+  };
+
+  enum {
+    Version = 0x10001
+  };
+
+  enum Target {
+    Target_default = -2,
+    Target_gx = -1,
+    Target_ps_1_1 = 0,
+    Target_ps_1_2 = 1,
+    Target_ps_1_3 = 2,
+    Target_ps_1_4 = 3,
+    Target_ps_2_0 = 4,
+    Target_nvrc = 5,
+    Target_nvts = 6,
+    Target_nvts2 = 7,
+    Target_nvts3 = 8,
+    Target_atifs = 9,
+    Target_arbfp1 = 10,
+    Targets_Last = 11
+  };
+};
+
+class CGxVertexShader : public CGxShader, public TSHashObject<CGxVertexShader, HASHKEY_STRI> {
+ public:
+  enum {
+    Magic = 'GXVS'
+  };
+
+  enum {
+    Version = 0x10001
+  };
+
+  enum Target {
+    Target_default = -2,
+    Target_gx = -1,
+    Target_vs_1_1 = 0,
+    Target_vs_2_0 = 1,
+    Target_arbvp1 = 2,
+    Targets_Last = 3
+  };
+};
+
+class CGxCaps {
+ public:
+  UINT                    m_numTmus;
+  int                     m_pixelCenterOnEdge;
+  int                     m_texelCenterOnEdge;
+  UINT                    m_maxTextureSize;
+  int                     m_texOpAdd;
+  int                     m_texOpMod2X;
+  EGxColorFormat          m_colorFormat;
+  int                     m_texFmtDxt;
+  UINT                    m_maxIndex;
+  int                     m_generateMipMaps;
+  int                     m_rttFormat[8];
+  int                     m_rttOriginUpperLeft;
+  CGxPixelShader::Target  m_pixelShaderTarget;
+  CGxVertexShader::Target m_vertexShaderTarget;
+  int                     m_texFilterTrilinear;
+  int                     m_texFilterAnisotropic;
+  UINT                    m_maxTexAnisotropy;
+  int                     m_depthBias;
+  int                     m_mipMapLodBias;
+};
+
+struct CGxBuf {
+  enum Status {
+    S_VALID = 0,
+    S_INVALID_DISCARD = 1,
+    S_INVALID_RELOAD = 2
+  };
+
+  static const UINT BASE_NONE;
+
+ protected:
+  friend class CGxDevice;
+  friend class CGxIndexBuffer;
+  friend class CGxVertexBuffer;
+  friend class CParticleEmitter2;
+
+  LINKDECLEX(CGxBuf, linkGx);
+  LINKDECLEX(CGxBuf, linkVB);
+  LINKDECLEX(CGxBuf, linkIB);
+  EGxBufWriteFreq       m_writeFreq;
+  EGxVertexBufferFormat m_vbFormat;
+  UINT                  m_numVertices;
+  UINT                  m_numIndices;
+  void (*m_userCallback)(CGxBufCommand &, CGxBuf *);
+  LPVOID m_userArg;
+  UINT   m_vertexBase;
+  UINT   m_indexBase;
+  Status m_vertexStatus;
+  Status m_indexStatus;
+
+  CGxBuf(const CGxBuf &);
+  const CGxBuf &operator=(const CGxBuf &);
+
+  UINT writeFrameTag;
+
+ public:
+  CGxBuf();
+  void Invalidate(Status vertexStatus, Status indexStatus);
+
+  UINT VertexCount() const {
+    return m_numVertices;
+  }
+
+  UINT IndexCount() const {
+    return m_numIndices;
+  }
+
+  void CountSet(UINT numVertices, UINT numIndices);
+
+  LPVOID UserArg() const {
+    return m_userArg;
+  }
+
+  void UserArgSet(LPVOID userArg) {
+    m_userArg = userArg;
+  }
+
+  void (*UserCallback() const)(CGxBufCommand &, CGxBuf *) {
+    return m_userCallback;
+  }
+
+  void UserCallbackSet(void (*userCallback)(CGxBufCommand &, CGxBuf *)) {
+    m_userCallback = userCallback;
+  }
+};
+
+class CGxLight {
+ public:
+  CGxLight();
+
+  int                 m_enabled : 1;
+  int                 m_isOmni : 1;
+  NTempest::C3Vector  m_dir;
+  NTempest::CImVector m_ambColor;
+  NTempest::CImVector m_dirColor;
+  NTempest::CImVector m_specColor;
+  float               m_ambIntensity;
+  float               m_dirIntensity;
+  float               m_specIntensity;
+  float               m_constantAttenuation;
+  float               m_linearAttenuation;
+  float               m_quadraticAttenuation;
+  float               m_attenStart;
+  float               m_attenEnd;
+};
+
 class CGxDevice;
-class CGxLight;
-struct CGxBuf;
-class CGxPixelShader;
 class CGxTex;
 
 typedef long (*GXWINDOWPROC)(LPVOID, UINT, UINT, long);
@@ -545,8 +791,8 @@ void GxuXformCreateLookAtSgCompat(
     NTempest::C44Matrix      &dst
 );
 void GxuXformCreateLookAtXXX(const NTempest::C3Vector &eye, const NTempest::C3Vector &center, const NTempest::C3Vector &up, NTempest::C44Matrix &dst);
-void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest::C44Matrix &proj, NTempest::C3Vector *corners);
-void GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector *planes);
+void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest::C44Matrix &proj, NTempest::C3Vector corners[]);
+void GxuXformCalcFrustumPlanes(const NTempest::C44Matrix &viewProj, NTempest::C4Vector planes[]);
 void GxuXformCalcFrustumBounds(
     const NTempest::C44Matrix &view,
     const NTempest::C44Matrix &proj,
@@ -573,7 +819,7 @@ BOOL GxuTestRayAndSphere(
     float                     sphereRadius,
     float                    &distance
 );
-BOOL GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector *planes);
+BOOL GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &center, float radius, const NTempest::C4Vector planes[]);
 BOOL GxuTestRayAndTriangle(
     const NTempest::C3Vector &rayStart,
     const NTempest::C3Vector &rayDirection,
@@ -611,7 +857,7 @@ BOOL GxuTestRayAndRigidMeshInModelSpace(
     UINT                     &primIntersected
 );
 UINT           GxuClipCalcCode(const NTempest::C44Matrix &viewProj, const NTempest::C3Vector &pos);
-void           GxuSnapTexelsToPixels(const NTempest::C3Vector *pos, NTempest::C2Vector *tex, UINT texW, UINT texH);
+void           GxuSnapTexelsToPixels(const NTempest::C3Vector pos[], NTempest::C2Vector tex[], UINT texW, UINT texH);
 const CGxCaps &GxCaps();
 BlitFormat     GxGetBlitFormat(EGxTexFormat texFormat);
 UINT           GxVertexSize(EGxVertexBufferFormat format);

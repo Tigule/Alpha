@@ -15,7 +15,7 @@ BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status);
 BOOL  MDLFileRead(LPCSTR path, MDLDATA *data, CStatus *status);
 
-CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTION *textures, UINT flags, CStatus *status);
+static CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTION *textures, UINT flags, CStatus *status);
 static CParticleEmitter2 *
 CreateEmitter(const MDLPARTICLEEMITTER2 &emitterData, const TSGrowableArray<MDLTEXTURESECTION> &textures, UINT flags, CStatus *status);
 HTEXTURE LoadModelTexture(LPCSTR texturePath, UINT modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
@@ -110,7 +110,7 @@ static UINT GetEmitterFlags(const BYTE *emitterData) {
   return *reinterpret_cast<const UINT *>(emitterData + 0x5C);
 }
 
-UINT SetParticleStyle(const BYTE *emitterData, UINT flags, CParticleEmitter2 *emitter) {
+static UINT SetParticleStyle(const BYTE *emitterData, UINT flags, CParticleEmitter2 *emitter) {
   const UINT  style = *reinterpret_cast<const UINT *>(emitterData);
   const float tailLength = *reinterpret_cast<const float *>(emitterData + 4);
 
@@ -188,7 +188,7 @@ static BYTE *SetKeyColors(BYTE *emitterData, CParticleKey *key1, CParticleKey *k
   return const_cast<BYTE *>(alpha + 3);
 }
 
-BYTE *SetParticleKeys(BYTE *emitterData, float lifeSpan, CParticleEmitter2 *emitter) {
+static BYTE *SetParticleKeys(BYTE *emitterData, float lifeSpan, CParticleEmitter2 *emitter) {
   CParticleKey key2;
   CParticleKey key1;
   float        middleScale;
@@ -398,7 +398,7 @@ static void CreateChildEmitter(const MDLPARTICLEEMITTER2 &emitterData, UINT flag
   }
 }
 
-BYTE *SetParticleTumble(BYTE *emitterData, CParticleEmitter2 *emitter) {
+static BYTE *SetParticleTumble(BYTE *emitterData, CParticleEmitter2 *emitter) {
   const float *tumble = reinterpret_cast<const float *>(emitterData);
   emitter->SetTumbleX(NTempest::C2Vector(tumble[0], tumble[1]));
   emitter->SetTumbleY(NTempest::C2Vector(tumble[2], tumble[3]));
@@ -464,7 +464,7 @@ CreateEmitter(const MDLPARTICLEEMITTER2 &emitterData, const TSGrowableArray<MDLT
   return emitter;
 }
 
-CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTION *textures, UINT flags, CStatus *status) {
+static CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTION *textures, UINT flags, CStatus *status) {
   const UINT emitterFlags = GetEmitterFlags(emitterData);
   BYTE      *cursor = emitterData;
   cursor += *reinterpret_cast<UINT *>(cursor) + 4;

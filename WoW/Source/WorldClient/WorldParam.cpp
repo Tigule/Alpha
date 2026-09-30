@@ -5,6 +5,7 @@
 #include "WorldParam.h"
 
 #include "World.h"
+#include "Map.h"
 
 #include <Console/ConsoleClient.h>
 #include <Console/ConsoleVar.h>

@@ -1,13 +1,7 @@
 #include "SpellCastTimesRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR SpellCastTimesRec::GetFilename() {
   return "DBFilesClient\\SpellCastTimes.dbc";
@@ -20,16 +14,14 @@ SpellCastTimesRec::~SpellCastTimesRec() {
 }
 
 bool SpellCastTimesRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_base, sizeof(m_base), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_perLevel, sizeof(m_perLevel), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_minimum, sizeof(m_minimum), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_base) ||
+      !SFileReadTyped(f, &m_perLevel) ||
+      !SFileReadTyped(f, &m_minimum)) {
     ConsoleWrite("Error reading SpellCastTimesRec", DEFAULT_COLOR);
+    return false;
   }
 
-  return result;
+  return true;
 }

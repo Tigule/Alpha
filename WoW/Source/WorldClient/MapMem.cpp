@@ -1,37 +1,45 @@
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
+#include "Gx/CGxDevice.h"
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
 
-#include "Base/Base.h"
 #include "SoundInterface/SoundInterface.h"
 
 int CMap::counts[Cnt_Num];
 int CMap::freeCounts[Cnt_Num];
-LISTDECLEX(CMapObjGroup, lameAssLink, CMap::mapObjGroupFreeList);
-LISTDECLEX(CMapChunk, lameAssLink, CMap::chunkList);
-LISTDECLEX(CMapLight, lameAssLink, CMap::lightList);
-TSHashTable<CMapObjDef, HASHKEY_NONE> CMap::mapObjDefHash;
-LISTDECLEX(CMapCacheLight, lameAssLink, CMap::cacheLightFreeList);
-LISTDECLEX(CMapLight, lameAssLink, CMap::lightFreeList);
 LISTDECLEX(CMapBaseObjLink, ownerLink, CMap::baseObjLinkFreeList);
+LISTDECLEX(CMapObjGroup, lameAssLink, CMap::mapObjGroupFreeList);
 LISTDECLEX(CMapObj, lameAssLink, CMap::mapObjFreeList);
+LISTDECLEX(CMapArea, lameAssLink, CMap::areaFreeList);
+LISTDECLEX(CMapChunk, lameAssLink, CMap::chunkFreeList);
 LISTDECLEX(CMapDoodadDef, lameAssLink, CMap::doodadDefFreeList);
 LISTDECLEX(CMapEntity, lameAssLink, CMap::entityFreeList);
-LISTDECLEX(CMapEntity, lameAssLink, CMap::entityList);
-LISTDECLEX(CMapArea, lameAssLink, CMap::areaFreeList);
-LISTDECLEX(CMapArea, lameAssLink, CMap::areaList);
-LISTDECLEX(CMapChunk, lameAssLink, CMap::chunkFreeList);
-TSHashTable<CMapDoodadDef, HASHKEY_DWORD> CMap::doodadDefHash;
-LISTDECLEX(CChunkLiquid, lameAssLink, CMap::chunkLiquidList);
+LISTDECLEX(CMapLight, lameAssLink, CMap::lightFreeList);
+LISTDECLEX(CMapObjDefGroup, lameAssLink, CMap::mapObjDefGroupFreeList);
+LISTDECLEX(CMapObjDef, lameAssLink, CMap::mapObjDefFreeList);
 LISTDECLEX(CChunkLiquid, lameAssLink, CMap::chunkLiquidFreeList);
 LISTDECLEX(CMapSoundEmitter, lameAssLink, CMap::soundEmitterFreeList);
-LISTDECLEX(CMapObjDefGroup, lameAssLink, CMap::mapObjDefGroupFreeList);
-LISTDECLEX(CMapObjDefGroup, lameAssLink, CMap::mapObjDefGroupList);
-LISTDECLEX(CMapObjDef, lameAssLink, CMap::mapObjDefFreeList);
+LISTDECLEX(CMapCacheLight, lameAssLink, CMap::cacheLightFreeList);
 LISTDECL(CChunkLayer, CMap::chunkLayerFreeList);
 LISTDECL(CChunkTex, CMap::chunkTexFreeList);
+LISTDECLEX(CMapArea, lameAssLink, CMap::areaList);
+LISTDECLEX(CMapChunk, lameAssLink, CMap::chunkList);
+TSHashTable<CMapDoodadDef, HASHKEY_DWORD> CMap::doodadDefHash;
+LISTDECLEX(CMapEntity, lameAssLink, CMap::entityList);
+LISTDECLEX(CMapLight, lameAssLink, CMap::lightList);
+LISTDECLEX(CMapObjDefGroup, lameAssLink, CMap::mapObjDefGroupList);
+TSHashTable<CMapObjDef, HASHKEY_NONE> CMap::mapObjDefHash;
+LISTDECLEX(CChunkLiquid, lameAssLink, CMap::chunkLiquidList);
 
 CMapObj *CMap::AllocMapObj() {
   CMapObj *mapObj = mapObjFreeList.Head();

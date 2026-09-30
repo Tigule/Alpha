@@ -24,7 +24,7 @@ static TOKENFLAG s_textureFlags[2] = {
     {0x2, 0x1DC}
 };
 
-void IWriteTextureFlags(UINT flags, TSGrowableArray<char> &buffer) {
+static void IWriteTextureFlags(UINT flags, TSGrowableArray<char> &buffer) {
   for (UINT i = 0; i < 2; ++i) {
     if (flags & s_textureFlags[i].mask) {
       MDL::WriteLine(buffer, "\t\t%s,\n", MDL::TokenText(s_textureFlags[i].token));

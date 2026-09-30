@@ -4,6 +4,14 @@
 
 class FactionRec {
  public:
+  int    m_ID;
+  int    m_reputationIndex;
+  int    m_reputationRaceMask[4];
+  int    m_reputationClassMask[4];
+  int    m_reputationBase[4];
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+
   FactionRec();
   ~FactionRec();
 
@@ -29,14 +37,6 @@ class FactionRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_reputationIndex;
-  int    m_reputationRaceMask[4];
-  int    m_reputationClassMask[4];
-  int    m_reputationBase[4];
-  LPCSTR m_name_lang[8];
-  int    m_name_flag;
 };
 
 extern WowClientDB<FactionRec> g_factionDB;

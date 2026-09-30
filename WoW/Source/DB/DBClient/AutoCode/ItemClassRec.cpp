@@ -1,13 +1,7 @@
 #include "ItemClassRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR ItemClassRec::GetFilename() {
   return "DBFilesClient\\ItemClass.dbc";
@@ -20,23 +14,20 @@ ItemClassRec::~ItemClassRec() {
 }
 
 bool ItemClassRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempclassName_langIndices[NUM_LOCALES];
 
-  result = SFile::Read(f, &m_classID, sizeof(m_classID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_subclassMapID, sizeof(m_subclassMapID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_flags, sizeof(m_flags), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempclassName_langIndices[0], sizeof(tempclassName_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempclassName_langIndices[1], sizeof(tempclassName_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempclassName_langIndices[2], sizeof(tempclassName_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempclassName_langIndices[3], sizeof(tempclassName_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempclassName_langIndices[4], sizeof(tempclassName_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempclassName_langIndices[5], sizeof(tempclassName_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempclassName_langIndices[6], sizeof(tempclassName_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempclassName_langIndices[7], sizeof(tempclassName_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_className_flag, sizeof(m_className_flag), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_classID) ||
+      !SFileReadTyped(f, &m_subclassMapID) ||
+      !SFileReadTyped(f, &m_flags) ||
+      !SFileReadTyped(f, &tempclassName_langIndices[0]) ||
+      !SFileReadTyped(f, &tempclassName_langIndices[1]) ||
+      !SFileReadTyped(f, &tempclassName_langIndices[2]) ||
+      !SFileReadTyped(f, &tempclassName_langIndices[3]) ||
+      !SFileReadTyped(f, &tempclassName_langIndices[4]) ||
+      !SFileReadTyped(f, &tempclassName_langIndices[5]) ||
+      !SFileReadTyped(f, &tempclassName_langIndices[6]) ||
+      !SFileReadTyped(f, &tempclassName_langIndices[7]) ||
+      !SFileReadTyped(f, &m_className_flag)) {
     ConsoleWrite("Error reading ItemClassRec", DEFAULT_COLOR);
     return false;
   }

@@ -4,6 +4,15 @@
 
 class TaxiPathNodeRec {
  public:
+  int   m_ID;
+  int   m_PathID;
+  int   m_NodeIndex;
+  int   m_ContinentID;
+  float m_LocX;
+  float m_LocY;
+  float m_LocZ;
+  int   m_flags;
+
   TaxiPathNodeRec();
   ~TaxiPathNodeRec();
 
@@ -29,15 +38,6 @@ class TaxiPathNodeRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int   m_ID;
-  int   m_PathID;
-  int   m_NodeIndex;
-  int   m_ContinentID;
-  float m_LocX;
-  float m_LocY;
-  float m_LocZ;
-  int   m_flags;
 };
 
 extern WowClientDB<TaxiPathNodeRec> g_taxiPathNodeDB;

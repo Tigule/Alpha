@@ -4,6 +4,12 @@
 
 class VocalUISoundsRec {
  public:
+  int m_ID;
+  int m_vocalUIEnum;
+  int m_raceID;
+  int m_NormalSoundID[2];
+  int m_PissedSoundID[2];
+
   VocalUISoundsRec();
   ~VocalUISoundsRec();
 
@@ -29,12 +35,6 @@ class VocalUISoundsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_vocalUIEnum;
-  int m_raceID;
-  int m_NormalSoundID[2];
-  int m_PissedSoundID[2];
 };
 
 extern WowClientDB<VocalUISoundsRec> g_vocalUISoundsDB;

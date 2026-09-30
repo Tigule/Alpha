@@ -1,13 +1,7 @@
 #include "SoundEntriesRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR SoundEntriesRec::GetFilename() {
   return "DBFilesClient\\SoundEntries.dbc";
@@ -20,38 +14,35 @@ SoundEntriesRec::~SoundEntriesRec() {
 }
 
 bool SoundEntriesRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempnameIndices[1];
   UINT tempFileIndices[10];
   UINT tempDirectoryBaseIndices[1];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_soundType, sizeof(m_soundType), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempnameIndices[0], sizeof(tempnameIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[0], sizeof(tempFileIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[1], sizeof(tempFileIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[2], sizeof(tempFileIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[3], sizeof(tempFileIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[4], sizeof(tempFileIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[5], sizeof(tempFileIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[6], sizeof(tempFileIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[7], sizeof(tempFileIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[8], sizeof(tempFileIndices[8]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFileIndices[9], sizeof(tempFileIndices[9]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Freq[0], sizeof(m_Freq), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempDirectoryBaseIndices[0], sizeof(tempDirectoryBaseIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_volumeFloat, sizeof(m_volumeFloat), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_pitch, sizeof(m_pitch), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_pitchVariation, sizeof(m_pitchVariation), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_priority, sizeof(m_priority), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_channel, sizeof(m_channel), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_flags, sizeof(m_flags), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_minDistance, sizeof(m_minDistance), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_maxDistance, sizeof(m_maxDistance), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_distanceCutoff, sizeof(m_distanceCutoff), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_EAXDef, sizeof(m_EAXDef), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_soundType) ||
+      !SFileReadTyped(f, &tempnameIndices[0]) ||
+      !SFileReadTyped(f, &tempFileIndices[0]) ||
+      !SFileReadTyped(f, &tempFileIndices[1]) ||
+      !SFileReadTyped(f, &tempFileIndices[2]) ||
+      !SFileReadTyped(f, &tempFileIndices[3]) ||
+      !SFileReadTyped(f, &tempFileIndices[4]) ||
+      !SFileReadTyped(f, &tempFileIndices[5]) ||
+      !SFileReadTyped(f, &tempFileIndices[6]) ||
+      !SFileReadTyped(f, &tempFileIndices[7]) ||
+      !SFileReadTyped(f, &tempFileIndices[8]) ||
+      !SFileReadTyped(f, &tempFileIndices[9]) ||
+      !SFile::Read(f, &m_Freq[0], sizeof(m_Freq), 0, 0, 0) ||
+      !SFileReadTyped(f, &tempDirectoryBaseIndices[0]) ||
+      !SFileReadTyped(f, &m_volumeFloat) ||
+      !SFileReadTyped(f, &m_pitch) ||
+      !SFileReadTyped(f, &m_pitchVariation) ||
+      !SFileReadTyped(f, &m_priority) ||
+      !SFileReadTyped(f, &m_channel) ||
+      !SFileReadTyped(f, &m_flags) ||
+      !SFileReadTyped(f, &m_minDistance) ||
+      !SFileReadTyped(f, &m_maxDistance) ||
+      !SFileReadTyped(f, &m_distanceCutoff) ||
+      !SFileReadTyped(f, &m_EAXDef)) {
     ConsoleWrite("Error reading SoundEntriesRec", DEFAULT_COLOR);
     return false;
   }

@@ -1,13 +1,7 @@
 #include "AreaTableRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR AreaTableRec::GetFilename() {
   return "DBFilesClient\\AreaTable.dbc";
@@ -20,33 +14,30 @@ AreaTableRec::~AreaTableRec() {
 }
 
 bool AreaTableRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempAreaName_langIndices[8];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_AreaNumber, sizeof(m_AreaNumber), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_ContinentID, sizeof(m_ContinentID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_ParentAreaNum, sizeof(m_ParentAreaNum), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_AreaBit, sizeof(m_AreaBit), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_flags, sizeof(m_flags), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SoundProviderPref, sizeof(m_SoundProviderPref), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SoundProviderPrefUnderwater, sizeof(m_SoundProviderPrefUnderwater), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_MIDIAmbience, sizeof(m_MIDIAmbience), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_MIDIAmbienceUnderwater, sizeof(m_MIDIAmbienceUnderwater), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_ZoneMusic, sizeof(m_ZoneMusic), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_IntroSound, sizeof(m_IntroSound), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_IntroPriority, sizeof(m_IntroPriority), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempAreaName_langIndices[0], sizeof(tempAreaName_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempAreaName_langIndices[1], sizeof(tempAreaName_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempAreaName_langIndices[2], sizeof(tempAreaName_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempAreaName_langIndices[3], sizeof(tempAreaName_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempAreaName_langIndices[4], sizeof(tempAreaName_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempAreaName_langIndices[5], sizeof(tempAreaName_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempAreaName_langIndices[6], sizeof(tempAreaName_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempAreaName_langIndices[7], sizeof(tempAreaName_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_AreaName_flag, sizeof(m_AreaName_flag), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_AreaNumber) ||
+      !SFileReadTyped(f, &m_ContinentID) ||
+      !SFileReadTyped(f, &m_ParentAreaNum) ||
+      !SFileReadTyped(f, &m_AreaBit) ||
+      !SFileReadTyped(f, &m_flags) ||
+      !SFileReadTyped(f, &m_SoundProviderPref) ||
+      !SFileReadTyped(f, &m_SoundProviderPrefUnderwater) ||
+      !SFileReadTyped(f, &m_MIDIAmbience) ||
+      !SFileReadTyped(f, &m_MIDIAmbienceUnderwater) ||
+      !SFileReadTyped(f, &m_ZoneMusic) ||
+      !SFileReadTyped(f, &m_IntroSound) ||
+      !SFileReadTyped(f, &m_IntroPriority) ||
+      !SFileReadTyped(f, &tempAreaName_langIndices[0]) ||
+      !SFileReadTyped(f, &tempAreaName_langIndices[1]) ||
+      !SFileReadTyped(f, &tempAreaName_langIndices[2]) ||
+      !SFileReadTyped(f, &tempAreaName_langIndices[3]) ||
+      !SFileReadTyped(f, &tempAreaName_langIndices[4]) ||
+      !SFileReadTyped(f, &tempAreaName_langIndices[5]) ||
+      !SFileReadTyped(f, &tempAreaName_langIndices[6]) ||
+      !SFileReadTyped(f, &tempAreaName_langIndices[7]) ||
+      !SFileReadTyped(f, &m_AreaName_flag)) {
     ConsoleWrite("Error reading AreaTableRec", DEFAULT_COLOR);
     return false;
   }

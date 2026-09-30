@@ -51,12 +51,12 @@ static void          SynthesizeIdle(EvtContext *context);
 static void          SynthesizePoll(EvtContext *context);
 static void          SynthesizePaint(EvtContext *context);
 static UINT          InitializeSchedulerThread();
-void                 DestroySchedulerThread(UINT hThread);
-void                 DetachContextFromThread(UINT hThread, EvtContext *context);
+static void                 DestroySchedulerThread(UINT hThread);
+static void                 DetachContextFromThread(UINT hThread, EvtContext *context);
 static EvtContext   *GetNextContext(UINT hThread);
 static SEvent       *GetWakeEvent(UINT hThread);
-void                 PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
-HEVENTCONTEXT        AttachContextToThread(EvtContext *context);
+static void                 PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight);
+static HEVENTCONTEXT        AttachContextToThread(EvtContext *context);
 static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread);
 static UINT APIENTRY ShutdownThreadProc(LPVOID pEvent);
 
@@ -163,7 +163,7 @@ static UINT InitializeSchedulerThread() {
   return bestSlot;
 }
 
-void DestroySchedulerThread(UINT hThread) {
+static void DestroySchedulerThread(UINT hThread) {
   TSGrowableArray<EvtContext *> contextArray;
   EvtContext                   *context;
   EvtThread                    *thread;
@@ -200,7 +200,7 @@ void DestroySchedulerThread(UINT hThread) {
   }
 }
 
-HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
+static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
   EvtThread              *thread;
   EvtContextQueue        *queue;
   TSTimerPriority<DWORD> *priority;
@@ -242,7 +242,7 @@ HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
   return reinterpret_cast<HEVENTCONTEXT>(contextId);
 }
 
-void DetachContextFromThread(UINT hThread, EvtContext *context) {
+static void DetachContextFromThread(UINT hThread, EvtContext *context) {
   EvtThread *thread;
   UINT       amount;
 
@@ -288,7 +288,7 @@ static SEvent *GetWakeEvent(UINT hThread) {
   return &thread->m_wakeEvent;
 }
 
-void PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
+static void PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
   TSTimerPriority<DWORD> *priority = &context->m_schedNextWakeTime;
   EvtThread              *thread;
   EvtThread              *bestThread;

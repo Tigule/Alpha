@@ -17,6 +17,10 @@ namespace NTempest {
 typedef int (*PARTICLEPROJECTCALLBACK)(const NTempest::C3Segment &segment, float &distance);
 
 class CParticleStack {
+ private:
+  TSGrowableArray<UINT> m_stack;
+  UINT                  m_stackPointer;
+
  public:
   CParticleStack() : m_stackPointer(0) {
   }
@@ -71,10 +75,6 @@ class CParticleStack {
   UINT operator[](UINT index) const {
     return m_stack[index];
   }
-
- private:
-  TSGrowableArray<UINT> m_stack;
-  UINT                  m_stackPointer;
 };
 
 class ParticleSystemManager {

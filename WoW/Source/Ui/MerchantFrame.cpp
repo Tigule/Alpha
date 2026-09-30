@@ -29,7 +29,7 @@ VendorItem CGMerchantInfo::m_items[128];
 int        CGMerchantInfo::m_itemCount;
 UINT       CGMerchantInfo::m_callbackCount;
 
-void MerchantItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
+static void MerchantItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
   CGMerchantInfo::DecrementCallbackCount();
 }
 

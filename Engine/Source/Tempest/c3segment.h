@@ -8,6 +8,9 @@ namespace NTempest {
 
   class C3Segment {
    public:
+    C3Vector start;
+    C3Vector end;
+
     C3Segment() {
     }
 
@@ -17,9 +20,6 @@ namespace NTempest {
     C3Vector Direction() const;
     C3Vector Point(float distance) const;
     CAaBox   AaBox() const;
-
-    C3Vector start;
-    C3Vector end;
   };
 
 }  // namespace NTempest

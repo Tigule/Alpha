@@ -58,9 +58,9 @@ struct FILENAMEENTRY {
 struct WEAPONSOUNDS {
   WEAPONSOUNDS();
   WEAPONSOUNDS(const WEAPONSOUNDS &rhs);
-  ~WEAPONSOUNDS();
 
   const WEAPONSOUNDS &operator=(const WEAPONSOUNDS &rhs);
+  ~WEAPONSOUNDS();
   void                Clear();
 
   UINT soundList[2];
@@ -89,22 +89,6 @@ struct Sound;
 
 struct SOUNDDEFINITION : public TSHashObject<SOUNDDEFINITION, HASHKEY_NONE> {
  public:
-  SOUNDDEFINITION();
-  SOUNDDEFINITION(const SOUNDDEFINITION &rhs);
-  ~SOUNDDEFINITION();
-
-  const SOUNDDEFINITION &operator=(const SOUNDDEFINITION &rhs);
-
-  LPCSTR GetRandomFileName(int index);
-  int    GetOsFlags() const;
-  void   Set3DParams(Sound *sound, const NTempest::C3Vector *pos);
-  void   SetFrequencyAndVolume(Sound *sound, float volumeScaler, bool neverVaryVolume) const;
-
- private:
-  float GetVolume(float volumeScale, bool neverVary) const;
-  void  Clear();
-
- public:
   TSCArray<FILENAMEENTRY, 10> m_fileNames;
   float                       m_volume;
   float                       m_pitch;
@@ -121,6 +105,22 @@ struct SOUNDDEFINITION : public TSHashObject<SOUNDDEFINITION, HASHKEY_NONE> {
   UINT                        m_primeStepIndex;
   int                         m_equalFreqs;
   int                         m_reverbPrefIndex;
+
+  SOUNDDEFINITION();
+  SOUNDDEFINITION(const SOUNDDEFINITION &rhs);
+  ~SOUNDDEFINITION();
+
+  const SOUNDDEFINITION &operator=(const SOUNDDEFINITION &rhs);
+
+  LPCSTR GetRandomFileName(int index);
+  void   SetFrequencyAndVolume(Sound *sound, float volumeScaler, bool neverVaryVolume) const;
+  void   Set3DParams(Sound *sound, const NTempest::C3Vector *pos);
+  int    GetOsFlags() const;
+
+ private:
+  float GetVolume(float volumeScale, bool neverVary) const;
+  void  Clear();
+
 };
 
 struct SHEATHSOUNDHASH : public TSHashObject<SHEATHSOUNDHASH, HASHKEY_NONE> {
@@ -133,11 +133,11 @@ struct UISOUNDLOOKUP : public TSHashObject<UISOUNDLOOKUP, HASHKEY_STRI> {
 };
 
 struct REVERBINFO {
-  REVERBINFO() : inUse(0) {
-  }
-
   BYTE                             inUse;
   _FSOUND_REVERB_CHANNELPROPERTIES prefs;
+
+  REVERBINFO() : inUse(0) {
+  }
 };
 
 extern TSHashTable<SHEATHSOUNDHASH, HASHKEY_NONE> g_sheathSoundList;

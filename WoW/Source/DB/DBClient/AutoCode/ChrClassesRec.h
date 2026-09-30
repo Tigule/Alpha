@@ -4,6 +4,14 @@
 
 class ChrClassesRec {
  public:
+  int    m_ID;
+  int    m_PlayerClass;
+  int    m_DamageBonusStat;
+  int    m_DisplayPower;
+  LPCSTR m_petNameToken;
+  LPCSTR m_name_lang[NUM_LOCALES];
+  int    m_name_flag;
+
   ChrClassesRec();
   ~ChrClassesRec();
 
@@ -29,14 +37,6 @@ class ChrClassesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_PlayerClass;
-  int    m_DamageBonusStat;
-  int    m_DisplayPower;
-  LPCSTR m_petNameToken;
-  LPCSTR m_name_lang[NUM_LOCALES];
-  int    m_name_flag;
 };
 
 extern WowClientDB<ChrClassesRec> g_chrClassesDB;

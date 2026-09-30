@@ -4,6 +4,9 @@
 
 class NamesProfanityRec {
  public:
+  int    m_ID;
+  LPCSTR m_Name;
+
   NamesProfanityRec();
   ~NamesProfanityRec();
 
@@ -29,9 +32,6 @@ class NamesProfanityRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_Name;
 };
 
 extern WowClientDB<NamesProfanityRec> g_namesProfanityDB;

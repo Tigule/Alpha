@@ -1,13 +1,7 @@
 #include "TaxiNodesRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR TaxiNodesRec::GetFilename() {
   return "DBFilesClient\\TaxiNodes.dbc";
@@ -20,25 +14,22 @@ TaxiNodesRec::~TaxiNodesRec() {
 }
 
 bool TaxiNodesRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempName_langIndices[8];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_ContinentID, sizeof(m_ContinentID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_X, sizeof(m_X), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Y, sizeof(m_Y), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Z, sizeof(m_Z), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempName_langIndices[0], sizeof(tempName_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempName_langIndices[1], sizeof(tempName_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempName_langIndices[2], sizeof(tempName_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempName_langIndices[3], sizeof(tempName_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempName_langIndices[4], sizeof(tempName_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempName_langIndices[5], sizeof(tempName_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempName_langIndices[6], sizeof(tempName_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempName_langIndices[7], sizeof(tempName_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Name_flag, sizeof(m_Name_flag), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_ContinentID) ||
+      !SFileReadTyped(f, &m_X) ||
+      !SFileReadTyped(f, &m_Y) ||
+      !SFileReadTyped(f, &m_Z) ||
+      !SFileReadTyped(f, &tempName_langIndices[0]) ||
+      !SFileReadTyped(f, &tempName_langIndices[1]) ||
+      !SFileReadTyped(f, &tempName_langIndices[2]) ||
+      !SFileReadTyped(f, &tempName_langIndices[3]) ||
+      !SFileReadTyped(f, &tempName_langIndices[4]) ||
+      !SFileReadTyped(f, &tempName_langIndices[5]) ||
+      !SFileReadTyped(f, &tempName_langIndices[6]) ||
+      !SFileReadTyped(f, &tempName_langIndices[7]) ||
+      !SFileReadTyped(f, &m_Name_flag)) {
     ConsoleWrite("Error reading TaxiNodesRec", DEFAULT_COLOR);
     return false;
   }

@@ -4,6 +4,11 @@
 
 class TaxiPathRec {
  public:
+  int m_ID;
+  int m_FromTaxiNode;
+  int m_ToTaxiNode;
+  int m_Cost;
+
   TaxiPathRec();
   ~TaxiPathRec();
 
@@ -29,11 +34,6 @@ class TaxiPathRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_FromTaxiNode;
-  int m_ToTaxiNode;
-  int m_Cost;
 };
 
 extern WowClientDB<TaxiPathRec> g_taxiPathDB;

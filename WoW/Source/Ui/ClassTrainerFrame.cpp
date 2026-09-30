@@ -140,7 +140,7 @@ static int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b) {
   return SStrCmp(line1->m_displayName_lang[CURRENT_LANGUAGE], line2->m_displayName_lang[CURRENT_LANGUAGE], 0x7FFFFFFF);
 }
 
-int __cdecl QSortTradeSkillTypes(LPCVOID a, LPCVOID b) {
+static int __cdecl QSortTradeSkillTypes(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   int line1 = (*static_cast<TrainerSkillLineInfo *const *>(a))->skillLine;
@@ -151,7 +151,7 @@ int __cdecl QSortTradeSkillTypes(LPCVOID a, LPCVOID b) {
   return line1 > line2 ? 1 : -1;
 }
 
-int __cdecl QSortServices_General(LPCVOID a, LPCVOID b) {
+static int __cdecl QSortServices_General(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
@@ -186,7 +186,7 @@ int __cdecl QSortServices_General(LPCVOID a, LPCVOID b) {
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
-int __cdecl QSortServices_Tradeskill(LPCVOID a, LPCVOID b) {
+static int __cdecl QSortServices_Tradeskill(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
@@ -208,7 +208,7 @@ int __cdecl QSortServices_Tradeskill(LPCVOID a, LPCVOID b) {
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
-int __cdecl QSortServices_Talent(LPCVOID a, LPCVOID b) {
+static int __cdecl QSortServices_Talent(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
@@ -230,7 +230,7 @@ int __cdecl QSortServices_Talent(LPCVOID a, LPCVOID b) {
   return spell1 && spell2 ? SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
 }
 
-int GetSkillLineFromService(int serviceSpell) {
+static int GetSkillLineFromService(int serviceSpell) {
   const SpellRec *spell = g_spellDB.GetRecord(serviceSpell);
   if (!spell) {
     return 0;
@@ -266,12 +266,12 @@ void CGClassTrainer::AddServices(
     UINT         count,
     int         *spellID,
     UINT        *moneyCost,
-    BYTE **const pointCost,
+    BYTE **pointCost,
     BYTE        *reqLevel,
     UINT        *reqSkillLine,
     UINT        *reqSkillRank,
     UINT        *reqSkillStep,
-    int **const  reqAbility,
+    int **reqAbility,
     BYTE        *usable,
     LPCSTR       greeting
 ) {

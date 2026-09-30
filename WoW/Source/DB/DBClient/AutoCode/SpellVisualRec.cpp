@@ -1,13 +1,7 @@
 #include "SpellVisualRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR SpellVisualRec::GetFilename() {
   return "DBFilesClient\\SpellVisual.dbc";
@@ -20,31 +14,28 @@ SpellVisualRec::~SpellVisualRec() {
 }
 
 bool SpellVisualRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_precastKit, sizeof(m_precastKit), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_castKit, sizeof(m_castKit), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_impactKit, sizeof(m_impactKit), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_stateKit, sizeof(m_stateKit), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_channelKit, sizeof(m_channelKit), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_hasMissile, sizeof(m_hasMissile), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_missileModel, sizeof(m_missileModel), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_missilePathType, sizeof(m_missilePathType), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_missileDestinationAttachment, sizeof(m_missileDestinationAttachment), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_missileSound, sizeof(m_missileSound), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_hasAreaEffect, sizeof(m_hasAreaEffect), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_areaModel, sizeof(m_areaModel), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_areaKit, sizeof(m_areaKit), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_animEventSoundID, sizeof(m_animEventSoundID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_weaponTrailRed, sizeof(m_weaponTrailRed), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_weaponTrailGreen, sizeof(m_weaponTrailGreen), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_weaponTrailBlue, sizeof(m_weaponTrailBlue), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_weaponTrailAlpha, sizeof(m_weaponTrailAlpha), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_weaponTrailFadeoutRate, sizeof(m_weaponTrailFadeoutRate), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_weaponTrailDuration, sizeof(m_weaponTrailDuration), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_precastKit) ||
+      !SFileReadTyped(f, &m_castKit) ||
+      !SFileReadTyped(f, &m_impactKit) ||
+      !SFileReadTyped(f, &m_stateKit) ||
+      !SFileReadTyped(f, &m_channelKit) ||
+      !SFileReadTyped(f, &m_hasMissile) ||
+      !SFileReadTyped(f, &m_missileModel) ||
+      !SFileReadTyped(f, &m_missilePathType) ||
+      !SFileReadTyped(f, &m_missileDestinationAttachment) ||
+      !SFileReadTyped(f, &m_missileSound) ||
+      !SFileReadTyped(f, &m_hasAreaEffect) ||
+      !SFileReadTyped(f, &m_areaModel) ||
+      !SFileReadTyped(f, &m_areaKit) ||
+      !SFileReadTyped(f, &m_animEventSoundID) ||
+      !SFile::Read(f, &m_weaponTrailRed, sizeof(m_weaponTrailRed), 0, 0, 0) ||
+      !SFile::Read(f, &m_weaponTrailGreen, sizeof(m_weaponTrailGreen), 0, 0, 0) ||
+      !SFile::Read(f, &m_weaponTrailBlue, sizeof(m_weaponTrailBlue), 0, 0, 0) ||
+      !SFile::Read(f, &m_weaponTrailAlpha, sizeof(m_weaponTrailAlpha), 0, 0, 0) ||
+      !SFile::Read(f, &m_weaponTrailFadeoutRate, sizeof(m_weaponTrailFadeoutRate), 0, 0, 0) ||
+      !SFileReadTyped(f, &m_weaponTrailDuration)) {
     ConsoleWrite("Error reading SpellVisualRec", DEFAULT_COLOR);
     return false;
   }

@@ -1,13 +1,7 @@
 #include "SkillLineAbilityRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR SkillLineAbilityRec::GetFilename() {
   return "DBFilesClient\\SkillLineAbility.dbc";
@@ -20,24 +14,22 @@ SkillLineAbilityRec::~SkillLineAbilityRec() {
 }
 
 bool SkillLineAbilityRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_skillLine, sizeof(m_skillLine), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_spell, sizeof(m_spell), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_raceMask, sizeof(m_raceMask), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_classMask, sizeof(m_classMask), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_excludeRace, sizeof(m_excludeRace), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_excludeClass, sizeof(m_excludeClass), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_minSkillLineRank, sizeof(m_minSkillLineRank), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_supercededBySpell, sizeof(m_supercededBySpell), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_trivialSkillLineRankHigh, sizeof(m_trivialSkillLineRankHigh), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_trivialSkillLineRankLow, sizeof(m_trivialSkillLineRankLow), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_abandonable, sizeof(m_abandonable), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_skillLine) ||
+      !SFileReadTyped(f, &m_spell) ||
+      !SFileReadTyped(f, &m_raceMask) ||
+      !SFileReadTyped(f, &m_classMask) ||
+      !SFileReadTyped(f, &m_excludeRace) ||
+      !SFileReadTyped(f, &m_excludeClass) ||
+      !SFileReadTyped(f, &m_minSkillLineRank) ||
+      !SFileReadTyped(f, &m_supercededBySpell) ||
+      !SFileReadTyped(f, &m_trivialSkillLineRankHigh) ||
+      !SFileReadTyped(f, &m_trivialSkillLineRankLow) ||
+      !SFileReadTyped(f, &m_abandonable)) {
     ConsoleWrite("Error reading SkillLineAbilityRec", DEFAULT_COLOR);
+    return false;
   }
 
-  return result;
+  return true;
 }

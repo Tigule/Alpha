@@ -1,13 +1,7 @@
 #include "FootprintTexturesRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR FootprintTexturesRec::GetFilename() {
   return "DBFilesClient\\FootprintTextures.dbc";
@@ -20,13 +14,10 @@ FootprintTexturesRec::~FootprintTexturesRec() {
 }
 
 bool FootprintTexturesRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempFootstepFilenameIndices[1];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempFootstepFilenameIndices[0], sizeof(tempFootstepFilenameIndices[0]), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempFootstepFilenameIndices[0])) {
     ConsoleWrite("Error reading FootprintTexturesRec", DEFAULT_COLOR);
     return false;
   }

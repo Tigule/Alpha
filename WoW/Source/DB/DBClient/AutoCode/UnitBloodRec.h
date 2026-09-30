@@ -4,6 +4,11 @@
 
 class UnitBloodRec {
  public:
+  int    m_ID;
+  int    m_CombatBloodSpurtFront[2];
+  int    m_CombatBloodSpurtBack[2];
+  LPCSTR m_GroundBlood[5];
+
   UnitBloodRec();
   ~UnitBloodRec();
 
@@ -29,11 +34,6 @@ class UnitBloodRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_CombatBloodSpurtFront[2];
-  int    m_CombatBloodSpurtBack[2];
-  LPCSTR m_GroundBlood[5];
 };
 
 extern WowClientDB<UnitBloodRec> g_unitBloodDB;

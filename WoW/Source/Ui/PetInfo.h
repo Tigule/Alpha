@@ -38,15 +38,14 @@ class CGPetInfo {
   static void      EnterWorld();
   static void      LeaveWorld();
   static void      ShutdownGame();
-  static void      HideGrid();
   static void      SetPet(DWORDLONG pet, DWORD expirationTime);
-  static void      SetPetModeAndOrders(UINT petMode);
   static DWORDLONG GetPet() {
     return m_pet;
   }
   static DWORD GetExpirationTime() {
     return m_expirationTime;
   }
+  static void      SetPetModeAndOrders(UINT petMode);
   static void SetPetMode(UINT mode);
   static UINT GetPetMode() {
     return m_petMode & 0xFF;
@@ -57,7 +56,6 @@ class CGPetInfo {
   }
   static void             ClearActions();
   static void             SetAction(UINT index, PetAction &action, int save);
-  static void             UpdateCooldowns();
   static const PetAction *GetAction(UINT index) {
     return m_pet && index < 10 ? &m_actions[index] : 0;
   }
@@ -65,14 +63,16 @@ class CGPetInfo {
   static void PutSpellInSlot(int spell, UINT slot) {
     PutActionInSlot(static_cast<UINT>(spell) | 0x01000000, slot);
   }
-  static void PutActionInSlot(PetAction &action, UINT slot);
   static void PutActionInSlot(UINT action, UINT slot) {
     PetAction petAction(action);
     PutActionInSlot(petAction, slot);
   }
+  static void PutActionInSlot(PetAction &action, UINT slot);
   static LPCSTR GetModeToken(UINT id);
   static LPCSTR GetOrdersToken(UINT id);
   static void   ShowGrid();
+  static void      HideGrid();
+  static void             UpdateCooldowns();
   static void   SendPetAction(const PetAction &action, const DWORDLONG &target);
   static void   PetPassiveMode();
   static void   PetDefensiveMode();

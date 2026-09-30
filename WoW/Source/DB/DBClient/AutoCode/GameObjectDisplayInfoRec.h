@@ -4,6 +4,10 @@
 
 class GameObjectDisplayInfoRec {
  public:
+  int    m_ID;
+  LPCSTR m_modelName;
+  int    m_Sound[10];
+
   GameObjectDisplayInfoRec();
   ~GameObjectDisplayInfoRec();
 
@@ -29,10 +33,6 @@ class GameObjectDisplayInfoRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_modelName;
-  int    m_Sound[10];
 };
 
 extern WowClientDB<GameObjectDisplayInfoRec> g_gameObjectDisplayInfoDB;

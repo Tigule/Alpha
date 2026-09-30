@@ -151,7 +151,7 @@ static TSHashTable<ITEMCOOLDOWNHASHNODE, HASHKEY_NONE> s_itemCooldowns;
 void CursorSetCursorMode(CURSORANIMATIONS mode);
 void CursorModelSetSequence(CURSORANIMATIONS sequence);
 void CursorResetCursor(int force);
-void SendCast(SpellCast *cast);
+static void SendCast(SpellCast *cast);
 void SpellPutCastTargets(SpellCast *cast, CDataStore *msg);
 void SpellGetCastTargets(SpellCast *cast, CDataStore *msg);
 void Spell_C_SpellFailed(int spellID, BYTE reason, int arg1, int arg2);
@@ -191,8 +191,8 @@ void                       UnitCombatLogCastGo(UINT spellID, DWORDLONG casterUni
 bool                       Spell_C_IsTargeting();
 bool                       Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *rec, bool report);
 bool                       Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *rec, bool checkAmmo, bool report);
-bool                       RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec);
-bool                       Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec);
+static bool                       RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec);
+static bool                       Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec);
 void                       UnitEffectPreloadSpellEffects(int spellID);
 const ItemSubClassRec     *SDBItemSubclassGetSubClassRec(UINT classID, UINT subClassID);
 bool                       Spell_C_HandleSpriteClick(CGObject_C *object);
@@ -1296,7 +1296,7 @@ void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, in
          dieSides * casterLevel * srec->m_effectDicePerLevel[effectIndex];
 }
 
-void Spell_C_SetModal(int spellID, const CGItem_C *item) {
+static void Spell_C_SetModal(int spellID, const CGItem_C *item) {
   if (spellID) {
     s_savedModalSpellID = s_modalSpellID;
     s_savedModalItemID = s_modalItemID;
@@ -1331,7 +1331,7 @@ const DWORDLONG &Spell_C_GetCurrentTarget() {
   return s_spellCast.unitTarget;
 }
 
-void SendCast(SpellCast *cast) {
+static void SendCast(SpellCast *cast) {
   DWORDLONG castingItem = cast->caster == cast->casterUnit ? 0 : cast->caster;
 
   if (s_spellWorldModel) {
@@ -1423,7 +1423,7 @@ void SendCast(SpellCast *cast) {
   }
 }
 
-bool Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec) {
+static bool Spell_C_TargetSpell(CGUnit_C *caster, const SpellRec *srec) {
   s_needTargets = static_cast<WORD>(srec->m_targets);
   bool suppressTarget = false;
 
@@ -1558,7 +1558,7 @@ bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *rec, boo
   return true;
 }
 
-bool RangeCheck(CGPlayer_C *caster, CGObject_C *target, int spellID) {
+static bool RangeCheck(CGPlayer_C *caster, CGObject_C *target, int spellID) {
   float maxRange;
   float minRange;
   Spell_C_GetMinMaxRange(spellID, &minRange, &maxRange);
@@ -1573,7 +1573,7 @@ bool RangeCheck(CGPlayer_C *caster, CGObject_C *target, int spellID) {
   return 0;
 }
 
-bool RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec) {
+static bool RangeCheckSelected(CGPlayer_C *caster, const SpellRec *srec) {
   UINT checkRange;
   switch (srec->m_implicitTargetA[0]) {
     case 6:

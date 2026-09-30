@@ -131,7 +131,7 @@ void CGQuestLog::LeaveWorld() {
   ClientServices_ClearMessageHandler(SMSG_QUERY_TIME_RESPONSE);
 }
 
-int __cdecl QSortQuestSortTypes(LPCVOID a, LPCVOID b) {
+static int __cdecl QSortQuestSortTypes(LPCVOID a, LPCVOID b) {
   ASSERT(a);
   ASSERT(b);
   int sort1 = *static_cast<const int *>(a);
@@ -172,7 +172,7 @@ int __cdecl QSortQuestSortTypes(LPCVOID a, LPCVOID b) {
   return SStrCmpI(name1, name2, 0x7FFFFFFF);
 }
 
-int __cdecl QSortQuests(LPCVOID a, LPCVOID b) {
+static int __cdecl QSortQuests(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
   const QuestLogInfo info1 = *static_cast<const QuestLogInfo *>(a);

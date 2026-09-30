@@ -4,6 +4,13 @@
 
 class SpellAuraNamesRec {
  public:
+  int    m_EnumID;
+  int    m_specialMiscValue;
+  LPCSTR m_globalstrings_tag;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+  int    m_generatedID;
+
   SpellAuraNamesRec();
   ~SpellAuraNamesRec();
 
@@ -30,13 +37,6 @@ class SpellAuraNamesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_EnumID;
-  int    m_specialMiscValue;
-  LPCSTR m_globalstrings_tag;
-  LPCSTR m_name_lang[8];
-  int    m_name_flag;
-  int    m_generatedID;
 };
 
 extern WowClientDB<SpellAuraNamesRec> g_spellAuraNamesDB;

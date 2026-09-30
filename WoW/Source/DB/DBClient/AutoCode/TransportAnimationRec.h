@@ -4,6 +4,13 @@
 
 class TransportAnimationRec {
  public:
+  int   m_ID;
+  int   m_TransportID;
+  int   m_TimeIndex;
+  float m_PosX;
+  float m_PosY;
+  float m_PosZ;
+
   TransportAnimationRec();
   ~TransportAnimationRec();
 
@@ -29,13 +36,6 @@ class TransportAnimationRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int   m_ID;
-  int   m_TransportID;
-  int   m_TimeIndex;
-  float m_PosX;
-  float m_PosY;
-  float m_PosZ;
 };
 
 extern WowClientDB<TransportAnimationRec> g_transportAnimationDB;

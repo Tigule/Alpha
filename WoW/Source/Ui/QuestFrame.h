@@ -106,10 +106,6 @@ class CGQuestInfo {
   static int
   GetQuestItemInfo(LPCSTR type, UINT index, char *name, UINT nameSize, char *texture, UINT textureSize, UINT &amount, int &quality, int &usable);
   static int  GetQuestItemID(LPCSTR type, UINT index);
-  static void ConfirmAcceptQuest(int questID, LPCSTR questTitle, const DWORDLONG &initiatedBy);
-  static int  GetPendingConfirmQuest() {
-    return m_pendingQuest;
-  }
   static int GetNumQuests() {
     return m_numQuests;
   }
@@ -127,6 +123,10 @@ class CGQuestInfo {
   }
   static int GetInProgressLevel(UINT index) {
     return index < m_numInProgress ? m_inProgress[index].level : 0;
+  }
+  static void ConfirmAcceptQuest(int questID, LPCSTR questTitle, const DWORDLONG &initiatedBy);
+  static int  GetPendingConfirmQuest() {
+    return m_pendingQuest;
   }
 
  private:

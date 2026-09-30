@@ -1,13 +1,7 @@
 #include "WorldMapAreaRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR WorldMapAreaRec::GetFilename() {
   return "DBFilesClient\\WorldMapArea.dbc";
@@ -20,19 +14,16 @@ WorldMapAreaRec::~WorldMapAreaRec() {
 }
 
 bool WorldMapAreaRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempareaNameIndices[1];
 
-  result = SFileReadTyped(f, &m_ID) && result;
-  result = SFileReadTyped(f, &m_mapID) && result;
-  result = SFileReadTyped(f, &m_areaID) && result;
-  result = SFileReadTyped(f, &m_leftBoundary) && result;
-  result = SFileReadTyped(f, &m_rightBoundary) && result;
-  result = SFileReadTyped(f, &m_topBoundary) && result;
-  result = SFileReadTyped(f, &m_bottomBoundary) && result;
-  result = SFileReadTyped(f, &tempareaNameIndices[0]) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_mapID) ||
+      !SFileReadTyped(f, &m_areaID) ||
+      !SFileReadTyped(f, &m_leftBoundary) ||
+      !SFileReadTyped(f, &m_rightBoundary) ||
+      !SFileReadTyped(f, &m_topBoundary) ||
+      !SFileReadTyped(f, &m_bottomBoundary) ||
+      !SFileReadTyped(f, &tempareaNameIndices[0])) {
     ConsoleWrite("Error reading WorldMapAreaRec", DEFAULT_COLOR);
     return false;
   }

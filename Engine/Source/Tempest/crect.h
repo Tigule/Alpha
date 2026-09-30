@@ -10,10 +10,6 @@ namespace NTempest {
 
   class CRect {
    public:
-    enum {
-      eComponents = 4
-    };
-
     union {
       float t;
       float miny;
@@ -29,6 +25,10 @@ namespace NTempest {
     union {
       float r;
       float maxx;
+    };
+
+    enum {
+      eComponents = 4
     };
 
     CRect(float value = 0.0f) {
@@ -53,6 +53,8 @@ namespace NTempest {
     ~CRect() {
     }
 
+    void         Get(float &top, float &left, float &bottom, float &right) const;
+
     void Set(float top, float left, float bottom, float right) {
       t = top;
       l = left;
@@ -60,8 +62,7 @@ namespace NTempest {
       r = right;
     }
 
-    void         Get(float &top, float &left, float &bottom, float &right) const;
-                 operator tagRECT() const;
+    operator tagRECT() const;
     CRect        asCRect() const;
     const CRect *asFloatPtr() const;
     CRect       &operator+=(const CRect &value);
@@ -69,10 +70,10 @@ namespace NTempest {
     CRect       &operator*=(const CRect &value);
     CRect       &operator/=(const CRect &value);
     CRect        operator-() const;
-    void         Stretch(const C2Vector &value);
     void         Stretch(float horizontal, float vertical);
-    void         Offset(const C2Vector &value);
+    void         Stretch(const C2Vector &value);
     void         Offset(float horizontal, float vertical);
+    void         Offset(const C2Vector &value);
 
     bool NotEmpty() const {
       return t < b && l < r;
@@ -81,12 +82,12 @@ namespace NTempest {
     bool Empty() const;
     bool Invalid() const;
     bool NotInvalid() const;
-    bool Encloses(const CRect &value) const;
     bool Encloses(const C2Vector &value) const;
-    bool Contains(const CRect &value) const;
+    bool Encloses(const CRect &value) const;
     bool Contains(const C2Vector &value) const;
-    bool InOpenR(const CRect &value) const;
+    bool Contains(const CRect &value) const;
     bool InOpenR(const C2Vector &value) const;
+    bool InOpenR(const CRect &value) const;
 
     float Width() const {
       return r - l;
@@ -102,8 +103,8 @@ namespace NTempest {
     C2Vector TopRight() const;
     C2Vector BottomLeft() const;
     C2Vector BottomRight() const;
-    void     Center(const CRect &value);
     C2Vector Center() const;
+    void     Center(const CRect &value);
     C2Vector Diagonal() const;
     void     CenterV(const CRect &value);
     void     CenterH(const CRect &value);
@@ -111,9 +112,8 @@ namespace NTempest {
     void     AlignLeft(const CRect &value);
     void     AlignBottom(const CRect &value);
     void     AlignRight(const CRect &value);
-
     static CRect Lerp(const CRect &a, const CRect &b, const CRect &t);
-    static CRect Intersection(const CRect &a, const CRect &b, const CRect &clip);
+
     static CRect Intersection(const CRect &left, const CRect &right) {
       CRect result;
 
@@ -124,15 +124,16 @@ namespace NTempest {
       return result;
     }
 
+    static CRect Intersection(const CRect &a, const CRect &b, const CRect &clip);
     static CRect Union(const CRect &left, const CRect &right);
-    static CRect ClippedLocal(const CRect &value, const CRect &clip);
-    static DWORD Difference(const CRect &left, const CRect &right, CRect *result);
 
     CRect Intersect(const CRect &right) {
       return Intersection(*this, right);
     }
 
     CRect Unite(const CRect &right);
+    static CRect ClippedLocal(const CRect &value, const CRect &clip);
+    static DWORD Difference(const CRect &left, const CRect &right, CRect *result);
   };
 
 }  // namespace NTempest

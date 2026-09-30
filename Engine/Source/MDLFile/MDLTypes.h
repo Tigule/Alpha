@@ -37,11 +37,7 @@ class CMdlString {
     return m_string;
   }
 
-  char &operator[](UINT index) {
-    return m_string[index];
-  }
-
-  char operator[](UINT index) const {
+  char operator[](int index) const {
     return m_string[index];
   }
 
@@ -49,7 +45,11 @@ class CMdlString {
     return m_string[index];
   }
 
-  char operator[](int index) const {
+  char operator[](UINT index) const {
+    return m_string[index];
+  }
+
+  char &operator[](UINT index) {
     return m_string[index];
   }
 
@@ -388,13 +388,6 @@ struct MDLEVENTSECTION : public MDLGENOBJECT {
   MDLSIMPLEKEYTRACK<MDLEVENTKEY> eventKeys;
 };
 struct MDLPARTICLEEMITTER2 : public MDLGENOBJECT {
-  enum PARTICLE_EMITTER_TYPE {
-    PET_BASE = 0,
-    PET_PLANE = 1,
-    PET_SPHERE = 2,
-    PET_SPLINE = 3,
-    NUM_PARTICLE_EMITTER_TYPES = 4
-  };
   enum PARTICLE_BLEND_MODE {
     PBM_BLEND = 0,
     PBM_ADD = 1,
@@ -408,6 +401,13 @@ struct MDLPARTICLEEMITTER2 : public MDLGENOBJECT {
     PT_TAIL = 1,
     PT_BOTH = 2,
     NUM_PARTICLE_TYPES = 3
+  };
+  enum PARTICLE_EMITTER_TYPE {
+    PET_BASE = 0,
+    PET_PLANE = 1,
+    PET_SPHERE = 2,
+    PET_SPLINE = 3,
+    NUM_PARTICLE_EMITTER_TYPES = 4
   };
 
   MDLPARTICLEEMITTER2()
@@ -562,6 +562,8 @@ enum GEOM_SHAPE {
 };
 
 struct Vector3 {
+  operator NTempest::C3Vector() const;
+
   enum {
     eComponents = 3
   };
@@ -569,8 +571,6 @@ struct Vector3 {
   float x;
   float y;
   float z;
-
-  operator NTempest::C3Vector() const;
 };
 
 struct MDLBOX {

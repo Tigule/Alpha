@@ -1,6 +1,8 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include "WorldClient/World.h"
 
 #include "Object/MovementData.h"
 
@@ -22,19 +24,19 @@ static CARgbColor s_facetColor[NUM_FACET_COLORS] = {
     {0x80, 0xFF, 0x00, 0x00}
 };
 
+static TSGrowableArray<enum FACET_COLOR>  s_debugFacetColors;
+TSGrowableArray<NTempest::C3Vector>  g_debugVerts;
+TSGrowableArray<WORD>                g_debugIndices;
+TSGrowableArray<NTempest::CImVector> g_debugVertColors;
+TSGrowableArray<NTempest::C3Vector>  g_debugNormalVerts;
+TSGrowableArray<WORD>                g_debugNormalIndices;
+TSGrowableArray<NTempest::C3Vector>  g_debugBoxVerts;
 TSGrowableArray<WORD>                g_debugBoxIndices;
 TSGrowableArray<NTempest::C3Vector>  g_debugBoxNormals;
-TSGrowableArray<WORD>                g_debugIndices;
-TSGrowableArray<NTempest::C3Vector>  g_debugNormalVerts;
-TSGrowableArray<NTempest::C3Vector>  g_debugVerts;
-TSGrowableArray<WORD>                g_debugNormalIndices;
-static TSGrowableArray<enum FACET_COLOR>  s_debugFacetColors;
-TSGrowableArray<NTempest::C3Vector>  g_debugBoxVerts;
-TSGrowableArray<NTempest::CImVector> g_debugVertColors;
 static DWORDLONG                     s_currentWatchGUID;
 static int                           s_acceptingFacets;
 
-void AddTriangle(
+static void AddTriangle(
     const NTempest::CFacet               &face,
     FACET_COLOR                           color,
     TSGrowableArray<NTempest::C3Vector>  *debugVerts,
@@ -60,7 +62,7 @@ void AddTriangle(
   (*debugVertColors)[numVerts + 2] = s_facetColor[color];
 }
 
-void AddNormalLine(
+static void AddNormalLine(
     const NTempest::C3Vector            &normal,
     const NTempest::C3Vector            &position,
     float                                scale,
@@ -79,13 +81,13 @@ void AddNormalLine(
   (*debugIndices)[numIndices + 1] = static_cast<WORD>(numVerts + 1);
 }
 
-void AddNormalLine(const NTempest::CFacet &face) {
+static void AddNormalLine(const NTempest::CFacet &face) {
   AddNormalLine(
       face.plane.n, (face.vertices[0] + face.vertices[1] + face.vertices[2]) * 0.33333334f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices
   );
 }
 
-void BuildDisplayBox(
+static void BuildDisplayBox(
     const NTempest::C3Vector             boxVerts[8],
     const NTempest::C3Vector             boxNormals[6],
     TSGrowableArray<NTempest::C3Vector> *debugVerts,

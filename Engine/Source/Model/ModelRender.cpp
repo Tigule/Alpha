@@ -212,6 +212,11 @@ struct CTransparentObject {
 
 static WORD                                               vertIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1, 16, 16, 1, 4,  2,  8,  5,  5,  8,  11,
                                                                              7,  19, 10, 10, 19, 22, 3,  9, 15, 15, 9, 21, 17, 23, 14, 14, 23, 20};
+static NTempest::C3Vector                                 s_sceneCameraPos;
+static NTempest::C3Vector                                 s_sceneCameraDir;
+static float                                              s_sceneSharpness = -1.0f;
+static NTempest::CPriorityQ<COpaqueLayer *, COpaqueLayer> s_opaqueScene;
+static NTempest::CPriorityQ<CTransparentObject *, CTransparentObject> s_transparentScene;
 static TSGrowableArray<COpaqueLayer>                      s_opLayerPool;
 static TSGrowableArray<CTransparentObject>                s_trLayerPool;
 static NTempest::C4Vector                                 s_frustumPlanes[6];
@@ -219,18 +224,13 @@ static TSGrowableArray<NTempest::C34Matrix>               s_matrixPool;
 static UINT                                               s_nextMatrix;
 static UINT                                               s_lastFrame;
 static int                                                s_verticesLocked;
+static WORD                                               s_currAnimFrame;
 static NTempest::CImVector                                s_fogColor;
 static float                                              s_fogStart;
 static float                                              s_fogEnd;
 static float                                              s_fogDensity;
 static int                                                s_fogStyle;
 static MODELPROJECT2DCALLBACK                             s_Project2dCallback;
-static NTempest::C3Vector                                 s_sceneCameraPos;
-static NTempest::C3Vector                                 s_sceneCameraDir;
-static float                                              s_sceneSharpness = -1.0f;
-static NTempest::CPriorityQ<COpaqueLayer *, COpaqueLayer> s_opaqueScene;
-static WORD                                               s_currAnimFrame;
-static NTempest::CPriorityQ<CTransparentObject *, CTransparentObject> s_transparentScene;
 
 static void IModelComplexAddToScene(CModel *model, UINT renderFlags);
 static void EnqueueSimpleObject(CModel *model, LPVOID object, SORTABLES sortType, const NTempest::C3Vector &position, UINT priorityPlane);
@@ -1881,16 +1881,14 @@ void ModelScenePlaceCamera(const NTempest::C3Vector &position, const NTempest::C
 }
 
 void ModelSceneSetSharpness(float sharpness) {
-  float adjusted = sharpness - 1.0f;
+  sharpness -= 1.0f;
 
-  if (adjusted != adjusted || adjusted >= -1.0f) {
-    if (adjusted <= 1.0f) {
-      s_sceneSharpness = adjusted;
-    } else {
-      s_sceneSharpness = 1.0f;
-    }
-  } else {
+  if (sharpness < -1.0f) {
     s_sceneSharpness = -1.0f;
+  } else if (sharpness > 1.0f) {
+    s_sceneSharpness = 1.0f;
+  } else {
+    s_sceneSharpness = sharpness;
   }
 }
 
@@ -2212,13 +2210,13 @@ BOOL ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float
   return 0;
 }
 
-void ModelSceneGetFrustumPlanes(NTempest::C4Vector *fp) {
+void ModelSceneGetFrustumPlanes(NTempest::C4Vector fp[]) {
   for (UINT i = 0; i < 6; ++i) {
     fp[i] = s_frustumPlanes[i];
   }
 }
 
-void ModelSceneSetFrustumPlanes(NTempest::C4Vector *fp) {
+void ModelSceneSetFrustumPlanes(NTempest::C4Vector fp[]) {
   for (UINT i = 0; i < 6; ++i) {
     s_frustumPlanes[i] = fp[i];
   }

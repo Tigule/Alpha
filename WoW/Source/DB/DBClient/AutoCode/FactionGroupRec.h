@@ -4,6 +4,12 @@
 
 class FactionGroupRec {
  public:
+  int    m_ID;
+  int    m_maskID;
+  LPCSTR m_internalName;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+
   FactionGroupRec();
   ~FactionGroupRec();
 
@@ -29,12 +35,6 @@ class FactionGroupRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_maskID;
-  LPCSTR m_internalName;
-  LPCSTR m_name_lang[8];
-  int    m_name_flag;
 };
 
 extern WowClientDB<FactionGroupRec> g_factionGroupDB;

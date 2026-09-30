@@ -11,7 +11,7 @@ enum {
   MAX_HEAPS = 32
 };
 
-BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments);
+static BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments);
 
 class CObjectHeap {
  public:
@@ -216,7 +216,7 @@ LPVOID CObjectHeap::Ptr(UINT index, UINT objSize, UINT heapObjects) {
   return static_cast<char *>(m_obj) + objSize * index;
 }
 
-BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments) {
+static BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments) {
   OBJALLOCGLOBALS *globals = &s_globals;
   UINT             numHeaps;
   UINT             totalBytes = 0;

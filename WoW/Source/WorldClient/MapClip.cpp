@@ -3,6 +3,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
+#include "WorldClient/Map.h"
 
 static const DWORD vCnt[4] = {2, 3, 5, 9};
 static const DWORD vStp[4] = {8, 4, 2, 1};

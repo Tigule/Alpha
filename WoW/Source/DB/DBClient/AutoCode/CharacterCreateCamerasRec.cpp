@@ -1,13 +1,7 @@
 #include "CharacterCreateCamerasRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR CharacterCreateCamerasRec::GetFilename() {
   return "DBFilesClient\\CharacterCreateCameras.dbc";
@@ -20,18 +14,16 @@ CharacterCreateCamerasRec::~CharacterCreateCamerasRec() {
 }
 
 bool CharacterCreateCamerasRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_Race, sizeof(m_Race), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Sex, sizeof(m_Sex), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Camera, sizeof(m_Camera), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Height, sizeof(m_Height), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Radius, sizeof(m_Radius), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Target, sizeof(m_Target), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_Race) ||
+      !SFileReadTyped(f, &m_Sex) ||
+      !SFileReadTyped(f, &m_Camera) ||
+      !SFileReadTyped(f, &m_Height) ||
+      !SFileReadTyped(f, &m_Radius) ||
+      !SFileReadTyped(f, &m_Target)) {
     ConsoleWrite("Error reading CharacterCreateCamerasRec", DEFAULT_COLOR);
+    return false;
   }
 
-  return result;
+  return true;
 }

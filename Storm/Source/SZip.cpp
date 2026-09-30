@@ -11,6 +11,16 @@
 #define ZIP_MAX_COMMENT 0xFFFF
 #define ZIP_READ_CHUNK  0x1000
 
+#pragma pack(1)
+
+void ConvertUInt16FromBinary(WORD &value) {
+  value = (WORD)((((BYTE *)&value)[1] << 8) | ((BYTE *)&value)[0]);
+}
+
+void ConvertUInt32FromBinary(UINT &value) {
+  value = ((((((BYTE *)&value)[3] << 8) | ((BYTE *)&value)[2]) << 8 | ((BYTE *)&value)[1]) << 8) | ((BYTE *)&value)[0];
+}
+
 struct CentralDirectoryHeader {
   char signature[4];
   WORD thisDiskNumber;
@@ -21,7 +31,15 @@ struct CentralDirectoryHeader {
   UINT centralDirectoryOffset;
   WORD commentLength;
 
-  void EndianCorrect();
+  void EndianCorrect() {
+    ConvertUInt16FromBinary(thisDiskNumber);
+    ConvertUInt16FromBinary(directoryStartDiskNumber);
+    ConvertUInt16FromBinary(directoryEntriesThisDisk);
+    ConvertUInt16FromBinary(directoryEntriesTotal);
+    ConvertUInt32FromBinary(centralDirectorySize);
+    ConvertUInt32FromBinary(centralDirectoryOffset);
+    ConvertUInt16FromBinary(commentLength);
+  }
 };
 
 struct CentralDirectoryFileHeader {
@@ -43,7 +61,24 @@ struct CentralDirectoryFileHeader {
   UINT externalFileAttributes;
   UINT localHeaderOffset;
 
-  void EndianCorrect();
+  void EndianCorrect() {
+    ConvertUInt16FromBinary(versionMadeBy);
+    ConvertUInt16FromBinary(versionRequired);
+    ConvertUInt16FromBinary(generalFlags);
+    ConvertUInt16FromBinary(compressionMethod);
+    ConvertUInt16FromBinary(modifiedTime);
+    ConvertUInt16FromBinary(modifiedDate);
+    ConvertUInt32FromBinary(z_crc32);
+    ConvertUInt32FromBinary(compressedSize);
+    ConvertUInt32FromBinary(uncompressedSize);
+    ConvertUInt16FromBinary(filenameSize);
+    ConvertUInt16FromBinary(extraFieldSize);
+    ConvertUInt16FromBinary(commentSize);
+    ConvertUInt16FromBinary(diskNumberStart);
+    ConvertUInt16FromBinary(internalFileAttributes);
+    ConvertUInt32FromBinary(externalFileAttributes);
+    ConvertUInt32FromBinary(localHeaderOffset);
+  }
 };
 
 struct LocalFileHeader {
@@ -59,7 +94,18 @@ struct LocalFileHeader {
   WORD filenameSize;
   WORD extraFieldSize;
 
-  void EndianCorrect();
+  void EndianCorrect() {
+    ConvertUInt16FromBinary(versionRequired);
+    ConvertUInt16FromBinary(generalFlags);
+    ConvertUInt16FromBinary(compressionMethod);
+    ConvertUInt16FromBinary(modifiedTime);
+    ConvertUInt16FromBinary(modifiedDate);
+    ConvertUInt32FromBinary(z_crc32);
+    ConvertUInt32FromBinary(compressedSize);
+    ConvertUInt32FromBinary(uncompressedSize);
+    ConvertUInt16FromBinary(filenameSize);
+    ConvertUInt16FromBinary(extraFieldSize);
+  }
 };
 
 struct DataDescriptor {
@@ -67,13 +113,21 @@ struct DataDescriptor {
   UINT compressedSize;
   UINT uncompressedSize;
 
-  void EndianCorrect();
+  void EndianCorrect() {
+    ConvertUInt32FromBinary(z_crc32);
+    ConvertUInt32FromBinary(compressedSize);
+    ConvertUInt32FromBinary(uncompressedSize);
+  }
 };
+
+#pragma pack()
 
 struct ZipFileArchive;
 struct ZipFileDirEntry;
 
 class Flags {
+  UINT m_value;
+
  public:
   Flags();
   void Set(UINT bit);
@@ -81,8 +135,6 @@ class Flags {
   BOOL IsSet(UINT bit);
   BOOL IsClear(UINT bit);
 
- private:
-  UINT m_value;
 };
 
 struct ZipFileDirEntry : TSHashObject<ZipFileDirEntry, HASHKEY_CONSTSTRI> {
@@ -248,68 +300,6 @@ void ZipFileUnloadFile(LPVOID buffer);
 
 static ZipDirTable s_directory;
 
-static void ConvertUInt16FromBinary(WORD &value) {
-  BYTE *bytes;
-
-  bytes = (BYTE *)&value;
-  value = (WORD)(((WORD)bytes[1] << 8) | bytes[0]);
-}
-
-static void ConvertUInt32FromBinary(UINT &value) {
-  BYTE *bytes;
-
-  bytes = (BYTE *)&value;
-  value = ((DWORD)bytes[3] << 24) | ((DWORD)bytes[2] << 16) | ((DWORD)bytes[1] << 8) | bytes[0];
-}
-
-void CentralDirectoryHeader::EndianCorrect() {
-  ConvertUInt16FromBinary(thisDiskNumber);
-  ConvertUInt16FromBinary(directoryStartDiskNumber);
-  ConvertUInt16FromBinary(directoryEntriesThisDisk);
-  ConvertUInt16FromBinary(directoryEntriesTotal);
-  ConvertUInt32FromBinary(centralDirectorySize);
-  ConvertUInt32FromBinary(centralDirectoryOffset);
-  ConvertUInt16FromBinary(commentLength);
-}
-
-void LocalFileHeader::EndianCorrect() {
-  ConvertUInt16FromBinary(versionRequired);
-  ConvertUInt16FromBinary(generalFlags);
-  ConvertUInt16FromBinary(compressionMethod);
-  ConvertUInt16FromBinary(modifiedTime);
-  ConvertUInt16FromBinary(modifiedDate);
-  ConvertUInt32FromBinary(z_crc32);
-  ConvertUInt32FromBinary(compressedSize);
-  ConvertUInt32FromBinary(uncompressedSize);
-  ConvertUInt16FromBinary(filenameSize);
-  ConvertUInt16FromBinary(extraFieldSize);
-}
-
-void DataDescriptor::EndianCorrect() {
-  ConvertUInt32FromBinary(z_crc32);
-  ConvertUInt32FromBinary(compressedSize);
-  ConvertUInt32FromBinary(uncompressedSize);
-}
-
-void CentralDirectoryFileHeader::EndianCorrect() {
-  ConvertUInt16FromBinary(versionMadeBy);
-  ConvertUInt16FromBinary(versionRequired);
-  ConvertUInt16FromBinary(generalFlags);
-  ConvertUInt16FromBinary(compressionMethod);
-  ConvertUInt16FromBinary(modifiedTime);
-  ConvertUInt16FromBinary(modifiedDate);
-  ConvertUInt32FromBinary(z_crc32);
-  ConvertUInt32FromBinary(compressedSize);
-  ConvertUInt32FromBinary(uncompressedSize);
-  ConvertUInt16FromBinary(filenameSize);
-  ConvertUInt16FromBinary(extraFieldSize);
-  ConvertUInt16FromBinary(commentSize);
-  ConvertUInt16FromBinary(diskNumberStart);
-  ConvertUInt16FromBinary(internalFileAttributes);
-  ConvertUInt32FromBinary(externalFileAttributes);
-  ConvertUInt32FromBinary(localHeaderOffset);
-}
-
 Flags::Flags() {
   m_value = 0;
 }
@@ -429,7 +419,7 @@ BOOL ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader)
   }
   return 1;
 }
-static void ConvertFromZip(char *str) {
+void ConvertFromZip(char *str) {
   while (*str) {
     if (*str == '/') {
       *str = '\\';
@@ -538,12 +528,12 @@ static BOOL GetDirEntry(LPCSTR filename, ZipFileDirEntry **dirEntry) {
 ZipFileDirEntry::~ZipFileDirEntry() {
 }
 
-static LPVOID zalloc(LPVOID opaque, UINT count, UINT size) {
+LPVOID zalloc(LPVOID opaque, UINT count, UINT size) {
   (void)opaque;
   return SMemAlloc(count * size, __FILE__, __LINE__, 8);
 }
 
-static void zfree(LPVOID opaque, LPVOID ptr) {
+void zfree(LPVOID opaque, LPVOID ptr) {
   (void)opaque;
   SMemFree(ptr, __FILE__, __LINE__, 0);
 }

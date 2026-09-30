@@ -75,7 +75,7 @@ BOOL CStringRep::IsString(LPCSTR str) const {
 }
 
 int CStringRep::operator==(const CStringRep &r) const {
-  if (this == &r) {
+  if (&r == this) {
     return 1;
   }
 

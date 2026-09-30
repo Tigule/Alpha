@@ -16,12 +16,20 @@ class CSimpleCamera {
   ~CSimpleCamera() {
   }
 
-  float FarZ() {
-    return m_farZ;
+  NTempest::C3Vector &Position() {
+    return m_position;
+  }
+
+  NTempest::C33Matrix &Facing() {
+    return m_facing;
   }
 
   float NearZ() {
     return m_nearZ;
+  }
+
+  float FarZ() {
+    return m_farZ;
   }
 
   float FOV() {
@@ -32,21 +40,23 @@ class CSimpleCamera {
     return m_aspect;
   }
 
-  NTempest::C3Vector &Position() {
-    return m_position;
-  }
 
-  NTempest::C33Matrix &Facing() {
-    return m_facing;
+  virtual NTempest::C3Vector Forward() const;
+  virtual NTempest::C3Vector Right() const;
+  virtual NTempest::C3Vector Up() const;
+
+  void SetPosition(float x, float y, float z) {
+    m_position.Set(x, y, z);
   }
 
   void SetPosition(const NTempest::C3Vector &position) {
     m_position = position;
   }
 
-  void SetPosition(float x, float y, float z) {
-    m_position.Set(x, y, z);
-  }
+
+  void SetFacing(const NTempest::C3Vector &forward);
+  void SetFacing(const NTempest::C3Vector &forward, const NTempest::C3Vector &up);
+  void SetFacing(float yaw, float pitch, float roll);
 
   void SetFieldOfView(float fov) {
     m_fov = fov;
@@ -60,13 +70,7 @@ class CSimpleCamera {
     m_farZ = farZ;
   }
 
-  virtual NTempest::C3Vector Forward() const;
-  virtual NTempest::C3Vector Right() const;
-  virtual NTempest::C3Vector Up() const;
 
-  void SetFacing(float yaw, float pitch, float roll);
-  void SetFacing(const NTempest::C3Vector &forward);
-  void SetFacing(const NTempest::C3Vector &forward, const NTempest::C3Vector &up);
   void SetGxProjectionAndView(const NTempest::CRect &projectionRect);
 
  protected:

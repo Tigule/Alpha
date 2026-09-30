@@ -211,7 +211,7 @@ void ProjectTex2d(const NTempest::CAaBox &box, NTempest::CImVector color, const 
   GxRsPop();
 }
 
-void ShadowRender_LOD1(HMODEL hModel, const NTempest::C44Matrix &basis, LPVOID param) {
+static void ShadowRender_LOD1(HMODEL hModel, const NTempest::C44Matrix &basis, LPVOID param) {
   NTempest::C3Vector cameraPos;
   CGWorldFrame::GetCameraPosition(&cameraPos);
 

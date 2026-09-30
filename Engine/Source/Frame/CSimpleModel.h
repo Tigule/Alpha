@@ -2,7 +2,7 @@
 #define ENGINE_SOURCE_FRAME_CSIMPLEMODEL_H
 
 #include "Frame/CSimpleFrame.h"
-#include "Gx/CGxDevice.h"
+#include "Gx/Gx.h"
 #include "Model/IModel.h"
 #include "Tempest/caabox.h"
 #include "Tempest/c3vector.h"

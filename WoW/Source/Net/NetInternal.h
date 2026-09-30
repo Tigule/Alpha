@@ -8,14 +8,14 @@
 class NetClient;
 
 NODEDECL(NETEVENTQUEUENODE) {
-  ~NETEVENTQUEUENODE() {
-    FREEIFUSED(m_data);
-  }
-
   EVENTID m_eventId;
   DWORD   m_timeReceived;
   LPVOID  m_data;
   DWORD   m_dataSize;
+
+  ~NETEVENTQUEUENODE() {
+    FREEIFUSED(m_data);
+  }
 };
 
 class NETEVENTQUEUE {

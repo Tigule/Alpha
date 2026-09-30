@@ -125,48 +125,38 @@ namespace {
   };
 
   class CBitInput {
-   public:
-    CBitInput(LPCVOID source);
-
-    inline DWORD InputBits(DWORD count, DWORD mask);
-    inline DWORD PeekBits(DWORD count, DWORD mask);
-    inline void  RemoveBits(DWORD count);
-    inline DWORD InputBit();
-
    private:
     const DWORD *m_currsource;
     DWORD        m_rack;
     DWORD        m_rackbits;
+   public:
+    CBitInput(LPCVOID source);
+    inline DWORD InputBit();
+    inline DWORD InputBits(DWORD count, DWORD mask);
+    inline DWORD PeekBits(DWORD count, DWORD mask);
+    inline void  RemoveBits(DWORD count);
   };
 
+
   class CBitOutput {
-   public:
-    CBitOutput(LPVOID dest, DWORD destsize);
-
-    DWORD       GetTotalBytes();
-    void        Pad();
-    inline void OutputBits(DWORD value, DWORD count);
-
    private:
     BYTE *m_basedest;
     DWORD m_bytesleft;
     BYTE *m_currdest;
     DWORD m_rack;
     DWORD m_rackbits;
+   public:
+    CBitOutput(LPVOID dest, DWORD destsize);
+    DWORD       GetTotalBytes();
+    inline void OutputBits(DWORD value, DWORD count);
+    void        Pad();
   };
+
 
 }  // namespace
 
 class CHuffman {
- public:
-  CHuffman();
-
  protected:
-  void             AddSymbol(int symbol);
-  inline HUFFNODE *AllocNode(DWORD linktype);
-  void             BuildTree(BYTE mode);
-  inline void      IncrementWeight(HUFFNODE *node);
-
   int      m_adaptive;
   DWORD    m_changesequence;
   HUFFNODE m_nodebuffer[0x203];
@@ -174,15 +164,23 @@ class CHuffman {
   LISTDECL(HUFFNODE, m_nodelist);
   DWORD     m_nodesused;
   HUFFNODE *m_symbol[HUFFMAN_SYMBOLS];
+  void             AddSymbol(int symbol);
+  inline HUFFNODE *AllocNode(DWORD linktype);
+  void             BuildTree(BYTE mode);
+  inline void      IncrementWeight(HUFFNODE *node);
+ public:
+  CHuffman();
 };
+
+
 
 class CHuffmanEncoder : public CHuffman {
- public:
-  DWORD Compress(CBitOutput *output, LPCVOID source, DWORD sourcebytes, BYTE mode);
-
  private:
   inline void EncodeSymbol(CBitOutput *output, int symbol);
+ public:
+  DWORD Compress(CBitOutput *output, LPCVOID source, DWORD sourcebytes, BYTE mode);
 };
+
 
 struct _CACHEREC {
   DWORD sequence;
@@ -194,16 +192,16 @@ struct _CACHEREC {
 };
 
 class CHuffmanDecoder : public CHuffman {
+ private:
+  _CACHEREC m_cache[0x80];
+  inline int DecodeSymbol(CBitInput *input);
  public:
   CHuffmanDecoder();
-
   DWORD Decompress(LPVOID dest, DWORD destbytes, CBitInput *input);
-
- private:
-  inline int DecodeSymbol(CBitInput *input);
-
-  _CACHEREC m_cache[0x80];
 };
+
+
+
 
 struct ZlibAllocBufferHeader {
   BYTE *nextPtr;

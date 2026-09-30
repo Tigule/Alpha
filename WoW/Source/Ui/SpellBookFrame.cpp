@@ -1,6 +1,11 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <Frame/CFramePoint.h>
+#include <Frame/CSimpleTop.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "GameUI.h"
 
 #include "SpellBookFrame.h"
 
@@ -15,7 +20,6 @@
 
 #include "ChatFrame.h"
 #include "ActionBarFrame.h"
-#include "GameUI.h"
 #include "PetInfo.h"
 #include "SoundInterface/SoundInterface.h"
 #include "Tutorial.h"
@@ -100,7 +104,7 @@ void CGSpellBook::ClearSpells() {
   m_selectedSlot = -1;
 }
 
-int __cdecl QSortShapeshiftForms(LPCVOID a, LPCVOID b) {
+static int __cdecl QSortShapeshiftForms(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
 
@@ -377,15 +381,15 @@ void CGSpellBook::UpdateSelection() {
   FrameScript_SignalEvent(245);
 }
 
-void PlaySpellDropSound(UI_SPELL_TYPE type) {
+static void PlaySpellDropSound(UI_SPELL_TYPE type) {
   SndInterfacePlayInterfaceSound("INTERFACESOUND_CURSORDROPOBJECT");
 }
 
-void PlaySpellPickupSound(UI_SPELL_TYPE type) {
+static void PlaySpellPickupSound(UI_SPELL_TYPE type) {
   SndInterfacePlayInterfaceSound("INTERFACESOUND_CURSORGRABOBJECT");
 }
 
-void PlaySpellCastSound(UI_SPELL_TYPE type) {
+static void PlaySpellCastSound(UI_SPELL_TYPE type) {
   switch (type) {
     case PLAYER_SPELL:
     case PET_SPELL:

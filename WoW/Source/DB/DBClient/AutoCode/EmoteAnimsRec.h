@@ -4,6 +4,10 @@
 
 class EmoteAnimsRec {
  public:
+  int    m_ID;
+  int    m_ProcessedAnimIndex;
+  LPCSTR m_AnimName;
+
   EmoteAnimsRec();
   ~EmoteAnimsRec();
 
@@ -29,10 +33,6 @@ class EmoteAnimsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_ProcessedAnimIndex;
-  LPCSTR m_AnimName;
 };
 
 extern WowClientDB<EmoteAnimsRec> g_emoteAnimsDB;

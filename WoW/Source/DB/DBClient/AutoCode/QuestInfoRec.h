@@ -4,6 +4,10 @@
 
 class QuestInfoRec {
  public:
+  int    m_ID;
+  LPCSTR m_InfoName_lang[NUM_LOCALES];
+  int    m_InfoName_flag;
+
   QuestInfoRec();
   ~QuestInfoRec();
 
@@ -29,10 +33,6 @@ class QuestInfoRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_InfoName_lang[NUM_LOCALES];
-  int    m_InfoName_flag;
 };
 
 extern WowClientDB<QuestInfoRec> g_questInfoDB;

@@ -4,6 +4,9 @@
 
 class FootprintTexturesRec {
  public:
+  int    m_ID;
+  LPCSTR m_FootstepFilename;
+
   FootprintTexturesRec();
   ~FootprintTexturesRec();
 
@@ -29,9 +32,6 @@ class FootprintTexturesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_FootstepFilename;
 };
 
 extern WowClientDB<FootprintTexturesRec> g_footprintTexturesDB;

@@ -4,6 +4,9 @@
 
 class ItemGroupSoundsRec {
  public:
+  int m_ID;
+  int m_sound[4];
+
   ItemGroupSoundsRec();
   ~ItemGroupSoundsRec();
 
@@ -29,9 +32,6 @@ class ItemGroupSoundsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_sound[4];
 };
 
 extern WowClientDB<ItemGroupSoundsRec> g_itemGroupSoundsDB;

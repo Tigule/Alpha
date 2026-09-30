@@ -1,13 +1,7 @@
 #include "SpellRadiusRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR SpellRadiusRec::GetFilename() {
   return "DBFilesClient\\SpellRadius.dbc";
@@ -20,14 +14,11 @@ SpellRadiusRec::~SpellRadiusRec() {
 }
 
 bool SpellRadiusRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_radius, sizeof(m_radius), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_radiusPerLevel, sizeof(m_radiusPerLevel), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_radiusMax, sizeof(m_radiusMax), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_radius) ||
+      !SFileReadTyped(f, &m_radiusPerLevel) ||
+      !SFileReadTyped(f, &m_radiusMax)) {
     ConsoleWrite("Error reading SpellRadiusRec", DEFAULT_COLOR);
     return false;
   }

@@ -4,6 +4,14 @@
 
 class SheatheSoundLookupsRec {
  public:
+  int m_ID;
+  int m_classID;
+  int m_subclassID;
+  int m_material;
+  int m_checkMaterial;
+  int m_sheatheSound;
+  int m_unsheatheSound;
+
   SheatheSoundLookupsRec();
   ~SheatheSoundLookupsRec();
 
@@ -29,14 +37,6 @@ class SheatheSoundLookupsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_classID;
-  int m_subclassID;
-  int m_material;
-  int m_checkMaterial;
-  int m_sheatheSound;
-  int m_unsheatheSound;
 };
 
 extern WowClientDB<SheatheSoundLookupsRec> g_sheatheSoundLookupsDB;

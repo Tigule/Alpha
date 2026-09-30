@@ -34,6 +34,34 @@
 #define INVALID_FILE_ATTRIBUTES ((DWORD)0xFFFFFFFF)
 #endif
 
+#undef VALIDATEBEGIN
+#undef VALIDATE
+#undef VALIDATEANDBLANK
+#undef VALIDATEEND
+#undef VALIDATEENDVOID
+#define VALIDATEBEGIN
+#define VALIDATE(a)                            \
+  if (!(a)) {                                  \
+    SErrPrepareAppFatal(__FILE__, __LINE__);   \
+    SErrDisplayAppFatal(#a);                   \
+    goto validatefailed;                       \
+  }
+#define VALIDATEANDBLANK(a) \
+  VALIDATE(a)               \
+  *(a) = 0;
+#define VALIDATEEND                              \
+  if (0) {                                       \
+  validatefailed:                                \
+      SErrSetLastError(ERROR_INVALID_PARAMETER); \
+      return FALSE;                              \
+  }
+#define VALIDATEENDVOID                          \
+  if (0) {                                       \
+  validatefailed:                                \
+      SErrSetLastError(ERROR_INVALID_PARAMETER); \
+      return;                                    \
+  }
+
 struct _ARCHIVEHEADER {
   DWORD signature;
   DWORD headersize;
@@ -68,15 +96,6 @@ namespace Storm {
   namespace SFile {
 
     NODEDECL(ARCHIVEREC) {
-      ~ARCHIVEREC();
-
-      BOOL IsReopenedArchive() {
-        return parentArchive != NULL;
-      }
-      BOOL IsSubArchive() {
-        return ownerarchivefile != NULL;
-      }
-
       CCritSect      sync;
       LONG           refcount;
       char           archivename[MAX_PATH];
@@ -99,11 +118,17 @@ namespace Storm {
       DWORD          lastlocation;
       int            disableCount;
       DWORD          cdrom;
+      ~ARCHIVEREC();
+
+      BOOL IsReopenedArchive() {
+        return parentArchive != NULL;
+      }
+      BOOL IsSubArchive() {
+        return ownerarchivefile != NULL;
+      }
     };
 
     NODEDECL(FILEREC) {
-      ~FILEREC();
-
       CCritSect   sync;
       LONG        refcount;
       char        name[MAX_PATH];
@@ -128,6 +153,8 @@ namespace Storm {
 
       FILEREC() : actualName(0), handle(INVALID_HANDLE_VALUE), archive(0), sectoroffsettable(0), readaheadbuffer(0) {
       }
+
+      ~FILEREC();
     };
 
     NODEDECL(AUDIOSTREAM) {
@@ -424,7 +451,6 @@ Storm::SFile::AUDIOSTREAM::~AUDIOSTREAM() {
     SFileDirectSoundBufferVtbl *vtbl = *(SFileDirectSoundBufferVtbl **)soundbuffer;
     vtbl->Release(soundbuffer);
   }
-  Unlink();
 }
 
 REQUEST::~REQUEST() {
@@ -454,89 +480,89 @@ Storm::SFile::FILEREC::~FILEREC() {
   Storm::SFile::s_archivelock.Leave();
 }
 
-Storm::SFile::ArchivePtr::~ArchivePtr() {
+inline Storm::SFile::ArchivePtr::~ArchivePtr() {
   Leave();
   ReleaseArchivePtr(archive);
 }
 
-Storm::SFile::ArchivePtr::ArchivePtr(HSARCHIVE hArchive) {
+inline Storm::SFile::ArchivePtr::ArchivePtr(HSARCHIVE hArchive) {
   archive = GetArchivePtr(hArchive);
   locked = 0;
 }
 
-void Storm::SFile::ArchivePtr::Enter() {
+inline void Storm::SFile::ArchivePtr::Enter() {
   if (!locked && archive) {
     archive->sync.Enter();
   }
   locked = 1;
 }
 
-Storm::SFile::ArchivePtr::operator Storm::SFile::ARCHIVEREC *() const {
+inline Storm::SFile::ArchivePtr::operator Storm::SFile::ARCHIVEREC *() const {
   return archive;
 }
 
-void Storm::SFile::ArchivePtr::Leave() {
+inline void Storm::SFile::ArchivePtr::Leave() {
   if (locked && archive) {
     archive->sync.Leave();
   }
   locked = 0;
 }
 
-Storm::SFile::ARCHIVEREC *Storm::SFile::ArchivePtr::operator->() {
+inline Storm::SFile::ARCHIVEREC *Storm::SFile::ArchivePtr::operator->() {
   return archive;
 }
 
-Storm::SFile::ArchivePtrLocked::~ArchivePtrLocked() {
+inline Storm::SFile::ArchivePtrLocked::~ArchivePtrLocked() {
 }
 
-Storm::SFile::ArchivePtrLocked::ArchivePtrLocked(HSARCHIVE hArchive) : ArchivePtr(hArchive) {
+inline Storm::SFile::ArchivePtrLocked::ArchivePtrLocked(HSARCHIVE hArchive) : ArchivePtr(hArchive) {
   Enter();
 }
 
-Storm::SFile::FilePtr::~FilePtr() {
+inline Storm::SFile::FilePtr::~FilePtr() {
   Leave();
   ReleaseFilePtr(file);
 }
 
-void Storm::SFile::FilePtr::Enter() {
+inline void Storm::SFile::FilePtr::Enter() {
   if (!locked && file) {
     file->sync.Enter();
   }
   locked = 1;
 }
 
-void Storm::SFile::FilePtr::Leave() {
+inline void Storm::SFile::FilePtr::Leave() {
   if (locked && file) {
     file->sync.Leave();
   }
   locked = 0;
 }
 
-Storm::SFile::FilePtr::operator Storm::SFile::FILEREC *() const {
+inline Storm::SFile::FilePtr::operator Storm::SFile::FILEREC *() const {
   return file;
 }
 
-Storm::SFile::FILEREC *Storm::SFile::FilePtr::operator->() {
+inline Storm::SFile::FILEREC *Storm::SFile::FilePtr::operator->() {
   return file;
 }
 
-Storm::SFile::FilePtr::FilePtr(HSFILE hFile) {
+inline Storm::SFile::FilePtr::FilePtr(HSFILE hFile) {
   file = GetFilePtr(hFile);
   locked = 0;
 }
 
-Storm::SFile::FilePtrLocked::~FilePtrLocked() {
+inline Storm::SFile::FilePtrLocked::~FilePtrLocked() {
 }
 
-Storm::SFile::FilePtrLocked::FilePtrLocked(HSFILE hFile) : FilePtr(hFile) {
+inline Storm::SFile::FilePtrLocked::FilePtrLocked(HSFILE hFile) : FilePtr(hFile) {
   Enter();
 }
 
-Storm::SFile::UseGlob::~UseGlob() {
+inline Storm::SFile::UseGlob::~UseGlob() {
   Storm::SFile::s_globcritsect.Leave();
 }
 
-Storm::SFile::StormGlobals *Storm::SFile::UseGlob::operator->() {
+inline Storm::SFile::StormGlobals *Storm::SFile::UseGlob::operator->() {
   return globptr;
 }
 
@@ -555,11 +581,9 @@ Storm::SFile::ARCHIVEREC::~ARCHIVEREC() {
       FREE(hashtable);
     }
   }
-
-  Unlink();
 }
 
-Storm::SFile::UseGlob::UseGlob() {
+inline Storm::SFile::UseGlob::UseGlob() {
   Storm::SFile::s_globcritsect.Enter();
   globptr = &Storm::SFile::s_g;
 }
@@ -602,12 +626,12 @@ int Storm::SFile::ReleaseArchivePtr(ARCHIVEREC *archive) {
 
 int Storm::SFile::IsSubArchive(HSARCHIVE archive) {
   ArchivePtr base(archive);
-  return base && base->IsSubArchive();
+  return base && base->ownerarchivefile;
 }
 
 int Storm::SFile::IsReopenedArchive(HSARCHIVE archive) {
   ArchivePtr base(archive);
-  return base && base->IsReopenedArchive();
+  return base && base->parentArchive;
 }
 
 Storm::SFile::FILEREC *Storm::SFile::GetFilePtr(HSFILE hFile) {
@@ -646,7 +670,7 @@ int Storm::SFile::ReleaseFilePtr(FILEREC *file) {
   return TRUE;
 }
 
-UINT __cdecl DecompressLzw_BufferRead(char *buffer, UINT *size, LPVOID param) {
+static UINT __cdecl DecompressLzw_BufferRead(char *buffer, UINT *size, LPVOID param) {
   _DECOMPRESSIONINFO *info = static_cast<_DECOMPRESSIONINFO *>(param);
   UINT                bytes = info->bytes - info->sourceoffset;
 
@@ -658,7 +682,7 @@ UINT __cdecl DecompressLzw_BufferRead(char *buffer, UINT *size, LPVOID param) {
   return bytes;
 }
 
-void __cdecl DecompressLzw_BufferWrite(char *buffer, UINT *size, LPVOID param) {
+static void __cdecl DecompressLzw_BufferWrite(char *buffer, UINT *size, LPVOID param) {
   _DECOMPRESSIONINFO *info = static_cast<_DECOMPRESSIONINFO *>(param);
 
   memcpy(static_cast<BYTE *>(info->destbuffer) + info->destoffset, buffer, *size);
@@ -673,18 +697,14 @@ static int DecompressLzw(BYTE *dest, BYTE *source, DWORD sourcebytes) {
 }
 
 static void Decrypt(DWORD *data, DWORD bytes, DWORD key) {
-  DWORD seed;
+  DWORD seed = 0xEEEEEEEE;
 
   bytes >>= 2;
-  if (bytes) {
-    seed = 0xEEEEEEEE;
-    do {
-      seed += Storm::SFile::s_hashsource[0x400 + (BYTE)key];
-      *data ^= key + seed;
-      seed = seed * 0x21 + *data + 3;
-      key = (key >> 0x0B) | ((~key << 0x15) + 0x11111111);
-      ++data;
-    } while (--bytes);
+  while (bytes--) {
+    seed += Storm::SFile::s_hashsource[0x400 + (key & 0xFF)];
+    *data ^= seed + key;
+    seed = *data++ + seed * 33 + 3;
+    key = ((~key << 0x15) + 0x11111111) | (key >> 0x0B);
   }
 }
 
@@ -706,7 +726,7 @@ static DWORD Hash(LPCSTR filename, int hashtype) {
 }
 
 static void InitializeHashSource(DWORD seed) {
-  DWORD i;
+  int   i;
   DWORD j;
   DWORD index;
   DWORD value1;
@@ -921,16 +941,11 @@ static DWORD InternalReadAlignedSector(SFileRecData *file, DWORD location) {
 }
 
 static DWORD InternalReadUnaligned(SFileRecData *file, DWORD location, LPVOID buffer, DWORD bytes) {
-  SFileArchiveRecData *archive;
-  BYTE                *cursor;
-  DWORD                sectorSize;
-  DWORD                sectorMask;
-  DWORD                totalRead;
-  DWORD                requested;
-  DWORD                read;
-  DWORD                offset;
-  DWORD                copyBytes;
-  DWORD                alignedBytes;
+  DWORD firstbytesread;
+  DWORD middlebytesread;
+  DWORD middlebytes;
+  DWORD lastbytesread;
+  DWORD lastsectorbytesread;
 
   if (file->block.sizefile <= location) {
     return 0;
@@ -945,84 +960,67 @@ static DWORD InternalReadUnaligned(SFileRecData *file, DWORD location, LPVOID bu
     file->crcstate = 2;
   }
 
-  archive = file->archive;
-  sectorSize = archive->sectorsize;
-  sectorMask = sectorSize - 1;
-  cursor = (BYTE *)buffer;
-  totalRead = 0;
+  firstbytesread = 0;
+  if (location & (file->archive->sectorsize - 1)) {
+    DWORD unalignedbytes;
+    DWORD sectorbytesread;
 
-  if (location & sectorMask) {
     if (file->crcavail && file->crcstate != 1 && file->crcexpected != location) {
       file->crcstate = 1;
     }
-    offset = location & sectorMask;
-    read = InternalReadAlignedSector(file, location & ~sectorMask);
-    copyBytes = sectorSize - offset;
-    if (copyBytes > bytes) {
-      copyBytes = bytes;
-    }
-    memcpy(cursor, (BYTE *)archive->sectorbuffer + offset, copyBytes);
+    sectorbytesread = InternalReadAlignedSector(file, location & ~(file->archive->sectorsize - 1));
+    unalignedbytes = min(bytes, file->archive->sectorsize - (location & (file->archive->sectorsize - 1)));
+    memcpy(buffer, file->archive->sectorbuffer + (location & (file->archive->sectorsize - 1)), unalignedbytes);
     if (file->crcavail && file->crcstate == 2) {
-      CrcBuffer(cursor, copyBytes, &file->crc, 2);
-      file->crcexpected += copyBytes;
+      CrcBuffer(buffer, unalignedbytes, &file->crc, 2);
+      file->crcexpected += unalignedbytes;
     }
-
-    bytes -= copyBytes;
-    cursor += copyBytes;
-    location += copyBytes;
-    totalRead = copyBytes;
-
-    if (read != sectorSize) {
-      if (read < offset) {
+    buffer = (BYTE *)buffer + unalignedbytes;
+    bytes -= unalignedbytes;
+    if (sectorbytesread != file->archive->sectorsize || !bytes) {
+      if (sectorbytesread < (location & (file->archive->sectorsize - 1))) {
         return 0;
       }
-      read -= offset;
-      return totalRead < read ? totalRead : read;
+      return min(unalignedbytes, sectorbytesread - (location & (file->archive->sectorsize - 1)));
     }
-    if (!bytes) {
-      return totalRead;
-    }
+    firstbytesread = unalignedbytes;
+    location += unalignedbytes;
   }
 
-  alignedBytes = bytes & ~sectorMask;
-  if (alignedBytes) {
-    if (file->crcavail && file->crcstate != 1 && file->crcexpected != location) {
-      file->crcstate = 1;
-    }
-    read = InternalReadAligned(file, location, cursor, alignedBytes);
-    if (file->crcavail && file->crcstate == 2) {
-      CrcBuffer(cursor, read, &file->crc, 2);
-      file->crcexpected += read;
-    }
-
-    cursor += alignedBytes;
-    location += alignedBytes;
-    bytes -= alignedBytes;
-    totalRead += read;
-
-    if (read != alignedBytes || !bytes) {
-      return totalRead;
-    }
-  }
-
+  middlebytesread = 0;
   if (bytes) {
     if (file->crcavail && file->crcstate != 1 && file->crcexpected != location) {
       file->crcstate = 1;
     }
-    read = InternalReadAlignedSector(file, location);
-    requested = bytes;
-    memcpy(cursor, archive->sectorbuffer, requested);
-    if (requested > read) {
-      requested = read;
-    }
+    middlebytes = bytes & ~(file->archive->sectorsize - 1);
+    middlebytesread = InternalReadAligned(file, location, buffer, middlebytes);
     if (file->crcavail && file->crcstate == 2) {
-      CrcBuffer(cursor, requested, &file->crc, 2);
-      file->crcexpected += requested;
+      CrcBuffer(buffer, middlebytesread, &file->crc, 2);
+      file->crcexpected += middlebytesread;
     }
-    totalRead += requested;
+    buffer = (BYTE *)buffer + middlebytes;
+    bytes -= middlebytes;
+    location += middlebytes;
+    if (middlebytes != middlebytesread || !bytes) {
+      return firstbytesread + middlebytesread;
+    }
   }
 
-  return totalRead;
+  lastbytesread = 0;
+  if (bytes) {
+    if (file->crcavail && file->crcstate != 1 && file->crcexpected != location) {
+      file->crcstate = 1;
+    }
+    lastsectorbytesread = InternalReadAlignedSector(file, location);
+    memcpy(buffer, file->archive->sectorbuffer, bytes);
+    lastbytesread = min(bytes, lastsectorbytesread);
+    if (file->crcavail && file->crcstate == 2) {
+      CrcBuffer(buffer, lastbytesread, &file->crc, 2);
+      file->crcexpected += lastbytesread;
+    }
+  }
+
+  return firstbytesread + middlebytesread + lastbytesread;
 }
 
 static int ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, LPCSTR filename) {
@@ -1090,9 +1088,7 @@ static SFileBlockEntryData *GetBlockEntry(SFileArchiveRecData *archive, DWORD in
 }
 
 static DWORD SearchHashTable(SFileArchiveRecData *archive, LPCSTR filename, WORD languageId, BYTE platformId) {
-  SFileHashEntryData *table;
   SFileHashEntryData *entry;
-  DWORD               mask;
   DWORD               firstindex;
   DWORD               index;
   DWORD               hashIndex;
@@ -1103,17 +1099,12 @@ static DWORD SearchHashTable(SFileArchiveRecData *archive, LPCSTR filename, WORD
   hashIndex = Hash(filename, HASH_INDEX);
   hashcheck0 = Hash(filename, HASH_CHECK0);
   hashcheck1 = Hash(filename, HASH_CHECK1);
-  table = archive->hashtable;
-  mask = archive->header.hashcount - 1;
-  index = hashIndex & mask;
+  index = hashIndex & (archive->header.hashcount - 1);
   firstindex = index;
   found = NOBLOCK;
 
-  for (;;) {
-    entry = &table[index];
-    if (entry->block == NOBLOCK) {
-      return found;
-    }
+  while (archive->hashtable[index].block != NOBLOCK) {
+    entry = &archive->hashtable[index];
     if (entry->hashcheck[0] == hashcheck0 && entry->hashcheck[1] == hashcheck1 && entry->block != DEALLOCATED) {
       if (entry->languageId == languageId && entry->platformId == platformId) {
         return index;
@@ -1122,30 +1113,35 @@ static DWORD SearchHashTable(SFileArchiveRecData *archive, LPCSTR filename, WORD
         found = index;
       }
     }
-    index = (index + 1) & mask;
+    index = (index + 1) & (archive->header.hashcount - 1);
     if (index == firstindex) {
-      return found;
+      break;
     }
   }
+  return found;
 }
 
 static void BlockEntryFileToMem(SFileBlockEntryData *pBlockTbl, DWORD dwBlockTblEntries) {
-  DWORD i;
+  BYTE                *source;
+  SFileBlockEntryData *dest;
+  DWORD                i;
 
-  if (dwBlockTblEntries > 1) {
-    for (i = dwBlockTblEntries - 1; i != 0; --i) {
-      memmove(&pBlockTbl[i], ((BYTE *)pBlockTbl) + (i * 0x10), 0x10);
-      pBlockTbl[i].time.dwLowDateTime = 0;
-      pBlockTbl[i].time.dwHighDateTime = 0;
-      pBlockTbl[i].crc = 0;
-      memset(&pBlockTbl[i].md5, 0, sizeof(pBlockTbl[i].md5));
-    }
+  source = (BYTE *)pBlockTbl + (dwBlockTblEntries - 1) * 0x10;
+  dest = &pBlockTbl[dwBlockTblEntries - 1];
+  for (i = dwBlockTblEntries; i > 1; --i) {
+    memmove(dest, source, 0x10);
+    dest->time.dwHighDateTime = 0;
+    dest->time.dwLowDateTime = 0;
+    dest->crc = 0;
+    dest->md5 = MD5(0, 0, 0, 0);
+    --dest;
+    source -= 0x10;
   }
   if (dwBlockTblEntries) {
-    pBlockTbl[0].time.dwLowDateTime = 0;
-    pBlockTbl[0].time.dwHighDateTime = 0;
-    pBlockTbl[0].crc = 0;
-    memset(&pBlockTbl[0].md5, 0, sizeof(pBlockTbl[0].md5));
+    dest->time.dwHighDateTime = 0;
+    dest->time.dwLowDateTime = 0;
+    dest->crc = 0;
+    dest->md5 = MD5(0, 0, 0, 0);
   }
 }
 
@@ -1280,16 +1276,15 @@ static int CancelRequest(LPVOID buffer, IDirectSoundBuffer *soundbuffer) {
     return FALSE;
   }
 
-  cancelled = FALSE;
-
   Storm::SFile::s_cdlock.Enter();
+  cancelled = FALSE;
   ITERATELIST(SFileRequestData, Storm::SFile::s_cdreqlist, request) {
     if ((buffer && request->bufferbegin == buffer) || (soundbuffer && request->soundbuffer == soundbuffer)) {
+      cancelled = TRUE;
       if (request->event) {
         SFileEventRecData *eventrec = Storm::SFile::s_signalList.NewNode(LIST_TAIL, 0, 0);
         eventrec->event = request->event;
       }
-      cancelled = TRUE;
       ITERATE_DELETE;
     }
   }
@@ -1300,7 +1295,7 @@ static int CancelRequest(LPVOID buffer, IDirectSoundBuffer *soundbuffer) {
 
 static BOOL CanProcessRequest(SFileRequestData *request) {
   if (request->bufferbegin) {
-    if (request->Prev() && request->Prev()->bufferbegin == request->bufferbegin) {
+    if (request->Prev() && request->bufferbegin == request->Prev()->bufferbegin) {
       return FALSE;
     }
   }
@@ -1314,9 +1309,7 @@ static DWORD UpdateAudioStreamPos(SFileAudioStreamData *curr) {
   DWORD distance;
   DWORD position;
 
-  if (curr->fillstatus != 2 && curr->fillstatus != 3) {
-    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "curr->fillstatus == 2 || curr->fillstatus == 3", TRUE, 1);
-  }
+  ASSERT(curr->fillstatus == 2 || curr->fillstatus == 3);
 
   playpos = 0;
   writepos = 0;
@@ -1503,20 +1496,17 @@ static void CheckRequests(
     s_seekOptimize = glob->s_seekOptimize;
   }
 
-  bestDistance = 0xFFFFFFFF;
   Storm::SFile::s_cdlock.Enter();
+  bestDistance = 0xFFFFFFFF;
   currtime = GetTickCount();
   ITERATELIST(SFileRequestData, Storm::SFile::s_cdreqlist, request) {
     if (CanProcessRequest(request)) {
       distance = 0;
       if (s_seekOptimize && !request->stream) {
-        requestArchive = NULL;
+        requestArchive = request->file->archive;
         archiveBase = 0;
-        if (request->file) {
-          requestArchive = request->file->archive;
-          if (requestArchive && lastarchivelocation > requestArchive->sectorsize) {
-            archiveBase = lastarchivelocation - requestArchive->sectorsize;
-          }
+        if (requestArchive && lastarchivelocation > requestArchive->sectorsize) {
+          archiveBase = lastarchivelocation - requestArchive->sectorsize;
         }
         if (requestArchive == lastarchive) {
           distance = request->approxarchivelocation;
@@ -1707,25 +1697,16 @@ static void CreateCdThread() {
 }
 
 static void DestroyCdThread() {
-  HANDLE thread;
-  HANDLE event;
-
-  thread = (HANDLE)Storm::SFile::s_cdthread;
-  if (thread) {
+  if (Storm::SFile::s_cdthread) {
     Storm::SFile::s_cdshutdown = 1;
-    event = (HANDLE)Storm::SFile::s_cdevent;
-    if (event) {
-      SetEvent(event);
-    }
-    WaitForSingleObject(thread, 1000);
-    thread = (HANDLE)Storm::SFile::s_cdthread;
-    if (thread) {
-      CloseHandle(thread);
+    SetEvent((HANDLE)Storm::SFile::s_cdevent);
+    WaitForSingleObject((HANDLE)Storm::SFile::s_cdthread, 1000);
+    if (Storm::SFile::s_cdthread) {
+      CloseHandle((HANDLE)Storm::SFile::s_cdthread);
       Storm::SFile::s_cdthread = NULL;
     }
-    event = (HANDLE)Storm::SFile::s_cdevent;
-    if (event) {
-      CloseHandle(event);
+    if (Storm::SFile::s_cdevent) {
+      CloseHandle((HANDLE)Storm::SFile::s_cdevent);
       Storm::SFile::s_cdevent = NULL;
     }
   }
@@ -1738,23 +1719,16 @@ void StormOptCdThread(DWORD *threadId, LPVOID *hThread) {
 }
 
 static void FillSoundBuffer(SFileRequestData *request) {
-  DWORD                 WAVECHUNKSIZE;
-  DWORD                 locksize;
-  DWORD                 copyBytes;
-  SFileAudioStreamData *stream;
+  DWORD WAVECHUNKSIZE;
+  DWORD locksize;
+  DWORD copyBytes;
 
   {
     Storm::SFile::UseGlob glob;
     WAVECHUNKSIZE = glob->WAVECHUNKSIZE;
   }
-  stream = (SFileAudioStreamData *)request->stream;
-  if (stream->soundbuffersize - request->soundbufferoffset < WAVECHUNKSIZE) {
-    SErrDisplayError(
-        STORM_ERROR_ASSERTION, __FILE__, __LINE__, "request->stream->soundbuffersize - request->soundbufferoffset >= WAVECHUNKSIZE", TRUE, 1
-    );
-  }
+  ASSERT(request->stream->soundbuffersize - request->soundbufferoffset >= WAVECHUNKSIZE);
 
-  locksize = 0;
   if ((*(SFileDirectSoundBufferVtbl **)request->soundbuffer)
               ->Lock(request->soundbuffer, request->soundbufferoffset, WAVECHUNKSIZE, &request->buffer, &locksize, NULL, NULL, 0) < 0 ||
       locksize != WAVECHUNKSIZE)
@@ -1762,45 +1736,31 @@ static void FillSoundBuffer(SFileRequestData *request) {
     return;
   }
 
-  copyBytes = request->bytesread;
-  if (copyBytes > locksize) {
-    copyBytes = locksize;
-  }
-
-  if (copyBytes && Storm::SFile::s_soundreadbuffer && request->buffer) {
-    memcpy(request->buffer, Storm::SFile::s_soundreadbuffer, copyBytes);
-  }
-
-  if (copyBytes < locksize && request->buffer) {
-    memset((BYTE *)request->buffer + copyBytes, stream->fillvalue, locksize - copyBytes);
+  copyBytes = min(request->bytesread, locksize);
+  memcpy(request->buffer, Storm::SFile::s_soundreadbuffer, copyBytes);
+  if (copyBytes < locksize) {
+    memset((BYTE *)request->buffer + copyBytes, request->stream->fillvalue, locksize - copyBytes);
   }
 
   (*(SFileDirectSoundBufferVtbl **)request->soundbuffer)->Unlock(request->soundbuffer, request->buffer, locksize, NULL, 0);
 
-  if (request->location - stream->waveheadersize && stream->writecursor > request->location - stream->waveheadersize + locksize) {
-    SErrDisplayError(
-        STORM_ERROR_ASSERTION, __FILE__, __LINE__, "request->location - request->stream->dataoffset + bytes <= request->stream->bytesbuffered", TRUE,
-        1
-    );
+  ASSERT(request->location - request->stream->waveheadersize == 0 || request->stream->writecursor <= (request->location - request->stream->waveheadersize) + locksize);
+
+  request->stream->writecursor = request->location - request->stream->waveheadersize + locksize;
+  if (request->stream->writecursor > request->stream->wavedatasize) {
+    request->stream->bytespastend = request->stream->writecursor - request->stream->wavedatasize;
   }
 
-  stream->writecursor = request->location - stream->waveheadersize + locksize;
-  if (stream->writecursor > stream->wavedatasize) {
-    stream->bytespastend = stream->writecursor - stream->wavedatasize;
-  }
-
-  if (stream->fillstatus == 1) {
-    DWORD playthreshold = stream->wavedatasize;
+  if (request->stream->fillstatus == 1) {
+    DWORD bytesbuffered = request->location - request->stream->waveheadersize + request->bytestoread;
+    DWORD playthreshold = request->stream->wavedatasize;
     if (playthreshold > 0x10000) {
       playthreshold = 0x10000;
     }
-    if (playthreshold > stream->soundbuffersize) {
-      playthreshold = stream->soundbuffersize;
-    }
-
-    if (request->location - stream->waveheadersize + request->bytestoread >= playthreshold) {
-      (*(SFileDirectSoundBufferVtbl **)stream->soundbuffer)->Play(stream->soundbuffer, 0, 0, 1);
-      stream->fillstatus = 2;
+    playthreshold = min(playthreshold, request->stream->soundbuffersize);
+    if (bytesbuffered >= playthreshold) {
+      (*(SFileDirectSoundBufferVtbl **)request->stream->soundbuffer)->Play(request->stream->soundbuffer, 0, 0, 1);
+      request->stream->fillstatus = 2;
     }
   }
 }
@@ -1823,7 +1783,9 @@ static SFileRequestData *IssueRequest(
 ) {
   SFileRequestData *request;
 
-  FATALASSERT(buffer || soundbuffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer || soundbuffer);
+  VALIDATEEND;
 
   Storm::SFile::s_cdlock.Enter();
   request = Storm::SFile::s_cdreqlist.NewNode(LIST_UNLINKED, 0, 0);
@@ -2376,16 +2338,17 @@ cleanup:
 }
 
 extern "C" DWORD APIENTRY SFileCalcFileCrc(LPCSTR filename) {
-  BYTE  *buffer;
-  DWORD  crc;
-  HANDLE filehandle;
-  DWORD  filesize;
-  DWORD  remaining;
-  DWORD  chunk;
-  DWORD  actual;
+  VALIDATEBEGIN;
+  VALIDATE(filename);
+  VALIDATE(*filename);
+  VALIDATEEND;
 
-  FATALASSERT(filename);
-  FATALASSERT(*filename);
+  HANDLE filehandle;
+  DWORD  crc;
+  DWORD  actual;
+  BYTE  *buffer;
+  DWORD  filesize;
+  DWORD  chunk;
 
   filehandle = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
   if (filehandle == INVALID_HANDLE_VALUE) {
@@ -2394,45 +2357,45 @@ extern "C" DWORD APIENTRY SFileCalcFileCrc(LPCSTR filename) {
 
   crc = 0;
   filesize = GetFileSize(filehandle, NULL);
-  if (filesize == 0xFFFFFFFF) {
-    goto close_file;
-  }
+  if (filesize != 0xFFFFFFFF) {
+    buffer = (BYTE *)ALLOC(0x8000);
 
-  buffer = (BYTE *)ALLOC(0x8000);
-
-  CrcBuffer(NULL, 0, &crc, 1);
-  remaining = filesize;
-  while (remaining) {
-    chunk = remaining < 0x8000 ? remaining : 0x8000;
-    ReadFile(filehandle, buffer, chunk, &actual, NULL);
-    if (actual != chunk) {
-      if (buffer) {
-        FREE(buffer);
+    CrcBuffer(NULL, 0, &crc, 1);
+    while (filesize > 0) {
+      chunk = filesize < 0x8000 ? filesize : 0x8000;
+      ReadFile(filehandle, buffer, chunk, &actual, NULL);
+      if (chunk != actual) {
+        if (buffer) {
+          FREE(buffer);
+        }
+        CloseHandle(filehandle);
+        return 0;
       }
-      CloseHandle(filehandle);
-      return 0;
+      CrcBuffer(buffer, chunk, &crc, 2);
+      filesize -= chunk;
     }
-    CrcBuffer(buffer, chunk, &crc, 2);
-    remaining -= chunk;
-  }
-  CrcBuffer(NULL, 0, &crc, 4);
+    CrcBuffer(NULL, 0, &crc, 4);
 
-  if (buffer) {
-    FREE(buffer);
+    if (buffer) {
+      FREE(buffer);
+    }
   }
-close_file:
   CloseHandle(filehandle);
   return crc;
 }
 
 extern "C" void APIENTRY SFileCancelRequest(LPVOID buffer) {
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATEENDVOID;
 
   CancelRequest(buffer, NULL);
 }
 
 extern "C" BOOL APIENTRY SFileCancelRequestEx(LPVOID buffer) {
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATEEND;
 
   return CancelRequest(buffer, NULL);
 }
@@ -2718,35 +2681,37 @@ extern "C" BOOL APIENTRY SFileDdaGetPos(HSFILE handle, DWORD *position, DWORD *m
   DWORD                 ddamaxpos;
   BOOL                  result;
 
+  result = FALSE;
   currentPosition = 0;
   ddamaxpos = 0;
-  result = FALSE;
 
   Storm::SFile::s_streamlock.Enter();
   {
     Storm::SFile::FilePtr fileptr(handle);
-    if (fileptr) {
-      stream = Storm::SFile::s_streamlist.Head();
-      while (stream && stream->file != (SFileRecData *)fileptr) {
-        stream = stream->Next();
-      }
-      if (stream) {
-        ddamaxpos = stream->wavedatasize;
-        if (stream->fillstatus == 4) {
-          SErrSetLastError(0x85100072);
-        } else {
-          result = TRUE;
-          if (stream->fillstatus != 0 && stream->fillstatus != 1) {
-            UpdateAudioStreamPos(stream);
-            currentPosition = stream->playcursor;
-          }
-        }
-      } else {
-        SErrSetLastError(0x85100072);
-      }
+    if (!fileptr) {
+      goto finallylabel;
+    }
+    stream = Storm::SFile::s_streamlist.Head();
+    while (stream && stream->file != (SFileRecData *)fileptr) {
+      stream = stream->Next();
+    }
+    if (!stream) {
+      SErrSetLastError(0x85100072);
+      goto finallylabel;
+    }
+    ddamaxpos = stream->wavedatasize;
+    if (stream->fillstatus == 4) {
+      SErrSetLastError(0x85100072);
+      goto finallylabel;
+    }
+    result = TRUE;
+    if (stream->fillstatus != 0 && stream->fillstatus != 1) {
+      UpdateAudioStreamPos(stream);
+      currentPosition = stream->playcursor;
     }
   }
 
+finallylabel:
   if (position) {
     *position = currentPosition;
   }
@@ -2778,8 +2743,8 @@ extern "C" BOOL APIENTRY SFileDdaGetVolume(HSFILE handle, LONG *volume, LONG *pa
     stream = stream->Next();
   }
   if (!stream) {
-    Storm::SFile::s_streamlock.Leave();
     SErrSetLastError(0x85100072);
+    Storm::SFile::s_streamlock.Leave();
     return FALSE;
   }
 
@@ -2800,7 +2765,9 @@ extern "C" BOOL APIENTRY SFileDdaGetVolume(HSFILE handle, LONG *volume, LONG *pa
 }
 
 extern "C" BOOL APIENTRY SFileDdaInitialize(IDirectSound *directsound) {
-  FATALASSERT(directsound);
+  VALIDATEBEGIN;
+  VALIDATE(directsound);
+  VALIDATEEND;
 
   Storm::SFile::s_cdlock.Enter();
   Storm::SFile::s_directsound = directsound;
@@ -2933,8 +2900,10 @@ extern "C" DWORD APIENTRY SFileFileExists(LPCSTR filename) {
 }
 
 extern "C" DWORD APIENTRY SFileFileExistsEx(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags) {
-  FATALASSERT(filename);
-  FATALASSERT(*filename);
+  VALIDATEBEGIN;
+  VALIDATE(filename);
+  VALIDATE(*filename);
+  VALIDATEEND;
 
   Initialize();
   return GetFileBlockEntry(archivehandle, filename, flags, NULL, NULL, NULL);
@@ -2961,7 +2930,9 @@ extern "C" BOOL APIENTRY SFileGetArchiveInfo(HSARCHIVE archive, int *priority, i
 }
 
 extern "C" BOOL APIENTRY SFileGetArchiveName(HSARCHIVE archive, char *buffer, DWORD bufferchars) {
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATEEND;
   *buffer = 0;
   Storm::SFile::ArchivePtr archiveptr(archive);
   if (!archiveptr) {
@@ -2982,7 +2953,9 @@ extern "C" BOOL APIENTRY SFileGetBasePath(char *buffer, DWORD bufferchars) {
 }
 
 extern "C" BOOL APIENTRY SFileGetFileArchive(HSFILE file, HSARCHIVE *archive) {
-  FATALASSERT(archive);
+  VALIDATEBEGIN;
+  VALIDATE(archive);
+  VALIDATEEND;
   *archive = NULL;
   Storm::SFile::FilePtr fileptr(file);
   if (!fileptr) {
@@ -3011,12 +2984,14 @@ extern "C" BOOL APIENTRY SFileGetFileMD5(HSFILE handle, BYTE *md5) {
   if (fileptr->handle != INVALID_HANDLE_VALUE) {
     return FALSE;
   }
-  memcpy(md5, &fileptr->block.md5, sizeof(fileptr->block.md5));
+  *(MD5 *)md5 = fileptr->block.md5;
   return TRUE;
 }
 
 extern "C" BOOL APIENTRY SFileGetFileName(HSFILE file, char *buffer, DWORD bufferchars) {
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATEEND;
   *buffer = 0;
   Storm::SFile::FilePtr fileptr(file);
   if (!fileptr) {
@@ -3027,7 +3002,9 @@ extern "C" BOOL APIENTRY SFileGetFileName(HSFILE file, char *buffer, DWORD buffe
 }
 
 extern "C" BOOL APIENTRY SFileGetActualFileName(HSFILE file, char *buffer, DWORD bufferchars) {
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATEEND;
   *buffer = 0;
   Storm::SFile::FilePtr fileptr(file);
   if (!fileptr) {
@@ -3066,7 +3043,9 @@ extern "C" DWORD APIENTRY SFileGetFileSize(HSFILE handle, DWORD *filesizehigh) {
 }
 
 extern "C" BOOL APIENTRY SFileGetFileTime(HSFILE handle, FILETIME *filetime) {
-  FATALASSERT(filetime);
+  VALIDATEBEGIN;
+  VALIDATE(filetime);
+  VALIDATEEND;
 
   Storm::SFile::FilePtr fileptr(handle);
   if (!fileptr) {
@@ -3103,31 +3082,34 @@ extern "C" BOOL APIENTRY SFileLoadFileEx2(
   DWORD  sizeLow;
   LPVOID target;
 
-  FATALASSERT(filename);
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(filename);
+  VALIDATEANDBLANK(buffer);
+  VALIDATEEND;
 
-  *buffer = NULL;
   if (bytes) {
     *bytes = 0;
   }
 
   HSFILE file = NULL;
-  if (SFileOpenFileEx(archive, filename, flags, &file)) {
-    sizeLow = SFileGetFileSize(file, NULL);
-    target = ALLOC(sizeLow + extraBytes);
-    if (SFileReadFileEx2(file, target, sizeLow, NULL, overlapped, overlappedpriority, NULL)) {
-      if (extraBytes) {
-        memset((BYTE *)target + sizeLow, 0, extraBytes);
-      }
-      *buffer = target;
-      if (bytes) {
-        *bytes = sizeLow;
-      }
-    } else if (target) {
-      FREE(target);
+  if (!SFileOpenFileEx(archive, filename, flags, &file)) {
+    goto finallylabel;
+  }
+  sizeLow = SFileGetFileSize(file, NULL);
+  target = ALLOC(sizeLow + extraBytes);
+  if (SFileReadFileEx2(file, target, sizeLow, NULL, overlapped, overlappedpriority, NULL)) {
+    if (extraBytes) {
+      memset((BYTE *)target + sizeLow, 0, extraBytes);
     }
+    *buffer = target;
+    if (bytes) {
+      *bytes = sizeLow;
+    }
+  } else if (target) {
+    FREE(target);
   }
 
+finallylabel:
   if (file) {
     SFileCloseFile(file);
   }
@@ -3140,10 +3122,11 @@ extern "C" BOOL APIENTRY SFileOpenArchive(LPCSTR archivename, int priority, DWOR
   int                  checkCdRom;
   char                 localarchivename[MAX_PATH];
 
-  FATALASSERT(handle);
-  *handle = NULL;
-  FATALASSERT(archivename);
-  FATALASSERT(*archivename);
+  VALIDATEBEGIN;
+  VALIDATEANDBLANK(handle);
+  VALIDATE(archivename);
+  VALIDATE(*archivename);
+  VALIDATEEND;
 
   Initialize();
   SStrCopy(localarchivename, archivename, sizeof(localarchivename));
@@ -3195,10 +3178,11 @@ extern "C" BOOL APIENTRY SFileOpenPathAsArchive(HSARCHIVE ownerarchive, LPCSTR p
   SFileArchiveRecData *position;
 
   (void)flags;
-  FATALASSERT(handle);
-  *handle = NULL;
-  FATALASSERT(pathPrefix);
-  FATALASSERT(*pathPrefix);
+  VALIDATEBEGIN;
+  VALIDATEANDBLANK(handle);
+  VALIDATE(pathPrefix);
+  VALIDATE(*pathPrefix);
+  VALIDATEEND;
 
   Initialize();
   Storm::SFile::ArchivePtr parent(ownerarchive);
@@ -3360,28 +3344,26 @@ extern "C" BOOL APIENTRY SFileOpenFileAsArchive(HSARCHIVE ownerarchive, LPCSTR f
     return FALSE;
   }
 
-  {
-    Storm::SFile::FilePtrLocked fileptr(filehandle);
+  Storm::SFile::FilePtrLocked fileptr(filehandle);
 
-    ASSERT(fileptr);
+  ASSERT(fileptr != 0);
 
-    Storm::SFile::s_archivelock.Enter();
-    newarchive = Storm::SFile::s_archivelist.NewNode(LIST_UNLINKED, 0, 0);
-    Storm::SFile::AddArchiveRef(newarchive);
-    Storm::SFile::s_archivelock.Leave();
+  Storm::SFile::s_archivelock.Enter();
+  newarchive = Storm::SFile::s_archivelist.NewNode(LIST_UNLINKED, 0, 0);
+  Storm::SFile::AddArchiveRef(newarchive);
+  Storm::SFile::s_archivelock.Leave();
 
-    SStrCopy(newarchive->archivename, filename, sizeof(newarchive->archivename));
-    newarchive->handle = fileptr->archive->handle;
-    newarchive->cdrom = fileptr->archive->cdrom;
-    newarchive->dontCheckDisk = (flags >> 2) & 1;
-    newarchive->priority = priority;
-    newarchive->disableCount = 0;
-    newarchive->ownerarchivefile = filehandle;
-    newarchive->startinglocation = fileptr->block.offset;
-    newarchive->endinglocation = fileptr->block.offset + fileptr->block.sizefile;
+  SStrCopy(newarchive->archivename, filename, sizeof(newarchive->archivename));
+  newarchive->handle = fileptr->archive->handle;
+  newarchive->cdrom = fileptr->archive->cdrom;
+  newarchive->dontCheckDisk = (flags >> 2) & 1;
+  newarchive->priority = priority;
+  newarchive->disableCount = 0;
+  newarchive->ownerarchivefile = filehandle;
+  newarchive->startinglocation = fileptr->block.offset;
+  newarchive->endinglocation = fileptr->block.offset + fileptr->block.sizefile;
 
-    result = Storm::SFile::s_OpenArchive(newarchive, flags, newarchive->cdrom, handle);
-  }
+  result = Storm::SFile::s_OpenArchive(newarchive, flags, newarchive->cdrom, handle);
   return result;
 }
 
@@ -3395,10 +3377,11 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filena
   LPVOID               s_loadNotifyData;
   DWORD                key;
 
-  FATALASSERT(handle);
-  *handle = NULL;
-  FATALASSERT(filename);
-  FATALASSERT(*filename);
+  VALIDATEBEGIN;
+  VALIDATEANDBLANK(handle);
+  VALIDATE(filename);
+  VALIDATE(*filename);
+  VALIDATEEND;
 
   Initialize();
   archiveptr = NULL;
@@ -3497,7 +3480,9 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filena
 }
 
 extern "C" void APIENTRY SFilePrioritizeRequest(LPVOID buffer, LONG overlappedpriority) {
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATEENDVOID;
   MarkRequestUrgent(buffer, overlappedpriority > 0);
   if (overlappedpriority >= 1 && Storm::SFile::s_cdevent) {
     SetEvent((HANDLE)Storm::SFile::s_cdevent);
@@ -3555,7 +3540,9 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
     }
     return TRUE;
   }
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATEEND;
 
   if (file->handle != INVALID_HANDLE_VALUE && !overlapped) {
     return ReadFileWin32(file, 0xFFFFFFFF, buffer, bytestoread, bytesread);
@@ -3697,7 +3684,9 @@ extern "C" BOOL APIENTRY SFileSetBasePath(LPCSTR path) {
   DWORD required;
   int   terminated;
 
-  FATALASSERT(path);
+  VALIDATEBEGIN;
+  VALIDATE(path);
+  VALIDATEEND;
 
   Storm::SFile::UseGlob glob;
   if (!path[0]) {
@@ -3719,7 +3708,9 @@ extern "C" BOOL APIENTRY SFileSetBasePath(LPCSTR path) {
 }
 
 extern "C" void APIENTRY SFileSetDataChunkSize(DWORD bytes) {
-  FATALASSERT(!(bytes & (bytes - 1)));
+  VALIDATEBEGIN;
+  VALIDATE(!(bytes & (bytes-1)));
+  VALIDATEENDVOID;
   Storm::SFile::UseGlob glob;
   glob->s_dataChunkSize = bytes;
 }
@@ -3744,18 +3735,18 @@ extern "C" DWORD APIENTRY SFileSetFilePointer(HSFILE handle, LONG distancetomove
       break;
 
     case FILE_CURRENT:
-      if (distancetomove < 0) {
-        fileptr->location = fileptr->location < (DWORD)-distancetomove ? 0 : fileptr->location + distancetomove;
+      if (distancetomove < 0 && fileptr->location < (DWORD)-distancetomove) {
+        fileptr->location = 0;
       } else {
-        fileptr->location += (DWORD)distancetomove;
+        fileptr->location += distancetomove;
       }
       break;
 
     case FILE_END:
-      if (distancetomove < 0) {
-        fileptr->location = fileptr->block.sizefile < (DWORD)-distancetomove ? 0 : fileptr->block.sizefile + distancetomove;
+      if (distancetomove < 0 && fileptr->block.sizefile < (DWORD)-distancetomove) {
+        fileptr->location = 0;
       } else {
-        fileptr->location = fileptr->block.sizefile + (DWORD)distancetomove;
+        fileptr->location = fileptr->block.sizefile + distancetomove;
       }
       break;
   }
@@ -3790,7 +3781,9 @@ extern "C" void APIENTRY SFileSetPlatform(DWORD platformId) {
 }
 
 extern "C" BOOL APIENTRY SFileUnloadFile(LPVOID buffer) {
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATEEND;
   FREE(buffer);
   return TRUE;
 }

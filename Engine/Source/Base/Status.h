@@ -12,6 +12,20 @@ enum STATUS_TYPE {
 
 class CStatus {
  public:
+  virtual ~CStatus();
+
+  virtual void Display() const;
+  virtual void Add(STATUS_TYPE severity, LPCSTR format, ...);
+  virtual void Add(const CStatus &source);
+  virtual void Prepend(STATUS_TYPE severity, LPCSTR format, ...);
+
+  void        Clear();
+  BOOL        IsEmpty() const;
+  void        GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity) const;
+  UINT        GetErrorStrLen(STATUS_TYPE minSeverity) const;
+  char       *GetErrorStrAlloc(STATUS_TYPE minSeverity) const;
+  STATUS_TYPE GetHighestSeverity() const;
+
   struct STATUSENTRY {
     ~STATUSENTRY() {
       FREEIFUSED(text);
@@ -21,20 +35,6 @@ class CStatus {
     STATUS_TYPE severity;
     LINKDECLEX(STATUSENTRY, link);
   };
-
-  virtual ~CStatus();
-
-  virtual void Display() const;
-  virtual void Add(STATUS_TYPE severity, LPCSTR format, ...);
-  virtual void Add(const CStatus &source);
-  virtual void Prepend(STATUS_TYPE severity, LPCSTR format, ...);
-
-  BOOL        IsEmpty() const;
-  void        Clear();
-  void        GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity) const;
-  UINT        GetErrorStrLen(STATUS_TYPE minSeverity) const;
-  char       *GetErrorStrAlloc(STATUS_TYPE minSeverity) const;
-  STATUS_TYPE GetHighestSeverity() const;
 
  protected:
   LISTDECLEX(STATUSENTRY, link, statusList);

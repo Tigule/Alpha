@@ -103,15 +103,15 @@ static inline float Interp(float range1, float range2, float percent) {
 
 class LightQE {
  public:
+  float dist;
+  int   subscript;
+
   LightQE(float pDist, int pSubscript) : dist(pDist), subscript(pSubscript) {
   }
 
   static bool HasHigherPriority(const LightQE &a, const LightQE &b) {
     return a.dist >= b.dist;
   }
-
-  float dist;
-  int   subscript;
 };
 
 static NTempest::CImVector BlendColor(NTempest::CImVector from, NTempest::CImVector to, float scale) {

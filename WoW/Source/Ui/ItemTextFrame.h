@@ -10,11 +10,11 @@ class CGItemText {
   static void EnterWorld();
   static void LeaveWorld();
   static void SetItem(const DWORDLONG &item, int callback);
-  static void DisplayText(const DWORDLONG &item, int useSkill);
 
   static const DWORDLONG &GetItem() {
     return m_itemGUID;
   }
+  static void DisplayText(const DWORDLONG &item, int useSkill);
   static UINT GetCurrentPage() {
     return m_currentPage;
   }

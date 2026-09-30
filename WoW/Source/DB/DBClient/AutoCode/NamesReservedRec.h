@@ -4,6 +4,9 @@
 
 class NamesReservedRec {
  public:
+  int    m_ID;
+  LPCSTR m_Name;
+
   NamesReservedRec();
   ~NamesReservedRec();
 
@@ -29,9 +32,6 @@ class NamesReservedRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_Name;
 };
 
 extern WowClientDB<NamesReservedRec> g_namesReservedDB;

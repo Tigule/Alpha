@@ -4,6 +4,13 @@
 
 class CreatureFamilyRec {
  public:
+  int   m_ID;
+  float m_minScale;
+  int   m_minScaleLevel;
+  float m_maxScale;
+  int   m_maxScaleLevel;
+  int   m_skillLine[2];
+
   CreatureFamilyRec();
   ~CreatureFamilyRec();
 
@@ -29,13 +36,6 @@ class CreatureFamilyRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int   m_ID;
-  float m_minScale;
-  int   m_minScaleLevel;
-  float m_maxScale;
-  int   m_maxScaleLevel;
-  int   m_skillLine[2];
 };
 
 extern WowClientDB<CreatureFamilyRec> g_creatureFamilyDB;

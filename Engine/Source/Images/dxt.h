@@ -3,15 +3,17 @@
 
 #include "Tempest/cimvector.h"
 
+#pragma pack(push, 1)
+
 struct C4Pixel {
   C4Pixel() {
   }
 
-  C4Pixel(UINT color) {
-    *reinterpret_cast<UINT *>(this) = color;
+  C4Pixel(BYTE b, BYTE g, BYTE r, BYTE a) : b(b), g(g), r(r), a(a) {
   }
 
-  C4Pixel(BYTE b, BYTE g, BYTE r, BYTE a) : b(b), g(g), r(r), a(a) {
+  C4Pixel(UINT color) {
+    *reinterpret_cast<UINT *>(this) = color;
   }
 
   UINT BitDepth() const {
@@ -32,10 +34,10 @@ struct C4LargePixel {
   C4LargePixel() {
   }
 
-  C4LargePixel(UINT value) : b(value), g(value), r(value), a(value) {
+  C4LargePixel(long b, long g, long r, long a) : b(b), g(g), r(r), a(a) {
   }
 
-  C4LargePixel(long b, long g, long r, long a) : b(b), g(g), r(r), a(a) {
+  C4LargePixel(UINT value) : b(value), g(value), r(value), a(value) {
   }
 
   C4LargePixel &operator+=(const C4LargePixel &value) {
@@ -55,6 +57,8 @@ struct C4LargePixel {
   long r;
   long a;
 };
+
+#pragma pack(pop)
 
 struct DxtBlock {
   enum {
@@ -104,21 +108,23 @@ struct Dxt3Block : public DxtBlock {
 };
 
 struct DxtRect {
-  DxtRect() {
-  }
-
-  DxtRect(UINT left, UINT top, UINT right, UINT bottom, UINT width, UINT height) : l(left), t(top), r(right), b(bottom), w(width), h(height) {
-  }
-
-  DxtRect(UINT left, UINT top, UINT right, UINT bottom);
-  void Check();
-
   UINT l;
   UINT t;
   UINT r;
   UINT b;
   UINT w;
   UINT h;
+
+  DxtRect(UINT left, UINT top, UINT right, UINT bottom);
+
+  DxtRect(UINT left, UINT top, UINT right, UINT bottom, UINT width, UINT height) : l(left), t(top), r(right), b(bottom), w(width), h(height) {
+  }
+
+  DxtRect() {
+  }
+
+  void Check();
+
 };
 
 inline BYTE Dxt3A4(UINT alphaBits) {
@@ -215,6 +221,6 @@ UINT     CalcLevelCount(UINT width, UINT height);
 UINT     MippedImgCalcSize(UINT fourCC, UINT width, UINT height);
 MipBits *MippedImgAllocA(UINT fourCC, UINT width, UINT height, LPCSTR fileName, int lineNumber);
 void     MippedImgSet(UINT fourCC, UINT width, UINT height, MipBits *bits);
-void     FullShrink(C4Pixel *dest, UINT destWidth, UINT destHeight, const C4Pixel *source, UINT sourceWidth, UINT sourceHeight);
+void     FullShrink(C4Pixel *dest, UINT destWidth, UINT destHeight, const C4Pixel source[], UINT sourceWidth, UINT sourceHeight);
 
 #endif

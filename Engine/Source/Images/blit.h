@@ -2,6 +2,7 @@
 #define ENGINE_SOURCE_IMAGES_BLIT_H
 
 #include <Base/Base.h>
+#include "Images/dxt.h"
 
 namespace NTempest {
   class C2iVector;

@@ -18,18 +18,21 @@
 #include <string.h>
 
 class HASHKEY_TEXTUREFILE {
+ private:
+  char       *m_filename;
+  CGxTexFlags m_flags;
  public:
   HASHKEY_TEXTUREFILE() : m_filename(0), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
-  }
-
-  HASHKEY_TEXTUREFILE(LPCSTR filename, CGxTexFlags flags) : m_filename(0), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
-    m_filename = SStrDupA(filename, __FILE__, __LINE__);
-    m_flags = flags;
   }
 
   HASHKEY_TEXTUREFILE(const HASHKEY_TEXTUREFILE &source) : m_filename(0), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
     m_filename = SStrDupA(source.m_filename, __FILE__, __LINE__);
     m_flags = source.m_flags;
+  }
+
+  HASHKEY_TEXTUREFILE(LPCSTR filename, CGxTexFlags flags) : m_filename(0), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
+    m_filename = SStrDupA(filename, __FILE__, __LINE__);
+    m_flags = flags;
   }
 
   ~HASHKEY_TEXTUREFILE() {
@@ -51,9 +54,6 @@ class HASHKEY_TEXTUREFILE {
            SStrCmpI(m_filename, source.m_filename, 0x104) == 0;
   }
 
- private:
-  char       *m_filename;
-  CGxTexFlags m_flags;
 };
 
 class CTexture : public CHandleObject {
@@ -196,7 +196,7 @@ static void         AsyncTextureHandler();
 static void         AsyncTextureWait(CTexture *texture);
 static HTEXTURE     CreateBlpTexture(LPCSTR filename, CGxTexFlags flags, CStatus *status);
 static EImageFormat IdentifyAndStripFileExtension(LPCSTR fileName, char *stripped, char **ext);
-static void         TextureGenerateMips(UINT width, UINT height, UINT levelsProvided, UINT levelsDesired, MipBits *levelBits);
+void         TextureGenerateMips(UINT width, UINT height, UINT levelsProvided, UINT levelsDesired, MipBits *levelBits);
 static int __cdecl  TextureLogSortCallback(LPCVOID elem1, LPCVOID elem2);
 
 LPCSTR CTexture::GetObjectName() {
@@ -1497,7 +1497,7 @@ UINT TextureCalcMipCount(UINT width, UINT height) {
   return mipCount;
 }
 
-static void TextureGenerateMips(UINT width, UINT height, UINT levelsProvided, UINT levelsDesired, MipBits *levelBits) {
+void TextureGenerateMips(UINT width, UINT height, UINT levelsProvided, UINT levelsDesired, MipBits *levelBits) {
   UINT sourceWidth = width;
   UINT sourceHeight = height;
   UINT destWidth = width;

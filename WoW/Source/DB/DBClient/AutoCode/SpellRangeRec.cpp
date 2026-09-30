@@ -1,13 +1,7 @@
 #include "SpellRangeRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR SpellRangeRec::GetFilename() {
   return "DBFilesClient\\SpellRange.dbc";
@@ -20,34 +14,31 @@ SpellRangeRec::~SpellRangeRec() {
 }
 
 bool SpellRangeRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempdisplayName_langIndices[8];
   UINT tempdisplayNameShort_langIndices[8];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_rangeMin, sizeof(m_rangeMin), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_rangeMax, sizeof(m_rangeMax), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_flags, sizeof(m_flags), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[0], sizeof(tempdisplayName_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[1], sizeof(tempdisplayName_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[2], sizeof(tempdisplayName_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[3], sizeof(tempdisplayName_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[4], sizeof(tempdisplayName_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[5], sizeof(tempdisplayName_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[6], sizeof(tempdisplayName_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[7], sizeof(tempdisplayName_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_displayName_flag, sizeof(m_displayName_flag), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayNameShort_langIndices[0], sizeof(tempdisplayNameShort_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayNameShort_langIndices[1], sizeof(tempdisplayNameShort_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayNameShort_langIndices[2], sizeof(tempdisplayNameShort_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayNameShort_langIndices[3], sizeof(tempdisplayNameShort_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayNameShort_langIndices[4], sizeof(tempdisplayNameShort_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayNameShort_langIndices[5], sizeof(tempdisplayNameShort_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayNameShort_langIndices[6], sizeof(tempdisplayNameShort_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayNameShort_langIndices[7], sizeof(tempdisplayNameShort_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_displayNameShort_flag, sizeof(m_displayNameShort_flag), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_rangeMin) ||
+      !SFileReadTyped(f, &m_rangeMax) ||
+      !SFileReadTyped(f, &m_flags) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[0]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[1]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[2]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[3]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[4]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[5]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[6]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[7]) ||
+      !SFileReadTyped(f, &m_displayName_flag) ||
+      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[0]) ||
+      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[1]) ||
+      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[2]) ||
+      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[3]) ||
+      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[4]) ||
+      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[5]) ||
+      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[6]) ||
+      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[7]) ||
+      !SFileReadTyped(f, &m_displayNameShort_flag)) {
     ConsoleWrite("Error reading SpellRangeRec", DEFAULT_COLOR);
     return false;
   }

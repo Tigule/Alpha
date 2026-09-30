@@ -3,12 +3,12 @@
 #include <stpl.h>
 
 struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
-  typedef bool (*CVARCALLBACKFCN)(CVar *, LPCSTR, LPCSTR, LPVOID);
-
   enum {
     ARCHIVE = 0x1,
     LATCH = 0x2
   };
+
+  typedef bool (*CVARCALLBACKFCN)(CVar *, LPCSTR, LPCSTR, LPVOID);
 
   CVar();
   CVar(const CVar &);
@@ -41,6 +41,11 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
   LPCSTR GetResetValue() const {
     return m_resetValue;
   }
+  bool Set(LPCSTR value, bool setValue, bool setReset, bool setDefault);
+  void Reset();
+  void Default();
+  bool Update();
+
   int Modified() const {
     return m_modified;
   }
@@ -48,12 +53,9 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
     return (m_flags & ARCHIVE) != 0;
   }
 
-  bool Set(LPCSTR value, bool setValue, bool setReset, bool setDefault);
-  void Reset();
-  void Default();
-  bool Update();
-
  private:
+  void InternalSet(LPCSTR value, bool setValue, bool setReset, bool setDefault);
+
   char            m_name[32];
   UINT            m_category;
   UINT            m_flags;
@@ -66,6 +68,4 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
   char           *m_latchedValue;
   CVARCALLBACKFCN m_callback;
   LPVOID          m_arg;
-
-  void InternalSet(LPCSTR value, bool setValue, bool setReset, bool setDefault);
 };

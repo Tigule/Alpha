@@ -21,7 +21,7 @@ namespace Signature {
     return size >= modulusSize + sizeof(DWORD) && *(const DWORD *)(data + dataSize) == SIGNATURE_MAGIC;
   }
 
-  void Hash(const BYTE *data, DWORD size, BYTE *digest) {
+  void Hash(const BYTE *data, DWORD size, BYTE *const digest) {
     Sha1 sha;
 
     sha.Initialize();

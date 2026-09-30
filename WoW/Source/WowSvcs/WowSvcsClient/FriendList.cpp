@@ -963,7 +963,7 @@ void FriendList::HandleStatus(FRIEND_RESULT result, DWORDLONG guid, CDataStore *
   }
 }
 
-char *StripQuotes(char *string) {
+static char *StripQuotes(char *string) {
   if (!string) {
     return 0;
   }

@@ -4,6 +4,14 @@
 
 class WorldSafeLocsRec {
  public:
+  int    m_ID;
+  int    m_continent;
+  float  m_locX;
+  float  m_locY;
+  float  m_locZ;
+  LPCSTR m_AreaName_lang[8];
+  int    m_AreaName_flag;
+
   WorldSafeLocsRec();
   ~WorldSafeLocsRec();
 
@@ -29,14 +37,6 @@ class WorldSafeLocsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_continent;
-  float  m_locX;
-  float  m_locY;
-  float  m_locZ;
-  LPCSTR m_AreaName_lang[8];
-  int    m_AreaName_flag;
 };
 
 extern WowClientDB<WorldSafeLocsRec> g_worldSafeLocsDB;

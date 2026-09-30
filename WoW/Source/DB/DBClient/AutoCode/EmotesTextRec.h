@@ -4,6 +4,11 @@
 
 class EmotesTextRec {
  public:
+  int    m_ID;
+  LPCSTR m_name;
+  int    m_emoteID;
+  int    m_emoteText[16];
+
   EmotesTextRec();
   ~EmotesTextRec();
 
@@ -29,11 +34,6 @@ class EmotesTextRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_name;
-  int    m_emoteID;
-  int    m_emoteText[16];
 };
 
 extern WowClientDB<EmotesTextRec> g_emotesTextDB;

@@ -4,6 +4,12 @@
 
 class ResistancesRec {
  public:
+  int    m_ID;
+  int    m_Flags;
+  int    m_FizzleSoundID;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+
   ResistancesRec();
   ~ResistancesRec();
 
@@ -29,12 +35,6 @@ class ResistancesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_Flags;
-  int    m_FizzleSoundID;
-  LPCSTR m_name_lang[8];
-  int    m_name_flag;
 };
 
 extern WowClientDB<ResistancesRec> g_resistancesDB;

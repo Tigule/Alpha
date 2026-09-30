@@ -4,6 +4,12 @@
 
 class WeaponImpactSoundsRec {
  public:
+  int m_ID;
+  int m_WeaponSubClassID;
+  int m_ParrySoundType;
+  int m_impactSoundID[10];
+  int m_critImpactSoundID[10];
+
   WeaponImpactSoundsRec();
   ~WeaponImpactSoundsRec();
 
@@ -29,12 +35,6 @@ class WeaponImpactSoundsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_WeaponSubClassID;
-  int m_ParrySoundType;
-  int m_impactSoundID[10];
-  int m_critImpactSoundID[10];
 };
 
 extern WowClientDB<WeaponImpactSoundsRec> g_weaponImpactSoundsDB;

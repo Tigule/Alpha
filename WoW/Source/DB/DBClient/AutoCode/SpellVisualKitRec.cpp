@@ -1,13 +1,7 @@
 #include "SpellVisualKitRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR SpellVisualKitRec::GetFilename() {
   return "DBFilesClient\\SpellVisualKit.dbc";
@@ -20,24 +14,21 @@ SpellVisualKitRec::~SpellVisualKitRec() {
 }
 
 bool SpellVisualKitRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_kitType, sizeof(m_kitType), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_anim, sizeof(m_anim), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_headEffect, sizeof(m_headEffect), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_chestEffect, sizeof(m_chestEffect), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_baseEffect, sizeof(m_baseEffect), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_leftHandEffect, sizeof(m_leftHandEffect), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_rightHandEffect, sizeof(m_rightHandEffect), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_breathEffect, sizeof(m_breathEffect), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_specialEffect[0], sizeof(m_specialEffect), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_characterProcedure, sizeof(m_characterProcedure), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_characterParam[0], sizeof(m_characterParam), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_soundID, sizeof(m_soundID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_shakeID, sizeof(m_shakeID), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_kitType) ||
+      !SFileReadTyped(f, &m_anim) ||
+      !SFileReadTyped(f, &m_headEffect) ||
+      !SFileReadTyped(f, &m_chestEffect) ||
+      !SFileReadTyped(f, &m_baseEffect) ||
+      !SFileReadTyped(f, &m_leftHandEffect) ||
+      !SFileReadTyped(f, &m_rightHandEffect) ||
+      !SFileReadTyped(f, &m_breathEffect) ||
+      !SFile::Read(f, &m_specialEffect[0], sizeof(m_specialEffect), 0, 0, 0) ||
+      !SFileReadTyped(f, &m_characterProcedure) ||
+      !SFile::Read(f, &m_characterParam[0], sizeof(m_characterParam), 0, 0, 0) ||
+      !SFileReadTyped(f, &m_soundID) ||
+      !SFileReadTyped(f, &m_shakeID)) {
     ConsoleWrite("Error reading SpellVisualKitRec", DEFAULT_COLOR);
     return false;
   }

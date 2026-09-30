@@ -4,6 +4,9 @@
 
 class AttackAnimTypesRec {
  public:
+  int    m_AnimID;
+  LPCSTR m_AnimName;
+
   AttackAnimTypesRec();
   ~AttackAnimTypesRec();
 
@@ -29,9 +32,6 @@ class AttackAnimTypesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_AnimID;
-  LPCSTR m_AnimName;
 };
 
 extern WowClientDB<AttackAnimTypesRec> g_attackAnimTypesDB;

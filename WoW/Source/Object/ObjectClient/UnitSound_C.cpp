@@ -22,11 +22,11 @@
 #include <Os/OsTime.h>
 
 struct DEATTHUDSOUNDINFO {
-  UINT landSound;
-  UINT waterSound;
-
   DEATTHUDSOUNDINFO() : landSound(0), waterSound(0) {
   }
+
+  UINT landSound;
+  UINT waterSound;
 };
 
 static TSFixedArray<DEATTHUDSOUNDINFO> s_deathThudSounds[5];
@@ -58,7 +58,7 @@ static BOOL CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
   return s_unitSoundChances[soundType] >= value;
 }
 
-void GenerateDeathThudSounds() {
+static void GenerateDeathThudSounds() {
   int                              maxTerrainFootstepID = g_terrainTypeSoundsDB.GetMaxID();
   UINT                             count = 5;
   TSFixedArray<DEATTHUDSOUNDINFO> *deathThudSounds = s_deathThudSounds;
@@ -79,7 +79,7 @@ void GenerateDeathThudSounds() {
   }
 }
 
-void ClearDeathThudSounds() {
+static void ClearDeathThudSounds() {
   for (UINT i = 0; i < 5; ++i) {
     s_deathThudSounds[i].Clear();
   }

@@ -1,13 +1,7 @@
 #include "ItemDisplayInfoRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR ItemDisplayInfoRec::GetFilename() {
   return "DBFilesClient\\ItemDisplayInfo.dbc";
@@ -20,37 +14,34 @@ ItemDisplayInfoRec::~ItemDisplayInfoRec() {
 }
 
 bool ItemDisplayInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempgroundModelIndices[1];
   UINT temptextureIndices[8];
   UINT tempmodelNameIndices[2];
   UINT tempinventoryIconIndices[1];
   UINT tempmodelTextureIndices[2];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempmodelNameIndices[0], sizeof(tempmodelNameIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempmodelNameIndices[1], sizeof(tempmodelNameIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempmodelTextureIndices[0], sizeof(tempmodelTextureIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempmodelTextureIndices[1], sizeof(tempmodelTextureIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempinventoryIconIndices[0], sizeof(tempinventoryIconIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempgroundModelIndices[0], sizeof(tempgroundModelIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_geosetGroup[0], sizeof(m_geosetGroup), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_flags, sizeof(m_flags), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_spellVisualID, sizeof(m_spellVisualID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_groupSoundIndex, sizeof(m_groupSoundIndex), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_itemSize, sizeof(m_itemSize), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_helmetGeosetVisID, sizeof(m_helmetGeosetVisID), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureIndices[0], sizeof(temptextureIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureIndices[1], sizeof(temptextureIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureIndices[2], sizeof(temptextureIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureIndices[3], sizeof(temptextureIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureIndices[4], sizeof(temptextureIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureIndices[5], sizeof(temptextureIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureIndices[6], sizeof(temptextureIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &temptextureIndices[7], sizeof(temptextureIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_itemVisual, sizeof(m_itemVisual), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempmodelNameIndices[0]) ||
+      !SFileReadTyped(f, &tempmodelNameIndices[1]) ||
+      !SFileReadTyped(f, &tempmodelTextureIndices[0]) ||
+      !SFileReadTyped(f, &tempmodelTextureIndices[1]) ||
+      !SFileReadTyped(f, &tempinventoryIconIndices[0]) ||
+      !SFileReadTyped(f, &tempgroundModelIndices[0]) ||
+      !SFile::Read(f, &m_geosetGroup[0], sizeof(m_geosetGroup), 0, 0, 0) ||
+      !SFileReadTyped(f, &m_flags) ||
+      !SFileReadTyped(f, &m_spellVisualID) ||
+      !SFileReadTyped(f, &m_groupSoundIndex) ||
+      !SFileReadTyped(f, &m_itemSize) ||
+      !SFileReadTyped(f, &m_helmetGeosetVisID) ||
+      !SFileReadTyped(f, &temptextureIndices[0]) ||
+      !SFileReadTyped(f, &temptextureIndices[1]) ||
+      !SFileReadTyped(f, &temptextureIndices[2]) ||
+      !SFileReadTyped(f, &temptextureIndices[3]) ||
+      !SFileReadTyped(f, &temptextureIndices[4]) ||
+      !SFileReadTyped(f, &temptextureIndices[5]) ||
+      !SFileReadTyped(f, &temptextureIndices[6]) ||
+      !SFileReadTyped(f, &temptextureIndices[7]) ||
+      !SFileReadTyped(f, &m_itemVisual)) {
     ConsoleWrite("Error reading ItemDisplayInfoRec", DEFAULT_COLOR);
     return false;
   }

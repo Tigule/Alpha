@@ -4,6 +4,13 @@
 
 class MapRec {
  public:
+  int    m_ID;
+  LPCSTR m_Directory;
+  int    m_PVP;
+  int    m_IsInMap;
+  LPCSTR m_MapName_lang[8];
+  int    m_MapName_flag;
+
   MapRec();
   ~MapRec();
 
@@ -29,13 +36,6 @@ class MapRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_Directory;
-  int    m_PVP;
-  int    m_IsInMap;
-  LPCSTR m_MapName_lang[8];
-  int    m_MapName_flag;
 };
 
 extern WowClientDB<MapRec> g_mapDB;

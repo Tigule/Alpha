@@ -4,6 +4,15 @@
 
 class CharTextureVariationsV2Rec {
  public:
+  int    m_ID;
+  int    m_RaceID;
+  int    m_SexID;
+  int    m_SectionID;
+  int    m_VariationID;
+  int    m_ColorID;
+  int    m_IsNPC;
+  LPCSTR m_TextureName;
+
   CharTextureVariationsV2Rec();
   ~CharTextureVariationsV2Rec();
 
@@ -29,15 +38,6 @@ class CharTextureVariationsV2Rec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_RaceID;
-  int    m_SexID;
-  int    m_SectionID;
-  int    m_VariationID;
-  int    m_ColorID;
-  int    m_IsNPC;
-  LPCSTR m_TextureName;
 };
 
 extern WowClientDB<CharTextureVariationsV2Rec> g_charTextureVariationsV2DB;

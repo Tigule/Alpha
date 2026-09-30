@@ -4,6 +4,10 @@
 
 class LanguageWordsRec {
  public:
+  int    m_ID;
+  int    m_languageID;
+  LPCSTR m_word;
+
   LanguageWordsRec();
   ~LanguageWordsRec();
 
@@ -29,10 +33,6 @@ class LanguageWordsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_languageID;
-  LPCSTR m_word;
 };
 
 extern WowClientDB<LanguageWordsRec> g_languageWordsDB;

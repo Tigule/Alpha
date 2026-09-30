@@ -4,35 +4,8 @@ struct CVar;
 
 class CWorldParam {
  public:
-  static CVar *cvar_triLinear;
-  static CVar *cvar_detailDensity;
-  static CVar *cvar_shadowLevel;
-  static CVar *cvar_particleDensity;
-  static CVar *cvar_pixelShaders;
-  static CVar *cvar_lod;
-  static CVar *cvar_fov;
-  static CVar *cvar_anisotropic;
-  static CVar *cvar_distCull;
-  static CVar *cvar_doodadAnim;
-  static CVar *cvar_textureLodDist;
-  static CVar *cvar_mapShadows;
-  static CVar *cvar_nearClip;
-  static CVar *cvar_alphaLevel;
-  static CVar *cvar_farClip;
-  static CVar *cvar_lodDist;
-  static CVar *cvar_unitDrawDist;
-  static CVar *cvar_maxLights;
-  static CVar *cvar_lightMaps;
-  static CVar *cvar_waterLod;
-  static CVar *cvar_baseMip;
-  static CVar *cvar_texLodBias;
-  static CVar *cvar_fullAlpha;
-  static CVar *cvar_smallCull;
-  static CVar *cvar_specular;
-
   static void Initialize();
   static void Destroy();
-
  private:
   static bool LodCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
   static bool FullAlphaCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
@@ -59,4 +32,31 @@ class CWorldParam {
   static bool BaseMipCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
   static bool AnisotropicCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
   static bool TextureLodDistCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
+ public:
+  static CVar *cvar_maxLights;
+  static CVar *cvar_smallCull;
+  static CVar *cvar_distCull;
+  static CVar *cvar_triLinear;
+  static CVar *cvar_lod;
+  static CVar *cvar_fullAlpha;
+  static CVar *cvar_doodadAnim;
+  static CVar *cvar_mapShadows;
+  static CVar *cvar_lightMaps;
+  static CVar *cvar_lodDist;
+  static CVar *cvar_shadowLevel;
+  static CVar *cvar_alphaLevel;
+  static CVar *cvar_texLodBias;
+  static CVar *cvar_farClip;
+  static CVar *cvar_nearClip;
+  static CVar *cvar_fov;
+  static CVar *cvar_detailDensity;
+  static CVar *cvar_specular;
+  static CVar *cvar_pixelShaders;
+  static CVar *cvar_particleDensity;
+  static CVar *cvar_unitDrawDist;
+  static CVar *cvar_waterLod;
+  static CVar *cvar_baseMip;
+  static CVar *cvar_anisotropic;
+  static CVar *cvar_textureLodDist;
 };
+

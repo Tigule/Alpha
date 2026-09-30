@@ -1,13 +1,7 @@
 #include "PaperDollItemFrameRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR PaperDollItemFrameRec::GetFilename() {
   return "DBFilesClient\\PaperDollItemFrame.dbc";
@@ -20,15 +14,12 @@ PaperDollItemFrameRec::~PaperDollItemFrameRec() {
 }
 
 bool PaperDollItemFrameRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempItemButtonNameIndices[1];
   UINT tempSlotIconIndices[1];
 
-  result = SFile::Read(f, &tempItemButtonNameIndices[0], sizeof(tempItemButtonNameIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempSlotIconIndices[0], sizeof(tempSlotIconIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SlotNumber, sizeof(m_SlotNumber), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &tempItemButtonNameIndices[0]) ||
+      !SFileReadTyped(f, &tempSlotIconIndices[0]) ||
+      !SFileReadTyped(f, &m_SlotNumber)) {
     ConsoleWrite("Error reading PaperDollItemFrameRec", DEFAULT_COLOR);
     return false;
   }

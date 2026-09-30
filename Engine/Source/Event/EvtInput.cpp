@@ -9,8 +9,8 @@
 #include <string.h>
 
 void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, UINT holdButton);
-void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int time);
-void ResetAsyncState();
+static void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int time);
+static void ResetAsyncState();
 
 static UINT                     s_buttonState = 0;
 static UINT                     s_metaKeyState = 0;
@@ -20,13 +20,13 @@ static EVENTCONFIRMCLOSEHANDLER s_confirmCloseCallback = 0;
 static LPVOID                   s_confirmCloseParam = 0;
 static NTempest::CRect          s_boundingRect(0.0f);
 
-void CheckMouseModeState() {
+static void CheckMouseModeState() {
   if (s_mouseHoldButton && s_mouseHoldButton != (s_mouseHoldButton & s_buttonState)) {
     EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
   }
 }
 
-void UnconvertPosition(float x, float y, int *clientx, int *clienty) {
+static void UnconvertPosition(float x, float y, int *clientx, int *clienty) {
   RECT windowDim;
 
   OsGetDefaultWindowRect(&windowDim);
@@ -50,7 +50,7 @@ void UnconvertPosition(float x, float y, int *clientx, int *clienty) {
   *clienty = windowDim.bottom - *clienty - windowDim.top;
 }
 
-void ConvertPosition(int clientx, int clienty, float *x, float *y) {
+static void ConvertPosition(int clientx, int clienty, float *x, float *y) {
   if (s_boundingRect.r - s_boundingRect.l != 0.0f && s_boundingRect.b - s_boundingRect.t != 0.0f) {
     if (clientx <= s_boundingRect.l || clientx >= s_boundingRect.r || clienty <= s_boundingRect.t || clienty >= s_boundingRect.b) {
       clientx = static_cast<int>(NTempest::CMath::clamp_(static_cast<float>(clientx), s_boundingRect.l + 1.0f, s_boundingRect.r - 1.0f));
@@ -65,22 +65,22 @@ void ConvertPosition(int clientx, int clienty, float *x, float *y) {
   *y = 1.0f - static_cast<float>(clienty) / static_cast<float>(windowDim.bottom - windowDim.top);
 }
 
-UINT GenerateMouseFlags() {
+static UINT GenerateMouseFlags() {
   return s_mouseMode == MOUSE_MODE_RELATIVE ? 0x2 : 0;
 }
 
-int ConfirmClose() {
+static int ConfirmClose() {
   return s_confirmCloseCallback ? s_confirmCloseCallback(s_confirmCloseParam) : 1;
 }
 
-void PostCaptureChanged(EvtContext *context, int x, int y) {
+static void PostCaptureChanged(EvtContext *context, int x, int y) {
   while (s_buttonState) {
     UINT button = ((s_buttonState - 1) ^ s_buttonState) & s_buttonState;
     PostMouseUp(context, button, x, y, 0x1, OsGetAsyncTimeMs());
   }
 }
 
-void PostChar(EvtContext *context, int ch, int repeat) {
+static void PostChar(EvtContext *context, int ch, int repeat) {
   EVENT_DATA_CHAR data;
   data.ch = ch;
   data.metaKeyState = s_metaKeyState;
@@ -88,7 +88,7 @@ void PostChar(EvtContext *context, int ch, int repeat) {
   IEvtQueueDispatch(context, EVENT_ID_CHAR, &data);
 }
 
-void PostString(EvtContext *context, int str, int num_chars) {
+static void PostString(EvtContext *context, int str, int num_chars) {
   EVENT_DATA_CHAR data;
   data.metaKeyState = s_metaKeyState;
   data.repeat = 1;
@@ -99,7 +99,7 @@ void PostString(EvtContext *context, int str, int num_chars) {
   }
 }
 
-void PostIme(EvtContext *context, int imeMessage, int wParam, int lParam) {
+static void PostIme(EvtContext *context, int imeMessage, int wParam, int lParam) {
   EVENT_DATA_IME data;
   data.message = imeMessage;
   data.wParam = wParam;
@@ -108,18 +108,18 @@ void PostIme(EvtContext *context, int imeMessage, int wParam, int lParam) {
   IEvtQueueDispatch(context, EVENT_ID_IME, &data);
 }
 
-void PostSize(EvtContext *context, int w, int h) {
+static void PostSize(EvtContext *context, int w, int h) {
   EVENT_DATA_SIZE data;
   data.w = w;
   data.h = h;
   IEvtQueueDispatch(context, EVENT_ID_SIZE, &data);
 }
 
-void PostClose() {
+static void PostClose() {
   EventInitiateShutdown();
 }
 
-void PostFocus(EvtContext *context, int focus) {
+static void PostFocus(EvtContext *context, int focus) {
   EVENT_DATA_FOCUS data;
   ResetAsyncState();
   data.focus = focus;
@@ -127,7 +127,7 @@ void PostFocus(EvtContext *context, int focus) {
   CheckMouseModeState();
 }
 
-void PostKeyDown(EvtContext *context, int key, int repeat, int time) {
+static void PostKeyDown(EvtContext *context, int key, int repeat, int time) {
   EVENT_DATA_KEY data;
   if (key <= KEY_LASTMETAKEY) {
     s_metaKeyState |= 1 << key;
@@ -139,7 +139,7 @@ void PostKeyDown(EvtContext *context, int key, int repeat, int time) {
   IEvtQueueDispatch(context, EVENT_ID_KEYDOWN, &data);
 }
 
-void PostKeyUp(EvtContext *context, int key, int repeat, int time) {
+static void PostKeyUp(EvtContext *context, int key, int repeat, int time) {
   EVENT_DATA_KEY data;
   if (key <= KEY_LASTMETAKEY) {
     s_metaKeyState &= ~(1 << key);
@@ -151,7 +151,7 @@ void PostKeyUp(EvtContext *context, int key, int repeat, int time) {
   IEvtQueueDispatch(context, EVENT_ID_KEYUP, &data);
 }
 
-void PostMouseDown(EvtContext *context, int button, int x, int y, int time) {
+static void PostMouseDown(EvtContext *context, int button, int x, int y, int time) {
   EVENT_DATA_MOUSE data;
   data.button = static_cast<MOUSEBUTTON>(button);
   s_buttonState |= button;
@@ -164,7 +164,7 @@ void PostMouseDown(EvtContext *context, int button, int x, int y, int time) {
   IEvtQueueDispatch(context, EVENT_ID_MOUSEDOWN, &data);
 }
 
-void PostMouseMove(EvtContext *context, int x, int y, int time) {
+static void PostMouseMove(EvtContext *context, int x, int y, int time) {
   EVENT_DATA_MOUSE data;
   data.mode = s_mouseMode;
   data.button = MOUSE_BUTTON_NONE;
@@ -176,7 +176,7 @@ void PostMouseMove(EvtContext *context, int x, int y, int time) {
   IEvtQueueDispatch(context, EVENT_ID_MOUSEMOVE, &data);
 }
 
-void PostMouseMoveRelative(EvtContext *context, int x, int y, int time) {
+static void PostMouseMoveRelative(EvtContext *context, int x, int y, int time) {
   EVENT_DATA_MOUSE data;
   data.mode = s_mouseMode;
   data.button = MOUSE_BUTTON_NONE;
@@ -189,7 +189,7 @@ void PostMouseMoveRelative(EvtContext *context, int x, int y, int time) {
   IEvtQueueDispatch(context, EVENT_ID_MOUSEMOVE_RELATIVE, &data);
 }
 
-void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int time) {
+static void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int time) {
   EVENT_DATA_MOUSE data;
   data.button = static_cast<MOUSEBUTTON>(button);
   s_buttonState &= ~static_cast<UINT>(button);
@@ -203,7 +203,7 @@ void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int 
   CheckMouseModeState();
 }
 
-void PostMouseModeChanged(EvtContext *context, MOUSEMODE mode) {
+static void PostMouseModeChanged(EvtContext *context, MOUSEMODE mode) {
   EVENT_DATA_MOUSE data;
   memset(&data, 0, sizeof(data));
   s_mouseMode = mode;
@@ -214,7 +214,7 @@ void PostMouseModeChanged(EvtContext *context, MOUSEMODE mode) {
   IEvtQueueDispatch(context, EVENT_ID_MOUSEMODE_CHANGED, &data);
 }
 
-void PostMouseWheel(EvtContext *context, int distance, int x, int y, int time) {
+static void PostMouseWheel(EvtContext *context, int distance, int x, int y, int time) {
   EVENT_DATA_MOUSE data;
   data.mode = s_mouseMode;
   data.button = MOUSE_BUTTON_NONE;
@@ -227,7 +227,7 @@ void PostMouseWheel(EvtContext *context, int distance, int x, int y, int time) {
   IEvtQueueDispatch(context, EVENT_ID_MOUSEWHEEL, &data);
 }
 
-void ProcessInput(EvtContext *context, OSINPUT id, const int param[4], int *shutdown) {
+static void ProcessInput(EvtContext *context, OSINPUT id, const int param[4], int *shutdown) {
   FATALASSERT(context);
 
   switch (id) {
@@ -298,7 +298,7 @@ void ProcessInput(EvtContext *context, OSINPUT id, const int param[4], int *shut
   }
 }
 
-void ResetAsyncState() {
+static void ResetAsyncState() {
   s_buttonState = 0;
   s_metaKeyState = 0;
 }

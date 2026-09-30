@@ -8,6 +8,26 @@
 #include <stpl.h>
 
 class CParticle {
+  friend class CParticleEmitter;
+
+ private:
+  float              m_timeToLive;
+  float              m_elapsed;
+  NTempest::C3Vector m_position;
+  NTempest::C3Vector m_velocity;
+  float              m_scale;
+  HMODEL             m_hmodel;
+
+  void Init() {
+    m_timeToLive = 0.0f;
+    m_position = 0.0f;
+    m_velocity = 0.0f;
+    m_hmodel = 0;
+  }
+
+  void Copy(const CParticle &rhs);
+  void Destroy();
+
  public:
   CParticle() {
     Init();
@@ -26,30 +46,35 @@ class CParticle {
   ~CParticle() {
     Destroy();
   }
-
- private:
-  friend class CParticleEmitter;
-
-  void Init() {
-    m_timeToLive = 0.0f;
-    m_position = 0.0f;
-    m_velocity = 0.0f;
-    m_hmodel = 0;
-  }
-
-  void Copy(const CParticle &rhs);
-  void Destroy();
-
-  float              m_timeToLive;
-  float              m_elapsed;
-  NTempest::C3Vector m_position;
-  NTempest::C3Vector m_velocity;
-  float              m_scale;
-  HMODEL             m_hmodel;
 };
 
 class CParticleEmitter {
   friend class ParticleSystemManager;
+
+ private:
+  UINT                       m_refCount;
+  float                      m_numNew;
+  int                        m_enabled;
+  int                        m_enabled2;
+  float                      m_particleEmissionRate;
+  float                      m_particleLifeSpan;
+  float                      m_velocity;
+  float                      m_acceleration;
+  float                      m_scale;
+  float                      m_latitude;
+  float                      m_longitude;
+  HMODEL                     m_hmodel;
+  TSGrowableArray<CParticle> m_particles;
+  CParticleStack             m_alive;
+  CParticleStack             m_dead;
+
+  void Init();
+  void Copy(const CParticleEmitter &rhs);
+  void Destroy();
+  void SyncAllocation();
+  void CreateParticle(CParticle &p, float elapsedTime, const NTempest::C3Vector &cameraWorldPos);
+  void DestroyParticle(CParticle &p);
+  void MoveParticle(CParticle &p, float elapsedTime);
 
  public:
   CParticleEmitter();
@@ -67,8 +92,8 @@ class CParticleEmitter {
   void   Enabled(int enable);
   void   Enabled2(int enable);
   void   Update(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector);
-  void   AddToModelScene();
   void   Render();
+  void   AddToModelScene();
   void   Flush();
   void   SetVelocity(float vel);
   void   SetAcceleration(float accel);
@@ -83,29 +108,4 @@ class CParticleEmitter {
   }
   CParticleEmitter *AddRef();
   void              DecRef();
-
- private:
-  void Init();
-  void Copy(const CParticleEmitter &rhs);
-  void SyncAllocation();
-  void CreateParticle(CParticle &p, float elapsedTime, const NTempest::C3Vector &cameraWorldPos);
-  void DestroyParticle(CParticle &p);
-  void MoveParticle(CParticle &p, float elapsedTime);
-  void Destroy();
-
-  UINT                       m_refCount;
-  float                      m_numNew;
-  int                        m_enabled;
-  int                        m_enabled2;
-  float                      m_particleEmissionRate;
-  float                      m_particleLifeSpan;
-  float                      m_velocity;
-  float                      m_acceleration;
-  float                      m_scale;
-  float                      m_latitude;
-  float                      m_longitude;
-  HMODEL                     m_hmodel;
-  TSGrowableArray<CParticle> m_particles;
-  CParticleStack             m_alive;
-  CParticleStack             m_dead;
 };

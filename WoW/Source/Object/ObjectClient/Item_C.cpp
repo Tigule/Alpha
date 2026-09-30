@@ -115,6 +115,8 @@ void CGItem_C::UninstallItemIDMirrorHandler() {
 }
 
 struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
+  char *textureName;
+
   INVENTORYART() : textureName(0) {
   }
 
@@ -144,8 +146,6 @@ struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
       textureName = SStrDupA(art, __FILE__, __LINE__);
     }
   }
-
-  char *textureName;
 };
 
 static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryTextures;

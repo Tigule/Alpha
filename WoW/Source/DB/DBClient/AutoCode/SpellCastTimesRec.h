@@ -4,6 +4,11 @@
 
 class SpellCastTimesRec {
  public:
+  int m_ID;
+  int m_base;
+  int m_perLevel;
+  int m_minimum;
+
   SpellCastTimesRec();
   ~SpellCastTimesRec();
 
@@ -29,11 +34,6 @@ class SpellCastTimesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_base;
-  int m_perLevel;
-  int m_minimum;
 };
 
 extern WowClientDB<SpellCastTimesRec> g_spellCastTimesDB;

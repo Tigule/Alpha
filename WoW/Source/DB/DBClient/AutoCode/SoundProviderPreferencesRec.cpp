@@ -1,13 +1,7 @@
 #include "SoundProviderPreferencesRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR SoundProviderPreferencesRec::GetFilename() {
   return "DBFilesClient\\SoundProviderPreferences.dbc";
@@ -20,37 +14,34 @@ SoundProviderPreferencesRec::~SoundProviderPreferencesRec() {
 }
 
 bool SoundProviderPreferencesRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempDescriptionIndices[1];
 
-  result = SFileReadTyped(f, &m_ID) && result;
-  result = SFileReadTyped(f, &tempDescriptionIndices[0]) && result;
-  result = SFileReadTyped(f, &m_Flags) && result;
-  result = SFileReadTyped(f, &m_EAXEnvironmentSelection) && result;
-  result = SFileReadTyped(f, &m_EAXEffectVolume) && result;
-  result = SFileReadTyped(f, &m_EAXDecayTime) && result;
-  result = SFileReadTyped(f, &m_EAXDamping) && result;
-  result = SFileReadTyped(f, &m_EAX2EnvironmentSize) && result;
-  result = SFileReadTyped(f, &m_EAX2EnvironmentDiffusion) && result;
-  result = SFileReadTyped(f, &m_EAX2Room) && result;
-  result = SFileReadTyped(f, &m_EAX2RoomHF) && result;
-  result = SFileReadTyped(f, &m_EAX2DecayHFRatio) && result;
-  result = SFileReadTyped(f, &m_EAX2Reflections) && result;
-  result = SFileReadTyped(f, &m_EAX2ReflectionsDelay) && result;
-  result = SFileReadTyped(f, &m_EAX2Reverb) && result;
-  result = SFileReadTyped(f, &m_EAX2ReverbDelay) && result;
-  result = SFileReadTyped(f, &m_EAX2RoomRolloff) && result;
-  result = SFileReadTyped(f, &m_EAX2AirAbsorption) && result;
-  result = SFileReadTyped(f, &m_EAX3RoomLF) && result;
-  result = SFileReadTyped(f, &m_EAX3DecayLFRatio) && result;
-  result = SFileReadTyped(f, &m_EAX3EchoTime) && result;
-  result = SFileReadTyped(f, &m_EAX3EchoDepth) && result;
-  result = SFileReadTyped(f, &m_EAX3ModulationTime) && result;
-  result = SFileReadTyped(f, &m_EAX3ModulationDepth) && result;
-  result = SFileReadTyped(f, &m_EAX3HFReference) && result;
-  result = SFileReadTyped(f, &m_EAX3LFReference) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempDescriptionIndices[0]) ||
+      !SFileReadTyped(f, &m_Flags) ||
+      !SFileReadTyped(f, &m_EAXEnvironmentSelection) ||
+      !SFileReadTyped(f, &m_EAXEffectVolume) ||
+      !SFileReadTyped(f, &m_EAXDecayTime) ||
+      !SFileReadTyped(f, &m_EAXDamping) ||
+      !SFileReadTyped(f, &m_EAX2EnvironmentSize) ||
+      !SFileReadTyped(f, &m_EAX2EnvironmentDiffusion) ||
+      !SFileReadTyped(f, &m_EAX2Room) ||
+      !SFileReadTyped(f, &m_EAX2RoomHF) ||
+      !SFileReadTyped(f, &m_EAX2DecayHFRatio) ||
+      !SFileReadTyped(f, &m_EAX2Reflections) ||
+      !SFileReadTyped(f, &m_EAX2ReflectionsDelay) ||
+      !SFileReadTyped(f, &m_EAX2Reverb) ||
+      !SFileReadTyped(f, &m_EAX2ReverbDelay) ||
+      !SFileReadTyped(f, &m_EAX2RoomRolloff) ||
+      !SFileReadTyped(f, &m_EAX2AirAbsorption) ||
+      !SFileReadTyped(f, &m_EAX3RoomLF) ||
+      !SFileReadTyped(f, &m_EAX3DecayLFRatio) ||
+      !SFileReadTyped(f, &m_EAX3EchoTime) ||
+      !SFileReadTyped(f, &m_EAX3EchoDepth) ||
+      !SFileReadTyped(f, &m_EAX3ModulationTime) ||
+      !SFileReadTyped(f, &m_EAX3ModulationDepth) ||
+      !SFileReadTyped(f, &m_EAX3HFReference) ||
+      !SFileReadTyped(f, &m_EAX3LFReference)) {
     ConsoleWrite("Error reading SoundProviderPreferencesRec", DEFAULT_COLOR);
     return false;
   }

@@ -4,6 +4,10 @@
 
 class CreatureTypeRec {
  public:
+  int    m_ID;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+
   CreatureTypeRec();
   ~CreatureTypeRec();
 
@@ -29,10 +33,6 @@ class CreatureTypeRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_name_lang[8];
-  int    m_name_flag;
 };
 
 extern WowClientDB<CreatureTypeRec> g_creatureTypeDB;

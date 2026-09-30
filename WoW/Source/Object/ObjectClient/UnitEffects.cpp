@@ -36,9 +36,9 @@
 #include <stpl.h>
 #include <storm.h>
 
-BOOL        DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param);
+static BOOL        DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param);
 void        SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position);
-HMODEL      InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param);
+static HMODEL      InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param);
 static void DecorateEffectFilename(LPCSTR fileName, int raceSexSpecific, const CGObject_C *object, char *buffer, UINT size);
 static void SpellUnitAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param);
 void        SpellCameraShakeCallback(LPCSTR eventName, const NTempest::C3Vector &position);
@@ -54,8 +54,8 @@ void        UnitEffectOneShot(
     float                           facing,
     float                           scale
 );
-void PreloadModel(int effectID, CStatus *status);
-void PreloadModelsByKit(int record, CStatus *status);
+static void PreloadModel(int effectID, CStatus *status);
+static void PreloadModelsByKit(int record, CStatus *status);
 
 class PERSISTENTUNITEFFECT : public CHandleObject {
  public:
@@ -95,7 +95,7 @@ void PERSISTENTUNITEFFECT::Clear() {
   effectModel = 0;
 }
 
-HMODEL CreateModel(LPCSTR fileName, CStatus *status) {
+static HMODEL CreateModel(LPCSTR fileName, CStatus *status) {
   CModelCreate createData;
   createData.flags = 0x2006;
   createData.sequenceNames = s_sequenceNames;
@@ -107,7 +107,7 @@ HMODEL CreateModel(LPCSTR fileName, CStatus *status) {
   return ModelCreate(fileName, &createData, status);
 }
 
-void PreloadModel(int effectID, CStatus *status) {
+static void PreloadModel(int effectID, CStatus *status) {
   const SpellVisualEffectNameRec *effect = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (effect) {
     HMODEL model = CreateModel(effect->m_fileName, status);
@@ -117,7 +117,7 @@ void PreloadModel(int effectID, CStatus *status) {
   }
 }
 
-void PreloadModelsByKit(int record, CStatus *status) {
+static void PreloadModelsByKit(int record, CStatus *status) {
   const SpellVisualKitRec *kit = g_spellVisualKitDB.GetRecord(record);
   if (!kit) {
     return;
@@ -153,8 +153,8 @@ class NODEBASE {
  public:
   NODEBASE() : model(0), flags(0), deathHoldTimer(0) {
   }
-  virtual void ReleaseDeathHolds() = 0;
   ~NODEBASE();
+  virtual void ReleaseDeathHolds() = 0;
 
   void ClearDeathHoldTimer();
   void SetDeathHoldTimer(UINT duration);
@@ -170,9 +170,9 @@ class ONESHOTEFFECTNODE : public NODEBASE {
  public:
   ONESHOTEFFECTNODE() : objectModel(0), objectModelAttachmentPoint(0), objectGUID(0), spellID(0), isCastEffect(0) {
   }
+  ~ONESHOTEFFECTNODE();
   virtual void ReleaseDeathHolds();
   void         CheckModelLoadStatus();
-  ~ONESHOTEFFECTNODE();
 
   HMODEL__ *objectModel;
   UINT      objectModelAttachmentPoint;
@@ -185,9 +185,9 @@ class ONESHOTSTANDALONEEFFECTNODE : public NODEBASE {
  public:
   ONESHOTSTANDALONEEFFECTNODE() : facing(0.0f), scale(1.0f), worldObject(0), expireTime(0) {
   }
+  ~ONESHOTSTANDALONEEFFECTNODE();
   virtual void ReleaseDeathHolds();
   void         CheckModelLoadStatus();
-  ~ONESHOTSTANDALONEEFFECTNODE();
 
   NTempest::C3Vector      position;
   TSFixedArray<DWORDLONG> objects;
@@ -216,7 +216,6 @@ NODEDECL(MISSILENODE) {
         sound(0) {
   }
   ~MISSILENODE();
-  void CheckModelLoadStatus();
 
   HMODEL             model;
   DWORDLONG          caster;
@@ -234,6 +233,7 @@ NODEDECL(MISSILENODE) {
   bool               miss;
   MISS_REASON        missReason;
   int                flags;
+  void CheckModelLoadStatus();
   Sound             *sound;
 };
 
@@ -372,7 +372,7 @@ static BOOL OneShotEndHandler(LPVOID param) {
   return 0;
 }
 
-HMODEL InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param) {
+static HMODEL InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param) {
   CStatus status;
   HMODEL  model = CreateModel(fileName, &status);
   if (callback) {
@@ -571,7 +571,7 @@ static void RenderMissiles(CGCamera *camera) {
   }
 }
 
-BOOL DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param) {
+static BOOL DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param) {
   FATALASSERT(param);
 
   NODEBASE *node = static_cast<NODEBASE *>(param);

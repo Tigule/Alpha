@@ -4,6 +4,15 @@
 
 class WorldMapAreaRec {
  public:
+  int    m_ID;
+  int    m_mapID;
+  int    m_areaID;
+  int    m_leftBoundary;
+  int    m_rightBoundary;
+  int    m_topBoundary;
+  int    m_bottomBoundary;
+  LPCSTR m_areaName;
+
   WorldMapAreaRec();
   ~WorldMapAreaRec();
 
@@ -29,15 +38,6 @@ class WorldMapAreaRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_mapID;
-  int    m_areaID;
-  int    m_leftBoundary;
-  int    m_rightBoundary;
-  int    m_topBoundary;
-  int    m_bottomBoundary;
-  LPCSTR m_areaName;
 };
 
 extern WowClientDB<WorldMapAreaRec> g_worldMapAreaDB;

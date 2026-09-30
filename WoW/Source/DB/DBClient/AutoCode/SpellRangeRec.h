@@ -4,6 +4,15 @@
 
 class SpellRangeRec {
  public:
+  int    m_ID;
+  float  m_rangeMin;
+  float  m_rangeMax;
+  int    m_flags;
+  LPCSTR m_displayName_lang[8];
+  int    m_displayName_flag;
+  LPCSTR m_displayNameShort_lang[8];
+  int    m_displayNameShort_flag;
+
   SpellRangeRec();
   ~SpellRangeRec();
 
@@ -29,15 +38,6 @@ class SpellRangeRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  float  m_rangeMin;
-  float  m_rangeMax;
-  int    m_flags;
-  LPCSTR m_displayName_lang[8];
-  int    m_displayName_flag;
-  LPCSTR m_displayNameShort_lang[8];
-  int    m_displayNameShort_flag;
 };
 
 extern WowClientDB<SpellRangeRec> g_spellRangeDB;

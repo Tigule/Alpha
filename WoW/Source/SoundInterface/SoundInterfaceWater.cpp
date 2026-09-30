@@ -21,11 +21,6 @@ class SoundEntriesRec;
 struct CVar;
 
 struct LIQUIDINFO {
-  LIQUIDINFO() {
-  }
-
-  LIQUIDINFO(const LIQUIDINFO &rhs);
-
   Sound                 *m_sound;
   UINT                   m_subTypes[3];
   const SoundEntriesRec *m_soundRecords[3];
@@ -37,24 +32,29 @@ struct LIQUIDINFO {
     FATALASSERT(sType < (sizeof(m_soundRecords) / sizeof(m_soundRecords[0])));
     m_soundRecords[sType] = g_soundEntriesDB.GetRecord(soundID);
   }
+  void StartSound(UINT subType, const NTempest::C3Vector &listenerPos);
+  void StopSound(int immediate);
+  int  Update(const NTempest::C3Vector &listenerPos);
+  void UpdateVolume();
+  void Tick();
+
+  LIQUIDINFO() {
+  }
+
+  LIQUIDINFO(const LIQUIDINFO &rhs);
+  void PreUpdate();
   void ClearSubTypes() {
     for (UINT i = 0; i < 3; ++i) {
       m_subTypes[i] = 0;
     }
   }
+  void ClearSoundRecords();
   void RegisterSubType(UINT subType, const NTempest::C3Vector &pos) {
     FATALASSERT(subType < (sizeof(m_subTypes) / sizeof(m_subTypes[0])));
     ++m_subTypes[subType];
     m_positionOffset[subType] = pos;
     m_positionOffset[subType].z = 0.0f;
   }
-  void StopSound(int immediate);
-  int  Update(const NTempest::C3Vector &listenerPos);
-  void UpdateVolume();
-  void Tick();
-  void StartSound(UINT subType, const NTempest::C3Vector &listenerPos);
-  void PreUpdate();
-  void ClearSoundRecords();
 
  private:
   const LIQUIDINFO &operator=(const LIQUIDINFO &rhs);

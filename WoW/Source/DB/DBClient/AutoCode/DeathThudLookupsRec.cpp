@@ -1,13 +1,7 @@
 #include "DeathThudLookupsRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR DeathThudLookupsRec::GetFilename() {
   return "DBFilesClient\\DeathThudLookups.dbc";
@@ -20,17 +14,15 @@ DeathThudLookupsRec::~DeathThudLookupsRec() {
 }
 
 bool DeathThudLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SizeClass, sizeof(m_SizeClass), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_TerrainTypeSoundID, sizeof(m_TerrainTypeSoundID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SoundEntryID, sizeof(m_SoundEntryID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SoundEntryIDWater, sizeof(m_SoundEntryIDWater), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_SizeClass) ||
+      !SFileReadTyped(f, &m_TerrainTypeSoundID) ||
+      !SFileReadTyped(f, &m_SoundEntryID) ||
+      !SFileReadTyped(f, &m_SoundEntryIDWater)) {
     ConsoleWrite("Error reading DeathThudLookupsRec", DEFAULT_COLOR);
+    return false;
   }
 
-  return result;
+  return true;
 }

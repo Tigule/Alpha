@@ -114,8 +114,8 @@ class CLayoutFrame {
   static void RemoveFromResizeList(CLayoutFrame *pFrame);
 
  private:
-  float GetFirstPointX(const FRAMEPOINT *pointarray, int elements);
-  float GetFirstPointY(const FRAMEPOINT *pointarray, int elements);
+  float GetFirstPointX(const FRAMEPOINT pointarray[], int elements);
+  float GetFirstPointY(const FRAMEPOINT pointarray[], int elements);
   void  FreePoints();
 
   TSFixedArray<CFramePoint *> m_points;

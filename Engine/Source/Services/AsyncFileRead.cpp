@@ -8,7 +8,7 @@
 #define OSWAIT_OBJECT_0 WAIT_OBJECT_0
 #define OSWAIT_TIMEOUT  WAIT_TIMEOUT
 
-static BOOL          AsyncFileReadPollHandler(LPCVOID, LPVOID);
+BOOL          AsyncFileReadPollHandler(LPCVOID, LPVOID);
 static UINT APIENTRY AsyncFileReadThread(LPVOID param);
 
 static UINT s_waiting;
@@ -228,7 +228,7 @@ bool AsyncFileReadIsReading() {
   return reading;
 }
 
-static BOOL AsyncFileReadPollHandler(LPCVOID, LPVOID) {
+BOOL AsyncFileReadPollHandler(LPCVOID, LPVOID) {
   UINT index;
   UINT start;
 

@@ -39,7 +39,7 @@ void      Trade_C_UnacceptTrade();
 void      Trade_C_AddMoney(UINT money);
 void      Trade_C_RemoveMoney(UINT money);
 int       Spell_C_TargetTradeItem(int tradeIndex);
-void      TradeItemStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
+static void      TradeItemStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
 
 DWORDLONG CGTradeInfo::m_tradingPlayer;
 int       CGTradeInfo::m_playerAccepted;
@@ -134,7 +134,7 @@ void CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, 
   }
 }
 
-void TradeItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
+static void TradeItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(298);
   }
@@ -179,7 +179,7 @@ void CGTradeInfo::TargetAccept(int accept) {
   }
 }
 
-void CGTradeInfo::Update(TradeItemData *items) {
+void CGTradeInfo::Update(TradeItemData items[]) {
   PlayerAccept(0);
   TargetAccept(0);
 

@@ -1,13 +1,7 @@
 #include "NamesProfanityRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR NamesProfanityRec::GetFilename() {
   return "DBFilesClient\\NamesProfanity.dbc";
@@ -20,13 +14,10 @@ NamesProfanityRec::~NamesProfanityRec() {
 }
 
 bool NamesProfanityRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempNameIndices[1];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempNameIndices[0], sizeof(tempNameIndices[0]), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempNameIndices[0])) {
     ConsoleWrite("Error reading NamesProfanityRec", DEFAULT_COLOR);
     return false;
   }

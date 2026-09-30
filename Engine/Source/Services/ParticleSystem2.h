@@ -108,12 +108,12 @@ struct CParticleMat {
 };
 
 struct CSortableParticleRecord {
+  float       dist;
+  CParticle2 *p;
+
   static BYTE HasHigherPriority(const CSortableParticleRecord &a, const CSortableParticleRecord &b) {
     return a.dist >= b.dist;
   }
-
-  float       dist;
-  CParticle2 *p;
 };
 
 static void AddEmitters2ToScene(CModel *modelptr, CModelShared *shared);

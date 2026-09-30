@@ -10,7 +10,7 @@
 static const WORD boxIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1, 16, 16, 1, 4,  2,  8,  5,  5,  8,  11,
                                     7,  19, 10, 10, 19, 22, 3,  9, 15, 15, 9, 21, 17, 23, 14, 14, 23, 20};
 
-static void CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace);
+void CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace);
 
 static HMODEL CreateSimpleModel(
     const NTempest::C3Vector *positions,
@@ -155,7 +155,7 @@ void CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &b
   CollisionDataRenderAABox(collide->extents, basis);
 }
 
-static void CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace) {
+void CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace) {
   NTempest::C3Vector        renderVerts[24];
   NTempest::C3Vector        renderNorms[24];
   NTempest::C3Vector        boxVerts[8];

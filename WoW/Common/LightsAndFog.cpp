@@ -12,7 +12,7 @@ struct DiskLightDataItem {
   int         m_cloudMask;
 };
 
-bool ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
+static bool ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
   DiskLightDataItem diskdataitem;
   int               markerCount;
   int               i;

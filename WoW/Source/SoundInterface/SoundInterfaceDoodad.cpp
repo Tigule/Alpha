@@ -7,18 +7,18 @@
 #include <Event/EvtApi.h>
 
 struct LOOPEDDOODADDESC {
+  NTempest::C3Vector pos[8];
+  int                posInUseFlags;
+  int                soundID;
+  Sound             *sound;
+  int                currentIndex;
+
   LOOPEDDOODADDESC() : posInUseFlags(0), soundID(-1), sound(0), currentIndex(0) {
   }
 
   int  FindFreeSlot() const;
   void Update(const NTempest::C3Vector &lPos);
   int  GetClosestIndex(const NTempest::C3Vector &listener);
-
-  NTempest::C3Vector pos[8];
-  int                posInUseFlags;
-  int                soundID;
-  Sound             *sound;
-  int                currentIndex;
 };
 
 static LOOPEDDOODADDESC s_doodadLoopedInfo[8];

@@ -778,13 +778,13 @@ class COsWindow {
   COsWindow(LPVOID inWindow);
   virtual ~COsWindow();
 
-  virtual void OnResize();
-
   void SetMinSize(int inW, int inH);
   void GetMinSize(int *outW, int *outH);
   void SetCursor(int inCursor);
   void SetIcon(LPCSTR inName);
   void SetInputFocus();
+
+  virtual void OnResize();
 
  protected:
   LPVOID              mHandle;

@@ -4,32 +4,6 @@
 
 class SoundProviderPreferencesRec {
  public:
-  SoundProviderPreferencesRec();
-  ~SoundProviderPreferencesRec();
-
-  static LPCSTR GetFilename();
-
-  static UINT GetNumColumns() {
-    return 26;
-  }
-
-  static UINT GetRowSize() {
-    return 104;
-  }
-
-  int GetID() const {
-    return m_ID;
-  }
-
-  bool NeedIDAssigned() {
-    return false;
-  }
-
-  void SetID(int id) {
-  }
-
-  bool Read(SFile *f, LPCSTR stringBuffer);
-
   int    m_ID;
   LPCSTR m_Description;
   int    m_Flags;
@@ -56,6 +30,32 @@ class SoundProviderPreferencesRec {
   float  m_EAX3ModulationDepth;
   float  m_EAX3HFReference;
   float  m_EAX3LFReference;
+
+  SoundProviderPreferencesRec();
+  ~SoundProviderPreferencesRec();
+
+  static LPCSTR GetFilename();
+
+  static UINT GetNumColumns() {
+    return 26;
+  }
+
+  static UINT GetRowSize() {
+    return 104;
+  }
+
+  int GetID() const {
+    return m_ID;
+  }
+
+  bool NeedIDAssigned() {
+    return false;
+  }
+
+  void SetID(int id) {
+  }
+
+  bool Read(SFile *f, LPCSTR stringBuffer);
 };
 
 extern WowClientDB<SoundProviderPreferencesRec> g_soundProviderPreferencesDB;

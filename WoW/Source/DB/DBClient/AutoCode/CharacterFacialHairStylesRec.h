@@ -4,6 +4,14 @@
 
 class CharacterFacialHairStylesRec {
  public:
+  int m_RaceID;
+  int m_SexID;
+  int m_VariationID;
+  int m_BeardGeoset;
+  int m_MoustacheGeoset;
+  int m_SideburnGeoset;
+  int m_generatedID;
+
   CharacterFacialHairStylesRec();
   ~CharacterFacialHairStylesRec();
 
@@ -30,14 +38,6 @@ class CharacterFacialHairStylesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_RaceID;
-  int m_SexID;
-  int m_VariationID;
-  int m_BeardGeoset;
-  int m_MoustacheGeoset;
-  int m_SideburnGeoset;
-  int m_generatedID;
 };
 
 extern WowClientDB<CharacterFacialHairStylesRec> g_characterFacialHairStylesDB;

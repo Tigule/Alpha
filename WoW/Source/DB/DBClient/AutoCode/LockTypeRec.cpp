@@ -1,13 +1,7 @@
 #include "LockTypeRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR LockTypeRec::GetFilename() {
   return "DBFilesClient\\LockType.dbc";
@@ -20,41 +14,38 @@ LockTypeRec::~LockTypeRec() {
 }
 
 bool LockTypeRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempname_langIndices[8];
   UINT tempresourceName_langIndices[8];
   UINT tempverb_langIndices[8];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[0], sizeof(tempname_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[1], sizeof(tempname_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[2], sizeof(tempname_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[3], sizeof(tempname_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[4], sizeof(tempname_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[5], sizeof(tempname_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[6], sizeof(tempname_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempname_langIndices[7], sizeof(tempname_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_name_flag, sizeof(m_name_flag), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempresourceName_langIndices[0], sizeof(tempresourceName_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempresourceName_langIndices[1], sizeof(tempresourceName_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempresourceName_langIndices[2], sizeof(tempresourceName_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempresourceName_langIndices[3], sizeof(tempresourceName_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempresourceName_langIndices[4], sizeof(tempresourceName_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempresourceName_langIndices[5], sizeof(tempresourceName_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempresourceName_langIndices[6], sizeof(tempresourceName_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempresourceName_langIndices[7], sizeof(tempresourceName_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_resourceName_flag, sizeof(m_resourceName_flag), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverb_langIndices[0], sizeof(tempverb_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverb_langIndices[1], sizeof(tempverb_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverb_langIndices[2], sizeof(tempverb_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverb_langIndices[3], sizeof(tempverb_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverb_langIndices[4], sizeof(tempverb_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverb_langIndices[5], sizeof(tempverb_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverb_langIndices[6], sizeof(tempverb_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverb_langIndices[7], sizeof(tempverb_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_verb_flag, sizeof(m_verb_flag), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempname_langIndices[0]) ||
+      !SFileReadTyped(f, &tempname_langIndices[1]) ||
+      !SFileReadTyped(f, &tempname_langIndices[2]) ||
+      !SFileReadTyped(f, &tempname_langIndices[3]) ||
+      !SFileReadTyped(f, &tempname_langIndices[4]) ||
+      !SFileReadTyped(f, &tempname_langIndices[5]) ||
+      !SFileReadTyped(f, &tempname_langIndices[6]) ||
+      !SFileReadTyped(f, &tempname_langIndices[7]) ||
+      !SFileReadTyped(f, &m_name_flag) ||
+      !SFileReadTyped(f, &tempresourceName_langIndices[0]) ||
+      !SFileReadTyped(f, &tempresourceName_langIndices[1]) ||
+      !SFileReadTyped(f, &tempresourceName_langIndices[2]) ||
+      !SFileReadTyped(f, &tempresourceName_langIndices[3]) ||
+      !SFileReadTyped(f, &tempresourceName_langIndices[4]) ||
+      !SFileReadTyped(f, &tempresourceName_langIndices[5]) ||
+      !SFileReadTyped(f, &tempresourceName_langIndices[6]) ||
+      !SFileReadTyped(f, &tempresourceName_langIndices[7]) ||
+      !SFileReadTyped(f, &m_resourceName_flag) ||
+      !SFileReadTyped(f, &tempverb_langIndices[0]) ||
+      !SFileReadTyped(f, &tempverb_langIndices[1]) ||
+      !SFileReadTyped(f, &tempverb_langIndices[2]) ||
+      !SFileReadTyped(f, &tempverb_langIndices[3]) ||
+      !SFileReadTyped(f, &tempverb_langIndices[4]) ||
+      !SFileReadTyped(f, &tempverb_langIndices[5]) ||
+      !SFileReadTyped(f, &tempverb_langIndices[6]) ||
+      !SFileReadTyped(f, &tempverb_langIndices[7]) ||
+      !SFileReadTyped(f, &m_verb_flag)) {
     ConsoleWrite("Error reading LockTypeRec", DEFAULT_COLOR);
     return false;
   }

@@ -23,6 +23,7 @@ struct CLightList : public TSHashObject<CLightList, HASHKEY_DWORD> {
 
   LISTDECLEX(CGxuLightLink, m_listLink, m_links);
 
+  static LISTDECLEX(CGxuLightLink, m_listLink, s_dirLightList);
   static TSHashTableReuse<CLightList, HASHKEY_DWORD, 1> s_lightHashTable;
 };
 

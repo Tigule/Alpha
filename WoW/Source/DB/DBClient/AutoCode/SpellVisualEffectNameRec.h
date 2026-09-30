@@ -4,6 +4,13 @@
 
 class SpellVisualEffectNameRec {
  public:
+  int    m_ID;
+  LPCSTR m_fileName;
+  int    m_specialID;
+  int    m_specialAttachPoint;
+  float  m_areaEffectSize;
+  int    m_VisualEffectNameFlags;
+
   SpellVisualEffectNameRec();
   ~SpellVisualEffectNameRec();
 
@@ -29,13 +36,6 @@ class SpellVisualEffectNameRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_fileName;
-  int    m_specialID;
-  int    m_specialAttachPoint;
-  float  m_areaEffectSize;
-  int    m_VisualEffectNameFlags;
 };
 
 extern WowClientDB<SpellVisualEffectNameRec> g_spellVisualEffectNameDB;

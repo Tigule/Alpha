@@ -1,13 +1,7 @@
 #include "EmotesTextRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR EmotesTextRec::GetFilename() {
   return "DBFilesClient\\EmotesText.dbc";
@@ -20,15 +14,12 @@ EmotesTextRec::~EmotesTextRec() {
 }
 
 bool EmotesTextRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempnameIndices[1];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, tempnameIndices, sizeof(tempnameIndices), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_emoteID, sizeof(m_emoteID), 0, 0, 0) && result;
-  result = SFile::Read(f, m_emoteText, sizeof(m_emoteText), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempnameIndices[0]) ||
+      !SFileReadTyped(f, &m_emoteID) ||
+      !SFile::Read(f, m_emoteText, sizeof(m_emoteText), 0, 0, 0)) {
     ConsoleWrite("Error reading EmotesTextRec", DEFAULT_COLOR);
     return false;
   }

@@ -1,13 +1,19 @@
-#include <WowConst.h>
-#include <MapDefs.h>
-
-#include "WorldClient/CMapObj.h"
-#include "WorldClient/World.h"
-#include "WorldCommon/WorldMath.h"
-
 #include "Base/Base.h"
-#include "DayNight.h"
 #include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
+#include <WowConst.h>
+#include "AaBsp.h"
+#include <MapDefs.h>
+#include "Gx/CGxDevice.h"
+
+#include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
+#include "WorldCommon/WorldMath.h"
 #include "Services/Texture.h"
 #include "Tempest/c4vector.h"
 
@@ -15,15 +21,24 @@
 #include <math.h>
 #include <string.h>
 
+UINT CMapObj::DEFAULT_RLEVEL = 10;
+UINT CMapObj::maxRLevel = CMapObj::DEFAULT_RLEVEL;
+int  CMapObj::bIntRender;
+void (*CMapObj::gRenderCallback)(const UINT, LPCVOID, const int);
+LPVOID CMapObj::gRenderUserParam;
+
 static NTempest::C4Vector tv[16];
-static UINT               cnt;
-static WORD               s_indexList[65535];
+static UINT cnt;
+static WORD s_indexList[65535];
 typedef void (CMapObj::*MapObjRenderFunc)(const CMapObjGroup *, UINT);
 static MapObjRenderFunc    s_intFunc;
 static MapObjRenderFunc    s_extFunc;
 static NTempest::C44Matrix s_mvp;
 static NTempest::C44Matrix s_mw;
 static NTempest::C44Matrix s_cm;
+
+TSCArray<NTempest::CRect, 16> CMapObj::extViewList;
+TSCArray<SPortalExt, 2048>    CMapObj::portalExtList;
 
 UINT CMapObj::StabPortals(UINT groupIndex, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
   FATALASSERT(GetGroup(groupIndex));

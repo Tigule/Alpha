@@ -1,11 +1,12 @@
 #ifndef ENGINE_SOURCE_BLPFILE_BLP_H
 #define ENGINE_SOURCE_BLPFILE_BLP_H
 
-#include "Gx/Gx.h"
+#include "Images/blit.h"
 #include "Images/dxt.h"
 
 #include <string.h>
 
+enum EGxTexFormat;
 class CStatus;
 class CTexture;
 struct HCOLORMAP__;

@@ -5,12 +5,12 @@
 #include <mmsystem.h>
 
 struct W32Joystick {
+  UINT       id;
   struct _transaxis {
     int   offset;
     float scale;
   };
 
-  UINT       id;
   _transaxis transaxis[6];
   JOYCAPS    caps;
 };

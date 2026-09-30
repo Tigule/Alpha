@@ -4,6 +4,11 @@
 
 class SpellEffectNamesRec {
  public:
+  int    m_EnumID;
+  LPCSTR m_name_lang[8];
+  int    m_name_flag;
+  int    m_generatedID;
+
   SpellEffectNamesRec();
   ~SpellEffectNamesRec();
 
@@ -30,11 +35,6 @@ class SpellEffectNamesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_EnumID;
-  LPCSTR m_name_lang[8];
-  int    m_name_flag;
-  int    m_generatedID;
 };
 
 extern WowClientDB<SpellEffectNamesRec> g_spellEffectNamesDB;

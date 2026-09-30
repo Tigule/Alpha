@@ -10,6 +10,9 @@ namespace NTempest {
 
   class CAaBox {
    public:
+    C3Vector b;
+    C3Vector t;
+
     CAaBox(float value = 0.0f) : b(value), t(value) {
     }
     CAaBox(const C3Vector &value) : b(value), t(value) {
@@ -18,34 +21,34 @@ namespace NTempest {
     }
     ~CAaBox() {
     }
+    float       *Access();
 
     const float *Access() const;
-    float       *Access();
     void         Get(C3Vector &bottom, C3Vector &top) const;
-    void         Set(const C3Vector &bottom, const C3Vector &top);
-    void         Set(const C3Vector &value);
     void         Set(float value);
+    void         Set(const C3Vector &value);
+    void         Set(const C3Vector &bottom, const C3Vector &top);
+    CAaBox &operator+=(const CAaBox &value);
 
     CAaBox &operator+=(float value);
-    CAaBox &operator+=(const CAaBox &value);
-    CAaBox &operator-=(float value);
     CAaBox &operator-=(const CAaBox &value);
-    CAaBox &operator*=(float value);
+    CAaBox &operator-=(float value);
     CAaBox &operator*=(const CAaBox &value);
-    CAaBox &operator/=(float value);
+    CAaBox &operator*=(float value);
     CAaBox &operator/=(const CAaBox &value);
+    CAaBox &operator/=(float value);
     CAaBox  operator-() const;
 
     BYTE NotEmpty() const;
     BYTE Empty() const;
-    BYTE Encloses(const CAaBox &value) const;
-    BYTE Encloses(const C2Vector &value) const;
     BYTE Encloses(const C3Vector &value) const;
-    BYTE Contains(const CAaBox &value) const;
-    BYTE Contains(const C2Vector &value) const;
+    BYTE Encloses(const C2Vector &value) const;
+    BYTE Encloses(const CAaBox &value) const;
     BYTE Contains(const C3Vector &value) const;
-    BYTE InOpenR(const CAaBox &value) const;
+    BYTE Contains(const C2Vector &value) const;
+    BYTE Contains(const CAaBox &value) const;
     BYTE InOpenR(const C3Vector &value) const;
+    BYTE InOpenR(const CAaBox &value) const;
     BYTE Intersects(const CAaBox &value) const;
     BYTE Intersects2d(const CAaBox &value) const;
 
@@ -54,15 +57,15 @@ namespace NTempest {
     float    Depth() const;
     C3Vector Diagonal() const;
     C3Vector Center() const;
-    void     CenterX(const CAaBox &value);
     float    CenterX() const;
-    void     CenterY(const CAaBox &value);
+    void     CenterX(const CAaBox &value);
     float    CenterY() const;
-    void     CenterZ(const CAaBox &value);
+    void     CenterY(const CAaBox &value);
     float    CenterZ() const;
+    void     CenterZ(const CAaBox &value);
+    void Stretch(const C3Vector &value);
 
     void Stretch(float value);
-    void Stretch(const C3Vector &value);
     void StretchX(float value);
     void StretchY(float value);
     void StretchZ(float value);
@@ -83,8 +86,8 @@ namespace NTempest {
     void SetWidthCenter(float value);
     void SetHeightCenter(float value);
     void SetDepthCenter(float value);
-    void CenterAt(const CAaBox &value);
     void CenterAt(const C3Vector &value);
+    void CenterAt(const CAaBox &value);
     void AlignBottom(const CAaBox &value);
     void AlignTop(const CAaBox &value);
     void AlignBottomX(const CAaBox &value);
@@ -95,18 +98,15 @@ namespace NTempest {
     void AlignTopZ(const CAaBox &value);
 
     static CAaBox Lerp(const CAaBox &a, const CAaBox &b, const CAaBox &t);
-    static CAaBox Intersection(const CAaBox &a, const CAaBox &b, const CAaBox &c);
     static CAaBox Intersection(const CAaBox &a, const CAaBox &b);
+    static CAaBox Intersection(const CAaBox &a, const CAaBox &b, const CAaBox &c);
     static CAaBox Union(const CAaBox &a, const CAaBox &b);
     CAaBox        Intersect(const CAaBox &value);
     CAaBox        Unite(const CAaBox &value);
+    static CAaBox Bounding(const C3Vector *vectors, DWORD count);
+    static CAaBox Bounding(const CDynTable<C3Vector> &vectors);
 
     static CAaBox Bounding(const CDynTable<DWORD> &indices, const CDynTable<C3Vector> &vectors);
-    static CAaBox Bounding(const CDynTable<C3Vector> &vectors);
-    static CAaBox Bounding(const C3Vector *vectors, DWORD count);
-
-    C3Vector b;
-    C3Vector t;
   };
 
 }  // namespace NTempest

@@ -1,13 +1,7 @@
 #include "ZoneMusicRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR ZoneMusicRec::GetFilename() {
   return "DBFilesClient\\ZoneMusic.dbc";
@@ -20,21 +14,18 @@ ZoneMusicRec::~ZoneMusicRec() {
 }
 
 bool ZoneMusicRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempMusicFileIndices[2];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_VolumeFloat, sizeof(m_VolumeFloat), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempMusicFileIndices[0], sizeof(tempMusicFileIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempMusicFileIndices[1], sizeof(tempMusicFileIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SilenceIntervalMin[0], sizeof(m_SilenceIntervalMin), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SilenceIntervalMax[0], sizeof(m_SilenceIntervalMax), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SegmentLength[0], sizeof(m_SegmentLength), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SegmentPlayMin[0], sizeof(m_SegmentPlayMin), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_SegmentPlayMax[0], sizeof(m_SegmentPlayMax), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_Sounds[0], sizeof(m_Sounds), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &m_VolumeFloat) ||
+      !SFileReadTyped(f, &tempMusicFileIndices[0]) ||
+      !SFileReadTyped(f, &tempMusicFileIndices[1]) ||
+      !SFile::Read(f, &m_SilenceIntervalMin[0], sizeof(m_SilenceIntervalMin), 0, 0, 0) ||
+      !SFile::Read(f, &m_SilenceIntervalMax[0], sizeof(m_SilenceIntervalMax), 0, 0, 0) ||
+      !SFile::Read(f, &m_SegmentLength[0], sizeof(m_SegmentLength), 0, 0, 0) ||
+      !SFile::Read(f, &m_SegmentPlayMin[0], sizeof(m_SegmentPlayMin), 0, 0, 0) ||
+      !SFile::Read(f, &m_SegmentPlayMax[0], sizeof(m_SegmentPlayMax), 0, 0, 0) ||
+      !SFile::Read(f, &m_Sounds[0], sizeof(m_Sounds), 0, 0, 0)) {
     ConsoleWrite("Error reading ZoneMusicRec", DEFAULT_COLOR);
     return false;
   }

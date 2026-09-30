@@ -9,7 +9,7 @@
 int  CheckMachineStateSymbolHelper();
 void LoadMachineStateSymbols();
 void UnloadMachineStateSymbols();
-int  LogMiniDump(LPVOID file, EXCEPTION_POINTERS *exceptionPointers, UINT userStreamCount, char **userStreams);
+int  LogMiniDump(LPVOID file, EXCEPTION_POINTERS *exceptionPointers, UINT userStreamCount, char *userStreams[]);
 int  LogMiniDumpIsAvailable();
 
 typedef struct _MSGSRC {
@@ -376,7 +376,7 @@ static void WriteMessageToLog(HANDLE logfile, LPCSTR message) {
   WriteFile(logfile, buffer, out, &byteswritten, NULL);
 }
 
-static HANDLE CreateErrorLogFile(LPCSTR suffix, LPCSTR ext, char *logpath, DWORD logpathchars, SYSTEMTIME &time) {
+static HANDLE CreateErrorLogFile(LPCSTR suffix, LPCSTR ext, char logpath[], DWORD logpathchars, SYSTEMTIME &time) {
   char  logfilename[MAX_PATH];
   char  exefullpath[MAX_PATH];
   char *pathend;

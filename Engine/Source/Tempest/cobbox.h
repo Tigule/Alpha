@@ -6,20 +6,20 @@ namespace NTempest {
 
   class CObBox {
    public:
-    CObBox() {
-    }
+    C3Vector  c;
+    C3Vector  e;
+    C33Matrix b;
 
-    CObBox(const C3Vector &center, const C3Vector &extent) : c(center), e(extent) {
+    CObBox() {
     }
 
     CObBox(const C3Vector &center, const C3Vector &extent, C33Matrix &basis) : c(center), e(extent), b(basis) {
     }
 
-    ~CObBox();
+    CObBox(const C3Vector &center, const C3Vector &extent) : c(center), e(extent) {
+    }
 
-    C3Vector  c;
-    C3Vector  e;
-    C33Matrix b;
+    ~CObBox();
   };
 
 }  // namespace NTempest

@@ -1,13 +1,7 @@
 #include "AreaMIDIAmbiencesRec.h"
 
+#include <Base/Base.h>
 #include <Console/ConsoleClient.h>
-
-namespace {
-  const float PI = 3.14159265358979323846f;
-  const float TWO_PI = PI + PI;
-  const float OO_TWO_PI = 1.0f / TWO_PI;
-
-}  // namespace
 
 LPCSTR AreaMIDIAmbiencesRec::GetFilename() {
   return "DBFilesClient\\AreaMIDIAmbiences.dbc";
@@ -20,18 +14,15 @@ AreaMIDIAmbiencesRec::~AreaMIDIAmbiencesRec() {
 }
 
 bool AreaMIDIAmbiencesRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempDaySequenceIndices[1];
   UINT tempNightSequenceIndices[1];
   UINT tempDLSFileIndices[1];
 
-  result = SFile::Read(f, &m_ID, sizeof(m_ID), 0, 0, 0) && result;
-  result = SFile::Read(f, tempDaySequenceIndices, sizeof(tempDaySequenceIndices), 0, 0, 0) && result;
-  result = SFile::Read(f, tempNightSequenceIndices, sizeof(tempNightSequenceIndices), 0, 0, 0) && result;
-  result = SFile::Read(f, tempDLSFileIndices, sizeof(tempDLSFileIndices), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_volume, sizeof(m_volume), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_ID) ||
+      !SFileReadTyped(f, &tempDaySequenceIndices[0]) ||
+      !SFileReadTyped(f, &tempNightSequenceIndices[0]) ||
+      !SFileReadTyped(f, &tempDLSFileIndices[0]) ||
+      !SFileReadTyped(f, &m_volume)) {
     ConsoleWrite("Error reading AreaMIDIAmbiencesRec", DEFAULT_COLOR);
     return false;
   }

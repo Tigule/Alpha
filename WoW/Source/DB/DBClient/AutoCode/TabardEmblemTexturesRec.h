@@ -4,6 +4,9 @@
 
 class TabardEmblemTexturesRec {
  public:
+  int    m_ID;
+  LPCSTR m_TorsoTexture[2];
+
   TabardEmblemTexturesRec();
   ~TabardEmblemTexturesRec();
 
@@ -29,9 +32,6 @@ class TabardEmblemTexturesRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_TorsoTexture[2];
 };
 
 extern WowClientDB<TabardEmblemTexturesRec> g_tabardEmblemTexturesDB;

@@ -78,6 +78,7 @@ void ModelShowModel(HMODEL model, int show);
 
 class CHashKeyFilePath {
  public:
+  char path[MAX_PATH];
   CHashKeyFilePath() {
     path[0] = 0;
   }
@@ -90,14 +91,6 @@ class CHashKeyFilePath {
     SStrCopy(path, source.path, sizeof(path));
   }
 
-  bool operator==(LPCSTR value) const {
-    return SStrCmpI(path, value, 0x7FFFFFFF) == 0;
-  }
-
-  bool operator==(const CHashKeyFilePath &source) const {
-    return operator==(source.path);
-  }
-
   CHashKeyFilePath &operator=(LPCSTR value) {
     SStrCopy(path, value, sizeof(path));
     return *this;
@@ -108,7 +101,14 @@ class CHashKeyFilePath {
     return *this;
   }
 
-  char path[MAX_PATH];
+  bool operator==(const CHashKeyFilePath &source) const {
+    return operator==(source.path);
+  }
+
+  bool operator==(LPCSTR value) const {
+    return SStrCmpI(path, value, 0x7FFFFFFF) == 0;
+  }
+
 };
 
 struct CModelHash : public TSHashObject<CModelHash, CHashKeyFilePath> {
@@ -185,8 +185,8 @@ static CNullStatus s_nullStatus;
 static LISTDECL(CModelModItem, s_freeModItems);
 
 HMODEL ModelDuplicate(HMODEL sourceModel, UINT flags);
-HMODEL IModelCreateBlocking(LPCSTR fileName, char *actualPath, CModelCreate *data, CStatus *status);
-HMODEL CreateDefaultModel(LPCSTR fileName, UINT modelLoadFlags, CStatus *status);
+static HMODEL IModelCreateBlocking(LPCSTR fileName, char *actualPath, CModelCreate *data, CStatus *status);
+static HMODEL CreateDefaultModel(LPCSTR fileName, UINT modelLoadFlags, CStatus *status);
 
 static BOOL ModelIsUsed(HMODEL model) {
   CModelShared *shared;
@@ -549,18 +549,20 @@ static void MdxReadExtents(BYTE *data, UINT fileBytes, CModelBase *modelptr, CMo
     return;
   }
 
-  UINT numSequences = *reinterpret_cast<UINT *>(globalData + 4);
+  globalData += 4;
+  UINT numSequences = *reinterpret_cast<UINT *>(globalData);
+  globalData += 4;
   if (!numSequences) {
     return;
   }
 
   if (modelptr->m_anim && AnimNeedsSequenceBounds(modelptr->m_anim)) {
     shared->seqBounds.SetCount(numSequences);
-    globalData += 8;
     CBoundsData *bounds = shared->seqBounds.Ptr();
     while (numSequences--) {
-      globalData = LoadBoundsData(globalData + 0x60, bounds++);
+      globalData = LoadBoundsData(globalData + 0x60, bounds);
       globalData += 0x10;
+      ++bounds;
     }
   } else if (NTempest::CMath::fabs_(shared->bounds.sphere.r) < 0.00000023841858f) {
     globalData = MDLFileBinarySeek(data, fileBytes, 'SQES');
@@ -647,7 +649,7 @@ static CModelShared *CreateSharedModelData(LPCSTR fileName) {
   return shared;
 }
 
-BOOL IsSimpleModel(const MDLDATA &source) {
+static BOOL IsSimpleModel(const MDLDATA &source) {
   return source.geosets.Count() <= 5 && source.materials.Count() <= 4 && source.textures.Count() <= 4 && !source.lights.Count() &&
          !source.attachments.Count() && !source.particleEmitters2.Count() && !source.ribbonEmitters.Count() && !source.cameras.Count() &&
          !source.hitTestShapes.Count();
@@ -660,7 +662,10 @@ static UINT GetSectionCount(BYTE *fileData, UINT fileBytes, DWORD sectionTag) {
 
 static UINT GetTextureCount(BYTE *fileData, UINT fileBytes) {
   BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SXET');
-  return section ? *reinterpret_cast<UINT *>(section) / 0x10C : 0;
+  if (!section) {
+    return 0;
+  }
+  return *reinterpret_cast<UINT *>(section) / 0x10C;
 }
 
 static BOOL IsSimpleModel(BYTE *fileData, UINT fileBytes) {
@@ -689,7 +694,7 @@ static void BuildSimpleModelFromMdxData(BYTE *fileData, UINT fileBytes, CModelSi
   }
   MdxReadNumMatrices(fileData, fileBytes, flags, shared);
   if (flags & 0x80) {
-    IModelEnableFullAlpha(modelptr, 1);
+    IModelEnableFullAlpha(modelptr, 0);
   }
   shared->collision = CollisionDataCreate(fileData, fileBytes);
   MdxReadExtents(fileData, fileBytes, modelptr, shared);
@@ -719,7 +724,7 @@ static void BuildModelFromMdxData(BYTE *fileData, UINT fileBytes, CModelBase *ba
     MdxReadHitTestData(fileData, fileBytes, modelptr, shared);
   }
   if (flags & 0x80) {
-    IModelEnableFullAlpha(modelptr, 1);
+    IModelEnableFullAlpha(modelptr, 0);
   }
   if (!(flags & 0x200)) {
     MdxReadLights(fileData, fileBytes, modelptr);
@@ -741,7 +746,7 @@ static BOOL BuildSimpleModelFromMdlData(const MDLDATA &source, CModelSimple *mod
     return 0;
   }
   if (flags & 0x80) {
-    IModelEnableFullAlpha(modelptr, 1);
+    IModelEnableFullAlpha(modelptr, 0);
   }
   shared->collision = CollisionDataCreate(source);
   return MdlReadLoadExtents(source, modelptr, shared) && MdlReadLoadPositions(source, flags, shared);
@@ -767,7 +772,7 @@ static int BuildModelFromMdlData(const MDLDATA &source, CModelBase *baseModel, C
     return 0;
   }
   if (flags & 0x80) {
-    IModelEnableFullAlpha(baseModel, 1);
+    IModelEnableFullAlpha(baseModel, 0);
   }
   if (!(flags & 0x200) && !MdlReadLoadLights(source, modelptr)) {
     return 0;
@@ -846,18 +851,16 @@ static void BuildSimpleGeoset(
   geoShared->primitiveVertices.Set(numPrimVertices, primitiveVertices);
 }
 
-HMODEL CreateDefaultModel(LPCSTR fileName, UINT modelLoadFlags, CStatus *status) {
+static HMODEL CreateDefaultModel(LPCSTR fileName, UINT modelLoadFlags, CStatus *status) {
   status->Add(STATUS_WARNING, "Warning, model %s failed to load\n", fileName);
 
   HTEXTURE texture = LoadModelTexture("Textures\\ShaneCube", modelLoadFlags, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), status);
   ASSERT(texture);
 
-  NTempest::CAaBox bounds;
-  bounds.b = NTempest::C3Vector(-0.5f, -0.5f, 0.0f);
-  bounds.t = NTempest::C3Vector(0.5f, 0.5f, 1.0f);
-  HMODEL model = CreateModelBoundingBox(bounds, texture, GxBlend_Opaque);
+  NTempest::CAaBox bounds(NTempest::C3Vector(-0.5f, -0.5f, 0.0f), NTempest::C3Vector(0.5f, 0.5f, 1.0f));
+  HMODEL           model = CreateModelBoundingBox(bounds, texture, GxBlend_Opaque);
 
-  CModelShared *shared = 0;
+  CModelShared *shared;
   IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared);
   ASSERT(shared);
   shared->collision = CollisionDataCreate(bounds);
@@ -953,7 +956,7 @@ HMODEL ModelGetModel(LPCSTR sourcefile, CModelCreate *data) {
   return GetModel(sourcefile, data);
 }
 
-HMODEL IModelCreateBlocking(LPCSTR fileName, char *actualPath, CModelCreate *data, CStatus *status) {
+static HMODEL IModelCreateBlocking(LPCSTR fileName, char *actualPath, CModelCreate *data, CStatus *status) {
   UINT          fileBytes;
   CModelShared *shared;
   BYTE         *fileData;

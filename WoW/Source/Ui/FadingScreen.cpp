@@ -24,13 +24,13 @@ static void (*s_fadedCallback)(LPVOID);
 static LPVOID  s_fadedCallbackParam;
 static CGxTex *s_textureHandle;
 
-void FadingScreenPaint(LPVOID param, const RECTF *rect, const RECTF *visibleRect, float alpha);
+static void FadingScreenPaint(LPVOID param, const RECTF *rect, const RECTF *visibleRect, float alpha);
 
-BOOL EatEvent(LPCVOID data, LPVOID param) {
+static BOOL EatEvent(LPCVOID data, LPVOID param) {
   return 0;
 }
 
-void RegisterHandlers() {
+static void RegisterHandlers() {
   EventRegisterEx(EVENT_ID_CHAR, EatEvent, 0, 8.0f);
   EventRegisterEx(EVENT_ID_KEYDOWN, EatEvent, 0, 8.0f);
   EventRegisterEx(EVENT_ID_KEYUP, EatEvent, 0, 8.0f);
@@ -40,7 +40,7 @@ void RegisterHandlers() {
   EventRegisterEx(EVENT_ID_MOUSEUP, EatEvent, 0, 8.0f);
 }
 
-void UnregisterHandlers() {
+static void UnregisterHandlers() {
   EventUnregister(EVENT_ID_CHAR, EatEvent);
   EventUnregister(EVENT_ID_KEYDOWN, EatEvent);
   EventUnregister(EVENT_ID_KEYDOWN_REPEATING, EatEvent);
@@ -50,7 +50,7 @@ void UnregisterHandlers() {
   EventUnregister(EVENT_ID_MOUSEUP, EatEvent);
 }
 
-void FadingScreenCleanup() {
+static void FadingScreenCleanup() {
   HandleClose((HOBJECT)s_fadingScreenLayer);
   GxTexDestroy(s_textureHandle);
   UnregisterHandlers();
@@ -58,7 +58,7 @@ void FadingScreenCleanup() {
   s_drawingFadingScreen = 0;
 }
 
-void FadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
+static void FadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
   static NTempest::C3Vector position[4] = {
       NTempest::C3Vector(0.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(0.0f, 1.0f, 0.0f),
       NTempest::C3Vector(1.0f, 1.0f, 0.0f)

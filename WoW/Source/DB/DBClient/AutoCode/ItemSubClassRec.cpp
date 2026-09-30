@@ -15,40 +15,37 @@ ItemSubClassRec::~ItemSubClassRec() {
 }
 
 bool ItemSubClassRec::Read(SFile *f, LPCSTR stringBuffer) {
-  bool result = true;
   UINT tempdisplayName_langIndices[NUM_LOCALES];
   UINT tempverboseName_langIndices[NUM_LOCALES];
 
-  result = SFile::Read(f, &m_classID, sizeof(m_classID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_subClassID, sizeof(m_subClassID), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_prerequisiteProficiency, sizeof(m_prerequisiteProficiency), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_postrequisiteProficiency, sizeof(m_postrequisiteProficiency), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_flags, sizeof(m_flags), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_displayFlags, sizeof(m_displayFlags), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_weaponParrySeq, sizeof(m_weaponParrySeq), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_weaponReadySeq, sizeof(m_weaponReadySeq), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_weaponAttackSeq, sizeof(m_weaponAttackSeq), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_WeaponSwingSize, sizeof(m_WeaponSwingSize), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[0], sizeof(tempdisplayName_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[1], sizeof(tempdisplayName_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[2], sizeof(tempdisplayName_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[3], sizeof(tempdisplayName_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[4], sizeof(tempdisplayName_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[5], sizeof(tempdisplayName_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[6], sizeof(tempdisplayName_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempdisplayName_langIndices[7], sizeof(tempdisplayName_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_displayName_flag, sizeof(m_displayName_flag), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverboseName_langIndices[0], sizeof(tempverboseName_langIndices[0]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverboseName_langIndices[1], sizeof(tempverboseName_langIndices[1]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverboseName_langIndices[2], sizeof(tempverboseName_langIndices[2]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverboseName_langIndices[3], sizeof(tempverboseName_langIndices[3]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverboseName_langIndices[4], sizeof(tempverboseName_langIndices[4]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverboseName_langIndices[5], sizeof(tempverboseName_langIndices[5]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverboseName_langIndices[6], sizeof(tempverboseName_langIndices[6]), 0, 0, 0) && result;
-  result = SFile::Read(f, &tempverboseName_langIndices[7], sizeof(tempverboseName_langIndices[7]), 0, 0, 0) && result;
-  result = SFile::Read(f, &m_verboseName_flag, sizeof(m_verboseName_flag), 0, 0, 0) && result;
-
-  if (!result) {
+  if (!SFileReadTyped(f, &m_classID) ||
+      !SFileReadTyped(f, &m_subClassID) ||
+      !SFileReadTyped(f, &m_prerequisiteProficiency) ||
+      !SFileReadTyped(f, &m_postrequisiteProficiency) ||
+      !SFileReadTyped(f, &m_flags) ||
+      !SFileReadTyped(f, &m_displayFlags) ||
+      !SFileReadTyped(f, &m_weaponParrySeq) ||
+      !SFileReadTyped(f, &m_weaponReadySeq) ||
+      !SFileReadTyped(f, &m_weaponAttackSeq) ||
+      !SFileReadTyped(f, &m_WeaponSwingSize) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[0]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[1]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[2]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[3]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[4]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[5]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[6]) ||
+      !SFileReadTyped(f, &tempdisplayName_langIndices[7]) ||
+      !SFileReadTyped(f, &m_displayName_flag) ||
+      !SFileReadTyped(f, &tempverboseName_langIndices[0]) ||
+      !SFileReadTyped(f, &tempverboseName_langIndices[1]) ||
+      !SFileReadTyped(f, &tempverboseName_langIndices[2]) ||
+      !SFileReadTyped(f, &tempverboseName_langIndices[3]) ||
+      !SFileReadTyped(f, &tempverboseName_langIndices[4]) ||
+      !SFileReadTyped(f, &tempverboseName_langIndices[5]) ||
+      !SFileReadTyped(f, &tempverboseName_langIndices[6]) ||
+      !SFileReadTyped(f, &tempverboseName_langIndices[7]) ||
+      !SFileReadTyped(f, &m_verboseName_flag)) {
     ConsoleWrite("Error reading ItemSubClassRec", DEFAULT_COLOR);
     return false;
   }

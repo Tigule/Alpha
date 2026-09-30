@@ -4,6 +4,17 @@
 
 class CreatureDisplayInfoExtraRec {
  public:
+  int    m_ID;
+  int    m_DisplayRaceID;
+  int    m_DisplaySexID;
+  int    m_SkinID;
+  int    m_FaceID;
+  int    m_HairStyleID;
+  int    m_HairColorID;
+  int    m_FacialHairID;
+  int    m_NPCItemDisplay[10];
+  LPCSTR m_BakeName;
+
   CreatureDisplayInfoExtraRec();
   ~CreatureDisplayInfoExtraRec();
 
@@ -29,17 +40,6 @@ class CreatureDisplayInfoExtraRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  int    m_DisplayRaceID;
-  int    m_DisplaySexID;
-  int    m_SkinID;
-  int    m_FaceID;
-  int    m_HairStyleID;
-  int    m_HairColorID;
-  int    m_FacialHairID;
-  int    m_NPCItemDisplay[10];
-  LPCSTR m_BakeName;
 };
 
 extern WowClientDB<CreatureDisplayInfoExtraRec> g_creatureDisplayInfoExtraDB;

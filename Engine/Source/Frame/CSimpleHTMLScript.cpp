@@ -20,14 +20,14 @@
   }                                                                     \
   ASSERT(object)
 
-int CSimpleHTML_SetText(lua_State *L) {
+static int CSimpleHTML_SetText(lua_State *L) {
   GET_SIMPLE_HTML_THIS(L, object);
 
   object->SetText(lua_tostring(L, 2), 0);
   return 0;
 }
 
-int CSimpleHTML_SetTextColor(lua_State *L) {
+static int CSimpleHTML_SetTextColor(lua_State *L) {
   GET_SIMPLE_HTML_THIS(L, object);
 
   float red = static_cast<float>(lua_tonumber(L, 2));

@@ -243,6 +243,8 @@ UINT CurrencyTotal(int coins[3]);
 BOOL CursorGrabMoney(UINT amount);
 BOOL CursorGrabSpell(LPCSTR filename);
 UINT CursorGetCursorMode();
+UINT CursorGetCursorType();
+void CursorResetCursor(int force);
 void CursorSetHeldItem(DWORDLONG itemGuid);
 void CursorSetHeldVirtualItem(UINT displayID);
 void CursorSetCursorMode(CURSORANIMATIONS mode);
@@ -255,6 +257,13 @@ enum ERROR_TEXT_PLACEMENT {
 };
 
 struct GAMEERRORDESC {
+  LPCSTR               stringToken;
+  ERROR_TEXT_PLACEMENT textPlacement;
+  LPCSTR               soundName;
+  VOCALUISOUNDS        voiceID;
+  int                  supressText;
+  SLASH_COMMAND_ID     slashCmd;
+
   GAMEERRORDESC(
       LPCSTR               _stringToken,
       ERROR_TEXT_PLACEMENT _textPlacement,
@@ -270,13 +279,6 @@ struct GAMEERRORDESC {
         supressText(_supressText),
         slashCmd(_slashCmd) {
   }
-
-  LPCSTR               stringToken;
-  ERROR_TEXT_PLACEMENT textPlacement;
-  LPCSTR               soundName;
-  VOCALUISOUNDS        voiceID;
-  int                  supressText;
-  SLASH_COMMAND_ID     slashCmd;
 };
 
 static const GAMEERRORDESC s_gameErrors[GERR_NUM_TYPES] = {
@@ -2819,12 +2821,14 @@ static int Script_GetCVar(lua_State *L) {
   char message[512];
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: GetCVar(\"cvar\")");
+    return 0;
   }
 
   CVar *cvar = CVar::Lookup(lua_tostring(L, 1));
   if (!cvar) {
     SStrPrintf(message, sizeof(message), "Couldn't find CVar named '%s'", lua_tostring(L, 1));
     luaL_error(L, message);
+    return 0;
   }
 
   lua_pushstring(L, cvar->GetString());
@@ -2835,12 +2839,14 @@ static int Script_SetCVar(lua_State *L) {
   char message[512];
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: SetCVar(\"cvar\", value [, \"scriptCvar\")");
+    return 0;
   }
 
   CVar *cvar = CVar::Lookup(lua_tostring(L, 1));
   if (!cvar) {
     SStrPrintf(message, sizeof(message), "Couldn't find CVar named '%s'", lua_tostring(L, 1));
     luaL_error(L, message);
+    return 0;
   }
 
   LPCSTR value = lua_tostring(L, 2);
@@ -2907,6 +2913,7 @@ static int Script_SetFarclip(lua_State *L) {
   char strVal[16];
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetFarclip(value)");
+    return 0;
   }
 
   CVar  *cvar = CVar::Lookup("farclip");
@@ -2925,13 +2932,16 @@ static int Script_SetTerrainMip(lua_State *L) {
   char buf[16];
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetTerrainMip(value)");
+    return 0;
   }
 
   int value = 1 - static_cast<int>(lua_tonumber(L, 1));
   SStrPrintf(buf, sizeof(buf), "%d", value);
-  CVar::Lookup("alphaLevel")->Set(buf, 1, 0, 0);
+  CVar *cvar = CVar::Lookup("alphaLevel");
+  cvar->Set(buf, 1, 0, 0);
   SStrPrintf(buf, sizeof(buf), "%d", value);
-  CVar::Lookup("shadowLevel")->Set(buf, 1, 0, 0);
+  cvar = CVar::Lookup("shadowLevel");
+  cvar->Set(buf, 1, 0, 0);
   return 0;
 }
 
@@ -2944,6 +2954,7 @@ static int Script_SetDoodadAnim(lua_State *L) {
   char strVal[16];
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetDoodadAnim(value)");
+    return 0;
   }
 
   CVar  *cvar = CVar::Lookup("doodadAnim");
@@ -2962,6 +2973,7 @@ static int Script_SetTexLodBias(lua_State *L) {
   char strVal[16];
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetTexLodBias(value)");
+    return 0;
   }
 
   CVar  *cvar = CVar::Lookup("texLodBias");
@@ -2980,6 +2992,7 @@ static int Script_SetGamma(lua_State *L) {
   char strVal[16];
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetGamma(value)");
+    return 0;
   }
 
   CVar  *cvar = CVar::Lookup("gamma");
@@ -3081,24 +3094,25 @@ static int Script_SetCursor(lua_State *L) {
       {ATTACK_ERROR_CURSOR, "ATTACK_ERROR_CURSOR"}
   };
 
-  if (!lua_isstring(L, 1)) {
-    luaL_error(L, "Usage: SetCursor(\"cursor\")");
-  }
-
-  int i;
-  for (i = 0; i < 8; ++i) {
-    if (!SStrCmp(array[i].string, lua_tostring(L, 1), INT_MAX)) {
-      break;
+  CURSORANIMATIONS animation = NO_CURSOR;
+  if (lua_isstring(L, 1)) {
+    LPCSTR cursor = lua_tostring(L, 1);
+    for (UINT i = 0; i < 8; ++i) {
+      if (!SStrCmpI(array[i].string, cursor, INT_MAX)) {
+        animation = array[i].animation;
+        break;
+      }
     }
   }
-  if (i == 8) {
+  if (animation != NO_CURSOR) {
+    CursorModelSetSequence(animation);
+  } else {
     luaL_error(L, "Usage: SetCursor(\"cursor\")");
   }
-  CursorSetCursorMode(array[i].animation);
   return 0;
 }
 
-int Script_CursorHasItem(lua_State *L) {
+static int Script_CursorHasItem(lua_State *L) {
   if (CGGameUI::m_cursorItemType == UICURSOR_ITEM) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -3107,7 +3121,7 @@ int Script_CursorHasItem(lua_State *L) {
   return 1;
 }
 
-int Script_CursorHasSpell(lua_State *L) {
+static int Script_CursorHasSpell(lua_State *L) {
   if (CGGameUI::m_cursorItemType == UICURSOR_SPELL) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -3116,7 +3130,7 @@ int Script_CursorHasSpell(lua_State *L) {
   return 1;
 }
 
-int Script_CursorHasMoney(lua_State *L) {
+static int Script_CursorHasMoney(lua_State *L) {
   if (CGGameUI::m_cursorItemType == UICURSOR_MONEY) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -3148,7 +3162,7 @@ static int Script_EquipCursorItem(lua_State *L) {
   return 0;
 }
 
-int Script_DeleteCursorItem(lua_State *) {
+static int Script_DeleteCursorItem(lua_State *) {
   DWORDLONG  cursorItemPack;
   DWORDLONG  cursorItem;
   UINT       cursorItemSlot;
@@ -3209,21 +3223,16 @@ static int Script_TargetUnit(lua_State *L) {
 }
 
 static int Script_TargetUnitsPet(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+    if (unit) {
+      DWORDLONG petGUID = *(unit->GetUnitData()->charm ? &unit->GetUnitData()->charm : &unit->GetUnitData()->summon);
+      if (petGUID) {
+        CGGameUI::Target(petGUID, 0);
+      }
+    }
+  } else {
     luaL_error(L, "Usage: TargetUnitsPet(\"unit\")");
-  }
-
-  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  if (!unit) {
-    return 0;
-  }
-
-  DWORDLONG petGUID = unit->GetUnitData()->charm;
-  if (!petGUID) {
-    petGUID = unit->GetUnitData()->summon;
-  }
-  if (petGUID) {
-    CGGameUI::Target(petGUID, 0);
   }
   return 0;
 }
@@ -3239,7 +3248,7 @@ static int Script_TargetNearestEnemy(lua_State *L) {
   return 0;
 }
 
-int Script_TargetLastEnemy(lua_State *) {
+static int Script_TargetLastEnemy(lua_State *) {
   DWORDLONG target = CGGameUI::m_lastEnemyTarget;
   if (target) {
     CGGameUI::Target(target, 0);
@@ -3283,10 +3292,11 @@ static int Script_AssistUnit(lua_State *L) {
 }
 
 static int Script_AssistByName(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CGGameUI::AssistByName(lua_tostring(L, 1));
+  } else {
     luaL_error(L, "Usage: AssistByName(\"name\")");
   }
-  CGGameUI::AssistByName(lua_tostring(L, 1));
   return 0;
 }
 
@@ -3307,10 +3317,11 @@ static int Script_FollowUnit(lua_State *L) {
 }
 
 static int Script_FollowByName(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CGGameUI::FollowByName(lua_tostring(L, 1));
+  } else {
     luaL_error(L, "Usage: FollowByName(\"name\")");
   }
-  CGGameUI::FollowByName(lua_tostring(L, 1));
   return 0;
 }
 
@@ -3390,30 +3401,28 @@ static int Script_Jump(lua_State *L) {
 }
 
 static int Script_GetZoneText(lua_State *L) {
-  LPCSTR text = CGGameUI::GetZoneText();
-  lua_pushstring(L, text ? text : "");
+  lua_pushstring(L, CGGameUI::GetZoneText() ? CGGameUI::GetZoneText() : "");
   return 1;
 }
 
 static int Script_GetSubZoneText(lua_State *L) {
-  LPCSTR text = CGGameUI::GetSubZoneText();
-  lua_pushstring(L, text ? text : "");
+  lua_pushstring(L, CGGameUI::GetSubZoneText() ? CGGameUI::GetSubZoneText() : "");
   return 1;
 }
 
 static int Script_GetMinimapZoneText(lua_State *L) {
-  LPCSTR text = CGGameUI::GetMinimapZoneText();
-  lua_pushstring(L, text ? text : "");
+  lua_pushstring(L, CGGameUI::GetMinimapZoneText() ? CGGameUI::GetMinimapZoneText() : "");
   return 1;
 }
 
 static int Script_InitiateTrade(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+    if (guid) {
+      Trade_C_InitiateTrade(guid, 0);
+    }
+  } else {
     luaL_error(L, "Usage: InitiateTrade(\"unit\")");
-  }
-  DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-  if (guid) {
-    Trade_C_InitiateTrade(guid, 0);
   }
   return 0;
 }
@@ -3633,9 +3642,8 @@ static int Script_PickupPlayerMoney(lua_State *L) {
 }
 
 static int Script_HideSellCursor(lua_State *) {
-  CURSORANIMATIONS mode = static_cast<CURSORANIMATIONS>(CursorGetCursorMode());
-  if (mode == BUY_CURSOR || mode == BUY_ERROR_CURSOR) {
-    CursorSetCursorMode(POINT_CURSOR);
+  if (CursorGetCursorType() == BUY_CURSOR || CursorGetCursorType() == BUY_ERROR_CURSOR) {
+    CursorResetCursor(0);
   }
   return 0;
 }
@@ -3795,16 +3803,14 @@ static int Script_GuildRoster(lua_State *L) {
 static int Script_GetScreenWidth(lua_State *L) {
   NTempest::CRect screenRect;
   GxCapsScreenSize(screenRect);
-  float width = screenRect.r - screenRect.l;
-  lua_pushnumber(L, width > 1024.0f ? width : 1024.0f);
+  lua_pushnumber(L, max(1024.0f, screenRect.r - screenRect.l));
   return 1;
 }
 
 static int Script_GetScreenHeight(lua_State *L) {
   NTempest::CRect screenRect;
   GxCapsScreenSize(screenRect);
-  float height = screenRect.b - screenRect.t;
-  lua_pushnumber(L, height > 768.0f ? height : 768.0f);
+  lua_pushnumber(L, max(768.0f, screenRect.b - screenRect.t));
   return 1;
 }
 
@@ -3909,8 +3915,8 @@ static int Script_GetCursorPosition(lua_State *L) {
   NTempest::C2Vector pos;
   CSimpleTop        *top = CSimpleTop::GetInstance();
   top->GetMousePosition(pos);
-  lua_pushnumber(L, pos.x * 1024.0f * 1.25f);
-  lua_pushnumber(L, pos.y * 1024.0f * 1.25f);
+  lua_pushnumber(L, ((pos.x * 1024.0f) * 1.25f));
+  lua_pushnumber(L, ((pos.y * 1024.0f) * 1.25f));
   return 2;
 }
 
@@ -3941,7 +3947,7 @@ static int Script_StopCinematic(lua_State *) {
 static int Script_RunScript(lua_State *L) {
   if (lua_isstring(L, 1)) {
     LPCSTR script = lua_tostring(L, 1);
-    if (*script) {
+    if (script && *script) {
       FrameScript_Execute(script, script);
     }
   }
@@ -4011,7 +4017,7 @@ static int Script_SetScreenResolution(lua_State *L) {
   return 0;
 }
 
-int Script_Stuck(lua_State *L) {
+static int Script_Stuck(lua_State *L) {
   Spell_C_CastSpell(CGSpellBook::GetStuckSpell(), 0);
   return 0;
 }
@@ -4136,39 +4142,39 @@ static void UnloadScriptFunctions() {
 }
 
 static BOOL PlacedFrameCallback(CSimpleFrame *frame, LPVOID param) {
-  char            line[128];
-  NTempest::CRect toprect;
-  NTempest::CRect rect;
-  DWORD           count;
-
-  if (!frame->GetName() || !frame->GetName()[0] || !frame->IsUserPlaced() || (!frame->IsMovable() && !frame->IsResizable())) {
+  char   line[128];
+  DWORD  count;
+  LPCSTR name = frame->GetName();
+  if (!name || !*name || !frame->IsUserPlaced() || (!frame->IsMovable() && !frame->IsResizable())) {
     return 1;
   }
 
+  NTempest::CRect rect;
+  NTempest::CRect toprect;
   if (!frame->GetRect(&rect)) {
     return 1;
   }
 
-  if (!frame->GetLayoutParent() || !frame->GetLayoutParent()->GetRect(&toprect)) {
+  if (!frame->GetTop()->GetRect(&toprect)) {
     return 1;
   }
 
-  SStrPrintf(line, sizeof(line), "Frame: %s\n", frame->GetName());
+  SStrPrintf(line, sizeof(line), "Frame: %s\n", name);
   OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
   SStrPrintf(line, sizeof(line), "FrameLevel: %d\n", frame->GetFrameLevel());
   OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
 
   if (frame->IsMovable()) {
-    SStrPrintf(line, sizeof(line), "X: %d\n", static_cast<int>(-(toprect.l - rect.l) * 1024.0f * 1.25f));
+    SStrPrintf(line, sizeof(line), "X: %d\n", static_cast<int>(((-(toprect.l - rect.l)) * 1024.0f) * 1.25f));
     OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-    SStrPrintf(line, sizeof(line), "Y: %d\n", static_cast<int>(-(toprect.b - rect.b) * 1024.0f * 1.25f));
+    SStrPrintf(line, sizeof(line), "Y: %d\n", static_cast<int>(((-(toprect.b - rect.b)) * 1024.0f) * 1.25f));
     OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
   }
 
   if (frame->IsResizable()) {
-    SStrPrintf(line, sizeof(line), "W: %d\n", static_cast<int>((rect.r - rect.l) * 1024.0f * 1.25f));
+    SStrPrintf(line, sizeof(line), "W: %d\n", static_cast<int>(((rect.r - rect.l) * 1024.0f) * 1.25f));
     OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-    SStrPrintf(line, sizeof(line), "H: %d\n", static_cast<int>((rect.b - rect.t) * 1024.0f * 1.25f));
+    SStrPrintf(line, sizeof(line), "H: %d\n", static_cast<int>(((rect.b - rect.t) * 1024.0f) * 1.25f));
     OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
   }
 
@@ -4201,64 +4207,61 @@ static void PlaceFrame(CSimpleFrame *frame, int framelevel, int x, int y, int w,
 
   if (frame->IsMovable() && x && y) {
     frame->ClearAllPoints(1);
-    frame->SetPoint(FRAMEPOINT_TOPLEFT, frame->GetLayoutParent(), FRAMEPOINT_TOPLEFT, x / 1024.0f * 0.8f, y / 1024.0f * 0.8f, 1);
+    frame->SetPoint(FRAMEPOINT_TOPLEFT, frame->GetTop(), FRAMEPOINT_TOPLEFT, (x / 1024.0f) * 0.8f, (y / 1024.0f) * 0.8f, 1);
     frame->SetUserPlaced(1);
   }
 
-  if (frame->IsResizable()) {
+  if (frame->IsResizable() && (w || h)) {
     if (w) {
-      frame->SetWidth(w / 1024.0f * 0.8f);
-      if (!h) {
-        frame->SetUserPlaced(1);
-      }
+      frame->SetWidth((w / 1024.0f) * 0.8f);
     }
     if (h) {
-      frame->SetHeight(h / 1024.0f * 0.8f);
-      frame->SetUserPlaced(1);
+      frame->SetHeight((h / 1024.0f) * 0.8f);
     }
+    frame->SetUserPlaced(1);
   }
 }
 
 static void LoadPlacedFrames() {
-  char          line[128];
-  LPVOID        buffer;
-  LPCSTR        readCursor;
-  int           h = 0;
+  char   line[128];
+  LPVOID buffer;
+  LPCSTR readCursor;
+
+  if (!SFile::LoadFile("PlacedFrames.txt", &buffer, 0, 1, 0)) {
+    return;
+  }
+
+  readCursor = static_cast<LPCSTR>(buffer);
   CSimpleFrame *frame = 0;
   int           framelevel = -1;
   int           x = 0;
   int           y = 0;
   int           w = 0;
-
-  if (!SFileLoadFile("PlacedFrames.txt", &buffer, 0, 1, 0)) {
-    return;
-  }
-
-  readCursor = static_cast<LPCSTR>(buffer);
+  int           h = 0;
   do {
     SStrTokenize(&readCursor, line, sizeof(line), "\r\n", 0);
-    if (!SStrCmp(line, "Frame: ", SStrLen("Frame: "))) {
+    if (!SStrCmpI(line, "Frame: ", SStrLen("Frame: "))) {
       PlaceFrame(frame, framelevel, x, y, w, h);
       frame = SimpleFrameRegistryGetEntry(line + SStrLen("Frame: "), 0);
       framelevel = -1;
       x = 0;
       y = 0;
       w = 0;
-    } else if (!SStrCmp(line, "FrameLevel: ", SStrLen("FrameLevel: "))) {
+    } else if (!SStrCmpI(line, "FrameLevel: ", SStrLen("FrameLevel: "))) {
       framelevel = SStrToInt(line + SStrLen("FrameLevel: "));
-    } else if (!SStrCmp(line, "X: ", SStrLen("X: "))) {
+    } else if (!SStrCmpI(line, "X: ", SStrLen("X: "))) {
       x = SStrToInt(line + SStrLen("X: "));
-    } else if (!SStrCmp(line, "Y: ", SStrLen("Y: "))) {
+    } else if (!SStrCmpI(line, "Y: ", SStrLen("Y: "))) {
       y = SStrToInt(line + SStrLen("Y: "));
-    } else if (!SStrCmp(line, "W: ", SStrLen("W: "))) {
+    } else if (!SStrCmpI(line, "W: ", SStrLen("W: "))) {
       w = SStrToInt(line + SStrLen("W: "));
-    } else if (!SStrCmp(line, "H: ", SStrLen("H: "))) {
+    } else if (!SStrCmpI(line, "H: ", SStrLen("H: "))) {
       h = SStrToInt(line + SStrLen("H: "));
     }
   } while (line[0] && *readCursor);
 
   PlaceFrame(frame, framelevel, x, y, w, h);
-  SFileUnloadFile(buffer);
+  SFile::Unload(buffer);
 }
 
 void CGGameUI::ResetCamera() {
@@ -4578,7 +4581,7 @@ void CGGameUI::ClearLootSlot(BYTE slot) {
 }
 
 void CGGameUI::OpenLoot(CGObject_C *object, int coins, LOOT_ACQUIRE lootType) {
-  if (object->GetType() & TYPE_UNIT) {
+  if (object->IsA(ID_UNIT)) {
     Target(object->GetGUID(), 0);
   }
   CGLootInfo::SetObject(object, coins, lootType);
@@ -4613,17 +4616,16 @@ void CGGameUI::SysMsgDisplay(LPCSTR msg, SYSMSG_TYPE severity) {
   SysMsgGetSeverityColor(severity, r, g, b);
 
   char *write = string;
-  int   count = 0;
   if (*msg) {
+    int count = 0;
     do {
       if (*msg == '|') {
         *write++ = '|';
         ++count;
-        *write = '|';
+        *write++ = '|';
       } else {
-        *write = *msg;
+        *write++ = *msg;
       }
-      ++write;
       if (++count == sizeof(string) - 1) {
         break;
       }
@@ -4637,20 +4639,20 @@ void CGGameUI::SysMsgDisplay(LPCSTR msg, SYSMSG_TYPE severity) {
 void CGGameUI::InitializeGame() {
   ConsoleCommandExecute("run worldexec.wtf", 0);
   PortraitInitialize();
+  CGChat::InitializeGame();
   CGCharacterInfo::InitializeGame();
   CGPartyInfo::InitializeGame();
   CGSpellBook::InitializeGame();
   CGActionBar::InitializeGame();
+  CGBuffBar::InitializeGame();
   CGLootInfo::InitializeGame();
   CGItemText::InitializeGame();
   CGTaxiMap::InitializeGame();
   CGQuestLog::InitializeGame();
   CGClassTrainer::InitializeGame();
   CGPetInfo::InitializeGame();
-  CGBuffBar::InitializeGame();
-  CGChat::InitializeGame();
-  CGDuelInfo::InitializeGame();
   CGWorldMap::InitializeGame();
+  CGDuelInfo::InitializeGame();
   CGTutorial::InitializeGame();
   m_hasControl = 1;
   Initialize();
@@ -4787,7 +4789,7 @@ void CGGameUI::Shutdown() {
     LeaveWorld();
   }
 
-  CGUnit_C::UpdateUnitNameplates(0);
+  CGUnit_C::NamePlateShow(0);
   CGUnit_C::RemoveAllNamePlates();
 
   Target(0, 0);
@@ -4898,12 +4900,12 @@ void CGGameUI::UnitPortraitUpdate(const DWORDLONG &guid) {
   UpdatePortraitTexture(guid);
 }
 
-void ItemPushItemStatsCallback(int id, const DWORDLONG &, LPVOID arg, bool granted) {
+static void ItemPushItemStatsCallback(int id, const DWORDLONG &, LPVOID arg, bool granted) {
   if (granted) {
     ItemPushInfo *info = static_cast<ItemPushInfo *>(arg);
     FATALASSERT(info);
     CGGameUI::OnItemPush(info->player, info->slot, id, info->pushed, info->display);
-    DEL(info);
+    SMemFree(info, "delete", -1, 0);
   }
 }
 
@@ -5109,7 +5111,7 @@ BOOL CGGameUI::FilterMouseDown(const CMouseEvent &evt) {
 }
 
 BOOL CGGameUI::HandleTerrainClick(const CTerrainClickEvent &evt) {
-  if (evt.button == MOUSE_BUTTON_RIGHT || m_cursorItemType != UICURSOR_EMPTY) {
+  if (evt.button == MOUSE_BUTTON_RIGHT || m_cursorVirtualID) {
     ClearCursor(1);
   }
 
@@ -5120,14 +5122,16 @@ BOOL CGGameUI::HandleTerrainClick(const CTerrainClickEvent &evt) {
 }
 
 BOOL CGGameUI::HandleSpriteClick(const CSpriteClickEvent &evt) {
-  if (m_cursorItemType != UICURSOR_EMPTY) {
+  if (m_cursorVirtualID) {
     ClearCursor(1);
   }
 
   if (evt.button == MOUSE_BUTTON_LEFT) {
-    return OnSpriteLeftClick(evt.objectGUID, evt.pos.x, evt.pos.y);
+    OnSpriteLeftClick(evt.objectGUID, evt.pos.x, evt.pos.y);
+    return 1;
   }
-  return OnSpriteRightClick(evt.objectGUID, evt.pos.x, evt.pos.y);
+  OnSpriteRightClick(evt.objectGUID, evt.pos.x, evt.pos.y);
+  return 1;
 }
 
 BOOL CGGameUI::HandleWorldClick(const CWorldClickEvent &evt) {
@@ -5155,13 +5159,10 @@ void CGGameUI::HandleSpriteTrack(const CObjectTrackEvent &evt) {
 BOOL CGGameUI::HandleDisplaySizeChanged(const CSizeEvent &evt) {
   if (m_screenWidth <= 0 || m_screenWidth != evt.w) {
     m_screenWidth = evt.w;
-    if (evt.w < 1024) {
+    if (evt.w < 1024 || evt.w / 4 != evt.h / 3) {
       CSimpleTexture::s_textureFilterMode = GxTex_Linear;
     } else {
       CSimpleTexture::s_textureFilterMode = GxTex_Nearest;
-      if (evt.w / 4 != evt.h / 3) {
-        CSimpleTexture::s_textureFilterMode = GxTex_Linear;
-      }
     }
     if (evt.w > 1024) {
       ScaleUI(1024.0f / evt.w, 1);
@@ -5173,7 +5174,11 @@ BOOL CGGameUI::HandleDisplaySizeChanged(const CSizeEvent &evt) {
 }
 
 void CGGameUI::HandleScreenshot(int success) {
-  FrameScript_SignalEvent(success ? 199 : 200);
+  if (success) {
+    FrameScript_SignalEvent(199);
+  } else {
+    FrameScript_SignalEvent(200);
+  }
 }
 
 void CGGameUI::SetInteractTarget(const DWORDLONG &target, float maxDist) {
@@ -5506,7 +5511,10 @@ static int __cdecl QSortCompareNearestEnemy(LPCVOID a, LPCVOID b) {
   if (left->distSq == right->distSq) {
     return 0;
   }
-  return left->distSq < right->distSq ? -1 : 1;
+  if (left->distSq > right->distSq) {
+    return 1;
+  }
+  return -1;
 }
 
 void CGGameUI::TargetNearestEnemy(int reverse) {
@@ -5675,16 +5683,15 @@ void CGGameUI::ShowAutoFollowChange(DWORDLONG newTarget, DWORDLONG oldTarget, in
 }
 
 void CGGameUI::NewZoneFeedback(int areaID, LPCSTR zoneString, LPCSTR subZoneString) {
-  int zoneChanged = 0;
-
   int firstArea = !m_areaID;
   m_areaID = areaID;
   if (firstArea) {
     CGWorldMap::SetMapToCurrentZone();
   }
 
+  int zoneChanged = 0;
   if (zoneString && *zoneString) {
-    if (!m_zoneText || SStrCmp(m_zoneText, zoneString, 0x7FFFFFFF)) {
+    if (!m_zoneText || SStrCmpI(m_zoneText, zoneString, 0x7FFFFFFF)) {
       FREEIFUSED(m_zoneText);
       m_zoneText = SStrDupA(zoneString, __FILE__, __LINE__);
       zoneChanged = 1;
@@ -5695,14 +5702,16 @@ void CGGameUI::NewZoneFeedback(int areaID, LPCSTR zoneString, LPCSTR subZoneStri
   }
 
   if (subZoneString && *subZoneString) {
-    if (!m_subZoneText || SStrCmp(m_subZoneText, subZoneString, 0x7FFFFFFF)) {
+    if (!m_subZoneText || SStrCmpI(m_subZoneText, subZoneString, 0x7FFFFFFF)) {
       FREEIFUSED(m_subZoneText);
       m_subZoneText = SStrDupA(subZoneString, __FILE__, __LINE__);
       FrameScript_SignalEvent(196);
+      return;
     }
   } else if (m_subZoneText && *m_subZoneText) {
     *m_subZoneText = 0;
     FrameScript_SignalEvent(196);
+    return;
   }
 
   if (zoneChanged) {
@@ -5712,7 +5721,7 @@ void CGGameUI::NewZoneFeedback(int areaID, LPCSTR zoneString, LPCSTR subZoneStri
 
 void CGGameUI::SetMinimapZoneText(LPCSTR areaName) {
   if (areaName && *areaName) {
-    if (m_minimapZoneText && !SStrCmp(m_minimapZoneText, areaName, 0x7FFFFFFF)) {
+    if (m_minimapZoneText && !SStrCmpI(m_minimapZoneText, areaName, 0x7FFFFFFF)) {
       return;
     }
     FREEIFUSED(m_minimapZoneText);
@@ -5888,12 +5897,8 @@ void CGGameUI::ShowCombatFeedback(const SPELLLOG &log) {
     }
   }
 
-  DWORDLONG pet = 0;
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player) {
-    const CGUnitData *unitData = player->GetUnitData();
-    pet = unitData->charm ? unitData->charm : unitData->summon;
-  }
+  DWORDLONG pet = player ? *(player->GetUnitData()->charm ? &player->GetUnitData()->charm : &player->GetUnitData()->summon) : 0;
 
   if (log.victim != pet && log.victim != ClntObjMgrGetActivePlayer()) {
     return;
@@ -6175,5 +6180,9 @@ LPCSTR CGGameUI::GetLastErrorString() {
 }
 
 void CGGameUI::PlayerCombatModeChanged(int newState) {
-  FrameScript_SignalEvent(newState ? 189 : 190);
+  if (newState) {
+    FrameScript_SignalEvent(189);
+  } else {
+    FrameScript_SignalEvent(190);
+  }
 }

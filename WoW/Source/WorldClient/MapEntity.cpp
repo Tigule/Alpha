@@ -19,15 +19,15 @@ const float CMapEntity::dirLightScaleRate = 3.3333333f;
 
 class FogQ {
  public:
+  float dist;
+  int   subscript;
+
   FogQ(float pDist, int pSubscript) : dist(pDist), subscript(pSubscript) {
   }
 
   static bool HasHigherPriority(const FogQ &a, const FogQ &b) {
     return a.dist >= b.dist;
   }
-
-  float dist;
-  int   subscript;
 };
 
 BOOL CMapStaticEntity::GetMapObjDef(CMapObjDef *&mapObjDef) {
@@ -246,7 +246,7 @@ void CMapEntity::UpdateMapObjLiquid() {
   lqDirection.z = direction.x * mapObjDef->mat.a2 + direction.y * mapObjDef->mat.b2 + direction.z * mapObjDef->mat.c2;
 }
 
-float ComputeFogBlend(const SMOFog &fog, float dist) {
+static float ComputeFogBlend(const SMOFog &fog, float dist) {
   FATALASSERT(dist < fog.end);
   if (dist >= fog.start) {
     return 1.0f - (dist - fog.start) / (fog.end - fog.start);

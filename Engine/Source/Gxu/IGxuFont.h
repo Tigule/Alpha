@@ -94,10 +94,6 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
         bitmapData(0) {
   }
 
-  void GenerateTextureCoords(UINT rowNumber, UINT glyphSide);
-  UINT GapToNextTexture() const;
-  UINT GapToPreviousTexture() const;
-
   BOOL ValidBlockEndPoints() const {
     return glyphStartPixel <= glyphEndPixel;
   }
@@ -109,6 +105,10 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
   UINT GetCellWidth() const {
     return glyphEndPixel - glyphStartPixel + 1;
   }
+
+  void GenerateTextureCoords(UINT rowNumber, UINT glyphSide);
+  UINT GapToNextTexture() const;
+  UINT GapToPreviousTexture() const;
 
   LINKDECLEX(CHARCODEDESC, textureRowLink);
   LINKDECLEX(CHARCODEDESC, fontGlyphLink);
@@ -157,8 +157,8 @@ struct TEXTURECACHEROW {
   TEXTURECACHEROW() : widestFreeSlot(0) {
   }
 
-  CHARCODEDESC *CreateNewDesc(GLYPHBITMAPDATA *data, UINT rowNumber, UINT glyphCellHeight);
   void          EvictGlyph(CHARCODEDESC *&desc);
+  CHARCODEDESC *CreateNewDesc(GLYPHBITMAPDATA *data, UINT rowNumber, UINT glyphCellHeight);
 
   UINT widestFreeSlot;
   LISTDECLEX(CHARCODEDESC, textureRowLink, glyphList);

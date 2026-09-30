@@ -7,18 +7,18 @@
 
 static TExtraInstanceRecycler<EvtMessage> s_messageRecycler(0x40, 0x40, 0x100);
 
-EvtMessage *MessageAlloc(DWORD bytes) {
+static EvtMessage *MessageAlloc(DWORD bytes) {
   if (bytes <= 4) {
     bytes = 4;
   }
   return s_messageRecycler.Get(bytes + 0x10);
 }
 
-void MessageFree(EvtMessage *message) {
+static void MessageFree(EvtMessage *message) {
   s_messageRecycler.Put(message);
 }
 
-void ResetSyncState(EvtContext *context) {
+static void ResetSyncState(EvtContext *context) {
   context->QueueResetSyncButtonState(~0u);
 
   LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
@@ -32,7 +32,7 @@ void ResetSyncState(EvtContext *context) {
   context->QueueUnlockSyncKeyDownList();
 }
 
-void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
+static void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
   int keyDown = 0;
 
   LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
@@ -63,7 +63,7 @@ void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
   context->QueueUnlockSyncKeyDownList();
 }
 
-void UpdateSyncMouseState(EvtContext *context, MOUSEBUTTON button, int down) {
+static void UpdateSyncMouseState(EvtContext *context, MOUSEBUTTON button, int down) {
   if (down) {
     context->QueueSetSyncButtonState(button);
   } else {
@@ -71,7 +71,7 @@ void UpdateSyncMouseState(EvtContext *context, MOUSEBUTTON button, int down) {
   }
 }
 
-void UpdateSyncState(EvtContext *context, EVENTID &id, LPCVOID data) {
+static void UpdateSyncState(EvtContext *context, EVENTID &id, LPCVOID data) {
   FATALASSERT(context);
 
   switch (id) {

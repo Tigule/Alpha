@@ -3,6 +3,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
+#include "WorldClient/Map.h"
 
 #include "DayNight.h"
 #include "Model/IModel.h"

@@ -5,16 +5,20 @@
 namespace NTempest {
 
   class CIterator {
+   protected:
+    DWORD iscan;
+
    public:
     CIterator();
     DWORD Index() const;
     void  SetIndex(DWORD index);
-
-   protected:
-    DWORD iscan;
   };
 
   class CDynParms {
+   protected:
+    DWORD prealloc;
+    DWORD expandf;
+
    public:
     CDynParms(DWORD prealloc_ = 32, DWORD expandf_ = 32) : prealloc(prealloc_), expandf(expandf_) {
     }
@@ -29,18 +33,19 @@ namespace NTempest {
 
     void SetPrealloc(DWORD);
     void SetExpandF(DWORD);
-
-   protected:
-    DWORD prealloc;
-    DWORD expandf;
   };
 
   template <class T>
   class CDynTable : public CMemBlockT<T> {
-   public:
-    using CMemBlockT<T>::IsValid;
+   protected:
+    DWORD expand;
+    DWORD iallocated;
+    DWORD iused;
 
-    typedef long(__cdecl *TSort)(const T *, const T *);
+    T *Item_(DWORD i) const {
+      return GetEntry(i);
+    }
+   public:
 
     enum {
       eLessThan = -1,
@@ -52,10 +57,14 @@ namespace NTempest {
     static long __cdecl Int32SortP(const long *, const long *);
     static long __cdecl UInt32SortP(const DWORD *, const DWORD *);
 
-    CDynTable(const CDynTable &other) : CMemBlockT<T>(other), expand(other.expand), iallocated(other.iallocated), iused(other.iused) {
-    }
+    typedef long(__cdecl *TSort)(const T *, const T *);
+    using CMemBlockT<T>::IsValid;
+
     CDynTable(const CDynParms &dp = CDynParms(), DWORD prologue = 0, LPCSTR filen = 0, long linen = 0)
         : CMemBlockT<T>(dp.Prealloc(), prologue, filen, linen), expand(dp.ExpandF()), iallocated(dp.Prealloc()), iused(0) {
+    }
+
+    CDynTable(const CDynTable &other) : CMemBlockT<T>(other), expand(other.expand), iallocated(other.iallocated), iused(other.iused) {
     }
 
     CDynTable &operator=(const CDynTable &other) {
@@ -95,10 +104,6 @@ namespace NTempest {
       expand = expansion;
     }
 
-    bool Swap(CMemBlock &other) {
-      return CMemBlock::Swap(other);
-    }
-
     bool Swap(CDynTable &other) {
       if (!CMemBlock::Swap(other)) {
         return false;
@@ -114,6 +119,10 @@ namespace NTempest {
       iused = other.iused;
       other.iused = value;
       return true;
+    }
+
+    bool Swap(CMemBlock &other) {
+      return CMemBlock::Swap(other);
     }
 
     bool Resize(DWORD allocated, bool preserve) {
@@ -136,6 +145,10 @@ namespace NTempest {
       return i < iused ? &reinterpret_cast<T *>(this->mem)[i] : 0;
     }
 
+    void SetEntry(DWORD at, const T &entry, DWORD count = 1) const {
+      SetEntry(at, &entry, count);
+    }
+
     void SetEntry(DWORD at, const T *entry, DWORD count = 1) const {
       ASSERT(entry);
       ASSERT(at + count <= iused);
@@ -144,16 +157,12 @@ namespace NTempest {
       }
     }
 
-    void SetEntry(DWORD at, const T &entry, DWORD count = 1) const {
-      SetEntry(at, &entry, count);
+    void SetAllEntries(const T &entry) const {
+      SetAllEntries(&entry);
     }
 
     void SetAllEntries(const T *entry) const {
       SetEntry(0, entry, iused);
-    }
-
-    void SetAllEntries(const T &entry) const {
-      SetAllEntries(&entry);
     }
 
     bool SwapEntries(DWORD a, DWORD b) const {
@@ -166,14 +175,18 @@ namespace NTempest {
       return true;
     }
 
+    long CompareEntries(const T *a, const T *b, const TSort compare) const {
+      ASSERT(a && b && compare);
+      return compare(a, b);
+    }
+
     long CompareEntries(DWORD a, DWORD b, const TSort compare) const {
       ASSERT(a < iused && b < iused && compare);
       return compare(&(*this)[a], &(*this)[b]);
     }
 
-    long CompareEntries(const T *a, const T *b, const TSort compare) const {
-      ASSERT(a && b && compare);
-      return compare(a, b);
+    bool Grow(const T &entry, DWORD count = 1) {
+      return Grow(&entry, count);
     }
 
     bool Grow(const T *entry = 0, DWORD count = 1) {
@@ -217,16 +230,16 @@ namespace NTempest {
       return true;
     }
 
-    bool Grow(const T &entry, DWORD count = 1) {
-      return Grow(&entry, count);
+    bool GrowAll(const T &entry) {
+      return GrowAll(&entry);
     }
 
     bool GrowAll(const T *entry) {
       return Grow(entry, Unused());
     }
 
-    bool GrowAll(const T &entry) {
-      return GrowAll(&entry);
+    bool Insert(DWORD at, const T &entry, DWORD count = 1) {
+      return Insert(at, &entry, count);
     }
 
     bool Insert(DWORD at, const T *entry, DWORD count = 1) {
@@ -236,10 +249,6 @@ namespace NTempest {
       memmove(&reinterpret_cast<T *>(this->mem)[at + count], &reinterpret_cast<T *>(this->mem)[at], sizeof(T) * (iused - at - count));
       SetEntry(at, entry, count);
       return true;
-    }
-
-    bool Insert(DWORD at, const T &entry, DWORD count = 1) {
-      return Insert(at, &entry, count);
     }
 
     bool Remove(DWORD at, DWORD count) {
@@ -272,8 +281,8 @@ namespace NTempest {
     }
 
     DWORD Optimize();
-    bool  Search(const T *entry, DWORD &at, const TSort compare);
     bool  Search(const T &entry, DWORD &at, const TSort compare);
+    bool  Search(const T *entry, DWORD &at, const TSort compare);
     bool  Sort(const TSort compare);
     bool  BeginScan(CIterator &iterator);
     T    *Current(CIterator &iterator);
@@ -281,20 +290,11 @@ namespace NTempest {
     bool  Goto(DWORD at, CIterator &iterator);
     bool  Previous(CIterator &iterator);
     bool  Next(CIterator &iterator);
-    bool  SearchBackwards(const T *entry, CIterator &iterator, const TSort compare);
     bool  SearchBackwards(const T &entry, CIterator &iterator, const TSort compare);
-    bool  SearchForward(const T *entry, CIterator &iterator, const TSort compare);
+    bool  SearchBackwards(const T *entry, CIterator &iterator, const TSort compare);
     bool  SearchForward(const T &entry, CIterator &iterator, const TSort compare);
+    bool  SearchForward(const T *entry, CIterator &iterator, const TSort compare);
     void  EndScan(CIterator &iterator);
-
-   protected:
-    T *Item_(DWORD i) const {
-      return GetEntry(i);
-    }
-
-    DWORD expand;
-    DWORD iallocated;
-    DWORD iused;
   };
 
 #if defined(_M_IX86) || defined(__i386__)

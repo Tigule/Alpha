@@ -4,6 +4,10 @@
 
 class SpellVisualAnimNameRec {
  public:
+  int    m_AnimID;
+  LPCSTR m_name;
+  int    m_generatedID;
+
   SpellVisualAnimNameRec();
   ~SpellVisualAnimNameRec();
 
@@ -30,10 +34,6 @@ class SpellVisualAnimNameRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_AnimID;
-  LPCSTR m_name;
-  int    m_generatedID;
 };
 
 extern WowClientDB<SpellVisualAnimNameRec> g_spellVisualAnimNameDB;

@@ -69,7 +69,7 @@ static char  s_initialbasepath[MAX_PATH];
 MD5::MD5() {
 }
 
-static void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
+void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
   char         namebuf[MAX_PATH];
   struct _stat stats;
   DWORD        toplen;
@@ -155,7 +155,7 @@ static void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
   }
 }
 
-static void BuildFileSystemHash() {
+void BuildFileSystemHash() {
   LPCSTR base;
   SDIR  *basedir;
   SDIR  *dir;

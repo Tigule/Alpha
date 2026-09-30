@@ -4,6 +4,10 @@
 
 class QuestSortRec {
  public:
+  int    m_ID;
+  LPCSTR m_SortName_lang[NUM_LOCALES];
+  int    m_SortName_flag;
+
   QuestSortRec();
   ~QuestSortRec();
 
@@ -29,10 +33,6 @@ class QuestSortRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int    m_ID;
-  LPCSTR m_SortName_lang[NUM_LOCALES];
-  int    m_SortName_flag;
 };
 
 extern WowClientDB<QuestSortRec> g_questSortDB;

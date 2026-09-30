@@ -54,7 +54,7 @@ enum TRADE_STATUS {
 
 class CGTradeInfo {
  public:
-  static void Update(TradeItemData *items);
+  static void Update(TradeItemData items[]);
   static void HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
 };
 
@@ -308,7 +308,7 @@ BOOL Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot) {
   return 1;
 }
 
-void TradeNameCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
+static void TradeNameCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     const NameCache *name = g_nameDBCache.GetRecord(guid, guid, 0, 0);
     if (name) {

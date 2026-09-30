@@ -4,6 +4,9 @@
 
 class NPCSoundsRec {
  public:
+  int m_ID;
+  int m_SoundID[4];
+
   NPCSoundsRec();
   ~NPCSoundsRec();
 
@@ -29,9 +32,6 @@ class NPCSoundsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_SoundID[4];
 };
 
 extern WowClientDB<NPCSoundsRec> g_nPCSoundsDB;

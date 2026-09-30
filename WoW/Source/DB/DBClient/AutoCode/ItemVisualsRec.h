@@ -4,6 +4,9 @@
 
 class ItemVisualsRec {
  public:
+  int m_ID;
+  int m_Slot[5];
+
   ItemVisualsRec();
   ~ItemVisualsRec();
 
@@ -29,9 +32,6 @@ class ItemVisualsRec {
   }
 
   bool Read(SFile *f, LPCSTR stringBuffer);
-
-  int m_ID;
-  int m_Slot[5];
 };
 
 extern WowClientDB<ItemVisualsRec> g_itemVisualsDB;
