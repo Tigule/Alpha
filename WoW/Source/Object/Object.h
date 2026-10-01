@@ -145,8 +145,6 @@ const OBJECT_TYPE g_heirTypeFlags[NUM_OBJECT_TYPES] = {HIER_TYPE_OBJECT,  HIER_T
                                                        HIER_TYPE_AIGROUP, HIER_TYPE_AREATRIGGER};
 
 struct VirtualItemInfo {
-  BYTE operator!=(const VirtualItemInfo &);
-
   BYTE m_classID;
   BYTE m_subclassID;
   BYTE m_material;
@@ -155,6 +153,8 @@ struct VirtualItemInfo {
   BYTE m_padding0;
   BYTE m_padding1;
   BYTE m_padding2;
+
+  BYTE operator!=(const VirtualItemInfo &);
 };
 
 struct CGObjectData {
@@ -167,19 +167,11 @@ struct CGObjectData {
 
 class CGObject {
  public:
-  static UINT               GetDataSize();
-  static UINT               GetBaseOffset();
-  static __forceinline UINT TotalFields() {
-    return 6;
-  }
-  static UINT GetUpdateMaskBytes();
-  static UINT GetUpdateMaskBlocks();
-
-  BYTE IsA(OBJECT_TYPE_ID type) const {
-    return (static_cast<UINT>(GetType()) >> type) & 1;
-  }
   BYTE IsA(OBJECT_TYPE type) const {
     return (GetType() & type) != 0;
+  }
+  BYTE IsA(OBJECT_TYPE_ID type) const {
+    return (static_cast<UINT>(GetType()) >> type) & 1;
   }
   BYTE IsExactlyA(OBJECT_TYPE_ID type) const {
     return GetType() == g_heirTypeFlags[type];
@@ -204,6 +196,14 @@ class CGObject {
   BYTE *GetData(UINT index) const {
     return reinterpret_cast<BYTE *>(m_data + index);
   }
+
+  static UINT               GetDataSize();
+  static UINT               GetBaseOffset();
+  static __forceinline UINT TotalFields() {
+    return 6;
+  }
+  static UINT GetUpdateMaskBytes();
+  static UINT GetUpdateMaskBlocks();
 
   void SetStorage(DWORD *storage) {
     m_data = storage;

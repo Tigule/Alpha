@@ -151,11 +151,11 @@ class CChunkLiquid {
 class CMapBaseObj;
 
 NODEDECL(CChunkTex) {
+  DWORD pixels[4096];
+
   CChunkTex();
   CChunkTex(const CChunkTex &);
   ~CChunkTex();
-
-  DWORD pixels[4096];
 };
 
 NODEDECL(CChunkLayer) {
@@ -165,7 +165,7 @@ NODEDECL(CChunkLayer) {
 
   WORD        props;
   WORD        effectId;
-  HTEXTURE__ *texId;
+  HTEXTURE texId;
   BYTE       *offsAlpha;
   CChunkTex  *tex;
   CGxTex     *gxTexture;
@@ -288,7 +288,7 @@ class CMapLight : public CMapBaseObj {
 
  private:
   static void        ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf);
-  static HTEXTURE__ *s_hPointAttenTex;
+  static HTEXTURE s_hPointAttenTex;
 };
 
 class CMapStaticEntity : public CMapBaseObj {
@@ -306,7 +306,7 @@ class CMapStaticEntity : public CMapBaseObj {
   NTempest::CImVector ambient;
   NTempest::CImVector interiorDirColor;
   float               dirLightScale;
-  HMODEL__           *model;
+  HMODEL model;
   UINT                flagInside : 1;
   UINT                flagVisible : 1;
   UINT                flagCollidable : 1;
@@ -699,7 +699,7 @@ class Particulate {
   Particle                  particles[MAX_PARTICLES];
   UINT                      numParticles;
   NTempest::C3Vector        lastCamPos;
-  HTEXTURE__               *texture;
+  HTEXTURE texture;
   BYTE                      show;
   float                     scale;
   float                     boxSize;
@@ -764,7 +764,7 @@ class CMapArea : public CMapBaseObj {
   UINT                         texCount;
   SMAreaHeader                 header;
   CAsyncObject                *asyncObject;
-  TSCArray<HTEXTURE__ *, 96>   texIdTable;
+  TSCArray<HTEXTURE , 96>   texIdTable;
   TSGrowableArray<SMDoodadDef> doodadDefList;
   TSGrowableArray<SMMapObjDef> mapObjDefList;
   SMChunkInfo                  chunkInfo[256];
@@ -803,7 +803,7 @@ class CMap {
   static CMapObjDef *CreateMapObjDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, BOOL bWait);
   static void        CreateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
   static void        CreateMapObjDefLights(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup);
-  static HTEXTURE__ *LoadTexture(LPCSTR fileName);
+  static HTEXTURE LoadTexture(LPCSTR fileName);
   static void        WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq);
   static void        UpdateEntity(CMapEntity *entity);
   static void        LinkEntity(CMapStaticEntity *entity);
@@ -937,7 +937,7 @@ class CMap {
   static void        PurgeChunk(CMapChunk *chunk);
   static void        ReloadDoodadModels();
   static void        UnloadLiquidTexture(UINT liquid);
-  static HTEXTURE__ *GetLiquidTexture(UINT liquid);
+  static HTEXTURE GetLiquidTexture(UINT liquid);
   static void        ProjectLights();
   static void        WaterInitialize();
   static void
@@ -999,7 +999,7 @@ class CMap {
   static CGxTex                           *riverDiffTexid;
   static CGxTex                           *oceanDiffTexid;
   static TSFixedArray<NTempest::CImVector> skyTexels;
-  static HTEXTURE__                       *liquidTex[LIQUID_COUNT][LIQUID_TEXTURE_COUNT];
+  static HTEXTURE liquidTex[LIQUID_COUNT][LIQUID_TEXTURE_COUNT];
   static bool                              liquidTexLoaded[LIQUID_COUNT];
   static float                             liquidLastShown[LIQUID_COUNT];
   static const float                       liquidTexLoopTime[LIQUID_COUNT];

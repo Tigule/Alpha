@@ -127,7 +127,7 @@ struct CModelHash : public TSHashObject<CModelHash, CHashKeyFilePath> {
   LINKDECLEX(CModelHash, link);
 };
 
-MDLBASE::MDLBASE() {
+MDLBASE::MDLBASE() : version(0) {
 }
 
 static EModelParamType s_modelParamTypes[MODEL_NUM_COMMANDS][4] = {

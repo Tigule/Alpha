@@ -710,8 +710,6 @@ struct CGxBuf {
 
 class CGxLight {
  public:
-  CGxLight();
-
   int                 m_enabled : 1;
   int                 m_isOmni : 1;
   NTempest::C3Vector  m_dir;
@@ -726,6 +724,8 @@ class CGxLight {
   float               m_quadraticAttenuation;
   float               m_attenStart;
   float               m_attenEnd;
+
+  CGxLight();
 };
 
 class CGxDevice;

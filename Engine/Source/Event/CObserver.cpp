@@ -7,10 +7,9 @@
 
 struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   struct EVENTCALLBACKREG;
-  struct EVENTDISPATCHREG;
-  class EventIterator;
   typedef EVENTCALLBACKREG       *PEVENTCALLBACKREG;
   typedef const EVENTCALLBACKREG *PCEVENTCALLBACKREG;
+  struct EVENTDISPATCHREG;
   typedef EVENTDISPATCHREG       *PEVENTDISPATCHREG;
   typedef const EVENTDISPATCHREG *PCEVENTDISPATCHREG;
 
@@ -19,6 +18,23 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
     LOCKED = 0x0FFFFFFF,
     CHANGED = 0x80000000
   };
+
+  DWORD flags;
+
+  void SetFlag(DWORD flag) {
+    flags |= flag;
+  }
+
+  void ClearFlag(DWORD flag) {
+    flags &= ~flag;
+  }
+
+  BOOL TestFlag(DWORD flag) const {
+    return (flags & flag) != 0;
+  }
+
+  LISTDECL(EVENTCALLBACKREG, callbackList);
+  LISTDECL(EVENTDISPATCHREG, dispatchList);
 
  public:
   EventReg();
@@ -35,20 +51,6 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   int  DispatchCallback(CEvent &event);
   int  DispatchEvent(CEvent &event);
 
- private:
-  void SetFlag(DWORD flag) {
-    flags |= flag;
-  }
-
-  void ClearFlag(DWORD flag) {
-    flags &= ~flag;
-  }
-
-  BOOL TestFlag(DWORD flag) const {
-    return (flags & flag) != 0;
-  }
-
- public:
   BOOL IsEmpty() const {
     return !callbackList.Head() && !dispatchList.Head();
   }
@@ -77,13 +79,13 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
     flags &= 0x7FFFFFFF;
   }
 
- private:
-  DWORD flags;
-  LISTDECL(EVENTCALLBACKREG, callbackList);
-  LISTDECL(EVENTDISPATCHREG, dispatchList);
+  class EventIterator;
 };
 
 NODEDECL(EventReg::EVENTCALLBACKREG) {
+  EVENTCALLBACK callback;
+  LPVOID        param;
+
   EVENTCALLBACKREG() : callback(0), param(0) {
   }
   EVENTCALLBACKREG(const EVENTCALLBACKREG &);
@@ -91,33 +93,29 @@ NODEDECL(EventReg::EVENTCALLBACKREG) {
     callback = 0;
     param = 0;
   }
-
-  EVENTCALLBACK callback;
-  LPVOID        param;
 };
 
 NODEDECL(EventReg::EVENTDISPATCHREG) {
+  TRefCntPtr<CObserver> pObserver;
+  int                   expectedEventId;
+
   EVENTDISPATCHREG() : pObserver(0), expectedEventId(-1) {
   }
   EVENTDISPATCHREG(const EVENTDISPATCHREG &);
   ~EVENTDISPATCHREG() {
   }
-
-  TRefCntPtr<CObserver> pObserver;
-  int                   expectedEventId;
 };
 
 class EventReg::EventIterator {
-  EventIterator(EventReg &);
+  EventReg         &m_reg;
+  EVENTDISPATCHREG *m_ptr;
+
   EventIterator(const EventIterator &);
+  EventIterator(EventReg &);
   EventIterator &operator=(const EventIterator &);
 
  public:
   int Next(int &, CObserver *&);
-
- private:
-  EventReg         &m_reg;
-  EVENTDISPATCHREG *m_ptr;
 };
 
 class EventRegistry : public TSHashTable<EventReg, HASHKEY_NONE> {

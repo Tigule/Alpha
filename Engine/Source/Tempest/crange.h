@@ -9,6 +9,9 @@ namespace NTempest {
     float _rnd(float value, CRndSeed &seed) const;
 
    public:
+    float l;
+    float h;
+
     enum {
       eComponents = 2
     };
@@ -56,17 +59,13 @@ namespace NTempest {
     void    AlignHigh(const CRange &value);
     float   ClampClosed(float value) const;
     float   ClampOpen(float value) const;
-    CRange  Intersect(const CRange &value);
-    CRange  Unite(const CRange &value);
-    float   Value(CRndSeed &seed) const;
-
     static CRange Lerp(const CRange &a, const CRange &b, const CRange &t);
     static CRange Intersection(const CRange &a, const CRange &b);
     static CRange Union(const CRange &a, const CRange &b);
+    CRange  Intersect(const CRange &value);
+    CRange  Unite(const CRange &value);
+    float   Value(CRndSeed &seed) const;
     static BYTE   InRange(float value, float low, float high);
-
-    float l;
-    float h;
   };
 
 }  // namespace NTempest

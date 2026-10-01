@@ -4,6 +4,9 @@ namespace NTempest {
 
   class CiRange {
    public:
+    long l;
+    long h;
+
     enum {
       eComponents = 2
     };
@@ -39,23 +42,22 @@ namespace NTempest {
     BYTE     InClosedRange(long value) const;
     BYTE     InOpenRange(long value) const;
     long     Magnitude() const;
-    void     Center(const CiRange &value);
     long     Center() const;
+    void     Center(const CiRange &value);
     void     Stretch(long value);
     void     Offset(long value);
     void     AlignLow(const CiRange &value);
     void     AlignHigh(const CiRange &value);
     long     ClampClosed(long value) const;
     long     ClampOpen(long value) const;
-    CiRange  Intersect(const CiRange &value);
-    CiRange  Unite(const CiRange &value);
 
     static CiRange Intersection(const CiRange &a, const CiRange &b);
     static CiRange Union(const CiRange &a, const CiRange &b);
-    static BYTE    InRange(long value, long low, long high);
 
-    long l;
-    long h;
+    CiRange Intersect(const CiRange &value);
+    CiRange Unite(const CiRange &value);
+
+    static BYTE    InRange(long value, long low, long high);
   };
 
   inline CiRange::CiRange(long value) : l(value), h(value) {

@@ -17,11 +17,15 @@ namespace NTempest {
     void         Get(C3Vector &center, float &radius) const;
     void         Set(const C3Vector &center, float radius);
     float        SquaredD(const CAaSphere &sphere) const;
-    float        SquaredD(const C3Vector &point) const;
+    float        SquaredD(const C3Vector &p) const {
+      return (p - c).SquaredMag();
+    }
     BYTE         NotEmpty() const;
     BYTE         Empty() const;
     BYTE         Intersects(const CAaSphere &sphere) const;
-    BYTE         Intersects(const C3Vector &point) const;
+    BYTE         Intersects(const C3Vector &p) const {
+      return SquaredD(p) <= r * r;
+    }
     BYTE         Encloses(const CAaSphere &sphere) const;
     BYTE         Encloses(const C3Vector &point) const;
     BYTE         Contains(const CAaSphere &sphere) const;

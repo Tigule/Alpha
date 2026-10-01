@@ -16,6 +16,7 @@ template <UINT Length>
 class CMdlString {
  public:
   CMdlString() {
+    m_string[0] = 0;
   }
 
   CMdlString(const CMdlString<Length> &source) {
@@ -58,7 +59,7 @@ class CMdlString {
 };
 
 struct CMdlBounds {
-  CMdlBounds() {
+  CMdlBounds() : radius(0.0f) {
   }
 
   NTempest::CAaBox extent;
@@ -208,13 +209,6 @@ struct MDLGEOSETANIMSECTION {
 
 struct MDLGENOBJECT {
   MDLGENOBJECT(UINT objectFlags = 0) : objectId(0), parentId(static_cast<UINT>(-1)), flags(objectFlags) {
-    static_cast<char *>(name)[0] = 0;
-    transkeys.type = TRACK_HERMITE;
-    transkeys.globalSeqId = static_cast<UINT>(-1);
-    rotkeys.type = TRACK_HERMITE;
-    rotkeys.globalSeqId = static_cast<UINT>(-1);
-    scalekeys.type = TRACK_HERMITE;
-    scalekeys.globalSeqId = static_cast<UINT>(-1);
   }
 
   CMdlString<80>                      name;
@@ -244,6 +238,12 @@ struct MDLHEADERSECTION {
 };
 
 struct MDLMODELSECTION {
+  MDLMODELSECTION()
+      : geosetCount(0), geosetAnimCount(0), boneCount(0), lightCount(0), helperCount(0), attachmentCount(0), particleCount(0),
+        particle2Count(0), ribbonCount(0), eventCount(0), blendTime(150), flags(0) {
+  }
+  MDLMODELSECTION(const MDLMODELSECTION &);
+
   CMdlString<80>  name;
   CMdlString<260> animationFile;
   UINT            geosetCount;
@@ -291,6 +291,11 @@ struct MDLTEXANIMSECTION {
   MDLKEYTRACK<NTempest::C3Vector>     scalekeys;
 };
 struct MDLBONESECTION : public MDLGENOBJECT {
+  MDLBONESECTION() : MDLGENOBJECT(0x80), geosetId(0), geosetAnimId(0) {
+  }
+  MDLBONESECTION(const MDLBONESECTION &source) : MDLGENOBJECT(source), geosetId(source.geosetId), geosetAnimId(source.geosetAnimId) {
+  }
+
   UINT geosetId;
   UINT geosetAnimId;
 };
@@ -385,6 +390,11 @@ struct MDLEVENTKEY {
 };
 
 struct MDLEVENTSECTION : public MDLGENOBJECT {
+  MDLEVENTSECTION() : MDLGENOBJECT(0x200) {
+  }
+  MDLEVENTSECTION(const MDLEVENTSECTION &source) : MDLGENOBJECT(source), eventKeys(source.eventKeys) {
+  }
+
   MDLSIMPLEKEYTRACK<MDLEVENTKEY> eventKeys;
 };
 struct MDLPARTICLEEMITTER2 : public MDLGENOBJECT {

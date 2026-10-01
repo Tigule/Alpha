@@ -9,8 +9,9 @@
 class CGBag_C;
 class CGWorldFrame;
 struct HMODEL__;
+typedef HMODEL__ *HMODEL;
 
-HMODEL__ *ObjectModelCreate(LPCSTR filename, OBJECT_TYPE objectType, UINT mdlCreateFlags);
+HMODEL ObjectModelCreate(LPCSTR filename, OBJECT_TYPE objectType, UINT mdlCreateFlags);
 
 enum HIGHLIGHTTYPE {
   HT_OBJSELECTION = 0,
@@ -69,14 +70,14 @@ class CGObject_C : public CGObject {
     return NTempest::C3Vector(0.0f, 0.0f, 1.0f);
   }
   void              SetAnimated(int animated);
-  virtual HMODEL__ *GetCharacterModel(int *mounted) const;
-  HMODEL__         *GetObjectModel() const {
+  virtual HMODEL GetCharacterModel(int *mounted) const;
+  HMODEL GetObjectModel() const {
     return m_model;
   }
-  void SetObjectModel(HMODEL__ *model);
+  void SetObjectModel(HMODEL model);
   BOOL IsObjectModelLoaded() const;
   int  AreAttachmentsLoaded() const;
-  int  AddAttachment(HMODEL__ *parent, UINT parentIndex, HMODEL__ *child, float scale);
+  int  AddAttachment(HMODEL parent, UINT parentIndex, HMODEL child, float scale);
   BOOL IsDisabled() const;
   BOOL IsInReenable() const;
 
@@ -103,12 +104,12 @@ class CGObject_C : public CGObject {
   void           ReportMissingBone(UINT objectID, LPCSTR modelName) const;
   void           ReportMissingAttachment(UINT objectID, LPCSTR modelName) const;
   void           ReportNoAnimation(LPCSTR modelName);
-  BOOL           ObjectModelSetSequence(HMODEL__ *model, UINT sequence, UINT flags, LPCSTR modelName);
-  BOOL           ObjectModelSetBoneSequence(HMODEL__ *model, UINT sequence, UINT objectID, UINT flags);
+  BOOL           ObjectModelSetSequence(HMODEL model, UINT sequence, UINT flags, LPCSTR modelName);
+  BOOL           ObjectModelSetBoneSequence(HMODEL model, UINT sequence, UINT objectID, UINT flags);
   int            ObjectIsRendering() const;
 
  public:
-  void UpdateObjectHeight(HMODEL__ *model);
+  void UpdateObjectHeight(HMODEL model);
 
  private:
   void         ReportMissingAnimObj(LPCSTR message, UINT objectID, LPCSTR modelName) const;
@@ -204,7 +205,7 @@ class CGObject_C : public CGObject {
   CGObject_C &operator=(const CGObject_C &object);
 
   float     m_renderScale;
-  HMODEL__ *m_model;
+  HMODEL m_model;
 
   UINT  m_highlightTypes;
   float m_objectHeight;

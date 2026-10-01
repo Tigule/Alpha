@@ -97,7 +97,54 @@ class COsControl {
   virtual void OnDestroy() {
   }
 
+  short GetID() {
+    return mID;
+  }
+
+  int GetType() {
+    return mType;
+  }
+
+  LPVOID GetHandle() {
+    return mHandle;
+  }
+
+  COsDialog *GetDialog() {
+    return mDialog;
+  }
+
+  void SetRedraw(int inVal);
+  void Refresh(int inErase);
+  void SetCallback(void (*inFunc)(const OsGuiCallbackParams &), LPVOID inParam);
   virtual BOOL OnEvent(int inItemID, int inNotifyCode, int inCode);
+  void SetFont(int inFont);
+  void SetInputFocus();
+  void LoseInputFocus();
+  BOOL HasInputFocus();
+  void SetText(LPCSTR inText);
+  void GetText(char *outText, int inBufSize);
+  int  GetTextLength();
+  void GetTextSize(int *outW, int *outH);
+  void GetTextSize(LPCSTR inText, int *outW, int *outH);
+  void Show(int inVal);
+
+  void Hide() {
+    Show(0);
+  }
+
+  BOOL IsShowing();
+  void Enable(int inVal);
+
+  void Disable() {
+    Enable(0);
+  }
+
+  BOOL IsEnabled();
+  void SetPosition(int inX, int inY);
+  void GetPosition(int *outX, int *outY, int inParentRelative);
+  void SetSize(int inW, int inH);
+  void GetSize(int *outW, int *outH);
+  void SetTooltip(LPCSTR inText);
 
   virtual BOOL OnDraw(LPVOID, UINT, NTempest::CiRect &) {
     return 0;
@@ -140,7 +187,17 @@ class COsControl {
     return 0;
   }
 
+  void SetContextMenu(COsMenu *inMenu);
   virtual int  OnContextMenu(int inX, int inY);
+
+  void EnableContextMenu(int inVal) {
+    mContextMenuEnabled = inVal;
+  }
+
+  void DisableContextMenu() {
+    EnableContextMenu(0);
+  }
+
   virtual BOOL IsHandleFromControl(LPVOID inHandle);
 
   virtual BOOL CanDoClipboardAction(int) {
@@ -156,57 +213,6 @@ class COsControl {
 
   virtual int GetValue() {
     return -1;
-  }
-
-  short GetID() {
-    return mID;
-  }
-
-  int GetType() {
-    return mType;
-  }
-
-  LPVOID GetHandle() {
-    return mHandle;
-  }
-
-  COsDialog *GetDialog() {
-    return mDialog;
-  }
-
-  void SetRedraw(int inVal);
-  void Refresh(int inErase);
-  void SetCallback(void (*inFunc)(const OsGuiCallbackParams &), LPVOID inParam);
-  void SetFont(int inFont);
-  void SetInputFocus();
-  void LoseInputFocus();
-  BOOL HasInputFocus();
-  void SetText(LPCSTR inText);
-  void GetText(char *outText, int inBufSize);
-  int  GetTextLength();
-  void GetTextSize(LPCSTR inText, int *outW, int *outH);
-  void GetTextSize(int *outW, int *outH);
-  void Show(int inVal);
-  void Hide() {
-    Show(0);
-  }
-  BOOL IsShowing();
-  void Enable(int inVal);
-  void Disable() {
-    Enable(0);
-  }
-  BOOL IsEnabled();
-  void SetPosition(int inX, int inY);
-  void GetPosition(int *outX, int *outY, int inParentRelative);
-  void SetSize(int inW, int inH);
-  void GetSize(int *outW, int *outH);
-  void SetTooltip(LPCSTR inText);
-  void SetContextMenu(COsMenu *inMenu);
-  void EnableContextMenu(int inVal) {
-    mContextMenuEnabled = inVal;
-  }
-  void DisableContextMenu() {
-    EnableContextMenu(0);
   }
 
  protected:
@@ -229,26 +235,30 @@ class COsDialog {
  public:
   COsDialog(LPVOID inWindowHandle, UINT inFlags);
   ~COsDialog();
-
-  COsControl *FindControl(LPVOID inHandle);
   void        AddControl(COsControl *inControl);
-  int         FindControl(COsControl *inControl);
   void        DeleteControl(COsControl *inControl);
   void        DetachControl(COsControl *inControl);
+  COsControl *FindControl(LPVOID inHandle);
+  int         FindControl(COsControl *inControl);
   int         ProcessMessage(LPVOID inMsgData);
   void        CheckEvents();
+
   LPVOID      GetHandle() {
     return mHandle;
   }
+
   LPVOID GetParentWindow();
   LPVOID GetTooltips();
   void   EnableTooltips(int inVal);
+
   void   DisableTooltips() {
     EnableTooltips(0);
   }
+
   void SetCancelButton(COsControl *inControl) {
     mCancelButton = inControl;
   }
+
   void SetTrackMouse(int inVal);
   BOOL IsMouseInside();
   void SetCallback(void (*inFunc)(const OsGuiCallbackParams &), LPVOID inParam);
@@ -256,9 +266,11 @@ class COsDialog {
   BOOL IsInFront();
   void SetInputFocus();
   void Show(int inVal);
+
   void Hide() {
     Show(0);
   }
+
   BOOL         IsShowing();
   BOOL         IsEnabled();
   void         SetRedraw(int inVal);
@@ -271,12 +283,16 @@ class COsDialog {
   BOOL         GetMinSize(int *outW, int *outH);
   void         SetTitle(LPCSTR inText);
   void         SetContextMenu(COsMenu *inMenu);
+
   void         EnableContextMenu(int inVal) {
     mContextMenuEnabled = inVal;
   }
+
   void DisableContextMenu() {
     EnableContextMenu(0);
   }
+
+  BOOL HasFlag(UINT inFlag);
   BOOL CanDoClipboardAction(int inAction);
   BOOL DoClipboardAction(int inAction);
   BOOL OnAccept();
@@ -288,7 +304,6 @@ class COsDialog {
   int  OnContextMenu(int inX, int inY);
   BOOL OnEvent(int inItemID, int inNotifyCode, int inCode);
   BOOL OnControlTab();
-  BOOL HasFlag(UINT inFlag);
 
  protected:
   void ApplyModality(int inVal);
@@ -336,20 +351,23 @@ class COsTextButton : public COsControl {
  public:
   COsTextButton(COsDialog *inDialog, short inID);
 
-  virtual BOOL OnDraw(LPVOID inContext, UINT inState, NTempest::CiRect &inRect);
-
   void SetActiveColor(const NTempest::CImVector &inColor) {
     mActiveColor = inColor;
   }
+
   void SetPushedColor(const NTempest::CImVector &inColor) {
     mPushedColor = inColor;
   }
+
   void SetGreyedColor(const NTempest::CImVector &inColor) {
     mGreyedColor = inColor;
   }
+
   void SetUnderline(int inVal) {
     mUnderline = inVal;
   }
+
+  virtual BOOL OnDraw(LPVOID inContext, UINT inState, NTempest::CiRect &inRect);
 
  protected:
   NTempest::CImVector mActiveColor;
@@ -377,16 +395,14 @@ class COsCheckbox : public COsControl {
  public:
   COsCheckbox(COsDialog *inDialog, short inID);
   COsCheckbox(LPVOID inWindow, short inID);
-
   virtual void SetValue(int inVal);
   virtual BOOL GetValue();
-  virtual BOOL OnEvent(int inItemID, int inNotifyCode, int inCode);
-  virtual void OnTextChange();
-  virtual void OnSizeChange();
-
   void SetMaxWidth(int inWidth);
   void ClearValue();
   BOOL HasValue();
+  virtual BOOL OnEvent(int inItemID, int inNotifyCode, int inCode);
+  virtual void OnTextChange();
+  virtual void OnSizeChange();
 
  protected:
   BOOL mSettingSize;
@@ -397,11 +413,9 @@ class COsStaticText : public COsControl {
  public:
   COsStaticText(COsDialog *inDialog, short inID, UINT inFlags);
   COsStaticText(LPVOID inWindow, short inID, UINT inFlags);
-
-  virtual LPVOID OnSetColors(LPVOID inContext);
-
   void SetJustification(int inJust);
   void SetTextColor(const NTempest::CImVector &inColor);
+  virtual LPVOID OnSetColors(LPVOID inContext);
 
  protected:
   void Initialize();
@@ -424,19 +438,20 @@ class COsEditBox : public COsControl {
  public:
   COsEditBox(COsDialog *inDialog, short inID, UINT inFlags);
   COsEditBox(LPVOID inWindow, short inID, UINT inFlags);
-
   virtual BOOL OnReturn();
-  virtual BOOL CanDoClipboardAction(int inAction);
-  virtual BOOL DoClipboardAction(int inAction);
   void         SetTextLimit(int inSize);
   void         SelectAll();
   int          GetSelectionSize();
   void         EnableFilters(int inVal);
+
   void         DisableFilters() {
     EnableFilters(0);
   }
+
   void SetFilter(UINT inFilter, int inVal);
   BOOL IsCharacterAllowed(char inChar);
+  virtual BOOL CanDoClipboardAction(int inAction);
+  virtual BOOL DoClipboardAction(int inAction);
   void UpdateSelection();
 
  protected:
@@ -451,21 +466,21 @@ class COsListBox : public COsControl {
  public:
   COsListBox(COsDialog *inDialog, short inID, UINT inFlags);
   virtual ~COsListBox();
-
   virtual void SetValue(int inVal);
   virtual int  GetValue();
-  virtual int  OnContextMenu(int inX, int inY);
-  virtual BOOL OnReturn();
-
   void SelectItem(int inPos, int inVal);
+
   void DeselectItem(int inPos) {
     SelectItem(inPos, 0);
   }
-  BOOL IsItemSelected(int inPos);
+
   void SelectAll(int inVal);
+
   void DeselectAll() {
     SelectAll(0);
   }
+
+  BOOL IsItemSelected(int inPos);
   void ClearItems();
   int  GetNumItems();
   void InsertItem(LPCSTR inText, int inPos);
@@ -475,19 +490,16 @@ class COsListBox : public COsControl {
   void GetItemText(int inPos, char *inBuf, int inBufSize);
   void SetItemHeight(int inHeight);
   int  GetItemHeight();
+  virtual int  OnContextMenu(int inX, int inY);
+  virtual BOOL OnReturn();
+
 };
 
 class COsListView : public COsControl {
  public:
   COsListView(COsDialog *inDialog, short inID, UINT inFlags);
   virtual ~COsListView();
-
   virtual void OnSizeChange();
-  virtual void SetValue(int inVal);
-  virtual int  GetValue();
-  virtual int  OnNotify(int inCode, LPVOID inParam);
-  virtual BOOL OnReturn();
-
   void                InsertColumn(int inPos);
   void                DeleteColumn(int inPos);
   int                 GetNumColumns();
@@ -505,8 +517,12 @@ class COsListView : public COsControl {
   void                GetColumnTitle(int inCol, char *inBuf, int inBufSize);
   void                SetColumnJustification(int inCol, int inJustify);
   void                EnsureRowVisible(int inRow);
+  virtual void SetValue(int inVal);
+  virtual int  GetValue();
   void                OnSelectionChange();
   void                OnColumnClick(int inCol);
+  virtual int  OnNotify(int inCode, LPVOID inParam);
+  virtual BOOL OnReturn();
 
  protected:
   int mNumCols;
@@ -517,9 +533,6 @@ class COsToolBar : public COsControl {
   COsToolBar(COsDialog *inDialog, short inID, UINT inFlags);
   COsToolBar(LPVOID inWindow, short inID, UINT inFlags);
   virtual ~COsToolBar();
-
-  virtual int OnCommand(int inParam);
-
   void SetButtonSize(int inW, int inH);
   void GetButtonSize(int *outW, int *outH);
   void Clear();
@@ -532,6 +545,7 @@ class COsToolBar : public COsControl {
   void GetButtonText(int inPos, char *inBuf, int inBufSize);
   void EnableButton(int inPos, int inVal);
   void CheckButton(int inPos, int inVal);
+  virtual int OnCommand(int inParam);
 
  protected:
   void InitializeToolBar();
@@ -583,26 +597,23 @@ class COsRadioButton : public COsControl {
 class COsSlider : public COsControl {
  public:
   COsSlider(COsDialog *inDialog, short inID);
-
+  void SetMinValue(int inVal);
+  void SetMaxValue(int inVal);
   virtual void SetValue(int inVal);
   virtual int  GetValue();
 
-  void SetMinValue(int inVal);
-  void SetMaxValue(int inVal);
 };
 
 class COsScrollBar : public COsControl {
  public:
   COsScrollBar(COsDialog *inDialog, short inID, UINT inFlags);
   COsScrollBar(LPVOID inWindow, short inID, UINT inFlags);
-
+  void SetRange(int inMin, int inMax);
+  void SetPageSize(int inVal);
   virtual void SetValue(int inVal);
   virtual int  GetValue();
   virtual int  OnScroll(int inParam);
   virtual BOOL OnMouseWheel(int inDelta);
-
-  void SetRange(int inMin, int inMax);
-  void SetPageSize(int inVal);
 
  protected:
   void Initialize();
@@ -643,17 +654,8 @@ class COsTreeView : public COsControl {
   COsTreeView(COsDialog *inDialog, short inID, UINT inFlags);
   COsTreeView(LPVOID inWindow, short inID, UINT inFlags);
   virtual ~COsTreeView();
-
-  virtual BOOL OnReturn();
-  virtual BOOL OnEscape();
-  virtual BOOL OnMouseDown();
-  virtual BOOL OnMouseUp();
-  virtual void OnMouseMove(int inX, int inY);
-  virtual void OnSizeChange();
-  virtual int  OnNotify(int inCode, LPVOID inParam);
-  virtual BOOL IsHandleFromControl(LPVOID inHandle);
-
   void                SetBackgroundColor(const NTempest::CImVector &inColor);
+  virtual void OnSizeChange();
   void                ClearItems();
   void                DeleteItem(LPVOID inItem);
   LPVOID              InsertItem(LPVOID inParent, LPVOID inAfter, LPCSTR inText);
@@ -669,9 +671,11 @@ class COsTreeView : public COsControl {
   LPVOID              GetItemChild(LPVOID inItem, int inIndex);
   void                SetItemImage(LPVOID inItem, int inWidth, int inHeight, LPVOID inData);
   void                ExpandItem(LPVOID inItem, int inVal);
+
   void                CollapseItem(LPVOID inItem) {
     ExpandItem(inItem, 0);
   }
+
   BOOL             IsItemExpanded(LPVOID inItem);
   void             OnExpandedItem(LPVOID inItem);
   void             EnsureItemVisible(LPVOID inItem);
@@ -682,38 +686,55 @@ class COsTreeView : public COsControl {
   void             SetFirstVisibleItem(LPVOID inItem);
   void             EnumerateItems(LPVOID inParent, void (*inFunc)(COsTreeView *, LPVOID, LPVOID), LPVOID inParam);
   void             EnumerateAllItems(void (*inFunc)(COsTreeView *, LPVOID, LPVOID), LPVOID inParam);
-  BOOL             IsCharacterAllowed(char inChar);
   void             SelectItem(LPVOID inItem, int inVal);
   BOOL             IsItemSelected(LPVOID inItem);
   LPVOID           GetSelectedItem();
+
   void             DeselectItem(LPVOID inItem) {
     SelectItem(inItem, 0);
   }
+
   void SelectAll(int inVal);
+
   void DeselectAll() {
     SelectAll(0);
   }
+
   void GetSelectionInfo(OsGuiTVSelectionInfo *outInfo);
   void EnableDragDrop(int inVal);
+
   void DisableDragDrop() {
     EnableDragDrop(0);
   }
+
   void SetDragDropHandler(int (*inFunc)(const OsGuiTVDDInfo &, LPVOID), LPVOID inParam);
   void SetDropTarget(LPVOID inItem);
   void SetInsertionMark(LPVOID inItem, int inAfter);
+
   int  OnClick() {
     return SendEvent(2, 0);
   }
+
+  virtual BOOL OnMouseDown();
+  virtual BOOL OnMouseUp();
+  virtual BOOL OnReturn();
+  virtual BOOL OnEscape();
+  virtual int  OnNotify(int inCode, LPVOID inParam);
+  virtual BOOL IsHandleFromControl(LPVOID inHandle);
   void OnBeginDrag(LPVOID inItem, int inX, int inY);
+  virtual void OnMouseMove(int inX, int inY);
   void OnEndDrag();
   int  OnBeginEdit(LPVOID inItem);
   BOOL OnEndEdit(LPVOID inItem, LPCSTR inNewText);
   void SetTextLimit(int inSize);
   void EnableFilters(int inVal);
+
   void DisableFilters() {
     EnableFilters(0);
   }
+
   void SetFilter(UINT inFilter, int inVal);
+  BOOL             IsCharacterAllowed(char inChar);
   void SetCanEditFunction(int (*inFunc)(LPVOID, LPVOID), LPVOID inParam);
   void SetExpandFunction(void (*inFunc)(LPVOID, LPVOID), LPVOID inParam);
 
@@ -750,12 +771,10 @@ class COsSpinButton : public COsControl {
  public:
   COsSpinButton(COsDialog *inDialog, short inID, UINT inFlags);
   COsSpinButton(LPVOID inWindow, short inID, UINT inFlags);
-
+  void SetValueRange(int inMinVal, int inMaxVal);
   virtual void SetValue(int inVal);
   virtual int  GetValue();
-
   void OnSpinMouseUp();
-  void SetValueRange(int inMinVal, int inMaxVal);
 
  protected:
   void Initialize();

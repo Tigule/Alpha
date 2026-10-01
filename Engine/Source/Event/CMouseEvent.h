@@ -1,10 +1,15 @@
 #ifndef ENGINE_SOURCE_EVENT_CMOUSEEVENT_H
 #define ENGINE_SOURCE_EVENT_CMOUSEEVENT_H
 
+#include "Base/Coordinate.h"
 #include "Base/RefCount.h"
 #include "Event/EvtApi.h"
 
 class CEvent : public TRefCnt {
+ private:
+  UINT   id;
+  LPVOID param;
+
  public:
   CEvent(UINT id = static_cast<UINT>(-1), LPVOID param = 0) : id(id), param(param) {
   }
@@ -27,10 +32,6 @@ class CEvent : public TRefCnt {
   void SetParam(LPVOID value) {
     param = value;
   }
-
- private:
-  UINT   id;
-  LPVOID param;
 };
 
 class CCharEvent : public CEvent, public EVENT_DATA_CHAR {
@@ -47,12 +48,12 @@ class CCharEvent : public CEvent, public EVENT_DATA_CHAR {
     return *this;
   }
 
+  virtual ~CCharEvent() {
+  }
+
   static BOOL IsShiftDown();
   static BOOL IsControlDown();
   static BOOL IsAltDown();
-
-  virtual ~CCharEvent() {
-  }
 };
 
 class CImeEvent : public CEvent, public EVENT_DATA_IME {
@@ -105,12 +106,12 @@ class CKeyEvent : public CEvent, public EVENT_DATA_KEY {
     return *this;
   }
 
+  virtual ~CKeyEvent() {
+  }
+
   static BOOL IsShiftDown();
   static BOOL IsControlDown();
   static BOOL IsAltDown();
-
-  virtual ~CKeyEvent() {
-  }
 };
 
 class CMouseEvent : public CEvent, public EVENT_DATA_MOUSE {
@@ -119,7 +120,14 @@ class CMouseEvent : public CEvent, public EVENT_DATA_MOUSE {
   }
 
   CMouseEvent(const EVENT_DATA_MOUSE &data) {
-    *this = data;
+    mode = data.mode;
+    button = data.button;
+    buttonState = data.buttonState;
+    metaKeyState = data.metaKeyState;
+    flags = data.flags;
+    time = data.time;
+    wheelDistance = data.wheelDistance;
+    NDCToDDC(data.x, data.y, &x, &y);
   }
 
   CMouseEvent &operator=(const EVENT_DATA_MOUSE &rhs);

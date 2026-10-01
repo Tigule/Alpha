@@ -35,6 +35,96 @@ typedef void (*MODELPROJECT2DCALLBACK)(const NTempest::CAaBox &bounds, NTempest:
 
 DECLARE_DERIVED_HANDLE(HMODEL, HOBJECT);
 
+DECLARE_DERIVED_HANDLE(HMODELSHARED, HOBJECT);
+
+enum EModelLoad {
+  CMODEL_UNINITIALIZED = 0,
+  CMODEL_LOADED = 1,
+  CMODEL_ASYNC_WAIT = 2,
+  CMODEL_DUPE_WAIT = 3,
+  CMODEL_DUPE_WAIT_PRSRV_ANIM = 4
+};
+
+class CAsyncObject;
+class CModelBase;
+enum EModelModQ {
+  MODEL_ADD_LINK = 0,
+  MODEL_APPLY_OBJECT_FACE_DIR = 1,
+  MODEL_APPLY_OBJECT_LOOK_AT = 2,
+  MODEL_CLEAR_ALL_LINKS = 3,
+  MODEL_CLEAR_LINK = 4,
+  MODEL_ENABLE_ANIM_BLENDING = 5,
+  MODEL_ENABLE_FULL_ALPHA = 6,
+  MODEL_FINISH_DUPLICATION = 7,
+  MODEL_FORCE_CURRENT_SEQUENCE_TIME = 8,
+  MODEL_FORCE_SEQUENCE_TIME = 9,
+  MODEL_HIDE_BOUNDS = 10,
+  MODEL_HIDE_GEOSETS = 11,
+  MODEL_HIDE_GEOSETS_RANGE = 12,
+  MODEL_LOCK_OBJECT_SEQUENCE = 13,
+  MODEL_MARK_FOOTSTEP_SEQUENCE = 14,
+  MODEL_MATCH_SEQUENCE = 15,
+  MODEL_OPTIMIZE_VISIBLE_GEOSETS = 16,
+  MODEL_REMOVE_LINK = 17,
+  MODEL_REMOVE_OBJECT_FACE_DIR = 18,
+  MODEL_REMOVE_OBJECT_LOOK_AT = 19,
+  MODEL_REPLACE_TEXTURE = 20,
+  MODEL_SET_EMISSIVE_COLOR = 21,
+  MODEL_SET_EVENT_CALLBACK = 22,
+  MODEL_SET_LIGHT_SELECT_CALLBACK = 23,
+  MODEL_SET_OBJECT_TIME_SCALE = 24,
+  MODEL_SET_RANDOM_SEQUENCE_FIDGET1 = 25,
+  MODEL_SET_RANDOM_SEQUENCE_FIDGET2 = 26,
+  MODEL_SET_SEQ_FINISHED_HANDLER1 = 27,
+  MODEL_SET_SEQ_FINISHED_HANDLER2 = 28,
+  MODEL_SET_SEQUENCE1 = 29,
+  MODEL_SET_SEQUENCE2 = 30,
+  MODEL_SET_SEQUENCE_FIDGET1 = 31,
+  MODEL_SET_SEQUENCE_FIDGET2 = 32,
+  MODEL_SET_TIME_SCALE = 33,
+  MODEL_SET_VERTEX_ALPHA = 34,
+  MODEL_SET_VERTEX_COLOR = 35,
+  MODEL_SHOW_BOUNDING_SPHERE = 36,
+  MODEL_SHOW_COLLISION = 37,
+  MODEL_SHOW_COLLISION_AABOX = 38,
+  MODEL_SHOW_MODEL = 39,
+  MODEL_NUM_COMMANDS = 40,
+  MODEL_COMMAND_NOT_QUEUED = MODEL_NUM_COMMANDS
+};
+
+NODEDECL(CModelModItem) {
+  EModelModQ action;
+  BYTE       paramData[16];
+};
+
+
+class CModel : public CHandleObject {
+ public:
+  CModel(EModelLoad state = CMODEL_ASYNC_WAIT) : asyncObject(0), createData(0), shared(0), state(state) {
+  }
+  CModel(CModel &source);
+  void FinishDuplication(CModel &source);
+  void DeleteAsyncObj();
+  virtual ~CModel();
+
+ private:
+  CModel &operator=(const CModel &source);
+  void    RemoveModelCommandsFromQueue();
+
+ public:
+
+  union {
+    CAsyncObject *asyncObject;
+    CModelBase   *data;
+    HMODEL        dupSource;
+  };
+  CModelCreate *createData;
+  HMODELSHARED  shared;
+  EModelLoad    state;
+  LISTDECL(CModelModItem, modelModQueue);
+
+};
+
 BOOL ModelGetEventObjectPosition(HMODEL model, UINT objectId, int modelSpace, NTempest::C3Vector *position);
 
 void ModelInitialize();

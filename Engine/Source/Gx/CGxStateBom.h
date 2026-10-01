@@ -42,13 +42,13 @@ struct CGxPushedRenderState {
 };
 
 struct CGxAppRenderState {
+  CGxStateBom mValue;
+  DWORD       mStackDepth;
+  int         mDirty;
+
   CGxAppRenderState() {
     mValue = 0;
     mStackDepth = 0;
     mDirty = 0;
   }
-
-  CGxStateBom mValue;
-  DWORD       mStackDepth;
-  int         mDirty;
 };

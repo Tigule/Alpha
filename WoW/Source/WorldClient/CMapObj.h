@@ -101,6 +101,10 @@ struct SMOLightmap;
 #define LIQUID_NONE 15
 
 struct SMOLTile {
+ private:
+  BYTE liquid;
+
+ public:
   enum {
     SHARED_MASK = 0x80,
     SHARED_SHIFT = 7,
@@ -127,8 +131,6 @@ struct SMOLTile {
     return GetLiquid() != LIQUID_NONE;
   }
 
- private:
-  BYTE liquid;
 };
 
 struct SMOWVert {
@@ -256,7 +258,7 @@ struct SMOMaterial {
   DWORD               groundType;
   union {
     BYTE        inMemPad[8];
-    HTEXTURE__ *hMaps[2];
+    HTEXTURE    hMaps[2];
   };
 };
 
@@ -265,7 +267,7 @@ struct SMOLightmapTex {
   union {
     BYTE        inMemPad[4];
     CGxTex     *gxTexture;
-    HTEXTURE__ *hTexture;
+    HTEXTURE    hTexture;
   };
 };
 

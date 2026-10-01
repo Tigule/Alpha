@@ -161,7 +161,7 @@ class NODEBASE {
   bool CheckModelLoadStatus();
 
   LINKDECLEX(NODEBASE, node);
-  HMODEL__ *model;
+  HMODEL model;
   UINT      flags;
   UINT      deathHoldTimer;
 };
@@ -174,7 +174,7 @@ class ONESHOTEFFECTNODE : public NODEBASE {
   virtual void ReleaseDeathHolds();
   void         CheckModelLoadStatus();
 
-  HMODEL__ *objectModel;
+  HMODEL objectModel;
   UINT      objectModelAttachmentPoint;
   DWORDLONG objectGUID;
   int       spellID;
@@ -183,7 +183,7 @@ class ONESHOTEFFECTNODE : public NODEBASE {
 
 class ONESHOTSTANDALONEEFFECTNODE : public NODEBASE {
  public:
-  ONESHOTSTANDALONEEFFECTNODE() : facing(0.0f), scale(1.0f), worldObject(0), expireTime(0) {
+  ONESHOTSTANDALONEEFFECTNODE() : facing(0.0f), scale(1.0f), worldObject(0) {
   }
   ~ONESHOTSTANDALONEEFFECTNODE();
   virtual void ReleaseDeathHolds();
@@ -201,19 +201,7 @@ NODEDECL(MISSILENODE) {
   static const float HEIGHT_SCAN_RANGE;
   static const float MIN_HEIGHT;
 
-  MISSILENODE()
-      : model(0),
-        caster(0),
-        target(0),
-        startTime(0),
-        travelTime(0),
-        spellID(0),
-        victimEffect(0),
-        pathType(0),
-        miss(0),
-        missReason(MISS_NONE),
-        flags(0),
-        sound(0) {
+  MISSILENODE() : model(0), caster(0), target(0), flags(0), sound(0) {
   }
   ~MISSILENODE();
 
@@ -383,7 +371,7 @@ static HMODEL InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NT
   return model;
 }
 
-static void RenderModel(HMODEL__ *model, const NTempest::C3Vector &position, const NTempest::C44Matrix &orientation, CGCamera *camera, float scale) {
+static void RenderModel(HMODEL model, const NTempest::C3Vector &position, const NTempest::C44Matrix &orientation, CGCamera *camera, float scale) {
   if (!model || !camera || !ModelAdvanceTime(model)) {
     return;
   }
@@ -703,7 +691,7 @@ void MISSILENODE::CheckModelLoadStatus() {
       UINT finishTime = startTime + travelTime;
       UINT currentTime = OsGetAsyncTimeMs();
       if (finishTime > currentTime) {
-        ModelSetTimeScale(model, static_cast<float>(duration) / static_cast<float>(finishTime - currentTime), 1);
+        ModelSetTimeScale(model, static_cast<float>(duration) / static_cast<float>(finishTime - currentTime), 0);
       }
     }
   }

@@ -175,7 +175,7 @@ bool CMap::QueryLiquidStatusMapObjsExt(const NTempest::C3Vector &point, UINT &li
   return 0;
 }
 
-void GetHeightFlow(
+inline void GetHeightFlow(
     const CChunkLiquid        *cl,
     const NTempest::C3Vector  &point,
     const NTempest::C2Vector  &frac,
@@ -187,36 +187,33 @@ void GetHeightFlow(
   float h0 = cl->verts[index].waterVert.height + (cl->verts[index + 1].waterVert.height - cl->verts[index].waterVert.height) * frac.x;
   float h1 = cl->verts[index + 9].waterVert.height + (cl->verts[index + 10].waterVert.height - cl->verts[index + 9].waterVert.height) * frac.x;
   surface = h0 + (h1 - h0) * frac.y;
-  if (surface <= point.z) {
+  if (!(surface > point.z)) {
     return;
   }
 
-  if (!cl->nFlowvs) {
-    flow = NTempest::C3Vector(0.0f);
-  } else if (cl->nFlowvs == 1) {
-    NTempest::C3Vector delta = point - cl->flowvs[0].sphere.c;
-    if (delta.SquaredMag() <= cl->flowvs[0].sphere.r * cl->flowvs[0].sphere.r) {
-      flow = cl->flowvs[0].dir * cl->flowvs[0].velocity;
-    } else {
+  switch (cl->nFlowvs) {
+    case 0:
       flow = NTempest::C3Vector(0.0f);
-    }
-  } else if (cl->nFlowvs == 2) {
-    NTempest::C3Vector delta0 = point - cl->flowvs[0].sphere.c;
-    NTempest::C3Vector delta1 = point - cl->flowvs[1].sphere.c;
-    int                inside0 = delta0.SquaredMag() <= cl->flowvs[0].sphere.r * cl->flowvs[0].sphere.r;
-    int                inside1 = delta1.SquaredMag() <= cl->flowvs[1].sphere.r * cl->flowvs[1].sphere.r;
-
-    if (inside0 && inside1) {
-      flow = cl->flowvs[0].dir + cl->flowvs[1].dir;
-      flow.Normalize();
-      flow *= (cl->flowvs[0].velocity + cl->flowvs[1].velocity) * 0.5f;
-    } else if (inside0) {
-      flow = cl->flowvs[0].dir * cl->flowvs[0].velocity;
-    } else if (inside1) {
-      flow = cl->flowvs[1].dir * cl->flowvs[1].velocity;
-    } else {
-      flow = NTempest::C3Vector(0.0f);
-    }
+      break;
+    case 1:
+      flow = cl->flowvs[0].sphere.Intersects(point) ? cl->flowvs[0].dir * cl->flowvs[0].velocity : NTempest::C3Vector(0.0f);
+      break;
+    case 2:
+      int inside[2];
+      inside[0] = cl->flowvs[0].sphere.Intersects(point);
+      inside[1] = cl->flowvs[1].sphere.Intersects(point);
+      if (inside[0]) {
+        if (inside[1]) {
+          flow = cl->flowvs[0].dir + cl->flowvs[1].dir;
+          flow.Normalize();
+          flow *= (cl->flowvs[0].velocity + cl->flowvs[1].velocity) * 0.5f;
+        } else {
+          flow = cl->flowvs[0].dir * cl->flowvs[0].velocity;
+        }
+      } else {
+        flow = inside[1] ? cl->flowvs[1].dir * cl->flowvs[1].velocity : NTempest::C3Vector(0.0f);
+      }
+      break;
   }
 }
 
@@ -258,23 +255,28 @@ bool CMap::QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, floa
     UINT liquidType = tile & 3;
     deep = tile >> 7;
 
-    if (liquidType == 1) {
-      if (point.z >= 0.0f) {
+    switch (liquidType) {
+      case 0:
+        GetHeightFlow(cl, point, frac, lsub, surface, waterDir);
+        break;
+      case 1:
+        if (point.z < 0.0f) {
+          surface = 0.0f;
+          waterDir = NTempest::C3Vector(0.0f);
+          liquid = liquidType;
+          return 1;
+        }
         continue;
-      }
-      surface = 0.0f;
-      waterDir = NTempest::C3Vector(0.0f);
-    } else if (liquidType == 0 || liquidType == 2) {
-      GetHeightFlow(cl, point, frac, lsub, surface, waterDir);
-      if (point.z >= surface) {
+      case 2:
+        GetHeightFlow(cl, point, frac, lsub, surface, waterDir);
+        break;
+      default:
         continue;
-      }
-    } else {
-      continue;
     }
-
-    liquid = liquidType;
-    return 1;
+    if (point.z < surface) {
+      liquid = liquidType;
+      return 1;
+    }
   }
 
   return 0;

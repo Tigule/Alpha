@@ -48,20 +48,17 @@ static void GuildCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
 CGTabardModelFrame::CGTabardModelFrame(CSimpleFrame *parent) : CGCharacterModelBase(parent), m_charComponent(0) {
 }
 
-#define GET_TABARD_MODEL_THIS(L, object)                               \
-  CGTabardModelFrame *object = 0;                                      \
-  if (lua_type(L, 1) == LUA_TTABLE) {                                  \
-    lua_rawgeti(L, 1, 0);                                              \
+#define GET_TABARD_MODEL_THIS(L, object) \
+  CGTabardModelFrame *object; \
+  if (lua_type(L, 1) != LUA_TTABLE) { \
+    luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)"); \
+    object = 0; \
+  } else { \
+    lua_rawgeti(L, 1, 0); \
     object = static_cast<CGTabardModelFrame *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                     \
-  } else {                                                             \
-    return luaL_error(                                                 \
-        L,                                                             \
-        "Attempt to find 'this' in non-table object (used '.' "        \
-        "instead of ':' ?)"                                            \
-    );                                                                 \
-  }                                                                    \
-  FATALASSERT(object)
+    lua_pop(L, 1); \
+    FATALASSERT(object); \
+  }
 
 void CGTabardModelFrame::InitializeModel(HMODEL model) {
   if (!model) {
@@ -76,13 +73,13 @@ void CGTabardModelFrame::InitializeModel(HMODEL model) {
 
   if (m_charComponent) {
     HandleClose(m_charComponent);
-    m_charComponent = 0;
   }
+  m_charComponent = 0;
 
   InitializeTabardColors(playerPtr);
-  HTEXTURE skinTexture = CharCustomizationSetSkin(model, playerPtr->GetDisplayRace(), playerPtr->GetDisplaySex(), playerPtr->SkinVariationID(), 0);
+  HTEXTURE skinTexture = CharCustomizationSetSkin(model, playerPtr->GetDisplayRace(), playerPtr->GetDisplaySex(), playerPtr->GetSkin(), 0);
   if (skinTexture) {
-    m_charComponent = TexComponentCreate(skinTexture, playerPtr->GetDisplayRace(), playerPtr->GetDisplaySex(), playerPtr->SkinVariationID(), 0, 1);
+    m_charComponent = TexComponentCreate(skinTexture, playerPtr->GetDisplayRace(), playerPtr->GetDisplaySex(), playerPtr->GetSkin(), 0, 1);
     if (m_charComponent) {
       TexComponentCopy(m_charComponent, playerPtr->GetTexComponent());
     }
@@ -142,8 +139,9 @@ BOOL CGTabardModelFrame::CanSaveTabard() {
 
 void CGTabardModelFrame::CycleVariation(UINT index, int delta) {
   FATALASSERT(index < TABARDVARS_NUMVARS);
-  if (static_cast<UINT>(abs(delta)) < s_maxVariations[index]) {
-    m_variations[index] = (m_variations[index] + delta + s_maxVariations[index]) % s_maxVariations[index];
+  if (abs(delta) < s_maxVariations[index]) {
+    m_variations[index] += delta + s_maxVariations[index];
+    m_variations[index] %= s_maxVariations[index];
     UpdateTabard();
   }
 }

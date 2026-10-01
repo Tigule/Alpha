@@ -4,7 +4,7 @@
 
 #include <windows.h>
 
-struct HPBUFFERARB__;
+typedef struct HPBUFFERARB__ *HPBUFFERARB;
 class CGxBufOgl;
 
 class CGxMemBuffer_VAR : public CGxMemBuffer {
@@ -28,14 +28,14 @@ class CGxDeviceOpenGl : public CGxDevice {
  public:
   template <class T>
   struct PixelFormatAttribute {
+    int attribute;
+    T   value;
+
     PixelFormatAttribute() {
     }
 
     PixelFormatAttribute(int attribute, T value) : attribute(attribute), value(value) {
     }
-
-    int attribute;
-    T   value;
   };
 
   typedef PixelFormatAttribute<int>   PixelFormatAttributei;
@@ -271,7 +271,7 @@ class CGxDeviceOpenGl : public CGxDevice {
   WORD                              m_hwndClass;
   HDC                               m_hdc;
   HGLRC                             m_hglrc;
-  HPBUFFERARB__                    *m_hPbuffer;
+  HPBUFFERARB                       m_hPbuffer;
   HDC                               m_hPbufferDC;
   HGLRC                             m_hPbufferRC;
   TSFixedArray<NTempest::C3Vector>  m_primPos;

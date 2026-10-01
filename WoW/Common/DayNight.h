@@ -11,7 +11,9 @@
 #include <stpl.h>
 
 struct HMODEL__;
+typedef HMODEL__ *HMODEL;
 struct HTEXTURE__;
+typedef HTEXTURE__ *HTEXTURE;
 
 struct DNFogInfo {
   NTempest::CImVector color;
@@ -64,31 +66,27 @@ class GlareBase {
   static WORD               m_idx[4];
 
  public:
-  virtual void Update(float elapsedSec) = 0;
-  virtual void Render() = 0;
-  virtual BOOL IsVisible() = 0;
-
   static int          m_masterEnable;
   int                 m_enabled;
   NTempest::C3Vector  m_pos;
   NTempest::CImVector m_color;
-  HTEXTURE__         *m_texid;
+  HTEXTURE            m_texid;
   float               m_baseScale;
   float               m_curScale;
   float               m_fadeRate;
   float               m_opacity;
   float               m_targetOpacity;
+
+  virtual void Update(float elapsedSec) = 0;
+  virtual void Render() = 0;
+  virtual BOOL IsVisible() = 0;
 };
 
 class DNGlare : public GlareBase {
+ protected:
+  virtual float GetCloudDensityFade() = 0;
+
  public:
-  void         Initialize(LPCSTR filename);
-  virtual void Update(float elapsedSec);
-  virtual void Render();
-  virtual BOOL IsVisible();
-
-  void Destroy();
-
   NTempest::C2Vector m_fadeTable[4];
   float              m_scaleMin;
   float              m_scaleMax;
@@ -96,8 +94,12 @@ class DNGlare : public GlareBase {
   float              m_alphaMin;
   float              m_alphaMax;
 
- protected:
-  virtual float GetCloudDensityFade() = 0;
+
+  virtual void Update(float elapsedSec);
+  virtual void Render();
+  virtual BOOL IsVisible();
+  void Initialize(LPCSTR filename);
+  void Destroy();
 };
 
 class DNSunGlare : public DNGlare {
@@ -111,6 +113,8 @@ class DNMoonGlare : public DNGlare {
 };
 
 class DNPlanet {
+  static const NTempest::C2Vector m_scaleTable[];
+
  public:
   enum {
     SUN,
@@ -118,63 +122,35 @@ class DNPlanet {
     MOON2
   };
 
-  void Initialize(LPCSTR filename);
-  void Destroy();
-  void GenGeometry(NTempest::C3Vector *geov, NTempest::C2Vector *texv, NTempest::CImVector *clrv, WORD *idx, DWORD &vertCount, DWORD &idxCount);
-  void Render();
-  void Update();
-
- private:
-  static const NTempest::C2Vector m_scaleTable[];
-
- public:
   NTempest::C3Vector  m_pos;
   NTempest::CImVector m_color;
-  HTEXTURE__         *m_texid;
+  HTEXTURE            m_texid;
   float               m_scale;
   float               m_baseScale;
   float               m_period;
+
+  void GenGeometry(NTempest::C3Vector *geov, NTempest::C2Vector *texv, NTempest::CImVector *clrv, WORD *idx, DWORD &vertCount, DWORD &idxCount);
+  void Render();
+  void Update();
+  void Initialize(LPCSTR filename);
+  void Destroy();
 };
 
 class DNStars {
- public:
-  void Initialize();
-  void Destroy();
-  void Update();
-  void Render();
-
- private:
   friend void                     DayNightInitialize(LPCSTR litFile);
   static const NTempest::C2Vector m_fadeTable[4];
-  HMODEL__                       *m_hModel;
+  HMODEL                          m_hModel;
   NTempest::CImVector             m_color;
   NTempest::C3Vector              m_pos;
+
+ public:
+  void Initialize();
+  void Update();
+  void Render();
+  void Destroy();
 };
 
 class DNClouds {
- public:
-  DNClouds();
-  void  Collide(const NTempest::C3Vector &origin, const NTempest::C3Vector &dir, NTempest::C3Vector &hitPoint);
-  void  Destroy();
-  void  FullUpdate();
-  void  GenSphere(float size);
-  float GetDensity(const NTempest::C3Vector &worldPoint, float area);
-  void  Render();
-  void  SetLOD(DWORD newlod, DWORD newUpdateSize);
-  void  SetLayers(DWORD layers) {
-    m_nLayers = layers;
-  }
-  void SetDensity(float newDensity);
-  void SetSharpness(float newSharpness);
-  void OverrideDensitySharpness(float newDensity, float newSharpness);
-  void Update();
-
- private:
-  void BumpMap();
-  void WorldToTexture(const NTempest::C3Vector &worldPt, NTempest::C2Vector &tex);
-
-  static void Callback_GxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &gxTexels);
-
   struct Vector3us {
     WORD x;
     WORD y;
@@ -208,6 +184,8 @@ class DNClouds {
   static const NTempest::C2Vector m_bumpFadeTable[];
   static const float              BUMPFADETIME;
 
+  static void Callback_GxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &gxTexels);
+
   UINT                              m_lastTime;
   float                             m_sharpness;
   BYTE                              m_density;
@@ -234,8 +212,28 @@ class DNClouds {
   DNFogInfo                         m_fogInfo;
   float                             m_waitTime;
 
+
+  void WorldToTexture(const NTempest::C3Vector &worldPt, NTempest::C2Vector &tex);
+  void BumpMap();
+
  public:
   CGxTex *m_texid;
+
+  DNClouds();
+  void  GenSphere(float size);
+  void  SetLayers(DWORD layers) {
+    m_nLayers = layers;
+  }
+  void  SetLOD(DWORD newlod, DWORD newUpdateSize);
+  void SetDensity(float newDensity);
+  void SetSharpness(float newSharpness);
+  void OverrideDensitySharpness(float newDensity, float newSharpness);
+  void Update();
+  void  FullUpdate();
+  void  Render();
+  float GetDensity(const NTempest::C3Vector &worldPoint, float area);
+  void  Collide(const NTempest::C3Vector &origin, const NTempest::C3Vector &dir, NTempest::C3Vector &hitPoint);
+  void  Destroy();
 };
 
 extern DNStars     s_stars;
@@ -249,10 +247,6 @@ class DNSky {
     SKY_NUMBANDS = 7
   };
 
-  void GenTexture(UINT w, UINT h, NTempest::CImVector *texels);
-  void GenSphere(float sphRadius);
-  void SetColors();
-  void Render();
 
  private:
   TSFixedArray<NTempest::C3Vector>  m_geoVerts;
@@ -268,6 +262,12 @@ class DNSky {
   static const float              m_fadeAngle[SKY_NUMBANDS];
   static const float              m_darkAngle[SKY_NUMBANDS];
   static const NTempest::C2Vector m_fadeTable[];
+
+ public:
+  void GenTexture(UINT w, UINT h, NTempest::CImVector *texels);
+  void GenSphere(float sphRadius);
+  void SetColors();
+  void Render();
 };
 
 DNInfo *DayNightGetInfo();

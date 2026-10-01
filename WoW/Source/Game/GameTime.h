@@ -9,48 +9,45 @@
 DECLARE_DERIVED_HANDLE(HGAMETIMECALLBACK, HOBJECT);
 
 NODEDECL(GAMETIMECBSTRUCT), public CHandleObject {
+  LPVOID userData;
+  void(__stdcall * callback)(const WowTime &, LPVOID);
+
   GAMETIMECBSTRUCT() : userData(0), callback(0) {
   }
   GAMETIMECBSTRUCT(const GAMETIMECBSTRUCT &);
-
-  LPVOID userData;
-  void(__stdcall * callback)(const WowTime &, LPVOID);
 };
 
 struct TIMESTAMPSTRUCT : public TSHashObject<TIMESTAMPSTRUCT, HASHKEY_NONE> {
+  LISTDECL(GAMETIMECBSTRUCT, callbackList);
+
   ~TIMESTAMPSTRUCT() {
   }
-
-  LISTDECL(GAMETIMECBSTRUCT, callbackList);
 };
 
 class CGameTime : public WowTime {
  public:
+  DWORD m_lastTick;
+
   CGameTime();
 
+  void              Destroy();
   int               GetTimeBias() const;
   int               GetDateBias() const;
-  void              Destroy();
   void              SetTimeDateBias(int timeBias, int dateBias, bool update);
   void              GameTimeSetTime(const WowTime &time);
   void              GameTimeUpdate(float elapsedSeconds);
-  void              GameTimeSync(const WowTime &time, bool reset);
   void              GameTimeSync(bool reset);
+  void              GameTimeSync(const WowTime &time, bool reset);
   float             GameTimeSetMinutesPerSecond(float minutesPerSecond);
   float             GameTimeGetMinutesPerSecond();
   bool              IsDayTime();
   bool              IsNightTime();
-  float             GameTimeGetDayProgression();
   HGAMETIMECALLBACK GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, LPVOID), LPVOID user);
   void              GameTimeUnregisterCallback(HGAMETIMECALLBACK callbackHandle);
+  float             GameTimeGetDayProgression();
   UINT              MinutesSinceBoot();
 
-  DWORD m_lastTick;
-
  private:
-  void TickMinute();
-  void PerformCallbacks(int minutes);
-
   int                                        m_timeBias;
   int                                        m_dateBias;
   UINT                                       m_gameMinutesElapsed;
@@ -60,6 +57,9 @@ class CGameTime : public WowTime {
   UINT                                       m_lastTickMinute;
   float                                      m_dayProgression;
   TSHashTable<TIMESTAMPSTRUCT, HASHKEY_NONE> m_callbackLists;
+
+  void TickMinute();
+  void PerformCallbacks(int minutes);
 };
 
 extern CGameTime g_clientGameTime;

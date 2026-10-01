@@ -15,15 +15,15 @@ class CAaBspNode {
     Flag_NoChild = 0xFFFF
   };
 
-  CAaBspNode() {
-  }
-
   WORD  flags;
   WORD  negChild;
   WORD  posChild;
   WORD  nFaces;
   DWORD faceStart;
   float planeDist;
+
+  CAaBspNode() {
+  }
 };
 
 class CAaBsp {
@@ -34,6 +34,8 @@ class CAaBsp {
     Plane_On = 2
   };
 
+  static NTempest::C3Vector s_axisNormalTable[3];
+
   CAaBsp();
   ~CAaBsp();
 
@@ -41,22 +43,22 @@ class CAaBsp {
   void Create(NTempest::C3Vector *vertices, UINT nVertices, WORD *faceVertexIndices, UINT nFaceVertexIndices);
   void Set(CAaBspNode *nodeList, UINT nNodes, WORD *faceIndices, UINT nFaceIndices, const NTempest::CAaBox &box);
 
-  void        GetFaceIndices(UINT nodeIndex, NTempest::CAaBox &aaBox);
-  void        GetFaceIndices(UINT nodeIndex, NTempest::C3Segment &seg);
-  void        GetFaceIndices(CAaBspNode *node);
-  const WORD *GetFaceIndices() const {
-    return nodeFaceIndices;
-  }
+  UINT GetFaceIndices(NTempest::C3Segment &seg, WORD *indices, UINT maxCount);
+  UINT GetFaceIndices(NTempest::CAaBox &aaBox, WORD *indices, UINT maxCount);
   WORD *GetFaceIndices() {
     return nodeFaceIndices;
   }
-  UINT GetFaceIndices(NTempest::CAaBox &aaBox, WORD *indices, UINT maxCount);
-  UINT GetFaceIndices(NTempest::C3Segment &seg, WORD *indices, UINT maxCount);
+  const WORD *GetFaceIndices() const {
+    return nodeFaceIndices;
+  }
+  void        GetFaceIndices(CAaBspNode *node);
+  void        GetFaceIndices(UINT nodeIndex, NTempest::C3Segment &seg);
+  void        GetFaceIndices(UINT nodeIndex, NTempest::CAaBox &aaBox);
 
-  const CAaBspNode *GetNodeList() const {
+  CAaBspNode *GetNodeList() {
     return nodes;
   }
-  CAaBspNode *GetNodeList() {
+  const CAaBspNode *GetNodeList() const {
     return nodes;
   }
   UINT GetNumNodes() const {
@@ -73,8 +75,6 @@ class CAaBsp {
   }
 
   void operator=(const CAaBsp &rhs);
-
-  static NTempest::C3Vector s_axisNormalTable[3];
 
  private:
   void Init();

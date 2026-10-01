@@ -121,14 +121,17 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
 };
 
 class KERNINGHASHKEY {
+ private:
+  UINT code;
+
  public:
-  KERNINGHASHKEY(UINT currentCode, UINT nextCode) : code((currentCode << 16) ^ (nextCode & 0xFFFF)) {
+  KERNINGHASHKEY() : code(0) {
   }
 
   KERNINGHASHKEY(const KERNINGHASHKEY &key) : code(key.code) {
   }
 
-  KERNINGHASHKEY() {
+  KERNINGHASHKEY(UINT currentCode, UINT nextCode) : code((currentCode << 16) ^ (nextCode & 0xFFFF)) {
   }
 
   KERNINGHASHKEY &operator=(const KERNINGHASHKEY &rhs) {
@@ -143,11 +146,14 @@ class KERNINGHASHKEY {
     return this == &rhs || code == rhs.code;
   }
 
- private:
-  UINT code;
 };
 
 struct KERNNODE : public TSHashObject<KERNNODE, KERNINGHASHKEY> {
+  KERNNODE() : flags(0), proporportionalSpacing(0.0f), fixedWidthSpacing(0.0f) {
+  }
+
+  KERNNODE(const KERNNODE &);
+
   UINT  flags;
   float proporportionalSpacing;
   float fixedWidthSpacing;

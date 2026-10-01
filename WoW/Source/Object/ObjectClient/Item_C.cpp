@@ -578,7 +578,7 @@ BOOL CGItem_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
 
 void CGItem_C::OnRightClick() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || player->GetUnitData()->health <= 0) {
+  if (!player || player->GetHealth() <= 0) {
     return;
   }
 

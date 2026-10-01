@@ -64,7 +64,6 @@ class WowConnectionResponse {
 class WowConnection {
  public:
   NODEDECL(SENDNODE) {
-    SENDNODE(const SENDNODE &node);
     SENDNODE(BYTE * d, int s, LPVOID p, BYTE raw) : data(d) {
       if (!raw) {
         int headerSize;
@@ -92,6 +91,7 @@ class WowConnection {
         datasize = s;
       }
     }
+    SENDNODE(const SENDNODE &node);
     ~SENDNODE();
 
     BYTE *data;

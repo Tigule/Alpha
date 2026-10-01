@@ -52,23 +52,6 @@ class CParticle2_Model : public CParticle2 {
 };
 
 class CParticleKey {
- public:
-  CParticleKey();
-  void SetSegment(float normStartTime, float normEndTime);
-  void SetLifeSpan(float lifeSpan);
-  void SetRepeat(float repeat);
-  void SetHeadCells(int start, int end);
-  void SetTailCells(int start, int end);
-  void SetScales(float start, float end);
-  void SetColors(NTempest::CImVector start, NTempest::CImVector end);
-  void Segment(float &startTime, float &endTime);
-  void Repeat(float &repeat);
-  void LifeSpan(float &lifeSpan);
-  void Colors(NTempest::CImVector &start, NTempest::CImVector &end);
-  void HeadCells(int &start, int &end);
-  void TailCells(int &start, int &end);
-  void Scales(float &start, float &end);
-
  private:
   friend class CParticleEmitter2;
 
@@ -95,6 +78,23 @@ class CParticleKey {
   float               m_lifeSpan;
 
   void Interpolate(float time, NTempest::CImVector &color, int &headCell, int &tailCell, float &scale);
+
+ public:
+  CParticleKey();
+  void SetSegment(float normStartTime, float normEndTime);
+  void SetLifeSpan(float lifeSpan);
+  void SetRepeat(float repeat);
+  void SetColors(NTempest::CImVector start, NTempest::CImVector end);
+  void SetHeadCells(int start, int end);
+  void SetTailCells(int start, int end);
+  void SetScales(float start, float end);
+  void Segment(float &startTime, float &endTime);
+  void LifeSpan(float &lifeSpan);
+  void Repeat(float &repeat);
+  void Colors(NTempest::CImVector &start, NTempest::CImVector &end);
+  void HeadCells(int &start, int &end);
+  void TailCells(int &start, int &end);
+  void Scales(float &start, float &end);
 };
 
 struct CParticleMat {

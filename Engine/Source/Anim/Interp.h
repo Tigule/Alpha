@@ -44,13 +44,12 @@ class CArray {
     m_data = elements ? new T[elements] : 0;
   }
 
-  void Set(UINT elements, const T *data) {
-    ReserveSpace(elements);
-    m_count = elements;
-    if (elements) {
-      ASSERT(data);
-      memcpy(m_data, data, elements * sizeof(T));
-    }
+  void Zero() {
+    memset(m_data, 0, Bytes());
+  }
+
+  T *New() {
+    return &m_data[m_count++];
   }
 
   UINT Count() const {
@@ -61,12 +60,14 @@ class CArray {
     return m_count * sizeof(T);
   }
 
-  void Clear() {
-    m_count = 0;
+  T &operator[](UINT index) {
+    ASSERT(index < m_count);
+    return m_data[index];
   }
 
-  T *New() {
-    return &m_data[m_count++];
+  const T &operator[](UINT index) const {
+    ASSERT(index < m_count);
+    return m_data[index];
   }
 
   T *Ptr() {
@@ -77,22 +78,21 @@ class CArray {
     return m_data;
   }
 
+  void Clear() {
+    m_count = 0;
+  }
+
   void SetCount(UINT count) {
     m_count = count;
   }
 
-  void Zero() {
-    memset(m_data, 0, Bytes());
-  }
-
-  T &operator[](UINT index) {
-    ASSERT(index < m_count);
-    return m_data[index];
-  }
-
-  const T &operator[](UINT index) const {
-    ASSERT(index < m_count);
-    return m_data[index];
+  void Set(UINT elements, const T *data) {
+    ReserveSpace(elements);
+    m_count = elements;
+    if (elements) {
+      ASSERT(data);
+      memcpy(m_data, data, elements * sizeof(T));
+    }
   }
 
  private:

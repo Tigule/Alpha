@@ -5,6 +5,9 @@
 DECLARE_STRICT_HANDLE(HOBJECT);
 
 class CHandleObject {
+ private:
+  int m_refcount;
+
  public:
   CHandleObject() : m_refcount(0) {
   }
@@ -37,8 +40,6 @@ class CHandleObject {
 
   virtual LPCSTR GetObjectName();
 
- private:
-  int m_refcount;
 };
 
 void           HandleClose(HOBJECT handle);

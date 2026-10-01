@@ -69,7 +69,10 @@ class CGBag {
   }
 
   DWORDLONG GetItem(UINT slot) const {
-    return slot < *m_slotCount ? m_slots[slot] : 0;
+    if (slot >= *m_slotCount) {
+      return 0;
+    }
+    return m_slots[slot];
   }
   int GetIndexOfObject(DWORDLONG guid) const {
     for (UINT index = 0; index < NumSlots(); ++index) {

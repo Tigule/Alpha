@@ -135,6 +135,7 @@ template <UINT Size>
 class CMdlString {
  public:
   CMdlString() {
+    m_string[0] = 0;
   }
 
   CMdlString(const CMdlString<Size> &source) {
@@ -177,7 +178,7 @@ class CMdlString {
 };
 
 struct CMdlBounds {
-  CMdlBounds() {
+  CMdlBounds() : radius(0.0f) {
   }
 
   NTempest::CAaBox extent;
@@ -680,13 +681,13 @@ struct CCallbackFcn {
 };
 
 struct CSeqInfo {
+  void Reset();
+  void ResetCallback();
+
   CSeqInfo() {
     memset(this, 0, sizeof(*this));
     seqTimeScale = 1.0f;
   }
-
-  void Reset();
-  void ResetCallback();
 
   int                           elapsed;
   UINT                          useCount : 16;

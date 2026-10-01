@@ -13,6 +13,8 @@
 
 #include <new>
 
+DECLARE_DERIVED_HANDLE(HLAYER, HOBJECT);
+
 class CILayer : public CHandleObject {
  public:
   RECTF  rect;
@@ -194,7 +196,7 @@ void ScrnLayerCreate(
   }
 
   s_zorderlist.LinkNode(newLayer, LIST_LINK_AFTER, existingLayer);
-  *layer = reinterpret_cast<HLAYER__ *>(HandleCreate(newLayer, "HLAYER"));
+  *layer = static_cast<HLAYER>(HandleCreate(newLayer, "HLAYER"));
 }
 
 void ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect) {

@@ -14,8 +14,6 @@
 #include <storm.h>
 
 class CGUnit_C;
-struct HMODEL__;
-struct HWORLDTEXT__;
 
 enum UNITNAME_SHOWTYPE_GROUPS {
   SHOWTYPE_LOCALPLAYER,
@@ -55,7 +53,7 @@ class PLAYERNAMEDESC : public CHandleObject {
   CGUnit_C           *m_unitPtr;
   UINT                m_flags;
   UINT                m_lastRenderFrame;
-  HWORLDTEXT__       *m_worldTextHandles[4];
+  HWORLDTEXT          m_worldTextHandles[4];
   float               m_heightOffset;
 };
 
@@ -82,12 +80,11 @@ PLAYERNAMEDESC::PLAYERNAMEDESC()
     : m_string(0),
       m_customGeosetID(-1),
       m_stringColor(0ul),
-      m_lastUpdateTime(OsGetAsyncTimeMs()),
       m_basePos(0.0f),
-      m_unitPtr(0),
       m_flags(3),
       m_lastRenderFrame(s_lastRenderFrame),
       m_heightOffset(0.0f) {
+  m_lastUpdateTime = OsGetAsyncTimeMs();
   memset(m_worldTextHandles, 0, sizeof(m_worldTextHandles));
 }
 
@@ -105,17 +102,14 @@ PLAYERNAMEDESC::~PLAYERNAMEDESC() {
     }
   }
   UINT i;
-  for (i = 0; i < 4; ++i) {
+  for (i = 4; i--;) {
     if (m_worldTextHandles[i]) {
-      HandleClose(reinterpret_cast<HOBJECT>(m_worldTextHandles[i]));
+      HandleClose(m_worldTextHandles[i]);
     }
-  }
-  if (m_link.IsLinked()) {
-    s_playerNames.UnlinkNode(this);
   }
 }
 
-static void PlayerNameRenderCallback(HMODEL__ *model, const NTempest::C34Matrix &basis, LPVOID param) {
+static void PlayerNameRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, LPVOID param) {
   FATALASSERT(param);
   NTempest::C44Matrix matrix(
       basis.a0, basis.a1, basis.a2, 0.0f, basis.b0, basis.b1, basis.b2, 0.0f, basis.c0, basis.c1, basis.c2, 0.0f, basis.d0, basis.d1, basis.d2, 1.0f
@@ -148,7 +142,7 @@ static const UNITNAMESTRINGS s_cvarStrings[8] = {
 static bool   UnitNameShowTypeCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
 static void   TriggerNameRegenerate();
 void          PlayerNameShutdown();
-HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object, const NTempest::CImVector *colorOverride);
+HWORLDTEXT WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object, const NTempest::CImVector *colorOverride);
 
 static void CalculateBillboardRotation(const NTempest::C3Vector &direction, NTempest::C44Matrix &matrix) {
   NTempest::C3Vector zprime(direction);
@@ -186,7 +180,7 @@ void PLAYERNAMEDESC::SetStringColor(const NTempest::CImVector &color) {
 }
 
 void PLAYERNAMEDESC::RenderWorldText() {
-  for (UINT i = 0; i < 4; ++i) {
+  for (UINT i = 4; i--;) {
     if (m_worldTextHandles[i]) {
       WorldTextRender(m_worldTextHandles[i]);
     }
@@ -195,7 +189,7 @@ void PLAYERNAMEDESC::RenderWorldText() {
 
 void PLAYERNAMEDESC::ShowWorldText(int show) {
   if ((show && (m_flags & 4)) || (!show && !(m_flags & 4))) {
-    for (UINT i = 0; i < 4; ++i) {
+    for (UINT i = 4; i--;) {
       if (m_worldTextHandles[i]) {
         WorldTextShow(m_worldTextHandles[i], show);
       }
@@ -210,11 +204,14 @@ void PLAYERNAMEDESC::ShowWorldText(int show) {
 }
 
 void PLAYERNAMEDESC::CreateWorldText(WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride) {
-  for (UINT i = 0; i < 4; ++i) {
+  UINT i;
+  for (i = 0; i < 4; ++i) {
     if (!m_worldTextHandles[i]) {
-      m_worldTextHandles[i] = WorldTextCreate(type, text, 0, colorOverride);
-      return;
+      break;
     }
+  }
+  if (i < 4) {
+    m_worldTextHandles[i] = WorldTextCreate(type, text, 0, colorOverride);
   }
 }
 
@@ -225,11 +222,11 @@ void PLAYERNAMEDESC::UpdateWorldPos() {
   ASSERT(elapsed >= 0);
   float elapsedSeconds = elapsed * 0.001f;
 
-  for (UINT i = 0; i < 4; ++i) {
+  for (UINT i = 4; i--;) {
     if (m_worldTextHandles[i]) {
       WorldTextUpdate(m_worldTextHandles[i], elapsedSeconds, cameraMatrix, &m_basePos);
       if (WorldTextIsTextDone(m_worldTextHandles[i])) {
-        HandleClose(reinterpret_cast<HOBJECT>(m_worldTextHandles[i]));
+        HandleClose(m_worldTextHandles[i]);
         m_worldTextHandles[i] = 0;
       }
     }
@@ -304,7 +301,7 @@ void PlayerNameShow(int show) {
   s_showNames = show;
 }
 
-HPLAYERNAME__ *PlayerNameCreate(CGUnit_C *unitPtr) {
+HPLAYERNAME PlayerNameCreate(CGUnit_C *unitPtr) {
   FATALASSERT(unitPtr);
   LPVOID          storage = SMemAlloc(sizeof(PLAYERNAMEDESC), "HPLAYERNAME", SERR_LINECODE_OBJECT, 0);
   PLAYERNAMEDESC *desc = storage ? new (storage) PLAYERNAMEDESC : 0;
@@ -323,16 +320,16 @@ HPLAYERNAME__ *PlayerNameCreate(CGUnit_C *unitPtr) {
   ModelGetModelSpacePivot(model, 1, &namePosition);
   ModelCustGeosetAdd(model, namePosition, PlayerNameRenderCallback, desc, &desc->m_customGeosetID);
   HandleClose(model);
-  return reinterpret_cast<HPLAYERNAME__ *>(HandleCreate(desc, "HPLAYERNAME"));
+  return static_cast<HPLAYERNAME>(HandleCreate(desc, "HPLAYERNAME"));
 }
 
-void PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name) {
+void PlayerNameTriggerColorUpdate(HPLAYERNAME name) {
   if (name) {
     reinterpret_cast<PLAYERNAMEDESC *>(name)->m_flags |= 2;
   }
 }
 
-void PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride) {
+void PlayerNameCreateText(HPLAYERNAME name, WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride) {
   if (ClntObjMgrGetPlayerType()) {
     return;
   }
@@ -343,7 +340,7 @@ void PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, LPCSTR text, 
   }
 }
 
-void PlayerNameUpdateWorldText(HPLAYERNAME__ *name) {
+void PlayerNameUpdateWorldText(HPLAYERNAME name) {
   if (name) {
     reinterpret_cast<PLAYERNAMEDESC *>(name)->UpdateWorldText();
   }
@@ -361,13 +358,13 @@ void PlayerNameUpdateLate() {
   }
 }
 
-void PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name) {
+void PlayerNameTriggerNameRegenerate(HPLAYERNAME name) {
   if (name) {
     reinterpret_cast<PLAYERNAMEDESC *>(name)->m_flags |= 1;
   }
 }
 
-void PlayerNameChangeLocation(HPLAYERNAME__ *name, const NTempest::C3Vector &namePosition) {
+void PlayerNameChangeLocation(HPLAYERNAME name, const NTempest::C3Vector &namePosition) {
   if (name) {
     reinterpret_cast<PLAYERNAMEDESC *>(name)->MoveGeoset(namePosition);
   }

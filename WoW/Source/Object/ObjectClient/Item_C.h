@@ -4,6 +4,10 @@
 #include "Object/ObjectClient/Object_C.h"
 
 struct ItemEnchantment {
+  int id;
+  int expiration;
+  int chargesRemaining;
+
   ItemEnchantment(int id = 0, int expiration = 0, int chargesRemaining = 0);
 
   ItemEnchantment &operator=(const ItemEnchantment &other) {
@@ -21,9 +25,7 @@ struct ItemEnchantment {
     return !(*this == other);
   }
 
-  int id;
-  int expiration;
-  int chargesRemaining;
+
 };
 
 inline ItemEnchantment::ItemEnchantment(int id, int expiration, int chargesRemaining)
@@ -78,14 +80,6 @@ class CGItem {
   friend class CGPlayer_C;
 
  public:
-  static UINT               GetDataSize();
-  static UINT               GetBaseOffset();
-  static __forceinline UINT TotalFields() {
-    return 36;
-  }
-  static UINT GetUpdateMaskBytes();
-  static UINT GetUpdateMaskBlocks();
-
   int GetStackCount() const {
     return m_item->m_stackCount;
   }
@@ -120,6 +114,14 @@ class CGItem {
   }
   int                    GetNumPetitionSignatures() const;
   BYTE                  *GetData(UINT index);
+  static UINT               GetDataSize();
+  static UINT               GetBaseOffset();
+  static __forceinline UINT TotalFields() {
+    return 36;
+  }
+  static UINT GetUpdateMaskBytes();
+  static UINT GetUpdateMaskBlocks();
+
   void                   SetStorage(DWORD *storage) {
     m_item = reinterpret_cast<CGItemData *>(storage);
   }
@@ -132,11 +134,11 @@ class CGItem {
   ~CGItem() {
   }
 
-  CGItemData *Item() {
+  const CGItemData *Item() const {
     return m_item;
   }
 
-  const CGItemData *Item() const {
+  CGItemData *Item() {
     return m_item;
   }
 

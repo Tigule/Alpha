@@ -262,7 +262,14 @@ namespace NTempest {
   }
 
   class CRgb565 {
+   private:
+    static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination);
+
    public:
+    WORD b : 5;
+    WORD g : 6;
+    WORD r : 5;
+
     enum {
       eRedMask = 0xF800,
       eNotRedMask = ~eRedMask,
@@ -280,14 +287,15 @@ namespace NTempest {
     CRgb565() {
     }
 
-    CRgb565(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
-    }
-
     CRgb565(BYTE r5, BYTE g6, BYTE b5) {
       From565(r5, g6, b5);
     }
 
+    CRgb565(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
+    }
+
+    CImVector      MakeArgb() const;
     void From565(BYTE r5, BYTE g6, BYTE b5) {
       r = r5;
       g = g6;
@@ -297,8 +305,19 @@ namespace NTempest {
     void           From555(BYTE red, BYTE green, BYTE blue);
     void           From444(BYTE red, BYTE green, BYTE blue);
     void           FromARGB(BYTE alpha, const CRgb565 &rgb);
-    CImVector      MakeArgb() const;
-    static CRgb565 Blend(DWORD alpha, const CRgb565 &source, const CRgb565 &destination);
+
+    operator WORD() const {
+      return *reinterpret_cast<const WORD *>(this);
+    }
+
+    CRgb565 &operator=(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
+      return *this;
+    }
+
+    CRgb565 &operator=(const CRgb565 &value) {
+      return *this = static_cast<WORD>(value);
+    }
 
     CRgb565 &operator=(const CImVector &c) {
       r = c.r >> 3;
@@ -307,31 +326,19 @@ namespace NTempest {
       return *this;
     }
 
-    CRgb565 &operator=(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
-      return *this;
-    }
-    CRgb565 &operator=(const CRgb565 &value) {
-      return *this = static_cast<WORD>(value);
-    }
     CRgb565 &operator=(const CArgb1555 &value);
     CRgb565 &operator=(const CArgb4444 &value);
 
-    operator WORD() const {
-      return *reinterpret_cast<const WORD *>(this);
-    }
-
-   private:
-    static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination);
-
-   public:
-    WORD b : 5;
-    WORD g : 6;
-    WORD r : 5;
+    static CRgb565 Blend(DWORD alpha, const CRgb565 &source, const CRgb565 &destination);
   };
 
   class CArgb1555 {
    public:
+    WORD b : 5;
+    WORD g : 5;
+    WORD r : 5;
+    WORD a : 1;
+
     enum {
       eAlphaMask = 0x8000,
       eNotAlphaMask = ~eAlphaMask,
@@ -352,10 +359,6 @@ namespace NTempest {
     CArgb1555() {
     }
 
-    CArgb1555(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
-    }
-
     CArgb1555(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
       a = alpha;
       r = red;
@@ -363,25 +366,40 @@ namespace NTempest {
       b = blue;
     }
 
+    CArgb1555(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
+    }
+
+    void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void From565(BYTE r5, BYTE g6, BYTE b5) {
       a = 1;
       r = r5;
       g = g6 >> 1;
       b = b5;
     }
-    void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void       From4444(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void       From8888(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void       FromARGB(BYTE alpha, const CArgb1555 &rgb);
+
+    operator WORD() const {
+      return *reinterpret_cast<const WORD *>(this);
+    }
+
+    CArgb1555 &operator=(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
+      return *this;
+    }
+
     CArgb1555 &operator=(const CArgb1555 &value) {
       return *this = static_cast<WORD>(value);
     }
-    CArgb1555 &operator=(const CArgb4444 &value);
 
     CArgb1555 &operator=(const CRgb565 &c) {
       From565(c.r, c.g, c.b);
       return *this;
     }
+
+    CArgb1555 &operator=(const CArgb4444 &value);
 
     CArgb1555 &operator=(const CImVector &c) {
       a = c.a >> 7;
@@ -390,24 +408,18 @@ namespace NTempest {
       b = c.b >> 3;
       return *this;
     }
-
-    CArgb1555 &operator=(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
-      return *this;
-    }
-
-    operator WORD() const {
-      return *reinterpret_cast<const WORD *>(this);
-    }
-
-    WORD b : 5;
-    WORD g : 5;
-    WORD r : 5;
-    WORD a : 1;
   };
 
   class CArgb4444 {
+   protected:
+    static BYTE s_a1Table[];
+
    public:
+    WORD b : 4;
+    WORD g : 4;
+    WORD r : 4;
+    WORD a : 4;
+
     enum {
       eAlphaMask = 0xF000,
       eNotAlphaMask = ~eAlphaMask,
@@ -428,10 +440,6 @@ namespace NTempest {
     CArgb4444() {
     }
 
-    CArgb4444(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
-    }
-
     CArgb4444(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
       a = alpha;
       r = red;
@@ -439,25 +447,40 @@ namespace NTempest {
       b = blue;
     }
 
+    CArgb4444(WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
+    }
+
+    void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void From565(BYTE r5, BYTE g6, BYTE b5) {
       a = 15;
       r = r5 >> 1;
       g = g6 >> 2;
       b = b5 >> 1;
     }
-    void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void       From4444(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void       From8888(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void       FromARGB(BYTE alpha, const CArgb4444 &rgb);
+
+    operator WORD() const {
+      return *reinterpret_cast<const WORD *>(this);
+    }
+
+    CArgb4444 &operator=(const WORD value) {
+      *reinterpret_cast<WORD *>(this) = value;
+      return *this;
+    }
+
     CArgb4444 &operator=(const CArgb4444 &value) {
       return *this = static_cast<WORD>(value);
     }
-    CArgb4444 &operator=(const CArgb1555 &value);
 
     CArgb4444 &operator=(const CRgb565 &c) {
       From565(c.r, c.g, c.b);
       return *this;
     }
+
+    CArgb4444 &operator=(const CArgb1555 &value);
 
     CArgb4444 &operator=(const CImVector &c) {
       a = c.a >> 4;
@@ -466,24 +489,6 @@ namespace NTempest {
       b = c.b >> 4;
       return *this;
     }
-
-    CArgb4444 &operator=(const WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
-      return *this;
-    }
-
-    operator WORD() const {
-      return *reinterpret_cast<const WORD *>(this);
-    }
-
-   protected:
-    static BYTE s_a1Table[];
-
-   public:
-    WORD b : 4;
-    WORD g : 4;
-    WORD r : 4;
-    WORD a : 4;
   };
 
   inline void CImVector::From565(BYTE r5, BYTE g6, BYTE b5) {

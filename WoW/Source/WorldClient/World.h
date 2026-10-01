@@ -36,7 +36,9 @@ class CGxShaderParam;
 class CGxTex;
 class WMOAreaTableRec;
 struct HMODEL__;
+typedef HMODEL__ *HMODEL;
 struct HTEXTURE__;
+typedef HTEXTURE__ *HTEXTURE;
 struct CMapEntity;
 struct SMODoodadDef;
 struct SMOPoly;
@@ -47,7 +49,7 @@ struct CWFacetData {
 };
 
 struct WorldObjCollisionHandlerData {
-  HMODEL__           *model;
+  HMODEL model;
   NTempest::CAaBox    collideExt;
   float               scale;
   NTempest::C44Matrix matrix;
@@ -177,14 +179,14 @@ class CWorld {
     NTempest::CAaBox    aaBox;
   };
 
-  static HMODEL__ *GetModel(DWORD doodad);
+  static HMODEL GetModel(DWORD doodad);
   static void      SetObjectRenderCallback(DWORD hWorldObject, void (*cb)(LPVOID, const NTempest::C44Matrix &), LPVOID param);
   static void      SetObjectHandler(int (*handler)(LPVOID, DWORD, DWORDLONG, DWORD), LPVOID handlerParam);
   static void      SetObjectCollisionHandler(int (*handler)(DWORDLONG, DWORD, WorldObjCollisionHandlerData *));
   static void      SetCameraTarget(DWORD hWorldObject);
-  static DWORD     AddObject(DWORDLONG param64, DWORD param32, HMODEL__ *hModel, UINT objFlags);
+  static DWORD     AddObject(DWORDLONG param64, DWORD param32, HMODEL hModel, UINT objFlags);
   static void      RemoveObject(DWORD hWorldObject);
-  static DWORD     AddDoodad(LPCSTR fileName, HMODEL__ *hModel, const NTempest::C44Matrix &mat, UINT objFlags);
+  static DWORD     AddDoodad(LPCSTR fileName, HMODEL hModel, const NTempest::C44Matrix &mat, UINT objFlags);
   enum Enables {
     Enable_Doodads = 0x00000001,
     Enable_Chunks = 0x00000002,
@@ -351,9 +353,9 @@ class CWorld {
   friend class CMap;
   friend class CMapArea;
   friend class CMapObjGroup;
-  friend void        ShadowRender_LOD1(HMODEL__ *hModel, const NTempest::C44Matrix &basis, LPVOID param);
-  friend HTEXTURE__ *CharCustomizationLoadSkin(HMODEL__ *characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
-  friend HTEXTURE__ *CharCustomizationSetSkin(HMODEL__ *characterModel, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
+  friend void        ShadowRender_LOD1(HMODEL hModel, const NTempest::C44Matrix &basis, LPVOID param);
+  friend HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
+  friend HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
 
   static void ModelGeoProjectCallback(const NTempest::CAaBox &worldBox, NTempest::CImVector color, const NTempest::C44Matrix &basis);
   static BOOL ParticleProjectCallback(const NTempest::C3Segment &seg, float &z);
@@ -454,8 +456,6 @@ class CWorld {
 NODEDECL(WaterRadWave) {
   static const float PERTURB;
 
-  int                Update(float deltat);
-  void               Init(const NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq);
   float              decay;
   float              curTime;
   float              ra;
@@ -468,6 +468,9 @@ NODEDECL(WaterRadWave) {
   float              amplitude;
   float              velocity;
   float              frequency;
+
+  void Init(const NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq);
+  int  Update(float deltat);
 };
 
 #endif

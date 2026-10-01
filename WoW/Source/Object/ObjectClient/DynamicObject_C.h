@@ -13,6 +13,8 @@ enum DYNAMIC_OBJECT_TYPE {
 };
 
 struct CGDynamicObjectData {
+  CGDynamicObjectData();
+
   DWORDLONG          m_caster;
   BYTE               m_type;
   BYTE               m_typeFlags;
@@ -22,12 +24,11 @@ struct CGDynamicObjectData {
   NTempest::C3Vector m_position;
   float              m_facing;
   int                m_morePadding;
-
-  CGDynamicObjectData();
 };
 
 class CGDynamicObject {
  public:
+  BYTE *GetData(UINT index);
   static UINT               GetDataSize();
   static UINT               GetBaseOffset();
   static __forceinline UINT TotalFields() {
@@ -36,7 +37,6 @@ class CGDynamicObject {
   static UINT GetUpdateMaskBytes();
   static UINT GetUpdateMaskBlocks();
 
-  BYTE               *GetData(UINT index);
   DYNAMIC_OBJECT_TYPE GetDynamicType();
   void                SetStorage(DWORD *storage) {
     m_dynamicObj = reinterpret_cast<CGDynamicObjectData *>(storage);
@@ -44,8 +44,8 @@ class CGDynamicObject {
 
   int                GetSpellID() const;
   float              GetRadius() const;
-  void               GetObjectPosition(NTempest::C3Vector &position) const;
   NTempest::C3Vector GetObjectPosition() const;
+  void               GetObjectPosition(NTempest::C3Vector &position) const;
   float              GetObjectFacing() const;
   DWORDLONG          GetCaster() const;
 
@@ -57,15 +57,15 @@ class CGDynamicObject {
   __forceinline ~CGDynamicObject() {
   }
 
-  CGDynamicObjectData *DynamicObject() {
-    return m_dynamicObj;
-  }
+  CGDynamicObjectData *m_dynamicObj;
 
   const CGDynamicObjectData *DynamicObject() const {
     return m_dynamicObj;
   }
 
-  CGDynamicObjectData *m_dynamicObj;
+  CGDynamicObjectData *DynamicObject() {
+    return m_dynamicObj;
+  }
 };
 
 class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {

@@ -6,7 +6,7 @@
 #include <stpl.h>
 
 struct CGxString;
-struct HWORLDTEXT__;
+DECLARE_DERIVED_HANDLE(HWORLDTEXT, HOBJECT);
 
 namespace NTempest {
   class C3Vector;
@@ -26,12 +26,12 @@ enum WORLDTEXTTYPE {
 };
 
 struct WORLDTEXTCREATEPARAMS {
+  void Defaults();
+  void Clear();
+
   WORLDTEXTCREATEPARAMS();
   ~WORLDTEXTCREATEPARAMS() {
   }
-
-  void Defaults();
-  void Clear();
 
   float               ascendDistance;
   UINT                totalTime;
@@ -76,7 +76,6 @@ struct WORLDTEXTSTRING : public CHandleObject {
   void Hide(int hide);
   void Render() const;
   void InitTextFrame(LPCSTR text);
-  virtual ~WORLDTEXTSTRING();
 
   WORLDTEXTTYPE         worldTextType;
   WORLDTEXTCREATEPARAMS params;
@@ -93,11 +92,13 @@ struct WORLDTEXTSTRING : public CHandleObject {
   CGxString *string;
   float      savedStringHeight;
   char       savedStringText[64];
+
+  virtual ~WORLDTEXTSTRING();
 };
 
 void          WorldTextClearStrings();
-HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object, const NTempest::CImVector *colorOverride);
-void          WorldTextShow(HWORLDTEXT__ *text, int show);
-void          WorldTextRender(HWORLDTEXT__ *text);
-void          WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position);
-BOOL          WorldTextIsTextDone(HWORLDTEXT__ *text);
+HWORLDTEXT WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object, const NTempest::CImVector *colorOverride);
+void          WorldTextShow(HWORLDTEXT text, int show);
+void          WorldTextRender(HWORLDTEXT text);
+void          WorldTextUpdate(HWORLDTEXT text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position);
+BOOL          WorldTextIsTextDone(HWORLDTEXT text);

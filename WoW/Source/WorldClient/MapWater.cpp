@@ -56,7 +56,7 @@ const UINT                        CMap::WATERTEX_HEIGHT = 64;
 const float                       CMap::LIQUID_TEX_PURGE_TIME = 20.0f;
 const float                       CMap::WATER_SPEC_EXP = 6.0f;
 TSFixedArray<NTempest::CImVector> CMap::skyTexels;
-HTEXTURE__                       *CMap::liquidTex[LIQUID_COUNT][LIQUID_TEXTURE_COUNT];
+HTEXTURE CMap::liquidTex[LIQUID_COUNT][LIQUID_TEXTURE_COUNT];
 bool                              CMap::liquidTexLoaded[LIQUID_COUNT];
 float                             CMap::liquidLastShown[LIQUID_COUNT];
 const float                       CMap::liquidTexLoopTime[LIQUID_COUNT] = {1.25f, 1.25f, 1.25f, 1.25f, 1.25f, 1.25f, 1.25f, 1.25f, 1.25f};
@@ -500,7 +500,7 @@ void CMap::WaterDiffTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT 
   }
 }
 
-HTEXTURE__ *CMap::GetLiquidTexture(UINT liquid) {
+HTEXTURE CMap::GetLiquidTexture(UINT liquid) {
   char        filename[256];
   CStatus     status;
   const float secsPerLoop = liquidTexLoopTime[liquid];

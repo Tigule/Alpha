@@ -24,56 +24,6 @@ struct CRibbonVertex {
 class CRibbonEmitter {
   friend class RibbonManager;
 
- public:
-  CRibbonEmitter();
-  CRibbonEmitter(const CRibbonEmitter &rhs);
-  ~CRibbonEmitter();
-  const CRibbonEmitter &operator=(const CRibbonEmitter &rhs);
-  CRibbonEmitter       *Clone() const {
-    return NEW(CRibbonEmitter)(*this);
-  }
-
-  CRibbonEmitter *AddRef();
-  void            DecRef();
-  void            Initialize(
-      float                              edgesPerSec,
-      float                              edgeLifeSpanInSec,
-      const NTempest::CImVector         &diffuseClr,
-      const TSGrowableArray<HTEXTURE>   &textures,
-      const TSGrowableArray<CRibbonMat> &materials,
-      const TSGrowableArray<UINT>       &replaces,
-      const NTempest::CRect             &texBox,
-      UINT                               rows,
-      UINT                               cols
-  );
-  void SetEnabled(int enable_);
-  void SetTexSlot(UINT slot);
-  void SetAbove(float above);
-  void SetBelow(float below);
-  void SetGravity(float gravity);
-  void SetPos(const NTempest::C44Matrix &orient, const NTempest::C3Vector &cameraPosition);
-  void SetMats(const TSGrowableArray<CRibbonMat> &materials, const TSGrowableArray<HTEXTURE> &textures, const TSGrowableArray<UINT> &replaces);
-  void SetColor(const float r, const float g, const float b);
-  void SetAlpha(const float a);
-  void SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, int suppressNewEdges);
-  BOOL Render();
-  BOOL IsDead();
-  void Update(float elapsedSec, int suppressNewEdges);
-  UINT ReplaceTexture(UINT replaceableId, HTEXTURE texture);
-  void MaterialDisableLight(int disable);
-  void MaterialDisableFog(int disable);
-
- protected:
-  void ConvertTexSlotToTexCoords();
-  void InitInterpDeltas();
-  void InterpEdge(float age, float t, UINT advance);
-  void Advance(UINT &pos, UINT amount);
-  void CloseTextureHandles();
-  void BuildMaterialStack();
-
- private:
-  void PrivCopy(const CRibbonEmitter &rhs);
-
   UINT                           m_refCount;
   TSGrowableArray<float>         m_edges;
   UINT                           m_writePos;
@@ -100,6 +50,8 @@ class CRibbonEmitter {
   NTempest::C3Vector             m_above0;
   NTempest::C3Vector             m_above1;
 
+  void PrivCopy(const CRibbonEmitter &rhs);
+
  protected:
   float                       m_edgesPerSec;
   float                       m_edgeLifeSpan;
@@ -120,4 +72,49 @@ class CRibbonEmitter {
   float                       m_above;
   float                       m_below;
   float                       m_gravity;
+
+  void InitInterpDeltas();
+  void InterpEdge(float age, float t, UINT advance);
+  void Advance(UINT &pos, UINT amount);
+  void ConvertTexSlotToTexCoords();
+  void BuildMaterialStack();
+  void CloseTextureHandles();
+
+ public:
+  CRibbonEmitter();
+  CRibbonEmitter(const CRibbonEmitter &rhs);
+  ~CRibbonEmitter();
+  const CRibbonEmitter &operator=(const CRibbonEmitter &rhs);
+  CRibbonEmitter       *Clone() const {
+    return NEW(CRibbonEmitter)(*this);
+  }
+  void            Initialize(
+      float                              edgesPerSec,
+      float                              edgeLifeSpanInSec,
+      const NTempest::CImVector         &diffuseClr,
+      const TSGrowableArray<HTEXTURE>   &textures,
+      const TSGrowableArray<CRibbonMat> &materials,
+      const TSGrowableArray<UINT>       &replaces,
+      const NTempest::CRect             &texBox,
+      UINT                               rows,
+      UINT                               cols
+  );
+  void SetPos(const NTempest::C44Matrix &orient, const NTempest::C3Vector &cameraPosition);
+  void SetMats(const TSGrowableArray<CRibbonMat> &materials, const TSGrowableArray<HTEXTURE> &textures, const TSGrowableArray<UINT> &replaces);
+  UINT ReplaceTexture(UINT replaceableId, HTEXTURE texture);
+  void MaterialDisableLight(int disable);
+  void MaterialDisableFog(int disable);
+  void SetColor(const float r, const float g, const float b);
+  void SetAlpha(const float a);
+  void SetEnabled(int enable_);
+  void SetTexSlot(UINT slot);
+  void SetAbove(float above);
+  void SetBelow(float below);
+  void SetGravity(float gravity);
+  void SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, int suppressNewEdges);
+  void Update(float elapsedSec, int suppressNewEdges);
+  BOOL Render();
+  BOOL IsDead();
+  CRibbonEmitter *AddRef();
+  void            DecRef();
 };

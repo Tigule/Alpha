@@ -4,7 +4,9 @@
 
 struct CORPSEANIMDATA;
 struct HCHARGEOSET__;
+typedef HCHARGEOSET__ *HCHARGEOSET;
 struct HTEXCOMPONENT__;
+typedef HTEXCOMPONENT__ *HTEXCOMPONENT;
 
 struct CGCorpseData {
   DWORDLONG          m_owner;
@@ -26,21 +28,6 @@ struct CGCorpseData {
 
 class CGCorpse {
  public:
-  static __forceinline UINT GetDataSize() {
-    return sizeof(CGCorpseData);
-  }
-  static UINT               GetBaseOffset();
-  static __forceinline UINT TotalFields() {
-    return 36;
-  }
-  static UINT GetUpdateMaskBytes();
-  static UINT GetUpdateMaskBlocks();
-
-  BYTE *GetData(UINT index);
-  void  SetStorage(DWORD *storage) {
-    m_corpse = reinterpret_cast<CGCorpseData *>(storage);
-  }
-
   DWORDLONG GetOwner() const {
     return m_corpse->m_owner;
   }
@@ -54,9 +41,24 @@ class CGCorpse {
   BYTE               GetHairStyleID() const;
   BYTE               GetHairColorID() const;
   BYTE               GetFacialHairStyleID() const;
-  void               GetCorpsePosition(NTempest::C3Vector &position) const;
   NTempest::C3Vector GetCorpsePosition() const;
+  void               GetCorpsePosition(NTempest::C3Vector &position) const;
   float              GetCorpseFacing() const;
+
+  BYTE *GetData(UINT index);
+  static __forceinline UINT GetDataSize() {
+    return sizeof(CGCorpseData);
+  }
+  static UINT               GetBaseOffset();
+  static __forceinline UINT TotalFields() {
+    return 36;
+  }
+  static UINT GetUpdateMaskBytes();
+  static UINT GetUpdateMaskBlocks();
+
+  void  SetStorage(DWORD *storage) {
+    m_corpse = reinterpret_cast<CGCorpseData *>(storage);
+  }
 
  protected:
   explicit CGCorpse(DWORD *storage) {
@@ -112,8 +114,8 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
   void InitComponents();
   void InitPreferredGeosets();
 
-  HCHARGEOSET__   *m_geosetHandle;
-  HTEXCOMPONENT__ *m_texComponent;
+  HCHARGEOSET      m_geosetHandle;
+  HTEXCOMPONENT    m_texComponent;
   UINT             m_preferredGeosets[15];
   CORPSEANIMDATA  *m_animData;
 };

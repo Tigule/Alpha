@@ -341,11 +341,11 @@ void CGUnit_C::UnitHit(VICTIMSTATES, DWORDLONG) {
 }
 
 struct INTERACTICONTYPEINFO {
-  HMODEL       model;
-  STRINGLOOKUP string;
-
   INTERACTICONTYPEINFO(STRINGLOOKUP lookup) : model(0), string(lookup) {
   }
+
+  HMODEL       model;
+  STRINGLOOKUP string;
 };
 
 static INTERACTICONTYPEINFO s_interactIconModelInfo[5] = {
@@ -997,16 +997,16 @@ static BLOODSPLATNODE *NewBloodSplatNode() {
 }
 
 struct UnitAnimationInfo {
+  UnitAnimationInfo(UINT theState, LPCSTR theName, UINT theFlags, int theBasePriority, int thePriorityOffset)
+      : state(theState), name(theName), flags(theFlags), basePriority(theBasePriority), priorityOffset(thePriorityOffset) {
+  }
+
   UINT   state;
   LPCSTR name;
   UINT   flags;
   int    basePriority;
   int    priorityOffset;
   UINT   statePreempts;
-
-  UnitAnimationInfo(UINT theState, LPCSTR theName, UINT theFlags, int theBasePriority, int thePriorityOffset)
-      : state(theState), name(theName), flags(theFlags), basePriority(theBasePriority), priorityOffset(thePriorityOffset) {
-  }
 };
 
 static const UnitAnimationInfo s_animInfo[64] = {
@@ -3494,7 +3494,7 @@ void CGUnit_C::LookAtTarget() {
 void CGUnit_C::UpdateLookAtTarget() {
   DWORDLONG targetGUID;
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
-    targetGUID = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetLocalTarget();
+    targetGUID = GetLocalTarget();
   } else {
     targetGUID = m_unit->target;
   }
@@ -3555,8 +3555,8 @@ void CGUnit_C::OnPickNextStandHandler() {
 }
 
 void CGUnit_C::LootAnimEndHandler() {
-  if (!(m_unit->flags & 0x400)) {
-    CGUnit_C::UpdateBaseAnimation(0);
+  if (!IsLooting()) {
+    UpdateBaseAnimation(0);
   }
 }
 
@@ -3581,7 +3581,7 @@ void CGUnit_C::RestoreUnit() {
   m_deathHolds = 0;
   PurgeAnimNodes(0);
   ClearResEffectModel();
-  CGUnit_C::UpdateBaseAnimation(0);
+  UpdateBaseAnimation(0);
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
     CGGameUI::UnlockAllItems();
     FrameScript_SignalEvent(0xFF);
@@ -4638,13 +4638,8 @@ bool CGUnit_C::IsTurningState() const {
 }
 
 BOOL CGUnit_C::ShouldShuffle() const {
-  DWORDLONG unitBeingLooted = 0;
-  if (m_obj->m_type & TYPE_PLAYER) {
-    unitBeingLooted = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetUnitBeingLooted();
-  }
-
-  return !(m_move.m_moveFlags & 0x02000000) && ((m_unit->flags & 0x20000) || !const_cast<CCombatClient &>(m_combat).IsAttacking()) &&
-         !unitBeingLooted && !m_unit->standState && !(s_animInfo[m_currentTorsoAnimState].flags & 8);
+  return !(m_move.m_moveFlags & 0x02000000) && ((m_unit->flags & 0x20000) || !m_combat.IsAttacking()) &&
+         !GetUnitBeingLooted() && !m_unit->standState && !(s_animInfo[m_currentTorsoAnimState].flags & 8);
 }
 
 void CGUnit_C::UpdateDisplayFacing() {
@@ -4660,7 +4655,7 @@ void CGUnit_C::UpdateDisplayFacing() {
     ModelRemoveObjectFaceDir(model, 4);
     ModelRemoveObjectFaceDir(model, 6);
     if (IsTurningState()) {
-      CGUnit_C::UpdateBaseAnimation(0);
+      UpdateBaseAnimation(0);
     }
     m_displayFacing = m_smoothFacing;
     return;
@@ -4732,7 +4727,7 @@ void CGUnit_C::UpdateDisplayFacing() {
         CGUnit_C::UpdateBaseAnimation(ANIM_STATE_TURNING_RIGHT, 0);
       }
     } else if (IsTurningState()) {
-      CGUnit_C::UpdateBaseAnimation(0);
+      UpdateBaseAnimation(0);
     }
   }
 
@@ -4771,9 +4766,7 @@ void CGUnit_C::UpdateSmoothFacing() {
     } else if (!((m_unit->flags & 8) && (m_obj->m_type & TYPE_PLAYER))) {
       DWORDLONG target = 0;
       if ((m_unit->flags & 0x20000) || !m_combat.IsAttacking()) {
-        if (GetType() & TYPE_PLAYER) {
-          target = static_cast<const CGPlayer_C *>(this)->CGPlayer_C::GetUnitBeingLooted();
-        }
+        target = GetUnitBeingLooted();
         if (!target && GetGUID() == CGGameUI::GetInteractTarget()) {
           target = ClntObjMgrGetActivePlayer();
         }
@@ -6321,7 +6314,7 @@ void CGUnit_C::AddWorldDamageText(UINT damage, int normalCombatDamage) {
   if (damage) {
     char buffer[32];
     SStrPrintf(buffer, sizeof(buffer), "%d", damage);
-    HPLAYERNAME__ *name = m_unitNameHandle;
+    HPLAYERNAME name = m_unitNameHandle;
     PlayerNameCreateText(name, WT_DAMAGE, buffer, normalCombatDamage ? 0 : &COLOR_GOLD);
   }
 }
@@ -6330,7 +6323,7 @@ void CGUnit_C::AddWorldCritText(UINT damage, int normalCombatDamage) {
   if (damage) {
     char buffer[32];
     SStrPrintf(buffer, sizeof(buffer), "%d", damage);
-    HPLAYERNAME__ *name = m_unitNameHandle;
+    HPLAYERNAME name = m_unitNameHandle;
     PlayerNameCreateText(name, WT_CRIT, buffer, normalCombatDamage ? 0 : &COLOR_GOLD);
   }
 }
@@ -6341,7 +6334,7 @@ void CGUnit_C::AddWorldXPGainText(int xpGain) {
   LPCSTR text = FrameScript_GetText("XP", -1, GENDER_NOT_APPLICABLE);
   SStrCopy(buf, text, sizeof(buf));
   SStrPrintf(buffer, sizeof(buffer), "%s: %d", buf, xpGain);
-  HPLAYERNAME__ *name = m_unitNameHandle;
+  HPLAYERNAME name = m_unitNameHandle;
   PlayerNameCreateText(name, WT_XPGAIN, buffer, 0);
 }
 
@@ -6945,11 +6938,9 @@ void CGUnit_C::UpdateInteractIcon(INTERACTICONTYPE which) {
     FATALASSERT(s_interactIconModelInfo[index].model);
     m_interactIconModel = ModelDuplicate(s_interactIconModelInfo[index].model, 0);
     if (m_interactIconModel) {
-      int renderName = GetType() & TYPE_PLAYER ? static_cast<const CGPlayer_C *>(this)->CGPlayer_C::ShouldRenderUnitName(PlayerNameGetUnitNameMode())
-                                               : CGUnit_C::ShouldRenderUnitName(PlayerNameGetUnitNameMode());
-      ModelSetSequence(m_interactIconModel, renderName != 0, 0);
+      ModelSetSequence(m_interactIconModel, ShouldRenderUnitName(PlayerNameGetUnitNameMode()) ? 1 : 0, 0);
 
-      HMODEL charModel = CGObject_C::GetCharacterModel(0);
+      HMODEL charModel = GetCharacterModel(0);
       if (charModel) {
         ModelAddLink(charModel, GetPlayerNameAttachmentPoint(), m_interactIconModel, 1.0f);
         HandleClose(charModel);
@@ -7015,7 +7006,7 @@ void CGUnit_C::HandleCastAnimEvent() {
 
 void CGUnit_C::OnCharmedChanged() {
   CGGameUI::UnitNameUpdate(GetGUID());
-  HPLAYERNAME__ *unitNameHandle = m_unitNameHandle;
+  HPLAYERNAME unitNameHandle = m_unitNameHandle;
   if (unitNameHandle) {
     PlayerNameTriggerColorUpdate(unitNameHandle);
   }
@@ -7029,38 +7020,30 @@ void CGUnit_C::CheckPendingMissileRelease(const NTempest::C3Vector *position) {
   }
 
   if (m_spellCastingCameraShakeID) {
-    NTempest::C3Vector effectPosition = position ? *position : GetPosition();
-    SpellVisualsPlayCameraShakeID(m_spellCastingCameraShakeID, effectPosition);
+    SpellVisualsPlayCameraShakeID(m_spellCastingCameraShakeID, position ? *position : GetPosition());
     m_spellCastingCameraShakeID = 0;
   }
 
   if (m_spellMissileStruct.caster) {
     if (m_spellMissileStruct.ammoDisplayID) {
-      if (!(GetType() & TYPE_PLAYER)) {
-        ThrownMissileReleased();
-      } else {
-        CGBag_C  *bag = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetBag();
+      if (IsA(ID_PLAYER)) {
+        CGBag_C  *bag = GetBag();
         DWORDLONG itemGUID = bag->GetItem(17);
         CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
         if (item) {
-          if (item->GetInventoryType() == 25) {
-            ThrownMissileReleased();
-          } else {
+          if (item->GetInventoryType() != 25) {
             m_flags |= 0x800;
             SetRangedWeaponReleaseAnim();
+          } else {
+            ThrownMissileReleased();
           }
         }
+      } else {
+        ThrownMissileReleased();
       }
     }
 
-    NTempest::C3Vector missilePosition;
-    if (position) {
-      missilePosition = *position;
-    } else {
-      missilePosition = GetPosition();
-      missilePosition.z += 1.0f;
-    }
-    m_spellMissileStruct.startPosition = missilePosition;
+    m_spellMissileStruct.startPosition = position ? *position : GetPosition() + NTempest::C3Vector(0.0f, 0.0f, 1.0f);
 
     int durationOffset = 0;
     if (m_currentTorsoAnimState == 38) {
@@ -8331,7 +8314,7 @@ void CGUnit_C::AddWorldText(WORLDTEXTMISSTYPE type) {
   FATALASSERT(type < WORLDTEXTMISS_NUMTYPES);
   char buf[64] = "";
   SStrCopy(buf, FrameScript_GetText(s_worldTextInfo[type].string, -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-  HPLAYERNAME__ *name = m_unitNameHandle;
+  HPLAYERNAME name = m_unitNameHandle;
   PlayerNameCreateText(name, s_worldTextInfo[type].type, buf, 0);
 }
 

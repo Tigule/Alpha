@@ -30,11 +30,6 @@ struct VERTEX {
 };
 
 NODEDECL(SWING) {
-  TSGrowableArray<VERTEX> m_trail;
-  TSGrowableArray<WORD>   m_vertexIndices;
-  UINT                    m_flags;
-  NTempest::C44Matrix     m_lastMatrix;
-
   SWING();
   ~SWING();
   void Recycle();
@@ -43,6 +38,11 @@ NODEDECL(SWING) {
       const NTempest::C44Matrix &basisMatrix, const NTempest::C3Vector &bottom, const NTempest::C3Vector &top, const NTempest::CImVector &color,
       BYTE currentAlpha, const NTempest::C3Vector &cameraPos
   );
+
+  TSGrowableArray<VERTEX> m_trail;
+  TSGrowableArray<WORD>   m_vertexIndices;
+  UINT                    m_flags;
+  NTempest::C44Matrix     m_lastMatrix;
 };
 
 class WTOBJECT {

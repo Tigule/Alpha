@@ -19,9 +19,6 @@ class CDetailDoodadGeom {
     PROP_TWOSIDED = 1
   };
 
-  void FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf);
-  void FillGxBufIndex(CGxBufCommand &cmd, CGxBuf *buf);
-
   HTEXTURE__                          *texture;
   TSGrowableArray<NTempest::C3Vector>  vertexList;
   TSGrowableArray<NTempest::C3Vector>  normalList;
@@ -29,6 +26,9 @@ class CDetailDoodadGeom {
   TSGrowableArray<NTempest::CImVector> cVertexList;
   TSGrowableArray<WORD>                indexList;
   LINKDECLEX(CDetailDoodadGeom, lameAssLink);
+
+  void FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf);
+  void FillGxBufIndex(CGxBufCommand &cmd, CGxBuf *buf);
 };
 
 class CDetailDoodadData {
@@ -58,11 +58,11 @@ class CDetailDoodadInst {
   CDetailDoodadInst();
   ~CDetailDoodadInst();
 
-  void FreeBufs();
   void AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags);
   void AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags, NTempest::C4Plane &plane);
   void Render();
   void RenderAlpha();
+  void FreeBufs();
   BOOL HasBufs();
 
   CDetailDoodadGeom *geom[2];

@@ -11,13 +11,13 @@ class CGPlayer_C;
 
 class HASHKEY_INT {
  public:
-  HASHKEY_INT(UINT) {
+  HASHKEY_INT() {
   }
 
   HASHKEY_INT(int) {
   }
 
-  HASHKEY_INT() {
+  HASHKEY_INT(UINT) {
   }
 
   bool operator==(const HASHKEY_INT &) const {
@@ -41,9 +41,9 @@ template <class RECORD, class KEY, class HASHKEY>
 class DBCache {
  public:
   struct DBCACHEHASH : public TSHashObject<DBCACHEHASH, HASHKEY> {
-    DBCACHEHASH(const DBCACHEHASH &entry);
     DBCACHEHASH() : m_haveData(false), m_temp(false) {
     }
+    DBCACHEHASH(const DBCACHEHASH &entry);
 
     ~DBCACHEHASH() {
       m_callbacks.Clear();
@@ -59,8 +59,8 @@ class DBCache {
   typedef DBCACHEHASH       *PDBCACHEHASH;
   typedef const DBCACHEHASH *PCDBCACHEHASH;
 
-  DBCache(const DBCache<RECORD, KEY, HASHKEY> &cache);
   DBCache(DWORD fileTag, LPCSTR fileName, NETMESSAGE singleQuery, NETMESSAGE multiQuery, bool requireGuids, bool persistent);
+  DBCache(const DBCache<RECORD, KEY, HASHKEY> &cache);
   ~DBCache();
 
   const RECORD *GetRecord(KEY id, const DWORDLONG &guid, DBCACHECALLBACKPROC cb, LPVOID cbArg);

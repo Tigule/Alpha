@@ -14,14 +14,14 @@ namespace NTempest {
       eRootIndex = 1
     };
 
-    CPriorityQ(const CPriorityQ &other) : CDynTable<T>(other) {
-    }
     CPriorityQ(const CDynParms &dp = CDynParms()) : CDynTable<T>(dp, 0, 0, 0) {
       if (!this->IsValid()) {
         SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "\"CPriorityQ<T, B>: construction of base class failed.\"", FALSE);
       }
 
       ASSERT(Grow());
+    }
+    CPriorityQ(const CPriorityQ &other) : CDynTable<T>(other) {
     }
 
     virtual ~CPriorityQ() {

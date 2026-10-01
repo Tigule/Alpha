@@ -13,6 +13,8 @@ LPVOID ObjectPtr(UINT memHandle);
 
 class TObjectAllocMemHandle {
  public:
+  UINT memHandle;
+
   UINT GetMemHandle() {
     return memHandle;
   }
@@ -21,7 +23,6 @@ class TObjectAllocMemHandle {
     memHandle = handle;
   }
 
-  UINT memHandle;
 };
 
 template <class T>

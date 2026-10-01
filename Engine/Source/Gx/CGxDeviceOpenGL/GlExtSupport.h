@@ -2,7 +2,7 @@
 
 #include <windows.h>
 
-struct HPBUFFERARB__;
+DECLARE_HANDLE(HPBUFFERARB);
 
 typedef LPCSTR(APIENTRY *WGLGETEXTENSIONSSTRINGARB)(HDC);
 typedef int(APIENTRY *WGLGETPIXELFORMATATTRIBIVARB)(HDC, int, int, UINT, const int *, int *);
@@ -141,8 +141,8 @@ extern void(APIENTRY *glCombinerParameterfvNV)(UINT, const float *);
 extern void(APIENTRY *glCombinerParameteriNV)(UINT, int);
 extern void(APIENTRY *glCombinerStageParameterfvNV)(UINT, UINT, const float *);
 extern BYTE(APIENTRY *glIsProgramARB)(UINT);
-extern HPBUFFERARB__ *(APIENTRY *wglCreatePbufferARB)(HDC dc, int pixelFormat, int width, int height, const int *attributes);
-extern HDC(APIENTRY *wglGetPbufferDCARB)(HPBUFFERARB__ *pbuffer);
-extern int(APIENTRY *wglQueryPbufferARB)(HPBUFFERARB__ *pbuffer, int attribute, int *value);
-extern int(APIENTRY *wglReleasePbufferDCARB)(HPBUFFERARB__ *pbuffer, HDC dc);
-extern int(APIENTRY *wglDestroyPbufferARB)(HPBUFFERARB__ *pbuffer);
+extern HPBUFFERARB(APIENTRY *wglCreatePbufferARB)(HDC dc, int pixelFormat, int width, int height, const int *attributes);
+extern HDC(APIENTRY *wglGetPbufferDCARB)(HPBUFFERARB pbuffer);
+extern int(APIENTRY *wglQueryPbufferARB)(HPBUFFERARB pbuffer, int attribute, int *value);
+extern int(APIENTRY *wglReleasePbufferDCARB)(HPBUFFERARB pbuffer, HDC dc);
+extern int(APIENTRY *wglDestroyPbufferARB)(HPBUFFERARB pbuffer);

@@ -67,14 +67,6 @@ class CGPlayer {
   friend int Spell_C_GetManaCost(int id, BOOL isPet);
 
  public:
-  static UINT               GetDataSize();
-  static UINT               GetBaseOffset();
-  static __forceinline UINT TotalFields() {
-    return 634;
-  }
-  static UINT GetUpdateMaskBytes();
-  static UINT GetUpdateMaskBlocks();
-
   UINT GetGuildID() const {
     return m_plyr->guildID;
   }
@@ -109,6 +101,14 @@ class CGPlayer {
   UINT GetResourceTracking() const {
     return m_plyr->trackResourceMask;
   }
+  UINT GetPlayerFlags() const {
+    return m_plyr->playerFlags;
+  }
+  int              GetPVPEnabled() const;
+  BOOL             IsPartyLeader() const;
+  BYTE GetNumBankSlots() const {
+    return m_plyr->numBankSlots;
+  }
   BYTE GetSkin() const {
     return m_plyr->skinID;
   }
@@ -127,23 +127,24 @@ class CGPlayer {
   DWORDLONG GetFarsightFocus() const {
     return m_plyr->farsightObject;
   }
-  UINT GetPlayerFlags() const {
-    return m_plyr->playerFlags;
-  }
-  int              GetPVPEnabled() const;
-  BOOL             IsPartyLeader() const;
+  BYTE IsDueling() const;
   const DWORDLONG &GetDuelArbiter() const {
     return m_plyr->duelArbiter;
   }
-  BYTE IsDueling() const;
   UINT GetDuelTeam() const {
     return m_plyr->duelTeam;
   }
-  BYTE GetNumBankSlots() const {
-    return m_plyr->numBankSlots;
-  }
   int   GetBaseMana() const;
   BYTE *GetData(UINT index);
+
+  static UINT               GetDataSize();
+  static UINT               GetBaseOffset();
+  static __forceinline UINT TotalFields() {
+    return 634;
+  }
+  static UINT GetUpdateMaskBytes();
+  static UINT GetUpdateMaskBlocks();
+
 
   void SetStorage(DWORD *storage) {
     m_plyr = reinterpret_cast<CGPlayerData *>(storage);
@@ -156,11 +157,11 @@ class CGPlayer {
   ~CGPlayer() {
   }
 
-  CGPlayerData *Player() {
+  const CGPlayerData *Player() const {
     return m_plyr;
   }
 
-  const CGPlayerData *Player() const {
+  CGPlayerData *Player() {
     return m_plyr;
   }
 
@@ -254,10 +255,10 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
   virtual int             GetSpellRank(int spellID) const;
   UINT                    GetDisplayRace() const {
-    return CGUnit_C::GetDisplayRace();
+    return m_unit->race;
   }
   UINT GetDisplaySex() const {
-    return CGUnit_C::GetDisplaySex();
+    return m_unit->sex;
   }
   virtual bool  GetDefenseSkillRank(int &base, int &modifier) const;
   virtual bool  GetAttackSkillRank(int hand, int &base, int &modifier) const;

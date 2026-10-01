@@ -654,7 +654,9 @@ namespace NTempest {
     static DWORD sqrt_(DWORD x);
 
     static float sqrt_(float x) {
-      ASSERT(x >= .0f);
+      if (!(x >= .0f)) {
+        SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x >= .0f", "x", x);
+      }
       return static_cast<float>(sqrt(x));
     }
 

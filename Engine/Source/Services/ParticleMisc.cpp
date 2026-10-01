@@ -4,6 +4,8 @@
 
 #include <math.h>
 
+using NTempest::CMath;
+
 void CParticleKey::Interpolate(float time, NTempest::CImVector &color, int &headCell, int &tailCell, float &scale) {
   float t = (time - m_startTime) * m_ooSegLength * 0.99f + 0.005f;
 
@@ -51,7 +53,7 @@ CParticleKey::CParticleKey()
 void CParticleKey::SetSegment(float normStartTime, float normEndTime) {
   ASSERT(normStartTime >= 0.0f);
   ASSERT(normStartTime < normEndTime);
-  ASSERT(fabs(normStartTime - normEndTime) >= 2.3841858e-7f);
+  ASSERT(CMath::fnotequal_(normStartTime, normEndTime));
   m_normStartTime = normStartTime;
   m_normEndTime = normEndTime;
 }
@@ -84,24 +86,24 @@ void CParticleKey::SetColors(NTempest::CImVector start, NTempest::CImVector end)
 void CParticleKey::SetHeadCells(int start, int end) {
   m_headStart = start;
   m_headEnd = end;
-  if (end < start) {
-    m_initialHead = start + 1;
-    m_deltaHead = end - start - 1;
-  } else {
+  if (end >= start) {
     m_initialHead = start;
     m_deltaHead = end - start + 1;
+  } else {
+    m_initialHead = start + 1;
+    m_deltaHead = end - start - 1;
   }
 }
 
 void CParticleKey::SetTailCells(int start, int end) {
   m_tailStart = start;
   m_tailEnd = end;
-  if (end < start) {
-    m_initialTail = start + 1;
-    m_deltaTail = end - start - 1;
-  } else {
+  if (end >= start) {
     m_initialTail = start;
     m_deltaTail = end - start + 1;
+  } else {
+    m_initialTail = start + 1;
+    m_deltaTail = end - start - 1;
   }
 }
 

@@ -6,6 +6,8 @@ namespace NTempest {
 
   class C4QuaternionCompressed {
    private:
+    LONGLONG m_data;
+
     float GetX() const {
       return static_cast<float>(static_cast<int>(static_cast<DWORDLONG>(m_data) >> 32) >> 10) * 0.00000047683716f;
     }
@@ -37,13 +39,13 @@ namespace NTempest {
       Set(source);
     }
 
-    C4QuaternionCompressed &operator=(const C4QuaternionCompressed &source) {
-      m_data = source.m_data;
+    C4QuaternionCompressed &operator=(const C4Quaternion &source) {
+      Set(source);
       return *this;
     }
 
-    C4QuaternionCompressed &operator=(const C4Quaternion &source) {
-      Set(source);
+    C4QuaternionCompressed &operator=(const C4QuaternionCompressed &source) {
+      m_data = source.m_data;
       return *this;
     }
 
@@ -91,8 +93,6 @@ namespace NTempest {
       );
     }
 
-   private:
-    LONGLONG m_data;
   };
 
 }  // namespace NTempest

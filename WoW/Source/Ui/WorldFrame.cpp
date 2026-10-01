@@ -51,9 +51,9 @@ NODEDECL(CModelRecord) {
   float     scale;
   DWORDLONG guid;
 
-  CModelRecord(const CModelRecord &source);
   CModelRecord() : model(0), distance(FLT_MAX), scale(1.0f), guid(0) {
   }
+  CModelRecord(const CModelRecord &source);
   ~CModelRecord();
   CModelRecord &operator=(const CModelRecord &source);
   void          Copy(const CModelRecord &source);
@@ -63,6 +63,21 @@ CModelRecord::~CModelRecord() {
   if (model) {
     HandleClose(model);
   }
+}
+
+CModelRecord &CModelRecord::operator=(const CModelRecord &source) {
+  if (model) {
+    HandleClose(model);
+  }
+  Copy(source);
+  return *this;
+}
+
+void CModelRecord::Copy(const CModelRecord &source) {
+  model = static_cast<HMODEL>(HandleDuplicate(source.model));
+  distance = source.distance;
+  scale = source.scale;
+  guid = source.guid;
 }
 
 struct FADEOUTHASHOBJ : public TSHashObject<FADEOUTHASHOBJ, CHashKeyGUID> {

@@ -11,6 +11,15 @@ class CMovement;
 
 class C24Matrix {
  public:
+  float a0;
+  float a1;
+  float b0;
+  float b1;
+  float c0;
+  float c1;
+  float d0;
+  float d1;
+
   enum {
     eComponents = 8
   };
@@ -28,30 +37,21 @@ class C24Matrix {
   ~C24Matrix() {
   }
 
-  const float *Access() const {
-    return &a0;
-  }
-
   float *Access() {
     return &a0;
   }
 
-  const float *operator[](UINT row) const {
-    return &a0 + row * 2;
+  const float *Access() const {
+    return &a0;
   }
 
   float *operator[](UINT row) {
     return &a0 + row * 2;
   }
 
-  float a0;
-  float a1;
-  float b0;
-  float b1;
-  float c0;
-  float c1;
-  float d0;
-  float d1;
+  const float *operator[](UINT row) const {
+    return &a0 + row * 2;
+  }
 };
 
 namespace NTempest {
@@ -60,37 +60,25 @@ namespace NTempest {
   class C44Matrix;
 
   class C3Spline {
-   public:
-    enum EvalType {
-      EVAL_PARAMETRIC = 0,
-      EVAL_ARCLENGTH = 1,
-      EVAL_COUNT = 2
-    };
+   private:
+    friend class ::CGGameObject_C_Type_MapObjTransport;
+    friend class ::CGUnit_C;
+    friend class ::CMovement;
+    friend class C3Spline_Bezier3;
+    friend class C3Spline_CatmullRom;
 
+    mutable float             cachedLength;
+    TSGrowableArray<C3Vector> points;
+
+   protected:
     enum {
       DEFAULT_STEPS = 20
     };
 
-    UINT NumPoints() const {
-      return points.Count();
-    }
-    const C3Vector &Point(UINT pointSub) const {
-      return points[pointSub];
-    }
-    void SetPoints(const TSGrowableArray<C3Vector> &pts) {
-      SetPoints(pts.Ptr(), pts.Count());
-    }
-    void  SetPoints(const C3Vector *pts, UINT count);
-    void  SetPoint(UINT pointSub, const C3Vector &point);
-    void  Pos(float t, C3Vector &pos, EvalType ptype) const;
-    void  Vel(float t, C3Vector &vel, EvalType ptype) const;
-    void  Frame(float t, C34Matrix &frame, EvalType ptype) const;
-    float Length() const {
-      ValidateCache();
-      return cachedLength;
-    }
+    mutable TSGrowableArray<float> cachedSegLength;
 
-   protected:
+    void  ValidateCache() const;
+
     friend class ::CSplineParticleEmitter;
     virtual float ILength() const = 0;
     float         ILength(UINT segmentCount) const;
@@ -105,28 +93,60 @@ namespace NTempest {
     void  Evaluate(UINT segment, float t, const C44Matrix &coeffs, C3Vector &pos) const;
     void  EvaluateDer1(UINT segment, float t, const C34Matrix &coeffs, C3Vector &der) const;
     void  EvaluateDer2(UINT segment, float t, const C24Matrix &coeffs, C3Vector &der) const;
-    void  Curvature(UINT segment, float t, const C34Matrix &der1coeffs, const C24Matrix &der2coeffs, C3Vector &centerOfCurvature) const;
     float SegLength(UINT segment, const C44Matrix &coeffs) const;
-    void  ValidateCache() const;
-
     void ParametricSegT(float wholeT, UINT segCount, UINT &segment, float &t) const;
     void ArclengthSegT(float s, const C44Matrix &coeffs, UINT segCount, UINT &seg, float &t) const;
 
-   private:
-    friend class ::CGGameObject_C_Type_MapObjTransport;
-    friend class ::CGUnit_C;
-    friend class ::CMovement;
-    friend class C3Spline_Bezier3;
-    friend class C3Spline_CatmullRom;
+    void  Curvature(UINT segment, float t, const C34Matrix &der1coeffs, const C24Matrix &der2coeffs, C3Vector &centerOfCurvature) const;
 
-    mutable float             cachedLength;
-    TSGrowableArray<C3Vector> points;
+   public:
+    enum EvalType {
+      EVAL_PARAMETRIC = 0,
+      EVAL_ARCLENGTH = 1,
+      EVAL_COUNT = 2
+    };
 
-   protected:
-    mutable TSGrowableArray<float> cachedSegLength;
+    UINT NumPoints() const {
+      return points.Count();
+    }
+    const C3Vector &Point(UINT pointSub) const {
+      return points[pointSub];
+    }
+    void  SetPoints(const C3Vector *pts, UINT count);
+    void SetPoints(const TSGrowableArray<C3Vector> &pts) {
+      SetPoints(pts.Ptr(), pts.Count());
+    }
+    void  SetPoint(UINT pointSub, const C3Vector &point);
+    void  Pos(float t, C3Vector &pos, EvalType ptype) const;
+    void  Vel(float t, C3Vector &vel, EvalType ptype) const;
+    void  Frame(float t, C34Matrix &frame, EvalType ptype) const;
+    float Length() const {
+      ValidateCache();
+      return cachedLength;
+    }
   };
 
   class C3Spline_Bezier3 : public C3Spline {
+   private:
+    UINT SegCount() const {
+      return points.Count() / 3;
+    }
+    float SegLength(UINT segment) const;
+    void  ParametricSegT(float wholeT, UINT &segment, float &t) const;
+    void  ArclengthSegT(float s, UINT &seg, float &t) const;
+    void  Evaluate(UINT segment, float t, C3Vector &pos) const;
+    void  EvaluateDer1(UINT segment, float t, C3Vector &der) const;
+
+   protected:
+    virtual float ILength() const;
+    virtual void  IValidateCache() const;
+    virtual void  IPosArclength(float t, C3Vector &pos) const;
+    virtual void  IPosParametric(float t, C3Vector &pos) const;
+    virtual void  IVelArclength(float t, C3Vector &vel) const;
+    virtual void  IVelParametric(float t, C3Vector &vel) const;
+    virtual void  ISetPoints(const C3Vector *pts, UINT count);
+    virtual void  IFrameArclength(float t, C34Matrix &frame) const;
+
    public:
     C3Spline_Bezier3() {
     }
@@ -135,65 +155,46 @@ namespace NTempest {
     }
     C3Spline_Bezier3(const C3Spline_Bezier3 &spline) : C3Spline(spline) {
     }
-
-   protected:
-    virtual float ILength() const;
-    virtual void  IValidateCache() const;
-    virtual void  IPosArclength(float t, C3Vector &pos) const;
-    virtual void  IPosParametric(float t, C3Vector &pos) const;
-    virtual void  IVelArclength(float t, C3Vector &vel) const;
-    virtual void  IVelParametric(float t, C3Vector &vel) const;
-    virtual void  IFrameArclength(float t, C34Matrix &frame) const;
-    virtual void  ISetPoints(const C3Vector *pts, UINT count);
-
-   private:
-    UINT SegCount() const {
-      return points.Count() / 3;
-    }
-    void  ParametricSegT(float wholeT, UINT &segment, float &t) const;
-    void  ArclengthSegT(float s, UINT &seg, float &t) const;
-    void  Evaluate(UINT segment, float t, C3Vector &pos) const;
-    void  EvaluateDer1(UINT segment, float t, C3Vector &der) const;
-    float SegLength(UINT segment) const;
   };
 
   class C3Spline_CatmullRom : public C3Spline {
-   public:
-    enum SPLINE_MODE {
-      MODE_LINEAR = 0,
-      MODE_CATMULLROM = 1
-    };
-
-    C3Spline_CatmullRom() : splineMode(MODE_CATMULLROM) {
-    }
-    C3Spline_CatmullRom(const C3Spline_CatmullRom &spline) : C3Spline(spline), splineMode(spline.splineMode) {
-    }
-    void SetSplineMode(SPLINE_MODE mode) {
-      splineMode = mode;
-    }
-
-    void Curvature(float t, C3Vector &centerOfCurvature) const;
-
-   protected:
-    virtual float ILength() const;
-    virtual void  IValidateCache() const;
-    virtual void  IPosArclength(float t, C3Vector &pos) const;
-    virtual void  IPosParametric(float t, C3Vector &pos) const;
-    virtual void  IVelArclength(float t, C3Vector &vel) const;
-    virtual void  IVelParametric(float t, C3Vector &vel) const;
-    virtual void  IFrameArclength(float t, C34Matrix &frame) const;
-    virtual void  ISetPoints(const C3Vector *pts, UINT count);
-
    private:
     UINT SegCount() const {
       return points.Count() - 3;
     }
+    float SegLength(UINT segment) const;
     void  ParametricSegT(float wholeT, UINT &segment, float &t) const;
     void  ArclengthSegT(float s, UINT &seg, float &t) const;
     void  Evaluate(UINT segment, float t, C3Vector &pos) const;
     void  EvaluateDer1(UINT segment, float t, C3Vector &der) const;
     void  EvaluateDer2(UINT segment, float t, C3Vector &der) const;
-    float SegLength(UINT segment) const;
+
+   protected:
+    virtual float ILength() const;
+    virtual void  IValidateCache() const;
+    virtual void  IPosArclength(float t, C3Vector &pos) const;
+    virtual void  IPosParametric(float t, C3Vector &pos) const;
+    virtual void  IVelArclength(float t, C3Vector &vel) const;
+    virtual void  IVelParametric(float t, C3Vector &vel) const;
+    virtual void  ISetPoints(const C3Vector *pts, UINT count);
+    virtual void  IFrameArclength(float t, C34Matrix &frame) const;
+
+   public:
+    void Curvature(float t, C3Vector &centerOfCurvature) const;
+
+    enum SPLINE_MODE {
+      MODE_LINEAR = 0,
+      MODE_CATMULLROM = 1
+    };
+
+    void SetSplineMode(SPLINE_MODE mode) {
+      splineMode = mode;
+    }
+
+    C3Spline_CatmullRom() : splineMode(MODE_CATMULLROM) {
+    }
+    C3Spline_CatmullRom(const C3Spline_CatmullRom &spline) : C3Spline(spline), splineMode(spline.splineMode) {
+    }
 
    protected:
     SPLINE_MODE splineMode;

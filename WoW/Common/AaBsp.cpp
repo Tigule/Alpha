@@ -10,6 +10,11 @@ static BYTE s_faceBitsMask[8] = {1, 2, 4, 8, 16, 32, 64, 128};
 
 class CFaceQuery {
  public:
+  WORD *indices;
+  UINT  maxCount;
+  UINT  count;
+  BYTE  faceBits[8192];
+
   CFaceQuery() : indices(0), maxCount(0), count(0) {
     memset(faceBits, 0, sizeof(faceBits));
   }
@@ -26,11 +31,6 @@ class CFaceQuery {
       faceBits[indices[i] >> 3] = 0;
     }
   }
-
-  WORD *indices;
-  UINT  maxCount;
-  UINT  count;
-  BYTE  faceBits[8192];
 };
 
 static CFaceQuery s_faceQuery;

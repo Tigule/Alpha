@@ -149,11 +149,6 @@ class CDataMgr : public CHandleObject {
   TSFixedArray<CBaseManaged *> m_managedArray;
   LISTDECLEX(CBaseManaged, m_link, m_updateList);
 
- protected:
-  CDataMgr(UINT count) {
-    m_managedArray.SetCount(count);
-  }
-
  private:
   void AddManaged(CBaseManaged *manage, UINT fieldId, UINT flags, UINT dataTypeId);
 
@@ -164,6 +159,10 @@ class CDataMgr : public CHandleObject {
   void AddManaged(TManaged<NTempest::C33Matrix> *manage, UINT fieldId, UINT flags);
   void AddManaged(TManaged<int> *manage, UINT fieldId, UINT flags);
   void AddManaged(TManaged<float> *manage, UINT fieldId, UINT flags);
+
+  CDataMgr(UINT count) {
+    m_managedArray.SetCount(count);
+  }
 
  public:
   void LinkManaged(CBaseManaged *m);

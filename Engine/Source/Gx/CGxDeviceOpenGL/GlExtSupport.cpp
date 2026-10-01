@@ -92,11 +92,11 @@ void(APIENTRY *glCombinerParameterfvNV)(UINT, const float *);
 void(APIENTRY *glCombinerParameteriNV)(UINT, int);
 void(APIENTRY *glCombinerStageParameterfvNV)(UINT, UINT, const float *);
 BYTE(APIENTRY *glIsProgramARB)(UINT);
-HPBUFFERARB__ *(APIENTRY *wglCreatePbufferARB)(HDC, int, int, int, const int *);
-HDC(APIENTRY *wglGetPbufferDCARB)(HPBUFFERARB__ *);
-int(APIENTRY *wglQueryPbufferARB)(HPBUFFERARB__ *, int, int *);
-int(APIENTRY *wglReleasePbufferDCARB)(HPBUFFERARB__ *, HDC);
-int(APIENTRY *wglDestroyPbufferARB)(HPBUFFERARB__ *);
+HPBUFFERARB(APIENTRY *wglCreatePbufferARB)(HDC, int, int, int, const int *);
+HDC(APIENTRY *wglGetPbufferDCARB)(HPBUFFERARB);
+int(APIENTRY *wglQueryPbufferARB)(HPBUFFERARB, int, int *);
+int(APIENTRY *wglReleasePbufferDCARB)(HPBUFFERARB, HDC);
+int(APIENTRY *wglDestroyPbufferARB)(HPBUFFERARB);
 
 WGLGETEXTENSIONSSTRINGARB    wglGetExtensionsStringARB;
 WGLGETPIXELFORMATATTRIBIVARB wglGetPixelFormatAttribivARB;
@@ -263,11 +263,11 @@ void BindGlExtensions() {
   }
   if (FindWglExt("WGL_ARB_pbuffer")) {
     wglARBPbuffer = 1;
-    wglCreatePbufferARB = reinterpret_cast<HPBUFFERARB__ *(APIENTRY *)(HDC, int, int, int, const int *)>(wglGetProcAddress("wglCreatePbufferARB"));
-    wglGetPbufferDCARB = reinterpret_cast<HDC(APIENTRY *)(HPBUFFERARB__ *)>(wglGetProcAddress("wglGetPbufferDCARB"));
-    wglReleasePbufferDCARB = reinterpret_cast<int(APIENTRY *)(HPBUFFERARB__ *, HDC)>(wglGetProcAddress("wglReleasePbufferDCARB"));
-    wglDestroyPbufferARB = reinterpret_cast<int(APIENTRY *)(HPBUFFERARB__ *)>(wglGetProcAddress("wglDestroyPbufferARB"));
-    wglQueryPbufferARB = reinterpret_cast<int(APIENTRY *)(HPBUFFERARB__ *, int, int *)>(wglGetProcAddress("wglQueryPbufferARB"));
+    wglCreatePbufferARB = reinterpret_cast<HPBUFFERARB(APIENTRY *)(HDC, int, int, int, const int *)>(wglGetProcAddress("wglCreatePbufferARB"));
+    wglGetPbufferDCARB = reinterpret_cast<HDC(APIENTRY *)(HPBUFFERARB)>(wglGetProcAddress("wglGetPbufferDCARB"));
+    wglReleasePbufferDCARB = reinterpret_cast<int(APIENTRY *)(HPBUFFERARB, HDC)>(wglGetProcAddress("wglReleasePbufferDCARB"));
+    wglDestroyPbufferARB = reinterpret_cast<int(APIENTRY *)(HPBUFFERARB)>(wglGetProcAddress("wglDestroyPbufferARB"));
+    wglQueryPbufferARB = reinterpret_cast<int(APIENTRY *)(HPBUFFERARB, int, int *)>(wglGetProcAddress("wglQueryPbufferARB"));
   }
   if (FindWglExt("WGL_EXT_swap_control")) {
     wglEXTSwapControl = 1;

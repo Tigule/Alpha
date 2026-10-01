@@ -26,8 +26,8 @@ CMouseEvent &CMouseEvent::operator=(const EVENT_DATA_MOUSE &rhs) {
   buttonState = rhs.buttonState;
   metaKeyState = rhs.metaKeyState;
   flags = rhs.flags;
-  wheelDistance = rhs.wheelDistance;
   time = rhs.time;
+  wheelDistance = rhs.wheelDistance;
   NDCToDDC(rhs.x, rhs.y, &x, &y);
   return *this;
 }

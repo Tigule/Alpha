@@ -11,6 +11,16 @@ namespace NTempest {
 DECLARE_DERIVED_HANDLE(HCAMERA, HDATAMGR);
 
 class CAngle : public TManaged<float> {
+ private:
+  float m_cos;
+  float m_sin;
+
+  void  Calc();
+  float ClampTo2Pi(float angle);
+
+ protected:
+  virtual void Set_(const float &angle);
+
  public:
   CAngle();
   CAngle(float angle);
@@ -22,19 +32,20 @@ class CAngle : public TManaged<float> {
   }
 
   friend HCAMERA CameraDuplicate(HCAMERA source);
-
- protected:
-  virtual void Set_(const float &angle);
-
- private:
-  void  Calc();
-  float ClampTo2Pi(float angle);
-  float m_cos;
-  float m_sin;
 };
 
 class CCamera : public CDataMgr {
  public:
+  TManaged<NTempest::C3Vector> m_position;
+  TManaged<NTempest::C3Vector> m_target;
+  TManaged<float>              m_distance;
+  TManaged<float>              m_zFar;
+  TManaged<float>              m_zNear;
+  CAngle                       m_aoa;
+  CAngle                       m_fov;
+  CAngle                       m_roll;
+  CAngle                       m_rotation;
+
   CCamera()
       : CDataMgr(9),
         m_position(NTempest::C3Vector(100.0f, 0.0f, 0.0f)),
@@ -60,16 +71,6 @@ class CCamera : public CDataMgr {
 
   friend HCAMERA CameraDuplicate(HCAMERA source);
 
- public:
-  TManaged<NTempest::C3Vector> m_position;
-  TManaged<NTempest::C3Vector> m_target;
-  TManaged<float>              m_distance;
-  TManaged<float>              m_zFar;
-  TManaged<float>              m_zNear;
-  CAngle                       m_aoa;
-  CAngle                       m_fov;
-  CAngle                       m_roll;
-  CAngle                       m_rotation;
 };
 
 HCAMERA CameraCreate();

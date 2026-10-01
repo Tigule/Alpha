@@ -38,6 +38,15 @@ static BOOL CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments);
 static BOOL CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments);
 
 struct PortraitData {
+  PortraitData() : texture(0) {
+  }
+
+  ~PortraitData() {
+    if (texture) {
+      HandleClose(texture);
+    }
+  }
+
   HTEXTURE                             texture;
   TSGrowableArray<NTempest::CImVector> pixels;
 };

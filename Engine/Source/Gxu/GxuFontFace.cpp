@@ -6,7 +6,9 @@
 
 #include <freetype/freetype.h>
 
-struct FACEDATA : public CHandleObject, public TSHashObject<FACEDATA, HASHKEY_STRI> {
+DECLARE_DERIVED_HANDLE(HFACE, HOBJECT);
+
+struct FACEDATA : public TSHashObject<FACEDATA, HASHKEY_STRI>, public CHandleObject {
   FACEDATA() : data(0), face(0) {
   }
 
@@ -44,7 +46,7 @@ HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
   faceData = s_faceHash.Ptr(fileName);
   if (faceData) {
     ASSERT(faceData->selfReference);
-    return reinterpret_cast<HFACE__ *>(HandleDuplicate(reinterpret_cast<HOBJECT>(faceData->selfReference)));
+    return static_cast<HFACE>(HandleDuplicate(faceData->selfReference));
   }
 
   if (!SFile::Load(0, fileName, &data, &size, 0, 3, 0)) {
@@ -77,8 +79,8 @@ HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
 
   data = 0;
   theFace = 0;
-  faceData->selfReference = reinterpret_cast<HFACE__ *>(HandleCreate(faceData, "HFACE"));
-  handle = reinterpret_cast<HFACE__ *>(HandleDuplicate(reinterpret_cast<HOBJECT>(faceData->selfReference)));
+  faceData->selfReference = static_cast<HFACE>(HandleCreate(faceData, "HFACE"));
+  handle = static_cast<HFACE>(HandleDuplicate(faceData->selfReference));
 
 finallylabel:
   if (data) {
@@ -91,7 +93,11 @@ finallylabel:
 FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle) {
   FACEDATA *dataPtr;
 
-  FATALASSERT(handle);
+  if (!handle) {
+    FATALERROR(("handle"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return NULL;
+  }
 
   dataPtr = reinterpret_cast<FACEDATA *>(handle);
   ASSERT(dataPtr->selfReference);
@@ -102,10 +108,14 @@ void FontFaceCloseHandle(HFACE__ *handle) {
   FACEDATA *dataPtr;
   UINT      refCount;
 
-  FATALASSERT(handle);
+  if (!handle) {
+    FATALERROR(("handle"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return;
+  }
 
   dataPtr = reinterpret_cast<FACEDATA *>(handle);
-  HandleClose(reinterpret_cast<HOBJECT>(handle));
+  HandleClose(handle);
 
   refCount = dataPtr->GetRefCount();
   ASSERT(refCount >= 1);
@@ -115,14 +125,18 @@ void FontFaceCloseHandle(HFACE__ *handle) {
     HFACE__ *selfReference = dataPtr->selfReference;
 
     dataPtr->selfReference = 0;
-    HandleClose(reinterpret_cast<HOBJECT>(selfReference));
+    HandleClose(selfReference);
   }
 }
 
 LPCSTR FontFaceGetFontName(HFACE__ *handle) {
   FACEDATA *dataPtr;
 
-  FATALASSERT(handle);
+  if (!handle) {
+    FATALERROR(("handle"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return NULL;
+  }
 
   dataPtr = reinterpret_cast<FACEDATA *>(handle);
   return dataPtr->GetString();

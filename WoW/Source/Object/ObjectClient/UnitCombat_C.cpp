@@ -1321,28 +1321,26 @@ void CGUnit_C::AttackAnimEndHandler() {
   if (player && player->GetGUID() != GetGUID()) {
     char buff[256];
     SStrPrintf(buff, sizeof(buff), "%s: attack anim ends", GetUnitName());
-    DDGENLOG(GetGUID(), buff, __FILE__, __LINE__);
+    player->DDGENLOG(GetGUID(), buff, __FILE__, __LINE__);
   }
   CheckPendingVictimFeedback();
   ClearTorsoAnimation(64);
 }
 
 void CGUnit_C::CheckPendingVictimFeedback() {
-  ANIMQUEUENODE *node = m_currentDamageInfo;
-  if (!node) {
+  if (!m_currentDamageInfo) {
     return;
   }
 
-  BYTE     *nodeData = reinterpret_cast<BYTE *>(node);
-  DWORDLONG victimGUID = *reinterpret_cast<DWORDLONG *>(nodeData + offsetof(ANIMQUEUENODE, roundInfo) + offsetof(ATTACKROUNDINFO, victim));
-  CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(victimGUID, __FILE__, __LINE__));
+  CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_currentDamageInfo->roundInfo.victim, __FILE__, __LINE__));
   FATALASSERT(victimPtr != this);
 
+  ANIMQUEUENODE *node = m_currentDamageInfo;
   m_currentDamageInfo = 0;
   if (victimPtr) {
-    DoVictimFeedback(reinterpret_cast<ATTACKROUNDINFO *>(nodeData + offsetof(ANIMQUEUENODE, roundInfo)), 1);
+    victimPtr->DoVictimFeedback(&node->roundInfo, 1);
   }
-  if (*reinterpret_cast<UINT *>(nodeData + offsetof(ANIMQUEUENODE, roundInfo) + offsetof(ATTACKROUNDINFO, flags)) & 0x1000) {
+  if (node->roundInfo.flags & 0x1000) {
     if (GetGUID() == ClntObjMgrGetActivePlayer()) {
       CGPlayer_C::ProcessDeferredDamage();
       CGPlayer_C::ProcessDeferredSpellMiss();
@@ -1447,7 +1445,7 @@ void CGUnit_C::OnCombatModeTimer() {
     }
 
     if ((!inPosition || rangeSquared > attackRange * attackRange) && (m_combat.IsAttacking() || m_combat.AttackBeenSent())) {
-      CGUnit_C::StopAttack();
+      StopAttack();
     }
 
     CGPlayer_C *player;
@@ -1466,14 +1464,14 @@ void CGUnit_C::OnCombatModeTimer() {
     static_cast<CGPlayer_C *>(this)->SetCombatMode(0);
   }
   if (m_combat.IsAttacking() || m_combat.AttackBeenSent()) {
-    CGUnit_C::StopAttack();
+    StopAttack();
   }
 }
 
 void CGUnit_C::AttackUnit(CGUnit_C *newVictim) {
   DWORDLONG currentVictim = m_combat.IsAttacking();
   if (currentVictim && currentVictim != newVictim->GetGUID()) {
-    CGUnit_C::StopAttack();
+    StopAttack();
     currentVictim = 0;
   }
 
@@ -1509,7 +1507,11 @@ void CGUnit_C::AddVictimDeathHold(CGUnit_C *victimPtr) {
 
 void CGUnit_C::SetMeleeDeathHold(const CGUnit_C *victimPtr) {
   ClearMeleeDeathHold();
-  m_meleeTargetDeathHold = victimPtr ? victimPtr->GetGUID() : 0;
+  if (!victimPtr) {
+    m_meleeTargetDeathHold = 0;
+    return;
+  }
+  m_meleeTargetDeathHold = victimPtr->GetGUID();
 }
 
 void CGUnit_C::ClearMeleeDeathHold() {

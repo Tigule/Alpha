@@ -17,7 +17,7 @@ float CAngle::ClampTo2Pi(float angle) {
 void CDataMgr::AddManaged(CBaseManaged *manage, UINT fieldId, UINT flags, UINT dataTypeId) {
   ASSERT(manage);
   ASSERT(fieldId < m_managedArray.Count());
-  ASSERT(dataTypeId < 7);
+  ASSERT(dataTypeId < CBaseManaged::DATATYPEIDS);
 
   manage->m_flags = static_cast<BYTE>(flags);
   manage->m_dataTypeId = static_cast<BYTE>(dataTypeId);
@@ -70,7 +70,7 @@ void CDataMgr::Update(float elapsedSec) {
   }
 }
 
-int DataMgrGetBool(HDATAMGR__ *mgr, UINT fieldId) {
+int DataMgrGetBool(HDATAMGR mgr, UINT fieldId) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   FATALASSERT(mgrPtr);
   FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -87,7 +87,7 @@ int DataMgrGetBool(HDATAMGR__ *mgr, UINT fieldId) {
   return static_cast<TManaged<int> *>(managed)->Get();
 }
 
-void DataMgrGetColor(HDATAMGR__ *mgr, UINT fieldId, NTempest::CImVector *color) {
+void DataMgrGetColor(HDATAMGR mgr, UINT fieldId, NTempest::CImVector *color) {
   ASSERT(mgr);
   FATALASSERT(color);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
@@ -106,7 +106,7 @@ void DataMgrGetColor(HDATAMGR__ *mgr, UINT fieldId, NTempest::CImVector *color) 
   *color = static_cast<TManaged<NTempest::CImVector> *>(managed)->Get();
 }
 
-void DataMgrGetColor(HDATAMGR__ *mgr, UINT fieldId, C3Color *color) {
+void DataMgrGetColor(HDATAMGR mgr, UINT fieldId, C3Color *color) {
   ASSERT(mgr);
   FATALASSERT(color);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
@@ -148,7 +148,7 @@ void DataMgrGetCoord(HDATAMGR mgr, UINT fieldId, NTempest::C3Vector *coord) {
   *coord = static_cast<TManaged<NTempest::C3Vector> *>(managed)->Get();
 }
 
-void DataMgrGetC33Matrix(HDATAMGR__ *mgr, UINT fieldId, NTempest::C33Matrix *matrix) {
+void DataMgrGetC33Matrix(HDATAMGR mgr, UINT fieldId, NTempest::C33Matrix *matrix) {
   ASSERT(mgr);
   FATALASSERT(matrix);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
@@ -167,7 +167,7 @@ void DataMgrGetC33Matrix(HDATAMGR__ *mgr, UINT fieldId, NTempest::C33Matrix *mat
   *matrix = static_cast<TManaged<NTempest::C33Matrix> *>(managed)->Get();
 }
 
-int DataMgrGetInt(HDATAMGR__ *mgr, UINT fieldId) {
+int DataMgrGetInt(HDATAMGR mgr, UINT fieldId) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   FATALASSERT(mgrPtr);
   FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -205,7 +205,7 @@ float DataMgrGetFloat(HDATAMGR mgr, UINT fieldId) {
   return static_cast<TManaged<float> *>(managed)->Get();
 }
 
-void DataMgrGetUpdateInfo(HDATAMGR__ *mgr, UINT fieldId, UpdateInfo *info) {
+void DataMgrGetUpdateInfo(HDATAMGR mgr, UINT fieldId, UpdateInfo *info) {
   ASSERT(mgr);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   FATALASSERT(mgrPtr);
@@ -218,7 +218,7 @@ void DataMgrGetUpdateInfo(HDATAMGR__ *mgr, UINT fieldId, UpdateInfo *info) {
   info->updatePriority = managed->m_updatePriority;
 }
 
-void DataMgrSetBool(HDATAMGR__ *mgr, UINT fieldId, int val) {
+void DataMgrSetBool(HDATAMGR mgr, UINT fieldId, int val) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -232,7 +232,7 @@ void DataMgrSetBool(HDATAMGR__ *mgr, UINT fieldId, int val) {
   static_cast<TManaged<int> *>(managed)->Set_(val);
 }
 
-void DataMgrSetColor(HDATAMGR__ *mgr, UINT fieldId, const NTempest::CImVector &color) {
+void DataMgrSetColor(HDATAMGR mgr, UINT fieldId, const NTempest::CImVector &color) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -246,7 +246,7 @@ void DataMgrSetColor(HDATAMGR__ *mgr, UINT fieldId, const NTempest::CImVector &c
   static_cast<TManaged<NTempest::CImVector> *>(managed)->Set_(color);
 }
 
-void DataMgrSetColor(HDATAMGR__ *mgr, UINT fieldId, const C3Color &color) {
+void DataMgrSetColor(HDATAMGR mgr, UINT fieldId, const C3Color &color) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -281,7 +281,7 @@ void DataMgrSetCoord(HDATAMGR mgr, UINT fieldId, const NTempest::C3Vector &coord
   static_cast<TManaged<NTempest::C3Vector> *>(managed)->Set_(setTo);
 }
 
-void DataMgrSetC33Matrix(HDATAMGR__ *mgr, UINT fieldId, const NTempest::C33Matrix &matrix) {
+void DataMgrSetC33Matrix(HDATAMGR mgr, UINT fieldId, const NTempest::C33Matrix &matrix) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());
@@ -295,7 +295,7 @@ void DataMgrSetC33Matrix(HDATAMGR__ *mgr, UINT fieldId, const NTempest::C33Matri
   static_cast<TManaged<NTempest::C33Matrix> *>(managed)->Set_(matrix);
 }
 
-void DataMgrSetInt(HDATAMGR__ *mgr, UINT fieldId, int val) {
+void DataMgrSetInt(HDATAMGR mgr, UINT fieldId, int val) {
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
   ASSERT(mgrPtr);
   ASSERT(fieldId < mgrPtr->m_managedArray.Count());

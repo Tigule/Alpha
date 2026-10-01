@@ -1726,8 +1726,13 @@ class TSHashTable {
  private:
   friend class CGameTime;
 
-  virtual void InternalDelete(T *ptr);
-  virtual T   *InternalNew(LISTEXDYN(T) * list, DWORD extrabytes, DWORD flags);
+ protected:
+  LISTEXDYN(T) m_fulllist;
+
+ private:
+  UINT                          m_fullnessIndicator;
+  TSGrowableArray<LISTEXDYN(T)> m_slotlistarray;
+  UINT                          m_slotmask;
 
   UINT ComputeSlot(UINT hashval) const {
     return hashval & m_slotmask;
@@ -1741,9 +1746,11 @@ class TSHashTable {
   }
 
   void InternalClear(int warn);
+  virtual void InternalDelete(T *ptr);
+  virtual T   *InternalNew(LISTEXDYN(T) * list, DWORD extrabytes, DWORD flags);
+  int  MonitorFullness(UINT slot);
   void InternalLinkNode(T *ptr, UINT hashval);
   T   *InternalNewNode(UINT hashval, DWORD extrabytes, DWORD flags);
-  int  MonitorFullness(UINT slot);
 
   TSHashTable<T, KEY> &NonConst() const {
     return const_cast<TSHashTable<T, KEY> &>(*this);
@@ -1755,6 +1762,7 @@ class TSHashTable {
   }
 
  public:
+  TSHashTable(const TSHashTable<T, KEY> &);
   TSHashTable();
   TSHashTable<T, KEY> &operator=(const TSHashTable<T, KEY> &);
   virtual ~TSHashTable();
@@ -1762,6 +1770,126 @@ class TSHashTable {
   void Clear() {
     InternalClear(0);
   }
+
+  void Delete(T *ptr);
+
+  void Delete(UINT hashval, const KEY &key) {
+    T *ptr = Ptr(hashval, key);
+
+    FATALASSERT(ptr);
+
+    Delete(ptr);
+  }
+
+  void Delete(UINT hashval, LPCSTR key) {
+    T *ptr = Ptr(hashval, key);
+
+    FATALASSERT(ptr);
+
+    Delete(ptr);
+  }
+
+  void Delete(LPCSTR key) {
+    T *ptr = Ptr(key);
+
+    FATALASSERT(ptr);
+
+    Delete(ptr);
+  }
+
+  T *DeleteNode(T *ptr) {
+    T *next = Next(ptr);
+    Delete(ptr);
+    return next;
+  }
+
+  virtual void Destroy();
+
+  T *Head() {
+    return m_fulllist.Head();
+  }
+
+  const T *Head() const {
+    return NonConst().Head();
+  }
+
+  void Insert(T *ptr, UINT hashval, const KEY &key) {
+    InternalLinkNode(ptr, hashval);
+    ptr->m_key = key;
+  }
+
+  void Insert(T *ptr, UINT hashval, LPCSTR key) {
+    InternalLinkNode(ptr, hashval);
+    ptr->m_key = key;
+  }
+
+  void Insert(T *ptr, LPCSTR key) {
+    Insert(ptr, SStrHashHT(key), key);
+  }
+
+  T *New(UINT hashval, const KEY &key, DWORD extrabytes, DWORD flags) {
+    T *ptr = InternalNewNode(hashval, extrabytes, flags);
+    ptr->m_key = key;
+    return ptr;
+  }
+
+  T *New(UINT hashval, LPCSTR key, DWORD extrabytes, DWORD flags) {
+    T *ptr = InternalNewNode(hashval, extrabytes, flags);
+    ptr->m_key = key;
+    return ptr;
+  }
+
+  T *New(LPCSTR key, DWORD extrabytes, DWORD flags) {
+    return New(SStrHashHT(key), key, extrabytes, flags);
+  }
+
+  T *Next(const T *ptr) {
+    return m_fulllist.Next(ptr);
+  }
+
+  const T *Next(const T *ptr) const {
+    return NonConst().Next(ptr);
+  }
+
+  T *Prev(const T *ptr) {
+    return m_fulllist.Prev(ptr);
+  }
+
+  const T *Prev(const T *ptr) const {
+    return NonConst().Prev(ptr);
+  }
+
+  T *Ptr(UINT hashval, const KEY &key);
+
+  const T *Ptr(UINT hashval, const KEY &key) const {
+    return NonConst().Ptr(hashval, key);
+  }
+
+  T *Ptr(UINT hashval, LPCSTR key);
+  const T *Ptr(UINT hashval, LPCSTR key) const;
+  T *Ptr(LPCSTR key);
+
+  const T *Ptr(LPCSTR key) const {
+    return NonConst().Ptr(key);
+  }
+
+  T *RawNext(const T *ptr) {
+    return m_fulllist.RawNext(ptr);
+  }
+
+  const T *RawNext(const T *ptr) const {
+    return NonConst().RawNext(ptr);
+  }
+
+  T *Tail() {
+    return m_fulllist.Tail();
+  }
+
+  const T *Tail() const {
+    return NonConst().Tail();
+  }
+
+  void Unlink(T *ptr);
 
   void SetTableSize(UINT count) {
     UINT requested = count * 2;
@@ -1795,139 +1923,9 @@ class TSHashTable {
   float GetAverageBinDepth() const;
   UINT  GetPeakBinDepth() const;
 
-  void Delete(LPCSTR key) {
-    T *ptr = Ptr(key);
-
-    FATALASSERT(ptr);
-
-    Delete(ptr);
-  }
-
-  void Delete(UINT hashval, LPCSTR key) {
-    T *ptr = Ptr(hashval, key);
-
-    FATALASSERT(ptr);
-
-    Delete(ptr);
-  }
-
-  void Delete(UINT hashval, const KEY &key) {
-    T *ptr = Ptr(hashval, key);
-
-    FATALASSERT(ptr);
-
-    Delete(ptr);
-  }
-
-  void Delete(T *ptr);
-
-  T *DeleteNode(T *ptr) {
-    T *next = Next(ptr);
-    Delete(ptr);
-    return next;
-  }
-
-  virtual void Destroy();
-
-  T *Head() {
-    return m_fulllist.Head();
-  }
-
-  const T *Head() const {
-    return NonConst().Head();
-  }
-
-  void Insert(T *ptr, LPCSTR key) {
-    Insert(ptr, SStrHashHT(key), key);
-  }
-
-  void Insert(T *ptr, UINT hashval, LPCSTR key) {
-    InternalLinkNode(ptr, hashval);
-    ptr->m_key = key;
-  }
-
-  void Insert(T *ptr, UINT hashval, const KEY &key) {
-    InternalLinkNode(ptr, hashval);
-    ptr->m_key = key;
-  }
-
-  T *New(LPCSTR key, DWORD extrabytes, DWORD flags) {
-    return New(SStrHashHT(key), key, extrabytes, flags);
-  }
-
-  T *New(UINT hashval, LPCSTR key, DWORD extrabytes, DWORD flags) {
-    T *ptr = InternalNewNode(hashval, extrabytes, flags);
-    ptr->m_key = key;
-    return ptr;
-  }
-
-  T *New(UINT hashval, const KEY &key, DWORD extrabytes, DWORD flags) {
-    T *ptr = InternalNewNode(hashval, extrabytes, flags);
-    ptr->m_key = key;
-    return ptr;
-  }
-
-  T *Next(const T *ptr) {
-    return m_fulllist.Next(ptr);
-  }
-
-  const T *Next(const T *ptr) const {
-    return NonConst().Next(ptr);
-  }
-
-  T *Prev(const T *ptr) {
-    return m_fulllist.Prev(ptr);
-  }
-
-  const T *Prev(const T *ptr) const {
-    return NonConst().Prev(ptr);
-  }
-
-  T *Ptr(LPCSTR key);
-
-  const T *Ptr(LPCSTR key) const {
-    return NonConst().Ptr(key);
-  }
-
-  T *Ptr(UINT hashval, LPCSTR key);
-
-  const T *Ptr(UINT hashval, LPCSTR key) const;
-
-  T *Ptr(UINT hashval, const KEY &key);
-
-  const T *Ptr(UINT hashval, const KEY &key) const {
-    return NonConst().Ptr(hashval, key);
-  }
-
-  T *RawNext(const T *ptr) {
-    return m_fulllist.RawNext(ptr);
-  }
-
-  const T *RawNext(const T *ptr) const {
-    return NonConst().RawNext(ptr);
-  }
-
-  T *Tail() {
-    return m_fulllist.Tail();
-  }
-
-  const T *Tail() const {
-    return NonConst().Tail();
-  }
-
-  void Unlink(T *ptr);
-
   static UINT Hash(LPCSTR key) {
     return SStrHashHT(key);
   }
-
- protected:
-  LISTEXDYN(T) m_fulllist;
-
- private:
-  UINT                          m_fullnessIndicator;
-  TSGrowableArray<LISTEXDYN(T)> m_slotlistarray;
-  UINT                          m_slotmask;
 };
 
 template <class T, class KEY>
@@ -1940,6 +1938,10 @@ class TSHashObjectChunk {
 template <class T, class KEY, int REUSE>
 class TSHashTableReuse : public TSHashTable<T, KEY> {
  private:
+  LISTEXDYN(T) m_reuseList;
+  DWORD                                         m_chunkSize;
+  TSExplicitList<TSHashObjectChunk<T, KEY>, 20> m_chunkList;
+
   void         Destructor();
   virtual void InternalDelete(T *ptr);
   virtual T   *InternalNew(LISTEXDYN(T) * list, DWORD extrabytes, DWORD flags);
@@ -1948,11 +1950,6 @@ class TSHashTableReuse : public TSHashTable<T, KEY> {
   TSHashTableReuse();
   virtual ~TSHashTableReuse();
   virtual void Destroy();
-
- private:
-  LISTEXDYN(T) m_reuseList;
-  DWORD                                         m_chunkSize;
-  TSExplicitList<TSHashObjectChunk<T, KEY>, 20> m_chunkList;
 };
 
 template <class T, class HANDLE, int REUSE>
@@ -1967,8 +1964,8 @@ class TSExportTableSimple : public TSHashTableReuse<T, HASHKEY_NONE, REUSE> {
  public:
   TSExportTableSimple();
 
-  void Delete(HANDLE handle);
   void Delete(T *ptr);
+  void Delete(HANDLE handle);
   T   *New(HANDLE *handle);
   T   *Ptr(HANDLE handle);
 };

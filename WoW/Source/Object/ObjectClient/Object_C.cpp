@@ -183,7 +183,7 @@ void CGObject_C::SetTypeID(OBJECT_TYPE_ID typeID) {
   }
 }
 
-BOOL CGObject_C::ObjectModelSetSequence(HMODEL__ *model, UINT sequence, UINT flags, LPCSTR modelName) {
+BOOL CGObject_C::ObjectModelSetSequence(HMODEL model, UINT sequence, UINT flags, LPCSTR modelName) {
   if (sequence > NUM_OBJECTANIMATIONS) {
     SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIMMODEL|%d|%s", sequence, modelName);
     return 0;
@@ -210,7 +210,7 @@ BOOL CGObject_C::ObjectModelSetSequence(HMODEL__ *model, UINT sequence, UINT fla
   return 0;
 }
 
-BOOL CGObject_C::ObjectModelSetBoneSequence(HMODEL__ *model, UINT sequence, UINT objectID, UINT flags) {
+BOOL CGObject_C::ObjectModelSetBoneSequence(HMODEL model, UINT sequence, UINT objectID, UINT flags) {
   if (sequence > 135) {
     SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIM|%d", sequence);
     return 0;
@@ -572,7 +572,7 @@ void CGObject_C::ObjectSetNotRendering() {
   m_flags &= ~0x10U;
 }
 
-void CGObject_C::SetObjectModel(HMODEL__ *model) {
+void CGObject_C::SetObjectModel(HMODEL model) {
   RemoveWorldObject();
   m_model = model;
   if (model) {
@@ -581,7 +581,7 @@ void CGObject_C::SetObjectModel(HMODEL__ *model) {
   }
 }
 
-int CGObject_C::AddAttachment(HMODEL__ *parent, UINT parentIndex, HMODEL__ *child, float scale) {
+int CGObject_C::AddAttachment(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
   FATALASSERT(m_model);
 
   int result = ModelAddLink(parent, parentIndex, child, scale);
@@ -734,20 +734,13 @@ void CGObject_C::SetCircleRenderStates() const {
 }
 
 BOOL CGObject_C::UpdateModelLoadStatus() {
-  int modelLoaded = m_model ? ModelIsLoaded(m_model, 0) : 0;
-  if ((m_flags & 0x20) || !m_model || !modelLoaded) {
+  if ((m_flags & 0x20) || !m_model || !ModelIsLoaded(m_model, 0)) {
     return 0;
   }
 
   m_flags |= 0x20;
   UpdateObjectHeight(m_model);
   UpdateWorldObject();
-  if (GetType() & TYPE_UNIT) {
-    CGUnit_C *unit = static_cast<CGUnit_C *>(this);
-    if (!(unit->m_flags & 0x10)) {
-      unit->UpdateUnitCollisionBox(m_model, GetModelFileName());
-    }
-  }
   return 1;
 }
 
@@ -755,7 +748,7 @@ void CGObject_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
   ModelGetStandingMatrix(m_model, GetPosition(), GetGroundNormal(), GetRenderFacing(), GetScale() * m_renderScale, worldMatrix);
 }
 
-void CGObject_C::UpdateObjectHeight(HMODEL__ *model) {
+void CGObject_C::UpdateObjectHeight(HMODEL model) {
   NTempest::CAaBox extents;
   ModelGetExtents(model, &extents);
   m_objectHeight = extents.t.z - extents.b.z;
@@ -950,7 +943,7 @@ void CGObject_C::DoFade(BYTE alpha, UINT fadeTimeMs) {
   }
 }
 
-HMODEL__ *CGObject_C::GetCharacterModel(int *mounted) const {
+HMODEL CGObject_C::GetCharacterModel(int *mounted) const {
   if (mounted) {
     *mounted = 0;
   }

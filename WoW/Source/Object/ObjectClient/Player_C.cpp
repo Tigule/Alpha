@@ -604,7 +604,7 @@ static BOOL PlayerAttackBreakHandler(LPCVOID data, DWORDLONG guid, LPVOID param)
     FATALASSERT(playerPtr->GetGUID() == ClntObjMgrGetActivePlayer());
 
     if (!playerPtr->OnAttackBreakHandler()) {
-      playerPtr->CGUnit_C::StopAttack();
+      playerPtr->StopAttack();
       return 1;
     }
 
@@ -943,7 +943,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
         return 1;
       }
 
-      BYTE race = player->GetUnitData()->race;
+      BYTE race = player->GetRace();
       for (UINT index = 0; index < 2; ++index) {
         points[index] = CHARACTER_POINTS_PER_LEVEL[index];
         if (race == 1 && level % LEVELS_PER_CHARACTER_POINT_BONUS[index] == 0) {
@@ -1591,7 +1591,7 @@ static BOOL OnPlayEmote(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   msg->Get(guid);
 
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  if (unit && unit->GetUnitData()->standState != 3) {
+  if (unit && unit->GetStandState() != 3) {
     unit->PlayEmoteAnimation(emoteID, 0);
   }
 
@@ -4278,8 +4278,7 @@ static BOOL CCommand_ShowPet(LPCSTR, LPCSTR) {
   char        buffer[256];
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    const CGUnitData *unit = player->GetUnitData();
-    DWORDLONG         pet = unit->charm ? unit->charm : unit->summon;
+    DWORDLONG pet = player->GetCharm() ? player->GetCharm() : player->GetSummon();
     SStrPrintf(buffer, sizeof(buffer), "Current pet: 0x%016I64X\n", pet);
     ConsoleWrite(buffer, DEFAULT_COLOR);
   }
@@ -4946,7 +4945,7 @@ void CGPlayer_C::Initialize() {
 }
 
 bool CGPlayer_C::CanTrack(const CGUnit_C *unit) {
-  if (unit->m_unit->flags & 2) {
+  if (unit->IsBeingStalked()) {
     return 1;
   }
 
@@ -4955,7 +4954,10 @@ bool CGPlayer_C::CanTrack(const CGUnit_C *unit) {
     return 0;
   }
 
-  return (GetCreatureTracking() & (1 << (creatureType - 1))) != 0;
+  if (GetCreatureTracking() & (1 << (creatureType - 1))) {
+    return true;
+  }
+  return false;
 }
 
 bool CGPlayer_C::CanTrack(const CGGameObject_C *object) {
@@ -5430,7 +5432,7 @@ static BOOL QuestUpdateProc(DWORDLONG guid, LPVOID) {
     if (player && (object->IsA(TYPE_UNIT) || object->IsA(TYPE_GAMEOBJECT)) && !object->IsA(TYPE_ITEM) &&
         (!object->IsA(TYPE_GAMEOBJECT) || ((static_cast<CGGameObject_C *>(object)->GameObject()->m_flags & 4) &&
                                            static_cast<CGGameObject_C *>(object)->ObjectReaction(player) != UNIT_REACTION_HOSTILE)) &&
-        (!object->IsA(TYPE_UNIT) || ((static_cast<CGUnit_C *>(object)->GetUnitData()->npcFlags & 2) &&
+        (!object->IsA(TYPE_UNIT) || ((static_cast<CGUnit_C *>(object)->GetUnitNPCFlags() & 2) &&
                                      static_cast<CGUnit_C *>(object)->UnitReaction(player) > UNIT_REACTION_HOSTILE)))
     {
       player->UpdateQuestStatus(guid);
@@ -5455,7 +5457,7 @@ void CGPlayer_C::UpdateTaxiStatus(CGUnit_C *unit) {
 
 static BOOL TaxiUpdateProc(DWORDLONG guid, LPVOID param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  if (unit && (unit->GetType() & TYPE_UNIT) && (unit->GetUnitData()->npcFlags & 4)) {
+  if (unit && (unit->GetType() & TYPE_UNIT) && (unit->GetUnitNPCFlags() & 4)) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
       player->UpdateTaxiStatus(unit);
@@ -5480,7 +5482,7 @@ void CGPlayer_C::UpdateBindStatus(CGUnit_C *unit) {
 
 static BOOL BindUpdateProc(DWORDLONG guid, LPVOID param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  if (unit && (unit->GetType() & TYPE_UNIT) && (unit->GetUnitData()->npcFlags & 0x10)) {
+  if (unit && (unit->GetType() & TYPE_UNIT) && (unit->GetUnitNPCFlags() & 0x10)) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
       player->UpdateBindStatus(unit);

@@ -51,11 +51,11 @@ float CGContainer_C::GetSlotYOffset() const {
 }
 
 int CGContainer_C::GetWidth() const {
-  return m_bag.GetWidth(0);
+  return min(4U, m_bag.NumSlots());
 }
 
 int CGContainer_C::GetHeight() const {
-  return m_bag.GetHeight(0);
+  return (m_bag.NumSlots() + 3) / 4;
 }
 
 BOOL CGContainer_C::SetBlock(UINT, DWORD) {

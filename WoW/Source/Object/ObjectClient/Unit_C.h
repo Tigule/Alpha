@@ -39,7 +39,6 @@ int  Player_C_AppFocusMovementHandler(int focus);
 BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
 
 enum UNITEFFECTSPECIALS {
-  SPECIALEFFECT_NONE = -1,
   SPECIALEFFECT_LOOTART = 0,
   SPECIALEFFECT_LEVELUP = 1,
   SPECIALEFFECT_FOOTSTEPSPRAYSNOW = 2,
@@ -83,11 +82,11 @@ enum UNITEFFECTSPECIALS {
   SPECIALEFFECT_COMBATBLOODSPURTBLACKBACK = 40,
   SPECIALEFFECT_COMBATBLOODSPURTBLACKBACKLARGE = 41,
   SPECIALEFFECT_RES_EFFECT = 42,
-  NUM_UNITEFFECTSPECIALS = 43
+  NUM_UNITEFFECTSPECIALS = 43,
+  SPECIALEFFECT_NONE = -1
 };
 
 enum ANIM_STATE {
-  INVALID_ANIM_STATE = -1,
   ANIM_STATE_NONE = 0,
   ANIM_STATE_DEAD = 1,
   ANIM_STATE_SPELL = 2,
@@ -154,7 +153,8 @@ enum ANIM_STATE {
   ANIM_STATE_SPELLAURA = 63,
   NUM_ANIMSTATES = 64,
   ANIM_STATE_FIRST_STRAFE = ANIM_STATE_STRAFE_WALK_LEFT,
-  ANIM_STATE_LAST_STRAFE = ANIM_STATE_DIAG_BACKWARDS_RIGHT
+  ANIM_STATE_LAST_STRAFE = ANIM_STATE_DIAG_BACKWARDS_RIGHT,
+  INVALID_ANIM_STATE = -1
 };
 
 enum WORLDTEXTMISSTYPE {
@@ -178,7 +178,6 @@ enum BLOODSPURTLOCATION {
 };
 
 enum UNITEFFECTATTACHPPOINT {
-  UNITEFFECT_INVALID = -1,
   UNITEFFECT_ATTACHBASE = 0,
   UNITEFFECT_ATTACHHEAD = 1,
   UNITEFFECT_ATTACHLEFTHAND = 2,
@@ -191,11 +190,11 @@ enum UNITEFFECTATTACHPPOINT {
   UNITEFFECT_ATTACHSPECIAL3 = 9,
   UNITEFFECT_ATTACHCHESTBLOODBACK = 10,
   UNITEFFECT_ATTACHCHESTBLOODFRONT = 11,
-  NUM_UNITEFFECTATTACHPOINTS = 12
+  NUM_UNITEFFECTATTACHPOINTS = 12,
+  UNITEFFECT_INVALID = -1
 };
 
 enum GEOCOMPONENTLINKS {
-  ATTACH_NONE = -1,
   ATTACH_SHIELD = 0,
   ATTACH_HANDR = 1,
   ATTACH_HANDL = 2,
@@ -232,7 +231,8 @@ enum GEOCOMPONENTLINKS {
   ATTACH_HIPWEAPONRIGHT = 33,
   ATTACH_TORSOSPELL = 34,
   ATTACH_HANDARROW = 35,
-  NUM_ATTACH_SLOTS = 36
+  NUM_ATTACH_SLOTS = 36,
+  ATTACH_NONE = -1
 };
 
 enum QUEST_GIVER_STATUS {
@@ -287,11 +287,11 @@ enum VIRTUAL_MONSTER_SLOT {
 extern const VIRTUAL_MONSTER_SLOT g_monsterHands[NUMHANDS];
 
 enum WEAPONSWING_SOUNDTYPES {
-  WEAPONSWING_UNUSED = -1,
   WEAPONSWING_LIGHT = 0,
   WEAPONSWING_MEDIUM = 1,
   WEAPONSWING_HEAVY = 2,
-  NUM_WEAPONSWINGSOUNDTYPES = 3
+  NUM_WEAPONSWINGSOUNDTYPES = 3,
+  WEAPONSWING_UNUSED = -1
 };
 class CreatureStats_C;
 class CGNamePlateFrame;
@@ -366,6 +366,11 @@ enum PUREMOUNTFADEMODE {
 
 NODEDECL(SPELLEFFECTDESC) {
   const SpellVisualKitRec *kitPtr;
+
+  ~SPELLEFFECTDESC();
+  SPELLEFFECTDESC();
+  void ClearLightningObjects();
+
   NTempest::CImVector      color;
   float                    scale;
   UINT                     startTime;
@@ -379,9 +384,6 @@ NODEDECL(SPELLEFFECTDESC) {
   bool                     isOneShot;
   LightningObject         *lightningObjs[3];
 
-  SPELLEFFECTDESC();
-  ~SPELLEFFECTDESC();
-  void  ClearLightningObjects();
   float CalcScalar();
 };
 
@@ -645,10 +647,14 @@ class CGUnit {
   virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
 
   UINT              GetUnitFlags() const;
-  BYTE              GetUnitNPCFlags() const;
+  BYTE GetUnitNPCFlags() const {
+    return m_unit->npcFlags;
+  }
   BYTE              IsAlive() const;
   BYTE              IsDead() const;
-  int               GetHealth() const;
+  int GetHealth() const {
+    return m_unit->health;
+  }
   float             GetHealthPercent() const;
   int               GetPower(POWER_TYPE powerType) const;
   int               GetMaxPower(POWER_TYPE powerType) const;
@@ -670,14 +676,20 @@ class CGUnit {
   int                    GetResistanceBuffModPositive(UINT school) const;
   int                    GetResistanceBuffModNegative(UINT school) const;
   int                    GetResistanceItemMod(UINT school) const;
-  UINT                   GetRace() const;
+  UINT GetRace() const {
+    return m_unit->race;
+  }
   UINT                   GetClass() const;
   UNIT_SEX               GetSex() const;
   int                    GetModDamageDone(UINT school) const;
   int                    GetModDamageTaken(UINT school) const;
   int                    GetModCreatureDamageDone(UINT creatureType) const;
-  const DWORDLONG       &GetCharm() const;
-  const DWORDLONG       &GetSummon() const;
+  const DWORDLONG &GetCharm() const {
+    return m_unit->charm;
+  }
+  const DWORDLONG &GetSummon() const {
+    return m_unit->summon;
+  }
   const DWORDLONG       &GetControlledGUID() const;
   const DWORDLONG       &GetCharmedBy() const;
   BYTE                   IsCharmedBy(const DWORDLONG &guid) const;
@@ -702,7 +714,9 @@ class CGUnit {
   UINT                   GetShapeshiftBit() const;
   BYTE                   IsChannelling() const;
   int                    GetChannelSpell() const;
-  DWORDLONG              GetChannelObject() const;
+  DWORDLONG GetChannelObject() const {
+    return m_unit->channelObject;
+  }
   int                    ModCastSpeed() const;
   DWORDLONG              GetComboTarget() const;
   UINT                   GetComboPoints() const;
@@ -772,7 +786,9 @@ class CGUnit {
   BYTE               IsBeastmaster() const;
   BYTE               IsImmunePC() const;
   BYTE               IsImmuneNPC() const;
-  BYTE               IsLooting() const;
+  BYTE               IsLooting() const {
+    return (m_unit->flags >> 10) & 1;
+  }
   BYTE               IsInCombat() const;
   BYTE               IsMounted() const {
     return (m_unit->flags >> 13) & 1;
@@ -797,7 +813,9 @@ class CGUnit {
   BYTE      IsNPC() const;
   int       GetMountDisplayID() const;
   DWORDLONG GetTarget() const;
-  UINT      GetStandState() const;
+  UINT GetStandState() const {
+    return m_unit->standState;
+  }
   int       StandStateValid(UNITSTANDSTATE newState) const;
   BYTE      IsSitting() const;
   BYTE      IsSleeping() const;
@@ -1651,7 +1669,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int         GetDisplayHealth() const;
   BOOL        IsTexComponentLoaded() const;
   void        SetTexComponentLoaded(int loaded);
-  bool        IsBeingStalked() const;
+  bool IsBeingStalked() const {
+    return (m_unit->dynamicFlags >> 1) & 1;
+  }
   bool        GetLootPermission() const;
   bool        GetShowingHandArrow() const;
   void        SetShowHandArrowFlag(int show);

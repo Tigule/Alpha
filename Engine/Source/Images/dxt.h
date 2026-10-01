@@ -74,12 +74,12 @@ struct DxtColorBlock : public DxtBlock {
   };
 
   struct Tables {
-    Tables();
-
     WORD dt135[32];
     WORD dt235[32];
     WORD dt136[64];
     WORD dt236[64];
+
+    Tables();
   };
 
   static Tables tables;
@@ -115,6 +115,8 @@ struct DxtRect {
   UINT w;
   UINT h;
 
+  void Check();
+
   DxtRect(UINT left, UINT top, UINT right, UINT bottom);
 
   DxtRect(UINT left, UINT top, UINT right, UINT bottom, UINT width, UINT height) : l(left), t(top), r(right), b(bottom), w(width), h(height) {
@@ -122,8 +124,6 @@ struct DxtRect {
 
   DxtRect() {
   }
-
-  void Check();
 
 };
 

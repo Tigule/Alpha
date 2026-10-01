@@ -85,35 +85,27 @@ BOOL MdlReadLoadRibbonEmitters(const MDLDATA &data, CModelComplex *modelptr, CMo
   TSGrowableArray<CRibbonMat> mats;
   TSGrowableArray<HTEXTURE>   textures;
   TSGrowableArray<UINT>       replace;
-  const BYTE                 *ribbonData = reinterpret_cast<const BYTE *>(data.ribbonEmitters.Ptr());
-  RibbonManager              *manager = RibbonManager::GetInstance();
-  UINT                        i;
-  for (i = 0; i < numRibbons; ++i) {
-    const BYTE *src = ribbonData + i * 392;
-    shared->ribbonOrder[i] = *reinterpret_cast<const UINT *>(src + 0x50);
+  for (UINT i = 0; i < numRibbons; ++i) {
+    shared->ribbonOrder[i] = data.ribbonEmitters[i].objectId;
 
-    UINT       materialId = *reinterpret_cast<const UINT *>(src + 0x184);
-    CMaterial *material = static_cast<CMaterial *>(HandleDereference(reinterpret_cast<HOBJECT>(modelptr->m_materials[materialId])));
-    FATALASSERT(material);
-    LoadRibbonMaterial(*material, modelptr->m_textures, &mats, &textures, &replace);
+    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(modelptr->m_materials[data.ribbonEmitters[i].materialId]);
+    FATALASSERT(uniqueMtl);
+    LoadRibbonMaterial(*uniqueMtl, modelptr->m_textures, &mats, &textures, &replace);
 
-    const float        *color = reinterpret_cast<const float *>(src + 0x110);
-    float               alpha = *reinterpret_cast<const float *>(src + 0xF0);
     NTempest::CImVector diffColor;
-    diffColor.Set(color[0], color[1], color[2], alpha);
+    diffColor.Set(data.ribbonEmitters[i].staticAlpha, data.ribbonEmitters[i].staticColor.r,
+                  data.ribbonEmitters[i].staticColor.g, data.ribbonEmitters[i].staticColor.b);
 
-    CRibbonEmitter *ribbon = manager->CreateEmitter();
+    CRibbonEmitter *ribbon = RibbonManager::GetInstance()->CreateEmitter();
     modelptr->m_ribbons[i] = ribbon;
-    NTempest::CRect texBox(0.0f, 0.0f, 1.0f, 1.0f);
-    ribbon->Initialize(
-        static_cast<float>(*reinterpret_cast<const UINT *>(src + 0x138)), *reinterpret_cast<const float *>(src + 0x13C), diffColor, textures, mats,
-        replace, texBox, *reinterpret_cast<const UINT *>(src + 0x144), *reinterpret_cast<const UINT *>(src + 0x148)
-    );
-    ribbon->SetAbove(*reinterpret_cast<const float *>(src + 0xB0));
-    ribbon->SetBelow(*reinterpret_cast<const float *>(src + 0xD0));
-    ribbon->SetTexSlot(*reinterpret_cast<const UINT *>(src + 0x14C));
+    ribbon->Initialize(data.ribbonEmitters[i].edgesPerSecond, data.ribbonEmitters[i].edgeLifetime, diffColor, textures, mats,
+                       replace, NTempest::CRect(0.0f, 0.0f, 1.0f, 1.0f), data.ribbonEmitters[i].textureRows,
+                       data.ribbonEmitters[i].textureCols);
+    ribbon->SetAbove(data.ribbonEmitters[i].staticHeightAbove);
+    ribbon->SetBelow(data.ribbonEmitters[i].staticHeightBelow);
+    ribbon->SetTexSlot(data.ribbonEmitters[i].staticTextureSlot);
     ribbon->SetEnabled(0);
-    ribbon->SetGravity(*reinterpret_cast<const float *>(src + 0x140));
+    ribbon->SetGravity(data.ribbonEmitters[i].gravity);
   }
   return 1;
 }

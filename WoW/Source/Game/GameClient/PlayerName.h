@@ -7,18 +7,18 @@ namespace NTempest {
   class CImVector;
 }  // namespace NTempest
 
-struct HPLAYERNAME__;
+DECLARE_DERIVED_HANDLE(HPLAYERNAME, HOBJECT);
 class CGUnit_C;
 
-HPLAYERNAME__ *PlayerNameCreate(CGUnit_C *unitPtr);
+HPLAYERNAME PlayerNameCreate(CGUnit_C *unitPtr);
 void           PlayerNameShow(int show);
 
-void PlayerNameCreateText(HPLAYERNAME__ *name, WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride);
+void PlayerNameCreateText(HPLAYERNAME name, WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride);
 
-void PlayerNameTriggerNameRegenerate(HPLAYERNAME__ *name);
-void PlayerNameTriggerColorUpdate(HPLAYERNAME__ *name);
-void PlayerNameChangeLocation(HPLAYERNAME__ *name, const NTempest::C3Vector &namePosition);
+void PlayerNameTriggerNameRegenerate(HPLAYERNAME name);
+void PlayerNameTriggerColorUpdate(HPLAYERNAME name);
+void PlayerNameChangeLocation(HPLAYERNAME name, const NTempest::C3Vector &namePosition);
 void PlayerNameUpdateEarly();
 void PlayerNameUpdateLate();
-void PlayerNameUpdateWorldText(HPLAYERNAME__ *name);
+void PlayerNameUpdateWorldText(HPLAYERNAME name);
 void PlayerNameRenderWorldText();

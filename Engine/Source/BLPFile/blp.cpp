@@ -11,6 +11,9 @@
 
 using NTempest::C2iVector;
 
+DECLARE_STRICT_HANDLE(HCOLORMAP);
+DECLARE_STRICT_HANDLE(HCOLORLIST);
+
 BYTE CBLPFile::s_eightBitAlphaLookup[16] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
 BYTE CBLPFile::s_oneBitAlphaLookup[2] = {0x00, 0xFF};
 WORD CBLPFile::s_oneBitAlphaShort[2] = {0x0000, 0xF000};
@@ -73,7 +76,7 @@ BOOL CBLPFile::SetImage(CBLPFile &source, UINT mipLevel, CStatus *status) {
     return 0;
   }
 
-  return SetImage(source.Image(mipLevel), source.m_header.width, source.m_header.height, source.m_header.alphaSize, mipLevel, status);
+  return SetImage(source.Image(mipLevel), source.Width(), source.Height(), source.AlphaBits(), mipLevel, status);
 }
 
 BOOL CBLPFile::SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, UINT mipLevel, CStatus *status) {

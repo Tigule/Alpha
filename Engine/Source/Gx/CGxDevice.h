@@ -100,25 +100,6 @@ class CGxTex {
   );
 
  public:
-  CGxTex(
-      EGxTexTarget target,
-      UINT         width,
-      UINT         height,
-      UINT         depth,
-      EGxTexFormat format,
-      EGxTexFormat dataFormat,
-      CGxTexFlags  flags,
-      LPVOID       userArg,
-      void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &)
-  );
-  CGxTex(
-      UINT         width,
-      UINT         height,
-      EGxTexFormat format,
-      CGxTexFlags  flags,
-      LPVOID       userArg,
-      void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &)
-  );
   BYTE             m_needsUpdate;
   BYTE             m_needsCreation;
   BYTE             m_needsFlagUpdate;
@@ -137,6 +118,26 @@ class CGxTex {
   LPVOID           m_userArg;
   void (*m_userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &);
   LPVOID m_apiSpecificData;
+
+  CGxTex(
+      UINT         width,
+      UINT         height,
+      EGxTexFormat format,
+      CGxTexFlags  flags,
+      LPVOID       userArg,
+      void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &)
+  );
+  CGxTex(
+      EGxTexTarget target,
+      UINT         width,
+      UINT         height,
+      UINT         depth,
+      EGxTexFormat format,
+      EGxTexFormat dataFormat,
+      CGxTexFlags  flags,
+      LPVOID       userArg,
+      void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &)
+  );
 };
 
 class CGxMatrixStack {
@@ -170,13 +171,13 @@ class CGxMatrixStack {
 
 class CGxStateRegister {
  public:
-  CGxStateRegister();
-
   CGxLight m_lights[8];
   int      m_lightsDirty[8];
   float    m_lightLinearFalloff;
   float    m_lightQuadraticFalloff;
   DWORD    m_masterEnables;
+
+  CGxStateRegister();
 };
 
 class CGxDevice {

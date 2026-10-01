@@ -65,6 +65,9 @@ namespace OsNet {
   };
 
   class LOCKEDLONG {
+   private:
+    volatile long m_value;
+
    public:
     LOCKEDLONG(long value = 0) : m_value(value) {
     }
@@ -80,12 +83,12 @@ namespace OsNet {
     long Dec() {
       return InterlockedDecrement(const_cast<long *>(&m_value));
     }
-
-   private:
-    volatile long m_value;
   };
 
   class CEventLock {
+   private:
+    LPVOID m_event;
+
    public:
     CEventLock() : m_event(CreateEventA(0, FALSE, TRUE, 0)) {
     }
@@ -103,26 +106,19 @@ namespace OsNet {
     void Leave() {
       SetEvent(m_event);
     }
-
-   private:
-    LPVOID m_event;
   };
 
   struct NETOVERLAP {
+    OVERLAPPED  m_overlapped;
+    OVERLAPTYPE m_type;
+
     void Init(OVERLAPTYPE type) {
       memset(&m_overlapped, 0, sizeof(m_overlapped));
       m_type = type;
     }
-
-    OVERLAPPED  m_overlapped;
-    OVERLAPTYPE m_type;
   };
 
   NODEDECL(OUTPUT) {
-    OUTPUT() {
-    }
-    OUTPUT(const OUTPUT &);
-
     NETOVERLAP  m_overlap;
     OUTPUTSTATE m_state;
     union {
@@ -138,14 +134,13 @@ namespace OsNet {
     BYTE   *m_data;
     SEvent *m_completionEvent;
 
+    OUTPUT() {
+    }
+    OUTPUT(const OUTPUT &);
     ~OUTPUT();
   };
 
   NODEDECL(INPUT) {
-    INPUT() {
-    }
-    INPUT(const INPUT &);
-
     NETOVERLAP m_overlap;
     union {
       struct {
@@ -156,6 +151,10 @@ namespace OsNet {
     };
     DWORD m_bytes;
     BYTE *m_buffer;
+
+    INPUT() {
+    }
+    INPUT(const INPUT &);
   };
 
   struct NETSELSOCK {

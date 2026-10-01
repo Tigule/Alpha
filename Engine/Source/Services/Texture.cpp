@@ -113,15 +113,15 @@ CSolidTextureHash::CSolidTextureHash() : CTextureItem(1) {
 
 class CGxTexCache {
  public:
+  CGxTex *gxTex;
+  DWORD   timeStamp;
+  LINKDECLEX(CGxTexCache, link);
+
   CGxTexCache() : gxTex(0), timeStamp(0) {
   }
 
   ~CGxTexCache() {
   }
-
-  CGxTex *gxTex;
-  DWORD   timeStamp;
-  LINKDECLEX(CGxTexCache, link);
 };
 
 enum EImageFormat {
@@ -1437,7 +1437,11 @@ HTEXTURE TextureCreateSolid(const NTempest::CImVector &color, CStatus *status) {
 CGxTex *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status) {
   CTexture *textureObject = reinterpret_cast<CTexture *>(texture);
 
-  FATALASSERT(texture);
+  if (!texture) {
+    FATALERROR(("textureptr"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return 0;
+  }
 
   if (!textureObject->gxTex) {
     if (!force) {
@@ -1456,7 +1460,11 @@ CGxTex *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status) {
 MipBits *TextureGetMips(HTEXTURE texture, int force) {
   CTexture *textureObject = reinterpret_cast<CTexture *>(texture);
 
-  FATALASSERT(texture);
+  if (!texture) {
+    FATALERROR(("textureptr"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return 0;
+  }
 
   if (!textureObject->mipBits) {
     if (!force) {
@@ -1472,7 +1480,11 @@ MipBits *TextureGetMips(HTEXTURE texture, int force) {
 
 int TextureIsOpaque(HTEXTURE__ *texture) {
   CTexture *texturePtr = reinterpret_cast<CTexture *>(texture);
-  FATALASSERT(texturePtr);
+  if (!texturePtr) {
+    FATALERROR(("textureptr"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return 0;
+  }
   return texturePtr->flags & 1;
 }
 
@@ -1647,7 +1659,11 @@ void TextureDestroy() {
 }
 
 LPCSTR TextureGetFilename(HTEXTURE texture) {
-  FATALASSERT(texture);
+  if (!texture) {
+    FATALERROR(("textureptr"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return 0;
+  }
   return reinterpret_cast<CTexture *>(texture)->filename;
 }
 

@@ -231,7 +231,7 @@ void WorldTextGetColor(WORLDTEXTTYPE type, NTempest::CImVector *color) {
   *color = s_worldTextParams[type].fontColor;
 }
 
-HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object, const NTempest::CImVector *colorOverride) {
+HWORLDTEXT WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object, const NTempest::CImVector *colorOverride) {
   FATALASSERT(type < NUM_WORLDTEXTTYPES);
   WORLDTEXTCREATEPARAMS *params = &s_worldTextParams[type];
   FATALASSERT(params);
@@ -253,7 +253,7 @@ HWORLDTEXT__ *WorldTextCreate(WORLDTEXTTYPE type, LPCSTR text, DWORDLONG object,
   FATALASSERT(params->enlargeTime <= worldTextPtr->totalTime);
   FATALASSERT(params->shrinkTime <= worldTextPtr->totalTime);
   worldTextPtr->InitTextFrame(text);
-  return reinterpret_cast<HWORLDTEXT__ *>(HandleCreate(worldTextPtr, "HWORLDTEXT"));
+  return static_cast<HWORLDTEXT>(HandleCreate(worldTextPtr, "HWORLDTEXT"));
 }
 
 void WorldTextUpdate(float elapsed, const NTempest::C44Matrix &matrix) {
@@ -462,27 +462,31 @@ void WORLDTEXTSTRING::CalculateNewColor(UINT elapsed) {
   }
 }
 
-void WorldTextUpdate(HWORLDTEXT__ *text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position) {
+void WorldTextUpdate(HWORLDTEXT text, float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *position) {
   if (text) {
     reinterpret_cast<WORLDTEXTSTRING *>(text)->Update(elapsed, matrix, position);
   }
 }
 
-BOOL WorldTextIsTextDone(HWORLDTEXT__ *handle) {
+BOOL WorldTextIsTextDone(HWORLDTEXT handle) {
   WORLDTEXTSTRING *text = reinterpret_cast<WORLDTEXTSTRING *>(handle);
-  if (!text) {
-    return 1;
-  }
-  return text->elapsedTime > text->totalTime && !(text->m_flags & 1);
-}
-
-void WorldTextShow(HWORLDTEXT__ *text, int show) {
   if (text) {
-    reinterpret_cast<WORLDTEXTSTRING *>(text)->Hide(!show);
+    return text->elapsedTime > text->totalTime && !(text->params.flags & 1);
+  }
+  return 1;
+}
+
+void WorldTextShow(HWORLDTEXT text, int show) {
+  if (text) {
+    if (show) {
+      reinterpret_cast<WORLDTEXTSTRING *>(text)->Hide(0);
+    } else {
+      reinterpret_cast<WORLDTEXTSTRING *>(text)->Hide(1);
+    }
   }
 }
 
-void WorldTextRender(HWORLDTEXT__ *text) {
+void WorldTextRender(HWORLDTEXT text) {
   if (text) {
     reinterpret_cast<WORLDTEXTSTRING *>(text)->Render();
   }

@@ -59,7 +59,7 @@ inline UINT CGGameObject_C_Type_Door::GetAutoClose() const {
 }
 
 inline UINT CGGameObject_C_Type_Chair::GetNumSlots() const {
-  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(m_owner->GetType(), 11));
+  return m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(7, 11));
 }
 
 inline UINT CGGameObject_C_Type_Chair::GetHeight() const {
@@ -168,7 +168,7 @@ bool CGGameObject_C_TypeBase::CanUse() const {
 bool CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE *reason) const {
   DWORDLONG   activePlayer = ClntObjMgrGetActivePlayer();
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
-  if (!player || player->GetUnitData()->health <= 0) {
+  if (!player || player->GetHealth() <= 0) {
     if (reason) {
       *reason = GERR_PLAYER_DEAD;
     }
@@ -314,7 +314,7 @@ void CGGameObject_C_TypeAnimated::PostInit() {
 }
 
 void CGGameObject_C_TypeAnimated::SetSequence() {
-  HMODEL__ *model = m_owner->GetObjectModel();
+  HMODEL model = m_owner->GetObjectModel();
   FATALASSERT(model);
 
   UINT sequence;
@@ -687,15 +687,15 @@ CGGameObject_C_Type_Chair::CGGameObject_C_Type_Chair(CGGameObject_C *owner) : CG
 
 bool CGGameObject_C_Type_Chair::CanUseNow(GAME_ERROR_TYPE *reason) const {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || player->GetUnitData()->health <= 0) {
+  if (!player || player->GetHealth() <= 0) {
     if (reason) {
       *reason = GERR_PLAYER_DEAD;
     }
     return 0;
   }
 
-  for (UINT i = 0; i < GetNumSlots(); ++i) {
-    if ((player->m_move.GetPosition(player->m_move.m_position) - m_slotPositions[i]).SquaredMag() <= MAX_SITCHAIRUSE_DISTANCE_SQUARED) {
+  for (UINT i = GetNumSlots(); i--;) {
+    if ((player->m_move.GetPosition(player->m_move.m_position) - m_slotPositions[i]).SquaredMag() < MAX_SITCHAIRUSE_DISTANCE_SQUARED) {
       return 1;
     }
   }
@@ -711,7 +711,7 @@ void CGGameObject_C_Type_Chair::PostInit() {
   FATALASSERT(GetNumSlots());
   FATALASSERT(GetNumSlots() <= MAX_CHAIR_SLOTS);
 
-  GenerateChairPoints(NTempest::C44Matrix(m_owner->CGObject_C::GetMatrix()), GetNumSlots(), m_slotPositions);
+  GenerateChairPoints(NTempest::C44Matrix(m_owner->GetMatrix()), GetNumSlots(), m_slotPositions);
 }
 
 bool CGGameObject_C_Type_SpellFocus::CanHighlight() const {
@@ -933,7 +933,7 @@ CGGameObject_C_Type_FishingNode::CGGameObject_C_Type_FishingNode(CGGameObject_C 
 bool CGGameObject_C_Type_FishingNode::CanUse() const {
   DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
-  if (!player || player->GetUnitData()->summonedBy != m_owner->GetGUID()) {
+  if (!player || player->GetChannelObject() != m_owner->GetGUID()) {
     return 0;
   }
   return CGGameObject_C_TypeBase::CanUse();

@@ -291,8 +291,9 @@ CModelSimple::CModelSimple(const CModelSimple &source) : CModelBase(source) {
 }
 
 CModel::CModel(CModel &source)
-    : asyncObject(0), createData(0), shared(static_cast<HMODELSHARED>(HandleDuplicate(source.shared))), state(CMODEL_UNINITIALIZED) {
+    : asyncObject(0), createData(0) {
   ASSERT(source.shared);
+  shared = static_cast<HMODELSHARED>(HandleDuplicate(source.shared));
   ASSERT(shared);
 
   if (source.state == CMODEL_LOADED) {
@@ -312,13 +313,9 @@ void CModel::FinishDuplication(CModel &source) {
   }
 
   if (source.data->m_flags & 0x20) {
-    CModelComplex *sourceComplex = reinterpret_cast<CModelComplex *>(source.data);
-    LPVOID         storage = SMemAlloc(sizeof(CModelComplex), __FILE__, __LINE__, 0);
-    data = storage ? new (storage) CModelComplex(*sourceComplex) : 0;
+    data = NEW(CModelComplex)(*static_cast<CModelComplex *>(source.data));
   } else {
-    CModelSimple *sourceSimple = reinterpret_cast<CModelSimple *>(source.data);
-    LPVOID        storage = SMemAlloc(sizeof(CModelSimple), __FILE__, __LINE__, 0);
-    data = storage ? new (storage) CModelSimple(*sourceSimple) : 0;
+    data = NEW(CModelSimple)(*static_cast<CModelSimple *>(source.data));
   }
 
   source.data->m_flags &= ~4U;
@@ -1918,7 +1915,7 @@ BOOL ModelAnimHasObjectId(HMODEL model, UINT objectId) {
   return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimHasObjectId(unique->m_anim, objectId);
 }
 
-static void IModelSetMaterialDisables(HMATERIAL__ **materials, UINT numMaterials, UINT setMask, UINT unsetMask) {
+static void IModelSetMaterialDisables(HMATERIAL *materials, UINT numMaterials, UINT setMask, UINT unsetMask) {
   UINT i;
   UINT numLayers;
   while (numMaterials--) {
@@ -1991,7 +1988,7 @@ static void ComplexModelSetMaterialDisables(CModelComplex *unique, UINT setMask,
   }
 }
 
-void ModelSetMaterialDisables(HMODEL__ *model, UINT setMask, UINT unsetMask, int doLinkedModels) {
+void ModelSetMaterialDisables(HMODEL model, UINT setMask, UINT unsetMask, int doLinkedModels) {
   CModelBase *unique;
   if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
     return;

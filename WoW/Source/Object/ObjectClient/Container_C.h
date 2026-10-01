@@ -11,6 +11,7 @@ struct CGContainerData {
 
 class CGContainer {
  public:
+  BYTE *GetData(UINT index);
   static UINT               GetDataSize();
   static UINT               GetBaseOffset();
   static __forceinline UINT TotalFields() {
@@ -19,7 +20,6 @@ class CGContainer {
   static UINT GetUpdateMaskBytes();
   static UINT GetUpdateMaskBlocks();
 
-  BYTE *GetData(UINT index);
   void  SetStorage(DWORD *storage) {
     m_cont = reinterpret_cast<CGContainerData *>(storage);
   }
@@ -32,15 +32,15 @@ class CGContainer {
   ~CGContainer() {
   }
 
-  CGContainerData *Container() {
-    return m_cont;
-  }
+  CGContainerData *m_cont;
 
   const CGContainerData *Container() const {
     return m_cont;
   }
 
-  CGContainerData *m_cont;
+  CGContainerData *Container() {
+    return m_cont;
+  }
 };
 
 class CGContainer_C : public CGItem_C, public CGContainer {

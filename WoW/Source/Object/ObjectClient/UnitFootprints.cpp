@@ -183,10 +183,6 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
   return 0;
 }
 
-LISTBASE::LISTBASE(int m, int f) : m_texture(0), m_currentCount(-1), m_maxCount(m), m_flags(f) {
-  FATALASSERT(m > 0);
-}
-
 LISTBASE::~LISTBASE() {
   if (m_texture) {
     HandleClose(m_texture);

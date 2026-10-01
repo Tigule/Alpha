@@ -62,8 +62,7 @@ typedef struct RGN : public TSHashObject<RGN, HASHKEY_NONE> {
   int                         dirty;
 } RGN, *RGNPTR;
 
-struct HLOCKEDRGN__;
-typedef HLOCKEDRGN__ *HLOCKEDRGN;
+DECLARE_STRICT_HANDLE(HLOCKEDRGN);
 
 typedef TSExportTableSync<RGN, HSRGN, HLOCKEDRGN, CCritSect, 1> SRGNEXPORTTABLE;
 

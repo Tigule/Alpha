@@ -73,15 +73,33 @@ BOOL OsDirectoryExists(LPCSTR dirName) {
 }
 
 BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
-  FATALASSERT(buffer);
-  FATALASSERT(bytesRead);
+  if (!buffer) {
+    FATALERROR(("buffer"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return 0;
+  }
+
+  if (!bytesRead) {
+    FATALERROR(("bytesRead"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return 0;
+  }
 
   return ReadFile(reinterpret_cast<HANDLE>(fileHandle), buffer, bytesToRead, bytesRead, 0);
 }
 
 BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
-  FATALASSERT(buffer);
-  FATALASSERT(bytesWritten);
+  if (!buffer) {
+    FATALERROR(("buffer"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return 0;
+  }
+
+  if (!bytesWritten) {
+    FATALERROR(("bytesWritten"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return 0;
+  }
 
   return WriteFile(reinterpret_cast<HANDLE>(fileHandle), buffer, bytesToWrite, bytesWritten, 0);
 }

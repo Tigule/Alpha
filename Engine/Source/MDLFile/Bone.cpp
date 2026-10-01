@@ -39,7 +39,7 @@ BOOL MDL::ReadBone(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   FATALASSERT(status);
   TSet                errors;
   MDLBONESECTION     *bone = data.bones.New();
-  NTempest::C3Vector *pivot = data.pivotPoints.Count() < 500 ? data.pivotPoints.New() : 0;
+  NTempest::C3Vector *pivot = data.version < 500 ? data.pivotPoints.New() : 0;
 
   IAddBoneErrors(errors);
   ReadObjectName(parse, bone->name);

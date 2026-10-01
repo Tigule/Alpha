@@ -22,7 +22,7 @@ class Sound;
 class TransportAnimationRec;
 class GameObjectStats;
 struct HCOLLISIONDATA__;
-struct HMODEL__;
+typedef HCOLLISIONDATA__ *HCOLLISIONDATA;
 struct WorldObjCollisionHandlerData;
 
 BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
@@ -50,6 +50,7 @@ class CGGameObject {
     NUM_STATES
   };
 
+  BYTE *GetData(UINT index);
   static UINT               GetDataSize();
   static UINT               GetBaseOffset();
   static __forceinline UINT TotalFields() {
@@ -58,16 +59,15 @@ class CGGameObject {
   static UINT GetUpdateMaskBytes();
   static UINT GetUpdateMaskBlocks();
 
-  BYTE *GetData(UINT index);
   void  SetStorage(DWORD *storage) {
     m_gameObj = reinterpret_cast<CGGameObjectData *>(storage);
   }
 
-  CGGameObjectData *GameObject() {
+  const CGGameObjectData *GameObject() const {
     return m_gameObj;
   }
 
-  const CGGameObjectData *GameObject() const {
+  CGGameObjectData *GameObject() {
     return m_gameObj;
   }
 
@@ -78,8 +78,8 @@ class CGGameObject {
   }
   UINT               GetTimeStamp() const;
   UINT               GetGameObjectFlags() const;
-  void               GetObjectPosition(NTempest::C3Vector &position) const;
   NTempest::C3Vector GetObjectPosition() const;
+  void               GetObjectPosition(NTempest::C3Vector &position) const;
   float              GetObjectFacing() const;
   int                GetFactionTemplate() const;
   bool               GetDisabled() const;
@@ -411,7 +411,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   UNIT_REACTION      ObjectReaction(const CGUnit_C *unit) const;
   bool               IsValidTargetForSpell(const DWORDLONG &caster, int spellID) const;
   bool               IsQuestObjectForMe();
-  HCOLLISIONDATA__  *GetCollideData() const;
+  HCOLLISIONDATA GetCollideData() const;
   NTempest::C3Vector GetCollideMin() const;
   NTempest::C3Vector GetCollideMax() const;
   NTempest::CAaBox   GetCollideExtents() const;
@@ -428,8 +428,8 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   LPCSTR                 GetModelFileNameInternal() const;
   const GameObjectStats *m_stats;
   NTempest::C34Matrix    m_matrix;
-  HMODEL__              *m_collideModel;
-  HCOLLISIONDATA__      *m_collideData;
+  HMODEL m_collideModel;
+  HCOLLISIONDATA m_collideData;
   NTempest::CAaBox       m_collideExtents;
   UINT                   m_serverTimeOffset;
   int                    m_isSolid : 1;
