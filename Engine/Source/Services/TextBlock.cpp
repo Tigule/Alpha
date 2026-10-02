@@ -29,7 +29,9 @@ HTEXTFONT TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeigh
 
   FATALASSERT(fontName);
 
-  FATALASSERT(*fontName);
+  VALIDATEBEGIN;
+  VALIDATE(*fontName);
+  VALIDATEEND;
 
   fontHeight = DDCToNDCHeight(fontHeight);
   if (fontHeight >= 1.0f) {
@@ -65,7 +67,9 @@ HTEXTFONT TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeigh
 }
 
 LPCSTR TextBlockGetFontName(HTEXTFONT fontHandle) {
-  FATALASSERT(fontHandle);
+  VALIDATEBEGIN;
+  VALIDATE(fontHandle);
+  VALIDATEEND;
 
   return GxuFontGetFontName(reinterpret_cast<FONTHASHOBJ *>(fontHandle)->font);
 }
@@ -74,7 +78,9 @@ UINT TextBlockGetFontFlags(HTEXTFONT fontHandle) {
   UINT flags;
   UINT textFlags;
 
-  FATALASSERT(fontHandle);
+  VALIDATEBEGIN;
+  VALIDATE(fontHandle);
+  VALIDATEEND;
 
   flags = GxuFontGetFontFlags(reinterpret_cast<FONTHASHOBJ *>(fontHandle)->font);
   textFlags = (flags & 0x1) != 0;
@@ -92,13 +98,17 @@ UINT TextBlockGetFontFlags(HTEXTFONT fontHandle) {
 }
 
 CGxFont *TextBlockGetFontPtr(HTEXTFONT fontHandle) {
-  FATALASSERT(fontHandle);
+  VALIDATEBEGIN;
+  VALIDATE(fontHandle);
+  VALIDATEEND;
 
   return reinterpret_cast<FONTHASHOBJ *>(fontHandle)->font;
 }
 
 CGxString *TextBlockGetStringPtr(HTEXTBLOCK text) {
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(text);
+  VALIDATEEND;
 
   return reinterpret_cast<TEXTBLOCK *>(text)->string;
 }
@@ -115,7 +125,9 @@ float TextBlockGetOneToOneHeight(HTEXTFONT__ *fontHandle) {
 void TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempest::C2Vector &shadowOffset) {
   NTempest::C2Vector offset;
 
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(text);
+  VALIDATEENDVOID;
 
   DDCToNDC(shadowOffset.x, shadowOffset.y, &offset.x, &offset.y);
   GxuFontAddShadow(reinterpret_cast<TEXTBLOCK *>(text)->string, color, offset);
@@ -138,9 +150,10 @@ HTEXTBLOCK TextBlockCreate(
   NTempest::C3Vector position;
   UINT               gxFlags = 0;
 
-  FATALASSERT(font);
-
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(font);
+  VALIDATE(text);
+  VALIDATEEND;
 
   storage = SMemAlloc(sizeof(TEXTBLOCK), "HTEXTBLOCK", SERR_LINECODE_OBJECT, 0);
   textPtr = storage ? new (storage) TEXTBLOCK : 0;
@@ -200,7 +213,9 @@ HTEXTBLOCK TextBlockCreate(
 }
 
 void TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) {
-  FATALASSERT(htb);
+  VALIDATEBEGIN;
+  VALIDATE(htb);
+  VALIDATEENDVOID;
 
   NTempest::C3Vector position;
   position.z = pos.z;
@@ -209,18 +224,24 @@ void TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) {
 }
 
 void TextBlockRender(HTEXTBLOCK__ *htb) {
-  FATALASSERT(htb);
+  VALIDATEBEGIN;
+  VALIDATE(htb);
+  VALIDATEENDVOID;
   GxuFontRender(reinterpret_cast<TEXTBLOCK *>(htb)->string);
 }
 
 void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor) {
-  FATALASSERT(htb);
+  VALIDATEBEGIN;
+  VALIDATE(htb);
+  VALIDATEENDVOID;
 
   GxuFontSetStringColor(reinterpret_cast<TEXTBLOCK *>(htb)->string, textColor);
 }
 
 float TextBlockGetHeight(HTEXTBLOCK__ *htb) {
-  FATALASSERT(htb);
+  VALIDATEBEGIN;
+  VALIDATE(htb);
+  VALIDATEEND;
   float height = GxuFontGetStringHeight(reinterpret_cast<TEXTBLOCK *>(htb)->string);
   NDCToDDC(0.0f, height, 0, &height);
   return height;
@@ -230,15 +251,14 @@ void TextBlockGetTextExtent(HTEXTFONT font, LPCSTR text, UINT numChars, float fo
   FONTHASHOBJ *fontPtr;
   UINT         gxFlags;
 
-  FATALASSERT(font);
-
-  FATALASSERT(text);
-
-  FATALASSERT(extent);
-
+  VALIDATEBEGIN;
+  VALIDATE(font);
+  VALIDATE(text);
+  VALIDATE(extent);
   *extent = 0.0f;
   fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
-  FATALASSERT(fontPtr->font);
+  VALIDATE(fontPtr->font);
+  VALIDATEENDVOID;
 
   DDCToNDC(0.0f, fontHeight, 0, &fontHeight);
   gxFlags = (flags & 0x100) != 0;
@@ -288,8 +308,10 @@ void TextBlockGetWrapPoint(
     float        spacing,
     UINT         flags
 ) {
-  FATALASSERT(font);
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(font);
+  VALIDATE(text);
+  VALIDATEENDVOID;
   FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
   FATALASSERT(fontPtr->font);
   fontHeight = DDCToNDCHeight(fontHeight);
@@ -303,12 +325,13 @@ float TextBlockGetWrappedTextHeight(HTEXTFONT font, LPCSTR text, float fontHeigh
   UINT         gxFlags;
   float        height;
 
-  FATALASSERT(font);
+  VALIDATEBEGIN;
+  VALIDATE(font);
 
-  FATALASSERT(text);
-
+  VALIDATE(text);
   fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
-  FATALASSERT(fontPtr->font);
+  VALIDATE(fontPtr->font);
+  VALIDATEEND;
 
   fontHeight = DDCToNDCHeight(fontHeight);
   blockWidth = DDCToNDCWidth(blockWidth);
@@ -359,8 +382,10 @@ UINT TextBlockGetMaxCharsWithinWidth(
     float        charSpacing,
     UINT         flags
 ) {
-  FATALASSERT(font);
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(font);
+  VALIDATE(text);
+  VALIDATEEND;
   FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
   FATALASSERT(fontPtr->font);
   height = DDCToNDCHeight(height);
@@ -405,12 +430,13 @@ UINT TextBlockGetMaxCharsWithinWidthFromEnd(
   UINT         gxFlags;
   UINT         chars;
 
-  FATALASSERT(font);
+  VALIDATEBEGIN;
+  VALIDATE(font);
 
-  FATALASSERT(text);
-
+  VALIDATE(text);
   fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
-  FATALASSERT(fontPtr->font);
+  VALIDATE(fontPtr->font);
+  VALIDATEEND;
 
   DDCToNDC(0.0f, height, 0, &height);
   DDCToNDC(maxWidth, 0.0f, &maxWidth, 0);
@@ -469,7 +495,9 @@ UINT TextBlockWrapText(
   FATALASSERT(text);
 
   fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
-  FATALASSERT(fontPtr->font);
+  VALIDATEBEGIN;
+  VALIDATE(fontPtr->font);
+  VALIDATEEND;
 
   DDCToNDC(0.0f, height, 0, &height);
   DDCToNDC(maxWidth, 0.0f, &maxWidth, 0);

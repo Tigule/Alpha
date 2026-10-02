@@ -16,20 +16,23 @@ MapRec::~MapRec() {
 bool MapRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempDirectoryIndices[1];
   UINT tempMapName_langIndices[8];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempDirectoryIndices[0]) ||
-      !SFileReadTyped(f, &m_PVP) ||
-      !SFileReadTyped(f, &m_IsInMap) ||
-      !SFileReadTyped(f, &tempMapName_langIndices[0]) ||
-      !SFileReadTyped(f, &tempMapName_langIndices[1]) ||
-      !SFileReadTyped(f, &tempMapName_langIndices[2]) ||
-      !SFileReadTyped(f, &tempMapName_langIndices[3]) ||
-      !SFileReadTyped(f, &tempMapName_langIndices[4]) ||
-      !SFileReadTyped(f, &tempMapName_langIndices[5]) ||
-      !SFileReadTyped(f, &tempMapName_langIndices[6]) ||
-      !SFileReadTyped(f, &tempMapName_langIndices[7]) ||
-      !SFileReadTyped(f, &m_MapName_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempDirectoryIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_PVP) == 0);
+  error |= (SFileReadTyped(f, &m_IsInMap) == 0);
+  error |= (SFileReadTyped(f, &tempMapName_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempMapName_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempMapName_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempMapName_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempMapName_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempMapName_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempMapName_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempMapName_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_MapName_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading MapRec", DEFAULT_COLOR);
     return false;
   }

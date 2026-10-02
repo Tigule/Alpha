@@ -101,7 +101,9 @@ BOOL SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask) {
 
   FATALASSERT(msg);
 
-  FATALASSERT(severity < SYSMSG_NUMTYPES);
+  VALIDATEBEGIN;
+  VALIDATE(severity < SYSMSG_NUMTYPES);
+  VALIDATEEND;
 
   if (severity >= s_minSeverity && severity <= s_maxSeverity && (categoryMask & s_categoryFilter) && s_enabled && msg[0]) {
     GenerateMaskString(maskString, sizeof(maskString), categoryMask);
@@ -144,7 +146,9 @@ int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format
 int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, ...) {
   va_list arglist;
 
-  FATALASSERT(format);
+  VALIDATEBEGIN;
+  VALIDATE(format);
+  VALIDATEEND;
 
   va_start(arglist, format);
   return SysMsgVPrintf(severity, categoryMask, format, arglist);
@@ -210,14 +214,8 @@ void SysMsgInitialize() {
 }
 
 void SysMsgShutdown() {
-  MSGBUFFER *msg;
-
   s_enabled = 0;
-  while ((msg = s_msgBuffer.Head()) != 0) {
-    s_msgBuffer.UnlinkNode(msg);
-    msg->~MSGBUFFER();
-    SMemFree(msg, typeid(MSGBUFFER).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
-  }
+  s_msgBuffer.Clear();
 
   SysMsgDisableFileLog();
 }

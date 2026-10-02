@@ -15,9 +15,12 @@ StringLookupsRec::~StringLookupsRec() {
 
 bool StringLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempStringIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempStringIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempStringIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading StringLookupsRec", DEFAULT_COLOR);
     return false;
   }

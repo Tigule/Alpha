@@ -1,5 +1,7 @@
 #include <Base/SFileExtras.h>
 #include <DB/DBClient/DBClient.h>
+#include <WowConst.h>
+#include <WowSvcs/WowSvcsClient/ClientServices.h>
 #include <DB/DBClient/AutoCode/CreatureDisplayInfoRec.h>
 #include <DB/DBClient/AutoCode/CreatureDisplayInfoExtraRec.h>
 #include <DB/DBClient/AutoCode/CreatureFamilyRec.h>
@@ -408,12 +410,12 @@ LPCSTR ClientDBStringLookup(STRINGLOOKUP lookup) {
 }
 
 UINT GetPhysicalDamageClassID() {
-  ASSERT(s_physicalDamageClassID != -1);
+  ASSERT(s_physicalDamageClassID != 0xffffffff);
   return s_physicalDamageClassID;
 }
 
 UINT GetFirstNonPhysicalID() {
-  ASSERT(s_firstNonPhysicalDamageClass != -1);
+  ASSERT(s_firstNonPhysicalDamageClass != 0xffffffff);
   return s_firstNonPhysicalDamageClass;
 }
 

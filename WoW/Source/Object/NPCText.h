@@ -14,14 +14,14 @@ class NPCText {
     FREEIFUSED(m_text);
   }
 
+  char *m_text;
+  int   m_soundID;
+
   static int Version() {
     return 6;
   }
   void Pack(CDataStore *msg);
   void Unpack(CDataStore *msg);
-
-  char *m_text;
-  int   m_soundID;
 };
 
 #endif

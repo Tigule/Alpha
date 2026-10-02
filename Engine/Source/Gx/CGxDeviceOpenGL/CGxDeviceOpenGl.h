@@ -25,21 +25,10 @@ class CGxMemBuffer_VAR : public CGxMemBuffer {
 
 
 class CGxDeviceOpenGl : public CGxDevice {
- public:
-  template <class T>
-  struct PixelFormatAttribute {
-    int attribute;
-    T   value;
+ private:
+  friend class CGxDevice;
 
-    PixelFormatAttribute() {
-    }
-
-    PixelFormatAttribute(int attribute, T value) : attribute(attribute), value(value) {
-    }
-  };
-
-  typedef PixelFormatAttribute<int>   PixelFormatAttributei;
-  typedef PixelFormatAttribute<float> PixelFormatAttributef;
+  static const UINT kNullTmu;
 
   enum EDeviceState {
     Ds_DepthMask = 0,
@@ -88,12 +77,29 @@ class CGxDeviceOpenGl : public CGxDevice {
     DeviceStates_Last = 43
   };
 
+  UINT m_deviceState[43];
+
+  void DsSet(EDeviceState which, UINT newVal, int force);
+  UINT DsGet(EDeviceState state) {
+    ASSERT(state < DeviceStates_Last);
+    return m_deviceState[state];
+  }
+  void DsInit();
+
+  UINT m_lockedArrays;
+
+  void LockArrays(UINT count);
+  void UnlockArrays();
+
   enum EColorSource {
     Cs_Material = 0,
     Cs_Constant = 1,
     Cs_Array = 2,
     ColorSources_Last = 3
   };
+
+  EColorSource m_colorSource;
+  BOOL         m_colorSourceDirty;
 
   struct ColorSourceColor {
     NTempest::CImVector m_color;
@@ -103,10 +109,115 @@ class CGxDeviceOpenGl : public CGxDevice {
     }
   };
 
-  static long CALLBACK WindowProcGl(HWND window, UINT message, UINT wparam, long lparam);
-  void                 DeviceCreatePbuffer();
-  void                 DeviceQueryPbuffer();
-  void                 DeviceDestroyPbuffer();
+  ColorSourceColor m_colorSourceColor[3];
+
+  void BindTexture(CGxTex *texId, UINT tmu);
+  void GetError();
+
+  CGxDeviceOpenGl(const CGxDeviceOpenGl &);
+  const CGxDeviceOpenGl &operator=(const CGxDeviceOpenGl &);
+
+  void IDevSetFocus(int focus, const CGxFormat &format);
+  BOOL SetFormatMode(const CGxFormat &format);
+  BOOL IDevAttachGlContext(const CGxFormat &format);
+  void IDevRemoveGlContext();
+  void IPrimSetupPos();
+  void IPrimSetupNormal(UINT stride, LPCVOID normals);
+  void IPrimSetupColor(UINT stride, LPCVOID colors, UINT count, int convert);
+  void IPrimSetupTexCoord(UINT tmu, UINT stride, LPCVOID texCoord);
+  void IPrimSetupTexCoord(UINT coord, int enable);
+  void IStateSync();
+  void IStateSyncLights();
+  void IStateSyncEnables();
+  void IStateSyncTexTransforms();
+  void IStateSyncTexTransform(UINT tmu);
+  void IStateSetContextDefaults();
+  void IStateSetColorSource(EColorSource source);
+  void IStateSetColorSourceColor(EColorSource source, const NTempest::CImVector &color);
+  void IStateSyncColorSource();
+  void ISetGlCaps();
+  void IXformSet(EGxXform xform);
+  void IXformSetProjection(const NTempest::C44Matrix &m);
+  void IXformGLModelView(const NTempest::C44Matrix &gxm, NTempest::C44Matrix &oglm);
+  void IXformSetModelView(const NTempest::C44Matrix &m);
+  void ITexForceRecreation();
+  void IShaderForceRecreation();
+  void ISetTexture(UINT tmu, CGxTex *tex);
+  void ISetTexLodBias(UINT tmu, float bias);
+  void ISetTexBlend(UINT tmu, EGxTexBlend blend);
+  void ISetTexGen(UINT tmu, EGxTexGen texGen);
+  void ISceneBegin(UINT mask);
+  void AllocBuffers();
+  void IAllocBuffers();
+  void FreeBuffers();
+  void AllocVertexBuffer(EGxBufWriteFreq freq, UINT bytes);
+  void IAllocVertexBufferVAR(EGxBufWriteFreq freq, UINT bytes);
+  void FreeVertexBuffer(CGxMemBuffer *&b);
+  void AllocIndexBuffer(EGxBufWriteFreq freq, UINT bytes);
+  void FreeIndexBuffer(CGxMemBuffer *&b);
+  void IAllocVAR();
+  void IFreeVAR();
+
+  LPVOID m_nvvarMem;
+  UINT   m_nvvarBytes;
+  UINT   m_nvvarNext;
+  BOOL   m_bufRealloc;
+
+  virtual void ISetShaderParamList(LISTEX(CGxShaderParam, lameAssLink) &params, int forceForBind);
+
+ protected:
+  static UINT s_convertMinFilterToOgl[5];
+  static UINT s_convertMagFilterToOgl[5];
+  static int  s_convertTexFmt[8];
+  static UINT s_dataFormatSize[8];
+  static int  s_convertDataFmt[8];
+  static int  s_convertDataType[8];
+
+  HWND  m_hwnd;
+  int   m_ownhwnd;
+  WORD  m_hwndClass;
+  HDC   m_hdc;
+  HGLRC m_hglrc;
+
+  template <class T>
+  struct PixelFormatAttribute {
+    int attribute;
+    T   value;
+
+    PixelFormatAttribute() {
+    }
+
+    PixelFormatAttribute(int attribute, T value) : attribute(attribute), value(value) {
+    }
+  };
+
+  typedef PixelFormatAttribute<int>   PixelFormatAttributei;
+  typedef PixelFormatAttribute<float> PixelFormatAttributef;
+
+  HPBUFFERARB                       m_hPbuffer;
+  HDC                               m_hPbufferDC;
+  HGLRC                             m_hPbufferRC;
+  TSFixedArray<NTempest::C3Vector>  m_primPos;
+  TSFixedArray<NTempest::C3Vector>  m_primNormal;
+  TSFixedArray<NTempest::CImVector> m_primColor;
+  TSFixedArray<NTempest::C2Vector>  m_primT0;
+  TSFixedArray<NTempest::C2Vector>  m_primT1;
+  CGxMemBuffer                     *m_vertexBuffer[4];
+  CGxMemBuffer                     *m_indexBuffer[4];
+  EGxPrim                           m_primType;
+  UINT                              m_primIndexCount;
+  const WORD                       *m_primIndices;
+  BOOL                              m_worldViewChange;
+
+  virtual void ITexMarkAsUpdated(CGxTex *texId);
+  void         ITexMarkAsUpdated(CGxTex *texId, UINT tmu);
+  void         ITexSetFlags(CGxTex *texId);
+  void         ITexDownload(CGxTex *texId, UINT w, UINT h, UINT startLevel, UINT oglBase, UINT texelStrideInBytes, LPCVOID texels);
+  void         IBufSetBuffers(CGxBufOgl *buf);
+  void         IPixelShaderBind(CGxPixelShader *ps);
+
+ public:
+  CGxDeviceOpenGl();
   virtual ~CGxDeviceOpenGl();
   virtual BOOL  DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
   virtual BOOL  DeviceCreate(UINT clienthwnd, const CGxFormat &format);
@@ -122,6 +233,9 @@ class CGxDeviceOpenGl : public CGxDevice {
   virtual void  DeviceWM(EGxWM wm, long param1, long param2);
   virtual void  DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UINT plane);
   virtual void  DeviceOverride(EGxOverride override, DWORD value);
+  void          DeviceCreatePbuffer();
+  void          DeviceQueryPbuffer();
+  void          DeviceDestroyPbuffer();
   virtual void  CapsWindowSize(NTempest::CRect &dst);
   virtual void  CapsWindowSizeInScreenCoords(NTempest::CRect &dst);
   virtual int   CapsIsWindowVisible();
@@ -178,111 +292,5 @@ class CGxDeviceOpenGl : public CGxDevice {
   virtual void PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename);
   virtual void PixelShaderDestroy(CGxPixelShader *&ps);
 
- private:
-  friend class CGxDevice;
-
-  static const UINT kNullTmu;
-
-  CGxDeviceOpenGl();
-  CGxDeviceOpenGl(const CGxDeviceOpenGl &);
-  const CGxDeviceOpenGl &operator=(const CGxDeviceOpenGl &);
-
-  void DsInit();
-  UINT DsGet(EDeviceState state) {
-    ASSERT(state < DeviceStates_Last);
-    return m_deviceState[state];
-  }
-  void DsSet(EDeviceState which, UINT newVal, int force);
-  void AllocBuffers();
-  void AllocIndexBuffer(EGxBufWriteFreq freq, UINT bytes);
-  void AllocVertexBuffer(EGxBufWriteFreq freq, UINT bytes);
-  void FreeBuffers();
-  void FreeIndexBuffer(CGxMemBuffer *&b);
-  void FreeVertexBuffer(CGxMemBuffer *&b);
-  void IAllocBuffers();
-  void IAllocVAR();
-  void IAllocVertexBufferVAR(EGxBufWriteFreq freq, UINT bytes);
-  void IFreeVAR();
-  void ITexForceRecreation();
-  void BindTexture(CGxTex *texId, UINT tmu);
-  void GetError();
-  BOOL IDevAttachGlContext(const CGxFormat &format);
-  void IDevRemoveGlContext();
-  void IDevSetFocus(int focus, const CGxFormat &format);
-  void ISceneBegin(UINT mask);
-  void ISetGlCaps();
-  void IShaderForceRecreation();
-  void IStateSetContextDefaults();
-  void IStateSetColorSource(EColorSource source);
-  void IStateSetColorSourceColor(EColorSource source, const NTempest::CImVector &color);
-  void IStateSync();
-  void IStateSyncColorSource();
-  void IStateSyncEnables();
-  void IStateSyncLights();
-  void IStateSyncTexTransform(UINT tmu);
-  void IStateSyncTexTransforms();
-  void IPrimSetupColor(UINT stride, LPCVOID colors, UINT count, int convert);
-  void IPrimSetupNormal(UINT stride, LPCVOID normals);
-  void IPrimSetupPos();
-  void IPrimSetupTexCoord(UINT coord, int enable);
-  void IPrimSetupTexCoord(UINT tmu, UINT stride, LPCVOID texCoord);
-  void ISetTexBlend(UINT tmu, EGxTexBlend blend);
-  void ISetTexGen(UINT tmu, EGxTexGen texGen);
-  void ISetTexLodBias(UINT tmu, float bias);
-  void ISetTexture(UINT tmu, CGxTex *tex);
-  void IXformGLModelView(const NTempest::C44Matrix &gxm, NTempest::C44Matrix &oglm);
-  void IXformSetModelView(const NTempest::C44Matrix &m);
-  void IXformSetProjection(const NTempest::C44Matrix &m);
-  void IXformSet(EGxXform xform);
-  void LockArrays(UINT count);
-  BOOL SetFormatMode(const CGxFormat &format);
-  void UnlockArrays();
-
-  virtual void ISetShaderParamList(LISTEX(CGxShaderParam, lameAssLink) &params, int forceForBind);
-
-  UINT             m_deviceState[43];
-  UINT             m_lockedArrays;
-  EColorSource     m_colorSource;
-  BOOL             m_colorSourceDirty;
-  ColorSourceColor m_colorSourceColor[3];
-  LPVOID           m_nvvarMem;
-  UINT             m_nvvarBytes;
-  UINT             m_nvvarNext;
-  BOOL             m_bufRealloc;
-
- protected:
-  void IBufSetBuffers(CGxBufOgl *buf);
-
-  static UINT s_convertMinFilterToOgl[5];
-  static UINT s_convertMagFilterToOgl[5];
-  static int  s_convertTexFmt[8];
-  static UINT s_dataFormatSize[8];
-  static int  s_convertDataFmt[8];
-  static int  s_convertDataType[8];
-
-  void         IPixelShaderBind(CGxPixelShader *ps);
-  void         ITexDownload(CGxTex *texId, UINT w, UINT h, UINT startLevel, UINT oglBase, UINT texelStrideInBytes, LPCVOID texels);
-  virtual void ITexMarkAsUpdated(CGxTex *texId);
-  void         ITexMarkAsUpdated(CGxTex *texId, UINT tmu);
-  void         ITexSetFlags(CGxTex *texId);
-
-  HWND                              m_hwnd;
-  int                               m_ownhwnd;
-  WORD                              m_hwndClass;
-  HDC                               m_hdc;
-  HGLRC                             m_hglrc;
-  HPBUFFERARB                       m_hPbuffer;
-  HDC                               m_hPbufferDC;
-  HGLRC                             m_hPbufferRC;
-  TSFixedArray<NTempest::C3Vector>  m_primPos;
-  TSFixedArray<NTempest::C3Vector>  m_primNormal;
-  TSFixedArray<NTempest::CImVector> m_primColor;
-  TSFixedArray<NTempest::C2Vector>  m_primT0;
-  TSFixedArray<NTempest::C2Vector>  m_primT1;
-  CGxMemBuffer                     *m_vertexBuffer[4];
-  CGxMemBuffer                     *m_indexBuffer[4];
-  EGxPrim                           m_primType;
-  UINT                              m_primIndexCount;
-  const WORD                       *m_primIndices;
-  BOOL                              m_worldViewChange;
+  static long CALLBACK WindowProcGl(HWND window, UINT message, UINT wparam, long lparam);
 };

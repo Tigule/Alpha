@@ -18,48 +18,18 @@ void OsCallDestroyContext(LPVOID contextDataPtr);
 
 template <class T>
 class EvtIdTable {
- public:
-  UINT Alloc() {
-    UINT id;
-    UINT count = m_freeArray.Count();
-
-    if (count) {
-      id = m_freeArray[count - 1];
-      m_freeArray.SetCount(count - 1);
-    } else {
-      id = m_allocArray.Count();
-      if (!id) {
-        id = 1;
-      }
-      m_allocArray.GrowToFit(id, 1);
-    }
-    return id;
-  }
-
-  void Free(UINT id) {
-    if (id) {
-      ASSERT(id < m_allocArray.Count());
-      m_freeArray.Add(1, &id);
-    }
-  }
-
-  UINT NumAllocated() const {
-    return m_allocArray.Count() - m_freeArray.Count();
-  }
-
-  T &operator[](UINT id) {
-    return m_allocArray[id];
-  }
-
-  const T &operator[](UINT id) const {
-    return const_cast<EvtIdTable<T> *>(this)->m_allocArray[id];
-  }
-
  private:
   TSGrowableArray<T>    m_allocArray;
   TSGrowableArray<UINT> m_freeArray;
 
   friend struct EvtContext;
+
+ public:
+  T       &operator[](UINT id);
+  const T &operator[](UINT id) const;
+  UINT     Alloc();
+  void     Free(UINT id);
+  UINT     NumAllocated() const;
 };
 
 class EvtTimerQueue : public TSPriorityQueue<EvtTimer> {
@@ -113,10 +83,6 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   };
 
  private:
-  EvtContext(DWORD idleTime, DWORD flags, UINT weight, LPVOID callContext, int startWatchdog);
-  EvtContext(const EvtContext &);
-  EvtContext &operator=(const EvtContext &);
-
   friend void          DestroySchedulerThread(UINT hThread);
   friend HEVENTCONTEXT AttachContextToThread(EvtContext *context);
   friend void          DetachContextFromThread(UINT hThread, EvtContext *context);
@@ -145,6 +111,10 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   LPVOID                 m_callContext;
   UINT                   m_startWatchdog;
 
+  EvtContext(const EvtContext &);
+  EvtContext(DWORD idleTime, DWORD flags, UINT weight, LPVOID callContext, int startWatchdog);
+  EvtContext &operator=(const EvtContext &);
+
  public:
   ~EvtContext() {
     EvtTimer *timer;
@@ -167,12 +137,12 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     OsCallDestroyContext(m_callContext);
   }
 
-  BOOL IsCurrentContext() const {
-    return !Id() || reinterpret_cast<LPVOID>(Id()) == PropGet(PROP_EVENTCONTEXT);
-  }
-
   HEVENTCONTEXT Handle() const {
     return reinterpret_cast<HEVENTCONTEXT>(Id());
+  }
+
+  BOOL IsCurrentContext() const {
+    return !Id() || reinterpret_cast<LPVOID>(Id()) == PropGet(PROP_EVENTCONTEXT);
   }
 
   DWORD GetCurrTime() const {
@@ -300,10 +270,6 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     m_schedRebalance = rebalance;
   }
 
-  int StartWatchdog() {
-    return m_startWatchdog;
-  }
-
   LISTEX(EvtHandler, link) & QueueLockHandlerList(EVENTID id) {
     ASSERT(IsCurrentContext());
     ASSERT(id >= 0 && id < EVENTIDS);
@@ -360,6 +326,10 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
     ASSERT(IsCurrentContext());
     m_critsect.Leave();
   }
+
+  int StartWatchdog() {
+    return m_startWatchdog;
+  }
 };
 
 NODEDECL(EvtThread) {
@@ -372,6 +342,44 @@ NODEDECL(EvtThread) {
   SEvent          m_wakeEvent;
   EvtContextQueue m_contextQueue;
 };
+
+template <class T>
+inline T &EvtIdTable<T>::operator[](UINT id) {
+  return m_allocArray[id];
+}
+
+template <class T>
+inline const T &EvtIdTable<T>::operator[](UINT id) const {
+  return const_cast<EvtIdTable<T> *>(this)->m_allocArray[id];
+}
+
+template <class T>
+inline UINT EvtIdTable<T>::Alloc() {
+  UINT id;
+  UINT count = m_freeArray.Count();
+
+  if (count) {
+    id = m_freeArray[count - 1];
+    m_freeArray.SetCount(count - 1);
+  } else {
+    id = max(1, m_allocArray.Count());
+    m_allocArray.GrowToFit(id, 1);
+  }
+  return id;
+}
+
+template <class T>
+inline void EvtIdTable<T>::Free(UINT id) {
+  if (id) {
+    ASSERT(id < m_allocArray.Count());
+    m_freeArray.Add(1, &id);
+  }
+}
+
+template <class T>
+inline UINT EvtIdTable<T>::NumAllocated() const {
+  return m_allocArray.Count() - m_freeArray.Count();
+}
 
 void IEvtQueueInitialize();
 void IEvtQueueDestroy();

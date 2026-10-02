@@ -28,19 +28,6 @@ void CSimpleCheckbox::LoadXML(const XMLNode *node, CStatus *status) {
   }
 }
 
-void CSimpleCheckbox::SetCheckedTexture(CSimpleTexture *texture) {
-  if (m_checkedTexture) {
-    DEL(m_checkedTexture);
-  }
-
-  if (texture) {
-    texture->SetFrame(this, 3, 0);
-  }
-
-  m_checkedTexture = texture;
-  SetChecked(m_checked, 1);
-}
-
 BOOL CSimpleCheckbox::SetCheckedTexture(LPCSTR texFile) {
   if (m_checkedTexture) {
     m_checkedTexture->SetTexture(texFile, 0);
@@ -59,16 +46,16 @@ BOOL CSimpleCheckbox::SetCheckedTexture(LPCSTR texFile) {
   return 0;
 }
 
-void CSimpleCheckbox::SetDisabledCheckedTexture(CSimpleTexture *texture) {
-  if (m_disabledTexture) {
-    DEL(m_disabledTexture);
+void CSimpleCheckbox::SetCheckedTexture(CSimpleTexture *texture) {
+  if (m_checkedTexture) {
+    DEL(m_checkedTexture);
   }
 
   if (texture) {
     texture->SetFrame(this, 3, 0);
   }
 
-  m_disabledTexture = texture;
+  m_checkedTexture = texture;
   SetChecked(m_checked, 1);
 }
 
@@ -88,6 +75,19 @@ BOOL CSimpleCheckbox::SetDisabledCheckedTexture(LPCSTR texFile) {
 
   DEL(texture);
   return 0;
+}
+
+void CSimpleCheckbox::SetDisabledCheckedTexture(CSimpleTexture *texture) {
+  if (m_disabledTexture) {
+    DEL(m_disabledTexture);
+  }
+
+  if (texture) {
+    texture->SetFrame(this, 3, 0);
+  }
+
+  m_disabledTexture = texture;
+  SetChecked(m_checked, 1);
 }
 
 void CSimpleCheckbox::Enable(int enabled) {

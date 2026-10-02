@@ -513,7 +513,9 @@ void OsInputSetScreenIsWindow(int inVal) {
 }
 
 void OsInputSetMouseMode(OS_MOUSE_MODE mode) {
-  FATALASSERT(mode < OS_MOUSE_MODES);
+  VALIDATEBEGIN;
+  VALIDATE(mode < OS_MOUSE_MODES);
+  VALIDATEENDVOID;
 
   if (mode == s_mouseMode) {
     return;
@@ -556,7 +558,9 @@ void OsInputSetMousePosition(int x, int y) {
 }
 
 BOOL OsGetDefaultWindowRect(RECT *rect) {
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(rect);
+  VALIDATEEND;
 
   if ((!s_defaultwindowrect.right || !s_defaultwindowrect.bottom) && !GetClientRect(static_cast<HWND>(OsGuiGetWindow(0)), &s_defaultwindowrect)) {
     return 0;

@@ -362,7 +362,7 @@ void CWorldScene::AddMapChunk(CMapChunk *chunk, float sortDist) {
 
 void CWorldScene::AddChunkLiquid(CChunkLiquid *liquid, UINT type) {
   FATALASSERT(liquid);
-  FATALASSERT(type < 4);
+  FATALASSERT(type < LQ_LAST);
   int sortIndex = Fast_ftol(liquid->chunk->camDist * 0.03f);
   if (sortIndex < 0) {
     sortIndex = 0;
@@ -514,9 +514,6 @@ void CWorldScene::AddViewerGroup2(UINT groupNum) {
   viewerMapObjGroups.Add(&groupNum);
 }
 
-void CWorldScene::LocateViewer2() {
-}
-
 void CWorldScene::LocateViewer3() {
   viewerMapObjDef = 0;
   viewerMapObjGroups.SetCount(0);
@@ -571,6 +568,9 @@ void CWorldScene::LocateViewer3() {
   }
 }
 
+void CWorldScene::LocateViewer2() {
+}
+
 void CWorldScene::FrustumPush() {
   FATALASSERT(frustumIndex < 15);
   frustumStack[frustumIndex + 1] = frustumStack[frustumIndex];
@@ -617,7 +617,7 @@ void CWorldScene::FrustumSet(const NTempest::C3Vector corners[]) {
   FrustumGet().CalcPlanesFromCorners(corners);
 }
 
-void CWorldScene::FrustumSet(const NTempest::C3Vector *const corners, const NTempest::CRect &sRect) {
+void CWorldScene::FrustumSet(const NTempest::C3Vector corners[], const NTempest::CRect &sRect) {
   NTempest::C3Vector n;
   NTempest::C3Vector newCorners[8];
   NTempest::C3Vector tl;
@@ -1027,99 +1027,6 @@ void CWorldScene::RenderChunks() {
   }
 }
 
-int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, UINT cullFlags) {
-  if (!(CWorld::enables & CWorld::Enable_Culling) || NTempest::CMath::fabs_(radius) < 2.38418579e-7f) {
-    return 0;
-  }
-
-  NTempest::C4Vector v(center.x, center.y, center.z, 1.0f);
-  NTempest::C4Vector vr(radius, radius, 0.0f, 1.0f);
-  v = v * mvp;
-  vr = vr * mp;
-  if (!(cullFlags & 8) && v.w < 50.0f) {
-    return 0;
-  }
-
-  float ooW = 1.0f / v.w;
-  v.x = v.x * ooW + 1.0f;
-  v.y *= ooW;
-  vr.x *= ooW;
-  vr.y *= ooW;
-  v.y += vr.x;
-  if (v.y > 1.0f) {
-    v.y = 1.0f;
-  }
-  if ((cullFlags & 4) && v.w - radius > cullDistance) {
-    return 1;
-  }
-  if ((cullFlags & 1) && vr.x < cullSmallThreshold && vr.y < cullSmallThreshold) {
-    return 1;
-  }
-
-  int first = Fast_ftol((v.x - vr.y) * 64.0f);
-  int last = Fast_ftol((v.x + vr.y) * 64.0f) + 1;
-  if (first < 0) {
-    first = 0;
-  }
-  if (last > 127) {
-    last = 127;
-  }
-  while (first <= last && clipBuffer[first] >= v.y) {
-    ++first;
-  }
-  return first > last;
-}
-
-int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags) {
-  if (!(CWorld::enables & CWorld::Enable_Culling)) {
-    return 0;
-  }
-
-  NTempest::C3Vector aaBoxMin(3.4028235e38f);
-  NTempest::C3Vector aaBoxMax(-3.4028235e38f);
-  const NTempest::C3Vector *aaBoxMinMax[2] = {&aaBox.t, &aaBox.b};
-  NTempest::C4Vector v;
-  for (UINT i = 0; i < 8; ++i) {
-    v.Set(aaBoxMinMax[s_boxCornerIndicesX[i]]->x, aaBoxMinMax[s_boxCornerIndicesY[i]]->y, aaBoxMinMax[s_boxCornerIndicesZ[i]]->z, 1.0f);
-    v = v * mvp;
-    if (!(cullFlags & 8) && v.w < 50.0f) {
-      return 0;
-    }
-    float ooW = 1.0f / v.w;
-    v.x *= ooW;
-    v.y *= ooW;
-    if (v.x < aaBoxMin.x)
-      aaBoxMin.x = v.x;
-    if (v.x > aaBoxMax.x)
-      aaBoxMax.x = v.x;
-    if (v.y < aaBoxMin.y)
-      aaBoxMin.y = v.y;
-    if (v.y > aaBoxMax.y)
-      aaBoxMax.y = v.y;
-    if (v.w < aaBoxMin.z)
-      aaBoxMin.z = v.w;
-  }
-
-  aaBoxMax.x += 1.0f;
-  if (aaBoxMax.y > 1.0f) {
-    aaBoxMax.y = 1.0f;
-  }
-  if ((cullFlags & 4) && aaBoxMin.z > cullDistance) {
-    return 1;
-  }
-
-  int first = Fast_ftol((aaBoxMin.x + 1.0f) * 64.0f);
-  int last = Fast_ftol(aaBoxMax.x * 64.0f) + 1;
-  if (first < 0)
-    first = 0;
-  if (last > 127)
-    last = 127;
-  while (first <= last && clipBuffer[first] >= aaBoxMax.y) {
-    ++first;
-  }
-  return first > last;
-}
-
 void CWorldScene::RenderMapObjDefGroups() {
   NTempest::C44Matrix mapObjM;
   CMapObjDefGroup    *mapObjDefGroupnext_node;
@@ -1384,6 +1291,99 @@ void CWorldScene::ClipBufferClear() {
   for (UINT i = 0; i < 128; ++i) {
     clipBuffer[i] = -1.0f;
   }
+}
+
+int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, UINT cullFlags) {
+  if (!(CWorld::enables & CWorld::Enable_Culling) || NTempest::CMath::fabs_(radius) < 2.38418579e-7f) {
+    return 0;
+  }
+
+  NTempest::C4Vector v(center.x, center.y, center.z, 1.0f);
+  NTempest::C4Vector vr(radius, radius, 0.0f, 1.0f);
+  v = v * mvp;
+  vr = vr * mp;
+  if (!(cullFlags & 8) && v.w < 50.0f) {
+    return 0;
+  }
+
+  float ooW = 1.0f / v.w;
+  v.x = v.x * ooW + 1.0f;
+  v.y *= ooW;
+  vr.x *= ooW;
+  vr.y *= ooW;
+  v.y += vr.x;
+  if (v.y > 1.0f) {
+    v.y = 1.0f;
+  }
+  if ((cullFlags & 4) && v.w - radius > cullDistance) {
+    return 1;
+  }
+  if ((cullFlags & 1) && vr.x < cullSmallThreshold && vr.y < cullSmallThreshold) {
+    return 1;
+  }
+
+  int first = Fast_ftol((v.x - vr.y) * 64.0f);
+  int last = Fast_ftol((v.x + vr.y) * 64.0f) + 1;
+  if (first < 0) {
+    first = 0;
+  }
+  if (last > 127) {
+    last = 127;
+  }
+  while (first <= last && clipBuffer[first] >= v.y) {
+    ++first;
+  }
+  return first > last;
+}
+
+int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags) {
+  if (!(CWorld::enables & CWorld::Enable_Culling)) {
+    return 0;
+  }
+
+  NTempest::C3Vector aaBoxMin(3.4028235e38f);
+  NTempest::C3Vector aaBoxMax(-3.4028235e38f);
+  const NTempest::C3Vector *aaBoxMinMax[2] = {&aaBox.t, &aaBox.b};
+  NTempest::C4Vector v;
+  for (UINT i = 0; i < 8; ++i) {
+    v.Set(aaBoxMinMax[s_boxCornerIndicesX[i]]->x, aaBoxMinMax[s_boxCornerIndicesY[i]]->y, aaBoxMinMax[s_boxCornerIndicesZ[i]]->z, 1.0f);
+    v = v * mvp;
+    if (!(cullFlags & 8) && v.w < 50.0f) {
+      return 0;
+    }
+    float ooW = 1.0f / v.w;
+    v.x *= ooW;
+    v.y *= ooW;
+    if (v.x < aaBoxMin.x)
+      aaBoxMin.x = v.x;
+    if (v.x > aaBoxMax.x)
+      aaBoxMax.x = v.x;
+    if (v.y < aaBoxMin.y)
+      aaBoxMin.y = v.y;
+    if (v.y > aaBoxMax.y)
+      aaBoxMax.y = v.y;
+    if (v.w < aaBoxMin.z)
+      aaBoxMin.z = v.w;
+  }
+
+  aaBoxMax.x += 1.0f;
+  if (aaBoxMax.y > 1.0f) {
+    aaBoxMax.y = 1.0f;
+  }
+  if ((cullFlags & 4) && aaBoxMin.z > cullDistance) {
+    return 1;
+  }
+
+  int first = Fast_ftol((aaBoxMin.x + 1.0f) * 64.0f);
+  int last = Fast_ftol(aaBoxMax.x * 64.0f) + 1;
+  if (first < 0)
+    first = 0;
+  if (last > 127)
+    last = 127;
+  while (first <= last && clipBuffer[first] >= aaBoxMax.y) {
+    ++first;
+  }
+  return first > last;
 }
 
 CWFrustum::CWFrustum(

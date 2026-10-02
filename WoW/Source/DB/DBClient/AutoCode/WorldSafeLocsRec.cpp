@@ -15,21 +15,24 @@ WorldSafeLocsRec::~WorldSafeLocsRec() {
 
 bool WorldSafeLocsRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempAreaName_langIndices[8];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_continent) ||
-      !SFileReadTyped(f, &m_locX) ||
-      !SFileReadTyped(f, &m_locY) ||
-      !SFileReadTyped(f, &m_locZ) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[0]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[1]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[2]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[3]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[4]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[5]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[6]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[7]) ||
-      !SFileReadTyped(f, &m_AreaName_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_continent) == 0);
+  error |= (SFileReadTyped(f, &m_locX) == 0);
+  error |= (SFileReadTyped(f, &m_locY) == 0);
+  error |= (SFileReadTyped(f, &m_locZ) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_AreaName_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading WorldSafeLocsRec", DEFAULT_COLOR);
     return false;
   }

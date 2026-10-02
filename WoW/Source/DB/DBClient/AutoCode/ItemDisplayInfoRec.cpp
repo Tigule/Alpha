@@ -19,29 +19,32 @@ bool ItemDisplayInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempmodelNameIndices[2];
   UINT tempinventoryIconIndices[1];
   UINT tempmodelTextureIndices[2];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempmodelNameIndices[0]) ||
-      !SFileReadTyped(f, &tempmodelNameIndices[1]) ||
-      !SFileReadTyped(f, &tempmodelTextureIndices[0]) ||
-      !SFileReadTyped(f, &tempmodelTextureIndices[1]) ||
-      !SFileReadTyped(f, &tempinventoryIconIndices[0]) ||
-      !SFileReadTyped(f, &tempgroundModelIndices[0]) ||
-      !SFile::Read(f, &m_geosetGroup[0], sizeof(m_geosetGroup), 0, 0, 0) ||
-      !SFileReadTyped(f, &m_flags) ||
-      !SFileReadTyped(f, &m_spellVisualID) ||
-      !SFileReadTyped(f, &m_groupSoundIndex) ||
-      !SFileReadTyped(f, &m_itemSize) ||
-      !SFileReadTyped(f, &m_helmetGeosetVisID) ||
-      !SFileReadTyped(f, &temptextureIndices[0]) ||
-      !SFileReadTyped(f, &temptextureIndices[1]) ||
-      !SFileReadTyped(f, &temptextureIndices[2]) ||
-      !SFileReadTyped(f, &temptextureIndices[3]) ||
-      !SFileReadTyped(f, &temptextureIndices[4]) ||
-      !SFileReadTyped(f, &temptextureIndices[5]) ||
-      !SFileReadTyped(f, &temptextureIndices[6]) ||
-      !SFileReadTyped(f, &temptextureIndices[7]) ||
-      !SFileReadTyped(f, &m_itemVisual)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempmodelNameIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempmodelNameIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempmodelTextureIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempmodelTextureIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempinventoryIconIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempgroundModelIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_geosetGroup) == 0);
+  error |= (SFileReadTyped(f, &m_flags) == 0);
+  error |= (SFileReadTyped(f, &m_spellVisualID) == 0);
+  error |= (SFileReadTyped(f, &m_groupSoundIndex) == 0);
+  error |= (SFileReadTyped(f, &m_itemSize) == 0);
+  error |= (SFileReadTyped(f, &m_helmetGeosetVisID) == 0);
+  error |= (SFileReadTyped(f, &temptextureIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &temptextureIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &temptextureIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &temptextureIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &temptextureIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &temptextureIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &temptextureIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &temptextureIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_itemVisual) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading ItemDisplayInfoRec", DEFAULT_COLOR);
     return false;
   }

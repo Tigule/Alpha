@@ -15,17 +15,20 @@ QuestSortRec::~QuestSortRec() {
 
 bool QuestSortRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempSortName_langIndices[NUM_LOCALES];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempSortName_langIndices[0]) ||
-      !SFileReadTyped(f, &tempSortName_langIndices[1]) ||
-      !SFileReadTyped(f, &tempSortName_langIndices[2]) ||
-      !SFileReadTyped(f, &tempSortName_langIndices[3]) ||
-      !SFileReadTyped(f, &tempSortName_langIndices[4]) ||
-      !SFileReadTyped(f, &tempSortName_langIndices[5]) ||
-      !SFileReadTyped(f, &tempSortName_langIndices[6]) ||
-      !SFileReadTyped(f, &tempSortName_langIndices[7]) ||
-      !SFileReadTyped(f, &m_SortName_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempSortName_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempSortName_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempSortName_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempSortName_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempSortName_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempSortName_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempSortName_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempSortName_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_SortName_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading QuestSortRec", DEFAULT_COLOR);
     return false;
   }

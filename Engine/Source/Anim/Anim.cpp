@@ -24,6 +24,8 @@ struct CameraInfo : public InterpInfo {
 #include "Tempest/cmath.h"
 #include "Tempest/c4quaternion.h"
 
+using NTempest::CMath;
+
 float                   s_animBoneProjectDistance;
 ANIMBONEPROJECTCALLBACK s_AnimBoneProjectCallback;
 
@@ -82,19 +84,19 @@ void CKeyFrameTrack<T, U>::Interpolate(const CKeyTrackStatus &keyStat, UINT seqT
 }
 
 static void FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
-  ASSERT(NTempest::CMath::fabs_(direction.SquaredMag()) >= 0.00000023841858f);
+  VALIDATEBEGIN;
+  VALIDATE(CMath::fnotequal_(direction.SquaredMag(),0));
+  VALIDATEENDVOID;
   *xprime = direction;
 
-  if (NTempest::CMath::fabs_(direction.x * direction.x + direction.y * direction.y) >= 0.00000023841858f) {
-    yprime->x = -direction.y;
-    yprime->y = direction.x;
-    yprime->z = 0.0f;
-    yprime->Normalize();
+  if (CMath::fequal_(xprime->x * xprime->x + xprime->y * xprime->y, 0)) {
+    yprime->Set(1.0f, 0.0f, 0.0f);
   } else {
-    *yprime = NTempest::C3Vector(1.0f, 0.0f, 0.0f);
+    yprime->Set(-xprime->y, xprime->x, 0.0f);
+    CMath::normalize_(yprime->x, yprime->y);
   }
 
-  *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
+  *zprime = NTempest::C3Vector(-(yprime->y * xprime->z), xprime->z * yprime->x, yprime->y * xprime->x - xprime->y * yprime->x);
 }
 
 static void LookAtPoint(const NTempest::C3Vector &position, const NTempest::C3Vector &point, NTempest::C4Quaternion *result) {
@@ -136,43 +138,43 @@ static void RotateViewBillboarded(const NTempest::C3Vector &cameraVector) {
 }
 
 static void RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVector) {
-  ASSERT(NTempest::CMath::fabs_(cameraVector.SquaredMag()) >= 0.00000023841858f);
-  NTempest::C3Vector xprime;
+  VALIDATEBEGIN;
+  VALIDATE(CMath::fnotequal_(cameraVector.SquaredMag(),0));
+  VALIDATEENDVOID;
   NTempest::C3Vector zprime;
-  NTempest::C3Vector yprime;
 
   WorldMatrixGetRow(2, &zprime);
-  yprime = NTempest::C3Vector::Cross(zprime, NTempest::C3Vector(-cameraVector.x, -cameraVector.y, -cameraVector.z));
+  NTempest::C3Vector yprime = NTempest::C3Vector::Cross(zprime, NTempest::C3Vector(-cameraVector.x, -cameraVector.y, -cameraVector.z));
   yprime.Normalize();
-  xprime = NTempest::C3Vector::Cross(yprime, zprime);
+  NTempest::C3Vector xprime = NTempest::C3Vector::Cross(yprime, zprime);
   WorldMatrixRemove(4);
   WorldMatrixBasis(xprime, yprime, zprime);
 }
 
 static void RotateViewYAxisBillboarded(const NTempest::C3Vector &cameraVector) {
-  ASSERT(NTempest::CMath::fabs_(cameraVector.SquaredMag()) >= 0.00000023841858f);
-  NTempest::C3Vector xprime;
+  VALIDATEBEGIN;
+  VALIDATE(CMath::fnotequal_(cameraVector.SquaredMag(),0));
+  VALIDATEENDVOID;
   NTempest::C3Vector yprime;
-  NTempest::C3Vector zprime;
 
   WorldMatrixGetRow(1, &yprime);
-  zprime = NTempest::C3Vector::Cross(NTempest::C3Vector(-cameraVector.x, -cameraVector.y, -cameraVector.z), yprime);
+  NTempest::C3Vector zprime = NTempest::C3Vector::Cross(NTempest::C3Vector(-cameraVector.x, -cameraVector.y, -cameraVector.z), yprime);
   zprime.Normalize();
-  xprime = NTempest::C3Vector::Cross(yprime, zprime);
+  NTempest::C3Vector xprime = NTempest::C3Vector::Cross(yprime, zprime);
   WorldMatrixRemove(4);
   WorldMatrixBasis(xprime, yprime, zprime);
 }
 
 static void RotateViewXAxisBillboarded(const NTempest::C3Vector &cameraVector) {
-  ASSERT(NTempest::CMath::fabs_(cameraVector.SquaredMag()) >= 0.00000023841858f);
-  NTempest::C3Vector yprime;
+  VALIDATEBEGIN;
+  VALIDATE(CMath::fnotequal_(cameraVector.SquaredMag(),0));
+  VALIDATEENDVOID;
   NTempest::C3Vector xprime;
-  NTempest::C3Vector zprime;
 
   WorldMatrixGetRow(0, &xprime);
-  zprime = NTempest::C3Vector::Cross(NTempest::C3Vector(-cameraVector.x, -cameraVector.y, -cameraVector.z), xprime);
+  NTempest::C3Vector zprime = NTempest::C3Vector::Cross(NTempest::C3Vector(-cameraVector.x, -cameraVector.y, -cameraVector.z), xprime);
   zprime.Normalize();
-  yprime = NTempest::C3Vector::Cross(xprime, zprime);
+  NTempest::C3Vector yprime = NTempest::C3Vector::Cross(xprime, zprime);
   WorldMatrixRemove(4);
   WorldMatrixBasis(xprime, yprime, zprime);
 }
@@ -916,7 +918,9 @@ static void ISetSequenceUnchanged(CAnim *container, CAnimData *animptr) {
 
 void AnimProcessEvents(HANIM anim, const TSFixedArray<NTempest::C3Vector> &positions) {
   CAnim *container = reinterpret_cast<CAnim *>(anim);
-  ASSERT(container);
+  VALIDATEBEGIN;
+  VALIDATE(container);
+  VALIDATEENDVOID;
 
   CAnimData *animptr = reinterpret_cast<CAnimData *>(container->hdata);
   ASSERT(animptr);
@@ -977,8 +981,10 @@ void AnimAnimateModel(HANIM anim, const CAnimationData &data) {
 
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
-  ASSERT(data.boneMtx || !data.numBones);
-  ASSERT(data.textureMtx || !data.numTexBones);
+  VALIDATEBEGIN;
+  VALIDATE(data.boneMtx || !data.numBones);
+  VALIDATE(data.textureMtx || !data.numTexBones);
+  VALIDATEENDVOID;
 
   IAnimAnimateModel(unique, shared, data);
 }

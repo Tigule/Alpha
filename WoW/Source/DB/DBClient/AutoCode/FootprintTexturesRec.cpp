@@ -15,9 +15,12 @@ FootprintTexturesRec::~FootprintTexturesRec() {
 
 bool FootprintTexturesRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempFootstepFilenameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempFootstepFilenameIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempFootstepFilenameIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading FootprintTexturesRec", DEFAULT_COLOR);
     return false;
   }

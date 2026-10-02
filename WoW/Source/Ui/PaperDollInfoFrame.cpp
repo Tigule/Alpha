@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "PaperDollInfoFrame.h"
 
@@ -580,7 +588,8 @@ static int Script_GetInventorySlotInfo(lua_State *L) {
       }
     }
   }
-  return luaL_error(L, "Invalid inventory slot in GetInventorySlotInfo");
+  luaL_error(L, "Invalid inventory slot in GetInventorySlotInfo");
+  return 0;
 }
 
 static int Script_GetInventoryItemTexture(lua_State *L) {
@@ -712,7 +721,8 @@ static int Script_GetInventoryItemLink(lua_State *L) {
 static int Script_PickupInventoryItem(lua_State *L) {
   int slot;
   if (!GetSlotFromLua(L, slot, 1)) {
-    return luaL_error(L, "Usage: PickupInventoryItem(slot)");
+    luaL_error(L, "Usage: PickupInventoryItem(slot)");
+    return 0;
   }
   CGCharacterInfo::PickupItem(slot);
   return 0;
@@ -721,7 +731,8 @@ static int Script_PickupInventoryItem(lua_State *L) {
 static int Script_UseInventoryItem(lua_State *L) {
   int slot;
   if (!GetSlotFromLua(L, slot, 1)) {
-    return luaL_error(L, "Usage: UseInventoryItem(slot)");
+    luaL_error(L, "Usage: UseInventoryItem(slot)");
+    return 0;
   }
   CGCharacterInfo::UseItem(slot);
   return 0;
@@ -730,7 +741,8 @@ static int Script_UseInventoryItem(lua_State *L) {
 static int Script_IsInventoryItemLocked(lua_State *L) {
   int slot;
   if (!GetSlotFromLua(L, slot, 1)) {
-    return luaL_error(L, "Invalid inventory slot in IsInventoryItemLocked");
+    luaL_error(L, "Invalid inventory slot in IsInventoryItemLocked");
+    return 0;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   CGItem_C *item = player ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(player->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__)) : 0;
@@ -792,7 +804,8 @@ static int Script_GetSkillByIndex(lua_State *L) {
 static int Script_PutItemInBag(lua_State *L) {
   int slot;
   if (!GetSlotFromLua(L, slot, 1) || slot < 19) {
-    return luaL_error(L, "Invalid bag slot in PutItemInBag");
+    luaL_error(L, "Invalid bag slot in PutItemInBag");
+    return 0;
   }
   if (CGCharacterInfo::PutItemInBag(slot)) {
     lua_pushnumber(L, 1.0);
@@ -814,7 +827,8 @@ static int Script_PutItemInBackpack(lua_State *L) {
 static int Script_PickupBagFromSlot(lua_State *L) {
   int slot;
   if (!GetSlotFromLua(L, slot, 1) || slot < 19) {
-    return luaL_error(L, "Invalid bag slot in PickupBagFromSlot");
+    luaL_error(L, "Invalid bag slot in PickupBagFromSlot");
+    return 0;
   }
   CGCharacterInfo::PickupBag(slot);
   return 0;
@@ -896,7 +910,8 @@ static void GuildNameCallback(int guildID, const DWORDLONG &guid, LPVOID, bool g
 
 static int Script_GetGuildInfo(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: GetGuildInfo(\"unit\")");
+    luaL_error(L, "Usage: GetGuildInfo(\"unit\")");
+    return 0;
   }
   CGUnit_C           *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   CGPlayer_C         *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;

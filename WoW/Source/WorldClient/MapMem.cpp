@@ -43,11 +43,11 @@ LISTDECLEX(CChunkLiquid, lameAssLink, CMap::chunkLiquidList);
 
 CMapObj *CMap::AllocMapObj() {
   CMapObj *mapObj = mapObjFreeList.Head();
-  if (!mapObj) {
+  if (mapObj) {
+    mapObj->lameAssLink.Unlink();
+  } else {
     mapObj = NEWZERO(CMapObj);
     FATALASSERT(mapObj);
-  } else {
-    mapObj->lameAssLink.Unlink();
   }
 
   mapObj->Init();
@@ -64,11 +64,11 @@ void CMap::FreeMapObj(CMapObj *mapObj) {
 
 CMapObjGroup *CMap::AllocMapObjGroup() {
   CMapObjGroup *group = mapObjGroupFreeList.Head();
-  if (!group) {
+  if (group) {
+    group->lameAssLink.Unlink();
+  } else {
     group = NEWZERO(CMapObjGroup);
     FATALASSERT(group);
-  } else {
-    group->lameAssLink.Unlink();
   }
 
   group->Init();
@@ -86,15 +86,14 @@ void CMap::FreeMapObjGroup(CMapObjGroup *group) {
 CChunkLayer *CMap::GetLayer() {
   CChunkLayer *layer = chunkLayerFreeList.Head();
   if (!layer) {
-    layer = NEWZERO(CChunkLayer);
-    chunkLayerFreeList.LinkNode(layer, LIST_TAIL, 0);
+    layer = chunkLayerFreeList.NewNode(LIST_TAIL, 0, 0);
+    ++freeCounts[Cnt_ChunkLayer];
     FATALASSERT(layer);
-    ++freeCounts[3];
   }
 
   layer->Unlink();
-  ++counts[3];
-  --freeCounts[3];
+  --freeCounts[Cnt_ChunkLayer];
+  ++counts[Cnt_ChunkLayer];
   return layer;
 }
 
@@ -102,25 +101,23 @@ void CMap::FreeLayer(CChunkLayer *layer) {
   ASSERT(layer);
 
   layer->Unlink();
-  layer->~CChunkLayer();
-  chunkLayerFreeList.LinkNode(layer, LIST_TAIL, 0);
+  chunkLayerFreeList.LinkNode(layer, LIST_HEAD, 0);
 
-  --counts[3];
-  ++freeCounts[3];
+  --counts[Cnt_ChunkLayer];
+  ++freeCounts[Cnt_ChunkLayer];
 }
 
 CChunkTex *CMap::GetTex() {
   CChunkTex *tex = chunkTexFreeList.Head();
   if (!tex) {
-    tex = NEWZERO(CChunkTex);
-    chunkTexFreeList.LinkNode(tex, LIST_TAIL, 0);
+    tex = chunkTexFreeList.NewNode(LIST_TAIL, 0, 0);
+    ++freeCounts[Cnt_ChunkTex];
     FATALASSERT(tex);
-    ++freeCounts[4];
   }
 
   tex->Unlink();
-  ++counts[4];
-  --freeCounts[4];
+  --freeCounts[Cnt_ChunkTex];
+  ++counts[Cnt_ChunkTex];
   return tex;
 }
 
@@ -128,11 +125,10 @@ void CMap::FreeTex(CChunkTex *tex) {
   ASSERT(tex);
 
   tex->Unlink();
-  tex->~CChunkTex();
-  chunkTexFreeList.LinkNode(tex, LIST_TAIL, 0);
+  chunkTexFreeList.LinkNode(tex, LIST_HEAD, 0);
 
-  --counts[4];
-  ++freeCounts[4];
+  --counts[Cnt_ChunkTex];
+  ++freeCounts[Cnt_ChunkTex];
 }
 
 CMapBaseObjLink *CMap::AllocBaseObjLink(CMapBaseObj *owner) {
@@ -140,10 +136,9 @@ CMapBaseObjLink *CMap::AllocBaseObjLink(CMapBaseObj *owner) {
 
   CMapBaseObjLink *link = baseObjLinkFreeList.Head();
   if (!link) {
-    link = NEWZERO(CMapBaseObjLink);
-    baseObjLinkFreeList.LinkNode(link, LIST_TAIL, 0);
+    link = baseObjLinkFreeList.NewNode(LIST_TAIL, 0, 0);
     ASSERT(link);
-    ++freeCounts[9];
+    ++freeCounts[Cnt_BaseObjLink];
   }
 
   link->ownerLink.Unlink();
@@ -152,8 +147,8 @@ CMapBaseObjLink *CMap::AllocBaseObjLink(CMapBaseObj *owner) {
   link->ref = 0;
   owner->parentLinkList.LinkNode(link, LIST_TAIL, 0);
 
-  ++counts[9];
-  --freeCounts[9];
+  --freeCounts[Cnt_BaseObjLink];
+  ++counts[Cnt_BaseObjLink];
   return link;
 }
 
@@ -163,31 +158,31 @@ void CMap::FreeBaseObjLink(CMapBaseObjLink *link) {
   link->ownerLink.Unlink();
   link->refLink.Unlink();
 
-  ASSERT(link->owner);
-  --link->owner->refCount;
+  CMapBaseObj *owner = link->owner;
+  ASSERT(owner);
+  --owner->refCount;
 
   link->ref = 0;
   link->owner = 0;
   baseObjLinkFreeList.LinkNode(link, LIST_TAIL, 0);
 
-  --counts[9];
-  ++freeCounts[9];
+  --counts[Cnt_BaseObjLink];
+  ++freeCounts[Cnt_BaseObjLink];
 }
 
 CMapArea *CMap::AllocArea() {
   CMapArea *area = areaFreeList.Head();
   if (!area) {
-    area = NEWZERO(CMapArea);
-    areaFreeList.LinkNode(area, LIST_TAIL, 0);
+    area = areaFreeList.NewNode(LIST_TAIL, 0, 0);
     FATALASSERT(area);
-    ++freeCounts[0];
+    ++freeCounts[Cnt_Area];
   }
 
   area->lameAssLink.Unlink();
   areaList.LinkNode(area, LIST_TAIL, 0);
 
-  ++counts[0];
-  --freeCounts[0];
+  --freeCounts[Cnt_Area];
+  ++counts[Cnt_Area];
   return area;
 }
 
@@ -200,24 +195,23 @@ void CMap::FreeArea(CMapArea *area) {
   area->lameAssLink.Unlink();
   areaFreeList.LinkNode(area, LIST_TAIL, 0);
 
-  --counts[0];
-  ++freeCounts[0];
+  --counts[Cnt_Area];
+  ++freeCounts[Cnt_Area];
 }
 
 CMapChunk *CMap::AllocChunk() {
   CMapChunk *chunk = chunkFreeList.Head();
   if (!chunk) {
-    chunk = NEWZERO(CMapChunk);
-    chunkFreeList.LinkNode(chunk, LIST_TAIL, 0);
+    chunk = chunkFreeList.NewNode(LIST_TAIL, 0, 0);
     FATALASSERT(chunk);
-    ++freeCounts[2];
+    ++freeCounts[Cnt_Chunk];
   }
 
   chunk->lameAssLink.Unlink();
   chunkList.LinkNode(chunk, LIST_TAIL, 0);
 
-  ++counts[2];
-  --freeCounts[2];
+  --freeCounts[Cnt_Chunk];
+  ++counts[Cnt_Chunk];
   return chunk;
 }
 
@@ -235,25 +229,24 @@ void CMap::FreeChunk(CMapChunk *chunk) {
   chunk->lameAssLink.Unlink();
   chunkFreeList.LinkNode(chunk, LIST_TAIL, 0);
 
-  --counts[2];
-  ++freeCounts[2];
+  --counts[Cnt_Chunk];
+  ++freeCounts[Cnt_Chunk];
 }
 
 CMapDoodadDef *CMap::AllocDoodadDef() {
   CMapDoodadDef *doodadDef = doodadDefFreeList.Head();
   if (!doodadDef) {
-    doodadDef = NEWZERO(CMapDoodadDef);
-    doodadDefFreeList.LinkNode(doodadDef, LIST_TAIL, 0);
+    doodadDef = doodadDefFreeList.NewNode(LIST_TAIL, 0, 0);
     FATALASSERT(doodadDef);
-    ++freeCounts[1];
+    ++freeCounts[Cnt_DoodadDef];
   }
 
   doodadDef->lameAssLink.Unlink();
   doodadDef->RenderCB = 0;
   doodadDef->model = 0;
 
-  ++counts[1];
-  --freeCounts[1];
+  --freeCounts[Cnt_DoodadDef];
+  ++counts[Cnt_DoodadDef];
   return doodadDef;
 }
 
@@ -271,24 +264,23 @@ void CMap::FreeDoodadDef(CMapDoodadDef *doodadDef) {
   doodadDefHash.Unlink(doodadDef);
   doodadDefFreeList.LinkNode(doodadDef, LIST_TAIL, 0);
 
-  --counts[1];
-  ++freeCounts[1];
+  --counts[Cnt_DoodadDef];
+  ++freeCounts[Cnt_DoodadDef];
 }
 
 CMapEntity *CMap::AllocEntity() {
   CMapEntity *entity = entityFreeList.Head();
   if (!entity) {
-    entity = NEWZERO(CMapEntity);
-    entityFreeList.LinkNode(entity, LIST_TAIL, 0);
+    entity = entityFreeList.NewNode(LIST_TAIL, 0, 0);
     FATALASSERT(entity);
-    ++freeCounts[7];
+    ++freeCounts[Cnt_Entity];
   }
 
   entity->lameAssLink.Unlink();
   entityList.LinkNode(entity, LIST_TAIL, 0);
 
-  ++counts[7];
-  --freeCounts[7];
+  --freeCounts[Cnt_Entity];
+  ++counts[Cnt_Entity];
   return entity;
 }
 
@@ -299,24 +291,23 @@ void CMap::FreeEntity(CMapEntity *entity) {
   entity->lameAssLink.Unlink();
   entityFreeList.LinkNode(entity, LIST_TAIL, 0);
 
-  --counts[7];
-  ++freeCounts[7];
+  --counts[Cnt_Entity];
+  ++freeCounts[Cnt_Entity];
 }
 
 CMapLight *CMap::AllocLight() {
   CMapLight *light = lightFreeList.Head();
   if (!light) {
-    light = NEWZERO(CMapLight);
-    lightFreeList.LinkNode(light, LIST_TAIL, 0);
+    light = lightFreeList.NewNode(LIST_TAIL, 0, 0);
     ASSERT(light);
-    ++freeCounts[8];
+    ++freeCounts[Cnt_Light];
   }
 
   light->lameAssLink.Unlink();
   lightList.LinkNode(light, LIST_TAIL, 0);
 
-  ++counts[8];
-  --freeCounts[8];
+  --freeCounts[Cnt_Light];
+  ++counts[Cnt_Light];
   return light;
 }
 
@@ -327,23 +318,22 @@ void CMap::FreeLight(CMapLight *light) {
   light->lameAssLink.Unlink();
   lightFreeList.LinkNode(light, LIST_TAIL, 0);
 
-  --counts[8];
-  ++freeCounts[8];
+  --counts[Cnt_Light];
+  ++freeCounts[Cnt_Light];
 }
 
 CMapCacheLight *CMap::AllocCacheLight() {
   CMapCacheLight *cacheLight = cacheLightFreeList.Head();
   if (!cacheLight) {
-    cacheLight = NEWZERO(CMapCacheLight);
-    cacheLightFreeList.LinkNode(cacheLight, LIST_TAIL, 0);
+    cacheLight = cacheLightFreeList.NewNode(LIST_TAIL, 0, 0);
     ASSERT(cacheLight);
-    ++freeCounts[10];
+    ++freeCounts[Cnt_CacheLight];
   }
 
   cacheLight->lameAssLink.Unlink();
 
-  ++counts[10];
-  --freeCounts[10];
+  --freeCounts[Cnt_CacheLight];
+  ++counts[Cnt_CacheLight];
   return cacheLight;
 }
 
@@ -353,24 +343,23 @@ void CMap::FreeCacheLight(CMapCacheLight *cacheLight) {
   cacheLight->lameAssLink.Unlink();
   cacheLightFreeList.LinkNode(cacheLight, LIST_TAIL, 0);
 
-  --counts[10];
-  ++freeCounts[10];
+  --counts[Cnt_CacheLight];
+  ++freeCounts[Cnt_CacheLight];
 }
 
 CMapObjDefGroup *CMap::AllocMapObjDefGroup() {
   CMapObjDefGroup *mapObjDefGroup = mapObjDefGroupFreeList.Head();
   if (!mapObjDefGroup) {
-    mapObjDefGroup = NEWZERO(CMapObjDefGroup);
-    mapObjDefGroupFreeList.LinkNode(mapObjDefGroup, LIST_TAIL, 0);
+    mapObjDefGroup = mapObjDefGroupFreeList.NewNode(LIST_TAIL, 0, 0);
     FATALASSERT(mapObjDefGroup);
-    ++freeCounts[6];
+    ++freeCounts[Cnt_MapObjDefGroup];
   }
 
   mapObjDefGroup->lameAssLink.Unlink();
   mapObjDefGroupList.LinkNode(mapObjDefGroup, LIST_TAIL, 0);
 
-  ++counts[6];
-  --freeCounts[6];
+  --freeCounts[Cnt_MapObjDefGroup];
+  ++counts[Cnt_MapObjDefGroup];
   return mapObjDefGroup;
 }
 
@@ -384,23 +373,22 @@ void CMap::FreeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
   mapObjDefGroup->lameAssLink.Unlink();
   mapObjDefGroupFreeList.LinkNode(mapObjDefGroup, LIST_TAIL, 0);
 
-  --counts[6];
-  ++freeCounts[6];
+  --counts[Cnt_MapObjDefGroup];
+  ++freeCounts[Cnt_MapObjDefGroup];
 }
 
 CMapObjDef *CMap::AllocMapObjDef() {
   CMapObjDef *mapObjDef = mapObjDefFreeList.Head();
   if (!mapObjDef) {
-    mapObjDef = NEWZERO(CMapObjDef);
-    mapObjDefFreeList.LinkNode(mapObjDef, LIST_TAIL, 0);
+    mapObjDef = mapObjDefFreeList.NewNode(LIST_TAIL, 0, 0);
     FATALASSERT(mapObjDef);
-    ++freeCounts[5];
+    ++freeCounts[Cnt_MapObjDef];
   }
 
   mapObjDef->lameAssLink.Unlink();
 
-  ++counts[5];
-  --freeCounts[5];
+  --freeCounts[Cnt_MapObjDef];
+  ++counts[Cnt_MapObjDef];
   return mapObjDef;
 }
 
@@ -413,15 +401,14 @@ void CMap::FreeMapObjDef(CMapObjDef *mapObjDef) {
   mapObjDefHash.Unlink(mapObjDef);
   mapObjDefFreeList.LinkNode(mapObjDef, LIST_TAIL, 0);
 
-  --counts[5];
-  ++freeCounts[5];
+  --counts[Cnt_MapObjDef];
+  ++freeCounts[Cnt_MapObjDef];
 }
 
 CChunkLiquid *CMap::AllocChunkLiquid() {
   CChunkLiquid *liquid = chunkLiquidFreeList.Head();
   if (!liquid) {
-    liquid = NEWZERO(CChunkLiquid);
-    chunkLiquidFreeList.LinkNode(liquid, LIST_TAIL, 0);
+    liquid = chunkLiquidFreeList.NewNode(LIST_TAIL, 0, 0);
   }
 
   liquid->lameAssLink.Unlink();
@@ -432,7 +419,7 @@ CChunkLiquid *CMap::AllocChunkLiquid() {
 void CMap::FreeChunkLiquid(CChunkLiquid *&cl) {
   FATALASSERT(cl);
 
-  chunkLiquidList.UnlinkNode(cl);
+  cl->lameAssLink.Unlink();
   chunkLiquidFreeList.LinkNode(cl, LIST_TAIL, 0);
   cl = 0;
 }
@@ -440,8 +427,7 @@ void CMap::FreeChunkLiquid(CChunkLiquid *&cl) {
 CMapSoundEmitter *CMap::AllocSoundEmitter() {
   CMapSoundEmitter *soundEmitter = soundEmitterFreeList.Head();
   if (!soundEmitter) {
-    soundEmitter = NEWZERO(CMapSoundEmitter);
-    soundEmitterFreeList.LinkNode(soundEmitter, LIST_TAIL, 0);
+    soundEmitter = soundEmitterFreeList.NewNode(LIST_TAIL, 0, 0);
     FATALASSERT(soundEmitter);
   }
 
@@ -452,6 +438,6 @@ CMapSoundEmitter *CMap::AllocSoundEmitter() {
 void CMap::FreeSoundEmitter(CMapSoundEmitter *soundEmitter) {
   FATALASSERT(soundEmitter);
 
-  soundEmitterFreeList.UnlinkNode(soundEmitter);
+  soundEmitter->lameAssLink.Unlink();
   soundEmitterFreeList.LinkNode(soundEmitter, LIST_TAIL, 0);
 }

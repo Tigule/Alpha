@@ -14,13 +14,16 @@ TransportAnimationRec::~TransportAnimationRec() {
 }
 
 bool TransportAnimationRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_TransportID) ||
-      !SFileReadTyped(f, &m_TimeIndex) ||
-      !SFileReadTyped(f, &m_PosX) ||
-      !SFileReadTyped(f, &m_PosY) ||
-      !SFileReadTyped(f, &m_PosZ)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_TransportID) == 0);
+  error |= (SFileReadTyped(f, &m_TimeIndex) == 0);
+  error |= (SFileReadTyped(f, &m_PosX) == 0);
+  error |= (SFileReadTyped(f, &m_PosY) == 0);
+  error |= (SFileReadTyped(f, &m_PosZ) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading TransportAnimationRec", DEFAULT_COLOR);
     return false;
   }

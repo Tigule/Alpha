@@ -225,7 +225,7 @@ if(MSVC_VERSION EQUAL 1200)
     # looks like these files don't include debug info?
     set_source_files_properties(
         Source/FrameXML/FrameXML.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /GX /Ob1 /Oy- /Zd")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX /Ob0 /Oy- /Zd")
     set_source_files_properties(
         Source/FrameXML/XMLTree.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX /Ob0 /Oy- /Zd")
@@ -235,10 +235,10 @@ if(MSVC_VERSION EQUAL 1200)
 
     set_source_files_properties(
         Source/Gx/CGxDeviceD3d/CGxD3dTexture.cpp
-        PROPERTIES COMPILE_FLAGS "/GX")
+        PROPERTIES COMPILE_FLAGS "/GX /Ob0")
     set_source_files_properties(
         Source/Gxu/GxuFont.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
     set_source_files_properties(
         Source/Gxu/GxuFontUtil.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
@@ -276,7 +276,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy-")
     set_source_files_properties(
         Source/Os/W32/OsISoundCache.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob2 /Oy- /GX-")
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX-")
     set_source_files_properties(
         Source/Os/W32/OsFile.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy-")
@@ -289,7 +289,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy-")
     set_source_files_properties(
         Source/Gxu/GxuLight.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
     set_source_files_properties(
         Source/Base/Activity.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy-")
@@ -304,7 +304,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /Ob1")
     set_source_files_properties(
         Source/Anim/Init.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
     set_source_files_properties(
         Source/MDLFile/MDLFile.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1")
@@ -332,7 +332,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/Zd")
     set_source_files_properties(
         Source/Gx/GxApi/GxApi.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
     set_source_files_properties(
         Source/Gx/CGxDevice/CGxDevice.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
@@ -390,7 +390,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1")
     set_source_files_properties(
         Source/Services/ParticleSystem2.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2 /Oy-")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
     set_source_files_properties(
         Source/Frame/CSimpleTop.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
@@ -458,7 +458,7 @@ if(MSVC_VERSION EQUAL 1200)
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1")
     set_source_files_properties(
         Source/Services/AsyncFileRead.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob2")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1")
     set_source_files_properties(
         Source/Services/ParticleEmitters.cpp
         PROPERTIES COMPILE_FLAGS "/GX-")
@@ -504,12 +504,11 @@ if(MSVC_VERSION EQUAL 1200)
         Source/Event/CObserver.cpp
         Source/Event/CInputObserver.cpp
         Source/Base/FileCache.cpp
-        Source/Services/SysMessage.cpp
         Source/Gx/CGxDeviceOpenGL/W32/CGxOglDeviceW32.cpp
         Source/Gxu/IGxuFontGlyph.cpp
         Source/Os/W32/OsCall.cpp
         Source/Os/W32/OsJoystick.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " /Ob2")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " /Ob1")
 endif()
 
 target_include_directories(Engine

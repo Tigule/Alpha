@@ -1,5 +1,10 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
+#include "UIUtil/Camera.h"
+#include "UIUtil/InputControl.h"
+#include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
 
 #include "Console/ConsoleClient.h"

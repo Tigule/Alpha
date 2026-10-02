@@ -11,7 +11,11 @@
 
 void CMap::Purge() {
   CMapBaseObjLink *link = areaLinkList.Head();
-  while (reinterpret_cast<long>(link) > 0) {
+  while (1) {
+    if ((int)link <= 0) {
+      break;
+    }
+
     CMapBaseObjLink *next = areaLinkList.RawNext(link);
     CMapArea        *area = static_cast<CMapArea *>(link->owner);
     areaTable[area->infoIndex] = 0;
@@ -49,7 +53,11 @@ void CMap::PurgeMapObjDef(CMapObjDef *mapObjDef) {
 
   if (!mapObjDef->refCount) {
     CMapBaseObjLink *link = mapObjDef->groupLinkList.Head();
-    while (reinterpret_cast<long>(link) > 0) {
+    while (1) {
+      if ((int)link <= 0) {
+        break;
+      }
+
       CMapBaseObjLink *next = mapObjDef->groupLinkList.RawNext(link);
       CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
       FreeBaseObjLink(link);
@@ -75,7 +83,11 @@ void CMap::PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
 
   if (!mapObjDefGroup->refCount) {
     CMapBaseObjLink *link = mapObjDefGroup->doodadDefLinkList.Head();
-    while (reinterpret_cast<long>(link) > 0) {
+    while (1) {
+      if ((int)link <= 0) {
+        break;
+      }
+
       CMapBaseObjLink *next = mapObjDefGroup->doodadDefLinkList.RawNext(link);
       CMapDoodadDef   *doodadDef = static_cast<CMapDoodadDef *>(link->owner);
       FreeBaseObjLink(link);
@@ -84,14 +96,22 @@ void CMap::PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
     }
 
     link = mapObjDefGroup->entityLinkList.Head();
-    while (reinterpret_cast<long>(link) > 0) {
+    while (1) {
+      if ((int)link <= 0) {
+        break;
+      }
+
       CMapBaseObjLink *next = mapObjDefGroup->entityLinkList.RawNext(link);
       FreeBaseObjLink(link);
       link = next;
     }
 
     link = mapObjDefGroup->lightLinkList.Head();
-    while (reinterpret_cast<long>(link) > 0) {
+    while (1) {
+      if ((int)link <= 0) {
+        break;
+      }
+
       CMapBaseObjLink *next = mapObjDefGroup->lightLinkList.RawNext(link);
       FreeBaseObjLink(link);
       link = next;
@@ -122,7 +142,11 @@ void CMapArea::Purge() {
   }
 
   CMapBaseObjLink *link = chunkLinkList.Head();
-  while (reinterpret_cast<long>(link) > 0) {
+  while (1) {
+    if ((int)link <= 0) {
+      break;
+    }
+
     CMapBaseObjLink *next = chunkLinkList.RawNext(link);
     CMapChunk       *chunk = static_cast<CMapChunk *>(link->owner);
     chunkTable[chunk->infoIndex] = 0;
@@ -206,7 +230,11 @@ void CMapChunk::Purge() {
   }
 
   CMapBaseObjLink *link = doodadDefLinkList.Head();
-  while (reinterpret_cast<long>(link) > 0) {
+  while (1) {
+    if ((int)link <= 0) {
+      break;
+    }
+
     CMapBaseObjLink *next = doodadDefLinkList.RawNext(link);
     CMapDoodadDef   *doodadDef = static_cast<CMapDoodadDef *>(link->owner);
     CMap::FreeBaseObjLink(link);
@@ -215,7 +243,11 @@ void CMapChunk::Purge() {
   }
 
   link = mapObjDefLinkList.Head();
-  while (reinterpret_cast<long>(link) > 0) {
+  while (1) {
+    if ((int)link <= 0) {
+      break;
+    }
+
     CMapBaseObjLink *next = mapObjDefLinkList.RawNext(link);
     CMapObjDef      *mapObjDef = static_cast<CMapObjDef *>(link->owner);
     CMap::FreeBaseObjLink(link);
@@ -224,21 +256,33 @@ void CMapChunk::Purge() {
   }
 
   link = entityLinkList.Head();
-  while (reinterpret_cast<long>(link) > 0) {
+  while (1) {
+    if ((int)link <= 0) {
+      break;
+    }
+
     CMapBaseObjLink *next = entityLinkList.RawNext(link);
     CMap::FreeBaseObjLink(link);
     link = next;
   }
 
   link = lightLinkList.Head();
-  while (reinterpret_cast<long>(link) > 0) {
+  while (1) {
+    if ((int)link <= 0) {
+      break;
+    }
+
     CMapBaseObjLink *next = lightLinkList.RawNext(link);
     CMap::FreeBaseObjLink(link);
     link = next;
   }
 
   CMapSoundEmitter *soundEmitter = soundEmitterList.Head();
-  while (reinterpret_cast<long>(soundEmitter) > 0) {
+  while (1) {
+    if ((int)soundEmitter <= 0) {
+      break;
+    }
+
     CMapSoundEmitter *next = soundEmitterList.RawNext(soundEmitter);
     if (soundEmitterDestroyHandler) {
       soundEmitterDestroyHandler(soundEmitter->data.soundPointID);

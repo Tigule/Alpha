@@ -44,7 +44,7 @@ class CParticleStack {
   }
 
   void Remove(UINT index) {
-    m_stack[index] = m_stack[m_stackPointer - 1];
+    m_stack[index] = Top();
     Pop();
   }
 
@@ -81,22 +81,29 @@ class ParticleSystemManager {
  public:
   typedef PARTICLEPROJECTCALLBACK ProjectCallback;
 
+ private:
+  friend class CWorld;
+
+  static ParticleSystemManager *manager;
+  static float                  scaler;
+  static int (*sm_projectCallback)(const NTempest::C3Segment &segment, float &distance);
+  static float                  sm_projectDistance;
+
+  TSGrowableArray<CParticleEmitter *>  modelEmitters;
+  TSGrowableArray<CParticleEmitter2 *> emitter2s;
+  TSGrowableArray<CParticleEmitter *>  deletedModelEmitters;
+  TSGrowableArray<CParticleEmitter2 *> deletedEmitter2s;
+
+  static void RenderParticleEmitter(LPVOID param1, int param2);
+  static void RenderParticleEmitter2(LPVOID param1, int param2);
+
+ public:
   ~ParticleSystemManager();
 
+  static ParticleSystemManager *GetInstance();
   static void                   Destroy();
   static void                   SetScaler(float scaler);
   static float                  GetScaler();
-  static ParticleSystemManager *GetInstance();
-
-  CPlaneParticleEmitter  *CreateQuadEmitter();
-  CSphereParticleEmitter *CreateSphereEmitter();
-  CSplineParticleEmitter *CreateSplineEmitter();
-  CParticleEmitter       *CreateModelEmitter();
-  CParticleEmitter2      *DuplicateEmitter(const CParticleEmitter2 *emitter, int deep);
-  void                    UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
-  void                    DeleteModelEmitter(CParticleEmitter *emitter);
-  void                    DeleteEmitter2(CParticleEmitter2 *emitter);
-  void                    RenderEmitters();
 
   static void SetProjectCallback(PARTICLEPROJECTCALLBACK callback, float distance) {
     sm_projectCallback = callback;
@@ -111,43 +118,36 @@ class ParticleSystemManager {
     return sm_projectDistance;
   }
 
-  void Flush();
-
- private:
-  friend class CWorld;
-
-  static void RenderParticleEmitter(LPVOID param1, int param2);
-  static void RenderParticleEmitter2(LPVOID param1, int param2);
-
-  static ParticleSystemManager *manager;
-  static float                  scaler;
-  static float                  sm_projectDistance;
-  static int (*sm_projectCallback)(const NTempest::C3Segment &segment, float &distance);
-
-  TSGrowableArray<CParticleEmitter *>  modelEmitters;
-  TSGrowableArray<CParticleEmitter2 *> emitter2s;
-  TSGrowableArray<CParticleEmitter *>  deletedModelEmitters;
-  TSGrowableArray<CParticleEmitter2 *> deletedEmitter2s;
+  CParticleEmitter       *CreateModelEmitter();
+  CPlaneParticleEmitter  *CreateQuadEmitter();
+  CSphereParticleEmitter *CreateSphereEmitter();
+  CSplineParticleEmitter *CreateSplineEmitter();
+  CParticleEmitter2      *DuplicateEmitter(const CParticleEmitter2 *emitter, int deep);
+  void                    Flush();
+  void                    UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  void                    DeleteModelEmitter(CParticleEmitter *emitter);
+  void                    DeleteEmitter2(CParticleEmitter2 *emitter);
+  void                    RenderEmitters();
 };
 
 class RibbonManager {
- public:
-  ~RibbonManager();
-
-  static void           Destroy();
-  static RibbonManager *GetInstance();
-  CRibbonEmitter       *CreateEmitter();
-  CRibbonEmitter       *DuplicateEmitter(const CRibbonEmitter *emitter);
-  void                  UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
-  void                  DeleteEmitter(CRibbonEmitter *emitter);
-  void                  Flush();
-  void                  RenderEmitters();
-
  private:
-  static void RenderEmitter(LPVOID param1, int param2);
-
   static RibbonManager *manager;
 
   TSGrowableArray<CRibbonEmitter *> emitters;
   TSGrowableArray<CRibbonEmitter *> deletedEmitters;
+
+  static void RenderEmitter(LPVOID param1, int param2);
+
+ public:
+  ~RibbonManager();
+
+  static RibbonManager *GetInstance();
+  static void           Destroy();
+  CRibbonEmitter       *CreateEmitter();
+  CRibbonEmitter       *DuplicateEmitter(const CRibbonEmitter *emitter);
+  void                  Flush();
+  void                  UpdateEmitters(float elapsedTime, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  void                  DeleteEmitter(CRibbonEmitter *emitter);
+  void                  RenderEmitters();
 };

@@ -28,8 +28,10 @@ void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, UINT f
 
 void CameraCalcPosFromTarg(HCAMERA__ *camera, NTempest::C3Vector *position) {
   CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
-  FATALASSERT(cameraPtr);
-  FATALASSERT(position);
+  VALIDATEBEGIN;
+  VALIDATE(cameraPtr);
+  VALIDATE(position);
+  VALIDATEENDVOID;
 
   const float distance = cameraPtr->m_distance.Get();
   position->x = cameraPtr->m_target.Get().x - cameraPtr->m_rotation.Cos() * cameraPtr->m_aoa.Cos() * distance;
@@ -39,8 +41,10 @@ void CameraCalcPosFromTarg(HCAMERA__ *camera, NTempest::C3Vector *position) {
 
 void CameraCalcTargFromPos(HCAMERA__ *camera, NTempest::C3Vector *target) {
   CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
-  FATALASSERT(cameraPtr);
-  FATALASSERT(target);
+  VALIDATEBEGIN;
+  VALIDATE(cameraPtr);
+  VALIDATE(target);
+  VALIDATEENDVOID;
 
   const float distance = cameraPtr->m_distance.Get();
   target->x = cameraPtr->m_position.Get().x + cameraPtr->m_rotation.Cos() * cameraPtr->m_aoa.Cos() * distance;
@@ -55,7 +59,9 @@ HCAMERA CameraCreate() {
 
 HCAMERA CameraDuplicate(HCAMERA source) {
   CCamera *srcPtr = reinterpret_cast<CCamera *>(source);
-  ASSERT(srcPtr);
+  VALIDATEBEGIN;
+  VALIDATE(srcPtr);
+  VALIDATEEND;
 
   CCamera *cameraPtr = NEW(CCamera)();
   if (!cameraPtr) {
@@ -111,8 +117,10 @@ HCAMERA CameraDuplicate(HCAMERA source) {
 }
 
 void CameraGetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b) {
-  FATALASSERT(a);
-  FATALASSERT(b);
+  VALIDATEBEGIN;
+  VALIDATE(a);
+  VALIDATE(b);
+  VALIDATEENDVOID;
   FATALASSERT(x >= 0.0f && x <= 1.0f);
   FATALASSERT(y >= 0.0f && y <= 1.0f);
 
@@ -162,6 +170,8 @@ void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectio
 
 void CameraUpdate(HCAMERA__ *camera, float elapsedSec) {
   CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
-  FATALASSERT(cameraPtr);
+  VALIDATEBEGIN;
+  VALIDATE(cameraPtr);
+  VALIDATEENDVOID;
   cameraPtr->Update(elapsedSec);
 }

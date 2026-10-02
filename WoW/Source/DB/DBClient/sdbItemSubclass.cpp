@@ -1,3 +1,7 @@
+#include "DBClient.h"
+#include <WowConst.h>
+#include <WowSvcs/WowSvcsClient/ClientServices.h>
+
 #include "AutoCode/ItemSubClassRec.h"
 
 #include <string.h>
@@ -34,7 +38,7 @@ void SDBItemSubclassInitialize() {
     const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
 
     if (rec->m_classID >= 0) {
-      ASSERT(s_itemSubClassList[rec->m_classID].Count() > (UINT)rec->m_subClassID);
+      ASSERT(s_itemSubClassList[rec->m_classID].Count() > (uint)rec->m_subClassID);
       s_itemSubClassList[rec->m_classID][rec->m_subClassID] = rec;
     }
   }

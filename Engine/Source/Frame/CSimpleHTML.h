@@ -24,32 +24,30 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
  public:
   CSimpleHTML(CSimpleFrame *parent = 0);
   virtual ~CSimpleHTML();
-
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
-
   virtual void LoadXML(const XMLNode *node, CStatus *status);
+
   void         SetTextAttributes(const CSimpleFontStringAttributes &attrib, HTML_TEXT_TYPE textType) {
     ASSERT(textType >= HTML_TEXT_NORMAL && textType < NUM_HTML_TEXT_TYPES);
     m_attrib[textType] = attrib;
   }
+
   const CSimpleFontStringAttributes &GetTextAttributes(HTML_TEXT_TYPE textType) {
     ASSERT(textType >= HTML_TEXT_NORMAL && textType < NUM_HTML_TEXT_TYPES);
     return m_attrib[textType];
   }
+
   bool SetText(LPCSTR text, CStatus *status);
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
-
+  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
   void ClearContent();
   void ParseBODY(const XMLNode *node, CStatus *status);
   void ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *status);
   void ParseIMG(const XMLNode *node, CStatus *status);
   void AddText(LPCSTR text, CSimpleFontStringAttributes &attrib);
-
-  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
-
   LISTDECL(REGIONNODE, m_content);
   CLayoutFrame               *m_layoutAnchor;
   float                       m_layoutOffset;

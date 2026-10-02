@@ -13,13 +13,10 @@ class CSimpleStatusBar : public CSimpleFrame {
  public:
   CSimpleStatusBar(CSimpleFrame *parent = 0);
   virtual ~CSimpleStatusBar();
-
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
-  virtual void OnLayerUpdate(float elapsedSec);
-
-  void         SetBarTexture(CSimpleTexture *texture, int layer);
   BOOL         SetBarTexture(LPCSTR texFile, int layer);
+  void         SetBarTexture(CSimpleTexture *texture, int layer);
   void         SetMinMaxValues(float min, float max);
   virtual void SetValue(float value);
 
@@ -35,11 +32,14 @@ class CSimpleStatusBar : public CSimpleFrame {
     return m_maxValue;
   }
 
-  virtual void  SetStatusBarColor(const NTempest::CImVector &color);
-  virtual float GetAnimValue() const;
+  virtual void SetStatusBarColor(const NTempest::CImVector &color) {
+    if (m_barTexture) {
+      m_barTexture->SetVertexColor(color);
+    }
+  }
 
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
+  virtual float GetAnimValue() const;
+  virtual void OnLayerUpdate(float elapsedSec);
 
   void SetOnValueChangedScript(LPCSTR source) {
     char description[1024];
@@ -53,11 +53,12 @@ class CSimpleStatusBar : public CSimpleFrame {
     }
   }
 
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
+
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
-
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
-
   int             m_changed : 1;
   int             m_rangeSet : 1;
   int             m_valueSet : 1;

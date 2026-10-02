@@ -14,13 +14,16 @@ CharacterCreateCamerasRec::~CharacterCreateCamerasRec() {
 }
 
 bool CharacterCreateCamerasRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_Race) ||
-      !SFileReadTyped(f, &m_Sex) ||
-      !SFileReadTyped(f, &m_Camera) ||
-      !SFileReadTyped(f, &m_Height) ||
-      !SFileReadTyped(f, &m_Radius) ||
-      !SFileReadTyped(f, &m_Target)) {
+  error |= (SFileReadTyped(f, &m_Race) == 0);
+  error |= (SFileReadTyped(f, &m_Sex) == 0);
+  error |= (SFileReadTyped(f, &m_Camera) == 0);
+  error |= (SFileReadTyped(f, &m_Height) == 0);
+  error |= (SFileReadTyped(f, &m_Radius) == 0);
+  error |= (SFileReadTyped(f, &m_Target) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CharacterCreateCamerasRec", DEFAULT_COLOR);
     return false;
   }

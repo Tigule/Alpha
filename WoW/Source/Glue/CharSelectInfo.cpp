@@ -21,6 +21,8 @@
 #include "Glue/CGlueMgr.h"
 #include "Object/ObjectClient/AnimCompiles.h"
 #include "Object/ObjectClient/Player_C.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <lauxlib.h>

@@ -1,5 +1,10 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
+#include "UIUtil/Camera.h"
+#include "UIUtil/InputControl.h"
+#include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
 
 #include "Tooltip.h"
@@ -264,12 +269,12 @@ static const SpellAuraNamesRec *GetAuraNameRec(int enumID) {
 }
 
 static BOOL HealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID param) {
-  CSimpleStatusBar *statusBar = static_cast<CSimpleStatusBar *>(param);
-  FATALASSERT(statusBar);
+  CSimpleStatusBar *statusbar = static_cast<CSimpleStatusBar *>(param);
+  FATALASSERT(statusbar);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
-    statusBar->SetMinMaxValues(0.0f, static_cast<float>(unit->GetUnitData()->maxHealth));
-    statusBar->SetValue(static_cast<float>(unit->GetUnitData()->health));
+    statusbar->SetMinMaxValues(0.0f, static_cast<float>(unit->GetUnitData()->maxHealth));
+    statusbar->SetValue(static_cast<float>(unit->GetUnitData()->health));
   }
   return 1;
 }
@@ -1386,12 +1391,14 @@ static int CGTooltip_SetInventoryItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   BOOL hasCooldown = 0;
   if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
-    return luaL_error(L, "Usage: SetInventoryItem(\"unit\", slot)");
+    luaL_error(L, "Usage: SetInventoryItem(\"unit\", slot)");
+    return 0;
   }
 
   UINT slot = static_cast<UINT>(lua_tonumber(L, 3) - 1.0);
   if (slot > 22 && (slot < 39 || slot > 68)) {
-    return luaL_error(L, "Invalid inventory slot in SetInventoryItem");
+    luaL_error(L, "Invalid inventory slot in SetInventoryItem");
+    return 0;
   }
 
   int       nameOnly = lua_isnumber(L, 4) && lua_tonumber(L, 4) > 0.0;
@@ -1595,7 +1602,8 @@ static int CGTooltip_SetMerchantItem(lua_State *L) {
 static int CGTooltip_SetTradePlayerItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
-    return luaL_error(L, "Invalid trade slot in SetTradePlayerItem");
+    luaL_error(L, "Invalid trade slot in SetTradePlayerItem");
+    return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 2) - 1.0);
   if (index >= 8) {
@@ -1623,7 +1631,8 @@ static int CGTooltip_SetTradePlayerItem(lua_State *L) {
 static int CGTooltip_SetTradeTargetItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isnumber(L, 2)) {
-    return luaL_error(L, "Invalid trade slot in SetTradeTargetItem");
+    luaL_error(L, "Invalid trade slot in SetTradeTargetItem");
+    return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 2) - 1.0);
   int  itemID = CGTradeInfo::GetTargetTradeItem(index);
@@ -1646,7 +1655,8 @@ static int CGTooltip_SetBagItem(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || !lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
-    return luaL_error(L, "Invalid bag slot in SetBagItem");
+    luaL_error(L, "Invalid bag slot in SetBagItem");
+    return 0;
   }
   UINT     bagIndex = static_cast<UINT>(lua_tonumber(L, 2) - 1.0);
   CGBag_C *bag = 0;
@@ -1691,7 +1701,8 @@ static int CGTooltip_SetBagItem(lua_State *L) {
 static int CGTooltip_SetUnit(lua_State *L) {
   GET_TOOLTIP_THIS(L, tooltip);
   if (!lua_isstring(L, 2)) {
-    return luaL_error(L, "Usage: SetUnit(\"unit\")");
+    luaL_error(L, "Usage: SetUnit(\"unit\")");
+    return 0;
   }
   DWORDLONG target = Script_GetGUIDFromName(lua_tostring(L, 2));
   if (target && tooltip->SetUnit(target)) {

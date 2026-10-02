@@ -13,17 +13,21 @@ static const float SMOLTILE_SIZE = 4.1666665f;
 static const float OOSMOLTILE_SIZE = 1.0f / SMOLTILE_SIZE;
 
 struct SMOFog {
-  enum EFlags {
-    F_IEBLEND = 1
-  };
-
   enum EFogs {
     FOG = 0,
     UWFOG = 1,
     NUM_FOGS = 2
   };
 
+  enum EFlags {
+    F_IEBLEND = 1
+  };
+
   struct Fog {
+    float               end;
+    float               startScalar;
+    NTempest::CImVector color;
+
     void Blend(const Fog &fog, float t) {
       end += (fog.end - end) * t;
       startScalar += (fog.startScalar - startScalar) * t;
@@ -44,13 +48,12 @@ struct SMOFog {
       color.g = static_cast<BYTE>(color.g + ((amount * (fog.color.g - color.g)) >> 8));
       color.b = static_cast<BYTE>(color.b + ((amount * (fog.color.b - color.b)) >> 8));
     }
-
-    float               end;
-    float               startScalar;
-    NTempest::CImVector color;
   };
 
   class Fogs {
+   private:
+    Fog fog[2];
+
    public:
     void Blend(const Fogs &fogs, float t) {
       for (UINT i = 0; i < 2; ++i) {
@@ -65,9 +68,6 @@ struct SMOFog {
     const Fog &operator[](UINT index) const {
       return fog[index];
     }
-
-   private:
-    Fog fog[2];
   };
 
   UINT               flags;

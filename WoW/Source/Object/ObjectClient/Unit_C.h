@@ -721,7 +721,9 @@ class CGUnit {
   DWORDLONG              GetComboTarget() const;
   UINT                   GetComboPoints() const;
   void                   GetPosition(NTempest::C3Vector &position) const;
-  NTempest::C3Vector     GetPosition() const;
+  NTempest::C3Vector     GetPosition() const {
+    return m_move.GetPosition();
+  }
   NTempest::C3Vector     GetRawPosition() const;
   float                  GetFacing() const;
   float                  GetRawFacing() const;
@@ -1424,7 +1426,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual void OnLeftClick();
   virtual void OnRightClick();
   int          GetSpellLevel(int spellID) const {
-    return GetSpellRank(spellID) / 5;
+    return static_cast<UINT>(GetSpellRank(spellID)) / 5;
   }
   bool                       IsSpellKnown(int spellID) const;
   bool                       CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGItem_C *item);

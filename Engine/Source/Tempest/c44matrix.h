@@ -284,7 +284,11 @@ namespace NTempest {
     }
 
     C44Matrix &operator=(const C44Matrix &a) {
-      memcpy(this, &a, sizeof(*this));
+      const __int64 *src = reinterpret_cast<const __int64 *>(&a);
+      __int64       *dst = reinterpret_cast<__int64 *>(this);
+      for (int i = 8; i; --i) {
+        *dst++ = *src++;
+      }
       return *this;
     }
 

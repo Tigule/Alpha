@@ -1,5 +1,15 @@
-#include <WowConst.h>
+#include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "WowServices/WowConnection.h"
+#include <WowConst.h>
+#include <Frame/CSimpleTop.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "Ui/WorldFrame.h"
+#include "Ui/GameUI.h"
 
 #include "Object/ObjectClient/Player_C.h"
 #include "Magic/MagicClient/Spell_C.h"
@@ -456,7 +466,9 @@ static int                                   s_enableDeathHoldLog;
 static int                                   s_renderPlayer;
 static TSGrowableArray<UINT>                 s_guildIDs;
 static UINT                                  s_numLootItems;
-static LootItem                              s_lootItems[16];
+#define MAX_LOOT_ITEMS 16
+
+static LootItem                              s_lootItems[MAX_LOOT_ITEMS];
 static int                                   s_questFailedReason;
 CVar                                        *g_combatModeMaxDistance;
 
@@ -664,7 +676,7 @@ void ShowForceActionFlags(UINT flags[]) {
 static void RandomRollNameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   char            buf[256];
   RandomRollInfo *info = static_cast<RandomRollInfo *>(arg);
-  FATALASSERT(info);
+  FATALASSERT(arg);
 
   if (granted) {
     const NameCache *name = g_nameDBCache.GetRecord(guid, 0, 0, 0);
@@ -3694,8 +3706,8 @@ int CGPlayer_C::SwapInventorySlots(int slotA, int slotB) {
   if (slotA == slotB) {
     return 1;
   }
-  FATALASSERT(slotA <= 0xFF);
-  FATALASSERT(slotB <= 0xFF);
+  FATALASSERT(slotA <= 0xff);
+  FATALASSERT(slotB <= 0xff);
 
   CDataStore msg;
   msg.Put(CMSG_SWAP_INV_ITEM);
@@ -3809,8 +3821,8 @@ void CGPlayer_C::SwapItems(DWORDLONG cursorItem, DWORDLONG cursorContainer, int 
 }
 
 void CGPlayer_C::SplitItem(DWORDLONG cursorItem, DWORDLONG cursorContainer, int cursorSlot, DWORDLONG containerB, int slotB, int quantity) {
-  FATALASSERT(cursorSlot <= 0xFF);
-  FATALASSERT(slotB <= 0xFF);
+  FATALASSERT(cursorSlot <= 0xff);
+  FATALASSERT(slotB <= 0xff);
   FATALASSERT(quantity <= 0xFF);
   FATALASSERT(quantity > 0);
 
@@ -3848,7 +3860,7 @@ void CGPlayer_C::DropItemInCursor(DWORDLONG cursorItem, DWORDLONG cursorItemPack
 }
 
 void CGPlayer_C::AutoStoreItemInBag(DWORDLONG cursorItem, DWORDLONG cursorContainer, int cursorSlot, DWORDLONG containerB, int ignoreOwnershipRules) {
-  FATALASSERT(cursorSlot <= 0xFF);
+  FATALASSERT(cursorSlot <= 0xff);
   CDataStore msg;
   if (cursorContainer) {
     BYTE cursorItemContainerSlot = FindSlotIndex(cursorContainer);
@@ -5601,17 +5613,17 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
 }
 
 UINT CGPlayer_C::GetLootItem(UINT slot) {
-  FATALASSERT(slot < 16);
+  FATALASSERT(slot < MAX_LOOT_ITEMS);
   return s_lootItems[slot].m_itemID;
 }
 
 UINT CGPlayer_C::GetLootItemDisplayID(UINT slot) {
-  FATALASSERT(slot < 16);
+  FATALASSERT(slot < MAX_LOOT_ITEMS);
   return s_lootItems[slot].m_displayID;
 }
 
 UINT CGPlayer_C::GetLootItemQuantity(UINT slot) {
-  FATALASSERT(slot < 16);
+  FATALASSERT(slot < MAX_LOOT_ITEMS);
   return s_lootItems[slot].m_quantity;
 }
 

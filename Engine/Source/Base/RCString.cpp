@@ -54,7 +54,9 @@ void CStringRep::DecrRef() {
   if (this != &s_nullRep && !--m_refcnt) {
     CStringManager *pStringManager = CStringManager::Get();
 
-    FATALASSERT(pStringManager);
+    VALIDATEBEGIN;
+    VALIDATE(pStringManager);
+    VALIDATEENDVOID;
 
     pStringManager->Delete(this);
   }
@@ -100,7 +102,9 @@ void RCString::Copy(LPCSTR source) {
 
   CStringManager *pManager = CStringManager::Get();
 
-  FATALASSERT(pManager);
+  VALIDATEBEGIN;
+  VALIDATE(pManager);
+  VALIDATEENDVOID;
 
   m_rep = &pManager->Add(source);
 }

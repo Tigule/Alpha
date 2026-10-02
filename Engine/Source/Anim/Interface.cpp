@@ -191,7 +191,9 @@ static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3V
   if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
-  ASSERT(objectId < unique->status.Count());
+  VALIDATEBEGIN;
+  VALIDATE(objectId < unique->status.Count());
+  VALIDATEEND;
 
   CAnimObjStatus *status = unique->status[objectId];
   if (status->base.flags & lookAtTypeFlag) {
@@ -266,7 +268,9 @@ static int AnimObjectUsingLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeF
     return 0;
   }
 
-  ASSERT(objectId < unique->status.Count());
+  VALIDATEBEGIN;
+  VALIDATE(objectId < unique->status.Count());
+  VALIDATEEND;
   return unique->status[objectId]->base.flags & lookAtTypeFlag;
 }
 
@@ -409,9 +413,9 @@ UINT AnimGetNumSequences(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  return shared->seq.Count();
+  CAnimData *ptr = reinterpret_cast<CAnimData *>(unique->hdata);
+  ASSERT(ptr);
+  return ptr->seq.Count();
 }
 
 void AnimSetObjectOrdering(HANIM anim, LPCSTR *boneNames, UINT numBones) {
@@ -902,7 +906,9 @@ BOOL AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempes
     return 0;
   }
 
-  ASSERT(objectId < positions.Count());
+  VALIDATEBEGIN;
+  VALIDATE(objectId < positions.Count());
+  VALIDATEEND;
   *position = positions[objectId];
   return 1;
 }

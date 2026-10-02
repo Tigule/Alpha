@@ -12,13 +12,13 @@ UINT GetBitDepth(UINT fourCC) {
     case 7:
       return 8;
 
-    case 2:
-      return 32;
-
     case 3:
     case 4:
     case 5:
       return 16;
+
+    case 2:
+      return 32;
 
     default:
       ASSERT(!"GetBitDepth(): unhandled format");

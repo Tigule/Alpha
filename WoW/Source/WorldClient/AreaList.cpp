@@ -13,6 +13,8 @@
 #include <Net/NetClient/NetClient.h>
 #include <SoundInterface/SoundInterface.h>
 #include <Ui/GameUI.h>
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include <WowSvcs/WowSvcsClient/ClientServices.h>
 #include <storm.h>
 

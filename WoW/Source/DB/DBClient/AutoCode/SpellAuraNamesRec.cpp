@@ -16,19 +16,22 @@ SpellAuraNamesRec::~SpellAuraNamesRec() {
 bool SpellAuraNamesRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempname_langIndices[8];
   UINT tempglobalstrings_tagIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_EnumID) ||
-      !SFileReadTyped(f, &m_specialMiscValue) ||
-      !SFileReadTyped(f, &tempglobalstrings_tagIndices[0]) ||
-      !SFileReadTyped(f, &tempname_langIndices[0]) ||
-      !SFileReadTyped(f, &tempname_langIndices[1]) ||
-      !SFileReadTyped(f, &tempname_langIndices[2]) ||
-      !SFileReadTyped(f, &tempname_langIndices[3]) ||
-      !SFileReadTyped(f, &tempname_langIndices[4]) ||
-      !SFileReadTyped(f, &tempname_langIndices[5]) ||
-      !SFileReadTyped(f, &tempname_langIndices[6]) ||
-      !SFileReadTyped(f, &tempname_langIndices[7]) ||
-      !SFileReadTyped(f, &m_name_flag)) {
+  error |= (SFileReadTyped(f, &m_EnumID) == 0);
+  error |= (SFileReadTyped(f, &m_specialMiscValue) == 0);
+  error |= (SFileReadTyped(f, &tempglobalstrings_tagIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_name_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellAuraNamesRec", DEFAULT_COLOR);
     return false;
   }

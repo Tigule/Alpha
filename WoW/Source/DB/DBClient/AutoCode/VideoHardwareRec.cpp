@@ -14,26 +14,29 @@ VideoHardwareRec::~VideoHardwareRec() {
 }
 
 bool VideoHardwareRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_vendorID) ||
-      !SFileReadTyped(f, &m_deviceID) ||
-      !SFileReadTyped(f, &m_farclipIdx) ||
-      !SFileReadTyped(f, &m_terrainLODDistIdx) ||
-      !SFileReadTyped(f, &m_terrainShadowLOD) ||
-      !SFileReadTyped(f, &m_detailDoodadDensityIdx) ||
-      !SFileReadTyped(f, &m_detailDoodadAlpha) ||
-      !SFileReadTyped(f, &m_animatingDoodadIdx) ||
-      !SFileReadTyped(f, &m_trilinear) ||
-      !SFileReadTyped(f, &m_numLights) ||
-      !SFileReadTyped(f, &m_specularity) ||
-      !SFileReadTyped(f, &m_waterLODIdx) ||
-      !SFileReadTyped(f, &m_particleDensityIdx) ||
-      !SFileReadTyped(f, &m_unitDrawDistIdx) ||
-      !SFileReadTyped(f, &m_smallCullDistIdx) ||
-      !SFileReadTyped(f, &m_resolutionIdx) ||
-      !SFileReadTyped(f, &m_baseMipLevel) ||
-      !SFileReadTyped(f, &m_oglPixelShader) ||
-      !SFileReadTyped(f, &m_d3dPixelShader)) {
+  error |= (SFileReadTyped(f, &m_vendorID) == 0);
+  error |= (SFileReadTyped(f, &m_deviceID) == 0);
+  error |= (SFileReadTyped(f, &m_farclipIdx) == 0);
+  error |= (SFileReadTyped(f, &m_terrainLODDistIdx) == 0);
+  error |= (SFileReadTyped(f, &m_terrainShadowLOD) == 0);
+  error |= (SFileReadTyped(f, &m_detailDoodadDensityIdx) == 0);
+  error |= (SFileReadTyped(f, &m_detailDoodadAlpha) == 0);
+  error |= (SFileReadTyped(f, &m_animatingDoodadIdx) == 0);
+  error |= (SFileReadTyped(f, &m_trilinear) == 0);
+  error |= (SFileReadTyped(f, &m_numLights) == 0);
+  error |= (SFileReadTyped(f, &m_specularity) == 0);
+  error |= (SFileReadTyped(f, &m_waterLODIdx) == 0);
+  error |= (SFileReadTyped(f, &m_particleDensityIdx) == 0);
+  error |= (SFileReadTyped(f, &m_unitDrawDistIdx) == 0);
+  error |= (SFileReadTyped(f, &m_smallCullDistIdx) == 0);
+  error |= (SFileReadTyped(f, &m_resolutionIdx) == 0);
+  error |= (SFileReadTyped(f, &m_baseMipLevel) == 0);
+  error |= (SFileReadTyped(f, &m_oglPixelShader) == 0);
+  error |= (SFileReadTyped(f, &m_d3dPixelShader) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading VideoHardwareRec", DEFAULT_COLOR);
     return false;
   }

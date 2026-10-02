@@ -20,14 +20,14 @@ BOOL AddLineToExecFile(LPCSTR currentLine) {
       g_ExecCreateMode = EM_NOTACTIVE;
       return 0;
     }
-    if (*currentLine == 'y') {
-      ConsoleWrite("Begin Typing the commands", ECHO_COLOR);
-      g_ExecCreateMode = EM_RECORDING;
+    if (*currentLine != 'y') {
+      ConsoleWrite("You must type 'y' to confirm overwrite. Process aborted!", ERROR_COLOR);
+      g_ExecCreateMode = EM_NOTACTIVE;
       return 0;
     }
 
-    ConsoleWrite("You must type 'y' to confirm overwrite. Process aborted!", ERROR_COLOR);
-    g_ExecCreateMode = EM_NOTACTIVE;
+    ConsoleWrite("Begin Typing the commands", ECHO_COLOR);
+    g_ExecCreateMode = EM_RECORDING;
     return 0;
   }
 
@@ -39,8 +39,8 @@ BOOL AddLineToExecFile(LPCSTR currentLine) {
   }
 
   SStrPrintf(stringToWrite, sizeof(stringToWrite), "%s\n", currentLine);
-  spaceRemaining = 0x1FFF - SStrLen(g_ExecBuffer);
-  if (spaceRemaining != (int)SStrLen(stringToWrite)) {
+  spaceRemaining = 0x1FFF - SStrLen(g_ExecBuffer) - SStrLen(stringToWrite);
+  if (spaceRemaining) {
     SStrPack(g_ExecBuffer, stringToWrite, sizeof(g_ExecBuffer));
   }
   return 0;

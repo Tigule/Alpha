@@ -806,9 +806,10 @@ void FrameScript_Execute(int function) {
 void FrameScript_Execute(int function, FrameScript_Object *objectTHIS) {
   lua_State *state;
 
-  FATALASSERT(function);
-
-  FATALASSERT(objectTHIS);
+  VALIDATEBEGIN;
+  VALIDATE(function);
+  VALIDATE(objectTHIS);
+  VALIDATEENDVOID;
 
   state = FrameScript_GetContext();
   PushThisStack(objectTHIS);
@@ -857,9 +858,10 @@ void __cdecl FrameScript_ExecuteV(int function, FrameScript_Object *objectTHIS, 
   char       current;
   int        index;
 
-  FATALASSERT(function);
-
-  FATALASSERT(args_fmt);
+  VALIDATEBEGIN;
+  VALIDATE(function);
+  VALIDATE(args_fmt);
+  VALIDATEENDVOID;
 
   state = FrameScript_GetContext();
   argCount = 0;

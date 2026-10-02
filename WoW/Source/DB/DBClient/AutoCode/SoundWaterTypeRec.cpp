@@ -14,11 +14,14 @@ SoundWaterTypeRec::~SoundWaterTypeRec() {
 }
 
 bool SoundWaterTypeRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_soundType) ||
-      !SFileReadTyped(f, &m_soundSubtype) ||
-      !SFileReadTyped(f, &m_SoundID)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_soundType) == 0);
+  error |= (SFileReadTyped(f, &m_soundSubtype) == 0);
+  error |= (SFileReadTyped(f, &m_SoundID) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SoundWaterTypeRec", DEFAULT_COLOR);
     return false;
   }

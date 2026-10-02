@@ -1,6 +1,15 @@
 #include <Base/Base.h>
-#include <WowConst.h>
+#include <Gx/Gx.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "WowServices/WowConnection.h"
+#include <WowConst.h>
+#include <Frame/CSimpleTop.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "Ui/WorldFrame.h"
+#include "Ui/GameUI.h"
 
 #include "GameObject_C.h"
 
@@ -478,7 +487,7 @@ void CGGameObject_C_TypeAnimated::ActivateCustomAnim(UINT anim) {
 }
 
 LPCSTR CGGameObject_C_TypeAnimated::DebugStatus() {
-  FATALASSERT(m_animState < sizeof(s_statusString) / sizeof(s_statusString[0]));
+  FATALASSERT(m_animState < (sizeof(s_statusString) / sizeof(s_statusString[0])));
   return s_statusString[m_animState];
 }
 
@@ -972,10 +981,10 @@ static BOOL AnimFinishedCallback(LPVOID param) {
 }
 
 static BOOL OnUpdateState(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
-  CGGameObject_C *object = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  FATALASSERT(object);
-  FATALASSERT(object->m_baseObj);
-  object->m_baseObj->UpdateState(*static_cast<const int *>(prevValue), object->GetState());
+  CGGameObject_C *gameObj = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  FATALASSERT(gameObj);
+  FATALASSERT(gameObj->m_baseObj);
+  gameObj->m_baseObj->UpdateState(*static_cast<const int *>(prevValue), gameObj->GetState());
   return 1;
 }
 
@@ -1109,7 +1118,9 @@ UINT CGGameObject_C::OffsetOf(OBJECT_TYPE_ID type) {
 }
 
 void CGGameObject_C::LoadBaseObject(const GameObjectStats *stats) {
-  FATALASSERT(stats);
+  VALIDATEBEGIN;
+  VALIDATE(stats);
+  VALIDATEENDVOID;
   SetMirrorHandlers();
   m_stats = stats;
 

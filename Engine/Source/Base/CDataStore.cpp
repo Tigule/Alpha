@@ -1,6 +1,7 @@
 #include <Base/Base.h>
 
 #include <Base/CDataStore.h>
+#include <Base/CUnreal.h>
 #include <Base/ConvertUTF.h>
 
 #include <string.h>
@@ -96,23 +97,21 @@ CDataStore &CDataStore::PutString(const WORD *pval) {
   int  result;
 
   ASSERT(!IsFinal());
-  FATALASSERT(pval);
+
+  if (!pval) {
+    FATALERROR(("pval"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
 
   bytes = ConvertUTF16toUTF8Length(pval, 0x7FFFFFFF, 0);
-  ASSERT(static_cast<int>(bytes) > 0);
+  ASSERT((int)bytes > 0);
   FetchWrite(m_size, bytes, 0, 0);
   minBytes = 1;
 
-  do {
-    UINT copyBytes = bytes;
-
-    if (copyBytes >= m_alloc) {
-      copyBytes = m_alloc;
-    }
-
-    if (copyBytes <= minBytes) {
-      copyBytes = minBytes;
-    }
+  for (;;) {
+    UINT copyBytes = min(bytes, m_alloc);
+    copyBytes = max(copyBytes, minBytes);
 
     AssertFetchWrite(m_size, copyBytes, 0, 0);
     result = ConvertUTF16toUTF8(reinterpret_cast<char *>(m_data + m_size - m_base), copyBytes, pval, 0x7FFFFFFF, &dstChars, &srcChars);
@@ -126,7 +125,7 @@ CDataStore &CDataStore::PutString(const WORD *pval) {
     m_size += dstChars;
     bytes -= dstChars;
     minBytes = result;
-  } while (bytes);
+  }
 
   return *this;
 }
@@ -137,70 +136,190 @@ CDataStore &CDataStore::PutArray(const BYTE *pval, UINT count) {
 
   ASSERT(!IsFinal());
 
-  FATALASSERT(pval || !count);
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
 
-  bytes = count;
-  FetchWrite(m_size, bytes, 0, 0);
+  if (pval) {
+    bytes = count;
+    FetchWrite(m_size, bytes, 0, 0);
 
-  while (bytes) {
-    copyBytes = bytes;
+    while (bytes) {
+      copyBytes = min(bytes, m_alloc);
+      copyBytes = max(copyBytes, 1);
 
-    if (copyBytes >= m_alloc) {
-      copyBytes = m_alloc;
+      AssertFetchWrite(m_size, copyBytes, 0, 0);
+
+      BYTE *dst = m_data + m_size - m_base;
+      if (dst != pval) {
+        memcpy(dst, pval, copyBytes);
+      }
+
+      pval += copyBytes;
+      m_size += copyBytes;
+      bytes -= copyBytes;
     }
-
-    if (copyBytes <= 1) {
-      copyBytes = 1;
-    }
-
-    AssertFetchWrite(m_size, copyBytes, 0, 0);
-
-    if (m_data + m_size - m_base != pval) {
-      memcpy(m_data + m_size - m_base, pval, copyBytes);
-    }
-
-    pval += copyBytes;
-    m_size += copyBytes;
-    bytes -= copyBytes;
   }
 
   return *this;
 }
 
-#define DATASTORE_PUT_ARRAY(type, elementSize)                                             \
-  CDataStore &CDataStore::PutArray(const type *pval, UINT count) {                         \
-    UINT bytes;                                                                            \
-    ASSERT(!IsFinal());                                                                    \
-    FATALASSERT(pval || !count);                                                           \
-    bytes = count * elementSize;                                                           \
-    FetchWrite(m_size, bytes, 0, 0);                                                       \
-    while (bytes) {                                                                        \
-      count = bytes;                                                                       \
-      if (count >= m_alloc) {                                                              \
-        count = m_alloc;                                                                   \
-      }                                                                                    \
-      if (count <= elementSize) {                                                          \
-        count = elementSize;                                                               \
-      }                                                                                    \
-      count &= ~(elementSize - 1);                                                         \
-      AssertFetchWrite(m_size, count, 0, 0);                                               \
-      if (m_data + m_size - m_base != reinterpret_cast<const BYTE *>(pval)) {              \
-        memcpy(m_data + m_size - m_base, pval, count);                                     \
-      }                                                                                    \
-      pval = reinterpret_cast<const type *>(reinterpret_cast<const BYTE *>(pval) + count); \
-      m_size += count;                                                                     \
-      bytes -= count;                                                                      \
-    }                                                                                      \
-    return *this;                                                                          \
+CDataStore &CDataStore::PutArray(const WORD *pval, UINT count) {
+  ASSERT(!IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
   }
 
-DATASTORE_PUT_ARRAY(WORD, 2)
-DATASTORE_PUT_ARRAY(DWORD, 4)
-DATASTORE_PUT_ARRAY(DWORDLONG, 8)
-DATASTORE_PUT_ARRAY(float, 4)
-DATASTORE_PUT_ARRAY(unreal, 4)
+  if (pval) {
+    UINT bytes = count * sizeof(WORD);
+    FetchWrite(m_size, bytes, 0, 0);
 
-#undef DATASTORE_PUT_ARRAY
+    while (bytes) {
+      UINT copyBytes = min(bytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(WORD));
+      copyBytes &= ~(sizeof(WORD) - 1);
+
+      AssertFetchWrite(m_size, copyBytes, 0, 0);
+
+      count = copyBytes / sizeof(WORD);
+      memcpy(m_data + m_size - m_base, pval, count * sizeof(WORD));
+      pval += count;
+      m_size += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
+
+CDataStore &CDataStore::PutArray(const DWORD *pval, UINT count) {
+  ASSERT(!IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
+
+  if (pval) {
+    UINT bytes = count * sizeof(DWORD);
+    FetchWrite(m_size, bytes, 0, 0);
+
+    while (bytes) {
+      UINT copyBytes = min(bytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(DWORD));
+      copyBytes &= ~(sizeof(DWORD) - 1);
+
+      AssertFetchWrite(m_size, copyBytes, 0, 0);
+
+      count = copyBytes / sizeof(DWORD);
+      memcpy(m_data + m_size - m_base, pval, count * sizeof(DWORD));
+      pval += count;
+      m_size += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
+
+CDataStore &CDataStore::PutArray(const DWORDLONG *pval, UINT count) {
+  ASSERT(!IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
+
+  if (pval) {
+    UINT bytes = count * sizeof(DWORDLONG);
+    FetchWrite(m_size, bytes, 0, 0);
+
+    while (bytes) {
+      UINT copyBytes = min(bytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(DWORDLONG));
+      copyBytes &= ~(sizeof(DWORDLONG) - 1);
+
+      AssertFetchWrite(m_size, copyBytes, 0, 0);
+
+      count = copyBytes / sizeof(DWORDLONG);
+      memcpy(m_data + m_size - m_base, pval, count * sizeof(DWORDLONG));
+      pval += count;
+      m_size += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
+
+CDataStore &CDataStore::PutArray(const float *pval, UINT count) {
+  ASSERT(!IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
+
+  if (pval) {
+    UINT bytes = count * sizeof(float);
+    FetchWrite(m_size, bytes, 0, 0);
+
+    while (bytes) {
+      UINT copyBytes = min(bytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(float));
+      copyBytes &= ~(sizeof(float) - 1);
+
+      AssertFetchWrite(m_size, copyBytes, 0, 0);
+
+      count = copyBytes / sizeof(float);
+      memcpy(m_data + m_size - m_base, pval, count * sizeof(float));
+      pval += count;
+      m_size += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
+
+CDataStore &CDataStore::PutArray(const unreal *pval, UINT count) {
+  ASSERT(!IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
+
+  if (pval) {
+    UINT bytes = count * sizeof(unreal);
+    FetchWrite(m_size, bytes, 0, 0);
+
+    while (bytes) {
+      UINT copyBytes = min(bytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(unreal));
+      copyBytes &= ~(sizeof(unreal) - 1);
+
+      AssertFetchWrite(m_size, copyBytes, 0, 0);
+
+      count = copyBytes / sizeof(unreal);
+      memcpy(m_data + m_size - m_base, pval, count * sizeof(unreal));
+      pval += count;
+      m_size += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
 
 CDataStore &CDataStore::PutData(LPCVOID pval, UINT bytes) {
   return PutArray(static_cast<const BYTE *>(pval), bytes);
@@ -210,7 +329,7 @@ CDataStore &CDataStore::PutData(LPCVOID pval, UINT bytes) {
   CDataStore &CDataStore::Get(type &val) {                       \
     ASSERT(IsFinal());                                           \
     if (FetchRead(m_read, sizeof(val))) {                        \
-      val = *reinterpret_cast<type *>(m_data + m_read - m_base); \
+      val = *reinterpret_cast<type *>(m_data - m_base + m_read); \
       m_read += sizeof(val);                                     \
     }                                                            \
     return *this;                                                \
@@ -235,7 +354,11 @@ CDataStore &CDataStore::GetString(char *pval, UINT maxChars) {
 
   ASSERT(IsFinal());
 
-  FATALASSERT(pval || !maxChars);
+  if (!(pval || !maxChars)) {
+    FATALERROR(("pval || !maxChars"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
 
   if (pval && maxChars) {
     if (IsValid()) {
@@ -246,28 +369,25 @@ CDataStore &CDataStore::GetString(char *pval, UINT maxChars) {
           break;
         }
 
-        copyBytes = m_base + m_alloc;
+        copyBytes = m_alloc + m_base;
+        copyBytes = min(copyBytes, m_size) - m_read;
+        copyBytes = min(copyBytes, maxChars - length);
 
-        if (copyBytes >= m_size) {
-          copyBytes = m_size;
-        }
+        const char *src = reinterpret_cast<const char *>(m_data - m_base + m_read);
+        UINT        i = 0;
 
-        copyBytes -= m_read;
-
-        if (copyBytes >= maxChars - length) {
-          copyBytes = maxChars - length;
-        }
-
-        while (copyBytes && (pval[length++] = m_data[m_read++ - m_base])) {
+        while (copyBytes && (pval[length++] = src[i++])) {
           --copyBytes;
         }
+
+        m_read += i;
 
         if (copyBytes) {
           break;
         }
 
         if (length >= maxChars) {
-          Seek(m_size + 1);
+          Invalidate();
           break;
         }
       }
@@ -289,7 +409,12 @@ CDataStore &CDataStore::GetString(WORD *pval, UINT maxChars) {
   int  result;
 
   ASSERT(IsFinal());
-  FATALASSERT(pval || !maxChars);
+
+  if (!(pval || !maxChars)) {
+    FATALERROR(("pval || !maxChars"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
 
   if (pval && maxChars) {
     if (IsValid()) {
@@ -311,7 +436,7 @@ CDataStore &CDataStore::GetString(WORD *pval, UINT maxChars) {
         result =
             ConvertUTF8toUTF16(pval + length, maxChars - length, reinterpret_cast<LPCSTR>(m_data + m_read - m_base), bytes, &dstChars, &srcChars);
         if (result > 0) {
-          Seek(m_size + 1);
+          Invalidate();
           break;
         }
 
@@ -339,86 +464,208 @@ CDataStore &CDataStore::GetArray(BYTE *pval, UINT count) {
 
   ASSERT(IsFinal());
 
-  FATALASSERT(pval || !count);
-
-  if (m_read > m_size) {
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
     return *this;
   }
 
-  bytes = count;
+  if (IsValid()) {
+    bytes = count;
 
-  while (bytes) {
-    count = m_size - m_read;
+    while (bytes) {
+      UINT copyBytes = m_size - m_read;
+      copyBytes = min(copyBytes, bytes);
+      copyBytes = min(copyBytes, m_alloc);
+      copyBytes = max(copyBytes, 1);
 
-    if (count >= bytes) {
-      count = bytes;
+      if (!FetchRead(m_read, copyBytes)) {
+        break;
+      }
+
+      BYTE *src = m_data - m_base + m_read;
+      if (pval != src) {
+        memcpy(pval, src, copyBytes);
+      }
+
+      pval += copyBytes;
+      m_read += copyBytes;
+      bytes -= copyBytes;
     }
-
-    if (count >= m_alloc) {
-      count = m_alloc;
-    }
-
-    if (count <= 1) {
-      count = 1;
-    }
-
-    if (!FetchRead(m_read, count)) {
-      return *this;
-    }
-
-    if (pval != m_data + m_read - m_base) {
-      memcpy(pval, m_data + m_read - m_base, count);
-    }
-
-    m_read += count;
-    pval += count;
-    bytes -= count;
   }
 
   return *this;
 }
 
-#define DATASTORE_GET_ARRAY(type, elementSize)                                 \
-  CDataStore &CDataStore::GetArray(type *pval, UINT count) {                   \
-    UINT bytes;                                                                \
-    ASSERT(IsFinal());                                                         \
-    FATALASSERT(pval || !count);                                               \
-    if (m_read > m_size) {                                                     \
-      return *this;                                                            \
-    }                                                                          \
-    bytes = count * elementSize;                                               \
-    while (bytes) {                                                            \
-      count = m_size - m_read;                                                 \
-      if (count >= bytes) {                                                    \
-        count = bytes;                                                         \
-      }                                                                        \
-      if (count >= m_alloc) {                                                  \
-        count = m_alloc;                                                       \
-      }                                                                        \
-      if (count <= elementSize) {                                              \
-        count = elementSize;                                                   \
-      }                                                                        \
-      count &= ~(elementSize - 1);                                             \
-      if (!FetchRead(m_read, count)) {                                         \
-        return *this;                                                          \
-      }                                                                        \
-      if (reinterpret_cast<BYTE *>(pval) != m_data + m_read - m_base) {        \
-        memcpy(pval, m_data + m_read - m_base, count);                         \
-      }                                                                        \
-      m_read += count;                                                         \
-      pval = reinterpret_cast<type *>(reinterpret_cast<BYTE *>(pval) + count); \
-      bytes -= count;                                                          \
-    }                                                                          \
-    return *this;                                                              \
+CDataStore &CDataStore::GetArray(WORD *pval, UINT count) {
+  ASSERT(IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
   }
 
-DATASTORE_GET_ARRAY(WORD, 2)
-DATASTORE_GET_ARRAY(DWORD, 4)
-DATASTORE_GET_ARRAY(DWORDLONG, 8)
-DATASTORE_GET_ARRAY(float, 4)
-DATASTORE_GET_ARRAY(unreal, 4)
+  if (IsValid()) {
+    UINT bytes = count * sizeof(WORD);
 
-#undef DATASTORE_GET_ARRAY
+    while (bytes) {
+      UINT copyBytes = m_size - m_read;
+      copyBytes = min(copyBytes, bytes);
+      copyBytes = min(copyBytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(WORD));
+      copyBytes &= ~(sizeof(WORD) - 1);
+
+      if (!FetchRead(m_read, copyBytes)) {
+        break;
+      }
+
+      count = copyBytes / sizeof(WORD);
+      memcpy(pval, m_data - m_base + m_read, count * sizeof(WORD));
+      pval += count;
+      m_read += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
+
+CDataStore &CDataStore::GetArray(DWORD *pval, UINT count) {
+  ASSERT(IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
+
+  if (IsValid()) {
+    UINT bytes = count * sizeof(DWORD);
+
+    while (bytes) {
+      UINT copyBytes = m_size - m_read;
+      copyBytes = min(copyBytes, bytes);
+      copyBytes = min(copyBytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(DWORD));
+      copyBytes &= ~(sizeof(DWORD) - 1);
+
+      if (!FetchRead(m_read, copyBytes)) {
+        break;
+      }
+
+      count = copyBytes / sizeof(DWORD);
+      memcpy(pval, m_data - m_base + m_read, count * sizeof(DWORD));
+      pval += count;
+      m_read += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
+
+CDataStore &CDataStore::GetArray(DWORDLONG *pval, UINT count) {
+  ASSERT(IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
+
+  if (IsValid()) {
+    UINT bytes = count * sizeof(DWORDLONG);
+
+    while (bytes) {
+      UINT copyBytes = m_size - m_read;
+      copyBytes = min(copyBytes, bytes);
+      copyBytes = min(copyBytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(DWORDLONG));
+      copyBytes &= ~(sizeof(DWORDLONG) - 1);
+
+      if (!FetchRead(m_read, copyBytes)) {
+        break;
+      }
+
+      count = copyBytes / sizeof(DWORDLONG);
+      memcpy(pval, m_data - m_base + m_read, count * sizeof(DWORDLONG));
+      pval += count;
+      m_read += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
+
+CDataStore &CDataStore::GetArray(float *pval, UINT count) {
+  ASSERT(IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
+
+  if (IsValid()) {
+    UINT bytes = count * sizeof(float);
+
+    while (bytes) {
+      UINT copyBytes = m_size - m_read;
+      copyBytes = min(copyBytes, bytes);
+      copyBytes = min(copyBytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(float));
+      copyBytes &= ~(sizeof(float) - 1);
+
+      if (!FetchRead(m_read, copyBytes)) {
+        break;
+      }
+
+      count = copyBytes / sizeof(float);
+      memcpy(pval, m_data - m_base + m_read, count * sizeof(float));
+      pval += count;
+      m_read += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
+
+CDataStore &CDataStore::GetArray(unreal *pval, UINT count) {
+  ASSERT(IsFinal());
+
+  if (!(pval || !count)) {
+    FATALERROR(("pval || !count"));
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return *this;
+  }
+
+  if (IsValid()) {
+    UINT bytes = count * sizeof(unreal);
+
+    while (bytes) {
+      UINT copyBytes = m_size - m_read;
+      copyBytes = min(copyBytes, bytes);
+      copyBytes = min(copyBytes, m_alloc);
+      copyBytes = max(copyBytes, sizeof(unreal));
+      copyBytes &= ~(sizeof(unreal) - 1);
+
+      if (!FetchRead(m_read, copyBytes)) {
+        break;
+      }
+
+      count = copyBytes / sizeof(unreal);
+      memcpy(pval, m_data - m_base + m_read, count * sizeof(unreal));
+      pval += count;
+      m_read += copyBytes;
+      bytes -= copyBytes;
+    }
+  }
+
+  return *this;
+}
 
 CDataStore &CDataStore::GetData(LPVOID pval, UINT bytes) {
   return GetArray(static_cast<BYTE *>(pval), bytes);
@@ -427,12 +674,10 @@ CDataStore &CDataStore::GetData(LPVOID pval, UINT bytes) {
 CDataStore &CDataStore::GetDataInSitu(LPVOID &pval, UINT bytes) {
   pval = 0;
 
-  if (!FetchRead(m_read, bytes)) {
-    return *this;
+  if (FetchRead(m_read, bytes)) {
+    pval = m_data - m_base + m_read;
+    m_read += bytes;
   }
-
-  pval = m_data + m_read - m_base;
-  m_read += bytes;
 
   return *this;
 }

@@ -29,55 +29,6 @@ class TInstanceId : public TSLinkedNode<T> {
 
 template <class T, UINT SLOTCOUNT>
 class TInstanceIdTable {
-  class Iterator {
-    friend class TInstanceIdTable<T, SLOTCOUNT>;
-
-    TInstanceIdTable<T, SLOTCOUNT> &m_table;
-    int                             m_slot;
-    T                              *m_next;
-
-    Iterator(TInstanceIdTable<T, SLOTCOUNT> &table) : m_table(table) {
-    }
-
-    Iterator(const Iterator &);
-    Iterator &operator=(const Iterator &);
-
-   public:
-    void SetSlot(int slot, int forWriting) {
-      m_slot = slot;
-      SlotBegin(forWriting);
-    }
-
-    T *Next(int forWriting) {
-      T *instance = SlotNext();
-
-      if (!instance) {
-        SlotEnd(forWriting);
-      }
-      return instance;
-    }
-
-    void SlotBegin(int forWriting) {
-      m_table.m_idLock[m_slot].Enter(forWriting);
-      m_next = m_table.m_idList[m_slot].Head();
-    }
-
-    void SlotEnd(int forWriting) {
-      m_table.m_idLock[m_slot].Leave(forWriting);
-    }
-
-    T *SlotNext() {
-      T *instance = m_next;
-
-      if (instance) {
-        m_next = instance->Next();
-      }
-      return instance;
-    }
-  };
-
-  friend class Iterator;
-
  public:
   TInstanceIdTable() : m_id(0), m_idWrapped(0) {
   }
@@ -182,22 +133,72 @@ class TInstanceIdTable {
   }
 
  private:
-  TInstanceIdTable &operator=(const TInstanceIdTable &);
+  class Iterator {
+    friend class TInstanceIdTable<T, SLOTCOUNT>;
+
+    TInstanceIdTable<T, SLOTCOUNT> &m_table;
+    int                             m_slot;
+    T                              *m_next;
+
+    Iterator(const Iterator &);
+
+    Iterator(TInstanceIdTable<T, SLOTCOUNT> &table) : m_table(table) {
+    }
+
+    Iterator &operator=(const Iterator &);
+
+   public:
+    void SetSlot(int slot, int forWriting) {
+      m_slot = slot;
+      SlotBegin(forWriting);
+    }
+
+    T *Next(int forWriting) {
+      T *instance = SlotNext();
+
+      if (!instance) {
+        SlotEnd(forWriting);
+      }
+      return instance;
+    }
+
+    void SlotBegin(int forWriting) {
+      m_table.m_idLock[m_slot].Enter(forWriting);
+      m_next = m_table.m_idList[m_slot].Head();
+    }
+
+    void SlotEnd(int forWriting) {
+      m_table.m_idLock[m_slot].Leave(forWriting);
+    }
+
+    T *SlotNext() {
+      T *instance = m_next;
+
+      if (instance) {
+        m_next = instance->Next();
+      }
+      return instance;
+    }
+  };
+
+  friend class Iterator;
 
   SCritSect m_idCritsect;
   DWORD     m_id;
   BOOL      m_idWrapped;
   CSRWLock  m_idLock[SLOTCOUNT];
   LISTDECL(T, m_idList[SLOTCOUNT]);
+
+  TInstanceIdTable &operator=(const TInstanceIdTable &);
 };
 
 template <class T, UINT SLOTCOUNT>
 class TSingletonInstanceId : public TInstanceId<T> {
-  typedef TInstanceIdTable<T, SLOTCOUNT> Table;
-
  public:
   TSingletonInstanceId() {
   }
+
+  typedef TInstanceIdTable<T, SLOTCOUNT> Table;
 
   static Table &GetTable() {
     return s_idTable;

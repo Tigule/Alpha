@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "GameUI.h"
 #include "QuestFrame.h"
@@ -545,7 +553,8 @@ static int Script_CompleteQuest(lua_State *) {
 static int Script_GetQuestReward(lua_State *L) {
   int choice = lua_isnumber(L, 1) ? static_cast<int>(lua_tonumber(L, 1)) - 1 : 0;
   if (!CGQuestInfo::GetReward(choice)) {
-    return luaL_error(L, "Invalid reward choice in GetQuestReward");
+    luaL_error(L, "Invalid reward choice in GetQuestReward");
+    return 0;
   }
   return 0;
 }

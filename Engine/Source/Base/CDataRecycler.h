@@ -34,6 +34,28 @@ class CDataRecycler {
     eDefaultMaxNodes = 0x7FFFFFFF
   };
 
+  CDataRecycler(UINT nodesPerBlock = eDefaultNodesPerBlock, long maxNodes = eDefaultMaxNodes);
+  CDataRecycler(const CDataRecycler &);
+  virtual ~CDataRecycler();
+
+  virtual void Clear();
+
+  void GetData(LPVOID &data, DWORD &bytes, LPCSTR fileName, int lineNumber);
+  void PutData(LPVOID data, DWORD bytes, LPCSTR fileName, int lineNumber);
+  void GetAndResizeData(DWORD allocBytes, LPVOID &data, DWORD &bytes, LPCSTR fileName, int lineNumber) {
+    GetData(data, bytes, fileName, lineNumber);
+    if (bytes < allocBytes) {
+      data = ReallocData(data, allocBytes, &bytes, fileName, lineNumber);
+    }
+  }
+
+  virtual LPVOID AllocData(DWORD allocBytes, DWORD *bytes, LPCSTR fileName, int lineNumber);
+  virtual LPVOID ReallocData(LPVOID data, DWORD allocBytes, DWORD *bytes, LPCSTR fileName, int lineNumber);
+  virtual void   FreeData(LPVOID data, LPCSTR fileName, int lineNumber);
+
+ private:
+  CDataRecycler &operator=(const CDataRecycler &);
+
   struct Node {
     Node  *m_next;
     LPVOID m_data;
@@ -45,34 +67,26 @@ class CDataRecycler {
     Node       m_nodes[1];
   };
 
-  CDataRecycler(UINT nodesPerBlock = eDefaultNodesPerBlock, long maxNodes = eDefaultMaxNodes);
-  CDataRecycler(const CDataRecycler &);
-  virtual ~CDataRecycler();
+  void   Link(LPVOID *list, LPVOID item, int nextOffset);
+  LPVOID Unlink(LPVOID *list, int nextOffset);
 
-  virtual void   Clear();
-  virtual LPVOID AllocData(DWORD allocBytes, DWORD *bytes, LPCSTR fileName, int lineNumber);
-  virtual LPVOID ReallocData(LPVOID data, DWORD allocBytes, DWORD *bytes, LPCSTR fileName, int lineNumber);
-  virtual void   FreeData(LPVOID data, LPCSTR fileName, int lineNumber);
-
-  void GetData(LPVOID &data, DWORD &bytes, LPCSTR fileName, int lineNumber);
-  void GetAndResizeData(DWORD allocBytes, LPVOID &data, DWORD &bytes, LPCSTR fileName, int lineNumber) {
-    GetData(data, bytes, fileName, lineNumber);
-    if (bytes < allocBytes) {
-      data = ReallocData(data, allocBytes, &bytes, fileName, lineNumber);
-    }
+  void Link(Node **list, Node *node) {
+    Link(reinterpret_cast<LPVOID *>(list), node, offsetof(Node, m_next));
   }
-  void PutData(LPVOID data, DWORD bytes, LPCSTR fileName, int lineNumber);
 
- private:
-  CDataRecycler &operator=(const CDataRecycler &);
+  Node *Unlink(Node **list) {
+    return static_cast<Node *>(Unlink(reinterpret_cast<LPVOID *>(list), offsetof(Node, m_next)));
+  }
 
-  void       Link(LPVOID *list, LPVOID item, int nextOffset);
-  void       Link(NodeBlock **list, NodeBlock *nodeBlock);
-  void       Link(Node **list, Node *node);
-  LPVOID     Unlink(LPVOID *list, int nextOffset);
-  NodeBlock *Unlink(NodeBlock **list);
-  Node      *Unlink(Node **list);
-  void       Link(Node **list, NodeBlock *nodeBlock);
+  void Link(NodeBlock **list, NodeBlock *nodeBlock) {
+    Link(reinterpret_cast<LPVOID *>(list), nodeBlock, offsetof(NodeBlock, m_next));
+  }
+
+  NodeBlock *Unlink(NodeBlock **list) {
+    return static_cast<NodeBlock *>(Unlink(reinterpret_cast<LPVOID *>(list), offsetof(NodeBlock, m_next)));
+  }
+
+  void Link(Node **list, NodeBlock *nodeBlock);
 
   long       m_nodesRecyclable;
   UINT       m_nodesPerBlock;
@@ -103,28 +117,25 @@ class TExtraInstanceRecycler : protected CDataRecycler {
     DWORD  recycleBytes;
     LPVOID data;
 
-    if (bytes > m_maxBytesPerInstance) {
-      data = AllocData(bytes, &recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
+    if (bytes <= m_maxBytesPerInstance) {
+      GetAndResizeData(bytes, data, recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
     } else {
-      GetData(data, recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
-      if (recycleBytes < bytes) {
-        data = ReallocData(data, bytes, &recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
-      }
+      data = AllocData(bytes, &recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
     }
 
-    T *instance = data ? new (data) T : 0;
-    instance->SetRecycleBytes(recycleBytes);
-    return instance;
+    new (data) T;
+    static_cast<T *>(data)->SetRecycleBytes(recycleBytes);
+    return static_cast<T *>(data);
   }
 
   void Put(T *instance) {
     DWORD recycleBytes = instance->GetRecycleBytes();
 
     instance->~T();
-    if (recycleBytes > m_maxBytesPerInstance) {
-      FreeData(instance, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
-    } else {
+    if (recycleBytes <= m_maxBytesPerInstance) {
       PutData(instance, recycleBytes, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
+    } else {
+      FreeData(instance, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
     }
   }
 

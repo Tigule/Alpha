@@ -21,7 +21,6 @@ class WowClientDB {
     UINT   signature;
     char  *stringBuffer;
     UINT   stringSize;
-    int    i;
     UINT   rowSize, numColumns;
     SFile *f;
     if (!SFile::Open(RECORD::GetFilename(), &f)) {
@@ -47,11 +46,11 @@ class WowClientDB {
       FATALERROR(("%s has wrong row size (found %i, expected %i)", RECORD::GetFilename(), rowSize, RECORD::GetRowSize()));
     }
     SFileReadTyped(f, &stringSize);
-    m_records = static_cast<RECORD *>(ALLOC(sizeof(RECORD) * m_numRecords + stringSize));
+    m_records = reinterpret_cast<RECORD *>(new (__FILE__, __LINE__) char[sizeof(RECORD) * m_numRecords + stringSize]);
 
     stringBuffer = reinterpret_cast<char *>(m_records + m_numRecords);
     m_maxID = 0;
-    for (i = 0; i < m_numRecords; ++i) {
+    for (int i = 0; i < m_numRecords; ++i) {
       new (&m_records[i]) RECORD;
       m_records[i].Read(f, stringBuffer);
       if (m_records[i].NeedIDAssigned()) {
@@ -63,7 +62,7 @@ class WowClientDB {
       FATALERROR(("%s: Cannot read string table", RECORD::GetFilename()));
     }
     SFile::Close(f);
-    m_recordsById = static_cast<RECORD **>(ALLOC(sizeof(RECORD *) * (m_maxID + 1)));
+    m_recordsById = new (__FILE__, __LINE__) RECORD *[m_maxID + 1];
     memset(m_recordsById, 0, sizeof(RECORD *) * (m_maxID + 1));
     for (i = 0; i < m_numRecords; ++i) {
       m_recordsById[m_records[i].GetID()] = &m_records[i];

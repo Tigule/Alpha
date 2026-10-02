@@ -3,7 +3,6 @@
 #include "Object/ObjectClient/Bag_C.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
-#include "Ui/PartyFrame.h"
 
 #include <stpl.h>
 

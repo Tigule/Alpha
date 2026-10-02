@@ -5,6 +5,7 @@
 #include "Frame/CFramePoint.h"
 #include "Frame/CSimpleFrame.h"
 #include "Frame/CSimpleRender.h"
+#include "Frame/CSimpleTop.h"
 #include "Frame/SimpleFrameRegistry.h"
 #include "FrameXML/FrameXML.h"
 #include "FrameXML/LoadXML.h"
@@ -344,9 +345,10 @@ void CLayoutFrame::SetPoint(FRAMEPOINT point, float x, float y, int doResize) {
 }
 
 void CLayoutFrame::SetPoint(FRAMEPOINT point, CLayoutFrame *relative, FRAMEPOINT relativePoint, float offsetX, float offsetY, int doResize) {
-  FATALASSERT(relative);
-
-  FATALASSERT(relative != this);
+  VALIDATEBEGIN;
+  VALIDATE(relative);
+  VALIDATE(relative != this);
+  VALIDATEENDVOID;
 
   CFramePoint *oldPoint = m_points[point];
 
@@ -369,9 +371,10 @@ void CLayoutFrame::SetPoint(FRAMEPOINT point, CLayoutFrame *relative, FRAMEPOINT
 }
 
 void CLayoutFrame::SetAllPoints(CLayoutFrame *relative, int doResize) {
-  FATALASSERT(relative);
-
-  FATALASSERT(relative != this);
+  VALIDATEBEGIN;
+  VALIDATE(relative);
+  VALIDATE(relative != this);
+  VALIDATEENDVOID;
 
   FreePoints();
   m_points[FRAMEPOINT_TOPLEFT] = NEW(CFramePointRelative)(relative, FRAMEPOINT_TOPLEFT, 0.0f, 0.0f);
@@ -420,7 +423,9 @@ void CLayoutFrame::RegisterResize(CLayoutFrame *frame, UINT dependency) {
     }
   }
 
-  FATALASSERT(!IsResizeDependency(frame));
+  VALIDATEBEGIN;
+  VALIDATE(!IsResizeDependency( frame ));
+  VALIDATEENDVOID;
 
   node = m_resizeList.NewNode(LIST_TAIL, 0, 0);
   node->frame = frame;
@@ -480,8 +485,8 @@ void CLayoutFrame::SetDeferredResize(int enable) {
 
 void CLayoutFrame::Resize(int force) {
   if (force && OnFrameResize()) {
-    if (resizeLink.IsLinked()) {
-      resizeLink.Unlink();
+    if (s_resizePendingList.IsLinked(this)) {
+      s_resizePendingList.UnlinkNode(this);
     }
 
     return;
@@ -499,7 +504,7 @@ void CLayoutFrame::Resize(int force) {
     return;
   }
 
-  if (!resizeLink.IsLinked()) {
+  if (!s_resizePendingList.IsLinked(this)) {
     CLayoutFrame *pDependentNode = 0;
 
     ITERATELIST(CLayoutFrame, s_resizePendingList, frame) {
@@ -556,7 +561,9 @@ BOOL CLayoutFrame::GetRect(NTempest::CRect *rect) const {
 void CLayoutFrame::SetLayoutScale(float scale, bool force) {
   static const float EPSILON = 2.38418579e-7f;
 
-  FATALASSERT(scale);
+  VALIDATEBEGIN;
+  VALIDATE(scale);
+  VALIDATEENDVOID;
 
   if (force || fabs(scale - m_layoutScale) >= EPSILON) {
     m_layoutScale = scale;

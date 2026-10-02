@@ -15,40 +15,39 @@ namespace NTempest {
 }
 
 class CBackdropGenerator {
+  friend class CGNamePlateFrame;
+
  public:
   enum BACKDROPPIECES {
-    BACKDROPONLY = 0x00,
     LEFTSIDE = 0x01,
     RIGHTSIDE = 0x02,
     TOPSIDE = 0x04,
     BOTTOMSIDE = 0x08,
-    SIDESONLY = 0x0F,
     TOPLEFTCORNER = 0x10,
     TOPRIGHTCORNER = 0x20,
     BOTTOMLEFTCORNER = 0x40,
     BOTTOMRIGHTCORNER = 0x80,
+    BACKDROPONLY = 0x00,
     CORNERSONLY = 0xF0,
+    SIDESONLY = 0x0F,
     THEWORKS = 0xFF
   };
 
   CBackdropGenerator();
-
   void LoadXML(const XMLNode *node, CStatus *status);
+  void SetBackdropTextures(const RCStaticString &background, const RCStaticString &border, UINT pieces, int tileBackground);
+  void SetBackdropTextures(LPCSTR background, LPCSTR border, UINT pieces, int tileBackground);
+  void SetCornerSize(float size);
+  void SetBackgroundSize(float size);
+  void SetBackgroundInsets(float right, float left, float top, float bottom);
   void SetOutput(CSimpleFrame *output);
   void Generate(const NTempest::CRect *rect);
   void SetVertexColor(const NTempest::CImVector &color);
   void GetVertexColor(NTempest::CImVector &color) const;
   void SetBorderVertexColor(const NTempest::CImVector &color);
   void GetBorderVertexColor(NTempest::CImVector &color) const;
-  void SetBackdropTextures(const RCStaticString &background, const RCStaticString &border, UINT pieces, int tileBackground);
-  void SetBackdropTextures(LPCSTR background, LPCSTR border, UINT pieces, int tileBackground);
-  void SetBackgroundInsets(float right, float left, float top, float bottom);
-  void SetBackgroundSize(float size);
-  void SetCornerSize(float size);
 
  private:
-  friend class CGNamePlateFrame;
-
   CSimpleTexture     *m_backgroundTexture;
   CSimpleTexture     *m_leftTexture;
   CSimpleTexture     *m_rightTexture;

@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Object/ObjectClient/Player_C.h"
@@ -181,7 +189,8 @@ static int Script_GetNumPetitionNames(lua_State *L) {
 
 static int Script_GetPetitionNameInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetPetitionNameInfo(index)");
+    luaL_error(L, "Usage: GetPetitionNameInfo(index)");
+    return 0;
   }
   const PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   const NameCache          *name = signer ? g_nameDBCache.GetRecord(signer->guid, signer->guid, 0, 0) : 0;

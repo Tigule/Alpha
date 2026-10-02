@@ -15,17 +15,20 @@ EmotesTextDataRec::~EmotesTextDataRec() {
 
 bool EmotesTextDataRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT temptext_langIndices[NUM_LOCALES];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &temptext_langIndices[0]) ||
-      !SFileReadTyped(f, &temptext_langIndices[1]) ||
-      !SFileReadTyped(f, &temptext_langIndices[2]) ||
-      !SFileReadTyped(f, &temptext_langIndices[3]) ||
-      !SFileReadTyped(f, &temptext_langIndices[4]) ||
-      !SFileReadTyped(f, &temptext_langIndices[5]) ||
-      !SFileReadTyped(f, &temptext_langIndices[6]) ||
-      !SFileReadTyped(f, &temptext_langIndices[7]) ||
-      !SFileReadTyped(f, &m_text_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &temptext_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &temptext_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &temptext_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &temptext_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &temptext_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &temptext_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &temptext_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &temptext_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_text_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading EmotesTextDataRec", DEFAULT_COLOR);
     return false;
   }

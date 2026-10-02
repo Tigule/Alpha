@@ -29,11 +29,12 @@ static char *FormatStatusMessage(LPCSTR format, va_list argptr) {
 
 void CStatus::Prepend(STATUS_TYPE severity, LPCSTR format, ...) {
   STATUSENTRY *entry = 0;
-  STATUSENTRY *pnextstatus = 0;
   LPCSTR       text;
   va_list      args;
 
-  FATALASSERT(format);
+  VALIDATEBEGIN;
+  VALIDATE(format);
+  VALIDATEENDVOID;
 
   va_start(args, format);
   text = FormatStatusMessage(format, args);
@@ -47,6 +48,7 @@ void CStatus::Prepend(STATUS_TYPE severity, LPCSTR format, ...) {
   entry->text = SStrDupA(text, __FILE__, __LINE__);
   entry->severity = severity;
 
+  STATUSENTRY *pnextstatus = 0;
   {
     ITERATELIST(STATUSENTRY, statusList, cursor) {
       if (severity >= cursor->severity) {
@@ -61,11 +63,12 @@ void CStatus::Prepend(STATUS_TYPE severity, LPCSTR format, ...) {
 
 void CStatus::Add(STATUS_TYPE severity, LPCSTR format, ...) {
   STATUSENTRY *entry = 0;
-  STATUSENTRY *pnextstatus = 0;
   LPCSTR       text;
   va_list      args;
 
-  FATALASSERT(format);
+  VALIDATEBEGIN;
+  VALIDATE(format);
+  VALIDATEENDVOID;
 
   va_start(args, format);
   text = FormatStatusMessage(format, args);
@@ -79,6 +82,7 @@ void CStatus::Add(STATUS_TYPE severity, LPCSTR format, ...) {
   entry->text = SStrDupA(text, __FILE__, __LINE__);
   entry->severity = severity;
 
+  STATUSENTRY *pnextstatus = 0;
   {
     ITERATELIST(STATUSENTRY, statusList, cursor) {
       if (severity > cursor->severity) {
@@ -92,11 +96,8 @@ void CStatus::Add(STATUS_TYPE severity, LPCSTR format, ...) {
 }
 
 void CStatus::Add(const CStatus &source) {
-  const STATUSENTRY *entry = source.statusList.Head();
-
-  while (entry) {
+  for (const STATUSENTRY *entry = source.statusList.Head(); (int)entry > 0; entry = source.statusList.RawNext(entry)) {
     Add(entry->severity, entry->text);
-    entry = source.statusList.Next(entry);
   }
 }
 
@@ -109,13 +110,12 @@ void CStatus::Clear() {
 }
 
 void CStatus::GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity) const {
-  const STATUSENTRY *entry;
-
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATEENDVOID;
 
   *buffer = 0;
-  entry = statusList.Head();
-  while (entry) {
+  for (const STATUSENTRY *entry = statusList.Head(); (int)entry > 0; entry = statusList.RawNext(entry)) {
     if (entry->severity >= minSeverity) {
       DWORD length = SStrLen(entry->text);
       if (length >= bufchars) {
@@ -125,19 +125,16 @@ void CStatus::GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity)
       bufchars -= length;
       buffer += length;
     }
-    entry = statusList.Next(entry);
   }
 }
 
 UINT CStatus::GetErrorStrLen(STATUS_TYPE minSeverity) const {
-  UINT               length = 0;
-  const STATUSENTRY *entry = statusList.Head();
+  UINT length = 0;
 
-  while (entry) {
+  for (const STATUSENTRY *entry = statusList.Head(); (int)entry > 0; entry = statusList.RawNext(entry)) {
     if (entry->severity >= minSeverity) {
       length += SStrLen(entry->text);
     }
-    entry = statusList.Next(entry);
   }
   return length;
 }
@@ -151,8 +148,6 @@ char *CStatus::GetErrorStrAlloc(STATUS_TYPE minSeverity) const {
 
 STATUS_TYPE CStatus::GetHighestSeverity() const {
   const STATUSENTRY *entry = statusList.Head();
-  if (!entry) {
-    return STATUS_INFO;
-  }
-  return entry->severity;
+
+  return entry ? entry->severity : STATUS_INFO;
 }

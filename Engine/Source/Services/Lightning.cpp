@@ -228,7 +228,9 @@ void CLightningManager::Update(float elapsed) {
 void CLightningManager::Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C3Vector *dst) {
   ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
   ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
-  FATALASSERT(src || dst);
+  VALIDATEBEGIN;
+  VALIDATE(src || dst);
+  VALIDATEENDVOID;
 
   if (src) {
     mLiveBolts[boltId]->SetSrcPos(*src);
@@ -249,21 +251,21 @@ void CLightningManager::SetCoordUpdate(BoltID boltId, void (*updateproc)(LPVOID,
 void CLightningManager::SetColor(BoltID boltId, NTempest::CImVector color) {
   ASSERT(BADBOLT != boltId);
   ASSERT(boltId < mLiveBolts.Count());
-  ASSERT(0 == (NOTUSEDFLAG & reinterpret_cast<ulong>(mLiveBolts[boltId])));
+  ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
 
   mLiveBolts[boltId]->SetColor(color);
 }
 
 void CLightningManager::GetColor(BoltID boltId, NTempest::CImVector &color) {
   ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
-  ASSERT(0 == (NOTUSEDFLAG & reinterpret_cast<ulong>(mLiveBolts[boltId])));
+  ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
 
   mLiveBolts[boltId]->GetColor(color);
 }
 
 float CLightningManager::GetDuration(BoltID boltId) {
   ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
-  ASSERT(0 == (NOTUSEDFLAG & reinterpret_cast<ulong>(mLiveBolts[boltId])));
+  ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
 
   float duration;
   mLiveBolts[boltId]->GetDuration(duration);

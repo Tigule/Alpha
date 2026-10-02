@@ -1,11 +1,20 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <WowConst.h>
 
-#include "Console/ConsoleCommand.h"
+#include "Client.h"
+#include <Base/CDataStore.h>
+
 #include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "Glue/CGlueMgr.h"
+#include "UIUtil/Tooltip.h"
+#include "Ui/ChatFrame.h"
+#include "Ui/WorldFrame.h"
+#include "UIUtil/InputControl.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "Ui/GameUI.h"
-#include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <ctype.h>
 

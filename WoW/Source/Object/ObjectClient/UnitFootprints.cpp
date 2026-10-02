@@ -1,5 +1,15 @@
-#include <WowConst.h>
+#include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "WowServices/WowConnection.h"
+#include <WowConst.h>
+#include <Frame/CSimpleTop.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "Ui/WorldFrame.h"
+#include "Ui/GameUI.h"
 
 #include "UnitFootprintsI.h"
 
@@ -15,7 +25,6 @@
 
 #include <Base/CDataAllocator.h>
 #include <Base/Status.h>
-#include <Gx/CGxDevice.h>
 #include <Gx/Gx.h>
 #include <Os/OsTime.h>
 #include <Services/Texture.h>
@@ -195,7 +204,7 @@ PERSISTENTTEXTURE::PERSISTENTTEXTURE() : LISTBASE(512, 1) {
 void LISTBASE::SetTexture(LPCSTR n) {
   CStatus status;
   if (!m_texture && n && *n) {
-    m_texture = TextureCreate(n, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
+    m_texture = TextureCreate(n, CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
   }
 }
 

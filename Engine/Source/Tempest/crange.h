@@ -26,8 +26,8 @@ namespace NTempest {
     }
 
     void Get(float &low, float &high) const {
-      low = l;
-      high = h;
+      low = Low();
+      high = High();
     }
 
     void Set(float low, float high) {
@@ -35,8 +35,14 @@ namespace NTempest {
       h = high;
     }
 
-    float   Low() const;
-    float   High() const;
+    float Low() const {
+      return l;
+    }
+
+    float High() const {
+      return h;
+    }
+
     CRange &operator+=(const CRange &value);
     CRange &operator-=(const CRange &value);
     CRange &operator*=(const CRange &value);
@@ -51,8 +57,8 @@ namespace NTempest {
     BYTE    InClosedRange(float value) const;
     BYTE    InOpenRange(float value) const;
     float   Magnitude() const;
-    void    Center(const CRange &value);
     float   Center() const;
+    void    Center(const CRange &value);
     void    Stretch(float value);
     void    Offset(float value);
     void    AlignLow(const CRange &value);

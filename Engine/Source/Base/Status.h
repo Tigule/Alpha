@@ -14,7 +14,8 @@ class CStatus {
  public:
   virtual ~CStatus();
 
-  virtual void Display() const;
+  virtual void Display() const {
+  }
   virtual void Add(STATUS_TYPE severity, LPCSTR format, ...);
   virtual void Add(const CStatus &source);
   virtual void Prepend(STATUS_TYPE severity, LPCSTR format, ...);

@@ -136,18 +136,11 @@ namespace NTempest {
       return C33Matrix(a0, a1, a2, b0, b1, b2, c0, c1, c2);
     }
     C34Matrix &operator=(const C34Matrix &a) {
-      a0 = a.a0;
-      a1 = a.a1;
-      a2 = a.a2;
-      b0 = a.b0;
-      b1 = a.b1;
-      b2 = a.b2;
-      c0 = a.c0;
-      c1 = a.c1;
-      c2 = a.c2;
-      d0 = a.d0;
-      d1 = a.d1;
-      d2 = a.d2;
+      const __int64 *src = reinterpret_cast<const __int64 *>(&a);
+      __int64       *dst = reinterpret_cast<__int64 *>(this);
+      for (int i = 6; i; --i) {
+        *dst++ = *src++;
+      }
       return *this;
     }
     C34Matrix &operator+=(const C34Matrix &a);

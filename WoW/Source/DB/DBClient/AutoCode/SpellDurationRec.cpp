@@ -14,11 +14,14 @@ SpellDurationRec::~SpellDurationRec() {
 }
 
 bool SpellDurationRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_duration) ||
-      !SFileReadTyped(f, &m_durationPerLevel) ||
-      !SFileReadTyped(f, &m_maxDuration)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_duration) == 0);
+  error |= (SFileReadTyped(f, &m_durationPerLevel) == 0);
+  error |= (SFileReadTyped(f, &m_maxDuration) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellDurationRec", DEFAULT_COLOR);
     return false;
   }

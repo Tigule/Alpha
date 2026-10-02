@@ -88,7 +88,6 @@ BOOL      AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, UINT parentIn
 BYTE *AnimObjectSetEventTrack(BYTE *data, UINT bytesLeft, CAnimData *shared, CAnimEventObj *objptr);
 BYTE *AnimObjectSetRibbonSlot(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimRibbonObj *objptr);
 
-BYTE *AddKeyFramesType(BYTE *data, UINT bytesRemaining, DWORD tag, CAnimData *shared, CKeyFrameTrack<float, float> *track, MDLTRACKTYPE forceType);
 BYTE *AnimObjectSetRotation(BYTE *data, UINT bytesRemaining, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType);
 BYTE *AnimObjectSetAttenuation(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType);
 BYTE *AnimObjectSetColor(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType);
@@ -100,14 +99,6 @@ BYTE *AnimObjectSetRibbonHeightAbove(BYTE *data, UINT fileBytes, CAnimData *shar
 BYTE *AnimObjectSetRibbonHeightBelow(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType);
 BYTE *AnimObjectSetRibbonColor(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType);
 BYTE *AnimObjectSetRibbonAlpha(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType);
-BYTE *AddKeyFramesType(
-    BYTE                                                   *data,
-    UINT                                                    bytesRemaining,
-    DWORD                                                   tag,
-    CAnimData                                              *shared,
-    CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector> *track,
-    MDLTRACKTYPE                                            forceType
-);
 struct CKeyFrame {
   int time;
 };
@@ -232,8 +223,6 @@ class CKeyFrameTrackBase {
   friend void  SetGeosetColor(const InterpInfo &, CAnimGeoset *, CAnimGeosetObjStatus *, NTempest::CImVector *);
   friend void  SetGeosetAlpha(const InterpInfo &, CAnimGeoset *, CAnimGeosetObjStatus *, CGeosetColor *);
   friend void  AnimateAllMaterialLayers(AnimInfo *, UINT *);
-  friend BYTE *AddKeyFramesType(BYTE *, UINT, DWORD, CAnimData *, CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector> *, MDLTRACKTYPE);
-  friend BYTE *AddKeyFramesType(BYTE *, UINT, DWORD, CAnimData *, CKeyFrameTrack<float, float> *, MDLTRACKTYPE);
   friend BYTE *AnimObjectSetEventTrack(BYTE *, UINT, CAnimData *, CAnimEventObj *);
   friend BYTE *AnimObjectSetTranslation(BYTE *, UINT, CAnimData *, CAnimObj *, MDLTRACKTYPE);
   friend BYTE *AnimObjectSetRotation(BYTE *, UINT, CAnimData *, CAnimObj *, MDLTRACKTYPE);
@@ -409,13 +398,14 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
   }
 
   void AddKey(int time, const U &keyData) {
-    CKeyFrameTrackBase::AddKey(time);
-    GetLinearKey(m_numKeyFrames - 1)->transform = keyData;
+    CLinearKeyFrame<T> *key = GetLinearKey(m_numKeyFrames++);
+    key->time = time;
+    key->transform = keyData;
   }
 
   void AddKey(int time, const U &keyData, const U &inTan, const U &outTan) {
-    CKeyFrameTrackBase::AddKey(time);
-    CSplineKeyFrame<T> *key = GetSplineKey(m_numKeyFrames - 1);
+    CSplineKeyFrame<T> *key = GetSplineKey(m_numKeyFrames++);
+    key->time = time;
     key->transform = keyData;
     key->inTan = inTan;
     key->outTan = outTan;
@@ -434,12 +424,12 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
 
   CLinearKeyFrame<T> *GetLinearKey(UINT index) {
     ASSERT(KeyFrameSize() == sizeof(CLinearKeyFrame<T>));
-    return reinterpret_cast<CLinearKeyFrame<T> *>(GetKeyFrame(index));
+    return &reinterpret_cast<CLinearKeyFrame<T> *>(m_keyFrames)[index];
   }
 
   CSplineKeyFrame<T> *GetSplineKey(UINT index) {
     ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
-    return reinterpret_cast<CSplineKeyFrame<T> *>(GetKeyFrame(index));
+    return &reinterpret_cast<CSplineKeyFrame<T> *>(m_keyFrames)[index];
   }
 
   const CLinearKeyFrame<T> *ToLinearKey(const CKeyFrame *key) const {
@@ -673,7 +663,7 @@ struct CAnimLightObj : public CAnimObj, public CAnimVisibleObj {
 
 template <class T>
 struct CCallbackFcn {
-  CCallbackFcn() {
+  CCallbackFcn() : callback(0), param(0) {
   }
 
   T      callback;
@@ -700,11 +690,7 @@ struct CSeqInfo {
 
 struct CAnim : public CHandleObject {
  public:
-  CAnim(BYTE createFlags = 0) : anySeqFinished(), appEvent(), hdata(0), seqLastTime(0), flags(createFlags), primarySeq(0), seqMapIndex(0) {
-    anySeqFinished.callback = 0;
-    anySeqFinished.param = 0;
-    appEvent.callback = 0;
-    appEvent.param = 0;
+  CAnim(BYTE createFlags = 0) : hdata(0), seqLastTime(0), flags(createFlags), primarySeq(0), seqMapIndex(0) {
   }
   ~CAnim() {
     if (hdata) {

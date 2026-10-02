@@ -68,11 +68,11 @@ CMapArea::CMapArea() {
   infoIndex = 0;
   asyncObject = 0;
   for (UINT i = 0; i < 256; ++i) {
+    chunkTable[i] = 0;
     chunkInfo[i].offset = 0;
     chunkInfo[i].size = 0;
     chunkInfo[i].flags = 0;
     chunkInfo[i].asyncId = 0;
-    chunkTable[i] = 0;
   }
   InitWater();
 }

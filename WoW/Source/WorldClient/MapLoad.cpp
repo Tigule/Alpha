@@ -271,74 +271,6 @@ CMapDoodadDef *CMap::CreateDoodadDef(LPCSTR fileName, NTempest::C3Vector &pos, f
   return doodadDef;
 }
 
-CMapDoodadDef *CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos) {
-  HASHKEY_DWORD  key;
-  CMapDoodadDef *doodadDef = doodadDefHash.Ptr(smDoodadDef.uniqueId, key);
-  if (doodadDef) {
-    return doodadDef;
-  }
-
-  doodadDef = AllocDoodadDef();
-  FATALASSERT(doodadDef);
-  doodadDefHash.Insert(doodadDef, smDoodadDef.uniqueId, key);
-
-  doodadDef->pos.Set(-smDoodadDef.pos.z, -smDoodadDef.pos.x, smDoodadDef.pos.y);
-  doodadDef->pos += pos;
-  doodadDef->scale = static_cast<float>(smDoodadDef.scale) * 0.0009765625f;
-  doodadDef->aaBox.b = doodadDef->pos;
-  doodadDef->aaBox.t = doodadDef->pos;
-  doodadDef->aaSphere.c = doodadDef->pos;
-  doodadDef->aaSphere.r = 0.0f;
-  doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
-
-  doodadDef->modelName = &doodadNames[doodadNamesIndex[smDoodadDef.nameId]];
-  doodadDef->model = 0;
-
-  NTempest::C3Vector rot(smDoodadDef.rot.z * 0.017453292f, smDoodadDef.rot.x * 0.017453292f, smDoodadDef.rot.y * 0.017453292f + 3.1415927f);
-  doodadDef->mat = NTempest::C44Matrix();
-  doodadDef->mat.Translate(doodadDef->pos);
-  doodadDef->mat.Rotate(rot.z, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
-  doodadDef->mat.Rotate(rot.y, NTempest::C3Vector(0.0f, 1.0f, 0.0f), 1);
-  doodadDef->mat.Rotate(rot.x, NTempest::C3Vector(1.0f, 0.0f, 0.0f), 1);
-  doodadDef->mat.Scale(doodadDef->scale);
-  doodadDef->lMat = NTempest::C44Matrix();
-
-  return doodadDef;
-}
-
-CMapDoodadDef *
-CMap::CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileName, UINT mapObjDefId, NTempest::C44Matrix &mapObjDefMat) {
-  HASHKEY_DWORD  key(mapObjDefId);
-  CMapDoodadDef *doodadDef = doodadDefHash.Ptr(doodadRef, key);
-  if (doodadDef) {
-    return doodadDef;
-  }
-
-  doodadDef = AllocDoodadDef();
-  FATALASSERT(doodadDef);
-  doodadDefHash.Insert(doodadDef, doodadRef, key);
-
-  doodadDef->pos = smoDoodadDef.pos;
-  doodadDef->pos *= mapObjDefMat;
-  doodadDef->scale = smoDoodadDef.scale;
-  doodadDef->aaBox.b = doodadDef->pos;
-  doodadDef->aaBox.t = doodadDef->pos;
-  doodadDef->aaSphere.c = doodadDef->pos;
-  doodadDef->aaSphere.r = 0.0f;
-  doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
-  doodadDef->model = 0;
-  doodadDef->modelName = fileName;
-
-  doodadDef->mat = NTempest::C44Matrix();
-  doodadDef->mat.Translate(smoDoodadDef.pos);
-  doodadDef->mat.Rotate(smoDoodadDef.rot);
-  doodadDef->mat.Scale(smoDoodadDef.scale);
-  doodadDef->lMat = doodadDef->mat;
-  doodadDef->mat *= mapObjDefMat;
-  doodadDef->AdjustLightmap(smoDoodadDef.color, doodadDef->interiorDirColor, 112, doodadDef->ambient, 96);
-  return doodadDef;
-}
-
 CMapObjDef *CMap::CreateMapObjDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, BOOL bWait) {
   FATALASSERT(fileName);
 
@@ -507,6 +439,74 @@ void CMap::EnableDoodadFullAlpha(int enable) {
       ModelEnableFullAlpha(doodadDef->model, enable);
     }
   }
+}
+
+CMapDoodadDef *CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos) {
+  HASHKEY_DWORD  key;
+  CMapDoodadDef *doodadDef = doodadDefHash.Ptr(smDoodadDef.uniqueId, key);
+  if (doodadDef) {
+    return doodadDef;
+  }
+
+  doodadDef = AllocDoodadDef();
+  FATALASSERT(doodadDef);
+  doodadDefHash.Insert(doodadDef, smDoodadDef.uniqueId, key);
+
+  doodadDef->pos.Set(-smDoodadDef.pos.z, -smDoodadDef.pos.x, smDoodadDef.pos.y);
+  doodadDef->pos += pos;
+  doodadDef->scale = static_cast<float>(smDoodadDef.scale) * 0.0009765625f;
+  doodadDef->aaBox.b = doodadDef->pos;
+  doodadDef->aaBox.t = doodadDef->pos;
+  doodadDef->aaSphere.c = doodadDef->pos;
+  doodadDef->aaSphere.r = 0.0f;
+  doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
+
+  doodadDef->modelName = &doodadNames[doodadNamesIndex[smDoodadDef.nameId]];
+  doodadDef->model = 0;
+
+  NTempest::C3Vector rot(smDoodadDef.rot.z * 0.017453292f, smDoodadDef.rot.x * 0.017453292f, smDoodadDef.rot.y * 0.017453292f + 3.1415927f);
+  doodadDef->mat = NTempest::C44Matrix();
+  doodadDef->mat.Translate(doodadDef->pos);
+  doodadDef->mat.Rotate(rot.z, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
+  doodadDef->mat.Rotate(rot.y, NTempest::C3Vector(0.0f, 1.0f, 0.0f), 1);
+  doodadDef->mat.Rotate(rot.x, NTempest::C3Vector(1.0f, 0.0f, 0.0f), 1);
+  doodadDef->mat.Scale(doodadDef->scale);
+  doodadDef->lMat = NTempest::C44Matrix();
+
+  return doodadDef;
+}
+
+CMapDoodadDef *
+CMap::CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileName, UINT mapObjDefId, NTempest::C44Matrix &mapObjDefMat) {
+  HASHKEY_DWORD  key(mapObjDefId);
+  CMapDoodadDef *doodadDef = doodadDefHash.Ptr(doodadRef, key);
+  if (doodadDef) {
+    return doodadDef;
+  }
+
+  doodadDef = AllocDoodadDef();
+  FATALASSERT(doodadDef);
+  doodadDefHash.Insert(doodadDef, doodadRef, key);
+
+  doodadDef->pos = smoDoodadDef.pos;
+  doodadDef->pos *= mapObjDefMat;
+  doodadDef->scale = smoDoodadDef.scale;
+  doodadDef->aaBox.b = doodadDef->pos;
+  doodadDef->aaBox.t = doodadDef->pos;
+  doodadDef->aaSphere.c = doodadDef->pos;
+  doodadDef->aaSphere.r = 0.0f;
+  doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
+  doodadDef->model = 0;
+  doodadDef->modelName = fileName;
+
+  doodadDef->mat = NTempest::C44Matrix();
+  doodadDef->mat.Translate(smoDoodadDef.pos);
+  doodadDef->mat.Rotate(smoDoodadDef.rot);
+  doodadDef->mat.Scale(smoDoodadDef.scale);
+  doodadDef->lMat = doodadDef->mat;
+  doodadDef->mat *= mapObjDefMat;
+  doodadDef->AdjustLightmap(smoDoodadDef.color, doodadDef->interiorDirColor, 112, doodadDef->ambient, 96);
+  return doodadDef;
 }
 
 void CMap::CreateMapObjDefGroups(CMapObj *mapObj, CMapObjDef *mapObjDef) {

@@ -14,9 +14,12 @@ SpellEffectCameraShakesRec::~SpellEffectCameraShakesRec() {
 }
 
 bool SpellEffectCameraShakesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFile::Read(f, &m_CameraShake[0], sizeof(m_CameraShake), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_CameraShake) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellEffectCameraShakesRec", DEFAULT_COLOR);
     return false;
   }

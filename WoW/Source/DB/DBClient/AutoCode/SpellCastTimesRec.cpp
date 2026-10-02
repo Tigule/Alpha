@@ -14,11 +14,14 @@ SpellCastTimesRec::~SpellCastTimesRec() {
 }
 
 bool SpellCastTimesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_base) ||
-      !SFileReadTyped(f, &m_perLevel) ||
-      !SFileReadTyped(f, &m_minimum)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_base) == 0);
+  error |= (SFileReadTyped(f, &m_perLevel) == 0);
+  error |= (SFileReadTyped(f, &m_minimum) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellCastTimesRec", DEFAULT_COLOR);
     return false;
   }

@@ -2,6 +2,8 @@
 
 #include "Object/ObjectClient/Unit_C.h"
 
+#define MAX_REPUTATION_FACTIONS 64
+
 class CDataStore;
 
 class CGReputationInfo {
@@ -28,11 +30,11 @@ class CGReputationInfo {
 
  protected:
   static UINT m_numFactions;
-  static BYTE m_factionFlags[64];
-  static int  m_factionBase[64];
-  static int  m_factionStandings[64];
-  static int  m_factionMap[64];
-  static int  m_factionSorting[64];
+  static BYTE m_factionFlags[MAX_REPUTATION_FACTIONS];
+  static int  m_factionBase[MAX_REPUTATION_FACTIONS];
+  static int  m_factionStandings[MAX_REPUTATION_FACTIONS];
+  static int  m_factionMap[MAX_REPUTATION_FACTIONS];
+  static int  m_factionSorting[MAX_REPUTATION_FACTIONS];
 
  private:
   static void SortFactions();

@@ -136,6 +136,13 @@ struct CModelTexture {
   UINT     replaceableId;
 };
 
+inline int CTmuPassUnique::Compare(const CModelTexture *aTextures, const CModelTexture *bTextures, const CTmuPassUnique &a, const CTmuPassUnique &b) {
+  if (a.combiner != b.combiner) {
+    return a.combiner - b.combiner;
+  }
+  return HandleObjectCompare(a.textureId == -1 ? 0 : aTextures[a.textureId].handle, b.textureId == -1 ? 0 : bTextures[b.textureId].handle);
+}
+
 class CModelBase {
  public:
   CModelBase(UINT flags = 0);
@@ -282,8 +289,8 @@ class CModelComplex : public CModelBase {
  public:
   CModelComplex() : CModelBase(0x20) {
   }
-  CModelComplex(const CModelSimple &source);
   CModelComplex(const CModelComplex &source);
+  CModelComplex(const CModelSimple &source);
   ~CModelComplex();
 
   TSGrowableArray<CGeoset>          m_geosets;
@@ -302,8 +309,8 @@ class CModelComplex : public CModelBase {
   TSFixedArray<NTempest::C34Matrix> m_hitTestMtx;
 
  private:
-  CModelComplex &operator=(const CModelSimple &source);
   CModelComplex &operator=(const CModelComplex &source);
+  CModelComplex &operator=(const CModelSimple &source);
   void           CopyAttachments(const CModelComplex &source);
   void           CopyCameras(const CModelComplex &source);
   void           CopyLights(const CModelComplex &source);

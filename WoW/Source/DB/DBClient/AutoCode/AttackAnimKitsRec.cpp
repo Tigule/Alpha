@@ -14,12 +14,15 @@ AttackAnimKitsRec::~AttackAnimKitsRec() {
 }
 
 bool AttackAnimKitsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_ItemSubclassID) ||
-      !SFileReadTyped(f, &m_AnimTypeID) ||
-      !SFileReadTyped(f, &m_AnimFrequency) ||
-      !SFileReadTyped(f, &m_WhichHand)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_ItemSubclassID) == 0);
+  error |= (SFileReadTyped(f, &m_AnimTypeID) == 0);
+  error |= (SFileReadTyped(f, &m_AnimFrequency) == 0);
+  error |= (SFileReadTyped(f, &m_WhichHand) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading AttackAnimKitsRec", DEFAULT_COLOR);
     return false;
   }

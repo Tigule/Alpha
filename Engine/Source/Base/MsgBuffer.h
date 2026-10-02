@@ -125,8 +125,9 @@ inline CMsgBuffer::~CMsgBuffer() {
 }
 
 inline void CMsgBuffer::Reserve(UINT count) {
-  if (m_write + count > m_alloc) {
-    ReallocData(m_write + count);
+  UINT bytes = m_write + count;
+  if (bytes > m_alloc) {
+    ReallocData(bytes);
   }
 }
 

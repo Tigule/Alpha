@@ -15,17 +15,20 @@ ZoneMusicRec::~ZoneMusicRec() {
 
 bool ZoneMusicRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempMusicFileIndices[2];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_VolumeFloat) ||
-      !SFileReadTyped(f, &tempMusicFileIndices[0]) ||
-      !SFileReadTyped(f, &tempMusicFileIndices[1]) ||
-      !SFile::Read(f, &m_SilenceIntervalMin[0], sizeof(m_SilenceIntervalMin), 0, 0, 0) ||
-      !SFile::Read(f, &m_SilenceIntervalMax[0], sizeof(m_SilenceIntervalMax), 0, 0, 0) ||
-      !SFile::Read(f, &m_SegmentLength[0], sizeof(m_SegmentLength), 0, 0, 0) ||
-      !SFile::Read(f, &m_SegmentPlayMin[0], sizeof(m_SegmentPlayMin), 0, 0, 0) ||
-      !SFile::Read(f, &m_SegmentPlayMax[0], sizeof(m_SegmentPlayMax), 0, 0, 0) ||
-      !SFile::Read(f, &m_Sounds[0], sizeof(m_Sounds), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_VolumeFloat) == 0);
+  error |= (SFileReadTyped(f, &tempMusicFileIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempMusicFileIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &m_SilenceIntervalMin) == 0);
+  error |= (SFileReadTyped(f, &m_SilenceIntervalMax) == 0);
+  error |= (SFileReadTyped(f, &m_SegmentLength) == 0);
+  error |= (SFileReadTyped(f, &m_SegmentPlayMin) == 0);
+  error |= (SFileReadTyped(f, &m_SegmentPlayMax) == 0);
+  error |= (SFileReadTyped(f, &m_Sounds) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading ZoneMusicRec", DEFAULT_COLOR);
     return false;
   }

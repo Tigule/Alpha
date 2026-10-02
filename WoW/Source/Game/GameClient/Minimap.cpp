@@ -6,6 +6,8 @@
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "Object/ObjectClient/Player_C.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "Object/Object.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/PartyFrame.h"

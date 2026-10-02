@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "GameUI.h"
 #include "Object/ObjectClient/Unit_C.h"
@@ -80,7 +88,8 @@ static int Script_PickupBankGenericItem(lua_State *L) {
 
 static int Script_SplitBankGenericItem(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
-    return luaL_error(L, "Usage: SplitBankGenericItem(slot, amount)");
+    luaL_error(L, "Usage: SplitBankGenericItem(slot, amount)");
+    return 0;
   }
   CGBankInfo::SplitItem(static_cast<int>(lua_tonumber(L, 1)) - 1, static_cast<int>(lua_tonumber(L, 2)));
   return 0;

@@ -1311,7 +1311,9 @@ COsDialog::~COsDialog() {
 
 void COsDialog::ApplyModality(int inVal) {
   if (inVal) {
-    FATALASSERT(mDisabledWindows.Count() == 0);
+    VALIDATEBEGIN;
+    VALIDATE(mDisabledWindows.Count() == 0);
+    VALIDATEENDVOID;
     if (mFlags & 0x4) {
       HWND parent = static_cast<HWND>(GetParentWindow());
       if (parent) {
@@ -1861,11 +1863,9 @@ COsListBox::~COsListBox() {
 }
 
 void COsListBox::SetValue(int inVal) {
-  if (mFlags & 0x10000) {
-    FATALERROR(("(mFlags & OSGUI_LISTBOX_MULTISEL) == 0"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return;
-  }
+  VALIDATEBEGIN;
+  VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) == 0);
+  VALIDATEENDVOID;
   SendMessageA(static_cast<HWND>(mHandle), LB_SETCURSEL, inVal, 0);
 }
 
@@ -1879,29 +1879,23 @@ int COsListBox::GetValue() {
 }
 
 void COsListBox::SelectItem(int inPos, int inVal) {
-  if (!(mFlags & 0x10000)) {
-    FATALERROR(("(mFlags & OSGUI_LISTBOX_MULTISEL) != 0"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return;
-  }
+  VALIDATEBEGIN;
+  VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
+  VALIDATEENDVOID;
   SendMessageA(static_cast<HWND>(mHandle), LB_SETSEL, inVal, inPos);
 }
 
 BOOL COsListBox::IsItemSelected(int inPos) {
-  if (!(mFlags & 0x10000)) {
-    FATALERROR(("(mFlags & OSGUI_LISTBOX_MULTISEL) != 0"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
+  VALIDATEBEGIN;
+  VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
+  VALIDATEEND;
   return SendMessageA(static_cast<HWND>(mHandle), LB_GETSEL, inPos, 0);
 }
 
 void COsListBox::SelectAll(int inVal) {
-  if (!(mFlags & 0x10000)) {
-    FATALERROR(("(mFlags & OSGUI_LISTBOX_MULTISEL) != 0"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return;
-  }
+  VALIDATEBEGIN;
+  VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
+  VALIDATEENDVOID;
   int count = GetNumItems();
   for (int i = 0; i < count; ++i) {
     SelectItem(i, inVal);
@@ -1938,11 +1932,9 @@ int COsListBox::GetItemTextLength(int inPos) {
 
 void COsListBox::GetItemText(int inPos, char *inBuf, int inBufSize) {
   int textLen = GetItemTextLength(inPos);
-  if (inBufSize <= textLen) {
-    FATALERROR(("inBufSize > textLen"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(inBufSize > textLen);
+  VALIDATEENDVOID;
   SendMessageA(static_cast<HWND>(mHandle), LB_GETTEXT, inPos, reinterpret_cast<LPARAM>(inBuf));
 }
 
@@ -3067,8 +3059,10 @@ void COsTreeView::EnumerateAllItems(void (*inFunc)(COsTreeView *, LPVOID, LPVOID
 }
 
 void COsTreeView::SetItemImage(LPVOID inItem, int inWidth, int inHeight, LPVOID inData) {
-  FATALASSERT(inWidth == 16);
-  FATALASSERT(inHeight == 16);
+  VALIDATEBEGIN;
+  VALIDATE(inWidth == 16);
+  VALIDATE(inHeight == 16);
+  VALIDATEENDVOID;
 
   HDC     dc = GetDC(static_cast<HWND>(mHandle));
   HBITMAP bitmap = sBitmapFromImageData(16, 16, inData, dc);
@@ -3622,11 +3616,9 @@ OsGuiTreeItemParams *COsTreeView::GetParams(LPVOID inItem) {
   itemInfo.hItem = static_cast<HTREEITEM>(inItem);
   SendMessageA(static_cast<HWND>(mHandle), TVM_GETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
   int paramID = itemInfo.lParam;
-  if (paramID < 0 || paramID >= static_cast<int>(mItemParams.Count())) {
-    FATALERROR(("paramID >= 0 && paramID < (int)mItemParams.Count()"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(paramID >= 0 && paramID < (int)mItemParams.Count());
+  VALIDATEEND;
   return &mItemParams[paramID];
 }
 
@@ -3992,11 +3984,9 @@ void COsWindow::OnResize() {
 }
 
 HICON__ *sWinCursor(int inCursor) {
-  if (inCursor < 0 || inCursor >= 4) {
-    FATALERROR(("inCursor >= 0 && inCursor < OSGUI_NUM_CURSORS"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(inCursor >= 0 && inCursor < OSGUI_NUM_CURSORS);
+  VALIDATEEND;
   LPCSTR cursorName;
   switch (inCursor) {
     case 0:
@@ -4199,7 +4189,7 @@ int OsGuiMessageBox(LPVOID inParentWindow, int inStyle, LPCSTR inMessage, LPCSTR
 BOOL OsGuiIsModifierKeyDown(int inKey) {
   int virtualKey;
 
-  ASSERT(inKey >= 0 && inKey < 3);
+  ASSERT(inKey >= 0 && inKey < OSGUI_NUM_MOD_KEYS);
 
   switch (inKey) {
     case 0:

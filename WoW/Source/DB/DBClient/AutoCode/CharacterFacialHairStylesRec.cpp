@@ -14,13 +14,16 @@ CharacterFacialHairStylesRec::~CharacterFacialHairStylesRec() {
 }
 
 bool CharacterFacialHairStylesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_RaceID) ||
-      !SFileReadTyped(f, &m_SexID) ||
-      !SFileReadTyped(f, &m_VariationID) ||
-      !SFileReadTyped(f, &m_BeardGeoset) ||
-      !SFileReadTyped(f, &m_MoustacheGeoset) ||
-      !SFileReadTyped(f, &m_SideburnGeoset)) {
+  error |= (SFileReadTyped(f, &m_RaceID) == 0);
+  error |= (SFileReadTyped(f, &m_SexID) == 0);
+  error |= (SFileReadTyped(f, &m_VariationID) == 0);
+  error |= (SFileReadTyped(f, &m_BeardGeoset) == 0);
+  error |= (SFileReadTyped(f, &m_MoustacheGeoset) == 0);
+  error |= (SFileReadTyped(f, &m_SideburnGeoset) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CharacterFacialHairStylesRec", DEFAULT_COLOR);
     return false;
   }

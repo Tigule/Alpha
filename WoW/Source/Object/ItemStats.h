@@ -22,11 +22,6 @@ class ItemStats {
     FREEIFUSED(m_description);
   }
 
-  static int Version() {
-    return 5;
-  }
-  void Pack(CDataStore *msg);
-
   int   m_class;
   int   m_subclass;
   char *m_displayName[4];
@@ -69,6 +64,11 @@ class ItemStats {
   int   m_lockID;
   int   m_material;
   int   m_sheatheType;
+
+  static int Version() {
+    return 5;
+  }
+  void Pack(CDataStore *msg);
 };
 
 class ItemStats_C : public ItemStats {

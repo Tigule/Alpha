@@ -80,7 +80,9 @@ static TSHashTable<ANIMHASH, HASHKEY_STRI> s_animCache;
 
 static int AnimGetReferenceCount(HANIM__ *anim) {
   CAnim *container = reinterpret_cast<CAnim *>(anim);
-  FATALASSERT(container);
+  VALIDATEBEGIN;
+  VALIDATE(container);
+  VALIDATEEND;
   return container->GetRefCount();
 }
 
@@ -137,9 +139,9 @@ GenericHandlerAnim(BYTE *fileData, CAnimData *shared, CAnimObj *currobj, const U
   AnimObjectSetIndex(shared, currobj, objectId);
   currobj->flags = GetObjectFlags(*reinterpret_cast<UINT *>(fileData + 92));
   fileData += 96;
-  fileData = AddKeyFramesType(fileData, dataDone - fileData, 'RTGK', shared, &currobj->translation, forceType);
+  fileData = AnimObjectSetTranslation(fileData, dataDone - fileData, shared, currobj, forceType);
   fileData = AnimObjectSetRotation(fileData, dataDone - fileData, shared, currobj, forceType);
-  fileData = AddKeyFramesType(fileData, dataDone - fileData, 'CSGK', shared, &currobj->scale, forceType);
+  fileData = AnimObjectSetScaling(fileData, dataDone - fileData, shared, currobj, forceType);
   FATALASSERT(fileData == dataDone);
   return fileData;
 }
@@ -191,17 +193,17 @@ static BYTE *CreateParticleEmitter2(BYTE *fileData, CAnimData *shared, const UIN
   data += *reinterpret_cast<UINT *>(data);
   currobj->squirts = *reinterpret_cast<UINT *>(data);
   data += sizeof(UINT);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'E2PK', shared, &currobj->emissionRate, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'G2PK', shared, &currobj->gravity, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'NLPK', shared, &currobj->longitude, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'L2PK', shared, &currobj->latitude, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'S2PK', shared, &currobj->particleSpeed, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'R2PK', shared, &currobj->variation, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'N2PK', shared, &currobj->length, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'W2PK', shared, &currobj->width, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'Z2PK', shared, &currobj->zsource, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'SIVK', shared, &currobj->visibility, forceType);
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'FILK', shared, &currobj->lifeSpan, forceType);
+  data = AnimObjectSetParticleEmissionRate2(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetParticleGravity2(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetEmitterLongitude2(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetEmitterLatitude2(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetParticleSpeed2(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetParticleVariation2(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetParticleLength2(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetParticleWidth2(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetParticleZsource2(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetVisibilityTrack(data, fileData + sectionLength - data, shared, currobj, forceType);
+  data = AnimObjectSetParticleLifeSpan2(data, fileData + sectionLength - data, shared, currobj, forceType);
   ASSERT(data == (fileData + sectionLength));
   return data;
 }
@@ -249,7 +251,7 @@ static BYTE *CreateAttachmentPoint(BYTE *fileData, CAnimData *shared, const UINT
   BYTE *data = GenericHandlerAnim(fileData + 4, shared, currobj, idConversion, parentIds, forceType);
   currobj->geosetId = *(data + 4);
   data += 0x109;
-  data = AddKeyFramesType(data, fileData + sectionLength - data, 'SIVK', shared, &currobj->visibility, forceType);
+  data = AnimObjectSetVisibilityTrack(data, fileData + sectionLength - data, shared, currobj, forceType);
   ASSERT(data == (fileData + sectionLength));
   return data;
 }
@@ -795,7 +797,9 @@ HANIM AnimCreate(const MDLDATA &data, UINT flags, CStatus *status) {
 }
 
 HANIM AnimCreate(LPCSTR sourcefile, UINT flags, CStatus *status) {
-  FATALASSERT(sourcefile);
+  VALIDATEBEGIN;
+  VALIDATE(sourcefile);
+  VALIDATEEND;
 
   HANIM anim = reinterpret_cast<HANIM>(GetAnim(sourcefile));
   if (anim) {

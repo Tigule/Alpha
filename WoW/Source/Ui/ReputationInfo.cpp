@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "ReputationInfo.h"
 
@@ -82,7 +90,7 @@ void CGReputationInfo::OnInitializeFactions(CDataStore *msg) {
   memset(m_factionSorting, 0, sizeof(m_factionSorting));
   m_numFactions = 0;
   msg->Get(numFactions);
-  FATALASSERT(numFactions == 64);
+  FATALASSERT(numFactions == MAX_REPUTATION_FACTIONS);
 
   for (int index = 0; index < numFactions; ++index) {
     msg->Get(flags);
@@ -157,7 +165,11 @@ void CGReputationInfo::SortFactions() {
 }
 
 int CGReputationInfo::GetFactionFromSortIndex(UINT index) {
-  return index < m_numFactions ? IndexToFaction(m_factionSorting[index]) : 0;
+  if (!(index < m_numFactions)) {
+    return 0;
+  }
+
+  return IndexToFaction(m_factionSorting[index]);
 }
 
 void CGReputationInfo::SetFactionFlags(int factionIndex, BYTE flags) {
@@ -228,7 +240,8 @@ static int Script_GetNumFactions(lua_State *L) {
 
 static int Script_GetFactionInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetFactionInfo(index)");
+    luaL_error(L, "Usage: GetFactionInfo(index)");
+    return 0;
   }
   int               faction = CGReputationInfo::GetFactionFromSortIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   const FactionRec *rec = g_factionDB.GetRecord(faction);
@@ -258,7 +271,8 @@ static int Script_GetFactionInfo(lua_State *L) {
 
 static int Script_FactionToggleAtWar(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: FactionToggleAtWar(index)");
+    luaL_error(L, "Usage: FactionToggleAtWar(index)");
+    return 0;
   }
   int faction = CGReputationInfo::GetFactionFromSortIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   if (faction) {

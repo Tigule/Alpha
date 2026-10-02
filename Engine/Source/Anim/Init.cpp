@@ -205,72 +205,41 @@ static KEYTYPE GetTrackType(UINT mdlTrackType, MDLTRACKTYPE forceType) {
   return KEYTYPE_NOINTERP;
 }
 
-void AddKeyFrames(
-    CAnimData                                              *shared,
-    const MDLKEYTRACK<NTempest::C3Vector>                  &keyTrack,
-    CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector> *interp,
-    MDLTRACKTYPE                                            forceType
-) {
+template <class T, class U>
+inline void AddKeyFrames(CAnimData *shared, const MDLKEYTRACK<U> &keyTrack, CKeyFrameTrack<T, U> *interp, MDLTRACKTYPE forceType) {
   ASSERT(shared);
   ASSERT(interp);
-  if (!keyTrack.keys.Count()) {
-    return;
-  }
-  interp->SetGlobalSequenceId(keyTrack.globalSeqId);
-  interp->SetTrackType(GetTrackType(keyTrack.type, forceType));
-  interp->SetNumKeys(keyTrack.keys.Count());
-  int timeAdjustment = keyTrack.globalSeqId == static_cast<UINT>(-1) ? 0 : keyTrack.keys[0].time;
-  for (UINT key = 0; key < keyTrack.keys.Count(); ++key) {
-    if (interp->GetTrackType() < KEYTYPE_HERMITE) {
-      interp->AddKey(keyTrack.keys[key].time - timeAdjustment, keyTrack.keys[key].value);
-    } else {
-      interp->AddKey(keyTrack.keys[key].time - timeAdjustment, keyTrack.keys[key].value, keyTrack.keys[key].inTan, keyTrack.keys[key].outTan);
-    }
-  }
-  interp->SetSequenceIndices(shared->seq);
-}
 
-void AddKeyFrames(CAnimData *shared, const MDLKEYTRACK<C3Color> &keyTrack, CKeyFrameTrack<C3Color, C3Color> *interp, MDLTRACKTYPE forceType) {
-  ASSERT(shared);
-  ASSERT(interp);
-  if (!keyTrack.keys.Count()) {
+  UINT numKeys = keyTrack.keys.Count();
+  if (!numKeys) {
     return;
   }
+
+  const MDLKEYFRAME<U> *keys = keyTrack.keys.Ptr();
   interp->SetGlobalSequenceId(keyTrack.globalSeqId);
-  interp->SetTrackType(GetTrackType(keyTrack.type, forceType));
-  interp->SetNumKeys(keyTrack.keys.Count());
-  int timeAdjustment = keyTrack.globalSeqId == static_cast<UINT>(-1) ? 0 : keyTrack.keys[0].time;
-  for (UINT key = 0; key < keyTrack.keys.Count(); ++key) {
-    if (interp->GetTrackType() < KEYTYPE_HERMITE) {
-      interp->AddKey(keyTrack.keys[key].time - timeAdjustment, keyTrack.keys[key].value);
-    } else {
-      interp->AddKey(keyTrack.keys[key].time - timeAdjustment, keyTrack.keys[key].value, keyTrack.keys[key].inTan, keyTrack.keys[key].outTan);
+  int     timeAdjustment = interp->SequenceNeverChanges() ? keys[0].time : 0;
+  KEYTYPE trackType = GetTrackType(keyTrack.type, forceType);
+  interp->SetTrackType(trackType);
+  interp->SetNumKeys(numKeys);
+
+  UINT i;
+  if (trackType >= KEYTYPE_HERMITE) {
+    for (i = numKeys; i; --i, ++keys) {
+      interp->AddKey(keys->time - timeAdjustment, keys->value, keys->inTan, keys->outTan);
+    }
+  } else {
+    for (i = numKeys; i; --i, ++keys) {
+      interp->AddKey(keys->time - timeAdjustment, keys->value);
     }
   }
+
   interp->SetSequenceIndices(shared->seq);
 }
 
 void AnimObjectSetVisibilityTrack(CAnimData *shared, CAnimVisibleObj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
   ASSERT(shared);
   ASSERT(objptr);
-  ASSERT(shared);
-  ASSERT(&objptr->visibility);
-  if (!keyTrack.keys.Count()) {
-    return;
-  }
-  CKeyFrameTrack<float, float> &interp = objptr->visibility;
-  interp.SetGlobalSequenceId(keyTrack.globalSeqId);
-  interp.SetTrackType(GetTrackType(keyTrack.type, forceType));
-  interp.SetNumKeys(keyTrack.keys.Count());
-  int timeAdjustment = keyTrack.globalSeqId == static_cast<UINT>(-1) ? 0 : keyTrack.keys[0].time;
-  for (UINT i = 0; i < keyTrack.keys.Count(); ++i) {
-    if (interp.GetTrackType() < KEYTYPE_HERMITE) {
-      interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
-    } else {
-      interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value, keyTrack.keys[i].inTan, keyTrack.keys[i].outTan);
-    }
-  }
-  interp.SetSequenceIndices(shared->seq);
+  AddKeyFrames(shared, keyTrack, &objptr->visibility, forceType);
 }
 
 void AnimObjectSetTranslation(CAnimData *shared, CAnimObj *objptr, const MDLKEYTRACK<NTempest::C3Vector> &keyTrack, MDLTRACKTYPE forceType) {
@@ -282,26 +251,7 @@ void AnimObjectSetTranslation(CAnimData *shared, CAnimObj *objptr, const MDLKEYT
 void AnimObjectSetRotation(CAnimData *shared, CAnimObj *objptr, const MDLKEYTRACK<NTempest::C4Quaternion> &keyTrack, MDLTRACKTYPE forceType) {
   ASSERT(shared);
   ASSERT(objptr);
-  ASSERT(shared);
-  ASSERT(&objptr->rotation);
-  if (!keyTrack.keys.Count()) {
-    return;
-  }
-
-  CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion> &interp = objptr->rotation;
-  interp.SetGlobalSequenceId(keyTrack.globalSeqId);
-  interp.SetTrackType(GetTrackType(keyTrack.type, forceType));
-  interp.SetNumKeys(keyTrack.keys.Count());
-  int timeAdjustment = keyTrack.globalSeqId == static_cast<UINT>(-1) ? 0 : keyTrack.keys[0].time;
-
-  for (UINT i = 0; i < keyTrack.keys.Count(); ++i) {
-    if (interp.GetTrackType() < KEYTYPE_HERMITE) {
-      interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);
-    } else {
-      interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value, keyTrack.keys[i].inTan, keyTrack.keys[i].outTan);
-    }
-  }
-  interp.SetSequenceIndices(shared->seq);
+  AddKeyFrames(shared, keyTrack, &objptr->rotation, forceType);
 }
 
 void AnimObjectSetScaling(CAnimData *shared, CAnimObj *objptr, const MDLKEYTRACK<NTempest::C3Vector> &keyTrack, MDLTRACKTYPE forceType) {
@@ -310,27 +260,6 @@ void AnimObjectSetScaling(CAnimData *shared, CAnimObj *objptr, const MDLKEYTRACK
   AddKeyFrames(shared, keyTrack, &objptr->scale, forceType);
 }
 
-#define SET_MDL_FLOAT_TRACK(trackMember)                                                                                                \
-  ASSERT(shared);                                                                                                                       \
-  ASSERT(objptr);                                                                                                                       \
-  ASSERT(shared);                                                                                                                       \
-  ASSERT(&objptr->trackMember);                                                                                                         \
-  if (keyTrack.keys.Count()) {                                                                                                          \
-    CKeyFrameTrack<float, float> &interp = objptr->trackMember;                                                                         \
-    interp.SetGlobalSequenceId(keyTrack.globalSeqId);                                                                                   \
-    interp.SetTrackType(GetTrackType(keyTrack.type, forceType));                                                                        \
-    interp.SetNumKeys(keyTrack.keys.Count());                                                                                           \
-    int timeAdjustment = keyTrack.globalSeqId == static_cast<UINT>(-1) ? 0 : keyTrack.keys[0].time;                                     \
-    for (UINT i = 0; i < keyTrack.keys.Count(); ++i) {                                                                                  \
-      if (interp.GetTrackType() < KEYTYPE_HERMITE) {                                                                                    \
-        interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value);                                                  \
-      } else {                                                                                                                          \
-        interp.AddKey(keyTrack.keys[i].time - timeAdjustment, keyTrack.keys[i].value, keyTrack.keys[i].inTan, keyTrack.keys[i].outTan); \
-      }                                                                                                                                 \
-    }                                                                                                                                   \
-    interp.SetSequenceIndices(shared->seq);                                                                                             \
-  }
-
 void AnimObjectSetAttenuation(
     CAnimData                *shared,
     CAnimLightObj            *objptr,
@@ -338,62 +267,117 @@ void AnimObjectSetAttenuation(
     const MDLKEYTRACK<float> &endTrack,
     MDLTRACKTYPE              forceType
 ) {
-  {
-    const MDLKEYTRACK<float> &keyTrack = startTrack;
-    SET_MDL_FLOAT_TRACK(attenstart);
-  }
-  {
-    const MDLKEYTRACK<float> &keyTrack = endTrack;
-    SET_MDL_FLOAT_TRACK(attenend);
-  }
+  ASSERT(shared);
+  ASSERT(objptr);
+  AddKeyFrames(shared, startTrack, &objptr->attenstart, forceType);
+  AddKeyFrames(shared, endTrack, &objptr->attenend, forceType);
 }
 
 void AnimObjectSetColor(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<C3Color> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(objptr);
   AddKeyFrames(shared, keyTrack, &objptr->color, forceType);
 }
 
 void AnimObjectSetIntensity(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
-  SET_MDL_FLOAT_TRACK(intensity);
+  ASSERT(shared);
+  ASSERT(objptr);
+  AddKeyFrames(shared, keyTrack, &objptr->intensity, forceType);
 }
 
 void AnimObjectSetAmbColor(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<C3Color> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(objptr);
   AddKeyFrames(shared, keyTrack, &objptr->ambColor, forceType);
 }
 
 void AnimObjectSetAmbIntensity(CAnimData *shared, CAnimLightObj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
-  SET_MDL_FLOAT_TRACK(ambIntensity);
+  ASSERT(shared);
+  ASSERT(objptr);
+  AddKeyFrames(shared, keyTrack, &objptr->ambIntensity, forceType);
 }
 
-#define DEFINE_EMITTER_FLOAT_SETTER(functionName, trackMember)                                                                 \
-  void functionName(CAnimData *shared, CAnimEmitter2Obj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) { \
-    SET_MDL_FLOAT_TRACK(trackMember);                                                                                          \
-  }
+void AnimObjectSetParticleEmissionRate2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->emissionRate, forceType);
+}
 
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetParticleEmissionRate2, emissionRate)
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetParticleGravity2, gravity)
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetParticleVariation2, variation)
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetEmitterLongitude2, longitude)
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetEmitterLatitude2, latitude)
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetParticleSpeed2, particleSpeed)
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetParticleLength2, length)
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetParticleWidth2, width)
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetParticleZsource2, zsource)
-DEFINE_EMITTER_FLOAT_SETTER(AnimObjectSetParticleLifeSpan2, lifeSpan)
+void AnimObjectSetParticleGravity2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->gravity, forceType);
+}
 
-#undef DEFINE_EMITTER_FLOAT_SETTER
+void AnimObjectSetParticleVariation2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->variation, forceType);
+}
 
-#define DEFINE_RIBBON_FLOAT_SETTER(functionName, trackMember)                                                                \
-  void functionName(CAnimData *shared, CAnimRibbonObj *objptr, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) { \
-    SET_MDL_FLOAT_TRACK(trackMember);                                                                                        \
-  }
+void AnimObjectSetEmitterLongitude2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->longitude, forceType);
+}
 
-DEFINE_RIBBON_FLOAT_SETTER(AnimObjectSetRibbonHeightAbove, heightAbove)
-DEFINE_RIBBON_FLOAT_SETTER(AnimObjectSetRibbonHeightBelow, heightBelow)
-DEFINE_RIBBON_FLOAT_SETTER(AnimObjectSetRibbonAlpha, alpha)
+void AnimObjectSetEmitterLatitude2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->latitude, forceType);
+}
 
-#undef DEFINE_RIBBON_FLOAT_SETTER
+void AnimObjectSetParticleSpeed2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->particleSpeed, forceType);
+}
+
+void AnimObjectSetParticleLength2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->length, forceType);
+}
+
+void AnimObjectSetParticleWidth2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->width, forceType);
+}
+
+void AnimObjectSetParticleZsource2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->zsource, forceType);
+}
+
+void AnimObjectSetParticleLifeSpan2(CAnimData *shared, CAnimEmitter2Obj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->lifeSpan, forceType);
+}
+
+void AnimObjectSetRibbonHeightAbove(CAnimData *shared, CAnimRibbonObj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->heightAbove, forceType);
+}
+
+void AnimObjectSetRibbonHeightBelow(CAnimData *shared, CAnimRibbonObj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->heightBelow, forceType);
+}
+
+void AnimObjectSetRibbonAlpha(CAnimData *shared, CAnimRibbonObj *currobj, const MDLKEYTRACK<float> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
+  AddKeyFrames(shared, keyTrack, &currobj->alpha, forceType);
+}
 
 void AnimObjectSetRibbonColor(CAnimData *shared, CAnimRibbonObj *currobj, const MDLKEYTRACK<C3Color> &keyTrack, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(currobj);
   AddKeyFrames(shared, keyTrack, &currobj->color, forceType);
 }
 
@@ -432,45 +416,49 @@ void AnimObjectSetEventTrack(CAnimData *shared, CAnimEventObj *objptr, const MDL
 
 #undef SET_MDL_FLOAT_TRACK
 
-#define ADD_KEY_FRAMES_TYPE(valueType, bytesRemaining, track, tag, fileData)                                                \
-  ASSERT(shared);                                                                                                           \
-  ASSERT(track);                                                                                                            \
-  if (bytesRemaining >= 8 && *reinterpret_cast<UINT *>(fileData) == tag) {                                                  \
-    UINT numKeys = *reinterpret_cast<UINT *>(fileData + 4);                                                                 \
-    ASSERT(numKeys);                                                                                                        \
-    KEYTYPE trackType = GetTrackType(*reinterpret_cast<MDLTRACKTYPE *>(fileData + 8), forceType);                           \
-    (track)->m_globalSeqId = *reinterpret_cast<UINT *>(fileData + 12);                                                      \
-    (track)->SetTrackType(trackType);                                                                                       \
-    fileData += 16;                                                                                                         \
-    int  timeAdjustment = (track)->m_globalSeqId == static_cast<UINT>(-1) ? 0 : *reinterpret_cast<int *>(fileData);         \
-    UINT valueCount = trackType < TRACK_HERMITE ? 1 : 3;                                                                    \
-    (track)->SetNumKeys(numKeys, sizeof(int) + valueCount * sizeof(valueType));                                             \
-    for (UINT keyIndex = 0; keyIndex < numKeys; ++keyIndex) {                                                               \
-      int keyTime = *reinterpret_cast<int *>(fileData) - timeAdjustment;                                                    \
-      fileData += sizeof(int);                                                                                              \
-      BYTE *keyData = reinterpret_cast<BYTE *>((track)->m_keyFrames) + (track)->m_numKeyFrames++ * (track)->m_keyFrameSize; \
-      *reinterpret_cast<int *>(keyData) = keyTime;                                                                          \
-      memcpy(keyData + sizeof(int), fileData, valueCount * sizeof(valueType));                                              \
-      fileData += valueCount * sizeof(valueType);                                                                           \
-    }                                                                                                                       \
-    (track)->SetSequenceIndices(shared->seq);                                                                               \
+template <class T>
+inline BYTE *AddKeyFramesType(BYTE *data, UINT fileBytes, DWORD tag, CAnimData *shared, CKeyFrameTrack<T, T> *interp, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(interp);
+
+  if (fileBytes < 8 || *reinterpret_cast<DWORD *>(data) != tag) {
+    return data;
   }
 
-BYTE *AddKeyFramesType(
-    BYTE                                                   *fileData,
-    UINT                                                    fileBytes,
-    DWORD                                                   tag,
-    CAnimData                                              *shared,
-    CKeyFrameTrack<NTempest::C3Vector, NTempest::C3Vector> *track,
-    MDLTRACKTYPE                                            forceType
-) {
-  ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, track, tag, fileData);
-  return fileData;
-}
+  data += sizeof(DWORD);
+  UINT numKeys = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
+  ASSERT(numKeys > 0);
 
-BYTE *AddKeyFramesType(BYTE *fileData, UINT fileBytes, DWORD tag, CAnimData *shared, CKeyFrameTrack<float, float> *track, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(float, fileBytes, track, tag, fileData);
-  return fileData;
+  KEYTYPE trackType = GetTrackType(*reinterpret_cast<UINT *>(data), forceType);
+  data += sizeof(UINT);
+  interp->SetGlobalSequenceId(*reinterpret_cast<UINT *>(data));
+  data += sizeof(UINT);
+
+  int timeAdjustment = interp->SequenceNeverChanges() ? *reinterpret_cast<int *>(data) : 0;
+  interp->SetTrackType(trackType);
+  interp->SetNumKeys(numKeys);
+
+  UINT i;
+  if (trackType >= KEYTYPE_HERMITE) {
+    for (i = 0; i < numKeys; ++i) {
+      int time = *reinterpret_cast<int *>(data);
+      data += sizeof(int);
+      const T *values = reinterpret_cast<const T *>(data);
+      interp->AddKey(time - timeAdjustment, values[0], values[1], values[2]);
+      data += 3 * sizeof(T);
+    }
+  } else {
+    for (i = 0; i < numKeys; ++i) {
+      int time = *reinterpret_cast<int *>(data);
+      data += sizeof(int);
+      interp->AddKey(time - timeAdjustment, *reinterpret_cast<const T *>(data));
+      data += sizeof(T);
+    }
+  }
+
+  interp->SetSequenceIndices(shared->seq);
+  return data;
 }
 
 BYTE *AnimObjectSetEventTrack(BYTE *data, UINT bytesLeft, CAnimData *shared, CAnimEventObj *objptr) {
@@ -497,7 +485,7 @@ BYTE *AnimObjectSetEventTrack(BYTE *data, UINT bytesLeft, CAnimData *shared, CAn
 }
 
 BYTE *AnimObjectSetTranslation(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, &objptr->translation, 'RTGK', data);
+  data = AddKeyFramesType(data, fileBytes, 'RTGK', shared, &objptr->translation, forceType);
   return data;
 }
 
@@ -534,49 +522,49 @@ BYTE *AnimObjectSetRotation(BYTE *data, UINT fileBytes, CAnimData *shared, CAnim
 }
 
 BYTE *AnimObjectSetScaling(BYTE *fileData, UINT fileBytes, CAnimData *shared, CAnimObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(NTempest::C3Vector, fileBytes, &objptr->scale, 'CSGK', fileData);
+  fileData = AddKeyFramesType(fileData, fileBytes, 'CSGK', shared, &objptr->scale, forceType);
   return fileData;
 }
 
 BYTE *AnimObjectSetAttenuation(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
   BYTE *fileEnd = data + fileBytes;
   {
-    ADD_KEY_FRAMES_TYPE(float, fileEnd - data, &objptr->attenstart, 'SALK', data);
+    data = AddKeyFramesType(data, fileEnd - data, 'SALK', shared, &objptr->attenstart, forceType);
   }
   {
-    ADD_KEY_FRAMES_TYPE(float, fileEnd - data, &objptr->attenend, 'EALK', data);
+    data = AddKeyFramesType(data, fileEnd - data, 'EALK', shared, &objptr->attenend, forceType);
   }
   return data;
 }
 
 BYTE *AnimObjectSetColor(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(C3Color, fileBytes, &objptr->color, 'CALK', data);
+  data = AddKeyFramesType(data, fileBytes, 'CALK', shared, &objptr->color, forceType);
   return data;
 }
 
 BYTE *AnimObjectSetIntensity(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->intensity, 'IALK', data);
+  data = AddKeyFramesType(data, fileBytes, 'IALK', shared, &objptr->intensity, forceType);
   return data;
 }
 
 BYTE *AnimObjectSetAmbColor(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(C3Color, fileBytes, &objptr->ambColor, 'CBLK', data);
+  data = AddKeyFramesType(data, fileBytes, 'CBLK', shared, &objptr->ambColor, forceType);
   return data;
 }
 
 BYTE *AnimObjectSetAmbIntensity(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->ambIntensity, 'IBLK', data);
+  data = AddKeyFramesType(data, fileBytes, 'IBLK', shared, &objptr->ambIntensity, forceType);
   return data;
 }
 
 BYTE *AnimObjectSetVisibilityTrack(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimVisibleObj *objptr, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->visibility, 'SIVK', data);
+  data = AddKeyFramesType(data, fileBytes, 'SIVK', shared, &objptr->visibility, forceType);
   return data;
 }
 
 #define ANIM_FLOAT_TRACK_SETTER(name, member, tag)                                                              \
   BYTE *name(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimEmitter2Obj *objptr, MDLTRACKTYPE forceType) { \
-    ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->member, tag, data);                                          \
+    data = AddKeyFramesType(data, fileBytes, tag, shared, &objptr->member, forceType);                                          \
     return data;                                                                                                \
   }
 
@@ -595,7 +583,7 @@ ANIM_FLOAT_TRACK_SETTER(AnimObjectSetParticleLifeSpan2, lifeSpan, 'FILK')
 
 #define ANIM_RIBBON_TRACK_SETTER(name, member, tag)                                                           \
   BYTE *name(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimRibbonObj *objptr, MDLTRACKTYPE forceType) { \
-    ADD_KEY_FRAMES_TYPE(float, fileBytes, &objptr->member, tag, data);                                        \
+    data = AddKeyFramesType(data, fileBytes, tag, shared, &objptr->member, forceType);                                        \
     return data;                                                                                              \
   }
 
@@ -628,7 +616,7 @@ BYTE *AnimObjectSetRibbonSlot(BYTE *data, UINT fileBytes, CAnimData *shared, CAn
 }
 
 BYTE *AnimObjectSetRibbonColor(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimRibbonObj *currobj, MDLTRACKTYPE forceType) {
-  ADD_KEY_FRAMES_TYPE(C3Color, fileBytes, &currobj->color, 'OCRK', data);
+  data = AddKeyFramesType(data, fileBytes, 'OCRK', shared, &currobj->color, forceType);
   return data;
 }
 
@@ -703,7 +691,9 @@ CAnim *AnimCreate(UINT *const objectCounts, UINT numGeosets, UINT numCameras, UI
 
 HANIM AnimDuplicate(HANIM oldanim, UINT flags) {
   CAnim *oldUnique = reinterpret_cast<CAnim *>(oldanim);
-  FATALASSERT(oldUnique);
+  VALIDATEBEGIN;
+  VALIDATE(oldUnique);
+  VALIDATEEND;
 
   LPVOID memory = SMemAlloc(sizeof(CAnim), "HANIM", SERR_LINECODE_OBJECT, 0);
   if (!memory) {
@@ -858,7 +848,7 @@ void AnimAddGeosets(BYTE *fileData, UINT fileBytes, CAnimData *shared, MDLTRACKT
 
     data = AddKeyFramesType(data, static_cast<UINT>(fileData + fileBytes - data), 'OAGK', shared, &shared->geo[i].visibility, forceType);
     {
-      ADD_KEY_FRAMES_TYPE(C3Color, static_cast<UINT>(fileData + fileBytes - data), &shared->geo[i].color, 'CAGK', data);
+      data = AddKeyFramesType(data, static_cast<UINT>(fileData + fileBytes - data), 'CAGK', shared, &shared->geo[i].color, forceType);
     }
     ASSERT(data == geosetDone);
   }
@@ -1145,4 +1135,3 @@ void AnimAddTextureAnim(CAnim *unique, CAnimData *shared, const TSGrowableArray<
   unique->textureStatus.SetCount(textureAnims.Count());
 }
 
-#undef ADD_KEY_FRAMES_TYPE

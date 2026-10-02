@@ -15,9 +15,12 @@ PageTextMaterialRec::~PageTextMaterialRec() {
 
 bool PageTextMaterialRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempnameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempnameIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempnameIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading PageTextMaterialRec", DEFAULT_COLOR);
     return false;
   }

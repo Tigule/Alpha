@@ -7,13 +7,6 @@ class CGObject_C;
 #undef GetObject
 #endif
 
-enum LOOT_ACQUIRE {
-  LOOT_ACQUIRE_FAILED = 0,
-  LOOT_ACQUIRE_NORMAL = 1,
-  LOOT_ACQUIRE_PICKPOCKET = 2,
-  LOOT_ACQUIRE_FISHING = 3
-};
-
 struct CGLootSlot {
   int  pending;
   int  itemID;

@@ -128,7 +128,8 @@ namespace NTempest {
     static CRect Union(const CRect &left, const CRect &right);
 
     CRect Intersect(const CRect &right) {
-      return Intersection(*this, right);
+      *this = Intersection(*this, right);
+      return *this;
     }
 
     CRect Unite(const CRect &right);

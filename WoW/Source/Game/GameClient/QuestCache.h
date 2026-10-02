@@ -47,6 +47,32 @@ class QuestCache {
     }
   }
 
+  int   m_questId;
+  int   m_questType;
+  int   m_questLevel;
+  int   m_questSortID;
+  int   m_questInfoID;
+  int   m_rewardNextQuest;
+  int   m_rewardMoney;
+  int   m_startItem;
+  int   m_rewardItems[4];
+  int   m_rewardAmount[4];
+  int   m_rewardChoiceItems[6];
+  int   m_rewardChoiceAmount[6];
+  int   m_POIContinent;
+  float m_POIx;
+  float m_POIy;
+  int   m_POIPriority;
+  char  m_logTitle[0x80];
+  char  m_logDescription[0x400];
+  char  m_questDescription[0x400];
+  char  m_areaDescription[0x80];
+  int   m_monsterToKill[4];
+  int   m_monsterToKillQuantity[4];
+  int   m_itemToGet[4];
+  int   m_itemToGetQuantity[4];
+  char  m_getDescription[4][0x40];
+
   static int Version() {
     return 3;
   }
@@ -94,32 +120,6 @@ class QuestCache {
 
     return *this;
   }
-
-  int   m_questId;
-  int   m_questType;
-  int   m_questLevel;
-  int   m_questSortID;
-  int   m_questInfoID;
-  int   m_rewardNextQuest;
-  int   m_rewardMoney;
-  int   m_startItem;
-  int   m_rewardItems[4];
-  int   m_rewardAmount[4];
-  int   m_rewardChoiceItems[6];
-  int   m_rewardChoiceAmount[6];
-  int   m_POIContinent;
-  float m_POIx;
-  float m_POIy;
-  int   m_POIPriority;
-  char  m_logTitle[0x80];
-  char  m_logDescription[0x400];
-  char  m_questDescription[0x400];
-  char  m_areaDescription[0x80];
-  int   m_monsterToKill[4];
-  int   m_monsterToKillQuantity[4];
-  int   m_itemToGet[4];
-  int   m_itemToGetQuantity[4];
-  char  m_getDescription[4][0x40];
 };
 
 #endif

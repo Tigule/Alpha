@@ -3,6 +3,8 @@
 
 #include "Object/ObjectClient/Object_C.h"
 
+#define NUM_ITEM_ENCHANTMENTS 5
+
 struct ItemEnchantment {
   int id;
   int expiration;
@@ -41,7 +43,7 @@ struct CGItemData {
   int             m_spellCharges[5];
   short           m_staticFlags;
   short           m_dynamicFlags;
-  ItemEnchantment m_enchantment[5];
+  ItemEnchantment m_enchantment[NUM_ITEM_ENCHANTMENTS];
   int             pad;
 };
 class ItemGroupSoundsRec;

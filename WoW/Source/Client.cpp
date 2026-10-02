@@ -1,3 +1,7 @@
+#ifdef WOW_STORM_ENTRYPOINT
+#include <StormStartup.h>
+#endif
+
 #include <Base/Base.h>
 #include <Gx/Gx.h>
 #include <WowConst.h>
@@ -37,6 +41,8 @@
 #include "Object/MovementData.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/GameObject_C.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "Object/ObjectClient/Unit_C.h"
@@ -65,21 +71,6 @@ void CDataStore::Reset() {
   m_size = 0;
   m_read = static_cast<UINT>(-1);
 }
-
-void CStatus::Display() const {
-}
-
-#if defined(_MSC_VER) && _MSC_VER == 1200
-void __cdecl operator delete(LPVOID ptr) {
-  if (ptr) {
-    SMemFree(ptr, "delete", -1, 0);
-  }
-}
-
-LPVOID __cdecl operator new(size_t bytes) {
-  return SMemAlloc(bytes, "new", -1, 0);
-}
-#endif
 
 typedef void (*SPROCESSCOMPLETIONPROC)(LPVOID);
 
@@ -303,7 +294,7 @@ static BOOL MovementFallLoggingHandler(LPVOID param, NETMESSAGE msgId, DWORD tim
     DWORDLONG   guid = ClntObjMgrGetActivePlayer();
     CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
     if (object) {
-      DWORDLONG target = reinterpret_cast<CGPlayer_C *>(object)->CGPlayer_C::GetLocalTarget();
+      DWORDLONG target = reinterpret_cast<CGPlayer_C *>(object)->GetLocalTarget();
       CMovement::FallLogWrite("Local target guid (0x%016I64X)\n", target);
     }
   } else {
@@ -361,13 +352,9 @@ static BOOL ReceiveObjectPosition(LPVOID, NETMESSAGE msgId, DWORD time, CDataSto
 
 static void FormatTime(char *buf, int len, int secs) {
   int days = secs / 86400;
-  secs -= days * 86400;
-  int hours = secs / 3600;
-  secs -= hours * 3600;
-  int minutes = secs / 60;
-  secs -= minutes * 60;
+  int hours = (secs - days * 86400) / 3600;
 
-  SStrPrintf(buf, len, "%dd %dh %dm %ds", days, hours, minutes, secs);
+  SStrPrintf(buf, len, "%dd %dh %dm %ds", days, hours, (secs - (hours + days * 24) * 3600) / 60, secs % 60);
 }
 
 static BOOL PlayedTimeHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -551,13 +538,14 @@ static bool ErrorDisplayMaxLevelCallback(CVar *h, LPCSTR oldValue, LPCSTR newVal
 }
 
 static void PrintFilterMask() {
-  char filters[80] = "";
   UINT filter = SysMsgGetFilter();
 
   if (filter == 0xFFFFFFFF) {
     ConsoleWrite("Now filtering: all messages", DEFAULT_COLOR);
     return;
   }
+
+  char filters[80] = "";
 
   if (filter & 0x01) {
     SStrPack(filters, "general ", sizeof(filters));
@@ -584,8 +572,8 @@ static void PrintFilterMask() {
 static BOOL SetFilterMask(LPCSTR filterString) {
   char filter[64];
   char whitespace[] = "\t\r\n\" ";
-  int  invert = 0;
   UINT categoryFilter = 0;
+  int  invert = 0;
 
   SStrTokenize(&filterString, filter, sizeof(filter), whitespace, 0);
   while (filter[0]) {
@@ -715,14 +703,22 @@ static bool ErrorDisplayFilterCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue
 static bool DebugTargetInfoCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int enabled = SStrToInt(newValue);
 
-  ConsoleWrite(enabled ? "Debug target tooltips enabled" : "Debug target tooltips disabled", DEFAULT_COLOR);
+  if (enabled) {
+    ConsoleWrite("Debug target tooltips enabled", DEFAULT_COLOR);
+  } else {
+    ConsoleWrite("Debug target tooltips disabled", DEFAULT_COLOR);
+  }
   return true;
 }
 
 static bool DebugShowGUIDsCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int enabled = SStrToInt(newValue);
 
-  ConsoleWrite(enabled ? "GUID tooltips enabled" : "GUID tooltips disabled", DEFAULT_COLOR);
+  if (enabled) {
+    ConsoleWrite("GUID tooltips enabled", DEFAULT_COLOR);
+  } else {
+    ConsoleWrite("GUID tooltips disabled", DEFAULT_COLOR);
+  }
   return true;
 }
 
@@ -774,7 +770,11 @@ static bool DesktopGammaCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVO
 static bool ProfanityFilterCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int enabled = SStrToInt(newValue);
 
-  ConsoleWrite(enabled ? "Profanity filter enabled" : "Profanity filter disabled", DEFAULT_COLOR);
+  if (enabled) {
+    ConsoleWrite("Profanity filter enabled", DEFAULT_COLOR);
+  } else {
+    ConsoleWrite("Profanity filter disabled", DEFAULT_COLOR);
+  }
   CGChat::FilterChat(enabled);
   return true;
 }
@@ -1304,6 +1304,10 @@ UINT Bot_QueryAreaId(float x, float y) {
   return CWorld::QueryAreaId(x, y);
 }
 
+int Bot_GeneratePath(const NTempest::C3Vector &, const NTempest::C3Vector &, TSStackArray<NTempest::C3Vector> &) {
+  return 0;
+}
+
 int Bot_GetWanderPoint(const NTempest::C3Vector &, float, const NTempest::C3Vector &, const NTempest::C3Vector &, float, NTempest::C3Vector &) {
   return 0;
 }
@@ -1418,24 +1422,11 @@ static BOOL APIENTRY SendErrorLog(DWORD code, LPCSTR msg, LPCSTR file, int line,
   return TRUE;
 }
 
-#ifdef WOW_STORM_ENTRYPOINT
-
-extern "C" void __cdecl WinMainCRTStartup();
-
-extern "C" void __cdecl StormStaticEntryPoint() {
-  StormRtlInitialize();
-  WinMainCRTStartup();
-  StormRtlDestroy();
-}
-
-#endif
-
 int APIENTRY WinMain(HINSTANCE, HINSTANCE, char *, int) {
-  DWORD sendErrorLogs = 1;
-
   StormInitialize();
   SErrCatchUnhandledExceptions();
 
+  DWORD sendErrorLogs = 1;
   if (!SRegLoadValue("Wow\\Client", "SendErrorLogs", 0, &sendErrorLogs)) {
     sendErrorLogs = 1;
     SRegSaveValue("Wow\\Client", "SendErrorLogs", 0, sendErrorLogs);

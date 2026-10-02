@@ -20,6 +20,8 @@
 #include "UIUtil/InputControl.h"
 #include "UIUtil/Cursor.h"
 #include "Ui/GameUI.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "Ui/ChatFrame.h"
 #include "Ui/Tutorial.h"
 #include "Ui/UIBindings.h"
@@ -298,7 +300,11 @@ BOOL CGWorldFrame::IsLegalSelection(CModelRecord *record, UINT hitFilter) {
 
   switch (object->GetType()) {
     case 9:
-      return (hitFilter & 4) && IsUnitLegalSelection(static_cast<CGUnit_C *>(object), hitFilter);
+      if ((hitFilter & 4)) {
+        return IsUnitLegalSelection(static_cast<CGUnit_C *>(object), hitFilter);
+      }
+
+      return 0;
     case 25:
       if (!(hitFilter & 8) || (!(hitFilter & 0x10) && object->GetGUID() == ClntObjMgrGetActivePlayer())) {
         return 0;
@@ -569,8 +575,8 @@ BOOL CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTemp
 }
 
 static BOOL ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32) {
-  CGWorldFrame *worldFrame = static_cast<CGWorldFrame *>(param);
-  FATALASSERT(worldFrame);
+  CGWorldFrame *pWorldFrame = static_cast<CGWorldFrame *>(param);
+  FATALASSERT(pWorldFrame);
 
   CGObject_C *object = ClntObjMgrObjectPtr(param64, __FILE__, __LINE__);
   FATALASSERT(object);
@@ -578,7 +584,7 @@ static BOOL ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD 
   if ((param64 != CGPlayer_C::GetRealActivePlayer() || CGPlayer_C::GetRealActivePlayer() == ClntObjMgrGetActivePlayer()) && object &&
       !object->IsDisabled())
   {
-    worldFrame->UpdateObject(object, status);
+    pWorldFrame->UpdateObject(object, status);
   }
 
   return 1;
@@ -1451,10 +1457,6 @@ void CGWorldFrame::RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT 
   fade->renderScale = object->GetScale() * object->GetRenderScale();
   fade->startTime = OsGetAsyncTimeMs();
   fade->startAlpha = startAlpha;
-}
-
-BOOL CLayoutFrame::IsAttachmentOrigin() {
-  return 0;
 }
 
 void CGWorldFrame::SetCameraTarget(CGObject_C *target) {

@@ -19,15 +19,15 @@ class GameObjectStats {
     }
   }
 
-  static int Version() {
-    return 1;
-  }
-  void Pack(CDataStore *msg);
-
   int   m_typeID;
   int   m_displayID;
   char *m_name[4];
   int   m_propValue[10];
+
+  static int Version() {
+    return 1;
+  }
+  void Pack(CDataStore *msg);
 };
 
 class GameObjectStats_C : public GameObjectStats {

@@ -18,6 +18,7 @@ class CArray {
 
   ~CArray() {
     delete[] m_data;
+    m_data = 0;
   }
 
   CArray<T> &operator=(const CArray<T> &source) {
@@ -41,7 +42,12 @@ class CArray {
 
   void ReserveSpace(UINT elements) {
     delete[] m_data;
-    m_data = elements ? new T[elements] : 0;
+    if (!elements) {
+      m_data = 0;
+      return;
+    }
+
+    m_data = new (__FILE__, __LINE__) T[elements];
   }
 
   void Zero() {

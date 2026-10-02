@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include <Base/Handle.h>
 #include <Event/EvtApi.h>
@@ -36,8 +44,8 @@ static void RegisterHandlers() {
   EventRegisterEx(EVENT_ID_KEYUP, EatEvent, 0, 8.0f);
   EventRegisterEx(EVENT_ID_KEYDOWN_REPEATING, EatEvent, 0, 8.0f);
   EventRegisterEx(EVENT_ID_MOUSEDOWN, EatEvent, 0, 8.0f);
-  EventRegisterEx(EVENT_ID_MOUSEMOVE, EatEvent, 0, 8.0f);
   EventRegisterEx(EVENT_ID_MOUSEUP, EatEvent, 0, 8.0f);
+  EventRegisterEx(EVENT_ID_MOUSEMOVE, EatEvent, 0, 8.0f);
 }
 
 static void UnregisterHandlers() {
@@ -46,8 +54,8 @@ static void UnregisterHandlers() {
   EventUnregister(EVENT_ID_KEYDOWN_REPEATING, EatEvent);
   EventUnregister(EVENT_ID_KEYUP, EatEvent);
   EventUnregister(EVENT_ID_MOUSEDOWN, EatEvent);
-  EventUnregister(EVENT_ID_MOUSEMOVE, EatEvent);
   EventUnregister(EVENT_ID_MOUSEUP, EatEvent);
+  EventUnregister(EVENT_ID_MOUSEMOVE, EatEvent);
 }
 
 static void FadingScreenCleanup() {

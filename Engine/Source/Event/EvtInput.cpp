@@ -228,7 +228,9 @@ static void PostMouseWheel(EvtContext *context, int distance, int x, int y, int 
 }
 
 static void ProcessInput(EvtContext *context, OSINPUT id, const int param[4], int *shutdown) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEENDVOID;
 
   switch (id) {
     case OS_INPUT_CAPTURE_CHANGED:
@@ -313,7 +315,9 @@ void IEvtInputInitialize() {
 }
 
 BOOL IEvtInputProcess(EvtContext *context, int *shutdown) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
 
   SErrPingWatchdog();
 
@@ -329,7 +333,9 @@ BOOL IEvtInputProcess(EvtContext *context, int *shutdown) {
 }
 
 void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, UINT holdButton) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEENDVOID;
 
   if (holdButton == (holdButton & s_buttonState)) {
     OS_MOUSE_MODE osMode;

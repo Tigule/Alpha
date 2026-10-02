@@ -47,21 +47,26 @@ void IStockInitialize() {
 }
 
 HTEXTFONT__ *ScrnGetStockFont(SCRNSTOCK id) {
-  FATALASSERT(id < SCRNSTOCKOBJECTS);
+  VALIDATEBEGIN;
+  VALIDATE(id < SCRNSTOCKOBJECTS);
+  VALIDATEEND;
 
   return s_stockObjects[id];
 }
 
 void ScrnSetStockFont(SCRNSTOCK stockID, LPCSTR fontTexturePath) {
-  FATALASSERT(stockID < SCRNSTOCKOBJECTS);
-
-  FATALASSERT(fontTexturePath && *fontTexturePath);
+  VALIDATEBEGIN;
+  VALIDATE(stockID < SCRNSTOCKOBJECTS);
+  VALIDATE(fontTexturePath && *fontTexturePath);
+  VALIDATEENDVOID;
 
   CreateSysFont(stockID, fontTexturePath);
 }
 
 float ScrnGetStockFontHeight(SCRNSTOCK stockID) {
-  FATALASSERT(stockID < SCRNSTOCKOBJECTS);
+  VALIDATEBEGIN;
+  VALIDATE(stockID < SCRNSTOCKOBJECTS);
+  VALIDATEEND;
 
   return s_stockObjectHeights[stockID];
 }

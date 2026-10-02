@@ -272,63 +272,25 @@ struct SMOLightmapTex {
 };
 
 class CMapObjGroup {
- public:
-  CMapObjGroup();
-  ~CMapObjGroup();
-  void Init();
-  void InitPtrs();
-  void Clear();
-  bool IsLoaded() {
-    return bLoaded != 0;
-  }
-  bool IsLoading() {
-    return asyncObject != 0;
-  }
-  void SetFlushTime(float time) {
-    flushTime = time;
-  }
-  UINT GetFlags() {
-    return flags;
-  }
-  UINT GetGroupLiquid() const {
-    return groupLiquid;
-  }
-  UINT GetDoodadRefCount() {
-    return doodadRefCount;
-  }
-  UINT GetDoodadRef(UINT index) {
-    return doodadRefList[index];
-  }
-  UINT GetLightRefCount() {
-    return lightRefCount;
-  }
-  UINT GetLightRef(UINT index) {
-    return lightRefList[index];
-  }
-  long GetUniqueID() {
-    return uniqueID;
-  }
-  BYTE GetFogId(UINT index) {
-    return fogIds[index];
-  }
-  SMOPoly *GetPoly(WORD poly) {
-    ASSERT(poly < polyCount);
-    ASSERT(polyList);
-    return &polyList[poly];
-  }
-  bool QueryLightmap(const NTempest::C3Vector &point, WORD polyIdx, NTempest::CImVector &color);
-  bool QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color);
-  bool QueryLiquidStatus(const NTempest::C3Vector &pos, UINT &liquid, float &surface, NTempest::C3Vector &dir);
-  bool QueryLiquidFishable(const NTempest::C3Vector &pos, int &fishable);
-  void QueryLiquidSounds(const NTempest::C3Vector &pos, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared);
-  bool QueryMtlId(const NTempest::C3Segment &seg, UINT &mtlId);
-  bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, UINT queryFlags);
-  bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, UINT queryFlags);
-  bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, UINT queryFlags);
-
  private:
   friend class CMap;
   friend class CMapObj;
+
+  static const EGxTexFormat LIGHTMAP_FORMAT;
+  static UINT               rDrawSharedLiquidFirst;
+  static UINT               rDrawSharedLiquidToggle;
+  static void UpdateLightmapTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
+  static void AsyncPostloadCallback(LPVOID userArg);
+  static TSCArray<CGxBuf *, 512> extGxBufFreeList;
+  static CGxBuf                 *AllocExtGxBuf(UINT nVerts, UINT nIndices);
+  static void                    FreeExtGxBuf(CGxBuf *&gxBuf);
+  static void                    ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
+  static TSCArray<CGxBuf *, 512> intGxBufFreeList;
+  static CGxBuf                 *AllocIntGxBuf(UINT nVerts, UINT nIndices);
+  static void                    FreeIntGxBuf(CGxBuf *&gxBuf);
+  static void                    IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
+  static void                    Destroy();
+  static const SMOGxBatch       *sLockGxBatch;
 
   UINT                 flags;
   NTempest::CAaBox     aaBox;
@@ -388,172 +350,79 @@ class CMapObjGroup {
  public:
   LINKDECLEX(CMapObjGroup, lameAssLink);
 
- private:
-  void CreateLightmapPointers(BYTE *&pData);
-  void CreateDataPointers(BYTE *pData);
-  void CreateOptionalDataPointers(BYTE *pData);
-  void Create(BYTE *rawData);
-  UINT SphereIntersectPoly(const NTempest::CAaSphere &sphere, const UINT numVerts, const WORD *indicies);
-  bool PointInPoly(const NTempest::C3Vector *p, const UINT numIndicies, const WORD *indicies, const NTempest::C3Vector *n);
-  void QueryMinimap(UINT groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
-  void FreeData();
-  void GenTexture(SMOLightmap *lightmap, const NTempest::CImVector *source, NTempest::CImVector *texture);
-
-  static void UpdateLightmapTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
-  static void AsyncPostloadCallback(LPVOID userArg);
-  static CGxBuf *AllocExtGxBuf(UINT nVerts, UINT nIndices);
-  static void    ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
-  static CGxBuf *AllocIntGxBuf(UINT nVerts, UINT nIndices);
-  static void    IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf);
-  static void    Destroy();
-  static void    FreeExtGxBuf(CGxBuf *&gxBuf);
-  static void    FreeIntGxBuf(CGxBuf *&gxBuf);
-  void           FreeLightmaps();
-  void           CreateLightmaps();
-  void           ExtGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf);
-  void           IntGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf);
-  void           GxBufFillIndex(CGxBufCommand &cmd, CGxBuf *buf);
-  void           GetTrisFromQuery(CWTriData &triData, BspQuery &q, const CMapObjDef *mapObjDef);
-
-  static TSCArray<CGxBuf *, 512> extGxBufFreeList;
-  static TSCArray<CGxBuf *, 512> intGxBufFreeList;
-  static const EGxTexFormat      LIGHTMAP_FORMAT;
-  static const SMOGxBatch       *sLockGxBatch;
-  static UINT                    rDrawSharedLiquidFirst;
-  static UINT                    rDrawSharedLiquidToggle;
-};
-
-class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
- public:
-  static void     Initialize();
-  static void     Destroy();
-  static void     ClearCache(int force);
-  static void     Delete(CMapObj *mapObj);
-  static CMapObj *Create(LPCSTR fileName);
-  static void     SetGroupRenderCallback(void (*func)(const UINT, LPCVOID, const int), LPVOID userParam);
-
-  CMapObj();
-  ~CMapObj();
+  CMapObjGroup();
+  ~CMapObjGroup();
   void Init();
   void InitPtrs();
   void Clear();
-  void ReadGroup(UINT index);
-
-  UINT GetId() {
-    return header->wmoID;
-  }
-  NTempest::CImVector GetAmbientColor() {
-    return ambColor;
-  }
-  const SMOMaterial *GetMaterial(UINT mtlId) {
-    ASSERT(mtlId < materialCount);
-    ASSERT(materialList != 0);
-    return &materialList[mtlId];
-  }
   bool IsLoaded() {
-    return bLoaded;
+    return bLoaded != 0;
   }
   bool IsLoading() {
     return asyncObject != 0;
   }
-  LPCSTR GetFileName() {
-    return name;
-  }
-  UINT GetNumGroups() {
-    return groupCount;
-  }
-  SMODoodadDef *GetDoodadDef(UINT index) {
-    return &doodadDefList[index];
-  }
-  LPCSTR GetDoodadName(UINT index) {
-    return &doodadNameList[index];
-  }
-  UINT GetLightCount() {
-    return lightCount;
-  }
-  SMOLight *GetLight(UINT index) {
-    return &lightList[index];
-  }
-  bool IsGroupLoaded(UINT index);
-  bool IsGroupLoading(UINT index);
   void SetFlushTime(float time) {
     flushTime = time;
   }
-  void WaitLoad();
-  void WaitLoadGroup(UINT index);
-  UINT GetWmoID() {
-    return header->wmoID;
+  UINT GetFlags() {
+    return flags;
   }
-  CMapObjGroup       *GetGroup(UINT index, int force = 0);
-  const SMOGroupInfo *GetGroupInfo(UINT index);
-  char               *GetGroupName(UINT index);
-  void                GetBounds(NTempest::CAaBox &aaBox);
-  void                GetBounds(NTempest::CAaSphere &aaSphere);
-  void                GetGroupBounds(NTempest::CAaBox &aaBox, UINT index);
-  void                GetGroupBounds(NTempest::CAaSphere &aaSphere, UINT index);
-  UINT                GetGroupFlags(UINT index);
-  UINT                GetDoodadSet(UINT doodadIndex);
-  const SMOFog       &GetFog(UINT index) {
-    FATALASSERT(index < fogCount);
-    return fogList[index];
+  UINT GetGroupLiquid() const {
+    return groupLiquid;
   }
-  UINT GetFogCount() {
-    return fogCount;
+  UINT GetDoodadRefCount() {
+    return doodadRefCount;
   }
-  NTempest::C3Vector *GetMin() {
-    return &aaBox.b;
+  UINT GetDoodadRef(UINT index) {
+    return doodadRefList[index];
   }
-  NTempest::C3Vector *GetMax() {
-    return &aaBox.t;
+  UINT GetLightRefCount() {
+    return lightRefCount;
   }
-  NTempest::CAaBox &GetAaBox() {
-    return aaBox;
+  UINT GetLightRef(UINT index) {
+    return lightRefList[index];
   }
-  bool TestBounds(const NTempest::C3Vector &point);
-  bool TestBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1);
-  bool TestBounds(const NTempest::CAaBox &box);
-  bool TestConvexVolume(const NTempest::C3Vector &point);
-  bool VectorIntersect(
-      CMapObjDef               *mapObjDef,
-      const NTempest::C3Vector *v0,
-      const NTempest::C3Vector *v1,
-      UINT                      queryFlags,
-      UINT                      polyIgnoreFlags,
-      UINT                      groupIgnoreFlags,
-      float                    *dist,
-      SMOPoly                 **poly
-  );
-  bool VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT, UINT *groupIDs);
-  bool VectorIntersectPortal(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, UINT fromGroup, UINT &toGroup);
-  bool TestGroupBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, UINT index);
-  bool TestGroupBounds(const NTempest::C3Vector &point, const UINT index);
-  bool TestGroupBounds(const NTempest::CAaBox &box, const UINT index);
+  long GetUniqueID() {
+    return uniqueID;
+  }
+  BYTE GetFogId(UINT index) {
+    return fogIds[index];
+  }
+  SMOPoly *GetPoly(WORD poly) {
+    ASSERT(poly < polyCount);
+    ASSERT(polyList);
+    return &polyList[poly];
+  }
   bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, UINT queryFlags);
   bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, UINT queryFlags);
   bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, UINT queryFlags);
-  bool QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color, float *t);
-  bool QueryLiquidStatus(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, UINT &liquid, float &surface, NTempest::C3Vector &dir);
-  bool QueryLiquidFishable(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, int &fishable);
-  void QueryLiquidSounds(
-      UINT                      groupIdx,
-      UINT                      parentIdx,
-      UINT                      rlevel,
-      UINT                     &closestExtLevel,
-      const NTempest::C3Vector &pos,
-      int                      *lbool,
-      NTempest::C3Vector       *ldelta,
-      float                    *ldsquared
-  );
-  bool QueryMapObjMinimap(UINT groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
+  bool QueryLightmap(const NTempest::C3Vector &point, WORD polyIdx, NTempest::CImVector &color);
+  bool QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color);
+  bool QueryLiquidStatus(const NTempest::C3Vector &pos, UINT &liquid, float &surface, NTempest::C3Vector &dir);
+  bool QueryLiquidFishable(const NTempest::C3Vector &pos, int &fishable);
+  void QueryLiquidSounds(const NTempest::C3Vector &pos, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared);
+  bool QueryMtlId(const NTempest::C3Segment &seg, UINT &mtlId);
 
-  static void PrepareUpdate();
-  void        LocateViewer(NTempest::C44Matrix &im, TSGrowableArray<UINT> &inGroups);
-  UINT        StabPortals(UINT fromGroupIndex, UINT groupIndex, NTempest::C3Vector &rayOrig, NTempest::C3Vector &rayDir);
-  UINT        StabPortals(UINT groupIndex, const NTempest::C3Vector &start, const NTempest::C3Vector &end);
-  void        IntRender(NTempest::C44Matrix &mat, TSGrowableArray<UINT> &inGroups);
-  void        ExtRender(NTempest::C44Matrix &mat, const NTempest::CRect &rect);
-  void RenderGroup(UINT groupNum, int rDrawSharedLiquidToggle, const NTempest::C44Matrix &invMat, const LISTEX(CWFrustum, sceneLink) & frustumList);
+ private:
+  UINT SphereIntersectPoly(const NTempest::CAaSphere &sphere, const UINT numVerts, const WORD *indicies);
+  bool PointInPoly(const NTempest::C3Vector *p, const UINT numIndicies, const WORD *indicies, const NTempest::C3Vector *n);
+  void GetTrisFromQuery(CWTriData &triData, BspQuery &q, const CMapObjDef *mapObjDef);
+  void QueryMinimap(UINT groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
+  void Create(BYTE *rawData);
+  void CreateDataPointers(BYTE *pData);
+  void CreateOptionalDataPointers(BYTE *pData);
+  void CreateLightmapPointers(BYTE *&pData);
+  void FreeData();
+  void CreateLightmaps();
+  void FreeLightmaps();
+  void GenTexture(SMOLightmap *lightmap, const NTempest::CImVector *source, NTempest::CImVector *texture);
+  void ExtGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf);
+  void GxBufFillIndex(CGxBufCommand &cmd, CGxBuf *buf);
+  void IntGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf);
+};
 
+class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
+ public:
   static TSCArray<NTempest::CRect, 16> extViewList;
   static TSCArray<SPortalExt, 2048>    portalExtList;
   static UINT                          maxRLevel;
@@ -569,55 +438,25 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   friend class CMapObjGroup;
   friend class CMapEntity;
 
-  static void AsyncPostloadCallbackHeader(LPVOID userArg);
-  static void AsyncPostloadCallback(LPVOID userArg);
-  static void AsyncPostloadCallbackAll(LPVOID userArg);
-  BOOL        Read(LPCSTR fileName);
-  void        CreateData();
-  void        AllocGroups() {
-    FATALASSERT(groupPtrList.Count() == 0);
-    groupPtrList.SetCount(groupCount);
-    for (UINT n = 0; n < groupCount; ++n) {
-      groupPtrList[n] = CMap::AllocMapObjGroup();
-      FATALASSERT(groupPtrList[n]);
-    }
-  }
-  void        CreateAllGroups();
-  void        ReadExtGroups();
-  SIffChunk  *ReadChunkHeader(BYTE *&pData, DWORD expectedToken);
-  SIffChunk  *ReadOptionalChunkHeader(BYTE *&pData, DWORD expectedToken);
-  void        CreateDataPointers();
-  void        CreateMaterials();
-  void        CreateMaterial(UINT materialId);
-  void        CreateGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo);
-  void        ReadGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo, int preLoad);
-  void        UpdateMaterials();
-  void        RenderAlways(UINT groupIdx);
-  void        RRenderThruPortals(UINT groupIdx, UINT parentIdx, NTempest::CRect &viewRect, UINT level);
-  void        RTransformPortal(SMOPortal *portal, SPortalExt *portalExt, int cpIgnore);
-  bool        CullBatch(const SMOBatch *batch);
-  void        RenderGroupLightTex(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroupLightmapTex_Int(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroupLightmapTex_Ext(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroupLightmapTex(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroupColorTex_Int(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroupColorTex_Ext(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroupColorTex(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroupLightmap(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroupTex(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroup_Ext(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroup_Int(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderPortals(CMapObjGroup *group);
-  void        RenderPortals();
-  void        RenderGroupBsp(const CMapObjGroup *group, UINT frustumCount);
-  void        RenderGroupNormals(const CMapObjGroup *group);
-  void        RenderWaterIndices_0(const CMapObjGroup *group, WORD *idxBase, UINT vtxSub, UINT &idxSub);
-  void        RenderLiquid_0(const CMapObjGroup *group);
-  void        RenderInteriorWater_0(const CMapObjGroup *group, UINT liquid);
-  void        RenderExteriorWater_0(const CMapObjGroup *group, UINT liquid);
-  void        RenderMagma(const CMapObjGroup *group, UINT liquid);
-  void        QueryMapObjMinimapGroup(UINT groupID, UINT parentID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
+  static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
+  static HASHKEY_NONE                       nullHashKey;
+  static void (*gRenderCallback)(const UINT, LPCVOID, const int);
+  static LPVOID gRenderUserParam;
+  static UINT   gRenderCount;
+  static void   AsyncPostloadCallbackHeader(LPVOID userArg);
+  static void   AsyncPostloadCallback(LPVOID userArg);
+  static void   AsyncPostloadCallbackAll(LPVOID userArg);
 
+ public:
+  static void     Initialize();
+  static void     Destroy();
+  static void     ClearCache(int force);
+  static void     PrepareUpdate();
+  static CMapObj *Create(LPCSTR fileName);
+  static void     Delete(CMapObj *mapObj);
+  static void     SetGroupRenderCallback(void (*func)(const UINT, LPCVOID, const int), LPVOID userParam);
+
+ private:
   char                name[MAX_PATH];
   SMOHeader          *header;
   char               *textureNameList;
@@ -666,11 +505,173 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
   LISTDECLEX(CMapObjGroup, lameAssLink, groupList);
   TSCArray<CMapObjGroup *, 384> groupPtrList;
 
-  static UINT gRenderCount;
-  static void (*gRenderCallback)(const UINT, LPCVOID, const int);
-  static LPVOID                             gRenderUserParam;
-  static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
-  static HASHKEY_NONE                       nullHashKey;
+ public:
+  CMapObj();
+  ~CMapObj();
+  void Init();
+  void InitPtrs();
+  void Clear();
+
+  UINT GetId() {
+    return header->wmoID;
+  }
+  NTempest::CImVector GetAmbientColor() {
+    return ambColor;
+  }
+  const SMOMaterial *GetMaterial(UINT mtlId) {
+    ASSERT(mtlId < materialCount);
+    ASSERT(materialList != 0);
+    return &materialList[mtlId];
+  }
+  bool IsLoaded() {
+    return bLoaded;
+  }
+  bool IsLoading() {
+    return asyncObject != 0;
+  }
+  LPCSTR GetFileName() {
+    return name;
+  }
+  UINT GetNumGroups() {
+    return groupCount;
+  }
+  UINT GetWmoID() {
+    return header->wmoID;
+  }
+  SMODoodadDef *GetDoodadDef(UINT index) {
+    return &doodadDefList[index];
+  }
+  LPCSTR GetDoodadName(UINT index) {
+    return &doodadNameList[index];
+  }
+  UINT GetDoodadSet(UINT doodadIndex);
+  UINT GetLightCount() {
+    return lightCount;
+  }
+  SMOLight *GetLight(UINT index) {
+    return &lightList[index];
+  }
+  const SMOFog &GetFog(UINT index) {
+    FATALASSERT(index < fogCount);
+    return fogList[index];
+  }
+  UINT GetFogCount() {
+    return fogCount;
+  }
+  NTempest::C3Vector *GetMin() {
+    return &aaBox.b;
+  }
+  NTempest::C3Vector *GetMax() {
+    return &aaBox.t;
+  }
+  NTempest::CAaBox &GetAaBox() {
+    return aaBox;
+  }
+  bool IsGroupLoaded(UINT index);
+  bool IsGroupLoading(UINT index);
+  void SetFlushTime(float time) {
+    flushTime = time;
+  }
+  CMapObjGroup       *GetGroup(UINT index, int force = 0);
+  char               *GetGroupName(UINT index);
+  const SMOGroupInfo *GetGroupInfo(UINT index);
+  void                ReadGroup(UINT index);
+  void                WaitLoad();
+  void                WaitLoadGroup(UINT index);
+  void                GetBounds(NTempest::CAaSphere &aaSphere);
+  void                GetBounds(NTempest::CAaBox &aaBox);
+  void                GetGroupBounds(NTempest::CAaSphere &aaSphere, UINT index);
+  void                GetGroupBounds(NTempest::CAaBox &aaBox, UINT index);
+  UINT                GetGroupFlags(UINT index);
+  bool                TestBounds(const NTempest::CAaBox &box);
+  bool                TestBounds(const NTempest::C3Vector &point);
+  bool                TestBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1);
+  bool                TestGroupBounds(const NTempest::CAaBox &box, const UINT index);
+  bool                TestGroupBounds(const NTempest::C3Vector &point, const UINT index);
+  bool                TestGroupBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, UINT index);
+  bool                TestConvexVolume(const NTempest::C3Vector &point);
+  bool GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, UINT queryFlags);
+  bool GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, UINT queryFlags);
+  bool GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, UINT queryFlags);
+  bool VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT, UINT groupIDs[]);
+  bool VectorIntersect(
+      CMapObjDef               *mapObjDef,
+      const NTempest::C3Vector *v0,
+      const NTempest::C3Vector *v1,
+      UINT                      queryFlags,
+      UINT                      polyIgnoreFlags,
+      UINT                      groupIgnoreFlags,
+      float                    *dist,
+      SMOPoly                 **poly
+  );
+  void LocateViewer(NTempest::C44Matrix &im, TSGrowableArray<UINT> &inGroups);
+  UINT StabPortals(UINT groupIndex, const NTempest::C3Vector &start, const NTempest::C3Vector &end);
+  UINT StabPortals(UINT fromGroupIndex, UINT groupIndex, NTempest::C3Vector &rayOrig, NTempest::C3Vector &rayDir);
+  void IntRender(NTempest::C44Matrix &mat, TSGrowableArray<UINT> &inGroups);
+  void ExtRender(NTempest::C44Matrix &mat, const NTempest::CRect &rect);
+  void RenderGroup(UINT groupNum, int rDrawSharedLiquidToggle, const NTempest::C44Matrix &invMat, const LISTEX(CWFrustum, sceneLink) & frustumList);
+  bool VectorIntersectPortal(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, UINT fromGroup, UINT &toGroup);
+  bool QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color, float *t);
+  bool QueryLiquidStatus(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, UINT &liquid, float &surface, NTempest::C3Vector &dir);
+  void QueryLiquidSounds(
+      UINT                      groupIdx,
+      UINT                      parentIdx,
+      UINT                      rlevel,
+      UINT                     &closestExtLevel,
+      const NTempest::C3Vector &pos,
+      int                      *lbool,
+      NTempest::C3Vector       *ldelta,
+      float                    *ldsquared
+  );
+  bool QueryLiquidFishable(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, int &fishable);
+  bool QueryMapObjMinimap(UINT groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
+
+ private:
+  BOOL        Read(LPCSTR fileName);
+  void        CreateData();
+  void        AllocGroups() {
+    FATALASSERT(groupPtrList.Count() == 0);
+    groupPtrList.SetCount(groupCount);
+    for (UINT n = 0; n < groupCount; ++n) {
+      groupPtrList[n] = CMap::AllocMapObjGroup();
+      FATALASSERT(groupPtrList[n]);
+    }
+  }
+  void        CreateAllGroups();
+  void        ReadExtGroups();
+  void        CreateDataPointers();
+  void        CreateMaterials();
+  void        CreateMaterial(UINT materialId);
+  SIffChunk  *ReadChunkHeader(BYTE *&pData, DWORD expectedToken);
+  SIffChunk  *ReadOptionalChunkHeader(BYTE *&pData, DWORD expectedToken);
+  void        CreateGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo);
+  void        ReadGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo, int preLoad);
+  void        UpdateMaterials();
+  void        RenderAlways(UINT groupIdx);
+  bool        CullBatch(const SMOBatch *batch);
+  void        RenderGroupLightTex(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupLightmapTex_Int(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupLightmapTex_Ext(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupLightmapTex(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupColorTex_Int(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupColorTex_Ext(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupColorTex(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupLightmap(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupTex(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroup_Ext(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroup_Int(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderGroupBsp(const CMapObjGroup *group, UINT frustumCount);
+  void        RenderPortals(CMapObjGroup *group);
+  void        RenderPortals();
+  void        RenderGroupNormals(const CMapObjGroup *group);
+  void        RenderWaterIndices_0(const CMapObjGroup *group, WORD *idxBase, UINT vtxSub, UINT &idxSub);
+  void        RenderLiquid_0(const CMapObjGroup *group);
+  void        RenderInteriorWater_0(const CMapObjGroup *group, UINT liquid);
+  void        RenderExteriorWater_0(const CMapObjGroup *group, UINT liquid);
+  void        RenderMagma(const CMapObjGroup *group, UINT liquid);
+  void        RRenderThruPortals(UINT groupIdx, UINT parentIdx, NTempest::CRect &viewRect, UINT level);
+  void        RTransformPortal(SMOPortal *portal, SPortalExt *portalExt, int cpIgnore);
+  void        QueryMapObjMinimapGroup(UINT groupID, UINT parentID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads);
 };
 
 #endif

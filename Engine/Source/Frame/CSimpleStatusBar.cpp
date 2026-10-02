@@ -69,20 +69,6 @@ void CSimpleStatusBar::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
   }
 }
 
-void CSimpleStatusBar::SetBarTexture(CSimpleTexture *texture, int layer) {
-  if (m_barTexture) {
-    DEL(m_barTexture);
-  }
-
-  if (texture) {
-    texture->SetFrame(this, layer, 1);
-    texture->m_TexCoordModifiesPosition = 1;
-  }
-
-  m_barTexture = texture;
-  m_changed = 1;
-}
-
 BOOL CSimpleStatusBar::SetBarTexture(LPCSTR texFile, int layer) {
   if (m_barTexture) {
     m_barTexture->SetTexture(texFile, 0);
@@ -98,6 +84,20 @@ BOOL CSimpleStatusBar::SetBarTexture(LPCSTR texFile, int layer) {
 
   DEL(texture);
   return 0;
+}
+
+void CSimpleStatusBar::SetBarTexture(CSimpleTexture *texture, int layer) {
+  if (m_barTexture) {
+    DEL(m_barTexture);
+  }
+
+  if (texture) {
+    texture->SetFrame(this, layer, 1);
+    texture->m_TexCoordModifiesPosition = 1;
+  }
+
+  m_barTexture = texture;
+  m_changed = 1;
 }
 
 void CSimpleStatusBar::SetMinMaxValues(float min, float max) {
@@ -156,8 +156,3 @@ void CSimpleStatusBar::OnLayerUpdate(float elapsedSec) {
   }
 }
 
-void CSimpleStatusBar::SetStatusBarColor(const NTempest::CImVector &color) {
-  if (m_barTexture) {
-    m_barTexture->SetVertexColor(color);
-  }
-}

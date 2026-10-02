@@ -17,6 +17,51 @@
 const float              CMapStaticEntity::dirLightScaleAmount = 0.5f;
 const NTempest::C3Vector CMapStaticEntity::interiorSunDir(-0.30822f, -0.30822f, -0.9f);
 
+void CMapStaticEntity::SelectLights() {
+  if (flags & Flag_LightUpdate) {
+    FindLights();
+  }
+
+  CGxLight    gxLight = CMap::sunLight->gxLight;
+  CMapObjDef *mapObjDef;
+
+  gxLight.m_ambColor = ambient;
+  gxLight.m_ambIntensity = 1.0f;
+
+  if (flags & Flag_ExteriorLit) {
+    gxLight.m_dirIntensity *= dirLightScale;
+  } else {
+    gxLight.m_dir = interiorSunDir;
+    gxLight.m_dirColor = interiorDirColor;
+    gxLight.m_dirIntensity = dirLightScale;
+
+    if (GetMapObjDef(mapObjDef)) {
+      DNInfo *dnInfo = DayNightGetInfo();
+      if (dnInfo->intFog && CWorldScene::camMapObjDef == mapObjDef) {
+        GxRsSet(GxRs_FogStart, dnInfo->intFogInfo.start);
+        GxRsSet(GxRs_FogEnd, dnInfo->intFogInfo.end);
+        GxRsSet(GxRs_FogColor, dnInfo->intFogInfo.color);
+      }
+    }
+  }
+
+  GxLightSet(0, gxLight, CWorldScene::camPos);
+
+  UINT whichLight = 1;
+  ITERATELIST(CMapCacheLight, cacheLightList, cacheLight) {
+    if (whichLight >= 8) {
+      break;
+    }
+    GxLightSet(whichLight, cacheLight->gxLight, CWorldScene::camPos);
+    ++whichLight;
+  }
+
+  while (whichLight < 8) {
+    GxLightEnable(whichLight, 0);
+    ++whichLight;
+  }
+}
+
 void CMapStaticEntity::AdjustLightmap(
     const NTempest::CImVector &lmColor,
     NTempest::CImVector       &dirColor,
@@ -56,7 +101,11 @@ void CMapStaticEntity::AdjustLightmap(
 
 void CMapStaticEntity::FindLights() {
   CMapCacheLight *cacheLight = cacheLightList.Head();
-  while (reinterpret_cast<long>(cacheLight) > 0) {
+  while (1) {
+    if ((int)cacheLight <= 0) {
+      break;
+    }
+
     CMapCacheLight *next = cacheLightList.RawNext(cacheLight);
     CMap::FreeCacheLight(cacheLight);
     cacheLight = next;
@@ -124,53 +173,8 @@ CMapDoodadDef::CMapDoodadDef() {
   doodadSoundHandle = 0;
 }
 
-void CMapStaticEntity::SelectLights() {
-  if (flags & Flag_LightUpdate) {
-    FindLights();
-  }
-
-  CGxLight    gxLight = CMap::sunLight->gxLight;
-  CMapObjDef *mapObjDef;
-
-  gxLight.m_ambColor = ambient;
-  gxLight.m_ambIntensity = 1.0f;
-
-  if (flags & Flag_ExteriorLit) {
-    gxLight.m_dirIntensity *= dirLightScale;
-  } else {
-    gxLight.m_dir = interiorSunDir;
-    gxLight.m_dirColor = interiorDirColor;
-    gxLight.m_dirIntensity = dirLightScale;
-
-    if (GetMapObjDef(mapObjDef)) {
-      DNInfo *dnInfo = DayNightGetInfo();
-      if (dnInfo->intFog && CWorldScene::camMapObjDef == mapObjDef) {
-        GxRsSet(GxRs_FogStart, dnInfo->intFogInfo.start);
-        GxRsSet(GxRs_FogEnd, dnInfo->intFogInfo.end);
-        GxRsSet(GxRs_FogColor, dnInfo->intFogInfo.color);
-      }
-    }
-  }
-
-  GxLightSet(0, gxLight, CWorldScene::camPos);
-
-  UINT whichLight = 1;
-  ITERATELIST(CMapCacheLight, cacheLightList, cacheLight) {
-    if (whichLight >= 8) {
-      break;
-    }
-    GxLightSet(whichLight, cacheLight->gxLight, CWorldScene::camPos);
-    ++whichLight;
-  }
-
-  while (whichLight < 8) {
-    GxLightEnable(whichLight, 0);
-    ++whichLight;
-  }
-}
-
 CMapDoodadDef::~CMapDoodadDef() {
-  FATALASSERT(refCount == 0);
+  FATALASSERT(refCount==0);
 }
 
 void CMapDoodadDef::SelectLights() {
@@ -217,6 +221,18 @@ void CMapDoodadDef::SelectLights() {
   }
 }
 
+void CMapDoodadDef::GetBounds(NTempest::CAaSphere &bounds) {
+  bounds = aaSphere;
+}
+
+void CMapDoodadDef::GetBounds(NTempest::CAaBox &bounds) {
+  bounds = aaBox;
+}
+
+void CMapDoodadDef::GetCollideExt(NTempest::CAaBox &bounds) {
+  bounds = collideExt;
+}
+
 void CMapDoodadDef::Update(const NTempest::C44Matrix &newMat) {
   NTempest::CAaBox    localExt;
   NTempest::CAaSphere localSphere;
@@ -237,18 +253,6 @@ void CMapDoodadDef::Update(const NTempest::C44Matrix &newMat) {
     ModelGetCollisionExtents(model, &localExt);
     CWorldMath::TransformAABox(mat, localExt, collideExt);
   }
-}
-
-void CMapDoodadDef::GetBounds(NTempest::CAaSphere &bounds) {
-  bounds = aaSphere;
-}
-
-void CMapDoodadDef::GetBounds(NTempest::CAaBox &bounds) {
-  bounds = aaBox;
-}
-
-void CMapDoodadDef::GetCollideExt(NTempest::CAaBox &bounds) {
-  bounds = collideExt;
 }
 
 void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup) {

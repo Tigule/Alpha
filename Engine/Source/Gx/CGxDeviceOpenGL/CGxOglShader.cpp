@@ -70,7 +70,7 @@ namespace RegisterCombiners {
   };
 
   void CombinerPortion::Realize(UINT stage, UINT portion) {
-    for (UINT i = 0; i < 4; ++i) {
+    for (UINT i = 0; i <= 3; ++i) {
       glCombinerInputNV(stage, portion, GL_VARIABLE_A_NV + i, variable[i].input, variable[i].mapping, variable[i].component);
     }
     glCombinerOutputNV(
@@ -89,7 +89,7 @@ namespace RegisterCombiners {
   }
 
   void FinalCombiner::Realize() {
-    for (UINT i = 0; i < 7; ++i) {
+    for (UINT i = 0; i <= 6; ++i) {
       glFinalCombinerInputNV(GL_VARIABLE_A_NV + i, variable[i].input, variable[i].mapping, variable[i].component);
     }
   }

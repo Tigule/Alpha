@@ -59,11 +59,11 @@ void GxuXformCreateProjection(float fovyInRadians, float aspect, float minZ, flo
 }
 
 void GxuXformCreateOrtho(float minX, float maxX, float minY, float maxY, float minZ, float maxZ, NTempest::C44Matrix &dst) {
-  FATALASSERT(minX != maxX);
-
-  FATALASSERT(minY != maxY);
-
-  FATALASSERT(minZ < maxZ);
+  VALIDATEBEGIN;
+  VALIDATE(minX != maxX);
+  VALIDATE(minY != maxY);
+  VALIDATE(minZ < maxZ);
+  VALIDATEENDVOID;
 
   dst.a0 = 2.0f / (maxX - minX);
   dst.b0 = 0.0f;
@@ -99,8 +99,10 @@ void GxuXformCreateLookAtSgCompat(
   dst = NTempest::C44Matrix();
 
   NTempest::C3Vector zv = center - eye;
-  ASSERT(zv.SquaredMag() >= 0.01f);
-  ASSERT(up.SquaredMag() >= 0.01f);
+  VALIDATEBEGIN;
+  VALIDATE(zv.SquaredMag() >= 0.01f);
+  VALIDATE(up.SquaredMag() >= 0.01f);
+  VALIDATEENDVOID;
   zv.Normalize();
 
   NTempest::C3Vector xv = NTempest::C3Vector::Cross(zv, up);
@@ -130,8 +132,10 @@ void GxuXformCreateLookAtXXX(
   dst = NTempest::C44Matrix();
 
   NTempest::C3Vector zv = center - eye;
-  FATALASSERT(zv.SquaredMag() >= 0.01f);
-  FATALASSERT(up.SquaredMag() >= 0.01f);
+  VALIDATEBEGIN;
+  VALIDATE(zv.SquaredMag() >= 0.01f);
+  VALIDATE(up.SquaredMag() >= 0.01f);
+  VALIDATEENDVOID;
   zv.Normalize();
 
   NTempest::C3Vector xv = NTempest::C3Vector::Cross(up, zv);
@@ -254,10 +258,12 @@ void GxuTexScale(
     UINT         dstStrideInBytes
 ) {
   ASSERT(srcFormat == dstFormat);
-  FATALASSERT(srcPixels);
-  FATALASSERT(srcFormat < GxTexFormats_Last);
-  FATALASSERT(dstPixels);
-  FATALASSERT(dstFormat < GxTexFormats_Last);
+  VALIDATEBEGIN;
+  VALIDATE(srcPixels);
+  VALIDATE(srcFormat < GxTexFormats_Last);
+  VALIDATE(dstPixels);
+  VALIDATE(dstFormat < GxTexFormats_Last);
+  VALIDATEENDVOID;
 
   const BYTE *src = static_cast<const BYTE *>(srcPixels);
   BYTE       *dst = const_cast<BYTE *>(static_cast<const BYTE *>(dstPixels));
@@ -316,7 +322,9 @@ BOOL GxuTestRayAndSphere(
   using NTempest::IsUnitVector;
 
   distance = INFINITY;
-  FATALASSERT(IsUnitVector(rayDirection));
+  VALIDATEBEGIN;
+  VALIDATE(IsUnitVector(rayDirection));
+  VALIDATEEND;
   float centerDistance = NTempest::C3Vector::Dot(sphereCenter - rayStart, rayDirection);
   if (centerDistance < -sphereRadius) {
     return 0;
@@ -349,7 +357,9 @@ BOOL GxuTestRayAndTriangle(
 
   distance = INFINITY;
 
-  FATALASSERT(IsUnitVector(rayDirection));
+  VALIDATEBEGIN;
+  VALIDATE(IsUnitVector(rayDirection));
+  VALIDATEEND;
 
   NTempest::C3Vector e1 = v1 - v0;
   NTempest::C3Vector e2 = v2 - v0;
@@ -398,11 +408,13 @@ BOOL GxuTestRayAndMesh(
   distance = INFINITY;
   primIntersected = 0;
 
-  FATALASSERT(IsUnitVector(rayDirection));
+  VALIDATEBEGIN;
+  VALIDATE(IsUnitVector(rayDirection));
   FATALASSERT(posCount);
   FATALASSERT(pos);
   FATALASSERT(primType == GxPrim_Triangles || primType == GxPrim_TriangleStrip || primType == GxPrim_TriangleFan);
-  FATALASSERT(indexCount >= 3);
+  VALIDATE(indexCount >= 3);
+  VALIDATEEND;
 
   NTempest::C34Matrix identity;
   if (!modelToWorldMatrices) {
@@ -484,7 +496,9 @@ BOOL GxuTestRayAndRigidMeshInModelSpace(
   FATALASSERT(posCount);
   FATALASSERT(pos);
   FATALASSERT(primType == GxPrim_Triangles || primType == GxPrim_TriangleStrip || primType == GxPrim_TriangleFan);
-  FATALASSERT(indexCount >= 3);
+  VALIDATEBEGIN;
+  VALIDATE(indexCount >= 3);
+  VALIDATEEND;
 
   float currDistance;
   switch (primType) {

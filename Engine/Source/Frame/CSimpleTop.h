@@ -14,263 +14,13 @@
 
 #include <stpl.h>
 
+class CFrameStrata;
 class CMouseEvent;
 class CSizeEvent;
+class FRAMEPRIORITY;
 class CGGameUI;
 class CGTooltip;
 class CGWorldFrame;
-
-class FRAMEPRIORITY {
- public:
-  CSimpleFrame *frame;
-  UINT          priority;
-
-  UINT SimpleSortedArrayValue() {
-    return priority;
-  }
-};
-
-class CFrameStrataNode {
- public:
-  CFrameStrataNode() : batchDirty(0) {
-  }
-
-  ~CFrameStrataNode() {
-    CSimpleFrame *frame;
-
-    while ((frame = frames.Head()) != 0) {
-      DEL(frame);
-    }
-
-    renderList.UnlinkAll();
-  }
-
-  BOOL BuildBatches();
-
-  BOOL IsEmpty() {
-    return frames.IsEmpty();
-  }
-
-  BOOL AddFrame(CSimpleFrame *frame) {
-    ASSERT(!frames.IsLinked(frame));
-    frames.LinkNode(frame, LIST_TAIL, 0);
-
-    if (!frame->IsBeingScrolled()) {
-      batchDirty = -1;
-    }
-
-    if (frame->IsVisible()) {
-      frame->RegisterForEvents();
-    }
-
-    return batchDirty != 0;
-  }
-
-  BOOL DelFrame(CSimpleFrame *frame) {
-    ASSERT(frames.IsLinked(frame));
-    frames.UnlinkNode(frame);
-
-    if (!frame->IsBeingScrolled()) {
-      batchDirty = -1;
-    }
-
-    if (frame->IsVisible()) {
-      frame->UnregisterForEvents();
-    }
-
-    return batchDirty != 0;
-  }
-
-  void OnLayerUpdate(float elapsedSec) {
-    ITERATELIST(CSimpleFrame, frames, frame) {
-      if (frame->IsVisible()) {
-        frame->OnLayerUpdate(elapsedSec);
-      }
-    }
-  }
-
-  void RenderBatches() {
-    ITERATELIST(CRenderBatch, renderList, batch) {
-      CSimpleRender::DrawBatch(batch);
-    }
-  }
-
-  LISTDECLEX(CSimpleFrame, topLink, frames);
-  CRenderBatch batches[5];
-  UINT         batchDirty;
-  LISTDECLEX(CRenderBatch, renderLink, renderList);
-};
-
-class CFrameStrata {
- public:
-  CFrameStrata() : batchDirty(0), levelsDirty(0), topLevel(0) {
-  }
-
-  ~CFrameStrata();
-
-  BOOL EnumerateFrames(BOOL (*callback)(CSimpleFrame *, LPVOID), LPVOID param) {
-    UINT i;
-
-    for (i = 0; i < topLevel; ++i) {
-      ITERATELIST(CSimpleFrame, levels[i]->frames, frame) {
-        if (!callback(frame, param)) {
-          return 0;
-        }
-      }
-    }
-
-    return 1;
-  }
-
-  BOOL FrameOccluded(CSimpleFrame *thisFrame);
-  void CheckOcclusion();
-
-  void AddFrame(CSimpleFrame *frame) {
-    int  frameLevel = frame->GetFrameLevel();
-    UINT oldCount = levels.Count();
-
-    if (frameLevel >= oldCount) {
-      UINT index;
-
-      levels.SetCount(frameLevel + 1);
-      for (index = oldCount; index <= frameLevel; ++index) {
-        levels[index] = NEW(CFrameStrataNode);
-      }
-    }
-
-    if (frameLevel >= topLevel) {
-      topLevel = frameLevel + 1;
-    }
-
-    CFrameStrataNode *node = levels[frameLevel];
-    int               dirty = node->AddFrame(frame);
-    levelsDirty = 1;
-    batchDirty |= dirty;
-  }
-
-  void DelFrame(CSimpleFrame *frame) {
-    CFrameStrataNode *node = levels[frame->GetFrameLevel()];
-    int               dirty = node->DelFrame(frame);
-
-    levelsDirty = 1;
-    batchDirty |= dirty;
-  }
-
-  void OnFrameLayerChanged(CSimpleFrame *frame, UINT layer) {
-    if (frame->IsBeingScrolled()) {
-      frame->OnUpdateBatch(layer);
-    } else {
-      CFrameStrataNode *node = levels[frame->GetFrameLevel()];
-
-      node->batchDirty |= 1 << layer;
-      batchDirty = 1;
-    }
-  }
-
-  void OnFrameMovedOrResized(CSimpleFrame *frame) {
-    levelsDirty = 1;
-  }
-
-  void RaiseFrame(CSimpleFrame *frame) {
-    if (frame->IsOccluded()) {
-      frame->SetFrameLevel(topLevel, 1);
-    }
-  }
-
-  BOOL BuildBatches(int) {
-    UINT level;
-
-    batchDirty = 0;
-    for (level = 0; level < topLevel; ++level) {
-      if (levels[level]->BuildBatches()) {
-        batchDirty = 1;
-      }
-    }
-
-    return batchDirty;
-  }
-
-  void OnLayerWindowSizeChanged();
-
-  CSimpleFrame *GetToplevelFrame(const NTempest::C2Vector &point) {
-    UINT level = topLevel;
-
-    while (level) {
-      --level;
-
-      ITERATELIST(CSimpleFrame, levels[level]->frames, frame) {
-        if (frame->IsVisible() && frame->TestHitRect(point)) {
-          return frame->GetToplevelFrame();
-        }
-      }
-    }
-
-    return 0;
-  }
-
-  void CompressLevels() {
-    UINT firstEmpty = static_cast<UINT>(-1);
-    UINT level = 0;
-    UINT nextLevel = 0;
-
-    while (level < topLevel) {
-      if (levels[level]->IsEmpty()) {
-        if (firstEmpty == static_cast<UINT>(-1)) {
-          firstEmpty = level;
-        }
-
-        nextLevel = ++level;
-        continue;
-      }
-
-      if (firstEmpty == static_cast<UINT>(-1)) {
-        nextLevel = ++level;
-        continue;
-      }
-
-      UINT delta = level - firstEmpty;
-      while (level < topLevel) {
-        CSimpleFrame *frame = levels[level]->frames.Head();
-        while (frame) {
-          CSimpleFrame *next = levels[level]->frames.Next(frame);
-          frame->SetFrameLevel(frame->GetFrameLevel() - delta, 0);
-          frame = next;
-        }
-
-        ++level;
-      }
-
-      topLevel -= delta;
-      firstEmpty = static_cast<UINT>(-1);
-      level = nextLevel;
-    }
-
-    if (firstEmpty != static_cast<UINT>(-1)) {
-      topLevel = firstEmpty;
-    }
-  }
-
-  void OnLayerUpdate(float elapsedSec) {
-    UINT level;
-
-    for (level = 0; level < topLevel; ++level) {
-      levels[level]->OnLayerUpdate(elapsedSec);
-    }
-  }
-
-  void RenderBatches() {
-    UINT level;
-
-    for (level = 0; level < topLevel; ++level) {
-      levels[level]->RenderBatches();
-    }
-  }
-
-  int                              batchDirty;
-  int                              levelsDirty;
-  UINT                             topLevel;
-  TSFixedArray<CFrameStrataNode *> levels;
-};
 
 class CSimpleTop : public CLayoutFrame {
   friend class CGGameUI;
@@ -280,87 +30,96 @@ class CSimpleTop : public CLayoutFrame {
   friend class CSimpleFrame;
 
  public:
-  struct frame_layout {
-    int                enabled;
-    CSimpleFrame      *frame;
-    FRAMEPOINT         anchor;
-    NTempest::C2Vector last;
-    NTempest::CRect    final;
-  };
-
-  CSimpleTop();
-  virtual ~CSimpleTop();
-
   static CSimpleTop *GetInstance() {
     ASSERT(s_instance);
     return s_instance;
   }
 
-  void DrawCursor();
+  CSimpleTop();
+  virtual ~CSimpleTop();
   void EnumerateFrames(BOOL (*callback)(CSimpleFrame *, LPVOID), LPVOID param);
-  void MoveOrResizeFrame(const CMouseEvent &evt);
-  void NotifyFrameLayerChanged(CSimpleFrame *frame, UINT layer);
+  void ValidateDeletedFrame(CSimpleFrame *frame);
+  void RegisterFrame(CSimpleFrame *frame);
+  void UnregisterFrame(CSimpleFrame *frame);
   void NotifyFrameMovedOrResized(CSimpleFrame *frame);
-  void OnLayerRender();
-  void OnLayerUpdate(float elapsedSec);
-  BOOL LowerFrame(CSimpleFrame *frame);
-  BOOL RaiseFrame(const NTempest::C2Vector &pt);
-  BOOL RaiseFrame(CSimpleFrame *frame, int checkOcclusion);
+  void NotifyFrameLayerChanged(CSimpleFrame *frame, UINT layer);
+  void RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, UINT priority);
+  void UnregisterForEvent(CSimpleFrame *frame, CSimpleEventType event);
   void RegisterForDelete(CSimpleFrame *frame);
+
   void RegisterForMouseButton(int (*callback)(const CMouseEvent &)) {
     ASSERT(!m_mouseButtonCallback);
     m_mouseButtonCallback = callback;
   }
+
   void UnregisterForMouseButton(int (*callback)(const CMouseEvent &)) {
     ASSERT(m_mouseButtonCallback == callback);
     m_mouseButtonCallback = 0;
   }
+
   void RegisterForDisplaySize(int (*callback)(const CSizeEvent &)) {
     ASSERT(!m_displaySizeCallback);
     m_displaySizeCallback = callback;
   }
+
   void UnregisterForDisplaySize(int (*callback)(const CSizeEvent &)) {
     ASSERT(m_displaySizeCallback == callback);
     m_displaySizeCallback = 0;
   }
-  void RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, UINT priority);
-  void RegisterFrame(CSimpleFrame *frame);
-  void SetLayoutMode(int enabled) {
-    m_layout.enabled = enabled;
-  }
-  BOOL IsLayoutEnabled() {
-    return m_layout.enabled;
-  }
-  BOOL IsMovingOrResizing() {
-    return m_layout.frame != 0;
-  }
+
   void SetCursor(HMODEL cursor);
+
   void HideCursor() {
     m_cursorVisible = 0;
   }
+
   void ShowCursor() {
     m_cursorVisible = 1;
   }
+
   void GetMousePosition(NTempest::C2Vector &position) {
     NDCToDDC(m_mousePosition.x, m_mousePosition.y, &position.x, &position.y);
   }
+
   CSimpleFrame *GetLayerUnderCursor() {
     return m_mouseFocus;
   }
+
+  BOOL RaiseFrame(const NTempest::C2Vector &pt);
+  BOOL RaiseFrame(CSimpleFrame *frame, int checkOcclusion);
+  BOOL LowerFrame(CSimpleFrame *frame);
+
+  void SetLayoutMode(int enabled) {
+    m_layout.enabled = enabled;
+  }
+
+  BOOL IsLayoutEnabled() {
+    return m_layout.enabled;
+  }
+
+  BOOL IsMovingOrResizing() {
+    return m_layout.frame != 0;
+  }
+
   BOOL  StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &start, int resize);
   BOOL  StartMoveOrResizeFrame(const CMouseEvent &start, int resize);
+  void MoveOrResizeFrame(const CMouseEvent &evt);
   void  StopMoveOrResizeFrame();
+
   DWORD GetLastEventTime() {
     return m_eventTime;
   }
+
   void UpdateEventTime(DWORD time) {
     m_eventTime = time;
   }
-  void UnregisterForEvent(CSimpleFrame *frame, CSimpleEventType event);
-  void UnregisterFrame(CSimpleFrame *frame);
-  void ValidateDeletedFrame(CSimpleFrame *frame);
+
+  void OnLayerUpdate(float elapsedSec);
+  void OnLayerRender();
+  void DrawCursor();
 
  private:
+  static CSimpleTop *s_instance;
   HLAYER__     *m_screenLayer;
   HLAYER__     *m_cursorLayer;
   HMODEL        m_cursor;
@@ -371,6 +130,15 @@ class CSimpleTop : public CLayoutFrame {
   LISTDECL(SIMPLEFRAMENODE, m_frames);
   LISTDECL(SIMPLEFRAMENODE, m_destroyed);
   CFrameStrata                       *m_strata[6];
+
+  struct frame_layout {
+    int                enabled;
+    CSimpleFrame      *frame;
+    FRAMEPOINT         anchor;
+    NTempest::C2Vector last;
+    NTempest::CRect    final;
+  };
+
   frame_layout                        m_layout;
   CSimpleSortedArray<FRAMEPRIORITY *> m_eventqueue[4][5];
   DWORD                               m_eventTime;
@@ -378,10 +146,8 @@ class CSimpleTop : public CLayoutFrame {
   EVENT_DATA_MOUSE                    m_mousePosition;
   int (*m_mouseButtonCallback)(const CMouseEvent &event);
   BOOL (*m_displaySizeCallback)(const CSizeEvent &event);
-
   void EnableEvents();
   void DisableEvents();
-
   static BOOL OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param);
   static BOOL OnIme(const EVENT_DATA_IME *pImeData, LPVOID param);
   static BOOL OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param);
@@ -393,8 +159,6 @@ class CSimpleTop : public CLayoutFrame {
   static BOOL OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
   static BOOL OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param);
   static BOOL OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, LPVOID param);
-
-  static CSimpleTop *s_instance;
 };
 
 inline CLayoutFrame *CSimpleFrame::GetLayoutParent() {

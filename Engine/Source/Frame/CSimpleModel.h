@@ -12,34 +12,15 @@ class CSimpleModel : public CSimpleFrame {
   friend class CGMinimapFrame;
 
  public:
-  enum {
-    MODEL_LOADED = 0x1,
-    MODEL_FOGGED = 0x2,
-    MODEL_CAMERA_WAITING = 0x4,
-    MODEL_USER_FLAG = 0x8
-  };
-
   CSimpleModel(CSimpleFrame *parent = 0);
   virtual ~CSimpleModel();
-
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
-
   virtual void  LoadXML(const XMLNode *node, CStatus *status);
   virtual void  LoadXML_Scripts(const XMLNode *node, CStatus *status);
-  virtual float GetWidth();
-  virtual float GetHeight();
-  virtual void  OnFrameRender(CRenderBatch *batch, UINT layer);
-  virtual void  UpdateModel();
-
-  void SetModel(HMODEL model);
   void SetModel(LPCSTR sourcefile, CModelCreate *data, CStatus *status);
+  void SetModel(HMODEL model);
   void SetCamera(HCAMERA camera);
   void SetCameraByIndex(UINT index);
   void SetLight(const CGxLight &light);
-  void ReplaceTexture(UINT materialID, LPCSTR textureName);
-
-  virtual void SetAlpha(BYTE alpha);
 
   void SetPosition(const NTempest::C3Vector &position) {
     m_position = position;
@@ -56,6 +37,15 @@ class CSimpleModel : public CSimpleFrame {
   void SetSequence(UINT index);
   int  SetSequenceTime(UINT index, int timeOffset);
   BOOL AdvanceTime();
+  void ReplaceTexture(UINT materialID, LPCSTR textureName);
+
+  HMODEL GetModel() {
+    return m_model;
+  }
+
+  HCAMERA GetCamera() {
+    return (m_flags & 0x4) ? 0 : m_camera;
+  }
 
   NTempest::C3Vector GetPosition() {
     return m_position;
@@ -69,7 +59,9 @@ class CSimpleModel : public CSimpleFrame {
     return m_scale;
   }
 
-  BOOL ModelJustLoaded() const;
+  BOOL HasFog() const {
+    return (m_flags & 0x2) != 0;
+  }
 
   void SetFog(int fog) {
     if (fog) {
@@ -79,8 +71,32 @@ class CSimpleModel : public CSimpleFrame {
     }
   }
 
+  BOOL IsModelLoaded() const;
+  BOOL ModelJustLoaded() const;
+  BOOL IsUserFlagSet(UINT flag) const;
+  void SetUserFlag(UINT flag, int set);
+
+ protected:
+  void SetModelLoaded(int loaded);
+
+ public:
+  BOOL IsWaitingForCamera() const;
+  void SetWaitingForCamera(int waiting);
+
+  const NTempest::CImVector &GetFogColor() {
+    return m_fogColor;
+  }
+
   void SetFogColor(const NTempest::CImVector &color) {
     m_fogColor = color;
+  }
+
+  float GetFogNear() {
+    return m_fogNear;
+  }
+
+  float GetFogFar() {
+    return m_fogFar;
   }
 
   void SetFogNear(float fogNear) {
@@ -91,10 +107,22 @@ class CSimpleModel : public CSimpleFrame {
     m_fogFar = fogFar;
   }
 
+  virtual float GetWidth();
+  virtual float GetHeight();
+  virtual void SetAlpha(BYTE alpha);
+  virtual void  OnFrameRender(CRenderBatch *batch, UINT layer);
+  virtual void  UpdateModel();
+
   void SetOnUpdateModelScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnUpdateModel", GetName());
     SetEventScript(m_onUpdateModel, source, description);
+  }
+
+  void RunOnUpdateModelScript() {
+    if (m_onUpdateModel) {
+      FrameScript_Execute(m_onUpdateModel, this);
+    }
   }
 
   void SetOnAnimFinishedScript(LPCSTR source) {
@@ -109,66 +137,37 @@ class CSimpleModel : public CSimpleFrame {
     }
   }
 
-  HMODEL GetModel() {
-    return m_model;
-  }
-
-  HCAMERA GetCamera() {
-    return (m_flags & 0x4) ? 0 : m_camera;
-  }
-
-  BOOL HasFog() const {
-    return (m_flags & 0x2) != 0;
-  }
-
-  BOOL IsModelLoaded() const;
-  BOOL IsUserFlagSet(UINT flag) const;
-  void SetUserFlag(UINT flag, int set);
-  BOOL IsWaitingForCamera() const;
-  void SetWaitingForCamera(int waiting);
-
-  const NTempest::CImVector &GetFogColor() {
-    return m_fogColor;
-  }
-
-  float GetFogNear() {
-    return m_fogNear;
-  }
-
-  float GetFogFar() {
-    return m_fogFar;
-  }
-
-  void RunOnUpdateModelScript() {
-    if (m_onUpdateModel) {
-      FrameScript_Execute(m_onUpdateModel, this);
-    }
-  }
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
-
-  void SetModelLoaded(int loaded);
+  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
   void FinishLoadingModel();
 
  private:
   void SetCameraInternal(HCAMERA camera);
 
- public:
-  static void RenderModel(LPVOID param);
-
  protected:
-  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
-
   HMODEL m_model;
+
   union {
     HCAMERA m_camera;
     UINT    m_cameraIndex;
   };
+
   CGxLight            m_light;
   NTempest::C3Vector  m_position;
   float               m_facing;
   float               m_scale;
+
+  enum {
+    MODEL_LOADED = 0x1,
+    MODEL_FOGGED = 0x2,
+    MODEL_CAMERA_WAITING = 0x4,
+    MODEL_USER_FLAG = 0x8
+  };
+
   UINT                m_flags;
   NTempest::CImVector m_fogColor;
   float               m_fogNear;
@@ -176,6 +175,9 @@ class CSimpleModel : public CSimpleFrame {
   NTempest::CAaBox    m_cachedExtents;
   int                 m_onUpdateModel;
   int                 m_onAnimFinished;
+
+ public:
+  static void RenderModel(LPVOID param);
 };
 
 #endif

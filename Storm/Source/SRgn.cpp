@@ -2,34 +2,6 @@
 #include <stpl.h>
 #include "W32/ISThread.h"
 
-#undef VALIDATEBEGIN
-#undef VALIDATE
-#undef VALIDATEANDBLANK
-#undef VALIDATEEND
-#undef VALIDATEENDVOID
-#define VALIDATEBEGIN
-#define VALIDATE(a)                            \
-  if (!(a)) {                                  \
-    SErrPrepareAppFatal(__FILE__, __LINE__);   \
-    SErrDisplayAppFatal(#a);                   \
-    goto validatefailed;                       \
-  }
-#define VALIDATEANDBLANK(a) \
-  VALIDATE(a)               \
-  *(a) = 0;
-#define VALIDATEEND                              \
-  if (0) {                                       \
-  validatefailed:                                \
-      SErrSetLastError(ERROR_INVALID_PARAMETER); \
-      return FALSE;                              \
-  }
-#define VALIDATEENDVOID                          \
-  if (0) {                                       \
-  validatefailed:                                \
-      SErrSetLastError(ERROR_INVALID_PARAMETER); \
-      return;                                    \
-  }
-
 #define SF_ADDING    0x00000001
 #define SF_OVERLAPS  0x00000002
 #define SF_TEMPMASK  0x00000003

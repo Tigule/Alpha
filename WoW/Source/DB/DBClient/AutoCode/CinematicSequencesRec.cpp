@@ -14,10 +14,13 @@ CinematicSequencesRec::~CinematicSequencesRec() {
 }
 
 bool CinematicSequencesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_soundID) ||
-      !SFile::Read(f, &m_camera[0], sizeof(m_camera), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_soundID) == 0);
+  error |= (SFileReadTyped(f, &m_camera) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CinematicSequencesRec", DEFAULT_COLOR);
     return false;
   }

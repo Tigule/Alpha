@@ -45,10 +45,20 @@ enum EGxWM {
   GxWM_KillFocus = 4
 };
 
+enum EGx {
+  Gx_SizeMinimized = 1,
+  Gx_SizeMaxHide = 2
+};
+
 enum EGxBuffer {
   GxBuffers_Color = 0,
   GxBuffers_Depth = 1,
   GxBuffers_Last = 2
+};
+
+enum EGxBufferBit {
+  GxBufferBit_Color = 1,
+  GxBufferBit_Depth = 2
 };
 
 enum EGxBufWriteFreq {
@@ -166,6 +176,16 @@ enum EGxTexTarget {
   GxTexTargets_Last = 2
 };
 
+enum EGxTexCubeFace {
+  GxTex_PositiveX = 0,
+  GxTex_NegativeX = 1,
+  GxTex_PositiveY = 2,
+  GxTex_NegativeY = 3,
+  GxTex_PositiveZ = 4,
+  GxTex_NegativeZ = 5,
+  GxTexCubeFaces_Last = 6
+};
+
 enum EGxTexFormat {
   GxTex_Unknown = 0,
   GxTex_Argb8888 = 1,
@@ -240,6 +260,25 @@ enum EGxRenderState {
   GxRenderStates_Last = 42
 };
 
+enum EGxEnable {
+  Gx_Disable = 0,
+  Gx_Enable = 1
+};
+
+enum EGxFogStyle {
+  GxFog_Linear = 0,
+  GxFog_Exp = 1,
+  GxFog_Exp2 = 2,
+  GxFogStyles_Last = 3
+};
+
+enum EGxCmp {
+  GxCmp_LEqual = 0,
+  GxCmp_Equal = 1,
+  GxCmp_GEqual = 2,
+  GxCmps_Last = 3
+};
+
 enum EGxBlend {
   GxBlend_Opaque = 0,
   GxBlend_AlphaKey = 1,
@@ -292,7 +331,8 @@ enum EGxXform {
 
 enum {
   Gx_MaxMatrixStackDepth = 4,
-  Gx_MaxBoneMatrices = 0x100
+  Gx_MaxBoneMatrices = 0x100,
+  Gx_MaxRsStackDepth = 32
 };
 
 enum EGxVertexShader {

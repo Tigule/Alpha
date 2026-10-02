@@ -66,10 +66,10 @@ static BOOL CvarCommandHandler(LPCSTR command, LPCSTR arguments) {
     ++arguments;
   }
 
-  if (*arguments) {
-    cvar->Set(arguments, true, true, false);
-  } else {
+  if (!*arguments) {
     ConsolePrintf("CVar \"%s\" is \"%s\"", command, cvar->GetString());
+  } else {
+    cvar->Set(arguments, true, true, false);
   }
 
   return 1;
@@ -99,10 +99,10 @@ static BOOL CvarResetCommandHandler(LPCSTR command, LPCSTR arguments) {
 
   if (cvarName[0]) {
     CVar *cvar = CVar::Lookup(cvarName);
-    if (cvar) {
-      cvar->Reset();
-    } else {
+    if (!cvar) {
       ConsoleWriteA("No such cvar \"%s\"\n", ERROR_COLOR, cvarName);
+    } else {
+      cvar->Reset();
     }
     return 1;
   }
@@ -122,10 +122,10 @@ static BOOL CvarDefaultCommandHandler(LPCSTR command, LPCSTR arguments) {
 
   if (cvarName[0]) {
     CVar *cvar = CVar::Lookup(cvarName);
-    if (cvar) {
-      cvar->Default();
-    } else {
+    if (!cvar) {
       ConsoleWriteA("No such cvar \"%s\"\n", ERROR_COLOR, cvarName);
+    } else {
+      cvar->Default();
     }
     return 1;
   }
@@ -306,7 +306,10 @@ void CVar::Default() {
 }
 
 bool CVar::Update() {
-  if (!(m_flags & 2) || !m_latchedValue) {
+  if (!(m_flags & LATCH)) {
+    return false;
+  }
+  if (!m_latchedValue) {
     return false;
   }
 

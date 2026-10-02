@@ -686,7 +686,9 @@ float CGCamera::CollideCameraWithWorld(const NTempest::C3Vector &targetPosition)
 }
 
 void CGCamera::CalcThirdPerson(CGObject_C *target, DWORD timestamp) {
-  FATALASSERT(target);
+  VALIDATEBEGIN;
+  VALIDATE(target);
+  VALIDATEENDVOID;
   if (!((m_flags & 0x40) || FinishLoadingTarget(target))) {
     return;
   }
@@ -795,7 +797,9 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, DWORD timestamp) {
 }
 
 void CGCamera::CalcFirstPerson(CGObject_C *target, DWORD timestamp) {
-  FATALASSERT(target);
+  VALIDATEBEGIN;
+  VALIDATE(target);
+  VALIDATEENDVOID;
 
   if ((m_flags & 0x40) || FinishLoadingTarget(target)) {
     float yaw = target->GetFacing();

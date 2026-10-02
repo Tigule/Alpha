@@ -227,15 +227,15 @@ BOOL CObserver::DispatchEvent(int id, CEvent &event) {
 }
 
 void CObserver::RegisterCallback(UINT id, EVENTCALLBACK callback, LPVOID param) {
-  EventReg *reg = GetEventReg(id, 1);
-  ASSERT(reg);
-  reg->RegisterCallback(callback, param);
+  EventReg *pReg = GetEventReg(id, 1);
+  ASSERT(pReg);
+  pReg->RegisterCallback(callback, param);
 }
 
 void CObserver::RegisterEvent(UINT id, int expectedEventId, CObserver *pObserver) {
-  EventReg *reg = GetEventReg(id, 1);
-  ASSERT(reg);
-  reg->RegisterEvent(expectedEventId, pObserver);
+  EventReg *pReg = GetEventReg(id, 1);
+  ASSERT(pReg);
+  pReg->RegisterEvent(expectedEventId, pObserver);
 }
 
 void CObserver::UnregisterCallback(UINT id, EVENTCALLBACK callback) {
@@ -277,7 +277,11 @@ BOOL CObserver::IsEventRegistered(UINT id) {
 
 BOOL CObserver::IsEventRegisteredBy(UINT id, CObserver *pObserver) {
   EventReg *reg = GetEventReg(id, 0);
-  return reg && reg->IsEventRegistered(pObserver);
+  if (reg) {
+    return reg->IsEventRegistered(pObserver);
+  }
+
+  return 0;
 }
 
 void EventRegistry::InternalDelete(EventReg *pReg) {

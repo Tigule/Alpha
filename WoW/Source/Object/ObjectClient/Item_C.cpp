@@ -1,5 +1,15 @@
-#include <WowConst.h>
+#include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "WowServices/WowConnection.h"
+#include <WowConst.h>
+#include <Frame/CSimpleTop.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "Ui/WorldFrame.h"
+#include "Ui/GameUI.h"
 
 #include "Item_C.h"
 
@@ -475,7 +485,7 @@ int CGItem_C::GetExpirationTimeLeft() {
 }
 
 int CGItem_C::GetEnchantmentTimeLeft(int slot) {
-  FATALASSERT((slot >= 0) && (slot < 5));
+  FATALASSERT((slot >= 0) && (slot < NUM_ITEM_ENCHANTMENTS));
   if (m_enchantmentExpiration[slot]) {
     DWORD now = OsGetAsyncTimeMs();
     if (static_cast<long>(now - m_enchantmentExpiration[slot]) < 0) {
@@ -486,7 +496,7 @@ int CGItem_C::GetEnchantmentTimeLeft(int slot) {
 }
 
 void CGItem_C::UpdateEnchantmentTime(int slot, int timeLeft) {
-  FATALASSERT((slot >= 0) && (slot < 5));
+  FATALASSERT((slot >= 0) && (slot < NUM_ITEM_ENCHANTMENTS));
   if (timeLeft <= 0) {
     m_enchantmentExpiration[slot] = 0;
   } else {

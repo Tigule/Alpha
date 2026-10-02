@@ -15,15 +15,18 @@ SpellChainEffectsRec::~SpellChainEffectsRec() {
 
 bool SpellChainEffectsRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempTextureIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_AvgSegLen) ||
-      !SFileReadTyped(f, &m_Width) ||
-      !SFileReadTyped(f, &m_NoiseScale) ||
-      !SFileReadTyped(f, &m_TexCoordScale) ||
-      !SFileReadTyped(f, &m_SegDuration) ||
-      !SFileReadTyped(f, &m_SegDelay) ||
-      !SFileReadTyped(f, &tempTextureIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_AvgSegLen) == 0);
+  error |= (SFileReadTyped(f, &m_Width) == 0);
+  error |= (SFileReadTyped(f, &m_NoiseScale) == 0);
+  error |= (SFileReadTyped(f, &m_TexCoordScale) == 0);
+  error |= (SFileReadTyped(f, &m_SegDuration) == 0);
+  error |= (SFileReadTyped(f, &m_SegDelay) == 0);
+  error |= (SFileReadTyped(f, &tempTextureIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellChainEffectsRec", DEFAULT_COLOR);
     return false;
   }

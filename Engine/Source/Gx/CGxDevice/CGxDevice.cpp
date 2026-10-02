@@ -24,54 +24,17 @@ static LONGLONG stop;
 static UINT     tail;
 static float    frequency;
 
-static UINT UpdateFrameRate() {
-  LONGLONG total = 0;
-  UINT     frameRate;
-
-  stop = CGxDevice::CpuTicks();
-  times[tail] = stop - start;
-
-  for (UINT i = 0; i < 8; ++i) {
-    total += times[i];
-  }
-
-  if (total > 1024) {
-    frameRate = static_cast<UINT>(CGxDevice::CpuFrequency() * 8.0f / static_cast<double>(total));
-  } else {
-    frameRate = 99;
-  }
-
-  tail = (tail + 1) & 7;
-  start = stop;
-  return frameRate;
-}
+static UINT UpdateFrameRate();
 
 void CGxDevice::ClampRectToWindow(NTempest::CiRect &rect) {
   const NTempest::CRect &window = DeviceCurWindow();
-  long                   top = static_cast<long>(window.t);
-  long                   left = static_cast<long>(window.l);
-  long                   bottom = static_cast<long>(window.b);
-  long                   right = static_cast<long>(window.r);
-  long                   clippedTop = rect.t;
-  long                   clippedRight = rect.r;
+  NTempest::CiRect       clip;
 
-  if (clippedRight >= right) {
-    clippedRight = right;
-  }
-  if (rect.b < bottom) {
-    bottom = rect.b;
-  }
-  if (rect.l > left) {
-    left = rect.l;
-  }
-  if (clippedTop <= top) {
-    clippedTop = top;
-  }
-
-  rect.t = clippedTop;
-  rect.l = left;
-  rect.b = bottom;
-  rect.r = clippedRight;
+  clip.t = static_cast<long>(window.t);
+  clip.l = static_cast<long>(window.l);
+  clip.b = static_cast<long>(window.b);
+  clip.r = static_cast<long>(window.r);
+  rect = NTempest::CiRect(max(rect.t, clip.t), max(rect.l, clip.l), min(rect.b, clip.b), min(rect.r, clip.r));
 }
 
 static LPCSTR FmtNames[CGxFormat::Formats_Last] = {"Rgb565", "ArgbX888", "Argb8888", "Argb2101010", "Ds160", "Ds24X", "Ds248", "Ds320"};
@@ -144,9 +107,7 @@ void CGxMatrixStack::Push() {
   ++m_level;
   ASSERT(m_level < Gx_MaxMatrixStackDepth);
 
-  if (m_level >= Gx_MaxMatrixStackDepth) {
-    m_level = Gx_MaxMatrixStackDepth - 1;
-  }
+  m_level = min(m_level, Gx_MaxMatrixStackDepth - 1);
 
   m_mtx[m_level] = m_mtx[m_level - 1];
   m_flags[m_level] = m_flags[m_level - 1];
@@ -525,6 +486,28 @@ void CGxDevice::ScenePresent(UINT mask) {
   PerfCountersLatch();
 }
 
+static UINT UpdateFrameRate() {
+  LONGLONG total = 0;
+  UINT     frameRate;
+
+  stop = CGxDevice::CpuTicks();
+  times[tail] = stop - start;
+
+  for (UINT i = 0; i != 8; ++i) {
+    total += times[i];
+  }
+
+  if (total > 1024) {
+    frameRate = static_cast<UINT>(CGxDevice::CpuFrequency() * 8.0f / static_cast<double>(total));
+  } else {
+    frameRate = 99;
+  }
+
+  tail = (tail + 1) & 7;
+  start = stop;
+  return frameRate;
+}
+
 void CGxDevice::SceneClear(UINT mask) {
 }
 
@@ -539,7 +522,7 @@ void CGxDevice::XformSetProjection(const NTempest::C44Matrix &matrix) {
 }
 
 void CGxDevice::XformSetView(const NTempest::C44Matrix &matrix) {
-  m_xforms[6].Top() = matrix;
+  m_xforms[GxXform_View].Top() = matrix;
 }
 
 void CGxDevice::XformSetBones(UINT numBones, const NTempest::C34Matrix *matrices) {
@@ -558,7 +541,7 @@ void CGxDevice::XformProjection(NTempest::C44Matrix &matrix) {
 }
 
 void CGxDevice::XformView(NTempest::C44Matrix &matrix) {
-  matrix = m_xforms[6].m_mtx[m_xforms[6].m_level];
+  matrix = m_xforms[GxXform_View].TopConst();
 }
 
 void CGxDevice::XformBone(UINT ndx, NTempest::C34Matrix &matrix) {
@@ -602,7 +585,7 @@ void CGxDevice::XformMult(EGxXform xf, const NTempest::C44Matrix &m) {
 }
 
 void CGxDevice::Xform(EGxXform xf, NTempest::C44Matrix &matrix) {
-  matrix = m_xforms[xf].m_mtx[m_xforms[xf].m_level];
+  matrix = m_xforms[xf].TopConst();
 }
 
 void CGxDevice::VertexShaderSelect(EGxVertexShader shader) {
@@ -935,14 +918,10 @@ void CGxDevice::RsSet(EGxRenderState which, int value) {
 }
 
 void CGxDevice::RsSet(EGxRenderState which, float value) {
-  CGxStateBom        tmp_;
-  CGxAppRenderState &state = mAppRenderStates[which];
-  float              current = *reinterpret_cast<float *>(&state.mValue.mData[0]);
+  CGxStateBom tmp_;
 
-  if (current != value) {
-    *reinterpret_cast<float *>(&tmp_.mData[0]) = value;
-    *reinterpret_cast<float *>(&tmp_.mData[1]) = value;
-    *reinterpret_cast<float *>(&tmp_.mData[2]) = value;
+  if (mAppRenderStates[which].mValue.GetAsFloat() != value) {
+    tmp_ = value;
     IRsSet(which, tmp_);
   }
 }
@@ -959,11 +938,9 @@ void CGxDevice::RsSet(EGxRenderState which, NTempest::CImVector value) {
 }
 
 void CGxDevice::RsSet(EGxRenderState which, const NTempest::C3Vector &value) {
-  CGxStateBom        tmp_;
-  CGxAppRenderState &state = mAppRenderStates[which];
-  const float       *current = reinterpret_cast<const float *>(&state.mValue.mData[0]);
+  CGxStateBom tmp_;
 
-  if (current[0] != value.x || current[1] != value.y || current[2] != value.z) {
+  if (mAppRenderStates[which].mValue.GetAsC3Vector() != value) {
     tmp_.mData[0] = *reinterpret_cast<const int *>(&value.x);
     tmp_.mData[1] = *reinterpret_cast<const int *>(&value.y);
     tmp_.mData[2] = *reinterpret_cast<const int *>(&value.z);
@@ -992,7 +969,7 @@ void CGxDevice::RsGet(EGxRenderState which, int &value) {
 }
 
 void CGxDevice::RsGet(EGxRenderState which, float &value) {
-  value = *reinterpret_cast<float *>(&mAppRenderStates[which].mValue.mData[0]);
+  value = mAppRenderStates[which].mValue.GetAsFloat();
 }
 
 void CGxDevice::RsGet(EGxRenderState which, NTempest::CImVector &value) {
@@ -1008,7 +985,7 @@ void CGxDevice::RsGet(EGxRenderState which, LPVOID &value) {
 }
 
 void CGxDevice::RsPush() {
-  ASSERT(mStackOffsets.Count() < 32);
+  ASSERT(mStackOffsets.Count() < Gx_MaxRsStackDepth);
 
   *mStackOffsets.New() = mPushedStates.Count();
 }
@@ -1049,7 +1026,7 @@ void CGxDevice::IRsInit() {
   mAppRenderStates.SetCount(GxRenderStates_Last);
   mHwRenderStates.SetCount(GxRenderStates_Last);
 
-  mAppRenderStates[GxRs_PolygonOffset].mValue = 0.0f;
+  mAppRenderStates[GxRs_PolygonOffset].mValue = 0;
   mAppRenderStates[GxRs_MatDiffuse].mValue = -1;
   mAppRenderStates[GxRs_MatEmissive].mValue = 0;
   mAppRenderStates[GxRs_MatSpecular].mValue = 0;
@@ -1062,7 +1039,7 @@ void CGxDevice::IRsInit() {
   mAppRenderStates[GxRs_FogStart].mValue = 0.0f;
   mAppRenderStates[GxRs_FogEnd].mValue = 1.0f;
   mAppRenderStates[GxRs_FogDensity].mValue = 0.0f;
-  mAppRenderStates[GxRs_FogColor].mValue = -65536;
+  mAppRenderStates[GxRs_FogColor].mValue = NTempest::CImVector(0xFFFF0000);
 
   mAppRenderStates[GxRs_Lighting].mValue = 1;
   mAppRenderStates[GxRs_Fog].mValue = 1;
@@ -1152,15 +1129,11 @@ void CGxDevice::IRsSet(EGxRenderState which, const CGxStateBom &value) {
 }
 
 void CGxDevice::IRsForceUpdate(EGxRenderState ndx_) {
-  *mDirtyStates.New() = ndx_;
+  UINT index = mDirtyStates.Count();
+  mDirtyStates.SetCount(index + 1);
+  mDirtyStates[index] = ndx_;
   mAppRenderStates[ndx_].mDirty = 1;
-  CGxAppRenderState &app = mAppRenderStates[ndx_];
-  CGxStateBom       &hw = mHwRenderStates[ndx_];
-
-  hw.mData[0] = ~app.mValue.mData[0];
-  hw.mData[1] = ~app.mValue.mData[1];
-  hw.mData[2] = ~app.mValue.mData[2];
-  hw.filler = ~app.mValue.filler;
+  mHwRenderStates[ndx_] = ~mAppRenderStates[ndx_].mValue;
 }
 
 void CGxDevice::IRsForceUpdate() {
@@ -1567,7 +1540,7 @@ float CGxDevice::CpuFrequency() {
   }
 
   millisecond = GetTickCount();
-  for (start = CpuTicks(); GetTickCount() == millisecond; start = CpuTicks()) {
+  for (start = CpuTicks(); millisecond == GetTickCount(); start = CpuTicks()) {
   }
 
   Sleep(250);

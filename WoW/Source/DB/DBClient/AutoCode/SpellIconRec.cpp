@@ -15,9 +15,12 @@ SpellIconRec::~SpellIconRec() {
 
 bool SpellIconRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT temptextureFilenameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &temptextureFilenameIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &temptextureFilenameIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellIconRec", DEFAULT_COLOR);
     return false;
   }

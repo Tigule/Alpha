@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "QuestLog.h"
 
@@ -602,7 +610,8 @@ static int Script_GetNumQuestLeaderBoards(lua_State *L) {
 
 static int Script_GetQuestLogLeaderBoard(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetQuestLogLeaderBoard(index)");
+    luaL_error(L, "Usage: GetQuestLogLeaderBoard(index)");
+    return 0;
   }
   int               wanted = static_cast<int>(lua_tonumber(L, 1));
   int               logEntry = CGQuestLog::GetSelectedLogEntry();
@@ -763,7 +772,8 @@ static int Script_GetNumQuestLogChoices(lua_State *L) {
 
 static int Script_GetQuestLogRewardInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetQuestLogRewardInfo(index)");
+    luaL_error(L, "Usage: GetQuestLogRewardInfo(index)");
+    return 0;
   }
   int                index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   const QuestCache  *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, 0, 0);
@@ -797,7 +807,8 @@ static int Script_GetQuestLogRewardInfo(lua_State *L) {
 
 static int Script_GetQuestLogChoiceInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetQuestLogRewardInfo(index)");
+    luaL_error(L, "Usage: GetQuestLogRewardInfo(index)");
+    return 0;
   }
   int                index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   const QuestCache  *quest = g_questDBCache.GetRecord(CGQuestLog::GetSelectedQuestID(), 0, 0, 0);
@@ -869,7 +880,8 @@ static int Script_GetQuestTimers(lua_State *L) {
 
 static int Script_GetQuestIndexForTimer(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetQuestIndexForTimer(index)");
+    luaL_error(L, "Usage: GetQuestIndexForTimer(index)");
+    return 0;
   }
   int wanted = static_cast<int>(lua_tonumber(L, 1));
   --wanted;
@@ -902,7 +914,8 @@ static int Script_GetQuestIndexForTimer(lua_State *L) {
 
 static int Script_CollapseQuestHeader(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: CollapseQuestHeader(index)");
+    luaL_error(L, "Usage: CollapseQuestHeader(index)");
+    return 0;
   }
   int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   CGQuestLog::CollapseHeader(index < 0 ? CGQuestLog::GetNumEntries() : index, 1);
@@ -911,7 +924,8 @@ static int Script_CollapseQuestHeader(lua_State *L) {
 
 static int Script_ExpandQuestHeader(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: ExpandQuestHeader(index)");
+    luaL_error(L, "Usage: ExpandQuestHeader(index)");
+    return 0;
   }
   int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   CGQuestLog::CollapseHeader(index < 0 ? CGQuestLog::GetNumEntries() : index, 0);

@@ -21,62 +21,28 @@ class CSimpleDoodadMat {
     PROP_TRANSPARENT = 0x2
   };
 
-  CSimpleDoodadMat() : nTextures(0), props(0) {
-  }
-
   UINT texture[4];
   UINT nTextures;
   UINT props;
+
+  CSimpleDoodadMat() : nTextures(0), props(0) {
+  }
 };
 
 class CSimpleDoodadGeoset {
  public:
-  CSimpleDoodadGeoset() : material(0) {
-  }
-  CSimpleDoodadGeoset(const CSimpleDoodadGeoset &geoset);
-
   TSGrowableArray<NTempest::C3Vector> vertexList;
   TSGrowableArray<NTempest::C3Vector> normalList;
   TSGrowableArray<NTempest::C2Vector> tVertexList;
   TSGrowableArray<WORD>               indexList;
   UINT                                material;
+
+  CSimpleDoodadGeoset() : material(0) {
+  }
+  CSimpleDoodadGeoset(const CSimpleDoodadGeoset &geoset);
 };
 
 struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
- public:
-  CSimpleDoodad() {
-  }
-  CSimpleDoodad(const CSimpleDoodad &);
-
-  static void Initialize();
-  static void Destroy();
-  static void ClearCache();
-
-  static CSimpleDoodad *Create(LPCSTR fileName);
-  static void           Delete(CSimpleDoodad *simpleDoodad);
-  static void           PrepareUpdate();
-  static void           AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef);
-  static void           RenderScene();
-
-  static CSimpleDoodad *Get(UINT id);
-  UINT                  GetId();
-  void                  GetBounds(NTempest::CAaSphere &bounds);
-  void                  GetExtents(NTempest::CAaBox &extents);
-  int                   TestBounds(const NTempest::CAaSphere &bounds);
-  int                   TestExtents(const NTempest::CAaBox &extents);
-
-  ~CSimpleDoodad() {
-    for (UINT index = 0; index < nTextures; ++index) {
-      HandleClose(textures[index]);
-      textures[index] = 0;
-    }
-
-    if (gxBuf) {
-      GxBufDestroy(gxBuf);
-      gxBuf = 0;
-    }
-  }
-
  private:
   HTEXTURE                             textures[4];
   CSimpleDoodadMat                     materials[4];
@@ -101,12 +67,47 @@ struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
   static CGxBuf                                  *gxBufDyn;
 
   static int  Read(LPCSTR fileName, CSimpleDoodad *simpleDoodad);
-  static int  MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad);
   static void MdlReadCallback(BYTE *fileData, UINT fileBytes, CSimpleDoodad *simpleDoodad);
+  static int  MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad);
 
   static void GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf);
   static void CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf);
   static void CreateIndices(CSimpleDoodadGeoset *geoset, const CGxBufCommand &cmd, CGxBuf *buf);
+
+ public:
+  static CSimpleDoodad *Get(UINT id);
+
+  static void Initialize();
+  static void Destroy();
+  static void ClearCache();
+
+  static CSimpleDoodad *Create(LPCSTR fileName);
+  static void           Delete(CSimpleDoodad *simpleDoodad);
+  static void           PrepareUpdate();
+  static void           AddToScene(CSimpleDoodad *simpleDoodad, NTempest::C44Matrix &mat, CMapDoodadDef *doodadDef);
+  static void           RenderScene();
+
+  CSimpleDoodad() {
+  }
+  CSimpleDoodad(const CSimpleDoodad &);
+
+  ~CSimpleDoodad() {
+    for (UINT index = 0; index < nTextures; ++index) {
+      HandleClose(textures[index]);
+      textures[index] = 0;
+    }
+
+    if (gxBuf) {
+      GxBufDestroy(gxBuf);
+      gxBuf = 0;
+    }
+  }
+
+  UINT GetId();
+  void GetBounds(NTempest::CAaSphere &bounds);
+  void GetExtents(NTempest::CAaBox &extents);
+  int  TestExtents(const NTempest::CAaBox &extents);
+  int  TestBounds(const NTempest::CAaSphere &bounds);
 };
 
 #endif

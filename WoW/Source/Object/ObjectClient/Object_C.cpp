@@ -1,5 +1,15 @@
-#include <WowConst.h>
+#include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "WowServices/WowConnection.h"
+#include <WowConst.h>
+#include <Frame/CSimpleTop.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "Ui/WorldFrame.h"
+#include "Ui/GameUI.h"
 
 #include "Object_C.h"
 
@@ -112,7 +122,9 @@ static void s_BlobFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLev
 static void s_BlobFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
 
 HMODEL ObjectModelCreate(LPCSTR filename, OBJECT_TYPE objectType, UINT mdlCreateFlags) {
-  FATALASSERT(filename);
+  VALIDATEBEGIN;
+  VALIDATE(filename);
+  VALIDATEEND;
 
   CModelCreate createData;
   CStatus      status;
@@ -447,7 +459,7 @@ BOOL CGObject_C::SetBlock(UINT i, DWORD data) {
 }
 
 void CGObject_C::SetData(LPCVOID data, UINT bytes) {
-  FATALASSERT(bytes <= sizeof(CGObjectData));
+  FATALASSERT(bytes <= sizeof(*m_obj));
   memcpy(m_obj, data, bytes);
 }
 

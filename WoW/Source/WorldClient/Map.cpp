@@ -248,7 +248,7 @@ DWORD CMap::GetTextureUseage() {
 }
 
 void CMap::ClearDetailDoodads() {
-  ITERATELIST(CMapChunk, chunkList, chunk) {
+  for (CMapChunk *chunk = chunkList.Head(); chunk; chunk = static_cast<CMapChunk *>(chunk->lameAssLink.Next())) {
     if (chunk->detailDoodadInst) {
       CDetailDoodad::FreeInst(chunk->detailDoodadInst);
       chunk->detailDoodadInst = 0;
@@ -334,134 +334,6 @@ bool CMap::GetPlane(float wx, float wy, NTempest::C4Plane &plane) {
   plane = *p;
   plane.d -= chunk->corner.x * p->n.x + chunk->corner.y * p->n.y + chunk->corner.z * p->n.z;
   return true;
-}
-
-bool CMap::LocateViewerMapObjs(
-    const NTempest::C3Vector &lCen,
-    const NTempest::C3Vector &lEnd,
-    float                    &maxT,
-    CMapObjDef              *&hitMapObjDef,
-    UINT                      hitGroupIDs[]
-) {
-  hitMapObjDef = 0;
-  hitGroupIDs[0] = 0xFFFF;
-  hitGroupIDs[1] = 0xFFFF;
-
-  ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
-    if (!(mapObjDef->flags & CMapBaseObj::Flag_NoCollision) && mapObjDef->TestAABox(lCen, lEnd)) {
-      CMapObj *mapObj = mapObjDef->mapObj;
-      if (mapObj) {
-        NTempest::C3Vector v0 = lCen * mapObjDef->invMat;
-        NTempest::C3Vector v1 = lEnd * mapObjDef->invMat;
-
-        ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, link) {
-          CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
-          if (mapObj->TestGroupBounds(v0, v1, mapObjDefGroup->groupNum)) {
-            CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
-            if (mapObjGroup) {
-              CWTriData triData;
-              if (mapObjGroup->GetTris(triData, NTempest::C3Segment(v0, v1), maxT, mapObjDef, 0)) {
-                hitMapObjDef = mapObjDef;
-                hitGroupIDs[0] = mapObjDefGroup->groupNum;
-                hitGroupIDs[1] = 0xFFFF;
-              }
-            }
-          }
-        }
-
-        float portalT = 1.0f;
-        UINT  portalGroups[2];
-        if (mapObj->VectorIntersectPortals(NTempest::C3Segment(v0, v1), portalT, portalGroups) && portalT - maxT < 0.0001f) {
-          maxT = portalT;
-          if (!(mapObj->GetGroupInfo(portalGroups[0])->flags & 8)) {
-            hitMapObjDef = mapObjDef;
-            hitGroupIDs[0] = portalGroups[0];
-            hitGroupIDs[1] = mapObj->GetGroupInfo(portalGroups[1])->flags & 8 ? 0xFFFF : portalGroups[1];
-          }
-        }
-
-        if (hitMapObjDef == mapObjDef && mapObj->GetGroupInfo(hitGroupIDs[0])->flags & 8) {
-          hitMapObjDef = 0;
-        }
-      }
-    }
-  }
-
-  return hitMapObjDef != 0;
-}
-
-void CMap::TestQueryAdd(const NTempest::CFacet &facet, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
-  NTempest::C44Matrix        id;
-  UINT                       sub = testQueryVerts.Count();
-  const NTempest::C44Matrix *mtx = basis ? basis : &id;
-
-  for (UINT i = 0; i < 3; ++i) {
-    CGxVertexPC *v = testQueryVerts.NewElement();
-    v->p = facet.vertices[i] * *mtx;
-    v->c = color;
-  }
-
-  testQueryIndices.Add(reinterpret_cast<WORD *>(&sub));
-  ++sub;
-  testQueryIndices.Add(reinterpret_cast<WORD *>(&sub));
-  ++sub;
-  testQueryIndices.Add(reinterpret_cast<WORD *>(&sub));
-}
-
-void CMap::TestQueryAdd(const CWFrustum &frustum, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
-  NTempest::C44Matrix        id;
-  UINT                       sub = testQueryVerts.Count();
-  const NTempest::C44Matrix *mtx = basis ? basis : &id;
-  UINT                       i;
-
-  for (i = 0; i < 8; ++i) {
-    CGxVertexPC *v = testQueryVerts.NewElement();
-    v->p = frustum.corners[i] * *mtx;
-    v->c = color;
-  }
-
-  for (i = 0; i < 36; ++i) {
-    WORD index = static_cast<WORD>(sub + idxoffs[i]);
-    testQueryIndices.Add(&index);
-  }
-}
-
-void CMap::TestQueryAdd(const NTempest::CAaBox &aabox, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
-  NTempest::C44Matrix id;
-  UINT                sub = testQueryVerts.Count();
-  if (!basis) {
-    basis = &id;
-  }
-
-  CGxVertexPC *v = testQueryVerts.NewElement();
-  v->p = NTempest::C3Vector(aabox.b.x, aabox.b.y, aabox.b.z) * *basis;
-  v->c = color;
-  v = testQueryVerts.NewElement();
-  v->p = NTempest::C3Vector(aabox.t.x, aabox.b.y, aabox.b.z) * *basis;
-  v->c = color;
-  v = testQueryVerts.NewElement();
-  v->p = NTempest::C3Vector(aabox.t.x, aabox.t.y, aabox.b.z) * *basis;
-  v->c = color;
-  v = testQueryVerts.NewElement();
-  v->p = NTempest::C3Vector(aabox.b.x, aabox.t.y, aabox.b.z) * *basis;
-  v->c = color;
-  v = testQueryVerts.NewElement();
-  v->p = NTempest::C3Vector(aabox.b.x, aabox.b.y, aabox.t.z) * *basis;
-  v->c = color;
-  v = testQueryVerts.NewElement();
-  v->p = NTempest::C3Vector(aabox.t.x, aabox.b.y, aabox.t.z) * *basis;
-  v->c = color;
-  v = testQueryVerts.NewElement();
-  v->p = NTempest::C3Vector(aabox.t.x, aabox.t.y, aabox.t.z) * *basis;
-  v->c = color;
-  v = testQueryVerts.NewElement();
-  v->p = NTempest::C3Vector(aabox.b.x, aabox.t.y, aabox.t.z) * *basis;
-  v->c = color;
-
-  for (UINT i = 0; i < 36; ++i) {
-    WORD index = static_cast<WORD>(sub + idxoffs[i]);
-    testQueryIndices.Add(&index);
-  }
 }
 
 bool CMap::VectorIntersectTerrain(const NTempest::C3Vector *p0, const NTempest::C3Vector *p1, float *t, UINT queryFlags, CMapChunk **chunk) {
@@ -555,6 +427,263 @@ bool CMap::VectorIntersectMapObjs(
     }
   }
   return hit;
+}
+
+bool CMap::LocateViewerMapObjs(
+    const NTempest::C3Vector &lCen,
+    const NTempest::C3Vector &lEnd,
+    float                    &maxT,
+    CMapObjDef              *&hitMapObjDef,
+    UINT                      hitGroupIDs[]
+) {
+  hitMapObjDef = 0;
+  hitGroupIDs[0] = 0xFFFF;
+  hitGroupIDs[1] = 0xFFFF;
+
+  ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
+    if (!(mapObjDef->flags & CMapBaseObj::Flag_NoCollision) && mapObjDef->TestAABox(lCen, lEnd)) {
+      CMapObj *mapObj = mapObjDef->mapObj;
+      if (mapObj) {
+        NTempest::C3Vector v0 = lCen * mapObjDef->invMat;
+        NTempest::C3Vector v1 = lEnd * mapObjDef->invMat;
+
+        ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, link) {
+          CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
+          if (mapObj->TestGroupBounds(v0, v1, mapObjDefGroup->groupNum)) {
+            CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
+            if (mapObjGroup) {
+              CWTriData triData;
+              if (mapObjGroup->GetTris(triData, NTempest::C3Segment(v0, v1), maxT, mapObjDef, 0)) {
+                hitMapObjDef = mapObjDef;
+                hitGroupIDs[0] = mapObjDefGroup->groupNum;
+                hitGroupIDs[1] = 0xFFFF;
+              }
+            }
+          }
+        }
+
+        float portalT = 1.0f;
+        UINT  portalGroups[2];
+        if (mapObj->VectorIntersectPortals(NTempest::C3Segment(v0, v1), portalT, portalGroups) && portalT - maxT < 0.0001f) {
+          maxT = portalT;
+          if (!(mapObj->GetGroupInfo(portalGroups[0])->flags & 8)) {
+            hitMapObjDef = mapObjDef;
+            hitGroupIDs[0] = portalGroups[0];
+            hitGroupIDs[1] = mapObj->GetGroupInfo(portalGroups[1])->flags & 8 ? 0xFFFF : portalGroups[1];
+          }
+        }
+
+        if (hitMapObjDef == mapObjDef && mapObj->GetGroupInfo(hitGroupIDs[0])->flags & 8) {
+          hitMapObjDef = 0;
+        }
+      }
+    }
+  }
+
+  return hitMapObjDef != 0;
+}
+
+void CMap::VectorIntersectSX(NTempest::CiRect &sRect) {
+  long sx = sRect.l;
+
+  if (sx > sRect.r) {
+    while (sx >= sRect.r) {
+      scCollideList[scCollideCnt++] = sx;
+      scCollideList[scCollideCnt++] = sRect.t;
+      --sx;
+    }
+  } else if (sx <= sRect.r) {
+    while (sx <= sRect.r) {
+      scCollideList[scCollideCnt++] = sx;
+      scCollideList[scCollideCnt++] = sRect.t;
+      ++sx;
+    }
+  }
+}
+
+void CMap::VectorIntersectSY(NTempest::CiRect &sRect) {
+  long sy = sRect.t;
+
+  if (sy > sRect.b) {
+    while (sy >= sRect.b) {
+      scCollideList[scCollideCnt++] = sRect.l;
+      scCollideList[scCollideCnt++] = sy;
+      --sy;
+    }
+  } else if (sy <= sRect.b) {
+    while (sy <= sRect.b) {
+      scCollideList[scCollideCnt++] = sRect.l;
+      scCollideList[scCollideCnt++] = sy;
+      ++sy;
+    }
+  }
+}
+
+void CMap::VectorIntersectDX(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, NTempest::CiRect &sRect) {
+  int   x = sRect.l;
+  int   y = sRect.t;
+  int   step;
+  float m = (p1.y - p0.y) / (p1.x - p0.x);
+  float b = p0.y - m * p0.x;
+  float edge;
+
+  if (x < sRect.r) {
+    edge = (x + 1) * (150.0f / 36.0f);
+    step = 1;
+  } else {
+    edge = x * (150.0f / 36.0f);
+    step = -1;
+  }
+
+  scCollideList[scCollideCnt++] = x;
+  scCollideList[scCollideCnt++] = y;
+
+  while (x != sRect.r + step) {
+    int sx = static_cast<int>((edge * m + b) * OO_COORD_TO_SUBCHUNK - OneHalfOffset);
+
+    if (sx != y) {
+      scCollideList[scCollideCnt++] = x;
+      scCollideList[scCollideCnt++] = sx;
+    }
+
+    x += step;
+    scCollideList[scCollideCnt++] = x;
+    scCollideList[scCollideCnt++] = sx;
+    y = sx;
+    edge += step * (150.0f / 36.0f);
+  }
+
+  if (y != sRect.b) {
+    scCollideList[scCollideCnt++] = sRect.r;
+    scCollideList[scCollideCnt++] = sRect.b;
+  }
+}
+
+void CMap::VectorIntersectDY(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, NTempest::CiRect &sRect) {
+  int   x = sRect.l;
+  int   y = sRect.t;
+  int   step;
+  float m = (p1.y - p0.y) / (p1.x - p0.x);
+  float b = p0.y - m * p0.x;
+  float oom = 1.0f / m;
+  float edge;
+
+  if (y < sRect.b) {
+    edge = (y + 1) * (150.0f / 36.0f);
+    step = 1;
+  } else {
+    edge = y * (150.0f / 36.0f);
+    step = -1;
+  }
+
+  scCollideList[scCollideCnt++] = x;
+  scCollideList[scCollideCnt++] = y;
+
+  while (y != sRect.b + step) {
+    int sy = static_cast<int>((edge - b) * oom * OO_COORD_TO_SUBCHUNK - OneHalfOffset);
+
+    if (sy != x) {
+      scCollideList[scCollideCnt++] = sy;
+      scCollideList[scCollideCnt++] = y;
+    }
+
+    scCollideList[scCollideCnt++] = sy;
+    y += step;
+    scCollideList[scCollideCnt++] = y;
+    x = sy;
+    edge += step * (150.0f / 36.0f);
+  }
+
+  if (x != sRect.r) {
+    scCollideList[scCollideCnt++] = sRect.r;
+    scCollideList[scCollideCnt++] = sRect.b;
+  }
+}
+
+bool CMap::VectorIntersectSubchunks(const NTempest::C3Vector *p0, const NTempest::C3Vector *p1, float *t, UINT queryFlags, CMapChunk **retChunk) {
+  UINT *scPtr = scCollideList.Ptr();
+  FATALASSERT(scPtr);
+
+  UINT       scCnt = scCollideCnt;
+  UINT       bMaskY = scPtr[0] & 0x2000;
+  UINT       bMaskX = scPtr[1] & 0x2000;
+  CMapChunk *chunk = 0;
+  CMapChunk *hitChunk = 0;
+  float      hitT = *t;
+
+  while (scCnt) {
+    UINT sx = scPtr[0];
+    UINT sy = scPtr[1];
+    scPtr += 2;
+    scCnt -= 2;
+
+    if (sx > 0x2000 || sy > 0x2000) {
+      return false;
+    }
+
+    if ((sx & 0x1FF8) != bMaskX || (sy & 0x1FF8) != bMaskY) {
+      CMapArea *area = areaTable[64 * ((sy >> 7) & 0x3F) + ((sx >> 7) & 0x3F)];
+      if (!area) {
+        return false;
+      }
+
+      chunk = area->chunkTable[((sx >> 3) & 0xF) + 16 * ((sy >> 3) & 0xF)];
+      if (!chunk) {
+        return false;
+      }
+
+      bMaskY = sy & 0x1FF8;
+      bMaskX = sx & 0x1FF8;
+
+      if (queryFlags & 0xF) {
+        float thisdHitT = 1.0f;
+        if (VectorIntersectDoodadDefLinkList(chunk->doodadDefLinkList, p0, p1, &thisdHitT, queryFlags) && thisdHitT < hitT) {
+          hitT = thisdHitT;
+        }
+        if (VectorIntersectGameObjLinkList(chunk->entityLinkList, p0, p1, &thisdHitT, queryFlags) && thisdHitT < hitT) {
+          hitT = thisdHitT;
+        }
+      }
+    }
+
+    UINT               x = sx & 7;
+    UINT               y = sy & 7;
+    NTempest::C3Vector lp0 = *p0 - chunk->corner;
+    NTempest::C3Vector lp1 = *p1 - chunk->corner;
+
+    if (chunk->holes & g_holeMask[y >> 1][x >> 1]) {
+      continue;
+    }
+
+    NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
+    NTempest::C4Plane  *p = &chunk->planeList[4 * (x + 8 * y)];
+    for (UINT triangle = 0; triangle < 4; ++triangle) {
+      float ip0 = NTempest::C3Vector::Dot(p->n, lp0) + p->d;
+      float ip1 = NTempest::C3Vector::Dot(p->n, lp1) + p->d;
+
+      if ((ip0 <= 0.0f || ip1 <= 0.0f) && (ip0 >= 0.0f || ip1 >= 0.0f)) {
+        float it = ip0 / (ip0 - ip1);
+        if (it >= 0.0f && it <= 1.0f) {
+          NTempest::C3Vector tempIp = lp0 + (lp1 - lp0) * it;
+          if (VectorIntersectTri(&tempIp, &v[9], &v[iIndiciesP[triangle][0]], &v[iIndiciesP[triangle][1]], &p->n) && it < hitT) {
+            hitT = it;
+            hitChunk = chunk;
+          }
+        }
+      }
+      ++p;
+    }
+  }
+
+  if (hitT >= *t) {
+    return false;
+  }
+
+  *t = hitT;
+  if (retChunk) {
+    *retChunk = hitChunk;
+  }
+  return true;
 }
 
 bool CMap::VectorIntersectDoodadDefLinkList(
@@ -685,123 +814,6 @@ bool CMap::VectorIntersectGameObjLinkList(
   return hit;
 }
 
-void CMap::VectorIntersectSX(NTempest::CiRect &sRect) {
-  long sx = sRect.l;
-
-  if (sx > sRect.r) {
-    while (sx >= sRect.r) {
-      scCollideList[scCollideCnt++] = sx;
-      scCollideList[scCollideCnt++] = sRect.t;
-      --sx;
-    }
-  } else if (sx <= sRect.r) {
-    while (sx <= sRect.r) {
-      scCollideList[scCollideCnt++] = sx;
-      scCollideList[scCollideCnt++] = sRect.t;
-      ++sx;
-    }
-  }
-}
-
-void CMap::VectorIntersectSY(NTempest::CiRect &sRect) {
-  long sy = sRect.t;
-
-  if (sy > sRect.b) {
-    while (sy >= sRect.b) {
-      scCollideList[scCollideCnt++] = sRect.l;
-      scCollideList[scCollideCnt++] = sy;
-      --sy;
-    }
-  } else if (sy <= sRect.b) {
-    while (sy <= sRect.b) {
-      scCollideList[scCollideCnt++] = sRect.l;
-      scCollideList[scCollideCnt++] = sy;
-      ++sy;
-    }
-  }
-}
-
-void CMap::VectorIntersectDX(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, NTempest::CiRect &sRect) {
-  int   x = sRect.l;
-  int   y = sRect.t;
-  int   step;
-  float m = (p1.y - p0.y) / (p1.x - p0.x);
-  float b = p0.y - m * p0.x;
-  float edge;
-
-  if (x < sRect.r) {
-    edge = (x + 1) * (150.0f / 36.0f);
-    step = 1;
-  } else {
-    edge = x * (150.0f / 36.0f);
-    step = -1;
-  }
-
-  scCollideList[scCollideCnt++] = x;
-  scCollideList[scCollideCnt++] = y;
-
-  while (x != sRect.r + step) {
-    int sx = static_cast<int>((edge * m + b) * OO_COORD_TO_SUBCHUNK - OneHalfOffset);
-
-    if (sx != y) {
-      scCollideList[scCollideCnt++] = x;
-      scCollideList[scCollideCnt++] = sx;
-    }
-
-    x += step;
-    scCollideList[scCollideCnt++] = x;
-    scCollideList[scCollideCnt++] = sx;
-    y = sx;
-    edge += step * (150.0f / 36.0f);
-  }
-
-  if (y != sRect.b) {
-    scCollideList[scCollideCnt++] = sRect.r;
-    scCollideList[scCollideCnt++] = sRect.b;
-  }
-}
-
-void CMap::VectorIntersectDY(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, NTempest::CiRect &sRect) {
-  int   x = sRect.l;
-  int   y = sRect.t;
-  int   step;
-  float m = (p1.y - p0.y) / (p1.x - p0.x);
-  float b = p0.y - m * p0.x;
-  float oom = 1.0f / m;
-  float edge;
-
-  if (y < sRect.b) {
-    edge = (y + 1) * (150.0f / 36.0f);
-    step = 1;
-  } else {
-    edge = y * (150.0f / 36.0f);
-    step = -1;
-  }
-
-  scCollideList[scCollideCnt++] = x;
-  scCollideList[scCollideCnt++] = y;
-
-  while (y != sRect.b + step) {
-    int sy = static_cast<int>((edge - b) * oom * OO_COORD_TO_SUBCHUNK - OneHalfOffset);
-
-    if (sy != x) {
-      scCollideList[scCollideCnt++] = sy;
-      scCollideList[scCollideCnt++] = y;
-    }
-
-    scCollideList[scCollideCnt++] = sy;
-    y += step;
-    scCollideList[scCollideCnt++] = y;
-    x = sy;
-    edge += step * (150.0f / 36.0f);
-  }
-
-  if (x != sRect.r) {
-    scCollideList[scCollideCnt++] = sRect.r;
-    scCollideList[scCollideCnt++] = sRect.b;
-  }
-}
-
 bool CMap::VectorIntersectTri(
     const NTempest::C3Vector *p,
     const NTempest::C3Vector *v0,
@@ -845,90 +857,78 @@ bool CMap::VectorIntersectTri(
   return true;
 }
 
-bool CMap::VectorIntersectSubchunks(const NTempest::C3Vector *p0, const NTempest::C3Vector *p1, float *t, UINT queryFlags, CMapChunk **retChunk) {
-  UINT *scPtr = scCollideList.Ptr();
-  FATALASSERT(scPtr);
+void CMap::TestQueryAdd(const NTempest::CFacet &facet, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
+  NTempest::C44Matrix        id;
+  UINT                       sub = testQueryVerts.Count();
+  const NTempest::C44Matrix *mtx = basis ? basis : &id;
 
-  UINT       scCnt = scCollideCnt;
-  UINT       bMaskY = scPtr[0] & 0x2000;
-  UINT       bMaskX = scPtr[1] & 0x2000;
-  CMapChunk *chunk = 0;
-  CMapChunk *hitChunk = 0;
-  float      hitT = *t;
-
-  while (scCnt) {
-    UINT sx = scPtr[0];
-    UINT sy = scPtr[1];
-    scPtr += 2;
-    scCnt -= 2;
-
-    if (sx > 0x2000 || sy > 0x2000) {
-      return false;
-    }
-
-    if ((sx & 0x1FF8) != bMaskX || (sy & 0x1FF8) != bMaskY) {
-      CMapArea *area = areaTable[64 * ((sy >> 7) & 0x3F) + ((sx >> 7) & 0x3F)];
-      if (!area) {
-        return false;
-      }
-
-      chunk = area->chunkTable[((sx >> 3) & 0xF) + 16 * ((sy >> 3) & 0xF)];
-      if (!chunk) {
-        return false;
-      }
-
-      bMaskY = sy & 0x1FF8;
-      bMaskX = sx & 0x1FF8;
-
-      if (queryFlags & 0xF) {
-        float thisdHitT = 1.0f;
-        if (VectorIntersectDoodadDefLinkList(chunk->doodadDefLinkList, p0, p1, &thisdHitT, queryFlags) && thisdHitT < hitT) {
-          hitT = thisdHitT;
-        }
-        if (VectorIntersectGameObjLinkList(chunk->entityLinkList, p0, p1, &thisdHitT, queryFlags) && thisdHitT < hitT) {
-          hitT = thisdHitT;
-        }
-      }
-    }
-
-    UINT               x = sx & 7;
-    UINT               y = sy & 7;
-    NTempest::C3Vector lp0 = *p0 - chunk->corner;
-    NTempest::C3Vector lp1 = *p1 - chunk->corner;
-
-    if (chunk->holes & g_holeMask[y >> 1][x >> 1]) {
-      continue;
-    }
-
-    NTempest::C3Vector *v = &chunk->vertexList[x + 17 * y];
-    NTempest::C4Plane  *p = &chunk->planeList[4 * (x + 8 * y)];
-    for (UINT triangle = 0; triangle < 4; ++triangle) {
-      float ip0 = NTempest::C3Vector::Dot(p->n, lp0) + p->d;
-      float ip1 = NTempest::C3Vector::Dot(p->n, lp1) + p->d;
-
-      if ((ip0 <= 0.0f || ip1 <= 0.0f) && (ip0 >= 0.0f || ip1 >= 0.0f)) {
-        float it = ip0 / (ip0 - ip1);
-        if (it >= 0.0f && it <= 1.0f) {
-          NTempest::C3Vector tempIp = lp0 + (lp1 - lp0) * it;
-          if (VectorIntersectTri(&tempIp, &v[9], &v[iIndiciesP[triangle][0]], &v[iIndiciesP[triangle][1]], &p->n) && it < hitT) {
-            hitT = it;
-            hitChunk = chunk;
-          }
-        }
-      }
-      ++p;
-    }
+  for (UINT i = 0; i < 3; ++i) {
+    CGxVertexPC *v = testQueryVerts.NewElement();
+    v->p = facet.vertices[i] * *mtx;
+    v->c = color;
   }
 
-  if (hitT >= *t) {
-    return false;
+  testQueryIndices.Add(reinterpret_cast<WORD *>(&sub));
+  ++sub;
+  testQueryIndices.Add(reinterpret_cast<WORD *>(&sub));
+  ++sub;
+  testQueryIndices.Add(reinterpret_cast<WORD *>(&sub));
+}
+
+void CMap::TestQueryAdd(const CWFrustum &frustum, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
+  NTempest::C44Matrix        id;
+  UINT                       sub = testQueryVerts.Count();
+  const NTempest::C44Matrix *mtx = basis ? basis : &id;
+  UINT                       i;
+
+  for (i = 0; i < 8; ++i) {
+    CGxVertexPC *v = testQueryVerts.NewElement();
+    v->p = frustum.corners[i] * *mtx;
+    v->c = color;
   }
 
-  *t = hitT;
-  if (retChunk) {
-    *retChunk = hitChunk;
+  for (i = 0; i < 36; ++i) {
+    WORD index = static_cast<WORD>(sub + idxoffs[i]);
+    testQueryIndices.Add(&index);
   }
-  return true;
+}
+
+void CMap::TestQueryAdd(const NTempest::CAaBox &aabox, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
+  NTempest::C44Matrix id;
+  UINT                sub = testQueryVerts.Count();
+  if (!basis) {
+    basis = &id;
+  }
+
+  CGxVertexPC *v = testQueryVerts.NewElement();
+  v->p = NTempest::C3Vector(aabox.b.x, aabox.b.y, aabox.b.z) * *basis;
+  v->c = color;
+  v = testQueryVerts.NewElement();
+  v->p = NTempest::C3Vector(aabox.t.x, aabox.b.y, aabox.b.z) * *basis;
+  v->c = color;
+  v = testQueryVerts.NewElement();
+  v->p = NTempest::C3Vector(aabox.t.x, aabox.t.y, aabox.b.z) * *basis;
+  v->c = color;
+  v = testQueryVerts.NewElement();
+  v->p = NTempest::C3Vector(aabox.b.x, aabox.t.y, aabox.b.z) * *basis;
+  v->c = color;
+  v = testQueryVerts.NewElement();
+  v->p = NTempest::C3Vector(aabox.b.x, aabox.b.y, aabox.t.z) * *basis;
+  v->c = color;
+  v = testQueryVerts.NewElement();
+  v->p = NTempest::C3Vector(aabox.t.x, aabox.b.y, aabox.t.z) * *basis;
+  v->c = color;
+  v = testQueryVerts.NewElement();
+  v->p = NTempest::C3Vector(aabox.t.x, aabox.t.y, aabox.t.z) * *basis;
+  v->c = color;
+  v = testQueryVerts.NewElement();
+  v->p = NTempest::C3Vector(aabox.b.x, aabox.t.y, aabox.t.z) * *basis;
+  v->c = color;
+
+  for (UINT i = 0; i < 36; ++i) {
+    WORD index = static_cast<WORD>(sub + idxoffs[i]);
+    testQueryIndices.Add(&index);
+  }
 }
 
 bool CMap::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {
@@ -1094,6 +1094,38 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
   return hit;
 }
 
+bool CMap::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
+  FATALASSERT(facetData);
+
+  ++mapGetFacetsCount;
+  ++cCount;
+  facetData->facets.SetCount(0);
+  facetData->facets.SetChunkSize(32);
+
+  if (queryFlags & 0xF0) {
+    GetFacetsMapObjs(aaBox, facetData, queryFlags);
+  }
+
+  NTempest::CRect tLocation(17066.666f - aaBox.t.x, 17066.666f - aaBox.t.y, 17066.666f - aaBox.b.x, 17066.666f - aaBox.b.y);
+
+  if (tLocation.l < 0.0f || tLocation.t < 0.0f || tLocation.r >= 34133.332f || tLocation.b >= 34133.332f) {
+    FATALERROR(("Request for facets off edge of map: (%g,%g,%g,%g)", aaBox.b.x, aaBox.b.y, aaBox.t.x, aaBox.t.y));
+  }
+
+  NTempest::CiRect sRect(
+      static_cast<int>(tLocation.t * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.l * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
+      static_cast<int>(tLocation.b * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.r * OO_COORD_TO_SUBCHUNK - OneHalfOffset)
+  );
+  NTempest::CiRect cRect(sRect.t >> 3, sRect.l >> 3, sRect.b >> 3, sRect.r >> 3);
+
+  for (int cy = cRect.t; cy <= cRect.b; ++cy) {
+    for (int cx = cRect.l; cx <= cRect.r; ++cx) {
+      GetChunkFacets(cx, cy, sRect, aaBox, facetData, queryFlags);
+    }
+  }
+  return facetData->facets.Count() != 0;
+}
+
 bool CMap::GetTrisTerrain(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
   NTempest::CRect tLocation(17066.666f - aaBox.t.x, 17066.666f - aaBox.t.y, 17066.666f - aaBox.b.x, 17066.666f - aaBox.b.y);
   FATALASSERT(tLocation.l >= 0.0f && tLocation.t >= 0.0f);
@@ -1125,36 +1157,35 @@ bool CMap::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT query
   return got;
 }
 
-bool CMap::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
-  FATALASSERT(facetData);
+bool CMap::GetTrisMapObjs(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
+  NTempest::C3Vector lCen = (aaBox.b + aaBox.t) * 0.5f;
+  NTempest::CAaBox   lBox = aaBox;
+  NTempest::C3Vector tCen(-lCen.x, -lCen.y, -lCen.z);
+  lBox.b += tCen;
+  lBox.t += tCen;
 
-  ++mapGetFacetsCount;
-  ++cCount;
-  facetData->facets.SetCount(0);
-  facetData->facets.SetChunkSize(32);
+  UINT got = 0;
+  ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
+    if (mapObjDef->flags & CMapBaseObj::Flag_NoCollision) {
+      continue;
+    }
 
-  if (queryFlags & 0xF0) {
-    GetFacetsMapObjs(aaBox, facetData, queryFlags);
-  }
+    tCen = lCen * mapObjDef->invMat;
+    NTempest::C33Matrix tMat(
+        mapObjDef->invMat.a0, mapObjDef->invMat.a1, mapObjDef->invMat.a2, mapObjDef->invMat.b0, mapObjDef->invMat.b1, mapObjDef->invMat.b2,
+        mapObjDef->invMat.c0, mapObjDef->invMat.c1, mapObjDef->invMat.c2
+    );
+    NTempest::CAaBox tBox;
+    CWorldMath::TransformAABox(tMat, lBox, tBox);
+    tBox.b += tCen;
+    tBox.t += tCen;
 
-  NTempest::CRect tLocation(17066.666f - aaBox.t.x, 17066.666f - aaBox.t.y, 17066.666f - aaBox.b.x, 17066.666f - aaBox.b.y);
-
-  if (tLocation.l < 0.0f || tLocation.t < 0.0f || tLocation.r >= 34133.332f || tLocation.b >= 34133.332f) {
-    FATALERROR(("Request for facets off edge of map: (%g,%g,%g,%g)", aaBox.b.x, aaBox.b.y, aaBox.t.x, aaBox.t.y));
-  }
-
-  NTempest::CiRect sRect(
-      static_cast<int>(tLocation.t * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.l * OO_COORD_TO_SUBCHUNK - OneHalfOffset),
-      static_cast<int>(tLocation.b * OO_COORD_TO_SUBCHUNK - OneHalfOffset), static_cast<int>(tLocation.r * OO_COORD_TO_SUBCHUNK - OneHalfOffset)
-  );
-  NTempest::CiRect cRect(sRect.t >> 3, sRect.l >> 3, sRect.b >> 3, sRect.r >> 3);
-
-  for (int cy = cRect.t; cy <= cRect.b; ++cy) {
-    for (int cx = cRect.l; cx <= cRect.r; ++cx) {
-      GetChunkFacets(cx, cy, sRect, aaBox, facetData, queryFlags);
+    CMapObj *mapObj = mapObjDef->mapObj;
+    if (mapObj && mapObj->TestBounds(tBox)) {
+      got |= mapObj->GetTris(triData, tBox, mapObjDef, queryFlags);
     }
   }
-  return facetData->facets.Count() != 0;
+  return got;
 }
 
 bool CMap::GetFacetsMapObjs(const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
@@ -1263,37 +1294,6 @@ static void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollis
   for (UINT index = existing; index < count; ++index) {
     facetData->gameObjects[index] = guid;
   }
-}
-
-bool CMap::GetTrisMapObjs(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
-  NTempest::C3Vector lCen = (aaBox.b + aaBox.t) * 0.5f;
-  NTempest::CAaBox   lBox = aaBox;
-  NTempest::C3Vector tCen(-lCen.x, -lCen.y, -lCen.z);
-  lBox.b += tCen;
-  lBox.t += tCen;
-
-  UINT got = 0;
-  ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
-    if (mapObjDef->flags & CMapBaseObj::Flag_NoCollision) {
-      continue;
-    }
-
-    tCen = lCen * mapObjDef->invMat;
-    NTempest::C33Matrix tMat(
-        mapObjDef->invMat.a0, mapObjDef->invMat.a1, mapObjDef->invMat.a2, mapObjDef->invMat.b0, mapObjDef->invMat.b1, mapObjDef->invMat.b2,
-        mapObjDef->invMat.c0, mapObjDef->invMat.c1, mapObjDef->invMat.c2
-    );
-    NTempest::CAaBox tBox;
-    CWorldMath::TransformAABox(tMat, lBox, tBox);
-    tBox.b += tCen;
-    tBox.t += tCen;
-
-    CMapObj *mapObj = mapObjDef->mapObj;
-    if (mapObj && mapObj->TestBounds(tBox)) {
-      got |= mapObj->GetTris(triData, tBox, mapObjDef, queryFlags);
-    }
-  }
-  return got;
 }
 
 bool CMap::GetTrisChunk(int cx, int cy, NTempest::CiRect &sRect, const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {

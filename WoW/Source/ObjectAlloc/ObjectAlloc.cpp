@@ -254,7 +254,9 @@ UINT ObjectAllocAddHeap(UINT objectSize, UINT objsPerBlock, LPCSTR name) {
   UINT             heapId;
   CObjectHeapList *heap;
 
-  FATALASSERT(objectSize > 0);
+  VALIDATEBEGIN;
+  VALIDATE(objectSize > 0);
+  VALIDATEEND;
 
   s_globalsLock.Enter();
   ASSERT(globals->objects.Count() < MAX_HEAPS);
@@ -274,7 +276,9 @@ UINT ObjectAllocUsage(UINT heapId) {
   UINT             usage;
 
   s_globalsLock.Enter();
-  FATALASSERT(heapId < globals->objects.Count());
+  VALIDATEBEGIN;
+  VALIDATE(heapId < globals->objects.Count());
+  VALIDATEEND;
 
   usage = globals->objects[heapId].BlocksAllocated();
   s_globalsLock.Leave();
@@ -289,7 +293,9 @@ BOOL ObjectAlloc(UINT heapId, UINT *memHandle) {
 
   *memHandle = 0;
   s_globalsLock.Enter();
-  FATALASSERT(heapId < globals->objects.Count());
+  VALIDATEBEGIN;
+  VALIDATE(heapId < globals->objects.Count());
+  VALIDATEEND;
 
   if (!globals->objects[heapId].New(&index)) {
     s_globalsLock.Leave();

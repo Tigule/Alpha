@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include <storm.h>
 #include <Os/OsTime.h>
@@ -217,7 +225,8 @@ void CGBuffDesc::SetAuraIndex(int index, CGPlayer_C *player) {
 
 static int Script_GetPlayerBuff(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetPlayerBuff(index [, \"filter\"])");
+    luaL_error(L, "Usage: GetPlayerBuff(index [, \"filter\"])");
+    return 0;
   }
   UINT filter = 7;
   if (lua_isstring(L, 2)) {
@@ -251,7 +260,8 @@ static int Script_GetPlayerBuff(lua_State *L) {
 
 static int Script_GetPlayerBuffTexture(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetPlayerBuffTexture(buffIndex)");
+    luaL_error(L, "Usage: GetPlayerBuffTexture(buffIndex)");
+    return 0;
   }
   const CGBuffDesc   *buff = CGBuffBar::GetBuffByIndex(static_cast<int>(lua_tonumber(L, 1)));
   const SpellRec     *spell = buff ? g_spellDB.GetRecord(buff->GetAuraSpell()) : 0;
@@ -266,7 +276,8 @@ static int Script_GetPlayerBuffTexture(lua_State *L) {
 
 static int Script_GetPlayerBuffTimeLeft(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetPlayerBuffTimeLeft(buffIndex)");
+    luaL_error(L, "Usage: GetPlayerBuffTimeLeft(buffIndex)");
+    return 0;
   }
   lua_pushnumber(L, static_cast<double>(CGBuffBar::GetBuffTimeLeftByIndex(static_cast<int>(lua_tonumber(L, 1)))) * 0.001);
   return 1;
@@ -274,7 +285,8 @@ static int Script_GetPlayerBuffTimeLeft(lua_State *L) {
 
 static int Script_CancelPlayerBuff(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: CancelPlayerBuff(buffIndex)");
+    luaL_error(L, "Usage: CancelPlayerBuff(buffIndex)");
+    return 0;
   }
   int buffIndex = static_cast<int>(lua_tonumber(L, 1));
   if (buffIndex >= 0) {

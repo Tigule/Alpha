@@ -39,14 +39,15 @@ class CDetailDoodadData {
 
   BOOL Load();
 
+ private:
+  static void MdlReadCallback(const MDLDATA &data, CDetailDoodadData *detailDoodad);
+  static void MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailDoodadData *detailDoodad);
+
+ public:
   LPCSTR             fileName;
   int                loaded;
   HTEXTURE__        *texture;
   CDetailDoodadGeom *geom;
-
- private:
-  static void MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailDoodadData *detailDoodad);
-  static void MdlReadCallback(const MDLDATA &data, CDetailDoodadData *detailDoodad);
 };
 
 class CDetailDoodadInst {
@@ -72,6 +73,20 @@ class CDetailDoodadInst {
 
 class CDetailDoodad {
  public:
+  static LISTDECLEX(CDetailDoodadGeom, lameAssLink, geomList);
+  static LISTDECLEX(CDetailDoodadInst, lameAssLink, instList);
+  static TSGrowableArray<CDetailDoodadData *> doodadList;
+  static CGxTex                              *alphaRampTexture;
+
+ private:
+  static TSGrowableArray<CGxBuf *> gxBufFreeList;
+
+  static void CreateAlphaRampTexture(LPCVOID &texels);
+  static void
+  UpdateAlphaRampTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
+  static void GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
+
+ public:
   static void               Initialize();
   static void               Destroy();
   static void               Clear();
@@ -81,19 +96,6 @@ class CDetailDoodad {
   static void               FreeGeom(CDetailDoodadGeom *geom);
   static CGxBuf            *AllocGxBuf(UINT vertexCount, UINT indexCount);
   static void               FreeGxBuf(CGxBuf *gxBuf);
-
-  static LISTDECLEX(CDetailDoodadGeom, lameAssLink, geomList);
-  static LISTDECLEX(CDetailDoodadInst, lameAssLink, instList);
-  static TSGrowableArray<CDetailDoodadData *> doodadList;
-  static CGxTex                              *alphaRampTexture;
-
- private:
-  static void GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf);
-  static void CreateAlphaRampTexture(LPCVOID &texels);
-  static void
-  UpdateAlphaRampTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
-
-  static TSGrowableArray<CGxBuf *> gxBufFreeList;
 };
 
 #endif

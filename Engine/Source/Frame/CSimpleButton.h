@@ -19,41 +19,11 @@ class CSimpleButton : public CSimpleFrame {
  public:
   CSimpleButton(CSimpleFrame *parent = 0);
   virtual ~CSimpleButton();
-
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
-
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
-  virtual void Enable(int enabled);
-  virtual void OnLayerHide();
-  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
-  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
-  virtual void OnDragStart(CMouseEvent &evt);
-  virtual void OnLayerCursorEnter();
-  virtual void OnLayerCursorExit();
-  virtual void LockHighlight(int lock);
-  virtual void OnClick(MOUSEBUTTON button);
-  virtual void SetButtonState(CSimpleButtonState state, int stateLocked);
-
   void SetText(CSimpleFontString *text);
   void SetDisabledText(CSimpleFontString *text);
   void SetHighlightText(CSimpleFontString *text);
-  void SetTextString(LPCSTR text);
-  void SetDisabledTextString(LPCSTR text);
-  void SetHighlightTextString(LPCSTR text);
-  void SetTextColor(const NTempest::CImVector &color);
-  void SetDisabledTextColor(const NTempest::CImVector &color);
-  void SetHighlightTextColor(const NTempest::CImVector &color);
-  void SetPressedOffset(const NTempest::C2Vector &offset);
-  void SetStateTexture(CSimpleButtonState state, CSimpleTexture *texture);
-  BOOL SetStateTexture(CSimpleButtonState state, LPCSTR texFile);
-  void SetClickAction(UINT action);
-  BOOL IsMouseButtonHandled(MOUSEBUTTON button) {
-    return (m_clickAction & (button | (button << 8))) != 0;
-  }
-  void RegisterClick(UINT eventId, CObserver *observer);
-  void RegisterTrack(UINT enterEventId, UINT exitEventId, CObserver *observer);
 
   CSimpleFontString *GetText() {
     return m_text;
@@ -67,6 +37,10 @@ class CSimpleButton : public CSimpleFrame {
     return m_highlightText;
   }
 
+  void SetTextString(LPCSTR text);
+  void SetDisabledTextString(LPCSTR text);
+  void SetHighlightTextString(LPCSTR text);
+
   LPCSTR GetTextString() {
     LPCSTR text = m_text->GetText();
     return text && *text ? text : 0;
@@ -74,28 +48,53 @@ class CSimpleButton : public CSimpleFrame {
 
   LPCSTR GetDisabledTextString();
   LPCSTR GetHighlightTextString();
-  void   SetOnClickScript(LPCSTR source);
-  void   RunOnClickScript(MOUSEBUTTON button);
+  void SetTextColor(const NTempest::CImVector &color);
+  void SetDisabledTextColor(const NTempest::CImVector &color);
+  void SetHighlightTextColor(const NTempest::CImVector &color);
+  void SetPressedOffset(const NTempest::C2Vector &offset);
+  BOOL SetStateTexture(CSimpleButtonState state, LPCSTR texFile);
+  void SetStateTexture(CSimpleButtonState state, CSimpleTexture *texture);
 
   CSimpleTexture *GetStateTexture(CSimpleButtonState state) {
     return m_textures[state];
   }
 
+  virtual void Enable(int enabled);
+
   BOOL IsEnabled() {
     return m_state != BUTTONSTATE_DISABLED;
   }
+
+  virtual void OnLayerHide();
+  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
+  virtual void OnDragStart(CMouseEvent &evt);
+  virtual void OnLayerCursorEnter();
+  virtual void OnLayerCursorExit();
+  virtual void LockHighlight(int lock);
+  virtual void OnClick(MOUSEBUTTON button);
+  void SetClickAction(UINT action);
+
+  BOOL IsMouseButtonHandled(MOUSEBUTTON button) {
+    return (m_clickAction & (button | (button << 8))) != 0;
+  }
+
+  void RegisterClick(UINT eventId, CObserver *observer);
+  void RegisterTrack(UINT enterEventId, UINT exitEventId, CObserver *observer);
+  virtual void SetButtonState(CSimpleButtonState state, int stateLocked);
 
   CSimpleButtonState GetButtonState() {
     return m_state;
   }
 
+  void   SetOnClickScript(LPCSTR source);
+  void   RunOnClickScript(MOUSEBUTTON button);
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
+
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
-
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
-
-  void UpdateTextState(CSimpleButtonState state);
-
   CObserver         *m_observer;
   UINT               m_observerEventId;
   CObserver         *m_trackObserver;
@@ -111,6 +110,7 @@ class CSimpleButton : public CSimpleFrame {
   CSimpleTexture    *m_textures[NUM_BUTTONSTATES];
   CSimpleTexture    *m_activeTexture;
   int                m_onClick;
+  void UpdateTextState(CSimpleButtonState state);
 };
 
 #endif

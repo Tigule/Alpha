@@ -42,27 +42,7 @@ if(WIN32)
 endif()
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Storm PRIVATE /Gr /GX- /Ob1 /Oy- /Z7)
-
-    set_property(SOURCE
-        Source/SBig.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " /GX- /Ob0")
-
-    set_property(SOURCE
-        Source/SCmd.cpp
-        Source/SComp.cpp
-        Source/SErr.cpp
-        Source/SEvt.cpp
-        Source/SFile.cpp
-        Source/SFile2.cpp
-        Source/SMsg.cpp
-        Source/SRgn.cpp
-        Source/SZip.cpp
-        Source/W32/SDir.cpp
-        Source/W32/SInterlocked.cpp
-        Source/W32/SLock.cpp
-        Source/W32/SThread.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " /Ob0")
+    target_compile_options(Storm PRIVATE /Gr /GX- /Ob0 /Oy- /Z7)
 endif()
 
 target_include_directories(Storm

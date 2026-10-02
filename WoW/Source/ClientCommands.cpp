@@ -44,6 +44,11 @@ struct CMemCmdDump {
   DWORDLONG                    m_sumCommitted;
   DWORDLONG                    m_sumReserved;
   TSGrowableArray<CMemCmdItem> m_items;
+
+  CMemCmdDump() : m_sumAllocated(0), m_sumCommitted(0), m_sumReserved(0) {
+    m_items.SetChunkSize(256);
+  }
+  CMemCmdDump(const CMemCmdDump &);
 };
 
 char            *OsGetLastErrorStr();
@@ -65,12 +70,20 @@ static BOOL CCommand_DBLookup(LPCSTR command, LPCSTR string) {
 }
 
 static BOOL CCommand_DrawLog(LPCSTR command, LPCSTR arguments) {
-  ConsoleWrite(ModelRenderSceneLogToggle("RenderLog.txt") ? "Model render logging started" : "Model render logging stopped", DEFAULT_COLOR);
+  if (ModelRenderSceneLogToggle("RenderLog.txt")) {
+    ConsoleWrite("Model render logging started", DEFAULT_COLOR);
+  } else {
+    ConsoleWrite("Model render logging stopped", DEFAULT_COLOR);
+  }
   return 1;
 }
 
 static BOOL CCommand_AnimLog(LPCSTR command, LPCSTR arguments) {
-  ConsoleWrite(ModelAnimateLogToggle("AnimLog.txt") ? "Model animation logging started" : "Model animation logging stopped", DEFAULT_COLOR);
+  if (ModelAnimateLogToggle("AnimLog.txt")) {
+    ConsoleWrite("Model animation logging started", DEFAULT_COLOR);
+  } else {
+    ConsoleWrite("Model animation logging stopped", DEFAULT_COLOR);
+  }
   return 1;
 }
 
@@ -130,7 +143,9 @@ static BOOL CCommand_Loc(LPCSTR, LPCSTR) {
 
 static BOOL CCommand_TerminalVelocity(LPCSTR command, LPCSTR arguments) {
   float metersPerSec;
-  if (*arguments) {
+  if (!*arguments) {
+    metersPerSec = MovementGetTerminalVelocity();
+  } else {
     metersPerSec = static_cast<float>(atof(arguments));
     if (metersPerSec < 1.0f) {
       metersPerSec = 1.0f;
@@ -138,8 +153,6 @@ static BOOL CCommand_TerminalVelocity(LPCSTR command, LPCSTR arguments) {
       metersPerSec = 60.0f;
     }
     MovementSetTerminalVelocity(metersPerSec);
-  } else {
-    metersPerSec = MovementGetTerminalVelocity();
   }
   ConsoleWriteA("Terminal velocity: %g m/s", DEFAULT_COLOR, metersPerSec);
   return 1;
@@ -870,7 +883,7 @@ static UINT CmdMemParseNum(LPCSTR &str) {
     ++str;
   }
   UINT result = 0;
-  while (*str >= '0' && *str <= '9') {
+  while (*str && *str >= '0' && *str <= '9') {
     result = *str++ + 10 * result - '0';
   }
   return result;
@@ -894,13 +907,13 @@ static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT__ *hOutput, LPCSTR str) {
 }
 
 static void DebugPrintMemDump(const CMemCmdDump &memDump) {
-  UINT numItems = memDump.m_items.Count();
-  UINT avgAllocated = static_cast<UINT>(memDump.m_sumAllocated / numItems);
-  UINT avgCommitted = static_cast<UINT>(memDump.m_sumCommitted / numItems);
-  UINT avgReserved = static_cast<UINT>(memDump.m_sumReserved / numItems);
+  UINT avgAllocated = static_cast<UINT>(memDump.m_sumAllocated / memDump.m_items.Count());
+  UINT avgCommitted = static_cast<UINT>(memDump.m_sumCommitted / memDump.m_items.Count());
+  UINT avgReserved = static_cast<UINT>(memDump.m_sumReserved / memDump.m_items.Count());
   OsOutputDebugString("*** MEMORY DUMP BEGIN ***\n");
   OsOutputDebugString("   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
   OsOutputDebugString("   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
+  UINT numItems = memDump.m_items.Count();
   for (UINT i = 0; i < numItems; ++i) {
     OsOutputDebugString("%s\n", memDump.m_items[i].m_name);
   }
@@ -910,10 +923,9 @@ static void DebugPrintMemDump(const CMemCmdDump &memDump) {
 }
 
 static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
-  UINT  numItems = memDump.m_items.Count();
-  UINT  avgAllocated = static_cast<UINT>(memDump.m_sumAllocated / numItems);
-  UINT  avgCommitted = static_cast<UINT>(memDump.m_sumCommitted / numItems);
-  UINT  avgReserved = static_cast<UINT>(memDump.m_sumReserved / numItems);
+  UINT  avgAllocated = static_cast<UINT>(memDump.m_sumAllocated / memDump.m_items.Count());
+  UINT  avgCommitted = static_cast<UINT>(memDump.m_sumCommitted / memDump.m_items.Count());
+  UINT  avgReserved = static_cast<UINT>(memDump.m_sumReserved / memDump.m_items.Count());
   FILE *file = fopen(fileName, "wt");
   if (!file) {
     char *error = OsGetLastErrorStr();
@@ -925,6 +937,7 @@ static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
   fprintf(file, "*** MEMORY DUMP BEGIN ***\n");
   fprintf(file, "   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
   fprintf(file, "   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
+  UINT numItems = memDump.m_items.Count();
   for (UINT i = 0; i < numItems; ++i) {
     fprintf(file, "%s\n", memDump.m_items[i].m_name);
   }
@@ -936,8 +949,6 @@ static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
 
 static BOOL CCommand_Mem(LPCSTR command, LPCSTR arguments) {
   CMemCmdDump memDump;
-  memset(&memDump, 0, offsetof(CMemCmdDump, m_items));
-  memDump.m_items.SetChunkSize(256);
   SMemDumpState(reinterpret_cast<SMEMDUMPPROC>(CmdMemOutput), reinterpret_cast<HOUTPUTCONTEXT>(&memDump));
   if (memDump.m_items.Count()) {
     qsort(memDump.m_items.Ptr(), memDump.m_items.Count(), sizeof(CMemCmdItem), CMemCmdItem::Compare);

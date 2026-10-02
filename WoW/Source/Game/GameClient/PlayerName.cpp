@@ -372,10 +372,10 @@ void PlayerNameChangeLocation(HPLAYERNAME name, const NTempest::C3Vector &namePo
 
 void PLAYERNAMEDESC::MoveGeoset(const NTempest::C3Vector &pos) {
   if (m_unitPtr && m_customGeosetID != -1) {
-    HMODEL model = m_unitPtr->GetCharacterModel(0);
-    FATALASSERT(model);
-    ModelCustGeosetMove(model, m_customGeosetID, pos);
-    HandleClose(model);
+    HMODEL charModel = m_unitPtr->GetCharacterModel(0);
+    FATALASSERT(charModel);
+    ModelCustGeosetMove(charModel, m_customGeosetID, pos);
+    HandleClose(charModel);
   }
 }
 

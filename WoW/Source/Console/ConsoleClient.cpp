@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <WowConst.h>
 
 #include "ConsoleClient.h"
@@ -11,7 +12,6 @@
 #include <DB/DBClient/AutoCode/VideoHardwareRec.h>
 #include <Event/EvtApi.h>
 #include <Gx/CGxDevice.h>
-#include <Gx/Gx.h>
 #include <Gxu/IGxuFont.h>
 #include <Os/W32/OsClipboard.h>
 #include <WorldClient/WorldParam.h>
@@ -42,9 +42,6 @@ enum CONSOLERESIZESTATE {
 };
 
 NODEDECL(CONSOLELINE) {
-  ~CONSOLELINE() {
-  }
-
   char      *buffer;
   DWORD      chars;
   DWORD      charsalloc;
@@ -52,6 +49,13 @@ NODEDECL(CONSOLELINE) {
   DWORD      inputstart;
   COLOR_T    colorType;
   CGxString *fontPointer;
+
+  ~CONSOLELINE() {
+    FREEIFUSED(buffer);
+    if (fontPointer) {
+      GxuFontDestroyString(fontPointer);
+    }
+  }
 };
 
 CGxFont     *TextBlockGetFontPtr(HTEXTFONT__ *fontHandle);
@@ -217,39 +221,18 @@ static void GenerateNodeString(CONSOLELINE *node) {
 }
 
 static void EnforceMaxLines() {
-  CONSOLELINE *line;
-
-  if (s_NumLines <= 256) {
-    return;
-  }
-
-  line = s_linelist.Tail();
-  if (line) {
-    FREEIFUSED(line->buffer);
-    if (line->fontPointer) {
-      GxuFontDestroyString(line->fontPointer);
-    }
-    s_linelist.DeleteNode(line);
+  if (s_NumLines > 256) {
+    s_linelist.DeleteNode(s_linelist.Tail());
     --s_NumLines;
   }
 }
 
 static void DrawBackground() {
-  NTempest::C3Vector position[4];
-  WORD               indices[4] = {0, 1, 2, 3};
-
-  position[0].x = s_rect.left;
-  position[0].y = s_rect.bottom;
-  position[0].z = 0.0f;
-  position[1].x = s_rect.right;
-  position[1].y = s_rect.bottom;
-  position[1].z = 0.0f;
-  position[2].x = s_rect.left;
-  position[2].y = s_rect.top;
-  position[2].z = 0.0f;
-  position[3].x = s_rect.right;
-  position[3].y = s_rect.top;
-  position[3].z = 0.0f;
+  NTempest::C3Vector position[4] = {
+      NTempest::C3Vector(s_rect.left, s_rect.bottom, 0.0f), NTempest::C3Vector(s_rect.right, s_rect.bottom, 0.0f),
+      NTempest::C3Vector(s_rect.left, s_rect.top, 0.0f), NTempest::C3Vector(s_rect.right, s_rect.top, 0.0f)
+  };
+  WORD indices[4] = {0, 1, 2, 3};
 
   GxRsPush();
   GxRsSet(GxRs_Lighting, 0);
@@ -267,21 +250,11 @@ static void DrawBackground() {
 }
 
 static void DrawHighLight() {
-  NTempest::C3Vector position[4];
-  WORD               indices[4] = {0, 1, 2, 3};
-
-  position[0].x = s_hRect.left;
-  position[0].y = s_hRect.bottom;
-  position[0].z = 0.0f;
-  position[1].x = s_hRect.right;
-  position[1].y = s_hRect.bottom;
-  position[1].z = 0.0f;
-  position[2].x = s_hRect.left;
-  position[2].y = s_hRect.top;
-  position[2].z = 0.0f;
-  position[3].x = s_hRect.right;
-  position[3].y = s_hRect.top;
-  position[3].z = 0.0f;
+  NTempest::C3Vector position[4] = {
+      NTempest::C3Vector(s_hRect.left, s_hRect.bottom, 0.0f), NTempest::C3Vector(s_hRect.right, s_hRect.bottom, 0.0f),
+      NTempest::C3Vector(s_hRect.left, s_hRect.top, 0.0f), NTempest::C3Vector(s_hRect.right, s_hRect.top, 0.0f)
+  };
+  WORD indices[4] = {0, 1, 2, 3};
 
   GxRsPush();
   GxRsSet(GxRs_Lighting, 0);
@@ -294,21 +267,12 @@ static void DrawHighLight() {
 }
 
 static void DrawCaret(const NTempest::C3Vector &caretpos) {
-  NTempest::C3Vector position[4];
-  WORD               indices[4] = {0, 1, 2, 3};
-
-  position[0].x = caretpos.x;
-  position[0].y = caretpos.y;
-  position[0].z = 0.0f;
-  position[1].x = caretpos.x + s_caretpixwidth * 2.0f;
-  position[1].y = caretpos.y;
-  position[1].z = 0.0f;
-  position[2].x = caretpos.x;
-  position[2].y = caretpos.y + s_fontHeight;
-  position[2].z = 0.0f;
-  position[3].x = caretpos.x + s_caretpixwidth * 2.0f;
-  position[3].y = caretpos.y + s_fontHeight;
-  position[3].z = 0.0f;
+  NTempest::C3Vector position[4] = {
+      NTempest::C3Vector(caretpos.x, caretpos.y, 0.0f), NTempest::C3Vector(caretpos.x + s_caretpixwidth * 2.0f, caretpos.y, 0.0f),
+      NTempest::C3Vector(caretpos.x, caretpos.y + s_fontHeight, 0.0f),
+      NTempest::C3Vector(caretpos.x + s_caretpixwidth * 2.0f, caretpos.y + s_fontHeight, 0.0f)
+  };
+  WORD indices[4] = {0, 1, 2, 3};
 
   GxRsPush();
   GxRsSet(GxRs_Lighting, 0);
@@ -326,11 +290,13 @@ static void DrawCaret(const NTempest::C3Vector &caretpos) {
 }
 
 static void PaintBackground(LPVOID, const RECTF *, const RECTF *, float) {
-  if (s_rect.bottom < 1.0f) {
-    DrawBackground();
-    if (s_highlightState != HS_NONE) {
-      DrawHighLight();
-    }
+  if (s_rect.bottom >= 1.0f) {
+    return;
+  }
+
+  DrawBackground();
+  if (s_highlightState != HS_NONE) {
+    DrawHighLight();
   }
 }
 
@@ -338,11 +304,7 @@ static CONSOLELINE *GetInputLine() {
   CONSOLELINE *line = s_linelist.Head();
 
   if (!line || !line->inputpos) {
-    line = (CONSOLELINE *)SMemAlloc(sizeof(CONSOLELINE), typeid(CONSOLELINE).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
-    if (line) {
-      new (line) CONSOLELINE;
-    }
-    s_linelist.LinkNode(line, 1, 0);
+    line = s_linelist.NewNode(LIST_HEAD, 0, 0);
     line->charsalloc = 16;
     line->buffer = (char *)ALLOC(16);
     SStrCopy(line->buffer, "> ", line->charsalloc);
@@ -358,11 +320,6 @@ static CONSOLELINE *GetInputLine() {
 }
 
 static void PaintText(LPVOID, const RECTF *, const RECTF *, float elapsedSec) {
-  CONSOLELINE       *inputLine;
-  CGxFont           *font;
-  NTempest::C3Vector caretpos;
-  NTempest::C3Vector pos;
-
   if (s_rect.bottom >= 1.0f) {
     return;
   }
@@ -372,18 +329,18 @@ static void PaintText(LPVOID, const RECTF *, const RECTF *, float elapsedSec) {
     s_caret = !s_caret;
   }
 
-  inputLine = GetInputLine();
-  pos.x = s_rect.left;
-  pos.y = s_rect.bottom + s_fontHeight * 0.75f;
-  pos.z = -0.9f;
-  font = TextBlockGetFontPtr(s_textFont);
+  CONSOLELINE       *inputLine = GetInputLine();
+  NTempest::C3Vector pos(s_rect.left, s_fontHeight * 0.75f + s_rect.bottom, -0.9f);
+
   GxuFontRenderString(
-      font, inputLine->buffer, s_fontHeight, pos, s_colorArray[INPUT_COLOR], 1.0f, s_fontHeight, GxVJ_Middle, GxHJ_Left, s_baseTextFlags, 0.0f,
-      s_charSpacing
+      TextBlockGetFontPtr(s_textFont), inputLine->buffer, s_fontHeight, pos, s_colorArray[INPUT_COLOR], 1.0f, s_fontHeight, GxVJ_Middle, GxHJ_Left,
+      s_baseTextFlags, 0.0f, s_charSpacing
   );
   if (inputLine->inputpos) {
-    caretpos = pos;
-    GxuFontGetTextExtent(font, inputLine->buffer, inputLine->inputpos, s_fontHeight, &caretpos.x, s_charSpacing, s_baseTextFlags);
+    NTempest::C3Vector caretpos = pos;
+    GxuFontGetTextExtent(
+        TextBlockGetFontPtr(s_textFont), inputLine->buffer, inputLine->inputpos, s_fontHeight, &caretpos.x, s_charSpacing, s_baseTextFlags
+    );
     DrawCaret(caretpos);
   }
 
@@ -406,31 +363,26 @@ static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
 
   if (s_active) {
     finalPos = 1.0f - s_consoleHeight;
-    if (finalPos > 1.0f) {
-      finalPos = 1.0f;
-    } else if (finalPos <= 0.0f) {
-      finalPos = 0.0f;
-    }
   } else {
     finalPos = 1.0f;
   }
+  float pos = min(1.0f, finalPos);
+  finalPos = max(pos, 0.0f);
 
   if (s_repeatCount && s_repeatBuffer[0]) {
-    ConsoleCommandExecute(s_repeatBuffer, 0);
+    ConsoleCommandExecute(s_repeatBuffer, 1);
     --s_repeatCount;
   }
 
   if (s_rect.bottom != finalPos) {
-    if (s_consoleResizeState == CS_STRETCH) {
+    if (s_consoleResizeState != CS_NONE) {
       s_rect.bottom = finalPos;
     } else {
-      s_rect.bottom += (s_rect.bottom <= finalPos ? 1.0f : -1.0f) * data->elapsedSec * 5.0f;
+      float newPos = (s_rect.bottom > finalPos ? -1.0f : 1.0f) * data->elapsedSec * 5.0f + s_rect.bottom;
       if (s_active) {
-        if (s_rect.bottom < finalPos) {
-          s_rect.bottom = finalPos;
-        }
-      } else if (s_rect.bottom > finalPos) {
-        s_rect.bottom = finalPos;
+        s_rect.bottom = max(finalPos, newPos);
+      } else {
+        s_rect.bottom = min(finalPos, newPos);
       }
     }
     ScrnLayerSetRect(s_layerBackground, &s_rect);
@@ -440,86 +392,70 @@ static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
 }
 
 static void ReserveInputSpace(CONSOLELINE *lineptr, DWORD chars) {
-  UINT  required = lineptr->chars + chars;
-  char *buffer;
+  if (lineptr->chars + chars >= lineptr->charsalloc) {
+    while (lineptr->chars + chars >= lineptr->charsalloc) {
+      lineptr->charsalloc += 16;
+    }
 
-  if (required < lineptr->charsalloc) {
-    return;
+    char *buffer = (char *)ALLOC(lineptr->charsalloc);
+    SStrCopy(buffer, lineptr->buffer, lineptr->charsalloc);
+    FREE(lineptr->buffer);
+    lineptr->buffer = buffer;
   }
-  do {
-    lineptr->charsalloc += 16;
-  } while (required >= lineptr->charsalloc);
-
-  buffer = (char *)ALLOC(lineptr->charsalloc);
-  SStrCopy(buffer, lineptr->buffer, lineptr->charsalloc);
-  FREE(lineptr->buffer);
-  lineptr->buffer = buffer;
 }
 
 static CONSOLELINE *GetLineAtMousePosition(float y) {
-  int          lineNumber = (int)((s_consoleHeight - (1.0f - y)) / s_fontHeight);
-  CONSOLELINE *head = s_linelist.Head();
-  CONSOLELINE *line;
+  int lineNumber = (int)((s_consoleHeight - (1.0f - y)) / s_fontHeight);
 
   if (lineNumber == 1) {
-    return head;
+    return s_linelist.Head();
   }
 
-  line = s_currlineptr;
-  if (s_currlineptr != head) {
+  if (s_currlineptr != s_linelist.Head()) {
     --lineNumber;
   }
-  if (!line) {
-    return 0;
-  }
-  while (lineNumber > 1) {
-    --lineNumber;
-    line = s_linelist.Next(line);
-    if (!line) {
-      return 0;
+  ITERATEPARTIALLIST(CONSOLELINE, s_linelist, s_currlineptr, line) {
+    if (lineNumber <= 1) {
+      return line;
     }
+    --lineNumber;
   }
-  return line;
+  return 0;
 }
 
 static void PasteInInputLine(LPCSTR characters) {
-  UINT         length = SStrLen(characters);
-  CONSOLELINE *inputLine;
-  char        *tail;
-  char        *buffer;
+  int length = SStrLen(characters);
 
   if (!length) {
     return;
   }
-  inputLine = GetInputLine();
+
+  CONSOLELINE *inputLine = GetInputLine();
   ReserveInputSpace(inputLine, length);
-  if (inputLine->inputpos < inputLine->chars) {
-    if (length <= 1) {
-      memmove(&inputLine->buffer[inputLine->inputpos + 1], &inputLine->buffer[inputLine->inputpos], inputLine->chars - inputLine->inputpos + 1);
-      inputLine->buffer[inputLine->inputpos] = *characters;
-      ++inputLine->inputpos;
-      ++inputLine->chars;
-    } else {
-      tail = (char *)ALLOC(inputLine->charsalloc);
-      SStrCopy(tail, &inputLine->buffer[inputLine->inputpos], 0x7FFFFFFF);
-      buffer = (char *)ALLOC(inputLine->charsalloc);
-      SStrCopy(buffer, inputLine->buffer, 0x7FFFFFFF);
-      buffer[inputLine->inputpos] = 0;
-      SStrPack(buffer, characters, inputLine->charsalloc);
-      inputLine->inputpos = SStrLen(buffer);
-      SStrPack(buffer, tail, inputLine->charsalloc);
-      SStrCopy(inputLine->buffer, buffer, 0x7FFFFFFF);
-      inputLine->chars = SStrLen(inputLine->buffer);
-      FREEIFUSED(tail);
-      FREEIFUSED(buffer);
-    }
-  } else {
-    UINT index;
-    for (index = 0; index < length; ++index) {
+  if (inputLine->inputpos >= inputLine->chars) {
+    for (int index = 0; index < length; ++index) {
       inputLine->buffer[inputLine->inputpos++] = characters[index];
     }
     inputLine->buffer[inputLine->inputpos] = 0;
     inputLine->chars = inputLine->inputpos;
+  } else if (length > 1) {
+    char *tail = (char *)ALLOC(inputLine->charsalloc);
+    SStrCopy(tail, &inputLine->buffer[inputLine->inputpos], 0x7FFFFFFF);
+    char *buffer = (char *)ALLOC(inputLine->charsalloc);
+    SStrCopy(buffer, inputLine->buffer, 0x7FFFFFFF);
+    buffer[inputLine->inputpos] = 0;
+    SStrPack(buffer, characters, inputLine->charsalloc);
+    inputLine->inputpos = SStrLen(buffer);
+    SStrPack(buffer, tail, inputLine->charsalloc);
+    SStrCopy(inputLine->buffer, buffer, 0x7FFFFFFF);
+    inputLine->chars = SStrLen(inputLine->buffer);
+    FREEIFUSED(tail);
+    FREEIFUSED(buffer);
+  } else {
+    memmove(&inputLine->buffer[inputLine->inputpos + 1], &inputLine->buffer[inputLine->inputpos], inputLine->chars - inputLine->inputpos + 1);
+    inputLine->buffer[inputLine->inputpos] = *characters;
+    ++inputLine->inputpos;
+    ++inputLine->chars;
   }
 }
 
@@ -547,25 +483,21 @@ static BOOL OnChar(const EVENT_DATA_CHAR *data, LPVOID) {
 static void UpdateHighlight() {
   CGxFont *font = TextBlockGetFontPtr(s_textFont);
   UINT     length = SStrLen(s_copyText);
-  float    right;
   float    left;
+  float    right;
 
   ASSERT(font);
-  left = s_highlightHStart < s_highlightHEnd ? s_highlightHStart : s_highlightHEnd;
-  right = s_highlightHStart > s_highlightHEnd ? s_highlightHStart : s_highlightHEnd;
-  if (left < 0.0f) {
-    left = 0.0f;
-  }
-  if (right > 1.0f) {
-    right = 1.0f;
-  }
+  left = min(s_highlightHStart, s_highlightHEnd);
+  right = max(s_highlightHStart, s_highlightHEnd);
+  left = max(0.0f, left);
+  right = min(1.0f, right);
 
   s_highlightLeftCharIndex =
       GxuFontGetMaxCharsWithinWidth(font, s_copyText, s_fontHeight, left, length, &s_hRect.left, s_charSpacing, s_baseTextFlags);
   if (s_highlightLeftCharIndex) {
     --s_highlightLeftCharIndex;
   }
-  if (s_hRect.left < 0.015f) {
+  if (s_hRect.left < 0.015) {
     s_hRect.left = 0.0f;
   }
   s_highlightRightCharIndex =
@@ -582,8 +514,8 @@ static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
     return 1;
   }
 
-  visibleHeight = s_consoleHeight >= 1.0f ? 1.0f : s_consoleHeight;
-  clickPos = 1.0f - data->y;
+  visibleHeight = min(s_consoleHeight, 1.0f);
+  clickPos = 1.0 - data->y;
   if (clickPos >= visibleHeight - s_fontHeight * 0.75f && clickPos <= s_consoleHeight) {
     ResetHighlight();
     s_consoleResizeState = CS_STRETCH;
@@ -608,10 +540,12 @@ static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
 }
 
 static BOOL OnMouseUp(const EVENT_DATA_MOUSE *data, LPVOID) {
-  if (!EventIsKeyDown(KEY_TILDE) && s_active) {
-    s_highlightState = HS_ENDHIGHLIGHT;
-    s_consoleResizeState = CS_NONE;
+  if (EventIsKeyDown(KEY_TILDE) || !s_active) {
+    return 1;
   }
+
+  s_highlightState = HS_ENDHIGHLIGHT;
+  s_consoleResizeState = CS_NONE;
   return 1;
 }
 
@@ -621,7 +555,7 @@ static BOOL OnMouseMove(const EVENT_DATA_MOUSE *data, LPVOID) {
   }
 
   if (s_consoleResizeState == CS_STRETCH) {
-    s_consoleHeight = 1.0f - data->y;
+    s_consoleHeight = 1.0 - data->y;
     if (s_consoleHeight < s_fontHeight) {
       s_consoleHeight = s_fontHeight;
     }
@@ -651,12 +585,10 @@ static void MakeCommandCurrent(CONSOLELINE *lineptr, LPCSTR command) {
 
 static void MoveLinePtr(int direction, int modifier) {
   CONSOLELINE *line;
-  int          count;
 
   if (modifier == 1) {
     line = s_currlineptr;
-    count = 0;
-    while (line) {
+    for (int count = 0; count < 10 && line; ++count) {
       CONSOLELINE *next;
       if (direction == 1) {
         next = line->Next();
@@ -666,20 +598,15 @@ static void MoveLinePtr(int direction, int modifier) {
       if (next) {
         line = next;
       }
-      if (++count >= 10) {
-        break;
-      }
     }
   } else {
-    line = s_currlineptr;
-    if (line == s_linelist.Head()) {
-      line = line->Next();
-      s_currlineptr = line;
+    if (s_currlineptr == s_linelist.Head()) {
+      s_currlineptr = s_currlineptr->Next();
     }
     if (direction == 1) {
-      line = line->Next();
+      line = s_currlineptr->Next();
     } else {
-      line = line->Prev();
+      line = s_currlineptr->Prev();
     }
   }
   if (line) {
@@ -688,17 +615,9 @@ static void MoveLinePtr(int direction, int modifier) {
 }
 
 static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
-  CONSOLELINE *inputLine;
-  LPCSTR       history;
-  UINT         historyIndex;
-  UINT         length;
-  char         buffer[0x80];
-  char        *clipboard;
-
   if (data->key == KEY_TILDE) {
-    BOOL wasActive = s_active;
     s_active = !s_active;
-    if (wasActive) {
+    if (!s_active) {
       ResetHighlight();
     }
     return 0;
@@ -707,7 +626,7 @@ static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
     return 1;
   }
 
-  inputLine = GetInputLine();
+  CONSOLELINE *inputLine = GetInputLine();
   switch (data->key) {
     case KEY_ENTER:
       if (inputLine->inputpos > inputLine->inputstart) {
@@ -718,51 +637,13 @@ static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
       }
       break;
 
-    case KEY_C:
-      if (data->metaKeyState == 2) {
-        if (s_copyText[0]) {
-          length = s_highlightRightCharIndex - s_highlightLeftCharIndex;
-          if (length >= sizeof(buffer)) {
-            length = sizeof(buffer) - 1;
-          }
-          memcpy(buffer, &s_copyText[s_highlightLeftCharIndex], length);
-          buffer[length] = 0;
-          OsClipboardPutString(buffer);
-        }
-        ResetHighlight();
-      }
-      break;
-
-    case KEY_V:
-      if (data->metaKeyState == 2) {
-        clipboard = OsClipboardGetString();
-        if (clipboard) {
-          PasteInInputLine(clipboard);
-          FREE(clipboard);
-          ResetHighlight();
-        }
-      }
-      break;
-
     case KEY_ESCAPE:
-      if (inputLine->inputpos > inputLine->inputstart) {
+      if (inputLine->inputpos <= inputLine->inputstart) {
+        s_active = 0;
+      } else {
         inputLine->inputpos = inputLine->inputstart;
         inputLine->chars = inputLine->inputstart;
         inputLine->buffer[inputLine->inputstart] = 0;
-      } else {
-        s_active = 0;
-      }
-      break;
-
-    case KEY_BACKSPACE:
-      if (inputLine->inputpos > inputLine->inputstart) {
-        if (inputLine->chars <= inputLine->inputpos) {
-          inputLine->buffer[inputLine->inputpos - 1] = 0;
-        } else {
-          memmove(&inputLine->buffer[inputLine->inputpos - 1], &inputLine->buffer[inputLine->inputpos], inputLine->chars - inputLine->inputpos + 1);
-        }
-        --inputLine->inputpos;
-        --inputLine->chars;
       }
       break;
 
@@ -777,44 +658,28 @@ static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
       }
       break;
 
-    case KEY_LEFT:
-      if (inputLine->inputpos > inputLine->inputstart) {
-        --inputLine->inputpos;
-      }
-      break;
-
-    case KEY_RIGHT:
-      if (inputLine->inputpos < inputLine->chars) {
-        ++inputLine->inputpos;
-      }
-      break;
-
-    case KEY_UP:
-      if ((UINT)s_historyIndex != ConsoleCommandHistoryDepth() - 1) {
-        historyIndex = s_historyIndex + 1;
-        history = ConsoleCommandHistory(s_historyIndex);
-        if (history) {
-          MakeCommandCurrent(inputLine, history);
-          s_historyIndex = historyIndex;
+    case KEY_C:
+      if (data->metaKeyState == 2) {
+        if (s_copyText[0]) {
+          char buffer[0x80];
+          UINT length = s_highlightRightCharIndex - s_highlightLeftCharIndex;
+          length = min(length, sizeof(buffer) - 1);
+          memcpy(buffer, &s_copyText[s_highlightLeftCharIndex], length);
+          buffer[length] = 0;
+          OsClipboardPutString(buffer);
         }
+        ResetHighlight();
       }
       break;
 
-    case KEY_DOWN:
-      if (s_historyIndex != -1) {
-        historyIndex = s_historyIndex - 1;
-        history = s_historyIndex ? ConsoleCommandHistory(s_historyIndex) : "";
-        if (history) {
-          MakeCommandCurrent(inputLine, history);
-          s_historyIndex = historyIndex;
+    case KEY_V:
+      if (data->metaKeyState == 2) {
+        char *clipboard = OsClipboardGetString();
+        if (clipboard) {
+          PasteInInputLine(clipboard);
+          FREE(clipboard);
+          ResetHighlight();
         }
-      }
-      break;
-
-    case KEY_DELETE:
-      if (inputLine->inputpos <= inputLine->chars) {
-        memmove(&inputLine->buffer[inputLine->inputpos], &inputLine->buffer[inputLine->inputpos + 1], inputLine->chars - inputLine->inputpos);
-        --inputLine->chars;
       }
       break;
 
@@ -841,6 +706,59 @@ static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
     case KEY_PAGEDOWN:
       MoveLinePtr(0, data->metaKeyState);
       break;
+
+    case KEY_BACKSPACE:
+      if (inputLine->inputpos > inputLine->inputstart) {
+        if (inputLine->chars > inputLine->inputpos) {
+          memmove(&inputLine->buffer[inputLine->inputpos - 1], &inputLine->buffer[inputLine->inputpos], inputLine->chars - inputLine->inputpos + 1);
+        } else {
+          inputLine->buffer[inputLine->inputpos - 1] = 0;
+        }
+        --inputLine->inputpos;
+        --inputLine->chars;
+      }
+      break;
+
+    case KEY_DELETE:
+      if (inputLine->inputpos <= inputLine->chars) {
+        memmove(&inputLine->buffer[inputLine->inputpos], &inputLine->buffer[inputLine->inputpos + 1], inputLine->chars - inputLine->inputpos);
+        --inputLine->chars;
+      }
+      break;
+
+    case KEY_LEFT:
+      if (inputLine->inputpos > inputLine->inputstart) {
+        --inputLine->inputpos;
+      }
+      break;
+
+    case KEY_RIGHT:
+      if (inputLine->inputpos < inputLine->chars) {
+        ++inputLine->inputpos;
+      }
+      break;
+
+    case KEY_UP:
+      if ((UINT)s_historyIndex != ConsoleCommandHistoryDepth() - 1) {
+        int    historyIndex = s_historyIndex + 1;
+        LPCSTR history = ConsoleCommandHistory(historyIndex);
+        if (history) {
+          MakeCommandCurrent(inputLine, history);
+          s_historyIndex = historyIndex;
+        }
+      }
+      break;
+
+    case KEY_DOWN:
+      if (s_historyIndex != -1) {
+        int    historyIndex = s_historyIndex - 1;
+        LPCSTR history = historyIndex != -1 ? ConsoleCommandHistory(historyIndex) : "";
+        if (history) {
+          MakeCommandCurrent(inputLine, history);
+          s_historyIndex = historyIndex;
+        }
+      }
+      break;
   }
 
   if (data->key != KEY_TAB && data->key != KEY_SHIFT && data->key != KEY_ALT && data->metaKeyState != 2) {
@@ -851,10 +769,6 @@ static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
 }
 
 static BOOL OnKeyDownRepeat(const EVENT_DATA_KEY *data, LPVOID) {
-  CONSOLELINE *inputLine;
-  LPCSTR       history;
-  UINT         historyIndex;
-
   if (data->key == KEY_TILDE) {
     s_active = !s_active;
     return 0;
@@ -863,60 +777,67 @@ static BOOL OnKeyDownRepeat(const EVENT_DATA_KEY *data, LPVOID) {
     return 1;
   }
 
-  inputLine = GetInputLine();
+  CONSOLELINE *inputLine = GetInputLine();
   switch (data->key) {
+    case KEY_PAGEUP:
+      MoveLinePtr(1, data->metaKeyState);
+      break;
+
+    case KEY_PAGEDOWN:
+      MoveLinePtr(0, data->metaKeyState);
+      break;
+
     case KEY_BACKSPACE:
       if (inputLine->inputpos > inputLine->inputstart) {
-        if (inputLine->chars <= inputLine->inputpos) {
-          inputLine->buffer[inputLine->inputpos - 1] = 0;
-        } else {
+        if (inputLine->chars > inputLine->inputpos) {
           memmove(&inputLine->buffer[inputLine->inputpos - 1], &inputLine->buffer[inputLine->inputpos], inputLine->chars - inputLine->inputpos + 1);
+        } else {
+          inputLine->buffer[inputLine->inputpos - 1] = 0;
         }
         --inputLine->inputpos;
         --inputLine->chars;
       }
       break;
-    case KEY_LEFT:
-      if (inputLine->inputpos > inputLine->inputstart) {
-        --inputLine->inputpos;
-      }
-      break;
-    case KEY_UP:
-      if ((UINT)s_historyIndex != ConsoleCommandHistoryDepth() - 1) {
-        historyIndex = s_historyIndex + 1;
-        history = ConsoleCommandHistory(s_historyIndex);
-        if (history) {
-          MakeCommandCurrent(inputLine, history);
-          s_historyIndex = historyIndex;
-        }
-      }
-      break;
-    case KEY_RIGHT:
-      if (inputLine->inputpos < inputLine->chars) {
-        ++inputLine->inputpos;
-      }
-      break;
-    case KEY_DOWN:
-      if (s_historyIndex != -1) {
-        historyIndex = s_historyIndex - 1;
-        history = s_historyIndex ? ConsoleCommandHistory(s_historyIndex) : "";
-        if (history) {
-          MakeCommandCurrent(inputLine, history);
-          s_historyIndex = historyIndex;
-        }
-      }
-      break;
+
     case KEY_DELETE:
       if (inputLine->inputpos <= inputLine->chars) {
         memmove(&inputLine->buffer[inputLine->inputpos], &inputLine->buffer[inputLine->inputpos + 1], inputLine->chars - inputLine->inputpos);
         --inputLine->chars;
       }
       break;
-    case KEY_PAGEUP:
-      MoveLinePtr(1, data->metaKeyState);
+
+    case KEY_LEFT:
+      if (inputLine->inputpos > inputLine->inputstart) {
+        --inputLine->inputpos;
+      }
       break;
-    case KEY_PAGEDOWN:
-      MoveLinePtr(0, data->metaKeyState);
+
+    case KEY_RIGHT:
+      if (inputLine->inputpos < inputLine->chars) {
+        ++inputLine->inputpos;
+      }
+      break;
+
+    case KEY_UP:
+      if ((UINT)s_historyIndex != ConsoleCommandHistoryDepth() - 1) {
+        int    historyIndex = s_historyIndex + 1;
+        LPCSTR history = ConsoleCommandHistory(historyIndex);
+        if (history) {
+          MakeCommandCurrent(inputLine, history);
+          s_historyIndex = historyIndex;
+        }
+      }
+      break;
+
+    case KEY_DOWN:
+      if (s_historyIndex != -1) {
+        int    historyIndex = s_historyIndex - 1;
+        LPCSTR history = historyIndex != -1 ? ConsoleCommandHistory(historyIndex) : "";
+        if (history) {
+          MakeCommandCurrent(inputLine, history);
+          s_historyIndex = historyIndex;
+        }
+      }
       break;
   }
 
@@ -960,16 +881,8 @@ static void RegenerateFontStrings() {
 }
 
 static BOOL ConsoleCommand_ClearConsole(LPCSTR cmd, LPCSTR arguments) {
-  CONSOLELINE *line;
-
   s_NumLines = 0;
-  while ((line = s_linelist.Head()) != 0) {
-    FREEIFUSED(line->buffer);
-    if (line->fontPointer) {
-      GxuFontDestroyString(line->fontPointer);
-    }
-    s_linelist.DeleteNode(line);
-  }
+  s_linelist.Clear();
   return 1;
 }
 
@@ -1018,21 +931,20 @@ static BOOL ConsoleCommand_CloseConsole(LPCSTR cmd, LPCSTR arguments) {
 }
 
 static BOOL ConsoleCommand_RepeatHandler(LPCSTR cmd, LPCSTR arguments) {
-  LPCSTR command;
-  UINT   count;
-  UINT   length;
-  char  *copy;
+  char *command;
+  UINT  count;
+  char *copy;
 
   if (arguments && arguments[0]) {
-    length = SStrLen(arguments);
-    copy = (char *)_alloca(length + 1);
-    SStrCopy(copy, arguments, length + 1);
+    copy = (char *)_alloca(SStrLen(arguments) + 1);
+    SStrCopy(copy, arguments, SStrLen(arguments) + 1);
     command = copy;
-    while (*command && *command != '\t' && *command != ' ') {
+    while (*command) {
+      if (*command == '\t' || *command == ' ') {
+        *command++ = 0;
+        break;
+      }
       ++command;
-    }
-    if (*command) {
-      *(char *)command++ = 0;
     }
     count = SStrToUnsigned(copy);
     if (count && command && *command) {
@@ -1128,17 +1040,19 @@ static BOOL ConsoleCommand_BufferSize(LPCSTR cmd, LPCSTR arguments) {
     return 1;
   }
 
-  ConsoleWrite("Please specify how many lines to display", DEFAULT_COLOR);
+  ConsoleWrite("Please specify how many lines to display", ERROR_COLOR);
   return 1;
 }
 
 static BOOL ConsoleCommand_FontSize(LPCSTR cmd, LPCSTR arguments) {
-  s_fontHeight = SStrToFloat(arguments) * 0.001f;
-  if (s_fontHeight < 0.01f) {
-    s_fontHeight = 0.01f;
-  } else if (s_fontHeight > 0.05f) {
-    s_fontHeight = 0.05f;
+  float size = SStrToFloat(arguments) * 0.001f;
+
+  if (size < 0.01f) {
+    size = 0.01f;
+  } else if (size > 0.05f) {
+    size = 0.05f;
   }
+  s_fontHeight = size;
 
   if (s_textFont) {
     HandleClose((HOBJECT)s_textFont);
@@ -1183,7 +1097,7 @@ static BOOL ConsoleCommand_BackGroundColor(LPCSTR cmd, LPCSTR arguments) {
     ConsoleWrite("Make sure to specify the red, green and blue colors.", ERROR_COLOR);
     return 0;
   }
-  SetColor(BACKGROUND_COLOR, NTempest::CImVector((alpha << 24) | (red << 16) | (green << 8) | blue));
+  SetColor(BACKGROUND_COLOR, NTempest::CImVector(alpha, red, green, blue));
   return 1;
 }
 
@@ -1202,7 +1116,7 @@ static BOOL ConsoleCommand_HighLightColor(LPCSTR cmd, LPCSTR arguments) {
     ConsoleWrite("Make sure to specify the red, green and blue colors.", ERROR_COLOR);
     return 0;
   }
-  SetColor(HIGHLIGHT_COLOR, NTempest::CImVector((alpha << 24) | (red << 16) | (green << 8) | blue));
+  SetColor(HIGHLIGHT_COLOR, NTempest::CImVector(alpha, red, green, blue));
   return 1;
 }
 
@@ -1269,7 +1183,7 @@ static bool CVGxResolutionCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LP
     UINT legalIndex;
 
     for (legalIndex = 0; legalIndex < 7; ++legalIndex) {
-      if (legalIndex) {
+      if (legalIndex > 0) {
         strcat(msg, ", ");
       }
       SStrPrintf(rez, sizeof(rez), "%dx%d", legalSizes[legalIndex].x, legalSizes[legalIndex].y);
@@ -1287,15 +1201,21 @@ static bool CVGxResolutionCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LP
 static bool CVGxColorBitsCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int bits = SStrToInt(newValue);
 
-  if (bits == 16) {
-    s_requestedFormat.colorFormat = CGxFormat::Fmt_Rgb565;
-  } else if (bits == 24) {
-    s_requestedFormat.colorFormat = CGxFormat::Fmt_ArgbX888;
-  } else if (bits == 30) {
-    s_requestedFormat.colorFormat = CGxFormat::Fmt_Argb2101010;
-  } else {
+  if (bits != 16 && bits != 24 && bits != 30) {
     ConsoleWrite("Color bits must be 16, 24, or 30", DEFAULT_COLOR);
     return false;
+  }
+
+  switch (bits) {
+    case 16:
+      s_requestedFormat.colorFormat = CGxFormat::Fmt_Rgb565;
+      break;
+    case 24:
+      s_requestedFormat.colorFormat = CGxFormat::Fmt_ArgbX888;
+      break;
+    case 30:
+      s_requestedFormat.colorFormat = CGxFormat::Fmt_Argb2101010;
+      break;
   }
   ConsoleWrite("set pending gxRestart", DEFAULT_COLOR);
   return true;
@@ -1304,15 +1224,21 @@ static bool CVGxColorBitsCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPV
 static bool CVGxDepthBitsCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   int bits = SStrToInt(newValue);
 
-  if (bits == 16) {
-    s_requestedFormat.depthFormat = CGxFormat::Fmt_Ds160;
-  } else if (bits == 24) {
-    s_requestedFormat.depthFormat = CGxFormat::Fmt_Ds24X;
-  } else if (bits == 32) {
-    s_requestedFormat.depthFormat = CGxFormat::Fmt_Ds320;
-  } else {
+  if (bits != 16 && bits != 24 && bits != 32) {
     ConsoleWrite("Depth bits must be 16, 24, or 32", DEFAULT_COLOR);
     return false;
+  }
+
+  switch (bits) {
+    case 16:
+      s_requestedFormat.depthFormat = CGxFormat::Fmt_Ds160;
+      break;
+    case 24:
+      s_requestedFormat.depthFormat = CGxFormat::Fmt_Ds24X;
+      break;
+    case 32:
+      s_requestedFormat.depthFormat = CGxFormat::Fmt_Ds320;
+      break;
   }
   ConsoleWrite("set pending gxRestart", DEFAULT_COLOR);
   return true;
@@ -1333,7 +1259,7 @@ static bool CVGxRefreshCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOI
     UINT rateIndex;
 
     for (rateIndex = 0; rateIndex < 11; ++rateIndex) {
-      if (rateIndex) {
+      if (rateIndex > 0) {
         strcat(msg, ", ");
       }
       SStrPrintf(number, sizeof(number), "%d", s_rates[rateIndex]);
@@ -1355,16 +1281,12 @@ static bool CVGxApiCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID ar
       break;
     }
   }
-  if (index != 2) {
-    return true;
-  }
-
-  {
+  if (index == 2) {
     char msg[0x400] = "unsupported api, must be one of ";
     UINT apiIndex;
 
     for (apiIndex = 0; apiIndex < 2; ++apiIndex) {
-      if (apiIndex) {
+      if (apiIndex > 0) {
         strcat(msg, ", ");
       }
       strcat(msg, "'");
@@ -1372,8 +1294,9 @@ static bool CVGxApiCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID ar
       strcat(msg, "'");
     }
     ConsoleWrite(msg, DEFAULT_COLOR);
+    return false;
   }
-  return false;
+  return true;
 }
 
 static bool CVGxVSyncCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
@@ -1468,27 +1391,23 @@ static void RegisterGxCCmds() {
 }
 
 static bool ReduceFormat(CGxFormat &fmt) {
-  if (fmt.colorFormat <= CGxFormat::Fmt_Rgb565) {
-    return false;
-  }
-  if (fmt.depthFormat > CGxFormat::Fmt_Ds160) {
-    fmt.depthFormat = (CGxFormat::Format)(fmt.depthFormat - 1);
+  if (fmt.colorFormat > CGxFormat::Fmt_Rgb565) {
+    if (fmt.depthFormat > CGxFormat::Fmt_Ds160) {
+      fmt.depthFormat = (CGxFormat::Format)(fmt.depthFormat - 1);
+      return true;
+    }
+
+    fmt.colorFormat = (CGxFormat::Format)(fmt.colorFormat - 1);
+    fmt.depthFormat = fmt.colorFormat == CGxFormat::Fmt_Rgb565 ? CGxFormat::Fmt_Ds160 : CGxFormat::Fmt_Ds320;
     return true;
   }
-
-  fmt.colorFormat = (CGxFormat::Format)(fmt.colorFormat - 1);
-  if (fmt.colorFormat == CGxFormat::Fmt_Rgb565) {
-    fmt.depthFormat = CGxFormat::Fmt_Ds160;
-  } else {
-    fmt.depthFormat = CGxFormat::Fmt_Ds320;
-  }
-  return true;
+  return false;
 }
 
 static void OptimizeFormat(CGxFormat &fmt) {
-  if (fmt.size.x < 800 && fmt.size.y < 600 && s_defaults.format->size.x >= 800 && s_defaults.format->size.y >= 600) {
-    fmt.size.x = 800;
-    fmt.size.y = 600;
+  NTempest::C2iVector size(800, 600);
+  if (fmt.size.x < size.x && fmt.size.y < size.y && s_defaults.format->size.x >= size.x && s_defaults.format->size.y >= size.y) {
+    fmt.size = size;
   }
   if (fmt.depthFormat < CGxFormat::Fmt_Ds24X && s_defaults.format->depthFormat >= CGxFormat::Fmt_Ds24X) {
     fmt.depthFormat = CGxFormat::Fmt_Ds24X;
@@ -1499,14 +1418,12 @@ static void OptimizeFormat(CGxFormat &fmt) {
 }
 
 static void ValidateFormatMonitor(CGxFormat &fmt) {
-  UINT fmtbpp;
-  UINT lowRate = 9999;
-  UINT index;
-
   ASSERT(fmt.colorFormat < (sizeof(s_FormatTobpp) / sizeof(s_FormatTobpp[0])));
 
-  fmtbpp = s_FormatTobpp[fmt.colorFormat];
-  for (index = 0; index < s_gxMonitorModes.Count(); ++index) {
+  UINT fmtbpp = s_FormatTobpp[fmt.colorFormat];
+  UINT lowRate = 9999;
+
+  for (UINT index = 0; index < s_gxMonitorModes.Count(); ++index) {
     CGxMonitorMode &mode = s_gxMonitorModes[index];
     if (fmt.size.x == mode.size.x && fmt.size.y == mode.size.y && fmtbpp == mode.bpp) {
       if (mode.refreshRate < lowRate) {
@@ -1519,21 +1436,17 @@ static void ValidateFormatMonitor(CGxFormat &fmt) {
   }
 
   if (lowRate == 9999) {
-    GxLog("ValidateFormatMonitor(): unable to find monitor refresh");
     lowRate = 60;
+    GxLog("ValidateFormatMonitor(): unable to find monitor refresh");
   }
   GxLog("ValidateFormatMonitor(): invalid refresh rate %d, set to %d", fmt.refreshRate, lowRate);
   fmt.refreshRate = lowRate;
 }
 
 void ConsoleDeviceInitialize(LPCSTR title, bool multithreaded) {
-  CGxFormat      apiFormat;
-  CGxMonitorMode desktopMode;
-  UINT           i;
-  EGxApi         gxApi;
-  bool           alreadyReduced;
-  bool           hwChanged;
-  bool           hwDetect;
+  bool   hwChanged;
+  EGxApi gxApi;
+  bool   hwDetect;
 
   GxLogOpen();
   RegisterGxCVars();
@@ -1549,8 +1462,7 @@ void ConsoleDeviceInitialize(LPCSTR title, bool multithreaded) {
 
   GxAdapterMonitorModes(s_gxMonitorModes);
   ValidateFormatMonitor(s_fallbackFormat);
-  desktopMode.size.x = 0;
-  desktopMode.size.y = 0;
+  CGxMonitorMode desktopMode;
   if (GxAdapterDesktopMode(desktopMode)) {
     s_desktopFormat.size = desktopMode.size;
     s_desktopFormat.colorFormat = desktopMode.bpp > 16 ? CGxFormat::Fmt_ArgbX888 : CGxFormat::Fmt_Rgb565;
@@ -1566,7 +1478,10 @@ void ConsoleDeviceInitialize(LPCSTR title, bool multithreaded) {
     SetDefaultsFormat(s_defaults, s_hardware);
   }
 
-  gxApi = !SStrCmpI(s_cvGxApi->GetString(), "OpenGl", 0x7FFFFFFF) ? GxApi_OpenGl : GxApi_Direct3d;
+  gxApi = GxApi_Direct3d;
+  if (!SStrCmpI(s_cvGxApi->GetString(), "OpenGl", 0x7FFFFFFF)) {
+    gxApi = GxApi_OpenGl;
+  }
   if (CmdLineGetBool(CMD_OPENGL)) {
     gxApi = GxApi_OpenGl;
   }
@@ -1574,18 +1489,23 @@ void ConsoleDeviceInitialize(LPCSTR title, bool multithreaded) {
     gxApi = GxApi_Direct3d;
   }
 
-  s_requestedFormat.fixLag = !CmdLineGetBool((CMDOPT)0x18);
+  bool fixLag = true;
+  if (CmdLineGetBool((CMDOPT)0x18)) {
+    fixLag = false;
+  }
+  s_requestedFormat.fixLag = fixLag;
   s_requestedFormat.hwTnL = !CmdLineGetBool(CMD_SW_TNL);
   s_requestedFormat.window = CmdLineGetBool((CMDOPT)0x1F) == 1;
   s_desktopFormat.window = s_requestedFormat.window;
 
-  for (i = 0; i < 2; ++i) {
-    alreadyReduced = false;
+  for (UINT i = 0; i < 2; ++i) {
+    bool      alreadyReduced = false;
+    EGxApi    api = (EGxApi)((i + gxApi) & 1);
+    CGxFormat apiFormat = s_requestedFormat;
 
-    apiFormat = s_requestedFormat;
     OptimizeFormat(apiFormat);
     ValidateFormatMonitor(apiFormat);
-    s_device = GxDevCreate((EGxApi)((i + gxApi) & 1), OsWindowProc, apiFormat);
+    s_device = GxDevCreate(api, OsWindowProc, apiFormat);
     while (!s_device) {
       if (!ReduceFormat(apiFormat)) {
         if (alreadyReduced) {
@@ -1595,18 +1515,16 @@ void ConsoleDeviceInitialize(LPCSTR title, bool multithreaded) {
         alreadyReduced = true;
       }
       ValidateFormatMonitor(apiFormat);
-      s_device = GxDevCreate((EGxApi)((i + gxApi) & 1), OsWindowProc, apiFormat);
+      s_device = GxDevCreate(api, OsWindowProc, apiFormat);
     }
     if (s_device) {
+      s_requestedFormat = apiFormat;
+      s_lastGoodFormat = apiFormat;
+      SetGxCVars(apiFormat);
       break;
     }
   }
 
-  if (s_device) {
-    s_requestedFormat = apiFormat;
-    s_lastGoodFormat = apiFormat;
-    SetGxCVars(apiFormat);
-  }
   if (!s_device) {
     GxLog("ConsoleDeviceInitialize(): no output device available!");
     FATALERROR(("No output device available!"));
@@ -1618,18 +1536,17 @@ void ConsoleDeviceInitialize(LPCSTR title, bool multithreaded) {
     FATALERROR(("Output device does not have dual TMUs!"));
   }
 
-  {
-    int    overrideValue = -2;
-    EGxApi api = GxDevApi();
-
-    if (api == GxApi_OpenGl) {
-      overrideValue = s_hardware.videoHw->m_oglPixelShader;
-    } else if (api == GxApi_Direct3d) {
-      overrideValue = s_hardware.videoHw->m_d3dPixelShader;
-    }
-    if (overrideValue != -2) {
-      GxDevOverride(GxOverride_PixelShader, overrideValue);
-    }
+  switch (GxDevApi()) {
+    case GxApi_OpenGl:
+      if (s_hardware.videoHw->m_oglPixelShader != -2) {
+        GxDevOverride(GxOverride_PixelShader, s_hardware.videoHw->m_oglPixelShader);
+      }
+      break;
+    case GxApi_Direct3d:
+      if (s_hardware.videoHw->m_d3dPixelShader != -2) {
+        GxDevOverride(GxOverride_PixelShader, s_hardware.videoHw->m_d3dPixelShader);
+      }
+      break;
   }
 
   OsGuiSetGxWindow((LPVOID)GxDevWindow());
@@ -1661,9 +1578,9 @@ void ConsoleScreenInitialize(LPCSTR title) {
 
   GxCapsWindowSize(windowSize);
   width = windowSize.maxx - windowSize.minx;
-  s_caretpixwidth = width == 0.0f ? 1.0f : 1.0f / width;
+  s_caretpixwidth = width != 0.0f ? 1.0f / width : 1.0f;
   height = windowSize.maxy - windowSize.miny;
-  s_caretpixheight = height == 0.0f ? 1.0f : 1.0f / height;
+  s_caretpixheight = height != 0.0f ? 1.0f / height : 1.0f;
   SStrCopy(s_fontName, "Fonts\\ARIALN.ttf", sizeof(s_fontName));
   s_textFont = TextBlockGenerateFont(s_fontName, 0, NDCToDDCHeight(s_fontHeight));
   ScrnLayerCreate(&s_rect, 6.0f, 3, 0, PaintBackground, &s_layerBackground);
@@ -1678,20 +1595,12 @@ void ConsoleScreenInitialize(LPCSTR title) {
 }
 
 void ConsoleScreenDestroy() {
-  CONSOLELINE *line;
-
   EventSetConfirmCloseCallback(0, 0);
   UnregisterHandlers();
   HandleClose((HOBJECT)s_textFont);
   HandleClose((HOBJECT)s_layerBackground);
   HandleClose((HOBJECT)s_layerText);
-  while ((line = s_linelist.Head()) != 0) {
-    FREEIFUSED(line->buffer);
-    if (line->fontPointer) {
-      GxuFontDestroyString(line->fontPointer);
-    }
-    s_linelist.DeleteNode(line);
-  }
+  s_linelist.Clear();
 }
 
 int ConsoleIsActive() {
@@ -1707,31 +1616,22 @@ void ConsoleSetTitle(LPCSTR title) {
 }
 
 void ConsoleWrite(LPCSTR str, COLOR_T color) {
-  CONSOLELINE *line;
-  CONSOLELINE *head;
-  UINT         length;
-
   if (!str || !str[0] || !s_device || !s_textFont) {
     return;
   }
 
   s_critsect.Enter();
-  line = (CONSOLELINE *)SMemAlloc(sizeof(CONSOLELINE), typeid(CONSOLELINE).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
-  if (line) {
-    new (line) CONSOLELINE;
-  }
-
-  head = s_linelist.Head();
+  CONSOLELINE *line = s_linelist.NewNode(LIST_UNLINKED, 0, 0);
+  CONSOLELINE *head = s_linelist.Head();
   if (head && head->inputpos) {
-    s_linelist.LinkNode(line, 1, head);
+    s_linelist.LinkNode(line, LIST_LINK_AFTER, head);
   } else {
-    s_linelist.LinkNode(line, 1, 0);
+    s_linelist.LinkNode(line, LIST_LINK_AFTER, 0);
   }
 
-  length = SStrLen(str);
-  line->chars = length + 1;
-  line->charsalloc = length + 1;
-  line->buffer = (char *)ALLOC(length + 1);
+  line->chars = SStrLen(str) + 1;
+  line->charsalloc = line->chars;
+  line->buffer = (char *)ALLOC(line->charsalloc);
   SStrCopy(line->buffer, str, 0x7FFFFFFF);
   line->colorType = color;
   GenerateNodeString(line);
@@ -1781,7 +1681,7 @@ void ConsoleCommandExecute(LPCSTR commandLine, int addToHistory) {
   LPCSTR          history;
   CONSOLECOMMAND *entry;
 
-  if ((g_ExecCreateMode == EM_PROMPTOVERWRITE || g_ExecCreateMode == EM_RECORDING || g_ExecCreateMode == EM_APPEND) &&
+  if ((g_ExecCreateMode == EM_RECORDING || g_ExecCreateMode == EM_PROMPTOVERWRITE || g_ExecCreateMode == EM_APPEND) &&
       !AddLineToExecFile(commandLine))
   {
     return;
@@ -1794,23 +1694,22 @@ void ConsoleCommandExecute(LPCSTR commandLine, int addToHistory) {
     }
   }
 
+  bool handled = false;
   entry = ParseCommand(commandLine, &command, &arguments);
-  if (entry) {
-    entry->m_handler(command, arguments);
-    return;
-  }
-
-  if (g_defaultCommand) {
-    if (g_defaultCommand(command, arguments)) {
-      return;
+  if (!entry) {
+    if (g_defaultCommand) {
+      handled = g_defaultCommand(command, arguments) != 0;
+    } else {
+      entry = g_consoleCommandHash.Ptr("run");
+      if (!entry) {
+        ConsoleWrite("Unknown command", DEFAULT_COLOR);
+        return;
+      }
+      command = "";
+      arguments = commandLine;
     }
   }
-
-  entry = g_consoleCommandHash.Ptr("run");
-  if (entry) {
-    entry->m_handler("", commandLine);
-    return;
+  if (!handled) {
+    entry->m_handler(command, arguments);
   }
-
-  ConsoleWrite("Unknown command", DEFAULT_COLOR);
 }

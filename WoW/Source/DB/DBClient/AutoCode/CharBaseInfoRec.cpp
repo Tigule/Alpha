@@ -14,10 +14,13 @@ CharBaseInfoRec::~CharBaseInfoRec() {
 }
 
 bool CharBaseInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFile::Read(f, &m_raceID, sizeof(m_raceID), 0, 0, 0) ||
-      !SFile::Read(f, &m_classID, sizeof(m_classID), 0, 0, 0) ||
-      !SFileReadTyped(f, &m_proficiency)) {
+  error |= (SFileReadTyped(f, &m_raceID) == 0);
+  error |= (SFileReadTyped(f, &m_classID) == 0);
+  error |= (SFileReadTyped(f, &m_proficiency) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CharBaseInfoRec", DEFAULT_COLOR);
     return false;
   }

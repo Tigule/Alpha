@@ -171,7 +171,9 @@ void CGameTime::GameTimeSync(bool reset) {
 }
 
 HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, LPVOID), LPVOID user) {
-  FATALASSERT(callback);
+  VALIDATEBEGIN;
+  VALIDATE(callback);
+  VALIDATEEND;
 
   if (time.m_hour < 0 || time.m_minute < 0) {
     return 0;

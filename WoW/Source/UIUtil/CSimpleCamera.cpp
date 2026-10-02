@@ -1,5 +1,10 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
+#include "UIUtil/Camera.h"
+#include "UIUtil/InputControl.h"
+#include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
 
 #include "UIUtil/CSimpleCamera.h"
@@ -8,19 +13,23 @@
 #include <Tempest/c44matrix.h>
 #include <Tempest/crect.h>
 
+using NTempest::CMath;
+
 static void FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
-  ASSERT(NTempest::CMath::fnotequal_(direction.SquaredMag(), 0.0f));
+  VALIDATEBEGIN;
+  VALIDATE(CMath::fnotequal_(direction.SquaredMag(),0));
+  VALIDATEENDVOID;
 
   *xprime = direction;
 
-  if (NTempest::CMath::fnotequal_(xprime->x * xprime->x + xprime->y * xprime->y, 0.0f)) {
-    yprime->Set(-xprime->y, xprime->x, 0.0f);
-    yprime->Normalize();
-  } else {
+  if (NTempest::CMath::fequal_(xprime->x * xprime->x + xprime->y * xprime->y, 0)) {
     yprime->Set(1.0f, 0.0f, 0.0f);
+  } else {
+    yprime->Set(-xprime->y, xprime->x, 0.0f);
+    NTempest::CMath::normalize_(yprime->x, yprime->y);
   }
 
-  *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
+  *zprime = NTempest::C3Vector(-(yprime->y * xprime->z), xprime->z * yprime->x, yprime->y * xprime->x - xprime->y * yprime->x);
 }
 
 static void BuildBillboardMatrix(const NTempest::C3Vector &direction, NTempest::C33Matrix *rotation) {
@@ -39,7 +48,9 @@ static void FaceDirectionWithRoll(
     NTempest::C3Vector       *yprime,
     NTempest::C3Vector       *zprime
 ) {
-  ASSERT(NTempest::CMath::fnotequal_(direction.SquaredMag(), 0.0f));
+  VALIDATEBEGIN;
+  VALIDATE(CMath::fnotequal_(direction.SquaredMag(),0));
+  VALIDATEENDVOID;
 
   *xprime = direction;
 

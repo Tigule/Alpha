@@ -13,101 +13,337 @@
 
 #include <string.h>
 
+class FRAMEPRIORITY {
+ public:
+  CSimpleFrame *frame;
+  UINT          priority;
+
+  UINT SimpleSortedArrayValue() {
+    return priority;
+  }
+};
+
+class CFrameStrataNode {
+ public:
+  CFrameStrataNode() : batchDirty(0) {
+  }
+
+  ~CFrameStrataNode() {
+    while (frames.Head()) {
+      DELIFUSED(frames.Head());
+    }
+
+    CRenderBatch *next;
+
+    for (CRenderBatch *batch = renderList.Head(); (int)batch > 0; batch = next) {
+      next = renderList.RawNext(batch);
+      renderList.UnlinkNode(batch);
+    }
+  }
+
+  BOOL IsEmpty() {
+    return frames.IsEmpty();
+  }
+
+  BOOL AddFrame(CSimpleFrame *frame) {
+    ASSERT(!frames.IsLinked(frame));
+    frames.LinkNode(frame, LIST_TAIL, 0);
+
+    if (!frame->IsBeingScrolled()) {
+      batchDirty = -1;
+    }
+
+    if (frame->IsVisible()) {
+      frame->RegisterForEvents();
+    }
+
+    return batchDirty != 0;
+  }
+
+  BOOL DelFrame(CSimpleFrame *frame) {
+    ASSERT(frames.IsLinked(frame));
+    frames.UnlinkNode(frame);
+
+    if (!frame->IsBeingScrolled()) {
+      batchDirty = -1;
+    }
+
+    if (frame->IsVisible()) {
+      frame->UnregisterForEvents();
+    }
+
+    return batchDirty != 0;
+  }
+
+  void OnLayerUpdate(float elapsedSec) {
+    ITERATELIST(CSimpleFrame, frames, frame) {
+      if (frame->IsVisible()) {
+        frame->OnLayerUpdate(elapsedSec);
+      }
+    }
+  }
+
+  BOOL BuildBatches() {
+    if (batchDirty) {
+      UINT layer;
+
+      for (layer = 0; layer < NUM_SIMPLEFRAME_DRAWLAYERS; ++layer) {
+        CRenderBatch *batch = &batches[layer];
+
+        if (renderList.IsLinked(batch)) {
+          renderList.UnlinkNode(batch);
+        }
+
+        if ((1 << layer) & batchDirty) {
+          batch->Clear();
+          ITERATELIST(CSimpleFrame, frames, frame) {
+            if (frame->IsVisible() && !frame->IsBeingScrolled()) {
+              frame->OnFrameRender(batch, layer);
+            }
+          }
+          batch->Finish();
+        }
+
+        if (batch->Count() > 0) {
+          renderList.LinkNode(batch, LIST_TAIL, 0);
+        }
+      }
+
+      batchDirty = 0;
+    }
+
+    return batchDirty;
+  }
+
+  void RenderBatches() {
+    ITERATELIST(CRenderBatch, renderList, batch) {
+      CSimpleRender::DrawBatch(batch);
+    }
+  }
+
+  LISTDECLEX(CSimpleFrame, topLink, frames);
+  CRenderBatch batches[5];
+  UINT         batchDirty;
+  LISTDECLEX(CRenderBatch, renderLink, renderList);
+};
+
+class CFrameStrata {
+ public:
+  CFrameStrata() : batchDirty(0), levelsDirty(0), topLevel(0) {
+  }
+
+  ~CFrameStrata() {
+    UINT count = levels.Count();
+    UINT i;
+
+    for (i = 0; i < count; ++i) {
+      CFrameStrataNode *node = levels[i];
+
+      DELIFUSED(node);
+      levels[i] = 0;
+    }
+  }
+
+  BOOL EnumerateFrames(BOOL (*callback)(CSimpleFrame *, LPVOID), LPVOID param) {
+    UINT i;
+
+    for (i = 0; i < topLevel; ++i) {
+      ITERATELIST(CSimpleFrame, levels[i]->frames, frame) {
+        if (!callback(frame, param)) {
+          return 0;
+        }
+      }
+    }
+
+    return 1;
+  }
+
+  void AddFrame(CSimpleFrame *frame) {
+    UINT frameLevel = frame->GetFrameLevel();
+
+    if (frameLevel >= levels.Count()) {
+      UINT index = levels.Count();
+
+      levels.SetCount(frameLevel + 1);
+      while (index <= frameLevel) {
+        levels[index++] = NEW(CFrameStrataNode);
+      }
+    }
+
+    if (frameLevel >= topLevel) {
+      topLevel = frameLevel + 1;
+    }
+
+    batchDirty |= levels[frameLevel]->AddFrame(frame);
+    levelsDirty = 1;
+  }
+
+  void DelFrame(CSimpleFrame *frame) {
+    CFrameStrataNode *node = levels[frame->GetFrameLevel()];
+
+    batchDirty |= node->DelFrame(frame);
+    levelsDirty = 1;
+  }
+
+  CSimpleFrame *GetToplevelFrame(const NTempest::C2Vector &point) {
+    UINT level = topLevel;
+
+    while (level) {
+      --level;
+
+      ITERATELIST(CSimpleFrame, levels[level]->frames, frame) {
+        if (frame->IsVisible() && frame->TestHitRect(point)) {
+          return frame->GetToplevelFrame();
+        }
+      }
+    }
+
+    return 0;
+  }
+
+  void RaiseFrame(CSimpleFrame *frame) {
+    if (frame->IsOccluded()) {
+      frame->SetFrameLevel(topLevel, 1);
+    }
+  }
+
+  void OnFrameMovedOrResized(CSimpleFrame *frame) {
+    levelsDirty = 1;
+  }
+
+  void OnFrameLayerChanged(CSimpleFrame *frame, UINT layer) {
+    if (frame->IsBeingScrolled()) {
+      frame->OnUpdateBatch(layer);
+    } else {
+      CFrameStrataNode *node = levels[frame->GetFrameLevel()];
+
+      node->batchDirty |= 1 << layer;
+      batchDirty = 1;
+    }
+  }
+
+  void OnLayerWindowSizeChanged();
+
+  void OnLayerUpdate(float elapsedSec) {
+    UINT level;
+
+    for (level = 0; level < topLevel; ++level) {
+      levels[level]->OnLayerUpdate(elapsedSec);
+    }
+  }
+
+  void CompressLevels() {
+    UINT firstEmpty = static_cast<UINT>(-1);
+    UINT level = 0;
+
+    while (level < topLevel) {
+      if (levels[level]->IsEmpty()) {
+        if (firstEmpty == static_cast<UINT>(-1)) {
+          firstEmpty = level;
+        }
+      } else if (firstEmpty != static_cast<UINT>(-1)) {
+        UINT delta = level - firstEmpty;
+
+        for (UINT i = level; i < topLevel; ++i) {
+          CSimpleFrame *next;
+
+          for (CSimpleFrame *frame = levels[i]->frames.Head(); (int)frame > 0; frame = next) {
+            next = levels[i]->frames.RawNext(frame);
+            frame->SetFrameLevel(frame->GetFrameLevel() - delta, 0);
+          }
+        }
+
+        topLevel -= delta;
+        firstEmpty = static_cast<UINT>(-1);
+        continue;
+      }
+
+      ++level;
+    }
+
+    if (firstEmpty != static_cast<UINT>(-1)) {
+      topLevel = firstEmpty;
+    }
+  }
+
+  BOOL FrameOccluded(CSimpleFrame *thisFrame) {
+    NTempest::CRect otherRect;
+    NTempest::CRect thisRect;
+    UINT            level = thisFrame->GetFrameLevel();
+
+    while (level < topLevel) {
+      ITERATELIST(CSimpleFrame, levels[level]->frames, otherFrame) {
+        if (thisFrame != otherFrame && !otherFrame->IsAncestor(thisFrame)) {
+          thisFrame->GetRect(&thisRect);
+          otherFrame->GetRect(&otherRect);
+          if (thisRect.Intersect(otherRect).NotEmpty()) {
+            return 1;
+          }
+        }
+      }
+
+      ++level;
+    }
+
+    return 0;
+  }
+
+  void CheckOcclusion() {
+    UINT i;
+
+    for (i = 0; i < topLevel; ++i) {
+      ITERATELIST(CSimpleFrame, levels[i]->frames, frame) {
+        if (frame->IsToplevel()) {
+          frame->SetOccluded(FrameOccluded(frame));
+        }
+      }
+    }
+  }
+
+  BOOL BuildBatches(int compress) {
+    if (levelsDirty) {
+      if (compress) {
+        CompressLevels();
+      }
+
+      CheckOcclusion();
+      levelsDirty = 0;
+    }
+
+    if (batchDirty) {
+      UINT level;
+
+      batchDirty = 0;
+      for (level = 0; level < topLevel; ++level) {
+        if (levels[level]->BuildBatches()) {
+          batchDirty = 1;
+        }
+      }
+    }
+
+    return batchDirty;
+  }
+
+  void RenderBatches() {
+    UINT level;
+
+    for (level = 0; level < topLevel; ++level) {
+      levels[level]->RenderBatches();
+    }
+  }
+
+  int                              batchDirty;
+  int                              levelsDirty;
+  UINT                             topLevel;
+  TSFixedArray<CFrameStrataNode *> levels;
+};
+
 static const float EVENT_PRIORITY_ABOVE_NORMAL = 1.0f;
 
 static void PaintCursor(LPVOID, const RECTF *, const RECTF *, float);
 static void PaintScreen(LPVOID, const RECTF *, const RECTF *, float elapsedSec);
 
 CSimpleTop *CSimpleTop::s_instance;
-
-CMouseEvent &CMouseEvent::operator=(const EVENT_DATA_MOUSE &rhs) {
-  mode = rhs.mode;
-  button = rhs.button;
-  buttonState = rhs.buttonState;
-  metaKeyState = rhs.metaKeyState;
-  flags = rhs.flags;
-  time = rhs.time;
-  wheelDistance = rhs.wheelDistance;
-  NDCToDDC(rhs.x, rhs.y, &x, &y);
-  return *this;
-}
-
-BOOL CFrameStrataNode::BuildBatches() {
-  if (batchDirty) {
-    UINT layer;
-
-    for (layer = 0; layer < NUM_SIMPLEFRAME_DRAWLAYERS; ++layer) {
-      CRenderBatch *batch = &batches[layer];
-
-      if (renderList.IsLinked(batch)) {
-        renderList.UnlinkNode(batch);
-      }
-
-      if (batchDirty & (1 << layer)) {
-        batch->Clear();
-        ITERATELIST(CSimpleFrame, frames, frame) {
-          if (frame->IsVisible() && !frame->IsBeingScrolled()) {
-            frame->OnFrameRender(batch, layer);
-          }
-        }
-        batch->Finish();
-      }
-
-      if (batch->Count()) {
-        renderList.LinkNode(batch, LIST_TAIL, 0);
-      }
-    }
-
-    batchDirty = 0;
-  }
-
-  return batchDirty;
-}
-
-CFrameStrata::~CFrameStrata() {
-  UINT count = levels.Count();
-  UINT i;
-
-  for (i = 0; i < count; ++i) {
-    DELIFUSED(levels[i]);
-    levels[i] = 0;
-  }
-}
-
-BOOL CFrameStrata::FrameOccluded(CSimpleFrame *thisFrame) {
-  NTempest::CRect otherRect;
-  NTempest::CRect thisRect;
-  UINT            level = thisFrame->GetFrameLevel();
-
-  while (level < topLevel) {
-    ITERATELIST(CSimpleFrame, levels[level]->frames, otherFrame) {
-      if (thisFrame != otherFrame && !otherFrame->IsAncestor(thisFrame)) {
-        thisFrame->GetRect(&thisRect);
-        otherFrame->GetRect(&otherRect);
-        thisRect = thisRect.Intersect(otherRect);
-        if (thisRect.NotEmpty()) {
-          return 1;
-        }
-      }
-    }
-
-    ++level;
-  }
-
-  return 0;
-}
-
-void CFrameStrata::CheckOcclusion() {
-  UINT i;
-
-  for (i = 0; i < topLevel; ++i) {
-    ITERATELIST(CSimpleFrame, levels[i]->frames, frame) {
-      if (frame->IsToplevel()) {
-        frame->SetOccluded(FrameOccluded(frame));
-      }
-    }
-  }
-}
 
 static void PaintCursor(LPVOID, const RECTF *, const RECTF *, float) {
   ActivityBegin(ACTIVITY_FRAMEMANAGER);
@@ -162,9 +398,7 @@ CSimpleTop::CSimpleTop()
 }
 
 CSimpleTop::~CSimpleTop() {
-  SIMPLEFRAMENODE *node;
   UINT             i;
-  UINT             strata;
 
   SetCursor(0);
 
@@ -172,16 +406,15 @@ CSimpleTop::~CSimpleTop() {
     DELIFUSED(iterNode->frame);
   }
 
-  while ((node = m_destroyed.Head()) != 0) {
-    m_destroyed.DeleteNode(node);
-  }
+  m_destroyed.Clear();
 
   for (i = 0; i < NUM_FRAME_STRATA; ++i) {
     DELIFUSED(m_strata[i]);
     m_strata[i] = 0;
   }
 
-  for (strata = 0; strata < NUM_SIMPLEFRAME_DRAWLAYERS; ++strata) {
+  UINT strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  while (strata--) {
     for (i = 0; i < NUM_SIMPLE_EVENTS; ++i) {
       ASSERT(m_eventqueue[i][strata].Count() == 0);
     }
@@ -217,25 +450,11 @@ void CSimpleTop::UnregisterFrame(CSimpleFrame *frame) {
 void CSimpleTop::NotifyFrameMovedOrResized(CSimpleFrame *frame) {
   m_strata[frame->GetFrameStrata()]->OnFrameMovedOrResized(frame);
 
-  if (!m_layout.frame) {
-    m_checkFocus = 1;
-    return;
+  if (m_layout.frame) {
+    m_strata[frame->GetFrameStrata()]->BuildBatches(m_mouseCapture == 0);
+    RaiseFrame(m_layout.frame, 0);
   }
 
-  if (m_strata[frame->GetFrameStrata()]->levelsDirty) {
-    if (!m_mouseCapture) {
-      m_strata[frame->GetFrameStrata()]->CompressLevels();
-    }
-
-    m_strata[frame->GetFrameStrata()]->CheckOcclusion();
-    m_strata[frame->GetFrameStrata()]->levelsDirty = 0;
-  }
-
-  if (m_strata[frame->GetFrameStrata()]->batchDirty) {
-    m_strata[frame->GetFrameStrata()]->BuildBatches(!m_mouseCapture);
-  }
-
-  RaiseFrame(m_layout.frame, 0);
   m_checkFocus = 1;
 }
 
@@ -486,14 +705,13 @@ BOOL CSimpleTop::StartMoveOrResizeFrame(const CMouseEvent &start, int resize) {
 }
 
 void CSimpleTop::MoveOrResizeFrame(const CMouseEvent &evt) {
-  NTempest::C2Vector delta(evt.x - m_layout.last.x, evt.y - m_layout.last.y);
+  NTempest::C2Vector delta = NTempest::C2Vector(evt.x, evt.y) - m_layout.last;
 
   if (delta.x != 0.0f || delta.y != 0.0f) {
     m_layout.frame->DragBy(delta.x, delta.y, m_layout.anchor, &m_layout.final);
   }
 
-  m_layout.last.x += delta.x;
-  m_layout.last.y += delta.y;
+  m_layout.last += delta;
 }
 
 void CSimpleTop::StopMoveOrResizeFrame() {
@@ -501,15 +719,14 @@ void CSimpleTop::StopMoveOrResizeFrame() {
 }
 
 void CSimpleTop::OnLayerUpdate(float elapsedSec) {
-  SIMPLEFRAMENODE *node;
-  UINT             strata;
+  UINT strata;
 
-  ITERATELIST(SIMPLEFRAMENODE, m_destroyed, iterNode) {
-    DELIFUSED(iterNode->frame);
-  }
+  if (!m_destroyed.IsEmpty()) {
+    ITERATELIST(SIMPLEFRAMENODE, m_destroyed, iterNode) {
+      DELIFUSED(iterNode->frame);
+    }
 
-  while ((node = m_destroyed.Head()) != 0) {
-    m_destroyed.DeleteNode(node);
+    m_destroyed.Clear();
   }
 
   while (CLayoutFrame::ResizePending()) {
@@ -532,19 +749,7 @@ void CSimpleTop::OnLayerRender() {
   CameraSetupScreenProjection(m_rect, NTempest::C2Vector(0.0f), 0.0f);
 
   for (UINT strataIndex = 0; strataIndex < NUM_FRAME_STRATA; ++strataIndex) {
-    if (m_strata[strataIndex]->levelsDirty) {
-      if (!m_mouseCapture) {
-        m_strata[strataIndex]->CompressLevels();
-      }
-
-      m_strata[strataIndex]->CheckOcclusion();
-      m_strata[strataIndex]->levelsDirty = 0;
-    }
-
-    if (m_strata[strataIndex]->batchDirty) {
-      m_strata[strataIndex]->BuildBatches(!m_mouseCapture);
-    }
-
+    m_strata[strataIndex]->BuildBatches(m_mouseCapture == 0);
     m_strata[strataIndex]->RenderBatches();
   }
 }
@@ -595,16 +800,15 @@ void CSimpleTop::DrawCursor() {
 
 BOOL CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param) {
   CSimpleTop *top = static_cast<CSimpleTop *>(param);
-  CCharEvent  charEvent(*pCharEvtData);
-  UINT        strata = NUM_SIMPLEFRAME_DRAWLAYERS;
   int         eaten = 0;
+  CCharEvent  charEvent(*pCharEvtData);
 
   charEvent.SetId(0x40060067);
-  while (strata && !eaten) {
+  UINT strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  while (strata-- && !eaten) {
     CSimpleSortedArray<FRAMEPRIORITY *> *queue;
     FRAMEPRIORITY                      **entry;
 
-    --strata;
     queue = &top->m_eventqueue[SIMPLE_EVENT_CHAR][strata];
     queue->IterateBegin();
     while ((entry = queue->IterateNext()) && !eaten) {
@@ -617,16 +821,15 @@ BOOL CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param) {
 
 BOOL CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, LPVOID param) {
   CSimpleTop *top = static_cast<CSimpleTop *>(param);
-  CImeEvent   imeEvent(*pImeData);
-  UINT        strata = NUM_SIMPLEFRAME_DRAWLAYERS;
   int         eaten = 0;
+  CImeEvent   imeEvent(*pImeData);
 
   imeEvent.SetId(0x40060068);
-  while (strata && !eaten) {
+  UINT strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  while (strata-- && !eaten) {
     CSimpleSortedArray<FRAMEPRIORITY *> *queue;
     FRAMEPRIORITY                      **entry;
 
-    --strata;
     queue = &top->m_eventqueue[SIMPLE_EVENT_CHAR][strata];
     queue->IterateBegin();
     while ((entry = queue->IterateNext()) && !eaten) {
@@ -639,17 +842,16 @@ BOOL CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, LPVOID param) {
 
 BOOL CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CSimpleTop *top = static_cast<CSimpleTop *>(param);
-  CKeyEvent   keyEvent(*pKeyData);
-  UINT        strata = NUM_SIMPLEFRAME_DRAWLAYERS;
   int         eaten = 0;
+  CKeyEvent   keyEvent(*pKeyData);
 
   top->m_eventTime = keyEvent.time;
   keyEvent.SetId(0x40060064);
-  while (strata && !eaten) {
+  UINT strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  while (strata-- && !eaten) {
     CSimpleSortedArray<FRAMEPRIORITY *> *queue;
     FRAMEPRIORITY                      **entry;
 
-    --strata;
     queue = &top->m_eventqueue[SIMPLE_EVENT_KEY][strata];
     queue->IterateBegin();
     while ((entry = queue->IterateNext()) && !eaten) {
@@ -667,8 +869,8 @@ BOOL CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
 
 BOOL CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
-  CSimpleFrame *frame = top->m_keydownCapture[pKeyData->key];
   int           eaten = 0;
+  CSimpleFrame *frame = top->m_keydownCapture[pKeyData->key];
 
   top->m_eventTime = pKeyData->time;
   if (frame) {
@@ -676,20 +878,22 @@ BOOL CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
 
     keyEvent.SetId(0x40060066);
     frame->OnLayerKeyUp(keyEvent);
-    return 0;
+    eaten = 1;
+  } else {
+    if (pKeyData->key == KEY_PRINTSCREEN) {
+      eaten = !OnKeyDown(pKeyData, param);
+    }
+
+    top->m_keydownCapture[pKeyData->key] = 0;
   }
 
-  if (pKeyData->key == KEY_PRINTSCREEN) {
-    eaten = !OnKeyDown(pKeyData, param);
-  }
-
-  top->m_keydownCapture[pKeyData->key] = 0;
   return !eaten;
 }
 
 BOOL CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_keydownCapture[pKeyData->key];
+  int           eaten = 0;
 
   top->m_eventTime = pKeyData->time;
   if (frame) {
@@ -697,37 +901,36 @@ BOOL CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
 
     keyEvent.SetId(0x40060065);
     frame->OnLayerKeyDownRepeat(keyEvent);
-    return 0;
+    eaten = 1;
   }
 
-  return 1;
+  return !eaten;
 }
 
 BOOL CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
-  CSimpleTop   *top = static_cast<CSimpleTop *>(param);
-  CMouseEvent   mouseEvent;
+  CSimpleTop  *top = static_cast<CSimpleTop *>(param);
+  CMouseEvent  mouseEvent(*pMouseData);
+
+  mouseEvent.SetId(0x400500CA);
+
   CSimpleFrame *last_focus = top->m_mouseFocus;
   CSimpleFrame *next_focus = 0;
-  UINT          strata = NUM_SIMPLEFRAME_DRAWLAYERS;
 
-  mouseEvent = *pMouseData;
-  mouseEvent.SetId(0x400500CA);
   top->m_eventTime = pMouseData->time;
   top->m_mousePosition = *pMouseData;
 
   if (top->m_layout.frame) {
-    CMouseEvent mouseEvent;
+    CMouseEvent mouseEvent(*pMouseData);
 
-    mouseEvent = *pMouseData;
     top->MoveOrResizeFrame(mouseEvent);
     return 0;
   }
 
-  while (strata && !next_focus) {
+  UINT strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  while (strata-- && !next_focus) {
     CSimpleSortedArray<FRAMEPRIORITY *> *queue;
     FRAMEPRIORITY                      **entry;
 
-    --strata;
     queue = &top->m_eventqueue[SIMPLE_EVENT_MOUSE][strata];
     queue->IterateBegin();
     while ((entry = queue->IterateNext()) != 0) {
@@ -756,6 +959,7 @@ BOOL CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
 BOOL CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_mouseFocus;
+  int           eaten = 0;
 
   top->m_eventTime = pMouseData->time;
   if (frame) {
@@ -763,52 +967,45 @@ BOOL CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID 
 
     mouseEvent.SetId(0x400500CB);
     frame->OnLayerMouseMoveRelative(mouseEvent);
-    return 0;
+    eaten = 1;
   }
 
-  return 1;
+  return !eaten;
 }
 
 BOOL CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
-  CSimpleTop   *top = static_cast<CSimpleTop *>(param);
-  CMouseEvent   mouseEvent;
-  CSimpleFrame *frame;
-  int           eaten = 0;
+  CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  int         eaten = 0;
+  int (*callback)(const CMouseEvent &) = top->m_mouseButtonCallback;
+  CMouseEvent mouseEvent(*pMouseData);
 
-  mouseEvent = *pMouseData;
   mouseEvent.SetId(0x400500C8);
   top->m_eventTime = pMouseData->time;
 
   if (top->m_layout.enabled && (EventIsKeyDown(KEY_CONTROL) || EventIsKeyDown(KEY_ALT))) {
     top->StartMoveOrResizeFrame(mouseEvent, EventIsKeyDown(KEY_CONTROL));
-    eaten = 1;
-  } else if (top->m_mouseButtonCallback) {
-    eaten = top->m_mouseButtonCallback(mouseEvent);
+    return 0;
   }
 
-  if (!eaten) {
-    frame = top->m_mouseCapture;
-    if (!frame) {
-      frame = top->m_mouseFocus;
+  if (callback && callback(mouseEvent)) {
+    return 0;
+  }
+
+  CSimpleFrame *frame = top->m_mouseCapture;
+  if (!frame) {
+    frame = top->m_mouseFocus;
+  }
+
+  if (frame) {
+    frame->Raise();
+    if (frame->GetTitleRegion() && frame->GetTitleRegion()->PtInFrameRect(NTempest::C2Vector(mouseEvent.x, mouseEvent.y))) {
+      top->StartMoveOrResizeFrame(frame, mouseEvent, 0);
+    } else {
+      top->m_mouseCapture = frame;
+      frame->OnLayerMouseDown(mouseEvent);
     }
 
-    if (frame) {
-      frame->Raise();
-      if (frame->GetTitleRegion()) {
-        CLayoutFrame *title = reinterpret_cast<CLayoutFrame *>(frame->GetTitleRegion());
-
-        if (title->PtInFrameRect(NTempest::C2Vector(mouseEvent.x, mouseEvent.y))) {
-          top->StartMoveOrResizeFrame(frame, mouseEvent, 0);
-          eaten = 1;
-        }
-      }
-
-      if (!eaten) {
-        top->m_mouseCapture = frame;
-        frame->OnLayerMouseDown(mouseEvent);
-        eaten = 1;
-      }
-    }
+    eaten = 1;
   }
 
   return !eaten;
@@ -817,6 +1014,7 @@ BOOL CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
 BOOL CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   CSimpleTop   *top = static_cast<CSimpleTop *>(param);
   CSimpleFrame *frame = top->m_mouseCapture;
+  int           eaten = 0;
 
   top->m_eventTime = pMouseData->time;
   if (top->m_layout.frame) {
@@ -829,31 +1027,30 @@ BOOL CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
 
     mouseEvent.SetId(0x400500C9);
     frame->OnLayerMouseUp(mouseEvent);
+    eaten = 1;
     if (!mouseEvent.buttonState) {
       top->m_mouseCapture = 0;
     }
-    return 0;
   }
 
-  return 1;
+  return !eaten;
 }
 
 BOOL CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   CSimpleTop        *top = static_cast<CSimpleTop *>(param);
-  CMouseEvent        mouseEvent;
-  NTempest::C2Vector pt;
-  UINT               strata = NUM_SIMPLEFRAME_DRAWLAYERS;
   int                eaten = 0;
+  CMouseEvent        mouseEvent(*pMouseData);
 
-  mouseEvent = *pMouseData;
   mouseEvent.SetId(0x400500CD);
-  NDCToDDC(top->m_mousePosition.x, top->m_mousePosition.y, &pt.x, &pt.y);
 
-  while (strata && !eaten) {
+  NTempest::C2Vector pt;
+  top->GetMousePosition(pt);
+
+  UINT strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  while (strata-- && !eaten) {
     CSimpleSortedArray<FRAMEPRIORITY *> *queue;
     FRAMEPRIORITY                      **entry;
 
-    --strata;
     queue = &top->m_eventqueue[SIMPLE_EVENT_MOUSEWHEEL][strata];
     queue->IterateBegin();
     while ((entry = queue->IterateNext()) && !eaten) {
@@ -870,13 +1067,14 @@ BOOL CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) 
 
 BOOL CSimpleTop::OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, LPVOID param) {
   CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  int (*callback)(const CSizeEvent &) = top->m_displaySizeCallback;
 
   GxuFontWindowSizeChanged();
-  if (top->m_displaySizeCallback) {
+  if (callback) {
     CSizeEvent sizeEvent(*pSizeData);
 
     sizeEvent.SetId(0x40040064);
-    top->m_displaySizeCallback(sizeEvent);
+    callback(sizeEvent);
   }
 
   return 1;

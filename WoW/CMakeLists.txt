@@ -320,7 +320,7 @@ if(MSVC_VERSION EQUAL 1200)
     )
     set_source_files_properties(
         Source/Ui/Tutorial.cpp
-        PROPERTIES COMPILE_FLAGS "/GX- /Ob2"
+        PROPERTIES COMPILE_FLAGS "/GX- /Ob1"
     )
     set_source_files_properties(
         Source/WorldCommon/WorldMath.cpp
@@ -645,7 +645,7 @@ if(MSVC_VERSION EQUAL 1200)
     )
     set_source_files_properties(
         Source/ObjectAlloc/ObjectAlloc.cpp
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob2 /Oy- /GX-"
+        PROPERTIES COMPILE_FLAGS "/G6 /Ob1 /Oy- /GX-"
     )
     set_source_files_properties(
         Source/Object/ObjectClient/Player_C.cpp
@@ -708,7 +708,7 @@ if(MSVC_VERSION EQUAL 1200)
         Source/Console/ConsoleVar.cpp
         Source/DB/DBClient/sdbItemSubclass.cpp
         Source/UIUtil/Tooltip.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " /Ob2")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " /Ob1")
 
 endif()
 

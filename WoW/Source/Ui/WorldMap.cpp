@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
@@ -513,7 +521,8 @@ static int Script_GetMapContinents(lua_State *L) {
 
 static int Script_GetMapZones(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetMapZones(continent)");
+    luaL_error(L, "Usage: GetMapZones(continent)");
+    return 0;
   }
   UINT continent = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   UINT count = CGWorldMap::GetNumZones(continent);
@@ -525,7 +534,8 @@ static int Script_GetMapZones(lua_State *L) {
 
 static int Script_SetMapZoom(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: SetMapZoom(continent [, zone])");
+    luaL_error(L, "Usage: SetMapZoom(continent [, zone])");
+    return 0;
   }
   int continent = static_cast<int>(lua_tonumber(L, 1)) - 1;
   int zone = lua_isnumber(L, 2) ? static_cast<int>(lua_tonumber(L, 2)) - 1 : -1;
@@ -567,7 +577,8 @@ static int Script_GetCurrentMapZone(lua_State *L) {
 
 static int Script_ProcessMapClick(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
-    return luaL_error(L, "Usage: ProcessMapClick(x, y)");
+    luaL_error(L, "Usage: ProcessMapClick(x, y)");
+    return 0;
   }
   float x = static_cast<float>(lua_tonumber(L, 1));
   float y = static_cast<float>(lua_tonumber(L, 2));
@@ -577,7 +588,8 @@ static int Script_ProcessMapClick(lua_State *L) {
 
 static int Script_UpdateMapHighlight(lua_State *L) {
   if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
-    return luaL_error(L, "Usage: UpdateMapHighlight(x, y)");
+    luaL_error(L, "Usage: UpdateMapHighlight(x, y)");
+    return 0;
   }
   int                    mapAreaID = CGWorldMap::GetMapHighlight(static_cast<float>(lua_tonumber(L, 1)), static_cast<float>(lua_tonumber(L, 2)));
   const WorldMapAreaRec *mapArea = g_worldMapAreaDB.GetRecord(mapAreaID);
@@ -694,7 +706,8 @@ static int Script_UpdateMapHighlight(lua_State *L) {
 
 static int Script_GetPlayerMapPosition(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: GetPlayerMapPosition(unit)");
+    luaL_error(L, "Usage: GetPlayerMapPosition(unit)");
+    return 0;
   }
   LPCSTR unit = lua_tostring(L, 1);
   float  x;
@@ -721,7 +734,8 @@ static int Script_GetNumMapLandmarks(lua_State *L) {
 
 static int Script_GetMapLandmarkInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetMapLandmarkInfo(index)");
+    luaL_error(L, "Usage: GetMapLandmarkInfo(index)");
+    return 0;
   }
   const WorldMapLandmarkInfo *info = CGWorldMap::GetLandmarkInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   if (!info) {

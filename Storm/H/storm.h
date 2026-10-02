@@ -22,7 +22,8 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <sapibase.h>
+typedef unsigned int  uint;
+typedef unsigned long ulong;
 
 #if defined(_MSC_VER) && _MSC_VER == 1200
 const UINT  INFINITY_ENCODING = 0x7F800000;
@@ -577,18 +578,28 @@ extern "C" int SSignatureGenerate(
     SErrPrepareAppFatal(__FILE__, __LINE__); \
     SErrDisplayAppFatal args;             \
   } while (0)
-#define VALIDATEBEGIN \
-  do {
-#define VALIDATE(a) ASSERT(a)
+#define VALIDATEBEGIN
+#define VALIDATE(a)                          \
+  if (!(a)) {                                \
+    SErrPrepareAppFatal(__FILE__, __LINE__); \
+    SErrDisplayAppFatal(#a);                 \
+    goto validatefailed;                     \
+  }
 #define VALIDATEANDBLANK(a) \
-  do {                      \
-    ASSERT(a);              \
-    *(a) = 0;               \
-  } while (0)
-#define VALIDATEEND \
-  } while (0)
-#define VALIDATEENDVOID \
-  } while (0)
+  VALIDATE(a)               \
+  *(a) = 0;
+#define VALIDATEEND                            \
+  if (0) {                                     \
+  validatefailed:                              \
+    SErrSetLastError(ERROR_INVALID_PARAMETER); \
+    return FALSE;                              \
+  }
+#define VALIDATEENDVOID                        \
+  if (0) {                                     \
+  validatefailed:                              \
+    SErrSetLastError(ERROR_INVALID_PARAMETER); \
+    return;                                    \
+  }
 // clang-format on
 
 // --------------------------------
@@ -699,6 +710,8 @@ extern "C" BOOL APIENTRY   SMemIsValidPointer(LPCVOID address, DWORD size, BOOL 
 extern "C" LPVOID APIENTRY SMemReAlloc(LPVOID ptr, DWORD bytes, LPCSTR filename = NULL, int linenumber = 0, DWORD flags = 0);
 extern "C" void APIENTRY   SMemSetDebugFlags(DWORD flags, DWORD changeMask);
 extern "C" void __cdecl    SMemTrace(LPCSTR format, ...);
+
+#include <sapibase.h>
 
 // --------------------------------
 // Interlocked functions

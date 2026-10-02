@@ -15,17 +15,20 @@ CreatureDisplayInfoRec::~CreatureDisplayInfoRec() {
 
 bool CreatureDisplayInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT temptextureVariationIndices[3];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_modelID) ||
-      !SFileReadTyped(f, &m_soundID) ||
-      !SFileReadTyped(f, &m_extendedDisplayInfoID) ||
-      !SFileReadTyped(f, &m_creatureModelScale) ||
-      !SFileReadTyped(f, &m_creatureModelAlpha) ||
-      !SFileReadTyped(f, &temptextureVariationIndices[0]) ||
-      !SFileReadTyped(f, &temptextureVariationIndices[1]) ||
-      !SFileReadTyped(f, &temptextureVariationIndices[2]) ||
-      !SFileReadTyped(f, &m_bloodID)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_modelID) == 0);
+  error |= (SFileReadTyped(f, &m_soundID) == 0);
+  error |= (SFileReadTyped(f, &m_extendedDisplayInfoID) == 0);
+  error |= (SFileReadTyped(f, &m_creatureModelScale) == 0);
+  error |= (SFileReadTyped(f, &m_creatureModelAlpha) == 0);
+  error |= (SFileReadTyped(f, &temptextureVariationIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &temptextureVariationIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &temptextureVariationIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &m_bloodID) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CreatureDisplayInfoRec", DEFAULT_COLOR);
     return false;
   }

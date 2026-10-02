@@ -229,7 +229,7 @@ void MirrorInitialize() {
 const ObjDataDescriptor *MirrorGetObjDataDescriptor(OBJECT_TYPE type, UINT blockID) {
   switch (type) {
     case HIER_TYPE_OBJECT:
-      ASSERT(blockID < sizeof(s_objDescriptors) / sizeof(s_objDescriptors[0]));
+      ASSERT(blockID < (sizeof(s_objDescriptors) / sizeof(s_objDescriptors[0])));
       return &s_objDescriptors[blockID];
     case HIER_TYPE_ITEM:
       ASSERT(blockID < sizeof(s_itemDescriptors) / sizeof(s_itemDescriptors[0]));

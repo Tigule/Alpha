@@ -15,9 +15,12 @@ ItemVisualEffectsRec::~ItemVisualEffectsRec() {
 
 bool ItemVisualEffectsRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempModelIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempModelIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempModelIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading ItemVisualEffectsRec", DEFAULT_COLOR);
     return false;
   }

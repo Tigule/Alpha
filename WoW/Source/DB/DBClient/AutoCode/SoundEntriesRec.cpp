@@ -17,32 +17,35 @@ bool SoundEntriesRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempnameIndices[1];
   UINT tempFileIndices[10];
   UINT tempDirectoryBaseIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_soundType) ||
-      !SFileReadTyped(f, &tempnameIndices[0]) ||
-      !SFileReadTyped(f, &tempFileIndices[0]) ||
-      !SFileReadTyped(f, &tempFileIndices[1]) ||
-      !SFileReadTyped(f, &tempFileIndices[2]) ||
-      !SFileReadTyped(f, &tempFileIndices[3]) ||
-      !SFileReadTyped(f, &tempFileIndices[4]) ||
-      !SFileReadTyped(f, &tempFileIndices[5]) ||
-      !SFileReadTyped(f, &tempFileIndices[6]) ||
-      !SFileReadTyped(f, &tempFileIndices[7]) ||
-      !SFileReadTyped(f, &tempFileIndices[8]) ||
-      !SFileReadTyped(f, &tempFileIndices[9]) ||
-      !SFile::Read(f, &m_Freq[0], sizeof(m_Freq), 0, 0, 0) ||
-      !SFileReadTyped(f, &tempDirectoryBaseIndices[0]) ||
-      !SFileReadTyped(f, &m_volumeFloat) ||
-      !SFileReadTyped(f, &m_pitch) ||
-      !SFileReadTyped(f, &m_pitchVariation) ||
-      !SFileReadTyped(f, &m_priority) ||
-      !SFileReadTyped(f, &m_channel) ||
-      !SFileReadTyped(f, &m_flags) ||
-      !SFileReadTyped(f, &m_minDistance) ||
-      !SFileReadTyped(f, &m_maxDistance) ||
-      !SFileReadTyped(f, &m_distanceCutoff) ||
-      !SFileReadTyped(f, &m_EAXDef)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_soundType) == 0);
+  error |= (SFileReadTyped(f, &tempnameIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[8]) == 0);
+  error |= (SFileReadTyped(f, &tempFileIndices[9]) == 0);
+  error |= (SFileReadTyped(f, &m_Freq) == 0);
+  error |= (SFileReadTyped(f, &tempDirectoryBaseIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_volumeFloat) == 0);
+  error |= (SFileReadTyped(f, &m_pitch) == 0);
+  error |= (SFileReadTyped(f, &m_pitchVariation) == 0);
+  error |= (SFileReadTyped(f, &m_priority) == 0);
+  error |= (SFileReadTyped(f, &m_channel) == 0);
+  error |= (SFileReadTyped(f, &m_flags) == 0);
+  error |= (SFileReadTyped(f, &m_minDistance) == 0);
+  error |= (SFileReadTyped(f, &m_maxDistance) == 0);
+  error |= (SFileReadTyped(f, &m_distanceCutoff) == 0);
+  error |= (SFileReadTyped(f, &m_EAXDef) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SoundEntriesRec", DEFAULT_COLOR);
     return false;
   }

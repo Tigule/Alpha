@@ -15,10 +15,13 @@ UISoundLookupsRec::~UISoundLookupsRec() {
 
 bool UISoundLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempSoundNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_SoundID) ||
-      !SFileReadTyped(f, &tempSoundNameIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_SoundID) == 0);
+  error |= (SFileReadTyped(f, &tempSoundNameIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading UISoundLookupsRec", DEFAULT_COLOR);
     return false;
   }

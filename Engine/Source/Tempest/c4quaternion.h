@@ -76,17 +76,7 @@ namespace NTempest {
       return C33Matrix(1.0f - (yy + zz), xy + wz, xz - wy, xy - wz, 1.0f - (xx + zz), yz + wx, xz + wy, yz - wx, 1.0f - (xx + yy));
     }
 
-    C4Quaternion &operator*=(const C4Quaternion &a) {
-      float oldW = w;
-      float oldX = x;
-      float oldY = y;
-      float oldZ = z;
-      w = oldW * a.w - oldX * a.x - oldY * a.y - oldZ * a.z;
-      x = oldW * a.x + oldX * a.w + oldY * a.z - oldZ * a.y;
-      y = oldW * a.y + oldY * a.w + oldZ * a.x - oldX * a.z;
-      z = oldW * a.z + oldZ * a.w + oldX * a.y - oldY * a.x;
-      return *this;
-    }
+    C4Quaternion &operator*=(const C4Quaternion &a);
 
     C3Vector operator*(const C3Vector &vector) const {
       return static_cast<C33Matrix>(*this) * vector;
@@ -150,6 +140,10 @@ namespace NTempest {
         l.w * r.w - l.x * r.x - l.y * r.y - l.z * r.z, l.w * r.x + l.x * r.w + l.y * r.z - l.z * r.y, l.w * r.y + l.y * r.w + l.z * r.x - l.x * r.z,
         l.w * r.z + l.z * r.w + l.x * r.y - l.y * r.x
     );
+  }
+
+  inline C4Quaternion &C4Quaternion::operator*=(const C4Quaternion &a) {
+    return *this = *this * a;
   }
 
 }  // namespace NTempest

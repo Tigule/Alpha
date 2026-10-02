@@ -2,9 +2,8 @@
 #define WOW_SOURCE_UI_GAMEUI_H
 
 #include "Object/Object.h"
+#include "Object/Unit.h"
 #include "Net/NetClient/NetClient.h"
-#include "LootFrame.h"
-#include "PartyFrame.h"
 
 #include <Event/EvtApi.h>
 
@@ -37,6 +36,20 @@ class CMouseEvent;
 class CSizeEvent;
 class PetAction;
 enum SYSMSG_TYPE;
+
+enum LOOT_ACQUIRE {
+  LOOT_ACQUIRE_FAILED = 0,
+  LOOT_ACQUIRE_NORMAL = 1,
+  LOOT_ACQUIRE_PICKPOCKET = 2,
+  LOOT_ACQUIRE_FISHING = 3
+};
+
+enum LOOT_METHOD {
+  LOOT_METHOD_FREEFORALL = 0,
+  LOOT_METHOD_ROUNDROBIN = 1,
+  LOOT_METHOD_MASTERLOOTER = 2,
+  LOOT_METHOD_MAX = 3
+};
 
 struct CinematicData {
   const CinematicSequencesRec *sequence;

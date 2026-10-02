@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleHTML.h"
 
 #include "Base/Status.h"

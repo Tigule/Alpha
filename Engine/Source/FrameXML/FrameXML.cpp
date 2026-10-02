@@ -21,9 +21,6 @@
 #include <stdarg.h>
 #include <stpl.h>
 
-void __cdecl operator delete(LPVOID, LPVOID) {
-}
-
 class CFrameXMLStatus : public CStatus {
  public:
   CFrameXMLStatus();

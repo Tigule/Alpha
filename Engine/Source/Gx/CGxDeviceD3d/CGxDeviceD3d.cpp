@@ -11,58 +11,6 @@
 static _D3DFORMAT s_depthFormat[4] = {D3DFMT_D16, D3DFMT_D24X8, D3DFMT_D24S8, D3DFMT_D32};
 static _D3DFORMAT s_colorFormat[4] = {D3DFMT_R5G6B5, D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8, D3DFMT_A2R10G10B10};
 
-template <>
-void TSFixedArray<CGxMonitorMode>::ReallocData(UINT count) {
-  CGxMonitorMode *oldData = m_data;
-  CGxMonitorMode *newData;
-  UINT            copyCount;
-  UINT            index;
-
-  m_alloc = count;
-  newData = static_cast<CGxMonitorMode *>(SMemReAlloc(oldData, count * sizeof(*newData), MemFileName(), MemLineNo(), 0x10));
-  m_data = newData;
-  if (newData) {
-    return;
-  }
-
-  newData = static_cast<CGxMonitorMode *>(SMemAlloc(count * sizeof(*newData), MemFileName(), MemLineNo(), 0));
-  m_data = newData;
-  if (!oldData) {
-    return;
-  }
-
-  copyCount = count < m_count ? count : m_count;
-  for (index = 0; index < copyCount; ++index) {
-    new (&m_data[index]) CGxMonitorMode(oldData[index]);
-  }
-
-  SMemFree(oldData, MemFileName(), MemLineNo(), 0);
-}
-
-template <>
-UINT TSGrowableArray<CGxMonitorMode>::CalcChunkSize(UINT count) {
-  UINT chunk = count;
-  UINT next;
-
-  if (count >= 0x10) {
-    m_chunk = 0x10;
-    return 0x10;
-  }
-
-  next = (count - 1) & count;
-  while (next) {
-    chunk = next;
-    next = (chunk - 1) & chunk;
-  }
-  return chunk < 1 ? 1 : chunk;
-}
-
-template <>
-UINT TSGrowableArray<CGxMonitorMode>::RoundToChunk(UINT count, UINT chunk) const {
-  UINT remainder = count % chunk;
-  return remainder ? count + chunk - remainder : count;
-}
-
 BOOL CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   CGxFormat      fmt;
   D3DDISPLAYMODE dm;

@@ -14,13 +14,16 @@ CreatureFamilyRec::~CreatureFamilyRec() {
 }
 
 bool CreatureFamilyRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_minScale) ||
-      !SFileReadTyped(f, &m_minScaleLevel) ||
-      !SFileReadTyped(f, &m_maxScale) ||
-      !SFileReadTyped(f, &m_maxScaleLevel) ||
-      !SFile::Read(f, &m_skillLine[0], sizeof(m_skillLine), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_minScale) == 0);
+  error |= (SFileReadTyped(f, &m_minScaleLevel) == 0);
+  error |= (SFileReadTyped(f, &m_maxScale) == 0);
+  error |= (SFileReadTyped(f, &m_maxScaleLevel) == 0);
+  error |= (SFileReadTyped(f, &m_skillLine) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CreatureFamilyRec", DEFAULT_COLOR);
     return false;
   }

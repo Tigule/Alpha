@@ -17,12 +17,15 @@ bool AreaMIDIAmbiencesRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempDaySequenceIndices[1];
   UINT tempNightSequenceIndices[1];
   UINT tempDLSFileIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempDaySequenceIndices[0]) ||
-      !SFileReadTyped(f, &tempNightSequenceIndices[0]) ||
-      !SFileReadTyped(f, &tempDLSFileIndices[0]) ||
-      !SFileReadTyped(f, &m_volume)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempDaySequenceIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempNightSequenceIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempDLSFileIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_volume) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading AreaMIDIAmbiencesRec", DEFAULT_COLOR);
     return false;
   }

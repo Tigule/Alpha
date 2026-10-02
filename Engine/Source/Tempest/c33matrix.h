@@ -238,8 +238,12 @@ namespace NTempest {
     return l * (1.0f / a);
   }
 
-  inline C3Vector operator*(const C33Matrix &l, const C3Vector &v) {
-    return C3Vector(v.x * l.a0 + v.y * l.b0 + v.z * l.c0, v.x * l.a1 + v.y * l.b1 + v.z * l.c1, v.x * l.a2 + v.y * l.b2 + v.z * l.c2);
+  inline C3Vector operator*(const C3Vector &l, const C33Matrix &r) {
+    return C3Vector(l.x * r.a0 + l.y * r.b0 + l.z * r.c0, l.x * r.a1 + l.y * r.b1 + l.z * r.c1, l.x * r.a2 + l.y * r.b2 + l.z * r.c2);
+  }
+
+  inline C3Vector operator*(const C33Matrix &l, const C3Vector &r) {
+    return C3Vector(l.a0 * r.x + l.a1 * r.y + l.a2 * r.z, l.b0 * r.x + l.b1 * r.y + l.b2 * r.z, l.c0 * r.x + l.c1 * r.y + l.c2 * r.z);
   }
 
 }  // namespace NTempest

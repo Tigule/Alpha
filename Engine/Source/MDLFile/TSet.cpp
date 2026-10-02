@@ -47,7 +47,9 @@ int TSet::NotFound(UINT token) {
 }
 
 void TSet::Complete(CMDLStatus *status) {
-  FATALASSERT(status);
+  VALIDATEBEGIN;
+  VALIDATE(status);
+  VALIDATEENDVOID;
   for (int i = 0; i < count; ++i) {
     if (set[i].needed && !set[i].seen) {
       status->FatalNotFound(set[i].token, -1);

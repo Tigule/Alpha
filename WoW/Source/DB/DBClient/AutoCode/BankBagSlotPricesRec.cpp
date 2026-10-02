@@ -14,9 +14,12 @@ BankBagSlotPricesRec::~BankBagSlotPricesRec() {
 }
 
 bool BankBagSlotPricesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_Cost)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_Cost) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading BankBagSlotPricesRec", DEFAULT_COLOR);
     return false;
   }

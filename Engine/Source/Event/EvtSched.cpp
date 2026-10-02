@@ -369,10 +369,10 @@ static void PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DW
   }
 }
 
-static UINT APIENTRY ShutdownThreadProc(LPVOID pEvent) {
-  SEvent *shutdownEvent = static_cast<SEvent *>(pEvent);
+static UINT APIENTRY ShutdownThreadProc(LPVOID event) {
+  SEvent *shutdownEvent = static_cast<SEvent *>(event);
 
-  ASSERT(pEvent);
+  ASSERT(event);
   while (shutdownEvent->Wait(0) != WAIT_OBJECT_0) {
     OsNetPump(100);
   }

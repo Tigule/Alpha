@@ -8,10 +8,7 @@
 static TExtraInstanceRecycler<EvtMessage> s_messageRecycler(0x40, 0x40, 0x100);
 
 static EvtMessage *MessageAlloc(DWORD bytes) {
-  if (bytes <= 4) {
-    bytes = 4;
-  }
-  return s_messageRecycler.Get(bytes + 0x10);
+  return s_messageRecycler.Get(max(bytes, 4) + 0x10);
 }
 
 static void MessageFree(EvtMessage *message) {
@@ -23,11 +20,7 @@ static void ResetSyncState(EvtContext *context) {
 
   LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
 
-  EvtKeyDown *keyDown;
-  while ((keyDown = keyDownList.Head()) != 0) {
-    keyDown->link.Unlink();
-    SMemFree(keyDown, typeid(EvtKeyDown).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
-  }
+  keyDownList.Clear();
 
   context->QueueUnlockSyncKeyDownList();
 }
@@ -36,16 +29,10 @@ static void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
   int keyDown = 0;
 
   LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
-  EvtKeyDown *entry = keyDownList.Head();
-  while (entry) {
+  ITERATELIST(EvtKeyDown, keyDownList, entry) {
     if (entry->key == key) {
-      EvtKeyDown *next = keyDownList.Next(entry);
       keyDown = 1;
-      entry->link.Unlink();
-      SMemFree(entry, typeid(EvtKeyDown).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
-      entry = next;
-    } else {
-      entry = keyDownList.Next(entry);
+      ITERATE_DELETE;
     }
   }
 
@@ -54,9 +41,7 @@ static void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
       id = EVENT_ID_KEYDOWN_REPEATING;
     }
 
-    LPVOID storage = SMemAlloc(sizeof(EvtKeyDown), typeid(EvtKeyDown).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
-    entry = storage ? new (storage) EvtKeyDown : 0;
-    keyDownList.LinkNode(entry, LIST_TAIL, 0);
+    entry = keyDownList.NewNode(LIST_TAIL, 0, 0);
     entry->key = key;
   }
 
@@ -72,7 +57,9 @@ static void UpdateSyncMouseState(EvtContext *context, MOUSEBUTTON button, int do
 }
 
 static void UpdateSyncState(EvtContext *context, EVENTID &id, LPCVOID data) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEENDVOID;
 
   switch (id) {
     case EVENT_ID_FOCUS:
@@ -99,30 +86,35 @@ void IEvtQueueDestroy() {
 }
 
 BOOL IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
 
+  BOOL found = 0;
   LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
-  EvtKeyDown *entry = keyDownList.Head();
-  while (entry) {
+  ITERATELIST(EvtKeyDown, keyDownList, entry) {
     if (entry->key == key) {
-      context->QueueUnlockSyncKeyDownList();
-      return 1;
+      found = 1;
+      break;
     }
-    entry = keyDownList.Next(entry);
   }
 
   context->QueueUnlockSyncKeyDownList();
-  return 0;
+  return found;
 }
 
 BOOL IEvtQueueCheckSyncMouseState(EvtContext *context, MOUSEBUTTON button) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
 
   return context->QueueGetSyncButtonState(button) != 0;
 }
 
 void IEvtQueueDispatch(EvtContext *context, EVENTID id, LPCVOID data) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEENDVOID;
 
   UpdateSyncState(context, id, data);
   if (SErrIsDisplayingError()) {
@@ -188,7 +180,7 @@ void IEvtQueueDispatch(EvtContext *context, EVENTID id, LPCVOID data) {
       break;
     }
   }
-  marker.link.Unlink();
+  handlerList.UnlinkNode(&marker);
 
   context->QueueUnlockHandlerList();
 
@@ -198,7 +190,9 @@ void IEvtQueueDispatch(EvtContext *context, EVENTID id, LPCVOID data) {
 }
 
 BOOL IEvtQueueHasMessages(EvtContext *context) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
 
   LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
   BOOL hasMessages = messageList.Head() != 0;
@@ -207,12 +201,14 @@ BOOL IEvtQueueHasMessages(EvtContext *context) {
 }
 
 BOOL IEvtQueueDispatchNext(EvtContext *context) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
 
   LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
   EvtMessage *message = messageList.Head();
   if (message) {
-    message->link.Unlink();
+    messageList.UnlinkNode(message);
   }
   BOOL hasMore = messageList.Head() != 0;
   context->QueueUnlockMessageList();
@@ -227,7 +223,9 @@ BOOL IEvtQueueDispatchNext(EvtContext *context) {
 }
 
 void IEvtQueueDispatchAll(EvtContext *context) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEENDVOID;
 
   LISTDECLEX(EvtMessage, link, localMessageList);
 
@@ -243,7 +241,9 @@ void IEvtQueueDispatchAll(EvtContext *context) {
 }
 
 void IEvtQueuePost(EvtContext *context, EVENTID id, LPCVOID data, UINT bytes) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEENDVOID;
 
   EvtMessage *message = MessageAlloc(bytes);
   message->id = id;
@@ -257,9 +257,10 @@ void IEvtQueuePost(EvtContext *context, EVENTID id, LPCVOID data, UINT bytes) {
 }
 
 void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, LPVOID param) {
-  FATALASSERT(context);
-
-  FATALASSERT(scanner);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATE(scanner);
+  VALIDATEENDVOID;
 
   ASSERT(context->IsCurrentContext());
 
@@ -280,7 +281,9 @@ void IEvtQueueScan(EvtContext *context, EVENTSCANHANDLER scanner, LPVOID param) 
 }
 
 void IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, LPVOID param, float priority) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEENDVOID;
 
   LISTEX(EvtHandler, link) &handlerList = context->QueueLockHandlerList(id);
   LPVOID      storage = SMemAlloc(sizeof(EvtHandler), typeid(EvtHandler).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY);
@@ -300,7 +303,9 @@ void IEvtQueueRegister(EvtContext *context, EVENTID id, EVENTHANDLER handler, LP
 }
 
 void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, LPVOID param, UINT flags) {
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEENDVOID;
 
   for (int checkId = 0; checkId < EVENTIDS; ++checkId) {
     if ((flags & 1) && checkId != id) {
@@ -308,15 +313,9 @@ void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, 
     }
 
     LISTEX(EvtHandler, link) &handlerList = context->QueueLockHandlerList(static_cast<EVENTID>(checkId));
-    EvtHandler *registered = handlerList.Head();
-    while (registered) {
-      if (((flags & 2) && registered->func != handler) || ((flags & 4) && registered->param != param) || registered->marker) {
-        registered = handlerList.Next(registered);
-      } else {
-        EvtHandler *next = handlerList.Next(registered);
-        registered->link.Unlink();
-        SMemFree(registered, typeid(EvtHandler).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
-        registered = next;
+    ITERATELIST(EvtHandler, handlerList, registered) {
+      if ((registered->func == handler || !(flags & 2)) && (registered->param == param || !(flags & 4)) && !registered->marker) {
+        ITERATE_DELETE;
       }
     }
 

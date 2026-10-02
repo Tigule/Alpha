@@ -183,7 +183,9 @@ void GxDevDestroy(CGxDevice *devicePtr) {
     return;
   }
 
-  FATALASSERT(devicePtr == g_theGxDevicePtr);
+  VALIDATEBEGIN;
+  VALIDATE(devicePtr == g_theGxDevicePtr);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->DeviceDestroy();
   DELIFUSED(g_theGxDevicePtr);
@@ -259,7 +261,7 @@ void GxDevReadDepth(NTempest::CiRect &rect, TSGrowableArray<float> &depths) {
 }
 
 void GxDevSetRenderTarget(EGxBuffer buffer, CGxTex *texture, UINT plane) {
-  ASSERT(texture ? texture->m_flags.m_renderTarget : 1);
+  ASSERT(((((texture ? texture->m_flags.m_renderTarget : 1)))));
   g_theGxDevicePtr->DeviceSetRenderTarget(buffer, texture, plane);
 }
 
@@ -270,25 +272,33 @@ void GxDevOverride(EGxOverride override, DWORD value) {
 }
 
 void GxLightSet(UINT whichLight, const CGxLight &lightInfo, const NTempest::C3Vector cameraPos) {
-  FATALASSERT(whichLight < Gx_MaxLights);
+  VALIDATEBEGIN;
+  VALIDATE(whichLight < Gx_MaxLights);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->LightSet(whichLight, lightInfo, cameraPos);
 }
 
 void GxLight(UINT whichLight, CGxLight &lightInfo) {
-  FATALASSERT(whichLight < Gx_MaxLights);
+  VALIDATEBEGIN;
+  VALIDATE(whichLight < Gx_MaxLights);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->Light(whichLight, lightInfo);
 }
 
 void GxLightEnable(UINT whichLight, int enable) {
-  FATALASSERT(whichLight < Gx_MaxLights);
+  VALIDATEBEGIN;
+  VALIDATE(whichLight < Gx_MaxLights);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->LightEnable(whichLight, enable);
 }
 
 void GxRsSet(EGxRenderState which, NTempest::CImVector value) {
-  FATALASSERT(which < GxRenderStates_Last);
+  VALIDATEBEGIN;
+  VALIDATE(which < GxRenderStates_Last);
+  VALIDATEENDVOID;
 
   switch (which) {
     case GxRs_MatDiffuse:
@@ -307,7 +317,9 @@ void GxRsSet(EGxRenderState which, NTempest::CImVector value) {
 }
 
 void GxRsSet(EGxRenderState which, float value) {
-  FATALASSERT(which < GxRenderStates_Last);
+  VALIDATEBEGIN;
+  VALIDATE(which < GxRenderStates_Last);
+  VALIDATEENDVOID;
 
   switch (which) {
     case GxRs_TexLodBias0:
@@ -339,21 +351,23 @@ void GxRsSet(EGxRenderState which, float value) {
 }
 
 void GxRsSet(EGxRenderState which, int value) {
-  FATALASSERT(which < GxRenderStates_Last);
+  VALIDATEBEGIN;
+  VALIDATE(which < GxRenderStates_Last);
+  VALIDATEENDVOID;
 
   switch (which) {
     case GxRs_TexBlend0:
     case GxRs_TexBlend1:
     case GxRs_TexBlend2:
     case GxRs_TexBlend3:
-      ASSERT(value >= 0 && value < 5);
+      ASSERT(value >= GxTexBlend_Opaque && value < GxTexBlends_Last);
       break;
 
     case GxRs_TexGen0:
     case GxRs_TexGen1:
     case GxRs_TexGen2:
     case GxRs_TexGen3:
-      ASSERT(value >= 0 && value < 7);
+      ASSERT(value >= GxTexGen_Disable && value < GxTexGens_Last);
       break;
 
     case GxRs_FogStyle:
@@ -419,25 +433,33 @@ void GxRsSet(EGxRenderState which, LPVOID value) {
 }
 
 void GxRsGet(EGxRenderState which, NTempest::CImVector &value) {
-  FATALASSERT(which < GxRenderStates_Last);
+  VALIDATEBEGIN;
+  VALIDATE(which < GxRenderStates_Last);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
 void GxRsGet(EGxRenderState which, float &value) {
-  FATALASSERT(which < GxRenderStates_Last);
+  VALIDATEBEGIN;
+  VALIDATE(which < GxRenderStates_Last);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
 void GxRsGet(EGxRenderState which, int &value) {
-  FATALASSERT(which < GxRenderStates_Last);
+  VALIDATEBEGIN;
+  VALIDATE(which < GxRenderStates_Last);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
 void GxRsGet(EGxRenderState which, LPVOID &value) {
-  FATALASSERT(which < GxRenderStates_Last);
+  VALIDATEBEGIN;
+  VALIDATE(which < GxRenderStates_Last);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->RsGet(which, value);
 }
@@ -459,13 +481,17 @@ UINT GxRsStackOffset() {
 }
 
 void GxVertexShaderSelect(EGxVertexShader shader) {
-  FATALASSERT(shader < GxVertexShaders_Last);
+  VALIDATEBEGIN;
+  VALIDATE(shader < GxVertexShaders_Last);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->VertexShaderSelect(shader);
 }
 
 UINT GxVertexSize(EGxVertexBufferFormat format) {
-  FATALASSERT(format < GxVertexBufferFormats_Last);
+  VALIDATEBEGIN;
+  VALIDATE(format < GxVertexBufferFormats_Last);
+  VALIDATEEND;
 
   return vtxBufSize[format];
 }
@@ -535,13 +561,17 @@ CGxBuf *GxBufGetDynamic(EGxVertexBufferFormat format) {
 }
 
 UINT GxPerfCounter(EGxPerfCounter counter) {
-  FATALASSERT(counter < GxPerfCounters_Last);
+  VALIDATEBEGIN;
+  VALIDATE(counter < GxPerfCounters_Last);
+  VALIDATEEND;
 
   return g_theGxDevicePtr->PerfCounter(counter);
 }
 
 void GxMasterEnableSet(EGxMasterEnables state, int enable) {
-  FATALASSERT(state < GxMasterEnables_Last);
+  VALIDATEBEGIN;
+  VALIDATE(state < GxMasterEnables_Last);
+  VALIDATEENDVOID;
 
   ASSERT((enable & ~1) == 0);
 
@@ -549,7 +579,9 @@ void GxMasterEnableSet(EGxMasterEnables state, int enable) {
 }
 
 int GxMasterEnable(EGxMasterEnables state) {
-  FATALASSERT(state < GxMasterEnables_Last);
+  VALIDATEBEGIN;
+  VALIDATE(state < GxMasterEnables_Last);
+  VALIDATEEND;
 
   return g_theGxDevicePtr->MasterEnable(state);
 }
@@ -591,11 +623,11 @@ void GxPrimLockVertexPtrs(
 ) {
   ActivityBegin(ACTIVITY_RENDER);
 
-  FATALASSERT(vertexCount > 0);
-
-  FATALASSERT(vertexCount <= Gx_MaxVertices);
-
-  FATALASSERT(pos && posStride);
+  VALIDATEBEGIN;
+  VALIDATE(vertexCount > 0);
+  VALIDATE(vertexCount <= Gx_MaxVertices);
+  VALIDATE(pos && posStride);
+  VALIDATEENDVOID;
 
   if (!normal) {
     normalStride = 0;
@@ -622,13 +654,12 @@ void GxPrimLockVertexPtrs(
 void GxPrimLockIndexPtr(EGxPrim primType, UINT indexCount, const WORD *indices) {
   ActivityBegin(ACTIVITY_RENDER);
 
-  FATALASSERT(primType < GxPrims_Last);
-
-  FATALASSERT(indexCount > 0);
-
-  FATALASSERT(indexCount <= Gx_MaxIndices);
-
-  FATALASSERT(indices != 0);
+  VALIDATEBEGIN;
+  VALIDATE(primType < GxPrims_Last);
+  VALIDATE(indexCount > 0);
+  VALIDATE(indexCount <= Gx_MaxIndices);
+  VALIDATE(indices != 0);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->PrimLockIndexPtr(primType, indexCount, indices);
   ActivityEnd(ACTIVITY_RENDER);
@@ -762,7 +793,9 @@ BOOL GxTexCreate(
 
   FATALASSERT(width >= Gx_MinTexWidth);
 
-  FATALASSERT(height >= Gx_MinTexHeight);
+  VALIDATEBEGIN;
+  VALIDATE(height >= Gx_MinTexHeight);
+  VALIDATEEND;
 
   return g_theGxDevicePtr->TexCreate(width, height, format, flags, userArg, userFunc, texId);
 }
@@ -813,7 +846,9 @@ BOOL GxTexCreate(
 
   FATALASSERT(width >= Gx_MinTexWidth);
 
-  FATALASSERT(height >= Gx_MinTexHeight);
+  VALIDATEBEGIN;
+  VALIDATE(height >= Gx_MinTexHeight);
+  VALIDATEEND;
 
   return g_theGxDevicePtr->TexCreate(target, width, height, depth, format, dataFormat, flags, userArg, userFunc, texId);
 }
@@ -825,7 +860,9 @@ BOOL GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId) {
 }
 
 void GxTexUpdate(CGxTex *texId, int minX, int minY, int maxX, int maxY, int immediate) {
-  FATALASSERT(texId != 0);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATEENDVOID;
 
   NTempest::CiRect rect(minY, minX, maxY, maxX);
   GxTexUpdate(texId, rect, immediate);
@@ -838,67 +875,79 @@ int GxTexNeedsUpdate(CGxTex *texId) {
 }
 
 void GxTexUpdate(CGxTex *texId, NTempest::CiRect &updateRect, int immediate) {
-  FATALASSERT(texId != 0);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->TexMarkForUpdate(texId, updateRect, immediate);
 }
 
 void GxTexSetUserData(CGxTex *texId, void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &), LPVOID userArg) {
-  FATALASSERT(texId != 0);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->TexSetUserData(texId, userFunc, userArg);
 }
 
 void GxTexSetFlags(CGxTex *texId, CGxTexFlags flags) {
-  FATALASSERT(texId != 0);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->TexSetFlags(texId, flags);
 }
 
 void GxTexDestroy(CGxTex *texId) {
-  FATALASSERT(texId != 0);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->TexDestroy(texId);
 }
 
 void GxTexParameters(const CGxTex *texId, CGxTexParms &parms) {
-  FATALASSERT(texId != 0);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->TexParameters(texId, parms);
 }
 
 void GxTexParametersEx(const CGxTex *texId, CGxTexParmsEx &parms) {
-  FATALASSERT(texId != 0);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->TexParameters(texId, parms);
 }
 
 void GxTexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat) {
-  FATALASSERT(texId != 0);
-
-  FATALASSERT(dataFormat <= GxTexFormats_Last);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATE(dataFormat <= GxTexFormats_Last);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->TexSetDataFormat(texId, dataFormat);
 }
 
 void GxTexFlags(const CGxTex *texId, CGxTexFlags &flags) {
-  FATALASSERT(texId != 0);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->TexFlags(texId, flags);
 }
 
 void GxXformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
-  FATALASSERT(minX < maxX);
-
-  FATALASSERT(minY < maxY);
-
-  FATALASSERT(minZ <= maxZ);
-
-  FATALASSERT(minX >= 0.0f && maxX <= 1.0f);
-
-  FATALASSERT(minY >= 0.0f && maxY <= 1.0f);
-
-  FATALASSERT(minZ >= 0.0f && maxZ <= 1.0f);
+  VALIDATEBEGIN;
+  VALIDATE(minX < maxX);
+  VALIDATE(minY < maxY);
+  VALIDATE(minZ <= maxZ);
+  VALIDATE(minX >= 0.0f && maxX <= 1.0f);
+  VALIDATE(minY >= 0.0f && maxY <= 1.0f);
+  VALIDATE(minZ >= 0.0f && maxZ <= 1.0f);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->XformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 }
@@ -912,9 +961,10 @@ void GxXformSetView(const NTempest::C44Matrix &matrix) {
 }
 
 void GxXformSetBones(UINT numBones, const NTempest::C34Matrix *matrices) {
-  FATALASSERT(numBones < Gx_MaxBoneMatrices);
-
-  FATALASSERT(matrices != 0);
+  VALIDATEBEGIN;
+  VALIDATE(numBones < Gx_MaxBoneMatrices);
+  VALIDATE(matrices != 0);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->XformSetBones(numBones, matrices);
 }
@@ -932,7 +982,9 @@ void GxXformView(NTempest::C44Matrix &matrix) {
 }
 
 void GxXformBone(UINT ndx, NTempest::C34Matrix &matrix) {
-  FATALASSERT(ndx < Gx_MaxBoneMatrices);
+  VALIDATEBEGIN;
+  VALIDATE(ndx < Gx_MaxBoneMatrices);
+  VALIDATEENDVOID;
 
   g_theGxDevicePtr->XformBone(ndx, matrix);
 }
@@ -1134,6 +1186,8 @@ void __cdecl GxLog(LPCSTR format, ...) {
 }
 
 void GxTexGetDimensions(const CGxTex *texId, UINT *width, UINT *height) {
-  FATALASSERT(texId != 0);
+  VALIDATEBEGIN;
+  VALIDATE(texId != 0);
+  VALIDATEENDVOID;
   g_theGxDevicePtr->TexGetDimensions(texId, width, height);
 }

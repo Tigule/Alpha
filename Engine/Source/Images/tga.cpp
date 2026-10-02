@@ -23,7 +23,9 @@ void CTgaFile::Close() {
 BOOL CTgaFile::Open(LPCSTR filename) {
   FATALASSERT(filename);
 
-  FATALASSERT(*filename);
+  VALIDATEBEGIN;
+  VALIDATE(*filename);
+  VALIDATEEND;
 
   Close();
 
@@ -128,7 +130,9 @@ int CTgaFile::ReadColorMappedImage(UINT flags) {
 }
 
 int CTgaFile::LoadImageData(UINT flags) {
-  FATALASSERT(m_image == 0);
+  VALIDATEBEGIN;
+  VALIDATE(m_image == 0);
+  VALIDATEEND;
 
   if (!m_file) {
     SErrSetLastError(0xF720007E);
@@ -604,7 +608,9 @@ BOOL CTgaFile::Write(LPCSTR path) {
   int     success;
   DWORD   byteswritten;
 
-  FATALASSERT(path);
+  VALIDATEBEGIN;
+  VALIDATE(path);
+  VALIDATEEND;
 
   if (!m_image) {
     SErrSetLastError(0xF7200081);

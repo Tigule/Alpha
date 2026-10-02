@@ -22,6 +22,8 @@
 #include "Component/Component.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Player_C.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Tempest/cmath.h"
 #include "Tempest/crandom.h"
@@ -132,7 +134,7 @@ void CHARCREATEINFO::ResetOutfitSelection(UINT raceID, UINT sex) {
 }
 
 void CHARCREATEINFO::CommitGeoset(UINT sex) {
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
   CharCustomizationCommitGeosets(geosetHandle[sex]);
 }
 
@@ -371,7 +373,7 @@ UINT CCharCreateInfo::GetSelectedClassID() {
 }
 
 void CCharCreateInfo::UpdateAllCharacterInfo(int race, UINT sex) {
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
   InitializeCharacterInfo(sex, 1);
   m_charInfo.CommitTexture(race, sex);
   CommitCurrentGeoset(sex);
@@ -492,7 +494,7 @@ void CHARCREATEINFO::UpdateEquipment(int doNotCommitGeosets, UINT race, UINT sex
 }
 
 void CHARCREATEINFO::ChangeSkinTexture(int doNotCommitGeosets, UINT race, UINT sex) {
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
 
   if (characterComponent[sex]) {
     HandleClose(characterComponent[sex]);
@@ -508,14 +510,14 @@ void CHARCREATEINFO::ChangeSkinTexture(int doNotCommitGeosets, UINT race, UINT s
 }
 
 void CHARCREATEINFO::ChangeFaceTexture(UINT race, UINT sex) {
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
   if (characterModel[sex] && characterComponent[sex]) {
     CharCustomizationSetFaceTexture(characterModel[sex], characterComponent[sex], race, sex, selections[sex].face, selections[sex].skinColor, 0);
   }
 }
 
 void CHARCREATEINFO::ChangeFacialHairTexture(UINT race, UINT sex) {
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
   if (characterModel[sex] && characterComponent[sex]) {
     CharCustomizationSetFacialTexture(
         characterModel[sex], characterComponent[sex], race, sex, selections[sex].facialStyle, selections[sex].hairColor
@@ -524,7 +526,7 @@ void CHARCREATEINFO::ChangeFacialHairTexture(UINT race, UINT sex) {
 }
 
 void CHARCREATEINFO::ChangeFacialHairGeosets(UINT sex, UINT beardGeoset, UINT sideburnGeoset, UINT moustacheGeoset) {
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
   FATALASSERT(geosetHandle[sex]);
   CharCustomizationShowGeoset(geosetHandle[sex], CHARGEOSET_BEARD, beardGeoset);
   CharCustomizationShowGeoset(geosetHandle[sex], CHARGEOSET_SIDEBURN, sideburnGeoset);
@@ -542,7 +544,7 @@ void CHARCREATEINFO::ChangeHairGeosets(UINT race, UINT sex) {
 }
 
 void CHARCREATEINFO::UpdateGeosets(UINT beardGeoset, UINT sideBurnGeoset, UINT moustacheGeoset, UINT sex) {
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
   CharCustomizationInitBaseCharacter(geosetHandle[sex], beardGeoset, sideBurnGeoset, moustacheGeoset, 2);
 }
 

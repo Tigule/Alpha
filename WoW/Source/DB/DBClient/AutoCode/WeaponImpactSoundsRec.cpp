@@ -14,12 +14,15 @@ WeaponImpactSoundsRec::~WeaponImpactSoundsRec() {
 }
 
 bool WeaponImpactSoundsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_WeaponSubClassID) ||
-      !SFileReadTyped(f, &m_ParrySoundType) ||
-      !SFile::Read(f, &m_impactSoundID[0], sizeof(m_impactSoundID), 0, 0, 0) ||
-      !SFile::Read(f, &m_critImpactSoundID[0], sizeof(m_critImpactSoundID), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_WeaponSubClassID) == 0);
+  error |= (SFileReadTyped(f, &m_ParrySoundType) == 0);
+  error |= (SFileReadTyped(f, &m_impactSoundID) == 0);
+  error |= (SFileReadTyped(f, &m_critImpactSoundID) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading WeaponImpactSoundsRec", DEFAULT_COLOR);
     return false;
   }

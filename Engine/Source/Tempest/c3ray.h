@@ -9,6 +9,9 @@ namespace NTempest {
 
   class C3Ray {
    public:
+    C3Vector origin;
+    C3Vector dir;
+
     C3Ray() {
     }
 
@@ -17,9 +20,6 @@ namespace NTempest {
 
     C3Vector Point(float distance) const;
     CAaBox   AaBox() const;
-
-    C3Vector origin;
-    C3Vector dir;
   };
 
 }  // namespace NTempest

@@ -14,12 +14,15 @@ LockRec::~LockRec() {
 }
 
 bool LockRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFile::Read(f, &m_Type[0], sizeof(m_Type), 0, 0, 0) ||
-      !SFile::Read(f, &m_Index[0], sizeof(m_Index), 0, 0, 0) ||
-      !SFile::Read(f, &m_Skill[0], sizeof(m_Skill), 0, 0, 0) ||
-      !SFile::Read(f, &m_Action[0], sizeof(m_Action), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_Type) == 0);
+  error |= (SFileReadTyped(f, &m_Index) == 0);
+  error |= (SFileReadTyped(f, &m_Skill) == 0);
+  error |= (SFileReadTyped(f, &m_Action) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading LockRec", DEFAULT_COLOR);
     return false;
   }

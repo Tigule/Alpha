@@ -34,34 +34,6 @@
 #define INVALID_FILE_ATTRIBUTES ((DWORD)0xFFFFFFFF)
 #endif
 
-#undef VALIDATEBEGIN
-#undef VALIDATE
-#undef VALIDATEANDBLANK
-#undef VALIDATEEND
-#undef VALIDATEENDVOID
-#define VALIDATEBEGIN
-#define VALIDATE(a)                            \
-  if (!(a)) {                                  \
-    SErrPrepareAppFatal(__FILE__, __LINE__);   \
-    SErrDisplayAppFatal(#a);                   \
-    goto validatefailed;                       \
-  }
-#define VALIDATEANDBLANK(a) \
-  VALIDATE(a)               \
-  *(a) = 0;
-#define VALIDATEEND                              \
-  if (0) {                                       \
-  validatefailed:                                \
-      SErrSetLastError(ERROR_INVALID_PARAMETER); \
-      return FALSE;                              \
-  }
-#define VALIDATEENDVOID                          \
-  if (0) {                                       \
-  validatefailed:                                \
-      SErrSetLastError(ERROR_INVALID_PARAMETER); \
-      return;                                    \
-  }
-
 struct _ARCHIVEHEADER {
   DWORD signature;
   DWORD headersize;

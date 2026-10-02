@@ -63,7 +63,9 @@ void ActivityBegin(ACTIVITY activity) {
 void ActivityEnd(ACTIVITY activity) {
   LONGLONG currTime = OsGetAsyncTimeClocks();
 
-  FATALASSERT(activity == *s_activityStack.Top());
+  VALIDATEBEGIN;
+  VALIDATE(activity == *s_activityStack.Top());
+  VALIDATEENDVOID;
 
   s_activityStack.SetCount(s_activityStack.Count() - 1);
   s_totalTime[activity] += currTime - s_lastTime;

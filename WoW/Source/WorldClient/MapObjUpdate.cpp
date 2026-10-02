@@ -9,25 +9,6 @@
 #include "Services/SysMessage.h"
 #include "Services/Texture.h"
 
-void CMapObjGroup::UpdateLightmapTex(
-    EGxTexCommand cmd,
-    UINT          w,
-    UINT          h,
-    UINT          d,
-    UINT          mipLevel,
-    LPVOID        userArg,
-    UINT         &texelStrideInBytes,
-    LPCVOID      &texels
-) {
-  SMOLightmapTex *lightmapTex = static_cast<SMOLightmapTex *>(userArg);
-  FATALASSERT(lightmapTex);
-
-  if (cmd == GxTex_Latch) {
-    texelStrideInBytes = CalcRowStride(GxGetBlitFormat(LIGHTMAP_FORMAT), w);
-    texels = lightmapTex->texels;
-  }
-}
-
 void CMapObjGroup::CreateLightmaps() {
   lightmapTexFlushTime = 30.0f;
 
@@ -60,5 +41,24 @@ void CMapObjGroup::FreeLightmaps() {
 
   if (freed) {
     SysMsgPrintf(SYSMSG_INFO, 2, "FREELIGHTMAPS|%d", lightmapTexCount);
+  }
+}
+
+void CMapObjGroup::UpdateLightmapTex(
+    EGxTexCommand cmd,
+    UINT          w,
+    UINT          h,
+    UINT          d,
+    UINT          mipLevel,
+    LPVOID        userArg,
+    UINT         &texelStrideInBytes,
+    LPCVOID      &texels
+) {
+  SMOLightmapTex *lightmapTex = static_cast<SMOLightmapTex *>(userArg);
+  FATALASSERT(lightmapTex);
+
+  if (cmd == GxTex_Latch) {
+    texelStrideInBytes = CalcRowStride(GxGetBlitFormat(LIGHTMAP_FORMAT), w);
+    texels = lightmapTex->texels;
   }
 }

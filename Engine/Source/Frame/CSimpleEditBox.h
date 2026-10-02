@@ -14,49 +14,26 @@ class CSimpleEditBox : public CSimpleFrame {
  public:
   CSimpleEditBox(CSimpleFrame *parent = 0);
   virtual ~CSimpleEditBox();
-
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
-  static void SetKeyboardFocus(CSimpleEditBox *focus);
-  static void ClearKeyboardFocus(CSimpleEditBox *focus);
-
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
-  virtual void OnLayerShow();
-  virtual void OnLayerHide();
-  virtual void OnLayerUpdate(float elapsedSec);
-  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
-  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
-  virtual BOOL OnLayerChar(CCharEvent &evt);
-  virtual BOOL OnLayerIme(CImeEvent &evt);
-  virtual BOOL OnLayerKeyDown(CKeyEvent &evt);
-  virtual BOOL OnLayerKeyDownRepeat(CKeyEvent &evt);
-  virtual BOOL OnLayerKeyUp(CKeyEvent &evt);
-  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
-  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
 
-  void SetMultiLine(int enabled);
-  void SetAutoFocus(int enabled);
-  void SetEditTextInsets(float right, float left, float top, float bottom);
   void SetPassword(int enabled) {
     m_password = enabled;
     m_dirtyFlags |= DIRTY_TEXT | DIRTY_HIGHLIGHT | DIRTY_CURSOR;
   }
+
+  void SetMultiLine(int enabled);
+  void SetAutoFocus(int enabled);
+  void SetEditTextInsets(float right, float left, float top, float bottom);
+
   void SetTextSizeLimit(int size) {
     m_textLengthMax = size;
   }
+
   void SetTextLetterLimit(int letters) {
     m_textLettersMax = letters;
   }
-  void   SetText(LPCSTR text);
-  LPCSTR GetText() {
-    return m_text;
-  }
-  void Insert(LPCSTR utf8string, BOOL isIME);
-  void Insert(UINT utf16);
-  void SetHistoryLines(int numLines);
-  void AddHistoryLine(LPCSTR line);
-  void HighlightText();
+
   void SetFont(LPCSTR fontName, float fontHeight, UINT fontFlags);
 
   void SetTextColor(const NTempest::CImVector &color) {
@@ -94,6 +71,30 @@ class CSimpleEditBox : public CSimpleFrame {
   void HideCursor() {
     m_cursor->Hide();
   }
+
+  void   SetText(LPCSTR text);
+
+  LPCSTR GetText() {
+    return m_text;
+  }
+
+  void HighlightText();
+  void Insert(LPCSTR utf8string, BOOL isIME);
+  void Insert(UINT utf16);
+  void SetHistoryLines(int numLines);
+  void AddHistoryLine(LPCSTR line);
+  virtual void OnLayerShow();
+  virtual void OnLayerHide();
+  virtual void OnLayerUpdate(float elapsedSec);
+  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
+  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
+  virtual BOOL OnLayerChar(CCharEvent &evt);
+  virtual BOOL OnLayerIme(CImeEvent &evt);
+  virtual BOOL OnLayerKeyDown(CKeyEvent &evt);
+  virtual BOOL OnLayerKeyDownRepeat(CKeyEvent &evt);
+  virtual BOOL OnLayerKeyUp(CKeyEvent &evt);
+  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
 
   void RegisterEnter(UINT id, CObserver *observer) {
     RegisterAction(EVENT_ENTER, id, observer);
@@ -191,12 +192,16 @@ class CSimpleEditBox : public CSimpleFrame {
     }
   }
 
+  static void SetKeyboardFocus(CSimpleEditBox *focus);
+  static void ClearKeyboardFocus(CSimpleEditBox *focus);
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
+
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
-
+  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
   void UpdateSizes(const NTempest::CRect &rect);
   void UpdateTextInfo();
-  void UpdateVisibleCursor();
   int  GetNumToLen(int offset, int amount, bool checkHyperLink);
   BOOL GetLenToNum(int offset, int amount);
   int  NextCharOffset(int offset);
@@ -222,11 +227,14 @@ class CSimpleEditBox : public CSimpleFrame {
   void MoveLine(int distance, int highlight);
   void MoveForwardLine(int highlight);
   void MoveBackwardLine(int highlight);
+
   BOOL IsHighlighted() {
     return m_highlightLeft != m_highlightRight;
   }
+
   void StartHighlight();
   void ExtendHighlight(int distance);
+
   void ClearHighlight() {
     if (m_highlightLeft != m_highlightRight) {
       m_highlightLeft = 0;
@@ -234,6 +242,7 @@ class CSimpleEditBox : public CSimpleFrame {
       m_dirtyFlags |= DIRTY_HIGHLIGHT;
     }
   }
+
   void DeleteHighlight();
   void ForwardHistory();
   void BackwardHistory();
@@ -241,40 +250,30 @@ class CSimpleEditBox : public CSimpleFrame {
   void MakeTextVisible(int position, float extentLeft, float extentRight);
   void UpdateVisibleText();
   void UpdateVisibleHighlight();
+  void UpdateVisibleCursor();
   void UpdateHighlightArea(CSimpleRegion *region, int left, int right);
   void CopyToClipboard();
   void PasteFromClipboard();
-  void ShowCandidates();
-  void HideCandidates();
-  void CreateClauseHighlight();
-  void CreateCandidatesFrame();
-  void UpdateLanguageIndicator();
-  void UpdateClauseInfo();
-  BOOL PopulateCandidates(DWORD selection);
-  void DispatchAction(int action);
+
   void RegisterAction(int action, UINT id, CObserver *observer) {
     m_actions[action].id = id;
     m_actions[action].obj = observer;
   }
 
-  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
-  static CSimpleEditBox                                      *s_currentFocus;
+  void DispatchAction(int action);
+  void CreateClauseHighlight();
+  void CreateCandidatesFrame();
+  void ShowCandidates();
+  void HideCandidates();
+  void UpdateLanguageIndicator();
+  void UpdateClauseInfo();
+  BOOL PopulateCandidates(DWORD selection);
 
   enum {
     DIRTY_NONE = 0,
     DIRTY_TEXT = 1,
     DIRTY_HIGHLIGHT = 2,
     DIRTY_CURSOR = 4
-  };
-
-  enum {
-    EVENT_ENTER = 0,
-    EVENT_ESCAPE = 1,
-    EVENT_SPACE = 2,
-    EVENT_TAB = 3,
-    EVENT_CHANGED = 4,
-    EVENT_SET = 5,
-    NUM_EDITBOX_ACTIONS = 6
   };
 
   UINT                  m_dirtyFlags;
@@ -303,10 +302,22 @@ class CSimpleEditBox : public CSimpleFrame {
   int                   m_numHistory;
   int                   m_curHistory;
   TSFixedArray<char *>  m_history;
+
+  enum {
+    EVENT_ENTER = 0,
+    EVENT_ESCAPE = 1,
+    EVENT_SPACE = 2,
+    EVENT_TAB = 3,
+    EVENT_CHANGED = 4,
+    EVENT_SET = 5,
+    NUM_EDITBOX_ACTIONS = 6
+  };
+
   struct {
     UINT       id;
     CObserver *obj;
   } m_actions[NUM_EDITBOX_ACTIONS];
+
   BOOL                 m_imeInputMode;
   CSimpleTexture      *m_clauseHighlight;
   int                  m_clauseLeft;
@@ -320,6 +331,7 @@ class CSimpleEditBox : public CSimpleFrame {
   int                  m_onTabPressed;
   int                  m_onTextChanged;
   int                  m_onTextSet;
+  static CSimpleEditBox                                      *s_currentFocus;
 };
 
 #endif

@@ -15,10 +15,13 @@ TabardEmblemTexturesRec::~TabardEmblemTexturesRec() {
 
 bool TabardEmblemTexturesRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempTorsoTextureIndices[2];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempTorsoTextureIndices[0]) ||
-      !SFileReadTyped(f, &tempTorsoTextureIndices[1])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempTorsoTextureIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempTorsoTextureIndices[1]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading TabardEmblemTexturesRec", DEFAULT_COLOR);
     return false;
   }

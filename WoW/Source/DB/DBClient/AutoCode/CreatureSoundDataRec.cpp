@@ -14,28 +14,31 @@ CreatureSoundDataRec::~CreatureSoundDataRec() {
 }
 
 bool CreatureSoundDataRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_soundExertionID) ||
-      !SFileReadTyped(f, &m_soundExertionCriticalID) ||
-      !SFileReadTyped(f, &m_soundInjuryID) ||
-      !SFileReadTyped(f, &m_soundInjuryCriticalID) ||
-      !SFileReadTyped(f, &m_soundInjuryCrushingBlowID) ||
-      !SFileReadTyped(f, &m_soundDeathID) ||
-      !SFileReadTyped(f, &m_soundStunID) ||
-      !SFileReadTyped(f, &m_soundStandID) ||
-      !SFileReadTyped(f, &m_soundFootstepID) ||
-      !SFileReadTyped(f, &m_soundAggroID) ||
-      !SFileReadTyped(f, &m_soundWingFlapID) ||
-      !SFileReadTyped(f, &m_soundWingGlideID) ||
-      !SFileReadTyped(f, &m_soundAlertID) ||
-      !SFile::Read(f, &m_soundFidget[0], sizeof(m_soundFidget), 0, 0, 0) ||
-      !SFile::Read(f, &m_customAttack[0], sizeof(m_customAttack), 0, 0, 0) ||
-      !SFileReadTyped(f, &m_NPCSoundID) ||
-      !SFileReadTyped(f, &m_loopSoundID) ||
-      !SFileReadTyped(f, &m_creatureImpactType) ||
-      !SFileReadTyped(f, &m_soundJumpStartID) ||
-      !SFileReadTyped(f, &m_soundJumpEndID)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_soundExertionID) == 0);
+  error |= (SFileReadTyped(f, &m_soundExertionCriticalID) == 0);
+  error |= (SFileReadTyped(f, &m_soundInjuryID) == 0);
+  error |= (SFileReadTyped(f, &m_soundInjuryCriticalID) == 0);
+  error |= (SFileReadTyped(f, &m_soundInjuryCrushingBlowID) == 0);
+  error |= (SFileReadTyped(f, &m_soundDeathID) == 0);
+  error |= (SFileReadTyped(f, &m_soundStunID) == 0);
+  error |= (SFileReadTyped(f, &m_soundStandID) == 0);
+  error |= (SFileReadTyped(f, &m_soundFootstepID) == 0);
+  error |= (SFileReadTyped(f, &m_soundAggroID) == 0);
+  error |= (SFileReadTyped(f, &m_soundWingFlapID) == 0);
+  error |= (SFileReadTyped(f, &m_soundWingGlideID) == 0);
+  error |= (SFileReadTyped(f, &m_soundAlertID) == 0);
+  error |= (SFileReadTyped(f, &m_soundFidget) == 0);
+  error |= (SFileReadTyped(f, &m_customAttack) == 0);
+  error |= (SFileReadTyped(f, &m_NPCSoundID) == 0);
+  error |= (SFileReadTyped(f, &m_loopSoundID) == 0);
+  error |= (SFileReadTyped(f, &m_creatureImpactType) == 0);
+  error |= (SFileReadTyped(f, &m_soundJumpStartID) == 0);
+  error |= (SFileReadTyped(f, &m_soundJumpEndID) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CreatureSoundDataRec", DEFAULT_COLOR);
     return false;
   }

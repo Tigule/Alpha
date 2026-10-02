@@ -522,7 +522,9 @@ static void UpdateTgaTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mip
 static void RequestImageDimensions(UINT *width, UINT *height, UINT *bestMip) {
   CGxCaps systemCaps = GxCaps();
 
-  FATALASSERT(systemCaps.m_maxTextureSize > 0);
+  VALIDATEBEGIN;
+  VALIDATE(systemCaps.m_maxTextureSize > 0);
+  VALIDATEENDVOID;
 
   while (*width > systemCaps.m_maxTextureSize || *height > systemCaps.m_maxTextureSize) {
     *width >>= 1;
@@ -1192,13 +1194,14 @@ MipBits *TextureLoadImage(LPCSTR filename, UINT *width, UINT *height, UINT *gxTe
   EGxTexFormat format;
   MipBits     *mipImages;
 
-  FATALASSERT(filename);
-
+  VALIDATEBEGIN;
+  VALIDATE(filename);
   FATALASSERT(width);
 
   FATALASSERT(height);
 
-  FATALASSERT(gxTexFormat);
+  VALIDATE(gxTexFormat);
+  VALIDATEEND;
 
   mipImages = 0;
   format = GxTex_Argb8888;
@@ -1243,7 +1246,9 @@ HTEXTURE TextureLoadImage(LPCSTR filename) {
   char  *ext;
   SFile *file;
 
-  FATALASSERT(filename);
+  VALIDATEBEGIN;
+  VALIDATE(filename);
+  VALIDATEEND;
 
   IdentifyAndStripFileExtension(filename, loadFileName, &ext);
   SStrCopy(ext, s_formatExt[IMAGE_FORMAT_BLP], 0x7FFFFFFF);
@@ -1355,7 +1360,9 @@ HTEXTURE TextureCreate(LPCSTR fileName, CGxTexFlags flags, CStatus *status, int 
 
   FATALASSERT(fileName[0]);
 
-  FATALASSERT(status);
+  VALIDATEBEGIN;
+  VALIDATE(status);
+  VALIDATEEND;
 
   EImageFormat imageFormat = IdentifyAndStripFileExtension(fileName, loadFileName, &ext);
 
@@ -1403,7 +1410,9 @@ HTEXTURE TextureCreate(LPCSTR fileName, CGxTexFlags flags, CStatus *status, int 
 }
 
 HTEXTURE TextureCreate(CGxTex *gxTex) {
-  FATALASSERT(gxTex);
+  VALIDATEBEGIN;
+  VALIDATE(gxTex);
+  VALIDATEEND;
 
   CTexture *texture = new (SMemAlloc(sizeof(CTexture), "HTEXTURE", SERR_LINECODE_OBJECT, 0)) CTexture;
   if (!texture) {
@@ -1435,57 +1444,53 @@ HTEXTURE TextureCreateSolid(const NTempest::CImVector &color, CStatus *status) {
 }
 
 CGxTex *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status) {
-  CTexture *textureObject = reinterpret_cast<CTexture *>(texture);
+  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
 
-  if (!texture) {
-    FATALERROR(("textureptr"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(textureptr);
+  VALIDATEEND;
 
-  if (!textureObject->gxTex) {
+  if (!textureptr->gxTex) {
     if (!force) {
       return 0;
     }
 
-    AsyncTextureWait(textureObject);
+    AsyncTextureWait(textureptr);
     if (status) {
-      status->Add(textureObject->loadStatus);
+      status->Add(textureptr->loadStatus);
     }
   }
 
-  return textureObject->gxTex;
+  return textureptr->gxTex;
 }
 
 MipBits *TextureGetMips(HTEXTURE texture, int force) {
-  CTexture *textureObject = reinterpret_cast<CTexture *>(texture);
+  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
 
-  if (!texture) {
-    FATALERROR(("textureptr"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(textureptr);
+  VALIDATEEND;
 
-  if (!textureObject->mipBits) {
+  if (!textureptr->mipBits) {
     if (!force) {
       return 0;
     }
 
-    OsOutputDebugString("AsyncTextureWait: %s\n", textureObject->filename);
-    AsyncTextureWait(textureObject);
+    OsOutputDebugString("AsyncTextureWait: %s\n", textureptr->filename);
+    AsyncTextureWait(textureptr);
   }
 
-  return textureObject->mipBits;
+  return textureptr->mipBits;
 }
 
 int TextureIsOpaque(HTEXTURE__ *texture) {
-  CTexture *texturePtr = reinterpret_cast<CTexture *>(texture);
-  if (!texturePtr) {
-    FATALERROR(("textureptr"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
-  return texturePtr->flags & 1;
+  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+
+  VALIDATEBEGIN;
+  VALIDATE(textureptr);
+  VALIDATEEND;
+
+  return textureptr->flags & 1;
 }
 
 UINT TextureCalcMipCount(UINT width, UINT height) {
@@ -1659,12 +1664,13 @@ void TextureDestroy() {
 }
 
 LPCSTR TextureGetFilename(HTEXTURE texture) {
-  if (!texture) {
-    FATALERROR(("textureptr"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
-  return reinterpret_cast<CTexture *>(texture)->filename;
+  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+
+  VALIDATEBEGIN;
+  VALIDATE(textureptr);
+  VALIDATEEND;
+
+  return textureptr->filename;
 }
 
 BOOL TextureGetInfo(HTEXTURE texture, UINT &width, UINT &height, EGxTexFormat &format, int &opaque, UINT &alphaBits, BOOL bForce) {

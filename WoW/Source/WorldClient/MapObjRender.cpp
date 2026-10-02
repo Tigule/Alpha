@@ -40,66 +40,6 @@ static NTempest::C44Matrix s_cm;
 TSCArray<NTempest::CRect, 16> CMapObj::extViewList;
 TSCArray<SPortalExt, 2048>    CMapObj::portalExtList;
 
-UINT CMapObj::StabPortals(UINT groupIndex, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
-  FATALASSERT(GetGroup(groupIndex));
-
-  NTempest::C3Vector rayOrig = start;
-  NTempest::C3Vector rayDir = end - start;
-  UINT               currentGroup = groupIndex;
-  UINT               fromGroup = groupIndex;
-
-  for (;;) {
-    UINT nextGroup = StabPortals(fromGroup, currentGroup, rayOrig, rayDir);
-    if (nextGroup == currentGroup) {
-      if (groupInfoList[nextGroup].flags & 0x8) {
-        return -1;
-      }
-      return nextGroup;
-    }
-
-    fromGroup = currentGroup;
-    currentGroup = nextGroup;
-  }
-}
-
-UINT CMapObj::StabPortals(UINT fromGroupIndex, UINT groupIndex, NTempest::C3Vector &rayOrig, NTempest::C3Vector &rayDir) {
-  CMapObjGroup *group = GetGroup(groupIndex, 0);
-  FATALASSERT(group);
-
-  if (!portalRefCount) {
-    return groupIndex;
-  }
-
-  SMOPortalRef *portalRef = &portalRefList[group->portalStart];
-  for (UINT i = 0; i < group->portalCount; ++i, ++portalRef) {
-    if (portalRef->groupIndex == fromGroupIndex || portalRef->groupIndex == 0xFFFF) {
-      continue;
-    }
-
-    float         epsilon = 1.0194445f;
-    CMapObjGroup *toGroup = GetGroup(portalRef->groupIndex, 0);
-    FATALASSERT(toGroup);
-    if (toGroup->flags & 0x8) {
-      epsilon = 0.98055553f;
-    }
-
-    const SMOPortal *portal = &portalList[portalRef->portalIndex];
-    for (WORD j = 1; j < portal->count - 1; ++j) {
-      float dist;
-      if (CWorldMath::RayIntersectTri(
-              rayOrig, rayDir, portalVertexList[portal->startVertex], portalVertexList[portal->startVertex + j],
-              portalVertexList[portal->startVertex + j + 1], dist
-          ) &&
-          dist >= 0.0f && dist <= epsilon)
-      {
-        return portalRef->groupIndex;
-      }
-    }
-  }
-
-  return groupIndex;
-}
-
 void CMapObj::SetGroupRenderCallback(void (*func)(const UINT, LPCVOID, const int), LPVOID userParam) {
   gRenderCallback = func;
   gRenderUserParam = userParam;
@@ -164,6 +104,66 @@ void CMapObj::PrepareUpdate() {
 
 void CMapObj::LocateViewer(NTempest::C44Matrix &im, TSGrowableArray<UINT> &inGroups) {
   FATALASSERT(0);
+}
+
+UINT CMapObj::StabPortals(UINT groupIndex, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
+  FATALASSERT(GetGroup(groupIndex));
+
+  NTempest::C3Vector rayOrig = start;
+  NTempest::C3Vector rayDir = end - start;
+  UINT               currentGroup = groupIndex;
+  UINT               fromGroup = groupIndex;
+
+  for (;;) {
+    UINT nextGroup = StabPortals(fromGroup, currentGroup, rayOrig, rayDir);
+    if (nextGroup == currentGroup) {
+      if (groupInfoList[nextGroup].flags & 0x8) {
+        return -1;
+      }
+      return nextGroup;
+    }
+
+    fromGroup = currentGroup;
+    currentGroup = nextGroup;
+  }
+}
+
+UINT CMapObj::StabPortals(UINT fromGroupIndex, UINT groupIndex, NTempest::C3Vector &rayOrig, NTempest::C3Vector &rayDir) {
+  CMapObjGroup *group = GetGroup(groupIndex, 0);
+  FATALASSERT(group);
+
+  if (!portalRefCount) {
+    return groupIndex;
+  }
+
+  SMOPortalRef *portalRef = &portalRefList[group->portalStart];
+  for (UINT i = 0; i < group->portalCount; ++i, ++portalRef) {
+    if (portalRef->groupIndex == fromGroupIndex || portalRef->groupIndex == 0xFFFF) {
+      continue;
+    }
+
+    float         epsilon = 1.0194445f;
+    CMapObjGroup *toGroup = GetGroup(portalRef->groupIndex, 0);
+    FATALASSERT(toGroup);
+    if (toGroup->flags & 0x8) {
+      epsilon = 0.98055553f;
+    }
+
+    const SMOPortal *portal = &portalList[portalRef->portalIndex];
+    for (WORD j = 1; j < portal->count - 1; ++j) {
+      float dist;
+      if (CWorldMath::RayIntersectTri(
+              rayOrig, rayDir, portalVertexList[portal->startVertex], portalVertexList[portal->startVertex + j],
+              portalVertexList[portal->startVertex + j + 1], dist
+          ) &&
+          dist >= 0.0f && dist <= epsilon)
+      {
+        return portalRef->groupIndex;
+      }
+    }
+  }
+
+  return groupIndex;
 }
 
 void CMapObj::IntRender(NTempest::C44Matrix &mat, TSGrowableArray<UINT> &inGroups) {

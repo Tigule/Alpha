@@ -15,19 +15,22 @@ ItemClassRec::~ItemClassRec() {
 
 bool ItemClassRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempclassName_langIndices[NUM_LOCALES];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_classID) ||
-      !SFileReadTyped(f, &m_subclassMapID) ||
-      !SFileReadTyped(f, &m_flags) ||
-      !SFileReadTyped(f, &tempclassName_langIndices[0]) ||
-      !SFileReadTyped(f, &tempclassName_langIndices[1]) ||
-      !SFileReadTyped(f, &tempclassName_langIndices[2]) ||
-      !SFileReadTyped(f, &tempclassName_langIndices[3]) ||
-      !SFileReadTyped(f, &tempclassName_langIndices[4]) ||
-      !SFileReadTyped(f, &tempclassName_langIndices[5]) ||
-      !SFileReadTyped(f, &tempclassName_langIndices[6]) ||
-      !SFileReadTyped(f, &tempclassName_langIndices[7]) ||
-      !SFileReadTyped(f, &m_className_flag)) {
+  error |= (SFileReadTyped(f, &m_classID) == 0);
+  error |= (SFileReadTyped(f, &m_subclassMapID) == 0);
+  error |= (SFileReadTyped(f, &m_flags) == 0);
+  error |= (SFileReadTyped(f, &tempclassName_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempclassName_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempclassName_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempclassName_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempclassName_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempclassName_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempclassName_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempclassName_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_className_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading ItemClassRec", DEFAULT_COLOR);
     return false;
   }

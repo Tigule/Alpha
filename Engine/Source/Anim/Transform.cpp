@@ -659,7 +659,9 @@ DWORD IAnimGetCurrTimeMs() {
 
 void AnimSetTimeScale(HANIM anim, float timeScale) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
+  VALIDATEBEGIN;
+  VALIDATE(unique);
+  VALIDATEENDVOID;
   unique->seq[unique->primarySeq].seqTimeScale = timeScale;
 }
 
@@ -685,7 +687,9 @@ BOOL AnimSetObjectTimeScale(HANIM anim, UINT objectId, float timeScale) {
 
 float AnimGetTimeScale(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
+  VALIDATEBEGIN;
+  VALIDATE(unique);
+  VALIDATEEND;
   return unique->seq[unique->primarySeq].seqTimeScale;
 }
 
@@ -694,8 +698,10 @@ float AnimGetObjectTimeScale(HANIM anim, UINT objectId) {
   ASSERT(unique);
 
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  ASSERT(objectId < shared->objectOrder.Count());
+  VALIDATEBEGIN;
+  VALIDATE(shared);
+  VALIDATE(objectId < shared->objectOrder.Count());
+  VALIDATEEND;
 
   UINT sharedObjectId = shared->objectOrder[objectId];
   if (sharedObjectId == static_cast<UINT>(-1)) {
@@ -896,8 +902,10 @@ BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flag
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  ASSERT(objectId < shared->objectOrder.Count());
+  VALIDATEBEGIN;
+  VALIDATE(shared);
+  VALIDATE(objectId < shared->objectOrder.Count());
+  VALIDATEEND;
   ASSERT(sameAsObjectId < shared->objectOrder.Count());
 
   UINT sharedObjectId = shared->objectOrder[objectId];
@@ -916,7 +924,9 @@ BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flag
 
 void AnimResetGlobalSequenceTimes(HANIM anim) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
+  VALIDATEBEGIN;
+  VALIDATE(unique);
+  VALIDATEENDVOID;
   unique->globalSeqElapsed.Zero();
 }
 
@@ -925,7 +935,9 @@ int AnimAdvanceTime(HANIM anim, UINT currentFrame) {
   FATALASSERT(unique);
 
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  FATALASSERT(shared);
+  VALIDATEBEGIN;
+  VALIDATE(shared);
+  VALIDATEEND;
 
   if (currentFrame != s_lastFrame) {
     const DWORD currentTime = OsGetAsyncTimeMsPrecise();
@@ -958,7 +970,9 @@ UINT AnimGetElapsedTime() {
 
 void AnimPauseTime(HANIM anim, int pause) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
+  VALIDATEBEGIN;
+  VALIDATE(unique);
+  VALIDATEENDVOID;
   if (pause) {
     unique->flags |= 8;
   } else {
@@ -979,7 +993,9 @@ int AnimGetSequenceTime(HANIM anim, UINT seqIndex) {
   FATALASSERT(unique);
 
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  FATALASSERT(shared);
+  VALIDATEBEGIN;
+  VALIDATE(shared);
+  VALIDATEEND;
 
   CVariations &selection = shared->seqOrder[unique->seqMapIndex].order[seqIndex];
   if (selection.primary == 0xFF) {

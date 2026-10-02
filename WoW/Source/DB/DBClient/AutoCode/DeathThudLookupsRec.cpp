@@ -14,12 +14,15 @@ DeathThudLookupsRec::~DeathThudLookupsRec() {
 }
 
 bool DeathThudLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_SizeClass) ||
-      !SFileReadTyped(f, &m_TerrainTypeSoundID) ||
-      !SFileReadTyped(f, &m_SoundEntryID) ||
-      !SFileReadTyped(f, &m_SoundEntryIDWater)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_SizeClass) == 0);
+  error |= (SFileReadTyped(f, &m_TerrainTypeSoundID) == 0);
+  error |= (SFileReadTyped(f, &m_SoundEntryID) == 0);
+  error |= (SFileReadTyped(f, &m_SoundEntryIDWater) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading DeathThudLookupsRec", DEFAULT_COLOR);
     return false;
   }

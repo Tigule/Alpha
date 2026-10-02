@@ -27,7 +27,6 @@ NODEDECL(REGIONNODE) {
   }
 
   REGIONNODE(const REGIONNODE &);
-
   CSimpleRegion *region;
 };
 
@@ -36,7 +35,6 @@ NODEDECL(SIMPLEFRAMENODE) {
   }
 
   SIMPLEFRAMENODE(const SIMPLEFRAMENODE &);
-
   CSimpleFrame *frame;
 };
 
@@ -85,10 +83,6 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
  public:
   CSimpleFrame(CSimpleFrame *parent = 0);
   virtual ~CSimpleFrame();
-
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
-
   virtual void          DelayedDelete();
   virtual void          PreLoadXML(const XMLNode *node, CStatus *status);
   virtual void          LoadXML(const XMLNode *node, CStatus *status);
@@ -96,90 +90,68 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual void          LoadXML_Scripts(const XMLNode *node, CStatus *status);
   virtual void          PostLoadXML(const XMLNode *node, CStatus *status);
   virtual CLayoutFrame *GetLayoutParent();
+
   virtual LPCSTR        GetName() const {
     return m_frameName;
   }
-  virtual void SetAlpha(BYTE alpha);
-  virtual BOOL FrameDefPostInitialize(UINT createContext, LPVOID context) {
-    return 1;
-  }
-  virtual BOOL TestHitRect(const NTempest::C2Vector &pt);
-  virtual void OnLayerShow();
-  virtual void OnLayerHide();
-  virtual void OnLayerUpdate(float elapsedSec);
-  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
-  virtual void OnFrameRender();
-  virtual void OnFrameRender(CRenderBatch *batch, UINT layer);
-  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
-  virtual void OnFrameSizeChanged(float w, float h);
-  virtual void OnLayerCursorEnter();
-  virtual void OnLayerCursorExit();
-  virtual BOOL OnLayerIme(CImeEvent &evt) {
-    return 0;
-  }
-  virtual BOOL OnLayerKeyDownRepeat(CKeyEvent &evt) {
-    return 0;
-  }
-  virtual BOOL OnLayerChar(CCharEvent &evt);
-  virtual BOOL OnLayerKeyDown(CKeyEvent &evt);
-  virtual BOOL OnLayerKeyUp(CKeyEvent &evt);
-  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
-  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
-  virtual BOOL OnLayerMouseWheel(CMouseEvent &evt);
-  virtual BOOL OnLayerMouseMoveRelative(CMouseEvent &evt) {
-    return 0;
-  }
-  virtual void OnDragStart(CMouseEvent &evt);
-  virtual void OnDragStop(CMouseEvent &evt);
-  virtual void OnReceiveDrag(CMouseEvent &evt);
-  virtual void LockHighlight(int lock);
 
-  BOOL Hide() {
-    m_shown = 0;
-    return HideThis();
+  BOOL IsInitialized() {
+    return m_initialized_state == STATE_INITIALIZED;
   }
 
-  BOOL Show() {
-    m_shown = 1;
-    return ShowThis();
+  void SetFrameFlag(int flag, int on);
+
+  void SetToplevel(int toplevel) {
+    SetFrameFlag(0x1, toplevel);
   }
 
-  int GetFrameLevel() const {
-    return m_level;
+  BOOL IsToplevel() const {
+    return (m_flags & 0x1) != 0;
   }
 
-  void SetId(int id) {
-    m_id = id;
+  void SetOccluded(int occluded) {
+    SetFrameFlag(0x10, occluded);
   }
 
-  int GetId() {
-    return m_id;
+  BOOL IsOccluded() const {
+    return (m_flags & 0x10) != 0;
   }
 
-  CSimpleTop *GetTop() const {
-    return m_top;
+  void SetMovable(int movable) {
+    SetFrameFlag(0x100, movable);
   }
 
-  CSimpleFrame *GetParent() const {
-    return m_parent;
+  BOOL IsMovable() const {
+    return (m_flags & 0x100) != 0;
   }
 
-  CSimpleFrame *GetToplevelFrame() {
-    CSimpleFrame *frame = this;
-
-    if (!frame->IsToplevel()) {
-      frame = frame->m_parent;
-      while (frame && !frame->IsToplevel()) {
-        frame = frame->m_parent;
-      }
-    }
-
-    return frame;
+  void SetResizable(int resizable) {
+    SetFrameFlag(0x200, resizable);
   }
 
-  BYTE GetAlpha() const {
-    return m_alpha;
+  BOOL IsResizable() const {
+    return (m_flags & 0x200) != 0;
   }
+
+  void SetUserPlaced(int userPlaced) {
+    SetFrameFlag(0x1000, userPlaced);
+  }
+
+  BOOL IsUserPlaced() const {
+    return (m_flags & 0x1000) != 0;
+  }
+
+  void                SetBeingScrolled(int on);
+
+  BOOL IsBeingScrolled() const {
+    return (m_flags >> 13) & 1;
+  }
+
+  BOOL IsParentDrawn() const {
+    return !m_parent || m_parent->m_visible;
+  }
+
+  void SetFrameStrata(int strata);
 
   int GetFrameStrata() const {
     return m_strata;
@@ -193,62 +165,25 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return m_strata == 5;
   }
 
+  void SetFrameLevel(int level, int shiftChildren);
+
+  int GetFrameLevel() const {
+    return m_level;
+  }
+
+  CSimpleTop *GetTop() const {
+    return m_top;
+  }
+
+  void Raise();
+  void Lower();
+
+  void SetTitleRegion(CSimpleTitleRegion *titleRegion) {
+    m_titleRegion = titleRegion;
+  }
+
   CSimpleTitleRegion *GetTitleRegion() {
     return m_titleRegion;
-  }
-
-  BOOL IsBeingScrolled() const {
-    return (m_flags >> 13) & 1;
-  }
-
-  BOOL IsAncestor(CSimpleFrame *frame) const {
-    CSimpleFrame *parent = m_parent;
-
-    while (parent && parent != frame) {
-      parent = parent->m_parent;
-    }
-
-    return parent != 0;
-  }
-
-  BOOL IsInitialized() {
-    return m_initialized_state == STATE_INITIALIZED;
-  }
-
-  BOOL IsMovable() const {
-    return (m_flags & 0x100) != 0;
-  }
-
-  BOOL IsOccluded() const {
-    return (m_flags & 0x10) != 0;
-  }
-
-  BOOL IsParentDrawn() const {
-    return !m_parent || m_parent->m_visible;
-  }
-
-  BOOL IsResizable() const {
-    return (m_flags & 0x200) != 0;
-  }
-
-  BOOL IsToplevel() const {
-    return (m_flags & 0x1) != 0;
-  }
-
-  BOOL IsUserPlaced() const {
-    return (m_flags & 0x1000) != 0;
-  }
-
-  BOOL IsVisible() const {
-    return m_visible;
-  }
-
-  BOOL IsShown() const {
-    return m_shown;
-  }
-
-  void RegisterForDrag(UINT buttons) {
-    m_lookForDrag = buttons;
   }
 
   int ScaleBy(float scaleX, float scaleY, FRAMEPOINT anchor, NTempest::CRect *rect) {
@@ -259,40 +194,221 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     return CLayoutFrame::DragBy(reinterpret_cast<CLayoutFrame *>(m_top), deltaX, deltaY, anchor, rect);
   }
 
+  void                SetBackdrop(CBackdropGenerator *backdrop);
+
+  CBackdropGenerator *GetBackdrop() {
+    return m_backdrop;
+  }
+
+  BOOL SetHighlight(LPCSTR texFile, EGxBlend blendMode);
+  BOOL SetHighlight(CSimpleTexture *texture, EGxBlend blendMode);
+  virtual void SetAlpha(BYTE alpha);
+
+  BYTE GetAlpha() const {
+    return m_alpha;
+  }
+
+  void EnableDrawLayer(UINT drawlayer);
+  void DisableDrawLayer(UINT drawlayer);
+  void RegisterRegion(CSimpleRegion *region);
+  void                  UnregisterRegion(CSimpleRegion *region);
   void AddFrameRegion(CSimpleRegion *region, UINT drawlayer);
+  void RemoveFrameRegion(CSimpleRegion *region, UINT drawlayer);
+  void NotifyDrawLayerChanged(UINT drawlayer);
+  void NotifyDrawLayersChanged();
+
+  void SetId(int id) {
+    m_id = id;
+  }
+
+  int GetId() {
+    return m_id;
+  }
+
   BOOL AddToFrameRegistry(LPCSTR frameName, UINT context);
   void ClearFromSimpleRegistry();
-  void DisableDrawLayer(UINT drawlayer);
-  void DisableEvent(CSimpleEventType event);
-  void EnableDrawLayer(UINT drawlayer);
-  BOOL GetHitRect(NTempest::CRect &rect);
-  void NotifyDrawLayersChanged();
-  void NotifyDrawLayerChanged(UINT drawlayer);
-  void OnUpdateBatch(UINT layer);
-  void Lower();
-  void Raise();
-  void RegisterRegion(CSimpleRegion *region);
-  void RegisterForEvents();
-  void RemoveFrameRegion(CSimpleRegion *region, UINT drawlayer);
-  void SetOnCharScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnChar", GetName());
-    SetEventScript(m_onChar, source, description);
+
+  virtual BOOL FrameDefPostInitialize(UINT createContext, LPVOID context) {
+    return 1;
   }
 
-  void SetOnDragStartScript(LPCSTR source) {
-    char description[1024];
-    if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+  void SetParent(CSimpleFrame *parent);
+
+  CSimpleFrame *GetParent() const {
+    return m_parent;
+  }
+
+  CSimpleFrame *GetToplevelFrame() {
+    if (IsToplevel()) {
+      return this;
     }
-    SStrPrintf(description, sizeof(description), "%s:OnDragStart", GetName());
-    SetEventScript(m_onDragStart, source, description);
+
+    CSimpleFrame *frame = m_parent;
+    while (frame) {
+      if (frame->IsToplevel()) {
+        return frame;
+      }
+
+      frame = frame->m_parent;
+    }
+
+    return 0;
   }
 
-  void SetOnDragStopScript(LPCSTR source) {
+  BOOL IsAncestor(CSimpleFrame *frame) const {
+    CSimpleFrame *parent = m_parent;
+
+    while (parent) {
+      if (parent == frame) {
+        return 1;
+      }
+
+      parent = parent->m_parent;
+    }
+
+    return 0;
+  }
+
+  LIST(REGIONNODE) & GetRegions() {
+    return m_regions;
+  }
+
+  LIST(SIMPLEFRAMENODE) & GetChildren() {
+    return m_children;
+  }
+
+  void SetTooltip(CSimpleFrame *tooltip) {
+    m_tooltip = tooltip;
+  }
+
+  virtual void          SetDeferredResize(int enable);
+  virtual void          SetLayoutScale(float scale, bool resize);
+
+  BOOL Hide() {
+    m_shown = 0;
+    return HideThis();
+  }
+
+  BOOL Show() {
+    m_shown = 1;
+    return ShowThis();
+  }
+
+  BOOL IsShown() const {
+    return m_shown;
+  }
+
+  BOOL IsVisible() const {
+    return m_visible;
+  }
+
+  void                EnableEvent(CSimpleEventType event, UINT priority);
+  void DisableEvent(CSimpleEventType event);
+  void RegisterForEvents();
+  void                  UnregisterForEvents();
+  virtual BOOL TestHitRect(const NTempest::C2Vector &pt);
+  void SetHitRect(const NTempest::CRect &rect);
+  void SetHitRectInsets(float left, float right, float top, float bottom);
+  BOOL GetHitRect(NTempest::CRect &rect);
+  virtual void OnLayerShow();
+  virtual void OnLayerHide();
+  virtual void OnLayerUpdate(float elapsedSec);
+  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
+  virtual void OnFrameRender(CRenderBatch *batch, UINT layer);
+  virtual void OnFrameRender();
+  void OnUpdateBatch(UINT layer);
+  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
+  virtual void OnFrameSizeChanged(float w, float h);
+  virtual void OnLayerCursorEnter();
+  virtual void OnLayerCursorExit();
+
+  virtual BOOL OnLayerIme(CImeEvent &evt) {
+    return 0;
+  }
+
+  virtual BOOL OnLayerKeyDownRepeat(CKeyEvent &evt) {
+    return 0;
+  }
+
+  virtual BOOL OnLayerChar(CCharEvent &evt);
+  virtual BOOL OnLayerKeyDown(CKeyEvent &evt);
+  virtual BOOL OnLayerKeyUp(CKeyEvent &evt);
+  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseWheel(CMouseEvent &evt);
+
+  virtual BOOL OnLayerMouseMoveRelative(CMouseEvent &evt) {
+    return 0;
+  }
+
+  virtual void OnDragStart(CMouseEvent &evt);
+  virtual void OnDragStop(CMouseEvent &evt);
+  virtual void OnReceiveDrag(CMouseEvent &evt);
+  virtual void LockHighlight(int lock);
+
+  void RegisterForDrag(UINT buttons) {
+    m_lookForDrag = buttons;
+  }
+
+  void SetOnLoadScript(LPCSTR source) {
     char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnDragStop", GetName());
-    SetEventScript(m_onDragStop, source, description);
+    SStrPrintf(description, sizeof(description), "%s:OnLoad", GetName());
+    SetEventScript(m_onLoad, source, description);
+  }
+
+  void RunOnLoadScript() {
+    if (m_onLoad) {
+      FrameScript_Execute(m_onLoad, this);
+    }
+  }
+
+  void SetOnSizeChangedScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnSizeChanged", GetName());
+    SetEventScript(m_onSizeChanged, source, description);
+  }
+
+  void RunOnSizeChangedScript(float width, float height) {
+    if (m_onSizeChanged) {
+      FrameScript_Execute(m_onSizeChanged, this, "%f%f", width, height);
+    }
+  }
+
+  void SetOnUpdateScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnUpdate", GetName());
+    SetEventScript(m_onUpdate, source, description);
+  }
+
+  void RunOnUpdateScript(float elapsedSec) {
+    ASSERT(!m_loading);
+    if (m_onUpdate) {
+      FrameScript_Execute(m_onUpdate, this, "%f", elapsedSec);
+    }
+  }
+
+  void SetOnShowScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnShow", GetName());
+    SetEventScript(m_onShow, source, description);
+  }
+
+  void RunOnShowScript() {
+    if (m_onShow && !m_loading) {
+      FrameScript_Execute(m_onShow, this);
+    }
+  }
+
+  void SetOnHideScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnHide", GetName());
+    SetEventScript(m_onHide, source, description);
+  }
+
+  void RunOnHideScript() {
+    if (m_onHide && !m_loading) {
+      FrameScript_Execute(m_onHide, this);
+    }
   }
 
   void SetOnEnterScript(LPCSTR source) {
@@ -304,22 +420,11 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     SetEventScript(m_onEnter, source, description);
   }
 
-  void SetOnHideScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnHide", GetName());
-    SetEventScript(m_onHide, source, description);
-  }
-
-  void SetOnKeyDownScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnKeyDown", GetName());
-    SetEventScript(m_onKeyDown, source, description);
-  }
-
-  void SetOnKeyUpScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnKeyUp", GetName());
-    SetEventScript(m_onKeyUp, source, description);
+  void RunOnEnterScript() {
+    ASSERT(!m_loading);
+    if (m_onEnter) {
+      FrameScript_Execute(m_onEnter, this);
+    }
   }
 
   void SetOnLeaveScript(LPCSTR source) {
@@ -331,10 +436,11 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     SetEventScript(m_onLeave, source, description);
   }
 
-  void SetOnLoadScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnLoad", GetName());
-    SetEventScript(m_onLoad, source, description);
+  void RunOnLeaveScript() {
+    ASSERT(!m_loading);
+    if (m_onLeave) {
+      FrameScript_Execute(m_onLeave, this);
+    }
   }
 
   void SetOnMouseDownScript(LPCSTR source) {
@@ -344,132 +450,6 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     }
     SStrPrintf(description, sizeof(description), "%s:OnMouseDown", GetName());
     SetEventScript(m_onMouseDown, source, description);
-  }
-
-  void SetOnMouseUpScript(LPCSTR source) {
-    char description[1024];
-    if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
-    }
-    SStrPrintf(description, sizeof(description), "%s:OnMouseUp", GetName());
-    SetEventScript(m_onMouseUp, source, description);
-  }
-
-  void SetOnMouseWheelScript(LPCSTR source) {
-    char description[1024];
-    if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSEWHEEL, static_cast<UINT>(-1));
-    }
-    SStrPrintf(description, sizeof(description), "%s:OnMouseWheel", GetName());
-    SetEventScript(m_onMouseWheel, source, description);
-  }
-
-  void SetOnReceiveDragScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnReceiveDrag", GetName());
-    SetEventScript(m_onReceiveDrag, source, description);
-  }
-
-  void SetOnShowScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnShow", GetName());
-    SetEventScript(m_onShow, source, description);
-  }
-
-  void SetOnSizeChangedScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnSizeChanged", GetName());
-    SetEventScript(m_onSizeChanged, source, description);
-  }
-
-  void SetOnUpdateScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnUpdate", GetName());
-    SetEventScript(m_onUpdate, source, description);
-  }
-
-  void RunOnCharScript(LPCSTR character) {
-    ASSERT(!m_loading);
-    if (m_onChar) {
-      FrameScript_Execute(m_onChar, this, "%s", character);
-    }
-  }
-
-  void RunOnDragStartScript(MOUSEBUTTON button) {
-    LPCSTR buttonName;
-
-    switch (button) {
-      case MOUSE_BUTTON_LEFT:
-        buttonName = "LeftButton";
-        break;
-      case MOUSE_BUTTON_MIDDLE:
-        buttonName = "MiddleButton";
-        break;
-      case MOUSE_BUTTON_RIGHT:
-        buttonName = "RightButton";
-        break;
-      case MOUSE_BUTTON_XBUTTON1:
-        buttonName = "Button4";
-        break;
-      case MOUSE_BUTTON_XBUTTON2:
-        buttonName = "Button5";
-        break;
-      default:
-        buttonName = "UNKNOWN";
-        break;
-    }
-
-    ASSERT(!m_loading);
-    if (m_onDragStart) {
-      FrameScript_Execute(m_onDragStart, this, "%s", buttonName);
-    }
-  }
-
-  void RunOnDragStopScript() {
-    ASSERT(!m_loading);
-    if (m_onDragStop) {
-      FrameScript_Execute(m_onDragStop, this);
-    }
-  }
-
-  void RunOnEnterScript() {
-    ASSERT(!m_loading);
-    if (m_onEnter) {
-      FrameScript_Execute(m_onEnter, this);
-    }
-  }
-
-  void RunOnHideScript() {
-    if (m_onHide && !m_loading) {
-      FrameScript_Execute(m_onHide, this);
-    }
-  }
-
-  void RunOnKeyDownScript(LPCSTR key) {
-    ASSERT(!m_loading);
-    if (m_onKeyDown) {
-      FrameScript_Execute(m_onKeyDown, this, "%s", key);
-    }
-  }
-
-  void RunOnKeyUpScript(LPCSTR key) {
-    ASSERT(!m_loading);
-    if (m_onKeyUp) {
-      FrameScript_Execute(m_onKeyUp, this, "%s", key);
-    }
-  }
-
-  void RunOnLeaveScript() {
-    ASSERT(!m_loading);
-    if (m_onLeave) {
-      FrameScript_Execute(m_onLeave, this);
-    }
-  }
-
-  void RunOnLoadScript() {
-    if (m_onLoad) {
-      FrameScript_Execute(m_onLoad, this);
-    }
   }
 
   void RunOnMouseDownScript(MOUSEBUTTON button) {
@@ -502,6 +482,15 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     }
   }
 
+  void SetOnMouseUpScript(LPCSTR source) {
+    char description[1024];
+    if (source) {
+      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+    }
+    SStrPrintf(description, sizeof(description), "%s:OnMouseUp", GetName());
+    SetEventScript(m_onMouseUp, source, description);
+  }
+
   void RunOnMouseUpScript(MOUSEBUTTON button) {
     LPCSTR buttonName;
 
@@ -532,11 +521,78 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     }
   }
 
+  void SetOnMouseWheelScript(LPCSTR source) {
+    char description[1024];
+    if (source) {
+      EnableEvent(SIMPLE_EVENT_MOUSEWHEEL, static_cast<UINT>(-1));
+    }
+    SStrPrintf(description, sizeof(description), "%s:OnMouseWheel", GetName());
+    SetEventScript(m_onMouseWheel, source, description);
+  }
+
   void RunOnMouseWheelScript(int delta) {
     ASSERT(!m_loading);
     if (m_onMouseWheel) {
       FrameScript_Execute(m_onMouseWheel, this, "%d", delta);
     }
+  }
+
+  void SetOnDragStartScript(LPCSTR source) {
+    char description[1024];
+    if (source) {
+      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+    }
+    SStrPrintf(description, sizeof(description), "%s:OnDragStart", GetName());
+    SetEventScript(m_onDragStart, source, description);
+  }
+
+  void RunOnDragStartScript(MOUSEBUTTON button) {
+    LPCSTR buttonName;
+
+    switch (button) {
+      case MOUSE_BUTTON_LEFT:
+        buttonName = "LeftButton";
+        break;
+      case MOUSE_BUTTON_MIDDLE:
+        buttonName = "MiddleButton";
+        break;
+      case MOUSE_BUTTON_RIGHT:
+        buttonName = "RightButton";
+        break;
+      case MOUSE_BUTTON_XBUTTON1:
+        buttonName = "Button4";
+        break;
+      case MOUSE_BUTTON_XBUTTON2:
+        buttonName = "Button5";
+        break;
+      default:
+        buttonName = "UNKNOWN";
+        break;
+    }
+
+    ASSERT(!m_loading);
+    if (m_onDragStart) {
+      FrameScript_Execute(m_onDragStart, this, "%s", buttonName);
+    }
+  }
+
+  void SetOnDragStopScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnDragStop", GetName());
+    SetEventScript(m_onDragStop, source, description);
+  }
+
+  void RunOnDragStopScript() {
+    ASSERT(!m_loading);
+    if (m_onDragStop) {
+      FrameScript_Execute(m_onDragStop, this);
+    }
+  }
+
+  void SetOnReceiveDragScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnReceiveDrag", GetName());
+    SetEventScript(m_onReceiveDrag, source, description);
   }
 
   void RunOnReceiveDragScript() {
@@ -546,95 +602,64 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
     }
   }
 
-  void RunOnShowScript() {
-    if (m_onShow && !m_loading) {
-      FrameScript_Execute(m_onShow, this);
-    }
+  void SetOnCharScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnChar", GetName());
+    SetEventScript(m_onChar, source, description);
   }
 
-  void RunOnSizeChangedScript(float width, float height) {
-    if (m_onSizeChanged) {
-      FrameScript_Execute(m_onSizeChanged, this, "%f%f", width, height);
-    }
-  }
-
-  void RunOnUpdateScript(float elapsedSec) {
+  void RunOnCharScript(LPCSTR character) {
     ASSERT(!m_loading);
-    if (m_onUpdate) {
-      FrameScript_Execute(m_onUpdate, this, "%f", elapsedSec);
+    if (m_onChar) {
+      FrameScript_Execute(m_onChar, this, "%s", character);
     }
   }
 
-  void                EnableEvent(CSimpleEventType event, UINT priority);
-  void                SetBeingScrolled(int on);
-  void                SetBackdrop(CBackdropGenerator *backdrop);
-  CBackdropGenerator *GetBackdrop() {
-    return m_backdrop;
+  void SetOnKeyDownScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnKeyDown", GetName());
+    SetEventScript(m_onKeyDown, source, description);
   }
-  LIST(REGIONNODE) & GetRegions() {
-    return m_regions;
+
+  void RunOnKeyDownScript(LPCSTR key) {
+    ASSERT(!m_loading);
+    if (m_onKeyDown) {
+      FrameScript_Execute(m_onKeyDown, this, "%s", key);
+    }
   }
-  LIST(SIMPLEFRAMENODE) & GetChildren() {
-    return m_children;
+
+  void SetOnKeyUpScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnKeyUp", GetName());
+    SetEventScript(m_onKeyUp, source, description);
   }
-  BOOL SetHighlight(LPCSTR texFile, EGxBlend blendMode);
-  BOOL SetHighlight(CSimpleTexture *texture, EGxBlend blendMode);
-  void SetFrameFlag(int flag, int on);
-  void SetFrameLevel(int level, int shiftChildren);
-  void SetFrameStrata(int strata);
-  void SetOccluded(int occluded) {
-    SetFrameFlag(0x10, occluded);
+
+  void RunOnKeyUpScript(LPCSTR key) {
+    ASSERT(!m_loading);
+    if (m_onKeyUp) {
+      FrameScript_Execute(m_onKeyUp, this, "%s", key);
+    }
   }
-  void SetMovable(int movable) {
-    SetFrameFlag(0x100, movable);
-  }
-  void SetResizable(int resizable) {
-    SetFrameFlag(0x200, resizable);
-  }
-  void SetToplevel(int toplevel) {
-    SetFrameFlag(0x1, toplevel);
-  }
-  void SetHitRect(const NTempest::CRect &rect);
-  void SetHitRectInsets(float left, float right, float top, float bottom);
-  void SetParent(CSimpleFrame *parent);
-  void SetTooltip(CSimpleFrame *tooltip) {
-    m_tooltip = tooltip;
-  }
-  void SetTitleRegion(CSimpleTitleRegion *titleRegion) {
-    m_titleRegion = titleRegion;
-  }
-  void SetUserPlaced(int userPlaced) {
-    SetFrameFlag(0x1000, userPlaced);
-  }
-  void                  UnregisterRegion(CSimpleRegion *region);
-  void                  UnregisterForEvents();
-  virtual void          SetDeferredResize(int enable);
-  virtual void          SetLayoutScale(float scale, bool resize);
+
   virtual CLayoutFrame *GetLayoutFrameByName(LPCSTR name);
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
 
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
-  virtual BOOL HideThis();
-  virtual BOOL ShowThis();
-  virtual void ClearChildrenFromSimpleRegistry();
-
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
-
-  void AnchorDrawRegion(CSimpleRegion *region, UINT drawlayer);
-  void UnanchorDrawRegion(CSimpleRegion *region);
-  void ParentFrame(CSimpleFrame *frame);
-  void UnparentFrame(CSimpleFrame *frame);
-
   CSimpleTop         *m_top;
   CSimpleFrame       *m_parent;
   CSimpleFrame       *m_tooltip;
   CSimpleTitleRegion *m_titleRegion;
+
   enum {
     STATE_UNKNOWN = 0,
     STATE_INITIALIZED = 1,
     STATE_DESTROYED = 2,
     STATE_DELETED = 3
   } m_initialized_state;
+
   int                 m_id;
   char               *m_frameName;
   UINT                m_frameRegContext;
@@ -645,6 +670,8 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   UINT                m_eventmask;
   BOOL                m_shown;
   BOOL                m_visible;
+  virtual BOOL HideThis();
+  virtual BOOL ShowThis();
   NTempest::CRect     m_hitRect;
   NTempest::CRect     m_hitOffset;
   int                 m_highlightLocked;
@@ -677,7 +704,12 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   UINT         m_batchDirty;
   CRenderBatch m_batch[5];
   LISTDECLEX(CRenderBatch, renderLink, m_renderList);
+  void AnchorDrawRegion(CSimpleRegion *region, UINT drawlayer);
+  void UnanchorDrawRegion(CSimpleRegion *region);
   LISTDECL(SIMPLEFRAMENODE, m_children);
+  void ParentFrame(CSimpleFrame *frame);
+  void UnparentFrame(CSimpleFrame *frame);
+  virtual void ClearChildrenFromSimpleRegistry();
 
  public:
   LINKDECLEX(CSimpleFrame, topLink);

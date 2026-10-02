@@ -11,6 +11,13 @@ class NameCache {
     m_name[0] = 0;
   }
 
+  char      m_name[0x30];
+  DWORDLONG m_guid;
+  UINT      m_race;
+  UINT      m_sex;
+  BYTE      m_temp;
+  UINT      m_class;
+
   static int Version() {
     return 4;
   }
@@ -26,13 +33,6 @@ class NameCache {
     m_temp = rhs.m_temp;
     return *this;
   }
-
-  char      m_name[0x30];
-  DWORDLONG m_guid;
-  UINT      m_race;
-  UINT      m_sex;
-  BYTE      m_temp;
-  UINT      m_class;
 };
 
 #endif

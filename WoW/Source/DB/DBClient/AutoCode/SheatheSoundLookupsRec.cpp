@@ -14,14 +14,17 @@ SheatheSoundLookupsRec::~SheatheSoundLookupsRec() {
 }
 
 bool SheatheSoundLookupsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_classID) ||
-      !SFileReadTyped(f, &m_subclassID) ||
-      !SFileReadTyped(f, &m_material) ||
-      !SFileReadTyped(f, &m_checkMaterial) ||
-      !SFileReadTyped(f, &m_sheatheSound) ||
-      !SFileReadTyped(f, &m_unsheatheSound)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_classID) == 0);
+  error |= (SFileReadTyped(f, &m_subclassID) == 0);
+  error |= (SFileReadTyped(f, &m_material) == 0);
+  error |= (SFileReadTyped(f, &m_checkMaterial) == 0);
+  error |= (SFileReadTyped(f, &m_sheatheSound) == 0);
+  error |= (SFileReadTyped(f, &m_unsheatheSound) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SheatheSoundLookupsRec", DEFAULT_COLOR);
     return false;
   }

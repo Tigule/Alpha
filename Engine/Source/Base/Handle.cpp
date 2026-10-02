@@ -9,11 +9,9 @@ void HandleClose(HOBJECT handle) {
 }
 
 HOBJECT HandleCreate(CHandleObject *ptr, LPCSTR handleName) {
-  if (!ptr) {
-    FATALERROR(("ptr"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return NULL;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(ptr);
+  VALIDATEEND;
 
   ptr->IncRef();
   return reinterpret_cast<HOBJECT>(ptr);

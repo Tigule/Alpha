@@ -22,16 +22,16 @@ class CreatureStats {
     FREEIFUSED(m_title);
   }
 
-  static int Version() {
-    return 1;
-  }
-  void Pack(CDataStore *msg);
-
   char *m_name[4];
   char *m_title;
   int   m_flags;
   int   m_creatureType;
   int   m_creatureFamily;
+
+  static int Version() {
+    return 1;
+  }
+  void Pack(CDataStore *msg);
 };
 
 class CreatureStats_C : public CreatureStats {

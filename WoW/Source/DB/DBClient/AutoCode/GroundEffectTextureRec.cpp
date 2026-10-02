@@ -15,16 +15,19 @@ GroundEffectTextureRec::~GroundEffectTextureRec() {
 
 bool GroundEffectTextureRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT temptextureNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_datestamp) ||
-      !SFileReadTyped(f, &m_continentId) ||
-      !SFileReadTyped(f, &m_zoneId) ||
-      !SFileReadTyped(f, &m_textureId) ||
-      !SFileReadTyped(f, &temptextureNameIndices[0]) ||
-      !SFile::Read(f, &m_doodadId[0], sizeof(m_doodadId), 0, 0, 0) ||
-      !SFileReadTyped(f, &m_density) ||
-      !SFileReadTyped(f, &m_sound)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_datestamp) == 0);
+  error |= (SFileReadTyped(f, &m_continentId) == 0);
+  error |= (SFileReadTyped(f, &m_zoneId) == 0);
+  error |= (SFileReadTyped(f, &m_textureId) == 0);
+  error |= (SFileReadTyped(f, &temptextureNameIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_doodadId) == 0);
+  error |= (SFileReadTyped(f, &m_density) == 0);
+  error |= (SFileReadTyped(f, &m_sound) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading GroundEffectTextureRec", DEFAULT_COLOR);
     return false;
   }

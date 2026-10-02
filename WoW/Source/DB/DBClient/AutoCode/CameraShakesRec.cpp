@@ -14,15 +14,18 @@ CameraShakesRec::~CameraShakesRec() {
 }
 
 bool CameraShakesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_shakeType) ||
-      !SFileReadTyped(f, &m_direction) ||
-      !SFileReadTyped(f, &m_amplitude) ||
-      !SFileReadTyped(f, &m_frequency) ||
-      !SFileReadTyped(f, &m_duration) ||
-      !SFileReadTyped(f, &m_phase) ||
-      !SFileReadTyped(f, &m_coefficient)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_shakeType) == 0);
+  error |= (SFileReadTyped(f, &m_direction) == 0);
+  error |= (SFileReadTyped(f, &m_amplitude) == 0);
+  error |= (SFileReadTyped(f, &m_frequency) == 0);
+  error |= (SFileReadTyped(f, &m_duration) == 0);
+  error |= (SFileReadTyped(f, &m_phase) == 0);
+  error |= (SFileReadTyped(f, &m_coefficient) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CameraShakesRec", DEFAULT_COLOR);
     return false;
   }

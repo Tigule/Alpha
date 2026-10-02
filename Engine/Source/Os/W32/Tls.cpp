@@ -24,7 +24,9 @@ LPVOID OsTlsGetValue(DWORD index) {
   ASSERT(index != TLS_OUT_OF_INDEXES);
 
   value = TlsGetValue(index);
-  FATALASSERT(GetLastError() == 0);
+  VALIDATEBEGIN;
+  VALIDATE(GetLastError()==0);
+  VALIDATEEND;
 
   return value;
 }

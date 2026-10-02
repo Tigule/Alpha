@@ -14,12 +14,15 @@ SoundCharacterMacroLinesRec::~SoundCharacterMacroLinesRec() {
 }
 
 bool SoundCharacterMacroLinesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_Category) ||
-      !SFileReadTyped(f, &m_Sex) ||
-      !SFileReadTyped(f, &m_Race) ||
-      !SFileReadTyped(f, &m_SoundID)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_Category) == 0);
+  error |= (SFileReadTyped(f, &m_Sex) == 0);
+  error |= (SFileReadTyped(f, &m_Race) == 0);
+  error |= (SFileReadTyped(f, &m_SoundID) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SoundCharacterMacroLinesRec", DEFAULT_COLOR);
     return false;
   }

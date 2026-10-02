@@ -21,6 +21,8 @@ struct PrefetchNode : public TSHashObject<PrefetchNode, HASHKEY_STRI> {
     SFile::CreateOverlapped(&overlapped);
   }
 
+  PrefetchNode &operator=(const PrefetchNode &);
+
   ~PrefetchNode() {
     ASSERT(refCount == 0);
 
@@ -77,22 +79,6 @@ static PrefetchNode *IBaseFileStartLoad(LPCSTR fileName) {
   return theFile;
 }
 
-HASHKEY_STR::~HASHKEY_STR() {
-  if (m_str) {
-    SMemFree(m_str, __FILE__, __LINE__, 0);
-  }
-}
-
-HASHKEY_STR &HASHKEY_STR::operator=(LPCSTR str) {
-  if (m_str != str) {
-    if (m_str) {
-      SMemFree(m_str, __FILE__, __LINE__, 0);
-    }
-    m_str = SStrDupA(str, __FILE__, __LINE__);
-  }
-  return *this;
-}
-
 BOOL IBaseFileLoad(LPCSTR fileName, LPCVOID *fileBuffer, DWORD *fileSize) {
   PrefetchNode *theFile = IBaseFileStartLoad(fileName);
   if (!theFile) {
@@ -130,7 +116,9 @@ void BaseFileDestroy() {
 }
 
 BOOL BaseFilePrefetch(LPCSTR fileName) {
-  FATALASSERT(fileName);
+  VALIDATEBEGIN;
+  VALIDATE(fileName);
+  VALIDATEEND;
 
   s_critSect.Enter();
   int success = 0;
@@ -142,7 +130,9 @@ BOOL BaseFilePrefetch(LPCSTR fileName) {
 }
 
 int BaseFileIsFetched(LPCSTR fileName) {
-  FATALASSERT(fileName);
+  VALIDATEBEGIN;
+  VALIDATE(fileName);
+  VALIDATEEND;
 
   s_critSect.Enter();
   int           success = 0;
@@ -155,7 +145,9 @@ int BaseFileIsFetched(LPCSTR fileName) {
 }
 
 int BaseFileLoad(LPCSTR fileName, LPVOID *fileBuffer, DWORD *fileSize) {
-  FATALASSERT(fileName);
+  VALIDATEBEGIN;
+  VALIDATE(fileName);
+  VALIDATEEND;
   FATALASSERT(fileBuffer);
 
   LPCVOID tempBuffer;
@@ -197,7 +189,9 @@ void BaseFileFlush() {
 }
 
 void BaseFileRegisterUncachable(LPCSTR fileName) {
-  FATALASSERT(fileName);
+  VALIDATEBEGIN;
+  VALIDATE(fileName);
+  VALIDATEENDVOID;
 
   s_critSect.Enter();
   if (!s_uncachableFiles.Ptr(fileName)) {

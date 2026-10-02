@@ -170,7 +170,9 @@ long OsGetTime(long *timer) {
 }
 
 void OsFileTimeGetCurrent(OSFILETIME *filetime) {
-  FATALASSERT(filetime);
+  VALIDATEBEGIN;
+  VALIDATE(filetime);
+  VALIDATEENDVOID;
   SYSTEMTIME systime;
   GetSystemTime(&systime);
   SystemTimeToFileTime(&systime, reinterpret_cast<FILETIME *>(&filetime->m_value));
@@ -178,12 +180,16 @@ void OsFileTimeGetCurrent(OSFILETIME *filetime) {
 
 int OsFileTimeCompare(const OSFILETIME *filetime1, const OSFILETIME *filetime2) {
   FATALASSERT(filetime1);
-  FATALASSERT(filetime2);
+  VALIDATEBEGIN;
+  VALIDATE(filetime2);
+  VALIDATEEND;
   return CompareFileTime(reinterpret_cast<const FILETIME *>(&filetime1->m_value), reinterpret_cast<const FILETIME *>(&filetime2->m_value));
 }
 
 void OsFileTimeAdd(OSFILETIME *filetime, UINT seconds) {
-  FATALASSERT(filetime);
+  VALIDATEBEGIN;
+  VALIDATE(filetime);
+  VALIDATEENDVOID;
   filetime->m_value += 10000000ui64 * seconds;
 }
 
@@ -267,32 +273,37 @@ int OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTim
 void OsTimeToFileTime(DWORD time, OSFILETIME *fileTime) {
   DWORDLONG value;
 
-  FATALASSERT(fileTime);
+  VALIDATEBEGIN;
+  VALIDATE(fileTime);
+  VALIDATEENDVOID;
 
   value = ((DWORDLONG)time + 11644473600ui64) * 10000000ui64;
   fileTime->m_value = value;
 }
 
 void OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME *localFileTime) {
-  FATALASSERT(fileTime);
-
-  FATALASSERT(localFileTime);
+  VALIDATEBEGIN;
+  VALIDATE(fileTime);
+  VALIDATE(localFileTime);
+  VALIDATEENDVOID;
 
   FileTimeToLocalFileTime((const FILETIME *)&fileTime->m_value, (FILETIME *)&localFileTime->m_value);
 }
 
 void OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime) {
-  FATALASSERT(fileTime);
-
-  FATALASSERT(sysTime);
+  VALIDATEBEGIN;
+  VALIDATE(fileTime);
+  VALIDATE(sysTime);
+  VALIDATEENDVOID;
 
   FileTimeToSystemTime((const FILETIME *)&fileTime->m_value, (SYSTEMTIME *)sysTime);
 }
 
 void OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime) {
-  FATALASSERT(fileTime);
-
-  FATALASSERT(sysTime);
+  VALIDATEBEGIN;
+  VALIDATE(fileTime);
+  VALIDATE(sysTime);
+  VALIDATEENDVOID;
 
   SystemTimeToFileTime((const SYSTEMTIME *)sysTime, (FILETIME *)&fileTime->m_value);
 }
@@ -301,7 +312,9 @@ void OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime) {
   OSFILETIME fileTime;
   OSFILETIME localFileTime;
 
-  FATALASSERT(localSysTime);
+  VALIDATEBEGIN;
+  VALIDATE(localSysTime);
+  VALIDATEENDVOID;
 
   OsTimeToFileTime(time, &fileTime);
   OsFileTimeToLocalFileTime(&fileTime, &localFileTime);
@@ -399,7 +412,7 @@ void OsTimeManager::Calibrate() {
 }
 
 void OsTimeStartup() {
-  new OsTimeManager;
+  NEWZERO(OsTimeManager);
 
   DWORD len = sizeof(s_cpuTicksPerSecond);
   if (!SRegLoadData("Internal", "CpuTicksPerSecond", 0, &s_cpuTicksPerSecond, sizeof(s_cpuTicksPerSecond), &len)) {

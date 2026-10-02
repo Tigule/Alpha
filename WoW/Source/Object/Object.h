@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Base/CDataStore.h"
+#include "Os/OsTime.h"
 #include "Tempest/c3spline.h"
 
 namespace NTempest {
@@ -9,6 +10,25 @@ namespace NTempest {
     s_ << d_.x;
     s_ << d_.y;
     s_ << d_.z;
+    return s_;
+  }
+
+  inline CDataStore &operator>>(CDataStore &s_, C3Vector &d_) {
+    s_ >> d_.x;
+    s_ >> d_.y;
+    s_ >> d_.z;
+    return s_;
+  }
+
+  inline CDataStore &operator<<(CDataStore &s_, const C2Vector &d_) {
+    s_ << d_.x;
+    s_ << d_.y;
+    return s_;
+  }
+
+  inline CDataStore &operator>>(CDataStore &s_, C2Vector &d_) {
+    s_ >> d_.x;
+    s_ >> d_.y;
     return s_;
   }
 
@@ -30,20 +50,82 @@ struct CMovementStatus {
 };
 
 struct CMoveSpline {
+  UINT flags;
   struct SplineFaceData {
     NTempest::C3Vector spot;
     DWORDLONG          guid;
     float              facing;
   };
-
-  static void Skip(CDataStore *packet);
-
-  UINT                          flags;
   SplineFaceData                face;
   DWORD                         start;
   DWORD                         time;
   NTempest::C3Spline_CatmullRom spline;
+
+  static void Skip(CDataStore *packet) {
+    UINT flags = 0;
+    *packet >> flags;
+    UINT bytes = 0;
+    if (flags & 0x00010000) {
+      bytes = 12;
+    }
+    if (flags & 0x00020000) {
+      bytes += 8;
+    }
+    if (flags & 0x00040000) {
+      bytes += 4;
+    }
+    LPVOID unused;
+    packet->GetDataInSitu(unused, bytes + 8);
+    UINT pointCount = 0;
+    *packet >> pointCount;
+    packet->GetDataInSitu(unused, 12 * pointCount);
+  }
 };
+
+inline CDataStore &operator<<(CDataStore &s_, const CMoveSpline &d_) {
+  s_ << d_.flags;
+  if (d_.flags & 0x00010000) {
+    s_ << d_.face.spot;
+  }
+  if (d_.flags & 0x00020000) {
+    s_ << d_.face.guid;
+  }
+  if (d_.flags & 0x00040000) {
+    s_ << d_.face.facing;
+  }
+  s_ << int(OsGetAsyncTimeMs() - d_.start);
+  s_ << d_.time;
+  UINT pointCount = d_.spline.NumPoints();
+  s_ << pointCount;
+  for (UINT i = 0; i < pointCount; ++i) {
+    s_ << d_.spline.Point(i);
+  }
+  return s_;
+}
+
+inline CDataStore &operator>>(CDataStore &s_, CMoveSpline &d_) {
+  s_ >> d_.flags;
+  if (d_.flags & 0x00010000) {
+    s_ >> d_.face.spot;
+  }
+  if (d_.flags & 0x00020000) {
+    s_ >> d_.face.guid;
+  }
+  if (d_.flags & 0x00040000) {
+    s_ >> d_.face.facing;
+  }
+  DWORD timeNow = OsGetAsyncTimeMs();
+  int   elapsed = s_.GetInt();
+  d_.start = timeNow - elapsed;
+  s_ >> d_.time;
+  UINT pointCount = s_.GetUint();
+  if (pointCount) {
+    LPVOID points;
+    s_.GetDataInSitu(points, 12 * pointCount);
+    d_.spline.SetPoints(static_cast<const NTempest::C3Vector *>(points), pointCount);
+  }
+  return s_;
+}
 
 struct CClientMoveUpdate {
   CClientMoveUpdate() : timeFallen(0) {

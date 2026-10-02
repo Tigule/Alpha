@@ -8,10 +8,10 @@ class GuildStats {
   GuildStats() {
   }
 
+  void Pack(CDataStore *msg);
   static int Version() {
     return 0;
   }
-  void Pack(CDataStore *msg);
 
   UINT m_guildID;
   char m_guildName[0x18];

@@ -13,9 +13,7 @@ class CSimpleHyperlinkButton : public CSimpleButton {
  public:
   CSimpleHyperlinkButton(CSimpleHyperlinkedFrame *parent);
   virtual ~CSimpleHyperlinkButton();
-
   void SetHyperlink(CSimpleFontString *string, const GXUFONTHYPERLINKINFO *hyperlink);
-
   virtual void OnLayerCursorEnter();
   virtual void OnLayerCursorExit();
   virtual void OnClick(MOUSEBUTTON button);
@@ -31,7 +29,6 @@ class CSimpleHyperlinkedFrame : public CSimpleFrame {
  public:
   CSimpleHyperlinkedFrame(CSimpleFrame *parent = 0);
   virtual ~CSimpleHyperlinkedFrame();
-
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
   virtual void OnHyperlinkEnter(LPCSTR link);
   virtual void OnHyperlinkLeave(LPCSTR link);
@@ -43,28 +40,28 @@ class CSimpleHyperlinkedFrame : public CSimpleFrame {
     SetEventScript(m_onHyperlinkEnter, source, description);
   }
 
-  void SetOnHyperlinkLeaveScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnHyperlinkLeave", GetName());
-    SetEventScript(m_onHyperlinkLeave, source, description);
-  }
-
-  void SetOnHyperlinkClickScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnHyperlinkClick", GetName());
-    SetEventScript(m_onHyperlinkClick, source, description);
-  }
-
   void RunOnHyperlinkEnterScript(LPCSTR link) {
     if (m_onHyperlinkEnter) {
       FrameScript_Execute(m_onHyperlinkEnter, this, "%s", link);
     }
   }
 
+  void SetOnHyperlinkLeaveScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnHyperlinkLeave", GetName());
+    SetEventScript(m_onHyperlinkLeave, source, description);
+  }
+
   void RunOnHyperlinkLeaveScript(LPCSTR link) {
     if (m_onHyperlinkLeave) {
       FrameScript_Execute(m_onHyperlinkLeave, this, "%s", link);
     }
+  }
+
+  void SetOnHyperlinkClickScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnHyperlinkClick", GetName());
+    SetEventScript(m_onHyperlinkClick, source, description);
   }
 
   void RunOnHyperlinkClickScript(LPCSTR link, MOUSEBUTTON button) {
@@ -99,7 +96,6 @@ class CSimpleHyperlinkedFrame : public CSimpleFrame {
  protected:
   CSimpleHyperlinkButton *CreateHyperlinkButton();
   void                    ReleaseHyperlinkButton(CSimpleHyperlinkButton *button);
-
   LISTDECLEX(CSimpleHyperlinkButton, m_link, m_hyperlinkButtons);
   int m_onHyperlinkEnter;
   int m_onHyperlinkLeave;

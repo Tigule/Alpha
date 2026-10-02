@@ -45,7 +45,9 @@ BOOL CBLPFile::CreateMipLevels(UINT width, UINT height) {
 }
 
 int CBLPFile::Open(LPCSTR filename) {
-  FATALASSERT(filename);
+  VALIDATEBEGIN;
+  VALIDATE(filename);
+  VALIDATEEND;
 
   Close();
 
@@ -80,8 +82,8 @@ BOOL CBLPFile::SetImage(CBLPFile &source, UINT mipLevel, CStatus *status) {
 }
 
 BOOL CBLPFile::SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, UINT mipLevel, CStatus *status) {
-  FATALASSERT(pImg);
-
+  VALIDATEBEGIN;
+  VALIDATE(pImg);
   if (!status) {
     status = &s_nullStatus;
   }
@@ -102,7 +104,8 @@ BOOL CBLPFile::SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, U
       status->Add(STATUS_FATAL, "Failed to allocate MIP buffers\n");
       return 0;
     }
-    FATALASSERT(m_images);
+    VALIDATE(m_images);
+    VALIDATEEND;
   }
 
   if (mipLevel >= m_numLevels) {
@@ -166,7 +169,9 @@ static BlitFormat GetBlitFormat(PIXEL_FORMAT pixelFormat) {
 }
 
 int CBLPFile::Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride) {
-  FATALASSERT(m_inMemoryImage);
+  VALIDATEBEGIN;
+  VALIDATE(m_inMemoryImage);
+  VALIDATEEND;
 
   m_lockDecompMem = 0;
 
@@ -554,7 +559,9 @@ BOOL CBLPFile::DecompPal(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, LPCVOID
 }
 
 int CBLPFile::Lock2(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, UINT &stride) {
-  FATALASSERT(m_inMemoryImage);
+  VALIDATEBEGIN;
+  VALIDATE(m_inMemoryImage);
+  VALIDATEEND;
 
   if (!IsValidMip(mipLevel)) {
     return 0;

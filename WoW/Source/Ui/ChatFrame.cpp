@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "ChatFrame.h"
 #include "GameUI.h"
@@ -835,15 +843,18 @@ static int Script_SendChatMessage(lua_State *L) {
 
   LPCSTR target = lua_isstring(L, 4) ? lua_tostring(L, 4) : 0;
   if (type == SLASH_CMD_WHISPER && (!target || !*target)) {
-    return luaL_error(L, "Whisper message missing target player!");
+    luaL_error(L, "Whisper message missing target player!");
+    return 0;
   }
   if (type == SLASH_CMD_SEND_CHANNEL) {
     if (!target || !*target) {
-      return luaL_error(L, "Channel send missing channel number");
+      luaL_error(L, "Channel send missing channel number");
+      return 0;
     }
     target = CGChat::GetChannelName(SStrToInt(target));
     if (!target) {
-      return luaL_error(L, "Channel not found");
+      luaL_error(L, "Channel not found");
+      return 0;
     }
   }
   if (type == SLASH_CMD_SEND_AFK) {
@@ -894,7 +905,8 @@ static int Script_GetNumLanguages(lua_State *L) {
 
 static int Script_GetLanguageByIndex(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetLanguageByIndex(index)");
+    luaL_error(L, "Usage: GetLanguageByIndex(index)");
+    return 0;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
@@ -1056,7 +1068,8 @@ static int Script_ListChannels(lua_State *L) {
 
 static int Script_SetChannelPassword(lua_State *L) {
   if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
-    return luaL_error(L, "Usage: SetChannelPassword(\"name\", \"password\")");
+    luaL_error(L, "Usage: SetChannelPassword(\"name\", \"password\")");
+    return 0;
   }
   LPCSTR channel = CGChat::GetChannelString(lua_tostring(L, 1));
   if (!channel) {

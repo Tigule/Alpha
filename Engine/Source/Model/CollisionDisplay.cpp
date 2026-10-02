@@ -139,7 +139,9 @@ static void BuildDisplayBox(
 
 HMODEL CollisionDataCreateModel(HCOLLISIONDATA handle) {
   CCollisionData *collide = reinterpret_cast<CCollisionData *>(handle);
-  FATALASSERT(collide);
+  VALIDATEBEGIN;
+  VALIDATE(collide);
+  VALIDATEEND;
 
   HMODEL model = CreateCollisionDisplayMesh(*collide);
   CreateCollisionDisplayNormals(*collide, model);

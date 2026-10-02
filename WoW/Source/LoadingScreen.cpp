@@ -1,11 +1,22 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <WowConst.h>
 
 #include "Client.h"
+#include <Base/CDataStore.h>
+
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "Glue/CGlueMgr.h"
+#include "UIUtil/Tooltip.h"
+#include "Ui/ChatFrame.h"
+#include "Ui/WorldFrame.h"
+#include "UIUtil/InputControl.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Base/Handle.h>
 #include <Event/EvtApi.h>
 #include <FrameXML/FrameXML.h>
-#include <Gx/Gx.h>
 #include <Images/blit.h>
 #include <Scrn/Scrn.h>
 #include <Services/Texture.h>
@@ -16,6 +27,9 @@
 #ifdef LoadImage
 #undef LoadImage
 #endif
+
+static bool      s_loadingScreenEnabled;
+static HLAYER__ *s_loadingScreenLayer;
 
 enum TEXTURETYPE {
   TEXTURE_BACKGROUND = 0,
@@ -40,16 +54,13 @@ static const TEXTUREINFO s_textureInfo[TEXTURETYPE_NUMTEXTURETYPES] = {
     {"Interface\\Glues\\LoadingBar\\Loading-BarBorder", 0, 0.5f, 0.075f,   0.6f,  0.05f, GxBlend_Alpha}
 };
 
-static const WORD   indices[4] = {0, 1, 2, 3};
-static EGxTexFormat s_textureFormat[TEXTURETYPE_NUMTEXTURETYPES];
-static int          s_worldLoaded;
-static int          s_xmlTotal;
-static HLAYER__    *s_loadingScreenLayer;
-static float        s_progress;
-static MipBits     *s_mipBits[TEXTURETYPE_NUMTEXTURETYPES];
 static CGxTex      *s_textureHandles[TEXTURETYPE_NUMTEXTURETYPES];
+static EGxTexFormat s_textureFormat[TEXTURETYPE_NUMTEXTURETYPES];
+static MipBits     *s_mipBits[TEXTURETYPE_NUMTEXTURETYPES];
 static int          s_xmlLoaded;
-static bool         s_loadingScreenEnabled;
+static int          s_xmlTotal;
+static int          s_worldLoaded;
+static float        s_progress;
 
 static void FrameXMLProgressCallback(int loaded, int total);
 static void UpdateProgressBar();
@@ -69,7 +80,7 @@ static void UpdateProgress() {
     progress += 0.25f;
   }
 
-  s_progress = min(max(progress, 0.0f), 1.0f);
+  s_progress = min(max(0.0f, progress), 1.0f);
 }
 
 static void UpdateProgressBar() {
@@ -139,8 +150,9 @@ static void UnregisterHandlers() {
 }
 
 static void LoadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
-  static NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
-  static NTempest::C2Vector texCoord[4] = {
+  static NTempest::C3Vector       normal(0.0f, 0.0f, 1.0f);
+  static const WORD               indices[4] = {0, 1, 2, 3};
+  static const NTempest::C2Vector texCoord[4] = {
       NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(1.0f, 0.0f)
   };
 
@@ -149,7 +161,7 @@ static void LoadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
   GxRsSet(GxRs_Fog, 0);
   GxVertexShaderSelect(GxVS_PassThru);
 
-  for (UINT image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
+  for (int image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
     if (s_textureHandles[image]) {
       const TEXTUREINFO &info = s_textureInfo[image];
       GxRsSet(GxRs_Blend, info.blend);
@@ -157,9 +169,9 @@ static void LoadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
       NTempest::C3Vector position[4];
       float              halfWidth = info.width * 0.5f;
       float              left = info.centerX - halfWidth;
-      float              halfHeight = info.height * 0.5f;
       position[0].x = left;
-      position[2].x = left;
+      position[2].x = position[0].x;
+      float              halfHeight = info.height * 0.5f;
       position[0].y = info.centerY - halfHeight;
       position[1].y = position[0].y;
       position[1].x = info.centerX + halfWidth;
@@ -218,27 +230,22 @@ static void LoadImage(TEXTURETYPE image) {
   s_mipBits[image] = TextureLoadImage(s_textureInfo[image].name, &width, &height, reinterpret_cast<UINT *>(&s_textureFormat[image]), &isOpaque, 0, 0);
 
   if (s_mipBits[image]) {
-    CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
     GxTexCreate(
-        width, height, s_textureFormat[image], flags, reinterpret_cast<LPVOID>(static_cast<UINT>(image)), TextureCallback, s_textureHandles[image]
+        width, height, s_textureFormat[image], CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), reinterpret_cast<LPVOID>(static_cast<UINT>(image)),
+        TextureCallback, s_textureHandles[image]
     );
     ASSERT(s_textureHandles[image]);
   }
 }
 
 void EnableLoadingScreen() {
-  RECTF rect;
-
   DisableLoadingScreen();
 
-  for (UINT image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
+  for (int image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
     LoadImage(static_cast<TEXTURETYPE>(image));
   }
 
-  rect.left = 0.0f;
-  rect.bottom = 0.0f;
-  rect.right = 1.0f;
-  rect.top = 1.0f;
+  RECTF rect = {0.0f, 0.0f, 1.0f, 1.0f};
   ScrnLayerCreate(&rect, 9.0f, 6, 0, LoadingScreenPaint, &s_loadingScreenLayer);
   RegisterHandlers();
   InitializeProgressBar();

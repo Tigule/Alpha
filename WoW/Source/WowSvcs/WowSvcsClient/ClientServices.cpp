@@ -19,6 +19,8 @@
 #include "Game/ValidateName.h"
 #include "Glue/CGlueMgr.h"
 #include "Object/ObjectClient/Player_C.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Os/OsTime.h"

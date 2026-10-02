@@ -15,21 +15,24 @@ TaxiNodesRec::~TaxiNodesRec() {
 
 bool TaxiNodesRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempName_langIndices[8];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_ContinentID) ||
-      !SFileReadTyped(f, &m_X) ||
-      !SFileReadTyped(f, &m_Y) ||
-      !SFileReadTyped(f, &m_Z) ||
-      !SFileReadTyped(f, &tempName_langIndices[0]) ||
-      !SFileReadTyped(f, &tempName_langIndices[1]) ||
-      !SFileReadTyped(f, &tempName_langIndices[2]) ||
-      !SFileReadTyped(f, &tempName_langIndices[3]) ||
-      !SFileReadTyped(f, &tempName_langIndices[4]) ||
-      !SFileReadTyped(f, &tempName_langIndices[5]) ||
-      !SFileReadTyped(f, &tempName_langIndices[6]) ||
-      !SFileReadTyped(f, &tempName_langIndices[7]) ||
-      !SFileReadTyped(f, &m_Name_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_ContinentID) == 0);
+  error |= (SFileReadTyped(f, &m_X) == 0);
+  error |= (SFileReadTyped(f, &m_Y) == 0);
+  error |= (SFileReadTyped(f, &m_Z) == 0);
+  error |= (SFileReadTyped(f, &tempName_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempName_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempName_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempName_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempName_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempName_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempName_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempName_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_Name_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading TaxiNodesRec", DEFAULT_COLOR);
     return false;
   }

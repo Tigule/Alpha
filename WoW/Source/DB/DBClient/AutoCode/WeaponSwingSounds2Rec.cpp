@@ -14,11 +14,14 @@ WeaponSwingSounds2Rec::~WeaponSwingSounds2Rec() {
 }
 
 bool WeaponSwingSounds2Rec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_SwingType) ||
-      !SFileReadTyped(f, &m_Crit) ||
-      !SFileReadTyped(f, &m_SoundID)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_SwingType) == 0);
+  error |= (SFileReadTyped(f, &m_Crit) == 0);
+  error |= (SFileReadTyped(f, &m_SoundID) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading WeaponSwingSounds2Rec", DEFAULT_COLOR);
     return false;
   }

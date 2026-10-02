@@ -6,6 +6,8 @@
 
 class CFramePoint {
  public:
+  static const float UNDEFINED;
+
   virtual ~CFramePoint() {
   }
   virtual float         X(float scale) = 0;
@@ -13,11 +15,12 @@ class CFramePoint {
   virtual CLayoutFrame *GetRelative() {
     return 0;
   }
-
-  static const float UNDEFINED;
 };
 
 class CFramePointAbsolute : public CFramePoint {
+ private:
+  NTempest::C2Vector m_point;
+
  public:
   CFramePointAbsolute(float x, float y) : m_point(x, y) {
   }
@@ -29,12 +32,14 @@ class CFramePointAbsolute : public CFramePoint {
   virtual float Y(float scale) {
     return m_point.y;
   }
-
- private:
-  NTempest::C2Vector m_point;
 };
 
 class CFramePointRelative : public CFramePoint {
+ private:
+  CLayoutFrame      *m_relative;
+  FRAMEPOINT         m_framePoint;
+  NTempest::C2Vector m_offset;
+
  public:
   CFramePointRelative(CLayoutFrame *relative, FRAMEPOINT framePoint, float offsetX, float offsetY)
       : m_relative(relative), m_framePoint(framePoint), m_offset(offsetX, offsetY) {
@@ -45,11 +50,6 @@ class CFramePointRelative : public CFramePoint {
   virtual CLayoutFrame *GetRelative() {
     return m_relative;
   }
-
- private:
-  CLayoutFrame      *m_relative;
-  FRAMEPOINT         m_framePoint;
-  NTempest::C2Vector m_offset;
 };
 
 #endif

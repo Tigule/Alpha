@@ -73,33 +73,19 @@ BOOL OsDirectoryExists(LPCSTR dirName) {
 }
 
 BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
-  if (!buffer) {
-    FATALERROR(("buffer"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
-
-  if (!bytesRead) {
-    FATALERROR(("bytesRead"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATE(bytesRead);
+  VALIDATEEND;
 
   return ReadFile(reinterpret_cast<HANDLE>(fileHandle), buffer, bytesToRead, bytesRead, 0);
 }
 
 BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
-  if (!buffer) {
-    FATALERROR(("buffer"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
-
-  if (!bytesWritten) {
-    FATALERROR(("bytesWritten"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 0;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATE(bytesWritten);
+  VALIDATEEND;
 
   return WriteFile(reinterpret_cast<HANDLE>(fileHandle), buffer, bytesToWrite, bytesWritten, 0);
 }
@@ -167,7 +153,9 @@ int OsSetEndOfFile(HOSFILE__ *fileHandle) {
 }
 
 DWORD OsGetFileAttributes(LPCSTR fileName) {
-  FATALASSERT(fileName);
+  VALIDATEBEGIN;
+  VALIDATE(fileName);
+  VALIDATEEND;
 
   WORD *fileName16 = static_cast<WORD *>(_alloca(MAX_PATH * sizeof(WORD)));
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
@@ -175,7 +163,9 @@ DWORD OsGetFileAttributes(LPCSTR fileName) {
 }
 
 int OsSetFileAttributes(LPCSTR fileName, DWORD attributes) {
-  FATALASSERT(fileName);
+  VALIDATEBEGIN;
+  VALIDATE(fileName);
+  VALIDATEEND;
   WORD *fileName16 = static_cast<WORD *>(_alloca(MAX_PATH * sizeof(WORD)));
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
   return SetFileAttributesW(reinterpret_cast<LPCWSTR>(fileName16), attributes);
@@ -185,7 +175,9 @@ BOOL OsMoveFile(LPCSTR existingFileName, LPCSTR newFileName) {
   WORD existingFileName16[MAX_PATH];
   WORD newFileName16[MAX_PATH];
   FATALASSERT(existingFileName);
-  FATALASSERT(newFileName);
+  VALIDATEBEGIN;
+  VALIDATE(newFileName);
+  VALIDATEEND;
   SUniConvertUTF8to16(existingFileName16, MAX_PATH, existingFileName, 0x7FFFFFFF, 0, 0);
   SUniConvertUTF8to16(newFileName16, MAX_PATH, newFileName, 0x7FFFFFFF, 0, 0);
   return MoveFileW(reinterpret_cast<LPCWSTR>(existingFileName16), reinterpret_cast<LPCWSTR>(newFileName16));
@@ -200,7 +192,9 @@ int OsCopyFile(LPCSTR existingFileName, LPCSTR newFileName, int failIfExists) {
 }
 
 BOOL OsDeleteFile(LPCSTR fileName) {
-  FATALASSERT(fileName);
+  VALIDATEBEGIN;
+  VALIDATE(fileName);
+  VALIDATEEND;
 
   WORD *fileName16 = static_cast<WORD *>(_alloca(MAX_PATH * sizeof(WORD)));
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
@@ -211,7 +205,9 @@ BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
   char tempName[MAX_PATH];
   WORD pathName16[MAX_PATH];
 
-  FATALASSERT(pathName);
+  VALIDATEBEGIN;
+  VALIDATE(pathName);
+  VALIDATEEND;
 
   if (recursive) {
     SStrCopy(tempName, pathName, MAX_PATH);
@@ -231,7 +227,9 @@ BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
 }
 
 int OsRemoveDirectory(LPCSTR pathName) {
-  FATALASSERT(pathName);
+  VALIDATEBEGIN;
+  VALIDATE(pathName);
+  VALIDATEEND;
   WORD *pathName16 = static_cast<WORD *>(_alloca(MAX_PATH * sizeof(WORD)));
   SUniConvertUTF8to16(pathName16, MAX_PATH, pathName, 0x7FFFFFFF, 0, 0);
   return RemoveDirectoryW(reinterpret_cast<LPCWSTR>(pathName16));
@@ -312,7 +310,9 @@ static BOOL EnumRemoveDirectoryRecurse(OS_FILE_DATA &file, LPVOID param) {
 }
 
 int OsRemoveDirectoryRecurse(LPCSTR pathName, DWORD flags) {
-  FATALASSERT(pathName);
+  VALIDATEBEGIN;
+  VALIDATE(pathName);
+  VALIDATEEND;
   char pathSlash[MAX_PATH];
   SStrCopy(pathSlash, pathName, sizeof(pathSlash));
   SStrPack(pathSlash, "\\", 0x7FFFFFFF);
@@ -324,14 +324,18 @@ int OsRemoveDirectoryRecurse(LPCSTR pathName, DWORD flags) {
 BOOL OsSetCurrentDirectory(LPCSTR pathName) {
   WORD dst[MAX_PATH];
 
-  FATALASSERT(pathName);
+  VALIDATEBEGIN;
+  VALIDATE(pathName);
+  VALIDATEEND;
 
   SUniConvertUTF8to16(dst, MAX_PATH, pathName, 0x7FFFFFFF, 0, 0);
   return SetCurrentDirectoryW(reinterpret_cast<LPCWSTR>(dst));
 }
 
 BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
-  FATALASSERT(pathName);
+  VALIDATEBEGIN;
+  VALIDATE(pathName);
+  VALIDATEEND;
   WORD pathNameW[MAX_PATH];
   int  result = GetCurrentDirectoryW(MAX_PATH, reinterpret_cast<LPWSTR>(pathNameW));
   if (result) {

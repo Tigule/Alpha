@@ -5,6 +5,10 @@
 #include <Tempest/cimvector.h>
 #include <Tempest/cirect.h>
 
+#define OSGUI_LISTBOX_MULTISEL 0x10000
+#define OSGUI_NUM_CURSORS      4
+#define OSGUI_NUM_MOD_KEYS     3
+
 class COsControl;
 class COsDialog;
 class COsTreeView;

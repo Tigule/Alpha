@@ -14,15 +14,8 @@ class CSimpleSlider : public CSimpleFrame {
  public:
   CSimpleSlider(CSimpleFrame *parent = 0);
   virtual ~CSimpleSlider();
-
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
-  virtual void OnLayerUpdate(float elapsedSec);
-  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
-  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
-  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
-  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
-
   void SetThumbTexture(CSimpleTexture *texture, int layer);
   void SetOrientation(SLIDER_ORIENTATION orientation);
   void SetMinMaxValues(float min, float max);
@@ -57,8 +50,11 @@ class CSimpleSlider : public CSimpleFrame {
     return m_orientation == SLIDER_VERTICAL;
   }
 
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
+  virtual void OnLayerUpdate(float elapsedSec);
+  virtual BOOL OnLayerTrackUpdate(const CMouseEvent &evt);
+  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
+  virtual BOOL OnLayerMouseDown(CMouseEvent &evt);
+  virtual BOOL OnLayerMouseUp(CMouseEvent &evt);
 
   void SetOnValueChangedScript(LPCSTR source) {
     char description[1024];
@@ -72,8 +68,13 @@ class CSimpleSlider : public CSimpleFrame {
     }
   }
 
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
+
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
+  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
+
   float        StepValue(float value) {
     if (m_valueStep != 0.0f) {
       float delta = value - m_baseValue;
@@ -91,8 +92,6 @@ class CSimpleSlider : public CSimpleFrame {
 
     return value;
   }
-
-  static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
   int                m_changed : 1;
   int                m_rangeSet : 1;

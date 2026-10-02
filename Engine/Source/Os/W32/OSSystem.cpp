@@ -278,7 +278,9 @@ BOOL OsLaunchURL(LPCSTR url) {
     return 0;
   }
 
-  FATALASSERT(SStrLen(url) < (sizeof(fixedURL) / sizeof(fixedURL[0])));
+  VALIDATEBEGIN;
+  VALIDATE(SStrLen(url) < (sizeof(fixedURL) / sizeof(fixedURL[0])));
+  VALIDATEEND;
 
   urlChar = *url;
   fixedURLPos = fixedURL;

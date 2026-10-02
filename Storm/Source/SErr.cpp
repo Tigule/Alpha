@@ -32,18 +32,25 @@ NODEDECL(HANDLER) {
 template <class T, class GETLINK>
 class TSListWinHeap : public TSList<T, GETLINK> {
  public:
-  T *NewNode(DWORD location, DWORD extrabytes, DWORD flags);
-  T *DeleteNode(T *ptr);
+  T *NewNode(DWORD location, DWORD extrabytes, DWORD flags) {
+    T *ptr = new (HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, sizeof(T) + extrabytes)) T;
+
+    memset(ptr, 0, sizeof(T) + extrabytes);
+    if (location) {
+      this->LinkNode(ptr, location, 0);
+    }
+
+    return ptr;
+  }
+
+  T *DeleteNode(T *ptr) {
+    T *next = this->Next(ptr);
+
+    ptr->~T();
+    HeapFree(GetProcessHeap(), 0, ptr);
+    return next;
+  }
 };
-
-template <>
-void TSList<HANDLER, TSGetLink<HANDLER> >::Clear();
-
-template <>
-void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, DWORD linktype, HANDLER *existingptr);
-
-template <>
-HANDLER *TSList<HANDLER, TSGetLink<HANDLER> >::Next(const HANDLER *ptr);
 
 static CRITICAL_SECTION                            s_critsect;
 static CRITICAL_SECTION                            s_exceptioncritsect;
@@ -76,79 +83,6 @@ static int                                         s_noMiniDumps;
 static BOOL                                        checked;
 static EXCEPTION_POINTERS                         *s_exceptionPointers;
 static char                                        buffer[0x100];
-
-template <>
-void TSList<HANDLER, TSGetLink<HANDLER> >::Clear() {
-  HANDLER *ptr;
-
-  while ((ptr = Head()) != 0) {
-    UnlinkNode(ptr);
-    ptr->~HANDLER();
-    HeapFree(GetProcessHeap(), 0, ptr);
-  }
-}
-
-template <>
-void TSList<HANDLER, TSGetLink<HANDLER> >::LinkNode(HANDLER *ptr, DWORD linktype, HANDLER *existingptr) {
-  LINKEX(HANDLER) * link;
-  LINKEX(HANDLER) * existing;
-
-  link = Link(ptr);
-  existing = Link(existingptr);
-  if (link->m_prevlink) {
-    link->Unlink();
-  }
-
-  if (linktype == LIST_LINK_AFTER) {
-    LINKEX(HANDLER) * nextlink;
-
-    nextlink = existing->NextLink(m_linkoffset);
-    link->m_prevlink = existing;
-    link->m_next = existing->m_next;
-    nextlink->m_prevlink = link;
-    existing->m_next = ptr;
-  } else {
-    LINKEX(HANDLER) * previous;
-
-    if (linktype != LIST_LINK_BEFORE) {
-      FATALERROR(("Invalid case: %s=%u", "linktype", linktype));
-    }
-
-    previous = existing->m_prevlink;
-    link->m_prevlink = previous;
-    link->m_next = previous->m_next;
-    previous->m_next = ptr;
-    existing->m_prevlink = link;
-  }
-}
-
-template <>
-HANDLER *TSList<HANDLER, TSGetLink<HANDLER> >::Next(const HANDLER *ptr) {
-  return Link(ptr)->Next();
-}
-
-template <>
-HANDLER *TSListWinHeap<HANDLER, TSGetLink<HANDLER> >::NewNode(DWORD location, DWORD extrabytes, DWORD flags) {
-  HANDLER *ptr;
-
-  ptr = new (HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, sizeof(HANDLER) + extrabytes)) HANDLER;
-  memset(ptr, 0, sizeof(HANDLER) + extrabytes);
-  if (location) {
-    LinkNode(ptr, location, 0);
-  }
-
-  return ptr;
-}
-
-template <>
-HANDLER *TSListWinHeap<HANDLER, TSGetLink<HANDLER> >::DeleteNode(HANDLER *ptr) {
-  HANDLER *next;
-
-  next = Next(ptr);
-  ptr->~HANDLER();
-  HeapFree(GetProcessHeap(), 0, ptr);
-  return next;
-}
 
 static DWORD WINAPI WatchdogThreadProc(LPVOID);
 static void         CheckKeyboard();

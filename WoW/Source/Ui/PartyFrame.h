@@ -5,13 +5,6 @@
 #include <Tempest/c3vector.h>
 #include "Object/Unit.h"
 
-enum LOOT_METHOD {
-  LOOT_METHOD_FREEFORALL = 0,
-  LOOT_METHOD_ROUNDROBIN = 1,
-  LOOT_METHOD_MASTERLOOTER = 2,
-  LOOT_METHOD_MAX = 3
-};
-
 class CGPartyInfo {
  public:
   struct RemoteStats {

@@ -4,6 +4,8 @@
 #include "SoundInterface.h"
 
 #include "Object/ObjectClient/Player_C.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
 #include "DB/DBClient/AutoCode/SoundCharacterMacroLinesRec.h"
@@ -26,7 +28,8 @@ static TSGrowableArray<MACRODESC> s_macroRaceDescs;
 
 static int Script_PlayVocalCategory(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: PlayVocalCategory(category)");
+    luaL_error(L, "Usage: PlayVocalCategory(category)");
+    return 0;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));

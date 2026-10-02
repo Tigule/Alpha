@@ -81,5 +81,5 @@ CMapObjDef::CMapObjDef() {
 }
 
 CMapObjDef::~CMapObjDef() {
-  ASSERT(refCount == 0);
+  ASSERT(refCount==0);
 }

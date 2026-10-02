@@ -16,10 +16,13 @@ SpellVisualPrecastTransitionsRec::~SpellVisualPrecastTransitionsRec() {
 bool SpellVisualPrecastTransitionsRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempPrecastLoadAnimNameIndices[1];
   UINT tempPrecastHoldAnimNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempPrecastLoadAnimNameIndices[0]) ||
-      !SFile::Read(f, tempPrecastHoldAnimNameIndices, sizeof(tempPrecastHoldAnimNameIndices), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempPrecastLoadAnimNameIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempPrecastHoldAnimNameIndices) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellVisualPrecastTransitionsRec", DEFAULT_COLOR);
     return false;
   }

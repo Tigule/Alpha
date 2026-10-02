@@ -13,7 +13,6 @@ class CSimpleMessageFrameLineNode : public TRefCnt {
  public:
   CSimpleMessageFrameLineNode();
   virtual ~CSimpleMessageFrameLineNode();
-
   NTempest::CImVector color;
   CSimpleFontString  *string;
   float               timeLeft;
@@ -34,9 +33,11 @@ class CSimpleMessageFrameLine {
   CSimpleMessageFrameLine() : offsetX(0.0f), offsetY(0.0f), stringNode(NEW(CSimpleMessageFrameLineNode)) {
     stringNode->IncrRef();
   }
+
   CSimpleMessageFrameLine(const CSimpleMessageFrameLine &line) : offsetX(line.offsetX), offsetY(line.offsetY), stringNode(line.stringNode) {
     stringNode->IncrRef();
   }
+
   ~CSimpleMessageFrameLine() {
     stringNode->DecrRef();
   }
@@ -50,56 +51,53 @@ class CSimpleMessageFrame : public CSimpleFrame {
   friend class CSimpleEditBox;
 
  public:
+  CSimpleMessageFrame(CSimpleFrame *parent = 0);
+  virtual ~CSimpleMessageFrame();
+  virtual void LoadXML(const XMLNode *node, CStatus *status);
+  void SetMessageFrameInsets(float right, float left, float top, float bottom);
+  void SetTextLength(int size);
+
+  void SetFont(LPCSTR font, float fontHeight, int fontFlags) {
+    m_attrib.SetFont(font, fontHeight, fontFlags);
+  }
+
+  void SetHorizontalAlignment(UINT alignment) {
+    m_attrib.SetHorizontalAlignment(alignment);
+  }
+
+  void SetColor(const NTempest::CImVector &color) {
+    m_attrib.SetColor(color);
+  }
+
+  void AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
+    m_attrib.AddShadow(color, offset);
+  }
+
+  void SetSpacing(float spacing) {
+    m_attrib.SetSpacing(spacing);
+  }
+
+  void SetFadeDuration(float duration) {
+    m_fadeDuration = duration;
+  }
+
   enum SimpleMessageFrameInsertMode {
     INSERT_AT_TOP = 0,
     INSERT_AT_BOTTOM = 1
   };
 
-  CSimpleMessageFrame(CSimpleFrame *parent = 0);
-  virtual ~CSimpleMessageFrame();
-
+  void SetInsertMode(SimpleMessageFrameInsertMode mode);
+  virtual void AddMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent);
+  void Clear();
+  void ClearPending();
+  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
+  virtual void OnLayerUpdate(float elapsedSec);
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();
 
-  virtual void LoadXML(const XMLNode *node, CStatus *status);
-  virtual void AddMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent);
-  virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
-  virtual void OnLayerUpdate(float elapsedSec);
-
-  void SetMessageFrameInsets(float right, float left, float top, float bottom);
-  void SetTextLength(int size);
-  void SetFont(LPCSTR font, float fontHeight, int fontFlags) {
-    m_attrib.SetFont(font, fontHeight, fontFlags);
-  }
-  void SetHorizontalAlignment(UINT alignment) {
-    m_attrib.SetHorizontalAlignment(alignment);
-  }
-  void SetColor(const NTempest::CImVector &color) {
-    m_attrib.SetColor(color);
-  }
-  void AddShadow(const NTempest::CImVector &color, const NTempest::C2Vector &offset) {
-    m_attrib.AddShadow(color, offset);
-  }
-  void SetSpacing(float spacing) {
-    m_attrib.SetSpacing(spacing);
-  }
-  void SetInsertMode(SimpleMessageFrameInsertMode mode);
-  void SetFadeDuration(float duration) {
-    m_fadeDuration = duration;
-  }
-  void Clear();
-  void ClearPending();
-
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
-
-  void AddPendingMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent);
-  void ScrollMessages(UINT start);
-  void HideLineNode(CSimpleMessageFrameLineNode *node);
-  void ShowLineNode(CSimpleMessageFrameLineNode *node, float timeVisible, float fadeDuration, int permanent);
-
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
-
   UINT                                     m_rows;
   UINT                                     m_numVisible;
   NTempest::CRect                          m_messageFrameArea;
@@ -110,6 +108,10 @@ class CSimpleMessageFrame : public CSimpleFrame {
   SimpleMessageFrameInsertMode             m_insertMode;
   TSGrowableArray<MessageData>             m_pendingMessages;
   TSGrowableArray<CSimpleMessageFrameLine> m_lines;
+  void AddPendingMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent);
+  void ScrollMessages(UINT start);
+  void HideLineNode(CSimpleMessageFrameLineNode *node);
+  void ShowLineNode(CSimpleMessageFrameLineNode *node, float timeVisible, float fadeDuration, int permanent);
 };
 
 #endif

@@ -151,11 +151,13 @@ static void ProcessLayerAlpha(const TSGrowableArray<MDLMATERIALSECTION> &section
   }
 }
 
-static EGxPrim s_mdlToGxPrim[10] = {GxPrim_Points,        GxPrim_Lines,       GxPrims_Last, GxPrim_LineStrip, GxPrim_Triangles,
+#define NUMPRIMITIVES 10
+
+static EGxPrim s_mdlToGxPrim[NUMPRIMITIVES] = {GxPrim_Points,        GxPrim_Lines,       GxPrims_Last, GxPrim_LineStrip, GxPrim_Triangles,
                                     GxPrim_TriangleStrip, GxPrim_TriangleFan, GxPrims_Last, GxPrims_Last,     GxPrims_Last};
 
 static EGxPrim GetPrimitiveType(BYTE type) {
-  ASSERT(type < 10);
+  ASSERT(type < NUMPRIMITIVES);
   EGxPrim gxPrim = s_mdlToGxPrim[type];
   ASSERT(gxPrim != GxPrims_Last);
   return gxPrim;
@@ -603,8 +605,8 @@ BOOL MdlReadLoadModel(const MDLDATA &data, CModelComplex *modelptr, CModelShared
   BuildAllGeosets(data, shared->geosets.Ptr(), modelptr->m_geosetColor.Ptr(), flags);
   ProcessAttachments(data.attachments, modelptr, shared, flags, status);
 
-  ASSERT(numGeosets <= 0xFF);
-  ASSERT(numLayers <= 0xFF);
+  ASSERT(numGeosets <= 0xff);
+  ASSERT(numLayers <= 0xff);
   shared->numGeosets = static_cast<BYTE>(numGeosets);
   shared->numLayers = static_cast<BYTE>(numLayers);
   return 1;
@@ -629,8 +631,8 @@ BOOL MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared 
   modelptr->m_geosetColor.SetCount(numGeosets);
   BuildAllGeosets(data, shared->geosets.Ptr(), modelptr->m_geosetColor.Ptr(), flags);
 
-  ASSERT(numGeosets <= 0xFF);
-  ASSERT(numLayers <= 0xFF);
+  ASSERT(numGeosets <= 0xff);
+  ASSERT(numLayers <= 0xff);
   shared->numGeosets = static_cast<BYTE>(numGeosets);
   shared->numLayers = static_cast<BYTE>(numLayers);
   return 1;

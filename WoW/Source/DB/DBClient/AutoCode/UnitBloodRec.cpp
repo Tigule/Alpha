@@ -15,15 +15,18 @@ UnitBloodRec::~UnitBloodRec() {
 
 bool UnitBloodRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempGroundBloodIndices[5];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFile::Read(f, m_CombatBloodSpurtFront, sizeof(m_CombatBloodSpurtFront), 0, 0, 0) ||
-      !SFile::Read(f, m_CombatBloodSpurtBack, sizeof(m_CombatBloodSpurtBack), 0, 0, 0) ||
-      !SFileReadTyped(f, &tempGroundBloodIndices[0]) ||
-      !SFileReadTyped(f, &tempGroundBloodIndices[1]) ||
-      !SFileReadTyped(f, &tempGroundBloodIndices[2]) ||
-      !SFileReadTyped(f, &tempGroundBloodIndices[3]) ||
-      !SFileReadTyped(f, &tempGroundBloodIndices[4])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_CombatBloodSpurtFront) == 0);
+  error |= (SFileReadTyped(f, &m_CombatBloodSpurtBack) == 0);
+  error |= (SFileReadTyped(f, &tempGroundBloodIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempGroundBloodIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempGroundBloodIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempGroundBloodIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempGroundBloodIndices[4]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading UnitBloodRec", DEFAULT_COLOR);
     return false;
   }

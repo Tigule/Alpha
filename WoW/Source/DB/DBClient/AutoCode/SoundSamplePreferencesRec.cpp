@@ -14,28 +14,31 @@ SoundSamplePreferencesRec::~SoundSamplePreferencesRec() {
 }
 
 bool SoundSamplePreferencesRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_EAX1EffectLevel) ||
-      !SFileReadTyped(f, &m_EAX2SampleDirect) ||
-      !SFileReadTyped(f, &m_EAX2SampleDirectHF) ||
-      !SFileReadTyped(f, &m_EAX2SampleRoom) ||
-      !SFileReadTyped(f, &m_EAX2SampleRoomHF) ||
-      !SFileReadTyped(f, &m_EAX2SampleObstruction) ||
-      !SFileReadTyped(f, &m_EAX2SampleObstructionLFRatio) ||
-      !SFileReadTyped(f, &m_EAX2SampleOcclusion) ||
-      !SFileReadTyped(f, &m_EAX2SampleOcclusionLFRatio) ||
-      !SFileReadTyped(f, &m_EAX2SampleOcclusionRoomRatio) ||
-      !SFileReadTyped(f, &m_EAX2SampleRoomRolloff) ||
-      !SFileReadTyped(f, &m_EAX2SampleAirAbsorption) ||
-      !SFileReadTyped(f, &m_EAX2SampleOutsideVolumeHF) ||
-      !SFileReadTyped(f, &m_EAX3SampleOcclusionDirectRatio) ||
-      !SFileReadTyped(f, &m_EAX3SampleExclusion) ||
-      !SFileReadTyped(f, &m_EAX3SampleExclusionLFRatio) ||
-      !SFileReadTyped(f, &m_EAX3SampleDopplerFactor) ||
-      !SFileReadTyped(f, &m_Fast2DPredelayTime) ||
-      !SFileReadTyped(f, &m_Fast2DDamping) ||
-      !SFileReadTyped(f, &m_Fast2DReverbTime)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_EAX1EffectLevel) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleDirect) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleDirectHF) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleRoom) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleRoomHF) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleObstruction) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleObstructionLFRatio) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleOcclusion) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleOcclusionLFRatio) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleOcclusionRoomRatio) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleRoomRolloff) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleAirAbsorption) == 0);
+  error |= (SFileReadTyped(f, &m_EAX2SampleOutsideVolumeHF) == 0);
+  error |= (SFileReadTyped(f, &m_EAX3SampleOcclusionDirectRatio) == 0);
+  error |= (SFileReadTyped(f, &m_EAX3SampleExclusion) == 0);
+  error |= (SFileReadTyped(f, &m_EAX3SampleExclusionLFRatio) == 0);
+  error |= (SFileReadTyped(f, &m_EAX3SampleDopplerFactor) == 0);
+  error |= (SFileReadTyped(f, &m_Fast2DPredelayTime) == 0);
+  error |= (SFileReadTyped(f, &m_Fast2DDamping) == 0);
+  error |= (SFileReadTyped(f, &m_Fast2DReverbTime) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SoundSamplePreferencesRec", DEFAULT_COLOR);
     return false;
   }

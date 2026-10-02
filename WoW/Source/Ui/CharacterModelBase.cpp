@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "CharacterModelBase.h"
 
@@ -121,7 +129,8 @@ CGCharacterModelBase::CGCharacterModelBase(CSimpleFrame *parent) : CSimpleModel(
 static int Script_SetUnit(lua_State *L) {
   GET_CHARACTER_MODEL_THIS(L, object);
   if (!lua_isstring(L, 2)) {
-    return luaL_error(L, "Usage: SetUnit(\"unit\")");
+    luaL_error(L, "Usage: SetUnit(\"unit\")");
+    return 0;
   }
   object->SetUnit(Script_GetGUIDFromName(lua_tostring(L, 2)));
   return 0;

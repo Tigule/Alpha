@@ -15,15 +15,18 @@ CharTextureVariationsV2Rec::~CharTextureVariationsV2Rec() {
 
 bool CharTextureVariationsV2Rec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempTextureNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_RaceID) ||
-      !SFileReadTyped(f, &m_SexID) ||
-      !SFileReadTyped(f, &m_SectionID) ||
-      !SFileReadTyped(f, &m_VariationID) ||
-      !SFileReadTyped(f, &m_ColorID) ||
-      !SFileReadTyped(f, &m_IsNPC) ||
-      !SFileReadTyped(f, &tempTextureNameIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_RaceID) == 0);
+  error |= (SFileReadTyped(f, &m_SexID) == 0);
+  error |= (SFileReadTyped(f, &m_SectionID) == 0);
+  error |= (SFileReadTyped(f, &m_VariationID) == 0);
+  error |= (SFileReadTyped(f, &m_ColorID) == 0);
+  error |= (SFileReadTyped(f, &m_IsNPC) == 0);
+  error |= (SFileReadTyped(f, &tempTextureNameIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CharTextureVariationsV2Rec", DEFAULT_COLOR);
     return false;
   }

@@ -136,20 +136,20 @@ static void IReadSpline(Parser &parse, TSGrowableArray<NTempest::C3Vector> &spli
 
 static BOOL ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   switch (savedtoken) {
-    case 0x11A:
-      emitter->blendMode = MDLPARTICLEEMITTER2::PBM_ADD;
-      break;
-    case 0x11D:
-      emitter->blendMode = MDLPARTICLEEMITTER2::PBM_ALPHA_KEY;
-      break;
     case 0x12E:
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_BLEND;
+      break;
+    case 0x11A:
+      emitter->blendMode = MDLPARTICLEEMITTER2::PBM_ADD;
       break;
     case 0x172:
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_MODULATE;
       break;
     case 0x173:
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_MODULATE_2X;
+      break;
+    case 0x11D:
+      emitter->blendMode = MDLPARTICLEEMITTER2::PBM_ALPHA_KEY;
       break;
     default:
       return 0;

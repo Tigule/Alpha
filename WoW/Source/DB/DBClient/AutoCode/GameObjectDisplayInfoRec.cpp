@@ -15,10 +15,13 @@ GameObjectDisplayInfoRec::~GameObjectDisplayInfoRec() {
 
 bool GameObjectDisplayInfoRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempmodelNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempmodelNameIndices[0]) ||
-      !SFile::Read(f, &m_Sound[0], sizeof(m_Sound), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempmodelNameIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_Sound) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading GameObjectDisplayInfoRec", DEFAULT_COLOR);
     return false;
   }

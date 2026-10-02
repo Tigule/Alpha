@@ -46,39 +46,36 @@ namespace NTempest {
     static DWORD uint32_(CRndSeed &seed) {
       DWORD acc = seed.rndacc;
       DWORD vls = seed.rndvls;
-      long  r3 = static_cast<long>((vls >> 24) & 0xFF) - 4;
-      long  r2 = static_cast<long>((vls >> 16) & 0xFF) - 12;
-
-      if (r3 < 0) {
-        r3 += 47 * 4;
+      long  r1 = static_cast<long>(vls >> 24);
+      long  r2 = static_cast<long>((vls >> 16) & 0xFF);
+      long  r3 = static_cast<long>((vls >> 8) & 0xFF);
+      long  r4 = static_cast<long>(vls & 0xFF);
+      r1 -= 4;
+      r2 -= 12;
+      if (r1 < 0) {
+        r1 += 47 * 4;
       }
+      r3 -= 24;
       if (r2 < 0) {
         r2 += 53 * 4;
       }
-
-      DWORD n1 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r3);
-      n1 = (n1 << 1) | (n1 >> 31);
-      n1 ^= (*reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r2) << 2) |
-            (*reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r2) >> 30);
-      vls = (static_cast<DWORD>(r3) << 8) | static_cast<DWORD>(r2);
-
-      r3 = static_cast<long>((seed.rndvls >> 8) & 0xFF) - 24;
-      r2 = static_cast<long>(seed.rndvls & 0xFF) - 28;
+      DWORD n1 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r1);
+      r4 -= 28;
       if (r3 < 0) {
         r3 += 59 * 4;
       }
-      if (r2 < 0) {
-        r2 += 61 * 4;
+      DWORD n2 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r2);
+      n1 = (n1 << 1) | (n1 >> 31);
+      if (r4 < 0) {
+        r4 += 61 * 4;
       }
+      DWORD n3 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r3);
+      n3 = (n3 << 3) | (n3 >> 29);
+      n2 = (n2 << 2) | (n2 >> 30);
+      DWORD n4 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r4);
+      acc += n3 ^ n2 ^ n4 ^ n1;
 
-      n1 ^= (*reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r3) << 3) |
-            (*reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r3) >> 29);
-      n1 ^= *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r2);
-      acc += n1;
-      vls = (vls << 8) | static_cast<DWORD>(r3);
-      vls = (vls << 8) | static_cast<DWORD>(r2);
-
-      seed.rndvls = vls;
+      seed.rndvls = (((((static_cast<DWORD>(r1) << 8) | static_cast<DWORD>(r2)) << 8) | static_cast<DWORD>(r3)) << 8) | static_cast<DWORD>(r4);
       seed.rndacc = acc;
       return acc;
     }

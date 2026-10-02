@@ -268,7 +268,8 @@ static int Script_GetFriendInfo(lua_State *L) {
 
 static int Script_SetSelectedFriend(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: SetSelectedFriend(index)");
+    luaL_error(L, "Usage: SetSelectedFriend(index)");
+    return 0;
   }
   if (g_friendList) {
     g_friendList->SetFriendSelectionIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
@@ -296,7 +297,8 @@ void FriendList::DelIgnore(LPCSTR name) {
 
 static int Script_AddFriend(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: AddFriend(\"name\")");
+    luaL_error(L, "Usage: AddFriend(\"name\")");
+    return 0;
   }
   if (g_friendList) {
     g_friendList->AddFriend(lua_tostring(L, 1));
@@ -323,7 +325,8 @@ static int Script_ShowFriends(lua_State *L) {
 
 static int Script_SendWho(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: SendWho(\"filter\")");
+    luaL_error(L, "Usage: SendWho(\"filter\")");
+    return 0;
   }
   if (g_friendList) {
     g_friendList->SendWho(lua_tostring(L, 1));
@@ -338,7 +341,8 @@ static int Script_GetNumIgnores(lua_State *L) {
 
 static int Script_GetIgnoreName(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetIgnoreName(index)");
+    luaL_error(L, "Usage: GetIgnoreName(index)");
+    return 0;
   }
   DWORDLONG        guid = g_friendList->GetIgnore(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   const NameCache *entry = g_nameDBCache.GetRecord(guid, 0, 0, 0);
@@ -348,7 +352,8 @@ static int Script_GetIgnoreName(lua_State *L) {
 
 static int Script_SetSelectedIgnore(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: SetSelectedIgnore(index)");
+    luaL_error(L, "Usage: SetSelectedIgnore(index)");
+    return 0;
   }
   if (g_friendList) {
     g_friendList->SetIgnoreSelectionIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
@@ -363,7 +368,8 @@ static int Script_GetSelectedIgnore(lua_State *L) {
 
 static int Script_AddOrDelIgnore(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: AddOrDelIgnore(\"name\")");
+    luaL_error(L, "Usage: AddOrDelIgnore(\"name\")");
+    return 0;
   }
   if (g_friendList) {
     g_friendList->AddOrDelIgnore(lua_tostring(L, 1));
@@ -373,7 +379,8 @@ static int Script_AddOrDelIgnore(lua_State *L) {
 
 static int Script_AddIgnore(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: AddIgnore(\"name\")");
+    luaL_error(L, "Usage: AddIgnore(\"name\")");
+    return 0;
   }
   if (g_friendList) {
     g_friendList->AddIgnore(lua_tostring(L, 1));
@@ -383,7 +390,8 @@ static int Script_AddIgnore(lua_State *L) {
 
 static int Script_DelIgnore(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: DelIgnore(\"name\")");
+    luaL_error(L, "Usage: DelIgnore(\"name\")");
+    return 0;
   }
   if (g_friendList) {
     g_friendList->DelIgnore(lua_tostring(L, 1));
@@ -399,7 +407,8 @@ static int Script_GetNumWhoResults(lua_State *L) {
 
 static int Script_GetWhoInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetWhoInfo(index)");
+    luaL_error(L, "Usage: GetWhoInfo(index)");
+    return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (index >= s_numWhos) {
@@ -835,7 +844,7 @@ void FriendList::IgnoreList(CDataStore *msg) {
   memset(m_ignore, 0, sizeof(m_ignore));
   BYTE count;
   msg->Get(count);
-  FATALASSERT(count <= 25);
+  FATALASSERT(count <= (sizeof(m_ignore) / sizeof(m_ignore[0])));
   for (UINT i = 0; i < count; ++i) {
     DWORDLONG guid;
     msg->Get(guid);

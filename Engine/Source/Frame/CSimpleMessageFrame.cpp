@@ -86,7 +86,9 @@ void CSimpleMessageFrame::SetInsertMode(SimpleMessageFrameInsertMode mode) {
 }
 
 void CSimpleMessageFrame::AddMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent) {
-  ASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(text);
+  VALIDATEENDVOID;
 
   MessageData *message = m_pendingMessages.New();
   message->text = SStrDupA(text, __FILE__, __LINE__);

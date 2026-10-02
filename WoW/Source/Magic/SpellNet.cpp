@@ -25,9 +25,6 @@ class SpellCast {
   ~SpellCast() {
   }
 
-  void BuildFullZoneUpdate(CDataStore *msg);
-  void UnpackFullZoneUpdate(CDataStore *msg);
-
   DWORDLONG          caster;
   DWORDLONG          casterUnit;
   int                spellID;
@@ -48,6 +45,9 @@ class SpellCast {
   char               targetString[128];
   int                overrideRank;
   WORD               flags;
+
+  void BuildFullZoneUpdate(CDataStore *msg);
+  void UnpackFullZoneUpdate(CDataStore *msg);
 };
 
 void SpellPutCastTargets(SpellCast *cast, CDataStore *msg) {

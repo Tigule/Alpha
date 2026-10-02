@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "ActionBarFrame.h"
 
@@ -606,7 +614,8 @@ static int Script_GetActionCooldown(lua_State *L) {
 
 static int Script_HasAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: HasAction(slot)");
+    luaL_error(L, "Usage: HasAction(slot)");
+    return 0;
   if (CGActionBar::HasAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -617,7 +626,8 @@ static int Script_HasAction(lua_State *L) {
 
 static int Script_UseAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: UseAction(slot)");
+    luaL_error(L, "Usage: UseAction(slot)");
+    return 0;
   BOOL checkCursor = 0;
   if (lua_isstring(L, 2)) {
     checkCursor = StringToBOOL(lua_tostring(L, 2));
@@ -628,14 +638,16 @@ static int Script_UseAction(lua_State *L) {
 
 static int Script_PickupAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: PickupAction(slot)");
+    luaL_error(L, "Usage: PickupAction(slot)");
+    return 0;
   CGActionBar::PickupAction(static_cast<int>(lua_tonumber(L, 1)) - 1);
   return 0;
 }
 
 static int Script_PlaceAction(lua_State *L) {
   if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: PlaceAction(slot)");
+    luaL_error(L, "Usage: PlaceAction(slot)");
+    return 0;
   CGActionBar::PutActionInSlot(static_cast<int>(lua_tonumber(L, 1)) - 1);
   return 0;
 }

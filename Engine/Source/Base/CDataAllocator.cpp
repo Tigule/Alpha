@@ -16,17 +16,10 @@ CDataAllocator::~CDataAllocator() {
 }
 
 void CDataAllocator::Clear(LPCSTR fileName, int lineNumber) {
-  UINT dataUsed = m_dataUsed;
-
-  if (dataUsed) {
-    if (!fileName) {
-      fileName = __FILE__;
-      lineNumber = __LINE__;
-    }
-
+  if (m_dataUsed) {
     SErrDisplayErrorFmt(
-        STORM_ERROR_MEMORY_NEVER_RELEASED, __FILE__, __LINE__, TRUE, 1, "CDataAllocator@0x%08x: leaked %u: %s(%d) [%u][%u]", this, dataUsed, fileName,
-        lineNumber, m_dataPerBlock, m_bytesPerData
+        STORM_ERROR_MEMORY_NEVER_RELEASED, __FILE__, __LINE__, TRUE, 1, "CDataAllocator@0x%08x: leaked %u: %s(%d) [%u][%u]", this, m_dataUsed,
+        fileName ? fileName : __FILE__, fileName ? lineNumber : __LINE__, m_dataPerBlock, m_bytesPerData
     );
   }
 
@@ -51,12 +44,9 @@ LPVOID CDataAllocator::GetData(int zero, LPCSTR fileName, int lineNumber) {
     Block *block;
     Data  *data;
 
-    if (!fileName) {
-      fileName = __FILE__;
-      lineNumber = __LINE__;
-    }
-
-    block = static_cast<Block *>(SMemAlloc(m_dataPerBlock * m_bytesPerData + sizeof(Block), fileName, lineNumber, 0));
+    block = static_cast<Block *>(
+        SMemAlloc(m_dataPerBlock * m_bytesPerData + sizeof(Block), fileName ? fileName : __FILE__, fileName ? lineNumber : __LINE__, 0)
+    );
     data = reinterpret_cast<Data *>(block + 1);
     m_dataList = data;
 

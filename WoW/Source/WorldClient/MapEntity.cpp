@@ -31,66 +31,48 @@ class FogQ {
 };
 
 BOOL CMapStaticEntity::GetMapObjDef(CMapObjDef *&mapObjDef) {
+  BOOL found = 0;
   ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
       CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
       mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
       FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
-      return 1;
+      found = 1;
+      break;
     }
   }
 
-  return 0;
-}
-
-CMapEntity::~CMapEntity() {
-  FATALASSERT(refCount == 0);
+  return found;
 }
 
 BOOL CMapStaticEntity::GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapObj, CMapObjDefGroup *&mapObjDefGroup, CMapObjGroup *&mapObjGroup) {
-  if (!flagInside) {
-    return 0;
-  }
+  BOOL found = 0;
+  if (flagInside) {
+    ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
+      if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
+        mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
+        mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
+        FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
 
-  CMapBaseObjLink *parentLink = parentLinkList.Head();
-  while (reinterpret_cast<long>(parentLink) > 0) {
-    if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
-      mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
-      mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
-      FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
-
-      mapObj = mapObjDef->mapObj;
-      FATALASSERT(mapObj);
-      mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
-      FATALASSERT(mapObjGroup);
-      return 1;
+        mapObj = mapObjDef->mapObj;
+        FATALASSERT(mapObj);
+        mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
+        FATALASSERT(mapObjGroup);
+        found = 1;
+        break;
+      }
     }
   }
 
-  return 0;
+  return found;
 }
 
 CMapEntity::CMapEntity() {
   type |= Type_Entity;
 }
 
-void CMapEntity::QueryLiquidSounds(int *lbool, NTempest::C3Vector *ldelta, float *ldsquared, UINT &closestExtLevel) {
-  if (!flagInside) {
-    return;
-  }
-
-  ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
-    if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
-      CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
-      CMapObjDef      *mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
-      FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
-      CMapObj *mapObj = mapObjDef->mapObj;
-      FATALASSERT(mapObj);
-
-      NTempest::C3Vector localPos = pos * mapObjDef->invMat;
-      mapObj->QueryLiquidSounds(mapObjDefGroup->groupNum, mapObjDefGroup->groupNum, 0, closestExtLevel, localPos, lbool, ldelta, ldsquared);
-    }
-  }
+CMapEntity::~CMapEntity() {
+  FATALASSERT(refCount==0);
 }
 
 BOOL CMapEntity::QueryMapObjZoneName(LPCSTR &zoneName) {
@@ -98,16 +80,17 @@ BOOL CMapEntity::QueryMapObjZoneName(LPCSTR &zoneName) {
   CMapObjGroup    *mapObjGroup;
   CMapObj         *mapObj;
   CMapObjDef      *mapObjDef;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-    return 0;
+  BOOL result = 0;
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    if (!mapObjDef->zoneName) {
+      mapObjDef->zoneName = SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, -1);
+    }
+
+    zoneName = mapObjDef->zoneName;
+    result = 1;
   }
 
-  if (!mapObjDef->zoneName) {
-    mapObjDef->zoneName = SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, -1);
-  }
-
-  zoneName = mapObjDef->zoneName;
-  return 1;
+  return result;
 }
 
 BOOL CMapEntity::QueryMapObjSubzoneName(LPCSTR &subzoneName, UINT &subzoneId) {
@@ -115,17 +98,18 @@ BOOL CMapEntity::QueryMapObjSubzoneName(LPCSTR &subzoneName, UINT &subzoneId) {
   CMapObj         *mapObj;
   CMapObjGroup    *mapObjGroup;
   CMapObjDefGroup *mapObjDefGroup;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-    return 0;
+  BOOL result = 0;
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    if (!mapObjDefGroup->subzoneName) {
+      mapObjDefGroup->subzoneName = SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, mapObjGroup->GetUniqueID());
+    }
+
+    subzoneName = mapObjDefGroup->subzoneName;
+    subzoneId = mapObjDefGroup->groupNum;
+    result = 1;
   }
 
-  if (!mapObjDefGroup->subzoneName) {
-    mapObjDefGroup->subzoneName = SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, mapObjGroup->GetUniqueID());
-  }
-
-  subzoneName = mapObjDefGroup->subzoneName;
-  subzoneId = mapObjDefGroup->groupNum;
-  return 1;
+  return result;
 }
 
 bool CMapEntity::QueryMapObjAreaTable(const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec) {
@@ -133,15 +117,13 @@ bool CMapEntity::QueryMapObjAreaTable(const WMOAreaTableRec *&subzoneRec, const 
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjDef      *mapObjDef;
   CMapObj         *mapObj;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-    return false;
+  bool result = false;
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    result = SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, mapObjDefGroup->groupNum, subzoneRec) &&
+             SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, -1, globalRec);
   }
 
-  if (!SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, mapObjDefGroup->groupNum, subzoneRec)) {
-    return false;
-  }
-
-  return SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, -1, globalRec);
+  return result;
 }
 
 BOOL CMapEntity::QueryMapObjFileName(LPCSTR &fileName) {
@@ -149,12 +131,13 @@ BOOL CMapEntity::QueryMapObjFileName(LPCSTR &fileName) {
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup;
   CMapObj         *mapObj;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-    return 0;
+  BOOL result = 0;
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    fileName = mapObj->name;
+    result = 1;
   }
 
-  fileName = mapObj->name;
-  return 1;
+  return result;
 }
 
 BOOL CMapEntity::QueryMapObjListenerId(UINT &listenerId) {
@@ -162,12 +145,13 @@ BOOL CMapEntity::QueryMapObjListenerId(UINT &listenerId) {
   CMapObjDefGroup *mapObjDefGroup;
   CMapObj         *mapObj;
   CMapObjDef      *mapObjDef;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-    return 0;
+  BOOL result = 0;
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    listenerId = 0;
+    result = 1;
   }
 
-  listenerId = 0;
-  return 1;
+  return result;
 }
 
 bool CMapEntity::QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorld::MinimapQuad> &quads) {
@@ -176,12 +160,13 @@ bool CMapEntity::QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<
   CMapObj         *mapObj;
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjDef      *mapObjDef;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-    return 0;
+  bool result = false;
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    CWorldMath::TransformAABox(mapObjDef->invMat, aaBox, localBox);
+    result = mapObj->QueryMapObjMinimap(mapObjDefGroup->groupNum, localBox, quads);
   }
 
-  CWorldMath::TransformAABox(mapObjDef->invMat, aaBox, localBox);
-  return mapObj->QueryMapObjMinimap(mapObjDefGroup->groupNum, localBox, quads);
+  return result;
 }
 
 bool CMapEntity::QueryMapObjIDs(UINT &wmoID, UINT &instanceID, UINT &groupID) {
@@ -189,14 +174,15 @@ bool CMapEntity::QueryMapObjIDs(UINT &wmoID, UINT &instanceID, UINT &groupID) {
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjDef      *mapObjDef;
   CMapObj         *mapObj;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-    return 0;
+  bool result = false;
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    wmoID = mapObj->GetWmoID();
+    instanceID = mapObj->GetHashValue();
+    groupID = mapObjDefGroup->groupNum;
+    result = true;
   }
 
-  wmoID = mapObj->GetWmoID();
-  instanceID = mapObj->GetHashValue();
-  groupID = mapObjDefGroup->groupNum;
-  return 1;
+  return result;
 }
 
 bool CMapEntity::QueryMapObjMatrix(NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
@@ -204,17 +190,18 @@ bool CMapEntity::QueryMapObjMatrix(NTempest::C44Matrix *mtx, NTempest::C44Matrix
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup;
   CMapObjDef      *mapObjDef;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-    return 0;
+  bool result = false;
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    if (mtx) {
+      *mtx = mapObjDef->mat;
+    }
+    if (invMtx) {
+      *invMtx = mapObjDef->invMat;
+    }
+    result = true;
   }
 
-  if (mtx) {
-    *mtx = mapObjDef->mat;
-  }
-  if (invMtx) {
-    *invMtx = mapObjDef->invMat;
-  }
-  return 1;
+  return result;
 }
 
 void CMapEntity::UpdateMapObjLiquid() {
@@ -244,6 +231,25 @@ void CMapEntity::UpdateMapObjLiquid() {
   lqDirection.x = direction.x * mapObjDef->mat.a0 + direction.y * mapObjDef->mat.b0 + direction.z * mapObjDef->mat.c0;
   lqDirection.y = direction.x * mapObjDef->mat.a1 + direction.y * mapObjDef->mat.b1 + direction.z * mapObjDef->mat.c1;
   lqDirection.z = direction.x * mapObjDef->mat.a2 + direction.y * mapObjDef->mat.b2 + direction.z * mapObjDef->mat.c2;
+}
+
+void CMapEntity::QueryLiquidSounds(int *lbool, NTempest::C3Vector *ldelta, float *ldsquared, UINT &closestExtLevel) {
+  if (!flagInside) {
+    return;
+  }
+
+  ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
+    if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
+      CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
+      CMapObjDef      *mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
+      FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
+      CMapObj *mapObj = mapObjDef->mapObj;
+      FATALASSERT(mapObj);
+
+      NTempest::C3Vector localPos = pos * mapObjDef->invMat;
+      mapObj->QueryLiquidSounds(mapObjDefGroup->groupNum, mapObjDefGroup->groupNum, 0, closestExtLevel, localPos, lbool, ldelta, ldsquared);
+    }
+  }
 }
 
 static float ComputeFogBlend(const SMOFog &fog, float dist) {

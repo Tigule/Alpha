@@ -35,12 +35,12 @@ static CParticleEmitter2 *CreateEmitterObject(UINT type) {
 
 static void SetMaterialBlendMode(UINT blendMode, CParticleMat *mat) {
   switch (blendMode) {
-    case 0:
-      mat->alpha = GxBlend_Alpha;
-      mat->enableDepthWrites = 0;
-      break;
     case 1:
       mat->alpha = GxBlend_Add;
+      mat->enableDepthWrites = 0;
+      break;
+    case 0:
+      mat->alpha = GxBlend_Alpha;
       mat->enableDepthWrites = 0;
       break;
     case 2:

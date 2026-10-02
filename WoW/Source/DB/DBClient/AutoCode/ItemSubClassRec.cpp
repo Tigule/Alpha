@@ -17,35 +17,38 @@ ItemSubClassRec::~ItemSubClassRec() {
 bool ItemSubClassRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempdisplayName_langIndices[NUM_LOCALES];
   UINT tempverboseName_langIndices[NUM_LOCALES];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_classID) ||
-      !SFileReadTyped(f, &m_subClassID) ||
-      !SFileReadTyped(f, &m_prerequisiteProficiency) ||
-      !SFileReadTyped(f, &m_postrequisiteProficiency) ||
-      !SFileReadTyped(f, &m_flags) ||
-      !SFileReadTyped(f, &m_displayFlags) ||
-      !SFileReadTyped(f, &m_weaponParrySeq) ||
-      !SFileReadTyped(f, &m_weaponReadySeq) ||
-      !SFileReadTyped(f, &m_weaponAttackSeq) ||
-      !SFileReadTyped(f, &m_WeaponSwingSize) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[0]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[1]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[2]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[3]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[4]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[5]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[6]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[7]) ||
-      !SFileReadTyped(f, &m_displayName_flag) ||
-      !SFileReadTyped(f, &tempverboseName_langIndices[0]) ||
-      !SFileReadTyped(f, &tempverboseName_langIndices[1]) ||
-      !SFileReadTyped(f, &tempverboseName_langIndices[2]) ||
-      !SFileReadTyped(f, &tempverboseName_langIndices[3]) ||
-      !SFileReadTyped(f, &tempverboseName_langIndices[4]) ||
-      !SFileReadTyped(f, &tempverboseName_langIndices[5]) ||
-      !SFileReadTyped(f, &tempverboseName_langIndices[6]) ||
-      !SFileReadTyped(f, &tempverboseName_langIndices[7]) ||
-      !SFileReadTyped(f, &m_verboseName_flag)) {
+  error |= (SFileReadTyped(f, &m_classID) == 0);
+  error |= (SFileReadTyped(f, &m_subClassID) == 0);
+  error |= (SFileReadTyped(f, &m_prerequisiteProficiency) == 0);
+  error |= (SFileReadTyped(f, &m_postrequisiteProficiency) == 0);
+  error |= (SFileReadTyped(f, &m_flags) == 0);
+  error |= (SFileReadTyped(f, &m_displayFlags) == 0);
+  error |= (SFileReadTyped(f, &m_weaponParrySeq) == 0);
+  error |= (SFileReadTyped(f, &m_weaponReadySeq) == 0);
+  error |= (SFileReadTyped(f, &m_weaponAttackSeq) == 0);
+  error |= (SFileReadTyped(f, &m_WeaponSwingSize) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_displayName_flag) == 0);
+  error |= (SFileReadTyped(f, &tempverboseName_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempverboseName_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempverboseName_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempverboseName_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempverboseName_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempverboseName_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempverboseName_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempverboseName_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_verboseName_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading ItemSubClassRec", DEFAULT_COLOR);
     return false;
   }

@@ -19,12 +19,30 @@ struct LightningCoordUpdateData {
 };
 
 class CLightning {
+  friend class CLightningManager;
+
+  NTempest::C3Vector                                  mSrcPos;
+  NTempest::C3Vector                                  mDstPos;
+  float                                               mAvgSegLen;
+  float                                               mWidth;
+  NTempest::CImVector                                 mColor;
+  float                                               mNoiseScale;
+  float                                               mTexCoordScale;
+  float                                               mDuration;
+  BOOL                                                mRebuildPoints;
+  TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> mPoints;
+  TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> mPos;
+  TSFixedArray_<NTempest::C2Vector, 'Ligh', __LINE__> mTexCoords;
+  TSFixedArray_<WORD, 'Ligh', __LINE__>               mIndices;
+  float                                               mAccTime;
+  HTEXTURE                                            mTexture;
+  LightningCoordUpdateData                            mCoordUpdateData;
+
+  void BuildStroke(TSFixedArray<NTempest::C3Vector> &points);
+
  public:
   CLightning();
   ~CLightning();
-  void Update(float elapsed);
-  void Render(UINT boltId, const NTempest::C3Vector &cameraPos);
-  void SetTexture(HTEXTURE texture);
   void SetSrcPos(const NTempest::C3Vector &position) {
     mSrcPos = position;
     mRebuildPoints = 1;
@@ -49,6 +67,7 @@ class CLightning {
   void SetTexCoordScale(float scale) {
     mTexCoordScale = scale;
   }
+  void SetTexture(HTEXTURE texture);
   void SetCoordUpdateData(LightningCoordUpdateData &data) {
     mCoordUpdateData = data;
   }
@@ -85,31 +104,20 @@ class CLightning {
   void GetDuration(float &duration) {
     duration = mDuration;
   }
-
- private:
-  void BuildStroke(TSFixedArray<NTempest::C3Vector> &points);
-
-  friend class CLightningManager;
-
-  NTempest::C3Vector                            mSrcPos;
-  NTempest::C3Vector                            mDstPos;
-  float                                         mAvgSegLen;
-  float                                         mWidth;
-  NTempest::CImVector                           mColor;
-  float                                         mNoiseScale;
-  float                                         mTexCoordScale;
-  float                                         mDuration;
-  BOOL                                          mRebuildPoints;
-  TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> mPoints;
-  TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> mPos;
-  TSFixedArray_<NTempest::C2Vector, 'Ligh', __LINE__> mTexCoords;
-  TSFixedArray_<WORD, 'Ligh', __LINE__>               mIndices;
-  float                                         mAccTime;
-  HTEXTURE                                      mTexture;
-  LightningCoordUpdateData                      mCoordUpdateData;
+  void Update(float elapsed);
+  void Render(UINT boltId, const NTempest::C3Vector &cameraPos);
 };
 
 class CLightningManager {
+  friend void SpellVisualsInitialize();
+
+  TSGrowableArray<CLightning *> mLiveBolts;
+  TSGrowableArray<int>          mDeadBolts;
+
+  CLightningManager(const CLightningManager &);
+  CLightningManager();
+  CLightningManager &operator=(const CLightningManager &);
+
  public:
   ~CLightningManager();
 
@@ -126,22 +134,12 @@ class CLightningManager {
       void (*updateproc)(LPVOID, UINT, NTempest::C3Vector *, NTempest::C3Vector *),
       LPVOID context
   );
+  void  Remove(BoltID boltId);
   void  Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C3Vector *dst);
   void  SetCoordUpdate(BoltID boltId, void (*updateproc)(LPVOID, UINT, NTempest::C3Vector *, NTempest::C3Vector *), LPVOID context);
   void  SetColor(BoltID boltId, NTempest::CImVector color);
-  void  GetColor(BoltID boltId, NTempest::CImVector &color);
   float GetDuration(BoltID boltId);
+  void  GetColor(BoltID boltId, NTempest::CImVector &color);
   void  Update(float elapsed);
   void  Render(const NTempest::C3Vector &cameraPos);
-  void  Remove(BoltID boltId);
-
- private:
-  friend void SpellVisualsInitialize();
-
-  CLightningManager();
-  CLightningManager(const CLightningManager &);
-  CLightningManager &operator=(const CLightningManager &);
-
-  TSGrowableArray<CLightning *> mLiveBolts;
-  TSGrowableArray<int>          mDeadBolts;
 };

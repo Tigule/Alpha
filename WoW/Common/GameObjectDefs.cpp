@@ -181,7 +181,7 @@ static const ObjectInfo s_objectInfo[19] = {
 };
 
 LPCSTR CGameObjectDef::NameFromTypeId(int typeId) {
-  FATALASSERT(typeId >= 0 && typeId < 19);
+  FATALASSERT(typeId >= 0 && typeId < NUM_GAMEOBJECT_TYPE);
   return typeId >= 0 && typeId < 19 ? s_objectInfo[typeId].name : 0;
 }
 
@@ -189,8 +189,8 @@ int CGameObjectDef::GetPropNum(int typeId, int propId) {
   if (typeId >= 19 || propId >= 38) {
     return -1;
   }
-  FATALASSERT(typeId >= 0);
-  FATALASSERT(propId >= 0);
+  FATALASSERT(typeId >= 0 && typeId < NUM_GAMEOBJECT_TYPE);
+  FATALASSERT(propId >= 0 && propId < NUM_PROP);
 
   for (int propNum = 0; propNum < s_objectInfo[typeId].numProperties; ++propNum) {
     if (s_objectInfo[typeId].propertyInfo[propNum] == propId) {

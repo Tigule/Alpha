@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "TaxiMapFrame.h"
 
@@ -53,7 +61,9 @@ void CGTaxiMap::LeaveWorld() {
 }
 
 void CGTaxiMap::SetupMap(const DWORDLONG &unit, UINT node, LONGLONG destNodes, LONGLONG knownNodes, const NTempest::CRect &visibleArea) {
-  FATALASSERT(unit);
+  VALIDATEBEGIN;
+  VALIDATE(unit);
+  VALIDATEENDVOID;
   if (m_unit) {
     if (m_unit == unit) {
       FATALASSERT(node == m_startNode);
@@ -184,11 +194,13 @@ static int Script_NumTaxiNodes(lua_State *L) {
 
 static int Script_TaxiNodeName(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: TaxiNodeName(slot)");
+    luaL_error(L, "Usage: TaxiNodeName(slot)");
+    return 0;
   }
   UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot > CGTaxiMap::NumTaxiNodes()) {
-    return luaL_error(L, "Invalid taxi node slot");
+    luaL_error(L, "Invalid taxi node slot");
+    return 0;
   }
   lua_pushstring(L, CGTaxiMap::TaxiNodeName(slot));
   return 1;
@@ -214,11 +226,13 @@ static int Script_TaxiNodePosition(lua_State *L) {
 
 static int Script_TaxiNodeCost(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: TaxiNodeCost(slot)");
+    luaL_error(L, "Usage: TaxiNodeCost(slot)");
+    return 0;
   }
   UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot > CGTaxiMap::NumTaxiNodes()) {
-    return luaL_error(L, "Invalid taxi node slot");
+    luaL_error(L, "Invalid taxi node slot");
+    return 0;
   }
   lua_pushnumber(L, static_cast<double>(CGTaxiMap::TaxiNodeCost(slot)));
   return 1;
@@ -226,7 +240,8 @@ static int Script_TaxiNodeCost(lua_State *L) {
 
 static int Script_TakeTaxiNode(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: TakeTaxiNode(slot)");
+    luaL_error(L, "Usage: TakeTaxiNode(slot)");
+    return 0;
   }
   UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot < CGTaxiMap::NumTaxiNodes()) {
@@ -251,11 +266,13 @@ static int Script_GetTextureCoordinates(lua_State *L) {
 
 static int Script_TaxiNodeGetType(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: TakeTaxiNode(slot)");
+    luaL_error(L, "Usage: TakeTaxiNode(slot)");
+    return 0;
   }
   UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (slot > CGTaxiMap::NumTaxiNodes()) {
-    return luaL_error(L, "Invalid taxi node slot");
+    luaL_error(L, "Invalid taxi node slot");
+    return 0;
   }
   lua_pushstring(L, CGTaxiMap::TaxiNodeType(slot));
   return 1;

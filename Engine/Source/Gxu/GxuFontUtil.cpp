@@ -33,87 +33,95 @@ static LISTDECLEX(STRINGVIEWMATRICES, m_freeLink, s_freeStringMatrices);
 static HASHKEY_NONE s_nullHashKey;
 
 QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVector *color, UINT flags, UINT &wide, UINT remainingBytes) {
-  int        ignoreNewlines = flags & 0x200;
   int        ignoreColors = flags & 0x100;
+  int        ignoreNewlines = flags & 0x200;
   int        ignoreHyperlinks = flags & 0x400;
   int        ignorePipes = flags & 0x800;
-  LPCSTR     firstText;
-  LPCSTR     codePtr;
-  UINT       firstCharAdvance;
-  UINT       comps[4];
-  char       hex[3];
-  char      *error;
   QUOTEDCODE result;
-  UINT       i;
 
   ASSERT(text);
   ASSERT(*text);
 
-  firstText = text;
-  wide = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
-  firstCharAdvance = advance;
+  LPCSTR firstText = text;
+  UINT   code = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
+  UINT   firstCharAdvance = advance;
 
-  if (wide == static_cast<UINT>(-1)) {
+  wide = code;
+  if (code == static_cast<UINT>(-1)) {
     return CODE_INVALIDCODE;
   }
 
-  if (wide == '\n') {
+  if (code == '\n') {
     advance = 1;
     return CODE_NEWLINE;
   }
 
-  if (wide != '|' || ignorePipes) {
+  if (code != '|' || ignorePipes) {
     return CODE_INVALIDCODE;
   }
 
-  codePtr = text + advance;
-  wide = sgetu8(reinterpret_cast<const BYTE *>(codePtr), reinterpret_cast<int *>(&advance));
+  text += advance;
+  code = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
+  wide = code;
 
-  switch (*codePtr) {
+  switch (*text) {
     case 'H':
-    case 'h':
-      if (*codePtr == 'h') {
-        if (ignoreHyperlinks) {
-          goto invalidQuotedCode;
-        }
-
-        advance = 2;
-        return CODE_HYPERLINKSTOP;
-      }
-
       if (ignoreHyperlinks) {
-        goto invalidQuotedCode;
+        advance = firstCharAdvance;
+        wide = '|';
+        result = CODE_INVALIDCODE;
+        break;
       }
 
-      codePtr += advance;
-      while (*codePtr) {
-        wide = sgetu8(reinterpret_cast<const BYTE *>(codePtr), reinterpret_cast<int *>(&advance));
-        codePtr += advance;
+      text += advance;
+      while (*text) {
+        code = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
+        text += advance;
+        if (code == '|') {
+          code = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
+          text += advance;
 
-        if (wide != '|') {
-          continue;
+          if (code != 'h') {
+            break;
+          }
+
+          if (text - firstText == 4) {
+            break;
+          }
+
+          if (text[0] == '|' && text[1] == 'h') {
+            break;
+          }
+
+          advance = text - firstText;
+          return CODE_HYPERLINKSTART;
         }
-
-        wide = sgetu8(reinterpret_cast<const BYTE *>(codePtr), reinterpret_cast<int *>(&advance));
-        codePtr += advance;
-
-        if (wide != 'h') {
-          goto invalidQuotedCode;
-        }
-
-        advance = static_cast<UINT>(codePtr - firstText);
-        if (advance == 4 || (codePtr[0] == '|' && codePtr[1] == 'h')) {
-          goto invalidQuotedCode;
-        }
-
-        return CODE_HYPERLINKSTART;
       }
-      goto invalidQuotedCode;
+
+      advance = firstCharAdvance;
+      wide = '|';
+      result = CODE_INVALIDCODE;
+      break;
+
+    case 'h':
+      if (ignoreHyperlinks) {
+        advance = firstCharAdvance;
+        wide = '|';
+        result = CODE_INVALIDCODE;
+        break;
+      }
+
+      advance = 2;
+      result = CODE_HYPERLINKSTOP;
+      break;
 
     case 'N':
     case 'n':
       if (ignoreNewlines) {
-        goto invalidQuotedCode;
+        advance = firstCharAdvance;
+        wide = '|';
+        result = CODE_INVALIDCODE;
+        break;
       }
 
       advance = 2;
@@ -121,12 +129,16 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
         advance = firstCharAdvance;
         wide = '|';
       }
-      return CODE_NEWLINE;
+      result = CODE_NEWLINE;
+      break;
 
     case 'R':
     case 'r':
       if (ignoreColors) {
-        goto invalidQuotedCode;
+        advance = firstCharAdvance;
+        wide = '|';
+        result = CODE_INVALIDCODE;
+        break;
       }
 
       advance = 2;
@@ -134,7 +146,8 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
         advance = firstCharAdvance;
         wide = '|';
       }
-      return CODE_COLORRESTORE;
+      result = CODE_COLORRESTORE;
+      break;
 
     case '|':
       result = CODE_PIPE;
@@ -144,28 +157,39 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
         result = CODE_INVALIDCODE;
       }
       advance = 2;
-      return result;
+      break;
 
     case 'C':
-    case 'c':
+    case 'c': {
       if (ignoreColors) {
-        goto invalidQuotedCode;
+        advance = firstCharAdvance;
+        wide = '|';
+        result = CODE_INVALIDCODE;
+        break;
       }
 
       result = CODE_COLORON;
       advance = 10;
       if (remainingBytes < 10) {
-        goto invalidQuotedCode;
+        advance = firstCharAdvance;
+        wide = '|';
+        result = CODE_INVALIDCODE;
+        break;
       }
 
-      codePtr += 1;
+      ++text;
+
+      BYTE comps[4];
+      UINT i;
+      char hex[3];
+
       hex[2] = 0;
       for (i = 0; i < 4; ++i) {
-        hex[0] = *codePtr++;
-        hex[1] = *codePtr++;
-        error = 0;
+        char *error = 0;
 
-        DWORD component = strtol(hex, &error, 16);
+        hex[0] = *text++;
+        hex[1] = *text++;
+        long value = strtol(hex, &error, 16);
         if (error && *error) {
           advance = firstCharAdvance;
           wide = '|';
@@ -173,238 +197,170 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
           break;
         }
 
-        comps[i] = static_cast<BYTE>(component);
+        comps[i] = static_cast<BYTE>(value);
       }
 
       if (color) {
-        color->Set(0xFF000000ul | (static_cast<DWORD>(comps[1]) << 16) | (static_cast<DWORD>(comps[2]) << 8) | static_cast<DWORD>(comps[3]));
+        color->Set(0xFF, comps[1], comps[2], comps[3]);
       }
-      return result;
+      break;
+    }
+
+    default:
+      wide = '|';
+      advance = firstCharAdvance;
+      result = CODE_INVALIDCODE;
+      break;
   }
 
-invalidQuotedCode:
-  advance = firstCharAdvance;
-  wide = '|';
-  return CODE_INVALIDCODE;
+  return result;
 }
 
 static BOOL CanWrapBetween(UINT lastChar, UINT wideChar, UINT flags) {
-  int value;
-
   if (!lastChar) {
     return 0;
   }
+
   if (lastChar == '-') {
     return 1;
   }
+
   if (wideChar == static_cast<UINT>(-1)) {
     return 1;
   }
+
   if (iswspace(static_cast<wint_t>(lastChar))) {
     return 0;
   }
+
   if (iswspace(static_cast<wint_t>(wideChar))) {
     return 1;
   }
 
-  if (lastChar > 0x3010) {
-    if (lastChar > 0xFF04) {
-      switch (lastChar) {
-        case 0xFF08:
-        case 0xFF3B:
-        case 0xFF5B:
-        case 0xFFE1:
-        case 0xFFE5:
-        case 0xFFE6:
-          return 0;
-      }
-      goto checkCurrentCode;
-    }
-
-    if (lastChar == 0xFF04) {
+  switch (lastChar) {
+    case '$':
+    case '(':
+    case '[':
+    case '\\':
+    case '{':
+    case 0x2018:
+    case 0x201C:
+    case 0x2035:
+    case 0x3008:
+    case 0x300A:
+    case 0x300C:
+    case 0x300E:
+    case 0x3010:
+    case 0x3014:
+    case 0x301D:
+    case 0xFE59:
+    case 0xFE5B:
+    case 0xFE5D:
+    case 0xFF04:
+    case 0xFF08:
+    case 0xFF3B:
+    case 0xFF5B:
+    case 0xFFE1:
+    case 0xFFE5:
+    case 0xFFE6:
       return 0;
-    }
-    if (lastChar > 0xFE59) {
-      value = lastChar - 0xFE5B;
-      if (!value || value == 2) {
-        return 0;
-      }
-    } else {
-      if (lastChar == 0xFE59) {
-        return 0;
-      }
-      value = lastChar - 0x3014;
-      if (!value || value == 9) {
-        return 0;
-      }
-    }
-  } else {
-    if (lastChar == 0x3010) {
+  }
+
+  switch (wideChar) {
+    case '!':
+    case '%':
+    case ')':
+    case ',':
+    case '.':
+    case ':':
+    case ';':
+    case '?':
+    case ']':
+    case '}':
+    case 0xB0:
+    case 0xB7:
+    case 0x2013:
+    case 0x2014:
+    case 0x2019:
+    case 0x201D:
+    case 0x2022:
+    case 0x2026:
+    case 0x2027:
+    case 0x2032:
+    case 0x2033:
+    case 0x2103:
+    case 0x3001:
+    case 0x3002:
+    case 0x3009:
+    case 0x300B:
+    case 0x300D:
+    case 0x300F:
+    case 0x3011:
+    case 0x3015:
+    case 0x301E:
+    case 0x30FC:
+    case 0xFE30:
+    case 0xFE50:
+    case 0xFE51:
+    case 0xFE52:
+    case 0xFE54:
+    case 0xFE55:
+    case 0xFE56:
+    case 0xFE57:
+    case 0xFE5A:
+    case 0xFE5C:
+    case 0xFE5E:
+    case 0xFF01:
+    case 0xFF05:
+    case 0xFF09:
+    case 0xFF0C:
+    case 0xFF0E:
+    case 0xFF1A:
+    case 0xFF1B:
+    case 0xFF1F:
+    case 0xFF3D:
+    case 0xFF5D:
+    case 0xFF70:
+    case 0xFF9E:
+    case 0xFF9F:
+    case 0xFFE0:
       return 0;
-    }
-    if (lastChar > 0x201C) {
-      if (lastChar > 0x300A) {
-        value = lastChar - 0x300C;
-        if (!value || value == 2) {
-          return 0;
-        }
-      } else {
-        if (lastChar == 0x300A || lastChar == 0x2035 || lastChar == 0x3008) {
-          return 0;
-        }
-      }
-    } else {
-      if (lastChar == 0x201C) {
-        return 0;
-      }
-      if (lastChar > '\\') {
-        if (lastChar == '{' || lastChar == 0x2018) {
-          return 0;
-        }
-      } else if (lastChar >= '[' || lastChar == '$' || lastChar == '(') {
-        return 0;
-      }
-    }
   }
 
-checkCurrentCode:
-  if (wideChar <= 0x300F) {
-    if (wideChar != 0x300F) {
-      if (wideChar > 0x2014) {
-        if (wideChar > 0x2103) {
-          switch (wideChar) {
-            case 0x3001:
-            case 0x3002:
-            case 0x3009:
-            case 0x300B:
-            case 0x300D:
-              return 0;
-          }
-          goto checkWideCharacterRange;
-        }
-        if (wideChar != 0x2103) {
-          switch (wideChar) {
-            case 0x2019:
-            case 0x201D:
-            case 0x2022:
-            case 0x2026:
-            case 0x2027:
-            case 0x2032:
-            case 0x2033:
-              return 0;
-          }
-          goto checkWideCharacterRange;
-        }
-      } else if (wideChar < 0x2013) {
-        switch (wideChar) {
-          case '!':
-          case '%':
-          case ')':
-          case ',':
-          case '.':
-          case ':':
-          case ';':
-          case '?':
-          case ']':
-          case '}':
-          case 0xB0:
-          case 0xB7:
-            return 0;
-        }
-        goto checkWideCharacterRange;
-      }
-    }
-    return 0;
-  }
-
-  if (wideChar > 0xFF05) {
-    switch (wideChar) {
-      case 0xFF09:
-      case 0xFF0C:
-      case 0xFF0E:
-      case 0xFF1A:
-      case 0xFF1B:
-      case 0xFF1F:
-      case 0xFF3D:
-      case 0xFF5D:
-      case 0xFF70:
-      case 0xFF9E:
-      case 0xFF9F:
-      case 0xFFE0:
-        return 0;
-    }
-    goto checkWideCharacterRange;
-  }
-  if (wideChar == 0xFF05) {
-    return 0;
-  }
-  if (wideChar > 0xFE52) {
-    switch (wideChar) {
-      case 0xFE54:
-      case 0xFE55:
-      case 0xFE56:
-      case 0xFE57:
-      case 0xFE5A:
-      case 0xFE5C:
-      case 0xFE5E:
-      case 0xFF01:
-        return 0;
-    }
-    goto checkWideCharacterRange;
-  }
-  if (wideChar >= 0xFE50) {
-    return 0;
-  }
-  if (wideChar > 0x301E) {
-    if (wideChar == 0x30FC || wideChar == 0xFE30) {
-      return 0;
-    }
-  } else if (wideChar == 0x301E || wideChar == 0x3011 || wideChar == 0x3015) {
-    return 0;
-  }
-
-checkWideCharacterRange:
-  if ((wideChar < 0x1100 || wideChar > 0x11FF) && (wideChar < 0x3000 || wideChar > 0xD7AF) && (wideChar < 0xF900 || wideChar > 0xFAFF) &&
-      (wideChar < 0xFF00 || wideChar > 0xFF9F) && (wideChar < 0xFFA0 || wideChar > 0xFFDC))
+  if ((wideChar >= 0x1100 && wideChar <= 0x11FF) || (wideChar >= 0x3000 && wideChar <= 0xD7AF) || (wideChar >= 0xF900 && wideChar <= 0xFAFF) ||
+      (wideChar >= 0xFF00 && wideChar <= 0xFF9F) || (wideChar >= 0xFFA0 && wideChar <= 0xFFDC))
   {
-    return flags & 0x40;
+    return 1;
   }
 
-  return 1;
+  return flags & 0x40;
 }
 
 static UINT FindWrappingIndex(LPCSTR currentText, UINT lineBytes, UINT flags, LPCSTR *nextText) {
-  LPCSTR startingText;
-  LPCSTR scan;
-  UINT   wrapIndex;
-  UINT   lastChar;
-  UINT   wideChar;
-  UINT   advance;
-
   ASSERT(nextText);
-
   if (!currentText || !*currentText || !lineBytes) {
     *nextText = currentText;
     return 0;
   }
 
-  startingText = currentText;
-  wrapIndex = 0;
-  lastChar = 0;
+  UINT   wideChar;
+  UINT   advance;
+  UINT   lastChar = 0;
   wideChar = 0;
+  LPCSTR startingText = currentText;
+  UINT   wrapIndex = 0;
 
   while (*currentText && lineBytes) {
     QUOTEDCODE quotedCode = GxuDetermineQuotedCode(currentText, advance, 0, flags, wideChar, lineBytes);
 
     if (quotedCode == CODE_NEWLINE) {
       *nextText = currentText + advance;
-      scan = startingText + wrapIndex;
-
-      while (scan < *nextText) {
-        UINT code = sgetu8(reinterpret_cast<const BYTE *>(scan), reinterpret_cast<int *>(&advance));
-        scan += advance;
+      currentText = startingText + wrapIndex;
+      while (currentText < *nextText) {
+        UINT code = sgetu8(reinterpret_cast<const BYTE *>(currentText), reinterpret_cast<int *>(&advance));
+        currentText += advance;
         if (!iswspace(static_cast<wint_t>(code))) {
-          wrapIndex = static_cast<UINT>(scan - startingText);
+          wrapIndex = currentText - startingText;
         }
       }
       return wrapIndex;
@@ -412,7 +368,7 @@ static UINT FindWrappingIndex(LPCSTR currentText, UINT lineBytes, UINT flags, LP
 
     if (quotedCode == CODE_INVALIDCODE) {
       if (CanWrapBetween(lastChar, wideChar, flags)) {
-        wrapIndex = static_cast<UINT>(currentText - startingText);
+        wrapIndex = currentText - startingText;
       }
       lastChar = wideChar;
     }
@@ -421,26 +377,26 @@ static UINT FindWrappingIndex(LPCSTR currentText, UINT lineBytes, UINT flags, LP
     lineBytes -= advance;
   }
 
-  if (GxuDetermineQuotedCode(currentText, advance, 0, flags, wideChar, SStrLen(currentText)) == CODE_INVALIDCODE &&
-      CanWrapBetween(lastChar, wideChar, flags))
-  {
-    wrapIndex = static_cast<UINT>(currentText - startingText);
+  if (GxuDetermineQuotedCode(currentText, advance, 0, flags, wideChar, SStrLen(currentText)) == CODE_INVALIDCODE) {
+    if (CanWrapBetween(lastChar, wideChar, flags)) {
+      wrapIndex = currentText - startingText;
+    }
   }
 
   if (!wrapIndex) {
-    wrapIndex = static_cast<UINT>(currentText - startingText);
+    wrapIndex = currentText - startingText;
   }
 
-  scan = startingText + wrapIndex;
-  while (*scan) {
-    UINT code = sgetu8(reinterpret_cast<const BYTE *>(scan), reinterpret_cast<int *>(&advance));
+  currentText = startingText + wrapIndex;
+  while (*currentText) {
+    UINT code = sgetu8(reinterpret_cast<const BYTE *>(currentText), reinterpret_cast<int *>(&advance));
     if (!iswspace(static_cast<wint_t>(code))) {
       break;
     }
-    scan += advance;
+    currentText += advance;
   }
 
-  *nextText = scan;
+  *nextText = currentText;
   return wrapIndex;
 }
 
@@ -449,17 +405,15 @@ static STRINGVIEWMATRICES *GetNewStringMatrix(CGxString *stringPtr) {
 
   if (head) {
     ASSERT(!head->m_freeLink.IsLinked());
-    return head;
-  }
-
-  head = s_freeStringMatrices.Head();
-  if (head) {
-    s_freeStringMatrices.UnlinkNode(head);
   } else {
-    head = s_freeStringMatrices.NewNode(LIST_TAIL, 0, 0);
+    head = s_freeStringMatrices.Head();
+    if (head) {
+      s_freeStringMatrices.UnlinkNode(head);
+    } else {
+      head = s_freeStringMatrices.NewNode(LIST_TAIL, 0, 0);
+    }
+    s_stringViewMatrices.Insert(head, reinterpret_cast<UINT>(stringPtr), HASHKEY_PTR(stringPtr));
   }
-
-  s_stringViewMatrices.Insert(head, reinterpret_cast<UINT>(stringPtr), HASHKEY_PTR(stringPtr));
   return head;
 }
 
@@ -471,35 +425,31 @@ void CGxString::InitializeTextLine(
     UINT                     *texturePagesUsedFlag,
     HYPERLINKPARSEINFO       &info
 ) {
-  UINT               i;
-  UINT               advance;
-  UINT               wide;
-  UINT               charsInTexturePage[8] = {0};
-  int                fixedCharWidths;
-  IGXUTEXTLINE      *newLine;
-  NTempest::C3Vector currPos(position);
-  float              glyphPixelHeight;
-  LPCSTR             scan;
-  UINT               scanBytes;
-
   ASSERT(m_currentFace);
   ASSERT(currentText);
   ASSERT(texturePagesUsedFlag);
 
-  fixedCharWidths = m_flags & 0x10;
-  newLine = m_textBlock.NewLine();
+  int           fixedCharWidths = m_flags & 0x10;
+  IGXUTEXTLINE *newLine = m_textBlock.NewLine();
   newLine->Reserve(m_currentFace->GetNumCurrentTextures());
 
+  UINT              i;
+  TEXTLINETEXTURE **texturePage;
+
   if (m_flags & 0x8) {
-    for (i = 0; i < newLine->m_texturePages.Count(); ++i) {
-      newLine->m_texturePages[i]->m_colors.SetCount(0);
+    texturePage = newLine->m_texturePages.Ptr();
+    for (i = 0; i < newLine->m_texturePages.Count(); ++i, ++texturePage) {
+      (*texturePage)->m_colors.SetCount(0);
     }
   }
 
+  NTempest::C3Vector currPos(position);
+  UINT               prevCode = 0;
+
   const float screenPixelHeight = ScreenToPixelHeight(m_flags & 0x80, m_currentFontHeight);
   const float glyphToScreenPixels = screenPixelHeight / static_cast<float>(m_currentFace->m_pixelSize);
-  glyphPixelHeight = ScreenToPixelHeight(m_flags & 0x80, m_currentFontHeight);
 
+  float glyphPixelHeight = ScreenToPixelHeight(m_flags & 0x80, m_currentFontHeight);
   if (m_currentFace->m_flags & 0x1) {
     glyphPixelHeight += 2.0f;
   }
@@ -507,44 +457,51 @@ void CGxString::InitializeTextLine(
     glyphPixelHeight += 2.0f;
   }
 
-  scan = currentText;
-  scanBytes = numBytes;
-  while (*scan && scanBytes) {
-    QUOTEDCODE quotedCode = GxuDetermineQuotedCode(scan, advance, 0, m_flags, wide, scanBytes);
-    scan += advance;
-    scanBytes -= advance;
+  UINT charsInTexturePage[8] = {0};
 
-    switch (quotedCode) {
-      case CODE_COLORON:
-      case CODE_COLORRESTORE:
-      case CODE_NEWLINE:
-      case CODE_HYPERLINKSTART:
-      case CODE_HYPERLINKSTOP:
-        break;
+  {
+    LPCSTR scan = currentText;
+    UINT   scanBytes = numBytes;
+    UINT   advance;
+    UINT   wide;
 
-      default: {
-        const CHARCODEDESC *code = m_currentFace->NewCodeDesc(wide);
-        if (code && code->bitmapData) {
-          ++charsInTexturePage[code->textureNumber];
+    while (*scan && scanBytes) {
+      QUOTEDCODE quotedCode = GxuDetermineQuotedCode(scan, advance, 0, m_flags, wide, scanBytes);
+      scan += advance;
+      scanBytes -= advance;
+
+      switch (quotedCode) {
+        case CODE_COLORON:
+        case CODE_COLORRESTORE:
+        case CODE_NEWLINE:
+        case CODE_HYPERLINKSTART:
+        case CODE_HYPERLINKSTOP:
+          break;
+
+        default: {
+          const CHARCODEDESC *code = m_currentFace->NewCodeDesc(wide);
+          if (code && code->bitmapData) {
+            ++charsInTexturePage[code->textureNumber];
+          }
+          break;
         }
-        break;
       }
     }
   }
 
-  for (i = 0; i < newLine->m_texturePages.Count(); ++i) {
-    UINT vertexCount = charsInTexturePage[i] * 4;
-    newLine->m_texturePages[i]->m_vert.ReserveSpace(vertexCount);
+  texturePage = newLine->m_texturePages.Ptr();
+  for (i = 0; i < newLine->m_texturePages.Count(); ++i, ++texturePage) {
+    UINT numChars = charsInTexturePage[i];
 
+    (*texturePage)->m_vert.ReserveSpace(numChars * 4);
     if (!(m_flags & 0x8)) {
-      newLine->m_texturePages[i]->m_colors.ReserveSpace(vertexCount);
+      (*texturePage)->m_colors.ReserveSpace(numChars * 4);
     }
   }
 
   if (!adjustmentsInitialized) {
-    CGxCaps gxCaps = GxCaps();
     adjustmentsInitialized = 1;
-
+    CGxCaps gxCaps = GxCaps();
     if (gxCaps.m_pixelCenterOnEdge) {
       leftPixelAdjustment = 0.0f;
       rightPixelAdjustment = 0.0f;
@@ -562,18 +519,21 @@ void CGxString::InitializeTextLine(
     info.currentParseInfo.extent.r = currPos.x;
   }
 
+  NTempest::C3Vector offset3(m_shadowOffset);
   if (m_flags & 0x1) {
-    NTempest::C3Vector offset3(m_shadowOffset.x, m_shadowOffset.y, 0.0f);
     offset3.x = static_cast<float>(floor(ScreenToPixelWidth(0, offset3.x)));
     offset3.y = static_cast<float>(floor(ScreenToPixelHeight(0, offset3.y)));
   }
 
-  UINT  prevCode = 0;
   float step = 0.0f;
+  float startPosition = 0.0f;
 
   while (*currentText && numBytes) {
+    UINT                advance;
+    UINT                wide;
     NTempest::CImVector color(0ul);
     QUOTEDCODE          quotedCode = GxuDetermineQuotedCode(currentText, advance, &color, m_flags, wide, numBytes);
+
     currentText += advance;
     numBytes -= advance;
 
@@ -584,13 +544,26 @@ void CGxString::InitializeTextLine(
         step = m_currentFace->ComputeStep(prevCode, wide);
       }
     }
-    step *= glyphToScreenPixels;
+
+    startPosition = step * glyphToScreenPixels;
 
     switch (quotedCode) {
-      case CODE_COLORON:
-        if (!(m_flags & 0x8)) {
-          color.a = m_fontColor.a;
-          workingColor = color;
+      case CODE_HYPERLINKSTART:
+        if (info.hyperlinkParseMode != HYPERLINKDISPLAY) {
+          info.hyperlinkParseMode = HYPERLINKDISPLAY;
+          info.lastLinkStartPtr = currentText - advance + 2;
+          info.lastLinkLength = advance - 4;
+          info.currentParseInfo.link = info.lastLinkStartPtr;
+          info.currentParseInfo.linkLength = info.lastLinkLength;
+          info.currentParseInfo.extent.l = startPosition + currPos.x;
+        }
+        break;
+
+      case CODE_HYPERLINKSTOP:
+        if (info.hyperlinkParseMode == HYPERLINKDISPLAY) {
+          info.currentParseInfo.extent.r = startPosition + currPos.x;
+          info.hyperlinkParseMode = HYPERLINKNONE;
+          AddHyperlinkParseInfo(info.currentParseInfo);
         }
         break;
 
@@ -598,29 +571,14 @@ void CGxString::InitializeTextLine(
         workingColor = m_fontColor;
         break;
 
+      case CODE_COLORON:
+        if (!(m_flags & 0x8)) {
+          color.a = m_fontColor.a;
+          workingColor = color;
+        }
+        break;
+
       case CODE_NEWLINE:
-        break;
-
-      case CODE_HYPERLINKSTART:
-        if (info.hyperlinkParseMode != HYPERLINKDISPLAY) {
-          LPCSTR link = currentText - advance + 2;
-          UINT   linkLength = advance - 4;
-
-          info.currentParseInfo.extent.l = currPos.x + step;
-          info.hyperlinkParseMode = HYPERLINKDISPLAY;
-          info.lastLinkStartPtr = link;
-          info.lastLinkLength = linkLength;
-          info.currentParseInfo.link = link;
-          info.currentParseInfo.linkLength = linkLength;
-        }
-        break;
-
-      case CODE_HYPERLINKSTOP:
-        if (info.hyperlinkParseMode == HYPERLINKDISPLAY) {
-          info.currentParseInfo.extent.r = currPos.x + step;
-          info.hyperlinkParseMode = HYPERLINKNONE;
-          AddHyperlinkParseInfo(info.currentParseInfo);
-        }
         break;
 
       default: {
@@ -635,63 +593,54 @@ void CGxString::InitializeTextLine(
         UINT textureNumber = code->textureNumber;
         ASSERT(textureNumber < (sizeof(m_currentFace->m_textureCache) / sizeof(m_currentFace->m_textureCache[0])));
         ASSERT(m_currentFace->m_textureCache[textureNumber].GetTexturePtr());
-
         *texturePagesUsedFlag |= 1 << textureNumber;
-        TEXTLINETEXTURE *textLinePage = newLine->m_texturePages[textureNumber];
+
+        TEXTLINETEXTURE       *textLinePage = newLine->m_texturePages[textureNumber];
+        TSGrowableArray<VERT> &verts = textLinePage->m_vert;
 
         if (!(m_flags & 0x8)) {
-          NTempest::CImVector sColors[4];
-          for (i = 0; i < 4; ++i) {
-            sColors[i] = workingColor;
-          }
-
-          UINT oldIndex = textLinePage->m_colors.Add(4, sColors);
-
+          int oldIndex = textLinePage->m_colors.Add(4, 0, &workingColor);
           if (m_flags & 0x1000) {
             NTempest::CImVector *ptrArray[4];
+
             ptrArray[0] = &textLinePage->m_colors[oldIndex];
             ptrArray[1] = &textLinePage->m_colors[oldIndex + 3];
             ptrArray[2] = &textLinePage->m_colors[oldIndex + 1];
             ptrArray[3] = &textLinePage->m_colors[oldIndex + 2];
-            m_colorGradients.Add(4, ptrArray);
+            m_colorGradients.Add(4, 1, ptrArray);
 
             if (m_flags & 0x1) {
-              for (i = 0; i < 4; ++i) {
-                sColors[i] = m_shadowColor;
-              }
+              NTempest::CImVector sColors[4];
+              sColors[0] = m_shadowColor;
 
-              UINT oldShadowIndex = textLinePage->m_shadowColors.Add(4, sColors);
+              int oldShadowIndex = textLinePage->m_shadowColors.Add(4, 0, sColors);
               ptrArray[0] = &textLinePage->m_shadowColors[oldShadowIndex];
               ptrArray[1] = &textLinePage->m_shadowColors[oldShadowIndex + 3];
               ptrArray[2] = &textLinePage->m_shadowColors[oldShadowIndex + 1];
               ptrArray[3] = &textLinePage->m_shadowColors[oldShadowIndex + 2];
               ASSERT(oldShadowIndex == oldIndex);
-              m_colorGradientShadows.Add(4, ptrArray);
+              m_colorGradientShadows.Add(4, 1, ptrArray);
             }
           }
         }
 
-        if (static_cast<signed char>(m_flags) >= 0) {
-          step = static_cast<float>(floor(SignOf(step) * 0.5f + step));
+        if (!(m_flags & 0x80)) {
+          startPosition = static_cast<float>(floor(SignOf(startPosition) * 0.5f + startPosition));
         }
 
-        currPos.x += step;
+        currPos.x += startPosition;
 
         VERT vert;
-        vert.vc.x = currPos.x;
-        vert.vc.y = currPos.y;
-        vert.vc.z = currPos.z;
-        vert.tc.x = 0.0f;
-        vert.tc.y = 0.0f;
+        vert.vc = currPos;
 
-        if (static_cast<signed char>(m_flags) >= 0) {
-          vert.vc.x += static_cast<float>(ceil(code->bitmapData->m_glyphBearing));
+        if (m_flags & 0x80) {
+          vert.vc.x += glyphToScreenPixels * code->bitmapData->m_glyphBearing;
         } else {
-          vert.vc.x += code->bitmapData->m_glyphBearing * glyphToScreenPixels;
+          vert.vc.x += static_cast<float>(ceil(code->bitmapData->m_glyphBearing));
         }
 
         float charWidth = static_cast<float>(code->bitmapData->m_glyphCellWidth) * glyphToScreenPixels;
-        if (static_cast<signed char>(m_flags) >= 0) {
+        if (!(m_flags & 0x80)) {
           charWidth = static_cast<float>(floor(charWidth));
         }
 
@@ -702,51 +651,42 @@ void CGxString::InitializeTextLine(
           vert.vc.y -= 1.0f;
         }
 
-        TSGrowableArray<VERT> &verts = textLinePage->m_vert;
-        UINT                   oldIndex = verts.Count();
-        verts.SetCount(oldIndex + 4);
-        for (i = 0; i < 4; ++i) {
-          verts[oldIndex + i] = vert;
-        }
+        UINT  index = verts.Add(4, 0, &vert);
+        VERT *quad = &verts[index];
 
-        VERT *quad = &verts[oldIndex];
-        if (static_cast<signed char>(m_flags) < 0) {
+        if (m_flags & 0x80) {
           quad[0].vc.x = quad[3].vc.x;
+          quad[1].vc.x = quad[2].vc.x += charWidth;
+          quad[2].vc.y = quad[3].vc.y += screenPixelHeight;
           quad[0].vc.y = quad[1].vc.y;
-          quad[1].vc.x += charWidth;
-          quad[2].vc.x += charWidth;
-          quad[2].vc.y += screenPixelHeight;
-          quad[3].vc.y += screenPixelHeight;
         } else {
           quad[0].vc.x = quad[3].vc.x += leftPixelAdjustment;
           quad[1].vc.x = quad[2].vc.x += charWidth + rightPixelAdjustment;
-          quad[2].vc.y = quad[3].vc.y += glyphPixelHeight + topPixelAdjustment;
+          quad[2].vc.y = quad[3].vc.y += topPixelAdjustment + glyphPixelHeight;
           quad[0].vc.y = quad[1].vc.y += bottomPixelAdjustment;
         }
 
-        if (code->bitmapData->m_yOffset) {
-          const int yOffset = code->bitmapData->m_yOffset;
-          for (i = 0; i < 4; ++i) {
-            quad[i].vc.y += yOffset * glyphToScreenPixels;
-          }
+        const int yOffset = code->bitmapData->m_yOffset;
+        if (yOffset) {
+          quad[0].vc.y += yOffset * glyphToScreenPixels;
+          quad[1].vc.y += yOffset * glyphToScreenPixels;
+          quad[2].vc.y += yOffset * glyphToScreenPixels;
+          quad[3].vc.y += yOffset * glyphToScreenPixels;
         }
 
-        quad[0].tc.y = code->bitmapData->m_textureCoords.b;
-        quad[1].tc.y = code->bitmapData->m_textureCoords.b;
-        quad[2].tc.y = code->bitmapData->m_textureCoords.t;
-        quad[3].tc.y = code->bitmapData->m_textureCoords.t;
-        quad[0].tc.x = code->bitmapData->m_textureCoords.l;
-        quad[3].tc.x = code->bitmapData->m_textureCoords.l;
-        quad[1].tc.x = code->bitmapData->m_textureCoords.r;
-        quad[2].tc.x = code->bitmapData->m_textureCoords.r;
-
+        quad = &verts[index];
+        const NTempest::CRect &textureCoords = code->bitmapData->m_textureCoords;
+        quad[0].tc.y = quad[1].tc.y = textureCoords.b;
+        quad[2].tc.y = quad[3].tc.y = textureCoords.t;
+        quad[0].tc.x = quad[3].tc.x = textureCoords.l;
+        quad[1].tc.x = quad[2].tc.x = textureCoords.r;
         prevCode = wide;
         break;
       }
     }
   }
 
-  info.currentParseInfo.extent.r = currPos.x + step;
+  info.currentParseInfo.extent.r = startPosition + currPos.x;
 }
 
 CGxString *CGxString::Duplicate() const {
@@ -770,21 +710,22 @@ void CalcWrapPoint(
     UINT     flags
 ) {
   UINT   lineBytes = currentText ? SStrLen(currentText) : 0;
+  float  extent = 0.0f;
+  LPCSTR nextText = 0;
   UINT   bytesInString;
-  LPCSTR nextText;
-  float  extent;
 
   InternalGetMaxCharsWithinWidth(face, currentText, fontHeight, blockWidth, lineBytes, &extent, flags, &bytesInString, 0, 0);
-
   if (bytesInString == lineBytes) {
     nextText = 0;
-  } else {
-    bytesInString = FindWrappingIndex(currentText, bytesInString, flags, &nextText);
-    InternalGetTextExtent(face, currentText, bytesInString, fontHeight, &extent, flags);
+    goto finallylabel;
   }
 
+  lineBytes = FindWrappingIndex(currentText, bytesInString, flags, &nextText);
+  InternalGetTextExtent(face, currentText, lineBytes, fontHeight, &extent, flags);
+
+finallylabel:
   if (numBytes) {
-    *numBytes = bytesInString;
+    *numBytes = lineBytes;
   }
   *pExtent = extent;
   *pNextText = nextText;
@@ -798,28 +739,32 @@ GLYPHBITMAPDATA::~GLYPHBITMAPDATA() {
 }
 
 void CHARCODEDESC::GenerateTextureCoords(UINT rowNumber, UINT glyphSide) {
-  CGxCaps gxCaps;
-  int     top;
-  float   pr;
-
   ASSERT(bitmapData);
   ASSERT(glyphSide);
 
   if (initialized) {
     initialized = 1;
-    gxCaps = GxCaps();
+    CGxCaps gxCaps = GxCaps();
     pixelCenterOnEdge = gxCaps.m_pixelCenterOnEdge;
   }
 
   UINT width = bitmapData->m_glyphCellWidth;
   ASSERT(width);
 
-  top = rowNumber * glyphSide;
-  pr = static_cast<float>(glyphStartPixel);
-  bitmapData->m_textureCoords.Set(
-      top * ONEOVERTEXSIZE, pr * ONEOVERTEXSIZE + (pixelCenterOnEdge ? 0.0f : ONEHALFONEOVERTEXSIZE), (top + glyphSide) * ONEOVERTEXSIZE,
-      (pr + width) * ONEOVERTEXSIZE - (pixelCenterOnEdge ? 0.0f : ONEHALFONEOVERTEXSIZE)
-  );
+  int   top = rowNumber * glyphSide;
+  float l = static_cast<float>(glyphStartPixel);
+  float pr = l + width;
+
+  l *= ONEOVERTEXSIZE;
+  float r = ONEOVERTEXSIZE * pr;
+  float t = top * ONEOVERTEXSIZE;
+  float b = (top + glyphSide) * ONEOVERTEXSIZE;
+  if (!pixelCenterOnEdge) {
+    l += ONEHALFONEOVERTEXSIZE;
+    r -= ONEHALFONEOVERTEXSIZE;
+  }
+
+  bitmapData->m_textureCoords = NTempest::CRect(t, l, b, r);
   bitmapData->m_textureValid = 1;
 }
 
@@ -827,24 +772,24 @@ UINT CHARCODEDESC::GapToNextTexture() const {
   ASSERT(ValidBlockEndPoints());
 
   const CHARCODEDESC *next = textureRowLink.Next();
-  if (!next) {
-    return 255 - glyphEndPixel;
+  if (next) {
+    ASSERT(next->ValidBlockEndPoints());
+    return next->glyphStartPixel - glyphEndPixel - 1;
   }
 
-  ASSERT(next->ValidBlockEndPoints());
-  return next->glyphStartPixel - glyphEndPixel - 1;
+  return 255 - glyphEndPixel;
 }
 
 UINT CHARCODEDESC::GapToPreviousTexture() const {
   ASSERT(ValidBlockEndPoints());
 
-  const CHARCODEDESC *previous = textureRowLink.Prev();
-  if (!previous) {
-    return glyphStartPixel;
+  const CHARCODEDESC *prev = textureRowLink.Prev();
+  if (prev) {
+    ASSERT(prev->ValidBlockEndPoints());
+    return glyphStartPixel - prev->glyphEndPixel - 1;
   }
 
-  ASSERT(previous->ValidBlockEndPoints());
-  return glyphStartPixel - previous->glyphEndPixel - 1;
+  return glyphStartPixel;
 }
 
 void TEXTURECACHE::PasteGlyphOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, DWORD *dst, int thick) {
@@ -1226,6 +1171,11 @@ void TEXTURECACHE::PasteGlyph(GLYPHBITMAPDATA *data, DWORD *dst, int thick) {
   }
 }
 
+void GLYPHBITMAPDATA::Clear() {
+  FREEIFUSED(m_data);
+  m_data = 0;
+}
+
 void CGxString::SetStringPosition(const NTempest::C3Vector &position) {
   m_position = position;
   InitializeViewportOffsets();
@@ -1256,6 +1206,18 @@ void CGxString::SetColor(const NTempest::CImVector &color) {
   }
 }
 
+void CGxString::HandleScreenSizeChange() {
+  ASSERT(m_currentFace);
+  ClearStringMatrixEntry();
+
+  if (m_flags & 0x4) {
+    m_requestedFontHeight = GxuFontGetOneToOneHeight(m_currentFace);
+  }
+
+  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
+  CreateGeometry();
+}
+
 void CGxString::InternalRender() {
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsPush();
@@ -1282,22 +1244,6 @@ void CGxString::InternalRender() {
   }
 
   GxRsPop();
-}
-
-void CGxString::Recycle() {
-  m_batchedStringLink.Unlink();
-  g_freeStrings.LinkNode(this, LIST_TAIL, 0);
-  ClearInstanceData();
-  ClearStringMatrixEntry();
-}
-
-void CGxString::ClearInstanceData() {
-  m_hyperlinkInfo.SetCount(0);
-  m_textBlock.Recycle();
-  m_colorGradients.SetCount(0);
-  m_colorGradientShadows.SetCount(0);
-  m_lastGradientStart = -1;
-  m_lastGradientLength = -1;
 }
 
 void CGxString::Render(const NTempest::C44Matrix &xform) {
@@ -1342,6 +1288,22 @@ void CGxString::Render() {
 
   GxXformSetProjection(oldProjection);
   GxXformSetView(oldView);
+}
+
+void CGxString::Recycle() {
+  m_batchedStringLink.Unlink();
+  g_freeStrings.LinkNode(this, LIST_TAIL, 0);
+  ClearInstanceData();
+  ClearStringMatrixEntry();
+}
+
+void CGxString::ClearInstanceData() {
+  m_hyperlinkInfo.SetCount(0);
+  m_textBlock.Recycle();
+  m_colorGradients.SetCount(0);
+  m_colorGradientShadows.SetCount(0);
+  m_lastGradientStart = -1;
+  m_lastGradientLength = -1;
 }
 
 void CGxString::CreateGeometry() {
@@ -1563,6 +1525,59 @@ void CGxString::BuildProjection(NTempest::C44Matrix *projPtr, float minx, float 
 void CGxString::SetCharSpacing(float spacing) {
 }
 
+int CGxString::Initialize(
+    float                      fontHeight,
+    const NTempest::C3Vector  &position,
+    float                      blockWidth,
+    float                      blockHeight,
+    CGxFont                   *face,
+    LPCSTR                     text,
+    EGxFontVJusts              vertJust,
+    EGxFontHJusts              horzJust,
+    float                      spacing,
+    UINT                       flags,
+    const NTempest::CImVector &color
+) {
+  UINT textLen;
+
+  ASSERT(text);
+  ASSERT(face);
+
+  textLen = SStrLen(text) + 1;
+  if (textLen > m_textLen) {
+    FREEIFUSED(m_text);
+    m_textLen = textLen;
+    m_text = static_cast<char *>(ALLOC(m_textLen));
+  }
+
+  SStrCopy(m_text, text, m_textLen);
+  m_blockWidth = blockWidth;
+  m_blockHeight = blockHeight;
+  m_spacing = spacing;
+  m_position = position;
+  m_vertJust = vertJust;
+  m_horzJust = horzJust;
+  m_flags = flags;
+  m_fontColor = color;
+
+  if (!(m_flags & 0x80)) {
+    m_position.z = 0.0f;
+  }
+
+  m_currentFace = face;
+  m_currentFace->m_strings.LinkNode(this, LIST_TAIL, 0);
+
+  if ((flags & 0x4) && !(flags & 0x80)) {
+    m_requestedFontHeight = GxuFontGetOneToOneHeight(face);
+  } else {
+    m_requestedFontHeight = fontHeight;
+  }
+
+  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
+  CreateGeometry();
+  return 1;
+}
+
 CGxString::CGxString()
     : m_requestedFontHeight(0.02f),
       m_currentFontHeight(0.02f),
@@ -1590,6 +1605,12 @@ CGxString::CGxString()
   m_colorGradientShadows.SetChunkSize(128);
 }
 
+CGxString::~CGxString() {
+  ClearStringMatrixEntry();
+  m_textBlock.Destroy();
+  FREEIFUSED(m_text);
+}
+
 void CGxString::RemoveShadow() {
   m_flags &= ~m_flags & 0x1;
 }
@@ -1611,12 +1632,6 @@ BOOL CGxFont::CheckStringGlyphs(LPCSTR string) {
   }
 
   return 1;
-}
-
-CGxString::~CGxString() {
-  ClearStringMatrixEntry();
-  m_textBlock.Destroy();
-  FREEIFUSED(m_text);
 }
 
 int CGxFont::UpdateDimensions() {
@@ -1762,82 +1777,6 @@ BOOL CGxFont::GetGlyphData(GLYPHBITMAPDATA *glyphData, FT_Face face, UINT code) 
   return 1;
 }
 
-int CGxString::Initialize(
-    float                      fontHeight,
-    const NTempest::C3Vector  &position,
-    float                      blockWidth,
-    float                      blockHeight,
-    CGxFont                   *face,
-    LPCSTR                     text,
-    EGxFontVJusts              vertJust,
-    EGxFontHJusts              horzJust,
-    float                      spacing,
-    UINT                       flags,
-    const NTempest::CImVector &color
-) {
-  UINT textLen;
-
-  ASSERT(text);
-  ASSERT(face);
-
-  textLen = SStrLen(text) + 1;
-  if (textLen > m_textLen) {
-    FREEIFUSED(m_text);
-    m_textLen = textLen;
-    m_text = static_cast<char *>(ALLOC(m_textLen));
-  }
-
-  SStrCopy(m_text, text, m_textLen);
-  m_blockWidth = blockWidth;
-  m_blockHeight = blockHeight;
-  m_spacing = spacing;
-  m_position = position;
-  m_vertJust = vertJust;
-  m_horzJust = horzJust;
-  m_flags = flags;
-  m_fontColor = color;
-
-  if (!(m_flags & 0x80)) {
-    m_position.z = 0.0f;
-  }
-
-  m_currentFace = face;
-  m_currentFace->m_strings.LinkNode(this, LIST_TAIL, 0);
-
-  if ((flags & 0x4) && !(flags & 0x80)) {
-    m_requestedFontHeight = GxuFontGetOneToOneHeight(face);
-  } else {
-    m_requestedFontHeight = fontHeight;
-  }
-
-  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
-  CreateGeometry();
-  return 1;
-}
-
-UINT CGxFont::GetNumCurrentTextures() {
-  UINT count = 0;
-  int  emptyFound = 0;
-
-  for (UINT i = 0; i < 8; ++i) {
-    if (m_textureCache[i].m_texture) {
-      ASSERT(!emptyFound);
-      ++count;
-    } else {
-      emptyFound = 1;
-    }
-  }
-
-  return count;
-}
-
-float CGxFont::GetCharAdvance(UINT code) {
-  GLYPHBITMAPDATA *glyph = m_glyphBitmapData.Ptr(code, s_nullHashKey);
-
-  ASSERT(glyph);
-  return glyph->m_glyphAdvance * m_pixelsPerUnit;
-}
-
 int CGxFont::Initialize(LPCSTR name, UINT newFlags, float fontHeight) {
   ASSERT(name && *name);
 
@@ -1865,6 +1804,29 @@ int CGxFont::Initialize(LPCSTR name, UINT newFlags, float fontHeight) {
   }
 
   return UpdateDimensions();
+}
+
+UINT CGxFont::GetNumCurrentTextures() {
+  UINT count = 0;
+  int  emptyFound = 0;
+
+  for (UINT i = 0; i < 8; ++i) {
+    if (m_textureCache[i].m_texture) {
+      ASSERT(!emptyFound);
+      ++count;
+    } else {
+      emptyFound = 1;
+    }
+  }
+
+  return count;
+}
+
+float CGxFont::GetCharAdvance(UINT code) {
+  GLYPHBITMAPDATA *glyph = m_glyphBitmapData.Ptr(code, s_nullHashKey);
+
+  ASSERT(glyph);
+  return glyph->m_glyphAdvance * m_pixelsPerUnit;
 }
 
 float CGxFont::ComputeStep(UINT currentCode, UINT nextCode) {
@@ -1950,23 +1912,6 @@ float CGxFont::ComputeStepFixedWidth(UINT currentCode, UINT nextCode) {
   return 0.0f;
 }
 
-void CGxString::HandleScreenSizeChange() {
-  ASSERT(m_currentFace);
-  ClearStringMatrixEntry();
-
-  if (m_flags & 0x4) {
-    m_requestedFontHeight = GxuFontGetOneToOneHeight(m_currentFace);
-  }
-
-  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
-  CreateGeometry();
-}
-
-LPCSTR CGxFont::GetName() const {
-  ASSERT(m_faceHandle);
-  return FontFaceGetFontName(m_faceHandle);
-}
-
 void CGxFont::HandleScreenSizeChange() {
   int success;
 
@@ -1980,9 +1925,9 @@ void CGxFont::HandleScreenSizeChange() {
   }
 }
 
-void GLYPHBITMAPDATA::Clear() {
-  FREEIFUSED(m_data);
-  m_data = 0;
+LPCSTR CGxFont::GetName() const {
+  ASSERT(m_faceHandle);
+  return FontFaceGetFontName(m_faceHandle);
 }
 
 void CGxFont::Clear() {
@@ -2401,6 +2346,7 @@ BATCHEDRENDERFONTDESC::~BATCHEDRENDERFONTDESC() {
   ITERATELIST(CGxString, m_strings, string) {
     string->ClearStringMatrixEntry();
   }
+  m_strings.UnlinkAll();
 }
 
 void CGxStringBatch::RenderBatch() {
@@ -2437,7 +2383,7 @@ void CGxStringBatch::AddString(CGxString *string) {
   batchDesc->m_strings.LinkNode(string, LIST_TAIL, 0);
 }
 
-inline void CGxString::ClearStringMatrixEntry() {
+void CGxString::ClearStringMatrixEntry() {
   STRINGVIEWMATRICES *matrices = s_stringViewMatrices.Ptr(reinterpret_cast<UINT>(this), HASHKEY_PTR(this));
 
   if (matrices) {
@@ -2574,11 +2520,11 @@ void InternalGetTextExtent(CGxFont *face, LPCSTR text, UINT numBytes, float heig
   UINT  wide;
   UINT  prevCode = 0;
 
-  FATALASSERT(face);
-
-  FATALASSERT(text);
-
-  FATALASSERT(extent);
+  VALIDATEBEGIN;
+  VALIDATE(face);
+  VALIDATE(text);
+  VALIDATE(extent);
+  VALIDATEENDVOID;
 
   if (height == 0.0f || (flags & 0x4)) {
     height = GxuFontGetOneToOneHeight(face);
@@ -2666,7 +2612,9 @@ UINT InternalGetMaxCharsWithinWidth(
   UINT   prevCode = 0;
   LPCSTR originalText;
 
-  FATALASSERT(face);
+  VALIDATEBEGIN;
+  VALIDATE(face);
+  VALIDATEEND;
 
   FATALASSERT(text);
 

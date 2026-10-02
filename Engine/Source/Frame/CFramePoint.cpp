@@ -3,6 +3,8 @@
 #include "Frame/CFramePoint.h"
 
 #include "Frame/CLayoutFrame.h"
+#include "Frame/CSimpleFrame.h"
+#include "Frame/CSimpleTop.h"
 #include "Tempest/crect.h"
 
 const float CFramePoint::UNDEFINED = INFINITY;

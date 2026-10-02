@@ -8,13 +8,9 @@ class CSimpleScrollFrame : public CSimpleFrame {
  public:
   CSimpleScrollFrame(CSimpleFrame *parent = 0);
   virtual ~CSimpleScrollFrame();
-
   virtual void LoadXML(const XMLNode *node, CStatus *status);
   virtual void LoadXML_Scripts(const XMLNode *node, CStatus *status);
-  virtual void OnLayerUpdate(float elapsedSec);
-  virtual void OnFrameRender(CRenderBatch *batch, UINT layer);
-  virtual void OnFrameSizeChanged(float w, float h);
-
+  void SetScrollChild(CSimpleFrame *frame);
   void SetHorizontalScroll(float offset);
   void SetVerticalScroll(float offset);
 
@@ -38,27 +34,14 @@ class CSimpleScrollFrame : public CSimpleFrame {
     m_updateScrollChild = 1;
   }
 
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
-
-  void SetScrollChild(CSimpleFrame *frame);
+  virtual void OnLayerUpdate(float elapsedSec);
+  virtual void OnFrameRender(CRenderBatch *batch, UINT layer);
+  virtual void OnFrameSizeChanged(float w, float h);
 
   void SetOnHorizontalScrollScript(LPCSTR source) {
     char description[1024];
     SStrPrintf(description, sizeof(description), "%s:OnHorizontalScroll", GetName());
     SetEventScript(m_onHorizontalScroll, source, description);
-  }
-
-  void SetOnVerticalScrollScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnVerticalScroll", GetName());
-    SetEventScript(m_onVerticalScroll, source, description);
-  }
-
-  void SetOnScrollRangeChangedScript(LPCSTR source) {
-    char description[1024];
-    SStrPrintf(description, sizeof(description), "%s:OnScrollRangeChanged", GetName());
-    SetEventScript(m_onScrollRangeChanged, source, description);
   }
 
   void RunOnHorizontalScrollScript() {
@@ -67,10 +50,22 @@ class CSimpleScrollFrame : public CSimpleFrame {
     }
   }
 
+  void SetOnVerticalScrollScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnVerticalScroll", GetName());
+    SetEventScript(m_onVerticalScroll, source, description);
+  }
+
   void RunOnVerticalScrollScript() {
     if (m_onVerticalScroll) {
       FrameScript_Execute(m_onVerticalScroll, this, "%f", m_scrollOffset.y * 1024.0f * 1.25f);
     }
+  }
+
+  void SetOnScrollRangeChangedScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnScrollRangeChanged", GetName());
+    SetEventScript(m_onScrollRangeChanged, source, description);
   }
 
   void RunOnScrollRangeChangedScript() {
@@ -79,15 +74,12 @@ class CSimpleScrollFrame : public CSimpleFrame {
     }
   }
 
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
+
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
-
-  void        UpdateScrollChildRect(float w, float h);
-  void        UpdateScrollChild();
-  static void RenderScrollChild(LPVOID param);
-
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
-
   BOOL               m_updateScrollChild;
   CSimpleFrame      *m_scrollChild;
   NTempest::C2Vector m_scrollRange;
@@ -95,6 +87,9 @@ class CSimpleScrollFrame : public CSimpleFrame {
   int                m_onHorizontalScroll;
   int                m_onVerticalScroll;
   int                m_onScrollRangeChanged;
+  void        UpdateScrollChildRect(float w, float h);
+  void        UpdateScrollChild();
+  static void RenderScrollChild(LPVOID param);
 };
 
 #endif

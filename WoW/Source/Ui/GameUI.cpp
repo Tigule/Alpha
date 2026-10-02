@@ -1,5 +1,14 @@
+#include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "GameUI.h"
 #include "Magic/MagicClient/Spell_C.h"
@@ -77,6 +86,7 @@
 #include <UIUtil/Tooltip.h>
 #include <UIUtil/InputControl.h>
 #include <storm.h>
+#include "WorldClient/World.h"
 
 namespace {
   extern FrameScript_Method s_ScriptFunctions[126];
@@ -186,14 +196,6 @@ class CGWorldMap {
   static void EnterWorld();
   static void LeaveWorld();
   static void SetMapToCurrentZone();
-};
-
-class CWorld {
- public:
-  static float  GetFramerate();
-  static void   GetCounts(int *const counts);
-  static LPCSTR QueryChunkName();
-  static void   Preload(const NTempest::C3Vector &position);
 };
 
 class CGBuffBar {
@@ -5651,7 +5653,7 @@ void CGGameUI::ShowHealingFeedback(const DWORDLONG &guid, int amount) {
 }
 
 void CGGameUI::ShowSpellMissFeedback(DWORDLONG victim, int reason) {
-  FATALASSERT(static_cast<UINT>(reason) < sizeof(s_spellMissReasons) / sizeof(s_spellMissReasons[0]));
+  FATALASSERT(reason < (sizeof(s_spellMissReasons) / sizeof(s_spellMissReasons[0])));
   int    numnames;
   char **names = Script_GetNamesFromGUID(victim, numnames);
   for (int index = 0; index < numnames; ++index) {

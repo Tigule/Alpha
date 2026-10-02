@@ -5,17 +5,19 @@
 #include <storm.h>
 #include <string.h>
 
+#define CMB_TCHARSTR_MAX_LONG_LEN 0x3FFF
+
 void CMsgBuffer::ReallocData(UINT count) {
+  BYTE *data = m_data;
   if (count & 0xFF) {
     count += 0x100 - (count & 0xFF);
   }
   m_alloc = count;
   if (m_freeData) {
-    m_data = static_cast<BYTE *>(SMemReAlloc(m_data, count, __FILE__, __LINE__, 0));
+    m_data = static_cast<BYTE *>(SMemReAlloc(data, count, __FILE__, __LINE__, 0));
   } else {
-    BYTE *data = static_cast<BYTE *>(SMemAlloc(count, __FILE__, __LINE__, 0));
-    memcpy(data, m_data, m_write);
-    m_data = data;
+    m_data = static_cast<BYTE *>(SMemAlloc(count, __FILE__, __LINE__, 0));
+    memcpy(m_data, data, m_write);
   }
   m_freeData = 1;
 }
@@ -48,9 +50,9 @@ DEFINE_ADD_SCALAR(AddFloat, float)
 void CMsgBuffer::AddTcharArray(LPCSTR str, UINT count, int zeroExtra) {
   Reserve(count);
   while (count) {
+    --count;
     BYTE value = *str++;
     m_data[m_write++] = value;
-    --count;
     if (zeroExtra && !value) {
       memset(m_data + m_write, 0, count);
       m_write += count;
@@ -60,18 +62,18 @@ void CMsgBuffer::AddTcharArray(LPCSTR str, UINT count, int zeroExtra) {
 }
 
 void CMsgBuffer::AddTcharString(LPCSTR str, int compress) {
-  UINT length = strlen(str);
-  if (length > 0x3FFF) {
-    ASSERT(length <= 0x3FFF);
-    length = 0x3FFF;
+  UINT len = strlen(str);
+  if (len > CMB_TCHARSTR_MAX_LONG_LEN) {
+    ASSERT(len <= CMB_TCHARSTR_MAX_LONG_LEN);
+    len = CMB_TCHARSTR_MAX_LONG_LEN;
   }
 
-  BYTE prefix = static_cast<BYTE>(length & 0x3F);
-  if (length > 0x3F) {
+  BYTE prefix = static_cast<BYTE>(len & 0x3F);
+  if (len > 0x3F) {
     prefix |= 0x40;
   }
   if (compress) {
-    for (UINT i = 0; i < length; ++i) {
+    for (UINT i = 0; i < len; ++i) {
       if (str[i] > 0xFF) {
         prefix |= 0x80;
         break;
@@ -82,19 +84,21 @@ void CMsgBuffer::AddTcharString(LPCSTR str, int compress) {
   }
   AddByte(prefix);
   if (prefix & 0x40) {
-    AddByte(static_cast<BYTE>(length >> 8));
+    AddByte(static_cast<BYTE>(len >> 8));
   }
   if (prefix & 0x80) {
-    AddTcharArray(str, length, 0);
+    AddTcharArray(str, len, 0);
   } else {
-    for (UINT i = 0; i < length; ++i) {
+    for (UINT i = 0; i < len; ++i) {
       AddByte(str[i]);
     }
   }
 }
 
 void CMsgBuffer::AddData(BYTE *data, UINT count) {
-  AddData(static_cast<LPCVOID>(data), count);
+  Reserve(count);
+  memcpy(m_data + m_write, data, count);
+  m_write += count;
 }
 
 void CMsgBuffer::AddData(LPCVOID data, UINT count) {
@@ -103,17 +107,33 @@ void CMsgBuffer::AddData(LPCVOID data, UINT count) {
   m_write += count;
 }
 
-#define DEFINE_ADD_ARRAY(functionName, valueType)                      \
-  void CMsgBuffer::functionName(const valueType *buffer, UINT count) { \
-    AddData(buffer, count * sizeof(valueType));                        \
-  }
+void CMsgBuffer::AddWordArray(const WORD *buffer, UINT count) {
+  uint bytes = count * sizeof(WORD);
+  Reserve(bytes);
+  memcpy(m_data + m_write, buffer, bytes);
+  m_write += bytes;
+}
 
-DEFINE_ADD_ARRAY(AddWordArray, WORD)
-DEFINE_ADD_ARRAY(AddDwordArray, DWORD)
-DEFINE_ADD_ARRAY(AddUintArray, UINT)
-DEFINE_ADD_ARRAY(AddFloatArray, float)
+void CMsgBuffer::AddDwordArray(const DWORD *buffer, UINT count) {
+  uint bytes = count * sizeof(DWORD);
+  Reserve(bytes);
+  memcpy(m_data + m_write, buffer, bytes);
+  m_write += bytes;
+}
 
-#undef DEFINE_ADD_ARRAY
+void CMsgBuffer::AddUintArray(const UINT *buffer, UINT count) {
+  uint bytes = count * sizeof(UINT);
+  Reserve(bytes);
+  memcpy(m_data + m_write, buffer, bytes);
+  m_write += bytes;
+}
+
+void CMsgBuffer::AddFloatArray(const float *buffer, UINT count) {
+  uint bytes = count * sizeof(float);
+  Reserve(bytes);
+  memcpy(m_data + m_write, buffer, bytes);
+  m_write += bytes;
+}
 
 #define DEFINE_GET_SCALAR(functionName, valueType)                 \
   valueType CMsgBuffer::functionName() {                           \
@@ -143,7 +163,9 @@ DEFINE_GET_SCALAR(GetFloat, float)
 #undef DEFINE_GET_SCALAR
 
 void CMsgBuffer::GetTcharArray(char *buffer, UINT count) {
-  GetData(buffer, count);
+  while (count--) {
+    *buffer++ = GetTchar();
+  }
 }
 
 UINT CMsgBuffer::GetTcharStringBufferLength(int *wide) {
@@ -159,12 +181,12 @@ UINT CMsgBuffer::GetTcharStringBufferLength(int *wide) {
 }
 
 void CMsgBuffer::GetTcharString(char *buffer, UINT bufferLength, int wide) {
+  UINT len = bufferLength - 1;
   if (wide) {
-    GetTcharArray(buffer, bufferLength - 1);
-    buffer[bufferLength - 1] = 0;
+    GetTcharArray(buffer, len);
+    buffer[len] = 0;
   } else {
-    UINT count = bufferLength - 1;
-    while (count--) {
+    while (len--) {
       *buffer++ = GetByte();
     }
     *buffer = 0;
@@ -184,14 +206,30 @@ void CMsgBuffer::GetData(LPVOID buffer, int count) {
   m_read += count;
 }
 
-#define DEFINE_GET_ARRAY(functionName, valueType)                \
-  void CMsgBuffer::functionName(valueType *buffer, UINT count) { \
-    GetData(buffer, count * sizeof(valueType));                  \
-  }
+void CMsgBuffer::GetWordArray(WORD *buffer, UINT count) {
+  uint bytes = count * sizeof(WORD);
+  ASSERT(bytes <= (uint)Bytes());
+  memcpy(buffer, m_data + m_read, bytes);
+  m_read += bytes;
+}
 
-DEFINE_GET_ARRAY(GetWordArray, WORD)
-DEFINE_GET_ARRAY(GetDwordArray, DWORD)
-DEFINE_GET_ARRAY(GetUintArray, UINT)
-DEFINE_GET_ARRAY(GetFloatArray, float)
+void CMsgBuffer::GetDwordArray(DWORD *buffer, UINT count) {
+  uint bytes = count * sizeof(DWORD);
+  ASSERT(bytes <= (uint)Bytes());
+  memcpy(buffer, m_data + m_read, bytes);
+  m_read += bytes;
+}
 
-#undef DEFINE_GET_ARRAY
+void CMsgBuffer::GetUintArray(UINT *buffer, UINT count) {
+  uint bytes = count * sizeof(UINT);
+  ASSERT(bytes <= (uint)Bytes());
+  memcpy(buffer, m_data + m_read, bytes);
+  m_read += bytes;
+}
+
+void CMsgBuffer::GetFloatArray(float *buffer, UINT count) {
+  uint bytes = count * sizeof(float);
+  ASSERT(bytes <= (uint)Bytes());
+  memcpy(buffer, m_data + m_read, bytes);
+  m_read += bytes;
+}

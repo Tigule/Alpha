@@ -1,5 +1,14 @@
+#include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "Ui/TabardModelFrame.h"
 #include "Ui/TabardCreationFrame.h"
@@ -165,11 +174,13 @@ static int CGTabardModelFrame_CanSave(lua_State *L) {
 static int CGTabardModelFrame_CycleVariation(lua_State *L) {
   GET_TABARD_MODEL_THIS(L, object);
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
-    return luaL_error(L, "Usage: CycleVariation(index, delta)");
+    luaL_error(L, "Usage: CycleVariation(index, delta)");
+    return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 2)) - 1;
   if (index >= 5) {
-    return luaL_error(L, "Invalid variation index");
+    luaL_error(L, "Invalid variation index");
+    return 0;
   }
   object->CycleVariation(index, static_cast<int>(lua_tonumber(L, 3)));
   return 0;
@@ -209,12 +220,14 @@ static int CGTabardModelFrame_GetLowerEmblemFileName(lua_State *L) {
 
 static int CGTabardModelFrame_GetUpperEmblemTexture(lua_State *L) {
   if (!lua_isstring(L, 2)) {
-    return luaL_error(L, "Usage: GetUpperEmblemTexture(textureName)");
+    luaL_error(L, "Usage: GetUpperEmblemTexture(textureName)");
+    return 0;
   }
   GET_TABARD_MODEL_THIS(L, object);
   CSimpleTexture *texture = SimpleTextureRegistryGetEntry(lua_tostring(L, 2), 0);
   if (!texture) {
-    return luaL_error(L, "Invalid texture name in GetUpperEmblemTexture");
+    luaL_error(L, "Invalid texture name in GetUpperEmblemTexture");
+    return 0;
   }
 
   static TSFixedArray<NTempest::CImVector> pixels;
@@ -251,12 +264,14 @@ static int CGTabardModelFrame_GetUpperEmblemTexture(lua_State *L) {
 
 static int CGTabardModelFrame_GetLowerEmblemTexture(lua_State *L) {
   if (!lua_isstring(L, 2)) {
-    return luaL_error(L, "Usage: GetLowerEmblemTexture(textureName)");
+    luaL_error(L, "Usage: GetLowerEmblemTexture(textureName)");
+    return 0;
   }
   GET_TABARD_MODEL_THIS(L, object);
   CSimpleTexture *texture = SimpleTextureRegistryGetEntry(lua_tostring(L, 2), 0);
   if (!texture) {
-    return luaL_error(L, "Invalid texture name in GetLowerEmblemTexture");
+    luaL_error(L, "Invalid texture name in GetLowerEmblemTexture");
+    return 0;
   }
 
   static TSFixedArray<NTempest::CImVector> pixels;

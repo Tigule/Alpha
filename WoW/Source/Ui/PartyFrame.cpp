@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "PartyFrame.h"
 
@@ -243,7 +251,8 @@ static int Script_GetNumPartyMembers(lua_State *L) {
 
 static int Script_GetPartyMember(lua_State *L) {
   if (!lua_isnumber(L, 1) || static_cast<UINT>(lua_tonumber(L, 1)) - 1 >= 4) {
-    return luaL_error(L, "Usage: GetPartyMember(index)");
+    luaL_error(L, "Usage: GetPartyMember(index)");
+    return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (CGPartyInfo::GetMember(index)) {
@@ -336,7 +345,8 @@ static int Script_GetLookingForGroup(lua_State *L) {
 
 static int Script_SetLookingForGroup(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: SetLookingForGroup(looking)");
+    luaL_error(L, "Usage: SetLookingForGroup(looking)");
+    return 0;
   }
   CGPartyInfo::SetLookingForGroup(lua_tonumber(L, 1) != 0.0);
   return 0;

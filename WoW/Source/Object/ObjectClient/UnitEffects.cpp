@@ -18,6 +18,8 @@
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
 #include "Ui/GameUI.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "UIUtil/Camera.h"
 #include "Ui/WorldFrame.h"
 #include "WorldClient/World.h"
@@ -911,7 +913,7 @@ void UnitEffectOneShot(
 
 GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach) {
   FATALASSERT(attach >= 0);
-  FATALASSERT(attach < sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0]));
+  FATALASSERT(attach < (sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0])));
   return g_attachmentPoints[attach];
 }
 

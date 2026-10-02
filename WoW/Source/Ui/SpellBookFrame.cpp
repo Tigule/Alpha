@@ -6,6 +6,8 @@
 #include <MapDefs.h>
 #include <WorldClient/World.h>
 #include "GameUI.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 
 #include "SpellBookFrame.h"
 
@@ -342,7 +344,7 @@ void CGSpellBook::UpdateSpells() {
 }
 
 void CGSpellBook::UpdateCooldowns() {
-  FrameScript_SignalEvent(207);
+  FrameScript_SignalEvent(246);
 }
 
 void CGSpellBook::UpdateSelection() {
@@ -583,7 +585,8 @@ static int Script_GetSpellTexture(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
-    return luaL_error(L, "Invalid spell slot in GetSpellTexture");
+    luaL_error(L, "Invalid spell slot in GetSpellTexture");
+    return 0;
   }
   LPCSTR texture = GetSpellbookTexture(slot, type);
   if (texture && *texture) {
@@ -632,7 +635,8 @@ static int Script_PickupSpell(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
-    return luaL_error(L, "Invalid spell slot in PickupSpell");
+    luaL_error(L, "Invalid spell slot in PickupSpell");
+    return 0;
   }
   CGSpellBook::PickupSpell(slot, type);
   return 0;
@@ -642,7 +646,8 @@ static int Script_CastSpell(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
-    return luaL_error(L, "Invalid spell slot in CastSpell");
+    luaL_error(L, "Invalid spell slot in CastSpell");
+    return 0;
   }
   CGSpellBook::CastSpell(slot, type);
   return 0;
@@ -652,7 +657,8 @@ static int Script_IsCurrentCast(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
-    return luaL_error(L, "Invalid spell slot in IsCurrentCast");
+    luaL_error(L, "Invalid spell slot in IsCurrentCast");
+    return 0;
   }
   if (CGSpellBook::IsSelectedSlot(slot, type)) {
     lua_pushnumber(L, 1.0);
@@ -693,7 +699,8 @@ static int Script_IsSpellPassive(lua_State *L) {
   int           slot;
   UI_SPELL_TYPE type;
   if (!GetSlotFromLua(L, slot, type)) {
-    return luaL_error(L, "Invalid spell slot in IsSpellPassive");
+    luaL_error(L, "Invalid spell slot in IsSpellPassive");
+    return 0;
   }
   int             spellID = CGSpellBook::GetSpell(slot, type);
   const SpellRec *spell = spellID >= 0 ? g_spellDB.GetRecord(spellID) : 0;

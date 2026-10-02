@@ -2,6 +2,7 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 
+#include "WowServices/WowConnection.h"
 #include "DB/DBClient/AutoCode/CharBaseInfoRec.h"
 #include "DB/DBClient/AutoCode/ChrClassesRec.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
@@ -82,14 +83,13 @@ void SkillLineTable::Initialize() {
 }
 
 const SkillLineAbilityRec *SkillLineTable::Lookup(UINT raceID, UINT classID, UINT spellID) {
-  UINT                                       numClasses = g_chrClassesDB.GetMaxID() + 1;
-  TSFixedArray<const SkillLineAbilityRec *> &abilities = m_abilities[raceID * numClasses + classID];
+  UINT index = raceID * (g_chrClassesDB.GetMaxID() + 1) + classID;
 
-  if (!abilities.Count()) {
-    return 0;
+  if (m_abilities[index].Count()) {
+    return m_abilities[index][spellID];
   }
 
-  return abilities[spellID];
+  return 0;
 }
 
 const SkillLineAbilityRec *SkillLineTable::LookupPet(int skillLineID, UINT spellID) {
@@ -105,7 +105,7 @@ const SkillLineAbilityRec *SkillLineTable::LookupPet(int skillLineID, UINT spell
 void SpellTableInitialize() {
   ASSERT(!s_skillLineTable);
 
-  s_skillLineTable = new SkillLineTable;
+  s_skillLineTable = NEW(SkillLineTable);
   s_skillLineTable->Initialize();
 }
 

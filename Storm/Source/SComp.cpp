@@ -1073,7 +1073,7 @@ static void ZlibDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD s
 
   size = *destsize;
   if (zlib_uncompress(static_cast<BYTE *>(dest), &size, static_cast<const BYTE *>(source), sourcesize) != Z_OK) {
-    SErrDisplayError(0x85100083, filename, -4, NULL, TRUE, 0);
+    SErrDisplayError(0x85100083, filename, -4, NULL, FALSE, 1);
   }
   *destsize = size;
 }

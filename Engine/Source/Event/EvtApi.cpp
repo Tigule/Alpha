@@ -161,9 +161,11 @@ void EventRegisterEx(EVENTID id, EVENTHANDLER handler, LPVOID param, float prior
   HEVENTCONTEXT hContext;
   EvtContext   *context;
 
-  FATALASSERT(id >= 0);
-  FATALASSERT(id < EVENTIDS);
-  FATALASSERT(handler);
+  VALIDATEBEGIN;
+  VALIDATE(id >= 0);
+  VALIDATE(id < EVENTIDS);
+  VALIDATE(handler);
+  VALIDATEENDVOID;
 
   INSTANCELOCK instanceLock;
   hContext = reinterpret_cast<HEVENTCONTEXT>(PropGet(PROP_EVENTCONTEXT));
@@ -285,7 +287,9 @@ void EventSetMouseMode(MOUSEMODE mode, UINT holdButton) {
   HEVENTCONTEXT hContext;
   EvtContext   *context;
 
-  FATALASSERT(mode < MOUSE_MODES);
+  VALIDATEBEGIN;
+  VALIDATE(mode < MOUSE_MODES);
+  VALIDATEENDVOID;
 
   hContext = reinterpret_cast<HEVENTCONTEXT>(PropGet(PROP_EVENTCONTEXT));
   context = EvtContext::GetTable().Lock(reinterpret_cast<DWORD>(hContext), 0, instanceLock, __FILE__, __LINE__);

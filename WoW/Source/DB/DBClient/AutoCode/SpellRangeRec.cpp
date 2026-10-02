@@ -16,29 +16,32 @@ SpellRangeRec::~SpellRangeRec() {
 bool SpellRangeRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempdisplayName_langIndices[8];
   UINT tempdisplayNameShort_langIndices[8];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_rangeMin) ||
-      !SFileReadTyped(f, &m_rangeMax) ||
-      !SFileReadTyped(f, &m_flags) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[0]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[1]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[2]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[3]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[4]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[5]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[6]) ||
-      !SFileReadTyped(f, &tempdisplayName_langIndices[7]) ||
-      !SFileReadTyped(f, &m_displayName_flag) ||
-      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[0]) ||
-      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[1]) ||
-      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[2]) ||
-      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[3]) ||
-      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[4]) ||
-      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[5]) ||
-      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[6]) ||
-      !SFileReadTyped(f, &tempdisplayNameShort_langIndices[7]) ||
-      !SFileReadTyped(f, &m_displayNameShort_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_rangeMin) == 0);
+  error |= (SFileReadTyped(f, &m_rangeMax) == 0);
+  error |= (SFileReadTyped(f, &m_flags) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayName_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_displayName_flag) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayNameShort_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayNameShort_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayNameShort_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayNameShort_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayNameShort_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayNameShort_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayNameShort_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempdisplayNameShort_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_displayNameShort_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellRangeRec", DEFAULT_COLOR);
     return false;
   }

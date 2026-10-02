@@ -25,6 +25,7 @@ Install these dependencies:
 - CMake: [cmake.org](https://cmake.org/download/).
 - Visual Studio 6.0 Professional Edition: [archive.org](https://archive.org/details/vsp600enu)
 - Service Pack 5 for Microsoft Visual Studio 6.0: [archive.org](https://archive.org/details/X08-02111)
+- Visual C++ 6.0 Processor Pack [archive.org](https://archive.org/download/en_vs6_ent/vcpp5.exe)
 - Microsoft Platform SDK November 2001: [archive.org](https://archive.org/download/msdn-full/Platform%20SDK%20and%20DDKs/)
 - DirectX 9.0b SDK: [archive.org](https://archive.org/details/dx90bsdk)
 

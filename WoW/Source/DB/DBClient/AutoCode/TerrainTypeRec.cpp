@@ -15,13 +15,16 @@ TerrainTypeRec::~TerrainTypeRec() {
 
 bool TerrainTypeRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempTerrainDescIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_TerrainID) ||
-      !SFileReadTyped(f, &tempTerrainDescIndices[0]) ||
-      !SFileReadTyped(f, &m_FootstepSprayRun) ||
-      !SFileReadTyped(f, &m_FootstepSprayWalk) ||
-      !SFileReadTyped(f, &m_SoundID) ||
-      !SFileReadTyped(f, &m_Flags)) {
+  error |= (SFileReadTyped(f, &m_TerrainID) == 0);
+  error |= (SFileReadTyped(f, &tempTerrainDescIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_FootstepSprayRun) == 0);
+  error |= (SFileReadTyped(f, &m_FootstepSprayWalk) == 0);
+  error |= (SFileReadTyped(f, &m_SoundID) == 0);
+  error |= (SFileReadTyped(f, &m_Flags) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading TerrainTypeRec", DEFAULT_COLOR);
     return false;
   }

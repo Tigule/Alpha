@@ -318,15 +318,15 @@ static void ParseWeaponImpactArmorField(const WeaponImpactSoundsRec *rec) {
   UINT armor;
 
   ASSERT(rec);
-  ASSERT(rec->m_WeaponSubClassID < static_cast<int>(ClientDBGetNumWeaponSubclasses()));
-  ASSERT(rec->m_ParrySoundType < 2);
+  ASSERT(rec->m_WeaponSubClassID < (int)ClientDBGetNumWeaponSubclasses());
+  ASSERT(rec->m_ParrySoundType < NUM_PARRYMATERIALS);
 
   if (!g_impactSounds.Count()) {
     return;
   }
 
   for (armor = 0; armor < 10; ++armor) {
-    ASSERT(rec->m_WeaponSubClassID < static_cast<int>(ClientDBGetNumWeaponSubclasses()));
+    ASSERT(rec->m_WeaponSubClassID < (int)ClientDBGetNumWeaponSubclasses());
     WEAPONSOUNDS &sounds = g_impactSounds[rec->m_WeaponSubClassID].desc[armor].materialSounds[rec->m_ParrySoundType];
     sounds.soundList[0] = rec->m_impactSoundID[armor];
     sounds.soundList[1] = rec->m_critImpactSoundID[armor];

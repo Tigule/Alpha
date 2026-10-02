@@ -13,6 +13,10 @@ class PetNameCache {
     m_timestamp = 0;
   }
 
+  char m_name[0x30];
+  UINT m_ID;
+  UINT m_timestamp;
+
   static int Version() {
     return 1;
   }
@@ -25,10 +29,6 @@ class PetNameCache {
     m_timestamp = rhs.m_timestamp;
     return *this;
   }
-
-  char m_name[0x30];
-  UINT m_ID;
-  UINT m_timestamp;
 };
 
 #endif

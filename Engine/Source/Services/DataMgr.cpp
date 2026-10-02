@@ -53,11 +53,13 @@ void CDataMgr::AddManaged(TManaged<float> *manage, UINT fieldId, UINT flags) {
 }
 
 void CDataMgr::LinkManaged(CBaseManaged *m) {
-  CBaseManaged *insertBefore = m_updateList.Head();
-  while (insertBefore && m->m_updatePriority < insertBefore->m_updatePriority) {
-    insertBefore = m_updateList.Next(insertBefore);
+  ITERATELIST(CBaseManaged, m_updateList, managed) {
+    if (!(m->m_updatePriority < managed->m_updatePriority)) {
+      m_updateList.LinkNode(m, LIST_LINK_BEFORE, managed);
+      return;
+    }
   }
-  m_updateList.LinkNode(m, LIST_LINK_BEFORE, insertBefore);
+  m_updateList.LinkNode(m, LIST_TAIL, 0);
 }
 
 void CDataMgr::Update(float elapsedSec) {
@@ -71,12 +73,16 @@ void CDataMgr::Update(float elapsedSec) {
 }
 
 int DataMgrGetBool(HDATAMGR mgr, UINT fieldId) {
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  FATALASSERT(mgrPtr);
-  FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  FATALASSERT(mgrPtr->m_managedArray[fieldId]);
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 5;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATEEND;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  FATALASSERT(managed->m_dataTypeId == 5);
   if (managed->m_flags & 4) {
     if (managed->m_flags & 2) {
       managed->UpdateR(0.0f);
@@ -87,15 +93,18 @@ int DataMgrGetBool(HDATAMGR mgr, UINT fieldId) {
   return static_cast<TManaged<int> *>(managed)->Get();
 }
 
-void DataMgrGetColor(HDATAMGR mgr, UINT fieldId, NTempest::CImVector *color) {
-  ASSERT(mgr);
-  FATALASSERT(color);
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  FATALASSERT(mgrPtr);
-  FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  FATALASSERT(mgrPtr->m_managedArray[fieldId]);
+void DataMgrGetColor(HDATAMGR mgr, UINT fieldId, NTempest::CImVector *result) {
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 1;
+  VALIDATEBEGIN;
+  VALIDATE(result);
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  FATALASSERT(managed->m_dataTypeId == 1);
   if (managed->m_flags & 4) {
     if (managed->m_flags & 2) {
       managed->UpdateR(0.0f);
@@ -103,18 +112,21 @@ void DataMgrGetColor(HDATAMGR mgr, UINT fieldId, NTempest::CImVector *color) {
       managed->Update(0.0f);
     }
   }
-  *color = static_cast<TManaged<NTempest::CImVector> *>(managed)->Get();
+  *result = static_cast<TManaged<NTempest::CImVector> *>(managed)->Get();
 }
 
-void DataMgrGetColor(HDATAMGR mgr, UINT fieldId, C3Color *color) {
-  ASSERT(mgr);
-  FATALASSERT(color);
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  FATALASSERT(mgrPtr);
-  FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  FATALASSERT(mgrPtr->m_managedArray[fieldId]);
+void DataMgrGetColor(HDATAMGR mgr, UINT fieldId, C3Color *result) {
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 2;
+  VALIDATEBEGIN;
+  VALIDATE(result);
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  FATALASSERT(managed->m_dataTypeId == 2);
   if (managed->m_flags & 4) {
     if (managed->m_flags & 2) {
       managed->UpdateR(0.0f);
@@ -122,20 +134,21 @@ void DataMgrGetColor(HDATAMGR mgr, UINT fieldId, C3Color *color) {
       managed->Update(0.0f);
     }
   }
-  *color = static_cast<TManaged<C3Color> *>(managed)->Get();
+  *result = static_cast<TManaged<C3Color> *>(managed)->Get();
 }
 
-void DataMgrGetCoord(HDATAMGR mgr, UINT fieldId, NTempest::C3Vector *coord) {
-  ASSERT(mgr);
-  ASSERT(coord);
-
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  ASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  ASSERT(mgrPtr->m_managedArray[fieldId]);
-
+void DataMgrGetCoord(HDATAMGR mgr, UINT fieldId, NTempest::C3Vector *result) {
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 3;
+  VALIDATEBEGIN;
+  VALIDATE(result);
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  const UINT    typeId = 3;
-  ASSERT(typeId == managed->m_dataTypeId);
 
   if (managed->m_flags & 0x4) {
     if (managed->m_flags & 0x2) {
@@ -145,18 +158,21 @@ void DataMgrGetCoord(HDATAMGR mgr, UINT fieldId, NTempest::C3Vector *coord) {
     }
   }
 
-  *coord = static_cast<TManaged<NTempest::C3Vector> *>(managed)->Get();
+  *result = static_cast<TManaged<NTempest::C3Vector> *>(managed)->Get();
 }
 
-void DataMgrGetC33Matrix(HDATAMGR mgr, UINT fieldId, NTempest::C33Matrix *matrix) {
-  ASSERT(mgr);
-  FATALASSERT(matrix);
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  FATALASSERT(mgrPtr);
-  FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  FATALASSERT(mgrPtr->m_managedArray[fieldId]);
+void DataMgrGetC33Matrix(HDATAMGR mgr, UINT fieldId, NTempest::C33Matrix *result) {
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 4;
+  VALIDATEBEGIN;
+  VALIDATE(result);
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  FATALASSERT(managed->m_dataTypeId == 4);
   if (managed->m_flags & 4) {
     if (managed->m_flags & 2) {
       managed->UpdateR(0.0f);
@@ -164,16 +180,20 @@ void DataMgrGetC33Matrix(HDATAMGR mgr, UINT fieldId, NTempest::C33Matrix *matrix
       managed->Update(0.0f);
     }
   }
-  *matrix = static_cast<TManaged<NTempest::C33Matrix> *>(managed)->Get();
+  *result = static_cast<TManaged<NTempest::C33Matrix> *>(managed)->Get();
 }
 
 int DataMgrGetInt(HDATAMGR mgr, UINT fieldId) {
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  FATALASSERT(mgrPtr);
-  FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  FATALASSERT(mgrPtr->m_managedArray[fieldId]);
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 5;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATEEND;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  FATALASSERT(managed->m_dataTypeId == 5);
   if (managed->m_flags & 4) {
     if (managed->m_flags & 2) {
       managed->UpdateR(0.0f);
@@ -185,14 +205,16 @@ int DataMgrGetInt(HDATAMGR mgr, UINT fieldId) {
 }
 
 float DataMgrGetFloat(HDATAMGR mgr, UINT fieldId) {
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  FATALASSERT(mgrPtr);
-  FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  FATALASSERT(mgrPtr->m_managedArray[fieldId]);
-
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 6;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATEEND;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  const UINT    typeId = 6;
-  FATALASSERT(typeId == managed->m_dataTypeId);
 
   if (managed->m_flags & 0x4) {
     if (managed->m_flags & 0x2) {
@@ -208,10 +230,12 @@ float DataMgrGetFloat(HDATAMGR mgr, UINT fieldId) {
 void DataMgrGetUpdateInfo(HDATAMGR mgr, UINT fieldId, UpdateInfo *info) {
   ASSERT(mgr);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  FATALASSERT(mgrPtr);
-  FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  FATALASSERT(mgrPtr->m_managedArray[fieldId]);
-  FATALASSERT(info);
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(info);
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
   info->updateFcn = managed->m_updateFcn;
   info->updateData = managed->m_updateData;
@@ -219,13 +243,17 @@ void DataMgrGetUpdateInfo(HDATAMGR mgr, UINT fieldId, UpdateInfo *info) {
 }
 
 void DataMgrSetBool(HDATAMGR mgr, UINT fieldId, int val) {
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  ASSERT(mgrPtr);
-  ASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  ASSERT(mgrPtr->m_managedArray[fieldId]);
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 5;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATE(!(mgrPtr->m_managedArray[fieldId]->m_flags & CBaseManaged::READONLY));
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  ASSERT(managed->m_dataTypeId == 5);
-  ASSERT(!(managed->m_flags & 2));
   managed->m_updateFcn = 0;
   managed->m_updateData = 0;
   managed->m_updatePriority = 0.0f;
@@ -233,13 +261,17 @@ void DataMgrSetBool(HDATAMGR mgr, UINT fieldId, int val) {
 }
 
 void DataMgrSetColor(HDATAMGR mgr, UINT fieldId, const NTempest::CImVector &color) {
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  ASSERT(mgrPtr);
-  ASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  ASSERT(mgrPtr->m_managedArray[fieldId]);
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 1;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATE(!(mgrPtr->m_managedArray[fieldId]->m_flags & CBaseManaged::READONLY));
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  ASSERT(managed->m_dataTypeId == 1);
-  ASSERT(!(managed->m_flags & 2));
   managed->m_updateFcn = 0;
   managed->m_updateData = 0;
   managed->m_updatePriority = 0.0f;
@@ -247,13 +279,17 @@ void DataMgrSetColor(HDATAMGR mgr, UINT fieldId, const NTempest::CImVector &colo
 }
 
 void DataMgrSetColor(HDATAMGR mgr, UINT fieldId, const C3Color &color) {
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  ASSERT(mgrPtr);
-  ASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  ASSERT(mgrPtr->m_managedArray[fieldId]);
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 2;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATE(!(mgrPtr->m_managedArray[fieldId]->m_flags & CBaseManaged::READONLY));
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  ASSERT(managed->m_dataTypeId == 2);
-  ASSERT(!(managed->m_flags & 2));
   managed->m_updateFcn = 0;
   managed->m_updateData = 0;
   managed->m_updatePriority = 0.0f;
@@ -266,14 +302,17 @@ void DataMgrSetCoord(HDATAMGR mgr, UINT fieldId, const NTempest::C3Vector &coord
 
   NTempest::C3Vector setTo(coordFlags & 0x1 ? curr.x : coord.x, coordFlags & 0x2 ? curr.y : coord.y, coordFlags & 0x4 ? curr.z : coord.z);
 
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  ASSERT(mgrPtr);
-  ASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  ASSERT(mgrPtr->m_managedArray[fieldId]);
-
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 3;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATE(!(mgrPtr->m_managedArray[fieldId]->m_flags & CBaseManaged::READONLY));
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  ASSERT(managed->m_dataTypeId == 3);
-  ASSERT(!(managed->m_flags & 0x2));
 
   managed->m_updateFcn = 0;
   managed->m_updateData = 0;
@@ -282,13 +321,17 @@ void DataMgrSetCoord(HDATAMGR mgr, UINT fieldId, const NTempest::C3Vector &coord
 }
 
 void DataMgrSetC33Matrix(HDATAMGR mgr, UINT fieldId, const NTempest::C33Matrix &matrix) {
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  ASSERT(mgrPtr);
-  ASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  ASSERT(mgrPtr->m_managedArray[fieldId]);
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 4;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATE(!(mgrPtr->m_managedArray[fieldId]->m_flags & CBaseManaged::READONLY));
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  ASSERT(managed->m_dataTypeId == 4);
-  ASSERT(!(managed->m_flags & 2));
   managed->m_updateFcn = 0;
   managed->m_updateData = 0;
   managed->m_updatePriority = 0.0f;
@@ -296,13 +339,17 @@ void DataMgrSetC33Matrix(HDATAMGR mgr, UINT fieldId, const NTempest::C33Matrix &
 }
 
 void DataMgrSetInt(HDATAMGR mgr, UINT fieldId, int val) {
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  ASSERT(mgrPtr);
-  ASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  ASSERT(mgrPtr->m_managedArray[fieldId]);
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 5;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATE(!(mgrPtr->m_managedArray[fieldId]->m_flags & CBaseManaged::READONLY));
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  ASSERT(managed->m_dataTypeId == 5);
-  ASSERT(!(managed->m_flags & 2));
   managed->m_updateFcn = 0;
   managed->m_updateData = 0;
   managed->m_updatePriority = 0.0f;
@@ -310,14 +357,17 @@ void DataMgrSetInt(HDATAMGR mgr, UINT fieldId, int val) {
 }
 
 void DataMgrSetFloat(HDATAMGR mgr, UINT fieldId, float val) {
-  CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  ASSERT(mgrPtr);
-  ASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  ASSERT(mgrPtr->m_managedArray[fieldId]);
-
+  FATALASSERT(mgr);
+  CDataMgr  *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
+  const UINT typeId = 6;
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATE(!(mgrPtr->m_managedArray[fieldId]->m_flags & CBaseManaged::READONLY));
+  VALIDATEENDVOID;
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  ASSERT(managed->m_dataTypeId == 6);
-  ASSERT(!(managed->m_flags & 0x2));
 
   managed->m_updateFcn = 0;
   managed->m_updateData = 0;
@@ -327,19 +377,21 @@ void DataMgrSetFloat(HDATAMGR mgr, UINT fieldId, float val) {
 
 static void
 DataMgrSetFieldUpdate(HDATAMGR mgr, UINT fieldId, void (*updateFcn)(float, LPVOID, LPVOID), LPVOID updateData, float updatePriority, UINT typeId) {
-  ASSERT(mgr);
+  FATALASSERT(mgr);
   CDataMgr *mgrPtr = reinterpret_cast<CDataMgr *>(mgr);
-  FATALASSERT(mgrPtr);
-  FATALASSERT(fieldId < mgrPtr->m_managedArray.Count());
-  FATALASSERT(mgrPtr->m_managedArray[fieldId]);
-  FATALASSERT(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATEBEGIN;
+  VALIDATE(mgrPtr);
+  VALIDATE(fieldId < mgrPtr->m_managedArray.Count());
+  VALIDATE(mgrPtr->m_managedArray[fieldId]);
+  VALIDATE(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
+  VALIDATEENDVOID;
 
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  managed->m_updatePriority = updatePriority;
-  managed->m_flags |= 4;
   managed->m_updateFcn = updateFcn;
   managed->m_updateData = updateData;
-  mgrPtr->m_updateList.UnlinkNode(managed);
+  managed->m_updatePriority = updatePriority;
+  managed->m_flags |= CBaseManaged::REQUIRESUPDATE;
+  managed->m_link.Unlink();
 
   if ((managed->m_flags & 1) || updateFcn) {
     mgrPtr->LinkManaged(managed);

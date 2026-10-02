@@ -302,9 +302,9 @@ void WORLDTEXTSTRING::CalculateNewPosition(
     int                        worldPositionSpecified
 ) {
   UpdatePosition(worldPosition, elapsed, textPos);
-  CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
-  ASSERT(worldFrame);
-  textPos = worldFrame->GetScreenCoordinates(NTempest::C3Vector(textPos.x, textPos.y, textPos.z), matrix, 1, worldPositionSpecified);
+  CGWorldFrame *worldFramePtr = CGWorldFrame::GetActive();
+  ASSERT(worldFramePtr);
+  textPos = worldFramePtr->GetScreenCoordinates(NTempest::C3Vector(textPos.x, textPos.y, textPos.z), matrix, 1, worldPositionSpecified);
   textPos.w = 1.0f;
 }
 

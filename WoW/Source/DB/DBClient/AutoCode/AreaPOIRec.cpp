@@ -15,25 +15,28 @@ AreaPOIRec::~AreaPOIRec() {
 
 bool AreaPOIRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempname_langIndices[8];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_importance) ||
-      !SFileReadTyped(f, &m_icon) ||
-      !SFileReadTyped(f, &m_factionID) ||
-      !SFileReadTyped(f, &m_x) ||
-      !SFileReadTyped(f, &m_y) ||
-      !SFileReadTyped(f, &m_z) ||
-      !SFileReadTyped(f, &m_continentID) ||
-      !SFileReadTyped(f, &m_flags) ||
-      !SFileReadTyped(f, &tempname_langIndices[0]) ||
-      !SFileReadTyped(f, &tempname_langIndices[1]) ||
-      !SFileReadTyped(f, &tempname_langIndices[2]) ||
-      !SFileReadTyped(f, &tempname_langIndices[3]) ||
-      !SFileReadTyped(f, &tempname_langIndices[4]) ||
-      !SFileReadTyped(f, &tempname_langIndices[5]) ||
-      !SFileReadTyped(f, &tempname_langIndices[6]) ||
-      !SFileReadTyped(f, &tempname_langIndices[7]) ||
-      !SFileReadTyped(f, &m_name_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_importance) == 0);
+  error |= (SFileReadTyped(f, &m_icon) == 0);
+  error |= (SFileReadTyped(f, &m_factionID) == 0);
+  error |= (SFileReadTyped(f, &m_x) == 0);
+  error |= (SFileReadTyped(f, &m_y) == 0);
+  error |= (SFileReadTyped(f, &m_z) == 0);
+  error |= (SFileReadTyped(f, &m_continentID) == 0);
+  error |= (SFileReadTyped(f, &m_flags) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_name_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading AreaPOIRec", DEFAULT_COLOR);
     return false;
   }

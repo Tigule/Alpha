@@ -2,6 +2,8 @@
 
 #include "Frame/SimpleFrameRegistry.h"
 
+#include "Frame/CSimpleFrame.h"
+#include "Frame/CSimpleTop.h"
 #include "Services/SysMessage.h"
 
 #include <stpl.h>
@@ -19,12 +21,12 @@ struct SIMPLEFONTSTRINGREGHASH : public TSHashObject<SIMPLEFONTSTRINGREGHASH, HA
 };
 
 struct SIMPLECONTEXTHASHOBJ : public TSHashObject<SIMPLECONTEXTHASHOBJ, HASHKEY_NONE> {
-  ~SIMPLECONTEXTHASHOBJ() {
-  }
-
   TSHashTable<SIMPLEFRAMEREGHASH, HASHKEY_STR>      s_frameRegistry;
   TSHashTable<SIMPLETEXTUREREGHASH, HASHKEY_STR>    s_textureRegistry;
   TSHashTable<SIMPLEFONTSTRINGREGHASH, HASHKEY_STR> s_stringRegistry;
+
+  ~SIMPLECONTEXTHASHOBJ() {
+  }
 };
 
 static TSHashTable<SIMPLECONTEXTHASHOBJ, HASHKEY_NONE> s_contextLookup;
@@ -119,8 +121,10 @@ BOOL SimpleFrameRegistryAddEntry(LPCSTR name, CSimpleFrame *object, UINT context
   SIMPLEFRAMEREGHASH *hash;
 
   FATALASSERT(name);
-  FATALASSERT(*name);
-  FATALASSERT(object);
+  VALIDATEBEGIN;
+  VALIDATE(*name);
+  VALIDATE(object);
+  VALIDATEEND;
 
   alreadyExisted = 0;
   hash = GetSimpleFrameHash(name, context, 1, &alreadyExisted);
@@ -140,8 +144,10 @@ BOOL SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT con
   SIMPLETEXTUREREGHASH *hash;
 
   FATALASSERT(name);
-  FATALASSERT(*name);
-  FATALASSERT(object);
+  VALIDATEBEGIN;
+  VALIDATE(*name);
+  VALIDATE(object);
+  VALIDATEEND;
 
   alreadyExisted = 0;
   hash = GetSimpleTextureHash(name, context, 1, &alreadyExisted);
@@ -161,8 +167,10 @@ BOOL SimpleFontStringRegistryAddEntry(LPCSTR name, CSimpleFontString *object, UI
   SIMPLEFONTSTRINGREGHASH *hash;
 
   FATALASSERT(name);
-  FATALASSERT(*name);
-  FATALASSERT(object);
+  VALIDATEBEGIN;
+  VALIDATE(*name);
+  VALIDATE(object);
+  VALIDATEEND;
 
   alreadyExisted = 0;
   hash = GetSimpleFontStringHash(name, context, 1, &alreadyExisted);
@@ -221,7 +229,9 @@ CSimpleFrame *SimpleFrameRegistryGetEntry(LPCSTR name, UINT context) {
   SIMPLEFRAMEREGHASH *hash;
 
   FATALASSERT(name);
-  FATALASSERT(*name);
+  VALIDATEBEGIN;
+  VALIDATE(*name);
+  VALIDATEEND;
 
   hash = GetSimpleFrameHash(name, context, 0, &unused);
   return hash ? hash->object : 0;
@@ -232,7 +242,9 @@ CSimpleTexture *SimpleTextureRegistryGetEntry(LPCSTR name, UINT context) {
   SIMPLETEXTUREREGHASH *hash;
 
   FATALASSERT(name);
-  FATALASSERT(*name);
+  VALIDATEBEGIN;
+  VALIDATE(*name);
+  VALIDATEEND;
 
   hash = GetSimpleTextureHash(name, context, 0, &unused);
   return hash ? hash->object : 0;
@@ -243,7 +255,9 @@ CSimpleFontString *SimpleFontStringRegistryGetEntry(LPCSTR name, UINT context) {
   SIMPLEFONTSTRINGREGHASH *hash;
 
   FATALASSERT(name);
-  FATALASSERT(*name);
+  VALIDATEBEGIN;
+  VALIDATE(*name);
+  VALIDATEEND;
 
   hash = GetSimpleFontStringHash(name, context, 0, &unused);
   return hash ? hash->object : 0;

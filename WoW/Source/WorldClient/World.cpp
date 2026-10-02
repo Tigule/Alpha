@@ -1,6 +1,7 @@
 #include <Base/Base.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <Ftol.h>
 
 #include "World.h"
 
@@ -189,8 +190,15 @@ void CWorld::LoadMap(LPCSTR mapName, NTempest::C3Vector &position, int preLoad) 
   CMap::Load(mapName);
 }
 
+bool CWorld::MapIsDungeon() {
+  return CMap::bDungeon;
+}
+
 void CWorld::UnloadMap() {
   CMap::Unload();
+}
+
+void CWorld::ClearCache() {
 }
 
 void CWorld::Preload(const NTempest::C3Vector &position) {
@@ -227,9 +235,9 @@ void CWorld::PrepareUpdate(const NTempest::C3Vector &position, const NTempest::C
 
 void CWorld::SetUpdateTime(float elapsedSec, DWORD pCurTimeMs) {
   curTimeMs = pCurTimeMs;
-  tickTimeMs = static_cast<UINT>(elapsedSec * 1000.0f);
+  tickTimeMs = Fast_ftol(elapsedSec * 1000.0f);
+  curTimeSec = curTimeMs * 0.001f;
   tickTimeSec = elapsedSec;
-  curTimeSec = static_cast<float>(pCurTimeMs) * 0.001f;
 }
 
 void CWorld::Update() {
@@ -308,21 +316,18 @@ void CWorld::RenderAlpha() {
   ActivityEnd(ACTIVITY_WORLD);
 }
 
-void CWorld::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
-  if (parm) {
-    CMapBaseObj *baseObj = static_cast<CMapBaseObj *>(parm);
-    if (baseObj->camDist < farFog) {
-      CMap::oldSelectLightParm = baseObj;
-      baseObj->SelectLights();
-    }
-  } else {
-    CMap::oldSelectLightParm = 0;
-    CMap::GxuLightSelect(worldPos, cameraWorldPos, maxLightsToUse);
-  }
-}
-
 UINT CWorld::QueryAreaId(float x, float y) {
   return CMap::QueryAreaId(x, y);
+}
+
+int CWorld::QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb) {
+  if (CMap::QueryShadow(pos)) {
+    argb = shadowColor;
+    return 1;
+  }
+
+  argb = 0x01010101;
+  return 0;
 }
 
 int CWorld::QueryObjectInside(DWORD hWorldObject) {
@@ -333,26 +338,12 @@ int CWorld::QueryObjectInside(DWORD hWorldObject) {
   return entity->flagInside;
 }
 
-int CWorld::QueryLiquidSounds(DWORD hwObject, float radius, int *lbool, NTempest::C3Vector *ldelta) {
-  FATALASSERT(lbool);
-  FATALASSERT(ldelta);
-  FATALASSERT(radius > 0.0f && radius < 16.0f);
+int CWorld::QueryObjectVisible(DWORD hWorldObject) {
+  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
 
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hwObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
-
-  float ldsquared[9];
-  for (UINT i = 0; i < 9; ++i) {
-    ldsquared[i] = FLT_MAX;
-  }
-  memset(lbool, 0, 9 * sizeof(*lbool));
-
-  UINT closestExtLevel;
-  if (!entity->flagInside || (closestExtLevel = 9999, entity->QueryLiquidSounds(lbool, ldelta, ldsquared, closestExtLevel), closestExtLevel < 2)) {
-    CMap::QueryLiquidSounds(entity->pos, radius, lbool, ldelta, ldsquared);
-  }
-  return 1;
+  return entity->flagVisible;
 }
 
 int CWorld::QueryMapObjZoneName(DWORD hWorldObject, LPCSTR &zoneName) {
@@ -390,14 +381,22 @@ bool CWorld::QueryMapObjIDs(DWORD hWorldObject, UINT &wmoID, UINT &instanceID, U
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
-  return entity->flagInside ? entity->QueryMapObjIDs(wmoID, instanceID, groupID) : 0;
+  if (entity->flagInside) {
+    return entity->QueryMapObjIDs(wmoID, instanceID, groupID);
+  }
+
+  return false;
 }
 
 bool CWorld::QueryMapObjMatrix(DWORD hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
-  return entity->flagInside ? entity->QueryMapObjMatrix(mtx, invMtx) : 0;
+  if (entity->flagInside) {
+    return entity->QueryMapObjMatrix(mtx, invMtx);
+  }
+
+  return false;
 }
 
 bool CWorld::QueryMapObjAreaTable(DWORD hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec) {
@@ -405,7 +404,11 @@ bool CWorld::QueryMapObjAreaTable(DWORD hWorldObject, const WMOAreaTableRec *&su
 
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
-  return entity->QueryMapObjAreaTable(subzoneRec, globalRec);
+  if (entity->flagInside) {
+    return entity->QueryMapObjAreaTable(subzoneRec, globalRec);
+  }
+
+  return false;
 }
 
 int CWorld::QueryMapObjFog(DWORD hWorldObject, SMOFog::Fogs &oFogs, float &oPct) {
@@ -484,17 +487,17 @@ bool CWorld::QueryMountAllowed(DWORD hWorldObject, bool &allowed) {
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
 
-  if (!entity->flagInside) {
-    return false;
+  if (entity->flagInside) {
+    CMapObjDef      *mapObjDef;
+    CMapObj         *mapObj;
+    CMapObjDefGroup *mapObjDefGroup;
+    CMapObjGroup    *mapObjGroup = 0;
+    FATALASSERT(entity->GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup));
+    allowed = (mapObjGroup->GetFlags() & 0x8000) != 0;
+    return true;
   }
 
-  CMapObjDef      *mapObjDef;
-  CMapObj         *mapObj;
-  CMapObjDefGroup *mapObjDefGroup;
-  CMapObjGroup    *mapObjGroup = 0;
-  FATALASSERT(entity->GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup));
-  allowed = (mapObjGroup->GetFlags() & 0x8000) != 0;
-  return true;
+  return false;
 }
 
 UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOOL bWait, BOOL bSnap, DWORDLONG param64) {
@@ -542,6 +545,17 @@ void CWorld::ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, BOOL bS
   }
 }
 
+bool CWorld::ObjectTestConvexVolume(UINT id, const NTempest::C3Vector &pos) {
+  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
+  FATALASSERT(baseObj);
+  if (baseObj->GetType() & CMapBaseObj::Type_MapObjDef) {
+    FATALASSERT(((CMapObjDef*)baseObj)->mapObj);
+    return ((CMapObjDef *)baseObj)->mapObj->TestConvexVolume(pos);
+  }
+
+  return false;
+}
+
 void CWorld::ObjectGetExtents(UINT id, NTempest::CAaBox &extents) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
 
@@ -565,24 +579,16 @@ void CWorld::ObjectEnableCollision(UINT id, BOOL bEnable) {
   }
 }
 
-bool CWorld::ObjectTestConvexVolume(UINT id, const NTempest::C3Vector &pos) {
-  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
-  FATALASSERT(baseObj);
-  if (!(baseObj->GetType() & CMapBaseObj::Type_MapObjDef)) {
-    return false;
-  }
-
-  CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(baseObj);
-  FATALASSERT(mapObjDef->mapObj);
-  return mapObjDef->mapObj->TestConvexVolume(pos);
-}
-
 void CWorld::ObjectDelete(UINT id) {
   CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
 
   FATALASSERT(baseObj);
   CMapBaseObjLink *link = baseObj->parentLinkList.Head();
-  while (reinterpret_cast<long>(link) > 0) {
+  while (1) {
+    if ((int)link <= 0) {
+      break;
+    }
+
     CMapBaseObjLink *next = baseObj->parentLinkList.RawNext(link);
     CMap::FreeBaseObjLink(link);
     link = next;
@@ -712,7 +718,7 @@ void CWorld::SetHidden(DWORD hWorldObject, int hidden) {
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
-  entity->flagHidden = hidden != 0;
+  entity->flagHidden = hidden;
 }
 
 void CWorld::RemoveObject(DWORD hWorldObject) {
@@ -750,75 +756,6 @@ void CWorld::SetCameraTarget(DWORD hWorldObject) {
   CWorldScene::camTargEntity = entity;
 }
 
-float CWorld::CalcAltitude(float x, float y, float radius) {
-  return CMap::PointIntersect(x, y, radius);
-}
-
-bool CWorld::Intersect(const NTempest::C3Vector *a, const NTempest::C3Vector *b, float radius, NTempest::C3Vector *ip, float *dist, UINT queryFlags) {
-  FATALASSERT(*dist >= 0.0f && *dist <= 1.0f);
-  ActivityBegin(ACTIVITY_WORLD);
-  bool result = CMap::VectorIntersect(a, b, ip, dist, queryFlags);
-  ActivityEnd(ACTIVITY_WORLD);
-  return result;
-}
-
-bool CWorld::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {
-  ActivityBegin(ACTIVITY_WORLD);
-  bool result = CMap::GetFacet(seg, t, facet, queryFlags);
-  ActivityEnd(ACTIVITY_WORLD);
-  return result;
-}
-
-bool CWorld::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
-  ActivityBegin(ACTIVITY_WORLD);
-  UINT result = CMap::GetTris(aaBox, triData, queryFlags);
-  ActivityEnd(ACTIVITY_WORLD);
-  return result;
-}
-
-int CWorld::QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir) {
-  int deep;
-  return CMap::QueryLiquidStatus(point, liquid, surface, waterDir, deep);
-}
-
-UINT CWorld::SceneCamLiquidStatus() {
-  return CWorldScene::camLiquid;
-}
-
-void CWorld::WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
-  CMap::WaterRipple(pos, len, time, amp, vel, freq);
-}
-
-float CWorld::GetFramerate() {
-  float elapsed = 0.0f;
-  int   index = profIdx;
-  for (int count = 0; count < 30; ++count) {
-    elapsed += profTimes[index++];
-    if (index == 30) {
-      index = 0;
-    }
-  }
-
-  elapsed *= 1.0f / 30.0f;
-  return elapsed >= 0.01f ? 1.0f / elapsed : 100.0f;
-}
-
-void CWorld::GetCounts(int counts[]) {
-  CMap::GetCounts(counts);
-}
-
-void CWorld::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
-  ActivityBegin(ACTIVITY_WORLD);
-  CMap::GetFacets(aaBox, facetData, queryFlags);
-  ActivityEnd(ACTIVITY_WORLD);
-}
-
-void CWorld::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, UINT queryFlags) {
-  ActivityBegin(ACTIVITY_WORLD);
-  CMap::GetFacets(frustum, facetData, queryFlags);
-  ActivityEnd(ACTIVITY_WORLD);
-}
-
 void CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, DWORDLONG param64) {
   UINT origFacetCount = facetData.facets.Count();
 
@@ -843,6 +780,132 @@ void CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData
   for (UINT index = origFacetCount; index < facetCount; ++index) {
     facetData.gameObjects[index] = param64;
   }
+}
+
+void CWorld::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
+  if (parm) {
+    CMapBaseObj *baseObj = static_cast<CMapBaseObj *>(parm);
+    if (baseObj->camDist >= farFog) {
+      return;
+    }
+
+    CMap::oldSelectLightParm = baseObj;
+    baseObj->SelectLights();
+  } else {
+    CMap::oldSelectLightParm = 0;
+    GxuLightSelect(worldPos, cameraWorldPos, maxLightsToUse);
+  }
+}
+
+float CWorld::CalcAltitude(float x, float y, float radius) {
+  return CMap::PointIntersect(x, y, radius);
+}
+
+bool CWorld::Intersect(const NTempest::C3Vector *a, const NTempest::C3Vector *b, float radius, NTempest::C3Vector *ip, float *dist, UINT queryFlags) {
+  FATALASSERT(*dist >= 0.0f && *dist <= 1.0f);
+  ActivityBegin(ACTIVITY_WORLD);
+  bool result = CMap::VectorIntersect(a, b, ip, dist, queryFlags);
+  ActivityEnd(ACTIVITY_WORLD);
+  return result;
+}
+
+bool CWorld::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {
+  ActivityBegin(ACTIVITY_WORLD);
+  bool result = CMap::GetFacet(seg, t, facet, queryFlags);
+  ActivityEnd(ACTIVITY_WORLD);
+  return result;
+}
+
+void CWorld::GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
+  ActivityBegin(ACTIVITY_WORLD);
+  CMap::GetFacets(aaBox, facetData, queryFlags);
+  ActivityEnd(ACTIVITY_WORLD);
+}
+
+void CWorld::GetFacets(const CWFrustum &frustum, CWFacetData *facetData, UINT queryFlags) {
+  ActivityBegin(ACTIVITY_WORLD);
+  CMap::GetFacets(frustum, facetData, queryFlags);
+  ActivityEnd(ACTIVITY_WORLD);
+}
+
+bool CWorld::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
+  ActivityBegin(ACTIVITY_WORLD);
+  bool result = CMap::GetTris(aaBox, triData, queryFlags);
+  ActivityEnd(ACTIVITY_WORLD);
+  return result;
+}
+
+void CWorld::SetSoundEmitterHandlers(void (*create)(CWSoundEmitter &), void (*destroy)(DWORD)) {
+  CMapChunk::SetSoundEmitterHandlers(create, destroy);
+}
+
+int CWorld::QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir) {
+  int deep;
+  return CMap::QueryLiquidStatus(point, liquid, surface, waterDir, deep);
+}
+
+int CWorld::QueryLiquidSounds(DWORD hwObject, float radius, int *lbool, NTempest::C3Vector *ldelta) {
+  FATALASSERT(lbool);
+  FATALASSERT(ldelta);
+  FATALASSERT(radius > 0.0f && radius < 16.0f);
+
+  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hwObject);
+  FATALASSERT(entity);
+  FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
+
+  float ldsquared[9];
+  for (UINT i = 0; i < 9; ++i) {
+    ldsquared[i] = FLT_MAX;
+  }
+  memset(lbool, 0, 9 * sizeof(*lbool));
+
+  UINT closestExtLevel;
+  if (!entity->flagInside || (closestExtLevel = 9999, entity->QueryLiquidSounds(lbool, ldelta, ldsquared, closestExtLevel), closestExtLevel < 2)) {
+    CMap::QueryLiquidSounds(entity->pos, radius, lbool, ldelta, ldsquared);
+  }
+  return 1;
+}
+
+UINT CWorld::SceneCamLiquidStatus() {
+  return CWorldScene::camLiquid;
+}
+
+void CWorld::WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
+  CMap::WaterRipple(pos, len, time, amp, vel, freq);
+}
+
+float CWorld::GetFramerate() {
+  float elapsed = 0.0f;
+  int   index = profIdx;
+  for (int count = 0; count < 30; ++count) {
+    elapsed += profTimes[index++];
+    if (index == 30) {
+      index = 0;
+    }
+  }
+
+  elapsed *= 1.0f / 30.0f;
+  if (elapsed < 0.01f) {
+    return 100.0f;
+  }
+
+  return 1.0f / elapsed;
+}
+
+UINT CWorld::GetPrimsRendered() {
+  return CWorldScene::nPrimsRendered;
+}
+
+UINT CWorld::GetChunksRendered() {
+  return CWorldScene::nChunksRendered;
+}
+
+UINT CWorld::GetDoodadsRendered() {
+  return CWorldScene::nDoodadsRendered;
+}
+
+void CWorld::GetCounts(int counts[]) {
+  CMap::GetCounts(counts);
 }
 
 LPCSTR CWorld::QueryChunkName() {
@@ -928,29 +991,27 @@ void CWorld::SetTexLodBias(float bias) {
 void CWorld::SetTexAnisotropy(UINT anisotropy) {
   texMaxAnisotropy = anisotropy;
   texMaxAnisotropyLog2 = 0;
-  anisotropy >>= 1;
-  while (anisotropy) {
-    anisotropy >>= 1;
+  for (UINT i = anisotropy >> 1; i; i >>= 1) {
     ++texMaxAnisotropyLog2;
   }
 }
 
 bool CWorld::SetLodDist(float dist) {
-  if (dist != dist || (dist >= 50.0f && dist <= 250.0f)) {
-    lodDist = dist;
-    return true;
+  if (dist < 50.0f || dist > 250.0f) {
+    return false;
   }
 
-  return false;
+  lodDist = dist;
+  return true;
 }
 
 bool CWorld::SetTextureLodDist(float dist) {
-  if (dist != dist || (dist >= 80.0f && dist <= 777.0f)) {
-    textureLodDist = dist;
-    return true;
+  if (dist < 80.0f || dist > 777.0f) {
+    return false;
   }
 
-  return false;
+  textureLodDist = dist;
+  return true;
 }
 
 void CWorld::CalcFPS() {
@@ -1021,12 +1082,12 @@ void CWorld::PrepareAreaOfInterest(const NTempest::C3Vector &position, const NTe
 static void UpdateShadowGxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   switch (cmd) {
     case GxTex_Lock:
-      break;
+      return;
 
     case GxTex_Latch:
       texelStrideInBytes = 4 * w;
       texels = userArg;
-      break;
+      return;
   }
 }
 
@@ -1038,24 +1099,24 @@ BOOL CWorld::ParticleProjectCallback(const NTempest::C3Segment &seg, float &z) {
   NTempest::C4Plane facet;
   float             segT = 1.0f;
 
-  if (!GetFacet(seg, segT, facet, 0x111)) {
-    return 0;
+  if (GetFacet(seg, segT, facet, 0x111)) {
+    z = (seg.end.z - seg.start.z) * segT + seg.start.z;
+    return 1;
   }
 
-  z = (seg.end.z - seg.start.z) * segT + seg.start.z;
-  return 1;
+  return 0;
 }
 
 BOOL CWorld::AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z) {
   NTempest::C4Plane facet;
   float             segT = 1.0f;
 
-  if (!GetFacet(seg, segT, facet, 0x111)) {
-    return 0;
+  if (GetFacet(seg, segT, facet, 0x111)) {
+    z = (seg.end.z - seg.start.z) * segT + seg.start.z;
+    return 1;
   }
 
-  z = (seg.end.z - seg.start.z) * segT + seg.start.z;
-  return 1;
+  return 0;
 }
 
 BOOL CWorld::ConsoleCommand_ShowDetailDoodads(LPCSTR, LPCSTR) {
@@ -1070,17 +1131,88 @@ BOOL CWorld::ConsoleCommand_ShowDetailDoodads(LPCSTR, LPCSTR) {
   return 1;
 }
 
+BOOL CWorld::ConsoleCommand_ShowMapObjBSP(LPCSTR, LPCSTR) {
+  if (enables & Enable_MapObjBSP) {
+    ConsoleWrite("BSP render disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_MapObjBSP;
+  } else {
+    ConsoleWrite("BSP render enabled.", DEFAULT_COLOR);
+    enables |= Enable_MapObjBSP;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_DebugBSP(LPCSTR, LPCSTR) {
+  if (enables & Enable_DebugBSP) {
+    ConsoleWrite("BSP debug disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_DebugBSP;
+  } else {
+    ConsoleWrite("BSP debug enabled.", DEFAULT_COLOR);
+    enables |= Enable_DebugBSP;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowTerrain(LPCSTR, LPCSTR) {
+  if (enables & Enable_Chunks) {
+    ConsoleWrite("Terrain disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_Chunks;
+  } else {
+    ConsoleWrite("Terrain enabled.", DEFAULT_COLOR);
+    enables |= Enable_Chunks;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowDoodads(LPCSTR, LPCSTR) {
+  if (enables & Enable_Doodads) {
+    ConsoleWrite("Terrain doodads disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_Doodads;
+  } else {
+    ConsoleWrite("Terrain doodads enabled.", DEFAULT_COLOR);
+    enables |= Enable_Doodads;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowAABoxes(LPCSTR, LPCSTR) {
+  if (enables & Enable_AABoxes) {
+    ConsoleWrite("Terrain doodads AA Box visuals disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_AABoxes;
+  } else {
+    ConsoleWrite("Terrain doodads AA Box visuals enabled.", DEFAULT_COLOR);
+    enables |= Enable_AABoxes;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowCollision(LPCSTR, LPCSTR) {
+  if (enables & Enable_Collision) {
+    ConsoleWrite("Terrain doodads collision visuals disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_Collision;
+  } else {
+    ConsoleWrite("Terrain doodads collision visuals enabled.", DEFAULT_COLOR);
+    enables |= Enable_Collision;
+  }
+
+  return 1;
+}
+
 BOOL CWorld::ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments) {
   UINT maxLod;
 
   sscanf(arguments, "%d", &maxLod);
   if (maxLod > 3) {
-    lodMax = 3;
-    return 1;
-  }
-  if (maxLod < 2) {
+    maxLod = 3;
+  } else if (maxLod < 2) {
     maxLod = 2;
   }
+
   lodMax = maxLod;
   return 1;
 }
@@ -1121,6 +1253,18 @@ shadowColorRangeInvalid:
   return 0;
 }
 
+BOOL CWorld::ConsoleCommand_ShowMapObjLight(LPCSTR, LPCSTR) {
+  if (enables & Enable_MapObjLight) {
+    ConsoleWrite("MapObj lighting disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_MapObjLight;
+  } else {
+    ConsoleWrite("MapObj lighting enabled.", DEFAULT_COLOR);
+    enables |= Enable_MapObjLight;
+  }
+
+  return 1;
+}
+
 BOOL CWorld::ConsoleCommand_MapObjLightMode(LPCSTR, LPCSTR) {
   if (enables & Enable_VertexLight) {
     ConsoleWrite("MapObj lightmaps enabled.", DEFAULT_COLOR);
@@ -1128,6 +1272,66 @@ BOOL CWorld::ConsoleCommand_MapObjLightMode(LPCSTR, LPCSTR) {
   } else {
     ConsoleWrite("MapObj vertex light enabled.", DEFAULT_COLOR);
     enables |= Enable_VertexLight;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowMapObjTex(LPCSTR, LPCSTR) {
+  if (enables & Enable_MapObjTex) {
+    ConsoleWrite("MapObj textures disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_MapObjTex;
+  } else {
+    ConsoleWrite("MapObj textures enabled.", DEFAULT_COLOR);
+    enables |= Enable_MapObjTex;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowCrappyBatches(LPCSTR, LPCSTR) {
+  if (enables & Enable_CrappyBatches) {
+    ConsoleWrite("Crappy batches disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_CrappyBatches;
+  } else {
+    ConsoleWrite("Crappy batches enabled.", DEFAULT_COLOR);
+    enables |= Enable_CrappyBatches;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowMapObjs(LPCSTR, LPCSTR) {
+  if (enables & Enable_MapObjs) {
+    ConsoleWrite("Map objects disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_MapObjs;
+  } else {
+    ConsoleWrite("Map objects enabled.", DEFAULT_COLOR);
+    enables |= Enable_MapObjs;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowPortals(LPCSTR, LPCSTR) {
+  if (enables & Enable_Portals) {
+    ConsoleWrite("Portal display disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_Portals;
+  } else {
+    ConsoleWrite("Portal display enabled.", DEFAULT_COLOR);
+    enables |= Enable_Portals;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_PortalVis(LPCSTR, LPCSTR) {
+  if (enables & Enable_PortalVis) {
+    ConsoleWrite("Portal vis disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_PortalVis;
+  } else {
+    ConsoleWrite("Portal vis enabled.", DEFAULT_COLOR);
+    enables |= Enable_PortalVis;
   }
 
   return 1;
@@ -1184,21 +1388,34 @@ BOOL CWorld::ConsoleCommand_WaterParticulates(LPCSTR, LPCSTR) {
   return 1;
 }
 
-BOOL CWorld::ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments) {
-  UINT alphaRef;
-
-  sscanf(arguments, "%d", &alphaRef);
-  if (alphaRef > 255) {
-    ConsoleWrite("Alpha ref range 0 - 255.", DEFAULT_COLOR);
-  } else {
-    detailDoodadAlphaRef = alphaRef;
-  }
+BOOL CWorld::ConsoleCommand_Proj(LPCSTR, LPCSTR) {
+  GxMasterEnableSet(GxMasterEnable_NormalProjection, !GxMasterEnable(GxMasterEnable_NormalProjection));
   return 1;
 }
 
-BOOL CWorld::ConsoleCommand_DebugZones(LPCSTR, LPCSTR) {
+BOOL CWorld::ConsoleCommand_ShowTris(LPCSTR, LPCSTR) {
+  if (Enable_ShowTris & enables) {
+    enables &= ~Enable_ShowTris;
+  } else {
+    enables |= Enable_ShowTris;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowNormals(LPCSTR, LPCSTR) {
+  if (Enable_ShowNormals & enables) {
+    enables &= ~Enable_ShowNormals;
+  } else {
+    enables |= Enable_ShowNormals;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_DebugZones(LPCSTR command, LPCSTR arguments) {
   BYTE on;
-  if (enables & Enable_ZoneBounds) {
+  if (Enable_ZoneBounds & enables) {
     ConsoleWrite("Zone boundary visuals disabled", DEFAULT_COLOR);
     enables &= ~Enable_ZoneBounds;
     on = 0;
@@ -1213,6 +1430,54 @@ BOOL CWorld::ConsoleCommand_DebugZones(LPCSTR, LPCSTR) {
   msg.Put(on);
   msg.Finalize();
   ClientServices_Send(&msg);
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_ShowQuery(LPCSTR, LPCSTR) {
+  if (enables & Enable_ShowQuery) {
+    ConsoleWrite("show query disabled.", DEFAULT_COLOR);
+    enables &= ~Enable_ShowQuery;
+  } else {
+    ConsoleWrite("show query enabled.", DEFAULT_COLOR);
+    enables |= Enable_ShowQuery;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_DetailDoodadTest(LPCSTR, LPCSTR) {
+  if (detailDoodadTest) {
+    ConsoleWrite("Detail doodad debug test disabled.", DEFAULT_COLOR);
+    detailDoodadTest = 0;
+  } else {
+    ConsoleWrite("Detail doodad debug test enabled.", DEFAULT_COLOR);
+    detailDoodadTest = 1;
+  }
+
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments) {
+  UINT alphaRef;
+
+  sscanf(arguments, "%d", &alphaRef);
+  if (alphaRef > 255) {
+    ConsoleWrite("Alpha ref range 0 - 255.", DEFAULT_COLOR);
+  } else {
+    detailDoodadAlphaRef = alphaRef;
+  }
+  return 1;
+}
+
+BOOL CWorld::ConsoleCommand_GroupOnly(LPCSTR, LPCSTR) {
+  if (CMapObj::maxRLevel == CMapObj::DEFAULT_RLEVEL) {
+    CMapObj::maxRLevel = 0;
+    ConsoleWrite("Rendering only current group", DEFAULT_COLOR);
+  } else {
+    CMapObj::maxRLevel = CMapObj::DEFAULT_RLEVEL;
+    ConsoleWrite("Rendering all visible groups (standard)", DEFAULT_COLOR);
+  }
+
   return 1;
 }
 

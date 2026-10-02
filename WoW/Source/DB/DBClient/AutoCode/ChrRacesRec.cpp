@@ -17,32 +17,35 @@ bool ChrRacesRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempname_langIndices[NUM_LOCALES];
   UINT tempclientFileStringIndices[1];
   UINT tempClientPrefixIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_flags) ||
-      !SFileReadTyped(f, &m_factionID) ||
-      !SFileReadTyped(f, &m_MaleDisplayId) ||
-      !SFileReadTyped(f, &m_FemaleDisplayId) ||
-      !SFileReadTyped(f, &tempClientPrefixIndices[0]) ||
-      !SFileReadTyped(f, &m_MountScale) ||
-      !SFileReadTyped(f, &m_BaseLanguage) ||
-      !SFileReadTyped(f, &m_creatureType) ||
-      !SFileReadTyped(f, &m_LoginEffectSpellID) ||
-      !SFileReadTyped(f, &m_CombatStunSpellID) ||
-      !SFileReadTyped(f, &m_ResSicknessSpellID) ||
-      !SFileReadTyped(f, &m_SplashSoundID) ||
-      !SFileReadTyped(f, &m_startingTaxiNodes) ||
-      !SFileReadTyped(f, &tempclientFileStringIndices[0]) ||
-      !SFileReadTyped(f, &m_cinematicSequenceID) ||
-      !SFileReadTyped(f, &tempname_langIndices[0]) ||
-      !SFileReadTyped(f, &tempname_langIndices[1]) ||
-      !SFileReadTyped(f, &tempname_langIndices[2]) ||
-      !SFileReadTyped(f, &tempname_langIndices[3]) ||
-      !SFileReadTyped(f, &tempname_langIndices[4]) ||
-      !SFileReadTyped(f, &tempname_langIndices[5]) ||
-      !SFileReadTyped(f, &tempname_langIndices[6]) ||
-      !SFileReadTyped(f, &tempname_langIndices[7]) ||
-      !SFileReadTyped(f, &m_name_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_flags) == 0);
+  error |= (SFileReadTyped(f, &m_factionID) == 0);
+  error |= (SFileReadTyped(f, &m_MaleDisplayId) == 0);
+  error |= (SFileReadTyped(f, &m_FemaleDisplayId) == 0);
+  error |= (SFileReadTyped(f, &tempClientPrefixIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_MountScale) == 0);
+  error |= (SFileReadTyped(f, &m_BaseLanguage) == 0);
+  error |= (SFileReadTyped(f, &m_creatureType) == 0);
+  error |= (SFileReadTyped(f, &m_LoginEffectSpellID) == 0);
+  error |= (SFileReadTyped(f, &m_CombatStunSpellID) == 0);
+  error |= (SFileReadTyped(f, &m_ResSicknessSpellID) == 0);
+  error |= (SFileReadTyped(f, &m_SplashSoundID) == 0);
+  error |= (SFileReadTyped(f, &m_startingTaxiNodes) == 0);
+  error |= (SFileReadTyped(f, &tempclientFileStringIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_cinematicSequenceID) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_name_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading ChrRacesRec", DEFAULT_COLOR);
     return false;
   }

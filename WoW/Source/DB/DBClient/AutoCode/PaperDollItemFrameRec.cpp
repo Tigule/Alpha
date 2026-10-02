@@ -16,10 +16,13 @@ PaperDollItemFrameRec::~PaperDollItemFrameRec() {
 bool PaperDollItemFrameRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempItemButtonNameIndices[1];
   UINT tempSlotIconIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &tempItemButtonNameIndices[0]) ||
-      !SFileReadTyped(f, &tempSlotIconIndices[0]) ||
-      !SFileReadTyped(f, &m_SlotNumber)) {
+  error |= (SFileReadTyped(f, &tempItemButtonNameIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempSlotIconIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_SlotNumber) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading PaperDollItemFrameRec", DEFAULT_COLOR);
     return false;
   }

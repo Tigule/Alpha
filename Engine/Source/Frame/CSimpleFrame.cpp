@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CSimpleFrame.h"
 
 #include "Base/ConvertUTF.h"
@@ -538,14 +540,18 @@ void CSimpleFrame::DisableDrawLayer(UINT drawlayer) {
 }
 
 void CSimpleFrame::RegisterRegion(CSimpleRegion *region) {
-  FATALASSERT(region);
+  VALIDATEBEGIN;
+  VALIDATE(region);
+  VALIDATEENDVOID;
 
   REGIONNODE *node = m_regions.NewNode(LIST_TAIL, 0, 0);
   node->region = region;
 }
 
 void CSimpleFrame::UnregisterRegion(CSimpleRegion *region) {
-  FATALASSERT(region);
+  VALIDATEBEGIN;
+  VALIDATE(region);
+  VALIDATEENDVOID;
 
   ITERATELIST(REGIONNODE, m_regions, node) {
     if (node->region == region) {
@@ -776,7 +782,7 @@ BOOL CSimpleFrame::ShowThis() {
 void CSimpleFrame::EnableEvent(CSimpleEventType event, UINT priority) {
   UINT eventbit = 1 << event;
 
-  ASSERT(event < sizeof(m_eventmask) * 8);
+  ASSERT(event < sizeof(m_eventmask)*8);
 
   if (!(m_eventmask & eventbit)) {
     if (m_visible) {

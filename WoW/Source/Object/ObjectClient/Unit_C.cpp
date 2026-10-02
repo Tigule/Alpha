@@ -4,6 +4,8 @@
 #include "Object/ObjectClient/Unit_C.h"
 #include "Magic/MagicClient/Spell_C.h"
 #include "Object/ObjectClient/GameObject_C.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "DB/DBClient/AutoCode/SkillLineAbilityRec.h"
 
 #include <Base/Status.h>
@@ -1322,11 +1324,11 @@ void CGUnit_C::ProcessBreathParticles(int currentTime) {
 
 static BOOL GenericAnimEndHandler(LPVOID param) {
   FATALASSERT(param);
-  ANIMENDDATA *data = static_cast<ANIMENDDATA *>(param);
-  FATALASSERT(data->animID < NUM_OBJECTANIMATIONS);
-  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(data->unit, __FILE__, __LINE__));
+  ANIMENDDATA *animEndData = static_cast<ANIMENDDATA *>(param);
+  FATALASSERT(animEndData->animID < NUM_OBJECTANIMATIONS);
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(animEndData->unit, __FILE__, __LINE__));
   if (unit) {
-    unit->GenericAnimEndHandler(data->animID, data);
+    unit->GenericAnimEndHandler(animEndData->animID, animEndData);
   }
   return 1;
 }
@@ -6788,7 +6790,9 @@ BOOL CGUnit_C::QueueAnim(ANIMQUEUETYPE type, const ATTACKROUNDINFO *roundInfo) {
 }
 
 bool CGUnit_C::CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGItem_C *item) {
-  FATALASSERT(spell);
+  VALIDATEBEGIN;
+  VALIDATE(spell);
+  VALIDATEEND;
 
   if (item) {
     if (Spell_C_GetItemCooldown(item->GetEntryID(), 0, 0, 0)) {
@@ -7645,8 +7649,8 @@ BOOL CGUnit_C::EmoteProcType(UINT emoteID, EMOTESPECPROCS &proc) const {
 }
 
 void CGUnit_C::ChangeStandState(UINT standState) {
-  FATALASSERT(!(standState >= 4 && standState <= 6));
-  FATALASSERT(standState < 9);
+  FATALASSERT(!( ( standState >= UNIT_FIRSTCHAIRSIT ) && ( standState <= UNIT_LASTCHAIRSIT ) ));
+  FATALASSERT(standState < UNIT_NUMSTANDSTATES);
 
   if (!IsInStandSitTransition() && !m_castingSpell && !IsMounted() && StandStateValid(static_cast<UNITSTANDSTATE>(standState))) {
     CDataStore msg;
@@ -8196,7 +8200,7 @@ void CGUnit_C::RemoveEmissiveColor(const NTempest::CImVector &color) {
 
 int CGUnit_C::GetAnimPriority(int state) {
   FATALASSERT(state >= 0);
-  FATALASSERT(state < sizeof(s_animInfo) / sizeof(s_animInfo[0]));
+  FATALASSERT(state < (sizeof(s_animInfo) / sizeof(s_animInfo[0])));
   return s_animInfo[state].basePriority;
 }
 

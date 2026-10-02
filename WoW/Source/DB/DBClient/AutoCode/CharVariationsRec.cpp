@@ -14,10 +14,13 @@ CharVariationsRec::~CharVariationsRec() {
 }
 
 bool CharVariationsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_RaceID) ||
-      !SFileReadTyped(f, &m_SexID) ||
-      !SFile::Read(f, &m_TextureHoldLayer[0], sizeof(m_TextureHoldLayer), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_RaceID) == 0);
+  error |= (SFileReadTyped(f, &m_SexID) == 0);
+  error |= (SFileReadTyped(f, &m_TextureHoldLayer) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CharVariationsRec", DEFAULT_COLOR);
     return false;
   }

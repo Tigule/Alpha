@@ -6,135 +6,150 @@ BOOL IEvtTimerDispatch(EvtContext *context) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   DWORD                   currTime;
-  int                     dispatched = 0;
+  int                     dispatchedAny;
 
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
 
   context->TimerLockIdTableAndQueue(table, queue);
   currTime = OsGetAsyncTimeMs();
+  dispatchedAny = 0;
 
   while (queue->Count()) {
     EvtTimer *timer = (*queue)[0];
 
-    if (!timer->handler && !timer->guidHandler) {
-      queue->Dequeue();
-      table->Free(timer->id);
-      continue;
-    }
-
-    if (static_cast<LONG>(timer->targetTime.Get() - currTime) > 0) {
-      break;
-    }
-
-    {
-      EVENT_DATA_TIMER data;
-      EVENTHANDLER     handler = timer->handler;
-      EVENTGUIDHANDLER guidHandler = 0;
-      LPVOID           param = 0;
-      DWORDLONG        guidParam = 0;
-      LPVOID           guidParam2 = 0;
-
-      if (handler) {
-        param = timer->param;
-      } else {
-        ASSERT(timer->guidHandler);
-        guidHandler = timer->guidHandler;
-        guidParam = timer->guidParam;
-        guidParam2 = timer->guidParam2;
+    if (timer->handler || timer->guidHandler) {
+      if (static_cast<LONG>(timer->targetTime.Get() - currTime) > 0) {
+        break;
       }
 
+      EVENT_DATA_TIMER data;
       data.elapsedSec = timer->timeout;
       data.currTime = currTime;
-      queue->Remove(0);
-      table->Free(timer->id);
 
-      context->TimerUnlockIdTableAndQueue();
-      if (handler) {
+      if (timer->handler) {
+        EVENTHANDLER handler = timer->handler;
+        LPVOID       param = timer->param;
+
+        queue->Dequeue();
+        table->Free(timer->id);
+        context->TimerUnlockIdTableAndQueue();
         handler(&data, param);
+        context->TimerLockIdTableAndQueue(table, queue);
       } else {
-        guidHandler(&data, guidParam, guidParam2);
+        ASSERT(timer->guidHandler);
+
+        DWORDLONG        param = timer->guidParam;
+        LPVOID           param2 = timer->guidParam2;
+        EVENTGUIDHANDLER handler = timer->guidHandler;
+
+        queue->Dequeue();
+        table->Free(timer->id);
+        context->TimerUnlockIdTableAndQueue();
+        handler(&data, param, param2);
+        context->TimerLockIdTableAndQueue(table, queue);
       }
-      context->TimerLockIdTableAndQueue(table, queue);
-      dispatched = 1;
+
+      dispatchedAny = 1;
+    } else {
+      queue->Dequeue();
+      table->Free(timer->id);
     }
   }
 
   context->TimerUnlockIdTableAndQueue();
-  return dispatched;
+  return dispatchedAny;
 }
 
 UINT IEvtTimerGetNextTime(EvtContext *context, DWORD currTime) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
+  UINT                    nextTime;
 
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
 
   context->TimerLockIdTableAndQueue(table, queue);
+  nextTime = INFINITE;
+
   if (queue->Count()) {
-    LONG remaining = static_cast<LONG>((*queue)[0]->targetTime.Get() - currTime);
-    currTime = remaining < 0 ? 0 : static_cast<DWORD>(remaining);
-  } else {
-    currTime = INFINITE;
+    LONG remaining = (*queue)[0]->targetTime.Get() - currTime;
+    nextTime = max(0, remaining);
   }
+
   context->TimerUnlockIdTableAndQueue();
-  return currTime;
+  return nextTime;
 }
 
 float IEvtTimerGetRemaining(EvtContext *context, UINT id) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
-  float                   remaining = 0.0f;
+  float                   remaining;
 
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
+
   if (!id) {
     return 0.0f;
   }
 
+  remaining = 0.0f;
   context->TimerLockIdTableAndQueue(table, queue);
   timer = (*table)[id];
+
   if (timer && (timer->handler || timer->guidHandler)) {
-    LONG remainingMs = static_cast<LONG>(timer->targetTime.Get() - OsGetAsyncTimeMs());
+    DWORD currTime = OsGetAsyncTimeMs();
+    int   remainingMs = timer->targetTime.Get() - currTime;
+
     if (remainingMs > 0) {
-      remaining = static_cast<float>(remainingMs * 0.001);
+      remaining = remainingMs * 0.001f;
     }
   }
+
   context->TimerUnlockIdTableAndQueue();
   return remaining;
 }
 
-void IEvtTimerKill(EvtContext *context, UINT id, EVENTHANDLER handlerFunction, LPCSTR functionName) {
+void IEvtTimerKill(EvtContext *context, UINT id, EVENTHANDLER handlerFunctionPtr, LPCSTR functionName) {
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
 
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEENDVOID;
+
   if (!id) {
     return;
   }
 
   context->TimerLockIdTableAndQueue(table, queue);
   timer = (*table)[id];
-  if (!timer || (!timer->handler && !timer->guidHandler)) {
-    context->TimerUnlockIdTableAndQueue();
-    return;
-  }
 
-  if ((timer->handler && timer->handler != handlerFunction) ||
-      (timer->guidHandler && reinterpret_cast<LPVOID>(timer->guidHandler) != reinterpret_cast<LPVOID>(handlerFunction)))
-  {
-    FATALERROR(("Error, attempt to kill eventID %d with mismatching handler (%s)!", id, functionName ? functionName : ""));
-  }
-
-  timer->handler = 0;
-  timer->guidHandler = 0;
-  while (queue->Count()) {
-    EvtTimer *head = (*queue)[0];
-    if (head->handler || head->guidHandler) {
-      break;
+  if (timer && (timer->handler || timer->guidHandler)) {
+    if ((timer->handler && timer->handler != handlerFunctionPtr) ||
+        (timer->guidHandler && reinterpret_cast<LPVOID>(timer->guidHandler) != reinterpret_cast<LPVOID>(handlerFunctionPtr)))
+    {
+      FATALERROR(("Error, attempt to kill eventID %d with mismatching handler (%s)!", id, functionName ? functionName : ""));
     }
-    queue->Remove(0);
-    table->Free(head->id);
+
+    timer->handler = 0;
+    timer->guidHandler = 0;
+
+    while (queue->Count()) {
+      timer = (*queue)[0];
+
+      if (timer->handler || timer->guidHandler) {
+        break;
+      }
+
+      queue->Dequeue();
+      table->Free(timer->id);
+    }
   }
 
   context->TimerUnlockIdTableAndQueue();
@@ -149,27 +164,29 @@ UINT IEvtTimerSet(
     DWORDLONG        guidParam,
     LPVOID           guidParam2
 ) {
-  LONG                    timeoutMs;
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
   UINT                    id;
 
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
+
   if (!handler && !guidHandler) {
     return 0;
   }
 
-  timeoutMs = static_cast<LONG>(timeout * 1000.0f);
-  timeoutMs += OsGetAsyncTimeMs();
   context->TimerLockIdTableAndQueue(table, queue);
   id = table->Alloc();
   timer = (*table)[id];
+
   if (!timer) {
     timer = NEW(EvtTimer);
     (*table)[id] = timer;
   }
-  timer->targetTime.Set(timeoutMs);
+
+  timer->targetTime.Set(OsGetAsyncTimeMs() - static_cast<long>(timeout * -1000.0f));
   timer->id = id;
   timer->timeout = timeout;
   timer->handler = handler;
@@ -195,24 +212,27 @@ UINT IEvtTimerSet(
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
   UINT                    id;
-  DWORD                   targetTime;
 
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
+
   if (!handler && !guidHandler) {
     return 0;
   }
 
-  targetTime = OsGetAsyncTimeMs() + timeout;
   context->TimerLockIdTableAndQueue(table, queue);
   id = table->Alloc();
   timer = (*table)[id];
+
   if (!timer) {
     timer = NEW(EvtTimer);
     (*table)[id] = timer;
   }
-  timer->targetTime.Set(targetTime);
+
+  timer->targetTime.Set(OsGetAsyncTimeMs() + timeout);
   timer->id = id;
-  timer->timeout = static_cast<float>(timeout * 0.001);
+  timer->timeout = timeout * 0.001f;
   timer->handler = handler;
   timer->param = param;
   timer->guidHandler = guidHandler;
@@ -232,28 +252,33 @@ UINT IEvtTimerSetAbsolute(
     DWORDLONG        guidParam,
     LPVOID           guidParam2
 ) {
-  DWORD                   currTime;
   EvtIdTable<EvtTimer *> *table;
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
   UINT                    id;
 
-  FATALASSERT(context);
+  VALIDATEBEGIN;
+  VALIDATE(context);
+  VALIDATEEND;
+
   if (!handler && !guidHandler) {
     return 0;
   }
 
-  currTime = OsGetAsyncTimeMs();
   context->TimerLockIdTableAndQueue(table, queue);
   id = table->Alloc();
   timer = (*table)[id];
+
   if (!timer) {
     timer = NEW(EvtTimer);
     (*table)[id] = timer;
   }
+
+  DWORD currTime = OsGetAsyncTimeMs();
+
   timer->targetTime.Set(triggerTime);
   timer->id = id;
-  timer->timeout = static_cast<float>(static_cast<double>(triggerTime - currTime) * 0.001);
+  timer->timeout = (triggerTime - currTime) * 0.001f;
   timer->handler = handler;
   timer->param = param;
   timer->guidHandler = guidHandler;

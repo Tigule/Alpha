@@ -15,13 +15,16 @@ SpellVisualEffectNameRec::~SpellVisualEffectNameRec() {
 
 bool SpellVisualEffectNameRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempfileNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempfileNameIndices[0]) ||
-      !SFileReadTyped(f, &m_specialID) ||
-      !SFileReadTyped(f, &m_specialAttachPoint) ||
-      !SFileReadTyped(f, &m_areaEffectSize) ||
-      !SFileReadTyped(f, &m_VisualEffectNameFlags)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempfileNameIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_specialID) == 0);
+  error |= (SFileReadTyped(f, &m_specialAttachPoint) == 0);
+  error |= (SFileReadTyped(f, &m_areaEffectSize) == 0);
+  error |= (SFileReadTyped(f, &m_VisualEffectNameFlags) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellVisualEffectNameRec", DEFAULT_COLOR);
     return false;
   }

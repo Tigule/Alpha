@@ -14,9 +14,12 @@ ItemVisualsRec::~ItemVisualsRec() {
 }
 
 bool ItemVisualsRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFile::Read(f, m_Slot, sizeof(m_Slot), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_Slot) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading ItemVisualsRec", DEFAULT_COLOR);
     return false;
   }

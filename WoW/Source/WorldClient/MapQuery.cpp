@@ -118,6 +118,20 @@ bool CMap::QueryLiquidFishableMapObjsExt(const NTempest::C3Vector &point, int &f
   return false;
 }
 
+bool CMap::QueryLiquidStatusMapObjsExt(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir) {
+  ITERATELIST(CMapObjDef, CMap::mapObjDefHash, mapObjDef) {
+    FATALASSERT(mapObjDef->mapObj);
+    NTempest::C3Vector p = point * mapObjDef->invMat;
+    if (mapObjDef->mapObj->QueryLiquidStatus(0x2000, p, liquid, surface, waterDir)) {
+      NTempest::C3Vector out(0.0f, 0.0f, surface);
+      out *= mapObjDef->mat;
+      surface = out.z;
+      return 1;
+    }
+  }
+  return 0;
+}
+
 bool CMap::QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable) {
   if (QueryLiquidFishableMapObjsExt(point, fishable)) {
     return true;
@@ -159,20 +173,6 @@ bool CMap::QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable) {
   }
 
   return false;
-}
-
-bool CMap::QueryLiquidStatusMapObjsExt(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir) {
-  ITERATELIST(CMapObjDef, CMap::mapObjDefHash, mapObjDef) {
-    FATALASSERT(mapObjDef->mapObj);
-    NTempest::C3Vector p = point * mapObjDef->invMat;
-    if (mapObjDef->mapObj->QueryLiquidStatus(0x2000, p, liquid, surface, waterDir)) {
-      NTempest::C3Vector out(0.0f, 0.0f, surface);
-      out *= mapObjDef->mat;
-      surface = out.z;
-      return 1;
-    }
-  }
-  return 0;
 }
 
 inline void GetHeightFlow(

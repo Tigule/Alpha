@@ -119,21 +119,11 @@ struct CSortableParticleRecord {
 static void AddEmitters2ToScene(CModel *modelptr, CModelShared *shared);
 
 class CParticleEmitter2 {
-  enum {
-    MAX_CHILD_EMITTERS = 4,
-    NUM_PARTICLE_KEYS = 2
-  };
-
-  enum {
-    MAX_RECURSIVE_PARTICLES = 4096,
-    RND_TABLE_MASK = 127,
-    RND_TABLE_SIZE = 128
-  };
-
   friend class ParticleSystemManager;
   friend CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTION *textures, UINT flags, CStatus *status);
   friend UINT               SetParticleStyle(const BYTE *emitterData, UINT flags, CParticleEmitter2 *emitter);
   friend BYTE              *SetParticleTumble(BYTE *emitterData, CParticleEmitter2 *emitter);
+  friend void               AddEmitters2ToScene(CModel *modelptr, CModelShared *shared);
 
  public:
   enum PARTICLE_EMITTER_TYPE {
@@ -144,212 +134,27 @@ class CParticleEmitter2 {
     PET_NUMS_PETS = 4
   };
 
+  enum {
+    NUM_PARTICLE_KEYS = 2,
+    MAX_CHILD_EMITTERS = 4
+  };
+
+  enum {
+    MAX_RECURSIVE_PARTICLES = 4096,
+    RND_TABLE_SIZE = 128,
+    RND_TABLE_MASK = 127
+  };
+
   enum PARTICLE_TYPE {
     PT_QUAD = 0,
     PT_MODEL = 1
   };
 
  protected:
-  CParticleEmitter2();
-  CParticleEmitter2(const CParticleEmitter2 &rhs, int deep = 0);
-  static NTempest::CPriorityQ<CSortableParticleRecord, CSortableParticleRecord> m_pq;
-  static const float                                                            VEL_UPDATE_TIME;
-  static const float                                                            MIN_ZSOURCE;
-  static float                                                                  m_rndTable[128];
-  static UINT                                                                   s_vertexNdx;
-  static UINT                                                                   s_indexNdx;
-  static UINT                                                                   s_renderedParticles;
-  static UINT                                                                   s_renderedIndices;
-  static UINT                                                                   s_maxParticles;
-  static NTempest::C3Vector                                                     s_quadVectors[4];
-  static NTempest::C44Matrix                                                    s_particleToView;
-
-  virtual void               Sync();
-  virtual void               CreateParticle(CParticle2_Model &p, float elapsedTime, const NTempest::C34Matrix &basis);
-  virtual void               CreateParticle(CParticle2 &p, float elapsedTime, const NTempest::C34Matrix &basis);
-  virtual void               DestroyParticle(CParticle2 &p);
-  virtual CParticleEmitter2 *Clone(int recursive) const = 0;
-
-  float                     CalcVelocity();
-  void                      ProjectParticle(CParticle2 &p);
-  BOOL                      MoveParticle(CParticle2 &p, float elapsedTime);
-  BOOL                      MoveParticle(CParticle2_Model &p, float elapsedTime);
-  void                      UpdateXform(const NTempest::C34Matrix &modelToWorld, const NTempest::C3Vector &cameraWorldPos);
-  void                      InternalUpdate(float elapsedTime, int suppressNewParticles);
-  void                      StepUpdate(float elapsedTime, int suppressNewParticles);
-  void                      SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, int suppressNewParticles);
-  BOOL                      IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx);
-  void                      IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf);
-  void                      IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf);
-  static void               BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf);
-  void                      RenderParticles();
-  BOOL                      RenderParticle(CParticle2_Model &p);
-  BOOL                      RenderParticle(CParticle2 &p, const NTempest::C34Matrix &basis, UINT headCell, UINT tailCell);
-  void                      RenderParticleModels();
-  __forceinline CParticle2 *GetParticle(UINT index) {
-    return m_particleType == PT_MODEL ? static_cast<CParticle2 *>(&m_modelParticles[index]) : &m_particles[index];
-  }
-  void SetTumble(NTempest::C2Vector &dst, const NTempest::C2Vector &src) {
-    dst.x = src.x;
-    dst.y = src.y - src.x;
-  }
-
- public:
-  virtual ~CParticleEmitter2();
-  virtual void SetWidth(float width) = 0;
-  virtual void SetHeight(float height) = 0;
-  virtual void SetLatitude(float latitude) = 0;
-  virtual void SetLongitude(float longitude) = 0;
-  virtual void SetEmissionRate(float particlesPerSecond);
-
-  CParticleEmitter2 *AddRef();
-  void               DecRef();
-  void               SetEnabled(int enable, int recurse);
-  void               SetEnabled2(int enable2, int recurse);
-  void               SetLifeSpan(float lifeSpan);
-  void               SetVelocity(float velocity);
-  void               SetAcceleration(float acceleration);
-  void               SetVelocityVariation(float variation);
-  void               SetAngularVelocity(float angularVelocity) {
-    m_particleAngularVelocity = angularVelocity;
-  }
-  void  SetZsource(float zsource);
-  void  SetMaterial(const CParticleMat &material, HTEXTURE hTex);
-  void  MaterialDisableLight(int disable);
-  void  MaterialDisableFog(int disable);
-  void  SetTexture(HTEXTURE hTex);
-  void  SetReplaceableId(UINT id);
-  UINT  ReplaceableId();
-  int   Enabled();
-  int   Enabled2();
-  float EmissionRate();
-  float LifeSpan();
-  float Velocity();
-  float Acceleration();
-  float VelocityVariation();
-  float AngularVelocity() const {
-    return m_particleAngularVelocity;
-  }
-  CParticleMat Material() const {
-    return m_particleMaterial;
-  }
-  HTEXTURE Texture() {
-    return m_hTex;
-  }
-  CParticleEmitter2 *ChildEmitter(UINT index) {
-    return m_childEmitter[index];
-  }
-  const CParticleKey &Key(UINT keyNdx);
-  void                TextureDimensions(UINT &rows, UINT &columns);
-  void                ParticleStyle(int &hasHead, int &hasTail, float &tailLength);
-  void                SetKey(UINT keyNdx, const CParticleKey &key);
-  void                SetTextureDimensions(UINT rows, UINT columns);
-  void                SetParticleStyle(BOOL hasHead, BOOL hasTail, float tailLength, bool tailGrows);
-  void                SetSortZ(int sortZ);
-  void                SetPriorityPlane(int priorityPlane) {
-    m_priorityPlane = priorityPlane;
-  }
-  void SetUseModelSpace(int useModelSpace) {
-    m_useModelSpace = useModelSpace;
-  }
-  void SetInstantVel(int instantVel) {
-    m_instantVelLin = instantVel;
-  }
-  void SetInstantVelScale(float scale) {
-    m_ivelScale = scale;
-  }
-  void Set0XKill(int kill) {
-    m_0XKill = kill;
-  }
-  void SetInheritScale(int inheritScale) {
-    m_inheritScale = inheritScale;
-  }
-  void SetExtrude(int extrude) {
-    m_extrude = extrude;
-  }
-  void SetXYQuads(int xyQuads) {
-    m_xyQuads = xyQuads;
-  }
-  void SetProject(int project) {
-    m_project = project;
-  }
-  void AddChildEmitter(CParticleEmitter2 *child);
-  void SetModel(HMODEL model);
-  void SetTwinkleFPS(float fps) {
-    m_twinkleFPS = fps;
-  }
-  void SetTwinkleOnOff(float onOff) {
-    m_twinkleOnOff = onOff;
-  }
-  void SetTwinkleScale(float minScale, float maxScale) {
-    m_twinkleScaleMin = minScale;
-    m_twinkleScaleMax = maxScale;
-    m_twinkleScaleRange = maxScale - minScale;
-  }
-  void SetZVelOnly(int zVelOnly) {
-    m_zvelOnly = zVelOnly;
-  }
-  void SetTumbleReverse(int reverse) {
-    m_tumbler = reverse;
-  }
-  void SetTumbleX(const NTempest::C2Vector &tumble) {
-    SetTumble(m_tumblex, tumble);
-  }
-  void SetTumbleY(const NTempest::C2Vector &tumble) {
-    SetTumble(m_tumbley, tumble);
-  }
-  void SetTumbleZ(const NTempest::C2Vector &tumble) {
-    SetTumble(m_tumblez, tumble);
-  }
-  void SetDrag(float drag) {
-    m_drag = drag;
-  }
-  void SetWind(const NTempest::C3Vector &wind, float time) {
-    m_windVector = wind;
-    m_windTime = time;
-  }
-  void SetFollowParams(float speed1, float scale1, float speed2, float scale2);
-  void SetFollow(int follow) {
-    m_follow = follow;
-  }
-  PARTICLE_EMITTER_TYPE EmitterType() const {
-    return m_emitterType;
-  }
-  void Squirt();
-  void Flush();
-  int  SortZ();
-  int  PriorityPlane() const {
-    return m_priorityPlane;
-  }
-  int UseModelSpace() const {
-    return m_useModelSpace;
-  }
-  void Render();
-  void Update(float elapsedTime, const NTempest::C34Matrix &modelToWorld, const NTempest::C3Vector &cameraWorldPos);
+  static const float VEL_UPDATE_TIME;
+  static const float MIN_ZSOURCE;
 
  private:
-  friend void AddEmitters2ToScene(CModel *modelptr, CModelShared *shared);
-
-  CParticleEmitter2 &operator=(const CParticleEmitter2 &);
-  void               SyncReserve(UINT arraySize, UINT oldSize, UINT oldReserve);
-  void               SyncAllocation(UINT arraySize);
-  BOOL               IsEnabled() {
-    return m_enabled && m_enabled2;
-  }
-  void EmitNewParticles(float elapsedTime, const NTempest::C34Matrix &basis);
-  void EmitParticle(float elapsedTime, const NTempest::C34Matrix &basis) {
-    UINT particle = m_dead.Pop();
-    m_alive.Push(particle);
-
-    CParticle2 *p = GetParticle(particle);
-    p->m_flags = 1;
-    if (m_particleType == PT_MODEL) {
-      CreateParticle(*static_cast<CParticle2_Model *>(p), elapsedTime, basis);
-    } else {
-      CreateParticle(*p, elapsedTime, basis);
-    }
-  }
-
   UINT  m_refCount;
   float m_numNew;
   UINT  m_textureLog;
@@ -357,7 +162,38 @@ class CParticleEmitter2 {
   float m_ooTextureHeight;
   int   m_priorityPlane;
 
+  void SyncReserve(UINT arraySize, UINT oldSize, UINT oldReserve);
+  void SyncAllocation(UINT arraySize);
+  BOOL IsEnabled() {
+    return m_enabled && m_enabled2;
+  }
+  void EmitNewParticles(float elapsedTime, const NTempest::C34Matrix &basis);
+  void EmitParticle(float elapsedTime, const NTempest::C34Matrix &basis) {
+    UINT particle = m_dead.Pop();
+    m_alive.Push(particle);
+
+    if (m_particleType == PT_QUAD) {
+      m_particles[particle].m_flags = CParticle2::F_BORN;
+      CreateParticle(m_particles[particle], elapsedTime, basis);
+    } else {
+      m_modelParticles[particle].m_flags = CParticle2::F_BORN;
+      CreateParticle(m_modelParticles[particle], elapsedTime, basis);
+    }
+  }
+  CParticleEmitter2 &operator=(const CParticleEmitter2 &);
+
  protected:
+  static NTempest::CPriorityQ<CSortableParticleRecord, CSortableParticleRecord> m_pq;
+  static float                                                                  m_rndTable[128];
+  static void                                                                   BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf);
+  static UINT                                                                   s_vertexNdx;
+  static UINT                                                                   s_indexNdx;
+  static NTempest::C44Matrix                                                    s_particleToView;
+  static NTempest::C3Vector                                                     s_quadVectors[4];
+  static UINT                                                                   s_maxParticles;
+  static UINT                                                                   s_renderedParticles;
+  static UINT                                                                   s_renderedIndices;
+
   PARTICLE_EMITTER_TYPE                             m_emitterType;
   PARTICLE_TYPE                                     m_particleType;
   NTempest::CRndSeed                                m_randSeed;
@@ -427,30 +263,174 @@ class CParticleEmitter2 {
   NTempest::C3Vector                                m_followVector;
   NTempest::C3Vector                                m_stepFollowVector;
   NTempest::C3Vector                                m_xyAxis;
+
+  float                     CalcVelocity();
+  virtual void              Sync();
+  virtual void              CreateParticle(CParticle2 &p, float elapsedTime, const NTempest::C34Matrix &basis);
+  virtual void              CreateParticle(CParticle2_Model &p, float elapsedTime, const NTempest::C34Matrix &basis);
+  BOOL                      MoveParticle(CParticle2 &p, float elapsedTime);
+  BOOL                      MoveParticle(CParticle2_Model &p, float elapsedTime);
+  BOOL                      RenderParticle(CParticle2 &p, const NTempest::C34Matrix &basis, UINT headCell, UINT tailCell);
+  BOOL                      RenderParticle(CParticle2_Model &p);
+  BOOL                      IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx);
+  void                      IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf);
+  void                      IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf);
+  void                      ProjectParticle(CParticle2 &p);
+  virtual void              DestroyParticle(CParticle2 &p);
+  void                      RenderParticles();
+  void                      RenderParticleModels();
+  CParticle2 *GetParticle(UINT index) {
+    return m_particleType == PT_QUAD ? &m_particles[index] : static_cast<CParticle2 *>(&m_modelParticles[index]);
+  }
+
+  CParticleEmitter2();
+  CParticleEmitter2(const CParticleEmitter2 &rhs, int deep = 0);
+  void                       SingletonMgrUpdate(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, int suppressNewParticles);
+  void                       InternalUpdate(float elapsedTime, int suppressNewParticles);
+  void                       StepUpdate(float elapsedTime, int suppressNewParticles);
+  void                       UpdateXform(const NTempest::C34Matrix &modelToWorld, const NTempest::C3Vector &cameraWorldPos);
+  virtual CParticleEmitter2 *Clone(int recursive) const = 0;
+  void                       SetTumble(NTempest::C2Vector &dst, const NTempest::C2Vector &src) {
+    dst.x = src.x;
+    dst.y = src.y - src.x;
+  }
+
+ public:
+  virtual ~CParticleEmitter2();
+  virtual void SetWidth(float width) = 0;
+  virtual void SetHeight(float height) = 0;
+  virtual void SetLatitude(float latitude) = 0;
+  virtual void SetLongitude(float longitude) = 0;
+  virtual void SetEmissionRate(float particlesPerSecond);
+
+  void SetEnabled(int enable, int recurse);
+  void SetEnabled2(int enable2, int recurse);
+  void SetLifeSpan(float lifeSpan);
+  void SetVelocity(float velocity);
+  void SetAcceleration(float acceleration);
+  void SetVelocityVariation(float variation);
+  void SetAngularVelocity(float angularVelocity) {
+    m_particleAngularVelocity = angularVelocity;
+  }
+  void SetZsource(float zsource);
+  void SetMaterial(const CParticleMat &material, HTEXTURE hTex);
+  void MaterialDisableLight(int disable);
+  void MaterialDisableFog(int disable);
+  void SetTexture(HTEXTURE hTex);
+  void SetReplaceableId(UINT id);
+  void SetKey(UINT keyNdx, const CParticleKey &key);
+  void SetTextureDimensions(UINT rows, UINT columns);
+  void SetParticleStyle(BOOL hasHead, BOOL hasTail, float tailLength, bool tailGrows);
+  void SetSortZ(int sortZ);
+  void SetPriorityPlane(int priorityPlane) {
+    m_priorityPlane = priorityPlane;
+  }
+  void SetUseModelSpace(int useModelSpace) {
+    m_useModelSpace = useModelSpace;
+  }
+  void SetInstantVel(int instantVel) {
+    m_instantVelLin = instantVel;
+  }
+  void SetInstantVelScale(float scale) {
+    m_ivelScale = scale;
+  }
+  void Set0XKill(int kill) {
+    m_0XKill = kill;
+  }
+  void SetInheritScale(int inheritScale) {
+    m_inheritScale = inheritScale;
+  }
+  void SetExtrude(int extrude) {
+    m_extrude = extrude;
+  }
+  void SetXYQuads(int xyQuads) {
+    m_xyQuads = xyQuads;
+  }
+  void SetProject(int project) {
+    m_project = project;
+  }
+  void AddChildEmitter(CParticleEmitter2 *child);
+  void SetModel(HMODEL model);
+  void SetTwinkleFPS(float fps) {
+    m_twinkleFPS = fps;
+  }
+  void SetTwinkleOnOff(float onOff) {
+    m_twinkleOnOff = onOff;
+  }
+  void SetTwinkleScale(float minScale, float maxScale) {
+    m_twinkleScaleMin = minScale;
+    m_twinkleScaleMax = maxScale;
+    m_twinkleScaleRange = maxScale - minScale;
+  }
+  void SetZVelOnly(int zVelOnly) {
+    m_zvelOnly = zVelOnly;
+  }
+  void SetTumbleReverse(int reverse) {
+    m_tumbler = reverse;
+  }
+  void SetTumbleX(const NTempest::C2Vector &tumble) {
+    SetTumble(m_tumblex, tumble);
+  }
+  void SetTumbleY(const NTempest::C2Vector &tumble) {
+    SetTumble(m_tumbley, tumble);
+  }
+  void SetTumbleZ(const NTempest::C2Vector &tumble) {
+    SetTumble(m_tumblez, tumble);
+  }
+  void SetDrag(float drag) {
+    m_drag = drag;
+  }
+  void SetWind(const NTempest::C3Vector &wind, float time) {
+    m_windVector = wind;
+    m_windTime = time;
+  }
+  void SetFollowParams(float speed1, float scale1, float speed2, float scale2);
+  void SetFollow(int follow) {
+    m_follow = follow;
+  }
+  PARTICLE_EMITTER_TYPE EmitterType() const {
+    return m_emitterType;
+  }
+  int   Enabled();
+  int   Enabled2();
+  float EmissionRate();
+  float LifeSpan();
+  float Velocity();
+  float Acceleration();
+  float VelocityVariation();
+  float AngularVelocity() const {
+    return m_particleAngularVelocity;
+  }
+  CParticleMat Material() const {
+    return m_particleMaterial;
+  }
+  HTEXTURE Texture() {
+    return m_hTex;
+  }
+  UINT               ReplaceableId();
+  CParticleEmitter2 *ChildEmitter(UINT index) {
+    return m_childEmitter[index];
+  }
+  const CParticleKey &Key(UINT keyNdx);
+  void                TextureDimensions(UINT &rows, UINT &columns);
+  void                ParticleStyle(int &hasHead, int &hasTail, float &tailLength);
+  int                 SortZ();
+  int                 PriorityPlane() const {
+    return m_priorityPlane;
+  }
+  int UseModelSpace() const {
+    return m_useModelSpace;
+  }
+  void               Update(float elapsedTime, const NTempest::C34Matrix &modelToWorld, const NTempest::C3Vector &cameraWorldPos);
+  void               Squirt();
+  void               Render();
+  void               Flush();
+  CParticleEmitter2 *AddRef();
+  void               DecRef();
 };
 
 class CPlaneParticleEmitter : public CParticleEmitter2 {
   friend class ParticleSystemManager;
-
- protected:
-  CPlaneParticleEmitter();
-  CPlaneParticleEmitter(const CPlaneParticleEmitter &rhs, int deep = 0);
-  virtual CParticleEmitter2 *Clone(int deep) const {
-    return NEW(CPlaneParticleEmitter)(*this, deep);
-  }
-  virtual void CreateParticle(CParticle2 &p, float elapsedTime, const NTempest::C34Matrix &basis);
-
- public:
-  virtual ~CPlaneParticleEmitter();
-  virtual void SetWidth(float width);
-  virtual void SetHeight(float height);
-  virtual void SetLatitude(float latInRadians);
-  virtual void SetLongitude(float longInRadians);
-
-  float Width();
-  float Height();
-  float Latitude();
-  float Longitude();
 
  private:
   void operator=(const CPlaneParticleEmitter &);
@@ -460,30 +440,29 @@ class CPlaneParticleEmitter : public CParticleEmitter2 {
   float m_height;
   float m_latitude;
   float m_longitude;
+
+  virtual void CreateParticle(CParticle2 &p, float elapsedTime, const NTempest::C34Matrix &basis);
+  CPlaneParticleEmitter();
+  CPlaneParticleEmitter(const CPlaneParticleEmitter &rhs, int deep = 0);
+  virtual CParticleEmitter2 *Clone(int deep) const {
+    return NEW(CPlaneParticleEmitter)(*this, deep);
+  }
+
+ public:
+  virtual ~CPlaneParticleEmitter();
+
+  float        Width();
+  float        Height();
+  float        Latitude();
+  float        Longitude();
+  virtual void SetWidth(float width);
+  virtual void SetHeight(float height);
+  virtual void SetLatitude(float latInRadians);
+  virtual void SetLongitude(float longInRadians);
 };
 
 class CSphereParticleEmitter : public CParticleEmitter2 {
   friend class ParticleSystemManager;
-
- protected:
-  CSphereParticleEmitter();
-  CSphereParticleEmitter(const CSphereParticleEmitter &rhs, int deep = 0);
-  virtual CParticleEmitter2 *Clone(int deep) const {
-    return NEW(CSphereParticleEmitter)(*this, deep);
-  }
-  virtual void CreateParticle(CParticle2 &p, float elapsedTime, const NTempest::C34Matrix &basis);
-
- public:
-  virtual ~CSphereParticleEmitter();
-  virtual void SetWidth(float radius);
-  virtual void SetHeight(float radius);
-  virtual void SetLatitude(float latInRadians);
-  virtual void SetLongitude(float longInRadians);
-
-  float InnerRadius();
-  float OuterRadius();
-  float Latitude();
-  float Longitude();
 
  private:
   void operator=(const CSphereParticleEmitter &);
@@ -494,35 +473,29 @@ class CSphereParticleEmitter : public CParticleEmitter2 {
   float m_radiusRange;
   float m_latitude;
   float m_longitude;
+
+  virtual void CreateParticle(CParticle2 &p, float elapsedTime, const NTempest::C34Matrix &basis);
+  CSphereParticleEmitter();
+  CSphereParticleEmitter(const CSphereParticleEmitter &rhs, int deep = 0);
+  virtual CParticleEmitter2 *Clone(int deep) const {
+    return NEW(CSphereParticleEmitter)(*this, deep);
+  }
+
+ public:
+  virtual ~CSphereParticleEmitter();
+
+  float        InnerRadius();
+  float        OuterRadius();
+  float        Latitude();
+  float        Longitude();
+  virtual void SetWidth(float radius);
+  virtual void SetHeight(float radius);
+  virtual void SetLatitude(float latInRadians);
+  virtual void SetLongitude(float longInRadians);
 };
 
 class CSplineParticleEmitter : public CParticleEmitter2 {
   friend class ParticleSystemManager;
-
- protected:
-  CSplineParticleEmitter();
-  CSplineParticleEmitter(const CSplineParticleEmitter &rhs, int deep = 0);
-  virtual CParticleEmitter2 *Clone(int deep) const {
-    return NEW(CSplineParticleEmitter)(*this, deep);
-  }
-  virtual void CreateParticle(CParticle2 &p, float elapsedTime, const NTempest::C34Matrix &basis);
-  void         SetActualEmissionRate() {
-    m_particleEmissionRate = m_end * m_requestedEmissionRate;
-  }
-
- public:
-  virtual ~CSplineParticleEmitter();
-  virtual void SetWidth(float start);
-  virtual void SetHeight(float end);
-  virtual void SetLatitude(float latInRadians);
-  virtual void SetLongitude(float radius);
-  virtual void SetEmissionRate(float particlesPerSecond);
-
-  void  SetSpline(const NTempest::C3Vector *points, UINT numPoints);
-  float Start();
-  float End();
-  float Latitude();
-  float Radius();
 
  private:
   void operator=(const CSplineParticleEmitter &);
@@ -535,4 +508,28 @@ class CSplineParticleEmitter : public CParticleEmitter2 {
   float                      m_radius;
   BOOL                       m_emitAtEnd;
   NTempest::C3Spline_Bezier3 m_spline;
+
+  virtual void CreateParticle(CParticle2 &p, float elapsedTime, const NTempest::C34Matrix &basis);
+  CSplineParticleEmitter();
+  CSplineParticleEmitter(const CSplineParticleEmitter &rhs, int deep = 0);
+  virtual CParticleEmitter2 *Clone(int deep) const {
+    return NEW(CSplineParticleEmitter)(*this, deep);
+  }
+  void SetActualEmissionRate() {
+    m_particleEmissionRate = m_end * m_requestedEmissionRate;
+  }
+
+ public:
+  virtual ~CSplineParticleEmitter();
+
+  float        Start();
+  float        End();
+  float        Latitude();
+  float        Radius();
+  virtual void SetWidth(float start);
+  virtual void SetHeight(float end);
+  virtual void SetLatitude(float latInRadians);
+  virtual void SetLongitude(float radius);
+  virtual void SetEmissionRate(float particlesPerSecond);
+  void         SetSpline(const NTempest::C3Vector *points, UINT numPoints);
 };

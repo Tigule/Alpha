@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "LootFrame.h"
 
@@ -400,7 +408,8 @@ static int Script_GetNumLootItems(lua_State *L) {
 
 static int Script_GetLootSlotInfo(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetLootSlotInfo(slot)");
+    luaL_error(L, "Usage: GetLootSlotInfo(slot)");
+    return 0;
   }
   UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   lua_pushstring(L, CGLootInfo::GetLootSlotTexture(slot));
@@ -412,7 +421,8 @@ static int Script_GetLootSlotInfo(lua_State *L) {
 
 static int Script_GetLootSlotLink(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetLootSlotLink(slot)");
+    luaL_error(L, "Usage: GetLootSlotLink(slot)");
+    return 0;
   }
   char link[1024];
   lua_pushstring(L, CGLootInfo::GetLootSlotLink(static_cast<UINT>(lua_tonumber(L, 1)) - 1, link, sizeof(link)));
@@ -421,7 +431,8 @@ static int Script_GetLootSlotLink(lua_State *L) {
 
 static int Script_LootSlotIsItem(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: LootSlotIsItem(slot)");
+    luaL_error(L, "Usage: LootSlotIsItem(slot)");
+    return 0;
   }
   if (CGLootInfo::GetLootItem(static_cast<UINT>(lua_tonumber(L, 1)) - 1) > 0) {
     lua_pushnumber(L, 1.0);
@@ -433,7 +444,8 @@ static int Script_LootSlotIsItem(lua_State *L) {
 
 static int Script_LootSlotIsCoin(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: LootSlotIsCoin(slot)");
+    luaL_error(L, "Usage: LootSlotIsCoin(slot)");
+    return 0;
   }
   if (CGLootInfo::GetLootCoin(static_cast<UINT>(lua_tonumber(L, 1)) - 1) > 0) {
     lua_pushnumber(L, 1.0);
@@ -445,7 +457,8 @@ static int Script_LootSlotIsCoin(lua_State *L) {
 
 static int Script_LootSlot(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: LootSlot(slot [, force])");
+    luaL_error(L, "Usage: LootSlot(slot [, force])");
+    return 0;
   }
   UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   int  force = lua_isnumber(L, 2) ? static_cast<int>(lua_tonumber(L, 2)) : 0;

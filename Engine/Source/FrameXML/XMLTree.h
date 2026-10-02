@@ -11,11 +11,6 @@ void __cdecl handle_body(LPVOID userData, LPCSTR body, int length);
 
 class XMLNode {
  public:
-  struct XMLAttribute {
-    char *name;
-    char *value;
-  };
-
   XMLNode(XMLNode *parent, LPCSTR name);
   ~XMLNode();
 
@@ -56,6 +51,12 @@ class XMLNode {
   char         *m_name;
   char         *m_body;
   int           m_num_attributes;
+
+  struct XMLAttribute {
+    char *name;
+    char *value;
+  };
+
   XMLAttribute *m_attributes;
   int           m_offset;
   XMLNode      *m_next;

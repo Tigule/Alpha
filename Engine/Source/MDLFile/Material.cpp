@@ -38,20 +38,20 @@ static void ITextureAddErrors(TSet &errors) {
 static MDLTEXOP IReadFilterMode(Parser &parse) {
   LPCSTR tokenText;
   switch (parse.Token(&tokenText, 0)) {
+    case 0x1C8:
+      return TEXOP_TRANSPARENT;
+    case 0x12E:
+      return TEXOP_BLEND;
     case 0x11A:
       return TEXOP_ADD;
     case 0x11B:
       return TEXOP_ADD_ALPHA;
-    case 0x12E:
-      return TEXOP_BLEND;
     case 0x172:
       return TEXOP_MODULATE;
     case 0x173:
       return TEXOP_MODULATE2X;
     case 0x179:
       return TEXOP_LOAD;
-    case 0x1C8:
-      return TEXOP_TRANSPARENT;
     default:
       parse.FatalUnexpected(tokenText);
       return TEXOP_LOAD;

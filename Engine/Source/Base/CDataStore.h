@@ -5,6 +5,8 @@
 
 class unreal;
 
+#pragma pack(push, 1)
+
 class CDataStore {
  public:
   template <class T>
@@ -97,19 +99,20 @@ class CDataStore {
   }
 
   static BYTE *Realloc(BYTE *data, UINT bytes, LPCSTR fileName, int lineNumber) {
-    if (!fileName) {
-      fileName = __FILE__;
-      lineNumber = __LINE__;
-    }
-
-    return static_cast<BYTE *>(SMemReAlloc(data, bytes, fileName, lineNumber, 0));
+    return static_cast<BYTE *>(SMemReAlloc(data, bytes, fileName ? fileName : __FILE__, fileName ? lineNumber : __LINE__, 0));
   }
 
+ private:
+  BYTE *m_data;
+  UINT  m_base;
+  UINT  m_alloc;
+  UINT  m_size;
+  UINT  m_read;
+
  protected:
+  void PutSpace(UINT bytes);
+
   virtual void InternalInitialize(BYTE *&data, UINT &base, UINT &alloc);
-  virtual void InternalDestroy(BYTE *&data, UINT &base, UINT &alloc);
-  virtual BOOL InternalFetchRead(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc);
-  virtual BOOL InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber);
 
   void Initialize() {
     if (m_alloc != static_cast<UINT>(-1)) {
@@ -117,21 +120,25 @@ class CDataStore {
     }
   }
 
+  virtual void InternalDestroy(BYTE *&data, UINT &base, UINT &alloc);
+
   void Destroy() {
     if (m_alloc != static_cast<UINT>(-1)) {
       InternalDestroy(m_data, m_base, m_alloc);
     }
   }
 
+  virtual BOOL InternalFetchRead(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc);
+
   BOOL FetchRead(UINT pos, UINT bytes) {
     if (pos + bytes > m_size) {
-      Seek(m_size + 1);
+      Invalidate();
       return 0;
     }
 
     if (pos < m_base || pos + bytes > m_base + m_alloc) {
       if (!InternalFetchRead(pos, bytes, m_data, m_base, m_alloc)) {
-        Seek(m_size + 1);
+        Invalidate();
         return 0;
       }
 
@@ -141,6 +148,8 @@ class CDataStore {
 
     return 1;
   }
+
+  virtual BOOL InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber);
 
   BOOL FetchWrite(UINT pos, UINT bytes, LPCSTR fileName, int lineNumber) {
     if (pos < m_base || pos + bytes > m_base + m_alloc) {
@@ -161,8 +170,6 @@ class CDataStore {
     }
   }
 
-  void PutSpace(UINT bytes);
-
  public:
   CDataStore() : m_data(0), m_base(0), m_alloc(0), m_size(0), m_read(-1) {
   }
@@ -176,6 +183,16 @@ class CDataStore {
     Destroy();
   }
 
+  operator LPVOID() const;
+
+  int operator!() const {
+    return !IsValid();
+  }
+
+  BOOL IsReadOnly() const {
+    return m_alloc == static_cast<UINT>(-1);
+  }
+
   BOOL IsFinal() const {
     return m_read != static_cast<UINT>(-1);
   }
@@ -184,14 +201,11 @@ class CDataStore {
     return m_read <= m_size;
   }
 
-  BOOL IsReadOnly() const {
-    return m_alloc == static_cast<UINT>(-1);
-  }
-
-  operator LPVOID() const;
-
-  int operator!() const {
-    return !IsValid();
+  virtual BOOL IsRead() const;
+  virtual void Reset();
+  virtual void Finalize() {
+    ASSERT(!IsFinal());
+    m_read = 0;
   }
 
   void Unfinalize() {
@@ -199,14 +213,8 @@ class CDataStore {
   }
 
   void Invalidate() {
+    ASSERT(IsFinal());
     m_read = m_size + 1;
-  }
-
-  virtual BOOL IsRead() const;
-  virtual void Reset();
-  virtual void Finalize() {
-    ASSERT(!IsFinal());
-    m_read = 0;
   }
 
   void Seek(UINT pos) {
@@ -272,21 +280,20 @@ class CDataStore {
   CDataStore &PutString(LPCSTR pval);
   CDataStore &PutString(const WORD *pval);
   CDataStore &PutArray(const BYTE *pval, UINT count);
+  CDataStore &PutArray(const WORD *pval, UINT count);
+  CDataStore &PutArray(const DWORD *pval, UINT count);
+  CDataStore &PutArray(const DWORDLONG *pval, UINT count);
+  CDataStore &PutArray(const float *pval, UINT count);
   CDataStore &PutArray(LPCSTR pval, UINT count) {
     return PutArray(reinterpret_cast<const BYTE *>(pval), count);
   }
   CDataStore &PutArray(const short *pval, UINT count) {
     return PutArray(reinterpret_cast<const WORD *>(pval), count);
   }
-  CDataStore &PutArray(const WORD *pval, UINT count);
   CDataStore &PutArray(const long *pval, UINT count) {
     return PutArray(reinterpret_cast<const DWORD *>(pval), count);
   }
-  CDataStore &PutArray(const DWORD *pval, UINT count);
-  CDataStore &PutArray(const DWORDLONG *pval, UINT count);
-  CDataStore &PutArray(const float *pval, UINT count);
   CDataStore &PutArray(const unreal *pval, UINT count);
-  CDataStore &PutData(LPCVOID pval, UINT bytes);
 
   CDataStore &PutBool(int val) {
     return Put(val);
@@ -360,6 +367,7 @@ class CDataStore {
   CDataStore &PutFloatArray(const float *val, UINT count) {
     return PutArray(val, count);
   }
+  CDataStore &PutData(LPCVOID pval, UINT bytes);
 
   CDataStore &operator<<(char val) {
     return Put(val);
@@ -415,30 +423,32 @@ class CDataStore {
   CDataStore &GetString(char *pval, UINT maxChars);
   CDataStore &GetString(WORD *pval, UINT maxChars);
   CDataStore &GetArray(BYTE *pval, UINT count);
+  CDataStore &GetArray(WORD *pval, UINT count);
+  CDataStore &GetArray(DWORD *pval, UINT count);
+  CDataStore &GetArray(DWORDLONG *pval, UINT count);
+  CDataStore &GetArray(float *pval, UINT count);
   CDataStore &GetArray(char *pval, UINT count) {
     return GetArray(reinterpret_cast<BYTE *>(pval), count);
   }
   CDataStore &GetArray(short *pval, UINT count) {
     return GetArray(reinterpret_cast<WORD *>(pval), count);
   }
-  CDataStore &GetArray(WORD *pval, UINT count);
   CDataStore &GetArray(long *pval, UINT count) {
     return GetArray(reinterpret_cast<DWORD *>(pval), count);
   }
-  CDataStore &GetArray(DWORD *pval, UINT count);
-  CDataStore &GetArray(DWORDLONG *pval, UINT count);
-  CDataStore &GetArray(float *pval, UINT count);
   CDataStore &GetArray(unreal *pval, UINT count);
   CDataStore &GetData(LPVOID pval, UINT bytes);
   CDataStore &GetDataInSitu(LPVOID &pval, UINT bytes);
 
+  CDataStore &GetBool(int &val) {
+    return Get(val);
+  }
   int GetBool() {
     int val;
     Get(val);
     return val;
   }
-
-  CDataStore &GetBool(int &val) {
+  CDataStore &GetChar(char &val) {
     return Get(val);
   }
   char GetChar() {
@@ -446,7 +456,7 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetChar(char &val) {
+  CDataStore &GetUchar(BYTE &val) {
     return Get(val);
   }
   BYTE GetUchar() {
@@ -454,16 +464,16 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetUchar(BYTE &val) {
+  CDataStore &GetByte(BYTE &val) {
     return Get(val);
   }
   BYTE GetByte() {
     return GetUchar();
   }
-  CDataStore &GetByte(BYTE &val) {
+  CDataStore &GetTchar(char &val) {
     return Get(val);
   }
-  CDataStore &GetTchar(char &val) {
+  CDataStore &GetShort(short &val) {
     return Get(val);
   }
   short GetShort() {
@@ -471,7 +481,7 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetShort(short &val) {
+  CDataStore &GetUshort(WORD &val) {
     return Get(val);
   }
   WORD GetUshort() {
@@ -479,13 +489,13 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetUshort(WORD &val) {
+  CDataStore &GetWord(WORD &val) {
     return Get(val);
   }
   WORD GetWord() {
     return GetUshort();
   }
-  CDataStore &GetWord(WORD &val) {
+  CDataStore &GetInt(int &val) {
     return Get(val);
   }
   int GetInt() {
@@ -493,7 +503,7 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetInt(int &val) {
+  CDataStore &GetUint(UINT &val) {
     return Get(val);
   }
   UINT GetUint() {
@@ -501,7 +511,7 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetUint(UINT &val) {
+  CDataStore &GetLong(long &val) {
     return Get(val);
   }
   long GetLong() {
@@ -509,7 +519,7 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetLong(long &val) {
+  CDataStore &GetUlong(DWORD &val) {
     return Get(val);
   }
   DWORD GetUlong() {
@@ -517,13 +527,13 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetUlong(DWORD &val) {
+  CDataStore &GetDword(DWORD &val) {
     return Get(val);
   }
   DWORD GetDword() {
     return GetUlong();
   }
-  CDataStore &GetDword(DWORD &val) {
+  CDataStore &GetLonglong(LONGLONG &val) {
     return Get(val);
   }
   LONGLONG GetLonglong() {
@@ -531,7 +541,7 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetLonglong(LONGLONG &val) {
+  CDataStore &GetUlonglong(DWORDLONG &val) {
     return Get(val);
   }
   DWORDLONG GetUlonglong() {
@@ -539,16 +549,13 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetUlonglong(DWORDLONG &val) {
+  CDataStore &GetFloat(float &val) {
     return Get(val);
   }
   float GetFloat() {
     float val;
     Get(val);
     return val;
-  }
-  CDataStore &GetFloat(float &val) {
-    return Get(val);
   }
   CDataStore &GetCharString(char *val, UINT maxChars) {
     return GetString(val, maxChars);
@@ -606,13 +613,8 @@ class CDataStore {
   CDataStore &operator>>(float &val) {
     return Get(val);
   }
-
- private:
-  BYTE *m_data;
-  UINT  m_base;
-  UINT  m_alloc;
-  UINT  m_size;
-  UINT  m_read;
 };
+
+#pragma pack(pop)
 
 #endif

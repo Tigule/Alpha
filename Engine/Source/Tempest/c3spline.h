@@ -121,7 +121,6 @@ namespace NTempest {
     void  Vel(float t, C3Vector &vel, EvalType ptype) const;
     void  Frame(float t, C34Matrix &frame, EvalType ptype) const;
     float Length() const {
-      ValidateCache();
       return cachedLength;
     }
   };
@@ -191,7 +190,8 @@ namespace NTempest {
       splineMode = mode;
     }
 
-    C3Spline_CatmullRom() : splineMode(MODE_CATMULLROM) {
+    C3Spline_CatmullRom() {
+      splineMode = MODE_CATMULLROM;
     }
     C3Spline_CatmullRom(const C3Spline_CatmullRom &spline) : C3Spline(spline), splineMode(spline.splineMode) {
     }

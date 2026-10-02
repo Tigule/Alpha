@@ -98,7 +98,9 @@ namespace ProfileInternal {
     DWORD        chars;
     char        *dest;
 
-    FATALASSERT(string);
+    VALIDATEBEGIN;
+    VALIDATE(string);
+    VALIDATEEND;
 
     if (inSitu) {
       stringBlock = stringBlockList.Head();
@@ -128,7 +130,9 @@ namespace ProfileInternal {
   void STRINGBLOCK::FreeString(LIST(STRINGBLOCK) & stringBlockList, char *string) {
     STRINGBLOCK *stringBlock;
 
-    FATALASSERT(string);
+    VALIDATEBEGIN;
+    VALIDATE(string);
+    VALIDATEENDVOID;
 
     stringBlock = stringBlockList.Head();
     while (stringBlock && !stringBlock->Contains(string)) {
@@ -450,13 +454,17 @@ HPROFILE ProfileCreate() {
 }
 
 int ProfileReadFile(HPROFILE handle, LPCSTR path) {
-  FATALASSERT(path);
+  VALIDATEBEGIN;
+  VALIDATE(path);
+  VALIDATEEND;
 
   return ProfileInternal::IReadFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
 }
 
 int ProfileWriteFile(HPROFILE handle, LPCSTR path) {
-  FATALASSERT(path);
+  VALIDATEBEGIN;
+  VALIDATE(path);
+  VALIDATEEND;
 
   return ProfileInternal::IWriteFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
 }
@@ -466,15 +474,19 @@ int ProfileReadBuffer(HPROFILE handle, LPCVOID buffer, DWORD bufferBytes) {
 }
 
 BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   return ProfileAddValue(handle, section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR);
 }
 
 BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%d", value);
@@ -482,8 +494,10 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
 }
 
 BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%I64d", value);
@@ -491,8 +505,10 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value
 }
 
 BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%f", value);
@@ -500,8 +516,10 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
 }
 
 BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   char strValue[256];
   unreal::asString(value, strValue, 1, -1);
@@ -510,24 +528,30 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &
 }
 
 BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATE(value);
+  VALIDATEEND;
 
   ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, value, 0, 0);
   return 1;
 }
 
 BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   return ProfileSetValue(handle, section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR);
 }
 
 BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%d", value);
@@ -535,8 +559,10 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
 }
 
 BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%I64d", value);
@@ -544,8 +570,10 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value
 }
 
 BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%f", value);
@@ -553,8 +581,10 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
 }
 
 BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   char strValue[256];
   unreal::asString(value, strValue, 1, -1);
@@ -563,9 +593,11 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &
 }
 
 BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) {
-  FATALASSERT(section);
-  FATALASSERT(key);
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATE(value);
+  VALIDATEEND;
 
   ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, value, 1, 0);
   return 1;
@@ -574,9 +606,11 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) 
 BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool *value, UINT index) {
   LPCSTR string;
 
-  FATALASSERT(section);
-  FATALASSERT(key);
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATE(value);
+  VALIDATEEND;
 
   *value = false;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
@@ -591,11 +625,11 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool *value, U
 BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int *value, UINT index) {
   LPCSTR string;
 
-  FATALASSERT(section);
-
-  FATALASSERT(key);
-
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATE(value);
+  VALIDATEEND;
 
   *value = 0;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
@@ -610,9 +644,11 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int *value, UI
 BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG *value, UINT index) {
   LPCSTR string;
 
-  FATALASSERT(section);
-  FATALASSERT(key);
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATE(value);
+  VALIDATEEND;
 
   *value = 0;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
@@ -627,9 +663,11 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG *valu
 BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float *value, UINT index) {
   LPCSTR string;
 
-  FATALASSERT(section);
-  FATALASSERT(key);
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATE(value);
+  VALIDATEEND;
 
   *value = 0.0f;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
@@ -644,9 +682,11 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float *value, 
 BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, unreal *value, UINT index) {
   LPCSTR string;
 
-  FATALASSERT(section);
-  FATALASSERT(key);
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATE(value);
+  VALIDATEEND;
 
   *value = u_0;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
@@ -661,11 +701,11 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, unreal *value,
 BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, char *value, UINT maxChars, UINT index) {
   LPCSTR string;
 
-  FATALASSERT(section);
-
-  FATALASSERT(key);
-
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATE(value);
+  VALIDATEEND;
 
   value[0] = 0;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
@@ -678,15 +718,19 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, char *value, U
 }
 
 LPCSTR ProfileGetValueNoCopy(HPROFILE handle, LPCSTR section, LPCSTR key, UINT index) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   return ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
 }
 
 UINT ProfileGetNumValues(HPROFILE handle, LPCSTR section, LPCSTR key) {
-  FATALASSERT(section);
-  FATALASSERT(key);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATEEND;
 
   return ProfileInternal::IGetNumValues(static_cast<ProfileInternal::PROFILE *>(handle), section, key);
 }
@@ -695,9 +739,11 @@ int ProfileGetValueIndex(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR val
   UINT   index;
   LPCSTR candidate;
 
-  FATALASSERT(section);
-  FATALASSERT(key);
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(section);
+  VALIDATE(key);
+  VALIDATE(value);
+  VALIDATEEND;
 
   index = 0;
   candidate = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
@@ -717,7 +763,9 @@ void ProfileEnumKeys(HPROFILE handle, LPCSTR sectionName, PROFILEENUMKEYCALLBACK
 
   profile = static_cast<ProfileInternal::PROFILE *>(handle);
   pSection = profile->sectionTable.Ptr(sectionName);
-  FATALASSERT(pSection);
+  VALIDATEBEGIN;
+  VALIDATE(pSection);
+  VALIDATEENDVOID;
 
   key = pSection->keyTable.Head();
   while (key) {
@@ -742,7 +790,9 @@ BOOL ProfileSectionExists(HPROFILE profile, LPCSTR section) {
   ProfileInternal::PROFILE *profilePtr;
 
   profilePtr = static_cast<ProfileInternal::PROFILE *>(profile);
-  FATALASSERT(profilePtr);
+  VALIDATEBEGIN;
+  VALIDATE(profilePtr);
+  VALIDATEEND;
 
   return profilePtr->sectionTable.Ptr(section) != 0;
 }

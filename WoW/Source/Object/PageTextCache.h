@@ -11,13 +11,13 @@ class PageTextCache {
     m_text[0] = 0;
   }
 
+  char m_text[0x1F4];
+  int  m_nextPage;
+
   static int Version() {
     return 1;
   }
   void Pack(CDataStore *msg);
-
-  char m_text[0x1F4];
-  int  m_nextPage;
 };
 
 class PageTextCache_C : public PageTextCache {

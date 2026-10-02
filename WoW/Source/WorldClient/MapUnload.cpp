@@ -24,7 +24,11 @@ void CMap::Unload() {
   mapObjNamesIndex.Clear();
 
   CMapBaseObjLink *link = mapObjDefLinkList.Head();
-  while (reinterpret_cast<long>(link) > 0) {
+  while (1) {
+    if ((int)link <= 0) {
+      break;
+    }
+
     CMapBaseObjLink *next = mapObjDefLinkList.RawNext(link);
     CMapObjDef      *mapObjDef = static_cast<CMapObjDef *>(link->owner);
     FreeBaseObjLink(link);
@@ -33,7 +37,11 @@ void CMap::Unload() {
   }
 
   link = doodadDefLinkList.Head();
-  while (reinterpret_cast<long>(link) > 0) {
+  while (1) {
+    if ((int)link <= 0) {
+      break;
+    }
+
     CMapBaseObjLink *next = doodadDefLinkList.RawNext(link);
     CMapDoodadDef   *doodadDef = static_cast<CMapDoodadDef *>(link->owner);
     FreeBaseObjLink(link);

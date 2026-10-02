@@ -31,7 +31,9 @@ static void CollisionDataAddFacets(
     TSGrowableArray<NTempest::CFacet> *facets
 ) {
   FATALASSERT(handle);
-  FATALASSERT(facets);
+  VALIDATEBEGIN;
+  VALIDATE(facets);
+  VALIDATEENDVOID;
 
   NTempest::C33Matrix rotation(
       toWorld.a0 * scale, toWorld.a1 * scale, toWorld.a2 * scale, toWorld.b0 * scale, toWorld.b1 * scale, toWorld.b2 * scale, toWorld.c0 * scale,
@@ -255,12 +257,15 @@ int ModelCollisionVectorIntersect(
 }
 
 void ModelShowCollision(HMODEL model, int show) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEENDVOID;
 
   CModelBase   *unique;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SHOW_COLLISION, show);
+  if (!IModelDerefHandle(modelptr, &unique, &shared)) {
+    EnqueueModelCommand(modelptr, MODEL_SHOW_COLLISION, show);
     return;
   }
 
@@ -275,12 +280,15 @@ void ModelShowCollision(HMODEL model, int show) {
 }
 
 void ModelShowCollisionAaBox(HMODEL model, int show) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEENDVOID;
 
   CModelBase   *unique;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SHOW_COLLISION_AABOX, show);
+  if (!IModelDerefHandle(modelptr, &unique, &shared)) {
+    EnqueueModelCommand(modelptr, MODEL_SHOW_COLLISION_AABOX, show);
     return;
   }
 
@@ -299,11 +307,14 @@ void ModelShowCollisionAaBox(HMODEL model, int show) {
 }
 
 void ModelShowModel(HMODEL model, int show) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEENDVOID;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SHOW_MODEL, show);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SHOW_MODEL, show);
     return;
   }
 

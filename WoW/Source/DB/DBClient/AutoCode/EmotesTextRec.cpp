@@ -15,11 +15,14 @@ EmotesTextRec::~EmotesTextRec() {
 
 bool EmotesTextRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempnameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempnameIndices[0]) ||
-      !SFileReadTyped(f, &m_emoteID) ||
-      !SFile::Read(f, m_emoteText, sizeof(m_emoteText), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempnameIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &m_emoteID) == 0);
+  error |= (SFileReadTyped(f, &m_emoteText) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading EmotesTextRec", DEFAULT_COLOR);
     return false;
   }

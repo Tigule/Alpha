@@ -15,9 +15,12 @@ AttackAnimTypesRec::~AttackAnimTypesRec() {
 
 bool AttackAnimTypesRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempAnimNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_AnimID) ||
-      !SFileReadTyped(f, &tempAnimNameIndices[0])) {
+  error |= (SFileReadTyped(f, &m_AnimID) == 0);
+  error |= (SFileReadTyped(f, &tempAnimNameIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading AttackAnimTypesRec", DEFAULT_COLOR);
     return false;
   }

@@ -14,15 +14,18 @@ TaxiPathNodeRec::~TaxiPathNodeRec() {
 }
 
 bool TaxiPathNodeRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_PathID) ||
-      !SFileReadTyped(f, &m_NodeIndex) ||
-      !SFileReadTyped(f, &m_ContinentID) ||
-      !SFileReadTyped(f, &m_LocX) ||
-      !SFileReadTyped(f, &m_LocY) ||
-      !SFileReadTyped(f, &m_LocZ) ||
-      !SFileReadTyped(f, &m_flags)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_PathID) == 0);
+  error |= (SFileReadTyped(f, &m_NodeIndex) == 0);
+  error |= (SFileReadTyped(f, &m_ContinentID) == 0);
+  error |= (SFileReadTyped(f, &m_LocX) == 0);
+  error |= (SFileReadTyped(f, &m_LocY) == 0);
+  error |= (SFileReadTyped(f, &m_LocZ) == 0);
+  error |= (SFileReadTyped(f, &m_flags) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading TaxiPathNodeRec", DEFAULT_COLOR);
     return false;
   }

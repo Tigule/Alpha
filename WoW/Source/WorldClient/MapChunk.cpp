@@ -182,7 +182,7 @@ CChunkLayer::CChunkLayer() {
 }
 
 CChunkLayer::~CChunkLayer() {
-  ASSERT(gxTexture == 0);
+  ASSERT(gxTexture==0);
   ASSERT(tex == 0);
 }
 
@@ -442,8 +442,8 @@ CMapChunk::CMapChunk() {
 }
 
 CMapChunk::~CMapChunk() {
-  ASSERT(detailDoodadInst == 0);
-  ASSERT(asyncObject == 0);
+  ASSERT(detailDoodadInst==0);
+  ASSERT(asyncObject==0);
   ASSERT(refCount == 0);
   ASSERT(gxBuf == 0);
   ASSERT(shaderGxTexture == 0);
@@ -559,7 +559,7 @@ void CMapChunk::SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, BYTE *&shadowTex, B
   SFile::Read(CMap::wdtFile, s_syncLoadBuffer.Ptr(), fileSize, 0, 0, 0);
 
   SIffChunk *iffChunk = reinterpret_cast<SIffChunk *>(s_syncLoadBuffer.Ptr());
-  FATALASSERT(iffChunk->token == 'MCNK');
+  FATALASSERT(iffChunk->token=='MCNK');
   mChunk = reinterpret_cast<SMChunk *>(iffChunk + 1);
 
   float    *mHeights = reinterpret_cast<float *>(mChunk + 1);
@@ -993,7 +993,7 @@ void CMapChunk::CreateChunkShaderTex() {
   UnpackAlphaShadowBits(reinterpret_cast<NTempest::CImVector *>(shaderTexture->pixels), shadowBits, alpha, shadowOffs);
 }
 
-void CMapChunk::UnpackAlphaShadowBits(NTempest::CImVector *texels, DWORD *bits, const BYTE *const *const alpha, const BYTE *shadow) {
+void CMapChunk::UnpackAlphaShadowBits(NTempest::CImVector *texels, DWORD *bits, const BYTE *const alpha[], const BYTE *shadow) {
   UINT coordDelta = 1;
   if (CWorld::shadowMipLevel == 1) {
     coordDelta = 2;

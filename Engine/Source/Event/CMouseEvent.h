@@ -120,17 +120,20 @@ class CMouseEvent : public CEvent, public EVENT_DATA_MOUSE {
   }
 
   CMouseEvent(const EVENT_DATA_MOUSE &data) {
-    mode = data.mode;
-    button = data.button;
-    buttonState = data.buttonState;
-    metaKeyState = data.metaKeyState;
-    flags = data.flags;
-    time = data.time;
-    wheelDistance = data.wheelDistance;
-    NDCToDDC(data.x, data.y, &x, &y);
+    *this = data;
   }
 
-  CMouseEvent &operator=(const EVENT_DATA_MOUSE &rhs);
+  CMouseEvent &operator=(const EVENT_DATA_MOUSE &rhs) {
+    mode = rhs.mode;
+    button = rhs.button;
+    buttonState = rhs.buttonState;
+    metaKeyState = rhs.metaKeyState;
+    flags = rhs.flags;
+    time = rhs.time;
+    wheelDistance = rhs.wheelDistance;
+    NDCToDDC(rhs.x, rhs.y, &x, &y);
+    return *this;
+  }
 
   virtual ~CMouseEvent() {
   }

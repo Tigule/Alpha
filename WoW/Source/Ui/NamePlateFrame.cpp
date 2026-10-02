@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "Ui/NamePlateFrame.h"
 
@@ -56,7 +64,9 @@ CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame *parent) : CSimpleButton(parent)
 }
 
 void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
-  FATALASSERT(unit);
+  VALIDATEBEGIN;
+  VALIDATE(unit);
+  VALIDATEENDVOID;
   m_unit = unit->GetGUID();
 
   char level[32];

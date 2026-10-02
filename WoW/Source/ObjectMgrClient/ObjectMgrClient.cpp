@@ -16,6 +16,8 @@
 #include "Console/ConsoleCommand.h"
 #include "Object/Object.h"
 #include "Object/ObjectClient/Bag_C.h"
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
 #include "Object/ObjectClient/Container_C.h"
 #include "Object/ObjectClient/Corpse_C.h"
 #include "Object/ObjectClient/DynamicObject_C.h"

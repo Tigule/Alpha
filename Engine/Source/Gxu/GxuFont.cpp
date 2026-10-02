@@ -121,7 +121,9 @@ int GxuFontCreateFont(LPCSTR name, float fontHeight, CGxFont *&face, UINT flags)
 
   FATALASSERT(*name);
 
-  FATALASSERT((fontHeight < 1.0f) && (fontHeight > 0));
+  VALIDATEBEGIN;
+  VALIDATE(( fontHeight < 1.0f ) && ( fontHeight > 0 ));
+  VALIDATEEND;
 
   ASSERT(s_FTLibrary);
 
@@ -179,9 +181,10 @@ int GxuFontCreateString(
   CGxString *newString;
   int        result;
 
-  FATALASSERT(face);
+  VALIDATEBEGIN;
+  VALIDATE(face);
 
-  FATALASSERT(text);
+  VALIDATE(text);
 
   FATALASSERT(fontHeight || (flags & EGxStringFlags_FixedSize));
 
@@ -191,7 +194,8 @@ int GxuFontCreateString(
 
   FATALASSERT(vertJustification < GxVJ_Last);
 
-  FATALASSERT(horzJustification < GxHJ_Last);
+  VALIDATE(horzJustification < GxHJ_Last);
+  VALIDATEEND;
 
   if (flags & 0x80) {
     flags &= ~0x1u;
@@ -236,9 +240,10 @@ int GxuFontRenderString(
 
   FATALASSERT(textHeight || (flags & EGxStringFlags_FixedSize));
 
-  FATALASSERT(font);
-
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(font);
+  VALIDATE(text);
+  VALIDATEEND;
 
   newString = CGxString::GetNewString(0);
   result =
@@ -337,9 +342,10 @@ void GxuFontGetWrapPoint(
     float    spacing,
     UINT     flags
 ) {
-  FATALASSERT(face);
-
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(face);
+  VALIDATE(text);
+  VALIDATEENDVOID;
 
   CalcWrapPoint(face, text, fontHeight, blockWidth, numBytes, pExtent, pNextText, flags);
 }
@@ -351,9 +357,10 @@ float GxuFontGetWrappedTextHeight(CGxFont *face, LPCSTR text, float fontHeight, 
   LPCSTR nextText = 0;
   LPCSTR currentText;
 
-  FATALASSERT(face);
-
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(face);
+  VALIDATE(text);
+  VALIDATEEND;
 
   if (flags & 0x4) {
     fontHeight = GxuFontGetOneToOneHeight(face);
@@ -515,7 +522,9 @@ UINT GxuFontWrapText(
   return lines;
 }
 float GxuFontGetOneToOneHeight(CGxFont *font) {
-  FATALASSERT(font);
+  VALIDATEBEGIN;
+  VALIDATE(font);
+  VALIDATEEND;
 
   ASSERT(font->m_cellHeight);
   ASSERT(font->m_cellHeight <= 32);
@@ -649,12 +658,16 @@ BOOL GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVect
   return 1;
 }
 int GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor) {
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
   string->SetColor(newColor);
   return 1;
 }
 void GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos) {
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEENDVOID;
   string->SetStringPosition(pos);
 }
 void GxuFontSetCharSpacing(CGxString *string, float spacing) {
@@ -689,7 +702,11 @@ BOOL GxuFontGetStringHeight(CGxString *string, float *height) {
   return string != 0;
 }
 UINT GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list) {
-  return string ? string->GetHyperLinkInfo(list) : 0;
+  if (!string) {
+    return 0;
+  }
+
+  return string->GetHyperLinkInfo(list);
 }
 int GxuFontStringSetGradient(CGxString *string, int startCharacter, int length) {
   if (!string) {

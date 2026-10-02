@@ -15,17 +15,20 @@ CreatureDisplayInfoExtraRec::~CreatureDisplayInfoExtraRec() {
 
 bool CreatureDisplayInfoExtraRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempBakeNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_DisplayRaceID) ||
-      !SFileReadTyped(f, &m_DisplaySexID) ||
-      !SFileReadTyped(f, &m_SkinID) ||
-      !SFileReadTyped(f, &m_FaceID) ||
-      !SFileReadTyped(f, &m_HairStyleID) ||
-      !SFileReadTyped(f, &m_HairColorID) ||
-      !SFileReadTyped(f, &m_FacialHairID) ||
-      !SFile::Read(f, &m_NPCItemDisplay[0], sizeof(m_NPCItemDisplay), 0, 0, 0) ||
-      !SFileReadTyped(f, &tempBakeNameIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_DisplayRaceID) == 0);
+  error |= (SFileReadTyped(f, &m_DisplaySexID) == 0);
+  error |= (SFileReadTyped(f, &m_SkinID) == 0);
+  error |= (SFileReadTyped(f, &m_FaceID) == 0);
+  error |= (SFileReadTyped(f, &m_HairStyleID) == 0);
+  error |= (SFileReadTyped(f, &m_HairColorID) == 0);
+  error |= (SFileReadTyped(f, &m_FacialHairID) == 0);
+  error |= (SFileReadTyped(f, &m_NPCItemDisplay) == 0);
+  error |= (SFileReadTyped(f, &tempBakeNameIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading CreatureDisplayInfoExtraRec", DEFAULT_COLOR);
     return false;
   }

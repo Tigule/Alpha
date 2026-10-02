@@ -334,6 +334,110 @@ BOOL CSimpleEditBox::OnLayerChar(CCharEvent &evt) {
   return 1;
 }
 
+void CSimpleEditBox::CreateClauseHighlight() {
+  if (m_clauseHighlight) {
+    return;
+  }
+
+  m_clauseHighlight = NEW(CSimpleTexture)(this, 3, 1);
+  m_clauseHighlight->SetTexture(NTempest::CImVector(0xFF202010));
+  m_clauseHighlight->SetBlendMode(GxBlend_Add);
+  m_clauseHighlight->SetHeight(m_string->GetFontHeight());
+}
+
+void CSimpleEditBox::CreateCandidatesFrame() {
+  if (m_candidatesFrame) {
+    return;
+  }
+
+  CreateClauseHighlight();
+
+  float fontHeight = m_string->m_fontHeight;
+  m_candidatesFrame = NEW(CSimpleMessageFrame)(this);
+
+  LPCSTR fontName = m_string->m_font ? TextBlockGetFontName(m_string->m_font) : 0;
+  UINT   fontFlags = m_string->m_font ? TextBlockGetFontFlags(m_string->m_font) : 0;
+  m_candidatesFrame->m_attrib.m_font = fontName;
+  m_candidatesFrame->m_attrib.m_fontHeight = fontHeight;
+  m_candidatesFrame->m_attrib.m_fontFlags = fontFlags;
+  m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT_UPDATE;
+  m_candidatesFrame->SetWidth(fontHeight * 10.0f);
+  m_candidatesFrame->SetPoint(FRAMEPOINT_BOTTOMLEFT, m_clauseHighlight, FRAMEPOINT_TOPLEFT, 0.0f, 0.0f, 1);
+  m_candidatesFrame->SetInsertMode(CSimpleMessageFrame::INSERT_AT_TOP);
+
+  CSimpleTexture *background = NEW(CSimpleTexture)(m_candidatesFrame, 0, 1);
+  background->SetTexture(NTempest::CImVector(0xFF606060));
+  background->SetAllPoints(m_candidatesFrame, 1);
+
+  m_candidatesHighlight = NEW(CSimpleTexture)(m_candidatesFrame, 2, 1);
+  m_candidatesHighlight->SetTexture(NTempest::CImVector(0xFF808080));
+}
+
+void CSimpleEditBox::DispatchAction(int action) {
+  if (m_actions[action].obj) {
+    CEvent evt;
+    evt.SetId(m_actions[action].id);
+    evt.SetParam(this);
+    m_actions[action].obj->OnEvent(evt);
+  }
+}
+
+void CSimpleEditBox::UpdateLanguageIndicator() {
+}
+
+void CSimpleEditBox::UpdateClauseInfo() {
+  UINT clauseLeft;
+  UINT clauseRight;
+  UINT cursorPos;
+
+  if (OsIMEGetClauseInfo(clauseLeft, clauseRight, cursorPos)) {
+    CreateClauseHighlight();
+    m_clauseLeft = m_highlightLeft + GetNumToLen(m_highlightLeft, clauseLeft, false);
+    m_clauseRight = m_highlightLeft + GetNumToLen(m_highlightLeft, clauseRight, false);
+    m_cursorPos = m_highlightLeft + GetNumToLen(m_highlightLeft, cursorPos, false);
+    m_dirtyFlags |= DIRTY_HIGHLIGHT | DIRTY_CURSOR;
+  }
+}
+
+BOOL CSimpleEditBox::PopulateCandidates(DWORD which) {
+  UINT                            pageSize;
+  UINT                            count;
+  UINT                            selection;
+  TSGrowableArray<OsIMECandidate> candidates;
+
+  if (!OsIMEGetCandidates(which, pageSize, count, selection, candidates)) {
+    return 0;
+  }
+
+  CreateCandidatesFrame();
+
+  float fontHeight = m_string->m_fontHeight;
+  m_candidatesFrame->Clear();
+  m_candidatesFrame->SetHeight((pageSize + 1) * fontHeight + fontHeight * 0.1f);
+
+  m_candidatesHighlight->ClearAllPoints(1);
+  UINT row = selection % pageSize;
+  m_candidatesHighlight->SetPoint(FRAMEPOINT_TOPLEFT, m_candidatesFrame, FRAMEPOINT_TOPLEFT, 0.0f, -row * fontHeight, 1);
+  m_candidatesHighlight->SetPoint(FRAMEPOINT_BOTTOMRIGHT, m_candidatesFrame, FRAMEPOINT_TOPRIGHT, 0.0f, -(row + 1) * fontHeight, 1);
+
+  NTempest::CImVector white(0xFFFFFFFF);
+  char                candidate[1024];
+  SStrPrintf(candidate, sizeof(candidate), "> %d/%d", selection + 1, count);
+  m_candidatesFrame->AddMessage(candidate, white, 0.0f, 0);
+
+  for (UINT index = pageSize; index-- > 0;) {
+    if (candidates[index].candidate[0]) {
+      SStrPrintf(candidate, sizeof(candidate), "%d: %s", index + 1, candidates[index].candidate);
+    } else {
+      SStrCopy(candidate, " ", sizeof(candidate));
+    }
+    m_candidatesFrame->AddMessage(candidate, white, 0.0f, 0);
+  }
+
+  m_candidatesFrame->Resize(1);
+  return 1;
+}
+
 BOOL CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
   if (!m_visible) {
     return 0;
@@ -887,85 +991,6 @@ void CSimpleEditBox::SetText(LPCSTR text) {
   }
 }
 
-void CSimpleEditBox::Delete(int amount) {
-  if (!amount) {
-    FATALERROR(("amount"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return;
-  }
-
-  int length = GetNumToLen(m_cursorPos, amount, 1);
-  if (amount < 0) {
-    DeleteSubstring(m_cursorPos - length, m_cursorPos);
-  } else {
-    DeleteSubstring(m_cursorPos, m_cursorPos + length);
-  }
-}
-
-void CSimpleEditBox::DeleteForward() {
-  if (m_highlightLeft != m_highlightRight) {
-    DeleteHighlight();
-  } else if (m_cursorPos < m_textLength) {
-    Delete(1);
-  }
-}
-
-void CSimpleEditBox::DeleteForwardWord() {
-  if (m_highlightLeft != m_highlightRight) {
-    DeleteHighlight();
-    return;
-  }
-
-  int advance;
-  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
-    Delete(1);
-  }
-  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
-    Delete(1);
-  }
-}
-
-void CSimpleEditBox::DeleteBackward() {
-  if (m_highlightLeft != m_highlightRight) {
-    DeleteHighlight();
-  } else if (m_cursorPos > 0) {
-    Delete(-1);
-  }
-}
-
-void CSimpleEditBox::DeleteBackwardWord() {
-  if (m_highlightLeft != m_highlightRight) {
-    DeleteHighlight();
-    return;
-  }
-
-  int advance;
-  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
-    Delete(-1);
-  }
-  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
-    Delete(-1);
-  }
-}
-
-void CSimpleEditBox::DeleteToStart() {
-  int amount = GetLenToNum(0, m_cursorPos);
-  if (amount) {
-    Delete(-amount);
-  }
-}
-
-void CSimpleEditBox::DeleteToEnd() {
-  int amount = GetLenToNum(m_cursorPos, m_textLength - m_cursorPos);
-  if (amount) {
-    Delete(amount);
-  }
-}
-
-void CSimpleEditBox::DeleteText() {
-  DeleteSubstring(0, m_textLength);
-}
-
 void CSimpleEditBox::Insert(LPCSTR utf8string, BOOL isIME) {
   if ((m_textInfo[m_cursorPos] & 0x80000000) && m_cursorPos > 0 && (m_textInfo[PrevCharOffset(m_cursorPos)] & 0x80000000)) {
     return;
@@ -1045,6 +1070,83 @@ void CSimpleEditBox::Insert(UINT utf16) {
   }
 }
 
+void CSimpleEditBox::Delete(int amount) {
+  VALIDATEBEGIN;
+  VALIDATE(amount);
+  VALIDATEENDVOID;
+
+  int length = GetNumToLen(m_cursorPos, amount, 1);
+  if (amount < 0) {
+    DeleteSubstring(m_cursorPos - length, m_cursorPos);
+  } else {
+    DeleteSubstring(m_cursorPos, m_cursorPos + length);
+  }
+}
+
+void CSimpleEditBox::DeleteForward() {
+  if (m_highlightLeft != m_highlightRight) {
+    DeleteHighlight();
+  } else if (m_cursorPos < m_textLength) {
+    Delete(1);
+  }
+}
+
+void CSimpleEditBox::DeleteForwardWord() {
+  if (m_highlightLeft != m_highlightRight) {
+    DeleteHighlight();
+    return;
+  }
+
+  int advance;
+  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
+    Delete(1);
+  }
+  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
+    Delete(1);
+  }
+}
+
+void CSimpleEditBox::DeleteBackward() {
+  if (m_highlightLeft != m_highlightRight) {
+    DeleteHighlight();
+  } else if (m_cursorPos > 0) {
+    Delete(-1);
+  }
+}
+
+void CSimpleEditBox::DeleteBackwardWord() {
+  if (m_highlightLeft != m_highlightRight) {
+    DeleteHighlight();
+    return;
+  }
+
+  int advance;
+  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
+    Delete(-1);
+  }
+  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
+    Delete(-1);
+  }
+}
+
+void CSimpleEditBox::DeleteToStart() {
+  int amount = GetLenToNum(0, m_cursorPos);
+  if (amount) {
+    Delete(-amount);
+  }
+}
+
+void CSimpleEditBox::DeleteToEnd() {
+  int amount = GetLenToNum(m_cursorPos, m_textLength - m_cursorPos);
+  if (amount) {
+    Delete(amount);
+  }
+}
+
+void CSimpleEditBox::DeleteText() {
+  DeleteSubstring(0, m_textLength);
+}
+
 void CSimpleEditBox::DeleteSubstring(int left, int right) {
   if (m_highlightLeft != m_highlightRight) {
     m_highlightRight = 0;
@@ -1091,16 +1193,10 @@ void CSimpleEditBox::DeleteSubstring(int left, int right) {
   m_dirtyFlags |= DIRTY_TEXT | DIRTY_CURSOR;
 }
 
-void CSimpleEditBox::DeleteHighlight() {
-  DeleteSubstring(m_highlightLeft, m_highlightRight);
-}
-
 void CSimpleEditBox::Move(int distance, int highlight) {
-  if (!distance) {
-    FATALERROR(("distance"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(distance);
+  VALIDATEENDVOID;
 
   int length = GetNumToLen(m_cursorPos, distance, 1);
   if (distance < 0) {
@@ -1240,6 +1336,10 @@ void CSimpleEditBox::ExtendHighlight(int distance) {
     m_highlightLeft = position;
   }
   m_dirtyFlags |= DIRTY_HIGHLIGHT;
+}
+
+void CSimpleEditBox::DeleteHighlight() {
+  DeleteSubstring(m_highlightLeft, m_highlightRight);
 }
 
 void CSimpleEditBox::SetHistoryLines(int numLines) {
@@ -1438,164 +1538,6 @@ void CSimpleEditBox::UpdateVisibleText() {
   }
 }
 
-void CSimpleEditBox::CopyToClipboard() {
-  if (m_highlightLeft == m_highlightRight) {
-    return;
-  }
-
-  if (m_password) {
-    OsClipboardPutString("");
-    return;
-  }
-
-  UINT  length = m_highlightRight - m_highlightLeft;
-  char *buffer = static_cast<char *>(_alloca(length + 1));
-  GxuFontStripEscapeCodes(m_text + m_highlightLeft, length, 0x500, buffer, length + 1);
-  OsClipboardPutString(buffer);
-}
-
-void CSimpleEditBox::PasteFromClipboard() {
-  char *string = OsClipboardGetString();
-  if (!string) {
-    return;
-  }
-
-  int advance;
-  for (LPCSTR position = string; *position;) {
-    UINT character = sgetu8(reinterpret_cast<const BYTE *>(position), &advance);
-    Insert(character);
-    position += advance;
-  }
-
-  OsClipboardFreeString(string);
-}
-
-void CSimpleEditBox::SetFont(LPCSTR font, float fontHeight, UINT fontFlags) {
-  m_string->SetFont(font, fontHeight, fontFlags);
-
-  if (m_candidatesFrame) {
-    m_candidatesFrame->SetFont(font, fontHeight, fontFlags);
-  }
-
-  UpdateSizes(m_rect);
-}
-
-void CSimpleEditBox::CreateClauseHighlight() {
-  if (m_clauseHighlight) {
-    return;
-  }
-
-  m_clauseHighlight = NEW(CSimpleTexture)(this, 3, 1);
-  m_clauseHighlight->SetTexture(NTempest::CImVector(0xFF202010));
-  m_clauseHighlight->SetBlendMode(GxBlend_Add);
-  m_clauseHighlight->SetHeight(m_string->GetFontHeight());
-}
-
-void CSimpleEditBox::CreateCandidatesFrame() {
-  if (m_candidatesFrame) {
-    return;
-  }
-
-  CreateClauseHighlight();
-
-  float fontHeight = m_string->m_fontHeight;
-  m_candidatesFrame = NEW(CSimpleMessageFrame)(this);
-
-  LPCSTR fontName = m_string->m_font ? TextBlockGetFontName(m_string->m_font) : 0;
-  UINT   fontFlags = m_string->m_font ? TextBlockGetFontFlags(m_string->m_font) : 0;
-  m_candidatesFrame->m_attrib.m_font = fontName;
-  m_candidatesFrame->m_attrib.m_fontHeight = fontHeight;
-  m_candidatesFrame->m_attrib.m_fontFlags = fontFlags;
-  m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT_UPDATE;
-  m_candidatesFrame->SetWidth(fontHeight * 10.0f);
-  m_candidatesFrame->SetPoint(FRAMEPOINT_BOTTOMLEFT, m_clauseHighlight, FRAMEPOINT_TOPLEFT, 0.0f, 0.0f, 1);
-  m_candidatesFrame->SetInsertMode(CSimpleMessageFrame::INSERT_AT_TOP);
-
-  CSimpleTexture *background = NEW(CSimpleTexture)(m_candidatesFrame, 0, 1);
-  background->SetTexture(NTempest::CImVector(0xFF606060));
-  background->SetAllPoints(m_candidatesFrame, 1);
-
-  m_candidatesHighlight = NEW(CSimpleTexture)(m_candidatesFrame, 2, 1);
-  m_candidatesHighlight->SetTexture(NTempest::CImVector(0xFF808080));
-}
-
-void CSimpleEditBox::ShowCandidates() {
-  if (m_candidatesFrame) {
-    m_candidatesFrame->Show();
-  }
-}
-
-void CSimpleEditBox::HideCandidates() {
-  if (m_candidatesFrame) {
-    m_candidatesFrame->Hide();
-  }
-}
-
-void CSimpleEditBox::UpdateLanguageIndicator() {
-}
-
-void CSimpleEditBox::UpdateClauseInfo() {
-  UINT clauseLeft;
-  UINT clauseRight;
-  UINT cursorPos;
-
-  if (OsIMEGetClauseInfo(clauseLeft, clauseRight, cursorPos)) {
-    CreateClauseHighlight();
-    m_clauseLeft = m_highlightLeft + GetNumToLen(m_highlightLeft, clauseLeft, false);
-    m_clauseRight = m_highlightLeft + GetNumToLen(m_highlightLeft, clauseRight, false);
-    m_cursorPos = m_highlightLeft + GetNumToLen(m_highlightLeft, cursorPos, false);
-    m_dirtyFlags |= DIRTY_HIGHLIGHT | DIRTY_CURSOR;
-  }
-}
-
-BOOL CSimpleEditBox::PopulateCandidates(DWORD which) {
-  UINT                            pageSize;
-  UINT                            count;
-  UINT                            selection;
-  TSGrowableArray<OsIMECandidate> candidates;
-
-  if (!OsIMEGetCandidates(which, pageSize, count, selection, candidates)) {
-    return 0;
-  }
-
-  CreateCandidatesFrame();
-
-  float fontHeight = m_string->m_fontHeight;
-  m_candidatesFrame->Clear();
-  m_candidatesFrame->SetHeight((pageSize + 1) * fontHeight + fontHeight * 0.1f);
-
-  m_candidatesHighlight->ClearAllPoints(1);
-  UINT row = selection % pageSize;
-  m_candidatesHighlight->SetPoint(FRAMEPOINT_TOPLEFT, m_candidatesFrame, FRAMEPOINT_TOPLEFT, 0.0f, -row * fontHeight, 1);
-  m_candidatesHighlight->SetPoint(FRAMEPOINT_BOTTOMRIGHT, m_candidatesFrame, FRAMEPOINT_TOPRIGHT, 0.0f, -(row + 1) * fontHeight, 1);
-
-  NTempest::CImVector white(0xFFFFFFFF);
-  char                candidate[1024];
-  SStrPrintf(candidate, sizeof(candidate), "> %d/%d", selection + 1, count);
-  m_candidatesFrame->AddMessage(candidate, white, 0.0f, 0);
-
-  for (UINT index = pageSize; index-- > 0;) {
-    if (candidates[index].candidate[0]) {
-      SStrPrintf(candidate, sizeof(candidate), "%d: %s", index + 1, candidates[index].candidate);
-    } else {
-      SStrCopy(candidate, " ", sizeof(candidate));
-    }
-    m_candidatesFrame->AddMessage(candidate, white, 0.0f, 0);
-  }
-
-  m_candidatesFrame->Resize(1);
-  return 1;
-}
-
-void CSimpleEditBox::DispatchAction(int action) {
-  if (m_actions[action].obj) {
-    CEvent evt;
-    evt.SetId(m_actions[action].id);
-    evt.SetParam(this);
-    m_actions[action].obj->OnEvent(evt);
-  }
-}
-
 void CSimpleEditBox::UpdateVisibleHighlight() {
   if (m_clauseHighlight) {
     if (m_imeInputMode) {
@@ -1701,6 +1643,60 @@ void CSimpleEditBox::UpdateHighlightArea(CSimpleRegion *area, int left, int righ
     area->Hide();
   } else {
     area->Show();
+  }
+}
+
+void CSimpleEditBox::CopyToClipboard() {
+  if (m_highlightLeft == m_highlightRight) {
+    return;
+  }
+
+  if (m_password) {
+    OsClipboardPutString("");
+    return;
+  }
+
+  UINT  length = m_highlightRight - m_highlightLeft;
+  char *buffer = static_cast<char *>(_alloca(length + 1));
+  GxuFontStripEscapeCodes(m_text + m_highlightLeft, length, 0x500, buffer, length + 1);
+  OsClipboardPutString(buffer);
+}
+
+void CSimpleEditBox::PasteFromClipboard() {
+  char *string = OsClipboardGetString();
+  if (!string) {
+    return;
+  }
+
+  int advance;
+  for (LPCSTR position = string; *position;) {
+    UINT character = sgetu8(reinterpret_cast<const BYTE *>(position), &advance);
+    Insert(character);
+    position += advance;
+  }
+
+  OsClipboardFreeString(string);
+}
+
+void CSimpleEditBox::SetFont(LPCSTR font, float fontHeight, UINT fontFlags) {
+  m_string->SetFont(font, fontHeight, fontFlags);
+
+  if (m_candidatesFrame) {
+    m_candidatesFrame->SetFont(font, fontHeight, fontFlags);
+  }
+
+  UpdateSizes(m_rect);
+}
+
+void CSimpleEditBox::ShowCandidates() {
+  if (m_candidatesFrame) {
+    m_candidatesFrame->Show();
+  }
+}
+
+void CSimpleEditBox::HideCandidates() {
+  if (m_candidatesFrame) {
+    m_candidatesFrame->Hide();
   }
 }
 

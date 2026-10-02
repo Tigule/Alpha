@@ -93,11 +93,9 @@ finallylabel:
 FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle) {
   FACEDATA *dataPtr;
 
-  if (!handle) {
-    FATALERROR(("handle"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return NULL;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATEEND;
 
   dataPtr = reinterpret_cast<FACEDATA *>(handle);
   ASSERT(dataPtr->selfReference);
@@ -108,11 +106,9 @@ void FontFaceCloseHandle(HFACE__ *handle) {
   FACEDATA *dataPtr;
   UINT      refCount;
 
-  if (!handle) {
-    FATALERROR(("handle"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATEENDVOID;
 
   dataPtr = reinterpret_cast<FACEDATA *>(handle);
   HandleClose(handle);
@@ -132,11 +128,9 @@ void FontFaceCloseHandle(HFACE__ *handle) {
 LPCSTR FontFaceGetFontName(HFACE__ *handle) {
   FACEDATA *dataPtr;
 
-  if (!handle) {
-    FATALERROR(("handle"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return NULL;
-  }
+  VALIDATEBEGIN;
+  VALIDATE(handle);
+  VALIDATEEND;
 
   dataPtr = reinterpret_cast<FACEDATA *>(handle);
   return dataPtr->GetString();

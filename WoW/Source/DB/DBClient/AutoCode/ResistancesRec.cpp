@@ -15,19 +15,22 @@ ResistancesRec::~ResistancesRec() {
 
 bool ResistancesRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempname_langIndices[8];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_Flags) ||
-      !SFileReadTyped(f, &m_FizzleSoundID) ||
-      !SFileReadTyped(f, &tempname_langIndices[0]) ||
-      !SFileReadTyped(f, &tempname_langIndices[1]) ||
-      !SFileReadTyped(f, &tempname_langIndices[2]) ||
-      !SFileReadTyped(f, &tempname_langIndices[3]) ||
-      !SFileReadTyped(f, &tempname_langIndices[4]) ||
-      !SFileReadTyped(f, &tempname_langIndices[5]) ||
-      !SFileReadTyped(f, &tempname_langIndices[6]) ||
-      !SFileReadTyped(f, &tempname_langIndices[7]) ||
-      !SFileReadTyped(f, &m_name_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_Flags) == 0);
+  error |= (SFileReadTyped(f, &m_FizzleSoundID) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempname_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_name_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading ResistancesRec", DEFAULT_COLOR);
     return false;
   }

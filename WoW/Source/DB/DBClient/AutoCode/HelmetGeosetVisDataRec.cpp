@@ -14,11 +14,14 @@ HelmetGeosetVisDataRec::~HelmetGeosetVisDataRec() {
 }
 
 bool HelmetGeosetVisDataRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFile::Read(f, &m_DefaultFlags[0], sizeof(m_DefaultFlags), 0, 0, 0) ||
-      !SFile::Read(f, &m_PreferredFlags[0], sizeof(m_PreferredFlags), 0, 0, 0) ||
-      !SFile::Read(f, &m_HideFlags[0], sizeof(m_HideFlags), 0, 0, 0)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_DefaultFlags) == 0);
+  error |= (SFileReadTyped(f, &m_PreferredFlags) == 0);
+  error |= (SFileReadTyped(f, &m_HideFlags) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading HelmetGeosetVisDataRec", DEFAULT_COLOR);
     return false;
   }

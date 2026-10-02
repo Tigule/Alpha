@@ -38,14 +38,16 @@ static CategoryTranslation s_translation[8] = {
 };
 
 static BOOL ValidateFileName(LPCSTR arguments) {
-  LPCSTR extension;
-
-  if (strstr(arguments, "..") || strstr(arguments, "\\")) {
+  if (strstr(arguments, "..")) {
+    ConsoleWrite("File Name cannot contain '\\' or '..'", ERROR_COLOR);
+    return 0;
+  }
+  if (strstr(arguments, "\\")) {
     ConsoleWrite("File Name cannot contain '\\' or '..'", ERROR_COLOR);
     return 0;
   }
 
-  extension = SStrChrR(arguments, '.');
+  LPCSTR extension = SStrChrR(arguments, '.');
   if (extension && SStrCmpI(extension, ".wtf", 0x7FFFFFFF)) {
     ConsoleWrite("Only '.wtf' extensions are allowed", ERROR_COLOR);
     return 0;
@@ -75,23 +77,18 @@ static BOOL CreateWTFFilePath(char *filename, UINT size) {
 }
 
 static BOOL ConsoleCommand_Help(LPCSTR command, LPCSTR arguments) {
-  UINT            index;
-  UINT            categoryCount;
-  CONSOLECOMMAND *entry;
-  LPCSTR          helpText;
-  char           *separator;
+  UINT index;
 
   (void)command;
 
   if (!*arguments) {
-    char buffer[128];
+    char buffer[128] = "";
 
-    buffer[0] = 0;
     ConsoleWrite("Console help categories: ", DEFAULT_COLOR);
     for (index = 0; index < 8; ++index) {
-      SStrPack(buffer, s_translation[index].categoryString, 128);
+      SStrPack(buffer, s_translation[index].categoryString, sizeof(buffer));
       if (index + 1 < 8) {
-        SStrPack(buffer, ", ", 128);
+        SStrPack(buffer, ", ", sizeof(buffer));
       }
     }
     ConsoleWrite(buffer, WARNING_COLOR);
@@ -99,51 +96,52 @@ static BOOL ConsoleCommand_Help(LPCSTR command, LPCSTR arguments) {
     return 1;
   }
 
+  CATEGORY category = NONE;
   for (index = 0; index < 8; ++index) {
     if (!SStrCmpI(s_translation[index].categoryString, arguments, 0x7FFFFFFF)) {
-      if (s_translation[index].categoryValue != NONE) {
-        char buffer[128];
-
-        buffer[0] = 0;
-        SStrPrintf(buffer, 128, "Commands registered for the category %s:", arguments);
-        ConsoleWrite(buffer, WARNING_COLOR);
-
-        categoryCount = 0;
-        buffer[0] = 0;
-        ITERATELIST(CONSOLECOMMAND, g_consoleCommandHash, categoryEntry) {
-          if (categoryEntry->m_category == s_translation[index].categoryValue) {
-            SStrPack(buffer, categoryEntry->GetString(), 128);
-            SStrPack(buffer, ", ", 128);
-            ++categoryCount;
-            if (categoryCount == 8) {
-              ConsoleWrite(buffer, DEFAULT_COLOR);
-              buffer[0] = 0;
-              categoryCount = 0;
-            }
-          }
-        }
-
-        if (buffer[0]) {
-          separator = SStrChrR(buffer, ',');
-          if (separator) {
-            *separator = 0;
-          }
-          ConsoleWrite(buffer, DEFAULT_COLOR);
-        } else {
-          ConsoleWrite("NONE", DEFAULT_COLOR);
-        }
-      }
+      category = s_translation[index].categoryValue;
       break;
     }
   }
 
-  entry = g_consoleCommandHash.Ptr(arguments);
+  if (category != NONE) {
+    char buffer[128] = "";
+
+    SStrPrintf(buffer, sizeof(buffer), "Commands registered for the category %s:", arguments);
+    ConsoleWrite(buffer, WARNING_COLOR);
+
+    UINT counter = 0;
+    buffer[0] = 0;
+    for (CONSOLECOMMAND *entry = g_consoleCommandHash.Head(); (int)entry > 0; entry = g_consoleCommandHash.RawNext(entry)) {
+      if (entry->m_category == category) {
+        SStrPack(buffer, entry->GetString(), sizeof(buffer));
+        SStrPack(buffer, ", ", sizeof(buffer));
+        if (++counter == 8) {
+          ConsoleWrite(buffer, DEFAULT_COLOR);
+          buffer[0] = 0;
+          counter = 0;
+        }
+      }
+    }
+
+    if (buffer[0]) {
+      char *separator = SStrChrR(buffer, ',');
+      if (separator) {
+        *separator = 0;
+      }
+      ConsoleWrite(buffer, DEFAULT_COLOR);
+    } else {
+      ConsoleWrite("NONE", DEFAULT_COLOR);
+    }
+  }
+
+  CONSOLECOMMAND *entry = g_consoleCommandHash.Ptr(arguments);
   if (entry) {
     char buffer[165];
 
     SStrPrintf(buffer, sizeof(buffer), "Help for command %s:", arguments);
     ConsoleWrite(buffer, WARNING_COLOR);
-    helpText = entry->m_helpText;
+    LPCSTR helpText = entry->m_helpText;
     if (!helpText) {
       helpText = NOHELPTEXT;
     }
@@ -169,15 +167,13 @@ static BOOL ConsoleCommand_Ver(LPCSTR command, LPCSTR arguments) {
 }
 
 BOOL ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments) {
-  char   filename[MAX_PATH];
-  char   errorString[MAX_PATH];
-  char   tmp[MAX_PATH];
-  char   lineBuffer[128];
-  char   param1[32];
+  DWORD  bytes;
   LPVOID readData;
   int    verbose = 0;
+  char   lineBuffer[128];
   LPCSTR bufferPtr;
-  DWORD  bytes;
+  char   filename[MAX_PATH];
+  char   param1[32];
 
   if (sscanf(arguments, "%s %s", filename, param1) < 1) {
     ConsoleWrite("Invalid number of parameters", ERROR_COLOR);
@@ -194,6 +190,7 @@ BOOL ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments) {
   }
 
   if (!SFile::LoadFile(filename, &readData, &bytes, 1, 0)) {
+    char errorString[MAX_PATH];
     if (cmd) {
       SStrPrintf(errorString, sizeof(errorString), "Unable to load file %s", filename);
     } else {
@@ -203,21 +200,20 @@ BOOL ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments) {
     return 0;
   }
 
-  bufferPtr = static_cast<LPCSTR>(readData);
-  readData = ALLOC(bytes + 1);
-  if (!readData) {
-    SFile::Unload(const_cast<char *>(bufferPtr));
+  char *buffer = static_cast<char *>(ALLOC(bytes + 1));
+  memcpy(buffer, readData, bytes);
+  SFile::Unload(readData);
+  if (!buffer) {
     return 0;
   }
 
-  memcpy(readData, bufferPtr, bytes);
-  SFile::Unload(const_cast<char *>(bufferPtr));
-  static_cast<char *>(readData)[bytes] = 0;
-  bufferPtr = static_cast<LPCSTR>(readData);
+  buffer[bytes] = 0;
+  bufferPtr = buffer;
   do {
     SStrTokenize(&bufferPtr, lineBuffer, sizeof(lineBuffer), "\r\n", 0);
     if (lineBuffer[0]) {
       if (verbose) {
+        char tmp[MAX_PATH];
         SStrPrintf(tmp, sizeof(tmp), "Executing ->%s", lineBuffer);
         ConsoleWrite(tmp, ECHO_COLOR);
       }
@@ -225,7 +221,7 @@ BOOL ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments) {
     }
   } while (bufferPtr && *bufferPtr);
 
-  FREE(readData);
+  FREE(buffer);
   return 1;
 }
 
@@ -322,10 +318,10 @@ static BOOL ConsoleCommand_CloseExec(LPCSTR cmd, LPCSTR arguments) {
 
       count = 0;
       OsWriteFile(file, g_ExecBuffer, SStrLen(g_ExecBuffer), &count);
-      if (count) {
-        ConsoleWrite("File written successfully", ECHO_COLOR);
-      } else {
+      if (!count) {
         ConsoleWrite("Error Writing ExecFile", ERROR_COLOR);
+      } else {
+        ConsoleWrite("File written successfully", ECHO_COLOR);
       }
       OsCloseFile(file);
     }
@@ -337,12 +333,11 @@ static BOOL ConsoleCommand_CloseExec(LPCSTR cmd, LPCSTR arguments) {
 }
 
 static BOOL ConsoleCommand_TypeExec(LPCSTR cmd, LPCSTR arguments) {
-  char   errorString[MAX_PATH];
-  char   filePath[MAX_PATH];
-  char   lineBuffer[128];
-  LPVOID readData;
-  LPCSTR bufferPtr;
   DWORD  bytes;
+  LPVOID readData;
+  char   lineBuffer[128];
+  LPCSTR bufferPtr;
+  char   filePath[MAX_PATH];
 
   (void)cmd;
 
@@ -356,22 +351,21 @@ static BOOL ConsoleCommand_TypeExec(LPCSTR cmd, LPCSTR arguments) {
   }
 
   if (!SFile::LoadFile(filePath, &readData, &bytes, 1, 0)) {
+    char errorString[MAX_PATH];
     SStrPrintf(errorString, sizeof(errorString), "Unable to load file %s", filePath);
     ConsoleWrite(errorString, ERROR_COLOR);
     return 0;
   }
 
-  bufferPtr = static_cast<LPCSTR>(readData);
-  readData = ALLOC(bytes + 1);
-  if (!readData) {
-    SFile::Unload(const_cast<char *>(bufferPtr));
+  char *buffer = static_cast<char *>(ALLOC(bytes + 1));
+  memcpy(buffer, readData, bytes);
+  SFile::Unload(readData);
+  if (!buffer) {
     return 0;
   }
 
-  memcpy(readData, bufferPtr, bytes);
-  SFile::Unload(const_cast<char *>(bufferPtr));
-  static_cast<char *>(readData)[bytes] = 0;
-  bufferPtr = static_cast<LPCSTR>(readData);
+  buffer[bytes] = 0;
+  bufferPtr = buffer;
   do {
     SStrTokenize(&bufferPtr, lineBuffer, sizeof(lineBuffer), "\r\n", 0);
     if (lineBuffer[0]) {
@@ -379,16 +373,16 @@ static BOOL ConsoleCommand_TypeExec(LPCSTR cmd, LPCSTR arguments) {
     }
   } while (bufferPtr && *bufferPtr);
 
-  FREE(readData);
+  FREE(buffer);
   return 1;
 }
 
 static BOOL ConsoleCommand_DirWtf(LPCSTR cmd, LPCSTR arguments) {
-  char   line[80];
-  LPCSTR readBuffer;
-  char   endOfLine[4] = " \r\n";
-  DWORD  bytes;
-  LPVOID readData;
+  DWORD      bytes;
+  LPCSTR     readBuffer;
+  const char endOfLine[4] = " \r\n";
+  LPVOID     readData;
+  char       line[80];
 
   (void)cmd;
   (void)arguments;
@@ -399,8 +393,9 @@ static BOOL ConsoleCommand_DirWtf(LPCSTR cmd, LPCSTR arguments) {
   }
 
   ConsoleWrite("The wtf files are :", ECHO_COLOR);
-  ((char *)readData)[bytes - 1] = 0;
-  readBuffer = (LPCSTR)readData;
+  char *buffer = static_cast<char *>(readData);
+  buffer[bytes - 1] = 0;
+  readBuffer = buffer;
   do {
     SStrTokenize(&readBuffer, line, sizeof(line), endOfLine, 0);
     if (!line[0]) {
@@ -480,7 +475,9 @@ BOOL ConsoleCommandComplete(LPCSTR partial, LPCSTR *previous, int direction) {
 
   ASSERT(previous);
 
-  if (*previous) {
+  if (!*previous) {
+    entry = g_consoleCommandHash.Head();
+  } else {
     entry = g_consoleCommandHash.Ptr(*previous);
     if (!entry) {
       return 0;
@@ -491,8 +488,6 @@ BOOL ConsoleCommandComplete(LPCSTR partial, LPCSTR *previous, int direction) {
     } else {
       entry = g_consoleCommandHash.Next(entry);
     }
-  } else {
-    entry = g_consoleCommandHash.Head();
   }
 
   partialLength = SStrLen(partial);
@@ -513,7 +508,7 @@ BOOL ConsoleCommandComplete(LPCSTR partial, LPCSTR *previous, int direction) {
 }
 
 void ConsoleCommandWriteHelp(LPCSTR cmd) {
-  ConsoleCommand_Help(cmd, "help");
+  ConsoleCommand_Help("help", cmd);
 }
 
 void ConsoleCommandRegisterDefault(CONSOLECOMMANDHANDLER handler) {

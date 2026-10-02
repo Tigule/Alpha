@@ -15,15 +15,18 @@ WorldMapAreaRec::~WorldMapAreaRec() {
 
 bool WorldMapAreaRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempareaNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_mapID) ||
-      !SFileReadTyped(f, &m_areaID) ||
-      !SFileReadTyped(f, &m_leftBoundary) ||
-      !SFileReadTyped(f, &m_rightBoundary) ||
-      !SFileReadTyped(f, &m_topBoundary) ||
-      !SFileReadTyped(f, &m_bottomBoundary) ||
-      !SFileReadTyped(f, &tempareaNameIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_mapID) == 0);
+  error |= (SFileReadTyped(f, &m_areaID) == 0);
+  error |= (SFileReadTyped(f, &m_leftBoundary) == 0);
+  error |= (SFileReadTyped(f, &m_rightBoundary) == 0);
+  error |= (SFileReadTyped(f, &m_topBoundary) == 0);
+  error |= (SFileReadTyped(f, &m_bottomBoundary) == 0);
+  error |= (SFileReadTyped(f, &tempareaNameIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading WorldMapAreaRec", DEFAULT_COLOR);
     return false;
   }

@@ -195,50 +195,50 @@ void CMapChunk::FillGxBufVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 void CMapChunk::FillGxBufIndex(const CGxBufCommand &cmd, CGxBuf *buf) {
-  WORD *indices = 0;
+  WORD *idx = 0;
 
   switch (cmd.index.op) {
     case GxBufOp_Nop:
       return;
 
     case GxBufOp_Fill:
-      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
       break;
 
     case GxBufOp_Assign:
-      indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
-      *cmd.index.mem[GxVM_Indices] = indices;
+      idx = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
+      *cmd.index.mem[GxVM_Indices] = idx;
       break;
   }
 
-  FATALASSERT(indices);
+  FATALASSERT(idx);
 
-  memcpy(indices, s_tPrimGroups[lod][0].indicies, s_tPrimGroups[lod][0].nIndicies * sizeof(WORD));
-  memcpy(indices + s_tPrimGroups[lod][0].nIndicies, s_tPrimGroups[lod][1].indicies, s_tPrimGroups[lod][1].nIndicies * sizeof(WORD));
+  memcpy(idx, s_tPrimGroups[lod][0].indicies, s_tPrimGroups[lod][0].nIndicies * sizeof(WORD));
+  memcpy(idx + s_tPrimGroups[lod][0].nIndicies, s_tPrimGroups[lod][1].indicies, s_tPrimGroups[lod][1].nIndicies * sizeof(WORD));
 }
 
 void CMapChunk::FillGxBufDynVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
-  CGxVertexPN *vertices = 0;
+  CGxVertexPN *vtx = 0;
 
   switch (cmd.vertex.op) {
     case GxBufOp_Nop:
       return;
 
     case GxBufOp_Fill:
-      vertices = static_cast<CGxVertexPN *>(*cmd.vertex.mem[GxVM_Position]);
+      vtx = static_cast<CGxVertexPN *>(*cmd.vertex.mem[GxVM_Position]);
       break;
 
     case GxBufOp_Assign:
-      vertices = static_cast<CGxVertexPN *>(GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPN)));
-      *cmd.vertex.mem[GxVM_Position] = &vertices->p;
-      *cmd.vertex.mem[GxVM_Normal] = &vertices->n;
+      vtx = static_cast<CGxVertexPN *>(GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPN)));
+      *cmd.vertex.mem[GxVM_Position] = &vtx->p;
+      *cmd.vertex.mem[GxVM_Normal] = &vtx->n;
       break;
   }
 
-  ASSERT(vertices);
+  ASSERT(vtx);
   for (UINT index = 0; index < 145; ++index) {
-    vertices[index].p = vertexList[index];
-    vertices[index].n = normalList[index];
+    vtx[index].p = vertexList[index];
+    vtx[index].n = normalList[index];
   }
 }
 

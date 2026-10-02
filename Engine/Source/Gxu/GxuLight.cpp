@@ -9,18 +9,18 @@
 #include <storm.h>
 
 NODEDECL(CGxuLight) {
+  CGxLight m_light;
+  UINT     m_hwLight;
+  DWORD    m_selectionCount;
+  int      m_lockCount;
+  LISTDECLEX(CGxuLightLink, m_lightLink, m_links);
+
   CGxuLight() : m_lockCount(0) {
   }
 
   float          Fitness(NTempest::C3Vector & pos, float linearAttenuation, float quadraticAttenuation);
   CGxuLightLink *AllocListLink();
   void           ClearListLinks();
-
-  CGxLight m_light;
-  UINT     m_hwLight;
-  DWORD    m_selectionCount;
-  int      m_lockCount;
-  LISTDECLEX(CGxuLightLink, m_lightLink, m_links);
 
   static LISTDECL(CGxuLight, s_lights);
   static LISTDECL(CGxuLight, s_lightsFreeList);

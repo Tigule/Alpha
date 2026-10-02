@@ -1,6 +1,14 @@
 #include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "PetInfo.h"
 
@@ -384,11 +392,13 @@ static int Script_GetPetActionCooldown(lua_State *L) {
 
 static int Script_PickupPetAction(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: PickupPetAction(index)");
+    luaL_error(L, "Usage: PickupPetAction(index)");
+    return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (index >= 10) {
-    return luaL_error(L, "Invalid slot in PickupPetAction");
+    luaL_error(L, "Invalid slot in PickupPetAction");
+    return 0;
   }
 
   UINT      cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
@@ -443,11 +453,13 @@ static int Script_TogglePetAutocast(lua_State *L) {
 
 static int Script_CastPetAction(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: CastPetAction(index)");
+    luaL_error(L, "Usage: CastPetAction(index)");
+    return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   if (index >= 10) {
-    return luaL_error(L, "Invalid slot in CastPetAction");
+    luaL_error(L, "Invalid slot in CastPetAction");
+    return 0;
   }
   UINT      cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
   PetAction cursorAction(CGGameUI::m_cursorPetAction);

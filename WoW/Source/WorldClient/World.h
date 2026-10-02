@@ -107,29 +107,19 @@ class CWTriData {
     }
   };
 
-  CWTriData() {
-    Clear();
-  }
-
-  void Clear() {
-    nBatches = 0;
-    nTriIndices = 0;
-    nVertexIndices = 0;
-    nMatrices = 0;
-  }
-
-  UINT GetNumBatches() const {
-    return nBatches;
-  }
-
-  const Batch &GetBatch(UINT b) const {
-    ASSERT(b < nBatches);
-    return batches[b];
-  }
-
  private:
   friend class CMap;
   friend class CMapObjGroup;
+
+  static NTempest::C44Matrix matrices[MaxBatches];
+  static WORD                vertexIndices[MaxVertexIndices];
+  static WORD                triIndices[MaxTriIndices];
+  static Batch               batches[MaxBatches];
+  static UINT                nMatrices;
+  static UINT                nVertexIndices;
+  static UINT                nTriIndices;
+  static UINT                nBatches;
+  static NTempest::C44Matrix idMatrix;
 
   Batch *AllocBatch() {
     ASSERT(nBatches + 1 < MaxBatches);
@@ -158,35 +148,59 @@ class CWTriData {
     return &matrices[nMatrices++];
   }
 
-  static NTempest::C44Matrix matrices[MaxBatches];
-  static WORD                vertexIndices[MaxVertexIndices];
-  static WORD                triIndices[MaxTriIndices];
-  static Batch               batches[MaxBatches];
-  static UINT                nMatrices;
-  static UINT                nVertexIndices;
-  static UINT                nTriIndices;
-  static UINT                nBatches;
-  static NTempest::C44Matrix idMatrix;
+ public:
+  CWTriData() {
+    Clear();
+  }
+
+  void Clear() {
+    nBatches = 0;
+    nTriIndices = 0;
+    nVertexIndices = 0;
+    nMatrices = 0;
+  }
+
+  UINT GetNumBatches() const {
+    return nBatches;
+  }
+
+  const Batch &GetBatch(UINT b) const {
+    ASSERT(b < nBatches);
+    return batches[b];
+  }
 };
 
 void ProjectTex2d(const NTempest::CAaBox &box, NTempest::CImVector color, const NTempest::C44Matrix *basis, float fadeOffset);
 
 class CWorld {
  public:
-  struct MinimapQuad {
-    UINT                groupNum;
-    NTempest::C2iVector quad;
-    NTempest::CAaBox    aaBox;
+  enum ObjStatus {
+    ObjStatus_Visible = 0x1,
+    ObjStatus_Audible = 0x2
   };
 
-  static HMODEL GetModel(DWORD doodad);
-  static void      SetObjectRenderCallback(DWORD hWorldObject, void (*cb)(LPVOID, const NTempest::C44Matrix &), LPVOID param);
-  static void      SetObjectHandler(int (*handler)(LPVOID, DWORD, DWORDLONG, DWORD), LPVOID handlerParam);
-  static void      SetObjectCollisionHandler(int (*handler)(DWORDLONG, DWORD, WorldObjCollisionHandlerData *));
-  static void      SetCameraTarget(DWORD hWorldObject);
-  static DWORD     AddObject(DWORDLONG param64, DWORD param32, HMODEL hModel, UINT objFlags);
-  static void      RemoveObject(DWORD hWorldObject);
-  static DWORD     AddDoodad(LPCSTR fileName, HMODEL hModel, const NTempest::C44Matrix &mat, UINT objFlags);
+  enum ObjFlags {
+    ObjFlag_Collidable = 0x1,
+    ObjFlag_NoShadow = 0x2,
+    ObjFlag_AlwaysAnimate = 0x4
+  };
+
+  enum WorldQueryFlags {
+    WQF_doodadCollision = 0x0001,
+    WQF_doodadRender = 0x0002,
+    WQF_doodadMask = 0x000F,
+    WQF_mapobjCollision = 0x0010,
+    WQF_mapobjRender = 0x0020,
+    WQF_mapobjNoCamCollide = 0x0040,
+    WQF_mapobjMask = 0x00F0,
+    WQF_terrain = 0x0100,
+    WQF_terrainMask = 0x0F00,
+    WQF_noForceLoad = 0x1000,
+    WQF_noWmoDoodad = 0x2000,
+    WQF_render = WQF_mapobjRender | WQF_doodadRender | WQF_terrain,
+    WQF_collision = WQF_mapobjCollision | WQF_doodadCollision | WQF_terrain
+  };
+
   enum Enables {
     Enable_Doodads = 0x00000001,
     Enable_Chunks = 0x00000002,
@@ -222,124 +236,92 @@ class CWorld {
     Enable_Anisotropic = 0x80000000
   };
 
-  enum ObjFlags {
-    ObjFlag_Collidable = 0x1,
-    ObjFlag_NoShadow = 0x2,
-    ObjFlag_AlwaysAnimate = 0x4
+  static void                      Initialize();
+  static void                      Destroy();
+  static void                      LoadMap(LPCSTR mapName, NTempest::C3Vector &position, int preLoad);
+  static void                      UnloadMap();
+  static bool                      MapIsDungeon();
+  static void                      ClearCache();
+  static void                      Preload(const NTempest::C3Vector &position);
+  static void                      PrepareUpdate(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
+  static void                      Update();
+  static void                      Render();
+  static void                      RenderAlpha();
+  static void                      UpdateDayNight(int forceFull, const NTempest::C3Vector *position);
+  static void                      SetEnvironment();
+  static const NTempest::C3Vector &GetCamPos();
+  static const NTempest::C3Vector &GetCamTarget();
+  static UINT                      QueryAreaId(float x, float y);
+  static int                       QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb);
+  static int                       QueryObjectInside(DWORD hWorldObject);
+  static int                       QueryObjectVisible(DWORD hWorldObject);
+  static int                       QueryMapObjZoneName(DWORD hWorldObject, LPCSTR &zoneName);
+  static int                       QueryMapObjSubzoneName(DWORD hWorldObject, LPCSTR &subzoneName, UINT &subzoneId);
+  static int                       QueryMapObjFileName(DWORD hWorldObject, LPCSTR &fileName);
+  static bool                      QueryMapObjIDs(DWORD hWorldObject, UINT &wmoID, UINT &instanceID, UINT &groupID);
+  static int                       QueryMapObjFog(DWORD hWorldObject, SMOFog::Fogs &oFogs, float &oPct);
+  static int                       QueryGroundType(DWORD hWorldObject, UINT &groundType);
+  static bool                      QueryMountAllowed(DWORD hWorldObject, bool &allowed);
+  static bool QueryMapObjAreaTable(DWORD hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
+
+  struct MinimapQuad {
+    UINT                groupNum;
+    NTempest::C2iVector quad;
+    NTempest::CAaBox    aaBox;
   };
 
-  enum ObjStatus {
-    ObjStatus_Visible = 0x1,
-    ObjStatus_Audible = 0x2
-  };
-
-  enum WorldQueryFlags {
-    WQF_doodadCollision = 0x0001,
-    WQF_doodadRender = 0x0002,
-    WQF_doodadMask = 0x000F,
-    WQF_mapobjCollision = 0x0010,
-    WQF_mapobjRender = 0x0020,
-    WQF_mapobjNoCamCollide = 0x0040,
-    WQF_mapobjMask = 0x00F0,
-    WQF_terrain = 0x0100,
-    WQF_terrainMask = 0x0F00,
-    WQF_noForceLoad = 0x1000,
-    WQF_noWmoDoodad = 0x2000,
-    WQF_render = WQF_mapobjRender | WQF_doodadRender | WQF_terrain,
-    WQF_collision = WQF_mapobjCollision | WQF_doodadCollision | WQF_terrain
-  };
+  static bool QueryMapObjMinimap(DWORD hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads);
+  static bool QueryMapObjMatrix(DWORD hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
+  static BOOL QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep);
+  static int  QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir);
+  static int  QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable);
 
   static const UINT MAX_SOUND_EXT_LEVEL;
   static const UINT MIN_SOUND_EXT_LEVEL;
 
-  static void   Initialize();
-  static void   Destroy();
-  static void   LoadMap(LPCSTR mapName, NTempest::C3Vector &position, int preLoad);
-  static bool   MapIsDungeon();
-  static void   UnloadMap();
-  static void   ClearCache();
-  static void   Preload(const NTempest::C3Vector &position);
-  static void   PrepareUpdate(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
-  static void   SetUpdateTime(float elapsedSec, DWORD pCurTimeMs);
-  static void   Update();
+  static int    QueryLiquidSounds(DWORD hWorldObject, float radius, int *lbool, NTempest::C3Vector *ldelta);
+  static UINT   SceneCamLiquidStatus();
+  static UINT   ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOOL bWait, BOOL bSnap, DWORDLONG param64);
+  static void   ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, BOOL bSnap);
   static void   ObjectGetExtents(UINT id, NTempest::CAaBox &extents);
   static void   ObjectEnableCollision(UINT id, int enable);
   static bool   ObjectTestConvexVolume(UINT id, const NTempest::C3Vector &pos);
   static void   ObjectDelete(UINT id);
-  static void   SetHidden(DWORD hWorldObject, int hidden);
-  static UINT   QueryAreaId(float x, float y);
-  static int    QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb);
-  static UINT   SceneCamLiquidStatus();
-  static int    QueryObjectInside(DWORD hWorldObject);
-  static int    QueryObjectVisible(DWORD hWorldObject);
-  static int    QueryLiquidSounds(DWORD hWorldObject, float radius, int *lbool, NTempest::C3Vector *ldelta);
-  static int    QueryMapObjZoneName(DWORD hWorldObject, LPCSTR &zoneName);
-  static int    QueryMapObjSubzoneName(DWORD hWorldObject, LPCSTR &subzoneName, UINT &subzoneId);
-  static int    QueryMapObjFileName(DWORD hWorldObject, LPCSTR &fileName);
-  static int    QueryMapObjFog(DWORD hWorldObject, SMOFog::Fogs &oFogs, float &oPct);
-  static bool   QueryMapObjMinimap(DWORD hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads);
-  static bool   QueryMapObjIDs(DWORD hWorldObject, UINT &wmoID, UINT &instanceID, UINT &groupID);
-  static bool   QueryMapObjMatrix(DWORD hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx);
-  static LPCSTR QueryChunkName();
-  static bool   QueryMapObjAreaTable(DWORD hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
-  static BOOL   QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep);
-  static int    QueryGroundType(DWORD hWorldObject, UINT &groundType);
-  static bool   QueryMountAllowed(DWORD hWorldObject, bool &allowed);
-  static int    QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, float &surface, NTempest::C3Vector &waterDir);
-  static int    QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable);
+  static void   SetObjectHandler(int (*handler)(LPVOID, DWORD, DWORDLONG, DWORD), LPVOID handlerParam);
+  static void   SetObjectCollisionHandler(int (*handler)(DWORDLONG, DWORD, WorldObjCollisionHandlerData *));
+  static DWORD  AddObject(DWORDLONG param64, DWORD param32, HMODEL hModel, UINT objFlags);
+  static DWORD  AddDoodad(LPCSTR fileName, HMODEL hModel, const NTempest::C44Matrix &mat, UINT objFlags);
+  static HMODEL GetModel(DWORD doodad);
   static void   UpdateObject(DWORD hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox);
-  static void   ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, BOOL bSnap);
-  static UINT   ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOOL bWait, BOOL bSnap, DWORDLONG param64);
+  static void   RemoveObject(DWORD hWorldObject);
+  static void   SetHidden(DWORD hWorldObject, int hidden);
   static void   TickObject(DWORD hWorldObject);
-  static void   WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq);
-  static float  GetCurTimeSec() {
-    return curTimeSec;
-  }
-  static float GetTickTimeSec() {
-    return tickTimeSec;
-  }
-  static UINT GetCurTimeMs() {
-    return curTimeMs;
-  }
-  static UINT GetTickTimeMs() {
-    return tickTimeMs;
-  }
-  static const NTempest::C3Vector &GetCamPos();
-  static const NTempest::C3Vector &GetCamTarget();
-  static float                     GetFramerate();
-  static UINT                      GetPrimsRendered();
-  static UINT                      GetChunksRendered();
-  static UINT                      GetDoodadsRendered();
-  static void                      GetCounts(int counts[]);
-  static DWORD                     GetEnables();
-  static float                     GetFarClip();
-  static float                     GetNearClip();
-  static UINT                      GetTexMaxAnisotropyLog2();
-  static void                      SetEnvironment();
-  static void                      UpdateDayNight(int forceFull, const NTempest::C3Vector *position);
-  static void                      Render();
-  static void                      RenderAlpha();
-  static void  SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
-  static void  SetShadowColor(NTempest::CImVector &color);
-  static void  SetDetailDoodadDensity(UINT density);
-  static void  SetNearClip(float nearClip);
-  static void  SetFarClip(float farClip);
-  static void  SetTexLodBias(float bias);
-  static void  SetTexAnisotropy(UINT anisotropy);
-  static bool  SetLodDist(float dist);
-  static bool  SetTextureLodDist(float dist);
-  static float CalcAltitude(float x, float y, float radius);
-  static bool  GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags);
+  static void   SetObjectRenderCallback(DWORD hWorldObject, void (*cb)(LPVOID, const NTempest::C44Matrix &), LPVOID param);
+  static void   SetCameraTarget(DWORD hWorldObject);
+  static void   SetUpdateTime(float elapsedSec, DWORD pCurTimeMs);
+  static void   SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
+  static float  CalcAltitude(float x, float y, float radius);
   static bool Intersect(const NTempest::C3Vector *a, const NTempest::C3Vector *b, float radius, NTempest::C3Vector *ip, float *dist, UINT queryFlags);
   static void GetFacets(const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags);
   static void GetFacets(const CWFrustum &frustum, CWFacetData *facetData, UINT queryFlags);
-  static void TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, DWORDLONG param64);
-  static bool GetTris(const NTempest::C3Segment &seg, float &t, CWTriData &triData, UINT queryFlags);
+  static bool GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags);
   static bool GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags);
+  static bool GetTris(const NTempest::C3Segment &seg, float &t, CWTriData &triData, UINT queryFlags);
+  static void TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, DWORDLONG param64);
   static void DBGShowQuery(bool show);
   static void SetSoundEmitterHandlers(void (*create)(CWSoundEmitter &), void (*destroy)(DWORD));
-  static BOOL NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3Vector **&p_outVerts, UINT &p_outCount);
-  static bool NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate);
+  static void WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq);
+  static LPCSTR QueryChunkName();
+  static BOOL   NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3Vector **&p_outVerts, UINT &p_outCount);
+  static bool   NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate);
+  static void   SetShadowColor(NTempest::CImVector &color);
+  static void   SetFarClip(float farClip);
+  static void   SetNearClip(float nearClip);
+  static void   SetDetailDoodadDensity(UINT density);
+  static void   SetTexLodBias(float bias);
+  static void   SetTexAnisotropy(UINT anisotropy);
+  static bool   SetLodDist(float dist);
+  static bool   SetTextureLodDist(float dist);
 
  private:
   friend class CDetailDoodadInst;
@@ -357,57 +339,16 @@ class CWorld {
   friend HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
   friend HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC);
 
-  static void ModelGeoProjectCallback(const NTempest::CAaBox &worldBox, NTempest::CImVector color, const NTempest::C44Matrix &basis);
-  static BOOL ParticleProjectCallback(const NTempest::C3Segment &seg, float &z);
-  static BOOL AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z);
   static void CalcFPS();
   static void PrepareAreaOfInterest(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
+  static void ModelGeoProjectCallback(const NTempest::CAaBox &worldBox, NTempest::CImVector color, const NTempest::C44Matrix &basis);
+  static BOOL AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z);
+  static BOOL ParticleProjectCallback(const NTempest::C3Segment &seg, float &z);
 
-  static BOOL ConsoleCommand_ShowDetailDoodads(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowMapObjBSP(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_DebugBSP(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowTerrain(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowDoodads(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowAABoxes(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowCollision(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments);
-  static BOOL ConsoleCommand_ShowCull(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments);
-  static int  ConsoleCommand_ShowMapObjLight(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_MapObjLightMode(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowMapObjTex(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowCrappyBatches(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowMapObjs(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowPortals(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_PortalVis(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_WaterShow(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_WaterMaxLOD(LPCSTR, LPCSTR arguments);
-  static BOOL ConsoleCommand_WaterWaves(LPCSTR, LPCSTR arguments);
-  static BOOL ConsoleCommand_WaterSpecular(LPCSTR, LPCSTR arguments);
-  static BOOL ConsoleCommand_WaterRipples(LPCSTR, LPCSTR arguments);
-  static BOOL ConsoleCommand_WaterParticulates(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_Proj(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowTris(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowNormals(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_DebugZones(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_ShowQuery(LPCSTR command, LPCSTR arguments);
-  static int  ConsoleCommand_DetailDoodadTest(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments);
-  static int  ConsoleCommand_GroupOnly(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_ShowShadow(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_ShowLowDetail(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_ShowSimpleDoodads(LPCSTR command, LPCSTR arguments);
-  static BOOL ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name);
-  static BOOL ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name);
-
-  static DWORD               enables;
   static float               curTimeSec;
   static float               tickTimeSec;
   static UINT                curTimeMs;
   static UINT                tickTimeMs;
-  static DWORD               enableLayerCnt;
-  static UINT                maxLights;
-  static float               unitDrawDist;
   static UINT                frameCnt;
   static UINT                chunkCnt;
   static UINT                nChunksRender;
@@ -438,19 +379,84 @@ class CWorld {
   static float               farFog;
   static float               farClip;
   static float               nearClip;
+  static float               unitDrawDist;
   static NTempest::CAaBox    groupAoi;
   static NTempest::CAaBox    objectAoi;
+  static DWORD               enables;
+  static DWORD               enableLayerCnt;
+  static UINT                maxLights;
+  static NTempest::CImVector shadowColor;
+  static UINT                shadowModColor[64];
+  static CGxTex             *shadowModGxTex;
+  static UINT                shadowMipLevel;
+  static UINT                alphaMipLevel;
   static float               texLodBias;
   static UINT                texMaxAnisotropy;
   static UINT                texMaxAnisotropyLog2;
   static Particulate        *particulate;
-  static CGxTex             *shadowModGxTex;
-  static UINT                shadowMipLevel;
-  static UINT                alphaMipLevel;
-  static NTempest::CImVector shadowColor;
-  static UINT                shadowModColor[64];
   static BOOL                bLoadSimpleDoodads;
   static BOOL                bShowSimpleDoodads;
+
+ public:
+  static DWORD GetEnables();
+  static float GetCurTimeSec() {
+    return curTimeSec;
+  }
+  static float GetTickTimeSec() {
+    return tickTimeSec;
+  }
+  static UINT GetCurTimeMs() {
+    return curTimeMs;
+  }
+  static UINT GetTickTimeMs() {
+    return tickTimeMs;
+  }
+  static float GetFramerate();
+  static UINT  GetPrimsRendered();
+  static UINT  GetChunksRendered();
+  static UINT  GetDoodadsRendered();
+  static void  GetCounts(int counts[]);
+  static float GetFarClip();
+  static float GetNearClip();
+  static UINT  GetTexMaxAnisotropyLog2();
+
+ private:
+  static int  ConsoleCommand_DebugBSP(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowTerrain(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowDoodads(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowCollision(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowAABoxes(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowQuery(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowTris(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowNormals(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowCrappyBatches(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowMapObjs(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowMapObjLight(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowMapObjBSP(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowMapObjTex(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_ShowPortals(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_ShowDetailDoodads(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_ShowCull(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_ShowSimpleDoodads(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterMaxLOD(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterWaves(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterSpecular(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterRipples(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterShow(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_WaterParticulates(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_Proj(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments);
+  static BOOL ConsoleCommand_MapObjLightMode(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_PortalVis(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_DebugZones(LPCSTR command, LPCSTR arguments);
+  static int  ConsoleCommand_DetailDoodadTest(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments);
+  static int  ConsoleCommand_GroupOnly(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_ShowShadow(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_ShowLowDetail(LPCSTR command, LPCSTR arguments);
+  static BOOL ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name);
+  static BOOL ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name);
 };
 
 NODEDECL(WaterRadWave) {

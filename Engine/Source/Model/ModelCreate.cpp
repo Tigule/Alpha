@@ -898,7 +898,9 @@ void ModelRemoveFromCache(LPCSTR sourcefile) {
   char       *extension;
   CModelHash *modelHash;
 
-  ASSERT(sourcefile);
+  VALIDATEBEGIN;
+  VALIDATE(sourcefile);
+  VALIDATEENDVOID;
 
   SStrCopy(filePath, sourcefile, sizeof(filePath));
   extension = SStrChrR(filePath, '.');
@@ -952,7 +954,9 @@ BOOL ModelCacheUpdate(DWORD currentTime, CStatus *status) {
 }
 
 HMODEL ModelGetModel(LPCSTR sourcefile, CModelCreate *data) {
-  FATALASSERT(sourcefile);
+  VALIDATEBEGIN;
+  VALIDATE(sourcefile);
+  VALIDATEEND;
   return GetModel(sourcefile, data);
 }
 
@@ -1175,7 +1179,9 @@ HMODEL ModelCreate(LPCSTR sourcefile, CModelCreate *data, CStatus *status) {
 }
 
 HMODEL ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status) {
-  ASSERT(status);
+  VALIDATEBEGIN;
+  VALIDATE(status);
+  VALIDATEEND;
   ASSERT(static_cast<LPCSTR>(source.header.sourceFilename)[0]);
 
   OsOutputDebugString("Model: (INFO) : Loading \"%s\"\n", static_cast<LPCSTR>(source.header.sourceFilename));
@@ -1221,7 +1227,9 @@ static CModel *IModelCreateSimpleEmpty(LPCSTR name) {
   CModel       *model = NEW(CModel);
   CModelShared *shared = NEW(CModelShared);
   CModelSimple *modelptr = NEW(CModelSimple);
-  ASSERT(model);
+  VALIDATEBEGIN;
+  VALIDATE(model);
+  VALIDATEEND;
   ASSERT(shared);
   ASSERT(modelptr);
 
@@ -1686,11 +1694,12 @@ BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
   return 1;
 }
 BOOL IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared) {
-  FATALASSERT(model);
-
+  VALIDATEBEGIN;
+  VALIDATE(model);
   *unique = 0;
   *shared = reinterpret_cast<CModelShared *>(model->shared);
-  FATALASSERT(*shared);
+  VALIDATE(*shared);
+  VALIDATEEND;
 
   if (model->state != CMODEL_LOADED) {
     return 0;
@@ -1701,7 +1710,9 @@ BOOL IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared
 }
 
 BOOL IModelDerefHandle(CModel *model, CModelBase **unique) {
-  FATALASSERT(model);
+  VALIDATEBEGIN;
+  VALIDATE(model);
+  VALIDATEEND;
 
   *unique = 0;
   if (model->state != CMODEL_LOADED) {
@@ -1713,10 +1724,11 @@ BOOL IModelDerefHandle(CModel *model, CModelBase **unique) {
 }
 
 BOOL IModelDerefHandle(CModel *model, CModelShared **shared) {
-  FATALASSERT(model);
-
+  VALIDATEBEGIN;
+  VALIDATE(model);
   *shared = reinterpret_cast<CModelShared *>(model->shared);
-  FATALASSERT(*shared);
+  VALIDATE(*shared);
+  VALIDATEEND;
 
   return model->state == CMODEL_LOADED;
 }

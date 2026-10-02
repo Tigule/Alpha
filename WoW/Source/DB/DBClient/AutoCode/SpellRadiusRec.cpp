@@ -14,11 +14,14 @@ SpellRadiusRec::~SpellRadiusRec() {
 }
 
 bool SpellRadiusRec::Read(SFile *f, LPCSTR stringBuffer) {
+  int error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_radius) ||
-      !SFileReadTyped(f, &m_radiusPerLevel) ||
-      !SFileReadTyped(f, &m_radiusMax)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_radius) == 0);
+  error |= (SFileReadTyped(f, &m_radiusPerLevel) == 0);
+  error |= (SFileReadTyped(f, &m_radiusMax) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading SpellRadiusRec", DEFAULT_COLOR);
     return false;
   }

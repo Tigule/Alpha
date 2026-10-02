@@ -15,9 +15,12 @@ NamesReservedRec::~NamesReservedRec() {
 
 bool NamesReservedRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempNameIndices[1];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &tempNameIndices[0])) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &tempNameIndices[0]) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading NamesReservedRec", DEFAULT_COLOR);
     return false;
   }

@@ -58,7 +58,9 @@ BOOL IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT ba
 
   FATALASSERT(pixelHeight);
 
-  FATALASSERT(dataPtr);
+  VALIDATEBEGIN;
+  VALIDATE(dataPtr);
+  VALIDATEEND;
 
   FREEIFUSED(dataPtr->data);
   dataPtr->data = 0;

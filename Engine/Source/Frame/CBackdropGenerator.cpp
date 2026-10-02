@@ -1,3 +1,5 @@
+#include <Base/Base.h>
+
 #include "Frame/CBackdropGenerator.h"
 
 #include "Base/Status.h"
@@ -81,7 +83,9 @@ void CBackdropGenerator::LoadXML(const XMLNode *node, CStatus *status) {
 }
 
 void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
-  FATALASSERT(output);
+  VALIDATEBEGIN;
+  VALIDATE(output);
+  VALIDATEENDVOID;
 
   NTempest::C2Vector texCoords[4];
 
@@ -182,7 +186,9 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
 }
 
 void CBackdropGenerator::Generate(const NTempest::CRect *rect) {
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(rect);
+  VALIDATEENDVOID;
 
   NTempest::C2Vector texCoords[4];
   float              ooCornerSize = 1.0f / m_cornerSize;

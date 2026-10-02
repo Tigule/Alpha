@@ -15,30 +15,33 @@ WMOAreaTableRec::~WMOAreaTableRec() {
 
 bool WMOAreaTableRec::Read(SFile *f, LPCSTR stringBuffer) {
   UINT tempAreaName_langIndices[NUM_LOCALES];
+  int  error = 0;
 
-  if (!SFileReadTyped(f, &m_ID) ||
-      !SFileReadTyped(f, &m_WMOID) ||
-      !SFileReadTyped(f, &m_NameSetID) ||
-      !SFileReadTyped(f, &m_WMOGroupID) ||
-      !SFileReadTyped(f, &m_DayAmbienceSoundID) ||
-      !SFileReadTyped(f, &m_NightAmbienceSoundID) ||
-      !SFileReadTyped(f, &m_SoundProviderPref) ||
-      !SFileReadTyped(f, &m_SoundProviderPrefUnderwater) ||
-      !SFileReadTyped(f, &m_MIDIAmbience) ||
-      !SFileReadTyped(f, &m_MIDIAmbienceUnderwater) ||
-      !SFileReadTyped(f, &m_ZoneMusic) ||
-      !SFileReadTyped(f, &m_IntroSound) ||
-      !SFileReadTyped(f, &m_IntroPriority) ||
-      !SFileReadTyped(f, &m_Flags) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[0]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[1]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[2]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[3]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[4]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[5]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[6]) ||
-      !SFileReadTyped(f, &tempAreaName_langIndices[7]) ||
-      !SFileReadTyped(f, &m_AreaName_flag)) {
+  error |= (SFileReadTyped(f, &m_ID) == 0);
+  error |= (SFileReadTyped(f, &m_WMOID) == 0);
+  error |= (SFileReadTyped(f, &m_NameSetID) == 0);
+  error |= (SFileReadTyped(f, &m_WMOGroupID) == 0);
+  error |= (SFileReadTyped(f, &m_DayAmbienceSoundID) == 0);
+  error |= (SFileReadTyped(f, &m_NightAmbienceSoundID) == 0);
+  error |= (SFileReadTyped(f, &m_SoundProviderPref) == 0);
+  error |= (SFileReadTyped(f, &m_SoundProviderPrefUnderwater) == 0);
+  error |= (SFileReadTyped(f, &m_MIDIAmbience) == 0);
+  error |= (SFileReadTyped(f, &m_MIDIAmbienceUnderwater) == 0);
+  error |= (SFileReadTyped(f, &m_ZoneMusic) == 0);
+  error |= (SFileReadTyped(f, &m_IntroSound) == 0);
+  error |= (SFileReadTyped(f, &m_IntroPriority) == 0);
+  error |= (SFileReadTyped(f, &m_Flags) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[0]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[1]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[2]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[3]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[4]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[5]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[6]) == 0);
+  error |= (SFileReadTyped(f, &tempAreaName_langIndices[7]) == 0);
+  error |= (SFileReadTyped(f, &m_AreaName_flag) == 0);
+
+  if (error) {
     ConsoleWrite("Error reading WMOAreaTableRec", DEFAULT_COLOR);
     return false;
   }

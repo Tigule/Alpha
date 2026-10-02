@@ -20,14 +20,10 @@ static UINT                       s_indexCount;
 static const NTempest::C3Vector  s_genericNormal(0.0f, 1.0f, 0.0f);
 static const NTempest::C2Vector  s_genericTexCoord(0.0f, 0.0f);
 static const NTempest::CImVector s_genericColor(0xFFFFFFFF);
-static NTempest::CImVector       diffuse;
 
 static enum _D3DPRIMITIVETYPE s_primitiveConversion[GxPrims_Last] = {static_cast<enum _D3DPRIMITIVETYPE>(1), static_cast<enum _D3DPRIMITIVETYPE>(2),
                                                                      static_cast<enum _D3DPRIMITIVETYPE>(3), static_cast<enum _D3DPRIMITIVETYPE>(4),
                                                                      static_cast<enum _D3DPRIMITIVETYPE>(5), static_cast<enum _D3DPRIMITIVETYPE>(6)};
-
-#define MinD3dBufVertices 0x100
-#define MinD3dBufIndices  0x300
 
 static DWORD s_vtxBufFmtConversion[GxVertexBufferFormats_Last] = {
     D3DFVF_XYZ | D3DFVF_NORMAL,
@@ -86,32 +82,54 @@ void CGxBufD3d::UnsetIB() {
 }
 
 void CGxBufD3d::LockVB(LPVOID &mem) {
-  if (m_vertexStatus == S_INVALID_RELOAD) {
-    m_vb->Lock(mem, m_numVertices, m_vertexBase);
-  } else {
-    ASSERT(m_vertexStatus == S_INVALID_DISCARD);
-    UnsetVB();
-    SetVB(m_vbl->Lock(mem, m_numVertices, BASE_NONE));
-    m_vertexBase = m_vb->m_base;
+  switch (m_vertexStatus) {
+    case S_INVALID_DISCARD:
+      UnsetVB();
+      SetVB(m_vbl->Lock(mem, m_numVertices, BASE_NONE));
+      m_vertexBase = m_vb->GetBase();
+      break;
+
+    case S_INVALID_RELOAD:
+      m_vb->Lock(mem, m_numVertices, m_vertexBase);
+      break;
+
+    default:
+      ASSERT(!("CGxBufD3d::LockVB(): invalid m_vertexStatus value"));
+      break;
   }
 }
 
 void CGxBufD3d::LockIB(LPVOID &mem) {
-  if (m_indexStatus == S_INVALID_RELOAD) {
-    m_ib->Lock(mem, m_numIndices, m_indexBase);
-  } else {
-    ASSERT(m_indexStatus == S_INVALID_DISCARD);
-    m_ib->Lock(mem, m_numIndices, BASE_NONE);
-    m_indexBase = m_ib->m_base;
+  switch (m_indexStatus) {
+    case S_INVALID_DISCARD:
+      m_ib->Lock(mem, m_numIndices, BASE_NONE);
+      m_indexBase = m_ib->GetBase();
+      break;
+
+    case S_INVALID_RELOAD:
+      m_ib->Lock(mem, m_numIndices, m_indexBase);
+      break;
+
+    default:
+      ASSERT(!("CGxBufD3d::LockIB(): invalid m_indexStatus value"));
+      break;
   }
 }
 
 BOOL CGxBufD3d::VBLValid() {
-  return m_vbl && m_vbl->m_maxContiguousVertices >= m_numVertices;
+  if (!m_vbl) {
+    return 0;
+  }
+
+  return m_numVertices <= m_vbl->MaxContiguousVertices();
 }
 
 BOOL CGxBufD3d::IBValid() {
-  return m_ib && m_ib->m_count >= m_numIndices;
+  if (!m_ib) {
+    return 0;
+  }
+
+  return m_numIndices <= m_ib->GetCount();
 }
 
 void CGxBufD3d::Release() {
@@ -126,38 +144,31 @@ void CVertexBufferList::Create(EGxVertexBufferFormat format, UINT numVerts) {
   CGxVertexBuffer_D3d    *vb;
   IDirect3DVertexBuffer9 *d3dvb;
   UINT                    verts;
-  UINT                    vbVerts;
 
   if (numVerts && !m_numVerts) {
     m_maxContiguousVertices = 0;
     m_numVerts = 0;
 
     verts = numVerts;
-    while (verts > MinD3dBufVertices) {
-      vbVerts = verts;
-      if (vbVerts >= 0x10000) {
-        vbVerts = 0x10000;
+    while (verts) {
+      if (verts <= CGxDevice::MinD3dBufVertices) {
+        break;
       }
 
-      ASSERT(CGxDeviceD3d::m_thisDevice);
-      CGxDeviceD3d::m_thisDevice->ICreateD3dVB(format, vbVerts, d3dvb);
+      UINT vbVerts = min(verts, 0x10000);
+
+      CGxDeviceD3d::GetDevice()->ICreateD3dVB(format, vbVerts, d3dvb);
 
       if (!d3dvb) {
         break;
       }
 
       vb = NEW(CGxVertexBuffer_D3d)(format, d3dvb, vbVerts);
-      m_vbList.Add(1, &vb);
+      *m_vbList.New() = vb;
 
       verts -= vbVerts;
       m_numVerts += vbVerts;
-      if (vbVerts > m_maxContiguousVertices) {
-        m_maxContiguousVertices = vbVerts;
-      }
-
-      if (!verts) {
-        break;
-      }
+      m_maxContiguousVertices = max(m_maxContiguousVertices, vbVerts);
     }
   }
 }
@@ -169,51 +180,6 @@ void CVertexBufferList::Release() {
 
   m_vbList.Clear();
   m_numVerts = 0;
-}
-
-UINT CVertexBufferList::GetBase() {
-  return m_vbList[m_currentVB]->m_base;
-}
-
-CGxVertexBuffer_D3d::CGxVertexBuffer_D3d(EGxVertexBufferFormat format, IDirect3DVertexBuffer9 *vb, UINT numVertices)
-    : CGxVertexBuffer(numVertices), m_d3dvb(vb), m_vbFormat(format) {
-}
-
-void CGxVertexBuffer_D3d::Discard() {
-  CGxMemBuffer::Discard();
-  InvalidateBufs(CGxBuf::S_INVALID_DISCARD, CGxBuf::S_VALID);
-}
-
-void CGxVertexBuffer_D3d::Lock(LPVOID &mem, UINT numVertices, UINT base) {
-  DWORD lockFlags;
-
-  ASSERT(numVertices <= m_count);
-
-  if (base == CGxBuf::BASE_NONE) {
-    if (m_discard) {
-      base = 0;
-      m_base = 0;
-      m_next = 0;
-      m_discard = 0;
-      m_next = numVertices;
-      lockFlags = D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK;
-    } else {
-      ASSERT(m_next + numVertices <= m_count);
-      m_base = m_next;
-      base = m_base;
-      m_next += numVertices;
-      lockFlags = D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK;
-    }
-  } else {
-    lockFlags = D3DLOCK_NOSYSLOCK;
-  }
-
-  if (m_d3dvb->Lock(base * GxVertexSize(m_vbFormat), numVertices * GxVertexSize(m_vbFormat), &mem, lockFlags) < 0) {
-    ASSERT(0);
-  }
-}
-
-CGxIndexBuffer_D3d::CGxIndexBuffer_D3d(IDirect3DIndexBuffer9 *ib, UINT numIndices) : CGxIndexBuffer(numIndices), m_d3dib(ib) {
 }
 
 CGxVertexBuffer_D3d *CVertexBufferList::Lock(LPVOID &mem, UINT numVertices, UINT base) {
@@ -237,13 +203,57 @@ CGxVertexBuffer_D3d *CVertexBufferList::Lock(LPVOID &mem, UINT numVertices, UINT
   return vb;
 }
 
-CGxVertexBuffer_D3d::~CGxVertexBuffer_D3d() {
-  ASSERT(CGxDeviceD3d::m_thisDevice);
-  CGxDeviceD3d::m_thisDevice->IReleaseD3dVB(m_d3dvb);
+UINT CVertexBufferList::GetBase() {
+  return m_vbList[m_currentVB]->m_base;
+}
+
+CGxVertexBuffer_D3d::CGxVertexBuffer_D3d(EGxVertexBufferFormat format, IDirect3DVertexBuffer9 *vb, UINT numVertices)
+    : CGxVertexBuffer(numVertices), m_d3dvb(vb), m_vbFormat(format) {
+}
+
+void CGxVertexBuffer_D3d::Lock(LPVOID &mem, UINT numVertices, UINT base) {
+  DWORD lockFlags;
+  UINT  lockBase;
+
+  ASSERT(numVertices <= m_count);
+
+  if (base == CGxBuf::BASE_NONE) {
+    if (m_discard) {
+      m_next = 0;
+      lockFlags = D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK;
+      m_discard = 0;
+    } else {
+      ASSERT(m_next + numVertices <= m_count);
+      lockFlags = D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK;
+    }
+
+    m_base = m_next;
+    m_next += numVertices;
+    lockBase = m_base;
+  } else {
+    lockFlags = D3DLOCK_NOSYSLOCK;
+    lockBase = base;
+  }
+
+  if (m_d3dvb->Lock(lockBase * GxVertexSize(m_vbFormat), numVertices * GxVertexSize(m_vbFormat), &mem, lockFlags) < 0) {
+    ASSERT(0);
+  }
+}
+
+void CGxVertexBuffer_D3d::Discard() {
+  CGxMemBuffer::Discard();
+  InvalidateBufs(CGxBuf::S_INVALID_DISCARD, CGxBuf::S_VALID);
 }
 
 void CGxVertexBuffer_D3d::Unlock() {
   m_d3dvb->Unlock();
+}
+
+CGxVertexBuffer_D3d::~CGxVertexBuffer_D3d() {
+  CGxDeviceD3d::GetDevice()->IReleaseD3dVB(m_d3dvb);
+}
+
+CGxIndexBuffer_D3d::CGxIndexBuffer_D3d(IDirect3DIndexBuffer9 *ib, UINT numIndices) : CGxIndexBuffer(numIndices), m_d3dib(ib) {
 }
 
 void CGxIndexBuffer_D3d::Lock(LPVOID &mem, UINT numIndices, UINT base) {
@@ -270,8 +280,7 @@ void CGxIndexBuffer_D3d::Unlock() {
 }
 
 CGxIndexBuffer_D3d::~CGxIndexBuffer_D3d() {
-  ASSERT(CGxDeviceD3d::m_thisDevice);
-  CGxDeviceD3d::m_thisDevice->IReleaseD3dIB(m_d3dib);
+  CGxDeviceD3d::GetDevice()->IReleaseD3dIB(m_d3dib);
 }
 
 void CGxDeviceD3d::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, UINT numVertices, UINT numIndices) {
@@ -285,14 +294,12 @@ void CGxDeviceD3d::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format
       }
     }
 
-    CVertexBufferList   &vbl = m_VBL[freq][format];
-    CGxIndexBuffer_D3d *&ib = m_IB[freq][format];
-    vbl.Release();
-    if (ib) {
-      DEL(ib);
-      ib = 0;
+    m_VBL[freq][format].Release();
+    if (m_IB[freq][format]) {
+      DEL(m_IB[freq][format]);
+      m_IB[freq][format] = 0;
     }
-    ICreateBuffers(format, numVertices, vbl, numIndices, ib);
+    ICreateBuffers(format, numVertices, m_VBL[freq][format], numIndices, m_IB[freq][format]);
   }
 }
 
@@ -322,16 +329,20 @@ void CGxDeviceD3d::IBufSetBuffers(CGxBufD3d *buf) {
     return;
   }
 
-  EGxBufWriteFreq frequency = buf->m_writeFreq;
-  if (frequency == GxBWF_Static) {
-    ASSERT(0);
-  } else if (frequency <= GxBWF_Medium) {
-    if (!buf->VBLValid()) {
-      buf->SetVBL(&m_VBL[frequency][buf->m_vbFormat]);
-    }
-    if (!buf->m_ib) {
-      buf->SetIB(m_IB[frequency][buf->m_vbFormat]);
-    }
+  switch (buf->m_writeFreq) {
+    case GxBWF_Static:
+      ASSERT(0);
+      break;
+
+    case GxBWF_Low:
+    case GxBWF_Medium:
+      if (!buf->VBLValid()) {
+        buf->SetVBL(&m_VBL[buf->m_writeFreq][buf->m_vbFormat]);
+      }
+      if (!buf->m_ib) {
+        buf->SetIB(m_IB[buf->m_writeFreq][buf->m_vbFormat]);
+      }
+      break;
   }
 
   if (!buf->VBLValid()) {
@@ -354,14 +365,15 @@ void CGxDeviceD3d::BufLock(CGxBuf *b) {
   LPVOID        vmember[GxVertexMembers_Last];
   CGxBufCommand cmd;
   LPVOID        imem = 0;
+  LPVOID        vmem = 0;
 
   cmd.vertex.op = GxBufOp_Nop;
   cmd.index.op = GxBufOp_Nop;
 
   if (buf->m_vertexStatus != CGxBuf::S_VALID) {
-    buf->LockVB(vmember[0]);
+    buf->LockVB(vmem);
     for (UINT member = 0; member < GxVertexMembers_Last; ++member) {
-      vmember[member] = static_cast<BYTE *>(vmember[0]) + GxVertexMemberOffset(buf->m_vbFormat, static_cast<EGxVertexMember>(member));
+      vmember[member] = static_cast<BYTE *>(vmem) + GxVertexMemberOffset(buf->m_vbFormat, static_cast<EGxVertexMember>(member));
       cmd.vertex.mem[member] = &vmember[member];
       cmd.vertex.stride[member] = GxVertexSize(buf->m_vbFormat);
     }
@@ -376,9 +388,9 @@ void CGxDeviceD3d::BufLock(CGxBuf *b) {
   }
 
   if (cmd.vertex.op != GxBufOp_Nop || cmd.index.op != GxBufOp_Nop) {
-    buf->m_userCallback(cmd, b);
+    buf->m_userCallback(cmd, buf);
     if (cmd.vertex.op != GxBufOp_Nop) {
-      m_perfCountersAcc[GxPerf_VertexBytes] += buf->m_numVertices * GxVertexSize(buf->m_vbFormat);
+      m_perfCountersAcc[GxPerf_VertexBytes] += GxVertexSize(buf->m_vbFormat) * buf->m_numVertices;
     }
     if (cmd.index.op != GxBufOp_Nop) {
       m_perfCountersAcc[GxPerf_IndexBytes] += buf->m_numIndices * sizeof(WORD);
@@ -398,10 +410,14 @@ void CGxDeviceD3d::BufLock(CGxBuf *b) {
     }
   }
 
-  ASSERT(m_d3dDevice->SetVertexShader(0) == 0);
-  ASSERT(m_d3dDevice->SetFVF(s_vtxBufFmtConversion[buf->m_vbFormat]) == 0);
-  ASSERT(m_d3dDevice->SetStreamSource(0, buf->m_vb->m_d3dvb, 0, GxVertexSize(buf->m_vbFormat)) == 0);
-  ASSERT(m_d3dDevice->SetIndices(buf->m_ib->m_d3dib) == 0);
+  HRESULT res = m_d3dDevice->SetVertexShader(0);
+  ASSERT(res == ((HRESULT)0x00000000L));
+  res = m_d3dDevice->SetFVF(s_vtxBufFmtConversion[buf->m_vbFormat]);
+  ASSERT(res == ((HRESULT)0x00000000L));
+  res = m_d3dDevice->SetStreamSource(0, buf->m_vb->GetD3dBuffer(), 0, GxVertexSize(buf->m_vbFormat));
+  ASSERT(res == ((HRESULT)0x00000000L));
+  res = m_d3dDevice->SetIndices(buf->m_ib->GetD3dBuffer());
+  ASSERT(res == ((HRESULT)0x00000000L));
 }
 
 void CGxDeviceD3d::BufRender(const CGxBatch *batches, UINT count) {
@@ -457,124 +473,145 @@ void CGxDeviceD3d::IPrimSetupPos(LPVOID dstBuf) {
   if ((m_cpuFeatures & 0x2) && m_vertexShader == GxVS_PassThru && m_vertexBufferFormat == GxVBF_PNT0 && s_posStride == sizeof(NTempest::C3Vector) &&
       s_normalStride == sizeof(NTempest::C3Vector) && s_texStride[0] == sizeof(NTempest::C2Vector))
   {
-    ASSERT((reinterpret_cast<UINT>(dstBuf) & 7) == 0);
+    ASSERT((((int)dstBuf) & 7) == 0);
     IPrimSetupPos_PNT0(dstBuf);
     return;
   }
 
-  NTempest::C3Vector   tmpNormal;
-  NTempest::C2Vector   tmpTex1;
-  NTempest::C2Vector   tmpTex0;
-  NTempest::CImVector  tmpColor;
-  NTempest::C3Vector  *dstP = static_cast<NTempest::C3Vector *>(dstBuf);
-  NTempest::C3Vector  *dstN = &tmpNormal;
-  NTempest::CImVector *dstC = &tmpColor;
-  NTempest::C2Vector  *dstT0 = &tmpTex0;
-  NTempest::C2Vector  *dstT1 = &tmpTex1;
-  UINT                 dpStride = GxVertexSize(m_vertexBufferFormat);
-  UINT                 dnStride = 0;
-  UINT                 dcStride = 0;
-  UINT                 dt0Stride = 0;
-  UINT                 dt1Stride = 0;
-  BYTE                *dst = static_cast<BYTE *>(dstBuf);
+  NTempest::C3Vector  tmpNormal;
+  NTempest::C2Vector  tmpTex1;
+  NTempest::C2Vector  tmpTex0;
+  DWORD               tmpColor;
+  NTempest::C3Vector *dstP = static_cast<NTempest::C3Vector *>(dstBuf);
+  NTempest::C3Vector *dstN = &tmpNormal;
+  DWORD              *dstC = &tmpColor;
+  NTempest::C2Vector *dstT0 = &tmpTex0;
+  NTempest::C2Vector *dstT1 = &tmpTex1;
+  UINT                dpStride = GxVertexSize(m_vertexBufferFormat);
+  UINT                dnStride = 0;
+  UINT                dcStride = 0;
+  UINT                dt0Stride = 0;
+  UINT                dt1Stride = 0;
 
   switch (m_vertexBufferFormat) {
     case GxVBF_PN:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(dst + 12);
-      dnStride = GxVertexSize(m_vertexBufferFormat);
+      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
+      dnStride = GxVertexSize(GxVBF_PN);
       break;
     case GxVBF_PNC:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(dst + 12);
-      dstC = reinterpret_cast<NTempest::CImVector *>(dst + 24);
-      dnStride = dcStride = GxVertexSize(m_vertexBufferFormat);
+      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
+      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 24);
+      dnStride = dcStride = GxVertexSize(GxVBF_PNC);
       break;
     case GxVBF_PNT0:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(dst + 12);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(dst + 24);
-      dnStride = dt0Stride = GxVertexSize(m_vertexBufferFormat);
+      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
+      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 24);
+      dnStride = dt0Stride = GxVertexSize(GxVBF_PNT0);
       break;
     case GxVBF_PNCT0:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(dst + 12);
-      dstC = reinterpret_cast<NTempest::CImVector *>(dst + 24);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(dst + 28);
-      dnStride = dcStride = dt0Stride = GxVertexSize(m_vertexBufferFormat);
+      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
+      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 24);
+      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 28);
+      dnStride = dcStride = dt0Stride = GxVertexSize(GxVBF_PNCT0);
       break;
     case GxVBF_PNT0T1:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(dst + 12);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(dst + 24);
-      dstT1 = reinterpret_cast<NTempest::C2Vector *>(dst + 32);
-      dnStride = dt0Stride = dt1Stride = GxVertexSize(m_vertexBufferFormat);
+      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
+      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 24);
+      dstT1 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 32);
+      dnStride = dt0Stride = dt1Stride = GxVertexSize(GxVBF_PNT0T1);
       break;
     case GxVBF_PNCT0T1:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(dst + 12);
-      dstC = reinterpret_cast<NTempest::CImVector *>(dst + 24);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(dst + 28);
-      dstT1 = reinterpret_cast<NTempest::C2Vector *>(dst + 36);
-      dnStride = dcStride = dt0Stride = dt1Stride = GxVertexSize(m_vertexBufferFormat);
+      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
+      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 24);
+      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 28);
+      dstT1 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 36);
+      dnStride = dcStride = dt0Stride = dt1Stride = GxVertexSize(GxVBF_PNCT0T1);
       break;
     case GxVBF_PCT0:
-      dstC = reinterpret_cast<NTempest::CImVector *>(dst + 12);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(dst + 16);
-      dcStride = dt0Stride = GxVertexSize(m_vertexBufferFormat);
+      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 12);
+      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 16);
+      dcStride = dt0Stride = GxVertexSize(GxVBF_PCT0);
       break;
     case GxVBF_PC:
-      dstC = reinterpret_cast<NTempest::CImVector *>(dst + 12);
-      dcStride = GxVertexSize(m_vertexBufferFormat);
+      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 12);
+      dcStride = GxVertexSize(GxVBF_PC);
       break;
     case GxVBF_PT0T1:
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(dst + 12);
-      dstT1 = reinterpret_cast<NTempest::C2Vector *>(dst + 20);
-      dt0Stride = dt1Stride = GxVertexSize(m_vertexBufferFormat);
+      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 12);
+      dstT1 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 20);
+      dt0Stride = dt1Stride = GxVertexSize(GxVBF_PT0T1);
       break;
     default:
       ASSERT(0);
       break;
   }
 
-  ASSERT(m_vertexShader == GxVS_PassThru || m_vertexShader == GxVS_Skin);
+  switch (m_vertexShader) {
+    case GxVS_PassThru: {
+      for (UINT ndx = 0; ndx != s_vertexCount; ++ndx) {
+        *dstP = *s_pos;
+        *dstN = *s_normal;
+        *dstC = *reinterpret_cast<const DWORD *>(s_color);
+        *dstT0 = *s_tex[0];
+        *dstT1 = *s_tex[1];
 
-  for (UINT ndx = 0; ndx < s_vertexCount; ++ndx) {
-    if (m_vertexShader == GxVS_Skin) {
-      const NTempest::C34Matrix &bone = m_bones[*s_bone];
+        s_pos = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_pos) + s_posStride);
+        s_normal = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_normal) + s_normalStride);
+        s_color = reinterpret_cast<const NTempest::CImVector *>(reinterpret_cast<const BYTE *>(s_color) + s_colorStride);
+        s_tex[0] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[0]) + s_texStride[0]);
+        s_tex[1] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[1]) + s_texStride[1]);
 
-      dstP->x = bone.a0 * s_pos->x + bone.b0 * s_pos->y + bone.c0 * s_pos->z + bone.d0;
-      dstP->y = bone.a1 * s_pos->x + bone.b1 * s_pos->y + bone.c1 * s_pos->z + bone.d1;
-      dstP->z = bone.a2 * s_pos->x + bone.b2 * s_pos->y + bone.c2 * s_pos->z + bone.d2;
-
-      dstN->x = bone.a0 * s_normal->x + bone.b0 * s_normal->y + bone.c0 * s_normal->z;
-      dstN->y = bone.a1 * s_normal->x + bone.b1 * s_normal->y + bone.c1 * s_normal->z;
-      dstN->z = bone.a2 * s_normal->x + bone.b2 * s_normal->y + bone.c2 * s_normal->z;
-    } else {
-      *dstP = *s_pos;
-      *dstN = *s_normal;
+        dstP = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstP) + dpStride);
+        dstN = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstN) + dnStride);
+        dstC = reinterpret_cast<DWORD *>(reinterpret_cast<BYTE *>(dstC) + dcStride);
+        dstT0 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT0) + dt0Stride);
+        dstT1 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT1) + dt1Stride);
+      }
+      break;
     }
 
-    *dstC = *s_color;
-    *dstT0 = *s_tex[0];
-    *dstT1 = *s_tex[1];
+    case GxVS_Skin: {
+      for (UINT ndx = 0; ndx != s_vertexCount; ++ndx) {
+        const NTempest::C44Matrix &bone = m_bones[*s_bone];
 
-    s_pos = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_pos) + s_posStride);
-    s_normal = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_normal) + s_normalStride);
-    s_color = reinterpret_cast<const NTempest::CImVector *>(reinterpret_cast<const BYTE *>(s_color) + s_colorStride);
-    s_tex[0] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[0]) + s_texStride[0]);
-    s_tex[1] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[1]) + s_texStride[1]);
+        dstP->x = bone.a0 * s_pos->x + bone.b0 * s_pos->y + bone.c0 * s_pos->z + bone.d0;
+        dstP->y = bone.a1 * s_pos->x + bone.b1 * s_pos->y + bone.c1 * s_pos->z + bone.d1;
+        dstP->z = bone.a2 * s_pos->x + bone.b2 * s_pos->y + bone.c2 * s_pos->z + bone.d2;
 
-    if (m_vertexShader == GxVS_Skin) {
-      s_bone += s_boneStride;
+        dstN->x = bone.a0 * s_normal->x + bone.b0 * s_normal->y + bone.c0 * s_normal->z;
+        dstN->y = bone.a1 * s_normal->x + bone.b1 * s_normal->y + bone.c1 * s_normal->z;
+        dstN->z = bone.a2 * s_normal->x + bone.b2 * s_normal->y + bone.c2 * s_normal->z;
+
+        *dstC = *reinterpret_cast<const DWORD *>(s_color);
+        *dstT0 = *s_tex[0];
+        *dstT1 = *s_tex[1];
+
+        s_pos = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_pos) + s_posStride);
+        s_normal = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_normal) + s_normalStride);
+        s_color = reinterpret_cast<const NTempest::CImVector *>(reinterpret_cast<const BYTE *>(s_color) + s_colorStride);
+        s_bone += s_boneStride;
+        s_tex[0] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[0]) + s_texStride[0]);
+        s_tex[1] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[1]) + s_texStride[1]);
+
+        dstP = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstP) + dpStride);
+        dstN = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstN) + dnStride);
+        dstC = reinterpret_cast<DWORD *>(reinterpret_cast<BYTE *>(dstC) + dcStride);
+        dstT0 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT0) + dt0Stride);
+        dstT1 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT1) + dt1Stride);
+      }
+      break;
     }
 
-    dstP = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstP) + dpStride);
-    dstN = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstN) + dnStride);
-    dstC = reinterpret_cast<NTempest::CImVector *>(reinterpret_cast<BYTE *>(dstC) + dcStride);
-    dstT0 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT0) + dt0Stride);
-    dstT1 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT1) + dt1Stride);
+    default:
+      ASSERT(0);
+      break;
   }
 }
 
 void CGxDeviceD3d::ICreateD3dVB(EGxVertexBufferFormat format, UINT &numVertices, IDirect3DVertexBuffer9 *&vb) {
   ASSERT(numVertices > MinD3dBufVertices);
 
-  DWORD bufFlags = D3DUSAGE_DYNAMIC | (m_d3dIsHwDevice ? D3DUSAGE_WRITEONLY : D3DUSAGE_SOFTWAREPROCESSING);
+  DWORD bufFlags = m_d3dIsHwDevice ? D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY : D3DUSAGE_DYNAMIC | D3DUSAGE_SOFTWAREPROCESSING;
 
   vb = 0;
   while (numVertices > MinD3dBufVertices && !vb) {
@@ -588,7 +625,7 @@ void CGxDeviceD3d::ICreateD3dVB(EGxVertexBufferFormat format, UINT &numVertices,
 void CGxDeviceD3d::ICreateD3dIB(UINT &numIndices, IDirect3DIndexBuffer9 *&ib) {
   ASSERT(numIndices > MinD3dBufIndices);
 
-  DWORD bufFlags = D3DUSAGE_DYNAMIC | (m_d3dIsHwDevice ? D3DUSAGE_WRITEONLY : D3DUSAGE_SOFTWAREPROCESSING);
+  DWORD bufFlags = m_d3dIsHwDevice ? D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY : D3DUSAGE_DYNAMIC | D3DUSAGE_SOFTWAREPROCESSING;
 
   ib = 0;
   while (numIndices > MinD3dBufIndices && !ib) {
@@ -687,7 +724,8 @@ void CGxDeviceD3d::IPrimProcessVertexPtrs() {
     s_tex[1] = &s_genericTexCoord;
   }
 
-  int lighting;
+  static NTempest::CImVector diffuse;
+  int                        lighting;
   RsGet(GxRs_Lighting, lighting);
   RsGet(GxRs_MatDiffuse, diffuse);
 
@@ -702,8 +740,10 @@ void CGxDeviceD3d::IPrimProcessVertexPtrs() {
   IPrimSetupPos(dst);
   m_vertexBuffer->Unlock();
 
-  ASSERT(m_d3dDevice->SetFVF(s_vtxBufFmtConversion[m_vertexBufferFormat]) == 0);
-  ASSERT(m_d3dDevice->SetStreamSource(0, m_vertexBuffer->m_d3dvb, 0, GxVertexSize(m_vertexBufferFormat)) == 0);
+  HRESULT res = m_d3dDevice->SetFVF(s_vtxBufFmtConversion[m_vertexBufferFormat]);
+  ASSERT(res == ((HRESULT)0x00000000L));
+  res = m_d3dDevice->SetStreamSource(0, m_vertexBuffer->GetD3dBuffer(), 0, GxVertexSize(m_vertexBufferFormat));
+  ASSERT(res == ((HRESULT)0x00000000L));
 
   m_processedVertexPtrs = 1;
 }
@@ -737,8 +777,8 @@ void CGxDeviceD3d::PrimDrawElements() {
   IPrimProcessIndexPtrs();
 
   m_d3dDevice->DrawIndexedPrimitive(
-      s_primitiveConversion[m_primType], m_VBL[GxBWF_Dynamic][m_vertexBufferFormat].GetBase(), 0, s_vertexCount, m_IB[GxBWF_Dynamic][0]->m_base,
-      PrimCalcCount(m_primType, m_primIndexCount)
+      s_primitiveConversion[m_primType], m_VBL[GxBWF_Dynamic][m_vertexBufferFormat].GetBase(), 0, s_vertexCount,
+      m_IB[GxBWF_Dynamic][0]->GetBase(), PrimCalcCount(m_primType, m_primIndexCount)
   );
 }
 

@@ -614,9 +614,7 @@ static void IModelGetStandingMatrix(
       trackType, groundNormal, facing, reinterpret_cast<NTempest::C3Vector *>(&orientation->a0),
       reinterpret_cast<NTempest::C3Vector *>(&orientation->b0), reinterpret_cast<NTempest::C3Vector *>(&orientation->c0)
   );
-  orientation->d0 = position.x;
-  orientation->d1 = position.y;
-  orientation->d2 = position.z;
+  *reinterpret_cast<NTempest::C3Vector *>(&orientation->d0) = position;
   orientation->Scale(scale);
 }
 
@@ -642,11 +640,11 @@ void ModelAnimateCameras(HMODEL model, const NTempest::C34Matrix &orientation) {
   CModelBase *unique;
 
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && (unique->m_flags & 0x20)) {
+    CModelComplex *complex = static_cast<CModelComplex *>(unique);
     ActivityBegin(ACTIVITY_ANIMATE);
     WorldMatrixPush();
     WorldMatrixLoad(orientation);
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
-    AnimAnimateCameras(unique->m_anim, complex->m_cameras);
+    AnimAnimateCameras(complex->m_anim, complex->m_cameras);
     WorldMatrixPop();
     ActivityEnd(ACTIVITY_ANIMATE);
   }
@@ -674,10 +672,20 @@ void ModelProcessEvents(HMODEL model, const NTempest::C34Matrix &orientation) {
 }
 
 void ModelProcessEvents(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale) {
-  NTempest::C34Matrix orientation;
+  CModelBase   *unique;
+  CModelShared *shared;
 
-  ApplyWorldTransforms(position, rotationAngle, rotationAxis, scale, &orientation);
-  ModelProcessEvents(model, orientation);
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+    ActivityBegin(ACTIVITY_ANIMATE);
+    WorldMatrixPush();
+    WorldMatrixLoadIdentity();
+    WorldMatrixTranslate(position);
+    WorldMatrixRotate(rotationAngle, rotationAxis);
+    WorldMatrixScale(scale);
+    IModelProcessEvents(unique, shared);
+    WorldMatrixPop();
+    ActivityEnd(ACTIVITY_ANIMATE);
+  }
 }
 
 void ModelAnimate(
@@ -745,11 +753,14 @@ void ModelAnimate(
 }
 
 BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_SEQUENCE1, seqIndex, flags);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_SEQUENCE1, seqIndex, flags);
     return 1;
   }
 
@@ -774,45 +785,54 @@ BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
 }
 
 BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_SEQUENCE2, seqIndex, objectId, flags);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_SEQUENCE2, seqIndex, objectId, flags);
     return 1;
   }
 
-  if (!unique->m_anim) {
-    SErrSetLastError(ERROR_PATH_NOT_FOUND);
-    return 0;
+  if (unique->m_anim) {
+    return AnimSetSequence(unique->m_anim, seqIndex, objectId, flags);
   }
 
-  return AnimSetSequence(unique->m_anim, seqIndex, objectId, flags);
+  SErrSetLastError(ERROR_PATH_NOT_FOUND);
+  return 0;
 }
 
 int ModelMatchSequence(HMODEL model, UINT objectId, UINT sameAsObjectId, UINT flags) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_MATCH_SEQUENCE, objectId, sameAsObjectId, flags);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_MATCH_SEQUENCE, objectId, sameAsObjectId, flags);
     return 1;
   }
 
-  if (!unique->m_anim) {
-    SErrSetLastError(ERROR_PATH_NOT_FOUND);
-    return 0;
+  if (unique->m_anim) {
+    return AnimMatchSequence(unique->m_anim, objectId, sameAsObjectId, flags);
   }
 
-  return AnimMatchSequence(unique->m_anim, objectId, sameAsObjectId, flags);
+  SErrSetLastError(ERROR_PATH_NOT_FOUND);
+  return 0;
 }
 
 int ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT flags) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_RANDOM_SEQUENCE_FIDGET1, seqIndex, flags);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_RANDOM_SEQUENCE_FIDGET1, seqIndex, flags);
     return 1;
   }
 
@@ -833,20 +853,23 @@ int ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT flags) {
 }
 
 int ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_RANDOM_SEQUENCE_FIDGET2, seqIndex, objectId, flags);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_RANDOM_SEQUENCE_FIDGET2, seqIndex, objectId, flags);
     return 1;
   }
 
-  if (!unique->m_anim) {
-    SErrSetLastError(ERROR_PATH_NOT_FOUND);
-    return 0;
+  if (unique->m_anim) {
+    return AnimSetRandomSequenceFidget(unique->m_anim, seqIndex, objectId, flags);
   }
 
-  return AnimSetRandomSequenceFidget(unique->m_anim, seqIndex, objectId, flags);
+  SErrSetLastError(ERROR_PATH_NOT_FOUND);
+  return 0;
 }
 
 UINT ModelGetNumSequenceFidgets(HMODEL model, UINT seqIndex) {
@@ -859,11 +882,14 @@ UINT ModelGetNumSequenceFidgets(HMODEL model, UINT seqIndex) {
 }
 
 int ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT flags) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_SEQUENCE_FIDGET1, seqIndex, fidgetId, flags);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_SEQUENCE_FIDGET1, seqIndex, fidgetId, flags);
     return 1;
   }
 
@@ -884,20 +910,23 @@ int ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT flag
 }
 
 int ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT objectId, UINT flags) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_SEQUENCE_FIDGET1, seqIndex, fidgetId, objectId, flags);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_SEQUENCE_FIDGET1, seqIndex, fidgetId, objectId, flags);
     return 1;
   }
 
-  if (!unique->m_anim) {
-    SErrSetLastError(ERROR_PATH_NOT_FOUND);
-    return 0;
+  if (unique->m_anim) {
+    return AnimSetSequenceFidget(unique->m_anim, seqIndex, fidgetId, objectId, flags);
   }
 
-  return AnimSetSequenceFidget(unique->m_anim, seqIndex, fidgetId, objectId, flags);
+  SErrSetLastError(ERROR_PATH_NOT_FOUND);
+  return 0;
 }
 
 UINT ModelGetNumSequences(HMODEL model) {
@@ -910,38 +939,55 @@ UINT ModelGetNumSequences(HMODEL model) {
 }
 
 BOOL ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration) {
-  FATALASSERT(duration);
+  VALIDATEBEGIN;
+  VALIDATE(duration);
+  VALIDATEEND;
   *duration = 0;
 
   CModelBase *unique;
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim &&
-         AnimGetSequenceDuration(unique->m_anim, seqIndex, duration);
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+    return AnimGetSequenceDuration(unique->m_anim, seqIndex, duration);
+  }
+
+  return 0;
 }
 
 BOOL ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed) {
-  FATALASSERT(moveSpeed);
+  VALIDATEBEGIN;
+  VALIDATE(moveSpeed);
+  VALIDATEEND;
   *moveSpeed = 0.0f;
 
   CModelBase *unique;
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim &&
-         AnimGetSequenceMoveSpeed(unique->m_anim, seqIndex, moveSpeed);
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+    return AnimGetSequenceMoveSpeed(unique->m_anim, seqIndex, moveSpeed);
+  }
+
+  return 0;
 }
 
 BOOL ModelGetSequenceName(HMODEL model, UINT seqIndex, char *buffer, UINT buffLength) {
-  FATALASSERT(buffer);
-  if (buffLength) {
-    buffer[0] = 0;
-  }
+  VALIDATEBEGIN;
+  VALIDATEANDBLANK(buffer);
+  VALIDATE(buffLength);
+  VALIDATEEND;
 
   CModelBase *unique;
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim &&
-         AnimGetSequenceName(unique->m_anim, seqIndex, buffer, buffLength);
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+    return AnimGetSequenceName(unique->m_anim, seqIndex, buffer, buffLength);
+  }
+
+  return 0;
 }
 
 BOOL ModelHasSequenceId(HMODEL model, UINT seqIndex) {
   CModelBase *unique;
 
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimHasSequenceId(unique->m_anim, seqIndex);
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+    return AnimHasSequenceId(unique->m_anim, seqIndex);
+  }
+
+  return 0;
 }
 
 UINT ModelGetTotalKeys(HMODEL model) {
@@ -956,10 +1002,13 @@ UINT ModelGetTotalKeys(HMODEL model) {
 void ModelSetSeqFinishedHandler(HMODEL model, ANIMSEQFINISHEDHANDLER callback, LPVOID param) {
   CModelBase *unique;
 
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEENDVOID;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_SEQ_FINISHED_HANDLER1, callback, param);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_SEQ_FINISHED_HANDLER1, callback, param);
     return;
   }
 
@@ -971,10 +1020,13 @@ void ModelSetSeqFinishedHandler(HMODEL model, ANIMSEQFINISHEDHANDLER callback, L
 void ModelSetSeqFinishedHandler(HMODEL model, UINT sequence, ANIMSEQFINISHEDHANDLER callback, LPVOID param) {
   CModelBase *unique;
 
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEENDVOID;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_SEQ_FINISHED_HANDLER2, sequence, callback, param);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_SEQ_FINISHED_HANDLER2, sequence, callback, param);
     return;
   }
 
@@ -984,11 +1036,14 @@ void ModelSetSeqFinishedHandler(HMODEL model, UINT sequence, ANIMSEQFINISHEDHAND
 }
 
 void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEENDVOID;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_TIME_SCALE, timeScale, doLinkedModels);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_TIME_SCALE, timeScale, doLinkedModels);
     return;
   }
 
@@ -1023,11 +1078,14 @@ void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
 }
 
 BOOL ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int doLinkedModels) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_OBJECT_TIME_SCALE, objectId, timeScale, doLinkedModels);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_OBJECT_TIME_SCALE, objectId, timeScale, doLinkedModels);
     return 1;
   }
 
@@ -1084,11 +1142,14 @@ float ModelGetObjectTimeScale(HMODEL model, UINT objectId) {
 }
 
 BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_FORCE_CURRENT_SEQUENCE_TIME, timeOffset, doLinkedModels);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_FORCE_CURRENT_SEQUENCE_TIME, timeOffset, doLinkedModels);
     return 1;
   }
 
@@ -1126,11 +1187,14 @@ BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMod
 }
 
 BOOL ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLinkedModels) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_FORCE_SEQUENCE_TIME, seqIndex, timeOffset, doLinkedModels);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_FORCE_SEQUENCE_TIME, seqIndex, timeOffset, doLinkedModels);
     return 1;
   }
 
@@ -1181,25 +1245,28 @@ BOOL ModelAdvanceTime(HMODEL model) {
     return 0;
   }
 
-  ASSERT(reinterpret_cast<CModel *>(model));
+  ASSERT(((CModel *)((CHandleObject*)(model))));
   if (unique->m_flags & 0x20) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
     for (UINT index = 0; index < complex->m_attached.Count(); ++index) {
       int enabled = 1;
-      if (unique->m_anim) {
+      if (complex->m_anim) {
         if (complex->m_attachmentFlags[index] & 1) {
           enabled = complex->m_attachmentFlags[index] & 2;
         } else {
-          enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
+          enabled = AnimIsAttachmentEnabled(complex->m_anim, index);
           complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
         }
       }
 
       if (enabled) {
-        ITERATELISTPTR(LINKUNIQUE, attached, link) {
+        LINKUNIQUE *link = attached->Head();
+        while (reinterpret_cast<int>(link) > 0) {
+          LINKUNIQUE *next = attached->RawNext(link);
           ModelAdvanceTime(link->child);
+          link = next;
         }
       }
 
@@ -1313,10 +1380,13 @@ void ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) {
 void ModelSetEventCallback(HMODEL model, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param, int doLinkedModels) {
   CModelBase *unique;
 
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEENDVOID;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_SET_EVENT_CALLBACK, callback, param, doLinkedModels);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_SET_EVENT_CALLBACK, callback, param, doLinkedModels);
     return;
   }
 
@@ -1326,100 +1396,147 @@ void ModelSetEventCallback(HMODEL model, void (*callback)(LPCSTR, const NTempest
 
   if (doLinkedModels && (unique->m_flags & 0x20)) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
-    UINT           numAttachments = complex->m_attached.Count();
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
-    while (numAttachments) {
+    for (UINT numAttachments = complex->m_attached.Count(); numAttachments; --numAttachments, ++attached) {
       ITERATELISTPTR(LINKUNIQUE, attached, link) {
         ModelSetEventCallback(link->child, callback, param, 0);
       }
-      ++attached;
-      --numAttachments;
     }
   }
 }
 
 int ModelApplyObjectLookAt(HMODEL model, UINT objectId, const NTempest::C3Vector &target) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_APPLY_OBJECT_LOOK_AT, objectId, target);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_APPLY_OBJECT_LOOK_AT, objectId, target);
     return 1;
   }
 
-  return unique->m_anim ? AnimApplyObjectLookAt(unique->m_anim, objectId, target) : 0;
+  if (!unique->m_anim) {
+    return 0;
+  }
+
+  return AnimApplyObjectLookAt(unique->m_anim, objectId, target);
 }
 
 int ModelRemoveObjectLookAt(HMODEL model, UINT objectId) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_REMOVE_OBJECT_LOOK_AT, objectId);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_REMOVE_OBJECT_LOOK_AT, objectId);
     return 1;
   }
 
-  return unique->m_anim ? AnimRemoveObjectLookAt(unique->m_anim, objectId) : 0;
+  if (!unique->m_anim) {
+    return 0;
+  }
+
+  return AnimRemoveObjectLookAt(unique->m_anim, objectId);
 }
 
 BOOL ModelObjectUsingLookAt(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimObjectUsingLookAt(unique->m_anim, objectId);
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+    return AnimObjectUsingLookAt(unique->m_anim, objectId);
+  }
+
+  return 0;
 }
 
 int ModelApplyObjectFaceDir(HMODEL model, UINT objectId, const NTempest::C3Vector &direction) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_APPLY_OBJECT_FACE_DIR, objectId, direction);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_APPLY_OBJECT_FACE_DIR, objectId, direction);
     return 1;
   }
 
-  return unique->m_anim ? AnimApplyObjectFaceDir(unique->m_anim, objectId, direction) : 0;
+  if (!unique->m_anim) {
+    return 0;
+  }
+
+  return AnimApplyObjectFaceDir(unique->m_anim, objectId, direction);
 }
 
 int ModelRemoveObjectFaceDir(HMODEL model, UINT objectId) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_REMOVE_OBJECT_FACE_DIR, objectId);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_REMOVE_OBJECT_FACE_DIR, objectId);
     return 1;
   }
 
-  return unique->m_anim ? AnimRemoveObjectFaceDir(unique->m_anim, objectId) : 0;
+  if (!unique->m_anim) {
+    return 0;
+  }
+
+  return AnimRemoveObjectFaceDir(unique->m_anim, objectId);
 }
 
 BOOL ModelObjectUsingFaceDir(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimObjectUsingFaceDir(unique->m_anim, objectId);
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+    return AnimObjectUsingFaceDir(unique->m_anim, objectId);
+  }
+
+  return 0;
 }
 
 int ModelMarkFootstepSequence(HMODEL model, UINT seqIndex) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_MARK_FOOTSTEP_SEQUENCE, seqIndex);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_MARK_FOOTSTEP_SEQUENCE, seqIndex);
     return 1;
   }
 
-  return unique->m_anim ? AnimMarkFootstepSequence(unique->m_anim, seqIndex) : 0;
+  if (!unique->m_anim) {
+    return 0;
+  }
+
+  return AnimMarkFootstepSequence(unique->m_anim, seqIndex);
 }
 
 int ModelLockObjectSequence(HMODEL model, UINT objectId, int set) {
-  FATALASSERT(model);
+  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  VALIDATEBEGIN;
+  VALIDATE(modelptr);
+  VALIDATEEND;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
-    EnqueueModelCommand(reinterpret_cast<CModel *>(model), MODEL_LOCK_OBJECT_SEQUENCE, objectId, set);
+  if (!IModelDerefHandle(modelptr, &unique)) {
+    EnqueueModelCommand(modelptr, MODEL_LOCK_OBJECT_SEQUENCE, objectId, set);
     return 1;
   }
 
-  return unique->m_anim ? AnimLockObjectSequence(unique->m_anim, objectId, set) : 0;
+  if (!unique->m_anim) {
+    return 0;
+  }
+
+  return AnimLockObjectSequence(unique->m_anim, objectId, set);
 }
 
 void ModelGetStandingMatrix(
@@ -1485,15 +1602,22 @@ float ModelGetPrimarySequenceCompletion(HMODEL model) {
 BOOL ModelEventEmitterHasKeysThisSeq(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim && AnimEventEmitterHasKeysThisSeq(unique->m_anim, objectId);
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+    return AnimEventEmitterHasKeysThisSeq(unique->m_anim, objectId);
+  }
+
+  return 0;
 }
 
 BOOL ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot) {
   CModelBase   *unique;
   CModelShared *shared;
 
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared) && unique->m_anim &&
-         AnimGetObjectPosition(unique->m_anim, objectId, shared->positions, pivot);
+  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared) && unique->m_anim) {
+    return AnimGetObjectPosition(unique->m_anim, objectId, shared->positions, pivot);
+  }
+
+  return 0;
 }
 
 BOOL ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *position) {

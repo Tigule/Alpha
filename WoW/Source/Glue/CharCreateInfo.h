@@ -7,6 +7,8 @@
 #include "Component/Component.h"
 #include "Model/IModel.h"
 
+#define MAX_PLAYER_SEXES 2
+
 class CSimpleModel;
 
 extern LPCSTR g_glueBgObjNames[2];

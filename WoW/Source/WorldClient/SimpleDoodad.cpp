@@ -132,6 +132,9 @@ int CSimpleDoodad::Read(LPCSTR fileName, CSimpleDoodad *simpleDoodad) {
   return MdlReadCallback(mdlData, simpleDoodad);
 }
 
+void CSimpleDoodad::MdlReadCallback(BYTE *fileData, UINT fileBytes, CSimpleDoodad *simpleDoodad) {
+}
+
 BOOL CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad) {
   ASSERT(simpleDoodad);
 
@@ -203,9 +206,6 @@ BOOL CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDo
   simpleDoodad->bounds.r = data.model.bounds.radius;
 
   return 1;
-}
-
-void CSimpleDoodad::MdlReadCallback(BYTE *fileData, UINT fileBytes, CSimpleDoodad *simpleDoodad) {
 }
 
 void CSimpleDoodad::GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf) {
