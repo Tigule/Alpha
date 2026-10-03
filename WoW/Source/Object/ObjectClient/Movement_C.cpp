@@ -95,9 +95,9 @@ LPVOID MovementGetGlobals() {
 }
 
 NTempest::C3Vector MovementGetTransportVector(DWORDLONG transportGUID) {
-  CGObject_C *transport = ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__);
+  CGGameObject_C *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
   FATALASSERT(transport);
-  return transport->GetPosition();
+  return transport->GetCurrentMoveVector();
 }
 
 void MovementClearClobals() {

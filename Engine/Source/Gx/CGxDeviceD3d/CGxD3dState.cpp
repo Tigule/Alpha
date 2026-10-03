@@ -113,7 +113,7 @@ void CGxDeviceD3d::IStateSync() {
 }
 
 void CGxDeviceD3d::IStateSyncLights() {
-  for (UINT whichLight = 0; whichLight < 8; ++whichLight) {
+  for (UINT whichLight = 0; whichLight != 8; ++whichLight) {
     CGxLight &light = m_appState.m_lights[whichLight];
 
     d3dLight.Type = light.m_isOmni ? D3DLIGHT_POINT : D3DLIGHT_DIRECTIONAL;
@@ -122,12 +122,15 @@ void CGxDeviceD3d::IStateSyncLights() {
     SetD3dColor(d3dLight.Specular, light.m_specColor, oo255 * light.m_specIntensity);
 
     if (light.m_isOmni) {
-      d3dLight.Position.x = light.m_dir.x;
-      d3dLight.Position.y = light.m_dir.y;
-      d3dLight.Position.z = light.m_dir.z;
+      NTempest::C3Vector tmp(light.m_dir.x, light.m_dir.y, light.m_dir.z);
+      d3dLight.Position.x = tmp.x;
+      d3dLight.Position.y = tmp.y;
+      d3dLight.Position.z = tmp.z;
     } else {
-      NTempest::C3Vector tmp = light.m_dir;
-      tmp.Normalize();
+      NTempest::C3Vector tmp(light.m_dir.x, light.m_dir.y, light.m_dir.z);
+      if (NTempest::CMath::fnotequal_(tmp.SquaredMag(), 1.0f)) {
+        tmp.Normalize();
+      }
       d3dLight.Direction.x = tmp.x;
       d3dLight.Direction.y = tmp.y;
       d3dLight.Direction.z = tmp.z;
@@ -200,7 +203,7 @@ void CGxDeviceD3d::IStateSetD3DDefaults() {
   m_d3dDevice->SetRenderState(D3DRS_LOCALVIEWER, TRUE);
   m_d3dDevice->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
 
-  for (UINT whichLight = 0; whichLight < 8; ++whichLight) {
+  for (UINT whichLight = 0; whichLight != 8; ++whichLight) {
     CGxLight  &light = m_hwState.m_lights[whichLight];
     _D3DLIGHT9 d3dLight;
     memset(&d3dLight, 0, sizeof(d3dLight));
@@ -211,11 +214,12 @@ void CGxDeviceD3d::IStateSetD3DDefaults() {
     SetD3dColor(d3dLight.Specular, light.m_specColor, oo255 * light.m_specIntensity);
 
     if (light.m_isOmni) {
-      d3dLight.Position.x = light.m_dir.x;
-      d3dLight.Position.y = light.m_dir.y;
-      d3dLight.Position.z = light.m_dir.z;
+      NTempest::C3Vector tmp(light.m_dir.x, light.m_dir.y, light.m_dir.z);
+      d3dLight.Position.x = tmp.x;
+      d3dLight.Position.y = tmp.y;
+      d3dLight.Position.z = tmp.z;
     } else {
-      NTempest::C3Vector tmp = light.m_dir;
+      NTempest::C3Vector tmp(light.m_dir.x, light.m_dir.y, light.m_dir.z);
       tmp.Normalize();
       d3dLight.Direction.x = tmp.x;
       d3dLight.Direction.y = tmp.y;
@@ -271,38 +275,74 @@ void CGxDeviceD3d::IForceLights() {
 
 void CGxDeviceD3d::DsSet(EDeviceState state, DWORD val) {
   ASSERT(state < DeviceStates_Last);
-  if (m_deviceState[state] == val) {
+  if (DsGet(state) == val) {
     return;
   }
 
-  if (state == Ds_SrcBlend) {
-    m_d3dDevice->SetRenderState(D3DRS_SRCBLEND, val);
-  } else if (state == Ds_DstBlend) {
-    m_d3dDevice->SetRenderState(D3DRS_DESTBLEND, val);
-  } else if (state >= Ds_TssMagFilter0 && state <= Ds_TssMagFilter3) {
-    m_d3dDevice->SetSamplerState(state - Ds_TssMagFilter0, D3DSAMP_MAGFILTER, val);
-  } else if (state >= Ds_TssMinFilter0 && state <= Ds_TssMinFilter3) {
-    m_d3dDevice->SetSamplerState(state - Ds_TssMinFilter0, D3DSAMP_MINFILTER, val);
-  } else if (state >= Ds_TssMipFilter0 && state <= Ds_TssMipFilter3) {
-    m_d3dDevice->SetSamplerState(state - Ds_TssMipFilter0, D3DSAMP_MIPFILTER, val);
-  } else if (state >= Ds_TssWrapU0 && state <= Ds_TssWrapU3) {
-    m_d3dDevice->SetSamplerState(state - Ds_TssWrapU0, D3DSAMP_ADDRESSU, val);
-  } else if (state >= Ds_TssWrapV0 && state <= Ds_TssWrapV3) {
-    m_d3dDevice->SetSamplerState(state - Ds_TssWrapV0, D3DSAMP_ADDRESSV, val);
-  } else if (state >= Ds_TssTTF0 && state <= Ds_TssTTF3) {
-    m_d3dDevice->SetTextureStageState(state - Ds_TssTTF0, D3DTSS_TEXTURETRANSFORMFLAGS, val);
-  } else if (state >= Ds_TssMaxAnisotropy0 && state <= Ds_TssMaxAnisotropy3) {
-    m_d3dDevice->SetSamplerState(state - Ds_TssMaxAnisotropy0, D3DSAMP_MAXANISOTROPY, val);
-  } else if (state == Ds_DiffuseMaterialSource) {
-    m_d3dDevice->SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE, val);
-  } else if (state == Ds_AmbientMaterialSource) {
-    m_d3dDevice->SetRenderState(D3DRS_AMBIENTMATERIALSOURCE, val);
-  } else if (state == Ds_AlphaBlendEnable) {
-    m_d3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, val);
-  } else if (state == Ds_AlphaTestEnable) {
-    m_d3dDevice->SetRenderState(D3DRS_ALPHATESTENABLE, val);
-  } else {
-    ASSERT(0);
+  switch (state) {
+    case Ds_SrcBlend:
+      m_d3dDevice->SetRenderState(D3DRS_SRCBLEND, val);
+      break;
+    case Ds_DstBlend:
+      m_d3dDevice->SetRenderState(D3DRS_DESTBLEND, val);
+      break;
+    case Ds_TssMagFilter0:
+    case Ds_TssMagFilter1:
+    case Ds_TssMagFilter2:
+    case Ds_TssMagFilter3:
+      m_d3dDevice->SetSamplerState(state - Ds_TssMagFilter0, D3DSAMP_MAGFILTER, val);
+      break;
+    case Ds_TssMinFilter0:
+    case Ds_TssMinFilter1:
+    case Ds_TssMinFilter2:
+    case Ds_TssMinFilter3:
+      m_d3dDevice->SetSamplerState(state - Ds_TssMinFilter0, D3DSAMP_MINFILTER, val);
+      break;
+    case Ds_TssMipFilter0:
+    case Ds_TssMipFilter1:
+    case Ds_TssMipFilter2:
+    case Ds_TssMipFilter3:
+      m_d3dDevice->SetSamplerState(state - Ds_TssMipFilter0, D3DSAMP_MIPFILTER, val);
+      break;
+    case Ds_TssWrapU0:
+    case Ds_TssWrapU1:
+    case Ds_TssWrapU2:
+    case Ds_TssWrapU3:
+      m_d3dDevice->SetSamplerState(state - Ds_TssWrapU0, D3DSAMP_ADDRESSU, val);
+      break;
+    case Ds_TssWrapV0:
+    case Ds_TssWrapV1:
+    case Ds_TssWrapV2:
+    case Ds_TssWrapV3:
+      m_d3dDevice->SetSamplerState(state - Ds_TssWrapV0, D3DSAMP_ADDRESSV, val);
+      break;
+    case Ds_TssTTF0:
+    case Ds_TssTTF1:
+    case Ds_TssTTF2:
+    case Ds_TssTTF3:
+      m_d3dDevice->SetTextureStageState(state - Ds_TssTTF0, D3DTSS_TEXTURETRANSFORMFLAGS, val);
+      break;
+    case Ds_TssMaxAnisotropy0:
+    case Ds_TssMaxAnisotropy1:
+    case Ds_TssMaxAnisotropy2:
+    case Ds_TssMaxAnisotropy3:
+      m_d3dDevice->SetSamplerState(state - Ds_TssMaxAnisotropy0, D3DSAMP_MAXANISOTROPY, val);
+      break;
+    case Ds_DiffuseMaterialSource:
+      m_d3dDevice->SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE, val);
+      break;
+    case Ds_AmbientMaterialSource:
+      m_d3dDevice->SetRenderState(D3DRS_AMBIENTMATERIALSOURCE, val);
+      break;
+    case Ds_AlphaBlendEnable:
+      m_d3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, val);
+      break;
+    case Ds_AlphaTestEnable:
+      m_d3dDevice->SetRenderState(D3DRS_ALPHATESTENABLE, val);
+      break;
+    default:
+      ASSERT(0);
+      break;
   }
 
   m_deviceState[state] = val;
@@ -317,9 +357,10 @@ void CGxDeviceD3d::ISetTexture(UINT tmu, CGxTex *tex) {
     ASSERT(!(tex->m_flags.m_renderTarget && tex->m_needsUpdate));
     ITexBind(tex);
     ITexMarkAsUpdated(tex);
-    _D3DTEXTUREFILTERTYPE *filter = s_filterModes[tex->m_flags.m_filter];
-    long                   result = m_d3dDevice->SetTexture(tmu, reinterpret_cast<IDirect3DBaseTexture9 *>(tex->m_apiSpecificData));
-    ASSERT(result == 0);
+    HRESULT res = m_d3dDevice->SetTexture(tmu, reinterpret_cast<IDirect3DBaseTexture9 *>(tex->m_apiSpecificData));
+    ASSERT(res == ((HRESULT)0x00000000L));
+
+    const _D3DTEXTUREFILTERTYPE *filter = s_filterModes[tex->m_flags.m_filter];
 
     DsSet(static_cast<EDeviceState>(Ds_TssMagFilter0 + tmu), filter[0]);
     DsSet(static_cast<EDeviceState>(Ds_TssMinFilter0 + tmu), filter[1]);
@@ -330,9 +371,8 @@ void CGxDeviceD3d::ISetTexture(UINT tmu, CGxTex *tex) {
 
     if (!m_texEnable[tmu]) {
       m_texEnable[tmu] = 1;
-      UINT blendState = GxRs_TexBlend0 + tmu;
-      ISetTexBlend(tmu, static_cast<EGxTexBlend>(*reinterpret_cast<UINT *>(&mAppRenderStates[blendState].mValue)));
-      mAppRenderStates[blendState].mDirty = 0;
+      ISetTexBlend(tmu, static_cast<EGxTexBlend>(*reinterpret_cast<UINT *>(&mAppRenderStates[GxRs_TexBlend0 + tmu].mValue)));
+      mAppRenderStates[GxRs_TexBlend0 + tmu].mDirty = 0;
     }
   } else {
     m_d3dDevice->SetTexture(tmu, 0);
@@ -352,55 +392,61 @@ void CGxDeviceD3d::ISetTexGen(UINT tmu, EGxTexGen texGen) {
   switch (texGen) {
     case GxTexGen_Disable:
       m_d3dDevice->SetTextureStageState(tmu, D3DTSS_TEXCOORDINDEX, tmu);
-      m_texGen[tmu].Top() = NTempest::C44Matrix();
+      m_texGen[tmu].Identity();
       return;
+    case GxTexGen_ViewReflection:
+    case GxTexGen_SphereMap:
+      m_d3dDevice->SetTextureStageState(tmu, D3DTSS_TEXCOORDINDEX, tmu | 0x30000);
+      break;
     case GxTexGen_Object:
     case GxTexGen_World:
     case GxTexGen_View:
       m_d3dDevice->SetTextureStageState(tmu, D3DTSS_TEXCOORDINDEX, tmu | 0x20000);
       break;
-    case GxTexGen_ViewReflection:
-    case GxTexGen_SphereMap:
-      m_d3dDevice->SetTextureStageState(tmu, D3DTSS_TEXCOORDINDEX, tmu | 0x30000);
-      break;
     case GxTexGen_ViewNormal:
       m_d3dDevice->SetTextureStageState(tmu, D3DTSS_TEXCOORDINDEX, tmu | 0x10000);
-      m_texGen[tmu].Top() = NTempest::C44Matrix();
+      m_texGen[tmu].Identity();
       return;
     default:
       ASSERT(0);
       break;
   }
 
-  if (texGen == GxTexGen_Object || texGen == GxTexGen_World) {
-    NTempest::C44Matrix texMat = m_xforms[GxXform_View].TopConst();
-    float               b0 = texMat.b0;
-    float               c0 = texMat.c0;
-    float               c1 = texMat.c1;
-    texMat.b0 = texMat.a1;
-    texMat.c0 = texMat.a2;
-    texMat.a1 = b0;
-    texMat.c1 = texMat.b2;
-    texMat.a2 = c0;
-    texMat.b2 = c1;
-    texMat.d0 = -texMat.d0;
-    texMat.d1 = -texMat.d1;
-    texMat.d2 = -texMat.d2;
-    if (texGen == GxTexGen_Object) {
-      const NTempest::C44Matrix &world = m_xforms[GxXform_World].TopConst();
-      NTempest::C44Matrix        mat = world.Inverse(world.Determinant());
-      texMat = texMat * mat;
+  switch (texGen) {
+    case GxTexGen_SphereMap: {
+      NTempest::C44Matrix mat;
+      mat.a0 = 0.5f;
+      mat.b1 = 0.5f;
+      mat.d0 = 0.5f;
+      mat.d1 = 0.5f;
+      m_texGen[tmu].Top() = mat;
+      break;
     }
-    m_texGen[tmu].Top() = texMat;
-  } else if (texGen == GxTexGen_SphereMap) {
-    NTempest::C44Matrix mat;
-    mat.a0 = 0.5f;
-    mat.b1 = 0.5f;
-    mat.d0 = 0.5f;
-    mat.d1 = 0.5f;
-    m_texGen[tmu].Top() = mat;
-  } else {
-    m_texGen[tmu].Top() = NTempest::C44Matrix();
+    case GxTexGen_Object:
+    case GxTexGen_World: {
+      NTempest::C44Matrix texMat = m_xforms[GxXform_View].TopConst();
+      float tmp;
+      tmp = texMat.a1;
+      texMat.a1 = texMat.b0;
+      texMat.b0 = tmp;
+      tmp = texMat.a2;
+      texMat.a2 = texMat.c0;
+      texMat.c0 = tmp;
+      tmp = texMat.b2;
+      texMat.b2 = texMat.c1;
+      texMat.c1 = tmp;
+      texMat.d0 *= -1.0f;
+      texMat.d1 *= -1.0f;
+      texMat.d2 *= -1.0f;
+      if (texGen == GxTexGen_Object) {
+        texMat = texMat * m_xforms[GxXform_World].TopConst().Inverse();
+      }
+      m_texGen[tmu].Top() = texMat;
+      break;
+    }
+    default:
+      m_texGen[tmu].Identity();
+      break;
   }
 }
 

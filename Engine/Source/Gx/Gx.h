@@ -358,7 +358,7 @@ struct CGxBatch {
   int     m_minIndex;
   int     m_maxIndex;
 
-  CGxBatch() {
+  CGxBatch() : m_primType(GxPrim_Triangles), m_count(0), m_start(0), m_minIndex(-1), m_maxIndex(-1) {
   }
 
   CGxBatch(EGxPrim prim, UINT count, UINT start, int minIndex, int maxIndex)

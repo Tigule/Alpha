@@ -14,6 +14,8 @@
 
 #include "WorldCommon/WorldMath.h"
 
+#include <Ftol.h>
+
 #include "Base/Activity.h"
 #include "Base/Status.h"
 #include "Gxu/IGxuLight.h"
@@ -100,7 +102,7 @@ BOOL CMap::GxuLightEnable(DWORD lightId) {
   CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
 
   ASSERT(light);
-  return (light->flags & CMapBaseObj::Flag_Enabled) != 0;
+  return static_cast<BYTE>(light->flags) >> 7;
 }
 
 void CMap::GxuLightEnableSet(DWORD lightId, int enable) {
@@ -270,39 +272,41 @@ void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPN            *vertices = 0;
 
   switch (cmd.vertex.op) {
-    case GxBufOp_Fill:
-      vertices = static_cast<CGxVertexPN *>(*cmd.vertex.mem[GxVM_Position]);
-      break;
-
     case GxBufOp_Assign:
       vertices = static_cast<CGxVertexPN *>(GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices)));
       *cmd.vertex.mem[GxVM_Position] = &vertices->p;
       *cmd.vertex.mem[GxVM_Normal] = &vertices->n;
       break;
 
-    default:
+    case GxBufOp_Fill:
+      vertices = static_cast<CGxVertexPN *>(*cmd.vertex.mem[GxVM_Position]);
+      break;
+
+    case GxBufOp_Nop:
       FATALASSERT(0);
+      return;
   }
 
   WORD vidx = batch->GetMinIndex();
-  for (UINT i = 0; i < batch->GetVertexCount(); ++i, ++vidx) {
-    vertices[i].p = batch->GetVertex(vidx);
-    vertices[i].n = batch->GetNormal(vidx);
+  for (UINT i = 0; i < batch->GetVertexCount(); ++i, ++vertices, ++vidx) {
+    vertices->p = batch->GetVertex(vidx);
+    vertices->n = batch->GetNormal(vidx);
   }
 
   WORD *indices = 0;
   switch (cmd.index.op) {
-    case GxBufOp_Fill:
-      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
-      break;
-
     case GxBufOp_Assign:
       indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*indices)));
       *cmd.index.mem[GxVM_Indices] = indices;
       break;
 
-    default:
+    case GxBufOp_Fill:
+      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      break;
+
+    case GxBufOp_Nop:
       FATALASSERT(0);
+      return;
   }
 
   for (UINT j = 0; j < batch->GetIndexCount(); ++j) {
@@ -327,8 +331,8 @@ void CMapLight::Project() {
   texMtx0.d2 += 0.5f;
 
   texMtx1 = worldTransMat * texScale;
-  NTempest::C44Matrix rotateToScreen(0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-  texMtx1 *= rotateToScreen;
+  NTempest::C44Matrix RtoS(0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+  texMtx1 = texMtx1 * RtoS;
   texMtx1.d0 += 0.5f;
   texMtx1.d1 += 0.5f;
   texMtx1.d2 += 0.5f;
@@ -343,7 +347,7 @@ void CMapLight::Project() {
   CMap::GetTris(aaBox, triData, 0x122);
 
   NTempest::C44Matrix worldMtx;
-  worldMtx.Translate(-CWorldScene::camPos);
+  *worldMtx.Row3AsVec3() = -CWorldScene::camPos;
 
   for (UINT i = 0; i < triData.GetNumBatches(); ++i) {
     const CWTriData::Batch &batch = triData.GetBatch(i);
@@ -406,11 +410,11 @@ void CMap::LinkLightToChunks(CMapLight *light) {
   );
 
   ASSERT(tLocation.minx >= 0.0f && tLocation.miny >= 0.0f);
-  ASSERT(tLocation.maxy < ((64 * 16) * ((150.0f / 36.0f) * 8)) && tLocation.maxy < ((64 * 16) * ((150.0f / 36.0f) * 8)));
+  ASSERT(tLocation.maxy < ((64*16)*((150.0f/36.0f)*8)) && tLocation.maxy < ((64*16)*((150.0f/36.0f)*8)));
 
   NTempest::CiRect cLocation(
-      NTempest::CMath::fint_mi(tLocation.miny * OO_COORD_TO_CHUNK), NTempest::CMath::fint_mi(tLocation.minx * OO_COORD_TO_CHUNK),
-      NTempest::CMath::fint_mi(tLocation.maxy * OO_COORD_TO_CHUNK), NTempest::CMath::fint_mi(tLocation.maxx * OO_COORD_TO_CHUNK)
+      Fast_ftol(OO_COORD_TO_CHUNK * tLocation.miny), Fast_ftol(OO_COORD_TO_CHUNK * tLocation.minx), Fast_ftol(OO_COORD_TO_CHUNK * tLocation.maxy),
+      Fast_ftol(OO_COORD_TO_CHUNK * tLocation.maxx)
   );
 
   for (int cy = cLocation.miny; cy <= cLocation.maxy; ++cy) {

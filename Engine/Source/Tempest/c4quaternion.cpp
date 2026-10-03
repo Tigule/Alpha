@@ -15,38 +15,42 @@ namespace NTempest {
     FromRotationMatrixInv(r.Transpose());
   }
 
-  void C4Quaternion::FromRotationMatrixInv(const C33Matrix &rotation) {
-    const float *matrix = &rotation.a0;
-    float        trace = rotation.a0 + rotation.b1 + rotation.c2;
+  void C4Quaternion::FromRotationMatrixInv(const C33Matrix &r) {
+    float trace = r.a0 + r.b1 + r.c2;
 
     if (trace > 0.0f) {
       float root = CMath::sqrt_(trace + 1.0f);
       w = 0.5f * root;
       root = 0.5f / root;
-      x = (rotation.c1 - rotation.b2) * root;
-      y = (rotation.a2 - rotation.c0) * root;
-      z = (rotation.b0 - rotation.a1) * root;
-      return;
-    }
+      x = (r.c1 - r.b2) * root;
+      y = (r.a2 - r.c0) * root;
+      z = (r.b0 - r.a1) * root;
+    } else {
+      const float (*r_)[3] = reinterpret_cast<const float (*)[3]>(&r);
+      long i = 0;
+      ASSERT(r_[0][0] == r.a0 && r_[1][1] == r.b1 && r_[2][2] == r.c2);
+      if (r.b1 > r.a0) {
+        i = 1;
+      }
+      if (r.c2 > r_[i][i]) {
+        i = 2;
+      }
 
-    long i = rotation.b1 > rotation.a0;
-    if (rotation.c2 > matrix[4 * i]) {
-      i = 2;
+      long   j = next[i];
+      long   k = next[j];
+      float  root = CMath::sqrt_(r_[i][i] - r_[j][j] - r_[k][k] + 1.0f);
+      float *q_[3] = {&x, &y, &z};
+      *q_[i] = 0.5f * root;
+      root = 0.5f / root;
+      w = (r_[k][j] - r_[j][k]) * root;
+      *q_[j] = (r_[i][j] + r_[j][i]) * root;
+      *q_[k] = (r_[i][k] + r_[k][i]) * root;
     }
-
-    long   j = next[i];
-    long   k = next[j];
-    float  root = CMath::sqrt_(matrix[4 * i] - matrix[4 * j] - matrix[4 * k] + 1.0f);
-    float *q_[3] = {&x, &y, &z};
-    *q_[i] = 0.5f * root;
-    root = 0.5f / root;
-    w = (matrix[3 * k + j] - matrix[3 * j + k]) * root;
-    *q_[j] = (matrix[3 * i + j] + matrix[3 * j + i]) * root;
-    *q_[k] = (matrix[3 * i + k] + matrix[3 * k + i]) * root;
   }
 
   void C4Quaternion::FromAngleAxis(const float angle, const C3Vector &axis) {
-    ASSERT(CMath::fequal_(axis.Mag(), 1.0f));
+    float mag = axis.Mag();
+    ASSERT(CMath::fequal_(mag, 1.0f));
     float halfAngle = angle * 0.5f;
     float sine = CMath::sin_(halfAngle);
     w = CMath::cos_(halfAngle);
@@ -107,26 +111,23 @@ namespace NTempest {
     return C4Quaternion(0.0f, x, y, z);
   }
 
-  C4Quaternion C4Quaternion::Slerp(float ratio, const C4Quaternion &start, const C4Quaternion &end) {
+  C4Quaternion C4Quaternion::Slerp(float t, const C4Quaternion &p, const C4Quaternion &q) {
     float sign = 1.0f;
-    float dot = start.x * end.x + start.y * end.y + start.z * end.z + start.w * end.w;
-    if (dot < 0.0f) {
+    float c = p.x * q.x + p.y * q.y + p.z * q.z + p.w * q.w;
+    if (c < 0.0f) {
       sign = -1.0f;
-      dot = -dot;
+      c = -c;
     }
 
-    float sine = CMath::sqrt_(CMath::fabs_(1.0f - dot * dot));
-    if (CMath::fabs_(sine) < 0.00000047683716f) {
-      return start;
+    float s = CMath::sqrt_(CMath::fabs_(1.0f - c * c));
+    if (CMath::fabs_(s) < 0.00000047683716f) {
+      return p;
     }
 
-    float angle = static_cast<float>(atan2(sine, dot));
-    float startScale = CMath::sin_((1.0f - ratio) * angle) / sine;
-    float endScale = CMath::sin_(ratio * angle) / sine * sign;
-    return C4Quaternion(
-        startScale * start.w + endScale * end.w, startScale * start.x + endScale * end.x, startScale * start.y + endScale * end.y,
-        startScale * start.z + endScale * end.z
-    );
+    float angle = static_cast<float>(atan2(s, c));
+    float coef0 = CMath::sin_((1.0f - t) * angle) * (1.0f / s);
+    float endScale = CMath::sin_(t * angle) * (1.0f / s) * sign;
+    return C4Quaternion(endScale * q.w + coef0 * p.w, endScale * q.x + coef0 * p.x, endScale * q.y + coef0 * p.y, endScale * q.z + coef0 * p.z);
   }
 
   C4Quaternion C4Quaternion::Squad(float t, const C4Quaternion &p, const C4Quaternion &a, const C4Quaternion &b, const C4Quaternion &q) {
@@ -137,26 +138,22 @@ namespace NTempest {
     ASSERT(q0.IsUnit());
     ASSERT(q1.IsUnit());
     ASSERT(q2.IsUnit());
-    C4Quaternion p0 = q0.Conjugate() * q1;
-    C4Quaternion p1 = q1.Conjugate() * q2;
-    C4Quaternion log0 = p0.Log();
-    C4Quaternion log1 = p1.Log();
-    C4Quaternion tangent(0.25f * (log0.w - log1.w), 0.25f * (log0.x - log1.x), 0.25f * (log0.y - log1.y), 0.25f * (log0.z - log1.z));
-    C4Quaternion inverseTangent(-tangent.w, -tangent.x, -tangent.y, -tangent.z);
-    a = q1 * tangent.Exp();
-    b = q1 * inverseTangent.Exp();
+    C4Quaternion p0 = q0.UnitInverse() * q1;
+    C4Quaternion p1 = q1.UnitInverse() * q2;
+    C4Quaternion at = C4Quaternion(p0.Log() - p1.Log()) * 0.25f;
+    C4Quaternion bt = -at;
+    a = q1 * at.Exp();
+    b = q1 * bt.Exp();
   }
 
   void C4Quaternion::SquadIntermMaxCompat(const C4Quaternion &q0, const C4Quaternion &q1, const C4Quaternion &q2, C4Quaternion &a, C4Quaternion &b) {
     ASSERT(q0.IsUnit());
     ASSERT(q1.IsUnit());
     ASSERT(q2.IsUnit());
-    C4Quaternion p0 = q0.Conjugate() * q1;
-    C4Quaternion p1 = q1.Conjugate() * q2;
-    C4Quaternion log0 = p0.Log();
-    C4Quaternion log1 = p1.Log();
-    C4Quaternion tangent(0.25f * (log0.w - log1.w), 0.25f * (log0.x - log1.x), 0.25f * (log0.y - log1.y), 0.25f * (log0.z - log1.z));
-    a = q1 * tangent.Exp();
+    C4Quaternion p0 = q0.UnitInverse() * q1;
+    C4Quaternion p1 = q1.UnitInverse() * q2;
+    C4Quaternion at = C4Quaternion(p0.Log() - p1.Log()) * 0.25f;
+    a = q1 * at.Exp();
     b = a;
   }
 
@@ -176,18 +173,14 @@ namespace NTempest {
     C4Quaternion qm;
     C4Quaternion qp;
     if (time0 <= time1) {
-      C4Quaternion prev = q0;
-      if (prev.x * q1.x + prev.y * q1.y + prev.z * q1.z + prev.w * q1.w < 0.0f) {
-        prev = C4Quaternion(-prev.w, -prev.x, -prev.y, -prev.z);
-      }
-      qm = (prev.Conjugate() * q1).Log();
+      C4Quaternion prev = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w < 0.0f ? C4Quaternion(-q0) : q0;
+      C4Quaternion p0 = prev.UnitInverse() * q1;
+      qm = p0.Log();
     }
     if (time1 <= time2) {
-      C4Quaternion next = q2;
-      if (q1.x * next.x + q1.y * next.y + q1.z * next.z + q1.w * next.w < 0.0f) {
-        next = C4Quaternion(-next.w, -next.x, -next.y, -next.z);
-      }
-      qp = (q1.Conjugate() * next).Log();
+      C4Quaternion next = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w < 0.0f ? C4Quaternion(-q2) : q2;
+      C4Quaternion p1 = q1.UnitInverse() * next;
+      qp = p1.Log();
     }
     if (time0 > time1) {
       qm = qp;
@@ -196,34 +189,27 @@ namespace NTempest {
       qp = qm;
     }
 
-    float adjustMinus = 1.0f;
-    float adjustPlus = 1.0f;
+    float prevRatio = 1.0f;
+    float nextRatio = 1.0f;
     if (time2 > time0) {
       float inverseHalfSpan = 1.0f / ((time2 - time0) * 0.5f);
-      float deltaMinus = (time1 - time0) * inverseHalfSpan;
-      float deltaPlus = (time2 - time1) * inverseHalfSpan;
-      float absContinuity = CMath::fabs_(continuity);
-      adjustMinus = (1.0f - deltaMinus) * absContinuity + deltaMinus;
-      adjustPlus = (1.0f - deltaPlus) * absContinuity + deltaPlus;
+      prevRatio = (time1 - time0) * inverseHalfSpan;
+      nextRatio = (time2 - time1) * inverseHalfSpan;
+      float absCont = CMath::fabs_(continuity);
+      prevRatio = (1.0f - prevRatio) * absCont + prevRatio;
+      nextRatio = (1.0f - nextRatio) * absCont + nextRatio;
     }
 
-    float oneMinusTension = 1.0f - tension;
-    float onePlusContinuity = 1.0f + continuity;
-    float oneMinusContinuity = 1.0f - continuity;
-    float onePlusBias = 1.0f + bias;
-    float oneMinusBias = 1.0f - bias;
-    float kdMinus = onePlusBias * onePlusContinuity * oneMinusTension * adjustPlus * 0.5f;
-    float ksPlus = oneMinusBias * oneMinusContinuity * oneMinusTension * adjustPlus * 0.5f - 1.0f;
-    float ksMinus = 1.0f - oneMinusContinuity * onePlusBias * oneMinusTension * adjustMinus * 0.5f;
-    float kdPlus = oneMinusBias * onePlusContinuity * oneMinusTension * adjustMinus * -0.5f;
+    float kdm = (1.0f - tension) * (1.0f + continuity) * (1.0f + bias) * nextRatio * 0.5f;
+    float kdp = (1.0f - tension) * (1.0f - continuity) * (1.0f - bias) * nextRatio * 0.5f - 1.0f;
+    float ksm = 1.0f - (1.0f - tension) * (1.0f - continuity) * (1.0f + bias) * prevRatio * 0.5f;
+    float ksp = (1.0f - tension) * (1.0f + continuity) * (1.0f - bias) * prevRatio * -0.5f;
 
     C4Quaternion qa(
-        0.5f * (qp.w * ksPlus + qm.w * kdMinus), 0.5f * (qp.x * ksPlus + qm.x * kdMinus), 0.5f * (qp.y * ksPlus + qm.y * kdMinus),
-        0.5f * (qp.z * ksPlus + qm.z * kdMinus)
+        0.5f * (qp.w * kdp + qm.w * kdm), 0.5f * (qp.x * kdp + qm.x * kdm), 0.5f * (qp.y * kdp + qm.y * kdm), 0.5f * (qp.z * kdp + qm.z * kdm)
     );
     C4Quaternion qb(
-        0.5f * (qp.w * kdPlus + qm.w * ksMinus), 0.5f * (qp.x * kdPlus + qm.x * ksMinus), 0.5f * (qp.y * kdPlus + qm.y * ksMinus),
-        0.5f * (qp.z * kdPlus + qm.z * ksMinus)
+        0.5f * (qp.w * ksp + qm.w * ksm), 0.5f * (qp.x * ksp + qm.x * ksm), 0.5f * (qp.y * ksp + qm.y * ksm), 0.5f * (qp.z * ksp + qm.z * ksm)
     );
     a = q1 * qa.Exp();
     b = q1 * qb.Exp();

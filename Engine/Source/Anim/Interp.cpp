@@ -3,6 +3,14 @@
 #include "Anim/AnimInternal.h"
 #include "Tempest/c44matrix.h"
 
+inline C3Color operator*(float a, const C3Color &b) {
+  return C3Color(a * b.r, a * b.g, a * b.b);
+}
+
+inline C3Color operator+(const C3Color &a, const C3Color &b) {
+  return C3Color(a.r + b.r, a.g + b.g, a.b + b.b);
+}
+
 static NTempest::C44Matrix s_hermiteCoeffs(2.0f, -3.0f, 0.0f, 1.0f, 1.0f, -2.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, -2.0f, 3.0f, 0.0f, 0.0f);
 
 static NTempest::C44Matrix s_bezierCoeffs(-1.0f, 3.0f, -3.0f, 1.0f, 3.0f, -6.0f, 3.0f, 0.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
@@ -16,8 +24,8 @@ static float EvaluateCubicPolynomial(float t, const float *coefficients) {
 }
 
 void CKeyFrameTrackBase::SetNumKeys(UINT numKeys, UINT keySize) {
-  m_keyFrameSize = keySize;
   m_keyFrames = static_cast<CKeyFrame *>(SMemAlloc(numKeys * keySize, __FILE__, __LINE__, 0));
+  m_keyFrameSize = keySize;
 }
 
 void CKeyFrameTrackBase::AddKey(int time) {
@@ -29,24 +37,22 @@ void CKeyFrameTrackBase::SetSequenceIndices(const CArray<CAnimSequence> &seq) {
     return;
   }
 
-  UINT numSequences = seq.Count();
-  if (!numSequences) {
-    m_indices.ReserveSpace(1);
+  if (!seq.Count()) {
     m_indices.SetCount(1);
     m_indices[0].start = 0;
-    m_indices[0].count = m_numKeyFrames;
+    m_indices[0].count = TotalKeys();
     return;
   }
 
-  m_indices.ReserveSpace(numSequences);
-  m_indices.SetCount(numSequences);
+  m_indices.SetCount(seq.Count());
   if (!m_numKeyFrames) {
     m_indices.Zero();
     return;
   }
 
-  UINT       currKeyId = 0;
-  CKeyFrame *key = m_keyFrames;
+  UINT             currKeyId = 0;
+  const CKeyFrame *key = m_keyFrames;
+  UINT             numSequences = seq.Count();
   int        priorEnd = 0;
   for (UINT sequence = 0; sequence < numSequences; ++sequence) {
     m_indices[sequence].count = 0;
@@ -157,7 +163,7 @@ int CKeyFrameTrackBase::JustPastKey(
     const CKeyTrackStatus &prev,
     const CKeyTrackStatus &curr
 ) const {
-  UINT numKeys = SequenceNeverChanges() ? TotalKeys() : NumKeysThisSeq(sequenceId);
+  UINT numKeys = NumKeysThisSeqSafe(sequenceId);
   if (!numKeys) {
     return 0;
   }
@@ -307,11 +313,7 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
     NTempest::C4Quaternion                                  *transform
 ) {
   ASSERT(transform);
-  NTempest::C4Quaternion curr = currkey.transform;
-  NTempest::C4Quaternion next = nextkey.transform;
-  NTempest::C4Quaternion outTangent = currkey.outTan;
-  NTempest::C4Quaternion inTangent = nextkey.inTan;
-  *transform = NTempest::C4Quaternion::Squad(ratio, curr, outTangent, inTangent, next);
+  *transform = NTempest::C4Quaternion::Squad(ratio, currkey.transform, currkey.outTan, nextkey.inTan, nextkey.transform);
 }
 
 template <>
@@ -332,9 +334,7 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
     NTempest::C4Quaternion                                  *transform
 ) {
   ASSERT(transform);
-  NTempest::C4Quaternion curr = currkey.transform;
-  NTempest::C4Quaternion next = nextkey.transform;
-  *transform = NTempest::C4Quaternion::Slerp(ratio, curr, next);
+  *transform = NTempest::C4Quaternion::Slerp(ratio, currkey.transform, nextkey.transform);
 }
 
 template <>
@@ -392,14 +392,7 @@ void CKeyFrameTrack<C3Color, C3Color>::InterpolateHermite(
   for (UINT i = 0; i < 4; ++i) {
     coefficients[i] = EvaluateCubicPolynomial(ratio, s_hermiteCoeffs[i]);
   }
-  *transform = C3Color(
-      currkey.transform.r * coefficients[0] + currkey.outTan.r * coefficients[1] + nextkey.inTan.r * coefficients[2] +
-          nextkey.transform.r * coefficients[3],
-      currkey.transform.g * coefficients[0] + currkey.outTan.g * coefficients[1] + nextkey.inTan.g * coefficients[2] +
-          nextkey.transform.g * coefficients[3],
-      currkey.transform.b * coefficients[0] + currkey.outTan.b * coefficients[1] + nextkey.inTan.b * coefficients[2] +
-          nextkey.transform.b * coefficients[3]
-  );
+  *transform = coefficients[0] * currkey.transform + coefficients[1] * currkey.outTan + coefficients[2] * nextkey.inTan + coefficients[3] * nextkey.transform;
 }
 
 template <>
@@ -414,14 +407,7 @@ void CKeyFrameTrack<C3Color, C3Color>::InterpolateBezier(
   for (UINT i = 0; i < 4; ++i) {
     coefficients[i] = EvaluateCubicPolynomial(ratio, s_bezierCoeffs[i]);
   }
-  *transform = C3Color(
-      currkey.transform.r * coefficients[0] + currkey.outTan.r * coefficients[1] + nextkey.inTan.r * coefficients[2] +
-          nextkey.transform.r * coefficients[3],
-      currkey.transform.g * coefficients[0] + currkey.outTan.g * coefficients[1] + nextkey.inTan.g * coefficients[2] +
-          nextkey.transform.g * coefficients[3],
-      currkey.transform.b * coefficients[0] + currkey.outTan.b * coefficients[1] + nextkey.inTan.b * coefficients[2] +
-          nextkey.transform.b * coefficients[3]
-  );
+  *transform = coefficients[0] * currkey.transform + coefficients[1] * currkey.outTan + coefficients[2] * nextkey.inTan + coefficients[3] * nextkey.transform;
 }
 
 template <>
@@ -432,11 +418,7 @@ void CKeyFrameTrack<C3Color, C3Color>::InterpolateLinear(
     C3Color                        *transform
 ) {
   ASSERT(transform);
-  float inverseRatio = 1.0f - ratio;
-  *transform = C3Color(
-      currkey.transform.r * inverseRatio + nextkey.transform.r * ratio, currkey.transform.g * inverseRatio + nextkey.transform.g * ratio,
-      currkey.transform.b * inverseRatio + nextkey.transform.b * ratio
-  );
+  *transform = (1.0f - ratio) * currkey.transform + ratio * nextkey.transform;
 }
 
 template <>

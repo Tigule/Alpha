@@ -30,7 +30,11 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
 
   switch (which) {
     case Ds_DepthMask:
-      glDepthMask(newVal ? GL_TRUE : GL_FALSE);
+      if (newVal) {
+        glDepthMask(GL_TRUE);
+      } else {
+        glDepthMask(GL_FALSE);
+      }
       break;
 
     case Ds_ActiveTexture:
@@ -45,7 +49,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
     case Ds_TexTarget1:
     case Ds_TexTarget2:
     case Ds_TexTarget3:
-      ASSERT(static_cast<UINT>(which - Ds_TexTarget0) == DsGet(Ds_ActiveTexture));
+      ASSERT((uint)(which - Ds_TexTarget0) == DsGet(Ds_ActiveTexture));
       if (oldValue) {
         glDisable(oldValue);
       }
@@ -58,7 +62,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
     case Ds_TexGenS1:
     case Ds_TexGenS2:
     case Ds_TexGenS3:
-      ASSERT(static_cast<UINT>(which - Ds_TexGenS0) == DsGet(Ds_ActiveTexture));
+      ASSERT((uint)(which - Ds_TexGenS0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, newVal);
       } else {
@@ -73,7 +77,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
     case Ds_TexGenT1:
     case Ds_TexGenT2:
     case Ds_TexGenT3:
-      ASSERT(static_cast<UINT>(which - Ds_TexGenT0) == DsGet(Ds_ActiveTexture));
+      ASSERT((uint)(which - Ds_TexGenT0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, newVal);
       } else {
@@ -88,7 +92,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
     case Ds_TexGenR1:
     case Ds_TexGenR2:
     case Ds_TexGenR3:
-      ASSERT(static_cast<UINT>(which - Ds_TexGenR0) == DsGet(Ds_ActiveTexture));
+      ASSERT((uint)(which - Ds_TexGenR0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, newVal);
       } else {
@@ -103,7 +107,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
     case Ds_TexGenQ1:
     case Ds_TexGenQ2:
     case Ds_TexGenQ3:
-      ASSERT(static_cast<UINT>(which - Ds_TexGenQ0) == DsGet(Ds_ActiveTexture));
+      ASSERT((uint)(which - Ds_TexGenQ0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glTexGeni(GL_Q, GL_TEXTURE_GEN_MODE, newVal);
       } else {
@@ -118,7 +122,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
     case Ds_TexEnvMode1:
     case Ds_TexEnvMode2:
     case Ds_TexEnvMode3:
-      ASSERT(static_cast<UINT>(which - Ds_TexEnvMode0) == DsGet(Ds_ActiveTexture));
+      ASSERT((uint)(which - Ds_TexEnvMode0) == DsGet(Ds_ActiveTexture));
       glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, newVal);
       break;
 
@@ -142,7 +146,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
     case Ds_TextureArray1:
     case Ds_TextureArray2:
     case Ds_TextureArray3:
-      ASSERT(static_cast<UINT>(which - Ds_TextureArray0) == DsGet(Ds_ActiveTexture));
+      ASSERT((uint)(which - Ds_TextureArray0) == DsGet(Ds_ActiveTexture));
       if (newVal) {
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
       } else {
@@ -231,7 +235,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
       break;
 
     case Ds_BlendFunc:
-      glBlendFunc(newVal >> 16, newVal & 0xFFFF);
+      glBlendFunc((newVal >> 16) & 0xFFFF, newVal & 0xFFFF);
       break;
 
     default:

@@ -168,7 +168,7 @@ BOOL MDL::ReadModelGlobals(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   UINT objectCount = data.model.boneCount + data.model.lightCount + data.model.helperCount + data.model.attachmentCount + data.model.particleCount +
                      data.model.particle2Count + data.model.ribbonCount + data.model.eventCount;
   data.objects.ReserveSpace(objectCount);
-  if (data.pivotPoints.Count() < 500) {
+  if (data.version < 500) {
     data.pivotPoints.ReserveSpace(objectCount);
   }
   data.geosets.ReserveSpace(data.model.geosetCount);
@@ -249,7 +249,9 @@ BOOL MDL::WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buffer, 
 }
 
 BOOL MDL::ReadBinModelGlobals(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
-  FATALASSERT(status);
+  VALIDATEBEGIN;
+  VALIDATE(status != 0);
+  VALIDATEEND;
   if (len != 373) {
     status->Add(STATUS_ERROR, "Invalid MODL section detected in model.\n");
     return 0;

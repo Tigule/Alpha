@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include "Parser.h"
 
 static const struct {
   UINT   token;
@@ -256,7 +257,7 @@ namespace MDL {
         return s_singletoktbl[token];
       }
     }
-    FATALASSERT(s_tokentext[token - 256].token == token);
+    FATALASSERT(s_tokentext[token - MDLTOK_FIRST_TOKEN].token == token);
     return s_tokentext[token - 256].text;
   }
 

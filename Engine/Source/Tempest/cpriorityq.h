@@ -74,7 +74,7 @@ namespace NTempest {
         }
 
         CDynTable<T>::operator[](entry) = CDynTable<T>::operator[](parent);
-        entry = parent;
+        entry >>= 1;
       }
 
       CDynTable<T>::operator[](entry) = value;

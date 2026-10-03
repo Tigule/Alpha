@@ -30,14 +30,11 @@ class CFrameStrataNode {
 
   ~CFrameStrataNode() {
     while (frames.Head()) {
-      DELIFUSED(frames.Head());
+      DEL(frames.Head());
     }
 
-    CRenderBatch *next;
-
-    for (CRenderBatch *batch = renderList.Head(); (int)batch > 0; batch = next) {
-      next = renderList.RawNext(batch);
-      renderList.UnlinkNode(batch);
+    for (CRenderBatch *node = renderList.Head(), *nodenext_node; (int)node > 0 ? ((nodenext_node = renderList.RawNext(node)), 1) : 0; node = nodenext_node) {
+      renderList.UnlinkNode(node);
     }
   }
 
@@ -245,11 +242,10 @@ class CFrameStrata {
         UINT delta = level - firstEmpty;
 
         for (UINT i = level; i < topLevel; ++i) {
-          CSimpleFrame *next;
-
-          for (CSimpleFrame *frame = levels[i]->frames.Head(); (int)frame > 0; frame = next) {
-            next = levels[i]->frames.RawNext(frame);
-            frame->SetFrameLevel(frame->GetFrameLevel() - delta, 0);
+          for (CSimpleFrame *node = levels[i]->frames.Head(), *nodenext_node;
+               (int)node > 0 ? ((nodenext_node = levels[i]->frames.RawNext(node)), 1) : 0;
+               node = nodenext_node) {
+            node->SetFrameLevel(node->GetFrameLevel() - delta, 0);
           }
         }
 
@@ -487,7 +483,7 @@ void CSimpleTop::RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, U
 
 void CSimpleTop::UnregisterForEvent(CSimpleFrame *frame, CSimpleEventType event) {
   CSimpleSortedArray<FRAMEPRIORITY *> *queue;
-  FRAMEPRIORITY                       *entry = 0;
+  FRAMEPRIORITY                       *entry;
   UINT                                 count;
   UINT                                 i;
 
@@ -498,32 +494,25 @@ void CSimpleTop::UnregisterForEvent(CSimpleFrame *frame, CSimpleEventType event)
   for (i = 0; i < count; ++i) {
     entry = (*queue)[i];
     if (entry->frame == frame) {
-      break;
-    }
-  }
-
-  if (i == count) {
-    return;
-  }
-
-  queue->Remove(i);
-  DEL(entry);
-
-  if (event == SIMPLE_EVENT_KEY) {
-    for (i = 0; i < KEY_LAST; ++i) {
-      if (m_keydownCapture[i] == frame) {
-        m_keydownCapture[i] = 0;
+      queue->Remove(i);
+      DEL(entry);
+      if (event == SIMPLE_EVENT_KEY) {
+        for (i = 0; i < KEY_LAST; ++i) {
+          if (frame == m_keydownCapture[i]) {
+            m_keydownCapture[i] = 0;
+          }
+        }
+      } else if (event == SIMPLE_EVENT_MOUSE) {
+        if (frame == m_mouseCapture) {
+          m_mouseCapture = 0;
+        }
+        if (frame == m_mouseFocus) {
+          m_mouseFocus = 0;
+          m_checkFocus = 1;
+          frame->OnLayerCursorExit();
+        }
       }
-    }
-  } else if (event == SIMPLE_EVENT_MOUSE) {
-    if (m_mouseCapture == frame) {
-      m_mouseCapture = 0;
-    }
-
-    if (m_mouseFocus == frame) {
-      m_mouseFocus = 0;
-      m_checkFocus = 1;
-      frame->OnLayerCursorExit();
+      break;
     }
   }
 }
@@ -564,44 +553,21 @@ BOOL CSimpleTop::RaiseFrame(const NTempest::C2Vector &pt) {
 BOOL CSimpleTop::RaiseFrame(CSimpleFrame *frame, int checkOcclusion) {
   CSimpleFrame *topframe = frame->GetToplevelFrame();
 
-  if (!topframe) {
-    return 0;
-  }
-
-  if (checkOcclusion) {
-    CFrameStrata   *strata;
-    UINT            level;
-    NTempest::CRect frameRect;
-    NTempest::CRect otherRect;
-    int             occluded = 0;
-
-    if (!topframe->IsRectValid() || topframe->IsResizePending()) {
-      topframe->Resize(1);
-    }
-
-    strata = m_strata[topframe->GetFrameStrata()];
-    level = topframe->GetFrameLevel();
-    while (level < strata->topLevel && !occluded) {
-      ITERATELIST(CSimpleFrame, strata->levels[level]->frames, other) {
-        if (other != topframe && !other->IsAncestor(topframe)) {
-          topframe->GetRect(&frameRect);
-          other->GetRect(&otherRect);
-          if (frameRect.Intersect(otherRect).NotEmpty()) {
-            occluded = 1;
-            break;
-          }
-        }
+  if (topframe) {
+    if (checkOcclusion) {
+      if (!topframe->IsRectValid() || topframe->IsResizePending()) {
+        topframe->Resize(1);
       }
 
-      ++level;
+      topframe->SetOccluded(m_strata[topframe->GetFrameStrata()]->FrameOccluded(topframe));
     }
 
-    topframe->SetOccluded(occluded);
+    m_strata[topframe->GetFrameStrata()]->RaiseFrame(topframe);
+
+    return 1;
   }
 
-  m_strata[topframe->GetFrameStrata()]->RaiseFrame(topframe);
-
-  return 1;
+  return 0;
 }
 
 BOOL CSimpleTop::LowerFrame(CSimpleFrame *frame) {
@@ -617,87 +583,61 @@ BOOL CSimpleTop::StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &
   m_layout.last.x = start.x;
   m_layout.last.y = start.y;
 
-  if (!resize) {
-    m_layout.frame = frame;
+  if (resize) {
+    NTempest::C2Vector pt(m_layout.last.x - m_layout.final.l, m_layout.last.y - m_layout.final.t);
+    float              size = m_layout.final.Width() * 0.25f;
+    float              size_y = m_layout.final.Height() * 0.25f;
+
+    if (pt.x < size) {
+      if (pt.y < size_y) {
+        m_layout.anchor = FRAMEPOINT_BOTTOMLEFT;
+      } else if (pt.y < size_y * 3.0f) {
+        m_layout.anchor = FRAMEPOINT_LEFT;
+      } else {
+        m_layout.anchor = FRAMEPOINT_TOPLEFT;
+      }
+    } else if (pt.x < size * 3.0f) {
+      if (pt.y < size_y) {
+        m_layout.anchor = FRAMEPOINT_BOTTOM;
+      } else if (pt.y < size_y * 3.0f) {
+        m_layout.anchor = FRAMEPOINT_CENTER;
+      } else {
+        m_layout.anchor = FRAMEPOINT_TOP;
+      }
+    } else {
+      if (pt.y < size_y) {
+        m_layout.anchor = FRAMEPOINT_BOTTOMRIGHT;
+      } else if (pt.y < size_y * 3.0f) {
+        m_layout.anchor = FRAMEPOINT_RIGHT;
+      } else {
+        m_layout.anchor = FRAMEPOINT_TOPRIGHT;
+      }
+    }
+  } else {
     m_layout.anchor = FRAMEPOINT_CENTER;
-    return 1;
-  }
-
-  NTempest::C2Vector pt(start.x - m_layout.final.l, start.y - m_layout.final.t);
-  float              size_y = (m_layout.final.b - m_layout.final.t) * 0.25f;
-
-  if (pt.x < (m_layout.final.r - m_layout.final.l) * 0.25f) {
-    if (pt.y < size_y) {
-      m_layout.frame = frame;
-      m_layout.anchor = FRAMEPOINT_BOTTOMLEFT;
-      return 1;
-    }
-
-    if (pt.y < size_y * 3.0f) {
-      m_layout.frame = frame;
-      m_layout.anchor = FRAMEPOINT_LEFT;
-      return 1;
-    }
-
-    m_layout.frame = frame;
-    m_layout.anchor = FRAMEPOINT_TOPLEFT;
-    return 1;
-  }
-
-  if (pt.x < (m_layout.final.r - m_layout.final.l) * 0.75f) {
-    if (pt.y < size_y) {
-      m_layout.frame = frame;
-      m_layout.anchor = FRAMEPOINT_BOTTOM;
-      return 1;
-    }
-
-    if (pt.y < size_y * 3.0f) {
-      m_layout.frame = frame;
-      m_layout.anchor = FRAMEPOINT_CENTER;
-      return 1;
-    }
-
-    m_layout.frame = frame;
-    m_layout.anchor = FRAMEPOINT_TOP;
-    return 1;
-  }
-
-  if (pt.y < size_y) {
-    m_layout.frame = frame;
-    m_layout.anchor = FRAMEPOINT_BOTTOMRIGHT;
-    return 1;
-  }
-
-  if (pt.y < size_y * 3.0f) {
-    m_layout.frame = frame;
-    m_layout.anchor = FRAMEPOINT_RIGHT;
-    return 1;
   }
 
   m_layout.frame = frame;
-  m_layout.anchor = FRAMEPOINT_TOPRIGHT;
   return 1;
 }
 
 BOOL CSimpleTop::StartMoveOrResizeFrame(const CMouseEvent &start, int resize) {
   CSimpleFrame *frame = 0;
-  UINT          strata = NUM_SIMPLEFRAME_DRAWLAYERS;
+  UINT          i = NUM_SIMPLEFRAME_DRAWLAYERS;
 
-  while (strata && !frame) {
-    NTempest::C2Vector point(start.x, start.y);
-
-    frame = m_strata[--strata]->GetToplevelFrame(point);
+  while (i-- && !frame) {
+    frame = m_strata[i]->GetToplevelFrame(NTempest::C2Vector(start.x, start.y));
   }
 
   if (!frame) {
     return 0;
   }
 
-  if (resize) {
-    if (!frame->IsResizable()) {
-      return 0;
-    }
-  } else if (!frame->IsMovable()) {
+  if (!resize && !frame->IsMovable()) {
+    return 0;
+  }
+
+  if (resize && !frame->IsResizable()) {
     return 0;
   }
 

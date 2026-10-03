@@ -91,7 +91,7 @@ BOOL WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
   if (newAlloc <= SMALL_BUFFER_SIZE) {
     WDataStoreBuffer<SMALL_BUFFER_SIZE> *obj = s_smallHeap->New();
     if (data) {
-      memcpy(obj->buf, data, oldAlloc);
+      memcpy(obj->buf, data, alloc);
     }
 
     data = obj->buf;
@@ -100,7 +100,7 @@ BOOL WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
   } else if (newAlloc <= LARGE_BUFFER_SIZE) {
     WDataStoreBuffer<LARGE_BUFFER_SIZE> *obj = s_largeHeap->New();
     if (data) {
-      memcpy(obj->buf, data, oldAlloc);
+      memcpy(obj->buf, data, alloc);
     }
 
     data = obj->buf;
@@ -111,7 +111,7 @@ BOOL WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
       data = Realloc(data, newAlloc, fileName, lineNumber);
     } else {
       BYTE *newData = Alloc(newAlloc, fileName, lineNumber);
-      memcpy(newData, data, oldAlloc);
+      memcpy(newData, data, alloc);
       data = newData;
       m_bufferObj = 0;
     }
@@ -135,13 +135,11 @@ BOOL WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
 LPVOID WDataStore::AllocBuffer(UINT size) {
   if (size <= SMALL_BUFFER_SIZE) {
     return s_smallHeap->New()->buf;
-  }
-
-  if (size <= LARGE_BUFFER_SIZE) {
+  } else if (size <= LARGE_BUFFER_SIZE) {
     return s_largeHeap->New()->buf;
+  } else {
+    return ALLOC(size);
   }
-
-  return ALLOC(size);
 }
 
 void WDataStore::FreeBuffer(LPVOID buffer, UINT size) {

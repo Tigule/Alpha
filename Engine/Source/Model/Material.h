@@ -37,7 +37,11 @@ struct CTexLayer {
       tmuPass[i].combiner = GxTexBlend_Mod;
     }
   }
-  CTexLayer(const CTexLayer &a);
+  CTexLayer(const CTexLayer &a) : vertexFormat(a.vertexFormat), disables(a.disables), blendMode(a.blendMode), layerAlpha(a.layerAlpha) {
+    for (UINT i = 0; i < 2; ++i) {
+      tmuPass[i] = a.tmuPass[i];
+    }
+  }
   static int Compare(const CModelTexture *aTextures, const CModelTexture *bTextures, const CTexLayer &a, const CTexLayer &b);
 
   EGxVertexBufferFormat vertexFormat;
@@ -66,7 +70,7 @@ struct CTexLayerShared {
 
 struct CMaterialShared : public CHandleObject {
  public:
-  CMaterialShared() {
+  CMaterialShared() : priorityPlane(0) {
   }
   CMaterialShared(const CMaterialShared &);
 
@@ -76,7 +80,7 @@ struct CMaterialShared : public CHandleObject {
 
 struct CMaterial : public CHandleObject {
  public:
-  CMaterial() : data(0), emissiveColor(0ul) {
+  CMaterial() : data(0), emissiveColor(0, 0, 0, 0) {
   }
 
   CMaterial(const CMaterial &source)
@@ -93,7 +97,6 @@ struct CMaterial : public CHandleObject {
   }
 
   CMaterial &operator=(const CMaterial &source) {
-    CHandleObject::operator=(source);
     if (data) {
       HandleClose(data);
     }

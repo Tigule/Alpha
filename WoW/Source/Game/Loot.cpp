@@ -3,12 +3,14 @@
 
 #include <storm.h>
 
+#define MAX_CURRENCY_TYPES 3
+
 static int  s_currencyMultiplier[3];
 static BYTE s_lootInitialized;
 
 int CurrencyMultiplier(int denomination) {
   FATALASSERT(s_lootInitialized);
-  FATALASSERT(denomination >= 0 && denomination < 3);
+  FATALASSERT(denomination >= 0 && denomination < MAX_CURRENCY_TYPES);
   return s_currencyMultiplier[denomination];
 }
 

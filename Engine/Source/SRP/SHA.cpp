@@ -8,9 +8,9 @@ static const BYTE s_sha1Padding = 0x80;
 static BYTE       s_sha1Zero;
 
 #define SHA1_ROL(value, bits) _lrotl((value), (bits))
-#define SHA1_BLK0(i)          (words.l[i] = (SHA1_ROL(((DWORD *)buffer)[i], 24) & 0xFF00FF00) | (SHA1_ROL(((DWORD *)buffer)[i], 8) & 0x00FF00FF))
+#define SHA1_BLK0(i)          (block->l[i] = (SHA1_ROL(block->l[i], 24) & 0xFF00FF00) | (SHA1_ROL(block->l[i], 8) & 0x00FF00FF))
 #define SHA1_BLK(i) \
-  (words.l[(i) & 15] = SHA1_ROL(words.l[((i) + 13) & 15] ^ words.l[((i) + 8) & 15] ^ words.l[((i) + 2) & 15] ^ words.l[(i) & 15], 1))
+  (block->l[(i) & 15] = SHA1_ROL(block->l[((i) + 13) & 15] ^ block->l[((i) + 8) & 15] ^ block->l[((i) + 2) & 15] ^ block->l[(i) & 15], 1))
 #define SHA1_R0(v, w, x, y, z, i)                                        \
   z += ((w & (x ^ y)) ^ y) + SHA1_BLK0(i) + 0x5A827999 + SHA1_ROL(v, 5); \
   w = SHA1_ROL(w, 30)
@@ -28,17 +28,13 @@ static BYTE       s_sha1Zero;
   w = SHA1_ROL(w, 30)
 
 static void SHA1_Transform(unsigned int state[], const unsigned char buffer[]) {
-  union CHAR64LONG16 {
+  typedef union {
     BYTE c[64];
     UINT l[16];
-  };
+  } CHAR64LONG16;
 
-  CHAR64LONG16 words;
-  DWORD        a;
-  DWORD        b;
-  DWORD        c;
-  DWORD        d;
-  DWORD        e;
+  CHAR64LONG16 *block = (CHAR64LONG16 *)buffer;
+  unsigned int  a, b, c, d, e;
 
   a = state[0];
   b = state[1];
@@ -132,6 +128,8 @@ static void SHA1_Transform(unsigned int state[], const unsigned char buffer[]) {
   state[2] += c;
   state[3] += d;
   state[4] += e;
+
+  a = b = c = d = e = 0;
 }
 
 void SHA1_Init(SHA1_CONTEXT *context) {
@@ -193,11 +191,9 @@ unsigned char *SHA1_InterleaveHash(unsigned char digest[], const unsigned char *
   SHA1_CONTEXT context;
   BYTE         localDigest[20];
   BYTE        *scratch;
-  BYTE        *result;
   DWORD        half;
   DWORD        i;
 
-  result = NULL;
   while (len && !*data) {
     ++data;
     --len;
@@ -209,9 +205,8 @@ unsigned char *SHA1_InterleaveHash(unsigned char digest[], const unsigned char *
 
   half = len >> 1;
   scratch = (BYTE *)_alloca(half);
-  i = 0;
   if (scratch) {
-    for (; i < half; ++i) {
+    for (i = 0; i < half; ++i) {
       scratch[i] = data[i * 2];
     }
     SHA1_Init(&context);
@@ -230,8 +225,8 @@ unsigned char *SHA1_InterleaveHash(unsigned char digest[], const unsigned char *
     for (i = 0; i < 20; ++i) {
       digest[i * 2 + 1] = localDigest[i];
     }
-    result = digest;
+    return digest;
   }
 
-  return result;
+  return NULL;
 }

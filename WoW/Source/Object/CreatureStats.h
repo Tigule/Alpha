@@ -7,9 +7,12 @@ class CDataStore;
 
 class CreatureStats {
  public:
-  CreatureStats() {
-    memset(m_name, 0, sizeof(m_name));
-    m_title = 0;
+  CreatureStats() : m_title(0) {
+    int i;
+
+    for (i = 0; i < 4; ++i) {
+      m_name[i] = 0;
+    }
   }
 
   ~CreatureStats() {

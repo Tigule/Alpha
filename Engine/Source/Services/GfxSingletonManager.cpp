@@ -12,15 +12,7 @@ int (*ParticleSystemManager::sm_projectCallback)(const NTempest::C3Segment &, fl
 RibbonManager *RibbonManager::manager = 0;
 
 void ParticleSystemManager::SetScaler(float scaler) {
-  if (scaler >= 0.0f) {
-    if (scaler <= 1.0f) {
-      ParticleSystemManager::scaler = scaler;
-    } else {
-      ParticleSystemManager::scaler = 1.0f;
-    }
-  } else {
-    ParticleSystemManager::scaler = 0.0f;
-  }
+  ParticleSystemManager::scaler = scaler < 0.0f ? 0.0f : (scaler > 1.0f ? 1.0f : scaler);
 }
 
 float ParticleSystemManager::GetScaler() {
@@ -31,8 +23,7 @@ ParticleSystemManager *ParticleSystemManager::GetInstance() {
   if (!manager) {
     manager = NEW(ParticleSystemManager);
 
-    NTempest::CRndSeed randSeed;
-    randSeed.SetSeed((rand() << 16) | rand());
+    NTempest::CRndSeed randSeed((rand() << 16) | (rand() & 0xFFFF));
     for (UINT i = 0; i < 128; ++i) {
       CParticleEmitter2::m_rndTable[i] = NTempest::CRandom::real_(randSeed);
     }
@@ -81,41 +72,39 @@ void ParticleSystemManager::Flush() {
 
 CParticleEmitter *ParticleSystemManager::CreateModelEmitter() {
   CParticleEmitter *res = (NEW(CParticleEmitter))->AddRef();
-  modelEmitters.SetCount(modelEmitters.Count() + 1);
-  modelEmitters[modelEmitters.Count() - 1] = res;
+  *modelEmitters.New() = res;
   return res;
 }
 
 CPlaneParticleEmitter *ParticleSystemManager::CreateQuadEmitter() {
   CPlaneParticleEmitter *res = NEW(CPlaneParticleEmitter);
   res->AddRef();
-  emitter2s.SetCount(emitter2s.Count() + 1);
-  emitter2s[emitter2s.Count() - 1] = res;
+  *emitter2s.New() = res;
   return res;
 }
 
 CSphereParticleEmitter *ParticleSystemManager::CreateSphereEmitter() {
   CSphereParticleEmitter *res = NEW(CSphereParticleEmitter);
   res->AddRef();
-  emitter2s.SetCount(emitter2s.Count() + 1);
-  emitter2s[emitter2s.Count() - 1] = res;
+  *emitter2s.New() = res;
   return res;
 }
 
 CSplineParticleEmitter *ParticleSystemManager::CreateSplineEmitter() {
   CSplineParticleEmitter *res = NEW(CSplineParticleEmitter);
   res->AddRef();
-  emitter2s.SetCount(emitter2s.Count() + 1);
-  emitter2s[emitter2s.Count() - 1] = res;
+  *emitter2s.New() = res;
   return res;
 }
 
 CParticleEmitter2 *ParticleSystemManager::DuplicateEmitter(const CParticleEmitter2 *emitter, int deep) {
-  FATALASSERT(emitter);
+  VALIDATEBEGIN;
+  VALIDATE(emitter != 0);
+  VALIDATEEND;
+
   CParticleEmitter2 *newEmitter = emitter->Clone(deep);
   newEmitter->AddRef();
-  emitter2s.SetCount(emitter2s.Count() + 1);
-  emitter2s[emitter2s.Count() - 1] = newEmitter;
+  *emitter2s.New() = newEmitter;
   return newEmitter;
 }
 
@@ -127,9 +116,9 @@ void ParticleSystemManager::UpdateEmitters(float elapsedTime, const NTempest::C3
 
   index = deletedModelEmitters.Count();
   while (index) {
-    CParticleEmitter *temp = deletedModelEmitters[--index];
-    temp->Update(elapsedTime, cameraPos, cameraTarg);
-    if (temp->m_alive.IsEmpty()) {
+    deletedModelEmitters[--index]->Update(elapsedTime, cameraPos, cameraTarg);
+    if (deletedModelEmitters[index]->m_alive.Count() <= 0) {
+      CParticleEmitter *temp = deletedModelEmitters[index];
       deletedModelEmitters[index] = deletedModelEmitters[deletedModelEmitters.Count() - 1];
       deletedModelEmitters.SetCount(deletedModelEmitters.Count() - 1);
       temp->DecRef();
@@ -143,9 +132,9 @@ void ParticleSystemManager::UpdateEmitters(float elapsedTime, const NTempest::C3
 
   index = deletedEmitter2s.Count();
   while (index) {
-    CParticleEmitter2 *temp = deletedEmitter2s[--index];
-    temp->SingletonMgrUpdate(elapsedTime, cameraPos, 1);
-    if (temp->m_alive.IsEmpty()) {
+    deletedEmitter2s[--index]->SingletonMgrUpdate(elapsedTime, cameraPos, 1);
+    if (deletedEmitter2s[index]->m_alive.Count() <= 0) {
+      CParticleEmitter2 *temp = deletedEmitter2s[index];
       deletedEmitter2s[index] = deletedEmitter2s[deletedEmitter2s.Count() - 1];
       deletedEmitter2s.SetCount(deletedEmitter2s.Count() - 1);
       temp->DecRef();
@@ -153,12 +142,12 @@ void ParticleSystemManager::UpdateEmitters(float elapsedTime, const NTempest::C3
   }
 }
 
-void ParticleSystemManager::RenderParticleEmitter2(LPVOID param1, int param2) {
-  static_cast<CParticleEmitter2 *>(param1)->Render();
-}
-
 void ParticleSystemManager::RenderParticleEmitter(LPVOID param1, int param2) {
   static_cast<CParticleEmitter *>(param1)->Render();
+}
+
+void ParticleSystemManager::RenderParticleEmitter2(LPVOID param1, int param2) {
+  static_cast<CParticleEmitter2 *>(param1)->Render();
 }
 
 void ParticleSystemManager::RenderEmitters() {
@@ -169,32 +158,36 @@ void ParticleSystemManager::RenderEmitters() {
   }
 }
 
-void ParticleSystemManager::DeleteEmitter2(CParticleEmitter2 *emitter) {
-  FATALASSERT(emitter);
-  emitter->DecRef();
-  UINT index = emitter2s.Count();
-  while (index) {
-    --index;
-    if (emitter2s[index] == emitter) {
-      deletedEmitter2s.SetCount(deletedEmitter2s.Count() + 1);
-      deletedEmitter2s[deletedEmitter2s.Count() - 1] = emitter2s[index];
-      emitter2s[index] = emitter2s[emitter2s.Count() - 1];
-      emitter2s.SetCount(emitter2s.Count() - 1);
-    }
-  }
-}
-
 void ParticleSystemManager::DeleteModelEmitter(CParticleEmitter *emitter) {
-  FATALASSERT(emitter);
+  VALIDATEBEGIN;
+  VALIDATE(emitter != 0);
+  VALIDATEENDVOID;
+
   emitter->DecRef();
   UINT index = modelEmitters.Count();
   while (index) {
     --index;
     if (modelEmitters[index] == emitter) {
-      deletedModelEmitters.SetCount(deletedModelEmitters.Count() + 1);
-      deletedModelEmitters[deletedModelEmitters.Count() - 1] = modelEmitters[index];
+      *deletedModelEmitters.New() = modelEmitters[index];
       modelEmitters[index] = modelEmitters[modelEmitters.Count() - 1];
       modelEmitters.SetCount(modelEmitters.Count() - 1);
+    }
+  }
+}
+
+void ParticleSystemManager::DeleteEmitter2(CParticleEmitter2 *emitter) {
+  VALIDATEBEGIN;
+  VALIDATE(emitter != 0);
+  VALIDATEENDVOID;
+
+  emitter->DecRef();
+  UINT index = emitter2s.Count();
+  while (index) {
+    --index;
+    if (emitter2s[index] == emitter) {
+      *deletedEmitter2s.New() = emitter2s[index];
+      emitter2s[index] = emitter2s[emitter2s.Count() - 1];
+      emitter2s.SetCount(emitter2s.Count() - 1);
     }
   }
 }
@@ -233,16 +226,17 @@ void RibbonManager::Flush() {
 
 CRibbonEmitter *RibbonManager::CreateEmitter() {
   CRibbonEmitter *res = (NEW(CRibbonEmitter))->AddRef();
-  emitters.SetCount(emitters.Count() + 1);
-  emitters[emitters.Count() - 1] = res;
+  *emitters.New() = res;
   return res;
 }
 
 CRibbonEmitter *RibbonManager::DuplicateEmitter(const CRibbonEmitter *emitter) {
-  FATALASSERT(emitter);
+  VALIDATEBEGIN;
+  VALIDATE(emitter != 0);
+  VALIDATEEND;
+
   CRibbonEmitter *newEmitter = (NEW(CRibbonEmitter)(*emitter))->AddRef();
-  emitters.SetCount(emitters.Count() + 1);
-  emitters[emitters.Count() - 1] = newEmitter;
+  *emitters.New() = newEmitter;
   return newEmitter;
 }
 
@@ -254,9 +248,9 @@ void RibbonManager::UpdateEmitters(float elapsedTime, const NTempest::C3Vector &
 
   index = deletedEmitters.Count();
   while (index) {
-    CRibbonEmitter *temp = deletedEmitters[--index];
-    temp->SingletonMgrUpdate(elapsedTime, cameraPos, 1);
-    if (temp->IsDead()) {
+    deletedEmitters[--index]->SingletonMgrUpdate(elapsedTime, cameraPos, 1);
+    if (deletedEmitters[index]->IsDead()) {
+      CRibbonEmitter *temp = deletedEmitters[index];
       deletedEmitters[index] = deletedEmitters[deletedEmitters.Count() - 1];
       deletedEmitters.SetCount(deletedEmitters.Count() - 1);
       temp->DecRef();
@@ -277,15 +271,17 @@ void RibbonManager::RenderEmitters() {
 }
 
 void RibbonManager::DeleteEmitter(CRibbonEmitter *emitter) {
-  FATALASSERT(emitter);
+  VALIDATEBEGIN;
+  VALIDATE(emitter != 0);
+  VALIDATEENDVOID;
+
   emitter->DecRef();
 
   UINT index = emitters.Count();
   while (index) {
     --index;
     if (emitters[index] == emitter) {
-      deletedEmitters.SetCount(deletedEmitters.Count() + 1);
-      deletedEmitters[deletedEmitters.Count() - 1] = emitters[index];
+      *deletedEmitters.New() = emitters[index];
       emitters[index] = emitters[emitters.Count() - 1];
       emitters.SetCount(emitters.Count() - 1);
       return;

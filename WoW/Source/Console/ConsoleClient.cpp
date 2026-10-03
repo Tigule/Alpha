@@ -308,9 +308,7 @@ static CONSOLELINE *GetInputLine() {
     line->charsalloc = 16;
     line->buffer = (char *)ALLOC(16);
     SStrCopy(line->buffer, "> ", line->charsalloc);
-    line->chars = SStrLen(line->buffer);
-    line->inputpos = line->chars;
-    line->inputstart = line->chars;
+    line->chars = line->inputpos = line->inputstart = SStrLen(line->buffer);
     line->colorType = INPUT_COLOR;
     s_currlineptr = line;
     ++s_NumLines;
@@ -907,11 +905,11 @@ static BOOL ConsoleCommand_DefaultSettings(LPCSTR cmd, LPCSTR arguments) {
   s_colorArray[INPUT_COLOR] = NTempest::CImVector(255, 255, 255, 255);
   s_colorArray[ECHO_COLOR] = NTempest::CImVector(255, 128, 128, 128);
   s_colorArray[ERROR_COLOR] = NTempest::CImVector(255, 255, 0, 0);
-  *(DWORD *)&s_colorArray[WARNING_COLOR] = 0xFFFFFF00;
-  *(DWORD *)&s_colorArray[GLOBAL_COLOR] = 0xFFFFFFFF;
-  *(DWORD *)&s_colorArray[ADMIN_COLOR] = 0xFFFFFFFF;
-  *(DWORD *)&s_colorArray[BACKGROUND_COLOR] = 0xC0000000;
-  *(DWORD *)&s_colorArray[HIGHLIGHT_COLOR] = 0x80FFFFFF;
+  s_colorArray[WARNING_COLOR] = NTempest::CImVector(255, 255, 255, 0);
+  s_colorArray[GLOBAL_COLOR] = NTempest::CImVector(255, 255, 255, 255);
+  s_colorArray[ADMIN_COLOR] = NTempest::CImVector(255, 255, 255, 255);
+  s_colorArray[BACKGROUND_COLOR] = NTempest::CImVector(192, 0, 0, 0);
+  s_colorArray[HIGHLIGHT_COLOR] = NTempest::CImVector(128, 255, 255, 255);
 
   s_fontHeight = 0.02f;
   SStrCopy(s_fontName, "Fonts\\ARIALN.ttf", sizeof(s_fontName));

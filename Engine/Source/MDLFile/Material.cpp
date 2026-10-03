@@ -14,6 +14,20 @@ namespace MDL {
   BOOL         WriteBinMaterials(const MDLDATA &, CMsgBuffer &, CMDLStatus *);
 }  // namespace MDL
 
+struct TOKENFLAG {
+  UINT mask;
+  UINT token;
+};
+
+static TOKENFLAG s_textureFlags[6] = {
+    { 0x1, 0x1D3},
+    { 0x2, 0x1B5},
+    {0x10, 0x1CF},
+    {0x20, 0x1D1},
+    {0x40, 0x177},
+    {0x80, 0x178}
+};
+
 static void IMaterialAddErrors(TSet &errors) {
   errors.Add(0x163, 1, 1);
   errors.Add(0x13A, 0, 0);
@@ -256,11 +270,9 @@ static UINT IGetFilterModeToken(MDLTEXOP mode) {
 }
 
 static void IWriteTextureFlags(UINT flags, TSGrowableArray<char> &buffer) {
-  static const UINT masks[6] = {1, 2, 0x10, 0x20, 0x40, 0x80};
-  static const UINT tokens[6] = {0x1D3, 0x1B5, 0x1CF, 0x1D1, 0x177, 0x178};
   for (UINT i = 0; i < 6; ++i) {
-    if (flags & masks[i]) {
-      MDL::WriteLine(buffer, "\t\t\t%s,\n", MDL::TokenText(tokens[i]));
+    if (flags & s_textureFlags[i].mask) {
+      MDL::WriteLine(buffer, "\t\t\t%s,\n", MDL::TokenText(s_textureFlags[i].token));
     }
   }
 }
@@ -323,50 +335,52 @@ BOOL MDL::WriteMaterials(const MDLDATA &data, TSGrowableArray<char> &buffer, CMD
   return 1;
 }
 
-static BOOL ReadBinLayer(CMsgBuffer &buffer, CMDLStatus *status, UINT *bytesRead, MDLTEXLAYER *layer) {
-  UINT sectionLength = buffer.GetUint();
-  layer->blendMode = static_cast<MDLTEXOP>(buffer.GetUint());
-  layer->flags = buffer.GetUint();
-  layer->textureId = buffer.GetUint();
-  layer->transformId = buffer.GetUint();
-  layer->coordId = buffer.GetUint();
-  layer->staticAlpha = buffer.GetFloat();
-  UINT localRead = 28;
-  while (localRead < sectionLength) {
-    DWORD tag = buffer.GetDword();
-    localRead += 4;
+static BOOL ReadBinLayer(CMsgBuffer &buf, CMDLStatus *status, UINT *bytesRead, MDLTEXLAYER *layer) {
+  UINT sectionLength = buf.GetUint();
+  UINT localBytesRead = 4;
+  layer->blendMode = static_cast<MDLTEXOP>(buf.GetUint());
+  layer->flags = buf.GetUint();
+  layer->textureId = buf.GetUint();
+  layer->transformId = buf.GetUint();
+  layer->coordId = buf.GetUint();
+  layer->staticAlpha = buf.GetFloat();
+  localBytesRead += 24;
+  while (localBytesRead < sectionLength) {
+    DWORD tag = buf.GetDword();
+    localBytesRead += 4;
     if (tag == 'ATMK') {
-      ReadBinFloatKeyFrames(layer->alphaKeys, buffer, localRead);
+      ReadBinFloatKeyFrames(layer->alphaKeys, buf, localBytesRead);
     } else if (tag == 'FTMK') {
-      ReadBinUintKeyFrames(layer->flipKeys, buffer, localRead);
+      ReadBinUintKeyFrames(layer->flipKeys, buf, localBytesRead);
     } else {
-      SkipUnknown(buffer, localRead);
+      SkipUnknown(buf, localBytesRead);
     }
   }
-  if (localRead > sectionLength) {
+  if (localBytesRead > sectionLength) {
     status->FatalOverran("TexLayer", -1);
     return 0;
   }
-  *bytesRead += localRead;
+  *bytesRead += localBytesRead;
   return 1;
 }
 
-static BOOL ReadBinMaterial(CMsgBuffer &buffer, UINT sectionLength, MDLMATERIALSECTION *material, CMDLStatus *status, UINT &bytesRead) {
-  UINT localRead = 4;
-  material->priorityPlane = buffer.GetInt();
-  UINT numLayers = buffer.GetUint();
-  localRead += 8;
-  material->texLayers.SetCount(numLayers);
+static BOOL ReadBinMaterial(CMsgBuffer &buf, UINT sectionLength, MDLMATERIALSECTION *pMat, CMDLStatus *status, UINT &bytesRead) {
+  UINT localBytesRead = 4;
+  pMat->priorityPlane = buf.GetInt();
+  localBytesRead += 4;
+  UINT numLayers = buf.GetUint();
+  localBytesRead += 4;
+  pMat->texLayers.SetCount(numLayers);
   for (UINT i = 0; i < numLayers; ++i) {
-    if (!ReadBinLayer(buffer, status, &localRead, &material->texLayers.Ptr()[i])) {
+    if (!ReadBinLayer(buf, status, &localBytesRead, &pMat->texLayers[i])) {
       return 0;
     }
   }
-  if (localRead > sectionLength) {
+  if (localBytesRead > sectionLength) {
     status->FatalOverran("Material", -1);
     return 0;
   }
-  bytesRead += localRead;
+  bytesRead += localBytesRead;
   return 1;
 }
 
@@ -413,19 +427,23 @@ static UINT GetMaterialSize(const MDLMATERIALSECTION &material) {
   return size;
 }
 
-static void AddLayers(CMsgBuffer &buffer, const MDLMATERIALSECTION &material) {
-  buffer.AddUint(material.texLayers.Count());
-  for (UINT i = 0; i < material.texLayers.Count(); ++i) {
-    const MDLTEXLAYER &layer = material.texLayers.Ptr()[i];
-    buffer.AddUint(GetLayerSize(layer));
-    buffer.AddUint(layer.blendMode);
-    buffer.AddUint(layer.flags);
-    buffer.AddUint(layer.textureId);
-    buffer.AddUint(layer.transformId);
-    buffer.AddUint(layer.flags & 2 ? static_cast<UINT>(-1) : layer.coordId);
-    buffer.AddFloat(layer.staticAlpha);
-    WriteBinFloatKeyFrames(layer.alphaKeys, 'ATMK', buffer);
-    WriteBinUintKeyFrames(layer.flipKeys, 'FTMK', buffer);
+static void AddLayers(CMsgBuffer &buf, const MDLMATERIALSECTION &material) {
+  UINT numLayers = material.texLayers.Count();
+  buf.AddUint(numLayers);
+  for (UINT i = 0; i < numLayers; ++i) {
+    buf.AddUint(GetLayerSize(material.texLayers[i]));
+    buf.AddUint(material.texLayers[i].blendMode);
+    buf.AddUint(material.texLayers[i].flags);
+    buf.AddUint(material.texLayers[i].textureId);
+    buf.AddUint(material.texLayers[i].transformId);
+    if (material.texLayers[i].flags & 2) {
+      buf.AddUint(static_cast<UINT>(-1));
+    } else {
+      buf.AddUint(material.texLayers[i].coordId);
+    }
+    buf.AddFloat(material.texLayers[i].staticAlpha);
+    WriteBinFloatKeyFrames(material.texLayers[i].alphaKeys, 'ATMK', buf);
+    WriteBinUintKeyFrames(material.texLayers[i].flipKeys, 'FTMK', buf);
   }
 }
 

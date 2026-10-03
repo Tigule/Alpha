@@ -151,12 +151,14 @@ void CSimpleSlider::OnLayerUpdate(float elapsedSec) {
   CSimpleFrame::OnLayerUpdate(elapsedSec);
 
   if (m_changed && m_thumbTexture && m_rangeSet && m_valueSet) {
-    float value = (GetValue() - GetMinValue()) / (GetMaxValue() - GetMinValue());
+    float range = GetMaxValue() - GetMinValue();
+    float value = (GetValue() - GetMinValue()) / range;
+
     if (IsHorizontal()) {
-      float offset = (m_rect.r - m_rect.l - m_thumbTexture->GetWidth()) * value / m_layoutScale;
+      float offset = ((m_rect.r - m_rect.l - m_thumbTexture->GetWidth()) * value) / m_layoutScale;
       m_thumbTexture->SetPoint(FRAMEPOINT_LEFT, this, FRAMEPOINT_LEFT, offset, 0.0f, 1);
     } else {
-      float offset = (m_rect.b - m_rect.t - m_thumbTexture->GetHeight()) * value / m_layoutScale;
+      float offset = ((m_rect.b - m_rect.t - m_thumbTexture->GetHeight()) * value) / m_layoutScale;
       m_thumbTexture->SetPoint(FRAMEPOINT_TOP, this, FRAMEPOINT_TOP, 0.0f, -offset, 1);
     }
     m_changed = 0;

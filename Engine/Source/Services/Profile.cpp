@@ -48,6 +48,7 @@ namespace ProfileInternal {
 
   struct SECTION : public TSHashObject<SECTION, HASHKEY_CONSTSTRI> {
     ~SECTION() {
+      keyTable.Clear();
     }
 
     TSHashTable<KEYVALUE, HASHKEY_CONSTSTRI> keyTable;
@@ -55,13 +56,8 @@ namespace ProfileInternal {
 
   struct PROFILE : public CHandleObject {
     virtual ~PROFILE() {
-      STRINGBLOCK *stringBlock;
-
       sectionTable.Clear();
-
-      while ((stringBlock = stringBlockList.Head()) != 0) {
-        DEL(stringBlock);
-      }
+      stringBlockList.Clear();
     }
 
     TSHashTable<SECTION, HASHKEY_CONSTSTRI> sectionTable;
@@ -83,44 +79,35 @@ namespace ProfileInternal {
   static int       PrfStrToInt(LPCSTR str);
 
   STRINGBLOCK *STRINGBLOCK::AllocBlock(DWORD chars) {
-    DWORD dataChars = sizeof(((STRINGBLOCK *)0)->m_data);
-    DWORD allocChars = chars < dataChars ? dataChars : chars;
-
-    STRINGBLOCK *block = new (ALLOC(sizeof(STRINGBLOCK) + allocChars - dataChars)) STRINGBLOCK;
-    block->m_refCount = 0;
+    STRINGBLOCK *block = new (ALLOC(sizeof(STRINGBLOCK) - sizeof(((STRINGBLOCK *)0)->m_data) + max(chars, sizeof(((STRINGBLOCK *)0)->m_data)))) STRINGBLOCK;
     block->m_dataSize = chars;
+    block->m_refCount = 0;
     block->m_dataUsed = 0;
     return block;
   }
 
   char *STRINGBLOCK::AllocString(LIST(STRINGBLOCK) & stringBlockList, LPCSTR string, int inSitu) {
-    STRINGBLOCK *stringBlock;
-    DWORD        chars;
-    char        *dest;
-
     VALIDATEBEGIN;
     VALIDATE(string);
     VALIDATEEND;
 
     if (inSitu) {
-      stringBlock = stringBlockList.Head();
-      while (stringBlock) {
+      ITERATELIST(STRINGBLOCK, stringBlockList, stringBlock) {
         if (stringBlock->Contains(string)) {
           ++stringBlock->m_refCount;
           return const_cast<char *>(string);
         }
-        stringBlock = stringBlockList.Next(stringBlock);
       }
     }
 
-    chars = SStrLen(string) + 1;
-    stringBlock = stringBlockList.Head();
+    DWORD        chars = SStrLen(string) + 1;
+    STRINGBLOCK *stringBlock = stringBlockList.Head();
     if (!stringBlock || chars > stringBlock->m_dataSize - stringBlock->m_dataUsed) {
-      stringBlock = AllocBlock(chars < 4096 ? 4096 : chars);
+      stringBlock = AllocBlock(max(chars, 4096));
       stringBlockList.LinkNode(stringBlock, LIST_HEAD, 0);
     }
 
-    dest = stringBlock->m_data + stringBlock->m_dataUsed;
+    char *dest = stringBlock->m_data + stringBlock->m_dataUsed;
     memcpy(dest, string, chars);
     stringBlock->m_dataUsed += chars;
     ++stringBlock->m_refCount;
@@ -128,97 +115,155 @@ namespace ProfileInternal {
   }
 
   void STRINGBLOCK::FreeString(LIST(STRINGBLOCK) & stringBlockList, char *string) {
-    STRINGBLOCK *stringBlock;
-
     VALIDATEBEGIN;
     VALIDATE(string);
     VALIDATEENDVOID;
 
-    stringBlock = stringBlockList.Head();
-    while (stringBlock && !stringBlock->Contains(string)) {
-      stringBlock = stringBlockList.Next(stringBlock);
+    STRINGBLOCK *stringBlock = 0;
+    ITERATELIST(STRINGBLOCK, stringBlockList, block) {
+      if (block->Contains(string)) {
+        stringBlock = block;
+        break;
+      }
     }
 
     ASSERT(stringBlock);
 
     if (!--stringBlock->m_refCount) {
       stringBlock->m_dataUsed = 0;
-      stringBlockList.UnlinkNode(stringBlock);
       stringBlockList.LinkNode(stringBlock, LIST_HEAD, 0);
     }
   }
 
-  static void WriteLine(TSGrowableArray<char> &buffer, LPCSTR pszFmt, ...) {
-    va_list args;
-    int     numchars;
+}
 
-    va_start(args, pszFmt);
-    numchars = _vsnprintf(buf, sizeof(buf), pszFmt, args);
-    va_end(args);
+HPROFILE ProfileCreate() {
+  return NEW(ProfileInternal::PROFILE);
+}
 
-    if (numchars == sizeof(buf)) {
-      numchars = sizeof(buf) - 1;
-      buf[numchars] = 0;
-    } else if (numchars <= 0) {
-      return;
-    }
+int ProfileReadFile(HPROFILE handle, LPCSTR path) {
+  VALIDATEBEGIN;
+  VALIDATE(path);
+  VALIDATEEND;
 
-    buffer.Add(numchars, buf);
-  }
+  return ProfileInternal::IReadFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
+}
 
-  static KEYVALUE *GetKeyValue(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName) {
-    SECTION *section = profile->sectionTable.Ptr(sectionName);
+namespace ProfileInternal {
 
-    if (!section) {
-      return 0;
-    }
+  static int IReadFile(PROFILE *profile, LPCSTR rawPath) {
+    char  path[MAX_PATH];
+    char *end;
+    int   result;
 
-    return section->keyTable.Ptr(keyName);
-  }
+    SStrCopy(path, rawPath, sizeof(path));
 
-  static UINT IGetNumValues(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName) {
-    KEYVALUE *keyValue = GetKeyValue(profile, sectionName, keyName);
-    return keyValue ? keyValue->values.Count() : 0;
-  }
-
-  static LPCSTR IGetValue(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName, UINT index) {
-    KEYVALUE *keyValue = GetKeyValue(profile, sectionName, keyName);
-
-    if (!keyValue || index >= keyValue->values.Count()) {
-      return 0;
-    }
-
-    return keyValue->values[index];
-  }
-
-  static void ISetValue(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName, LPCSTR value, int clear, int inSitu) {
-    SECTION  *section;
-    KEYVALUE *keyValue;
-    LPCSTR    storedString;
-    UINT      index;
-
-    section = profile->sectionTable.Ptr(sectionName);
-    if (!section) {
-      storedString = STRINGBLOCK::AllocString(profile->stringBlockList, sectionName, inSitu);
-      section = profile->sectionTable.New(storedString, 0, 0);
-    }
-
-    keyValue = section->keyTable.Ptr(keyName);
-    if (!keyValue) {
-      storedString = STRINGBLOCK::AllocString(profile->stringBlockList, keyName, inSitu);
-      keyValue = section->keyTable.New(storedString, 0, 0);
-    }
-
-    if (clear) {
-      index = keyValue->values.Count();
-      while (index) {
-        --index;
-        STRINGBLOCK::FreeString(profile->stringBlockList, keyValue->values[index]);
+    end = path + SStrLen(path) - 1;
+    if (end >= path) {
+      while (_ismbcspace(*end)) {
+        --end;
       }
-      keyValue->values.Clear();
+      end[1] = 0;
     }
 
-    *keyValue->values.New() = STRINGBLOCK::AllocString(profile->stringBlockList, value, inSitu);
+    DWORD  bufferBytes = 0;
+    LPVOID buffer = 0;
+    if (!SFile::LoadFile(path, &buffer, &bufferBytes, 1, 0)) {
+      return 0;
+    }
+
+    result = IReadBuffer(profile, buffer, bufferBytes);
+    SFile::Unload(buffer);
+    return result;
+  }
+
+  static BOOL IReadBuffer(PROFILE *profile, LPCVOID buffer, DWORD bufferBytes) {
+    enum {
+      STATE_NEWLINE = 0,
+      STATE_COMMENT = 1,
+      STATE_SECTION = 2,
+      STATE_STRIP_TRAILING = 3,
+      STATE_KEY = 4,
+      STATE_VALUE = 5
+    };
+
+    STRINGBLOCK *stringBlock = STRINGBLOCK::AllocBlock(bufferBytes + 1);
+    memcpy(stringBlock->m_data, buffer, bufferBytes);
+    stringBlock->m_data[bufferBytes] = 0;
+    stringBlock->m_dataUsed = stringBlock->m_dataSize;
+    profile->stringBlockList.LinkNode(stringBlock, LIST_TAIL, 0);
+
+    LPCSTR sectionName = 0;
+    LPCSTR lastSection = 0;
+    LPCSTR curKey = 0;
+    char  *curValue = 0;
+    int    state = STATE_NEWLINE;
+    char  *cursor = stringBlock->m_data;
+
+    while (*cursor) {
+      switch (state) {
+        case STATE_NEWLINE:
+          if (SStrChr(NEWLINE_CHARS, *cursor)) {
+            break;
+          }
+
+          if (!SStrCmp(cursor, COMMENT_BEGIN, 2)) {
+            state = STATE_COMMENT;
+          } else if (*cursor == SECTION_OPEN_CHAR) {
+            sectionName = cursor + 1;
+            state = STATE_SECTION;
+          } else {
+            curKey = cursor;
+            state = STATE_KEY;
+          }
+          break;
+
+        case STATE_SECTION:
+          if (SStrChr(NEWLINE_CHARS, *cursor)) {
+            sectionName = lastSection;
+            state = STATE_NEWLINE;
+          } else if (*cursor == SECTION_CLOSE_CHAR) {
+            *cursor = 0;
+            lastSection = sectionName;
+            state = STATE_STRIP_TRAILING;
+          }
+          break;
+
+        case STATE_COMMENT:
+        case STATE_STRIP_TRAILING:
+          if (SStrChr(NEWLINE_CHARS, *cursor)) {
+            state = STATE_NEWLINE;
+          }
+          break;
+
+        case STATE_KEY:
+          if (SStrChr(NEWLINE_CHARS, *cursor)) {
+            state = STATE_NEWLINE;
+            curKey = 0;
+          } else if (*cursor == ASSIGNMENT_CHAR) {
+            *cursor = 0;
+            curValue = cursor + 1;
+            state = STATE_VALUE;
+          }
+          break;
+
+        case STATE_VALUE:
+          if (SStrChr(NEWLINE_CHARS, *cursor)) {
+            *cursor = 0;
+            TokenizeStringValues(profile, sectionName, curKey, curValue);
+            state = STATE_NEWLINE;
+          }
+          break;
+      }
+
+      ++cursor;
+    }
+
+    if (state == STATE_VALUE) {
+      TokenizeStringValues(profile, sectionName, curKey, curValue);
+    }
+
+    return 1;
   }
 
   static void TokenizeStringValues(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName, char *value) {
@@ -257,121 +302,59 @@ namespace ProfileInternal {
     }
   }
 
-  static BOOL IReadBuffer(PROFILE *profile, LPCVOID buffer, DWORD bufferBytes) {
-    enum {
-      STATE_NEWLINE = 0,
-      STATE_COMMENT = 1,
-      STATE_SECTION = 2,
-      STATE_STRIP_TRAILING = 3,
-      STATE_KEY = 4,
-      STATE_VALUE = 5
-    };
+  static void ISetValue(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName, LPCSTR value, int clear, int inSitu) {
+    SECTION  *section;
+    KEYVALUE *keyValue;
+    LPCSTR    storedString;
+    UINT      index;
 
-    STRINGBLOCK *stringBlock;
-    char        *cursor;
-    LPCSTR       sectionName = 0;
-    LPCSTR       curKey = 0;
-    char        *curValue = 0;
-    LPCSTR       lastSection = 0;
-    int          state = STATE_NEWLINE;
+    section = profile->sectionTable.Ptr(sectionName);
+    if (!section) {
+      storedString = STRINGBLOCK::AllocString(profile->stringBlockList, sectionName, inSitu);
+      section = profile->sectionTable.New(storedString, 0, 0);
+    }
 
-    stringBlock = STRINGBLOCK::AllocBlock(bufferBytes + 1);
-    memcpy(stringBlock->m_data, buffer, bufferBytes);
-    stringBlock->m_data[bufferBytes] = 0;
-    stringBlock->m_dataUsed = stringBlock->m_dataSize;
-    profile->stringBlockList.LinkNode(stringBlock, LIST_TAIL, 0);
+    keyValue = section->keyTable.Ptr(keyName);
+    if (!keyValue) {
+      storedString = STRINGBLOCK::AllocString(profile->stringBlockList, keyName, inSitu);
+      keyValue = section->keyTable.New(storedString, 0, 0);
+    }
 
-    cursor = stringBlock->m_data;
-    while (*cursor) {
-      switch (state) {
-        case STATE_NEWLINE:
-          if (SStrChr(NEWLINE_CHARS, *cursor)) {
-            break;
-          }
-
-          if (!SStrCmp(cursor, COMMENT_BEGIN, 2)) {
-            state = STATE_COMMENT;
-          } else if (*cursor == SECTION_OPEN_CHAR) {
-            sectionName = cursor + 1;
-            state = STATE_SECTION;
-          } else {
-            curKey = cursor;
-            state = STATE_KEY;
-          }
-          break;
-
-        case STATE_COMMENT:
-        case STATE_STRIP_TRAILING:
-          if (SStrChr(NEWLINE_CHARS, *cursor)) {
-            state = STATE_NEWLINE;
-          }
-          break;
-
-        case STATE_SECTION:
-          if (SStrChr(NEWLINE_CHARS, *cursor)) {
-            sectionName = lastSection;
-            state = STATE_NEWLINE;
-          } else if (*cursor == SECTION_CLOSE_CHAR) {
-            *cursor = 0;
-            lastSection = sectionName;
-            state = STATE_STRIP_TRAILING;
-          }
-          break;
-
-        case STATE_KEY:
-          if (SStrChr(NEWLINE_CHARS, *cursor)) {
-            state = STATE_NEWLINE;
-            curKey = 0;
-          } else if (*cursor == ASSIGNMENT_CHAR) {
-            *cursor = 0;
-            curValue = cursor + 1;
-            state = STATE_VALUE;
-          }
-          break;
-
-        case STATE_VALUE:
-          if (SStrChr(NEWLINE_CHARS, *cursor)) {
-            *cursor = 0;
-            TokenizeStringValues(profile, sectionName, curKey, curValue);
-            state = STATE_NEWLINE;
-          }
-          break;
+    if (clear) {
+      index = keyValue->values.Count();
+      while (index) {
+        --index;
+        STRINGBLOCK::FreeString(profile->stringBlockList, keyValue->values[index]);
       }
-
-      ++cursor;
+      keyValue->values.Clear();
     }
 
-    if (state == STATE_VALUE) {
-      TokenizeStringValues(profile, sectionName, curKey, curValue);
-    }
-
-    return 1;
+    *keyValue->values.New() = STRINGBLOCK::AllocString(profile->stringBlockList, value, inSitu);
   }
 
-  static int IReadFile(PROFILE *profile, LPCSTR rawPath) {
-    LPVOID buffer = 0;
-    DWORD  bufferBytes = 0;
-    char   path[MAX_PATH];
-    char  *end;
-    int    result;
+}
 
-    SStrCopy(path, rawPath, sizeof(path));
+int ProfileWriteFile(HPROFILE handle, LPCSTR path) {
+  VALIDATEBEGIN;
+  VALIDATE(path);
+  VALIDATEEND;
 
-    end = path + SStrLen(path) - 1;
-    if (end >= path && _ismbcspace(*end)) {
-      do {
-        --end;
-      } while (end >= path && _ismbcspace(*end));
-      end[1] = 0;
+  return ProfileInternal::IWriteFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
+}
+
+namespace ProfileInternal {
+
+  static BOOL IWriteFile(PROFILE *profile, LPCSTR path) {
+    TSGrowableArray<char> buffer;
+
+    buffer.ReserveSpace(4096);
+    buffer.SetChunkSize(4096);
+
+    ITERATELIST(SECTION, profile->sectionTable, section) {
+      WriteSection(section, buffer);
     }
 
-    if (!SFile::LoadFile(path, &buffer, &bufferBytes, 1, 0)) {
-      return 0;
-    }
-
-    result = IReadBuffer(profile, buffer, bufferBytes);
-    SFile::Unload(buffer);
-    return result;
+    return WriteFileBuffer(path, buffer);
   }
 
   static BOOL WriteFileBuffer(LPCSTR path, const TSGrowableArray<char> &buffer) {
@@ -389,6 +372,32 @@ namespace ProfileInternal {
     }
 
     return bytesWritten == buffer.Count();
+  }
+
+  static void WriteSection(SECTION *section, TSGrowableArray<char> &buffer) {
+    WriteLine(buffer, "[%s]\n", section->GetString());
+    ITERATELIST(KEYVALUE, section->keyTable, key) {
+      WriteKey(key, buffer);
+    }
+    WriteLine(buffer, "\n");
+  }
+
+  static void WriteLine(TSGrowableArray<char> &buffer, LPCSTR pszFmt, ...) {
+    va_list args;
+    int     numchars;
+
+    va_start(args, pszFmt);
+    numchars = _vsnprintf(buf, sizeof(buf), pszFmt, args);
+    va_end(args);
+
+    if (numchars == sizeof(buf)) {
+      numchars = sizeof(buf) - 1;
+      buf[numchars] = 0;
+    } else if (numchars <= 0) {
+      return;
+    }
+
+    buffer.Add(numchars, buf);
   }
 
   static void WriteKey(KEYVALUE *key, TSGrowableArray<char> &buffer) {
@@ -413,70 +422,6 @@ namespace ProfileInternal {
     WriteLine(buffer, "\n");
   }
 
-  static void WriteSection(SECTION *section, TSGrowableArray<char> &buffer) {
-    KEYVALUE *key;
-
-    WriteLine(buffer, "[%s]\n", section->GetString());
-    key = section->keyTable.Head();
-    while (key) {
-      WriteKey(key, buffer);
-      key = section->keyTable.Next(key);
-    }
-    WriteLine(buffer, "\n");
-  }
-
-  static BOOL IWriteFile(PROFILE *profile, LPCSTR path) {
-    TSGrowableArray<char> buffer;
-    SECTION              *section;
-
-    buffer.ReserveSpace(4096);
-    buffer.SetChunkSize(4096);
-
-    section = profile->sectionTable.Head();
-    while (section) {
-      WriteSection(section, buffer);
-      section = profile->sectionTable.Next(section);
-    }
-
-    return WriteFileBuffer(path, buffer);
-  }
-
-  static int PrfStrToInt(LPCSTR str) {
-    int  value = 0;
-    UINT index;
-
-    if (*str == '\'') {
-      ++str;
-      for (index = 4; index-- && *str && *str != '\''; ++str) {
-        value = (value << 8) | static_cast<BYTE>(*str);
-      }
-    } else {
-      value = SStrToInt(str);
-    }
-
-    return value;
-  }
-
-}  // namespace ProfileInternal
-
-HPROFILE ProfileCreate() {
-  return NEW(ProfileInternal::PROFILE);
-}
-
-int ProfileReadFile(HPROFILE handle, LPCSTR path) {
-  VALIDATEBEGIN;
-  VALIDATE(path);
-  VALIDATEEND;
-
-  return ProfileInternal::IReadFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
-}
-
-int ProfileWriteFile(HPROFILE handle, LPCSTR path) {
-  VALIDATEBEGIN;
-  VALIDATE(path);
-  VALIDATEEND;
-
-  return ProfileInternal::IWriteFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
 }
 
 int ProfileReadBuffer(HPROFILE handle, LPCVOID buffer, DWORD bufferBytes) {
@@ -627,10 +572,9 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool *value, U
   VALIDATEBEGIN;
   VALIDATE(section);
   VALIDATE(key);
-  VALIDATE(value);
+  VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  *value = false;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
   if (!string) {
     return 0;
@@ -640,16 +584,39 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool *value, U
   return 1;
 }
 
+namespace ProfileInternal {
+
+  static LPCSTR IGetValue(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName, UINT index) {
+    KEYVALUE *keyValue = GetKeyValue(profile, sectionName, keyName);
+
+    if (keyValue) {
+      return index < keyValue->values.Count() ? keyValue->values[index] : 0;
+    }
+
+    return 0;
+  }
+
+  static KEYVALUE *GetKeyValue(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName) {
+    SECTION *section = profile->sectionTable.Ptr(sectionName);
+
+    if (section) {
+      return section->keyTable.Ptr(keyName);
+    }
+
+    return 0;
+  }
+
+}
+
 BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int *value, UINT index) {
   LPCSTR string;
 
   VALIDATEBEGIN;
   VALIDATE(section);
   VALIDATE(key);
-  VALIDATE(value);
+  VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  *value = 0;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
   if (!string) {
     return 0;
@@ -659,16 +626,35 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int *value, UI
   return 1;
 }
 
+namespace ProfileInternal {
+
+  static int PrfStrToInt(LPCSTR str) {
+    int  value = 0;
+    UINT index;
+
+    if (*str == '\'') {
+      ++str;
+      for (index = 4; index-- && *str && *str != '\''; ++str) {
+        value = (value << 8) | static_cast<BYTE>(*str);
+      }
+    } else {
+      value = SStrToInt(str);
+    }
+
+    return value;
+  }
+
+}
+
 BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG *value, UINT index) {
   LPCSTR string;
 
   VALIDATEBEGIN;
   VALIDATE(section);
   VALIDATE(key);
-  VALIDATE(value);
+  VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  *value = 0;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
   if (!string) {
     return 0;
@@ -684,10 +670,9 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float *value, 
   VALIDATEBEGIN;
   VALIDATE(section);
   VALIDATE(key);
-  VALIDATE(value);
+  VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  *value = 0.0f;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
   if (!string) {
     return 0;
@@ -704,9 +689,9 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, unreal *value,
   VALIDATE(section);
   VALIDATE(key);
   VALIDATE(value);
+  *value = u_0;
   VALIDATEEND;
 
-  *value = u_0;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
   if (!string) {
     return 0;
@@ -722,10 +707,9 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, char *value, U
   VALIDATEBEGIN;
   VALIDATE(section);
   VALIDATE(key);
-  VALIDATE(value);
+  VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  value[0] = 0;
   string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
   if (!string) {
     return 0;
@@ -753,6 +737,15 @@ UINT ProfileGetNumValues(HPROFILE handle, LPCSTR section, LPCSTR key) {
   return ProfileInternal::IGetNumValues(static_cast<ProfileInternal::PROFILE *>(handle), section, key);
 }
 
+namespace ProfileInternal {
+
+  static UINT IGetNumValues(PROFILE *profile, LPCSTR sectionName, LPCSTR keyName) {
+    KEYVALUE *keyValue = GetKeyValue(profile, sectionName, keyName);
+    return keyValue ? keyValue->values.Count() : 0;
+  }
+
+}  // namespace ProfileInternal
+
 int ProfileGetValueIndex(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) {
   UINT   index;
   LPCSTR candidate;
@@ -777,7 +770,6 @@ int ProfileGetValueIndex(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR val
 void ProfileEnumKeys(HPROFILE handle, LPCSTR sectionName, PROFILEENUMKEYCALLBACK callback, LPVOID opaqueData) {
   ProfileInternal::PROFILE  *profile;
   ProfileInternal::SECTION  *pSection;
-  ProfileInternal::KEYVALUE *key;
 
   profile = static_cast<ProfileInternal::PROFILE *>(handle);
   pSection = profile->sectionTable.Ptr(sectionName);
@@ -785,22 +777,16 @@ void ProfileEnumKeys(HPROFILE handle, LPCSTR sectionName, PROFILEENUMKEYCALLBACK
   VALIDATE(pSection);
   VALIDATEENDVOID;
 
-  key = pSection->keyTable.Head();
-  while (key) {
+  ITERATELIST(ProfileInternal::KEYVALUE, pSection->keyTable, key) {
     callback(key->GetString(), key->values[0], opaqueData);
-    key = pSection->keyTable.Next(key);
   }
 }
 
 void ProfileEnumSections(HPROFILE handle, PROFILEENUMSECTIONCALLBACK callback, LPVOID opaqueData) {
-  ProfileInternal::PROFILE *profile;
-  ProfileInternal::SECTION *section;
+  ProfileInternal::PROFILE *profile = static_cast<ProfileInternal::PROFILE *>(handle);
 
-  profile = static_cast<ProfileInternal::PROFILE *>(handle);
-  section = profile->sectionTable.Head();
-  while (section) {
+  ITERATELIST(ProfileInternal::SECTION, profile->sectionTable, section) {
     callback(section->GetString(), opaqueData);
-    section = profile->sectionTable.Next(section);
   }
 }
 

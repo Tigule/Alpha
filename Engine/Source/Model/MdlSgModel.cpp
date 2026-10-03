@@ -126,17 +126,17 @@ static void ProcessTexLayers(const MDLMATERIALSECTION &sectionData, CMaterial *u
 }
 
 static UINT ProcessMaterials(const TSGrowableArray<MDLMATERIALSECTION> &sectionData, UINT createFlags, HMATERIAL *materials) {
-  UINT numMaterials = sectionData.Count();
   UINT layerId = 0;
+  UINT numMaterials = sectionData.Count();
 
   for (UINT i = 0; i < numMaterials; ++i) {
-    CMaterial       *unique = NEW(CMaterial);
-    CMaterialShared *shared = NEW(CMaterialShared);
+    CMaterial       *unique = NEWHANDLE(HMATERIAL, CMaterial);
+    CMaterialShared *shared = NEWHANDLE(HMATERIALSHARED, CMaterialShared);
 
     ProcessTexLayers(sectionData[i], unique, shared, createFlags, &layerId);
-    unique->data = static_cast<HMATERIALSHARED>(HandleCreate(shared, "HMATERIALSHARED"));
+    unique->data = CREATEHANDLE(HMATERIALSHARED, shared);
     shared->priorityPlane = sectionData[i].priorityPlane;
-    materials[i] = static_cast<HMATERIAL>(HandleCreate(unique, "HMATERIAL"));
+    materials[i] = CREATEHANDLE(HMATERIAL, unique);
   }
 
   return layerId;
@@ -146,7 +146,7 @@ static void ProcessLayerAlpha(const TSGrowableArray<MDLMATERIALSECTION> &section
   UINT numMaterials = sectionData.Count();
 
   for (UINT j = 0; j < numMaterials; ++j) {
-    CMaterial *unique = static_cast<CMaterial *>(HandleDereference(reinterpret_cast<HOBJECT>(materials[j])));
+    CMaterial *unique = reinterpret_cast<CMaterial *>(materials[j]);
     UINT       numLayers = unique->layers.Count();
     for (UINT i = 0; i < numLayers; ++i) {
       unique->layers[i].layerAlpha = NTempest::CMath::ftol_0_256_(sectionData[j].texLayers[i].staticAlpha * 255.0f);
@@ -183,40 +183,43 @@ static UINT CountNumPrimLists(const BYTE *primTypes, UINT numPrimTypes) {
 }
 
 static void LoadGeosetPrimitiveTypes(const BYTE *primTypes, const UINT *primVertCounts, UINT numPrimTypes, CGeosetShared *geoShared) {
-  UINT primList = 0;
-  BYTE lastType = 10;
-
-  for (UINT i = 0; i < numPrimTypes; ++i) {
-    if (primTypes[i] != lastType || !s_multiPrimType[primTypes[i]]) {
-      if (i) {
-        ++primList;
-      }
-      geoShared->primitive.Ptr()[primList].type = GetPrimitiveType(primTypes[i]);
-      geoShared->primitive.Ptr()[primList].vertexCount = 0;
+  CPrimitive *primitive = geoShared->primitive.Ptr();
+  while (numPrimTypes) {
+    --numPrimTypes;
+    primitive->type = GetPrimitiveType(*primTypes);
+    primitive->vertexCount += *primVertCounts;
+    BYTE lastType = *primTypes;
+    ++primTypes;
+    if (numPrimTypes && (*primTypes != lastType || !s_multiPrimType[*primTypes])) {
+      ++primitive;
     }
-    geoShared->primitive.Ptr()[primList].vertexCount += primVertCounts[i];
-    lastType = primTypes[i];
+    ++primVertCounts;
   }
 }
 
 static BYTE *LoadGeosetPrimitiveData(BYTE *geosetData, CGeosetShared *geoShared) {
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'PYTP');
-  UINT  numPrimTypes = *reinterpret_cast<const UINT *>(geosetData + 4);
-  BYTE *primTypes = geosetData + 8;
-  geosetData = primTypes + numPrimTypes;
+  ASSERT(*((ULONG *) (geosetData)) == 'PYTP');
+  geosetData += 4;
+  UINT numPrimTypes = *reinterpret_cast<UINT *>(geosetData);
+  geosetData += 4;
+  BYTE *primTypes = geosetData;
+  geosetData += numPrimTypes;
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'TNCP');
-  UINT numPrimCounts = *reinterpret_cast<const UINT *>(geosetData + 4);
+  ASSERT(*((ULONG *) (geosetData)) == 'TNCP');
+  geosetData += 4;
+  UINT numPrimCounts = *reinterpret_cast<UINT *>(geosetData);
+  geosetData += 4;
   ASSERT(numPrimCounts == numPrimTypes);
-  const UINT *primVertCounts = reinterpret_cast<const UINT *>(geosetData + 8);
-  geosetData += 8 + numPrimCounts * sizeof(UINT);
+  UINT *primVertCounts = reinterpret_cast<UINT *>(geosetData);
+  geosetData += numPrimCounts * sizeof(UINT);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'XTVP');
-  geoShared->primitiveVertices.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
-  if (geoShared->primitiveVertices.Count()) {
-    memcpy(geoShared->primitiveVertices.Ptr(), geosetData + 8, geoShared->primitiveVertices.Count() * sizeof(WORD));
-  }
-  geosetData += 8 + geoShared->primitiveVertices.Count() * sizeof(WORD);
+  ASSERT(*((ULONG *) (geosetData)) == 'XTVP');
+  geosetData += 4;
+  UINT numPrimVertices = *reinterpret_cast<UINT *>(geosetData);
+  geosetData += 4;
+  geoShared->primitiveVertices.SetCount(numPrimVertices);
+  memcpy(geoShared->primitiveVertices.Ptr(), geosetData, numPrimVertices * sizeof(WORD));
+  geosetData += numPrimVertices * sizeof(WORD);
 
   geoShared->primitive.SetCount(CountNumPrimLists(primTypes, numPrimTypes));
   LoadGeosetPrimitiveTypes(primTypes, primVertCounts, numPrimTypes, geoShared);
@@ -226,78 +229,94 @@ static BYTE *LoadGeosetPrimitiveData(BYTE *geosetData, CGeosetShared *geoShared)
 static BYTE *LoadGeosetTransformGroups(BYTE *geosetData, UINT loadFlags, CGeosetShared *geoShared) {
   if (loadFlags & 0x100) {
     geoShared->boneWeights.SetCount(1);
-    geoShared->boneWeights.Ptr()[0] = 0;
     geoShared->groupMatrixCounts.SetCount(1);
-    geoShared->groupMatrixCounts.Ptr()[0] = 1;
     geoShared->matrices.SetCount(1);
-    geoShared->matrices.Ptr()[0] = 0;
+    geoShared->boneWeights[0] = 0;
+    geoShared->groupMatrixCounts[0] = 1;
+    geoShared->matrices[0] = 0;
 
+    geoShared->hwBoneWeights.SetCount(geoShared->position.Count());
+    geoShared->hwBoneIndices.SetCount(geoShared->position.Count());
+    geoShared->hwBoneIndices.Zero();
     UINT numVertices = geoShared->position.Count();
-    geoShared->hwBoneIndices.SetCount(numVertices);
-    geoShared->hwBoneWeights.SetCount(numVertices);
     for (UINT i = 0; i < numVertices; ++i) {
-      geoShared->hwBoneIndices.Ptr()[i] = 0;
       geoShared->hwBoneWeights.Ptr()[i] = 0xFF000000;
     }
 
-    geosetData += 8 + *reinterpret_cast<const UINT *>(geosetData + 4);
+    geosetData += 4;
+    geosetData += *reinterpret_cast<UINT *>(geosetData) + 4;
     for (UINT section = 0; section < 4; ++section) {
-      geosetData += 8 + 4 * *reinterpret_cast<const UINT *>(geosetData + 4);
+      geosetData += 4;
+      geosetData += *reinterpret_cast<UINT *>(geosetData) * sizeof(UINT) + 4;
     }
     return geosetData;
   }
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'XDNG');
-  geoShared->boneWeights.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
-  memcpy(geoShared->boneWeights.Ptr(), geosetData + 8, geoShared->boneWeights.Count());
-  geosetData += 8 + geoShared->boneWeights.Count();
+  ASSERT(*((ULONG *) (geosetData)) == 'XDNG');
+  geosetData += 4;
+  UINT numBoneWeights = *reinterpret_cast<UINT *>(geosetData);
+  geosetData += 4;
+  geoShared->boneWeights.Set(numBoneWeights, geosetData);
+  geosetData += numBoneWeights;
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'CGTM');
-  geoShared->groupMatrixCounts.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
-  memcpy(geoShared->groupMatrixCounts.Ptr(), geosetData + 8, geoShared->groupMatrixCounts.Count() * sizeof(UINT));
-  geosetData += 8 + geoShared->groupMatrixCounts.Count() * sizeof(UINT);
+  ASSERT(*((ULONG *) (geosetData)) == 'CGTM');
+  geosetData += 4;
+  geoShared->groupMatrixCounts.SetCount(*reinterpret_cast<UINT *>(geosetData));
+  geosetData += 4;
+  memcpy(geoShared->groupMatrixCounts.Ptr(), geosetData, geoShared->groupMatrixCounts.Count() * sizeof(UINT));
+  geosetData += geoShared->groupMatrixCounts.Count() * sizeof(UINT);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'STAM');
-  geoShared->matrices.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
-  memcpy(geoShared->matrices.Ptr(), geosetData + 8, geoShared->matrices.Count() * sizeof(UINT));
-  geosetData += 8 + geoShared->matrices.Count() * sizeof(UINT);
+  ASSERT(*((ULONG *) (geosetData)) == 'STAM');
+  geosetData += 4;
+  geoShared->matrices.SetCount(*reinterpret_cast<UINT *>(geosetData));
+  geosetData += 4;
+  memcpy(geoShared->matrices.Ptr(), geosetData, geoShared->matrices.Count() * sizeof(UINT));
+  geosetData += geoShared->matrices.Count() * sizeof(UINT);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'XDIB');
-  geoShared->hwBoneIndices.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
-  memcpy(geoShared->hwBoneIndices.Ptr(), geosetData + 8, geoShared->hwBoneIndices.Count() * sizeof(UINT));
-  geosetData += 8 + geoShared->hwBoneIndices.Count() * sizeof(UINT);
+  ASSERT(*((ULONG *) (geosetData)) == 'XDIB');
+  geosetData += 4;
+  geoShared->hwBoneIndices.SetCount(*reinterpret_cast<UINT *>(geosetData));
+  geosetData += 4;
+  memcpy(geoShared->hwBoneIndices.Ptr(), geosetData, geoShared->hwBoneIndices.Count() * sizeof(UINT));
+  geosetData += geoShared->hwBoneIndices.Count() * sizeof(UINT);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'TGWB');
-  geoShared->hwBoneWeights.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
-  memcpy(geoShared->hwBoneWeights.Ptr(), geosetData + 8, geoShared->hwBoneWeights.Count() * sizeof(UINT));
-  geosetData += 8 + geoShared->hwBoneWeights.Count() * sizeof(UINT);
+  ASSERT(*((ULONG *) (geosetData)) == 'TGWB');
+  geosetData += 4;
+  geoShared->hwBoneWeights.SetCount(*reinterpret_cast<UINT *>(geosetData));
+  geosetData += 4;
+  memcpy(geoShared->hwBoneWeights.Ptr(), geosetData, geoShared->hwBoneWeights.Count() * sizeof(UINT));
+  geosetData += geoShared->hwBoneWeights.Count() * sizeof(UINT);
   return geosetData;
 }
 
 static void LoadGeosetData(BYTE *geosetData, UINT bytesLeft, UINT loadFlags, UINT geosetId, CGeosetShared *geoShared) {
   BYTE *sectionDone = geosetData + bytesLeft;
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'XTRV');
-  UINT numVertices = *reinterpret_cast<const UINT *>(geosetData + 4);
-  ASSERT(numVertices <= 0xFFFF);
+  ASSERT(*((ULONG *) (geosetData)) == 'XTRV');
+  geosetData += 4;
+  UINT numVertices = *reinterpret_cast<UINT *>(geosetData);
+  ASSERT(numVertices <= 0xffff);
+  geosetData += 4;
   geoShared->position.SetCount(numVertices);
-  memcpy(geoShared->position.Ptr(), geosetData + 8, numVertices * sizeof(NTempest::C3Vector));
-  geosetData += 8 + numVertices * sizeof(NTempest::C3Vector);
+  memcpy(geoShared->position.Ptr(), geosetData, numVertices * sizeof(NTempest::C3Vector));
+  geosetData += geoShared->position.Count() * sizeof(NTempest::C3Vector);
 
-  ASSERT(*reinterpret_cast<const UINT *>(geosetData) == 'SMRN');
-  ASSERT(numVertices == *reinterpret_cast<const UINT *>(geosetData + 4));
-  geoShared->normal.SetCount(*reinterpret_cast<const UINT *>(geosetData + 4));
-  memcpy(geoShared->normal.Ptr(), geosetData + 8, geoShared->normal.Count() * sizeof(NTempest::C3Vector));
-  geosetData += 8 + geoShared->normal.Count() * sizeof(NTempest::C3Vector);
+  ASSERT(*((ULONG *) (geosetData)) == 'SMRN');
+  geosetData += 4;
+  UINT numNormals = *reinterpret_cast<UINT *>(geosetData);
+  geosetData += 4;
+  ASSERT(numVertices == numNormals);
+  geoShared->normal.SetCount(numNormals);
+  memcpy(geoShared->normal.Ptr(), geosetData, numNormals * sizeof(NTempest::C3Vector));
+  geosetData += geoShared->normal.Count() * sizeof(NTempest::C3Vector);
 
-  if (*reinterpret_cast<const UINT *>(geosetData) == 'SAVU') {
-    UINT numMappingChannels = *reinterpret_cast<const UINT *>(geosetData + 4);
-    geosetData += 8;
+  if (*((ULONG *) (geosetData)) == 'SAVU') {
+    geosetData += 4;
+    UINT numMappingChannels = *reinterpret_cast<UINT *>(geosetData);
+    geosetData += 4;
     geoShared->texCoord.SetCount(numMappingChannels);
     for (UINT i = 0; i < numMappingChannels; ++i) {
       geoShared->texCoord[i].SetCount(numVertices);
-      if (numVertices) {
-        memcpy(geoShared->texCoord[i].Ptr(), geosetData, numVertices * sizeof(NTempest::C2Vector));
-      }
+      memcpy(geoShared->texCoord[i].Ptr(), geosetData, numVertices * sizeof(NTempest::C2Vector));
       geosetData += numVertices * sizeof(NTempest::C2Vector);
     }
   }
@@ -305,35 +324,40 @@ static void LoadGeosetData(BYTE *geosetData, UINT bytesLeft, UINT loadFlags, UIN
   geosetData = LoadGeosetPrimitiveData(geosetData, geoShared);
   geosetData = LoadGeosetTransformGroups(geosetData, loadFlags, geoShared);
 
-  geoShared->materialId = *reinterpret_cast<const UINT *>(geosetData);
-  geoShared->selectionGroup = *reinterpret_cast<const UINT *>(geosetData + 4);
-  geoShared->flags = *reinterpret_cast<const UINT *>(geosetData + 8);
-  geoShared->radius = *reinterpret_cast<const float *>(geosetData + 12);
-  geosetData += 16;
+  geoShared->materialId = *reinterpret_cast<UINT *>(geosetData);
+  geosetData += 4;
+  geoShared->selectionGroup = *reinterpret_cast<UINT *>(geosetData);
+  geosetData += 4;
+  geoShared->flags = *reinterpret_cast<UINT *>(geosetData);
+  geosetData += 4;
+  geoShared->radius = *reinterpret_cast<float *>(geosetData);
+  geosetData += 4;
 
   const NTempest::C3Vector &minimum = *reinterpret_cast<const NTempest::C3Vector *>(geosetData);
   const NTempest::C3Vector &maximum = *reinterpret_cast<const NTempest::C3Vector *>(geosetData + 12);
-  geoShared->centroid = (minimum + maximum) * 0.5f;
   geosetData += 24;
+  geoShared->centroid = (minimum + maximum) * 0.5f;
+  geoShared->geosetId = geosetId;
 
-  UINT numSequenceBounds = *reinterpret_cast<const UINT *>(geosetData);
-  geosetData += 4 + numSequenceBounds * 7 * sizeof(UINT);
+  UINT numSequenceBounds = *reinterpret_cast<UINT *>(geosetData);
+  geosetData += 4;
+  geosetData += numSequenceBounds * 7 * sizeof(UINT);
   ASSERT(geosetData == sectionDone);
 
-  geoShared->geosetId = geosetId;
   geoShared->vertexShader = geoShared->groupMatrixCounts.Count() > 1 ? GxVS_Skin : GxVS_PassThru;
 }
 
 static void CreateGeoset(const MDLGEOSETSECTION &geosetdata, UINT geosetId, UINT loadFlags, CGeosetShared *geoShared) {
-  ASSERT(geosetdata.vertices.Count() <= 0xFFFF);
+  if (geosetdata.vertices.Count() > 0xFFFF) {
+    return;
+  }
 
-  static_cast<TSFixedArray<NTempest::C3Vector> &>(geoShared->position) = static_cast<const TSFixedArray<NTempest::C3Vector> &>(geosetdata.vertices);
-  static_cast<TSFixedArray<NTempest::C3Vector> &>(geoShared->normal) = static_cast<const TSFixedArray<NTempest::C3Vector> &>(geosetdata.normals);
+  geoShared->position = geosetdata.vertices;
+  geoShared->normal = geosetdata.normals;
 
   geoShared->texCoord.SetCount(geosetdata.texCoords.Count());
-  for (UINT i = 0; i < geosetdata.texCoords.Count(); ++i) {
-    static_cast<TSFixedArray<NTempest::C2Vector> &>(geoShared->texCoord.Ptr()[i]) =
-        static_cast<const TSFixedArray<NTempest::C2Vector> &>(geosetdata.texCoords[i]);
+  for (UINT i = 0; i < geoShared->texCoord.Count(); ++i) {
+    geoShared->texCoord[i] = geosetdata.texCoords[i];
   }
 
   UINT numPrimTypes = geosetdata.primitives.types.Count();
@@ -342,35 +366,35 @@ static void CreateGeoset(const MDLGEOSETSECTION &geosetdata, UINT geosetId, UINT
 
   ASSERT(numPrimTypes == geosetdata.primitives.counts.Count());
   LoadGeosetPrimitiveTypes(geosetdata.primitives.types.Ptr(), geosetdata.primitives.counts.Ptr(), numPrimTypes, geoShared);
-  static_cast<TSFixedArray<WORD> &>(geoShared->primitiveVertices) = static_cast<const TSFixedArray<WORD> &>(geosetdata.primitives.vertices);
+  geoShared->primitiveVertices = geosetdata.primitives.vertices;
 
   if (loadFlags & 0x100) {
     geoShared->groupMatrixCounts.SetCount(1);
-    geoShared->groupMatrixCounts.Ptr()[0] = 1;
     geoShared->matrices.SetCount(1);
-    geoShared->matrices.Ptr()[0] = 0;
     geoShared->boneWeights.SetCount(1);
-    geoShared->boneWeights.Ptr()[0] = 0;
+    geoShared->groupMatrixCounts[0] = 1;
+    geoShared->matrices[0] = 0;
+    geoShared->boneWeights[0] = 0;
 
+    geoShared->hwBoneWeights.SetCount(geoShared->position.Count());
+    geoShared->hwBoneIndices.SetCount(geoShared->position.Count());
+    geoShared->hwBoneIndices.Zero();
     UINT numVertices = geoShared->position.Count();
-    geoShared->hwBoneIndices.SetCount(numVertices);
-    memset(geoShared->hwBoneIndices.Ptr(), 0, geoShared->hwBoneIndices.Count() * sizeof(UINT));
-    geoShared->hwBoneWeights.SetCount(numVertices);
     for (UINT i = 0; i < numVertices; ++i) {
       geoShared->hwBoneWeights.Ptr()[i] = 0xFF000000;
     }
   } else {
-    static_cast<TSFixedArray<UINT> &>(geoShared->groupMatrixCounts) = static_cast<const TSFixedArray<UINT> &>(geosetdata.groupMatrixCounts);
-    static_cast<TSFixedArray<UINT> &>(geoShared->matrices) = static_cast<const TSFixedArray<UINT> &>(geosetdata.matrices);
-    static_cast<TSFixedArray<BYTE> &>(geoShared->boneWeights) = static_cast<const TSFixedArray<BYTE> &>(geosetdata.vertGroupIndices);
-    static_cast<TSFixedArray<UINT> &>(geoShared->hwBoneIndices) = static_cast<const TSFixedArray<UINT> &>(geosetdata.boneIndices);
-    static_cast<TSFixedArray<UINT> &>(geoShared->hwBoneWeights) = static_cast<const TSFixedArray<UINT> &>(geosetdata.boneWeights);
+    geoShared->groupMatrixCounts = geosetdata.groupMatrixCounts;
+    geoShared->matrices = geosetdata.matrices;
+    geoShared->boneWeights = geosetdata.vertGroupIndices;
+    geoShared->hwBoneWeights = geosetdata.boneWeights;
+    geoShared->hwBoneIndices = geosetdata.boneIndices;
   }
 
   geoShared->materialId = geosetdata.materialId;
   geoShared->selectionGroup = geosetdata.selectionGroup;
-  geoShared->centroid = (geosetdata.bounds.extent.b + geosetdata.bounds.extent.t) * 0.5f;
   geoShared->geosetId = geosetId;
+  geoShared->centroid = (geosetdata.bounds.extent.b + geosetdata.bounds.extent.t) * 0.5f;
   geoShared->radius = geosetdata.bounds.radius;
   geoShared->flags = geosetdata.flags;
   geoShared->vertexShader = geoShared->groupMatrixCounts.Count() > 1 ? GxVS_Skin : GxVS_PassThru;
@@ -384,28 +408,32 @@ static void CreateGeosetWithNormals(const MDLGEOSETSECTION &geoset, UINT geosetI
   }
 
   MDLGEOSETSECTION normalLines(geoset);
-  UINT             numVertices = geoset.vertices.Count();
-  normalLines.vertices.SetCount(numVertices * 2);
-  normalLines.normals.SetCount(numVertices * 2);
-  normalLines.vertGroupIndices.SetCount(numVertices * 2);
+  normalLines.vertices.SetCount(numNormals * 2);
+  normalLines.normals.SetCount(numNormals * 2);
+  normalLines.vertGroupIndices.SetCount(numNormals * 2);
 
   UINT numTexCoords = normalLines.texCoords.Count();
   UINT i;
   for (i = 0; i < numTexCoords; ++i) {
-    normalLines.texCoords[i].SetCount(numVertices * 2);
+    normalLines.texCoords[i].GrowToFit(numNormals * 2 - 1, 1);
   }
 
-  normalLines.primitives.SetCount(1, numVertices * 2);
+  UINT numPrimVertices = normalLines.primitives.vertices.Count();
+  normalLines.primitives.SetCount(normalLines.primitives.types.Count() + 1, numPrimVertices + numNormals * 2);
   *normalLines.primitives.types.Top() = 1;
-  *normalLines.primitives.counts.Top() = numVertices * 2;
+  *normalLines.primitives.counts.Top() = numNormals * 2;
 
-  NTempest::C3Vector *normVert = normalLines.vertices.Ptr() + numVertices;
-  BYTE               *normGroupId = normalLines.vertGroupIndices.Ptr() + numVertices;
+  for (i = 0; i < numNormals; ++i) {
+    normalLines.primitives.vertices[numPrimVertices + i * 2] = static_cast<WORD>(i);
+    normalLines.primitives.vertices[numPrimVertices + i * 2 + 1] = static_cast<WORD>(numNormals + i);
+  }
+
+  NTempest::C3Vector *normVert = &normalLines.vertices[numNormals];
+  BYTE               *normGroupId = &normalLines.vertGroupIndices[numNormals];
+  UINT                numVertices = geoset.vertices.Count();
   for (i = 0; i < numVertices; ++i) {
-    normVert[i] = geoset.vertices[i] + geoset.normals[i] * 0.12f;
+    normVert[i] = geoset.vertices[i] + 0.12f * geoset.normals[i];
     normGroupId[i] = geoset.vertGroupIndices[i];
-    normalLines.primitives.vertices[i * 2] = static_cast<WORD>(i);
-    normalLines.primitives.vertices[i * 2 + 1] = static_cast<WORD>(numVertices + i);
   }
 
   CreateGeoset(normalLines, geosetId, loadFlags, geoShared);
@@ -451,7 +479,6 @@ static void ProcessAttachments(
   shared->attachIdToIndex.SetCount(highestId + 1);
   memset(shared->attachIdToIndex.Ptr(), 0xFF, shared->attachIdToIndex.Count() * sizeof(UINT));
 
-  CModelCreate createData;
   CStatus      subStatus;
   LISTPTR(LINKUNIQUE) instance = modelptr->m_attached.Ptr();
   for (UINT i = 0; i < numAttachments; ++i, ++instance) {
@@ -461,7 +488,7 @@ static void ProcessAttachments(
       continue;
     }
 
-    memset(&createData.sequenceNames, 0, sizeof(createData) - sizeof(createData.flags));
+    CModelCreate createData;
     createData.flags = loadFlags;
     HMODEL child = ModelCreate(attachments.Ptr()[i].path, &createData, &subStatus);
     if (child) {
@@ -472,84 +499,97 @@ static void ProcessAttachments(
     if (!subStatus.IsEmpty()) {
       status->Add(subStatus.GetHighestSeverity(), "%s:\n", static_cast<LPCSTR>(attachments.Ptr()[i].path));
       status->Add(subStatus);
+      subStatus.Clear();
     }
   }
 }
 
 static void LoadLayerData(BYTE *materialData, CTexLayer *unique, CTexLayerShared *shared, UINT createFlags) {
+  EGxBlend blendMode;
   switch (*reinterpret_cast<UINT *>(materialData)) {
     case TEXOP_TRANSPARENT:
-      shared->blendMode = GxBlend_AlphaKey;
+      blendMode = GxBlend_AlphaKey;
       break;
     case TEXOP_BLEND:
-      shared->blendMode = GxBlend_Alpha;
+      blendMode = GxBlend_Alpha;
       break;
     case TEXOP_ADD:
     case TEXOP_ADD_ALPHA:
-      shared->blendMode = GxBlend_Add;
+      blendMode = GxBlend_Add;
       break;
     case TEXOP_MODULATE:
-      shared->blendMode = GxBlend_Mod;
+      blendMode = GxBlend_Mod;
       break;
     case TEXOP_MODULATE2X:
-      shared->blendMode = GxBlend_Mod2x;
+      blendMode = GxBlend_Mod2x;
+      break;
+    case TEXOP_LOAD:
+      blendMode = GxBlend_Opaque;
       break;
     default:
-      shared->blendMode = GxBlend_Opaque;
+      blendMode = GxBlend_Opaque;
       break;
   }
-  unique->blendMode = shared->blendMode;
+  shared->blendMode = blendMode;
+  materialData += 4;
+  unique->blendMode = blendMode;
 
-  shared->tmuPass[0].flags = GetTmuPassFlags(createFlags, *reinterpret_cast<UINT *>(materialData + 4));
-  unique->tmuPass[0].textureId = *reinterpret_cast<UINT *>(materialData + 8);
-  shared->tmuPass[0].transformId = *reinterpret_cast<UINT *>(materialData + 12);
-  shared->tmuPass[0].coordId = *reinterpret_cast<UINT *>(materialData + 16);
+  UINT layerFlags = *reinterpret_cast<UINT *>(materialData);
+  shared->tmuPass[0].flags = GetTmuPassFlags(createFlags, layerFlags);
+  materialData += 4;
+  unique->tmuPass[0].textureId = *reinterpret_cast<UINT *>(materialData);
+  materialData += 4;
+  shared->tmuPass[0].transformId = *reinterpret_cast<UINT *>(materialData);
+  materialData += 4;
+  shared->tmuPass[0].coordId = *reinterpret_cast<UINT *>(materialData);
+  materialData += 4;
 
-  unique->layerAlpha = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(materialData + 20) * 255.0f);
+  unique->layerAlpha = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(materialData) * 255.0f);
   shared->tmuPass[0].textureShader = GetTextureShader(shared->tmuPass[0].transformId, createFlags);
 
   unique->tmuPass[0].combiner = GxTexBlend_Mod;
   unique->vertexFormat = shared->tmuPass[0].coordId == static_cast<UINT>(-1) ? GxVBF_PN : GxVBF_PNT0;
 
-  if (unique->blendMode >= GxBlend_Alpha && unique->blendMode <= GxBlend_ModAdd) {
+  if (static_cast<UINT>(unique->blendMode) >= GxBlend_Alpha && static_cast<UINT>(unique->blendMode) <= GxBlend_ModAdd) {
     unique->disables |= 0x8;
   }
-  if (*reinterpret_cast<UINT *>(materialData + 4) & 0x1) {
+  if (layerFlags & 0x1) {
     unique->disables |= 0x1;
   }
-  if (*reinterpret_cast<UINT *>(materialData + 4) & 0x10) {
+  if (layerFlags & 0x10) {
     unique->disables |= 0x10;
   }
-  if (*reinterpret_cast<UINT *>(materialData + 4) & 0x20) {
+  if (layerFlags & 0x20) {
     unique->disables |= 0x2;
   }
-  if (*reinterpret_cast<UINT *>(materialData + 4) & 0x40) {
+  if (layerFlags & 0x40) {
     unique->disables |= 0x4;
   }
-  if (*reinterpret_cast<UINT *>(materialData + 4) & 0x80) {
+  if (layerFlags & 0x80) {
     unique->disables |= 0x8;
   }
 }
 
 static HMATERIAL LoadMaterialData(BYTE *materialData, UINT createFlags, BYTE *totalLayers) {
-  CMaterial       *unique = NEW(CMaterial);
-  CMaterialShared *shared = NEW(CMaterialShared);
+  CMaterial       *unique = NEWHANDLE(HMATERIAL, CMaterial);
+  CMaterialShared *shared = NEWHANDLE(HMATERIALSHARED, CMaterialShared);
 
   shared->priorityPlane = *reinterpret_cast<UINT *>(materialData);
-  UINT numLayers = *reinterpret_cast<UINT *>(materialData + 4);
-  materialData += 8;
+  materialData += 4;
+  UINT numLayers = *reinterpret_cast<UINT *>(materialData);
+  materialData += 4;
   *totalLayers += static_cast<BYTE>(numLayers);
 
   unique->layers.SetCount(numLayers);
   shared->layers.SetCount(numLayers);
   for (UINT i = 0; i < numLayers; ++i) {
     UINT bytesThisLayer = *reinterpret_cast<UINT *>(materialData);
-    LoadLayerData(materialData + 4, &unique->layers.Ptr()[i], &shared->layers.Ptr()[i], createFlags);
+    LoadLayerData(materialData + 4, &unique->layers[i], &shared->layers[i], createFlags);
     materialData += bytesThisLayer;
   }
 
-  unique->data = static_cast<HMATERIALSHARED>(HandleCreate(shared, "HMATERIALSHARED"));
-  return static_cast<HMATERIAL>(HandleCreate(unique, "HMATERIAL"));
+  unique->data = CREATEHANDLE(HMATERIALSHARED, shared);
+  return CREATEHANDLE(HMATERIAL, unique);
 }
 
 static UINT LoadAttachment(BYTE *data, UINT loadFlags, LISTPTR(LINKUNIQUE) attachment, CStatus *status) {
@@ -561,7 +601,6 @@ static UINT LoadAttachment(BYTE *data, UINT loadFlags, LISTPTR(LINKUNIQUE) attac
   }
 
   CModelCreate createData;
-  memset(&createData.sequenceNames, 0, sizeof(createData) - sizeof(createData.flags));
   createData.flags = loadFlags;
 
   CStatus subStatus;
@@ -685,35 +724,18 @@ void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *model
   ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(section), numTextures, flags, status, modelptr->m_textures.Ptr());
 }
 
-void MdxReadMaterials(BYTE *fileData, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SLTM');
-  if (!section) {
+void MdxReadMaterials(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
+  data = MDLFileBinarySeek(data, fileBytes, 'SLTM');
+  if (!data) {
     return;
   }
 
-  BYTE *data = section + 12;
-  BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
-  UINT  numMaterials = *reinterpret_cast<UINT *>(section + 4);
-  shared->numLayers = 0;
-  modelptr->m_materials.SetCount(numMaterials);
-  for (UINT i = 0; i < numMaterials; ++i) {
-    UINT bytesThisMaterial = *reinterpret_cast<UINT *>(data);
-    modelptr->m_materials.Ptr()[i] = LoadMaterialData(data + 4, flags, &shared->numLayers);
-    data += bytesThisMaterial;
-    ASSERT(data <= dataDone);
-  }
-  ASSERT(data == dataDone);
-}
-
-void MdxReadMaterials(BYTE *fileData, UINT fileBytes, UINT flags, CModelSimple *modelptr, CModelShared *shared) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SLTM');
-  if (!section) {
-    return;
-  }
-
-  BYTE *data = section + 12;
-  BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
-  UINT  numMaterials = *reinterpret_cast<UINT *>(section + 4);
+  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  data += 4;
+  BYTE *dataDone = data + sectionBytes;
+  UINT  numMaterials = *reinterpret_cast<UINT *>(data);
+  data += 4;
+  data += 4;
   shared->numLayers = 0;
   modelptr->m_materials.SetCount(numMaterials);
   for (UINT i = 0; i < numMaterials; ++i) {
@@ -725,108 +747,141 @@ void MdxReadMaterials(BYTE *fileData, UINT fileBytes, UINT flags, CModelSimple *
   ASSERT(data == dataDone);
 }
 
-void MdxReadGeosets(BYTE *fileData, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
-  ASSERT(modelptr);
-  ASSERT(shared);
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SOEG');
-  if (!section) {
+void MdxReadMaterials(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *modelptr, CModelShared *shared) {
+  data = MDLFileBinarySeek(data, fileBytes, 'SLTM');
+  if (!data) {
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(section);
-  UINT count = *reinterpret_cast<UINT *>(section + 4);
-  ASSERT(count <= 0xFF);
-  shared->numGeosets = count;
-  modelptr->m_geosets.SetCount(count);
-  shared->geosets.SetCount(count);
-  modelptr->m_geosetColor.SetCount(count);
-
-  BYTE *data = section + 8;
-  BYTE *done = section + 4 + sectionBytes;
-  UINT  i;
-  for (i = 0; i < count; ++i) {
-    UINT bytesThisGeo = *reinterpret_cast<UINT *>(data);
-    ASSERT(data + bytesThisGeo <= done);
-    LoadGeosetData(data + 4, bytesThisGeo - 4, flags, i, &shared->geosets.Ptr()[i]);
-    data += bytesThisGeo;
+  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  data += 4;
+  BYTE *dataDone = data + sectionBytes;
+  UINT  numMaterials = *reinterpret_cast<UINT *>(data);
+  data += 4;
+  data += 4;
+  shared->numLayers = 0;
+  modelptr->m_materials.SetCount(numMaterials);
+  for (UINT i = 0; i < numMaterials; ++i) {
+    UINT bytesThisMaterial = *reinterpret_cast<UINT *>(data);
+    modelptr->m_materials[i] = LoadMaterialData(data + 4, flags, &shared->numLayers);
+    data += bytesThisMaterial;
+    ASSERT(data <= dataDone);
   }
-  ASSERT(data == done);
-
-  section = MDLFileBinarySeek(fileData, fileBytes, 'AOEG');
-  if (!section) {
-    return;
-  }
-  sectionBytes = *reinterpret_cast<UINT *>(section);
-  count = *reinterpret_cast<UINT *>(section + 4);
-  data = section + 8;
-  done = section + 4 + sectionBytes;
-  for (i = 0; i < count; ++i) {
-    UINT bytesThisAnim = *reinterpret_cast<UINT *>(data);
-    UINT geosetId = *reinterpret_cast<UINT *>(data + 4);
-    ASSERT(geosetId < modelptr->m_geosetColor.Count());
-    CGeosetColor &color = modelptr->m_geosetColor.Ptr()[geosetId];
-    color.animatedAlpha = *reinterpret_cast<float *>(data + 8);
-    color.animatedColor.Set(
-        NTempest::CMath::ftol_0_256_(color.animatedAlpha * 255.0f), NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(data + 12) * 255.0f),
-        NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(data + 16) * 255.0f),
-        NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(data + 20) * 255.0f)
-    );
-    data += bytesThisAnim;
-    ASSERT(data <= done);
-  }
-  ASSERT(data == done);
+  ASSERT(data == dataDone);
 }
 
-void MdxReadGeosets(BYTE *fileData, UINT fileBytes, UINT flags, CModelSimple *modelptr, CModelShared *shared) {
+void MdxReadGeosets(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SOEG');
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'SOEG');
   if (!section) {
     return;
   }
 
   UINT sectionBytes = *reinterpret_cast<UINT *>(section);
-  UINT count = *reinterpret_cast<UINT *>(section + 4);
-  ASSERT(count <= 0xFF);
-  shared->numGeosets = count;
-  modelptr->m_geosets.SetCount(count);
-  shared->geosets.SetCount(count);
-  modelptr->m_geosetColor.SetCount(count);
+  section += 4;
+  BYTE *dataDone = section + sectionBytes;
+  UINT  numGeosets = *reinterpret_cast<UINT *>(section);
+  section += 4;
+  ASSERT(numGeosets <= 0xff);
+  shared->numGeosets = static_cast<BYTE>(numGeosets);
+  modelptr->m_geosets.SetCount(numGeosets);
+  shared->geosets.SetCount(numGeosets);
+  modelptr->m_geosetColor.SetCount(numGeosets);
 
-  BYTE *data = section + 8;
-  BYTE *done = section + 4 + sectionBytes;
-  UINT  i;
-  for (i = 0; i < count; ++i) {
-    UINT bytesThisGeo = *reinterpret_cast<UINT *>(data);
-    ASSERT(data + bytesThisGeo <= done);
-    LoadGeosetData(data + 4, bytesThisGeo - 4, flags, i, &shared->geosets.Ptr()[i]);
-    data += bytesThisGeo;
+  UINT i;
+  for (i = 0; i < numGeosets; ++i) {
+    UINT bytesThisGeo = *reinterpret_cast<UINT *>(section);
+    ASSERT(dataDone >= (section + bytesThisGeo));
+    LoadGeosetData(section + 4, bytesThisGeo - 4, flags, i, &shared->geosets[i]);
+    section += bytesThisGeo;
   }
-  ASSERT(data == done);
+  ASSERT(section == dataDone);
 
-  section = MDLFileBinarySeek(fileData, fileBytes, 'AOEG');
+  section = MDLFileBinarySeek(section, fileBytes - (section - data), 'AOEG');
   if (!section) {
     return;
   }
-  sectionBytes = *reinterpret_cast<UINT *>(section);
-  count = *reinterpret_cast<UINT *>(section + 4);
-  data = section + 8;
-  done = section + 4 + sectionBytes;
-  for (i = 0; i < count; ++i) {
-    UINT bytesThisAnim = *reinterpret_cast<UINT *>(data);
-    UINT geosetId = *reinterpret_cast<UINT *>(data + 4);
-    ASSERT(geosetId < modelptr->m_geosetColor.Count());
+
+  sectionBytes = *reinterpret_cast<UINT *>(section) - 4;
+  section += 4;
+  UINT numGeosetAnims = *reinterpret_cast<UINT *>(section);
+  section += 4;
+  for (i = 0; i < numGeosetAnims; ++i) {
+    BYTE *animData = section;
+    UINT  bytesThisAnim = *reinterpret_cast<UINT *>(animData);
+    animData += 4;
+    UINT geosetId = *reinterpret_cast<UINT *>(animData);
+    animData += 4;
     CGeosetColor &color = modelptr->m_geosetColor[geosetId];
-    color.animatedAlpha = *reinterpret_cast<float *>(data + 8);
-    color.animatedColor.Set(
-        NTempest::CMath::ftol_0_256_(color.animatedAlpha * 255.0f), NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(data + 12) * 255.0f),
-        NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(data + 16) * 255.0f),
-        NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(data + 20) * 255.0f)
-    );
-    data += bytesThisAnim;
-    ASSERT(data <= done);
+    color.animatedAlpha = *reinterpret_cast<float *>(animData);
+    animData += 4;
+    color.animatedColor.a = NTempest::CMath::ftol_0_256_(color.animatedAlpha * 255.0f);
+    color.animatedColor.r = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[0] * 255.0f);
+    color.animatedColor.g = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[1] * 255.0f);
+    color.animatedColor.b = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[2] * 255.0f);
+    section += bytesThisAnim;
+    ASSERT(sectionBytes >= bytesThisAnim);
+    sectionBytes -= bytesThisAnim;
   }
-  ASSERT(data == done);
+  ASSERT(sectionBytes == 0);
+}
+
+void MdxReadGeosets(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *modelptr, CModelShared *shared) {
+  ASSERT(modelptr);
+  ASSERT(shared);
+  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'SOEG');
+  if (!section) {
+    return;
+  }
+
+  UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+  section += 4;
+  BYTE *dataDone = section + sectionBytes;
+  UINT  numGeosets = *reinterpret_cast<UINT *>(section);
+  section += 4;
+  ASSERT(numGeosets <= 0xff);
+  shared->numGeosets = static_cast<BYTE>(numGeosets);
+  modelptr->m_geosets.SetCount(numGeosets);
+  shared->geosets.SetCount(numGeosets);
+  modelptr->m_geosetColor.SetCount(numGeosets);
+
+  UINT i;
+  for (i = 0; i < numGeosets; ++i) {
+    UINT bytesThisGeo = *reinterpret_cast<UINT *>(section);
+    ASSERT(dataDone >= (section + bytesThisGeo));
+    LoadGeosetData(section + 4, bytesThisGeo - 4, flags, i, &shared->geosets[i]);
+    section += bytesThisGeo;
+  }
+  ASSERT(section == dataDone);
+
+  section = MDLFileBinarySeek(section, fileBytes - (section - data), 'AOEG');
+  if (!section) {
+    return;
+  }
+
+  sectionBytes = *reinterpret_cast<UINT *>(section) - 4;
+  section += 4;
+  UINT numGeosetAnims = *reinterpret_cast<UINT *>(section);
+  section += 4;
+  for (i = 0; i < numGeosetAnims; ++i) {
+    BYTE *animData = section;
+    UINT  bytesThisAnim = *reinterpret_cast<UINT *>(animData);
+    animData += 4;
+    UINT geosetId = *reinterpret_cast<UINT *>(animData);
+    animData += 4;
+    CGeosetColor &color = modelptr->m_geosetColor[geosetId];
+    color.animatedAlpha = *reinterpret_cast<float *>(animData);
+    animData += 4;
+    color.animatedColor.a = NTempest::CMath::ftol_0_256_(color.animatedAlpha * 255.0f);
+    color.animatedColor.r = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[0] * 255.0f);
+    color.animatedColor.g = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[1] * 255.0f);
+    color.animatedColor.b = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[2] * 255.0f);
+    section += bytesThisAnim;
+    ASSERT(sectionBytes >= bytesThisAnim);
+    sectionBytes -= bytesThisAnim;
+  }
+  ASSERT(sectionBytes == 0);
 }
 
 void MdxReadAttachments(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status) {

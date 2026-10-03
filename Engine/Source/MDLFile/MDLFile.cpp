@@ -303,7 +303,7 @@ BOOL MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status) {
   if (ReadMdlFile(mdldata->header.sourceFilename, mdldata, static_cast<CMDLStatus *>(status))) {
     return 1;
   }
-  status->Prepend(status->GetHighestSeverity(), "%s:\n", path);
+  status->Prepend(status->GetHighestSeverity(), "%s\n", path);
   return 0;
 }
 
@@ -333,7 +333,9 @@ BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status) {
 }
 
 BYTE *MDLFileBinaryLoad(LPCSTR path, UINT *fileBytes, CStatus *status) {
-  ASSERT(path);
+  VALIDATEBEGIN;
+  VALIDATE(path);
+  VALIDATEEND;
 
   if (!status) {
     status = &s_nullStatus;

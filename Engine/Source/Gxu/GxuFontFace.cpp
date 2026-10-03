@@ -79,7 +79,7 @@ HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
 
   data = 0;
   theFace = 0;
-  faceData->selfReference = static_cast<HFACE>(HandleCreate(faceData, "HFACE"));
+  faceData->selfReference = CREATEHANDLE(HFACE, faceData);
   handle = static_cast<HFACE>(HandleDuplicate(faceData->selfReference));
 
 finallylabel:

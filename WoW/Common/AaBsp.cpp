@@ -3,6 +3,7 @@
 #include "AaBsp.h"
 #include "Tempest/c4plane.h"
 
+#include <Ftol.h>
 #include <storm.h>
 #include <string.h>
 
@@ -54,12 +55,7 @@ void CAaBsp::operator=(const CAaBsp &rhs) {
 
   UINT i;
   for (i = 0; i < nNodes; ++i) {
-    nodes[i].flags = rhs.nodes[i].flags;
-    nodes[i].negChild = rhs.nodes[i].negChild;
-    nodes[i].posChild = rhs.nodes[i].posChild;
-    nodes[i].nFaces = rhs.nodes[i].nFaces;
-    nodes[i].faceStart = rhs.nodes[i].faceStart;
-    nodes[i].planeDist = rhs.nodes[i].planeDist;
+    nodes[i] = rhs.nodes[i];
   }
 
   nNodeFaceIndices = rhs.nNodeFaceIndices;
@@ -87,11 +83,11 @@ void CAaBsp::Create(NTempest::C3Vector *vertices, UINT nVertices, WORD *faceVert
   FATALASSERT(faceVertexIndices);
   FATALASSERT(nFaceVertexIndices < 0x40000);
 
-  this->nFaceVertexIndices = nFaceVertexIndices;
   bFree = 1;
   this->vertices = vertices;
   this->nVertices = nVertices;
   this->faceVertexIndices = faceVertexIndices;
+  this->nFaceVertexIndices = nFaceVertexIndices;
   aaBox = NTempest::CAaBox::Bounding(vertices, nVertices);
 
   if (!nodes) {
@@ -125,8 +121,8 @@ void CAaBsp::Create(NTempest::C3Vector *vertices, UINT nVertices, WORD *faceVert
 
   BuildTree(faceIndices, faceCount);
   FreeBuildFaceIndices(faceCount);
-  rootNode = nodes;
   avgNodeFaces /= nNodes;
+  rootNode = nodes;
 }
 
 void CAaBsp::Set(CAaBspNode *nodeList, UINT nNodes, WORD *faceIndices, UINT nFaceIndices, const NTempest::CAaBox &box) {
@@ -140,6 +136,24 @@ void CAaBsp::Set(CAaBspNode *nodeList, UINT nNodes, WORD *faceIndices, UINT nFac
   this->nNodes = nNodes;
   this->nNodeFaceIndices = nFaceIndices;
   aaBox = box;
+}
+
+UINT CAaBsp::GetFaceIndices(NTempest::C3Segment &seg, WORD *indices, UINT maxCount) {
+  s_faceQuery.indices = indices;
+  s_faceQuery.maxCount = maxCount;
+  s_faceQuery.count = 0;
+  GetFaceIndices(0, seg);
+  s_faceQuery.ClearFaceBits();
+  return s_faceQuery.count;
+}
+
+UINT CAaBsp::GetFaceIndices(NTempest::CAaBox &aaBox, WORD *indices, UINT maxCount) {
+  s_faceQuery.indices = indices;
+  s_faceQuery.maxCount = maxCount;
+  s_faceQuery.count = 0;
+  GetFaceIndices(0, aaBox);
+  s_faceQuery.ClearFaceBits();
+  return s_faceQuery.count;
 }
 
 void CAaBsp::Init() {
@@ -210,18 +224,18 @@ DWORD CAaBsp::AllocNodeFaceIndices(UINT count) {
 }
 
 WORD CAaBsp::BuildTree(WORD *buildFaceIndices, UINT count) {
-  UINT posCount;
   if (treeDepth >= 8 || count <= 16) {
-    WORD leafIndex = AllocNode();
-    nodes[leafIndex].flags = CAaBspNode::Flag_Leaf;
-    nodes[leafIndex].negChild = CAaBspNode::Flag_NoChild;
-    nodes[leafIndex].posChild = CAaBspNode::Flag_NoChild;
-    nodes[leafIndex].faceStart = AllocNodeFaceIndices(count);
-    nodes[leafIndex].nFaces = count;
-    nodes[leafIndex].planeDist = 0.0f;
+    WORD        leafIndex = AllocNode();
+    CAaBspNode *node = &nodes[leafIndex];
+    node->flags = CAaBspNode::Flag_Leaf;
+    node->posChild = CAaBspNode::Flag_NoChild;
+    node->negChild = CAaBspNode::Flag_NoChild;
+    node->faceStart = AllocNodeFaceIndices(count);
+    node->nFaces = count;
+    node->planeDist = 0.0f;
 
-    for (posCount = 0; posCount < nodes[leafIndex].nFaces; ++posCount) {
-      nodeFaceIndices[nodes[leafIndex].faceStart + posCount] = buildFaceIndices[posCount];
+    for (UINT n = 0; n < node->nFaces; ++n) {
+      nodeFaceIndices[node->faceStart + n] = buildFaceIndices[n];
     }
     avgNodeFaces += count;
     return leafIndex;
@@ -230,35 +244,35 @@ WORD CAaBsp::BuildTree(WORD *buildFaceIndices, UINT count) {
   UINT  axis;
   float dist;
   ChoosePlane(axis, dist, buildFaceIndices, count);
-  WORD nodeIndex = AllocNode();
 
-  nodes[nodeIndex].flags = axis;
-  nodes[nodeIndex].planeDist = dist;
-  nodes[nodeIndex].faceStart = 0;
-  nodes[nodeIndex].nFaces = 0;
+  WORD        nodeIndex = AllocNode();
+  CAaBspNode *node = &nodes[nodeIndex];
+  node->flags = axis;
+  node->planeDist = dist;
+  node->faceStart = 0;
+  node->nFaces = 0;
 
   WORD *posIndices = AllocBuildFaceIndices(count);
   WORD *negIndices = AllocBuildFaceIndices(count);
-  posCount = 0;
-  UINT negCount = 0;
+  UINT  posCount = 0;
+  UINT  negCount = 0;
   PartitionFaceList(axis, dist, buildFaceIndices, count, posIndices, posCount, negIndices, negCount);
 
   ++treeDepth;
   if (posCount) {
-    nodes[nodeIndex].posChild = BuildTree(posIndices, posCount);
+    node->posChild = BuildTree(posIndices, posCount);
   } else {
-    nodes[nodeIndex].posChild = CAaBspNode::Flag_NoChild;
+    node->posChild = CAaBspNode::Flag_NoChild;
   }
   if (negCount) {
-    nodes[nodeIndex].negChild = BuildTree(negIndices, negCount);
+    node->negChild = BuildTree(negIndices, negCount);
   } else {
-    nodes[nodeIndex].negChild = CAaBspNode::Flag_NoChild;
+    node->negChild = CAaBspNode::Flag_NoChild;
   }
   --treeDepth;
 
   FreeBuildFaceIndices(count);
   FreeBuildFaceIndices(count);
-
   return nodeIndex;
 }
 
@@ -283,21 +297,21 @@ void CAaBsp::GenBoundingBox(NTempest::CAaBox &aaBox, WORD *buildFaceIndices, UIN
 }
 
 void CAaBsp::ChoosePlane(UINT &bestAxis, float &bestDist, WORD *buildFaceIndices, UINT count) {
-  float bestPlaneDist = 0.0f;
+  UINT             bestPlaneAxis = 0;
+  float            bestPlaneDist = 0.0f;
+  float            bestPlaneScore = 999999.875f;
   NTempest::CAaBox aaBox;
-  UINT bestPlaneAxis = 0;
-  float bestPlaneScore = 999999.875f;
   GenBoundingBox(aaBox, buildFaceIndices, count);
 
   for (UINT axis = 0; axis < 3; ++axis) {
-    for (int dist = static_cast<int>(aaBox.b[axis] - 0.5f);
-         dist <= static_cast<int>(aaBox.t[axis] - 0.5f);
-         dist += (static_cast<int>((aaBox.t[axis] - aaBox.b[axis]) * 0.0625f - 0.5f) < 1
-                      ? 1
-                      : static_cast<int>((aaBox.t[axis] - aaBox.b[axis]) * 0.0625f - 0.5f))) {
+    int minDist = Fast_ftol(aaBox.b[axis]);
+    int maxDist = Fast_ftol(aaBox.t[axis]);
+    int step = max(1, Fast_ftol((aaBox.t[axis] - aaBox.b[axis]) * 0.0625f));
+    for (int dist = minDist; dist <= maxDist; dist += step) {
+      float fDist = static_cast<float>(dist);
+      UINT o = 0;
       UINT f = 0;
       UINT b = 0;
-      UINT o = 0;
       UINT s = 0;
 
       UINT n;
@@ -311,10 +325,10 @@ void CAaBsp::ChoosePlane(UINT &bestAxis, float &bestDist, WORD *buildFaceIndices
         for (UINT j = 0; j < 3; ++j) {
           NTempest::C3Vector &vertex = vertices[faceVertices[j]];
           float distance = vertex.z * s_axisNormalTable[axis].z + vertex.y * s_axisNormalTable[axis].y +
-                           vertex.x * s_axisNormalTable[axis].x - dist;
+                           vertex.x * s_axisNormalTable[axis].x - fDist;
           if (distance > 0.0f) {
             ++front;
-          } else if (0.0f > distance) {
+          } else if (distance < 0.0f) {
             ++back;
           } else {
             ++front;
@@ -334,13 +348,11 @@ void CAaBsp::ChoosePlane(UINT &bestAxis, float &bestDist, WORD *buildFaceIndices
         }
       }
 
-      double score = NTempest::CMath::fabs_(static_cast<double>(f - b));
-      score += static_cast<int>(2 * s);
-      score += static_cast<int>(o);
-      if (score && score < bestPlaneScore) {
-        bestPlaneAxis = axis;
-        bestPlaneDist = static_cast<float>(dist);
+      float score = NTempest::CMath::fabs_(static_cast<float>(f - b)) + 2 * s + o;
+      if (score != 0.0f && score < bestPlaneScore) {
         bestPlaneScore = score;
+        bestPlaneAxis = axis;
+        bestPlaneDist = fDist;
       }
     }
   }
@@ -354,9 +366,9 @@ void CAaBsp::PartitionFaceList(
 ) {
   NTempest::C4Plane plane(s_axisNormalTable[axis], -dist);
 
-  for (UINT i = 0; i < count; ++i) {
-    WORD  face = buildFaceIndices[i];
-    WORD *faceVertices = &faceVertexIndices[3 * face];
+  WORD *buildFaceIndex = buildFaceIndices;
+  for (UINT i = 0; i < count; ++i, ++buildFaceIndex) {
+    WORD *faceVertices = &faceVertexIndices[3 * *buildFaceIndex];
     UINT  front = 0;
     UINT  back = 0;
 
@@ -365,7 +377,7 @@ void CAaBsp::PartitionFaceList(
       float distance = plane.DistSigned(vertex);
       if (distance > 0.0f) {
         ++front;
-      } else if (0.0f > distance) {
+      } else if (distance < 0.0f) {
         ++back;
       } else {
         ++front;
@@ -373,13 +385,108 @@ void CAaBsp::PartitionFaceList(
       }
     }
 
-    if (!back) {
-      posIndices[posCount++] = face;
-    } else if (!front) {
-      negIndices[negCount++] = face;
+    if (back) {
+      if (front) {
+        posIndices[posCount] = *buildFaceIndex;
+        ++posCount;
+        negIndices[negCount] = *buildFaceIndex;
+        ++negCount;
+      } else {
+        negIndices[negCount] = *buildFaceIndex;
+        ++negCount;
+      }
     } else {
-      posIndices[posCount++] = face;
-      negIndices[negCount++] = face;
+      posIndices[posCount] = *buildFaceIndex;
+      ++posCount;
+    }
+  }
+}
+
+void CAaBsp::GetFaceIndices(CAaBspNode *node) {
+  WORD *faceIndices = &nodeFaceIndices[node->faceStart];
+  for (UINT i = 0; i < node->nFaces; ++i) {
+    s_faceQuery.AddFace(faceIndices[i]);
+  }
+}
+
+void CAaBsp::GetFaceIndices(UINT nodeIndex, NTempest::C3Segment &seg) {
+  CAaBspNode *node = &nodes[nodeIndex];
+  if (node->flags & CAaBspNode::Flag_Leaf) {
+    GetFaceIndices(node);
+    return;
+  }
+
+  NTempest::C4Plane plane(s_axisNormalTable[node->flags & CAaBspNode::Flag_AxisMask], node->planeDist);
+  float             d0 = plane.DistSigned(seg.start);
+  float             d1 = plane.DistSigned(seg.end);
+  if (d0 == 0.0f && d1 == 0.0f) {
+    if (node->posChild != CAaBspNode::Flag_NoChild) {
+      GetFaceIndices(node->posChild, seg);
+    }
+    if (node->negChild != CAaBspNode::Flag_NoChild) {
+      GetFaceIndices(node->posChild, seg);
+    }
+  } else if (!((*(DWORD *)&d0 ^ *(DWORD *)&d1) & 0x80000000)) {
+    if (d0 > 0.0f) {
+      if (node->posChild != CAaBspNode::Flag_NoChild) {
+        GetFaceIndices(node->posChild, seg);
+      }
+    } else {
+      if (node->negChild != CAaBspNode::Flag_NoChild) {
+        GetFaceIndices(node->negChild, seg);
+      }
+    }
+  } else {
+    float              t = d0 / (d0 - d1);
+    NTempest::C3Vector mid = seg.start + (seg.end - seg.start) * t;
+    if (d0 > 0.0f) {
+      if (node->posChild != CAaBspNode::Flag_NoChild) {
+        NTempest::C3Segment nSeg(seg.start, mid);
+        GetFaceIndices(node->posChild, nSeg);
+      }
+      if (node->negChild != CAaBspNode::Flag_NoChild) {
+        NTempest::C3Segment nSeg(mid, seg.end);
+        GetFaceIndices(node->negChild, nSeg);
+      }
+    } else {
+      if (node->negChild != CAaBspNode::Flag_NoChild) {
+        NTempest::C3Segment nSeg(seg.start, mid);
+        GetFaceIndices(node->negChild, nSeg);
+      }
+      if (node->posChild != CAaBspNode::Flag_NoChild) {
+        NTempest::C3Segment nSeg(mid, seg.end);
+        GetFaceIndices(node->posChild, nSeg);
+      }
+    }
+  }
+}
+
+void CAaBsp::GetFaceIndices(UINT nodeIndex, NTempest::CAaBox &aaBox) {
+  CAaBspNode *node = &nodes[nodeIndex];
+  if (node->flags & CAaBspNode::Flag_Leaf) {
+    GetFaceIndices(node);
+    return;
+  }
+
+  UINT axis = node->flags & CAaBspNode::Flag_AxisMask;
+  if (aaBox.b[axis] > node->planeDist) {
+    if (node->posChild != CAaBspNode::Flag_NoChild) {
+      GetFaceIndices(node->posChild, aaBox);
+    }
+  } else if (aaBox.t[axis] < node->planeDist) {
+    if (node->negChild != CAaBspNode::Flag_NoChild) {
+      GetFaceIndices(node->negChild, aaBox);
+    }
+  } else {
+    if (node->posChild != CAaBspNode::Flag_NoChild) {
+      NTempest::CAaBox nAaBox = aaBox;
+      nAaBox.b[axis] = node->planeDist;
+      GetFaceIndices(node->posChild, nAaBox);
+    }
+    if (node->negChild != CAaBspNode::Flag_NoChild) {
+      NTempest::CAaBox nAaBox = aaBox;
+      nAaBox.t[axis] = node->planeDist;
+      GetFaceIndices(node->posChild, nAaBox);
     }
   }
 }

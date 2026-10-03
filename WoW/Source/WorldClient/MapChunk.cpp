@@ -19,6 +19,12 @@
 
 typedef UINT uint32;
 
+static const UINT ALPHA_BIT_MASK[2] = {0x0F, 0xF0};
+static const UINT ALPHA_BIT_LSHIFT[2] = {4, 0};
+static const UINT SHADOW_BIT_MASK[8] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+static const UINT SHADOW_BIT_RSHIFT[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+static const BYTE SHADOW_VALUES[2] = {0xFF, 0x00};
+
 enum {
   SPRIM_TYPE_STRIP = 0,
   SPRIM_TYPE_TRI = 1
@@ -162,11 +168,11 @@ BYTE *CMapChunk::AllocAsyncLoadBuffer() {
     s_asyncBuffersInitialized = 1;
   }
 
-  BYTE *buffer = s_freeAsyncBuffer;
-  if (!buffer) {
+  if (!s_freeAsyncBuffer) {
     return 0;
   }
 
+  BYTE *buffer = s_freeAsyncBuffer;
   ValidateAsyncReadBuffer(buffer);
   s_freeAsyncBuffer = *reinterpret_cast<BYTE **>(buffer);
   if (s_freeAsyncBuffer) {
@@ -224,7 +230,7 @@ void CMapChunk::FreeLists() {
   }
   gxBufFreeList.SetCount(0);
 
-  ASSERT(g_gxBufCreateCount == g_gxBufDestroyCount);
+  ASSERT(g_gxBufCreateCount==g_gxBufDestroyCount);
 
   for (index = 0; index < gxAlphaTexFreeList.Count(); ++index) {
     GxTexDestroy(gxAlphaTexFreeList[index]);
@@ -246,8 +252,8 @@ void CMapChunk::AsyncPollHandler() {
       break;
     }
 
-    CAsyncObject *next = s_asyncLoadList.Next(object);
-    object->link.Unlink();
+    CAsyncObject *next = object->link.Next();
+    s_asyncLoadList.UnlinkNode(object);
     object->buffer = buffer;
     object->canReorder = 1;
     AsyncFileReadObject(object);
@@ -258,17 +264,17 @@ void CMapChunk::AsyncPollHandler() {
 CGxBuf *CMapChunk::AllocGxBuf(UINT indexCount) {
   CGxBuf *gxBuf;
 
-  if (gxBufFreeList.Count()) {
-    gxBuf = gxBufFreeList[gxBufFreeList.Count() - 1];
-    FATALASSERT(gxBuf);
-    gxBufFreeList.SetCount(gxBufFreeList.Count() - 1);
-    gxBuf->CountSet(145, indexCount);
-    gxBuf->Invalidate(CGxBuf::S_INVALID_DISCARD, CGxBuf::S_INVALID_DISCARD);
-  } else {
+  if (!gxBufFreeList.Count()) {
     gxBuf = GxBufCreate(GxBWF_Low, GxVBF_PN, 145, indexCount, GxBufFillCallback, 0);
     ++g_gxBufCreateCount;
+    return gxBuf;
   }
 
+  gxBuf = gxBufFreeList[gxBufFreeList.Count() - 1];
+  FATALASSERT(gxBuf);
+  gxBufFreeList.SetCount(gxBufFreeList.Count() - 1);
+  gxBuf->CountSet(145, indexCount);
+  gxBuf->Invalidate(CGxBuf::S_INVALID_DISCARD, CGxBuf::S_INVALID_DISCARD);
   return gxBuf;
 }
 
@@ -281,15 +287,24 @@ void CMapChunk::FreeGxBuf(CGxBuf *gxBuf) {
 CGxTex *CMapChunk::AllocAlphaGxTex(LPVOID userArg, void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &)) {
   CGxTex *gxTex;
 
-  if (gxAlphaTexFreeList.Count()) {
+  if (!gxAlphaTexFreeList.Count()) {
+    UINT sizeX;
+    UINT sizeY;
+    if (CWorld::alphaMipLevel == 1) {
+      sizeX = 32;
+      sizeY = 32;
+    } else {
+      sizeX = 64;
+      sizeY = 64;
+    }
+
+    GxTexCreate(GxTex_2d, sizeX, sizeY, 0, GxTex_Argb4444, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), userArg, userFunc, gxTex);
+    FATALASSERT(gxTex);
+  } else {
     gxTex = gxAlphaTexFreeList[gxAlphaTexFreeList.Count() - 1];
     FATALASSERT(gxTex);
     gxAlphaTexFreeList.SetCount(gxAlphaTexFreeList.Count() - 1);
     GxTexSetUserData(gxTex, userFunc, userArg);
-  } else {
-    UINT size = CWorld::alphaMipLevel == 1 ? 32 : 64;
-    GxTexCreate(GxTex_2d, size, size, 0, GxTex_Argb4444, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), userArg, userFunc, gxTex);
-    FATALASSERT(gxTex);
   }
 
   return gxTex;
@@ -305,15 +320,24 @@ void CMapChunk::FreeAlphaGxTex(CGxTex *gxTex) {
 CGxTex *CMapChunk::AllocShadowGxTex(LPVOID userArg, void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &)) {
   CGxTex *gxTex;
 
-  if (gxShadowTexFreeList.Count()) {
+  if (!gxShadowTexFreeList.Count()) {
+    UINT sizeX;
+    UINT sizeY;
+    if (CWorld::shadowMipLevel == 1) {
+      sizeX = 32;
+      sizeY = 32;
+    } else {
+      sizeX = 64;
+      sizeY = 64;
+    }
+
+    GxTexCreate(GxTex_2d, sizeX, sizeY, 0, GxTex_Argb4444, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), userArg, userFunc, gxTex);
+    FATALASSERT(gxTex);
+  } else {
     gxTex = gxShadowTexFreeList[gxShadowTexFreeList.Count() - 1];
     FATALASSERT(gxTex);
     gxShadowTexFreeList.SetCount(gxShadowTexFreeList.Count() - 1);
     GxTexSetUserData(gxTex, userFunc, userArg);
-  } else {
-    UINT size = CWorld::shadowMipLevel == 1 ? 32 : 64;
-    GxTexCreate(GxTex_2d, size, size, 0, GxTex_Argb4444, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), userArg, userFunc, gxTex);
-    FATALASSERT(gxTex);
   }
 
   return gxTex;
@@ -467,12 +491,12 @@ void CMapChunk::Load(SMChunkInfo *chunkInfo) {
 
   nLayers = 0;
   asyncObject = 0;
-  gxBuf = 0;
+  bLoaded = 0;
   lod = -1;
   remapLod = -1;
   detailDoodadInst = 0;
+  gxBuf = 0;
   freeTime = 0.0f;
-  bLoaded = 0;
   flags = 0;
   fileOffset = chunkInfo->offset;
   fileSize = chunkInfo->size;
@@ -515,14 +539,14 @@ void CMapChunk::SyncLoadLayer(CChunkLayer *layer) {
   SyncLoad(mChunk, mLayer, shadowTex, alphaTex);
 
   UINT i;
-  for (i = 0; i < nLayers; ++i) {
+  for (i = 0; i < nLayers; i++, mLayer++) {
     if (layerList[i] == layer) {
       break;
     }
   }
   FATALASSERT(i < nLayers);
 
-  layer->offsAlpha = alphaTex + mLayer[i].offsAlpha;
+  layer->offsAlpha = alphaTex + mLayer->offsAlpha;
   CreateChunkLayerTex(layer);
   s_fileCritSect.Leave();
 }
@@ -550,8 +574,8 @@ void CMapChunk::SyncLoadShader() {
   s_fileCritSect.Enter();
   SyncLoad(mChunk, mLayer, shadowTex, alphaTex);
 
-  for (UINT i = 0; i < mChunk->nLayers; ++i) {
-    layerList[i]->offsAlpha = alphaTex + mLayer[i].offsAlpha;
+  for (UINT i = 0; i < mChunk->nLayers; i++, mLayer++) {
+    layerList[i]->offsAlpha = alphaTex + mLayer->offsAlpha;
   }
   shadowOffs = shadowTex;
   shadowSize = mChunk->sizeShadow;
@@ -572,7 +596,7 @@ void CMapChunk::SyncLoad(SMChunk *&mChunk, SMLayer *&mLayer, BYTE *&shadowTex, B
   float    *mHeights = reinterpret_cast<float *>(mChunk + 1);
   SMNormal *mNormals = reinterpret_cast<SMNormal *>(mHeights + 145);
   iffChunk = reinterpret_cast<SIffChunk *>(mNormals + 1);
-  FATALASSERT(iffChunk->token == 'MCLY');
+  FATALASSERT(iffChunk->token=='MCLY');
   mLayer = reinterpret_cast<SMLayer *>(iffChunk + 1);
 
   iffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<BYTE *>(mLayer) + iffChunk->size);
@@ -586,63 +610,87 @@ void CMapChunk::Create(BYTE *data) {
   FATALASSERT(bLoaded == 0);
 
   SIffChunk *iffChunk = reinterpret_cast<SIffChunk *>(data);
-  FATALASSERT(iffChunk->token == 'MCNK');
-  SMChunk  *mChunk = reinterpret_cast<SMChunk *>(iffChunk + 1);
-  float    *mHeights = reinterpret_cast<float *>(mChunk + 1);
-  SMNormal *mNormals = reinterpret_cast<SMNormal *>(mHeights + 145);
+  FATALASSERT(iffChunk->token=='MCNK');
+  data += sizeof(SIffChunk);
+  SMChunk *mChunk = reinterpret_cast<SMChunk *>(data);
+  data += sizeof(SMChunk);
+  float *mHeights = reinterpret_cast<float *>(data);
+  data += sizeof(float) * 145;
+  SMNormal *mNormals = reinterpret_cast<SMNormal *>(data);
+  data += sizeof(SMNormal);
 
-  iffChunk = reinterpret_cast<SIffChunk *>(mNormals + 1);
-  FATALASSERT(iffChunk->token == 'MCLY');
-  SMLayer *mLayer = reinterpret_cast<SMLayer *>(iffChunk + 1);
+  iffChunk = reinterpret_cast<SIffChunk *>(data);
+  FATALASSERT(iffChunk->token=='MCLY');
+  data += sizeof(SIffChunk);
+  SMLayer *mLayer = reinterpret_cast<SMLayer *>(data);
+  data += iffChunk->size;
 
-  iffChunk = reinterpret_cast<SIffChunk *>(reinterpret_cast<BYTE *>(mLayer) + iffChunk->size);
-  FATALASSERT(iffChunk->token == 'MCRF');
-  UINT *mRef = reinterpret_cast<UINT *>(iffChunk + 1);
-  BYTE *shadowTex = reinterpret_cast<BYTE *>(mRef) + iffChunk->size;
-  BYTE *alphaTex = shadowTex + mChunk->sizeShadow;
-  BYTE *liquidData = alphaTex + mChunk->sizeAlpha;
+  iffChunk = reinterpret_cast<SIffChunk *>(data);
+  FATALASSERT(iffChunk->token=='MCRF');
+  data += sizeof(SIffChunk);
+  UINT *mRef = reinterpret_cast<UINT *>(data);
+  data += iffChunk->size;
+  BYTE *shadowTex = data;
+  data += mChunk->sizeShadow;
+  BYTE *alphaTex = data;
+  data += mChunk->sizeAlpha;
 
+  UINT  i;
   DWORD mask = 4;
-  for (UINT i = 0; i < 4; ++i) {
+  for (i = 0; i < 4; i++, mask <<= 1) {
     if (mChunk->flags & mask) {
       if (!liquids[i]) {
         liquids[i] = CMap::AllocChunkLiquid();
       }
-      memcpy(liquids[i], liquidData, offsetof(CChunkLiquid, chunk));
-      liquids[i]->chunk = this;
-      liquidData += offsetof(CChunkLiquid, chunk);
+      CChunkLiquid *liquid = liquids[i];
+      liquid->height = *reinterpret_cast<NTempest::CRange *&>(data)++;
+      memcpy(liquid->verts, data, sizeof(liquid->verts));
+      data += sizeof(liquid->verts);
+      memcpy(&liquid->tiles, data, sizeof(liquid->tiles));
+      data += sizeof(liquid->tiles);
+      liquid->nFlowvs = *reinterpret_cast<UINT *&>(data)++;
+      memcpy(liquid->flowvs, data, sizeof(liquid->flowvs));
+      data += sizeof(liquid->flowvs);
+      liquid->chunk = this;
     } else if (liquids[i]) {
       CMap::FreeChunkLiquid(liquids[i]);
     }
-    mask <<= 1;
   }
 
   if (soundEmitterCreateHandler) {
-    BYTE *emitterData = liquidData;
-    for (UINT i = 0; i < mChunk->nSndEmitters; ++i) {
+    for (i = 0; i < mChunk->nSndEmitters; i++) {
       CMapSoundEmitter *emitter = CMap::AllocSoundEmitter();
-      memcpy(&emitter->data, emitterData, offsetof(CWSoundEmitter, startTime));
-      emitter->data.startTime = *reinterpret_cast<WORD *>(emitterData + 32);
-      emitter->data.endTime = *reinterpret_cast<WORD *>(emitterData + 34);
-      emitter->data.mode = *reinterpret_cast<WORD *>(emitterData + 36);
-      emitter->data.groupSilenceMin = *reinterpret_cast<WORD *>(emitterData + 40);
-      emitter->data.groupSilenceMax = *reinterpret_cast<WORD *>(emitterData + 42);
-      emitter->data.playInstancesMin = *reinterpret_cast<WORD *>(emitterData + 44);
-      emitter->data.playInstancesMax = *reinterpret_cast<WORD *>(emitterData + 46);
-      emitter->data.loopCountMin = emitterData[38];
-      emitter->data.loopCountMax = emitterData[39];
-      emitter->data.interSoundGapMin = *reinterpret_cast<WORD *>(emitterData + 48);
-      emitter->data.interSoundGapMax = *reinterpret_cast<WORD *>(emitterData + 50);
+      emitter->data.soundPointID = *reinterpret_cast<DWORD *>(data + i * 52);
+      emitter->data.soundNameID = *reinterpret_cast<DWORD *>(data + i * 52 + 4);
+      emitter->data.pos.x = *reinterpret_cast<float *>(data + i * 52 + 8);
+      emitter->data.pos.y = *reinterpret_cast<float *>(data + i * 52 + 12);
+      emitter->data.pos.z = *reinterpret_cast<float *>(data + i * 52 + 16);
+      emitter->data.minDistance = *reinterpret_cast<float *>(data + i * 52 + 20);
+      emitter->data.maxDistance = *reinterpret_cast<float *>(data + i * 52 + 24);
+      emitter->data.cutoffDistance = *reinterpret_cast<float *>(data + i * 52 + 28);
+      emitter->data.startTime = *reinterpret_cast<WORD *>(data + i * 52 + 32);
+      emitter->data.endTime = *reinterpret_cast<WORD *>(data + i * 52 + 34);
+      emitter->data.mode = *reinterpret_cast<WORD *>(data + i * 52 + 36);
+      emitter->data.groupSilenceMin = *reinterpret_cast<WORD *>(data + i * 52 + 40);
+      emitter->data.groupSilenceMax = *reinterpret_cast<WORD *>(data + i * 52 + 42);
+      emitter->data.playInstancesMin = *reinterpret_cast<WORD *>(data + i * 52 + 44);
+      emitter->data.playInstancesMax = *reinterpret_cast<WORD *>(data + i * 52 + 46);
+      emitter->data.loopCountMin = *(data + i * 52 + 38);
+      emitter->data.loopCountMax = *(data + i * 52 + 39);
+      emitter->data.interSoundGapMin = *reinterpret_cast<WORD *>(data + i * 52 + 48);
+      emitter->data.interSoundGapMax = *reinterpret_cast<WORD *>(data + i * 52 + 50);
       soundEmitterList.LinkNode(emitter, LIST_TAIL, 0);
       soundEmitterCreateHandler(emitter->data);
-      emitterData += 52;
     }
   }
 
   CMap::CreateChunkNeighborPtrs(this);
-  corner.x = 17066.666f - static_cast<float>(cOffset.y) * 33.333332f;
-  corner.y = 17066.666f - static_cast<float>(cOffset.x) * 33.333332f;
+  corner.x = static_cast<float>(cOffset.x) * 33.333332f;
+  corner.y = static_cast<float>(cOffset.y) * 33.333332f;
   corner.z = *mHeights;
+  float temp = -corner.x + 17066.666f;
+  corner.x = -corner.y + 17066.666f;
+  corner.y = temp;
   zoneId = mChunk->areaid;
   holes = mChunk->holes;
   flags = 0;
@@ -664,8 +712,8 @@ void CMapChunk::Create(BYTE *data) {
   FATALASSERT(mChunk->indexY == (uint32)aIndex.y);
   CreateRefs(area, mRef, mChunk->nDoodadRefs, mChunk->nMapObjRefs);
 
-  for (UINT layerIndex = 0; layerIndex < mChunk->nLayers; ++layerIndex) {
-    CreateLayer(area, &mLayer[layerIndex], alphaTex);
+  for (i = 0; i < mChunk->nLayers; i++, mLayer++) {
+    CreateLayer(area, mLayer, alphaTex);
   }
 
   if ((mChunk->flags & 1) && (CWorld::enables & CWorld::Enable_Shadow)) {
@@ -694,18 +742,17 @@ void CMapChunk::SelectLights() {
   UINT whichLight = 1;
 
   ITERATELIST(CMapBaseObjLink, lightLinkList, link) {
-    if (whichLight >= 8) {
-      break;
-    }
-    CMapLight *light = static_cast<CMapLight *>(link->owner);
-    GxLightSet(whichLight, light->gxLight, CWorldScene::camPos);
+    GxLightSet(whichLight, static_cast<CMapLight *>(link->owner)->gxLight, CWorldScene::camPos);
     ++whichLight;
+    if (whichLight == 8) {
+      return;
+    }
   }
 
-  while (whichLight < 8) {
+  do {
     GxLightEnable(whichLight, 0);
     ++whichLight;
-  }
+  } while (whichLight != 8);
 }
 
 void CMapChunk::UpdateLights() {
@@ -725,8 +772,6 @@ void CMapChunk::UpdateLights() {
 }
 
 void CMapChunk::Update() {
-  NTempest::CAaBox aaBox;
-
   freeTime += CWorld::tickTimeSec;
   if (freeTime > 5.0f) {
     if (gxBuf) {
@@ -734,7 +779,7 @@ void CMapChunk::Update() {
       gxBuf = 0;
     }
 
-    if (detailDoodadInst && (detailDoodadInst->gxBuf[0] || detailDoodadInst->gxBuf[1])) {
+    if (detailDoodadInst && detailDoodadInst->HasBufs()) {
       detailDoodadInst->FreeBufs();
     }
   }
@@ -744,7 +789,7 @@ void CMapChunk::Update() {
     detailDoodadInst = 0;
   }
 
-  if (this->aaBox.b <= CWorldScene::camFrustumBounds.t && this->aaBox.t >= CWorldScene::camFrustumBounds.b) {
+  if (CWorldScene::camFrustumBounds.Intersects(aaBox)) {
     freeTime = 0.0f;
     CWorldScene::AddMapChunk(this, CWorldScene::camPlaneXY.DistSigned(vertexList[cornerVertexIndex[farCornerIndex]] + corner));
 
@@ -759,6 +804,7 @@ void CMapChunk::Update() {
 
   for (UINT i = 0; i < 4; ++i) {
     if (liquids[i]) {
+      NTempest::CAaBox aaBox;
       liquids[i]->GetAaBox(aaBox);
       if (aaBox.b <= CWorldScene::camFrustumBounds.t && aaBox.t >= CWorldScene::camFrustumBounds.b) {
         CWorldScene::AddChunkLiquid(liquids[i], i);
@@ -769,8 +815,8 @@ void CMapChunk::Update() {
 
 void CMapChunk::FindLights() {
   ITERATELIST(CMapLight, CMap::lightList, light) {
-    if (light->aaBox.b.x <= aaBox.t.x && light->aaBox.t.x >= aaBox.b.x && light->aaBox.b.y <= aaBox.t.y && light->aaBox.t.y >= aaBox.b.y &&
-        light->aaBox.b.z <= aaBox.t.z && light->aaBox.t.z >= aaBox.b.z)
+    if (!(light->aaBox.b.x > aaBox.t.x || light->aaBox.t.x < aaBox.b.x || light->aaBox.b.y > aaBox.t.y || light->aaBox.t.y < aaBox.b.y ||
+          light->aaBox.b.z > aaBox.t.z || light->aaBox.t.z < aaBox.b.z))
     {
       CMapBaseObjLink *link = CMap::AllocBaseObjLink(light);
       link->ref = this;
@@ -892,12 +938,21 @@ void CMapChunk::CreateLayer(CMapArea *area, SMLayer *layer, BYTE *alphaTex) {
   chunkLayer->effectId = layer->effectId;
 
   if (!CMap::EnableTerrainShader() && !CMap::EnableSpecularTerrain()) {
-    int sizeY = CWorld::alphaMipLevel == 1 ? 32 : 64;
+    int sizeX;
+    int sizeY;
+    if (CWorld::alphaMipLevel == 1) {
+      sizeX = 32;
+      sizeY = 32;
+    } else {
+      sizeX = 64;
+      sizeY = 64;
+    }
+
     if (chunkLayer->props & 0x100) {
       chunkLayer->gxTexture = AllocAlphaGxTex(chunkLayer, UpdateLayerGxTexture);
       FATALASSERT(chunkLayer->gxTexture);
       CreateChunkLayerTex(chunkLayer);
-      GxTexUpdate(chunkLayer->gxTexture, 0, 0, sizeY, sizeY, 1);
+      GxTexUpdate(chunkLayer->gxTexture, 0, 0, sizeX, sizeY, 1);
     }
   }
 }
@@ -1001,37 +1056,46 @@ void CMapChunk::CreateChunkShaderTex() {
 
 void CMapChunk::UnpackAlphaShadowBits(NTempest::CImVector *texels, DWORD *bits, const BYTE *const alpha[], const BYTE *shadow) {
   UINT coordDelta = 1;
+  UINT ySrcDelta = 0;
+  UINT xSrcDelta = 1;
+  UINT coord = 0;
+  UINT y;
+  UINT x;
+
   if (CWorld::shadowMipLevel == 1) {
     coordDelta = 2;
+    ySrcDelta = 64;
+    xSrcDelta = 2;
   }
 
-  const BYTE *alphaBytes[4] = {alpha[0], alpha[1], alpha[2], alpha[3]};
-  const BYTE *shadowBytes = shadow;
-  DWORD      *pixels = reinterpret_cast<DWORD *>(texels);
-  UINT        dst = 0;
+  for (y = 0; y < 64; y += coordDelta) {
+    for (x = 0; x < 64; x += coordDelta) {
+      UINT offset = coord >> 1;
+      UINT shadowCoord = coord >> 3;
+      UINT alphaBitMask = ALPHA_BIT_MASK[coord & 1];
+      UINT alphaBitLShift = ALPHA_BIT_LSHIFT[coord & 1];
+      UINT shadowBitMask = SHADOW_BIT_MASK[coord & 7];
+      UINT shadowBitRShift = SHADOW_BIT_RSHIFT[coord & 7];
 
-  for (UINT y = 0; y < 64; y += coordDelta) {
-    for (UINT x = 0; x < 64; x += coordDelta) {
-      UINT coord = y * 64 + x;
-      UINT alphaBitMask = (coord & 1) ? 0xF0 : 0x0F;
-      UINT alphaBitLShift = (coord & 1) ? 0 : 4;
-      UINT channel1 = alphaBytes[1] ? (alphaBytes[1][coord >> 1] & alphaBitMask) << alphaBitLShift : 0xFF;
-      UINT channel2 = alphaBytes[2] ? (alphaBytes[2][coord >> 1] & alphaBitMask) << alphaBitLShift : 0xFF;
-      UINT channel3 = alphaBytes[3] ? (alphaBytes[3][coord >> 1] & alphaBitMask) << alphaBitLShift : 0xFF;
-      UINT shadowValue = shadowBytes ? ((shadowBytes[coord >> 3] & (1u << (coord & 7))) ? 0xFF : 0) : 0xFF;
-      pixels[dst++] = channel3 | (channel2 << 8) | (channel1 << 16) | (shadowValue << 24);
+      texels++->Set(
+          shadow ? SHADOW_VALUES[(shadow[shadowCoord] & shadowBitMask) >> shadowBitRShift] : SHADOW_VALUES[0],
+          static_cast<BYTE>(alpha[1] ? (alpha[1][offset] & alphaBitMask) << alphaBitLShift : 0xFF),
+          static_cast<BYTE>(alpha[2] ? (alpha[2][offset] & alphaBitMask) << alphaBitLShift : 0xFF),
+          static_cast<BYTE>(alpha[3] ? (alpha[3][offset] & alphaBitMask) << alphaBitLShift : 0xFF)
+      );
+      coord += xSrcDelta;
     }
+    coord += ySrcDelta;
   }
 
-  UINT shadowCoord = 0;
-  for (UINT bitsY = 0; bitsY < 32; ++bitsY) {
-    for (UINT bitsX = 0; bitsX < 32; ++bitsX) {
-      UINT sourceCoord = bitsY * 128 + bitsX * 2;
-      if (shadowBytes && (shadowBytes[sourceCoord >> 3] & (1u << (sourceCoord & 7)))) {
-        bits[shadowCoord >> 5] |= 1u << (shadowCoord & 31);
-      }
-      ++shadowCoord;
+  coord = 0;
+  for (y = 0; y < 64; y += 2) {
+    for (x = 0; x < 64; x += 2) {
+      *bits |= (shadow ? (shadow[coord >> 3] & SHADOW_BIT_MASK[coord & 7]) >> SHADOW_BIT_RSHIFT[coord & 7] : 0) << (x >> 1);
+      coord += 2;
     }
+    ++bits;
+    coord += 64;
   }
 }
 
@@ -1039,23 +1103,19 @@ void CMapChunk::UnpackAlphaBits(DWORD *pixels, const BYTE *alphaPixels) {
   FATALASSERT(pixels);
   FATALASSERT(alphaPixels);
 
-  const BYTE *alpha = alphaPixels;
+  UINT source = 0;
   if (CWorld::alphaMipLevel == 1) {
-    UINT source = 0;
     UINT dest = 0;
     for (UINT y = 0; y < 32; ++y) {
       for (UINT x = 0; x < 32; ++x) {
-        pixels[dest++] = 0x00FFFFFF | (alpha[source++] << 28);
+        pixels[dest] = 0x00FFFFFF | (alphaPixels[source++] << 28);
+        ++dest;
       }
       source += 32;
     }
   } else {
     for (UINT i = 0; i < 4096; ++i) {
-      UINT value = alpha[i >> 1];
-      if (i & 1) {
-        value &= 0xF0;
-      }
-      pixels[i] = 0x00FFFFFF | (value << ((i & 1) ? 24 : 28));
+      pixels[i] = (i & 1) ? 0x00FFFFFF | ((*alphaPixels++ & 0xF0) << 24) : 0x00FFFFFF | (*alphaPixels << 28);
     }
   }
 }
@@ -1065,31 +1125,58 @@ void CMapChunk::UnpackShadowBits(DWORD *pixels, DWORD *shadowBits, const BYTE *s
   FATALASSERT(shadowBits);
   FATALASSERT(shadow);
 
-  const BYTE *shadowBytes = shadow;
-  UINT        shadowIndex = 0;
+  int  yIdx = 0;
+  int  index = 0;
+  UINT srcMask = 0x01010101;
+  UINT dstMask;
+  int  y;
+  int  x;
+  int  idx;
+
   if (CWorld::shadowMipLevel == 1) {
-    for (UINT y = 0; y < 32; ++y) {
-      for (UINT x = 0; x < 32; ++x) {
-        UINT source = y * 128 + x * 2;
-        UINT set = shadowBytes[source >> 3] & (1u << (source & 7));
-        pixels[shadowIndex] = set ? 0xFFFFFFFF : 0;
-        if (set) {
-          shadowBits[shadowIndex >> 5] |= 1u << (shadowIndex & 31);
+    for (y = 0; y < 32; ++y) {
+      srcMask = 0x01010101;
+      dstMask = 1;
+      idx = yIdx;
+      for (x = 0; x < 32; ++x) {
+        if (shadow[idx >> 3] & srcMask) {
+          pixels[index] = 0xFFFFFFFF;
+          shadowBits[index >> 5] |= dstMask;
+        } else {
+          pixels[index] = 0;
         }
-        ++shadowIndex;
+        idx += 2;
+        ++index;
+        dstMask = _rotl(dstMask, 1);
+        srcMask = _rotl(srcMask, 2);
       }
+      yIdx += 128;
     }
   } else {
-    for (UINT y = 0; y < 64; ++y) {
-      for (UINT x = 0; x < 64; ++x) {
-        UINT source = y * 64 + x;
-        UINT set = shadowBytes[source >> 3] & (1u << (source & 7));
-        pixels[source] = set ? 0xFFFFFFFF : 0;
-        if (!(y & 1) && !(x & 1)) {
-          if (set) {
-            shadowBits[shadowIndex >> 5] |= 1u << (shadowIndex & 31);
+    for (y = 0; y < 64; ++y, yIdx += 64) {
+      idx = yIdx;
+      for (x = 0; x < 64; ++x) {
+        if (shadow[idx >> 3] & srcMask) {
+          pixels[idx] = 0xFFFFFFFF;
+        } else {
+          pixels[idx] = 0;
+        }
+        srcMask = _rotl(srcMask, 1);
+        ++idx;
+      }
+
+      if (!(y & 1)) {
+        idx = yIdx;
+        srcMask = 0x01010101;
+        dstMask = 1;
+        for (x = 0; x < 32; ++x) {
+          if (shadow[idx >> 3] & srcMask) {
+            shadowBits[index >> 5] |= dstMask;
           }
-          ++shadowIndex;
+          idx += 2;
+          ++index;
+          dstMask = _rotl(dstMask, 1);
+          srcMask = _rotl(srcMask, 2);
         }
       }
     }
@@ -1203,6 +1290,6 @@ void CMapChunk::UpdateTextureDefault(
     LPCVOID      &texels
 ) {
   if (userArg) {
-    FATALERROR(("1"));
+    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "1", FALSE, 1);
   }
 }

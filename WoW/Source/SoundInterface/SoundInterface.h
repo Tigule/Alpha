@@ -15,6 +15,7 @@ struct FOOTSTEPSNDCACHE : public TSHashObject<FOOTSTEPSNDCACHE, HASHKEY_NONE> {
   FOOTSTEPSNDCACHE(const FOOTSTEPSNDCACHE &rhs);
 
   ~FOOTSTEPSNDCACHE() {
+    m_soundIDs.Clear();
   }
 };
 
@@ -106,9 +107,9 @@ struct VOCALUISOUND {
   UINT pissedCount;
 
   void Clear() {
+    pissedCount = 0;
     soundTypes[0] = 0;
     soundTypes[1] = 0;
-    pissedCount = 0;
   }
 };
 

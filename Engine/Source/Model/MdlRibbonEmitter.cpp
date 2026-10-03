@@ -23,8 +23,8 @@ static void LoadRibbonMaterial(
   replace->SetCount(numLayers);
 
   for (UINT i = 0; i < numLayers; ++i) {
+    CRibbonMat &ribbonMaterial = (*mats)[i];
     const CTexLayer &layer = uniqueMtl.layers[i];
-    CRibbonMat      &ribbonMaterial = (*mats)[i];
 
     ribbonMaterial.enableLighting = !layer.disable.lighting;
     ribbonMaterial.enableFog = !layer.disable.fog;
@@ -33,7 +33,7 @@ static void LoadRibbonMaterial(
     ribbonMaterial.enableCulling = !layer.disable.culling;
     ribbonMaterial.alpha = layer.blendMode;
 
-    UINT textureId = layer.tmuPass[0].textureId;
+    UINT textureId = uniqueMtl.layers[i].tmuPass[0].textureId;
     (*textures)[i] = modelTextures[textureId].handle;
     (*replace)[i] = modelTextures[textureId].replaceableId;
   }
@@ -126,31 +126,31 @@ void MdxReadRibbonEmitters(BYTE *data, UINT fileBytes, CModelComplex *modelptr, 
   ASSERT(modelptr);
   ASSERT(shared);
 
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'BBIR');
-  if (!section) {
+  data = MDLFileBinarySeek(data, fileBytes, 'BBIR');
+  if (!data) {
     return;
   }
 
-  BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
-  UINT  numEmitters = *reinterpret_cast<UINT *>(section + 4);
-  BYTE *ribbonData = section + 8;
+  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  data += 4;
+  BYTE *dataDone = data + sectionBytes;
+  UINT  numEmitters = *reinterpret_cast<UINT *>(data);
+  data += 4;
 
   modelptr->m_ribbons.SetCount(numEmitters);
   shared->ribbonOrder.SetCount(numEmitters);
 
-  RibbonManager *manager = RibbonManager::GetInstance();
   for (UINT i = 0; i < numEmitters; ++i) {
-    UINT  bytesThisRibbon = *reinterpret_cast<UINT *>(ribbonData);
-    BYTE *ribbonDone = ribbonData + bytesThisRibbon;
-    ASSERT(ribbonDone <= dataDone);
+    UINT bytesThisEmitter = *reinterpret_cast<UINT *>(data);
+    ASSERT(dataDone >= (data + bytesThisEmitter));
 
-    CRibbonEmitter *ribbon = manager->CreateEmitter();
-    modelptr->m_ribbons[i] = ribbon;
-    shared->ribbonOrder[i] = *reinterpret_cast<UINT *>(ribbonData + 0x58);
-    LoadEmitterData(ribbonData + 4, modelptr, ribbon);
+    modelptr->m_ribbons[i] = RibbonManager::GetInstance()->CreateEmitter();
+    UINT objectId = *reinterpret_cast<UINT *>(data + 0x58);
+    shared->ribbonOrder[i] = objectId;
+    LoadEmitterData(data + 4, modelptr, modelptr->m_ribbons[i]);
 
-    ribbonData = ribbonDone;
+    data += bytesThisEmitter;
   }
 
-  ASSERT(ribbonData == dataDone);
+  ASSERT(dataDone == data);
 }

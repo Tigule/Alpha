@@ -23,6 +23,7 @@
 #include <storm.h>
 
 #include "DB/DBClient/DBClient.h"
+#include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
@@ -34,6 +35,7 @@ static LPCSTR s_animationNames[NUM_CURSOR_ANIMS] = {
     "UnablePoint", "UnableCast", "UnableBuy", "UnableAttack", "UnableInteract", "UnableSpeak", "UnableRangedAttack", "UnablePickup", "UnableTaxi"
 };
 
+static char             buffer[MAX_PATH];
 static CURSORANIMATIONS s_cursorType;
 static CURSORANIMATIONS s_cursorMode;
 static HMODEL           s_cursorModel;
@@ -84,18 +86,18 @@ BOOL CursorGrabSpell(HMODEL model) {
 }
 
 static void CreateCursorIconModel(HTEXTURE texture) {
-  NTempest::C3Vector vertices[4] = {
-      NTempest::C3Vector(-0.0144f, -0.0144f, 0.01f), NTempest::C3Vector(-0.0144f, 0.0144f, 0.01f), NTempest::C3Vector(0.0144f, -0.0144f, 0.01f),
-      NTempest::C3Vector(0.0144f, 0.0144f, 0.01f)
+  const NTempest::C2Vector texCoords[4] = {
+      NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(1.0f, 0.0f)
   };
-  NTempest::C3Vector normals[4] = {
+  const NTempest::C3Vector normals[4] = {
       NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, 1.0f),
       NTempest::C3Vector(0.0f, 0.0f, 1.0f)
   };
-  NTempest::C2Vector texCoords[4] = {
-      NTempest::C2Vector(0.0f, 1.0f), NTempest::C2Vector(0.0f, 0.0f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(1.0f, 0.0f)
-  };
   WORD primVertIndices[4] = {1, 0, 3, 2};
+  const NTempest::C3Vector vertices[4] = {
+      NTempest::C3Vector(-0.0144f, -0.0144f, 0.01f), NTempest::C3Vector(-0.0144f, 0.0144f, 0.01f), NTempest::C3Vector(0.0144f, -0.0144f, 0.01f),
+      NTempest::C3Vector(0.0144f, 0.0144f, 0.01f)
+  };
 
   s_cursorModel = ModelCreateSimpleMesh(
       "CursorGrabSpell", 4, vertices, normals, texCoords, GxPrim_TriangleStrip, primVertIndices, 4, texture, GxBlend_Alpha, 0x21,
@@ -106,9 +108,7 @@ static void CreateCursorIconModel(HTEXTURE texture) {
 
 BOOL CursorGrabMoney(UINT amount) {
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  LPCSTR separator = path && *path ? "\\" : "";
-  char   buffer[MAX_PATH];
-  SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
+  SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
 
   LPCSTR art;
   if (amount < 10) {
@@ -124,20 +124,19 @@ BOOL CursorGrabMoney(UINT amount) {
   } else {
     art = "INV_Misc_Coin_02";
   }
-  SStrCopy(buffer + SStrLen(buffer), art, sizeof(buffer) - SStrLen(buffer));
+  SStrPack(buffer, art, sizeof(buffer));
 
-  CStatus     status;
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  HTEXTURE    texture = TextureCreate(buffer, flags, &status, 0);
+  CStatus  status;
+  HTEXTURE texture = TextureCreate(buffer, CGxTexFlags(GxTex_Nearest, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 4);
   if (!texture) {
     return 0;
   }
 
-  if (s_cursorModel) {
-    ModelReplaceTexture(s_cursorModel, 1, texture, 0);
-  } else {
+  if (!s_cursorModel) {
     CreateCursorIconModel(texture);
+  } else {
+    ModelReplaceTexture(s_cursorModel, 1, texture, 0);
   }
   HandleClose(texture);
   return CursorGrabMoney(s_cursorModel);
@@ -148,18 +147,16 @@ BOOL CursorGrabSpell(LPCSTR filename) {
     return 0;
   }
 
-  CStatus     status;
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  HTEXTURE    texture = TextureCreate(filename, flags, &status, 0);
-  SysMsgAdd(status, 4);
+  CStatus  status;
+  HTEXTURE texture = TextureCreate(filename, CGxTexFlags(GxTex_Nearest, 0, 0, 0, 0, 0, 1), &status, 0);
   if (!texture) {
     return 0;
   }
 
-  if (s_cursorModel) {
-    ModelReplaceTexture(s_cursorModel, 1, texture, 0);
-  } else {
+  if (!s_cursorModel) {
     CreateCursorIconModel(texture);
+  } else {
+    ModelReplaceTexture(s_cursorModel, 1, texture, 0);
   }
   HandleClose(texture);
   return CursorGrabSpell(s_cursorModel);
@@ -241,14 +238,13 @@ void CursorSetHeldItem(DWORDLONG itemGuid) {
   g_cursor->Drop();
   g_cursor->SetItemType(CURSOR_ITEM);
 
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  HTEXTURE    texture = TextureCreate(buffer, flags, &status, 0);
+  HTEXTURE texture = TextureCreate(buffer, CGxTexFlags(GxTex_Nearest, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 4);
   if (texture) {
-    if (s_cursorModel) {
-      ModelReplaceTexture(s_cursorModel, 1, texture, 0);
-    } else {
+    if (!s_cursorModel) {
       CreateCursorIconModel(texture);
+    } else {
+      ModelReplaceTexture(s_cursorModel, 1, texture, 0);
     }
     HandleClose(texture);
   }
@@ -263,25 +259,33 @@ void CursorSetHeldVirtualItem(UINT displayID) {
     return;
   }
 
-  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  LPCSTR art = CGItem_C::GetInventoryArt(displayID);
-  LPCSTR separator = path && *path && art && *art ? "\\" : "";
-  char   buffer[MAX_PATH];
-  SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, art);
+  CStatus                   status;
+  LPCSTR                    path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+  const ItemDisplayInfoRec *displayInfoRec = g_itemDisplayInfoDB.GetRecord(displayID);
+  if (!displayInfoRec) {
+    g_cursor->Drop();
+    g_cursor->SetItemType(CURSOR_EMPTY);
+    return;
+  }
 
-  CStatus     status;
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  HTEXTURE    texture = TextureCreate(buffer, flags, &status, 0);
+  LPCSTR separator = path && *path && displayInfoRec->m_inventoryIcon && *displayInfoRec->m_inventoryIcon ? "\\" : "";
+  char   buffer[MAX_PATH];
+  SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, displayInfoRec->m_inventoryIcon);
+
+  g_cursor->Drop();
+  g_cursor->SetItemType(CURSOR_ITEM);
+
+  HTEXTURE texture = TextureCreate(buffer, CGxTexFlags(GxTex_Nearest, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 4);
   if (texture) {
-    if (s_cursorModel) {
-      ModelReplaceTexture(s_cursorModel, 1, texture, 0);
-    } else {
+    if (!s_cursorModel) {
       CreateCursorIconModel(texture);
+    } else {
+      ModelReplaceTexture(s_cursorModel, 1, texture, 0);
     }
     HandleClose(texture);
   }
-  g_cursor->SetItemType(CURSOR_ITEM);
+
   g_cursor->Grab(s_cursorModel);
 }
 
@@ -318,15 +322,11 @@ void CGCursor::SetArt(LPCSTR art) {
     HandleClose(m_model);
   }
 
+  CStatus      status;
   CModelCreate createData;
-  createData.boneNames = 0;
-  createData.numBones = 0;
-  createData.cameraNames = 0;
-  createData.numCameras = 0;
   createData.sequenceNames = s_animationNames;
   createData.numSequences = NUM_CURSOR_ANIMS;
   createData.flags = 2;
-  CStatus status;
   m_model = ModelCreate(art, &createData, &status);
   SysMsgAdd(status, 4);
 }

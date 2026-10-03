@@ -34,14 +34,13 @@ static NTempest::C44Matrix        s_gxViewMat;
 static NTempest::C44Matrix        s_gxWorldMat;
 
 void CMap::TestQueryRender() {
-  NTempest::C44Matrix cMat;
-
   if (!testQueryVerts.Count()) {
     return;
   }
 
   GxRsPush();
-  GxRsSet(GxRs_TexLodBias0, 1.0f);
+  GxRsSet(GxRs_PolygonOffset, 1.0f);
+  NTempest::C44Matrix cMat;
   cMat.Translate(-CWorldScene::camPos);
   GxXformPush(GxXform_World, cMat);
   GxRsSet(GxRs_Blend, GxBlend_Alpha);
@@ -53,7 +52,7 @@ void CMap::TestQueryRender() {
   GxPrimLockVertexPtrs(
       testQueryVerts.Count(), &testQueryVerts[0].p, sizeof(CGxVertexPC), 0, 0, &testQueryVerts[0].c, sizeof(CGxVertexPC), 0, 0, 0, 0, 0, 0
   );
-  GxPrimDrawElements(GxPrim_Triangles, testQueryIndices.Count(), &testQueryIndices[0]);
+  GxPrimDrawElements(GxPrim_Triangles, testQueryIndices.Count(), testQueryIndices.Ptr());
   GxPrimUnlockVertexPtrs();
   GxXformPop(GxXform_World);
   GxRsPop();
@@ -239,9 +238,7 @@ void DNGlare::Render() {
   NTempest::C3Vector  glareDir = m_pos - dnInfo->cameraPos;
   NTempest::C44Matrix worldMat;
   Billboard(glareDir, worldMat);
-  worldMat.d0 = glareDir.x;
-  worldMat.d1 = glareDir.y;
-  worldMat.d2 = glareDir.z;
+  *worldMat.Row3AsVec3() = m_pos - dnInfo->cameraPos;
   worldMat.Scale(NTempest::C3Vector(m_curScale));
 
   GxXformPush(GxXform_World, worldMat);
@@ -267,10 +264,8 @@ void DNPlanet::Render() {
   NTempest::C2Vector  billbTexv[6];
   NTempest::CImVector billbClrv[6];
   WORD                billbIdx[8];
-  NTempest::C44Matrix worldMat;
   DWORD               idxCount;
   DWORD               vertCount;
-  NTempest::C3Vector  worldFaceDir;
 
   GenGeometry(billbGeov, billbTexv, billbClrv, billbIdx, vertCount, idxCount);
 
@@ -278,13 +273,15 @@ void DNPlanet::Render() {
     return;
   }
 
-  worldFaceDir = m_pos - DayNightGetInfo()->cameraPos;
-  Billboard(worldFaceDir, worldMat);
-  worldMat.d0 = worldFaceDir.x;
-  worldMat.d1 = worldFaceDir.y;
-  worldMat.d2 = worldFaceDir.z;
-  GxXformPush(GxXform_World, worldMat);
   GxRsPush();
+
+  DNInfo            *dnInfo = DayNightGetInfo();
+  NTempest::C3Vector worldFaceDir = m_pos - dnInfo->cameraPos;
+
+  NTempest::C44Matrix worldMat;
+  Billboard(worldFaceDir, worldMat);
+  *worldMat.Row3AsVec3() = m_pos - dnInfo->cameraPos;
+  GxXformPush(GxXform_World, worldMat);
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsSet(GxRs_Blend, GxBlend_Alpha);
   GxRsSet(GxRs_Lighting, 0);
@@ -304,9 +301,7 @@ void DNPlanet::Render() {
 }
 
 void DNClouds::Render() {
-  NTempest::CImVector white(0xFFFFFFFF);
-
-  if (!m_nLayers) {
+  if (m_nLayers <= 0) {
     return;
   }
 
@@ -323,34 +318,33 @@ void DNClouds::Render() {
   GxRsSet(GxRs_Culling, 0);
   GxRsSet(GxRs_Texture0, m_texid);
   GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
+  NTempest::CImVector white(0xFFFFFFFF);
   GxPrimLockVertexPtrs(
-      m_nVerts, m_geoVerts.Ptr(), sizeof(NTempest::C3Vector), 0, 0, &white, 0, 0, 0, m_texVerts.Ptr(), sizeof(NTempest::C2Vector), 0, 0
+      m_nVerts, &m_geoVerts[0], sizeof(NTempest::C3Vector), 0, 0, &white, 0, 0, 0, &m_texVerts[0], sizeof(NTempest::C2Vector), 0, 0
   );
-  GxPrimDrawElements(GxPrim_TriangleStrip, m_nIndices, m_indices.Ptr());
+  GxPrimDrawElements(GxPrim_TriangleStrip, m_nIndices, &m_indices[0]);
   GxPrimUnlockVertexPtrs();
   GxRsPop();
 }
 
 void DNSky::Render() {
-  NTempest::C44Matrix viewMat;
-  NTempest::C44Matrix worldScale;
-  NTempest::C44Matrix saveViewMat;
-  float               vp[6];
-  NTempest::C3Vector  zv;
+  float vp[6];
 
   GxXformViewport(vp[0], vp[1], vp[2], vp[3], vp[4], vp[5]);
   GxXformSetViewport(vp[0], vp[1], vp[2], vp[3], 1.0f, 1.0f);
 
-  worldScale = NTempest::C44Matrix();
+  NTempest::C44Matrix worldScale;
   worldScale.Scale(CWorld::farClip * 0.5f);
   GxXformPush(GxXform_World, worldScale);
 
+  NTempest::C44Matrix saveViewMat;
   GxXformView(saveViewMat);
-  zv = NTempest::C3Vector(1.0f, 0.0f, saveViewMat.c2);
+
+  NTempest::C3Vector zv(1.0f, 0.0f, saveViewMat.c2);
   zv.Normalize();
-  NTempest::C3Vector eye(0.0f, 0.0f, 0.0f);
-  NTempest::C3Vector up(0.0f, 0.0f, 1.0f);
-  GxuXformCreateLookAtSgCompat(eye, zv, up, viewMat);
+
+  NTempest::C44Matrix viewMat;
+  GxuXformCreateLookAtSgCompat(NTempest::C3Vector(0.0f, 0.0f, 0.0f), zv, NTempest::C3Vector(0.0f, 0.0f, 1.0f), viewMat);
   GxXformSetView(viewMat);
 
   GxRsPush();
@@ -359,8 +353,8 @@ void DNSky::Render() {
   GxRsSet(GxRs_Fog, 0);
   GxRsSet(GxRs_DepthTest, 0);
   GxRsSet(GxRs_Culling, 0);
-  GxPrimLockVertexPtrs(m_nVerts, m_geoVerts.Ptr(), sizeof(NTempest::C3Vector), 0, 0, m_clrVerts.Ptr(), sizeof(NTempest::CImVector), 0, 0, 0, 0, 0, 0);
-  GxPrimDrawElements(GxPrim_TriangleStrip, m_nIndices, m_indices.Ptr());
+  GxPrimLockVertexPtrs(m_nVerts, &m_geoVerts[0], sizeof(NTempest::C3Vector), 0, 0, &m_clrVerts[0], sizeof(NTempest::CImVector), 0, 0, 0, 0, 0, 0);
+  GxPrimDrawElements(GxPrim_TriangleStrip, m_nIndices, &m_indices[0]);
   GxPrimUnlockVertexPtrs();
   GxXformSetView(saveViewMat);
   GxXformPop(GxXform_World);

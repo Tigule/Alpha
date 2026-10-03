@@ -17,23 +17,23 @@ CSimpleHyperlinkButton::~CSimpleHyperlinkButton() {
 }
 
 void CSimpleHyperlinkButton::SetHyperlink(CSimpleFontString *string, const GXUFONTHYPERLINKINFO *hyperlink) {
-  if (string && hyperlink) {
-    m_hyperlink = static_cast<char *>(SMemReAlloc(m_hyperlink, hyperlink->linkLength + 1, __FILE__, __LINE__, 0));
-    SStrCopy(m_hyperlink, hyperlink->link, hyperlink->linkLength + 1);
-
-    NTempest::CRect extent;
-    NDCToDDC(hyperlink->extent.l, hyperlink->extent.b, &extent.l, &extent.t);
-    NDCToDDC(hyperlink->extent.r, hyperlink->extent.t, &extent.r, &extent.b);
-
-    ClearAllPoints(0);
-    float ooScale = 1.0f / m_layoutScale;
-    SetPoint(FRAMEPOINT_TOPLEFT, string, FRAMEPOINT_TOPLEFT, extent.l * ooScale, extent.b * ooScale, 1);
-    SetWidth((extent.r - extent.l) / m_layoutScale);
-    SetHeight((extent.b - extent.t) / m_layoutScale);
-    Show();
-  } else {
+  if (!string || !hyperlink) {
     Hide();
+    return;
   }
+
+  m_hyperlink = static_cast<char *>(SMemReAlloc(m_hyperlink, hyperlink->linkLength + 1, __FILE__, __LINE__, 0));
+  SStrCopy(m_hyperlink, hyperlink->link, hyperlink->linkLength + 1);
+
+  NTempest::CRect extent;
+
+  NDCToDDC(hyperlink->extent.l, hyperlink->extent.b, &extent.l, &extent.t);
+  NDCToDDC(hyperlink->extent.r, hyperlink->extent.t, &extent.r, &extent.b);
+  ClearAllPoints(0);
+  SetPoint(FRAMEPOINT_TOPLEFT, string, FRAMEPOINT_TOPLEFT, extent.l / m_layoutScale, extent.b / m_layoutScale, 1);
+  SetWidth((extent.r - extent.l) / m_layoutScale);
+  SetHeight((extent.b - extent.t) / m_layoutScale);
+  Show();
 }
 
 void CSimpleHyperlinkButton::OnLayerCursorEnter() {
@@ -53,7 +53,9 @@ CSimpleHyperlinkedFrame::CSimpleHyperlinkedFrame(CSimpleFrame *parent)
 }
 
 CSimpleHyperlinkedFrame::~CSimpleHyperlinkedFrame() {
-  m_hyperlinkButtons.Clear();
+  ITERATELIST(CSimpleHyperlinkButton, m_hyperlinkButtons, button) {
+    ITERATE_DELETE;
+  }
 
   SetOnHyperlinkEnterScript(0);
   SetOnHyperlinkLeaveScript(0);
@@ -89,12 +91,13 @@ void CSimpleHyperlinkedFrame::OnHyperlinkClick(LPCSTR link, MOUSEBUTTON button) 
 }
 
 CSimpleHyperlinkButton *CSimpleHyperlinkedFrame::CreateHyperlinkButton() {
-  CSimpleHyperlinkButton *button = m_hyperlinkButtons.Head();
+  CSimpleHyperlinkButton *button;
 
-  if (button) {
-    m_hyperlinkButtons.UnlinkNode(button);
+  if (!m_hyperlinkButtons.Head()) {
+    button = NEW(CSimpleHyperlinkButton)(this);
   } else {
-    button = new (ALLOC(sizeof(CSimpleHyperlinkButton))) CSimpleHyperlinkButton(this);
+    button = m_hyperlinkButtons.Head();
+    m_hyperlinkButtons.UnlinkNode(button);
   }
 
   return button;

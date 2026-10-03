@@ -17,8 +17,12 @@ namespace NTempest {
     C3Segment(const C3Vector &start, const C3Vector &end) : start(start), end(end) {
     }
 
-    C3Vector Direction() const;
-    C3Vector Point(float distance) const;
+    C3Vector Direction() const {
+      return end - start;
+    }
+    C3Vector Point(float distance) const {
+      return Direction() * distance + start;
+    }
     CAaBox   AaBox() const;
   };
 

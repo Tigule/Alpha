@@ -3,6 +3,8 @@
 #include "MDLFile/MDLTypes.h"
 #include "Anim/AnimInternal.h"
 
+typedef BYTE uint8;
+
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 
 static UINT SetTransformationFlags(CAnimObj *currobj) {
@@ -548,14 +550,11 @@ BYTE *AnimObjectSetScaling(BYTE *fileData, UINT fileBytes, CAnimData *shared, CA
   return fileData;
 }
 
-BYTE *AnimObjectSetAttenuation(BYTE *data, UINT fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
-  BYTE *fileEnd = data + fileBytes;
-  {
-    data = AddKeyFramesType(data, fileEnd - data, 'SALK', shared, &objptr->attenstart, forceType);
-  }
-  {
-    data = AddKeyFramesType(data, fileEnd - data, 'EALK', shared, &objptr->attenend, forceType);
-  }
+BYTE *AnimObjectSetAttenuation(BYTE *fileData, UINT fileBytes, CAnimData *shared, CAnimLightObj *objptr, MDLTRACKTYPE forceType) {
+  ASSERT(shared);
+  ASSERT(objptr);
+  BYTE *data = AddKeyFramesType(fileData, fileBytes, 'SALK', shared, &objptr->attenstart, forceType);
+  data = AddKeyFramesType(data, fileBytes - (data - fileData), 'EALK', shared, &objptr->attenend, forceType);
   return data;
 }
 
@@ -627,11 +626,10 @@ ANIM_RIBBON_TRACK_SETTER(AnimObjectSetRibbonAlpha, alpha, 'LARK')
 #undef ANIM_RIBBON_TRACK_SETTER
 
 CAnim *AnimCreate(UINT *const objectCounts, UINT numGeosets, UINT numCameras, UINT numMaterialLayers) {
-  LPVOID sharedMemory = SMemAlloc(sizeof(CAnimData), "HANIMDATA", SERR_LINECODE_OBJECT, 0);
-  if (!sharedMemory) {
+  CAnimData *shared = NEWHANDLE(HANIMDATA, CAnimData);
+  if (!shared) {
     return 0;
   }
-  CAnimData *shared = new (sharedMemory) CAnimData;
 
   shared->baseObjs.ReserveSpace(objectCounts[0]);
   shared->boneObjs.ReserveSpace(objectCounts[3]);
@@ -645,49 +643,35 @@ CAnim *AnimCreate(UINT *const objectCounts, UINT numGeosets, UINT numCameras, UI
   for (UINT type = 0; type < 7; ++type) {
     numObjects += objectCounts[type];
   }
-  shared->obj.ReserveSpace(numObjects);
   shared->obj.SetCount(numObjects);
   shared->obj.Zero();
   shared->geo.ReserveSpace(numGeosets);
   shared->geoIdToGeoAnimId.ReserveSpace(numGeosets);
   shared->cameraObjs.ReserveSpace(numCameras);
   shared->layers.ReserveSpace(numMaterialLayers);
-  shared->objectOrder.ReserveSpace(numObjects);
   shared->objectOrder.SetCount(numObjects);
   for (UINT index = 0; index < numObjects; ++index) {
     shared->objectOrder[index] = index;
   }
 
-  LPVOID uniqueMemory = SMemAlloc(sizeof(CAnim), "HANIM", SERR_LINECODE_OBJECT, 0);
-  if (!uniqueMemory) {
+  CAnim *unique = NEWHANDLE(HANIM, CAnim)(0);
+  if (!unique) {
     delete shared;
     return 0;
   }
-  CAnim *unique = new (uniqueMemory) CAnim(0);
 
-  unique->baseStatus.ReserveSpace(objectCounts[0]);
   unique->baseStatus.SetCount(objectCounts[0]);
-  unique->boneStatus.ReserveSpace(objectCounts[3]);
   unique->boneStatus.SetCount(objectCounts[3]);
-  unique->lightStatus.ReserveSpace(objectCounts[1]);
   unique->lightStatus.SetCount(objectCounts[1]);
-  unique->modelStatus.ReserveSpace(objectCounts[2]);
   unique->modelStatus.SetCount(objectCounts[2]);
-  unique->emitter2Status.ReserveSpace(objectCounts[4]);
   unique->emitter2Status.SetCount(objectCounts[4]);
-  unique->ribbonStatus.ReserveSpace(objectCounts[5]);
   unique->ribbonStatus.SetCount(objectCounts[5]);
-  unique->eventStatus.ReserveSpace(objectCounts[6]);
   unique->eventStatus.SetCount(objectCounts[6]);
-  unique->status.ReserveSpace(numObjects);
   unique->status.SetCount(numObjects);
-  unique->geosetStatus.ReserveSpace(numGeosets);
   unique->geosetStatus.SetCount(numGeosets);
-  unique->cameraStatus.ReserveSpace(numCameras);
   unique->cameraStatus.SetCount(numCameras);
-  unique->layerStatus.ReserveSpace(numMaterialLayers);
   unique->layerStatus.SetCount(numMaterialLayers);
-  unique->hdata = static_cast<HANIMDATA>(HandleCreate(shared, "HANIMDATA"));
+  unique->hdata = CREATEHANDLE(HANIMDATA, shared);
   return unique;
 }
 
@@ -697,7 +681,7 @@ HANIM AnimDuplicate(HANIM oldanim, UINT flags) {
   VALIDATE(oldUnique);
   VALIDATEEND;
 
-  CAnim *unique = new (SMemAlloc(sizeof(CAnim), "HANIM", SERR_LINECODE_OBJECT, 0)) CAnim(0);
+  CAnim *unique = NEWHANDLE(HANIM, CAnim)(0);
   if (!unique) {
     return 0;
   }
@@ -705,8 +689,8 @@ HANIM AnimDuplicate(HANIM oldanim, UINT flags) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(oldUnique->hdata);
   *unique = *oldUnique;
   ResolveStatusPtrs(unique, shared);
-  unique->hdata = static_cast<HANIMDATA>(HandleCreate(shared, "HANIMDATA"));
-  HANIM duplicate = static_cast<HANIM>(HandleCreate(unique, "HANIM"));
+  unique->hdata = CREATEHANDLE(HANIMDATA, shared);
+  HANIM duplicate = CREATEHANDLE(HANIM, unique);
   AnimResetAnimationStatus(duplicate, flags & 1);
   return duplicate;
 }
@@ -745,55 +729,41 @@ void AnimAddMaterialLayer(CAnimData *shared, const MDLTEXLAYER &layerData, UINT 
 }
 
 void AnimAddMaterialLayers(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimData *shared, MDLTRACKTYPE forceType) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SLTM');
-  if (!section) {
+  BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'SLTM');
+  if (!data) {
     return;
   }
 
-  BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
-  UINT  numMaterials = *reinterpret_cast<UINT *>(section + 4);
-  UINT  numLayers = *reinterpret_cast<UINT *>(section + 8);
-  BYTE *data = section + 12;
+  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
+  BYTE *dataDone = data + sectionBytes;
+  UINT  numMaterials = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
+  UINT numLayers = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
 
-  unique->layerStatus.ReserveSpace(numLayers);
   unique->layerStatus.SetCount(numLayers);
   shared->layers.ReserveSpace(numLayers);
-  shared->layers.Clear();
 
   UINT layerId = 0;
-  for (UINT material = 0; material < numMaterials; ++material) {
+  for (UINT i = 0; i < numMaterials; ++i) {
     BYTE *materialDone = data + *reinterpret_cast<UINT *>(data);
-    UINT  materialLayers = *reinterpret_cast<UINT *>(data + 8);
-    data += 12;
-    ASSERT(materialLayers);
+    data += 2 * sizeof(UINT);
+    UINT numLayers = *reinterpret_cast<UINT *>(data);
+    data += sizeof(UINT);
+    ASSERT(numLayers);
 
-    for (UINT layerIndex = 0; layerIndex < materialLayers; ++layerIndex, ++layerId) {
+    for (UINT j = 0; j < numLayers; ++j) {
       BYTE *layerDone = data + *reinterpret_cast<UINT *>(data);
       data += 28;
       if (data != layerDone) {
-        CAnimMaterialLayer &layer = *shared->layers.New();
-        layer.layerId = layerId;
-        data = AddKeyFramesType(data, fileData + fileBytes - data, 'ATMK', shared, &layer.visibility, forceType);
-
-        if (fileData + fileBytes - data >= 8 && *reinterpret_cast<UINT *>(data) == 'FTMK') {
-          UINT numKeys = *reinterpret_cast<UINT *>(data + 4);
-          ASSERT(numKeys);
-          layer.flip.m_globalSeqId = *reinterpret_cast<UINT *>(data + 12);
-          layer.flip.SetTrackType(KEYTYPE_NOINTERP);
-          data += 16;
-          int timeAdjustment = layer.flip.m_globalSeqId == static_cast<UINT>(-1) ? 0 : *reinterpret_cast<int *>(data);
-          layer.flip.SetNumKeys(numKeys, sizeof(int) + sizeof(UINT));
-          for (UINT key = 0; key < numKeys; ++key) {
-            UINT  keyIndex = layer.flip.m_numKeyFrames++;
-            BYTE *keyData = reinterpret_cast<BYTE *>(layer.flip.m_keyFrames) + keyIndex * layer.flip.m_keyFrameSize;
-            *reinterpret_cast<int *>(keyData) = *reinterpret_cast<int *>(data) - timeAdjustment;
-            *reinterpret_cast<UINT *>(keyData + sizeof(int)) = *reinterpret_cast<UINT *>(data + sizeof(int));
-            data += sizeof(int) + sizeof(UINT);
-          }
-          layer.flip.SetSequenceIndices(shared->seq);
-        }
+        CAnimMaterialLayer *layer = shared->layers.New();
+        layer->layerId = layerId;
+        data = AddKeyFramesType(data, fileBytes - (data - fileData), 'ATMK', shared, &layer->visibility, forceType);
+        data = AddKeyFramesType(data, fileBytes - (data - fileData), 'FTMK', shared, &layer->flip);
         ASSERT(data == layerDone);
       }
+      ++layerId;
     }
     ASSERT(data == materialDone);
   }
@@ -802,43 +772,41 @@ void AnimAddMaterialLayers(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimD
 
 void AnimAddGeosets(BYTE *fileData, UINT fileBytes, CAnimData *shared, MDLTRACKTYPE forceType) {
   ASSERT(shared);
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'AOEG');
-  if (!section) {
+  BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'AOEG');
+  if (!data) {
     return;
   }
 
   UINT  numGeosets = 0;
   BYTE *geosets = MDLFileBinarySeek(fileData, fileBytes, 'SOEG');
   if (geosets) {
-    numGeosets = *reinterpret_cast<UINT *>(geosets + 4);
+    numGeosets = *reinterpret_cast<UINT *>(geosets + sizeof(UINT));
   }
 
-  UINT  numGeosetAnims = *reinterpret_cast<UINT *>(section + 4);
-  BYTE *dataDone = section + *reinterpret_cast<UINT *>(section) + 4;
-  BYTE *data = section + 8;
-  shared->geo.ReserveSpace(numGeosetAnims);
+  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
+  BYTE *dataDone = data + sectionBytes;
+  UINT  numGeosetAnims = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
+
   shared->geo.SetCount(numGeosetAnims);
-  shared->geoIdToGeoAnimId.ReserveSpace(numGeosets);
   shared->geoIdToGeoAnimId.SetCount(numGeosets);
-  if (numGeosets) {
-    memset(shared->geoIdToGeoAnimId.Ptr(), 0xFF, numGeosets * sizeof(UINT));
-  }
+  memset(shared->geoIdToGeoAnimId.Ptr(), 0xFF, shared->geoIdToGeoAnimId.Bytes());
 
   for (UINT i = 0; i < numGeosetAnims; ++i) {
     BYTE *geosetDone = data + *reinterpret_cast<UINT *>(data);
-    UINT  geosetId = *reinterpret_cast<UINT *>(data + 4);
-    ASSERT(geosetId < numGeosets);
+    data += sizeof(UINT);
+    UINT geosetId = *reinterpret_cast<UINT *>(data);
+    data += sizeof(UINT);
     shared->geoIdToGeoAnimId[geosetId] = i;
     shared->geo[i].sgGeosetId = geosetId;
-    data += 28;
+    data += 20;
 
-    data = AddKeyFramesType(data, static_cast<UINT>(fileData + fileBytes - data), 'OAGK', shared, &shared->geo[i].visibility, forceType);
-    {
-      data = AddKeyFramesType(data, static_cast<UINT>(fileData + fileBytes - data), 'CAGK', shared, &shared->geo[i].color, forceType);
-    }
-    ASSERT(data == geosetDone);
+    data = AddKeyFramesType(data, fileBytes - (data - fileData), 'OAGK', shared, &shared->geo[i].visibility, forceType);
+    data = AddKeyFramesType(data, fileBytes - (data - fileData), 'CAGK', shared, &shared->geo[i].color, forceType);
+    ASSERT(geosetDone == data);
   }
-  ASSERT(data == dataDone);
+  ASSERT(dataDone == data);
 }
 
 void AnimAddGeoset(CAnimData *shared, const MDLGEOSETANIMSECTION &geodata, MDLTRACKTYPE forceType) {
@@ -846,9 +814,11 @@ void AnimAddGeoset(CAnimData *shared, const MDLGEOSETANIMSECTION &geodata, MDLTR
   UINT         geoAnimId = shared->geo.Count();
   CAnimGeoset &geo = *shared->geo.New();
   UINT         oldCount = shared->geoIdToGeoAnimId.Count();
-  if (geodata.geosetId >= oldCount) {
+  if (geodata.geosetId >= shared->geoIdToGeoAnimId.Count()) {
     shared->geoIdToGeoAnimId.SetCount(geodata.geosetId + 1);
-    memset(shared->geoIdToGeoAnimId.Ptr() + oldCount, 0xFF, (geodata.geosetId + 1 - oldCount) * sizeof(UINT));
+  }
+  if (oldCount < geodata.geosetId) {
+    memset(&shared->geoIdToGeoAnimId[oldCount], 0xFF, (geodata.geosetId - oldCount) * sizeof(UINT));
   }
   shared->geoIdToGeoAnimId[geodata.geosetId] = geoAnimId;
   geo.sgGeosetId = geodata.geosetId;
@@ -857,15 +827,16 @@ void AnimAddGeoset(CAnimData *shared, const MDLGEOSETANIMSECTION &geodata, MDLTR
 }
 
 void AnimAddCameras(BYTE *fileData, UINT fileBytes, CAnimData *shared, MDLTRACKTYPE forceType) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SMAC');
-  if (!section) {
+  BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'SMAC');
+  if (!data) {
     return;
   }
 
-  UINT  numCameras = *reinterpret_cast<UINT *>(section + 4);
-  BYTE *dataDone = section + *reinterpret_cast<UINT *>(section) + 4;
-  BYTE *data = section + 8;
-  shared->cameraObjs.ReserveSpace(numCameras);
+  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
+  BYTE *dataDone = data + sectionBytes;
+  UINT  numCameras = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
   shared->cameraObjs.SetCount(numCameras);
 
   for (UINT i = 0; i < numCameras; ++i) {
@@ -877,12 +848,10 @@ void AnimAddCameras(BYTE *fileData, UINT fileBytes, CAnimData *shared, MDLTRACKT
     shared->cameraObjs[i].targetPivot = *reinterpret_cast<NTempest::C3Vector *>(data);
     data += sizeof(NTempest::C3Vector);
 
-    data = AddKeyFramesType(data, static_cast<UINT>(fileData + fileBytes - data), 'RTCK', shared, &shared->cameraObjs[i].translation, forceType);
-    data = AddKeyFramesType(data, static_cast<UINT>(fileData + fileBytes - data), 'LRCK', shared, &shared->cameraObjs[i].roll, forceType);
-    data = AddKeyFramesType(
-        data, static_cast<UINT>(fileData + fileBytes - data), 'RTTK', shared, &shared->cameraObjs[i].targetTranslation, forceType
-    );
-    data = AddKeyFramesType(data, static_cast<UINT>(fileData + fileBytes - data), 'SIVK', shared, &shared->cameraObjs[i].visibility, forceType);
+    data = AddKeyFramesType(data, fileBytes - (data - fileData), 'RTCK', shared, &shared->cameraObjs[i].translation, forceType);
+    data = AddKeyFramesType(data, fileBytes - (data - fileData), 'LRCK', shared, &shared->cameraObjs[i].roll, forceType);
+    data = AddKeyFramesType(data, fileBytes - (data - fileData), 'RTTK', shared, &shared->cameraObjs[i].targetTranslation, forceType);
+    data = AddKeyFramesType(data, fileBytes - (data - fileData), 'SIVK', shared, &shared->cameraObjs[i].visibility, forceType);
   }
   ASSERT(data == dataDone);
 }
@@ -899,74 +868,72 @@ void AnimAddCamera(CAnimData *shared, const MDLCAMERASECTION &cameraData, MDLTRA
 }
 
 void AnimAddSequences(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimData *shared) {
-  BYTE *sequenceSection = MDLFileBinarySeek(fileData, fileBytes, 'SQES');
   UINT  numSequences = 0;
-  BYTE *data = 0;
   BYTE *seqDataDone = 0;
-  if (sequenceSection) {
-    seqDataDone = sequenceSection + 4 + *reinterpret_cast<UINT *>(sequenceSection);
-    numSequences = *reinterpret_cast<UINT *>(sequenceSection + 4);
+  BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'SQES');
+  if (data) {
+    UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+    data += sizeof(UINT);
+    seqDataDone = data + sectionBytes;
+    numSequences = *reinterpret_cast<UINT *>(data);
     ASSERT(numSequences);
-    data = sequenceSection + 8;
+    data += sizeof(UINT);
   }
 
-  shared->seq.ReserveSpace(numSequences);
   shared->seq.SetCount(numSequences);
   for (UINT i = 0; i < numSequences; ++i) {
-    CAnimSequence &sequence = shared->seq[i];
-    SStrCopy(reinterpret_cast<char *>(&sequence.name), reinterpret_cast<LPCSTR>(data), 80);
+    SStrCopy(shared->seq[i].name, reinterpret_cast<LPCSTR>(data), 80);
     data += 80;
-    sequence.time.l = *reinterpret_cast<int *>(data);
-    data += 4;
-    sequence.time.h = *reinterpret_cast<int *>(data);
-    data += 4;
-    sequence.moveSpeed = *reinterpret_cast<float *>(data);
-    data += 4;
-    sequence.flags = *reinterpret_cast<UINT *>(data);
-    data += 4;
-    sequence.bounds.radius = *reinterpret_cast<float *>(data);
-    data += 4;
-    memcpy(&sequence.bounds.extent.b, data, sizeof(NTempest::C3Vector));
+    shared->seq[i].time.l = *reinterpret_cast<int *>(data);
+    data += sizeof(int);
+    shared->seq[i].time.h = *reinterpret_cast<int *>(data);
+    data += sizeof(int);
+    shared->seq[i].moveSpeed = *reinterpret_cast<float *>(data);
+    data += sizeof(float);
+    shared->seq[i].flags = *reinterpret_cast<UINT *>(data);
+    data += sizeof(UINT);
+    shared->seq[i].bounds.radius = *reinterpret_cast<float *>(data);
+    data += sizeof(float);
+    shared->seq[i].bounds.extent.b = *reinterpret_cast<NTempest::C3Vector *>(data);
     data += sizeof(NTempest::C3Vector);
-    memcpy(&sequence.bounds.extent.t, data, sizeof(NTempest::C3Vector));
+    shared->seq[i].bounds.extent.t = *reinterpret_cast<NTempest::C3Vector *>(data);
     data += sizeof(NTempest::C3Vector);
-    sequence.randPickChance = NTempest::CMath::fint_n(*reinterpret_cast<float *>(data) * 32767.0f);
-    data += 4;
-    sequence.replay.l = *reinterpret_cast<int *>(data);
-    data += 4;
-    sequence.replay.h = *reinterpret_cast<int *>(data);
-    data += 4;
+    shared->seq[i].randPickChance = NTempest::CMath::fint_n(*reinterpret_cast<float *>(data) * 32767.0f);
+    data += sizeof(float);
+    shared->seq[i].replay.l = *reinterpret_cast<int *>(data);
+    data += sizeof(int);
+    shared->seq[i].replay.h = *reinterpret_cast<int *>(data);
+    data += sizeof(int);
     UINT blendTime = *reinterpret_cast<UINT *>(data);
-    data += 4;
+    data += sizeof(UINT);
     if (blendTime) {
-      sequence.blendTime = blendTime;
+      shared->seq[i].blendTime = blendTime;
     }
   }
   ASSERT(seqDataDone == data);
 
-  unique->seq.ReserveSpace(numSequences);
   unique->seq.SetCount(numSequences);
 
-  BYTE *globalSection = MDLFileBinarySeek(fileData, fileBytes, 'SBLG');
-  UINT  numGlobalSequences = 0;
-  BYTE *globalData = 0;
-  BYTE *globalDataDone = 0;
-  if (globalSection) {
-    UINT globalBytes = *reinterpret_cast<UINT *>(globalSection);
-    globalData = globalSection + 4;
-    globalDataDone = globalData + globalBytes;
-    numGlobalSequences = globalBytes / sizeof(UINT);
-    ASSERT(numGlobalSequences * sizeof(UINT) == globalBytes);
+  UINT numGlobalSeqs = 0;
+  seqDataDone = 0;
+  if (!data) {
+    data = fileData;
+  }
+  data = MDLFileBinarySeek(data, fileBytes - (data - fileData), 'SBLG');
+  if (data) {
+    UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+    numGlobalSeqs = sectionBytes / sizeof(MDLGLOBALSEQSECTION);
+    data += sizeof(UINT);
+    seqDataDone = data + sectionBytes;
+    ASSERT((numGlobalSeqs * sizeof(MDLGLOBALSEQSECTION)) == sectionBytes);
   }
 
   unique->seqLastTime = IAnimGetCurrTimeMs();
-  unique->globalSeqElapsed.ReserveSpace(numGlobalSequences);
-  unique->globalSeqElapsed.SetCount(numGlobalSequences);
-  if (numGlobalSequences) {
-    unique->globalSeqElapsed.Zero();
-  }
-  shared->globalSeqLength.Set(numGlobalSequences, reinterpret_cast<UINT *>(globalData));
-  ASSERT(globalData + numGlobalSequences * sizeof(UINT) == globalDataDone);
+  unique->globalSeqElapsed.SetCount(numGlobalSeqs);
+  unique->globalSeqElapsed.Zero();
+  shared->globalSeqLength.SetCount(numGlobalSeqs);
+  memcpy(shared->globalSeqLength.Ptr(), data, numGlobalSeqs * sizeof(uint));
+  ASSERT((data + numGlobalSeqs * sizeof(uint)) == seqDataDone);
 }
 
 void AnimAddSequences(
@@ -977,89 +944,59 @@ void AnimAddSequences(
 ) {
   ASSERT(unique);
   ASSERT(shared);
-  ASSERT(sequences.Count() <= static_cast<BYTE>(0xFF));
-  ASSERT(globalSeqs.Count() <= static_cast<BYTE>(0xFF));
+  ASSERT(sequences.Count() <= uint8(0xff));
+  ASSERT(globalSeqs.Count() <= uint8(0xff));
 
   UINT numSequences = sequences.Count();
-  shared->seq.ReserveSpace(numSequences);
   shared->seq.SetCount(numSequences);
-  for (UINT i = 0; i < numSequences; ++i) {
-    CAnimSequence &sequence = shared->seq[i];
-    SStrCopy(sequence.name, sequences[i].name, sizeof(sequence.name));
-    sequence.time = sequences[i].time;
-    sequence.moveSpeed = sequences[i].movespeed;
-    sequence.flags = sequences[i].flags;
-    sequence.randPickChance = NTempest::CMath::fint_n(sequences[i].frequency * 32767.0f);
-    sequence.replay = sequences[i].replay;
-    sequence.bounds = sequences[i].bounds;
-    sequence.blendTime = sequences[i].blendTime;
+  UINT i;
+  for (i = 0; i < numSequences; ++i) {
+    SStrCopy(shared->seq[i].name, sequences[i].name, 80);
+    shared->seq[i].time = sequences[i].time;
+    shared->seq[i].moveSpeed = sequences[i].movespeed;
+    shared->seq[i].flags = sequences[i].flags;
+    shared->seq[i].randPickChance = NTempest::CMath::fint_n(sequences[i].frequency * 32767.0f);
+    shared->seq[i].replay = sequences[i].replay;
+    shared->seq[i].bounds = sequences[i].bounds;
+    shared->seq[i].blendTime = sequences[i].blendTime;
   }
 
-  unique->seq.ReserveSpace(numSequences);
   unique->seq.SetCount(numSequences);
+  UINT numGlobalSeqs = globalSeqs.Count();
   unique->seqLastTime = IAnimGetCurrTimeMs();
-  unique->globalSeqElapsed.ReserveSpace(globalSeqs.Count());
-  unique->globalSeqElapsed.SetCount(globalSeqs.Count());
-  if (globalSeqs.Count()) {
-    unique->globalSeqElapsed.Zero();
-  }
-  shared->globalSeqLength.ReserveSpace(globalSeqs.Count());
-  shared->globalSeqLength.SetCount(globalSeqs.Count());
-  for (UINT global = 0; global < globalSeqs.Count(); ++global) {
-    shared->globalSeqLength[global] = globalSeqs[global].length;
+  unique->globalSeqElapsed.SetCount(numGlobalSeqs);
+  unique->globalSeqElapsed.Zero();
+  shared->globalSeqLength.SetCount(numGlobalSeqs);
+  for (i = 0; i < numGlobalSeqs; ++i) {
+    shared->globalSeqLength[i] = globalSeqs[i].length;
   }
 }
 
 void AnimAddTextureAnims(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimData *shared, MDLTRACKTYPE forceType) {
   ASSERT(unique);
   ASSERT(shared);
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'NAXT');
-  if (!section) {
+  BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'NAXT');
+  if (!data) {
     return;
   }
 
-  BYTE *dataDone = section + 4 + *reinterpret_cast<UINT *>(section);
-  UINT  numTexAnims = *reinterpret_cast<UINT *>(section + 4);
-  BYTE *data = section + 8;
-  shared->tex.ReserveSpace(numTexAnims);
+  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
+  BYTE *dataDone = data + sectionBytes;
+  UINT  numTexAnims = *reinterpret_cast<UINT *>(data);
+  data += sizeof(UINT);
   shared->tex.SetCount(numTexAnims);
 
   for (UINT i = 0; i < numTexAnims; ++i) {
     BYTE *animDone = data + *reinterpret_cast<UINT *>(data);
-    data += 4;
-    CAnimTransform &transform = shared->tex[i];
-    data = AddKeyFramesType(data, fileData + fileBytes - data, 'TATK', shared, &transform.translation, forceType);
-
-    if (fileData + fileBytes - data >= 8 && *reinterpret_cast<UINT *>(data) == 'RATK') {
-      UINT numKeys = *reinterpret_cast<UINT *>(data + 4);
-      ASSERT(numKeys);
-      KEYTYPE trackType = GetTrackType(*reinterpret_cast<MDLTRACKTYPE *>(data + 8), forceType);
-      transform.rotation.m_globalSeqId = *reinterpret_cast<UINT *>(data + 12);
-      transform.rotation.SetTrackType(trackType);
-      data += 16;
-      int  timeAdjustment = transform.rotation.m_globalSeqId == static_cast<UINT>(-1) ? 0 : *reinterpret_cast<int *>(data);
-      UINT valueCount = trackType < TRACK_HERMITE ? 1 : 3;
-      UINT keySize = valueCount == 1 ? 16 : 32;
-      transform.rotation.SetNumKeys(numKeys, keySize);
-      for (UINT key = 0; key < numKeys; ++key) {
-        int time = *reinterpret_cast<int *>(data);
-        data += sizeof(int);
-        BYTE *keyData =
-            reinterpret_cast<BYTE *>(transform.rotation.m_keyFrames) + transform.rotation.m_numKeyFrames++ * transform.rotation.m_keyFrameSize;
-        memset(keyData, 0, keySize);
-        *reinterpret_cast<int *>(keyData) = time - timeAdjustment;
-        memcpy(keyData + 8, data, valueCount * sizeof(NTempest::C4QuaternionCompressed));
-        data += valueCount * sizeof(NTempest::C4QuaternionCompressed);
-      }
-      transform.rotation.SetSequenceIndices(shared->seq);
-    }
-
-    data = AddKeyFramesType(data, fileData + fileBytes - data, 'SATK', shared, &transform.scale, forceType);
+    data += sizeof(UINT);
+    data = AddKeyFramesType(data, fileBytes - (data - fileData), 'TATK', shared, &shared->tex[i].translation, forceType);
+    data = AddKeyFramesType(data, fileBytes - (data - fileData), 'RATK', shared, &shared->tex[i].rotation, forceType);
+    data = AddKeyFramesType(data, fileBytes - (data - fileData), 'SATK', shared, &shared->tex[i].scale, forceType);
     ASSERT(animDone == data);
   }
   ASSERT(dataDone == data);
 
-  unique->textureStatus.ReserveSpace(numTexAnims);
   unique->textureStatus.SetCount(numTexAnims);
 }
 
@@ -1067,35 +1004,16 @@ void AnimAddTextureAnim(CAnim *unique, CAnimData *shared, const TSGrowableArray<
   ASSERT(unique);
   ASSERT(shared);
 
-  shared->tex.ReserveSpace(textureAnims.Count());
   shared->tex.SetCount(textureAnims.Count());
-  for (UINT i = 0; i < textureAnims.Count(); ++i) {
-    CAnimTransform &transform = shared->tex[i];
-    AddKeyFrames(shared, textureAnims[i].transkeys, &transform.translation, forceType);
-    const MDLKEYTRACK<NTempest::C4Quaternion> &rotation = textureAnims[i].rotkeys;
-    ASSERT(shared);
-    ASSERT(&transform.rotation);
-    UINT numKeys = rotation.keys.Count();
-    if (numKeys) {
-      transform.rotation.SetGlobalSequenceId(rotation.globalSeqId);
-      transform.rotation.SetTrackType(GetTrackType(rotation.type, forceType));
-      transform.rotation.SetNumKeys(numKeys);
-      int timeAdjustment = rotation.globalSeqId == static_cast<UINT>(-1) ? 0 : rotation.keys[0].time;
-      for (UINT key = 0; key < numKeys; ++key) {
-        if (transform.rotation.GetTrackType() < KEYTYPE_HERMITE) {
-          transform.rotation.AddKey(rotation.keys[key].time - timeAdjustment, rotation.keys[key].value);
-        } else {
-          transform.rotation.AddKey(
-              rotation.keys[key].time - timeAdjustment, rotation.keys[key].value, rotation.keys[key].inTan, rotation.keys[key].outTan
-          );
-        }
-      }
-      transform.rotation.SetSequenceIndices(shared->seq);
-    }
-    AddKeyFrames(shared, textureAnims[i].scalekeys, &transform.scale, forceType);
+  UINT                     i = textureAnims.Count();
+  CAnimTransform          *texAnim = shared->tex.Ptr();
+  const MDLTEXANIMSECTION *textureAnim = textureAnims.Ptr();
+  for (; i; --i, ++textureAnim, ++texAnim) {
+    AddKeyFrames(shared, textureAnim->transkeys, &texAnim->translation, forceType);
+    AddKeyFrames(shared, textureAnim->rotkeys, &texAnim->rotation, forceType);
+    AddKeyFrames(shared, textureAnim->scalekeys, &texAnim->scale, forceType);
   }
 
-  unique->textureStatus.ReserveSpace(textureAnims.Count());
   unique->textureStatus.SetCount(textureAnims.Count());
 }
 

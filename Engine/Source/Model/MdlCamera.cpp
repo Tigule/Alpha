@@ -41,7 +41,7 @@ void MdxReadCameras(BYTE *data, UINT fileBytes, TSFixedArray<HCAMERA> *cameras) 
     return;
   }
 
-  fileBytes = *reinterpret_cast<UINT *>(section) - 4;
+  UINT  sectionBytes = *reinterpret_cast<UINT *>(section) - 4;
   UINT  numCameras = *reinterpret_cast<UINT *>(section + 4);
   BYTE *cameraData = section + 8;
 
@@ -66,10 +66,10 @@ void MdxReadCameras(BYTE *data, UINT fileBytes, TSFixedArray<HCAMERA> *cameras) 
 
     (*cameras)[i] = camera;
 
-    ASSERT(fileBytes >= bytesThisCamera);
-    fileBytes -= bytesThisCamera;
+    ASSERT(sectionBytes >= bytesThisCamera);
+    sectionBytes -= bytesThisCamera;
     cameraData += bytesThisCamera;
   }
 
-  ASSERT(fileBytes == 0);
+  ASSERT(sectionBytes == 0);
 }

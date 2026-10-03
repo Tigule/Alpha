@@ -38,14 +38,16 @@ enum TOOLTIP_ANCHORPOINT {
 class CGTooltip : public CSimpleFrame {
  public:
   static CSimpleFrame *Create(CSimpleFrame *parent);
-  static LPCSTR        GetItemQualityColorString(UINT quality);
+
+  virtual void PostLoadXML(const XMLNode *node, CStatus *status);
+
   static void GetSpellEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, BOOL isPet, TOOLTIP_DETAIL detail);
   static void GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex, UINT level, BOOL isPet, TOOLTIP_DETAIL detail);
   static void GetItemEnchantString(char *buf, UINT bufSize, const SpellItemEnchantmentRec *enchant, UINT effectIndex, TOOLTIP_DETAIL detail);
   static void GetSpellTargetString(char *buf, UINT bufSize, const SpellRec *spell, UINT effectIndex);
   static void GetSummonedByString(const CGUnit_C *unitPtr, char *string, UINT size);
-  static void RegisterScriptMethods();
-  static void UnregisterScriptMethods();
+
+  virtual void OnLayerUpdate(float elapsedSec);
 
   CLayoutFrame *GetOwner() {
     return m_owner;
@@ -54,9 +56,9 @@ class CGTooltip : public CSimpleFrame {
   void SetOwner(CLayoutFrame *owner, float x, float y);
   void SetPosition(float x, float y);
   void ClearLines();
-  void AddLine(LPCSTR leftText, LPCSTR rightText, const NTempest::CImVector &leftColor, const NTempest::CImVector &rightColor, int wrapped);
   void AddLine(LPCSTR leftText, LPCSTR rightText, int wrapped);
   void AddLine(LPCSTR text, const NTempest::CImVector &color, int wrapped);
+  void AddLine(LPCSTR leftText, LPCSTR rightText, const NTempest::CImVector &leftColor, const NTempest::CImVector &rightColor, int wrapped);
   UINT NumLines() {
     return m_lines;
   }
@@ -84,27 +86,31 @@ class CGTooltip : public CSimpleFrame {
   const DWORDLONG &GetDebugUnit() const {
     return m_debugUnit;
   }
-  DWORDLONG GetUnit() {
-    return m_unit;
-  }
   void FadeOut();
 
-  virtual void PostLoadXML(const XMLNode *node, CStatus *status);
-  virtual void OnLayerUpdate(float elapsedSec);
+  static LPCSTR GetItemQualityColorString(UINT quality);
 
  protected:
   CGTooltip(CSimpleFrame *parent);
   virtual ~CGTooltip();
 
-  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
   virtual BOOL HideThis();
   virtual BOOL ShowThis();
+
+ public:
+  static void RegisterScriptMethods();
+  static void UnregisterScriptMethods();
+
+  DWORDLONG GetUnit() {
+    return m_unit;
+  }
+
+ protected:
+  virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
 
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
 
  private:
-  static UINT m_spellID;
-
   CLayoutFrame                     *m_owner;
   TOOLTIP_ANCHORPOINT               m_anchorPoint;
   UINT                              m_lines;
@@ -120,6 +126,7 @@ class CGTooltip : public CSimpleFrame {
   DWORDLONG                         m_itemGUID;
   DWORDLONG                         m_corpseGUID;
   UINT                              m_itemID;
+  static UINT                       m_spellID;
   BOOL                              m_fading;
   float                             m_fadeTime;
   float                             m_padding;

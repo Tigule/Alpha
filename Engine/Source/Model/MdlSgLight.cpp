@@ -53,24 +53,25 @@ void MdxReadLights(BYTE *data, UINT fileBytes, CModelComplex *modelptr) {
   ASSERT(data);
   ASSERT(modelptr);
 
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'ETIL');
-  if (!section) {
+  data = MDLFileBinarySeek(data, fileBytes, 'ETIL');
+  if (!data) {
     return;
   }
 
-  UINT  sectionBytes = *reinterpret_cast<UINT *>(section) - 4;
-  UINT  numLights = *reinterpret_cast<UINT *>(section + 4);
-  BYTE *lightData = section + 8;
+  UINT sectionBytes = *reinterpret_cast<UINT *>(data) - 4;
+  data += 4;
+  UINT numLights = *reinterpret_cast<UINT *>(data);
+  data += 4;
 
   modelptr->m_lights.SetCount(numLights);
 
   for (UINT i = 0; i < numLights; ++i) {
-    UINT bytesThisLight = *reinterpret_cast<UINT *>(lightData);
-    modelptr->m_lights[i] = CreateGxLight(lightData + 4);
+    UINT bytesThisEmitter = *reinterpret_cast<UINT *>(data);
+    modelptr->m_lights[i] = CreateGxLight(data + 4);
+    data += bytesThisEmitter;
 
-    ASSERT(sectionBytes >= bytesThisLight);
-    sectionBytes -= bytesThisLight;
-    lightData += bytesThisLight;
+    ASSERT(sectionBytes >= bytesThisEmitter);
+    sectionBytes -= bytesThisEmitter;
   }
 
   ASSERT(sectionBytes == 0);

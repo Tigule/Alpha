@@ -116,57 +116,60 @@ static void BuildPrimBone(NTempest::C34Matrix *boneMatrices, UINT *matrix, UINT 
 
   ASSERT(mtxCount > 0);
 
-  if (mtxCount == 1) {
-    UINT *source = reinterpret_cast<UINT *>(boneMatrices + matrix[0]);
-    UINT *target = reinterpret_cast<UINT *>(bone);
+  switch (mtxCount) {
+    default: {
+      *bone = boneMatrices[*matrix++];
+      for (i = mtxCount - 1; i; --i) {
+        *bone += boneMatrices[*matrix];
+        ++matrix;
+      }
 
-    for (i = 0; i < NTempest::C34Matrix::eComponents; ++i) {
-      target[i] = source[i];
+      *bone /= static_cast<float>(mtxCount);
+      break;
     }
-  } else if (mtxCount == 2) {
-    float *matrix0 = reinterpret_cast<float *>(boneMatrices + matrix[0]);
-    float *matrix1 = reinterpret_cast<float *>(boneMatrices + matrix[1]);
-    float *target = reinterpret_cast<float *>(bone);
+    case 3: {
+      float *matrix0 = reinterpret_cast<float *>(boneMatrices + matrix[0]);
+      float *matrix1 = reinterpret_cast<float *>(boneMatrices + matrix[1]);
+      float *matrix2 = reinterpret_cast<float *>(boneMatrices + matrix[2]);
+      float *target = reinterpret_cast<float *>(bone);
 
-    for (i = 0; i < NTempest::C34Matrix::eComponents; ++i) {
-      target[i] = (matrix0[i] + matrix1[i]) * 0.5f;
+      for (i = 0; i < NTempest::C34Matrix::eComponents; ++i) {
+        target[i] = (matrix0[i] + matrix1[i] + matrix2[i]) * 0.33333331f;
+      }
+      break;
     }
-  } else if (mtxCount == 3) {
-    float *matrix0 = reinterpret_cast<float *>(boneMatrices + matrix[0]);
-    float *matrix1 = reinterpret_cast<float *>(boneMatrices + matrix[1]);
-    float *matrix2 = reinterpret_cast<float *>(boneMatrices + matrix[2]);
-    float *target = reinterpret_cast<float *>(bone);
+    case 2: {
+      float *matrix0 = reinterpret_cast<float *>(boneMatrices + matrix[0]);
+      float *matrix1 = reinterpret_cast<float *>(boneMatrices + matrix[1]);
+      float *target = reinterpret_cast<float *>(bone);
 
-    for (i = 0; i < NTempest::C34Matrix::eComponents; ++i) {
-      target[i] = (matrix0[i] + matrix1[i] + matrix2[i]) * 0.33333331f;
+      for (i = 0; i < NTempest::C34Matrix::eComponents; ++i) {
+        target[i] = (matrix0[i] + matrix1[i]) * 0.5f;
+      }
+      break;
     }
-  } else {
-    *bone = boneMatrices[*matrix++];
-    i = mtxCount - 1;
-
-    while (i) {
-      *bone += boneMatrices[*matrix++];
-      --i;
-    }
-
-    *bone /= static_cast<float>(mtxCount);
+    case 1:
+      *bone = boneMatrices[*matrix];
+      break;
   }
 }
 
 static void BuildPrimBones(CGeosetShared *geoset, NTempest::C34Matrix *boneMatrices, NTempest::C34Matrix *weightedMatrices) {
-  if (!geoset->groupMatrixCounts.Count()) {
+  UINT numGroups = geoset->groupMatrixCounts.Count();
+  if (!numGroups) {
     *weightedMatrices = *boneMatrices;
     return;
   }
 
-  UINT *mtxCount = geoset->groupMatrixCounts.Ptr();
   UINT *mtxList = geoset->matrices.Ptr();
+  UINT *mtxCount = geoset->groupMatrixCounts.Ptr();
 
-  do {
+  for (; numGroups; --numGroups) {
     BuildPrimBone(boneMatrices, mtxList, *mtxCount, weightedMatrices);
-    mtxList += *mtxCount++;
+    mtxList += *mtxCount;
+    ++mtxCount;
     ++weightedMatrices;
-  } while (mtxCount != geoset->groupMatrixCounts.Ptr() + geoset->groupMatrixCounts.Count());
+  }
 }
 
 static void SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared, NTempest::C34Matrix *boneMatrices) {
@@ -323,19 +326,17 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
     return;
   }
 
-  UINT numMaterials = unique->m_materials.Count();
   s_layerAlpha.SetCount(shared->numLayers);
-  GetLayerAlpha(unique->m_materials.Ptr(), numMaterials, s_layerAlpha.Ptr());
+  GetLayerAlpha(unique->m_materials.Ptr(), unique->m_materials.Count(), s_layerAlpha.Ptr());
 
-  UINT bones = GetTransformListIndex(shared->numBones);
+  UINT bones = GetTransformListIndex(shared->numBones + shared->hitTest.Count());
   UINT numLayers = 0;
+  UINT numMaterials = unique->m_materials.Count();
   for (UINT i = 0; i < numMaterials; ++i) {
-    CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[i]);
-    numLayers += material->layers.Count();
+    numLayers += reinterpret_cast<CMaterial *>(unique->m_materials[i])->layers.Count();
   }
-  UINT  layerIndex = GetLayerIndex(numLayers);
-  UINT *layers = GetLayerPtr(layerIndex);
-  IGetLayerIDs(layers, numLayers);
+  UINT layerIndex = GetLayerIndex(numLayers);
+  IGetLayerIDs(GetLayerPtr(layerIndex), numLayers);
 
   unique->m_texBones = MatrixAlloc(shared->numTexBones);
   CAnimationData animData;
@@ -353,29 +354,32 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
   animData.cameraWorldPos = &cameraWorldPos;
   animData.cameraVector = &cameraVector;
   animData.layerAlpha = s_layerAlpha.Ptr();
-  animData.layerTextureIds = layers;
+  animData.layerTextureIds = GetLayerPtr(layerIndex);
   AnimAnimateModel(unique->m_anim, animData);
 
-  for (UINT materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
-    CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[materialIndex]);
-    for (UINT materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
-      UINT animatedId = layers[materialLayer];
-      if (animatedId != static_cast<UINT>(-1)) {
-        CTexLayer &layer = material->layers[materialLayer];
-        UINT       originalId = layer.tmuPass[0].textureId;
-        if (HandleObjectCompare(
-                reinterpret_cast<HOBJECT>(unique->m_textures[animatedId].handle), reinterpret_cast<HOBJECT>(unique->m_textures[originalId].handle)
-            ))
-        {
-          layer.tmuPass[0].textureId = animatedId;
+  UINT *layers = GetLayerPtr(layerIndex);
+  if (numLayers) {
+    ASSERT(layers);
+
+    for (UINT materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
+      CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[materialIndex]);
+      for (UINT materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
+        if (layers[materialLayer] != static_cast<UINT>(-1)) {
+          if (HandleObjectCompare(
+                  unique->m_textures[material->layers[materialLayer].tmuPass[0].textureId].handle, unique->m_textures[layers[materialLayer]].handle
+              ))
+          {
+            material->layers[materialLayer].tmuPass[0].textureId = layers[materialLayer];
+          }
         }
       }
     }
   }
-  SetGeosetMatrices(unique, shared, animData.boneMtx);
+
+  SetGeosetMatrices(unique, shared, GetTransformPtr(bones));
   ReleaseLayerIndex(numLayers);
-  ReleaseTransformListIndex(shared->numBones);
-  SetLayerAlpha(unique->m_materials.Ptr(), numMaterials, s_layerAlpha.Ptr());
+  ReleaseTransformListIndex(shared->numBones + shared->hitTest.Count());
+  SetLayerAlpha(unique->m_materials.Ptr(), unique->m_materials.Count(), s_layerAlpha.Ptr());
 }
 
 static void ModelAnimateAttached(
@@ -414,20 +418,19 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
   UINT       transforms = GetTransformListIndex(numAttachments);
 
   if (unique->m_anim) {
-    UINT numMaterials = unique->m_materials.Count();
     s_layerAlpha.SetCount(shared->numLayers);
-    GetLayerAlpha(unique->m_materials.Ptr(), numMaterials, s_layerAlpha.Ptr());
-    UINT bones = GetTransformListIndex(shared->numBones);
-    UINT numLayers = 0;
-    for (UINT i = 0; i < numMaterials; ++i) {
-      CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[i]);
-      numLayers += material->layers.Count();
-    }
-    UINT  layerIndex = GetLayerIndex(numLayers);
-    UINT *layers = GetLayerPtr(layerIndex);
-    IGetLayerIDs(layers, numLayers);
-    unique->m_texBones = MatrixAlloc(shared->numTexBones);
+    GetLayerAlpha(unique->m_materials.Ptr(), unique->m_materials.Count(), s_layerAlpha.Ptr());
 
+    UINT bones = GetTransformListIndex(shared->numBones + shared->hitTest.Count());
+    UINT numLayers = 0;
+    UINT numMaterials = unique->m_materials.Count();
+    for (UINT i = 0; i < numMaterials; ++i) {
+      numLayers += reinterpret_cast<CMaterial *>(unique->m_materials[i])->layers.Count();
+    }
+    UINT layerIndex = GetLayerIndex(numLayers);
+    IGetLayerIDs(GetLayerPtr(layerIndex), numLayers);
+
+    unique->m_texBones = MatrixAlloc(shared->numTexBones);
     CAnimationData animData;
     animData.boneMtx = GetTransformPtr(bones);
     animData.numBones = shared->numBones;
@@ -443,33 +446,35 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
     animData.cameraWorldPos = &cameraWorldPos;
     animData.cameraVector = &cameraVector;
     animData.layerAlpha = s_layerAlpha.Ptr();
-    animData.layerTextureIds = layers;
+    animData.layerTextureIds = GetLayerPtr(layerIndex);
     AnimAnimateModel(unique->m_anim, animData);
 
-    if (unique->m_attachmentFlags.Count()) {
-      memset(unique->m_attachmentFlags.Ptr(), 0, unique->m_attachmentFlags.Count());
-    }
-    for (UINT materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
-      CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[materialIndex]);
-      for (UINT materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
-        UINT animatedId = layers[materialLayer];
-        if (animatedId != static_cast<UINT>(-1)) {
-          CTexLayer &layer = material->layers[materialLayer];
-          UINT       originalId = layer.tmuPass[0].textureId;
-          if (HandleObjectCompare(
-                  reinterpret_cast<HOBJECT>(unique->m_textures[animatedId].handle), reinterpret_cast<HOBJECT>(unique->m_textures[originalId].handle)
-              ))
-          {
-            layer.tmuPass[0].textureId = animatedId;
+    memset(unique->m_attachmentFlags.Ptr(), 0, unique->m_attachmentFlags.Count());
+
+    UINT *layers = GetLayerPtr(layerIndex);
+    if (numLayers) {
+      ASSERT(layers);
+
+      for (UINT materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
+        CMaterial *material = reinterpret_cast<CMaterial *>(unique->m_materials[materialIndex]);
+        for (UINT materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
+          if (layers[materialLayer] != static_cast<UINT>(-1)) {
+            if (HandleObjectCompare(
+                    unique->m_textures[material->layers[materialLayer].tmuPass[0].textureId].handle, unique->m_textures[layers[materialLayer]].handle
+                ))
+            {
+              material->layers[materialLayer].tmuPass[0].textureId = layers[materialLayer];
+            }
           }
         }
       }
     }
-    SetGeosetMatrices(unique, shared, animData.boneMtx);
-    SetCollisionMatrices(unique, shared, animData.boneMtx);
+
+    SetGeosetMatrices(unique, shared, GetTransformPtr(bones));
+    SetCollisionMatrices(unique, shared, GetTransformPtr(bones));
     ReleaseLayerIndex(numLayers);
-    ReleaseTransformListIndex(shared->numBones);
-    SetLayerAlpha(unique->m_materials.Ptr(), numMaterials, s_layerAlpha.Ptr());
+    ReleaseTransformListIndex(shared->numBones + shared->hitTest.Count());
+    SetLayerAlpha(unique->m_materials.Ptr(), unique->m_materials.Count(), s_layerAlpha.Ptr());
   } else {
     SetUnanimatedGeosetMatrices(unique, shared);
     SetUnanimatedCollisionMatrices(unique);
@@ -477,21 +482,21 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
   }
 
   int normalizeNorms = unique->m_flags & 2;
-  for (UINT attachmentIndex = 0; attachmentIndex < numAttachments; ++attachmentIndex) {
+  LISTPTR(LINKUNIQUE) attached = unique->m_attached.Ptr();
+  for (UINT i = 0; i < numAttachments; ++i, ++attached) {
     int enabled = 1;
     if (unique->m_anim) {
-      if (unique->m_attachmentFlags[attachmentIndex] & 1) {
-        enabled = unique->m_attachmentFlags[attachmentIndex] & 2;
+      if (unique->m_attachmentFlags[i] & 1) {
+        enabled = unique->m_attachmentFlags[i] & 2;
       } else {
-        enabled = AnimIsAttachmentEnabled(unique->m_anim, attachmentIndex);
-        unique->m_attachmentFlags[attachmentIndex] = (enabled ? 2 : 0) | 1;
+        enabled = AnimIsAttachmentEnabled(unique->m_anim, i);
+        unique->m_attachmentFlags[i] = (enabled ? 2 : 0) | 1;
       }
     }
-    if (!enabled)
-      continue;
-    LIST(LINKUNIQUE) &list = unique->m_attached[attachmentIndex];
-    ITERATELIST(LINKUNIQUE, list, link) {
-      ModelAnimateAttached(link->child, link->scale, transforms + attachmentIndex, normalizeNorms, cameraWorldPos, cameraVector);
+    if (enabled) {
+      ITERATELISTPTR(LINKUNIQUE, attached, link) {
+        ModelAnimateAttached(link->child, link->scale, transforms + i, normalizeNorms, cameraWorldPos, cameraVector);
+      }
     }
   }
   ReleaseTransformListIndex(numAttachments);
@@ -516,26 +521,30 @@ static void IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
     AnimProcessEvents(unique->m_anim, shared->positions);
   }
 
-  if (!(unique->m_flags & 0x20)) {
-    return;
-  }
+  if (unique->m_flags & 0x20) {
+    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    UINT           numAttached = complex->m_attached.Count();
+    for (UINT index = 0; index < numAttached; ++index) {
+      int enabled = 1;
+      if (complex->m_anim) {
+        if (complex->m_attachmentFlags[index] & 1) {
+          enabled = complex->m_attachmentFlags[index] & 2;
+        } else {
+          enabled = AnimIsAttachmentEnabled(complex->m_anim, index);
+          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
+        }
+      }
 
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
-  UINT           numAttached = complex->m_attached.Count();
-  for (UINT index = 0; index < numAttached; ++index) {
-    int enabled = !unique->m_anim || AnimIsAttachmentEnabled(unique->m_anim, index);
-    if (!enabled) {
-      continue;
-    }
-
-    LIST(LINKUNIQUE) &attached = complex->m_attached[index];
-    ITERATELIST(LINKUNIQUE, attached, link) {
-      CModelBase   *childModel;
-      CModelShared *childShared;
-      if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childModel, &childShared)) {
+      if (enabled) {
         WorldMatrixPush();
-        WorldMatrixLoad(childModel->m_modelToWorld);
-        IModelProcessEvents(childModel, childShared);
+        ITERATELIST(LINKUNIQUE, complex->m_attached[index], link) {
+          CModelBase   *childModel;
+          CModelShared *childShared;
+          if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childModel, &childShared)) {
+            WorldMatrixLoad(childModel->m_modelToWorld);
+            IModelProcessEvents(childModel, childShared);
+          }
+        }
         WorldMatrixPop();
       }
     }
@@ -701,10 +710,10 @@ void ModelAnimate(
     return;
   }
   ActivityBegin(ACTIVITY_ANIMATE);
-  if (NTempest::CMath::fabs_(scale - 1.0f) < 0.00000095367432f)
-    unique->m_flags &= ~2;
-  else
+  if (NTempest::CMath::fnotequal4_(scale, 1.0f))
     unique->m_flags |= 2;
+  else
+    unique->m_flags &= ~2;
   unique->m_modelToWorld = orientation;
   WorldMatrixPush();
   WorldMatrixLoad(orientation);
@@ -1129,7 +1138,7 @@ float ModelGetTimeScale(HMODEL model) {
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
     return AnimGetTimeScale(unique->m_anim);
   }
-  return 0.0f;
+  return 1.0f;
 }
 
 float ModelGetObjectTimeScale(HMODEL model, UINT objectId) {
@@ -1138,7 +1147,7 @@ float ModelGetObjectTimeScale(HMODEL model, UINT objectId) {
   if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
     return AnimGetObjectTimeScale(unique->m_anim, objectId);
   }
-  return 0.0f;
+  return 1.0f;
 }
 
 BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels) {
@@ -1157,29 +1166,33 @@ BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMod
     return 0;
   }
 
-  if (!doLinkedModels || !(unique->m_flags & 0x20)) {
-    return 1;
-  }
+  if (doLinkedModels && (unique->m_flags & 0x20)) {
+    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
+    UINT index = 0;
 
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
-  for (UINT index = 0; index < complex->m_attached.Count(); ++index) {
-    int enabled = 1;
-    if (unique->m_anim) {
-      if (complex->m_attachmentFlags[index] & 1) {
-        enabled = complex->m_attachmentFlags[index] & 2;
-      } else {
-        enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
-        complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-      }
-    }
-
-    if (enabled) {
-      LIST(LINKUNIQUE) &links = complex->m_attached[index];
-      ITERATELIST(LINKUNIQUE, links, link) {
-        if (!ModelForceCurrentSequenceTime(link->child, timeOffset, 1)) {
-          return 0;
+    while (index < complex->m_attached.Count()) {
+      int enabled = 1;
+      if (unique->m_anim) {
+        if (complex->m_attachmentFlags[index] & 1) {
+          enabled = complex->m_attachmentFlags[index] & 2;
+        } else {
+          enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
+          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
         }
       }
+
+      if (enabled) {
+        LINKUNIQUE *link = attached->Head();
+        while (link) {
+          LINKUNIQUE *next = attached->Next(link);
+          ModelForceCurrentSequenceTime(link->child, timeOffset, 1);
+          link = next;
+        }
+      }
+
+      ++attached;
+      ++index;
     }
   }
 
@@ -1287,7 +1300,7 @@ BOOL ModelAdvanceTime(HMODEL model, int timeChange) {
     return 0;
   }
 
-  FATALASSERT(reinterpret_cast<CModel *>(model));
+  FATALASSERT(((CModel *)((CHandleObject*)(model))));
   if (unique->m_flags & 0x20) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
@@ -1364,14 +1377,20 @@ void ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
     UINT           numAttachments = complex->m_attached.Count();
     for (UINT index = 0; index < numAttachments; ++index) {
-      int enabled = !unique->m_anim || AnimIsAttachmentEnabled(unique->m_anim, index);
-      if (!enabled) {
-        continue;
+      int enabled = 1;
+      if (complex->m_anim) {
+        if (complex->m_attachmentFlags[index] & 1) {
+          enabled = complex->m_attachmentFlags[index] & 2;
+        } else {
+          enabled = AnimIsAttachmentEnabled(complex->m_anim, index);
+          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
+        }
       }
 
-      LIST(LINKUNIQUE) &attached = complex->m_attached[index];
-      ITERATELIST(LINKUNIQUE, attached, link) {
-        ModelResetGlobalSequenceTimes(link->child, 0);
+      if (enabled) {
+        ITERATELIST(LINKUNIQUE, complex->m_attached[index], link) {
+          ModelResetGlobalSequenceTimes(link->child, 0);
+        }
       }
     }
   }

@@ -360,7 +360,7 @@ static int Script_ClickTradeButton(lua_State *L) {
   CGGameUI::GetCursorItem(cursorItem, cursorContainer, cursorSlot);
   CGItem_C *cursor = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(cursorItem, __FILE__, __LINE__));
   if (cursor) {
-    if (!cursor->IsUnlocked()) {
+    if (cursor->IsBound()) {
       const ItemStats *stats = g_itemDBCache.GetRecord(cursor->GetEntryID(), 0, 0, 0);
       if (stats && (stats->m_bonding == 4 || stats->m_bonding == 5)) {
         CGGameUI::DisplayError(GERR_TRADE_QUEST_ITEM);

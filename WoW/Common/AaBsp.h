@@ -51,9 +51,6 @@ class CAaBsp {
   const WORD *GetFaceIndices() const {
     return nodeFaceIndices;
   }
-  void        GetFaceIndices(CAaBspNode *node);
-  void        GetFaceIndices(UINT nodeIndex, NTempest::C3Segment &seg);
-  void        GetFaceIndices(UINT nodeIndex, NTempest::CAaBox &aaBox);
 
   CAaBspNode *GetNodeList() {
     return nodes;
@@ -89,6 +86,9 @@ class CAaBsp {
   void  ChoosePlane(UINT &bestAxis, float &bestDist, WORD *buildFaceIndices, UINT count);
   void
   PartitionFaceList(UINT axis, float dist, WORD *buildFaceIndices, UINT count, WORD *posIndices, UINT &posCount, WORD *negIndices, UINT &negCount);
+  void GetFaceIndices(CAaBspNode *node);
+  void GetFaceIndices(UINT nodeIndex, NTempest::C3Segment &seg);
+  void GetFaceIndices(UINT nodeIndex, NTempest::CAaBox &aaBox);
 
   CAaBspNode         *rootNode;
   CAaBspNode         *nodes;
@@ -121,9 +121,9 @@ class CAaBsp_Query {
   QUERY        &f;
 
   void GetFaceIndices(const CAaBspNode *node) {
-    const WORD *faceIndices = aaBsp.GetFaceIndices();
+    const WORD *faceIndices = &aaBsp.GetFaceIndices()[node->faceStart];
     for (UINT i = 0; i < node->nFaces; ++i) {
-      f(faceIndices[node->faceStart + i]);
+      f(faceIndices[i]);
     }
   }
 
@@ -143,20 +143,27 @@ class CAaBsp_Query_Segment : public CAaBsp_Query<QUERY> {
       return;
     }
 
-    UINT  axis = node->flags & CAaBspNode::Flag_AxisMask;
-    float segMin = seg.start[axis] < seg.end[axis] ? seg.start[axis] : seg.end[axis];
-    float segMax = seg.start[axis] > seg.end[axis] ? seg.start[axis] : seg.end[axis];
-    if (segMax < qbBox.b[axis] || segMin > qbBox.t[axis]) {
+    UINT axis = node->flags & CAaBspNode::Flag_AxisMask;
+    if ((seg.start[axis] < qbBox.b[axis] && seg.end[axis] < qbBox.b[axis]) || (seg.start[axis] > qbBox.t[axis] && seg.end[axis] > qbBox.t[axis])) {
       return;
     }
 
-    NTempest::CAaBox negBox(qbBox);
     NTempest::CAaBox posBox(qbBox);
-    negBox.t[axis] = node->planeDist;
     posBox.b[axis] = node->planeDist;
+    NTempest::CAaBox negBox(qbBox);
+    negBox.t[axis] = node->planeDist;
 
     float d0 = seg.start[axis] - node->planeDist;
     float d1 = seg.end[axis] - node->planeDist;
+    if (d0 == 0.0f || d1 == 0.0f) {
+      if (node->posChild != 0xFFFF) {
+        GetFaceIndices(node->posChild, seg, posBox);
+      }
+      if (node->negChild != 0xFFFF) {
+        GetFaceIndices(node->negChild, seg, negBox);
+      }
+      return;
+    }
     if (d0 > 0.0f && d1 > 0.0f) {
       if (node->posChild != 0xFFFF) {
         GetFaceIndices(node->posChild, seg, posBox);
@@ -170,37 +177,32 @@ class CAaBsp_Query_Segment : public CAaBsp_Query<QUERY> {
       return;
     }
 
-    if (d0 == 0.0f || d1 == 0.0f) {
+    NTempest::C3Vector mid = seg.start + seg.Direction() * (d0 / (d0 - d1));
+    if (d0 > 0.0f) {
       if (node->posChild != 0xFFFF) {
-        GetFaceIndices(node->posChild, seg, posBox);
-      }
-      if (node->negChild != 0xFFFF) {
-        GetFaceIndices(node->negChild, seg, negBox);
-      }
-      return;
-    }
-
-    float              frac = d0 / (d0 - d1);
-    NTempest::C3Vector mid(
-        seg.start.x + (seg.end.x - seg.start.x) * frac, seg.start.y + (seg.end.y - seg.start.y) * frac, seg.start.z + (seg.end.z - seg.start.z) * frac
-    );
-    if (d0 < 0.0f) {
-      if (node->negChild != 0xFFFF) {
-        NTempest::C3Segment nSeg(seg.start, mid);
-        GetFaceIndices(node->negChild, nSeg, negBox);
-      }
-      if (node->posChild != 0xFFFF) {
-        NTempest::C3Segment nSeg(mid, seg.end);
+        NTempest::C3Segment nSeg;
+        nSeg.start = seg.start;
+        nSeg.end = mid;
         GetFaceIndices(node->posChild, nSeg, posBox);
+      }
+      if (node->negChild != 0xFFFF) {
+        NTempest::C3Segment nSeg;
+        nSeg.start = mid;
+        nSeg.end = seg.end;
+        GetFaceIndices(node->negChild, nSeg, negBox);
       }
     } else {
-      if (node->posChild != 0xFFFF) {
-        NTempest::C3Segment nSeg(seg.start, mid);
-        GetFaceIndices(node->posChild, nSeg, posBox);
-      }
       if (node->negChild != 0xFFFF) {
-        NTempest::C3Segment nSeg(mid, seg.end);
+        NTempest::C3Segment nSeg;
+        nSeg.start = seg.start;
+        nSeg.end = mid;
         GetFaceIndices(node->negChild, nSeg, negBox);
+      }
+      if (node->posChild != 0xFFFF) {
+        NTempest::C3Segment nSeg;
+        nSeg.start = mid;
+        nSeg.end = seg.end;
+        GetFaceIndices(node->posChild, nSeg, posBox);
       }
     }
   }
@@ -215,7 +217,7 @@ template <class QUERY>
 class CAaBsp_Query_AaBox : public CAaBsp_Query<QUERY> {
   void operator=(const CAaBsp_Query_AaBox &);
 
-  void GetFaceIndices(UINT nodeIndex, const NTempest::CAaBox &nodeBox, const NTempest::CAaBox &queryBox) {
+  void GetFaceIndices(UINT nodeIndex, const NTempest::CAaBox &nodeBox, const NTempest::CAaBox &qbBox) {
     const CAaBspNode *node = &this->aaBsp.GetNodeList()[nodeIndex];
     if (node->flags & CAaBspNode::Flag_Leaf) {
       CAaBsp_Query<QUERY>::GetFaceIndices(node);
@@ -223,38 +225,43 @@ class CAaBsp_Query_AaBox : public CAaBsp_Query<QUERY> {
     }
 
     UINT axis = node->flags & CAaBspNode::Flag_AxisMask;
-    if (nodeBox.t[axis] < queryBox.b[axis] || nodeBox.b[axis] > queryBox.t[axis]) {
+    if (nodeBox.t[axis] < qbBox.b[axis] || nodeBox.b[axis] > qbBox.t[axis]) {
       return;
     }
 
-    NTempest::CAaBox posNodeBox(nodeBox);
-    NTempest::CAaBox negNodeBox(nodeBox);
-    posNodeBox.b[axis] = node->planeDist;
-    negNodeBox.t[axis] = node->planeDist;
+    NTempest::CAaBox posBox(qbBox);
+    posBox.b[axis] = node->planeDist;
+    NTempest::CAaBox negBox(qbBox);
+    negBox.t[axis] = node->planeDist;
 
-    if (queryBox.b[axis] <= node->planeDist && queryBox.t[axis] >= node->planeDist) {
+    if (nodeBox.b[axis] > node->planeDist) {
       if (node->posChild != 0xFFFF) {
-        NTempest::CAaBox posQueryBox(queryBox);
-        posQueryBox.b[axis] = node->planeDist;
-        GetFaceIndices(node->posChild, posNodeBox, posQueryBox);
+        GetFaceIndices(node->posChild, nodeBox, posBox);
       }
+      return;
+    }
+    if (nodeBox.t[axis] < node->planeDist) {
       if (node->negChild != 0xFFFF) {
-        NTempest::CAaBox negQueryBox(queryBox);
-        negQueryBox.t[axis] = node->planeDist;
-        GetFaceIndices(node->negChild, negNodeBox, negQueryBox);
+        GetFaceIndices(node->negChild, nodeBox, negBox);
       }
-    } else if (queryBox.b[axis] > node->planeDist) {
-      if (node->posChild != 0xFFFF) {
-        GetFaceIndices(node->posChild, posNodeBox, queryBox);
-      }
-    } else if (node->negChild != 0xFFFF) {
-      GetFaceIndices(node->negChild, negNodeBox, queryBox);
+      return;
+    }
+
+    if (node->posChild != 0xFFFF) {
+      NTempest::CAaBox nAaBox(nodeBox);
+      nAaBox.b[axis] = node->planeDist;
+      GetFaceIndices(node->posChild, nAaBox, posBox);
+    }
+    if (node->negChild != 0xFFFF) {
+      NTempest::CAaBox nAaBox(nodeBox);
+      nAaBox.t[axis] = node->planeDist;
+      GetFaceIndices(node->negChild, nAaBox, negBox);
     }
   }
 
  public:
   CAaBsp_Query_AaBox(const CAaBsp &aaBsp, QUERY &f, const NTempest::CAaBox &aaBox) : CAaBsp_Query<QUERY>(aaBsp, f) {
-    GetFaceIndices(0, aaBsp.GetAaBox(), aaBox);
+    GetFaceIndices(0, aaBox, aaBsp.GetAaBox());
   }
 };
 

@@ -156,8 +156,8 @@ int BaseFileIsFetched(LPCSTR fileName) {
 int BaseFileLoad(LPCSTR fileName, LPVOID *fileBuffer, DWORD *fileSize) {
   VALIDATEBEGIN;
   VALIDATE(fileName);
+  VALIDATE(fileBuffer);
   VALIDATEEND;
-  FATALASSERT(fileBuffer);
 
   LPCVOID tempBuffer;
   DWORD   tempSize;

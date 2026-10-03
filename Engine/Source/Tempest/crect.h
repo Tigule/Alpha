@@ -72,7 +72,13 @@ namespace NTempest {
     CRect        operator-() const;
     void         Stretch(float horizontal, float vertical);
     void         Stretch(const C2Vector &value);
-    void         Offset(float horizontal, float vertical);
+    void Offset(float horizontal, float vertical) {
+      t += vertical;
+      l += horizontal;
+      b += vertical;
+      r += horizontal;
+    }
+
     void         Offset(const C2Vector &value);
 
     bool NotEmpty() const {

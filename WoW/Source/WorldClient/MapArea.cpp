@@ -145,38 +145,34 @@ void CMapArea::Create(BYTE *data) {
   FATALASSERT(data);
   FATALASSERT(CMap::bActive);
 
-  FATALASSERT(reinterpret_cast<SIffChunk *>(data)->token == 'MHDR');
+  SIffChunk *mIffChunk = reinterpret_cast<SIffChunk *>(data);
+  FATALASSERT(mIffChunk->token=='MHDR');
 
   data += sizeof(SIffChunk);
 
-  FATALASSERT(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsInfo)->token == 'MCIN');
-  memcpy(
-      chunkInfo, reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsInfo) + 1,
-      reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsInfo)->size
-  );
+  mIffChunk = reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsInfo);
+  FATALASSERT(mIffChunk->token == 'MCIN');
+  memcpy(chunkInfo, mIffChunk + 1, mIffChunk->size);
 
-  FATALASSERT(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsTex)->token == 'MTEX');
-  char *mTexNames = reinterpret_cast<char *>(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsTex) + 1);
-  LoadTextures(mTexNames, reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsTex)->size);
+  mIffChunk = reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsTex);
+  FATALASSERT(mIffChunk->token == 'MTEX');
+  char *mTexNames = reinterpret_cast<char *>(mIffChunk + 1);
+  LoadTextures(mTexNames, mIffChunk->size);
 
-  FATALASSERT(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo)->token == 'MDDF');
-  doodadDefList.SetCount(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo)->size / sizeof(SMDoodadDef));
+  mIffChunk = reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo);
+  FATALASSERT(mIffChunk->token == 'MDDF');
+  doodadDefList.SetCount(mIffChunk->size / sizeof(SMDoodadDef));
   if (doodadDefList.Count()) {
     SMDoodadDef *mDoodadDef = &doodadDefList[0];
-    memcpy(
-        mDoodadDef, reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo) + 1,
-        reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo)->size
-    );
+    memcpy(mDoodadDef, mIffChunk + 1, mIffChunk->size);
   }
 
-  FATALASSERT(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob)->token == 'MODF');
-  mapObjDefList.SetCount(reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob)->size / sizeof(SMMapObjDef));
+  mIffChunk = reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob);
+  FATALASSERT(mIffChunk->token == 'MODF');
+  mapObjDefList.SetCount(mIffChunk->size / sizeof(SMMapObjDef));
   if (mapObjDefList.Count()) {
     SMMapObjDef *mMapObjDef = &mapObjDefList[0];
-    memcpy(
-        mMapObjDef, reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob) + 1,
-        reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob)->size
-    );
+    memcpy(mMapObjDef, mIffChunk + 1, mIffChunk->size);
   }
 
   CMap::areaTable[infoIndex] = this;
@@ -187,7 +183,8 @@ void CMapArea::LoadTextures(char *texNames, DWORD size) {
   FATALASSERT(texNames);
 
   texIdTable.SetCount(0);
-  UINT i = 0;
+  char *fileNames = texNames;
+  UINT  i = 0;
   while (i < size) {
     HTEXTURE hTexture;
 
@@ -195,12 +192,12 @@ void CMapArea::LoadTextures(char *texNames, DWORD size) {
       static const char specExt[] = "_s";
       char              specFileName[MAX_PATH];
 
-      FATALASSERT(SStrLen(&texNames[i]) + SStrLen(specExt) < MAX_PATH);
-      SStrCopy(specFileName, &texNames[i], 0x7FFFFFFF);
-      char *extension = SStrChrR(specFileName, '.');
-      FATALASSERT(extension);
-      SStrCopy(extension, specExt, 0x7FFFFFFF);
-      strcat(specFileName, &texNames[i] + (extension - specFileName));
+      FATALASSERT(SStrLen(&fileNames[i]) + SStrLen(specExt) < 260);
+      SStrCopy(specFileName, &fileNames[i], 0x7FFFFFFF);
+      char *dot = SStrChrR(specFileName, '.');
+      FATALASSERT(dot);
+      SStrCopy(dot, specExt, 0x7FFFFFFF);
+      strcat(specFileName, &fileNames[i] + (dot - specFileName));
       hTexture = CMap::LoadTexture(specFileName);
     } else {
       hTexture = CMap::LoadTexture(&texNames[i]);

@@ -23,8 +23,9 @@ class TSStackArray {
   }
  public:
 
-  TSStackArray(LPVOID data, UINT maxCount, int count) : m_maxCount(maxCount), m_count(count), m_data(static_cast<T *>(data)) {
-    for (UINT index = 0; index < m_count; ++index) {
+  TSStackArray(LPVOID data, UINT maxCount, int count) : m_maxCount(maxCount), m_data(static_cast<T *>(data)) {
+    m_count = count;
+    for (UINT index = 0; index < count; ++index) {
       new (&m_data[index]) T;
     }
   }
@@ -117,12 +118,10 @@ class TSStackArray {
   }
 
   T *New() {
-    if (m_count >= m_maxCount) {
+    if (m_count + 1 > m_maxCount) {
       FatalArrayBounds();
     }
-    T *result = &m_data[m_count++];
-    new (result) T;
-    return result;
+    return new (&m_data[m_count++]) T;
   }
 
   T *New(const T &value) {
@@ -357,21 +356,15 @@ class TSFixedArray : public TSBaseArray<T> {
   }
 
   ~TSFixedArray() {
-    UINT index;
-
-    for (index = 0; index < this->m_count; ++index) {
+    for (UINT index = 0; index < this->m_count; ++index)
       this->m_data[index].~T();
-    }
-
-    if (this->m_data) {
+    if (this->m_data)
       SMemFree(this->m_data, this->MemFileName(), this->MemLineNo(), 0);
-    }
   }
 
   inline TSFixedArray<T> &operator=(const TSFixedArray<T> &source) {
-    if (this != &source) {
+    if (this != &source)
       Set(source.Count(), source.Ptr());
-    }
     return *this;
   }
   inline TSFixedArray<T> &operator=(const TSBaseArray<T> &source) {
@@ -407,9 +400,8 @@ class TSFixedArray : public TSBaseArray<T> {
   }
   void Set(UINT count, const T *data) {
     ReallocAndClearData(count);
-    for (UINT index = 0; index < count; ++index) {
+    for (UINT index = 0; index < count; ++index)
       new (&this->m_data[index]) T(data[index]);
-    }
     this->m_count = count;
   }
   void Set(UINT count, int, const T *data) {
@@ -467,11 +459,8 @@ class TSGrowableArray : public TSFixedArray<T> {
 
   UINT RoundToChunk(UINT count, UINT chunk) const {
     UINT remainder = count % chunk;
-
-    if (remainder) {
+    if (remainder)
       count += chunk - remainder;
-    }
-
     return count;
   }
 
@@ -505,9 +494,8 @@ class TSGrowableArray : public TSFixedArray<T> {
 
   UINT Add(UINT count, const T *data) {
     Reserve(count, 1);
-    for (UINT index = 0; index < count; ++index) {
+    for (UINT index = 0; index < count; ++index)
       new (&this->m_data[this->m_count + index]) T(data[index]);
-    }
     this->m_count += count;
     return this->m_count - count;
   }
@@ -526,13 +514,14 @@ class TSGrowableArray : public TSFixedArray<T> {
   }
 
   void GrowToFit(UINT index, int zero) {
-    if (index >= this->m_count) {
-      Reserve(index - this->m_count + 1, 1);
-      if (zero) {
-        memset(&this->m_data[this->m_count], 0, (index - this->m_count + 1) * sizeof(T));
-      }
-      this->m_count = index + 1;
-    }
+    if (index < this->m_count)
+      return;
+    Reserve(index - this->m_count + 1, 1);
+    if (zero)
+      memset(&this->m_data[this->m_count], 0, (index - this->m_count + 1) * sizeof(T));
+    for (UINT i = this->m_count; i <= index; ++i)
+      new (&this->m_data[i]) T;
+    this->m_count = index + 1;
   }
 
   T *New() {
@@ -563,18 +552,13 @@ class TSGrowableArray : public TSFixedArray<T> {
   }
 
   void SetCount(UINT count) {
-    UINT index;
-
     if (count > this->m_count) {
       Reserve(count - this->m_count, 1);
-      for (index = this->m_count; index < count; ++index) {
+      for (UINT index = this->m_count; index < count; ++index)
         new (&this->m_data[index]) T;
-      }
-    } else if (count < this->m_count) {
-      for (index = count; index < this->m_count; ++index) {
+    } else if (count < this->m_count)
+      for (UINT index = count; index < this->m_count; ++index)
         (this->m_data + index)->~T();
-      }
-    }
 
     this->m_count = count;
   }
@@ -716,7 +700,7 @@ class TSTimerPriority : public CSBasePriority {
   }
 
   void Set(T val) {
-    if (m_val != val) {
+    if (val != m_val) {
       m_val = val;
       Relink();
     }
@@ -763,6 +747,7 @@ class CSBasePriorityQueue : public TSGrowableArray<LPVOID> {
 
  public:
   CSBasePriorityQueue(int linkOffset) : m_linkOffset(linkOffset) {
+    SetCount(0);
   }
 
   ~CSBasePriorityQueue();
@@ -926,13 +911,11 @@ class TSLink {
   }
 
   TSLink<T> *NextLink(int linkoffset) const {
-    if (reinterpret_cast<int>(m_next) <= 0) {
+    if (reinterpret_cast<int>(m_next) <= 0)
       return reinterpret_cast<TSLink<T> *>(~reinterpret_cast<int>(m_next));
-    }
 
-    if (linkoffset < 0) {
+    if (linkoffset < 0)
       linkoffset = reinterpret_cast<int>(this) - reinterpret_cast<int>(m_prevlink->m_next);
-    }
 
     return reinterpret_cast<TSLink<T> *>(reinterpret_cast<int>(m_next) + linkoffset);
   }
@@ -1105,10 +1088,10 @@ class TSList {
   TSList<T, GETLINK> &operator=(const TSList<T, GETLINK> &);
 
   void ChangeLinkOffset(int linkoffset) {
-    if (linkoffset != m_linkoffset) {
-      UnlinkAll();
-      SetLinkOffset(linkoffset);
-    }
+    if (linkoffset == m_linkoffset)
+      return;
+    UnlinkAll();
+    SetLinkOffset(linkoffset);
   }
 
   void Clear() {
@@ -1701,16 +1684,12 @@ class TSHashTable {
     return 0;
   }
   void InternalLinkNode(T *ptr, UINT hashval) {
-    if (!Initialized()) {
+    if (!Initialized())
       Initialize();
-    }
 
     UINT slot = ComputeSlot(hashval);
-
-    if (MonitorFullness(slot)) {
+    if (MonitorFullness(slot))
       slot = ComputeSlot(hashval);
-    }
-
     m_slotlistarray[slot].LinkNode(ptr, LIST_TAIL, 0);
     m_fulllist.LinkNode(ptr, LIST_TAIL, 0);
   }
@@ -1938,19 +1917,18 @@ class TSHashTable {
   }
 
   void SetTableSize(UINT count) {
-    UINT requested = count * 2;
     UINT tableSize;
     UINT value;
     UINT shift;
 
-    if (requested <= m_slotmask + 1) {
+    if (count <= m_slotmask + 1) {
       return;
     }
 
-    if (requested > 0x2000) {
+    if (count > 0x2000) {
       tableSize = 0x2000;
     } else {
-      value = requested;
+      value = count;
       shift = 0;
       while (value > 1) {
         value >>= 1;
@@ -1958,8 +1936,8 @@ class TSHashTable {
       }
 
       tableSize = 1 << shift;
-      if (requested > tableSize) {
-        tableSize *= 2;
+      if (count > tableSize) {
+        tableSize <<= 1;
       }
     }
 

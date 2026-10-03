@@ -68,17 +68,21 @@ struct SUBCOMPONENTDESC {
   }
 
   void SetPathName(LPCSTR pathName) {
-    if (this->pathName) {
-      SMemFree(this->pathName, __FILE__, __LINE__, 0);
+    if (pathName && *pathName) {
+      if (this->pathName) {
+        SMemFree(this->pathName, __FILE__, __LINE__, 0);
+      }
+      this->pathName = SStrDupA(pathName, __FILE__, __LINE__);
     }
-    this->pathName = pathName ? SStrDupA(pathName, __FILE__, __LINE__) : 0;
   }
 
   void SetTextureName(LPCSTR textureName) {
-    if (this->textureName) {
-      SMemFree(this->textureName, __FILE__, __LINE__, 0);
+    if (textureName && *textureName) {
+      if (this->textureName) {
+        SMemFree(this->textureName, __FILE__, __LINE__, 0);
+      }
+      this->textureName = SStrDupA(textureName, __FILE__, __LINE__);
     }
-    this->textureName = textureName ? SStrDupA(textureName, __FILE__, __LINE__) : 0;
   }
   ~SUBCOMPONENTDESC() {
     Cleanup();

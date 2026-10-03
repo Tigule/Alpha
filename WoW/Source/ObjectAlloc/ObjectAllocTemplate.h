@@ -35,14 +35,14 @@ class TObjectAlloc {
 
   T *New() {
     UINT memHandle;
-    T   *obj = 0;
 
-    if (ObjectAlloc(m_ID, &memHandle)) {
-      obj = static_cast<T *>(ObjectPtr(memHandle));
-      ASSERT(obj);
-      obj->SetMemHandle(memHandle);
+    if (!ObjectAlloc(m_ID, &memHandle)) {
+      return 0;
     }
 
+    T *obj = static_cast<T *>(ObjectPtr(memHandle));
+    ASSERT(obj);
+    obj->SetMemHandle(memHandle);
     return obj;
   }
 

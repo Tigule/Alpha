@@ -109,16 +109,14 @@ class CLightning {
 };
 
 class CLightningManager {
-  friend void SpellVisualsInitialize();
-
   TSGrowableArray<CLightning *> mLiveBolts;
   TSGrowableArray<int>          mDeadBolts;
 
   CLightningManager(const CLightningManager &);
-  CLightningManager();
   CLightningManager &operator=(const CLightningManager &);
 
  public:
+  CLightningManager();
   ~CLightningManager();
 
   BoltID Add(

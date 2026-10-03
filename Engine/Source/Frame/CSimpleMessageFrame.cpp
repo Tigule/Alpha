@@ -64,9 +64,9 @@ void CSimpleMessageFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
 void CSimpleMessageFrame::SetMessageFrameInsets(float right, float left, float top, float bottom) {
   m_messageFrameInset.l = left;
-  m_messageFrameInset.b = bottom;
+  m_messageFrameInset.b = top;
   m_messageFrameInset.r = right;
-  m_messageFrameInset.t = top;
+  m_messageFrameInset.t = bottom;
 
   if (IsRectValid()) {
     OnFrameSizeChanged(m_rect);
@@ -124,41 +124,46 @@ void CSimpleMessageFrame::ClearPending() {
 void CSimpleMessageFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   CSimpleFrame::OnFrameSizeChanged(rect);
 
-  float scale = GetLayoutScale();
-  m_messageFrameArea.l = rect.l + m_messageFrameInset.l * scale;
-  m_messageFrameArea.r = rect.r - m_messageFrameInset.r * scale;
-  m_messageFrameArea.t = rect.t + m_messageFrameInset.t * scale;
-  m_messageFrameArea.b = rect.b - m_messageFrameInset.b * scale;
+  m_messageFrameArea.l = m_layoutScale * m_messageFrameInset.l + rect.l;
+  m_messageFrameArea.r = rect.r - m_messageFrameInset.r * m_layoutScale;
+  m_messageFrameArea.t = m_messageFrameInset.t * m_layoutScale + rect.t;
+  m_messageFrameArea.b = rect.b - m_layoutScale * m_messageFrameInset.b;
 
-  float fontHeight = (m_attrib.GetFontHeight() + m_attrib.GetSpacing()) * scale;
+  float fontHeight = (m_attrib.GetSpacing() + m_attrib.GetFontHeight()) * m_layoutScale;
+
   ASSERT(fontHeight);
-
-  float              areaHeight = m_messageFrameArea.b - m_messageFrameArea.t;
-  UINT               rows = static_cast<UINT>(areaHeight / fontHeight);
-  if (NTempest::CMath::fequal_((rows + 1) * fontHeight, areaHeight)) {
-    ++rows;
+  m_rows = static_cast<UINT>((m_messageFrameArea.b - m_messageFrameArea.t) / fontHeight);
+  if (NTempest::CMath::fequal_((m_rows + 1) * fontHeight, m_messageFrameArea.b - m_messageFrameArea.t)) {
+    ++m_rows;
   }
 
-  m_rows = rows;
-  m_lines.SetCount(rows);
+  m_lines.SetCount(m_rows);
 
-  float offsetX = m_messageFrameArea.l / scale;
-  float offsetY = m_messageFrameArea.b / scale;
-  float messageWidth = (m_messageFrameArea.r - m_messageFrameArea.l) / scale;
-  UINT  index = m_insertMode == INSERT_AT_BOTTOM ? rows - 1 : 0;
-  int   increment = m_insertMode == INSERT_AT_BOTTOM ? -1 : 1;
+  float messageWidth = (m_messageFrameArea.r - m_messageFrameArea.l) / m_layoutScale;
+  float offsetX = m_messageFrameInset.l;
+  float offsetY = m_messageFrameInset.b;
+  int  increment;
+  UINT index;
 
-  for (; index < rows; index += increment) {
+  if (m_insertMode == INSERT_AT_TOP) {
+    index = 0;
+    increment = 1;
+  } else {
+    index = m_rows - 1;
+    increment = -1;
+  }
+
+  for (; index < m_rows; index += increment) {
     CSimpleFontString *string = m_lines[index].stringNode->string;
 
-    m_lines[index].offsetX = offsetX;
-    m_lines[index].offsetY = offsetY;
+    m_lines[index].offsetX = offsetX / m_layoutScale;
+    m_lines[index].offsetY = offsetY / m_layoutScale;
     string->SetFrame(this, 2, m_lines[index].stringNode->isVisible);
     string->SetWidth(messageWidth);
     string->SetPoint(FRAMEPOINT_TOPLEFT, this, FRAMEPOINT_TOPLEFT, m_lines[index].offsetX, -m_lines[index].offsetY, 1);
     m_attrib.UpdateString(string, 1);
     string->SetTextLength(m_textMaxSize);
-    offsetY += m_attrib.GetFontHeight() + m_attrib.GetSpacing();
+    offsetY += m_attrib.GetSpacing() + m_attrib.GetFontHeight();
   }
 }
 
@@ -186,26 +191,27 @@ void CSimpleMessageFrame::OnLayerUpdate(float elapsedSec) {
 
   for (UINT i = 0; i < m_rows; ++i) {
     CSimpleMessageFrameLineNode *node = m_lines[i].stringNode;
-    if (node->permanent) {
-      continue;
-    }
 
-    if (node->timeLeft != 0.0f) {
-      node->timeLeft -= elapsedSec;
-      if (node->timeLeft < 0.0f) {
-        if (node->fadeLeft == 0.0f) {
+    if (!node->permanent) {
+      if (node->timeLeft != 0.0f) {
+        node->timeLeft -= elapsedSec;
+        if (node->timeLeft < 0.0f) {
+          if (node->fadeLeft != 0.0f) {
+            node->timeLeft = 0.0f;
+          } else {
+            HideLineNode(node);
+          }
+        }
+      } else if (node->fadeLeft != 0.0f) {
+        float fadeLeft = node->fadeLeft - elapsedSec;
+
+        if (fadeLeft < 0.0f) {
           HideLineNode(node);
         } else {
-          node->timeLeft = 0.0f;
+          node->fadeLeft = fadeLeft;
+          node->color.a = static_cast<BYTE>(fadeLeft / m_fadeDuration * 255.0f);
+          node->string->SetVertexColor(node->color);
         }
-      }
-    } else if (node->fadeLeft != 0.0f) {
-      node->fadeLeft -= elapsedSec;
-      if (node->fadeLeft < 0.0f) {
-        HideLineNode(node);
-      } else {
-        node->color.a = static_cast<BYTE>(node->fadeLeft / m_fadeDuration * 255.0f);
-        node->string->SetVertexColor(node->color);
       }
     }
   }
@@ -225,7 +231,7 @@ void CSimpleMessageFrame::AddPendingMessage(LPCSTR text, const NTempest::CImVect
   node->string->SetVertexColor(color);
   ShowLineNode(node, timeVisible, m_fadeDuration, permanent);
 
-  float rows = static_cast<float>(floor(node->string->GetHeight() / node->string->GetFontHeight() + 0.5f));
+  float rows = static_cast<float>(floor(node->string->GetHeight() / node->string->GetFontHeight() + 0.5));
   if (rows > 1.0f && m_rows > static_cast<UINT>(rows)) {
     UINT start = m_insertMode == INSERT_AT_TOP;
     do {

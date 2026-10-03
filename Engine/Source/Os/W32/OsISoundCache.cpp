@@ -108,7 +108,7 @@ UINT __stdcall SoundFileCache::Open(LPCSTR filename) {
     object->instances[i].inUse = 1;
     ++object->openInstances;
 
-    UINT handle = (object->baseHandle << 8) | static_cast<BYTE>(i + 1);
+    UINT handle = (object->baseHandle << 8) | ((i + 1) & 0xFF);
     s_soundFileCacheLock.Leave();
     return handle;
   }
@@ -156,9 +156,9 @@ int __stdcall SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
   int              bytesReadFromCache;
   UINT             instanceNumber;
   SoundFileObject *object;
-  UINT             needToRead;
-  UINT             physicalReadDone;
-  UINT             bigFile;
+  BYTE             needToRead;
+  BYTE             physicalReadDone;
+  BYTE             bigFile;
   UINT             baseHandle;
   int              currentOffset;
 
@@ -168,7 +168,7 @@ int __stdcall SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
   baseHandle = handle >> 8;
   ASSERT(baseHandle < MAX_FILES);
 
-  instanceNumber = static_cast<BYTE>(handle) - 1;
+  instanceNumber = (handle & 0xFF) - 1;
   ASSERT(instanceNumber < MAX_FILE_INSTANCES);
 
   object = &s_soundFileObjects[baseHandle];
@@ -189,9 +189,12 @@ int __stdcall SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
 
   while (size) {
     blockStartOffset = object->instances[instanceNumber].currentOffset & ~(CACHE_BLOCK_SIZE - 1);
-    hashKey = (static_cast<LONGLONG>(object->hash) << 32) | (bigFile ? 0 : blockStartOffset);
+    hashKey = static_cast<LONGLONG>(object->hash) << 32;
+    if (!bigFile) {
+      hashKey |= blockStartOffset;
+    }
 
-    SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCache.Ptr(bigFile ? 0 : blockStartOffset, HASHKEY_LONGLONG(hashKey));
+    SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCache.Ptr(static_cast<UINT>(hashKey), HASHKEY_LONGLONG(hashKey));
     needToRead = cacheBlock == 0;
     if (!cacheBlock) {
       cacheBlock = AllocCacheBlock(hashKey);
@@ -236,7 +239,7 @@ int __stdcall SoundFileCache::Seek(UINT handle, int pos, signed char mode) {
   UINT baseHandle = handle >> 8;
   ASSERT(baseHandle < MAX_FILES);
 
-  UINT instanceNumber = static_cast<BYTE>(handle) - 1;
+  UINT instanceNumber = (handle & 0xFF) - 1;
   ASSERT(instanceNumber < MAX_FILE_INSTANCES);
 
   SoundFileObject *object = &s_soundFileObjects[baseHandle];
@@ -268,7 +271,7 @@ int __stdcall SoundFileCache::Tell(UINT handle) {
   UINT baseHandle = handle >> 8;
   ASSERT(baseHandle < MAX_FILES);
 
-  UINT instanceNumber = static_cast<BYTE>(handle) - 1;
+  UINT instanceNumber = (handle & 0xFF) - 1;
   ASSERT(instanceNumber < MAX_FILE_INSTANCES);
 
   SoundFileObject *object = &s_soundFileObjects[baseHandle];
@@ -287,7 +290,7 @@ void __stdcall SoundFileCache::Close(UINT handle) {
   UINT baseHandle = handle >> 8;
   ASSERT(baseHandle < MAX_FILES);
 
-  UINT instanceNumber = static_cast<BYTE>(handle) - 1;
+  UINT instanceNumber = (handle & 0xFF) - 1;
   ASSERT(instanceNumber < MAX_FILE_INSTANCES);
 
   SoundFileObject *object = &s_soundFileObjects[baseHandle];
@@ -312,10 +315,9 @@ void SoundFileCache::Initialize(int cacheSizeMB) {
 
   s_soundFileObjects.SetCount(MAX_FILES);
   for (UINT i = 0; i < MAX_FILES; ++i) {
-    SoundFileObject *object = &s_soundFileObjects[i];
-    object->filename[0] = 0;
-    object->baseHandle = i;
-    s_freeSoundFileObjects.LinkNode(object, LIST_TAIL, 0);
+    s_soundFileObjects[i].filename[0] = 0;
+    s_soundFileObjects[i].baseHandle = i;
+    s_freeSoundFileObjects.LinkNode(&s_soundFileObjects[i], LIST_TAIL, 0);
   }
 
   s_soundFileObjectHashTable.SetTableSize(MAX_FILES);
@@ -328,6 +330,6 @@ void SoundFileCache::Initialize(int cacheSizeMB) {
 void SoundFileCache::Shutdown() {
   s_freeSoundFileObjects.UnlinkAll();
   s_soundFileObjectHashTable.Clear();
-  s_soundFileObjects.Clear();
+  s_soundFileObjects.SetCount(0);
   DataCacheShutdown();
 }

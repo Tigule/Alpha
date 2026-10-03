@@ -20,6 +20,10 @@ static EVENTCONFIRMCLOSEHANDLER s_confirmCloseCallback = 0;
 static LPVOID                   s_confirmCloseParam = 0;
 static NTempest::CRect          s_boundingRect(0.0f);
 
+inline bool NTempest::CRect::Encloses(const NTempest::C2Vector &value) const {
+  return value.x > l && value.x < r && value.y > t && value.y < b;
+}
+
 static void CheckMouseModeState() {
   if (s_mouseHoldButton && s_mouseHoldButton != (s_mouseHoldButton & s_buttonState)) {
     EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
@@ -52,9 +56,9 @@ static void UnconvertPosition(float x, float y, int *clientx, int *clienty) {
 
 static void ConvertPosition(int clientx, int clienty, float *x, float *y) {
   if (s_boundingRect.r - s_boundingRect.l != 0.0f && s_boundingRect.b - s_boundingRect.t != 0.0f) {
-    if (clientx <= s_boundingRect.l || clientx >= s_boundingRect.r || clienty <= s_boundingRect.t || clienty >= s_boundingRect.b) {
-      clientx = static_cast<int>(NTempest::CMath::clamp_(static_cast<float>(clientx), s_boundingRect.l + 1.0f, s_boundingRect.r - 1.0f));
-      clienty = static_cast<int>(NTempest::CMath::clamp_(static_cast<float>(clienty), s_boundingRect.t + 1.0f, s_boundingRect.b - 1.0f));
+    if (!s_boundingRect.Encloses(NTempest::C2Vector(static_cast<float>(clientx), static_cast<float>(clienty)))) {
+      clientx = static_cast<int>(min(max(static_cast<float>(clientx), s_boundingRect.l + 1.0f), s_boundingRect.r - 1.0f));
+      clienty = static_cast<int>(min(max(static_cast<float>(clienty), s_boundingRect.t + 1.0f), s_boundingRect.b - 1.0f));
       OsInputSetMousePosition(clientx, clienty);
     }
   }
@@ -66,7 +70,13 @@ static void ConvertPosition(int clientx, int clienty, float *x, float *y) {
 }
 
 static UINT GenerateMouseFlags() {
-  return s_mouseMode == MOUSE_MODE_RELATIVE ? 0x2 : 0;
+  UINT flags = 0;
+
+  if (s_mouseMode == MOUSE_MODE_RELATIVE) {
+    flags |= 0x2;
+  }
+
+  return flags;
 }
 
 static int ConfirmClose() {
@@ -191,9 +201,9 @@ static void PostMouseMoveRelative(EvtContext *context, int x, int y, int time) {
 
 static void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int time) {
   EVENT_DATA_MOUSE data;
-  data.button = static_cast<MOUSEBUTTON>(button);
   s_buttonState &= ~static_cast<UINT>(button);
   data.mode = s_mouseMode;
+  data.button = static_cast<MOUSEBUTTON>(button);
   data.buttonState = s_buttonState;
   data.metaKeyState = s_metaKeyState;
   data.flags = flags | GenerateMouseFlags();
@@ -280,16 +290,16 @@ static void ProcessInput(EvtContext *context, OSINPUT id, const int param[4], in
       PostMouseMove(context, param[1], param[2], param[3]);
       break;
 
-    case OS_INPUT_MOUSE_WHEEL:
-      PostMouseWheel(context, param[0], param[1], param[2], param[3]);
-      break;
-
     case OS_INPUT_MOUSE_MOVE_RELATIVE:
       PostMouseMoveRelative(context, param[1], param[2], param[3]);
       break;
 
     case OS_INPUT_MOUSE_UP:
       PostMouseUp(context, param[0], param[1], param[2], 0, param[3]);
+      break;
+
+    case OS_INPUT_MOUSE_WHEEL:
+      PostMouseWheel(context, param[0], param[1], param[2], param[3]);
       break;
 
     case OS_INPUT_SHUTDOWN:
@@ -341,18 +351,17 @@ void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, UINT holdButton)
     OS_MOUSE_MODE osMode;
 
     switch (mode) {
-      case MOUSE_MODE_NORMAL:
-        osMode = OS_MOUSE_MODE_NORMAL;
-        break;
-
       case MOUSE_MODE_RELATIVE:
         osMode = OS_MOUSE_MODE_RELATIVE;
         break;
 
+      case MOUSE_MODE_NORMAL:
+        osMode = OS_MOUSE_MODE_NORMAL;
+        break;
+
       default:
         FATALERROR(("Invalid case: %s=%u", "mode", mode));
-        osMode = OS_MOUSE_MODE_RELATIVE;
-        break;
+        __assume(0);
     }
 
     s_mouseHoldButton = holdButton;

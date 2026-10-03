@@ -7,9 +7,12 @@ class CDataStore;
 
 class ItemStats {
  public:
-  ItemStats() {
-    memset(m_displayName, 0, sizeof(m_displayName));
-    m_description = 0;
+  ItemStats() : m_description(0) {
+    int i;
+
+    for (i = 0; i < 4; ++i) {
+      m_displayName[i] = 0;
+    }
   }
 
   ~ItemStats() {

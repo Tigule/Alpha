@@ -10,6 +10,7 @@
 
 #define ZIP_MAX_COMMENT 0xFFFF
 #define ZIP_READ_CHUNK  0x1000
+#define DEFLATED        8
 
 #pragma pack(1)
 
@@ -202,8 +203,6 @@ typedef TSGrowableArray<ZipDirList> ZipDirListArray;
 static const char                   centralDirectoryFileSignature[4] = {'P', 'K', 1, 2};
 static const char                   localFileSignature[4] = {'P', 'K', 3, 4};
 static const char                   centralDirectoryHeaderSignature[4] = {'P', 'K', 5, 6};
-static WowFileSystem                s_fileSystem;
-static TestFileSystemProvider       s_testProvider;
 static LISTDECL(ZipFileArchive, s_archives);
 
 void ZipFileUnloadFile(LPVOID buffer);
@@ -436,8 +435,9 @@ DWORD ZipFileOpenArchive(LPCSTR archivename) {
 }
 
 BOOL ZipFileCloseArchive(DWORD handle) {
-  FATALASSERT(((ZipFileArchive *)handle)->openFileCount == 0);
-  s_archives.DeleteNode((ZipFileArchive *)handle);
+  ZipFileArchive *archive = (ZipFileArchive *)handle;
+  FATALASSERT(archive->openFileCount == 0);
+  s_archives.DeleteNode(archive);
   return 1;
 }
 
@@ -494,7 +494,7 @@ int ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin) {
   DWORD target;
 
   FATALASSERT(fcb);
-  FATALASSERT(origin >= FILE_BEGIN && origin <= FILE_END);
+  FATALASSERT(origin >= 0 && origin <= 2);
   if (fcb->flags.IsSet(1)) {
     return 0;
   }
@@ -505,7 +505,7 @@ int ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin) {
       target = offset;
       break;
     case FILE_CURRENT:
-      target = fcb->targetPosition + offset;
+      target = fcb->uncompressedPosition + offset;
       break;
     case FILE_END:
       target = fcb->dirEntry->uncompressedSize + offset;
@@ -516,22 +516,24 @@ int ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin) {
     return fcb->SetFault();
   }
 
-  FATALASSERT(fcb->dirEntry->compressionMethod == 0 || fcb->dirEntry->compressionMethod == Z_DEFLATED);
-  if (fcb->dirEntry->compressionMethod != 0 && target < fcb->targetPosition) {
-    if (fcb->flags.IsSet(4) && inflateEnd(&fcb->zlibStream)) {
-      return fcb->SetFault();
+  if (fcb->dirEntry->compressionMethod != 0) {
+    FATALASSERT(fcb->dirEntry->compressionMethod == DEFLATED);
+    if (target < fcb->targetPosition) {
+      if (fcb->flags.IsSet(4) && inflateEnd(&fcb->zlibStream)) {
+        return fcb->SetFault();
+      }
+      fcb->uncompressedPosition = 0;
+      fcb->compressedPosition = 0;
+      fcb->zlibStream.next_in = fcb->compressedData;
+      fcb->zlibStream.avail_in = 0;
+      fcb->zlibStream.next_out = NULL;
+      fcb->zlibStream.avail_out = 0;
+      fcb->flags.Set(2);
+      if (inflateInit2(&fcb->zlibStream, -15)) {
+        return fcb->SetFault();
+      }
+      fcb->flags.Set(4);
     }
-    fcb->compressedPosition = 0;
-    fcb->uncompressedPosition = 0;
-    fcb->zlibStream.next_in = fcb->compressedData;
-    fcb->zlibStream.avail_in = 0;
-    fcb->zlibStream.next_out = NULL;
-    fcb->zlibStream.avail_out = 0;
-    fcb->flags.Set(2);
-    if (inflateInit2(&fcb->zlibStream, -15)) {
-      return fcb->SetFault();
-    }
-    fcb->flags.Set(4);
   }
 
   fcb->targetPosition = target;
@@ -573,7 +575,7 @@ int ZipFileReadFile(ZipFileFCB *fcb, LPVOID buffer, UINT bytesToRead, UINT *byte
       return fcb->SetFault();
     }
   } else {
-    FATALASSERT(fcb->dirEntry->compressionMethod == 0 || fcb->dirEntry->compressionMethod == Z_DEFLATED);
+    FATALASSERT(fcb->dirEntry->compressionMethod == DEFLATED);
     fcb->zlibStream.next_out = (BYTE *)buffer;
     fcb->zlibStream.avail_out = bytesToRead;
     bytesSkipped = fcb->targetPosition - fcb->uncompressedPosition;
@@ -746,6 +748,9 @@ WowFile *WowFileSystem::Open(LPCSTR filename) {
   }
   return m_providerList->Open(filename);
 }
+
+static WowFileSystem          s_fileSystem;
+static TestFileSystemProvider s_testProvider;
 
 void FSTest() {
   s_fileSystem.RegisterProvider(s_testProvider);

@@ -110,7 +110,7 @@ struct MDLKEYTRACK {
 };
 
 struct MDLINTKEY {
-  MDLINTKEY() {
+  MDLINTKEY() : time(0), value(0) {
   }
 
   UINT time;
@@ -224,9 +224,6 @@ struct MDLGENOBJECT {
 
 struct MDLATTACHMENTSECTION : public MDLGENOBJECT {
   MDLATTACHMENTSECTION() : MDLGENOBJECT(0x400), attachmentId(0) {
-    static_cast<char *>(path)[0] = 0;
-    visibilityKeys.type = TRACK_HERMITE;
-    visibilityKeys.globalSeqId = static_cast<UINT>(-1);
   }
 
   CMdlString<260>    path;
@@ -384,7 +381,7 @@ struct MDLCAMERASECTION {
   MDLKEYTRACK<float>              visibilityKeys;
 };
 struct MDLEVENTKEY {
-  MDLEVENTKEY() {
+  MDLEVENTKEY() : time(0) {
   }
 
   int time;
@@ -606,7 +603,7 @@ struct MDLPLANE {
 };
 
 struct MDLHITTESTSHAPE : public MDLGENOBJECT {
-  MDLHITTESTSHAPE() {
+  MDLHITTESTSHAPE() : MDLGENOBJECT(0x1000) {
   }
 
   MDLHITTESTSHAPE(const MDLHITTESTSHAPE &source) {

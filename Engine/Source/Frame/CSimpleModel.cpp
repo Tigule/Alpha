@@ -80,12 +80,18 @@ void CSimpleModel::LoadXML(const XMLNode *node, CStatus *status) {
 
   value = node->GetAttributeByName("fogNear");
   if (value && *value) {
-    m_fogNear = max(SStrToFloat(value), 0.0f);
+    float fogNear = SStrToFloat(value);
+
+    fogNear = max(0.0f, fogNear);
+    m_fogNear = fogNear;
   }
 
   value = node->GetAttributeByName("fogFar");
   if (value && *value) {
-    m_fogFar = max(SStrToFloat(value), 0.0f);
+    float fogFar = SStrToFloat(value);
+
+    fogFar = max(0.0f, fogFar);
+    m_fogFar = fogFar;
   }
 
   for (const XMLNode *child = node->GetChild(); child; child = child->GetSibling()) {
@@ -334,50 +340,49 @@ void CSimpleModel::RenderModel(LPVOID param) {
   DDCToNDC(viewRect.l, viewRect.t, &viewRect.l, &viewRect.t);
   DDCToNDC(viewRect.r, viewRect.b, &viewRect.r, &viewRect.b);
 
-  if (viewRect.l <= 0.0f) {
-    viewRect.l = 0.0f;
-  }
-  if (viewRect.r <= 0.0f) {
-    viewRect.r = 0.0f;
-  }
-  if (viewRect.t <= 0.0f) {
-    viewRect.t = 0.0f;
-  }
-  if (viewRect.b <= 0.0f) {
-    viewRect.b = 0.0f;
-  }
-
+  viewRect.l = max(viewRect.l, 0.0f);
+  viewRect.r = max(viewRect.r, 0.0f);
+  viewRect.t = max(viewRect.t, 0.0f);
+  viewRect.b = max(viewRect.b, 0.0f);
   if (viewRect.l != viewRect.r && viewRect.t != viewRect.b) {
     GxXformSetViewport(viewRect.l, viewRect.r, viewRect.t, viewRect.b, 0.0f, 1.0f);
     GxSceneClear(2);
 
     CGxLight nullLight;
+
     nullLight.m_enabled = 0;
-    UINT   whichLight = 0;
+
     HMODEL model = simpleModel->m_model;
 
     if (simpleModel->m_light.m_enabled) {
       GxLightSet(0, simpleModel->m_light, NTempest::C3Vector(0.0f));
-      whichLight = 1;
+      for (UINT i = 1; i < 8; ++i) {
+        GxLightSet(i, nullLight, NTempest::C3Vector(0.0f));
+      }
     } else {
-      const UINT numLights = ModelGetNumLights(model);
-      for (; whichLight < numLights; ++whichLight) {
-        const CGxLight *modelLight = ModelGetLight(model, whichLight);
+      UINT numLights = ModelGetNumLights(model);
+
+      for (UINT i = 0; i < numLights; ++i) {
+        const CGxLight *modelLight = ModelGetLight(model, i);
+
         ASSERT(modelLight);
 
         CGxLight light = *modelLight;
+
         if (camera && light.m_isOmni) {
-          light.m_dir = light.m_dir - cameraPos;
+          light.m_dir -= cameraPos;
         }
-        GxLightSet(whichLight, light, NTempest::C3Vector(0.0f));
+
+        GxLightSet(i, light, NTempest::C3Vector(0.0f));
+      }
+
+      for (; i < 8; ++i) {
+        GxLightSet(i, nullLight, NTempest::C3Vector(0.0f));
       }
     }
 
-    for (; whichLight < 8; ++whichLight) {
-      GxLightSet(whichLight, nullLight, NTempest::C3Vector(0.0f));
-    }
-
     const int fogEnabled = GxMasterEnable(GxMasterEnable_Fog);
+
     GxRsPush();
     if (simpleModel->m_flags & 0x2) {
       GxMasterEnableSet(GxMasterEnable_Fog, 1);
@@ -393,11 +398,8 @@ void CSimpleModel::RenderModel(LPVOID param) {
     simpleModel->UpdateModel();
 
     NTempest::C3Vector cameraDir = cameraTarg - cameraPos;
-    const float        cameraDirMag = cameraDir.Mag();
-    if (NTempest::CMath::fabs_(cameraDirMag) >= 0.00000023841858f) {
-      cameraDir = cameraDir * (1.0f / cameraDirMag);
-    }
 
+    cameraDir.SafeNormalize();
     ModelScenePlaceCamera(cameraPos, cameraDir);
     ModelAddToScene(model, 0);
     ModelRenderScene(0);

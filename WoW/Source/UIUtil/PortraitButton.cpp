@@ -30,6 +30,7 @@
 #include <storm.h>
 
 void Script_SendUnitSignal(const DWORDLONG &guid, int signal);
+void SetPortraitTexture(CSimpleTexture *texture, UINT race, UINT sex, DWORDLONG guid);
 
 #define PORTRAIT_SIZE_SMALL 64
 
@@ -81,23 +82,19 @@ LISTDECL(DIRTYFACE, s_freeList);
 static TSHashTable<PLAYERPORTRAIT, CHashKeyGUID> s_playerPortraits;
 static TSHashTable<UNITPORTRAIT, HASHKEY_NONE>   s_unitPortraits;
 static TSHashTable<ITEMPORTRAIT, HASHKEY_STR>    s_itemPortraits;
-static HASHKEY_NONE                              s_nullHashKey;
 
 #include "Object/ObjectClient/Unit_C.h"
 
 static const TSFixedArray<BYTE> &GetAlphaMask(UINT size) {
   static TSFixedArray<BYTE> alphaMasks[2];
-  CBLPFile            image;
-  CTgaFile            alpha;
-  UINT                stride;
-  int                 loaded = 0;
-  BYTE               *imageData = 0;
   TSFixedArray<BYTE> &mask = alphaMasks[size == 64];
 
   if (!mask.Count()) {
     mask.SetCount(size * size);
 
-    LPCSTR alphaFile = 0;
+    int      loaded = 0;
+    CTgaFile alpha;
+    LPCSTR   alphaFile = 0;
     if (size == 128) {
       alphaFile = "Interface\\CharacterFrame\\TempPortraitAlphaMask.tga";
     } else if (size == 64) {
@@ -111,37 +108,40 @@ static const TSFixedArray<BYTE> &GetAlphaMask(UINT size) {
       ASSERT(alpha.Height() == size);
       if (alpha.LoadImageData(0)) {
         memcpy(mask.Ptr(), alpha.Image(), mask.Count());
-        alpha.Close();
-        return mask;
-      }
-    }
-
-    LPCSTR imageFile = 0;
-    if (size == 128) {
-      imageFile = "Interface\\CharacterFrame\\TempPortraitAlphaMask.blp";
-    } else if (size == 64) {
-      imageFile = "Interface\\CharacterFrame\\TempPortraitAlphaMaskSmall.blp";
-    } else {
-      ASSERT(!"Unknown portrait size");
-    }
-
-    if (image.Open(imageFile)) {
-      ASSERT(image.Width() == size);
-      ASSERT(image.Height() == size);
-      if (image.Lock(PIXEL_ARGB8888, 0, imageData, stride)) {
-        for (UINT i = 0; i < mask.Count(); ++i) {
-          mask[i] = imageData[4 * i];
-        }
         loaded = 1;
       }
-      image.Unlock(0);
-      image.Close();
     }
 
     if (!loaded) {
-      memset(mask.Ptr(), 0xFF, mask.Count());
+      CBLPFile image;
+      LPCSTR   imageFile = 0;
+      if (size == 128) {
+        imageFile = "Interface\\CharacterFrame\\TempPortraitAlphaMask.blp";
+      } else if (size == 64) {
+        imageFile = "Interface\\CharacterFrame\\TempPortraitAlphaMaskSmall.blp";
+      } else {
+        ASSERT(!"Unknown portrait size");
+      }
+
+      if (image.Open(imageFile)) {
+        ASSERT(image.Width() == size);
+        ASSERT(image.Height() == size);
+        BYTE *imageData;
+        UINT  stride;
+        if (image.Lock(PIXEL_ARGB8888, 0, imageData, stride)) {
+          for (UINT i = 0; i < mask.Count(); ++i) {
+            mask[i] = imageData[4 * i];
+          }
+          loaded = 1;
+        }
+        image.Unlock(0);
+        image.Close();
+      }
     }
-    alpha.Close();
+
+    if (!loaded) {
+      memset(mask.Ptr(), mask.Count(), 0xFF);
+    }
   }
 
   return mask;
@@ -317,27 +317,20 @@ void PortraitShutdown() {
   s_playerPortraits.Clear();
   s_unitPortraits.Clear();
   s_itemPortraits.Clear();
-  while (DIRTYFACE *dirty = s_dirtyList.Head()) {
-    s_dirtyList.UnlinkNode(dirty);
-    DEL(dirty);
-  }
-  while (DIRTYFACE *dirty = s_freeList.Head()) {
-    s_freeList.UnlinkNode(dirty);
-    DEL(dirty);
-  }
+  s_dirtyList.Clear();
+  s_freeList.Clear();
 }
 
 void UpdatePortraits() {
   while (DIRTYFACE *dirty = s_dirtyList.Head()) {
     DWORDLONG       guid = dirty->guid;
-    CHashKeyGUID    hashkey(guid);
     UINT            hashval = static_cast<UINT>(guid);
+    CHashKeyGUID    hashkey(guid);
     PLAYERPORTRAIT *portrait = s_playerPortraits.Ptr(hashval, hashkey);
     if (portrait) {
       portrait->dirty = 1;
     }
     Script_SendUnitSignal(guid, 181);
-    s_dirtyList.UnlinkNode(dirty);
     s_freeList.LinkNode(dirty, LIST_TAIL, 0);
   }
 }
@@ -352,88 +345,45 @@ void UpdatePortraitTexture(const DWORDLONG &guid) {
 
   dirty = s_freeList.Head();
   if (dirty) {
-    s_freeList.UnlinkNode(dirty);
+    s_dirtyList.LinkNode(dirty, LIST_TAIL, 0);
   } else {
-    dirty = NEW(DIRTYFACE);
+    dirty = s_dirtyList.NewNode(LIST_TAIL, 0, 0);
   }
-  s_dirtyList.LinkNode(dirty, LIST_TAIL, 0);
   dirty->guid = guid;
 }
 
-void SetPortraitTexture(CSimpleTexture *texture, UINT race, UINT sex, DWORDLONG guid) {
-  char buf[64];
-
-  if (!texture) {
-    return;
-  }
-
-  if (guid) {
-    CHashKeyGUID    hashkey(guid);
-    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(guid), hashkey);
-    if (playerPortrait && playerPortrait->portrait.texture) {
-      texture->SetTexture(playerPortrait->portrait.texture);
-      return;
-    }
-  }
-
-  ASSERT(race != 0);
-  ASSERT(race <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  ASSERT(sex < 3);
-
-  SStrPrintf(
-      buf, sizeof(buf), "Interface\\CharacterFrame\\TemporaryPortrait-%s-%s", sex ? "Female" : "Male",
-      g_chrRacesDB.GetRecord(race)->m_clientFileString
-  );
-  texture->SetTexture(buf, 0);
-}
-
 void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
-  PortraitData       *portrait;
-  NTempest::CRect     screenRect;
-  NTempest::CRect     viewRect;
-  NTempest::CRect     projectionRect;
-  NTempest::C44Matrix saved_proj;
-  NTempest::C44Matrix saved_view;
-  NTempest::CiRect    pixRect;
-  NTempest::C3Vector  eye;
-  NTempest::C3Vector  center;
-  HMODEL              model = 0;
-  HCAMERA             camera = 0;
-  int                 gxFogEnable;
-  static NTempest::C44Matrix identity;
-
   if (!texture || !unit) {
     return;
   }
 
-  if (unit->GetType() & TYPE_PLAYER) {
+  if (unit->IsA(ID_PLAYER)) {
     CHashKeyGUID    hashkey(unit->GetGUID());
     PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(unit->GetGUID()), hashkey);
-    if (playerPortrait) {
-      if (playerPortrait->dirty) {
-        portrait = &playerPortrait->portrait;
-      } else {
-        texture->SetTexture(playerPortrait->portrait.texture);
-        return;
-      }
+    if (playerPortrait && !playerPortrait->dirty) {
+      texture->SetTexture(playerPortrait->portrait.texture);
+      return;
     }
   } else {
-    UNITPORTRAIT *unitPortrait = s_unitPortraits.Ptr(unit->GetDisplayID(), s_nullHashKey);
+    UNITPORTRAIT *unitPortrait = s_unitPortraits.Ptr(unit->GetDisplayID(), HASHKEY_NONE());
     if (unitPortrait) {
       texture->SetTexture(unitPortrait->portrait.texture);
       return;
     }
   }
 
+  NTempest::CRect screenRect;
   GxCapsScreenSize(screenRect);
+  NTempest::CRect viewRect;
   viewRect.l = 0.0f;
   viewRect.b = 0.6f;
   viewRect.t = 0.6f - 38.400002f / screenRect.Height();
   viewRect.r = 51.200001f / screenRect.Width();
 
-  if (!unit->IsObjectModelLoaded() || !(unit->m_flags & 0x100)) {
-  portrait_fallback:
-    if (unit->GetType() & TYPE_PLAYER) {
+  HMODEL  model = 0;
+  HCAMERA camera;
+  if (!unit->IsObjectModelLoaded() || !(unit->m_flags & 0x100) || (model = unit->DuplicateCharacterModel(0), (camera = ModelGetCamera(model, 0)) == 0)) {
+    if (unit->IsA(ID_PLAYER)) {
       SetPortraitTexture(texture, unit->GetRace(), unit->GetSex(), unit->GetGUID());
     } else {
       texture->SetTexture("Interface\\CharacterFrame\\TempPortrait", 0);
@@ -444,15 +394,11 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
     return;
   }
 
-  model = unit->DuplicateCharacterModel(0);
-  camera = ModelGetCamera(model, 0);
-  if (!camera) {
-    goto portrait_fallback;
-  }
-
   ClearSpecialEffects(model);
   ModelSetEmissiveColor(model, NTempest::CImVector(0ul), 1);
 
+  NTempest::C44Matrix saved_proj;
+  NTempest::C44Matrix saved_view;
   GxXformProjection(saved_proj);
   GxXformView(saved_view);
   float minX;
@@ -462,13 +408,16 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   float minZ;
   float maxZ;
   GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
-  gxFogEnable = GxMasterEnable(GxMasterEnable_Fog);
+  int gxFogEnable = GxMasterEnable(GxMasterEnable_Fog);
   GxMasterEnableSet(GxMasterEnable_Fog, 0);
 
   float aspectRatio = viewRect.Width() / viewRect.Height();
   DDCToNDC(viewRect.l, viewRect.t, &viewRect.l, &viewRect.t);
   DDCToNDC(viewRect.r, viewRect.b, &viewRect.r, &viewRect.b);
 
+  static NTempest::C44Matrix identity;
+  NTempest::C3Vector         eye;
+  NTempest::C3Vector         center;
   ModelSetSequence(model, 0, 13);
   ModelResetGlobalSequenceTimes(model, 0);
   ModelAnimateCameras(
@@ -480,65 +429,70 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   DataMgrGetCoord(camera, 7, &eye);
   DataMgrGetCoord(camera, 8, &center);
 
-  projectionRect.Set(0.0f, 0.0f, 1.0f, aspectRatio);
+  NTempest::CRect projectionRect(0.0f, 0.0f, 1.0f, aspectRatio);
   CameraSetupWorldProjection(camera, projectionRect, 0);
   GxXformSetViewport(viewRect.l, viewRect.r, viewRect.t, viewRect.b, 0.0f, 1.0f);
   GxSceneClear(3);
 
-  for (UINT lightIndex = 0; lightIndex < 2; ++lightIndex) {
-    CGxLight light;
-    light.m_enabled = s_lightInfo[lightIndex].enable;
-    light.m_isOmni = s_lightInfo[lightIndex].omni;
-    light.m_dir = NTempest::C3Vector(s_lightInfo[lightIndex].dirx, s_lightInfo[lightIndex].diry, s_lightInfo[lightIndex].dirz);
-    light.m_ambColor.Set(1.0f, s_lightInfo[lightIndex].ambColorr, s_lightInfo[lightIndex].ambColorg, s_lightInfo[lightIndex].ambColorb);
-    light.m_dirColor.Set(1.0f, s_lightInfo[lightIndex].dirColorr, s_lightInfo[lightIndex].dirColorg, s_lightInfo[lightIndex].dirColorb);
-    light.m_specColor.Set(0.0f, 0.0f, 0.0f, 0.0f);
-    light.m_ambIntensity = s_lightInfo[lightIndex].ambIntens;
-    light.m_dirIntensity = s_lightInfo[lightIndex].dirIntens;
-    GxLightSet(lightIndex, light, NTempest::C3Vector());
-  }
+  CGxLight light;
+  light.m_enabled = s_lightInfo[0].enable;
+  light.m_isOmni = s_lightInfo[0].omni;
+  light.m_dir = NTempest::C3Vector(s_lightInfo[0].dirx, s_lightInfo[0].diry, s_lightInfo[0].dirz);
+  light.m_ambColor.Set(1.0f, s_lightInfo[0].ambColorr, s_lightInfo[0].ambColorg, s_lightInfo[0].ambColorb);
+  light.m_dirColor.Set(1.0f, s_lightInfo[0].dirColorr, s_lightInfo[0].dirColorg, s_lightInfo[0].dirColorb);
+  light.m_ambIntensity = s_lightInfo[0].ambIntens;
+  light.m_dirIntensity = s_lightInfo[0].dirIntens;
+  GxLightSet(0, light, NTempest::C3Vector());
+
+  light.m_enabled = s_lightInfo[1].enable;
+  light.m_isOmni = s_lightInfo[1].omni;
+  light.m_dir = NTempest::C3Vector(s_lightInfo[1].dirx, s_lightInfo[1].diry, s_lightInfo[1].dirz);
+  light.m_ambColor.Set(1.0f, s_lightInfo[1].ambColorr, s_lightInfo[1].ambColorg, s_lightInfo[1].ambColorb);
+  light.m_dirColor.Set(1.0f, s_lightInfo[1].dirColorr, s_lightInfo[1].dirColorg, s_lightInfo[1].dirColorb);
+  light.m_ambIntensity = s_lightInfo[1].ambIntens;
+  light.m_dirIntensity = s_lightInfo[1].dirIntens;
+  GxLightSet(1, light, NTempest::C3Vector());
 
   CGxLight noLight;
   noLight.m_enabled = 0;
-  for (UINT disabledLightIndex = 2; disabledLightIndex < Gx_MaxLights; ++disabledLightIndex) {
-    GxLightSet(disabledLightIndex, noLight, NTempest::C3Vector());
+  for (UINT lightIndex = 2; lightIndex < Gx_MaxLights; ++lightIndex) {
+    GxLightSet(lightIndex, noLight, NTempest::C3Vector());
   }
 
   ModelSetLightSelectCallback(model, 0, 0, 1);
-  NTempest::C3Vector cameraVector = center - eye;
-  ModelAnimate(model, NTempest::C3Vector(), 0.0f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f, eye, cameraVector);
+  ModelAnimate(model, NTempest::C3Vector(), 0.0f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f, eye, center - eye);
   ModelRender(model, 0, 0);
 
-  if (unit->GetType() & TYPE_PLAYER) {
+  PortraitData *portrait;
+  if (unit->IsA(ID_PLAYER)) {
     CHashKeyGUID    hashkey(unit->GetGUID());
     PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(unit->GetGUID()), hashkey);
-    if (!playerPortrait) {
-      playerPortrait = s_playerPortraits.New(static_cast<UINT>(unit->GetGUID()), hashkey, 0, 0);
+    if (playerPortrait) {
+      playerPortrait->dirty = 0;
+      portrait = &playerPortrait->portrait;
+    } else {
+      portrait = &s_playerPortraits.New(static_cast<UINT>(unit->GetGUID()), hashkey, 0, 0)->portrait;
     }
-    playerPortrait->dirty = 0;
-    portrait = &playerPortrait->portrait;
   } else {
-    UNITPORTRAIT *unitPortrait = s_unitPortraits.New(unit->GetDisplayID(), s_nullHashKey, 0, 0);
-    portrait = &unitPortrait->portrait;
+    portrait = &s_unitPortraits.New(unit->GetDisplayID(), HASHKEY_NONE(), 0, 0)->portrait;
   }
 
-  pixRect = NTempest::CiRect(0, 0, 64, 64);
-  GxDevReadPixels(pixRect, portrait->pixels);
+  TSGrowableArray<NTempest::CImVector> &pixels = portrait->pixels;
+  NTempest::CiRect                      pixRect(0, 0, 64, 64);
+  GxDevReadPixels(pixRect, pixels);
   GxSceneClear(3);
 
   const TSFixedArray<BYTE> &alphaMask = GetAlphaMask(64);
-  ASSERT(portrait->pixels.Count() == alphaMask.Count());
-  for (UINT i = 0; i < portrait->pixels.Count(); ++i) {
-    portrait->pixels[i].a = alphaMask[i];
+  ASSERT(pixels.Count() == alphaMask.Count());
+  for (UINT i = 0; i < pixels.Count(); ++i) {
+    pixels[i].a = alphaMask[i];
   }
 
   if (portrait->texture) {
-    CGxTex *gxTex = TextureGetGxTex(portrait->texture, 1, 0);
-    GxTexUpdate(gxTex, pixRect, 1);
+    GxTexUpdate(TextureGetGxTex(portrait->texture, 1, 0), pixRect, 1);
   } else {
-    CGxTex     *gxTex;
-    CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-    GxTexCreate(64, 64, GxTex_Argb8888, flags, &portrait->pixels, TextureUpdate, gxTex);
+    CGxTex *gxTex;
+    GxTexCreate(64, 64, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &pixels, TextureUpdate, gxTex);
     portrait->texture = TextureCreate(gxTex);
   }
 
@@ -551,25 +505,46 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   HandleClose(camera);
 }
 
+void SetPortraitTexture(CSimpleTexture *texture, UINT race, UINT sex, DWORDLONG guid) {
+  if (guid) {
+    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(guid), guid);
+    if (playerPortrait && playerPortrait->portrait.texture) {
+      texture->SetTexture(playerPortrait->portrait.texture);
+      return;
+    }
+  }
+
+  ASSERT(race != 0);
+  ASSERT(race <= (uint)g_chrRacesDB.GetMaxID());
+  ASSERT(sex < UNITSEX_LAST);
+
+  char               buf[64];
+  const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(race);
+  SStrPrintf(
+      buf, sizeof(buf), "Interface\\CharacterFrame\\TemporaryPortrait-%s-%s", sex == UNITSEX_MALE ? "Male" : "Female", raceRec->m_clientFileString
+  );
+  texture->SetTexture(buf, 0);
+}
+
 void SetPortraitTexture(CSimpleTexture *texture, LPCSTR textureFile) {
   if (!textureFile || !*textureFile) {
     return;
   }
 
-  ITEMPORTRAIT *itemPortrait = s_itemPortraits.Ptr(textureFile);
-  if (itemPortrait) {
-    texture->SetTexture(itemPortrait->portrait.texture);
+  ITEMPORTRAIT *hash = s_itemPortraits.Ptr(textureFile);
+  if (hash) {
+    texture->SetTexture(hash->portrait.texture);
     return;
   }
 
-  itemPortrait = s_itemPortraits.New(textureFile, 0, 0);
+  hash = s_itemPortraits.New(textureFile, 0, 0);
 
   CBLPFile texFile;
   if (texFile.Open(textureFile)) {
     ASSERT(texFile.Width() == PORTRAIT_SIZE_SMALL);
     ASSERT(texFile.Height() == PORTRAIT_SIZE_SMALL);
 
-    TSGrowableArray<NTempest::CImVector> &pixels = itemPortrait->portrait.pixels;
+    TSGrowableArray<NTempest::CImVector> &pixels = hash->portrait.pixels;
     if (!pixels.Count()) {
       pixels.SetCount(PORTRAIT_SIZE_SMALL * PORTRAIT_SIZE_SMALL);
     }
@@ -590,11 +565,10 @@ void SetPortraitTexture(CSimpleTexture *texture, LPCSTR textureFile) {
       pixels[i].a = alphaMask[i];
     }
 
-    CGxTex     *gxTex;
-    CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-    GxTexCreate(PORTRAIT_SIZE_SMALL, PORTRAIT_SIZE_SMALL, GxTex_Argb8888, flags, &pixels, TextureUpdate, gxTex);
+    CGxTex *gxTex;
+    GxTexCreate(PORTRAIT_SIZE_SMALL, PORTRAIT_SIZE_SMALL, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &pixels, TextureUpdate, gxTex);
     HTEXTURE portraitTexture = TextureCreate(gxTex);
     texture->SetTexture(portraitTexture);
-    itemPortrait->portrait.texture = portraitTexture;
+    hash->portrait.texture = portraitTexture;
   }
 }

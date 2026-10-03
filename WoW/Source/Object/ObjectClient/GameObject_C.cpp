@@ -449,24 +449,22 @@ void CGGameObject_C_TypeAnimated::CloseLoopingSound() {
 }
 
 void CGGameObject_C_TypeAnimated::HandleAnimFinished() {
-  FATALASSERT(m_animState < sizeof(s_stateAnimInfo) / sizeof(s_stateAnimInfo[0]));
-
   switch (m_animState) {
-    case 0:
-    case 2:
-      if (!m_useFallbackAnim[m_animState] || !(m_animPresent & 2)) {
-        SetSequence();
-      }
-      break;
     case 1:
       UpdateAnimState(2);
+      break;
+    case 4:
+      UpdateAnimState(5);
       break;
     case 3:
     case 6:
       UpdateAnimState(0);
       break;
-    case 4:
-      UpdateAnimState(5);
+    case 0:
+    case 2:
+      if (!m_useFallbackAnim[m_animState] || !(m_animPresent & 2)) {
+        SetSequence();
+      }
       break;
     case 5:
       if (!m_useFallbackAnim[5] || !(m_animPresent & 0x10)) {
@@ -481,6 +479,9 @@ void CGGameObject_C_TypeAnimated::HandleAnimFinished() {
       UpdateState(state, state);
       break;
     }
+    default:
+      FATALERROR(("Unhandled anim state: (%d)", m_animState));
+      break;
   }
 }
 

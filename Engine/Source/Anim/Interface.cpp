@@ -84,11 +84,11 @@ BOOL CAnimData::Moves() {
 static void HashNameList(LPCSTR *names, UINT numNames, CAnimNameHashTable *table) {
   UINT i;
 
-  for (i = 0; i < numNames; ++i) {
-    ASSERT(!table->Ptr(names[i]));
+  for (i = 0; i < numNames; ++i, ++names) {
+    ASSERT(table->Ptr(*names) == 0);
 
-    CAnimNameHash *nameHash = table->New(names[i], 0, 0);
-    nameHash->index = i;
+    CAnimNameHash *hash = table->New(*names, 0, 0);
+    hash->index = i;
   }
 }
 
@@ -96,10 +96,10 @@ static void SetObjectIndexOrdering(const CAnimNameHashTable &table, UINT *orderi
   UINT i;
 
   for (i = 0; i < numItems; ++i) {
-    const CAnimNameHash *nameHash = table.Ptr(itemList[i]->name);
-    if (nameHash) {
-      ASSERT(ordering[nameHash->index] == 0xFFFFFFFF);
-      ordering[nameHash->index] = i;
+    const CAnimNameHash *hash = table.Ptr(itemList[i]->name);
+    if (hash) {
+      ASSERT(ordering[hash->index] == 0xffffffff);
+      ordering[hash->index] = i;
     }
   }
 }
@@ -108,10 +108,10 @@ static void SetCameraIndexOrdering(const CAnimNameHashTable &table, UINT *orderi
   UINT i;
 
   for (i = 0; i < numItems; ++i) {
-    const CAnimNameHash *nameHash = table.Ptr(itemList[i].name);
-    if (nameHash) {
-      ASSERT(ordering[nameHash->index] == 0xFFFFFFFF);
-      ordering[nameHash->index] = i;
+    const CAnimNameHash *hash = table.Ptr(itemList[i].name);
+    if (hash) {
+      ASSERT(ordering[hash->index] == 0xffffffff);
+      ordering[hash->index] = i;
     }
   }
 }
@@ -126,26 +126,25 @@ static void SetSeqFrequencies(const CArray<CVariations> &ordering, CArray<CAnimS
       continue;
     }
 
-    UINT numVariations = ordering[i].variation.Count();
     UINT numMissingFreq = 1;
+    UINT numVariations = ordering[i].variation.Count();
     UINT defaultFreq = 0;
 
     for (variation = 0; variation < numVariations; ++variation) {
       CAnimSequence &sequence = (*itemList)[ordering[i].variation[variation]];
-      if (sequence.randPickChance) {
-        defaultFreq += sequence.randPickChance;
-      } else {
+      if (!sequence.randPickChance) {
         ++numMissingFreq;
+      } else {
+        defaultFreq += sequence.randPickChance;
       }
     }
 
-    defaultFreq = defaultFreq >= 0x7FFF ? 0 : (0x7FFF - defaultFreq) / numMissingFreq;
+    defaultFreq = defaultFreq < 0x7FFF ? (0x7FFF - defaultFreq) / numMissingFreq : 0;
 
     (*itemList)[ordering[i].primary].randPickChance = defaultFreq;
     for (variation = 0; variation < numVariations; ++variation) {
-      CAnimSequence &sequence = (*itemList)[ordering[i].variation[variation]];
-      if (!sequence.randPickChance) {
-        sequence.randPickChance = defaultFreq;
+      if (!(*itemList)[ordering[i].variation[variation]].randPickChance) {
+        (*itemList)[ordering[i].variation[variation]].randPickChance = defaultFreq;
       }
     }
   }
@@ -155,54 +154,47 @@ static void SetSeqIndexOrdering(const CAnimNameHashTable &table, CArray<CVariati
   UINT                                 numSeqTypes = ordering->Count();
   TSStackArray<TSGrowableArray<BYTE> > variations(_alloca(numSeqTypes * sizeof(TSGrowableArray<BYTE>)), numSeqTypes, numSeqTypes);
   const char                           whitespace[3] = "\t ";
-  UINT                                 numItems = itemList.Count();
-  UINT                                 i;
+  BYTE                                 numItems = itemList.Count();
 
-  for (i = 0; i < numItems; ++i) {
-    LPCSTR name = reinterpret_cast<LPCSTR>(&itemList[i].name);
-    LPCSTR source = name;
+  for (BYTE i = 0; i < numItems; ++i) {
+    LPCSTR source = itemList[i].name;
     char   seqName[80];
 
     SStrTokenize(&source, seqName, sizeof(seqName), whitespace, 0);
 
-    const CAnimNameHash *nameHash = table.Ptr(seqName);
-    if (!nameHash) {
-      continue;
-    }
-
-    CVariations &sequenceOrder = (*ordering)[nameHash->index];
-    if (sequenceOrder.primary == 0xFF) {
-      sequenceOrder.primary = i;
-      continue;
-    }
-
-    LPCSTR primaryName = reinterpret_cast<LPCSTR>(&itemList[sequenceOrder.primary].name);
-    if (SStrLen(name) < SStrLen(primaryName)) {
-      BYTE previousPrimary = sequenceOrder.primary;
-      variations[nameHash->index].Add(1, &previousPrimary);
-      sequenceOrder.primary = i;
-    } else {
-      variations[nameHash->index].Add(1, reinterpret_cast<const BYTE *>(&i));
+    const CAnimNameHash *hash = table.Ptr(seqName);
+    if (hash) {
+      CVariations &sequenceOrder = (*ordering)[hash->index];
+      if (sequenceOrder.primary == 0xFF) {
+        sequenceOrder.primary = i;
+      } else if (SStrLen(itemList[i].name) >= SStrLen(itemList[sequenceOrder.primary].name)) {
+        variations[hash->index].New(i);
+      } else {
+        variations[hash->index].New(sequenceOrder.primary);
+        sequenceOrder.primary = i;
+      }
     }
   }
 
+  numSeqTypes = ordering->Count();
   for (UINT seqType = 0; seqType < numSeqTypes; ++seqType) {
     (*ordering)[seqType].variation.Exchange(&variations[seqType]);
   }
 }
 
 static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3Vector &target, UINT lookAtTypeFlag) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  ASSERT(objectId < shared->objectOrder.Count());
+  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnimData *shared;
+  VALIDATEBEGIN;
+  VALIDATE(unique);
+  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  VALIDATE(shared);
+  VALIDATE(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
   if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
-  VALIDATEBEGIN;
   VALIDATE(objectId < unique->status.Count());
   VALIDATEEND;
 
@@ -216,7 +208,7 @@ static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3V
     status->base.flags &= ~0x42;
     unique->lookAtTarget[status->lookAtId] = target;
   } else {
-    ASSERT(unique->lookAtTarget.Count() < 0xFF);
+    ASSERT(unique->lookAtTarget.Count() < 0xff);
     status->lookAtId = static_cast<BYTE>(unique->lookAtTarget.Count());
     unique->lookAtTarget.Add(1, &target);
   }
@@ -229,17 +221,20 @@ static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3V
 }
 
 static BOOL RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  ASSERT(objectId < shared->objectOrder.Count());
+  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnimData *shared;
+  VALIDATEBEGIN;
+  VALIDATE(unique);
+  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  VALIDATE(shared);
+  VALIDATE(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
   if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
-  ASSERT(objectId < unique->status.Count());
+  VALIDATE(objectId < unique->status.Count());
+  VALIDATEEND;
 
   CAnimObjStatus *status = unique->status[objectId];
   if (status->base.flags & lookAtTypeFlag) {
@@ -287,24 +282,19 @@ void AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks) {
   CAnim *unique = reinterpret_cast<CAnim *>(anim);
   ASSERT(unique);
 
-  unique->anySeqFinished.callback = 0;
-  unique->anySeqFinished.param = 0;
-  unique->appEvent.callback = 0;
-  unique->appEvent.param = 0;
-
   UINT numSequences = unique->seq.Count();
+  memset(&unique->anySeqFinished, 0, sizeof(unique->anySeqFinished));
+  memset(&unique->appEvent, 0, sizeof(unique->appEvent));
   UINT index;
   if (onlyResetCallbacks) {
     for (index = 0; index < numSequences; ++index) {
-      unique->seq[index].finished.callback = 0;
-      unique->seq[index].finished.param = 0;
+      unique->seq[index].ResetCallback();
     }
     return;
   }
 
   for (index = 0; index < numSequences; ++index) {
-    memset(&unique->seq[index], 0, sizeof(CSeqInfo));
-    unique->seq[index].seqTimeScale = 1.0f;
+    unique->seq[index].Reset();
   }
   unique->seqLastTime = IAnimGetCurrTimeMs();
 
@@ -323,10 +313,6 @@ void AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks) {
   numObjects = unique->textureStatus.Count();
   for (index = 0; index < numObjects; ++index) {
     unique->textureStatus[index].base.flags = 0x10;
-  }
-  numObjects = unique->modelStatus.Count();
-  for (index = 0; index < numObjects; ++index) {
-    unique->modelStatus[index].base.flags = 0x10;
   }
   numObjects = unique->geosetStatus.Count();
   for (index = 0; index < numObjects; ++index) {
@@ -454,11 +440,11 @@ void AnimSetObjectOrdering(HANIM anim, LPCSTR *boneNames, UINT numBones) {
   CAnimNameHashTable objNameHashTable;
   HashNameList(boneNames, numBones, &objNameHashTable);
 
-  shared->objectOrder.ReserveSpace(numBones);
   shared->objectOrder.SetCount(numBones);
   memset(shared->objectOrder.Ptr(), 0xFF, shared->objectOrder.Bytes());
 
   SetObjectIndexOrdering(objNameHashTable, shared->objectOrder.Ptr(), shared->obj.Ptr(), shared->obj.Count());
+  objNameHashTable.Clear();
 }
 
 void AnimResetObjectOrdering(HANIM__ *anim) {
@@ -467,9 +453,9 @@ void AnimResetObjectOrdering(HANIM__ *anim) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  shared->objectOrder.ReserveSpace(shared->obj.Count());
-  shared->objectOrder.SetCount(shared->obj.Count());
-  for (UINT i = 0; i < shared->obj.Count(); ++i) {
+  UINT numObjects = shared->obj.Count();
+  shared->objectOrder.SetCount(numObjects);
+  for (UINT i = 0; i < numObjects; ++i) {
     shared->objectOrder[i] = i;
   }
 }
@@ -481,24 +467,23 @@ void AnimSetSequenceOrderingDefault(HANIM anim) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  UINT i;
+  BYTE i;
   for (i = 0; i < shared->seqOrder.Count(); ++i) {
     if (!shared->seqOrder[i].nameListUsed) {
-      unique->seqMapIndex = static_cast<BYTE>(i);
+      unique->seqMapIndex = i;
       return;
     }
   }
 
-  ASSERT(shared->seqOrder.Count() < 0xFE);
+  ASSERT(shared->seqOrder.Count() < 0xfe);
   unique->seqMapIndex = static_cast<BYTE>(shared->seqOrder.Count());
 
   CSeqOrdering *sequenceOrder = shared->seqOrder.New();
-  sequenceOrder->nameListUsed = 0;
-  sequenceOrder->order.ReserveSpace(shared->seq.Count());
   sequenceOrder->order.SetCount(shared->seq.Count());
+  sequenceOrder->nameListUsed = 0;
 
-  for (i = 0; i < shared->seq.Count(); ++i) {
-    sequenceOrder->order[i].primary = i;
+  for (UINT index = 0; index < shared->seq.Count(); ++index) {
+    sequenceOrder->order[index].primary = index;
   }
 }
 
@@ -525,16 +510,16 @@ void AnimSetSequenceOrdering(HANIM anim, LPCSTR *sequenceNames, UINT numSequence
   CAnimNameHashTable seqNameHashTable;
   HashNameList(sequenceNames, numSequences, &seqNameHashTable);
 
-  ASSERT(shared->seqOrder.Count() < 0xFE);
+  ASSERT(shared->seqOrder.Count() < 0xfe);
   unique->seqMapIndex = static_cast<BYTE>(shared->seqOrder.Count());
 
   CSeqOrdering *sequenceOrder = shared->seqOrder.New();
-  sequenceOrder->order.ReserveSpace(numSequences);
   sequenceOrder->order.SetCount(numSequences);
   sequenceOrder->nameListUsed = sequenceNames;
 
   SetSeqIndexOrdering(seqNameHashTable, &sequenceOrder->order, shared->seq);
-  SetSeqFrequencies(sequenceOrder->order, &shared->seq);
+  seqNameHashTable.Clear();
+  SetSeqFrequencies(shared->seqOrder[unique->seqMapIndex].order, &shared->seq);
 }
 
 void AnimSetCameraOrdering(HANIM anim, LPCSTR *cameraNames, UINT numCameras, TSFixedArray<UINT> *cameraOrder) {
@@ -553,9 +538,10 @@ void AnimSetCameraOrdering(HANIM anim, LPCSTR *cameraNames, UINT numCameras, TSF
   HashNameList(cameraNames, numCameras, &objNameHashTable);
 
   cameraOrder->SetCount(numCameras);
-  memset(cameraOrder->Ptr(), 0xFF, numCameras * sizeof(UINT));
+  memset(cameraOrder->Ptr(), 0xFF, cameraOrder->Bytes());
 
   SetCameraIndexOrdering(objNameHashTable, cameraOrder->Ptr(), shared->cameraObjs.Ptr(), shared->cameraObjs.Count());
+  objNameHashTable.Clear();
 }
 
 void AnimResetCameraOrdering(HANIM anim, TSFixedArray<UINT> *cameraOrder) {
@@ -590,50 +576,38 @@ UINT AnimGetTotalKeys(HANIM anim) {
 
   UINT totalKeys = 0;
   UINT i;
-  for (i = 0; i < shared->geo.Count(); ++i) {
-    totalKeys += shared->geo[i].visibility.TotalKeys();
-    totalKeys += shared->geo[i].color.TotalKeys();
+
+  CAnimGeoset *geoset = shared->geo.Ptr();
+  for (i = shared->geo.Count(); i; --i, ++geoset) {
+    totalKeys += geoset->visibility.TotalKeys() + geoset->color.TotalKeys();
   }
-  for (i = 0; i < shared->tex.Count(); ++i) {
-    totalKeys += shared->tex[i].translation.TotalKeys();
-    totalKeys += shared->tex[i].rotation.TotalKeys();
-    totalKeys += shared->tex[i].scale.TotalKeys();
+  CAnimTransform *texAnim = shared->tex.Ptr();
+  for (i = shared->tex.Count(); i; --i, ++texAnim) {
+    totalKeys += texAnim->translation.TotalKeys() + texAnim->rotation.TotalKeys() + texAnim->scale.TotalKeys();
   }
-  for (i = 0; i < shared->obj.Count(); ++i) {
-    totalKeys += shared->obj[i]->translation.TotalKeys();
-    totalKeys += shared->obj[i]->rotation.TotalKeys();
-    totalKeys += shared->obj[i]->scale.TotalKeys();
+  CAnimObj **object = shared->obj.Ptr();
+  for (i = shared->obj.Count(); i; --i, ++object) {
+    totalKeys += (*object)->translation.TotalKeys() + (*object)->rotation.TotalKeys() + (*object)->scale.TotalKeys();
   }
-  for (i = 0; i < shared->lightObjs.Count(); ++i) {
-    totalKeys += shared->lightObjs[i].visibility.TotalKeys();
-    totalKeys += shared->lightObjs[i].color.TotalKeys();
-    totalKeys += shared->lightObjs[i].intensity.TotalKeys();
-    totalKeys += shared->lightObjs[i].ambColor.TotalKeys();
-    totalKeys += shared->lightObjs[i].ambIntensity.TotalKeys();
+  CAnimLightObj *light = shared->lightObjs.Ptr();
+  for (i = shared->lightObjs.Count(); i; --i, ++light) {
+    totalKeys += light->visibility.TotalKeys() + light->attenstart.TotalKeys() + light->attenend.TotalKeys() + light->color.TotalKeys()
+                 + light->intensity.TotalKeys();
   }
-  for (i = 0; i < shared->cameraObjs.Count(); ++i) {
-    totalKeys += shared->cameraObjs[i].visibility.TotalKeys();
+  CAnimMaterialLayer *layer = shared->layers.Ptr();
+  for (i = shared->layers.Count(); i; --i, ++layer) {
+    totalKeys += layer->visibility.TotalKeys();
   }
-  for (i = 0; i < shared->emitter2Objs.Count(); ++i) {
-    CAnimEmitter2Obj &emitter = shared->emitter2Objs[i];
-    totalKeys += emitter.translation.TotalKeys();
-    totalKeys += emitter.rotation.TotalKeys();
-    totalKeys += emitter.scale.TotalKeys();
-    totalKeys += emitter.visibility.TotalKeys();
-    totalKeys += emitter.particleSpeed.TotalKeys();
-    totalKeys += emitter.emissionRate.TotalKeys();
-    totalKeys += emitter.gravity.TotalKeys();
-    totalKeys += emitter.variation.TotalKeys();
-    totalKeys += emitter.latitude.TotalKeys();
-    totalKeys += emitter.longitude.TotalKeys();
-    totalKeys += emitter.length.TotalKeys();
-    totalKeys += emitter.width.TotalKeys();
+  CAnimEmitter2Obj *emitter = shared->emitter2Objs.Ptr();
+  for (i = shared->emitter2Objs.Count(); i; --i, ++emitter) {
+    totalKeys += emitter->translation.TotalKeys() + emitter->rotation.TotalKeys() + emitter->scale.TotalKeys() + emitter->visibility.TotalKeys()
+                 + emitter->particleSpeed.TotalKeys() + emitter->emissionRate.TotalKeys() + emitter->gravity.TotalKeys()
+                 + emitter->variation.TotalKeys() + emitter->latitude.TotalKeys() + emitter->longitude.TotalKeys() + emitter->length.TotalKeys()
+                 + emitter->width.TotalKeys();
   }
-  for (i = 0; i < shared->ribbonObjs.Count(); ++i) {
-    CAnimRibbonObj &ribbon = shared->ribbonObjs[i];
-    totalKeys += ribbon.translation.TotalKeys();
-    totalKeys += ribbon.rotation.TotalKeys();
-    totalKeys += ribbon.visibility.TotalKeys();
+  CAnimRibbonObj *ribbon = shared->ribbonObjs.Ptr();
+  for (i = shared->ribbonObjs.Count(); i; --i, ++ribbon) {
+    totalKeys += ribbon->heightAbove.TotalKeys() + ribbon->heightBelow.TotalKeys() + ribbon->slot.TotalKeys();
   }
   return totalKeys;
 }
@@ -689,21 +663,18 @@ void AnimSetSeqFinishedHandler(HANIM anim, UINT sequence, ANIMSEQFINISHEDHANDLER
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  CSeqOrdering &ordering = shared->seqOrder[unique->seqMapIndex];
-  CVariations  &sequences = ordering.order[sequence];
-  if (sequences.primary == 0xFF) {
+  BYTE primary = shared->seqOrder[unique->seqMapIndex].order[sequence].primary;
+  if (primary == 0xFF) {
     return;
   }
 
-  unique->seq[sequences.primary].finished.callback = callback;
-  unique->seq[sequences.primary].finished.param = param;
-  UINT  numVariations = sequences.variation.Count();
-  BYTE *variation = sequences.variation.Ptr();
-  while (numVariations) {
-    unique->seq[*variation].finished.callback = callback;
-    unique->seq[*variation].finished.param = param;
-    ++variation;
-    --numVariations;
+  unique->seq[primary].finished.callback = callback;
+  unique->seq[primary].finished.param = param;
+  BYTE *variation = shared->seqOrder[unique->seqMapIndex].order[sequence].variation.Ptr();
+  UINT  numVariations = shared->seqOrder[unique->seqMapIndex].order[sequence].variation.Count();
+  for (UINT i = 0; i < numVariations; ++i) {
+    unique->seq[variation[i]].finished.callback = callback;
+    unique->seq[variation[i]].finished.param = param;
   }
 }
 
@@ -734,12 +705,13 @@ float AnimGetPrimarySequenceCompletion(HANIM anim) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
   CAnimSequence &sequence = shared->seq[unique->primarySeq];
-  if (sequence.time.h == sequence.time.l) {
+  CSeqInfo      &seqInfo = unique->seq[unique->primarySeq];
+  UINT           duration = sequence.time.Magnitude();
+  if (!duration) {
     return 0.0f;
   }
 
-  float completion =
-      static_cast<float>(unique->seq[unique->primarySeq].elapsed - sequence.time.l) / static_cast<float>(sequence.time.h - sequence.time.l);
+  float completion = static_cast<float>(static_cast<UINT>(seqInfo.elapsed - sequence.time.l)) / duration;
   if (completion < 0.0f) {
     return 0.0f;
   }
@@ -817,12 +789,10 @@ void AnimEnableBlending(HANIM anim, int enable) {
   if (enable) {
     unique->flags |= 0x10;
     UINT numObjects = unique->status.Count();
-    unique->blendStatus.ReserveSpace(numObjects);
     unique->blendStatus.SetCount(numObjects);
   } else {
     unique->flags &= ~0x10;
-    unique->blendStatus.ReserveSpace(0);
-    unique->blendStatus.Clear();
+    unique->blendStatus.SetCount(0);
   }
 }
 
@@ -832,12 +802,12 @@ BOOL AnimMarkFootstepSequence(HANIM anim, UINT index) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  UINT sequence = shared->seqOrder[unique->seqMapIndex].order[index].primary;
-  if (sequence == 0xFF) {
+  index = shared->seqOrder[unique->seqMapIndex].order[index].primary;
+  if (index == 0xFF) {
     return 0;
   }
-  ASSERT(sequence < shared->seq.Count());
-  shared->seq[sequence].flags |= 2;
+  ASSERT(index < shared->seq.Count());
+  shared->seq[index].flags |= 2;
   return 1;
 }
 
@@ -848,12 +818,12 @@ BOOL AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
-  UINT sharedObjectId = shared->objectOrder[objectId];
-  if (sharedObjectId == static_cast<UINT>(-1)) {
+  objectId = shared->objectOrder[objectId];
+  if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
-  ASSERT(sharedObjectId < shared->obj.Count());
-  CAnimObjStatus *status = unique->status[sharedObjectId];
+  ASSERT(objectId < shared->obj.Count());
+  CAnimObjStatus *status = unique->status[objectId];
   if (set) {
     status->base.flags |= 0x20;
   } else {
@@ -886,20 +856,14 @@ BOOL AnimEventEmitterHasKeysThisSeq(HANIM anim, UINT objectId) {
     return 0;
   }
 
-  ASSERT(objectId < shared->obj.Count());
   CAnimObj *currobj = shared->obj[objectId];
   ASSERT(currobj);
-  ASSERT(currobj->type == 6);
-  ASSERT(objectId < unique->status.Count());
+  ASSERT(currobj->type == OBJ_TYPE_EVENT);
   CAnimObjStatus *status = unique->status[objectId];
   ASSERT(status);
 
   CAnimEventObj *eventObject = static_cast<CAnimEventObj *>(currobj);
-  UINT           sequence = status->base.currSeq;
-  if (!eventObject->events.SequenceChanges()) {
-    return eventObject->events.TotalKeys() != 0;
-  }
-  return eventObject->events.NumKeysThisSeq(sequence) != 0;
+  return eventObject->events.NumKeysThisSeqSafe(status->base.currSeq) > 0;
 }
 
 BOOL AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempest::C3Vector> &positions, NTempest::C3Vector *position) {

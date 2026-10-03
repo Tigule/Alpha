@@ -6,39 +6,36 @@
 
 namespace NTempest {
 
-  void CMemBlock::Set32b_(char *c, BYTE d, DWORD size) {
-    DWORD prefix = -reinterpret_cast<DWORD>(c) & 3;
+  void CMemBlock::Set32b_(char *d, BYTE c, DWORD size) {
+    DWORD prefix = -reinterpret_cast<DWORD>(d) & 3;
     DWORD suffix = (size - prefix) & 3;
     DWORD body = size - suffix - prefix;
 
     switch (prefix) {
       case 3:
-        c[2] = d;
+        d[2] = c;
       case 2:
-        c[1] = d;
+        d[1] = c;
       case 1:
-        c[0] = d;
+        d[0] = c;
     }
 
-    c += prefix;
+    d += prefix;
 
     if (body) {
       ASSERT((body & 0x3) == 0);
 
-      DWORD word = d;
-      word |= word << 8;
-      word |= word << 16;
-      Set32b_(reinterpret_cast<DWORD *>(c), word, body);
-      c += body;
+      Set32b_(reinterpret_cast<DWORD *>(d), ((static_cast<DWORD>(c) << 8 | c) << 8 | c) << 8 | c, body);
+      d += body;
     }
 
     switch (suffix) {
       case 3:
-        c[2] = d;
+        d[2] = c;
       case 2:
-        c[1] = d;
+        d[1] = c;
       case 1:
-        c[0] = d;
+        d[0] = c;
     }
   }
 
@@ -149,11 +146,11 @@ namespace NTempest {
     Constructor_(bsize, prologue, filen, linen);
   }
 
-  CMemBlock::CMemBlock(const CMemBlock &m) : mem_(0) {
-    ASSERT(!IsValid());
+  CMemBlock::CMemBlock(const CMemBlock &m) {
+    ASSERT(IsValid() == false);
     ASSERT(m.IsValid());
     ASSERT(m.mem_ <= m.mem && m.size_ >= m.size);
-    Constructor_(m.size, m.size_ - m.size, m.FileN_(), m.LineN_());
+    Constructor_(m.size, m.Prologue_(), m.FileN_(), m.LineN_());
     if (mem_) {
       ASSERT(Copy_(m) == size_);
     }
@@ -164,7 +161,7 @@ namespace NTempest {
     ASSERT(m.mem_ <= m.mem && m.size_ >= m.size);
     ASSERT(mem_ <= mem && size_ >= size);
     Destructor_();
-    Constructor_(m.size, m.size_ - m.size, m.FileN_(), m.LineN_());
+    Constructor_(m.size, m.Prologue_(), m.FileN_(), m.LineN_());
     if (mem_) {
       ASSERT(Copy_(m) == size_);
     }

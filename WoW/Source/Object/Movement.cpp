@@ -1004,14 +1004,8 @@ BOOL CMovement::PlotUnitSplineMovement(DWORD eventTime, NTempest::C3Vector *move
       currentFacing.x = m_direction.x;
       currentFacing.y = m_direction.y;
       NTempest::C2Vector futureFacing = *futureMatrix.Row3AsVec3() - GetPosition();
-      float              magnitude = currentFacing.Mag();
-      if (CMath::fnotequal_(magnitude, 0)) {
-        currentFacing /= magnitude;
-      }
-      magnitude = futureFacing.Mag();
-      if (CMath::fnotequal_(magnitude, 0)) {
-        futureFacing /= magnitude;
-      }
+      currentFacing.SafeNormalize();
+      futureFacing.SafeNormalize();
 
       float cosTheta = NTempest::C2Vector::Dot(futureFacing, currentFacing);
       cosTheta = CMath::clamp_(cosTheta, -1.0f, 1.0f);

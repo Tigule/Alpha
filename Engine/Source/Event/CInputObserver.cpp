@@ -3,6 +3,9 @@
 #include "CInputObserver.h"
 #include "CMouseEvent.h"
 
+static const float EVENT_PRIORITY_BELOW_NORMAL = -1.0f;
+static const float EVENT_PRIORITY_ABOVE_NORMAL = 1.0f;
+
 static TRefCntPtr<CInputObserver> s_pInputObserver;
 
 BOOL CObserver::OnEvent(const CEvent &) {
@@ -90,13 +93,13 @@ BOOL CInputObserver::OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, LPVOID pa
   return 1;
 }
 
-#define INPUT_OBSERVER_REGISTRATION(name, eventId, handler, inputEventId)                                   \
+#define INPUT_OBSERVER_REGISTRATION(name, eventId, handler, inputEventId, priority)                         \
   void CInputObserver::Register##name(CObserver *pObs) {                                                    \
     if (!GetInputObserver()->IsEventRegistered(eventId)) {                                                  \
       EventRegisterEx(inputEventId,                                                                         \
                       reinterpret_cast<EVENTHANDLER>(handler),                                              \
                       GetInputObserver(),                                                                   \
-                      EVENT_PRIORITY_NORMAL);                                                               \
+                      priority);                                                                            \
     }                                                                                                       \
     GetInputObserver()->RegisterEvent(eventId, eventId, pObs);                                              \
   }                                                                                                         \
@@ -110,19 +113,19 @@ BOOL CInputObserver::OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, LPVOID pa
     }                                                                                                       \
   }
 
-INPUT_OBSERVER_REGISTRATION(KeyDown, 0x40060064, OnKeyDown, EVENT_ID_KEYDOWN)
-INPUT_OBSERVER_REGISTRATION(KeyDownRepeating, 0x40060065, OnKeyRepeat, EVENT_ID_KEYDOWN_REPEATING)
-INPUT_OBSERVER_REGISTRATION(KeyUp, 0x40060066, OnKeyUp, EVENT_ID_KEYUP)
-INPUT_OBSERVER_REGISTRATION(Char, 0x40060067, OnChar, EVENT_ID_CHAR)
-INPUT_OBSERVER_REGISTRATION(MouseDown, 0x400500C8, OnMouseDown, EVENT_ID_MOUSEDOWN)
-INPUT_OBSERVER_REGISTRATION(MouseUp, 0x400500C9, OnMouseUp, EVENT_ID_MOUSEUP)
-INPUT_OBSERVER_REGISTRATION(MouseMove, 0x400500CA, OnMouseMove, EVENT_ID_MOUSEMOVE)
-INPUT_OBSERVER_REGISTRATION(MouseWheel, 0x400500CD, OnMouseWheel, EVENT_ID_MOUSEWHEEL)
-INPUT_OBSERVER_REGISTRATION(MouseMoveRelative, 0x400500CB, OnMouseMoveRelative, EVENT_ID_MOUSEMOVE_RELATIVE)
-INPUT_OBSERVER_REGISTRATION(MouseModeChanged, 0x400500CC, OnMouseModeChanged, EVENT_ID_MOUSEMODE_CHANGED)
-INPUT_OBSERVER_REGISTRATION(Ime, 0x40060068, OnIme, EVENT_ID_IME)
-INPUT_OBSERVER_REGISTRATION(WindowSize, 0x40040064, OnWindowSize, EVENT_ID_SIZE)
-INPUT_OBSERVER_REGISTRATION(WindowFocus, 0x40040065, OnWindowFocus, EVENT_ID_FOCUS)
+INPUT_OBSERVER_REGISTRATION(KeyDown, 0x40060064, OnKeyDown, EVENT_ID_KEYDOWN, EVENT_PRIORITY_NORMAL)
+INPUT_OBSERVER_REGISTRATION(KeyDownRepeating, 0x40060065, OnKeyRepeat, EVENT_ID_KEYDOWN_REPEATING, EVENT_PRIORITY_BELOW_NORMAL)
+INPUT_OBSERVER_REGISTRATION(KeyUp, 0x40060066, OnKeyUp, EVENT_ID_KEYUP, EVENT_PRIORITY_BELOW_NORMAL)
+INPUT_OBSERVER_REGISTRATION(Char, 0x40060067, OnChar, EVENT_ID_CHAR, EVENT_PRIORITY_BELOW_NORMAL)
+INPUT_OBSERVER_REGISTRATION(MouseDown, 0x400500C8, OnMouseDown, EVENT_ID_MOUSEDOWN, EVENT_PRIORITY_ABOVE_NORMAL)
+INPUT_OBSERVER_REGISTRATION(MouseUp, 0x400500C9, OnMouseUp, EVENT_ID_MOUSEUP, EVENT_PRIORITY_BELOW_NORMAL)
+INPUT_OBSERVER_REGISTRATION(MouseMove, 0x400500CA, OnMouseMove, EVENT_ID_MOUSEMOVE, EVENT_PRIORITY_ABOVE_NORMAL)
+INPUT_OBSERVER_REGISTRATION(MouseWheel, 0x400500CD, OnMouseWheel, EVENT_ID_MOUSEWHEEL, EVENT_PRIORITY_BELOW_NORMAL)
+INPUT_OBSERVER_REGISTRATION(MouseMoveRelative, 0x400500CB, OnMouseMoveRelative, EVENT_ID_MOUSEMOVE_RELATIVE, EVENT_PRIORITY_ABOVE_NORMAL)
+INPUT_OBSERVER_REGISTRATION(MouseModeChanged, 0x400500CC, OnMouseModeChanged, EVENT_ID_MOUSEMODE_CHANGED, EVENT_PRIORITY_BELOW_NORMAL)
+INPUT_OBSERVER_REGISTRATION(Ime, 0x40060068, OnIme, EVENT_ID_IME, EVENT_PRIORITY_NORMAL)
+INPUT_OBSERVER_REGISTRATION(WindowSize, 0x40040064, OnWindowSize, EVENT_ID_SIZE, EVENT_PRIORITY_NORMAL)
+INPUT_OBSERVER_REGISTRATION(WindowFocus, 0x40040065, OnWindowFocus, EVENT_ID_FOCUS, EVENT_PRIORITY_NORMAL)
 
 #undef INPUT_OBSERVER_REGISTRATION
 

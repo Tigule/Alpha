@@ -681,9 +681,9 @@ BOOL IPerfRemoteLoggingStartup() {
       SInterlockedDecrement(&s_ProfStartup);
       return 0;
     }
-    OsNetInitialize(0, 0);
+    OsNetInitialize(0, 3);
     s_ProfRingBuf = static_cast<char *>(SMemAlloc(0x10000, __FILE__, __LINE__, 0));
-    s_ProfRingBufHead = s_ProfRingBufTail = 0;
+    s_ProfRingBufTail = s_ProfRingBufHead = 0;
     s_ProfStartupEvent = NEW(SEvent)(1, 0);
     s_ProfShutdownEvent = NEW(SEvent)(1, 0);
     s_ProfRequestEnqueuedEvent = NEW(SEvent)(1, 0);

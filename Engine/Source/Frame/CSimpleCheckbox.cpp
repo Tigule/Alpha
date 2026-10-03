@@ -64,8 +64,8 @@ void CSimpleCheckbox::SetCheckedTexture(CSimpleTexture *texture) {
 BOOL CSimpleCheckbox::SetDisabledCheckedTexture(LPCSTR texFile) {
   int okay = 1;
 
-  if (m_disabledTexture) {
-    m_disabledTexture->SetTexture(texFile, 0);
+  if (m_checkedTexture) {
+    m_checkedTexture->SetTexture(texFile, 0);
   } else {
     CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
     if (texture->SetTexture(texFile, 0)) {

@@ -57,7 +57,7 @@ static const float s_cameraTargetZ = 0.97222221f;
 static const float s_cameraOrbitRadius = 11.666667f;
 static const float s_cameraOrbitHeight = 8.333333f;
 
-extern const int *const g_ITEMTYPEARRAY;
+extern const int g_ITEMTYPEARRAY[];
 void                    SetHandsState(HMODEL model, int itemSlot, int itemInventoryType);
 
 CSimpleModel         *CCharCreateInfo::m_charCustomizeFrame;
@@ -71,7 +71,10 @@ float                 CCharCreateInfo::m_charFacing;
 CHARCREATEINFO        CCharCreateInfo::m_charInfo;
 
 static UINT RandomSelection(UINT numChoices) {
-  return NTempest::CMath::mulhwu_(numChoices, NTempest::CRandom::uint32_(g_rndSeed));
+  if (!numChoices) {
+    return 0;
+  }
+  return NTempest::CRandom::dice_(numChoices, g_rndSeed);
 }
 
 static int Script_SetCharCustomizeFrame(lua_State *L);
@@ -180,19 +183,13 @@ void CHARCREATEINFO::CommitTexture(int race, int sex) {
 }
 
 void CCharCreateInfo::Initialize() {
+  m_charInfo.Initialize();
+
   UINT                   numFactions;
   UINT                   i;
   UINT                   count = 0;
   const FactionGroupRec *group;
   UINT                   numRaces = 0;
-
-  memset(m_charInfo.currentGeosets, 0, sizeof(m_charInfo.currentGeosets));
-
-  for (i = 0; i < 2; ++i) {
-    m_charInfo.characterModel[i] = 0;
-    m_charInfo.geosetHandle[i] = 0;
-    m_charInfo.characterComponent[i] = 0;
-  }
 
   for (i = 0; i < static_cast<UINT>(g_chrRacesDB.GetNumRecords()); ++i) {
     const ChrRacesRec *race = g_chrRacesDB.GetRecordByIndex(i);
@@ -259,16 +256,11 @@ void CCharCreateInfo::SetCharCustomizeFrame(CSimpleModel *frame) {
 }
 
 void CCharCreateInfo::SetCharCustomizeModel(LPCSTR filename) {
-  CModelCreate createData;
-
   if (!m_charCustomizeFrame || !filename || !*filename) {
     return;
   }
 
-  createData.sequenceNames = 0;
-  createData.numSequences = 0;
-  createData.cameraNames = 0;
-  createData.numCameras = 0;
+  CModelCreate createData;
   createData.flags = 4;
   createData.boneNames = g_glueBgObjNames;
   createData.numBones = 2;
@@ -297,7 +289,7 @@ const CharStartOutfitRec *CCharCreateInfo::GetOutfit(UINT raceID, UINT classID, 
 }
 
 void CCharCreateInfo::ResetCharCustomizeInfo() {
-  if (m_charCustomizeFrame && ModelIsLoaded(m_charCustomizeFrame->GetModel(), 0) && m_raceIndex.Count()) {
+  if (m_charCustomizeFrame && ModelClearLink(m_charCustomizeFrame->GetModel(), 0) && m_raceIndex.Count()) {
     m_selectedRace = RandomSelection(m_raceIndex.Count());
     UpdateAvailableClasses();
     if (m_classIndex.Count()) {
@@ -333,12 +325,11 @@ void CCharCreateInfo::UpdateAvailableClasses() {
     return;
   }
 
-  UINT numRecords;
-  numRecords = g_chrClassesDB.GetNumRecords();
-  m_classIndex.SetCount(numRecords);
+  m_classIndex.SetCount(g_chrClassesDB.GetNumRecords());
 
+  UINT numRecords = g_charBaseInfoDB.GetNumRecords();
   UINT count = 0;
-  for (UINT i = 0; i < static_cast<UINT>(g_charBaseInfoDB.GetNumRecords()); ++i) {
+  for (UINT i = 0; i < numRecords; ++i) {
     const CharBaseInfoRec *rec = g_charBaseInfoDB.GetRecordByIndex(i);
     if (rec->m_raceID == m_raceIndex[m_selectedRace]) {
       m_classIndex[count++] = rec->m_classID;
@@ -365,11 +356,11 @@ void CCharCreateInfo::Shutdown() {
 }
 
 UINT CCharCreateInfo::GetSelectedRaceID() {
-  if (static_cast<UINT>(m_selectedRace) < m_raceIndex.Count()) {
-    return m_raceIndex[m_selectedRace];
+  if (static_cast<UINT>(m_selectedRace) >= m_raceIndex.Count()) {
+    return 0;
   }
 
-  return 0;
+  return m_raceIndex[m_selectedRace];
 }
 
 UINT CCharCreateInfo::GetSelectedSexID() {
@@ -377,11 +368,11 @@ UINT CCharCreateInfo::GetSelectedSexID() {
 }
 
 UINT CCharCreateInfo::GetSelectedClassID() {
-  if (static_cast<UINT>(m_selectedClass) < m_classIndex.Count()) {
-    return m_classIndex[m_selectedClass];
+  if (static_cast<UINT>(m_selectedClass) >= m_classIndex.Count()) {
+    return 0;
   }
 
-  return 0;
+  return m_classIndex[m_selectedClass];
 }
 
 void CCharCreateInfo::UpdateAllCharacterInfo(int race, UINT sex) {
@@ -406,11 +397,14 @@ void CCharCreateInfo::InitializeCharacterInfo(UINT sex, int doNotCommitGeosets) 
 }
 
 void CHARCREATEINFO::UpdateCharacterInfo(UINT race, UINT sex) {
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
 
   if (!characterModel[sex]) {
     const CreatureModelDataRec *modelInfo = Player_C_GetModelName(race, sex);
-    FATALASSERT(modelInfo && modelInfo->m_ModelName && *modelInfo->m_ModelName);
+    if (!modelInfo || !*modelInfo->m_ModelName) {
+      FATALERROR(("Error, model name for player race %d and sex %d not found!", race, sex));
+      return;
+    }
 
     if (geosetHandle[sex]) {
       HandleClose(geosetHandle[sex]);
@@ -422,9 +416,11 @@ void CHARCREATEINFO::UpdateCharacterInfo(UINT race, UINT sex) {
       HandleClose(characterComponent[sex]);
     }
 
-    geosetHandle[sex] = 0;
-    characterModel[sex] = ObjectModelCreate(modelInfo->m_ModelName, static_cast<OBJECT_TYPE>(25), 0x100800);
+    characterModel[sex] = 0;
     characterComponent[sex] = 0;
+    geosetHandle[sex] = 0;
+
+    characterModel[sex] = ObjectModelCreate(modelInfo->m_ModelName, static_cast<OBJECT_TYPE>(25), 0x100800);
     geosetHandle[sex] = CharCustomizationCreateGeosetHandle(characterModel[sex]);
     FATALASSERT(geosetHandle[sex]);
     ModelSetSequence(characterModel[sex], 0, 0);
@@ -432,11 +428,7 @@ void CHARCREATEINFO::UpdateCharacterInfo(UINT race, UINT sex) {
 }
 
 void CHARCREATEINFO::UpdateEquipment(int doNotCommitGeosets, UINT race, UINT sex) {
-  UINT    itemInventoryTypes[20];
-  UINT    itemDisplayIDs[20];
-  CStatus status;
-
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
   if (characterModel[sex]) {
     ModelClearAllLinks(characterModel[sex]);
   }
@@ -444,35 +436,50 @@ void CHARCREATEINFO::UpdateEquipment(int doNotCommitGeosets, UINT race, UINT sex
   TexComponentRemoveSections(characterComponent[sex], s_removeSections, s_startingLayer, 8);
   TexComponentRemoveAllHolds(characterComponent[sex]);
 
-  const CharStartOutfitRec *outfit = CCharCreateInfo::GetOutfit(race, selections[sex].classID, sex, selections[sex].outfit);
+  CustomizationSelections  &selection = selections[sex];
+  const CharStartOutfitRec *outfit = CCharCreateInfo::GetOutfit(race, selection.classID, sex, selection.outfit);
+
+  UINT itemInventoryTypes[20];
+  UINT itemDisplayIDs[20];
+  int  itemCount = 0;
+
   if (outfit) {
-    int itemCount = 0;
     for (int i = 0; i < 12; ++i) {
-      if (outfit->m_ItemID[i] == -1 || outfit->m_DisplayItemID[i] == -1 || outfit->m_InventoryType[i] == -1 ||
-          outfit->m_InventoryType[i] == INDEX_RANGED_TYPE || outfit->m_InventoryType[i] == INDEX_THROWN_TYPE ||
-          outfit->m_InventoryType[i] == INDEX_RANGEDRIGHT_TYPE)
-      {
+      if (outfit->m_ItemID[i] == -1) {
+        continue;
+      }
+      int displayID = outfit->m_DisplayItemID[i];
+      if (displayID == -1) {
+        continue;
+      }
+      int inventoryType = outfit->m_InventoryType[i];
+      if (inventoryType == -1 || inventoryType == INDEX_RANGED_TYPE || inventoryType == INDEX_THROWN_TYPE || inventoryType == INDEX_RANGEDRIGHT_TYPE) {
         continue;
       }
 
-      itemDisplayIDs[itemCount] = outfit->m_DisplayItemID[i];
-      itemInventoryTypes[itemCount] = outfit->m_InventoryType[i];
+      itemDisplayIDs[itemCount] = displayID;
+      itemInventoryTypes[itemCount] = inventoryType;
       ++itemCount;
 
-      const ItemDisplayInfoRec *displayInfoRec = g_itemDisplayInfoDB.GetRecord(outfit->m_DisplayItemID[i]);
+      const ItemDisplayInfoRec *displayInfoRec = g_itemDisplayInfoDB.GetRecord(displayID);
       if (!displayInfoRec) {
-        SysMsgPrintf(SYSMSG_WARNING, 0x10, "ITEMDISPLAYNOTFOUND|%d", outfit->m_DisplayItemID[i]);
+        SysMsgPrintf(SYSMSG_WARNING, 0x10, "ITEMDISPLAYNOTFOUND|%d", displayID);
         continue;
       }
 
       int itemSlotNum = -1;
-      switch (outfit->m_InventoryType[i]) {
+      switch (inventoryType) {
         case INDEX_NON_EQUIP_TYPE:
           continue;
         case INDEX_WEAPON_TYPE:
         case INDEX_2HWEAPON_TYPE:
         case INDEX_WEAPONMAINHAND_TYPE:
           itemSlotNum = 15;
+          break;
+        case INDEX_RANGED_TYPE:
+        case INDEX_THROWN_TYPE:
+        case INDEX_RANGEDRIGHT_TYPE:
+          itemSlotNum = 17;
           break;
         case INDEX_SHIELD_TYPE:
         case INDEX_WEAPONOFFHAND_TYPE:
@@ -481,20 +488,21 @@ void CHARCREATEINFO::UpdateEquipment(int doNotCommitGeosets, UINT race, UINT sex
           break;
       }
 
-      ObjComponentAdd(sex, race, 1, characterModel[sex], displayInfoRec, outfit->m_InventoryType[i], 0, 0, 0, 0, 0);
+      ObjComponentAdd(sex, race, 1, characterModel[sex], displayInfoRec, inventoryType, 0, 0, 0, 0, 0);
 
-      if (g_ITEMTYPEARRAY[outfit->m_InventoryType[i]] & 0x403F8) {
+      if (g_ITEMTYPEARRAY[inventoryType] & 0x403F8) {
         if (characterComponent[sex]) {
-          TexComponentAdd(&status, sex, characterComponent[sex], displayInfoRec, outfit->m_InventoryType[i], 1);
+          CStatus status;
+          TexComponentAdd(&status, sex, characterComponent[sex], displayInfoRec, inventoryType, 1);
         } else {
           ReportMissingComponentTextures(race, sex);
         }
       }
 
       if (itemSlotNum != -1) {
-        SetHandsState(characterModel[sex], itemSlotNum, outfit->m_InventoryType[i]);
+        SetHandsState(characterModel[sex], itemSlotNum, inventoryType);
       }
-      CharCustomizationAddItemGeosets(geosetHandle[sex], displayInfoRec, outfit->m_InventoryType[i], characterComponent[sex], race, 1);
+      CharCustomizationAddItemGeosets(geosetHandle[sex], displayInfoRec, inventoryType, characterComponent[sex], race, 1);
     }
     CharCustomizationCommitItemGeosets(geosetHandle[sex], 1);
   }
@@ -657,18 +665,11 @@ void CCharCreateInfo::SetSelectedRace(UINT index, int updateModel) {
   }
 
   m_charInfo.Shutdown();
-  memset(m_charInfo.currentGeosets, 0, sizeof(m_charInfo.currentGeosets));
-  {
-    for (UINT sex = 0; sex < 2; ++sex) {
-      m_charInfo.characterModel[sex] = 0;
-      m_charInfo.geosetHandle[sex] = 0;
-      m_charInfo.characterComponent[sex] = 0;
-    }
-  }
+  m_charInfo.Initialize();
 
   m_selectedClass = 0;
   UINT classID = m_classIndex[0];
-  index = m_raceIndex[index];
+  index = m_raceIndex[m_selectedRace];
   memset(m_charInfo.selections, 0, sizeof(m_charInfo.selections));
 
   {
@@ -698,13 +699,17 @@ void CCharCreateInfo::SetSelectedRace(UINT index, int updateModel) {
     }
   }
 
-  for (int i = g_characterCreateCamerasDB.GetNumRecords(); i; --i) {
-    const CharacterCreateCamerasRec *camera = g_characterCreateCamerasDB.GetRecordByIndex(i - 1);
-    FATALASSERT(camera);
-    if (camera->m_Race == static_cast<int>(index) && static_cast<UINT>(camera->m_Sex) < UNITSEX_LAST && static_cast<UINT>(camera->m_Camera) < 2) {
-      m_charInfo.cameraHeight[camera->m_Sex][camera->m_Camera] = camera->m_Height * 0.027777778f;
-      m_charInfo.cameraRadius[camera->m_Sex][camera->m_Camera] = camera->m_Radius * 0.027777778f * 0.5f;
-      m_charInfo.targetHeight[camera->m_Sex][camera->m_Camera] = camera->m_Target * 0.027777778f;
+  for (int i = g_characterCreateCamerasDB.GetNumRecords(); i--;) {
+    const CharacterCreateCamerasRec *rec = g_characterCreateCamerasDB.GetRecordByIndex(i);
+    FATALASSERT(rec);
+    if (rec->m_Race == static_cast<int>(index)) {
+      UINT sex = rec->m_Sex;
+      UINT camera = rec->m_Camera;
+      if (sex < UNITSEX_LAST && camera < 2) {
+        m_charInfo.cameraHeight[sex][camera] = rec->m_Height * 0.027777778f;
+        m_charInfo.cameraRadius[sex][camera] = 0.5f * (rec->m_Radius * 0.027777778f);
+        m_charInfo.targetHeight[sex][camera] = rec->m_Target * 0.027777778f;
+      }
     }
   }
 
@@ -713,7 +718,8 @@ void CCharCreateInfo::SetSelectedRace(UINT index, int updateModel) {
   HMODEL model = m_charCustomizeFrame ? m_charCustomizeFrame->GetModel() : 0;
   if (model && ModelClearLink(model, 0)) {
     ModelAddLink(model, 0, m_charInfo.characterModel[m_selectedSex], 1.0f);
-    NTempest::C3Vector facingVector(cos(m_charFacing), sin(m_charFacing), 0.0f);
+    NTempest::C3Vector facingVector;
+    NTempest::CMath::sincos_(m_charFacing, facingVector.y, facingVector.x);
     ModelApplyObjectFaceDir(model, 0, facingVector);
   }
 }
@@ -721,14 +727,14 @@ void CCharCreateInfo::SetSelectedRace(UINT index, int updateModel) {
 void CCharCreateInfo::SetSelectedSex(UINT sex) {
   if (sex < UNITSEX_LAST && sex != m_selectedSex) {
     m_selectedSex = sex;
-    UINT race = GetSelectedRaceID();
-    m_charInfo.UpdateOutfit(0, race, sex);
-    UpdateAllCharacterInfo(race, sex);
+    m_charInfo.UpdateOutfit(0, GetSelectedRaceID(), sex);
+    UpdateAllCharacterInfo(GetSelectedRaceID(), sex);
 
     HMODEL model = m_charCustomizeFrame ? m_charCustomizeFrame->GetModel() : 0;
     if (model && ModelClearLink(model, 0)) {
       ModelAddLink(model, 0, m_charInfo.characterModel[sex], 1.0f);
-      NTempest::C3Vector facingVector(cos(m_charFacing), sin(m_charFacing), 0.0f);
+      NTempest::C3Vector facingVector;
+      NTempest::CMath::sincos_(m_charFacing, facingVector.y, facingVector.x);
       ModelApplyObjectFaceDir(model, 0, facingVector);
     }
   }
@@ -785,86 +791,113 @@ void CCharCreateInfo::CycleCharCustomization(UINT index, int delta) {
     return;
   }
 
-  UINT                     sex = m_selectedSex;
-  CustomizationSelections &selection = m_charInfo.selections[sex];
-  UINT                     seqTime = ModelGetSequenceTime(m_charInfo.characterModel[sex], 0);
+  UINT seqTime = ModelGetSequenceTime(m_charInfo.characterModel[m_selectedSex], 0);
+
   switch (index) {
     case 0: {
       int numSkinColors;
-      CharCustomizationGetNumSkinTextures(race, sex, &numSkinColors, 0);
+      CharCustomizationGetNumSkinTextures(race, m_selectedSex, &numSkinColors, 0);
       if (numSkinColors >= 2) {
-        selection.skinColor += delta < 0 ? numSkinColors - 1 : 1;
-        selection.skinColor %= numSkinColors;
-        ChangeSkinTexture(1, sex);
-        ChangeFaceTexture(sex);
-        ChangeFacialHairTexture(sex);
-        ChangeScalpHairTexture(sex);
-        m_charInfo.CommitTexture(race, sex);
-        m_charInfo.RefreshVisibleGeosets(sex);
+        if (delta < 0) {
+          m_charInfo.selections[m_selectedSex].skinColor += numSkinColors - 1;
+        } else {
+          m_charInfo.selections[m_selectedSex].skinColor++;
+        }
+        m_charInfo.selections[m_selectedSex].skinColor %= numSkinColors;
+
+        ChangeSkinTexture(1, m_selectedSex);
+        ChangeFaceTexture(m_selectedSex);
+        ChangeFacialHairTexture(m_selectedSex);
+        ChangeScalpHairTexture(m_selectedSex);
+        m_charInfo.CommitTexture(race, m_selectedSex);
+        CharCustomizationCommitGeosets(m_charInfo.geosetHandle[m_selectedSex]);
       }
       break;
     }
 
     case 1: {
       int pcVars;
-      CharCustomizationNumFaces(race, sex, &pcVars, 0);
+      CharCustomizationNumFaces(race, m_selectedSex, &pcVars, 0);
       if (pcVars >= 2) {
-        selection.face += delta < 0 ? pcVars - 1 : 1;
-        selection.face %= pcVars;
-        ChangeFaceTexture(sex);
-        m_charInfo.CommitTexture(race, sex);
+        if (delta < 0) {
+          m_charInfo.selections[m_selectedSex].face += pcVars - 1;
+        } else {
+          m_charInfo.selections[m_selectedSex].face++;
+        }
+        m_charInfo.selections[m_selectedSex].face %= pcVars;
+
+        ChangeFaceTexture(m_selectedSex);
+
+        m_charInfo.CommitTexture(race, m_selectedSex);
       }
       break;
     }
 
     case 2: {
-      UINT numHairStyles = CharCustomizationNumHairStyles(race, sex);
+      UINT numHairStyles = CharCustomizationNumHairStyles(race, m_selectedSex);
       if (numHairStyles >= 2) {
-        selection.hairStyle += delta < 0 ? numHairStyles - 1 : 1;
-        selection.hairStyle %= numHairStyles;
-        ChangeScalpHairTexture(sex);
-        ChangeHairGeosets(sex);
-        CommitCurrentGeoset(sex);
-        m_charInfo.CommitTexture(race, sex);
+        if (delta < 0) {
+          m_charInfo.selections[m_selectedSex].hairStyle += numHairStyles - 1;
+        } else {
+          m_charInfo.selections[m_selectedSex].hairStyle++;
+        }
+        m_charInfo.selections[m_selectedSex].hairStyle %= numHairStyles;
+
+        ChangeScalpHairTexture(m_selectedSex);
+        ChangeHairGeosets(m_selectedSex);
+        CommitCurrentGeoset(m_selectedSex);
+        m_charInfo.CommitTexture(race, m_selectedSex);
       }
       break;
     }
 
     case 3: {
-      UINT numHairColors = CharCustomizationNumHairColors(race, sex);
+      UINT numHairColors = CharCustomizationNumHairColors(race, m_selectedSex);
       if (numHairColors >= 2) {
-        selection.hairColor += delta < 0 ? numHairColors - 1 : 1;
-        selection.hairColor %= numHairColors;
-        ChangeFaceTexture(sex);
-        ChangeFacialHairTexture(sex);
-        ChangeScalpHairTexture(sex);
-        m_charInfo.CommitTexture(race, sex);
+        if (delta < 0) {
+          m_charInfo.selections[m_selectedSex].hairColor += numHairColors - 1;
+        } else {
+          m_charInfo.selections[m_selectedSex].hairColor++;
+        }
+        m_charInfo.selections[m_selectedSex].hairColor %= numHairColors;
+
+        ChangeFaceTexture(m_selectedSex);
+        ChangeFacialHairTexture(m_selectedSex);
+        ChangeScalpHairTexture(m_selectedSex);
+
+        m_charInfo.CommitTexture(race, m_selectedSex);
       }
       break;
     }
 
     case 4: {
-      UINT numFacialStyles = CharCustomizationNumBeardStyles(race, sex);
+      UINT numFacialStyles = CharCustomizationNumBeardStyles(race, m_selectedSex);
       if (numFacialStyles >= 2) {
-        selection.facialStyle += delta < 0 ? numFacialStyles - 1 : 1;
-        selection.facialStyle %= numFacialStyles;
-        ChangeFacialHairTexture(sex);
-        ChangeFacialHairGeosets(sex);
-        CommitCurrentGeoset(sex);
-        m_charInfo.CommitTexture(race, sex);
+        if (delta < 0) {
+          m_charInfo.selections[m_selectedSex].facialStyle += numFacialStyles - 1;
+        } else {
+          m_charInfo.selections[m_selectedSex].facialStyle++;
+        }
+        m_charInfo.selections[m_selectedSex].facialStyle %= numFacialStyles;
+
+        ChangeFacialHairTexture(m_selectedSex);
+        ChangeFacialHairGeosets(m_selectedSex);
+        CommitCurrentGeoset(m_selectedSex);
+        m_charInfo.CommitTexture(race, m_selectedSex);
       }
       break;
     }
 
     case 5:
-      m_charInfo.UpdateOutfit(delta, race, sex);
-      ChangeSkinTexture(1, sex);
-      m_charInfo.CommitTexture(race, sex);
-      m_charInfo.RefreshVisibleGeosets(sex);
+      m_charInfo.UpdateOutfit(delta, race, m_selectedSex);
+
+      ChangeSkinTexture(1, m_selectedSex);
+      m_charInfo.CommitTexture(race, m_selectedSex);
+      CharCustomizationCommitGeosets(m_charInfo.geosetHandle[m_selectedSex]);
       break;
   }
 
-  ModelForceSequenceTime(m_charInfo.characterModel[sex], 0, seqTime, 0);
+  ModelForceSequenceTime(m_charInfo.characterModel[m_selectedSex], 0, seqTime, 0);
 }
 
 void CCharCreateInfo::RandomizeCharCustomization() {
@@ -873,47 +906,47 @@ void CCharCreateInfo::RandomizeCharCustomization() {
     return;
   }
 
-  UINT sex = m_selectedSex;
-  UINT seqTime = ModelGetSequenceTime(m_charInfo.characterModel[sex], 0);
-  int  skinColors;
-  int  PCFaceColors;
-  CharCustomizationGetNumSkinTextures(race, sex, &skinColors, 0);
-  CharCustomizationNumFaces(race, sex, &PCFaceColors, 0);
+  UINT seqTime = ModelGetSequenceTime(m_charInfo.characterModel[m_selectedSex], 0);
 
-  CustomizationSelections &selection = m_charInfo.selections[sex];
+  int skinColors;
+  CharCustomizationGetNumSkinTextures(race, m_selectedSex, &skinColors, 0);
+  CustomizationSelections &selection = m_charInfo.selections[m_selectedSex];
+  int                      PCFaceColors;
+  CharCustomizationNumFaces(race, m_selectedSex, &PCFaceColors, 0);
+
   selection.outfit = 0;
   selection.skinColor = RandomSelection(skinColors);
-  selection.hairColor = RandomSelection(CharCustomizationNumHairColors(race, sex));
-  selection.hairStyle = RandomSelection(CharCustomizationNumHairStyles(race, sex));
-  selection.facialStyle = RandomSelection(CharCustomizationNumBeardStyles(race, sex));
+  selection.hairColor = RandomSelection(CharCustomizationNumHairColors(race, m_selectedSex));
+  selection.hairStyle = RandomSelection(CharCustomizationNumHairStyles(race, m_selectedSex));
+  selection.facialStyle = RandomSelection(CharCustomizationNumBeardStyles(race, m_selectedSex));
   selection.face = RandomSelection(PCFaceColors);
 
-  UpdateAllCharacterInfo(race, sex);
-  ModelForceSequenceTime(m_charInfo.characterModel[sex], 0, seqTime, 0);
+  UpdateAllCharacterInfo(race, m_selectedSex);
+
+  ModelForceSequenceTime(m_charInfo.characterModel[m_selectedSex], 0, seqTime, 0);
 }
 
 void CCharCreateInfo::CreateCharacter(LPCSTR name) {
   CHAR_NAME_RESULT result = CHAR_NAME_RESULT_START;
-
-  if (!name || (result = ClientServices_CharacterValidateName(name)) != CHAR_NAME_SUCCESS) {
-    LPCSTR token = ClientServices_GetErrorToken(result);
-    LPCSTR text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
-    FrameScript_SignalEvent(3, "%s%s", "OKAY", text);
-    return;
+  if (name) {
+    result = ClientServices_CharacterValidateName(name);
   }
-
-  CHARACTER_CREATE_INFO createInfo;
-  SStrCopy(createInfo.name, name, sizeof(createInfo.name));
-  createInfo.raceID = static_cast<BYTE>(GetSelectedRaceID());
-  createInfo.sexID = static_cast<BYTE>(m_selectedSex);
-  createInfo.classID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].classID);
-  createInfo.outfitID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].outfit);
-  createInfo.skinID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].skinColor);
-  createInfo.hairColorID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].hairColor);
-  createInfo.hairStyleID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].hairStyle);
-  createInfo.facialHairStyleID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].facialStyle);
-  createInfo.faceID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].face);
-  CGlueMgr::CreateCharacter(&createInfo);
+  if (result != CHAR_NAME_SUCCESS) {
+    FrameScript_SignalEvent(3, "%s%s", "OKAY", FrameScript_GetText(ClientServices_GetErrorToken(result), -1, GENDER_NOT_APPLICABLE));
+  } else {
+    CHARACTER_CREATE_INFO createInfo;
+    SStrCopy(createInfo.name, name, sizeof(createInfo.name));
+    createInfo.raceID = static_cast<BYTE>(GetSelectedRaceID());
+    createInfo.sexID = static_cast<BYTE>(m_selectedSex);
+    createInfo.classID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].classID);
+    createInfo.outfitID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].outfit);
+    createInfo.skinID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].skinColor);
+    createInfo.hairColorID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].hairColor);
+    createInfo.hairStyleID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].hairStyle);
+    createInfo.facialHairStyleID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].facialStyle);
+    createInfo.faceID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].face);
+    CGlueMgr::CreateCharacter(&createInfo);
+  }
 }
 
 static int Script_SetCharCustomizeFrame(lua_State *L) {

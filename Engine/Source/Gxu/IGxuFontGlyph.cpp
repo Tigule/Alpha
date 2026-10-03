@@ -54,11 +54,9 @@ static void CalculateYOffset(FT_Face face, UINT *yOffsetPtr, UINT *glyphYStart, 
 }
 
 BOOL IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT baseLine, GLYPHDATA *dataPtr, int noHinting, int monochrome) {
-  FATALASSERT(face);
-
-  FATALASSERT(pixelHeight);
-
   VALIDATEBEGIN;
+  VALIDATE(face);
+  VALIDATE(pixelHeight);
   VALIDATE(dataPtr);
   VALIDATEEND;
 

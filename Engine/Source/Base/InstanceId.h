@@ -12,7 +12,6 @@ class TInstanceId : public TSLinkedNode<T> {
   }
 
   virtual ~TInstanceId() {
-    this->Unlink();
   }
 
   void SetId(DWORD id) {
@@ -30,7 +29,7 @@ class TInstanceId : public TSLinkedNode<T> {
 template <class T, UINT SLOTCOUNT>
 class TInstanceIdTable {
  public:
-  TInstanceIdTable() : m_id(0), m_idWrapped(0) {
+  TInstanceIdTable() {
   }
 
   TInstanceIdTable(const TInstanceIdTable &);
@@ -40,36 +39,31 @@ class TInstanceIdTable {
   }
 
   DWORD Link(T *instance) {
-    DWORD    id;
-    UINT     slot;
-    int      found;
-    T       *cursor;
-    Iterator iterator(*this);
+    DWORD id;
+    UINT  slot;
+    int   found;
 
     m_idCritsect.Enter();
     for (;;) {
-      do {
-        ++m_id;
-        if (!m_id) {
-          m_idWrapped = 1;
-        }
-      } while (!m_id);
-
-      id = m_id;
+      id = ++m_id;
+      if (!id) {
+        m_idWrapped = 1;
+        continue;
+      }
       if (!m_idWrapped) {
         break;
       }
 
-      found = 0;
       slot = id & (SLOTCOUNT - 1);
-      iterator.SetSlot(slot, 0);
-      while ((cursor = iterator.SlotNext()) != 0) {
-        if (cursor->Id() == id) {
+      m_idLock[slot].Enter(0);
+      found = 0;
+      ITERATELIST(T, m_idList[slot], ptr) {
+        if (ptr->Id() == id) {
           found = 1;
           break;
         }
       }
-      iterator.SlotEnd(0);
+      m_idLock[slot].Leave(0);
       if (!found) {
         break;
       }
@@ -101,34 +95,32 @@ class TInstanceIdTable {
 
   T *Lock(DWORD id, int forWriting, INSTANCELOCK &instanceLock, LPCSTR, DWORD) {
     int slot;
-    instanceLock = reinterpret_cast<INSTANCELOCK>(-1);
-    if (!id) {
-      return 0;
-    }
-
-    slot = id & (SLOTCOUNT - 1);
-    m_idLock[slot].Enter(forWriting);
-    ITERATELIST(T, m_idList[slot], instance) {
-      if (instance->Id() == id) {
-        instanceLock = reinterpret_cast<INSTANCELOCK>(forWriting ? slot + SLOTCOUNT : slot);
-        return instance;
+    if (id) {
+      slot = id & (SLOTCOUNT - 1);
+      m_idLock[slot].Enter(forWriting);
+      ITERATELIST(T, m_idList[slot], instance) {
+        if (instance->Id() == id) {
+          instanceLock = reinterpret_cast<INSTANCELOCK>(forWriting ? slot + SLOTCOUNT : slot);
+          return instance;
+        }
       }
+      m_idLock[slot].Leave(forWriting);
     }
-    m_idLock[slot].Leave(forWriting);
+    instanceLock = reinterpret_cast<INSTANCELOCK>(-1);
     return 0;
   }
 
   void Unlock(INSTANCELOCK instanceLock, LPCSTR, DWORD) {
-    long encoded = reinterpret_cast<long>(instanceLock);
+    UINT encoded = reinterpret_cast<UINT>(instanceLock);
     UINT slot;
     int  forWriting;
 
-    if (encoded == -1) {
+    if (encoded == static_cast<UINT>(-1)) {
       return;
     }
 
-    forWriting = encoded >= static_cast<long>(SLOTCOUNT);
-    slot = static_cast<UINT>(encoded) & (SLOTCOUNT - 1);
+    forWriting = encoded >= SLOTCOUNT;
+    slot = encoded & (SLOTCOUNT - 1);
     m_idLock[slot].Leave(forWriting);
   }
 

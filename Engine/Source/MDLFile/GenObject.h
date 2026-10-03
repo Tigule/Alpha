@@ -2,8 +2,8 @@
 
 #include "MDLTypes.h"
 #include "Parser.h"
+#include "Base/MsgBuffer.h"
 
-class CMsgBuffer;
 class CMDLStatus;
 class Parser;
 class TSet;
@@ -14,169 +14,7 @@ namespace MDL {
   void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...);
 }  // namespace MDL
 
-void        ReadFloatKeyData(Parser &parse, float *entry, UINT elements);
-inline UINT ReadFloatTrackHeader(Parser &parse, MDLKEYTRACK<NTempest::C3Vector> *track, LPCSTR *tokenText, UTokenData *tokenData);
-UINT        ReadIntTrackHeader(Parser &parse, MDLSIMPLEKEYTRACK<MDLINTKEY> *track, LPCSTR *tokenText, UTokenData *tokenData);
-inline UINT ReadFloatTrackHeader(Parser &parse, MDLKEYTRACK<NTempest::C4Quaternion> *track, LPCSTR *tokenText, UTokenData *tokenData);
-inline UINT ReadFloatTrackHeader(Parser &parse, MDLKEYTRACK<float> *track, LPCSTR *tokenText, UTokenData *tokenData);
-inline void ReadObjectFloatKeyframes(Parser &parse, MDLKEYTRACK<NTempest::C3Vector> *track);
-inline void ReadObjectFloatKeyframes(Parser &parse, MDLKEYTRACK<float> *track);
-inline void ReadObjectFloatKeyframes(Parser &parse, MDLKEYTRACK<C3Color> *track);
-inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<NTempest::C3Vector> &track, TSGrowableArray<char> &buffer);
-inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<NTempest::C4Quaternion> &track, TSGrowableArray<char> &buffer);
-inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<float> &track, TSGrowableArray<char> &buffer);
-inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<C3Color> &track, TSGrowableArray<char> &buffer);
-
-#define READ_FLOAT_TRACK_HEADER_INLINE(parse, track, tokenText, tokenData, result) \
-  do {                                                                             \
-    (result) = (parse).Token((tokenText), (tokenData));                            \
-    for (;;) {                                                                     \
-      if ((result) == 0x128) {                                                     \
-        if (track) {                                                               \
-          (track)->type = TRACK_BEZIER;                                            \
-        }                                                                          \
-      } else if ((result) == 0x140) {                                              \
-        if (track) {                                                               \
-          (track)->type = TRACK_NO_INTERP;                                         \
-        }                                                                          \
-      } else if ((result) == 0x152) {                                              \
-        if (track) {                                                               \
-          (track)->globalSeqId = (parse).ExpectInt();                              \
-        } else {                                                                   \
-          (parse).ExpectInt();                                                     \
-        }                                                                          \
-      } else if ((result) == 0x15B) {                                              \
-        if (track) {                                                               \
-          (track)->type = TRACK_HERMITE;                                           \
-        }                                                                          \
-      } else if ((result) == 0x167) {                                              \
-        if (track) {                                                               \
-          (track)->type = TRACK_LINEAR;                                            \
-        }                                                                          \
-      } else {                                                                     \
-        break;                                                                     \
-      }                                                                            \
-      (parse).Expect(',');                                                         \
-      (result) = (parse).Token((tokenText), (tokenData));                          \
-    }                                                                              \
-  } while (0)
-
-inline UINT ReadFloatTrackHeader(Parser &parse, MDLKEYTRACK<NTempest::C3Vector> *track, LPCSTR *tokenText, UTokenData *tokenData) {
-  UINT token;
-  READ_FLOAT_TRACK_HEADER_INLINE(parse, track, tokenText, tokenData, token);
-  return token;
-}
-
-inline UINT ReadFloatTrackHeader(Parser &parse, MDLKEYTRACK<NTempest::C4Quaternion> *track, LPCSTR *tokenText, UTokenData *tokenData) {
-  UINT token;
-  READ_FLOAT_TRACK_HEADER_INLINE(parse, track, tokenText, tokenData, token);
-  return token;
-}
-
-inline UINT ReadFloatTrackHeader(Parser &parse, MDLKEYTRACK<float> *track, LPCSTR *tokenText, UTokenData *tokenData) {
-  UINT token;
-  READ_FLOAT_TRACK_HEADER_INLINE(parse, track, tokenText, tokenData, token);
-  return token;
-}
-
-#define READ_OBJECT_FLOAT_KEYFRAMES_INLINE(parse, track, elements, keyType)                       \
-  do {                                                                                            \
-    UINT       readToken;                                                                         \
-    LPCSTR     readTokenText;                                                                     \
-    UTokenData readTokenData;                                                                     \
-    long       readExpected = (parse).GetOptionalInt(&readToken, &readTokenText, &readTokenData); \
-    if (readExpected > 0 && (track)) {                                                            \
-      (track)->keys.ReserveSpace(readExpected);                                                   \
-    }                                                                                             \
-    (parse).Expect('{', readToken, readTokenText);                                                \
-    READ_FLOAT_TRACK_HEADER_INLINE((parse), (track), &readTokenText, &readTokenData, readToken);  \
-    long readActual = 0;                                                                          \
-    while (readToken == 0x100) {                                                                  \
-      MDLKEYFRAME<keyType> *readKey = (track)->keys.New();                                        \
-      readKey->time = readTokenData.lVal;                                                         \
-      (parse).Expect(':');                                                                        \
-      ReadFloatKeyData((parse), reinterpret_cast<float *>(&readKey->value), (elements));          \
-      (parse).Expect(',');                                                                        \
-      ++readActual;                                                                               \
-      MDLTRACKTYPE readType = (track)->type;                                                      \
-      if (readType > TRACK_LINEAR) {                                                              \
-        (parse).Expect(0x15E);                                                                    \
-        ReadFloatKeyData((parse), reinterpret_cast<float *>(&readKey->inTan), (elements));        \
-        (parse).Expect(',');                                                                      \
-        (parse).Expect(0x18A);                                                                    \
-        ReadFloatKeyData((parse), reinterpret_cast<float *>(&readKey->outTan), (elements));       \
-        (parse).Expect(',');                                                                      \
-      }                                                                                           \
-      readToken = (parse).Token(&readTokenText, &readTokenData);                                  \
-    }                                                                                             \
-    (parse).Expect('}', readToken, readTokenText);                                                \
-    if (readExpected >= 0 && readActual != readExpected) {                                        \
-      (parse).WarningCount("key frames", readExpected, readActual);                               \
-    }                                                                                             \
-  } while (0)
-
-inline void ReadObjectFloatKeyframes(Parser &parse, MDLKEYTRACK<NTempest::C3Vector> *track) {
-  READ_OBJECT_FLOAT_KEYFRAMES_INLINE(parse, track, 3, NTempest::C3Vector);
-}
-
-inline void ReadObjectFloatKeyframes(Parser &parse, MDLKEYTRACK<float> *track) {
-  READ_OBJECT_FLOAT_KEYFRAMES_INLINE(parse, track, 1, float);
-}
-
-inline void ReadObjectFloatKeyframes(Parser &parse, MDLKEYTRACK<C3Color> *track) {
-  READ_OBJECT_FLOAT_KEYFRAMES_INLINE(parse, track, 3, C3Color);
-}
-
-#define WRITE_TRACK_HEADER_INLINE(indent, trackType, globalSeqId, buffer)                       \
-  do {                                                                                          \
-    UINT writeTrackToken = 0;                                                                   \
-    switch (trackType) {                                                                        \
-      case TRACK_NO_INTERP:                                                                     \
-        writeTrackToken = 0x140;                                                                \
-        break;                                                                                  \
-      case TRACK_LINEAR:                                                                        \
-        writeTrackToken = 0x167;                                                                \
-        break;                                                                                  \
-      case TRACK_HERMITE:                                                                       \
-        writeTrackToken = 0x15B;                                                                \
-        break;                                                                                  \
-      case TRACK_BEZIER:                                                                        \
-        writeTrackToken = 0x128;                                                                \
-        break;                                                                                  \
-      default:                                                                                  \
-        break;                                                                                  \
-    }                                                                                           \
-    if (writeTrackToken) {                                                                      \
-      MDL::WriteLine((buffer), "%s\t%s,\n", (indent), MDL::TokenText(writeTrackToken));         \
-    }                                                                                           \
-    if ((globalSeqId) != static_cast<UINT>(-1)) {                                               \
-      MDL::WriteLine((buffer), "%s\t%s %d,\n", (indent), MDL::TokenText(0x152), (globalSeqId)); \
-    }                                                                                           \
-  } while (0)
-
-inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<NTempest::C3Vector> &track, TSGrowableArray<char> &buffer) {
-  WRITE_TRACK_HEADER_INLINE(indent, track.type, track.globalSeqId, buffer);
-}
-
-inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<NTempest::C4Quaternion> &track, TSGrowableArray<char> &buffer) {
-  WRITE_TRACK_HEADER_INLINE(indent, track.type, track.globalSeqId, buffer);
-}
-
-inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<float> &track, TSGrowableArray<char> &buffer) {
-  WRITE_TRACK_HEADER_INLINE(indent, track.type, track.globalSeqId, buffer);
-}
-
-inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<C3Color> &track, TSGrowableArray<char> &buffer) {
-  WRITE_TRACK_HEADER_INLINE(indent, track.type, track.globalSeqId, buffer);
-}
-
-#undef WRITE_TRACK_HEADER_INLINE
-#undef READ_OBJECT_FLOAT_KEYFRAMES_INLINE
-#undef READ_FLOAT_TRACK_HEADER_INLINE
-
-void         WriteFloatKeyFrames(UINT title, LPCSTR indent, const MDLKEYTRACK<float> &keyframes, TSGrowableArray<char> &buffer);
-void         WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer);
-void         WriteFloatKeyFrames(UINT title, LPCSTR indent, const MDLKEYTRACK<C3Color> &keyframes, TSGrowableArray<char> &buffer);
+void         ReadFloatKeyData(Parser &parse, float *entry, UINT elements);
 BOOL         ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
 const float *WriteKeyData(TSGrowableArray<char> &buffer, const float *entry, UINT elements);
 const UINT  *WriteUintKeyData(TSGrowableArray<char> &buffer, const UINT *entry, UINT elements);
@@ -197,10 +35,224 @@ BOOL         WriteBinGenObject(const MDLGENOBJECT &object, CMsgBuffer &buffer, C
 BOOL         ReadBinGenObject(MDLGENOBJECT &object, CMsgBuffer &buffer, CMDLStatus *status, UINT &totalRead);
 void         WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &track, DWORD magic, CMsgBuffer &buffer);
 BOOL         ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &track, CMsgBuffer &buffer, UINT &totalRead);
-void         WriteBinFloatKeyFrames(const MDLKEYTRACK<float> &track, DWORD magic, CMsgBuffer &buffer);
-int          ReadBinFloatKeyFrames(MDLKEYTRACK<float> &track, CMsgBuffer &buffer, UINT &totalRead);
-BOOL         ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &track, CMsgBuffer &buffer, UINT &totalRead);
-void         WriteBinUintKeyFrames(const MDLSIMPLEKEYTRACK<MDLINTKEY> &track, DWORD magic, CMsgBuffer &buffer);
-int          ReadBinFloatKeyFrames(MDLKEYTRACK<C3Color> &track, CMsgBuffer &buffer, UINT &totalRead);
-int          ReadBinFloatKeyFrames(MDLKEYTRACK<NTempest::C3Vector> &track, CMsgBuffer &buffer, UINT &totalRead);
 UINT         GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &track);
+int          ReadBinFloatKeyFrames(MDLKEYTRACK<NTempest::C3Vector> &keyframes, CMsgBuffer &buf, UINT &totalRead);
+UINT         ReadIntTrackHeader(Parser &parse, MDLSIMPLEKEYTRACK<MDLINTKEY> *keyTrack, LPCSTR *tokentext, UTokenData *value);
+void         WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer);
+
+template <class T>
+inline UINT ReadFloatTrackHeader(Parser &parse, MDLKEYTRACK<T> *keyTrack, LPCSTR *tokentext, UTokenData *value) {
+  for (;;) {
+    UINT token = parse.Token(tokentext, value);
+    switch (token) {
+      case 0x140:
+        if (keyTrack) {
+          keyTrack->type = TRACK_NO_INTERP;
+        }
+        break;
+      case 0x167:
+        if (keyTrack) {
+          keyTrack->type = TRACK_LINEAR;
+        }
+        break;
+      case 0x15B:
+        if (keyTrack) {
+          keyTrack->type = TRACK_HERMITE;
+        }
+        break;
+      case 0x128:
+        if (keyTrack) {
+          keyTrack->type = TRACK_BEZIER;
+        }
+        break;
+      case 0x152:
+        if (keyTrack) {
+          keyTrack->globalSeqId = parse.ExpectInt();
+        } else {
+          parse.ExpectInt();
+        }
+        break;
+      default:
+        return token;
+    }
+    parse.Expect(',');
+  }
+}
+
+template <class T>
+inline void ReadObjectFloatKeyframes(Parser &parse, MDLKEYTRACK<T> *keyframes) {
+  UINT       savedtoken;
+  LPCSTR     tokentext;
+  UTokenData value;
+  long       actual = 0;
+  long       count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
+  if (count > 0 && keyframes) {
+    keyframes->keys.ReserveSpace(count);
+  }
+  parse.Expect('{', savedtoken, tokentext);
+  savedtoken = ReadFloatTrackHeader(parse, keyframes, &tokentext, &value);
+  int noTangents = keyframes->type <= TRACK_LINEAR;
+  while (savedtoken == 0x100) {
+    MDLKEYFRAME<T> *key = keyframes->keys.New();
+    key->time = value.lVal;
+    parse.Expect(':');
+    ReadFloatKeyData(parse, reinterpret_cast<float *>(&key->value), sizeof(T) / sizeof(float));
+    parse.Expect(',');
+    ++actual;
+    if (!noTangents) {
+      parse.Expect(0x15E);
+      ReadFloatKeyData(parse, reinterpret_cast<float *>(&key->inTan), sizeof(T) / sizeof(float));
+      parse.Expect(',');
+      parse.Expect(0x18A);
+      ReadFloatKeyData(parse, reinterpret_cast<float *>(&key->outTan), sizeof(T) / sizeof(float));
+      parse.Expect(',');
+    }
+    savedtoken = parse.Token(&tokentext, &value);
+  }
+  parse.Expect('}', savedtoken, tokentext);
+  if (count >= 0 && actual != count) {
+    parse.WarningCount("key frames", count, actual);
+  }
+}
+
+template <class T>
+inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<T> &keyframes, TSGrowableArray<char> &buffer) {
+  switch (keyframes.type) {
+    case TRACK_NO_INTERP:
+      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(0x140));
+      break;
+    case TRACK_LINEAR:
+      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(0x167));
+      break;
+    case TRACK_HERMITE:
+      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(0x15B));
+      break;
+    case TRACK_BEZIER:
+      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(0x128));
+      break;
+  }
+  if (keyframes.globalSeqId != static_cast<UINT>(-1)) {
+    MDL::WriteLine(buffer, "%s\t%s %d,\n", indent, MDL::TokenText(0x152), keyframes.globalSeqId);
+  }
+}
+
+template <class T>
+inline void WriteFloatKeyFrames(UINT title, LPCSTR indent, const MDLKEYTRACK<T> &keyframes, TSGrowableArray<char> &buffer) {
+  UINT numKeys = keyframes.keys.Count();
+  if (!numKeys) {
+    return;
+  }
+  MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(title), numKeys);
+  WriteTrackHeader(indent, keyframes, buffer);
+  const MDLKEYFRAME<T> *key = keyframes.keys.Ptr();
+  int                   noTangents = keyframes.type <= TRACK_LINEAR;
+  for (UINT i = numKeys; i; --i, ++key) {
+    MDL::WriteLine(buffer, "%s\t%d: ", indent, key->time);
+    const float *data = WriteKeyData(buffer, reinterpret_cast<const float *>(&key->value), sizeof(T) / sizeof(float));
+    if (!noTangents) {
+      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x15E));
+      data = WriteKeyData(buffer, data, sizeof(T) / sizeof(float));
+      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x18A));
+      data = WriteKeyData(buffer, data, sizeof(T) / sizeof(float));
+    }
+  }
+  MDL::WriteLine(buffer, "%s}\n", indent);
+}
+
+template <class T>
+inline void WriteBinFloatKeyFrames(const MDLKEYTRACK<T> &keyframes, DWORD magicParam, CMsgBuffer &buf) {
+  UINT numKeys = keyframes.keys.Count();
+  if (!numKeys) {
+    return;
+  }
+  buf.AddDword(magicParam);
+  buf.AddUint(numKeys);
+  buf.AddUint(keyframes.type);
+  buf.AddUint(keyframes.globalSeqId);
+  UINT elements = sizeof(T) / sizeof(float);
+  if (keyframes.type > TRACK_LINEAR) {
+    elements = 3 * sizeof(T) / sizeof(float);
+  }
+  const MDLKEYFRAME<T> *key = keyframes.keys.Ptr();
+  for (UINT i = numKeys; i; --i, ++key) {
+    buf.AddInt(key->time);
+    buf.AddFloatArray(reinterpret_cast<const float *>(&key->value), elements);
+  }
+}
+
+template <class T>
+inline int ReadBinFloatKeyFrames(MDLKEYTRACK<T> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
+  if (buf.Bytes() < 3 * sizeof(UINT)) {
+    return 0;
+  }
+  UINT numKeys = buf.GetUint();
+  totalRead += sizeof(UINT);
+  if (!numKeys) {
+    return 0;
+  }
+  keyframes.type = static_cast<MDLTRACKTYPE>(buf.GetUint());
+  totalRead += sizeof(UINT);
+  keyframes.globalSeqId = buf.GetUint();
+  totalRead += sizeof(UINT);
+  keyframes.keys.SetCount(numKeys);
+  MDLKEYFRAME<T> *key = keyframes.keys.Ptr();
+  int             keySize = sizeof(int) + sizeof(T);
+  UINT            elements = sizeof(T) / sizeof(float);
+  if (keyframes.type > TRACK_LINEAR) {
+    keySize = sizeof(int) + 3 * sizeof(T);
+    elements = 3 * sizeof(T) / sizeof(float);
+  }
+  if (static_cast<int>(keySize * numKeys) > buf.Bytes()) {
+    return 0;
+  }
+  for (UINT i = numKeys; i; --i, ++key) {
+    key->time = buf.GetInt();
+    totalRead += sizeof(int);
+    buf.GetFloatArray(reinterpret_cast<float *>(&key->value), elements);
+    totalRead += elements * sizeof(float);
+  }
+  return 1;
+}
+
+inline int ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
+  if (buf.Bytes() < 2 * sizeof(UINT)) {
+    return 0;
+  }
+  UINT numKeys = buf.GetUint();
+  totalRead += sizeof(UINT);
+  if (!numKeys) {
+    return 0;
+  }
+  buf.GetUint();
+  totalRead += sizeof(UINT);
+  keyframes.globalSeqId = buf.GetUint();
+  totalRead += sizeof(UINT);
+  keyframes.keys.SetCount(numKeys);
+  MDLINTKEY *key = keyframes.keys.Ptr();
+  if (static_cast<int>(numKeys * sizeof(MDLINTKEY)) > buf.Bytes()) {
+    return 0;
+  }
+  for (UINT i = numKeys; i; --i, ++key) {
+    key->time = buf.GetInt();
+    totalRead += sizeof(int);
+    buf.GetUintArray(&key->value, 1);
+    totalRead += sizeof(UINT);
+  }
+  return 1;
+}
+
+inline void WriteBinUintKeyFrames(const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, DWORD magicParam, CMsgBuffer &buf) {
+  UINT numKeys = keyframes.keys.Count();
+  if (!numKeys) {
+    return;
+  }
+  buf.AddDword(magicParam);
+  buf.AddUint(numKeys);
+  buf.AddUint(0);
+  buf.AddUint(keyframes.globalSeqId);
+  const MDLINTKEY *key = keyframes.keys.Ptr();
+  for (UINT i = numKeys; i; --i, ++key) {
+    buf.AddInt(key->time);
+    buf.AddUintArray(&key->value, 1);
+  }
+}

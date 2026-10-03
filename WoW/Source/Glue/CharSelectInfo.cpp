@@ -68,7 +68,7 @@ static FrameScript_Method s_ScriptFunctions[7] = {
     {        "DeleteCharacter",         Script_DeleteCharacter}
 };
 
-CHARINFO::~CHARINFO() {
+inline CHARINFO::~CHARINFO() {
   if (m_characterModel) {
     HandleClose(m_characterModel);
   }
@@ -113,16 +113,11 @@ void CCharSelectInfo::SetModelFrame(CSimpleModel *frame) {
 }
 
 void CCharSelectInfo::SetBackgroundModel(LPCSTR filename) {
-  CModelCreate createData;
-
   if (!m_modelFrame || !filename || !*filename) {
     return;
   }
 
-  createData.sequenceNames = 0;
-  createData.numSequences = 0;
-  createData.cameraNames = 0;
-  createData.numCameras = 0;
+  CModelCreate createData;
   createData.flags = 4;
   createData.boneNames = g_glueBgObjNames;
   createData.numBones = 2;
@@ -182,11 +177,11 @@ void CCharSelectInfo::EnumerateCharactersCallback(CHARACTER_INFO &info, LPVOID) 
 
 void CCharSelectInfo::GuildCallback(int guildID, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (guildID && granted) {
-    UINT index;
+    if (!g_guildInfoCache.GetRecord(guildID, 0, 0, 0)) {
+      SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "g_guildInfoCache.GetRecord(guildID)", FALSE);
+    }
 
-    ASSERT(g_guildInfoCache.GetRecord(guildID, guid, 0, 0));
-
-    for (index = 0; index < s_charList.Count(); ++index) {
+    for (int index = 0; index < static_cast<int>(s_charList.Count()); ++index) {
       if (s_charList[index].m_characterInfo.guildID == guildID) {
         s_charList[index].UpdateTabardTexture();
       }
@@ -204,8 +199,8 @@ void CCharSelectInfo::UpdateCharacterList() {
     return;
   }
 
-  char  realm[64] = "";
   char  accountName[64] = "";
+  char  realm[64] = "";
   DWORD lastChar;
 
   SRegLoadString(REGKEY, REGVAL_LASTACCOUNT, 0, accountName, sizeof(accountName));
@@ -225,9 +220,6 @@ void CCharSelectInfo::UpdateCharacterList() {
 }
 
 void CHARINFO::UpdateCharacterInfo(LPCSTR modelName, HMODEL backgroundModel) {
-  const CreatureDisplayInfoRec *displayInfo = 0;
-  const CreatureModelDataRec   *modelData = 0;
-
   if (m_characterModel) {
     HandleClose(m_characterModel);
   }
@@ -246,12 +238,8 @@ void CHARINFO::UpdateCharacterInfo(LPCSTR modelName, HMODEL backgroundModel) {
 
   ModelSetSequence(m_characterModel, ANIM_STAND, 4);
 
-  if (m_characterInfo.petDisplayInfoID) {
-    displayInfo = g_creatureDisplayInfoDB.GetRecord(m_characterInfo.petDisplayInfoID);
-    if (displayInfo) {
-      modelData = g_creatureModelDataDB.GetRecord(displayInfo->m_modelID);
-    }
-  }
+  const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_characterInfo.petDisplayInfoID);
+  const CreatureModelDataRec   *modelData = displayInfo ? g_creatureModelDataDB.GetRecord(displayInfo->m_modelID) : 0;
 
   m_petModel = modelData ? ObjectModelCreate(modelData->m_ModelName, HIER_TYPE_UNIT, 0x100800) : 0;
 
@@ -270,9 +258,6 @@ void CHARINFO::UpdateCharacterInfo(LPCSTR modelName, HMODEL backgroundModel) {
 }
 
 void CHARINFO::ChangeSkinTexture() {
-  UINT                      preferredGeosets[NUM_CHARGEOSETS];
-  CStatus                   status;
-  BEARDSTYLEDATA            facialData;
   BOOL                      hasFacialInfo;
   HCHARGEOSET               geosetHandle;
   const ItemDisplayInfoRec *displayInfoRec;
@@ -299,6 +284,7 @@ void CHARINFO::ChangeSkinTexture() {
     );
   }
 
+  BEARDSTYLEDATA facialData;
   hasFacialInfo = CharCustomizationGetBeardStyle(m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.facialHairStyleID, &facialData);
   geosetHandle = CharCustomizationCreateGeosetHandle(m_characterModel);
   if (!geosetHandle) {
@@ -306,22 +292,14 @@ void CHARINFO::ChangeSkinTexture() {
   }
 
   CharCustomizationInitBaseCharacter(
-      geosetHandle, hasFacialInfo ? facialData.beardGeoset : 1, hasFacialInfo ? facialData.sideBurnGeoset : 1,
-      hasFacialInfo ? facialData.moustacheGeoset : 1, 2
+      geosetHandle, hasFacialInfo ? facialData.beardGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_BEARD],
+      hasFacialInfo ? facialData.sideBurnGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_SIDEBURN],
+      hasFacialInfo ? facialData.moustacheGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_MOUSTACHE], 2
   );
   CharCustomizationResetHairGeoset(geosetHandle, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID);
   CharCustomizationSetHairTexture(
       m_characterModel, m_characterComponent, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID, m_characterInfo.hairColorID
   );
-
-  memset(preferredGeosets, 0, sizeof(preferredGeosets));
-  if (hasFacialInfo) {
-    preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID);
-    preferredGeosets[CHARGEOSET_BEARD] = facialData.beardGeoset;
-    preferredGeosets[CHARGEOSET_SIDEBURN] = facialData.sideBurnGeoset;
-    preferredGeosets[CHARGEOSET_MOUSTACHE] = facialData.moustacheGeoset;
-    preferredGeosets[CHARGEOSET_EAR] = 2;
-  }
 
   for (i = 0; i < 20; ++i) {
     if (i == 17 || !m_characterInfo.inventoryItemDisplayID[i]) {
@@ -342,6 +320,7 @@ void CHARINFO::ChangeSkinTexture() {
 
     if ((1 << i) & 0x403F8) {
       if (m_characterComponent) {
+        CStatus status;
         TexComponentAdd(&status, m_characterInfo.sexID, m_characterComponent, displayInfoRec, inventoryType, 1);
       } else {
         ReportMissingComponentTextures(m_characterInfo.raceID, m_characterInfo.sexID);
@@ -349,7 +328,20 @@ void CHARINFO::ChangeSkinTexture() {
     }
 
     if (!i) {
-      HeadGeosetHideCharGeosets(geosetHandle, displayInfoRec, m_characterInfo.raceID, preferredGeosets, NUM_CHARGEOSETS);
+      UINT        preferredGeosets[NUM_CHARGEOSETS];
+      const UINT *geosets = 0;
+      UINT        numGeosets = 0;
+      if (hasFacialInfo) {
+        memset(preferredGeosets, 0, sizeof(preferredGeosets));
+        preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID);
+        preferredGeosets[CHARGEOSET_BEARD] = facialData.beardGeoset;
+        preferredGeosets[CHARGEOSET_SIDEBURN] = facialData.sideBurnGeoset;
+        preferredGeosets[CHARGEOSET_MOUSTACHE] = facialData.moustacheGeoset;
+        preferredGeosets[CHARGEOSET_EAR] = 2;
+        geosets = preferredGeosets;
+        numGeosets = NUM_CHARGEOSETS;
+      }
+      HeadGeosetHideCharGeosets(geosetHandle, displayInfoRec, m_characterInfo.raceID, geosets, numGeosets);
     }
     CharCustomizationAddItemGeosets(geosetHandle, displayInfoRec, inventoryType, m_characterComponent, m_characterInfo.raceID, 1);
   }
@@ -427,7 +419,7 @@ void CCharSelectInfo::UpdateCharacterInfo() {
 }
 
 void CCharSelectInfo::ChangeSkinTexture() {
-  if (m_selectionIndex < 0 || m_selectionIndex >= static_cast<int>(s_charList.Count())) {
+  if (m_selectionIndex < 0 && m_selectionIndex >= static_cast<int>(s_charList.Count())) {
     return;
   }
   s_charList[m_selectionIndex].ChangeSkinTexture();

@@ -66,6 +66,14 @@ namespace NTempest {
   inline CiRange::CiRange(long low, long high) : l(low), h(high) {
   }
 
+  inline long CiRange::Low() const {
+    return l;
+  }
+
+  inline long CiRange::High() const {
+    return h;
+  }
+
   inline long CiRange::Magnitude() const {
     return h - l;
   }

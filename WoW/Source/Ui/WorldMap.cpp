@@ -110,66 +110,93 @@ TSFixedArray<WorldMapContinentInfo> CGWorldMap::m_continents;
 TSFixedArray<WorldMapLandmarkInfo>  CGWorldMap::m_landmarks;
 
 void CGWorldMap::InitializeGame() {
-  UINT numEntries = g_worldMapContinentDB.GetNumRecords();
-  m_continents.SetCount(numEntries);
+  UINT j;
+  UINT i;
+  UINT count = 0;
+  UINT numEntries = g_worldMapAreaDB.GetNumRecords();
 
-  for (UINT i = 0; i < numEntries; ++i) {
-    const WorldMapContinentRec *continentRec = g_worldMapContinentDB.GetRecordByIndex(i);
-    WorldMapContinentInfo      &continent = m_continents[i];
-    continent.continentID = continentRec->m_mapID;
-    continent.mapAreaID = 0;
-    memset(continent.chunkZones, 0, sizeof(continent.chunkZones));
-
-    int  zoneCount = 0;
-    UINT areaCount = g_worldMapAreaDB.GetNumRecords();
-    UINT areaIndex;
-    for (areaIndex = 0; areaIndex < areaCount; ++areaIndex) {
-      const WorldMapAreaRec *areaRec = g_worldMapAreaDB.GetRecordByIndex(areaIndex);
-      if (areaRec->m_mapID != continent.continentID) {
-        continue;
-      }
-      if (areaRec->m_areaID) {
-        ++zoneCount;
-      } else {
-        continent.mapAreaID = areaRec->m_ID;
-      }
+  for (i = 0; i < numEntries; ++i) {
+    const WorldMapAreaRec *rec = g_worldMapAreaDB.GetRecordByIndex(i);
+    if (rec && !rec->m_areaID) {
+      ++count;
     }
+  }
 
-    continent.zoneList.SetCount(zoneCount);
-    zoneCount = 0;
-    const WorldMapAreaRec *mapArea = 0;
-    for (areaIndex = 0; areaIndex < areaCount; ++areaIndex) {
-      const WorldMapAreaRec *areaRec = g_worldMapAreaDB.GetRecordByIndex(areaIndex);
-      if (areaRec->m_mapID != continent.continentID) {
-        continue;
+  m_continents.SetCount(count);
+  count = 0;
+
+  for (i = 0; i < numEntries; ++i) {
+    const WorldMapAreaRec *rec = g_worldMapAreaDB.GetRecordByIndex(i);
+    if (rec && !rec->m_areaID) {
+      m_continents[count].continentID = rec->m_mapID;
+      m_continents[count].mapAreaID = rec->m_ID;
+
+      int zoneCount = 0;
+      for (j = 0; j < numEntries; ++j) {
+        const WorldMapAreaRec *areaRec = g_worldMapAreaDB.GetRecordByIndex(j);
+        if (areaRec && areaRec->m_areaID && areaRec->m_mapID == rec->m_mapID) {
+          ++zoneCount;
+        }
       }
-      if (areaRec->m_areaID) {
-        continent.zoneList[zoneCount++] = areaRec->m_ID;
-      } else {
-        mapArea = areaRec;
+
+      m_continents[count].zoneList.SetCount(zoneCount);
+      zoneCount = 0;
+      for (j = 0; j < numEntries; ++j) {
+        const WorldMapAreaRec *areaRec = g_worldMapAreaDB.GetRecordByIndex(j);
+        if (areaRec && areaRec->m_areaID && areaRec->m_mapID == rec->m_mapID) {
+          m_continents[count].zoneList[zoneCount++] = areaRec->m_ID;
+        }
       }
-    }
 
-    continent.hitRect.l = (continentRec->m_leftBoundary - 0.6875f) * 0.015968064f;
-    continent.hitRect.r = (continentRec->m_rightBoundary + 0.3125f) * 0.015968064f;
-    continent.hitRect.t = (continentRec->m_topBoundary - 11.125f) * 0.023952097f;
-    continent.hitRect.b = (continentRec->m_bottomBoundary - 10.125f) * 0.023952097f;
+      for (j = 0; j < static_cast<UINT>(g_worldMapContinentDB.GetNumRecords()); ++j) {
+        const WorldMapContinentRec *continentRec = g_worldMapContinentDB.GetRecordByIndex(j);
+        if (continentRec->m_mapID == rec->m_mapID) {
+          float xOffset = continentRec->m_continentOffsetX - 0.6875f;
+          float yOffset = continentRec->m_continentOffsetY - 11.125f;
+          m_continents[count].hitRect.l = (continentRec->m_leftBoundary + xOffset) * 0.015968064f;
+          m_continents[count].hitRect.r = (continentRec->m_rightBoundary + xOffset + 1.0f) * 0.015968064f;
+          m_continents[count].hitRect.t = (continentRec->m_topBoundary + yOffset) * 0.023952097f;
+          m_continents[count].hitRect.b = (continentRec->m_bottomBoundary + yOffset + 1.0f) * 0.023952097f;
+          break;
+        }
+      }
 
-    if (mapArea && mapArea->m_areaName) {
       char   buf[MAX_PATH];
-      LPVOID fileData;
-      DWORD  fileBytes;
-      SStrPrintf(buf, sizeof(buf), "Interface\\WorldMap\\%s.zmp", mapArea->m_areaName);
-      if (SFileLoadFile(buf, &fileData, &fileBytes, 0, 0)) {
-        DWORD bytes = fileBytes < sizeof(continent.chunkZones) ? fileBytes : sizeof(continent.chunkZones);
-        memcpy(continent.chunkZones, fileData, bytes);
-        SFileUnloadFile(fileData);
+      SFile *file;
+      SStrPrintf(buf, sizeof(buf), "Interface\\WorldMap\\%s.zmp", rec->m_areaName);
+      if (SFile::Open(buf, &file)) {
+        SFile::Read(file, m_continents[count].chunkZones, sizeof(m_continents[count].chunkZones), 0, 0, 0);
+        SFile::Close(file);
+
+        for (j = 0; j < 128; ++j) {
+          for (UINT k = 0; k < 128; ++k) {
+            BOOL found = 0;
+            int  areaNum = m_continents[count].chunkZones[j][k] & 0xFFFF0000;
+            if (areaNum) {
+              for (UINT n = 0; n < numEntries; ++n) {
+                const WorldMapAreaRec *areaRec = g_worldMapAreaDB.GetRecordByIndex(n);
+                if (areaRec) {
+                  const AreaTableRec *area = g_areaTableDB.GetRecord(areaRec->m_areaID);
+                  if (area && area->m_AreaNumber == areaNum && area->m_ContinentID == rec->m_mapID) {
+                    m_continents[count].chunkZones[j][k] = areaRec->m_ID;
+                    found = 1;
+                    break;
+                  }
+                }
+              }
+            }
+            if (!found) {
+              m_continents[count].chunkZones[j][k] = 0;
+            }
+          }
+        }
+        ++count;
       }
     }
   }
 
-  m_landmarks.SetCount(16);
   m_numLandmarks = 0;
+  m_landmarks.SetCount(16);
 }
 
 void CGWorldMap::EnterWorld() {
@@ -179,6 +206,9 @@ void CGWorldMap::LeaveWorld() {
 }
 
 void CGWorldMap::ShutdownGame() {
+  for (UINT i = 0; i < m_continents.Count(); ++i) {
+    m_continents[i].zoneList.Clear();
+  }
   m_continents.Clear();
   m_landmarks.Clear();
 }
@@ -201,26 +231,28 @@ LPCSTR CGWorldMap::GetZoneName(UINT continent, UINT index) {
 }
 
 void CGWorldMap::SetMapToCurrentZone() {
-  DWORDLONG playerGuid = ClntObjMgrGetActivePlayer();
-  if (!ClntObjMgrObjectPtr(playerGuid, __FILE__, __LINE__)) {
+  UINT i;
+
+  if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     SetMap(-1, -1);
     return;
   }
 
-  UINT continent;
-  for (continent = 0; continent < m_continents.Count(); ++continent) {
-    if (m_continents[continent].continentID == static_cast<int>(CGPlayer_C::GetNewContinentID())) {
+  int continent = -1;
+  for (i = 0; i < m_continents.Count(); ++i) {
+    if (m_continents[i].continentID == static_cast<int>(CGPlayer_C::GetNewContinentID())) {
+      continent = i;
       break;
     }
   }
 
-  if (continent == m_continents.Count()) {
+  if (continent == -1) {
     SetMap(-1, -1);
     return;
   }
 
   int zone = -1;
-  for (UINT i = 0; i < m_continents[continent].zoneList.Count(); ++i) {
+  for (i = 0; i < m_continents[continent].zoneList.Count(); ++i) {
     const WorldMapAreaRec *rec = g_worldMapAreaDB.GetRecord(m_continents[continent].zoneList[i]);
     if (rec && rec->m_areaID == CGGameUI::m_areaID) {
       zone = i;
@@ -252,7 +284,7 @@ void CGWorldMap::SetMap(int continent, int zone) {
     float             y = 0.0f;
     float             x = 0.0f;
     GetPOIPosition(rec, x, y);
-    if (fabs(x) > 2.3841858e-7f || fabs(y) > 2.3841858e-7f) {
+    if (fabs(x) >= 2.3841858e-7f || fabs(y) >= 2.3841858e-7f) {
       if (m_landmarks.Count() <= m_numLandmarks) {
         m_landmarks.SetCount(m_landmarks.Count() * 2);
       }
@@ -270,7 +302,7 @@ void CGWorldMap::SetMap(int continent, int zone) {
     float                   x = 0.0f;
     float                   y = 0.0f;
     GetPortLocPosition(rec, x, y);
-    if (fabs(x) > 2.3841858e-7f || fabs(y) > 2.3841858e-7f) {
+    if (fabs(x) >= 2.3841858e-7f || fabs(y) >= 2.3841858e-7f) {
       if (m_landmarks.Count() <= m_numLandmarks) {
         m_landmarks.SetCount(m_landmarks.Count() * 2);
       }
@@ -286,8 +318,8 @@ void CGWorldMap::SetMap(int continent, int zone) {
 }
 
 LPCSTR CGWorldMap::GetMapFilename() {
-  if (m_currentContinent < 0) {
-    return "World";
+  if (m_currentContinent == -1) {
+    return 0;
   }
   int mapAreaID = m_currentZone < 0 ? m_continents[m_currentContinent].mapAreaID : m_continents[m_currentContinent].zoneList[m_currentZone];
   const WorldMapAreaRec *rec = g_worldMapAreaDB.GetRecord(mapAreaID);
@@ -308,12 +340,23 @@ UINT CGWorldMap::GetMapHeight() {
 }
 
 int CGWorldMap::GetMapAreaFromPos(float x, float y) {
-  if (m_currentContinent < 0 || m_currentZone >= 0 || x < 0.0f || x >= 1.0f || y < 0.0f || y >= 1.0f) {
+  if (m_currentContinent == -1) {
     return 0;
   }
-  int column = static_cast<int>(x * 128.0f);
-  int row = static_cast<int>(y * 128.0f);
-  return m_continents[m_currentContinent].chunkZones[row][column];
+  if (m_currentZone >= 0) {
+    return 0;
+  }
+
+  const WorldMapAreaRec *rec = g_worldMapAreaDB.GetRecord(m_continents[m_currentContinent].mapAreaID);
+  if (!rec) {
+    return 0;
+  }
+
+  x = max(0.0f, min(x, 1.0f));
+  y = max(0.0f, min(y, 1.0f));
+  int zonex = static_cast<int>((static_cast<UINT>(rec->m_rightBoundary - rec->m_leftBoundary + 1) * x + rec->m_leftBoundary) * 2.0f);
+  int zone = static_cast<int>((static_cast<UINT>(rec->m_bottomBoundary - rec->m_topBoundary + 1) * y + rec->m_topBoundary) * 2.0f);
+  return m_continents[m_currentContinent].chunkZones[zone][zonex];
 }
 
 BOOL CGWorldMap::GetWorldLocFromPos(float x, float y, NTempest::C2Vector &loc, int &mapID) {
@@ -407,8 +450,19 @@ void CGWorldMap::GetWorldPosition(const NTempest::C2Vector &pos, int mapID, floa
 }
 
 void CGWorldMap::ProcessClick(float x, float y) {
-  if (m_currentContinent < 0) {
-    for (UINT i = 0; i < m_continents.Count(); ++i) {
+  UINT i;
+
+  if (EventIsKeyDown(KEY_CONTROL)) {
+    RunNearestPortLoc(x, y);
+    return;
+  }
+  if (m_currentZone >= 0) {
+    RunNearestPortLoc(x, y);
+    return;
+  }
+
+  if (m_currentContinent == -1) {
+    for (i = 0; i < m_continents.Count(); ++i) {
       const NTempest::CRect &rect = m_continents[i].hitRect;
       if (x >= rect.l && x <= rect.r && y >= rect.t && y <= rect.b) {
         SetMap(i, -1);
@@ -417,16 +471,31 @@ void CGWorldMap::ProcessClick(float x, float y) {
     }
     return;
   }
+
   int mapArea = GetMapAreaFromPos(x, y);
-  for (UINT i = 0; mapArea && i < m_continents[m_currentContinent].zoneList.Count(); ++i) {
-    if (m_continents[m_currentContinent].zoneList[i] == mapArea) {
-      SetMap(m_currentContinent, i);
-      return;
+  if (mapArea) {
+    for (i = 0; i < GetNumZones(m_currentContinent); ++i) {
+      if (m_continents[m_currentContinent].zoneList[i] == mapArea) {
+        SetMap(m_currentContinent, i);
+        return;
+      }
     }
   }
 }
 
 int CGWorldMap::GetMapHighlight(float x, float y) {
+  if (m_currentContinent == -1) {
+    for (UINT i = 0; i < m_continents.Count(); ++i) {
+      const NTempest::CRect &rect = m_continents[i].hitRect;
+      if (x >= rect.l && x <= rect.r && y >= rect.t && y <= rect.b) {
+        return m_continents[i].mapAreaID;
+      }
+    }
+    return 0;
+  }
+  if (m_currentZone >= 0) {
+    return 0;
+  }
   return GetMapAreaFromPos(x, y);
 }
 
@@ -470,20 +539,29 @@ void CGWorldMap::RunNearestPortLoc(float x, float y) {
 }
 
 void CGWorldMap::GetPlayerPosition(DWORDLONG guid, float &x, float &y) {
-  CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
-  if (!object) {
-    x = y = 0.0f;
-    return;
+  x = 0.0f;
+  y = 0.0f;
+
+  NTempest::C2Vector pos(0.0f, 0.0f);
+  CGObject_C        *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+  if (object) {
+    pos.Set(object->GetPosition().x, object->GetPosition().y);
+    GetWorldPosition(pos, CGPlayer_C::GetNewContinentID(), x, y);
+  } else if (CGPartyInfo::IsMember(guid)) {
+    CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStats(guid);
+    if (stats) {
+      pos.Set(stats->pos.x, stats->pos.y);
+      GetWorldPosition(pos, stats->mapID, x, y);
+    }
   }
-  NTempest::C3Vector pos = object->GetPosition();
-  NTempest::C2Vector mapPos(pos.x, pos.y);
-  GetWorldPosition(mapPos, ClntObjMgrGetMapID(), x, y);
 }
 
 void CGWorldMap::GetBindPosition(float &x, float &y) {
-  const NTempest::C3Vector &position = CGPlayer_C::GetBindPoint();
-  NTempest::C2Vector        pos(position.x, position.y);
-  GetWorldPosition(pos, ClntObjMgrGetMapID(), x, y);
+  x = 0.0f;
+  y = 0.0f;
+
+  NTempest::C2Vector pos = (CGPlayer_C::GetBindPoint().x, CGPlayer_C::GetBindPoint().y);
+  GetWorldPosition(pos, CGPlayer_C::GetNewContinentID(), x, y);
 }
 
 void CGWorldMap::GetPOIPosition(const AreaPOIRec *rec, float &x, float &y) {
@@ -651,19 +729,23 @@ static int Script_UpdateMapHighlight(lua_State *L) {
     }
   }
 
-  UINT textureHeight = static_cast<BYTE>(pixelHeight);
-  if (textureHeight && ((textureHeight - 1) & textureHeight)) {
-    UINT bit = 0x80;
-    while (!(textureHeight & bit)) {
-      bit >>= 1;
+  UINT textureHeight = pixelHeight & 0xFF;
+  if (!textureHeight) {
+    textureHeight = pixelHeight;
+  } else {
+    if ((textureHeight - 1) & textureHeight) {
+      UINT bit = 0x80;
+      while (!(textureHeight & bit)) {
+        bit >>= 1;
+      }
+      textureHeight = bit << 1;
     }
-    textureHeight = bit << 1;
-  }
-  while (textureHeight && textureHeight * 8 < pixelHeight) {
-    textureHeight *= 2;
-  }
-  if (pixelHeight > 0x100) {
-    textureHeight += ((pixelHeight >> 8) + 1) << 8;
+    while (textureHeight * 8 < (pixelHeight & 0xFF)) {
+      textureHeight *= 2;
+    }
+    if (pixelHeight > 0x100) {
+      textureHeight += ((pixelHeight >> 8) + 1) << 8;
+    }
   }
 
   if (mapArea->m_areaID) {
@@ -713,7 +795,7 @@ static int Script_UpdateMapHighlight(lua_State *L) {
 
 static int Script_GetPlayerMapPosition(lua_State *L) {
   if (!lua_isstring(L, 1)) {
-    luaL_error(L, "Usage: GetPlayerMapPosition(unit)");
+    luaL_error(L, "Usage: GetPlayerMapPosition(\"player\")");
     return 0;
   }
   LPCSTR unit = lua_tostring(L, 1);
@@ -740,26 +822,38 @@ static int Script_GetNumMapLandmarks(lua_State *L) {
 }
 
 static int Script_GetMapLandmarkInfo(lua_State *L) {
-  if (lua_isnumber(L, 1)) {
-    const WorldMapLandmarkInfo *info = CGWorldMap::GetLandmarkInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-    if (!info) {
-      return 0;
-    }
+  if (!lua_isnumber(L, 1)) {
+    luaL_error(L, "Usage: GetMapLandmarkInfo(index)");
+    return 0;
+  }
+  UINT                        index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  const WorldMapLandmarkInfo *info = CGWorldMap::GetLandmarkInfo(index);
+  if (info) {
     if (info->isPortLoc) {
       const WorldSafeLocsRec *rec = g_worldSafeLocsDB.GetRecord(info->entryID);
-      lua_pushstring(L, rec ? rec->m_AreaName_lang[CURRENT_LANGUAGE] : 0);
-      lua_pushnumber(L, 6.0);
+      if (rec) {
+        lua_pushstring(L, rec->m_AreaName_lang[CURRENT_LANGUAGE]);
+        lua_pushnumber(L, 6.0);
+        lua_pushnumber(L, info->x);
+        lua_pushnumber(L, info->y);
+        return 4;
+      }
     } else {
       const AreaPOIRec *rec = g_areaPOIDB.GetRecord(info->entryID);
-      lua_pushstring(L, rec ? rec->m_name_lang[CURRENT_LANGUAGE] : 0);
-      lua_pushnumber(L, rec ? static_cast<double>(rec->m_icon) : 0.0);
+      if (rec) {
+        lua_pushstring(L, rec->m_name_lang[CURRENT_LANGUAGE]);
+        lua_pushnumber(L, rec->m_icon);
+        lua_pushnumber(L, info->x);
+        lua_pushnumber(L, info->y);
+        return 4;
+      }
     }
-    lua_pushnumber(L, info->x);
-    lua_pushnumber(L, info->y);
-    return 4;
   }
-  luaL_error(L, "Usage: GetMapLandmarkInfo(index)");
-  return 0;
+  lua_pushnil(L);
+  lua_pushnumber(L, 0.0);
+  lua_pushnumber(L, 0.0);
+  lua_pushnumber(L, 0.0);
+  return 4;
 }
 
 static FrameScript_Method s_ScriptFunctions[13] = {

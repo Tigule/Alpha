@@ -8,7 +8,7 @@ class CMouseEvent;
 class CStatus;
 
 struct KEYBINDING : public TSHashObject<KEYBINDING, HASHKEY_STRI> {
-  KEYBINDING() : index(0), command(0) {
+  KEYBINDING() : command(0) {
   }
   ~KEYBINDING() {
     FREEIFUSED(command);
@@ -19,9 +19,12 @@ struct KEYBINDING : public TSHashObject<KEYBINDING, HASHKEY_STRI> {
 };
 
 struct KEYCOMMAND : public TSHashObject<KEYCOMMAND, HASHKEY_STRI> {
-  KEYCOMMAND() {
+  KEYCOMMAND() : headerIndex(-1), function(0) {
   }
   ~KEYCOMMAND() {
+    if (function) {
+      FrameScript_ReleaseFunction(function);
+    }
   }
 
   int index;
@@ -36,12 +39,11 @@ class CGUIBindings {
   static void          Shutdown();
   static void          LoadBindings(int useDefault);
   static void          SaveBindings();
-  static LPCSTR        KeyEventToString(const CKeyEvent &evt, char *string, int maxLen);
-  static LPCSTR        MouseEventToString(const CMouseEvent &evt, char *string, int maxLen);
-
   static CGUIBindings *GetActive() {
     return s_bindings;
   }
+  static LPCSTR        KeyEventToString(const CKeyEvent &evt, char *string, int maxLen);
+  static LPCSTR        MouseEventToString(const CMouseEvent &evt, char *string, int maxLen);
 
   CGUIBindings();
   ~CGUIBindings();

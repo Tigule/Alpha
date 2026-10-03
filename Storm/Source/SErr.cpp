@@ -356,7 +356,7 @@ static HANDLE CreateErrorLog(LPCSTR suffix, LPCSTR message, SYSTEMTIME *time) {
     char *extra = (char *)_alloca(0x1450);
     extra[0] = 0;
     s_logCallback(extra, 0x1450);
-    if (SStrLen(extra)) {
+    if (strlen(extra)) {
       WriteMessageToLog(file, extra);
     }
   }
@@ -458,24 +458,24 @@ static void GetExceptionNameWin32(DWORD exceptioncode, char *buffer, DWORD buffe
 }
 
 static LONG WINAPI ExceptionFilterWin32(EXCEPTION_POINTERS *exceptionpointers) {
-  char format[0x100];
-  char message[0x100];
-  char buffer[0x50];
-  char exceptionname[0x28];
+  EXCEPTION_RECORD *record = exceptionpointers->ExceptionRecord;
 
-  GetExceptionNameWin32(exceptionpointers->ExceptionRecord->ExceptionCode, exceptionname, sizeof(exceptionname));
+  char buffer[0x50];
+  char message[0x100];
+  char exceptionname[0x28];
+  GetExceptionNameWin32(record->ExceptionCode, exceptionname, sizeof(exceptionname));
   SStrPrintf(
-      buffer, sizeof(buffer), "0x%08X (%s) at %04X:%08X", exceptionpointers->ExceptionRecord->ExceptionCode, exceptionname,
-      exceptionpointers->ContextRecord->SegCs, exceptionpointers->ExceptionRecord->ExceptionAddress
+      buffer, sizeof(buffer), "0x%08X (%s) at %04X:%08X", record->ExceptionCode, exceptionname, exceptionpointers->ContextRecord->SegCs,
+      record->ExceptionAddress
   );
   message[0] = 0;
 
-  if (exceptionpointers->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && exceptionpointers->ExceptionRecord->NumberParameters == 2) {
+  if (record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && record->NumberParameters == 2) {
+    char format[0x100];
     SStrCopy(format, GetErrorString(15), sizeof(format));
     SStrPrintf(
-        message, sizeof(message), format, exceptionpointers->ExceptionRecord->ExceptionAddress,
-        exceptionpointers->ExceptionRecord->ExceptionInformation[1],
-        GetErrorString(exceptionpointers->ExceptionRecord->ExceptionInformation[0] ? 17 : 16)
+        message, sizeof(message), format, record->ExceptionAddress, record->ExceptionInformation[1],
+        !record->ExceptionInformation[0] ? GetErrorString(16) : GetErrorString(17)
     );
   }
 
@@ -512,18 +512,14 @@ extern "C" BOOL APIENTRY SErrCheckDebugSymbolLibrary(BOOL warnnotfound) {
 }
 
 extern "C" BOOL APIENTRY SErrDestroy() {
-  MSGSRC *source;
-
   s_handlerlist.Clear();
 
   s_msgsrcinit = FALSE;
-  source = s_msgsrchead;
-  while (source) {
-    MSGSRC *next = source->next;
-    HeapFree(GetProcessHeap(), 0, source);
-    source = next;
+  while (s_msgsrchead) {
+    MSGSRC *next = s_msgsrchead->next;
+    HeapFree(GetProcessHeap(), 0, s_msgsrchead);
+    s_msgsrchead = next;
   }
-  s_msgsrchead = NULL;
 
   UnregisterAllThreads();
 
@@ -549,9 +545,7 @@ extern "C" void __cdecl SErrDisplayAppFatal(LPCSTR format, ...) {
   if (s_appFatInfo.threadId == GetCurrentThreadId()) {
     file = s_appFatInfo.filename;
     line = s_appFatInfo.linenumber;
-    s_appFatInfo.filename = NULL;
-    s_appFatInfo.linenumber = 0;
-    s_appFatInfo.threadId = 0;
+    ZeroMemory(&s_appFatInfo, sizeof(s_appFatInfo));
   }
   SErrLeave();
 
@@ -565,78 +559,59 @@ extern "C" void __cdecl SErrDisplayAppFatal(LPCSTR format, ...) {
 }
 
 extern "C" BOOL APIENTRY SErrDisplayError(DWORD errorcode, LPCSTR filename, int linenumber, LPCSTR description, BOOL recoverable, UINT exitcode) {
-  HANDLER *handler;
-  char     localnamebuffer[0x100];
-  union {
-    WIN32_FIND_DATAA finddata;
-    char             logpath[MAX_PATH];
-  };
-  char                outstr[0x800];
-  char                appfilename[MAX_PATH];
-  char                appname[MAX_PATH];
-  char                errorstr[0x100];
-  SYSTEMTIME          time;
-  char               *cursor;
-  LPCSTR              localnameptr;
-  LPCSTR              effectiveDescription;
-  EXCEPTION_POINTERS *exceptionPointers;
-  DWORD               terminationcode;
-  LPCSTR              suffix;
-  char               *userStrings[1];
-  HANDLE              logfile;
-  HWND                window;
-  UINT                messageFlags;
-  int                 defaultResult;
-  int                 breakResult;
-  int                 continueResult;
-  int                 result;
-  BOOL                canBreak;
-
-  if (s_suppress || s_displaying) {
+  if (s_suppress)
     return FALSE;
-  }
 
+  if (s_displaying)
+    return FALSE;
   s_displaying = TRUE;
+
+  char   appname[MAX_PATH];
+  char   outstr[0x800];
+  UINT   messageboxflags;
+  int    continueresult;
+  char   localnamebuffer[0x100];
+  LPCSTR localnameptr;
+  char   appfilename[MAX_PATH];
+  char   errorstr[0x100];
+  int    debuggerresult;
+
   appfilename[0] = 0;
   appname[0] = 0;
   GetModuleFileNameA(NULL, appfilename, sizeof(appfilename));
-  memset(&finddata, 0, sizeof(finddata));
-  logfile = FindFirstFileA(appfilename, &finddata);
-  if (logfile != INVALID_HANDLE_VALUE) {
-    FindClose(logfile);
+  {
+    WIN32_FIND_DATAA finddata;
+    ZeroMemory(&finddata, sizeof(finddata));
+    HANDLE handle = FindFirstFileA(appfilename, &finddata);
+    if (handle)
+      FindClose(handle);
     SStrCopy(appname, finddata.cFileName, sizeof(appname));
-  }
-  cursor = SStrChrR(appname, '.');
-  if (cursor) {
-    *cursor = 0;
+    if (SStrChrR(appname, '.'))
+      *SStrChrR(appname, '.') = 0;
   }
 
   errorstr[0] = 0;
   SErrGetErrorStr(errorcode, errorstr, sizeof(errorstr));
-  if (!errorstr[0]) {
+  if (!errorstr[0])
     SStrPrintf(errorstr, sizeof(errorstr), GetErrorString(0), errorcode & 0xFFFF, errorcode);
-  }
 
   localnameptr = filename;
-  if (filename && *filename && (linenumber == -2 || linenumber == -3) && UndecorateObjectName(filename, localnamebuffer, sizeof(localnamebuffer))) {
-    localnameptr = localnamebuffer;
+  if (filename && *filename && (linenumber == SERR_LINECODE_OBJECT || linenumber == SERR_LINECODE_HANDLE)) {
+    if (UndecorateObjectName(filename, localnamebuffer, sizeof(localnamebuffer)))
+      localnameptr = localnamebuffer;
   }
 
-  cursor = outstr;
-  if (localnameptr) {
-    SStrCopy(outstr, localnameptr, sizeof(outstr));
-    cursor += SStrLen(cursor);
-  }
+  char *cursor = outstr;
+  if (localnameptr)
+    cursor += SStrCopy(outstr, localnameptr, sizeof(outstr));
   if (linenumber > 0) {
-    SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), "(%d)", linenumber);
+    SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), "(%u)", linenumber);
     cursor += SStrLen(cursor);
   }
   SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), " : error %u: ", errorcode & 0xFFFF);
   cursor += SStrLen(cursor);
   SStrCopy(cursor, errorstr, sizeof(outstr) - (cursor - outstr));
-
   OutputDebugStringA(outstr);
-  effectiveDescription = description ? description : "";
 
   SStrPrintf(outstr, sizeof(outstr), GetErrorString(1), errorstr);
   cursor = outstr + SStrLen(outstr);
@@ -644,20 +619,20 @@ extern "C" BOOL APIENTRY SErrDisplayError(DWORD errorcode, LPCSTR filename, int 
   cursor += SStrLen(cursor);
   if (localnameptr && *localnameptr) {
     switch (linenumber) {
-      case SERR_LINECODE_EXCEPTION:
-        SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(14), localnameptr);
+      case SERR_LINECODE_FUNCTION:
+        SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(4), localnameptr);
         break;
-      case -4:
-        SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(11), localnameptr);
-        break;
-      case -3:
-        SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(6), localnameptr);
-        break;
-      case -2:
+      case SERR_LINECODE_OBJECT:
         SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(5), localnameptr);
         break;
-      case -1:
-        SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(4), localnameptr);
+      case SERR_LINECODE_HANDLE:
+        SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(6), localnameptr);
+        break;
+      case SERR_LINECODE_FILE:
+        SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(11), localnameptr);
+        break;
+      case SERR_LINECODE_EXCEPTION:
+        SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(14), localnameptr);
         break;
       default:
         SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(3), localnameptr, linenumber);
@@ -666,14 +641,17 @@ extern "C" BOOL APIENTRY SErrDisplayError(DWORD errorcode, LPCSTR filename, int 
     cursor += SStrLen(cursor);
   }
 
-  if (errorcode == STORM_ERROR_ASSERTION) {
-    SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(7), effectiveDescription);
-  } else {
-    SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(8), effectiveDescription);
-  }
+  if (errorcode == STORM_ERROR_ASSERTION)
+    SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(7), description ? description : "");
+  else
+    SStrPrintf(cursor, sizeof(outstr) - (cursor - outstr), GetErrorString(8), description ? description : "");
   cursor += SStrLen(cursor);
 
   if (!g_opt.serrsuppresslogs) {
+    LPCSTR              suffix;
+    SYSTEMTIME          time;
+    EXCEPTION_POINTERS *exceptionPointers;
+
     LoadMachineStateSymbols();
 
     SErrExceptionEnter();
@@ -681,19 +659,23 @@ extern "C" BOOL APIENTRY SErrDisplayError(DWORD errorcode, LPCSTR filename, int 
     s_exceptionPointers = NULL;
     SErrExceptionLeave();
 
-    GetLocalTime(&time);
-    suffix = exceptionPointers && exceptionPointers->ContextRecord ? "Crash" : "Error";
+    CONTEXT *context = exceptionPointers ? exceptionPointers->ContextRecord : NULL;
 
-    logfile = CreateErrorLog(suffix, outstr, &time);
+    GetLocalTime(&time);
+
+    suffix = context ? "Crash" : "Error";
+    HANDLE logfile = CreateErrorLog(suffix, outstr, &time);
     if (logfile != INVALID_HANDLE_VALUE) {
-      LogContext(logfile, exceptionPointers && exceptionPointers->ContextRecord ? 0 : 2, exceptionPointers ? exceptionPointers->ContextRecord : NULL);
+      LogContext(logfile, context ? 0 : 2, context);
       CloseErrorLog(logfile);
     }
 
-    if (LogMiniDumpIsAvailable() && !s_noMiniDumps) {
+    if (LogMiniDumpIsAvailable()
+        && !s_noMiniDumps) {
+      char logpath[MAX_PATH];
       logfile = CreateErrorLogFile(suffix, "dmp", logpath, sizeof(logpath), time);
       if (logfile != INVALID_HANDLE_VALUE) {
-        userStrings[0] = outstr;
+        char *userStrings[1] = {s_logtitle};
         LogMiniDump(logfile, exceptionPointers, 1, userStrings);
         CloseErrorLog(logfile);
       }
@@ -702,73 +684,82 @@ extern "C" BOOL APIENTRY SErrDisplayError(DWORD errorcode, LPCSTR filename, int 
     UnloadMachineStateSymbols();
   }
 
-  canBreak = CanBreakToDebugger();
-  defaultResult = IDOK;
-  breakResult = 0;
-  continueResult = 0;
-  messageFlags = MB_ICONHAND;
-
-  if (canBreak) {
+  UINT icon;
+  UINT buttons;
+  int  result;
+  if (CanBreakToDebugger()) {
     if (recoverable) {
-      SStrCopy(cursor, GetErrorString(13), (DWORD)(sizeof(outstr) - (cursor - outstr)));
-      messageFlags = MB_YESNOCANCEL | MB_DEFBUTTON2 | MB_ICONEXCLAMATION;
-      defaultResult = IDNO;
-      breakResult = IDYES;
-      continueResult = IDCANCEL;
+      SStrCopy(cursor, GetErrorString(13), sizeof(outstr) - (cursor - outstr));
+      icon = MB_ICONEXCLAMATION;
+      buttons = MB_YESNOCANCEL | MB_DEFBUTTON2;
+      result = IDNO;
+      continueresult = IDCANCEL;
+      debuggerresult = IDYES;
     } else {
-      SStrCopy(cursor, GetErrorString(12), (DWORD)(sizeof(outstr) - (cursor - outstr)));
-      messageFlags = MB_YESNO | MB_DEFBUTTON2 | MB_ICONHAND;
-      defaultResult = IDNO;
-      breakResult = IDYES;
+      SStrCopy(cursor, GetErrorString(12), sizeof(outstr) - (cursor - outstr));
+      icon = MB_ICONHAND;
+      buttons = MB_YESNO | MB_DEFBUTTON2;
+      result = IDNO;
+      continueresult = 0;
+      debuggerresult = IDYES;
     }
   } else if (recoverable) {
-    SStrCopy(cursor, GetErrorString(10), (DWORD)(sizeof(outstr) - (cursor - outstr)));
-    messageFlags = MB_OKCANCEL | MB_DEFBUTTON2 | MB_ICONEXCLAMATION;
-    defaultResult = IDCANCEL;
-    continueResult = IDOK;
+    SStrCopy(cursor, GetErrorString(10), sizeof(outstr) - (cursor - outstr));
+    icon = MB_ICONEXCLAMATION;
+    buttons = MB_OKCANCEL | MB_DEFBUTTON2;
+    result = IDCANCEL;
+    continueresult = IDOK;
+    debuggerresult = 0;
   } else {
-    SStrCopy(cursor, GetErrorString(9), (DWORD)(sizeof(outstr) - (cursor - outstr)));
-    messageFlags = MB_OK | MB_ICONHAND;
-    defaultResult = IDOK;
+    SStrCopy(cursor, GetErrorString(9), sizeof(outstr) - (cursor - outstr));
+    icon = MB_ICONHAND;
+    buttons = MB_OK;
+    result = IDOK;
+    continueresult = 0;
+    debuggerresult = 0;
   }
 
-  result = continueResult ? continueResult : defaultResult;
   SErrEnter();
-  handler = s_handlerlist.Head();
-  while ((LONG)handler > 0) {
-    if (!handler->handler(errorcode, errorstr, localnameptr, linenumber, effectiveDescription)) {
+
+  messageboxflags = buttons | icon | 0x52000;
+
+  if (continueresult)
+    result = continueresult;
+
+  BOOL handled = FALSE;
+  for (HANDLER *handler = s_handlerlist.Head(); (LONG)handler > 0; handler = s_handlerlist.RawNext(handler)) {
+    if (!handler->handler(errorcode, errorstr, localnameptr, linenumber, description ? description : "")) {
+      handled = TRUE;
       break;
     }
-    handler = s_handlerlist.RawNext(handler);
   }
-  if ((LONG)handler <= 0) {
-    window = SMsgGetDefaultWindow();
-    if (window && (!IsWindow(window) || !IsWindowVisible(window))) {
+  if (!handled) {
+    HWND window = SMsgGetDefaultWindow();
+    if (window && (!IsWindow(window) || !IsWindowVisible(window)))
       window = NULL;
-    }
-    result = MessageBoxA(window, outstr, appname, messageFlags | 0x52000);
+    result = MessageBoxA(window, outstr, appname, messageboxflags);
   }
   SErrLeave();
 
-  if (result == breakResult) {
+  if (result == debuggerresult) {
     Breakpoint();
     s_displaying = FALSE;
     return TRUE;
   }
 
-  if (result == continueResult) {
+  if (result == continueresult) {
     s_displaying = FALSE;
     return TRUE;
   }
 
   SErrSuppressErrors(TRUE);
-  if ((LONG)GetVersion() < 0) {
-    if (GetExitCodeProcess(GetCurrentProcess(), &terminationcode) && terminationcode != STILL_ACTIVE) {
-      goto terminateDone;
-    }
+
+  {
+    DWORD terminationcode;
+    if (!(GetVersion() & 0x80000000) || !GetExitCodeProcess(GetCurrentProcess(), &terminationcode) || terminationcode == STILL_ACTIVE)
+      TerminateProcess(GetCurrentProcess(), exitcode);
   }
-  TerminateProcess(GetCurrentProcess(), exitcode);
-terminateDone:
+
   s_displaying = FALSE;
   return FALSE;
 }
@@ -786,35 +777,28 @@ extern "C" BOOL __cdecl SErrDisplayErrorFmt(DWORD errorcode, LPCSTR filename, in
 }
 
 extern "C" BOOL APIENTRY SErrGetErrorStr(DWORD errorcode, char *buffer, DWORD bufferchars) {
-  MSGSRC   *source;
-  HINSTANCE module;
-  WORD      facility;
-  DWORD     flags;
-  DWORD     chars;
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATE(bufferchars);
+  VALIDATEEND;
 
-  FATALASSERT(buffer);
-  FATALASSERT(bufferchars);
-
-  buffer[0] = 0;
-  module = NULL;
-  facility = (WORD)((errorcode >> 16) & 0x0FFF);
   SErrEnter();
   if (!s_msgsrcinit) {
     s_msgsrcinit = TRUE;
     AddStormMessages();
   }
-  for (source = s_msgsrchead; source; source = source->next) {
-    if (source->facility == facility) {
-      module = source->module;
-      break;
-    }
-  }
+
+  MSGSRC   *source = s_msgsrchead;
+  WORD      facility = (WORD)((errorcode >> 16) & 0x0FFF);
+  HINSTANCE module = NULL;
+  while (source && source->facility != facility)
+    source = source->next;
+  if (source)
+    module = source->module;
   SErrLeave();
 
-  flags = module ? FORMAT_MESSAGE_FROM_HMODULE : FORMAT_MESSAGE_FROM_SYSTEM;
-  chars = FormatMessageA(flags, module, errorcode, 0x400, buffer, bufferchars, NULL);
-
-  return chars != 0;
+  *buffer = 0;
+  return FormatMessageA(module ? FORMAT_MESSAGE_FROM_HMODULE : FORMAT_MESSAGE_FROM_SYSTEM, module, errorcode, 0x400, buffer, bufferchars, NULL) != 0;
 }
 
 extern "C" DWORD APIENTRY SErrGetLastError() {
@@ -911,10 +895,9 @@ extern "C" void APIENTRY SErrSetLogCallback(SERRLOGCALLBACK cb) {
 }
 
 extern "C" BOOL APIENTRY SErrGetLogLastPath(char *buf, int size) {
-  BOOL result;
-
-  result = FALSE;
   SErrEnter();
+
+  BOOL result = FALSE;
   if (s_logLastFile[0]) {
     SStrCopy(buf, s_logLastFile, size);
     result = TRUE;
@@ -975,106 +958,89 @@ extern "C" void APIENTRY SErrUnregisterThread(HANDLE thread, DWORD threadid) {
   SErrThreadsEnter();
   for (i = 0; i < s_numthreads; i++) {
     if (s_threadids[i] == threadid) {
-      CloseHandle(s_threads[i]);
-      s_numthreads--;
-      if (i < s_numthreads) {
-        s_threads[i] = s_threads[s_numthreads];
-        s_threadids[i] = s_threadids[s_numthreads];
-      }
       break;
+    }
+  }
+
+  if (i < s_numthreads) {
+    CloseHandle(s_threads[i]);
+    s_numthreads--;
+    if (i < s_numthreads) {
+      s_threads[i] = s_threads[s_numthreads];
+      s_threadids[i] = s_threadids[s_numthreads];
     }
   }
   SErrThreadsLeave();
 }
 
 static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCSTR description, LPCSTR suffix) {
-  BOOL   suspended[MAX_ERR_THREADS];
-  HANDLE log;
-  DWORD  currentid;
-  int    currentIndex;
-  int    suspendedCount;
-  int    count;
-  int    i;
-  int    loggedIndex;
-  char   msg[0x100];
+  if (numthreads > 0) {
+    SErrThreadsEnter();
+    HANDLE logfile = CreateErrorLog(suffix, description, NULL);
+    if (logfile != INVALID_HANDLE_VALUE) {
+      LoadMachineStateSymbols();
 
-  if (numthreads <= 0) {
-    return;
-  }
+      BOOL  suspended[MAX_ERR_THREADS];
+      char  msg[0x100];
+      DWORD currentid = GetCurrentThreadId();
+      int   suspendedCount = 0;
+      int   currentIndex = -1;
+      int   i;
+      for (i = 0; i < numthreads; i++) {
+        if (threadids[i] == currentid) {
+          suspended[i] = FALSE;
+          currentIndex = i;
+          ++suspendedCount;
+        } else {
+          suspended[i] = SuspendThread(threads[i]) != (DWORD)-1;
+          if (suspended[i])
+            ++suspendedCount;
+        }
+      }
 
-  SErrThreadsEnter();
-  log = CreateErrorLog(suffix, description, NULL);
-  if (log == INVALID_HANDLE_VALUE) {
+      SStrPrintf(msg, sizeof(msg), "================================================================\n\nLogging %d threads\n\n", suspendedCount);
+      WriteMessageToLog(logfile, msg);
+
+      int loggedIndex = 0;
+      if (currentIndex != -1) {
+        SStrPrintf(
+            msg, sizeof(msg),
+            "================================================================\n================================================================"
+            "\n\nLogging thread %d of %d (the current thread), thread id = 0x%08X, thread handle = 0x%08X\n\n",
+            ++loggedIndex, numthreads, threadids[currentIndex], threads[currentIndex]
+        );
+        WriteMessageToLog(logfile, msg);
+        LogContext(logfile, 1, NULL);
+      }
+
+      for (i = 0; i < numthreads; i++) {
+        if (suspended[i]) {
+          SStrPrintf(
+              msg, sizeof(msg),
+              "================================================================\n================================================================"
+              "\n\nLogging thread %d of %d, thread id = 0x%08X, thread handle = 0x%08X\n\n",
+              ++loggedIndex, numthreads, threadids[i], threads[i]
+          );
+          WriteMessageToLog(logfile, msg);
+
+          CONTEXT context;
+          ZeroMemory(&context, sizeof(context));
+          context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS;
+          if (GetThreadContext(threads[i], &context))
+            LogContext(logfile, 0, &context);
+        }
+      }
+
+      for (i = 0; i < numthreads; i++) {
+        if (suspended[i])
+          ResumeThread(threads[i]);
+      }
+
+      UnloadMachineStateSymbols();
+      CloseErrorLog(logfile);
+    }
     SErrThreadsLeave();
-    return;
   }
-
-  count = numthreads;
-
-  LoadMachineStateSymbols();
-  ZeroMemory(suspended, sizeof(suspended));
-  currentid = GetCurrentThreadId();
-  currentIndex = -1;
-  suspendedCount = 0;
-
-  for (i = 0; i < count; i++) {
-    if (threadids[i] == currentid) {
-      currentIndex = i;
-      suspendedCount++;
-    } else if (SuspendThread(threads[i]) != (DWORD)-1) {
-      suspended[i] = TRUE;
-      suspendedCount++;
-    }
-  }
-
-  SStrPrintf(msg, sizeof(msg), "================================================================\n\nLogging %d threads\n\n", suspendedCount);
-  WriteMessageToLog(log, msg);
-
-  loggedIndex = 0;
-  if (currentIndex >= 0) {
-    loggedIndex++;
-    SStrPrintf(
-        msg, sizeof(msg),
-        "================================================================\n================================================================"
-        "\n\nLogging thread %d of %d (the current thread), thread id = 0x%08X, thread handle = 0x%08X\n\n",
-        loggedIndex, count, threadids[currentIndex], (DWORD)threads[currentIndex]
-    );
-    WriteMessageToLog(log, msg);
-    LogContext(log, 1, NULL);
-  }
-
-  for (i = 0; i < count; i++) {
-    CONTEXT context;
-
-    if (!suspended[i]) {
-      continue;
-    }
-
-    loggedIndex++;
-    SStrPrintf(
-        msg, sizeof(msg),
-        "================================================================\n================================================================"
-        "\n\nLogging thread %d of %d, thread id = 0x%08X, thread handle = 0x%08X\n\n",
-        loggedIndex, count, threadids[i], (DWORD)threads[i]
-    );
-    WriteMessageToLog(log, msg);
-
-    ZeroMemory(&context, sizeof(context));
-    context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS;
-    if (GetThreadContext(threads[i], &context)) {
-      LogContext(log, 0, &context);
-    }
-  }
-
-  for (i = 0; i < count; i++) {
-    if (suspended[i]) {
-      ResumeThread(threads[i]);
-    }
-  }
-
-  UnloadMachineStateSymbols();
-  CloseErrorLog(log);
-  SErrThreadsLeave();
 }
 
 extern "C" void APIENTRY SErrLogRegisteredThreads(LPCSTR description, LPCSTR suffix) {
@@ -1101,8 +1067,7 @@ static void CheckKeyboard() {
     chordDown = FALSE;
   }
   if (!(GetAsyncKeyState(VK_NEXT) & 0x8000)) {
-    s_keysweredown = FALSE;
-    return;
+    chordDown = FALSE;
   }
 
   if (chordDown && !s_keysweredown) {
@@ -1150,10 +1115,11 @@ static DWORD WINAPI WatchdogThreadProc(LPVOID) {
       } else {
         s_secondsfrozen++;
         if (s_secondsfrozen >= s_freezeperiod) {
-          char description[0x100];
-          SStrPrintf(description, sizeof(description), "Freeze Log: The game was frozen for %u seconds", s_freezeperiod);
           s_secondsfrozen = 0;
           lastFreezePingCount = pingAfter;
+
+          char description[0x100];
+          SStrPrintf(description, sizeof(description), "Freeze Log: The game was frozen for at least %d seconds", s_freezeperiod);
           SErrThreadsEnter();
           LogThreads(s_threads, s_threadids, s_numthreads, description, "Freeze");
           SErrThreadsLeave();

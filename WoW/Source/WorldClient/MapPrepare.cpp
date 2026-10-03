@@ -54,40 +54,41 @@ void CMap::PrepareAreas() {
 
 void CMap::PrepareMapObjDefs() {
   ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
-    FATALASSERT(mapObjDef->mapObj);
+    CMapObj *mapObj = mapObjDef->mapObj;
+    FATALASSERT(mapObj);
 
     if (CWorld::objectAoi.b <= mapObjDef->aaBox.t && CWorld::objectAoi.t >= mapObjDef->aaBox.b) {
-      while (!mapObjDef->mapObj->bLoaded) {
-        mapObjDef->mapObj->WaitLoad();
+      while (!mapObj->bLoaded) {
+        mapObj->WaitLoad();
       }
       if (!(mapObjDef->flags & CMapBaseObj::Flag_Loaded)) {
-        PrepareMapObjDef(mapObjDef, mapObjDef->mapObj);
+        PrepareMapObjDef(mapObjDef, mapObj);
       }
     }
 
     ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
       CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
       FATALASSERT(mapObjDefGroup);
-      CMapObjGroup *mapObjGroup = mapObjDef->mapObj->GetGroup(mapObjDefGroup->groupNum, 1);
+      CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 1);
       FATALASSERT(mapObjGroup);
 
       if (CWorld::objectAoi.b <= mapObjDefGroup->aaBox.t && CWorld::objectAoi.t >= mapObjDefGroup->aaBox.b) {
         mapObjGroup->flushTime = 30.0f;
         if (!mapObjGroup->bLoaded) {
           if (!mapObjGroup->asyncObject) {
-            mapObjDef->mapObj->ReadGroup(mapObjDefGroup->groupNum);
+            mapObj->ReadGroup(mapObjDefGroup->groupNum);
           }
           if (CWorld::groupAoi.b <= mapObjDefGroup->aaBox.t && CWorld::groupAoi.t >= mapObjDefGroup->aaBox.b) {
-            mapObjDef->mapObj->WaitLoadGroup(mapObjDefGroup->groupNum);
+            mapObj->WaitLoadGroup(mapObjDefGroup->groupNum);
           }
         }
 
         if (mapObjGroup->bLoaded) {
           if (!(mapObjDefGroup->flags & CMapBaseObj::Flag_HasLights)) {
-            CreateMapObjDefLights(mapObjDef->mapObj, mapObjGroup, mapObjDef, mapObjDefGroup);
+            CreateMapObjDefLights(mapObj, mapObjGroup, mapObjDef, mapObjDefGroup);
           }
           if (!(mapObjDefGroup->flags & CMapBaseObj::Flag_HasDoodadRefs)) {
-            CreateMapObjDefGroupDoodads(mapObjDef->mapObj, mapObjGroup, mapObjDef, mapObjDefGroup);
+            CreateMapObjDefGroupDoodads(mapObj, mapObjGroup, mapObjDef, mapObjDefGroup);
           }
         }
       }
@@ -254,7 +255,7 @@ void CMap::PrepareArea(int x, int y) {
   area->mIndex.x = x;
   area->mIndex.y = y;
   area->infoIndex = index;
-  area->asyncObject = 0;
+  area->texCount = 0;
   area->cOffset.x = 16 * x;
   area->cOffset.y = 16 * y;
   area->corner.x = static_cast<float>(16 * y) * -33.333332f + 17066.666f;

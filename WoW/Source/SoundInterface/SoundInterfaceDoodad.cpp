@@ -89,7 +89,7 @@ void LOOPEDDOODADDESC::Update(const NTempest::C3Vector &listener) {
   }
 
   int closestIndex = GetClosestIndex(listener);
-  ASSERT(closestIndex >= 0 && closestIndex < 8);
+  ASSERT(( closestIndex >= 0 ) && ( closestIndex < 8 ));
 
   if (sound && (sound->IsOutOfRange() || sound->IsPlaying())) {
     if (currentIndex != closestIndex) {
@@ -107,7 +107,7 @@ void LOOPEDDOODADDESC::Update(const NTempest::C3Vector &listener) {
   LPCSTR filename = definition->GetRandomFileName(-1);
   if (filename && *filename) {
     if (!sound) {
-      sound = Sound::Play3DLooped(SOUNDCATEGORY_NONE, filename, definition->GetOsFlags() | 4, 0, true);
+      sound = Sound::Play3DLooped(SOUNDCATEGORY_NONE, filename, 0, 0, true);
     }
     if (sound) {
       definition->SetFrequencyAndVolume(sound, 1.0f, false);

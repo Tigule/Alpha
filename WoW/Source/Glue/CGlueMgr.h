@@ -30,8 +30,8 @@ class CGlueMgr {
   }
 
   static void ClearWaitQueue() {
-    memset(m_queueTime, 0, sizeof(m_queueTime));
     memset(m_queuePosition, 0, sizeof(m_queuePosition));
+    memset(m_queueTime, 0, sizeof(m_queueTime));
     m_estimatedWaitTime = 0;
   }
 

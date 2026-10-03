@@ -66,30 +66,29 @@ LPCSTR SOUNDDEFINITION::GetRandomFileName(int index) {
     return 0;
   }
 
-  if (index == -1) {
-    if (m_equalFreqs) {
-      if (!(m_loopCounter++ % m_fileNames.Count())) {
-        m_primeStepIndex = NTempest::CMath::mulhwu_(NTempest::CRandom::uint32_(g_rndSeed), sizeof(s_primes) / sizeof(s_primes[0]));
-      }
-
-      m_lastPlayed = (m_lastPlayed + s_primes[m_primeStepIndex]) % m_fileNames.Count();
-    } else {
-      targetFreq = NTempest::CMath::mulhwu_(NTempest::CRandom::uint32_(g_rndSeed), m_totalFrequency);
-      m_lastPlayed = 0;
-      while (targetFreq >= m_fileNames[m_lastPlayed].accumulatedFreq) {
-        ++m_lastPlayed;
-      }
-    }
-  } else {
-    m_lastPlayed = m_fileNames.Count() - 1;
-    if (m_lastPlayed >= static_cast<UINT>(index)) {
-      m_lastPlayed = index;
-    }
+  if (index != -1) {
+    m_lastPlayed = min(static_cast<int>(m_fileNames.Count()) - 1, index);
     m_loopCounter = 0;
+  } else if (m_equalFreqs) {
+    if (!(m_loopCounter++ % m_fileNames.Count())) {
+      m_primeStepIndex = NTempest::CRandom::dice_(sizeof(s_primes) / sizeof(s_primes[0]), g_rndSeed);
+    }
+
+    m_lastPlayed = (s_primes[m_primeStepIndex] + m_lastPlayed) % m_fileNames.Count();
+  } else {
+    targetFreq = NTempest::CRandom::dice_(m_totalFrequency, g_rndSeed);
+    m_lastPlayed = 0;
+    for (int i = 0; i < static_cast<int>(m_fileNames.Count()); ++i) {
+      if (targetFreq < m_fileNames[i].accumulatedFreq) {
+        m_lastPlayed = i;
+        break;
+      }
+    }
   }
 
   return m_fileNames[m_lastPlayed].fileName;
 }
+
 
 SOUNDDEFINITION::SOUNDDEFINITION()
     : m_volume(1.0f),
@@ -127,24 +126,25 @@ SOUNDDEFINITION::SOUNDDEFINITION(const SOUNDDEFINITION &rhs)
 }
 
 const SOUNDDEFINITION &SOUNDDEFINITION::operator=(const SOUNDDEFINITION &rhs) {
-  if (this != &rhs) {
-    Clear();
-    m_volume = rhs.m_volume;
-    m_pitch = rhs.m_pitch;
-    m_pitchVariation = rhs.m_pitchVariation;
-    m_priority = rhs.m_priority;
-    m_channel = rhs.m_channel;
-    m_flags = rhs.m_flags;
-    m_minDistance = rhs.m_minDistance;
-    m_maxDistance = rhs.m_maxDistance;
-    m_distanceCutoffSquared = rhs.m_distanceCutoffSquared;
-    m_lastPlayed = rhs.m_lastPlayed;
-    m_loopCounter = rhs.m_loopCounter;
-    m_primeStepIndex = rhs.m_primeStepIndex;
-    m_equalFreqs = rhs.m_equalFreqs;
-    m_fileNames = rhs.m_fileNames;
+  if (&rhs == this) {
+    return *this;
   }
 
+  Clear();
+  m_volume = rhs.m_volume;
+  m_pitch = rhs.m_pitch;
+  m_pitchVariation = rhs.m_pitchVariation;
+  m_priority = rhs.m_priority;
+  m_channel = rhs.m_channel;
+  m_flags = rhs.m_flags;
+  m_minDistance = rhs.m_minDistance;
+  m_maxDistance = rhs.m_maxDistance;
+  m_distanceCutoffSquared = rhs.m_distanceCutoffSquared;
+  m_lastPlayed = rhs.m_lastPlayed;
+  m_loopCounter = rhs.m_loopCounter;
+  m_primeStepIndex = rhs.m_primeStepIndex;
+  m_equalFreqs = rhs.m_equalFreqs;
+  m_fileNames = rhs.m_fileNames;
   return *this;
 }
 
@@ -158,10 +158,10 @@ void SOUNDDEFINITION::Clear() {
 
 UINT BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRec *rec, LPCSTR directory, int *equalFreqsPtr) {
   char           buff[MAX_PATH];
+  UINT           totalFreq = 0;
   int            lastFreq = 0;
   int            equalFreqs = 1;
   UINT           i;
-  UINT           totalFreq = 0;
   LPCSTR         separator;
   LPCSTR         lastSlash;
   UINT           index;
@@ -172,12 +172,11 @@ UINT BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRe
       continue;
     }
 
-    separator = "";
-    if (directory && *directory) {
+    if (directory) {
       lastSlash = SStrChrR(directory, '\\');
-      if (!lastSlash || lastSlash[1]) {
-        separator = "\\";
-      }
+      separator = (*directory && (!lastSlash || lastSlash[1])) ? "\\" : "";
+    } else {
+      separator = "";
     }
 
     SStrPrintf(buff, sizeof(buff), "%s%s%s", directory, separator, rec->m_File[i]);
@@ -189,7 +188,7 @@ UINT BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRe
 
     totalFreq += rec->m_Freq[i];
     newNode->SetName(buff, totalFreq);
-    if (equalFreqs && i && lastFreq != rec->m_Freq[i]) {
+    if (equalFreqs && i > 0 && lastFreq != rec->m_Freq[i]) {
       equalFreqs = 0;
     }
     lastFreq = rec->m_Freq[i];
@@ -203,8 +202,8 @@ UINT BuildSoundFilesRec(TSCArray<FILENAMEENTRY, 10> &array, const SoundEntriesRe
 
 static void ReadFiles() {
   UINT                   numNewEntries = 0;
-  UINT                   numEntries = g_soundEntriesDB.GetNumRecords();
-  UINT                   i;
+  int                    numEntries = g_soundEntriesDB.GetNumRecords();
+  int                    i;
   const SoundEntriesRec *rec;
   SOUNDDEFINITION       *sound;
 
@@ -215,7 +214,7 @@ static void ReadFiles() {
     }
   }
 
-  s_fileNameHash.SetTableSize(numNewEntries + s_numFileNameEntries);
+  s_fileNameHash.SetTableSize((numNewEntries + s_numFileNameEntries) * 2);
 
   for (i = 0; i < numEntries; ++i) {
     rec = g_soundEntriesDB.GetRecordByIndex(i);
@@ -307,8 +306,8 @@ static void GenerateWeaponSwingCombatSounds() {
   UINT                         i;
   const WeaponSwingSounds2Rec *rec;
 
-  for (i = g_weaponSwingSounds2DB.GetNumRecords(); i; --i) {
-    rec = g_weaponSwingSounds2DB.GetRecordByIndex(i - 1);
+  for (i = g_weaponSwingSounds2DB.GetNumRecords(); i--;) {
+    rec = g_weaponSwingSounds2DB.GetRecordByIndex(i);
     if (rec && rec->m_SwingType < 3 && rec->m_Crit < 2) {
       g_weaponSwingSounds[rec->m_SwingType].soundList[rec->m_Crit != 0] = rec->m_SoundID;
     }
@@ -339,8 +338,8 @@ static void InitializeWeaponImpactCombatSounds() {
   const WeaponImpactSoundsRec *rec;
 
   g_impactSounds.SetCount(ClientDBGetNumWeaponSubclasses());
-  for (i = g_weaponImpactSoundsDB.GetNumRecords(); i; --i) {
-    rec = g_weaponImpactSoundsDB.GetRecordByIndex(i - 1);
+  for (i = g_weaponImpactSoundsDB.GetNumRecords(); i--;) {
+    rec = g_weaponImpactSoundsDB.GetRecordByIndex(i);
     ASSERT(rec);
     ParseWeaponImpactArmorField(rec);
   }

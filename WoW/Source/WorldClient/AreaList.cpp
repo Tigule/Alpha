@@ -25,6 +25,7 @@
 #include <WowSvcs/WowSvcsClient/ClientServices.h>
 #include <storm.h>
 
+static UINT                                     s_flags;
 static TSHashTable<AREAHASHOBJECT, AREAHASHKEY> s_areaHash;
 static UINT                                     s_currentZoneID = -1;
 static UINT                                     s_currentSubZoneID = -1;
@@ -104,7 +105,7 @@ static void LoadAreaTable() {
   for (UINT i = 0; i < numEntries; ++i) {
     const AreaTableRec *rec = g_areaTableDB.GetRecordByIndex(i);
     UINT                continentID = rec->m_ContinentID;
-    UINT                areaID = rec->m_AreaNumber >> 16;
+    UINT                areaID = static_cast<UINT>(rec->m_AreaNumber) >> 16;
     UINT                subArea = rec->m_AreaNumber & 0xFFFF;
     AREAHASHKEY         key(continentID, areaID, subArea);
 
@@ -134,7 +135,7 @@ static BOOL MIDISetHandler(LPCSTR command, LPCSTR arguments) {
 
 void AreaListInitialize() {
   LoadAreaTable();
-  s_currentContinent = 0;
+  s_flags = 0;
   ConsoleCommandRegister("midiset", MIDISetHandler, DEBUG, 0);
 }
 

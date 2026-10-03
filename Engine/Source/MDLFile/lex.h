@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+#define YYNEWLINE 10
+
 union mdl_data {
   char  cVal;
   long  lVal;
@@ -29,23 +31,23 @@ class mdl_scan {
   int      mdllineno;
   int      mdlleng;
 
-  mdl_scan(LPCSTR input, int inputSize);
+  mdl_scan(LPCSTR in, int sz);
   ~mdl_scan();
 
   int  mdllex();
   int  mdlgetc() {
-    return input();
+    return *mdlin++;
   }
 
   virtual int mdlwrap() {
     return 1;
   }
-  virtual void __cdecl mdlerror(char *format, ...);
-  virtual void         output(int character) {
-    putc(character, mdlout);
+  virtual void __cdecl mdlerror(char *fmt, ...);
+  virtual void         output(int c) {
+    putc(c, mdlout);
   }
-  virtual void YY_FATAL(char *message) {
-    mdlerror(message);
+  virtual void YY_FATAL(char *msg) {
+    mdlerror(msg);
     mdlLexFatal = 1;
   }
   virtual void ECHO() {
@@ -53,32 +55,38 @@ class mdl_scan {
   }
 
   int  input();
-  int  unput(int character);
+  int  unput(int c);
   void mdl_reset();
-  void setinput(LPCSTR inputBuffer) {
-    mdlin = inputBuffer;
+  void setinput(LPCSTR in) {
+    mdlin = in;
   }
-  void setoutput(FILE *outputFile) {
-    mdlout = outputFile;
+  void setoutput(FILE *out) {
+    mdlout = out;
   }
   void NLSTATE() {
+    mdl_lastc = YYNEWLINE;
   }
   void YY_INIT() {
+    mdl_start = 0;
+    mdlleng = mdl_end = 0;
+    mdl_lastc = YYNEWLINE;
   }
   void YY_USER() {
-  }
-  void YY_SCANNER() {
-  }
-  void mdlless(int count) {
-    while (mdlleng > count) {
-      unput(static_cast<BYTE>(mdltext[--mdlleng]));
-    }
+    save = mdltext[mdlleng];
     mdltext[mdlleng] = 0;
   }
-  void mdlcomment(char *const material);
-  int  mdlmapch(int character, int) {
-    return character;
+  void YY_SCANNER() {
+    mdltext[mdlleng] = save;
   }
+  void mdlless(int n) {
+    if (n >= 0 && n <= mdl_end) {
+      YY_SCANNER();
+      mdlleng = n;
+      YY_USER();
+    }
+  }
+  void mdlcomment(char *const mat);
+  int  mdlmapch(int delim, int escape);
 };
 
 #endif

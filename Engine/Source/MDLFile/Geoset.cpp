@@ -159,20 +159,20 @@ BOOL ReadBinC3VectorSection(
     CMDLStatus                          *status
 ) {
   if (buf.GetDword() != title) {
-    status->Add(STATUS_ERROR, "Invalid %s section detected in model.\n", name);
+    status->Add(STATUS_ERROR, "Invalid %s section in Geoset.\n", name);
     return 0;
   }
   UINT count = buf.GetUint();
   *localBytesRead += 8;
-  section->SetCount(count);
   if (count) {
+    section->SetCount(count);
     *localBytesRead += 12 * count;
     buf.GetFloatArray(&section->Ptr()->x, 3 * count);
   }
   return 1;
 }
 
-BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGrowableArray<UINT> *section, UINT *localBytesRead, CMDLStatus *status) {
+inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGrowableArray<UINT> *section, UINT *localBytesRead, CMDLStatus *status) {
   DWORD found = buf.GetDword();
   *localBytesRead += 4;
   if (found != title) {
@@ -920,35 +920,38 @@ BOOL MDL::WriteGeosetAnims(const MDLDATA &data, TSGrowableArray<char> &buffer, C
   return 1;
 }
 
-static BOOL IReadBinGeosetAnim(CMsgBuffer &buffer, MDLGEOSETANIMSECTION *geoAnim, UINT &totalRead, CMDLStatus *status) {
-  UINT sectionLength = buffer.GetUint();
-  geoAnim->geosetId = buffer.GetUint();
-  geoAnim->staticAlpha = buffer.GetFloat();
-  geoAnim->staticColor.b = buffer.GetFloat();
-  geoAnim->staticColor.g = buffer.GetFloat();
-  geoAnim->staticColor.r = buffer.GetFloat();
-  geoAnim->flags = buffer.GetUint();
-  UINT localRead = 28;
-  while (localRead < sectionLength) {
-    DWORD tag = buffer.GetDword();
-    localRead += 4;
-    if (tag == 'OAGK') {
-      if (!ReadBinFloatKeyFrames(geoAnim->alphaKeys, buffer, localRead)) {
-        return 0;
-      }
-    } else if (tag == 'CAGK') {
-      if (!ReadBinFloatKeyFrames(geoAnim->colorKeys, buffer, localRead)) {
-        return 0;
-      }
-    } else {
-      SkipUnknown(buffer, localRead);
+static BOOL IReadBinGeosetAnim(CMsgBuffer &buf, MDLGEOSETANIMSECTION *geoAnim, UINT &totalRead, CMDLStatus *status) {
+  UINT sectionLength = buf.GetUint();
+  UINT localBytesRead = 4;
+  geoAnim->geosetId = buf.GetUint();
+  localBytesRead += 4;
+  geoAnim->staticAlpha = buf.GetFloat();
+  geoAnim->staticColor.r = buf.GetFloat();
+  geoAnim->staticColor.g = buf.GetFloat();
+  geoAnim->staticColor.b = buf.GetFloat();
+  localBytesRead += 16;
+  geoAnim->flags = buf.GetUint();
+  localBytesRead += 4;
+  while (localBytesRead < sectionLength) {
+    DWORD tag = buf.GetDword();
+    localBytesRead += 4;
+    switch (tag) {
+      case 'OAGK':
+        ReadBinFloatKeyFrames(geoAnim->alphaKeys, buf, localBytesRead);
+        break;
+      case 'CAGK':
+        ReadBinFloatKeyFrames(geoAnim->colorKeys, buf, localBytesRead);
+        break;
+      default:
+        SkipUnknown(buf, localBytesRead);
+        break;
     }
-    if (localRead > sectionLength) {
+    if (localBytesRead > sectionLength) {
       status->FatalOverran("GeosetAnim keys", -1);
       return 0;
     }
   }
-  totalRead += localRead;
+  totalRead += localBytesRead;
   return 1;
 }
 
@@ -1076,81 +1079,79 @@ static void IReadBinAnimBounds(CMsgBuffer &buffer, MDLGEOSETSECTION *section, UI
   }
 }
 
-static BOOL ReadBinGeosetTags(CMsgBuffer &buffer, MDLGEOSETSECTION *geoset, CMDLStatus *status, UINT *localBytesRead) {
-  if (!ReadBinC3VectorSection(buffer, 'XTRV', "vertex", &geoset->vertices, localBytesRead, status)) {
+static BOOL ReadBinGeosetTags(CMsgBuffer &buf, MDLGEOSETSECTION *pGeoset, CMDLStatus *status, UINT *localBytesRead) {
+  if (!ReadBinC3VectorSection(buf, 'XTRV', "vertex", &pGeoset->vertices, localBytesRead, status)) {
     return 0;
   }
-  if (!ReadBinC3VectorSection(buffer, 'SMRN', "normal", &geoset->normals, localBytesRead, status)) {
+  if (!ReadBinC3VectorSection(buf, 'SMRN', "normal", &pGeoset->normals, localBytesRead, status)) {
     return 0;
   }
 
-  DWORD magic = buffer.GetDword();
+  UINT  count;
+  DWORD magic = buf.GetDword();
   *localBytesRead += 4;
   if (magic == 'SAVU') {
-    UINT channels = buffer.GetUint();
+    count = buf.GetUint();
     *localBytesRead += 4;
-    FATALASSERT(channels);
-    geoset->texCoords.SetCount(channels);
-    UINT vertexCount = geoset->vertices.Count();
-    for (UINT i = 0; i < channels; ++i) {
-      geoset->texCoords[i].SetCount(vertexCount);
-      buffer.GetFloatArray(&geoset->texCoords[i].Ptr()->x, 2 * vertexCount);
+    FATALASSERT(count);
+    pGeoset->texCoords.SetCount(count);
+    UINT numVertices = pGeoset->vertices.Count();
+    UINT floatsToRead = 2 * numVertices;
+    for (UINT i = 0; i < count; ++i) {
+      pGeoset->texCoords.Ptr()[i].SetCount(numVertices);
+      buf.GetFloatArray(&pGeoset->texCoords[i].Ptr()->x, floatsToRead);
     }
-    *localBytesRead += 8 * channels * vertexCount;
-    magic = buffer.GetDword();
+    *localBytesRead += floatsToRead * count * 4;
+    magic = buf.GetDword();
     *localBytesRead += 4;
   }
 
-  if (!IReadBinPrimitiveTypes(magic, buffer, &geoset->primitives.types, localBytesRead, status)) {
+  if (!IReadBinPrimitiveTypes(magic, buf, &pGeoset->primitives.types, localBytesRead, status)) {
     return 0;
   }
 
-  magic = buffer.GetDword();
-  *localBytesRead += 4;
-  if (magic != 'TNCP') {
-    status->Add(STATUS_ERROR, "Invalid %s section.\n", "primitives count");
+  if (!IReadBinUintSection(buf, 'TNCP', "primitives count", &pGeoset->primitives.counts, localBytesRead, status)) {
     return 0;
   }
-  UINT count = buffer.GetUint();
-  *localBytesRead += 4;
-  if (count) {
-    geoset->primitives.counts.SetCount(count);
-    buffer.GetUintArray(geoset->primitives.counts.Ptr(), count);
-    *localBytesRead += 4 * count;
-  }
 
-  magic = buffer.GetDword();
+  magic = buf.GetDword();
   *localBytesRead += 4;
   if (magic != 'XTVP') {
     status->Add(STATUS_ERROR, "Invalid %s section.\n", "primitives vertices");
     return 0;
   }
-  count = buffer.GetUint();
+  count = buf.GetUint();
   *localBytesRead += 4;
   if (count) {
-    geoset->primitives.vertices.SetCount(count);
-    buffer.GetWordArray(geoset->primitives.vertices.Ptr(), count);
+    pGeoset->primitives.vertices.SetCount(count);
+    buf.GetWordArray(pGeoset->primitives.vertices.Ptr(), count);
     *localBytesRead += 2 * count;
   }
 
-  magic = buffer.GetDword();
+  magic = buf.GetDword();
   *localBytesRead += 4;
   if (magic != 'XDNG') {
     status->Add(STATUS_ERROR, "Invalid %s section.\n", "vertex group indices");
     return 0;
   }
-  count = buffer.GetUint();
+  count = buf.GetUint();
   *localBytesRead += 4;
   if (count) {
-    geoset->vertGroupIndices.SetCount(count);
-    buffer.GetData(geoset->vertGroupIndices.Ptr(), count);
+    pGeoset->vertGroupIndices.SetCount(count);
+    buf.GetData(pGeoset->vertGroupIndices.Ptr(), count);
     *localBytesRead += count;
   }
 
-  return IReadBinUintSection(buffer, 'CGTM', "group matrix counts", &geoset->groupMatrixCounts, localBytesRead, status) &&
-         IReadBinUintSection(buffer, 'STAM', "matrices", &geoset->matrices, localBytesRead, status) &&
-         IReadBinUintSection(buffer, 'XDIB', "bone indices", &geoset->boneIndices, localBytesRead, status) &&
-         IReadBinUintSection(buffer, 'TGWB', "bone weights", &geoset->boneWeights, localBytesRead, status);
+  if (!IReadBinUintSection(buf, 'CGTM', "group matrix counts", &pGeoset->groupMatrixCounts, localBytesRead, status)) {
+    return 0;
+  }
+  if (!IReadBinUintSection(buf, 'STAM', "matrices", &pGeoset->matrices, localBytesRead, status)) {
+    return 0;
+  }
+  if (!IReadBinUintSection(buf, 'XDIB', "bone indices", &pGeoset->boneIndices, localBytesRead, status)) {
+    return 0;
+  }
+  return IReadBinUintSection(buf, 'TGWB', "bone weights", &pGeoset->boneWeights, localBytesRead, status) != 0;
 }
 
 static BOOL ReadBinGeoset(CMsgBuffer &buffer, MDLGEOSETSECTION *geoset, CMDLStatus *status, UINT &totalLength) {
@@ -1174,7 +1175,9 @@ static BOOL ReadBinGeoset(CMsgBuffer &buffer, MDLGEOSETSECTION *geoset, CMDLStat
 }
 
 BOOL MDL::ReadBinGeosets(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
-  FATALASSERT(status);
+  VALIDATEBEGIN;
+  VALIDATE(status != 0);
+  VALIDATEEND;
   UINT totalRead = 4;
   UINT numGeosets = buf.GetUint();
   data.geosets.SetCount(0);

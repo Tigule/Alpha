@@ -100,7 +100,7 @@ void CGxDeviceOpenGl::IPixelShaderBind(CGxPixelShader *ps) {
       const BYTE *code = ps->code.Ptr();
       UINT        combinerCount = *reinterpret_cast<const UINT *>(code);
       glCombinerParameteriNV(GL_NUM_GENERAL_COMBINERS_NV, combinerCount);
-      glCombinerParameteriNV(GL_PER_STAGE_CONSTANTS_NV, code[4]);
+      glCombinerParameteriNV(0x854F, code[4]);
       glCombinerParameterfvNV(GL_CONSTANT_COLOR0_NV, reinterpret_cast<const float *>(code + 8));
       glCombinerParameterfvNV(GL_CONSTANT_COLOR1_NV, reinterpret_cast<const float *>(code + 24));
 

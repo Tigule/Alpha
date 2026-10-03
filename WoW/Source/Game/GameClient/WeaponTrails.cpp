@@ -38,7 +38,9 @@ struct VERTEX {
 
 NODEDECL(SWING) {
   SWING();
-  ~SWING();
+  ~SWING() {
+    Recycle();
+  }
   void Recycle();
   void Render() const;
   void AddVerts(
@@ -76,7 +78,7 @@ class WTOBJECT {
   void Render(const NTempest::C44Matrix &basis);
   void RenderVerts(const NTempest::C3Vector &cameraPos);
   void FadeVerts();
-};
+} *WTOBJECTPTR;
 
 void ModelCustGeosetAdd(
     HMODEL                    model,
@@ -105,10 +107,6 @@ SWING::SWING() {
   m_vertexIndices.SetChunkSize(128);
 }
 
-SWING::~SWING() {
-  Recycle();
-}
-
 void SWING::Recycle() {
   m_trail.SetCount(0);
   m_vertexIndices.SetCount(0);
@@ -133,58 +131,34 @@ void SWING::AddVerts(
     BYTE                       currentAlpha,
     const NTempest::C3Vector  &cameraPos
 ) {
-  NTempest::C44Matrix cameraTranslate;
-  cameraTranslate.Translate(cameraPos);
-  NTempest::C44Matrix matrix = basisMatrix * cameraTranslate;
+  NTempest::C44Matrix cameraTranslate(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, cameraPos.x, cameraPos.y, cameraPos.z, 1.0f);
+  NTempest::C44Matrix basis = basisMatrix * cameraTranslate;
 
   if (m_flags & 1) {
-    NTempest::C33Matrix lastRotation(
-        m_lastMatrix.a0, m_lastMatrix.a1, m_lastMatrix.a2, m_lastMatrix.b0, m_lastMatrix.b1, m_lastMatrix.b2, m_lastMatrix.c0, m_lastMatrix.c1,
-        m_lastMatrix.c2
-    );
     NTempest::C4Quaternion q1;
-    q1.FromRotationMatrix(lastRotation);
-
-    NTempest::C33Matrix    rotation(matrix.a0, matrix.a1, matrix.a2, matrix.b0, matrix.b1, matrix.b2, matrix.c0, matrix.c1, matrix.c2);
     NTempest::C4Quaternion q2;
-    q2.FromRotationMatrix(rotation);
-
-    UINT steps = static_cast<UINT>(fabs(1.0f - (q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w)) * STEPS_PER_180DEGS);
-    if (steps < 1) {
-      steps = 1;
-    }
+    q1.FromRotationMatrix(m_lastMatrix);
+    q2.FromRotationMatrix(basis);
 
     NTempest::C3Vector startingTranslation(m_lastMatrix.d0, m_lastMatrix.d1, m_lastMatrix.d2);
-    NTempest::C3Vector translationStep(
-        (matrix.d0 - startingTranslation.x) / steps, (matrix.d1 - startingTranslation.y) / steps, (matrix.d2 - startingTranslation.z) / steps
-    );
-    float t = 0.0f;
-    float tStep = 1.0f / steps;
+    UINT               steps = static_cast<UINT>(NTempest::CMath::fabs_(1.0f - (q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w)) * STEPS_PER_180DEGS);
+    steps = max(steps, 1);
+
+    float              t = 0.0f;
+    float              tStep = 1.0f / steps;
+    NTempest::C3Vector translationStep = (NTempest::C3Vector(basis.d0, basis.d1, basis.d2) - startingTranslation) / static_cast<float>(steps);
 
     for (UINT step = 0; step < steps; ++step) {
       NTempest::C4Quaternion slerped = NTempest::C4Quaternion::Slerp(t, q1, q2);
+      NTempest::C44Matrix    matrix(static_cast<NTempest::C33Matrix>(slerped));
+      matrix.d0 = startingTranslation.x;
+      matrix.d1 = startingTranslation.y;
+      matrix.d2 = startingTranslation.z;
 
-      float xx = slerped.x + slerped.x;
-      float yy = slerped.y + slerped.y;
-      float zz = slerped.z + slerped.z;
-      float wx = slerped.w * xx;
-      float wy = slerped.w * yy;
-      float wz = slerped.w * zz;
-      float x2 = slerped.x * xx;
-      float xy = slerped.x * yy;
-      float xz = slerped.x * zz;
-      float y2 = slerped.y * yy;
-      float yz = slerped.y * zz;
-      float z2 = slerped.z * zz;
+      NTempest::C3Vector newBottom = bottom * matrix;
+      NTempest::C3Vector newTop = top * matrix;
 
-      NTempest::C44Matrix basis(
-          1.0f - (y2 + z2), xy + wz, xz - wy, 0.0f, xy - wz, 1.0f - (z2 + x2), yz + wx, 0.0f, xz + wy, yz - wx, 1.0f - (x2 + y2), 0.0f,
-          startingTranslation.x, startingTranslation.y, startingTranslation.z, 1.0f
-      );
-
-      NTempest::C3Vector newBottom = bottom * basis;
-      NTempest::C3Vector newTop = top * basis;
-      VERTEX             newVerts[2];
+      VERTEX newVerts[2];
       newVerts[0].v = newBottom;
       newVerts[0].c = color;
       newVerts[0].c.a = currentAlpha >> 1;
@@ -199,15 +173,13 @@ void SWING::AddVerts(
       m_vertexIndices[firstVertex + 1] = firstVertex + 1;
 
       t += tStep;
-      startingTranslation.x += translationStep.x;
-      startingTranslation.y += translationStep.y;
-      startingTranslation.z += translationStep.z;
+      startingTranslation += translationStep;
     }
   } else {
     m_flags |= 1;
   }
 
-  m_lastMatrix = matrix;
+  m_lastMatrix = basis;
 }
 
 static bool ToggleCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
@@ -224,10 +196,9 @@ WTOBJECT::~WTOBJECT() {
     HandleClose(m_model);
   }
 
-  while (SWING *swing = m_swings.Head()) {
+  ITERATELIST(SWING, m_swings, swing) {
     s_freeSwings.Put(swing);
   }
-
   if (m_timer) {
     ClientKillTimer(m_timer, DiscontinueTimerHandler, "DiscontinueTimerHandler");
   }
@@ -254,8 +225,7 @@ WTOBJECT::WTOBJECT()
 
 void WTOBJECT::Recycle() {
   m_flags = 0;
-  while (SWING *swing = m_swings.Head()) {
-    swing->Recycle();
+  ITERATELIST(SWING, m_swings, swing) {
     s_freeSwings.Put(swing);
   }
   if (m_geosetID != -1) {
@@ -296,10 +266,10 @@ void WTOBJECT::Render(const NTempest::C44Matrix &basis) {
 
   SWING *swing = m_swings.Head();
   if (m_flags & 2) {
-    if (m_currentAlpha >= ALPHAFADEOUTRATE) {
-      m_currentAlpha -= ALPHAFADEOUTRATE;
-    } else {
+    if (m_currentAlpha < ALPHAFADEOUTRATE) {
       m_flags &= ~3;
+    } else {
+      m_currentAlpha -= ALPHAFADEOUTRATE;
     }
   }
 
@@ -319,18 +289,18 @@ void WTOBJECT::FadeVerts() {
     FATALASSERT(m_fadeOutRate < 0);
 
     int visible = 0;
-    for (UINT i = 0; i < swing->m_trail.Count(); ++i) {
-      int alpha = swing->m_trail[i].c.a + m_fadeOutRate;
-      if (alpha >= 0) {
-        swing->m_trail[i].c.a = alpha;
-        visible = 1;
+    VERTEX *vertex = swing->m_trail.Ptr();
+    for (UINT i = swing->m_trail.Count(); i; --i, ++vertex) {
+      int alpha = vertex->c.a + m_fadeOutRate;
+      if (alpha < 0) {
+        vertex->c.a = 0;
       } else {
-        swing->m_trail[i].c.a = 0;
+        vertex->c.a = alpha;
+        visible = 1;
       }
     }
 
     if (swing->m_trail.Count() && !visible) {
-      swing->Recycle();
       s_freeSwings.Put(swing);
     }
   }
@@ -349,12 +319,14 @@ void WTOBJECT::SetDrawTrail(const NTempest::CImVector &color, int fadeOutRate, U
   m_timer = 0;
   m_color.Set(*color.IV_());
   m_currentAlpha = color.a;
-  m_fadeOutRate = fadeOutRate > 0 ? -fadeOutRate : fadeOutRate;
+  m_currentAlpha = max(m_currentAlpha, 0);
+  m_fadeOutRate = fadeOutRate;
+  if (m_fadeOutRate > 0) {
+    m_fadeOutRate = -m_fadeOutRate;
+  }
 
   SWING *swing = s_freeSwings.Get(0);
-  if (swing) {
-    m_swings.LinkNode(swing, LIST_TAIL, 0);
-  }
+  m_swings.LinkNode(swing, LIST_HEAD, 0);
 
   m_timer = ClientSetTimer(duration, DiscontinueTimerHandler, this);
 }

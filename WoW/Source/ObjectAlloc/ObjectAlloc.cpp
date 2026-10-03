@@ -19,19 +19,28 @@ class CObjectHeap {
   }
 
   CObjectHeap(const CObjectHeap &heap);
-  ~CObjectHeap();
+
+  ~CObjectHeap() {
+    if (m_obj) {
+      FREE(m_obj);
+    }
+  }
 
   BOOL   Allocate(UINT objSize, UINT heapObjects);
   BOOL   New(UINT objSize, UINT heapObjects, UINT *index);
   void   Delete(UINT index, UINT objSize, UINT heapObjects);
   LPVOID Ptr(UINT index, UINT objSize, UINT heapObjects);
-  UINT   BlocksAllocated() const;
-  BOOL   IsFull(UINT heapObjects) const;
+
+  UINT BlocksAllocated() const {
+    return m_allocated;
+  }
+
+  BOOL IsFull(UINT heapObjects) const {
+    return m_allocated == heapObjects;
+  }
 
  private:
   CObjectHeap &operator=(const CObjectHeap &heap);
-
-  friend class CObjectHeapList;
 
   mutable LPVOID m_obj;
   mutable UINT  *m_indexStack;
@@ -44,26 +53,56 @@ class CObjectHeapList {
   CObjectHeapList() : m_objSize(0), m_objsPerBlock(1024), m_numFullHeaps(0) {
   }
 
-  void   SetObjectSize(UINT objSize);
-  UINT   GetObjectSize() const;
-  void   SetObjectsPerBlock(UINT objsPerBlock);
-  UINT   GetObjectsPerBlock() const;
-  UINT   GetHeapBytes() const;
-  UINT   GetBytesAllocated() const;
+  void SetObjectSize(UINT objSize) {
+    m_objSize = objSize;
+  }
+
+  UINT GetObjectSize() const {
+    return m_objSize;
+  }
+
+  void SetObjectsPerBlock(UINT objsPerBlock) {
+    m_objsPerBlock = objsPerBlock;
+  }
+
+  UINT GetObjectsPerBlock() const {
+    return m_objsPerBlock;
+  }
+
+  UINT GetHeapBytes() const {
+    return m_objsPerBlock * m_objSize * TotalHeaps();
+  }
+
+  UINT GetBytesAllocated() const {
+    return GetObjectSize() * BlocksAllocated();
+  }
+
   BOOL   New(UINT *index);
   LPVOID Ptr(UINT index);
   void   Delete(UINT index);
-  UINT   HeapsAvailable() const;
-  UINT   BlocksAllocated() const;
-  UINT   TotalHeaps() const;
-  void   SetName(LPCSTR name);
-  LPCSTR GetName() const;
+
+  UINT HeapsAvailable() const {
+    return m_heaps.Count() - m_numFullHeaps;
+  }
+
+  UINT BlocksAllocated() const;
+
+  UINT TotalHeaps() const {
+    return m_heaps.Count();
+  }
+
+  void SetName(LPCSTR name) {
+    SStrCopy(m_heapName, name, sizeof(m_heapName));
+  }
+
+  LPCSTR GetName() const {
+    return m_heapName;
+  }
 
  private:
-  friend BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments);
-  friend UINT ObjectAllocAddHeap(UINT objectSize, UINT objsPerBlock, LPCSTR name);
-
-  BOOL IsHeapFull(UINT heap) const;
+  BOOL IsHeapFull(UINT heap) const {
+    return m_heaps[heap].BlocksAllocated() == m_objsPerBlock;
+  }
 
   TSGrowableArray<CObjectHeap> m_heaps;
   UINT                         m_objSize;
@@ -79,21 +118,81 @@ struct OBJALLOCGLOBALS {
 static OBJALLOCGLOBALS s_globals;
 static SCritSect       s_globalsLock;
 
+BOOL CObjectHeapList::New(UINT *index) {
+  CObjectHeap *heap;
+  UINT         fullestHeap;
+  UINT         largestUsage;
+
+  ASSERT(index);
+
+  if (!HeapsAvailable()) {
+    fullestHeap = m_heaps.Count();
+    heap = m_heaps.New();
+    if (!heap->Allocate(m_objSize, m_objsPerBlock)) {
+      return 0;
+    }
+  } else {
+    UINT currentHeap = m_heaps.Count();
+
+    largestUsage = 0;
+    fullestHeap = 0;
+    while (currentHeap--) {
+      if (m_heaps[currentHeap].BlocksAllocated() >= largestUsage && !IsHeapFull(currentHeap)) {
+        largestUsage = m_heaps[currentHeap].BlocksAllocated();
+        fullestHeap = currentHeap;
+      }
+    }
+
+    heap = &m_heaps[fullestHeap];
+  }
+
+  if (!heap->New(m_objSize, m_objsPerBlock, index)) {
+    return 0;
+  }
+
+  *index += fullestHeap * m_objsPerBlock;
+  if (heap->IsFull(m_objsPerBlock)) {
+    ++m_numFullHeaps;
+  }
+  return 1;
+}
+
+LPVOID CObjectHeapList::Ptr(UINT index) {
+  UINT heap = index / m_objsPerBlock;
+  UINT object = index % m_objsPerBlock;
+
+  return m_heaps[heap].Ptr(object, m_objSize, m_objsPerBlock);
+}
+
+void CObjectHeapList::Delete(UINT index) {
+  UINT heap = index / m_objsPerBlock;
+  UINT object = index % m_objsPerBlock;
+
+  if (IsHeapFull(heap)) {
+    --m_numFullHeaps;
+  }
+  m_heaps[heap].Delete(object, m_objSize, m_objsPerBlock);
+}
+
 UINT CObjectHeapList::BlocksAllocated() const {
   UINT numHeaps = m_heaps.Count();
   UINT blocks = 0;
   UINT heap;
 
   for (heap = 0; heap < numHeaps; ++heap) {
-    blocks += m_heaps[heap].m_allocated;
+    blocks += m_heaps[heap].BlocksAllocated();
   }
   return blocks;
 }
 
-CObjectHeap::~CObjectHeap() {
-  if (m_obj) {
-    FREE(m_obj);
-  }
+CObjectHeap::CObjectHeap(const CObjectHeap &heap) {
+  m_bytes = heap.m_bytes;
+  heap.m_bytes = 0;
+  m_obj = heap.m_obj;
+  m_indexStack = heap.m_indexStack;
+  heap.m_obj = 0;
+  heap.m_indexStack = 0;
+  m_allocated = heap.m_allocated;
 }
 
 CObjectHeap &CObjectHeap::operator=(const CObjectHeap &heap) {
@@ -117,72 +216,6 @@ BOOL CObjectHeap::Allocate(UINT objSize, UINT heapObjects) {
   return m_obj != 0;
 }
 
-BOOL CObjectHeapList::New(UINT *index) {
-  UINT         heapIndex;
-  CObjectHeap *heap;
-
-  ASSERT(index);
-
-  if (m_heaps.Count() == m_numFullHeaps) {
-    heapIndex = m_heaps.Count();
-    heap = m_heaps.New();
-    if (!heap->Allocate(m_objSize, m_objsPerBlock)) {
-      return 0;
-    }
-  } else {
-    UINT largestUsage = 0;
-    UINT fullestHeap = 0;
-    UINT currentHeap;
-
-    for (currentHeap = m_heaps.Count(); currentHeap; --currentHeap) {
-      if (m_heaps[currentHeap - 1].m_allocated >= largestUsage && m_heaps[currentHeap - 1].m_allocated != m_objsPerBlock) {
-        largestUsage = m_heaps[currentHeap - 1].m_allocated;
-        fullestHeap = currentHeap - 1;
-      }
-    }
-
-    heapIndex = fullestHeap;
-    heap = &m_heaps[fullestHeap];
-  }
-
-  if (!heap->New(m_objSize, m_objsPerBlock, index)) {
-    return 0;
-  }
-
-  *index += heapIndex * m_objsPerBlock;
-  if (heap->m_allocated == m_objsPerBlock) {
-    ++m_numFullHeaps;
-  }
-  return 1;
-}
-
-CObjectHeap::CObjectHeap(const CObjectHeap &heap) {
-  m_bytes = heap.m_bytes;
-  heap.m_bytes = 0;
-  m_obj = heap.m_obj;
-  m_indexStack = heap.m_indexStack;
-  heap.m_obj = 0;
-  heap.m_indexStack = 0;
-  m_allocated = heap.m_allocated;
-}
-
-void CObjectHeapList::Delete(UINT index) {
-  UINT heap = index / m_objsPerBlock;
-  UINT object = index % m_objsPerBlock;
-
-  if (m_heaps[heap].m_allocated == m_objsPerBlock) {
-    --m_numFullHeaps;
-  }
-  m_heaps[heap].Delete(object, m_objSize, m_objsPerBlock);
-}
-
-LPVOID CObjectHeapList::Ptr(UINT index) {
-  UINT heap = index / m_objsPerBlock;
-  UINT object = index % m_objsPerBlock;
-
-  return m_heaps[heap].Ptr(object, m_objSize, m_objsPerBlock);
-}
-
 BOOL CObjectHeap::New(UINT objSize, UINT heapObjects, UINT *index) {
   ASSERT(index);
   ASSERT(m_obj != 0);
@@ -198,7 +231,15 @@ BOOL CObjectHeap::New(UINT objSize, UINT heapObjects, UINT *index) {
 
 void CObjectHeap::Delete(UINT index, UINT objSize, UINT heapObjects) {
   ASSERT(m_obj != 0);
-  ASSERT(index < heapObjects);
+  if (!(index < heapObjects)) {
+    SErrDisplayErrorFmt(
+        STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+        isprint((index >> 24) & 0xFF) && isprint((index >> 16) & 0xFF) && isprint((index >> 8) & 0xFF) && isprint(index & 0xFF)
+            ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+            : "\"%s\", %s = %ld (0x%08X)",
+        "(index < heapObjects)", "index", index, index, (index >> 24) & 0xFF, (index >> 16) & 0xFF, (index >> 8) & 0xFF, index & 0xFF
+    );
+  }
   ASSERT(m_allocated);
 
   --m_allocated;
@@ -207,7 +248,15 @@ void CObjectHeap::Delete(UINT index, UINT objSize, UINT heapObjects) {
 
 LPVOID CObjectHeap::Ptr(UINT index, UINT objSize, UINT heapObjects) {
   ASSERT(m_obj != 0);
-  ASSERT(index < heapObjects);
+  if (!(index < heapObjects)) {
+    SErrDisplayErrorFmt(
+        STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+        isprint((index >> 24) & 0xFF) && isprint((index >> 16) & 0xFF) && isprint((index >> 8) & 0xFF) && isprint(index & 0xFF)
+            ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+            : "\"%s\", %s = %ld (0x%08X)",
+        "(index < heapObjects)", "index", index, index, (index >> 24) & 0xFF, (index >> 16) & 0xFF, (index >> 8) & 0xFF, index & 0xFF
+    );
+  }
 
   if (objSize * index >= m_bytes) {
     FATALERROR(("CObjectHeap::Ptr(): index(%u), objSize(%u), m_bytes(%u)", index, objSize, m_bytes));
@@ -216,37 +265,35 @@ LPVOID CObjectHeap::Ptr(UINT index, UINT objSize, UINT heapObjects) {
   return static_cast<char *>(m_obj) + objSize * index;
 }
 
+void ObjectAllocInitialize() {
+  ConsoleCommandRegister("HeapUsage", CCommand_HeapUsage, GAME, 0);
+}
+
 static BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments) {
   OBJALLOCGLOBALS *globals = &s_globals;
-  UINT             numHeaps;
-  UINT             totalBytes = 0;
-  UINT             totalHeapBytes = 0;
-  UINT             heap;
 
   s_globalsLock.Enter();
 
-  numHeaps = globals->objects.Count();
+  UINT numHeaps = globals->objects.Count();
+  UINT totalBytes = 0;
+  UINT totalHeapBytes = 0;
+  UINT heap;
+
   ConsoleWriteA("%u Heaps in use:", HIGHLIGHT_COLOR, numHeaps);
   for (heap = 0; heap < numHeaps; ++heap) {
-    UINT objSize = globals->objects[heap].m_objSize;
-
     ConsoleWriteA(
-        "    \"%s\" (%u byte blocks): %u blocks allocated", HIGHLIGHT_COLOR, globals->objects[heap].m_heapName, objSize,
+        "    \"%s\" (%u byte blocks): %u blocks allocated", HIGHLIGHT_COLOR, globals->objects[heap].GetName(), globals->objects[heap].GetObjectSize(),
         globals->objects[heap].BlocksAllocated()
     );
 
-    totalBytes += globals->objects[heap].m_objSize * globals->objects[heap].BlocksAllocated();
-    totalHeapBytes += globals->objects[heap].m_heaps.Count() * globals->objects[heap].m_objSize * globals->objects[heap].m_objsPerBlock;
+    totalBytes += globals->objects[heap].GetBytesAllocated();
+    totalHeapBytes += globals->objects[heap].GetHeapBytes();
   }
 
   ConsoleWriteA("%u total object bytes used, %u bytes allocated for heaps", HIGHLIGHT_COLOR, totalBytes, totalHeapBytes);
 
   s_globalsLock.Leave();
   return 1;
-}
-
-void ObjectAllocInitialize() {
-  ConsoleCommandRegister("HeapUsage", CCommand_HeapUsage, GAME, 0);
 }
 
 UINT ObjectAllocAddHeap(UINT objectSize, UINT objsPerBlock, LPCSTR name) {
@@ -263,9 +310,9 @@ UINT ObjectAllocAddHeap(UINT objectSize, UINT objsPerBlock, LPCSTR name) {
 
   heapId = globals->objects.Count();
   heap = globals->objects.New();
-  heap->m_objSize = objectSize;
-  heap->m_objsPerBlock = objsPerBlock;
-  SStrCopy(heap->m_heapName, name, sizeof(heap->m_heapName));
+  heap->SetObjectSize(objectSize);
+  heap->SetObjectsPerBlock(objsPerBlock);
+  heap->SetName(name);
 
   s_globalsLock.Leave();
   return heapId;
@@ -289,11 +336,11 @@ BOOL ObjectAlloc(UINT heapId, UINT *memHandle) {
   OBJALLOCGLOBALS *globals = &s_globals;
   UINT             index;
 
-  FATALASSERT(memHandle);
+  VALIDATEBEGIN;
+  VALIDATE(memHandle);
 
   *memHandle = 0;
   s_globalsLock.Enter();
-  VALIDATEBEGIN;
   VALIDATE(heapId < globals->objects.Count());
   VALIDATEEND;
 
@@ -310,25 +357,21 @@ BOOL ObjectAlloc(UINT heapId, UINT *memHandle) {
 void ObjectFree(UINT memHandle) {
   OBJALLOCGLOBALS *globals = &s_globals;
   UINT             heapId;
-  UINT             index;
 
   s_globalsLock.Enter();
   heapId = memHandle >> 27;
-  index = memHandle & 0x07FFFFFF;
-  globals->objects[heapId].Delete(index);
+  globals->objects[heapId].Delete(memHandle & 0x07FFFFFF);
   s_globalsLock.Leave();
 }
 
 LPVOID ObjectPtr(UINT memHandle) {
   OBJALLOCGLOBALS *globals = &s_globals;
   UINT             heapId;
-  UINT             index;
   LPVOID           object;
 
   s_globalsLock.Enter();
   heapId = memHandle >> 27;
-  index = memHandle & 0x07FFFFFF;
-  object = globals->objects[heapId].Ptr(index);
+  object = globals->objects[heapId].Ptr(memHandle & 0x07FFFFFF);
   s_globalsLock.Leave();
   return object;
 }

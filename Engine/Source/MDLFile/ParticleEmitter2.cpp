@@ -15,6 +15,47 @@ namespace MDL {
 void ReadVertices(Parser &parse, LPCSTR title, TSGrowableArray<NTempest::C3Vector> *vertices);
 void WriteVertices(const TSGrowableArray<NTempest::C3Vector> &vertices, UINT title, TSGrowableArray<char> &buffer);
 
+static void IAddParticleEmitter2Errors(TSet &errors);
+static void IReadParticleEmitter2(Parser &parse, TSet &errors, MDLPARTICLEEMITTER2 *emitter, CMDLStatus *status);
+static void IReadParticleEmitter2KeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokentext, MDLPARTICLEEMITTER2 *emitter);
+static void IReadIntOption(Parser &parse, UINT &p1, UINT &b, UINT &c);
+static void IReadByteOption(Parser &parse, BYTE &p1, BYTE &b, BYTE &c);
+static void IReadFloatOption(Parser &parse, float &p1, float &b, float &c);
+static void IReadFloatOption(Parser &parser, float &f1, float &b);
+static void IReadFloatOption(Parser &parser, float &f1, float &b, float &c, float &d, float &e, float &f);
+static void IReadParticleEmitter2Color(Parser &parse, MDLPARTICLEEMITTER2 *emitter);
+static void IReadSpline(Parser &parse, TSGrowableArray<NTempest::C3Vector> &spline);
+static void IReadParticleEmitter2StaticData(Parser &parse, UINT savedtoken, LPCSTR tokentext, MDLPARTICLEEMITTER2 *emitter);
+static BOOL ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter);
+static BOOL IReadParticleEmitter2EmitterType(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter);
+static BOOL ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter);
+static BOOL IReadParticleEmitter2Flags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter);
+static void IWriteParticleEmitter2(const MDLDATA &data, const MDLPARTICLEEMITTER2 &emitter, int needObjIds, TSGrowableArray<char> &buffer);
+static void IWriteParticleEmitter2BlendMode(const MDLPARTICLEEMITTER2 &section, TSGrowableArray<char> &buffer);
+static void IWriteParticleEmitter2Type(const MDLPARTICLEEMITTER2 &section, TSGrowableArray<char> &buffer);
+static void IWriteParticleEmitter2Colors(const MDLPARTICLEEMITTER2 &emitter, TSGrowableArray<char> &buffer);
+static void IWritePE2Flags(const MDLPARTICLEEMITTER2 &emitter, TSGrowableArray<char> &buffer);
+static void IWriteSpline(const TSGrowableArray<NTempest::C3Vector> &points, TSGrowableArray<char> &buffer);
+static UINT GetBinParticleEmitter2Size(const MDLPARTICLEEMITTER2 &section);
+static UINT GetNonAnimEmitterDataSize(const MDLPARTICLEEMITTER2 &section);
+static void IWriteBinParticleEmitter2(const MDLPARTICLEEMITTER2 &section, CMsgBuffer &buf, CMDLStatus *status);
+static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit, CMDLStatus *status, UINT &totalRead);
+
+namespace MDL {
+
+  BOOL ReadParticleEmitter2(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+    TSet                 errors;
+    MDLPARTICLEEMITTER2 *emitter = data.particleEmitters2.New();
+    IAddParticleEmitter2Errors(errors);
+    ReadObjectName(parse, emitter->name);
+    IReadParticleEmitter2(parse, errors, emitter, status);
+    ReadObjectEnd(errors, data, emitter, data.particleEmitters2.Count() - 1, 0x70000000);
+    errors.Complete(status);
+    return !parse.FoundError();
+  }
+
+}
+
 static void IAddParticleEmitter2Errors(TSet &errors) {
   AddObjectErrors(errors);
   errors.Add(0x144, 1, 0);
@@ -56,6 +97,167 @@ static void IAddParticleEmitter2Errors(TSet &errors) {
   errors.Add(0x195, 0, 0);
   errors.Add(0x18F, 0, 0);
   errors.Add(0x190, 0, 0);
+}
+
+static void IReadParticleEmitter2(Parser &parse, TSet &errors, MDLPARTICLEEMITTER2 *emitter, CMDLStatus *status) {
+  parse.Expect('{');
+  LPCSTR tokentext;
+  UINT   savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken != '}' && savedtoken) {
+    int expectAnimation = IExpectAnimation(parse, &savedtoken, &tokentext);
+    if (!errors.Check(savedtoken)) {
+      parse.FatalDuplicate(tokentext);
+    }
+    if (!ReadObjectBody(parse, savedtoken, 0, emitter, status) && !IReadParticleEmitter2Flags(parse, savedtoken, emitter) &&
+        !IReadParticleEmitter2EmitterType(parse, savedtoken, emitter) && !ReadParticleEmitter2BlendMode(parse, savedtoken, emitter) &&
+        !ReadParticleEmitter2Type(parse, savedtoken, emitter))
+    {
+      if (expectAnimation) {
+        IReadParticleEmitter2KeyFrames(parse, savedtoken, tokentext, emitter);
+      } else {
+        IReadParticleEmitter2StaticData(parse, savedtoken, tokentext, emitter);
+      }
+    }
+    savedtoken = parse.Token(&tokentext, 0);
+  }
+  parse.Expect('}', savedtoken, tokentext);
+}
+
+static void IReadParticleEmitter2KeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokentext, MDLPARTICLEEMITTER2 *emitter) {
+  switch (savedtoken) {
+    case 0x1B9:
+      ReadObjectFloatKeyframes(parse, &emitter->speed);
+      return;
+    case 0x1D4:
+      ReadObjectFloatKeyframes(parse, &emitter->variation);
+      return;
+    case 0x153:
+      ReadObjectFloatKeyframes(parse, &emitter->gravity);
+      return;
+    case 0x161:
+      ReadObjectFloatKeyframes(parse, &emitter->latitude);
+      return;
+    case 0x162:
+      ReadObjectFloatKeyframes(parse, &emitter->longitude);
+      return;
+    case 0x1D9:
+      ReadObjectFloatKeyframes(parse, &emitter->visibilityKeys);
+      return;
+    case 0x1BA:
+      emitter->squirts = 1;
+      break;
+    case 0x144:
+      ReadObjectFloatKeyframes(parse, &emitter->emissionRate);
+      return;
+    case 0x1B0:
+      IReadParticleEmitter2Color(parse, emitter);
+      break;
+    case 0x1C6:
+      emitter->middleTime = parse.ExpectFloat();
+      break;
+    case 0x198:
+      IReadFloatOption(parse, emitter->startScale, emitter->middleScale, emitter->endScale);
+      break;
+    case 0x11C:
+      IReadByteOption(parse, emitter->startAlpha, emitter->middleAlpha, emitter->endAlpha);
+      break;
+    case 0x166:
+      IReadIntOption(parse, emitter->lifespanUVAnimStart, emitter->lifespanUVAnimEnd, emitter->lifespanUVAnimRepeat);
+      break;
+    case 0x13D:
+      IReadIntOption(parse, emitter->decayUVAnimStart, emitter->decayUVAnimEnd, emitter->decayUVAnimRepeat);
+      break;
+    case 0x1C0:
+      IReadIntOption(parse, emitter->tailUVAnimStart, emitter->tailUVAnimEnd, emitter->tailUVAnimRepeat);
+      break;
+    case 0x1BF:
+      IReadIntOption(parse, emitter->tailDecayUVAnimStart, emitter->tailDecayUVAnimEnd, emitter->tailDecayUVAnimRepeat);
+      break;
+    case 0x165:
+      ReadObjectFloatKeyframes(parse, &emitter->life);
+      return;
+    case 0x1DA:
+      ReadObjectFloatKeyframes(parse, &emitter->width);
+      return;
+    case 0x164:
+      ReadObjectFloatKeyframes(parse, &emitter->length);
+      return;
+    case 0x19E:
+      ReadObjectFloatKeyframes(parse, &emitter->zsource);
+      return;
+    case 0x1AE:
+      emitter->rows = parse.ExpectInt();
+      break;
+    case 0x137:
+      emitter->cols = parse.ExpectInt();
+      break;
+    case 0x1BE:
+      emitter->tailLength = parse.ExpectFloat();
+      break;
+    case 0x1C3:
+      emitter->textureId = parse.ExpectInt();
+      break;
+    case 0x1A6:
+      emitter->priorityPlane = parse.ExpectInt();
+      break;
+    case 0x1AA:
+      emitter->replaceableId = parse.ExpectInt();
+      break;
+    case 0x194:
+      SStrCopy(emitter->geometryMdl, parse.ExpectString(), 260);
+      break;
+    case 0x196:
+      SStrCopy(emitter->recursionMdl, parse.ExpectString(), 260);
+      break;
+    case 0x14D:
+      emitter->twinkleFPS = parse.ExpectFloat();
+      break;
+    case 0x19B:
+      emitter->twinkleOnOff = parse.ExpectFloat();
+      break;
+    case 0x19C:
+      IReadFloatOption(parse, emitter->twinkleScaleMin, emitter->twinkleScaleMax);
+      break;
+    case 0x193:
+      emitter->ivelScale = parse.ExpectFloat();
+      break;
+    case 0x199:
+      IReadFloatOption(
+          parse, emitter->tumblexMin, emitter->tumblexMax, emitter->tumbleyMin, emitter->tumbleyMax, emitter->tumblezMin, emitter->tumblezMax
+      );
+      break;
+    case 0x141:
+      emitter->drag = parse.ExpectFloat();
+      break;
+    case 0x197:
+      emitter->spin = parse.ExpectFloat();
+      break;
+    case 0x1DB:
+      parse.Expect('{');
+      IReadFloatOption(parse, emitter->windVector.x, emitter->windVector.y, emitter->windVector.z);
+      parse.Expect(',');
+      emitter->windTime = parse.ExpectFloat();
+      parse.Expect('}');
+      break;
+    case 0x1B6:
+      IReadSpline(parse, emitter->spline);
+      return;
+    case 0x190:
+      parse.Expect('{');
+      emitter->followSpeed1 = parse.ExpectFloat();
+      parse.Expect(',');
+      emitter->followScale1 = parse.ExpectFloat();
+      parse.Expect(',');
+      emitter->followSpeed2 = parse.ExpectFloat();
+      parse.Expect(',');
+      emitter->followScale2 = parse.ExpectFloat();
+      parse.Expect('}');
+      break;
+    default:
+      parse.FatalUnexpected(tokentext);
+      return;
+  }
+  parse.Expect(',');
 }
 
 static void IReadIntOption(Parser &parse, UINT &p1, UINT &b, UINT &c) {
@@ -134,6 +336,45 @@ static void IReadSpline(Parser &parse, TSGrowableArray<NTempest::C3Vector> &spli
   parse.Expect('}');
 }
 
+static void IReadParticleEmitter2StaticData(Parser &parse, UINT savedtoken, LPCSTR tokentext, MDLPARTICLEEMITTER2 *emitter) {
+  switch (savedtoken) {
+    case 0x1B9:
+      ReadFloatKeyData(parse, &emitter->staticSpeed, 1);
+      break;
+    case 0x153:
+      ReadFloatKeyData(parse, &emitter->staticGravity, 1);
+      break;
+    case 0x161:
+      ReadFloatKeyData(parse, &emitter->staticLatitude, 1);
+      break;
+    case 0x162:
+      ReadFloatKeyData(parse, &emitter->staticLongitude, 1);
+      break;
+    case 0x1D4:
+      ReadFloatKeyData(parse, &emitter->staticVariation, 1);
+      break;
+    case 0x144:
+      ReadFloatKeyData(parse, &emitter->staticEmissionRate, 1);
+      break;
+    case 0x164:
+      ReadFloatKeyData(parse, &emitter->staticLength, 1);
+      break;
+    case 0x1DA:
+      ReadFloatKeyData(parse, &emitter->staticWidth, 1);
+      break;
+    case 0x19E:
+      ReadFloatKeyData(parse, &emitter->staticZsource, 1);
+      break;
+    case 0x165:
+      ReadFloatKeyData(parse, &emitter->staticLife, 1);
+      break;
+    default:
+      parse.FatalUnexpected(tokentext);
+      break;
+  }
+  parse.Expect(',');
+}
+
 static BOOL ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   switch (savedtoken) {
     case 0x12E:
@@ -186,304 +427,198 @@ static BOOL ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLE
 }
 
 static BOOL IReadParticleEmitter2Flags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
-  UINT flag = 0;
   switch (savedtoken) {
-    case 0x169:
-      flag = 0x00020000;
-      break;
-    case 0x171:
-      flag = 0x00080000;
-      break;
-    case 0x18D:
-      flag = 0x00400000;
-      break;
-    case 0x18E:
-      flag = 0x04000000;
-      break;
-    case 0x18F:
-      flag = 0x20000000;
-      break;
-    case 0x191:
-      flag = 0x00100000;
-      break;
-    case 0x192:
-      flag = 0x00200000;
-      break;
-    case 0x195:
-      flag = 0x10000000;
-      break;
-    case 0x19A:
-      flag = 0x01000000;
-      break;
-    case 0x19D:
-      flag = 0x08000000;
-      break;
-    case 0x19F:
-      flag = 0x00800000;
+    case 0x1D3:
+      emitter->flags |= 0x00008000;
       break;
     case 0x1B7:
-      flag = 0x00010000;
+      emitter->flags |= 0x00010000;
       break;
-    case 0x1BD:
-      flag = 0x02000000;
+    case 0x169:
+      emitter->flags |= 0x00020000;
       break;
     case 0x1D1:
-      flag = 0x00040000;
+      emitter->flags |= 0x00040000;
       break;
-    case 0x1D3:
-      flag = 0x00008000;
+    case 0x171:
+      emitter->flags |= 0x00080000;
+      break;
+    case 0x192:
+      emitter->flags |= 0x00200000;
+      break;
+    case 0x191:
+      emitter->flags |= 0x00100000;
+      break;
+    case 0x18D:
+      emitter->flags |= 0x00400000;
+      break;
+    case 0x19F:
+      emitter->flags |= 0x00800000;
+      break;
+    case 0x19A:
+      emitter->flags |= 0x01000000;
+      break;
+    case 0x1BD:
+      emitter->flags |= 0x02000000;
+      break;
+    case 0x18E:
+      emitter->flags |= 0x04000000;
+      break;
+    case 0x19D:
+      emitter->flags |= 0x08000000;
+      break;
+    case 0x195:
+      emitter->flags |= 0x10000000;
+      break;
+    case 0x18F:
+      emitter->flags |= 0x20000000;
       break;
     default:
       return 0;
   }
-  emitter->flags |= flag;
   parse.Expect(',');
   return 1;
 }
 
-static void IReadParticleEmitter2KeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokenText, MDLPARTICLEEMITTER2 *emitter) {
-  switch (savedtoken) {
-    case 0x11C:
-      IReadByteOption(parse, emitter->startAlpha, emitter->middleAlpha, emitter->endAlpha);
-      parse.Expect(',');
-      break;
-    case 0x137:
-      emitter->cols = parse.ExpectInt();
-      parse.Expect(',');
-      break;
-    case 0x13D:
-      IReadIntOption(parse, emitter->decayUVAnimStart, emitter->decayUVAnimEnd, emitter->decayUVAnimRepeat);
-      parse.Expect(',');
-      break;
-    case 0x141:
-      emitter->drag = parse.ExpectFloat();
-      parse.Expect(',');
-      break;
-    case 0x144:
-      ReadObjectFloatKeyframes(parse, &emitter->emissionRate);
-      break;
-    case 0x14D:
-      emitter->twinkleFPS = parse.ExpectFloat();
-      parse.Expect(',');
-      break;
-    case 0x153:
-      ReadObjectFloatKeyframes(parse, &emitter->gravity);
-      break;
-    case 0x161:
-      ReadObjectFloatKeyframes(parse, &emitter->latitude);
-      break;
-    case 0x162:
-      ReadObjectFloatKeyframes(parse, &emitter->longitude);
-      break;
-    case 0x164:
-      ReadObjectFloatKeyframes(parse, &emitter->length);
-      break;
-    case 0x165:
-      ReadObjectFloatKeyframes(parse, &emitter->life);
-      break;
-    case 0x166:
-      IReadIntOption(parse, emitter->lifespanUVAnimStart, emitter->lifespanUVAnimEnd, emitter->lifespanUVAnimRepeat);
-      parse.Expect(',');
-      break;
-    case 0x190:
-      parse.Expect('{');
-      emitter->followSpeed1 = parse.ExpectFloat();
-      parse.Expect(',');
-      emitter->followScale1 = parse.ExpectFloat();
-      parse.Expect(',');
-      emitter->followSpeed2 = parse.ExpectFloat();
-      parse.Expect(',');
-      emitter->followScale2 = parse.ExpectFloat();
-      parse.Expect('}');
-      parse.Expect(',');
-      break;
-    case 0x193:
-      emitter->ivelScale = parse.ExpectFloat();
-      parse.Expect(',');
-      break;
-    case 0x194:
-      SStrCopy(emitter->geometryMdl, parse.ExpectString(), 260);
-      parse.Expect(',');
-      break;
-    case 0x196:
-      SStrCopy(emitter->recursionMdl, parse.ExpectString(), 260);
-      parse.Expect(',');
-      break;
-    case 0x197:
-      emitter->spin = parse.ExpectFloat();
-      parse.Expect(',');
-      break;
-    case 0x198:
-      IReadFloatOption(parse, emitter->startScale, emitter->middleScale, emitter->endScale);
-      parse.Expect(',');
-      break;
-    case 0x199:
-      IReadFloatOption(
-          parse, emitter->tumblexMin, emitter->tumblexMax, emitter->tumbleyMin, emitter->tumbleyMax, emitter->tumblezMin, emitter->tumblezMax
-      );
-      parse.Expect(',');
-      break;
-    case 0x19B:
-      emitter->twinkleOnOff = parse.ExpectFloat();
-      parse.Expect(',');
-      break;
-    case 0x19C:
-      IReadFloatOption(parse, emitter->twinkleScaleMin, emitter->twinkleScaleMax);
-      parse.Expect(',');
-      break;
-    case 0x19E:
-      ReadObjectFloatKeyframes(parse, &emitter->zsource);
-      break;
-    case 0x1A6:
-      emitter->priorityPlane = parse.ExpectInt();
-      parse.Expect(',');
-      break;
-    case 0x1AA:
-      emitter->replaceableId = parse.ExpectInt();
-      parse.Expect(',');
-      break;
-    case 0x1AE:
-      emitter->rows = parse.ExpectInt();
-      parse.Expect(',');
-      break;
-    case 0x1B0:
-      IReadParticleEmitter2Color(parse, emitter);
-      parse.Expect(',');
-      break;
-    case 0x1B6:
-      IReadSpline(parse, emitter->spline);
-      break;
-    case 0x1B9:
-      ReadObjectFloatKeyframes(parse, &emitter->speed);
-      break;
-    case 0x1BA:
-      emitter->squirts = 1;
-      parse.Expect(',');
-      break;
-    case 0x1BE:
-      emitter->tailLength = parse.ExpectFloat();
-      parse.Expect(',');
-      break;
-    case 0x1BF:
-      IReadIntOption(parse, emitter->tailDecayUVAnimStart, emitter->tailDecayUVAnimEnd, emitter->tailDecayUVAnimRepeat);
-      parse.Expect(',');
-      break;
-    case 0x1C0:
-      IReadIntOption(parse, emitter->tailUVAnimStart, emitter->tailUVAnimEnd, emitter->tailUVAnimRepeat);
-      parse.Expect(',');
-      break;
-    case 0x1C3:
-      emitter->textureId = parse.ExpectInt();
-      parse.Expect(',');
-      break;
-    case 0x1C6:
-      emitter->middleTime = parse.ExpectFloat();
-      parse.Expect(',');
-      break;
-    case 0x1D4:
-      ReadObjectFloatKeyframes(parse, &emitter->variation);
-      break;
-    case 0x1D9:
-      ReadObjectFloatKeyframes(parse, &emitter->visibilityKeys);
-      break;
-    case 0x1DA:
-      ReadObjectFloatKeyframes(parse, &emitter->width);
-      break;
-    case 0x1DB:
-      parse.Expect('{');
-      IReadFloatOption(parse, emitter->windVector.x, emitter->windVector.y, emitter->windVector.z);
-      parse.Expect(',');
-      emitter->windTime = parse.ExpectFloat();
-      parse.Expect('}');
-      parse.Expect(',');
-      break;
-    default:
-      parse.FatalUnexpected(tokenText);
-      break;
-  }
-}
-
-static void IReadParticleEmitter2StaticData(Parser &parse, UINT savedtoken, LPCSTR tokenText, MDLPARTICLEEMITTER2 *emitter) {
-  float *value = 0;
-  switch (savedtoken) {
-    case 0x144:
-      value = &emitter->staticEmissionRate;
-      break;
-    case 0x153:
-      value = &emitter->staticGravity;
-      break;
-    case 0x161:
-      value = &emitter->staticLatitude;
-      break;
-    case 0x162:
-      value = &emitter->staticLongitude;
-      break;
-    case 0x164:
-      value = &emitter->staticLength;
-      break;
-    case 0x165:
-      value = &emitter->staticLife;
-      break;
-    case 0x19E:
-      value = &emitter->staticZsource;
-      break;
-    case 0x1B9:
-      value = &emitter->staticSpeed;
-      break;
-    case 0x1D4:
-      value = &emitter->staticVariation;
-      break;
-    case 0x1DA:
-      value = &emitter->staticWidth;
-      break;
-    default:
-      parse.FatalUnexpected(tokenText);
-      break;
-  }
-  if (value) {
-    ReadFloatKeyData(parse, value, 1);
-  }
-  parse.Expect(',');
-}
-
-static void IReadParticleEmitter2(Parser &parse, TSet &errors, MDLPARTICLEEMITTER2 *emitter, CMDLStatus *status) {
-  parse.Expect('{');
-  LPCSTR tokentext;
-  UINT   savedtoken = parse.Token(&tokentext, 0);
-  while (savedtoken != '}' && savedtoken) {
-    int expectAnimation = IExpectAnimation(parse, &savedtoken, &tokentext);
-    if (!errors.Check(savedtoken)) {
-      parse.FatalDuplicate(tokentext);
-    }
-    if (!ReadObjectBody(parse, savedtoken, 0, emitter, status) && !IReadParticleEmitter2Flags(parse, savedtoken, emitter) &&
-        !IReadParticleEmitter2EmitterType(parse, savedtoken, emitter) && !ReadParticleEmitter2BlendMode(parse, savedtoken, emitter) &&
-        !ReadParticleEmitter2Type(parse, savedtoken, emitter))
-    {
-      if (expectAnimation) {
-        IReadParticleEmitter2KeyFrames(parse, savedtoken, tokentext, emitter);
-      } else {
-        IReadParticleEmitter2StaticData(parse, savedtoken, tokentext, emitter);
-      }
-    }
-    savedtoken = parse.Token(&tokentext, 0);
-  }
-  parse.Expect('}', savedtoken, tokentext);
-}
-
 namespace MDL {
 
-  BOOL ReadParticleEmitter2(Parser &parse, MDLDATA &data, CMDLStatus *status) {
-    TSet                 errors;
-    MDLPARTICLEEMITTER2 *emitter = data.particleEmitters2.New();
-    IAddParticleEmitter2Errors(errors);
-    ReadObjectName(parse, emitter->name);
-    IReadParticleEmitter2(parse, errors, emitter, status);
-    ReadObjectEnd(errors, data, emitter, data.particleEmitters2.Count() - 1, 0x70000000);
-    errors.Complete(status);
-    return !parse.FoundError();
+  BOOL WriteParticleEmitters2(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+    if (!data.model.animationFile[0]) {
+      UINT                       numEmitters = data.particleEmitters2.Count();
+      int                        needObjIds = numEmitters != data.objects.Count();
+      const MDLPARTICLEEMITTER2 *pEmit = data.particleEmitters2.Ptr();
+      for (UINT i = numEmitters; i; --i, ++pEmit) {
+        IWriteParticleEmitter2(data, *pEmit, needObjIds, buffer);
+      }
+    }
+    return 1;
   }
 
-}  // namespace MDL
+}
+
+static void IWriteParticleEmitter2(const MDLDATA &data, const MDLPARTICLEEMITTER2 &emitter, int needObjIds, TSGrowableArray<char> &buffer) {
+  WriteObjectHeader(data, emitter, 0x113, needObjIds, buffer);
+  IWritePE2Flags(emitter, buffer);
+  MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1D0), emitter.emitterType);
+
+  if (emitter.speed.keys.Count()) {
+    WriteFloatKeyFrames(0x1B9, "\t", emitter.speed, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x1B9));
+    WriteKeyData(buffer, &emitter.staticSpeed, 1);
+  }
+  if (emitter.variation.keys.Count()) {
+    WriteFloatKeyFrames(0x1D4, "\t", emitter.variation, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x1D4));
+    WriteKeyData(buffer, &emitter.staticVariation, 1);
+  }
+  if (emitter.latitude.keys.Count()) {
+    WriteFloatKeyFrames(0x161, "\t", emitter.latitude, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x161));
+    WriteKeyData(buffer, &emitter.staticLatitude, 1);
+  }
+  if (emitter.longitude.keys.Count()) {
+    WriteFloatKeyFrames(0x162, "\t", emitter.longitude, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x162));
+    WriteKeyData(buffer, &emitter.staticLongitude, 1);
+  }
+  if (emitter.gravity.keys.Count()) {
+    WriteFloatKeyFrames(0x153, "\t", emitter.gravity, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x153));
+    WriteKeyData(buffer, &emitter.staticGravity, 1);
+  }
+  WriteFloatKeyFrames(0x1D9, "\t", emitter.visibilityKeys, buffer);
+  if (emitter.squirts) {
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x1BA));
+  }
+  if (emitter.life.keys.Count()) {
+    WriteFloatKeyFrames(0x165, "\t", emitter.life, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x165));
+    WriteKeyData(buffer, &emitter.staticLife, 1);
+  }
+  if (emitter.emissionRate.keys.Count()) {
+    WriteFloatKeyFrames(0x144, "\t", emitter.emissionRate, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x144));
+    WriteKeyData(buffer, &emitter.staticEmissionRate, 1);
+  }
+  if (emitter.width.keys.Count()) {
+    WriteFloatKeyFrames(0x1DA, "\t", emitter.width, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x1DA));
+    WriteKeyData(buffer, &emitter.staticWidth, 1);
+  }
+  if (emitter.length.keys.Count()) {
+    WriteFloatKeyFrames(0x164, "\t", emitter.length, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x164));
+    WriteKeyData(buffer, &emitter.staticLength, 1);
+  }
+  if (emitter.zsource.keys.Count()) {
+    WriteFloatKeyFrames(0x19E, "\t", emitter.zsource, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x19E));
+    WriteKeyData(buffer, &emitter.staticZsource, 1);
+  }
+
+  IWriteParticleEmitter2BlendMode(emitter, buffer);
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x1AE), emitter.rows);
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x137), emitter.cols);
+  IWriteParticleEmitter2Type(emitter, buffer);
+  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x1BE), emitter.tailLength);
+  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x1C6), emitter.middleTime);
+  IWriteParticleEmitter2Colors(emitter, buffer);
+  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x11C), emitter.startAlpha, emitter.middleAlpha, emitter.endAlpha);
+  MDL::WriteLine(buffer, "\t%s {%g, %g, %g},\n", MDL::TokenText(0x198), emitter.startScale, emitter.middleScale, emitter.endScale);
+  MDL::WriteLine(
+      buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x166), emitter.lifespanUVAnimStart, emitter.lifespanUVAnimEnd, emitter.lifespanUVAnimRepeat
+  );
+  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x13D), emitter.decayUVAnimStart, emitter.decayUVAnimEnd, emitter.decayUVAnimRepeat);
+  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x1C0), emitter.tailUVAnimStart, emitter.tailUVAnimEnd, emitter.tailUVAnimRepeat);
+  MDL::WriteLine(
+      buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x1BF), emitter.tailDecayUVAnimStart, emitter.tailDecayUVAnimEnd, emitter.tailDecayUVAnimRepeat
+  );
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x1C3), emitter.textureId);
+  if (emitter.priorityPlane) {
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1A6), emitter.priorityPlane);
+  }
+  if (emitter.replaceableId) {
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1AA), emitter.replaceableId);
+  }
+  if (SStrLen(emitter.geometryMdl)) {
+    MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(0x194), static_cast<LPCSTR>(emitter.geometryMdl));
+  }
+  if (SStrLen(emitter.recursionMdl)) {
+    MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(0x196), static_cast<LPCSTR>(emitter.recursionMdl));
+  }
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x14D), emitter.twinkleFPS);
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x19B), emitter.twinkleOnOff);
+  MDL::WriteLine(buffer, "\t%s {%f, %f},\n", MDL::TokenText(0x19C), emitter.twinkleScaleMin, emitter.twinkleScaleMax);
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x193), emitter.ivelScale);
+  MDL::WriteLine(
+      buffer, "\t%s {%f, %f, %f, %f, %f, %f},\n", MDL::TokenText(0x199), emitter.tumblexMin, emitter.tumblexMax, emitter.tumbleyMin,
+      emitter.tumbleyMax, emitter.tumblezMin, emitter.tumblezMax
+  );
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x141), emitter.drag);
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x197), emitter.spin);
+  MDL::WriteLine(
+      buffer, "\t%s { { %f, %f, %f }, %f },\n", MDL::TokenText(0x1DB), emitter.windVector.x, emitter.windVector.y, emitter.windVector.z,
+      emitter.windTime
+  );
+  MDL::WriteLine(
+      buffer, "\t%s { %f, %f, %f, %f },\n", MDL::TokenText(0x190), emitter.followSpeed1, emitter.followScale1, emitter.followSpeed2,
+      emitter.followScale2
+  );
+  if (emitter.emitterType == MDLPARTICLEEMITTER2::PET_SPLINE) {
+    IWriteSpline(emitter.spline, buffer);
+  }
+  WriteObjectTrailer(emitter, buffer);
+}
 
 static void IWriteParticleEmitter2BlendMode(const MDLPARTICLEEMITTER2 &section, TSGrowableArray<char> &buffer) {
   UINT token;
@@ -574,145 +709,26 @@ static void IWriteSpline(const TSGrowableArray<NTempest::C3Vector> &points, TSGr
   MDL::WriteLine(buffer, "}\n");
 }
 
-static void IWriteParticleEmitter2(const MDLDATA &data, const MDLPARTICLEEMITTER2 &emitter, int needObjIds, TSGrowableArray<char> &buffer) {
-  WriteObjectHeader(data, emitter, 0x113, needObjIds, buffer);
-  IWritePE2Flags(emitter, buffer);
-  MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1D0), emitter.emitterType);
-
-  if (emitter.speed.keys.Count()) {
-    WriteFloatKeyFrames(0x1B9, "\t", emitter.speed, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x1B9));
-    WriteKeyData(buffer, &emitter.staticSpeed, 1);
-  }
-  if (emitter.variation.keys.Count()) {
-    WriteFloatKeyFrames(0x1D4, "\t", emitter.variation, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x1D4));
-    WriteKeyData(buffer, &emitter.staticVariation, 1);
-  }
-  if (emitter.latitude.keys.Count()) {
-    WriteFloatKeyFrames(0x161, "\t", emitter.latitude, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x161));
-    WriteKeyData(buffer, &emitter.staticLatitude, 1);
-  }
-  if (emitter.longitude.keys.Count()) {
-    WriteFloatKeyFrames(0x162, "\t", emitter.longitude, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x162));
-    WriteKeyData(buffer, &emitter.staticLongitude, 1);
-  }
-  if (emitter.gravity.keys.Count()) {
-    WriteFloatKeyFrames(0x153, "\t", emitter.gravity, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x153));
-    WriteKeyData(buffer, &emitter.staticGravity, 1);
-  }
-  WriteFloatKeyFrames(0x1D9, "\t", emitter.visibilityKeys, buffer);
-  if (emitter.squirts) {
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x1BA));
-  }
-  if (emitter.life.keys.Count()) {
-    WriteFloatKeyFrames(0x165, "\t", emitter.life, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x165));
-    WriteKeyData(buffer, &emitter.staticLife, 1);
-  }
-  if (emitter.emissionRate.keys.Count()) {
-    WriteFloatKeyFrames(0x144, "\t", emitter.emissionRate, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x144));
-    WriteKeyData(buffer, &emitter.staticEmissionRate, 1);
-  }
-  if (emitter.width.keys.Count()) {
-    WriteFloatKeyFrames(0x1DA, "\t", emitter.width, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x1DA));
-    WriteKeyData(buffer, &emitter.staticWidth, 1);
-  }
-  if (emitter.length.keys.Count()) {
-    WriteFloatKeyFrames(0x164, "\t", emitter.length, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x164));
-    WriteKeyData(buffer, &emitter.staticLength, 1);
-  }
-  if (emitter.zsource.keys.Count()) {
-    WriteFloatKeyFrames(0x19E, "\t", emitter.zsource, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x19E));
-    WriteKeyData(buffer, &emitter.staticZsource, 1);
-  }
-
-  IWriteParticleEmitter2BlendMode(emitter, buffer);
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x1AE), emitter.rows);
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x137), emitter.cols);
-  IWriteParticleEmitter2Type(emitter, buffer);
-  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x1BE), emitter.tailLength);
-  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x1C6), emitter.middleTime);
-  IWriteParticleEmitter2Colors(emitter, buffer);
-  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x11C), emitter.startAlpha, emitter.middleAlpha, emitter.endAlpha);
-  MDL::WriteLine(buffer, "\t%s {%g, %g, %g},\n", MDL::TokenText(0x198), emitter.startScale, emitter.middleScale, emitter.endScale);
-  MDL::WriteLine(
-      buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x166), emitter.lifespanUVAnimStart, emitter.lifespanUVAnimEnd, emitter.lifespanUVAnimRepeat
-  );
-  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x13D), emitter.decayUVAnimStart, emitter.decayUVAnimEnd, emitter.decayUVAnimRepeat);
-  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x1C0), emitter.tailUVAnimStart, emitter.tailUVAnimEnd, emitter.tailUVAnimRepeat);
-  MDL::WriteLine(
-      buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x1BF), emitter.tailDecayUVAnimStart, emitter.tailDecayUVAnimEnd, emitter.tailDecayUVAnimRepeat
-  );
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x1C3), emitter.textureId);
-  if (emitter.priorityPlane) {
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1A6), emitter.priorityPlane);
-  }
-  if (emitter.replaceableId) {
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1AA), emitter.replaceableId);
-  }
-  if (SStrLen(emitter.geometryMdl)) {
-    MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(0x194), static_cast<LPCSTR>(emitter.geometryMdl));
-  }
-  if (SStrLen(emitter.recursionMdl)) {
-    MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(0x196), static_cast<LPCSTR>(emitter.recursionMdl));
-  }
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x14D), emitter.twinkleFPS);
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x19B), emitter.twinkleOnOff);
-  MDL::WriteLine(buffer, "\t%s {%f, %f},\n", MDL::TokenText(0x19C), emitter.twinkleScaleMin, emitter.twinkleScaleMax);
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x193), emitter.ivelScale);
-  MDL::WriteLine(
-      buffer, "\t%s {%f, %f, %f, %f, %f, %f},\n", MDL::TokenText(0x199), emitter.tumblexMin, emitter.tumblexMax, emitter.tumbleyMin,
-      emitter.tumbleyMax, emitter.tumblezMin, emitter.tumblezMax
-  );
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x141), emitter.drag);
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x197), emitter.spin);
-  MDL::WriteLine(
-      buffer, "\t%s { { %f, %f, %f }, %f },\n", MDL::TokenText(0x1DB), emitter.windVector.x, emitter.windVector.y, emitter.windVector.z,
-      emitter.windTime
-  );
-  MDL::WriteLine(
-      buffer, "\t%s { %f, %f, %f, %f },\n", MDL::TokenText(0x190), emitter.followSpeed1, emitter.followScale1, emitter.followSpeed2,
-      emitter.followScale2
-  );
-  if (emitter.emitterType == MDLPARTICLEEMITTER2::PET_SPLINE) {
-    IWriteSpline(emitter.spline, buffer);
-  }
-  WriteObjectTrailer(emitter, buffer);
-}
-
 namespace MDL {
 
-  BOOL WriteParticleEmitters2(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-    if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
-      for (UINT i = 0; i < data.particleEmitters2.Count(); ++i) {
-        IWriteParticleEmitter2(data, data.particleEmitters2[i], data.particleEmitters2.Count() != data.objects.Count(), buffer);
+  BOOL WriteBinParticleEmitters2(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
+    UINT numEmitters = data.particleEmitters2.Count();
+    if (!data.model.animationFile[0] && numEmitters) {
+      buf.AddDword('2ERP');
+      UINT totalSize = 4;
+      UINT i;
+      for (i = 0; i < numEmitters; ++i) {
+        totalSize += GetBinParticleEmitter2Size(data.particleEmitters2[i]);
+      }
+      buf.AddUint(totalSize);
+      buf.AddUint(numEmitters);
+      for (i = 0; i < numEmitters; ++i) {
+        IWriteBinParticleEmitter2(data.particleEmitters2[i], buf, status);
       }
     }
     return 1;
   }
 
-}  // namespace MDL
-
-static UINT GetNonAnimEmitterDataSize(const MDLPARTICLEEMITTER2 &section) {
-  return 791 + 12 * section.spline.Count();
 }
 
 static UINT GetBinParticleEmitter2Size(const MDLPARTICLEEMITTER2 &section) {
@@ -751,6 +767,10 @@ static UINT GetBinParticleEmitter2Size(const MDLPARTICLEEMITTER2 &section) {
     size += 16 + section.visibilityKeys.keys.Count() * (4 + 4 * (section.visibilityKeys.type > TRACK_LINEAR ? 3 : 1));
   }
   return size;
+}
+
+static UINT GetNonAnimEmitterDataSize(const MDLPARTICLEEMITTER2 &section) {
+  return 791 + 12 * section.spline.Count();
 }
 
 static void IWriteBinParticleEmitter2(const MDLPARTICLEEMITTER2 &section, CMsgBuffer &buf, CMDLStatus *status) {
@@ -845,176 +865,7 @@ static void IWriteBinParticleEmitter2(const MDLPARTICLEEMITTER2 &section, CMsgBu
   WriteBinFloatKeyFrames(section.life, 'FILK', buf);
 }
 
-static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit, CMDLStatus *status, UINT &totalRead) {
-  UINT sectionLength = buf.GetUint();
-  UINT localBytesRead = 4;
-  if (!ReadBinGenObject(*pEmit, buf, status, localBytesRead)) {
-    status->Add(STATUS_ERROR, "Error reading gen object portion of ParticleEmitter2.\n");
-    return 0;
-  }
-  buf.GetUint();
-  localBytesRead += 4;
-  pEmit->emitterType = static_cast<MDLPARTICLEEMITTER2::PARTICLE_EMITTER_TYPE>(buf.GetUint());
-  pEmit->staticSpeed = buf.GetFloat();
-  pEmit->staticVariation = buf.GetFloat();
-  pEmit->staticLatitude = buf.GetFloat();
-  pEmit->staticLongitude = buf.GetFloat();
-  pEmit->staticGravity = buf.GetFloat();
-  pEmit->staticZsource = buf.GetFloat();
-  pEmit->staticLife = buf.GetFloat();
-  pEmit->staticEmissionRate = buf.GetFloat();
-  pEmit->staticLength = buf.GetFloat();
-  pEmit->staticWidth = buf.GetFloat();
-  localBytesRead += 44;
-  pEmit->rows = buf.GetUint();
-  pEmit->cols = buf.GetUint();
-  pEmit->type = static_cast<MDLPARTICLEEMITTER2::PARTICLE_TYPE>(buf.GetUint());
-  pEmit->tailLength = buf.GetFloat();
-  pEmit->middleTime = buf.GetFloat();
-  localBytesRead += 20;
-  pEmit->startColor.r = buf.GetFloat();
-  pEmit->startColor.g = buf.GetFloat();
-  pEmit->startColor.b = buf.GetFloat();
-  pEmit->middleColor.r = buf.GetFloat();
-  pEmit->middleColor.g = buf.GetFloat();
-  pEmit->middleColor.b = buf.GetFloat();
-  pEmit->endColor.r = buf.GetFloat();
-  pEmit->endColor.g = buf.GetFloat();
-  pEmit->endColor.b = buf.GetFloat();
-  localBytesRead += 36;
-  pEmit->startAlpha = buf.GetByte();
-  pEmit->middleAlpha = buf.GetByte();
-  pEmit->endAlpha = buf.GetByte();
-  localBytesRead += 3;
-  pEmit->startScale = buf.GetFloat();
-  pEmit->middleScale = buf.GetFloat();
-  pEmit->endScale = buf.GetFloat();
-  localBytesRead += 12;
-  pEmit->lifespanUVAnimStart = buf.GetUint();
-  pEmit->lifespanUVAnimEnd = buf.GetUint();
-  pEmit->lifespanUVAnimRepeat = buf.GetUint();
-  pEmit->decayUVAnimStart = buf.GetUint();
-  pEmit->decayUVAnimEnd = buf.GetUint();
-  pEmit->decayUVAnimRepeat = buf.GetUint();
-  pEmit->tailUVAnimStart = buf.GetUint();
-  pEmit->tailUVAnimEnd = buf.GetUint();
-  pEmit->tailUVAnimRepeat = buf.GetUint();
-  pEmit->tailDecayUVAnimStart = buf.GetUint();
-  pEmit->tailDecayUVAnimEnd = buf.GetUint();
-  pEmit->tailDecayUVAnimRepeat = buf.GetUint();
-  localBytesRead += 48;
-  pEmit->blendMode = static_cast<MDLPARTICLEEMITTER2::PARTICLE_BLEND_MODE>(buf.GetUint());
-  pEmit->textureId = buf.GetUint();
-  pEmit->priorityPlane = buf.GetInt();
-  pEmit->replaceableId = buf.GetUint();
-  localBytesRead += 16;
-  buf.GetTcharArray(pEmit->geometryMdl, 260);
-  buf.GetTcharArray(pEmit->recursionMdl, 260);
-  localBytesRead += 520;
-  pEmit->twinkleFPS = buf.GetFloat();
-  pEmit->twinkleOnOff = buf.GetFloat();
-  pEmit->twinkleScaleMin = buf.GetFloat();
-  pEmit->twinkleScaleMax = buf.GetFloat();
-  pEmit->ivelScale = buf.GetFloat();
-  pEmit->tumblexMin = buf.GetFloat();
-  pEmit->tumblexMax = buf.GetFloat();
-  pEmit->tumbleyMin = buf.GetFloat();
-  pEmit->tumbleyMax = buf.GetFloat();
-  pEmit->tumblezMin = buf.GetFloat();
-  pEmit->tumblezMax = buf.GetFloat();
-  pEmit->drag = buf.GetFloat();
-  pEmit->spin = buf.GetFloat();
-  pEmit->windVector.x = buf.GetFloat();
-  pEmit->windVector.y = buf.GetFloat();
-  pEmit->windVector.z = buf.GetFloat();
-  pEmit->windTime = buf.GetFloat();
-  pEmit->followSpeed1 = buf.GetFloat();
-  pEmit->followScale1 = buf.GetFloat();
-  pEmit->followSpeed2 = buf.GetFloat();
-  pEmit->followScale2 = buf.GetFloat();
-  localBytesRead += 84;
-  UINT splineCount = buf.GetUint();
-  localBytesRead += 4;
-  pEmit->spline.SetCount(splineCount);
-  if (splineCount) {
-    buf.GetFloatArray(&pEmit->spline[0].x, 3 * splineCount);
-    localBytesRead += 12 * splineCount;
-  }
-  pEmit->squirts = buf.GetUint();
-  localBytesRead += 4;
-  while (localBytesRead < sectionLength) {
-    DWORD tag = buf.GetDword();
-    localBytesRead += 4;
-    int ok = 1;
-    switch (tag) {
-      case 'E2PK':
-        ok = ReadBinFloatKeyFrames(pEmit->emissionRate, buf, localBytesRead);
-        break;
-      case 'G2PK':
-        ok = ReadBinFloatKeyFrames(pEmit->gravity, buf, localBytesRead);
-        break;
-      case 'NLPK':
-        ok = ReadBinFloatKeyFrames(pEmit->longitude, buf, localBytesRead);
-        break;
-      case 'L2PK':
-        ok = ReadBinFloatKeyFrames(pEmit->latitude, buf, localBytesRead);
-        break;
-      case 'S2PK':
-        ok = ReadBinFloatKeyFrames(pEmit->speed, buf, localBytesRead);
-        break;
-      case 'R2PK':
-        ok = ReadBinFloatKeyFrames(pEmit->variation, buf, localBytesRead);
-        break;
-      case 'N2PK':
-        ok = ReadBinFloatKeyFrames(pEmit->length, buf, localBytesRead);
-        break;
-      case 'W2PK':
-        ok = ReadBinFloatKeyFrames(pEmit->width, buf, localBytesRead);
-        break;
-      case 'Z2PK':
-        ok = ReadBinFloatKeyFrames(pEmit->zsource, buf, localBytesRead);
-        break;
-      case 'SIVK':
-        ok = ReadBinFloatKeyFrames(pEmit->visibilityKeys, buf, localBytesRead);
-        break;
-      case 'FILK':
-        ok = ReadBinFloatKeyFrames(pEmit->life, buf, localBytesRead);
-        break;
-      default:
-        SkipUnknown(buf, localBytesRead);
-        break;
-    }
-    if (!ok) {
-      status->Add(STATUS_ERROR, "Error reading ParticleEmitter2 key frames.\n");
-      return 0;
-    }
-    if (localBytesRead > sectionLength) {
-      status->FatalOverran("ParticleEmitters2", -1);
-      return 0;
-    }
-  }
-  totalRead += localBytesRead;
-  return 1;
-}
-
 namespace MDL {
-
-  BOOL WriteBinParticleEmitters2(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
-    if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.particleEmitters2.Count()) {
-      buf.AddDword('2ERP');
-      UINT totalSize = 4;
-      UINT i;
-      for (i = 0; i < data.particleEmitters2.Count(); ++i) {
-        totalSize += GetBinParticleEmitter2Size(data.particleEmitters2[i]);
-      }
-      buf.AddUint(totalSize);
-      buf.AddUint(data.particleEmitters2.Count());
-      for (i = 0; i < data.particleEmitters2.Count(); ++i) {
-        IWriteBinParticleEmitter2(data.particleEmitters2[i], buf, status);
-      }
-    }
-    return 1;
-  }
 
   BOOL ReadBinParticleEmitters2(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     UINT totalRead = 4;
@@ -1040,4 +891,224 @@ namespace MDL {
     return 1;
   }
 
-}  // namespace MDL
+}
+
+static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit, CMDLStatus *status, UINT &totalRead) {
+  UINT sectionLength = buf.GetUint();
+  UINT localBytesRead = 4;
+  if (!ReadBinGenObject(*pEmit, buf, status, localBytesRead)) {
+    status->Add(STATUS_ERROR, "Error reading gen object portion of ParticleEmitter2.\n");
+    return 0;
+  }
+  buf.GetUint();
+  localBytesRead += 4;
+  pEmit->emitterType = static_cast<MDLPARTICLEEMITTER2::PARTICLE_EMITTER_TYPE>(buf.GetUint());
+  localBytesRead += 4;
+  pEmit->staticSpeed = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->staticVariation = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->staticLatitude = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->staticLongitude = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->staticGravity = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->staticZsource = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->staticLife = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->staticEmissionRate = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->staticLength = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->staticWidth = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->rows = buf.GetUint();
+  localBytesRead += 4;
+  pEmit->cols = buf.GetUint();
+  localBytesRead += 4;
+  pEmit->type = static_cast<MDLPARTICLEEMITTER2::PARTICLE_TYPE>(buf.GetUint());
+  localBytesRead += 4;
+  pEmit->tailLength = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->middleTime = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->startColor.r = buf.GetFloat();
+  pEmit->startColor.g = buf.GetFloat();
+  pEmit->startColor.b = buf.GetFloat();
+  localBytesRead += 12;
+  pEmit->middleColor.r = buf.GetFloat();
+  pEmit->middleColor.g = buf.GetFloat();
+  pEmit->middleColor.b = buf.GetFloat();
+  localBytesRead += 12;
+  pEmit->endColor.r = buf.GetFloat();
+  pEmit->endColor.g = buf.GetFloat();
+  pEmit->endColor.b = buf.GetFloat();
+  localBytesRead += 12;
+  pEmit->startAlpha = buf.GetByte();
+  pEmit->middleAlpha = buf.GetByte();
+  pEmit->endAlpha = buf.GetByte();
+  localBytesRead += 3;
+  pEmit->startScale = buf.GetFloat();
+  pEmit->middleScale = buf.GetFloat();
+  pEmit->endScale = buf.GetFloat();
+  localBytesRead += 12;
+  pEmit->lifespanUVAnimStart = buf.GetUint();
+  pEmit->lifespanUVAnimEnd = buf.GetUint();
+  pEmit->lifespanUVAnimRepeat = buf.GetUint();
+  pEmit->decayUVAnimStart = buf.GetUint();
+  pEmit->decayUVAnimEnd = buf.GetUint();
+  pEmit->decayUVAnimRepeat = buf.GetUint();
+  pEmit->tailUVAnimStart = buf.GetUint();
+  pEmit->tailUVAnimEnd = buf.GetUint();
+  pEmit->tailUVAnimRepeat = buf.GetUint();
+  pEmit->tailDecayUVAnimStart = buf.GetUint();
+  pEmit->tailDecayUVAnimEnd = buf.GetUint();
+  pEmit->tailDecayUVAnimRepeat = buf.GetUint();
+  localBytesRead += 48;
+  pEmit->blendMode = static_cast<MDLPARTICLEEMITTER2::PARTICLE_BLEND_MODE>(buf.GetUint());
+  localBytesRead += 4;
+  pEmit->textureId = buf.GetUint();
+  localBytesRead += 4;
+  pEmit->priorityPlane = buf.GetInt();
+  localBytesRead += 4;
+  pEmit->replaceableId = buf.GetUint();
+  localBytesRead += 4;
+  buf.GetTcharArray(pEmit->geometryMdl, 260);
+  localBytesRead += 260;
+  buf.GetTcharArray(pEmit->recursionMdl, 260);
+  localBytesRead += 260;
+  pEmit->twinkleFPS = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->twinkleOnOff = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->twinkleScaleMin = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->twinkleScaleMax = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->ivelScale = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->tumblexMin = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->tumblexMax = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->tumbleyMin = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->tumbleyMax = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->tumblezMin = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->tumblezMax = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->drag = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->spin = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->windVector.x = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->windVector.y = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->windVector.z = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->windTime = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->followSpeed1 = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->followScale1 = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->followSpeed2 = buf.GetFloat();
+  localBytesRead += 4;
+  pEmit->followScale2 = buf.GetFloat();
+  localBytesRead += 4;
+  UINT splineCount = buf.GetUint();
+  localBytesRead += 4;
+  if (splineCount) {
+    pEmit->spline.SetCount(splineCount);
+    buf.GetFloatArray(&pEmit->spline[0].x, 3 * splineCount);
+    localBytesRead += 12 * splineCount;
+  }
+  pEmit->squirts = buf.GetUint();
+  localBytesRead += 4;
+  while (localBytesRead < sectionLength) {
+    DWORD tag = buf.GetDword();
+    localBytesRead += 4;
+    switch (tag) {
+      case 'E2PK':
+        if (!ReadBinFloatKeyFrames(pEmit->emissionRate, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading emission rate portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'G2PK':
+        if (!ReadBinFloatKeyFrames(pEmit->gravity, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading gravity portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'L2PK':
+        if (!ReadBinFloatKeyFrames(pEmit->latitude, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading latitude portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'NLPK':
+        if (!ReadBinFloatKeyFrames(pEmit->longitude, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading longitude portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'R2PK':
+        if (!ReadBinFloatKeyFrames(pEmit->variation, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading variation portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'N2PK':
+        if (!ReadBinFloatKeyFrames(pEmit->length, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading length keys portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'S2PK':
+        if (!ReadBinFloatKeyFrames(pEmit->speed, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading speed portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'SIVK':
+        if (!ReadBinFloatKeyFrames(pEmit->visibilityKeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading visibility keys portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'W2PK':
+        if (!ReadBinFloatKeyFrames(pEmit->width, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading width keys portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'Z2PK':
+        if (!ReadBinFloatKeyFrames(pEmit->zsource, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading zsource keys portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      case 'FILK':
+        if (!ReadBinFloatKeyFrames(pEmit->life, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading zsource keys portion of ParticleEmitter2.\n");
+          return 0;
+        }
+        break;
+      default:
+        SkipUnknown(buf, localBytesRead);
+        break;
+    }
+    if (localBytesRead > sectionLength) {
+      status->FatalOverran("ParticleEmitters2", -1);
+      return 0;
+    }
+  }
+  totalRead += localBytesRead;
+  return 1;
+}

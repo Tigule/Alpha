@@ -13,10 +13,8 @@ const CHARTEXTUREVARIATIONS g_charTextureSectionMapping[CHARTEXTURESECTION_NUM] 
 
 LPCSTR const g_sexString[UNITSEX_LAST] = {"Male", "Female", "NOSEX"};
 
-static const int s_ITEMTYPEARRAY[27] = {0,     1,      2,     4,     8,       16,     32, 64,    128,   256,   512, 3072,   12288, 98304,
+extern const int g_ITEMTYPEARRAY[27] = {0,     1,      2,     4,     8,       16,     32, 64,    128,   256,   512, 3072,   12288, 98304,
                                         65536, 131072, 16384, 32768, 7864320, 262144, 16, 32768, 65536, 65536, 0,   131072, 131072};
-
-extern const int *const g_ITEMTYPEARRAY = s_ITEMTYPEARRAY;
 
 extern const ITEMGEOSETGROUPS g_geosetGroupsPerItem[INDEX_NUMSLOTS] = {
     {{INVALID_CHARITEMGEOSET, INVALID_CHARITEMGEOSET, INVALID_CHARITEMGEOSET, INVALID_CHARITEMGEOSET}},
@@ -77,3 +75,9 @@ GEOCOMPONENTINFO g_geometryComponentLookups[INDEX_NUMSLOTS] = {
     {0x002,  {1, -1},  {1, -1}},
     {0x002,  {1, -1},  {1, -1}}
 };
+
+INVENTORY_TYPES g_NPCItemDisplayInvTypes[10] = {INDEX_HEAD_TYPE, INDEX_SHOULDER_TYPE, INDEX_BODY_TYPE,  INDEX_CHEST_TYPE, INDEX_WAIST_TYPE,
+                                                INDEX_LEGS_TYPE, INDEX_FEET_TYPE,     INDEX_WRIST_TYPE, INDEX_HAND_TYPE,  INDEX_TABARD_TYPE};
+
+INVENTORY_SLOTS g_NPCItemDisplayInvSlots[10] = {INVSLOT_HEAD, INVSLOT_SHOULDER, INVSLOT_BODY,  INVSLOT_CHEST, INVSLOT_WAIST,
+                                                INVSLOT_LEGS, INVSLOT_FEET,     INVSLOT_WRIST, INVSLOT_HAND,  INVSLOT_TABARD};

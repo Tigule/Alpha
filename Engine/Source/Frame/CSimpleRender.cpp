@@ -34,6 +34,16 @@ UINT               TextBlockGetMaxCharsWithinWidthFromEnd(
     UINT      flags
 );
 void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor);
+UINT TextBlockGetMaxCharsWithinWidth(
+    HTEXTFONT font,
+    LPCSTR    text,
+    float     height,
+    float     maxWidth,
+    UINT      lineBytes,
+    float    *extent,
+    float     charSpacing,
+    UINT      flags
+);
 
 static char output8[0x1000];
 static WORD output16[0x1000];
@@ -169,7 +179,6 @@ void CSimpleTexture::PreLoadXML(const XMLNode *node, CStatus *status) {
 void CSimpleTexture::LoadXML(const XMLNode *node, CStatus *status) {
   LPCSTR         value;
   const XMLNode *child;
-  int            uvWrapping = 0;
 
   CLayoutFrame::LoadXML(node, status);
 
@@ -182,13 +191,14 @@ void CSimpleTexture::LoadXML(const XMLNode *node, CStatus *status) {
     }
   }
 
+  int uvWrapping = 0;
+
   for (child = node->GetChild(); child; child = child->GetSibling()) {
     if (!SStrCmpI(child->GetName(), "TexCoords", 0x7FFFFFFF)) {
-      NTempest::C2Vector coords[4];
-      float              l = 0.0f;
-      float              r = 1.0f;
-      float              t = 0.0f;
-      float              b = 1.0f;
+      float l = 0.0f;
+      float r = 1.0f;
+      float t = 0.0f;
+      float b = 1.0f;
 
       value = child->GetAttributeByName("left");
       if (value && *value) {
@@ -210,14 +220,12 @@ void CSimpleTexture::LoadXML(const XMLNode *node, CStatus *status) {
         b = SStrToFloat(value);
       }
 
-      coords[0].x = l;
-      coords[0].y = t;
-      coords[1].x = l;
-      coords[1].y = b;
-      coords[2].x = r;
-      coords[2].y = t;
-      coords[3].x = r;
-      coords[3].y = b;
+      NTempest::C2Vector coords[4];
+
+      coords[0] = NTempest::C2Vector(l, t);
+      coords[1] = NTempest::C2Vector(l, b);
+      coords[2] = NTempest::C2Vector(r, t);
+      coords[3] = NTempest::C2Vector(r, b);
       SetTexCoord(coords);
 
       if (l < 0.0f || l > 1.0f || r < 0.0f || r > 1.0f || t < 0.0f || t > 1.0f || b < 0.0f || b > 1.0f) {
@@ -247,15 +255,7 @@ void CSimpleTexture::LoadXML(const XMLNode *node, CStatus *status) {
 }
 
 void CSimpleTexture::PostLoadXML(const XMLNode *node, CStatus *status) {
-  if (m_frame) {
-    UINT count = m_points.Count();
-
-    while (count) {
-      if (m_points[--count]) {
-        return;
-      }
-    }
-
+  if (m_frame && !HasPoints()) {
     SetAllPoints(m_frame, 1);
   }
 }
@@ -431,11 +431,13 @@ void CSimpleTexture::ClearFromSimpleRegistry() {
 }
 
 CGxTex *CSimpleTexture::GetTexture() {
+  CGxTex *texturedata = 0;
+
   if (m_texture) {
-    return TextureGetGxTex(m_texture, 1, 0);
+    texturedata = TextureGetGxTex(m_texture, 1, 0);
   }
 
-  return 0;
+  return texturedata;
 }
 
 float CSimpleTexture::GetWidth() {
@@ -759,15 +761,7 @@ void CSimpleFontString::LoadXML(const XMLNode *node, CStatus *status) {
 }
 
 void CSimpleFontString::PostLoadXML(const XMLNode *node, CStatus *status) {
-  if (m_frame) {
-    UINT count = m_points.Count();
-
-    while (count) {
-      if (m_points[--count]) {
-        return;
-      }
-    }
-
+  if (m_frame && !HasPoints()) {
     if (m_styleFlags & 0x1) {
       SetPoint(FRAMEPOINT_LEFT, m_frame, FRAMEPOINT_LEFT, 0.0f, 0.0f, 1);
     } else if (m_styleFlags & 0x4) {
@@ -912,27 +906,29 @@ void CSimpleFontString::SetText(LPCSTR text) {
 }
 
 static LPCSTR LanguageProcess(LPCSTR text) {
-  while (*text) {
-    LPCSTR rule = text;
+  for (;;) {
+    BOOL found = 0;
 
-    while (*rule) {
+    for (LPCSTR rule = text; *rule; ++rule) {
       if (*rule == '|') {
         ++rule;
-
-        if (*rule != '|' && isdigit(*rule)) {
-          break;
+        if (*rule != '|') {
+          if (isdigit(*rule)) {
+            found = 1;
+            break;
+          }
         }
       }
-
-      ++rule;
     }
 
-    if (!*rule) {
-      return text;
+    if (!found) {
+      break;
     }
 
-    if (SStrToUnsigned(rule) == 1) {
-      text = LanguageRule1(text);
+    switch (SStrToUnsigned(rule)) {
+      case 1:
+        text = LanguageRule1(text);
+        break;
     }
   }
 
@@ -1084,31 +1080,29 @@ void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
   }
 
   if (m_text && *m_text) {
+    LPCSTR             text = GetText();
+    NTempest::C3Vector position(m_justificationOffset.x * m_layoutScale + rect->l, m_justificationOffset.y * m_layoutScale + rect->t, 0.0f);
     UINT               styleFlags = m_styleFlags;
-    NTempest::C3Vector position(rect->l + m_justificationOffset.x * m_layoutScale, rect->t + m_justificationOffset.y * m_layoutScale, 0.0f);
 
     if (!(styleFlags & 0x400)) {
-      LPCSTR scan = m_text;
+      BOOL found = 0;
 
-      while (*scan) {
-        if (*scan == '|') {
-          if (scan[1] == '|') {
-            ++scan;
-          } else if (scan[1] == 'C' || scan[1] == 'c') {
-            break;
-          }
+      for (int i = 0; text[i]; ++i) {
+        if (text[i] == '|' && text[i + 1] == '|') {
+          ++i;
+        } else if (text[i] == '|' && (text[i + 1] == 'C' || text[i + 1] == 'c')) {
+          found = 1;
+          break;
         }
-
-        ++scan;
       }
 
-      if (!*scan) {
+      if (!found) {
         styleFlags |= 0x400;
       }
     }
 
     m_string = TextBlockCreate(
-        m_font, m_text, m_color, position, GetFontHeight() * m_layoutScale, rect->r - rect->l, rect->b - rect->t, styleFlags, 0.0f, m_spacing
+        m_font, text, m_color, position, GetFontHeight() * m_layoutScale, rect->r - rect->l, rect->b - rect->t, styleFlags, 0.0f, m_spacing
     );
     ASSERT(m_string);
 
@@ -1128,9 +1122,13 @@ void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
 }
 
 float CSimpleFontString::GetStringWidth() {
-  if (m_cachedWidth == 0.0f && GetText() && *GetText()) {
-    TextBlockGetTextExtent(m_font, GetText(), SStrLen(GetText()), GetFontHeight() * m_layoutScale, &m_cachedWidth, 0.0f, m_styleFlags);
-    m_cachedWidth /= m_layoutScale;
+  if (m_cachedWidth == 0.0f) {
+    LPCSTR text = GetText();
+
+    if (text && *text) {
+      TextBlockGetTextExtent(m_font, text, SStrLen(text), GetFontHeight() * m_layoutScale, &m_cachedWidth, 0.0f, m_styleFlags);
+      m_cachedWidth /= m_layoutScale;
+    }
   }
 
   return m_cachedWidth;
@@ -1143,10 +1141,14 @@ float CSimpleFontString::GetWidth() {
 }
 
 float CSimpleFontString::GetStringHeight() {
-  if (m_cachedHeight == 0.0f && GetText() && *GetText()) {
-    m_cachedHeight =
-        TextBlockGetWrappedTextHeight(m_font, GetText(), GetFontHeight() * m_layoutScale, GetWidth() * m_layoutScale, m_spacing, m_styleFlags) /
-        m_layoutScale;
+  if (m_cachedHeight == 0.0f) {
+    LPCSTR text = GetText();
+
+    if (text && *text) {
+      m_cachedHeight =
+          TextBlockGetWrappedTextHeight(m_font, text, GetFontHeight() * m_layoutScale, GetWidth() * m_layoutScale, m_spacing, m_styleFlags) /
+          m_layoutScale;
+    }
   }
 
   return m_cachedHeight;
@@ -1185,9 +1187,7 @@ UINT CSimpleFontString::GetNumCharsWithinWidth(LPCSTR text, UINT textBytes, floa
     textBytes = SStrLen(text);
   }
 
-  return GxuFontGetMaxCharsWithinWidth(
-      TextBlockGetFontPtr(m_font), text, GetFontHeight() * m_layoutScale, maxWidth * m_layoutScale, textBytes, &width, 0.0f, m_styleFlags
-  );
+  return TextBlockGetMaxCharsWithinWidth(m_font, text, GetFontHeight() * m_layoutScale, maxWidth * m_layoutScale, textBytes, &width, 0.0f, m_styleFlags);
 }
 
 UINT CSimpleFontString::GetNumCharsWithinWidthFromEnd(LPCSTR text, UINT textBytes, float maxWidth) {

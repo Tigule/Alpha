@@ -67,10 +67,8 @@ class CClippedTriangle {
   }
 
   void Init(const C3Vector *vertices) {
+    memcpy(verts, vertices, sizeof(C3Vector) * 3);
     numVerts = 3;
-    verts[0] = vertices[0];
-    verts[1] = vertices[1];
-    verts[2] = vertices[2];
   }
 
   void Add(const C3Vector &vertex) {
@@ -94,7 +92,6 @@ enum {
 };
 
 static CWFacetData                       s_facetData;
-static TSGrowableArray<CWalkableSurface> surfacePool;
 
 inline BYTE CWalkableSurface::HasHigherPriority(const CWalkableSurface &a, const CWalkableSurface &b) {
   if (!CMath::fequalz_(a.closeDist, b.closeDist, 0.0013888889f)) {
@@ -140,6 +137,60 @@ static void DetermineBoxParallelHitType(const C4Plane *boxSides, const CClippedT
 static float FindClosestVertDist(const C4Plane &front, const C4Plane *sides, const CClippedTriangle &poly);
 static float DistFromPlaneAlongVector(const C3Vector &point, const C4Plane &plane, const C3Vector &unitVector);
 static float GetDist2d(const C3Vector &unitMove, float closestDist3D);
+
+static float ClipPolygonToPlane(const C4Plane &plane, CClippedTriangle *poly) {
+  FATALASSERT(poly);
+  if (!poly->Count()) {
+    return 0.0f;
+  }
+
+  static CClippedTriangle old;
+  old = *poly;
+  poly->SetCount(0);
+  float penetrationDepth = -FLT_MAX;
+
+  for (UINT i = 0; i < old.Count(); ++i) {
+    UINT nextIndex = i + 1;
+    if (nextIndex == old.Count()) {
+      nextIndex = 0;
+    }
+
+    float dist1 = plane.DistSigned(old[i]);
+    float dist2 = plane.DistSigned(old[nextIndex]);
+    if (-dist1 > penetrationDepth) {
+      penetrationDepth = -dist1;
+    }
+
+    if ((dist1 < 0.0f || dist2 <= 0.0013888889f) && (dist1 <= 0.0013888889f || dist2 < 0.0f)) {
+      if (dist1 > 0.0013888889f || dist2 > 0.0013888889f) {
+        C3Vector intersection = old[i] + (old[nextIndex] - old[i]) * (dist1 / (dist1 - dist2));
+        if (dist1 <= 0.0f && dist2 > 0.0f) {
+          if (!poly->Count() || poly->Last() != old[i]) {
+            poly->Add(old[i]);
+          }
+          poly->Add(intersection);
+        } else if (dist1 > 0.0f && dist2 <= 0.0f) {
+          poly->Add(intersection);
+          if (nextIndex) {
+            poly->Add(old[nextIndex]);
+          }
+        }
+      } else {
+        if (!poly->Count() || poly->Last() != old[i]) {
+          poly->Add(old[i]);
+        }
+        if (nextIndex || !poly->Count() || (*poly)[0] != old[nextIndex]) {
+          poly->Add(old[nextIndex]);
+        }
+      }
+    }
+  }
+
+  if (poly->Count() < 3) {
+    poly->SetCount(0);
+  }
+  return penetrationDepth;
+}
 
 float CMovement::CalcFallStartElevation(UINT timeFallen) {
   float jumpVelocity = m_jumpVelocity;
@@ -453,7 +504,7 @@ BOOL CMovement::IsJumpingUp(DWORD eventTime) {
   if (m_jumpVelocity == 0.0f) {
     return 0;
   }
-  float velocity = static_cast<int>(eventTime - m_fallStartTime) * 0.001f * s_gravityRate + m_jumpVelocity;
+  float velocity = s_gravityRate * (static_cast<int>(eventTime - m_fallStartTime) * 0.001f) + m_jumpVelocity;
   if (velocity > s_terminalVelocity) {
     velocity = s_terminalVelocity;
   }
@@ -1253,35 +1304,31 @@ UINT CMovement::Slide(UINT fallenSoFar, UINT timeIncrement) {
     return 0;
   }
 
-  float              scale = 1.0f / -m_reDirection.z;
-  C3Vector unitMove(m_reDirection.x * scale, m_reDirection.y * scale, m_reDirection.z * scale);
-  C3Vector moveWanted = unitMove * distToFall;
-  float              distance = moveWanted.Mag();
-  FATALASSERT(CMath::fnotequal_(distance, 0.0f));
+  C3Vector moveWanted = distToFall * (m_reDirection / -m_reDirection.z);
+  float    distance = moveWanted.Mag();
+  FATALASSERT(CMath::fnotequal_(distance,0.0f));
 
-  float distanceSlid = distance;
-  if (s_facetData.facets.Count()) {
+  float distanceSlid;
+  if (!s_facetData.facets.Count()) {
+    m_position += moveWanted;
+    distanceSlid = distance;
+    m_moveFlags &= ~0x01000000U;
+  } else {
+    C3Vector  unitMove = moveWanted / distance;
     CRedirect hitInfo;
     distanceSlid = ExtrudeSlideBoxDownHill(unitMove, distance, &hitInfo);
-    if (distanceSlid < distance) {
+    if (distanceSlid >= distance) {
+      m_position += moveWanted;
+      distanceSlid = distance;
+    } else {
       m_moveFlags &= ~0x01000000U;
       m_position += unitMove * distanceSlid;
-      float timeUsed = distanceSlid / distance * (static_cast<float>(timeIncrement) * 0.001f) * 1000.0f;
-      if (timeUsed <= 0.0f) {
-        timeIncrement = static_cast<UINT>(-static_cast<long>(-timeUsed + 0.5f));
-      } else {
-        timeIncrement = static_cast<UINT>(timeUsed + 0.5f);
-      }
+      timeIncrement = CMath::fint_n(distanceSlid / distance * (timeIncrement * 0.001f) * 1000.0f);
       if (hitInfo.surfaceNorm[0].z > 0.64278764f) {
         StopFalling();
         HandlePendingActions(fallenSoFar + timeIncrement + m_fallStartTime);
       }
-    } else {
-      m_position += moveWanted;
     }
-  } else {
-    m_position += moveWanted;
-    m_moveFlags &= ~0x01000000U;
   }
 
   FallLogWrite(
@@ -1300,50 +1347,37 @@ UINT CMovement::Fall(UINT fallenSoFar, UINT timeIncrement) {
   UINT fallEndTime = fallenSoFar + timeIncrement;
   FallLogWrite("0x%016I64X: ====| Starting new fall: fallenSoFar (%u) increment (%u)\n", GetGUID(), fallenSoFar, timeIncrement);
   float distToFall = RelDistanceFallen(fallEndTime);
-  float distFallen = distToFall;
+  float distFallen;
 
-  if (s_facetData.facets.Count()) {
-    if (distToFall >= 0.0f) {
-      DWORDLONG gameObjHit = 0;
-      distFallen = FindGroundDistanceBelow(distToFall, &gameObjHit);
-      m_position.z -= distFallen;
-      if (CMath::fabs_(distToFall - distFallen) < 0.00000095367432f) {
-        if (!(m_moveFlags & 0x01000000)) {
-          CheckFallenFar(fallEndTime + m_fallStartTime);
-        }
-      } else {
-        float timeUsed = distFallen / distToFall * (static_cast<float>(timeIncrement) * 0.001f) * 1000.0f;
-        if (timeUsed <= 0.0f) {
-          timeIncrement = static_cast<UINT>(-static_cast<long>(-timeUsed + 0.5f));
-        } else {
-          timeIncrement = static_cast<UINT>(timeUsed + 0.5f);
-        }
-        if (!(m_moveFlags & 0x01000000)) {
-          StopFalling();
-          HandlePendingActions(fallenSoFar + timeIncrement + m_fallStartTime);
-        }
-        if (gameObjHit) {
-          SetTransport(gameObjHit);
-        }
-      }
+  if (!s_facetData.facets.Count()) {
+    m_position.z -= distToFall;
+    distFallen = distToFall;
+    CheckFallenFar(fallEndTime + m_fallStartTime);
+  } else if (distToFall < 0.0f) {
+    distFallen = -FindCeilingDistanceAbove(-distToFall);
+    m_position.z -= distFallen;
+    if (CMath::fnotequal4_(distToFall, distFallen)) {
+      timeIncrement = CMath::fint_n(distFallen / distToFall * (timeIncrement * 0.001f) * 1000.0f);
+      ProcessFallReset(fallenSoFar + timeIncrement + m_fallStartTime);
     } else {
-      distFallen = -FindCeilingDistanceAbove(-distToFall);
-      m_position.z -= distFallen;
-      if (CMath::fabs_(distToFall - distFallen) < 0.00000095367432f) {
-        CheckFallenFar(fallEndTime + m_fallStartTime);
-      } else {
-        float timeUsed = distFallen / distToFall * (static_cast<float>(timeIncrement) * 0.001f) * 1000.0f;
-        if (timeUsed <= 0.0f) {
-          timeIncrement = static_cast<UINT>(-static_cast<long>(-timeUsed + 0.5f));
-        } else {
-          timeIncrement = static_cast<UINT>(timeUsed + 0.5f);
-        }
-        ProcessFallReset(fallenSoFar + timeIncrement + m_fallStartTime);
-      }
+      CheckFallenFar(fallEndTime + m_fallStartTime);
     }
   } else {
-    m_position.z -= distToFall;
-    CheckFallenFar(fallEndTime + m_fallStartTime);
+    DWORDLONG gameObjHit;
+    distFallen = FindGroundDistanceBelow(distToFall, &gameObjHit);
+    m_position.z -= distFallen;
+    if (CMath::fnotequal4_(distToFall, distFallen)) {
+      timeIncrement = CMath::fint_n(distFallen / distToFall * (timeIncrement * 0.001f) * 1000.0f);
+      if (!(m_moveFlags & 0x01000000)) {
+        StopFalling();
+        HandlePendingActions(fallenSoFar + timeIncrement + m_fallStartTime);
+      }
+      if (gameObjHit) {
+        SetTransport(gameObjHit);
+      }
+    } else if (!(m_moveFlags & 0x01000000)) {
+      CheckFallenFar(fallEndTime + m_fallStartTime);
+    }
   }
 
   FallLogWrite("0x%016I64X: ====| Wanted to fall (%g), fell (%g) to Z(%g)\n", GetGUID(), distToFall, distFallen, m_position.z);
@@ -1352,31 +1386,34 @@ UINT CMovement::Fall(UINT fallenSoFar, UINT timeIncrement) {
 }
 
 void CMovement::GetMoveFacets(float distance, UINT timeToFall, const C3Vector &unitMove) {
-  C3Vector moveVector = unitMove;
-  if (!(m_moveFlags & 0x02000000)) {
-    moveVector.z = 0.0f;
-    if (CMath::fabs_(moveVector.x) >= 0.00000023841858f && CMath::fabs_(moveVector.y) >= 0.00000023841858f) {
-      float ooMag = 1.0f / static_cast<float>(sqrt(moveVector.x * moveVector.x + moveVector.y * moveVector.y));
-      moveVector.x *= ooMag;
-      moveVector.y *= ooMag;
+  C3Vector moveVector;
+  if (m_moveFlags & 0x02000000) {
+    moveVector = distance * unitMove;
+  } else {
+    moveVector = unitMove;
+    if (CMath::fnotequal_(moveVector.x, 0.0f) && CMath::fnotequal_(moveVector.y, 0.0f)) {
+      CMath::normalize_(moveVector.x, moveVector.y);
     }
+    moveVector.z = 0.0f;
+    moveVector *= distance;
   }
-  moveVector *= distance;
 
   C3Vector  position = m_position;
-  C34Matrix worldToTransport;
+  C34Matrix transportToWorld;
   if (m_transportGUID) {
-    C34Matrix transportToWorld;
     MovementGetTransportMtx(m_transportGUID, &transportToWorld);
-    worldToTransport = transportToWorld.AffineInverse();
     position *= transportToWorld;
   }
 
-  CAaBox start(
-      C3Vector(position.x - m_collisionBoxHalfDepth, position.y - m_collisionBoxHalfDepth, position.z),
-      C3Vector(position.x + m_collisionBoxHalfDepth, position.y + m_collisionBoxHalfDepth, position.z + m_collisionBoxHeight)
-  );
-  CAaBox end(start.b + moveVector, start.t + moveVector);
+  CAaBox start(position);
+  start.b.x -= m_collisionBoxHalfDepth;
+  start.b.y -= m_collisionBoxHalfDepth;
+  start.t.x += m_collisionBoxHalfDepth;
+  start.t.y += m_collisionBoxHalfDepth;
+  start.t.z += m_collisionBoxHeight;
+  CAaBox end = start;
+  end.b += moveVector;
+  end.t += moveVector;
   CAaBox axisAlign(C3Vector::Min(start.b, end.b), C3Vector::Max(start.t, end.t));
 
   if (!(m_moveFlags & 0x02000000)) {
@@ -1384,23 +1421,18 @@ void CMovement::GetMoveFacets(float distance, UINT timeToFall, const C3Vector &u
     axisAlign.b.z -= RelDistanceFallen(timeToFall);
   }
 
-  UINT queryFlags = (GetGUID() & 0xF000000000000000ui64) ? 8465 : 273;
+  UINT queryFlags = (GetGUID() & 0xF000000000000000ui64) ? 0x2111 : 0x111;
   CWorld::GetFacets(axisAlign, &s_facetData, queryFlags);
-  CollisionInfoSetFaces(GetGUID(), s_facetData.facets);
+  CollisionInfoSetFaces(m_guid, s_facetData.facets);
 
   if (m_transportGUID) {
+    C34Matrix worldToTransport = transportToWorld.AffineInverse();
     for (UINT i = 0; i < s_facetData.facets.Count(); ++i) {
-      CFacet &facet = s_facetData.facets[i];
-      facet.vertices[0] *= worldToTransport;
-      facet.vertices[1] *= worldToTransport;
-      facet.vertices[2] *= worldToTransport;
-      C3Vector normal(
-          worldToTransport.a0 * facet.plane.n.x + worldToTransport.b0 * facet.plane.n.y + worldToTransport.c0 * facet.plane.n.z,
-          worldToTransport.a1 * facet.plane.n.x + worldToTransport.b1 * facet.plane.n.y + worldToTransport.c1 * facet.plane.n.z,
-          worldToTransport.a2 * facet.plane.n.x + worldToTransport.b2 * facet.plane.n.y + worldToTransport.c2 * facet.plane.n.z
-      );
-      facet.plane.n = normal;
-      facet.plane.d = -C3Vector::Dot(normal, facet.vertices[0]);
+      s_facetData.facets[i].vertices[0] *= worldToTransport;
+      s_facetData.facets[i].vertices[1] *= worldToTransport;
+      s_facetData.facets[i].vertices[2] *= worldToTransport;
+      C3Vector normal = C34Matrix::mul3v33m_(s_facetData.facets[i].plane.n, worldToTransport);
+      s_facetData.facets[i].plane.Set(normal, s_facetData.facets[i].vertices[0]);
     }
   }
 }
@@ -1411,77 +1443,75 @@ void CMovement::ShowCollisionBox(const C3Vector &unitMove, UINT oldMoveFlags) {
     return;
   }
 
-  C3Vector boxMin(m_position.x - m_collisionBoxHalfDepth, m_position.y - m_collisionBoxHalfDepth, m_position.z - m_stepUpHeight);
-  C3Vector boxMax(m_position.x + m_collisionBoxHalfDepth, m_position.y + m_collisionBoxHalfDepth, m_position.z + m_collisionBoxHeight);
+  C3Vector boxMin = m_position;
+  C3Vector boxMax = m_position;
+  boxMin.x -= m_collisionBoxHalfDepth;
+  boxMin.y -= m_collisionBoxHalfDepth;
+  boxMin.z += m_stepUpHeight;
+  boxMax.x += m_collisionBoxHalfDepth;
+  boxMax.y += m_collisionBoxHalfDepth;
+  boxMax.z += m_collisionBoxHeight;
   CollisionInfoAddBox(boxMin, boxMax);
 
   C3Vector vectPos = m_position;
   vectPos.z += (m_collisionBoxHeight + m_stepUpHeight) * 0.5f;
-  C3Vector &moveDirection = m_moveFlags & 0x1000 ? m_reDirection : unitMove;
-  CollisionInfoAddVector(vectPos, moveDirection);
+  CollisionInfoAddVector(vectPos, m_moveFlags & 0x1000 ? m_reDirection : unitMove);
 }
 
 BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const C3Vector &moveVector) {
-  float distance = moveVector.Mag();
   FallLogWrite("0x%016I64X: ====| Starting new move: elapsed (%u), requested vector (%g,%g)\n", GetGUID(), timeElapsed, moveVector.x, moveVector.y);
+  float distance = moveVector.Mag();
   if (!timeElapsed) {
     return 0;
   }
 
-  float elapsedSecs = static_cast<float>(timeElapsed) * 0.001f;
-  float currSpeed = distance / elapsedSecs;
+  float currSpeed = distance / (timeElapsed * 0.001f);
   if (!(m_moveFlags & 0x30)) {
-    float expectedSpeed = GetCurrentSpeed();
-    FallLogWrite("0x%016I64X: requested move (%g), should be (%g) for (%u ms)\n", GetGUID(), distance, expectedSpeed * elapsedSecs, timeElapsed);
+    FallLogWrite(
+        "0x%016I64X: requested move (%g), should be (%g) for (%u ms)\n", GetGUID(), distance, GetCurrentSpeed() * (timeElapsed * 0.001f), timeElapsed
+    );
   }
 
   C3Vector moveDirWanted;
-  if (distance >= 0.00000095367432f) {
-    moveDirWanted = moveVector * (1.0f / distance);
-  } else {
+  if (CMath::fequal4_(distance, 0.0f)) {
     moveDirWanted.Set(0.0f, 0.0f, -1.0f);
+  } else {
+    moveDirWanted = moveVector / distance;
   }
 
   UINT       oldMoveFlags = m_moveFlags;
   UINT       timeUsed = 0;
-  UINT       zeroMoves = 0;
   int        moveModified = 0;
+  UINT       zeroMoves = 0;
   CMoveState state;
 
   while (timeUsed < timeElapsed) {
     UINT  timeLeft = timeElapsed - timeUsed;
-    float distanceLeft = static_cast<float>(timeLeft) * 0.001f * currSpeed;
+    float distanceLeft = timeLeft * 0.001f * currSpeed;
     UINT  fallenSoFar = 0;
     if (m_moveFlags & 0x4000) {
       fallenSoFar = lastUpdateTime + timeUsed - m_fallStartTime;
     }
 
     C3Vector &unitMove = m_moveFlags & 0x01000000 ? m_reDirection : moveDirWanted;
-    UINT                moveEndFallTime = fallenSoFar + timeElapsed;
+    UINT      moveEndFallTime = fallenSoFar + timeElapsed;
     GetMoveFacets(distanceLeft, moveEndFallTime, unitMove);
     SaveMoveState(&state);
 
-    BOOL wasRedirected = (m_moveFlags & 0x1000) != 0;
-    UINT timeJustUsed;
+    int wasRedirected = m_moveFlags & 0x1000;
     FallLogWrite("0x%016I64X: lastUpdateTime (0x%08X), timeUsed (%d)\n", GetGUID(), lastUpdateTime, timeUsed);
 
+    UINT timeJustUsed;
     if (m_moveFlags & 0x02000000) {
-      C3Vector moveWanted = unitMove * distanceLeft;
-      timeJustUsed = Swim(lastUpdateTime + timeUsed, timeLeft, moveWanted, moveDirWanted);
-    } else if (m_moveFlags & 0x4000) {
-      if (m_moveFlags & 0x01000000) {
-        timeJustUsed = Slide(fallenSoFar, timeLeft);
-      } else if (m_moveFlags & 0xF) {
-        C3Vector moveWanted = unitMove * distanceLeft;
-        C2Vector moveDirWanted2d(moveDirWanted.x, moveDirWanted.y);
-        timeJustUsed = ProjectileFall(lastUpdateTime + timeUsed, timeLeft, moveWanted, moveDirWanted2d);
-      } else {
-        timeJustUsed = Fall(fallenSoFar, timeLeft);
-      }
+      timeJustUsed = Swim(lastUpdateTime + timeUsed, timeLeft, moveDirWanted * distanceLeft, moveDirWanted);
+    } else if (!(m_moveFlags & 0x4000)) {
+      timeJustUsed = TraceSurface(lastUpdateTime + timeUsed, timeLeft, distanceLeft, moveDirWanted, moveDirWanted);
+    } else if (m_moveFlags & 0x01000000) {
+      timeJustUsed = Slide(fallenSoFar, timeLeft);
+    } else if (m_moveFlags & 0xF) {
+      timeJustUsed = ProjectileFall(lastUpdateTime + timeUsed, timeLeft, moveDirWanted * distanceLeft, moveDirWanted);
     } else {
-      C2Vector unitMove2d(unitMove.x, unitMove.y);
-      C2Vector moveDirWanted2d(moveDirWanted.x, moveDirWanted.y);
-      timeJustUsed = TraceSurface(lastUpdateTime + timeUsed, timeLeft, distanceLeft, unitMove2d, moveDirWanted2d);
+      timeJustUsed = Fall(fallenSoFar, timeLeft);
     }
 
     FallLogWrite("0x%016I64X: move consumed (%d) ms\n", GetGUID(), timeJustUsed);
@@ -1492,14 +1522,15 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
         UpdateAnchors(lastUpdateTime + timeUsed);
       }
       FallLogWrite(
-          "0x%016I64X: unit moved full distance: wanted (%g) moved (%g)\n", GetGUID(), distanceLeft,
-          static_cast<double>(timeUsed + timeJustUsed) * 0.001 * currSpeed
+          "0x%016I64X: unit moved full distance: wanted (%g) moved (%g)\n", GetGUID(), distanceLeft, (timeUsed + timeJustUsed) * 0.001f * currSpeed
       );
-      timeUsed += timeJustUsed;
       break;
     }
 
-    if (!wasRedirected) {
+    if (wasRedirected) {
+      RestoreMoveState(state);
+      FallLogWrite("0x%016I64X: unit was and still is redirected\n", GetGUID());
+    } else {
       moveModified = 1;
       if (!timeJustUsed) {
         ++zeroMoves;
@@ -1507,27 +1538,20 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
       if (zeroMoves >= 5) {
         FallLogWrite("0x%016I64X: unit executed five zero-time moves\n", GetGUID());
         StopFalling();
-        DWORD eventTime = lastUpdateTime + timeUsed;
-        HandlePendingActions(eventTime);
-        Halt(eventTime);
+        HandlePendingActions(lastUpdateTime + timeUsed);
+        Halt(lastUpdateTime + timeUsed);
       }
       if (!(m_moveFlags & 0x400F) || (m_moveFlags & 0x10000000)) {
         FallLogWrite(
-            "0x%016I64X: unit blocked, moved (%g) instead of (%g)\n", GetGUID(), static_cast<double>(timeUsed + timeJustUsed) * 0.001 * currSpeed,
-            distanceLeft
+            "0x%016I64X: unit blocked, moved (%g) instead of (%g)\n", GetGUID(), (timeUsed + timeJustUsed) * 0.001f * currSpeed, distanceLeft
         );
         break;
       }
       timeUsed += timeJustUsed;
-      FallLogWrite(
-          "0x%016I64X: unit redirected, moved (%g) instead of (%g)\n", GetGUID(), static_cast<double>(timeUsed) * 0.001 * currSpeed, distanceLeft
-      );
+      FallLogWrite("0x%016I64X: unit redirected, moved (%g) instead of (%g)\n", GetGUID(), timeUsed * 0.001f * currSpeed, distanceLeft);
       if (timeUsed > timeElapsed) {
         timeUsed = timeElapsed;
       }
-    } else {
-      RestoreMoveState(state);
-      FallLogWrite("0x%016I64X: unit was and still is redirected\n", GetGUID());
     }
 
     if (!(m_moveFlags & 0x1000)) {
@@ -1535,57 +1559,48 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
     }
 
     FallLogWrite("0x%016I64X: attempting to redirect\n", GetGUID());
-    UINT  redirectedTimeLeft = timeElapsed - timeUsed;
+    timeLeft = timeElapsed - timeUsed;
     float speedFactor = C3Vector::Dot(moveDirWanted, m_reDirection);
-    if (speedFactor < 0.0f) {
-      speedFactor = 0.0f;
-    } else if (speedFactor > 1.0f) {
-      speedFactor = 1.0f;
-    }
-    float redirectedDistance = speedFactor * static_cast<float>(redirectedTimeLeft) * 0.001f * currSpeed;
-    GetMoveFacets(redirectedDistance, moveEndFallTime, m_reDirection);
+    CMath::clamp_x(speedFactor, 0.0f, 1.0f);
+    distanceLeft = speedFactor * (timeLeft * 0.001f) * currSpeed;
+    GetMoveFacets(distanceLeft, moveEndFallTime, m_reDirection);
 
     FallLogWrite("0x%016I64X: (redir) lastUpdateTime (0x%08X), timeUsed (%d)\n", GetGUID(), lastUpdateTime, timeUsed);
-    UINT redirectedTimeUsed = timeJustUsed;
     if (m_moveFlags & 0x02000000) {
-      C3Vector moveWanted = m_reDirection * redirectedDistance;
-      redirectedTimeUsed = Swim(lastUpdateTime + timeUsed, redirectedTimeLeft, moveWanted, moveDirWanted);
-    } else if (m_moveFlags & 0x4000) {
-      if (m_moveFlags & 0xF) {
-        C3Vector moveWanted = m_reDirection * redirectedDistance;
-        C2Vector moveDirWanted2d(moveDirWanted.x, moveDirWanted.y);
-        redirectedTimeUsed = ProjectileFall(lastUpdateTime + timeUsed, redirectedTimeLeft, moveWanted, moveDirWanted2d);
-        if ((m_moveFlags & 0x4000) && !redirectedTimeUsed) {
-          Halt(lastUpdateTime + timeUsed);
-        }
+      timeJustUsed = Swim(lastUpdateTime + timeUsed, timeLeft, m_reDirection * distanceLeft, moveDirWanted);
+    } else if (!(m_moveFlags & 0x4000)) {
+      timeJustUsed = TraceSurface(lastUpdateTime + timeUsed, timeLeft, distanceLeft, m_reDirection, moveDirWanted);
+    } else if (m_moveFlags & 0xF) {
+      timeJustUsed = ProjectileFall(lastUpdateTime + timeUsed, timeLeft, m_reDirection * distanceLeft, moveDirWanted);
+      if ((m_moveFlags & 0x4000) && !timeJustUsed) {
+        Halt(lastUpdateTime + timeUsed);
+        continue;
       }
-    } else {
-      C2Vector redirectedMove(m_reDirection.x, m_reDirection.y);
-      C2Vector moveDirWanted2d(moveDirWanted.x, moveDirWanted.y);
-      redirectedTimeUsed = TraceSurface(lastUpdateTime + timeUsed, redirectedTimeLeft, redirectedDistance, redirectedMove, moveDirWanted2d);
     }
 
-    FallLogWrite("0x%016I64X: redir move consumed (%d) ms\n", GetGUID(), redirectedTimeUsed);
-    if (redirectedTimeUsed < redirectedTimeLeft) {
+    FallLogWrite("0x%016I64X: redir move consumed (%d) ms\n", GetGUID(), timeJustUsed);
+    if (timeJustUsed < timeLeft) {
       moveModified = 1;
     }
-    if (!redirectedTimeUsed) {
+    if (!timeJustUsed) {
       ++zeroMoves;
     }
     if (zeroMoves >= 5) {
       StopFalling();
-      DWORD eventTime = lastUpdateTime + timeUsed;
-      HandlePendingActions(eventTime);
-      Halt(eventTime);
+      HandlePendingActions(lastUpdateTime + timeUsed);
+      Halt(lastUpdateTime + timeUsed);
     }
     if (!(m_moveFlags & 0x400F) || (m_moveFlags & 0x10000000)) {
       FallLogWrite(
           "0x%016I64X: unit blocked on redirect, moved (%g) instead of (%g)\n", GetGUID(),
-          static_cast<double>(timeUsed + redirectedTimeUsed) * 0.001 * speedFactor * currSpeed, redirectedDistance
+          (timeUsed + timeJustUsed) * 0.001f * speedFactor * currSpeed, distanceLeft
       );
       break;
     }
-    timeUsed += redirectedTimeUsed;
+    timeUsed += timeJustUsed;
+    if (timeUsed > timeElapsed) {
+      timeUsed = timeElapsed;
+    }
   }
 
   SetOrientation();
@@ -1603,8 +1618,8 @@ float CMovement::CalcFallSurfaceProjection(
     const C3Vector &moveNormal,
     C4Plane        *platform
 ) {
-  if (CMath::fabs_(distanceAway) >= 0.0013888889f && timeLeft) {
-    float distToFall = RelDistanceFallen(moveStartTime, static_cast<float>(timeLeft) * 0.001f);
+  if (CMath::fnotequalz_(distanceAway, 0.0f, 0.0013888889f) && timeLeft) {
+    float distToFall = RelDistanceFallen(moveStartTime, timeLeft * 0.001f);
     hitPoint.z -= distToFall;
     C3Vector fallVector = hitPoint - position;
     fallVector.Normalize();
@@ -1613,24 +1628,20 @@ float CMovement::CalcFallSurfaceProjection(
       platformNorm = -platformNorm;
     }
     platform->Set(platformNorm, position);
-    FallLogWrite(
+    BothLogWrite(
         "0x%016I64X: moveNormal(%g,%g,%g) fallVector(%g,%g,%g) hitPoint(%g,%g,%g)\n", GetGUID(), moveNormal.x, moveNormal.y, moveNormal.z, fallVector.x,
         fallVector.y, fallVector.z, hitPoint.x, hitPoint.y, hitPoint.z
     );
-    float cosTheta = platformNorm.z;
-    if (cosTheta < -1.0f) {
-      cosTheta = -1.0f;
-    } else if (cosTheta > 1.0f) {
-      cosTheta = 1.0f;
-    }
+    float cosTheta = platform->n.z;
+    CMath::clamp_x(cosTheta, -1.0f, 1.0f);
     FallLogWrite(
         "0x%016I64X: unit position(%g,%g,%g), platform (%g,%g,%g,%g) (%g deg slope), fall (%g)\n", GetGUID(), position.x, position.y, position.z,
-        platform->n.x, platform->n.y, platform->n.z, platform->d, acos(cosTheta) * 57.29578, distToFall
+        platform->n.x, platform->n.y, platform->n.z, platform->d, CMath::acos_(cosTheta) * 57.29578f, distToFall
     );
     return distToFall;
   }
-  platform->Set(C3Vector(0.0f, 0.0f, 1.0f), position);
-  FallLogWrite("0x%016I64X: unit position(%g,%g,%g), flat platform\n", GetGUID(), position.x, position.y, position.z);
+  platform->Set(0.0f, 0.0f, 1.0f, -position.z);
+  BothLogWrite("0x%016I64X: unit position(%g,%g,%g), flat platform\n", GetGUID(), position.x, position.y, position.z);
   return 0.0f;
 }
 
@@ -1675,9 +1686,9 @@ float CMovement::AttemptMove(
   }
   m_position.z += adjustedElevation;
   FallLogWrite("(%g,%g,%g)\n", m_position.x, m_position.y, m_position.z);
-  if (IsUnitVector(m_reDirection) && (m_moveFlags & 0xF)) {
+  if (CMath::fequal4_(m_reDirection.SquaredMag(), 1.0f) && (m_moveFlags & 0xF)) {
     m_moveFlags |= 0x1000;
-    FallLogWrite("0x%016I64X: Setting redirected (D:\\build\\buildWoW\\WoW\\Source\\Object\\Collide.cpp: %d)\n", GetGUID(), 2470);
+    FallLogWrite("0x%016I64X: Setting redirected (" __FILE__ ": %d)\n", GetGUID(), __LINE__);
   } else {
     Halt(eventTime);
   }
@@ -1691,29 +1702,19 @@ BOOL CMovement::IsTooLow(
     float                     distanceMoved,
     float                     currSpeedInv
 ) {
-  float minElevation;
   if (!(distanceMoved < surface->farDist)) {
-    if (this) {
-      C3Vector intPositionZ = GetPosition(m_position);
-      C3Vector intPositionY = GetPosition(m_position);
-      C3Vector intPositionX = GetPosition(m_position);
-      float              facing = GetFacing(m_facing);
-      C3Vector positionZ = GetPosition(m_position);
-      C3Vector positionY = GetPosition(m_position);
-      C3Vector positionX = GetPosition(m_position);
-      int                intFacing = static_cast<int>(GetFacing(m_facing));
-      SErrDisplayErrorFmt(
-          STORM_ERROR_ASSERTION, __FILE__, __LINE__, 0, 1,
-          "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
-          "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
-          "distanceMoved < surface->farDist", GetGUID(), positionX.x, positionY.y, positionZ.z, facing, static_cast<int>(intPositionX.x),
-          static_cast<int>(intPositionY.y), static_cast<int>(intPositionZ.z), intFacing
-      );
-    } else {
-      FATALASSERT(distanceMoved < surface->farDist);
-    }
+    this ? SErrDisplayErrorFmt(
+               STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+               "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+               "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+               "distanceMoved < surface->farDist", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
+               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
+               static_cast<int>(GetFacing())
+           )
+         : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "distanceMoved < surface->farDist", FALSE, 1);
   }
-  minElevation = position.z - (surface->farDist - distanceMoved) * 1.1917536f;
+
+  float minElevation = position.z - (surface->farDist - distanceMoved) * 1.1917536f;
   FallLogWrite(
       "0x%016I64X: Checking if face is below: LPOC(%g), minElevation(%g), unit(%g)\n", GetGUID(), surface->lastPtOfContact.z, minElevation, position.z
   );
@@ -1721,38 +1722,25 @@ BOOL CMovement::IsTooLow(
     return 0;
   }
 
-  float fallTime = (surface->farDist - distanceMoved) * currSpeedInv * 1000.0f;
-  int   timeToFall = fallTime <= 0.0f ? -static_cast<int>(-fallTime + 0.5f) : static_cast<int>(fallTime + 0.5f);
-  if (IsJumpingUp(moveStartTime + timeToFall)) {
+  if (IsJumpingUp(moveStartTime + CMath::fint_n((surface->farDist - distanceMoved) * currSpeedInv * 1000.0f))) {
     return 1;
   }
 
   if (surface->closeDist - 0.00000095367432f > distanceMoved) {
-    fallTime = (surface->closeDist - distanceMoved) * currSpeedInv * 1000.0f;
-    timeToFall = fallTime <= 0.0f ? -static_cast<int>(-fallTime + 0.5f) : static_cast<int>(fallTime + 0.5f);
+    int timeToFall = CMath::fint_n((surface->closeDist - distanceMoved) * currSpeedInv * 1000.0f);
     if (m_moveFlags & 0x4000) {
       timeToFall = moveStartTime + timeToFall - m_fallStartTime;
     }
     if (!(timeToFall >= 0)) {
-      if (this) {
-        C3Vector intPositionZ = GetPosition(m_position);
-        C3Vector intPositionY = GetPosition(m_position);
-        C3Vector intPositionX = GetPosition(m_position);
-        float              facing = GetFacing(m_facing);
-        C3Vector positionZ = GetPosition(m_position);
-        C3Vector positionY = GetPosition(m_position);
-        C3Vector positionX = GetPosition(m_position);
-        int                intFacing = static_cast<int>(GetFacing(m_facing));
-        SErrDisplayErrorFmt(
-            STORM_ERROR_ASSERTION, __FILE__, __LINE__, 0, 1,
-            "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
-            "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
-            "timeToFall >= 0", GetGUID(), positionX.x, positionY.y, positionZ.z, facing, static_cast<int>(intPositionX.x),
-            static_cast<int>(intPositionY.y), static_cast<int>(intPositionZ.z), intFacing
-        );
-      } else {
-        FATALASSERT(timeToFall >= 0);
-      }
+      this ? SErrDisplayErrorFmt(
+                 STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+                 "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+                 "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+                 "timeToFall >= 0", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
+                 static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
+                 static_cast<int>(GetFacing())
+             )
+           : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "timeToFall >= 0", FALSE, 1);
     }
     minElevation = position.z - RelDistanceFallen(timeToFall);
     FallLogWrite(
@@ -1777,7 +1765,17 @@ void CMovement::ClipFacetsWithOneAnother(const C4Plane &startPlane, TSGrowableAr
   }
   for (UINT surfaceId = 0; surfaceId < numSurfaces - 1; ++surfaceId) {
     for (UINT nextSurfaceId = surfaceId + 1; nextSurfaceId < numSurfaces; ++nextSurfaceId) {
-      FATALASSERT(numSurfaces < 10000);
+      if (!(numSurfaces < 10000)) {
+        this ? SErrDisplayErrorFmt(
+                   STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+                   "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+                   "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+                   "numSurfaces < 10000", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
+                   static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
+                   static_cast<int>(GetFacing())
+               )
+             : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "numSurfaces < 10000", FALSE, 1);
+      }
       CWalkableSurface &surface = (*surfacePool)[surfaceId];
       CWalkableSurface &nextSurface = (*surfacePool)[nextSurfaceId];
       if (surface.farDist - 0.0013888889f < nextSurface.closeDist) {
@@ -1834,26 +1832,26 @@ void CMovement::ClipFacetsWithOneAnother(const C4Plane &startPlane, TSGrowableAr
       }
       firstElev = startPlane.DistSigned(intersection);
 
-      newSurface2.closeDist = firstElev;
-      newSurface2.farDist = nextSurface.farDist;
-      newSurface2.firstPtOfContact = intersection;
-      newSurface2.lastPtOfContact = nextSurface.lastPtOfContact;
-      newSurface2.facetId = nextSurface.facetId;
-      newSurface2.highestElevation = nextSurface.highestElevation;
-
       newSurface1.closeDist = firstElev;
-      newSurface1.farDist = surface.farDist;
+      newSurface1.farDist = nextSurface.farDist;
       newSurface1.firstPtOfContact = intersection;
-      newSurface1.lastPtOfContact = surface.lastPtOfContact;
-      newSurface1.facetId = surface.facetId;
-      newSurface1.highestElevation = surface.highestElevation;
+      newSurface1.lastPtOfContact = nextSurface.lastPtOfContact;
+      newSurface1.facetId = nextSurface.facetId;
+      newSurface1.highestElevation = nextSurface.highestElevation;
+
+      newSurface2.closeDist = firstElev;
+      newSurface2.farDist = surface.farDist;
+      newSurface2.firstPtOfContact = intersection;
+      newSurface2.lastPtOfContact = surface.lastPtOfContact;
+      newSurface2.facetId = surface.facetId;
+      newSurface2.highestElevation = surface.highestElevation;
 
       surface.farDist = firstElev;
       surface.lastPtOfContact = intersection;
       nextSurface.farDist = firstElev;
       nextSurface.lastPtOfContact = intersection;
-      InsertSurface(newSurface2, nextSurfaceId, surfacePool);
       InsertSurface(newSurface1, nextSurfaceId, surfacePool);
+      InsertSurface(newSurface2, nextSurfaceId, surfacePool);
       numSurfaces += 2;
     }
   }
@@ -1861,26 +1859,11 @@ void CMovement::ClipFacetsWithOneAnother(const C4Plane &startPlane, TSGrowableAr
 
 static void InsertSurface(const CWalkableSurface &toBeInserted, UINT startIndex, TSGrowableArray<CWalkableSurface> *surfacePool) {
   UINT numSurfaces = surfacePool->Count();
-  surfacePool->SetCount(numSurfaces + 1);
+  surfacePool->New();
   UINT insertId;
   for (insertId = startIndex; insertId < numSurfaces; ++insertId) {
-    CWalkableSurface &surface = (*surfacePool)[insertId];
-    int               insert = 0;
-    if (CMath::fabs_(toBeInserted.closeDist - surface.closeDist) >= 0.0013888889f) {
-      insert = toBeInserted.closeDist <= surface.closeDist;
-    } else if (CMath::fabs_(toBeInserted.firstPtOfContact.z - surface.firstPtOfContact.z) >= 0.001f) {
-      insert = toBeInserted.firstPtOfContact.z >= surface.firstPtOfContact.z;
-    } else if (CMath::fabs_(toBeInserted.farDist - surface.farDist) < 0.0013888889f) {
-      insert = toBeInserted.lastPtOfContact.z >= surface.lastPtOfContact.z;
-    } else if (toBeInserted.farDist < surface.farDist) {
-      C4Plane &surfacePlane = s_facetData.facets[surface.facetId].plane;
-      insert = surfacePlane.SolveForZ(toBeInserted.lastPtOfContact.x, toBeInserted.lastPtOfContact.y) <= toBeInserted.lastPtOfContact.z;
-    } else {
-      C4Plane &insertedPlane = s_facetData.facets[toBeInserted.facetId].plane;
-      insert = insertedPlane.SolveForZ(surface.lastPtOfContact.x, surface.lastPtOfContact.y) >= surface.lastPtOfContact.z;
-    }
-    if (insert) {
-      memmove(surfacePool->Ptr() + insertId + 1, surfacePool->Ptr() + insertId, sizeof(CWalkableSurface) * (numSurfaces - insertId));
+    if (CWalkableSurface::HasHigherPriority(toBeInserted, (*surfacePool)[insertId])) {
+      memmove(&(*surfacePool)[insertId + 1], &(*surfacePool)[insertId], sizeof(CWalkableSurface) * (numSurfaces - insertId));
       break;
     }
   }
@@ -1908,7 +1891,17 @@ int CMovement::NextSurfaceIsWalkable(
     float                              currSpeedInv,
     TSGrowableArray<CWalkableSurface> *surfacePool
 ) {
-  FATALASSERT(surface);
+  if (!(surface)) {
+    this ? SErrDisplayErrorFmt(
+               STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+               "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+               "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+               "surface", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
+               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
+               static_cast<int>(GetFacing())
+           )
+         : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "surface", FALSE, 1);
+  }
   FallLogWrite("0x%016I64X: ------>Checking next walkable surface\n", GetGUID());
   C3Vector position = surface->lastPtOfContact;
   C3Vector above = position;
@@ -1929,7 +1922,7 @@ int CMovement::NextSurfaceIsWalkable(
     } else if (cosTheta > 1.0f) {
       cosTheta = 1.0f;
     }
-    FallLogWrite("0x%016I64X: Next surface: step hgt(%g), incline(%g degrees)", GetGUID(), stepHeight, acos(cosTheta) * 57.29578f);
+    FallLogWrite("0x%016I64X: Next surface: step hgt(%g), incline(%g degrees)", GetGUID(), stepHeight, CMath::acos_(cosTheta) * 57.29578f);
     int walkable = -1;
     if (stepHeight > m_stepUpHeight) {
       FallLogWrite(" -- surface was too high\n");
@@ -1961,31 +1954,30 @@ CWalkableSurface *CMovement::GetNextSurface(
     const C4Plane           &currentCeiling,
     TSGrowableArray<CWalkableSurface> *surfacePool
 ) {
-  if (surfaceId >= surfacePool->Count()) {
-    return 0;
-  }
   CWalkableSurface *surface = &(*surfacePool)[surfaceId];
   LogSurface(GetGUID(), *surface);
-  C4Plane &plane = s_facetData.facets[surface->facetId].plane;
-  if (plane.n.z <= 0.0f) {
-    FallLogWrite("0x%016I64X: facet faces downward (z: %g), skipping\n", GetGUID(), plane.n.z);
+  if (s_facetData.facets[surface->facetId].plane.n.z <= 0.0f) {
+    FallLogWrite("0x%016I64X: facet faces downward (z: %g), skipping\n", GetGUID(), s_facetData.facets[surface->facetId].plane.n.z);
     return 0;
   }
   if (distanceMoved + 0.0013888889f > surface->farDist) {
     FallLogWrite("0x%016I64X: facet already passed\n", GetGUID());
+    CollisionInfoColorFace(surface->facetId, FACET_TESTED_UNTOUCHED);
     return 0;
   }
   if (IsTooLow(position, eventTime, surface, distanceMoved, currSpeedInv)) {
     FallLogWrite("0x%016I64X: facet too low\n", GetGUID());
+    CollisionInfoColorFace(surface->facetId, FACET_TESTED_UNTOUCHED);
     return 0;
   }
   float startDistFromTop = currentCeiling.DistSigned(surface->firstPtOfContact);
   float endDistFromTop = currentCeiling.DistSigned(surface->lastPtOfContact);
-  if (startDistFromTop >= 0.0013888889f || endDistFromTop >= 0.0013888889f) {
-    return surface;
+  if (startDistFromTop < 0.0013888889f && endDistFromTop < 0.0013888889f) {
+    FallLogWrite("0x%016I64X: facet too high, start(%g) end(%g)\n", GetGUID(), startDistFromTop, endDistFromTop);
+    CollisionInfoColorFace(surface->facetId, FACET_TESTED_UNTOUCHED);
+    return 0;
   }
-  FallLogWrite("0x%016I64X: facet too high, start(%g) end(%g)\n", GetGUID(), startDistFromTop, endDistFromTop);
-  return 0;
+  return surface;
 }
 
 static void LogSurface(DWORDLONG guid, const CWalkableSurface &surface) {
@@ -1998,7 +1990,7 @@ static void LogSurface(DWORDLONG guid, const CWalkableSurface &surface) {
   CMovement::FallLogWrite(
       "0x%016I64X: facet close(%g) far(%g) FPOC(%g,%g,%g) LPOC(%g,%g,%g) incline(%g degrees)\n", guid, surface.closeDist, surface.farDist,
       surface.firstPtOfContact.x, surface.firstPtOfContact.y, surface.firstPtOfContact.z, surface.lastPtOfContact.x, surface.lastPtOfContact.y,
-      surface.lastPtOfContact.z, acos(cosTheta) * 57.29578f
+      surface.lastPtOfContact.z, CMath::acos_(cosTheta) * 57.29578f
   );
   CMovement::FallLogWrite(
       "0x%016I64X: plane eq(%g, %g, %g, %g)\n", guid, s_facetData.facets[surface.facetId].plane.n.x, s_facetData.facets[surface.facetId].plane.n.y,
@@ -2045,23 +2037,20 @@ void CMovement::CheckSurfaceObstacles(
     TSGrowableArray<CWalkableSurface> *surfacePool,
     CRedirect                         *hitInfo
 ) {
-  float cosTheta = surface->firstPtOfContact.z - m_position.z;
-  if (cosTheta > m_stepUpHeight) {
+  if (surface->firstPtOfContact.z - m_position.z > m_stepUpHeight) {
     FallLogWrite(
         "0x%016I64X: Facet too high (facet: %g, unit: %g, step hgt: %g), obstructing\n", GetGUID(), surface->firstPtOfContact.z, m_position.z,
         m_stepUpHeight
     );
-    *distanceLeft = surface->closeDist - distanceMoved;
-    if (*distanceLeft < 0.0f) {
-      *distanceLeft = 0.0f;
-    }
+    CollisionInfoColorFace(surface->facetId, FACET_BLOCKING);
+    *distanceLeft = surface->closeDist - distanceMoved > 0.0f ? surface->closeDist - distanceMoved : 0.0f;
     hitInfo->hitPoint = surface->firstPtOfContact;
     hitInfo->surfaceNorm[0] = s_facetData.facets[surface->facetId].plane.n;
     hitInfo->flags = 4;
     return;
   }
 
-  if (cosTheta > 0.0013888889f && !TestStepUp(surface->firstPtOfContact)) {
+  if (surface->firstPtOfContact.z - m_position.z > 0.0013888889f && !TestStepUp(surface->firstPtOfContact)) {
     FallLogWrite(
         "0x%016I64X: Step up blocked (facet: %g, unit: %g, step hgt: %g), obstructing\n", GetGUID(), surface->firstPtOfContact.z, m_position.z,
         m_stepUpHeight
@@ -2077,13 +2066,9 @@ void CMovement::CheckSurfaceObstacles(
     return;
   }
   if (surface->lastPtOfContact.z - surface->firstPtOfContact.z < -0.0013888889f) {
-    cosTheta = s_facetData.facets[surface->facetId].plane.n.z;
-    if (cosTheta < -1.0f) {
-      cosTheta = -1.0f;
-    } else if (cosTheta > 1.0f) {
-      cosTheta = 1.0f;
-    }
-    FallLogWrite("0x%016I64X: Facet too steep (%g degree slope), but moving down-hill\n", GetGUID(), acos(cosTheta) * 57.29578f);
+    float cosTheta = s_facetData.facets[surface->facetId].plane.n.z;
+    CMath::clamp_x(cosTheta, -1.0f, 1.0f);
+    FallLogWrite("0x%016I64X: Facet too steep (%g degree slope), but moving down-hill\n", GetGUID(), CMath::acos_(cosTheta) * 57.29578f);
     m_moveFlags |= 0x40000;
     return;
   }
@@ -2091,30 +2076,20 @@ void CMovement::CheckSurfaceObstacles(
   if (surface->highestElevation - m_position.z <= m_stepUpHeight &&
       NextSurfaceIsWalkable(surface, eventTime, distanceMoved, currSpeedInv, surfacePool))
   {
-    cosTheta = s_facetData.facets[surface->facetId].plane.n.z;
-    if (cosTheta < -1.0f) {
-      cosTheta = -1.0f;
-    } else if (cosTheta > 1.0f) {
-      cosTheta = 1.0f;
-    }
-    FallLogWrite("0x%016I64X: Facet too steep (%g degree slope), but low enough to step over\n", GetGUID(), acos(cosTheta) * 57.29578f);
+    float cosTheta = s_facetData.facets[surface->facetId].plane.n.z;
+    CMath::clamp_x(cosTheta, -1.0f, 1.0f);
+    FallLogWrite("0x%016I64X: Facet too steep (%g degree slope), but low enough to step over\n", GetGUID(), CMath::acos_(cosTheta) * 57.29578f);
     return;
   }
 
-  cosTheta = s_facetData.facets[surface->facetId].plane.n.z;
-  if (cosTheta < -1.0f) {
-    cosTheta = -1.0f;
-  } else if (cosTheta > 1.0f) {
-    cosTheta = 1.0f;
-  }
+  float cosTheta = s_facetData.facets[surface->facetId].plane.n.z;
+  CMath::clamp_x(cosTheta, -1.0f, 1.0f);
   FallLogWrite(
-      "0x%016I64X: Facet too steep (%g degree slope), highest elev (%g), unit Z(%g) obstructing\n", GetGUID(), acos(cosTheta) * 57.29578f,
+      "0x%016I64X: Facet too steep (%g degree slope), highest elev (%g), unit Z(%g) obstructing\n", GetGUID(), CMath::acos_(cosTheta) * 57.29578f,
       surface->highestElevation, m_position.z
   );
-  *distanceLeft = surface->closeDist - distanceMoved;
-  if (*distanceLeft < 0.0f) {
-    *distanceLeft = 0.0f;
-  }
+  CollisionInfoColorFace(surface->facetId, FACET_BLOCKING);
+  *distanceLeft = surface->closeDist - distanceMoved > 0.0f ? surface->closeDist - distanceMoved : 0.0f;
   hitInfo->hitPoint = surface->firstPtOfContact;
   hitInfo->surfaceNorm[0] = s_facetData.facets[surface->facetId].plane.n;
   hitInfo->flags = 4;
@@ -2175,64 +2150,59 @@ UINT CMovement::ProjectileFall(DWORD eventTime, UINT timeToMove, const C3Vector 
   FallLogWrite(
       "0x%016I64X: ====| Starting new projectile fall: time to move (%u), time fallen so far (%d)\n", GetGUID(), timeToMove, eventTime - m_fallStartTime
   );
-  float              distToFall = RelDistanceFallen(eventTime, static_cast<float>(timeToMove) * 0.001f);
-  C3Vector move(moveWanted.x, moveWanted.y, -distToFall);
-  float              distance = move.Mag();
-  if (CMath::fabs_(distance) < 0.00000023841858f) {
+  float    distToFall = RelDistanceFallen(eventTime, timeToMove * 0.001f);
+  C3Vector move = moveWanted;
+  move.z = -distToFall;
+  C3Vector unitMove = move;
+  float    distance = unitMove.Mag();
+  if (CMath::fequal_(distance, 0.0f)) {
     return 0;
   }
 
-  float              inverseDistance = 1.0f / distance;
-  C3Vector unitMove = move * inverseDistance;
+  unitMove /= distance;
   FallLogWrite("0x%016I64X: ====| Wanted to projectile fall (%g) (%g,%g,%g)\n", GetGUID(), distance, move.x, move.y, move.z);
 
   DWORDLONG gameObjHit = 0;
-  float     distanceMoved = FLT_MAX;
-  if (s_facetData.facets.Count()) {
-    if (distToFall >= 0.0f) {
-      distanceMoved = ExtrudeProjectileBoxDownHill(eventTime, unitMove, distance, unitMoveWanted, &gameObjHit);
-    } else {
-      distanceMoved = ExtrudeProjectileBoxUpHill(unitMove, distance, &gameObjHit);
-    }
+  float     distanceMoved;
+  if (!s_facetData.facets.Count()) {
+    distanceMoved = FLT_MAX;
+  } else if (distToFall < 0.0f) {
+    distanceMoved = ExtrudeProjectileBoxUpHill(unitMove, distance, &gameObjHit);
+  } else {
+    distanceMoved = ExtrudeProjectileBoxDownHill(eventTime, unitMove, distance, unitMoveWanted, &gameObjHit);
   }
 
-  UINT timeUsed = timeToMove;
-  if (distanceMoved < distance) {
-    move = unitMove * distanceMoved;
+  if (distanceMoved >= distance) {
     m_position += move;
-    float adjustedTime = CMath::fabs_(distanceMoved) * inverseDistance * (static_cast<float>(timeToMove) * 0.001f) * 1000.0f;
-    if (adjustedTime <= 0.0f) {
-      timeUsed = static_cast<UINT>(-static_cast<long>(-adjustedTime + 0.5f));
-    } else {
-      timeUsed = static_cast<UINT>(adjustedTime + 0.5f);
-    }
-
+    distanceMoved = distance;
     if (m_moveFlags & 0x4000) {
-      if (distToFall < 0.0f) {
-        ProcessFallReset(eventTime + timeUsed);
+      CheckFallenFar(eventTime + timeToMove);
+    } else {
+      if (gameObjHit) {
+        SetTransport(gameObjHit);
       }
-    } else if (gameObjHit) {
-      SetTransport(gameObjHit);
+      HandlePendingActions(eventTime + timeToMove);
     }
   } else {
-    distanceMoved = distance;
+    move = unitMove * distanceMoved;
     m_position += move;
-    if (m_moveFlags & 0x4000) {
-      CheckFallenFar(eventTime + timeUsed);
-    } else if (gameObjHit) {
-      SetTransport(gameObjHit);
+    timeToMove = CMath::fint_n(CMath::fabs_(distanceMoved) / distance * (timeToMove * 0.001f) * 1000.0f);
+    if (!(m_moveFlags & 0x4000)) {
+      if (gameObjHit) {
+        SetTransport(gameObjHit);
+      }
+      HandlePendingActions(eventTime + timeToMove);
+    } else if (distToFall < 0.0f) {
+      ProcessFallReset(eventTime + timeToMove);
     }
   }
 
-  if (!(m_moveFlags & 0x4000)) {
-    HandlePendingActions(eventTime + timeUsed);
-  }
   FallLogWrite(
       "0x%016I64X: ====| Projectile fell (%g) (%g,%g,%g) to (%g,%g,%g)\n", GetGUID(), distanceMoved, move.x, move.y, move.z, m_position.x, m_position.y,
       m_position.z
   );
   m_groundNormal.Set(0.0f, 0.0f, 1.0f);
-  return timeUsed;
+  return timeToMove;
 }
 
 UINT CMovement::TraceSurface(
@@ -2242,157 +2212,160 @@ UINT CMovement::TraceSurface(
     const C2Vector &unitMove,
     const C2Vector &unitMoveWanted
 ) {
-  FATALASSERT(!(m_moveFlags & 0x4000));
-  FATALASSERT(!(m_moveFlags & 0x01000000));
-  FATALASSERT(!(m_moveFlags & 0x02000000));
-  FATALASSERT(!(m_moveFlags & 0x10000000));
-  FATALASSERT(m_moveFlags & 0xF);
-  if (CMath::fabs_(distance) < 0.00000095367432f) {
+  if (m_moveFlags & 0x4000) {
+    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "!IsFalling()", FALSE);
+  }
+  if (m_moveFlags & 0x01000000) {
+    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "!IsSliding()", FALSE);
+  }
+  if (m_moveFlags & 0x02000000) {
+    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "!IsSwimming()", FALSE);
+  }
+  if (m_moveFlags & 0x10000000) {
+    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "!IsHalted()", FALSE);
+  }
+  if (!(m_moveFlags & 0xF)) {
+    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMovingOrStrafing()", FALSE);
+  }
+
+  static TSGrowableArray<CWalkableSurface> surfacePool;
+  if (CMath::fequal4_(distance, 0.0f)) {
     return timeToMove;
   }
 
-  CRedirect          hitInfo;
-  C4Plane  slopeTestPlane(unitMove.y, -unitMove.x, 0.0f, -(unitMove.y * m_position.x - unitMove.x * m_position.y));
-  C3Vector normal;
-  C4Plane  currentCeiling;
-  C4Plane  startPlane;
-  float              absDistMoved = 0.0f;
-  float              currentSpeedInv = static_cast<float>(timeToMove) * 0.001f / distance;
-  float              cosTheta;
-  C2Vector moveVector(unitMove.x * distance, unitMove.y * distance);
-  UINT               numSurfaces;
-  C3Vector above;
-  C4Plane  currentPlatform;
-  UINT               surfaceId;
-  float              distanceMoved;
-  CWalkableSurface  *surface;
-  DWORD              currEventTime;
-  float              segmentDist;
-  UINT               timeUsed;
-  float              distMoved;
-  float              adjustedDist;
-  C3Vector fullMoveVector;
-
+  float    currentSpeedInv = timeToMove * 0.001f / distance;
+  C2Vector moveVector = distance * unitMove;
   FallLogWrite(
       "0x%016I64X: *** Requesting new move vector(%g,%g), current time (0x%08X), elapsed (%u), distance (%g)\n", GetGUID(), moveVector.x, moveVector.y,
       eventTime, timeToMove, distance
   );
+
+  C4Plane slopeTestPlane(C3Vector(unitMove.y, -unitMove.x, 0.0f), m_position);
   surfacePool.SetCount(0);
-  EnqueueFacets(slopeTestPlane, *reinterpret_cast<C2Vector *>(&m_position), unitMove, s_facetData.facets, &surfacePool);
+  EnqueueFacets(slopeTestPlane, m_position, unitMove, s_facetData.facets, &surfacePool);
+  {
+    C4Plane startPlane(unitMove, m_position);
+    ClipFacetsWithOneAnother(startPlane, &surfacePool);
+  }
 
-  startPlane.Set(C3Vector(unitMove.x, unitMove.y, 0.0f), m_position);
-  ClipFacetsWithOneAnother(startPlane, &surfacePool);
-
-  fullMoveVector = m_position;
-  fullMoveVector.x += moveVector.x;
-  fullMoveVector.y += moveVector.y;
-  above = m_position;
+  C4Plane  currentPlatform;
+  C3Vector above = m_position;
   above.z += m_collisionBoxHeight;
-  CalcFallSurfaceProjection(m_position, eventTime, timeToMove, fullMoveVector, distance, slopeTestPlane.n, &currentPlatform);
-  normal = -currentPlatform.n;
-  currentCeiling.Set(normal, above);
+  CalcFallSurfaceProjection(
+      m_position, eventTime, timeToMove, C3Vector(m_position.x + moveVector.x, m_position.y + moveVector.y, m_position.z), distance, slopeTestPlane.n,
+      &currentPlatform
+  );
+  C3Vector normal = -currentPlatform.n;
+  C4Plane  currentCeiling(normal, above);
 
-  numSurfaces = surfacePool.Count();
-  surfaceId = 0;
-  distanceMoved = 0.0f;
-  timeUsed = 0;
-  while (surfaceId < numSurfaces && timeUsed < timeToMove) {
-    currEventTime = eventTime + timeUsed;
-    surface = GetNextSurface(m_position, surfaceId, currEventTime, distanceMoved, currentSpeedInv, currentCeiling, &surfacePool);
+  C3Vector fullMoveVector;
+  float    distanceMoved = 0.0f;
+  float    absDistMoved = 0.0f;
+  UINT     timeUsed = 0;
+  UINT     numSurfaces = surfacePool.Count();
+  for (UINT surfaceId = 0; surfaceId < numSurfaces; ++surfaceId) {
+    if (static_cast<int>(timeToMove - timeUsed) <= 0) {
+      return min(timeUsed, timeToMove);
+    }
+
+    DWORD             currEventTime = eventTime + timeUsed;
+    CWalkableSurface *surface = GetNextSurface(m_position, surfaceId, currEventTime, distanceMoved, currentSpeedInv, currentCeiling, &surfacePool);
     if (!surface) {
-      ++surfaceId;
       continue;
     }
-    if (surface->closeDist - distanceMoved >= m_collisionBoxHalfDepth) {
+    if (!(surface->closeDist - distanceMoved < m_collisionBoxHalfDepth)) {
       ProcessFalling(currEventTime);
-      break;
+      return min(timeUsed, timeToMove);
     }
 
-    fullMoveVector.Set(unitMove.x, unitMove.y, 0.0f);
-    hitInfo.Reset();
-    adjustedDist = distance;
+    fullMoveVector = unitMove;
+    CRedirect hitInfo;
+    float     adjustedDist = distance;
     CheckSurfaceObstacles(surface, currEventTime, &adjustedDist, distanceMoved, currentSpeedInv, &surfacePool, &hitInfo);
-    FATALASSERT(!(m_moveFlags & 0x4000));
+    CollisionInfoColorFace(surface->facetId, FACET_TESTED_TOUCHED);
+    if (m_moveFlags & 0x4000) {
+      this ? SErrDisplayErrorFmt(
+                 STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+                 "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
+                 "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
+                 "!IsFalling()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
+                 static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
+                 static_cast<int>(GetFacing())
+             )
+           : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "!IsFalling()", FALSE, 1);
+    }
     if (SetTransport(s_facetData.gameObjects[surface->facetId]) || HandlePendingActions(currEventTime)) {
-      return timeUsed < timeToMove ? timeUsed : timeToMove;
+      return min(timeUsed, timeToMove);
     }
 
-    segmentDist = surface->farDist - distanceMoved;
-    if (CMath::fabs_(surface->closeDist - distanceMoved - adjustedDist) < 0.0013888889f && hitInfo.flags) {
+    float segmentDist = surface->farDist - distanceMoved;
+    if (CMath::fequalz_(surface->closeDist - distanceMoved, adjustedDist, 0.0013888889f) && hitInfo.flags) {
       fullMoveVector *= adjustedDist;
       fullMoveVector.z = currentPlatform.SolveForZ(m_position.x + fullMoveVector.x, m_position.y + fullMoveVector.y) - m_position.z;
-      if (fullMoveVector.z < -(adjustedDist * 1.1917536f + 0.0013888889f)) {
+      if (fullMoveVector.z < 0.0f && fullMoveVector.z < -(adjustedDist * 1.1917536f + 0.0013888889f)) {
         fullMoveVector.z = -(adjustedDist * 1.1917536f + 0.0013888889f);
       }
-      segmentDist = adjustedDist;
       FallLogWrite(
           "0x%016I64X: Completing move at start of facet, attempting to move (%g,%g,%g)\n", GetGUID(), fullMoveVector.x, fullMoveVector.y,
           fullMoveVector.z
       );
-    } else if (segmentDist < adjustedDist) {
+      segmentDist = adjustedDist;
+    } else if (segmentDist > adjustedDist) {
+      fullMoveVector *= adjustedDist;
+      fullMoveVector.z =
+          s_facetData.facets[surface->facetId].plane.SolveForZ(m_position.x + fullMoveVector.x, m_position.y + fullMoveVector.y) - m_position.z;
+      if (fullMoveVector.z < 0.0f && fullMoveVector.z < -(adjustedDist * 1.1917536f + 0.0013888889f)) {
+        fullMoveVector.z = -(adjustedDist * 1.1917536f + 0.0013888889f);
+      }
+      FallLogWrite(
+          "0x%016I64X: Completing move on facet, attempting to move (%g,%g,%g)\n", GetGUID(), fullMoveVector.x, fullMoveVector.y, fullMoveVector.z
+      );
+      segmentDist = adjustedDist;
+    } else {
       fullMoveVector *= segmentDist;
       fullMoveVector.z = surface->lastPtOfContact.z - m_position.z;
-      if (fullMoveVector.z < -(segmentDist * 1.1917536f + 0.0013888889f)) {
+      if (fullMoveVector.z < 0.0f && fullMoveVector.z < -(segmentDist * 1.1917536f + 0.0013888889f)) {
         fullMoveVector.z = -(segmentDist * 1.1917536f + 0.0013888889f);
       }
       FallLogWrite(
           "0x%016I64X: moving to end of facet, attempting to move (%g,%g,%g)\n", GetGUID(), fullMoveVector.x, fullMoveVector.y, fullMoveVector.z
       );
-    } else {
-      fullMoveVector *= adjustedDist;
-      fullMoveVector.z =
-          s_facetData.facets[surface->facetId].plane.SolveForZ(m_position.x + fullMoveVector.x, m_position.y + fullMoveVector.y) - m_position.z;
-      if (fullMoveVector.z < -(adjustedDist * 1.1917536f + 0.0013888889f)) {
-        fullMoveVector.z = -(adjustedDist * 1.1917536f + 0.0013888889f);
-      }
-      segmentDist = adjustedDist;
-      FallLogWrite(
-          "0x%016I64X: Completing move on facet, attempting to move (%g,%g,%g)\n", GetGUID(), fullMoveVector.x, fullMoveVector.y, fullMoveVector.z
-      );
     }
 
-    distMoved = AttemptMove(currEventTime, fullMoveVector, segmentDist, unitMove, unitMoveWanted, s_facetData.facets[surface->facetId].plane);
-    BOOL wasRedirected = m_moveFlags & 0x1000;
+    float distMoved = AttemptMove(currEventTime, fullMoveVector, segmentDist, unitMove, unitMoveWanted, s_facetData.facets[surface->facetId].plane);
+    int   wasRedirected = m_moveFlags & 0x1000;
     distanceMoved += distMoved;
     absDistMoved += CMath::fabs_(distMoved);
     distance -= CMath::fabs_(segmentDist);
-    if (!wasRedirected && !(m_moveFlags & 0x1000) && (m_moveFlags & 0xF) && hitInfo.flags) {
-      fullMoveVector.Set(unitMoveWanted.x, unitMoveWanted.y, 0.0f);
-      Redirect(currEventTime, fullMoveVector, currentPlatform.n, hitInfo);
+    if (!wasRedirected && (m_moveFlags & 0xF) && hitInfo.flags) {
+      Redirect(currEventTime, C3Vector(unitMoveWanted.x, unitMoveWanted.y, 0.0f), currentPlatform.n, hitInfo);
     }
 
-    timeUsed = absDistMoved * currentSpeedInv * 1000.0f <= 0.0f
-                   ? static_cast<UINT>(-static_cast<int>(-(absDistMoved * currentSpeedInv * 1000.0f) + 0.5f))
-                   : static_cast<UINT>(absDistMoved * currentSpeedInv * 1000.0f + 0.5f);
-    if ((!wasRedirected && (m_moveFlags & 0x1000)) || CMath::fabs_(distMoved - segmentDist) >= 0.00000095367432f ||
-        distance < 0.00000095367432f || (m_moveFlags & 0x10000000))
+    timeUsed = CMath::fint_n(absDistMoved * currentSpeedInv * 1000.0f);
+    if ((!wasRedirected && (m_moveFlags & 0x1000)) || CMath::fnotequal4_(distMoved, segmentDist) || distance < 0.00000095367432f ||
+        (m_moveFlags & 0x10000000))
     {
-      return timeUsed < timeToMove ? timeUsed : timeToMove;
+      return min(timeUsed, timeToMove);
     }
 
     currentPlatform = s_facetData.facets[surface->facetId].plane;
-    cosTheta = currentPlatform.n.z;
-    if (cosTheta < -1.0f) {
-      cosTheta = -1.0f;
-    } else if (cosTheta > 1.0f) {
-      cosTheta = 1.0f;
-    }
+    float cosTheta = currentPlatform.n.z;
+    CMath::clamp_x(cosTheta, -1.0f, 1.0f);
     FallLogWrite(
         "0x%016I64X: setting platform (%g,%g,%g,%g) (%g deg slope)\n", GetGUID(), currentPlatform.n.x, currentPlatform.n.y, currentPlatform.n.z,
-        currentPlatform.d, acos(cosTheta) * 57.29578f
+        currentPlatform.d, CMath::acos_(cosTheta) * 57.29578f
     );
     above = m_position;
     above.z += m_collisionBoxHeight;
     normal = -currentPlatform.n;
     currentCeiling.Set(normal, above);
-    ++surfaceId;
   }
 
   if (distance > 0.00000095367432f || timeUsed != timeToMove) {
     FallLogWrite("0x%016I64X: no more facets, falling\n", GetGUID());
     ProcessFalling(eventTime + timeUsed);
   }
-  return timeUsed < timeToMove ? timeUsed : timeToMove;
+  return min(timeUsed, timeToMove);
 }
 
 static void EnqueueFacets(
@@ -2402,36 +2375,46 @@ static void EnqueueFacets(
     const TSGrowableArray<CFacet> &facets,
     TSGrowableArray<CWalkableSurface>       *surfacePool
 ) {
-  surfacePool->SetCount(0);
-  CClippedTriangle  poly;
-  C4Plane startPlane(unitMove.x, unitMove.y, 0.0f, -(position.x * unitMove.x + position.y * unitMove.y));
-  UINT              next;
-  startPlane.Set(-startPlane.n.x, -startPlane.n.y, -startPlane.n.z, -startPlane.d);
-  UINT count = facets.Count();
+  C4Plane startPlane(unitMove, position);
+  UINT    count = facets.Count();
+  surfacePool->ReserveSpace(count);
+  CClippedTriangle poly;
+  UINT             next;
   for (UINT i = 0; i < count; ++i) {
-    const CFacet &facet = facets[i];
-    if (facet.plane.n.z < 0.00000095367432f) {
+    CollisionInfoColorFace(i, FACET_UNTESTED);
+    if (facets[i].plane.n.z < 0.00000095367432f) {
       continue;
     }
-    poly.Init(facet.vertices);
-    ClipPolygonToPlane(startPlane, &poly);
-    UINT numClippedVerts = poly.Count();
-    FATALASSERT(!numClippedVerts || numClippedVerts > 2);
-    float              closestDist = FLT_MAX;
-    float              farthestDist = -FLT_MAX;
+
+    int      hitTri = 0;
+    float    closestDist = FLT_MAX;
+    float    farthestDist = -FLT_MAX;
     C3Vector closest;
     C3Vector farthest;
+    poly.Init(facets[i].vertices);
+    ClipPolygonToPlane(-startPlane, &poly);
+    UINT numClippedVerts = poly.Count();
+    if (!(numClippedVerts == 0 || numClippedVerts > 2)) {
+      SErrDisplayErrorFmt(
+          STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+          isprint((numClippedVerts >> 24) & 0xFF) && isprint((numClippedVerts >> 16) & 0xFF) && isprint((numClippedVerts >> 8) & 0xFF) &&
+                  isprint(numClippedVerts & 0xFF)
+              ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+              : "\"%s\", %s = %ld (0x%08X)",
+          "numClippedVerts == 0 || numClippedVerts > 2", "numClippedVerts", numClippedVerts, numClippedVerts, (numClippedVerts >> 24) & 0xFF,
+          (numClippedVerts >> 16) & 0xFF, (numClippedVerts >> 8) & 0xFF, numClippedVerts & 0xFF
+      );
+    }
+
     C3Vector intersection;
-    int                hitTri = 0;
     for (next = 0; next < numClippedVerts; ++next) {
-      intersection = poly[(next + 1) % numClippedVerts] - poly[next];
-      float length = intersection.Mag();
+      C3Vector direction = poly[(next + 1) % numClippedVerts] - poly[next];
+      float    length = direction.Mag();
       if (CMath::fabs_(length) < 0.00000095367432f) {
         continue;
       }
-      intersection *= 1.0f / length;
-      C3Vector reverse = -intersection;
-      float              denominator = C3Vector::Dot(reverse, slopeTestPlane.n);
+      direction /= length;
+      float denominator = C3Vector::Dot(slopeTestPlane.n, -direction);
       if (CMath::fabs_(denominator) < 0.00000095367432f) {
         continue;
       }
@@ -2439,110 +2422,55 @@ static void EnqueueFacets(
       if (distance < -0.00000095367432f || distance > length + 0.00000095367432f) {
         continue;
       }
-      intersection = poly[next] + intersection * distance;
-      intersection.z = facet.plane.SolveForZ(intersection.x, intersection.y);
+      intersection = poly[next] + direction * distance;
+      intersection.z = facets[i].plane.SolveForZ(intersection.x, intersection.y);
       hitTri = 1;
-      if (unitMove.x * intersection.x + unitMove.y * intersection.y - startPlane.d < closestDist) {
-        closestDist = unitMove.x * intersection.x + unitMove.y * intersection.y - startPlane.d;
+      float dist = startPlane.DistSigned(intersection);
+      if (dist < closestDist) {
+        closestDist = dist;
         closest = intersection;
       }
-      if (unitMove.x * intersection.x + unitMove.y * intersection.y - startPlane.d > farthestDist) {
-        farthestDist = unitMove.x * intersection.x + unitMove.y * intersection.y - startPlane.d;
+      if (dist > farthestDist) {
+        farthestDist = dist;
         farthest = intersection;
       }
     }
 
-    if (!hitTri || CMath::fabs_(closestDist - farthestDist) < 0.00000095367432f || farthestDist < 0.00000095367432f) {
+    if (!hitTri || CMath::fequal4_(closestDist, farthestDist) || farthestDist < 0.00000095367432f) {
       continue;
     }
 
     float highestZ = -FLT_MAX;
     for (next = 0; next < 3; ++next) {
-      intersection = facet.vertices[(next + 1) % 3] - facet.vertices[next];
-      float length = intersection.Mag();
+      C3Vector direction = facets[i].vertices[(next + 1) % 3] - facets[i].vertices[next];
+      float    length = direction.Mag();
       if (CMath::fabs_(length) < 0.00000095367432f) {
         continue;
       }
-      intersection *= 1.0f / length;
-      C3Vector reverse = -intersection;
-      float              denominator = C3Vector::Dot(reverse, slopeTestPlane.n);
+      direction /= length;
+      float denominator = C3Vector::Dot(slopeTestPlane.n, -direction);
       if (CMath::fabs_(denominator) < 0.00000095367432f) {
         continue;
       }
-      float distance = slopeTestPlane.DistSigned(facet.vertices[next]) / denominator;
+      float distance = slopeTestPlane.DistSigned(facets[i].vertices[next]) / denominator;
       if (distance < -0.00000095367432f || distance > length + 0.00000095367432f) {
         continue;
       }
-      intersection = facet.vertices[next] + intersection * distance;
+      intersection = facets[i].vertices[next] + direction * distance;
       if (intersection.z > highestZ) {
         highestZ = intersection.z;
       }
     }
 
-    CWalkableSurface surface;
-    surface.closeDist = closestDist;
-    surface.farDist = farthestDist;
-    surface.firstPtOfContact = closest;
-    surface.lastPtOfContact = farthest;
-    surface.facetId = i;
-    surface.highestElevation = highestZ;
-    surfacePool->Add(&surface);
+    CWalkableSurface *surface = surfacePool->New();
+    surface->closeDist = closestDist;
+    surface->farDist = farthestDist;
+    surface->firstPtOfContact = closest;
+    surface->lastPtOfContact = farthest;
+    surface->highestElevation = highestZ;
+    surface->facetId = i;
   }
   qsort(surfacePool->Ptr(), surfacePool->Count(), sizeof(CWalkableSurface), FacetCompare);
-}
-
-static float ClipPolygonToPlane(const C4Plane &plane, CClippedTriangle *poly) {
-  FATALASSERT(poly);
-  if (!poly->Count()) {
-    return 0.0f;
-  }
-
-  static CClippedTriangle input;
-  input = *poly;
-  poly->SetCount(0);
-  float penetrationDepth = -FLT_MAX;
-
-  for (UINT i = 0; i < input.Count(); ++i) {
-    UINT nextIndex = i + 1;
-    if (nextIndex == input.Count()) {
-      nextIndex = 0;
-    }
-
-    float dist1 = plane.DistSigned(input[i]);
-    float dist2 = plane.DistSigned(input[nextIndex]);
-    if (-dist1 > penetrationDepth) {
-      penetrationDepth = -dist1;
-    }
-
-    if ((dist1 < 0.0f || dist2 <= 0.0013888889f) && (dist1 <= 0.0013888889f || dist2 < 0.0f)) {
-      if (dist1 > 0.0013888889f || dist2 > 0.0013888889f) {
-        C3Vector intersection = input[i] + (input[nextIndex] - input[i]) * (dist1 / (dist1 - dist2));
-        if (dist1 <= 0.0f && dist2 > 0.0f) {
-          if (!poly->Count() || poly->Last() != input[i]) {
-            poly->Add(input[i]);
-          }
-          poly->Add(intersection);
-        } else if (dist1 > 0.0f && dist2 <= 0.0f) {
-          poly->Add(intersection);
-          if (nextIndex) {
-            poly->Add(input[nextIndex]);
-          }
-        }
-      } else {
-        if (!poly->Count() || poly->Last() != input[i]) {
-          poly->Add(input[i]);
-        }
-        if (nextIndex || !poly->Count() || (*poly)[0] != input[nextIndex]) {
-          poly->Add(input[nextIndex]);
-        }
-      }
-    }
-  }
-
-  if (poly->Count() < 3) {
-    poly->SetCount(0);
-  }
-  return penetrationDepth;
 }
 
 static int __cdecl FacetCompare(LPCVOID elem1, LPCVOID elem2) {
@@ -2703,10 +2631,10 @@ static void DetermineBoxParallelHitType(const C4Plane *boxSides, const CClippedT
   float yDist = FindClosestVertDist(boxSides[2], &boxSides[0], clippedPoly);
   if (CMath::fabs_(xDist - yDist) < 0.00000095367432f) {
     hitInfo->flags |= 3;
-  } else if (xDist >= yDist) {
-    hitInfo->flags |= 2;
-  } else {
+  } else if (xDist < yDist) {
     hitInfo->flags |= 1;
+  } else {
+    hitInfo->flags |= 2;
   }
 }
 
@@ -2728,23 +2656,22 @@ static float FindClosestVertDist(const C4Plane &front, const C4Plane *sides, con
   return minDist;
 }
 
-C3Vector CMovement::CalcAverageSurfaceNormal(const C4Plane *box, UINT count) {
-  C3Vector average(0.0f);
-  UINT               numNormals = 0;
-  UINT               numFacets = s_facetData.facets.Count();
-  float              penetrationDepth;
+C3Vector CMovement::CalcAverageSurfaceNormal(const C4Plane *box, UINT numSides) {
+  CClippedTriangle clippedPoly;
+  UINT             numFacets = s_facetData.facets.Count();
+  C3Vector         average(0.0f);
+  UINT             numNormals = 0;
+  float            penetrationDepth;
   for (UINT facetId = 0; facetId < numFacets; ++facetId) {
-    CFacet &facet = s_facetData.facets[facetId];
-    if (facet.plane.n.z <= 0.017452406f) {
+    if (s_facetData.facets[facetId].plane.n.z <= 0.017452406f) {
       continue;
     }
-
-    CClippedTriangle clippedPoly;
-    clippedPoly.Init(facet.vertices);
-    if (ClipPolygonToPolyhedron(box, count, &clippedPoly, &penetrationDepth) && penetrationDepth >= 0.013888889f) {
-      average += facet.plane.n;
-      ++numNormals;
+    clippedPoly.Init(s_facetData.facets[facetId].vertices);
+    if (!ClipPolygonToPolyhedron(box, numSides, &clippedPoly, &penetrationDepth) || penetrationDepth < 0.013888889f) {
+      continue;
     }
+    average += s_facetData.facets[facetId].plane.n;
+    ++numNormals;
   }
 
   if (!numNormals) {
@@ -2817,6 +2744,7 @@ void CMovement::FindObstacles(
             hitInfo->surfaceNorm[1] = hitInfo->surfaceNorm[0];
             hitInfo->surfaceNorm[0] = s_facetData.facets[facetId].plane.n;
           }
+          CollisionInfoColorFace(facetId, FACET_BLOCKING);
         }
       } else {
         FallLogWrite("0x%016I64X: Obstacle is multi-hit, sq dist(%g)\n", GetGUID(), static_cast<double>(sqDist));
@@ -2857,7 +2785,7 @@ void CMovement::FindObstacles(
 static float DistFromPlaneAlongVector(const C3Vector &point, const C4Plane &plane, const C3Vector &unitVector) {
   float directDist = plane.DistSigned(point);
   float cosTheta = C3Vector::Dot(plane.n, unitVector);
-  FATALASSERT(CMath::fnotequal_(cosTheta, 0.0f));
+  FATALASSERT(CMath::fnotequal_(cosTheta,0.0f));
   return directDist / cosTheta;
 }
 
@@ -3107,43 +3035,46 @@ float CMovement::ExtrudeCollisionShape(
     const C2Vector &unitMoveWanted,
     const C3Vector &platformNorm
 ) {
-  int aligned = CMath::fabs_(moveVector.x) < 0.00000095367432f || CMath::fabs_(moveVector.y) < 0.00000095367432f;
-  if (moveVector.z < 0.00000095367432f) {
-    return aligned ? ExtrudeAlignedDownHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm)
-                   : ExtrudeUnalignedDownHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm);
+  switch (
+      (moveVector.z < 0.00000095367432f)
+      | ((CMath::fabs_(moveVector.x) < 0.00000095367432f || CMath::fabs_(moveVector.y) < 0.00000095367432f) << 1)
+  ) {
+    case 3:
+      return ExtrudeAlignedDownHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm);
+    case 2:
+      return ExtrudeAlignedUpHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm);
+    case 1:
+      return ExtrudeUnalignedDownHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm);
+    default:
+      return ExtrudeUnalignedUpHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm);
   }
-  return aligned ? ExtrudeAlignedUpHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm)
-                 : ExtrudeUnalignedUpHill(timeStamp, moveVector, distanceWanted, unitMoveWanted, platformNorm);
 }
 
 BOOL CMovement::TestStepUp(const C3Vector &destination) {
   float stepHeight = destination.z - m_position.z;
-  if (stepHeight <= 0.0f) {
-    return 1;
-  }
-  if (FindCeilingDistanceAbove(stepHeight) < stepHeight) {
+  if (CMath::fnotequal4_(stepHeight, FindCeilingDistanceAbove(stepHeight))) {
     return 0;
   }
-  C3Vector moveVector = destination - m_position;
-  float              distWanted = moveVector.Mag();
-  if (distWanted < 0.00000023841858f) {
-    return 1;
+
+  C3Vector moveVector(destination.x - m_position.x, destination.y - m_position.y, 0.0f);
+  C2Vector unitMove = moveVector;
+  float    distWanted = unitMove.Mag();
+  if (CMath::fnotequal_(distWanted, 0.0f)) {
+    unitMove /= distWanted;
   }
-  C3Vector unitMove = moveVector;
-  unitMove.Normalize();
+
   C4Plane xBoxPlanes[6];
   C4Plane yBoxPlanes[6];
-  C4Plane startPlanes[2];
   ExtrudeBoxSideX(moveVector, m_stepUpHeight, xBoxPlanes);
   ExtrudeBoxSideY(moveVector, m_stepUpHeight, yBoxPlanes);
-  float     distance = FLT_MAX;
-  CRedirect hitInfo;
+  float   distance = FLT_MAX;
+  C4Plane startPlanes[2];
   startPlanes[0] = xBoxPlanes[0];
   startPlanes[0].d += 0.027777778f;
   startPlanes[1] = yBoxPlanes[0];
   startPlanes[1].d += 0.027777778f;
-  FindObstacles(unitMove, xBoxPlanes, 6, startPlanes[0], 0, &distance, &hitInfo);
-  FindObstacles(unitMove, yBoxPlanes, 6, startPlanes[1], 0, &distance, &hitInfo);
+  FindObstacles(unitMove, xBoxPlanes, 6, startPlanes[0], 2, &distance, 0);
+  FindObstacles(unitMove, yBoxPlanes, 6, startPlanes[1], 2, &distance, 0);
   return distance >= distWanted;
 }
 
@@ -3305,46 +3236,36 @@ BOOL CMovement::ExtrudePyramidSideX(const C3Vector &unitMove, float distance, C4
   if (CMath::fabs_(unitMove.x) < 0.00000023841858f && CMath::fabs_(unitMove.z) < 0.00000023841858f) {
     return 0;
   }
+  int      posX = unitMove.x >= 0.0f;
   C3Vector moveVector = unitMove * distance;
-  C3Vector moveDir[2] = {-moveVector, moveVector};
-  int                posX = unitMove.x >= 0.0f;
-  float              depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
-
-  float pyrNormX = posX ? 0.87964189f : -0.87964189f;
-
+  float    depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
+  C3Vector moveDir[2];
+  moveDir[0] = -moveVector;
+  moveDir[1] = moveVector;
+  C3Vector baseVector(posX ? 0.87964189f : -0.87964189f, 0.0f, -0.4756366f);
   C3Vector posPyramidEdge(depth[posX], m_collisionBoxHalfDepth, m_collisionBoxHalfDepth * 1.849399f);
-  C3Vector negPyramidEdge(posPyramidEdge.x, -posPyramidEdge.y, posPyramidEdge.z);
-
+  C3Vector negPyramidEdge = posPyramidEdge;
+  negPyramidEdge.y = -posPyramidEdge.y;
   C3Vector posZNorm(moveDir[!posX].z, 0.0f, moveDir[posX].x);
-  float              posZMag = posZNorm.Mag();
-  if (CMath::fabs_(posZMag) >= 0.00000023841858f) {
-    posZNorm *= 1.0f / posZMag;
-  }
+  posZNorm.Normalize();
 
-  boxSides[0].n.Set(-pyrNormX, 0.0f, 0.4756366f);
-  boxSides[0].d = -C3Vector::Dot(boxSides[0].n, m_position);
+  boxSides[0].Set(C3Vector(-baseVector.x, 0.0f, 0.4756366f), m_position);
+  boxSides[1].Set(baseVector, unitMove * (distance > 0.027777778f ? distance : 0.027777778f) + m_position);
 
-  float              clampedDist = distance > 0.027777778f ? distance : 0.027777778f;
-  C3Vector advanced(unitMove.x * clampedDist, unitMove.y * clampedDist, unitMove.z * clampedDist);
-  advanced.Set(advanced.x + m_position.x, advanced.y + m_position.y, advanced.z + m_position.z);
-  boxSides[1].n.Set(pyrNormX, 0.0f, -0.4756366f);
-  boxSides[1].d = -C3Vector::Dot(boxSides[1].n, advanced);
-
-  boxSides[2] = C4Plane(C3Vector(0.0f), moveVector, negPyramidEdge);
+  boxSides[2].Set(C3Vector(0.0f), moveVector, negPyramidEdge);
   if (boxSides[2].n.y > 0.0f) {
     boxSides[2] = -boxSides[2];
   }
-  boxSides[2].d = -C3Vector::Dot(boxSides[2].n, m_position);
+  boxSides[2].Set(boxSides[2].n, m_position);
 
-  boxSides[3] = C4Plane(C3Vector(0.0f), moveVector, posPyramidEdge);
+  boxSides[3].Set(C3Vector(0.0f), moveVector, posPyramidEdge);
   if (boxSides[3].n.y < 0.0f) {
     boxSides[3] = -boxSides[3];
   }
-  boxSides[3].d = -C3Vector::Dot(boxSides[3].n, m_position);
+  boxSides[3].Set(boxSides[3].n, m_position);
 
-  negPyramidEdge.Set(posPyramidEdge.x + m_position.x, posPyramidEdge.y + m_position.y, posPyramidEdge.z + m_position.z);
-  boxSides[4].n = posZNorm;
-  boxSides[4].d = -C3Vector::Dot(boxSides[4].n, negPyramidEdge);
+  negPyramidEdge = posPyramidEdge + m_position;
+  boxSides[4].Set(posZNorm, negPyramidEdge);
 
   return 1;
 }
@@ -3353,46 +3274,36 @@ BOOL CMovement::ExtrudePyramidSideY(const C3Vector &unitMove, float distance, C4
   if (CMath::fabs_(unitMove.y) < 0.00000023841858f && CMath::fabs_(unitMove.z) < 0.00000023841858f) {
     return 0;
   }
+  int      posY = unitMove.y >= 0.0f;
   C3Vector moveVector = unitMove * distance;
-  C3Vector moveDir[2] = {-moveVector, moveVector};
-  int                posY = unitMove.y >= 0.0f;
-  float              depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
-
-  float pyrNormY = posY ? 0.87964189f : -0.87964189f;
-
+  float    depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
+  C3Vector moveDir[2];
+  moveDir[0] = -moveVector;
+  moveDir[1] = moveVector;
+  C3Vector baseVector(0.0f, posY ? 0.87964189f : -0.87964189f, -0.4756366f);
   C3Vector posPyramidEdge(m_collisionBoxHalfDepth, depth[posY], m_collisionBoxHalfDepth * 1.849399f);
-  C3Vector negPyramidEdge(-posPyramidEdge.x, posPyramidEdge.y, posPyramidEdge.z);
-
+  C3Vector negPyramidEdge = posPyramidEdge;
+  negPyramidEdge.x = -posPyramidEdge.x;
   C3Vector posZNorm(0.0f, moveDir[!posY].z, moveDir[posY].y);
-  float              posZMag = posZNorm.Mag();
-  if (CMath::fabs_(posZMag) >= 0.00000023841858f) {
-    posZNorm *= 1.0f / posZMag;
-  }
+  posZNorm.Normalize();
 
-  boxSides[0].n.Set(0.0f, -pyrNormY, 0.4756366f);
-  boxSides[0].d = -C3Vector::Dot(boxSides[0].n, m_position);
+  boxSides[0].Set(C3Vector(0.0f, -baseVector.y, 0.4756366f), m_position);
+  boxSides[1].Set(baseVector, unitMove * (distance > 0.027777778f ? distance : 0.027777778f) + m_position);
 
-  float              clampedDist = distance > 0.027777778f ? distance : 0.027777778f;
-  C3Vector advanced(unitMove.x * clampedDist, unitMove.y * clampedDist, unitMove.z * clampedDist);
-  advanced.Set(advanced.x + m_position.x, advanced.y + m_position.y, advanced.z + m_position.z);
-  boxSides[1].n.Set(0.0f, pyrNormY, -0.4756366f);
-  boxSides[1].d = -C3Vector::Dot(boxSides[1].n, advanced);
-
-  boxSides[2] = C4Plane(C3Vector(0.0f), moveVector, negPyramidEdge);
+  boxSides[2].Set(C3Vector(0.0f), moveVector, negPyramidEdge);
   if (boxSides[2].n.x > 0.0f) {
     boxSides[2] = -boxSides[2];
   }
-  boxSides[2].d = -C3Vector::Dot(boxSides[2].n, m_position);
+  boxSides[2].Set(boxSides[2].n, m_position);
 
-  boxSides[3] = C4Plane(C3Vector(0.0f), moveVector, posPyramidEdge);
+  boxSides[3].Set(C3Vector(0.0f), moveVector, posPyramidEdge);
   if (boxSides[3].n.x < 0.0f) {
     boxSides[3] = -boxSides[3];
   }
-  boxSides[3].d = -C3Vector::Dot(boxSides[3].n, m_position);
+  boxSides[3].Set(boxSides[3].n, m_position);
 
-  negPyramidEdge.Set(posPyramidEdge.x + m_position.x, posPyramidEdge.y + m_position.y, posPyramidEdge.z + m_position.z);
-  boxSides[4].n = posZNorm;
-  boxSides[4].d = -C3Vector::Dot(boxSides[4].n, negPyramidEdge);
+  negPyramidEdge = posPyramidEdge + m_position;
+  boxSides[4].Set(posZNorm, negPyramidEdge);
 
   return 1;
 }

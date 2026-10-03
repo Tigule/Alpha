@@ -22,7 +22,7 @@ struct CustomizationSelections {
   UINT facialStyle;
   UINT face;
 
-  CustomizationSelections() {
+  CustomizationSelections() : outfit(0), skinColor(0), hairColor(0), hairStyle(0), facialStyle(0), face(0) {
   }
 };
 
@@ -45,7 +45,6 @@ struct CHARCREATEINFO {
   }
 
   void Initialize() {
-    memset(selections, 0, sizeof(selections));
     memset(currentGeosets, 0, sizeof(currentGeosets));
 
     for (UINT sex = 0; sex < 2; ++sex) {

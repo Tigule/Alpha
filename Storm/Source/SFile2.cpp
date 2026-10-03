@@ -70,12 +70,12 @@ void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
   char         namebuf[MAX_PATH];
   struct _stat stats;
   DWORD        toplen;
-  DWORD        pathlen;
+  int          pathlen;
   char        *relative;
   SDIRENT     *entry;
 
   toplen = SStrLen(top);
-  ASSERT(toplen + SStrLen(sub) < MAX_PATH - 1);
+  ASSERT(toplen + SStrLen(sub) < 260 - 1);
 
   SStrCopy(namebuf, top, MAX_PATH);
   if (namebuf[toplen - 1] != '\\') {
@@ -93,61 +93,55 @@ void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
   }
 
   while ((entry = SFile::ReadDir(dir)) != NULL) {
-    char    *extension;
-    char    *actual;
-    FILEMAP *mapped;
+    if (SStrCmp(entry->d_name, ".", INT_MAX) && SStrCmp(entry->d_name, "..", INT_MAX)) {
+      SStrCopy(namebuf + pathlen, entry->d_name, MAX_PATH - pathlen);
+      if (!_stat(namebuf, &stats)) {
+        if (stats.st_mode & 0x4000) {
+          if (!*s_datapath || SStrCmp(relative, s_datapath, SStrLen(relative))) {
+            SDIR *child = SFile::OpenDir(namebuf);
 
-    if (!SStrCmp(entry->d_name, ".", INT_MAX) || !SStrCmp(entry->d_name, "..", INT_MAX)) {
-      continue;
-    }
-    SStrCopy(namebuf + pathlen, entry->d_name, MAX_PATH - pathlen);
-    if (_stat(namebuf, &stats)) {
-      continue;
-    }
+            if (child) {
+              AddDirectoryToHash(top, relative, child);
+              SFile::CloseDir(child);
+            }
+          }
+        } else if (stats.st_mode & 0x8000) {
+          char *extension = SStrChrR(namebuf, '.');
 
-    if (stats.st_mode & 0x4000) {
-      SDIR *child;
+          char *actual = SStrDupA(namebuf, __FILE__, __LINE__);
 
-      if (*s_datapath && !SStrCmp(relative, s_datapath, SStrLen(relative))) {
-        continue;
+          FILEMAP *mapped = NULL;
+
+          if (extension) {
+            if (!SStrCmpI(extension, ".bz", INT_MAX)) {
+              *extension = 0;
+              if (!s_fileMap.Ptr(relative)) {
+                mapped = s_fileMap.New(relative, 0, 0);
+                mapped->type = SFILE_COMPRESSED;
+              }
+            } else if (!SStrCmpI(extension, ".MPQ", INT_MAX)) {
+              *extension = 0;
+              if (!s_fileMap.Ptr(relative)) {
+                mapped = s_fileMap.New(relative, 0, 0);
+                mapped->type = SFILE_PAQ;
+              }
+            }
+          }
+
+          if (!mapped) {
+            if (!s_fileMap.Ptr(relative)) {
+              mapped = s_fileMap.New(relative, 0, 0);
+              mapped->type = SFILE_PLAIN;
+            }
+          }
+
+          if (mapped) {
+            mapped->realname = actual;
+          } else {
+            FREE(actual);
+          }
+        }
       }
-      child = SFile::OpenDir(namebuf);
-      if (child) {
-        AddDirectoryToHash(top, relative, child);
-        SFile::CloseDir(child);
-      }
-      continue;
-    }
-    if (!(stats.st_mode & 0x8000)) {
-      continue;
-    }
-
-    extension = SStrChrR(namebuf, '.');
-    actual = SStrDupA(namebuf, __FILE__, __LINE__);
-    if (extension && !SStrCmpI(extension, ".bz", INT_MAX)) {
-      *extension = 0;
-      if (!s_fileMap.Ptr(relative)) {
-        mapped = s_fileMap.New(relative, 0, 0);
-        mapped->type = SFILE_COMPRESSED;
-        mapped->realname = actual;
-        continue;
-      }
-    } else if (extension && !SStrCmpI(extension, ".MPQ", INT_MAX)) {
-      *extension = 0;
-      if (!s_fileMap.Ptr(relative)) {
-        mapped = s_fileMap.New(relative, 0, 0);
-        mapped->type = SFILE_PAQ;
-        mapped->realname = actual;
-        continue;
-      }
-    }
-
-    if (!s_fileMap.Ptr(relative)) {
-      mapped = s_fileMap.New(relative, 0, 0);
-      mapped->type = SFILE_PLAIN;
-      mapped->realname = actual;
-    } else {
-      FREE(actual);
     }
   }
 }
@@ -259,7 +253,7 @@ static int OldFindFile(LPCSTR filename, char *realname, int len, DWORD flags, SF
 
   SStrCopy(realname, s_basepath, len);
   SStrPack(realname, filename, len);
-  if (!_stat(realname, &stats) && stats.st_mode >= 0x8000) {
+  if (!_stat(realname, &stats) && (stats.st_mode & 0x8000)) {
     *type = SFILE_PLAIN;
     return TRUE;
   }
@@ -268,7 +262,7 @@ static int OldFindFile(LPCSTR filename, char *realname, int len, DWORD flags, SF
   if (backslash) {
     SStrCopy(realname, s_basepath, len);
     SStrPack(realname, backslash + 1, len);
-    if (!_stat(realname, &stats) && stats.st_mode >= 0x8000) {
+    if (!_stat(realname, &stats) && (stats.st_mode & 0x8000)) {
       *type = SFILE_PLAIN;
       return TRUE;
     }
@@ -278,7 +272,7 @@ static int OldFindFile(LPCSTR filename, char *realname, int len, DWORD flags, SF
   SStrPack(realname, s_datapath, len);
   SStrPack(realname, filename, len);
   if (!_stat(realname, &stats)) {
-    if (stats.st_mode < 0x8000) {
+    if (!(stats.st_mode & 0x8000)) {
       return FALSE;
     }
     *type = SFILE_PLAIN;
@@ -287,7 +281,7 @@ static int OldFindFile(LPCSTR filename, char *realname, int len, DWORD flags, SF
 
   SStrPack(realname, ".bz", len);
   if (!_stat(realname, &stats)) {
-    if (stats.st_mode < 0x8000) {
+    if (!(stats.st_mode & 0x8000)) {
       return FALSE;
     }
     *type = SFILE_COMPRESSED;
@@ -297,12 +291,12 @@ static int OldFindFile(LPCSTR filename, char *realname, int len, DWORD flags, SF
   if (*s_basepath) {
     SStrCopy(realname, s_datapath, len);
     SStrPack(realname, filename, len);
-    if (!_stat(realname, &stats) && stats.st_mode >= 0x8000) {
+    if (!_stat(realname, &stats) && (stats.st_mode & 0x8000)) {
       *type = SFILE_PLAIN;
       return TRUE;
     }
     SStrPack(realname, ".bz", len);
-    if (!_stat(realname, &stats) && stats.st_mode >= 0x8000) {
+    if (!_stat(realname, &stats) && (stats.st_mode & 0x8000)) {
       *type = SFILE_COMPRESSED;
       return TRUE;
     }
@@ -313,7 +307,7 @@ static int OldFindFile(LPCSTR filename, char *realname, int len, DWORD flags, SF
   SStrPack(realname, filename, len);
   SStrPack(realname, ".MPQ", len);
   if (!_stat(realname, &stats)) {
-    if (stats.st_mode < 0x8000) {
+    if (!(stats.st_mode & 0x8000)) {
       return FALSE;
     }
     *type = SFILE_PAQ;
@@ -325,7 +319,7 @@ static int OldFindFile(LPCSTR filename, char *realname, int len, DWORD flags, SF
     SStrPack(realname, s_datapath2, len);
     SStrPack(realname, filename, len);
     if (!_stat(realname, &stats)) {
-      if (stats.st_mode < 0x8000) {
+      if (!(stats.st_mode & 0x8000)) {
         return FALSE;
       }
       *type = SFILE_PLAIN;
@@ -550,168 +544,173 @@ DWORD APIENTRY SFile::Open(LPCSTR filename, SFile **file) {
 }
 
 DWORD APIENTRY SFile::OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SFile **file) {
-  SArchive   *archiveData;
-  HSFILE      sfile;
-  SFILE_TYPE  type;
-  char        realname[MAX_PATH];
-  char       *extension;
-  LPCSTR      basename;
-  ZipFileFCB *md5file;
+  char       realname[MAX_PATH];
+  SFILE_TYPE type;
 
   *file = NULL;
   if (!archive) {
-    if (!FindFile(filename, realname, MAX_PATH, flags, &type)) {
-      return FALSE;
-    }
-
-    *file = NEW(SFile)(type);
-    switch (type) {
-      case SFILE_PLAIN:
-        (*file)->m_fileptr = fopen(realname, "rb");
-        if (!(*file)->m_fileptr) {
-          goto open_failed;
+    if (FindFile(filename, realname, MAX_PATH, flags, &type)) {
+      *file = NEW(SFile)(type);
+      switch (type) {
+        case SFILE_PLAIN: {
+          (*file)->m_fileptr = fopen(realname, "rb");
+          if (!(*file)->m_fileptr) {
+            delete *file;
+            *file = NULL;
+            return FALSE;
+          }
+          (*file)->m_filename = SStrDupA(realname, __FILE__, __LINE__);
+          return 2;
         }
-        (*file)->m_filename = SStrDupA(realname, __FILE__, __LINE__);
-        return 2;
 
-      case SFILE_COMPRESSED: {
-        (*file)->m_fileptr = fopen(realname, "rb");
-        if (!(*file)->m_fileptr) {
+        case SFILE_COMPRESSED: {
+          (*file)->m_fileptr = fopen(realname, "rb");
+          if (!(*file)->m_fileptr) {
+            delete *file;
+            *file = NULL;
+            return FALSE;
+          }
+          (*file)->m_filename = SStrDupA(realname, __FILE__, __LINE__);
+          (*file)->m_actualname = SStrDupA(filename, __FILE__, __LINE__);
+
+          char *extension = SStrChrR((*file)->m_filename, '.');
+          if (extension && !SStrCmpI(extension, ".bz", INT_MAX)) {
+            *extension = 0;
+          }
+          NoPaqCompHdr header;
+          fread(&header, 1, sizeof(header), (FILE *)(*file)->m_fileptr);
+          if (memcmp(header.signature, "BZ00", 4)) {
+            delete *file;
+            *file = NULL;
+            return FALSE;
+          }
+          (*file)->m_size = header.uncompressedSize;
+          (*file)->m_md5 = header.md5;
+          (*file)->m_haveMD5 = TRUE;
+          (*file)->m_curOffset = 0;
+          (*file)->m_zbuffer = (BYTE *)ALLOC(0x1000);
+          ASSERT(!(*file)->m_zstream);
+          (*file)->m_zstream = (z_stream *)ALLOC(sizeof(z_stream));
+          (*file)->m_zstream->avail_in = 0;
+          (*file)->m_zstream->zalloc = NULL;
+          (*file)->m_zstream->zfree = NULL;
+          (*file)->m_zstream->opaque = NULL;
+          int err = inflateInit_((*file)->m_zstream, "1.1.3", sizeof(z_stream));
+          ASSERT(err == 0);
+          return 3;
+        }
+
+        case SFILE_PAQ: {
+          (*file)->m_archive = NEW(SArchive);
+          if (!SFileOpenArchive(realname, 0, 0, (HSARCHIVE *)&(*file)->m_archive->m_archive)) {
+            delete *file;
+            *file = NULL;
+            return FALSE;
+          }
+
+          LPCSTR basename = SStrChrR(filename, '\\');
+          if (!basename) {
+            basename = filename - 1;
+          }
+          if (!SFileOpenFileEx((HSARCHIVE)(*file)->m_archive->m_archive, basename + 1, 0, (HSFILE *)&(*file)->m_hsfile)) {
+            SFileCloseArchive((HSARCHIVE)(*file)->m_archive->m_archive);
+            delete *file;
+            *file = NULL;
+            return FALSE;
+          }
+          (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
+          if (flags & 0x10000) {
+            if (!SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) || (*file)->m_md5 == MD5(0, 0, 0, 0)) {
+              (*file)->m_haveMD5 = FALSE;
+            } else {
+              (*file)->m_haveMD5 = TRUE;
+            }
+          }
+          return TRUE;
+        }
+
+        case SFILE_OLD_SFILE: {
+          if (!SFileOpenFileEx(NULL, filename, flags, (HSFILE *)&(*file)->m_hsfile)) {
+            delete *file;
+            *file = NULL;
+            return FALSE;
+          }
+          (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
+          if (flags & 0x10000) {
+            if (!SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) || (*file)->m_md5 == MD5(0, 0, 0, 0)) {
+              (*file)->m_haveMD5 = FALSE;
+            } else {
+              (*file)->m_haveMD5 = TRUE;
+            }
+          }
+          return TRUE;
+        }
+
+        case SFILE_ZIP_FILE: {
+          (*file)->m_zipFile = ZipFileOpenFile(filename, 0);
+          if (!(*file)->m_zipFile) {
+            delete *file;
+            *file = NULL;
+            return FALSE;
+          }
+          (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
+          if (flags & 0x10000) {
+            char md5filename[MAX_PATH];
+            SStrCopy(md5filename, filename, INT_MAX);
+            SStrPack(md5filename, ".md5", INT_MAX);
+            ZipFileFCB *md5file = ZipFileOpenFile(md5filename, 0);
+            if (md5file) {
+              (*file)->m_haveMD5 = ZipFileReadFile(md5file, &(*file)->m_md5, sizeof((*file)->m_md5), NULL);
+              ZipFileCloseFile(md5file);
+            }
+          }
+          return 4;
+        }
+      }
+    }
+  } else {
+    switch (archive->m_type) {
+      case SARCHIVE_MPQ: {
+        HSFILE sfile;
+        if (!SFileOpenFileEx((HSARCHIVE)archive->m_archive, filename, 0, &sfile)) {
+          return FALSE;
+        }
+        *file = NEW(SFile)(SFILE_OLD_SFILE);
+        (*file)->m_hsfile = sfile;
+        (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
+        if (flags & 0x10000) {
+          if (!SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) || (*file)->m_md5 == MD5(0, 0, 0, 0)) {
+            (*file)->m_haveMD5 = FALSE;
+          } else {
+            (*file)->m_haveMD5 = TRUE;
+          }
+        }
+        return TRUE;
+      }
+
+      case SARCHIVE_ZIP: {
+        *file = NEW(SFile)(SFILE_ZIP_FILE);
+        (*file)->m_zipFile = ZipFileOpenFile(filename, (DWORD)archive->m_archive);
+        if (!(*file)->m_zipFile) {
           delete *file;
           *file = NULL;
           return FALSE;
         }
-        (*file)->m_filename = SStrDupA(realname, __FILE__, __LINE__);
-        (*file)->m_actualname = SStrDupA(filename, __FILE__, __LINE__);
-        extension = SStrChrR((*file)->m_filename, '.');
-        if (extension && !SStrCmpI(extension, ".bz", INT_MAX)) {
-          *extension = 0;
-        }
-
-        NoPaqCompHdr header;
-
-        fread(&header, 1, sizeof(header), (FILE *)(*file)->m_fileptr);
-        if (*(DWORD *)header.signature != *(const DWORD *)"BZ00") {
-          goto open_failed;
-        }
-        (*file)->m_size = header.uncompressedSize;
-        (*file)->m_md5 = header.md5;
-        (*file)->m_haveMD5 = TRUE;
-        (*file)->m_curOffset = 0;
-        (*file)->m_zbuffer = (BYTE *)ALLOC(0x1000);
-        ASSERT(!(*file)->m_zstream);
-        (*file)->m_zstream = (z_stream *)ALLOC(sizeof(z_stream));
-        (*file)->m_zstream->avail_in = 0;
-        (*file)->m_zstream->zalloc = NULL;
-        (*file)->m_zstream->zfree = NULL;
-        (*file)->m_zstream->opaque = NULL;
-        ASSERT(inflateInit_((*file)->m_zstream, "1.1.3", sizeof(z_stream)) == 0);
-        return 3;
-      }
-
-      case SFILE_PAQ:
-        archiveData = NEW(SArchive);
-        (*file)->m_archive = archiveData;
-        if (!SFileOpenArchive(realname, 0, 0, (HSARCHIVE *)&archiveData->m_archive)) {
-          goto open_failed;
-        }
-        basename = SStrChrR(filename, '\\');
-        basename = basename ? basename + 1 : filename;
-        if (!SFileOpenFileEx((HSARCHIVE)archiveData->m_archive, basename, 0, (HSFILE *)&(*file)->m_hsfile)) {
-          SFileCloseArchive((HSARCHIVE)archiveData->m_archive);
-          goto open_failed;
-        }
-        (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
-        if (flags & 0x10000) {
-          if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
-            (*file)->m_haveMD5 = TRUE;
-          } else {
-            (*file)->m_haveMD5 = FALSE;
-          }
-        }
-        return TRUE;
-
-      case SFILE_OLD_SFILE:
-        if (!SFileOpenFileEx(NULL, filename, flags, (HSFILE *)&(*file)->m_hsfile)) {
-          goto open_failed;
-        }
-        (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
-        if (flags & 0x10000) {
-          if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
-            (*file)->m_haveMD5 = TRUE;
-          } else {
-            (*file)->m_haveMD5 = FALSE;
-          }
-        }
-        return TRUE;
-
-      case SFILE_ZIP_FILE:
-        (*file)->m_zipFile = ZipFileOpenFile(filename, 0);
-        if (!(*file)->m_zipFile) {
-          goto open_failed;
-        }
         (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
         if (flags & 0x10000) {
           char md5filename[MAX_PATH];
-
           SStrCopy(md5filename, filename, INT_MAX);
           SStrPack(md5filename, ".md5", INT_MAX);
-          md5file = ZipFileOpenFile(md5filename, 0);
+          ZipFileFCB *md5file = ZipFileOpenFile(md5filename, (DWORD)archive->m_archive);
           if (md5file) {
             (*file)->m_haveMD5 = ZipFileReadFile(md5file, &(*file)->m_md5, sizeof((*file)->m_md5), NULL);
             ZipFileCloseFile(md5file);
           }
         }
         return 4;
-    }
-    return FALSE;
-  }
-
-  archiveData = archive;
-  if (archiveData->m_type == SARCHIVE_MPQ) {
-    sfile = NULL;
-    if (!SFileOpenFileEx((HSARCHIVE)archiveData->m_archive, filename, 0, &sfile)) {
-      return FALSE;
-    }
-    *file = NEW(SFile)(SFILE_OLD_SFILE);
-    (*file)->m_hsfile = sfile;
-    (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
-    if (flags & 0x10000) {
-      if (SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) && !((*file)->m_md5 == MD5(0, 0, 0, 0))) {
-        (*file)->m_haveMD5 = TRUE;
-      } else {
-        (*file)->m_haveMD5 = FALSE;
       }
     }
-    return TRUE;
   }
-  if (archiveData->m_type == SARCHIVE_ZIP) {
-    *file = NEW(SFile)(SFILE_ZIP_FILE);
-    (*file)->m_zipFile = ZipFileOpenFile(filename, (DWORD)archiveData->m_archive);
-    if (!(*file)->m_zipFile) {
-      goto open_failed;
-    }
-    (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
-    if (flags & 0x10000) {
-      char md5filename[MAX_PATH];
-
-      SStrCopy(md5filename, filename, INT_MAX);
-      SStrPack(md5filename, ".md5", INT_MAX);
-      md5file = ZipFileOpenFile(md5filename, (DWORD)archiveData->m_archive);
-      if (md5file) {
-        (*file)->m_haveMD5 = ZipFileReadFile(md5file, &(*file)->m_md5, sizeof((*file)->m_md5), NULL);
-        ZipFileCloseFile(md5file);
-      }
-    }
-    return 4;
-  }
-  return FALSE;
-
-open_failed:
-  if (*file) {
-    delete *file;
-  }
-  *file = NULL;
   return FALSE;
 }
 
@@ -928,9 +927,8 @@ int APIENTRY SFile::FileExists(LPCSTR filename) {
 }
 
 DWORD APIENTRY SFile::SetFilePointer(SFile *file, LONG distancetomove, LONG *distancetomovehigh, DWORD movemethod) {
-  DWORD result;
+  DWORD result = 0;
 
-  (void)distancetomovehigh;
   ASSERT(file);
 
   file->m_lock.Enter();
@@ -953,53 +951,41 @@ DWORD APIENTRY SFile::SetFilePointer(SFile *file, LONG distancetomove, LONG *dis
       result = (DWORD)ftell((FILE *)file->m_fileptr);
       break;
 
-    case SFILE_COMPRESSED: {
-      BYTE  buffer[0x1000];
-      LONG  skip;
-      LONG  skipped;
-      DWORD amount;
-      DWORD bytesRead;
-
+    case SFILE_COMPRESSED:
       switch (movemethod) {
-        default:
-          result = file->m_curOffset;
-          file->m_lock.Leave();
-          return result;
-
         case FILE_BEGIN:
           if (distancetomove < (LONG)file->m_curOffset) {
             inflateEnd(file->m_zstream);
             file->m_zstream->avail_in = 0;
             file->m_zstream->next_in = (Bytef *)file->m_zbuffer;
-            ASSERT(inflateInit_(file->m_zstream, "1.1.3", sizeof(z_stream)) == 0);
+            int err = inflateInit_(file->m_zstream, "1.1.3", sizeof(z_stream));
+            ASSERT(err == 0);
             fseek((FILE *)file->m_fileptr, sizeof(NoPaqCompHdr), SEEK_SET);
             file->m_curOffset = 0;
-            skip = distancetomove;
           } else {
-            skip = distancetomove - (LONG)file->m_curOffset;
+            distancetomove -= file->m_curOffset;
+          }
+
+        case FILE_CURRENT: {
+          LONG skipped = 0;
+          while (skipped < distancetomove) {
+            BYTE  buffer[0x1000];
+            DWORD bytesRead;
+            DWORD amount = distancetomove - skipped;
+            if (amount > sizeof(buffer)) {
+              amount = sizeof(buffer);
+            }
+            if (!DoZRead(file, buffer, amount, &bytesRead)) {
+              file->m_lock.Leave();
+              return 0;
+            }
+            skipped += bytesRead;
           }
           break;
-
-        case FILE_CURRENT:
-          skip = distancetomove;
-          break;
-      }
-
-      skipped = 0;
-      while (skipped < skip) {
-        amount = (DWORD)(skip - skipped);
-        if (amount > sizeof(buffer)) {
-          amount = sizeof(buffer);
         }
-        if (!DoZRead(file, buffer, amount, &bytesRead)) {
-          file->m_lock.Leave();
-          return 0;
-        }
-        skipped += bytesRead;
       }
       result = file->m_curOffset;
       break;
-    }
 
     case SFILE_PAQ:
     case SFILE_OLD_SFILE:
@@ -1012,7 +998,6 @@ DWORD APIENTRY SFile::SetFilePointer(SFile *file, LONG distancetomove, LONG *dis
 
     default:
       ASSERT(0);
-      result = 0;
       break;
   }
   file->m_lock.Leave();

@@ -318,11 +318,14 @@ void CharGeosetInfo::UpdateGeosetDisplay(const ItemDisplayInfoRec *displayInfoRe
     }
     if (currentGeosets[group] > 1 && disables) {
       UINT disabledGroup;
-      for (disabledGroup = 0; disabledGroup < 9 && disables; ++disabledGroup) {
+      for (disabledGroup = 0; disabledGroup < 32; ++disabledGroup) {
         if (disables & (1u << disabledGroup)) {
           flags[disabledGroup] |= 1;
           disabledByFlags[disabledGroup] |= 1u << geosetCurrentlyUsedBy[group];
           disables &= ~(1u << disabledGroup);
+        }
+        if (!disables) {
+          break;
         }
       }
     }
@@ -696,7 +699,7 @@ static void ReadTextureFileNames(int numRaces) {
         sexVar.lastNPCVar[rec->m_SectionID] = rec->m_VariationID;
       }
     } else {
-      ASSERT((sexVar.firstNPCVar[rec->m_SectionID] == -1) || (rec->m_VariationID < sexVar.firstNPCVar[rec->m_SectionID]));
+      ASSERT(( sexVar.firstNPCVar[rec->m_SectionID] == -1 ) || ( rec->m_VariationID < sexVar.firstNPCVar[rec->m_SectionID] ));
     }
 
     if (rec->m_ColorID >= variation->GetColorCount()) {
@@ -836,9 +839,11 @@ void CharCustomizationShutdown() {
 }
 
 void CharCustomizationGetNumSkinTextures(UINT raceID, UINT sexID, int *pcVars, int *npcVars) {
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
+  VALIDATEBEGIN;
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATEENDVOID;
 
   if (pcVars) {
     *pcVars = 0;
@@ -859,20 +864,23 @@ void CharCustomizationGetNumSkinTextures(UINT raceID, UINT sexID, int *pcVars, i
 }
 
 HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC) {
-  FATALASSERT(characterModel);
-  FATALASSERT(skinName);
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
+  VALIDATEBEGIN;
+  VALIDATE(characterModel);
+  VALIDATE(skinName);
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATEEND;
 
+  int numPCVariations;
   int numNPCVariations;
-  CharCustomizationGetNumSkinTextures(raceID, sexID, &numNPCVariations, 0);
-  FATALASSERT(numNPCVariations);
+  CharCustomizationGetNumSkinTextures(raceID, sexID, &numPCVariations, &numNPCVariations);
+  FATALASSERT(numPCVariations + numNPCVariations);
 
   int color = textureNumber;
   int variation = 0;
-  if (isNPC && static_cast<int>(textureNumber) >= numNPCVariations) {
-    color -= numNPCVariations;
+  if (isNPC && static_cast<int>(textureNumber) >= numPCVariations) {
+    color -= numPCVariations;
     variation = 1;
   }
 
@@ -902,19 +910,22 @@ HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT 
 }
 
 HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID, UINT textureNumber, BOOL isNPC) {
-  FATALASSERT(characterModel);
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
+  VALIDATEBEGIN;
+  VALIDATE(characterModel);
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATEEND;
 
+  int numPCVariations;
   int numNPCVariations;
-  CharCustomizationGetNumSkinTextures(raceID, sexID, &numNPCVariations, 0);
-  FATALASSERT(numNPCVariations);
+  CharCustomizationGetNumSkinTextures(raceID, sexID, &numPCVariations, &numNPCVariations);
+  FATALASSERT(numPCVariations + numNPCVariations);
 
   int color = textureNumber;
   int variation = 0;
-  if (isNPC && static_cast<int>(textureNumber) >= numNPCVariations) {
-    color -= numNPCVariations;
+  if (isNPC && static_cast<int>(textureNumber) >= numPCVariations) {
+    color -= numPCVariations;
     variation = 1;
   }
 
@@ -953,12 +964,14 @@ BOOL CharCustomizationGetNakedSectionName(
     UINT  outBufferSize,
     BOOL  isNPC
 ) {
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
-  FATALASSERT(underwearSection < NUM_UNDERWEARHIDESECTIONS);
-  FATALASSERT(outBuffer);
-  FATALASSERT(outBufferSize);
+  VALIDATEBEGIN;
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATE(underwearSection < NUM_UNDERWEARHIDESECTIONS);
+  VALIDATE(outBuffer);
+  VALIDATE(outBufferSize);
+  VALIDATEEND;
 
   int PCSkinVariations;
   if (isNPC) {
@@ -986,9 +999,11 @@ BOOL CharCustomizationGetNakedSectionName(
 }
 
 void CharCustomizationNumFaces(UINT raceID, UINT sexID, int *pcVars, int *npcVars) {
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
+  VALIDATEBEGIN;
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATEENDVOID;
 
   CHARACTERSEXVARIATIONS &var = s_raceTextureFileNames[raceID].sex[sexID];
   FATALASSERT(var.NumVariations(CHARTEXTURESECTION_FACEUPPER) == var.NumVariations(CHARTEXTURESECTION_FACELOWER));
@@ -1004,11 +1019,13 @@ void CharCustomizationSetFaceTexture(
     UINT          colorID,
     BOOL          isNPC
 ) {
-  FATALASSERT(characterModel);
-  FATALASSERT(texComponent);
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
+  VALIDATEBEGIN;
+  VALIDATE(characterModel);
+  VALIDATE(texComponent);
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATEENDVOID;
 
   int pcFaceVars;
   int npcFaceVars;
@@ -1038,9 +1055,11 @@ void CharCustomizationSetFaceTexture(
 }
 
 UINT CharCustomizationNumHairColors(UINT raceID, UINT sexID) {
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
+  VALIDATEBEGIN;
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATEEND;
 
   CHARACTERSEXVARIATIONS &var = s_raceTextureFileNames[raceID].sex[sexID];
   if (!var.NumVariations(CHARTEXTURESECTION_HAIR)) {
@@ -1050,10 +1069,12 @@ UINT CharCustomizationNumHairColors(UINT raceID, UINT sexID) {
 }
 
 void CharCustomizationSetHairTexture(HMODEL characterModel, HTEXCOMPONENT texComponent, UINT raceID, UINT sexID, UINT hairID, UINT colorID) {
-  FATALASSERT(characterModel);
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
+  VALIDATEBEGIN;
+  VALIDATE(characterModel);
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATEENDVOID;
 
   CHARACTERSEXVARIATIONS &var = s_raceTextureFileNames[raceID].sex[sexID];
   if (!var.NumVariations(CHARTEXTURESECTION_HAIR)) {
@@ -1070,7 +1091,7 @@ void CharCustomizationSetHairTexture(HMODEL characterModel, HTEXCOMPONENT texCom
 
   if (hairTexture && *hairTexture) {
     CStatus  status;
-    HTEXTURE texture = TextureCreate(hairTexture, CGxTexFlags(GxTex_LinearMipLinear, 0, 0, 0, 0, 0, 1), &status, 0);
+    HTEXTURE texture = TextureCreate(hairTexture, CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
     if (texture) {
       ModelReplaceTexture(characterModel, 6, texture, 0);
       HandleClose(texture);
@@ -1079,14 +1100,32 @@ void CharCustomizationSetHairTexture(HMODEL characterModel, HTEXCOMPONENT texCom
 }
 
 UINT CharCustomizationNumHairStyles(UINT raceID, UINT sexID) {
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < s_characterVariations[raceID].Count());
+  if (!(raceID <= (uint)g_chrRacesDB.GetMaxID())) {
+    SErrDisplayErrorFmt(
+        STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+        isprint((raceID >> 24) & 0xFF) && isprint((raceID >> 16) & 0xFF) && isprint((raceID >> 8) & 0xFF) && isprint(raceID & 0xFF)
+            ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+            : "\"%s\", %s = %ld (0x%08X)",
+        "raceID <= (uint)g_chrRacesDB.GetMaxID()", "raceID", raceID, raceID, (raceID >> 24) & 0xFF, (raceID >> 16) & 0xFF, (raceID >> 8) & 0xFF,
+        raceID & 0xFF
+    );
+  }
+  if (!(sexID < s_characterVariations[raceID].Count())) {
+    SErrDisplayErrorFmt(
+        STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+        isprint((sexID >> 24) & 0xFF) && isprint((sexID >> 16) & 0xFF) && isprint((sexID >> 8) & 0xFF) && isprint(sexID & 0xFF)
+            ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+            : "\"%s\", %s = %ld (0x%08X)",
+        "sexID < s_characterVariations[raceID].Count()", "sexID", sexID, sexID, (sexID >> 24) & 0xFF, (sexID >> 16) & 0xFF, (sexID >> 8) & 0xFF,
+        sexID & 0xFF
+    );
+  }
   return s_characterVariations[raceID][sexID].hairGeosets.Count();
 }
 
 UINT CharCustomizationGetHairGeoset(UINT race, UINT sex, UINT hair) {
   FATALASSERT(race != 0);
-  FATALASSERT(race <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
+  FATALASSERT(race <= (uint)g_chrRacesDB.GetMaxID());
   FATALASSERT(sex < s_characterVariations[race].Count());
 
   TSGrowableArray<INTDATA> &hairGeosets = s_characterVariations[race][sex].hairGeosets;
@@ -1097,17 +1136,21 @@ UINT CharCustomizationGetHairGeoset(UINT race, UINT sex, UINT hair) {
 }
 
 UINT CharCustomizationNumBeardStyles(UINT raceID, UINT sexID) {
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
+  VALIDATEBEGIN;
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATEEND;
   return s_characterVariations[raceID][sexID].facialVariations.facialGeosets.Count();
 }
 
 BOOL CharCustomizationGetBeardStyle(UINT raceID, UINT sexID, UINT facialHairID, BEARDSTYLEDATA *facialHairStyleData) {
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
-  FATALASSERT(facialHairStyleData);
+  VALIDATEBEGIN;
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATE(facialHairStyleData);
+  VALIDATEEND;
 
   TSFixedArray<FACIALGEOSETS> &facialGeosets = s_characterVariations[raceID][sexID].facialVariations.facialGeosets;
   if (!facialGeosets.Count()) {
@@ -1122,11 +1165,13 @@ BOOL CharCustomizationGetBeardStyle(UINT raceID, UINT sexID, UINT facialHairID, 
 }
 
 void CharCustomizationSetFacialTexture(HMODEL characterModel, HTEXCOMPONENT texComponent, UINT raceID, UINT sexID, UINT facialID, UINT colorID) {
-  FATALASSERT(characterModel);
-  FATALASSERT(texComponent);
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
+  VALIDATEBEGIN;
+  VALIDATE(characterModel);
+  VALIDATE(texComponent);
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATEENDVOID;
 
   CHARACTERSEXVARIATIONS &sexVar = s_raceTextureFileNames[raceID].sex[sexID];
   if (!sexVar.NumVariations(CHARTEXTURESECTION_FACIALUPPERHAIR)) {
@@ -1143,10 +1188,10 @@ HCHARGEOSET CharCustomizationCreateGeosetHandle(HMODEL characterModel) {
     return 0;
   }
 
-  CCharGeoset *newObject = new (SMemAlloc(sizeof(CCharGeoset), "HCHARGEOSET", SERR_LINECODE_OBJECT, 0)) CCharGeoset;
+  CCharGeoset *newObject = NEWHANDLE(HCHARGEOSET, CCharGeoset);
   FATALASSERT(newObject);
   newObject->m_charModel = static_cast<HMODEL>(HandleDuplicate(characterModel));
-  return reinterpret_cast<HCHARGEOSET>(HandleCreate(newObject, "HCHARGEOSET"));
+  return CREATEHANDLE(HCHARGEOSET, newObject);
 }
 
 void CharCustomizationSetPaperDollGeoset(HCHARGEOSET handle, HMODEL paperDollModel) {
@@ -1225,10 +1270,12 @@ void CharCustomizationAddItemGeosets(
 ) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(geosetHandle);
   if (geoset) {
-    FATALASSERT(displayInfoRec);
-    FATALASSERT(itemInventoryType != INDEX_NON_EQUIP_TYPE);
-    FATALASSERT(raceID != 0);
-    FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
+    VALIDATEBEGIN;
+    VALIDATE(displayInfoRec);
+    VALIDATE(itemInventoryType != INDEX_NON_EQUIP_TYPE);
+    VALIDATE(raceID != 0);
+    VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+    VALIDATEENDVOID;
     if ((1 << itemInventoryType) & 0x1805B0) {
       geoset->AddItemGeoset(displayInfoRec, itemInventoryType, component, raceID, doNotCommit);
     }
@@ -1276,11 +1323,13 @@ void CharCustomizationHideGeosetSection(HCHARGEOSET handle, CHARACTER_GEOSET_SEC
 }
 
 void CharCustomizationGetTextureLayerHolds(UINT raceID, UINT sexID, UINT *textureLayerHolds, UINT numTextureLayerHolds) {
-  FATALASSERT(raceID != 0);
-  FATALASSERT(raceID <= static_cast<UINT>(g_chrRacesDB.GetMaxID()));
-  FATALASSERT(sexID < UNITSEX_LAST);
-  FATALASSERT(textureLayerHolds);
-  FATALASSERT(numTextureLayerHolds == NUM_TEXLAYERS);
+  VALIDATEBEGIN;
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATE(textureLayerHolds);
+  VALIDATE(numTextureLayerHolds == NUM_TEXLAYERS);
+  VALIDATEENDVOID;
 
   UINT textureLayer;
   for (textureLayer = 0; textureLayer < numTextureLayerHolds; ++textureLayer) {

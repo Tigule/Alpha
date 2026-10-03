@@ -168,7 +168,7 @@ struct SMOPortalRef {
 };
 
 struct SIffChunk {
-  SIffChunk() {
+  SIffChunk() : token(0), size(0) {
   }
 
   SIffChunk(DWORD token, DWORD size) : token(token), size(size) {

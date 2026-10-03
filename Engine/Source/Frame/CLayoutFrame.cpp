@@ -47,15 +47,15 @@ static float SynthesizeSide(float center, float opposite, float size) {
 }
 
 static float SynthesizeCenter(float side1, float side2, float size) {
-  if (side1 != CFramePoint::UNDEFINED) {
-    if (side2 != CFramePoint::UNDEFINED) {
-      return (side1 + side2) * 0.5f;
-    }
+  if (side1 != CFramePoint::UNDEFINED && side2 != CFramePoint::UNDEFINED) {
+    return (side1 + side2) * 0.5f;
+  }
 
-    if (size != 0.0f) {
-      return side1 + size * 0.5f;
-    }
-  } else if (side2 != CFramePoint::UNDEFINED && size != 0.0f) {
+  if (side1 != CFramePoint::UNDEFINED && size != 0.0f) {
+    return size * 0.5f + side1;
+  }
+
+  if (side2 != CFramePoint::UNDEFINED && size != 0.0f) {
     return side2 - size * 0.5f;
   }
 
@@ -435,8 +435,7 @@ void CLayoutFrame::RegisterResize(CLayoutFrame *frame, UINT dependency) {
 void CLayoutFrame::UnregisterResize(const CLayoutFrame *frame) {
   ITERATELIST(FRAMENODE, m_resizeList, node) {
     if (node->frame == frame) {
-      m_resizeList.DeleteNode(node);
-      return;
+      ITERATE_DELETEANDBREAK;
     }
   }
 }
@@ -565,7 +564,7 @@ void CLayoutFrame::SetLayoutScale(float scale, bool force) {
 
   if (force || NTempest::CMath::fnotequal_(scale, m_layoutScale)) {
     m_layoutScale = scale;
-    m_rect.Set(0.0f, 0.0f, 0.0f, 0.0f);
+    memset(&m_rect, 0, sizeof(m_rect));
     m_flags &= ~0x1U;
     Resize(0);
   }
@@ -696,8 +695,8 @@ int CLayoutFrame::DragBy(CLayoutFrame *top, float delta_x, float delta_y, FRAMEP
       break;
 
     case FRAMEPOINT_TOP:
-      delta_x = 0.0f;
       newheight += delta_y;
+      delta_x = 0.0f;
       break;
 
     case FRAMEPOINT_TOPRIGHT:
@@ -706,38 +705,32 @@ int CLayoutFrame::DragBy(CLayoutFrame *top, float delta_x, float delta_y, FRAMEP
       newheight += delta_y;
       break;
 
-    case FRAMEPOINT_LEFT:
-      delta_y = 0.0f;
-      newwidth -= delta_x;
-      break;
-
-    case FRAMEPOINT_CENTER:
-      break;
-
     case FRAMEPOINT_RIGHT:
-      delta_y = 0.0f;
       newwidth += delta_x;
       delta_x = 0.0f;
-      break;
-
-    case FRAMEPOINT_BOTTOMLEFT:
-      newwidth -= delta_x;
-      newheight -= delta_y;
       delta_y = 0.0f;
-      newwidth -= delta_x;
-      break;
-
-    case FRAMEPOINT_BOTTOM:
-      delta_x = 0.0f;
-      newheight -= delta_y;
-      delta_y = 0.0f;
-      break;
 
     case FRAMEPOINT_BOTTOMRIGHT:
       newwidth += delta_x;
       newheight -= delta_y;
       delta_x = 0.0f;
       delta_y = 0.0f;
+
+    case FRAMEPOINT_BOTTOM:
+      newheight -= delta_y;
+      delta_x = 0.0f;
+      delta_y = 0.0f;
+
+    case FRAMEPOINT_BOTTOMLEFT:
+      newwidth -= delta_x;
+      newheight -= delta_y;
+
+    case FRAMEPOINT_LEFT:
+      newwidth -= delta_x;
+      delta_y = 0.0f;
+      break;
+
+    case FRAMEPOINT_CENTER:
       break;
 
     default:
@@ -838,21 +831,20 @@ void CLayoutFrame::DestroyLayout() {
 }
 
 UINT CLayoutFrame::ResizePending() {
-  UINT          resized = 0;
-  CLayoutFrame *frame = s_resizePendingList.Head();
+  UINT resized = 0;
 
-  while (frame) {
-    CLayoutFrame *next = s_resizePendingList.Next(frame);
-
-    if (frame->OnFrameResize()) {
+  for (CLayoutFrame *node = s_resizePendingList.Head(), *nodenext_node;
+       (int)node > 0 ? ((nodenext_node = s_resizePendingList.RawNext(node)), 1) : 0;
+       node = nodenext_node) {
+    if (!node->OnFrameResize()) {
+      if (--node->m_resizeCounter) {
+        continue;
+      }
+    } else {
       ++resized;
-    } else if (--frame->m_resizeCounter) {
-      frame = next;
-      continue;
     }
 
-    s_resizePendingList.UnlinkNode(frame);
-    frame = next;
+    s_resizePendingList.UnlinkNode(node);
   }
 
   return resized;

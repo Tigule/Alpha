@@ -26,7 +26,24 @@ enum WORLDTEXTTYPE {
 };
 
 struct WORLDTEXTCREATEPARAMS {
-  void Defaults();
+  void Defaults() {
+    ascendDistance = 24.0f;
+    totalTime = 3000;
+    fadeInTime = 1000;
+    fadeOutTime = 2000;
+    fontColor = NTempest::CImVector(255, 255, 255, 255);
+    shadowOffset = NTempest::C2Vector(0.0f, 0.0f);
+    shadowColor = NTempest::CImVector(255, 0, 0, 0);
+    charSpacing = 0.0f;
+    heightScale = 1.0f;
+    zOffset = 0.0f;
+    border = NTempest::C2Vector(0.0f, 0.0f);
+    startFontHeight = 0.0125f;
+    endFontHeight = 0.025f;
+    enlargeTime = 0;
+    shrinkTime = 0;
+    flags = 0;
+  }
   void Clear();
 
   WORLDTEXTCREATEPARAMS();
@@ -51,49 +68,6 @@ struct WORLDTEXTCREATEPARAMS {
   UINT                flags;
   char                fontName[MAX_PATH];
   float               fontHeight;
-};
-
-struct WORLDTEXTSTRING : public CHandleObject {
-  WORLDTEXTSTRING()
-      : worldTextType(NUM_WORLDTEXTTYPES), elapsedTime(0), totalTime(0), object(0), hidden(0), m_flags(0), string(0) {
-    params.Defaults();
-    savedStringText[0] = 0;
-  }
-  void Update(float elapsed, const NTempest::C44Matrix &matrix, const NTempest::C3Vector *basePosition);
-  void Reset();
-  void CalculateNewColor(UINT elapsed);
-  void CalculateTextHeight(UINT elapsedTime);
-  void CalculateNewPosition(
-      const NTempest::C4Vector  &worldPosition,
-      UINT                       elapsedTime,
-      NTempest::C4Vector        &textPos,
-      const NTempest::C44Matrix &matrix,
-      int                        worldPositionSpecified
-  );
-  void UpdatePosition(const NTempest::C4Vector &worldPosition, UINT elapsedTime, NTempest::C4Vector &textPos);
-  void UpdateStringHeight(float height);
-  void RecreateString();
-  void Hide(int hide);
-  void Render() const;
-  void InitTextFrame(LPCSTR text);
-
-  WORLDTEXTTYPE         worldTextType;
-  WORLDTEXTCREATEPARAMS params;
-  UINT                  elapsedTime;
-  UINT                  totalTime;
-  DWORDLONG             object;
-  float                 textWidth;
-  float                 textHeight;
-  float                 heightScale;
-  float                 zOffset;
-  LINKDECLEX(WORLDTEXTSTRING, link);
-  int        hidden;
-  UINT       m_flags;
-  CGxString *string;
-  float      savedStringHeight;
-  char       savedStringText[64];
-
-  virtual ~WORLDTEXTSTRING();
 };
 
 void          WorldTextClearStrings();

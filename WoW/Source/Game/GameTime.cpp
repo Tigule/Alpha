@@ -179,7 +179,7 @@ HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(
     return 0;
   }
 
-  GAMETIMECBSTRUCT *newCallback = new (SMemAlloc(sizeof(GAMETIMECBSTRUCT), "HGAMETIMECALLBACK", SERR_LINECODE_OBJECT, 0)) GAMETIMECBSTRUCT;
+  GAMETIMECBSTRUCT *newCallback = NEWHANDLE(HGAMETIMECALLBACK, GAMETIMECBSTRUCT);
 
   newCallback->userData = user;
   newCallback->callback = callback;
@@ -194,7 +194,7 @@ HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(
 
   timestamp->callbackList.LinkNode(newCallback, LIST_TAIL, 0);
 
-  return static_cast<HGAMETIMECALLBACK>(HandleCreate(newCallback, "HGAMETIMECALLBACK"));
+  return CREATEHANDLE(HGAMETIMECALLBACK, newCallback);
 }
 
 void CGameTime::GameTimeUnregisterCallback(HGAMETIMECALLBACK callbackHandle) {

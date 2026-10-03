@@ -27,6 +27,16 @@ static SEvent                          s_queueEvent(0, 0);
 static CAsyncObject volatile          *s_asyncWaitObject;
 static TSGrowableArray<void (*)(void)> s_handlers;
 
+void AsyncFileReadInitialize() {
+  EventRegisterEx(EVENT_ID_POLL, AsyncFileReadPollHandler, 0, EVENT_PRIORITY_NORMAL);
+
+  s_asyncCurrentObject = 0;
+  s_asyncWaitObject = 0;
+  s_propContext = PropGetSelectedContext();
+  s_shutdownEvent.Reset();
+  SThread::Create(AsyncFileReadThread, 0, s_asyncReadThread, const_cast<char *>("AsyncFileLoader"));
+}
+
 static UINT APIENTRY AsyncFileReadThread(LPVOID param) {
   DWORD waitResult;
 
@@ -83,24 +93,19 @@ static UINT APIENTRY AsyncFileReadThread(LPVOID param) {
   return 0;
 }
 
-void AsyncFileReadInitialize() {
-  EventRegisterEx(EVENT_ID_POLL, AsyncFileReadPollHandler, 0, EVENT_PRIORITY_NORMAL);
-
-  s_asyncCurrentObject = 0;
-  s_asyncWaitObject = 0;
-  s_propContext = PropGetSelectedContext();
-  s_shutdownEvent.Reset();
-  SThread::Create(AsyncFileReadThread, 0, s_asyncReadThread, const_cast<char *>("AsyncFileLoader"));
-}
-
 void AsyncFileReadDestroy() {
   s_shutdownEvent.Set();
   s_queueEvent.Set();
   s_asyncReadThread.Wait(INFINITE);
 
-  s_asyncFileReadFreeList.Clear();
+  while (s_asyncFileReadFreeList.Head()) {
+    s_asyncFileReadFreeList.DeleteNode(s_asyncFileReadFreeList.Head());
+  }
   ASSERT(s_asyncFileReadList.Head() == 0);
-  s_asyncFileReadPostList.Clear();
+
+  while (s_asyncFileReadPostList.Head()) {
+    s_asyncFileReadPostList.DeleteNode(s_asyncFileReadPostList.Head());
+  }
   ASSERT(s_asyncCurrentObject == 0);
 
   s_handlers.SetCount(0);
@@ -116,7 +121,7 @@ void AsyncFileReadAddHandler(void (*handler)()) {
     }
   }
 
-  *s_handlers.New() = handler;
+  s_handlers.Add(&handler);
 }
 
 CAsyncObject *AsyncFileReadCreateObject() {
@@ -125,11 +130,7 @@ CAsyncObject *AsyncFileReadCreateObject() {
   s_queueLock.Enter();
   object = s_asyncFileReadFreeList.Head();
   if (!object) {
-    object = static_cast<CAsyncObject *>(SMemAlloc(sizeof(CAsyncObject), typeid(CAsyncObject).INTERNALRAWNAME(), -2, SMEM_FLAG_ZEROMEMORY));
-    if (object) {
-      new (object) CAsyncObject;
-    }
-    s_asyncFileReadFreeList.LinkNode(object, LIST_HEAD, 0);
+    object = s_asyncFileReadFreeList.NewNode(LIST_HEAD, 0, 0);
   }
   object->link.Unlink();
   s_queueLock.Leave();

@@ -61,7 +61,8 @@ namespace NTempest {
       float x = GetX();
       float y = GetY();
       float z = GetZ();
-      return C4Quaternion(GetW(x, y, z), x, y, z);
+      float w = GetW(x, y, z);
+      return C4Quaternion(w, x, y, z);
     }
 
     LONGLONG Raw() const {

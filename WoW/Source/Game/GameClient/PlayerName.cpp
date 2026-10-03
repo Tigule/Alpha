@@ -308,7 +308,7 @@ static void TriggerNameRegenerate() {
 
 static bool UnitNameShowTypeCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   UINT index = reinterpret_cast<UINT>(arg);
-  ASSERT(index < sizeof(s_cvarInfo) / sizeof(s_cvarInfo[0]));
+  ASSERT(index < (sizeof(s_cvarInfo) / sizeof(s_cvarInfo[0])));
 
   UNITNAME_SHOWTYPE_GROUPS group = s_cvarInfo[index].group;
   UINT                     oldFlags = s_showTypeFlags[group];
@@ -382,7 +382,7 @@ HPLAYERNAME PlayerNameCreate(CGUnit_C *unitPtr) {
   ModelGetModelSpacePivot(model, 1, &namePosition);
   ModelCustGeosetAdd(model, namePosition, PlayerNameRenderCallback, desc, &desc->m_customGeosetID);
   HandleClose(model);
-  return static_cast<HPLAYERNAME>(HandleCreate(desc, "HPLAYERNAME"));
+  return CREATEHANDLE(HPLAYERNAME, desc);
 }
 
 void PlayerNameTriggerColorUpdate(HPLAYERNAME name) {

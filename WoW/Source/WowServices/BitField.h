@@ -36,7 +36,10 @@ class TSBitField {
 
   bool IsBitSet(UINT bitNum) const {
     FATALASSERT(bitNum < m_numBits);
-    return (m_array[bitNum >> 5] & (1 << (bitNum & 31))) != 0;
+    UINT arrayIndex;
+    UINT bitIndex;
+    ComputeIndices(bitNum, arrayIndex, bitIndex);
+    return (m_array[arrayIndex] & (1 << bitIndex)) != 0;
   }
 
   bool IsBitClear(UINT bitNum) const {

@@ -80,9 +80,9 @@ class CGxDeviceOpenGl : public CGxDevice {
   UINT m_deviceState[43];
 
   void DsSet(EDeviceState which, UINT newVal, int force);
-  UINT DsGet(EDeviceState state) {
-    ASSERT(state < DeviceStates_Last);
-    return m_deviceState[state];
+  UINT DsGet(EDeviceState which) {
+    ASSERT(which < DeviceStates_Last);
+    return m_deviceState[which];
   }
   void DsInit();
 

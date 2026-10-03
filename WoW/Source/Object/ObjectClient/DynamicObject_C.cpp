@@ -221,7 +221,7 @@ LPCSTR CGDynamicObject_C::GetModelFileName() const {
     return effectRec->m_fileName;
   }
 
-  SysMsgPrintf(SYSMSG_FATAL, 2, "NOOBJECTFILENAME|%d|Dynamic", m_dynamicObj->m_spellID);
+  SysMsgPrintf(SYSMSG_FATAL, 2, "NOOBJECTFILENAME|%d|Dynamic", m_obj->m_entryID);
   return NONAME;
 }
 

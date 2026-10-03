@@ -70,12 +70,6 @@ struct IMPACTSOUNDDESC {
   IMPACTSOUNDDESC() {
   }
 
-  IMPACTSOUNDDESC(const IMPACTSOUNDDESC &rhs) {
-    for (UINT i = 0; i < 2; ++i) {
-      materialSounds[i] = rhs.materialSounds[i];
-    }
-  }
-
   ~IMPACTSOUNDDESC();
 
   WEAPONSOUNDS materialSounds[2];

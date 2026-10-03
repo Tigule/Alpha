@@ -18,7 +18,7 @@ enum {
 };
 
 struct CModelCreate {
-  CModelCreate() {
+  CModelCreate() : flags(0), sequenceNames(0), numSequences(0), boneNames(0), numBones(0), cameraNames(0), numCameras(0) {
   }
 
   UINT    flags;

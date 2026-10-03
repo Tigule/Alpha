@@ -184,31 +184,9 @@ static UINT GetBinTexAnimSize(const MDLTEXANIMSECTION &section) {
 
 static void IWriteBinTextureAnim(const MDLTEXANIMSECTION &section, CMsgBuffer &buffer) {
   buffer.AddUint(GetBinTexAnimSize(section));
-  if (section.transkeys.keys.Count()) {
-    buffer.AddDword('TATK');
-    buffer.AddUint(section.transkeys.keys.Count());
-    buffer.AddUint(section.transkeys.type);
-    buffer.AddUint(section.transkeys.globalSeqId);
-    UINT values = section.transkeys.type > TRACK_LINEAR ? 9 : 3;
-    for (UINT i = 0; i < section.transkeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = section.transkeys.keys.Ptr()[i];
-      buffer.AddInt(key.time);
-      buffer.AddFloatArray(&key.value.x, values);
-    }
-  }
+  WriteBinFloatKeyFrames(section.transkeys, 'TATK', buffer);
   WriteBinQuatKeyFrames(section.rotkeys, 'RATK', buffer);
-  if (section.scalekeys.keys.Count()) {
-    buffer.AddDword('SATK');
-    buffer.AddUint(section.scalekeys.keys.Count());
-    buffer.AddUint(section.scalekeys.type);
-    buffer.AddUint(section.scalekeys.globalSeqId);
-    UINT values = section.scalekeys.type > TRACK_LINEAR ? 9 : 3;
-    for (UINT i = 0; i < section.scalekeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = section.scalekeys.keys.Ptr()[i];
-      buffer.AddInt(key.time);
-      buffer.AddFloatArray(&key.value.x, values);
-    }
-  }
+  WriteBinFloatKeyFrames(section.scalekeys, 'SATK', buffer);
 }
 
 BOOL MDL::WriteBinTextureAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
@@ -228,42 +206,47 @@ BOOL MDL::WriteBinTextureAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus 
   return 1;
 }
 
-BOOL MDL::ReadBinTextureAnims(CMsgBuffer &buffer, UINT length, MDLDATA &data, CMDLStatus *status) {
-  UINT count = buffer.GetUint();
+BOOL MDL::ReadBinTextureAnims(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  UINT numTexAnims = buf.GetUint();
   UINT totalRead = 4;
   data.textureanims.SetCount(0);
-  data.textureanims.ReserveSpace(count);
+  data.textureanims.ReserveSpace(numTexAnims);
   while (totalRead < length) {
     MDLTEXANIMSECTION *section = data.textureanims.New();
     if (!section) {
       status->FatalFlunked("TexAnim", -1);
       return 0;
     }
-    UINT sectionSize = buffer.GetUint();
-    UINT localRead = 4;
-    while (localRead < sectionSize) {
-      DWORD tag = buffer.GetDword();
-      localRead += 4;
-      if (tag == 'RATK') {
-        if (!ReadBinQuatKeyFrames(section->rotkeys, buffer, localRead)) {
-          status->Add(STATUS_ERROR, "Error reading rotkeys of texanim.\n");
-          return 0;
-        }
-      } else if (tag == 'SATK') {
-        if (!ReadBinFloatKeyFrames(section->scalekeys, buffer, localRead)) {
-          status->Add(STATUS_ERROR, "Error reading scalekeys of texanim.\n");
-          return 0;
-        }
-      } else if (tag == 'TATK') {
-        if (!ReadBinFloatKeyFrames(section->transkeys, buffer, localRead)) {
-          status->Add(STATUS_ERROR, "Error reading transkeys of texanim.\n");
-          return 0;
-        }
-      } else {
-        SkipUnknown(buffer, localRead);
+    UINT sectionSize = buf.GetUint();
+    UINT sectionRead = 4;
+    while (sectionRead < sectionSize) {
+      DWORD tag = buf.GetDword();
+      sectionRead += 4;
+      switch (tag) {
+        case 'TATK':
+          if (!ReadBinFloatKeyFrames(section->transkeys, buf, sectionRead)) {
+            status->Add(STATUS_ERROR, "Error reading transkeys of texanim.\n");
+            return 0;
+          }
+          break;
+        case 'RATK':
+          if (!ReadBinQuatKeyFrames(section->rotkeys, buf, sectionRead)) {
+            status->Add(STATUS_ERROR, "Error reading rotkeys of texanim.\n");
+            return 0;
+          }
+          break;
+        case 'SATK':
+          if (!ReadBinFloatKeyFrames(section->scalekeys, buf, sectionRead)) {
+            status->Add(STATUS_ERROR, "Error reading scalekeys of texanim.\n");
+            return 0;
+          }
+          break;
+        default:
+          SkipUnknown(buf, sectionRead);
+          break;
       }
     }
-    totalRead += localRead;
+    totalRead += sectionRead;
     if (totalRead > length) {
       status->FatalOverran("TexAnim", -1);
       return 0;

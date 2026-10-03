@@ -83,7 +83,11 @@ namespace NTempest {
     return max(a, c);
   }
   long CMath::span_(long a, long b, long c) {
-    return max_(a, b, c) - min_(a, b, c);
+    if (((c - b) ^ (a - b)) < 0)
+      return c - a > 0 ? c - a : -(c - a);
+    if (((a - c) ^ (a - b)) < 0)
+      return c - b > 0 ? c - b : -(c - b);
+    return a - b > 0 ? a - b : -(a - b);
   }
   long CMath::mean_(long a, long b, long c) {
     return div3_(a + b + c);
@@ -106,7 +110,9 @@ namespace NTempest {
     return max(a, c);
   }
   long CMath::span_(long a, long b, long c, long d, long e) {
-    return max_(a, b, c, d, e) - min_(a, b, c, d, e);
+    long ablo = a < b ? a : b, abhi = a > b ? a : b;
+    long deLo = d < e ? d : e, deHi = d > e ? d : e;
+    return span_(deLo < ablo ? deLo : ablo, c, abhi > deHi ? abhi : deHi);
   }
   long CMath::mean_(long a, long b, long c, long d, long e) {
     return div5_(a + b + c + d + e);
@@ -122,15 +128,88 @@ namespace NTempest {
     return min(a, e);
   }
   long CMath::med_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
-    long v[9] = {a, b, c, d, e, f, g, h, i};
-    for (DWORD p = 0; p < 5; ++p)
-      for (DWORD q = p + 1; q < 9; ++q)
-        if (v[q] < v[p]) {
-          long t = v[p];
-          v[p] = v[q];
-          v[q] = t;
-        }
-    return v[4];
+    long t;
+    if ((t = d - a) < 0) {
+      a += t;
+      d -= t;
+    }
+    if ((t = e - b) < 0) {
+      b += t;
+      e -= t;
+    }
+    if ((t = f - c) < 0) {
+      c += t;
+      f -= t;
+    }
+    if ((t = b - a) < 0) {
+      a += t;
+      b -= t;
+    }
+    if ((t = c - a) < 0) {
+      a += t;
+      c -= t;
+    }
+    if ((t = f - d) < 0) {
+      d += t;
+      f -= t;
+    }
+    if ((t = f - e) < 0) {
+      e += t;
+      f -= t;
+    }
+    if ((t = c - b) < 0) {
+      b += t;
+      c -= t;
+    }
+    if ((t = e - d) < 0) {
+      d += t;
+      e -= t;
+    }
+    if ((t = d - b) < 0) {
+      b += t;
+      d -= t;
+    }
+    if ((t = g - b) < 0) {
+      b += t;
+      g -= t;
+    }
+    if ((t = g - c) < 0) {
+      c += t;
+      g -= t;
+    }
+    if ((t = g - e) < 0) {
+      e += t;
+      g -= t;
+    }
+    if ((t = d - c) < 0) {
+      c += t;
+      d -= t;
+    }
+    if ((t = h - e) < 0) {
+      e += t;
+      h -= t;
+    }
+    if ((t = e - c) < 0) {
+      c += t;
+      e -= t;
+    }
+    if ((t = h - d) < 0) {
+      d += t;
+      h -= t;
+    }
+    if ((t = e - d) < 0) {
+      d += t;
+      e -= t;
+    }
+    if ((t = i - d) < 0) {
+      d += t;
+      i -= t;
+    }
+    if ((t = i - e) < 0) {
+      e += t;
+      i -= t;
+    }
+    return e;
   }
   long CMath::max_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     a = max(a, c);
@@ -143,7 +222,66 @@ namespace NTempest {
     return max(a, e);
   }
   long CMath::span_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
-    return max_(a, b, c, d, e, f, g, h, i) - min_(a, b, c, d, e, f, g, h, i);
+    long  lo;
+    DWORD range;
+    if (a > i) {
+      lo = i;
+      range = a - i;
+    } else {
+      lo = a;
+      range = i - a;
+      a = i;
+    }
+    if (static_cast<DWORD>(c - lo) > range) {
+      if (c < lo)
+        lo = c;
+      else
+        a = c;
+      range = a - lo;
+    }
+    if (static_cast<DWORD>(g - lo) > range) {
+      if (g < lo)
+        lo = g;
+      else
+        a = g;
+      range = a - lo;
+    }
+    if (static_cast<DWORD>(b - lo) > range) {
+      if (b < lo)
+        lo = b;
+      else
+        a = b;
+      range = a - lo;
+    }
+    if (static_cast<DWORD>(d - lo) > range) {
+      if (d < lo)
+        lo = d;
+      else
+        a = d;
+      range = a - lo;
+    }
+    if (static_cast<DWORD>(f - lo) > range) {
+      if (f < lo)
+        lo = f;
+      else
+        a = f;
+      range = a - lo;
+    }
+    if (static_cast<DWORD>(h - lo) > range) {
+      if (h < lo)
+        lo = h;
+      else
+        a = h;
+      range = a - lo;
+    }
+    if (static_cast<DWORD>(e - lo) > range) {
+      if (e < lo)
+        lo = e;
+      else
+        a = e;
+      range = a - lo;
+    }
+    return range;
   }
   long CMath::mean_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     return div9_(a + b + c + d + e + f + g + h + i);
@@ -228,7 +366,7 @@ namespace NTempest {
   }
 
   float CMath::step_(float x, float a) {
-    return x >= a ? 1.0f : 0.0f;
+    return x < a ? 0.0f : 1.0f;
   }
   float CMath::pulse_(float x, float a, float b) {
     return step_(x, a) - step_(x, b);
@@ -254,7 +392,7 @@ namespace NTempest {
     return pow(x, -log2_(static_cast<double>(g)));
   }
   double CMath::gain_(float x, float g) {
-    return x < 0.5f ? bias_(x + x, 1.0f - g) * 0.5 : 1.0 - bias_(2.0f - x - x, 1.0f - g) * 0.5;
+    return x < 0.5f ? bias_(x + x, 1.0f - g) * 0.5 : 1.0 - bias_(2.0f - (x + x), 1.0f - g) * 0.5;
   }
   double CMath::sinc_(double x, double a) {
     double v = x * a * 3.141592653589793;

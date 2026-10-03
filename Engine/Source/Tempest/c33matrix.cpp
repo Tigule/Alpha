@@ -68,15 +68,17 @@ namespace NTempest {
 
     float s = CMath::sin_(angle);
     float c = CMath::cos_(angle);
+    float xy = axis_.x * axis_.y;
+    float yz = axis_.z * axis_.y;
+    float xz = axis_.z * axis_.x;
     float xs = axis_.x * s;
     float ys = axis_.y * s;
     float zs = axis_.z * s;
     float one_c = 1.0f - c;
 
     return C33Matrix(
-        axis_.x * axis_.x * one_c + c, axis_.x * axis_.y * one_c + zs, axis_.x * axis_.z * one_c - ys, axis_.x * axis_.y * one_c - zs,
-        axis_.y * axis_.y * one_c + c, axis_.y * axis_.z * one_c + xs, axis_.x * axis_.z * one_c + ys, axis_.y * axis_.z * one_c - xs,
-        axis_.z * axis_.z * one_c + c
+        (axis_.x * axis_.x) * one_c + c, one_c * xy + zs, one_c * xz - ys, one_c * xy - zs, (axis_.y * axis_.y) * one_c + c, one_c * yz + xs,
+        one_c * xz + ys, one_c * yz - xs, (axis_.z * axis_.z) * one_c + c
     );
   }
 
@@ -147,117 +149,129 @@ namespace NTempest {
   }
 
   bool C33Matrix::ToEulerAnglesXYZ(float &x, float &y, float &z) const {
-    if (c0 >= 1.0f) {
+    if (c0 < 1.0f) {
+      if (c0 > -1.0f) {
+        x = static_cast<float>(atan2(-c1, c2));
+        y = static_cast<float>(asin(c0));
+        z = static_cast<float>(atan2(-b0, a0));
+        return true;
+      } else {
+        x = -static_cast<float>(atan2(a1, b1));
+        y = -1.5707964f;
+        z = 0.0f;
+        return false;
+      }
+    } else {
       x = static_cast<float>(atan2(a1, b1));
       y = 1.5707964f;
       z = 0.0f;
       return false;
     }
-    if (c0 <= -1.0f) {
-      x = -static_cast<float>(atan2(a1, b1));
-      y = -1.5707964f;
-      z = 0.0f;
-      return false;
-    }
-    x = static_cast<float>(atan2(-c1, c2));
-    y = static_cast<float>(asin(c0));
-    z = static_cast<float>(atan2(-b0, a0));
-    return true;
   }
 
   bool C33Matrix::ToEulerAnglesXZY(float &x, float &z, float &y) const {
-    if (b0 >= 1.0f) {
+    if (b0 < 1.0f) {
+      if (b0 > -1.0f) {
+        x = static_cast<float>(atan2(b2, b1));
+        z = static_cast<float>(asin(-b0));
+        y = static_cast<float>(atan2(c0, a0));
+        return true;
+      } else {
+        x = static_cast<float>(atan2(a2, c2));
+        z = 1.5707964f;
+        y = 0.0f;
+        return false;
+      }
+    } else {
       x = static_cast<float>(atan2(-a2, c2));
       z = -1.5707964f;
       y = 0.0f;
       return false;
     }
-    if (b0 <= -1.0f) {
-      x = static_cast<float>(atan2(a2, c2));
-      z = 1.5707964f;
-      y = 0.0f;
-      return false;
-    }
-    x = static_cast<float>(atan2(b2, b1));
-    z = static_cast<float>(asin(-b0));
-    y = static_cast<float>(atan2(c0, a0));
-    return true;
   }
 
   bool C33Matrix::ToEulerAnglesYXZ(float &y, float &x, float &z) const {
-    if (c1 >= 1.0f) {
+    if (c1 < 1.0f) {
+      if (c1 > -1.0f) {
+        y = static_cast<float>(atan2(c0, c2));
+        x = static_cast<float>(asin(-c1));
+        z = static_cast<float>(atan2(a1, b1));
+        return true;
+      } else {
+        y = static_cast<float>(atan2(b0, a0));
+        x = 1.5707964f;
+        z = 0.0f;
+        return false;
+      }
+    } else {
       y = static_cast<float>(atan2(-b0, a0));
       x = -1.5707964f;
       z = 0.0f;
       return false;
     }
-    if (c1 <= -1.0f) {
-      y = static_cast<float>(atan2(b0, a0));
-      x = 1.5707964f;
-      z = 0.0f;
-      return false;
-    }
-    y = static_cast<float>(atan2(c0, c2));
-    x = static_cast<float>(asin(-c1));
-    z = static_cast<float>(atan2(a1, b1));
-    return true;
   }
 
   bool C33Matrix::ToEulerAnglesYZX(float &y, float &z, float &x) const {
-    if (a1 >= 1.0f) {
+    if (a1 < 1.0f) {
+      if (a1 > -1.0f) {
+        y = static_cast<float>(atan2(-a2, a0));
+        z = static_cast<float>(asin(a1));
+        x = static_cast<float>(atan2(-c1, b1));
+        return true;
+      } else {
+        y = -static_cast<float>(atan2(b2, c2));
+        z = -1.5707964f;
+        x = 0.0f;
+        return false;
+      }
+    } else {
       y = static_cast<float>(atan2(b2, c2));
       z = 1.5707964f;
       x = 0.0f;
       return false;
     }
-    if (a1 <= -1.0f) {
-      y = -static_cast<float>(atan2(b2, c2));
-      z = -1.5707964f;
-      x = 0.0f;
-      return false;
-    }
-    y = static_cast<float>(atan2(-a2, a0));
-    z = static_cast<float>(asin(a1));
-    x = static_cast<float>(atan2(-c1, b1));
-    return true;
   }
 
   bool C33Matrix::ToEulerAnglesZXY(float &z, float &x, float &y) const {
-    if (b2 >= 1.0f) {
+    if (b2 < 1.0f) {
+      if (b2 > -1.0f) {
+        z = static_cast<float>(atan2(-b0, b1));
+        x = static_cast<float>(asin(b2));
+        y = static_cast<float>(atan2(-a2, c2));
+        return true;
+      } else {
+        z = -static_cast<float>(atan2(c0, a0));
+        x = -1.5707964f;
+        y = 0.0f;
+        return false;
+      }
+    } else {
       z = static_cast<float>(atan2(c0, a0));
       x = 1.5707964f;
       y = 0.0f;
       return false;
     }
-    if (b2 <= -1.0f) {
-      z = -static_cast<float>(atan2(c0, a0));
-      x = -1.5707964f;
-      y = 0.0f;
-      return false;
-    }
-    z = static_cast<float>(atan2(-b0, b1));
-    x = static_cast<float>(asin(b2));
-    y = static_cast<float>(atan2(-a2, c2));
-    return true;
   }
 
   bool C33Matrix::ToEulerAnglesZYX(float &z, float &y, float &x) const {
-    if (a2 >= 1.0f) {
+    if (a2 < 1.0f) {
+      if (a2 > -1.0f) {
+        z = static_cast<float>(atan2(a1, a0));
+        y = static_cast<float>(asin(-a2));
+        x = static_cast<float>(atan2(b2, c2));
+        return true;
+      } else {
+        z = -static_cast<float>(atan2(b0, c0));
+        y = 1.5707964f;
+        x = 0.0f;
+        return false;
+      }
+    } else {
       z = static_cast<float>(atan2(-b0, -c0));
       y = -1.5707964f;
       x = 0.0f;
       return false;
     }
-    if (a2 <= -1.0f) {
-      z = -static_cast<float>(atan2(b0, c0));
-      y = 1.5707964f;
-      x = 0.0f;
-      return false;
-    }
-    z = static_cast<float>(atan2(a1, a0));
-    y = static_cast<float>(asin(-a2));
-    x = static_cast<float>(atan2(b2, c2));
-    return true;
   }
 
   void C33Matrix::FromEulerAnglesXYZ(float x, float y, float z) {

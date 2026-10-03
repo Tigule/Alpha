@@ -23,7 +23,13 @@ namespace NTempest {
 
     DWORD       SetC_(DWORD value, DWORD mask, DWORD shift) const;
     static BYTE ScaleC(DWORD value, DWORD scale);
-    void        Scale_(DWORD scale);
+    void Scale_(DWORD a) {
+      DWORD dr;
+      DWORD dg;
+      DWORD db;
+      Get(dr, dg, db);
+      Set(0, static_cast<BYTE>((a * dr) >> 8), static_cast<BYTE>((a * dg) >> 8), static_cast<BYTE>((a * db) >> 8));
+    }
     void        ScaleRGB_(DWORD scale);
     static BYTE ScaleC255(DWORD value, DWORD scale);
 
@@ -39,10 +45,14 @@ namespace NTempest {
     void        Multiply_(const CImVector *source);
 
     void MultiplyRGB_(const CImVector *s) {
-      CImVector d(*this);
       CImVector sa(*s);
+      CImVector d(*this);
 
-      Set(d.a, static_cast<BYTE>((sa.r * d.r + 255) >> 8), static_cast<BYTE>((sa.g * d.g + 255) >> 8), static_cast<BYTE>((sa.b * d.b + 255) >> 8));
+      *IV_() = MakeRGB(
+                   static_cast<BYTE>((R_(*d.IV_()) * R_(*sa.IV_()) + 255) >> 8), static_cast<BYTE>((G_(*d.IV_()) * G_(*sa.IV_()) + 255) >> 8),
+                   static_cast<BYTE>((B_(*d.IV_()) * B_(*sa.IV_()) + 255) >> 8)
+               ) |
+               (*d.IV_() & eAlphaMask);
     }
 
     static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination) {
@@ -246,7 +256,9 @@ namespace NTempest {
       return *IV_();
     }
 
-    void Scale(DWORD scale);
+    void Scale(DWORD scale) {
+      Scale_(scale);
+    }
     void ScaleRGB(DWORD scale);
     void Scale255(DWORD scale) {
       Scale255_(scale);
@@ -359,9 +371,7 @@ namespace NTempest {
 
     CImVector      MakeArgb() const;
     void From565(BYTE r5, BYTE g6, BYTE b5) {
-      r = r5;
-      g = g6;
-      b = b5;
+      *this = (r5 << eRedS) | (g6 << eGreenS) | (b5 << eBlueS);
     }
     void           From888(UINT red, UINT green, UINT blue);
     void           From555(BYTE red, BYTE green, BYTE blue);
@@ -434,10 +444,7 @@ namespace NTempest {
 
     void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void From565(BYTE r5, BYTE g6, BYTE b5) {
-      a = 1;
-      r = r5;
-      g = g6 >> 1;
-      b = b5;
+      *this = (1 << eAlphaS) | (r5 << eRedS) | ((g6 >> 1) << eGreenS) | (b5 << eBlueS);
     }
     void       From4444(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void       From8888(BYTE alpha, BYTE red, BYTE green, BYTE blue);
@@ -515,10 +522,7 @@ namespace NTempest {
 
     void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void From565(BYTE r5, BYTE g6, BYTE b5) {
-      a = 15;
-      r = r5 >> 1;
-      g = g6 >> 2;
-      b = b5 >> 1;
+      *this = (15 << eAlphaS) | ((r5 >> 1) << eRedS) | ((g6 >> 2) << eGreenS) | ((b5 >> 1) << eBlueS);
     }
     void       From4444(BYTE alpha, BYTE red, BYTE green, BYTE blue);
     void       From8888(BYTE alpha, BYTE red, BYTE green, BYTE blue);
@@ -554,10 +558,7 @@ namespace NTempest {
   };
 
   inline void CImVector::From565(BYTE r5, BYTE g6, BYTE b5) {
-    a = 255;
-    r = r5 << 3;
-    g = g6 << 2;
-    b = b5 << 3;
+    *IV_() = (255 << eAlphaS) | (r5 << (eRedS + 3)) | (g6 << (eGreenS + 2)) | (b5 << (eBlueS + 3));
   }
 
   inline CImVector &CImVector::operator=(const CRgb565 &c) {

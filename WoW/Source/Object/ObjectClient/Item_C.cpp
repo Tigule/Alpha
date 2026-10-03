@@ -43,7 +43,7 @@
 #include <Tempest/cimvector.h>
 #include <stddef.h>
 
-extern const int *const g_ITEMTYPEARRAY;
+extern const int g_ITEMTYPEARRAY[];
 
 bool             Spell_C_CastSpell(int spellID, const CGItem_C *item);
 void             Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
@@ -90,59 +90,6 @@ class CGTradeSkillInfo {
   static int                                       m_availableSlots;
 };
 
-static BOOL OnUpdateEnchantments(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
-static BOOL OnUpdateItemID(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
-
-static BOOL OnUpdateOwner(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
-  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  FATALASSERT(item);
-  FATALASSERT(prevValue);
-  DWORDLONG previousOwner = *static_cast<const DWORDLONG *>(prevValue);
-  DWORDLONG currOwner = item->GetOwner();
-  if (previousOwner && !currOwner) {
-    ClntObjMgrShowObject(guid);
-    item->AddWorldObject();
-  } else if (!previousOwner && currOwner) {
-    ClntObjMgrHideObject(guid);
-    item->RemoveWorldObject();
-  }
-  if (previousOwner == ClntObjMgrGetActivePlayer() || currOwner == ClntObjMgrGetActivePlayer()) {
-    CGActionBar::UpdateItem(item->GetEntryID());
-    CGContainerInfo::UpdateItem(guid);
-  }
-  return 1;
-}
-
-static BOOL OnUpdateStackCount(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
-  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  FATALASSERT(item);
-  if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
-    CGGameUI::UnlockItem(guid);
-    CGActionBar::UpdateItem(item->GetEntryID());
-    CGContainerInfo::UpdateItem(guid);
-  }
-  return 1;
-}
-
-CGItem_C::~CGItem_C() {
-}
-
-void CGItem_C::InstallObjMirrorHandlers() {
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_owner), sizeof(m_item->m_owner), OnUpdateOwner, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_stackCount), sizeof(m_item->m_stackCount), OnUpdateStackCount, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_enchantment), sizeof(m_item->m_enchantment), OnUpdateEnchantments, 0, HANDLER_PRIORITY_NORMAL);
-}
-
-void CGItem_C::InstallItemIDMirrorHandler() {
-  ClntObjMgrSetObjMirrorHandler(
-      GetGUID(), OffsetOf(ID_OBJECT) + offsetof(CGObjectData, m_entryID), sizeof(m_obj->m_entryID), OnUpdateItemID, 0, HANDLER_PRIORITY_NORMAL
-  );
-}
-
-void CGItem_C::UninstallItemIDMirrorHandler() {
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_OBJECT) + offsetof(CGObjectData, m_entryID), OnUpdateItemID, 0);
-}
-
 struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
   char *textureName;
 
@@ -180,6 +127,45 @@ struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
 static TSHashTable<INVENTORYART, HASHKEY_NONE> s_inventoryTextures;
 static HASHKEY_NONE                            s_nullHashKey;
 
+static BOOL OnUpdateOwner(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  FATALASSERT(item);
+  DWORDLONG currOwner = item->GetOwner();
+  if (!*static_cast<const DWORDLONG *>(prevValue) && currOwner) {
+    ClntObjMgrHideObject(guid);
+    item->RemoveWorldObject();
+  } else if (*static_cast<const DWORDLONG *>(prevValue) && !currOwner) {
+    ClntObjMgrShowObject(guid);
+    item->AddWorldObject();
+  }
+  if (*static_cast<const DWORDLONG *>(prevValue) == ClntObjMgrGetActivePlayer() && currOwner != ClntObjMgrGetActivePlayer()) {
+    CGActionBar::UpdateItem(item->GetEntryID());
+    CGTradeInfo::RemovePlayerItem(item->GetGUID());
+  }
+  if (*static_cast<const DWORDLONG *>(prevValue) == ClntObjMgrGetActivePlayer() || currOwner == ClntObjMgrGetActivePlayer()) {
+    CGTradeSkillInfo::RefreshList(0);
+    CGCraftInfo::RefreshList();
+    CGQuestLog::Update(0);
+  }
+  return 1;
+}
+
+static BOOL OnUpdateStackCount(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  FATALASSERT(item);
+  if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
+    CGGameUI::UnlockItem(item->GetGUID());
+    CGTradeSkillInfo::RefreshList(0);
+    CGCraftInfo::RefreshList();
+    CGActionBar::UpdateItem(item->GetEntryID());
+    CGQuestLog::Update(0);
+    CGTradeInfo::UpdatePlayerItem(item->GetGUID());
+    CGContainerInfo::UpdateItem(item->GetGUID());
+    CGCharacterInfo::UpdateItem(item->GetGUID());
+  }
+  return 1;
+}
+
 static BOOL OnUpdateEnchantments(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (item) {
@@ -200,8 +186,7 @@ static BOOL OnUpdateItemID(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prev
   FATALASSERT(item);
   FATALASSERT(prevValue);
   if (item->GetOwner() == ClntObjMgrGetActivePlayer()) {
-    const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), guid, ItemIDChangedCacheCallback, 0);
-    if (stats) {
+    if (g_itemDBCache.GetRecord(item->GetEntryID(), item->GetGUID(), ItemIDChangedCacheCallback, 0)) {
       CGContainerInfo::UpdateContents(item->GetContainedIn());
     }
   }
@@ -209,8 +194,10 @@ static BOOL OnUpdateItemID(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prev
 }
 
 static void AddInventoryArtHash(UINT displayID, LPCSTR fileName) {
-  INVENTORYART *entry = s_inventoryTextures.New(displayID, s_nullHashKey, 0, 0);
-  entry->SetArt(fileName);
+  if (!s_inventoryTextures.Ptr(displayID, s_nullHashKey)) {
+    INVENTORYART *entry = s_inventoryTextures.New(displayID, s_nullHashKey, 0, 0);
+    entry->SetArt(fileName);
+  }
 }
 
 static LPCSTR GetInventoryArtHash(UINT displayID) {
@@ -240,6 +227,12 @@ CGItem_C::CGItem_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
   memset(m_enchantmentExpiration, 0, sizeof(m_enchantmentExpiration));
 }
 
+void CGItem_C::InstallObjMirrorHandlers() {
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_owner), sizeof(m_item->m_owner), OnUpdateOwner, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_stackCount), sizeof(m_item->m_stackCount), OnUpdateStackCount, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_enchantment), sizeof(m_item->m_enchantment), OnUpdateEnchantments, 0, HANDLER_PRIORITY_NORMAL);
+}
+
 static void LoadItemCacheCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!item) {
@@ -248,18 +241,20 @@ static void LoadItemCacheCallback(int id, const DWORDLONG &guid, LPVOID arg, boo
 
   CGPlayer_C *owner = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(item->GetOwner(), __FILE__, __LINE__));
 
-  if (granted) {
+  if (!granted) {
+    if (owner) {
+      owner->DecrementPendingItemStats();
+    }
+  } else {
     CGContainerInfo::UpdateContents(item->GetContainedIn());
     item->PostInitWithStats();
 
     if (owner) {
-      const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
+      const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
       owner->FixComponenting(item);
       owner->ItemReceived(stats);
       owner->UpdateReadyAnim(stats);
     }
-  } else if (owner) {
-    owner->DecrementPendingItemStats();
   }
 }
 
@@ -277,18 +272,42 @@ void CGItem_C::PostInit(const CClientObjCreate &init) {
 }
 
 void CGItem_C::PostInitWithStats() {
-  const ItemStats_C *stat = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  const ItemStats *stat = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   FATALASSERT(stat);
 
   InstallObjMirrorHandlers();
   InstallItemIDMirrorHandler();
 
   const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(GetDisplayID());
-  m_soundsRec = displayInfo ? g_itemGroupSoundsDB.GetRecord(displayInfo->m_groupSoundIndex) : 0;
+  if (displayInfo) {
+    m_soundsRec = g_itemGroupSoundsDB.GetRecord(displayInfo->m_groupSoundIndex);
+  } else {
+    m_soundsRec = 0;
+  }
 
-  if (m_item->m_owner == ClntObjMgrGetActivePlayer()) {
+  if (GetOwner() == ClntObjMgrGetActivePlayer()) {
+    CGPlayer_C::UpdatePendingItemExpiration(GetGUID());
+    CGTradeSkillInfo::RefreshList(0);
+    CGCraftInfo::RefreshList();
     CGActionBar::UpdateItem(GetEntryID());
+    CGQuestLog::Update(0);
     CGContainerInfo::UpdateItem(GetGUID());
+
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(GetOwner(), __FILE__, __LINE__));
+    if (player) {
+      if (stat) {
+        player->ItemReceived(stat);
+      }
+      if (player->GetBag()->GetIndexOfObject(GetGUID()) >= 23 && player->GetBag()->GetIndexOfObject(GetGUID()) <= 38) {
+        CGTutorial::TriggerTutorial(TUTORIAL_ITEMS);
+        if (CanBeUsed()) {
+          CGTutorial::TriggerTutorial(TUTORIAL_USABLE_ITEMS);
+        }
+        if (GetBag()) {
+          CGTutorial::TriggerTutorial(TUTORIAL_BAGS);
+        }
+      }
+    }
   }
 
   m_itemInfo.m_classID = static_cast<BYTE>(GetClassID());
@@ -310,19 +329,17 @@ void CGItem_C::Disable(int shutdown) {
   UninstallItemIDMirrorHandler();
   RemoveWorldObject();
 
-  UINT offset = OffsetOf(ID_ITEM);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset, OnUpdateOwner, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset + offsetof(CGItemData, m_stackCount), OnUpdateStackCount, 0);
-  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), offset + offsetof(CGItemData, m_enchantment), OnUpdateEnchantments, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_owner), OnUpdateOwner, 0);
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_stackCount), OnUpdateStackCount, 0);
 
-  if (CGGameUI::GetCursorItem() == GetGUID()) {
-    CGGameUI::ClearCursor(0);
+  if (GetGUID() == CGGameUI::GetCursorItem()) {
+    CGGameUI::ClearCursor(1);
   }
-  if (CGItemText::GetItem() == GetGUID()) {
+  if (GetGUID() == CGItemText::GetItem()) {
     CGItemText::SetItem(0, 0);
   }
 
-  bool updateUI = !shutdown && m_item->m_owner == ClntObjMgrGetActivePlayer();
+  BOOL updateUI = !shutdown && GetOwner() == ClntObjMgrGetActivePlayer();
   CGObject_C::Disable(shutdown);
   if (updateUI) {
     CGTradeSkillInfo::RefreshList(0);
@@ -342,6 +359,9 @@ void CGItem_C::Reenable() {
   }
 }
 
+CGItem_C::~CGItem_C() {
+}
+
 LPCSTR CGItem_C::GetInventoryArt(int displayID) {
   LPCSTR inventoryArt = GetInventoryArtHash(displayID);
   if (inventoryArt) {
@@ -353,7 +373,8 @@ LPCSTR CGItem_C::GetInventoryArt(int displayID) {
     char buffer[MAX_PATH];
     inventoryArt = displayInfo->m_inventoryIcon;
     TEXFILETYPE type = TextureDiscoverFileType(inventoryArt);
-    if (type == TEXFILETYPE_TGA && TexturePickAlternateFilename(inventoryArt, type, buffer, sizeof(buffer))) {
+    if (type == TEXFILETYPE_TGA) {
+      TexturePickAlternateFilename(inventoryArt, type, buffer, sizeof(buffer));
       inventoryArt = buffer;
     }
 
@@ -363,6 +384,10 @@ LPCSTR CGItem_C::GetInventoryArt(int displayID) {
 
   SysMsgPrintf(SYSMSG_ERROR, 2, "NOINVENTORYICON|%d", displayID);
   return "INV_Misc_QuestionMark";
+}
+
+LPCSTR CGItem_C::GetInventoryArt() const {
+  return GetInventoryArt(GetDisplayID());
 }
 
 LPCSTR CGItem_C::GetModelFileName() const {
@@ -399,11 +424,11 @@ int CGItem_C::GetUseSpell() {
 }
 
 bool CGItem_C::Use() {
-  if (m_obj->m_type & 4 || (m_flags & 1)) {
+  if (IsA(ID_CONTAINER) || IsLocked()) {
     return false;
   }
 
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  const ItemStats *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   if (!stats) {
     return false;
   }
@@ -411,7 +436,11 @@ bool CGItem_C::Use() {
   CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   GAME_ERROR_TYPE reason = GERR_NUM_TYPES;
   if (player && !player->CanUseItem(stats, reason)) {
-    CGGameUI::DisplayError(reason == static_cast<GAME_ERROR_TYPE>(1) ? static_cast<GAME_ERROR_TYPE>(1) : reason);
+    if (reason == GERR_CANT_EQUIP_LEVEL_I) {
+      CGGameUI::DisplayError(GERR_CANT_EQUIP_LEVEL_I, stats->m_requiredLevel);
+    } else {
+      CGGameUI::DisplayError(reason);
+    }
     return false;
   }
 
@@ -420,32 +449,23 @@ bool CGItem_C::Use() {
     return false;
   }
   if (stats->m_startQuestID) {
-    if (player) {
-      player->QueryQuest(GetGUID(), stats->m_startQuestID);
-    }
+    player->QueryQuest(GetGUID(), stats->m_startQuestID);
     return false;
   }
-
-  if (stats->m_flags & 4) {
-    if (player) {
-      player->OpenLootItem(this);
-    }
+  if (stats->m_flags & ITEM_FLAG_HAS_LOOT) {
+    player->OpenLootItem(this);
     return false;
   }
-  if (stats->m_flags & 0x2000) {
-    if (player) {
-      player->RequestPetitionSignatures(GetGUID());
-    }
-    return false;
-  }
-  if (stats->m_flags & 0x200) {
-    if (m_item->m_dynamicFlags & 8) {
-      if (player) {
-        player->OpenWrappedItem(this);
-      }
+  if (stats->m_flags & ITEM_FLAG_IS_WRAPPER) {
+    if (IsWrapped()) {
+      player->OpenWrappedItem(this);
     } else {
       CGPlayer_C::StartGiftWrap(this);
     }
+    return false;
+  }
+  if (stats->m_flags & ITEM_FLAG_PETITION) {
+    player->RequestPetitionSignatures(GetGUID());
     return false;
   }
 
@@ -453,14 +473,45 @@ bool CGItem_C::Use() {
     return false;
   }
   if (GetInventoryType()) {
-    const DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
-    if (m_item->m_containedIn != activePlayer || !player || player->FindSlotIndex(GetGUID()) >= 23) {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(138));
+    if (GetContainedIn() != ClntObjMgrGetActivePlayer()) {
+      CGGameUI::DisplayError(GERR_MUST_EQUIP_ITEM);
+      return false;
+    }
+    if (player && player->GetBag()->GetIndexOfObject(GetGUID()) >= 23) {
+      CGGameUI::DisplayError(GERR_MUST_EQUIP_ITEM);
       return false;
     }
   }
 
   return Spell_C_CastSpell(GetUseSpell(), this);
+}
+
+BOOL CGItem_C::SetBlock(UINT i, DWORD data) {
+  if (i < CGObject::TotalFields()) {
+    return CGObject_C::SetBlock(i, data);
+  }
+
+  i -= CGObject::TotalFields();
+  FATALASSERT(i < (CGItem::GetDataSize()/sizeof(DWORD)));
+  reinterpret_cast<DWORD *>(&m_item)[i] = data;
+  return 1;
+}
+
+void CGItem_C::SetData(LPCVOID data, UINT bytes) {
+  FATALASSERT(bytes <= sizeof(*m_item));
+  memcpy(m_item, data, bytes);
+}
+
+UINT CGItem_C::OffsetOf(OBJECT_TYPE_ID type) {
+  switch (type) {
+    case ID_OBJECT:
+      return 0;
+    case ID_ITEM:
+      return CGObject::TotalFields() * sizeof(DWORD);
+    default:
+      FATALASSERT(0);
+      return static_cast<UINT>(-1);
+  }
 }
 
 void CGItem_C::Initialize() {
@@ -475,12 +526,31 @@ void CGItem_C::Shutdown() {
   s_inventoryTextures.Clear();
 }
 
+BOOL CGItem_C::IsMetal() const {
+  return IsMetal(GetMaterial());
+}
+
+BOOL CGItem_C::IsMetal(UINT material) {
+  const MaterialRec *rec = g_materialDB.GetRecord(material);
+  return rec && (rec->m_flags & 1);
+}
+
 void CGItem_C::SetTranslated() {
   m_item->m_dynamicFlags |= 2;
 }
 
+void CGItem_C::InstallItemIDMirrorHandler() {
+  ClntObjMgrSetObjMirrorHandler(
+      GetGUID(), OffsetOf(ID_OBJECT) + offsetof(CGObjectData, m_entryID), sizeof(m_obj->m_entryID), OnUpdateItemID, 0, HANDLER_PRIORITY_NORMAL
+  );
+}
+
+void CGItem_C::UninstallItemIDMirrorHandler() {
+  ClntObjMgrUnsetObjMirrorHandler(GetGUID(), OffsetOf(ID_OBJECT) + offsetof(CGObjectData, m_entryID), OnUpdateItemID, 0);
+}
+
 void CGItem_C::UpdateEnchantments() const {
-  CGUnit_C *owner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_item->m_owner, __FILE__, __LINE__));
+  CGUnit_C *owner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(GetOwner(), __FILE__, __LINE__));
   if (owner) {
     owner->UpdateObjComponentVisuals(this, m_item->m_enchantment, 5);
   }
@@ -504,17 +574,6 @@ int CGItem_C::GetExpirationTimeLeft() {
   return 0;
 }
 
-int CGItem_C::GetEnchantmentTimeLeft(int slot) {
-  FATALASSERT((slot >= 0) && (slot < NUM_ITEM_ENCHANTMENTS));
-  if (m_enchantmentExpiration[slot]) {
-    DWORD now = OsGetAsyncTimeMs();
-    if (static_cast<long>(now - m_enchantmentExpiration[slot]) < 0) {
-      return m_enchantmentExpiration[slot] - now;
-    }
-  }
-  return 0;
-}
-
 void CGItem_C::UpdateEnchantmentTime(int slot, int timeLeft) {
   FATALASSERT((slot >= 0) && (slot < NUM_ITEM_ENCHANTMENTS));
   if (timeLeft > 0) {
@@ -524,84 +583,15 @@ void CGItem_C::UpdateEnchantmentTime(int slot, int timeLeft) {
   }
 }
 
-int CGItem_C::GetSheatheType() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
-  return stats ? stats->m_sheatheType : 0;
-}
-
-LPCSTR CGItem_C::GetInventoryArt() const {
-  return GetInventoryArt(GetDisplayID());
-}
-
-int CGItem_C::GetClassID() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
-  return stats ? stats->m_class : 0;
-}
-
-int CGItem_C::GetSubtypeID() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
-  return stats ? stats->m_subclass : 0;
-}
-
-UINT CGItem_C::GetInventoryType() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
-  return stats ? stats->m_inventoryType : 0;
-}
-
-int CGItem_C::GetDisplayID() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
-  return stats ? stats->m_displayInfoID : 0;
-}
-
-BOOL CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
-  return stats ? (stats->m_flags & flags) == flags : 0;
-}
-
-int CGItem_C::GetMaterial() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
-  return stats ? stats->m_material : 0;
-}
-
-BOOL CGItem_C::IsMetal() const {
-  return IsMetal(GetMaterial());
-}
-
-BOOL CGItem_C::IsMetal(UINT material) {
-  const MaterialRec *rec = g_materialDB.GetRecord(material);
-  return rec && (rec->m_flags & 1);
-}
-
-const ItemStats *CGItem_C::GetStats() const {
-  return g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
-}
-
-BOOL CGItem_C::SetBlock(UINT i, DWORD data) {
-  if (i < OffsetOf(ID_ITEM)) {
-    return CGObject_C::SetBlock(i, data);
+int CGItem_C::GetEnchantmentTimeLeft(int slot) {
+  FATALASSERT((slot >= 0) && (slot < NUM_ITEM_ENCHANTMENTS));
+  if (m_enchantmentExpiration[slot]) {
+    DWORD now = OsGetAsyncTimeMs();
+    if (static_cast<long>(now - m_enchantmentExpiration[slot]) < 0) {
+      return m_enchantmentExpiration[slot] - now;
+    }
   }
-
-  i -= OffsetOf(ID_ITEM);
-  FATALASSERT(i < sizeof(*m_item) / sizeof(DWORD));
-  reinterpret_cast<DWORD *>(m_item)[i] = data;
-  return 1;
-}
-
-void CGItem_C::SetData(LPCVOID data, UINT bytes) {
-  FATALASSERT(bytes <= sizeof(*m_item));
-  memcpy(m_item, data, bytes);
-}
-
-UINT CGItem_C::OffsetOf(OBJECT_TYPE_ID type) {
-  switch (type) {
-    case ID_OBJECT:
-      return 0;
-    case ID_ITEM:
-      return CGObject::TotalFields() * sizeof(DWORD);
-    default:
-      FATALASSERT(0);
-      return static_cast<UINT>(-1);
-  }
+  return 0;
 }
 
 BOOL CGItem_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
@@ -638,8 +628,43 @@ int CGItem_C::GetMaxCount() const {
   return stats ? stats->m_maxCount : 1;
 }
 
+int CGItem_C::GetClassID() const {
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  return stats ? stats->m_class : 0;
+}
+
+int CGItem_C::GetSubtypeID() const {
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  return stats ? stats->m_subclass : 0;
+}
+
+UINT CGItem_C::GetInventoryType() const {
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  return stats ? stats->m_inventoryType : 0;
+}
+
+int CGItem_C::GetDisplayID() const {
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  return stats ? stats->m_displayInfoID : 0;
+}
+
 bool CGItem_C::IsExotic() const {
   return GetItemStaticFlag(ITEM_FLAG_EXOTIC) != 0;
+}
+
+BOOL CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  return stats ? (stats->m_flags & flags) == flags : 0;
+}
+
+int CGItem_C::GetMaterial() const {
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  return stats ? stats->m_material : 0;
+}
+
+int CGItem_C::GetSheatheType() const {
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  return stats ? stats->m_sheatheType : 0;
 }
 
 BOOL CGItem_C::CanGoInSlot(UINT slot) const {
@@ -648,6 +673,10 @@ BOOL CGItem_C::CanGoInSlot(UINT slot) const {
 
 int CGItem_C::GetSheatheInvisible() const {
   return GetSheatheType() > 4;
+}
+
+const ItemStats *CGItem_C::GetStats() const {
+  return g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
 }
 
 bool CGItem_C::IsWrapper() const {

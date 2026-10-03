@@ -59,10 +59,9 @@ CSimpleFrame::CSimpleFrame(CSimpleFrame *parent)
   m_top->RegisterFrame(this);
   SetParent(parent);
 
-  m_drawenabled[0] = 1;
-  m_drawenabled[1] = 1;
-  m_drawenabled[2] = 1;
-  m_drawenabled[3] = 1;
+  for (UINT i = 0; i < 4; ++i) {
+    m_drawenabled[i] = 1;
+  }
   m_drawenabled[4] = 0;
   Show();
 }
@@ -78,11 +77,9 @@ CSimpleFrame::~CSimpleFrame() {
     DEL(m_titleRegion);
   }
 
-  REGIONNODE *region;
-  while ((region = m_regions.Head()) != 0) {
-    if (region->region) {
-      DEL(region->region);
-    }
+  while (m_regions.Head()) {
+    REGIONNODE *region = m_regions.Head();
+    DEL(region->region);
   }
 
   UINT i;
@@ -90,13 +87,14 @@ CSimpleFrame::~CSimpleFrame() {
     ASSERT(m_drawlayers[i].IsEmpty());
   }
 
-  m_renderList.UnlinkAll();
+  for (CRenderBatch *node = m_renderList.Head(), *nodenext_node; reinterpret_cast<int>(node) > 0 ? ((nodenext_node = m_renderList.RawNext(node)), 1) : 0;
+       node = nodenext_node) {
+    m_renderList.UnlinkNode(node);
+  }
 
-  SIMPLEFRAMENODE *frame;
-  while ((frame = m_children.Head()) != 0) {
-    if (frame->frame) {
-      DEL(frame->frame);
-    }
+  while (m_children.Head()) {
+    SIMPLEFRAMENODE *frame = m_children.Head();
+    DEL(frame->frame);
   }
 
   if (m_parent) {
@@ -988,12 +986,13 @@ void CSimpleFrame::OnLayerCursorExit() {
   }
 
   if (m_mouseDown && !m_dragging) {
+    m_dragging = 1;
+
     CMouseEvent evt;
 
     evt.button = m_dragButton;
     evt.x = m_clickPoint.x;
     evt.y = m_clickPoint.y;
-    m_dragging = 1;
     OnDragStart(evt);
   }
 

@@ -105,9 +105,9 @@ void CSimpleMessageScrollFrame::SetMaxLines(int maxLines) {
 
 void CSimpleMessageScrollFrame::SetMessageFrameInsets(float right, float left, float top, float bottom) {
   m_messageFrameInset.l = left;
-  m_messageFrameInset.b = bottom;
+  m_messageFrameInset.b = top;
   m_messageFrameInset.r = right;
-  m_messageFrameInset.t = top;
+  m_messageFrameInset.t = bottom;
 
   if (IsRectValid()) {
     OnFrameSizeChanged(m_rect);
@@ -124,21 +124,29 @@ void CSimpleMessageScrollFrame::SetTextLength(int size) {
 }
 
 void CSimpleMessageScrollFrame::AddMessage(LPCSTR text, const CSimpleFontStringAttributes *attrib) {
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(text);
+  VALIDATEENDVOID;
 
   if (m_numMessages < m_maxMessages) {
     ++m_numMessages;
   }
 
-  if (++m_currentLine >= m_maxMessages) {
+  ++m_currentLine;
+  if (m_currentLine >= m_maxMessages) {
     m_currentLine -= m_maxMessages;
   }
 
+  int scrollDown = 0;
   int nextScroll = m_currentScroll - m_numDisplayed + 1;
+
   if (nextScroll < 0) {
     nextScroll += m_maxMessages;
   }
-  int scrollDown = m_currentLine == nextScroll;
+
+  if (m_currentLine == nextScroll) {
+    scrollDown = 1;
+  }
 
   CSimpleMessageScrollFrameLine &line = m_lines[m_currentLine];
   FREEIFUSED(line.string);
@@ -146,7 +154,11 @@ void CSimpleMessageScrollFrame::AddMessage(LPCSTR text, const CSimpleFontStringA
   line.isVisible = 1;
   line.timeLeft = m_timeVisible;
   line.fadeLeft = m_fadeDuration;
-  line.attrib = attrib ? *attrib : m_attrib;
+  if (attrib) {
+    line.attrib = *attrib;
+  } else {
+    line.attrib = m_attrib;
+  }
 
   if (m_atBottom) {
     ScrollMessages(m_currentLine);
@@ -162,7 +174,13 @@ UINT CSimpleMessageScrollFrame::AddMultiLine(char *text, const CSimpleFontString
 
   CSimpleFontString           string(0, 2, 1);
   CSimpleFontStringAttributes attributes;
-  attributes = attrib ? *attrib : m_attrib;
+
+  if (attrib) {
+    attributes = *attrib;
+  } else {
+    attributes = m_attrib;
+  }
+
   attributes.UpdateString(&string, 0);
 
   UINT *lineOffsets = static_cast<UINT *>(_alloca(m_maxMessages * sizeof(*lineOffsets)));
@@ -194,14 +212,13 @@ void CSimpleMessageScrollFrame::Clear() {
 void CSimpleMessageScrollFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   CSimpleFrame::OnFrameSizeChanged(rect);
 
-  float scale = GetLayoutScale();
-  m_messageFrameArea.l = rect.l + m_messageFrameInset.l * scale;
-  m_messageFrameArea.r = rect.r - m_messageFrameInset.r * scale;
-  m_messageFrameArea.t = rect.t + m_messageFrameInset.t * scale;
-  m_messageFrameArea.b = rect.b - m_messageFrameInset.b * scale;
+  m_messageFrameArea.l = rect.l + m_messageFrameInset.l * GetLayoutScale();
+  m_messageFrameArea.r = rect.r - m_messageFrameInset.r * GetLayoutScale();
+  m_messageFrameArea.t = rect.t + m_messageFrameInset.t * GetLayoutScale();
+  m_messageFrameArea.b = rect.b - m_messageFrameInset.b * GetLayoutScale();
 
   UINT  count = m_displayNodes.Count();
-  float messageWidth = (m_messageFrameArea.r - m_messageFrameArea.l) / scale;
+  float messageWidth = (m_messageFrameArea.r - m_messageFrameArea.l) / GetLayoutScale();
   for (UINT i = 0; i < count; ++i) {
     m_displayNodes[i].string->SetWidth(messageWidth);
   }
@@ -210,53 +227,50 @@ void CSimpleMessageScrollFrame::OnFrameSizeChanged(const NTempest::CRect &rect) 
 }
 
 void CSimpleMessageScrollFrame::OnLayerUpdate(float elapsedSec) {
-  int  i;
-  UINT updateHyperlinks;
-
   CSimpleFrame::OnLayerUpdate(elapsedSec);
 
-  if (!m_atBottom) {
-    return;
-  }
+  if (m_atBottom) {
+    bool updateHyperlinks = false;
 
-  updateHyperlinks = 0;
-  for (i = 0; i < m_numDisplayed; ++i) {
-    CSimpleMessageScrollFrameDisplayNode &node = m_displayNodes[i];
-    CSimpleMessageScrollFrameLine        *line = node.line;
+    for (int i = 0; i < m_numDisplayed; ++i) {
+      CSimpleMessageScrollFrameDisplayNode &node = m_displayNodes[i];
+      CSimpleMessageScrollFrameLine        *line = node.line;
 
-    if (!line->isVisible) {
-      continue;
+      if (line->isVisible) {
+        if (line->timeLeft != 0.0f) {
+          line->timeLeft -= elapsedSec;
+          if (line->timeLeft < 0.0f) {
+            if (line->fadeLeft != 0.0f) {
+              line->timeLeft = 0.0f;
+            } else {
+              line->isVisible = 0;
+              node.string->Hide();
+              updateHyperlinks = true;
+            }
+          }
+        } else if (line->fadeLeft != 0.0f) {
+          float fadeLeft = line->fadeLeft - elapsedSec;
+
+          if (fadeLeft < 0.0f) {
+            line->isVisible = 0;
+            node.string->Hide();
+            updateHyperlinks = true;
+          } else {
+            line->fadeLeft = fadeLeft;
+
+            BYTE alpha = static_cast<BYTE>(fadeLeft / m_fadeDuration * 255.0f);
+
+            line->attrib.SetAlpha(alpha);
+            node.attrib.SetAlpha(alpha);
+            node.string->SetVertexColor(node.attrib.GetColor());
+          }
+        }
+      }
     }
 
-    if (line->timeLeft != 0.0f) {
-      line->timeLeft -= elapsedSec;
-      if (line->timeLeft >= 0.0f) {
-        continue;
-      }
-      if (line->fadeLeft != 0.0f) {
-        line->timeLeft = 0.0f;
-        continue;
-      }
-    } else if (line->fadeLeft != 0.0f) {
-      line->fadeLeft -= elapsedSec;
-      if (line->fadeLeft >= 0.0f) {
-        BYTE alpha = static_cast<BYTE>(line->fadeLeft / m_fadeDuration * 255.0f);
-        line->attrib.SetAlpha(alpha);
-        node.attrib.SetAlpha(alpha);
-        node.string->SetVertexColor(node.attrib.GetColor());
-        continue;
-      }
-    } else {
-      continue;
+    if (updateHyperlinks) {
+      RefreshHyperlinks();
     }
-
-    line->isVisible = 0;
-    node.string->Hide();
-    updateHyperlinks = 1;
-  }
-
-  if (updateHyperlinks) {
-    RefreshHyperlinks();
   }
 }
 
@@ -346,14 +360,15 @@ void CSimpleMessageScrollFrame::ScrollToBottom() {
 }
 
 void CSimpleMessageScrollFrame::ScrollMessages(int start) {
-  CSimpleMessageScrollFrameLine *line;
-  int                            resetTimers;
   float                          sizeAvailable;
-  int                            maxMessages;
-  CSimpleFontString             *string;
   int                            current;
+  int                            resetTimers;
+  int                            maxMessages;
   float                          sizeNeeded;
-  UINT                           added;
+  CSimpleFontString             *string;
+  bool                           added;
+  CSimpleMessageScrollFrameLine *line;
+  int                            i;
 
   if (m_currentLine == -1) {
     return;
@@ -363,46 +378,50 @@ void CSimpleMessageScrollFrame::ScrollMessages(int start) {
   m_currentScroll = start;
   resetTimers = 0;
   if (start == m_currentLine) {
-    resetTimers = !m_atBottom;
+    if (!m_atBottom) {
+      resetTimers = 1;
+    }
     m_atBottom = 1;
   } else {
     m_atBottom = 0;
   }
 
-  maxMessages = m_numMessages;
   sizeAvailable = (m_messageFrameArea.b - m_messageFrameArea.t) / GetLayoutScale();
-  current = start;
+  maxMessages = m_numMessages;
   if (start != m_currentLine) {
-    if (current >= m_currentLine) {
-      current -= m_maxMessages;
+    i = start;
+    if (i >= m_currentLine) {
+      i -= m_maxMessages;
     }
-    maxMessages += current - m_currentLine;
+
+    maxMessages += i - m_currentLine;
   }
 
-  UINT displayIndex = 0;
   current = start;
-  while (static_cast<int>(displayIndex) < maxMessages) {
-    added = displayIndex == m_displayNodes.Count();
-    if (added) {
-      m_displayNodes.SetCount(displayIndex + 1);
+  for (i = 0; i < maxMessages; ++i) {
+    added = false;
+    if (i == m_displayNodes.Count()) {
+      added = true;
+      m_displayNodes.SetCount(i + 1);
     }
 
     line = &m_lines[current];
-    UpdateNode(&m_displayNodes[displayIndex], line, resetTimers);
+    UpdateNode(&m_displayNodes[i], line, resetTimers);
 
-    string = m_displayNodes[displayIndex].string;
+    string = m_displayNodes[i].string;
     if (added) {
       string->SetFrame(this, 2, 1);
       string->SetWidth((m_messageFrameArea.r - m_messageFrameArea.l) / GetLayoutScale());
-      if (displayIndex) {
-        string->SetPoint(FRAMEPOINT_BOTTOMLEFT, m_displayNodes[displayIndex - 1].string, FRAMEPOINT_TOPLEFT, 0.0f, string->GetSpacing(), 1);
-      } else {
+      if (i == 0) {
         string->SetPoint(FRAMEPOINT_BOTTOMLEFT, this, FRAMEPOINT_BOTTOMLEFT, m_messageFrameInset.l, m_messageFrameInset.t, 1);
+      } else {
+        string->SetPoint(FRAMEPOINT_BOTTOMLEFT, m_displayNodes[i - 1].string, FRAMEPOINT_TOPLEFT, 0.0f, string->GetSpacing(), 1);
       }
+
       string->SetTextLength(m_textMaxSize);
     }
 
-    sizeNeeded = string->GetStringHeight() + string->GetSpacing();
+    sizeNeeded = string->GetSpacing() + string->GetStringHeight();
     if (sizeAvailable < sizeNeeded) {
       break;
     }
@@ -417,13 +436,18 @@ void CSimpleMessageScrollFrame::ScrollMessages(int start) {
     if (--current < 0) {
       current += m_maxMessages;
     }
+
     ++m_numDisplayed;
-    ++displayIndex;
   }
 
-  m_atTop = static_cast<int>(displayIndex) == maxMessages;
-  while (displayIndex < m_displayNodes.Count()) {
-    m_displayNodes[displayIndex++].string->Hide();
+  if (i == maxMessages) {
+    m_atTop = 1;
+  } else {
+    m_atTop = 0;
+  }
+
+  while (i < m_displayNodes.Count()) {
+    m_displayNodes[i++].string->Hide();
   }
 
   RefreshHyperlinks();
@@ -466,12 +490,13 @@ void CSimpleMessageScrollFrame::RefreshMessages() {
 }
 
 void CSimpleMessageScrollFrame::RefreshHyperlinks() {
-  CSimpleHyperlinkButton               *button;
   int                                   i;
   CSimpleMessageScrollFrameDisplayNode *node;
   const GXUFONTHYPERLINKINFO           *links;
 
-  while ((button = m_hyperlinks.Head()) != 0) {
+  while (m_hyperlinks.Head()) {
+    CSimpleHyperlinkButton *button = m_hyperlinks.Head();
+
     m_hyperlinks.UnlinkNode(button);
     ReleaseHyperlinkButton(button);
   }
@@ -481,11 +506,11 @@ void CSimpleMessageScrollFrame::RefreshHyperlinks() {
     node = &m_displayNodes[--i];
 
     if (node->line->isVisible) {
-      CGxString *gxString = node->string->m_string ? TextBlockGetStringPtr(node->string->m_string) : 0;
-      UINT       linkCount = GxuFontStringHyperLinkInfo(gxString, links);
+      UINT linkCount = GxuFontStringHyperLinkInfo(node->string->GetString(), links);
 
       for (UINT linkIndex = 0; linkIndex < linkCount; ++linkIndex) {
-        button = CreateHyperlinkButton();
+        CSimpleHyperlinkButton *button = CreateHyperlinkButton();
+
         m_hyperlinks.LinkNode(button, LIST_TAIL, 0);
         button->SetHyperlink(node->string, &links[linkIndex]);
       }

@@ -16,12 +16,25 @@ BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 static WORD vertIndices[36] = {4, 6, 0, 0, 6, 2, 4, 0, 5, 5, 0, 1, 0, 2, 1, 1, 2, 3, 2, 6, 3, 3, 6, 7, 1, 3, 5, 5, 3, 7, 5, 7, 4, 4, 7, 6};
 
 static BOOL TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts) {
-  return (triVerts[0].x < bounds.b.x && triVerts[1].x < bounds.b.x && triVerts[2].x < bounds.b.x) ||
-         (triVerts[0].x > bounds.t.x && triVerts[1].x > bounds.t.x && triVerts[2].x > bounds.t.x) ||
-         (triVerts[0].y < bounds.b.y && triVerts[1].y < bounds.b.y && triVerts[2].y < bounds.b.y) ||
-         (triVerts[0].y > bounds.t.y && triVerts[1].y > bounds.t.y && triVerts[2].y > bounds.t.y) ||
-         (triVerts[0].z < bounds.b.z && triVerts[1].z < bounds.b.z && triVerts[2].z < bounds.b.z) ||
-         (triVerts[0].z > bounds.t.z && triVerts[1].z > bounds.t.z && triVerts[2].z > bounds.t.z);
+  if (triVerts[0].x < bounds.b.x && triVerts[1].x < bounds.b.x && triVerts[2].x < bounds.b.x) {
+    return 1;
+  }
+  if (triVerts[0].x > bounds.t.x && triVerts[1].x > bounds.t.x && triVerts[2].x > bounds.t.x) {
+    return 1;
+  }
+  if (triVerts[0].y < bounds.b.y && triVerts[1].y < bounds.b.y && triVerts[2].y < bounds.b.y) {
+    return 1;
+  }
+  if (triVerts[0].y > bounds.t.y && triVerts[1].y > bounds.t.y && triVerts[2].y > bounds.t.y) {
+    return 1;
+  }
+  if (triVerts[0].z < bounds.b.z && triVerts[1].z < bounds.b.z && triVerts[2].z < bounds.b.z) {
+    return 1;
+  }
+  if (triVerts[0].z > bounds.t.z && triVerts[1].z > bounds.t.z && triVerts[2].z > bounds.t.z) {
+    return 1;
+  }
+  return 0;
 }
 
 static void CollisionDataAddFacets(
@@ -31,46 +44,31 @@ static void CollisionDataAddFacets(
     const NTempest::CAaBox            &worldBox,
     TSGrowableArray<NTempest::CFacet> *facets
 ) {
-  FATALASSERT(handle);
+  CCollisionData *collide = reinterpret_cast<CCollisionData *>(handle);
   VALIDATEBEGIN;
+  VALIDATE(collide);
   VALIDATE(facets);
   VALIDATEENDVOID;
 
-  NTempest::C33Matrix rotation(
-      toWorld.a0 * scale, toWorld.a1 * scale, toWorld.a2 * scale, toWorld.b0 * scale, toWorld.b1 * scale, toWorld.b2 * scale, toWorld.c0 * scale,
-      toWorld.c1 * scale, toWorld.c2 * scale
-  );
+  NTempest::C33Matrix rotation = toWorld;
+  rotation = rotation / scale;
   UINT existing = facets->Count();
+  UINT numFacets = collide->surfaceNormals.Count();
+  facets->SetCount(numFacets + existing);
   UINT rejects = 0;
-  UINT numFacets = reinterpret_cast<CCollisionData *>(handle)->surfaceNormals.Count();
-  facets->SetCount(existing + numFacets);
-
   for (UINT i = 0; i < numFacets; ++i) {
-    (*facets)[existing + i - rejects].vertices[0] =
-        reinterpret_cast<CCollisionData *>(handle)->vertices[reinterpret_cast<CCollisionData *>(handle)->indices[i * 3]] * toWorld;
-    (*facets)[existing + i - rejects].vertices[1] =
-        reinterpret_cast<CCollisionData *>(handle)->vertices[reinterpret_cast<CCollisionData *>(handle)->indices[i * 3 + 1]] * toWorld;
-    (*facets)[existing + i - rejects].vertices[2] =
-        reinterpret_cast<CCollisionData *>(handle)->vertices[reinterpret_cast<CCollisionData *>(handle)->indices[i * 3 + 2]] * toWorld;
-
-    if (TriangleIsClippedOut(worldBox, (*facets)[existing + i - rejects].vertices)) {
+    UINT index = i - rejects + existing;
+    (*facets)[index].vertices[0] = collide->vertices[collide->indices[i * 3]] * toWorld;
+    (*facets)[index].vertices[1] = collide->vertices[collide->indices[i * 3 + 1]] * toWorld;
+    (*facets)[index].vertices[2] = collide->vertices[collide->indices[i * 3 + 2]] * toWorld;
+    if (TriangleIsClippedOut(worldBox, (*facets)[index].vertices)) {
       ++rejects;
-    } else {
-      (*facets)[existing + i - rejects].plane.n.x = reinterpret_cast<CCollisionData *>(handle)->surfaceNormals[i].x * rotation.a0 +
-                                                    reinterpret_cast<CCollisionData *>(handle)->surfaceNormals[i].y * rotation.b0 +
-                                                    reinterpret_cast<CCollisionData *>(handle)->surfaceNormals[i].z * rotation.c0;
-      (*facets)[existing + i - rejects].plane.n.y = reinterpret_cast<CCollisionData *>(handle)->surfaceNormals[i].x * rotation.a1 +
-                                                    reinterpret_cast<CCollisionData *>(handle)->surfaceNormals[i].y * rotation.b1 +
-                                                    reinterpret_cast<CCollisionData *>(handle)->surfaceNormals[i].z * rotation.c1;
-      (*facets)[existing + i - rejects].plane.n.z = reinterpret_cast<CCollisionData *>(handle)->surfaceNormals[i].x * rotation.a2 +
-                                                    reinterpret_cast<CCollisionData *>(handle)->surfaceNormals[i].y * rotation.b2 +
-                                                    reinterpret_cast<CCollisionData *>(handle)->surfaceNormals[i].z * rotation.c2;
-      (*facets)[existing + i - rejects].plane.d =
-          -NTempest::C3Vector::Dot((*facets)[existing + i - rejects].plane.n, (*facets)[existing + i - rejects].vertices[0]);
+      continue;
     }
-  }
 
-  facets->SetCount(existing + numFacets - rejects);
+    (*facets)[index].plane.Set(collide->surfaceNormals[i] * rotation, (*facets)[index].vertices[0]);
+  }
+  facets->SetCount(numFacets - rejects + existing);
 }
 
 static BOOL CollisionDataVectorIntersect(
@@ -80,75 +78,72 @@ static BOOL CollisionDataVectorIntersect(
     const NTempest::C3Vector  &p1,
     float                     &t
 ) {
-  FATALASSERT(hDC);
-
   CCollisionData *collide = reinterpret_cast<CCollisionData *>(hDC);
-  t = FLT_MAX;
+  VALIDATEBEGIN;
+  VALIDATE(collide);
+  VALIDATEEND;
 
-  NTempest::C3Vector direction = p1 - p0;
-  float              ooMag = 1.0f / direction.Mag();
-  direction *= ooMag;
+  t = FLT_MAX;
+  NTempest::C3Vector dir = p1 - p0;
+  float              ooMag = 1.0f / dir.Mag();
+  dir *= ooMag;
 
   UINT numSurfaces = collide->surfaceNormals.Count();
-  for (UINT surface = 0; surface < numSurfaces; ++surface) {
-    NTempest::C3Vector v0 = collide->vertices[collide->indices[surface * 3]] * basis;
-    NTempest::C3Vector v1 = collide->vertices[collide->indices[surface * 3 + 1]] * basis;
-    NTempest::C3Vector v2 = collide->vertices[collide->indices[surface * 3 + 2]] * basis;
-    float              distance;
-    if (GxuTestRayAndTriangle(p0, direction, v0, v1, v2, distance) && distance >= 0.0f && distance < t) {
-      t = distance;
+  for (UINT i = 0; i < numSurfaces; ++i) {
+    float triT;
+    if (GxuTestRayAndTriangle(
+            p0,
+            dir,
+            collide->vertices[collide->indices[i * 3]] * basis,
+            collide->vertices[collide->indices[i * 3 + 1]] * basis,
+            collide->vertices[collide->indices[i * 3 + 2]] * basis,
+            triT
+        ) &&
+        triT >= 0.0f && triT < t) {
+      t = triT;
     }
   }
 
-  if (t < FLT_MAX) {
-    t *= ooMag;
-    if (t <= 1.0f) {
-      return 1;
-    }
+  if (t >= FLT_MAX) {
+    return 0;
   }
-  return 0;
+
+  t *= ooMag;
+  return t <= 1.0f;
 }
 
 static void ComputeSurfaceNormals(CCollisionData *collide, UINT numSurfaces) {
   collide->surfaceNormals.SetCount(numSurfaces);
-  for (UINT surface = 0; surface < numSurfaces; ++surface) {
-    const NTempest::C3Vector &v0 = collide->vertices[collide->indices[surface * 3]];
-    const NTempest::C3Vector &v1 = collide->vertices[collide->indices[surface * 3 + 1]];
-    const NTempest::C3Vector &v2 = collide->vertices[collide->indices[surface * 3 + 2]];
-    NTempest::C3Vector        edge1 = v1 - v0;
-    NTempest::C3Vector        edge2 = v2 - v0;
-    collide->surfaceNormals[surface] = NTempest::C3Vector::Cross(edge1, edge2);
-    float magnitude = collide->surfaceNormals[surface].Mag();
-    if (NTempest::CMath::fabs_(magnitude) >= 0.00000023841858f) {
-      collide->surfaceNormals[surface] *= 1.0f / magnitude;
-    }
+  for (UINT i = 0; i < numSurfaces; ++i) {
+    NTempest::C3Vector edge1 = collide->vertices[collide->indices[i * 3 + 1]] - collide->vertices[collide->indices[i * 3]];
+    NTempest::C3Vector edge2 = collide->vertices[collide->indices[i * 3 + 2]] - collide->vertices[collide->indices[i * 3]];
+    collide->surfaceNormals[i] = NTempest::C3Vector::Cross(edge1, edge2);
+    collide->surfaceNormals[i].SafeNormalize();
   }
 }
 
 HCOLLISIONDATA CollisionDataCreate(const NTempest::CAaBox &bounds) {
-  LPVOID          storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", SERR_LINECODE_OBJECT, 0);
-  CCollisionData *collision = storage ? new (storage) CCollisionData : 0;
+  CCollisionData *collision = NEWHANDLE(HCOLLISIONDATA, CCollisionData);
   if (!collision) {
     return 0;
   }
 
   collision->vertices.SetCount(8);
-  UINT vertex = 0;
+  NTempest::C3Vector *vertex = collision->vertices.Ptr();
   for (UINT z = 0; z < 2; ++z) {
     for (UINT y = 0; y < 2; ++y) {
-      for (UINT x = 0; x < 2; ++x) {
-        collision->vertices[vertex++] = NTempest::C3Vector(x ? bounds.t.x : bounds.b.x, y ? bounds.t.y : bounds.b.y, z ? bounds.t.z : bounds.b.z);
+      for (UINT x = 0; x < 2; ++x, ++vertex) {
+        *vertex = NTempest::C3Vector((&bounds.b)[x].x, (&bounds.b)[y].y, (&bounds.b)[z].z);
       }
     }
   }
 
-  collision->indices.SetCount(36);
-  memcpy(collision->indices.Ptr(), vertIndices, sizeof(vertIndices));
+  collision->indices.Set(36, vertIndices);
 
   ComputeSurfaceNormals(collision, 12);
   collision->extents = bounds;
 
-  return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
+  return CREATEHANDLE(HCOLLISIONDATA, collision);
 }
 
 HCOLLISIONDATA CollisionDataCreate(const MDLDATA &data) {
@@ -156,18 +151,17 @@ HCOLLISIONDATA CollisionDataCreate(const MDLDATA &data) {
     return 0;
   }
 
-  LPVOID storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", SERR_LINECODE_OBJECT, 0);
-  if (!storage) {
+  CCollisionData *collision = NEWHANDLE(HCOLLISIONDATA, CCollisionData);
+  if (!collision) {
     return 0;
   }
 
-  CCollisionData *collision = new (storage) CCollisionData;
   collision->vertices = data.collision.vertices;
   collision->indices = data.collision.triIndices;
   collision->surfaceNormals = data.collision.facetNormals;
   collision->extents = NTempest::CAaBox::Bounding(collision->vertices.Ptr(), collision->vertices.Count());
 
-  return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
+  return CREATEHANDLE(HCOLLISIONDATA, collision);
 }
 
 void ModelCustGeosetAdd(
@@ -180,53 +174,53 @@ void ModelCustGeosetAdd(
 void ModelCustGeosetRemove(HMODEL model, UINT custGeosetId);
 
 HCOLLISIONDATA CollisionDataCreate(BYTE *fileData, UINT fileBytes) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'DILC');
-  if (!section) {
+  fileData = MDLFileBinarySeek(fileData, fileBytes, 'DILC');
+  if (!fileData) {
     return 0;
   }
 
-  LPVOID storage = SMemAlloc(sizeof(CCollisionData), "HCOLLISIONDATA", SERR_LINECODE_OBJECT, 0);
-  if (!storage) {
+  CCollisionData *collision = NEWHANDLE(HCOLLISIONDATA, CCollisionData);
+  if (!collision) {
     return 0;
   }
 
-  CCollisionData *collision = new (storage) CCollisionData;
-  fileData = section + 4;
-  BYTE *sectionDone = fileData + *reinterpret_cast<UINT *>(section);
+  UINT sectionBytes = *reinterpret_cast<UINT *>(fileData);
+  fileData += 4;
+  BYTE *sectionDone = fileData + sectionBytes;
 
-  ASSERT(*((ULONG *)(fileData)) == 'XTRV');
+  ASSERT(*((ULONG *) (fileData)) == 'XTRV');
   fileData += 4;
 
   UINT numVertices = *reinterpret_cast<UINT *>(fileData);
-  fileData += 4;
   ASSERT(numVertices <= 0xffff);
+  fileData += 4;
 
   collision->vertices.SetCount(numVertices);
   memcpy(collision->vertices.Ptr(), fileData, numVertices * sizeof(NTempest::C3Vector));
-  fileData += numVertices * sizeof(NTempest::C3Vector);
+  fileData += collision->vertices.Bytes();
 
-  ASSERT(*((ULONG *)(fileData)) == ' IRT');
+  ASSERT(*((ULONG *) (fileData)) == ' IRT');
   fileData += 4;
 
   UINT numVertIndices = *reinterpret_cast<UINT *>(fileData);
   fileData += 4;
   collision->indices.SetCount(numVertIndices);
   memcpy(collision->indices.Ptr(), fileData, numVertIndices * sizeof(WORD));
-  fileData += numVertIndices * sizeof(WORD);
+  fileData += collision->indices.Bytes();
 
-  ASSERT(*((ULONG *)(fileData)) == 'SMRN');
+  ASSERT(*((ULONG *) (fileData)) == 'SMRN');
   fileData += 4;
 
   UINT numSurfaceNormals = *reinterpret_cast<UINT *>(fileData);
   fileData += 4;
   collision->surfaceNormals.SetCount(numSurfaceNormals);
   memcpy(collision->surfaceNormals.Ptr(), fileData, numSurfaceNormals * sizeof(NTempest::C3Vector));
-  fileData += numSurfaceNormals * sizeof(NTempest::C3Vector);
+  fileData += collision->surfaceNormals.Bytes();
 
   ASSERT(fileData == sectionDone);
   collision->extents = NTempest::CAaBox::Bounding(collision->vertices.Ptr(), collision->vertices.Count());
 
-  return reinterpret_cast<HCOLLISIONDATA>(HandleCreate(collision, "HCOLLISIONDATA"));
+  return CREATEHANDLE(HCOLLISIONDATA, collision);
 }
 
 void ModelAddCollisionFacets(

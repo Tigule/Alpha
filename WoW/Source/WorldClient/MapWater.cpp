@@ -19,6 +19,7 @@
 #include "Services/SysMessage.h"
 #include "Services/Texture.h"
 #include "Tempest/cmath.h"
+#include "Tempest/tempest_intersect.h"
 
 #include "Client.h"
 
@@ -328,28 +329,26 @@ void CMap::WaterDiffTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT 
 }
 
 HTEXTURE CMap::GetLiquidTexture(UINT liquid) {
-  char        filename[256];
-  CStatus     status;
-  const float secsPerLoop = liquidTexLoopTime[liquid];
-  BYTE        allLoaded;
+  char filename[256];
+  bool allLoaded;
 
   ASSERT(liquid < LIQUID_COUNT);
 
-  UINT texture = Fast_ftol(fmod(CWorld::GetCurTimeSec(), secsPerLoop) / secsPerLoop * LIQUID_TEXTURE_COUNT);
+  const float secsPerLoop = liquidTexLoopTime[liquid];
+  UINT texture = Fast_ftol(fmodf(CWorld::GetCurTimeSec(), secsPerLoop) / secsPerLoop * static_cast<float>(LIQUID_TEXTURE_COUNT));
 
   if (!liquidTexLoaded[liquid]) {
-    allLoaded = 1;
-    for (UINT i = 0; i < LIQUID_TEXTURE_COUNT; ++i) {
+    allLoaded = true;
+    for (int i = 0; i < LIQUID_TEXTURE_COUNT; ++i) {
       if (!liquidTex[liquid][i]) {
-        EGxTexFilter filter;
+        EGxTexFilter filter = GxTex_LinearMipNearest;
         if (CWorld::enables & CWorld::Enable_Anisotropic) {
           filter = GxTex_Anisotropic;
         } else if (CWorld::enables & CWorld::Enable_Trilinear) {
           filter = GxTex_LinearMipLinear;
-        } else {
-          filter = GxTex_LinearMipNearest;
         }
 
+        CStatus status;
         FATALASSERT(liquidTexBaseName[liquid]);
         SStrPrintf(filename, sizeof(filename), liquidTexBaseName[liquid], i + 1);
         liquidTex[liquid][i] = TextureCreate(filename, CGxTexFlags(filter, 1, 1, 0, 0, 0, CWorld::texMaxAnisotropy), &status, 0);
@@ -357,10 +356,10 @@ HTEXTURE CMap::GetLiquidTexture(UINT liquid) {
       }
 
       if (!TextureGetGxTex(liquidTex[liquid][i], 0, 0)) {
-        allLoaded = 0;
+        allLoaded = false;
       }
     }
-    liquidTexLoaded[liquid] = allLoaded != 0;
+    liquidTexLoaded[liquid] = allLoaded;
   }
 
   liquidLastShown[liquid] = CWorld::GetCurTimeSec();
@@ -453,7 +452,7 @@ void CMap::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radius, i
   float mx = -(worldPos.y - 17066.666f);
   float my = -(worldPos.x - 17066.666f);
   FATALASSERT(mx >= 0.0f && my >= 0.0f);
-  FATALASSERT(mx < 34133.332f && my < 34133.332f);
+  FATALASSERT(mx < ((64*16)*((150.0f/36.0f)*8)) && my < ((64*16)*((150.0f/36.0f)*8)));
 
   int areaX = (Fast_ftol(mx * 0.24f) >> 7) & 0x3F;
   int areaY = (Fast_ftol(my * 0.24f) >> 7) & 0x3F;
@@ -473,29 +472,10 @@ void CMap::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radius, i
     for (int x = a[0]; x <= a[1]; ++x) {
       CMapArea *area = areaTable[y * 64 + x];
       if (area) {
-        NTempest::CAaBox areaBox;
-        areaBox.b.x = area->corner.x - 533.33331f;
-        areaBox.b.y = area->corner.y - 533.33331f;
-        areaBox.b.z = 0.0f;
-        areaBox.t.x = area->corner.x;
-        areaBox.t.y = area->corner.y;
-        areaBox.t.z = 0.0f;
-        float distanceSquared = 0.0f;
-        if (querySphere.c.x < areaBox.b.x) {
-          float distance = querySphere.c.x - areaBox.b.x;
-          distanceSquared += distance * distance;
-        } else if (querySphere.c.x > areaBox.t.x) {
-          float distance = querySphere.c.x - areaBox.t.x;
-          distanceSquared += distance * distance;
-        }
-        if (querySphere.c.y < areaBox.b.y) {
-          float distance = querySphere.c.y - areaBox.b.y;
-          distanceSquared += distance * distance;
-        } else if (querySphere.c.y > areaBox.t.y) {
-          float distance = querySphere.c.y - areaBox.t.y;
-          distanceSquared += distance * distance;
-        }
-        if (distanceSquared <= querySphere.r * querySphere.r) {
+        NTempest::CAaBox areaBox(
+            NTempest::C3Vector(area->corner.x - 533.33331f, area->corner.y - 533.33331f, 0.0f), NTempest::C3Vector(area->corner.x, area->corner.y, 0.0f)
+        );
+        if (NTempest::Intersect2d(areaBox, querySphere, NTempest::SI_SolidSolid)) {
           area->QueryLiquidSounds(worldPos, radius, lbool, ldelta, ldsquared);
         }
       }
@@ -507,11 +487,11 @@ void CMapArea::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radiu
   float mx = -(worldPos.y - 17066.666f);
   float my = -(worldPos.x - 17066.666f);
   FATALASSERT(mx >= 0.0f && my >= 0.0f);
-  FATALASSERT(mx < 34133.332f && my < 34133.332f);
+  FATALASSERT(mx < ((64*16)*((150.0f/36.0f)*8)) && my < ((64*16)*((150.0f/36.0f)*8)));
 
   int chunkX = Fast_ftol(mx * 0.03f) & 0xF;
   int chunkY = Fast_ftol(my * 0.03f) & 0xF;
-  FATALASSERT(radius / 4.1666665f < 256.0f);
+  FATALASSERT(radius / (150.0f/36.0f) < 256.0f);
   int chunkRadius = static_cast<int>(ceil(radius / 4.1666665f));
   int minChunkX = chunkX - chunkRadius > 0 ? chunkX - chunkRadius : 0;
   int minChunkY = chunkY - chunkRadius > 0 ? chunkY - chunkRadius : 0;
@@ -558,6 +538,7 @@ static void fft2(float data[], DWORD nn[], int ndim, float isign);
 static WaterVert          sWave2(NTempest::C3Vector(1.414f, 1.414f, 0.0f), 0.5f, 1.0f / 18.0f, 0.0f);
 static NTempest::C2Vector oceanfft[4096];
 static float              phase;
+static DWORD              nn[2] = {64, 64};
 static float              phase2;
 
 void CMap::OceanFFT() {
@@ -580,7 +561,6 @@ void CMap::OceanFFT() {
   oceanfft[1424] = NTempest::C2Vector(1.4f * c2, 1.4f * s2);
   oceanfft[254] = NTempest::C2Vector(1.6f * c2, 1.6f * s2);
 
-  DWORD nn[2] = {64, 64};
   fft2(reinterpret_cast<float *>(oceanfft) - 1, nn - 1, 2, -1.0f);
 
   for (UINT i = 0; i < 4096; ++i) {
@@ -793,14 +773,13 @@ void ChunkLodIdx::GenIndices(UINT lod) {
 WaveTrain train;
 
 void CMap::WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
-  if (!CMapArea::ccWaterRipples || waterRipplesFree.IsEmpty()) {
-    return;
+  if (CMapArea::ccWaterRipples) {
+    ITERATELIST(WaterRadWave, waterRipplesFree, wave) {
+      waterRipplesActive.LinkNode(wave, LIST_TAIL, 0);
+      wave->Init(pos, len, time, amp, vel, freq);
+      break;
+    }
   }
-
-  WaterRadWave *wave = waterRipplesFree.Head();
-  waterRipplesFree.UnlinkNode(wave);
-  waterRipplesActive.LinkNode(wave, LIST_TAIL, 0);
-  wave->Init(pos, len, time, amp, vel, freq);
 }
 
 const float        WaveTrain::PHASE_GRID_SIZE = 8.333333f;
@@ -991,40 +970,6 @@ void CMap::WaterDestroy() {
   GxPixelShaderDestroy(psOcean0);
 }
 
-void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
-  UINT               tx;
-  UINT               vrowx;
-  float              fx;
-  UINT               ty;
-  float              dy;
-  NTempest::C3Vector vertWorldPos;
-  NTempest::C2Vector farCorner(
-      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
-  );
-  float              dx;
-  NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
-  float              temp;
-
-  temp = 17066.666f - farCorner.x;
-  farCorner.x = 17066.666f - farCorner.y;
-  farCorner.y = temp;
-  dy = (farCorner.x - chunk->corner.x) / 8.0f;
-  dx = (farCorner.y - chunk->corner.y) / 8.0f;
-
-  for (ty = 0; ty < 9; ++ty) {
-    vrowx = 9 * ty;
-    fx = static_cast<float>(ty) * dy + chunk->corner.x;
-    for (tx = 0; tx < 9; ++tx) {
-      vertWorldPos.x = fx;
-      vertWorldPos.y = static_cast<float>(tx) * dx + chunk->corner.y;
-      vtx->p = vertWorldPos - chunk->corner;
-      vtx->n = dumbNormal;
-      vtx->tc[0] = NTempest::C2Vector(0.5f, s_oceanDepthCoordTable[verts[vrowx + tx].oceanVert.depth]);
-      ++vtx;
-    }
-  }
-}
-
 static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPNT0 *&vtx, WORD *&idx) {
   FATALASSERT(cmd.vertex.op != GxBufOp_Nop);
   FATALASSERT(cmd.index.op != GxBufOp_Nop);
@@ -1067,100 +1012,122 @@ static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPCT0 *&vtx, 
   }
 }
 
-void CChunkLiquid::RenderRiver0V(CGxVertexPNT0 *vtx) {
-  NTempest::C3Vector diffv;
-  float              dsq;
-  NTempest::C3Vector vertWorldPos;
-  UINT               vrow1;
+#pragma optimize("", off)
+
+void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
   UINT               tx;
+  UINT               vrowx;
   float              fx;
   UINT               ty;
   float              dy;
+  NTempest::C3Vector vertWorldPos;
+  NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
   NTempest::C2Vector farCorner(
       static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
   );
   float              dx;
-  NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
   float              temp;
-  const float        OO_MAX_RIVER_COLOR_DSQ = 1.0f / 225.0f;
 
-  temp = 17066.666f - farCorner.x;
-  farCorner.x = 17066.666f - farCorner.y;
+  temp = -farCorner.x + 17066.666f;
+  farCorner.x = -farCorner.y + 17066.666f;
   farCorner.y = temp;
   dy = (farCorner.x - chunk->corner.x) / 8.0f;
   dx = (farCorner.y - chunk->corner.y) / 8.0f;
 
   for (ty = 0; ty < 9; ++ty) {
-    vrow1 = 9 * ty;
-    fx = static_cast<float>(ty) * dy + chunk->corner.x;
-    for (tx = 0; tx < 9; ++tx) {
-      SWVert &waterVert = verts[vrow1 + tx].waterVert;
+    vrowx = ty * 9;
+    fx = chunk->corner.x + static_cast<float>(ty) * dy;
+    for (tx = 0; tx < 9; ++tx, ++vtx) {
       vertWorldPos.x = fx;
-      vertWorldPos.y = static_cast<float>(tx) * dx + chunk->corner.y;
-      vertWorldPos.z = waterVert.height;
+      vertWorldPos.y = chunk->corner.y + static_cast<float>(tx) * dx;
       vtx->p = vertWorldPos - chunk->corner;
       vtx->n = dumbNormal;
-      if (CWorldScene::camLiquid) {
-        vtx->tc[0] = NTempest::C2Vector(0.5f, s_riverDepthCoordTable[waterVert.depth]);
-      } else {
-        diffv = vertWorldPos - CWorldScene::camPos;
+      vtx->tc[0] = NTempest::C2Vector(0.5f, s_oceanDepthCoordTable[verts[vrowx + tx].oceanVert.depth]);
+    }
+  }
+}
+
+void CChunkLiquid::RenderRiver0V(CGxVertexPNT0 *vtx) {
+  float              dsq;
+  UINT               vrow1;
+  UINT               tx;
+  float              fx;
+  UINT               ty;
+  float              dy;
+  const float        OO_MAX_RIVER_COLOR_DSQ = 1.0f / 225.0f;
+  NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
+  NTempest::C2Vector farCorner(
+      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
+  );
+  float              dx;
+  float              temp;
+
+  temp = -farCorner.x + 17066.666f;
+  farCorner.x = -farCorner.y + 17066.666f;
+  farCorner.y = temp;
+  dy = (farCorner.x - chunk->corner.x) / 8.0f;
+  dx = (farCorner.y - chunk->corner.y) / 8.0f;
+
+  for (ty = 0; ty < 9; ++ty) {
+    fx = chunk->corner.x + static_cast<float>(ty) * dy;
+    for (tx = 0; tx < 9; ++tx, ++vtx) {
+      vrow1 = ty * 9 + tx;
+      SWVert            &waterVert = verts[vrow1].waterVert;
+      NTempest::C3Vector vertWorldPos(fx, chunk->corner.y + static_cast<float>(tx) * dx, waterVert.height);
+      vtx->p = vertWorldPos - chunk->corner;
+      vtx->n = dumbNormal;
+      if (!CWorldScene::camLiquid) {
+        NTempest::C3Vector diffv = vertWorldPos - CWorldScene::camPos;
         dsq = NTempest::C3Vector::Dot(diffv, diffv);
         vtx->tc[0] = NTempest::C2Vector(0.5f, dsq * OO_MAX_RIVER_COLOR_DSQ);
+      } else {
+        vtx->tc[0] = NTempest::C2Vector(0.5f, s_riverDepthCoordTable[waterVert.depth]);
       }
-      ++vtx;
     }
   }
 }
 
 void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
-  NTempest::C3Vector  vertWorldPos;
   UINT                vrow1;
   float               fx;
   float               dy;
   const float         MAGMA_TILES = 3.0f;
-  NTempest::C2Vector  farCorner(
-      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
-  );
+  const float         MAGMA_TEX_SCALE = MAGMA_TILES / 256.0f;
+  const float         MAGMA_SCROLL_RATE = 0.025f;
   float               dx;
   float               scrollx;
   float               cycles;
   float               temp;
-  const float         MAGMA_TEX_SCALE = MAGMA_TILES / 256.0f;
-  NTempest::C2iVector v;
-  NTempest::C2iVector t;
-  const float         MAGMA_SCROLL_RATE = 0.025f;
 
   cycles = CWorld::GetCurTimeSec() * MAGMA_SCROLL_RATE;
   scrollx = cycles - static_cast<float>(Fast_ftol(cycles));
-  temp = 17066.666f - farCorner.x;
-  farCorner.x = 17066.666f - farCorner.y;
+  NTempest::C2Vector farCorner(
+      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
+  );
+  temp = -farCorner.x + 17066.666f;
+  farCorner.x = -farCorner.y + 17066.666f;
   farCorner.y = temp;
   dy = (farCorner.x - chunk->corner.x) / 8.0f;
   dx = (farCorner.y - chunk->corner.y) / 8.0f;
 
-  v = NTempest::C2iVector(0);
-  t = NTempest::C2iVector(0);
-  while (static_cast<UINT>(v.y) < 9) {
-    fx = static_cast<float>(v.y) * dy + chunk->corner.x;
-    v.x = 0;
-    t.x = 0;
-    while (static_cast<UINT>(v.x) < 9) {
-      vrow1 = v.x + 9 * v.y;
-      SMVert &magmaVert = verts[vrow1].magmaVert;
-      vertWorldPos.x = fx;
-      vertWorldPos.y = static_cast<float>(v.x) * dx + chunk->corner.y;
-      vertWorldPos.z = magmaVert.height;
+  NTempest::C2iVector t(0);
+  NTempest::C2iVector v(0);
+  for (v.y = 0, t.y = 0; static_cast<UINT>(v.y) < 9; ++v.y) {
+    fx = chunk->corner.x + static_cast<float>(v.y) * dy;
+    for (v.x = 0, t.x = 0; static_cast<UINT>(v.x) < 9; ++v.x, ++vtx) {
+      vrow1 = v.y * 9 + v.x;
+      SMVert            &magmaVert = verts[vrow1].magmaVert;
+      NTempest::C3Vector vertWorldPos(fx, chunk->corner.y + static_cast<float>(v.x) * dx, magmaVert.height);
       vtx->p = vertWorldPos - chunk->corner;
-      vtx->c.Set(0xFFFFFFFFUL);
+      vtx->c = 0xFFFFFFFF;
       vtx->tc[0] = NTempest::C2Vector(static_cast<float>(magmaVert.s) * MAGMA_TEX_SCALE + scrollx, static_cast<float>(magmaVert.t) * MAGMA_TEX_SCALE);
       t.x += v.x > 0;
-      ++v.x;
-      ++vtx;
     }
     t.y += v.y > 0;
-    ++v.y;
   }
 }
+
+#pragma optimize("", on)
 
 WORD CChunkLiquid::Render0I(WORD *idxBase, UINT liquidType) {
   WORD  i2;
@@ -1229,10 +1196,10 @@ void CChunkLiquid::RenderMagma0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
 }
 
 void CChunkLiquid::RenderOcean0() {
-  UserArg arg(this, 1);
   CGxTex *texture = TextureGetGxTex(CMap::GetLiquidTexture(1), 0, 0);
   if (CMap::liquidTexLoaded[1]) {
     GxRsSet(GxRs_Texture1, texture);
+    UserArg arg(this, 1);
     CGxBuf *gxBuf = GxBufGetDynamic(GxVBF_PNT0);
     gxBuf->UserArgSet(&arg);
     gxBuf->UserCallbackSet(RenderOcean0Callback);
@@ -1245,10 +1212,10 @@ void CChunkLiquid::RenderOcean0() {
 }
 
 void CChunkLiquid::RenderRiver0(UINT type) {
-  UserArg arg(this, 4);
   CGxTex *texture = TextureGetGxTex(CMap::GetLiquidTexture(4), 0, 0);
   if (CMap::liquidTexLoaded[4]) {
     GxRsSet(GxRs_Texture1, texture);
+    UserArg arg(this, 4);
     CGxBuf *gxBuf = GxBufGetDynamic(GxVBF_PNT0);
     gxBuf->UserArgSet(&arg);
     gxBuf->UserCallbackSet(RenderRiver0Callback);
@@ -1261,10 +1228,10 @@ void CChunkLiquid::RenderRiver0(UINT type) {
 }
 
 void CChunkLiquid::RenderMagma0(UINT type) {
-  UserArg arg(this, 6);
   CGxTex *texture = TextureGetGxTex(CMap::GetLiquidTexture(6), 0, 0);
   if (CMap::liquidTexLoaded[6]) {
     GxRsSet(GxRs_Texture0, texture);
+    UserArg arg(this, 6);
     CGxBuf *gxBuf = GxBufGetDynamic(GxVBF_PCT0);
     gxBuf->UserArgSet(&arg);
     gxBuf->UserCallbackSet(RenderMagma0Callback);
@@ -1280,7 +1247,7 @@ void CChunkLiquid::Render(UINT type) {
   switch (type) {
     case 0: {
       if (!CMap::riverDiffTexUpdated) {
-        NTempest::CiRect texRect(0, 0, 64, 8);
+        NTempest::CiRect texRect(0, 0, CMap::WATERTEX_HEIGHT, static_cast<int>(Gx_MinTexAspect * CMap::WATERTEX_HEIGHT));
         GxTexUpdate(CMap::riverDiffTexid, texRect, 0);
         CMap::riverDiffTexUpdated = true;
       }
@@ -1289,7 +1256,7 @@ void CChunkLiquid::Render(UINT type) {
     }
     case 1: {
       if (!CMap::oceanDiffTexUpdated) {
-        NTempest::CiRect texRect(0, 0, 64, 8);
+        NTempest::CiRect texRect(0, 0, CMap::WATERTEX_HEIGHT, static_cast<int>(Gx_MinTexAspect * CMap::WATERTEX_HEIGHT));
         GxTexUpdate(CMap::oceanDiffTexid, texRect, 0);
         CMap::oceanDiffTexUpdated = true;
       }

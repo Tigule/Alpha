@@ -723,175 +723,132 @@ static void InitializeHashSource(DWORD seed) {
 typedef BOOL(APIENTRY *SFileIoErrorProc)(LPCSTR filename, DWORD error, DWORD retryCount);
 
 static DWORD InternalReadAligned(SFileRecData *file, DWORD location, LPVOID buffer, DWORD bytes) {
-  SFileArchiveRecData *archive;
-  DWORD                sectorSize;
-  DWORD                flags;
-  DWORD                compression;
-  DWORD                bytesRead;
-  DWORD                tableBytes;
-  DWORD                savedLocation;
-  DWORD                i;
-  DWORD                firstSector;
-  DWORD                sectorCount;
-  DWORD                compressedSpan;
-  DWORD                compressedStart;
-  DWORD                readAmount;
-  DWORD                outOffset;
-  DWORD                inOffset;
-  DWORD                sectorIndex;
-  DWORD                sectorBytes;
-  DWORD                expectedBytes;
-  BYTE                *workBuffer;
-  BYTE                *dest;
+  VALIDATEBEGIN;
+  VALIDATE(!(location & (file->archive->sectorsize-1)));
+  VALIDATEEND;
 
-  archive = file->archive;
-  sectorSize = archive->sectorsize;
-  FATALASSERT(!(location & (file->archive->sectorsize - 1)));
   if (!bytes) {
     return 0;
   }
 
-  flags = file->block.flags;
-  compression = flags & MPQ_COMPRESSEDMASK;
-
-  if (compression && !file->sectoroffsettablevalid) {
-    bytesRead = 0;
-    savedLocation = archive->lastlocation;
-    tableBytes = (file->sectors * sizeof(DWORD)) + sizeof(DWORD);
+  if ((file->block.flags & MPQ_COMPRESSEDMASK) && !file->sectoroffsettablevalid) {
+    DWORD bytesread = 0;
+    DWORD lastlocation = file->archive->lastlocation;
     if (!ReadFileChecked(
-            file->block.offset, &savedLocation, (HANDLE)archive->handle, file->sectoroffsettable, tableBytes, &bytesRead, archive->archivename
+            file->block.offset, &lastlocation, file->archive->handle, file->sectoroffsettable, (file->sectors + 1) * sizeof(DWORD), &bytesread,
+            file->archive->archivename
         ))
     {
       return 0;
     }
-    archive->lastlocation = savedLocation;
-    if (flags & MPQ_ENCRYPTED) {
-      Decrypt((DWORD *)file->sectoroffsettable, bytesRead, file->key - 1);
+    file->archive->lastlocation = lastlocation;
+    if (file->block.flags & MPQ_ENCRYPTED) {
+      Decrypt(file->sectoroffsettable, bytesread, file->key - 1);
     }
-    for (i = 0; i < file->sectors; ++i) {
-      DWORD *offsets = (DWORD *)file->sectoroffsettable;
-      if (offsets[i] > offsets[i + 1]) {
+    for (DWORD i = 0; i < file->sectors; ++i) {
+      if (file->sectoroffsettable[i] > file->sectoroffsettable[i + 1]) {
         return 0;
       }
     }
     file->sectoroffsettablevalid = TRUE;
   }
 
-  firstSector = location / sectorSize;
-  sectorCount = (bytes + sectorSize - 1) / sectorSize;
-  compressedStart = location;
-  compressedSpan = bytes;
-
-  if (compression) {
-    DWORD *offsets = (DWORD *)file->sectoroffsettable;
-    compressedStart = offsets[firstSector];
-    compressedSpan = offsets[firstSector + sectorCount] - compressedStart;
+  DWORD disklocation = location;
+  DWORD diskbytes = bytes;
+  if (file->block.flags & MPQ_COMPRESSEDMASK) {
+    disklocation = file->sectoroffsettable[location / file->archive->sectorsize];
+    diskbytes = file->sectoroffsettable[(location + bytes) / file->archive->sectorsize] - disklocation;
   }
 
-  workBuffer = (BYTE *)buffer;
-  if (compression) {
-    workBuffer = (BYTE *)ALLOC(compressedSpan + 4);
-    if (!workBuffer) {
-      SErrSetLastError(ERROR_NOT_ENOUGH_MEMORY);
-      return 0;
-    }
+  LPVOID diskbuffer = buffer;
+  if (file->block.flags & MPQ_COMPRESSEDMASK) {
+    diskbuffer = ALLOC(diskbytes + 4);
   }
 
-  bytesRead = 0;
-  savedLocation = archive->lastlocation;
+  DWORD diskbytesread = 0;
+  DWORD lastlocation = file->archive->lastlocation;
   ReadFileChecked(
-      file->block.offset + compressedStart, &savedLocation, (HANDLE)archive->handle, workBuffer, compressedSpan, &bytesRead, archive->archivename
+      file->block.offset + disklocation, &lastlocation, file->archive->handle, diskbuffer, diskbytes, &diskbytesread, file->archive->archivename
   );
-  archive->lastlocation = savedLocation;
+  file->archive->lastlocation = lastlocation;
 
-  readAmount = bytes;
-  if (bytesRead < compressedSpan) {
-    if (compression) {
-      DWORD *offsets = (DWORD *)file->sectoroffsettable;
-      DWORD  completeBytes = 0;
-      for (i = firstSector + 1; i <= file->sectors; ++i) {
-        if (bytesRead < offsets[i] - compressedStart) {
+  DWORD bytesread = bytes;
+  if (diskbytesread < diskbytes) {
+    if (file->block.flags & MPQ_COMPRESSEDMASK) {
+      bytesread = 0;
+      for (DWORD sector = location / file->archive->sectorsize + 1; sector <= file->sectors; ++sector) {
+        if (diskbytesread < file->sectoroffsettable[sector] - disklocation) {
           break;
         }
-        completeBytes += sectorSize;
-      }
-      if (completeBytes < readAmount) {
-        readAmount = completeBytes;
+        bytesread += file->archive->sectorsize;
       }
     } else {
-      readAmount = bytesRead;
+      bytesread = diskbytesread;
     }
   }
 
-  if (flags & MPQ_ENCRYPTED) {
-    inOffset = 0;
-    for (i = 0; i < sectorCount && i + firstSector < file->sectors; ++i) {
-      sectorIndex = firstSector + i;
-      if (compression) {
-        DWORD *offsets = (DWORD *)file->sectoroffsettable;
-        sectorBytes = offsets[sectorIndex + 1] - offsets[sectorIndex];
+  if (file->block.flags & MPQ_ENCRYPTED) {
+    DWORD offset = 0;
+    DWORD sector = location / file->archive->sectorsize;
+    DWORD sectors = (bytesread + file->archive->sectorsize - 1) / file->archive->sectorsize;
+    for (; sector < file->sectors && sectors--; ++sector) {
+      DWORD sourcebytes;
+      if (file->block.flags & MPQ_COMPRESSEDMASK) {
+        sourcebytes = file->sectoroffsettable[sector + 1] - file->sectoroffsettable[sector];
       } else {
-        sectorBytes = readAmount - inOffset;
-        if (sectorBytes > sectorSize) {
-          sectorBytes = sectorSize;
-        }
-        if (sectorIndex == file->sectors - 1) {
-          DWORD finalBytes = file->block.sizefile & (sectorSize - 1);
-          if (finalBytes && sectorBytes >= finalBytes) {
-            sectorBytes = finalBytes;
+        sourcebytes = min(bytesread - offset, file->archive->sectorsize);
+        if (sector == file->sectors - 1) {
+          if ((file->block.sizefile & (file->archive->sectorsize - 1)) && sourcebytes >= (file->block.sizefile & (file->archive->sectorsize - 1))) {
+            sourcebytes = file->block.sizefile & (file->archive->sectorsize - 1);
           }
         }
       }
-      Decrypt((DWORD *)(workBuffer + inOffset), sectorBytes & ~3, file->key + sectorIndex);
-      inOffset += sectorBytes;
-      if (inOffset >= bytesRead) {
-        break;
-      }
+      Decrypt((DWORD *)((BYTE *)diskbuffer + offset), sourcebytes & ~3, file->key + sector);
+      offset += sourcebytes;
     }
   }
 
-  if (compression) {
-    dest = (BYTE *)buffer;
-    inOffset = 0;
-    outOffset = 0;
-    for (i = 0; i < sectorCount && i + firstSector < file->sectors && outOffset < readAmount; ++i) {
-      sectorIndex = firstSector + i;
-      {
-        DWORD *offsets = (DWORD *)file->sectoroffsettable;
-        sectorBytes = offsets[sectorIndex + 1] - offsets[sectorIndex];
-      }
+  if (file->block.flags & MPQ_COMPRESSEDMASK) {
+    DWORD destoffset = 0;
+    DWORD sector = location / file->archive->sectorsize;
+    DWORD sourceoffset = 0;
+    DWORD sectors = (bytesread + file->archive->sectorsize - 1) / file->archive->sectorsize;
+    for (; sector < file->sectors && sectors--; ++sector) {
+      DWORD sourcebytes = file->sectoroffsettable[sector + 1] - file->sectoroffsettable[sector];
+      DWORD targetbytes = (sector == file->sectors - 1 && (!file->block.sizefile || (file->block.sizefile & (file->archive->sectorsize - 1))))
+                              ? file->block.sizefile & (file->archive->sectorsize - 1)
+                              : file->archive->sectorsize;
 
-      expectedBytes = sectorSize;
-      if (sectorIndex == file->sectors - 1) {
-        expectedBytes = file->block.sizefile & (sectorSize - 1);
-        if (!expectedBytes) {
-          expectedBytes = sectorSize;
-        }
-      }
-
-      if (expectedBytes > sectorBytes) {
-        if (compression == MPQ_COMPRESSED_PKWARE) {
-          DecompressLzw(dest + outOffset, workBuffer + inOffset, sectorBytes);
-        } else if (compression == MPQ_COMPRESSED_SCOMP) {
-          DWORD outSize = expectedBytes;
-          if (file->crcavail && file->crcstate != 1 && (workBuffer[inOffset] & 0xC0)) {
-            file->crcstate = 1;
-          }
-          if (!SCompDecompress2(dest + outOffset, &outSize, workBuffer + inOffset, sectorBytes, archive->archivename)) {
-            SErrDisplayError(0x85100083, archive->archivename, -4, NULL, FALSE, 1);
+      if (targetbytes > sourcebytes) {
+        switch (file->block.flags & MPQ_COMPRESSEDMASK) {
+          case MPQ_COMPRESSED_PKWARE:
+            DecompressLzw((BYTE *)buffer + destoffset, (BYTE *)diskbuffer + sourceoffset, sourcebytes);
+            break;
+          case MPQ_COMPRESSED_SCOMP: {
+            DWORD destsize = targetbytes;
+            if (file->crcavail && file->crcstate != 1 && (*((BYTE *)diskbuffer + sourceoffset) & 0xC0)) {
+              file->crcstate = 1;
+            }
+            if (!SCompDecompress2((BYTE *)buffer + destoffset, &destsize, (BYTE *)diskbuffer + sourceoffset, sourcebytes, file->archive->archivename)) {
+              SErrDisplayError(0x85100083, file->archive->archivename, -4, NULL, FALSE, 1);
+            }
+            break;
           }
         }
-      } else if (workBuffer != dest) {
-        memcpy(dest + outOffset, workBuffer + inOffset, expectedBytes);
+      } else if (diskbuffer != buffer) {
+        memcpy((BYTE *)buffer + destoffset, (BYTE *)diskbuffer + sourceoffset, targetbytes);
       }
 
-      outOffset += expectedBytes;
-      inOffset += sectorBytes;
+      destoffset += targetbytes;
+      sourceoffset += sourcebytes;
     }
-    FREE(workBuffer);
   }
 
-  return readAmount;
+  if (diskbuffer != buffer) {
+    FREE(diskbuffer);
+  }
+
+  return bytesread;
 }
 
 static DWORD InternalReadAlignedSector(SFileRecData *file, DWORD location) {
@@ -1122,22 +1079,24 @@ static void  Initialize();
 
 static int ReadAdditionalAttributes(HSARCHIVE archive, SFileBlockEntryData *pBlockTbl, DWORD dwBlockTblEntries) {
   HSFILE hfile;
-  DWORD *pBuf;
+  int    ret = FALSE;
+  BYTE  *pBuf;
   BYTE  *cursor;
+  DWORD  dwSize;
   DWORD  flags;
   DWORD  expectedSize;
   DWORD  i;
-  int    ret;
 
-  ret = FALSE;
   if (!SFileOpenFileEx(archive, "(attributes)", 0, &hfile)) {
-    return FALSE;
+    return ret;
   }
-  pBuf = (DWORD *)ALLOC(SFileGetFileSize(hfile, NULL));
-  if (SFileReadFile(hfile, pBuf, SFileGetFileSize(hfile, NULL), NULL, NULL) && SFileGetFileSize(hfile, NULL) >= 8) {
-    flags = pBuf[1];
-    cursor = (BYTE *)(pBuf + 2);
-    expectedSize = 8;
+  dwSize = SFileGetFileSize(hfile, NULL);
+  pBuf = (BYTE *)ALLOC(dwSize);
+  cursor = pBuf;
+  expectedSize = 8;
+  if (SFileReadFile(hfile, pBuf, dwSize, NULL, NULL) && dwSize >= expectedSize) {
+    flags = *(DWORD *)(cursor + 4);
+    cursor += expectedSize;
     if (flags & 1) {
       expectedSize += dwBlockTblEntries * 4;
     }
@@ -1148,7 +1107,7 @@ static int ReadAdditionalAttributes(HSARCHIVE archive, SFileBlockEntryData *pBlo
       expectedSize += dwBlockTblEntries * 16;
     }
 
-    if (SFileGetFileSize(hfile, NULL) == expectedSize) {
+    if (dwSize == expectedSize) {
       if (flags & 1) {
         for (i = 0; i < dwBlockTblEntries; ++i) {
           pBlockTbl[i].crc = *(DWORD *)cursor;
@@ -1157,21 +1116,22 @@ static int ReadAdditionalAttributes(HSARCHIVE archive, SFileBlockEntryData *pBlo
       }
       if (flags & 2) {
         for (i = 0; i < dwBlockTblEntries; ++i) {
-          pBlockTbl[i].time.dwLowDateTime = *(DWORD *)cursor;
-          pBlockTbl[i].time.dwHighDateTime = *(DWORD *)(cursor + 4);
+          pBlockTbl[i].time = *(FILETIME *)cursor;
           cursor += 8;
         }
       }
       if (flags & 4) {
         for (i = 0; i < dwBlockTblEntries; ++i) {
-          memcpy(&pBlockTbl[i].md5, cursor, sizeof(pBlockTbl[i].md5));
+          pBlockTbl[i].md5 = *(MD5 *)cursor;
           cursor += 16;
         }
       }
       ret = TRUE;
     }
   }
-  FREE(pBuf);
+  if (pBuf) {
+    FREE(pBuf);
+  }
 
   SFileCloseFile(hfile);
   return ret;
@@ -1342,7 +1302,7 @@ static void CheckAudioStreams(int &parent_header) {
               if ((playpos - soundoffset) % stream->soundbuffersize >= WAVECHUNKSIZE) {
                 DWORD endbytes = stream->soundbuffersize - soundoffset;
                 if (endbytes < WAVECHUNKSIZE) {
-                  SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "curr->soundbuffersize - curr->nextwritepos >= WAVECHUNKSIZE", TRUE, 1);
+                  SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "curr->soundbuffersize - curr->nextwrite >= WAVECHUNKSIZE", TRUE, 1);
                 }
                 bytes = WAVECHUNKSIZE;
                 if (bytes > endbytes) {
@@ -1379,7 +1339,7 @@ static void CheckAudioStreams(int &parent_header) {
         if (playpos != 0xFFFFFFFF && (playpos - stream->nextwrite) % stream->soundbuffersize >= WAVECHUNKSIZE) {
           bytes = stream->soundbuffersize - stream->nextwrite;
           if (bytes < WAVECHUNKSIZE) {
-            SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "curr->soundbuffersize - curr->nextwritepos >= WAVECHUNKSIZE", TRUE, 1);
+            SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "curr->soundbuffersize - curr->nextwrite >= WAVECHUNKSIZE", TRUE, 1);
           }
           if (bytes > WAVECHUNKSIZE) {
             bytes = WAVECHUNKSIZE;
@@ -1513,138 +1473,132 @@ static void CheckRequests(
 static DWORD WINAPI CdThreadProc(LPVOID) {
   typedef void(APIENTRY * SFileAsyncNotifyProc)(LPVOID buffer, DWORD completedOffset, _TASYNCPARAMBLOCK * asyncparam);
 
-  LONG                 lowcompletetime;
-  SFileRequestData    *urgentreq;
-  DWORD                s_dataChunkSize;
-  SFileAsyncNotifyProc asyncproc;
-  SFileRequestData    *nextreq;
-  DWORD                lastarchivelocation;
-  SFileArchiveRecData *lastarchive;
-  int                  audio_header;
-  DWORD                lastReadTime;
-  DWORD                currtime;
-  DWORD                budgetInterval;
-  DWORD                s_asyncBudget;
-  SFileEventRecData   *eventrec;
-  LPVOID               event;
+  SFileArchiveRecData *lastarchive = NULL;
+  DWORD                lastarchivelocation = 0;
+  DWORD                lastReadTime = GetTickCount();
+  int                  audio_header = 0;
 
-  lastarchive = NULL;
-  lastarchivelocation = 0;
-  lastReadTime = GetTickCount();
-  audio_header = 0;
   SErrRegisterThread((HANDLE)Storm::SFile::s_cdthread, Storm::SFile::s_cdthreadid);
 
   while (!Storm::SFile::s_cdshutdown) {
+    DWORD s_asyncBudget;
+    DWORD s_dataChunkSize;
     {
       Storm::SFile::UseGlob glob;
       s_asyncBudget = glob->s_asyncBudget;
       s_dataChunkSize = glob->s_dataChunkSize;
     }
-    currtime = GetTickCount();
-    budgetInterval = 0;
+    DWORD currtime = GetTickCount();
+    DWORD interval = 0;
     if (s_asyncBudget) {
-      budgetInterval = (s_dataChunkSize * 1000) / s_asyncBudget;
+      interval = s_dataChunkSize * 1000 / s_asyncBudget;
     }
 
+    audio_header = 0;
     Storm::SFile::s_cdlock.Enter();
-    eventrec = Storm::SFile::s_signalList.Head();
-    while (eventrec) {
-      if (eventrec->event) {
-        SetEvent((HANDLE)eventrec->event);
-      }
-      eventrec = Storm::SFile::s_signalList.DeleteNode(eventrec);
+    ITERATELIST(SFileEventRecData, Storm::SFile::s_signalList, curr) {
+      SetEvent((HANDLE)curr->event);
+      ITERATE_DELETE;
     }
     Storm::SFile::s_cdlock.Leave();
 
-    audio_header = 0;
     CheckAudioStreams(audio_header);
+
+    SFileRequestData *nextreq;
+    SFileRequestData *urgentreq;
+    LONG              lowcompletetime;
     CheckRequests(lastarchive, lastarchivelocation, &nextreq, &urgentreq, &lowcompletetime);
 
     Storm::SFile::s_cdlock.Enter();
     if (urgentreq && lowcompletetime <= 1000) {
-      nextreq = urgentreq;
-    } else if (!nextreq || currtime - lastReadTime < budgetInterval) {
+      Storm::SFile::s_cdrequest = urgentreq;
+    } else if (nextreq && currtime - lastReadTime >= interval) {
+      Storm::SFile::s_cdrequest = nextreq;
+    } else {
       Storm::SFile::s_cdlock.Leave();
-      LONG sleeptime;
+      DWORD sleeptime;
       if (nextreq) {
-        sleeptime = (LONG)(budgetInterval - (currtime - lastReadTime));
-        if ((DWORD)sleeptime > 5000) {
-          SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "sleeptime <= 5000", TRUE, 1);
-        }
+        sleeptime = interval - currtime + lastReadTime;
       } else {
         sleeptime = 250;
       }
-      if (Storm::SFile::s_cdevent) {
-        WaitForSingleObject((HANDLE)Storm::SFile::s_cdevent, sleeptime);
-      } else {
-        Sleep(sleeptime);
-      }
+      ASSERT(sleeptime <= 5000);
+      WaitForSingleObject((HANDLE)Storm::SFile::s_cdevent, sleeptime);
       continue;
     }
 
-    Storm::SFile::s_cdrequest = nextreq;
-    Storm::SFile::s_cdreqlist.UnlinkNode(nextreq);
+    Storm::SFile::s_cdreqlist.UnlinkNode(Storm::SFile::s_cdrequest);
     Storm::SFile::s_cdlock.Leave();
 
-    {
-      Storm::SFile::FilePtrLocked    fileptr((HSFILE)nextreq->file);
-      SFileRecData                  *file = fileptr.operator->();
-      Storm::SFile::ArchivePtrLocked archiveptr((HSARCHIVE)file->archive);
+    Storm::SFile::FilePtrLocked    fileptr((HSFILE)Storm::SFile::s_cdrequest->file);
+    Storm::SFile::ArchivePtrLocked archiveptr((HSARCHIVE)Storm::SFile::s_cdrequest->file->archive);
 
-      lastarchive = file->archive;
-      lastarchivelocation = nextreq->location;
-      lastReadTime = currtime;
+    lastarchive = Storm::SFile::s_cdrequest->file->archive;
+    lastarchivelocation = Storm::SFile::s_cdrequest->approxarchivelocation;
+    lastReadTime = currtime;
 
-      BYTE *buffer = nextreq->stream ? (BYTE *)Storm::SFile::s_soundreadbuffer : (BYTE *)nextreq->buffer;
-      if (buffer) {
-        if (file->handle == INVALID_HANDLE_VALUE) {
-          nextreq->bytesread = InternalReadUnaligned(file, nextreq->location, buffer, nextreq->bytestoread);
-          if (file->crcavail && file->crcstate == 2 && file->crcexpected == file->block.sizefile) {
-            CrcBuffer(NULL, 0, &file->crc, 4);
-            file->crcstate = 4;
-          }
-        } else {
-          ReadFileWin32(file, nextreq->location, buffer, nextreq->bytestoread, &nextreq->bytesread);
+    LPVOID buffer = Storm::SFile::s_cdrequest->buffer;
+    if (Storm::SFile::s_cdrequest->soundbuffer) {
+      buffer = Storm::SFile::s_soundreadbuffer;
+    }
+    if (buffer) {
+      if (Storm::SFile::s_cdrequest->file->handle == INVALID_HANDLE_VALUE) {
+        Storm::SFile::s_cdrequest->bytesread =
+            InternalReadUnaligned(Storm::SFile::s_cdrequest->file, Storm::SFile::s_cdrequest->location, buffer, Storm::SFile::s_cdrequest->bytestoread);
+        if (Storm::SFile::s_cdrequest->file->crcavail && Storm::SFile::s_cdrequest->file->crcstate == 2 &&
+            Storm::SFile::s_cdrequest->file->crcexpected == Storm::SFile::s_cdrequest->file->block.sizefile)
+        {
+          CrcBuffer(NULL, 0, &Storm::SFile::s_cdrequest->file->crc, 4);
+          Storm::SFile::s_cdrequest->file->crcstate = 4;
         }
       } else {
-        nextreq->bytesread = 0;
+        ReadFileWin32(
+            Storm::SFile::s_cdrequest->file, Storm::SFile::s_cdrequest->location, buffer, Storm::SFile::s_cdrequest->bytestoread,
+            &Storm::SFile::s_cdrequest->bytesread
+        );
       }
+    } else {
+      Storm::SFile::s_cdrequest->bytesread = 0;
+    }
 
-      if (nextreq->soundbuffer) {
-        if (nextreq->bytesread) {
-          FillSoundBuffer(nextreq);
-        } else if (nextreq->bytestoread) {
-          (*(SFileDirectSoundBufferVtbl **)nextreq->soundbuffer)->Stop(nextreq->soundbuffer);
-          if (nextreq->stream) {
-            ((SFileAudioStreamData *)nextreq->stream)->fillstatus = 4;
-          }
+    if (Storm::SFile::s_cdrequest->soundbuffer) {
+      if (Storm::SFile::s_cdrequest->bytesread) {
+        FillSoundBuffer(Storm::SFile::s_cdrequest);
+      } else if (Storm::SFile::s_cdrequest->bytestoread) {
+        (*(SFileDirectSoundBufferVtbl **)Storm::SFile::s_cdrequest->soundbuffer)->Stop(Storm::SFile::s_cdrequest->soundbuffer);
+        if (Storm::SFile::s_cdrequest->stream) {
+          Storm::SFile::s_cdrequest->stream->fillstatus = 4;
         }
       }
+    }
 
-      if (nextreq->asyncparam && *(LPVOID *)nextreq->asyncparam) {
-        if (file->crcavail && file->crcstate == 4 && file->crc != file->block.crc) {
-          SErrDisplayError(0x85100083, file->name, -4, NULL, FALSE, 1);
-        }
-        asyncproc = (SFileAsyncNotifyProc) * (LPVOID *)nextreq->asyncparam;
-        DWORD completedOffset = (DWORD)((BYTE *)nextreq->buffer + nextreq->bytesread - (BYTE *)nextreq->bufferbegin);
-        archiveptr.Leave();
-        fileptr.Leave();
-        asyncproc(nextreq->bufferbegin, completedOffset, nextreq->asyncparam);
+    if (Storm::SFile::s_cdrequest->asyncparam && Storm::SFile::s_cdrequest->asyncparam->pvCallback) {
+      if (Storm::SFile::s_cdrequest->file->crcavail && Storm::SFile::s_cdrequest->file->crcstate == 4 &&
+          Storm::SFile::s_cdrequest->file->crc != Storm::SFile::s_cdrequest->file->block.crc)
+      {
+        SErrDisplayError(0x85100083, Storm::SFile::s_cdrequest->file->name, -4, NULL, FALSE, 1);
       }
-
+      _TASYNCPARAMBLOCK   *asyncparam = Storm::SFile::s_cdrequest->asyncparam;
+      DWORD                bytes = Storm::SFile::s_cdrequest->bytesread + (DWORD)Storm::SFile::s_cdrequest->buffer - (DWORD)Storm::SFile::s_cdrequest->bufferbegin;
+      LPVOID               bufferbegin = Storm::SFile::s_cdrequest->bufferbegin;
+      SFileAsyncNotifyProc asyncproc = (SFileAsyncNotifyProc)asyncparam->pvCallback;
       archiveptr.Leave();
       fileptr.Leave();
+      asyncproc(bufferbegin, bytes, asyncparam);
+    }
 
-      event = nextreq->event;
-      Storm::SFile::s_cdlock.Enter();
-      if (nextreq->autodelrequest) {
-        delete nextreq;
-      }
-      Storm::SFile::s_cdrequest = NULL;
-      Storm::SFile::s_cdlock.Leave();
-      if (event) {
-        SetEvent((HANDLE)event);
-      }
+    archiveptr.Leave();
+    fileptr.Leave();
+
+    LPVOID event = Storm::SFile::s_cdrequest->event;
+    Storm::SFile::s_cdlock.Enter();
+    if (Storm::SFile::s_cdrequest->autodelrequest) {
+      delete Storm::SFile::s_cdrequest;
+    }
+    Storm::SFile::s_cdrequest = NULL;
+    Storm::SFile::s_cdlock.Leave();
+    if (event) {
+      SetEvent((HANDLE)event);
     }
   }
 
@@ -1846,13 +1800,14 @@ static DWORD
 GetFileBlockEntry(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags, SFileArchiveRecData **archive, SFileBlockEntryData **block, char *diskname) {
   char                 localfilename[MAX_PATH];
   char                 mungedname[MAX_PATH];
-  UINT                 s_platformId;
+  BYTE                 s_platformId;
   WORD                 s_languageId;
   DWORD                exists;
   SFileArchiveRecData *archiveNode;
   SFileArchiveRecData *searchArchive;
   SFileBlockEntryData *blockentry;
   LPCSTR               searchName;
+  char                *dest;
   DWORD                index;
 
   if (archive) {
@@ -1874,41 +1829,40 @@ GetFileBlockEntry(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags, SFileAr
   if (!archivehandle || baseArchive) {
     archiveNode = Storm::SFile::s_archivelist.Head();
     for (;;) {
-      if (!baseArchive || archiveNode == baseArchive) {
-        if (!archiveNode || archiveNode->disableCount <= 0) {
-          searchArchive = archiveNode;
-          if (archiveNode && archiveNode->parentArchive) {
-            searchArchive = (SFileArchiveRecData *)archiveNode->parentArchive;
-          }
+      if ((!baseArchive || archiveNode == baseArchive) && (!archiveNode || archiveNode->disableCount <= 0)) {
+        searchArchive = archiveNode;
+        if (archiveNode && archiveNode->parentArchive) {
+          searchArchive = (SFileArchiveRecData *)archiveNode->parentArchive;
+        }
 
-          searchName = filename;
-          if (archiveNode && archiveNode->pathPrefix[0]) {
-            SStrCopy(mungedname, archiveNode->pathPrefix, MAX_PATH);
-            SStrPack(mungedname, "\\", MAX_PATH);
-            SStrPack(mungedname, filename, MAX_PATH);
-            searchName = mungedname;
-          }
+        searchName = filename;
+        if (archiveNode && archiveNode->pathPrefix[0]) {
+          dest = mungedname;
+          dest += SStrCopy(dest, archiveNode->pathPrefix, MAX_PATH);
+          dest += SStrCopy(dest, "\\", MAX_PATH);
+          SStrCopy(dest, filename, MAX_PATH);
+          searchName = mungedname;
+        }
 
-          if ((flags & 3) && (!searchArchive || !searchArchive->dontCheckDisk)) {
-            if (CheckFileExistsOnDisk(searchName, flags, localfilename)) {
-              if (diskname) {
-                SStrCopy(diskname, localfilename, MAX_PATH);
-              }
-              exists = 2;
-              break;
+        if ((flags & 3) && (!searchArchive || !searchArchive->dontCheckDisk)) {
+          if (CheckFileExistsOnDisk(searchName, flags, localfilename)) {
+            if (diskname) {
+              SStrCopy(diskname, localfilename, MAX_PATH);
             }
+            exists = 2;
+            break;
           }
+        }
 
-          if (archiveNode) {
-            index = SearchHashTable(searchArchive, searchName, s_languageId, (BYTE)s_platformId);
-            if (index != 0xFFFFFFFF) {
-              blockentry = GetBlockEntry(searchArchive, index);
-              exists = 1;
-              if ((LONG)blockentry->flags >= 0 || ((flags & 4) && (blockentry->flags & 0x1FF00))) {
-                SErrSetLastError(0x3EE);
-                exists = 0;
-                break;
-              }
+        if (archiveNode) {
+          index = SearchHashTable(searchArchive, searchName, s_languageId, s_platformId);
+          if (index != 0xFFFFFFFF) {
+            exists = 1;
+            blockentry = GetBlockEntry(searchArchive, index);
+            if (!(blockentry->flags & MPQ_ALLOCATED) || ((flags & 4) && (blockentry->flags & 0x1FF00))) {
+              exists = 0;
+              SErrSetLastError(0x3EE);
+            } else {
               if (archive) {
                 Storm::SFile::AddArchiveRef(searchArchive);
                 *archive = searchArchive;
@@ -1916,17 +1870,19 @@ GetFileBlockEntry(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags, SFileAr
               if (block) {
                 *block = blockentry;
               }
-              break;
             }
+            break;
           }
         }
       }
 
+      if (archiveNode) {
+        archiveNode = archiveNode->Next();
+      }
       if (!archiveNode) {
         SErrSetLastError(ERROR_FILE_NOT_FOUND);
         break;
       }
-      archiveNode = archiveNode->Next();
     }
   }
 
@@ -1939,14 +1895,14 @@ static int CheckFileExists(LPCSTR filename) {
 }
 
 static int CheckForCdRom(LPCSTR path) {
-  char  rootpath[4];
   char  fsname[MAX_PATH];
-  DWORD driveType;
   DWORD fsflags;
   DWORD sectorspercluster;
   DWORD bytespersector;
+  char  rootpath[4];
   DWORD freeclusters;
   DWORD totalclusters;
+  DWORD driveType;
   DWORD value;
 
   SStrCopy(rootpath, path, sizeof(rootpath));
@@ -1965,9 +1921,9 @@ static int CheckForCdRom(LPCSTR path) {
     return FALSE;
   }
 
-  value = (fsflags & 4) ^ *(DWORD *)fsname ^ bytespersector ^ sectorspercluster ^ driveType;
-  value = ((value >> 16) ^ value) & 0xFFFF;
-  return value == 0x1F00 || value == 0x0805;
+  value = (fsflags & 4) ^ *(DWORD *)fsname ^ freeclusters ^ bytespersector ^ driveType;
+  WORD check = (WORD)(value >> 16) ^ (WORD)value;
+  return check == 0x1F00 || check == 0x0805;
 }
 
 static void ConvertRelativePathName(LPCSTR inputpath, char *outputpath, int strippath) {
@@ -2434,7 +2390,9 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
   int                   soundbufferlocal;
   DWORD                 remainder;
 
-  FATALASSERT(buffersize);
+  VALIDATEBEGIN;
+  VALIDATE(buffersize);
+  VALIDATEEND;
 
   if (!Storm::SFile::s_directsound) {
     SErrSetLastError(0x85100071);
@@ -3064,24 +3022,28 @@ extern "C" BOOL APIENTRY SFileLoadFileEx2(
   }
 
   HSFILE file = NULL;
+  target = NULL;
   if (!SFileOpenFileEx(archive, filename, flags, &file)) {
     goto finallylabel;
   }
   sizeLow = SFileGetFileSize(file, NULL);
   target = ALLOC(sizeLow + extraBytes);
-  if (SFileReadFileEx2(file, target, sizeLow, NULL, overlapped, overlappedpriority, NULL)) {
-    if (extraBytes) {
-      memset((BYTE *)target + sizeLow, 0, extraBytes);
-    }
-    *buffer = target;
-    if (bytes) {
-      *bytes = sizeLow;
-    }
-  } else if (target) {
-    FREE(target);
+  if (!SFileReadFileEx2(file, target, sizeLow, NULL, overlapped, overlappedpriority, NULL)) {
+    goto finallylabel;
+  }
+  if (extraBytes) {
+    memset((BYTE *)target + sizeLow, 0, extraBytes);
+  }
+  *buffer = target;
+  target = NULL;
+  if (bytes) {
+    *bytes = sizeLow;
   }
 
 finallylabel:
+  if (target) {
+    FREE(target);
+  }
   if (file) {
     SFileCloseFile(file);
   }
@@ -3189,9 +3151,9 @@ extern "C" BOOL APIENTRY SFileOpenPathAsArchive(HSARCHIVE ownerarchive, LPCSTR p
 }
 
 int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, HSARCHIVE *handle) {
+  DWORD                bytesread;
   BYTE                *archivebuffer;
   DWORD                bufferlocation;
-  DWORD                bytesread;
   DWORD                bufferbytes;
   DWORD                i;
   SFileArchiveRecData *position;
@@ -3199,12 +3161,12 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
   archivebuffer = (BYTE *)ALLOC(READAHEAD);
 
   bufferlocation = 0;
-  bytesread = 0;
+  bufferbytes = 0;
   for (;;) {
-    if (archiveptr->startinglocation >= bufferlocation + bytesread) {
+    if (archiveptr->startinglocation >= bufferlocation + bufferbytes) {
       bufferlocation = archiveptr->startinglocation;
       SetFilePointer((HANDLE)archiveptr->handle, archiveptr->startinglocation, NULL, FILE_BEGIN);
-      bytesread = 0;
+      DWORD bytesread = 0;
       ReadFile((HANDLE)archiveptr->handle, archivebuffer, READAHEAD, &bytesread, NULL);
       if (bytesread < sizeof(SFileArchiveHeaderData) || archiveptr->startinglocation + sizeof(SFileArchiveHeaderData) >= archiveptr->endinglocation) {
         delete archiveptr;
@@ -3212,6 +3174,7 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
         FREE(archivebuffer);
         return FALSE;
       }
+      bufferbytes = bytesread;
     }
 
     memcpy(&archiveptr->header, archivebuffer + (archiveptr->startinglocation - bufferlocation), sizeof(archiveptr->header));
@@ -3226,18 +3189,14 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
   archiveptr->sectorsize = 0x200 << archiveptr->header.sectorsizeid;
   archiveptr->sectorbuffer = (BYTE *)ALLOC(archiveptr->sectorsize);
 
-  bufferbytes = archiveptr->header.hashcount << 4;
-  archiveptr->hashtable = (SFileHashEntryData *)ALLOC(bufferbytes);
-  bytesread = 0;
+  archiveptr->hashtable = (SFileHashEntryData *)ALLOC(archiveptr->header.hashcount << 4);
   ReadFileChecked(
       archiveptr->startinglocation + archiveptr->header.hashoffset, &archiveptr->lastlocation, (HANDLE)archiveptr->handle, archiveptr->hashtable,
-      bufferbytes, &bytesread, archiveptr->archivename
+      archiveptr->header.hashcount << 4, &bytesread, archiveptr->archivename
   );
-  Decrypt((DWORD *)archiveptr->hashtable, bufferbytes, Hash("(hash table)", HASH_ENCRYPTKEY));
+  Decrypt((DWORD *)archiveptr->hashtable, archiveptr->header.hashcount << 4, Hash("(hash table)", HASH_ENCRYPTKEY));
 
-  bufferbytes = archiveptr->header.blockcount * 0x2C;
-  archiveptr->blocktable = (SFileBlockEntryData *)ALLOC(bufferbytes);
-  bytesread = 0;
+  archiveptr->blocktable = (SFileBlockEntryData *)ALLOC(archiveptr->header.blockcount * sizeof(SFileBlockEntryData));
   ReadFileChecked(
       archiveptr->startinglocation + archiveptr->header.blockoffset, &archiveptr->lastlocation, (HANDLE)archiveptr->handle, archiveptr->blocktable,
       archiveptr->header.blockcount << 4, &bytesread, archiveptr->archivename
@@ -3263,9 +3222,7 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
 
   if (archiveptr->cdrom) {
     CreateCdThread();
-  }
-
-  if (!archiveptr->cdrom && (flags & 1) && !cdrom) {
+  } else if ((flags & 1) && !cdrom) {
     SFileCloseArchive((HSARCHIVE)archiveptr);
     SErrSetLastError(ERROR_INVALID_DRIVE);
     return FALSE;
@@ -3342,10 +3299,11 @@ extern "C" BOOL APIENTRY SFileOpenFileAsArchive(HSARCHIVE ownerarchive, LPCSTR f
 extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags, HSFILE *handle) {
   typedef void(APIENTRY * SFileLoadNotifyProc)(LPCSTR, LPVOID);
   char                 localfilename[MAX_PATH];
-  BOOL                 result = FALSE;
+  DWORD                result = 0;
   DWORD                sectors;
   DWORD               *sectoroffsettable;
   SFileArchiveRecData *archiveptr;
+  SFileBlockEntryData *block;
   LPVOID               s_loadNotifyData;
   DWORD                key;
 
@@ -3358,15 +3316,16 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filena
   Initialize();
   archiveptr = NULL;
   DWORD source =
-      GetFileBlockEntry(archivehandle, filename, flags, &archiveptr, reinterpret_cast<SFileBlockEntryData **>(&archivehandle), localfilename);
+      GetFileBlockEntry(archivehandle, filename, flags, &archiveptr, &block, localfilename);
 
-  if (source) {
-    if (source == 2) {
-      HANDLE osFile =
-          CreateFileA(localfilename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-      if (osFile == INVALID_HANDLE_VALUE) {
-        result = 0;
-      } else if (flags & 4) {
+  if (!source) {
+    goto finallylabel;
+  }
+  if (source == 2) {
+    HANDLE osFile =
+        CreateFileA(localfilename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    if (osFile != INVALID_HANDLE_VALUE) {
+      if (flags & 4) {
         *handle = (HSFILE)osFile;
         result = 2;
       } else {
@@ -3382,61 +3341,64 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filena
         result = 2;
       }
     } else {
-      if (flags & 4) {
-        HANDLE osFile = CreateFileA(archiveptr->archivename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
-        *handle = (HSFILE)osFile;
-        result = osFile != INVALID_HANDLE_VALUE;
-        if (result) {
-          SetFilePointer(osFile, reinterpret_cast<SFileBlockEntryData *>(archivehandle)->offset, NULL, FILE_BEGIN);
-        } else {
-          SErrSetLastError(ERROR_FILE_NOT_FOUND);
-        }
+      result = 0;
+    }
+  } else {
+    if (flags & 4) {
+      HANDLE osFile = CreateFileA(archiveptr->archivename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+      *handle = (HSFILE)osFile;
+      result = osFile != INVALID_HANDLE_VALUE;
+      if (result) {
+        SetFilePointer(osFile, block->offset, NULL, FILE_BEGIN);
       } else {
-        LPCSTR keyname = filename;
-        LPCSTR separator = SStrChrR(keyname, ':');
-        if (separator) {
-          keyname = separator + 1;
-        }
-        separator = SStrChrR(keyname, '\\');
-        if (separator) {
-          keyname = separator + 1;
-        }
-
-        key = Hash(keyname, HASH_ENCRYPTKEY);
-        if (reinterpret_cast<SFileBlockEntryData *>(archivehandle)->flags & MPQ_ENCRYPTED_FIXLOC) {
-          key = (key + reinterpret_cast<SFileBlockEntryData *>(archivehandle)->offset - archiveptr->startinglocation) ^
-                reinterpret_cast<SFileBlockEntryData *>(archivehandle)->sizefile;
-        }
-        sectors = (reinterpret_cast<SFileBlockEntryData *>(archivehandle)->sizefile + archiveptr->sectorsize - 1) / archiveptr->sectorsize;
-        sectoroffsettable = NULL;
-        if (reinterpret_cast<SFileBlockEntryData *>(archivehandle)->flags & MPQ_COMPRESSEDMASK) {
-          sectoroffsettable = (DWORD *)ALLOC((sectors + 1) * sizeof(DWORD));
-        }
-
-        Storm::SFile::s_filelock.Enter();
-        SFileRecData *fileptr = Storm::SFile::s_filelist.NewNode(LIST_HEAD, 0, 0);
-        Storm::SFile::AddFileRef(fileptr);
-        Storm::SFile::s_filelock.Leave();
-        SStrCopy(fileptr->name, filename, sizeof(fileptr->name));
-        fileptr->archive = archiveptr;
-        fileptr->handle = INVALID_HANDLE_VALUE;
-        memcpy(&fileptr->block, reinterpret_cast<SFileBlockEntryData *>(archivehandle), sizeof(fileptr->block));
-        fileptr->key = key;
-        fileptr->sectors = sectors;
-        fileptr->sectoroffsettable = sectoroffsettable;
-        fileptr->readaheadbuffer = ALLOC(READAHEAD);
-        fileptr->crcavail = reinterpret_cast<SFileBlockEntryData *>(archivehandle)->crc ? g_opt.crcenabled : 0;
-        fileptr->crcstate = 1;
-        result = 1;
-
-        Storm::SFile::s_archivelock.Enter();
-        Storm::SFile::AddArchiveRef(archiveptr);
-        Storm::SFile::s_archivelock.Leave();
-        *handle = (HSFILE)fileptr;
+        SErrSetLastError(ERROR_FILE_NOT_FOUND);
       }
+    } else {
+      LPCSTR keyname = filename;
+      LPCSTR separator = SStrChrR(keyname, ':');
+      if (separator) {
+        keyname = separator + 1;
+      }
+      separator = SStrChrR(keyname, '\\');
+      if (separator) {
+        keyname = separator + 1;
+      }
+
+      key = Hash(keyname, HASH_ENCRYPTKEY);
+      if (block->flags & MPQ_ENCRYPTED_FIXLOC) {
+        key = (key + block->offset - archiveptr->startinglocation) ^
+              block->sizefile;
+      }
+      sectors = (block->sizefile + archiveptr->sectorsize - 1) / archiveptr->sectorsize;
+      sectoroffsettable = NULL;
+      if (block->flags & MPQ_COMPRESSEDMASK) {
+        sectoroffsettable = (DWORD *)ALLOC((sectors + 1) * sizeof(DWORD));
+      }
+
+      Storm::SFile::s_filelock.Enter();
+      SFileRecData *fileptr = Storm::SFile::s_filelist.NewNode(LIST_HEAD, 0, 0);
+      Storm::SFile::AddFileRef(fileptr);
+      Storm::SFile::s_filelock.Leave();
+      SStrCopy(fileptr->name, filename, sizeof(fileptr->name));
+      fileptr->archive = archiveptr;
+      fileptr->handle = INVALID_HANDLE_VALUE;
+      memcpy(&fileptr->block, block, sizeof(fileptr->block));
+      fileptr->key = key;
+      fileptr->sectors = sectors;
+      fileptr->sectoroffsettable = sectoroffsettable;
+      fileptr->readaheadbuffer = ALLOC(READAHEAD);
+      fileptr->crcavail = block->crc ? g_opt.crcenabled : 0;
+      fileptr->crcstate = 1;
+      result = 1;
+
+      Storm::SFile::s_archivelock.Enter();
+      Storm::SFile::AddArchiveRef(archiveptr);
+      Storm::SFile::s_archivelock.Leave();
+      *handle = (HSFILE)fileptr;
     }
   }
 
+finallylabel:
   Storm::SFile::ReleaseArchivePtr(archiveptr);
 
   SFileLoadNotifyProc s_loadNotifyProc;
@@ -3479,31 +3441,12 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
     LONG               overlappedpriority,
     _TASYNCPARAMBLOCK *asyncparam
 ) {
-  SFileRequestData *request;
-  BYTE             *output;
-  BYTE             *readBuffer;
-  HANDLE            event;
-  DWORD             remaining;
-  DWORD             cached;
-  DWORD             readBytes;
-  DWORD             location;
-  DWORD             dataChunkSize;
-  DWORD             chunkCount;
-  DWORD             chunkIndex;
-  DWORD             chunkOffset;
-  DWORD             chunkBytes;
-  DWORD             totalRead;
-  DWORD             callerRead;
-  BOOL              lastChunk;
-  BOOL              autoDelete;
-
-  (void)overlappedpriority;
   if (bytesread) {
     *bytesread = 0;
   }
 
-  Storm::SFile::FilePtrLocked file(handle);
-  if (!file) {
+  Storm::SFile::FilePtrLocked fileptr(handle);
+  if (!fileptr) {
     return FALSE;
   }
   if (!bytestoread) {
@@ -3516,132 +3459,122 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
   VALIDATE(buffer);
   VALIDATEEND;
 
-  if (file->handle != INVALID_HANDLE_VALUE && !overlapped) {
-    return ReadFileWin32(file, 0xFFFFFFFF, buffer, bytestoread, bytesread);
+  if (fileptr->handle != INVALID_HANDLE_VALUE && !overlapped) {
+    return ReadFileWin32(fileptr, 0xFFFFFFFF, buffer, bytestoread, bytesread);
   }
 
-  output = (BYTE *)buffer;
-  remaining = bytestoread;
-  if (file->readaheadbuffer && file->readaheadoffset < file->readaheadbytes && !overlapped) {
-    cached = file->readaheadbytes - file->readaheadoffset;
-    if (cached > remaining) {
-      cached = remaining;
-    }
-    memcpy(output, (BYTE *)file->readaheadbuffer + file->readaheadoffset, cached);
-    file->location += cached;
-    file->readaheadoffset += cached;
-    output += cached;
-    remaining -= cached;
+  if (fileptr->readaheadbuffer && fileptr->readaheadoffset < fileptr->readaheadbytes && !overlapped) {
+    DWORD bytes = min(bytestoread, fileptr->readaheadbytes - fileptr->readaheadoffset);
+    memcpy(buffer, (BYTE *)fileptr->readaheadbuffer + fileptr->readaheadoffset, bytes);
+    fileptr->location += bytes;
+    fileptr->readaheadoffset += bytes;
+    buffer = (BYTE *)buffer + bytes;
+    bytestoread -= bytes;
     if (bytesread) {
-      *bytesread = cached;
+      *bytesread = bytes;
     }
-    if (!remaining) {
-      goto validateCrc;
+    if (!bytestoread) {
+      if (fileptr->crcavail && fileptr->crcstate == 4 && fileptr->crc != fileptr->block.crc) {
+        SErrDisplayError(0x85100083, fileptr->name, -4, NULL, FALSE, 1);
+      }
+      return TRUE;
     }
   }
 
-  readBuffer = output;
-  readBytes = remaining;
+  LPVOID readbuffer = buffer;
+  DWORD  readbytes = bytestoread;
   if (!overlapped) {
-    DWORD sectorSize;
-    DWORD readAheadBytes;
-
-    sectorSize = file->archive->sectorsize;
-    readAheadBytes = sectorSize - (file->location & (sectorSize - 1));
-    if (readAheadBytes > READAHEAD) {
-      readAheadBytes = READAHEAD;
-    }
-    if (remaining < readAheadBytes) {
-      readBuffer = (BYTE *)file->readaheadbuffer;
-      readBytes = readAheadBytes;
+    DWORD readaheadbytes = min(READAHEAD, fileptr->archive->sectorsize - ((fileptr->archive->sectorsize - 1) & fileptr->location));
+    if (bytestoread < readaheadbytes) {
+      readbuffer = fileptr->readaheadbuffer;
+      readbytes = readaheadbytes;
     }
   }
 
-  if (!readBytes) {
+  if (!readbytes) {
     if (overlapped && overlapped->hEvent) {
       SetEvent(overlapped->hEvent);
     }
     return TRUE;
   }
 
+  DWORD s_dataChunkSize;
   {
     Storm::SFile::UseGlob glob;
-    dataChunkSize = glob->s_dataChunkSize;
+    s_dataChunkSize = glob->s_dataChunkSize;
   }
 
-  location = overlapped ? overlapped->Offset : file->location;
-  totalRead = 0;
-  if (file->handle == INVALID_HANDLE_VALUE && !file->archive->cdrom) {
-    {
-      Storm::SFile::ArchivePtrLocked archive((HSARCHIVE)file->archive);
-      totalRead = InternalReadUnaligned(file, location, readBuffer, readBytes);
-      archive.Leave();
-      if (file->crcavail && file->crcstate == 2 && file->crcexpected == file->block.sizefile) {
-        CrcBuffer(NULL, 0, &file->crc, 4);
-        file->crcstate = 4;
-      }
-      if (overlapped && overlapped->hEvent) {
-        SetEvent(overlapped->hEvent);
-      }
+  DWORD location;
+  if (overlapped) {
+    location = overlapped->Offset;
+  } else {
+    location = fileptr->location;
+  }
+
+  DWORD totalbytesread = 0;
+  if (fileptr->handle == INVALID_HANDLE_VALUE && !fileptr->archive->cdrom) {
+    Storm::SFile::ArchivePtrLocked archiveptr((HSARCHIVE)fileptr->archive);
+    totalbytesread = InternalReadUnaligned(fileptr, location, readbuffer, readbytes);
+    archiveptr.Leave();
+    if (fileptr->crcavail && fileptr->crcstate == 2 && fileptr->crcexpected == fileptr->block.sizefile) {
+      CrcBuffer(NULL, 0, &fileptr->crc, 4);
+      fileptr->crcstate = 4;
+    }
+    if (overlapped && overlapped->hEvent) {
+      SetEvent(overlapped->hEvent);
     }
   } else {
     CreateCdThread();
-    event = overlapped ? overlapped->hEvent : CreateEventA(NULL, TRUE, FALSE, NULL);
-    chunkCount = (readBytes + dataChunkSize - 1) / dataChunkSize;
-    request = NULL;
-    chunkOffset = 0;
-    for (chunkIndex = 0; chunkIndex < chunkCount; ++chunkIndex) {
-      lastChunk = chunkIndex == chunkCount - 1;
-      chunkBytes = readBytes - chunkOffset;
-      if (chunkBytes > dataChunkSize) {
-        chunkBytes = dataChunkSize;
-      }
-      autoDelete = overlapped || !lastChunk;
+    SFileRequestData *request = NULL;
+    LPVOID            event;
+    if (overlapped) {
+      event = overlapped->hEvent;
+    } else {
+      event = CreateEventA(NULL, TRUE, FALSE, NULL);
+    }
+    for (DWORD loop = 0; loop < (readbytes + s_dataChunkSize - 1) / s_dataChunkSize; ++loop) {
+      BOOL  lastloop = loop == (readbytes + s_dataChunkSize - 1) / s_dataChunkSize - 1;
+      DWORD bytes = min(s_dataChunkSize, readbytes - loop * s_dataChunkSize);
       request = IssueRequest(
-          file, location + chunkOffset, readBuffer + chunkOffset, readBuffer, NULL, 0, NULL, chunkBytes, 0x7FFFFFFF, overlapped ? FALSE : TRUE,
-          lastChunk ? event : NULL, autoDelete, lastChunk, lastChunk ? asyncparam : NULL
+          fileptr, location + loop * s_dataChunkSize, (BYTE *)readbuffer + loop * s_dataChunkSize, readbuffer, NULL, 0, NULL, bytes, 0x7FFFFFFF,
+          overlapped == NULL, lastloop ? event : NULL, overlapped || !lastloop, lastloop, lastloop ? asyncparam : NULL
       );
-      if (!lastChunk) {
-        totalRead += chunkBytes;
+      if (!lastloop) {
+        totalbytesread += bytes;
       }
-      chunkOffset += dataChunkSize;
     }
 
     if (overlapped) {
       return TRUE;
     }
 
-    file.Leave();
+    fileptr.Leave();
     WaitForSingleObject(event, INFINITE);
-    file.Enter();
+    fileptr.Enter();
     CloseHandle(event);
-    totalRead += request->bytesread;
+    totalbytesread += request->bytesread;
     delete request;
   }
 
-  callerRead = totalRead;
-  if (callerRead > remaining) {
-    callerRead = remaining;
-  }
-  if (readBuffer != output) {
-    memcpy(output, readBuffer, callerRead);
-    file->readaheadoffset = callerRead;
-    file->readaheadbytes = totalRead;
+  DWORD userbytesread = min(bytestoread, totalbytesread);
+  if (readbuffer != buffer) {
+    memcpy(buffer, readbuffer, userbytesread);
+    fileptr->readaheadoffset = userbytesread;
+    fileptr->readaheadbytes = totalbytesread;
   }
   if (!overlapped) {
-    file->location += callerRead;
+    fileptr->location += userbytesread;
   }
   if (bytesread) {
-    *bytesread += callerRead;
+    *bytesread += userbytesread;
   }
-  if (callerRead != remaining) {
+  if (userbytesread != bytestoread) {
     SErrSetLastError(ERROR_HANDLE_EOF);
     return FALSE;
   }
 
-validateCrc:
-  if (file->crcavail && file->crcstate == 4 && file->crc != file->block.crc) {
-    SErrDisplayError(0x85100083, file->name, -4, NULL, FALSE, 1);
+  if (fileptr->crcavail && fileptr->crcstate == 4 && fileptr->crc != fileptr->block.crc) {
+    SErrDisplayError(0x85100083, fileptr->name, -4, NULL, FALSE, 1);
   }
   return TRUE;
 }

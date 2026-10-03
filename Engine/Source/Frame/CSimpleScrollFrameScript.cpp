@@ -26,7 +26,7 @@ static int CSimpleScrollFrame_SetHorizontalScroll(lua_State *L) {
   GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
 
   if (lua_isnumber(L, 2)) {
-    float offset = static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f));
+    float offset = 0.8f * (static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f);
     object->SetHorizontalScroll(offset);
     return 0;
   }
@@ -39,7 +39,7 @@ static int CSimpleScrollFrame_SetVerticalScroll(lua_State *L) {
   GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
 
   if (lua_isnumber(L, 2)) {
-    float offset = static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f));
+    float offset = 0.8f * (static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f);
     object->SetVerticalScroll(offset);
     return 0;
   }

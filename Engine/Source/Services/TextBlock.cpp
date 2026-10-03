@@ -27,27 +27,27 @@ HTEXTFONT TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeigh
   FONTHASHOBJ *fontObj;
   UINT         gxFontFlags;
 
-  FATALASSERT(fontName);
-
   VALIDATEBEGIN;
+  VALIDATE(fontName);
   VALIDATE(*fontName);
   VALIDATEEND;
 
   fontHeight = DDCToNDCHeight(fontHeight);
-  if (fontHeight >= 1.0f) {
-    fontHeight = 1.0f;
-  }
+  fontHeight = min(fontHeight, 1.0f);
 
   SStrPrintf(buffer, sizeof(buffer), "%s-%d-%f", fontName, fontFlags, fontHeight);
 
   fontObj = s_fontHash.Ptr(buffer);
   if (fontObj) {
     ASSERT(fontObj->font);
-    return reinterpret_cast<HTEXTFONT>(HandleCreate(fontObj, "HTEXTFONT"));
+    return CREATEHANDLE(HTEXTFONT, fontObj);
   }
 
   fontObj = s_fontHash.New(buffer, 0, 0);
-  gxFontFlags = (fontFlags & 0x1) != 0;
+  gxFontFlags = 0;
+  if (fontFlags & 0x1) {
+    gxFontFlags = 0x1;
+  }
   if (fontFlags & 0x4) {
     gxFontFlags |= 0x8;
   }
@@ -58,12 +58,12 @@ HTEXTFONT TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeigh
     gxFontFlags |= 0x2;
   }
 
-  if (GxuFontCreateFont(fontName, fontHeight, fontObj->font, gxFontFlags)) {
-    return reinterpret_cast<HTEXTFONT>(HandleCreate(fontObj, "HTEXTFONT"));
+  if (!GxuFontCreateFont(fontName, fontHeight, fontObj->font, gxFontFlags)) {
+    s_fontHash.Delete(fontObj);
+    return 0;
   }
 
-  s_fontHash.Delete(fontObj);
-  return 0;
+  return CREATEHANDLE(HTEXTFONT, fontObj);
 }
 
 LPCSTR TextBlockGetFontName(HTEXTFONT fontHandle) {
@@ -126,13 +126,12 @@ float TextBlockGetOneToOneHeight(HTEXTFONT__ *fontHandle) {
 }
 
 void TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempest::C2Vector &shadowOffset) {
-  NTempest::C2Vector offset;
-
   VALIDATEBEGIN;
   VALIDATE(text);
   VALIDATEENDVOID;
 
-  DDCToNDC(shadowOffset.x, shadowOffset.y, &offset.x, &offset.y);
+  NTempest::C2Vector offset = shadowOffset;
+  DDCToNDC(offset.x, offset.y, &offset.x, &offset.y);
   GxuFontAddShadow(reinterpret_cast<TEXTBLOCK *>(text)->string, color, offset);
 }
 
@@ -148,10 +147,8 @@ HTEXTBLOCK TextBlockCreate(
     float                      charSpacing,
     float                      lineSpacing
 ) {
-  LPVOID             storage;
-  TEXTBLOCK         *textPtr;
-  NTempest::C3Vector position;
-  UINT               gxFlags = 0;
+  LPVOID     storage;
+  TEXTBLOCK *textPtr;
 
   VALIDATEBEGIN;
   VALIDATE(font);
@@ -161,13 +158,15 @@ HTEXTBLOCK TextBlockCreate(
   storage = SMemAlloc(sizeof(TEXTBLOCK), "HTEXTBLOCK", SERR_LINECODE_OBJECT, 0);
   textPtr = storage ? new (storage) TEXTBLOCK : 0;
 
+  NTempest::C3Vector position;
   position.z = pos.z;
   DDCToNDC(pos.x, pos.y, &position.x, &position.y);
   DDCToNDC(blockWidth, blockHeight, &blockWidth, &blockHeight);
   DDCToNDC(0.0f, fontHeight, 0, &fontHeight);
 
+  UINT gxFlags = 0;
   if (flags & 0x100) {
-    gxFlags |= 0x1;
+    gxFlags = 0x1;
   }
   if (flags & 0x200) {
     gxFlags |= 0x4;
@@ -200,19 +199,30 @@ HTEXTBLOCK TextBlockCreate(
     gxFlags |= 0x800;
   }
 
+  EGxFontHJusts horzJustification = GxHJ_Center;
+  if (flags & 0x4) {
+    horzJustification = GxHJ_Right;
+  } else if (flags & 0x2) {
+    horzJustification = GxHJ_Center;
+  } else if (flags & 0x1) {
+    horzJustification = GxHJ_Left;
+  }
+
+  EGxFontVJusts vertJustification = GxVJ_Middle;
+  if (flags & 0x8) {
+    vertJustification = GxVJ_Top;
+  } else if (flags & 0x20) {
+    vertJustification = GxVJ_Bottom;
+  } else if (flags & 0x10) {
+    vertJustification = GxVJ_Middle;
+  }
+
   GxuFontCreateString(
-      reinterpret_cast<FONTHASHOBJ *>(font)->font, text, fontHeight, position, blockWidth, blockHeight, lineSpacing, textPtr->string,
-      flags & 0x8    ? GxVJ_Top
-      : flags & 0x20 ? GxVJ_Bottom
-                     : GxVJ_Middle,
-      flags & 0x4   ? GxHJ_Right
-      : flags & 0x2 ? GxHJ_Center
-      : flags & 0x1 ? GxHJ_Left
-                    : GxHJ_Center,
-      gxFlags, color, charSpacing
+      reinterpret_cast<FONTHASHOBJ *>(font)->font, text, fontHeight, position, blockWidth, blockHeight, lineSpacing, textPtr->string, vertJustification,
+      horzJustification, gxFlags, color, charSpacing
   );
 
-  return reinterpret_cast<HTEXTBLOCK>(HandleCreate(textPtr, "HTEXTBLOCK"));
+  return CREATEHANDLE(HTEXTBLOCK, textPtr);
 }
 
 void TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) {
@@ -314,14 +324,18 @@ void TextBlockGetWrapPoint(
     float        spacing,
     UINT         flags
 ) {
+  FONTHASHOBJ *fontPtr;
+
   VALIDATEBEGIN;
   VALIDATE(font);
   VALIDATE(text);
+
+  fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  VALIDATE(fontPtr->font);
   VALIDATEENDVOID;
-  FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
-  FATALASSERT(fontPtr->font);
-  fontHeight = DDCToNDCHeight(fontHeight);
-  blockWidth = DDCToNDCWidth(blockWidth);
+
+  DDCToNDC(0.0f, fontHeight, 0, &fontHeight);
+  DDCToNDC(blockWidth, 0.0f, &blockWidth, 0);
   GxuFontGetWrapPoint(fontPtr->font, text, fontHeight, blockWidth, numBytes, pExtent, pNextText, spacing, flags);
   NDCToDDC(*pExtent, 0.0f, pExtent, 0);
 }
@@ -391,35 +405,54 @@ UINT TextBlockGetMaxCharsWithinWidth(
     float        charSpacing,
     UINT         flags
 ) {
+  FONTHASHOBJ *fontPtr;
+  UINT         gxFlags;
+
   VALIDATEBEGIN;
   VALIDATE(font);
   VALIDATE(text);
+
+  fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  VALIDATE(fontPtr->font);
   VALIDATEEND;
-  FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
-  FATALASSERT(fontPtr->font);
-  height = DDCToNDCHeight(height);
-  maxWidth = DDCToNDCWidth(maxWidth);
-  UINT gxFlags = (flags & 0x100) != 0;
-  if (flags & 0x200)
+
+  DDCToNDC(0.0f, height, 0, &height);
+  DDCToNDC(maxWidth, 0.0f, &maxWidth, 0);
+  gxFlags = 0;
+  if (flags & 0x100) {
+    gxFlags = 0x1;
+  }
+  if (flags & 0x200) {
     gxFlags |= 0x4;
-  if (flags & 0x400)
+  }
+  if (flags & 0x400) {
     gxFlags |= 0x8;
-  if (flags & 0x800)
+  }
+  if (flags & 0x800) {
     gxFlags |= 0x10;
-  if (flags & 0x40)
+  }
+  if (flags & 0x40) {
     gxFlags |= 0x2;
-  if (flags & 0x80)
+  }
+  if (flags & 0x80) {
     gxFlags |= 0x20;
-  if (flags & 0x1000)
+  }
+  if (flags & 0x1000) {
     gxFlags |= 0x40;
-  if (flags & 0x2000)
+  }
+  if (flags & 0x2000) {
     gxFlags |= 0x100;
-  if (flags & 0x4000)
+  }
+  if (flags & 0x4000) {
     gxFlags |= 0x200;
-  if (flags & 0x8000)
+  }
+  if (flags & 0x8000) {
     gxFlags |= 0x400;
-  if (flags & 0x10000)
+  }
+  if (flags & 0x10000) {
     gxFlags |= 0x800;
+  }
+
   UINT chars = GxuFontGetMaxCharsWithinWidth(fontPtr->font, text, height, maxWidth, lineBytes, extent, charSpacing, gxFlags);
   NDCToDDC(*extent, 0.0f, extent, 0);
   return chars;
@@ -502,18 +535,20 @@ UINT TextBlockWrapText(
   FONTHASHOBJ *fontPtr;
   UINT         gxFlags;
 
-  FATALASSERT(font);
-
-  FATALASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(font);
+  VALIDATE(text);
 
   fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
-  VALIDATEBEGIN;
   VALIDATE(fontPtr->font);
   VALIDATEEND;
 
   DDCToNDC(0.0f, height, 0, &height);
   DDCToNDC(maxWidth, 0.0f, &maxWidth, 0);
-  gxFlags = (flags & 0x100) != 0;
+  gxFlags = 0;
+  if (flags & 0x100) {
+    gxFlags = 0x1;
+  }
   if (flags & 0x200) {
     gxFlags |= 0x4;
   }

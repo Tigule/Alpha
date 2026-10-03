@@ -249,7 +249,10 @@ class CGxDeviceD3d : public CGxDevice {
   DWORD m_deviceState[34];
 
   void  DsSet(EDeviceState state, DWORD val);
-  DWORD DsGet(EDeviceState state);
+  DWORD DsGet(EDeviceState state) {
+    ASSERT(state < DeviceStates_Last);
+    return m_deviceState[state];
+  }
 
   BYTE m_texEnable[4];
 

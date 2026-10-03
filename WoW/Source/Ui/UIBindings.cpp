@@ -57,7 +57,7 @@ static BOOL Bind_CommandHandler(LPCSTR command, LPCSTR arguments) {
 
   CGUIBindings *keybinding = CGUIBindings::GetActive();
   FATALASSERT(keybinding);
-  SStrTokenize(&arguments, keyName, sizeof(keyName), " \t", 0);
+  SStrTokenize(&arguments, keyName, sizeof(keyName), " ,;\"\t\n\r\x1a", 0);
   keybinding->Bind(keyName, arguments);
   return 1;
 }
@@ -163,201 +163,266 @@ BOOL CGUIBindings::AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen) 
 }
 
 LPCSTR CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int maxLen) {
-  char   charBuf[8];
-  char  *dest = string;
-  LPCSTR keyString = "UNKNOWN";
-  UINT   metaKeyState = evt.metaKeyState;
+  static char charBuf[8];
+  LPCSTR      result = string;
+  LPCSTR      keyString;
+  UINT        metaKeyState = evt.metaKeyState;
+  KEY         key = evt.key;
 
   if (evt.repeat > 1) {
     return 0;
   }
-  if (evt.key <= KEY_LASTMETAKEY) {
-    metaKeyState &= ~(1 << evt.key);
+  if (key <= KEY_LASTMETAKEY) {
+    metaKeyState &= ~(1 << key);
   }
-  if (!AddMetaPrefix(metaKeyState, dest, maxLen)) {
+  if (!AddMetaPrefix(metaKeyState, string, maxLen)) {
     return 0;
   }
 
-  if ((evt.key >= KEY_0 && evt.key <= KEY_9) || (evt.key >= KEY_A && evt.key <= KEY_Z)) {
-    SStrPrintf(charBuf, sizeof(charBuf), "%c", evt.key);
-    keyString = charBuf;
-  } else if (evt.key >= KEY_NUMPAD0 && evt.key <= KEY_NUMPAD9) {
-    SStrPrintf(charBuf, sizeof(charBuf), "NUMPAD%d", evt.key - KEY_NUMPAD0);
-    keyString = charBuf;
-  } else if (evt.key >= KEY_F1 && evt.key <= KEY_F12) {
-    SStrPrintf(charBuf, sizeof(charBuf), "F%d", evt.key - KEY_F1 + 1);
-    keyString = charBuf;
-  } else {
-    switch (evt.key) {
-      case KEY_SHIFT:
-        keyString = "SHIFT";
-        break;
-      case KEY_CONTROL:
-        keyString = "CTRL";
-        break;
-      case KEY_ALT:
-        keyString = "ALT";
-        break;
-      case KEY_SPACE:
-        keyString = "SPACE";
-        break;
-      case KEY_TILDE:
-        keyString = "TILDE";
-        break;
-      case KEY_NUMPAD_PLUS:
-        keyString = "NUMPADPLUS";
-        break;
-      case KEY_NUMPAD_MINUS:
-        keyString = "NUMPADMINUS";
-        break;
-      case KEY_NUMPAD_MULTIPLY:
-        keyString = "NUMPADMULTIPLY";
-        break;
-      case KEY_NUMPAD_DIVIDE:
-        keyString = "NUMPADDIVIDE";
-        break;
-      case KEY_PLUS:
-        keyString = "PLUS";
-        break;
-      case KEY_MINUS:
-        keyString = "MINUS";
-        break;
-      case KEY_BRACKET_OPEN:
-        keyString = "LEFTBRACKET";
-        break;
-      case KEY_BRACKET_CLOSE:
-        keyString = "RIGHTBRACKET";
-        break;
-      case KEY_SLASH:
-        keyString = "SLASH";
-        break;
-      case KEY_BACKSLASH:
-        keyString = "BACKSLASH";
-        break;
-      case KEY_SEMICOLON:
-        keyString = "SEMICOLON";
-        break;
-      case KEY_APOSTROPHE:
-        keyString = "APOSTROPHE";
-        break;
-      case KEY_COMMA:
-        keyString = "COMMA";
-        break;
-      case KEY_PERIOD:
-        keyString = "PERIOD";
-        break;
-      case KEY_ESCAPE:
-        keyString = "ESCAPE";
-        break;
-      case KEY_ENTER:
-        keyString = "ENTER";
-        break;
-      case KEY_BACKSPACE:
-        keyString = "BACKSPACE";
-        break;
-      case KEY_TAB:
-        keyString = "TAB";
-        break;
-      case KEY_LEFT:
-        keyString = "LEFT";
-        break;
-      case KEY_UP:
-        keyString = "UP";
-        break;
-      case KEY_RIGHT:
-        keyString = "RIGHT";
-        break;
-      case KEY_DOWN:
-        keyString = "DOWN";
-        break;
-      case KEY_INSERT:
-        keyString = "INSERT";
-        break;
-      case KEY_DELETE:
-        keyString = "DELETE";
-        break;
-      case KEY_HOME:
-        keyString = "HOME";
-        break;
-      case KEY_END:
-        keyString = "END";
-        break;
-      case KEY_PAGEUP:
-        keyString = "PAGEUP";
-        break;
-      case KEY_PAGEDOWN:
-        keyString = "PAGEDOWN";
-        break;
-      case KEY_NUMLOCK:
-        keyString = "NUMLOCK";
-        break;
-      case KEY_CAPSLOCK:
-        keyString = "CAPSLOCK";
-        break;
-      case KEY_SCROLLLOCK:
-        keyString = "SCROLLLOCK";
-        break;
-      case KEY_PAUSE:
-        keyString = "PAUSE";
-        break;
-      case KEY_PRINTSCREEN:
-        keyString = "PRINTSCREEN";
-        break;
-    }
+  switch (key) {
+    case KEY_SHIFT:
+      keyString = "SHIFT";
+      break;
+    case KEY_CONTROL:
+      keyString = "CTRL";
+      break;
+    case KEY_ALT:
+      keyString = "ALT";
+      break;
+    case KEY_SPACE:
+      keyString = "SPACE";
+      break;
+    case KEY_0:
+    case KEY_1:
+    case KEY_2:
+    case KEY_3:
+    case KEY_4:
+    case KEY_5:
+    case KEY_6:
+    case KEY_7:
+    case KEY_8:
+    case KEY_9:
+    case KEY_A:
+    case KEY_B:
+    case KEY_C:
+    case KEY_D:
+    case KEY_E:
+    case KEY_F:
+    case KEY_G:
+    case KEY_H:
+    case KEY_I:
+    case KEY_J:
+    case KEY_K:
+    case KEY_L:
+    case KEY_M:
+    case KEY_N:
+    case KEY_O:
+    case KEY_P:
+    case KEY_Q:
+    case KEY_R:
+    case KEY_S:
+    case KEY_T:
+    case KEY_U:
+    case KEY_V:
+    case KEY_W:
+    case KEY_X:
+    case KEY_Y:
+    case KEY_Z:
+      SStrPrintf(charBuf, sizeof(charBuf), "%c", key);
+      keyString = charBuf;
+      break;
+    case KEY_TILDE:
+      keyString = "TILDE";
+      break;
+    case KEY_NUMPAD0:
+    case KEY_NUMPAD1:
+    case KEY_NUMPAD2:
+    case KEY_NUMPAD3:
+    case KEY_NUMPAD4:
+    case KEY_NUMPAD5:
+    case KEY_NUMPAD6:
+    case KEY_NUMPAD7:
+    case KEY_NUMPAD8:
+    case KEY_NUMPAD9:
+      SStrPrintf(charBuf, sizeof(charBuf), "NUMPAD%d", key - KEY_NUMPAD0);
+      keyString = charBuf;
+      break;
+    case KEY_NUMPAD_PLUS:
+      keyString = "NUMPADPLUS";
+      break;
+    case KEY_NUMPAD_MINUS:
+      keyString = "NUMPADMINUS";
+      break;
+    case KEY_NUMPAD_MULTIPLY:
+      keyString = "NUMPADMULTIPLY";
+      break;
+    case KEY_NUMPAD_DIVIDE:
+      keyString = "NUMPADDIVIDE";
+      break;
+    case KEY_PLUS:
+      keyString = "PLUS";
+      break;
+    case KEY_MINUS:
+      keyString = "MINUS";
+      break;
+    case KEY_BRACKET_OPEN:
+      keyString = "LEFTBRACKET";
+      break;
+    case KEY_BRACKET_CLOSE:
+      keyString = "RIGHTBRACKET";
+      break;
+    case KEY_SLASH:
+      keyString = "SLASH";
+      break;
+    case KEY_BACKSLASH:
+      keyString = "BACKSLASH";
+      break;
+    case KEY_SEMICOLON:
+      keyString = "SEMICOLON";
+      break;
+    case KEY_APOSTROPHE:
+      keyString = "APOSTROPHE";
+      break;
+    case KEY_COMMA:
+      keyString = "COMMA";
+      break;
+    case KEY_PERIOD:
+      keyString = "PERIOD";
+      break;
+    case KEY_ESCAPE:
+      keyString = "ESCAPE";
+      break;
+    case KEY_ENTER:
+      keyString = "ENTER";
+      break;
+    case KEY_BACKSPACE:
+      keyString = "BACKSPACE";
+      break;
+    case KEY_TAB:
+      keyString = "TAB";
+      break;
+    case KEY_LEFT:
+      keyString = "LEFT";
+      break;
+    case KEY_UP:
+      keyString = "UP";
+      break;
+    case KEY_RIGHT:
+      keyString = "RIGHT";
+      break;
+    case KEY_DOWN:
+      keyString = "DOWN";
+      break;
+    case KEY_INSERT:
+      keyString = "INSERT";
+      break;
+    case KEY_DELETE:
+      keyString = "DELETE";
+      break;
+    case KEY_HOME:
+      keyString = "HOME";
+      break;
+    case KEY_END:
+      keyString = "END";
+      break;
+    case KEY_PAGEUP:
+      keyString = "PAGEUP";
+      break;
+    case KEY_PAGEDOWN:
+      keyString = "PAGEDOWN";
+      break;
+    case KEY_NUMLOCK:
+      keyString = "NUMLOCK";
+      break;
+    case KEY_CAPSLOCK:
+      keyString = "CAPSLOCK";
+      break;
+    case KEY_SCROLLLOCK:
+      keyString = "SCROLLLOCK";
+      break;
+    case KEY_PAUSE:
+      keyString = "PAUSE";
+      break;
+    case KEY_PRINTSCREEN:
+      keyString = "PRINTSCREEN";
+      break;
+    case KEY_F1:
+    case KEY_F2:
+    case KEY_F3:
+    case KEY_F4:
+    case KEY_F5:
+    case KEY_F6:
+    case KEY_F7:
+    case KEY_F8:
+    case KEY_F9:
+    case KEY_F10:
+    case KEY_F11:
+    case KEY_F12:
+      SStrPrintf(charBuf, sizeof(charBuf), "F%d", key - KEY_F1 + 1);
+      keyString = charBuf;
+      break;
+    default:
+      keyString = "UNKNOWN";
+      break;
   }
 
-  if (!*keyString || SStrLen(keyString) >= static_cast<UINT>(maxLen)) {
+  if (!*keyString || static_cast<int>(SStrLen(keyString)) >= maxLen) {
     return 0;
   }
-  SStrCopy(dest, keyString, 0x7FFFFFFF);
-  return string;
+  SStrCopy(string, keyString, 0x7FFFFFFF);
+  return result;
 }
 
 LPCSTR CGUIBindings::MouseEventToString(const CMouseEvent &evt, char *string, int maxLen) {
-  char *dest = string;
-  if (!AddMetaPrefix(evt.metaKeyState, dest, maxLen)) {
+  LPCSTR result = string;
+  if (!AddMetaPrefix(evt.metaKeyState, string, maxLen)) {
     return 0;
   }
 
-  if (evt.Id() == 0x400500CD) {
-    SStrCopy(dest, evt.wheelDistance >= 0 ? "MOUSEWHEELUP" : "MOUSEWHEELDOWN", maxLen);
-    return string;
-  }
-  if (evt.Id() < 0x400500C8 || evt.Id() > 0x400500C9) {
-    return 0;
-  }
-
-  switch (evt.button) {
-    case MOUSE_BUTTON_LEFT:
-      SStrCopy(dest, "BUTTON1", maxLen);
-      break;
-    case MOUSE_BUTTON_MIDDLE:
-      SStrCopy(dest, "BUTTON3", maxLen);
-      break;
-    case MOUSE_BUTTON_RIGHT:
-      SStrCopy(dest, "BUTTON2", maxLen);
-      break;
-    case MOUSE_BUTTON_XBUTTON1:
-      SStrCopy(dest, "BUTTON4", maxLen);
-      break;
-    case MOUSE_BUTTON_XBUTTON2:
-      SStrCopy(dest, "BUTTON5", maxLen);
-      break;
-    default: {
-      ASSERT(evt.button > MOUSE_BUTTON_RIGHT);
-      *dest = 0;
-      int button = 4;
-      while (button < 32 && evt.button != 1 << (button - 1)) {
-        ++button;
+  switch (evt.Id()) {
+    case EVENT_MOUSE_DOWN:
+    case EVENT_MOUSE_UP:
+      switch (evt.button) {
+        case MOUSE_BUTTON_LEFT:
+          SStrCopy(string, "BUTTON1", maxLen);
+          break;
+        case MOUSE_BUTTON_RIGHT:
+          SStrCopy(string, "BUTTON2", maxLen);
+          break;
+        case MOUSE_BUTTON_MIDDLE:
+          SStrCopy(string, "BUTTON3", maxLen);
+          break;
+        case MOUSE_BUTTON_XBUTTON1:
+          SStrCopy(string, "BUTTON4", maxLen);
+          break;
+        case MOUSE_BUTTON_XBUTTON2:
+          SStrCopy(string, "BUTTON5", maxLen);
+          break;
+        default: {
+          ASSERT(evt.button > MOUSE_BUTTON_RIGHT);
+          *string = 0;
+          for (int i = 4; i < 32; ++i) {
+            if (evt.button == 1 << (i - 1)) {
+              SStrPrintf(string, maxLen, "BUTTON%d", i);
+              break;
+            }
+          }
+          ASSERT(*string);
+          break;
+        }
       }
-      if (button < 32) {
-        SStrPrintf(dest, maxLen, "BUTTON%d", button);
-      }
-      ASSERT(*dest);
       break;
-    }
+    case EVENT_MOUSE_WHEEL:
+      if (evt.wheelDistance < 0) {
+        SStrCopy(string, "MOUSEWHEELDOWN", maxLen);
+      } else {
+        SStrCopy(string, "MOUSEWHEELUP", maxLen);
+      }
+      break;
+    default:
+      return 0;
   }
-  return string;
+  return result;
 }
 
 CGUIBindings::CGUIBindings() {
@@ -385,74 +450,69 @@ BOOL CGUIBindings::Load(LPCSTR commandsFile, CStatus *status) {
   m_numCommands = 0;
   m_numHiddenCommands = 0;
 
-  if (!SFileLoadFile(commandsFile, &buffer, &bytesRead, 0, 0)) {
+  if (!SFile::LoadFile(commandsFile, &buffer, &bytesRead, 0, 0)) {
     status->Add(STATUS_ERROR, "Couldn't open %s", commandsFile);
     return 0;
   }
 
   tree = XMLTree_Load(static_cast<LPCSTR>(buffer), bytesRead);
-  SFileUnloadFile(buffer);
+  FREE(buffer);
   if (!tree) {
     status->Add(STATUS_ERROR, "Couldn't parse XML in %s", commandsFile);
     return 0;
   }
 
-  node = XMLTree_GetRoot(tree)->GetChild();
-  while (node) {
+  for (node = XMLTree_GetRoot(tree)->GetChild(); node; node = node->GetSibling()) {
     if (SStrCmpI(node->GetName(), "Binding", 0x7FFFFFFF)) {
       status->Add(STATUS_WARNING, "Unknown node type %s in %s", node->GetName(), commandsFile);
-      node = node->GetSibling();
       continue;
     }
 
     name = node->GetAttributeByName("name");
     script = node->GetBody();
-    if (!name || !*name) {
-      status->Add(STATUS_WARNING, "Found binding with no name in %s", commandsFile);
-      node = node->GetSibling();
-      continue;
-    }
+    if (name && *name) {
+      if (script && *script) {
+        if (!m_commands.Ptr(name)) {
+          LPCSTR header = node->GetAttributeByName("header");
+          if (header && *header) {
+            headerIndex = SStrToInt(header);
+            if (headerIndex >= 0) {
+              SStrPrintf(headerBuf, sizeof(headerBuf), "HEADER%d", headerIndex);
+              if (!m_commands.Ptr(headerBuf)) {
+                KEYCOMMAND *headerCommand = m_commands.New(headerBuf, 0, 0);
+                headerCommand->index = m_numCommands++;
+                headerCommand->headerIndex = headerIndex;
+                headerCommand->function = 0;
+              } else {
+                status->Add(STATUS_WARNING, "Binding header %d is defined more than once in %s", headerIndex, commandsFile);
+              }
+            }
+          }
 
-    if (!script || !*script) {
-      status->Add(STATUS_WARNING, "Found binding %s with no script in %s", name, commandsFile);
-      node = node->GetSibling();
-      continue;
-    }
+          KEYCOMMAND *command = m_commands.New(name, 0, 0);
+          LPCSTR      hidden = node->GetAttributeByName("hidden");
+          if (hidden && StringToBOOL(hidden)) {
+            command->index = -++m_numHiddenCommands;
+          } else {
+            command->index = m_numCommands++;
+          }
 
-    if (m_commands.Ptr(name)) {
-      status->Add(STATUS_WARNING, "Binding %s is defined more than once in %s", name, commandsFile);
-      node = node->GetSibling();
-      continue;
-    }
-
-    LPCSTR header = node->GetAttributeByName("header");
-    if (header && *header) {
-      headerIndex = SStrToInt(header);
-      if (headerIndex >= 0) {
-        SStrPrintf(headerBuf, sizeof(headerBuf), "HEADER%d", headerIndex);
-        if (m_commands.Ptr(headerBuf)) {
-          status->Add(STATUS_WARNING, "Binding header %d is defined more than once in %s", headerIndex, commandsFile);
+          command->function = FrameScript_CompileFunction(script, name);
+          LPCSTR runOnUp = node->GetAttributeByName("runOnUp");
+          if (runOnUp) {
+            command->runOnUp = StringToBOOL(runOnUp);
+          } else {
+            command->runOnUp = 0;
+          }
         } else {
-          KEYCOMMAND *headerCommand = m_commands.New(headerBuf, 0, 0);
-          headerCommand->index = m_numCommands++;
-          headerCommand->headerIndex = headerIndex;
-          headerCommand->function = 0;
+          status->Add(STATUS_WARNING, "Binding %s is defined more than once in %s", name, commandsFile);
         }
+      } else {
+        status->Add(STATUS_WARNING, "Found binding %s with no script in %s", name, commandsFile);
       }
-    }
-
-    KEYCOMMAND *command = m_commands.New(name, 0, 0);
-    LPCSTR      hidden = node->GetAttributeByName("hidden");
-    if (hidden && StringToBOOL(hidden)) {
-      command->index = -++m_numHiddenCommands;
     } else {
-      command->index = m_numCommands++;
+      status->Add(STATUS_WARNING, "Found binding with no name in %s", commandsFile);
     }
-
-    command->function = FrameScript_CompileFunction(script, name);
-    LPCSTR runOnUp = node->GetAttributeByName("runOnUp");
-    command->runOnUp = runOnUp ? StringToBOOL(runOnUp) : 0;
-    node = node->GetSibling();
   }
 
   XMLTree_Free(tree);
@@ -460,34 +520,34 @@ BOOL CGUIBindings::Load(LPCSTR commandsFile, CStatus *status) {
 }
 
 BOOL CGUIBindings::Bind(LPCSTR keystring, LPCSTR command) {
-  if (!keystring || !command) {
-    return 0;
-  }
-  if (*command && !m_commands.Ptr(command)) {
-    return 0;
-  }
-  const KEYCOMMAND *keyCommand = m_commands.Ptr(command);
-  if (keyCommand && keyCommand->runOnUp && !SStrCmpI(keystring, "MOUSEWHEEL", SStrLen("MOUSEWHEEL"))) {
+  if (!keystring) {
     return 0;
   }
 
   KEYBINDING *binding = m_bindings.Ptr(keystring);
-  if (binding) {
-    AdjustCommandKeyIndices(binding->command, binding->index);
-    if (!*command) {
-      m_bindings.Delete(binding);
-      return 1;
-    }
-    FREEIFUSED(binding->command);
-    binding->index = GetNumCommandKeys(command);
-  } else {
-    if (!*command) {
+  if (!binding) {
+    if (!command || !*command) {
       return 1;
     }
     binding = m_bindings.New(keystring, 0, 0);
   }
 
-  binding->command = SStrDupA(command, __FILE__, __LINE__);
+  if (command && *command) {
+    const KEYCOMMAND *keyCommand = m_commands.Ptr(command);
+    if (keyCommand && keyCommand->runOnUp && !SStrCmpI(keystring, "MOUSEWHEEL", SStrLen("MOUSEWHEEL"))) {
+      return 0;
+    }
+    if (binding->command) {
+      AdjustCommandKeyIndices(binding->command, binding->index);
+    }
+    FREEIFUSED(binding->command);
+    UINT index = GetNumCommandKeys(command);
+    binding->command = SStrDupA(command, __FILE__, __LINE__);
+    binding->index = index;
+  } else {
+    AdjustCommandKeyIndices(binding->command, binding->index);
+    m_bindings.Delete(binding);
+  }
   return 1;
 }
 
@@ -537,8 +597,9 @@ void CGUIBindings::GetCommand(int index, LPCSTR &command) const {
 
 void CGUIBindings::GetHiddenCommand(int index, LPCSTR &command) const {
   FATALASSERT(index >= 0 && index < GetNumHiddenCommands());
+  index = -1 - index;
   for (const KEYCOMMAND *entry = m_commands.Head(); (int)entry > 0; entry = m_commands.RawNext(entry)) {
-    if (entry->index == -1 - index) {
+    if (entry->index == index) {
       command = entry->GetString();
       return;
     }
@@ -546,12 +607,14 @@ void CGUIBindings::GetHiddenCommand(int index, LPCSTR &command) const {
 }
 
 LPCSTR CGUIBindings::GetCommandKey(LPCSTR command, int keyindex) const {
+  LPCSTR key = 0;
   for (const KEYBINDING *binding = m_bindings.Head(); (int)binding > 0; binding = m_bindings.RawNext(binding)) {
     if (binding->command && !SStrCmpI(binding->command, command, 0x7FFFFFFF) && binding->index == keyindex) {
-      return binding->GetString();
+      key = binding->GetString();
+      break;
     }
   }
-  return 0;
+  return key;
 }
 
 UINT CGUIBindings::GetNumCommandKeys(LPCSTR command) const {

@@ -35,8 +35,7 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
   HMIPPEDTEXTURE m_selfReference;
 
   void LoadData(LPCSTR fileName) {
-    char    altFileName[0x104];
-    CStatus status;
+    char altFileName[0x104];
 
     m_texture = TextureLoadImage(fileName);
     if (!m_texture) {
@@ -151,10 +150,7 @@ void CACHEOBJECT::PurgeTextureCache() {
   }
 }
 
-CACHEOBJECT::CACHEOBJECT() {
-  m_currentCacheSize = 0;
-  m_cacheMode = CACHEMODE_NONE;
-  m_cacheSize = 0x00100000;
+CACHEOBJECT::CACHEOBJECT() : m_cacheSize(0x00100000), m_currentCacheSize(0), m_cacheMode(CACHEMODE_NONE) {
 }
 
 CACHEOBJECT::~CACHEOBJECT() {
@@ -179,10 +175,12 @@ HMIPPEDTEXTURE CACHEOBJECT::GetTexture(LPCSTR fileName, TEXTUREINFO *info) {
     m_LRUList.LinkNode(object, LIST_HEAD, 0);
     object->m_expireTime = OsGetAsyncTimeMs() + m_cacheTime;
     *info = object->m_textureInfo;
-    return reinterpret_cast<HMIPPEDTEXTURE>(HandleCreate(object, "HMIPPEDTEXTURE"));
+    return CREATEHANDLE(HMIPPEDTEXTURE, object);
   }
 
   object = m_cacheTable.New(fileName, 0, 0);
+
+  CStatus status;
 
   object->LoadData(fileName);
 
@@ -195,7 +193,7 @@ HMIPPEDTEXTURE CACHEOBJECT::GetTexture(LPCSTR fileName, TEXTUREINFO *info) {
   object->m_expireTime = OsGetAsyncTimeMs() + m_cacheTime;
   object->m_size = 0x7FFF;
   m_currentCacheSize += object->m_size;
-  object->m_selfReference = reinterpret_cast<HMIPPEDTEXTURE>(HandleCreate(object, "HMIPPEDTEXTURE"));
+  object->m_selfReference = CREATEHANDLE(HMIPPEDTEXTURE, object);
   ASSERT(object->m_selfReference);
   *info = object->m_textureInfo;
   return reinterpret_cast<HMIPPEDTEXTURE>(HandleDuplicate(object->m_selfReference));
@@ -217,7 +215,7 @@ HTEXTURECACHE TextureCacheCreateSizeCache(UINT cacheSize) {
 
   cacheObject->m_cacheSize = cacheSize;
   cacheObject->m_cacheMode = CACHEMODE_SIZE;
-  return reinterpret_cast<HTEXTURECACHE>(HandleCreate(cacheObject, "HTEXTURECACHE"));
+  return CREATEHANDLE(HTEXTURECACHE, cacheObject);
 }
 
 HTEXTURECACHE TextureCacheCreateInstanceCache(UINT instances) {
@@ -236,7 +234,7 @@ HTEXTURECACHE TextureCacheCreateInstanceCache(UINT instances) {
 
   cacheObject->m_cacheEntries = instances;
   cacheObject->m_cacheMode = CACHEMODE_ENTRIES;
-  return reinterpret_cast<HTEXTURECACHE>(HandleCreate(cacheObject, "HTEXTURECACHE"));
+  return CREATEHANDLE(HTEXTURECACHE, cacheObject);
 }
 
 HTEXTURECACHE TextureCacheCreatTimeCache(UINT milliSeconds) {
@@ -255,17 +253,17 @@ HTEXTURECACHE TextureCacheCreatTimeCache(UINT milliSeconds) {
 
   cacheObject->m_cacheTime = milliSeconds;
   cacheObject->m_cacheMode = CACHEMODE_TIME;
-  return reinterpret_cast<HTEXTURECACHE>(HandleCreate(cacheObject, "HTEXTURECACHE"));
+  return CREATEHANDLE(HTEXTURECACHE, cacheObject);
 }
 
 HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, LPCSTR fileName, TEXTUREINFO *info) {
   CACHEOBJECT *cacheObject = reinterpret_cast<CACHEOBJECT *>(cache);
 
-  FATALASSERT(cache);
-
-  FATALASSERT(fileName);
-
-  FATALASSERT(info);
+  VALIDATEBEGIN;
+  VALIDATE(cache);
+  VALIDATE(fileName);
+  VALIDATE(info);
+  VALIDATEEND;
 
   cacheObject->PurgeTextureCache();
   return cacheObject->GetTexture(fileName, info);
@@ -307,12 +305,12 @@ BOOL TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, BOOL bForce)
 HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, UINT width, UINT height, TEXTUREINFO *textureInfo) {
   CACHEENTRY *newObj;
 
-  ASSERT(!(width & (width - 1)));
-  ASSERT(!(height & (height - 1)));
+  ASSERT(!( width & ( width - 1 ) ));
+  ASSERT(!( height & ( height - 1 ) ));
   ASSERT(format < GxTexFormats_Last);
   ASSERT(textureInfo);
 
-  newObj = new (SMemAlloc(sizeof(CACHEENTRY), "HMIPPEDTEXTURE", SERR_LINECODE_OBJECT, 0)) CACHEENTRY;
+  newObj = NEWHANDLE(HMIPPEDTEXTURE, CACHEENTRY);
   ASSERT(newObj);
 
   newObj->m_texture = TextureAllocImage(format, width, height);
@@ -323,5 +321,5 @@ HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, UINT width, U
   newObj->m_uncached = 1;
   *textureInfo = newObj->m_textureInfo;
 
-  return reinterpret_cast<HMIPPEDTEXTURE>(HandleCreate(newObj, "HMIPPEDTEXTURE"));
+  return CREATEHANDLE(HMIPPEDTEXTURE, newObj);
 }

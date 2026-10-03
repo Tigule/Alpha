@@ -50,6 +50,10 @@
 
 using NTempest::CMath;
 
+inline NTempest::C3Vector CGCamera::Target() const {
+  return m_position + Forward();
+}
+
 static BOOL        DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param);
 void        SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position);
 static HMODEL      InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param);
@@ -96,8 +100,6 @@ GEOCOMPONENTLINKS g_attachmentPoints[12] = {
 
 static HMODEL CreateModel(LPCSTR fileName, CStatus *status) {
   CModelCreate createData;
-  createData.cameraNames = 0;
-  createData.numCameras = 0;
   createData.flags = 0x2006;
   createData.boneNames = s_objNames;
   createData.numBones = 1;
@@ -397,7 +399,7 @@ static void RenderModel(HMODEL model, const NTempest::C3Vector &position, const 
   }
 
   NTempest::C3Vector cameraPos = camera->Position();
-  NTempest::C3Vector cameraTarg = camera->Position() + camera->Forward();
+  NTempest::C3Vector cameraTarg = camera->Target();
   if (!ModelAdvanceTime(model)) {
     return;
   }
@@ -503,7 +505,7 @@ static bool MoveMissile(MISSILENODE *node) {
             break;
         }
       } else {
-        unit->SetVictimAnimation(VS_WOUND, unit->GetHealth() <= 0, 0, 1000, 0);
+        unit->SetVictimAnimation(VS_WOUND, unit->IsDead(), 0, 1000, 0);
         const SpellVisualKitRec *kit = g_spellVisualKitDB.GetRecord(node->victimEffect);
         if (kit) {
           unit->PlayImpactKit(node->spellID, kit);
@@ -514,42 +516,42 @@ static bool MoveMissile(MISSILENODE *node) {
     }
     s_freeMissiles.Put(node);
     return 0;
-  }
-
-  float              ratio = static_cast<float>(elapsed) / static_cast<float>(node->travelTime);
-  NTempest::C3Vector movement = (node->endPosition - node->startPosition) * ratio;
-  node->position.x = node->startPosition.x + movement.x;
-  node->position.y = node->startPosition.y + movement.y;
-
-  NTempest::C3Segment seg(node->position, node->position);
-  seg.start.z += MISSILENODE::HEIGHT_SCAN_RANGE;
-  seg.end.z -= MISSILENODE::HEIGHT_SCAN_RANGE;
-  float             segT = 1.0f;
-  NTempest::C4Plane facet;
-  if (CWorld::GetFacet(seg, segT, facet, 273)) {
-    float ground = seg.start.z + (seg.end.z - seg.start.z) * segT;
-    if (node->pathType == 0) {
-      node->position.z = node->startPosition.z + movement.z;
-      if (node->position.z - ground < MISSILENODE::MIN_HEIGHT) {
-        node->position.z = ground + MISSILENODE::MIN_HEIGHT;
-      }
-    } else if (node->pathType == 1) {
-      node->position.z = ground;
-      node->normal = facet.n;
-    }
   } else {
-    node->position.z = node->startPosition.z + movement.z;
-    node->normal = NTempest::C3Vector(0.0f, 0.0f, 1.0f);
-  }
+    float              ratio = static_cast<float>(elapsed) / static_cast<float>(node->travelTime);
+    NTempest::C3Vector movement = (node->endPosition - node->startPosition) * ratio;
+    node->position.x = node->startPosition.x + movement.x;
+    node->position.y = node->startPosition.y + movement.y;
 
-  node->facing.z = CalculateFacingTo(node->startPosition, node->endPosition);
-  float distance = (node->endPosition - node->startPosition).Mag();
-  if (node->sound) {
-    NTempest::C3Vector vel = node->endPosition - node->position;
-    node->sound->SetPosition(node->position, &vel);
+    NTempest::C3Segment seg(node->position, node->position);
+    seg.start.z += MISSILENODE::HEIGHT_SCAN_RANGE;
+    seg.end.z -= MISSILENODE::HEIGHT_SCAN_RANGE;
+    float             segT = 1.0f;
+    NTempest::C4Plane facet;
+    if (CWorld::GetFacet(seg, segT, facet, 273)) {
+      float ground = seg.start.z + (seg.end.z - seg.start.z) * segT;
+      if (node->pathType == 0) {
+        node->position.z = node->startPosition.z + movement.z;
+        if (node->position.z - ground < MISSILENODE::MIN_HEIGHT) {
+          node->position.z = ground + MISSILENODE::MIN_HEIGHT;
+        }
+      } else if (node->pathType == 1) {
+        node->position.z = ground;
+        node->normal = facet.n;
+      }
+    } else {
+      node->position.z = node->startPosition.z + movement.z;
+      node->normal = NTempest::C3Vector(0.0f, 0.0f, 1.0f);
+    }
+
+    node->facing.z = CalculateFacingTo(node->startPosition, node->endPosition);
+    float distance = (node->endPosition - node->startPosition).Mag();
+    if (node->sound) {
+      NTempest::C3Vector vel = node->endPosition - node->position;
+      node->sound->SetPosition(node->position, &vel);
+    }
+    node->facing.x = -atan2(node->endPosition.z - node->startPosition.z, distance);
+    return 1;
   }
-  node->facing.x = -atan2(node->endPosition.z - node->startPosition.z, distance);
-  return 1;
 }
 
 NODEBASE::~NODEBASE() {

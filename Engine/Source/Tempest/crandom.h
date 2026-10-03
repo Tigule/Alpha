@@ -147,8 +147,9 @@ namespace NTempest {
       return CMath::mulhwu_(sides, uint32_(seed));
     }
     static DWORD dice_(DWORD low, DWORD high, CRndSeed &seed) {
-      ASSERT(low <= high);
-      return low + dice_(high - low + 1, seed);
+      DWORD sides = high - low + 1;
+      ASSERT(sides > 0);
+      return low + dice_(sides, seed);
     }
     static bool coin_(CRndSeed &seed) {
       return static_cast<long>(uint32_(seed)) < 0;

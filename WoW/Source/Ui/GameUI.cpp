@@ -2725,12 +2725,40 @@ int           CGGameUI::m_hasControl;
 CinematicData CGGameUI::m_cinematic;
 char          CGGameUI::s_lastErrorString[512];
 
+LPCSTR g_invTypeTokens[27] = {
+    "",
+    "INVTYPE_HEAD",
+    "INVTYPE_NECK",
+    "INVTYPE_SHOULDER",
+    "INVTYPE_BODY",
+    "INVTYPE_CHEST",
+    "INVTYPE_WAIST",
+    "INVTYPE_LEGS",
+    "INVTYPE_FEET",
+    "INVTYPE_WRIST",
+    "INVTYPE_HAND",
+    "INVTYPE_FINGER",
+    "INVTYPE_TRINKET",
+    "INVTYPE_WEAPON",
+    "INVTYPE_SHIELD",
+    "INVTYPE_RANGED",
+    "INVTYPE_CLOAK",
+    "INVTYPE_2HWEAPON",
+    "INVTYPE_BAG",
+    "INVTYPE_TABARD",
+    "INVTYPE_ROBE",
+    "INVTYPE_WEAPONMAINHAND",
+    "INVTYPE_WEAPONOFFHAND",
+    "INVTYPE_HOLDABLE",
+    "INVTYPE_AMMO",
+    "INVTYPE_THROWN",
+    "INVTYPE_RANGEDRIGHT"
+};
 static LPSTR compasDirStr[8] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
 static LPSTR s_spellMissReasons[10] = {"NONE", "PHYSICAL", "RESIST", "IMMUNE", "EVADED", "DODGED", "PARRIED", "BLOCKED", "TEMPIMMUNE", "DEFLECTED"};
 static LPSTR s_combatEvent[9] = {"MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT"};
 static const float s_distCullValues[3] = {350.0f, 550.0f, 750.0f};
 static const float s_smallCullValues[3] = {0.07f, 0.04f, 0.01f};
-static const float MAX_CAMERA_SHIFT = 50.0f;
 static const float TARGET_NEAREST_MAX_DISTANCE_SQUARED = 400.0f;
 static const float CinematicFadeTime = 0.25f;
 static LPCSTR      s_screenResolutions[4] = {"800x600", "1024x768", "1280x1024", "1600x1200"};
@@ -2817,7 +2845,6 @@ static int Script_GetDebugStats(lua_State *L) {
   char               buffer[1024];
   int                counts[32];
   char               tempBuffer[128];
-  NTempest::C3Vector pos;
   float              dayProgression;
 
   SStrPrintf(buffer, sizeof(buffer), "%02d:%02d", g_clientGameTime.m_hour, g_clientGameTime.m_minute);
@@ -2825,16 +2852,16 @@ static int Script_GetDebugStats(lua_State *L) {
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (player) {
     SStrPack(buffer, "\nPlayer position: ", sizeof(buffer));
-    player->GetPosition(pos);
+    NTempest::C3Vector pos = player->GetPosition();
     SStrPrintf(tempBuffer, sizeof(tempBuffer), "%d, %d, %d\n", static_cast<int>(pos.x), static_cast<int>(pos.y), static_cast<int>(pos.z));
     SStrPack(buffer, tempBuffer, sizeof(buffer));
     SStrPack(buffer, "Player facing: ", sizeof(buffer));
 
-    double facing = fmod(360.0 - player->GetFacing() * 57.29578 + 22.5, 360.0);
-    if (facing < 0.0) {
-      facing += 360.0;
+    float facing = static_cast<float>(fmod(360.0f - player->GetFacing() * 57.29578f + 22.5f, 360.0));
+    if (facing < 0.0f) {
+      facing += 360.0f;
     }
-    int direction = static_cast<int>(facing * 0.022222223);
+    int direction = static_cast<int>(facing * 0.022222223f);
     if (static_cast<UINT>(direction) > 7) {
       direction = direction < 0 ? 0 : 7;
     }
@@ -2940,17 +2967,20 @@ static int Script_SetWorldDetail(lua_State *L) {
   char buf[32];
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: SetWorldDetail(value)");
+    return 0;
   }
 
   int terrainDetail = static_cast<int>(lua_tonumber(L, 1));
-  if (static_cast<UINT>(terrainDetail) > 2) {
-    luaL_error(L, "value must be in the range 0, 2");
+  if (terrainDetail >= 0 && terrainDetail < 3) {
+    SStrPrintf(buf, sizeof(buf), "%f", s_distCullValues[terrainDetail]);
+    CVar *cvar = CVar::Lookup("DistCull");
+    cvar->Set(buf, 1, 0, 0);
+    SStrPrintf(buf, sizeof(buf), "%f", s_smallCullValues[terrainDetail]);
+    cvar = CVar::Lookup("smallCull");
+    cvar->Set(buf, 1, 0, 0);
+    return 0;
   }
-
-  SStrPrintf(buf, sizeof(buf), "%f", s_distCullValues[terrainDetail]);
-  CVar::Lookup("DistCull")->Set(buf, 1, 0, 0);
-  SStrPrintf(buf, sizeof(buf), "%f", s_smallCullValues[terrainDetail]);
-  CVar::Lookup("smallCull")->Set(buf, 1, 0, 0);
+  luaL_error(L, "value must be in the range 0, 2");
   return 0;
 }
 
@@ -3204,18 +3234,20 @@ static int Script_EquipCursorItem(lua_State *L) {
   UINT      cursorItemSlot;
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: EquipCursorItem(slot)");
+    return 0;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player) {
-    CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
-    if (cursorItem) {
-      int slot = static_cast<int>(lua_tonumber(L, 1));
-      if (slot != 0xFF && slot != -1) {
-        player->SwapItems(cursorItem, cursorItemPack, static_cast<int>(cursorItemSlot), player->GetGUID(), slot, 1);
-      } else {
-        player->AutoEquipCursorItem(1);
-      }
+  if (!player) {
+    return 0;
+  }
+  CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
+  if (cursorItem) {
+    int slot = static_cast<int>(lua_tonumber(L, 1));
+    if (slot != 0xFF && slot != -1) {
+      player->SwapItems(cursorItem, cursorItemPack, static_cast<int>(cursorItemSlot), player->GetGUID(), slot, 1);
+    } else {
+      player->AutoEquipCursorItem(1);
     }
   }
   return 0;
@@ -3249,6 +3281,7 @@ static int Script_DeleteCursorItem(lua_State *) {
 static int Script_EquipPendingItem(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: EquipPendingItem(index)");
+    return 0;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
@@ -3260,6 +3293,7 @@ static int Script_EquipPendingItem(lua_State *L) {
 static int Script_CancelPendingEquip(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: CancelPendingEquip(index)");
+    return 0;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
@@ -3269,15 +3303,14 @@ static int Script_CancelPendingEquip(lua_State *L) {
 }
 
 static int Script_TargetUnit(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+    if (ClntObjMgrObjectPtr(guid, __FILE__, __LINE__) || CGPartyInfo::IsMember(guid)) {
+      CGGameUI::Target(guid, 0);
+    }
+  } else {
     luaL_error(L, "Usage: TargetUnit(\"unit\")");
   }
-
-  DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-  if (!ClntObjMgrObjectPtr(guid, __FILE__, __LINE__) && !CGPartyInfo::IsMember(guid)) {
-    return 0;
-  }
-  CGGameUI::Target(guid, 0);
   return 0;
 }
 
@@ -3324,28 +3357,29 @@ static int Script_AttackTarget(lua_State *) {
 }
 
 static int Script_AssistUnit(lua_State *L) {
-  DWORDLONG newTarget = 0;
-  if (!lua_isstring(L, 1)) {
-    luaL_error(L, "Usage: AssistUnit(\"unit\")");
-  }
-  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  if (!unit) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(168));
-    return 0;
-  }
-  if (unit->GetType() & TYPE_PLAYER) {
-    newTarget = static_cast<CGPlayer_C *>(unit)->GetLocalTarget();
-  } else {
-    newTarget = unit->GetTarget();
-  }
-  if (newTarget) {
-    CGGameUI::Target(newTarget, 0);
-    if (s_assistAttackCVar->GetInt()) {
-      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      if (player) {
-        player->SetCombatMode(1);
+  if (lua_isstring(L, 1)) {
+    CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+    if (unit) {
+      DWORDLONG newTarget = 0;
+      if (unit->IsA(ID_PLAYER)) {
+        newTarget = static_cast<CGPlayer_C *>(unit)->GetSelection();
+      } else {
+        newTarget = unit->GetTarget();
       }
+      if (newTarget) {
+        CGGameUI::Target(newTarget, 0);
+        if (s_assistAttackCVar->GetInt()) {
+          CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+          if (player) {
+            player->SetCombatMode(1);
+          }
+        }
+      }
+    } else {
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(168));
     }
+  } else {
+    luaL_error(L, "Usage: AssistUnit(\"unit\")");
   }
   return 0;
 }
@@ -3360,17 +3394,20 @@ static int Script_AssistByName(lua_State *L) {
 }
 
 static int Script_FollowUnit(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
-    luaL_error(L, "Usage: FollowUnit(\"unit\")");
-  }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  CGUnit_C   *target = Script_GetUnitFromName(lua_tostring(L, 1));
-  if (!player || !target) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(168));
-  } else if ((target->GetType() & TYPE_PLAYER) && target->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
-    player->SaveTrackingTarget(target->GetGUID(), TRACKTYPE_FOLLOW, 0);
+  if (lua_isstring(L, 1)) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    CGUnit_C   *target = Script_GetUnitFromName(lua_tostring(L, 1));
+    if (player && target) {
+      if (target->IsA(ID_PLAYER) && target->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
+        player->SaveTrackingTarget(target->GetGUID(), TRACKTYPE_FOLLOW, 0);
+      } else {
+        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(269));
+      }
+    } else {
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(168));
+    }
   } else {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(269));
+    luaL_error(L, "Usage: FollowUnit(\"unit\")");
   }
   return 0;
 }
@@ -3415,12 +3452,11 @@ static int Script_ToggleRun(lua_State *L) {
   DWORD     eventTime = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
-    UINT moveFlags = mover->GetMoveFlags();
-    if ((moveFlags & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
+    if ((mover->GetMoveFlags() & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
       eventTime = mover->GetMoveStartTime();
     }
 
-    if (mover->GetHealth() > 0 && mover->IsClientControlled() && !mover->IsInStandSitTransition() && !(moveFlags & 0x2400)) {
+    if (mover->GetHealth() > 0 && mover->IsClientControlled() && !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & 0x2400)) {
       mover->ToggleRunModeLocal(eventTime);
     }
   }
@@ -3475,85 +3511,92 @@ static int Script_InitiateTrade(lua_State *L) {
 }
 
 static int Script_NotifyInspect(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player) {
+      player->InspectPlayer(Script_GetGUIDFromName(lua_tostring(L, 1)));
+    }
+  } else {
     luaL_error(L, "Usage: NotifyInspect(unit)");
-  }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player) {
-    player->InspectPlayer(Script_GetGUIDFromName(lua_tostring(L, 1)));
   }
   return 0;
 }
 
 static int Script_InviteToParty(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+    if (player && guid) {
+      player->InviteToGroup(guid);
+    }
+  } else {
     luaL_error(L, "Usage: InviteToParty(\"unit\")");
-  }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-  if (player && guid) {
-    player->InviteToGroup(guid);
   }
   return 0;
 }
 
 static int Script_InviteByName(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_GROUP_INVITE);
+    msg.PutString(lua_tostring(L, 1));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: InviteByName(\"name\")");
   }
-  msg.Put(CMSG_GROUP_INVITE);
-  msg.PutString(lua_tostring(L, 1));
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
 static int Script_UninviteFromParty(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+    if (player && guid) {
+      player->Uninvite(guid);
+    }
+  } else {
     luaL_error(L, "Usage: UninviteFromParty(\"unit\")");
-  }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-  if (player && guid) {
-    player->Uninvite(guid);
   }
   return 0;
 }
 
 static int Script_UninviteByName(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_GROUP_UNINVITE);
+    msg.PutString(lua_tostring(L, 1));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: UninviteByName(\"name\")");
   }
-  msg.Put(CMSG_GROUP_UNINVITE);
-  msg.PutString(lua_tostring(L, 1));
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
 static int Script_PromoteToPartyLeader(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+    if (player && guid) {
+      player->SetNewLeader(guid);
+    }
+  } else {
     luaL_error(L, "Usage: PromoteToPartyLeader(\"unit\")");
-  }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-  if (player && guid) {
-    player->SetNewLeader(guid);
   }
   return 0;
 }
 
 static int Script_PromoteByName(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_GROUP_SET_LEADER);
+    msg.PutString(lua_tostring(L, 1));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: PromoteByName(\"name\")");
   }
-  msg.Put(CMSG_GROUP_SET_LEADER);
-  msg.PutString(lua_tostring(L, 1));
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
@@ -3679,10 +3722,14 @@ static int Script_DropCursorMoney(lua_State *) {
 static int Script_PickupPlayerMoney(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: PickupPlayerMoney(amount)");
+    return 0;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  UINT        amount = static_cast<UINT>(lua_tonumber(L, 1));
-  if (player && amount && amount <= player->GetMoney()) {
+  if (!player) {
+    return 0;
+  }
+  UINT amount = static_cast<UINT>(lua_tonumber(L, 1));
+  if (amount > 0 && amount <= player->GetMoney()) {
     CGGameUI::SetCursorMoney(amount);
   }
   return 0;
@@ -3714,26 +3761,28 @@ static int Script_UseSoulstone(lua_State *L) {
 }
 
 static int Script_JoinChannelByName(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_JOIN_CHANNEL);
+    msg.PutString(lua_tostring(L, 1));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: JoinChannelByName(\"name\")");
   }
-  msg.Put(CMSG_JOIN_CHANNEL);
-  msg.PutString(lua_tostring(L, 1));
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
 static int Script_LeaveChannelByName(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_LEAVE_CHANNEL);
+    msg.PutString(lua_tostring(L, 1));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: LeaveChannelByName(\"name\")");
   }
-  msg.Put(CMSG_LEAVE_CHANNEL);
-  msg.PutString(lua_tostring(L, 1));
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
@@ -3752,66 +3801,71 @@ static int Script_GuildInviteByName(lua_State *L) {
 }
 
 static int Script_GuildUninviteByName(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_GUILD_REMOVE);
+    msg.PutString(lua_tostring(L, 1));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: GuildUninviteByName(\"name\")");
   }
-  msg.Put(CMSG_GUILD_REMOVE);
-  msg.PutString(lua_tostring(L, 1));
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
 static int Script_GuildPromoteByName(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_GUILD_PROMOTE);
+    msg.PutString(lua_tostring(L, 1));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: GuildPromoteByName(\"name\")");
   }
-  msg.Put(CMSG_GUILD_PROMOTE);
-  msg.PutString(lua_tostring(L, 1));
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
 static int Script_GuildDemoteByName(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_GUILD_DEMOTE);
+    msg.PutString(lua_tostring(L, 1));
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: GuildDemoteByName(\"name\")");
   }
-  msg.Put(CMSG_GUILD_DEMOTE);
-  msg.PutString(lua_tostring(L, 1));
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
 static int Script_GuildSetLeaderByName(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_GUILD_LEADER);
+    if (*lua_tostring(L, 1) && SStrCmpI(lua_tostring(L, 1), "target", INT_MAX)) {
+      msg.PutString(lua_tostring(L, 1));
+    }
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: GuildSetLeaderByName(\"name\")");
   }
-  msg.Put(CMSG_GUILD_LEADER);
-  if (*lua_tostring(L, 1) && SStrCmpI(lua_tostring(L, 1), "target", INT_MAX)) {
-    msg.PutString(lua_tostring(L, 1));
-  }
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
 static int Script_GuildSetMOTD(lua_State *L) {
-  CDataStore msg;
-  if (!lua_isstring(L, 1)) {
+  if (lua_isstring(L, 1)) {
+    CDataStore msg;
+    msg.Put(CMSG_GUILD_MOTD);
+    if (*lua_tostring(L, 1)) {
+      msg.PutString(lua_tostring(L, 1));
+    }
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  } else {
     luaL_error(L, "Usage: GuildSetMOTD(\"message\")");
   }
-  msg.Put(CMSG_GUILD_MOTD);
-  if (*lua_tostring(L, 1)) {
-    msg.PutString(lua_tostring(L, 1));
-  }
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 0;
 }
 
@@ -3871,8 +3925,14 @@ static int Script_PVPPort(lua_State *L) {
 
 static int Script_GetDamageBonusStat(lua_State *L) {
   CGPlayer_C          *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const ChrClassesRec *rec = player ? g_chrClassesDB.GetRecord(player->GetClass()) : 0;
-  lua_pushnumber(L, rec ? rec->m_DamageBonusStat + 1.0 : 0.0);
+  if (player) {
+    const ChrClassesRec *rec = g_chrClassesDB.GetRecord(player->GetClass());
+    if (rec) {
+      lua_pushnumber(L, rec->m_DamageBonusStat + 1);
+      return 1;
+    }
+  }
+  lua_pushnumber(L, 0.0);
   return 1;
 }
 
@@ -3891,43 +3951,43 @@ static int Script_GetBindZone(lua_State *L) {
 
 static int Script_SplitMoney(lua_State *L) {
   int coins[3];
-  if (!lua_isstring(L, 1)) {
-    luaL_error(L, "Usage: SplitMoney(\"gold silver copper\")");
-  }
-  LPCSTR text = lua_tostring(L, 1);
-  int count;
-  for (count = 2; count >= 0; --count) {
-    if (!*text || !isdigit(*text)) {
-      break;
-    }
-    coins[count] = SStrToInt(text);
-    if (count > 0) {
-      while (*text && isdigit(*text)) {
-        ++text;
+  if (lua_isstring(L, 1)) {
+    LPCSTR text = lua_tostring(L, 1);
+    int    count;
+    for (count = 2; count >= 0; --count) {
+      if (!*text || !isdigit(*text)) {
+        break;
       }
-      while (*text && isspace(*text)) {
-        ++text;
+      coins[count] = SStrToInt(text);
+      if (count > 0) {
+        while (*text && isdigit(*text)) {
+          ++text;
+        }
+        while (*text && isspace(*text)) {
+          ++text;
+        }
       }
     }
-  }
-  if (count >= 0) {
-    int i;
-    for (i = 0; i < 2 - count; ++i) {
-      coins[i] = coins[i + count + 1];
+    if (count >= 0) {
+      int i;
+      for (i = 0; i < 2 - count; ++i) {
+        coins[i] = coins[i + count + 1];
+      }
+      for (; i < 3; ++i) {
+        coins[i] = 0;
+      }
     }
-    for (; i < 3; ++i) {
-      coins[i] = 0;
+    UINT money = CurrencyTotal(coins);
+    if (money > 0) {
+      CDataStore msg;
+      msg.Put(MSG_SPLIT_MONEY);
+      msg.Put(static_cast<int>(money));
+      msg.Finalize();
+      ClientServices_Send(&msg);
+      return 0;
     }
   }
-  int money = CurrencyTotal(coins);
-  if (!money) {
-    luaL_error(L, "Usage: SplitMoney(\"gold silver copper\")");
-  }
-  CDataStore msg;
-  msg.Put(MSG_SPLIT_MONEY);
-  msg.Put(money);
-  msg.Finalize();
-  ClientServices_Send(&msg);
+  luaL_error(L, "Usage: SplitMoney(\"gold silver copper\")");
   return 0;
 }
 
@@ -3946,12 +4006,10 @@ static int Script_GetBuildVersion(lua_State *L) {
 }
 
 static int Script_GetCurrentPosition(lua_State *L) {
-  char               buf[256];
-  NTempest::C3Vector pos;
-  CGPlayer_C        *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  buf[0] = 0;
+  char        buf[256] = "";
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->GetPosition(pos);
+    NTempest::C3Vector pos = player->GetPosition();
     SStrPrintf(buf, sizeof(buf), "%.2f, %.2f, %.2f", pos.x, pos.y, pos.z);
   }
   lua_pushstring(L, buf);
@@ -3981,7 +4039,11 @@ static int Script_GetNetStats(lua_State *L) {
 static int Script_SitOrStand(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->ChangeStandState(player->GetStandState() ? 0 : 1);
+    if (player->GetStandState() == UNIT_STANDING) {
+      player->ChangeStandState(UNIT_SITTING);
+    } else {
+      player->ChangeStandState(UNIT_STANDING);
+    }
   }
   return 0;
 }
@@ -4002,30 +4064,21 @@ static int Script_RunScript(lua_State *L) {
 }
 
 static int Script_CheckInteractDistance(lua_State *L) {
-  static float s_interactDistances[3] = {MAX_INSPECT_DISTANCE_SQUARED, MAX_TRADE_DISTANCE_SQUARED, MAX_DUEL_DISTANCE_SQUARED};
+  if (lua_isstring(L, 1) && lua_isnumber(L, 2)) {
+    static const float s_interactDistances[3] = {MAX_INSPECT_DISTANCE_SQUARED, MAX_TRADE_DISTANCE_SQUARED, MAX_DUEL_DISTANCE_SQUARED};
 
-  CGUnit_C *unit;
-  if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: CheckInteractDistance(\"unit\", distIndex)");
-  }
-  unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  UINT        index = static_cast<int>(lua_tonumber(L, 2)) - 1;
-  int         inRange = 0;
-  if (player && unit && index < 3) {
-    NTempest::C3Vector unitPos;
-    NTempest::C3Vector playerPos;
-    unit->GetPosition(unitPos);
-    player->GetPosition(playerPos);
-    NTempest::C3Vector delta = unitPos - playerPos;
-    inRange = delta.SquaredMag() <= s_interactDistances[index];
-  }
-  if (inRange) {
-    lua_pushnumber(L, 1.0);
-  } else {
+    const CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+    CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    UINT            index = static_cast<int>(lua_tonumber(L, 2)) - 1;
+    if (player && unit && index < 3 && (player->GetPosition() - unit->GetPosition()).SquaredMag() < s_interactDistances[index]) {
+      lua_pushnumber(L, 1.0);
+      return 1;
+    }
     lua_pushnil(L);
+    return 1;
   }
-  return 1;
+  luaL_error(L, "Usage: CheckInteractDistance(\"unit\", distIndex)");
+  return 0;
 }
 
 static int Script_GetScreenResolutions(lua_State *L) {
@@ -4037,27 +4090,26 @@ static int Script_GetScreenResolutions(lua_State *L) {
 
 static int Script_GetCurrentResolution(lua_State *L) {
   CVar *cvar = CVar::Lookup("gxResolution");
-  int   index = 0;
   if (cvar) {
-    while (index < 4 && SStrCmpI(cvar->GetString(), s_screenResolutions[index], INT_MAX)) {
-      ++index;
-    }
-    if (index == 4) {
-      index = 0;
+    LPCSTR resolution = cvar->GetString();
+    for (UINT i = 0; i < 4; ++i) {
+      if (!SStrCmpI(resolution, s_screenResolutions[i], INT_MAX)) {
+        lua_pushnumber(L, i + 1);
+        return 1;
+      }
     }
   }
-  lua_pushnumber(L, index + 1);
+  lua_pushnumber(L, 1.0);
   return 1;
 }
 
 static int Script_SetScreenResolution(lua_State *L) {
   int index = 0;
   if (lua_isnumber(L, 1)) {
-    int candidate = static_cast<int>(lua_tonumber(L, 1)) - 1;
-    index = static_cast<UINT>(candidate) <= 4 ? candidate : 4;
+    index = static_cast<UINT>(lua_tonumber(L, 1)) - 1 > 4 ? 4 : static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   }
   CVar *cvar = CVar::Lookup("gxResolution");
-  if (cvar && SStrCmp(cvar->GetString(), s_screenResolutions[index], INT_MAX)) {
+  if (cvar && SStrCmpI(cvar->GetString(), s_screenResolutions[index], INT_MAX)) {
     cvar->Set(s_screenResolutions[index], 1, 0, 0);
     ConsoleCommandExecute("gxRestart", 1);
   }
@@ -4070,18 +4122,22 @@ static int Script_Stuck(lua_State *L) {
 }
 
 static int Script_RandomRoll(lua_State *L) {
-  if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
+  if (lua_isstring(L, 1) && lua_isstring(L, 2)) {
+    int min = SStrToInt(lua_tostring(L, 1));
+    int max = SStrToInt(lua_tostring(L, 2));
+    if (!min && !max) {
+      return 0;
+    }
+    if (min >= 0 && max >= min) {
+      CDataStore msg;
+      msg.Put(MSG_RANDOM_ROLL);
+      msg.Put(min);
+      msg.Put(max);
+      msg.Finalize();
+      ClientServices_Send(&msg);
+    }
+  } else {
     luaL_error(L, "Usage: RandomRoll(\"max\") or RandomRoll(\"min\", \"max\")");
-  }
-  int min = SStrToInt(lua_tostring(L, 1));
-  int max = SStrToInt(lua_tostring(L, 2));
-  if ((min || max) && min >= 0 && max >= min) {
-    CDataStore msg;
-    msg.Put(MSG_RANDOM_ROLL);
-    msg.Put(min);
-    msg.Put(max);
-    msg.Finalize();
-    ClientServices_Send(&msg);
   }
   return 0;
 }
@@ -4482,10 +4538,10 @@ void CGGameUI::BeginCinematicInternal(LPVOID) {
   }
 }
 
-static BYTE GetCinematicStartingCameraPosition(LPCSTR modelFile, NTempest::C3Vector &origin, float facing, NTempest::C3Vector &position) {
+static bool GetCinematicStartingCameraPosition(LPCSTR modelFile, NTempest::C3Vector &origin, float facing, NTempest::C3Vector &position) {
   CStatus status;
-  HMODEL  model = ModelCreate(modelFile, 0, &status);
-  if (!model) {
+  HMODEL  m_model = ModelCreate(modelFile, 0, &status);
+  if (!m_model) {
     return 0;
   }
 
@@ -4494,17 +4550,19 @@ static BYTE GetCinematicStartingCameraPosition(LPCSTR modelFile, NTempest::C3Vec
   m_modelMatrix.Rotate(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
 
   AsyncFileReadWaitAll();
-  FATALASSERT(ModelIsLoaded(model, 1));
+  FATALASSERT(ModelIsLoaded(m_model, 1));
 
-  HCAMERA camera = ModelGetCamera(model, 0);
-  ModelAnimateCameras(model, m_modelMatrix);
+  HCAMERA camera = ModelGetCamera(m_model, 0);
+  ModelAnimateCameras(m_model, m_modelMatrix);
   DataMgrGetCoord(reinterpret_cast<HDATAMGR>(camera), 7, &position);
   HandleClose(reinterpret_cast<HOBJECT>(camera));
-  HandleClose(reinterpret_cast<HOBJECT>(model));
+  HandleClose(reinterpret_cast<HOBJECT>(m_model));
   return 1;
 }
 
 BOOL CGGameUI::StartCinematicCamera() {
+  static const float MAX_CAMERA_SHIFT = 50.0f;
+
   CGCamera *camera = CGWorldFrame::GetActiveCamera();
   FATALASSERT(camera);
 
@@ -4514,8 +4572,8 @@ BOOL CGGameUI::StartCinematicCamera() {
   }
 
   LPCSTR             cameraModel = cinematicCamera->m_model;
-  float              cameraFacing = cinematicCamera->m_originFacing;
   NTempest::C3Vector cameraOrigin(cinematicCamera->m_originX, cinematicCamera->m_originY, cinematicCamera->m_originZ);
+  float              cameraFacing = cinematicCamera->m_originFacing;
   NTempest::C3Vector initialPosition(0.0f);
   if (GetCinematicStartingCameraPosition(cameraModel, cameraOrigin, cameraFacing, initialPosition) &&
       (camera->Position() - initialPosition).SquaredMag() > MAX_CAMERA_SHIFT * MAX_CAMERA_SHIFT)
@@ -4561,18 +4619,20 @@ void CGGameUI::NextCinematicInternal(LPVOID) {
 }
 
 BOOL CGGameUI::StopCinematic(LPVOID) {
-  Sound::KillSound(m_cinematic.sequenceMusic);
+  Sound::KillSound(m_cinematic.cameraMusic);
   EnableFadingScreen(CinematicFadeTime, StopCinematicInternal, 0);
   return 1;
 }
 
 void CGGameUI::StopCinematicInternal(LPVOID) {
+  static const float MAX_CAMERA_SHIFT = 50.0f;
+
   CGCamera *camera = CGWorldFrame::GetActiveCamera();
   FATALASSERT(camera);
 
   FrameScript_SignalEvent(354);
   CGObject_C *target = ClntObjMgrObjectPtr(camera->GetTarget(), __FILE__, __LINE__);
-  if (target && MAX_CAMERA_SHIFT * MAX_CAMERA_SHIFT < (camera->Position() - target->GetPosition()).SquaredMag()) {
+  if (target && (camera->Position() - target->GetPosition()).SquaredMag() > MAX_CAMERA_SHIFT * MAX_CAMERA_SHIFT) {
     CWorld::Preload(target->GetPosition());
   }
 
@@ -4602,7 +4662,7 @@ void CGGameUI::CloseLoot(bool send, bool moving) {
   DWORDLONG object = CGLootInfo::m_object;
   if (object) {
     CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
-    if (!moving || !objectPtr || !(objectPtr->GetType() & TYPE_ITEM)) {
+    if (!moving || !objectPtr || !objectPtr->IsA(ID_ITEM)) {
       if (send) {
         CDataStore lootRelease;
         lootRelease.Put(CMSG_LOOT_RELEASE);
@@ -4706,8 +4766,6 @@ void CGGameUI::InitializeGame() {
 }
 
 void CGGameUI::Initialize() {
-  CSizeEvent evt;
-
   s_statusBarCVar = CVar::Register("statusBarText", 0, 0, "0", 0, DEFAULT, false, 0);
   s_assistAttackCVar = CVar::Register("assistAttack", 0, 0, "0", 0, DEFAULT, false, 0);
   s_minimapZoomCVar = CVar::Register("minimapZoom", 0, 0, "3", 0, DEFAULT, false, 0);
@@ -4743,6 +4801,7 @@ void CGGameUI::Initialize() {
   FATALASSERT(m_gameTooltip);
 
   m_screenWidth = 0;
+  CSizeEvent evt;
   evt.SetId(8);
   evt.w = static_cast<int>(screenRect.r - screenRect.l);
   evt.h = static_cast<int>(screenRect.b - screenRect.t);
@@ -4892,18 +4951,6 @@ void CGGameUI::Reload() {
   m_reloadUI = true;
 }
 
-BOOL CGGameUI::IsPartyMember(const DWORDLONG &guid) {
-  return CGPartyInfo::IsMember(guid);
-}
-
-void CGGameUI::EnablePartyMember(DWORDLONG guid, int enable) {
-  CGPartyInfo::EnableMember(guid, enable);
-}
-
-DWORDLONG CGGameUI::GetPartyMember(UINT index) {
-  return CGPartyInfo::GetMember(index);
-}
-
 void CGGameUI::SetPartyLeader(DWORDLONG guid) {
   CGPartyInfo::SetLeader(guid);
 }
@@ -4924,6 +4971,18 @@ void CGGameUI::RemoveAllPartyMembers() {
     }
   }
   CGPartyInfo::RemoveAll();
+}
+
+void CGGameUI::EnablePartyMember(DWORDLONG guid, int enable) {
+  CGPartyInfo::EnableMember(guid, enable);
+}
+
+BOOL CGGameUI::IsPartyMember(const DWORDLONG &guid) {
+  return CGPartyInfo::IsMember(guid);
+}
+
+DWORDLONG CGGameUI::GetPartyMember(UINT index) {
+  return CGPartyInfo::GetMember(index);
 }
 
 void CGGameUI::SetLootMethod(LOOT_METHOD method, DWORDLONG master) {
@@ -4969,7 +5028,7 @@ void CGGameUI::OnItemPush(DWORDLONG player, int slot, int itemID, int pushed, in
     return;
   }
 
-  LPCSTR colorString = stats->m_overallQualityID < 3 ? "" : CGTooltip::GetItemQualityColorString(stats->m_overallQualityID);
+  LPCSTR colorString = stats->m_overallQualityID >= 3 ? CGTooltip::GetItemQualityColorString(stats->m_overallQualityID) : "";
   LPCSTR colorEnd = *colorString ? "|r" : "";
   LPCSTR temp;
   char   buffer[MAX_PATH];
@@ -4999,7 +5058,10 @@ void CGGameUI::OnItemPush(DWORDLONG player, int slot, int itemID, int pushed, in
 
 int CGGameUI::OnTerrainClick(const CTerrainClickEvent &evt) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || evt.button != MOUSE_BUTTON_LEFT) {
+  if (!player) {
+    return 0;
+  }
+  if (evt.button != MOUSE_BUTTON_LEFT) {
     return 0;
   }
 
@@ -5007,20 +5069,6 @@ int CGGameUI::OnTerrainClick(const CTerrainClickEvent &evt) {
     return 1;
   }
   return player->OnTerrainClick(evt);
-}
-
-DWORDLONG CGGameUI::GetCursorItem() {
-  if (m_cursorItemType == UICURSOR_ITEM) {
-    return m_cursorItem;
-  }
-
-  return 0;
-}
-
-void CGGameUI::GetCursorItem(DWORDLONG &cursorItem, DWORDLONG &containerGUID, UINT &slot) {
-  cursorItem = m_cursorItem;
-  containerGUID = m_cursorItemContainer;
-  slot = m_cursorItemSlot;
 }
 
 BOOL CGGameUI::OnSpriteLeftClick(DWORDLONG object, float x, float y) {
@@ -5044,26 +5092,24 @@ BOOL CGGameUI::OnSpriteLeftClick(DWORDLONG object, float x, float y) {
   }
   objectPtr->OnLeftClick();
 
-  if ((objectPtr->GetType() & TYPE_PLAYER) && m_cursorItem && m_cursorItemContainer) {
+  if (objectPtr->IsA(ID_PLAYER) && m_cursorItem && m_cursorItemContainer) {
     Trade_C_InitiateTrade(object, 1);
   }
   return 1;
 }
 
 BOOL CGGameUI::OnSpriteRightClick(DWORDLONG object, float x, float y) {
-  if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
-    return 1;
-  }
+  if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
+    CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
+    if (!objectPtr) {
+      return 0;
+    }
 
-  CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
-  if (!objectPtr) {
-    return 1;
+    if (objectPtr->CanBeTargetted()) {
+      Target(object, 0);
+    }
+    objectPtr->OnRightClick();
   }
-
-  if (objectPtr->CanBeTargetted()) {
-    Target(object, 0);
-  }
-  objectPtr->OnRightClick();
   return 1;
 }
 
@@ -5088,11 +5134,13 @@ void CGGameUI::HandleObjectTrackChange(DWORDLONG object, DWORDLONG oldGUID, floa
     return;
   }
 
-  DWORDLONG untrack = oldGUID ? oldGUID : m_currentObjectTrack;
-  if (untrack) {
+  if (!oldGUID) {
+    oldGUID = m_currentObjectTrack;
+  }
+  if (oldGUID) {
     player->SetLocalTarget(0);
     m_currentObjectTrack = 0;
-    CGObject_C *oldObject = ClntObjMgrObjectPtr(untrack, __FILE__, __LINE__);
+    CGObject_C *oldObject = ClntObjMgrObjectPtr(oldGUID, __FILE__, __LINE__);
     m_gameTooltip->FadeOut();
     if (oldObject) {
       oldObject->HideHighlightType(HT_MOUSEOVER);
@@ -5111,13 +5159,13 @@ void CGGameUI::HandleObjectTrackChange(DWORDLONG object, DWORDLONG oldGUID, floa
     case HIER_TYPE_PLAYER: {
       player->SetLocalTarget(object);
       FrameScript_SignalEvent(314);
-      UNIT_REACTION reaction = static_cast<CGUnit_C *>(trackedObject)->UnitReaction(player);
-      if (reaction <= UNIT_REACTION_HOSTILE) {
+      if (static_cast<CGUnit_C *>(trackedObject)->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
         SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTHOSTILEUNIT");
-      } else if (reaction >= UNIT_REACTION_AMIABLE) {
+        return;
+      }
+      if (static_cast<CGUnit_C *>(trackedObject)->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
         SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTFRIENDLYUNIT");
-      } else {
-        SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTNEUTRALUNIT");
+        return;
       }
       break;
     }
@@ -5125,35 +5173,55 @@ void CGGameUI::HandleObjectTrackChange(DWORDLONG object, DWORDLONG oldGUID, floa
     case HIER_TYPE_ITEM:
       m_gameTooltip->SetOwner(m_UISimpleParent, TOOLTIP_ANCHOR_FIXED, 0.0f);
       m_gameTooltip->SetItem(trackedObject->GetEntryID(), ClntObjMgrGetActivePlayer(), trackedObject->GetGUID(), 0, 0, 0);
-      SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTNEUTRALUNIT");
       break;
 
     case HIER_TYPE_GAMEOBJECT:
-      m_gameTooltip->SetOwner(
-          m_UISimpleParent, static_cast<TOOLTIP_ANCHORPOINT>(trackedObject->FloatingTooltip() ? TOOLTIP_ANCHOR_CURSOR : TOOLTIP_ANCHOR_FIXED), 0.0f
-      );
+      if (trackedObject->FloatingTooltip()) {
+        m_gameTooltip->SetOwner(m_UISimpleParent, TOOLTIP_ANCHOR_CURSOR, 0.0f);
+      } else {
+        m_gameTooltip->SetOwner(m_UISimpleParent, TOOLTIP_ANCHOR_FIXED, 0.0f);
+      }
       m_gameTooltip->SetObject(object);
-      SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTNEUTRALUNIT");
       break;
 
     case HIER_TYPE_CORPSE:
       m_gameTooltip->SetOwner(m_UISimpleParent, TOOLTIP_ANCHOR_FIXED, 0.0f);
       m_gameTooltip->SetCorpse(object);
-      SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTNEUTRALUNIT");
       break;
 
     default:
-      break;
+      return;
   }
+  SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTNEUTRALUNIT");
 }
 
 BOOL CGGameUI::FilterMouseDown(const CMouseEvent &evt) {
   if (evt.button == MOUSE_BUTTON_RIGHT &&
-      (m_cursorItem || m_cursorMoney || m_cursorSpell || m_cursorPetAction > 0 || m_cursorVirtualID || Spell_C_IsTargeting()))
+      (m_cursorItem || m_cursorVirtualID || m_cursorMoney || m_cursorSpell > 0 || m_cursorPetAction || CGPlayer_C::IsGiftWrapping()))
   {
     ClearCursor(1);
     return 1;
   }
+  return 0;
+}
+
+BOOL CGGameUI::HandleMouseDown(const CMouseEvent &evt) {
+  if (evt.button == MOUSE_BUTTON_RIGHT) {
+    if (Spell_C_IsTargeting()) {
+      if (Spell_C_WorldObjectHousing()) {
+        Spell_C_WorldObjectRotate();
+      } else {
+        Spell_C_StopTargeting();
+      }
+    }
+    if (CGPlayer_C::IsGiftWrapping()) {
+      ClearCursor(1);
+    }
+  }
+  return 0;
+}
+
+BOOL CGGameUI::HandleMouseUp(const CMouseEvent &evt) {
   return 0;
 }
 
@@ -5236,13 +5304,13 @@ void CGGameUI::SetInteractTarget(const DWORDLONG &target, float maxDist) {
     m_interactTarget = target;
     m_interactMaxDist = maxDist;
 
-    if (target) {
-      CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
+    if (m_interactTarget) {
+      CGObject_C *object = ClntObjMgrObjectPtr(m_interactTarget, __FILE__, __LINE__);
       if (object) {
-        if (object->GetType() & TYPE_UNIT) {
+        if (object->IsA(ID_UNIT)) {
           static_cast<CGUnit_C *>(object)->OnNPCHello();
         }
-        if (object->GetType() & TYPE_GAMEOBJECT) {
+        if (object->IsA(ID_GAMEOBJECT)) {
           static_cast<CGGameObject_C *>(object)->StartInteraction();
         }
       }
@@ -5257,15 +5325,17 @@ void CGGameUI::ClearInteractTarget(const DWORDLONG &target) {
 }
 
 void CGGameUI::UpdateInteractTarget() {
-  if (m_interactTarget && m_interactMaxDist > 0.0f) {
-    CGObject_C *target = ClntObjMgrObjectPtr(m_interactTarget, __FILE__, __LINE__);
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    if (!target || target->IsDisabled() || !player) {
+  if (!m_interactTarget || m_interactMaxDist <= 0.0f) {
+    return;
+  }
+
+  CGObject_C *target = ClntObjMgrObjectPtr(m_interactTarget, __FILE__, __LINE__);
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!target || target->IsDisabled() || !player) {
+    CloseInteraction();
+  } else if (!target->IsA(ID_ITEM)) {
+    if ((player->CGUnit::GetPosition() - target->GetPosition()).SquaredMag() > m_interactMaxDist) {
       CloseInteraction();
-    } else if (!(target->GetType() & TYPE_ITEM)) {
-      if ((target->GetPosition() - player->GetPosition()).SquaredMag() > m_interactMaxDist * m_interactMaxDist) {
-        CloseInteraction();
-      }
     }
   }
 }
@@ -5283,32 +5353,32 @@ void CGGameUI::CloseInteraction() {
   DWORDLONG target = m_interactTarget;
   if (target) {
     m_interactTarget = 0;
-    if (target == CGQuestInfo::GetQuestGiver()) {
+    if (CGQuestInfo::GetQuestGiver() == target) {
       CGQuestInfo::QuestGiverFinished();
-    } else if (target == CGItemText::GetItem()) {
+    } else if (CGItemText::GetItem() == target) {
       CGItemText::SetItem(0, 0);
-    } else if (target == CGTaxiMap::GetTaxiVendor()) {
+    } else if (CGTaxiMap::GetTaxiVendor() == target) {
       CGTaxiMap::CloseMap();
-    } else if (target == CGClassTrainer::GetTrainer()) {
+    } else if (CGClassTrainer::GetTrainer() == target) {
       CGClassTrainer::SetTrainer(0, TRAINER_TYPE_GENERAL);
-    } else if (target == CGMerchantInfo::GetMerchant()) {
+    } else if (CGMerchantInfo::GetMerchant() == target) {
       CGMerchantInfo::CloseMerchant();
-    } else if (target == CGTradeInfo::GetTradePartner()) {
+    } else if (CGTradeInfo::GetTradePartner() == target) {
       CGTradeInfo::SetTradePartner(0);
-    } else if (target == CGBankInfo::m_unit) {
+    } else if (CGBankInfo::m_unit == target) {
       CGBankInfo::CloseBank();
-    } else if (target == CGTabardCreationFrame::GetVendor()) {
+    } else if (CGTabardCreationFrame::GetVendor() == target) {
       CGTabardCreationFrame::Close();
-    } else if (target == CGGuildRegistrar::GetRegistrar()) {
+    } else if (CGGuildRegistrar::GetRegistrar() == target) {
       CGGuildRegistrar::CloseRegistrar();
     }
 
     CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
     if (object) {
-      if (object->GetType() & TYPE_UNIT) {
+      if (object->IsA(ID_UNIT)) {
         static_cast<CGUnit_C *>(object)->OnNPCGoodbye();
       }
-      if (object->GetType() & TYPE_GAMEOBJECT) {
+      if (object->IsA(ID_GAMEOBJECT)) {
         static_cast<CGGameObject_C *>(object)->CloseInteraction();
       }
     }
@@ -5328,11 +5398,10 @@ void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
   }
 
   bool enterCombatMode = false;
-  if (player && player->IsInCombatMode() && (oldTarget->GetType() & TYPE_UNIT)) {
-    CGUnit_C *oldUnit = static_cast<CGUnit_C *>(oldTarget);
-    if (player->GetHealth() > 0 && !player->IsMounted() && oldUnit->GetHealth() > 0) {
-      enterCombatMode = player->CanAttack(oldUnit) != 0;
-    }
+  if (player && player->IsInCombatMode() && oldTarget->IsA(ID_UNIT) && player->GetHealth() > 0 && !player->IsMounted() &&
+      static_cast<CGUnit_C *>(oldTarget)->GetHealth() > 0 && player->CanAttack(static_cast<CGUnit_C *>(oldTarget)))
+  {
+    enterCombatMode = true;
   }
 
   ClearTarget(m_lockedTarget, 0);
@@ -5343,52 +5412,47 @@ void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
   msg.Finalize();
   ClientServices_Send(&msg);
 
-  if (!target) {
-    return;
-  }
+  if (target) {
+    m_lockedTarget = target;
+    CGObject_C *object = ClntObjMgrObjectPtr(m_lockedTarget, __FILE__, __LINE__);
+    if (object) {
+      object->ShowHighlightType(HT_OBJSELECTION);
+      object->UpdatePlayerName();
 
-  m_lockedTarget = target;
-  CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
-  if (!object) {
-    SndInterfacePlayInterfaceSound("igCharacterSelect");
-  } else {
-    object->ShowHighlightType(HT_OBJSELECTION);
-    object->UpdatePlayerName();
+      if (object->IsA(ID_UNIT)) {
+        CGUnit_C *unit = static_cast<CGUnit_C *>(object);
+        unit->RegisterScript();
 
-    if (object->GetType() & TYPE_UNIT) {
-      CGUnit_C *unit = static_cast<CGUnit_C *>(object);
-      unit->RegisterScript();
+        if (player && player->GetHealth() > 0 && !player->IsMounted() && unit->GetHealth() > 0 && player->CanAttack(unit)) {
+          m_lastEnemyTarget = target;
+        }
 
-      if (player && player->GetHealth() > 0 && !player->IsMounted() && unit->GetHealth() > 0 &&
-          player->CanAttack(unit))
-      {
-        m_lastEnemyTarget = target;
+        CGTutorial::TriggerTutorial(TUTORIAL_TARGETING);
+        if (player->CanCooperate(unit)) {
+          CGTutorial::TriggerTutorial(TUTORIAL_GROUPING);
+        }
+        if (player->CanAttack(unit)) {
+          CGTutorial::TriggerTutorial(TUTORIAL_TARGETING_ENEMY);
+        }
+
+        if (unit->IsNPC()) {
+          SndInterfacePlayInterfaceSound("igCharacterNPCSelect");
+        } else if (object->IsA(ID_PLAYER)) {
+          SndInterfacePlayInterfaceSound("igCharacterSelect");
+        } else if (unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
+          SndInterfacePlayInterfaceSound("igCreatureAggroSelect");
+        } else {
+          SndInterfacePlayInterfaceSound("igCreatureNeutralSelect");
+        }
       }
-
-      CGTutorial::TriggerTutorial(TUTORIAL_TARGETING);
-      if (player->CanCooperate(unit)) {
-        CGTutorial::TriggerTutorial(TUTORIAL_GROUPING);
-      }
-      if (player->CanAttack(unit)) {
-        CGTutorial::TriggerTutorial(TUTORIAL_TARGETING_ENEMY);
-      }
-
-      if (unit->GetUnitNPCFlags()) {
-        SndInterfacePlayInterfaceSound("igCharacterNPCSelect");
-      } else if (object->GetType() & TYPE_PLAYER) {
-        SndInterfacePlayInterfaceSound("igCharacterSelect");
-      } else if (unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
-        SndInterfacePlayInterfaceSound("igCreatureAggroSelect");
-      } else {
-        SndInterfacePlayInterfaceSound("igCreatureNeutralSelect");
-      }
+    } else {
+      SndInterfacePlayInterfaceSound("igCharacterSelect");
     }
 
-  }
-
-  FrameScript_SignalEvent(191);
-  if (enterCombatMode && m_lockedTarget != player->GetGUID()) {
-    player->SetCombatMode(1);
+    FrameScript_SignalEvent(191);
+    if (enterCombatMode && m_lockedTarget != player->GetGUID()) {
+      player->SetCombatMode(1);
+    }
   }
 }
 
@@ -5406,12 +5470,12 @@ void CGGameUI::ClearTarget(DWORDLONG guid, int sendTarget) {
   if (object) {
     object->HideHighlightType(HT_OBJSELECTION);
     object->UpdatePlayerName();
-    if (object->GetType() & TYPE_UNIT) {
+    if (object->IsA(ID_UNIT)) {
       CGUnit_C *unit = static_cast<CGUnit_C *>(object);
       unit->UnregisterScript();
-      if (unit->GetUnitNPCFlags()) {
+      if (unit->IsNPC()) {
         SndInterfacePlayInterfaceSound("igCharacterNPCDeselect");
-      } else if (object->GetType() & TYPE_PLAYER) {
+      } else if (object->IsA(ID_PLAYER)) {
         SndInterfacePlayInterfaceSound("igCharacterDeselect");
       } else if (!player || unit->UnitReaction(player) > UNIT_REACTION_HOSTILE) {
         SndInterfacePlayInterfaceSound("igCreatureNeutralDeselect");
@@ -5440,36 +5504,25 @@ void CGGameUI::ClearTarget(DWORDLONG guid, int sendTarget) {
 static BOOL ClosestObjectMatchProc(DWORDLONG guid, LPVOID param) {
   ClosestObjectMatchData *data = static_cast<ClosestObjectMatchData *>(param);
   CGObject_C             *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
-  if (!object || !(object->GetType() & data->type)) {
-    return 1;
+  if (object && (data->type & object->GetType())) {
+    LPCSTR name = object->GetObjectName();
+    if (name) {
+      LPCSTR match = data->match;
+      while (*match && *name && toupper(*match) == toupper(*name)) {
+        ++match;
+        ++name;
+      }
+      int match_len = match - data->match;
+      if (match_len >= data->best_match) {
+        float distance = (data->source->CGUnit::GetPosition() - object->GetPosition()).SquaredMag();
+        if (match_len > data->best_match || distance < data->best_distance) {
+          data->best_distance = distance;
+          data->object = object;
+          data->best_match = match_len;
+        }
+      }
+    }
   }
-
-  LPCSTR name = 0;
-  if (object->GetType() & TYPE_UNIT) {
-    name = static_cast<CGUnit_C *>(object)->GetUnitName();
-  }
-  if (!name) {
-    return 1;
-  }
-
-  LPCSTR match = data->match;
-  while (*match && *name && toupper(*match) == toupper(*name)) {
-    ++match;
-    ++name;
-  }
-  int matchLength = static_cast<int>(match - data->match);
-  if (matchLength < data->best_match) {
-    return 1;
-  }
-
-  float distanceSq = (data->source->GetPosition() - object->GetPosition()).SquaredMag();
-  if (matchLength <= data->best_match && distanceSq >= data->best_distance) {
-    return 1;
-  }
-
-  data->object = object;
-  data->best_match = matchLength;
-  data->best_distance = distanceSq;
   return 1;
 }
 
@@ -5495,8 +5548,8 @@ void CGGameUI::AssistByName(LPCSTR name) {
       static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(name && *name ? ClosestObjectMatch(name, TYPE_UNIT) : m_lockedTarget, __FILE__, __LINE__));
   if (unit) {
     DWORDLONG newTarget;
-    if (unit->GetType() & TYPE_PLAYER) {
-      newTarget = static_cast<CGPlayer_C *>(unit)->GetLocalTarget();
+    if (unit->IsA(ID_PLAYER)) {
+      newTarget = static_cast<CGPlayer_C *>(unit)->GetSelection();
     } else {
       newTarget = unit->GetTarget();
     }
@@ -5517,35 +5570,41 @@ void CGGameUI::AssistByName(LPCSTR name) {
 }
 
 void CGGameUI::FollowByName(LPCSTR name) {
-  DWORDLONG target = name && *name ? ClosestObjectMatch(name, TYPE_UNIT) : m_lockedTarget;
-  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
-  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!unit) {
-    DisplayError(static_cast<GAME_ERROR_TYPE>(name && *name ? 268 : 168));
-  } else if (player && (unit->GetType() & TYPE_PLAYER) && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
-    player->SaveTrackingTarget(unit->GetGUID(), TRACKTYPE_FOLLOW, false);
+  CGUnit_C *unit =
+      static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(name && *name ? ClosestObjectMatch(name, TYPE_PLAYER) : m_lockedTarget, __FILE__, __LINE__));
+  if (unit) {
+    CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player) {
+      if (unit->IsA(ID_PLAYER) && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
+        player->SaveTrackingTarget(unit->GetGUID(), TRACKTYPE_FOLLOW, false);
+      } else {
+        DisplayError(static_cast<GAME_ERROR_TYPE>(269));
+      }
+    } else {
+      DisplayError(static_cast<GAME_ERROR_TYPE>(168));
+    }
+  } else if (name && *name) {
+    DisplayError(static_cast<GAME_ERROR_TYPE>(268));
   } else {
-    DisplayError(static_cast<GAME_ERROR_TYPE>(269));
+    DisplayError(static_cast<GAME_ERROR_TYPE>(168));
   }
 }
 
 static BOOL TargetUpdateProc(DWORDLONG guid, LPVOID) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  if (!unit || !(unit->GetType() & TYPE_UNIT)) {
-    return 1;
-  }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || player->GetHealth() <= 0 || player->IsMounted() || unit->GetHealth() <= 0 ||
-      unit->IsFeignDeath() || !player->CanAttack(unit))
-  {
-    return 1;
-  }
-
-  float distSq = (unit->GetPosition() - player->GetPosition()).SquaredMag();
-  if (distSq <= TARGET_NEAREST_MAX_DISTANCE_SQUARED) {
-    NearestEnemyData *entry = s_nearestList.New();
-    entry->guid = guid;
-    entry->distSq = distSq;
+  if (unit && unit->IsA(ID_UNIT)) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player && player->GetHealth() > 0 && !player->IsMounted() && unit->GetHealth() > 0 && player->CanAttack(unit) &&
+        unit->GetHealth() > 0 && !unit->IsFeignDeath())
+    {
+      float distSq = (unit->GetPosition() - player->GetPosition()).SquaredMag();
+      if (distSq > TARGET_NEAREST_MAX_DISTANCE_SQUARED) {
+        return 1;
+      }
+      NearestEnemyData *entry = s_nearestList.New();
+      entry->guid = guid;
+      entry->distSq = distSq;
+    }
   }
   return 1;
 }
@@ -5565,12 +5624,11 @@ static int __cdecl QSortCompareNearestEnemy(LPCVOID a, LPCVOID b) {
 }
 
 void CGGameUI::TargetNearestEnemy(int reverse) {
-  UINT now = OsGetAsyncTimeMs();
-  if (!s_nearestListTime || !s_sameTargetTime || s_sameTargetTime + 3000 <= now || !s_nearestList.Count()) {
-    s_nearestList.SetCount(0);
+  if (!s_nearestListTime || !s_sameTargetTime || s_sameTargetTime + 3000 <= OsGetAsyncTimeMs() || !s_nearestList.Count()) {
     s_nearestIndex = 0;
     s_nearestListTime = 0;
     s_sameTargetTime = 0;
+    s_nearestList.SetCount(0);
     ClntObjMgrEnumVisibleObjects(TargetUpdateProc, 0);
     if (!s_nearestList.Count()) {
       return;
@@ -5578,17 +5636,20 @@ void CGGameUI::TargetNearestEnemy(int reverse) {
     qsort(s_nearestList.Ptr(), s_nearestList.Count(), sizeof(NearestEnemyData), QSortCompareNearestEnemy);
     s_nearestListTime = OsGetAsyncTimeMs();
   } else if (reverse) {
-    if (s_nearestIndex) {
-      --s_nearestIndex;
-    } else {
+    if (s_nearestIndex == 0) {
       s_nearestIndex = s_nearestList.Count() - 1;
+    } else {
+      --s_nearestIndex;
     }
-  } else if (++s_nearestIndex >= s_nearestList.Count()) {
-    s_nearestIndex = 0;
-    if (s_nearestListTime + 3000 <= OsGetAsyncTimeMs()) {
-      s_nearestListTime = 0;
-      TargetNearestEnemy(0);
-      return;
+  } else {
+    ++s_nearestIndex;
+    if (s_nearestIndex >= s_nearestList.Count()) {
+      s_nearestIndex = 0;
+      if (s_nearestListTime + 3000 <= OsGetAsyncTimeMs()) {
+        s_nearestListTime = 0;
+        TargetNearestEnemy(0);
+        return;
+      }
     }
   }
 
@@ -5597,16 +5658,11 @@ void CGGameUI::TargetNearestEnemy(int reverse) {
   }
 
   s_sameTargetTime = OsGetAsyncTimeMs();
-  UINT index = s_nearestIndex;
-  for (;;) {
-    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_nearestList[index].guid, __FILE__, __LINE__));
-    if (unit && unit->GetHealth() > 0) {
-      s_nearestIndex = index;
-      Target(s_nearestList[index].guid, 1);
-      return;
-    }
-
-    if (++index >= s_nearestList.Count()) {
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_nearestList[s_nearestIndex].guid, __FILE__, __LINE__));
+  UINT      index = s_nearestIndex;
+  while (!unit || unit->GetHealth() <= 0) {
+    ++index;
+    if (index >= s_nearestList.Count()) {
       index = 0;
       if (s_nearestListTime + 3000 <= OsGetAsyncTimeMs()) {
         s_nearestListTime = 0;
@@ -5614,12 +5670,15 @@ void CGGameUI::TargetNearestEnemy(int reverse) {
         return;
       }
     }
-
     if (index == s_nearestIndex) {
       s_nearestList.SetCount(0);
       return;
     }
+    unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_nearestList[index].guid, __FILE__, __LINE__));
   }
+
+  s_nearestIndex = index;
+  Target(s_nearestList[index].guid, 1);
 }
 
 void CGGameUI::ScaleUI(float scale, int force) {
@@ -5628,44 +5687,12 @@ void CGGameUI::ScaleUI(float scale, int force) {
   }
 }
 
-void CGGameUI::HideCursor() {
-  m_simpleTop->m_cursorVisible = 0;
-}
-
 void CGGameUI::ShowCursor() {
   m_simpleTop->m_cursorVisible = 1;
 }
 
-BOOL CGGameUI::HandleMouseDown(const CMouseEvent &evt) {
-  if (evt.button == MOUSE_BUTTON_RIGHT) {
-    if (Spell_C_IsTargeting()) {
-      if (Spell_C_WorldObjectHousing()) {
-        Spell_C_WorldObjectRotate();
-      } else {
-        Spell_C_StopTargeting();
-      }
-    }
-    if (CGPlayer_C::IsGiftWrapping()) {
-      ClearCursor(1);
-    }
-  }
-  return 0;
-}
-
-BOOL CGGameUI::HandleMouseUp(const CMouseEvent &evt) {
-  return 0;
-}
-
-void CGGameUI::NamePlateClicked(DWORDLONG unit, MOUSEBUTTON button) {
-  FATALASSERT(unit);
-
-  if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
-    if (button == MOUSE_BUTTON_LEFT) {
-      OnSpriteLeftClick(unit, 0.0f, 0.0f);
-    } else if (button == MOUSE_BUTTON_RIGHT) {
-      OnSpriteRightClick(unit, 0.0f, 0.0f);
-    }
-  }
+void CGGameUI::HideCursor() {
+  m_simpleTop->m_cursorVisible = 0;
 }
 
 void CGGameUI::AddErrorMessage(LPCSTR string, int error) {
@@ -5674,26 +5701,85 @@ void CGGameUI::AddErrorMessage(LPCSTR string, int error) {
   }
 }
 
-UINT CGGameUI::GetCursorVirtualItem() {
-  return m_cursorVirtualID;
-}
-
 void CGGameUI::UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object) {
   if (model && object) {
     object->ShowHighlightType(HT_MOUSEOVER);
   }
 }
 
-void CGGameUI::GetCursorVirtualItem(UINT &cursorItem, UINT &slot) {
-  cursorItem = m_cursorVirtualID;
-  slot = m_cursorVirtualSlot;
+void CGGameUI::ShowCombatFeedback(const ATTACKROUNDINFO *info) {
+  FATALASSERT(info);
+  FATALASSERT(info->newVictimState < (sizeof(s_combatEvent) / sizeof(s_combatEvent[0])));
+
+  LPCSTR flagText = "";
+  if (info->flags & 0x10000) {
+    flagText = "ABSORB";
+  } else if (info->flags & 8) {
+    flagText = "CRITICAL";
+  }
+
+  int    numnames;
+  char **names = Script_GetNamesFromGUID(info->victim, numnames);
+  for (int index = 0; index < numnames; ++index) {
+    FrameScript_SignalEvent(
+        178, "%s%s%s%d%d", names[index], s_combatEvent[info->newVictimState], flagText, info->dmg.totalDamage, info->dmg.damageType[0]
+    );
+  }
 }
 
-void CGGameUI::ShowHealingFeedback(const DWORDLONG &guid, int amount) {
+void CGGameUI::ShowCombatFeedback(const DWORDLONG &guid, int amount, int damageClass, UINT flags) {
+  LPCSTR flagText = "";
+  if (flags & 0x10000) {
+    flagText = "ABSORB";
+  } else if (flags & 0x8) {
+    flagText = "CRITICAL";
+  }
+
   int    numnames;
   char **names = Script_GetNamesFromGUID(guid, numnames);
   for (int index = 0; index < numnames; ++index) {
-    FrameScript_SignalEvent(178, "%s%s%s%d", names[index], "HEAL", "", amount);
+    FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], "WOUND", flagText, amount, damageClass);
+  }
+}
+
+void CGGameUI::ShowCombatFeedback(const SPELLLOG &log) {
+  if (log.flags & 0x200) {
+    return;
+  }
+
+  if (log.flags & 0x100) {
+    CVar *periodicSpells = CVar::Lookup("CombatLogPeriodicSpells");
+    if (!periodicSpells || !periodicSpells->GetInt()) {
+      return;
+    }
+  }
+
+  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  DWORDLONG pet = player ? *(player->GetCharm() ? &player->GetCharm() : &player->GetSummon()) : 0;
+
+  if (log.victim != pet && log.victim != ClntObjMgrGetActivePlayer()) {
+    return;
+  }
+
+  if (log.flags & 2) {
+    ShowHealingFeedback(log.victim, log.dmg.totalDamage);
+  } else if (log.dmg.damageType[0] != -1) {
+    UINT flags = 0;
+    if (log.dmg.absorbed[0] == log.dmg.damage[0]) {
+      flags = 0x10000;
+    }
+    if (log.flags & 0x40) {
+      flags |= 8;
+    }
+    ShowCombatFeedback(log.victim, log.dmg.totalDamage, log.dmg.damageType[0], flags);
+  }
+}
+
+void CGGameUI::ShowCombatFeedback(const MIRRORTIMERDAMAGE &log) {
+  int    numnames;
+  char **names = Script_GetNamesFromGUID(log.victim, numnames);
+  for (int index = 0; index < numnames; ++index) {
+    FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], s_combatEvent[1], "", log.amount, 0);
   }
 }
 
@@ -5706,26 +5792,28 @@ void CGGameUI::ShowSpellMissFeedback(DWORDLONG victim, int reason) {
   }
 }
 
+void CGGameUI::ShowHealingFeedback(const DWORDLONG &guid, int amount) {
+  int    numnames;
+  char **names = Script_GetNamesFromGUID(guid, numnames);
+  for (int index = 0; index < numnames; ++index) {
+    FrameScript_SignalEvent(178, "%s%s%s%d", names[index], "HEAL", "", amount);
+  }
+}
+
 void CGGameUI::ShowAutoFollowChange(DWORDLONG newTarget, DWORDLONG oldTarget, int type) {
-  if (type != 2) {
-    return;
-  }
+  if (type == 2) {
+    int       event;
+    DWORDLONG target;
+    if (newTarget) {
+      event = 350;
+      target = newTarget;
+    } else {
+      event = 351;
+      target = oldTarget;
+    }
 
-  int       event;
-  DWORDLONG target;
-  if (newTarget) {
-    event = 350;
-    target = newTarget;
-  } else {
-    event = 351;
-    target = oldTarget;
-  }
-
-  CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
-  if (object && (object->GetType() & TYPE_UNIT)) {
-    FrameScript_SignalEvent(event, "%s", static_cast<CGUnit_C *>(object)->GetUnitName());
-  } else {
-    FrameScript_SignalEvent(event, "%s", "");
+    CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
+    FrameScript_SignalEvent(event, "%s", (object && object->IsA(ID_UNIT)) ? static_cast<CGUnit_C *>(object)->GetUnitName() : "");
   }
 }
 
@@ -5780,14 +5868,26 @@ void CGGameUI::SetMinimapZoneText(LPCSTR areaName) {
   }
 }
 
+void CGGameUI::NamePlateClicked(DWORDLONG unit, MOUSEBUTTON button) {
+  FATALASSERT(unit);
+
+  if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
+    if (button == MOUSE_BUTTON_LEFT) {
+      OnSpriteLeftClick(unit, 0.0f, 0.0f);
+    } else if (button == MOUSE_BUTTON_RIGHT) {
+      OnSpriteRightClick(unit, 0.0f, 0.0f);
+    }
+  }
+}
+
 void CGGameUI::SetCursorItem(DWORDLONG itemGUID, DWORDLONG containerGUID, UINT slot, int unlock, UINT stackSplit) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player && (m_hasControl || player->IsOnTaxi())) {
     ClearCursor(unlock);
     if (itemGUID) {
-      m_cursorItemContainer = containerGUID;
-      m_cursorItem = itemGUID;
       m_cursorItemSlot = slot;
+      m_cursorItem = itemGUID;
+      m_cursorItemContainer = containerGUID;
       m_stackSplit = stackSplit;
       m_cursorItemType = UICURSOR_ITEM;
       CursorSetHeldItem(itemGUID);
@@ -5804,14 +5904,18 @@ void CGGameUI::SetCursorItem(DWORDLONG itemGUID, DWORDLONG containerGUID, UINT s
   }
 }
 
-void CGGameUI::DeleteCursorItem() {
-  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_cursorItem, __FILE__, __LINE__));
-  if (item && item->GetOwner() == ClntObjMgrGetActivePlayer()) {
-    const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
-    if (stats) {
-      FrameScript_SignalEvent(271, "%s", stats->m_displayName[0]);
-    }
+DWORDLONG CGGameUI::GetCursorItem() {
+  if (m_cursorItemType == UICURSOR_ITEM) {
+    return m_cursorItem;
   }
+
+  return 0;
+}
+
+void CGGameUI::GetCursorItem(DWORDLONG &cursorItem, DWORDLONG &containerGUID, UINT &slot) {
+  cursorItem = m_cursorItem;
+  containerGUID = m_cursorItemContainer;
+  slot = m_cursorItemSlot;
 }
 
 void CGGameUI::SetCursorMoney(UINT money) {
@@ -5859,37 +5963,40 @@ void CGGameUI::DropCursorSpell() {
   }
 }
 
+int CGGameUI::GetCursorSpell() {
+  return m_cursorSpell;
+}
+
 void CGGameUI::SetCursorPetAction(const PetAction &action) {
   if (!m_hasControl) {
     return;
   }
 
-  UINT   value = action;
-  UINT   type = value >> 24 & 0x3F;
-  UINT   id = value & 0xFFFF;
   LPCSTR texture = 0;
-  switch (type) {
+  switch (action.GetActionType()) {
     case 1:
     case 2:
     case 3:
     case 4:
     case 5: {
-      const SpellRec *spell = g_spellDB.GetRecord(id);
+      const SpellRec *spell = g_spellDB.GetRecord(action.GetActionID());
       if (spell) {
         const SpellIconRec *icon = g_spellIconDB.GetRecord(spell->m_spellIconID);
-        texture = icon ? icon->m_textureFilename : 0;
+        if (icon) {
+          texture = icon->m_textureFilename;
+        }
       }
       break;
     }
     case 6: {
       char buf[64];
-      SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(id));
+      SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(action.GetActionID()));
       texture = FrameScript_GetText(buf, -1, GENDER_NOT_APPLICABLE);
       break;
     }
     case 7: {
       char buf[64];
-      SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(id));
+      SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(action.GetActionID()));
       texture = FrameScript_GetText(buf, -1, GENDER_NOT_APPLICABLE);
       break;
     }
@@ -5897,7 +6004,7 @@ void CGGameUI::SetCursorPetAction(const PetAction &action) {
 
   if (texture) {
     ClearCursor(1);
-    m_cursorPetAction = value;
+    m_cursorPetAction = action.GetAction();
     m_cursorItemType = UICURSOR_PET_ACTION;
     SndInterfacePlayInterfaceSound("INTERFACESOUND_CURSORGRABOBJECT");
     CursorGrabSpell(texture);
@@ -5910,86 +6017,6 @@ void CGGameUI::DropCursorPetAction() {
   if (m_cursorItemType == UICURSOR_PET_ACTION) {
     ClearCursor(1);
   }
-}
-
-void CGGameUI::ShowCombatFeedback(const ATTACKROUNDINFO *info) {
-  FATALASSERT(info);
-  FATALASSERT(info->newVictimState < (sizeof(s_combatEvent) / sizeof(s_combatEvent[0])));
-
-  LPCSTR flagText = "";
-  if (info->flags & 0x10000) {
-    flagText = "ABSORB";
-  } else if (info->flags & 8) {
-    flagText = "CRITICAL";
-  }
-
-  int    numnames;
-  char **names = Script_GetNamesFromGUID(info->victim, numnames);
-  for (int index = 0; index < numnames; ++index) {
-    FrameScript_SignalEvent(
-        178, "%s%s%s%d%d", names[index], s_combatEvent[info->newVictimState], flagText, info->dmg.totalDamage, info->dmg.damageType[0]
-    );
-  }
-}
-
-void CGGameUI::ShowCombatFeedback(const SPELLLOG &log) {
-  if (log.flags & 0x200) {
-    return;
-  }
-
-  if (log.flags & 0x100) {
-    CVar *periodicSpells = CVar::Lookup("CombatLogPeriodicSpells");
-    if (!periodicSpells || !periodicSpells->GetInt()) {
-      return;
-    }
-  }
-
-  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  DWORDLONG pet = player ? *(player->GetCharm() ? &player->GetCharm() : &player->GetSummon()) : 0;
-
-  if (log.victim != pet && log.victim != ClntObjMgrGetActivePlayer()) {
-    return;
-  }
-
-  if (log.flags & 2) {
-    ShowHealingFeedback(log.victim, log.dmg.totalDamage);
-  } else if (log.dmg.damageType[0] != -1) {
-    UINT flags = 0;
-    if (log.dmg.absorbed[0] == log.dmg.damage[0]) {
-      flags = 0x10000;
-    }
-    if (log.flags & 0x40) {
-      flags |= 8;
-    }
-    ShowCombatFeedback(log.victim, log.dmg.totalDamage, log.dmg.damageType[0], flags);
-  }
-}
-
-void CGGameUI::ShowCombatFeedback(const DWORDLONG &guid, int amount, int damageClass, UINT flags) {
-  LPCSTR flagText = "";
-  if (flags & 0x10000) {
-    flagText = "ABSORB";
-  } else if (flags & 0x8) {
-    flagText = "CRITICAL";
-  }
-
-  int    numnames;
-  char **names = Script_GetNamesFromGUID(guid, numnames);
-  for (int index = 0; index < numnames; ++index) {
-    FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], "WOUND", flagText, amount, damageClass);
-  }
-}
-
-void CGGameUI::ShowCombatFeedback(const MIRRORTIMERDAMAGE &log) {
-  int    numnames;
-  char **names = Script_GetNamesFromGUID(log.victim, numnames);
-  for (int index = 0; index < numnames; ++index) {
-    FrameScript_SignalEvent(178, "%s%s%s%d%d", names[index], s_combatEvent[1], "", log.amount, 0);
-  }
-}
-
-int CGGameUI::GetCursorSpell() {
-  return m_cursorSpell;
 }
 
 void CGGameUI::SetCursorVirtualItem(UINT itemID, UINT displayID, UINT slot, UICURSORTYPE type) {
@@ -6008,6 +6035,15 @@ void CGGameUI::SetCursorVirtualItem(UINT itemID, UINT displayID, UINT slot, UICU
       SndInterfacePlayItemSound(ITEMSOUND_PICKUP, static_cast<int>(displayID));
     }
   }
+}
+
+UINT CGGameUI::GetCursorVirtualItem() {
+  return m_cursorVirtualID;
+}
+
+void CGGameUI::GetCursorVirtualItem(UINT &cursorItem, UINT &slot) {
+  cursorItem = m_cursorVirtualID;
+  slot = m_cursorVirtualSlot;
 }
 
 void CGGameUI::ClearCursor(int unlock) {
@@ -6080,6 +6116,16 @@ void CGGameUI::ClearCursor(int unlock) {
   FrameScript_SignalEvent(272);
 }
 
+void CGGameUI::DeleteCursorItem() {
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_cursorItem, __FILE__, __LINE__));
+  if (item && item->GetOwner() == ClntObjMgrGetActivePlayer()) {
+    const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
+    if (stats) {
+      FrameScript_SignalEvent(271, "%s", stats->m_displayName[0]);
+    }
+  }
+}
+
 void CGGameUI::LockItem(DWORDLONG itemGUID) {
   if (itemGUID) {
     CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
@@ -6143,10 +6189,11 @@ void CGGameUI::UpdateActivePlayer() {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(player);
 
-  if (player->GetHealth() > 0) {
-    FrameScript_SignalEvent(255);
-  } else {
+  if (player->GetHealth() <= 0) {
     FrameScript_SignalEvent(256);
+    ClearCursor(1);
+  } else {
+    FrameScript_SignalEvent(255);
   }
 }
 
@@ -6179,21 +6226,20 @@ void CGGameUI::RegisterFrameFactories() {
 void __cdecl CGGameUI::DisplayError(GAME_ERROR_TYPE errorType, ...) {
   FATALASSERT(errorType < GERR_NUM_TYPES);
 
-  const GAMEERRORDESC &desc = s_gameErrors[errorType];
-  if (desc.voiceID != static_cast<VOCALUISOUNDS>(66)) {
+  if (s_gameErrors[errorType].voiceID != static_cast<VOCALUISOUNDS>(66)) {
     if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
-      SndInterfacePlayVocalUISound(desc.voiceID);
+      SndInterfacePlayVocalUISound(s_gameErrors[errorType].voiceID);
     }
-  } else if (SStrCmp(desc.soundName, "NONE", 0x7FFFFFFF)) {
-    SndInterfacePlayInterfaceSound(desc.soundName);
+  } else if (SStrCmpI(s_gameErrors[errorType].soundName, "NONE", 0x7FFFFFFF)) {
+    SndInterfacePlayInterfaceSound(s_gameErrors[errorType].soundName);
   }
 
-  if (!desc.stringToken || !*desc.stringToken) {
+  if (!s_gameErrors[errorType].stringToken || !*s_gameErrors[errorType].stringToken) {
     return;
   }
 
   char   format[256];
-  LPCSTR text = FrameScript_GetText(desc.stringToken, -1, GENDER_NOT_APPLICABLE);
+  LPCSTR text = FrameScript_GetText(s_gameErrors[errorType].stringToken, -1, GENDER_NOT_APPLICABLE);
   SStrCopy(format, text, sizeof(format));
   if (!*text) {
     return;
@@ -6206,9 +6252,9 @@ void __cdecl CGGameUI::DisplayError(GAME_ERROR_TYPE errorType, ...) {
   va_end(arguments);
   SStrCopy(s_lastErrorString, buffer, 256);
 
-  switch (desc.textPlacement) {
+  switch (s_gameErrors[errorType].textPlacement) {
     case ERRORTEXT_CHAT:
-      CGChat::AddChatMessage(buffer, desc.slashCmd, 0, 0, 0, 0, 0);
+      CGChat::AddChatMessage(buffer, s_gameErrors[errorType].slashCmd, 0, 0, 0, 0, 0);
       break;
     case ERRORTEXT_UIINFO:
       AddErrorMessage(buffer, 0);

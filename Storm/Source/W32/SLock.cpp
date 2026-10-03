@@ -57,7 +57,6 @@ struct CDebugLockEntry {
 #define SRW_EVENT_TYPES      2
 #define SRW_EVENT_COUNT      1024
 #define SRW_EVENT_SLOT_COUNT 2048
-#define SRW_EVENT_VALUE_STEP 0x00200000UL
 #define SRW_EVENT_VALUE_MASK 0xFFE00000UL
 
 static long          s_dupcount;
@@ -155,38 +154,19 @@ void Pause() {
 
 void SRWLock::IInitialize() {
   SYSTEM_INFO sysinfo;
-  DWORD       type;
-  LPVOID     *eventHandle;
-  long       *slotBase;
 
-  type = 0;
-  eventHandle = &s_handle[0][0];
-  slotBase = &s_free[0][0];
-  do {
-    DWORD index = 0;
-    DWORD value = SRW_EVENT_VALUE_STEP;
-    long *slot = slotBase;
-    BOOL  manualReset = type == 1;
-
-    do {
-      *eventHandle = CreateEventA(NULL, manualReset, FALSE, NULL);
-      if (!*eventHandle) {
+  for (int type = 0; type < SRW_EVENT_TYPES; ++type) {
+    for (int index = 0; index < SRW_EVENT_COUNT; ++index) {
+      s_handle[type][index] = CreateEventA(NULL, type == 1, FALSE, NULL);
+      if (!s_handle[type][index]) {
         FATALERROR(("IInitialize: failed to create event [%u][%u]", type, index));
       }
-
-      *slot = (long)value;
-      ++index;
-      ++eventHandle;
-      value += SRW_EVENT_VALUE_STEP;
-      ++slot;
-    } while (index < SRW_EVENT_COUNT);
-
-    slotBase += SRW_EVENT_SLOT_COUNT;
-    s_freeTail[type] = SRW_EVENT_SLOT_COUNT - 1;
-    s_freeHead[type] = SRW_EVENT_COUNT - 1;
+      s_free[type][index] = (index + 1) << 21;
+    }
+    s_freeHead[type] = SRW_EVENT_SLOT_COUNT - 1;
+    s_freeTail[type] = SRW_EVENT_COUNT - 1;
     s_freeCount[type] = SRW_EVENT_COUNT;
-    ++type;
-  } while (slotBase < &s_free[0][0] + SRW_EVENT_TYPES * SRW_EVENT_SLOT_COUNT);
+  }
 
   memset(&sysinfo, 0, sizeof(sysinfo));
   GetSystemInfo(&sysinfo);
@@ -195,31 +175,16 @@ void SRWLock::IInitialize() {
 }
 
 void SRWLock::IDestroy() {
-  DWORD   type;
-  LPVOID *eventHandle;
-  long   *slotBase;
-
-  type = 0;
-  eventHandle = &s_handle[0][0];
-  slotBase = &s_free[0][0];
-  do {
-    DWORD index = SRW_EVENT_COUNT;
-    long *slot = slotBase;
-
-    do {
-      CloseHandle(*eventHandle);
-      *eventHandle = NULL;
-      *slot = 0;
-      ++eventHandle;
-      ++slot;
-    } while (--index);
-
-    s_freeTail[type] = 0;
+  for (int type = 0; type < SRW_EVENT_TYPES; ++type) {
+    for (int index = 0; index < SRW_EVENT_COUNT; ++index) {
+      CloseHandle(s_handle[type][index]);
+      s_handle[type][index] = NULL;
+      s_free[type][index] = 0;
+    }
     s_freeHead[type] = 0;
+    s_freeTail[type] = 0;
     s_freeCount[type] = 0;
-    slotBase += SRW_EVENT_SLOT_COUNT;
-    ++type;
-  } while (slotBase < &s_free[0][0] + SRW_EVENT_TYPES * SRW_EVENT_SLOT_COUNT);
+  }
 
   SServerDestroy();
 }
@@ -259,7 +224,7 @@ long SRWLock::IAllocEvent(DWORD evtype) {
     FATALERROR(("IAllocEvent: too many %s event allocs", evtype ? "SUMREVTYPE" : "SUAREVTYPE"));
   }
 
-  freeptr = &s_free[evtype][SInterlockedIncrement(&s_freeTail[evtype]) & (SRW_EVENT_SLOT_COUNT - 1)];
+  freeptr = &s_free[evtype][SInterlockedIncrement(&s_freeHead[evtype]) & (SRW_EVENT_SLOT_COUNT - 1)];
   event = SInterlockedExchange(freeptr, 0);
   while (!event) {
     DWORD spin = s_spinCount;
@@ -288,7 +253,7 @@ void SRWLock::IFreeEvent(DWORD evtype, long event, int forcereset) {
     ResetEvent(s_handle[evtype][((DWORD)event >> 21) - 1]);
   }
 
-  freeptr = &s_free[evtype][SInterlockedIncrement(&s_freeHead[evtype]) & (SRW_EVENT_SLOT_COUNT - 1)];
+  freeptr = &s_free[evtype][SInterlockedIncrement(&s_freeTail[evtype]) & (SRW_EVENT_SLOT_COUNT - 1)];
   oldevent = SInterlockedExchange(freeptr, event & SRW_EVENT_VALUE_MASK);
   while (oldevent) {
     DWORD spin = s_spinCount;

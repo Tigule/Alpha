@@ -30,7 +30,7 @@ static DWORDLONG s_tradePartner;
 static int       s_tradeProposedEnchantment[2];
 static int       s_tradeProposedEnchantmentSlot[2];
 static UINT      s_tradeGold[2];
-static UINT      s_tradeFlags[2];
+UINT             s_tradeStateIndex[2];
 
 struct TradeItemData {
   UINT      entryID;
@@ -176,7 +176,7 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
       SStrCopy(buf, FrameScript_GetText("TRADE_INITIATED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
       SStrPrintf(msgbuf, sizeof(msgbuf), buf, partner ? partner->GetUnitName() : "???");
       message = msgbuf;
-      s_tradeFlags[0] = s_tradeFlags[1] = 1;
+      s_tradeStateIndex[1] = s_tradeStateIndex[0] = 1;
       memset(s_tradeItems, 0, sizeof(s_tradeItems));
       s_tradeGold[0] = s_tradeGold[1] = 0;
       s_tradeProposedEnchantment[0] = s_tradeProposedEnchantment[1] = 0;
@@ -269,9 +269,9 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
 static BOOL TradeExtendedStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   BYTE whichPlayer;
   msg->Get(whichPlayer);
-  FATALASSERT(whichPlayer < 2);
+  FATALASSERT(whichPlayer == 0 || whichPlayer == 1);
 
-  msg->Get(s_tradeFlags[whichPlayer]);
+  msg->Get(s_tradeStateIndex[whichPlayer]);
   msg->Get(s_tradeGold[whichPlayer]);
   memset(s_tradeItems[whichPlayer], 0, sizeof(s_tradeItems[whichPlayer]));
   msg->Get(s_tradeProposedEnchantment[whichPlayer]);
@@ -365,7 +365,7 @@ void Trade_C_PlayerIgnored() {
 void Trade_C_AcceptTrade() {
   CDataStore msg;
   msg.Put(CMSG_ACCEPT_TRADE);
-  msg.Put(static_cast<int>(s_tradeFlags[1]));
+  msg.Put(static_cast<int>(s_tradeStateIndex[1]));
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -391,7 +391,7 @@ bool Trade_C_AddItem(DWORDLONG item, DWORDLONG itemContainer, UINT itemSlot, UIN
   }
 
   CGItem_C *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item, __FILE__, __LINE__));
-  if (!itemPtr || !itemPtr->IsUnlocked()) {
+  if (!itemPtr || itemPtr->IsBound()) {
     return false;
   }
 

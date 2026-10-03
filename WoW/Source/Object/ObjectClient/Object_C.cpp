@@ -126,19 +126,13 @@ HMODEL ObjectModelCreate(LPCSTR filename, OBJECT_TYPE objectType, UINT mdlCreate
   VALIDATE(filename);
   VALIDATEEND;
 
-  CModelCreate createData;
   CStatus      status;
-  DWORD        processorFeatures = OsGetProcessorFeatures();
+  CModelCreate createData;
 
-  memset(&createData, 0, sizeof(createData));
   createData.flags = mdlCreateFlags | 0x202A;
-  if (static_cast<long>(processorFeatures) < 0) {
-    UINT processorClass = 0;
-    while (processorFeatures >>= 1) {
-      ++processorClass;
-    }
-    createData.flags |= (processorClass << 17) | 0x10000;
-  } else if (processorFeatures & 0x800000) {
+  if (CWorld::GetEnables() & CWorld::Enable_Anisotropic) {
+    createData.flags |= (CWorld::GetTexMaxAnisotropyLog2() << 17) | 0x10000;
+  } else if (CWorld::GetEnables() & CWorld::Enable_Trilinear) {
     createData.flags |= 0x1000;
   }
 
@@ -160,6 +154,7 @@ HMODEL ObjectModelCreate(LPCSTR filename, OBJECT_TYPE objectType, UINT mdlCreate
 
   HMODEL model = ModelCreate(filename, &createData, &status);
   FATALASSERT(model);
+  SysMsgAdd(status, 0x10);
   return model;
 }
 
@@ -707,10 +702,11 @@ void CGObject_C::Animate() {
 }
 
 void CGObject_C::Animate(const NTempest::C34Matrix &camRelativeMatrix) {
-  FATALASSERT(m_model);
+  HMODEL model = m_model;
+  FATALASSERT(model);
 
   CGCamera *camera = CGWorldFrame::GetActiveCamera();
-  ModelAnimate(m_model, camRelativeMatrix, GetScale() * m_renderScale, camera->Position(), camera->Forward());
+  ModelAnimate(model, camRelativeMatrix, GetScale() * m_renderScale, camera->Position(), camera->Forward());
 }
 
 BOOL CGObject_C::IsObjectModelLoaded() const {

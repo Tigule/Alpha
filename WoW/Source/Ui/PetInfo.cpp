@@ -330,7 +330,12 @@ static int Script_GetPetActionInfo(lua_State *L) {
       lua_pushnil(L);
     return 7;
   }
-  if (type >= 1 && type <= 5) {
+  switch (type) {
+  case 1:
+  case 2:
+  case 3:
+  case 4:
+  case 5: {
     const SpellRec     *spell = g_spellDB.GetRecord(raw & 0xFFFF);
     const SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
     if (spell)
@@ -347,7 +352,10 @@ static int Script_GetPetActionInfo(lua_State *L) {
       lua_pushnil(L);
     lua_pushnil(L);
     lua_pushnil(L);
-  } else {
+    break;
+  }
+  case 6:
+  case 7: {
     char   buf[64];
     LPCSTR token = type == 6 ? CGPetInfo::GetModeToken(raw & 0xFFFF) : CGPetInfo::GetOrdersToken(raw & 0xFFFF);
     SStrPrintf(buf, sizeof(buf), type == 6 ? "PET_MODE_%s" : "PET_ACTION_%s", token);
@@ -361,6 +369,11 @@ static int Script_GetPetActionInfo(lua_State *L) {
       lua_pushnumber(L, 1.0);
     else
       lua_pushnil(L);
+    break;
+  }
+  default:
+    FATALASSERT(!"Unknown pet action type");
+    break;
   }
   if (static_cast<int>(raw) < 0)
     lua_pushnumber(L, 1.0);

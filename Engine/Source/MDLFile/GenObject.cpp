@@ -15,43 +15,69 @@ namespace MDL {
 
 void ReadFloatKeyData(Parser &parse, float *entry, UINT elements) {
   FATALASSERT(elements > 0);
-  if (elements > 1) {
+  if (elements <= 1) {
+    *entry = parse.ExpectFloat();
+  } else {
     parse.Expect('{');
-  }
-  *entry++ = parse.ExpectFloat();
-  for (UINT i = 1; i < elements; ++i) {
-    parse.Expect(',');
     *entry++ = parse.ExpectFloat();
-  }
-  if (elements > 1) {
+    for (UINT i = elements - 1; i; --i) {
+      parse.Expect(',');
+      *entry++ = parse.ExpectFloat();
+    }
     parse.Expect('}');
   }
 }
 
-UINT ReadIntTrackHeader(Parser &parse, MDLSIMPLEKEYTRACK<MDLINTKEY> *track, LPCSTR *tokenText, UTokenData *tokenData) {
-  UINT token = parse.Token(tokenText, tokenData);
-  while (token == 0x140 || token == 0x152) {
-    if (token == 0x152) {
-      UINT globalSeqId = parse.ExpectInt();
-      if (track) {
-        track->globalSeqId = globalSeqId;
-      }
+BOOL ReadObjectPtrs(MDLDATA *data, CMDLStatus *status) {
+  UINT numElements = data->objects.Count();
+  for (UINT i = 0; i < numElements; ++i) {
+    UINT index = reinterpret_cast<UINT>(data->objects[i]) & 0x0FFFFFFF;
+    switch (reinterpret_cast<UINT>(data->objects[i]) & 0xF0000000) {
+      case 0x10000000:
+        data->objects[i] = &data->helpers[index];
+        break;
+      case 0x20000000:
+        data->objects[i] = &data->lights[index];
+        break;
+      case 0x30000000:
+        data->objects[i] = &data->bones[index];
+        break;
+      case 0x40000000:
+        data->objects[i] = &data->attachments[index];
+        break;
+      case 0x50000000:
+        data->objects[i] = &data->particleEmitters[index];
+        break;
+      case 0x60000000:
+        data->objects[i] = &data->events[index];
+        break;
+      case 0x70000000:
+        data->objects[i] = &data->particleEmitters2[index];
+        break;
+      case 0x80000000:
+        data->objects[i] = &data->hitTestShapes[index];
+        break;
+      case 0x90000000:
+        data->objects[i] = &data->ribbonEmitters[index];
+        break;
+      default:
+        status->Add(STATUS_FATAL, "Found gaps in sequence of object ID's. Unable to fix up object pointers.\n");
+        return 0;
     }
-    parse.Expect(',');
-    token = parse.Token(tokenText, tokenData);
   }
-  return token;
+  return 1;
 }
 
 const float *WriteKeyData(TSGrowableArray<char> &buffer, const float *entry, UINT elements) {
   FATALASSERT(elements > 0);
   if (elements == 1) {
-    MDL::WriteLine(buffer, "%g,\n", *entry);
-    return entry + 1;
+    MDL::WriteLine(buffer, "%g,\n", *entry++);
+    return entry;
   }
   MDL::WriteLine(buffer, "{ %g", *entry++);
-  for (UINT i = 1; i < elements; ++i) {
-    MDL::WriteLine(buffer, ", %g", *entry++);
+  for (UINT i = elements - 1; i; --i) {
+    MDL::WriteLine(buffer, ", %g", *entry);
+    ++entry;
   }
   MDL::WriteLine(buffer, " },\n");
   return entry;
@@ -60,12 +86,13 @@ const float *WriteKeyData(TSGrowableArray<char> &buffer, const float *entry, UIN
 const UINT *WriteUintKeyData(TSGrowableArray<char> &buffer, const UINT *entry, UINT elements) {
   FATALASSERT(elements > 0);
   if (elements == 1) {
-    MDL::WriteLine(buffer, "%u,\n", *entry);
-    return entry + 1;
+    MDL::WriteLine(buffer, "%u,\n", *entry++);
+    return entry;
   }
   MDL::WriteLine(buffer, "{ %u", *entry++);
-  for (UINT i = 1; i < elements; ++i) {
-    MDL::WriteLine(buffer, ", %u", *entry++);
+  for (UINT i = elements - 1; i; --i) {
+    MDL::WriteLine(buffer, ", %u", *entry);
+    ++entry;
   }
   MDL::WriteLine(buffer, " },\n");
   return entry;
@@ -127,121 +154,78 @@ static void IReadDontInherit(Parser &parse, MDLGENOBJECT *obj, CMDLStatus *statu
   errors.Complete(status);
 }
 
-#define READ_OBJECT_TRACK(parse, track, elements, item, keyType)                                                              \
-  do {                                                                                                                        \
-    UINT       objectTrackToken;                                                                                              \
-    LPCSTR     objectTrackTokenText;                                                                                          \
-    UTokenData objectTrackTokenData;                                                                                          \
-    long       objectTrackExpected = (parse).GetOptionalInt(&objectTrackToken, &objectTrackTokenText, &objectTrackTokenData); \
-    if (objectTrackExpected > 0) {                                                                                            \
-      (track).keys.ReserveSpace(objectTrackExpected);                                                                         \
-    }                                                                                                                         \
-    (parse).Expect('{', objectTrackToken, objectTrackTokenText);                                                              \
-    objectTrackToken = ReadFloatTrackHeader((parse), &(track), &objectTrackTokenText, &objectTrackTokenData);                 \
-    long objectTrackActual = 0;                                                                                               \
-    while (objectTrackToken == 0x100) {                                                                                       \
-      MDLKEYFRAME<keyType> *objectTrackKey = (track).keys.New();                                                              \
-      objectTrackKey->time = objectTrackTokenData.lVal;                                                                       \
-      (parse).Expect(':');                                                                                                    \
-      ReadFloatKeyData((parse), reinterpret_cast<float *>(&objectTrackKey->value), (elements));                               \
-      (parse).Expect(',');                                                                                                    \
-      ++objectTrackActual;                                                                                                    \
-      if ((track).type > TRACK_LINEAR) {                                                                                      \
-        (parse).Expect(0x15E);                                                                                                \
-        ReadFloatKeyData((parse), reinterpret_cast<float *>(&objectTrackKey->inTan), (elements));                             \
-        (parse).Expect(',');                                                                                                  \
-        (parse).Expect(0x18A);                                                                                                \
-        ReadFloatKeyData((parse), reinterpret_cast<float *>(&objectTrackKey->outTan), (elements));                            \
-        (parse).Expect(',');                                                                                                  \
-      }                                                                                                                       \
-      objectTrackToken = (parse).Token(&objectTrackTokenText, &objectTrackTokenData);                                         \
-    }                                                                                                                         \
-    (parse).Expect('}', objectTrackToken, objectTrackTokenText);                                                              \
-    if (objectTrackExpected >= 0 && objectTrackActual != objectTrackExpected) {                                               \
-      (parse).WarningCount((item), objectTrackExpected, objectTrackActual);                                                   \
-    }                                                                                                                         \
-  } while (0)
-
 static void INormalizeQuats(TSGrowableArray<MDLKEYFRAME<NTempest::C4Quaternion> > *keyframes) {
-  for (UINT i = 0; i < keyframes->Count(); ++i) {
-    MDLKEYFRAME<NTempest::C4Quaternion> &key = keyframes->Ptr()[i];
-    key.value.Normalize();
-    key.inTan.Normalize();
-    key.outTan.Normalize();
+  MDLKEYFRAME<NTempest::C4Quaternion> *key = keyframes->Ptr();
+  for (UINT i = keyframes->Count(); i; --i, ++key) {
+    key->value.Normalize();
+    key->inTan.Normalize();
+    key->outTan.Normalize();
   }
 }
 
 BOOL ReadObjectBody(Parser &parse, UINT savedtoken, NTempest::C3Vector *pivot, MDLGENOBJECT *obj, CMDLStatus *status) {
   switch (savedtoken) {
-    case 0x129:
-      obj->flags |= 8;
-      parse.Expect(',');
-      return 1;
-    case 0x12A:
-      obj->flags |= 0x10;
-      parse.Expect(',');
-      return 1;
-    case 0x12B:
-      obj->flags |= 0x20;
-      parse.Expect(',');
-      return 1;
-    case 0x12C:
-      obj->flags |= 0x40;
-      parse.Expect(',');
-      return 1;
-    case 0x13F:
-      IReadDontInherit(parse, obj, status);
-      parse.Expect(',');
-      return 1;
     case 0x187:
       obj->objectId = parse.ExpectInt();
-      parse.Expect(',');
-      return 1;
+      break;
     case 0x18B:
       obj->parentId = parse.ExpectInt();
-      parse.Expect(',');
+      break;
+    case 0x13F:
+      IReadDontInherit(parse, obj, status);
+      break;
+    case 0x129:
+      obj->flags |= 8;
+      break;
+    case 0x12A:
+      obj->flags |= 0x10;
+      break;
+    case 0x12B:
+      obj->flags |= 0x20;
+      break;
+    case 0x12C:
+      obj->flags |= 0x40;
+      break;
+    case 0x1A7:
+      obj->flags |= 0x4000;
+      break;
+    case 0x1C7:
+      ReadObjectFloatKeyframes(parse, &obj->transkeys);
+      return 1;
+    case 0x1AD:
+      ReadObjectFloatKeyframes(parse, &obj->rotkeys);
+      INormalizeQuats(&obj->rotkeys.keys);
+      return 1;
+    case 0x1AF:
+      ReadObjectFloatKeyframes(parse, &obj->scalekeys);
       return 1;
     case 0x1A5:
       if (!pivot) {
         return 0;
       }
       ReadFloatKeyData(parse, &pivot->x, 3);
-      parse.Expect(',');
-      return 1;
-    case 0x1A7:
-      obj->flags |= 0x4000;
-      parse.Expect(',');
-      return 1;
-    case 0x1AD:
-      READ_OBJECT_TRACK(parse, obj->rotkeys, 4, "key frames", NTempest::C4Quaternion);
-      INormalizeQuats(&obj->rotkeys.keys);
-      return 1;
-    case 0x1AF:
-      ReadObjectFloatKeyframes(parse, &obj->scalekeys);
-      return 1;
-    case 0x1C7:
-      ReadObjectFloatKeyframes(parse, &obj->transkeys);
-      return 1;
+      break;
     default:
       return 0;
   }
+  parse.Expect(',');
+  return 1;
 }
 
-#undef READ_OBJECT_TRACK
-
-void ReadObjectEnd(TSet &errors, MDLDATA &data, MDLGENOBJECT *object, DWORD listIndex, DWORD listMask) {
-  FATALASSERT(object);
+void ReadObjectEnd(TSet &errors, MDLDATA &data, MDLGENOBJECT *obj, DWORD listIndex, DWORD listMask) {
+  FATALASSERT(obj);
   if (errors.NotFound(0x187)) {
-    object->objectId = data.objects.Count();
+    obj->objectId = data.objects.Count();
   }
-  if (object->objectId >= data.objects.Count()) {
-    UINT oldCount = data.objects.Count();
-    data.objects.SetCount(object->objectId + 1);
-    for (UINT i = oldCount; i < data.objects.Count(); ++i) {
-      data.objects[i] = 0;
-    }
-  }
-  data.objects[object->objectId] = reinterpret_cast<MDLGENOBJECT *>(listMask | listIndex);
+  data.objects.GrowToFit(obj->objectId, 1);
+  data.objects[obj->objectId] = reinterpret_cast<MDLGENOBJECT *>(listMask | listIndex);
+}
+
+void ReadBinObjectEnd(MDLDATA &data, MDLGENOBJECT *obj, DWORD listIndex, DWORD listMask) {
+  FATALASSERT(obj);
+  obj->objectId = data.objects.Count();
+  data.objects.GrowToFit(obj->objectId, 1);
+  data.objects[obj->objectId] = reinterpret_cast<MDLGENOBJECT *>(listMask | listIndex);
 }
 
 BOOL IExpectAnimation(Parser &parse, UINT *savedtoken, LPCSTR *tokenText) {
@@ -253,96 +237,28 @@ BOOL IExpectAnimation(Parser &parse, UINT *savedtoken, LPCSTR *tokenText) {
   return result;
 }
 
-void WriteFloatKeyFrames(UINT title, LPCSTR indent, const MDLKEYTRACK<float> &keyframes, TSGrowableArray<char> &buffer) {
-  if (!keyframes.keys.Count()) {
-    return;
-  }
-  MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(title), keyframes.keys.Count());
-  WriteTrackHeader(indent, keyframes, buffer);
-  for (UINT i = 0; i < keyframes.keys.Count(); ++i) {
-    const MDLKEYFRAME<float> &key = keyframes.keys.Ptr()[i];
-    MDL::WriteLine(buffer, "%s\t%d: ", indent, key.time);
-    WriteKeyData(buffer, &key.value, 1);
-    if (keyframes.type > TRACK_LINEAR) {
-      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x15E));
-      WriteKeyData(buffer, &key.inTan, 1);
-      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x18A));
-      WriteKeyData(buffer, &key.outTan, 1);
-    }
-  }
-  MDL::WriteLine(buffer, "%s}\n", indent);
-}
-
-void WriteFloatKeyFrames(UINT title, LPCSTR indent, const MDLKEYTRACK<C3Color> &keyframes, TSGrowableArray<char> &buffer) {
-  if (!keyframes.keys.Count()) {
-    return;
-  }
-  MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(title), keyframes.keys.Count());
-  WriteTrackHeader(indent, keyframes, buffer);
-  for (UINT i = 0; i < keyframes.keys.Count(); ++i) {
-    const MDLKEYFRAME<C3Color> &key = keyframes.keys.Ptr()[i];
-    MDL::WriteLine(buffer, "%s\t%d: ", indent, key.time);
-    WriteKeyData(buffer, &key.value.b, 3);
-    if (keyframes.type > TRACK_LINEAR) {
-      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x15E));
-      WriteKeyData(buffer, &key.inTan.b, 3);
-      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x18A));
-      WriteKeyData(buffer, &key.outTan.b, 3);
-    }
-  }
-  MDL::WriteLine(buffer, "%s}\n", indent);
-}
-
-void WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer) {
-  if (!keyframes.keys.Count()) {
-    return;
-  }
-  MDL::WriteLine(buffer, "%s%s %u {\n", indent, MDL::TokenText(title), keyframes.keys.Count());
-  if (keyframes.globalSeqId != static_cast<UINT>(-1)) {
-    MDL::WriteLine(buffer, "%s\t%s %d,\n", indent, MDL::TokenText(0x152), keyframes.globalSeqId);
-  }
-  for (UINT i = 0; i < keyframes.keys.Count(); ++i) {
-    const MDLINTKEY &key = keyframes.keys.Ptr()[i];
-    MDL::WriteLine(buffer, "%s\t%d: %u,\n", indent, key.time, key.value);
-  }
-  MDL::WriteLine(buffer, "%s}\n", indent);
-}
-
-#define WRITE_TRACK(title, track, elements, buffer, keyType)                                                                     \
-  do {                                                                                                                           \
-    if ((track).keys.Count()) {                                                                                                  \
-      MDL::WriteLine((buffer), "\t%s %d {\n", MDL::TokenText((title)), (track).keys.Count());                                    \
-      WriteTrackHeader("\t", (track), (buffer));                                                                                 \
-      for (UINT writeTrackIndex = 0; writeTrackIndex < (track).keys.Count(); ++writeTrackIndex) {                                \
-        const MDLKEYFRAME<keyType> &writeTrackKey = (track).keys[writeTrackIndex];                                               \
-        MDL::WriteLine((buffer), "\t\t%d: ", writeTrackKey.time);                                                                \
-        const float *writeTrackNext = WriteKeyData((buffer), reinterpret_cast<const float *>(&writeTrackKey.value), (elements)); \
-        if ((track).type > TRACK_LINEAR) {                                                                                       \
-          MDL::WriteLine((buffer), "\t\t\t%s ", MDL::TokenText(0x15E));                                                          \
-          writeTrackNext = WriteKeyData((buffer), writeTrackNext, (elements));                                                   \
-          MDL::WriteLine((buffer), "\t\t\t%s ", MDL::TokenText(0x18A));                                                          \
-          WriteKeyData((buffer), writeTrackNext, (elements));                                                                    \
-        }                                                                                                                        \
-      }                                                                                                                          \
-      MDL::WriteLine((buffer), "\t}\n");                                                                                         \
-    }                                                                                                                            \
-  } while (0)
-
 void WriteObjectTrailer(const MDLGENOBJECT &obj, TSGrowableArray<char> &buffer) {
-  WRITE_TRACK(0x1C7, obj.transkeys, 3, buffer, NTempest::C3Vector);
-  WRITE_TRACK(0x1AD, obj.rotkeys, 4, buffer, NTempest::C4Quaternion);
-  WRITE_TRACK(0x1AF, obj.scalekeys, 3, buffer, NTempest::C3Vector);
+  WriteFloatKeyFrames(0x1C7, "\t", obj.transkeys, buffer);
+  WriteFloatKeyFrames(0x1AD, "\t", obj.rotkeys, buffer);
+  WriteFloatKeyFrames(0x1AF, "\t", obj.scalekeys, buffer);
   MDL::WriteLine(buffer, "}\n");
 }
 
-#undef WRITE_TRACK
+static struct {
+  UINT mask;
+  UINT token;
+} s_objectFlags[] = {
+    {8,      0x129},
+    {0x10,   0x12A},
+    {0x20,   0x12B},
+    {0x40,   0x12C},
+    {0x4000, 0x1A7},
+};
 
 static void IWriteObjectFlags(UINT flags, TSGrowableArray<char> &buffer) {
-  static const UINT masks[] = {8, 16, 32, 64, 0x4000};
-  static const UINT tokens[] = {0x129, 0x12A, 0x12B, 0x12C, 0x1A7};
-  for (UINT i = 0; i < 5; ++i) {
-    if (flags & masks[i]) {
-      MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(tokens[i]));
+  for (UINT i = 0; i < sizeof(s_objectFlags) / sizeof(s_objectFlags[0]); ++i) {
+    if (s_objectFlags[i].mask & flags) {
+      MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(s_objectFlags[i].token));
     }
   }
 }
@@ -358,20 +274,19 @@ void WriteObjectHeader(const MDLDATA &data, const MDLGENOBJECT &obj, UINT title,
   IWriteObjectFlags(obj.flags, buffer);
   if (obj.flags & 7) {
     MDL::WriteLine(buffer, "\t%s { ", MDL::TokenText(0x13F));
-    int needComma = 0;
     if (obj.flags & 1) {
       MDL::WriteLine(buffer, "%s", MDL::TokenText(0x1C7));
-      needComma = 1;
     }
     if (obj.flags & 2) {
-      if (needComma)
+      if (obj.flags & 1) {
         MDL::WriteLine(buffer, ", ");
+      }
       MDL::WriteLine(buffer, "%s", MDL::TokenText(0x1AF));
-      needComma = 1;
     }
     if (obj.flags & 4) {
-      if (needComma)
+      if (obj.flags & 3) {
         MDL::WriteLine(buffer, ", ");
+      }
       MDL::WriteLine(buffer, "%s", MDL::TokenText(0x1AD));
     }
     MDL::WriteLine(buffer, " },\n");
@@ -397,123 +312,13 @@ void WriteBounds(const CMdlBounds &bounds, LPCSTR indent, TSGrowableArray<char> 
 }
 
 void SkipUnknown(CMsgBuffer &buf, UINT &totalRead) {
-  UINT size = buf.GetUint();
+  UINT size = buf.GetUint() - 4;
   totalRead += 4;
-  UINT bytes = size - 4;
-  if (bytes > static_cast<UINT>(buf.Bytes())) {
-    bytes = buf.Bytes();
+  if (buf.Bytes() < size) {
+    size = buf.Bytes();
   }
-  buf.GetData(bytes);
-  totalRead += bytes;
-}
-
-UINT GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes) {
-  if (!keyframes.keys.Count()) {
-    return 0;
-  }
-  UINT dataSize = 8;
-  if (keyframes.type > TRACK_LINEAR) {
-    dataSize = 24;
-  }
-  return (dataSize + 4) * keyframes.keys.Count() + 16;
-}
-
-#define READ_BIN_FLOAT_KEYFRAMES(track, buffer, totalRead, elements, keyType)                \
-  do {                                                                                       \
-    if ((buffer).Bytes() < 12) {                                                             \
-      return 0;                                                                              \
-    }                                                                                        \
-    UINT binFloatCount = (buffer).GetUint();                                                 \
-    (totalRead) += 4;                                                                        \
-    if (!binFloatCount) {                                                                    \
-      return 0;                                                                              \
-    }                                                                                        \
-    (track).type = static_cast<MDLTRACKTYPE>((buffer).GetUint());                            \
-    (track).globalSeqId = (buffer).GetUint();                                                \
-    (totalRead) += 8;                                                                        \
-    (track).keys.SetCount(binFloatCount);                                                    \
-    UINT binFloatValues = (track).type > TRACK_LINEAR ? (elements) * 3 : (elements);         \
-    UINT binFloatBytesPerKey = 4 + binFloatValues * 4;                                       \
-    if (binFloatCount * binFloatBytesPerKey > static_cast<UINT>((buffer).Bytes())) {         \
-      return 0;                                                                              \
-    }                                                                                        \
-    for (UINT binFloatIndex = 0; binFloatIndex < binFloatCount; ++binFloatIndex) {           \
-      MDLKEYFRAME<keyType> &binFloatKey = (track).keys.Ptr()[binFloatIndex];                 \
-      binFloatKey.time = (buffer).GetInt();                                                  \
-      (buffer).GetFloatArray(reinterpret_cast<float *>(&binFloatKey.value), binFloatValues); \
-      (totalRead) += binFloatBytesPerKey;                                                    \
-    }                                                                                        \
-    return 1;                                                                                \
-  } while (0)
-
-void WriteBinFloatKeyFrames(const MDLKEYTRACK<float> &track, DWORD magic, CMsgBuffer &buffer) {
-  if (!track.keys.Count()) {
-    return;
-  }
-  buffer.AddDword(magic);
-  buffer.AddUint(track.keys.Count());
-  buffer.AddUint(track.type);
-  buffer.AddUint(track.globalSeqId);
-  UINT values = track.type > TRACK_LINEAR ? 3 : 1;
-  for (UINT i = 0; i < track.keys.Count(); ++i) {
-    const MDLKEYFRAME<float> &key = track.keys.Ptr()[i];
-    buffer.AddInt(key.time);
-    buffer.AddFloatArray(&key.value, values);
-  }
-}
-
-int ReadBinFloatKeyFrames(MDLKEYTRACK<float> &track, CMsgBuffer &buffer, UINT &totalRead) {
-  READ_BIN_FLOAT_KEYFRAMES(track, buffer, totalRead, 1, float);
-}
-
-int ReadBinFloatKeyFrames(MDLKEYTRACK<C3Color> &track, CMsgBuffer &buffer, UINT &totalRead) {
-  READ_BIN_FLOAT_KEYFRAMES(track, buffer, totalRead, 3, C3Color);
-}
-
-int ReadBinFloatKeyFrames(MDLKEYTRACK<NTempest::C3Vector> &track, CMsgBuffer &buffer, UINT &totalRead) {
-  READ_BIN_FLOAT_KEYFRAMES(track, buffer, totalRead, 3, NTempest::C3Vector);
-}
-
-#undef READ_BIN_FLOAT_KEYFRAMES
-
-BOOL ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &track, CMsgBuffer &buffer, UINT &totalRead) {
-  if (buffer.Bytes() < 8) {
-    return 0;
-  }
-  UINT count = buffer.GetUint();
-  totalRead += 4;
-  if (!count) {
-    return 0;
-  }
-  buffer.GetUint();
-  track.globalSeqId = buffer.GetUint();
-  totalRead += 8;
-  if (count * 8 > static_cast<UINT>(buffer.Bytes())) {
-    return 0;
-  }
-  track.keys.SetCount(count);
-  for (UINT i = 0; i < count; ++i) {
-    MDLINTKEY &key = track.keys.Ptr()[i];
-    key.time = buffer.GetInt();
-    key.value = buffer.GetUint();
-    totalRead += 8;
-  }
-  return 1;
-}
-
-void WriteBinUintKeyFrames(const MDLSIMPLEKEYTRACK<MDLINTKEY> &track, DWORD magic, CMsgBuffer &buffer) {
-  if (!track.keys.Count()) {
-    return;
-  }
-  buffer.AddDword(magic);
-  buffer.AddUint(track.keys.Count());
-  buffer.AddUint(0);
-  buffer.AddUint(track.globalSeqId);
-  for (UINT i = 0; i < track.keys.Count(); ++i) {
-    const MDLINTKEY &key = track.keys.Ptr()[i];
-    buffer.AddInt(key.time);
-    buffer.AddUintArray(&key.value, 1);
-  }
+  buf.GetData(size);
+  totalRead += size;
 }
 
 UINT GetBinGenObjectSize(const MDLGENOBJECT &obj) {
@@ -528,6 +333,107 @@ UINT GetBinGenObjectSize(const MDLGENOBJECT &obj) {
     size += 16 + obj.scalekeys.keys.Count() * (4 + dataSize);
   }
   return size;
+}
+
+BOOL WriteBinGenObject(const MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *status) {
+  buf.AddUint(GetBinGenObjectSize(obj));
+  buf.AddTcharArray(obj.name, 80, 1);
+  buf.AddUint(obj.objectId);
+  buf.AddUint(obj.parentId);
+  buf.AddUint(obj.flags);
+  WriteBinFloatKeyFrames(obj.transkeys, 'RTGK', buf);
+  WriteBinQuatKeyFrames(obj.rotkeys, 'TRGK', buf);
+  WriteBinFloatKeyFrames(obj.scalekeys, 'CSGK', buf);
+  return 1;
+}
+
+BOOL ReadBinGenObject(MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *status, UINT &totalRead) {
+  if (!status) {
+    return 0;
+  }
+  UINT totalSize = buf.GetUint();
+  UINT localBytesRead = 4;
+  buf.GetTcharArray(obj.name, 80);
+  localBytesRead += 80;
+  obj.objectId = buf.GetUint();
+  obj.parentId = buf.GetUint();
+  obj.flags = buf.GetUint();
+  localBytesRead += 12;
+  while (localBytesRead < totalSize) {
+    DWORD tag = buf.GetDword();
+    localBytesRead += 4;
+    switch (tag) {
+      case 'RTGK':
+        if (!ReadBinFloatKeyFrames(obj.transkeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Could not read trans keys in gen object.\n");
+          return 0;
+        }
+        break;
+      case 'TRGK':
+        if (!ReadBinQuatKeyFrames(obj.rotkeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Could not read rot keys in gen object.\n");
+          return 0;
+        }
+        break;
+      case 'CSGK':
+        if (!ReadBinFloatKeyFrames(obj.scalekeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Could not read scale keys in gen object.\n");
+          return 0;
+        }
+        break;
+      default:
+        SkipUnknown(buf, localBytesRead);
+        break;
+    }
+    if (localBytesRead > totalSize) {
+      status->FatalOverran("Genobject keys", -1);
+      return 0;
+    }
+  }
+  totalRead += localBytesRead;
+  return 1;
+}
+
+void MDLBASE::RebuildObjectPtrs() {
+  memset(objects.Ptr(), 0, objects.Count() * sizeof(MDLGENOBJECT *));
+  UINT numElements;
+  UINT i;
+  numElements = bones.Count();
+  for (i = 0; i < numElements; ++i) {
+    objects[bones[i].objectId] = &bones[i];
+  }
+  numElements = lights.Count();
+  for (i = 0; i < numElements; ++i) {
+    objects[lights[i].objectId] = &lights[i];
+  }
+  numElements = helpers.Count();
+  for (i = 0; i < numElements; ++i) {
+    objects[helpers[i].objectId] = &helpers[i];
+  }
+  numElements = attachments.Count();
+  for (i = 0; i < numElements; ++i) {
+    objects[attachments[i].objectId] = &attachments[i];
+  }
+  numElements = particleEmitters.Count();
+  for (i = 0; i < numElements; ++i) {
+    objects[particleEmitters[i].objectId] = &particleEmitters[i];
+  }
+  numElements = events.Count();
+  for (i = 0; i < numElements; ++i) {
+    objects[events[i].objectId] = &events[i];
+  }
+  numElements = particleEmitters2.Count();
+  for (i = 0; i < numElements; ++i) {
+    objects[particleEmitters2[i].objectId] = &particleEmitters2[i];
+  }
+  numElements = hitTestShapes.Count();
+  for (i = 0; i < numElements; ++i) {
+    objects[hitTestShapes[i].objectId] = &hitTestShapes[i];
+  }
+  numElements = ribbonEmitters.Count();
+  for (i = 0; i < numElements; ++i) {
+    objects[ribbonEmitters[i].objectId] = &ribbonEmitters[i];
+  }
 }
 
 void WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, DWORD magicParam, CMsgBuffer &buf) {
@@ -552,215 +458,119 @@ void WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes,
 }
 
 BOOL ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
-  if (buf.Bytes() < 12) {
+  if (buf.Bytes() < 3 * sizeof(UINT)) {
     return 0;
   }
   UINT numKeys = buf.GetUint();
-  totalRead += 4;
+  totalRead += sizeof(UINT);
   if (!numKeys) {
     return 0;
   }
   keyframes.type = static_cast<MDLTRACKTYPE>(buf.GetUint());
-  totalRead += 4;
+  totalRead += sizeof(UINT);
   keyframes.globalSeqId = buf.GetUint();
-  totalRead += 4;
+  totalRead += sizeof(UINT);
   keyframes.keys.SetCount(numKeys);
 
   MDLKEYFRAME<NTempest::C4Quaternion> *key = keyframes.keys.Ptr();
-  if ((keyframes.type > TRACK_LINEAR ? 28 : 12) * numKeys > buf.Bytes()) {
+  int                                  keySize = sizeof(int) + sizeof(LONGLONG);
+  if (keyframes.type > TRACK_LINEAR) {
+    keySize = sizeof(int) + 3 * sizeof(LONGLONG);
+  }
+  if (static_cast<int>(keySize * numKeys) > buf.Bytes()) {
     return 0;
   }
 
   for (UINT i = numKeys; i; --i, ++key) {
     key->time = buf.GetInt();
-    totalRead += 4;
+    totalRead += sizeof(int);
     key->value = NTempest::C4QuaternionCompressed(buf.GetLongLong());
-    totalRead += 8;
+    totalRead += sizeof(LONGLONG);
     if (keyframes.type > TRACK_LINEAR) {
       key->inTan = NTempest::C4QuaternionCompressed(buf.GetLongLong());
-      totalRead += 8;
       key->outTan = NTempest::C4QuaternionCompressed(buf.GetLongLong());
-      totalRead += 8;
+      totalRead += 2 * sizeof(LONGLONG);
     }
   }
   return 1;
 }
 
-BOOL WriteBinGenObject(const MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *) {
-  buf.AddUint(GetBinGenObjectSize(obj));
-  buf.AddTcharArray(obj.name, 80, 1);
-  buf.AddUint(obj.objectId);
-  buf.AddUint(obj.parentId);
-  buf.AddUint(obj.flags);
-
-  if (obj.transkeys.keys.Count()) {
-    buf.AddDword('RTGK');
-    buf.AddUint(obj.transkeys.keys.Count());
-    buf.AddUint(obj.transkeys.type);
-    buf.AddUint(obj.transkeys.globalSeqId);
-    UINT values = obj.transkeys.type > TRACK_LINEAR ? 9 : 3;
-    for (UINT i = 0; i < obj.transkeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = obj.transkeys.keys[i];
-      buf.AddInt(key.time);
-      buf.AddFloatArray(&key.value.x, values);
-    }
-  }
-  WriteBinQuatKeyFrames(obj.rotkeys, 'RTRK', buf);
-  if (obj.scalekeys.keys.Count()) {
-    buf.AddDword('CSGK');
-    buf.AddUint(obj.scalekeys.keys.Count());
-    buf.AddUint(obj.scalekeys.type);
-    buf.AddUint(obj.scalekeys.globalSeqId);
-    UINT values = obj.scalekeys.type > TRACK_LINEAR ? 9 : 3;
-    for (UINT i = 0; i < obj.scalekeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = obj.scalekeys.keys[i];
-      buf.AddInt(key.time);
-      buf.AddFloatArray(&key.value.x, values);
-    }
-  }
-  return 1;
-}
-
-BOOL ReadBinGenObject(MDLGENOBJECT &object, CMsgBuffer &buffer, CMDLStatus *status, UINT &totalRead) {
-  if (!status) {
+UINT GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes) {
+  if (!keyframes.keys.Count()) {
     return 0;
   }
-  UINT totalSize = buffer.GetUint();
-  buffer.GetTcharArray(object.name, 80);
-  object.objectId = buffer.GetUint();
-  object.parentId = buffer.GetUint();
-  object.flags = buffer.GetUint();
-  UINT localRead = 96;
-
-  while (localRead < totalSize) {
-    DWORD tag = buffer.GetDword();
-    localRead += 4;
-    if (tag == 'RTGK' || tag == 'CSGK') {
-      MDLKEYTRACK<NTempest::C3Vector> &track = tag == 'RTGK' ? object.transkeys : object.scalekeys;
-      if (buffer.Bytes() < 12) {
-        status->Add(STATUS_ERROR, tag == 'RTGK' ? "Could not read Translation keyframes.\n" : "Could not read Scaling keyframes.\n");
-        return 0;
-      }
-      UINT count = buffer.GetUint();
-      localRead += 4;
-      if (!count) {
-        status->Add(STATUS_ERROR, tag == 'RTGK' ? "Could not read Translation keyframes.\n" : "Could not read Scaling keyframes.\n");
-        return 0;
-      }
-      track.type = static_cast<MDLTRACKTYPE>(buffer.GetUint());
-      track.globalSeqId = buffer.GetUint();
-      localRead += 8;
-      track.keys.SetCount(count);
-      UINT values = track.type > TRACK_LINEAR ? 9 : 3;
-      UINT bytesPerKey = 4 + 4 * values;
-      if (count * bytesPerKey > static_cast<UINT>(buffer.Bytes())) {
-        status->Add(STATUS_ERROR, tag == 'RTGK' ? "Could not read Translation keyframes.\n" : "Could not read Scaling keyframes.\n");
-        return 0;
-      }
-      for (UINT i = 0; i < count; ++i) {
-        track.keys[i].time = buffer.GetInt();
-        buffer.GetFloatArray(&track.keys[i].value.x, values);
-        localRead += bytesPerKey;
-      }
-    } else if (tag == 'RTRK') {
-      if (!ReadBinQuatKeyFrames(object.rotkeys, buffer, localRead)) {
-        status->Add(STATUS_ERROR, "Could not read Rotation keyframes.\n");
-        return 0;
-      }
-    } else {
-      SkipUnknown(buffer, localRead);
-    }
-    if (localRead > totalSize) {
-      status->FatalOverran("Generic Object", -1);
-      return 0;
-    }
+  UINT dataSize = 8;
+  if (keyframes.type > TRACK_LINEAR) {
+    dataSize = 24;
   }
-  totalRead += localRead;
-  return 1;
+  return (dataSize + 4) * keyframes.keys.Count() + 16;
 }
 
-void ReadBinObjectEnd(MDLDATA &data, MDLGENOBJECT *obj, DWORD listIndex, DWORD listMask) {
-  FATALASSERT(obj);
-
-  obj->objectId = data.objects.Count();
-  if (obj->objectId >= data.objects.Count()) {
-    UINT oldCount = data.objects.Count();
-    data.objects.SetCount(obj->objectId + 1);
-    for (UINT i = oldCount; i < data.objects.Count(); ++i) {
-      data.objects[i] = 0;
-    }
-  }
-  data.objects[obj->objectId] = reinterpret_cast<MDLGENOBJECT *>(listMask | listIndex);
-}
-
-BOOL ReadObjectPtrs(MDLDATA *data, CMDLStatus *status) {
-  for (UINT i = 0; i < data->objects.Count(); ++i) {
-    UINT encoded = reinterpret_cast<UINT>(data->objects[i]);
-    UINT index = encoded & 0x0FFFFFFF;
-
-    switch (encoded & 0xF0000000) {
-      case 0x10000000:
-        data->objects[i] = &data->helpers[index];
+UINT ReadIntTrackHeader(Parser &parse, MDLSIMPLEKEYTRACK<MDLINTKEY> *keyTrack, LPCSTR *tokentext, UTokenData *value) {
+  for (;;) {
+    UINT token = parse.Token(tokentext, value);
+    switch (token) {
+      case 0x140:
         break;
-      case 0x20000000:
-        data->objects[i] = &data->lights[index];
-        break;
-      case 0x30000000:
-        data->objects[i] = &data->bones[index];
-        break;
-      case 0x40000000:
-        data->objects[i] = &data->attachments[index];
-        break;
-      case 0x50000000:
-        data->objects[i] = &data->particleEmitters[index];
-        break;
-      case 0x60000000:
-        data->objects[i] = &data->events[index];
-        break;
-      case 0x70000000:
-        data->objects[i] = &data->particleEmitters2[index];
-        break;
-      case 0x80000000:
-        data->objects[i] = &data->hitTestShapes[index];
-        break;
-      case 0x90000000:
-        data->objects[i] = &data->ribbonEmitters[index];
+      case 0x152:
+        if (keyTrack) {
+          keyTrack->globalSeqId = parse.ExpectInt();
+        } else {
+          parse.ExpectInt();
+        }
         break;
       default:
-        status->Add(STATUS_FATAL, "Found gaps in sequence of object ID's. Unable to fix up object pointers.\n");
-        return 0;
+        return token;
     }
+    parse.Expect(',');
   }
-  return 1;
 }
 
-void MDLBASE::RebuildObjectPtrs() {
-  UINT i;
-  for (i = 0; i < bones.Count(); ++i) {
-    objects[bones[i].objectId] = &bones[i];
+void WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer) {
+  UINT numKeys = keyframes.keys.Count();
+  if (!numKeys) {
+    return;
   }
-  for (i = 0; i < lights.Count(); ++i) {
-    objects[lights[i].objectId] = &lights[i];
+  MDL::WriteLine(buffer, "%s%s %u {\n", indent, MDL::TokenText(title), numKeys);
+  if (keyframes.globalSeqId != static_cast<UINT>(-1)) {
+    MDL::WriteLine(buffer, "%s\t%s %d,\n", indent, MDL::TokenText(0x152), keyframes.globalSeqId);
   }
-  for (i = 0; i < helpers.Count(); ++i) {
-    objects[helpers[i].objectId] = &helpers[i];
+  const MDLINTKEY *key = keyframes.keys.Ptr();
+  for (UINT i = numKeys; i; --i, ++key) {
+    MDL::WriteLine(buffer, "%s\t%d: %u,\n", indent, key->time, key->value);
   }
-  for (i = 0; i < attachments.Count(); ++i) {
-    objects[attachments[i].objectId] = &attachments[i];
+  MDL::WriteLine(buffer, "%s}\n", indent);
+}
+
+int ReadBinFloatKeyFrames(MDLKEYTRACK<NTempest::C3Vector> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
+  if (buf.Bytes() < 3 * sizeof(UINT)) {
+    return 0;
   }
-  for (i = 0; i < particleEmitters.Count(); ++i) {
-    objects[particleEmitters[i].objectId] = &particleEmitters[i];
+  UINT numKeys = buf.GetUint();
+  totalRead += sizeof(UINT);
+  if (!numKeys) {
+    return 0;
   }
-  for (i = 0; i < events.Count(); ++i) {
-    objects[events[i].objectId] = &events[i];
+  keyframes.type = static_cast<MDLTRACKTYPE>(buf.GetUint());
+  totalRead += sizeof(UINT);
+  keyframes.globalSeqId = buf.GetUint();
+  totalRead += sizeof(UINT);
+  keyframes.keys.SetCount(numKeys);
+  MDLKEYFRAME<NTempest::C3Vector> *key = keyframes.keys.Ptr();
+  int                              keySize = sizeof(int) + sizeof(NTempest::C3Vector);
+  UINT                             elements = sizeof(NTempest::C3Vector) / sizeof(float);
+  if (keyframes.type > TRACK_LINEAR) {
+    keySize = sizeof(int) + 3 * sizeof(NTempest::C3Vector);
+    elements = 3 * sizeof(NTempest::C3Vector) / sizeof(float);
   }
-  for (i = 0; i < particleEmitters2.Count(); ++i) {
-    objects[particleEmitters2[i].objectId] = &particleEmitters2[i];
+  if (static_cast<int>(keySize * numKeys) > buf.Bytes()) {
+    return 0;
   }
-  for (i = 0; i < hitTestShapes.Count(); ++i) {
-    objects[hitTestShapes[i].objectId] = &hitTestShapes[i];
+  for (UINT i = numKeys; i; --i, ++key) {
+    key->time = buf.GetInt();
+    totalRead += sizeof(int);
+    buf.GetFloatArray(reinterpret_cast<float *>(&key->value), elements);
+    totalRead += elements * sizeof(float);
   }
-  for (i = 0; i < ribbonEmitters.Count(); ++i) {
-    objects[ribbonEmitters[i].objectId] = &ribbonEmitters[i];
-  }
+  return 1;
 }

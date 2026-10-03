@@ -17,12 +17,14 @@
 
 #include <Base/CDataStore.h>
 #include <Console/ConsoleClient.h>
+#include <Console/ConsoleVar.h>
 #include <FrameScript/FrameScript.h>
 #include <storm.h>
 #include <stpl.h>
 
 #include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
+#include "DB/DBClient/AutoCode/EmotesTextDataRec.h"
 #include "DB/DBClient/AutoCode/EmotesTextRec.h"
 #include "DB/DBClient/AutoCode/LanguageWordsRec.h"
 #include "DB/DBClient/AutoCode/LanguagesRec.h"
@@ -32,6 +34,7 @@
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Net/NetClient/NetClient.h>
+#include <regex/regex.h>
 
 #include <ctype.h>
 #include <lauxlib.h>
@@ -45,6 +48,7 @@ NODEDECL(PENDINGUSERLIST) {
 
 struct ChatChannel {
   ~ChatChannel() {
+    pendingNames.Clear();
   }
   int  localID;
   char name[128];
@@ -54,12 +58,13 @@ struct ChatChannel {
 
 
 NODEDECL(PENDINGCHAT) {
-  PENDINGCHAT() {
+  PENDINGCHAT() : text(0) {
   }
 
   PENDINGCHAT(const PENDINGCHAT &);
 
   ~PENDINGCHAT() {
+    FREEIFUSED(text);
   }
 
   int       slashCmd;
@@ -74,12 +79,13 @@ NODEDECL(PENDINGCHAT) {
 };
 
 NODEDECL(PENDINGTEXTEMOTE) {
-  PENDINGTEXTEMOTE() {
+  PENDINGTEXTEMOTE() : target(0) {
   }
 
   PENDINGTEXTEMOTE(const PENDINGTEXTEMOTE &);
 
   ~PENDINGTEXTEMOTE() {
+    FREEIFUSED(target);
   }
 
   DWORDLONG sender;
@@ -117,8 +123,13 @@ struct WORDLIST : public TSHashObject<WORDLIST, HASHKEY_LANGUAGE> {
   TSGrowableArray<const LanguageWordsRec *> m_words;
 };
 
+static const char s_msgGetHeaderTokens[30][32] = {"CHAT_SAY_GET",    "CHAT_PARTY_GET",          "CHAT_GUILD_GET", "CHAT_OFFICER_GET",
+                                                  "CHAT_YELL_GET",   "CHAT_WHISPER_GET",        "CHAT_WHISPER_INFORM_GET",
+                                                  "CHAT_EMOTE_GET",  "CHAT_SYSTEM_GET",         "CHAT_SAY_GET",   "CHAT_YELL_GET"};
 static const UINT s_events[30] = {217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231,
                                   232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 338, 339, 340, 341, 342};
+static const char s_replacementChars[9] = "!@#$%^&*";
+static UINT       s_replacementIndex;
 static TSGrowableArray<ChatChannel> s_channels;
 static LISTDECL(PENDINGCHAT, s_pendingChat);
 static LISTDECL(PENDINGTEXTEMOTE, s_pendingTextEmote);
@@ -127,6 +138,7 @@ static int                                     s_loggingEnabled;
 static HSLOG                                   s_logHandle;
 
 DWORDLONG Script_GetGUIDFromName(LPCSTR name);
+extern TSFixedArray<regex_t> g_profanityTokens;
 
 int CGChat::m_paused = 1;
 int CGChat::m_filterChat = 1;
@@ -135,37 +147,30 @@ void CGChat::InitializeGame() {
   UINT numEntries = g_languageWordsDB.GetNumRecords();
   for (UINT i = 0; i < numEntries; ++i) {
     const LanguageWordsRec *wordRec = g_languageWordsDB.GetRecordByIndex(i);
-    UINT                    len = SStrLen(wordRec->m_word);
-    HASHKEY_LANGUAGE        key(wordRec->m_languageID, len);
-    WORDLIST               *wordList = s_wordList.Ptr(wordRec->m_languageID ^ (len << 16), key);
-    if (!wordList) {
-      wordList = s_wordList.New(wordRec->m_languageID ^ (len << 16), key, 0, 0);
+    if (wordRec && wordRec->m_word && *wordRec->m_word) {
+      UINT      len = SStrLen(wordRec->m_word);
+      WORDLIST *wordList = s_wordList.Ptr(wordRec->m_languageID, HASHKEY_LANGUAGE(len));
+      if (!wordList) {
+        wordList = s_wordList.New(wordRec->m_languageID, HASHKEY_LANGUAGE(len), 0, 0);
+      }
+      *wordList->m_words.New() = wordRec;
     }
-    *wordList->m_words.New() = wordRec;
+  }
+
+  CVar *cvar = CVar::Lookup("profanityFilter");
+  if (cvar && !cvar->GetInt()) {
+    m_filterChat = 0;
   }
 }
 
 void CGChat::ShutdownGame() {
-  s_wordList.Destroy();
-
-  PENDINGCHAT *pending;
-  while ((pending = s_pendingChat.Head()) != 0) {
-    SMemFree(pending->text, __FILE__, __LINE__, 0);
-    s_pendingChat.UnlinkNode(pending);
-    s_pendingChat.DeleteNode(pending);
+  if (s_logHandle) {
+    SLogClose(s_logHandle);
+    s_logHandle = 0;
   }
-
-  PENDINGTEXTEMOTE *pendingEmote;
-  while ((pendingEmote = s_pendingTextEmote.Head()) != 0) {
-    SMemFree(pendingEmote->target, __FILE__, __LINE__, 0);
-    s_pendingTextEmote.UnlinkNode(pendingEmote);
-    s_pendingTextEmote.DeleteNode(pendingEmote);
-  }
-
-  for (UINT i = 0; i < s_channels.Count(); ++i) {
-    s_channels[i].pendingNames.Clear();
-  }
-  s_channels.Clear();
+  s_wordList.Clear();
+  s_pendingChat.Clear();
+  s_channels.SetCount(0);
 }
 
 void CGChat::EnterWorld() {
@@ -178,107 +183,250 @@ void CGChat::LeaveWorld() {
 }
 
 static void SendChatEvent(LPCSTR text, SLASH_COMMAND_ID type, LPCSTR player, UINT language, LPCSTR channel, LPCSTR player2, LPCSTR specialFlag) {
-  if (type >= 30) {
-    return;
+  if (type < NUM_SLASH_CMDS) {
+    LPCSTR              name = "";
+    const LanguagesRec *rec = g_languagesDB.GetRecord(language);
+    if (rec) {
+      name = rec->m_name_lang[CURRENT_LANGUAGE];
+    }
+    if (type == SLASH_CMD_WHISPER) {
+      CGTutorial::TriggerTutorial(TUTORIAL_TELLS);
+    }
+    FrameScript_SignalEvent(
+        s_events[type],
+        "%s%s%s%s%s%s",
+        text ? text : "",
+        player ? player : "",
+        name,
+        channel ? channel : "",
+        player2 ? player2 : "",
+        specialFlag ? specialFlag : ""
+    );
   }
-
-  if (!text)
-    text = "";
-  if (!player)
-    player = "";
-  if (!channel)
-    channel = "";
-  if (!player2)
-    player2 = "";
-  if (!specialFlag)
-    specialFlag = "";
-
-  FrameScript_SignalEvent(s_events[type], "%s%s%s%s%s%s", text, player, "", channel, player2, specialFlag);
 }
 
 void CGChat::AddChatMessage(LPCSTR text, SLASH_COMMAND_ID type, LPCSTR player, UINT language, LPCSTR channel, LPCSTR player2, LPCSTR specialFlag) {
-  if (s_loggingEnabled && s_logHandle) {
-    SLogWrite(s_logHandle, "%s", text ? text : "");
+  char translated[256];
+  char msg[352];
+
+  FATALASSERT(type < NUM_SLASH_CMDS);
+  if (type == SLASH_CMD_EMOTE || type == SLASH_CMD_MONSTER_EMOTE || type == SLASH_CMD_SYSTEM) {
+    language = 0;
   }
-  SendChatEvent(text, type, player, language, channel, player2, specialFlag);
+  if (type == SLASH_CMD_EMOTE && !*text) {
+    text = FrameScript_GetText("CHAT_EMOTE_UNKNOWN", -1, GENDER_NOT_APPLICABLE);
+  }
+
+  CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (language && player) {
+    UINT skill;
+    playerPtr->GetLanguageSkill(language, skill);
+    TranslateMessage(language, skill, text, translated, sizeof(translated), 0);
+  } else {
+    SStrCopy(translated, text, sizeof(translated));
+  }
+
+  char channelWithNumber[138] = "";
+  if (channel && *channel) {
+    if (GetChannelID(channel)) {
+      SStrPrintf(channelWithNumber, sizeof(channelWithNumber), "%d. %s", GetChannelID(channel), channel);
+    } else {
+      SStrCopy(channelWithNumber, channel, sizeof(channelWithNumber));
+    }
+  }
+
+  if (m_filterChat) {
+    UINT count = g_profanityTokens.Count();
+    for (UINT i = 0; i < count; ++i) {
+      char      *str = translated;
+      regmatch_t match;
+      while (!regexec(&g_profanityTokens[i], str, 1, &match, 0) && match.rm_so >= 0) {
+        str += match.rm_so;
+        for (int len = match.rm_eo - match.rm_so; len > 0; --len) {
+          *str = s_replacementChars[s_replacementIndex];
+          if (++s_replacementIndex >= sizeof(s_replacementChars) - 1) {
+            s_replacementIndex = 0;
+          }
+          ++str;
+        }
+      }
+    }
+  }
+
+  SendChatEvent(translated, type, player, language, channelWithNumber, player2, specialFlag);
+
+  if (s_loggingEnabled) {
+    char token[32];
+    LPCSTR format = FrameScript_GetText(s_msgGetHeaderTokens[type], -1, GENDER_NOT_APPLICABLE);
+    SStrCopy(token, format, sizeof(token));
+
+    char header[112];
+    if (type != SLASH_CMD_SYSTEM) {
+      SStrPrintf(header, sizeof(header), token, player ? player : "");
+    } else {
+      SStrCopy(header, token, sizeof(header));
+    }
+
+    if (language && playerPtr && language != playerPtr->GetDefaultLanguage()) {
+      char langBuf[32];
+      SStrPrintf(langBuf, sizeof(langBuf), "[%s] ", g_languagesDB.GetRecord(language)->m_name_lang[CURRENT_LANGUAGE]);
+      SStrPack(header, langBuf, sizeof(header));
+    }
+
+    SStrPrintf(msg, sizeof(msg), "%s%s", header, translated);
+    SLogWrite(s_logHandle, msg);
+  }
 }
 
 void CGChat::AddTextEmoteMessage(const DWORDLONG &senderGUID, int textEmoteID, LPCSTR target) {
-  NameCache *nc = const_cast<NameCache *>(g_nameDBCache.GetRecord(senderGUID, senderGUID, 0, 0));
+  VALIDATEBEGIN;
+  VALIDATE(target);
+  VALIDATEENDVOID;
+
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
+    return;
+  }
+  const NameCache *nc = g_nameDBCache.GetRecord(senderGUID, 0, 0, 0);
   if (!nc) {
+    return;
+  }
+  const EmotesTextRec *rec = g_emotesTextDB.GetRecord(textEmoteID);
+  if (!rec) {
+    return;
+  }
+
+  int senderName = 1;
+  int targetName = 1;
+  int index = 0;
+  if (senderGUID == ClntObjMgrGetActivePlayer()) {
+    index = 2;
+    senderName = 0;
+  } else if (!SStrCmp(target, player->GetUnitName(), INT_MAX)) {
+    index = 1;
+    targetName = 0;
+  }
+  if (!*target) {
+    index |= 4;
+  }
+
+  const EmotesTextDataRec *data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[(nc->m_sex == 1 ? 8 : 0) | index]);
+  if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
+    data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[index]);
+    if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
+      index |= 4;
+      data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[(nc->m_sex == 1 ? 8 : 0) | index]);
+      if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
+        data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[index]);
+      }
+    }
+  }
+  if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
     return;
   }
 
   char buffer[256];
-  if (target && *target) {
-    SStrPrintf(buffer, sizeof(buffer), "%s %s", nc->m_name, target);
+  if (senderName) {
+    if (targetName) {
+      SStrPrintf(buffer, sizeof(buffer), data->m_text_lang[CURRENT_LANGUAGE], nc->m_name, target);
+    } else {
+      SStrPrintf(buffer, sizeof(buffer), data->m_text_lang[CURRENT_LANGUAGE], nc->m_name);
+    }
+  } else if (targetName) {
+    SStrPrintf(buffer, sizeof(buffer), data->m_text_lang[CURRENT_LANGUAGE], target);
   } else {
-    SStrCopy(buffer, nc->m_name, sizeof(buffer));
+    SStrPrintf(buffer, sizeof(buffer), data->m_text_lang[CURRENT_LANGUAGE]);
   }
-  AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(8), nc->m_name, 0, 0, 0, 0);
+  SendChatEvent(buffer, SLASH_CMD_TEXT_EMOTE, nc->m_name, 0, 0, 0, 0);
 }
 
 static void CopyWordCase(char *buffer, LPCSTR token, LPCSTR word, UINT maxlen) {
-  while (*word && maxlen > 1) {
-    if (*token && isupper(static_cast<BYTE>(*token))) {
-      *buffer = static_cast<char>(toupper(static_cast<BYTE>(*word)));
-    } else {
-      *buffer = static_cast<char>(tolower(static_cast<BYTE>(*word)));
-    }
+  FATALASSERT(maxlen);
+  --maxlen;
+  while (*buffer && maxlen) {
     ++buffer;
-    ++token;
+    --maxlen;
+  }
+  while (*word && *token && maxlen) {
+    if (isupper(*token)) {
+      *buffer++ = toupper(*word);
+    } else {
+      *buffer++ = tolower(*word);
+    }
     ++word;
+    ++token;
     --maxlen;
   }
   *buffer = 0;
 }
 
 void CGChat::TranslateMessage(UINT language, UINT skill, LPCSTR text, char *buffer, UINT size, int passXML) {
-  if (!size) {
+  char token[256];
+
+  FATALASSERT(text);
+  FATALASSERT(buffer);
+  if (!language) {
+    SStrCopy(buffer, text, size);
     return;
   }
-  buffer[0] = 0;
-  if (!text || skill >= 300) {
-    SStrCopy(buffer, text ? text : "", size);
+  if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
+    SStrCopy(buffer, text, size);
+    return;
+  }
+  if (skill >= 300) {
+    SStrCopy(buffer, text, size);
     return;
   }
 
-  while (*text && SStrLen(buffer) + 1 < size) {
-    if (isspace(static_cast<BYTE>(*text)) || (passXML && *text == '<')) {
-      char separator[2] = {*text++, 0};
-      SStrPack(buffer, separator, size);
-      continue;
-    }
-
-    char token[256];
-    UINT len = 0;
-    while (text[len] && !isspace(static_cast<BYTE>(text[len])) && len + 1 < sizeof(token)) {
-      token[len] = text[len];
-      ++len;
-    }
-    token[len] = 0;
-    text += len;
-
-    UINT                    hash = SStrHash(token, 0, 0);
-    UINT                    count = 0;
-    const LanguageWordsRec *replacement = 0;
-    for (UINT i = 0; i < g_languageWordsDB.GetNumRecords(); ++i) {
-      const LanguageWordsRec *word = g_languageWordsDB.GetRecordByIndex(i);
-      if (word && word->m_languageID == static_cast<int>(language) && SStrLen(word->m_word) == len) {
-        ++count;
-        if (hash % count == 0) {
-          replacement = word;
-        }
+  *buffer = 0;
+  for (;;) {
+    while (*text && !isalpha(*text)) {
+      if (*text == '<' && passXML) {
+        do {
+          token[0] = *text;
+          token[1] = 0;
+          SStrPack(buffer, token, size);
+          if (*text++ == '>') {
+            break;
+          }
+        } while (*text);
+      } else {
+        token[0] = *text++;
+        token[1] = 0;
+        SStrPack(buffer, token, size);
       }
     }
+    if (!*text) {
+      break;
+    }
 
-    if (replacement && hash % 300 >= skill) {
-      char translated[256];
-      CopyWordCase(translated, token, replacement->m_word, sizeof(translated));
-      SStrPack(buffer, translated, size);
+    char *space = const_cast<char *>(text);
+    while (*space && isalpha(*space)) {
+      ++space;
+    }
+
+    UINT len = min(static_cast<UINT>(space - text), 256);
+    SStrCopy(token, text, len + 1);
+    UINT hash = SStrHash(token, 0, 0);
+    if (hash % 300 >= skill) {
+      len = min(len, 18);
+      WORDLIST *wordList = s_wordList.Ptr(language, HASHKEY_LANGUAGE(len));
+      while (!wordList && len != 1) {
+        --len;
+        wordList = s_wordList.Ptr(language, HASHKEY_LANGUAGE(len));
+      }
+      if (wordList) {
+        UINT numWords = wordList->m_words.Count();
+        FATALASSERT(numWords);
+        const LanguageWordsRec *wordRec = wordList->m_words[hash % numWords];
+        CopyWordCase(buffer, token, wordRec->m_word, size);
+      } else {
+        SStrPack(buffer, token, size);
+      }
     } else {
       SStrPack(buffer, token, size);
     }
+    text = space;
   }
 }
 
@@ -287,40 +435,44 @@ void CGChat::UpdateLanguages() {
 }
 
 void CGChat::AddChannel(LPCSTR name) {
-  int index;
-  for (index = 0; index < s_channels.Count(); ++index) {
-    if (!s_channels[index].localID) {
-      break;
+  for (UINT i = 0; i < s_channels.Count(); ++i) {
+    if (!s_channels[i].localID) {
+      s_channels[i].localID = i + 1;
+      SStrCopy(s_channels[i].name, name, sizeof(s_channels[i].name));
+      return;
     }
   }
 
-  ChatChannel *channel = static_cast<UINT>(index) < s_channels.Count() ? &s_channels[index] : s_channels.New();
-  channel->localID = index + 1;
-  SStrCopy(channel->name, name, sizeof(channel->name));
+  int index = s_channels.Count();
+  s_channels.SetCount(index + 1);
+  s_channels[index].localID = index + 1;
+  SStrCopy(s_channels[index].name, name, sizeof(s_channels[index].name));
 }
 
 void CGChat::RemoveChannel(LPCSTR name) {
-  for (UINT index = 0; index < s_channels.Count(); ++index) {
-    ChatChannel &channel = s_channels[index];
-    if (!SStrCmpI(channel.name, name, 0x7FFFFFFF)) {
-      channel.localID = 0;
-      channel.name[0] = 0;
+  for (UINT i = 0; i < s_channels.Count(); ++i) {
+    if (!SStrCmpI(s_channels[i].name, name, INT_MAX)) {
+      s_channels[i].localID = 0;
+      s_channels[i].name[0] = 0;
       return;
     }
   }
 }
 
 int CGChat::GetChannelID(LPCSTR name) {
-  ChatChannel *channel = GetChannel(name);
-  return channel ? channel->localID : 0;
+  for (UINT i = 0; i < s_channels.Count(); ++i) {
+    if (!SStrCmpI(s_channels[i].name, name, INT_MAX)) {
+      return s_channels[i].localID;
+    }
+  }
+  return 0;
 }
 
 LPCSTR CGChat::GetChannelName(int localID) {
-  if (localID < 1 || static_cast<UINT>(localID) > s_channels.Count()) {
-    return 0;
+  if (localID >= 1 && localID <= static_cast<int>(s_channels.Count()) && s_channels[localID - 1].localID == localID) {
+    return s_channels[localID - 1].name;
   }
-  ChatChannel &channel = s_channels[localID - 1];
-  return channel.localID == localID ? channel.name : 0;
+  return 0;
 }
 
 ChatChannel *CGChat::GetChannel(LPCSTR name) {
@@ -333,19 +485,25 @@ ChatChannel *CGChat::GetChannel(LPCSTR name) {
 }
 
 void CGChat::ChannelNotify(CDataStore *msg) {
-  char             namebuffer[256] = "";
-  char             buffer[512] = "";
+  char             namebuffer[256];
+  char             buffer[512];
   char             channel[128];
-  LPCSTR           name[2] = {0, 0};
-  DWORDLONG        guid2 = 0;
-  BYTE             oldFlags = 0;
-  BYTE             newFlags = 0;
-  DWORDLONG        guid = 0;
+  LPCSTR           name[2];
+  DWORDLONG        guid2;
+  BYTE             oldFlags;
+  BYTE             newFlags;
+  DWORDLONG        guid;
   BYTE             type;
-  SLASH_COMMAND_ID eventType = static_cast<SLASH_COMMAND_ID>(9);
+  SLASH_COMMAND_ID eventType;
 
   msg->Get(type);
   msg->GetString(channel, sizeof(channel));
+  guid = 0;
+  guid2 = 0;
+  name[0] = 0;
+  name[1] = 0;
+  buffer[0] = 0;
+  eventType = static_cast<SLASH_COMMAND_ID>(9);
 
   switch (type) {
     case 0:
@@ -541,34 +699,48 @@ void CGChat::ChannelList(CDataStore *msg) {
 }
 
 void CGChat::DisplayPendingUserList(ChatChannel *channel) {
-  char line[256] = "";
+  char line[256];
   char buffer[58];
-  int  namesThisLine = 0;
+  int  namesThisLine;
 
-  ITERATELIST(PENDINGUSERLIST, channel->pendingNames, user) {
-    NameCache *nc = const_cast<NameCache *>(g_nameDBCache.GetRecord(user->guid, user->guid, 0, 0));
-    if (!nc)
-      return;
-
-    char marker = ' ';
-    if (user->flags & 1)
-      marker = '*';
-    else if (user->flags & 2)
-      marker = '@';
-    else if ((channel->channelFlags & 2) && !(user->flags & 4))
-      marker = '#';
-    SStrPrintf(buffer, sizeof(buffer), "%c%s", marker, nc->m_name);
-    if (SStrLen(line) + SStrLen(buffer) >= sizeof(line)) {
-      AddChatMessage(line, SLASH_CMD_SAY, 0, 0, channel->name, 0, 0);
-      line[0] = 0;
-      namesThisLine = 0;
+  {
+    ITERATELIST(PENDINGUSERLIST, channel->pendingNames, user) {
+      if (!g_nameDBCache.GetRecord(user->guid, 0, 0, 0)) {
+        return;
+      }
     }
-    if (namesThisLine++)
-      SStrPack(line + SStrLen(line), ",", sizeof(line) - SStrLen(line));
-    SStrPack(line + SStrLen(line), buffer, sizeof(line) - SStrLen(line));
   }
-  if (namesThisLine)
-    AddChatMessage(line, SLASH_CMD_SAY, 0, 0, channel->name, 0, 0);
+
+  line[0] = 0;
+  namesThisLine = 0;
+  ITERATELIST(PENDINGUSERLIST, channel->pendingNames, user) {
+    const NameCache *nc = g_nameDBCache.GetRecord(user->guid, 0, 0, 0);
+    if (nc) {
+      char marker = ' ';
+      if (user->flags & 1) {
+        marker = '*';
+      } else if (user->flags & 2) {
+        marker = '@';
+      } else if ((channel->channelFlags & 2) && !(user->flags & 4)) {
+        marker = '#';
+      }
+      SStrPrintf(buffer, sizeof(buffer), "%c%s", marker, nc->m_name);
+      if (SStrLen(buffer) + SStrLen(line) >= sizeof(line)) {
+        AddChatMessage(line, SLASH_CMD_LIST_CHANNEL, 0, 0, channel->name, 0, 0);
+        line[0] = 0;
+        namesThisLine = 0;
+      } else {
+        SStrPack(line, buffer, 0x7FFFFFFF);
+        if (user != channel->pendingNames.Tail()) {
+          SStrPack(line, ",", 0x7FFFFFFF);
+        }
+        ++namesThisLine;
+      }
+    }
+  }
+  if (namesThisLine) {
+    AddChatMessage(line, SLASH_CMD_LIST_CHANNEL, 0, 0, channel->name, 0, 0);
+  }
   channel->pendingNames.Clear();
 }
 
@@ -590,9 +762,9 @@ void CGChat::QueueChatText(
   pending->language = language;
   pending->waitingForUI = waitingForUI;
   pending->parse = parse;
-  SStrCopy(pending->channel, channel ? channel : "", sizeof(pending->channel));
+  SStrCopy(pending->channel, channel, sizeof(pending->channel));
   pending->guid2 = guid2;
-  SStrCopy(pending->specialFlag, specialFlag ? specialFlag : "", sizeof(pending->specialFlag));
+  SStrCopy(pending->specialFlag, specialFlag, sizeof(pending->specialFlag));
 }
 
 void CGChat::QueueTextEmote(const DWORDLONG &sender, int textEmoteID, LPCSTR target, int waitingForUI) {
@@ -603,57 +775,174 @@ void CGChat::QueueTextEmote(const DWORDLONG &sender, int textEmoteID, LPCSTR tar
   pending->waitingForUI = waitingForUI;
 }
 
-void CGChat::NameQueryCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
+extern bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
+
+void CGChat::NameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
+  for (PENDINGCHAT *node = s_pendingChat.Head(), *nodenext_node; (int)node > 0 ? ((nodenext_node = s_pendingChat.RawNext(node)), 1) : 0;
+       node = nodenext_node)
+  {
+    if (node->waitingForUI) {
+      continue;
+    }
+    if (node->guid != guid && node->guid2 != guid) {
+      continue;
+    }
+
+    const NameCache *nc[2];
+    nc[1] = 0;
+    nc[0] = g_nameDBCache.GetRecord(node->guid, 0, 0, 0);
+    if (node->guid2) {
+      nc[1] = g_nameDBCache.GetRecord(node->guid2, 0, 0, 0);
+    }
+
+    if (nc[0] && (!node->guid2 || nc[1])) {
+      CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(node->guid, __FILE__, __LINE__));
+      if (unit && (node->slashCmd == SLASH_CMD_SAY || node->slashCmd == SLASH_CMD_YELL || node->slashCmd == SLASH_CMD_PARTY)) {
+        char laughToken[32];
+        for (int index = 1;;) {
+          SStrPrintf(laughToken, sizeof(laughToken), "LAUGH_WORD%d", index++);
+          LPCSTR laugh = FrameScript_GetText(laughToken, -1, GENDER_NOT_APPLICABLE);
+          if (laugh && *laugh) {
+            if (SStrCmpI(laugh, node->text, INT_MAX)) {
+              continue;
+            }
+            unit->RequestTalkEmote(TALKANIM_LAUGH);
+            break;
+          }
+          if (node->slashCmd == SLASH_CMD_SAY || node->slashCmd == SLASH_CMD_YELL) {
+            TALKANIMATION talkAnim = TALKANIM_TALK;
+            UINT          len = SStrLen(node->text);
+            if (node->slashCmd == SLASH_CMD_YELL) {
+              talkAnim = TALKANIM_SHOUT;
+            } else if (len > 0) {
+              if (node->text[len - 1] == '?') {
+                talkAnim = TALKANIM_QUESTION;
+              } else if (node->text[len - 1] == '!') {
+                talkAnim = TALKANIM_EXCLAMATION;
+              }
+            }
+            unit->RequestTalkEmote(talkAnim);
+          }
+          break;
+        }
+      }
+
+      if (m_paused) {
+        node->waitingForUI = 1;
+        continue;
+      }
+
+      char buffer[512];
+      if (QuestParserParseText(node->text, buffer, sizeof(buffer), node->guid, 0)) {
+        AddChatMessage(
+            buffer, static_cast<SLASH_COMMAND_ID>(node->slashCmd), nc[0]->m_name, node->language, node->channel, nc[1]->m_name, node->specialFlag
+        );
+      }
+    } else if (!(node->guid == guid && !nc[0]) && !(node->guid2 == guid && !nc[1])) {
+      continue;
+    }
+    s_pendingChat.DeleteNode(node);
+  }
+
   for (UINT i = 0; i < s_channels.Count(); ++i) {
     if (!s_channels[i].pendingNames.IsEmpty()) {
       DisplayPendingUserList(&s_channels[i]);
     }
   }
-  GetPendingChatMessages();
 }
 
-void CGChat::TextEmoteNameQueryCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
-  ITERATELIST(PENDINGTEXTEMOTE, s_pendingTextEmote, pending) {
-    if (g_nameDBCache.GetRecord(pending->sender, pending->sender, 0, 0)) {
-      if (!m_paused) {
-        AddTextEmoteMessage(pending->sender, pending->textEmoteID, pending->target);
-      }
-      SMemFree(pending->target, __FILE__, __LINE__, 0);
-      ITERATE_DELETE
+void CGChat::TextEmoteNameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
+  for (PENDINGTEXTEMOTE *node = s_pendingTextEmote.Head(), *nodenext_node;
+       (int)node > 0 ? ((nodenext_node = s_pendingTextEmote.RawNext(node)), 1) : 0; node = nodenext_node)
+  {
+    if (node->waitingForUI) {
+      continue;
     }
+    if (node->sender != guid) {
+      continue;
+    }
+    if (g_nameDBCache.GetRecord(node->sender, 0, 0, 0)) {
+      if (m_paused) {
+        node->waitingForUI = 1;
+        continue;
+      }
+      AddTextEmoteMessage(node->sender, node->textEmoteID, node->target);
+    }
+    s_pendingTextEmote.DeleteNode(node);
   }
 }
 
 void CGChat::GetPendingChatMessages() {
-  if (m_paused)
+  if (m_paused) {
     return;
-  ITERATELIST(PENDINGCHAT, s_pendingChat, pending) {
-    NameCache *nc = pending->guid ? const_cast<NameCache *>(g_nameDBCache.GetRecord(pending->guid, pending->guid, 0, 0)) : 0;
-    NameCache *nc2 = pending->guid2 ? const_cast<NameCache *>(g_nameDBCache.GetRecord(pending->guid2, pending->guid2, 0, 0)) : 0;
-    if ((!pending->guid || nc) && (!pending->guid2 || nc2)) {
-      AddChatMessage(
-          pending->text, static_cast<SLASH_COMMAND_ID>(pending->slashCmd), nc ? nc->m_name : 0, pending->language, pending->channel,
-          nc2 ? nc2->m_name : 0, pending->specialFlag
-      );
-      SMemFree(pending->text, __FILE__, __LINE__, 0);
-      ITERATE_DELETE
+  }
+
+  for (PENDINGCHAT *node = s_pendingChat.Head(), *nodenext_node; (int)node > 0 ? ((nodenext_node = s_pendingChat.RawNext(node)), 1) : 0;
+       node = nodenext_node)
+  {
+    if (!node->waitingForUI) {
+      continue;
     }
+    node->waitingForUI = 0;
+
+    const NameCache *nc;
+    if (node->guid) {
+      nc = g_nameDBCache.GetRecord(node->guid, node->guid, NameQueryCallback, 0);
+    } else {
+      nc = 0;
+    }
+    if (node->guid && !nc) {
+      continue;
+    }
+
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(node->guid, __FILE__, __LINE__));
+    if (unit && (node->slashCmd == SLASH_CMD_SAY || node->slashCmd == SLASH_CMD_YELL || node->slashCmd == SLASH_CMD_PARTY)) {
+      char laughToken[32];
+      for (int index = 1;;) {
+        SStrPrintf(laughToken, sizeof(laughToken), "LAUGH_WORD%d", index++);
+        LPCSTR laugh = FrameScript_GetText(laughToken, -1, GENDER_NOT_APPLICABLE);
+        if (laugh && *laugh) {
+          if (SStrCmpI(laugh, node->text, INT_MAX)) {
+            continue;
+          }
+          unit->RequestTalkEmote(TALKANIM_LAUGH);
+          break;
+        }
+        if (node->slashCmd == SLASH_CMD_SAY || node->slashCmd == SLASH_CMD_YELL) {
+          TALKANIMATION talkAnim = TALKANIM_TALK;
+          UINT          len = SStrLen(node->text);
+          if (node->slashCmd == SLASH_CMD_YELL) {
+            talkAnim = TALKANIM_SHOUT;
+          } else if (len > 0) {
+            if (node->text[len - 1] == '?') {
+              talkAnim = TALKANIM_QUESTION;
+            } else if (node->text[len - 1] == '!') {
+              talkAnim = TALKANIM_EXCLAMATION;
+            }
+          }
+          unit->RequestTalkEmote(talkAnim);
+        }
+        break;
+      }
+    }
+
+    AddChatMessage(node->text, static_cast<SLASH_COMMAND_ID>(node->slashCmd), nc->m_name, node->language, node->channel, 0, node->specialFlag);
+    s_pendingChat.DeleteNode(node);
   }
 }
 
-extern bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
-
 BOOL CGChat::ChatHandler(CDataStore *msg) {
-  char       message[512];
-  char       buffer[512] = "";
-  char       name[48];
-  char       channel[128] = "";
-  NameCache *nc = 0;
-  UINT       language;
-  LPCSTR     specialFlag = "";
-  DWORDLONG  guid = 0;
-  BYTE       afkDND = 0;
-  BYTE       slashCmd;
+  char             message[512];
+  char             buffer[512] = "";
+  char             name[48];
+  char             channel[128] = "";
+  const NameCache *nc;
+  UINT             language;
+  DWORDLONG        guid = 0;
+  BYTE             afkDND = 0;
+  LPCSTR           specialFlag = "";
+  BYTE             slashCmd;
+  LPCSTR           player;
 
   msg->Get(slashCmd);
   msg->Get(language);
@@ -662,6 +951,7 @@ BOOL CGChat::ChatHandler(CDataStore *msg) {
     msg->Get(guid);
     msg->GetString(message, sizeof(message));
     msg->Get(afkDND);
+    player = name;
     if (!QuestParserParseText(message, buffer, sizeof(buffer), guid, 0)) {
       if (guid && !g_nameDBCache.GetRecord(guid, guid, NameQueryCallback, 0)) {
         QueueChatText(slashCmd, guid, message, language, 0, 1, channel, 0, "");
@@ -682,45 +972,48 @@ BOOL CGChat::ChatHandler(CDataStore *msg) {
       specialFlag = "GM";
 
     if (guid) {
-      nc = const_cast<NameCache *>(g_nameDBCache.GetRecord(guid, guid, NameQueryCallback, 0));
-      if (!nc) {
-        QueueChatText(slashCmd, guid, buffer, language, 0, 0, channel, 0, specialFlag);
-        return 1;
-      }
+      nc = g_nameDBCache.GetRecord(guid, guid, NameQueryCallback, 0);
+    } else {
+      nc = 0;
+    }
+    if (guid && !nc) {
+      QueueChatText(slashCmd, guid, buffer, language, 0, 0, channel, 0, specialFlag);
+      return 1;
     }
 
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
     if (unit && !(unit->GetUnitFlags() & 0x04000000) && (slashCmd == 0 || slashCmd == 4 || slashCmd == 1)) {
       char laughToken[32];
-      for (int i = 1;; ++i) {
-        SStrPrintf(laughToken, sizeof(laughToken), "LAUGH_WORD%d", i);
-        LPCSTR laughWord = FrameScript_GetText(laughToken, -1, GENDER_NOT_APPLICABLE);
-        if (!laughWord || !*laughWord) {
+      for (int index = 1;;) {
+        SStrPrintf(laughToken, sizeof(laughToken), "LAUGH_WORD%d", index++);
+        LPCSTR laugh = FrameScript_GetText(laughToken, -1, GENDER_NOT_APPLICABLE);
+        if (laugh && *laugh) {
+          if (SStrCmpI(laugh, buffer, INT_MAX)) {
+            continue;
+          }
+          unit->RequestTalkEmote(TALKANIM_LAUGH);
           break;
         }
-        if (!SStrCmpI(laughWord, buffer, 0x7FFFFFFF)) {
-          unit->RequestTalkEmote(TALKANIM_LAUGH);
-          goto chatReady;
-        }
-      }
-      if (slashCmd == 0 || slashCmd == 4) {
-        TALKANIMATION talkAnim = TALKANIM_TALK;
-        int length = SStrLen(buffer);
-        if (slashCmd == 4) {
-          talkAnim = TALKANIM_SHOUT;
-        } else if (length) {
-          if (buffer[length - 1] == '?') {
-            talkAnim = TALKANIM_QUESTION;
-          } else if (buffer[length - 1] == '!') {
-            talkAnim = TALKANIM_EXCLAMATION;
+        if (slashCmd == 0 || slashCmd == 4) {
+          TALKANIMATION talkAnim = TALKANIM_TALK;
+          UINT          len = SStrLen(buffer);
+          if (slashCmd == 4) {
+            talkAnim = TALKANIM_SHOUT;
+          } else if (len > 0) {
+            if (buffer[len - 1] == '?') {
+              talkAnim = TALKANIM_QUESTION;
+            } else if (buffer[len - 1] == '!') {
+              talkAnim = TALKANIM_EXCLAMATION;
+            }
           }
+          unit->RequestTalkEmote(talkAnim);
         }
-        unit->RequestTalkEmote(talkAnim);
+        break;
       }
     }
+    player = nc->m_name;
   }
 
-chatReady:
   if (!msg->IsRead()) {
     msg->Reset();
     return 1;
@@ -729,10 +1022,7 @@ chatReady:
     QueueChatText(slashCmd, guid, buffer, language, 1, 0, channel, 0, specialFlag);
     return 1;
   }
-  AddChatMessage(
-      buffer, static_cast<SLASH_COMMAND_ID>(slashCmd),
-      slashCmd >= 10 && slashCmd <= 12 ? name : (nc ? nc->m_name : 0), language, channel, 0, specialFlag
-  );
+  AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(slashCmd), player, language, channel, 0, specialFlag);
   return 1;
 }
 
@@ -744,19 +1034,18 @@ BOOL CGChat::HandleTextEmote(CDataStore *msg) {
   msg->Get(sender);
   msg->Get(textEmoteID);
   msg->GetString(target, sizeof(target));
-  if (g_nameDBCache.GetRecord(sender, sender, TextEmoteNameQueryCallback, 0)) {
-    if (m_paused)
-      QueueTextEmote(sender, textEmoteID, target, 1);
-    else
-      AddTextEmoteMessage(sender, textEmoteID, target);
-  } else {
+  if (!g_nameDBCache.GetRecord(sender, sender, TextEmoteNameQueryCallback, 0)) {
     QueueTextEmote(sender, textEmoteID, target, 0);
+  } else if (m_paused) {
+    QueueTextEmote(sender, textEmoteID, target, 1);
+  } else {
+    AddTextEmoteMessage(sender, textEmoteID, target);
   }
   return 1;
 }
 
 LPCSTR CGChat::GetChannelString(LPCSTR commandString) {
-  UINT localID = SStrToUnsigned(commandString);
+  int localID = SStrToInt(commandString);
   return localID ? GetChannelName(localID) : commandString;
 }
 
@@ -770,10 +1059,10 @@ void CGChat::CheckFlagChanged(
     LPCSTR           setText,
     LPCSTR           unsetText
 ) {
-  if (!(oldFlags & flagToCheck) && (newFlags & flagToCheck)) {
-    AddChatMessage(setText, SLASH_CMD_SAY, nc->m_name, 0, channel, 0, 0);
-  } else if ((oldFlags & flagToCheck) && !(newFlags & flagToCheck)) {
-    AddChatMessage(unsetText, SLASH_CMD_SAY, nc->m_name, 0, channel, 0, 0);
+  if (!(flagToCheck & oldFlags) && (flagToCheck & newFlags)) {
+    AddChatMessage(setText, SLASH_CMD_CHANNEL_NOTICE_USER, nc->m_name, 0, channel, 0, 0);
+  } else if ((flagToCheck & oldFlags) && !(flagToCheck & newFlags)) {
+    AddChatMessage(unsetText, SLASH_CMD_CHANNEL_NOTICE_USER, nc->m_name, 0, channel, 0, 0);
   }
 }
 
@@ -802,7 +1091,7 @@ static BOOL StringToChatType(LPCSTR string, SLASH_COMMAND_ID &slashCmd) {
       {static_cast<SLASH_COMMAND_ID>(20),     "DND"}
   };
   for (UINT i = 0; i < 10; ++i) {
-    if (!SStrCmpI(string, array[i].string, 0x7FFFFFFF)) {
+    if (!SStrCmpI(array[i].string, string, 0x7FFFFFFF)) {
       slashCmd = array[i].id;
       return 1;
     }
@@ -814,7 +1103,7 @@ static BOOL StringToLanguage(LPCSTR string, UINT &language) {
   int numEntries = g_languagesDB.GetNumRecords();
   for (int i = 0; i < numEntries; ++i) {
     const LanguagesRec *rec = g_languagesDB.GetRecordByIndex(i);
-    if (rec && rec->m_name_lang[CURRENT_LANGUAGE] && !SStrCmpI(string, rec->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF)) {
+    if (rec && !SStrCmpI(string, rec->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF)) {
       language = rec->m_ID;
       return 1;
     }
@@ -828,12 +1117,13 @@ static int Script_SendChatMessage(lua_State *L) {
     return 0;
   }
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: SendChatMessage(text [,type] [,language] [,targetPlayer])");
+    luaL_error(L, "Usage: SendChatMessage(text [,type] [,language] [,targetPlayer])");
+    return 0;
   }
   LPCSTR           text = lua_tostring(L, 1);
   SLASH_COMMAND_ID type = SLASH_CMD_SAY;
   if (lua_isstring(L, 2) && !StringToChatType(lua_tostring(L, 2), type)) {
-    return luaL_error(L, "Unknown chat type");
+    luaL_error(L, "Unknown chat type");
   }
   if ((!text || !*text) && type != SLASH_CMD_SEND_DND && type != SLASH_CMD_SEND_AFK) {
     return 0;
@@ -841,7 +1131,7 @@ static int Script_SendChatMessage(lua_State *L) {
 
   UINT language = player->GetDefaultLanguage();
   if (lua_isstring(L, 3) && !StringToLanguage(lua_tostring(L, 3), language)) {
-    return luaL_error(L, "Unknown language");
+    luaL_error(L, "Unknown language");
   }
 
   LPCSTR target = lua_isstring(L, 4) ? lua_tostring(L, 4) : 0;
@@ -892,17 +1182,20 @@ static int Script_SendChatMessage(lua_State *L) {
 
 static int Script_GetNumLanguages(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  UINT        count = 0;
-  if (player) {
-    for (int i = 0; i < g_languagesDB.GetNumRecords(); ++i) {
-      UINT                skill;
-      const LanguagesRec *rec = g_languagesDB.GetRecordByIndex(i);
-      if (rec && player->GetLanguageSkill(rec->m_ID, skill)) {
-        ++count;
-      }
+  if (!player) {
+    return 0;
+  }
+
+  int  numEntries = g_languagesDB.GetNumRecords();
+  UINT count = 0;
+  for (int i = 0; i < numEntries; ++i) {
+    UINT                skill;
+    const LanguagesRec *rec = g_languagesDB.GetRecordByIndex(i);
+    if (rec && player->GetLanguageSkill(rec->m_ID, skill)) {
+      ++count;
     }
   }
-  lua_pushnumber(L, static_cast<double>(count));
+  lua_pushnumber(L, count);
   return 1;
 }
 
@@ -930,14 +1223,15 @@ static int Script_GetLanguageByIndex(lua_State *L) {
 }
 
 static int Script_GetDefaultLanguage(lua_State *L) {
-  CGPlayer_C         *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const ChrRacesRec  *race = player ? g_chrRacesDB.GetRecord(player->GetRace()) : 0;
-  const LanguagesRec *language = race ? g_languagesDB.GetRecord(race->m_BaseLanguage) : 0;
-  if (!language) {
-    return 0;
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (player) {
+    const LanguagesRec *rec = g_languagesDB.GetRecord(player->GetDefaultLanguage());
+    if (rec) {
+      lua_pushstring(L, rec->m_name_lang[CURRENT_LANGUAGE]);
+      return 1;
+    }
   }
-  lua_pushstring(L, language->m_name_lang[CURRENT_LANGUAGE]);
-  return 1;
+  return 0;
 }
 
 static int Script_DoEmote(lua_State *L) {
@@ -946,7 +1240,7 @@ static int Script_DoEmote(lua_State *L) {
     const EmotesTextRec *rec = 0;
     for (int i = g_emotesTextDB.GetNumRecords(); i;) {
       const EmotesTextRec *candidate = g_emotesTextDB.GetRecordByIndex(--i);
-      if (candidate && !SStrCmpI(name, candidate->m_name, 0x7FFFFFFF)) {
+      if (!SStrCmpI(name, candidate->m_name, 0x7FFFFFFF)) {
         rec = candidate;
         break;
       }
@@ -954,15 +1248,18 @@ static int Script_DoEmote(lua_State *L) {
     if (!rec) {
       return 0;
     }
-    LPCSTR      unit = lua_isstring(L, 2) ? lua_tostring(L, 2) : "target";
-    DWORDLONG   target = Script_GetGUIDFromName(unit);
+    DWORDLONG target = CGGameUI::GetLockedTarget();
+    LPCSTR    targetName = lua_tostring(L, 2);
+    if (targetName && *targetName) {
+      target = CGGameUI::ClosestObjectMatch(targetName, TYPE_PLAYER);
+    }
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
       player->SendTextEmote(rec, target);
     }
     return 0;
   }
-  luaL_error(L, "Usage: DoEmote(emote [, unit])");
+  luaL_error(L, "Usage: DoEmote(\"emote\"[, \"target\"])");
   return 0;
 }
 
@@ -974,11 +1271,7 @@ static int Script_ChatFrameLog(lua_State *L) {
       s_logHandle = 0;
     }
     if (s_loggingEnabled) {
-      if (!SLogCreate("WoWChatLog.txt", 0, &s_logHandle)) {
-        ConsoleWrite("Error creating chat log", DEFAULT_COLOR);
-      } else {
-        ConsoleWrite("Chat logging enabled", DEFAULT_COLOR);
-      }
+      ConsoleWrite(SLogCreate("WOWChatLog.txt", 0, &s_logHandle) ? "Chat logging enabled" : "Error creating chat log..logging disabled", DEFAULT_COLOR);
     } else {
       ConsoleWrite("Chat logging disabled", DEFAULT_COLOR);
     }
@@ -1055,13 +1348,14 @@ static int Script_ListChannelByName(lua_State *L) {
 
 static int Script_ListChannels(lua_State *L) {
   char buffer[138];
-  char line[256] = "";
+  char line[256];
+  line[0] = 0;
   for (UINT i = 0; i < s_channels.Count(); ++i) {
     if (!s_channels[i].localID) {
       continue;
     }
     SStrPrintf(buffer, sizeof(buffer), "[%d. %s] ", s_channels[i].localID, s_channels[i].name);
-    if (SStrLen(line) + SStrLen(buffer) >= sizeof(line)) {
+    if (SStrLen(line + SStrLen(buffer)) >= sizeof(line)) {
       CGChat::AddChatMessage(line, static_cast<SLASH_COMMAND_ID>(16), 0, 0, 0, 0, 0);
       line[0] = 0;
     }
@@ -1108,17 +1402,17 @@ static int Script_GetChannelName(lua_State *L) {
     if (!name) {
       channel = 0;
     }
-  } else {
-    if (!lua_isstring(L, 1)) {
-      return luaL_error(L, "Usage: GetChannelName(channel)");
-    }
+  } else if (lua_isstring(L, 1)) {
     name = lua_tostring(L, 1);
     channel = CGChat::GetChannelID(name);
     if (channel) {
-      name = "";
+      name = 0;
     }
+  } else {
+    luaL_error(L, "Usage: GetChannelName([channelIndex] or [channelName])");
+    return 0;
   }
-  lua_pushnumber(L, static_cast<double>(channel));
+  lua_pushnumber(L, channel);
   lua_pushstring(L, name);
   return 2;
 }

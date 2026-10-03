@@ -186,7 +186,7 @@ struct CHARACTERSEXVARIATIONS {
   }
 
   TSGrowableArray<CHARACTERVARIATIONS> &GetSectionData(int section) {
-    ASSERT(section < (sizeof(names) / sizeof(names[0])));
+    ASSERT(section< (sizeof(names) / sizeof(names[0])));
     return names[section];
   }
 

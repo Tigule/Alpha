@@ -4,6 +4,7 @@
 #include "Object/ObjectClient/Object_C.h"
 
 #define NUM_ITEM_ENCHANTMENTS 5
+#define NUM_ITEM_SPELLS       5
 
 struct ItemEnchantment {
   int id;
@@ -96,19 +97,23 @@ class CGItem {
   }
   UINT GetItemStaticFlags() const;
   UINT GetItemDynamicFlags() const;
-  bool IsBound() const;
+  bool IsBound() const {
+    return (m_item->m_dynamicFlags & ITEM_DFLAG_BOUND) != 0;
+  }
   bool IsTranslated() const {
     return (m_item->m_dynamicFlags & ITEM_DFLAG_TRANSLATED) != 0;
   }
   bool IsUnlocked() const {
-    return (m_item->m_dynamicFlags & ITEM_DFLAG_BOUND) == 0;
+    return (m_item->m_dynamicFlags & ITEM_DFLAG_UNLOCKED) != 0;
   }
-  bool                   IsWrapped() const;
+  bool IsWrapped() const {
+    return (m_item->m_dynamicFlags & ITEM_DFLAG_WRAPPED) != 0;
+  }
   UINT                   GetExpiration() const;
   int                    GetItemDynamicFlag(ITEM_DYNAMIC_FLAGS flag) const;
-  int                    GetSpellCharges(int index) const;
+  int                    GetSpellCharges(int slot) const;
   const ItemEnchantment *GetEnchantment(int index) const;
-  int                    GetEnchantmentID(int index) const;
+  int                    GetEnchantmentID(int slot) const;
   int                    GetEnchantmentExpiration(int index) const;
   int                    GetEnchantmentCharges(int index) const;
   int GetPetitionID() const {

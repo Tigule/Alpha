@@ -350,15 +350,10 @@ void CSimpleEditBox::CreateCandidatesFrame() {
 
   CreateClauseHighlight();
 
-  float fontHeight = m_string->m_fontHeight;
-  m_candidatesFrame = NEW(CSimpleMessageFrame)(this);
+  float fontHeight = m_string->GetFontHeight();
 
-  LPCSTR fontName = m_string->m_font ? TextBlockGetFontName(m_string->m_font) : 0;
-  UINT   fontFlags = m_string->m_font ? TextBlockGetFontFlags(m_string->m_font) : 0;
-  m_candidatesFrame->m_attrib.m_font = fontName;
-  m_candidatesFrame->m_attrib.m_fontHeight = fontHeight;
-  m_candidatesFrame->m_attrib.m_fontFlags = fontFlags;
-  m_candidatesFrame->m_attrib.m_flags |= CSimpleFontStringAttributes::FLAG_FONT_UPDATE;
+  m_candidatesFrame = NEW(CSimpleMessageFrame)(this);
+  m_candidatesFrame->SetFont(m_string->GetFontName(), fontHeight, m_string->GetFontFlags());
   m_candidatesFrame->SetWidth(fontHeight * 10.0f);
   m_candidatesFrame->SetPoint(FRAMEPOINT_BOTTOMLEFT, m_clauseHighlight, FRAMEPOINT_TOPLEFT, 0.0f, 0.0f, 1);
   m_candidatesFrame->SetInsertMode(CSimpleMessageFrame::INSERT_AT_TOP);
@@ -398,41 +393,41 @@ void CSimpleEditBox::UpdateClauseInfo() {
 }
 
 BOOL CSimpleEditBox::PopulateCandidates(DWORD which) {
-  UINT                            pageSize;
+  char                            candidate[1024];
+  TSGrowableArray<OsIMECandidate> candidates;
+  UINT                            pagesize;
   UINT                            count;
   UINT                            selection;
-  TSGrowableArray<OsIMECandidate> candidates;
 
-  if (!OsIMEGetCandidates(which, pageSize, count, selection, candidates)) {
+  if (!OsIMEGetCandidates(which, pagesize, count, selection, candidates)) {
     return 0;
   }
 
   CreateCandidatesFrame();
 
-  float fontHeight = m_string->m_fontHeight;
+  float fontHeight = m_string->GetFontHeight();
+
   m_candidatesFrame->Clear();
-  m_candidatesFrame->SetHeight((pageSize + 1) * fontHeight + fontHeight * 0.1f);
-
+  m_candidatesFrame->SetHeight((pagesize + 1) * fontHeight + (fontHeight * 0.1f));
   m_candidatesHighlight->ClearAllPoints(1);
-  UINT row = selection % pageSize;
-  m_candidatesHighlight->SetPoint(FRAMEPOINT_TOPLEFT, m_candidatesFrame, FRAMEPOINT_TOPLEFT, 0.0f, -row * fontHeight, 1);
-  m_candidatesHighlight->SetPoint(FRAMEPOINT_BOTTOMRIGHT, m_candidatesFrame, FRAMEPOINT_TOPRIGHT, 0.0f, -(row + 1) * fontHeight, 1);
-
-  NTempest::CImVector white(0xFFFFFFFF);
-  char                candidate[1024];
+  m_candidatesHighlight->SetPoint(FRAMEPOINT_TOPLEFT, m_candidatesFrame, FRAMEPOINT_TOPLEFT, 0.0f, (selection % pagesize) * -fontHeight, 1);
+  m_candidatesHighlight->SetPoint(FRAMEPOINT_BOTTOMRIGHT, m_candidatesFrame, FRAMEPOINT_TOPRIGHT, 0.0f, (selection % pagesize + 1) * -fontHeight, 1);
   SStrPrintf(candidate, sizeof(candidate), "> %d/%d", selection + 1, count);
-  m_candidatesFrame->AddMessage(candidate, white, 0.0f, 0);
+  m_candidatesFrame->AddMessage(candidate, NTempest::CImVector(0xFFFFFFFF), 0.0f, 0);
+  for (UINT index = pagesize - 1; index < pagesize; --index) {
+    OsIMECandidate &entry = candidates[index];
 
-  for (UINT index = pageSize; index-- > 0;) {
-    if (candidates[index].candidate[0]) {
-      SStrPrintf(candidate, sizeof(candidate), "%d: %s", index + 1, candidates[index].candidate);
+    if (entry.candidate[0]) {
+      SStrPrintf(candidate, sizeof(candidate), "%d: %s", index + 1, entry.candidate);
     } else {
       SStrCopy(candidate, " ", sizeof(candidate));
     }
-    m_candidatesFrame->AddMessage(candidate, white, 0.0f, 0);
+
+    m_candidatesFrame->AddMessage(candidate, NTempest::CImVector(0xFFFFFFFF), 0.0f, 0);
   }
 
   m_candidatesFrame->Resize(1);
+
   return 1;
 }
 
@@ -443,7 +438,7 @@ BOOL CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
 
   if (!s_currentFocus && m_autoFocus) {
     SetKeyboardFocus(this);
-  } else if (s_currentFocus != this) {
+  } else if (this != s_currentFocus) {
     return 0;
   }
 
@@ -454,11 +449,6 @@ BOOL CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
   char string[512];
 
   switch (evt.message) {
-    case 1:
-      m_imeInputMode = 1;
-      m_highlightDrag = 0;
-      break;
-
     case 2:
       if (evt.lParam & 4) {
         OsIMEGetCompositionResult(string, sizeof(string));
@@ -484,6 +474,11 @@ BOOL CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
 
     case 5:
       HideCandidates();
+      break;
+
+    case 1:
+      m_imeInputMode = 1;
+      m_highlightDrag = 0;
       break;
 
     case 6:
@@ -1153,26 +1148,16 @@ void CSimpleEditBox::DeleteSubstring(int left, int right) {
     m_dirtyFlags |= DIRTY_HIGHLIGHT;
   }
 
-  int start = left;
   if (m_textInfo[left] & 0x80000000) {
-    while (start > 0) {
-      if (((m_textInfo[start] >> 16) & 0xFF) == CODE_HYPERLINKSTART) {
-        break;
-      }
-
-      start = PrevCharOffset(start);
+    while (left > 0 && ((m_textInfo[left] >> 16) & 0xFF) != CODE_HYPERLINKSTART) {
+      left = PrevCharOffset(left);
     }
 
-    if (!(m_textInfo[start] & 0x80000000)) {
-      start = NextCharOffset(start);
+    if (!(m_textInfo[left] & 0x80000000)) {
+      left = NextCharOffset(left);
     }
 
-    int stop = start;
-    while (stop < m_textLength) {
-      if (((m_textInfo[stop] >> 16) & 0xFF) == CODE_HYPERLINKSTOP) {
-        break;
-      }
-
+    for (int stop = left; stop < m_textLength && ((m_textInfo[stop] >> 16) & 0xFF) != CODE_HYPERLINKSTOP;) {
       stop = NextCharOffset(stop);
     }
 
@@ -1181,12 +1166,13 @@ void CSimpleEditBox::DeleteSubstring(int left, int right) {
     }
   }
 
-  int removed = right - start;
-  m_textLength -= removed;
-  m_cursorPos = start;
-
-  memcpy(&m_text[start], &m_text[start + removed], m_textLength - start);
-  memcpy(&m_textInfo[start], &m_textInfo[start + removed], sizeof(UINT) * (m_textLength - start));
+  char *start = &m_text[left];
+  UINT *startInfo = &m_textInfo[left];
+  right -= left;
+  m_textLength -= right;
+  m_cursorPos = left;
+  memcpy(start, &start[right], m_textLength - m_cursorPos);
+  memcpy(startInfo, &startInfo[right], sizeof(UINT) * (m_textLength - m_cursorPos));
 
   m_text[m_textLength] = 0;
   m_dirtyFlags |= DIRTY_TEXT | DIRTY_CURSOR;
@@ -1356,10 +1342,15 @@ void CSimpleEditBox::SetHistoryLines(int numLines) {
     memset(&m_history[m_numHistory], 0, sizeof(char *) * (numLines - m_numHistory));
   }
 
-  m_numHistory = numLines;
   if (m_curHistory >= numLines) {
-    m_curHistory = numLines ? numLines - 1 : 0;
+    if (numLines) {
+      m_curHistory = numLines - 1;
+    } else {
+      m_curHistory = 0;
+    }
   }
+
+  m_numHistory = numLines;
 }
 
 void CSimpleEditBox::AddHistoryLine(LPCSTR line) {
@@ -1470,16 +1461,15 @@ void CSimpleEditBox::UpdateVisibleText() {
   float stringWidth = m_string->GetWidth();
   ASSERT(stringWidth > 0.0f);
 
-  char *text;
   if (m_password) {
     UINT length = SStrLen(m_text);
+
     m_textHidden = static_cast<char *>(SMemReAlloc(m_textHidden, length + 1, __FILE__, __LINE__, 0));
     memset(m_textHidden, '*', length);
     m_textHidden[length] = 0;
-    text = m_textHidden;
-  } else {
-    text = m_text;
   }
+
+  char *text = m_password ? m_textHidden : m_text;
 
   if (m_multiline) {
     UINT lines = m_string->WrapText(text + m_visiblePos, stringWidth, m_visibleLines.Ptr(), m_visibleLines.Count());
@@ -1490,8 +1480,7 @@ void CSimpleEditBox::UpdateVisibleText() {
     }
 
     if (!lines) {
-      lines = 1;
-      m_visibleLines[0] = 0;
+      m_visibleLines[lines++] = 0;
     }
 
     if (m_visiblePos > 0) {
@@ -1504,10 +1493,9 @@ void CSimpleEditBox::UpdateVisibleText() {
     m_visibleLen = m_visibleLines[lines];
     m_visibleLines.SetCount(lines + 1);
   } else {
-    UINT amount = m_string->GetNumCharsWithinWidth(text + m_visiblePos, 0, stringWidth);
-    m_visibleLen = amount;
+    m_visibleLen = m_string->GetNumCharsWithinWidth(text + m_visiblePos, 0, stringWidth);
     if (text == m_text) {
-      m_visibleLen = GetNumToLen(m_visiblePos, amount, false);
+      m_visibleLen = GetNumToLen(m_visiblePos, m_visibleLen, false);
     }
 
     m_visibleLines[0] = m_visiblePos;
@@ -1520,20 +1508,28 @@ void CSimpleEditBox::UpdateVisibleText() {
     }
 
     if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen) {
-      float offset = m_cursorPos >= m_visiblePos ? stringWidth * 0.75f : stringWidth * 0.25f;
-      MakeTextVisible(m_cursorPos, offset, stringWidth);
+      float width;
+
+      if (m_cursorPos < m_visiblePos) {
+        width = stringWidth * 0.25f;
+      } else {
+        width = stringWidth * 0.75f;
+      }
+
+      MakeTextVisible(m_cursorPos, width, stringWidth);
       ASSERT(((m_cursorPos >= m_visiblePos) && (m_cursorPos <= (m_visiblePos+m_visibleLen))));
     }
   }
 
   int  end = m_visiblePos + m_visibleLen;
   char saved = text[end];
+
   text[end] = 0;
   m_string->SetText(text + m_visiblePos);
   text[end] = saved;
 
   if (m_multiline) {
-    SetHeight(m_string->GetStringHeight() + m_editTextInset.b + m_editTextInset.t);
+    SetHeight(m_string->GetStringHeight() + (m_editTextInset.b + m_editTextInset.t));
   }
 }
 

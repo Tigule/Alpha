@@ -8,18 +8,14 @@ namespace NTempest {
   CAaBox CAaBox::Bounding(const C3Vector *vectors, DWORD count) {
     ASSERT(vectors != 0);
 
-    CAaBox extents;
-    if (count) {
-      extents.b = vectors[0];
-      extents.t = vectors[0];
+    if (!count) {
+      return CAaBox();
+    }
 
-      for (DWORD i = 1; i < count; ++i) {
-        extents.b = C3Vector(
-            vectors[i].x <= extents.b.x ? vectors[i].x : extents.b.x, vectors[i].y <= extents.b.y ? vectors[i].y : extents.b.y,
-            vectors[i].z <= extents.b.z ? vectors[i].z : extents.b.z
-        );
-        extents.t.Maximize(vectors[i]);
-      }
+    CAaBox extents(vectors[0], vectors[0]);
+    for (DWORD i = 1; i < count; ++i) {
+      extents.b = C3Vector::Min(extents.b, vectors[i]);
+      extents.t = C3Vector::Max(extents.t, vectors[i]);
     }
 
     return extents;

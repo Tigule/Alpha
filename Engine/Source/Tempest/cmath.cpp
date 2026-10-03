@@ -121,36 +121,39 @@ namespace NTempest {
   }
 
   double CMath::log2_(double y) {
-    if (y <= 1.0e-307) {
-      return -HUGE_VAL;
-    }
-
-    DWORD  high = reinterpret_cast<DWORD *>(&y)[1];
-    DWORD  index = high >> 14 & 0x3F;
     double q = y;
+    DWORD  high = reinterpret_cast<DWORD *>(&q)[1];
     reinterpret_cast<DWORD *>(&q)[1] = high & 0xFFFFF | 0x3FF00000;
+    DWORD  index = high >> 14 & 0x3F;
     double v = q * logmul_[index] - 1.0;
     double v2 = v * v;
-    return v * (((0.2883070248990067 - v * 0.2294990002324615) * v2 + 0.4808983340499736 - v * 0.3606713297395114) * v2 + 1.442695040888937 -
-                v * 0.7213475204127876) +
-           static_cast<long>((high >> 20 & 0x7FF) - 1023) + logadd_[index];
+    if (!(y > 1.0e-307)) {
+    underflow:
+      return -HUGE_VAL;
+    }
+    return v * (((0.2883070248990067 - v * 0.22949900023246153) * v2 + (0.48089833404997356 - v * 0.36067132973951144)) * v2 +
+                (1.442695040888937 - v * 0.7213475204127876)) +
+           (static_cast<long>((high >> 20 & 0x7FF) - 1023) + logadd_[index]);
   }
 
   double CMath::exp2_(double x) {
     long   exponent = static_cast<long>(x + 1023.0) - 1;
-    double q = x + 1023.0 - static_cast<double>(exponent);
+    double base;
+    reinterpret_cast<DWORD *>(&base)[0] = 0;
+    double q = x + 1023.0 - static_cast<DWORD>(exponent);
     DWORD  high = reinterpret_cast<DWORD *>(&q)[1];
-    DWORD  index = high >> 14 & 0x3F;
-    reinterpret_cast<DWORD *>(&q)[1] = high ^ (high & 0xFC000);
-
-    if (static_cast<DWORD>(exponent) <= 0x7FF) {
-      double base = 0.0;
-      reinterpret_cast<DWORD *>(&base)[1] = exponent << 20;
-      return base * expmul_[index] *
-             (((q * 0.002681194651756496 + 0.005830032491308937) * q * q + q * 0.06087614283854009 + 0.2360324439303489) * q * q +
-              q * 0.6948749415195616 + 0.9997052445684839);
+    DWORD  index = high & 0xFC000;
+    reinterpret_cast<DWORD *>(&q)[1] = high ^ index;
+    reinterpret_cast<DWORD *>(&base)[1] = exponent << 20;
+    double q2 = q * q;
+    base *= expmul_[index >> 14];
+    if (static_cast<DWORD>(exponent) > 0x7FF) {
+    illegal:
+      return exponent > 0 ? HUGE_VAL : 0.0f;
     }
-    return exponent <= 0 ? 0.0 : HUGE_VAL;
+    return (((q * 0.0026811946517564956 + 0.005830032491308937) * q2 + (q * 0.06087614283854009 + 0.23603244393034895)) * q2 +
+            (q * 0.6948749415195616 + 0.9997052445684839)) *
+           base;
   }
 
   bool CMath::xsectunitsphere_(double x, double y, double z, double dx, double dy, double dz, const double _r2) {

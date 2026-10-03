@@ -182,13 +182,13 @@ static void IWriteParticleOptions(const MDLPARTICLE &options, TSGrowableArray<ch
   if (options.life.keys.Count()) {
     WriteFloatKeyFrames(0x165, "\t\t", options.life, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x165));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t\t", MDL::TokenText(0x1BB), MDL::TokenText(0x165));
     WriteKeyData(buffer, &options.staticLife, 1);
   }
   if (options.speed.keys.Count()) {
     WriteFloatKeyFrames(0x15D, "\t\t", options.speed, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x15D));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t\t", MDL::TokenText(0x1BB), MDL::TokenText(0x15D));
     WriteKeyData(buffer, &options.staticSpeed, 1);
   }
   if (SStrLen(options.path)) {
@@ -211,25 +211,25 @@ static void IWriteParticleEmitter(const MDLDATA &data, const MDLPARTICLEEMITTER 
   if (emitter.emissionRate.keys.Count()) {
     WriteFloatKeyFrames(0x144, "\t", emitter.emissionRate, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x144));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x144));
     WriteKeyData(buffer, &emitter.staticEmissionRate, 1);
   }
   if (emitter.gravity.keys.Count()) {
     WriteFloatKeyFrames(0x153, "\t", emitter.gravity, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x153));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x153));
     WriteKeyData(buffer, &emitter.staticGravity, 1);
   }
   if (emitter.latitude.keys.Count()) {
     WriteFloatKeyFrames(0x162, "\t", emitter.latitude, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x162));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x162));
     WriteKeyData(buffer, &emitter.staticLatitude, 1);
   }
   if (emitter.longitude.keys.Count()) {
     WriteFloatKeyFrames(0x161, "\t", emitter.longitude, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x161));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x161));
     WriteKeyData(buffer, &emitter.staticLongitude, 1);
   }
   WriteFloatKeyFrames(0x1D9, "\t", emitter.visibilityKeys, buffer);
@@ -240,9 +240,12 @@ static void IWriteParticleEmitter(const MDLDATA &data, const MDLPARTICLEEMITTER 
 namespace MDL {
 
   BOOL WriteParticleEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-    if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
-      for (UINT i = 0; i < data.particleEmitters.Count(); ++i) {
-        IWriteParticleEmitter(data, data.particleEmitters[i], data.particleEmitters.Count() != data.objects.Count(), buffer);
+    if (!data.model.animationFile[0]) {
+      UINT numEmitters = data.particleEmitters.Count();
+      int needObjIds = numEmitters != data.objects.Count();
+      const MDLPARTICLEEMITTER *pEmit = data.particleEmitters.Ptr();
+      for (UINT i = numEmitters; i; --i, ++pEmit) {
+        IWriteParticleEmitter(data, *pEmit, needObjIds, buffer);
       }
     }
     return 1;
@@ -303,46 +306,68 @@ static BOOL ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, C
     return 0;
   }
   pEmit->staticEmissionRate = buf.GetFloat();
+  localBytesRead += 4;
   pEmit->staticGravity = buf.GetFloat();
+  localBytesRead += 4;
   pEmit->staticLongitude = buf.GetFloat();
+  localBytesRead += 4;
   pEmit->staticLatitude = buf.GetFloat();
+  localBytesRead += 4;
   buf.GetTcharArray(pEmit->particle.path, 260);
+  localBytesRead += 260;
   pEmit->particle.staticLife = buf.GetFloat();
+  localBytesRead += 4;
   pEmit->particle.staticSpeed = buf.GetFloat();
-  localBytesRead += 284;
+  localBytesRead += 4;
   while (localBytesRead < sectionLength) {
     DWORD tag = buf.GetDword();
     localBytesRead += 4;
-    int ok = 1;
     switch (tag) {
       case 'EEPK':
-        ok = ReadBinFloatKeyFrames(pEmit->emissionRate, buf, localBytesRead);
+        if (!ReadBinFloatKeyFrames(pEmit->emissionRate, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading emission rate portion of particle emitter.\n");
+          return 0;
+        }
         break;
       case 'GEPK':
-        ok = ReadBinFloatKeyFrames(pEmit->gravity, buf, localBytesRead);
+        if (!ReadBinFloatKeyFrames(pEmit->gravity, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading gravity portion of particle emitter.\n");
+          return 0;
+        }
         break;
       case 'NLPK':
-        ok = ReadBinFloatKeyFrames(pEmit->longitude, buf, localBytesRead);
+        if (!ReadBinFloatKeyFrames(pEmit->longitude, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading longitude portion of particle emitter.\n");
+          return 0;
+        }
         break;
       case 'TLPK':
-        ok = ReadBinFloatKeyFrames(pEmit->latitude, buf, localBytesRead);
+        if (!ReadBinFloatKeyFrames(pEmit->latitude, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading latitude portion of particle emitter.\n");
+          return 0;
+        }
         break;
       case 'LEPK':
-        ok = ReadBinFloatKeyFrames(pEmit->particle.life, buf, localBytesRead);
+        if (!ReadBinFloatKeyFrames(pEmit->particle.life, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading particle life portion of particle emitter.\n");
+          return 0;
+        }
         break;
       case 'SEPK':
-        ok = ReadBinFloatKeyFrames(pEmit->particle.speed, buf, localBytesRead);
+        if (!ReadBinFloatKeyFrames(pEmit->particle.speed, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading particle speed portion of particle emitter.\n");
+          return 0;
+        }
         break;
       case 'SIVK':
-        ok = ReadBinFloatKeyFrames(pEmit->visibilityKeys, buf, localBytesRead);
+        if (!ReadBinFloatKeyFrames(pEmit->visibilityKeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading visibility keys portion of particle emitter.\n");
+          return 0;
+        }
         break;
       default:
         SkipUnknown(buf, localBytesRead);
         break;
-    }
-    if (!ok) {
-      status->Add(STATUS_ERROR, "Error reading particle emitter key frames.\n");
-      return 0;
     }
     if (localBytesRead > sectionLength) {
       status->FatalOverran("ParticleEmitters", -1);
@@ -356,16 +381,17 @@ static BOOL ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, C
 namespace MDL {
 
   BOOL WriteBinParticleEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
-    if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.particleEmitters.Count()) {
+    if (!data.model.animationFile[0] && data.particleEmitters.Count()) {
       buf.AddDword('MERP');
+      UINT numEmitters = data.particleEmitters.Count();
       UINT totalSize = 4;
       UINT i;
-      for (i = 0; i < data.particleEmitters.Count(); ++i) {
+      for (i = 0; i < numEmitters; ++i) {
         totalSize += GetBinParticleEmitterSize(data.particleEmitters[i]);
       }
       buf.AddUint(totalSize);
-      buf.AddUint(data.particleEmitters.Count());
-      for (i = 0; i < data.particleEmitters.Count(); ++i) {
+      buf.AddUint(numEmitters);
+      for (i = 0; i < numEmitters; ++i) {
         IWriteBinParticleEmitter(data.particleEmitters[i], buf, status);
       }
     }

@@ -291,6 +291,7 @@ BlizzardObject::Shard *BlizzardObject::AllocShard() {
 }
 
 void BlizzardObject::FreeShard(Shard *&shard) {
+  shardPool.UnlinkNode(shard);
   shardPool.LinkNode(shard, LIST_TAIL, 0);
   shard = 0;
 }
@@ -328,11 +329,6 @@ void BlizzardObject::Destroy() {
 }
 
 void BlizzardObject::Update() {
-  NTempest::C3Vector a;
-  NTempest::C3Vector b;
-  float              groundT;
-  Shard             *shard;
-
   if (dead) {
     if (!shards.Head()) {
       CWorld::RemoveObject(hWorldObject);
@@ -344,14 +340,13 @@ void BlizzardObject::Update() {
     numEmitted += CWorld::GetTickTimeSec() * emissionRate;
     while (numEmitted >= 1.0f) {
       if (ModelIsLoaded(shardModel, 1)) {
-        shard = AllocShard();
+        Shard *shard = AllocShard();
         shards.LinkNode(shard, LIST_TAIL, 0);
-        shard->pos = groundPos + NTempest::CRandom::C3Vector_(g_rndSeed) * (NTempest::CRandom::real_(g_rndSeed) * radius);
-        shard->pos.z = groundPos.z + 50.0f;
-
-        a = shard->pos;
-        b = NTempest::C3Vector(shard->pos.x, shard->pos.y, groundPos.z - 50.0f);
-        groundT = 1.0f;
+        NTempest::C2Vector offset = radius * (NTempest::CRandom::real_(g_rndSeed) * NTempest::CRandom::C2Vector_(g_rndSeed));
+        NTempest::C3Vector a(groundPos.x + offset.x, groundPos.y + offset.y, groundPos.z + 50.0f);
+        NTempest::C3Vector b(groundPos.x + offset.x, groundPos.y + offset.y, groundPos.z);
+        b.z -= 50.0f;
+        float groundT = 1.0f;
         if (!CWorld::Intersect(&a, &b, 0.0f, &shard->pos, &groundT, 273)) {
           shard->pos = groundPos;
         }
@@ -366,14 +361,11 @@ void BlizzardObject::Update() {
     }
   }
 
-  shard = shards.Head();
-  while (shard) {
-    Shard *next = shards.Next(shard);
+  for (Shard *shard = shards.Head(), *next; (int)shard > 0 ? ((next = shards.RawNext(shard)), 1) : 0; shard = next) {
     if (CWorld::GetCurTimeMs() >= shard->startTime && !ModelAdvanceTime(shard->hModel)) {
       HandleClose(shard->hModel);
       FreeShard(shard);
     }
-    shard = next;
   }
 }
 
@@ -458,12 +450,12 @@ static bool GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos) {
 }
 
 void FishingLineObject::RenderLine(const NTempest::C3Vector &p0, const NTempest::C3Vector &p1, const NTempest::CImVector &color) {
-  NTempest::C3Vector points[201];
   NTempest::C3Vector point0 = p0;
   NTempest::C3Vector point1 = p1;
+  float              maxDip = (point0 - point1).Mag() * 0.05f;
   NTempest::C3Vector xy = point0;
   NTempest::C3Vector xyIncr = (point1 - point0) * 0.005f;
-  float              maxDip = (point0 - point1).Mag() * 0.05f;
+  NTempest::C3Vector points[201];
 
   for (UINT i = 0; i < 201; ++i) {
     points[i].x = xy.x;
@@ -508,88 +500,79 @@ void SpellVisualsInitialize() {
   int                  i;
   UINT                 map;
   SpellVisualKitRec   *constKit;
-  UINT                 found;
+  bool                 found;
 
   InitializeAuraNames();
   InitializeFishingLineIntervals();
   InitializeFishingLineIndices();
 
   animCheck.SetCount(g_spellVisualAnimNameDB.GetNumRecords());
-  for (i = 0; i < static_cast<int>(animCheck.Count()); ++i) {
+  for (i = 0; i < g_spellVisualAnimNameDB.GetNumRecords(); ++i) {
     animCheck[i] = -1;
   }
 
   for (i = 0; i < g_spellVisualKitDB.GetNumRecords(); ++i) {
     constKit = const_cast<SpellVisualKitRec *>(g_spellVisualKitDB.GetRecordByIndex(i));
-    int animNameIndex;
-    found = 0;
-
-    if (constKit->m_anim <= 0) {
-      constKit->m_anim = -1;
-      continue;
-    }
-
-    for (animNameIndex = 0; animNameIndex < g_spellVisualAnimNameDB.GetNumRecords(); ++animNameIndex) {
-      const SpellVisualAnimNameRec *animName = g_spellVisualAnimNameDB.GetRecordByIndex(animNameIndex);
-
-      if (animName->m_AnimID != constKit->m_anim) {
-        continue;
-      }
-
-      animCheck[animNameIndex] = animName->m_AnimID;
-      for (map = ANIM_STAND; map < NUM_OBJECTANIMATIONS; ++map) {
-        if (!SStrCmp(g_animationNames[map], animName->m_name, 0x7FFFFFFF)) {
-          animCheck[animNameIndex] = -1;
-          constKit->m_anim = map;
-          found = 1;
-          break;
+    if (constKit) {
+      if (constKit->m_anim <= 0) {
+        constKit->m_anim = -1;
+      } else {
+        found = false;
+        for (int animNameIndex = 0; animNameIndex < g_spellVisualAnimNameDB.GetNumRecords() && !found; ++animNameIndex) {
+          const SpellVisualAnimNameRec *animName = g_spellVisualAnimNameDB.GetRecordByIndex(animNameIndex);
+          if (animName && animName->m_AnimID == constKit->m_anim) {
+            animCheck[animNameIndex] = animName->m_AnimID;
+            for (map = ANIM_STAND; map < NUM_OBJECTANIMATIONS; ++map) {
+              if (!SStrCmp(g_animationNames[map], animName->m_name, 0x7FFFFFFF)) {
+                animCheck[animNameIndex] = -1;
+                constKit->m_anim = map;
+                found = true;
+                break;
+              }
+            }
+          }
         }
-      }
-
-      if (found) {
-        break;
       }
     }
   }
 
-  for (i = static_cast<int>(animCheck.Count()) - 1; i >= 0; --i) {
+  for (i = animCheck.Count(); i--;) {
     if (animCheck[i] != -1) {
       SysMsgPrintf(SYSMSG_WARNING, 2, "Anim name not found in AnimCompiles.h for id %d", animCheck[i]);
     }
   }
 
   s_precastAnimTransitions.SetCount(NUM_OBJECTANIMATIONS);
-  for (i = 0; i < static_cast<int>(s_precastAnimTransitions.Count()); ++i) {
+  for (i = 0; i < NUM_OBJECTANIMATIONS; ++i) {
     s_precastAnimTransitions[i] = INVALID_ANIMATION;
   }
 
-  for (i = g_spellVisualPrecastTransitionsDB.GetNumRecords() - 1; i >= 0; --i) {
-    const SpellVisualPrecastTransitionsRec *transition = g_spellVisualPrecastTransitionsDB.GetRecordByIndex(i);
-    ANIMENUMERATION                         source = INVALID_ANIMATION;
-    ANIMENUMERATION                         destination = INVALID_ANIMATION;
-    int                                     animation;
+  for (i = g_spellVisualPrecastTransitionsDB.GetNumRecords(); i--;) {
+    const SpellVisualPrecastTransitionsRec *rec = g_spellVisualPrecastTransitionsDB.GetRecordByIndex(i);
+    UINT                                    source;
+    UINT                                    destination;
 
-    ASSERT(transition);
-    if (!transition->m_PrecastLoadAnimName[0] || !transition->m_PrecastHoldAnimName[0]) {
+    FATALASSERT(rec);
+    if (!rec->m_PrecastLoadAnimName[0] || !rec->m_PrecastHoldAnimName[0]) {
       continue;
     }
 
-    for (animation = ANIM_STAND; animation < NUM_OBJECTANIMATIONS; ++animation) {
-      if (!SStrCmp(g_animationNames[animation], transition->m_PrecastLoadAnimName, 0x7FFFFFFF)) {
-        source = static_cast<ANIMENUMERATION>(animation);
+    for (source = ANIM_STAND; source < NUM_OBJECTANIMATIONS; ++source) {
+      if (!SStrCmp(g_animationNames[source], rec->m_PrecastLoadAnimName, 0x7FFFFFFF)) {
         break;
       }
     }
+    if (source == NUM_OBJECTANIMATIONS) {
+      continue;
+    }
 
-    for (animation = ANIM_STAND; animation < NUM_OBJECTANIMATIONS; ++animation) {
-      if (!SStrCmp(g_animationNames[animation], transition->m_PrecastHoldAnimName, 0x7FFFFFFF)) {
-        destination = static_cast<ANIMENUMERATION>(animation);
+    for (destination = ANIM_STAND; destination < NUM_OBJECTANIMATIONS; ++destination) {
+      if (!SStrCmp(g_animationNames[destination], rec->m_PrecastHoldAnimName, 0x7FFFFFFF)) {
         break;
       }
     }
-
-    if (source != INVALID_ANIMATION && destination != INVALID_ANIMATION) {
-      s_precastAnimTransitions[source] = destination;
+    if (destination < NUM_OBJECTANIMATIONS) {
+      s_precastAnimTransitions[source] = static_cast<ANIMENUMERATION>(destination);
     }
   }
 
@@ -597,40 +580,40 @@ void SpellVisualsInitialize() {
 }
 
 static void InitializeAuraNames() {
-  int index;
+  int i;
 
   s_auraNames.SetCount(89);
   memset(s_auraNames.Ptr(), 0, 89 * sizeof(SpellAuraNamesRec *));
 
-  for (index = g_spellAuraNamesDB.GetNumRecords() - 1; index >= 0; --index) {
-    const SpellAuraNamesRec *auraName = g_spellAuraNamesDB.GetRecordByIndex(index);
-    UINT                     enumID = auraName->m_EnumID;
+  for (i = g_spellAuraNamesDB.GetNumRecords(); i--;) {
+    const SpellAuraNamesRec *auraName = g_spellAuraNamesDB.GetRecordByIndex(i);
+    int                      enumID = auraName->m_EnumID;
 
-    if (enumID < s_auraNames.Count()) {
-      ASSERT(!s_auraNames[enumID]);
+    if (enumID < static_cast<int>(s_auraNames.Count())) {
+      FATALASSERT(!s_auraNames[enumID]);
       s_auraNames[enumID] = auraName;
     }
   }
 
-  for (index = static_cast<int>(s_auraNames.Count()) - 1; index >= 0; --index) {
-    ASSERT(s_auraNames[index]);
+  for (i = s_auraNames.Count(); i--;) {
+    FATALASSERT(s_auraNames[i]);
   }
 }
 
 static void InitializeFishingLineIntervals() {
   float current = 0.0f;
-  UINT  index;
+  int   index;
 
-  for (index = 0; index < s_segmentPoints.MaxCount(); ++index) {
-    s_segmentPoints[index] = -NTempest::CMath::sin_(3.1415927f * (current < 0.0f ? 0.0f : (current > 1.0f ? 1.0f : current)));
+  for (index = 0; index < static_cast<int>(s_segmentPoints.Count()); ++index) {
+    s_segmentPoints[index] = -NTempest::CMath::sin_(3.1415927f * min(max(0.0f, current), 1.0f));
     current += 0.005f;
   }
 }
 
 static void InitializeFishingLineIndices() {
-  UINT index;
+  int index;
 
-  for (index = 0; index < s_fishingLineIndices.MaxCount(); ++index) {
+  for (index = 0; index < static_cast<int>(s_fishingLineIndices.Count()); ++index) {
     s_fishingLineIndices[index] = static_cast<WORD>(index);
   }
 }
@@ -677,14 +660,14 @@ void SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster
 
   const SpellRec *spellRec = g_spellDB.GetRecord(id);
   if (!spellRec) {
-    SysMsgPrintf(SYSMSG_ERROR, 2, "NOSPELLIDFOUND|%d", id);
+    SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", id);
     return;
   }
 
-  UINT           instant = caster->GetSpellRank(id) > 0 || (spellRec->m_attributes & 2);
+  bool           instant = caster->GetSpellCastingTime(id) <= 0 && !(spellRec->m_attributes & 2);
   SpellVisualRec visRecData;
   if (!caster->GetAppropriateSpellVisual(spellRec, visRecData)) {
-    SysMsgPrintf(SYSMSG_ERROR, 2, "SPELLVISUALIDNOTFOUND|%d", id);
+    SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d", id);
     return;
   }
 
@@ -709,11 +692,11 @@ void SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster
 
   int animSet = 0;
   if (!instant && caster->SetSpellPreCastingAnimation(static_cast<ANIMENUMERATION>(visualRec->m_anim))) {
-    UINT specialAnim = visualRec->m_anim == 105 || visualRec->m_anim == 106;
+    bool specialAnim = visualRec->m_anim == 105 || visualRec->m_anim == 106;
     animSet = caster->SetTorsoAnimation(37, specialAnim ? animDuration : 0, specialAnim ? 0x20 : 0);
   }
 
-  caster->SetCastingSpell(id, duration, animSet);
+  caster->StartSpellFizzleTimer(id, duration, animSet);
   if (!instant && (spellRec->m_attributes & 0x400000) && (cast.targets & 2)) {
     caster->SaveTrackingTarget(cast.unitTarget, TRACKTYPE_SPELLPRECAST, 0);
   }
@@ -757,9 +740,9 @@ bool LightningObject::Tick(UINT currentTime) {
     CGObject_C *srcObj = ClntObjMgrObjectPtr(guids[bolt.srcGuidSub], __FILE__, __LINE__);
     CGObject_C *dstObj = ClntObjMgrObjectPtr(guids[bolt.dstGuidSub], __FILE__, __LINE__);
     CGUnit_C   *srcUnit =
-        srcObj && (srcObj->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guids[bolt.srcGuidSub], __FILE__, __LINE__)) : 0;
+        srcObj && srcObj->IsA(TYPE_UNIT) ? static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guids[bolt.srcGuidSub], __FILE__, __LINE__)) : 0;
     CGUnit_C *dstUnit =
-        dstObj && (dstObj->GetType() & TYPE_UNIT) ? static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guids[bolt.dstGuidSub], __FILE__, __LINE__)) : 0;
+        dstObj && dstObj->IsA(TYPE_UNIT) ? static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guids[bolt.dstGuidSub], __FILE__, __LINE__)) : 0;
 
     if (forever || (currentTime >= bolt.birthTime && currentTime < bolt.deathTime)) {
       if (srcObj && dstObj) {
@@ -926,7 +909,7 @@ static void CreateLightningObj(
     lightning->guids.SetCount(numGuids + 1);
     lightning->bolts.SetCount(numGuids);
     lightning->guids[0] = unitPtr->GetGUID();
-    lightning->deathTime = currentTime + rec->m_SegDuration * numGuids;
+    lightning->deathTime = currentTime + lightning->bolts.Count() * rec->m_SegDuration;
     lightning->avgSegLen = rec->m_AvgSegLen;
     lightning->width = rec->m_Width;
     lightning->noiseScale = rec->m_NoiseScale;
@@ -946,14 +929,14 @@ static void CreateLightningObj(
       bolt.boltID = BADBOLT;
 
       CGObject_C *target = ClntObjMgrObjectPtr(guids[i], __FILE__, __LINE__);
-      if (target && (target->GetType() & (TYPE_UNIT | TYPE_GAMEOBJECT))) {
+      if (target && (target->IsA(TYPE_UNIT) || target->IsA(TYPE_GAMEOBJECT))) {
         lightning->guids[i + 1] = guids[i];
         bolt.birthTime = currentTime + i * rec->m_SegDelay;
         bolt.deathTime = bolt.birthTime + rec->m_SegDuration;
         bolt.srcGuidSub = static_cast<WORD>(srcGuidSub);
         bolt.dstGuidSub = static_cast<WORD>(i + 1);
 
-        if (!lightning->forever && !(target->GetType() & TYPE_GAMEOBJECT)) {
+        if (!lightning->forever && !target->IsA(TYPE_GAMEOBJECT)) {
           CGUnit_C *targetUnit = static_cast<CGUnit_C *>(target);
           if (i > 0 && i < numGuids - 1) {
             targetUnit->DDADDLOG(unitPtr->GetGUID(), "CreateLightningObj", __FILE__, __LINE__);
@@ -963,8 +946,7 @@ static void CreateLightningObj(
         srcGuidSub = bolt.dstGuidSub;
       } else {
         lightning->guids[i + 1] = 0;
-        bolt.birthTime = lightning->deathTime;
-        bolt.deathTime = lightning->deathTime;
+        bolt.birthTime = bolt.deathTime = lightning->deathTime;
       }
     }
   }
@@ -1001,7 +983,7 @@ void SpellVisualsHandleSpellStart(
       UINT i;
       for (i = 0; i < targets.Count(); ++i) {
         CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
-        if (target && (target->GetType() & TYPE_UNIT)) {
+        if (target && target->IsA(TYPE_UNIT)) {
           PlayImpactKit(static_cast<CGUnit_C *>(target), impactKit);
         }
       }
@@ -1029,30 +1011,29 @@ static void PlayImpactKit(CGUnit_C *target, const SpellVisualKitRec *impactKit) 
 }
 
 UINT SpellGetRangedPrecastHoldAnim(UINT loadAnim) {
-  return loadAnim < s_precastAnimTransitions.Count() ? s_precastAnimTransitions.Ptr()[loadAnim] : INVALID_ANIMATION;
+  if (loadAnim >= s_precastAnimTransitions.Count()) {
+    return INVALID_ANIMATION;
+  }
+  return s_precastAnimTransitions.Ptr()[loadAnim];
 }
 
 void SpellVisualsTick(float elapsed) {
   DWORD currentTime = OsGetAsyncTimeMs();
 
-  LightningObject *lightning = s_lightning.Head();
-  while (lightning) {
-    LightningObject *next = s_lightning.Next(lightning);
-    if (!lightning->Tick(currentTime)) {
-      s_lightning.UnlinkNode(lightning);
-      lightning->DelRef();
+  {
+    for (LightningObject *lightning = s_lightning.Head(), *next; (int)lightning > 0 ? ((next = s_lightning.RawNext(lightning)), 1) : 0; lightning = next) {
+      if (!lightning->Tick(currentTime)) {
+        s_lightning.UnlinkNode(lightning);
+        lightning->DelRef();
+      }
     }
-    lightning = next;
   }
 
   s_lightningManager->Update(elapsed);
   s_eclipseObject.Update(currentTime);
 
-  BlizzardObject *blizzard = s_blizzard.Head();
-  while (blizzard) {
-    BlizzardObject *next = s_blizzard.Next(blizzard);
+  for (BlizzardObject *blizzard = s_blizzard.Head(), *next; (int)blizzard > 0 ? ((next = s_blizzard.RawNext(blizzard)), 1) : 0; blizzard = next) {
     blizzard->Update();
-    blizzard = next;
   }
 }
 
@@ -1062,7 +1043,7 @@ void SpellVisualsRender() {
 }
 
 static void RenderFishingLines() {
-  ITERATELIST(FishingLineObject, s_fishingLineObjects, object) {
+  for (FishingLineObject *object = s_fishingLineObjects.Head(), *next; (int)object > 0 ? ((next = s_fishingLineObjects.RawNext(object)), 1) : 0; object = next) {
     object->Render();
   }
 }
@@ -1095,15 +1076,15 @@ void SpellVisualClearLightning(LightningObject *lightning) {
 
 BlizzardObject *SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec) {
   static LPCSTR modelNames[4] = {
-      "Spells\Blizzard_Impact_Base.mdx", "Spells\RainOfFire_Impact_Base.mdx", "Spells\CallLightning_Impact.mdx",
-      "Spells\FlamestrikeSmall_Impact_Base.mdx"
+      "Spells\\Blizzard_Impact_Base.mdx", "Spells\\RainOfFire_Impact_Base.mdx", "Spells\\CallLightning_Impact.mdx",
+      "Spells\\FlamestrikeSmall_Impact_Base.mdx"
   };
   UINT nameSub;
 
   BlizzardObject *blizzard = AllocBlizzard();
 
   nameSub = NTempest::CMath::ftol_0_256_(kitRec->m_characterParam[0]);
-  FATALASSERT(nameSub < sizeof(modelNames) / sizeof(modelNames[0]));
+  FATALASSERT(nameSub < (sizeof(modelNames) / sizeof(modelNames[0])));
   blizzard->Init(pos, modelNames[nameSub], radius, kitRec->m_characterParam[1]);
   return blizzard;
 }
@@ -1128,12 +1109,9 @@ FishingLineObject *SpellVisualsFishingLineCreate(const SpellVisualKitRec *kitRec
     return 0;
   }
   FishingLineObject *object = s_freeFishingObjects.Get(0);
-  if (object) {
-    new (object) FishingLineObject;
-  }
   object->object = gameObj;
   object->caster = caster;
-  object->color.Set(static_cast<UINT>(kitRec->m_characterParam[3]) | 0xFF000000);
+  object->color.Set(static_cast<UINT>(kitRec->m_characterParam[0]) | 0xFF000000);
   object->visible = 0;
   s_fishingLineObjects.LinkNode(object, LIST_TAIL, 0);
   return object;
@@ -1141,7 +1119,6 @@ FishingLineObject *SpellVisualsFishingLineCreate(const SpellVisualKitRec *kitRec
 
 void SpellVisualsFishingLineDestroy(FishingLineObject *object) {
   if (object) {
-    s_fishingLineObjects.UnlinkNode(object);
     s_freeFishingObjects.Put(object);
   }
 }
@@ -1208,6 +1185,7 @@ void HandleMissileEffects(
     const TSStackArray<MISS_REASON> *missReasons,
     bool                             wasProc
 ) {
+  float missileSpeed = srec->m_speed;
   if (!caster || !targets.Count() || (!visRec->m_hasMissile && !ammoDisplayID)) {
     return;
   }
@@ -1217,17 +1195,15 @@ void HandleMissileEffects(
     for (i = 0; i < targets.Count(); ++i) {
       CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
       if (target) {
-        MISS_REASON        reason = missReasons ? (*missReasons)[i] : MISS_PHYSICAL;
-        NTempest::C3Vector destination;
-        target->GetPosition(destination);
+        MISS_REASON reason = missReasons ? (*missReasons)[i] : MISS_PHYSICAL;
         caster->StoreSpellMissileEffect(
-            targets[i], destination, srec->m_speed, ammoDisplayID, ammoInventoryType, visRec, missReasons == 0, reason, srec->m_ID, wasProc
+            targets[i], target->GetPosition(), missileSpeed, ammoDisplayID, ammoInventoryType, visRec, missReasons == 0, reason, srec->m_ID, wasProc
         );
       }
     }
   } else if (cast.targets & 0x40) {
     caster->StoreSpellMissileEffect(
-        0, cast.destLocation, srec->m_speed, ammoDisplayID, ammoInventoryType, visRec, missReasons == 0, MISS_PHYSICAL, srec->m_ID, wasProc
+        0, cast.destLocation, missileSpeed, ammoDisplayID, ammoInventoryType, visRec, missReasons == 0, MISS_PHYSICAL, srec->m_ID, wasProc
     );
   }
 }
@@ -1241,6 +1217,8 @@ void SpellVisualsHandleSpellStartHits(
     int                            ammoInventoryType,
     int                            flags
 ) {
+  bool                     ignoreAreaEffect = (flags & 8) != 0;
+  bool                     wasProc = (flags & 1) != 0;
   SpellVisualRec           visRecData;
   const SpellRec          *srec;
   const SpellVisualRec    *visRec;
@@ -1249,31 +1227,31 @@ void SpellVisualsHandleSpellStartHits(
     return;
   }
 
-  if (!(flags & 8) && !(flags & 1) && (cast.targets & 0x40)) {
+  if (!ignoreAreaEffect && !wasProc && (cast.targets & 0x40)) {
     PlayOneShotEffect(cast.destLocation, visRec->m_areaModel, targets);
   }
   int torsoAnimSet = 0;
-  if (!(flags & 1) && kitRec) {
+  if (!wasProc && kitRec) {
     PlayCastAnim(caster, srec, visRec, kitRec, targets, torsoAnimSet);
   }
-  if (kitRec && !(flags & 1)) {
+  if (kitRec && !wasProc) {
     SpellVisualsProcedure(caster, kitRec, spellID, &targets, 0);
   }
 
-  if (srec->m_speed > 0.0f) {
-    HandleMissileEffects(caster, srec, visRec, ammoDisplayID, ammoInventoryType, cast, targets, 0, (flags & 1) != 0);
-  } else {
+  if (srec->m_speed <= 0.0f) {
     caster->MaybeSaveChannelSpellTargets(spellID, targets);
     const SpellVisualKitRec *impactKit = g_spellVisualKitDB.GetRecord(visRec->m_impactKit);
     if (impactKit && !IsSpellAura(srec)) {
       UINT i;
       for (i = 0; i < targets.Count(); ++i) {
         CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
-        if (target && (target->GetType() & TYPE_UNIT)) {
+        if (target && target->IsA(TYPE_UNIT)) {
           caster->SetImpactKitEffect(spellID, static_cast<CGUnit_C *>(target), impactKit, torsoAnimSet == 0);
         }
       }
     }
+  } else {
+    HandleMissileEffects(caster, srec, visRec, ammoDisplayID, ammoInventoryType, cast, targets, 0, wasProc);
   }
 }
 
@@ -1364,57 +1342,55 @@ void SpellVisualsHandleSpellStartMisses(
     return;
   }
 
-  if (caster->GetCurrentTorsoAnim() == 37) {
+  if (caster->GetCurrentTorsoAnimState() == 37) {
     caster->ClearTorsoAnimation(0);
   }
   if (!ignoreAreaEffect && !wasProc && (cast.targets & 0x40)) {
     PlayOneShotEffect(cast.destLocation, visRec->m_areaModel, targets);
   }
-  int torsoAnimSet = 0;
+  int dummy = 0;
   if (!wasProc && kitRec) {
-    PlayCastAnim(caster, srec, visRec, kitRec, targets, torsoAnimSet);
+    PlayCastAnim(caster, srec, visRec, kitRec, targets, dummy);
   }
   if (kitRec && !wasProc) {
     SpellVisualsProcedure(caster, kitRec, spellID, &targets, &missReasons);
   }
 
-  UINT i;
-  for (i = 0; i < targets.Count(); ++i) {
+  for (int i = 0; i < static_cast<int>(targets.Count()); ++i) {
     CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
-    if (target && (target->GetType() & TYPE_UNIT)) {
+    if (target && target->IsA(TYPE_UNIT)) {
       missReasons[i] = static_cast<CGUnit_C *>(target)->AdjustVictimState(missReasons[i]);
     }
   }
 
-  if (srec->m_speed > 0.0f) {
-    HandleMissileEffects(caster, srec, visRec, ammoDisplayID, ammoInventoryType, cast, targets, &missReasons, wasProc);
-    return;
-  }
-
-  for (i = 0; i < targets.Count(); ++i) {
-    CGObject_C *targetObject = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
-    if (targetObject && (targetObject->GetType() & TYPE_UNIT) && caster->GetGUID() == ClntObjMgrGetActivePlayer()) {
-      CGUnit_C *target = static_cast<CGUnit_C *>(targetObject);
-      if (srec->m_attributes & 0x404) {
-        CGPlayer_C::AddDeferredSpellMiss(targets[i], target->AdjustVictimState(missReasons[i]), spellID);
-      } else {
-        target->AddWorldText(missReasons[i]);
-        UnitCombatLogSpellMissed(missReasons[i], spellID, caster->GetGUID(), target->GetGUID());
+  if (srec->m_speed <= 0.0f) {
+    for (UINT i = 0; i < targets.Count(); ++i) {
+      CGObject_C *targetObject = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
+      if (targetObject && targetObject->IsA(TYPE_UNIT) && caster->GetGUID() == ClntObjMgrGetActivePlayer()) {
+        CGUnit_C *target = static_cast<CGUnit_C *>(targetObject);
+        if (srec->m_attributes & 0x404) {
+          CGPlayer_C::AddDeferredSpellMiss(targets[i], target->AdjustVictimState(missReasons[i]), spellID);
+        } else {
+          target->AddWorldText(missReasons[i]);
+          UnitCombatLogSpellMissed(missReasons[i], spellID, caster->GetGUID(), target->GetGUID());
+        }
       }
     }
+  } else {
+    HandleMissileEffects(caster, srec, visRec, ammoDisplayID, ammoInventoryType, cast, targets, &missReasons, wasProc);
   }
 }
 
 LPCSTR GetSpellAuraEffectName(int effectID) {
-  if (effectID < static_cast<int>(s_auraNames.Count())) {
-    return s_auraNames[effectID]->m_name_lang[0];
+  if (effectID >= static_cast<int>(s_auraNames.Count())) {
+    return "INVALID_SPELL_AURA_EFFECT";
   }
-  return "INVALID_SPELL_AURA_EFFECT";
+  return s_auraNames[effectID]->m_name_lang[0];
 }
 
 LPCSTR GetSpellAuraEffectToken(int effectID) {
-  if (effectID < static_cast<int>(s_auraNames.Count())) {
-    return s_auraNames[effectID]->m_globalstrings_tag;
+  if (effectID >= static_cast<int>(s_auraNames.Count())) {
+    return "INVALID_SPELL_AURA_EFFECT";
   }
-  return "INVALID_SPELL_AURA_EFFECT";
+  return s_auraNames[effectID]->m_globalstrings_tag;
 }

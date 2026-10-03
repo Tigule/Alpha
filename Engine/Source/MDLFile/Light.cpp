@@ -175,37 +175,37 @@ static void IWriteLightSection(const MDLDATA &data, const MDLLIGHTSECTION &secti
   if (section.attenstartkeys.keys.Count()) {
     WriteFloatKeyFrames(0x126, "\t", section.attenstartkeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x126));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x126));
     WriteKeyData(buffer, &section.staticAttenStart, 1);
   }
   if (section.attenendkeys.keys.Count()) {
     WriteFloatKeyFrames(0x127, "\t", section.attenendkeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x127));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x127));
     WriteKeyData(buffer, &section.staticAttenEnd, 1);
   }
   if (section.intensitykeys.keys.Count()) {
     WriteFloatKeyFrames(0x15F, "\t", section.intensitykeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x15F));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x15F));
     WriteKeyData(buffer, &section.staticIntensity, 1);
   }
   if (section.colorkeys.keys.Count()) {
     WriteFloatKeyFrames(0x136, "\t", section.colorkeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x136));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x136));
     WriteKeyData(buffer, &section.staticColor.b, 3);
   }
   if (section.ambintensitykeys.keys.Count()) {
     WriteFloatKeyFrames(0x120, "\t", section.ambintensitykeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x120));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x120));
     WriteKeyData(buffer, &section.staticAmbIntensity, 1);
   }
   if (section.ambcolorkeys.keys.Count()) {
     WriteFloatKeyFrames(0x11F, "\t", section.ambcolorkeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x11F));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x11F));
     WriteKeyData(buffer, &section.staticAmbColor.b, 3);
   }
   WriteFloatKeyFrames(0x1D9, "\t", section.visibilityKeys, buffer);
@@ -213,9 +213,12 @@ static void IWriteLightSection(const MDLDATA &data, const MDLLIGHTSECTION &secti
 }
 
 BOOL MDL::WriteLights(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
-    for (UINT i = 0; i < data.lights.Count(); ++i) {
-      IWriteLightSection(data, data.lights.Ptr()[i], data.lights.Count() != data.objects.Count(), buffer);
+  if (!data.model.animationFile[0]) {
+    UINT numLights = data.lights.Count();
+    int needObjIds = numLights != data.objects.Count();
+    const MDLLIGHTSECTION *pLight = data.lights.Ptr();
+    for (UINT i = numLights; i; --i, ++pLight) {
+      IWriteLightSection(data, *pLight, needObjIds, buffer);
     }
   }
   return 1;
@@ -260,120 +263,114 @@ static void IWriteBinLightSection(const MDLLIGHTSECTION &section, CMsgBuffer &bu
   buffer.AddFloat(section.staticAmbIntensity);
   WriteBinFloatKeyFrames(section.attenstartkeys, 'SALK', buffer);
   WriteBinFloatKeyFrames(section.attenendkeys, 'EALK', buffer);
-  if (section.colorkeys.keys.Count()) {
-    const MDLKEYTRACK<C3Color> &track = section.colorkeys;
-    buffer.AddDword('CALK');
-    buffer.AddUint(track.keys.Count());
-    buffer.AddUint(track.type);
-    buffer.AddUint(track.globalSeqId);
-    UINT values = track.type > TRACK_LINEAR ? 9 : 3;
-    for (UINT i = 0; i < track.keys.Count(); ++i) {
-      const MDLKEYFRAME<C3Color> &key = track.keys.Ptr()[i];
-      buffer.AddInt(key.time);
-      buffer.AddFloatArray(&key.value.b, values);
-    }
-  }
+  WriteBinFloatKeyFrames(section.colorkeys, 'CALK', buffer);
   WriteBinFloatKeyFrames(section.intensitykeys, 'IALK', buffer);
-  if (section.ambcolorkeys.keys.Count()) {
-    const MDLKEYTRACK<C3Color> &track = section.ambcolorkeys;
-    buffer.AddDword('CBLK');
-    buffer.AddUint(track.keys.Count());
-    buffer.AddUint(track.type);
-    buffer.AddUint(track.globalSeqId);
-    UINT values = track.type > TRACK_LINEAR ? 9 : 3;
-    for (UINT i = 0; i < track.keys.Count(); ++i) {
-      const MDLKEYFRAME<C3Color> &key = track.keys.Ptr()[i];
-      buffer.AddInt(key.time);
-      buffer.AddFloatArray(&key.value.b, values);
-    }
-  }
+  WriteBinFloatKeyFrames(section.ambcolorkeys, 'CBLK', buffer);
   WriteBinFloatKeyFrames(section.ambintensitykeys, 'IBLK', buffer);
   WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buffer);
 }
 
 BOOL MDL::WriteBinLights(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
-  if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.lights.Count()) {
+  if (!data.model.animationFile[0] && data.lights.Count()) {
     buf.AddDword('ETIL');
+    UINT numLights = data.lights.Count();
     UINT totalSize = 4;
     UINT i;
-    for (i = 0; i < data.lights.Count(); ++i) {
-      totalSize += GetBinLightSize(data.lights.Ptr()[i]);
+    for (i = 0; i < numLights; ++i) {
+      totalSize += GetBinLightSize(data.lights[i]);
     }
     buf.AddUint(totalSize);
-    buf.AddUint(data.lights.Count());
-    for (i = 0; i < data.lights.Count(); ++i) {
-      IWriteBinLightSection(data.lights.Ptr()[i], buf, status);
+    buf.AddUint(numLights);
+    for (i = 0; i < numLights; ++i) {
+      IWriteBinLightSection(data.lights[i], buf, status);
     }
   }
   return 1;
 }
 
-static BOOL ReadBinLight(CMsgBuffer &buffer, MDLLIGHTSECTION *light, CMDLStatus *status, UINT &totalRead, UINT version) {
-  UINT sectionLength = buffer.GetUint();
-  UINT localRead = 4;
-  if (!ReadBinGenObject(*light, buffer, status, localRead)) {
+static BOOL ReadBinLight(CMsgBuffer &buf, MDLLIGHTSECTION *pLight, CMDLStatus *status, UINT &totalRead, UINT version) {
+  UINT sectionLength = buf.GetUint();
+  UINT localBytesRead = 4;
+  if (!ReadBinGenObject(*pLight, buf, status, localBytesRead)) {
     status->Add(STATUS_ERROR, "Error reading gen object portion of light.\n");
     return 0;
   }
-  light->type = static_cast<LIGHT_TYPE>(buffer.GetDword());
-  light->staticAttenStart = buffer.GetFloat();
-  light->staticAttenEnd = buffer.GetFloat();
-  light->staticColor.r = buffer.GetFloat();
-  light->staticColor.g = buffer.GetFloat();
-  light->staticColor.b = buffer.GetFloat();
-  light->staticIntensity = buffer.GetFloat();
-  localRead += 28;
+  pLight->type = static_cast<LIGHT_TYPE>(buf.GetDword());
+  localBytesRead += 4;
+  pLight->staticAttenStart = buf.GetFloat();
+  localBytesRead += 4;
+  pLight->staticAttenEnd = buf.GetFloat();
+  localBytesRead += 4;
+  pLight->staticColor.r = buf.GetFloat();
+  pLight->staticColor.g = buf.GetFloat();
+  pLight->staticColor.b = buf.GetFloat();
+  localBytesRead += 12;
+  pLight->staticIntensity = buf.GetFloat();
+  localBytesRead += 4;
   if (version >= 700) {
-    light->staticAmbColor.r = buffer.GetFloat();
-    light->staticAmbColor.g = buffer.GetFloat();
-    light->staticAmbColor.b = buffer.GetFloat();
-    light->staticAmbIntensity = buffer.GetFloat();
-    localRead += 16;
+    pLight->staticAmbColor.r = buf.GetFloat();
+    pLight->staticAmbColor.g = buf.GetFloat();
+    pLight->staticAmbColor.b = buf.GetFloat();
+    localBytesRead += 12;
+    pLight->staticAmbIntensity = buf.GetFloat();
+    localBytesRead += 4;
   }
-  while (localRead < sectionLength) {
-    DWORD tag = buffer.GetDword();
-    localRead += 4;
-    int ok = 1;
-    if (tag == 'SALK') {
-      ok = ReadBinFloatKeyFrames(light->attenstartkeys, buffer, localRead);
-      if (!ok)
-        status->Add(STATUS_ERROR, "Error reading light attenstart keys.\n");
-    } else if (tag == 'EALK') {
-      ok = ReadBinFloatKeyFrames(light->attenendkeys, buffer, localRead);
-      if (!ok)
-        status->Add(STATUS_ERROR, "Error reading light attenend keys.\n");
-    } else if (tag == 'CALK') {
-      ok = ReadBinFloatKeyFrames(light->colorkeys, buffer, localRead);
-      if (!ok)
-        status->Add(STATUS_ERROR, "Error reading light color keys.\n");
-    } else if (tag == 'IALK') {
-      ok = ReadBinFloatKeyFrames(light->intensitykeys, buffer, localRead);
-      if (!ok)
-        status->Add(STATUS_ERROR, "Error reading light intensity keys.\n");
-    } else if (tag == 'CBLK') {
-      ok = ReadBinFloatKeyFrames(light->ambcolorkeys, buffer, localRead);
-      if (!ok)
-        status->Add(STATUS_ERROR, "Error reading light color keys.\n");
-    } else if (tag == 'IBLK') {
-      ok = ReadBinFloatKeyFrames(light->ambintensitykeys, buffer, localRead);
-      if (!ok)
-        status->Add(STATUS_ERROR, "Error reading light intensity keys.\n");
-    } else if (tag == 'SIVK') {
-      ok = ReadBinFloatKeyFrames(light->visibilityKeys, buffer, localRead);
-      if (!ok)
-        status->Add(STATUS_ERROR, "Error reading light intensity keys.\n");
-    } else {
-      SkipUnknown(buffer, localRead);
+  while (localBytesRead < sectionLength) {
+    DWORD tag = buf.GetDword();
+    localBytesRead += 4;
+    switch (tag) {
+      case 'SALK':
+        if (!ReadBinFloatKeyFrames(pLight->attenstartkeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading light attenstart keys.\n");
+          return 0;
+        }
+        break;
+      case 'EALK':
+        if (!ReadBinFloatKeyFrames(pLight->attenendkeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading light attenend keys.\n");
+          return 0;
+        }
+        break;
+      case 'CALK':
+        if (!ReadBinFloatKeyFrames(pLight->colorkeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading light color keys.\n");
+          return 0;
+        }
+        break;
+      case 'IALK':
+        if (!ReadBinFloatKeyFrames(pLight->intensitykeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading light intensity keys.\n");
+          return 0;
+        }
+        break;
+      case 'SIVK':
+        if (!ReadBinFloatKeyFrames(pLight->visibilityKeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading light intensity keys.\n");
+          return 0;
+        }
+        break;
+      case 'CBLK':
+        if (!ReadBinFloatKeyFrames(pLight->ambcolorkeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading light color keys.\n");
+          return 0;
+        }
+        break;
+      case 'IBLK':
+        if (!ReadBinFloatKeyFrames(pLight->ambintensitykeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading light intensity keys.\n");
+          return 0;
+        }
+        break;
+      default:
+        SkipUnknown(buf, localBytesRead);
+        break;
     }
-    if (!ok) {
+    if (localBytesRead > sectionLength) {
+      status->FatalOverran("Lights", -1);
       return 0;
     }
   }
-  if (localRead > sectionLength) {
-    status->FatalOverran("Lights", -1);
-    return 0;
-  }
-  totalRead += localRead;
+  totalRead += localBytesRead;
   return 1;
 }
 

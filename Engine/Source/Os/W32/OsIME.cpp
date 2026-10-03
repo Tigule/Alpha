@@ -49,7 +49,7 @@ static BOOL GetCompositionString(int which, char *string, int maxlen) {
 
   WORD wtemp[512];
   ImmGetCompositionStringA(context, which, string, maxlen);
-  MultiByteToWideChar(OsInputGetCodePage(), 0, string, -1, reinterpret_cast<wchar_t *>(wtemp), 512);
+  MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, string, -1, reinterpret_cast<wchar_t *>(wtemp), 512);
   ConvertUTF16toUTF8(string, maxlen - 1, wtemp, 512, reinterpret_cast<UINT *>(&maxlen), 0);
   string[maxlen] = 0;
   ImmReleaseContext(wnd, context);
@@ -109,10 +109,10 @@ BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   ImmGetCompositionStringA(context, GCS_COMPSTR, string, sizeof(string));
   ImmReleaseContext(wnd, context);
 
-  UINT cursorLen = MultiByteToWideChar(codepage, 0, string, cursor, 0, 0);
-  length = MultiByteToWideChar(codepage, 0, string, clauses[currentClause], 0, 0);
+  UINT cursorLen = MultiByteToWideChar(codepage, MB_PRECOMPOSED, string, cursor, 0, 0);
+  length = MultiByteToWideChar(codepage, MB_PRECOMPOSED, string, clauses[currentClause], 0, 0);
   currentClause =
-      length + MultiByteToWideChar(codepage, 0, string + clauses[currentClause], clauses[currentClause + 1] - clauses[currentClause], 0, 0);
+      length + MultiByteToWideChar(codepage, MB_PRECOMPOSED, string, clauses[currentClause + 1] - clauses[currentClause], 0, 0);
   SMemFree(clauses, __FILE__, __LINE__, 0);
   clauseLeft = length;
   clauseRight = currentClause;
@@ -193,7 +193,7 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
     if (pcl->dwPageStart + i < pcl->dwCount) {
       WORD   wtemp[512];
       LPCSTR source = reinterpret_cast<LPCSTR>(pcl) + pcl->dwOffset[pcl->dwPageStart + i];
-      MultiByteToWideChar(OsInputGetCodePage(), 0, source, -1, reinterpret_cast<wchar_t *>(wtemp), 512);
+      MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, source, -1, reinterpret_cast<wchar_t *>(wtemp), 512);
       ConvertUTF16toUTF8(candidate->candidate, 1023, wtemp, 512, &written, 0);
     }
 

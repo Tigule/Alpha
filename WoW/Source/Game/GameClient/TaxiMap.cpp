@@ -19,6 +19,8 @@
 #include <stpl.h>
 #include <storm.h>
 
+#include <malloc.h>
+
 static HTEXTURE                  s_texture;
 static C4Pixel                   s_textureData[512 * 512];
 static const TaxiPathRec        *s_taxiPathCosts[63][63];
@@ -63,7 +65,7 @@ static void UglifyMapTexture() {
   UINT index;
 
   for (index = 0; index < 512 * 512; ++index) {
-    s_textureData[index] = C4Pixel(0xFFFF00FF);
+    s_textureData[index] = C4Pixel(0xFF, 0x00, 0xFF, 0xFF);
   }
 }
 
@@ -93,12 +95,14 @@ static bool UpdateTexture(int continentID) {
     return false;
   }
 
+  C4Pixel *src = bits->mip[0];
+  C4Pixel *dst = s_textureData;
   for (UINT y = 0; y < 512; ++y) {
-    C4Pixel *src = &bits->mip[0][y * 512];
-    C4Pixel *dst = &s_textureData[y * 512];
     for (UINT x = 0; x < 512; ++x) {
       dst[x] = src[x];
     }
+    src += 512;
+    dst += 512;
   }
   CGxTex *tex = TextureGetGxTex(s_texture, 1, 0);
   if (tex) {
@@ -109,9 +113,10 @@ static bool UpdateTexture(int continentID) {
 }
 
 static NTempest::C2Vector CalculateNormalizedCoords(const NTempest::C2Vector &vec) {
-  NTempest::C2Vector v;
-  v.x = (vec.x - s_visibleWorldRect.l) / s_visibleWorldRect.Width();
-  v.y = (s_visibleWorldRect.b - vec.y) / s_visibleWorldRect.Height();
+  NTempest::C2Vector v = vec;
+  v = NTempest::C2Vector(s_visibleWorldRect.b - v.y, v.x - s_visibleWorldRect.l);
+  v.x /= s_visibleWorldRect.b - s_visibleWorldRect.t;
+  v.y /= s_visibleWorldRect.r - s_visibleWorldRect.l;
   return v;
 }
 
@@ -123,59 +128,50 @@ static void GenerateRouteInfo(LONGLONG allNodes, int currentContinent) {
     return;
   }
 
-  for (i = 0; i < 64; ++i) {
-    LONGLONG            mask = static_cast<LONGLONG>(1) << i;
-    const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(i + 1);
-    if ((allNodes & mask) && (!node || node->m_ContinentID != currentContinent)) {
-      allNodes &= ~mask;
+  for (i = 0; i < 64U; ++i) {
+    LONGLONG mask = static_cast<LONGLONG>(1) << i;
+    if (allNodes & mask) {
+      const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(i + 1);
+      if (!node || node->m_ContinentID != currentContinent) {
+        allNodes &= ~mask;
+      }
     }
   }
 
   char grid[64][64];
   memset(grid, 0, sizeof(grid));
-  for (i = g_taxiPathDB.GetNumRecords() - 1; i >= 0; --i) {
+  for (i = g_taxiPathDB.GetNumRecords(); i--;) {
     const TaxiPathRec *path = g_taxiPathDB.GetRecordByIndex(i);
-    LONGLONG           srcMask = static_cast<LONGLONG>(1) << (path->m_FromTaxiNode - 1);
-    LONGLONG           dstMask = static_cast<LONGLONG>(1) << (path->m_ToTaxiNode - 1);
-    if ((allNodes & (srcMask | dstMask)) == (srcMask | dstMask)) {
-      int src = path->m_FromTaxiNode - 1;
-      int dst = path->m_ToTaxiNode - 1;
-      if (src > dst) {
-        int temp = src;
-        src = dst;
-        dst = temp;
-      }
+    LONGLONG           mask = (static_cast<LONGLONG>(1) << (path->m_FromTaxiNode - 1)) | (static_cast<LONGLONG>(1) << (path->m_ToTaxiNode - 1));
+    if ((allNodes & mask) == mask) {
+      int src = min(path->m_FromTaxiNode, path->m_ToTaxiNode);
+      int dst = max(path->m_FromTaxiNode, path->m_ToTaxiNode);
       grid[src][dst] = 1;
     }
   }
 
-  s_lines.Clear();
-  for (i = 0; i < 64; ++i) {
-    for (j = 0; j < 64; ++j) {
-      if (!grid[i][j]) {
-        continue;
+  s_lines.SetCount(0);
+  for (i = 0; i < 64U; ++i) {
+    for (j = 0; j < 64U; ++j) {
+      if (grid[i][j]) {
+        const TaxiNodesRec *src = g_taxiNodesDB.GetRecord(i);
+        const TaxiNodesRec *dst = g_taxiNodesDB.GetRecord(j);
+        FATALASSERT(src && dst);
+        TAXILINE *line = s_lines.New();
+        line->src = NTempest::C2Vector(src->m_X, src->m_Y);
+        line->dst = NTempest::C2Vector(dst->m_X, dst->m_Y);
       }
-      const TaxiNodesRec *src = g_taxiNodesDB.GetRecord(i + 1);
-      const TaxiNodesRec *dst = g_taxiNodesDB.GetRecord(j + 1);
-      FATALASSERT(src && dst);
-      TAXILINE          *line = s_lines.New();
-      NTempest::C2Vector srcPos(src->m_X, src->m_Y);
-      NTempest::C2Vector dstPos(dst->m_X, dst->m_Y);
-      line->src = CalculateNormalizedCoords(srcPos);
-      line->dst = CalculateNormalizedCoords(dstPos);
     }
   }
 }
 
 void TaxiMapInitialize() {
-  CGxTexParmsEx params;
-  CGxTex       *tex;
-
   if (s_texture) {
     HandleClose(s_texture);
   }
   s_texture = 0;
 
+  CGxTexParmsEx params;
   params.target = GxTex_2d;
   params.width = 512;
   params.height = 512;
@@ -186,18 +182,21 @@ void TaxiMapInitialize() {
   params.userArg = 0;
   params.userFunc = TextureUpdateFunc;
 
+  CGxTex *tex;
   if (GxTexCreate(params, tex) && tex) {
     int index;
 
     s_texture = TextureCreate(tex);
     memset(s_taxiPathCosts, 0, sizeof(s_taxiPathCosts));
 
-    for (index = g_taxiPathDB.GetNumRecords() - 1; index >= 0; --index) {
+    for (index = g_taxiPathDB.GetNumRecords(); index--;) {
       const TaxiPathRec *rec = g_taxiPathDB.GetRecordByIndex(index);
 
       ASSERT(rec);
-      if (rec->m_FromTaxiNode && rec->m_ToTaxiNode && rec->m_FromTaxiNode <= 63 && rec->m_ToTaxiNode <= 63) {
-        s_taxiPathCosts[rec->m_FromTaxiNode][rec->m_ToTaxiNode] = rec;
+      if (rec->m_FromTaxiNode && rec->m_ToTaxiNode) {
+        if (rec->m_FromTaxiNode <= 63 && rec->m_ToTaxiNode <= 63) {
+          s_taxiPathCosts[rec->m_FromTaxiNode - 1][rec->m_ToTaxiNode - 1] = rec;
+        }
       }
     }
 
@@ -236,41 +235,49 @@ HTEXTURE TaxiMapGetTexture() {
 
 BOOL TaxiMapUpdatePosition(int currentTaxiNode, LONGLONG reachable, LONGLONG known, NTempest::CRect &rect) {
   const TaxiNodesRec *currentNode = g_taxiNodesDB.GetRecord(currentTaxiNode);
-  if (currentTaxiNode >= 0 && currentNode && UpdateTexture(currentNode->m_ContinentID)) {
-    s_currentTaxiNode = currentTaxiNode;
-    s_currentReachable = reachable & known;
-    s_knownNodes = known;
-
-    NTempest::CRect regionRect;
-    regionRect.l = currentNode->m_X - 8533.333f;
-    regionRect.r = currentNode->m_X + 8533.333f;
-    regionRect.t = currentNode->m_Y - 8533.333f;
-    regionRect.b = currentNode->m_Y + 8533.333f;
-    FixupRegionRect(regionRect);
-    rect = regionRect;
-    s_visibleWorldRect = regionRect;
-
-    s_taxiTextureRect.t = (-regionRect.r + 17066.666f) * 0.000029296876f;
-    s_taxiTextureRect.l = (-regionRect.b + 17066.666f) * 0.000029296876f;
-    s_taxiTextureRect.b = (-regionRect.l + 17066.666f) * 0.000029296876f;
-    s_taxiTextureRect.r = (-regionRect.t + 17066.666f) * 0.000029296876f;
-    GenerateRouteInfo(known, currentNode->m_ContinentID);
-    return 1;
+  if (!currentNode || !UpdateTexture(currentNode->m_ContinentID)) {
+    UglifyMapTexture();
+    s_taxiTextureRect.l = 0.0f;
+    s_taxiTextureRect.r = 1.0f;
+    s_taxiTextureRect.t = 0.0f;
+    s_taxiTextureRect.b = 1.0f;
+    return 0;
   }
 
-  UglifyMapTexture();
-  s_taxiTextureRect.Set(0.0f, 0.0f, 1.0f, 1.0f);
-  return 0;
+  s_currentTaxiNode = currentTaxiNode;
+  s_currentReachable = reachable & known;
+  s_knownNodes = known;
+
+  NTempest::CRect regionRect;
+  regionRect.l = currentNode->m_X - 8533.333f;
+  regionRect.r = currentNode->m_X + 8533.333f;
+  regionRect.t = currentNode->m_Y - 8533.333f;
+  regionRect.b = currentNode->m_Y + 8533.333f;
+  FixupRegionRect(regionRect);
+  rect = regionRect;
+  s_visibleWorldRect = regionRect;
+
+  regionRect.t *= -1.0f;
+  regionRect.l *= -1.0f;
+  regionRect.b *= -1.0f;
+  regionRect.r *= -1.0f;
+  s_taxiTextureRect.r = regionRect.t + 17066.666f;
+  s_taxiTextureRect.l = regionRect.b + 17066.666f;
+  s_taxiTextureRect.b = regionRect.l + 17066.666f;
+  s_taxiTextureRect.t = regionRect.r + 17066.666f;
+  s_taxiTextureRect.r *= 0.000029296876f;
+  s_taxiTextureRect.l *= 0.000029296876f;
+  s_taxiTextureRect.b *= 0.000029296876f;
+  s_taxiTextureRect.t *= 0.000029296876f;
+  GenerateRouteInfo(known, currentNode->m_ContinentID);
+  return 1;
 }
 
 UINT TaxiNodeCost(UINT srcNode, UINT dstNode) {
-  if (srcNode && dstNode && srcNode <= 63 && dstNode <= 63) {
-    const TaxiPathRec *path = s_taxiPathCosts[srcNode][dstNode];
-    if (path) {
-      return path->m_Cost;
-    }
+  if (!srcNode || !dstNode || srcNode > 63 || dstNode > 63 || !s_taxiPathCosts[srcNode - 1][dstNode - 1]) {
+    return 0;
   }
-  return 0;
+  return s_taxiPathCosts[srcNode - 1][dstNode - 1]->m_Cost;
 }
 
 NTempest::CRect TaxiMapGetRect() {
@@ -278,12 +285,9 @@ NTempest::CRect TaxiMapGetRect() {
 }
 
 TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
-  if (nodeID == s_currentTaxiNode) {
+  const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(nodeID);
+  if (node && s_currentTaxiNode == node->m_ID) {
     return TAXINODE_CURRENT;
-  }
-
-  if (nodeID <= 0 || nodeID > 64) {
-    return TAXINODE_NONE;
   }
 
   LONGLONG mask = static_cast<LONGLONG>(1) << (nodeID - 1);
@@ -291,9 +295,8 @@ TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
     return TAXINODE_REACHABLE;
   }
 
-  const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(nodeID);
   const TaxiNodesRec *current = g_taxiNodesDB.GetRecord(s_currentTaxiNode);
-  if ((s_knownNodes & mask) && node && current && node->m_ContinentID == current->m_ContinentID) {
+  if (current && (s_knownNodes & mask) && current->m_ContinentID == node->m_ContinentID) {
     return TAXINODE_DISTANT;
   }
 
@@ -301,58 +304,51 @@ TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
 }
 
 HMODEL TaxiGetRouteModel(float width, float height) {
-  UINT lines = s_lines.Count();
+  int lines = s_lines.Count();
   if (!lines) {
     return 0;
   }
 
-  TSGrowableArray<NTempest::C3Vector> verts;
-  TSGrowableArray<NTempest::C3Vector> normals;
-  TSGrowableArray<NTempest::C2Vector> texCoords;
-  TSGrowableArray<WORD>               primVerts;
-  verts.SetCount(lines * 4);
-  normals.SetCount(lines * 4);
-  texCoords.SetCount(lines * 4);
-  primVerts.SetCount(lines * 6);
+  NTempest::C33Matrix mat;
+  mat.Translate(-NTempest::C2Vector(width * 0.5f, height * 0.5f));
+  mat.Scale(NTempest::C2Vector(width, height));
 
-  for (UINT i = 0; i < lines; ++i) {
-    NTempest::C2Vector bot(s_lines[i].src.x * width, s_lines[i].src.y * height);
-    NTempest::C2Vector top(s_lines[i].dst.x * width, s_lines[i].dst.y * height);
-    float              dx = top.x - bot.x;
-    float              dy = top.y - bot.y;
-    float              mag = static_cast<float>(sqrt(dx * dx + dy * dy));
-    if (mag == 0.0f) {
-      mag = 1.0f;
-    }
-    float x = -dy / mag;
-    float y = dx / mag;
-    UINT  vertex = i * 4;
-    verts[vertex].Set(bot.x + x, bot.y + y, 0.0f);
-    verts[vertex + 1].Set(bot.x - x, bot.y - y, 0.0f);
-    verts[vertex + 2].Set(top.x + x, top.y + y, 0.0f);
-    verts[vertex + 3].Set(top.x - x, top.y - y, 0.0f);
-    for (UINT j = 0; j < 4; ++j) {
-      normals[vertex + j].Set(0.0f, 0.0f, 1.0f);
-    }
-    texCoords[vertex] = NTempest::C2Vector(0.0f, 0.0f);
-    texCoords[vertex + 1] = NTempest::C2Vector(1.0f, 0.0f);
-    texCoords[vertex + 2] = NTempest::C2Vector(0.0f, 1.0f);
-    texCoords[vertex + 3] = NTempest::C2Vector(1.0f, 1.0f);
-    UINT index = i * 6;
-    primVerts[index] = static_cast<WORD>(vertex);
-    primVerts[index + 1] = static_cast<WORD>(vertex + 1);
-    primVerts[index + 2] = static_cast<WORD>(vertex + 2);
-    primVerts[index + 3] = static_cast<WORD>(vertex + 2);
-    primVerts[index + 4] = static_cast<WORD>(vertex + 1);
-    primVerts[index + 5] = static_cast<WORD>(vertex + 3);
+  int i;
+  for (i = 0; i < lines; ++i) {
+    s_lines[i].src = mat * NTempest::C3Vector(CalculateNormalizedCoords(s_lines[i].src));
+    s_lines[i].dst = mat * NTempest::C3Vector(CalculateNormalizedCoords(s_lines[i].dst));
+  }
+
+  int                                numVertices = lines * 2;
+  TSStackArray<NTempest::C3Vector>   verts(_alloca(numVertices * sizeof(NTempest::C3Vector)), numVertices, numVertices);
+  TSStackArray<NTempest::C3Vector>   normals(_alloca(numVertices * sizeof(NTempest::C3Vector)), numVertices, numVertices);
+  TSStackArray<NTempest::C2Vector>   texCoords(_alloca(numVertices * sizeof(NTempest::C2Vector)), numVertices, numVertices);
+  TSStackArray<WORD>                 primVerts(_alloca(numVertices * sizeof(WORD)), numVertices, numVertices);
+  NTempest::C3Vector                 normal(0.0f, 0.0f, 1.0f);
+  NTempest::C2Vector                 top(0.0f, 0.0f);
+  NTempest::C2Vector                 bot(1.0f, 1.0f);
+
+  for (i = 0; i < lines; ++i) {
+    verts[i * 2] = NTempest::C3Vector(s_lines[i].src);
+    verts[i * 2 + 1] = NTempest::C3Vector(s_lines[i].dst);
+
+    normals[i * 2] = normal;
+    normals[i * 2 + 1] = normal;
+
+    texCoords[i * 2] = top;
+    texCoords[i * 2 + 1] = bot;
+  }
+
+  for (WORD index = 0; index < static_cast<WORD>(numVertices); ++index) {
+    primVerts[index] = index;
   }
 
   return ModelCreateSimpleMesh(
-      "TaxiRouteMap", verts.Count(), verts.Ptr(), normals.Ptr(), texCoords.Ptr(), GxPrim_Triangles, primVerts.Ptr(), primVerts.Count(), s_solidColor,
-      GxBlend_Alpha, 0, NTempest::CImVector(0xFFFFFFFFUL), 0
+      "TaxiRouteMap", numVertices, verts.Ptr(), normals.Ptr(), texCoords.Ptr(), GxPrim_Lines, primVerts.Ptr(), numVertices, s_solidColor, GxBlend_Opaque, 0x21,
+      NTempest::CImVector(0xFF, 0xFF, 0xFF, 0xFF), 0
   );
 }
 
 bool TaxiRouteExists(int fromNode, int toNode) {
-  return fromNode && toNode && fromNode <= 63 && toNode <= 63 && s_taxiPathCosts[fromNode][toNode];
+  return fromNode && toNode && fromNode <= 63 && toNode <= 63 && s_taxiPathCosts[fromNode - 1][toNode - 1];
 }

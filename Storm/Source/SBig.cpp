@@ -821,7 +821,7 @@ static void FromBinary(BigBuffer &a, LPCVOID data, UINT bytes) {
 }
 
 static void FromStr(BigBuffer &a, LPCSTR str) {
-  a.Clear();
+  SetZero(a);
   while (*str) {
     Mul(a, a, (DWORDLONG)10);
     Add(a, a, (UINT)(*str++ - '0'));

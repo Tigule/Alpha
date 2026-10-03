@@ -2,6 +2,7 @@
 
 #include "IGxuLight.h"
 
+#include "../../../WoW/Common/Ftol.h"
 #include <Base/Activity.h>
 #include <Gx/Gx.h>
 #include <Tempest/cmath.h>
@@ -50,7 +51,7 @@ LISTDECL(CGxuLight, CGxuLight::s_lightsFreeList);
 LISTDECLEX(CGxuLightLink, m_lightLink, CGxuLight::s_linksFreeList);
 static DWORD                                        s_lastLightsHash;
 CLightList                                          s_dirLightList;
-static UINT                                         s_updateDirLights;
+static UINT                                         s_updateDirLights = 1;
 static UINT                                         s_dirLightSet;
 static BYTE                                         s_forceSettingLights = 1;
 static UINT                                         s_maxLightsToUse = 8;
@@ -61,10 +62,11 @@ static TSGrowableArray<CGxuLight *>                 s_lightsToUse;
 static NTempest::C3Vector                           s_cameraWorldPos;
 
 inline float CGxuLight::Fitness(NTempest::C3Vector &pos, float linearAttenuation, float quadraticAttenuation) {
-  NTempest::C3Vector l = pos - m_light.m_dir;
-  float              distance = NTempest::CMath::sqrt_(l.SquaredMag());
+  float distSq = (pos - m_light.m_dir).SquaredMag();
+  float distance = NTempest::CMath::sqrt_(distSq);
+  float atten = quadraticAttenuation * (distance * distance) + linearAttenuation * distance + 1.0f;
 
-  return m_light.m_dirIntensity / (distance * distance * quadraticAttenuation + distance * linearAttenuation + 1.0f) + m_light.m_ambIntensity;
+  return m_light.m_dirIntensity / atten + m_light.m_ambIntensity;
 }
 
 inline CGxuLightLink *CGxuLight::AllocListLink() {
@@ -79,19 +81,13 @@ inline CGxuLightLink *CGxuLight::AllocListLink() {
 }
 
 inline void CGxuLight::ClearListLinks() {
-  CGxuLightLink *link;
-  CGxuLightLink *next;
-
-  link = m_links.Head();
-  while (link) {
-    next = m_links.Next(link);
+  for (CGxuLightLink *link = m_links.Head(), *next; (int)link > 0 ? ((next = m_links.RawNext(link)), 1) : 0; link = next) {
     link->m_lightLink.Unlink();
     link->m_listLink.Unlink();
     if (m_light.m_isOmni && link->m_list->m_links.Head()) {
       CLightList::s_lightHashTable.Delete(link->m_list);
     }
     s_linksFreeList.LinkNode(link, LIST_TAIL, 0);
-    link = next;
   }
 }
 
@@ -169,19 +165,10 @@ static void IGxuLightInitialize() {
 }
 
 static void IGxuLightShutdown() {
-  CGxuLight     *light;
-  CGxuLightLink *link;
-
   ASSERT(!CGxuLight::s_lights.Head());
   CLightList::s_lightHashTable.Destroy();
-
-  while ((light = CGxuLight::s_lightsFreeList.Head()) != 0) {
-    CGxuLight::s_lightsFreeList.DeleteNode(light);
-  }
-
-  while ((link = CGxuLight::s_linksFreeList.Head()) != 0) {
-    CGxuLight::s_linksFreeList.DeleteNode(link);
-  }
+  CGxuLight::s_lightsFreeList.Clear();
+  CGxuLight::s_linksFreeList.Clear();
 }
 
 static DWORD IGxuLightCreate() {
@@ -218,15 +205,7 @@ static CGxLight *IGxuLightLock(DWORD lightId) {
 }
 
 static void IGxuLightUnlock(DWORD lightId) {
-  CGxuLight         *light = reinterpret_cast<CGxuLight *>(lightId);
-  NTempest::C3Vector pos;
-  NTempest::C3Vector max;
-  NTempest::C3Vector min;
-  HASHKEY_DWORD      hashKey;
-  float              fitness;
-  int                y;
-  float              radius;
-  int                x;
+  CGxuLight *light = reinterpret_cast<CGxuLight *>(lightId);
 
   ASSERT(light);
   ASSERT(light->m_lockCount != 0);
@@ -247,39 +226,36 @@ static void IGxuLightUnlock(DWORD lightId) {
     return;
   }
 
-  radius = (light->m_light.m_dirIntensity + light->m_light.m_ambIntensity) * 20.0f;
+  float radius = (light->m_light.m_dirIntensity + light->m_light.m_ambIntensity) * 20.0f;
   if (light->m_light.m_linearAttenuation != 0.0f) {
     radius /= light->m_light.m_linearAttenuation;
   }
+  NTempest::C3Vector min = NTempest::C3Vector(light->m_light.m_dir.x - radius, light->m_light.m_dir.y - radius, light->m_light.m_dir.z - radius);
+  NTempest::C3Vector max = NTempest::C3Vector(light->m_light.m_dir.x + radius, light->m_light.m_dir.y + radius, light->m_light.m_dir.z + radius);
 
-  min = NTempest::C3Vector(light->m_light.m_dir.x - radius, light->m_light.m_dir.y - radius, light->m_light.m_dir.z - radius);
-  max = NTempest::C3Vector(light->m_light.m_dir.x + radius, light->m_light.m_dir.y + radius, light->m_light.m_dir.z + radius);
-
-  for (y = static_cast<int>(min.y / s_bucketSize - 0.5f); y <= static_cast<int>(max.y / s_bucketSize - 0.5f); ++y) {
-    for (x = static_cast<int>(min.x / s_bucketSize - 0.5f); x <= static_cast<int>(max.x / s_bucketSize - 0.5f); ++x) {
-      hashKey = HASHKEY_DWORD((y << 16) | static_cast<WORD>(x));
-      UINT           hash = hashKey.GetDword() % 0x1FFF;
-      CLightList    *list = CLightList::s_lightHashTable.Ptr(hash, hashKey);
-      CGxuLightLink *link;
-      CGxuLightLink *existing;
+  int minY = Fast_ftol(min.y / s_bucketSize), minX = Fast_ftol(min.x / s_bucketSize);
+  int maxY = Fast_ftol(max.y / s_bucketSize), maxX = Fast_ftol(max.x / s_bucketSize);
+  for (int y = minY; y <= maxY; ++y) {
+    for (int x = minX; x <= maxX; ++x) {
+      HASHKEY_DWORD hashKey((x & 0xFFFF) | (y << 16));
+      UINT          hash = hashKey.GetDword() % 0x1FFF;
+      CLightList   *list = CLightList::s_lightHashTable.Ptr(hash, hashKey);
 
       if (!list) {
         list = CLightList::s_lightHashTable.New(hash, hashKey, 0, 0);
       }
 
-      pos.x = x * s_bucketSize + s_halfBucket;
-      pos.y = y * s_bucketSize + s_halfBucket;
-      pos.z = min.z;
-      fitness = light->Fitness(pos, light->m_light.m_linearAttenuation, light->m_light.m_quadraticAttenuation);
+      NTempest::C3Vector pos(x * s_bucketSize + s_halfBucket, y * s_bucketSize + s_halfBucket, min.z);
+      float fitness = light->Fitness(pos, light->m_light.m_linearAttenuation, light->m_light.m_quadraticAttenuation);
 
-      link = light->AllocListLink();
+      CGxuLightLink *link = light->AllocListLink();
       link->m_fitness = fitness;
       link->m_light = light;
       link->m_list = list;
 
-      existing = list->m_links.Head();
+      CGxuLightLink *existing = list->m_links.Head();
       while (existing && fitness < existing->m_fitness) {
-        existing = list->m_links.Next(existing);
+        existing = existing->m_listLink.Next();
       }
 
       if (existing) {
@@ -292,10 +268,6 @@ static void IGxuLightUnlock(DWORD lightId) {
 }
 
 static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
-  int           y;
-  int           x;
-  HASHKEY_DWORD hashKey;
-  DWORD         hash;
   CLightList   *list;
   UINT          whichLight;
 
@@ -305,10 +277,11 @@ static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vecto
 
   ActivityBegin(ACTIVITY_LIGHTING);
 
-  y = static_cast<int>(worldPos.y / s_bucketSize - 0.5f);
-  x = static_cast<int>(worldPos.x / s_bucketSize - 0.5f);
-  hashKey = HASHKEY_DWORD((y << 16) | static_cast<WORD>(x));
-  hash = hashKey.GetDword() % 0x1FFF;
+  int y = Fast_ftol(worldPos.y / s_bucketSize);
+  int x = Fast_ftol(worldPos.x / s_bucketSize);
+  DWORD hash = (x & 0xFFFF) | (y << 16);
+  HASHKEY_DWORD hashKey(hash);
+  hash %= 0x1FFF;
   list = CLightList::s_lightHashTable.Ptr(hash, hashKey);
 
   ++s_selectionCount;
@@ -333,7 +306,7 @@ static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vecto
     }
   }
 
-  while (whichLight < 8) {
+  while (whichLight != 8) {
     GxLightEnable(whichLight, FALSE);
     ++whichLight;
   }

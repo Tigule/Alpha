@@ -415,15 +415,15 @@ BOOL EventReg::IsEventRegistered(CObserver *pObserver) const {
 }
 
 BOOL EventReg::DispatchCallback(CEvent &event) {
+  int handled = 0;
+
   IncLock();
+
   EVENTCALLBACKREG endOfList;
+
   callbackList.LinkNode(&endOfList, LIST_TAIL, 0);
 
-  int handled = 0;
-  ITERATELIST(EVENTCALLBACKREG, callbackList, entry) {
-    if (entry == &endOfList) {
-      break;
-    }
+  for (EVENTCALLBACKREG *entry = callbackList.Head(); entry != &endOfList; entry = callbackList.Next(entry)) {
     if (entry->callback && entry->callback(event, entry->param)) {
       handled = 1;
     }
@@ -435,15 +435,15 @@ BOOL EventReg::DispatchCallback(CEvent &event) {
 }
 
 BOOL EventReg::DispatchEvent(CEvent &event) {
+  int handled = 0;
+
   IncLock();
+
   EVENTDISPATCHREG endOfList;
+
   dispatchList.LinkNode(&endOfList, LIST_TAIL, 0);
 
-  int handled = 0;
-  ITERATELIST(EVENTDISPATCHREG, dispatchList, entry) {
-    if (entry == &endOfList) {
-      break;
-    }
+  for (EVENTDISPATCHREG *entry = dispatchList.Head(); entry != &endOfList; entry = dispatchList.Next(entry)) {
     if (entry->pObserver) {
       event.SetId(entry->expectedEventId);
       if (entry->pObserver->OnEvent(event)) {

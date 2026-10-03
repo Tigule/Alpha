@@ -44,12 +44,8 @@ class CHashKeyGUID {
  public:
   CHashKeyGUID() : m_guid(0) {
   }
-
- private:
   CHashKeyGUID(const CHashKeyGUID &key) : m_guid(key.m_guid) {
   }
-
- public:
   CHashKeyGUID(DWORDLONG guid) : m_guid(guid) {
   }
   CHashKeyGUID &operator=(const CHashKeyGUID &key) {

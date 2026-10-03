@@ -36,6 +36,8 @@
 
 #include <string.h>
 
+#define MAXIMUM_NUM_QUESTS_DISPLAYED 8
+
 bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
 
 static void QuestItemStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
@@ -143,7 +145,7 @@ void CGQuestInfo::SetLogDescription(LPCSTR desc) {
 
 void CGQuestInfo::AddQuest(int quest, LPCSTR desc, int questLevel, int turnIn) {
   FATALASSERT(m_state == QUEST_GREETING);
-  FATALASSERT((m_numQuests + m_numInProgress) < 8);
+  FATALASSERT((m_numQuests + m_numInProgress) < (MAXIMUM_NUM_QUESTS_DISPLAYED));
 
   m_quests[m_numQuests].id = quest;
   m_quests[m_numQuests].level = questLevel;
@@ -156,7 +158,7 @@ void CGQuestInfo::AddQuest(int quest, LPCSTR desc, int questLevel, int turnIn) {
 
 void CGQuestInfo::AddQuestInProgress(int quest, LPCSTR desc, int questLevel) {
   FATALASSERT(m_state == QUEST_GREETING);
-  FATALASSERT((m_numQuests + m_numInProgress) < 7);
+  FATALASSERT((m_numQuests + m_numInProgress) < (MAXIMUM_NUM_QUESTS_DISPLAYED - 1));
 
   m_inProgress[m_numInProgress].id = quest;
   m_inProgress[m_numInProgress].level = questLevel;
@@ -370,7 +372,7 @@ UINT CGQuestInfo::GetNumQuestChoices() {
 
 UINT CGQuestInfo::GetNumQuestItems() {
   UINT index;
-  for (index = 0; index < 6 && m_questItems[index].requiredItemID; ++index) {
+  for (index = 0; index < 6 && m_questItems[index].requiredDisplayID; ++index) {
   }
   return index;
 }

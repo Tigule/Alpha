@@ -211,12 +211,12 @@ void ClientServices_Initialize(LoginData *loginData) {
     ASSERT(g_clientConnection);
   }
 
-  if (loginData) {
-    g_clientConnection->Initialize(loginData);
-  } else {
+  if (!loginData) {
     LoginData dummy;
     memset(&dummy, 0, sizeof(dummy));
     g_clientConnection->Initialize(&dummy);
+  } else {
+    g_clientConnection->Initialize(loginData);
   }
 
   s_currentConnection = g_clientConnection;
@@ -386,10 +386,7 @@ void ClientConnection::Connect() {
     m_statusComplete = 1;
     m_errorCode = 5;
   } else {
-    if (m_realmList.Count()) {
-      m_realmList.Clear();
-    }
-
+    m_realmList.SetCount(0);
     ClientNetGetRealms(s_realmListVar->GetString(), RealmEnum_InternalCallback, this);
   }
 }
@@ -518,46 +515,40 @@ BOOL ClientConnection::HandleCharEnum(NETMESSAGE msgId, DWORD time, CDataStore *
   for (BYTE i = 0; i < count; ++i) {
     CHARACTER_INFO &character = m_characterList[i];
 
-    msg->Get(character.guid);
+    *msg >> character.guid;
     msg->GetString(character.name, sizeof(character.name));
-    msg->Get(character.raceID);
-    msg->Get(character.classID);
-    msg->Get(character.sexID);
-    msg->Get(character.skinID);
-    msg->Get(character.faceID);
-    msg->Get(character.hairStyleID);
-    msg->Get(character.hairColorID);
-    msg->Get(character.facialHairStyleID);
-    msg->Get(character.experienceLevel);
-    msg->Get(character.zoneID);
-    msg->Get(character.mapID);
-    msg->Get(character.position.x);
-    msg->Get(character.position.y);
-    msg->Get(character.position.z);
-    msg->Get(character.guildID);
-    msg->Get(character.petDisplayInfoID);
-    msg->Get(character.petExperienceLevel);
-    msg->Get(character.petCreatureFamilyID);
+    *msg >> character.raceID;
+    *msg >> character.classID;
+    *msg >> character.sexID;
+    *msg >> character.skinID;
+    *msg >> character.faceID;
+    *msg >> character.hairStyleID;
+    *msg >> character.hairColorID;
+    *msg >> character.facialHairStyleID;
+    *msg >> character.experienceLevel;
+    *msg >> character.zoneID;
+    *msg >> character.mapID;
+    *msg >> character.position.x;
+    *msg >> character.position.y;
+    *msg >> character.position.z;
+    *msg >> character.guildID;
+    *msg >> character.petDisplayInfoID;
+    *msg >> character.petExperienceLevel;
+    *msg >> character.petCreatureFamilyID;
 
     for (UINT item = 0; item < 20; ++item) {
       BYTE type;
-      msg->Get(character.inventoryItemDisplayID[item]);
+      *msg >> character.inventoryItemDisplayID[item];
       msg->Get(type);
       character.inventoryItemType[item] = type;
     }
   }
 
   if (msg->IsRead()) {
-    Cleanup();
-    m_statusResult = 1;
-    m_errorCode = 37;
-    m_statusComplete = 1;
+    Complete(1, 37);
   } else {
     m_characterList.Clear();
-    Cleanup();
-    m_statusResult = 0;
-    m_errorCode = 38;
-    m_statusComplete = 1;
+    Complete(0, 38);
   }
 
   return 1;
@@ -753,8 +744,7 @@ BOOL ClientConnection::HandleLogoutComplete(NETMESSAGE msgId, DWORD time, CDataS
 BOOL ClientConnection::HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(msgId == SMSG_LOGOUT_RESPONSE);
 
-  BYTE result = 0;
-  msg->Get(result);
+  UINT result = msg->GetUchar();
   ASSERT(msg->IsRead());
 
   if (result) {
@@ -917,25 +907,14 @@ void ClientConnection::SetPlaying(int value) {
 }
 
 void ClientConnection::ConnectToSelectedServer() {
-  UINT index = 0;
-
-  if (m_realmList.Count() > 0) {
-    do {
-      if (!SStrCmpI(m_realmList[index].name, g_realmNameVar->GetString(), 0x7FFFFFFF)) {
-        goto found;
-      }
-      ++index;
-    } while (index < m_realmList.Count());
+  for (UINT index = 0; index < m_realmList.Count(); ++index) {
+    if (!SStrCmpI(m_realmList[index].name, g_realmNameVar->GetString(), 0x7FFFFFFF)) {
+      NetClient::Connect(m_realmList[index].address);
+      return;
+    }
   }
 
-  Cleanup();
-  m_statusResult = 0;
-  m_errorCode = 32;
-  m_statusComplete = 1;
-  return;
-
-found:
-  NetClient::Connect(m_realmList[index].address);
+  Complete(0, 32);
 }
 
 void ClientConnection::RealmEnumCallback(CDataStore *data) {
@@ -943,9 +922,8 @@ void ClientConnection::RealmEnumCallback(CDataStore *data) {
   BYTE id;
 
   if (!data) {
-    Cleanup();
-    m_errorCode = 30;
-    goto error;
+    Complete(0, 30);
+    return;
   }
 
   data->Get(count);
@@ -965,13 +943,9 @@ void ClientConnection::RealmEnumCallback(CDataStore *data) {
   }
 
   if (!data->IsValid() || !data->IsRead()) {
-    if (m_realmList.Count()) {
-      m_realmList.Clear();
-    }
-
-    Cleanup();
-    m_errorCode = 31;
-    goto error;
+    m_realmList.SetCount(0);
+    Complete(0, 31);
+    return;
   }
 
   if (!m_realmList.Count()) {
@@ -981,17 +955,8 @@ void ClientConnection::RealmEnumCallback(CDataStore *data) {
   if (m_statusCop == COP_CONNECT) {
     ConnectToSelectedServer();
   } else {
-    Cleanup();
-    m_statusResult = 1;
-    m_errorCode = 29;
-    m_statusComplete = 1;
+    Complete(1, 29);
   }
-
-  return;
-
-error:
-  m_statusResult = 0;
-  m_statusComplete = 1;
 }
 
 static void RealmEnum_InternalCallback(CDataStore *data, LPVOID param) {
@@ -1002,9 +967,7 @@ static void RealmEnum_InternalCallback(CDataStore *data, LPVOID param) {
 }
 
 void ClientConnection::GetRealmList() {
-  if (m_realmList.Count()) {
-    m_realmList.Clear();
-  }
+  m_realmList.SetCount(0);
 
   m_cleanup = 0;
   m_statusCop = COP_GET_REALMS;
@@ -1156,16 +1119,16 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
   SStrPack(message, line, sizeof(message));
 
   DWORDLONG clocksPerSecond = OsGetAsyncClocksPerSecond();
-  DWORDLONG scaledClocks;
+  float     scaledClocks;
   char      clockUnit;
-  if (clocksPerSecond >= mhzCutoff) {
-    scaledClocks = clocksPerSecond / 1000000ui64;
-    clockUnit = 'G';
-  } else {
-    scaledClocks = clocksPerSecond / 1000ui64;
+  if (clocksPerSecond < mhzCutoff) {
+    scaledClocks = static_cast<float>(clocksPerSecond / 1000);
     clockUnit = 'M';
+  } else {
+    scaledClocks = static_cast<float>(clocksPerSecond / 1000000);
+    clockUnit = 'G';
   }
-  SStrPrintf(line, sizeof(line), "Processor speed:\t%6.2f%cHz\n", static_cast<double>(static_cast<LONGLONG>(scaledClocks)) * 0.001f, clockUnit);
+  SStrPrintf(line, sizeof(line), "Processor speed:\t%6.2f%cHz\n", scaledClocks * 0.001f, clockUnit);
   SStrPack(message, line, sizeof(message));
 
   SStrPrintf(line, sizeof(line), "Memory:\t%uMB\n", OsGetPhysicalMemory() >> 20);
@@ -1188,9 +1151,7 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
     SStrPack(message, line, sizeof(message));
 
     if (s_currentConnection && s_currentConnection->IsInGame()) {
-      DWORDLONG   playerGuid = ClntObjMgrGetActivePlayer();
-      CGObject_C *object = ClntObjMgrObjectPtr(playerGuid, __FILE__, __LINE__);
-      CGPlayer_C *player = static_cast<CGPlayer_C *>(object);
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if (player) {
         LPCSTR gender = s_sexNames[player->GetSex()];
         if (!gender) {
@@ -1199,9 +1160,7 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
 
         const ChrRacesRec   *race = g_chrRacesDB.GetRecord(player->GetRace());
         const ChrClassesRec *unitClass = g_chrClassesDB.GetRecord(player->GetClass());
-        LPCSTR               raceName = race ? race->m_name_lang[CURRENT_LANGUAGE] : "Unknown";
-        LPCSTR               className = unitClass ? unitClass->m_name_lang[CURRENT_LANGUAGE] : "Unknown";
-        SStrPrintf(line, sizeof(line), "Character:\t%s (level %i %s %s %s)\n", player->GetUnitName(), player->GetLevel(), raceName, gender, className);
+        SStrPrintf(line, sizeof(line), "Character:\t%s (level %i %s %s %s)\n", player->GetUnitName(), player->GetLevel(), race ? race->m_name_lang[CURRENT_LANGUAGE] : "Unknown", gender, unitClass ? unitClass->m_name_lang[CURRENT_LANGUAGE] : "Unknown");
         SStrPack(message, line, sizeof(message));
 
         UINT          continentID = CGPlayer_C::GetNewContinentID();
@@ -1260,11 +1219,11 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
   UINT       reportLength = SStrLen(message) + 1;
   CDataStore msg;
   msg.Put(CMSG_BUG);
-  msg.Put(reportType);
-  msg.Put(reportLength);
+  msg.PutInt(reportType);
+  msg.PutInt(reportLength);
   msg.PutData(message, reportLength);
   UINT categoryLength = SStrLen(category) + 1;
-  msg.Put(categoryLength);
+  msg.PutInt(categoryLength);
   msg.PutData(category, categoryLength);
   msg.Finalize();
   s_currentConnection->Send(&msg);

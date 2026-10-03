@@ -1,10 +1,12 @@
 #include "CGxDeviceOpenGl.h"
 #include "GlExtSupport.h"
 
+#include <Os/W32/Debugging.h>
 #include <Tempest/c34matrix.h>
 
 #include <gl/gl.h>
 
+#include <ctype.h>
 #include <string.h>
 
 static UINT s_primitiveConversion[GxPrims_Last] = {GL_POINTS, GL_LINES, GL_LINE_STRIP, GL_TRIANGLES, GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN};
@@ -128,12 +130,12 @@ CGxBuf *CGxDeviceOpenGl::BufCreate(
   CGxDevice::BufCreate(GxBWF_Dynamic, format, numVertices, numIndices, userCallback, userArg);
 
   CGxBufOgl *buf = NEW(CGxBufOgl);
-  buf->m_userCallback = userCallback;
-  buf->m_userArg = userArg;
-  buf->m_vbFormat = format;
   buf->m_writeFreq = GxBWF_Dynamic;
   buf->m_numVertices = numVertices;
   buf->m_numIndices = numIndices;
+  buf->m_vbFormat = format;
+  buf->m_userCallback = userCallback;
+  buf->m_userArg = userArg;
   return buf;
 }
 
@@ -178,16 +180,16 @@ void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
   CGxBufOgl *buf = static_cast<CGxBufOgl *>(b);
   IBufSetBuffers(buf);
 
-  CGxBufCommand cmd;
-  cmd.vertex.op = GxBufOp_Nop;
-  cmd.index.op = GxBufOp_Nop;
-
   if (glNVVertexArrayRange) {
     DsSet(Ds_NVVAR, m_nvvarMem != 0, 0);
   }
 
+  CGxBufCommand cmd;
+  cmd.vertex.op = GxBufOp_Nop;
+  cmd.index.op = GxBufOp_Nop;
+
   if (buf->m_vertexStatus != CGxBuf::S_VALID) {
-    cmd.vertex.op = static_cast<EGxBufOp>(2 - buf->LockVB());
+    cmd.vertex.op = buf->LockVB() ? GxBufOp_Fill : GxBufOp_Assign;
     for (UINT member = 0; member < GxVertexMembers_Last; ++member) {
       cmd.vertex.mem[member] = &buf->vertexPtr[member];
       cmd.vertex.stride[member] = GxVertexSize(buf->m_vbFormat);
@@ -195,7 +197,7 @@ void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
   }
 
   if (buf->m_indexStatus != CGxBuf::S_VALID) {
-    cmd.index.op = static_cast<EGxBufOp>(2 - buf->LockIB());
+    cmd.index.op = buf->LockIB() ? GxBufOp_Fill : GxBufOp_Assign;
     cmd.index.mem[GxVM_Indices] = reinterpret_cast<LPVOID *>(&buf->indexPtr);
     cmd.index.stride[GxVM_Indices] = sizeof(WORD);
   }
@@ -224,14 +226,14 @@ void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
     IPrimSetupTexCoord(tmu, cmd.vertex.stride[GxVM_Texture0 + tmu], *cmd.vertex.mem[GxVM_Texture0 + tmu]);
   }
 
-  if (!glNVVertexArrayRange) {
-    LockArrays(buf->m_numVertices);
-  } else {
-    UINT valid;
-    glGetBooleanv(GL_VERTEX_ARRAY_RANGE_VALID_NV, reinterpret_cast<GLboolean *>(&valid));
-    if (!*reinterpret_cast<GLboolean *>(&valid)) {
-      Log("VAR not valid!\n");
+  if (glNVVertexArrayRange) {
+    BYTE valid;
+    glGetBooleanv(GL_VERTEX_ARRAY_RANGE_VALID_NV, &valid);
+    if (!valid) {
+      OsOutputDebugString("VAR not valid!\n");
     }
+  } else {
+    LockArrays(buf->m_numVertices);
   }
 }
 
@@ -240,18 +242,23 @@ void CGxDeviceOpenGl::BufRender(const CGxBatch *batches, UINT count) {
   IStateSync();
 
   CGxBufOgl *buf = static_cast<CGxBufOgl *>(m_bufLocked);
-  while (count--) {
-    if (batches->m_count) {
-      const WORD *indices = buf->indexPtr + batches->m_start;
+  for (UINT i = 0; i < count; ++i) {
+    if (batches[i].m_count) {
       if (glDrawRangeElementsEXT) {
-        UINT minIndex = batches->m_minIndex < 0 ? 0 : batches->m_minIndex;
-        UINT maxIndex = batches->m_maxIndex < 0 ? buf->m_numVertices : batches->m_maxIndex;
-        glDrawRangeElementsEXT(s_primitiveConversion[batches->m_primType], minIndex, maxIndex, batches->m_count, GL_UNSIGNED_SHORT, indices);
+        UINT minIndex = batches[i].m_minIndex < 0 ? 0 : batches[i].m_minIndex;
+        UINT maxIndex;
+        if (batches[i].m_maxIndex < 0) {
+          maxIndex = static_cast<CGxBufOgl *>(m_bufLocked)->m_numVertices;
+        } else {
+          maxIndex = batches[i].m_maxIndex;
+        }
+        glDrawRangeElementsEXT(
+            s_primitiveConversion[batches[i].m_primType], minIndex, maxIndex, batches[i].m_count, GL_UNSIGNED_SHORT, buf->indexPtr + batches[i].m_start
+        );
       } else {
-        glDrawElements(s_primitiveConversion[batches->m_primType], batches->m_count, GL_UNSIGNED_SHORT, indices);
+        glDrawElements(s_primitiveConversion[batches[i].m_primType], batches[i].m_count, GL_UNSIGNED_SHORT, buf->indexPtr + batches[i].m_start);
       }
     }
-    ++batches;
   }
 }
 
@@ -333,38 +340,51 @@ void CGxDeviceOpenGl::IPrimSetupPos() {
     DsSet(Ds_NVVAR, 0, 0);
   }
 
-  if (m_vertexShader == GxVS_PassThru) {
-    glVertexPointer(3, GL_FLOAT, s_posStride, s_pos);
-    if (s_normalStride) {
-      IPrimSetupNormal(s_normalStride, s_normal);
-    } else {
-      IPrimSetupNormal(0, 0);
-      glNormal3fv(s_normal ? &s_normal->x : &s_genericNormal.x);
+  switch (m_vertexShader) {
+    case GxVS_PassThru:
+      glVertexPointer(3, GL_FLOAT, s_posStride, s_pos);
+      if (s_normalStride) {
+        IPrimSetupNormal(s_normalStride, s_normal);
+      } else {
+        IPrimSetupNormal(0, 0);
+        glNormal3fv(s_normal ? &s_normal->x : &s_genericNormal.x);
+      }
+      break;
+
+    case GxVS_Skin: {
+      glVertexPointer(3, GL_FLOAT, sizeof(NTempest::C3Vector), m_primPos.Ptr());
+      IPrimSetupNormal(sizeof(NTempest::C3Vector), m_primNormal.Ptr());
+
+      for (UINT ndx = 0; ndx != s_vertexCount; ++ndx) {
+        UINT index = *s_bone;
+        {
+          NTempest::C44Matrix bone = m_bones[index];
+
+          m_primPos[ndx].Set(
+              bone.a0 * s_pos->x + bone.b0 * s_pos->y + bone.c0 * s_pos->z + bone.d0,
+              bone.a1 * s_pos->x + bone.b1 * s_pos->y + bone.c1 * s_pos->z + bone.d1,
+              bone.a2 * s_pos->x + bone.b2 * s_pos->y + bone.c2 * s_pos->z + bone.d2
+          );
+        }
+        {
+          NTempest::C44Matrix bone = m_bones[index];
+
+          m_primNormal[ndx].Set(
+              bone.a0 * s_normal->x + bone.b0 * s_normal->y + bone.c0 * s_normal->z,
+              bone.a1 * s_normal->x + bone.b1 * s_normal->y + bone.c1 * s_normal->z,
+              bone.a2 * s_normal->x + bone.b2 * s_normal->y + bone.c2 * s_normal->z
+          );
+        }
+        s_pos = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_pos) + s_posStride);
+        s_normal = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_normal) + s_normalStride);
+        s_bone += s_boneStride;
+      }
+      break;
     }
-  } else if (m_vertexShader == GxVS_Skin) {
-    glVertexPointer(3, GL_FLOAT, sizeof(NTempest::C3Vector), m_primPos.Ptr());
-    IPrimSetupNormal(sizeof(NTempest::C3Vector), m_primNormal.Ptr());
 
-    const BYTE *bone = s_bone;
-    const BYTE *position = reinterpret_cast<const BYTE *>(s_pos);
-    const BYTE *normal = reinterpret_cast<const BYTE *>(s_normal);
-    for (UINT i = 0; i < s_vertexCount; ++i) {
-      const NTempest::C34Matrix &matrix = m_bones[*bone];
-      const NTempest::C3Vector  &srcPos = *reinterpret_cast<const NTempest::C3Vector *>(position);
-      m_primPos[i] = srcPos * matrix;
-
-      const NTempest::C3Vector &srcNormal = *reinterpret_cast<const NTempest::C3Vector *>(normal);
-      NTempest::C3Vector       &dstNormal = m_primNormal[i];
-      dstNormal.x = matrix.a0 * srcNormal.x + matrix.b0 * srcNormal.y + matrix.c0 * srcNormal.z;
-      dstNormal.y = matrix.a1 * srcNormal.x + matrix.b1 * srcNormal.y + matrix.c1 * srcNormal.z;
-      dstNormal.z = matrix.a2 * srcNormal.x + matrix.b2 * srcNormal.y + matrix.c2 * srcNormal.z;
-
-      position += s_posStride;
-      normal += s_normalStride;
-      bone += s_boneStride;
-    }
-  } else {
-    FATALASSERT(0);
+    default:
+      FATALASSERT(0);
+      break;
   }
 
   switch (m_vertexBufferFormat) {
@@ -373,44 +393,73 @@ void CGxDeviceOpenGl::IPrimSetupPos() {
       IPrimSetupTexCoord(0, 0);
       IPrimSetupTexCoord(1, 0);
       break;
+
     case GxVBF_PNC:
-    case GxVBF_PC:
       IPrimSetupColor(s_colorStride, s_color, s_vertexCount, 1);
       IPrimSetupTexCoord(0, 0);
       IPrimSetupTexCoord(1, 0);
       break;
+
     case GxVBF_PNT0:
       IPrimSetupColor(0, 0, s_vertexCount, 1);
       IPrimSetupTexCoord(0, 1);
       IPrimSetupTexCoord(1, 0);
       break;
+
     case GxVBF_PNCT0:
-    case GxVBF_PCT0:
       IPrimSetupColor(s_colorStride, s_color, s_vertexCount, 1);
       IPrimSetupTexCoord(0, 1);
       IPrimSetupTexCoord(1, 0);
       break;
+
     case GxVBF_PNT0T1:
-    case GxVBF_PT0T1:
       IPrimSetupColor(0, 0, s_vertexCount, 1);
       IPrimSetupTexCoord(0, 1);
       IPrimSetupTexCoord(1, 1);
       break;
+
     case GxVBF_PNCT0T1:
       IPrimSetupColor(s_colorStride, s_color, s_vertexCount, 1);
       IPrimSetupTexCoord(0, 1);
       IPrimSetupTexCoord(1, 1);
       break;
+
+    case GxVBF_PCT0:
+      IPrimSetupColor(s_colorStride, s_color, s_vertexCount, 1);
+      IPrimSetupTexCoord(0, 1);
+      IPrimSetupTexCoord(1, 0);
+      break;
+
+    case GxVBF_PC:
+      IPrimSetupColor(s_colorStride, s_color, s_vertexCount, 1);
+      IPrimSetupTexCoord(0, 0);
+      IPrimSetupTexCoord(1, 0);
+      break;
+
+    case GxVBF_PT0T1:
+      IPrimSetupColor(0, 0, s_vertexCount, 1);
+      IPrimSetupTexCoord(0, 1);
+      IPrimSetupTexCoord(1, 1);
+      break;
+
     default:
-      FATALASSERT(0);
+      SErrDisplayErrorFmt(
+          STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+          isprint((m_vertexBufferFormat >> 24) & 0xFF) && isprint((m_vertexBufferFormat >> 16) & 0xFF) && isprint((m_vertexBufferFormat >> 8) & 0xFF) &&
+                  isprint(m_vertexBufferFormat & 0xFF)
+              ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+              : "\"%s\", %s = %ld (0x%08X)",
+          "0", "m_vertexBufferFormat", m_vertexBufferFormat, m_vertexBufferFormat, (m_vertexBufferFormat >> 24) & 0xFF,
+          (m_vertexBufferFormat >> 16) & 0xFF, (m_vertexBufferFormat >> 8) & 0xFF, m_vertexBufferFormat & 0xFF
+      );
       break;
   }
 }
 
 void CGxDeviceOpenGl::PrimLockAndProcessVertexPtrs(
     UINT                       vertexCount,
-    const NTempest::C3Vector  *position,
-    UINT                       positionStride,
+    const NTempest::C3Vector  *pos,
+    UINT                       posStride,
     const NTempest::C3Vector  *normal,
     UINT                       normalStride,
     const NTempest::CImVector *color,
@@ -422,9 +471,7 @@ void CGxDeviceOpenGl::PrimLockAndProcessVertexPtrs(
     const NTempest::C2Vector  *tex1,
     UINT                       tex1Stride
 ) {
-  CGxDevice::PrimLockAndProcessVertexPtrs(
-      vertexCount, position, positionStride, normal, normalStride, color, colorStride, bone, boneStride, tex0, tex0Stride, tex1, tex1Stride
-  );
+  CGxDevice::PrimLockAndProcessVertexPtrs(vertexCount, pos, posStride, normal, normalStride, color, colorStride, bone, boneStride, tex0, tex0Stride, tex1, tex1Stride);
 
   if (vertexCount > m_primPos.Count()) {
     m_primPos.SetCount(vertexCount);
@@ -435,21 +482,39 @@ void CGxDeviceOpenGl::PrimLockAndProcessVertexPtrs(
   }
 
   s_vertexCount = vertexCount;
-  s_pos = position;
-  s_posStride = positionStride;
-  s_normal = normal ? normal : &s_genericNormal;
+  s_pos = pos;
+  s_posStride = posStride;
+  s_normal = normal;
   s_normalStride = normalStride;
-  s_color = color ? color : &s_genericColor;
+  s_color = color;
   s_colorStride = colorStride;
   s_bone = bone;
   s_boneStride = boneStride;
-  s_tex[0] = tex0 ? tex0 : &s_genericTexCoord;
+  s_tex[0] = tex0;
   s_texStride[0] = tex0Stride;
-  s_tex[1] = tex1 ? tex1 : &s_genericTexCoord;
+  s_tex[1] = tex1;
   s_texStride[1] = tex1Stride;
 
+  if (!s_normal) {
+    s_normal = &s_genericNormal;
+  }
+  if (!s_color) {
+    s_color = &s_genericColor;
+  }
+  if (!s_tex[0]) {
+    s_tex[0] = &s_genericTexCoord;
+  }
+  if (!s_tex[1]) {
+    s_tex[1] = &s_genericTexCoord;
+  }
+
   IPrimSetupPos();
-  LockArrays(vertexCount);
+
+  if (m_vertexShader == GxVS_Skin) {
+    LockArrays(s_vertexCount);
+  } else {
+    LockArrays(s_vertexCount);
+  }
 }
 
 void CGxDeviceOpenGl::PrimLockIndexPtr(EGxPrim primType, UINT indexCount, const WORD *indices) {

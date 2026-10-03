@@ -31,6 +31,9 @@
 #include <Tempest/c44matrix.h>
 #include <Tempest/caabox.h>
 #include <storm.h>
+#include <malloc.h>
+
+int APIENTRY SStrCmpI(LPCSTR string1, LPCSTR string2, DWORD maxchars = 0x7FFFFFFF);
 
 struct MINIMAPMD5NAME : public TSHashObject<MINIMAPMD5NAME, HASHKEY_STRI> {
   char filename[40];
@@ -51,9 +54,11 @@ static const float                               HALF_WORLD_SIZE_Y = AREA_WORLD_
 static const float                               CLOSEENOUGH = 0.013888889f;
 static const float                               MAX_POI_DISTANCE = 694.44446f;
 static UINT                s_currentContinent = -1;
-static NTempest::C3Vector  s_currentPosition(0.0f, 0.0f, -1.0f);
+static NTempest::C3Vector  s_currentPosition(0.0f, 0.0f, 0.0f);
 static NTempest::C2iVector s_currentUpperLeftArea(-1);
 static NTempest::C2iVector s_currentLowerRightArea(-1);
+#define NUM_ZOOMS 6
+
 static UINT                                      s_currentZoom = 3;
 static UINT                                      s_currentInsideZoom = 3;
 static UINT                                      s_mapObjID;
@@ -86,112 +91,109 @@ static int                                       s_lowestVisiblePriority = 3;
 static TSHashTable<MINIMAPMD5NAME, HASHKEY_STRI> s_md5NameHash;
 
 static void UpdatePointsOfInterest() {
-  UINT               numPOI;
-  NTempest::C2Vector dist;
-  float              minimapVisRadius;
-  float              totalDistance;
+  UINT i;
+  UINT j;
 
   s_visiblePOI.SetCount(0);
-  for (numPOI = 0; numPOI < s_numPoints; ++numPOI) {
-    const AreaPOIRec *poi = s_pointsOfInterest[numPOI];
-
-    if (fabs(poi->m_x) >= 0.00000023841858f || fabs(poi->m_y) >= 0.00000023841858f) {
-      dist.x = s_currentPosition.x - poi->m_x;
-      dist.y = s_currentPosition.y - poi->m_y;
-      FATALASSERT(s_currentZoom < 6);
-      minimapVisRadius = s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f * 33.333332f;
-      FATALASSERT(minimapVisRadius > 0.0f);
-      totalDistance = sqrt(dist.x * dist.x + dist.y * dist.y);
-
-      if (totalDistance / minimapVisRadius > 0.8f) {
-        if (s_POIIsVisible[numPOI] || s_visibleNoIcon[numPOI]) {
-          s_updatePOI = 1;
-          s_POIIsVisible[numPOI] = 0;
-          s_visibleNoIcon[numPOI] = 0;
-        }
-        continue;
-      }
-
-      if (!(poi->m_flags & 0x2)) {
-        if (s_POIIsVisible[numPOI] || !s_visibleNoIcon[numPOI]) {
-          s_updatePOI = 1;
-          s_POIIsVisible[numPOI] = 0;
-          s_visibleNoIcon[numPOI] = 1;
-        }
-        continue;
-      }
-
-      s_visiblePOI.Add(1, &poi);
-      if (!s_POIIsVisible[numPOI] || s_visibleNoIcon[numPOI]) {
+  for (i = 0; i < s_numPoints; ++i) {
+    if (fabs(s_pointsOfInterest[i]->m_x) < 0.00000023841858f && fabs(s_pointsOfInterest[i]->m_y) < 0.00000023841858f) {
+      if (s_POIIsVisible[i] || s_visibleNoIcon[i]) {
         s_updatePOI = 1;
-        s_POIIsVisible[numPOI] = 1;
-        s_visibleNoIcon[numPOI] = 0;
+        s_POIIsVisible[i] = 0;
+        s_visibleNoIcon[i] = 0;
       }
-    } else if (s_POIIsVisible[numPOI] || s_visibleNoIcon[numPOI]) {
-      s_updatePOI = 1;
-      s_POIIsVisible[numPOI] = 0;
-      s_visibleNoIcon[numPOI] = 0;
+    } else {
+      NTempest::C2Vector dist(s_currentPosition.x, s_currentPosition.y);
+      dist.x -= s_pointsOfInterest[i]->m_x;
+      dist.y -= s_pointsOfInterest[i]->m_y;
+      FATALASSERT(s_currentZoom < NUM_ZOOMS);
+      float minimapVisRadius = 33.333332f * (s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f);
+      FATALASSERT(minimapVisRadius > 0.0f);
+      float totalDistance = dist.Mag();
+      if (totalDistance / minimapVisRadius > 0.8f) {
+        if (s_POIIsVisible[i] || s_visibleNoIcon[i]) {
+          s_updatePOI = 1;
+          s_POIIsVisible[i] = 0;
+          s_visibleNoIcon[i] = 0;
+        }
+      } else if (!(s_pointsOfInterest[i]->m_flags & 0x2)) {
+        if (s_POIIsVisible[i] || !s_visibleNoIcon[i]) {
+          s_updatePOI = 1;
+          s_POIIsVisible[i] = 0;
+          s_visibleNoIcon[i] = 1;
+        }
+      } else {
+        *s_visiblePOI.New() = s_pointsOfInterest[i];
+        if (!s_POIIsVisible[i] || s_visibleNoIcon[i]) {
+          s_updatePOI = 1;
+          s_POIIsVisible[i] = 1;
+          s_visibleNoIcon[i] = 0;
+        }
+      }
     }
   }
 
-  int   priority[3];
   int   closest[3] = {-1, -1, -1};
-  float distance[3] = {MAX_POI_DISTANCE, MAX_POI_DISTANCE, MAX_POI_DISTANCE};
   int   largest = -1;
-  UINT  numDistantPOI = 0;
+  int   priority[3];
+  UINT  numPOI = 0;
+  float distance[3] = {MAX_POI_DISTANCE, MAX_POI_DISTANCE, MAX_POI_DISTANCE};
 
-  for (numPOI = 0; numPOI < s_numPoints; ++numPOI) {
-    const AreaPOIRec *poi = s_pointsOfInterest[numPOI];
-
-    if ((fabs(poi->m_x) < 0.00000023841858f && fabs(poi->m_y) < 0.00000023841858f) || s_POIIsVisible[numPOI] || s_visibleNoIcon[numPOI]) {
+  for (i = 0; i < s_numPoints; ++i) {
+    if ((fabs(s_pointsOfInterest[i]->m_x) < 0.00000023841858f && fabs(s_pointsOfInterest[i]->m_y) < 0.00000023841858f) || s_POIIsVisible[i] ||
+        s_visibleNoIcon[i])
+    {
       continue;
     }
 
-    dist.x = poi->m_x - s_currentPosition.x;
-    dist.y = poi->m_y - s_currentPosition.y;
-    totalDistance = sqrt(dist.x * dist.x + dist.y * dist.y);
+    NTempest::C2Vector dist(s_pointsOfInterest[i]->m_x - s_currentPosition.x, s_pointsOfInterest[i]->m_y - s_currentPosition.y);
+    float              totalDistance = NTempest::CMath::sqrt_(dist.SquaredMag());
     if (totalDistance > MAX_POI_DISTANCE) {
       continue;
     }
 
     if (largest == -1) {
-      distance[numDistantPOI] = totalDistance;
-      closest[numDistantPOI] = numPOI;
-      priority[numDistantPOI] = poi->m_importance;
-      ++numDistantPOI;
-    } else if (poi->m_importance < priority[largest] || (poi->m_importance == priority[largest] && totalDistance < distance[largest])) {
+      distance[numPOI] = totalDistance;
+      closest[numPOI] = i;
+      priority[numPOI] = s_pointsOfInterest[i]->m_importance;
+      ++numPOI;
+    } else if (s_pointsOfInterest[i]->m_importance < priority[largest] ||
+               (s_pointsOfInterest[i]->m_importance == priority[largest] && totalDistance < distance[largest]))
+    {
       distance[largest] = totalDistance;
-      closest[largest] = numPOI;
-      priority[largest] = poi->m_importance;
+      closest[largest] = i;
+      priority[largest] = s_pointsOfInterest[i]->m_importance;
     }
 
-    if (numDistantPOI == 3) {
+    if (numPOI == 3) {
       largest = 0;
-      for (UINT i = 1; i < 3; ++i) {
-        if (priority[i] > priority[largest] || (priority[i] == priority[largest] && distance[i] > distance[largest])) {
-          largest = i;
+      for (j = 1; j < 3; ++j) {
+        if (priority[j] > priority[largest]) {
+          largest = j;
+        } else if (priority[j] == priority[largest] && distance[j] > distance[largest]) {
+          largest = j;
         }
       }
     }
   }
 
-  if (s_numDistantPOI != numDistantPOI) {
-    s_numDistantPOI = numDistantPOI;
+  if (s_numDistantPOI != numPOI) {
+    s_numDistantPOI = numPOI;
     s_updateDistantPOI = 1;
   } else {
-    for (numPOI = 0; numPOI < numDistantPOI; ++numPOI) {
-      if (s_distantPOI[numPOI] != closest[numPOI]) {
+    for (i = 0; i < numPOI; ++i) {
+      if (closest[i] != s_distantPOI[i]) {
         s_updateDistantPOI = 1;
         break;
       }
     }
   }
 
-  for (numPOI = 0; numPOI < numDistantPOI; ++numPOI) {
-    s_distantPOI[numPOI] = closest[numPOI];
-    const AreaPOIRec  *poi = s_pointsOfInterest[closest[numPOI]];
-    NTempest::C3Vector poiPosition(poi->m_x, poi->m_y, s_currentPosition.z);
-    s_POIRotation[numPOI] = CalculateFacingTo(s_currentPosition, poiPosition);
+  for (i = 0; i < numPOI; ++i) {
+    s_distantPOI[i] = closest[i];
+    s_POIRotation[i] = CalculateFacingTo(
+        s_currentPosition, NTempest::C3Vector(s_pointsOfInterest[s_distantPOI[i]]->m_x, s_pointsOfInterest[s_distantPOI[i]]->m_y, s_currentPosition.z)
+    );
   }
 }
 
@@ -217,16 +219,17 @@ static void BuildPathName(const NTempest::C2iVector &location, char *buffer, UIN
   buffer[0] = 0;
 
   const MapRec *map = g_mapDB.GetRecord(s_currentContinent);
-  if (!map || !map->m_Directory || !map->m_Directory[0]) {
-    return;
-  }
-
-  SStrPrintf(buffer, size, FILENAME_TEMPLATE, map->m_Directory, location.x, location.y);
-  MINIMAPMD5NAME *name = s_md5NameHash.Ptr(buffer);
-  if (name) {
-    SStrPrintf(buffer, size, "%s\\%s", MINIMAP_MD5_DIR, name->filename);
+  if (map && *map->m_Directory) {
+    SStrPrintf(buffer, size, FILENAME_TEMPLATE, map->m_Directory, location.x, location.y);
+    MINIMAPMD5NAME *name = s_md5NameHash.Ptr(buffer);
+    if (name) {
+      SStrPrintf(buffer, size, "%s\\%s", MINIMAP_MD5_DIR, name->filename);
+    } else {
+      SysMsgPrintf(SYSMSG_ERROR, 2, "No minimap texture: \"%s\"", buffer);
+      buffer[0] = 0;
+    }
   } else {
-    buffer[0] = 0;
+    SysMsgPrintf(SYSMSG_ERROR, 2, "NOCONTINENTNAME|%d", s_currentContinent);
   }
 }
 
@@ -267,94 +270,79 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
 
   for (i = 0; i < 4; ++i) {
     if (!(quads[i].m_flags & 2)) {
-      char                fileName[MAX_PATH];
-      CStatus             status;
       NTempest::C2iVector currentArea(upperLeftArea.x + s_areaCoordOffsets[i].xIncrement, upperLeftArea.y + s_areaCoordOffsets[i].yIncrement);
+      char                fileName[MAX_PATH];
       BuildPathName(currentArea, fileName, sizeof(fileName));
       if (!fileName[0]) {
-        continue;
+        SysMsgPrintf(SYSMSG_ERROR, 4, "MINIMAPCHUNKNOTFOUND|%d|%d", currentArea.x, currentArea.y);
+      } else {
+        if (quads[i].m_texture) {
+          HandleClose(quads[i].m_texture);
+          quads[i].m_texture = 0;
+        }
+        CStatus status;
+        quads[i].m_texture = TextureCreate(fileName, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
+        quads[i].m_areaNum = currentArea;
+        quads[i].m_flags |= 2;
       }
-      if (quads[i].m_texture) {
-        HandleClose(quads[i].m_texture);
-        quads[i].m_texture = 0;
-      }
-      quads[i].m_texture = TextureCreate(fileName, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
-      quads[i].m_areaNum = currentArea;
-      quads[i].m_flags |= 2;
     }
   }
 }
 
 static void SetupQuad(const UINT groupNum, QUADDATA &quadData, const CWorld::MinimapQuad &wmmQuad, const float localz, LPCSTR wmoName) {
-  char    fileName[MAX_PATH];
-  CStatus status;
+  char fileName[MAX_PATH];
 
   quadData.m_flags |= 2;
   SStrPrintf(fileName, sizeof(fileName), s_mapObjTemplate, wmoName, wmmQuad.groupNum, wmmQuad.quad.x, wmmQuad.quad.y);
   MINIMAPMD5NAME *name = s_md5NameHash.Ptr(fileName);
-  if (name) {
-    SStrPrintf(fileName, sizeof(fileName), "%s\\%s", MINIMAP_MD5_DIR, name->filename);
-  } else {
+  if (!name) {
     SysMsgPrintf(SYSMSG_ERROR, 2, "No minimap texture: \"%s\"", fileName);
     fileName[0] = 0;
+  } else {
+    SStrPrintf(fileName, sizeof(fileName), "%s\\%s", MINIMAP_MD5_DIR, name->filename);
   }
 
   if (quadData.m_texture) {
     HandleClose(quadData.m_texture);
   }
   if (fileName[0]) {
+    CStatus status;
     quadData.m_texture = TextureCreate(fileName, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
   } else {
     quadData.m_texture = 0;
     quadData.m_flags &= ~2u;
   }
 
-  quadData.groupNum = wmmQuad.groupNum;
   quadData.m_areaNum = wmmQuad.quad;
   quadData.aaBox = wmmQuad.aaBox;
-  if (wmmQuad.groupNum == groupNum) {
+  quadData.groupNum = wmmQuad.groupNum;
+  if (quadData.groupNum == groupNum) {
     quadData.sortz = 0.0f;
   } else {
-    quadData.sortz = (wmmQuad.aaBox.b.z + wmmQuad.aaBox.t.z) * 0.5f - localz;
+    quadData.sortz = quadData.aaBox.Center().z - localz;
   }
 }
 
 static void SetupMapObj(DWORD hWorldObject, NTempest::C44Matrix &minimapMtx) {
-  LPCSTR wmoName;
+  LPCSTR       wmoName;
+  LPCSTR const kWorld = "World\\";
 
   CWorld::QueryMapObjMatrix(hWorldObject, &minimapMtx, &s_mapObjInvMtx);
-  float basisMag = minimapMtx.a0 * minimapMtx.a0 + minimapMtx.a1 * minimapMtx.a1 + minimapMtx.a2 * minimapMtx.a2;
-  if (fabs(basisMag - 1.0f) >= 0.00000023841858f) {
-    float basisScale = 1.0f / sqrt(basisMag);
-    float rowMag = sqrt(minimapMtx.a0 * minimapMtx.a0 + minimapMtx.a1 * minimapMtx.a1 + minimapMtx.a2 * minimapMtx.a2);
-    float rowScale = basisScale / rowMag;
-    minimapMtx.a0 *= rowScale;
-    minimapMtx.a1 *= rowScale;
-    minimapMtx.a2 *= rowScale;
-
-    rowMag = sqrt(minimapMtx.b0 * minimapMtx.b0 + minimapMtx.b1 * minimapMtx.b1 + minimapMtx.b2 * minimapMtx.b2);
-    rowScale = basisScale / rowMag;
-    minimapMtx.b0 *= rowScale;
-    minimapMtx.b1 *= rowScale;
-    minimapMtx.b2 *= rowScale;
-
-    rowMag = sqrt(minimapMtx.c0 * minimapMtx.c0 + minimapMtx.c1 * minimapMtx.c1 + minimapMtx.c2 * minimapMtx.c2);
-    rowScale = basisScale / rowMag;
-    minimapMtx.c0 *= rowScale;
-    minimapMtx.c1 *= rowScale;
-    minimapMtx.c2 *= rowScale;
+  float scale = minimapMtx.Row0AsVec3()->SquaredMag();
+  if (NTempest::CMath::fnotequal_(scale, 1.0f)) {
+    scale = 1.0f / NTempest::CMath::sqrt_(scale);
+    *minimapMtx.Row0AsVec3() *= scale / NTempest::CMath::sqrt_(minimapMtx.Row0AsVec3()->SquaredMag());
+    *minimapMtx.Row1AsVec3() *= scale / NTempest::CMath::sqrt_(minimapMtx.Row1AsVec3()->SquaredMag());
+    *minimapMtx.Row2AsVec3() *= scale / NTempest::CMath::sqrt_(minimapMtx.Row2AsVec3()->SquaredMag());
   }
   minimapMtx.d0 = 0.0f;
   minimapMtx.d1 = 0.0f;
   minimapMtx.d2 = 0.0f;
   minimapMtx.Rotate(angle * 0.017453292f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
 
-  if (!CWorld::QueryMapObjFileName(hWorldObject, wmoName)) {
-    s_mapObjDir[0] = 0;
-    return;
-  }
-  FATALASSERT(!SStrCmpI(wmoName, "World\\", SStrLen("World\\")));
-  wmoName += SStrLen("World\\");
+  CWorld::QueryMapObjFileName(hWorldObject, wmoName);
+  FATALASSERT(SStrCmpI(wmoName, kWorld));
+  wmoName += SStrLen(kWorld);
   SStrCopy(s_mapObjDir, wmoName, sizeof(s_mapObjDir));
   char *extension = SStrChrR(s_mapObjDir, '.');
   if (extension) {
@@ -364,8 +352,6 @@ static void SetupMapObj(DWORD hWorldObject, NTempest::C44Matrix &minimapMtx) {
 
 static void LoadMD5Names() {
   char   md5file[MAX_PATH];
-  char   line[MAX_PATH];
-  char  *space;
   LPVOID buffer;
   LPCSTR readCursor;
 
@@ -375,7 +361,7 @@ static void LoadMD5Names() {
   }
 
   readCursor = static_cast<LPCSTR>(buffer);
-  line[0] = 0;
+  char line[MAX_PATH] = "";
   do {
     SStrTokenize(&readCursor, line, sizeof(line), "\r\n", 0);
     if (!*readCursor || !line[0]) {
@@ -383,7 +369,7 @@ static void LoadMD5Names() {
     }
 
     if (SStrCmp(line, "dir:", SStrLen("dir:"))) {
-      space = SStrChr(line, '\t');
+      char *space = SStrChr(line, '\t');
       if (space) {
         *space = 0;
         MINIMAPMD5NAME *name = s_md5NameHash.Ptr(line);
@@ -399,50 +385,43 @@ static void LoadMD5Names() {
 }
 
 int MinimapInitialize(int continentID) {
-  UINT numPoints = 0;
+  UINT i;
 
+  s_numPoints = 0;
   for (int pass = 0; pass < 2; ++pass) {
-    if (pass) {
-      s_pointsOfInterest.SetCount(numPoints + 1);
-      s_POIIsVisible.SetCount(numPoints + 1);
-      s_visibleNoIcon.SetCount(numPoints + 1);
-      memset(s_POIIsVisible.Ptr(), 0, sizeof(int) * s_POIIsVisible.Count());
-      memset(s_visibleNoIcon.Ptr(), 0, sizeof(int) * s_visibleNoIcon.Count());
+    if (pass > 0) {
+      s_pointsOfInterest.SetCount(s_numPoints);
+      s_POIIsVisible.SetCount(s_numPoints);
+      s_visibleNoIcon.SetCount(s_numPoints);
+      memset(s_POIIsVisible.Ptr(), 0, s_POIIsVisible.Count() * sizeof(int));
+      memset(s_visibleNoIcon.Ptr(), 0, s_visibleNoIcon.Count() * sizeof(int));
     }
 
-    numPoints = 0;
-    for (int index = g_areaPOIDB.GetNumRecords() - 1; index >= 0; --index) {
-      const AreaPOIRec *rec = g_areaPOIDB.GetRecordByIndex(index);
-      if (rec->m_continentID == continentID && (rec->m_flags & 1)) {
-        if (pass) {
-          s_pointsOfInterest[numPoints] = rec;
+    s_numPoints = 0;
+    for (i = g_areaPOIDB.GetNumRecords(); i--;) {
+      const AreaPOIRec *rec = g_areaPOIDB.GetRecordByIndex(i);
+      if (rec->m_continentID == continentID && (rec->m_flags & 0x1)) {
+        if (pass > 0) {
+          s_pointsOfInterest[s_numPoints] = rec;
         }
-        ++numPoints;
+        ++s_numPoints;
       }
     }
+    ++s_numPoints;
   }
 
-  s_pointsOfInterest[numPoints] = &s_questPOI;
-  s_numPoints = numPoints + 1;
-
-  s_currentUpperLeftArea = NTempest::C2iVector(-1);
-  s_currentLowerRightArea = NTempest::C2iVector(-1);
-  s_mapObjID = 0;
-  s_mapObjInstanceID = 0;
-  s_mapObjGroupID = 0;
-  s_currentInsideZoom = 5;
-  s_currentZoom = 1;
-  s_currentPosition = NTempest::C3Vector(-1.0f);
-
-  s_questPOI.m_importance = 1;
-  s_questPOI.m_icon = 5;
+  s_pointsOfInterest[s_numPoints - 1] = &s_questPOI;
   s_questPOI.m_x = 0.0f;
   s_questPOI.m_y = 0.0f;
   s_questPOI.m_z = 0.0f;
+  s_questPOI.m_icon = 5;
+  s_questPOI.m_importance = 1;
   s_questPOI.m_name_lang[CURRENT_LANGUAGE] = s_questPOIName;
+  for (i = 0; i < 3; ++i) {
+    s_distantPOI[i] = -1;
+    s_POIRotation[i] = -1.0f;
+  }
 
-  s_queryCenter = NTempest::C3Vector(-1.0f);
-  s_queryCenterBox = NTempest::CAaBox(-1.0f);
   s_currentZoom = s_minimapZoomCVar->GetInt();
   s_currentInsideZoom = s_minimapInsideZoomCVar->GetInt();
 
@@ -453,19 +432,113 @@ int MinimapInitialize(int continentID) {
 
 void MinimapShutdown() {
   s_currentContinent = -1;
-  s_currentPosition = NTempest::C3Vector(0.0f, 0.0f, -1.0f);
-  s_currentUpperLeftArea = NTempest::C2iVector(-1);
+  s_currentPosition = NTempest::C3Vector(3.4028235e+38f);
   s_currentLowerRightArea = NTempest::C2iVector(-1);
-  s_queryCenter = NTempest::C3Vector(3.4028235e+38f);
-  s_queryCenterBox = NTempest::CAaBox(-1.0f);
-  s_isInside = 0;
+  s_currentUpperLeftArea = NTempest::C2iVector(-1);
   s_mapObjID = 0;
   s_mapObjInstanceID = 0;
-  s_mapObjGroupID = 0;
-  s_lowestVisiblePriority = -1;
-  s_updateDistantPOI = 0;
-  s_updatePOI = 0;
+  s_mapObjGroupID = -1;
+  s_flags = 0;
   s_md5NameHash.Clear();
+}
+
+BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads);
+
+BOOL MinimapUpdate(
+    DWORD                     hWorldObject,
+    UINT                      continent,
+    const NTempest::C3Vector &pos,
+    NTempest::C2Vector       &centerPoint,
+    float                    &radius,
+    QUADDATA                 *quads,
+    MinimapTexParams         &mmtp
+) {
+  BYTE needsWork = static_cast<BYTE>(s_flags & 1);
+  mmtp.updateTexture = mmtp.asyncTexWait | needsWork;
+
+  if (pos.x != s_currentPosition.x || pos.y != s_currentPosition.y || continent != s_currentContinent) {
+    UINT groupID;
+    UINT mapObjID;
+    UINT instanceID;
+
+    needsWork = 1;
+    if (CWorld::QueryMapObjIDs(hWorldObject, mapObjID, instanceID, groupID)) {
+      mmtp.inside = 1;
+      if (mapObjID != s_mapObjID || instanceID != s_mapObjInstanceID) {
+        SetupMapObj(hWorldObject, mmtp.worldRotation);
+        mmtp.invMapObjMtx = s_mapObjInvMtx;
+        mmtp.updateTexture = 1;
+        s_mapObjID = mapObjID;
+        s_mapObjInstanceID = instanceID;
+      }
+
+      if (groupID != s_mapObjGroupID) {
+        mmtp.updateTexture = 1;
+        s_mapObjGroupID = groupID;
+      }
+
+      if (pos.x <= s_queryCenterBox.b.x || pos.y <= s_queryCenterBox.b.y || pos.x >= s_queryCenterBox.t.x || pos.y >= s_queryCenterBox.t.y) {
+        mmtp.updateTexture = 1;
+      }
+
+      if (!mmtp.updateTexture) {
+        mmtp.localOffset = NTempest::C44Matrix::mul3v33m_(pos - s_queryCenter, s_mapObjInvMtx);
+      }
+
+      if (!s_isInside) {
+        s_isInside = 1;
+        s_flags |= 1;
+        FrameScript_SignalEvent(198);
+      }
+
+      s_currentPosition = pos;
+      s_currentContinent = continent;
+    } else {
+      if (s_isInside) {
+        s_isInside = 0;
+        s_flags |= 1;
+        FrameScript_SignalEvent(198);
+      }
+
+      mmtp.inside = 0;
+      needsWork = 1;
+      s_mapObjID = s_mapObjInstanceID = s_mapObjGroupID = -1;
+    }
+  }
+
+  if (!needsWork) {
+    return needsWork;
+  }
+
+  if (!mmtp.inside) {
+    needsWork = MinimapUpdatePosition(continent, pos, &centerPoint, &radius, quads) != 0;
+    return needsWork;
+  }
+
+  mmtp.size = s_minimapZoomSize[s_currentInsideZoom];
+  NTempest::C2iVector ibox(static_cast<int>(floor(pos.x / mmtp.size)), static_cast<int>(floor(pos.y / mmtp.size)));
+  s_queryCenterBox.b = NTempest::C3Vector(ibox.x * mmtp.size, ibox.y * mmtp.size, pos.z - mmtp.size * 0.5f);
+  s_queryCenterBox.t = NTempest::C3Vector(mmtp.size, mmtp.size, mmtp.size * 0.5f) + s_queryCenterBox.b;
+  s_queryCenter = s_queryCenterBox.Center();
+  mmtp.localCenter = s_queryCenter * s_mapObjInvMtx;
+  NTempest::C3Vector localPos = pos * s_mapObjInvMtx;
+  mmtp.localOffset = localPos - mmtp.localCenter;
+
+  NTempest::CAaBox worldBox = s_queryCenterBox;
+  TSStackArray<CWorld::MinimapQuad> wmmQuads(_alloca(1024 * sizeof(CWorld::MinimapQuad)), 1024, 0);
+  worldBox.b -= NTempest::C3Vector(mmtp.size);
+  worldBox.t += NTempest::C3Vector(mmtp.size);
+  CWorld::QueryMapObjMinimap(hWorldObject, worldBox, wmmQuads);
+
+  for (UINT i = 0; i < wmmQuads.Count(); ++i) {
+    SetupQuad(wmmQuads[0].groupNum, quads[i], wmmQuads[i], localPos.z, s_mapObjDir);
+  }
+  for (; i < 1024; ++i) {
+    quads[i].m_flags &= ~2u;
+  }
+
+  s_flags &= ~1u;
+  return needsWork;
 }
 
 BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads) {
@@ -483,11 +556,8 @@ BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempe
   UpdatePointsOfInterest();
 
   NTempest::C2iVector areaCoord = CoordinateToArea(pos);
-  NTempest::C3Vector  corner(pos.x + HALF_AREA_WORLD_SIZE_X, pos.y + HALF_AREA_WORLD_SIZE_Y, 0.0f);
-  NTempest::C2iVector upperLeftArea = CoordinateToArea(corner);
-  corner.x = pos.x - HALF_AREA_WORLD_SIZE_X;
-  corner.y = pos.y - HALF_AREA_WORLD_SIZE_Y;
-  NTempest::C2iVector lowerRightArea = CoordinateToArea(corner);
+  NTempest::C2iVector upperLeftArea = CoordinateToArea(NTempest::C3Vector(pos.x + HALF_AREA_WORLD_SIZE_X, pos.y + HALF_AREA_WORLD_SIZE_Y, 0.0f));
+  NTempest::C2iVector lowerRightArea = CoordinateToArea(NTempest::C3Vector(pos.x - HALF_AREA_WORLD_SIZE_X, pos.y - HALF_AREA_WORLD_SIZE_Y, 0.0f));
 
   if (upperLeftArea.x == lowerRightArea.x) {
     if (lowerRightArea.x + 1 < 64) {
@@ -506,8 +576,8 @@ BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempe
     }
   }
 
-  if ((s_flags & 1) || continentChanged || upperLeftArea.x != s_currentUpperLeftArea.x || upperLeftArea.y != s_currentUpperLeftArea.y ||
-      lowerRightArea.x != s_currentLowerRightArea.x || lowerRightArea.y != s_currentLowerRightArea.y)
+  if ((s_flags & 1) || s_currentUpperLeftArea.x != upperLeftArea.x || s_currentUpperLeftArea.y != upperLeftArea.y ||
+      s_currentLowerRightArea.x != lowerRightArea.x || s_currentLowerRightArea.y != lowerRightArea.y)
   {
     SetupTextureHandles(upperLeftArea, continentChanged, quads);
     s_currentUpperLeftArea = upperLeftArea;
@@ -515,138 +585,38 @@ BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempe
   }
   s_flags &= ~1u;
 
-  NTempest::C3Vector upperLeftCoordinate = AreaToCoordinate(upperLeftArea);
+  NTempest::C2Vector upperLeftCoordinate = AreaToCoordinate(upperLeftArea);
   NTempest::CRect    boxBoundary(upperLeftCoordinate.x, upperLeftCoordinate.y, upperLeftCoordinate.x - boxHeight, upperLeftCoordinate.y - boxWidth);
-  FATALASSERT((pos.x - CLOSEENOUGH) < boxBoundary.t);
-  FATALASSERT((pos.x + CLOSEENOUGH) > boxBoundary.b);
-  FATALASSERT((pos.y - CLOSEENOUGH) < boxBoundary.l);
-  FATALASSERT((pos.y + CLOSEENOUGH) > boxBoundary.r);
+  FATALASSERT(( pos.x - CLOSEENOUGH ) < boxBoundary.t);
+  FATALASSERT(( pos.x + CLOSEENOUGH ) > boxBoundary.b);
+  FATALASSERT(( pos.y - CLOSEENOUGH ) < boxBoundary.l);
+  FATALASSERT(( pos.y + CLOSEENOUGH ) > boxBoundary.r);
 
   NTempest::C2Vector center;
   center.x = (boxBoundary.l - pos.y) / boxHeight;
   center.y = (boxBoundary.t - pos.x) / boxWidth;
-  FATALASSERT(s_currentZoom < 6);
-  *radius = (s_chunksPerSizeAtZoom[s_currentZoom] >> 1) * 33.333332f / boxHeight;
+  FATALASSERT(s_currentZoom < (sizeof(s_chunksPerSizeAtZoom) / sizeof(s_chunksPerSizeAtZoom[0])));
+  *radius = (33.333332f * (s_chunksPerSizeAtZoom[s_currentZoom] >> 1)) / boxHeight;
   *centerPoint = center;
   return 1;
 }
 
-BOOL MinimapUpdate(
-    DWORD                     hWorldObject,
-    UINT                      continent,
-    const NTempest::C3Vector &pos,
-    NTempest::C2Vector       &centerPoint,
-    float                    &radius,
-    QUADDATA                 *quads,
-    MinimapTexParams         &mmtp
-) {
-  UINT needsWork = s_flags & 1;
-  mmtp.updateTexture = (s_flags & 1) | mmtp.asyncTexWait;
-
-  if (continent == s_currentContinent && pos.x == s_currentPosition.x && pos.y == s_currentPosition.y && !(s_flags & 1)) {
-    return 0;
-  }
-
-  UINT mapObjID;
-  UINT instanceID;
-  UINT groupID;
-  UINT isInside = CWorld::QueryMapObjIDs(hWorldObject, mapObjID, instanceID, groupID);
-
-  if (continent != s_currentContinent || pos.x != s_currentPosition.x || pos.y != s_currentPosition.y || pos.z != s_currentPosition.z) {
-    needsWork = 1;
-  }
-
-  if (isInside != s_isInside) {
-    s_isInside = isInside;
-    s_flags |= 1;
-    needsWork = 1;
-    FrameScript_SignalEvent(198);
-  }
-
-  if (!isInside) {
-    mmtp.inside = 0;
-    s_mapObjID = -1;
-    s_mapObjInstanceID = -1;
-    s_mapObjGroupID = -1;
-    return MinimapUpdatePosition(continent, pos, &centerPoint, &radius, quads) != 0;
-  }
-
-  s_currentContinent = continent;
-  s_currentPosition = pos;
-
-  mmtp.inside = 1;
-  if (mapObjID != s_mapObjID || instanceID != s_mapObjInstanceID) {
-    SetupMapObj(hWorldObject, mmtp.worldRotation);
-    mmtp.invMapObjMtx = s_mapObjInvMtx;
-    mmtp.updateTexture = 1;
-    needsWork = 1;
-    s_mapObjID = mapObjID;
-    s_mapObjInstanceID = instanceID;
-  }
-
-  if (groupID != s_mapObjGroupID) {
-    mmtp.updateTexture = 1;
-    s_mapObjGroupID = groupID;
-  }
-
-  if (pos.x <= s_queryCenterBox.b.x || pos.y <= s_queryCenterBox.b.y || pos.x >= s_queryCenterBox.t.x || pos.y >= s_queryCenterBox.t.y) {
-    mmtp.updateTexture = 1;
-  }
-
-  NTempest::C3Vector localPos = pos * s_mapObjInvMtx;
-  if (!mmtp.updateTexture) {
-    mmtp.localOffset = localPos - mmtp.localCenter;
-  }
-
-  mmtp.size = s_minimapZoomSize[s_currentInsideZoom];
-  const float halfSize = mmtp.size * 0.5f;
-  s_queryCenterBox = NTempest::CAaBox(
-      NTempest::C3Vector(
-          static_cast<float>(floor(pos.x / mmtp.size)) * mmtp.size, static_cast<float>(floor(pos.y / mmtp.size)) * mmtp.size, pos.z - halfSize
-      ),
-      NTempest::C3Vector(0.0f)
-  );
-  s_queryCenterBox.t = NTempest::C3Vector(s_queryCenterBox.b.x + mmtp.size, s_queryCenterBox.b.y + mmtp.size, s_queryCenterBox.b.z + halfSize);
-  s_queryCenter = (s_queryCenterBox.b + s_queryCenterBox.t) * 0.5f;
-  mmtp.localCenter = s_queryCenter * s_mapObjInvMtx;
-  mmtp.localOffset = localPos - mmtp.localCenter;
-
-  BYTE                              wmmStorage[sizeof(CWorld::MinimapQuad) * 1024];
-  TSStackArray<CWorld::MinimapQuad> wmmQuads(wmmStorage, 1024, 0);
-  NTempest::CAaBox                  queryBox = s_queryCenterBox;
-  queryBox.b = queryBox.b - NTempest::C3Vector(mmtp.size);
-  queryBox.t += NTempest::C3Vector(mmtp.size);
-  CWorld::QueryMapObjMinimap(hWorldObject, queryBox, wmmQuads);
-  UINT       count = wmmQuads.Count();
-  UINT       quad;
-  const UINT groupNum = count ? wmmQuads[0].groupNum : 0;
-  for (quad = 0; quad < count; ++quad) {
-    SetupQuad(groupNum, quads[quad], wmmQuads[quad], localPos.z, s_mapObjDir);
-  }
-  for (quad = count; quad < 1024; ++quad) {
-    quads[quad].m_flags &= ~2u;
-  }
-
-  s_flags &= ~1u;
-  return needsWork != 0;
-}
-
 void MinimapSetZoom(UINT zoomFactor) {
-  char  buf[8];
   UINT &zoom = s_isInside ? s_currentInsideZoom : s_currentZoom;
   UINT  oldZoom = zoom;
 
-  if (zoomFactor >= 5) {
-    zoomFactor = 5;
-  }
-  zoom = zoomFactor;
+  zoom = min(zoomFactor, 5);
 
   if (oldZoom != zoom) {
     s_flags |= 1;
-    SStrPrintf(buf, sizeof(buf), "%d", zoom);
-    CVar *zoomCVar = s_isInside ? s_minimapInsideZoomCVar : s_minimapZoomCVar;
-    if (zoomCVar) {
-      zoomCVar->Set(buf, true, false, false);
+    if (s_isInside) {
+      char buf[8];
+      SStrPrintf(buf, sizeof(buf), "%d", s_currentInsideZoom);
+      s_minimapInsideZoomCVar->Set(buf, true, false, false);
+    } else if (s_minimapZoomCVar) {
+      char buf[8];
+      SStrPrintf(buf, sizeof(buf), "%d", s_currentZoom);
+      s_minimapZoomCVar->Set(buf, true, false, false);
     }
   }
 }
@@ -656,7 +626,7 @@ UINT MinimapGetZoom() {
 }
 
 UINT MinimapGetZoomLevels() {
-  return 6;
+  return NUM_ZOOMS;
 }
 
 float MinimapGetViewRadius() {
@@ -664,7 +634,7 @@ float MinimapGetViewRadius() {
     return s_minimapZoomSize[s_currentInsideZoom];
   }
 
-  return s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f * 33.333332f;
+  return 33.333332f * (s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f);
 }
 
 const TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI) {
@@ -676,25 +646,25 @@ const TSGrowableArray<const AreaPOIRec *> &MinimapGetPOI(int &updatePOI) {
 BOOL MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData) {
   UINT i;
 
-  if (s_updateDistantPOI) {
-    directionData.SetCount(s_numDistantPOI);
-    s_updateDistantPOI = 0;
-
+  if (!s_updateDistantPOI) {
+    FATALASSERT(s_numDistantPOI == directionData.Count());
     for (i = 0; i < s_numDistantPOI; ++i) {
-      const AreaPOIRec *poi = s_pointsOfInterest[s_distantPOI[i]];
-      SStrCopy(directionData[i].POIName, poi->m_name_lang[CURRENT_LANGUAGE], sizeof(directionData[i].POIName));
       directionData[i].rotation = s_POIRotation[i];
     }
 
-    return 1;
+    return 0;
   }
 
-  FATALASSERT(s_numDistantPOI == directionData.Count());
+  directionData.SetCount(s_numDistantPOI);
+  s_updateDistantPOI = 0;
+
   for (i = 0; i < s_numDistantPOI; ++i) {
-    directionData[i].rotation = s_POIRotation[i];
+    POIDIRECTIONDATA &data = directionData[i];
+    SStrCopy(data.POIName, s_pointsOfInterest[s_distantPOI[i]]->m_name_lang[CURRENT_LANGUAGE], sizeof(data.POIName));
+    data.rotation = s_POIRotation[i];
   }
 
-  return 0;
+  return 1;
 }
 
 float MinimapGetWorldRadius() {
@@ -702,16 +672,16 @@ float MinimapGetWorldRadius() {
     return s_minimapZoomSize[s_currentInsideZoom];
   }
 
-  FATALASSERT(s_currentZoom < 6);
-  return s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f * 33.333332f;
+  FATALASSERT(s_currentZoom < NUM_ZOOMS);
+  return 33.333332f * (s_chunksPerSizeAtZoom[s_currentZoom] * 0.5f);
 }
 
 void MinimapSetQuestPOI(float x, float y, int priority, LPCSTR name) {
   s_questPOI.m_x = x;
   s_questPOI.m_y = y;
   s_questPOI.m_importance = priority;
-  SStrCopy(s_questPOIName, name ? name : "", sizeof(s_questPOIName));
-  s_updatePOI = 1;
+  SStrCopy(s_questPOIName, name, sizeof(s_questPOIName));
+  UpdatePointsOfInterest();
 }
 
 void MinimapGetPartyMembers(PARTYMEMBERINFO array[]) {
@@ -719,74 +689,68 @@ void MinimapGetPartyMembers(PARTYMEMBERINFO array[]) {
     return;
   }
 
-  for (UINT index = 0; index < 5; ++index) {
-    NTempest::C3Vector pos;
-    DWORDLONG          guid;
-    NTempest::C2Vector dist;
-    CGUnit_C          *unit;
+  for (UINT i = 0; i < 5; ++i) {
+    NTempest::C3Vector pos(0.0f, 0.0f, 0.0f);
+    DWORDLONG          guid = 0;
+    NTempest::C2Vector dist(s_currentPosition.x, s_currentPosition.y);
 
-    if (index == 4) {
-      CGUnit_C         *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      guid = activePlayer->GetControlledGUID();
-    } else {
-      guid = CGPartyInfo::GetMember(index);
-    }
-
-    unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-    if (unit) {
-      unit->GetPosition(pos);
-    } else if (index < 4 && guid) {
-      CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStats(guid);
-      if (stats && stats->mapID == static_cast<int>(CGPlayer_C::GetNewContinentID())) {
-        pos = stats->pos;
-      } else {
-        array[index].showArrow = 0;
-        array[index].showBlip = 0;
-        continue;
+    if (i == 4) {
+      CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player) {
+        guid = player->GetControlledGUID();
       }
     } else {
-      array[index].showArrow = 0;
-      array[index].showBlip = 0;
-      continue;
+      guid = CGPartyInfo::GetMember(i);
     }
 
-    array[index].guid = guid;
-    if (index == 4) {
-      SStrCopy(array[index].name, unit->GetObjectName(), sizeof(array[index].name));
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+    if (unit) {
+      dist.x -= unit->GetPosition().x;
+      dist.y -= unit->GetPosition().y;
+      unit->GetPosition(pos);
     } else {
-      const NameCache *name = g_nameDBCache.GetRecord(guid, guid, 0, 0);
-      if (name) {
-        SStrCopy(array[index].name, name->m_name, sizeof(array[index].name));
+      if (i < 4 && CGPartyInfo::GetMember(i)) {
+        CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStats(CGPartyInfo::GetMember(i));
+        if (stats && stats->mapID == CGPlayer_C::GetNewContinentID()) {
+          dist.x -= stats->pos.x;
+          dist.y -= stats->pos.y;
+          pos = stats->pos;
+        } else {
+          array[i].showBlip = 0;
+          array[i].showArrow = 0;
+          continue;
+        }
       } else {
-        array[index].name[0] = 0;
+        array[i].showBlip = 0;
+        array[i].showArrow = 0;
+        continue;
+      }
+    }
+
+    array[i].guid = guid;
+    if (i == 4) {
+      SStrCopy(array[i].name, unit->GetUnitName(), sizeof(array[i].name));
+    } else {
+      const NameCache *name = g_nameDBCache.GetRecord(CGPartyInfo::GetMember(i), 0, 0, 0);
+      if (name) {
+        SStrCopy(array[i].name, name->m_name, sizeof(array[i].name));
+      } else {
+        array[i].name[0] = 0;
       }
     }
 
     float minimapVisRadius = MinimapGetViewRadius();
     FATALASSERT(minimapVisRadius > 0.0f);
 
-    dist.x = s_currentPosition.x - pos.x;
-    dist.y = s_currentPosition.y - pos.y;
-    if (sqrt(dist.x * dist.x + dist.y * dist.y) / minimapVisRadius <= 0.8f) {
-      array[index].showArrow = 0;
-      array[index].showBlip = 1;
-      array[index].position.x = pos.x;
-      array[index].position.y = pos.y;
+    float totalDistance = dist.Mag();
+    if (totalDistance / minimapVisRadius > 0.8f) {
+      array[i].showBlip = 0;
+      array[i].showArrow = 1;
+      array[i].rotation = CalculateFacingTo(s_currentPosition, pos);
     } else {
-      array[index].showArrow = 1;
-      array[index].showBlip = 0;
-
-      float x = pos.x - s_currentPosition.x;
-      float y = pos.y - s_currentPosition.y;
-      if (fabs(x) >= 0.00000023841858f) {
-        if (fabs(y) >= 0.00000023841858f) {
-          array[index].rotation = static_cast<float>(atan2(y, x));
-        } else {
-          array[index].rotation = pos.x >= s_currentPosition.x ? 0.0f : 3.1415927f;
-        }
-      } else {
-        array[index].rotation = y >= 0.0f ? 0.5f * 3.1415927f : 1.5f * 3.1415927f;
-      }
+      array[i].showBlip = 1;
+      array[i].showArrow = 0;
+      array[i].position = pos;
     }
   }
 }

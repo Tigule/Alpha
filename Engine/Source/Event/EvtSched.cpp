@@ -29,20 +29,20 @@ static long                       s_interactiveCount;
 static int                        s_originalThreadPriority;
 static UINT                       s_mainThread;
 
-inline EvtContext::EvtContext(DWORD idleTime, DWORD flags, UINT weight, LPVOID callContext, int startWatchdog)
-    : m_currTime(0),
-      m_schedState(SCHEDSTATE_ACTIVE),
-      m_schedLastIdle(OsGetAsyncTimeMs()),
-      m_schedFlags(flags),
-      m_schedIdleTime(idleTime),
-      m_schedInitialIdleTime(idleTime),
-      m_schedWeight(weight),
-      m_schedSmoothWeight(weight),
-      m_schedRebalance(0),
-      m_queueSyncButtonState(0),
-      m_propContext(PropCreateContext()),
-      m_callContext(callContext),
-      m_startWatchdog(startWatchdog) {
+inline EvtContext::EvtContext(DWORD idleTime, DWORD flags, UINT weight, LPVOID callContext, int startWatchdog) {
+  m_currTime = 0;
+  m_schedState = SCHEDSTATE_ACTIVE;
+  m_schedLastIdle = OsGetAsyncTimeMs();
+  m_schedFlags = flags;
+  m_schedIdleTime = idleTime;
+  m_schedInitialIdleTime = idleTime;
+  m_schedWeight = weight;
+  m_schedSmoothWeight = weight;
+  m_schedRebalance = 0;
+  m_queueSyncButtonState = 0;
+  m_propContext = PropCreateContext();
+  m_callContext = callContext;
+  m_startWatchdog = startWatchdog;
 }
 
 static BOOL          SynthesizeInitialize(EvtContext *context);
@@ -132,12 +132,12 @@ static void SynthesizePaint(EvtContext *context) {
 
 static UINT InitializeSchedulerThread() {
   UINT       slot;
-  UINT       bestSlot = s_threadSlotCount;
+  UINT       bestSlot;
   EvtThread *thread;
-  EvtThread *bestThread;
 
   SInterlockedIncrement(&s_threadListContention);
   s_threadListCritsect.Enter();
+  bestSlot = s_threadSlotCount;
   for (slot = 0; slot < s_threadSlotCount; ++slot) {
     if (bestSlot == s_threadSlotCount || !s_threadSlots[slot] || s_threadSlots[slot]->m_threadCount < s_threadSlots[bestSlot]->m_threadCount) {
       bestSlot = slot;
@@ -147,17 +147,20 @@ static UINT InitializeSchedulerThread() {
     }
   }
 
-  bestThread = s_threadSlots[bestSlot];
-  if (!bestThread) {
+  thread = s_threadSlots[bestSlot];
+  if (!thread) {
     thread = s_threadList.NewNode(LIST_TAIL, 0, 0);
-
+    thread->m_threadCount = 0;
+    thread->m_weightTotal = 0;
+    thread->m_weightAvg = 0;
+    thread->m_contextCount = 0;
+    thread->m_rebalance = 0;
     thread->m_threadSlot = bestSlot;
     s_threadSlotCritsects[bestSlot].Enter();
     s_threadSlots[bestSlot] = thread;
     s_threadSlotCritsects[bestSlot].Leave();
-    bestThread = thread;
   }
-  ++bestThread->m_threadCount;
+  ++thread->m_threadCount;
   s_threadListCritsect.Leave();
   SInterlockedDecrement(&s_threadListContention);
   return bestSlot;
@@ -165,7 +168,6 @@ static UINT InitializeSchedulerThread() {
 
 static void DestroySchedulerThread(UINT hThread) {
   TSGrowableArray<EvtContext *> contextArray;
-  EvtContext                   *context;
   EvtThread                    *thread;
   UINT                          index;
 
@@ -177,9 +179,11 @@ static void DestroySchedulerThread(UINT hThread) {
     s_threadSlots[hThread] = 0;
     s_threadSlotCritsects[hThread].Leave();
 
+    EvtContext *context;
+
     contextArray.ReserveSpace(thread->m_contextQueue.Count());
     while ((context = thread->m_contextQueue.Dequeue()) != 0) {
-      contextArray.Add(1, &context);
+      contextArray.Add(&context);
     }
     s_threadList.DeleteNode(thread);
   }
@@ -189,23 +193,16 @@ static void DestroySchedulerThread(UINT hThread) {
   index = contextArray.Count();
   while (index) {
     --index;
-    context = contextArray[index];
-    context->m_critsect.Enter();
-    if (context->m_schedState == EvtContext::SCHEDSTATE_ACTIVE) {
-      context->m_schedState = EvtContext::SCHEDSTATE_CLOSED;
-    }
-    context->m_critsect.Leave();
+    EvtContext *context = contextArray[index];
+    context->SchedSetClosed();
     context->SchedSelect();
     SynthesizeDestroy(context);
   }
 }
 
 static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
-  EvtThread              *thread;
-  EvtContextQueue        *queue;
-  TSTimerPriority<DWORD> *priority;
-  DWORD                   contextId = 0;
-  DWORD                   currTime;
+  EvtThread *thread;
+  DWORD      contextId = 0;
 
   SInterlockedIncrement(&s_threadListContention);
   s_threadListCritsect.Enter();
@@ -217,20 +214,16 @@ static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
   }
 
   if (thread) {
-    if (!context->Id()) {
+    contextId = context->Id();
+    if (!contextId) {
       contextId = EvtContext::GetTable().Link(context);
-    } else {
-      contextId = context->Id();
     }
-    priority = &context->m_schedNextWakeTime;
-    currTime = OsGetAsyncTimeMs();
-    priority->Set(currTime);
+    context->SchedSetNextWakeTime(OsGetAsyncTimeMs());
     s_threadSlotCritsects[thread->m_threadSlot].Enter();
-    queue = &thread->m_contextQueue;
-    queue->Enqueue(context);
+    thread->m_contextQueue.Enqueue(context);
     s_threadSlotCritsects[thread->m_threadSlot].Leave();
     thread->m_wakeEvent.Set();
-    thread->m_weightTotal += context->m_schedWeight;
+    thread->m_weightTotal += context->SchedGetWeight();
     ++thread->m_contextCount;
     thread->m_weightAvg = thread->m_weightTotal / thread->m_contextCount;
   } else if (context) {
@@ -250,16 +243,20 @@ static void DetachContextFromThread(UINT hThread, EvtContext *context) {
   s_threadListCritsect.Enter();
   thread = s_threadSlots[hThread];
   if (thread) {
-    thread->m_weightTotal -= context->m_schedWeight;
+    thread->m_weightTotal -= context->SchedGetWeight();
     --thread->m_contextCount;
-    thread->m_weightAvg = thread->m_contextCount ? thread->m_weightTotal / thread->m_contextCount : 0;
+    if (thread->m_contextCount) {
+      thread->m_weightAvg = thread->m_weightTotal / thread->m_contextCount;
+    } else {
+      thread->m_weightAvg = 0;
+    }
 
     ITERATELIST(EvtThread, s_threadList, other) {
-      if (other != thread && other->m_weightAvg && other->m_weightTotal >= other->m_weightAvg + thread->m_weightTotal) {
-        amount = (other->m_weightTotal - thread->m_weightTotal) / other->m_weightAvg;
-        other->m_rebalance += amount;
-        if (other->m_rebalance >= other->m_contextCount) {
-          other->m_rebalance = other->m_contextCount;
+      if (other != thread) {
+        if (other->m_weightAvg && other->m_weightTotal >= other->m_weightAvg + thread->m_weightTotal) {
+          amount = (other->m_weightTotal - thread->m_weightTotal) / other->m_weightAvg;
+          other->m_rebalance += amount;
+          other->m_rebalance = min(other->m_rebalance, other->m_contextCount);
         }
       }
     }
@@ -269,15 +266,13 @@ static void DetachContextFromThread(UINT hThread, EvtContext *context) {
 }
 
 static EvtContext *GetNextContext(UINT hThread) {
-  EvtThread       *thread;
-  EvtContextQueue *queue;
-  EvtContext      *context = 0;
+  EvtThread  *thread;
+  EvtContext *context;
 
   s_threadSlotCritsects[hThread].Enter();
   thread = s_threadSlots[hThread];
   ASSERT(thread);
-  queue = &thread->m_contextQueue;
-  context = queue->Dequeue();
+  context = thread->m_contextQueue.Dequeue();
   s_threadSlotCritsects[hThread].Leave();
   return context;
 }
@@ -289,68 +284,72 @@ static SEvent *GetWakeEvent(UINT hThread) {
 }
 
 static void PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DWORD newSmoothWeight) {
-  TSTimerPriority<DWORD> *priority = &context->m_schedNextWakeTime;
-  EvtThread              *thread;
-  EvtThread              *bestThread;
-  EvtContextQueue        *queue;
-  DWORD                   oldWeight;
-  DWORD                   delta;
-  UINT                    threadSlot = hThread;
-  DWORD                   bestWeightTotal;
+  EvtThread *thread;
+  EvtThread *bestThread;
+  UINT       oldWeight;
+  UINT       delta;
+  UINT       threadSlot = hThread;
+  UINT       bestWeightTotal;
 
-  priority->Set(nextWakeTime);
-  if (context->m_schedSmoothWeight != newSmoothWeight) {
-    oldWeight = context->m_schedWeight;
-    context->m_schedSmoothWeight = newSmoothWeight;
-    delta = newSmoothWeight > oldWeight ? newSmoothWeight - oldWeight : oldWeight - newSmoothWeight;
-    context->m_schedRebalance = delta >= (oldWeight >> 3);
+  context->SchedSetNextWakeTime(nextWakeTime);
+  if (context->SchedGetSmoothWeight() != newSmoothWeight) {
+    oldWeight = context->SchedGetWeight();
+    context->SchedSetSmoothWeight(newSmoothWeight);
+    if (newSmoothWeight > oldWeight) {
+      delta = newSmoothWeight - oldWeight;
+    } else {
+      delta = oldWeight - newSmoothWeight;
+    }
+    context->SchedSetRebalance(delta >= (oldWeight >> 3));
   }
 
   if (!SInterlockedIncrement(&s_threadListContention)) {
     s_threadListCritsect.Enter();
     thread = s_threadSlots[threadSlot];
     ASSERT(thread);
-    if (thread->m_rebalance || context->m_schedRebalance) {
-      if (context->m_schedRebalance) {
-        thread->m_weightTotal -= context->m_schedWeight;
-        context->m_schedWeight = context->m_schedSmoothWeight;
-        thread->m_weightTotal += context->m_schedWeight;
+    if (thread->m_rebalance || context->SchedGetRebalance()) {
+      if (context->SchedGetRebalance()) {
+        thread->m_weightTotal -= context->SchedGetWeight();
+        context->SchedSetWeight(context->SchedGetSmoothWeight());
+        thread->m_weightTotal += context->SchedGetWeight();
       }
 
       bestThread = thread;
       bestWeightTotal = thread->m_weightTotal;
       ITERATELIST(EvtThread, s_threadList, candidate) {
-        if (candidate != thread && context->m_schedWeight + candidate->m_weightTotal < bestWeightTotal) {
-          bestThread = candidate;
-          bestWeightTotal = context->m_schedWeight + candidate->m_weightTotal;
+        if (candidate != thread) {
+          UINT weightTotal = candidate->m_weightTotal + context->SchedGetWeight();
+          if (weightTotal < bestWeightTotal) {
+            bestThread = candidate;
+            bestWeightTotal = weightTotal;
+          }
         }
       }
 
       if (bestThread != thread) {
-        thread->m_weightTotal -= context->m_schedWeight;
+        thread->m_weightTotal -= context->SchedGetWeight();
         --thread->m_contextCount;
         ASSERT(thread->m_contextCount);
         thread->m_weightAvg = thread->m_weightTotal / thread->m_contextCount;
         ++bestThread->m_contextCount;
         bestThread->m_weightTotal = bestWeightTotal;
         bestThread->m_weightAvg = bestWeightTotal / bestThread->m_contextCount;
-        context->m_schedRebalance = 0;
+        context->SchedSetRebalance(0);
         if (thread->m_rebalance) {
           --thread->m_rebalance;
         }
 
         s_threadSlotCritsects[bestThread->m_threadSlot].Enter();
-        queue = &bestThread->m_contextQueue;
-        queue->Enqueue(context);
+        bestThread->m_contextQueue.Enqueue(context);
         s_threadSlotCritsects[bestThread->m_threadSlot].Leave();
         bestThread->m_wakeEvent.Set();
         threadSlot = s_threadSlotCount;
       } else {
-        if (context->m_schedRebalance) {
-          context->m_schedRebalance = 0;
+        if (context->SchedGetRebalance()) {
+          context->SchedSetRebalance(0);
           thread->m_weightAvg = thread->m_weightTotal / thread->m_contextCount;
         }
-        if (context->m_schedWeight <= thread->m_weightAvg) {
+        if (context->SchedGetWeight() <= thread->m_weightAvg) {
           thread->m_rebalance = 0;
         }
       }
@@ -363,8 +362,7 @@ static void PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DW
     s_threadSlotCritsects[threadSlot].Enter();
     thread = s_threadSlots[threadSlot];
     ASSERT(thread);
-    queue = &thread->m_contextQueue;
-    queue->Enqueue(context);
+    thread->m_contextQueue.Enqueue(context);
     s_threadSlotCritsects[threadSlot].Leave();
   }
 }
@@ -382,14 +380,10 @@ static UINT APIENTRY ShutdownThreadProc(LPVOID event) {
 static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread) {
   UINT        hThread;
   EvtContext *context;
-  DWORD       nextDelay;
   DWORD       currTime;
   DWORD       idleTime;
-  DWORD       waitResult;
+  DWORD       wait;
   LONG        signedDelay;
-  int         shutdown;
-  int         watchdogActive = 0;
-  int         closed;
   int         currentPriority;
   char        callName[64];
 
@@ -399,6 +393,7 @@ static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread) {
   SStrPrintf(callName, sizeof(callName), "Engine %x", SGetCurrentThreadId());
   OsCallInitialize(callName);
 
+  int watchdogActive = 0;
   for (;;) {
     currentPriority = SGetCurrentThreadPriority();
     if (currentPriority != s_originalThreadPriority) {
@@ -412,19 +407,22 @@ static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread) {
     }
 
     context = GetNextContext(hThread);
-    nextDelay = INFINITE;
+    signedDelay = INFINITE;
     if (context) {
-      signedDelay = static_cast<LONG>(context->SchedGetNextWakeTime() - OsGetAsyncTimeMs());
-      nextDelay = signedDelay < 0 ? 0 : static_cast<DWORD>(signedDelay);
+      signedDelay = context->SchedGetNextWakeTime() - OsGetAsyncTimeMs();
+      if (signedDelay < 0) {
+        signedDelay = 0;
+      }
     }
     if (s_netServer) {
-      if (nextDelay == INFINITE) {
-        nextDelay = 100;
+      if (signedDelay == INFINITE) {
+        signedDelay = 100;
       }
-      OsNetPump(nextDelay);
-      waitResult = WAIT_TIMEOUT;
+      OsNetPump(signedDelay);
+      wait = WAIT_TIMEOUT;
     } else {
-      waitResult = GetWakeEvent(hThread)->Wait(nextDelay);
+      SEvent *wakeEvent = GetWakeEvent(hThread);
+      wait = wakeEvent->Wait(signedDelay);
     }
 
     if (!context) {
@@ -434,13 +432,13 @@ static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread) {
     currTime = OsGetAsyncTimeMs();
     context->SetCurrTime(currTime);
 
-    if (waitResult == WAIT_TIMEOUT) {
+    if (wait == WAIT_TIMEOUT) {
       if (SynthesizeInitialize(context) && context->StartWatchdog()) {
         SErrStartWatchdog(20, TRUE);
         watchdogActive = 1;
       }
       IEvtTimerDispatch(context);
-      shutdown = 0;
+      int shutdown = 0;
       if (context->SchedGetFlags(0x2)) {
         IEvtInputProcess(context, &shutdown);
         if (shutdown) {
@@ -454,13 +452,13 @@ static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread) {
       SynthesizePaint(context);
     }
 
-    closed = context->SchedGetClosed();
-    if (closed) {
+    if (context->SchedGetClosed()) {
       DetachContextFromThread(hThread, context);
       SynthesizeDestroy(context);
       continue;
     }
 
+    UINT nextDelay;
     if (context->SchedGetFlags(0x4)) {
       nextDelay = 0;
     } else {
@@ -469,10 +467,9 @@ static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread) {
       if (idleTime != context->SchedGetInitialIdleTime()) {
         nextDelay = idleTime;
       }
-      signedDelay = static_cast<LONG>(idleTime + context->SchedGetLastIdle() - currTime);
-      if (nextDelay >= static_cast<DWORD>(signedDelay < 0 ? 0 : signedDelay)) {
-        nextDelay = signedDelay < 0 ? 0 : signedDelay;
-      }
+      signedDelay = idleTime + context->SchedGetLastIdle() - currTime;
+      signedDelay = max(0, signedDelay);
+      nextDelay = min(nextDelay, static_cast<UINT>(signedDelay));
     }
     context->SchedDeselect();
     PutContext(hThread, context, currTime + nextDelay, context->SchedGetSmoothWeight());
@@ -493,22 +490,18 @@ void IEvtSchedulerProcess() {
 }
 
 void IEvtSchedulerInitialize(UINT threadCount, int netServer) {
-  UINT     threadSlotCount = 1;
-  SThread *thread;
-  char     threadname[16];
+  UINT threadSlotCount;
+  char threadname[16];
 
   if (s_threadSlotCount) {
     FATALERROR(("IEvtScheduler already initialized"));
   }
   s_netServer = netServer;
   s_originalThreadPriority = SGetCurrentThreadPriority();
-  while (threadSlotCount < threadCount) {
-    threadSlotCount <<= 1;
-    if (!threadSlotCount) {
-      ASSERT(threadSlotCount);
-      break;
-    }
+  threadSlotCount = 1;
+  while (threadSlotCount < threadCount && (threadSlotCount <<= 1)) {
   }
+  ASSERT(threadSlotCount);
   s_threadSlotCount = threadSlotCount;
 
   s_threadSlotCritsects = new SCritSect[threadSlotCount];
@@ -519,26 +512,19 @@ void IEvtSchedulerInitialize(UINT threadCount, int netServer) {
   s_shutdownEvent.Reset();
 
   s_mainThread = InitializeSchedulerThread();
-  --threadCount;
-  while (threadCount) {
-    thread = NEW(SThread);
-    s_schedulerThreads.Add(1, &thread);
+  while (--threadCount) {
+    *s_schedulerThreads.New() = NEW(SThread);
     SStrPrintf(threadname, sizeof(threadname), "EvtSched#%d", threadCount);
     if (!SThread::Create(SchedulerThreadProc, 0, **s_schedulerThreads.Top(), threadname)) {
-      thread = *s_schedulerThreads.Top();
-      if (thread) {
-        DEL(thread);
-      }
+      DEL(*s_schedulerThreads.Top());
       s_schedulerThreads.SetCount(s_schedulerThreads.Count() - 1);
     }
-    --threadCount;
   }
 }
 
 void IEvtSchedulerDestroy() {
-  UINT     processorCount;
-  UINT     index;
-  SThread *threadPtr;
+  UINT processorCount;
+  UINT index;
 
   if (!s_threadSlotCount) {
     return;
@@ -550,15 +536,11 @@ void IEvtSchedulerDestroy() {
 
     if (s_netServer) {
       processorCount = OsGetProcessorCount();
-      threadPtr = NEW(SThread);
-      shutdownThreads.Add(1, &threadPtr);
+      *shutdownThreads.New() = NEW(SThread);
       while (processorCount) {
         SThread thread;
         if (!SThread::Create(ShutdownThreadProc, &shutdownThreadEvent, **shutdownThreads.Top(), "EvtShutdown")) {
-          threadPtr = *shutdownThreads.Top();
-          if (threadPtr) {
-            DEL(threadPtr);
-          }
+          DEL(*shutdownThreads.Top());
           shutdownThreads.SetCount(shutdownThreads.Count() - 1);
         }
         --processorCount;
@@ -571,10 +553,7 @@ void IEvtSchedulerDestroy() {
       WaitMultiplePtr(shutdownThreads.Count(), reinterpret_cast<SSyncObject **>(shutdownThreads.Ptr()), TRUE, INFINITE);
       index = shutdownThreads.Count();
       while (index) {
-        threadPtr = shutdownThreads[--index];
-        if (threadPtr) {
-          DEL(threadPtr);
-        }
+        DEL(shutdownThreads[--index]);
       }
     }
   }
@@ -584,10 +563,7 @@ void IEvtSchedulerDestroy() {
 
   index = s_schedulerThreads.Count();
   while (index) {
-    threadPtr = s_schedulerThreads[--index];
-    if (threadPtr) {
-      DEL(threadPtr);
-    }
+    DEL(s_schedulerThreads[--index]);
   }
   s_schedulerThreads.Clear();
 
@@ -620,12 +596,11 @@ HEVENTCONTEXT
 IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHANDLER destroyHandler, DWORD idleTime, DWORD debugFlags) {
   char        contextName[256];
   int         startWatchdog;
-  LPVOID      callContext = 0;
+  LPVOID      callContext;
   EvtContext *context;
 
-  if (!idleTime) {
-    idleTime = 1;
-  }
+  idleTime = max(1, idleTime);
+  callContext = 0;
   if (debugFlags & 0x1) {
     SStrPrintf(contextName, sizeof(contextName), "Context: interactive = %u, idleTime = %u", interactive, idleTime);
     callContext = OsCallInitializeContext(contextName);
@@ -663,13 +638,11 @@ void EventProcessStart() {
 
 void EventProcessOnce() {
   EvtContext *context;
-  DWORD       nextDelay = INFINITE;
   DWORD       currTime;
+  DWORD       idleTime;
   DWORD       wait;
   LONG        signedDelay;
   int         currentPriority;
-  int         shutdown;
-  int         closed;
 
   currentPriority = SGetCurrentThreadPriority();
   if (currentPriority != s_originalThreadPriority) {
@@ -683,18 +656,22 @@ void EventProcessOnce() {
   }
 
   context = GetNextContext(s_hThread);
+  signedDelay = INFINITE;
   if (context) {
-    signedDelay = static_cast<LONG>(context->SchedGetNextWakeTime() - OsGetAsyncTimeMs());
-    nextDelay = signedDelay < 0 ? 0 : static_cast<DWORD>(signedDelay);
+    signedDelay = context->SchedGetNextWakeTime() - OsGetAsyncTimeMs();
+    if (signedDelay < 0) {
+      signedDelay = 0;
+    }
   }
   if (s_netServer) {
-    if (nextDelay == INFINITE) {
-      nextDelay = 100;
+    if (signedDelay == INFINITE) {
+      signedDelay = 100;
     }
-    OsNetPump(nextDelay);
+    OsNetPump(signedDelay);
     wait = WAIT_TIMEOUT;
   } else {
-    wait = GetWakeEvent(s_hThread)->Wait(nextDelay);
+    SEvent *wakeEvent = GetWakeEvent(s_hThread);
+    wait = wakeEvent->Wait(signedDelay);
   }
 
   if (!context) {
@@ -710,7 +687,7 @@ void EventProcessOnce() {
       s_watchdogActive = 1;
     }
     IEvtTimerDispatch(context);
-    shutdown = 0;
+    int shutdown = 0;
     if (context->SchedGetFlags(0x2)) {
       IEvtInputProcess(context, &shutdown);
       if (shutdown) {
@@ -724,24 +701,24 @@ void EventProcessOnce() {
     SynthesizePaint(context);
   }
 
-  closed = context->SchedGetClosed();
-  if (closed) {
+  if (context->SchedGetClosed()) {
     DetachContextFromThread(s_hThread, context);
     SynthesizeDestroy(context);
     return;
   }
 
+  UINT nextDelay;
   if (context->SchedGetFlags(0x4)) {
     nextDelay = 0;
   } else {
     nextDelay = IEvtTimerGetNextTime(context, currTime);
-    if (context->SchedGetIdleTime() != context->SchedGetInitialIdleTime()) {
-      nextDelay = context->SchedGetIdleTime();
+    idleTime = context->SchedGetIdleTime();
+    if (idleTime != context->SchedGetInitialIdleTime()) {
+      nextDelay = idleTime;
     }
-    signedDelay = static_cast<LONG>(context->SchedGetIdleTime() + context->SchedGetLastIdle() - currTime);
-    if (nextDelay >= static_cast<DWORD>(signedDelay < 0 ? 0 : signedDelay)) {
-      nextDelay = signedDelay < 0 ? 0 : signedDelay;
-    }
+    signedDelay = idleTime + context->SchedGetLastIdle() - currTime;
+    signedDelay = max(0, signedDelay);
+    nextDelay = min(nextDelay, static_cast<UINT>(signedDelay));
   }
   PutContext(s_hThread, context, currTime + nextDelay, context->SchedGetSmoothWeight());
 }

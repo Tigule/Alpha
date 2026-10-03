@@ -27,7 +27,7 @@ namespace NTempest {
     C4Vector(const C2Vector &vector) : x(vector.x), y(vector.y), z(0.0f), w(0.0f) {
     }
 
-    C4Vector(const C3Vector &vector) : x(vector.x), y(vector.y), z(vector.z), w(0.0f) {
+    C4Vector(const C3Vector &vector) : x(vector.x), y(vector.y), z(vector.z), w(1.0f) {
     }
 
     C4Vector(const C4iVector &vector)
@@ -141,7 +141,7 @@ namespace NTempest {
       return x + y + z + w;
     }
     bool IsUnit() const {
-      return CMath::fabs_(SquaredMag() - 1.0f) < 0.0009765625f;
+      return CMath::fabs_(SquaredMag() - 1.0f) < 2.3841858e-7f;
     }
     void Normalize() {
       *this *= 1.0f / Mag();

@@ -159,11 +159,12 @@ static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param
     s_queueTail = s_queueTail == 0xF ? 0 : s_queueTail + 1;
   }
 
-  s_queue[s_queueHead].id = id;
-  s_queue[s_queueHead].param[0] = param0;
-  s_queue[s_queueHead].param[1] = param1;
-  s_queue[s_queueHead].param[2] = param2;
-  s_queue[s_queueHead].param[3] = param3;
+  OSEVENT *event = &s_queue[s_queueHead];
+  event->id = id;
+  event->param[0] = param0;
+  event->param[1] = param1;
+  event->param[2] = param2;
+  event->param[3] = param3;
   s_queueHead = nextHead;
 }
 

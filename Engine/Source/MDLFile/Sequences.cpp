@@ -268,9 +268,11 @@ BOOL MDL::WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffe
 }
 
 BOOL MDL::ReadBinGlobalSequences(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
-  FATALASSERT(status);
+  VALIDATEBEGIN;
+  VALIDATE(status != 0);
+  VALIDATEEND;
   if (length & 3) {
-    status->Add(STATUS_ERROR, "Invalid GLBS section detected in model.\n");
+    status->Add(STATUS_ERROR, "Invalid GLBX section detected in model -- nonintegral number of global sequences.\n");
     return 0;
   }
   UINT count = length / 4;
@@ -293,7 +295,9 @@ BOOL MDL::WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buf, CMDLStat
 }
 
 BOOL MDL::ReadBinSequences(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
-  FATALASSERT(status);
+  VALIDATEBEGIN;
+  VALIDATE(status != 0);
+  VALIDATEEND;
   UINT numSeqs;
   numSeqs = buf.GetUint();
   if (length - 4 != 140 * numSeqs) {
@@ -327,8 +331,8 @@ BOOL MDL::WriteBinSequences(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) 
     buf.AddUint(140 * numSequences + 4);
     buf.AddUint(numSequences);
     for (UINT i = 0; i < numSequences; ++i) {
-      buf.AddTcharArray(data.sequences.Ptr()[i].name, 80, 1);
-      buf.AddInt(data.sequences.Ptr()[i].time.l);
+      buf.AddTcharArray(data.sequences[i].name, 80, 1);
+      buf.AddInt(data.sequences[i].time.l);
       buf.AddInt(data.sequences[i].time.h);
       buf.AddFloat(data.sequences[i].movespeed);
       buf.AddUint(data.sequences[i].flags);

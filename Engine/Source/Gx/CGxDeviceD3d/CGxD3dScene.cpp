@@ -40,8 +40,8 @@ void CGxDeviceD3d::SceneClear(UINT mask) {
     t = (t + 1) & 0xFF;
 
     clearColor.Set(
-        static_cast<BYTE>(0xFF), static_cast<BYTE>((sin(phase * 3.0f) + 1.0f) * 127.5f), static_cast<BYTE>((sin(phase * 5.0f) + 1.0f) * 127.5f),
-        static_cast<BYTE>((sin(phase * 7.0f) + 1.0f) * 127.5f)
+        static_cast<BYTE>(0xFF), static_cast<BYTE>((sinf(phase * 3.0f) + 1.0f) * 127.5f), static_cast<BYTE>((sinf(phase * 5.0f) + 1.0f) * 127.5f),
+        static_cast<BYTE>((sinf(phase * 7.0f) + 1.0f) * 127.5f)
     );
   }
 

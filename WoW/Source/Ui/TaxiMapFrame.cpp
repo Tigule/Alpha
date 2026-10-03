@@ -99,7 +99,6 @@ void CGTaxiMap::SetupMap(const DWORDLONG &unit, UINT node, LONGLONG destNodes, L
       out.offsety = (taxiNode->m_X - visibleArea.l) / (visibleArea.b - visibleArea.t);
     }
   }
-  FATALASSERT(count <= 64);
   m_nodes.SetCount(count);
   FrameScript_SignalEvent(283);
 }
@@ -115,9 +114,9 @@ void CGTaxiMap::CloseMap() {
 
 LPCSTR CGTaxiMap::TaxiNodeName(UINT slot) {
   FATALASSERT(slot < NumTaxiNodes());
-  const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(m_nodes[slot].id);
-  FATALASSERT(node);
-  return node->m_Name_lang[CURRENT_LANGUAGE];
+  const TaxiNodesRec *rec = g_taxiNodesDB.GetRecord(m_nodes[slot].id);
+  FATALASSERT(rec);
+  return rec->m_Name_lang[CURRENT_LANGUAGE];
 }
 
 LPCSTR CGTaxiMap::TaxiNodeType(UINT slot) {

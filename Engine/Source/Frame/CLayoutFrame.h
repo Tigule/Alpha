@@ -105,7 +105,15 @@ class CLayoutFrame {
   }
 
   BOOL HasPoints() {
-    return m_points.Count() != 0;
+    UINT count = m_points.Count();
+
+    while (count) {
+      if (m_points[--count]) {
+        return 1;
+      }
+    }
+
+    return 0;
   }
 
   void RegisterResize(CLayoutFrame *frame, UINT dependency);

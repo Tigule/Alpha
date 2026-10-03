@@ -12,6 +12,21 @@
 
 static const float DEFAULT_CORNER_SIZE = 0.025f;
 
+inline void CBackdropGenerator::SetCornerSize(float size) {
+  m_cornerSize = size;
+}
+
+inline void CBackdropGenerator::SetBackgroundSize(float size) {
+  m_backgroundSize = size;
+}
+
+inline void CBackdropGenerator::SetBackgroundInsets(float right, float left, float top, float bottom) {
+  m_leftInset = left;
+  m_rightInset = right;
+  m_topInset = top;
+  m_bottomInset = bottom;
+}
+
 CBackdropGenerator::CBackdropGenerator()
     : m_backgroundTexture(0),
       m_leftTexture(0),
@@ -56,13 +71,13 @@ void CBackdropGenerator::LoadXML(const XMLNode *node, CStatus *status) {
       float val;
 
       if (LoadXML_Value(child, val, status)) {
-        m_backgroundSize = val;
+        SetBackgroundSize(val);
       }
     } else if (!SStrCmpI(child->GetName(), "EdgeSize", 0x7FFFFFFF)) {
       float val;
 
       if (LoadXML_Value(child, val, status)) {
-        m_cornerSize = val;
+        SetCornerSize(val);
       }
     } else if (!SStrCmpI(child->GetName(), "BackgroundInsets", 0x7FFFFFFF)) {
       float l;
@@ -71,10 +86,7 @@ void CBackdropGenerator::LoadXML(const XMLNode *node, CStatus *status) {
       float b;
 
       if (LoadXML_Insets(child, l, r, t, b, status)) {
-        m_leftInset = l;
-        m_rightInset = r;
-        m_topInset = t;
-        m_bottomInset = b;
+        SetBackgroundInsets(r, l, t, b);
       }
     } else {
       status->Add(STATUS_WARNING, "Unknown child node in %s element: %s", node->GetName(), child->GetName());
@@ -92,96 +104,114 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
   ASSERT(m_pieces == BACKDROPONLY || m_border[0]);
 
   if (m_background[0]) {
-    m_backgroundTexture = NEW(CSimpleTexture)(output, 0, 1);
-    m_backgroundTexture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, m_leftInset, -m_topInset, 1);
-    m_backgroundTexture->SetPoint(FRAMEPOINT_TOPRIGHT, output, FRAMEPOINT_TOPRIGHT, -m_rightInset, -m_topInset, 1);
-    m_backgroundTexture->SetPoint(FRAMEPOINT_BOTTOMLEFT, output, FRAMEPOINT_BOTTOMLEFT, m_leftInset, m_bottomInset, 1);
-    m_backgroundTexture->SetPoint(FRAMEPOINT_BOTTOMRIGHT, output, FRAMEPOINT_BOTTOMRIGHT, -m_rightInset, m_topInset, 1);
-    m_backgroundTexture->SetTexture(m_background, m_tileBackground);
+    CSimpleTexture *texture = NEW(CSimpleTexture)(output, 0, 1);
+
+    m_backgroundTexture = texture;
+    texture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, m_leftInset, -m_topInset, 1);
+    texture->SetPoint(FRAMEPOINT_TOPRIGHT, output, FRAMEPOINT_TOPRIGHT, -m_rightInset, -m_topInset, 1);
+    texture->SetPoint(FRAMEPOINT_BOTTOMLEFT, output, FRAMEPOINT_BOTTOMLEFT, m_leftInset, m_bottomInset, 1);
+    texture->SetPoint(FRAMEPOINT_BOTTOMRIGHT, output, FRAMEPOINT_BOTTOMRIGHT, -m_rightInset, m_topInset, 1);
+    texture->SetTexture(m_background, m_tileBackground);
   }
 
   if (m_pieces & LEFTSIDE) {
-    m_leftTexture = NEW(CSimpleTexture)(output, 1, 1);
-    m_leftTexture->SetWidth(m_cornerSize);
-    m_leftTexture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, 0.0f, -m_cornerSize, 1);
-    m_leftTexture->SetPoint(FRAMEPOINT_BOTTOMLEFT, output, FRAMEPOINT_BOTTOMLEFT, 0.0f, m_cornerSize, 1);
-    m_leftTexture->SetTexture(m_border, 1);
+    CSimpleTexture *texture = NEW(CSimpleTexture)(output, 1, 1);
+
+    m_leftTexture = texture;
+    texture->SetWidth(m_cornerSize);
+    texture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, 0.0f, -m_cornerSize, 1);
+    texture->SetPoint(FRAMEPOINT_BOTTOMLEFT, output, FRAMEPOINT_BOTTOMLEFT, 0.0f, m_cornerSize, 1);
+    texture->SetTexture(m_border, 1);
   }
 
   if (m_pieces & RIGHTSIDE) {
-    m_rightTexture = NEW(CSimpleTexture)(output, 1, 1);
-    m_rightTexture->SetWidth(m_cornerSize);
-    m_rightTexture->SetPoint(FRAMEPOINT_TOPRIGHT, output, FRAMEPOINT_TOPRIGHT, 0.0f, -m_cornerSize, 1);
-    m_rightTexture->SetPoint(FRAMEPOINT_BOTTOMRIGHT, output, FRAMEPOINT_BOTTOMRIGHT, 0.0f, m_cornerSize, 1);
-    m_rightTexture->SetTexture(m_border, 1);
+    CSimpleTexture *texture = NEW(CSimpleTexture)(output, 1, 1);
+
+    m_rightTexture = texture;
+    texture->SetWidth(m_cornerSize);
+    texture->SetPoint(FRAMEPOINT_TOPRIGHT, output, FRAMEPOINT_TOPRIGHT, 0.0f, -m_cornerSize, 1);
+    texture->SetPoint(FRAMEPOINT_BOTTOMRIGHT, output, FRAMEPOINT_BOTTOMRIGHT, 0.0f, m_cornerSize, 1);
+    texture->SetTexture(m_border, 1);
   }
 
   if (m_pieces & TOPSIDE) {
-    m_topTexture = NEW(CSimpleTexture)(output, 1, 1);
-    m_topTexture->SetHeight(m_cornerSize);
-    m_topTexture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, m_cornerSize, 0.0f, 1);
-    m_topTexture->SetPoint(FRAMEPOINT_TOPRIGHT, output, FRAMEPOINT_TOPRIGHT, -m_cornerSize, 0.0f, 1);
-    m_topTexture->SetTexture(m_border, 1);
+    CSimpleTexture *texture = NEW(CSimpleTexture)(output, 1, 1);
+
+    m_topTexture = texture;
+    texture->SetHeight(m_cornerSize);
+    texture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, m_cornerSize, 0.0f, 1);
+    texture->SetPoint(FRAMEPOINT_TOPRIGHT, output, FRAMEPOINT_TOPRIGHT, -m_cornerSize, 0.0f, 1);
+    texture->SetTexture(m_border, 1);
   }
 
   if (m_pieces & BOTTOMSIDE) {
-    m_bottomTexture = NEW(CSimpleTexture)(output, 1, 1);
-    m_bottomTexture->SetHeight(m_cornerSize);
-    m_bottomTexture->SetPoint(FRAMEPOINT_BOTTOMLEFT, output, FRAMEPOINT_BOTTOMLEFT, m_cornerSize, 0.0f, 1);
-    m_bottomTexture->SetPoint(FRAMEPOINT_BOTTOMRIGHT, output, FRAMEPOINT_BOTTOMRIGHT, -m_cornerSize, 0.0f, 1);
-    m_bottomTexture->SetTexture(m_border, 1);
+    CSimpleTexture *texture = NEW(CSimpleTexture)(output, 1, 1);
+
+    m_bottomTexture = texture;
+    texture->SetHeight(m_cornerSize);
+    texture->SetPoint(FRAMEPOINT_BOTTOMLEFT, output, FRAMEPOINT_BOTTOMLEFT, m_cornerSize, 0.0f, 1);
+    texture->SetPoint(FRAMEPOINT_BOTTOMRIGHT, output, FRAMEPOINT_BOTTOMRIGHT, -m_cornerSize, 0.0f, 1);
+    texture->SetTexture(m_border, 1);
   }
 
   if (m_pieces & TOPLEFTCORNER) {
-    m_topLeftTexture = NEW(CSimpleTexture)(output, 1, 1);
-    m_topLeftTexture->SetWidth(m_cornerSize);
-    m_topLeftTexture->SetHeight(m_cornerSize);
-    m_topLeftTexture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, 0.0f, 0.0f, 1);
+    CSimpleTexture *texture = NEW(CSimpleTexture)(output, 1, 1);
+
+    m_topLeftTexture = texture;
+    texture->SetWidth(m_cornerSize);
+    texture->SetHeight(m_cornerSize);
+    texture->SetPoint(FRAMEPOINT_TOPLEFT, output, FRAMEPOINT_TOPLEFT, 0.0f, 0.0f, 1);
     texCoords[0] = NTempest::C2Vector(0.500f, 0.0f);
     texCoords[1] = NTempest::C2Vector(0.500f, 1.0f);
     texCoords[2] = NTempest::C2Vector(0.625f, 0.0f);
     texCoords[3] = NTempest::C2Vector(0.625f, 1.0f);
-    m_topLeftTexture->SetTexture(m_border, 0);
-    m_topLeftTexture->SetTexCoord(texCoords);
+    texture->SetTexture(m_border, 0);
+    texture->SetTexCoord(texCoords);
   }
 
   if (m_pieces & TOPRIGHTCORNER) {
-    m_topRightTexture = NEW(CSimpleTexture)(output, 1, 1);
-    m_topRightTexture->SetWidth(m_cornerSize);
-    m_topRightTexture->SetHeight(m_cornerSize);
-    m_topRightTexture->SetPoint(FRAMEPOINT_TOPRIGHT, output, FRAMEPOINT_TOPRIGHT, 0.0f, 0.0f, 1);
+    CSimpleTexture *texture = NEW(CSimpleTexture)(output, 1, 1);
+
+    m_topRightTexture = texture;
+    texture->SetWidth(m_cornerSize);
+    texture->SetHeight(m_cornerSize);
+    texture->SetPoint(FRAMEPOINT_TOPRIGHT, output, FRAMEPOINT_TOPRIGHT, 0.0f, 0.0f, 1);
     texCoords[0] = NTempest::C2Vector(0.625f, 0.0f);
     texCoords[1] = NTempest::C2Vector(0.625f, 1.0f);
     texCoords[2] = NTempest::C2Vector(0.750f, 0.0f);
     texCoords[3] = NTempest::C2Vector(0.750f, 1.0f);
-    m_topRightTexture->SetTexture(m_border, 0);
-    m_topRightTexture->SetTexCoord(texCoords);
+    texture->SetTexture(m_border, 0);
+    texture->SetTexCoord(texCoords);
   }
 
   if (m_pieces & BOTTOMLEFTCORNER) {
-    m_bottomLeftTexture = NEW(CSimpleTexture)(output, 1, 1);
-    m_bottomLeftTexture->SetWidth(m_cornerSize);
-    m_bottomLeftTexture->SetHeight(m_cornerSize);
-    m_bottomLeftTexture->SetPoint(FRAMEPOINT_BOTTOMLEFT, output, FRAMEPOINT_BOTTOMLEFT, 0.0f, 0.0f, 1);
+    CSimpleTexture *texture = NEW(CSimpleTexture)(output, 1, 1);
+
+    m_bottomLeftTexture = texture;
+    texture->SetWidth(m_cornerSize);
+    texture->SetHeight(m_cornerSize);
+    texture->SetPoint(FRAMEPOINT_BOTTOMLEFT, output, FRAMEPOINT_BOTTOMLEFT, 0.0f, 0.0f, 1);
     texCoords[0] = NTempest::C2Vector(0.750f, 0.0f);
     texCoords[1] = NTempest::C2Vector(0.750f, 1.0f);
     texCoords[2] = NTempest::C2Vector(0.875f, 0.0f);
     texCoords[3] = NTempest::C2Vector(0.875f, 1.0f);
-    m_bottomLeftTexture->SetTexture(m_border, 0);
-    m_bottomLeftTexture->SetTexCoord(texCoords);
+    texture->SetTexture(m_border, 0);
+    texture->SetTexCoord(texCoords);
   }
 
   if (m_pieces & BOTTOMRIGHTCORNER) {
-    m_bottomRightTexture = NEW(CSimpleTexture)(output, 1, 1);
-    m_bottomRightTexture->SetWidth(m_cornerSize);
-    m_bottomRightTexture->SetHeight(m_cornerSize);
-    m_bottomRightTexture->SetPoint(FRAMEPOINT_BOTTOMRIGHT, output, FRAMEPOINT_BOTTOMRIGHT, 0.0f, 0.0f, 1);
+    CSimpleTexture *texture = NEW(CSimpleTexture)(output, 1, 1);
+
+    m_bottomRightTexture = texture;
+    texture->SetWidth(m_cornerSize);
+    texture->SetHeight(m_cornerSize);
+    texture->SetPoint(FRAMEPOINT_BOTTOMRIGHT, output, FRAMEPOINT_BOTTOMRIGHT, 0.0f, 0.0f, 1);
     texCoords[0] = NTempest::C2Vector(0.875f, 0.0f);
     texCoords[1] = NTempest::C2Vector(0.875f, 1.0f);
     texCoords[2] = NTempest::C2Vector(1.000f, 0.0f);
     texCoords[3] = NTempest::C2Vector(1.000f, 1.0f);
-    m_bottomRightTexture->SetTexture(m_border, 0);
-    m_bottomRightTexture->SetTexCoord(texCoords);
+    texture->SetTexture(m_border, 0);
+    texture->SetTexCoord(texCoords);
   }
 }
 

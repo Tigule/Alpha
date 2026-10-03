@@ -14,15 +14,16 @@ enum UI_SPELL_TYPE {
 
 class CGSpellBook {
   friend class CGGameObject_C;
+  friend class CGTooltip;
 
  public:
   static void InitializeGame();
   static void ShutdownGame();
   static void ClearSpells();
-  static BYTE IsSpellKnown(int spellID) {
+  static bool IsSpellKnown(int spellID) {
     return m_knownSpellBits.IsBitSet(spellID);
   }
-  static BYTE IsPetSpellKnown(int spellID) {
+  static bool IsPetSpellKnown(int spellID) {
     for (UINT i = 0; i < MAXIMUM_LEARNED_SPELLS; ++i) {
       if (m_petSpells[i] == spellID) {
         return 1;

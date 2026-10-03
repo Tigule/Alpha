@@ -86,7 +86,7 @@ namespace NTempest {
     }
 
     C4Plane operator-() const {
-      return C4Plane(-n.x, -n.y, -n.z, -d);
+      return C4Plane(-n, -d);
     }
 
     float DistSigned(const C3Vector &point) const {

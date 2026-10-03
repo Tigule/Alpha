@@ -124,19 +124,19 @@ namespace NTempest {
   }
 
   float C3Spline::SegLength(UINT segment, const C44Matrix &coeffs) const {
+    float    t = 0.05f;
+    float    length = 0.0f;
     C3Vector curPos;
     C3Vector nextPos;
-    float    length = 0.0f;
-    float    t = 0.0f;
-    Evaluate(segment, t, coeffs, curPos);
+    Evaluate(segment, 0.0f, coeffs, curPos);
     for (UINT i = 0; i < 20; ++i) {
-      t += 0.05f;
       Evaluate(segment, t, coeffs, nextPos);
       float x = nextPos.x - curPos.x;
       float y = nextPos.y - curPos.y;
       float z = nextPos.z - curPos.z;
       length += CMath::sqrt_(x * x + y * y + z * z);
       curPos = nextPos;
+      t += 0.05f;
     }
     return length;
   }
@@ -273,14 +273,10 @@ namespace NTempest {
   static C24Matrix s_catmullRomDer2Coeffs(-3.0f, 2.0f, 9.0f, -5.0f, -9.0f, 4.0f, 3.0f, -1.0f);
 
   void C3Spline_CatmullRom::Evaluate(UINT segment, float t, C3Vector &pos) const {
-    if (splineMode != MODE_LINEAR) {
-      C3Spline::Evaluate(segment, t, s_catmullRomCoeffs, pos);
+    if (splineMode == MODE_LINEAR) {
+      pos = points[segment + 1] + (points[segment + 2] - points[segment + 1]) * t;
     } else {
-      const C3Vector &start = points[segment + 1];
-      const C3Vector &end = points[segment + 2];
-      pos.x = start.x + (end.x - start.x) * t;
-      pos.y = start.y + (end.y - start.y) * t;
-      pos.z = start.z + (end.z - start.z) * t;
+      C3Spline::Evaluate(segment, t, s_catmullRomCoeffs, pos);
     }
   }
 

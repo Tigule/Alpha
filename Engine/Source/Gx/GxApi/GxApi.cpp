@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef WORD uint16;
+
 CGxDevice *g_theGxDevicePtr;
 
 static DWORD      vtxBufSize[GxVertexBufferFormats_Last] = {0x18, 0x1C, 0x20, 0x24, 0x28, 0x2C, 0x18, 0x10, 0x1C};
@@ -367,11 +369,11 @@ void GxRsSet(EGxRenderState which, int value) {
       break;
 
     case GxRs_FogStyle:
-      ASSERT(value >= 0 && value < 3);
+      ASSERT(value >= GxFog_Linear && value < GxFogStyles_Last);
       break;
 
     case GxRs_Blend:
-      ASSERT(value >= 0 && value < 8);
+      ASSERT(value >= GxBlend_Opaque && value < GxBlends_Last);
       break;
 
     case GxRs_AlphaRef:
@@ -379,14 +381,14 @@ void GxRsSet(EGxRenderState which, int value) {
       break;
 
     case GxRs_DepthFunc:
-      ASSERT(value >= 0 && value < 3);
+      ASSERT(value >= GxCmp_LEqual && value < GxCmps_Last);
       break;
 
     case GxRs_TextureShader0:
     case GxRs_TextureShader1:
     case GxRs_TextureShader2:
     case GxRs_TextureShader3:
-      ASSERT(value >= 0 && value <= 2);
+      ASSERT(value >= GxTS_PassThru && value <= GxTS_Proj);
       break;
 
     case GxRs_NormalizeNormals:
@@ -765,31 +767,19 @@ BOOL GxTexCreate(
 ) {
   texId = 0;
 
-  FATALASSERT(width <= Gx_MaxTexWidth);
-
-  FATALASSERT(height <= Gx_MaxTexHeight);
-
-  FATALASSERT((width & (width - 1)) == 0);
-
-  FATALASSERT((height & (height - 1)) == 0);
-
-  FATALASSERT(float(width) >= Gx_MinTexAspect * float(height));
-
-  FATALASSERT(float(width) <= Gx_MaxTexAspect * float(height));
-
-  FATALASSERT(format <= GxTexFormats_Last);
-
-  FATALASSERT((format >= GxTex_Dxt1 && format <= GxTex_Dxt5) ? GxCaps().m_texFmtDxt : 1);
-
-  FATALASSERT(flags.m_generateMipMaps ? (GxCaps().m_generateMipMaps && !(format >= GxTex_Dxt1 && format <= GxTex_Dxt5)) : 1);
-
-  FATALASSERT(flags.m_filter == GxTex_Anisotropic ? GxCaps().m_texFilterAnisotropic : 1);
-
-  FATALASSERT(userFunc != 0);
-
-  FATALASSERT(width >= Gx_MinTexWidth);
-
   VALIDATEBEGIN;
+  VALIDATE(width <= Gx_MaxTexWidth);
+  VALIDATE(height <= Gx_MaxTexHeight);
+  VALIDATE((width & (width - 1)) == 0);
+  VALIDATE((height & (height - 1)) == 0);
+  VALIDATE(float(width) >= Gx_MinTexAspect * float(height));
+  VALIDATE(float(width) <= Gx_MaxTexAspect * float(height));
+  VALIDATE(format <= GxTexFormats_Last);
+  VALIDATE((format >= GxTex_Dxt1 && format <= GxTex_Dxt5) ? GxCaps().m_texFmtDxt : 1);
+  VALIDATE((flags.m_generateMipMaps) ? (GxCaps().m_generateMipMaps && !(format >= GxTex_Dxt1 && format <= GxTex_Dxt5)) : 1);
+  VALIDATE((flags.m_filter == GxTex_Anisotropic) ? GxCaps().m_texFilterAnisotropic : 1);
+  VALIDATE(userFunc != 0);
+  VALIDATE(width >= Gx_MinTexWidth);
   VALIDATE(height >= Gx_MinTexHeight);
   VALIDATEEND;
 
@@ -814,35 +804,21 @@ BOOL GxTexCreate(
 ) {
   texId = 0;
 
-  FATALASSERT(target <= GxTexTargets_Last);
-
-  FATALASSERT(width <= Gx_MaxTexWidth);
-
-  FATALASSERT(height <= Gx_MaxTexHeight);
-
-  FATALASSERT((width & (width - 1)) == 0);
-
-  FATALASSERT((height & (height - 1)) == 0);
-
-  FATALASSERT(float(width) >= Gx_MinTexAspect * float(height));
-
-  FATALASSERT(float(width) <= Gx_MaxTexAspect * float(height));
-
-  FATALASSERT(format <= GxTexFormats_Last);
-
-  FATALASSERT((format >= GxTex_Dxt1 && format <= GxTex_Dxt5) ? GxCaps().m_texFmtDxt : 1);
-
-  FATALASSERT(flags.m_generateMipMaps ? (GxCaps().m_generateMipMaps && !(format >= GxTex_Dxt1 && format <= GxTex_Dxt5)) : 1);
-
-  FATALASSERT(flags.m_filter == GxTex_Anisotropic ? GxCaps().m_texFilterAnisotropic : 1);
-
-  FATALASSERT(dataFormat <= GxTexFormats_Last);
-
-  FATALASSERT(userFunc != 0);
-
-  FATALASSERT(width >= Gx_MinTexWidth);
-
   VALIDATEBEGIN;
+  VALIDATE(target <= GxTexTargets_Last);
+  VALIDATE(width <= Gx_MaxTexWidth);
+  VALIDATE(height <= Gx_MaxTexHeight);
+  VALIDATE((width & (width - 1)) == 0);
+  VALIDATE((height & (height - 1)) == 0);
+  VALIDATE(float(width) >= Gx_MinTexAspect * float(height));
+  VALIDATE(float(width) <= Gx_MaxTexAspect * float(height));
+  VALIDATE(format <= GxTexFormats_Last);
+  VALIDATE((format >= GxTex_Dxt1 && format <= GxTex_Dxt5) ? GxCaps().m_texFmtDxt : 1);
+  VALIDATE((flags.m_generateMipMaps) ? (GxCaps().m_generateMipMaps && !(format >= GxTex_Dxt1 && format <= GxTex_Dxt5)) : 1);
+  VALIDATE((flags.m_filter == GxTex_Anisotropic) ? GxCaps().m_texFilterAnisotropic : 1);
+  VALIDATE(dataFormat <= GxTexFormats_Last);
+  VALIDATE(userFunc != 0);
+  VALIDATE(width >= Gx_MinTexWidth);
   VALIDATE(height >= Gx_MinTexHeight);
   VALIDATEEND;
 
@@ -1136,7 +1112,7 @@ void GxFreeVertexMem() {
 }
 
 LPVOID GxAllocIndexMem(UINT nBytes) {
-  ASSERT(nBytes < sizeof(WORD) * Gx_MaxIndices);
+  ASSERT(nBytes < sizeof(uint16) * Gx_MaxIndices);
 
   s_indexMem.SetCount(nBytes);
   return s_indexMem.Ptr();

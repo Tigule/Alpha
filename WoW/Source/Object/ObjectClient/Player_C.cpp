@@ -49,6 +49,7 @@
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Container_C.h"
 #include "Object/ObjectClient/GameObject_C.h"
 #include "Object/Petition.h"
 #include "Game/GameClient/NameCache.h"
@@ -361,17 +362,15 @@ int CGPlayer_C::GetSpellCastingTime(int spellID) const {
   }
   int baseCastingTime = castTime->m_base;
   int timePerLevel = castTime->m_perLevel;
-  int result = baseCastingTime + timePerLevel * (const_cast<CGPlayer_C *>(this)->GetSpellRank(spellID) / 5);
-  if (result < castTime->m_minimum) {
-    result = castTime->m_minimum;
-  }
+  UINT rank = const_cast<CGPlayer_C *>(this)->GetSpellRank(spellID);
+  int  result = max(static_cast<int>(baseCastingTime + timePerLevel * (rank / 5)), castTime->m_minimum);
   if (result > 0 && m_unit->modCastingSpeed) {
-    result += result * m_unit->modCastingSpeed / 100;
+    result += m_unit->modCastingSpeed * result / 100;
   }
   if (srec->m_attributes & 2) {
     CGItem_C *rangedItem = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(17), __FILE__, __LINE__));
     if (rangedItem) {
-      const ItemStats_C *stats = g_itemDBCache.GetRecord(rangedItem->GetEntryID(), m_obj->m_guid, 0, 0);
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(rangedItem->GetEntryID(), GetGUID(), 0, 0);
       if (stats) {
         result += stats->m_delay;
       }
@@ -525,6 +524,7 @@ static int                                   s_enableDeathHoldLog;
 static int                                   s_renderPlayer;
 static UINT                                  s_numLootItems;
 #define MAX_LOOT_ITEMS 16
+#define MAX_UNIT_SKILL_LINES 64
 
 static LootItem                              s_lootItems[MAX_LOOT_ITEMS];
 static int                                   s_questFailedReason;
@@ -2178,40 +2178,29 @@ static BOOL OnMirrorTimerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataS
 }
 
 BOOL CGPlayer_C::OnVendorInventory(CDataStore *msg) {
-  DWORDLONG vendorGuid;
-  BYTE      reason = 0xFF;
-  BYTE      count;
-
-  for (UINT index = 0; index < 128; ++index) {
+  for (BYTE index = 0; index < 128; ++index) {
     s_lastVendorList[index].m_muid = 0;
   }
 
+  DWORDLONG vendorGuid;
+  BYTE      count;
   msg->Get(vendorGuid);
   msg->Get(count);
   FATALASSERT(count <= 128);
   s_lastVendorListReceived = vendorGuid;
 
-  if (count) {
-    for (UINT index = 0; index < count; ++index) {
-      msg->Get(s_lastVendorList[index].m_muid);
-      msg->Get(s_lastVendorList[index].m_itemType);
-      msg->Get(s_lastVendorList[index].m_itemDisplayID);
-      msg->Get(s_lastVendorList[index].m_quantity);
-      msg->Get(s_lastVendorList[index].m_price);
-      msg->Get(s_lastVendorList[index].m_durability);
-      msg->Get(s_lastVendorList[index].m_stackCount);
-    }
-  } else {
+  BYTE reason = 0xFF;
+  if (!count) {
     msg->Get(reason);
     switch (reason) {
-      case 0:
-        ConsoleWrite("Vendor has no inventory", DEFAULT_COLOR);
+      case 2:
+        ConsoleWrite("You are too far away", DEFAULT_COLOR);
         break;
       case 1:
         ConsoleWrite("I don't think he likes you very much", DEFAULT_COLOR);
         break;
-      case 2:
-        ConsoleWrite("You are too far away", DEFAULT_COLOR);
+      case 0:
+        ConsoleWrite("Vendor has no inventory", DEFAULT_COLOR);
         break;
       case 3:
         ConsoleWrite("Vendor is dead", DEFAULT_COLOR);
@@ -2220,9 +2209,19 @@ BOOL CGPlayer_C::OnVendorInventory(CDataStore *msg) {
         ConsoleWrite("You can't shop while dead.", DEFAULT_COLOR);
         break;
     }
+  } else {
+    for (BYTE index = 0; index < count; ++index) {
+      msg->Get(s_lastVendorList[index].m_muid);
+      msg->Get(s_lastVendorList[index].m_itemType);
+      msg->Get(s_lastVendorList[index].m_itemDisplayID);
+      msg->Get(s_lastVendorList[index].m_quantity);
+      msg->Get(s_lastVendorList[index].m_price);
+      msg->Get(s_lastVendorList[index].m_durability);
+      msg->Get(s_lastVendorList[index].m_stackCount);
+    }
   }
 
-  if (count || !reason) {
+  if (count > 0 || !reason) {
     CGMerchantInfo::SetMerchant(vendorGuid, s_lastVendorList, count);
   }
   return 1;
@@ -2248,21 +2247,23 @@ BOOL CGPlayer_C::OnQuestGiverListQuests(CDataStore *msg) {
     memset(s_lastQuestLevel, 0, sizeof(s_lastQuestLevel));
 
     CGQuestInfo::SetState(questGiverGuid, QUEST_GREETING, greetText, 0);
-    for (UINT index = 0; index < count; ++index) {
-      msg->Get(s_lastQuestList[index]);
-      msg->Get(s_lastQuestListType[index]);
-      msg->Get(s_lastQuestLevel[index]);
-      msg->GetString(initialText[index], 64);
+    if (count > 0) {
+      for (int index = 0; index < count; ++index) {
+        msg->Get(s_lastQuestList[index]);
+        msg->Get(s_lastQuestListType[index]);
+        msg->Get(s_lastQuestLevel[index]);
+        msg->GetString(initialText[index], 64);
 
-      if (s_lastQuestListType[index] == 3 || s_lastQuestListType[index] == 4) {
-        CGQuestInfo::AddQuestInProgress(s_lastQuestList[index], initialText[index], s_lastQuestLevel[index]);
-      } else {
-        CGQuestInfo::AddQuest(s_lastQuestList[index], initialText[index], s_lastQuestLevel[index], s_lastQuestListType[index] == 0);
+        if (s_lastQuestListType[index] == 3 || s_lastQuestListType[index] == 4) {
+          CGQuestInfo::AddQuestInProgress(s_lastQuestList[index], initialText[index], s_lastQuestLevel[index]);
+        } else {
+          CGQuestInfo::AddQuest(s_lastQuestList[index], initialText[index], s_lastQuestLevel[index], s_lastQuestListType[index] == 0);
+        }
       }
     }
 
     CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
-    if (object && (object->GetType() & TYPE_UNIT)) {
+    if (object && object->IsA(TYPE_UNIT)) {
       static_cast<CGUnit_C *>(object)->SetEmoteQueue(&node, 1);
     }
     CGQuestInfo::EndQuestList();
@@ -2344,7 +2345,7 @@ BOOL CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
     }
 
     CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
-    if (object && (object->GetType() & TYPE_UNIT)) {
+    if (object && object->IsA(TYPE_UNIT)) {
       static_cast<CGUnit_C *>(object)->SetEmoteQueue(emotes);
     }
 
@@ -2397,7 +2398,7 @@ BOOL CGPlayer_C::OnQuestGiverRequestItems(CDataStore *msg) {
   CGQuestInfo::AddItemRequest(questTitle, items, itemAmounts, itemDispID, itemCount, maskmatch && hasitems && hasfaction, autoLaunched);
 
   CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
-  if (object && (object->GetType() & TYPE_UNIT)) {
+  if (object && object->IsA(TYPE_UNIT)) {
     static_cast<CGUnit_C *>(object)->SetEmoteQueue(&node, 1);
   }
   return 1;
@@ -2437,7 +2438,7 @@ BOOL CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
     }
 
     CGObject_C *object = ClntObjMgrObjectPtr(questGiverGuid, __FILE__, __LINE__);
-    if (object && (object->GetType() & TYPE_UNIT)) {
+    if (object && object->IsA(TYPE_UNIT)) {
       static_cast<CGUnit_C *>(object)->SetEmoteQueue(emotes);
     }
 
@@ -2548,7 +2549,7 @@ BOOL CGPlayer_C::OnQuestGiverQuestComplete(CDataStore *msg) {
 
     SStrPrintf(
         buf, sizeof(buf), "%s%s%s%s%s", coins[2] ? coinBuf[2] : "", coins[2] && (coins[1] || coins[0]) ? ", " : "", coins[1] ? coinBuf[1] : "",
-        coins[0] && (coins[1] || coins[2]) ? ", " : "", coins[0] ? coinBuf[0] : ""
+        (coins[2] || coins[1]) && coins[0] ? ", " : "", coins[0] ? coinBuf[0] : ""
     );
     CGGameUI::DisplayError(GERR_QUEST_REWARD_MONEY_S, buf);
   }
@@ -2655,18 +2656,18 @@ BOOL CGPlayer_C::OnTrainerList(CDataStore *msg) {
   msg->Get(trainerType);
   msg->Get(count);
 
-  TSStackArray<BYTE> usable(_alloca(count * sizeof(BYTE)), count, count);
-  TSStackArray<int>  reqAbility2(_alloca(count * sizeof(int)), count, count);
-  TSStackArray<UINT> moneyCost(_alloca(count * sizeof(UINT)), count, count);
-  TSStackArray<int>  reqAbility0(_alloca(count * sizeof(int)), count, count);
-  TSStackArray<BYTE> pointCost0(_alloca(count * sizeof(BYTE)), count, count);
-  TSStackArray<UINT> reqSkillStep(_alloca(count * sizeof(UINT)), count, count);
-  TSStackArray<BYTE> pointCost1(_alloca(count * sizeof(BYTE)), count, count);
-  TSStackArray<int>  reqAbility1(_alloca(count * sizeof(int)), count, count);
-  TSStackArray<BYTE> reqLevel(_alloca(count * sizeof(BYTE)), count, count);
   TSStackArray<int>  spellID(_alloca(count * sizeof(int)), count, count);
-  TSStackArray<UINT> reqSkillRank(_alloca(count * sizeof(UINT)), count, count);
+  TSStackArray<BYTE> usable(_alloca(count * sizeof(BYTE)), count, count);
+  TSStackArray<UINT> moneyCost(_alloca(count * sizeof(UINT)), count, count);
+  TSStackArray<BYTE> pointCost0(_alloca(count * sizeof(BYTE)), count, count);
+  TSStackArray<BYTE> pointCost1(_alloca(count * sizeof(BYTE)), count, count);
+  TSStackArray<BYTE> reqLevel(_alloca(count * sizeof(BYTE)), count, count);
   TSStackArray<UINT> reqSkillLine(_alloca(count * sizeof(UINT)), count, count);
+  TSStackArray<UINT> reqSkillRank(_alloca(count * sizeof(UINT)), count, count);
+  TSStackArray<UINT> reqSkillStep(_alloca(count * sizeof(UINT)), count, count);
+  TSStackArray<int>  reqAbility0(_alloca(count * sizeof(int)), count, count);
+  TSStackArray<int>  reqAbility1(_alloca(count * sizeof(int)), count, count);
+  TSStackArray<int>  reqAbility2(_alloca(count * sizeof(int)), count, count);
 
   for (UINT index = 0; index < count; ++index) {
     msg->Get(spellID[index]);
@@ -2713,7 +2714,7 @@ BOOL CGPlayer_C::OnBuyFailed(CDataStore *msg) {
   msg->Get(reason);
 
   if (reason == 1 && vendorGUID == s_lastVendorListReceived) {
-    for (UINT index = 0; index < 128; ++index) {
+    for (int index = 0; index < 128; ++index) {
       if (s_lastVendorList[index].m_muid == muid) {
         s_lastVendorList[index].m_quantity = 0;
         CGMerchantInfo::UpdateItemQuantity(vendorGUID, muid, 0);
@@ -2728,13 +2729,20 @@ BOOL CGPlayer_C::OnBuyFailed(CDataStore *msg) {
       CGGameUI::DisplayError(GERR_VENDOR_SOLD_OUT);
       error = "Sold out.";
       break;
-    case 2:
-      CGGameUI::DisplayError(GERR_NOT_ENOUGH_MONEY);
-      error = "Not enough money";
-      break;
     case 3:
       CGGameUI::DisplayError(GERR_ITEM_NOT_FOUND);
       error = "Item creation failed.";
+      break;
+    case 6:
+      error = "Your inventory is full.";
+      break;
+    case 8:
+      CGGameUI::DisplayError(GERR_ITEM_MAX_COUNT);
+      error = "You already have the maximum number allowed.";
+      break;
+    case 2:
+      CGGameUI::DisplayError(GERR_NOT_ENOUGH_MONEY);
+      error = "Not enough money";
       break;
     case 4:
       CGGameUI::DisplayError(GERR_VENDOR_HATES_YOU);
@@ -2743,13 +2751,6 @@ BOOL CGPlayer_C::OnBuyFailed(CDataStore *msg) {
     case 5:
       CGGameUI::DisplayError(GERR_VENDOR_TOO_FAR);
       error = "You are too far away.";
-      break;
-    case 6:
-      error = "Your inventory is full.";
-      break;
-    case 8:
-      CGGameUI::DisplayError(GERR_ITEM_MAX_COUNT);
-      error = "You already have the maximum number allowed.";
       break;
     case 11:
       CGGameUI::DisplayError(GERR_ITEM_NOT_FOUND);
@@ -2775,7 +2776,7 @@ BOOL CGPlayer_C::OnBuySucceeded(CDataStore *msg) {
   msg->Get(newQuantity);
 
   if (vendorGUID == s_lastVendorListReceived) {
-    for (UINT index = 0; index < 128; ++index) {
+    for (int index = 0; index < 128; ++index) {
       if (s_lastVendorList[index].m_muid == muid) {
         s_lastVendorList[index].m_quantity = newQuantity;
       }
@@ -3104,7 +3105,7 @@ static BOOL SkillRankChangeHandler(DWORDLONG player, UINT offset, UINT, LPCVOID 
   WORD        oldRank = *static_cast<const WORD *>(oldValue);
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(player, __FILE__, __LINE__));
   offset = (offset - 602) / 12;
-  FATALASSERT(offset < 64);
+  FATALASSERT(offset < MAX_UNIT_SKILL_LINES);
   if (playerPtr && playerPtr->GetMirrorSkillRank(offset) != oldRank) {
     playerPtr->CheckWeaponDefenseRankChange();
     ConsolePrintf("Skill %d increased from %d to %d", playerPtr->GetMirrorSkillID(offset), oldRank, playerPtr->GetMirrorSkillRank(offset));
@@ -3161,9 +3162,6 @@ CGPlayer_C::CGPlayer_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
       m_inventory(GetGUID(), &m_plyr->numInvSlots, m_plyr->invSlots, 1),
       m_lastKillerGUID(0),
       m_pendingItemStats(0) {
-  memset(&m_lootingUnit, 0, sizeof(m_lootingUnit) + sizeof(m_lootingUnitSent));
-  memset(&m_lastKillerGUID, 0, sizeof(m_lastKillerGUID) + sizeof(m_pendingItemStats));
-
   if (!m_unit->displayID) {
     FATALERROR(("Error, player %s has displayID 0!", GetUnitName()));
   }
@@ -3493,7 +3491,7 @@ void CGPlayer_C::InitComponents() {
     return;
   }
 
-  DWORD  time1 = OsGetAsyncTimeMs();
+  DWORD  time1 = OsGetAsyncTimeMsPrecise();
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
 
@@ -3519,16 +3517,20 @@ void CGPlayer_C::InitComponents() {
   m_geosetHandle = CharCustomizationCreateGeosetHandle(charModel);
   FATALASSERT(m_geosetHandle);
   InitPreferredGeosets();
-  CharCustomizationInitBaseCharacter(
-      m_geosetHandle, hasFacialData ? facialData.beardGeoset : 1, hasFacialData ? facialData.sideBurnGeoset : 1,
-      hasFacialData ? facialData.moustacheGeoset : 1, 2
-  );
+  if (hasFacialData) {
+    CharCustomizationInitBaseCharacter(m_geosetHandle, facialData.beardGeoset, facialData.sideBurnGeoset, facialData.moustacheGeoset, 2);
+  } else {
+    CharCustomizationInitBaseCharacter(
+        m_geosetHandle, g_defaultGeosetIDOffsets[CHARGEOSET_BEARD], g_defaultGeosetIDOffsets[CHARGEOSET_SIDEBURN],
+        g_defaultGeosetIDOffsets[CHARGEOSET_MOUSTACHE], 2
+    );
+  }
   CharCustomizationResetHairGeoset(m_geosetHandle, m_unit->race, m_unit->sex, GetHairStyle());
   HandleClose(charModel);
 
-  DWORD elapsed = OsGetAsyncTimeMs() - time1;
+  DWORD elapsed = OsGetAsyncTimeMsPrecise() - time1;
   if (elapsed > 15) {
-    ConsolePrintf("CGPlayer_C::InitComponents(): %dms\n", elapsed);
+    OsOutputDebugString("CGPlayer_C::InitComponents(): %dms\n", elapsed);
   }
 }
 
@@ -3567,31 +3569,30 @@ void CGPlayer_C::RemoveComponent(int slot, bool commitItemGeosets, bool defer, b
 }
 
 void CGPlayer_C::AddComponent(int displayID, UINT inventoryType, int slot, int commit) {
-  FATALASSERT(inventoryType < 27);
+  FATALASSERT(inventoryType < INDEX_NUMSLOTS);
 
   if ((1 << slot) & 0x403F8) {
     m_texComponentInfo[slot].m_displayID = displayID;
     m_texComponentInfo[slot].m_inventoryType = inventoryType;
   }
 
-  const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
   if (m_texComponent) {
     if ((1 << slot) & 0x403F8) {
       CStatus status;
-      TexComponentAdd(&status, m_unit->sex, m_texComponent, displayInfo, inventoryType, 1);
+      TexComponentAdd(&status, m_unit->sex, m_texComponent, g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, 1);
       if (!status.IsEmpty()) {
         char buffer[512];
         status.GetErrorStr(buffer, sizeof(buffer), STATUS_INFO);
-        NTempest::C3Vector pos;
-        GetPosition(pos);
+        NTempest::C3Vector pos = GetPosition();
         FATALERROR(("player 0x%I64X(%s)(%g,%g,%g): %s", GetGUID(), GetUnitName(), pos.x, pos.y, pos.z, buffer));
       }
     }
 
+    if (g_itemDisplayInfoDB.GetRecord(displayID) && slot == INVSLOT_TABARD && inventoryType == INDEX_TABARD_TYPE) {
+      OnGuildChanged();
+    }
+    const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
     if (displayInfo) {
-      if (slot == INVSLOT_TABARD && inventoryType == INDEX_TABARD_TYPE) {
-        OnGuildChanged();
-      }
       CharCustomizationAddItemGeosets(m_geosetHandle, displayInfo, inventoryType, m_texComponent, m_unit->race, commit == 0);
     }
   }
@@ -3602,7 +3603,7 @@ void CGPlayer_C::AddComponent(int displayID, UINT inventoryType, int slot, int c
   }
 
   if (!slot) {
-    HeadGeosetHideCharGeosets(m_geosetHandle, displayInfo, m_unit->race, m_preferredGeosets, 15);
+    HeadGeosetHideCharGeosets(m_geosetHandle, g_itemDisplayInfoDB.GetRecord(displayID), m_unit->race, m_preferredGeosets, 15);
   }
   CGUnit_C::m_flags &= ~0x100u;
 }
@@ -3738,9 +3739,7 @@ BOOL CGPlayer_C::OnTerrainClick(const CTerrainClickEvent &) {
     msg.Put(CMSG_DROP_ITEM);
     msg.Put(packSlot);
     msg.Put(static_cast<BYTE>(cursorSlot));
-    msg.Put(position.x);
-    msg.Put(position.y);
-    msg.Put(position.z);
+    msg << position;
     msg.Finalize();
     ClientServices_Send(&msg);
   }
@@ -3768,7 +3767,7 @@ void CGPlayer_C::SaveTabard(int eStyle, int eColor, int bStyle, int bColor, int 
         CGGameUI::DisplayError(GERR_GUILDEMBLEM_NOTGUILDMASTER);
         return;
       }
-      if (m_unit->coinage < GuildGetTabardCost()) {
+      if (GetMoney() < GuildGetTabardCost()) {
         CGGameUI::DisplayError(GERR_NOT_ENOUGH_MONEY);
         return;
       }
@@ -3803,11 +3802,17 @@ bool CGPlayer_C::OnGuildChanged() {
   FATALASSERT(inventory);
 
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(inventory->GetItem(18), __FILE__, __LINE__));
-  if (!item || item->GetInventoryType() != INDEX_TABARD_TYPE || item->GetDisplayID() <= 0) {
+  if (!item || item->GetInventoryType() != INDEX_TABARD_TYPE) {
     return 0;
   }
 
-  if (!g_itemDisplayInfoDB.GetRecord(item->GetDisplayID()) || !(g_itemDisplayInfoDB.GetRecord(item->GetDisplayID())->m_flags & 1)) {
+  int displayID = item->GetDisplayID();
+  if (!displayID) {
+    return 0;
+  }
+
+  const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
+  if (!displayInfo || !(displayInfo->m_flags & 1)) {
     return 0;
   }
 
@@ -4004,9 +4009,7 @@ void CGPlayer_C::DropItemInCursor(DWORDLONG cursorItem, DWORDLONG cursorItemPack
   msg.Put(CMSG_DROP_ITEM);
   msg.Put(packSlot);
   msg.Put(static_cast<BYTE>(cursorSlot));
-  msg.Put(position.x);
-  msg.Put(position.y);
-  msg.Put(position.z);
+  msg << position;
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -4107,13 +4110,12 @@ void CGPlayer_C::AutoEquipCursorItem(int force) {
 
       GAME_ERROR_TYPE reason;
       if (stats->m_bonding == 2 && CanUseItem(stats, reason)) {
-        UINT      index = FindEmptySwapIndex();
-        ITEMSWAP &swap = s_pendingSwaps[index];
-        swap.bagA = cursorItemPack;
-        swap.slotA = cursorItemSlot;
-        swap.bagB = 0;
-        swap.slotB = 0;
-        swap.pendingID = item->GetEntryID();
+        UINT index = FindEmptySwapIndex();
+        s_pendingSwaps[index].bagA = cursorItemPack;
+        s_pendingSwaps[index].slotA = cursorItemSlot;
+        s_pendingSwaps[index].bagB = 0;
+        s_pendingSwaps[index].slotB = 0;
+        s_pendingSwaps[index].pendingID = item->GetEntryID();
         FrameScript_SignalEvent(270, "%d", index);
         return;
       }
@@ -4160,32 +4162,25 @@ void CGPlayer_C::AutoStoreLootItem(BYTE slot) {
   ClientServices_Send(&msg);
 }
 void CGPlayer_C::ClearPendingEquip(UINT index, int equip) {
-  if (index >= s_pendingSwaps.Count()) {
-    return;
-  }
-
-  ITEMSWAP &swap = s_pendingSwaps[index];
-  if (equip) {
-    if (swap.bagB) {
-      SwapItems(0, swap.bagA, swap.slotA, swap.bagB, swap.slotB, 1);
+  if (index < s_pendingSwaps.Count()) {
+    if (equip) {
+      if (!s_pendingSwaps[index].bagB) {
+        AutoEquipItem(s_pendingSwaps[index].bagA, s_pendingSwaps[index].slotA, 1);
+      } else {
+        SwapItems(0, s_pendingSwaps[index].bagA, s_pendingSwaps[index].slotA, s_pendingSwaps[index].bagB, s_pendingSwaps[index].slotB, 1);
+      }
     } else {
-      AutoEquipItem(swap.bagA, swap.slotA, 1);
+      CGContainer_C *container = static_cast<CGContainer_C *>(ClntObjMgrObjectPtr(s_pendingSwaps[index].bagA, __FILE__, __LINE__));
+      if (container) {
+        CGGameUI::UnlockItem(container->GetBag()->GetItem(s_pendingSwaps[index].slotA));
+      }
+      container = static_cast<CGContainer_C *>(ClntObjMgrObjectPtr(s_pendingSwaps[index].bagB, __FILE__, __LINE__));
+      if (container) {
+        CGGameUI::UnlockItem(container->GetBag()->GetItem(s_pendingSwaps[index].slotB));
+      }
     }
-  } else {
-    CGObject_C *containerObject = ClntObjMgrObjectPtr(swap.bagA, __FILE__, __LINE__);
-    CGBag      *container = containerObject ? containerObject->GetBag() : 0;
-    if (container) {
-      CGGameUI::UnlockItem(container->GetItem(swap.slotA));
-    }
-
-    containerObject = ClntObjMgrObjectPtr(swap.bagB, __FILE__, __LINE__);
-    container = containerObject ? containerObject->GetBag() : 0;
-    if (container) {
-      CGGameUI::UnlockItem(container->GetItem(swap.slotB));
-    }
+    s_pendingSwaps[index].Clear();
   }
-
-  swap.Clear();
 }
 void CGPlayer_C::TogglePlayerBounds() {
   static int  boundsPresent;
@@ -4687,34 +4682,33 @@ static BOOL AreaTriggerCheck(LPCVOID eventData, LPVOID arg) {
       const AreaTriggerRec *rec = g_areaTriggerDB.GetRecord(currentAreaTrigger);
       FATALASSERT(rec);
 
-      if (worldId == rec->m_ContinentID) {
-        if (NTempest::CAaSphere(NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z), rec->m_radius * 1.1f).Contains(pos)) {
-          goto reset_timer;
-        }
+      if (worldId != rec->m_ContinentID ||
+          !NTempest::CAaSphere(NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z), rec->m_radius * 1.1f).Contains(pos))
+      {
+        currentAreaTrigger = 0;
       }
-
-      currentAreaTrigger = 0;
     }
 
-    for (int index = 0; index < g_areaTriggerDB.GetNumRecords(); ++index) {
-      const AreaTriggerRec *rec = g_areaTriggerDB.GetRecordByIndex(index);
-      FATALASSERT(rec);
+    if (!currentAreaTrigger) {
+      for (int index = 0; index < g_areaTriggerDB.GetNumRecords(); ++index) {
+        const AreaTriggerRec *rec = g_areaTriggerDB.GetRecordByIndex(index);
+        FATALASSERT(rec);
 
-      if (rec->m_ContinentID == worldId) {
-        if (NTempest::CAaSphere(NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z), rec->m_radius).Contains(pos)) {
-          CDataStore msg;
-          msg.Put(CMSG_AREATRIGGER);
-          msg.Put(rec->m_ID);
-          msg.Finalize();
-          ClientServices_Send(&msg);
-          currentAreaTrigger = rec->m_ID;
-          break;
+        if (rec->m_ContinentID == worldId) {
+          if (NTempest::CAaSphere(NTempest::C3Vector(rec->m_x, rec->m_y, rec->m_z), rec->m_radius).Contains(pos)) {
+            CDataStore msg;
+            msg.Put(CMSG_AREATRIGGER);
+            msg.Put(rec->m_ID);
+            msg.Finalize();
+            ClientServices_Send(&msg);
+            currentAreaTrigger = rec->m_ID;
+            break;
+          }
         }
       }
     }
   }
 
-reset_timer:
   ClientSetTimer(100, AreaTriggerCheck, 0);
   return 1;
 }
@@ -4862,9 +4856,9 @@ void PlayerClientInitialize() {
   ConsoleCommandRegister("DumpDeathHoldLogs", CCommand_DumpDeathHoldLogs, DEBUG, "");
 
   memset(s_playerProficiencies, 0, sizeof(s_playerProficiencies));
+  s_enableDeathHoldLog = 0;
   s_attackBreakTimer = 0;
   s_combatModeTimer = 0;
-  s_enableDeathHoldLog = 0;
   s_renderPlayer = 1;
   g_combatModeMaxDistance =
       CVar::Register("CombatModeMaxDistance", "Specifies the range outside of which combat mode is impossible", 0, "30.0f", 0, 3, false, 0);
@@ -5241,7 +5235,7 @@ void CGPlayer_C::DeleteWornItems() const {
 
 void CGPlayer_C::AddKnownSpell(int spellID, int slot, int learned, int addToBook) {
   if (spellID > g_spellDB.GetMaxID()) {
-    SysMsgPrintf(SYSMSG_ERROR, 2, "NOSPELLIDFOUND|%d", spellID);
+    SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", spellID);
     return;
   }
 
@@ -5291,18 +5285,18 @@ void CGPlayer_C::AddKnownSpell(int spellID, int slot, int learned, int addToBook
 }
 
 void CGPlayer_C::DelKnownSpell(int spellID) {
-  int found = 0;
-
   if (spellID > g_spellDB.GetMaxID()) {
-    SysMsgPrintf(SYSMSG_ERROR, 2, "NOSPELLIDFOUND|%d", spellID);
+    SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", spellID);
     return;
   }
 
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (spell && spell->m_castUI > SPELL_CAST_UI_NONE) {
-    SPELL_CAST_UI_TYPE craftType = static_cast<SPELL_CAST_UI_TYPE>(spell->m_castUI);
+    UINT craftType = spell->m_castUI;
     FATALASSERT(craftType < NUM_SPELL_CAST_UI_TYPES);
-    for (UINT index = 0; index < m_craftSpells[craftType].Count(); ++index) {
+    UINT count = m_craftSpells[craftType].Count();
+    int  found = 0;
+    for (UINT index = 0; index < count; ++index) {
       if (found) {
         m_craftSpells[craftType][index - 1] = m_craftSpells[craftType][index];
       } else if (m_craftSpells[craftType][index] == spellID) {
@@ -5310,7 +5304,7 @@ void CGPlayer_C::DelKnownSpell(int spellID) {
       }
     }
     if (found) {
-      m_craftSpells[craftType].SetCount(m_craftSpells[craftType].Count() - 1);
+      m_craftSpells[craftType].SetCount(count - 1);
       CGCraftInfo::RefreshList();
     }
   }
@@ -5742,17 +5736,15 @@ void CGPlayer_C::ToggleSheathe(bool ignoreAnim) {
 
 BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
   DWORDLONG   objectGUID;
-  CGObject_C *lootobject;
   UINT        coins;
   BYTE        accquired;
-  BYTE        reason;
-  BYTE        slot;
+  CGObject_C *lootobject;
   BYTE        count;
 
   msg->Get(objectGUID);
   msg->Get(accquired);
 
-  if ((!m_lootingUnitSent || objectGUID != m_lootingUnitSent) &&
+  if ((!m_lootingUnitSent || m_lootingUnitSent != objectGUID) &&
       (m_lootingUnitSent || (accquired != LOOT_ACQUIRE_PICKPOCKET && accquired != LOOT_ACQUIRE_FISHING)))
   {
     if (accquired) {
@@ -5766,55 +5758,58 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
     return 1;
   }
 
-  if (accquired) {
-    msg->Get(coins);
-    msg->Get(count);
-    if (count > 16) {
-      count = 16;
+  if (!accquired) {
+    BYTE reason;
+    msg->Get(reason);
+    switch (reason) {
+      case 6:
+        CGGameUI::DisplayError(GERR_LOOT_LOCKED);
+        break;
+      case 4:
+        CGGameUI::DisplayError(GERR_LOOT_TOO_FAR);
+        break;
+      case 5:
+        CGGameUI::DisplayError(GERR_LOOT_BAD_FACING);
+        break;
+      case 8:
+        CGGameUI::DisplayError(GERR_LOOT_NOTSTANDING);
+        break;
+      case 9:
+        CGGameUI::DisplayError(GERR_LOOT_STUNNED);
+        break;
+      default:
+        CGGameUI::DisplayError(GERR_LOOT_DIDNT_KILL);
+        break;
     }
-
-    lootobject = ClntObjMgrObjectPtr(objectGUID, __FILE__, __LINE__);
-    if (lootobject) {
-      m_lootingUnit = objectGUID;
-      memset(s_lootItems, 0, sizeof(s_lootItems));
-      for (UINT index = 0; index < count; ++index) {
-        msg->Get(slot);
-        msg->Get(s_lootItems[slot].m_itemID);
-        msg->Get(s_lootItems[slot].m_quantity);
-        msg->Get(s_lootItems[slot].m_displayID);
-      }
-      CGGameUI::OpenLoot(lootobject, coins, static_cast<LOOT_ACQUIRE>(accquired));
-    } else {
-      CGGameUI::DisplayError(GERR_LOOT_DIDNT_KILL);
+    m_lootingUnitSent = 0;
+    if (m_currentBaseAnimState == ANIM_STATE_LOOTBEGIN) {
+      UpdateBaseAnimation(0, 0);
     }
     return 1;
   }
 
-  msg->Get(reason);
-  switch (reason) {
-    case 4:
-      CGGameUI::DisplayError(GERR_LOOT_TOO_FAR);
-      break;
-    case 5:
-      CGGameUI::DisplayError(GERR_LOOT_BAD_FACING);
-      break;
-    case 6:
-      CGGameUI::DisplayError(GERR_LOOT_LOCKED);
-      break;
-    case 8:
-      CGGameUI::DisplayError(GERR_LOOT_NOTSTANDING);
-      break;
-    case 9:
-      CGGameUI::DisplayError(GERR_LOOT_STUNNED);
-      break;
-    default:
-      CGGameUI::DisplayError(GERR_LOOT_DIDNT_KILL);
-      break;
+  msg->Get(coins);
+  msg->Get(count);
+  if (count > 16) {
+    count = 16;
   }
-  m_lootingUnitSent = 0;
-  if (m_currentBaseAnimState == ANIM_STATE_LOOTBEGIN) {
-    UpdateBaseAnimation(0, 0);
+
+  lootobject = ClntObjMgrObjectPtr(objectGUID, __FILE__, __LINE__);
+  if (!lootobject) {
+    CGGameUI::DisplayError(GERR_LOOT_DIDNT_KILL);
+    return 1;
   }
+
+  m_lootingUnit = objectGUID;
+  memset(s_lootItems, 0, sizeof(s_lootItems));
+  for (UINT index = 0; index < count; ++index) {
+    BYTE slot;
+    msg->Get(slot);
+    msg->Get(s_lootItems[slot].m_itemID);
+    msg->Get(s_lootItems[slot].m_quantity);
+    msg->Get(s_lootItems[slot].m_displayID);
+  }
+  CGGameUI::OpenLoot(lootobject, coins, static_cast<LOOT_ACQUIRE>(accquired));
   return 1;
 }
 
@@ -5837,9 +5832,7 @@ BOOL CGPlayer_C::OnLootRemoved(CDataStore *msg) {
   BYTE slot;
   msg->Get(slot);
   if (ClntObjMgrObjectPtr(m_lootingUnit, __FILE__, __LINE__)) {
-    s_lootItems[slot].m_itemID = 0;
-    s_lootItems[slot].m_displayID = 0;
-    s_lootItems[slot].m_quantity = 0;
+    memset(&s_lootItems[slot], 0, sizeof(s_lootItems[slot]));
     CGGameUI::ClearLootSlot(slot);
   }
   return 1;
@@ -5949,12 +5942,15 @@ void CGPlayer_C::ReadItem(DWORDLONG containerGUID, BYTE slot) {
 
 BOOL CGPlayer_C::CanLoot(CGUnit_C *unitPtr) {
   FATALASSERT(unitPtr);
-  return (GetPosition() - unitPtr->GetPosition()).SquaredMag() <=
-             (m_unit->combatReach + m_unit->boundingRadius + unitPtr->m_unit->combatReach + unitPtr->m_unit->boundingRadius + 1.333333373f) *
-                 1.049999952f * 0.899999976f *
-                 (m_unit->combatReach + m_unit->boundingRadius + unitPtr->m_unit->combatReach + unitPtr->m_unit->boundingRadius + 1.333333373f) *
-                 1.049999952f * 0.899999976f &&
-         unitPtr->GetGUID() != m_lootingUnit && !m_lootingUnitSent && m_unit->health > 0 && !(m_flags & 0x4000) && !(m_unit->flags & 0x40000);
+  if ((GetPosition() - unitPtr->GetPosition()).SquaredMag() <=
+          (m_unit->weaponReach + m_unit->combatReach + unitPtr->m_unit->weaponReach + unitPtr->m_unit->combatReach + 1.3333334f) * 1.05f * 0.9f *
+              ((m_unit->weaponReach + m_unit->combatReach + unitPtr->m_unit->weaponReach + unitPtr->m_unit->combatReach + 1.3333334f) * 1.05f * 0.9f) &&
+      m_lootingUnit != unitPtr->GetGUID() && !m_lootingUnitSent && m_unit->health > 0 && !(m_move.GetMoveFlags() & MOVEFLAG_FALLING) &&
+      !(m_unit->flags & 0x40000))
+  {
+    return 1;
+  }
+  return 0;
 }
 
 UINT CGPlayer_C::GetPlayerAnimState() {
@@ -6261,13 +6257,16 @@ BOOL CGPlayer_C::GetLanguageSkill(UINT language, UINT &skill) {
     return 0;
   }
 
-  int index = GetSkillIndex(ability->m_skillLine);
-  if (index < 0 || !g_skillLineDB.GetRecord(ability->m_skillLine)) {
-    return 0;
+  for (UINT index = 0; index < MAX_UNIT_SKILL_LINES; ++index) {
+    if (GetMirrorSkillID(index) == ability->m_skillLine) {
+      if (!g_skillLineDB.GetRecord(ability->m_skillLine)) {
+        return 0;
+      }
+      skill = GetMirrorSkillRank(index) + GetMirrorSkillModifier(index);
+      return 1;
+    }
   }
-
-  skill = GetMirrorSkillRank(index) + GetMirrorSkillModifier(index);
-  return 1;
+  return 0;
 }
 
 BOOL Player_C_TogglePlayerRender() {
@@ -6404,7 +6403,7 @@ BOOL CGPlayer_C::OnAttackIconPressed() {
     return 0;
   }
 
-  if (m_unit->health <= 0 || (m_unit->flags & 0x2000) || unit->m_unit->health <= 0 || !CanAttack(unit)) {
+  if (m_unit->health <= 0 || IsMounted() || unit->m_unit->health <= 0 || !CanAttack(unit)) {
     CGGameUI::DisplayError(GERR_INVALID_ATTACK_TARGET);
     return 0;
   }
@@ -6633,18 +6632,16 @@ bool CGPlayer_C::GetPackAndSlot(CGItem_C *item, BYTE &packSlot, BYTE &slot) {
   if (packSlot == 0xFF) {
     return false;
   }
-  CGObject_C *containerObject = ClntObjMgrObjectPtr(containerGUID, __FILE__, __LINE__);
-  CGBag      *bag = containerObject ? containerObject->GetBag() : 0;
-  if (!bag) {
+  CGObject_C *container = ClntObjMgrObjectPtr(containerGUID, __FILE__, __LINE__);
+  if (!container) {
     return false;
   }
-  for (UINT index = 0; index < bag->NumSlots(); ++index) {
-    if (bag->GetItem(index) == item->GetGUID()) {
-      slot = static_cast<BYTE>(index);
-      return true;
-    }
+  int index = container->GetBag()->GetIndexOfObject(item->GetGUID());
+  if (index < 0) {
+    return false;
   }
-  return false;
+  slot = index;
+  return true;
 }
 
 void CGPlayer_C::OpenLootItem(CGItem_C *item) {
@@ -6934,10 +6931,7 @@ void CGPlayer_C::ToggleFarSight() {
   CGObject_C *focus = ClntObjMgrObjectPtr(GetFarsightFocus(), __FILE__, __LINE__);
   if (focus && CGWorldFrame::GetActiveCamera()->GetTarget() != focus->GetGUID()) {
     SetCombatMode(0);
-    if (focus->IsA(ID_UNIT) && (static_cast<CGUnit_C *>(focus)->m_unit->flags & 0x01000000) &&
-        GetGUID() == (static_cast<CGUnit_C *>(focus)->m_unit->charmedBy ? static_cast<CGUnit_C *>(focus)->m_unit->charmedBy
-                                                                         : static_cast<CGUnit_C *>(focus)->m_unit->createdBy))
-    {
+    if (focus->IsA(ID_UNIT) && static_cast<CGUnit_C *>(focus)->IsPossessedBy(GetGUID())) {
       CGUnit_C::SetActiveMover(focus->GetGUID());
     } else {
       CGUnit_C::SetActiveMover(0);
@@ -7155,44 +7149,44 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec *rec, const DWORDLONG &target
 void CGPlayer_C::AddDeferredDamage(int normal, UINT flags, UINT damage, DWORDLONG victim) {
   DEFERREDDAMAGE *deferred = s_freeDeferedDamage.Get(0);
   deferred->Set(normal, flags, damage, victim);
-  s_deferredDamage.LinkNode(deferred, LIST_HEAD, 0);
+  s_deferredDamage.LinkNode(deferred, LIST_TAIL, 0);
 }
 
 void CGPlayer_C::AddDeferredSpellMiss(DWORDLONG victim, MISS_REASON reason, int spellID) {
   DEFERREDSPELLMISS *deferred = s_freeDeferredSpellMiss.Get(0);
   deferred->Set(victim, reason, spellID);
-  s_deferredSpellMiss.LinkNode(deferred, LIST_HEAD, 0);
+  s_deferredSpellMiss.LinkNode(deferred, LIST_TAIL, 0);
 }
 
 void CGPlayer_C::ProcessDeferredDamage() {
-  DEFERREDDAMAGE *next;
-  for (DEFERREDDAMAGE *deferred = s_deferredDamage.Head(); (int)deferred > 0; deferred = next) {
-    next = deferred->RawNext();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(deferred->victim, __FILE__, __LINE__));
+  for (DEFERREDDAMAGE *node = s_deferredDamage.Head(), *nodenext_node;
+       (int)node > 0 ? (nodenext_node = s_deferredDamage.RawNext(node), 1) : 0; node = nodenext_node)
+  {
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(node->victim, __FILE__, __LINE__));
     if (unit) {
-      if (deferred->flags & 2) {
+      if (node->flags & 2) {
         unit->AddWorldText(WORLDTEXTMISS_ABSORBED);
-      } else if (deferred->damage && (deferred->flags & 1)) {
-        unit->AddWorldCritText(deferred->damage, deferred->normal);
-      } else if (deferred->damage) {
-        unit->AddWorldDamageText(deferred->damage, deferred->normal);
+      } else if (node->damage && (node->flags & 1)) {
+        unit->AddWorldCritText(node->damage, node->normal);
+      } else if (node->damage) {
+        unit->AddWorldDamageText(node->damage, node->normal);
       }
-      deferred->Unlink();
-      s_freeDeferedDamage.Put(deferred);
+      node->Unlink();
+      s_freeDeferedDamage.Put(node);
     }
   }
 }
 
 void CGPlayer_C::ProcessDeferredSpellMiss() {
-  DEFERREDSPELLMISS *next;
-  for (DEFERREDSPELLMISS *deferred = s_deferredSpellMiss.Head(); (int)deferred > 0; deferred = next) {
-    next = deferred->RawNext();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(deferred->victim, __FILE__, __LINE__));
+  for (DEFERREDSPELLMISS *node = s_deferredSpellMiss.Head(), *nodenext_node;
+       (int)node > 0 ? (nodenext_node = s_deferredSpellMiss.RawNext(node), 1) : 0; node = nodenext_node)
+  {
+    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(node->victim, __FILE__, __LINE__));
     if (unit) {
-      unit->AddWorldText(deferred->reason);
-      UnitCombatLogSpellMissed(deferred->reason, deferred->spellID, ClntObjMgrGetActivePlayer(), deferred->victim);
-      deferred->Unlink();
-      s_freeDeferredSpellMiss.Put(deferred);
+      unit->AddWorldText(node->reason);
+      UnitCombatLogSpellMissed(node->reason, node->spellID, GetActive(), node->victim);
+      node->Unlink();
+      s_freeDeferredSpellMiss.Put(node);
     }
   }
 }
@@ -7358,32 +7352,30 @@ void CGPlayer_C::OnAttackStop(DWORDLONG previousTarget, int nowDead) {
 }
 
 void CGPlayer_C::OnBadAttackFacing(DWORDLONG victim) {
-  if (GetGUID() != ClntObjMgrGetActivePlayer()) {
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    if (!(m_flags & 0x40)) {
+      char buf[128];
+      LPCSTR text = FrameScript_GetText("ERR_WRONG_DIRECTION_FOR_ATTACK", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, text, sizeof(buf));
+      CGGameUI::DisplayError(GERR_BADATTACKFACING);
+      m_flags |= 0x40;
+    }
+  } else {
     CGUnit_C::OnBadAttackFacing(victim);
-    return;
-  }
-
-  if (!(m_flags & 0x40)) {
-    char buf[128];
-    LPCSTR text = FrameScript_GetText("ERR_WRONG_DIRECTION_FOR_ATTACK", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(buf, text, sizeof(buf));
-    CGGameUI::DisplayError(GERR_BADATTACKFACING);
-    m_flags |= 0x40;
   }
 }
 
 void CGPlayer_C::OnBadAttackPosition(DWORDLONG victim, float range) {
-  if (GetGUID() != ClntObjMgrGetActivePlayer()) {
+  if (GetGUID() == ClntObjMgrGetActivePlayer()) {
+    if (!(m_flags & 0x80)) {
+      char buf[128];
+      LPCSTR text = FrameScript_GetText("ERR_TOO_FAR_TO_ATTACK", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, text, sizeof(buf));
+      CGGameUI::DisplayError(GERR_BADATTACKPOS);
+      m_flags |= 0x80;
+    }
+  } else {
     CGUnit_C::OnBadAttackPosition(victim, range);
-    return;
-  }
-
-  if (!(m_flags & 0x80)) {
-    char buf[128];
-    LPCSTR text = FrameScript_GetText("ERR_TOO_FAR_TO_ATTACK", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(buf, text, sizeof(buf));
-    CGGameUI::DisplayError(GERR_BADATTACKPOS);
-    m_flags |= 0x80;
   }
 }
 

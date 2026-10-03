@@ -37,53 +37,58 @@ void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, in
 bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
 
 static bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &target, const NameCache *nc) {
-  char      temp[1024];
-  LPCSTR    semi;
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
-
   if (!unit && !nc) {
     return false;
   }
+
   if (unit && !(unit->GetType() & TYPE_PLAYER)) {
     nc = 0;
   }
 
-  while (*token == ' ') {
+  while (*token && *token == ' ') {
     ++token;
   }
   if (!*token) {
     return true;
   }
 
-  semi = SStrChr(token, ':');
+  LPCSTR colon = SStrChr(token, ':');
+  if (!colon) {
+    return true;
+  }
+
+  LPCSTR semi = SStrChr(colon, ';');
   if (!semi) {
     return true;
   }
 
-  if (unit ? unit->GetSex() : nc->m_sex) {
-    token = semi + 1;
+  UINT length;
+  if (!(unit ? unit->GetSex() : nc->m_sex)) {
+    length = colon - token;
+  } else {
+    token = colon + 1;
     while (*token == ' ') {
       ++token;
     }
+    length = semi - token;
   }
 
-  semi = SStrChr(semi, ';');
-  if (!semi) {
-    return true;
-  }
-
-  if (semi != token) {
-    UINT length = SStrLen(buf);
+  if (length) {
+    UINT oldLen = SStrLen(buf);
     SStrPack(buf, token, size);
-    buf[length + semi - token] = 0;
-    while (length < SStrLen(buf) && buf[SStrLen(buf) - 1] == ' ') {
-      buf[SStrLen(buf) - 1] = 0;
+    buf[oldLen + length] = 0;
+    while (length && buf[oldLen + length - 1] == ' ') {
+      buf[oldLen + --length] = 0;
     }
   }
 
   token = semi + 1;
+
+  char temp[1024];
   SStrCopy(temp, buf, sizeof(temp));
   QuestParserParseText(temp, buf, size, target, 1);
+
   return true;
 }
 

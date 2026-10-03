@@ -35,6 +35,8 @@
 #include <stdio.h>
 #include <storm.h>
 
+static const float OO_COORD_TO_CHUNK = 1.0f / ((150.0f / 36.0f) * 8);
+
 UINT                CWorld::frameCnt;
 UINT                CWorld::chunkCnt;
 NTempest::CiRect    CWorld::chunkRectHi;
@@ -121,11 +123,14 @@ void CWorld::Initialize() {
   shadowColor = 0xFFFFFFFF;
 
   for (UINT i = 0; i < 8; ++i) {
-    texVect[i] = NTempest::C4Vector(0.0f, 0.0f, 0.0f, 1.0f);
+    texVect[i].x = 0.0f;
+    texVect[i].y = 0.0f;
+    texVect[i].z = 0.0f;
+    texVect[i].w = 1.0f;
   }
 
   memset(shadowModColor, 0xFF, sizeof(shadowModColor));
-  idMat = NTempest::C44Matrix();
+  idMat.Identity();
   shadowModGxTex = 0;
 
   GxTexCreate(
@@ -149,7 +154,7 @@ void CWorld::Initialize() {
   lodMin = 2;
   objectAoi = NTempest::CAaBox(0.0f);
 
-  particulate = new Particulate(1.0f / 36.0f, 30.0f, "Textures\\WaterPoop02.blp");
+  particulate = NEW(Particulate)(1.0f / 36.0f, 30.0f, "Textures\\WaterPoop02.blp");
 
   ModelSetProject2dCallback(ModelGeoProjectCallback);
   AnimSetBoneProjectCallback(AnimBoneProjectCallback, 20.0f);
@@ -460,9 +465,9 @@ int CWorld::QueryGroundType(DWORD hWorldObject, UINT &groundType) {
       return 0;
     }
 
-    NTempest::C3Vector  p1(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
-    NTempest::C3Vector  p0(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
-    NTempest::C3Segment seg(p0 * mapObjDef->invMat, p1 * mapObjDef->invMat);
+    NTempest::C3Vector  p0(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
+    NTempest::C3Vector  p1(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
+    NTempest::C3Segment seg(p1 * mapObjDef->invMat, p0 * mapObjDef->invMat);
     CWTriData           triData;
     float               t = 1.0f;
     if (!mapObjGroup->GetTris(triData, seg, t, mapObjDef, 8)) {
@@ -478,14 +483,17 @@ int CWorld::QueryGroundType(DWORD hWorldObject, UINT &groundType) {
   NTempest::C3Vector p0(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
   NTempest::C3Vector p1(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
   float              t = 1.0f;
-  SMOPoly           *poly = 0;
-  CMapObj           *mapObj = 0;
+  SMOPoly           *poly;
+  CMapObj           *mapObj;
   if (CMap::VectorIntersectMapObjs(&p0, &p1, 0, 8, 0x2000, &t, &poly, &mapObj) && poly) {
     groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
     return 1;
   }
 
-  return CMap::QueryGroundType(entity->pos, groundType);
+  if (CMap::QueryGroundType(entity->pos, groundType)) {
+    return 1;
+  }
+  return 0;
 }
 
 bool CWorld::QueryMountAllowed(DWORD hWorldObject, bool &allowed) {
@@ -622,7 +630,10 @@ DWORD CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL__ *hModel, UINT
   CMapEntity *entity = CMap::AllocEntity();
   FATALASSERT(entity);
 
-  entity->model = hModel ? reinterpret_cast<HMODEL__ *>(HandleDuplicate(reinterpret_cast<HOBJECT>(hModel))) : 0;
+  entity->model = 0;
+  if (hModel) {
+    entity->model = reinterpret_cast<HMODEL__ *>(HandleDuplicate(reinterpret_cast<HOBJECT>(hModel)));
+  }
   entity->param64 = param64;
   entity->param32 = param32;
   entity->pos = NTempest::C3Vector(10000000.0f, 10000000.0f, 10000000.0f);
@@ -631,8 +642,8 @@ DWORD CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL__ *hModel, UINT
   entity->handler = 0;
   entity->rFrameCount = 0;
   entity->flags = 0;
-  entity->flagCollidable = (objFlags & 1) != 0;
-  entity->flagCastShadow = (objFlags & 2) == 0;
+  entity->flagCollidable = (objFlags & 1) ? 1 : 0;
+  entity->flagCastShadow = (objFlags & 2) ? 0 : 1;
   entity->ambient = CMap::sunLight->gxLight.m_ambColor;
   entity->ambientTarget = CMap::sunLight->gxLight.m_ambColor;
 
@@ -643,16 +654,19 @@ DWORD CWorld::AddDoodad(LPCSTR fileName, HMODEL__ *hModel, const NTempest::C44Ma
   CMapDoodadDef *doodad = CMap::AllocDoodadDef();
   FATALASSERT(doodad);
 
-  doodad->model = hModel ? reinterpret_cast<HMODEL__ *>(HandleDuplicate(reinterpret_cast<HOBJECT>(hModel))) : 0;
-  doodad->flagCollidable = (objFlags & 1) != 0;
-  doodad->flagCastShadow = (objFlags & 2) == 0;
-  doodad->flagAlwaysAnimate = (objFlags & 4) != 0;
-  doodad->flags = CMapBaseObj::Flag_LightUpdate;
+  doodad->model = 0;
+  if (hModel) {
+    doodad->model = reinterpret_cast<HMODEL__ *>(HandleDuplicate(reinterpret_cast<HOBJECT>(hModel)));
+  }
+  doodad->flagCollidable = (objFlags & 1) ? 1 : 0;
+  doodad->flagCastShadow = (objFlags & 2) ? 0 : 1;
+  doodad->flagAlwaysAnimate = objFlags >> 2;
   doodad->modelName = fileName;
+  doodad->flags = CMapBaseObj::Flag_LightUpdate;
   doodad->mat = mat;
   doodad->scale = NTempest::CMath::sqrt_(mat.a0 * mat.a0 + mat.a1 * mat.a1 + mat.a2 * mat.a2);
-  doodad->pos = NTempest::C3Vector(mat.d0, mat.d1, mat.d2);
-  doodad->lMat = NTempest::C44Matrix();
+  doodad->pos = *mat.Row3AsVec3();
+  doodad->lMat.Identity();
 
   CMap::InitializeDoodadBounds(doodad);
   CMap::LinkEntity(doodad);
@@ -681,32 +695,22 @@ void CWorld::UpdateObject(DWORD hWorldObject, const NTempest::C44Matrix &mat, co
   FATALASSERT(baseObj);
   FATALASSERT(baseObj->GetType() & (CMapBaseObj::Type_Entity | CMapBaseObj::Type_DoodadDef));
 
-  baseObj->pos = NTempest::C3Vector(mat.d0, mat.d1, mat.d2);
+  baseObj->pos = *mat.Row3AsVec3();
   baseObj->scale = NTempest::CMath::sqrt_(mat.a0 * mat.a0 + mat.a1 * mat.a1 + mat.a2 * mat.a2);
 
-  NTempest::C33Matrix normMat(mat.a0, mat.a1, mat.a2, mat.b0, mat.b1, mat.b2, mat.c0, mat.c1, mat.c2);
   if (baseObj->scale != 1.0f) {
-    normMat.a0 *= 1.0f / baseObj->scale;
-    normMat.a1 *= 1.0f / baseObj->scale;
-    normMat.a2 *= 1.0f / baseObj->scale;
-    normMat.b0 *= 1.0f / baseObj->scale;
-    normMat.b1 *= 1.0f / baseObj->scale;
-    normMat.b2 *= 1.0f / baseObj->scale;
-    normMat.c0 *= 1.0f / baseObj->scale;
-    normMat.c1 *= 1.0f / baseObj->scale;
-    normMat.c2 *= 1.0f / baseObj->scale;
+    NTempest::C33Matrix normMat = NTempest::C33Matrix(mat.a0, mat.a1, mat.a2, mat.b0, mat.b1, mat.b2, mat.c0, mat.c1, mat.c2);
+    normMat = normMat * (1.0f / baseObj->scale);
+    baseObj->rot.FromRotationMatrix(normMat);
+  } else {
+    baseObj->rot.FromRotationMatrix(NTempest::C33Matrix(mat.a0, mat.a1, mat.a2, mat.b0, mat.b1, mat.b2, mat.c0, mat.c1, mat.c2));
   }
-  baseObj->rot.FromRotationMatrix(normMat);
 
   NTempest::CAaBox nAaBox;
   CWorldMath::TransformAABox(mat, aaBox, nAaBox);
   baseObj->aaBox = nAaBox;
   baseObj->aaSphere.c = (nAaBox.b + nAaBox.t) * 0.5f;
-  baseObj->aaSphere.r = NTempest::CMath::sqrt_(
-      (nAaBox.t.x - baseObj->aaSphere.c.x) * (nAaBox.t.x - baseObj->aaSphere.c.x) +
-      (nAaBox.t.y - baseObj->aaSphere.c.y) * (nAaBox.t.y - baseObj->aaSphere.c.y) +
-      (nAaBox.t.z - baseObj->aaSphere.c.z) * (nAaBox.t.z - baseObj->aaSphere.c.z)
-  );
+  baseObj->aaSphere.r = (nAaBox.t - baseObj->aaSphere.c).Mag();
 
   if (baseObj->GetType() & CMapBaseObj::Type_Entity) {
     CMap::UpdateEntity(static_cast<CMapEntity *>(baseObj));
@@ -766,28 +770,29 @@ void CWorld::SetCameraTarget(DWORD hWorldObject) {
 }
 
 void CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, DWORDLONG param64) {
-  UINT origFacetCount = facetData.facets.Count();
+  UINT startIndex = facetData.facets.Count();
 
-  for (UINT batchIndex = 0; batchIndex < triData.GetNumBatches(); ++batchIndex) {
-    const CWTriData::Batch &batch = triData.GetBatch(batchIndex);
-    const WORD             *indices = batch.vertexIndices;
+  for (UINT i = 0; i < triData.GetNumBatches(); ++i) {
+    const CWTriData::Batch &batch = triData.GetBatch(i);
+    const WORD             *idx = batch.vertexIndices;
 
-    for (UINT triIndex = 0; triIndex < batch.triCount; ++triIndex) {
-      NTempest::CFacet *facet = facetData.facets.NewElement();
-      facet->vertices[0] = batch.vertices[indices[0]] * *batch.matrix;
-      facet->vertices[1] = batch.vertices[indices[1]] * *batch.matrix;
-      facet->vertices[2] = batch.vertices[indices[2]] * *batch.matrix;
+    for (UINT v = 0; v < batch.triCount; ++v) {
+      NTempest::CFacet *facet = facetData.facets.New();
+      facet->vertices[0] = batch.vertices[idx[0]] * *batch.matrix;
+      facet->vertices[1] = batch.vertices[idx[1]] * *batch.matrix;
+      facet->vertices[2] = batch.vertices[idx[2]] * *batch.matrix;
       facet->plane.n = NTempest::C3Vector::Cross(facet->vertices[1] - facet->vertices[0], facet->vertices[2] - facet->vertices[0]);
       facet->plane.n.Normalize();
-      facet->plane.d = -NTempest::C3Vector::Dot(facet->vertices[0], facet->plane.n);
-      indices += 3;
+      facet->plane.d = -NTempest::C3Vector::Dot(facet->plane.n, facet->vertices[0]);
+      idx += 3;
     }
   }
 
-  UINT facetCount = facetData.facets.Count();
-  facetData.gameObjects.SetCount(facetCount);
-  for (UINT index = origFacetCount; index < facetCount; ++index) {
-    facetData.gameObjects[index] = param64;
+  if (facetData.facets.Count() - startIndex) {
+    facetData.gameObjects.SetCount(facetData.facets.Count());
+    for (i = startIndex; i < facetData.facets.Count(); ++i) {
+      facetData.gameObjects[i] = param64;
+    }
   }
 }
 
@@ -1037,18 +1042,20 @@ void CWorld::CalcFPS() {
 
 void CWorld::PrepareAreaOfInterest(const NTempest::C3Vector &position, const NTempest::C3Vector &target) {
   float mx = -(position.y - 17066.666f);
+  float my = -(position.x - 17066.666f);
 
-  chunkRectHi.miny = Fast_ftol(-(position.x - 17066.666f) * 0.03f);
-  chunkRectHi.minx = Fast_ftol(0.03f * mx);
-  chunkRectHi.maxx = chunkRectHi.minx + chunkAoiSize.x;
-  chunkRectHi.minx -= chunkAoiSize.x;
-  chunkRectHi.maxy = chunkRectHi.miny + chunkAoiSize.y;
-  chunkRectHi.miny -= chunkAoiSize.y;
+  int cy = Fast_ftol(OO_COORD_TO_CHUNK * my);
+  int cx = Fast_ftol(OO_COORD_TO_CHUNK * mx);
+
+  chunkRectHi.minx = cx - chunkAoiSize.x;
+  chunkRectHi.miny = cy - chunkAoiSize.y;
+  chunkRectHi.maxx = cx + chunkAoiSize.x;
+  chunkRectHi.maxy = cy + chunkAoiSize.y;
 
   FATALASSERT(chunkRectHi.maxx > 0);
-  FATALASSERT(chunkRectHi.minx <= (64 * 16));
+  FATALASSERT(chunkRectHi.minx <= (64*16));
   FATALASSERT(chunkRectHi.maxy > 0);
-  FATALASSERT(chunkRectHi.miny <= (64 * 16));
+  FATALASSERT(chunkRectHi.miny <= (64*16));
 
   if (chunkRectHi.minx < 0) {
     chunkRectHi.minx = 0;
@@ -1565,4 +1572,12 @@ BOOL CWorld::ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name) {
   TextureLogGxCache(log);
   SLogClose(log);
   return 1;
+}
+
+DWORD CWorld::GetEnables() {
+  return enables;
+}
+
+UINT CWorld::GetTexMaxAnisotropyLog2() {
+  return texMaxAnisotropyLog2;
 }

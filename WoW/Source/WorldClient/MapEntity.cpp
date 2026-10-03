@@ -211,29 +211,25 @@ void CMapEntity::UpdateMapObjLiquid() {
   flagInLiquid = 0;
   flagDeepLiquid = 0;
 
-  CMapObjDef      *mapObjDef;
-  CMapObj         *mapObj;
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-    return;
+  CMapObjDef      *mapObjDef;
+  CMapObj         *mapObj;
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    NTempest::C3Vector localPos = pos * mapObjDef->invMat;
+    NTempest::C3Vector direction(0.0f, 0.0f, 0.0f);
+    float              surface;
+    if (mapObjGroup->QueryLiquidStatus(localPos, lqWhich, surface, direction) && lqWhich != 15) {
+      flagInLiquid = 1;
+      NTempest::C3Vector worldPt = NTempest::C3Vector(localPos.x, localPos.y, surface) * mapObjDef->mat;
+      lqSurface = worldPt.z;
+      lqDirection = NTempest::C3Vector(
+          direction.z * mapObjDef->mat.c0 + direction.y * mapObjDef->mat.b0 + direction.x * mapObjDef->mat.a0,
+          direction.z * mapObjDef->mat.c1 + direction.y * mapObjDef->mat.b1 + direction.x * mapObjDef->mat.a1,
+          direction.z * mapObjDef->mat.c2 + direction.y * mapObjDef->mat.b2 + direction.x * mapObjDef->mat.a2
+      );
+    }
   }
-
-  NTempest::C3Vector localPos = pos * mapObjDef->invMat;
-  NTempest::C3Vector direction(0.0f, 0.0f, 0.0f);
-  float              surface;
-  if (!mapObjGroup->QueryLiquidStatus(localPos, lqWhich, surface, direction) || lqWhich == 15) {
-    return;
-  }
-
-  flagInLiquid = 1;
-  NTempest::C3Vector worldPt(localPos.x, localPos.y, surface);
-  worldPt = worldPt * mapObjDef->mat;
-  lqSurface = worldPt.z;
-
-  lqDirection.x = direction.x * mapObjDef->mat.a0 + direction.y * mapObjDef->mat.b0 + direction.z * mapObjDef->mat.c0;
-  lqDirection.y = direction.x * mapObjDef->mat.a1 + direction.y * mapObjDef->mat.b1 + direction.z * mapObjDef->mat.c1;
-  lqDirection.z = direction.x * mapObjDef->mat.a2 + direction.y * mapObjDef->mat.b2 + direction.z * mapObjDef->mat.c2;
 }
 
 void CMapEntity::QueryLiquidSounds(int *lbool, NTempest::C3Vector *ldelta, float *ldsquared, UINT &closestExtLevel) {
@@ -276,10 +272,10 @@ BOOL CMapEntity::QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct) {
   oFog = mapObj->GetFog(0).fogs;
 
   static NTempest::CPriorityQ<FogQ, FogQ> fogq;
-  UINT                                    ieBlendFogId = 0;
+  BYTE                                    ieBlendFogId = 0;
   float                                   ieDist = 0.0f;
   for (int i = 0; i < 4; ++i) {
-    UINT fogId = mapObjGroup->GetFogId(i);
+    BYTE fogId = mapObjGroup->GetFogId(i);
     if (!fogId) {
       continue;
     }
@@ -324,10 +320,10 @@ BOOL CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
   oFog = mapObj->GetFog(0).fogs;
 
   static NTempest::CPriorityQ<FogQ, FogQ> fogq;
-  UINT                                    ieBlendFogId = 0;
+  BYTE                                    ieBlendFogId = 0;
   float                                   ieDist = 0.0f;
   for (int i = 0; i < 4; ++i) {
-    UINT fogId = mapObjGroup->GetFogId(i);
+    BYTE fogId = mapObjGroup->GetFogId(i);
     if (!fogId) {
       continue;
     }
@@ -478,18 +474,17 @@ bool CMap::LinkIntersectMapObjs(
     if (mapObjDef->TestAABox(lCen, lEnd)) {
       CMapObj *mapObj = mapObjDef->mapObj;
       if (mapObj) {
-        NTempest::C3Vector  v0 = lCen * mapObjDef->invMat;
-        NTempest::C3Vector  v1 = lEnd * mapObjDef->invMat;
-        NTempest::C3Segment seg(v0, v1);
+        NTempest::C3Vector v0 = lCen * mapObjDef->invMat;
+        NTempest::C3Vector v1 = lEnd * mapObjDef->invMat;
 
         ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, link) {
           CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
-          if (mapObj->TestGroupBounds(seg.start, seg.end, mapObjDefGroup->groupNum)) {
+          if (mapObj->TestGroupBounds(v0, v1, mapObjDefGroup->groupNum)) {
             CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
             if (mapObjGroup) {
               CWTriData triData;
               float     thisT = hitT;
-              if (mapObjGroup->GetTris(triData, seg, thisT, mapObjDef, 0) && thisT < hitT) {
+              if (mapObjGroup->GetTris(triData, NTempest::C3Segment(v0, v1), thisT, mapObjDef, 0) && thisT < hitT) {
                 hitT = thisT;
                 hitMapObjDef = mapObjDef;
                 hitMapObjDefGroup = mapObjDefGroup;
@@ -505,15 +500,9 @@ bool CMap::LinkIntersectMapObjs(
 }
 
 void CMapEntity::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup) {
-  NTempest::C3Vector start = pos;
-  start.z += 2.0f / 3.0f;
-  start = start * mapObjDef->invMat;
-
-  NTempest::C3Vector end = pos;
-  end.z -= 4.0f / 3.0f;
-  end = end * mapObjDef->invMat;
-
   NTempest::CImVector lmColor(0ul);
+  NTempest::C3Vector  start = NTempest::C3Vector(pos.x, pos.y, pos.z + 2.0f / 3.0f) * mapObjDef->invMat;
+  NTempest::C3Vector  end = NTempest::C3Vector(pos.x, pos.y, pos.z - 4.0f / 3.0f) * mapObjDef->invMat;
   if (mapObjGroup->QueryLightmap(NTempest::C3Segment(start, end), lmColor)) {
     AdjustLightmap(lmColor, interiorDirColor, 168, ambientTarget, 96);
   }
@@ -525,10 +514,10 @@ void CMapEntity::Tick() {
     amount = 1;
   }
 
+  int ambUpdated = 0;
   int ambRgb[3] = {ambient.r, ambient.g, ambient.b};
   int ambRgbT[3] = {ambientTarget.r, ambientTarget.g, ambientTarget.b};
   int ambDiff[3] = {ambRgbT[0] - ambRgb[0], ambRgbT[1] - ambRgb[1], ambRgbT[2] - ambRgb[2]};
-  int ambUpdated = 0;
   for (UINT i = 0; i < 3; ++i) {
     if (ambDiff[i]) {
       ambUpdated = 1;
@@ -550,22 +539,22 @@ void CMapEntity::Tick() {
   ambient.g = ambRgb[1];
   ambient.b = ambRgb[2];
 
-  if (!(flags & Flag_LightUpdate) && !ambUpdated) {
-    ambient = DayNightGetInfo()->lightInfo.ambColor;
-    ambientTarget = DayNightGetInfo()->lightInfo.ambColor;
+  if (!flagInside && !ambUpdated) {
+    DNInfo *dnInfo = DayNightGetInfo();
+    ambientTarget = ambient = dnInfo->lightInfo.ambColor;
   }
 
   float amountF = dirLightScaleRate * CWorld::GetTickTimeSec();
   float dirDiff = dirLightScale - dirLightScaleTarget;
   if (dirDiff != 0.0f) {
-    if (dirDiff > 0.0f) {
-      dirLightScale -= amountF;
-      if (dirLightScale < dirLightScaleTarget) {
+    if (dirDiff < 0.0f) {
+      dirLightScale += amountF;
+      if (dirLightScale > dirLightScaleTarget) {
         dirLightScale = dirLightScaleTarget;
       }
     } else {
-      dirLightScale += amountF;
-      if (dirLightScale > dirLightScaleTarget) {
+      dirLightScale -= amountF;
+      if (dirLightScale < dirLightScaleTarget) {
         dirLightScale = dirLightScaleTarget;
       }
     }

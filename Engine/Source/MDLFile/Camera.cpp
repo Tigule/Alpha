@@ -112,44 +112,14 @@ BOOL MDL::ReadCamera(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 static void IWriteCamera(const MDLCAMERASECTION &section, TSGrowableArray<char> &buffer) {
   MDL::WriteLine(buffer, "%s \"%s\" {\n", MDL::TokenText(0x114), static_cast<LPCSTR>(section.name));
   MDL::WriteLine(buffer, "\t%s { %g, %g, %g },\n", MDL::TokenText(0x1A5), section.pivot.x, section.pivot.y, section.pivot.z);
-  if (section.transkeys.keys.Count()) {
-    MDL::WriteLine(buffer, "\t%s %d {\n", MDL::TokenText(0x1C7), section.transkeys.keys.Count());
-    WriteTrackHeader("\t", section.transkeys, buffer);
-    for (UINT i = 0; i < section.transkeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = section.transkeys.keys.Ptr()[i];
-      MDL::WriteLine(buffer, "\t\t%d: ", key.time);
-      WriteKeyData(buffer, &key.value.x, 3);
-      if (section.transkeys.type > TRACK_LINEAR) {
-        MDL::WriteLine(buffer, "\t\t\t%s ", MDL::TokenText(0x15E));
-        WriteKeyData(buffer, &key.inTan.x, 3);
-        MDL::WriteLine(buffer, "\t\t\t%s ", MDL::TokenText(0x18A));
-        WriteKeyData(buffer, &key.outTan.x, 3);
-      }
-    }
-    MDL::WriteLine(buffer, "\t}\n");
-  }
+  WriteFloatKeyFrames(0x1C7, "\t", section.transkeys, buffer);
   WriteFloatKeyFrames(0x1AD, "\t", section.rollkeys, buffer);
   MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x14A), section.fieldOfView);
   MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x149), section.farClip);
   MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x176), section.nearClip);
   MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x1C1));
   MDL::WriteLine(buffer, "\t\t%s { %g, %g, %g },\n", MDL::TokenText(0x1A5), section.target.pivot.x, section.target.pivot.y, section.target.pivot.z);
-  if (section.target.transkeys.keys.Count()) {
-    MDL::WriteLine(buffer, "\t\t%s %d {\n", MDL::TokenText(0x1C7), section.target.transkeys.keys.Count());
-    WriteTrackHeader("\t\t", section.target.transkeys, buffer);
-    for (UINT i = 0; i < section.target.transkeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = section.target.transkeys.keys.Ptr()[i];
-      MDL::WriteLine(buffer, "\t\t\t%d: ", key.time);
-      WriteKeyData(buffer, &key.value.x, 3);
-      if (section.target.transkeys.type > TRACK_LINEAR) {
-        MDL::WriteLine(buffer, "\t\t\t\t%s ", MDL::TokenText(0x15E));
-        WriteKeyData(buffer, &key.inTan.x, 3);
-        MDL::WriteLine(buffer, "\t\t\t\t%s ", MDL::TokenText(0x18A));
-        WriteKeyData(buffer, &key.outTan.x, 3);
-      }
-    }
-    MDL::WriteLine(buffer, "\t\t}\n");
-  }
+  WriteFloatKeyFrames(0x1C7, "\t\t", section.target.transkeys, buffer);
   MDL::WriteLine(buffer, "\t}\n");
   WriteFloatKeyFrames(0x1D9, "\t", section.visibilityKeys, buffer);
   MDL::WriteLine(buffer, "}\n");

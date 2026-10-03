@@ -379,8 +379,9 @@ void CMapObjGroup::AsyncPostloadCallback(LPVOID userArg) {
 }
 
 void CMapObjGroup::Create(BYTE *rawData) {
+  SIffChunk *iffChunk = reinterpret_cast<SIffChunk *>(rawData);
+  FATALASSERT(iffChunk->token=='MOGP');
   SMOGroupHeader *header = reinterpret_cast<SMOGroupHeader *>(rawData);
-  FATALASSERT(header->iffChunk.token == 'MOGP');
   FATALASSERT(lameAssLink.IsLinked() == 0);
   FATALASSERT(parent);
 

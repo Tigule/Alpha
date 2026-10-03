@@ -45,7 +45,7 @@ CMapObj *CMap::AllocMapObj() {
   if (mapObj) {
     mapObj->lameAssLink.Unlink();
   } else {
-    mapObj = NEWZERO(CMapObj);
+    mapObj = NEW(CMapObj);
     FATALASSERT(mapObj);
   }
 
@@ -66,7 +66,7 @@ CMapObjGroup *CMap::AllocMapObjGroup() {
   if (group) {
     group->lameAssLink.Unlink();
   } else {
-    group = NEWZERO(CMapObjGroup);
+    group = NEW(CMapObjGroup);
     FATALASSERT(group);
   }
 

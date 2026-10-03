@@ -387,7 +387,7 @@ class KERNINGHASHKEY {
   KERNINGHASHKEY(const KERNINGHASHKEY &key) : code(key.code) {
   }
 
-  KERNINGHASHKEY(UINT currentCode, UINT nextCode) : code((currentCode << 16) ^ (nextCode & 0xFFFF)) {
+  KERNINGHASHKEY(UINT currentCode, UINT nextCode) : code(((currentCode << 16) & 0xFFFF0000) | (nextCode & 0xFFFF)) {
   }
 
   KERNINGHASHKEY &operator=(const KERNINGHASHKEY &rhs) {

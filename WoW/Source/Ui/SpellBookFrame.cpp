@@ -144,7 +144,7 @@ static int __cdecl QSortShapeshiftForms(LPCVOID a, LPCVOID b) {
   }
 
   if (spellA->m_spellLevel == spellB->m_spellLevel) {
-    return SStrCmp(spellA->m_name_lang[CURRENT_LANGUAGE], spellB->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF);
+    return SStrCmpI(spellA->m_name_lang[CURRENT_LANGUAGE], spellB->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF);
   }
 
   return spellA->m_spellLevel > spellB->m_spellLevel ? 1 : -1;

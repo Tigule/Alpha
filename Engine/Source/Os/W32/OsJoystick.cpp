@@ -68,7 +68,7 @@ OsJoystickID OsOpenJoystick(int index) {
     return -1;
   }
 
-  ASSERT((UINT)index < s_joystick.Count());
+  ASSERT((uint)index < s_joystick.Count());
 
   joycaps = s_joystick[index].caps;
 

@@ -235,27 +235,20 @@ namespace NTempest {
 
     ASSERT(CMath::fequal_(axis_.Mag(), 1.0f));
 
-    C44Matrix result;
-    float     s = CMath::sin_(angle);
-    float     c = CMath::cos_(angle);
-    float     xs = axis_.x * s;
-    float     ys = axis_.y * s;
-    float     zs = axis_.z * s;
-    float     one_c = 1.0f - c;
+    float s = CMath::sin_(angle);
+    float c = CMath::cos_(angle);
+    float xy = axis_.x * axis_.y;
+    float yz = axis_.z * axis_.y;
+    float xz = axis_.z * axis_.x;
+    float xs = axis_.x * s;
+    float ys = axis_.y * s;
+    float zs = axis_.z * s;
+    float one_c = 1.0f - c;
 
-    result.a0 = axis_.x * axis_.x * one_c + c;
-    result.a1 = axis_.x * axis_.y * one_c + zs;
-    result.a2 = axis_.x * axis_.z * one_c - ys;
-
-    result.b0 = axis_.x * axis_.y * one_c - zs;
-    result.b1 = axis_.y * axis_.y * one_c + c;
-    result.b2 = axis_.y * axis_.z * one_c + xs;
-
-    result.c0 = axis_.x * axis_.z * one_c + ys;
-    result.c1 = axis_.y * axis_.z * one_c - xs;
-    result.c2 = axis_.z * axis_.z * one_c + c;
-
-    return result;
+    return C44Matrix(
+        (axis_.x * axis_.x) * one_c + c, one_c * xy + zs, one_c * xz - ys, 0.0f, one_c * xy - zs, (axis_.y * axis_.y) * one_c + c,
+        one_c * yz + xs, 0.0f, one_c * xz + ys, one_c * yz - xs, (axis_.z * axis_.z) * one_c + c, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+    );
   }
 
   void C44Matrix::Translate(const C3Vector &move) {

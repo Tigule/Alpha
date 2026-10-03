@@ -134,41 +134,30 @@ static HSHEAP GetHandleByBlockPtr(BLOCKPTR blockptr) {
 }
 
 static HSHEAP GetHandleByCaller(LPCSTR filename, int linenumber) {
-  DWORD  chars;
-  HSHEAP handle;
+  DWORD chars = filename ? *(DWORD *)filename : 0;
+  DWORD handle;
 
-  if (filename) {
-    chars = *(DWORD *)filename;
-  } else {
-    chars = 0;
-  }
-
-  if (cacheenabled) {
-    if (filename == lastptr && linenumber == lastline) {
-      if (chars == lastchars) {
-        return lasthandle;
-      }
-
+  if (cacheenabled && filename == lastptr && linenumber == lastline) {
+    if (chars != lastchars)
       cacheenabled = FALSE;
-    }
+    else
+      return lasthandle;
   }
 
   if (filename) {
-    handle = (HSHEAP)(SStrHash(filename, 1, linenumber) & 0x7FFFFFFF);
-  } else {
-    handle = (HSHEAP)(linenumber & 0x7FFFFFFF);
-  }
-
-  if (!handle) {
-    handle = (HSHEAP)1;
-  }
+    handle = SStrHash(filename, 1, linenumber);
+  } else
+    handle = linenumber;
+  handle &= 0x7FFFFFFF;
+  if (!handle)
+    handle = 1;
 
   lastline = linenumber;
   lastptr = filename;
   lastchars = chars;
-  lasthandle = handle;
+  lasthandle = (HSHEAP)handle;
 
-  return handle;
+  return (HSHEAP)handle;
 }
 
 static LPVOID GetPtrByBlockPtr(BLOCKPTR blockptr) {
@@ -219,32 +208,33 @@ static HEAPPTR LockHeapByHandle(HSHEAP handle, HLOCKEDHEAP *lockedhandle, BOOL h
 }
 
 static HEAPPTR LockNextHeapByHandle(HSHEAP prevheap, HLOCKEDHEAP *lockedhandle) {
-  HSHEAP  lastheap;
-  DWORD   slot;
-  HEAPPTR heapptr;
+  DWORD slot = 0;
+  if (prevheap)
+    slot = GetSlotByHandle(prevheap);
 
-  lastheap = NULL;
-  slot = prevheap ? GetSlotByHandle(prevheap) : 0;
+  HSHEAP  lastheap = NULL;
+  HEAPPTR heapptr = NULL;
   while (slot < TABLESIZE) {
     EnterCriticalSection(&s_critsect[slot]);
     *(DWORD *)lockedhandle = slot;
-
-    for (heapptr = s_heaphead[slot]; heapptr; heapptr = heapptr->next) {
-      if (!heapptr->active) {
-        continue;
+    heapptr = s_heaphead[slot];
+    while (heapptr) {
+      if (heapptr->active) {
+        if (lastheap == prevheap && heapptr->handle != prevheap)
+          break;
+        lastheap = heapptr->handle;
       }
-      if (lastheap == prevheap && heapptr->handle != prevheap) {
-        return heapptr;
-      }
-      lastheap = heapptr->handle;
+      heapptr = heapptr->next;
     }
+    if (heapptr)
+      break;
 
     LeaveCriticalSection(&s_critsect[slot]);
     *(DWORD *)lockedhandle = 0xFFFFFFFF;
-    slot++;
+    ++slot;
   }
 
-  return NULL;
+  return heapptr;
 }
 
 static void Warning(DWORD errorcode, LPCSTR filename, int linenumber) {
@@ -285,9 +275,10 @@ static HEAPPTR AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWOR
   DWORD    headerbytes;
   HEAPPTR  heapptr;
   HEAPPTR  scan;
-  HEAPPTR *insertAfter;
 
-  FATALASSERT(slot == GetSlotByHandle(handle));
+  VALIDATEBEGIN;
+  VALIDATE(slot == GetSlotByHandle(handle));
+  VALIDATEEND;
 
   heapptr = (HEAPPTR)VirtualAlloc(NULL, reservesize, MEM_RESERVE, PAGE_NOACCESS);
   if (!heapptr) {
@@ -305,9 +296,9 @@ static HEAPPTR AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWOR
   }
 
   heapptr->handle = handle;
+  heapptr->slot = slot;
   heapptr->firstblock = (BLOCKPTR)((LPBYTE)heapptr + headerbytes);
   heapptr->termblock = heapptr->firstblock;
-  heapptr->slot = slot;
   heapptr->chunksize = chunksize;
   heapptr->committedbytes = commitsize;
   heapptr->reservedbytes = reservesize;
@@ -324,25 +315,22 @@ static HEAPPTR AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWOR
   block.signature1 = SIGNATURE1;
   heapptr->addrsig = *(DWORD *)&block.heapaddr;
 
-  scan = s_heaphead[slot];
-  if (!scan || scan->handle == handle) {
-    heapptr->next = scan;
+  if (!s_heaphead[slot] || s_heaphead[slot]->handle == heapptr->handle) {
+    heapptr->next = s_heaphead[slot];
     s_heaphead[slot] = heapptr;
-    return heapptr;
-  }
+  } else {
+    scan = s_heaphead[slot];
+    while (scan->next && scan->next->handle != heapptr->handle)
+      scan = scan->next;
 
-  insertAfter = &scan->next;
-  while (*insertAfter && (*insertAfter)->handle != handle) {
-    insertAfter = &(*insertAfter)->next;
+    if (!scan->next) {
+      heapptr->next = s_heaphead[slot];
+      s_heaphead[slot] = heapptr;
+    } else {
+      heapptr->next = scan->next;
+      scan->next = heapptr;
+    }
   }
-  if (!*insertAfter) {
-    heapptr->next = scan;
-    s_heaphead[slot] = heapptr;
-    return heapptr;
-  }
-
-  heapptr->next = *insertAfter;
-  *insertAfter = heapptr;
 
   return heapptr;
 }
@@ -544,27 +532,22 @@ static void CombineFreeBlocks(HEAPPTR heapptr) {
     nextfreeblock[slot] = &heapptr->firstfreeblock[slot];
   }
 
-  blockptr = heapptr->firstblock;
   lastfree = NULL;
-  if (blockptr != heapptr->termblock) {
-    do {
-      if (blockptr->flags & BF_FREEBLOCK) {
-        ((FREEBLOCKPTR)blockptr)->next = NULL;
+  for (blockptr = heapptr->firstblock; blockptr != heapptr->termblock; blockptr = (BLOCKPTR)((LPBYTE)blockptr + blockptr->bytes)) {
+    if (blockptr->flags & BF_FREEBLOCK) {
+      ((FREEBLOCKPTR)blockptr)->next = NULL;
+      if (lastfree && (LPBYTE)lastfree + lastfree->bytes == (LPBYTE)blockptr
+          && lastfree->bytes + blockptr->bytes <= 0xFFFFU)
+        lastfree->bytes += blockptr->bytes;
+      else {
         if (lastfree) {
-          if ((LPBYTE)lastfree + lastfree->bytes == (LPBYTE)blockptr && lastfree->bytes + blockptr->bytes <= 0xFFFFU) {
-            lastfree->bytes += blockptr->bytes;
-            goto nextblock;
-          }
           slot = ComputeFreeSlot(lastfree->bytes);
           *nextfreeblock[slot] = (FREEBLOCKPTR)lastfree;
           nextfreeblock[slot] = &((FREEBLOCKPTR)lastfree)->next;
         }
         lastfree = blockptr;
       }
-
-    nextblock:
-      blockptr = (BLOCKPTR)((LPBYTE)blockptr + blockptr->bytes);
-    } while (blockptr != heapptr->termblock);
+    }
   }
 
   if (lastfree) {
@@ -596,10 +579,10 @@ static void ComputeBlockSize(DWORD bytes, LPDWORD blockSize, LPDWORD padding, LP
   if (*largeAlloc) {
     bytes = sizeof(LPVOID);
   }
-  bytes = (*boundingSig ? sizeof(WORD) : 0) + bytes + sizeof(BLOCK);
+  DWORD size = (*boundingSig ? sizeof(WORD) : 0) + bytes + sizeof(BLOCK);
 
-  *blockSize = bytes + (-bytes & 7);
-  *padding = *blockSize - bytes;
+  *blockSize = size + (-size & 7);
+  *padding = *blockSize - size;
 }
 
 static void ComputePageSize() {
@@ -774,20 +757,16 @@ static void GetBlockSize(BLOCKPTR blockptr, LPVOID ptr, LPDWORD bytes, LPDWORD o
 }
 
 static int GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize) {
-  newheapsize -= heapptr->committedbytes;
-  if (newheapsize & (heapptr->chunksize - 1)) {
-    newheapsize += heapptr->chunksize - (newheapsize & (heapptr->chunksize - 1));
-  }
+  DWORD bytes = newheapsize - heapptr->committedbytes;
+  if (bytes & (heapptr->chunksize - 1))
+    bytes += heapptr->chunksize - (bytes & (heapptr->chunksize - 1));
+  if (heapptr->committedbytes + bytes > heapptr->reservedbytes)
+    bytes = heapptr->reservedbytes - heapptr->committedbytes;
 
-  if (heapptr->committedbytes + newheapsize > heapptr->reservedbytes) {
-    newheapsize = heapptr->reservedbytes - heapptr->committedbytes;
-  }
-
-  if (!VirtualAlloc((LPBYTE)heapptr + heapptr->committedbytes, newheapsize, MEM_COMMIT, PAGE_READWRITE)) {
+  if (!VirtualAlloc((LPBYTE)heapptr + heapptr->committedbytes, bytes, MEM_COMMIT, PAGE_READWRITE))
     return FALSE;
-  }
 
-  heapptr->committedbytes += newheapsize;
+  heapptr->committedbytes += bytes;
   return TRUE;
 }
 
@@ -800,7 +779,7 @@ static BOOL GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes,
   DWORD    padding;
 
   ASSERT(bytes > sourceBytes);
-  ASSERT(!(blockptr->flags & BF_LARGEALLOC));
+  ASSERT(!(blockptr->flags & 0x04));
 
   ComputeBlockSize(bytes, &blockSize, &padding, &largeAlloc, &boundingSig);
   if (blockSize > 0xFFFF || largeAlloc) {
@@ -992,15 +971,12 @@ static void ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceByte
   DWORD blockSize;
 
   ASSERT(bytes < sourceBytes);
-  ASSERT(!(blockptr->flags & BF_LARGEALLOC));
+  ASSERT(!(blockptr->flags & 0x04));
 
   ComputeBlockSize(bytes, &blockSize, &padding, &largeAlloc, &boundingSig);
   ASSERT(blockSize <= blockptr->bytes);
 
-  flags = blockptr->flags & ~BF_BOUNDINGSIG;
-  if (boundingSig) {
-    flags |= BF_BOUNDINGSIG;
-  }
+  flags = (blockptr->flags & ~BF_BOUNDINGSIG) | (boundingSig ? BF_BOUNDINGSIG : 0);
   SubdivideBlock(heapptr, blockptr, &blockSize, &padding);
   FillBlockHeaderAndSignatures(heapptr, blockptr, blockSize, padding, flags);
 
@@ -1008,32 +984,23 @@ static void ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceByte
 }
 
 static void SubdivideBlock(HEAPPTR heapptr, BLOCKPTR blockptr, LPDWORD blocksize, LPDWORD padding) {
-  DWORD    remaining;
-  BLOCKPTR endblock;
-
-  remaining = blockptr->bytes - *blocksize;
-  endblock = (BLOCKPTR)((LPBYTE)blockptr + blockptr->bytes);
-  if (endblock == heapptr->termblock) {
+  BLOCKPTR endblock = (BLOCKPTR)((LPBYTE)blockptr + blockptr->bytes);
+  DWORD    remaining = blockptr->bytes - *blocksize;
+  if (endblock == heapptr->termblock)
     heapptr->termblock = (BLOCKPTR)((LPBYTE)blockptr + *blocksize);
-    return;
-  }
-
-  if (remaining >= MINBLOCKSIZE) {
+  else if (remaining >= MINBLOCKSIZE) {
     FREEBLOCKPTR freeblock = (FREEBLOCKPTR)((LPBYTE)blockptr + *blocksize);
-    DWORD        slot;
-
     freeblock->bytes = (WORD)remaining;
     freeblock->padding = 0;
     freeblock->flags = BF_FREEBLOCK;
-    slot = ComputeFreeSlot(remaining);
+    DWORD slot = ComputeFreeSlot(freeblock->bytes);
     freeblock->next = heapptr->firstfreeblock[slot];
     heapptr->firstfreeblock[slot] = freeblock;
-    return;
+  } else {
+    endblock->flags &= ~BF_PREVFREE;
+    *blocksize += remaining;
+    *padding += remaining;
   }
-
-  endblock->flags &= ~BF_PREVFREE;
-  *blocksize += remaining;
-  *padding += remaining;
 }
 
 // --------------------------------
@@ -1114,7 +1081,9 @@ BOOL APIENTRY SMemDumpState(SMEMDUMPPROC outputproc, HOUTPUTCONTEXT outputcontex
     return FALSE;
   }
 
-  FATALASSERT(outputproc);
+  VALIDATEBEGIN;
+  VALIDATE(outputproc);
+  VALIDATEEND;
 
   heapdetails.size = sizeof(heapdetails);
   heap = NULL;
@@ -1132,31 +1101,29 @@ BOOL APIENTRY SMemDumpState(SMEMDUMPPROC outputproc, HOUTPUTCONTEXT outputcontex
 }
 
 BOOL APIENTRY SMemDumpStateEx(char *arglist) {
-  SMemReportByCallerInfo info;
-  SMEMHEAPDETAILS2       heapdetails;
-  HSHEAP                 heap;
-  SMEMREPORTTYPE         reporttype;
-  SMEMREPORTPROC         outputproc;
-  HOUTPUTCONTEXT         outputcontext;
+  SMEMREPORTTYPE reporttype;
+  SMEMREPORTPROC outputproc;
+  HOUTPUTCONTEXT outputcontext;
 
   if (!CheckInitialized()) {
     Warning(STORM_ERROR_MEMORY_MANAGER_INACTIVE, "SMemDumpStateEx()", SERR_LINECODE_FUNCTION);
     return FALSE;
   }
 
-  reporttype = *(SMEMREPORTTYPE *)arglist;
-  arglist += sizeof(SMEMREPORTTYPE);
-  outputproc = *(SMEMREPORTPROC *)arglist;
-  arglist += sizeof(SMEMREPORTPROC);
-  outputcontext = *(HOUTPUTCONTEXT *)arglist;
+  reporttype = va_arg(arglist, SMEMREPORTTYPE);
+  outputproc = va_arg(arglist, SMEMREPORTPROC);
+  outputcontext = va_arg(arglist, HOUTPUTCONTEXT);
 
-  FATALASSERT(outputproc);
+  VALIDATEBEGIN;
+  VALIDATE(outputproc);
+  VALIDATEEND;
 
   if (reporttype == SMEM_REPORT_BY_CALLER) {
-    heap = NULL;
+    HSHEAP           heap = NULL;
+    SMEMHEAPDETAILS2 heapdetails;
     heapdetails.size = sizeof(heapdetails);
     while (SMemFindNextHeap2(heap, &heap, &heapdetails)) {
-      info.numSubHeaps = heapdetails.regions;
+      SMemReportByCallerInfo info;
       info.cumulativeAllocs = heapdetails.cumulativeAllocs;
       info.cumulativeFrees = heapdetails.cumulativeFrees;
       info.cumulativeReallocs = heapdetails.cumulativeReallocs;
@@ -1164,24 +1131,22 @@ BOOL APIENTRY SMemDumpStateEx(char *arglist) {
       info.allocatedBytes = heapdetails.allocatedbytes;
       info.committedBytes = heapdetails.committedbytes;
       info.reservedBytes = heapdetails.reservedbytes;
+
       info.mark_allocatedBlocks = heapdetails.mark_allocatedblocks;
       info.mark_allocatedBytes = heapdetails.mark_allocatedbytes;
       info.mark_committedBytes = heapdetails.mark_committedbytes;
       info.mark_cumulativeAllocs = heapdetails.mark_cumulativeAllocs;
       info.mark_cumulativeFrees = heapdetails.mark_cumulativeFrees;
       info.mark_cumulativeReallocs = heapdetails.mark_cumulativeReallocs;
+
+      info.numSubHeaps = heapdetails.regions;
       info.lineNumber = heapdetails.linenumber;
       SStrCopy(info.fileName, heapdetails.filename, sizeof(info.fileName));
 
       outputproc(outputcontext, (LPCSTR)&info);
-      heapdetails.size = sizeof(heapdetails);
     }
-    return TRUE;
-  }
-
-  if (reporttype == SMEM_REPORT_HISTOGRAM) {
+  } else if (reporttype == SMEM_REPORT_HISTOGRAM)
     return FALSE;
-  }
 
   return TRUE;
 }
@@ -1227,10 +1192,12 @@ BOOL APIENTRY SMemFindNextBlock(HSHEAP heap, LPVOID prevblock, LPVOID *nextblock
     return FALSE;
   }
 
-  FATALASSERT(heap);
-  FATALASSERT(nextblock);
-  FATALASSERT(details);
-  FATALASSERT(details->size == sizeof(SMEMBLOCKDETAILS));
+  VALIDATEBEGIN;
+  VALIDATE(heap);
+  VALIDATE(nextblock);
+  VALIDATE(details);
+  VALIDATE(details->size == sizeof(SMEMBLOCKDETAILS));
+  VALIDATEEND;
 
   ZeroMemory((LPBYTE)details + sizeof(DWORD), sizeof(SMEMBLOCKDETAILS) - sizeof(DWORD));
   slot = GetSlotByHandle(heap);
@@ -1296,9 +1263,9 @@ void APIENTRY SMemHeapGetDetails(HSHEAP heap, LPSMEMHEAPDETAILS details) {
   ASSERT(pHeap);
 
   details->handle = pHeap->handle;
-  SStrCopy(details->filename, pHeap->filename, sizeof(details->filename));
   details->linenumber = pHeap->linenumber;
   details->maximumsize = MAXHEAPSIZE;
+  SStrCopy(details->filename, pHeap->filename, sizeof(details->filename));
 
   do {
     if (pHeap->handle == heap) {
@@ -1322,9 +1289,11 @@ BOOL APIENTRY SMemFindNextHeap(HSHEAP prevheap, HSHEAP *nextheap, LPSMEMHEAPDETA
     return FALSE;
   }
 
-  FATALASSERT(nextheap);
-  FATALASSERT(details);
-  FATALASSERT(details->size == sizeof(SMEMHEAPDETAILS));
+  VALIDATEBEGIN;
+  VALIDATE(nextheap);
+  VALIDATE(details);
+  VALIDATE(details->size == sizeof(SMEMHEAPDETAILS));
+  VALIDATEEND;
 
   ZeroMemory((LPBYTE)details + sizeof(DWORD), sizeof(SMEMHEAPDETAILS) - sizeof(DWORD));
   lockedhandle = (HLOCKEDHEAP)-1;
@@ -1336,9 +1305,9 @@ BOOL APIENTRY SMemFindNextHeap(HSHEAP prevheap, HSHEAP *nextheap, LPSMEMHEAPDETA
 
   *nextheap = heapptr->handle;
   details->handle = heapptr->handle;
-  SStrCopy(details->filename, heapptr->filename, sizeof(details->filename));
   details->linenumber = heapptr->linenumber;
   details->maximumsize = MAXHEAPSIZE;
+  SStrCopy(details->filename, heapptr->filename, sizeof(details->filename));
 
   do {
     if (heapptr->handle == *nextheap) {
@@ -1357,18 +1326,20 @@ BOOL APIENTRY SMemFindNextHeap(HSHEAP prevheap, HSHEAP *nextheap, LPSMEMHEAPDETA
 BOOL APIENTRY SMemFindNextHeap2(HSHEAP prevheap, HSHEAP *nextheap, LPSMEMHEAPDETAILS2 details) {
   HLOCKEDHEAP lockedhandle;
   HEAPPTR     heapptr;
-  HEAPPTR     scan;
 
   if (!CheckInitialized()) {
     Warning(STORM_ERROR_MEMORY_MANAGER_INACTIVE, "SMemFindNextHeap2()", SERR_LINECODE_FUNCTION);
     return FALSE;
   }
 
-  FATALASSERT(nextheap);
-  FATALASSERT(details);
-  FATALASSERT(details->size == sizeof(SMEMHEAPDETAILS2));
+  VALIDATEBEGIN;
+  VALIDATE(nextheap);
+  VALIDATE(details);
+  VALIDATE(details->size == sizeof(SMEMHEAPDETAILS2));
+  VALIDATEEND;
 
   ZeroMemory((LPBYTE)details + sizeof(DWORD), sizeof(SMEMHEAPDETAILS2) - sizeof(DWORD));
+  lockedhandle = (HLOCKEDHEAP)-1;
   heapptr = LockNextHeapByHandle(prevheap, &lockedhandle);
   if (!heapptr) {
     *nextheap = NULL;
@@ -1377,29 +1348,32 @@ BOOL APIENTRY SMemFindNextHeap2(HSHEAP prevheap, HSHEAP *nextheap, LPSMEMHEAPDET
 
   *nextheap = heapptr->handle;
   details->handle = heapptr->handle;
-  SStrCopy(details->filename, heapptr->filename, sizeof(details->filename));
   details->linenumber = heapptr->linenumber;
   details->maximumsize = MAXHEAPSIZE;
   details->regions = 0;
+  SStrCopy(details->filename, heapptr->filename, sizeof(details->filename));
 
-  for (scan = heapptr; scan; scan = scan->next) {
-    if (scan->handle == *nextheap) {
+  do {
+    if (heapptr->handle == *nextheap) {
+      details->cumulativeAllocs += heapptr->cumulativeAllocs;
+      details->cumulativeFrees += heapptr->cumulativeFrees;
+      details->cumulativeReallocs += heapptr->cumulativeReallocs;
+      details->committedbytes += heapptr->committedbytes + heapptr->externalbytes;
+      details->reservedbytes += heapptr->reservedbytes + heapptr->externalbytes;
+      details->allocatedblocks += heapptr->allocatedblocks;
+      details->allocatedbytes += heapptr->allocatedbytes;
+
+      details->mark_allocatedblocks += heapptr->mark_allocatedblocks;
+      details->mark_allocatedbytes += heapptr->mark_allocatedbytes;
+      details->mark_committedbytes += heapptr->mark_committedbytes + heapptr->mark_externalbytes;
+      details->mark_cumulativeAllocs += heapptr->mark_cumulativeAllocs;
+      details->mark_cumulativeFrees += heapptr->mark_cumulativeFrees;
+      details->mark_cumulativeReallocs += heapptr->mark_cumulativeReallocs;
+
       details->regions++;
-      details->committedbytes += scan->committedbytes + scan->externalbytes;
-      details->reservedbytes += scan->reservedbytes + scan->externalbytes;
-      details->cumulativeAllocs += scan->cumulativeAllocs;
-      details->cumulativeFrees += scan->cumulativeFrees;
-      details->cumulativeReallocs += scan->cumulativeReallocs;
-      details->allocatedblocks += scan->allocatedblocks;
-      details->allocatedbytes += scan->allocatedbytes;
-      details->mark_allocatedblocks += scan->mark_allocatedblocks;
-      details->mark_allocatedbytes += scan->mark_allocatedbytes;
-      details->mark_committedbytes += scan->mark_committedbytes + scan->mark_externalbytes;
-      details->mark_cumulativeAllocs += scan->mark_cumulativeAllocs;
-      details->mark_cumulativeFrees += scan->mark_cumulativeFrees;
-      details->mark_cumulativeReallocs += scan->mark_cumulativeReallocs;
     }
-  }
+    heapptr = heapptr->next;
+  } while (heapptr);
 
   UnlockHeap(&lockedhandle);
   return TRUE;
@@ -1529,15 +1503,12 @@ HSHEAP APIENTRY SMemHeapCreate(DWORD options, DWORD initialsize, DWORD maximumsi
 
   for (;;) {
     handle = (HSHEAP)((DWORD)handle + 1);
-    if (!handle) {
+    if (!handle)
       handle = (HSHEAP)FIRSTUSERHEAP;
-    }
 
-    HEAPPTR heapptr = LockHeapByHandle(handle, &lockedhandle, TRUE);
-    if (!heapptr) {
+    lockedhandle = (HLOCKEDHEAP)-1;
+    if (!LockHeapByHandle(handle, &lockedhandle, TRUE))
       break;
-    }
-
     UnlockHeap(&lockedhandle);
   }
 
@@ -1556,7 +1527,6 @@ HSHEAP APIENTRY SMemHeapCreate(DWORD options, DWORD initialsize, DWORD maximumsi
 BOOL APIENTRY SMemHeapDestroy(HSHEAP handle) {
   DWORD    slot;
   HEAPPTR *nextptr;
-  HEAPPTR  heapptr;
   BOOL     destroyed;
 
   if (!CheckInitialized()) {
@@ -1565,20 +1535,16 @@ BOOL APIENTRY SMemHeapDestroy(HSHEAP handle) {
   }
 
   slot = GetSlotByHandle(handle);
-  destroyed = FALSE;
-
   EnterCriticalSection(&s_critsect[slot]);
+
+  destroyed = FALSE;
   nextptr = &s_heaphead[slot];
-  heapptr = *nextptr;
-  while (heapptr) {
-    if (heapptr->handle == handle) {
+  while (*nextptr) {
+    if ((*nextptr)->handle == handle) {
       destroyed = TRUE;
       nextptr = DestroyHeap(nextptr);
-    } else {
-      nextptr = &heapptr->next;
-    }
-
-    heapptr = *nextptr;
+    } else
+      nextptr = &(*nextptr)->next;
   }
   LeaveCriticalSection(&s_critsect[slot]);
 
@@ -1664,9 +1630,6 @@ DWORD APIENTRY SMemHeapSize(HSHEAP handle, DWORD flags, LPVOID ptr) {
 }
 
 void APIENTRY SMemInitialize() {
-  CRITICAL_SECTION *critsect;
-  DWORD             remaining;
-
   if (s_initialized) {
     return;
   }
@@ -1686,22 +1649,15 @@ void APIENTRY SMemInitialize() {
 
   SRegSaveValue(REGKEY, REGVAL_DEBUGERROUTPUT, 0, smemOptions.serrleaksilentwarning || smemOptions.smemleaksilentwarning);
 
-  critsect = s_critsect;
-  remaining = TABLESIZE;
-  do {
-    InitializeCriticalSection(critsect++);
-  } while (--remaining);
+  for (DWORD slot = 0; slot < TABLESIZE; ++slot)
+    InitializeCriticalSection(&s_critsect[slot]);
 
   smemOptions.crcenabled = TRUE;
   s_initialized = TRUE;
 }
 
 BOOL APIENTRY SMemIsValidPointer(LPCVOID address, DWORD size, BOOL forWriting) {
-  if (forWriting) {
-    return !IsBadWritePtr((LPVOID)address, size);
-  }
-
-  return !IsBadReadPtr(address, size);
+  return (forWriting ? IsBadWritePtr((LPVOID)address, size) : IsBadReadPtr(address, size)) == 0;
 }
 
 LPVOID APIENTRY SMemReAlloc(LPVOID ptr, DWORD bytes, LPCSTR filename, int linenumber, DWORD flags) {

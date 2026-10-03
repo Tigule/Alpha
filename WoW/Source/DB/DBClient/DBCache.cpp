@@ -197,8 +197,6 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
   int          build;
   HOSFILE      file;
   DWORD        tag;
-  DWORD        itemSize;
-  KEY          itemId;
   DWORD        bytesRead;
   DBCACHEHASH *entry;
 
@@ -241,35 +239,40 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
   }
 
   header.Get(recVersion);
-  if (recVersion == RECORD::Version()) {
-    for (;;) {
-      OsReadFile(file, data, sizeof(DWORD) + sizeof(KEY), &bytesRead);
-      ASSERT(bytesRead == sizeof(DWORD) + sizeof(KEY));
+  if (recVersion != RECORD::Version()) {
+    OsCloseFile(file);
+    return;
+  }
 
-      CDataStore itemHdr(reinterpret_cast<BYTE *>(data), sizeof(DWORD) + sizeof(KEY));
-      itemHdr.Get(itemId);
-      itemHdr.Get(itemSize);
-      if (!itemId) {
-        break;
-      }
+  for (;;) {
+    KEY   itemId;
+    DWORD itemSize;
+    OsReadFile(file, data, sizeof(DWORD) + sizeof(KEY), &bytesRead);
+    ASSERT(bytesRead == sizeof(DWORD) + sizeof(KEY));
 
-      ASSERT(itemSize <= (sizeof(data) / sizeof(data[0])));
-      OsReadFile(file, data, itemSize, &bytesRead);
-      if (bytesRead != itemSize) {
-        m_table.Clear();
-        break;
-      }
-
-      CDataStore rec(reinterpret_cast<BYTE *>(data), itemSize);
-      entry = m_table.Ptr(static_cast<UINT>(itemId), HASHKEY(itemId));
-      if (!entry) {
-        entry = m_table.New(static_cast<UINT>(itemId), HASHKEY(itemId), 0, 0);
-      }
-
-      entry->m_record.Unpack(&rec);
-      entry->m_haveData = true;
-      entry->m_dbkey = itemId;
+    CDataStore itemHdr(reinterpret_cast<BYTE *>(data), sizeof(DWORD) + sizeof(KEY));
+    itemHdr.Get(itemId);
+    itemHdr.Get(itemSize);
+    if (!itemId) {
+      break;
     }
+
+    ASSERT(itemSize <= (sizeof(data) / sizeof(data[0])));
+    OsReadFile(file, data, itemSize, &bytesRead);
+    if (bytesRead != itemSize) {
+      m_table.Clear();
+      break;
+    }
+
+    CDataStore rec(reinterpret_cast<BYTE *>(data), itemSize);
+    entry = m_table.Ptr(static_cast<UINT>(itemId), HASHKEY(itemId));
+    if (!entry) {
+      entry = m_table.New(static_cast<UINT>(itemId), HASHKEY(itemId), 0, 0);
+    }
+
+    entry->m_record.Unpack(&rec);
+    entry->m_haveData = true;
+    entry->m_dbkey = itemId;
   }
 
   OsCloseFile(file);

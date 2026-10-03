@@ -19,6 +19,18 @@
 #include <stpl.h>
 #include <math.h>
 
+using NTempest::CMath;
+
+namespace NTempest {
+  inline bool operator==(const CRect &l, const CRect &r) {
+    return l.t == r.t && l.l == r.l && l.b == r.b && l.r == r.r;
+  }
+
+  inline bool operator!=(const CRect &l, const CRect &r) {
+    return l.t != r.t || l.l != r.l || l.b != r.b || l.r != r.r;
+  }
+}
+
 struct GRIDRECTLIST {
   TSGrowableArray<NTempest::CRect> rectList;
 };
@@ -45,158 +57,77 @@ NODEDECL(BFSNODE) {
   TEST_DIRECTION  dontTestDirection;
 };
 
-static GRIDRECTLIST s_gridRectList[2];
+#define HORZ_FLAGS 0x3
+#define VERT_FLAGS 0xC
+
+static const float TOPBORDER = 0.0375f;
+static const float BOTTOMBORDER = 0.01875f;
+static const float LEFTBORDER = 0.0f;
+static const float RIGHTBORDER = 0.0f;
+static const float DEVICE_WIDTH = 0.8f;
+static const float DEVICE_HEIGHT = 0.6f;
+
+static GRIDRECTLIST s_gridRectList[NUM_SRECTGRIDS];
 static LISTDECL(BFSNODE, s_activeBFSNodes);
 static LISTDECL(BFSNODE, s_freeBFSNodes);
 static CVar *s_showCVar;
 
+static TEST_DIRECTION s_oppositeDirections[NUM_TESTDIRECTIONS] = {TEST_DOWN, TEST_RIGHT, TEST_LEFT, TEST_DOWN};
+
 static void CleanupActiveBFSNodes() {
-  while (BFSNODE *node = s_activeBFSNodes.Head()) {
-    s_activeBFSNodes.UnlinkNode(node);
-    s_freeBFSNodes.LinkNode(node, LIST_TAIL, 0);
-  }
+  s_freeBFSNodes.Combine(&s_activeBFSNodes, LIST_TAIL, 0);
 }
 
 static BFSNODE *GetBFSNode() {
   BFSNODE *node = s_freeBFSNodes.Head();
-  if (node) {
-    s_freeBFSNodes.UnlinkNode(node);
+  if (!node) {
+    node = s_activeBFSNodes.NewNode(LIST_TAIL, 0, 0);
   } else {
-    node = NEW(BFSNODE);
+    s_activeBFSNodes.LinkNode(node, LIST_HEAD, 0);
   }
-  s_activeBFSNodes.LinkNode(node, LIST_TAIL, 0);
+
   node->dontTestDirection = TEST_INVALID;
+
   return node;
 }
 
 static BOOL RectCollides(SCREENRECTGRIDS grid, NTempest::CRect &rect, TEST_DIRECTION direction, float *offset) {
   ASSERT(offset);
   ASSERT(grid < NUM_SRECTGRIDS);
-  ASSERT(rect.t >= rect.b && rect.r >= rect.l);
-  for (UINT i = 0; i < s_gridRectList[grid].rectList.Count(); ++i) {
-    const NTempest::CRect &other = s_gridRectList[grid].rectList[i];
-    ASSERT(other.t >= other.b && other.r >= other.l);
-    if (rect.r > other.l && rect.l < other.r && rect.t > other.b && rect.b < other.t) {
+  ASSERT(( rect.t >= rect.b ) && ( rect.r >= rect.l ));
+  GRIDRECTLIST &list = s_gridRectList[grid];
+
+  if (!list.rectList.Count()) {
+    return 0;
+  }
+
+  const NTempest::CRect *ptr = list.rectList.Ptr();
+
+  UINT count = list.rectList.Count();
+  while (count--) {
+    ASSERT(( ptr->t >= ptr->b ) && ( ptr->r >= ptr->l ));
+
+    if (!(rect.r <= ptr->l || rect.l >= ptr->r || rect.t <= ptr->b || rect.b >= ptr->t)) {
       switch (direction) {
         case TEST_UP:
-          *offset = other.t - rect.b;
-          break;
+          *offset = ptr->t - rect.b;
+          return 1;
         case TEST_LEFT:
-          *offset = rect.r - other.l;
-          break;
+          *offset = rect.r - ptr->l;
+          return 1;
         case TEST_RIGHT:
-          *offset = other.r - rect.l;
-          break;
+          *offset = ptr->r - rect.l;
+          return 1;
         case TEST_DOWN:
-          *offset = rect.t - other.b;
-          break;
+          *offset = rect.t - ptr->b;
+          return 1;
         default:
           FATALERROR(("Error, unknown smartscreenrect test direction %d!", direction));
       }
-      return 1;
     }
+    ++ptr;
   }
   return 0;
-}
-
-static BOOL CheckRect(const NTempest::CRect &rect, int checkPosition) {
-  return (!checkPosition || (rect.t >= 0.0f && rect.l >= 0.0f && rect.b >= 0.0f && rect.r >= 0.0f && rect.t <= 0.6f && rect.l <= 0.8f &&
-                             rect.b <= 0.6f && rect.r <= 0.8f)) &&
-         rect.t >= rect.b && rect.r >= rect.l;
-}
-
-static UINT RectOutsideBorder(NTempest::CRect rect, NTempest::CRect *clippedRect, int onlyCheck) {
-  ASSERT(CheckRect(rect, 0));
-  const float topBorder = 0.6f - 0.0375f;
-  const float bottomBorder = 0.01875f;
-  const float leftBorder = 0.0f;
-  const float rightBorder = 0.8f;
-  float       width = rect.r - rect.l;
-  float       height = rect.t - rect.b;
-  ASSERT(rightBorder - leftBorder > width);
-  ASSERT(topBorder - bottomBorder > height);
-
-  UINT hitFlags = 0;
-  if (rect.l < leftBorder)
-    hitFlags |= 1;
-  if (rect.r > rightBorder)
-    hitFlags |= 2;
-  if (rect.t > topBorder)
-    hitFlags |= 4;
-  if (rect.b < bottomBorder)
-    hitFlags |= 8;
-  if (onlyCheck) {
-    return hitFlags;
-  }
-
-  ASSERT(clippedRect);
-  if (hitFlags & 4) {
-    rect.t = topBorder;
-    rect.b = topBorder - height;
-  } else if (hitFlags & 8) {
-    rect.b = bottomBorder;
-    rect.t = bottomBorder + height;
-  }
-  if (hitFlags & 1) {
-    rect.l = leftBorder;
-    rect.r = leftBorder + width;
-  } else if (hitFlags & 2) {
-    rect.r = rightBorder;
-    rect.l = rightBorder - width;
-  }
-  ASSERT(!RectOutsideBorder(rect, clippedRect, 1));
-  *clippedRect = rect;
-  return hitFlags;
-}
-
-static UINT SelectNewSearchPattern(UINT hitFlags) {
-  ASSERT((hitFlags & 0xC) != 0xC);
-  ASSERT((hitFlags & 3) != 3);
-  if (hitFlags & 1) {
-    return hitFlags & 4 ? 8 : ((hitFlags & 8) | 0x10) >> 2;
-  }
-  if (hitFlags & 4) {
-    return hitFlags & 2 ? 7 : 2;
-  }
-  if (hitFlags & 2) {
-    return hitFlags & 8 ? 5 : 3;
-  }
-  return (hitFlags >> 3) & 1;
-}
-
-static int CalculateMaxTraversals(const NTempest::CRect &rect) {
-  ASSERT(rect.t > rect.b);
-  ASSERT(rect.r > rect.l);
-  return (static_cast<int>(0.6f / (rect.t - rect.b)) + 1) * (static_cast<int>(0.8f / (rect.r - rect.l)) + 1);
-}
-
-static void MarkRect(SCREENRECTGRIDS grid, const NTempest::CRect &rect) {
-  ASSERT(grid < NUM_SRECTGRIDS);
-  ASSERT(CheckRect(rect, 1));
-  s_gridRectList[grid].rectList.Add(&rect);
-}
-
-static void ClipRect(NTempest::CRect &rect) {
-  float height = rect.t - rect.b;
-  float width = rect.r - rect.l;
-  ASSERT(height >= 0.0f);
-  ASSERT(width >= 0.0f);
-  if (rect.t >= 0.6f) {
-    rect.t = 0.6f;
-    rect.b = 0.6f - height;
-  }
-  if (rect.b < 0.0f) {
-    rect.b = 0.0f;
-    rect.t = height;
-  }
-  if (rect.l < 0.0f) {
-    rect.l = 0.0f;
-    rect.r = width;
-  }
-  if (rect.r > 0.8f) {
-    rect.r = 0.8f;
-    rect.l = 0.8f - width;
-  }
 }
 
 static NTempest::CRect TestUp(SCREENRECTGRIDS grid, NTempest::CRect rect) {
@@ -235,6 +166,109 @@ static NTempest::CRect TestDown(SCREENRECTGRIDS grid, NTempest::CRect rect) {
   return rect;
 }
 
+static BOOL CheckRect(const NTempest::CRect &rect, int checkPosition) {
+  return (!checkPosition || (rect.t >= 0.0f && rect.l >= 0.0f && rect.b >= 0.0f && rect.r >= 0.0f && rect.t <= DEVICE_HEIGHT &&
+                             rect.l <= DEVICE_WIDTH && rect.b <= DEVICE_HEIGHT && rect.r <= DEVICE_WIDTH)) &&
+         rect.t >= rect.b && rect.r >= rect.l;
+}
+
+static UINT RectOutsideBorder(NTempest::CRect rect, NTempest::CRect *clippedRect, int onlyCheck) {
+  ASSERT(CheckRect(rect,0));
+  ASSERT(rect.t >= rect.b);
+  ASSERT(rect.r >= rect.l);
+
+  const float        rightCoordinate = DEVICE_WIDTH - RIGHTBORDER;
+  const float        topCoordinate = DEVICE_HEIGHT - TOPBORDER;
+
+  static const float VIEWABLE_WIDTH = rightCoordinate - LEFTBORDER;
+  static const float VIEWABLE_HEIGHT = topCoordinate - BOTTOMBORDER;
+
+  float width = rect.r - rect.l;
+  float height = rect.t - rect.b;
+
+  ASSERT(VIEWABLE_WIDTH > width);
+  ASSERT(VIEWABLE_HEIGHT > height);
+
+  UINT hitFlags = 0;
+  if (rect.l < LEFTBORDER)
+    hitFlags |= 1;
+  if (rect.r > rightCoordinate)
+    hitFlags |= 2;
+  if (rect.b < BOTTOMBORDER)
+    hitFlags |= 8;
+  if (rect.t > topCoordinate)
+    hitFlags |= 4;
+
+  if (onlyCheck)
+    return hitFlags;
+
+  ASSERT(clippedRect);
+  if (!hitFlags) {
+    *clippedRect = rect;
+    return 0;
+  }
+
+  ASSERT(( hitFlags & VERT_FLAGS ) != VERT_FLAGS);
+  ASSERT(( hitFlags & HORZ_FLAGS ) != HORZ_FLAGS);
+
+  if (hitFlags & VERT_FLAGS) {
+    if (hitFlags & 4) {
+      rect.t = topCoordinate;
+      rect.b = topCoordinate - height;
+    } else if (hitFlags & 8) {
+      rect.b = BOTTOMBORDER;
+      rect.t = BOTTOMBORDER + height;
+    }
+  }
+
+  if (hitFlags & HORZ_FLAGS) {
+    if (hitFlags & 1) {
+      rect.l = LEFTBORDER;
+      rect.r = LEFTBORDER + width;
+    } else if (hitFlags & 2) {
+      rect.r = rightCoordinate;
+      rect.l = rightCoordinate - width;
+    }
+  }
+
+  ASSERT(!RectOutsideBorder( rect, clippedRect, 1 ));
+
+  *clippedRect = rect;
+
+  return hitFlags;
+}
+
+static UINT SelectNewSearchPattern(UINT hitFlags) {
+  ASSERT(( hitFlags & VERT_FLAGS ) != VERT_FLAGS);
+  ASSERT(( hitFlags & HORZ_FLAGS ) != HORZ_FLAGS);
+
+  if (hitFlags & 1) {
+    if (hitFlags & 4)
+      return 8;
+    if (hitFlags & 8)
+      return 6;
+    return 4;
+  }
+
+  if (hitFlags & 4) {
+    return (hitFlags & 2) ? 7 : 2;
+  }
+
+  if (hitFlags & 2) {
+    return (hitFlags & 8) ? 5 : 3;
+  }
+
+  if (hitFlags & 8)
+    return 1;
+  return 0;
+}
+
+static int CalculateMaxTraversals(const NTempest::CRect &rect) {
+  ASSERT(rect.t > rect.b);
+  ASSERT(rect.r > rect.l);
+  return (static_cast<int>(DEVICE_HEIGHT / (rect.t - rect.b)) + 1) * (static_cast<int>(DEVICE_WIDTH / (rect.r - rect.l)) + 1);
+}
+
 typedef NTempest::CRect (*RECTTEST)(SCREENRECTGRIDS, NTempest::CRect);
 static const struct {
   RECTTEST function;
@@ -258,70 +292,128 @@ static const TEST_DIRECTION s_testDirections[9][4] = {
 
 static NTempest::CRect FindFreeRect(SCREENRECTGRIDS grid, const NTempest::CRect &rect) {
   ASSERT(grid < NUM_SRECTGRIDS);
-  ASSERT(CheckRect(rect, 0));
+  ASSERT(CheckRect(rect,0));
+
+  float width = rect.r - rect.l;
+  float height = rect.t - rect.b;
+
   NTempest::CRect outputRect;
   UINT            currentSearchPattern = SelectNewSearchPattern(RectOutsideBorder(rect, &outputRect, 0));
-  BFSNODE        *node = GetBFSNode();
+
+  BFSNODE *node = GetBFSNode();
   ASSERT(node);
   node->nodeRect = outputRect;
 
-  UINT maxTraversals = CalculateMaxTraversals(rect);
-  for (UINT traversal = 0; traversal < maxTraversals; ++traversal) {
-    BFSNODE *firstNode = s_activeBFSNodes.Head();
-    if (!firstNode) {
+  UINT breakCount = CalculateMaxTraversals(rect);
+
+  UINT acc = 0;
+
+  BOOL found = 0;
+  while (!found) {
+    if (acc++ >= breakCount) {
+      outputRect = rect;
       break;
     }
-    for (UINT i = 0; i < 4; ++i) {
-      TEST_DIRECTION direction = s_testDirections[currentSearchPattern][i];
-      if (firstNode->dontTestDirection != TEST_INVALID && firstNode->dontTestDirection == direction) {
+
+    BFSNODE *firstNode = s_activeBFSNodes.Head();
+    if (!firstNode) {
+      outputRect = rect;
+      break;
+    }
+
+    for (UINT i = 0; i < NUM_TESTDIRECTIONS; ++i) {
+      if (firstNode->dontTestDirection != TEST_INVALID && firstNode->dontTestDirection == s_testDirections[currentSearchPattern][i]) {
         continue;
       }
+
       if (RectOutsideBorder(firstNode->nodeRect, 0, 1)) {
         continue;
       }
-      NTempest::CRect newRect = s_testFunctions[direction].function(grid, firstNode->nodeRect);
-      if (newRect.t == firstNode->nodeRect.t && newRect.l == firstNode->nodeRect.l && newRect.b == firstNode->nodeRect.b &&
-          newRect.r == firstNode->nodeRect.r)
-      {
-        outputRect = newRect;
-        CleanupActiveBFSNodes();
-        return outputRect;
+
+      if (s_testDirections[currentSearchPattern][i] == TEST_INVALID) {
+        continue;
       }
+      ASSERT(s_testDirections[currentSearchPattern][i] < NUM_TESTDIRECTIONS);
+      ASSERT(s_testFunctions[s_testDirections[currentSearchPattern][i]].function);
+
+      NTempest::CRect newRect = s_testFunctions[s_testDirections[currentSearchPattern][i]].function(grid, firstNode->nodeRect);
+
+      if (newRect == firstNode->nodeRect) {
+        outputRect = newRect;
+        found = 1;
+        break;
+      }
+
       BFSNODE *newNode = GetBFSNode();
+      s_activeBFSNodes.LinkNode(newNode, LIST_TAIL, 0);
       newNode->nodeRect = newRect;
     }
-    s_activeBFSNodes.UnlinkNode(firstNode);
-    s_freeBFSNodes.LinkNode(firstNode, LIST_TAIL, 0);
+
+    if (!found) {
+      s_freeBFSNodes.LinkNode(firstNode, LIST_TAIL, 0);
+    }
   }
+
   CleanupActiveBFSNodes();
-  return rect;
+
+  ASSERT(CMath::fequalz_(rect.r-rect.l,width,0.0001f));
+  ASSERT(CMath::fequalz_(rect.t-rect.b,height,0.0001f));
+  return outputRect;
+}
+
+static void MarkRect(SCREENRECTGRIDS grid, const NTempest::CRect &rect) {
+  ASSERT(grid < NUM_SRECTGRIDS);
+  ASSERT(CheckRect(rect,1));
+  *s_gridRectList[grid].rectList.New() = rect;
 }
 
 static NTempest::C2Vector FindNextAvailableRect(SCREENRECTGRIDS grid, const NTempest::CRect &rect, int *repositioned) {
   ASSERT(grid < NUM_SRECTGRIDS);
   ASSERT(repositioned);
   NTempest::CRect validRect = FindFreeRect(grid, rect);
-  *repositioned = validRect.t != rect.t || validRect.l != rect.l || validRect.b != rect.b || validRect.r != rect.r;
+  *repositioned = validRect != rect;
   ASSERT(validRect.b <= validRect.t);
   ASSERT(validRect.l <= validRect.r);
   return NTempest::C2Vector((validRect.r + validRect.l) * 0.5f, validRect.t);
 }
 
+static void ClipRect(NTempest::CRect &rect) {
+  float height = rect.t - rect.b;
+  float width = rect.r - rect.l;
+  ASSERT(height >= 0);
+  ASSERT(width >= 0);
+
+  if (rect.t >= DEVICE_HEIGHT) {
+    rect.t = DEVICE_HEIGHT;
+    rect.b = DEVICE_HEIGHT - height;
+  }
+
+  if (rect.b < 0.0f) {
+    rect.b = 0.0f;
+    rect.t = height;
+  }
+
+  if (rect.l < 0.0f) {
+    rect.l = 0.0f;
+    rect.r = width;
+  }
+
+  if (rect.r > DEVICE_WIDTH) {
+    rect.r = DEVICE_WIDTH;
+    rect.l = DEVICE_WIDTH - width;
+  }
+}
+
 void SmartScreenRectInitialize() {
-  s_showCVar = CVar::Register("showsmartrects", 0, 0, "0", 0, DEFAULT, false, 0);
+  s_showCVar = CVar::Register("showsmartrects", "Toggle display of SmartScreenRects", 0, "0", 0, DEBUG, false, 0);
 }
 
 void SmartScreenRectShutdown() {
-  while (s_activeBFSNodes.Head()) {
-    DEL(s_activeBFSNodes.Head());
-  }
+  s_activeBFSNodes.Clear();
+  s_freeBFSNodes.Clear();
 
-  while (s_freeBFSNodes.Head()) {
-    DEL(s_freeBFSNodes.Head());
-  }
-
-  for (UINT grid = 0; grid < 2; ++grid) {
-    s_gridRectList[grid].~GRIDRECTLIST();
+  for (UINT grid = 0; grid < NUM_SRECTGRIDS; ++grid) {
+    s_gridRectList[grid].rectList.Clear();
   }
 }
 
@@ -334,15 +426,18 @@ void SmartScreenRectClearAllGrids() {
 }
 
 void SmartScreenRectGridPos(SCREENRECTGRIDS grid, NTempest::CRect &rect) {
-  float totalHeight = static_cast<float>(fabs(rect.b - rect.t));
-  float halfWidth = static_cast<float>(fabs(rect.r - rect.l)) * 0.5f;
-  float halfHeight = totalHeight * 0.5f;
+  const float totalHeight = static_cast<float>(fabs(rect.b - rect.t));
+  const float halfWidth = static_cast<float>(fabs(rect.r - rect.l)) * 0.5f;
+  const float halfHeight = totalHeight * 0.5f;
+
   ClipRect(rect);
+
   int                repositioned;
   NTempest::C2Vector desiredPosition = FindNextAvailableRect(grid, rect, &repositioned);
-  desiredPosition.x = min(max(desiredPosition.x, halfWidth), 0.8f - halfWidth);
-  desiredPosition.y = min(max(desiredPosition.y, halfHeight), 0.6f - halfHeight);
-  rect.Set(desiredPosition.y, desiredPosition.x - halfWidth, desiredPosition.y - totalHeight, desiredPosition.x + halfWidth);
+  desiredPosition.x = min(max(halfWidth, desiredPosition.x), DEVICE_WIDTH - halfWidth);
+  desiredPosition.y = min(max(halfHeight, desiredPosition.y), DEVICE_HEIGHT - halfHeight);
+
+  rect = NTempest::CRect(desiredPosition.y, desiredPosition.x - halfWidth, desiredPosition.y - totalHeight, desiredPosition.x + halfWidth);
   ClipRect(rect);
   MarkRect(grid, rect);
 }
@@ -359,17 +454,23 @@ void SmartScreenRectGetGridPos(
   ASSERT(base);
   ASSERT(frameToPlace);
   ASSERT(grid < NUM_SRECTGRIDS);
-  float           halfWidth = totalWidth * 0.5f;
-  float           halfHeight = totalHeight * 0.5f;
-  NTempest::CRect newRect(pos.y, pos.x - halfWidth, pos.y - totalHeight, pos.x + halfWidth);
+
+  const float halfWidth = totalWidth * 0.5f;
+  const float halfHeight = totalHeight * 0.5f;
+
+  NTempest::CRect newRect(pos.y, pos.x - halfWidth, pos.y - totalHeight, halfWidth + pos.x);
   ClipRect(newRect);
+
   int                repositioned;
   NTempest::C2Vector desiredPosition = FindNextAvailableRect(grid, newRect, &repositioned);
-  desiredPosition.x = min(max(desiredPosition.x, halfWidth), 0.8f - halfWidth);
-  desiredPosition.y = min(max(desiredPosition.y, halfHeight), 0.6f - halfHeight);
-  newRect.Set(desiredPosition.y, desiredPosition.x - halfWidth, desiredPosition.y - totalHeight, desiredPosition.x + halfWidth);
+  desiredPosition.x = min(max(halfWidth, desiredPosition.x), DEVICE_WIDTH - halfWidth);
+  desiredPosition.y = min(max(halfHeight, desiredPosition.y), DEVICE_HEIGHT - halfHeight);
+
+  newRect = NTempest::CRect(desiredPosition.y, desiredPosition.x - halfWidth, desiredPosition.y - totalHeight, desiredPosition.x + halfWidth);
   ClipRect(newRect);
+
   MarkRect(grid, newRect);
+
   frameToPlace->ClearAllPoints(1);
   frameToPlace->SetPoint(
       positionFromCenter ? FRAMEPOINT_CENTER : FRAMEPOINT_TOP, base, FRAMEPOINT_BOTTOMLEFT, desiredPosition.x, desiredPosition.y, 1

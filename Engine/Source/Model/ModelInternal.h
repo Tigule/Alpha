@@ -166,21 +166,18 @@ class CModelBase {
 };
 
 inline CModelBase::CModelBase(UINT flags)
-    : m_PickLights(GxuLightSelectCallback),
-      m_pickLightsParm(0),
-      m_flags(flags),
-      m_modelToWorld(),
-      m_texBones(GetInvalidMatrixId()),
-      m_anim(0),
-      m_boundsModel(0),
-      m_aaBoxCustGeoId(-1),
-      m_collideModel(0) {
+    : m_PickLights(GxuLightSelectCallback), m_flags(flags), m_anim(0), m_boundsModel(0), m_aaBoxCustGeoId(-1), m_collideModel(0) {
+  m_texBones = GetInvalidMatrixId();
 }
 
 class CModelSimple : public CModelBase {
  public:
   CModelSimple() : CModelBase(0) {
+    m_geosets.SetCount(0);
+    m_geosetColor.SetCount(0);
     m_custGeosets.SetCount(0);
+    m_materials.SetCount(0);
+    m_textures.SetCount(0);
   }
   CModelSimple(const CModelSimple &source);
   ~CModelSimple();

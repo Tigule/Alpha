@@ -48,11 +48,14 @@ void EventCreateContext(int interactive, EVENTHANDLER initializeHandler, EVENTHA
 }
 
 int EventIsContextInteractive() {
-  INSTANCELOCK instanceLock;
+  int          interactive = 0;
   DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
-  int          interactive = context ? IEvtSchedulerIsContextInteractive(context) : 0;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    interactive = IEvtSchedulerIsContextInteractive(context);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return interactive;
 }
 
@@ -61,50 +64,52 @@ HEVENTCONTEXT EventGetCurrentContext() {
 }
 
 void EventSetContextIdleTime(DWORD idleTime, HEVENTCONTEXT hContext) {
-  INSTANCELOCK instanceLock;
-  EvtContext  *context = EvtContext::GetTable().Lock(
-      hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT)), 0, instanceLock, __FILE__, __LINE__
-  );
-  if (!context) {
-    return;
+  if (!hContext) {
+    hContext = reinterpret_cast<HEVENTCONTEXT>(PropGet(PROP_EVENTCONTEXT));
   }
-
-  context->SchedSetIdleTime(idleTime);
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  INSTANCELOCK instanceLock;
+  EvtContext  *context = EvtContext::GetTable().Lock(reinterpret_cast<DWORD>(hContext), 0, instanceLock, __FILE__, __LINE__);
+  if (context) {
+    context->SchedSetIdleTime(idleTime);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
 }
 
 DWORD EventGetContextIdleTime(HEVENTCONTEXT hContext) {
-  INSTANCELOCK instanceLock;
-  EvtContext  *context = EvtContext::GetTable().Lock(
-      hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT)), 0, instanceLock, __FILE__, __LINE__
-  );
-  DWORD idleTime;
-
-  if (!context) {
-    return 0;
+  if (!hContext) {
+    hContext = reinterpret_cast<HEVENTCONTEXT>(PropGet(PROP_EVENTCONTEXT));
   }
-
-  idleTime = context->SchedGetIdleTime();
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
-
+  DWORD idleTime = 0;
+  INSTANCELOCK instanceLock;
+  EvtContext  *context = EvtContext::GetTable().Lock(reinterpret_cast<DWORD>(hContext), 0, instanceLock, __FILE__, __LINE__);
+  if (context) {
+    idleTime = context->SchedGetIdleTime();
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return idleTime;
 }
 
 int EventIsButtonDown(MOUSEBUTTON button) {
-  INSTANCELOCK instanceLock;
+  int          down = 0;
   DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
-  int          down = context ? IEvtQueueCheckSyncMouseState(context, button) : 0;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    down = IEvtQueueCheckSyncMouseState(context, button);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return down;
 }
 
 int EventIsKeyDown(KEY key) {
-  INSTANCELOCK instanceLock;
+  int          down = 0;
   DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
-  int          down = context ? IEvtQueueCheckSyncKeyState(context, key) : 0;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    down = IEvtQueueCheckSyncKeyState(context, key);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return down;
 }
 
@@ -113,43 +118,46 @@ void EventPostClose() {
 }
 
 void EventPostCloseEx(HEVENTCONTEXT hContext) {
+  if (!hContext) {
+    hContext = reinterpret_cast<HEVENTCONTEXT>(PropGet(PROP_EVENTCONTEXT));
+  }
   INSTANCELOCK instanceLock;
-  EvtContext  *context = EvtContext::GetTable().Lock(
-      hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT)), 0, instanceLock, __FILE__, __LINE__
-  );
+  EvtContext  *context = EvtContext::GetTable().Lock(reinterpret_cast<DWORD>(hContext), 0, instanceLock, __FILE__, __LINE__);
   if (context) {
     context->SchedSetClosed();
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
   }
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
 }
 
 BOOL EventQueuePost(HEVENTCONTEXT hContext, EVENTID id, LPCVOID data, UINT bytes) {
-  INSTANCELOCK instanceLock;
-  DWORD        contextId = hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
-  EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
-  int          result = 0;
-
-  if (context && !context->SchedGetDestroyed()) {
-    IEvtQueuePost(context, id, data, bytes);
-    result = 1;
+  int result = 0;
+  if (!hContext) {
+    hContext = reinterpret_cast<HEVENTCONTEXT>(PropGet(PROP_EVENTCONTEXT));
   }
-
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  INSTANCELOCK instanceLock;
+  EvtContext  *context = EvtContext::GetTable().Lock(reinterpret_cast<DWORD>(hContext), 0, instanceLock, __FILE__, __LINE__);
+  if (context) {
+    if (!context->SchedGetDestroyed()) {
+      IEvtQueuePost(context, id, data, bytes);
+      result = 1;
+    }
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return result;
 }
 
 BOOL EventQueueScan(EVENTSCANHANDLER scanner, LPVOID param) {
-  INSTANCELOCK instanceLock;
-  DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
-  EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
   int          result = 0;
-
-  if (context && !context->SchedGetDestroyed()) {
-    IEvtQueueScan(context, scanner, param);
-    result = 1;
+  DWORD        id = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
+  EvtContext  *context = EvtContext::GetTable().Lock(id, 0, instanceLock, __FILE__, __LINE__);
+  if (context) {
+    if (!context->SchedGetDestroyed()) {
+      IEvtQueueScan(context, scanner, param);
+      result = 1;
+    }
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
   }
-
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
   return result;
 }
 
@@ -195,71 +203,89 @@ void EventSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, LPVOID inPara
 }
 
 int EventInputProcess(HEVENTCONTEXT hContext) {
-  INSTANCELOCK instanceLock;
-  EvtContext  *context = EvtContext::GetTable().Lock(
-      hContext ? reinterpret_cast<DWORD>(hContext) : reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT)), 0, instanceLock, __FILE__, __LINE__
-  );
-  if (!context) {
-    return 0;
+  int result = 0;
+  if (!hContext) {
+    hContext = reinterpret_cast<HEVENTCONTEXT>(PropGet(PROP_EVENTCONTEXT));
   }
-
-  int shutdown = 0;
-  int result = IEvtInputProcess(context, &shutdown);
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  INSTANCELOCK instanceLock;
+  EvtContext  *context = EvtContext::GetTable().Lock(reinterpret_cast<DWORD>(hContext), 0, instanceLock, __FILE__, __LINE__);
+  if (context) {
+    int shutdown;
+    result = IEvtInputProcess(context, &shutdown);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return result;
 }
 
 UINT EventSetTimer(float timeout, EVENTHANDLER handler, LPVOID param) {
-  INSTANCELOCK instanceLock;
+  UINT         timerId = 0;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
-  UINT         timerId = context ? IEvtTimerSet(context, timeout, handler, param, 0, 0, 0) : 0;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    timerId = IEvtTimerSet(context, timeout, handler, param, 0, 0, 0);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return timerId;
 }
 
 UINT EventSetTimer(float timeout, EVENTGUIDHANDLER handler, DWORDLONG param, LPVOID param2) {
-  INSTANCELOCK instanceLock;
+  UINT         timerId = 0;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
-  UINT         timerId = context ? IEvtTimerSet(context, timeout, 0, 0, handler, param, param2) : 0;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    timerId = IEvtTimerSet(context, timeout, 0, 0, handler, param, param2);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return timerId;
 }
 
 UINT EventSetTimer(UINT timeout, EVENTHANDLER handler, LPVOID param) {
-  INSTANCELOCK instanceLock;
+  UINT         timerId = 0;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
-  UINT         timerId = context ? IEvtTimerSet(context, timeout, handler, param, 0, 0, 0) : 0;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    timerId = IEvtTimerSet(context, timeout, handler, param, 0, 0, 0);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return timerId;
 }
 
 UINT EventSetTimer(UINT timeout, EVENTGUIDHANDLER handler, DWORDLONG param, LPVOID param2) {
-  INSTANCELOCK instanceLock;
+  UINT         timerId = 0;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
-  UINT         timerId = context ? IEvtTimerSet(context, timeout, 0, 0, handler, param, param2) : 0;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    timerId = IEvtTimerSet(context, timeout, 0, 0, handler, param, param2);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return timerId;
 }
 
 UINT EventSetTimerAbsolute(DWORD triggerTime, EVENTHANDLER handler, LPVOID param) {
-  INSTANCELOCK instanceLock;
+  UINT         timerId = 0;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
-  UINT         timerId = context ? IEvtTimerSetAbsolute(context, triggerTime, handler, param, 0, 0, 0) : 0;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    timerId = IEvtTimerSetAbsolute(context, triggerTime, handler, param, 0, 0, 0);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return timerId;
 }
 
 UINT EventSetTimerAbsolute(DWORD triggerTime, EVENTGUIDHANDLER handler, DWORDLONG param, LPVOID param2) {
-  INSTANCELOCK instanceLock;
+  UINT         timerId = 0;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
-  UINT         timerId = context ? IEvtTimerSetAbsolute(context, triggerTime, 0, 0, handler, param, param2) : 0;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    timerId = IEvtTimerSetAbsolute(context, triggerTime, 0, 0, handler, param, param2);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return timerId;
 }
 
@@ -274,11 +300,14 @@ void EventKillTimer(UINT timerId, EVENTHANDLER handlerFunction, LPCSTR functionN
 }
 
 float EventGetRemainingTime(UINT timerId) {
-  INSTANCELOCK instanceLock;
   DWORD        contextId = reinterpret_cast<DWORD>(PropGet(PROP_EVENTCONTEXT));
+  float        result = 0.0f;
+  INSTANCELOCK instanceLock;
   EvtContext  *context = EvtContext::GetTable().Lock(contextId, 0, instanceLock, __FILE__, __LINE__);
-  float        result = context ? IEvtTimerGetRemaining(context, timerId) : 0.0f;
-  EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  if (context) {
+    result = IEvtTimerGetRemaining(context, timerId);
+    EvtContext::GetTable().Unlock(instanceLock, __FILE__, __LINE__);
+  }
   return result;
 }
 
@@ -320,8 +349,8 @@ void EventInputSetMousePosition(float x, float y) {
   INSTANCELOCK  instanceLock;
   EvtContext   *context;
 
-  ASSERT(x != INFINITY);
-  ASSERT(y != INFINITY);
+  ASSERT(x);
+  ASSERT(y);
 
   hContext = reinterpret_cast<HEVENTCONTEXT>(PropGet(PROP_EVENTCONTEXT));
   context = EvtContext::GetTable().Lock(reinterpret_cast<DWORD>(hContext), 0, instanceLock, __FILE__, __LINE__);

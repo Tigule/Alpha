@@ -309,7 +309,7 @@ static int CSimpleFontString_SetTextHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   if (lua_isnumber(L, 2)) {
-    object->SetTextHeight(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    object->SetTextHeight(0.8f * (static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f));
     return 0;
   }
 
@@ -325,7 +325,7 @@ static int CSimpleFontString_SetWidth(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   if (lua_isnumber(L, 2)) {
-    object->SetWidth(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    object->SetWidth(0.8f * (static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f));
     return 0;
   }
 
@@ -346,7 +346,7 @@ static int CSimpleFontString_SetHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   if (lua_isnumber(L, 2)) {
-    object->SetHeight(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    object->SetHeight(0.8f * (static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f));
     return 0;
   }
 

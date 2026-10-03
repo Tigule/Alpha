@@ -1,9 +1,9 @@
 inline void CAngle::Calc() {
-  m_sin = sinf(m_data);
-  m_cos = cosf(m_data);
+  NTempest::CMath::sincos_(m_data, m_sin, m_cos);
 }
 
-inline CAngle::CAngle(float angle) : TManaged<float>(ClampTo2Pi(angle)) {
+inline CAngle::CAngle(float angle) {
+  TManaged<float>::Set_(ClampTo2Pi(angle));
   Calc();
 }
 

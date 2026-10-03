@@ -221,13 +221,14 @@ Sound::~Sound() {
 }
 
 static int CheckInitError(char success, LPCSTR function, int parameter) {
+  int error = 0;
+
   if (!success) {
-    int error = FSOUND_GetError();
+    error = FSOUND_GetError();
     SLogWrite(s_log, "Error: %s(%i) returned %i", function, parameter, error);
-    return error;
   }
 
-  return 0;
+  return error;
 }
 
 static void
@@ -264,6 +265,10 @@ InitializeParams(InitParams &params, SOUND_GET_PARAM_INT GetParamInt, SOUND_GET_
 }
 
 int Sound::Initialize(bool (*GetParamInt)(LPCSTR, int &), bool (*GetParamFloat)(LPCSTR, float &), bool (*GetParamString)(LPCSTR, LPCSTR &)) {
+  ASSERT(GetParamInt);
+  ASSERT(GetParamFloat);
+  ASSERT(GetParamString);
+
   int        error = 0;
   InitParams params;
   UINT       caps;
@@ -273,17 +278,13 @@ int Sound::Initialize(bool (*GetParamInt)(LPCSTR, int &), bool (*GetParamFloat)(
   int        output;
   int        numHardwareChannels;
 
-  ASSERT(GetParamInt);
-  ASSERT(GetParamFloat);
-  ASSERT(GetParamString);
-
   SLogCreate("Sound.log", logFlags, &s_log);
   logFlags |= 4;
   SLogWrite(s_log, "Sound::Initialize()");
 
   if (s_initialized) {
     SLogWrite(s_log, "Already Initialized");
-    goto done;
+    goto Done;
   }
 
   InitializeParams(params, GetParamInt, GetParamFloat, GetParamString);
@@ -291,88 +292,88 @@ int Sound::Initialize(bool (*GetParamInt)(LPCSTR, int &), bool (*GetParamFloat)(
   parameter = params.outputSystem;
   if (parameter < -1 || parameter > 12) {
     error = 14;
-    goto done;
+    goto Done;
   }
-  error = CheckInitError(FSOUND_SetOutput(parameter) != 0, "FSOUND_SetOutput", parameter);
+  error = CheckInitError(FSOUND_SetOutput(parameter), "FSOUND_SetOutput", parameter);
   if (error) {
-    goto done;
+    goto Done;
   }
 
   driver = params.driver;
   if (driver < -1 || driver >= FSOUND_GetNumDrivers()) {
     error = 14;
-    goto done;
+    goto Done;
   }
   if (driver == -1) {
     driver = 0;
   }
   parameter = driver;
-  error = CheckInitError(FSOUND_SetDriver(parameter) != 0, "FSOUND_SetDriver", parameter);
+  error = CheckInitError(FSOUND_SetDriver(parameter), "FSOUND_SetDriver", parameter);
   if (error) {
-    goto done;
+    goto Done;
   }
   FSOUND_GetDriverCaps(driver, &caps);
 
   mixer = params.mixer;
   if (mixer < -1 || mixer >= 10) {
     error = 14;
-    goto done;
+    goto Done;
   }
   if (mixer == -1) {
     mixer = 4;
   }
   parameter = mixer;
-  error = CheckInitError(FSOUND_SetMixer(parameter) != 0, "FSOUND_SetMixer", parameter);
+  error = CheckInitError(FSOUND_SetMixer(parameter), "FSOUND_SetMixer", parameter);
   if (error) {
-    goto done;
+    goto Done;
   }
 
   parameter = params.bufferSize;
   if (parameter < 0) {
     error = 14;
-    goto done;
+    goto Done;
   }
   if (parameter) {
-    error = CheckInitError(FSOUND_SetBufferSize(parameter) != 0, "FSOUND_SetBufferSize", parameter);
+    error = CheckInitError(FSOUND_SetBufferSize(parameter), "FSOUND_SetBufferSize", parameter);
     if (error) {
-      goto done;
+      goto Done;
     }
   }
 
   parameter = GxDevWindow();
-  error = CheckInitError(FSOUND_SetHWND(parameter) != 0, "FSOUND_SetHWND", parameter);
+  error = CheckInitError(FSOUND_SetHWND(parameter), "FSOUND_SetHWND", parameter);
   if (error) {
-    goto done;
+    goto Done;
   }
 
   parameter = params.minNumHardwareChannels;
   if (parameter < -1) {
     error = 14;
-    goto done;
+    goto Done;
   }
   if (parameter != -1) {
-    error = CheckInitError(FSOUND_SetMinHardwareChannels(parameter) != 0, "FSOUND_SetMinHardwareChannels", parameter);
+    error = CheckInitError(FSOUND_SetMinHardwareChannels(parameter), "FSOUND_SetMinHardwareChannels", parameter);
     if (error) {
-      goto done;
+      goto Done;
     }
   }
 
   parameter = params.maxNumHardwareChannels;
   if (parameter < -1) {
     error = 14;
-    goto done;
+    goto Done;
   }
   if (parameter != -1) {
-    error = CheckInitError(FSOUND_SetMaxHardwareChannels(parameter) != 0, "FSOUND_SetMaxHardwareChannels", parameter);
+    error = CheckInitError(FSOUND_SetMaxHardwareChannels(parameter), "FSOUND_SetMaxHardwareChannels", parameter);
     if (error) {
-      goto done;
+      goto Done;
     }
   }
 
   if (!FSOUND_SetMemorySystem(0, 0, FSoundAllocCallback, FSoundReallocCallback, FSoundFreeCallback)) {
     error = FSOUND_GetError();
     SLogWrite(s_log, "Error: FSOUND_SetMemorySystem(NULL, 0, <SMem wrappers>) returned %i", error);
-    goto done;
+    goto Done;
   }
   SLogWrite(s_log, "memory system configured: SMem wrappers");
 
@@ -386,7 +387,7 @@ int Sound::Initialize(bool (*GetParamInt)(LPCSTR, int &), bool (*GetParamFloat)(
   if (!FSOUND_Init(params.mixRate, params.numSoftwareChannels, params.flags)) {
     error = FSOUND_GetError();
     SLogWrite(s_log, "Error: FSOUND_Init(%i, %i, %i) returned %i", params.mixRate, params.numSoftwareChannels, params.flags, error);
-    goto done;
+    goto Done;
   }
 
   s_mixRate = params.mixRate;
@@ -419,13 +420,11 @@ int Sound::Initialize(bool (*GetParamInt)(LPCSTR, int &), bool (*GetParamFloat)(
   EventRegister(EVENT_ID_IDLE, SoundIdle);
   SLogWrite(s_log, "Sound::Initialize() complete", 3.71f);
 
-  s_categoryCounts[0] = 0;
-  s_categoryCounts[1] = 0;
-  s_categoryCounts[2] = 0;
   s_globalPause = false;
   s_initialized = true;
+  memset(s_categoryCounts, 0, sizeof(s_categoryCounts));
 
-done:
+Done:
   SLogFlush(s_log);
   return error;
 }
@@ -488,125 +487,115 @@ void Sound::ProcessStopList() {
 }
 
 void Sound::ProcessFadeList() {
-  UINT   timestamp = OsGetAsyncTimeMs();
-  Sound *sound;
-  Sound *next;
+  UINT timestamp = OsGetAsyncTimeMs();
 
-  for (sound = s_soundListFade.Head(); sound; sound = next) {
-    next = s_soundListFade.Next(sound);
+  for (Sound *sound = s_soundListFade.Head(), *next;
+       (int)sound > 0 ? ((next = s_soundListFade.RawNext(sound)), 1) : 0;
+       sound = next) {
+    if (sound->m_channel != -1) {
+      ASSERT(sound->m_stream);
 
-    if (sound->m_channel == -1) {
-      continue;
-    }
+      UINT elapsed = timestamp - sound->m_fadeStartTime;
+      int  volume = static_cast<int>(elapsed * sound->m_fadeRate);
 
-    ASSERT(sound->m_stream);
+      if (sound->m_fadeRate < 0.0f) {
+        volume += sound->m_fadeVolume;
 
-    int volume = static_cast<int>(static_cast<double>(timestamp - sound->m_fadeStartTime) * sound->m_fadeRate);
-
-    if (sound->m_fadeRate < 0.0f) {
-      volume += sound->m_fadeVolume;
-      if (volume <= 0) {
-        sound->RemoveFromFadeList();
-
-        if (sound->m_flags & 0x01000000) {
+        if (volume <= 0) {
           sound->RemoveFromFadeList();
-          sound->Suspend();
-        } else if (sound->m_flags & 0x00000004) {
-          sound->Stop();
-        } else {
-          s_soundListFree.Put(sound);
+
+          if (sound->m_flags & 0x01000000) {
+            sound->RemoveFromFadeList();
+            sound->Suspend();
+          } else if (sound->m_flags & 0x00000004) {
+            sound->Stop();
+          } else {
+            s_soundListFree.Put(sound);
+          }
+
+          continue;
         }
-
-        continue;
       }
-    } else if (volume >= sound->m_fadeVolume) {
-      volume = sound->m_fadeVolume;
-      sound->RemoveFromFadeList();
-    }
 
-    sound->SetVolume(volume);
+      if (sound->m_fadeRate > 0.0f) {
+        if (volume >= sound->m_fadeVolume) {
+          volume = sound->m_fadeVolume;
+          sound->RemoveFromFadeList();
+        }
+      }
+
+      sound->SetVolume(volume);
+    }
   }
 }
 
 void Sound::ProcessUpdateList() {
-  NTempest::C3Vector soundPosition;
-  NTempest::C3Vector worldPosition;
-
   if (!m_positionUpdateCallback) {
     return;
   }
 
   ITERATELIST(Sound, s_soundListUpdate, sound) {
-    if (sound->m_channel == -1) {
-      continue;
-    }
+    if (sound->m_channel != -1) {
+      NTempest::C3Vector worldPosition;
 
-    if (m_positionUpdateCallback(sound->m_updateHandle, worldPosition)) {
-      soundPosition.x = -worldPosition.y;
-      soundPosition.y = worldPosition.z;
-      soundPosition.z = worldPosition.x;
+      if (m_positionUpdateCallback(sound->m_updateHandle, worldPosition)) {
+        sound->m_worldPosition = worldPosition;
 
-      sound->m_worldPosition = worldPosition;
-      FSOUND_3D_SetAttributes(sound->m_channel, &soundPosition.x, 0);
+        NTempest::C3Vector soundPosition;
+        soundPosition.x = -worldPosition.y;
+        soundPosition.y = worldPosition.z;
+        soundPosition.z = worldPosition.x;
+        FSOUND_3D_SetAttributes(sound->m_channel, &soundPosition.x, 0);
+      }
     }
   }
 }
 
 void Sound::ProcessPanningList(const NTempest::C3Vector &listenerPos) {
-  NTempest::C34Matrix rotate;
-  NTempest::C3Vector  soundVirtualPosition;
-  NTempest::C3Vector  cross;
-  NTempest::C3Vector  offset;
-  float               rotationAngle;
-
   ITERATELIST(Sound, s_soundListPanning, sound) {
-    if (sound->m_channel == -1) {
-      continue;
+    if (sound->m_channel != -1) {
+      float rotationAngle = min(max(0.0f, sound->m_panning), 1.0f);
+      rotationAngle *= 1.5707964f;
+      NTempest::C3Vector offset(sound->m_worldPosition.x - listenerPos.x, sound->m_worldPosition.y - listenerPos.y, 0.0f);
+
+      if (!(NTempest::CMath::fabs_(offset.x) < 0.001f && NTempest::CMath::fabs_(offset.y) < 0.001f)) {
+        NTempest::C3Vector  cross = NTempest::C3Vector::Cross(offset, NTempest::C3Vector(0.0f, 0.0f, -1.0f));
+        NTempest::C34Matrix rotate;
+
+        rotate.Rotate(rotationAngle, cross, false);
+        offset = offset * rotate;
+        offset += listenerPos;
+
+        NTempest::C3Vector soundVirtualPosition;
+        soundVirtualPosition.x = -offset.y;
+        soundVirtualPosition.y = offset.z;
+        soundVirtualPosition.z = offset.x;
+        FSOUND_3D_SetAttributes(sound->m_channel, &soundVirtualPosition.x, 0);
+      }
     }
-
-    rotationAngle = min(max(sound->m_panning, 0.0f), 1.0f) * 1.5707964f;
-    offset.x = sound->m_worldPosition.x - listenerPos.x;
-    offset.y = sound->m_worldPosition.y - listenerPos.y;
-    offset.z = 0.0f;
-
-    if (NTempest::CMath::fabs_(offset.x) < 0.001f && NTempest::CMath::fabs_(offset.y) < 0.001f) {
-      continue;
-    }
-
-    cross = NTempest::C3Vector::Cross(NTempest::C3Vector(0.0f, 0.0f, 1.0f), offset);
-    rotate.Rotate(rotationAngle, cross, false);
-    offset = offset * rotate;
-    offset.x += listenerPos.x;
-    offset.y += listenerPos.y;
-    offset.z += listenerPos.z;
-
-    soundVirtualPosition.x = -offset.y;
-    soundVirtualPosition.y = offset.z;
-    soundVirtualPosition.z = offset.x;
-    FSOUND_3D_SetAttributes(sound->m_channel, &soundVirtualPosition.x, 0);
   }
 }
 
 void Sound::ProcessCutoffList(const NTempest::C3Vector &listenerPos) {
   ITERATELIST(Sound, s_soundListCutoff, sound) {
-    NTempest::C3Vector distance = sound->m_worldPosition - listenerPos;
-
-    if (distance.SquaredMag() <= sound->m_cutoffDistanceSquared) {
+    if (!((sound->m_worldPosition - listenerPos).SquaredMag() > sound->m_cutoffDistanceSquared)) {
       if (sound->m_flags & 0x01000000) {
         sound->m_flags &= ~0x01000000U;
         sound->Resume();
 
         if (sound->m_flags & 0x80000000) {
-          sound->SetFadeIn(2.0f, sound->m_fadeVolume / 255.0f);
+          sound->SetFadeIn(2.0f, sound->m_fadeVolume * (1.0f / 255.0f));
         } else {
           sound->SetFadeIn(2.0f, sound->m_volume);
         }
       }
-    } else if (!(sound->m_flags & 0x01000000)) {
-      if (sound->m_flags & 0x04000000) {
-        sound->m_flags |= 0x01000000;
+    } else {
+      if (!(sound->m_flags & 0x01000000)) {
+        if (sound->m_flags & 0x04000000) {
+          sound->m_flags |= 0x01000000;
+        }
+        sound->Stop(2.0f);
       }
-      sound->Stop(2.0f);
     }
   }
 }
@@ -645,12 +634,12 @@ Sound *Sound::Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool st
     sound->m_channel = FSOUND_Stream_PlayEx(-1, static_cast<FSOUND_STREAM *>(sound->m_stream), 0, 0);
     if (sound->m_channel == -1) {
       s_soundListFree.Put(sound);
-      return 0;
+      sound = 0;
+    } else {
+      sound->IncrementCategory(sound->m_category);
+      sound->UpdateVolume();
+      sound->UpdatePosition();
     }
-
-    sound->IncrementCategory(sound->m_category);
-    sound->UpdateVolume();
-    sound->UpdatePosition();
   }
 
   return sound;
@@ -771,7 +760,7 @@ void Sound::KillSound(Sound *&sound) {
 void Sound::SetFadeIn(float fadeTime, float volume) {
   ASSERT(volume >= 0.0f && volume <= 1.0f);
 
-  if (m_stream && fadeTime >= 0.1f) {
+  if (m_stream && !(fadeTime < 0.1f)) {
     m_fadeVolume = static_cast<int>(volume * 255.0f);
     m_fadeRate = m_fadeVolume / (fadeTime * 1000.0f);
 
@@ -811,7 +800,7 @@ void Sound::Set3DUpdateHandle(LONGLONG handle) {
 }
 
 bool Sound::IsPlaying() {
-  if (IsSuspended()) {
+  if (m_flags & 0x00800000) {
     return true;
   }
   if (m_channel == -1) {
@@ -824,7 +813,7 @@ bool Sound::IsStopping() {
   if (!(m_flags & 0x80000000)) {
     return false;
   }
-  return m_fadeRate <= 0.0f;
+  return m_fadeRate < 0.0f;
 }
 
 bool Sound::IsOutOfRange() {
@@ -832,7 +821,7 @@ bool Sound::IsOutOfRange() {
 }
 
 void Sound::Suspend() {
-  if (IsSuspended()) {
+  if (m_flags & 0x00800000) {
     return;
   }
 
@@ -1151,7 +1140,7 @@ void Sound::AddToFadeList() {
 void Sound::RemoveFromFadeList() {
   if (m_flags & 0x80000000) {
     SetVolume(m_fadeVolume);
-    fadeLink.Unlink();
+    s_soundListFade.UnlinkNode(this);
     m_flags &= ~0x80000000;
   }
 }
@@ -1165,7 +1154,7 @@ void Sound::AddToUpdateList() {
 
 void Sound::RemoveFromUpdateList() {
   if (m_flags & 0x40000000) {
-    updateLink.Unlink();
+    s_soundListUpdate.UnlinkNode(this);
     m_flags &= ~0x40000000;
   }
 }
@@ -1179,7 +1168,7 @@ void Sound::AddToPanningList() {
 
 void Sound::RemoveFromPanningList() {
   if (m_flags & 0x20000000) {
-    panningLink.Unlink();
+    s_soundListPanning.UnlinkNode(this);
     m_flags &= ~0x20000000;
   }
 }
@@ -1193,7 +1182,7 @@ void Sound::AddToCutoffList() {
 
 void Sound::RemoveFromCutoffList() {
   if (m_flags & 0x10000000) {
-    cutoffLink.Unlink();
+    s_soundListCutoff.UnlinkNode(this);
     m_flags &= ~0x10000000;
   }
 }
@@ -1230,14 +1219,12 @@ LPCSTR Sound::GetMixerName(int index) {
 }
 
 void Sound::SetSoundVolume(float volume) {
-  volume = min(max(0.0f, volume), 1.0f);
-  s_soundVolume = volume;
+  s_soundVolume = min(max(0.0f, volume), 1.0f);
   UpdateSoundVolumes(false);
 }
 
 void Sound::SetMusicVolume(float volume) {
-  volume = min(max(0.0f, volume), 1.0f);
-  s_musicVolume = volume;
+  s_musicVolume = min(max(0.0f, volume), 1.0f);
   UpdateSoundVolumes(true);
 }
 
@@ -1247,14 +1234,13 @@ void Sound::SetMasterVolume(float volume) {
 }
 
 void Sound::MuteSFX(bool m) {
-  int    muted = m != false;
-  Sound *sound;
-  Sound *next;
+  int muted = m != false;
 
   if (muted != s_muted) {
     s_muted = muted;
-    for (sound = s_soundListActive.Head(); sound; sound = next) {
-      next = sound->link.Next();
+    for (Sound *sound = s_soundListActive.Head(), *next;
+         (int)sound > 0 ? ((next = s_soundListActive.RawNext(sound)), 1) : 0;
+         sound = next) {
       if (sound->m_channel != -1 && !(sound->m_flags & 0x00000002)) {
         FSOUND_SetMute(sound->m_channel, s_muted);
       }
@@ -1263,12 +1249,10 @@ void Sound::MuteSFX(bool m) {
 }
 
 void Sound::UpdateSoundVolumes(bool music) {
-  Sound *sound;
-  Sound *next;
-
-  for (sound = s_soundListActive.Head(); sound; sound = next) {
-    next = sound->link.Next();
-    if (sound->m_channel != -1 && ((sound->m_flags & 0x00000002) != 0) == music) {
+  for (Sound *sound = s_soundListActive.Head(), *next;
+       (int)sound > 0 ? ((next = s_soundListActive.RawNext(sound)), 1) : 0;
+       sound = next) {
+    if (sound->m_channel != -1 && music == ((sound->m_flags & 0x00000002) != 0)) {
       sound->UpdateVolume();
     }
   }
@@ -1286,8 +1270,10 @@ bool Sound::DupeCheckFailed(SOUNDCATEGORIES category, LPCSTR fileName, int flags
   if (flags & 0x1) {
     UINT filenameHash = SStrHash(fileName, 0, 0);
 
-    ITERATELIST(Sound, s_soundListActive, sound) {
-      if (sound->m_fileNameHashed == filenameHash && (!(sound->m_flags & 0x80000000) || (sound->m_flags & 0x01000000))) {
+    for (Sound *sound = s_soundListActive.Head(), *next;
+         (int)sound > 0 ? ((next = s_soundListActive.RawNext(sound)), 1) : 0;
+         sound = next) {
+      if (filenameHash == sound->m_fileNameHashed && (!(sound->m_flags & 0x80000000) || (sound->m_flags & 0x01000000))) {
         return true;
       }
     }

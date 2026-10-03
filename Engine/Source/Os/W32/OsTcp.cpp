@@ -3556,24 +3556,21 @@ namespace OsNet {
 
       if (sent != SOCKET_ERROR && sent >= static_cast<int>(poutput->m_bytes)) {
         CompleteWrite(&poutput->m_overlap, poutput->m_bytes);
-        continue;
-      }
-
-      if (sent != SOCKET_ERROR) {
-        memmove(poutput->m_data, &poutput->m_data[sent], poutput->m_bytes - sent);
-        poutput->m_bytes -= sent;
-        m_lock.Leave();
-        return;
-      }
-
-      int error = WSAGetLastError();
-      if (error != WSAEWOULDBLOCK) {
-        if (error != WSAECONNABORTED && error != WSAECONNRESET) {
-          TCPNET::LogWrite("%s 2", OSNETERR_SENDFAILED);
+      } else {
+        if (sent != INVALID_SOCKET) {
+          memmove(poutput->m_data, &poutput->m_data[sent], poutput->m_bytes - sent);
+          poutput->m_bytes -= sent;
+        } else {
+          int error = WSAGetLastError();
+          if (error != WSAEWOULDBLOCK) {
+            if (error != WSAECONNABORTED && error != WSAECONNRESET) {
+              TCPNET::LogWrite("%s 2", OSNETERR_SENDFAILED);
+            }
+            Close();
+          }
         }
-        Close();
+        break;
       }
-      break;
     }
 
     m_lock.Leave();

@@ -49,7 +49,7 @@ static void IReadTriangleIndices(Parser &parse, TSGrowableArray<WORD> *triIndice
   }
   parse.Expect('}', savedtoken, tokentext);
   if (count >= 0 && actual != count) {
-    parse.WarningCount("collision triangles", count, actual);
+    parse.WarningCount("collision triangle indices", count, actual);
   }
 }
 
@@ -108,11 +108,11 @@ BOOL MDL::ReadBinCollision(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStat
   if (!length) {
     return 1;
   }
-  if (!ReadBinC3VectorSection(buf, 'XTRV', "Vertex", &data.collision.vertices, &totalRead, status)) {
+  if (!ReadBinC3VectorSection(buf, 'XTRV', "vertex", &data.collision.vertices, &totalRead, status)) {
     return 0;
   }
   if (buf.GetDword() != ' IRT') {
-    status->Add(STATUS_ERROR, "Invalid %s section detected in model.\n", "Triangle Index");
+    status->Add(STATUS_ERROR, "Invalid %s section.\n", "triangle index");
     return 0;
   }
   UINT count = buf.GetUint();
@@ -122,11 +122,11 @@ BOOL MDL::ReadBinCollision(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStat
     buf.GetWordArray(data.collision.triIndices.Ptr(), count);
     totalRead += 2 * count;
   }
-  if (!ReadBinC3VectorSection(buf, 'SMRN', "Facet Normal", &data.collision.facetNormals, &totalRead, status)) {
+  if (!ReadBinC3VectorSection(buf, 'SMRN', "facet normal", &data.collision.facetNormals, &totalRead, status)) {
     return 0;
   }
   if (totalRead > length) {
-    status->FatalOverran("Collision Section", -1);
+    status->FatalOverran("Collision section overran read buffer.\n", -1);
     return 0;
   }
   return totalRead >= length;

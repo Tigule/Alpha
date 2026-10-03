@@ -251,7 +251,7 @@ void CGCorpse_C::AddComponents() {
 }
 
 void CGCorpse_C::AddComponent(int displayID, UINT inventoryType, int slot, int commit) {
-  FATALASSERT(inventoryType < 27);
+  FATALASSERT(inventoryType < INDEX_NUMSLOTS);
   if (slot == 17) {
     return;
   }

@@ -43,22 +43,18 @@ void CMapObj::Destroy() {
 }
 
 void CMapObj::ClearCache(int force) {
-  CMapObj *mapObj = mapObjHash.Head();
-  CMapObj *mapObjnext_node;
-
-  (void)force;
-  while (mapObj) {
-    mapObjnext_node = mapObjHash.Next(mapObj);
+  for (CMapObj *mapObj = mapObjHash.Head(), *mapObjnext_node; (int)mapObj > 0 ? (mapObjnext_node = mapObjHash.Next(mapObj), 1) : 0;
+       mapObj = mapObjnext_node)
+  {
     if (!mapObj->refCount) {
       mapObjHash.Unlink(mapObj);
       CMap::FreeMapObj(mapObj);
     }
-    mapObj = mapObjnext_node;
   }
 }
 
 CMapObj *CMapObj::Create(LPCSTR fileName) {
-  UINT     mapObjId = SStrHashHT(fileName);
+  UINT     mapObjId = SStrHash(fileName, 0, 0);
   CMapObj *mapObj = mapObjHash.Ptr(mapObjId, nullHashKey);
   if (mapObj) {
     ++mapObj->refCount;
@@ -92,18 +88,18 @@ CMapObj::~CMapObj() {
 void CMapObj::Init() {
   aaBox.b.Set(0.0f, 0.0f, 0.0f);
   aaBox.t.Set(0.0f, 0.0f, 0.0f);
-  InitPtrs();
   file = 0;
+  refCount = 0;
   data = 0;
   dataBytes = 0;
-  refCount = 0;
-  flushTime = 0.0f;
   asyncObject = 0;
+  flushTime = 0.0f;
   bLoaded = 0;
+  nGroupsRead = 0;
   materialList = 0;
   materialCount = 0;
-  nGroupsRead = 0;
   groupPtrList.SetCount(0);
+  InitPtrs();
 }
 
 void CMapObj::InitPtrs() {
@@ -207,11 +203,7 @@ bool CMapObj::VectorIntersect(
 
     CWTriData triData;
     if (group->GetTris(triData, NTempest::C3Segment(*v0, *v1), *dist, mapObjDef, polyIgnoreFlags)) {
-      FATALASSERT(triData.GetNumBatches());
-      UINT polyIndex = triData.GetBatch(0).triIndices[0];
-      FATALASSERT(polyIndex < group->polyCount);
-      FATALASSERT(group->polyList);
-      hitPoly = &group->polyList[polyIndex];
+      hitPoly = group->GetPoly(triData.GetBatch(0).triIndices[0]);
       hit = true;
     }
 
@@ -229,8 +221,9 @@ bool CMapObj::VectorIntersect(
   return hit;
 }
 
-bool CMapObj::GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, UINT queryFlags) {
-  UINT ignoreFlags = 0x80;
+bool CMapObj::GetTris(CWTriData &tris, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, UINT queryFlags) {
+  bool hit = false;
+  WORD ignoreFlags = 0x80;
   if (queryFlags & 0x10) {
     ignoreFlags = 0x84;
   }
@@ -238,20 +231,21 @@ bool CMapObj::GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const C
     ignoreFlags |= 0x08;
   }
 
-  bool hit = false;
-  for (UINT i = 0; i < groupCount; ++i) {
-    if (groupInfoList[i].aaBox.b <= aaBox.t && groupInfoList[i].aaBox.t >= aaBox.b) {
+  SMOGroupInfo *groupInfo = groupInfoList;
+  for (UINT i = 0; i < groupCount; ++i, ++groupInfo) {
+    if (aaBox.Intersects(groupInfo->aaBox)) {
       CMapObjGroup *group = GetGroup(i, 0);
       if (group) {
-        hit |= group->GetTris(triData, aaBox, mapObjDef, ignoreFlags);
+        hit |= group->GetTris(tris, aaBox, mapObjDef, ignoreFlags);
       }
     }
   }
   return hit;
 }
 
-bool CMapObj::GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, UINT queryFlags) {
-  UINT ignoreFlags = 0x80;
+bool CMapObj::GetTris(CWTriData &tris, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, UINT queryFlags) {
+  bool hit = false;
+  WORD ignoreFlags = 0x80;
   if (queryFlags & 0x10) {
     ignoreFlags = 0x84;
   }
@@ -259,20 +253,21 @@ bool CMapObj::GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float 
     ignoreFlags |= 0x08;
   }
 
-  bool hit = false;
-  for (UINT i = 0; i < groupCount; ++i) {
-    if (CWorldMath::VectorIntersectAABox2(groupInfoList[i].aaBox, seg)) {
+  SMOGroupInfo *groupInfo = groupInfoList;
+  for (UINT i = 0; i < groupCount; ++i, ++groupInfo) {
+    if (CWorldMath::VectorIntersectAABox2(groupInfo->aaBox, seg.start, seg.end)) {
       CMapObjGroup *group = GetGroup(i, 0);
       if (group) {
-        hit |= group->GetTris(triData, seg, maxT, mapObjDef, ignoreFlags);
+        hit |= group->GetTris(tris, seg, maxT, mapObjDef, ignoreFlags);
       }
     }
   }
   return hit;
 }
 
-bool CMapObj::GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, UINT queryFlags) {
-  UINT ignoreFlags = 0x80;
+bool CMapObj::GetTris(CWTriData &tris, const CWFrustum &frustum, const CMapObjDef *mapObjDef, UINT queryFlags) {
+  bool hit = false;
+  WORD ignoreFlags = 0x80;
   if (queryFlags & 0x10) {
     ignoreFlags = 0x84;
   }
@@ -281,12 +276,12 @@ bool CMapObj::GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapOb
   }
 
   NTempest::CAaBox frustumBox = NTempest::CAaBox::Bounding(frustum.corners, 8);
-  bool             hit = false;
-  for (UINT i = 0; i < groupCount; ++i) {
-    if (groupInfoList[i].aaBox.b <= frustumBox.t && groupInfoList[i].aaBox.t >= frustumBox.b) {
+  SMOGroupInfo *groupInfo = groupInfoList;
+  for (UINT i = 0; i < groupCount; ++i, ++groupInfo) {
+    if (frustumBox.Intersects(groupInfo->aaBox)) {
       CMapObjGroup *group = GetGroup(i, 0);
       if (group) {
-        hit |= group->GetTris(triData, frustum, mapObjDef, ignoreFlags);
+        hit |= group->GetTris(tris, frustum, mapObjDef, ignoreFlags);
       }
     }
   }
@@ -294,8 +289,8 @@ bool CMapObj::GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapOb
 }
 
 bool CMapObj::VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT, UINT groupIDs[]) {
-  NTempest::C3Vector dir = seg.end - seg.start;
-  float              dirMag = dir.Mag();
+  NTempest::C3Vector dir = seg.Direction();
+  float              dirMag = NTempest::CMath::sqrt_(dir.SquaredMag());
   float              oodirMag = 1.0f / dirMag;
   NTempest::C3Ray    ray(seg.start, dir * oodirMag);
   float              rayT = dirMag * maxT;
@@ -316,29 +311,27 @@ bool CMapObj::VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT
       const SMOPortal   *portal = &portalList[portalRef->portalIndex];
       NTempest::C3Vector point(0.0f);
       float              thisT;
-      if (!NTempest::Intersect(ray, portal->plane, &thisT, &point) || thisT < 0.0f || thisT > rayT ||
-          !NTempest::Intersect(point, &portalVertexList[portal->startVertex], portal->count, portal->plane.n.MajorAxis()))
+      if (NTempest::Intersect(ray, portal->plane, &thisT, &point) && thisT >= 0.0f && thisT <= rayT &&
+          NTempest::Intersect(point, &portalVertexList[portal->startVertex], portal->count, portal->plane.n.MajorAxis()))
       {
-        continue;
-      }
-
-      hit = true;
-      rayT = thisT;
-      if (portal->plane.DistSigned(seg.start) < 0.0f) {
-        if (portalRef->side > 0) {
-          groupIDs[0] = portalRef->groupIndex;
-          groupIDs[1] = i;
+        hit = true;
+        rayT = thisT;
+        if (portal->plane.DistSigned(seg.start) >= 0.0f) {
+          if (portalRef->side <= 0) {
+            groupIDs[0] = portalRef->groupIndex;
+            groupIDs[1] = i;
+          } else {
+            groupIDs[0] = i;
+            groupIDs[1] = portalRef->groupIndex;
+          }
         } else {
-          groupIDs[0] = i;
-          groupIDs[1] = portalRef->groupIndex;
-        }
-      } else {
-        if (portalRef->side <= 0) {
-          groupIDs[0] = portalRef->groupIndex;
-          groupIDs[1] = i;
-        } else {
-          groupIDs[0] = i;
-          groupIDs[1] = portalRef->groupIndex;
+          if (portalRef->side > 0) {
+            groupIDs[0] = portalRef->groupIndex;
+            groupIDs[1] = i;
+          } else {
+            groupIDs[0] = i;
+            groupIDs[1] = portalRef->groupIndex;
+          }
         }
       }
     }
@@ -352,26 +345,23 @@ bool CMapObj::VectorIntersectPortals(const NTempest::C3Segment &seg, float &maxT
 
 bool CMapObj::VectorIntersectPortal(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, UINT fromGroup, UINT &toGroup) {
   CMapObjGroup *group = GetGroup(fromGroup, 0);
-  if (!group) {
-    toGroup = 0xFFFF;
-    return false;
-  }
-
-  NTempest::C3Vector rayOrig = v0;
-  NTempest::C3Vector rayDir = v1 - v0;
-  float              dist = FLT_MAX;
-  SMOPortalRef      *portalRef = &portalRefList[group->portalStart];
-  for (UINT i = 0; i < group->portalCount; ++i, ++portalRef) {
-    const SMOPortal *portal = &portalList[portalRef->portalIndex];
-    for (UINT j = 1; j < portal->count - 1; ++j) {
-      if (CWorldMath::RayIntersectTri(
-              rayOrig, rayDir, portalVertexList[portal->startVertex], portalVertexList[portal->startVertex + j],
-              portalVertexList[portal->startVertex + j + 1], dist
-          ) &&
-          dist >= 0.0f && dist <= 1.0f)
-      {
-        toGroup = portalRef->groupIndex;
-        return true;
+  if (group) {
+    NTempest::C3Vector rayOrig = v0;
+    NTempest::C3Vector rayDir = v1 - v0;
+    float              dist = FLT_MAX;
+    SMOPortalRef      *portalRef = &portalRefList[group->portalStart];
+    for (UINT i = 0; i < group->portalCount; ++i, ++portalRef) {
+      const SMOPortal *portal = &portalList[portalRef->portalIndex];
+      for (WORD j = 1; j < portal->count - 1; ++j) {
+        if (CWorldMath::RayIntersectTri(
+                rayOrig, rayDir, portalVertexList[portal->startVertex], portalVertexList[portal->startVertex + j],
+                portalVertexList[portal->startVertex + j + 1], dist
+            ) &&
+            !(dist < 0.0f) && !(dist > 1.0f))
+        {
+          toGroup = portalRef->groupIndex;
+          return true;
+        }
       }
     }
   }
@@ -399,12 +389,12 @@ bool CMapObj::IsGroupLoading(UINT index) {
 }
 
 void CMapObj::GetBounds(NTempest::CAaSphere &aaSphere) {
-  if (bLoaded) {
-    aaSphere.c = (aaBox.b + aaBox.t) * 0.5f;
-    aaSphere.r = (aaBox.t - aaSphere.c).Mag();
-  } else {
-    aaSphere.c.Set(0.0f, 0.0f, 0.0f);
+  if (!bLoaded) {
+    aaSphere.c = NTempest::C3Vector(0.0f);
     aaSphere.r = 0.0f;
+  } else {
+    aaSphere.c = aaBox.Center();
+    aaSphere.r = (aaBox.t - aaSphere.c).Mag();
   }
 }
 
@@ -418,13 +408,13 @@ void CMapObj::GetBounds(NTempest::CAaBox &aaBox) {
 }
 
 void CMapObj::GetGroupBounds(NTempest::CAaSphere &aaSphere, UINT index) {
-  if (bLoaded) {
-    SMOGroupInfo *info = &groupInfoList[index];
-    aaSphere.c = (info->aaBox.b + info->aaBox.t) * 0.5f;
-    aaSphere.r = (info->aaBox.t - aaSphere.c).Mag();
-  } else {
-    aaSphere.c.Set(0.0f, 0.0f, 0.0f);
+  if (!bLoaded) {
+    aaSphere.c = NTempest::C3Vector(0.0f);
     aaSphere.r = 0.0f;
+  } else {
+    SMOGroupInfo *info = &groupInfoList[index];
+    aaSphere.c = info->aaBox.Center();
+    aaSphere.r = (info->aaBox.t - aaSphere.c).Mag();
   }
 }
 
@@ -452,7 +442,7 @@ bool CMapObj::TestBounds(const NTempest::CAaBox &box) {
     return false;
   }
 
-  return box.b <= aaBox.t && box.t >= aaBox.b;
+  return aaBox.Intersects(box) != 0;
 }
 
 bool CMapObj::TestBounds(const NTempest::C3Vector &point) {
@@ -460,16 +450,21 @@ bool CMapObj::TestBounds(const NTempest::C3Vector &point) {
     return false;
   }
 
-  return point >= aaBox.b && point <= aaBox.t;
+  return aaBox.Contains(point) != 0;
 }
 
 bool CMapObj::TestBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1) {
-  return bLoaded && CWorldMath::VectorIntersectAABox2(aaBox, v0, v1);
+  if (!bLoaded) {
+    return false;
+  }
+
+  return CWorldMath::VectorIntersectAABox2(aaBox, v0, v1) != 0;
 }
 
 bool CMapObj::TestGroupBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, UINT index) {
   if (bLoaded && IsGroupLoaded(index)) {
-    return CWorldMath::VectorIntersectAABox2(groupInfoList[index].aaBox, v0, v1);
+    SMOGroupInfo *info = &groupInfoList[index];
+    return CWorldMath::VectorIntersectAABox2(info->aaBox, v0, v1) != 0;
   }
 
   return 0;
@@ -480,7 +475,7 @@ bool CMapObj::TestGroupBounds(const NTempest::CAaBox &box, const UINT index) {
     return false;
   }
 
-  return box.b <= groupInfoList[index].aaBox.t && box.t >= groupInfoList[index].aaBox.b;
+  return groupInfoList[index].aaBox.Intersects(box) != 0;
 }
 
 bool CMapObj::TestGroupBounds(const NTempest::C3Vector &point, const UINT index) {
@@ -488,7 +483,7 @@ bool CMapObj::TestGroupBounds(const NTempest::C3Vector &point, const UINT index)
     return false;
   }
 
-  return point >= groupInfoList[index].aaBox.b && point <= groupInfoList[index].aaBox.t;
+  return groupInfoList[index].aaBox.Contains(point) != 0;
 }
 
 bool CMapObj::TestConvexVolume(const NTempest::C3Vector &point) {
@@ -528,10 +523,12 @@ void CMapObj::ReadGroup(UINT index) {
 }
 
 void CMapObj::WaitLoad() {
-  if (version != 14) {
+  if (fileHeader.version != 14) {
     OsOutputDebugString("CMapObj::WaitLoad(): %s wrong version\n", name);
+    FATALASSERT(asyncObject);
+  } else {
+    FATALASSERT(asyncObject);
   }
-  FATALASSERT(asyncObject);
 
   OsOutputDebugString("CMapObj::WaitLoad()\n");
   while (asyncObject) {
@@ -568,15 +565,14 @@ const SMOGroupInfo *CMapObj::GetGroupInfo(UINT index) {
 }
 
 bool CMapObj::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color, float *t) {
-  NTempest::CAaBox gbox;
-  CWTriData        triData;
+  float            hitT = 1.0f;
   WORD             hitPoly = 0;
   CMapObjGroup    *hitGroup = 0;
+  NTempest::CAaBox gbox;
   UINT             grouplp;
-  float            hitT = 1.0f;
 
   for (grouplp = 0; grouplp < groupCount; ++grouplp) {
-    gbox = groupInfoList[grouplp].aaBox;
+    GetGroupBounds(gbox, grouplp);
     if (!CWorldMath::VectorIntersectAABox2(gbox, seg)) {
       continue;
     }
@@ -586,31 +582,24 @@ bool CMapObj::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector 
       continue;
     }
 
-    triData.Clear();
-    float thisT = hitT;
+    CWTriData triData;
+    float     thisT = hitT;
     if (group->GetTris(triData, seg, thisT, 0, 8)) {
       hitT = thisT;
-      FATALASSERT(triData.GetNumBatches());
       hitPoly = triData.GetBatch(0).triIndices[0];
       hitGroup = group;
     }
   }
 
-  if (!hitGroup) {
-    return false;
+  if (hitGroup) {
+    hitGroup->QueryLightmap(seg.Point(hitT), hitPoly, color);
+    if (t) {
+      *t = hitT;
+    }
+    return true;
   }
 
-  hitGroup->QueryLightmap(
-      NTempest::C3Vector(
-          seg.start.x + (seg.end.x - seg.start.x) * hitT, seg.start.y + (seg.end.y - seg.start.y) * hitT,
-          seg.start.z + (seg.end.z - seg.start.z) * hitT
-      ),
-      hitPoly, color
-  );
-  if (t) {
-    *t = hitT;
-  }
-  return true;
+  return false;
 }
 
 bool CMapObj::QueryLiquidStatus(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, UINT &liquid, float &surface, NTempest::C3Vector &dir) {
@@ -668,7 +657,7 @@ UINT CMapObj::GetDoodadSet(UINT doodadIndex) {
 }
 
 static int NearestPow2(float value) {
-  return static_cast<int>(ceil(log(value) / log(2.0f)));
+  return static_cast<int>(ceil(log10f(value) / log10f(2.0f)));
 }
 
 void CMapObj::QueryMapObjMinimapGroup(UINT groupID, UINT parentID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads) {
@@ -683,30 +672,27 @@ void CMapObj::QueryMapObjMinimapGroup(UINT groupID, UINT parentID, const NTempes
   }
 
   group->QueryMinimap(groupID, localBox, quads);
-  for (UINT i = 0; i < group->portalCount; ++i) {
-    SMOPortalRef *portalRef = &portalRefList[group->portalStart + i];
-    UINT          toGroupID = portalRef->groupIndex;
-    if (toGroupID == 0xFFFF || toGroupID == parentID) {
+  SMOPortalRef *portalRef = &portalRefList[group->portalStart];
+  for (UINT i = 0; i < group->portalCount; ++i, ++portalRef) {
+    if (portalRef->groupIndex == 0xFFFF) {
       continue;
     }
 
-    SMOPortal *portal = &portalList[portalRef->portalIndex];
-    UINT       clipFlags = ~0u;
-    for (UINT vertex = 0; vertex < portal->count; ++vertex) {
-      const NTempest::C3Vector &point = portalVertexList[portal->startVertex + vertex];
-      UINT                      pointFlags = 0;
-      if (point.x < localBox.b.x)
-        pointFlags |= 0x01;
-      if (point.y < localBox.b.y)
-        pointFlags |= 0x02;
-      if (point.z < localBox.b.z)
-        pointFlags |= 0x04;
-      if (point.x > localBox.t.x)
-        pointFlags |= 0x08;
-      if (point.y > localBox.t.y)
-        pointFlags |= 0x10;
-      if (point.z > localBox.t.z)
-        pointFlags |= 0x20;
+    UINT toGroupID = portalRef->groupIndex;
+    if (toGroupID == parentID) {
+      continue;
+    }
+
+    SMOPortal                *portal = &portalList[portalRef->portalIndex];
+    UINT                      clipFlags = 0xFFFFFFFF;
+    const NTempest::C3Vector *point = &portalVertexList[portal->startVertex];
+    for (UINT vertex = 0; vertex < portal->count; ++vertex, ++point) {
+      UINT pointFlags = static_cast<UINT>(NTempest::CMath::realasint32_(point->x - localBox.b.x)) >> 31;
+      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(point->y - localBox.b.y)) >> 31 << 1;
+      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(point->z - localBox.b.z)) >> 31 << 2;
+      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(localBox.t.x - point->x)) >> 31 << 3;
+      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(localBox.t.y - point->y)) >> 31 << 4;
+      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(localBox.t.z - point->z)) >> 31 << 5;
       clipFlags &= pointFlags;
     }
 
@@ -738,29 +724,25 @@ void CMapObjGroup::QueryMinimap(UINT groupID, const NTempest::CAaBox &localBox, 
     return;
   }
 
-  NTempest::C3Vector  center((aaBox.b.x + aaBox.t.x) * 0.5f, (aaBox.b.y + aaBox.t.y) * 0.5f, (aaBox.b.z + aaBox.t.z) * 0.5f);
-  NTempest::C3Vector  blockSize((aaBox.t.x - aaBox.b.x) / 128.0f, (aaBox.t.y - aaBox.b.y) / 128.0f, 0.0f);
-  NTempest::C2iVector nTex;
-  int                 tex = 1 << NearestPow2(blockSize.y * 256.0f);
-  nTex.y = tex < 32 ? 32 : (tex >= 256 ? 256 : tex);
-  tex = 1 << NearestPow2(blockSize.x * 256.0f);
-  nTex.x = tex < 32 ? 32 : (tex >= 256 ? 256 : tex);
+  NTempest::C3Vector center = aaBox.Center();
+  NTempest::C2Vector nQuads(aaBox.t.x - aaBox.b.x, aaBox.t.y - aaBox.b.y);
+  nQuads /= WMOMM_QUAD_SIZE;
 
-  NTempest::C2Vector nQuads(static_cast<float>(ceil(blockSize.x)), static_cast<float>(ceil(blockSize.y)));
-  blockSize.x = nTex.x * 0.5f;
-  blockSize.y = nTex.y * 0.5f;
+  UINT                height = max(32, min(1u << NearestPow2(nQuads.y * 256.0f), 256));
+  UINT                width = max(32, min(1u << NearestPow2(nQuads.x * 256.0f), 256));
+  NTempest::C2iVector nTex(NTempest::CMath::ftol_0_256_(ceilf(nQuads.x)), NTempest::CMath::ftol_0_256_(ceilf(nQuads.y)));
+  NTempest::C3Vector  blockSize(width * WMOMM_INCHES_PER_PIXEL, height * WMOMM_INCHES_PER_PIXEL, 0.0f);
+  NTempest::C2iVector quad;
 
-  for (int y = 0; y < static_cast<int>(nQuads.y); ++y) {
-    for (int x = 0; x < static_cast<int>(nQuads.x); ++x) {
-      NTempest::CAaBox quadBox;
-      quadBox.b = NTempest::C3Vector(aaBox.b.x + x * blockSize.x, aaBox.b.y + y * blockSize.y, center.z);
-      quadBox.t = NTempest::C3Vector(quadBox.b.x + blockSize.x, quadBox.b.y + blockSize.y, center.z);
+  for (quad.y = 0; quad.y < nTex.y; ++quad.y) {
+    for (quad.x = 0; quad.x < nTex.x; ++quad.x) {
+      NTempest::C3Vector corner(quad.x * blockSize.x + aaBox.b.x, quad.y * blockSize.y + aaBox.b.y, center.z);
+      NTempest::CAaBox   quadBox(corner, NTempest::C3Vector(corner.x + blockSize.x, corner.y + blockSize.y, corner.z));
       if (localBox.b.x <= quadBox.t.x && localBox.b.y <= quadBox.t.y && localBox.t.x >= quadBox.b.x && localBox.t.y >= quadBox.b.y) {
-        CWorld::MinimapQuad *quad = quads.New();
-        quad->groupNum = groupID;
-        quad->quad.x = x;
-        quad->quad.y = y;
-        quad->aaBox = quadBox;
+        CWorld::MinimapQuad *result = quads.New();
+        result->quad = quad;
+        result->groupNum = groupID;
+        result->aaBox = quadBox;
       }
     }
   }

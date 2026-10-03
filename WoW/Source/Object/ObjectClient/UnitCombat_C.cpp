@@ -94,6 +94,7 @@ static BYTE                               s_didHitConnect[NUM_VICTIMSTATES] = {0
 static ANIM_STATE                         s_attackAnimHitStates[NUMHANDS] = {ANIM_STATE_ATTACK_HIT, ANIM_STATE_ATTACKOFF_HIT};
 static ANIM_STATE                         s_attackAnimMissStates[NUMHANDS] = {ANIM_STATE_ATTACK_MISS, ANIM_STATE_ATTACKOFF_MISS};
 static const ANIMENUMERATION              s_unarmedSequences[NUMHANDS] = {ANIM_ATTACKUNARMED, ANIM_ATTACKUNARMEDOFF};
+static int                                COMBATSWINGIGNORES = (1 << VS_DODGE) | (1 << VS_PARRY) | (1 << VS_BLOCK) | (1 << VS_EVADE) | (1 << VS_IMMUNE);
 static const struct {
   LPCSTR          animName;
   ANIMENUMERATION anim;
@@ -145,12 +146,12 @@ static void LoadAnimKitTable() {
     if (!kit) {
       kit = s_animKitTable.New(rec->m_ItemSubclassID, s_nullHashKey, 0, 0);
     }
-    FATALASSERT(rec->m_WhichHand < NUMHANDS);
-    WEAPONHANDCHANCES &chancesStruct = kit->chancesArray[rec->m_WhichHand];
-    CHANCES           *chance = chancesStruct.chances.New();
+    UINT whichHand = rec->m_WhichHand;
+    FATALASSERT(whichHand < NUMHANDS);
+    CHANCES *chance = kit->chancesArray[whichHand].chances.New();
     chance->frequency = rec->m_AnimFrequency;
     chance->seq = FindAnimation(rec->m_AnimTypeID);
-    chancesStruct.total += rec->m_AnimFrequency;
+    kit->chancesArray[whichHand].total += rec->m_AnimFrequency;
   }
 }
 
@@ -222,14 +223,17 @@ void SPELLLOG::PI(CDataStore &msg, int debug) const {
 
 void SPELLLOG::UI(CDataStore &msg) {
   msg.Get(flags);
-  msg.Get(attacker);
-  msg.Get(victim);
-  msg.Get(spellID);
   if (flags & 0x200) {
+    msg.Get(attacker);
+    msg.Get(victim);
+    msg.Get(spellID);
     FATALASSERT(attacker);
     return;
   }
 
+  msg.Get(attacker);
+  msg.Get(victim);
+  msg.Get(spellID);
   msg.Get(dmg.totalDamage);
   msg.Get(dmg.damageFloat[0]);
   msg.Get(dmg.damageType[0]);
@@ -414,7 +418,9 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
         unit->OnBadAttackFacing(victim);
       } else if (msgId == SMSG_ATTACKSWING_NOTSTANDING) {
         unit->OnNotStanding(victim);
-      } else {
+      } else if (msgId == SMSG_ATTACKSWING_DEADTARGET) {
+        unit->OnBadAttackTarget(victim);
+      } else if (msgId == SMSG_ATTACKSWING_CANT_ATTACK) {
         unit->OnBadAttackTarget(victim);
       }
       return 0;
@@ -658,12 +664,12 @@ BOOL CGUnit_C::SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int proces
   HMODEL model = m_model;
   if (ModelGetSequenceDuration(model, sequence, &seqDuration)) {
     UINT random = NTempest::CMath::mulhwu_(NTempest::CRandom::uint32_(g_rndSeed), 16);
-    UINT scaledDuration = NTempest::CMath::fuint_n((random + 85.0f) * seqDuration * 0.01f);
-    UINT attackTime = m_unit->attackRoundBaseTime[(roundInfo->flags >> 9) & 1];
+    UINT scaledDuration = NTempest::CMath::fint_((random + 85.0f) * seqDuration * 0.01f);
+    UINT attackTime = GetAttackRoundTime(static_cast<COMBATHAND>((roundInfo->flags >> 9) & 1));
     if (scaledDuration >= attackTime) {
       scaledDuration = attackTime;
     }
-    ModelSetObjectTimeScale(model, 0, static_cast<float>(seqDuration) / static_cast<float>(scaledDuration), 0);
+    ModelSetObjectTimeScale(model, 4, static_cast<float>(seqDuration) / static_cast<float>(scaledDuration), 0);
   }
   return 1;
 }
@@ -696,40 +702,39 @@ UINT CGUnit_C::GetAttackerAnimEx(COMBATHAND hand, const VirtualItemInfo *itemInf
 
 UINT CGUnit_C::DetermineAttackerSequence(COMBATHAND hand) const {
   FATALASSERT(hand < NUMHANDS);
-  static const ANIMENUMERATION s_anims[WEAPONATTACKSEQ_RIFLE + 1] = {
-      ANIM_ATTACK2HTIGHT, ANIM_ATTACK2HLOOSE, ANIM_ATTACKBOW, ANIM_ATTACK1H, ANIM_ATTACKRIFLE
+  static ANIMENUMERATION s_anims[NUM_WEAPONATTACKSEQS] = {
+      ANIM_ATTACK2HTIGHT, ANIM_ATTACK2HLOOSE, ANIM_ATTACKBOW, ANIM_ATTACK1H, ANIM_ATTACKRIFLE, ANIM_ATTACKTHROWN
   };
 
-  const VirtualItemInfo *itemInfo = GetVirtualItem(g_monsterHands[hand], 0);
+  const VirtualItemInfo *virtualItem = GetVirtualItem(g_monsterHands[hand], 0);
 
-  if (!itemInfo || itemInfo->m_classID != 2) {
-    UINT sequence = s_unarmedSequences[hand];
-    if (!ModelHasSequenceId(m_model, sequence)) {
-      PrintAttackSeqErrorMsg(sequence, ANIM_ATTACK1H);
-      return ANIM_ATTACK1H;
+  if (virtualItem && virtualItem->m_classID == 2) {
+    UINT sequence = GetAttackerAnimEx(hand, virtualItem);
+    if (sequence == INVALID_ANIMATION || !ModelHasSequenceId(GetObjectModel(), sequence)) {
+      WEAPONATTACKSEQ weaponSeq = ClientDBGetWeaponSubclassWeaponSeq(virtualItem->m_subclassID);
+      if ((weaponSeq >= WEAPONATTACKSEQ_2HTIGHT && weaponSeq <= WEAPONATTACKSEQ_BOW) || weaponSeq == WEAPONATTACKSEQ_RIFLE) {
+        sequence = s_anims[weaponSeq];
+      } else {
+        sequence = hand == COMBAT_MAINHAND ? ANIM_ATTACK1H : ANIM_ATTACKOFF;
+      }
     }
-    return sequence;
-  }
 
-  UINT sequence = GetAttackerAnimEx(hand, itemInfo);
-  if (sequence == INVALID_ANIMATION || !ModelHasSequenceId(m_model, sequence)) {
-    WEAPONATTACKSEQ weaponSeq = ClientDBGetWeaponSubclassWeaponSeq(itemInfo->m_subclassID);
-    if (weaponSeq <= WEAPONATTACKSEQ_BOW || weaponSeq == WEAPONATTACKSEQ_RIFLE) {
-      sequence = s_anims[weaponSeq];
-    } else {
-      sequence = hand == COMBAT_MAINHAND ? ANIM_ATTACK1H : ANIM_ATTACKOFF;
+    if (ModelHasSequenceId(GetObjectModel(), sequence)) {
+      return sequence;
     }
-  }
-
-  if (!ModelHasSequenceId(m_model, sequence)) {
     PrintAttackSeqErrorMsg(sequence, ANIM_ATTACKUNARMED);
     return ANIM_ATTACKUNARMED;
   }
-  return sequence;
+
+  if (!ModelHasSequenceId(GetObjectModel(), s_unarmedSequences[hand])) {
+    PrintAttackSeqErrorMsg(s_unarmedSequences[hand], ANIM_ATTACK1H);
+    return ANIM_ATTACK1H;
+  }
+  return s_unarmedSequences[hand];
 }
 
 UINT CGUnit_C::DetermineParrySequence() const {
-  static const ANIMENUMERATION s_anims[NUM_WEAPONPARRYSEQS] = {ANIM_PARRY2HTIGHT, ANIM_PARRY2HLOOSE, ANIM_PARRY1H, ANIM_STAND};
+  static ANIMENUMERATION s_anims[NUM_WEAPONPARRYSEQS] = {ANIM_PARRY2HTIGHT, ANIM_PARRY2HLOOSE, ANIM_PARRY1H, ANIM_STAND};
 
   const VirtualItemInfo *itemInfo = GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, 0);
   if (!itemInfo || itemInfo->m_classID != 2) {
@@ -823,19 +828,22 @@ void CGUnit_C::DetermineReadySequence(bool forceNormal) {
       break;
 
     case WEAPONMODE_SHEATHEDMODE:
+      itemInfo = 0;
       break;
   }
 
-  ANIMENUMERATION sequence = ANIM_READYUNARMED;
+  ANIMENUMERATION sequence;
   if (itemInfo && itemInfo->m_classID == 2) {
-    static const ANIMENUMERATION s_anims[NUM_WEAPONREADYSEQS] = {ANIM_READY2HTIGHT, ANIM_READY2HLOOSE, ANIM_READY1H,
-                                                                 ANIM_READYBOW,     ANIM_READYRIFLE,   ANIM_READYTHROWN};
+    static ANIMENUMERATION s_anims[NUM_WEAPONREADYSEQS] = {ANIM_READY2HTIGHT, ANIM_READY2HLOOSE, ANIM_READY1H,
+                                                           ANIM_READYBOW,     ANIM_READYRIFLE,   ANIM_READYTHROWN};
     WEAPONREADYSEQ               readySeq = ClientDBGetWeaponSubclassReadySeq(itemInfo->m_subclassID);
     FATALASSERT(readySeq < NUM_WEAPONREADYSEQS);
     sequence = s_anims[readySeq];
+  } else {
+    sequence = ANIM_READYUNARMED;
   }
 
-  if (m_readySequence != static_cast<UINT>(sequence)) {
+  if (static_cast<UINT>(sequence) != m_readySequence) {
     m_readySequence = sequence;
     if (m_currentBaseAnimState == ANIM_STATE_ATTACK_READY) {
       UpdateBaseAnimation(0);
@@ -874,17 +882,19 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
         }
       }
       // intentional fallthrough
-    case 'HAC$':
-      if (m_currentBaseAnimState == ANIM_STATE_SPELLCAST) {
+    case 'HAC$': {
+      if (m_currentTorsoAnimState == ANIM_STATE_SPELLCAST) {
         CheckPendingMissileRelease(&position);
       }
-      if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
+      CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player) {
         char buff[256];
         SStrPrintf(buff, sizeof(buff), "%s attackHit event found", GetUnitName());
-        DDGENLOG(GetGUID(), buff, __FILE__, __LINE__);
+        player->DDGENLOG(GetGUID(), buff, __FILE__, __LINE__);
       }
       CheckPendingVictimFeedback();
       break;
+    }
 
     case 'PPC$':
       if (m_currentDamageInfo && victimPtr) {
@@ -898,15 +908,15 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
 
     case 'HTD$':
       PlayDeathThud();
-      CGUnit_C::PlayDeathThudCameraShake();
+      PlayDeathThudCameraShake();
       break;
 
     case 'PWB$': {  // $BWP
-      m_flags = m_flags & ~0xC00u | 0x400;
+      m_flags = m_flags & ~0x800u | 0x400;
       UINT currentTime = OsGetAsyncTimeMsPrecise();
-      if (m_animEndTime > currentTime) {
-        UINT duration = m_animStartTime + m_animBaseDuration - currentTime;
-        if (duration) {
+      if (m_animEndTime && static_cast<int>(m_animEndTime - currentTime) > 0) {
+        int duration = m_animStartTime + m_animBaseDuration - currentTime;
+        if (duration > 0) {
           SetRangedWeaponPullAnim(duration);
         }
       }
@@ -958,11 +968,11 @@ void CGUnit_C::OnAttackStart(DWORDLONG victim) {
 
 void CGUnit_C::OnAttackStop(DWORDLONG previousTarget, int nowDead) {
   m_hitInformation.attackFlags = 0;
-  m_combat.StopAttack();
   m_combat.ClearAttackSent();
+  m_combat.StopAttack();
   m_combat.SetStopSent(0);
 
-  if (!(g_seqInformation[m_currentTorsoAnimState].flags & 0x10)) {
+  if (!CurrentAnimIncludesHit()) {
     UpdateBaseAnimation(0);
   }
 
@@ -971,11 +981,7 @@ void CGUnit_C::OnAttackStop(DWORDLONG previousTarget, int nowDead) {
     CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(previousTarget, __FILE__, __LINE__));
     if (victimPtr) {
       m_flags |= 1;
-      NTempest::C3Vector position;
-      NTempest::C3Vector victimPosition;
-      GetPosition(position);
-      victimPtr->GetPosition(victimPosition);
-      m_forcedDisplayFacing = UnitCalculateFacingTo(position, victimPosition);
+      m_forcedDisplayFacing = CalculateFacingTo(GetPosition(), victimPtr->GetPosition());
     }
   }
 }
@@ -989,7 +995,12 @@ void CGUnit_C::OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo) {
   }
 
   if (roundInfo.flags & 0x1000) {
-    QueueAnim(ANIMQUEUE_ATTACK, &roundInfo);
+    if (m_currentDamageInfo) {
+      ProcessDiscardedAnim(m_currentDamageInfo, false);
+    }
+    m_currentDamageInfo = GetNewAnimNode(1);
+    m_currentDamageInfo->type = ANIMQUEUE_ATTACK;
+    m_currentDamageInfo->roundInfo = roundInfo;
   } else {
     SetAttackerAnimation(&roundInfo, 0);
   }
@@ -1001,11 +1012,8 @@ void CGUnit_C::OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo) {
       victimPtr->m_flags |= 0x8000;
     }
   } else {
-    UINT *combat = reinterpret_cast<UINT *>(&m_combat);
-    combat[0] = 0;
-    combat[1] = 0;
-    combat[2] = 0;
-    combat[3] = 0;
+    m_combat.StopAttack();
+    m_combat.SetStopSent(0);
   }
 
   if (roundInfo.victim == ClntObjMgrGetActivePlayer() && !CGGameUI::GetLockedTarget()) {
@@ -1039,21 +1047,14 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
     attackerPtr->SetMeleeDeathHold(0);
   }
 
-  switch (roundInfo->newVictimState) {
-    case VS_PARRY:
-      PlayParrySound(0, roundInfo, GetPosition());
-      break;
-    case VS_BLOCK:
-      PlayParrySound(1, roundInfo, GetPosition());
-      break;
-    case VS_IMMUNE:
-      SndInterfacePlayImmuneSound(GetPosition());
-      break;
-    default:
-      if (roundInfo->flags & 0x10000) {
-        SndInterfacePlayAbsorbedSound(GetPosition());
-      }
-      break;
+  if (roundInfo->newVictimState == VS_PARRY) {
+    PlayParrySound(0, roundInfo, GetPosition());
+  } else if (roundInfo->newVictimState == VS_BLOCK) {
+    PlayParrySound(1, roundInfo, GetPosition());
+  } else if (roundInfo->newVictimState == VS_IMMUNE) {
+    SndInterfacePlayImmuneSound(GetPosition());
+  } else if (roundInfo->flags & 0x10000) {
+    SndInterfacePlayAbsorbedSound(GetPosition());
   }
 
   if (roundInfo->flags & 2) {
@@ -1061,7 +1062,7 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
       SetVictimAnimation(roundInfo->newVictimState, roundInfo->flags & 4, roundInfo->flags & 8, roundInfo->victimRoundDuration, 0);
     }
     if (roundInfo->dmg.totalDamage && (roundInfo->newVictimState == VS_WOUND || roundInfo->newVictimState == VS_INTERRUPT)) {
-      ShowBloodSpurt(attackerPtr, roundInfo->flags & 0x400);
+      ShowBloodSpurt(static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo->attacker, __FILE__, __LINE__)), roundInfo->flags & 0x400);
     }
   }
 
@@ -1141,41 +1142,34 @@ void CGUnit_C::ShowWorldText(const ATTACKROUNDINFO *roundInfo) {
   }
 
   CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo->victim, __FILE__, __LINE__));
-  if (!victimPtr || ((roundInfo->flags & 0x1000) && !(roundInfo->flags & 1) && ((1 << roundInfo->newVictimState) & 0xEC))) {
+  if (!victimPtr) {
+    return;
+  }
+  if ((roundInfo->flags & 0x1000) && ((roundInfo->flags & 1) || ((1 << roundInfo->newVictimState) & COMBATSWINGIGNORES))) {
     return;
   }
 
-  switch (roundInfo->newVictimState) {
-    case VS_DEFLECT:
-      victimPtr->AddWorldText(WORLDTEXTMISS_DEFLECTED);
-      break;
-    case VS_PARRY:
-      victimPtr->AddWorldText(WORLDTEXTMISS_PARRIED);
-      break;
-    case VS_EVADE:
-      victimPtr->AddWorldText(WORLDTEXTMISS_EVADED);
-      break;
-    case VS_DODGE:
-      victimPtr->AddWorldText(WORLDTEXTMISS_DODGED);
-      break;
-    case VS_BLOCK:
-      victimPtr->AddWorldText(WORLDTEXTMISS_BLOCKED);
-      break;
-    case VS_IMMUNE:
-      victimPtr->AddWorldText(WORLDTEXTMISS_IMMUNE);
-      break;
-    default:
-      if (roundInfo->dmg.totalDamage) {
-        int normalCombatDamage = !(roundInfo->flags & 0x1000);
-        if (roundInfo->flags & 8) {
-          victimPtr->AddWorldCritText(roundInfo->dmg.totalDamage, normalCombatDamage);
-        } else {
-          victimPtr->AddWorldDamageText(roundInfo->dmg.totalDamage, normalCombatDamage);
-        }
-      } else if (activePlayer != roundInfo->victim && !(roundInfo->flags & 0x20000)) {
-        victimPtr->AddWorldText((roundInfo->flags & 0x10000) ? WORLDTEXTMISS_ABSORBED : WORLDTEXTMISS_PHYSICAL);
-      }
-      break;
+  if (roundInfo->newVictimState == VS_DEFLECT) {
+    victimPtr->AddWorldText(WORLDTEXTMISS_DEFLECTED);
+  } else if (roundInfo->newVictimState == VS_PARRY) {
+    victimPtr->AddWorldText(WORLDTEXTMISS_PARRIED);
+  } else if (roundInfo->newVictimState == VS_EVADE) {
+    victimPtr->AddWorldText(WORLDTEXTMISS_EVADED);
+  } else if (roundInfo->newVictimState == VS_DODGE) {
+    victimPtr->AddWorldText(WORLDTEXTMISS_DODGED);
+  } else if (roundInfo->newVictimState == VS_BLOCK) {
+    victimPtr->AddWorldText(WORLDTEXTMISS_BLOCKED);
+  } else if (roundInfo->newVictimState == VS_IMMUNE) {
+    victimPtr->AddWorldText(WORLDTEXTMISS_IMMUNE);
+  } else if (roundInfo->dmg.totalDamage) {
+    bool normalCombatDamage = !((roundInfo->flags >> 12) & 1);
+    if (roundInfo->flags & 8) {
+      victimPtr->AddWorldCritText(roundInfo->dmg.totalDamage, normalCombatDamage);
+    } else {
+      victimPtr->AddWorldDamageText(roundInfo->dmg.totalDamage, normalCombatDamage);
+    }
+  } else if (activePlayer != roundInfo->victim && !(roundInfo->flags & 0x20000)) {
+    victimPtr->AddWorldText((roundInfo->flags & 0x10000) ? WORLDTEXTMISS_ABSORBED : WORLDTEXTMISS_PHYSICAL);
   }
 }
 
@@ -1221,7 +1215,8 @@ BLOODSPURTLOCATION CGUnit_C::DetermineBloodLinkPoint(CGUnit_C *attacker) {
   FATALASSERT(attacker);
 
   NTempest::C3Vector toAttacker = attacker->GetPosition() - GetPosition();
-  return cos(GetFacing()) * toAttacker.x + sin(GetFacing()) * toAttacker.y < 0.0f ? BLOODSPURT_BACK : BLOODSPURT_FRONT;
+  float facing = GetDisplayFacing();
+  return toAttacker.x * cos(facing) + toAttacker.y * sin(facing) < 0.0f ? BLOODSPURT_BACK : BLOODSPURT_FRONT;
 }
 
 void CGUnit_C::OnDeathAnimate() {
@@ -1333,7 +1328,7 @@ void CGUnit_C::DodgeAnimEndHandler() {
 
 void CGUnit_C::AttackAnimEndHandler() {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player && player->GetGUID() != GetGUID()) {
+  if (player && GetGUID() != player->GetGUID()) {
     char buff[256];
     SStrPrintf(buff, sizeof(buff), "%s: attack anim ends", GetUnitName());
     player->DDGENLOG(GetGUID(), buff, __FILE__, __LINE__);
@@ -1410,7 +1405,7 @@ void UnitCombatClientShutdown() {
   ClientServices_ClearMessageHandler(SMSG_DAMAGE_TAKEN);
   ClientServices_ClearMessageHandler(SMSG_DEBUG_PLAYER_RANGE);
   UnitCombatLogShutdown();
-  s_animKitTable.Destroy();
+  s_animKitTable.Clear();
 }
 
 void CGUnit_C::OnCombatModeTimer() {

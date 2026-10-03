@@ -37,6 +37,7 @@ static UINT        s_buttonState;
 static float       s_speed;
 static float       s_delta[2];
 static float       s_rate;
+static const float MOUSE_DRAG_THRESHOLD = 8.0f;
 static const float DELTAX_PER_SECOND = 512.0f;
 static const float DELTAY_PER_SECOND = 192.0f;
 static int         AXIS_THRESHOLD = 0x1FFF;
@@ -255,13 +256,13 @@ void InputControlInitialize() {
 }
 
 void InputControlRegisterScriptFunctions() {
-  for (int i = 0; i < 21; ++i) {
+  for (UINT i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); ++i) {
     FrameScript_RegisterFunction(s_ScriptFunctions[i].name, s_ScriptFunctions[i].method);
   }
 }
 
 void InputControlUnregisterScriptFunctions() {
-  for (int i = 0; i < 21; ++i) {
+  for (UINT i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); ++i) {
     FrameScript_UnregisterFunction(s_ScriptFunctions[i].name);
   }
 }
@@ -283,27 +284,6 @@ CGInputControl *CGInputControl::GetActive() {
 }
 
 void CGInputControl::OnUpdate(float elapsedSec) {
-  static struct {
-    int   absvalue;
-    float speed[2];
-  } deltas[16] = {
-      {0x0000,                                                           {0.0f, 0.0f}},
-      {0x07FF,                                                           {0.0f, 0.0f}},
-      {0x0FFF,                                                           {0.0f, 0.0f}},
-      {0x17FF,                                                           {0.0f, 0.0f}},
-      {0x1FFF,                 {DELTAX_PER_SECOND / 12.0f, DELTAY_PER_SECOND / 12.0f}},
-      {0x27FF,                   {DELTAX_PER_SECOND / 6.0f, DELTAY_PER_SECOND / 6.0f}},
-      {0x2FFF,                   {DELTAX_PER_SECOND / 4.0f, DELTAY_PER_SECOND / 4.0f}},
-      {0x37FF,                   {DELTAX_PER_SECOND / 3.0f, DELTAY_PER_SECOND / 3.0f}},
-      {0x3FFF,   {DELTAX_PER_SECOND * 5.0f / 12.0f, DELTAY_PER_SECOND * 5.0f / 12.0f}},
-      {0x47FF,                   {DELTAX_PER_SECOND / 2.0f, DELTAY_PER_SECOND / 2.0f}},
-      {0x4FFF,   {DELTAX_PER_SECOND * 7.0f / 12.0f, DELTAY_PER_SECOND * 7.0f / 12.0f}},
-      {0x57FF,     {DELTAX_PER_SECOND * 2.0f / 3.0f, DELTAY_PER_SECOND * 2.0f / 3.0f}},
-      {0x5FFF,     {DELTAX_PER_SECOND * 3.0f / 4.0f, DELTAY_PER_SECOND * 3.0f / 4.0f}},
-      {0x67FF,     {DELTAX_PER_SECOND * 5.0f / 6.0f, DELTAY_PER_SECOND * 5.0f / 6.0f}},
-      {0x6FFF, {DELTAX_PER_SECOND * 11.0f / 12.0f, DELTAY_PER_SECOND * 11.0f / 12.0f}},
-      {0x77FF,                                 {DELTAX_PER_SECOND, DELTAY_PER_SECOND}}
-  };
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || s_joystickID == -1) {
@@ -322,54 +302,60 @@ void CGInputControl::OnUpdate(float elapsedSec) {
     s_buttonState = value;
   }
 
-  float delta;
-  float deltaY;
-  float rate;
-  int   i;
   if (s_buttonState & 0x1) {
-    value = OsGetAxisState(s_joystickID, 0);
-    delta = 0.0f;
-    for (i = 15; i >= 0; --i) {
-      if (abs(value) >= deltas[i].absvalue) {
-        delta = elapsedSec * deltas[i].speed[0];
-        break;
+    static struct {
+      int   absvalue;
+      float speed[2];
+    } deltas[16] = {
+        {0x0000,   {DELTAX_PER_SECOND * (0.0f / 12.0f), DELTAY_PER_SECOND * (0.0f / 12.0f)}},
+        {0x07FF,   {DELTAX_PER_SECOND * (0.0f / 12.0f), DELTAY_PER_SECOND * (0.0f / 12.0f)}},
+        {0x0FFF,   {DELTAX_PER_SECOND * (0.0f / 12.0f), DELTAY_PER_SECOND * (0.0f / 12.0f)}},
+        {0x17FF,   {DELTAX_PER_SECOND * (0.0f / 12.0f), DELTAY_PER_SECOND * (0.0f / 12.0f)}},
+        {0x1FFF,   {DELTAX_PER_SECOND * (1.0f / 12.0f), DELTAY_PER_SECOND * (1.0f / 12.0f)}},
+        {0x27FF,   {DELTAX_PER_SECOND * (2.0f / 12.0f), DELTAY_PER_SECOND * (2.0f / 12.0f)}},
+        {0x2FFF,   {DELTAX_PER_SECOND * (3.0f / 12.0f), DELTAY_PER_SECOND * (3.0f / 12.0f)}},
+        {0x37FF,   {DELTAX_PER_SECOND * (4.0f / 12.0f), DELTAY_PER_SECOND * (4.0f / 12.0f)}},
+        {0x3FFF,   {DELTAX_PER_SECOND * (5.0f / 12.0f), DELTAY_PER_SECOND * (5.0f / 12.0f)}},
+        {0x47FF,   {DELTAX_PER_SECOND * (6.0f / 12.0f), DELTAY_PER_SECOND * (6.0f / 12.0f)}},
+        {0x4FFF,   {DELTAX_PER_SECOND * (7.0f / 12.0f), DELTAY_PER_SECOND * (7.0f / 12.0f)}},
+        {0x57FF,   {DELTAX_PER_SECOND * (8.0f / 12.0f), DELTAY_PER_SECOND * (8.0f / 12.0f)}},
+        {0x5FFF,   {DELTAX_PER_SECOND * (9.0f / 12.0f), DELTAY_PER_SECOND * (9.0f / 12.0f)}},
+        {0x67FF, {DELTAX_PER_SECOND * (10.0f / 12.0f), DELTAY_PER_SECOND * (10.0f / 12.0f)}},
+        {0x6FFF, {DELTAX_PER_SECOND * (11.0f / 12.0f), DELTAY_PER_SECOND * (11.0f / 12.0f)}},
+        {0x77FF, {DELTAX_PER_SECOND * (12.0f / 12.0f), DELTAY_PER_SECOND * (12.0f / 12.0f)}}
+    };
+
+    for (int axis = 0; axis < 2; ++axis) {
+      float delta = 0.0f;
+      value = OsGetAxisState(s_joystickID, axis);
+      int i = 16;
+      while (i--) {
+        if (abs(value) >= deltas[i].absvalue) {
+          delta = elapsedSec * deltas[i].speed[axis];
+          break;
+        }
       }
-    }
-    if (value < 0) {
-      delta = -delta;
-    }
-    if (delta > s_delta[0]) {
-      s_delta[0] += delta - s_delta[0] > 1.0f ? 1.0f : delta - s_delta[0];
-    } else {
-      s_delta[0] -= s_delta[0] - delta > 1.0f ? 1.0f : s_delta[0] - delta;
+      if (value < 0) {
+        delta = -delta;
+      }
+      if (delta > s_delta[axis]) {
+        s_delta[axis] += min(delta - s_delta[axis], 1.0f);
+      } else {
+        s_delta[axis] -= min(s_delta[axis] - delta, 1.0f);
+      }
     }
 
-    value = OsGetAxisState(s_joystickID, 1);
-    deltaY = 0.0f;
-    for (i = 15; i >= 0; --i) {
-      if (abs(value) >= deltas[i].absvalue) {
-        deltaY = elapsedSec * deltas[i].speed[1];
-        break;
-      }
-    }
-    if (value < 0) {
-      deltaY = -deltaY;
-    }
-    if (deltaY > s_delta[1]) {
-      s_delta[1] += deltaY - s_delta[1] > 1.0f ? 1.0f : deltaY - s_delta[1];
-    } else {
-      s_delta[1] -= s_delta[1] - deltaY > 1.0f ? 1.0f : s_delta[1] - deltaY;
-    }
-    Camera()->UpdateFreeLookFacing(s_delta[0], -s_delta[1]);
+    float deltaY = -s_delta[1];
+    Camera()->UpdateFreeLookFacing(s_delta[0], deltaY);
   } else {
     value = OsGetAxisState(s_joystickID, 0);
     if (abs(value) > AXIS_THRESHOLD) {
-      rate = static_cast<float>(abs(value) - AXIS_THRESHOLD) / static_cast<float>(0x7FFF - AXIS_THRESHOLD) * 3.1415927f;
-      if (fabs(s_rate - rate) >= 0.00000023841858f) {
-        if (rate > s_rate) {
-          s_rate += rate - s_rate > 3.1415927f * 0.1f ? 3.1415927f * 0.1f : rate - s_rate;
+      float rate = static_cast<float>(abs(value) - AXIS_THRESHOLD) / static_cast<float>(0x7FFF - AXIS_THRESHOLD) * PI;
+      if (NTempest::CMath::fnotequal_(s_rate, rate)) {
+        if (s_rate < rate) {
+          s_rate += min(rate - s_rate, PI * 0.1f);
         } else {
-          s_rate -= s_rate - rate > 3.1415927f * 0.1f ? 3.1415927f * 0.1f : s_rate - rate;
+          s_rate -= min(s_rate - rate, PI * 0.1f);
         }
         player->OnTurnRateChangeLocal(eventTime, rate);
       }
@@ -380,29 +366,38 @@ void CGInputControl::OnUpdate(float elapsedSec) {
         SetControlBit(INPUT_TURN_PLAYER_LEFT_KEY, 1, eventTime, 0);
         SetControlBit(INPUT_TURN_PLAYER_RIGHT_KEY, 0, eventTime, 0);
       }
-    } else if (fabs(s_rate) >= 0.00000023841858f) {
+    } else if (NTempest::CMath::fnotequal_(s_rate, 0.0f)) {
       s_rate = 0.0f;
-      player->OnTurnRateChangeLocal(eventTime, 3.1415927f);
+      player->OnTurnRateChangeLocal(eventTime, PI);
       SetControlBit(INPUT_TURN_PLAYER_LEFT_KEY, 0, eventTime, 0);
       SetControlBit(INPUT_TURN_PLAYER_RIGHT_KEY, 0, eventTime, 0);
     }
   }
 
-  value = -OsGetAxisState(s_joystickID, 2);
-  float speed;
+  value = OsGetAxisState(s_joystickID, 2);
+  value = -value;
   if (value > 0) {
-    speed = static_cast<float>(value) * (1.0f / 32767.0f) * 30.0f;
-    if (fabs(s_speed - speed) >= 0.00000023841858f) {
-      if (speed > s_speed) {
-        s_speed += speed - s_speed > 0.5f ? 0.5f : speed - s_speed;
+    float speed = (static_cast<float>(value) / 32767.0f) * 30.0f;
+    if (NTempest::CMath::fnotequal_(s_speed, speed)) {
+      if (s_speed < speed) {
+        s_speed += min(speed - s_speed, 0.5f);
       } else {
-        s_speed -= s_speed - speed > 0.5f ? 0.5f : s_speed - speed;
+        s_speed -= min(s_speed - speed, 0.5f);
       }
       player->OnAllSpeedChangeLocal(eventTime, speed);
     }
-  } else if (fabs(s_speed) >= 0.00000023841858f) {
+  } else if (NTempest::CMath::fnotequal_(s_speed, 0.0f)) {
     s_speed = 0.0f;
     player->OnAllSpeedChangeLocal(eventTime, 7.5f);
+  }
+}
+
+void CGInputControl::OnMouseMoveRel(const CMouseEvent &evt) {
+  if (m_controlFlags) {
+    m_mouseChangeX += static_cast<float>(fabs(evt.x));
+    m_mouseChangeY += static_cast<float>(fabs(evt.y));
+    m_lastFrameMouseMoved = GxPerfCounter(GxPerf_FrameNum);
+    Camera()->UpdateFreeLookFacing(evt.x, evt.y);
   }
 }
 
@@ -412,26 +407,33 @@ void CGInputControl::UpdatePlayer(DWORD now) {
     return;
   }
 
-  if ((player->m_flags & 0x200) && static_cast<long>(now - player->m_animEndTime) < 0) {
-    now = player->m_animEndTime;
+  if ((player->GetMoveFlags() & 0x200) && static_cast<int>(now - player->GetMoveStartTime()) < 0) {
+    now = player->GetMoveStartTime();
   }
 
-  bool canIssueMovement = player->IsClientControlled();
-  bool canMove = player->GetHealth() > 0 && canIssueMovement && !player->IsInStandSitTransition() && !(player->m_move.m_moveFlags & 0x2400);
-  bool canTurn = player->GetHealth() > 0 && canIssueMovement && !player->IsInStandSitTransition() && !(player->GetUnitFlags() & 0x40000);
+  BYTE canMove = 0;
+  BYTE canTurn = 0;
+  if (player->GetHealth() > 0 && player->IsClientControlled() && !player->IsInStandSitTransition()) {
+    if (!(player->GetMoveFlags() & 0x2400)) {
+      canMove = 1;
+    }
+    if (!(player->GetUnitFlags() & 0x40000)) {
+      canTurn = 1;
+    }
+  }
 
   if (canMove) {
     MovePlayer(now, player);
     StrafePlayer(now, player);
   } else {
     if (m_controlFlags & INPUT_MOVE_PLAYER_SENT) {
-      if (canIssueMovement) {
+      if (player->IsClientControlled()) {
         player->OnMoveStopLocal(now);
       }
       m_controlFlags &= ~INPUT_MOVE_PLAYER_SENT;
     }
     if (m_controlFlags & INPUT_STRAFE_PLAYER_SENT) {
-      if (canIssueMovement) {
+      if (player->IsClientControlled()) {
         player->OnStrafeStopLocal(now);
       }
       m_controlFlags &= ~INPUT_STRAFE_PLAYER_SENT;
@@ -440,18 +442,18 @@ void CGInputControl::UpdatePlayer(DWORD now) {
 
   if (canTurn) {
     TurnPlayer(now, player);
-    if (player->m_move.m_moveFlags & 0x2000000) {
+    if (player->GetMoveFlags() & 0x2000000) {
       PitchPlayer(now, player);
     }
   } else {
     if (m_controlFlags & INPUT_TURN_PLAYER_SENT) {
-      if (canIssueMovement) {
+      if (player->IsClientControlled()) {
         player->OnTurnStopLocal(now);
       }
       m_controlFlags &= ~INPUT_TURN_PLAYER_SENT;
     }
     if (m_controlFlags & INPUT_PITCH_PLAYER_SENT) {
-      if (canIssueMovement) {
+      if (player->IsClientControlled()) {
         player->OnPitchStopLocal(now);
       }
       m_controlFlags &= ~INPUT_PITCH_PLAYER_SENT;
@@ -496,19 +498,12 @@ BOOL CGInputControl::SetControlBit(INPUT_CONTROL bit) {
   return 1;
 }
 
-void CGInputControl::SetControlBit(INPUT_CONTROL bit, int set, DWORD now, int sticky) {
-  int changed = set ? SetControlBit(bit) : UnsetControlBit(bit, sticky);
-  if (changed) {
-    UpdatePlayer(now);
-  }
-}
-
 BOOL CGInputControl::IsMouseDragging() const {
   if (static_cast<int>(OsGetAsyncTimeMs() - m_mouseDownTime - 800) >= 0) {
     return 1;
   }
 
-  if (m_mouseChangeX >= 8.0f || m_mouseChangeY >= 8.0f) {
+  if (m_mouseChangeX >= MOUSE_DRAG_THRESHOLD || m_mouseChangeY >= MOUSE_DRAG_THRESHOLD) {
     return static_cast<int>(OsGetAsyncTimeMs() - m_mouseDownTime - 200) >= 0;
   }
 
@@ -521,15 +516,6 @@ BOOL CGInputControl::IsMouseDragMoving() const {
   }
 
   return GxPerfCounter(GxPerf_FrameNum) - m_lastFrameMouseMoved < 2;
-}
-
-void CGInputControl::OnMouseMoveRel(const CMouseEvent &evt) {
-  if (m_controlFlags) {
-    m_mouseChangeX += static_cast<float>(fabs(evt.x));
-    m_mouseChangeY += static_cast<float>(fabs(evt.y));
-    m_lastFrameMouseMoved = GxPerfCounter(GxPerf_FrameNum);
-    Camera()->UpdateFreeLookFacing(evt.x, evt.y);
-  }
 }
 
 BOOL CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
@@ -700,22 +686,33 @@ void CGInputControl::PitchPlayer(DWORD now, CGUnit_C *player) {
   }
 }
 
+void CGInputControl::SetControlBit(INPUT_CONTROL bit, int set, DWORD now, int sticky) {
+  int changed = set ? SetControlBit(bit) : UnsetControlBit(bit, sticky);
+  if (changed) {
+    UpdatePlayer(now);
+  }
+}
+
 BOOL CGInputControl::CameraCanTurnPlayer() const {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (!player) {
     return 0;
   }
 
-  bool canIssueMovement = player->IsClientControlled();
-  if (player->GetHealth() <= 0 || !canIssueMovement || (player->GetUnitFlags() & 0x40000) || player->IsInStandSitTransition() || player->GetStandState()) {
+  if (player->GetHealth() <= 0 || !player->IsClientControlled() || (player->GetUnitFlags() & 0x40000) || player->IsInStandSitTransition() || player->GetStandState()) {
     return 0;
   }
 
   CGCamera *camera = Camera();
-  if (camera->m_target != player->GetGUID() || !(camera->m_flags & 8)) {
+  if (camera->m_target != player->GetGUID()) {
     return 0;
   }
-  return (m_controlFlags & INPUT_TURN_PLAYER) != 0;
+
+  if (!(camera->m_flags & 8)) {
+    return 0;
+  }
+
+  return m_controlFlags & INPUT_TURN_PLAYER;
 }
 
 void CGInputControl::CameraTurnPlayer(DWORD timestamp, float yaw, float pitch, bool setSmoothFacing) {
@@ -735,7 +732,7 @@ void CGInputControl::CameraTurnPlayer(DWORD timestamp, float yaw, float pitch, b
 
   activeMover->OnSetRawFacingLocal(timestamp, yaw);
   if (activeMover->m_move.m_moveFlags & 0x2000000) {
-    activeMover->OnSetPitchLocal(timestamp, 6.2831855f - pitch);
+    activeMover->OnSetPitchLocal(timestamp, TWO_PI - pitch);
   }
   m_controlFlags &= 0xFFFF3FFF;
 }

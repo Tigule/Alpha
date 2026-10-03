@@ -17,17 +17,53 @@ static const float DEFAULT_NEARZ = 8.0f;
 static const float DEFAULT_FOV = PI * 0.5f;
 static const float DEFAULT_SCREEN_FRUSTUM_LENGTH = 500.0f;
 
+class CCamera : public CDataMgr {
+ public:
+  TManaged<NTempest::C3Vector> m_position;
+  TManaged<NTempest::C3Vector> m_target;
+  TManaged<float>              m_distance;
+  TManaged<float>              m_zFar;
+  TManaged<float>              m_zNear;
+  CAngle                       m_aoa;
+  CAngle                       m_fov;
+  CAngle                       m_roll;
+  CAngle                       m_rotation;
+
+  CCamera()
+      : CDataMgr(9),
+        m_position(NTempest::C3Vector(DEFAULT_DIST, 0.0f, 0.0f)),
+        m_target(NTempest::C3Vector(0.0f, 0.0f, 0.0f)),
+        m_distance(DEFAULT_DIST),
+        m_zFar(DEFAULT_FARZ),
+        m_zNear(DEFAULT_NEARZ),
+        m_aoa(0.0f),
+        m_fov(DEFAULT_FOV),
+        m_roll(0.0f),
+        m_rotation(0.0f) {
+    AddManaged(&m_position, 7, 0);
+    AddManaged(&m_target, 8, 0);
+    AddManaged(&m_distance, 1, 0);
+    AddManaged(&m_zFar, 2, 0);
+    AddManaged(&m_zNear, 3, 0);
+    AddManaged(&m_aoa, 0, 0);
+    AddManaged(&m_fov, 4, 0);
+    AddManaged(&m_roll, 5, 0);
+    AddManaged(&m_rotation, 6, 0);
+  }
+  void SetupWorldProjection(const NTempest::CRect &projectionRect, UINT flags);
+
+};
+
 void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, UINT flags) {
   NTempest::C44Matrix mProj;
-  const float         aspect = (projectionRect.r - projectionRect.l) / (projectionRect.b - projectionRect.t);
 
-  GxuXformCreateProjection(m_fov.Get(), aspect, m_zNear.Get(), m_zFar.Get(), mProj);
+  GxuXformCreateProjection(m_fov.Get(), projectionRect.Width() / projectionRect.Height(), m_zNear.Get(), m_zFar.Get(), mProj);
   GxXformSetProjection(mProj);
 
+  NTempest::C44Matrix      mView;
   const NTempest::C3Vector cameraVector = m_target.Get() - m_position.Get();
   const NTempest::C3Vector cameraPos(0.0f);
   const NTempest::C3Vector upVector(m_rotation.Sin() * m_roll.Sin(), -m_rotation.Cos() * m_roll.Sin(), m_roll.Cos());
-  NTempest::C44Matrix      mView;
 
   GxuXformCreateLookAtSgCompat(cameraPos, cameraVector, upVector, mView);
   GxXformSetView(mView);
@@ -40,10 +76,12 @@ void CameraCalcPosFromTarg(HCAMERA__ *camera, NTempest::C3Vector *position) {
   VALIDATE(position);
   VALIDATEENDVOID;
 
-  const float distance = cameraPtr->m_distance.Get();
-  position->x = cameraPtr->m_target.Get().x - cameraPtr->m_rotation.Cos() * cameraPtr->m_aoa.Cos() * distance;
-  position->y = cameraPtr->m_target.Get().y - cameraPtr->m_rotation.Sin() * cameraPtr->m_aoa.Cos() * distance;
-  position->z = cameraPtr->m_target.Get().z - cameraPtr->m_aoa.Sin() * distance;
+  *position = NTempest::C3Vector(
+                  -cameraPtr->m_rotation.Cos() * cameraPtr->m_aoa.Cos(),
+                  -cameraPtr->m_rotation.Sin() * cameraPtr->m_aoa.Cos(),
+                  -cameraPtr->m_aoa.Sin()
+              ) * cameraPtr->m_distance.Get()
+            + cameraPtr->m_target.Get();
 }
 
 void CameraCalcTargFromPos(HCAMERA__ *camera, NTempest::C3Vector *target) {
@@ -53,15 +91,17 @@ void CameraCalcTargFromPos(HCAMERA__ *camera, NTempest::C3Vector *target) {
   VALIDATE(target);
   VALIDATEENDVOID;
 
-  const float distance = cameraPtr->m_distance.Get();
-  target->x = cameraPtr->m_position.Get().x + cameraPtr->m_rotation.Cos() * cameraPtr->m_aoa.Cos() * distance;
-  target->y = cameraPtr->m_position.Get().y + cameraPtr->m_rotation.Sin() * cameraPtr->m_aoa.Cos() * distance;
-  target->z = cameraPtr->m_position.Get().z + cameraPtr->m_aoa.Sin() * distance;
+  *target = NTempest::C3Vector(
+                cameraPtr->m_rotation.Cos() * cameraPtr->m_aoa.Cos(),
+                cameraPtr->m_rotation.Sin() * cameraPtr->m_aoa.Cos(),
+                cameraPtr->m_aoa.Sin()
+            ) * cameraPtr->m_distance.Get()
+          + cameraPtr->m_position.Get();
 }
 
 HCAMERA CameraCreate() {
-  CCamera *camera = NEW(CCamera)();
-  return camera ? reinterpret_cast<HCAMERA>(HandleCreate(camera, "HCAMERA")) : 0;
+  CCamera *camera = NEWHANDLE(HCAMERA, CCamera);
+  return camera ? CREATEHANDLE(HCAMERA, camera) : 0;
 }
 
 HCAMERA CameraDuplicate(HCAMERA source) {
@@ -70,91 +110,62 @@ HCAMERA CameraDuplicate(HCAMERA source) {
   VALIDATE(srcPtr);
   VALIDATEEND;
 
-  CCamera *cameraPtr = NEW(CCamera)();
+  CCamera *cameraPtr = NEWHANDLE(HCAMERA, CCamera);
   if (!cameraPtr) {
     return 0;
   }
 
-  cameraPtr->m_position.m_updateFcn = 0;
-  cameraPtr->m_position.m_updateData = 0;
-  cameraPtr->m_position.m_updatePriority = 0.0f;
-  cameraPtr->m_position.Set_(srcPtr->m_position.Get());
+  cameraPtr->m_position.Set(srcPtr->m_position.Get());
 
-  cameraPtr->m_target.m_updateFcn = 0;
-  cameraPtr->m_target.m_updateData = 0;
-  cameraPtr->m_target.m_updatePriority = 0.0f;
-  cameraPtr->m_target.Set_(srcPtr->m_target.Get());
+  cameraPtr->m_target.Set(srcPtr->m_target.Get());
 
-  cameraPtr->m_distance.m_updateFcn = 0;
-  cameraPtr->m_distance.m_updateData = 0;
-  cameraPtr->m_distance.m_updatePriority = 0.0f;
-  cameraPtr->m_distance.Set_(srcPtr->m_distance.Get());
+  cameraPtr->m_distance.Set(srcPtr->m_distance.Get());
 
-  cameraPtr->m_zNear.m_updateFcn = 0;
-  cameraPtr->m_zNear.m_updateData = 0;
-  cameraPtr->m_zNear.m_updatePriority = 0.0f;
-  cameraPtr->m_zNear.Set_(srcPtr->m_zNear.Get());
+  cameraPtr->m_zNear.Set(srcPtr->m_zNear.Get());
 
-  cameraPtr->m_zFar.m_updateFcn = 0;
-  cameraPtr->m_zFar.m_updateData = 0;
-  cameraPtr->m_zFar.m_updatePriority = 0.0f;
-  cameraPtr->m_zFar.Set_(srcPtr->m_zFar.Get());
+  cameraPtr->m_zFar.Set(srcPtr->m_zFar.Get());
 
-  cameraPtr->m_aoa.m_updateFcn = 0;
-  cameraPtr->m_aoa.m_updateData = 0;
-  cameraPtr->m_aoa.m_updatePriority = 0.0f;
-  cameraPtr->m_aoa.Set_(srcPtr->m_aoa.Get());
+  cameraPtr->m_aoa.Set(srcPtr->m_aoa.Get());
 
-  cameraPtr->m_fov.m_updateFcn = 0;
-  cameraPtr->m_fov.m_updateData = 0;
-  cameraPtr->m_fov.m_updatePriority = 0.0f;
-  cameraPtr->m_fov.Set_(srcPtr->m_fov.Get());
+  cameraPtr->m_fov.Set(srcPtr->m_fov.Get());
 
-  cameraPtr->m_roll.m_updateFcn = 0;
-  cameraPtr->m_roll.m_updateData = 0;
-  cameraPtr->m_roll.m_updatePriority = 0.0f;
-  cameraPtr->m_roll.Set_(srcPtr->m_roll.Get());
+  cameraPtr->m_roll.Set(srcPtr->m_roll.Get());
 
-  cameraPtr->m_rotation.m_updateFcn = 0;
-  cameraPtr->m_rotation.m_updateData = 0;
-  cameraPtr->m_rotation.m_updatePriority = 0.0f;
-  cameraPtr->m_rotation.Set_(srcPtr->m_rotation.Get());
+  cameraPtr->m_rotation.Set(srcPtr->m_rotation.Get());
 
-  return reinterpret_cast<HCAMERA>(HandleCreate(cameraPtr, "HCAMERA"));
+  return CREATEHANDLE(HCAMERA, cameraPtr);
 }
 
 void CameraGetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b) {
   VALIDATEBEGIN;
   VALIDATE(a);
   VALIDATE(b);
+  VALIDATE(x >= 0 && x <= 1.0f);
+  VALIDATE(y >= 0 && y <= 1.0f);
   VALIDATEENDVOID;
-  FATALASSERT(x >= 0.0f && x <= 1.0f);
-  FATALASSERT(y >= 0.0f && y <= 1.0f);
 
+  NTempest::C3Vector  corners[8];
   NTempest::C44Matrix view;
   NTempest::C44Matrix proj;
-  NTempest::C3Vector  corners[8];
   GxXformView(view);
   GxXformProjection(proj);
   GxuXformCalcFrustumCorners(view, proj, corners);
 
-  NTempest::C3Vector lefty = corners[0] + (corners[1] - corners[0]) * y;
-  *a = lefty + (corners[3] + (corners[2] - corners[3]) * y - lefty) * x;
+  NTempest::C3Vector lefty;
+  lefty = (corners[1] - corners[0]) * y + corners[0];
+  *a = (corners[3] + (corners[2] - corners[3]) * y - lefty) * x + lefty;
 
   lefty = corners[4] + (corners[5] - corners[4]) * y;
   *b = lefty + (corners[7] + (corners[6] - corners[7]) * y - lefty) * x;
 }
 
 void CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NTempest::C2Vector &screenPoint, float depth) {
+  const float         offsetX = (projectionRect.r + projectionRect.l) * 0.5f;
+  const float         offsetY = (projectionRect.b + projectionRect.t) * 0.5f;
   NTempest::CRect     frustumRect = projectionRect;
-  const float         offsetX = (projectionRect.l + projectionRect.r) * 0.5f;
-  const float         offsetY = (projectionRect.t + projectionRect.b) * 0.5f;
   NTempest::C44Matrix mProj;
 
-  frustumRect.t -= offsetY;
-  frustumRect.l -= offsetX;
-  frustumRect.b -= offsetY;
-  frustumRect.r -= offsetX;
+  frustumRect.Offset(-offsetX, -offsetY);
 
   GxuXformCreateOrtho(
       frustumRect.l, frustumRect.r, frustumRect.t, frustumRect.b, -DEFAULT_SCREEN_FRUSTUM_LENGTH, DEFAULT_SCREEN_FRUSTUM_LENGTH, mProj
@@ -168,9 +179,12 @@ void CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NT
 }
 
 void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, UINT flags) {
-  ASSERT(camera);
+  CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
+  VALIDATEBEGIN;
+  VALIDATE(cameraPtr);
+  VALIDATEENDVOID;
 
-  reinterpret_cast<CCamera *>(camera)->SetupWorldProjection(projectionRect, flags);
+  cameraPtr->SetupWorldProjection(projectionRect, flags);
 }
 
 #include "Services/DataMgrInt.h"

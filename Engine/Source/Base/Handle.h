@@ -4,6 +4,10 @@
 
 DECLARE_STRICT_HANDLE(HOBJECT);
 
+// names unconfirmed
+#define NEWHANDLE(handle, struct) new (SMemAlloc(sizeof(struct), #handle, SERR_LINECODE_OBJECT, 0)) struct
+#define CREATEHANDLE(handle, ptr) ((handle)HandleCreate(ptr, #handle))
+
 class CHandleObject {
  private:
   int m_refcount;
@@ -16,6 +20,7 @@ class CHandleObject {
   }
 
   CHandleObject &operator=(const CHandleObject &) {
+    m_refcount = 0;
     return *this;
   }
 

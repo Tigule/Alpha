@@ -8,7 +8,11 @@ class CDataStore;
 class GameObjectStats {
  public:
   GameObjectStats() {
-    memset(m_name, 0, sizeof(m_name));
+    int i;
+
+    for (i = 0; i < 4; ++i) {
+      m_name[i] = 0;
+    }
   }
 
   ~GameObjectStats() {

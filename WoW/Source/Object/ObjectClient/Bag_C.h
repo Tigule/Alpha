@@ -63,8 +63,11 @@ enum BAG_RESULT {
 
 class CGBag {
  public:
-  CGBag(DWORDLONG guid, UINT *slotCount, DWORDLONG *slots, BYTE isInventory)
-      : m_slotCount(slotCount), m_slots(slots), m_guid(guid), m_isInventory(isInventory) {
+  CGBag(DWORDLONG guid, UINT *slotCount, DWORDLONG *slots, BYTE isInventory) {
+    m_guid = guid;
+    m_slotCount = slotCount;
+    m_slots = slots;
+    m_isInventory = isInventory;
   }
 
   DWORDLONG GetItem(UINT slot) const {

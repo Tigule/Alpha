@@ -56,30 +56,28 @@ CSimpleButton::~CSimpleButton() {
 }
 
 void CSimpleButton::LoadXML(const XMLNode *node, CStatus *status) {
-  float x;
-  float y;
-
   CSimpleFrame::LoadXML(node, status);
 
   for (const XMLNode *child = node->GetChild(); child; child = child->GetSibling()) {
-    LPCSTR name = child->GetName();
-
-    if (!SStrCmpI(name, "NormalTexture", INT_MAX)) {
+    if (!SStrCmpI(child->GetName(), "NormalTexture", INT_MAX)) {
       SetStateTexture(BUTTONSTATE_NORMAL, LoadXML_Texture(child, this, status));
-    } else if (!SStrCmpI(name, "PushedTexture", INT_MAX)) {
+    } else if (!SStrCmpI(child->GetName(), "PushedTexture", INT_MAX)) {
       SetStateTexture(BUTTONSTATE_PUSHED, LoadXML_Texture(child, this, status));
-    } else if (!SStrCmpI(name, "DisabledTexture", INT_MAX)) {
+    } else if (!SStrCmpI(child->GetName(), "DisabledTexture", INT_MAX)) {
       SetStateTexture(BUTTONSTATE_DISABLED, LoadXML_Texture(child, this, status));
-    } else if (!SStrCmpI(name, "HighlightTexture", INT_MAX)) {
+    } else if (!SStrCmpI(child->GetName(), "HighlightTexture", INT_MAX)) {
       CSimpleTexture *texture = LoadXML_Texture(child, this, status);
       SetHighlight(texture, texture->m_alphamode);
-    } else if (!SStrCmpI(name, "NormalText", INT_MAX)) {
+    } else if (!SStrCmpI(child->GetName(), "NormalText", INT_MAX)) {
       SetText(LoadXML_String(child, this, status));
-    } else if (!SStrCmpI(name, "HighlightText", INT_MAX)) {
+    } else if (!SStrCmpI(child->GetName(), "HighlightText", INT_MAX)) {
       SetHighlightText(LoadXML_String(child, this, status));
-    } else if (!SStrCmpI(name, "DisabledText", INT_MAX)) {
+    } else if (!SStrCmpI(child->GetName(), "DisabledText", INT_MAX)) {
       SetDisabledText(LoadXML_String(child, this, status));
-    } else if (!SStrCmpI(name, "PushedTextOffset", INT_MAX)) {
+    } else if (!SStrCmpI(child->GetName(), "PushedTextOffset", INT_MAX)) {
+      float x;
+      float y;
+
       if (LoadXML_Dimensions(child, x, y, status)) {
         SetPressedOffset(NTempest::C2Vector(x, y));
       }
@@ -214,11 +212,13 @@ void CSimpleButton::SetStateTexture(CSimpleButtonState state, CSimpleTexture *te
 }
 
 void CSimpleButton::Enable(int enabled) {
+  if ((enabled && IsEnabled()) || (!enabled && !IsEnabled())) {
+    return;
+  }
+
   if (enabled) {
-    if (m_state == BUTTONSTATE_DISABLED) {
-      SetButtonState(BUTTONSTATE_NORMAL, 0);
-    }
-  } else if (m_state != BUTTONSTATE_DISABLED) {
+    SetButtonState(BUTTONSTATE_NORMAL, 0);
+  } else {
     DisableDrawLayer(4);
     SetButtonState(BUTTONSTATE_DISABLED, 0);
   }

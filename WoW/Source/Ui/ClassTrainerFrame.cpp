@@ -30,6 +30,10 @@
 #include "Object/ObjectClient/Item_C.h"
 #include "DB/DBClient/AutoCode/SkillLineRec.h"
 #include "DB/DBClient/AutoCode/SkillLineAbilityRec.h"
+#include "DB/DBClient/AutoCode/ItemClassRec.h"
+#include "DB/DBClient/AutoCode/ItemSubClassRec.h"
+#include "DB/DBClient/AutoCode/ChrRacesRec.h"
+#include "DB/DBClient/AutoCode/ChrClassesRec.h"
 #include "Net/NetClient/NetClient.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
@@ -59,6 +63,8 @@ const SkillLineAbilityRec *SpellTableLookupAbility(UINT raceID, UINT classID, UI
 int  Spell_C_GetSpellLevel(int id, BOOL isPet);
 int  Spell_C_GetManaCost(int id, BOOL isPet);
 int  Spell_C_GetManaCostPerSecond(int id, BOOL isPet);
+
+extern LPCSTR g_invTypeTokens[];
 
 static const char  s_tradeSkillTypes[3][64] = {"", "TRADESKILL_SERVICE_STEP", "TRADESKILL_SERVICE_LEARN"};
 static const char *KNOWN_TALENTS_TOKEN = "KNOWN_TALENTS_HEADER";
@@ -327,12 +333,19 @@ void CGClassTrainer::AddServices(
     BYTE        *usable,
     LPCSTR       greeting
 ) {
-  while (m_services.Count() < count) {
+  UINT i;
+  UINT j;
+  UINT k;
+
+  for (i = m_services.Count(); i < count; ++i) {
     TrainerServiceInfo *info = NEW(TrainerServiceInfo);
-    m_services.Add(1, &info);
+    m_services.Add(&info);
   }
 
-  m_serviceTypeFilter = m_trainerType == TRAINER_TYPE_TALENTS ? 5 : 3;
+  m_serviceTypeFilter = 3;
+  if (m_trainerType == TRAINER_TYPE_TALENTS) {
+    m_serviceTypeFilter = 5;
+  }
   m_skillLineFilter = -1;
   m_collapseFilter = -1;
   m_numSkillLines = 0;
@@ -340,85 +353,91 @@ void CGClassTrainer::AddServices(
   if (m_trainerType == TRAINER_TYPE_TALENTS) {
     if (!m_skillLines.Count()) {
       TrainerSkillLineInfo *info = NEW(TrainerSkillLineInfo);
-      m_skillLines.Add(1, &info);
+      m_skillLines.Add(&info);
     }
-    TrainerSkillLineInfo *info = m_skillLines[0];
-    memset(info, 0, sizeof(*info));
-    info->skillLine = -1;
-    info->ClearSkills();
+    m_skillLines[0]->skillLine = -1;
+    m_skillLines[0]->ClearSkills();
+    for (i = 0; i < NUM_TRAINER_SERVICE_TYPES; ++i) {
+      m_skillLines[0]->numSkills[i] = 0;
+    }
     m_numSkillLines = 1;
   }
 
-  UINT skipped = 0;
-  for (UINT index = 0; index + skipped < count; ++index) {
-    UINT                source = index + skipped;
-    TrainerServiceInfo *info = m_services[index];
-    memset(info, 0, sizeof(*info));
-    info->spellID = spellID[source];
-    info->moneyCost = moneyCost[source];
-    for (UINT point = 0; point < 2; ++point) {
-      info->pointCost[point] = pointCost[point][source];
+  int skipped = 0;
+  for (i = 0; skipped + i < count; ++i) {
+    m_services[i]->spellID = spellID[skipped + i];
+    m_services[i]->moneyCost = moneyCost[skipped + i];
+    for (j = 0; j < 2; ++j) {
+      m_services[i]->pointCost[j] = pointCost[j][skipped + i];
     }
-    info->reqLevel = reqLevel[source];
-    info->reqSkillLine = reqSkillLine[source];
-    info->reqSkillRank = reqSkillRank[source];
-    info->reqSkillStep = reqSkillStep[source];
-    for (UINT ability = 0; ability < 3; ++ability) {
-      info->reqAbility[ability] = reqAbility[ability][source];
+    m_services[i]->reqLevel = reqLevel[skipped + i];
+    m_services[i]->reqSkillLine = reqSkillLine[skipped + i];
+    m_services[i]->reqSkillRank = reqSkillRank[skipped + i];
+    m_services[i]->reqSkillStep = reqSkillStep[skipped + i];
+    for (j = 0; j < 3; ++j) {
+      m_services[i]->reqAbility[j] = reqAbility[j][skipped + i];
     }
-    info->usable = usable[source];
+    m_services[i]->usable = usable[skipped + i];
 
+    int line;
     if (m_trainerType == TRAINER_TYPE_TRADESKILLS) {
-      info->skillLine = 2;
-      const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
+      line = 2;
+      const SpellRec *spell = g_spellDB.GetRecord(m_services[i]->spellID);
       if (spell) {
-        for (UINT effect = 0; effect < 3; ++effect) {
-          if (spell->m_effect[effect] == 44) {
-            info->skillLine = 1;
+        for (j = 0; j < 3; ++j) {
+          if (spell->m_effect[j] == 44) {
+            line = 1;
             break;
           }
         }
       }
-    } else if (m_trainerType == TRAINER_TYPE_TALENTS && info->usable == 2) {
-      info->skillLine = -1;
+    } else if (m_trainerType == TRAINER_TYPE_TALENTS && m_services[i]->usable == TRAINER_SERVICE_USED) {
+      line = -1;
     } else {
-      info->skillLine = GetSkillLineFromService(info->spellID);
+      line = GetSkillLineFromService(m_services[i]->spellID);
     }
+    m_services[i]->skillLine = line;
 
-    if (!info->skillLine) {
-      ++skipped;
-      --index;
+    if (!line) {
+      i--;
+      skipped++;
       continue;
     }
 
-    TrainerSkillLineInfo *line = 0;
-    for (UINT lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
-      if (m_skillLines[lineIndex]->skillLine == info->skillLine) {
-        line = m_skillLines[lineIndex];
+    for (j = 0; j < m_numSkillLines; ++j) {
+      if (m_skillLines[j]->skillLine == line) {
+        ++m_skillLines[j]->numSkills[m_services[i]->usable];
+        if (m_skillLines[j]->allCostPoints) {
+          int hasCost = 0;
+          for (k = 0; k < 2; ++k) {
+            if (m_services[i]->pointCost[k]) {
+              hasCost = 1;
+              break;
+            }
+          }
+          m_skillLines[j]->allCostPoints = hasCost;
+        }
         break;
       }
     }
-    if (!line) {
-      if (m_skillLines.Count() <= m_numSkillLines) {
-        line = NEW(TrainerSkillLineInfo);
-        m_skillLines.Add(1, &line);
-      } else {
-        line = m_skillLines[m_numSkillLines];
+
+    if (j == m_numSkillLines) {
+      if (m_numSkillLines >= m_skillLines.Count()) {
+        TrainerSkillLineInfo *info = NEW(TrainerSkillLineInfo);
+        m_skillLines.Add(&info);
       }
-      memset(line, 0, sizeof(*line));
-      line->skillLine = info->skillLine;
-      line->collapsed = 1;
-      line->allCostPoints = 0;
-      for (UINT point = 0; point < 2; ++point) {
-        if (info->pointCost[point]) {
-          line->allCostPoints = 1;
+      m_skillLines[m_numSkillLines]->skillLine = line;
+      m_skillLines[m_numSkillLines]->ClearSkills();
+      ++m_skillLines[m_numSkillLines]->numSkills[m_services[i]->usable];
+      m_skillLines[m_numSkillLines]->allCostPoints = 0;
+      for (j = 0; j < 2; ++j) {
+        if (m_services[i]->pointCost[j]) {
+          m_skillLines[m_numSkillLines]->allCostPoints = 1;
+          break;
         }
       }
       ++m_numSkillLines;
-    } else if (line->allCostPoints) {
-      line->allCostPoints = info->pointCost[0] || info->pointCost[1];
     }
-    ++line->numSkills[info->usable];
   }
 
   m_numServices = count - skipped;
@@ -427,15 +446,13 @@ void CGClassTrainer::AddServices(
       m_trainerType == TRAINER_TYPE_TRADESKILLS ? QSortTradeSkillTypes : QSortSkillLines
   );
 
-  while (m_services.Count() < m_numServices + m_numSkillLines) {
+  for (i = m_services.Count(); i < m_numServices + m_numSkillLines; ++i) {
     TrainerServiceInfo *info = NEW(TrainerServiceInfo);
-    m_services.Add(1, &info);
+    m_services.Add(&info);
   }
-  for (UINT lineIndex = 0; lineIndex < m_numSkillLines; ++lineIndex) {
-    TrainerServiceInfo *header = m_services[m_numServices + lineIndex];
-    memset(header, 0, sizeof(*header));
-    header->spellID = -1;
-    header->skillLine = m_skillLines[lineIndex]->skillLine;
+  for (i = 0; i < m_numSkillLines; ++i) {
+    m_services[m_numServices + i]->spellID = -1;
+    m_services[m_numServices + i]->skillLine = m_skillLines[i]->skillLine;
   }
   m_numServices += m_numSkillLines;
   FilterAndSortServices();
@@ -460,40 +477,50 @@ void CGClassTrainer::RefreshList() {
   }
 
   for (i = 0; i < m_numServices; ++i) {
-    TrainerServiceInfo *info = m_services[i];
-    if (info->spellID == -1 || (info->usable == 2 && m_trainerType != TRAINER_TYPE_TALENTS)) {
+    if (m_services[i]->spellID == -1) {
+      continue;
+    }
+    if (m_services[i]->usable == TRAINER_SERVICE_USED && m_trainerType != TRAINER_TYPE_TALENTS) {
       continue;
     }
 
-    const SpellRec *srec = g_spellDB.GetRecord(info->spellID);
+    const SpellRec *srec = g_spellDB.GetRecord(m_services[i]->spellID);
     if (!srec) {
       continue;
     }
 
-    info->usable = 0;
+    m_services[i]->usable = TRAINER_SERVICE_AVAILABLE;
+
     CGUnit_C *pet = 0;
-    int       numLearned = 0;
-    int       numToLearn = 0;
     int       learnSpell = 0;
+    int       numToLearn = 0;
+    int       numLearned = 0;
 
     for (j = 0; j < 3; ++j) {
       if (srec->m_effect[j] == 36) {
         ++numToLearn;
         learnSpell = srec->m_effectTriggerSpell[j];
-        if (m_trainerType == TRAINER_TYPE_TALENTS && player->IsSpellSuperceded(learnSpell)) {
-          info->usable = 3;
-        } else if (player->IsSpellKnown(learnSpell) || player->IsSpellSuperceded(learnSpell)) {
+        BOOL known = player->IsSpellKnown(learnSpell);
+        BOOL superceded = player->IsSpellSuperceded(learnSpell);
+        if (m_trainerType == TRAINER_TYPE_TALENTS && superceded) {
+          m_services[i]->usable = TRAINER_SERVICE_NOT_SHOWN;
+          continue;
+        }
+        if (known || superceded) {
           ++numLearned;
+          continue;
         }
       }
 
       if (srec->m_effect[j] == 44) {
         int min;
         int max;
-        Spell_C_GetMinMaxPoints(srec, j, &min, &max, player->GetLevel(), 0);
+        Spell_C_GetMinMaxPoints(srec, j, &min, &max, 0, 0);
         for (UINT skill = 0; skill < 64; ++skill) {
-          if (player->GetMirrorSkillID(skill) == srec->m_effectMiscValue[j] && player->GetMirrorSkillStep(skill) >= min) {
-            info->usable = 2;
+          if (player->GetMirrorSkillID(skill) == srec->m_effectMiscValue[j]) {
+            if (player->GetMirrorSkillStep(skill) >= max) {
+              m_services[i]->usable = TRAINER_SERVICE_USED;
+            }
             break;
           }
         }
@@ -501,81 +528,93 @@ void CGClassTrainer::RefreshList() {
 
       if (srec->m_effect[j] == 57) {
         ++numToLearn;
-        DWORDLONG petGUID = player->GetControlledGUID();
-        pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(petGUID, __FILE__, __LINE__));
+        pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(player->GetSummon(), __FILE__, __LINE__));
         if (!pet) {
-          info->usable = 1;
-          continue;
+          m_services[i]->usable = TRAINER_SERVICE_UNAVAILABLE;
+          break;
         }
-
-        learnSpell = srec->m_effectTriggerSpell[j];
-        if (pet->IsSpellKnown(learnSpell) || pet->IsSpellSuperceded(learnSpell)) {
+        int petSpell = srec->m_effectTriggerSpell[j];
+        if (pet->IsSpellKnown(petSpell) || pet->IsSpellSuperceded(petSpell)) {
           ++numLearned;
-        } else if (info->reqLevel > 1 && pet->GetLevel() < info->reqLevel) {
-          info->usable = 1;
-        }
-      }
-    }
-
-    if (numToLearn > 0 && numLearned == numToLearn) {
-      info->usable = 2;
-    }
-    if (info->usable) {
-      continue;
-    }
-
-    if (info->reqSkillLine) {
-      int maxRank = 0;
-      for (j = 0; j < 64; ++j) {
-        if (player->GetMirrorSkillID(j) != info->reqSkillLine) {
           continue;
         }
-        if (player->GetMirrorSkillRank(j) < info->reqSkillRank) {
-          info->usable = 1;
-        }
-        maxRank = player->GetMirrorSkillMaxRank(j);
-        break;
-      }
-
-      const SpellRec *steprec = g_spellDB.GetRecord(info->reqSkillStep);
-      if (steprec) {
-        for (j = 0; j < 3; ++j) {
-          if (steprec->m_effect[j] != 44 || steprec->m_effectMiscValue[j] != info->reqSkillLine) {
-            continue;
-          }
-          int min;
-          int max;
-          Spell_C_GetMinMaxPoints(steprec, j, &min, &max, 0, 0);
-          if (maxRank < 5 * min) {
-            info->usable = 1;
-          }
+        if (m_services[i]->reqLevel > 1 && pet->GetLevel() < m_services[i]->reqLevel) {
+          m_services[i]->usable = TRAINER_SERVICE_UNAVAILABLE;
           break;
         }
       }
     }
 
-    if (info->usable) {
+    if (numToLearn > 0 && numLearned == numToLearn) {
+      m_services[i]->usable = TRAINER_SERVICE_USED;
+    }
+    if (m_services[i]->usable) {
       continue;
     }
 
-    CGUnit_C *unit = pet ? pet : player;
-    for (j = 0; j < 3; ++j) {
-      if (!info->reqAbility[j] || unit->IsSpellKnown(info->reqAbility[j]) || unit->IsSpellSuperceded(info->reqAbility[j])) {
-        continue;
-      }
-
-      info->usable = 1;
-      if (m_trainerType == TRAINER_TYPE_TALENTS && learnSpell) {
-        const SkillLineAbilityRec *ability = player->LookupAbility(info->reqAbility[j]);
-        if (ability && ability->m_supercededBySpell == learnSpell) {
-          info->usable = 3;
+    if (m_services[i]->reqSkillLine) {
+      int maxRank = 0;
+      for (j = 0; j < 64; ++j) {
+        if (player->GetMirrorSkillID(j) == m_services[i]->reqSkillLine) {
+          maxRank = player->GetMirrorSkillMaxRank(j);
+          if (player->GetMirrorSkillRank(j) < m_services[i]->reqSkillRank) {
+            m_services[i]->usable = TRAINER_SERVICE_UNAVAILABLE;
+          }
+          break;
         }
       }
-      break;
+
+      const SpellRec *steprec = g_spellDB.GetRecord(m_services[i]->reqSkillStep);
+      if (steprec) {
+        for (j = 0; j < 3; ++j) {
+          if (steprec->m_effect[j] == 44 && steprec->m_effectMiscValue[j] == m_services[i]->reqSkillLine) {
+            int min;
+            int max;
+            Spell_C_GetMinMaxPoints(steprec, j, &min, &max, 0, 0);
+            if (maxRank < 5 * max) {
+              m_services[i]->usable = TRAINER_SERVICE_UNAVAILABLE;
+            }
+            break;
+          }
+        }
+      }
     }
 
-    if (!info->usable && info->reqLevel > 1 && unit->GetLevel() < info->reqLevel) {
-      info->usable = 1;
+    if (m_services[i]->usable) {
+      continue;
+    }
+
+    BOOL ok = 1;
+    if (pet) {
+      for (j = 0; j < 3; ++j) {
+        if (m_services[i]->reqAbility[j] && !pet->IsSpellKnown(m_services[i]->reqAbility[j]) && !pet->IsSpellSuperceded(m_services[i]->reqAbility[j])) {
+          ok = 0;
+          break;
+        }
+      }
+    } else {
+      for (j = 0; j < 3; ++j) {
+        if (m_services[i]->reqAbility[j] && !player->IsSpellKnown(m_services[i]->reqAbility[j]) && !player->IsSpellSuperceded(m_services[i]->reqAbility[j])) {
+          ok = 0;
+          break;
+        }
+      }
+      if (!ok && m_trainerType == TRAINER_TYPE_TALENTS && learnSpell) {
+        const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetRace(), player->GetClass(), m_services[i]->reqAbility[j]);
+        if (ability && ability->m_supercededBySpell == learnSpell) {
+          m_services[i]->usable = TRAINER_SERVICE_NOT_SHOWN;
+          continue;
+        }
+      }
+    }
+
+    if (!ok) {
+      m_services[i]->usable = TRAINER_SERVICE_UNAVAILABLE;
+      continue;
+    }
+
+    if (m_services[i]->reqLevel > 1 && player->GetLevel() < m_services[i]->reqLevel) {
+      m_services[i]->usable = TRAINER_SERVICE_UNAVAILABLE;
     }
   }
 
@@ -584,16 +623,15 @@ void CGClassTrainer::RefreshList() {
   }
 
   for (i = 0; i < m_numServices; ++i) {
-    TrainerServiceInfo *info = m_services[i];
-    if (info->spellID == -1) {
+    if (m_services[i]->spellID == -1) {
       continue;
     }
-    if (m_trainerType == TRAINER_TYPE_TALENTS && info->usable == 2) {
-      info->skillLine = -1;
+    if (m_trainerType == TRAINER_TYPE_TALENTS && m_services[i]->usable == TRAINER_SERVICE_USED) {
+      m_services[i]->skillLine = -1;
     }
     for (j = 0; j < m_numSkillLines; ++j) {
-      if (m_skillLines[j]->skillLine == info->skillLine) {
-        ++m_skillLines[j]->numSkills[info->usable];
+      if (m_skillLines[j]->skillLine == m_services[i]->skillLine) {
+        ++m_skillLines[j]->numSkills[m_services[i]->usable];
         break;
       }
     }
@@ -934,7 +972,9 @@ static int Script_GetTrainerServiceCost(lua_State *L) {
     }
   } else {
     moneyCost = 0;
-    memset(costCP, 0, sizeof(costCP));
+    for (UINT i = 0; i < 2; ++i) {
+      costCP[i] = 0;
+    }
   }
   lua_pushnumber(L, static_cast<double>(moneyCost));
   lua_pushnumber(L, static_cast<double>(costCP[0]));
@@ -1113,22 +1153,6 @@ static int Script_GetTrainerServiceStepReq(lua_State *L) {
   return 2;
 }
 
-static inline const SpellRec *GetLearnedSpell(const TrainerServiceInfo *service, int *learnEffect) {
-  const SpellRec *trainer = service ? g_spellDB.GetRecord(service->spellID) : 0;
-  if (!trainer) {
-    return 0;
-  }
-  for (int i = 0; i < 3; ++i) {
-    if (trainer->m_effect[i] == 36 || trainer->m_effect[i] == 57) {
-      if (learnEffect) {
-        *learnEffect = i;
-      }
-      return g_spellDB.GetRecord(trainer->m_effectTriggerSpell[i]);
-    }
-  }
-  return 0;
-}
-
 static int Script_GetTrainerServiceDescription(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     luaL_error(L, "Usage: GetTrainerServiceDescription(index)");
@@ -1166,9 +1190,8 @@ static int Script_GetTrainerServiceDescription(lua_State *L) {
             return 1;
           }
           if ((learned->m_attributes & 0x20) && learned->m_effect[0] == 24) {
-            const ItemStats_C *stats = g_itemDBCache.GetRecord(
-                learned->m_effectItemType[0], static_cast<DWORDLONG>(learned->m_ID) | 0xB000000000000000ui64, TrainerItemCallback, 0
-            );
+            int                itemID = learned->m_effectItemType[0];
+            const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(learned->m_ID) | 0xB000000000000000ui64, TrainerItemCallback, 0);
             if (stats && stats->m_description && *stats->m_description) {
               lua_pushstring(L, stats->m_description);
               return 1;
@@ -1594,34 +1617,448 @@ static int Script_BuyTrainerService(lua_State *L) {
 
 static int Script_GetTrainerServiceItemStats(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetTrainerServiceItemStats(index)");
-  }
-  const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  const SpellRec           *spell = GetLearnedSpell(service, 0);
-  if (!spell || !(spell->m_attributes & 0x20) || spell->m_effect[0] != 24 || !spell->m_effectItemType[0]) {
+    luaL_error(L, "Usage: GetTrainerServiceItemStats(index)");
     return 0;
   }
-  DWORDLONG          guid = static_cast<DWORDLONG>(spell->m_ID) | 0xB000000000000000ui64;
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(spell->m_effectItemType[0], guid, TrainerItemCallback, 0);
-  if (!stats) {
-    return 0;
+  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
+  if (info) {
+    const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
+    if (spell) {
+      for (int i = 0; i < 3; ++i) {
+        if (spell->m_effect[i] == 36 || spell->m_effect[i] == 57) {
+          const SpellRec *learned = g_spellDB.GetRecord(spell->m_effectTriggerSpell[i]);
+          if (learned && (learned->m_attributes & 0x20) && learned->m_effect[0] == 24) {
+            const ItemSubClassRec *subClass;
+            char                   levelBuf[128];
+            int                    usable;
+            char                   temp[128];
+            int                    count;
+            int                    itemID = learned->m_effectItemType[0];
+            const ItemStats       *stats = g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(learned->m_ID) | 0xB000000000000000ui64, TrainerItemCallback, 0);
+            CGPlayer_C *player;
+            char        buf[128];
+            if (!stats) {
+              return 0;
+            }
+
+            count = 0;
+            if (stats->m_inventoryType) {
+              SStrPrintf(temp, sizeof(temp), "ITEM_QUALITY%d_DESC", stats->m_overallQualityID);
+              LPCSTR text = FrameScript_GetText(temp, -1, GENDER_NOT_APPLICABLE);
+              SStrCopy(buf, text, sizeof(buf));
+              if (*text) {
+                lua_pushstring(L, buf);
+                ++count;
+              }
+            }
+
+            buf[0] = 0;
+            if (stats->m_bonding) {
+              switch (stats->m_bonding) {
+                case 1: {
+                  LPCSTR text = FrameScript_GetText("ITEM_BIND_ON_PICKUP", -1, GENDER_NOT_APPLICABLE);
+                  SStrCopy(buf, text, sizeof(buf));
+                  break;
+                }
+                case 4:
+                case 5: {
+                  LPCSTR text = FrameScript_GetText("ITEM_BIND_QUEST", -1, GENDER_NOT_APPLICABLE);
+                  SStrCopy(buf, text, sizeof(buf));
+                  break;
+                }
+                case 2: {
+                  LPCSTR text = FrameScript_GetText("ITEM_BIND_ON_EQUIP", -1, GENDER_NOT_APPLICABLE);
+                  SStrCopy(buf, text, sizeof(buf));
+                  break;
+                }
+                case 3: {
+                  LPCSTR text = FrameScript_GetText("ITEM_BIND_ON_USE", -1, GENDER_NOT_APPLICABLE);
+                  SStrCopy(buf, text, sizeof(buf));
+                  break;
+                }
+              }
+            }
+            if (buf[0]) {
+              lua_pushstring(L, buf);
+              ++count;
+            }
+
+            if (stats->m_maxCount > 0 && stats->m_class != 1) {
+              if (stats->m_maxCount == 1) {
+                LPCSTR text = FrameScript_GetText("ITEM_UNIQUE", -1, GENDER_NOT_APPLICABLE);
+                SStrCopy(buf, text, sizeof(buf));
+              } else {
+                LPCSTR text = FrameScript_GetText("ITEM_UNIQUE_MULTIPLE", -1, GENDER_NOT_APPLICABLE);
+                SStrCopy(temp, text, sizeof(temp));
+                SStrPrintf(buf, sizeof(buf), temp, stats->m_maxCount);
+              }
+              lua_pushstring(L, buf);
+              ++count;
+            }
+
+            if (stats->m_startQuestID) {
+              LPCSTR text = FrameScript_GetText("ITEM_STARTS_QUEST", -1, GENDER_NOT_APPLICABLE);
+              SStrCopy(buf, text, sizeof(buf));
+              lua_pushstring(L, buf);
+              ++count;
+            }
+
+            subClass = 0;
+            for (i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
+              const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
+              if (rec && rec->m_classID == stats->m_class && rec->m_subClassID == stats->m_subclass) {
+                subClass = rec;
+                break;
+              }
+            }
+
+            if (stats->m_inventoryType == 18) {
+              if (subClass && subClass->m_displayName_lang[CURRENT_LANGUAGE] && *subClass->m_displayName_lang[CURRENT_LANGUAGE]) {
+                LPCSTR text = FrameScript_GetText("CONTAINER_SLOTS", -1, GENDER_NOT_APPLICABLE);
+                SStrCopy(temp, text, sizeof(temp));
+                SStrPrintf(buf, sizeof(buf), temp, stats->m_containerSlots, subClass->m_displayName_lang[CURRENT_LANGUAGE]);
+                lua_pushstring(L, buf);
+                ++count;
+              }
+            } else {
+              int  canUse = 1;
+              int  hasTwoHanded = 1;
+              UINT proficiency = CGPlayer_C::GetProficiency(stats->m_class);
+              if (proficiency && !(proficiency & (1 << stats->m_subclass))) {
+                if (stats->m_class == 2 && subClass->m_prerequisiteProficiency != -1) {
+                  hasTwoHanded = 0;
+                  if (!(proficiency & (1 << subClass->m_prerequisiteProficiency))) {
+                    canUse = 0;
+                  }
+                } else {
+                  canUse = 0;
+                }
+              }
+
+              if (stats->m_class == 6) {
+                const ItemClassRec *itemClass = g_itemClassDB.GetRecord(6);
+                if (itemClass && itemClass->m_className_lang[CURRENT_LANGUAGE] && *itemClass->m_className_lang[CURRENT_LANGUAGE]) {
+                  SStrPrintf(
+                      buf, sizeof(buf), "%s%s%s", hasTwoHanded ? "" : "|cffff2020", itemClass->m_className_lang[CURRENT_LANGUAGE],
+                      hasTwoHanded ? "" : "|r"
+                  );
+                  lua_pushstring(L, buf);
+                  ++count;
+                }
+              } else {
+                LPCSTR text = FrameScript_GetText(g_invTypeTokens[stats->m_inventoryType], -1, GENDER_NOT_APPLICABLE);
+                SStrCopy(temp, text, sizeof(temp));
+                if (*text) {
+                  SStrPrintf(buf, sizeof(buf), "%s%s%s", hasTwoHanded ? "" : "|cffff2020", temp, hasTwoHanded ? "" : "|r");
+                  lua_pushstring(L, buf);
+                  ++count;
+                }
+              }
+
+              if (subClass && subClass->m_displayName_lang[CURRENT_LANGUAGE] && *subClass->m_displayName_lang[CURRENT_LANGUAGE]) {
+                SStrPrintf(
+                    buf, sizeof(buf), "%s%s%s", canUse ? "" : "|cffff2020", subClass->m_displayName_lang[CURRENT_LANGUAGE], canUse ? "" : "|r"
+                );
+                lua_pushstring(L, buf);
+                ++count;
+              }
+            }
+
+            if (stats->m_minDamage[0] || stats->m_maxDamage[0]) {
+              char school[64];
+              if (stats->m_damageType[0]) {
+                SStrPrintf(temp, sizeof(temp), "SPELL_SCHOOL%d_CAP", stats->m_damageType[0]);
+                LPCSTR text = FrameScript_GetText(temp, -1, GENDER_NOT_APPLICABLE);
+                SStrCopy(school, text, sizeof(school));
+                SStrPack(school, " ", sizeof(school));
+              }
+              LPCSTR text = FrameScript_GetText("DAMAGE", -1, GENDER_NOT_APPLICABLE);
+              SStrCopy(temp, text, sizeof(temp));
+              SStrPrintf(
+                  buf, sizeof(buf), "%d - %d %s%s", stats->m_minDamage[0], stats->m_maxDamage[0], stats->m_damageType[0] ? school : "", temp
+              );
+              lua_pushstring(L, buf);
+              ++count;
+              if (stats->m_class == 2) {
+                text = FrameScript_GetText("SPEED", -1, GENDER_NOT_APPLICABLE);
+                SStrCopy(temp, text, sizeof(temp));
+                SStrPrintf(buf, sizeof(buf), "%s %d", temp, stats->m_delay / 100);
+                lua_pushstring(L, buf);
+                ++count;
+              }
+            }
+
+            if (stats->m_resistances[0] > 0) {
+              LPCSTR text = FrameScript_GetText("ARMOR", -1, GENDER_NOT_APPLICABLE);
+              SStrCopy(temp, text, sizeof(temp));
+              SStrPrintf(buf, sizeof(buf), "%d %s", stats->m_resistances[0], temp);
+              lua_pushstring(L, buf);
+              ++count;
+            }
+
+            int same = 1;
+            for (i = 2; i < 6; ++i) {
+              if (stats->m_resistances[i] != stats->m_resistances[1]) {
+                same = 0;
+                break;
+              }
+            }
+            if (same) {
+              if (stats->m_resistances[1]) {
+                LPCSTR text = FrameScript_GetText("ITEM_RESIST_ALL", -1, GENDER_NOT_APPLICABLE);
+                SStrCopy(temp, text, sizeof(temp));
+                SStrPrintf(buf, sizeof(buf), temp, stats->m_resistances[1] > 0 ? '+' : '-', abs(stats->m_resistances[1]));
+                lua_pushstring(L, buf);
+                ++count;
+              }
+            } else {
+              for (i = 1; i < 6; ++i) {
+                if (stats->m_resistances[i]) {
+                  char school[32];
+                  SStrPrintf(temp, sizeof(temp), "SPELL_SCHOOL%d_CAP", i);
+                  LPCSTR text = FrameScript_GetText(temp, -1, GENDER_NOT_APPLICABLE);
+                  SStrCopy(school, text, sizeof(school));
+                  text = FrameScript_GetText("ITEM_RESIST_SINGLE", -1, GENDER_NOT_APPLICABLE);
+                  SStrCopy(temp, text, sizeof(temp));
+                  SStrPrintf(buf, sizeof(buf), temp, stats->m_resistances[i] > 0 ? '+' : '-', abs(stats->m_resistances[i]), school);
+                  lua_pushstring(L, buf);
+                  ++count;
+                }
+              }
+            }
+
+            for (i = 0; i < 10; ++i) {
+              if (stats->m_bonusAmount[i] && stats->m_bonusStat[i] != -1) {
+                temp[0] = 0;
+                switch (stats->m_bonusStat[i]) {
+                  case 0: {
+                    LPCSTR text = FrameScript_GetText("ITEM_MOD_MANA", -1, GENDER_NOT_APPLICABLE);
+                    SStrCopy(temp, text, sizeof(temp));
+                    break;
+                  }
+                  case 1: {
+                    LPCSTR text = FrameScript_GetText("ITEM_MOD_HEALTH", -1, GENDER_NOT_APPLICABLE);
+                    SStrCopy(temp, text, sizeof(temp));
+                    break;
+                  }
+                  case 3: {
+                    LPCSTR text = FrameScript_GetText("ITEM_MOD_AGILITY", -1, GENDER_NOT_APPLICABLE);
+                    SStrCopy(temp, text, sizeof(temp));
+                    break;
+                  }
+                  case 4: {
+                    LPCSTR text = FrameScript_GetText("ITEM_MOD_STRENGTH", -1, GENDER_NOT_APPLICABLE);
+                    SStrCopy(temp, text, sizeof(temp));
+                    break;
+                  }
+                  case 5: {
+                    LPCSTR text = FrameScript_GetText("ITEM_MOD_INTELLECT", -1, GENDER_NOT_APPLICABLE);
+                    SStrCopy(temp, text, sizeof(temp));
+                    break;
+                  }
+                  case 6: {
+                    LPCSTR text = FrameScript_GetText("ITEM_MOD_SPIRIT", -1, GENDER_NOT_APPLICABLE);
+                    SStrCopy(temp, text, sizeof(temp));
+                    break;
+                  }
+                  case 7: {
+                    LPCSTR text = FrameScript_GetText("ITEM_MOD_STAMINA", -1, GENDER_NOT_APPLICABLE);
+                    SStrCopy(temp, text, sizeof(temp));
+                    break;
+                  }
+                }
+                if (temp[0]) {
+                  SStrPrintf(buf, sizeof(buf), temp, stats->m_bonusAmount[i] > 0 ? '+' : '-', abs(stats->m_bonusAmount[i]));
+                  lua_pushstring(L, buf);
+                  ++count;
+                }
+              }
+            }
+
+            for (i = 0; i < 5; ++i) {
+              if (stats->m_spellID[i] > 0) {
+                const SpellRec *srec = g_spellDB.GetRecord(stats->m_spellID[i]);
+                if (srec) {
+                  int    charges = stats->m_spellCharges[i];
+                  LPCSTR text = FrameScript_GetText("ITEM_SPELL_EFFECT", -1, GENDER_NOT_APPLICABLE);
+                  SStrCopy(temp, text, sizeof(temp));
+                  SStrPrintf(buf, sizeof(buf), temp, srec->m_name_lang[CURRENT_LANGUAGE]);
+                  if (charges) {
+                    char chargeBuf[64];
+                    if (stats->m_spellCharges[i] == -1) {
+                      text = FrameScript_GetText("ITEM_SPELL_CHARGE_SINGLE", -1, GENDER_NOT_APPLICABLE);
+                      SStrCopy(chargeBuf, text, sizeof(chargeBuf));
+                    } else {
+                      text = FrameScript_GetText("ITEM_SPELL_CHARGES", -1, GENDER_NOT_APPLICABLE);
+                      SStrCopy(temp, text, sizeof(temp));
+                      SStrPrintf(chargeBuf, sizeof(chargeBuf), temp, abs(charges));
+                    }
+                    SStrPack(buf, chargeBuf, sizeof(buf));
+                  }
+                  lua_pushstring(L, buf);
+                  ++count;
+                }
+              }
+            }
+
+            player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+            if (!player) {
+              return count;
+            }
+
+            buf[0] = 0;
+            usable = 1;
+            if (!(stats->m_allowableRace & (stats->m_allowableRace - 1)) && !(stats->m_allowableClass & (stats->m_allowableClass - 1))) {
+              for (i = 0; i < g_chrRacesDB.GetNumRecords(); ++i) {
+                const ChrRacesRec *race = g_chrRacesDB.GetRecordByIndex(i);
+                if (!(race->m_flags & 0x1) && (stats->m_allowableRace & (1 << (race->m_ID - 1)))) {
+                  SStrPrintf(buf, sizeof(buf), "%s ", race->m_name_lang[CURRENT_LANGUAGE]);
+                  if (player->GetRace() != race->m_ID) {
+                    usable = 0;
+                  }
+                  break;
+                }
+              }
+              for (i = 0; i < g_chrClassesDB.GetNumRecords(); ++i) {
+                const ChrClassesRec *classRec = g_chrClassesDB.GetRecordByIndex(i);
+                if (stats->m_allowableClass & (1 << (classRec->m_ID - 1))) {
+                  SStrPack(buf, classRec->m_name_lang[CURRENT_LANGUAGE], sizeof(buf));
+                  if (player->GetClass() != classRec->m_ID) {
+                    usable = 0;
+                  }
+                  break;
+                }
+              }
+              if (buf[0]) {
+                char   string[128];
+                LPCSTR text = FrameScript_GetText("RACE_CLASS_ONLY", -1, GENDER_NOT_APPLICABLE);
+                SStrCopy(temp, text, sizeof(temp));
+                SStrPrintf(string, sizeof(string), temp, buf);
+                SStrPrintf(buf, sizeof(buf), "%s%s%s", usable ? "" : "|cffff2020", string, usable ? "" : "|r");
+                lua_pushstring(L, buf);
+                ++count;
+              }
+            } else {
+              int allRaces = 1;
+              int allClasses = 1;
+              for (i = 0; i < g_chrRacesDB.GetNumRecords(); ++i) {
+                const ChrRacesRec *race = g_chrRacesDB.GetRecordByIndex(i);
+                if (!(race->m_flags & 0x1) && !(stats->m_allowableRace & (1 << (race->m_ID - 1)))) {
+                  allRaces = 0;
+                  break;
+                }
+              }
+              for (i = 0; i < g_chrClassesDB.GetNumRecords(); ++i) {
+                const ChrClassesRec *classRec = g_chrClassesDB.GetRecordByIndex(i);
+                if (!(stats->m_allowableClass & (1 << (classRec->m_ID - 1)))) {
+                  allClasses = 0;
+                  break;
+                }
+              }
+
+              if (!allRaces) {
+                char races[512];
+                char listBuf[512];
+                races[0] = 0;
+                int first = 1;
+                usable = 0;
+                for (i = 0; i < g_chrRacesDB.GetNumRecords(); ++i) {
+                  const ChrRacesRec *race = g_chrRacesDB.GetRecordByIndex(i);
+                  if (!(race->m_flags & 0x1) && (stats->m_allowableRace & (1 << (race->m_ID - 1)))) {
+                    if (!first) {
+                      SStrPack(races, ", ", sizeof(races));
+                    }
+                    SStrPack(races, race->m_name_lang[CURRENT_LANGUAGE], sizeof(races));
+                    first = 0;
+                    if (player->GetRace() == race->m_ID) {
+                      usable = 1;
+                    }
+                  }
+                }
+                if (races[0]) {
+                  LPCSTR text = FrameScript_GetText("ITEM_RACES_ALLOWED", -1, GENDER_NOT_APPLICABLE);
+                  SStrCopy(temp, text, sizeof(temp));
+                  SStrPrintf(listBuf, sizeof(listBuf), temp, races);
+                  SStrPrintf(buf, sizeof(buf), "%s%s%s", usable ? "" : "|cffff2020", listBuf, usable ? "" : "|r");
+                  lua_pushstring(L, buf);
+                  ++count;
+                }
+              }
+
+              if (!allClasses) {
+                char classes[512];
+                char listBuf[512];
+                classes[0] = 0;
+                int first = 1;
+                usable = 0;
+                for (i = 0; i < g_chrClassesDB.GetNumRecords(); ++i) {
+                  const ChrClassesRec *classRec = g_chrClassesDB.GetRecordByIndex(i);
+                  if (stats->m_allowableClass & (1 << (classRec->m_ID - 1))) {
+                    if (!first) {
+                      SStrPack(classes, ", ", sizeof(classes));
+                    }
+                    SStrPack(classes, classRec->m_name_lang[CURRENT_LANGUAGE], sizeof(classes));
+                    first = 0;
+                    if (player->GetClass() == classRec->m_ID) {
+                      usable = 1;
+                    }
+                  }
+                }
+                if (classes[0]) {
+                  LPCSTR text = FrameScript_GetText("ITEM_CLASSES_ALLOWED", -1, GENDER_NOT_APPLICABLE);
+                  SStrCopy(temp, text, sizeof(temp));
+                  SStrPrintf(listBuf, sizeof(listBuf), temp, classes);
+                  SStrPrintf(buf, sizeof(buf), "%s%s%s", usable ? "" : "|cffff2020", listBuf, usable ? "" : "|r");
+                  lua_pushstring(L, buf);
+                  ++count;
+                }
+              }
+            }
+
+            int requiredLevel = stats->m_requiredLevel;
+            int itemLevel = stats->m_itemLevel;
+            if (requiredLevel > 0) {
+              LPCSTR text = FrameScript_GetText("ITEM_LEVEL", -1, GENDER_NOT_APPLICABLE);
+              SStrCopy(temp, text, sizeof(temp));
+              SStrPrintf(levelBuf, sizeof(levelBuf), temp, itemLevel);
+              lua_pushstring(L, levelBuf);
+              ++count;
+              if (requiredLevel > 1) {
+                text = FrameScript_GetText("ITEM_MIN_LEVEL", -1, GENDER_NOT_APPLICABLE);
+                SStrCopy(temp, text, sizeof(temp));
+                SStrPrintf(levelBuf, sizeof(levelBuf), temp, requiredLevel);
+                int canUse = player->GetLevel() >= requiredLevel;
+                SStrPrintf(buf, sizeof(buf), "%s%s%s", canUse ? "" : "|cffff2020", levelBuf, canUse ? "" : "|r");
+                lua_pushstring(L, buf);
+                ++count;
+              }
+            }
+
+            if (stats->m_requiredSkill > 0) {
+              LPCSTR text = FrameScript_GetText(stats->m_requiredSkillRank ? "ITEM_MIN_SKILL" : "ITEM_REQ_SKILL", -1, GENDER_NOT_APPLICABLE);
+              SStrCopy(temp, text, sizeof(temp));
+              const SkillLineRec *skill = g_skillLineDB.GetRecord(stats->m_requiredSkill);
+              if (stats->m_requiredSkillRank) {
+                SStrPrintf(
+                    levelBuf, sizeof(levelBuf), temp, skill ? skill->m_displayName_lang[CURRENT_LANGUAGE] : "UNKNOWN", stats->m_requiredSkillRank
+                );
+              } else {
+                SStrPrintf(levelBuf, sizeof(levelBuf), temp, skill ? skill->m_displayName_lang[CURRENT_LANGUAGE] : "UNKNOWN");
+              }
+              int canUse = player->GetSkillRank(stats->m_requiredSkill) >= stats->m_requiredSkillRank;
+              SStrPrintf(buf, sizeof(buf), "%s%s%s", canUse ? "" : "|cffff2020", levelBuf, canUse ? "" : "|r");
+              lua_pushstring(L, buf);
+              ++count;
+            }
+            return count;
+          }
+          return 0;
+        }
+      }
+    }
   }
-  int count = 0;
-  if (stats->m_displayName[0] && *stats->m_displayName[0]) {
-    lua_pushstring(L, stats->m_displayName[0]);
-    ++count;
-  }
-  if (stats->m_description && *stats->m_description) {
-    lua_pushstring(L, stats->m_description);
-    ++count;
-  }
-  if (stats->m_requiredLevel) {
-    char buf[128];
-    SStrPrintf(buf, sizeof(buf), "Requires Level %d", stats->m_requiredLevel);
-    lua_pushstring(L, buf);
-    ++count;
-  }
-  return count;
+  return 0;
 }
 
 static TRAINER_SERVICE GetServiceTypeFromString(LPCSTR string) {
@@ -1827,8 +2264,8 @@ static FrameScript_Method s_ScriptFunctions[33] = {
     { "GetTrainerServiceStepIncrease",  Script_GetTrainerServiceStepIncrease},
     {   "GetTrainerServiceSpellStats",    Script_GetTrainerServiceSpellStats},
     {      "GetTrainerServiceEffects",       Script_GetTrainerServiceEffects},
-    {             "BuyTrainerService",              Script_BuyTrainerService},
     {    "GetTrainerServiceItemStats",     Script_GetTrainerServiceItemStats},
+    {             "BuyTrainerService",              Script_BuyTrainerService},
     {   "SetTrainerServiceTypeFilter",    Script_SetTrainerServiceTypeFilter},
     {     "SetTrainerSkillLineFilter",      Script_SetTrainerSkillLineFilter},
     {   "GetTrainerServiceTypeFilter",    Script_GetTrainerServiceTypeFilter},

@@ -97,10 +97,10 @@ static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect) {
   NTempest::CRect frameRect(0.0f);
 
   if (frame->GetRect(&frameRect)) {
-    rect.l = rect.l <= frameRect.l ? rect.l : frameRect.l;
-    rect.r = rect.r >= frameRect.r ? rect.r : frameRect.r;
-    rect.t = rect.t <= frameRect.t ? rect.t : frameRect.t;
-    rect.b = rect.b >= frameRect.b ? rect.b : frameRect.b;
+    rect.l = min(frameRect.l, rect.l);
+    rect.r = max(frameRect.r, rect.r);
+    rect.t = min(frameRect.t, rect.t);
+    rect.b = max(frameRect.b, rect.b);
   }
 
   {
@@ -108,17 +108,17 @@ static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect) {
       CSimpleRegion *region = regionNode->region;
 
       if (region->IsVisible() && region->GetRect(&frameRect)) {
-        rect.l = rect.l <= frameRect.l ? rect.l : frameRect.l;
-        rect.r = rect.r >= frameRect.r ? rect.r : frameRect.r;
-        rect.t = rect.t <= frameRect.t ? rect.t : frameRect.t;
-        rect.b = rect.b >= frameRect.b ? rect.b : frameRect.b;
+        rect.l = min(frameRect.l, rect.l);
+        rect.r = max(frameRect.r, rect.r);
+        rect.t = min(frameRect.t, rect.t);
+        rect.b = max(frameRect.b, rect.b);
       }
     }
   }
 
   {
     ITERATELIST(SIMPLEFRAMENODE, frame->m_children, frameNode) {
-      if (frameNode->frame && frameNode->frame->m_shown) {
+      if (frameNode->frame->m_shown) {
         GetScrollChildRect(frameNode->frame, rect);
       }
     }

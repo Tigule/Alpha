@@ -49,7 +49,7 @@ void CSimpleDoodad::ClearCache() {
 }
 
 CSimpleDoodad *CSimpleDoodad::Create(LPCSTR fileName) {
-  UINT           hashval = SStrHashHT(fileName);
+  UINT           hashval = SStrHash(fileName, 0, 0);
   CSimpleDoodad *simpleDoodad = simpleDoodadHash.Ptr(hashval, nullHashKey);
   if (simpleDoodad) {
     ++simpleDoodad->refCount;
@@ -57,13 +57,13 @@ CSimpleDoodad *CSimpleDoodad::Create(LPCSTR fileName) {
   }
 
   simpleDoodad = simpleDoodadHash.New(hashval, nullHashKey, 0, 0);
-  if (Read(fileName, simpleDoodad)) {
-    simpleDoodad->refCount = 1;
-    return simpleDoodad;
+  if (!Read(fileName, simpleDoodad)) {
+    simpleDoodadHash.Delete(simpleDoodad);
+    return 0;
   }
 
-  simpleDoodadHash.Delete(simpleDoodad);
-  return 0;
+  simpleDoodad->refCount = 1;
+  return simpleDoodad;
 }
 
 void CSimpleDoodad::Delete(CSimpleDoodad *simpleDoodad) {
@@ -93,10 +93,8 @@ void CSimpleDoodad::RenderScene() {
   GxVertexShaderSelect(GxVS_PassThru);
   GxXformPush(GxXform_World);
 
-  CSimpleDoodad *simpleDoodad = simpleDoodadScene.Head();
-  while (simpleDoodad) {
-    CSimpleDoodad *simpleDoodadnext_node = simpleDoodadScene.Next(simpleDoodad);
-
+  for (CSimpleDoodad *simpleDoodad = simpleDoodadScene.Head(), *simpleDoodadnext_node;
+       (int)simpleDoodad > 0 ? ((simpleDoodadnext_node = simpleDoodadScene.RawNext(simpleDoodad)), 1) : 0; simpleDoodad = simpleDoodadnext_node) {
     for (UINT n = 0; n < simpleDoodad->nGeosets; ++n) {
       CSimpleDoodadGeoset *geoset = &simpleDoodad->geosets[n];
       CSimpleDoodadMat    *material = &simpleDoodad->materials[geoset->material];
@@ -104,8 +102,16 @@ void CSimpleDoodad::RenderScene() {
       if (gxTex) {
         GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
         GxRsSet(GxRs_Texture0, gxTex);
-        GxRsSet(GxRs_Culling, (material->props & CSimpleDoodadMat::PROP_TWOSIDED) == 0);
-        GxRsSet(GxRs_Blend, (material->props & CSimpleDoodadMat::PROP_TRANSPARENT) != 0);
+        if (material->props & CSimpleDoodadMat::PROP_TWOSIDED) {
+          GxRsSet(GxRs_Culling, 0);
+        } else {
+          GxRsSet(GxRs_Culling, 1);
+        }
+        if (material->props & CSimpleDoodadMat::PROP_TRANSPARENT) {
+          GxRsSet(GxRs_Blend, GxBlend_AlphaKey);
+        } else {
+          GxRsSet(GxRs_Blend, GxBlend_Opaque);
+        }
 
         gxBufDyn->UserArgSet(geoset);
         GxBufLock(gxBufDyn);
@@ -122,7 +128,6 @@ void CSimpleDoodad::RenderScene() {
     simpleDoodad->sceneLink.Unlink();
     simpleDoodad->matrixList.SetCount(0);
     simpleDoodad->doodadDefList.SetCount(0);
-    simpleDoodad = simpleDoodadnext_node;
   }
 
   GxXformPop(GxXform_World);
@@ -146,73 +151,73 @@ void CSimpleDoodad::MdlReadCallback(BYTE *fileData, UINT fileBytes, CSimpleDooda
 BOOL CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDoodad) {
   ASSERT(simpleDoodad);
 
-  if (data.materials.Count() > 4) {
+  if (data.textures.Count() > 4) {
     return 0;
   }
-  if (data.textures.Count() > 4) {
+  if (data.materials.Count() > 4) {
     return 0;
   }
   if (data.geosets.Count() > 4) {
     return 0;
   }
 
-  UINT i;
-  for (i = 0; i < data.materials.Count(); ++i) {
-    if (data.materials[i].texLayers.Count() != 1) {
+  UINT n;
+  for (n = 0; n < data.materials.Count(); ++n) {
+    if (data.materials[n].texLayers.Count() != 1) {
       return 0;
     }
   }
 
   simpleDoodad->nTextures = data.textures.Count();
-  for (i = 0; i < data.textures.Count(); ++i) {
-    simpleDoodad->textures[i] = CMap::LoadTexture(data.textures[i].image);
+  for (n = 0; n < data.textures.Count(); ++n) {
+    if (!data.textures[n].image[0]) {
+      simpleDoodad->textures[n] = CMap::LoadTexture("badcollater.blx");
+    } else {
+      simpleDoodad->textures[n] = CMap::LoadTexture(data.textures[n].image);
+    }
   }
 
   simpleDoodad->nMaterials = data.materials.Count();
-  for (i = 0; i < data.materials.Count(); ++i) {
-    CSimpleDoodadMat *material = &simpleDoodad->materials[i];
-    material->nTextures = data.materials[i].texLayers.Count();
-    for (UINT j = 0; j < data.materials[i].texLayers.Count(); ++j) {
-      material->texture[j] = data.materials[i].texLayers[j].textureId;
-      if (data.materials[i].texLayers[j].blendMode == TEXOP_TRANSPARENT) {
+  for (n = 0; n < data.materials.Count(); ++n) {
+    CSimpleDoodadMat *material = &simpleDoodad->materials[n];
+    material->nTextures = data.materials[n].texLayers.Count();
+    for (UINT j = 0; j < data.materials[n].texLayers.Count(); ++j) {
+      material->texture[j] = data.materials[n].texLayers[j].textureId;
+      if (data.materials[n].texLayers[j].blendMode == TEXOP_TRANSPARENT) {
         material->props |= CSimpleDoodadMat::PROP_TRANSPARENT;
       }
-      if (data.materials[i].texLayers[j].flags & 0x10) {
+      if (data.materials[n].texLayers[j].flags & 0x10) {
         material->props |= CSimpleDoodadMat::PROP_TWOSIDED;
       }
     }
   }
 
   simpleDoodad->nGeosets = data.geosets.Count();
-  for (i = 0; i < data.geosets.Count(); ++i) {
-    CSimpleDoodadGeoset *geoset = &simpleDoodad->geosets[i];
-    UINT                 nVertices = data.geosets[i].vertices.Count();
-
+  for (n = 0; n < data.geosets.Count(); ++n) {
+    CSimpleDoodadGeoset *geoset = &simpleDoodad->geosets[n];
+    UINT                 nVertices = data.geosets[n].vertices.Count();
     geoset->vertexList.SetCount(nVertices);
     geoset->normalList.SetCount(nVertices);
     geoset->tVertexList.SetCount(nVertices);
+
     for (UINT v = 0; v < nVertices; ++v) {
-      geoset->vertexList[v] = data.geosets[i].vertices[v];
-      geoset->normalList[v] = data.geosets[i].normals[v];
-      geoset->tVertexList[v] = data.geosets[i].texCoords[0][v];
+      geoset->vertexList[v] = data.geosets[n].vertices[v];
+      geoset->normalList[v] = data.geosets[n].normals[v];
+      geoset->tVertexList[v] = data.geosets[n].texCoords[0][v];
     }
 
-    UINT nIndices = data.geosets[i].primitives.vertices.Count();
-    geoset->indexList.SetCount(nIndices);
-    for (UINT p = 0; p < nIndices; ++p) {
-      geoset->indexList[p] = data.geosets[i].primitives.vertices[p];
+    UINT nPrims = data.geosets[n].primitives.vertices.Count();
+    geoset->indexList.SetCount(nPrims);
+    for (UINT p = 0; p < nPrims; ++p) {
+      geoset->indexList[p] = data.geosets[n].primitives.vertices[p];
     }
 
-    geoset->material = data.geosets[i].materialId;
+    geoset->material = data.geosets[n].materialId;
   }
 
   simpleDoodad->extents = data.model.bounds.extent;
-  simpleDoodad->bounds.c.Set(
-      (data.model.bounds.extent.b.x + data.model.bounds.extent.t.x) * 0.5f, (data.model.bounds.extent.b.y + data.model.bounds.extent.t.y) * 0.5f,
-      (data.model.bounds.extent.b.z + data.model.bounds.extent.t.z) * 0.5f
-  );
+  simpleDoodad->bounds.c = (data.model.bounds.extent.b + data.model.bounds.extent.t) * 0.5f;
   simpleDoodad->bounds.r = data.model.bounds.radius;
-
   return 1;
 }
 

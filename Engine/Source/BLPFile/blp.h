@@ -124,16 +124,14 @@ class CBLPFile {
     return m_header.width;
   }
   UINT Width(UINT mipLevel) const {
-    UINT width = m_header.width >> mipLevel;
-    return width ? width : 1;
+    return max(m_header.width >> mipLevel, 1);
   }
 
   UINT Height() const {
     return m_header.height;
   }
   UINT Height(UINT mipLevel) const {
-    UINT height = m_header.height >> mipLevel;
-    return height ? height : 1;
+    return max(m_header.height >> mipLevel, 1);
   }
 
   UINT Pixels() const {

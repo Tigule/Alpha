@@ -108,8 +108,8 @@ class ClientConnection : public NetClient {
   void              Initiate(WOWCS_OPS op, int errorCode, void (ClientConnection::*cleanup)());
   void              Complete(int result, int errorCode) {
     Cleanup();
-    m_errorCode = errorCode;
     m_statusResult = result;
+    m_errorCode = errorCode;
     m_statusComplete = 1;
   }
   void              Abort();

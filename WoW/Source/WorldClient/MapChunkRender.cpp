@@ -154,8 +154,9 @@ void CMapChunk::Render() {
 
     primPtr = primList;
     LodCreateTree(0, lod, neighborLOD, holes, 4, 4);
+    UINT indexCount = (reinterpret_cast<UINT>(primPtr) - reinterpret_cast<UINT>(primList)) / sizeof(WORD);
     gxBufDyn->UserArgSet(this);
-    gxBufDyn->CountSet(145, primPtr - primList);
+    gxBufDyn->CountSet(145, indexCount);
     remapLod = 0x80000000;
     RenderLayersDyn();
     return;
@@ -178,6 +179,7 @@ void CMapChunk::Render() {
 }
 
 void CMapChunk::FillGxBufVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
+  CGxVertexPN *vtx = 0;
   CGxVertexPN *vtxBase = 0;
 
   switch (cmd.vertex.op) {
@@ -185,21 +187,25 @@ void CMapChunk::FillGxBufVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
       return;
 
     case GxBufOp_Fill:
-      vtxBase = static_cast<CGxVertexPN *>(*cmd.vertex.mem[GxVM_Position]);
+      vtx = static_cast<CGxVertexPN *>(*cmd.vertex.mem[GxVM_Position]);
       break;
 
     case GxBufOp_Assign:
-      vtxBase = static_cast<CGxVertexPN *>(GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPN)));
-      *cmd.vertex.mem[GxVM_Position] = &vtxBase->p;
-      *cmd.vertex.mem[GxVM_Normal] = &vtxBase->n;
+      vtx = static_cast<CGxVertexPN *>(GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPN)));
+      *cmd.vertex.mem[GxVM_Position] = &vtx->p;
+      *cmd.vertex.mem[GxVM_Normal] = &vtx->n;
       break;
   }
 
-  FATALASSERT(vtxBase);
+  vtxBase = vtx;
+  FATALASSERT(vtx);
 
+  WORD *indicies = s_tPrimRemap[lod].indicies;
   for (UINT j = 0; j < s_tPrimRemap[lod].nIndicies; ++j) {
-    vtxBase[s_tPrimRemap[lod].indicies[2 * j + 1]].p = vertexList[s_tPrimRemap[lod].indicies[2 * j]];
-    vtxBase[s_tPrimRemap[lod].indicies[2 * j + 1]].n = normalList[s_tPrimRemap[lod].indicies[2 * j]];
+    WORD src = *indicies++;
+    WORD dst = *indicies++;
+    vtxBase[dst].p = vertexList[src];
+    vtxBase[dst].n = normalList[src];
   }
 }
 
@@ -273,303 +279,301 @@ void CMapChunk::FillGxBufDynIndex(const CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 void CMapChunk::RenderLayers() {
-  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) || !nLayers ||
-      camDist >= CWorld::farFog)
+  if ((!(CWorld::enables & CWorld::Enable_ZoneBounds) || ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) && nLayers &&
+      camDist < CWorld::farFog)
   {
-    RenderLayersColor();
-    return;
-  }
+    GxVertexShaderSelect(GxVS_PassThru);
+    GxBufLock(gxBuf);
+    GxRsSet(GxRs_Blend, GxBlend_Opaque);
+    GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
 
-  GxVertexShaderSelect(GxVS_PassThru);
-  GxBufLock(gxBuf);
-  GxRsSet(GxRs_Blend, GxBlend_Opaque);
-  GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
+    const float         GEO_TO_TEX = -1.0f / vertexList[1].y;
+    NTempest::C44Matrix amtx;
+    amtx.Scale(-GEO_TO_TEX);
+    float a0 = amtx.a0;
+    float a1 = amtx.a1;
+    float a2 = amtx.a2;
+    float a3 = amtx.a3;
+    amtx.a0 = amtx.b0;
+    amtx.a1 = amtx.b1;
+    amtx.a2 = amtx.b2;
+    amtx.a3 = amtx.b3;
+    amtx.b0 = a0;
+    amtx.b1 = a1;
+    amtx.b2 = a2;
+    amtx.b3 = a3;
 
-  const float         GEO_TO_TEX = -1.0f / vertexList[1].y;
-  NTempest::C44Matrix amtx;
-  amtx.Scale(-GEO_TO_TEX);
-  float a0 = amtx.a0;
-  float a1 = amtx.a1;
-  float a2 = amtx.a2;
-  float a3 = amtx.a3;
-  amtx.a0 = amtx.b0;
-  amtx.a1 = amtx.b1;
-  amtx.a2 = amtx.b2;
-  amtx.a3 = amtx.b3;
-  amtx.b0 = a0;
-  amtx.b1 = a1;
-  amtx.b2 = a2;
-  amtx.b3 = a3;
+    NTempest::C3Vector texVect(CWorldScene::camPos.x - corner.x, CWorldScene::camPos.y - corner.y, CWorldScene::camPos.z - corner.z);
+    amtx.Translate(texVect);
 
-  NTempest::C3Vector texVect(CWorldScene::camPos.x - corner.x, CWorldScene::camPos.y - corner.y, CWorldScene::camPos.z - corner.z);
-  amtx.Translate(texVect);
+    NTempest::C44Matrix dmtx;
+    dmtx.Scale(GEO_TO_TEX * -0.1220703125f);
+    a0 = dmtx.a0;
+    a1 = dmtx.a1;
+    a2 = dmtx.a2;
+    a3 = dmtx.a3;
+    dmtx.a0 = dmtx.b0;
+    dmtx.a1 = dmtx.b1;
+    dmtx.a2 = dmtx.b2;
+    dmtx.a3 = dmtx.b3;
+    dmtx.b0 = a0;
+    dmtx.b1 = a1;
+    dmtx.b2 = a2;
+    dmtx.b3 = a3;
+    dmtx.Translate(texVect);
 
-  NTempest::C44Matrix dmtx;
-  dmtx.Scale(GEO_TO_TEX * -0.1220703125f);
-  a0 = dmtx.a0;
-  a1 = dmtx.a1;
-  a2 = dmtx.a2;
-  a3 = dmtx.a3;
-  dmtx.a0 = dmtx.b0;
-  dmtx.a1 = dmtx.b1;
-  dmtx.a2 = dmtx.b2;
-  dmtx.a3 = dmtx.b3;
-  dmtx.b0 = a0;
-  dmtx.b1 = a1;
-  dmtx.b2 = a2;
-  dmtx.b3 = a3;
-  dmtx.Translate(texVect);
+    GxXformPush(GxXform_Tex0, amtx);
+    GxXformPush(GxXform_Tex1, dmtx);
+    GxRsSet(GxRs_TexGen0, GxTexGen_World);
+    GxRsSet(GxRs_TexGen1, GxTexGen_World);
+    GxRsSet(GxRs_TextureShader0, GxTS_Affine);
+    GxRsSet(GxRs_TextureShader1, GxTS_Affine);
 
-  GxXformPush(GxXform_Tex0, amtx);
-  GxXformPush(GxXform_Tex1, dmtx);
-  GxRsSet(GxRs_TexGen0, GxTexGen_World);
-  GxRsSet(GxRs_TexGen1, GxTexGen_World);
-  GxRsSet(GxRs_TextureShader0, GxTS_Affine);
-  GxRsSet(GxRs_TextureShader1, GxTS_Affine);
-
-  if (CMap::EnableSpecularTerrain()) {
-    GxRsSet(GxRs_Texture1, shaderGxTexture);
-    GxRsSet(GxRs_PixelShader, CMap::psSpecTerrain);
-    GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0xFFFFFFFF));
-    GxRsSet(GxRs_MatSpecularExp, TERRAIN_SPEC_EXP);
-  } else if (CMap::EnableTerrainShader()) {
-    GxRsSet(GxRs_Texture1, shaderGxTexture);
-    GxRsSet(GxRs_PixelShader, CMap::psTerrain);
-  }
-
-  UINT                nLayersTest = nLayers;
-  NTempest::CImVector mattDiffuse(0xFFFFFFFF);
-  if (camDist > CWorld::textureLodDist) {
-    float fade = camDist - CWorld::textureLodDist;
-    if (fade < 64.0f) {
-      mattDiffuse.a = Fast_ftol((64.0f - fade) * 0.015625f * 255.0f);
-    } else {
-      nLayersTest = 1;
-    }
-  }
-  GxRsSet(GxRs_MatDiffuse, mattDiffuse);
-
-  for (UINT i = 0; i < nLayersTest; ++i) {
-    CChunkLayer *layer = layerList[i];
-    CGxTex      *texture = TextureGetGxTex(layer->texId, 0, 0);
-    if (!texture) {
-      continue;
-    }
-
-    if (layer->props & 0x80) {
-      GxRsSet(GxRs_Lighting, 0);
-    }
-    if (layer->props & 0x40) {
-      float scale = 1.0f / GEO_TO_TEX / s_tempTexSpeed[(layer->props >> 3) & 7];
-      texVect.x = CWorld::texVect[layer->props & 7].x * scale;
-      texVect.y = CWorld::texVect[layer->props & 7].y * scale;
-      texVect.z = CWorld::texVect[layer->props & 7].z * scale;
-      GxXformPush(GxXform_Tex0, amtx);
-      GxXformTranslate(GxXform_Tex0, texVect);
-    }
-
-    GxRsSet(GxRs_Texture0, texture);
     if (CMap::EnableSpecularTerrain()) {
-      CMap::psSpecTerrain->SetParam(CMap::psSpecTerrain_LayerMask, psLayerMask[i]);
-      GxRsSet(GxRs_Blend, i ? GxBlend_Alpha : GxBlend_Opaque);
+      GxRsSet(GxRs_Texture1, shaderGxTexture);
+      GxRsSet(GxRs_PixelShader, CMap::psSpecTerrain);
+      GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0xFFFFFFFF));
+      GxRsSet(GxRs_MatSpecularExp, TERRAIN_SPEC_EXP);
     } else if (CMap::EnableTerrainShader()) {
-      CMap::psTerrain->SetParam(CMap::psTerrain_LayerMask, psLayerMask[i]);
-      GxRsSet(GxRs_Blend, i ? GxBlend_Alpha : GxBlend_Opaque);
-    } else if (layer->gxTexture) {
+      GxRsSet(GxRs_Texture1, shaderGxTexture);
+      GxRsSet(GxRs_PixelShader, CMap::psTerrain);
+    }
+
+    UINT                nLayersTest = nLayers;
+    NTempest::CImVector mattDiffuse(0xFFFFFFFF);
+    if (camDist > CWorld::textureLodDist) {
+      float fade = camDist - CWorld::textureLodDist;
+      if (fade < 64.0f) {
+        mattDiffuse.a = Fast_ftol((64.0f - fade) * 0.015625f * 255.0f);
+      } else {
+        nLayersTest = 1;
+      }
+    }
+    GxRsSet(GxRs_MatDiffuse, mattDiffuse);
+
+    for (UINT i = 0; i < nLayersTest; ++i) {
+      CChunkLayer *layer = layerList[i];
+      CGxTex      *texture = TextureGetGxTex(layer->texId, 0, 0);
+      if (!texture) {
+        continue;
+      }
+
+      if (layer->props & 0x80) {
+        GxRsSet(GxRs_Lighting, 0);
+      }
+      if (layer->props & 0x40) {
+        float scale = 1.0f / GEO_TO_TEX / s_tempTexSpeed[(layer->props >> 3) & 7];
+        texVect.x = CWorld::texVect[layer->props & 7].x * scale;
+        texVect.y = CWorld::texVect[layer->props & 7].y * scale;
+        texVect.z = CWorld::texVect[layer->props & 7].z * scale;
+        GxXformPush(GxXform_Tex0, amtx);
+        GxXformTranslate(GxXform_Tex0, texVect);
+      }
+
+      GxRsSet(GxRs_Texture0, texture);
+      if (CMap::EnableSpecularTerrain()) {
+        CMap::psSpecTerrain->SetParam(CMap::psSpecTerrain_LayerMask, psLayerMask[i]);
+        GxRsSet(GxRs_Blend, i ? GxBlend_Alpha : GxBlend_Opaque);
+      } else if (CMap::EnableTerrainShader()) {
+        CMap::psTerrain->SetParam(CMap::psTerrain_LayerMask, psLayerMask[i]);
+        GxRsSet(GxRs_Blend, i ? GxBlend_Alpha : GxBlend_Opaque);
+      } else if (layer->gxTexture) {
+        GxRsSet(GxRs_Blend, GxBlend_Alpha);
+        GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
+        GxRsSet(GxRs_Texture1, layer->gxTexture);
+      } else {
+        GxRsSet(GxRs_Blend, GxBlend_Opaque);
+        GxRsSet(GxRs_Texture1, 0);
+      }
+
+      GxBufRender(rmGxBatchList[lod], 2);
+
+      if (layer->props & 0x80) {
+        GxRsSet(GxRs_Lighting, 1);
+      }
+      if (layer->props & 0x40) {
+        GxXformPop(GxXform_Tex0);
+      }
+    }
+
+    if (CMap::EnableSpecularTerrain()) {
+      GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
+      GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0ul));
+      GxRsSet(GxRs_MatSpecularExp, 0.0f);
+    } else if (CMap::EnableTerrainShader()) {
+      GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
+    } else if (shadowGxTexture && (CWorld::enables & CWorld::Enable_Shadow)) {
+      GxRsSet(GxRs_MatDiffuse, CWorld::shadowColor);
       GxRsSet(GxRs_Blend, GxBlend_Alpha);
+      GxRsSet(GxRs_Texture0, CWorld::shadowModGxTex);
       GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
-      GxRsSet(GxRs_Texture1, layer->gxTexture);
-    } else {
-      GxRsSet(GxRs_Blend, GxBlend_Opaque);
-      GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
+      GxRsSet(GxRs_Texture1, shadowGxTexture);
+      GxBufRender(rmGxBatchList[lod], 2);
+      GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
     }
 
-    GxBufRender(rmGxBatchList[lod], 2);
-
-    if (layer->props & 0x80) {
-      GxRsSet(GxRs_Lighting, 1);
-    }
-    if (layer->props & 0x40) {
-      GxXformPop(GxXform_Tex0);
-    }
+    GxRsSet(GxRs_Texture1, 0);
+    GxBufUnlock();
+    GxXformPop(GxXform_Tex0);
+    GxXformPop(GxXform_Tex1);
+    GxRsSet(GxRs_TextureShader0, GxTS_PassThru);
+    GxRsSet(GxRs_TextureShader1, GxTS_PassThru);
+    GxRsSet(GxRs_TexGen0, GxTexGen_Disable);
+    GxRsSet(GxRs_TexGen1, GxTexGen_Disable);
+  } else {
+    RenderLayersColor();
   }
-
-  if (CMap::EnableSpecularTerrain()) {
-    GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
-    GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0ul));
-    GxRsSet(GxRs_MatSpecularExp, 0.0f);
-  } else if (CMap::EnableTerrainShader()) {
-    GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
-  } else if (shadowGxTexture && (CWorld::enables & CWorld::Enable_Shadow)) {
-    GxRsSet(GxRs_MatDiffuse, CWorld::shadowColor);
-    GxRsSet(GxRs_Blend, GxBlend_Alpha);
-    GxRsSet(GxRs_Texture0, CWorld::shadowModGxTex);
-    GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
-    GxRsSet(GxRs_Texture1, shadowGxTexture);
-    GxBufRender(rmGxBatchList[lod], 2);
-    GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
-  }
-
-  GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
-  GxBufUnlock();
-  GxXformPop(GxXform_Tex0);
-  GxXformPop(GxXform_Tex1);
-  GxRsSet(GxRs_TextureShader0, GxTS_PassThru);
-  GxRsSet(GxRs_TextureShader1, GxTS_PassThru);
-  GxRsSet(GxRs_TexGen0, GxTexGen_Disable);
-  GxRsSet(GxRs_TexGen1, GxTexGen_Disable);
 }
 
 void CMapChunk::RenderLayersDyn() {
-  if (((CWorld::enables & CWorld::Enable_ZoneBounds) && !ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) || !nLayers ||
-      camDist >= CWorld::farFog)
+  if ((!(CWorld::enables & CWorld::Enable_ZoneBounds) || ZoneDebugIsInCurrentZone(aaSphere.c.x, aaSphere.c.y)) && nLayers &&
+      camDist < CWorld::farFog)
   {
-    RenderLayersColorDyn();
-    return;
-  }
+    CGxBatch gxBatch(GxPrim_Triangles, (reinterpret_cast<UINT>(primPtr) - reinterpret_cast<UINT>(primList)) / sizeof(WORD), 0, -1, -1);
+    GxVertexShaderSelect(GxVS_PassThru);
+    GxBufLock(gxBufDyn);
+    GxRsSet(GxRs_Blend, GxBlend_Opaque);
+    GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
 
-  CGxBatch gxBatch(GxPrim_Triangles, primPtr - primList, 0, -1, -1);
-  GxVertexShaderSelect(GxVS_PassThru);
-  GxBufLock(gxBufDyn);
-  GxRsSet(GxRs_Blend, GxBlend_Opaque);
-  GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
+    const float         GEO_TO_TEX = -1.0f / vertexList[1].y;
+    NTempest::C44Matrix amtx;
+    amtx.Scale(-GEO_TO_TEX);
+    float a0 = amtx.a0;
+    float a1 = amtx.a1;
+    float a2 = amtx.a2;
+    float a3 = amtx.a3;
+    amtx.a0 = amtx.b0;
+    amtx.a1 = amtx.b1;
+    amtx.a2 = amtx.b2;
+    amtx.a3 = amtx.b3;
+    amtx.b0 = a0;
+    amtx.b1 = a1;
+    amtx.b2 = a2;
+    amtx.b3 = a3;
+    NTempest::C3Vector texVect(CWorldScene::camPos.x - corner.x, CWorldScene::camPos.y - corner.y, CWorldScene::camPos.z - corner.z);
+    amtx.Translate(texVect);
 
-  const float         GEO_TO_TEX = -1.0f / vertexList[1].y;
-  NTempest::C44Matrix amtx;
-  amtx.Scale(-GEO_TO_TEX);
-  float a0 = amtx.a0;
-  float a1 = amtx.a1;
-  float a2 = amtx.a2;
-  float a3 = amtx.a3;
-  amtx.a0 = amtx.b0;
-  amtx.a1 = amtx.b1;
-  amtx.a2 = amtx.b2;
-  amtx.a3 = amtx.b3;
-  amtx.b0 = a0;
-  amtx.b1 = a1;
-  amtx.b2 = a2;
-  amtx.b3 = a3;
-  NTempest::C3Vector texVect(CWorldScene::camPos.x - corner.x, CWorldScene::camPos.y - corner.y, CWorldScene::camPos.z - corner.z);
-  amtx.Translate(texVect);
+    NTempest::C44Matrix dmtx;
+    dmtx.Scale(GEO_TO_TEX * -0.1220703125f);
+    a0 = dmtx.a0;
+    a1 = dmtx.a1;
+    a2 = dmtx.a2;
+    a3 = dmtx.a3;
+    dmtx.a0 = dmtx.b0;
+    dmtx.a1 = dmtx.b1;
+    dmtx.a2 = dmtx.b2;
+    dmtx.a3 = dmtx.b3;
+    dmtx.b0 = a0;
+    dmtx.b1 = a1;
+    dmtx.b2 = a2;
+    dmtx.b3 = a3;
+    dmtx.Translate(texVect);
 
-  NTempest::C44Matrix dmtx;
-  dmtx.Scale(GEO_TO_TEX * -0.1220703125f);
-  a0 = dmtx.a0;
-  a1 = dmtx.a1;
-  a2 = dmtx.a2;
-  a3 = dmtx.a3;
-  dmtx.a0 = dmtx.b0;
-  dmtx.a1 = dmtx.b1;
-  dmtx.a2 = dmtx.b2;
-  dmtx.a3 = dmtx.b3;
-  dmtx.b0 = a0;
-  dmtx.b1 = a1;
-  dmtx.b2 = a2;
-  dmtx.b3 = a3;
-  dmtx.Translate(texVect);
+    GxXformPush(GxXform_Tex0, amtx);
+    GxXformPush(GxXform_Tex1, dmtx);
+    GxRsSet(GxRs_TexGen0, GxTexGen_World);
+    GxRsSet(GxRs_TexGen1, GxTexGen_World);
+    GxRsSet(GxRs_TextureShader0, GxTS_Affine);
+    GxRsSet(GxRs_TextureShader1, GxTS_Affine);
 
-  GxXformPush(GxXform_Tex0, amtx);
-  GxXformPush(GxXform_Tex1, dmtx);
-  GxRsSet(GxRs_TexGen0, GxTexGen_World);
-  GxRsSet(GxRs_TexGen1, GxTexGen_World);
-  GxRsSet(GxRs_TextureShader0, GxTS_Affine);
-  GxRsSet(GxRs_TextureShader1, GxTS_Affine);
-
-  if (CMap::EnableSpecularTerrain()) {
-    GxRsSet(GxRs_Texture1, shaderGxTexture);
-    GxRsSet(GxRs_PixelShader, CMap::psSpecTerrain);
-    GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0xFFFFFFFF));
-    GxRsSet(GxRs_MatSpecularExp, TERRAIN_SPEC_EXP);
-  } else if (CMap::EnableTerrainShader()) {
-    GxRsSet(GxRs_Texture1, shaderGxTexture);
-    GxRsSet(GxRs_PixelShader, CMap::psTerrain);
-  }
-
-  UINT                nLayersTest = nLayers;
-  NTempest::CImVector mattDiffuse(0xFFFFFFFF);
-  if (camDist > CWorld::textureLodDist) {
-    float fade = camDist - CWorld::textureLodDist;
-    if (fade < 64.0f) {
-      mattDiffuse.a = Fast_ftol((64.0f - fade) * 0.015625f * 255.0f);
-    } else {
-      nLayersTest = 1;
-    }
-  }
-  GxRsSet(GxRs_MatDiffuse, mattDiffuse);
-
-  for (UINT i = 0; i < nLayersTest; ++i) {
-    CChunkLayer *layer = layerList[i];
-    CGxTex      *texture = TextureGetGxTex(layer->texId, 0, 0);
-    if (!texture) {
-      continue;
-    }
-    if (layer->props & 0x80) {
-      GxRsSet(GxRs_Lighting, 0);
-    }
-    if (layer->props & 0x40) {
-      float scale = 1.0f / GEO_TO_TEX / s_tempTexSpeed[(layer->props >> 3) & 7];
-      texVect.x = CWorld::texVect[layer->props & 7].x * scale;
-      texVect.y = CWorld::texVect[layer->props & 7].y * scale;
-      texVect.z = CWorld::texVect[layer->props & 7].z * scale;
-      GxXformPush(GxXform_Tex0, amtx);
-      GxXformTranslate(GxXform_Tex0, texVect);
-    }
-    GxRsSet(GxRs_Texture0, texture);
     if (CMap::EnableSpecularTerrain()) {
-      CMap::psSpecTerrain->SetParam(CMap::psSpecTerrain_LayerMask, psLayerMask[i]);
-      GxRsSet(GxRs_Blend, i ? GxBlend_Alpha : GxBlend_Opaque);
+      GxRsSet(GxRs_Texture1, shaderGxTexture);
+      GxRsSet(GxRs_PixelShader, CMap::psSpecTerrain);
+      GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0xFFFFFFFF));
+      GxRsSet(GxRs_MatSpecularExp, TERRAIN_SPEC_EXP);
     } else if (CMap::EnableTerrainShader()) {
-      CMap::psTerrain->SetParam(CMap::psTerrain_LayerMask, psLayerMask[i]);
-      GxRsSet(GxRs_Blend, i ? GxBlend_Alpha : GxBlend_Opaque);
-    } else if (layer->gxTexture) {
+      GxRsSet(GxRs_Texture1, shaderGxTexture);
+      GxRsSet(GxRs_PixelShader, CMap::psTerrain);
+    }
+
+    UINT                nLayersTest = nLayers;
+    NTempest::CImVector mattDiffuse(0xFFFFFFFF);
+    if (camDist > CWorld::textureLodDist) {
+      float fade = camDist - CWorld::textureLodDist;
+      if (fade < 64.0f) {
+        mattDiffuse.a = Fast_ftol((64.0f - fade) * 0.015625f * 255.0f);
+      } else {
+        nLayersTest = 1;
+      }
+    }
+    GxRsSet(GxRs_MatDiffuse, mattDiffuse);
+
+    for (UINT i = 0; i < nLayersTest; ++i) {
+      CChunkLayer *layer = layerList[i];
+      CGxTex      *texture = TextureGetGxTex(layer->texId, 0, 0);
+      if (!texture) {
+        continue;
+      }
+      if (layer->props & 0x80) {
+        GxRsSet(GxRs_Lighting, 0);
+      }
+      if (layer->props & 0x40) {
+        float scale = 1.0f / GEO_TO_TEX / s_tempTexSpeed[(layer->props >> 3) & 7];
+        texVect.x = CWorld::texVect[layer->props & 7].x * scale;
+        texVect.y = CWorld::texVect[layer->props & 7].y * scale;
+        texVect.z = CWorld::texVect[layer->props & 7].z * scale;
+        GxXformPush(GxXform_Tex0, amtx);
+        GxXformTranslate(GxXform_Tex0, texVect);
+      }
+      GxRsSet(GxRs_Texture0, texture);
+      if (CMap::EnableSpecularTerrain()) {
+        CMap::psSpecTerrain->SetParam(CMap::psSpecTerrain_LayerMask, psLayerMask[i]);
+        GxRsSet(GxRs_Blend, i ? GxBlend_Alpha : GxBlend_Opaque);
+      } else if (CMap::EnableTerrainShader()) {
+        CMap::psTerrain->SetParam(CMap::psTerrain_LayerMask, psLayerMask[i]);
+        GxRsSet(GxRs_Blend, i ? GxBlend_Alpha : GxBlend_Opaque);
+      } else if (layer->gxTexture) {
+        GxRsSet(GxRs_Blend, GxBlend_Alpha);
+        GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
+        GxRsSet(GxRs_Texture1, layer->gxTexture);
+      } else {
+        GxRsSet(GxRs_Blend, GxBlend_Opaque);
+        GxRsSet(GxRs_Texture1, 0);
+      }
+      GxBufRender(gxBatch);
+      if (layer->props & 0x80) {
+        GxRsSet(GxRs_Lighting, 1);
+      }
+      if (layer->props & 0x40) {
+        GxXformPop(GxXform_Tex0);
+      }
+    }
+
+    if (CMap::EnableSpecularTerrain()) {
+      GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
+      GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0ul));
+      GxRsSet(GxRs_MatSpecularExp, 0.0f);
+    } else if (CMap::EnableTerrainShader()) {
+      GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
+    } else if (shadowGxTexture && (CWorld::enables & CWorld::Enable_Shadow)) {
+      GxRsSet(GxRs_MatDiffuse, CWorld::shadowColor);
       GxRsSet(GxRs_Blend, GxBlend_Alpha);
+      GxRsSet(GxRs_Texture0, CWorld::shadowModGxTex);
       GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
-      GxRsSet(GxRs_Texture1, layer->gxTexture);
-    } else {
-      GxRsSet(GxRs_Blend, GxBlend_Opaque);
-      GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
+      GxRsSet(GxRs_Texture1, shadowGxTexture);
+      GxBufRender(gxBatch);
+      GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
     }
-    GxBufRender(gxBatch);
-    if (layer->props & 0x80) {
-      GxRsSet(GxRs_Lighting, 1);
-    }
-    if (layer->props & 0x40) {
-      GxXformPop(GxXform_Tex0);
-    }
-  }
 
-  if (CMap::EnableSpecularTerrain()) {
-    GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
-    GxRsSet(GxRs_MatSpecular, NTempest::CImVector(0ul));
-    GxRsSet(GxRs_MatSpecularExp, 0.0f);
-  } else if (CMap::EnableTerrainShader()) {
-    GxRsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
-  } else if (shadowGxTexture && (CWorld::enables & CWorld::Enable_Shadow)) {
-    GxRsSet(GxRs_MatDiffuse, CWorld::shadowColor);
-    GxRsSet(GxRs_Blend, GxBlend_Alpha);
-    GxRsSet(GxRs_Texture0, CWorld::shadowModGxTex);
-    GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
-    GxRsSet(GxRs_Texture1, shadowGxTexture);
-    GxBufRender(gxBatch);
-    GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
+    GxRsSet(GxRs_Texture1, 0);
+    GxBufUnlock();
+    GxXformPop(GxXform_Tex0);
+    GxXformPop(GxXform_Tex1);
+    GxRsSet(GxRs_TextureShader0, GxTS_PassThru);
+    GxRsSet(GxRs_TextureShader1, GxTS_PassThru);
+    GxRsSet(GxRs_TexGen0, GxTexGen_Disable);
+    GxRsSet(GxRs_TexGen1, GxTexGen_Disable);
+  } else {
+    RenderLayersColorDyn();
   }
-
-  GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
-  GxBufUnlock();
-  GxXformPop(GxXform_Tex0);
-  GxXformPop(GxXform_Tex1);
-  GxRsSet(GxRs_TextureShader0, GxTS_PassThru);
-  GxRsSet(GxRs_TextureShader1, GxTS_PassThru);
-  GxRsSet(GxRs_TexGen0, GxTexGen_Disable);
-  GxRsSet(GxRs_TexGen1, GxTexGen_Disable);
 }
 
 void CMapChunk::RenderLayersColor() {
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   GxRsSet(GxRs_Blend, GxBlend_Opaque);
-  GxRsSet(GxRs_Texture0, static_cast<LPVOID>(0));
-  GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
+  GxRsSet(GxRs_Texture0, 0);
+  GxRsSet(GxRs_Texture1, 0);
   GxBufLock(gxBuf);
   GxBufRender(rmGxBatchList[lod], 2);
   GxBufUnlock();
@@ -592,16 +596,17 @@ void CMapChunk::CreateDetailDoodads() {
     return;
   }
 
-  detailDoodadInst = CDetailDoodad::AllocInst();
-  FATALASSERT(detailDoodadInst);
+  CDetailDoodadInst *inst = CDetailDoodad::AllocInst();
+  detailDoodadInst = inst;
+  FATALASSERT(inst);
 
   if (CWorld::detailDoodadTest) {
     NTempest::C4Plane plane;
     NTempest::C3Vector aPos;
     for (UINT y = 0; y < 8; ++y) {
-      float fy = y * (150.0f / 36.0f) + DETAIL_VARY;
+      float fy = y * (150.0f / 36.0f) + (150.0f / 72.0f);
       for (UINT i = 0; i < 8; ++i) {
-        float fx = i * (150.0f / 36.0f) + DETAIL_VARY;
+        float fx = i * (150.0f / 36.0f) + (150.0f / 72.0f);
         if (((noEffectDoodad[y] & g_1bitSplatMask[i]) >> g_1bitSplatShft[i]) || (holes & g_holeMask[y >> 1][i >> 1])) {
           continue;
         }
@@ -612,7 +617,7 @@ void CMapChunk::CreateDetailDoodads() {
           aPos.y = -fx;
           CMap::GetPlane(aPos.x, aPos.y, plane);
           aPos.z = -(plane.n.x * aPos.x + plane.n.y * aPos.y + plane.d) / plane.n.z;
-          detailDoodadInst->AddDoodad(effectTex->m_doodadId[0], aPos, 0, plane);
+          inst->AddDoodad(effectTex->m_doodadId[0], aPos, 0, plane);
         }
       }
     }
@@ -652,8 +657,8 @@ void CMapChunk::CreateDetailDoodads() {
       splatCen.y = splat.y * (150.0f / 36.0f);
       for (UINT i = 0; i < clumpDensity; ++i) {
         float rx = NTempest::CRandom::reals_(rSeed);
-        cPos.y = NTempest::CRandom::reals_(rSeed) * DETAIL_VARY + DETAIL_VARY;
-        cPos.x = rx * DETAIL_VARY + DETAIL_VARY;
+        cPos.y = NTempest::CRandom::reals_(rSeed) * DETAIL_VARY + (150.0f / 72.0f);
+        cPos.x = rx * DETAIL_VARY + (150.0f / 72.0f);
         if (effectTex->m_doodadId[(n + i) & 3] == -1) {
           continue;
         }
@@ -665,7 +670,7 @@ void CMapChunk::CreateDetailDoodads() {
         aPos.x -= splatCen.y;
         aPos.y -= splatCen.x;
         aPos.z = -(plane.n.x * aPos.x + plane.n.y * aPos.y + plane.d) / plane.n.z;
-        detailDoodadInst->AddDoodad(
+        inst->AddDoodad(
             effectTex->m_doodadId[(n + i) & 3], aPos,
             (shadowBits[Fast_ftol((cPos.y + splatCen.y) * OO_COORD_TO_SHADOW)] &
              (1UL << Fast_ftol((cPos.x + splatCen.x) * OO_COORD_TO_SHADOW))) != 0,

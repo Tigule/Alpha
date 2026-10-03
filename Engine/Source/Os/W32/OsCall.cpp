@@ -250,12 +250,12 @@ void OsCallBeginTurn() {
 
   ContextData *contextData = threadData->m_contextData;
   DWORD        turnId = ++contextData->m_turnId;
-  ContextTurn &turn = contextData->m_turnBuffer[contextData->m_turnBufferHead++ & 0x3FF];
+  ContextTurn &turn = contextData->m_turnBuffer[contextData->m_turnBufferTail++ & 0x3FF];
   contextData->m_checksum = static_cast<DWORD>(-1);
   turn.m_turnId = turnId;
-  turn.m_callBufferHead = contextData->m_callBufferHead;
-  if (contextData->m_turnBufferHead == contextData->m_turnBufferTail + 0x401) {
-    ++contextData->m_turnBufferTail;
+  turn.m_callBufferHead = contextData->m_callBufferTail;
+  if (contextData->m_turnBufferTail == contextData->m_turnBufferHead + 0x401) {
+    ++contextData->m_turnBufferHead;
   }
 }
 
@@ -278,13 +278,13 @@ void OsCallCompleteTurn() {
 
   ContextData *contextData = threadData->m_contextData;
   ++contextData->m_turnIdComplete;
-  ASSERT(static_cast<long>(contextData->m_turnIdComplete - contextData->m_turnId) <= 0);
+  ASSERT((int)(contextData->m_turnIdComplete - contextData->m_turnId) <= 0);
 
-  ContextTurn &turn = contextData->m_turnBuffer[contextData->m_turnBufferTail & 0x3FF];
+  ContextTurn &turn = contextData->m_turnBuffer[contextData->m_turnBufferHead & 0x3FF];
   if (turn.m_turnId == contextData->m_turnIdComplete) {
-    ++contextData->m_turnBufferTail;
-    if (static_cast<long>(turn.m_callBufferHead - contextData->m_callBufferTail) >= 0) {
-      contextData->m_callBufferTail = turn.m_callBufferHead;
+    ++contextData->m_turnBufferHead;
+    if (static_cast<long>(turn.m_callBufferHead - contextData->m_callBufferHead) >= 0) {
+      contextData->m_callBufferHead = turn.m_callBufferHead;
     }
   }
 }
@@ -329,7 +329,7 @@ void OsCallDump(LPCSTR fileName) {
   s_critsect.Enter();
 
   if (!fileName) {
-    fileName = "CallDump.log";
+    fileName = "calldump.log";
   }
 
   FILE *file = fopen(fileName, "wb");
@@ -376,12 +376,12 @@ int __cdecl OsCallEnter(DWORD funcAddr, DWORD retAddr) {
   if (contextData) {
     stack.m_logExit = s_enable && threadData->m_enabled;
     if (stack.m_logExit) {
-      DWORD        head = contextData->m_callBufferHead++;
+      DWORD        head = contextData->m_callBufferTail++;
       ContextCall &call = contextData->m_callBuffer[head & 0xFF];
       call.m_depth = static_cast<BYTE>(stackIndex & 0x7F);
       call.m_funcAddr = funcAddr | 0x80000000;
-      if (contextData->m_callBufferHead == contextData->m_callBufferTail + 0x101) {
-        ++contextData->m_callBufferTail;
+      if (contextData->m_callBufferTail == contextData->m_callBufferHead + 0x101) {
+        ++contextData->m_callBufferHead;
       }
     }
   }
@@ -410,12 +410,12 @@ void OsCallData(DWORD data) {
 
   ContextData *contextData = threadData->m_contextData;
   CrcBuffer(&data, sizeof(data), &contextData->m_checksum, 2);
-  DWORD        head = contextData->m_callBufferHead++;
+  DWORD        head = contextData->m_callBufferTail++;
   ContextCall &call = contextData->m_callBuffer[head & 0xFF];
   call.m_funcAddr = data;
   call.m_depth = static_cast<BYTE>(threadData->m_funcStackIndex | 0x80);
-  if (contextData->m_callBufferHead == contextData->m_callBufferTail + 0x101) {
-    ++contextData->m_callBufferTail;
+  if (contextData->m_callBufferTail == contextData->m_callBufferHead + 0x101) {
+    ++contextData->m_callBufferHead;
   }
 }
 

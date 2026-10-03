@@ -129,7 +129,7 @@ class DNPlanet {
   float               m_baseScale;
   float               m_period;
 
-  void GenGeometry(NTempest::C3Vector *geov, NTempest::C2Vector *texv, NTempest::CImVector *clrv, WORD *idx, DWORD &vertCount, DWORD &idxCount);
+  void GenGeometry(NTempest::C3Vector geov[], NTempest::C2Vector texv[], NTempest::CImVector clrv[], WORD idx[], DWORD &vertCount, DWORD &idxCount);
   void Render();
   void Update();
   void Initialize(LPCSTR filename);

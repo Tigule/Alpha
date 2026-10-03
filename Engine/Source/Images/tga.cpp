@@ -21,9 +21,8 @@ void CTgaFile::Close() {
 }
 
 BOOL CTgaFile::Open(LPCSTR filename) {
-  FATALASSERT(filename);
-
   VALIDATEBEGIN;
+  VALIDATE(filename);
   VALIDATE(*filename);
   VALIDATEEND;
 
@@ -37,13 +36,13 @@ BOOL CTgaFile::Open(LPCSTR filename) {
     return 0;
   }
 
-  if (m_header.bIDLength) {
+  if (m_header.bIDLength == 0) {
+    m_addlHeaderData = 0;
+  } else {
     m_addlHeaderData = static_cast<BYTE *>(ALLOC(m_header.bIDLength));
     if (!SFile::Read(m_file, m_addlHeaderData, m_header.bIDLength, 0, 0, 0)) {
       return 0;
     }
-  } else {
-    m_addlHeaderData = 0;
   }
 
   if (m_header.bColorMapType) {
@@ -128,14 +127,18 @@ int CTgaFile::ReadColorMappedImage(UINT flags) {
 int CTgaFile::LoadImageData(UINT flags) {
   VALIDATEBEGIN;
   VALIDATE(m_image == 0);
-  VALIDATEEND;
+  if (0) {
+  validatefailed:
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return 1;
+  }
 
   if (!m_file) {
     SErrSetLastError(0xF720007E);
     return 0;
   }
 
-  m_imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
+  m_imageBytes = Bytes();
 
   switch (m_header.bImageType) {
     case 0:
@@ -146,16 +149,16 @@ int CTgaFile::LoadImageData(UINT flags) {
     case 9:
       return ReadColorMappedImage(flags);
 
+    case 3:
+    case 11:
+      SErrSetLastError(0xF720007A);
+      return 0;
+
     case 2:
       if (!ValidateColorDepth()) {
         return 0;
       }
       return ReadRawImage(flags);
-
-    case 3:
-    case 11:
-      SErrSetLastError(0xF720007A);
-      return 0;
 
     case 10:
       if (!ValidateColorDepth()) {
@@ -338,16 +341,14 @@ BOOL CTgaFile::SetTopDown(int set) {
     return 0;
   }
 
-  UINT  rowBytes = m_header.wWidth * ((m_header.bPixelDepth + 7) / 8);
-  BYTE *newImage = static_cast<BYTE *>(ALLOC(m_header.wHeight * rowBytes));
+  BYTE *newImage = static_cast<BYTE *>(ALLOC(Bytes()));
   BYTE *source = m_image;
-  BYTE *dest = newImage + rowBytes * (m_header.wHeight - 1);
+  BYTE *dest = newImage + (Height() - 1) * Width() * BytesPerPixel();
 
-  UINT row;
-  for (row = 0; row < m_header.wHeight; ++row) {
-    memcpy(dest, source, rowBytes);
-    source += rowBytes;
-    dest -= rowBytes;
+  for (UINT row = Height(); row; --row) {
+    memcpy(dest, source, Width() * BytesPerPixel());
+    source += Width() * BytesPerPixel();
+    dest -= BytesPerPixel() * Width();
   }
 
   FREE(m_image);

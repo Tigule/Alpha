@@ -124,11 +124,10 @@ static BOOL CCommand_ShowBounds(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
 
-  HMODEL model = object->GetObjectModel();
-  if (ModelIsShowingBoundingSphere(model)) {
-    ModelHideBounds(model);
+  if (ModelIsShowingBoundingSphere(object->GetObjectModel())) {
+    ModelHideBounds(object->GetObjectModel());
   } else {
-    ModelShowBoundingSphere(model);
+    ModelShowBoundingSphere(object->GetObjectModel());
   }
   return 1;
 }
@@ -161,8 +160,7 @@ static BOOL CCommand_TerminalVelocity(LPCSTR command, LPCSTR arguments) {
 
 static BOOL CCommand_DLoc(LPCSTR command, LPCSTR arguments) {
   CGObject_C        *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
-  NTempest::C3Vector position;
-  player->GetPosition(position);
+  NTempest::C3Vector position = player->GetPosition();
   ConsoleWriteA("%g, %g, %g", DEFAULT_COLOR, position.x, position.y, position.z);
   return 1;
 }
@@ -219,48 +217,56 @@ static BOOL CCommand_DFacing(LPCSTR command, LPCSTR arguments) {
 
 static BOOL CCommand_Speed(LPCSTR command, LPCSTR arguments) {
   float speed = SStrToFloat(arguments);
-  if (speed > 0.0f) {
-    DWORD     eventTime = OsGetAsyncTimeMs();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
-    if (unit) {
-      unit->OnRunSpeedChangeLocal(eventTime, MSG_MOVE_SET_RUN_SPEED_CHEAT, speed);
-    }
+  if (speed <= 0.0f) {
+    return 1;
+  }
+
+  DWORD     eventTime = OsGetAsyncTimeMs();
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+  if (unit) {
+    unit->OnRunSpeedChangeLocal(eventTime, MSG_MOVE_SET_RUN_SPEED_CHEAT, speed);
   }
   return 1;
 }
 
 static BOOL CCommand_WalkSpeed(LPCSTR command, LPCSTR arguments) {
   float speed = SStrToFloat(arguments);
-  if (speed > 0.0f) {
-    DWORD     eventTime = OsGetAsyncTimeMs();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
-    if (unit) {
-      unit->OnWalkSpeedChangeLocal(eventTime, speed);
-    }
+  if (speed <= 0.0f) {
+    return 1;
+  }
+
+  DWORD     eventTime = OsGetAsyncTimeMs();
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+  if (unit) {
+    unit->OnWalkSpeedChangeLocal(eventTime, speed);
   }
   return 1;
 }
 
 static BOOL CCommand_SwimSpeed(LPCSTR command, LPCSTR arguments) {
   float speed = SStrToFloat(arguments);
-  if (speed > 0.0f) {
-    DWORD     eventTime = OsGetAsyncTimeMs();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
-    if (unit) {
-      unit->OnSwimSpeedChangeLocal(eventTime, MSG_MOVE_SET_SWIM_SPEED_CHEAT, speed);
-    }
+  if (speed <= 0.0f) {
+    return 1;
+  }
+
+  DWORD     eventTime = OsGetAsyncTimeMs();
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+  if (unit) {
+    unit->OnSwimSpeedChangeLocal(eventTime, MSG_MOVE_SET_SWIM_SPEED_CHEAT, speed);
   }
   return 1;
 }
 
 static BOOL CCommand_TurnSpeed(LPCSTR command, LPCSTR arguments) {
   float rate = SStrToFloat(arguments);
-  if (rate > 0.0f) {
-    DWORD     eventTime = OsGetAsyncTimeMs();
-    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
-    if (unit) {
-      unit->OnTurnRateChangeLocal(eventTime, rate);
-    }
+  if (rate <= 0.0f) {
+    return 1;
+  }
+
+  DWORD     eventTime = OsGetAsyncTimeMs();
+  CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
+  if (unit) {
+    unit->OnTurnRateChangeLocal(eventTime, rate);
   }
   return 1;
 }
@@ -273,8 +279,10 @@ static BOOL CCommand_Money(LPCSTR command, LPCSTR arguments) {
     ConsoleWrite("Usage: money [copper]", static_cast<COLOR_T>(4));
     return 0;
   }
+  UINT       copper = SStrToUnsigned(currArg);
   CDataStore msg;
-  msg.Put(CMSG_CHEAT_SETMONEY) << SStrToUnsigned(currArg);
+  msg.Put(CMSG_CHEAT_SETMONEY);
+  msg.Put(copper);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -316,12 +324,12 @@ static BOOL CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
 
+  DWORD      eventTime = OsGetAsyncTimeMs();
   CDataStore msg;
-  msg.Put(CMSG_WORLD_TELEPORT) << OsGetAsyncTimeMs();
+  msg.Put(CMSG_WORLD_TELEPORT);
+  msg.Put(eventTime);
   msg.Put(static_cast<BYTE>(mapID));
-  msg.Put(position.x);
-  msg.Put(position.y);
-  msg.Put(position.z);
+  msg << position;
   msg.Put(facing);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -329,6 +337,7 @@ static BOOL CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
 }
 
 static BOOL CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
+  const char  whitespace[] = "\t\r\n\" ,";
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!player) {
     return 1;
@@ -343,8 +352,7 @@ static BOOL CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
     return 1;
   }
 
-  char       currArg[64];
-  const char whitespace[] = "\t\r\n\" ,";
+  char currArg[64];
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
     return 0;
@@ -358,8 +366,9 @@ static BOOL CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
   }
   position.y = SStrToFloat(currArg);
 
-  float testy = 17066.666f - position.y;
-  if (17066.666f - position.x < 0.0f || 17066.666f - position.x >= 34133.332f || testy < 0.0f || testy >= 34133.332f) {
+  float testx = -(position.x - 17066.666f);
+  float testy = -(position.y - 17066.666f);
+  if (testx < 0.0f || testx >= 34133.332f || testy < 0.0f || testy >= 34133.332f) {
     ConsoleWrite("Coordinates out of range\n", DEFAULT_COLOR);
     return 1;
   }
@@ -371,9 +380,7 @@ static BOOL CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
 
   CDataStore msg;
   msg.Put(MSG_MOVE_TELEPORT_CHEAT);
-  msg.Put(position.x);
-  msg.Put(position.y);
-  msg.Put(position.z);
+  msg << position;
   msg.Put(facing);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -381,36 +388,46 @@ static BOOL CCommand_Teleport(LPCSTR command, LPCSTR arguments) {
 }
 
 static BOOL CCommand_CreateItem(LPCSTR command, LPCSTR arguments) {
+  int        id = SStrToInt(arguments);
   CDataStore msg;
-  msg.Put(CMSG_CREATEITEM) << SStrToInt(arguments);
+  msg.Put(CMSG_CREATEITEM);
+  msg.Put(id);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
 static BOOL CCommand_CreateGameObject(LPCSTR command, LPCSTR arguments) {
+  int        id = SStrToInt(arguments);
   CDataStore msg;
-  msg.Put(CMSG_CREATEGAMEOBJECT) << SStrToInt(arguments);
+  msg.Put(CMSG_CREATEGAMEOBJECT);
+  msg.Put(id);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
 static BOOL CCommand_CreateMonster(LPCSTR command, LPCSTR arguments) {
+  static const char whitespace[] = " \t";
   char type[32];
-  SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
+  SStrTokenize(&arguments, type, sizeof(type), whitespace, 0);
+  int        id = atoi(type);
   CDataStore msg;
-  msg.Put(CMSG_CREATEMONSTER) << atoi(type);
+  msg.Put(CMSG_CREATEMONSTER);
+  msg.Put(id);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
 static BOOL CCommand_CreatePet(LPCSTR command, LPCSTR arguments) {
+  static const char whitespace[] = " \t";
   char type[32];
-  SStrTokenize(&arguments, type, sizeof(type), " \t", 0);
+  SStrTokenize(&arguments, type, sizeof(type), whitespace, 0);
+  int        id = atoi(type);
   CDataStore msg;
-  msg.Put(CMSG_CREATEMONSTER) << -atoi(type);
+  msg.Put(CMSG_CREATEMONSTER);
+  msg.Put(-id);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -451,32 +468,29 @@ static BOOL CCommand_AttackPlayer(LPCSTR command, LPCSTR arguments) {
 }
 
 static BOOL CCommand_TargetAttack(LPCSTR command, LPCSTR arguments) {
-  if (!arguments || !*arguments) {
+  if (arguments && *arguments) {
+    DWORDLONG victimGUID;
+    sscanf(arguments, "%I64d", &victimGUID);
+    DWORDLONG   activePlayer = ClntObjMgrGetActivePlayer();
+    CGPlayer_C *player;
+    if (activePlayer && (player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__))) != 0) {
+      DWORDLONG target = player->GetLocalTarget();
+      if (target && ClntObjMgrObjectPtr(target, __FILE__, __LINE__)) {
+        CDataStore msg;
+        msg.Put(CMSG_MAKEMONSTERATTACKGUID);
+        msg.Put(target);
+        msg.Put(victimGUID);
+        msg.Finalize();
+        ClientServices_Send(&msg);
+      } else {
+        ConsoleWrite("Player has no target!", DEFAULT_COLOR);
+      }
+    } else {
+      ConsoleWrite("No active player!", DEFAULT_COLOR);
+    }
+  } else {
     ConsoleWrite("GUID needed!", DEFAULT_COLOR);
-    return 1;
   }
-
-  DWORDLONG victimGUID;
-  sscanf(arguments, "%I64d", &victimGUID);
-  DWORDLONG   activePlayer = ClntObjMgrGetActivePlayer();
-  CGPlayer_C *player = activePlayer ? static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__)) : 0;
-  if (!player) {
-    ConsoleWrite("No active player!", DEFAULT_COLOR);
-    return 1;
-  }
-
-  DWORDLONG target = player->GetLocalTarget();
-  if (!target || !ClntObjMgrObjectPtr(target, __FILE__, __LINE__)) {
-    ConsoleWrite("Player has no target!", DEFAULT_COLOR);
-    return 1;
-  }
-
-  CDataStore msg;
-  msg.Put(CMSG_MAKEMONSTERATTACKGUID);
-  msg.Put(target);
-  msg.Put(victimGUID);
-  msg.Finalize();
-  ClientServices_Send(&msg);
   return 1;
 }
 
@@ -506,7 +520,7 @@ static BOOL CCommand_BindPoint(LPCSTR command, LPCSTR arguments) {
 static BOOL CCommand_Beastmaster(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(CMSG_BEASTMASTER);
-  msg.Put(static_cast<BYTE>(SStrCmpI(arguments, "off", 0x7FFFFFFF) != 0));
+  msg.PutByte(SStrCmpI(arguments, "off", 0x7FFFFFFF) != 0);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -635,8 +649,9 @@ static void QuestLogRemoveQuest(int entry) {
 }
 
 static BOOL CCommand_QuestCommand(LPCSTR command, LPCSTR arguments) {
+  static const char whitespace[] = " \t";
   char buffer[64];
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected questGiver.", DEFAULT_COLOR);
     return 0;
@@ -644,7 +659,7 @@ static BOOL CCommand_QuestCommand(LPCSTR command, LPCSTR arguments) {
 
   DWORDLONG questGiver;
   sscanf(buffer, "%I64X", &questGiver);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected questID.", DEFAULT_COLOR);
     return 0;
@@ -705,15 +720,15 @@ static BOOL CCommand_LootMethod(LPCSTR, LPCSTR args) {
       msg.Put(static_cast<UINT>(0));
       msg.Put(static_cast<DWORDLONG>(0));
       break;
-    case 'M':
-    case 'm':
-      msg.Put(static_cast<UINT>(2));
-      msg.Put(CGGameUI::GetLockedTarget());
-      break;
     case 'R':
     case 'r':
       msg.Put(static_cast<UINT>(1));
       msg.Put(static_cast<DWORDLONG>(0));
+      break;
+    case 'M':
+    case 'm':
+      msg.Put(static_cast<UINT>(2));
+      msg.Put(CGGameUI::GetLockedTarget());
       break;
     default:
       ConsolePrintf("Valid lootMethods are freeforall, roundrobin, and master");
@@ -734,8 +749,9 @@ static BOOL CCommand_CameraTarget(LPCSTR, LPCSTR) {
 }
 
 static BOOL CCommand_Reclaim(LPCSTR command, LPCSTR arguments) {
+  static const char whitespace[] = " \t";
   char buffer[64];
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected corpseGUID.", DEFAULT_COLOR);
     return 0;
@@ -752,38 +768,41 @@ static BOOL CCommand_Reclaim(LPCSTR command, LPCSTR arguments) {
 }
 
 static BOOL CCommand_BuySpell(LPCSTR command, LPCSTR arguments) {
+  static const char whitespace[] = " \t";
   char buffer[64];
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected trainer.", DEFAULT_COLOR);
     return 0;
   }
   DWORDLONG trainer;
   sscanf(buffer, "%I64X", &trainer);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected spellID", DEFAULT_COLOR);
     return 0;
   }
+  int        spellID = SStrToInt(buffer);
   CDataStore msg;
   msg.Put(CMSG_TRAINER_BUY_SPELL);
   msg.Put(trainer);
-  msg.Put(SStrToInt(buffer));
+  msg.Put(spellID);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
 }
 
 static BOOL CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
+  static const char whitespace[] = " \t";
   char buffer[64];
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected merchant.", DEFAULT_COLOR);
     return 0;
   }
   DWORDLONG merchant;
   sscanf(buffer, "%I64X", &merchant);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected item.", DEFAULT_COLOR);
     return 0;
@@ -791,7 +810,7 @@ static BOOL CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
   DWORDLONG item;
   sscanf(buffer, "%I64X", &item);
   BYTE amount = 0;
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (buffer[0]) {
     amount = static_cast<BYTE>(SStrToInt(buffer));
   }
@@ -806,64 +825,74 @@ static BOOL CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
 }
 
 static BOOL CCommand_BuyItem(LPCSTR command, LPCSTR arguments) {
+  static const char whitespace[] = " \t";
   char buffer[64];
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected merchant.", DEFAULT_COLOR);
     return 0;
   }
   DWORDLONG merchant;
   sscanf(buffer, "%I64X", &merchant);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected muid.", DEFAULT_COLOR);
     return 0;
   }
   UINT muid = SStrToInt(buffer);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected quantity.", DEFAULT_COLOR);
     return 0;
   }
   UINT quantity = SStrToInt(buffer);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  BOOL option = 0;
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
+  if (buffer[0]) {
+    option = SStrToInt(buffer) != 0;
+  }
   CDataStore buyMsg;
-  buyMsg.Put(CMSG_BUY_ITEM) << merchant << muid << quantity << static_cast<BYTE>(buffer[0] && SStrToInt(buffer) != 0);
+  buyMsg.Put(CMSG_BUY_ITEM);
+  buyMsg.Put(merchant);
+  buyMsg.Put(muid);
+  buyMsg.Put(quantity);
+  buyMsg.Put(static_cast<BYTE>(option));
   buyMsg.Finalize();
   ClientServices_Send(&buyMsg);
   return 1;
 }
 
 static BOOL CCommand_BuyItemInSlot(LPCSTR command, LPCSTR arguments) {
+  static const char whitespace[] = " \t";
   char buffer[64];
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected merchant.", DEFAULT_COLOR);
     return 0;
   }
   DWORDLONG merchant;
   sscanf(buffer, "%I64X", &merchant);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected muid.", DEFAULT_COLOR);
     return 0;
   }
   UINT muid = SStrToInt(buffer);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected container.", DEFAULT_COLOR);
     return 0;
   }
   DWORDLONG container;
   sscanf(buffer, "%I64X", &container);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected quantity.", DEFAULT_COLOR);
     return 0;
   }
   UINT quantity = SStrToInt(buffer);
   BYTE slot = static_cast<BYTE>(-1);
-  SStrTokenize(&arguments, buffer, sizeof(buffer), " \t", 0);
+  SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (buffer[0]) {
     slot = static_cast<BYTE>(SStrToInt(buffer));
   }

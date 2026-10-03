@@ -62,7 +62,9 @@ namespace NTempest {
     float    Height() const;
     float    Depth() const;
     C3Vector Diagonal() const;
-    C3Vector Center() const;
+    C3Vector Center() const {
+      return (t + b) * 0.5f;
+    }
     float    CenterX() const;
     void     CenterX(const CAaBox &value);
     float    CenterY() const;
@@ -75,7 +77,10 @@ namespace NTempest {
     void StretchX(float value);
     void StretchY(float value);
     void StretchZ(float value);
-    void Offset(const C3Vector &value);
+    void Offset(const C3Vector &value) {
+      b += value;
+      t += value;
+    }
     void OffsetX(float value);
     void OffsetY(float value);
     void OffsetZ(float value);

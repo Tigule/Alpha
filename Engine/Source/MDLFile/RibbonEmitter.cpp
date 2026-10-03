@@ -31,55 +31,34 @@ static void IAddRibbonEmitterErrors(TSet &errors) {
   errors.Add(0x16D, 1, 0);
 }
 
-static void IReadRibbonEmitterKeyFrames(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLRIBBONEMITTER *emitter) {
-  switch (savedToken) {
-    case 0x11C:
-      ReadObjectFloatKeyframes(parse, &emitter->alphaKeys);
-      break;
-    case 0x136:
-      ReadObjectFloatKeyframes(parse, &emitter->colorKeys);
-      break;
-    case 0x137:
-      emitter->textureCols = parse.ExpectInt();
-      parse.Expect(',');
-      break;
-    case 0x144:
-      emitter->edgesPerSecond = parse.ExpectInt();
-      parse.Expect(',');
-      break;
-    case 0x153:
-      emitter->gravity = parse.ExpectFloat();
-      parse.Expect(',');
-      break;
+static void IReadRibbonEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokentext, MDLRIBBONEMITTER *emitter) {
+  switch (savedtoken) {
     case 0x159:
       ReadObjectFloatKeyframes(parse, &emitter->heightAbove);
-      break;
+      return;
     case 0x15A:
       ReadObjectFloatKeyframes(parse, &emitter->heightBelow);
-      break;
-    case 0x165:
-      emitter->edgeLifetime = parse.ExpectFloat();
-      parse.Expect(',');
-      break;
-    case 0x16D:
-      emitter->materialId = parse.ExpectInt();
-      parse.Expect(',');
-      break;
-    case 0x1AE:
-      emitter->textureRows = parse.ExpectInt();
-      parse.Expect(',');
-      break;
+      return;
+    case 0x11C:
+      ReadObjectFloatKeyframes(parse, &emitter->alphaKeys);
+      return;
+    case 0x136:
+      ReadObjectFloatKeyframes(parse, &emitter->colorKeys);
+      return;
+    case 0x1D9:
+      ReadObjectFloatKeyframes(parse, &emitter->visibilityKeys);
+      return;
     case 0x1C4: {
       UINT       token;
       LPCSTR     text;
       UTokenData tokenData;
+      long       actual = 0;
       long       expected = parse.GetOptionalInt(&token, &text, &tokenData);
       if (expected > 0) {
         emitter->textureSlot.keys.ReserveSpace(expected);
       }
       parse.Expect('{', token, text);
       token = ReadIntTrackHeader(parse, &emitter->textureSlot, &text, &tokenData);
-      long actual = 0;
       while (token == 0x100) {
         MDLINTKEY *key = emitter->textureSlot.keys.New();
         key->time = tokenData.lVal;
@@ -93,15 +72,31 @@ static void IReadRibbonEmitterKeyFrames(Parser &parse, UINT savedToken, LPCSTR t
       if (expected >= 0 && actual != expected) {
         parse.WarningCount("key frames", expected, actual);
       }
-      break;
+      return;
     }
-    case 0x1D9:
-      ReadObjectFloatKeyframes(parse, &emitter->visibilityKeys);
+    case 0x144:
+      emitter->edgesPerSecond = parse.ExpectInt();
+      break;
+    case 0x165:
+      emitter->edgeLifetime = parse.ExpectFloat();
+      break;
+    case 0x153:
+      emitter->gravity = parse.ExpectFloat();
+      break;
+    case 0x1AE:
+      emitter->textureRows = parse.ExpectInt();
+      break;
+    case 0x137:
+      emitter->textureCols = parse.ExpectInt();
+      break;
+    case 0x16D:
+      emitter->materialId = parse.ExpectInt();
       break;
     default:
-      parse.FatalUnexpected(tokenText);
-      break;
+      parse.FatalUnexpected(tokentext);
+      return;
   }
+  parse.Expect(',');
 }
 
 static void IReadRibbonEmitterStaticData(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLRIBBONEMITTER *emitter) {
@@ -150,7 +145,6 @@ static void IReadRibbonEmitter(Parser &parse, TSet &errors, MDLRIBBONEMITTER *em
 }
 
 BOOL MDL::ReadRibbonEmitter(Parser &parse, MDLDATA &data, CMDLStatus *status) {
-  FATALASSERT(status);
   TSet              errors;
   MDLRIBBONEMITTER *emitter = data.ribbonEmitters.New();
   IAddRibbonEmitterErrors(errors);
@@ -166,31 +160,31 @@ static void IWriteRibbonEmitter(const MDLDATA &data, const MDLRIBBONEMITTER &emi
   if (emitter.heightAbove.keys.Count()) {
     WriteFloatKeyFrames(0x159, "\t", emitter.heightAbove, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x159));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x159));
     WriteKeyData(buffer, &emitter.staticHeightAbove, 1);
   }
   if (emitter.heightBelow.keys.Count()) {
     WriteFloatKeyFrames(0x15A, "\t", emitter.heightBelow, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x15A));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x15A));
     WriteKeyData(buffer, &emitter.staticHeightBelow, 1);
   }
   if (emitter.alphaKeys.keys.Count()) {
     WriteFloatKeyFrames(0x11C, "\t", emitter.alphaKeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x11C));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x11C));
     WriteKeyData(buffer, &emitter.staticAlpha, 1);
   }
   if (emitter.colorKeys.keys.Count()) {
     WriteFloatKeyFrames(0x136, "\t", emitter.colorKeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x136));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x136));
     WriteKeyData(buffer, &emitter.staticColor.b, 3);
   }
   if (emitter.textureSlot.keys.Count()) {
     WriteIntKeyFrames(0x1C4, "\t", emitter.textureSlot, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x1C4));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x1C4));
     WriteUintKeyData(buffer, &emitter.staticTextureSlot, 1);
   }
   WriteFloatKeyFrames(0x1D9, "\t", emitter.visibilityKeys, buffer);
@@ -206,9 +200,12 @@ static void IWriteRibbonEmitter(const MDLDATA &data, const MDLRIBBONEMITTER &emi
 }
 
 BOOL MDL::WriteRibbonEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
-    for (UINT i = 0; i < data.ribbonEmitters.Count(); ++i) {
-      IWriteRibbonEmitter(data, data.ribbonEmitters.Ptr()[i], data.ribbonEmitters.Count() != data.objects.Count(), buffer);
+  if (!data.model.animationFile[0]) {
+    UINT numEmitters = data.ribbonEmitters.Count();
+    int needObjIds = numEmitters != data.objects.Count();
+    const MDLRIBBONEMITTER *ribbon = data.ribbonEmitters.Ptr();
+    for (UINT i = numEmitters; i; --i, ++ribbon) {
+      IWriteRibbonEmitter(data, *ribbon, needObjIds, buffer);
     }
   }
   return 1;
@@ -266,118 +263,114 @@ static void IWriteBinRibbonEmitter(const MDLRIBBONEMITTER &section, CMsgBuffer &
   WriteBinFloatKeyFrames(section.heightAbove, 'AHRK', buffer);
   WriteBinFloatKeyFrames(section.heightBelow, 'BHRK', buffer);
   WriteBinFloatKeyFrames(section.alphaKeys, 'LARK', buffer);
-  if (section.colorKeys.keys.Count()) {
-    buffer.AddDword('OCRK');
-    buffer.AddUint(section.colorKeys.keys.Count());
-    buffer.AddUint(section.colorKeys.type);
-    buffer.AddUint(section.colorKeys.globalSeqId);
-    UINT values = section.colorKeys.type > TRACK_LINEAR ? 9 : 3;
-    for (UINT i = 0; i < section.colorKeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<C3Color> &key = section.colorKeys.keys.Ptr()[i];
-      buffer.AddInt(key.time);
-      buffer.AddFloatArray(&key.value.b, values);
-    }
-  }
-  if (section.textureSlot.keys.Count()) {
-    buffer.AddDword('XTRK');
-    buffer.AddUint(section.textureSlot.keys.Count());
-    buffer.AddUint(0);
-    buffer.AddUint(section.textureSlot.globalSeqId);
-    for (UINT i = 0; i < section.textureSlot.keys.Count(); ++i) {
-      const MDLINTKEY &key = section.textureSlot.keys.Ptr()[i];
-      buffer.AddInt(key.time);
-      buffer.AddUint(key.value);
-    }
-  }
+  WriteBinFloatKeyFrames(section.colorKeys, 'OCRK', buffer);
+  WriteBinUintKeyFrames(section.textureSlot, 'XTRK', buffer);
   WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buffer);
 }
 
 BOOL MDL::WriteBinRibbonEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
-  if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.ribbonEmitters.Count()) {
+  UINT numEmitters = data.ribbonEmitters.Count();
+  if (!data.model.animationFile[0] && numEmitters) {
     buf.AddDword('BBIR');
     UINT totalSize = 4;
     UINT i;
-    for (i = 0; i < data.ribbonEmitters.Count(); ++i) {
-      totalSize += GetBinRibbonEmitterSize(data.ribbonEmitters.Ptr()[i]);
+    for (i = 0; i < numEmitters; ++i) {
+      totalSize += GetBinRibbonEmitterSize(data.ribbonEmitters[i]);
     }
     buf.AddUint(totalSize);
-    buf.AddUint(data.ribbonEmitters.Count());
-    for (i = 0; i < data.ribbonEmitters.Count(); ++i) {
-      IWriteBinRibbonEmitter(data.ribbonEmitters.Ptr()[i], buf, status);
+    buf.AddUint(numEmitters);
+    for (i = 0; i < numEmitters; ++i) {
+      IWriteBinRibbonEmitter(data.ribbonEmitters[i], buf, status);
     }
   }
   return 1;
 }
 
-static BOOL ReadBinRibbonEmitter(CMsgBuffer &buffer, MDLRIBBONEMITTER *ribbon, CMDLStatus *status, UINT &totalRead) {
-  UINT sectionLength = buffer.GetUint();
-  UINT localRead = 4;
-  if (!ReadBinGenObject(*ribbon, buffer, status, localRead)) {
+static BOOL ReadBinRibbonEmitter(CMsgBuffer &buf, MDLRIBBONEMITTER *ribbon, CMDLStatus *status, UINT &totalRead) {
+  UINT sectionLength = buf.GetUint();
+  UINT localBytesRead = 4;
+  if (!ReadBinGenObject(*ribbon, buf, status, localBytesRead)) {
     status->Add(STATUS_ERROR, "Error reading gen object portion of RibbonEmitter.\n");
     return 0;
   }
-  buffer.GetUint();
-  localRead += 4;
-  ribbon->staticHeightAbove = buffer.GetFloat();
-  ribbon->staticHeightBelow = buffer.GetFloat();
-  ribbon->staticAlpha = buffer.GetFloat();
-  ribbon->staticColor.r = buffer.GetFloat();
-  ribbon->staticColor.g = buffer.GetFloat();
-  ribbon->staticColor.b = buffer.GetFloat();
-  ribbon->edgeLifetime = buffer.GetFloat();
-  ribbon->staticTextureSlot = buffer.GetUint();
-  ribbon->edgesPerSecond = buffer.GetUint();
-  ribbon->textureRows = buffer.GetUint();
-  ribbon->textureCols = buffer.GetUint();
-  ribbon->materialId = buffer.GetUint();
-  ribbon->gravity = buffer.GetFloat();
-  localRead += 52;
-  while (localRead < sectionLength) {
-    DWORD tag = buffer.GetDword();
-    localRead += 4;
-    int ok = 1;
-    if (tag == 'AHRK') {
-      ok = ReadBinFloatKeyFrames(ribbon->heightAbove, buffer, localRead);
-      if (!ok) {
-        status->Add(STATUS_ERROR, "Error reading height above portion of RibbonEmitter.\n");
-      }
-    } else if (tag == 'BHRK') {
-      ok = ReadBinFloatKeyFrames(ribbon->heightBelow, buffer, localRead);
-      if (!ok) {
-        status->Add(STATUS_ERROR, "Error reading height below of RibbonEmitter.\n");
-      }
-    } else if (tag == 'LARK') {
-      ok = ReadBinFloatKeyFrames(ribbon->alphaKeys, buffer, localRead);
-      if (!ok) {
-        status->Add(STATUS_ERROR, "Error reading alpha portion of RibbonEmitter.\n");
-      }
-    } else if (tag == 'OCRK') {
-      ok = ReadBinFloatKeyFrames(ribbon->colorKeys, buffer, localRead);
-      if (!ok) {
-        status->Add(STATUS_ERROR, "Error reading color portion of RibbonEmitter.\n");
-      }
-    } else if (tag == 'XTRK') {
-      ok = ReadBinUintKeyFrames(ribbon->textureSlot, buffer, localRead);
-      if (!ok) {
-        status->Add(STATUS_ERROR, "Error reading texture slot keys portion of RibbonEmitter.\n");
-      }
-    } else if (tag == 'SIVK') {
-      ok = ReadBinFloatKeyFrames(ribbon->visibilityKeys, buffer, localRead);
-      if (!ok) {
-        status->Add(STATUS_ERROR, "Error reading visibility keys portion of RibbonEmitter.\n");
-      }
-    } else {
-      SkipUnknown(buffer, localRead);
+  buf.GetUint();
+  localBytesRead += 4;
+  ribbon->staticHeightAbove = buf.GetFloat();
+  localBytesRead += 4;
+  ribbon->staticHeightBelow = buf.GetFloat();
+  localBytesRead += 4;
+  ribbon->staticAlpha = buf.GetFloat();
+  localBytesRead += 4;
+  ribbon->staticColor.r = buf.GetFloat();
+  localBytesRead += 4;
+  ribbon->staticColor.g = buf.GetFloat();
+  localBytesRead += 4;
+  ribbon->staticColor.b = buf.GetFloat();
+  localBytesRead += 4;
+  ribbon->edgeLifetime = buf.GetFloat();
+  localBytesRead += 4;
+  ribbon->staticTextureSlot = buf.GetUint();
+  localBytesRead += 4;
+  ribbon->edgesPerSecond = buf.GetUint();
+  localBytesRead += 4;
+  ribbon->textureRows = buf.GetUint();
+  localBytesRead += 4;
+  ribbon->textureCols = buf.GetUint();
+  localBytesRead += 4;
+  ribbon->materialId = buf.GetUint();
+  localBytesRead += 4;
+  ribbon->gravity = buf.GetFloat();
+  localBytesRead += 4;
+  while (localBytesRead < sectionLength) {
+    DWORD tag = buf.GetDword();
+    localBytesRead += 4;
+    switch (tag) {
+      case 'AHRK':
+        if (!ReadBinFloatKeyFrames(ribbon->heightAbove, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading height above portion of RibbonEmitter.\n");
+          return 0;
+        }
+        break;
+      case 'BHRK':
+        if (!ReadBinFloatKeyFrames(ribbon->heightBelow, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading height below of RibbonEmitter.\n");
+          return 0;
+        }
+        break;
+      case 'LARK':
+        if (!ReadBinFloatKeyFrames(ribbon->alphaKeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading alpha portion of RibbonEmitter.\n");
+          return 0;
+        }
+        break;
+      case 'OCRK':
+        if (!ReadBinFloatKeyFrames(ribbon->colorKeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading color portion of RibbonEmitter.\n");
+          return 0;
+        }
+        break;
+      case 'XTRK':
+        if (!ReadBinUintKeyFrames(ribbon->textureSlot, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading texture slot keys portion of RibbonEmitter.\n");
+          return 0;
+        }
+        break;
+      case 'SIVK':
+        if (!ReadBinFloatKeyFrames(ribbon->visibilityKeys, buf, localBytesRead)) {
+          status->Add(STATUS_ERROR, "Error reading visibility keys portion of RibbonEmitter.\n");
+          return 0;
+        }
+        break;
+      default:
+        SkipUnknown(buf, localBytesRead);
+        break;
     }
-    if (!ok) {
+    if (localBytesRead > sectionLength) {
+      status->FatalOverran("RibbonEmitters", -1);
       return 0;
     }
   }
-  if (localRead > sectionLength) {
-    status->FatalOverran("RibbonEmitters", -1);
-    return 0;
-  }
-  totalRead += localRead;
+  totalRead += localBytesRead;
   return 1;
 }
 

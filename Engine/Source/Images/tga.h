@@ -41,19 +41,21 @@ struct TGAFooter {
   DWORD dwDeveloperOffset;
   char  szSigniture[0x12];
 };
-#pragma pack(pop)
 
 struct TGA32Pixel {
   TGA32Pixel();
   TGA32Pixel(BYTE b, BYTE g, BYTE r, BYTE a);
   TGA32Pixel(UINT color);
-  operator UINT();
+  operator UINT() {
+    return (((a << 8 | r) << 8 | g) << 8) | b;
+  }
 
   BYTE b;
   BYTE g;
   BYTE r;
   BYTE a;
 };
+#pragma pack(pop)
 
 class CTgaFile {
  public:

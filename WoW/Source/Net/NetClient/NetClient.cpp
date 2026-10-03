@@ -110,13 +110,12 @@ class NetClientRedirect : public WowConnectionResponse {
 
   virtual void WCDataReady(WowConnection *conn, DWORD, BYTE *data, int bytes) {
     if (m_owner) {
-      int bytesRead = m_owner->m_redirectBytesRead;
-      if (bytesRead + bytes > 1024) {
+      if (m_owner->m_redirectBytesRead + bytes > 1024) {
         m_conn->Disconnect();
         return;
       }
 
-      memcpy(&m_owner->m_redirectHostPort[bytesRead], data, bytes);
+      memcpy(&m_owner->m_redirectHostPort[m_owner->m_redirectBytesRead], data, bytes);
       m_owner->m_redirectBytesRead += bytes;
     }
   }
@@ -478,8 +477,7 @@ void ClientNetGetRealms(LPCSTR serverAddress, void (*fcn)(CDataStore *, LPVOID),
   connectionData->fcn = fcn;
   connectionData->userData = userData;
 
-  DWORD address = OsNetGetHostAddr(serverAddress);
-  OsTcpConnect(address, 9100, GetRealmsEventHandler, connectionData, 0, 0);
+  OsTcpConnect(OsNetGetHostAddr(serverAddress), 9100, GetRealmsEventHandler, connectionData, 0, 0);
 }
 
 void NetClient::PongHandler(CDataStore *msg) {

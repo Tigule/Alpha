@@ -35,12 +35,14 @@ static void FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vecto
 }
 
 static void BuildBillboardMatrix(const NTempest::C3Vector &direction, NTempest::C33Matrix *rotation) {
-  NTempest::C3Vector zprime;
-  NTempest::C3Vector yprime;
   NTempest::C3Vector xprime;
+  NTempest::C3Vector yprime;
+  NTempest::C3Vector zprime;
 
   FaceDirection(direction, &xprime, &yprime, &zprime);
-  *rotation = NTempest::C33Matrix(xprime.x, xprime.y, xprime.z, yprime.x, yprime.y, yprime.z, zprime.x, zprime.y, zprime.z);
+  *rotation->Row0AsVec3() = xprime;
+  *rotation->Row1AsVec3() = yprime;
+  *rotation->Row2AsVec3() = zprime;
 }
 
 static void FaceDirectionWithRoll(
@@ -67,12 +69,14 @@ static void FaceDirectionWithRoll(
 }
 
 static void BuildBillboardMatrixWithRoll(const NTempest::C3Vector &direction, const NTempest::C3Vector &up, NTempest::C33Matrix *rotation) {
-  NTempest::C3Vector zprime;
-  NTempest::C3Vector yprime;
   NTempest::C3Vector xprime;
+  NTempest::C3Vector yprime;
+  NTempest::C3Vector zprime;
 
   FaceDirectionWithRoll(direction, up, &xprime, &yprime, &zprime);
-  *rotation = NTempest::C33Matrix(xprime.x, xprime.y, xprime.z, yprime.x, yprime.y, yprime.z, zprime.x, zprime.y, zprime.z);
+  *rotation->Row0AsVec3() = xprime;
+  *rotation->Row1AsVec3() = yprime;
+  *rotation->Row2AsVec3() = zprime;
 }
 
 CSimpleCamera::CSimpleCamera()
@@ -103,15 +107,13 @@ void CSimpleCamera::SetFacing(float yaw, float pitch, float roll) {
 }
 
 void CSimpleCamera::SetGxProjectionAndView(const NTempest::CRect &projectionRect) {
-  NTempest::C44Matrix projection;
-  m_aspect = (projectionRect.r - projectionRect.l) / (projectionRect.b - projectionRect.t);
-  GxuXformCreateProjection(m_fov, m_aspect, m_nearZ, m_farZ, projection);
-  GxXformSetProjection(projection);
+  NTempest::C44Matrix mProj;
+  m_aspect = projectionRect.Width() / projectionRect.Height();
+  GxuXformCreateProjection(m_fov, m_aspect, m_nearZ, m_farZ, mProj);
+  GxXformSetProjection(mProj);
 
-  NTempest::C44Matrix view;
-  NTempest::C3Vector  eye(0.0f);
-  NTempest::C3Vector  center = Forward();
-  NTempest::C3Vector  up = Up();
-  GxuXformCreateLookAtSgCompat(eye, center, up, view);
-  GxXformSetView(view);
+  NTempest::C44Matrix mView;
+  NTempest::C3Vector  zero(0.0f, 0.0f, 0.0f);
+  GxuXformCreateLookAtSgCompat(zero, Forward(), Up(), mView);
+  GxXformSetView(mView);
 }

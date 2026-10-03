@@ -10,8 +10,6 @@
 
 #include <storm.h>
 
-static CStatus s_nullStatus;
-
 CSimpleHTML::CSimpleHTML(CSimpleFrame *parent) : CSimpleHyperlinkedFrame(parent) {
 }
 
@@ -46,6 +44,8 @@ void CSimpleHTML::LoadXML(const XMLNode *node, CStatus *status) {
 }
 
 bool CSimpleHTML::SetText(LPCSTR text, CStatus *status) {
+  static CStatus s_nullStatus;
+
   if (!status) {
     status = &s_nullStatus;
   }
@@ -80,18 +80,17 @@ bool CSimpleHTML::SetText(LPCSTR text, CStatus *status) {
 }
 
 void CSimpleHTML::ClearContent() {
-  REGIONNODE *node = m_content.Head();
-
-  while (node) {
+  ITERATELIST(REGIONNODE, m_content, node) {
     DELIFUSED(node->region);
-    node = m_content.DeleteNode(node);
+    ITERATE_DELETE;
   }
 
   m_layoutAnchor = 0;
   m_layoutOffset = 0.0f;
 
-  CSimpleHyperlinkButton *button;
-  while ((button = m_hyperlinks.Head()) != 0) {
+  while (m_hyperlinks.Head()) {
+    CSimpleHyperlinkButton *button = m_hyperlinks.Head();
+
     m_hyperlinks.UnlinkNode(button);
     ReleaseHyperlinkButton(button);
   }
@@ -101,22 +100,20 @@ void CSimpleHTML::ParseBODY(const XMLNode *node, CStatus *status) {
   const XMLNode *child;
 
   for (child = node->GetChild(); child; child = child->GetSibling()) {
-    LPCSTR name = child->GetName();
-
-    if (!SStrCmpI(name, "H1", 0x7FFFFFFF)) {
+    if (!SStrCmpI(child->GetName(), "H1", 0x7FFFFFFF)) {
       ParseP(child, HTML_TEXT_HEADER1, status);
-    } else if (!SStrCmpI(name, "H2", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(child->GetName(), "H2", 0x7FFFFFFF)) {
       ParseP(child, HTML_TEXT_HEADER2, status);
-    } else if (!SStrCmpI(name, "H3", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(child->GetName(), "H3", 0x7FFFFFFF)) {
       ParseP(child, HTML_TEXT_HEADER3, status);
-    } else if (!SStrCmpI(name, "P", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(child->GetName(), "P", 0x7FFFFFFF)) {
       ParseP(child, HTML_TEXT_NORMAL, status);
-    } else if (!SStrCmpI(name, "BR", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(child->GetName(), "BR", 0x7FFFFFFF)) {
       AddText("\n", m_attrib[HTML_TEXT_NORMAL]);
-    } else if (!SStrCmpI(name, "IMG", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(child->GetName(), "IMG", 0x7FFFFFFF)) {
       ParseIMG(child, status);
     } else {
-      status->Add(STATUS_WARNING, "Unknown element type: %s", name);
+      status->Add(STATUS_WARNING, "Unknown element type: %s", child->GetName());
     }
   }
 }
@@ -196,12 +193,14 @@ void CSimpleHTML::ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *
 
 void CSimpleHTML::ParseIMG(const XMLNode *node, CStatus *status) {
   UINT   align = 0x1;
-  float  h = 0.0f;
-  float  w = 0.0f;
   LPCSTR value = node->GetAttributeByName("align");
+
   if (value && *value) {
     StringToJustify(value, align);
   }
+
+  float w = 0.0f;
+  float h = 0.0f;
 
   value = node->GetAttributeByName("width");
   if (value && *value) {
@@ -214,37 +213,40 @@ void CSimpleHTML::ParseIMG(const XMLNode *node, CStatus *status) {
   }
 
   CSimpleTexture *texture = NEW(CSimpleTexture)(this, 2, 1);
+
   texture->SetWidth(w);
   texture->SetHeight(h);
-
   switch (align) {
     case 0x1:
-      texture->SetPoint(
-          FRAMEPOINT_TOPLEFT, m_layoutAnchor ? m_layoutAnchor : this, m_layoutAnchor ? FRAMEPOINT_BOTTOMLEFT : FRAMEPOINT_TOPLEFT, 0.0f,
-          m_layoutAnchor ? m_layoutOffset : 0.0f, 1
-      );
+      if (m_layoutAnchor) {
+        texture->SetPoint(FRAMEPOINT_TOPLEFT, m_layoutAnchor, FRAMEPOINT_BOTTOMLEFT, 0.0f, m_layoutOffset, 1);
+      } else {
+        texture->SetPoint(FRAMEPOINT_TOPLEFT, this, FRAMEPOINT_TOPLEFT, 0.0f, 0.0f, 1);
+      }
       break;
 
     case 0x2:
-      texture->SetPoint(
-          FRAMEPOINT_TOP, m_layoutAnchor ? m_layoutAnchor : this, m_layoutAnchor ? FRAMEPOINT_BOTTOM : FRAMEPOINT_TOP, 0.0f,
-          m_layoutAnchor ? m_layoutOffset : 0.0f, 1
-      );
+      if (m_layoutAnchor) {
+        texture->SetPoint(FRAMEPOINT_TOP, m_layoutAnchor, FRAMEPOINT_BOTTOM, 0.0f, m_layoutOffset, 1);
+      } else {
+        texture->SetPoint(FRAMEPOINT_TOP, this, FRAMEPOINT_TOP, 0.0f, 0.0f, 1);
+      }
       break;
 
     case 0x4:
-      texture->SetPoint(
-          FRAMEPOINT_TOPRIGHT, m_layoutAnchor ? m_layoutAnchor : this, m_layoutAnchor ? FRAMEPOINT_BOTTOMRIGHT : FRAMEPOINT_TOPRIGHT, 0.0f,
-          m_layoutAnchor ? m_layoutOffset : 0.0f, 1
-      );
+      if (m_layoutAnchor) {
+        texture->SetPoint(FRAMEPOINT_TOPRIGHT, m_layoutAnchor, FRAMEPOINT_BOTTOMRIGHT, 0.0f, m_layoutOffset, 1);
+      } else {
+        texture->SetPoint(FRAMEPOINT_TOPRIGHT, this, FRAMEPOINT_TOPRIGHT, 0.0f, 0.0f, 1);
+      }
       break;
   }
 
   texture->SetTexture(node->GetAttributeByName("src"), 0);
   m_layoutOffset -= texture->GetHeight();
 
-  REGIONNODE *regionNode = NEW(REGIONNODE);
-  m_content.LinkNode(regionNode, LIST_TAIL, 0);
+  REGIONNODE *regionNode = m_content.NewNode(LIST_TAIL, 0, 0);
+
   regionNode->region = texture;
 }
 
@@ -265,16 +267,16 @@ void CSimpleHTML::AddText(LPCSTR text, CSimpleFontStringAttributes &attrib) {
   m_layoutAnchor = string;
   m_layoutOffset = 0.0f;
 
-  REGIONNODE *regionNode = NEW(REGIONNODE);
-  m_content.LinkNode(regionNode, LIST_TAIL, 0);
+  REGIONNODE *regionNode = m_content.NewNode(LIST_TAIL, 0, 0);
+
   regionNode->region = string;
 
-  CGxString                  *gxString = string->m_string ? TextBlockGetStringPtr(string->m_string) : 0;
   const GXUFONTHYPERLINKINFO *links;
-  UINT                        linkCount = GxuFontStringHyperLinkInfo(gxString, links);
+  UINT                        linkCount = GxuFontStringHyperLinkInfo(string->GetString(), links);
 
   for (UINT i = 0; i < linkCount; ++i) {
     CSimpleHyperlinkButton *button = CreateHyperlinkButton();
+
     m_hyperlinks.LinkNode(button, LIST_TAIL, 0);
     button->SetHyperlink(string, &links[i]);
   }

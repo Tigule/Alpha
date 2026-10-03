@@ -59,22 +59,24 @@ void WriteEventKeyFrames(const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, TSGrow
 }
 
 BOOL ReadBinEventKeyFrames(MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer &buf, UINT *totalRead) {
-  if (buf.Bytes() < 8) {
+  if (buf.Bytes() < 2 * sizeof(UINT)) {
     return 0;
   }
-  keyframes.keys.SetCount(buf.GetUint());
-  *totalRead += 4;
-  if (!keyframes.keys.Count()) {
+  UINT numKeys = buf.GetUint();
+  *totalRead += sizeof(UINT);
+  if (!numKeys) {
     return 0;
   }
   keyframes.globalSeqId = buf.GetUint();
-  *totalRead += 4;
-  if (4 * keyframes.keys.Count() > static_cast<UINT>(buf.Bytes())) {
+  *totalRead += sizeof(UINT);
+  if (static_cast<int>(numKeys * sizeof(MDLEVENTKEY)) > buf.Bytes()) {
     return 0;
   }
-  for (UINT i = 0; i < keyframes.keys.Count(); ++i) {
-    keyframes.keys.Ptr()[i].time = buf.GetInt();
-    *totalRead += 4;
+  keyframes.keys.SetCount(numKeys);
+  MDLEVENTKEY *key = keyframes.keys.Ptr();
+  for (UINT i = numKeys; i; --i, ++key) {
+    key->time = buf.GetInt();
+    *totalRead += sizeof(int);
   }
   return 1;
 }

@@ -16,8 +16,27 @@
 #include "Model/CollisionData.h"
 #include "WorldCommon/WorldMath.h"
 
+#include <Ftol.h>
 #include <float.h>
 #include <math.h>
+
+namespace NTempest {
+
+  inline void CImVector::Scale255RGB_(DWORD scale) {
+    DWORD d = *IV_();
+    DWORD dr;
+    DWORD dg;
+    DWORD db;
+    Get_(d, dr, dg, db);
+    *IV_() = MakeRGB(static_cast<BYTE>((scale * dr + 255) >> 8), static_cast<BYTE>((scale * dg + 255) >> 8), static_cast<BYTE>((scale * db + 255) >> 8)) |
+             (d & eAlphaMask);
+  }
+
+  inline void CImVector::Scale255RGB(DWORD scale) {
+    Scale255RGB_(scale);
+  }
+
+}
 
 const float              CMapStaticEntity::dirLightScaleAmount = 0.5f;
 const NTempest::C3Vector CMapStaticEntity::interiorSunDir(-0.30822f, -0.30822f, -0.9f);
@@ -54,17 +73,16 @@ void CMapStaticEntity::SelectLights() {
 
   UINT whichLight = 1;
   ITERATELIST(CMapCacheLight, cacheLightList, cacheLight) {
-    if (whichLight >= 8) {
-      break;
-    }
     GxLightSet(whichLight, cacheLight->gxLight, CWorldScene::camPos);
     ++whichLight;
+    if (whichLight == 8) {
+      return;
+    }
   }
 
-  while (whichLight < 8) {
+  do {
     GxLightEnable(whichLight, 0);
-    ++whichLight;
-  }
+  } while (++whichLight != 8);
 }
 
 void CMapStaticEntity::AdjustLightmap(
@@ -74,7 +92,7 @@ void CMapStaticEntity::AdjustLightmap(
     NTempest::CImVector       &ambColor,
     BYTE                       maxAmbient
 ) {
-  BYTE maxMag = max(max(max(lmColor.r, lmColor.g), lmColor.b), 1);
+  BYTE maxMag = max(1, max(max(lmColor.r, lmColor.g), lmColor.b));
 
   dirColor = lmColor;
   if (maxMag < minDir) {
@@ -90,10 +108,7 @@ void CMapStaticEntity::AdjustLightmap(
 
   ambColor = lmColor;
   if (maxMag > maxAmbient) {
-    UINT scale = static_cast<UINT>(static_cast<float>(maxAmbient) * 255.0f / maxMag);
-    ambColor.r = static_cast<BYTE>((scale * ambColor.r + 255) >> 8);
-    ambColor.g = static_cast<BYTE>((scale * ambColor.g + 255) >> 8);
-    ambColor.b = static_cast<BYTE>((scale * ambColor.b + 255) >> 8);
+    ambColor.Scale255RGB(Fast_ftol(static_cast<float>(maxAmbient) * 255.0f / maxMag));
   }
 }
 
@@ -128,40 +143,34 @@ void CMapStaticEntity::FindLights() {
 }
 
 void CMapStaticEntity::CreateCacheLight(CMapLight *light) {
-  if (light->attenDenom == 0.0f) {
+  if (light->attenDenom != 0.0f) {
+    float dirIntensity;
+    NTempest::C3Vector lightDir = pos + NTempest::C3Vector(0.0f, 0.0f, 1.1666666f) - light->gxLight.m_dir;
+    float lightDist = lightDir.Mag();
+    if (lightDist < light->attenStart) {
+      dirIntensity = 1.0f;
+    } else if (lightDist < light->attenEnd) {
+      dirIntensity = 1.0f - (lightDist - light->attenStart) * light->attenDenom;
+    } else {
+      return;
+    }
+
     CMapCacheLight *cacheLight = CMap::AllocCacheLight();
-    FATALASSERT(cacheLight);
+    ASSERT(cacheLight);
     cacheLightList.LinkNode(cacheLight, LIST_TAIL, 0);
     cacheLight->gxLight = light->gxLight;
-    return;
-  }
-
-  float              dirIntensity;
-  NTempest::C3Vector lightDir(pos.x - light->gxLight.m_dir.x, pos.y - light->gxLight.m_dir.y, pos.z + 1.1666666f - light->gxLight.m_dir.z);
-  float              lightDist = lightDir.Mag();
-  if (lightDist >= light->attenEnd) {
-    return;
-  }
-
-  if (lightDist < light->attenStart) {
-    dirIntensity = 1.0f;
+    cacheLight->gxLight.m_dir = lightDir * (1.0f / lightDist);
+    cacheLight->gxLight.m_dirIntensity = dirIntensity;
+    cacheLight->gxLight.m_enabled = 1;
+    cacheLight->gxLight.m_isOmni = 0;
+    cacheLight->gxLight.m_constantAttenuation = 1.0f;
+    cacheLight->gxLight.m_linearAttenuation = cacheLight->gxLight.m_quadraticAttenuation = 0.0f;
   } else {
-    dirIntensity = 1.0f - (lightDist - light->attenStart) * light->attenDenom;
+    CMapCacheLight *cacheLight = CMap::AllocCacheLight();
+    ASSERT(cacheLight);
+    cacheLightList.LinkNode(cacheLight, LIST_TAIL, 0);
+    cacheLight->gxLight = light->gxLight;
   }
-
-  CMapCacheLight *cacheLight = CMap::AllocCacheLight();
-  FATALASSERT(cacheLight);
-  cacheLightList.LinkNode(cacheLight, LIST_TAIL, 0);
-  cacheLight->gxLight = light->gxLight;
-
-  lightDir.Normalize();
-  cacheLight->gxLight.m_enabled = 1;
-  cacheLight->gxLight.m_isOmni = 0;
-  cacheLight->gxLight.m_dir = lightDir;
-  cacheLight->gxLight.m_dirIntensity = dirIntensity;
-  cacheLight->gxLight.m_constantAttenuation = 1.0f;
-  cacheLight->gxLight.m_linearAttenuation = 0.0f;
-  cacheLight->gxLight.m_quadraticAttenuation = 0.0f;
 }
 
 CMapDoodadDef::CMapDoodadDef() {
@@ -185,10 +194,10 @@ void CMapDoodadDef::SelectLights() {
 
   if (flags & Flag_InteriorLit) {
     gxLight.m_dir = interiorSunDir;
-    gxLight.m_ambColor = ambient;
     gxLight.m_dirColor = interiorDirColor;
-    gxLight.m_ambIntensity = 1.0f;
+    gxLight.m_ambColor = ambient;
     gxLight.m_dirIntensity = 1.0f;
+    gxLight.m_ambIntensity = 1.0f;
 
     if (GetMapObjDef(mapObjDef)) {
       DNInfo *dnInfo = DayNightGetInfo();
@@ -206,17 +215,16 @@ void CMapDoodadDef::SelectLights() {
 
   UINT whichLight = 1;
   ITERATELIST(CMapCacheLight, cacheLightList, cacheLight) {
-    if (whichLight >= 8) {
-      break;
-    }
     GxLightSet(whichLight, cacheLight->gxLight, CWorldScene::camPos);
     ++whichLight;
+    if (whichLight == 8) {
+      return;
+    }
   }
 
-  while (whichLight < 8) {
+  do {
     GxLightEnable(whichLight, 0);
-    ++whichLight;
-  }
+  } while (++whichLight != 8);
 }
 
 void CMapDoodadDef::GetBounds(NTempest::CAaSphere &bounds) {
@@ -232,17 +240,13 @@ void CMapDoodadDef::GetCollideExt(NTempest::CAaBox &bounds) {
 }
 
 void CMapDoodadDef::Update(const NTempest::C44Matrix &newMat) {
-  NTempest::CAaBox    localExt;
-  NTempest::CAaSphere localSphere;
-
-  localSphere.c = NTempest::C3Vector();
-  localSphere.r = 0.0f;
-
   if (model) {
     flags |= Flag_LightUpdate;
-    pos = NTempest::C3Vector(lMat.d0, lMat.d1, lMat.d2);
+    pos = *lMat.Row3AsVec3();
     pos *= newMat;
     mat = lMat * newMat;
+    NTempest::CAaBox    localExt;
+    NTempest::CAaSphere localSphere;
     ModelGetExtents(model, &localExt);
     ModelGetBounds(model, &localSphere);
     aaSphere.c = localSphere.c * mat;
@@ -257,32 +261,31 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
   static NTempest::C3Vector dirs[6] = {NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, -1.0f),
                                        NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(-1.0f, 0.0f, 0.0f),
                                        NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.0f, -1.0f, 0.0f)};
-  NTempest::C3Segment       lmQuerySeg;
-  NTempest::C3Vector        localPos = pos * mapObjDef->invMat;
-  NTempest::C3Vector        localRadVec;
-  CMapObj                  *mapObj = mapObjDef->mapObj;
-  float                     invScale = 1.0f / static_cast<float>(sqrt(lMat.a0 * lMat.a0 + lMat.a1 * lMat.a1 + lMat.a2 * lMat.a2));
-  NTempest::CImVector       closestC;
-  UINT                      tries;
-  NTempest::CImVector       lmColor;
-  float                     dirDist;
-  float                     closestT;
-
-  (void)mapObjGroup;
+  CMapObj           *mapObj = mapObjDef->mapObj;
+  NTempest::C3Vector localPos = pos * mapObjDef->invMat;
+  float              invScale = 1.0f / lMat.Row0AsVec3()->Mag();
   if (mapObj) {
-    for (tries = 0; tries < 2; ++tries) {
-      closestT = FLT_MAX;
-      closestC = NTempest::CImVector(0ul);
-      for (UINT i = 0; i < 6; ++i) {
-        localRadVec.x = dirs[i].x * lMat.a0 + dirs[i].y * lMat.b0 + dirs[i].z * lMat.c0;
-        localRadVec.y = dirs[i].x * lMat.a1 + dirs[i].y * lMat.b1 + dirs[i].z * lMat.c1;
-        localRadVec.z = dirs[i].x * lMat.a2 + dirs[i].y * lMat.b2 + dirs[i].z * lMat.c2;
-        lmQuerySeg.start = localPos;
-        lmQuerySeg.end.x = localPos.x + localRadVec.x * (tries ? 50.0f : (aaSphere.r >= 3.0f ? aaSphere.r : 3.0f)) * invScale;
-        lmQuerySeg.end.y = localPos.y + localRadVec.y * (tries ? 50.0f : (aaSphere.r >= 3.0f ? aaSphere.r : 3.0f)) * invScale;
-        lmQuerySeg.end.z = localPos.z + localRadVec.z * (tries ? 50.0f : (aaSphere.r >= 3.0f ? aaSphere.r : 3.0f)) * invScale;
+    for (UINT tries = 0; tries < 2; ++tries) {
+      float               closestT = FLT_MAX;
+      NTempest::CImVector closestC(0ul);
+      float               radius;
+      if (!tries) {
+        radius = max(3.0f, aaSphere.r);
+      } else {
+        radius = 50.0f * invScale;
+      }
 
-        lmColor = NTempest::CImVector(0ul);
+      for (UINT i = 0; i < 6; ++i) {
+        NTempest::C3Vector localRadVec(
+            dirs[i].x * lMat.a0 + dirs[i].y * lMat.b0 + dirs[i].z * lMat.c0,
+            dirs[i].x * lMat.a1 + dirs[i].y * lMat.b1 + dirs[i].z * lMat.c1,
+            dirs[i].x * lMat.a2 + dirs[i].y * lMat.b2 + dirs[i].z * lMat.c2
+        );
+        localRadVec *= radius;
+        NTempest::C3Segment lmQuerySeg(localPos, localPos + localRadVec);
+
+        float               dirDist;
+        NTempest::CImVector lmColor(0ul);
         if (mapObj->QueryLightmap(lmQuerySeg, lmColor, &dirDist) && dirDist < closestT) {
           closestT = dirDist;
           closestC = lmColor;

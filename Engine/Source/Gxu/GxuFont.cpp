@@ -117,11 +117,9 @@ int GxuFontCreateFont(LPCSTR name, float fontHeight, CGxFont *&face, UINT flags)
   CGxFont *newFace;
   int      result;
 
-  FATALASSERT(name);
-
-  FATALASSERT(*name);
-
   VALIDATEBEGIN;
+  VALIDATE(name);
+  VALIDATE(*name);
   VALIDATE(( fontHeight < 1.0f ) && ( fontHeight > 0 ));
   VALIDATEEND;
 
@@ -532,7 +530,7 @@ GxuFontStripEscapeCodes(LPCSTR inputString, UINT numBytes, UINT flags, char *buf
     char charCode;
     int  addEscapeChar;
   } s_stripFlags[NUM_QUOTEDCODES] = {
-      {0x000,  'C', 1},
+      {0x100,  'C', 1},
       {0x100,  'R', 1},
       {0x200, '\n', 0},
       {0x800,  '|', 0},
@@ -621,17 +619,19 @@ BOOL GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *
   UINT                wide;
   UINT                advance;
   NTempest::CImVector colorCode;
-  NTempest::CImVector foundColor;
   int                 found;
 
   found = 0;
   while (*string && numBytes) {
-    QUOTEDCODE quoted = GxuDetermineQuotedCode(string, advance, &colorCode, 0, wide, numBytes);
-    if (quoted == CODE_COLORON) {
-      foundColor = colorCode;
+    NTempest::CImVector foundColor;
+    switch (GxuDetermineQuotedCode(string, advance, &foundColor, 0, wide, numBytes)) {
+    case CODE_COLORON:
+      colorCode = foundColor;
       found = 1;
-    } else if (quoted == CODE_COLORRESTORE) {
+      break;
+    case CODE_COLORRESTORE:
       found = 0;
+      break;
     }
 
     string += advance;
@@ -639,7 +639,7 @@ BOOL GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *
   }
 
   if (found) {
-    *color = foundColor;
+    *color = colorCode;
   }
   return found;
 }

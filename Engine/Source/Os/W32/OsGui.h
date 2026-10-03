@@ -376,7 +376,6 @@ class COsDialog {
   void        DeleteControl(COsControl *inControl);
   void        DetachControl(COsControl *inControl);
   COsControl *FindControl(LPVOID inHandle);
-  int         FindControl(COsControl *inControl);
   int         ProcessMessage(LPVOID inMsgData);
   void        CheckEvents();
 
@@ -443,6 +442,7 @@ class COsDialog {
   BOOL OnControlTab();
 
  protected:
+  int  FindControl(COsControl *inControl);
   void ApplyModality(int inVal);
 
   LPVOID mHandle;

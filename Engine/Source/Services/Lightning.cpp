@@ -12,67 +12,74 @@
 
 static NTempest::CRndSeed sRandSeed;
 
-CLightning::CLightning() : mAvgSegLen(-2.0f), mWidth(1.0f), mRebuildPoints(1), mAccTime(0.0f), mTexture(0) {
+CLightning::CLightning() {
+  mAvgSegLen = -2.0f;
+  mWidth = 1.0f;
+  mRebuildPoints = 1;
+  mAccTime = 0.0f;
+  mTexture = 0;
 }
 
 void CLightning::BuildStroke(TSFixedArray<NTempest::C3Vector> &points) {
   NTempest::C3Vector diff = mDstPos - mSrcPos;
   float              length = diff.Mag();
-  UINT               numPoints = static_cast<UINT>(length / mAvgSegLen + 2.0f);
-  float              ooNumPoints = 1.0f / numPoints;
+  UINT               numPoints = static_cast<UINT>(length / mAvgSegLen + 2.0f) + 1;
+  float              ooNumPoints = 1.0f / (numPoints - 1);
   float              noiseScale = length * mNoiseScale;
 
-  points.SetCount(numPoints + 1);
+  points.SetCount(numPoints);
   points[0] = mSrcPos;
-  points[numPoints] = mDstPos;
+  points[numPoints - 1] = mDstPos;
 
-  for (UINT i = 1; i != numPoints; ++i) {
-    NTempest::C3Vector tmp = mSrcPos + diff * (static_cast<float>(i) * ooNumPoints);
-    tmp += NTempest::C3Vector(NTempest::CRandom::reals_(sRandSeed), NTempest::CRandom::reals_(sRandSeed), NTempest::CRandom::reals_(sRandSeed)) *
-           noiseScale;
-    points[i] = tmp;
+  for (UINT i = 1; i != numPoints - 1; ++i) {
+    NTempest::C3Vector tmp;
+    tmp.x = NTempest::CRandom::reals_(sRandSeed);
+    tmp.y = NTempest::CRandom::reals_(sRandSeed);
+    tmp.z = NTempest::CRandom::reals_(sRandSeed);
+    points[i] = points[0] + diff * static_cast<float>(i) * ooNumPoints;
+    points[i] += tmp * noiseScale;
   }
 }
 
 void CLightning::Update(float elapsed) {
-  if (mTexCoordScale == 0.0f) {
-    mAccTime = 0.0f;
+  if (mTexCoordScale != 0.0f) {
+    mAccTime = fmod(elapsed + mAccTime, mTexCoordScale);
   } else {
-    mAccTime = fmod(mAccTime + elapsed, mTexCoordScale);
+    mAccTime = 0.0f;
   }
 
   if (mRebuildPoints) {
     BuildStroke(mPoints);
 
     UINT  numPos = 2 * mPoints.Count();
-    UINT  end = numPos - 2;
-    float ooNumPos = 1.0f / end;
+    float ooNumPos = 1.0f / (numPos - 2);
 
-    mPos.SetCount(numPos);
-    mTexCoords.SetCount(numPos);
-    mIndices.SetCount(numPos);
+    if (numPos != mTexCoords.Count()) {
+      mPos.SetCount(numPos);
+      mTexCoords.SetCount(numPos);
+      mIndices.SetCount(numPos);
 
-    for (UINT i = 0; i < numPos; i += 2) {
-      float x = static_cast<float>(i) * ooNumPos;
-      mTexCoords[i] = NTempest::C2Vector(x, 0.0f);
-      mTexCoords[i + 1] = NTempest::C2Vector(x, 1.0f);
-      mIndices[i] = static_cast<WORD>(i);
-      mIndices[i + 1] = static_cast<WORD>(i + 1);
+      for (UINT i = 0; i < numPos; i += 2) {
+        float x = static_cast<float>(i) * ooNumPos;
+        mTexCoords[i] = NTempest::C2Vector(x, 0.0f);
+        mTexCoords[i + 1] = NTempest::C2Vector(x, 1.0f);
+        mIndices[i] = static_cast<WORD>(i);
+        mIndices[i + 1] = static_cast<WORD>(i + 1);
+      }
+
+      mTexCoords[0] = mTexCoords[1] = NTempest::C2Vector(0.0f, 0.5f);
+      mTexCoords[numPos - 2] = mTexCoords[numPos - 1] = NTempest::C2Vector(1.0f, 0.5f);
     }
-
-    mTexCoords[1] = NTempest::C2Vector(0.0f, 0.5f);
-    mTexCoords[0] = mTexCoords[1];
-    mTexCoords[numPos - 1] = NTempest::C2Vector(1.0f, 0.5f);
-    mTexCoords[numPos - 2] = mTexCoords[numPos - 1];
     mRebuildPoints = 0;
   }
 
   static TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> sPoints;
+  UINT i = 1;
+  UINT end = mPoints.Count() - 1;
   BuildStroke(sPoints);
 
-  UINT end = mPoints.Count() - 1;
-  for (UINT i = 1; i < end; ++i) {
-    mPoints[i] = sPoints[i] * 0.25f + mPoints[i] * 0.75f;
+  for (; i < end; ++i) {
+    mPoints[i] = mPoints[i] * 0.75f + sPoints[i] * 0.25f;
   }
 }
 
@@ -95,46 +102,42 @@ void CLightning::Render(UINT boltId, const NTempest::C3Vector &cameraPos) {
   static NTempest::C44Matrix identity;
   static NTempest::C44Matrix worldToView;
   static NTempest::C44Matrix particleToView;
-  static NTempest::C3Vector  zup;
   GxXformView(worldToView);
   GxXformSetView(identity);
   GxXformPush(GxXform_World);
   GxXformIdentity(GxXform_World);
   GxXformPush(GxXform_Tex0);
 
-  NTempest::C44Matrix translate;
-  translate.Translate(-cameraPos);
-  particleToView = translate * worldToView;
+  NTempest::C44Matrix viewRelative;
+  *viewRelative.Row3AsVec3() = -cameraPos;
+  particleToView = viewRelative * worldToView;
 
   UINT numPoints = mPoints.Count();
   mPos[0] *= 0.0f;
   mPos[1] *= 0.0f;
 
-  NTempest::C3Vector p = mPoints[0] * particleToView;
-  UINT               end = 2 * numPoints - 2;
-  for (UINT i = 2; i < end; i += 2) {
-    NTempest::C3Vector q = mPoints[i / 2] * particleToView;
+  NTempest::C3Vector p;
+  p = mPoints[0] * particleToView;
+  for (UINT i = 0; i < 2 * numPoints - 2; i += 2) {
+    NTempest::C3Vector q = mPoints[(i + 2) / 2] * particleToView;
     NTempest::C3Vector d = q - p;
     NTempest::C3Vector perp(-d.y, d.x, 0.0f);
     float              mag = perp.Mag();
     if (mag > 0.001f) {
       perp *= 1.0f / mag;
     }
-    perp *= mWidth;
 
-    mPos[i - 2] += (p + perp) * 0.5f;
-    mPos[i - 1] += (p - perp) * 0.5f;
-    mPos[i] = (q + perp) * 0.5f;
-    mPos[i + 1] = (q - perp) * 0.5f;
+    mPos[i] += (p + perp * mWidth) * 0.5f;
+    mPos[i + 1] += (p - perp * mWidth) * 0.5f;
+    mPos[i + 2] = (q + perp * mWidth) * 0.5f;
+    mPos[i + 3] = (q - perp * mWidth) * 0.5f;
     p = q;
   }
 
-  mPos[1] = mPoints[0] * particleToView;
-  mPos[0] = mPos[1];
-  mPos[2 * numPoints - 1] = mPoints[numPoints - 1] * particleToView;
-  mPos[2 * numPoints - 2] = mPos[2 * numPoints - 1];
+  mPos[0] = mPos[1] = mPoints[0] * particleToView;
+  mPos[2 * numPoints - 2] = mPos[2 * numPoints - 1] = mPoints[numPoints - 1] * particleToView;
 
-  NTempest::C3Vector texTranslate(-mAccTime / (mDuration == 0.0f ? 1.0f : mDuration), 0.0f, 0.0f);
+  NTempest::C3Vector texTranslate(-(mAccTime / (mTexCoordScale != 0.0f ? mTexCoordScale : 1.0f)), 0.0f, 0.0f);
   GxXformTranslate(GxXform_Tex0, texTranslate);
 
   GxRsPush();
@@ -145,16 +148,18 @@ void CLightning::Render(UINT boltId, const NTempest::C3Vector &cameraPos) {
   GxRsSet(GxRs_Fog, 0);
   GxRsSet(GxRs_Blend, GxBlend_Add);
   GxRsSet(GxRs_Texture0, TextureGetGxTex(mTexture, 1, 0));
+  static NTempest::C3Vector zup(0.0f, 0.0f, 1.0f);
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsSet(GxRs_TextureShader0, GxTS_Affine);
-  GxPrimLockVertexPtrs(mPos.Count(), &mPos[0], sizeof(NTempest::C3Vector), 0, 0, 0, 0, 0, 0, &mTexCoords[0], sizeof(NTempest::C2Vector), 0, 0);
-  GxPrimDrawElements(GxPrim_TriangleStrip, mIndices.Count(), &mIndices[0]);
+  GxPrimLockVertexPtrs(mPos.Count(), &mPos[0], sizeof(NTempest::C3Vector), &zup, 0, 0, 0, 0, 0, &mTexCoords[0], sizeof(NTempest::C2Vector), 0, 0);
+  GxPrimDrawElements(GxPrim_TriangleStrip, mIndices.Count(), mIndices.Ptr());
   GxPrimUnlockVertexPtrs();
   GxRsPop();
   GxXformSetView(worldToView);
   GxXformPop(GxXform_World);
   GxXformPop(GxXform_Tex0);
 }
+
 
 void CLightning::SetTexture(HTEXTURE texture) {
   if (mTexture) {
@@ -188,32 +193,31 @@ BoltID CLightningManager::Add(
     void (*updateproc)(LPVOID, UINT, NTempest::C3Vector *, NTempest::C3Vector *),
     LPVOID context
 ) {
-  BoltID      boltId;
-  CLightning *lightning;
+  BoltID boltId;
 
-  if (mDeadBolts.Count()) {
-    boltId = mDeadBolts[mDeadBolts.Count() - 1];
-    mDeadBolts.SetCount(mDeadBolts.Count() - 1);
-    lightning = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[boltId]) & ~NOTUSEDFLAG);
-    mLiveBolts[boltId] = lightning;
-  } else {
+  if (!mDeadBolts.Count()) {
     boltId = mLiveBolts.Count();
-    lightning = new CLightning;
-    *mLiveBolts.New() = lightning;
+    mLiveBolts.New();
+    mLiveBolts[boltId] = NEW(CLightning);
+  } else {
+    boltId = *mDeadBolts.Top();
+    mLiveBolts[boltId] = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[boltId]) & ~NOTUSEDFLAG);
+    mDeadBolts.SetCount(mDeadBolts.Count() - 1);
   }
 
-  lightning->SetSrcPos(source);
-  lightning->SetDstPos(dest);
-  lightning->SetAvgSegLen(avgSegLen);
-  lightning->SetWidth(width);
-  lightning->SetColor(color);
-  lightning->SetNoiseScale(noiseScale);
-  lightning->SetTexCoordScale(texCoordScale);
-  lightning->SetDuration(duration);
-  lightning->SetTexture(texture);
+  mLiveBolts[boltId]->SetSrcPos(source);
+  mLiveBolts[boltId]->SetDstPos(dest);
+  mLiveBolts[boltId]->SetAvgSegLen(avgSegLen);
+  mLiveBolts[boltId]->SetWidth(width);
+  mLiveBolts[boltId]->SetColor(color);
+  mLiveBolts[boltId]->SetNoiseScale(noiseScale);
+  mLiveBolts[boltId]->SetTexCoordScale(texCoordScale);
+  mLiveBolts[boltId]->SetDuration(duration);
+  mLiveBolts[boltId]->SetTexture(texture);
   SetCoordUpdate(boltId, updateproc, context);
   return boltId;
 }
+
 
 void CLightningManager::Update(float elapsed) {
   UINT count = mLiveBolts.Count();

@@ -104,11 +104,11 @@ void RCString::Copy(LPCSTR source) {
     return;
   }
 
-  FATALASSERT(SStrLen(source) < (unsigned)MAX_RCSTRING_LENGTH);
-
-  CStringManager *pManager = CStringManager::Get();
+  CStringManager *pManager;
 
   VALIDATEBEGIN;
+  VALIDATE(SStrLen(source)<(unsigned)MAX_RCSTRING_LENGTH);
+  pManager = CStringManager::Get();
   VALIDATE(pManager);
   VALIDATEENDVOID;
 
@@ -182,7 +182,9 @@ RCString RCString::SubString(RCStringIndex start, RCStringIndex end) const {
   if (str) {
     UINT len = SStrLen(str);
 
-    FATALASSERT(len < (WORD)-1);
+    VALIDATEBEGIN;
+    VALIDATE(len<(unsigned short)-1);
+    VALIDATEEND;
 
     if (len && start <= static_cast<RCStringIndex>(len)) {
       if (end >= static_cast<RCStringIndex>(len)) {

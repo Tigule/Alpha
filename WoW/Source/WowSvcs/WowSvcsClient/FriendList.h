@@ -72,7 +72,7 @@ class FriendList {
   bool          IsIgnored(DWORDLONG guid);
   void          SetIgnoreSelectionIndex(UINT index);
   int           GetIgnoreSelectionIndex();
-  void          HandleStatus(FRIEND_RESULT result, DWORDLONG guid, CDataStore *msg);
+  void          HandleStatus(FRIEND_RESULT res, DWORDLONG guid, CDataStore *msg);
   int           Added(DWORDLONG guid);
   void          Removed(DWORDLONG guid);
   void          SetName(DWORDLONG guid, LPCSTR name);

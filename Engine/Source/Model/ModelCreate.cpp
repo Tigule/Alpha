@@ -16,6 +16,8 @@
 #include <malloc.h>
 #include <stdarg.h>
 
+using namespace NTempest;
+
 LPCSTR CHandleObject::GetObjectName() {
   return 0;
 }
@@ -254,7 +256,7 @@ static void HashNewModel(LPCSTR modelFName, HMODEL model, UINT createFlags, CSta
 
   CModelHash *entry = s_modelCache.New(filePath, 0, 0);
   s_modelCacheLRU.LinkNode(entry, LIST_TAIL, 0);
-  entry->model = ModelDuplicate(model, createFlags);
+  entry->model = ModelDuplicate(model, 0);
   entry->createFlags = createFlags;
   entry->timeStamp = currentTime;
 }
@@ -349,8 +351,8 @@ static BOOL MdxReadAnimation(BYTE *fileData, UINT fileBytes, CModelBase *modelpt
 }
 
 static void MdxReadHitTestData(BYTE *data, UINT fileBytes, CModelComplex *modelptr, CModelShared *shared) {
-  UINT *shapeDone;
-  UINT *dataDone;
+  BYTE *shapeDone;
+  BYTE *dataDone;
   UINT  i;
   UINT  numShapes;
 
@@ -363,7 +365,7 @@ static void MdxReadHitTestData(BYTE *data, UINT fileBytes, CModelComplex *modelp
     return;
   }
 
-  dataDone = reinterpret_cast<UINT *>(data + 4 + *reinterpret_cast<UINT *>(data));
+  dataDone = data + 4 + *reinterpret_cast<UINT *>(data);
   numShapes = *reinterpret_cast<UINT *>(data + 4);
   data += 8;
 
@@ -371,7 +373,7 @@ static void MdxReadHitTestData(BYTE *data, UINT fileBytes, CModelComplex *modelp
   modelptr->m_hitTestMtx.SetCount(numShapes);
 
   for (i = 0; i < numShapes; ++i) {
-    shapeDone = reinterpret_cast<UINT *>(data + *reinterpret_cast<UINT *>(data));
+    shapeDone = data + *reinterpret_cast<UINT *>(data);
     data += *reinterpret_cast<UINT *>(data + 4) + 4;
 
     switch (*data++) {
@@ -409,11 +411,11 @@ static void MdxReadHitTestData(BYTE *data, UINT fileBytes, CModelComplex *modelp
         break;
     }
 
-    FATALASSERT(shapeDone == reinterpret_cast<UINT *>(data));
-    FATALASSERT(dataDone >= reinterpret_cast<UINT *>(data));
+    ASSERT(shapeDone == data);
+    ASSERT(dataDone >= data);
   }
 
-  FATALASSERT(dataDone == reinterpret_cast<UINT *>(data));
+  ASSERT(dataDone == data);
 }
 
 static BOOL MdlReadLoadHitTestData(const MDLDATA &data, CModelComplex *modelptr, CModelShared *shared) {
@@ -459,17 +461,15 @@ static BOOL MdlReadLoadHitTestData(const MDLDATA &data, CModelComplex *modelptr,
 static void ComputeBoundingRadius(const CGeosetShared *geosets, UINT numGeosets, const NTempest::C3Vector &center, float *radius) {
   float bestDistSqd = 0.0f;
 
-  while (numGeosets) {
-    UINT numVertices = geosets->position.Count();
+  for (UINT j = 0; j < numGeosets; ++j) {
+    UINT numVertices = geosets[j].position.Count();
     for (UINT i = 0; i < numVertices; ++i) {
-      NTempest::C3Vector delta = center - geosets->position[i];
+      NTempest::C3Vector delta = center - geosets[j].position[i];
       float              distSqd = delta.SquaredMag();
       if (distSqd > bestDistSqd) {
         bestDistSqd = distSqd;
       }
     }
-    ++geosets;
-    --numGeosets;
   }
 
   *radius = NTempest::CMath::sqrt_(bestDistSqd);
@@ -575,42 +575,41 @@ static BOOL MdlReadLoadPositions(const MDLDATA &data, UINT flags, CModelShared *
   }
 
   if ((flags & 0x220) == 0x20 || (!data.hitTestShapes.Count() && !data.lights.Count())) {
-    shared->positions.SetCount(numPivots);
-    for (UINT i = 0; i < numPivots; ++i) {
-      shared->positions[i] = data.pivotPoints[i];
-    }
+    shared->positions.Set(numPivots, data.pivotPoints.Ptr());
     return 1;
   }
 
   TSStackArray<UINT> idConversion(_alloca(numPivots * sizeof(UINT)), numPivots, numPivots);
-  UINT               numEmitters = AnimBuildObjectIdTranslation(data, ConvertAnimCreateFlags(flags), &idConversion);
-  shared->positions.SetCount(numPivots - numEmitters);
+  shared->positions.SetCount(numPivots - AnimBuildObjectIdTranslation(data, ConvertAnimCreateFlags(flags), &idConversion));
   UINT i;
   for (i = 0; i < numPivots; ++i) {
-    if (idConversion[i] != static_cast<UINT>(-1)) {
-      shared->positions[idConversion[i]] = data.pivotPoints[i];
+    UINT index = idConversion[i];
+    if (index != static_cast<UINT>(-1)) {
+      shared->positions[index] = data.pivotPoints[i];
     }
   }
-  for (i = 0; i < shared->emitter2Order.Count(); ++i) {
+
+  UINT numEmitters = shared->emitter2Order.Count();
+  for (i = 0; i < numEmitters; ++i) {
     shared->emitter2Order[i] = idConversion[shared->emitter2Order[i]];
   }
   return 1;
 }
 
 static void MdxReadPositions(BYTE *fileData, UINT fileBytes, UINT flags, CModelShared *shared) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'TVIP');
-  if (!section) {
+  BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'TVIP');
+  if (!data) {
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(section);
-  ASSERT(sectionBytes % sizeof(NTempest::C3Vector) == 0);
-  UINT                numPivots = sectionBytes / sizeof(NTempest::C3Vector);
-  NTempest::C3Vector *source = reinterpret_cast<NTempest::C3Vector *>(section + 4);
+  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  data += 4;
+  UINT numPivots = sectionBytes / (sizeof(float) * C3Vector::eComponents);
+  ASSERT(sectionBytes == (numPivots * sizeof(float) * C3Vector::eComponents));
 
   if ((flags & 0x220) == 0x20) {
     shared->positions.SetCount(numPivots);
-    memcpy(shared->positions.Ptr(), source, sectionBytes);
+    memcpy(shared->positions.Ptr(), data, numPivots * sizeof(float) * C3Vector::eComponents);
     return;
   }
 
@@ -618,19 +617,21 @@ static void MdxReadPositions(BYTE *fileData, UINT fileBytes, UINT flags, CModelS
   UINT               numEmitters = AnimBuildObjectIdTranslation(fileData, fileBytes, ConvertAnimCreateFlags(flags), idConversion.Ptr(), numPivots);
   if (!numEmitters) {
     shared->positions.SetCount(numPivots);
-    memcpy(shared->positions.Ptr(), source, sectionBytes);
+    memcpy(shared->positions.Ptr(), data, numPivots * sizeof(float) * C3Vector::eComponents);
     return;
   }
 
   shared->positions.SetCount(numPivots - numEmitters);
   UINT i;
   for (i = 0; i < numPivots; ++i) {
-    if (idConversion[i] != static_cast<UINT>(-1)) {
-      shared->positions[idConversion[i]] = source[i];
+    UINT index = idConversion[i];
+    if (index != static_cast<UINT>(-1)) {
+      shared->positions[index] = reinterpret_cast<C3Vector *>(data)[i];
     }
   }
-  for (i = 0; i < shared->emitter2Order.Count(); ++i) {
-    ASSERT(shared->emitter2Order[i] < numPivots);
+
+  numEmitters = shared->emitter2Order.Count();
+  for (i = 0; i < numEmitters; ++i) {
     shared->emitter2Order[i] = idConversion[shared->emitter2Order[i]];
   }
 }
@@ -777,7 +778,7 @@ static int BuildModelFromMdlData(const MDLDATA &source, CModelBase *baseModel, C
 }
 
 HMATERIAL BuildSimpleMaterial(CModelTexture *texData, UINT textureId, HTEXTURE texture, EGxBlend blendMode, UINT disables, UINT replaceableId) {
-  CMaterial *unique = NEW(CMaterial);
+  CMaterial *unique = NEWHANDLE(HMATERIAL, CMaterial);
   ASSERT(unique);
 
   CTexLayer *layer = unique->layers.New();
@@ -786,30 +787,29 @@ HMATERIAL BuildSimpleMaterial(CModelTexture *texData, UINT textureId, HTEXTURE t
   texData->handle = static_cast<HTEXTURE>(HandleDuplicate(texture));
   texData->replaceableId = replaceableId;
 
-  layer->vertexFormat = GxVBF_PCT0;
-  layer->blendMode = blendMode;
   layer->tmuPass[0].textureId = textureId;
+  layer->blendMode = blendMode;
   layer->tmuPass[0].combiner = GxTexBlend_Mod;
+  layer->vertexFormat = GxVBF_PNT0;
 
-  if (disables & 0x01) {
+  if (MODEL_GEO_UNSHADED & disables) {
     layer->disables |= 0x01;
   }
-  if (disables & 0x10) {
+  if (MODEL_GEO_TWOSIDED & disables) {
     layer->disables |= 0x10;
   }
-  if (disables & 0x20) {
+  if (MODEL_GEO_UNFOGGED & disables) {
     layer->disables |= 0x02;
   }
-  if (disables & 0x40) {
+  if (MODEL_GEO_NO_DEPTH_TEST & disables) {
     layer->disables |= 0x04;
   }
-  if (disables & 0x80) {
+  if (MODEL_GEO_NO_DEPTH_SET & disables) {
     layer->disables |= 0x08;
   }
 
-  CMaterialShared *shared = NEW(CMaterialShared);
+  CMaterialShared *shared = NEWHANDLE(HMATERIALSHARED, CMaterialShared);
   ASSERT(shared);
-  shared->priorityPlane = 0;
 
   CTexLayerShared *sharedLayer = shared->layers.New();
   ASSERT(sharedLayer);
@@ -817,8 +817,8 @@ HMATERIAL BuildSimpleMaterial(CModelTexture *texData, UINT textureId, HTEXTURE t
   sharedLayer->tmuPass[0].transformId = static_cast<UINT>(-1);
   sharedLayer->tmuPass[0].coordId = 0;
 
-  unique->data = static_cast<HMATERIALSHARED>(HandleCreate(shared, "HMATERIALSHARED"));
-  return static_cast<HMATERIAL>(HandleCreate(unique, "HMATERIAL"));
+  unique->data = CREATEHANDLE(HMATERIALSHARED, shared);
+  return CREATEHANDLE(HMATERIAL, unique);
 }
 
 static void BuildSimpleGeoset(
@@ -982,19 +982,19 @@ static HMODEL IModelCreateBlocking(LPCSTR fileName, char *actualPath, CModelCrea
   }
   MDLFileBinaryUnload(fileData);
 
-  CModel *model = NEW(CModel);
+  CModel *model = NEWHANDLE(HMODEL, CModel)(CMODEL_UNINITIALIZED);
   ASSERT(model);
   model->data = modelptr;
-  model->shared = static_cast<HMODELSHARED>(HandleCreate(shared, "HMODELSHARED"));
+  model->shared = CREATEHANDLE(HMODELSHARED, shared);
   ASSERT(model->shared);
-  model->state = CMODEL_LOADED;
 
-  HMODEL handle = static_cast<HMODEL>(HandleCreate(model, "HMODEL"));
-  HashNewModel(fileName, handle, createFlags, status);
-  return handle;
+  HMODEL modelHandle = CREATEHANDLE(HMODEL, model);
+  model->state = CMODEL_LOADED;
+  HashNewModel(fileName, modelHandle, createFlags, status);
+  return modelHandle;
 }
 
-static TSCArray<BYTE, 4194304> s_asyncLoadBuffer;
+static TSCArray<BYTE, 0x400000> s_asyncLoadBuffer;
 static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
 static UINT s_asyncLoadBufferUsed;
 static int  s_asyncPending;
@@ -1024,16 +1024,17 @@ static void AsyncModelHandler() {
   s_asyncLoadBufferUsed = 0;
   bufferRemaining = s_asyncLoadBuffer.MaxCount();
 
-  for (asyncObject = s_asyncLoadList.Head(); asyncObject; asyncObject = asyncObjectnext_node) {
-    asyncObjectnext_node = s_asyncLoadList.Next(asyncObject);
-
+  for (asyncObject = s_asyncLoadList.Head();
+       (int)asyncObject > 0 ? ((asyncObjectnext_node = s_asyncLoadList.RawNext(asyncObject)), 1) : 0;
+       asyncObject = asyncObjectnext_node)
+  {
     if (bufferRemaining < asyncObject->size) {
       continue;
     }
 
     asyncObject->link.Unlink();
-    asyncObject->canReorder = 1;
     asyncObject->buffer = &s_asyncLoadBuffer[s_asyncLoadBufferUsed];
+    asyncObject->canReorder = 1;
     s_asyncLoadBufferUsed += asyncObject->size;
     bufferRemaining -= asyncObject->size;
     ++s_asyncPending;
@@ -1042,21 +1043,19 @@ static void AsyncModelHandler() {
 }
 
 static void AsnycModelPostLoadCallback(LPVOID userArg) {
-  CModel       *model = static_cast<CModel *>(userArg);
-  CStatus       status;
-  BYTE         *fileData;
-  UINT          fileBytes;
-  CModelShared *shared;
+  CModel *model = static_cast<CModel *>(userArg);
 
   ASSERT(model);
   ASSERT(model->state == CMODEL_ASYNC_WAIT);
-  shared = reinterpret_cast<CModelShared *>(model->shared);
+  CModelShared *shared = reinterpret_cast<CModelShared *>(model->shared);
   ASSERT(shared);
 
-  fileData = static_cast<BYTE *>(model->asyncObject->buffer);
-  ASSERT(*reinterpret_cast<UINT *>(fileData) == 'XLDM');
-  fileBytes = model->asyncObject->size - 4;
+  CStatus status;
+  BYTE   *fileData = static_cast<BYTE *>(model->asyncObject->buffer);
+  ASSERT(*((ULONG *) (fileData)) == 'XLDM');
   fileData += 4;
+  UINT fileBytes = model->asyncObject->size - 4;
+
   CModelBase *modelptr;
   if (IsSimpleModel(fileData, fileBytes)) {
     modelptr = NEW(CModelSimple);
@@ -1071,8 +1070,9 @@ static void AsnycModelPostLoadCallback(LPVOID userArg) {
     ProcessAnimReorders(modelptr, model->createData);
   }
   model->DeleteAsyncObj();
-  DEL(model->createData);
   model->data = modelptr;
+  DEL(model->createData);
+  model->createData = 0;
   model->state = CMODEL_LOADED;
   ExecuteQueuedActions(model);
 }
@@ -1086,7 +1086,6 @@ static HMODEL IModelCreate(LPCSTR fileName, char *actualPath, CModelCreate *crea
   }
 
   CModelCreate filler;
-  memset(&filler, 0, sizeof(filler));
   if (!createData) {
     createData = &filler;
   }
@@ -1099,37 +1098,35 @@ static HMODEL IModelCreate(LPCSTR fileName, char *actualPath, CModelCreate *crea
     return 0;
   }
 
-  CModel *model = NEW(CModel);
+  CModel *model = NEWHANDLE(HMODEL, CModel);
   ASSERT(model);
   model->asyncObject = AsyncFileReadCreateObject();
   ASSERT(model->asyncObject);
-  model->shared = static_cast<HMODELSHARED>(HandleCreate(CreateSharedModelData(fileName), "HMODELSHARED"));
+  model->shared = CREATEHANDLE(HMODELSHARED, CreateSharedModelData(fileName));
   ASSERT(model->shared);
-  model->createData = NEW(CModelCreate);
-  *model->createData = *createData;
+  model->createData = NEW(CModelCreate)(*createData);
 
-  CAsyncObject *asyncObject = model->asyncObject;
-  asyncObject->userArg = model;
-  asyncObject->userPostloadCallback = AsnycModelPostLoadCallback;
-  asyncObject->file = file;
-  asyncObject->offset = 0;
-  asyncObject->size = SFile::GetFileSize(file, 0);
+  model->asyncObject->userArg = model;
+  model->asyncObject->userPostloadCallback = AsnycModelPostLoadCallback;
+  model->asyncObject->file = file;
+  model->asyncObject->offset = 0;
+  model->asyncObject->size = SFile::GetFileSize(file, 0);
 
-  if (s_asyncLoadBuffer.MaxCount() - s_asyncLoadBufferUsed < asyncObject->size) {
-    asyncObject->canReorder = 0;
-    s_asyncLoadList.LinkNode(asyncObject, LIST_TAIL, 0);
-  } else {
-    asyncObject->buffer = &s_asyncLoadBuffer[s_asyncLoadBufferUsed];
-    asyncObject->canReorder = 1;
-    s_asyncLoadBufferUsed += asyncObject->size;
+  if (s_asyncLoadBuffer.MaxCount() - s_asyncLoadBufferUsed >= model->asyncObject->size) {
+    model->asyncObject->buffer = &s_asyncLoadBuffer[s_asyncLoadBufferUsed];
+    model->asyncObject->canReorder = 1;
+    s_asyncLoadBufferUsed += model->asyncObject->size;
     ++s_asyncPending;
-    AsyncFileReadObject(asyncObject);
+    AsyncFileReadObject(model->asyncObject);
+  } else {
+    model->asyncObject->canReorder = 0;
+    s_asyncLoadList.LinkNode(model->asyncObject, LIST_TAIL, 0);
   }
 
-  HMODEL handle = static_cast<HMODEL>(HandleCreate(model, "HMODEL"));
-  ASSERT(handle);
-  HashNewModel(fileName, handle, createData->flags, status);
-  return handle;
+  HMODEL modelHandle = CREATEHANDLE(HMODEL, model);
+  ASSERT(modelHandle);
+  HashNewModel(fileName, modelHandle, model->createData->flags, status);
+  return modelHandle;
 }
 
 static BOOL IsBinaryFile(char *path) {
@@ -1151,8 +1148,10 @@ static BOOL IsBinaryFile(char *path) {
 }
 
 HMODEL ModelCreate(LPCSTR sourcefile, CModelCreate *data, CStatus *status) {
-  ASSERT(sourcefile);
-  ASSERT(sourcefile[0]);
+  VALIDATEBEGIN;
+  VALIDATE(sourcefile);
+  VALIDATE(sourcefile[0]);
+  VALIDATEEND;
 
   CStatus *useStatus = status ? status : &s_nullStatus;
   HMODEL   model = GetModel(sourcefile, data);
@@ -1182,55 +1181,55 @@ HMODEL ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status) {
   VALIDATEBEGIN;
   VALIDATE(status);
   VALIDATEEND;
-  ASSERT(static_cast<LPCSTR>(source.header.sourceFilename)[0]);
+  ASSERT(source.header.sourceFilename[0]);
 
   OsOutputDebugString("Model: (INFO) : Loading \"%s\"\n", static_cast<LPCSTR>(source.header.sourceFilename));
 
   UINT createFlags = data ? data->flags : 0;
-  if (!MdlReadValidate(source, status)) {
-    return (createFlags & 0x2000) ? CreateDefaultModel(source.header.sourceFilename, createFlags, status) : 0;
-  }
+  if (MdlReadValidate(source, status)) {
+    CModelBase *modelptr;
+    if (IsSimpleModel(source)) {
+      modelptr = NEW(CModelSimple);
+    } else {
+      modelptr = NEW(CModelComplex);
+    }
+    ASSERT(modelptr);
 
-  CModelBase *modelptr;
-  if (IsSimpleModel(source)) {
-    modelptr = NEW(CModelSimple);
-  } else {
-    modelptr = NEW(CModelComplex);
-  }
-  ASSERT(modelptr);
+    CModelShared *shared = CreateSharedModelData(source.header.sourceFilename);
+    if (BuildModelFromMdlData(source, modelptr, shared, createFlags, status)) {
+      if (modelptr->m_anim) {
+        ProcessAnimReorders(modelptr, data);
+      }
 
-  CModelShared *shared = CreateSharedModelData(source.header.sourceFilename);
-  if (!BuildModelFromMdlData(source, modelptr, shared, createFlags, status)) {
+      CModel *model = NEWHANDLE(HMODEL, CModel)(CMODEL_UNINITIALIZED);
+      ASSERT(model);
+      model->data = modelptr;
+      model->shared = CREATEHANDLE(HMODELSHARED, shared);
+      ASSERT(model->shared);
+
+      HMODEL modelHandle = CREATEHANDLE(HMODEL, model);
+      ASSERT(modelHandle);
+      model->state = CMODEL_LOADED;
+      HashNewModel(source.header.sourceFilename, modelHandle, createFlags, status);
+      return modelHandle;
+    }
+
     DEL(modelptr);
     DEL(shared);
-    return (createFlags & 0x2000) ? CreateDefaultModel(source.header.sourceFilename, createFlags, status) : 0;
   }
 
-  if (modelptr->m_anim) {
-    ProcessAnimReorders(modelptr, data);
+  if (createFlags & 0x2000) {
+    return CreateDefaultModel(source.header.sourceFilename, createFlags, status);
   }
-
-  CModel *model = NEW(CModel);
-  ASSERT(model);
-  model->data = modelptr;
-  model->shared = static_cast<HMODELSHARED>(HandleCreate(shared, "HMODELSHARED"));
-  ASSERT(model->shared);
-
-  HMODEL modelHandle = static_cast<HMODEL>(HandleCreate(model, "HMODEL"));
-  ASSERT(modelHandle);
-  model->state = CMODEL_LOADED;
-  HashNewModel(source.header.sourceFilename, modelHandle, createFlags, status);
-  return modelHandle;
+  return 0;
 }
 
 static CModel *IModelCreateSimpleEmpty(LPCSTR name) {
-  CModel       *model = NEW(CModel);
-  CModelShared *shared = NEW(CModelShared);
-  CModelSimple *modelptr = NEW(CModelSimple);
-  VALIDATEBEGIN;
-  VALIDATE(model);
-  VALIDATEEND;
+  CModel *model = NEWHANDLE(HMODEL, CModel)(CMODEL_UNINITIALIZED);
+  ASSERT(model);
+  CModelShared *shared = NEWHANDLE(HMODELSHARED, CModelShared);
   ASSERT(shared);
+  CModelSimple *modelptr = NEW(CModelSimple);
   ASSERT(modelptr);
 
   shared->numBones = 1;
@@ -1241,7 +1240,7 @@ static CModel *IModelCreateSimpleEmpty(LPCSTR name) {
   shared->geosets.SetCount(1);
   shared->numGeosets = 1;
 
-  model->shared = static_cast<HMODELSHARED>(HandleCreate(shared, "HMODELSHARED"));
+  model->shared = CREATEHANDLE(HMODELSHARED, shared);
   ASSERT(model->shared);
   model->data = modelptr;
   SStrCopy(shared->name, name ? name : "Custom Built Model", sizeof(shared->name));
@@ -1276,7 +1275,7 @@ HMODEL ModelCreateSimpleMesh(
   BuildSimpleGeoset(numVertices, position, normal, texCoord, primitiveType, primitiveVertices, numPrimVertices, 0, &shared->geosets[0]);
   IModelComputeBounds(shared);
   model->state = CMODEL_LOADED;
-  return static_cast<HMODEL>(HandleCreate(model, "HMODEL"));
+  return CREATEHANDLE(HMODEL, model);
 }
 
 BOOL ModelGeosetAdd(
@@ -1303,7 +1302,7 @@ BOOL ModelGeosetAdd(
   CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
   UINT           materialId = complex->m_materials.Count();
 
-  HMATERIAL material = BuildSimpleMaterial(complex->m_textures.New(), materialId, texture, blendMode, disables, replaceableId);
+  HMATERIAL material = BuildSimpleMaterial(complex->m_textures.New(), complex->m_textures.Count(), texture, blendMode, disables, replaceableId);
   ASSERT(material);
   *complex->m_materials.New() = material;
 
@@ -1339,7 +1338,7 @@ HMODEL ModelDuplicate(HMODEL sourceModel, UINT flags) {
     source->data->m_flags &= ~4U;
   }
 
-  HMODEL duplicate = static_cast<HMODEL>(HandleCreate(copy, "HMODEL"));
+  HMODEL duplicate = CREATEHANDLE(HMODEL, copy);
   if (copy->state != CMODEL_LOADED) {
     EnqueueModelCommand(source, MODEL_FINISH_DUPLICATION, duplicate);
   }
@@ -1412,7 +1411,7 @@ void ExecuteQueuedActions(CModel *model) {
   while (item) {
     CModelModItem *next = model->modelModQueue.Next(item);
     if (!modelHandle) {
-      modelHandle = static_cast<HMODEL>(HandleCreate(model, "HMODEL"));
+      modelHandle = CREATEHANDLE(HMODEL, model);
     }
 
     item->Unlink();
@@ -1635,11 +1634,6 @@ void CModel::RemoveModelCommandsFromQueue() {
       switch (type) {
         case MPARAM_HANDLE:
           HandleClose(*reinterpret_cast<HOBJECT *>(paramData));
-          // intentional fallthrough
-        case MPARAM_UINT:
-        case MPARAM_FLOAT:
-        case MPARAM_CARGB:
-        case MPARAM_PTR:
           paramData += 4;
           break;
         case MPARAM_C3VECTOR:
@@ -1649,7 +1643,11 @@ void CModel::RemoveModelCommandsFromQueue() {
         case MPARAM_BYTE:
           ++paramData;
           break;
-        default:
+        case MPARAM_UINT:
+        case MPARAM_FLOAT:
+        case MPARAM_CARGB:
+        case MPARAM_PTR:
+          paramData += 4;
           break;
       }
     }
@@ -1659,16 +1657,17 @@ void CModel::RemoveModelCommandsFromQueue() {
 }
 
 BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
-  CModel        *modelptr;
   CModelBase    *base;
   CModelComplex *complex;
   UINT           numLinks;
   UINT           i;
 
-  FATALASSERT(modelHandle);
+  CModel *model = reinterpret_cast<CModel *>(modelHandle);
+  VALIDATEBEGIN;
+  VALIDATE(model);
+  VALIDATEEND;
 
-  modelptr = reinterpret_cast<CModel *>(modelHandle);
-  if (modelptr->state != CMODEL_LOADED) {
+  if (model->state != CMODEL_LOADED) {
     return 0;
   }
 
@@ -1676,7 +1675,7 @@ BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
     return 1;
   }
 
-  base = modelptr->data;
+  base = model->data;
   if (!(base->m_flags & 0x20)) {
     return 1;
   }

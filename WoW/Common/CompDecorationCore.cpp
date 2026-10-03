@@ -37,7 +37,7 @@ static void BuildObjComponentPath(LPCSTR fileName, UINT race, UINT sex, char *bu
   FATALASSERT(buffer);
   FATALASSERT(size);
   FATALASSERT(race != 0);
-  FATALASSERT(race <= (UINT)g_chrRacesDB.GetMaxID());
+  FATALASSERT(race <= (uint)g_chrRacesDB.GetMaxID());
 
   SStrCopy(inputFile, fileName, sizeof(inputFile));
   char *extension = SStrChrR(inputFile, '.');

@@ -77,16 +77,7 @@ class CDataStore {
   };
 
   static BYTE *Alloc(UINT bytes, LPCSTR fileName, int lineNumber) {
-    if (!bytes) {
-      return 0;
-    }
-
-    if (!fileName) {
-      fileName = __FILE__;
-      lineNumber = __LINE__;
-    }
-
-    return static_cast<BYTE *>(SMemAlloc(bytes, fileName, lineNumber, 0));
+    return bytes ? static_cast<BYTE *>(SMemAlloc(bytes, fileName ? fileName : __FILE__, fileName ? lineNumber : __LINE__, 0)) : 0;
   }
 
   static void Free(BYTE *data, LPCSTR fileName, int lineNumber) {
@@ -471,7 +462,7 @@ class CDataStore {
     return Get(val);
   }
   BYTE GetUchar() {
-    BYTE val;
+    BYTE val = 0;
     Get(val);
     return val;
   }

@@ -35,7 +35,9 @@ struct TrainerSkillLineInfo {
   int  allCostPoints;
 
   void ClearSkills() {
-    memset(numSkills, 0, sizeof(numSkills));
+    for (int i = 0; i < NUM_TRAINER_SERVICE_TYPES; ++i) {
+      numSkills[i] = 0;
+    }
     allCostPoints = 1;
   }
 };

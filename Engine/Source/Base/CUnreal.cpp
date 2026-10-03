@@ -354,8 +354,9 @@ unreal operator/(const unreal &a, const unreal &b) {
 
 unreal operator-(const unreal &a, const unreal &b) {
   unreal result;
+  int    aBits = a.bits;
   int    bBits = b.bits ^ 0x80000000;
-  int    aExponent = a.bits & 0x7F800000;
+  int    aExponent = aBits & 0x7F800000;
   int    bExponent = bBits & 0x7F800000;
 
   if (!aExponent) {
@@ -364,11 +365,11 @@ unreal operator-(const unreal &a, const unreal &b) {
   }
 
   if (!bExponent) {
-    result.bits = a.bits;
+    result.bits = aBits;
     return result;
   }
 
-  int aMantissa = ((a.bits >> 31) ^ (2 * (0x00800000 | (a.bits & 0x007FFFFF)))) - (a.bits >> 31);
+  int aMantissa = ((aBits >> 31) ^ (2 * (0x00800000 | (aBits & 0x007FFFFF)))) - (aBits >> 31);
   int bMantissa = ((bBits >> 31) ^ (2 * (0x00800000 | (bBits & 0x007FFFFF)))) - (bBits >> 31);
   int exponentDelta = bExponent - aExponent;
   int exponent;
@@ -383,7 +384,7 @@ unreal operator-(const unreal &a, const unreal &b) {
     aMantissa >>= static_cast<UINT>(exponentDelta) >> 23;
   } else {
     if (exponentDelta <= -0x0B800000) {
-      result.bits = a.bits;
+      result.bits = aBits;
       return result;
     }
 
@@ -482,7 +483,7 @@ unreal operator+(const unreal &a, const unreal &b) {
 }
 
 unreal reciprocal(const unreal &a) {
-  ASSERT((a.bits & 0x7F800000) != 0);
+  ASSERT((a.bits & (0xff << 23)) != 0);
 
   UINT signbit = a.bits & 0x80000000;
   UINT mantissa = a.bits & 0x007FFFFF;
@@ -754,7 +755,7 @@ unreal unreal::fromString(LPCSTR in) {
 }
 
 static unreal __ln(const unreal &x) {
-  unreal z = (x - u_1) / (x + u_1);
+  unreal z = (x + u_n1) / (x + u_1);
   unreal z2 = z * z;
   unreal z3 = z * (u_1 + u_n0_2672435 * z2);
   z3.multiplyBy2();
@@ -762,21 +763,21 @@ static unreal __ln(const unreal &x) {
 }
 
 static unreal _ln(const unreal &x) {
-  if (unreal::asFloat(x) < unreal::asFloat(u_ln_limit1)) {
-    if (unreal::asFloat(x) < unreal::asFloat(u_ln_limit2)) {
-      return __ln(x * u_ln_const2) + u_ln_mult2;
-    }
-
+  if (x >= u_ln_limit1)
+    return __ln(x);
+  else if (x >= u_ln_limit2)
     return __ln(x * u_ln_const1) + u_ln_mult1;
-  }
-
-  return __ln(x);
+  else
+    return __ln(x * u_ln_const2) + u_ln_mult2;
 }
 
 unreal ln(const unreal &a) {
-  unreal x = unreal::fromBits((a.bits & 0x007FFFFF) | 0x3F800000);
+  UINT bits = a.bits;
+
+  unreal x = unreal::fromBits((bits & 0x007FFFFF) | 0x3F800000);
   x = _ln(x);
-  unreal result = u_ln2 * (unreal::fromInt(static_cast<BYTE>(a.bits >> 23) - 127) + x * u_1ovln2);
+
+  unreal result = u_ln2 * (unreal::fromInt(((bits >> 23) & 0xFF) - 127) + x * u_1ovln2);
   return result;
 }
 
@@ -802,20 +803,19 @@ unreal e(const unreal &a) {
   return _e(a);
 }
 
-unreal pow(const unreal &value, UINT exponent) {
-  unreal factor = value;
-  unreal a = unreal::fromBits(0x3F800000);
+unreal pow(const unreal &a, UINT b) {
+  unreal factor = a;
+  int    n = b;
 
-  while (exponent) {
-    if (exponent & 1) {
-      a = a * factor;
-    }
-
-    exponent >>= 1;
+  unreal result = unreal::fromBits(0x3F800000);
+  while (n) {
+    if (n & 1)
+      result = result * factor;
     factor = factor * factor;
+    n >>= 1;
   }
 
-  return a;
+  return result;
 }
 
 unreal pow(const unreal &a, const unreal &exponent) {
@@ -983,7 +983,7 @@ unreal acos(const unreal &a) {
     return static_cast<int>(a.bits) >= 0 ? x : u_pi - x;
   }
 
-  ASSERT(a.fp >= u_n1_01.fp && a.fp <= u_1_01.fp);
+  ASSERT(a >= u_n1_01 && a <= u_1_01);
 
   unreal bits = unreal::fromBits(a.bits + 0x0F000000);
   int    integer = unreal::asInt(bits);
@@ -1040,7 +1040,7 @@ unreal asin(const unreal &a) {
     return static_cast<int>(a.bits) >= 0 ? u_piov2 - x : u_npiov2 + x;
   }
 
-  ASSERT(a.fp >= u_n1_01.fp && a.fp <= u_1_01.fp);
+  ASSERT(a >= u_n1_01 && a <= u_1_01);
 
   unreal bits = unreal::fromBits(a.bits + 0x0F000000);
   int    integer = unreal::asInt(bits);

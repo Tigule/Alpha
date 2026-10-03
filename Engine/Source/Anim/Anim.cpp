@@ -162,19 +162,14 @@ namespace {
 }  // namespace
 
 static void PlaceEventObject(const AnimInfo &animInfo, CAnimEventObj *currobj) {
-  FATALASSERT(currobj->animObjId < animInfo.unique->status.Count());
-  CAnimEventObjStatus *eventStatus;
-  eventStatus = static_cast<CAnimEventObjStatus *>(animInfo.unique->status[currobj->animObjId]);
-  FATALASSERT(currobj->splitIndex < animInfo.positions.Count());
+  CAnimEventObjStatus *eventStatus = &animInfo.unique->eventStatus[currobj->splitIndex];
 
-  eventStatus->position = animInfo.positions[currobj->splitIndex];
+  eventStatus->position = animInfo.positions[currobj->animObjId];
   WorldMatrixTransform(&eventStatus->position);
 
   NTempest::C34Matrix basis(
-      animInfo.basisX.x * animInfo.basisScale.x, animInfo.basisX.y * animInfo.basisScale.x, animInfo.basisX.z * animInfo.basisScale.x,
-      animInfo.basisY.x * animInfo.basisScale.y, animInfo.basisY.y * animInfo.basisScale.y, animInfo.basisY.z * animInfo.basisScale.y,
-      animInfo.basisZ.x * animInfo.basisScale.z, animInfo.basisZ.y * animInfo.basisScale.z, animInfo.basisZ.z * animInfo.basisScale.z,
-      animInfo.basisPosition.x, animInfo.basisPosition.y, animInfo.basisPosition.z
+      animInfo.basisScale.x * animInfo.basisX, animInfo.basisScale.y * animInfo.basisY, animInfo.basisScale.z * animInfo.basisZ,
+      animInfo.basisPosition
   );
   NTempest::C34Matrix invBasis = basis.AffineInverse(animInfo.basisScale);
   eventStatus->position *= invBasis;
@@ -231,15 +226,11 @@ static void SetLightColor(const AnimInfo &animInfo, CAnimLightObj *currobj, CAni
 }
 
 static void SetLightIntensity(const AnimInfo &animInfo, CAnimLightObj *currobj, CAnimLightObjStatus *lightStatus, CGxLight *light) {
-  if (currobj->intensity.TotalKeys()) {
-    currobj->intensity.InterpolateRetained(animInfo, lightStatus->base, &lightStatus->intensity, 0.0f, &light->m_dirIntensity);
-  }
+  currobj->intensity.InterpolateRetained(animInfo, lightStatus->base, &lightStatus->intensity, 0.0f, &light->m_dirIntensity);
   if (light->m_dirIntensity < 0.0f) {
     light->m_dirIntensity = 0.0f;
   }
-  if (currobj->ambIntensity.TotalKeys()) {
-    currobj->ambIntensity.InterpolateRetained(animInfo, lightStatus->base, &lightStatus->ambIntensity, 0.0f, &light->m_ambIntensity);
-  }
+  currobj->ambIntensity.InterpolateRetained(animInfo, lightStatus->base, &lightStatus->ambIntensity, 0.0f, &light->m_ambIntensity);
   if (light->m_ambIntensity < 0.0f) {
     light->m_ambIntensity = 0.0f;
   }
@@ -268,9 +259,7 @@ static void SetLightValues(const AnimInfo &animInfo, CAnimLightObj *currobj, con
     CGxLight            *light = GxuLightLock(gxuLightId);
     FATALASSERT(light);
     float isVisible = 1.0f;
-    if (!currobj->visibility.TotalKeys()) {
-      light->m_enabled = 1;
-    } else if (currobj->visibility.InterpolateRetained(animInfo, lightStatus->base, &lightStatus->visibility, 1.0f, &isVisible)) {
+    if (currobj->visibility.InterpolateVolatile(animInfo, lightStatus->base, &lightStatus->visibility, 1.0f, &isVisible) || !currobj->visibility.TotalKeys()) {
       light->m_enabled = isVisible > 0.0f;
     }
     if (light->m_enabled) {
@@ -406,7 +395,7 @@ static void SetEmitter2Values(const AnimInfo &animInfo, CAnimEmitter2Obj *currob
   FATALASSERT(currobj->splitIndex < animInfo.data.emitters2->Count());
   CAnimEmitter2ObjStatus *status = &animInfo.unique->emitter2Status[currobj->splitIndex];
   float                   isVisible = 1.0f;
-  if (!currobj->visibility.TotalKeys() || currobj->visibility.InterpolateRetained(animInfo, status->base, &status->visibility, 1.0f, &isVisible)) {
+  if (currobj->visibility.InterpolateRetained(animInfo, status->base, &status->visibility, 1.0f, &isVisible) || !currobj->visibility.TotalKeys()) {
     (*animInfo.data.emitters2)[currobj->splitIndex]->SetEnabled(isVisible > 0.0f && !currobj->squirts, 1);
   }
   SetParticleVariation2(animInfo, currobj, status);
@@ -459,32 +448,37 @@ static void PlaceObject(const AnimInfo &animInfo, CAnimObj *currobj, const NTemp
     case OBJ_TYPE_EMITTER2: {
       NTempest::C34Matrix currentWorldMatrix;
       ASSERT(currobj->type == OBJ_TYPE_EMITTER2);
-      SetEmitter2Values(animInfo, static_cast<CAnimEmitter2Obj *>(currobj));
-      ASSERT(currobj->splitIndex < animInfo.data.emitters2->Count());
+      CAnimEmitter2Obj *emitter = static_cast<CAnimEmitter2Obj *>(currobj);
+      SetEmitter2Values(animInfo, emitter);
+      ASSERT(emitter->splitIndex < animInfo.data.emitters2->Count());
       WorldMatrixGet(&currentWorldMatrix);
       currentWorldMatrix.Rotate(PI * 0.5f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
-      (*animInfo.data.emitters2)[currobj->splitIndex]->Update(
-          animInfo.unique->emitter2Status[currobj->splitIndex].elapsedTime, currentWorldMatrix, animInfo.cameraWorldPos
+      (*animInfo.data.emitters2)[emitter->splitIndex]->Update(
+          animInfo.unique->emitter2Status[emitter->splitIndex].elapsedTime, currentWorldMatrix, *animInfo.data.cameraWorldPos
       );
       break;
     }
-    case OBJ_TYPE_RIBBON:
+    case OBJ_TYPE_RIBBON: {
       ASSERT(currobj->type == OBJ_TYPE_RIBBON);
-      SetRibbonValues(animInfo, static_cast<CAnimRibbonObj *>(currobj));
-      ASSERT(currobj->splitIndex < animInfo.data.ribbons->Count());
-      (*animInfo.data.ribbons)[currobj->splitIndex]->Update(animInfo.unique->ribbonStatus[currobj->splitIndex].elapsedTime, 0);
+      CAnimRibbonObj *ribbon = static_cast<CAnimRibbonObj *>(currobj);
+      SetRibbonValues(animInfo, ribbon);
+      ASSERT(ribbon->splitIndex < animInfo.data.ribbons->Count());
+      (*animInfo.data.ribbons)[ribbon->splitIndex]->Update(animInfo.unique->ribbonStatus[ribbon->splitIndex].elapsedTime, 0);
       break;
+    }
     case OBJ_TYPE_EVENT:
       WorldMatrixTranslate(-currPos);
       ASSERT(currobj->type == OBJ_TYPE_EVENT);
       PlaceEventObject(animInfo, static_cast<CAnimEventObj *>(currobj));
       break;
-    default:
+    default: {
       WorldMatrixTranslate(-currPos);
       ASSERT(currobj->type == OBJ_TYPE_BONE);
-      ASSERT(currobj->splitIndex < animInfo.data.numBones);
-      WorldMatrixGet(animInfo.data.boneMtx + currobj->splitIndex);
+      CAnimBoneObj *currbone = static_cast<CAnimBoneObj *>(currobj);
+      ASSERT(currbone->splitIndex < animInfo.data.numBones);
+      WorldMatrixGet(animInfo.data.boneMtx + currbone->splitIndex);
       break;
+    }
   }
 }
 
@@ -521,9 +515,9 @@ static BOOL ApplyLookAt(const AnimInfo &animInfo, CAnimObj *currobj, const NTemp
   if (animInfo.unique->flags & 0x10) {
     CAnimObjBlendStatus &blend = animInfo.unique->blendStatus[currobj->animObjId];
     if (blend.blendTimer > 0) {
-      Blend(blend.prevSeqRotation, &transform, blend.blendTimer, animInfo.shared->seq[status->base.currSeq].blendTime);
+      Blend(blend.blendRotation, &transform, blend.blendTimer, animInfo.shared->seq[status->base.currSeq].blendTime);
     }
-    blend.blendRotation = transform;
+    blend.prevSeqRotation = transform;
   }
 
   WorldMatrixRotate(transform);
@@ -531,20 +525,16 @@ static BOOL ApplyLookAt(const AnimInfo &animInfo, CAnimObj *currobj, const NTemp
 }
 
 static void TransformObjectView(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos, const NTempest::C3Vector &parentPos) {
-  CAnimObjStatus *status = animInfo.unique->status[currobj->animObjId];
   if (animInfo.unique->flags & 0x10) {
     CAnimObjBlendStatus &blend = animInfo.unique->blendStatus[currobj->animObjId];
+    CAnimObjStatus      *status = animInfo.unique->status[currobj->animObjId];
     if (status->base.flags & 0x14) {
-      blend.prevSeqPosition = blend.blendPosition;
-      blend.prevSeqRotation = blend.blendRotation;
-      blend.prevSeqScale = blend.blendScale;
+      blend.blendPosition = blend.prevSeqPosition;
+      blend.blendRotation = blend.prevSeqRotation;
+      blend.blendScale = blend.prevSeqScale;
     }
 
-    int elapsed = animInfo.unique->seq[status->base.currSeq].scaledElapsedTime;
-    if (elapsed < 0) {
-      elapsed = -elapsed;
-    }
-    blend.blendTimer -= elapsed;
+    blend.blendTimer -= abs(animInfo.unique->seq[status->base.currSeq].scaledElapsedTime);
     if (blend.blendTimer < 0) {
       blend.blendTimer = 0;
     }
@@ -759,32 +749,35 @@ static void ISetSequenceUnchanged(CAnim *container, CAnimData *animptr) {
     return;
   }
 
-  int setAllObjects = 1;
-  for (UINT i = 0; i < container->status.Count(); ++i) {
-    ASSERT(i < animptr->obj.Count());
-    CAnimObj *object = animptr->obj[i];
-    if (object->type == OBJ_TYPE_BONE) {
-      CAnimBoneObj *bone = static_cast<CAnimBoneObj *>(object);
-      int           visible =
-          bone->geosetId == 0xFF || (bone->geosetId < container->geosetStatus.Count() && (container->geosetStatus[bone->geosetId].base.flags & 1));
-      if (!visible) {
+  int  setAllObjects = 1;
+  UINT numObjects = container->status.Count();
+  UINT i;
+  for (i = 0; i < numObjects; ++i) {
+    if (animptr->obj[i]->type == OBJ_TYPE_BONE) {
+      CAnimObj *currobj = animptr->obj[i];
+      ASSERT(currobj);
+      ASSERT(currobj->type == OBJ_TYPE_BONE);
+      if (!static_cast<CAnimBoneObj *>(currobj)->IsVisible(*container)) {
         setAllObjects = 0;
         continue;
       }
-    } else if (object->type == OBJ_TYPE_EVENT) {
+    } else if (animptr->obj[i]->type == OBJ_TYPE_EVENT) {
       continue;
     }
     container->status[i]->base.flags &= ~0x10;
   }
 
-  for (UINT camera = 0; camera < container->cameraStatus.Count(); ++camera) {
-    container->cameraStatus[camera].base.flags &= ~0x10;
+  CAnimCameraObjStatus *cameraStatus = container->cameraStatus.Ptr();
+  for (i = container->cameraStatus.Count(); i; --i, ++cameraStatus) {
+    cameraStatus->base.flags &= ~0x10;
   }
-  for (UINT texture = 0; texture < container->textureStatus.Count(); ++texture) {
-    container->textureStatus[texture].base.flags &= ~0x10;
+  CAnimObjStatus *textureStatus = container->textureStatus.Ptr();
+  for (i = container->textureStatus.Count(); i; --i, ++textureStatus) {
+    textureStatus->base.flags &= ~0x10;
   }
-  for (UINT geoset = 0; geoset < container->geosetStatus.Count(); ++geoset) {
-    container->geosetStatus[geoset].base.flags &= ~0x10;
+  CAnimGeosetObjStatus *geosetStatus = container->geosetStatus.Ptr();
+  for (i = container->geosetStatus.Count(); i; --i, ++geosetStatus) {
+    geosetStatus->base.flags &= ~0x10;
   }
   container->flags |= setAllObjects ? 1 : 2;
 }
@@ -828,16 +821,7 @@ void AnimAnimateCameras(HANIM anim, const TSFixedArray<HCAMERA> &cameras) {
 }
 
 static void IAnimAnimateModel(CAnim *unique, CAnimData *shared, const CAnimationData &data) {
-  ASSERT(shared->flags & 1);
-  ASSERT(!(shared->flags & 4));
-  ASSERT(data.boneMtx || !data.numBones);
-
   AnimInfo animInfo(unique, shared, data);
-  animInfo.cameraWorldPos = *data.cameraWorldPos;
-  animInfo.cameraVector = *data.cameraVector;
-  if (NTempest::CMath::fabs_(animInfo.cameraVector.SquaredMag()) >= 0.00000023841858f) {
-    animInfo.cameraVector.Normalize();
-  }
   GetWorldTransform(&animInfo);
 
   AnimateAllTextureMaps(&animInfo);

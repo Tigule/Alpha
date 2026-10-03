@@ -234,7 +234,7 @@ if(MSVC_VERSION EQUAL 1200)
 
     set_source_files_properties(
         Source/Gx/CGxDeviceD3d/CGxD3dTexture.cpp
-        PROPERTIES COMPILE_FLAGS "/GX /Ob0")
+        PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")
     set_source_files_properties(
         Source/Gxu/GxuFont.cpp
         PROPERTIES COMPILE_FLAGS "/G6 /GX- /Ob1 /Oy-")

@@ -10,7 +10,7 @@ namespace NTempest {
     C4Quaternion() : C4Vector(0.0f, 0.0f, 0.0f, 1.0f) {
     }
 
-    C4Quaternion(const C4Vector &vector) : C4Vector(vector.x, vector.y, vector.z, vector.w) {
+    C4Quaternion(const C4Vector &vector) : C4Vector(vector) {
     }
 
     C4Quaternion(float w, float x, float y, float z) : C4Vector(x, y, z, w) {

@@ -48,6 +48,10 @@ static const UINT                    SelectedState = 3;
 static const UINT                    lvExtStyle = 0x20;
 
 enum {
+  OSGUI_CONTROL_ID_BASE = 10
+};
+
+enum {
   OSGUI_CALLBACK_MENU = 0,
   OSGUI_CALLBACK_IDLE = 1,
   NUM_OSGUI_CALLBACKS = 2
@@ -133,19 +137,22 @@ static void sEnableGlobalTips(int inVal) {
 }
 
 static LPVOID sGetOsGuiPointer(HWND hwnd) {
-  return GetPropA(hwnd, "OsGuiPointer");
+  return GetPropA(hwnd, OsGuiPointerProp);
 }
 
 static void sSetOsGuiPointer(HWND__ *hwnd, LPVOID data) {
-  SetPropA(hwnd, "OsGuiPointer", data);
+  SetPropA(hwnd, OsGuiPointerProp, data);
 }
 
 static void sRemoveOsGuiPointer(HWND__ *hwnd) {
-  RemovePropA(hwnd, "OsGuiPointer");
+  RemovePropA(hwnd, OsGuiPointerProp);
 }
 
 static void sDoCallback(int inCB, int type, int subtype) {
-  FATALASSERT(inCB >= 0 && inCB < 2);
+  VALIDATEBEGIN;
+  VALIDATE(inCB >= 0 && inCB < NUM_OSGUI_CALLBACKS);
+  VALIDATEENDVOID;
+
   if (sCallbacks[inCB].function) {
     OsGuiCallbackParams params;
     params.type = type;
@@ -235,18 +242,22 @@ NTempest::CiRect OsGuiGetWindowRestoredRect(LPVOID inWindow) {
 NTempest::CImVector OsGuiGetColor(int inColorType) {
   NTempest::CImVector color;
   DWORD               value;
+  int                 index = -1;
 
   switch (inColorType) {
     case 0:
-      value = GetSysColor(COLOR_BTNFACE);
+      index = COLOR_BTNFACE;
       break;
     case 1:
-      value = GetSysColor(COLOR_WINDOW);
+      index = COLOR_WINDOW;
       break;
-    default:
-      return NTempest::CImVector(0ul);
   }
 
+  if (index == -1) {
+    return color;
+  }
+
+  value = GetSysColor(index);
   color.r = GetRValue(value);
   color.g = GetGValue(value);
   color.b = GetBValue(value);
@@ -278,33 +289,25 @@ void OsGuiSetApplicationInfo(LPVOID inData) {
 
 BOOL OsGuiProcessMessage(LPVOID inMsgData) {
   MSG *message = static_cast<MSG *>(inMsgData);
-  int  handled = 0;
 
   if (!sAppInstance) {
     return 0;
   }
 
+  int handled = 0;
   if (sMenuHotkeysEnabled) {
-    UINT index = 0;
-
-    while (index < sMenubars.Count()) {
-      COsMenuBar *menuBar;
-      HACCEL      accelTable;
-
-      menuBar = sMenubars[index];
-      accelTable = static_cast<HACCEL>(menuBar->GetAccelerators());
-
+    for (UINT index = 0; index < sMenubars.Count(); ++index) {
+      HACCEL accelTable = static_cast<HACCEL>(sMenubars[index]->GetAccelerators());
       if (accelTable) {
-        HWND menuWindow = static_cast<HWND>(menuBar->GetWindow());
+        HWND menuWindow = static_cast<HWND>(sMenubars[index]->GetWindow());
         HWND activeWindow = static_cast<HWND>(OsGuiGetWindow(1));
         BOOL canTranslate = menuWindow == activeWindow;
-
         if (!canTranslate) {
           COsDialog *dialog = static_cast<COsDialog *>(sGetOsGuiPointer(activeWindow));
-
-          canTranslate = dialog && dialog->HasFlag(0x10) && menuWindow == dialog->GetParentWindow();
+          if (dialog && dialog->HasFlag(0x10)) {
+            canTranslate = menuWindow == dialog->GetParentWindow();
+          }
         }
-
         if (canTranslate && TranslateAcceleratorA(menuWindow, accelTable, message)) {
           handled = 1;
           if (message->message != WM_KEYDOWN || message->wParam != VK_DELETE) {
@@ -313,21 +316,13 @@ BOOL OsGuiProcessMessage(LPVOID inMsgData) {
           break;
         }
       }
-
-      ++index;
     }
   }
 
-  {
-    UINT index = 0;
-
-    while (index < sDialogs.Count()) {
-      if (sDialogs[index]->ProcessMessage(message)) {
-        handled = 1;
-        break;
-      }
-
-      ++index;
+  for (UINT index = 0; index < sDialogs.Count(); ++index) {
+    if (sDialogs[index]->ProcessMessage(message)) {
+      handled = 1;
+      break;
     }
   }
 
@@ -529,7 +524,7 @@ static int sNCodeToItemCode(int nCode, int ctrlType) {
   };
 
   for (UINT i = 0; i < sizeof(table) / sizeof(table[0]); ++i) {
-    if (table[i].ctrlType == ctrlType && table[i].winCode == nCode) {
+    if (ctrlType == table[i].ctrlType && nCode == table[i].winCode) {
       return table[i].osGuiCode;
     }
   }
@@ -730,8 +725,8 @@ COsControl::COsControl(LPVOID inWindow, int inType, short inID, UINT inFlags) {
 }
 
 void COsControl::Initialize(LPVOID inWindow, int inType, short inID, UINT inFlags) {
-  ASSERT(inType >= 0 && inType < 20);
-  ASSERT(inID == -1 || inID >= 10);
+  ASSERT(inType >= 0 && inType < NUM_OSGUI_CONTROL_TYPES);
+  ASSERT(inID == -1 || inID >= OSGUI_CONTROL_ID_BASE);
 
   mID = inID;
   mCallback = 0;
@@ -742,13 +737,13 @@ void COsControl::Initialize(LPVOID inWindow, int inType, short inID, UINT inFlag
   mFlags = inFlags;
   mContextMenuEnabled = 1;
 
-  DWORD style = ControlStyles[inType] | WS_CHILD | WS_VISIBLE;
-  DWORD styleEx = ControlStylesExt[inType];
+  UINT style = ControlStyles[inType] | WS_CHILD | WS_VISIBLE;
+  UINT extFlags = ControlStylesExt[inType];
   if (inFlags & 0x8) {
     style &= ~WS_VISIBLE;
   }
   if (inFlags & 0x1) {
-    style |= WS_TABSTOP;
+    style |= WS_THICKFRAME;
   }
   if (inFlags & 0x2) {
     style |= WS_HSCROLL;
@@ -760,79 +755,90 @@ void COsControl::Initialize(LPVOID inWindow, int inType, short inID, UINT inFlag
     style |= WS_BORDER;
   }
   if (inFlags & 0x20) {
-    styleEx |= WS_EX_TRANSPARENT;
+    extFlags |= WS_EX_TRANSPARENT;
   }
 
   switch (inType) {
-    case 2:
+    case OSGUI_CONTROL_STATICTEXT:
       if (inFlags & 0x10000) {
-        style |= SS_NOTIFY;
+        style |= SS_SUNKEN;
       }
       break;
-    case 4:
+    case OSGUI_CONTROL_EDITBOX:
       if (inFlags & 0x10000) {
-        style = (style & 0xFFFFFF3B) | ES_MULTILINE | ES_AUTOVSCROLL;
+        style = (style & ~(ES_AUTOHSCROLL | ES_MULTILINE | ES_AUTOVSCROLL)) | ES_MULTILINE | ES_AUTOVSCROLL;
       }
       if (inFlags & 0x20000) {
         style |= ES_WANTRETURN;
       }
       break;
-    case 6:
+    case OSGUI_CONTROL_LISTBOX:
       if (inFlags & 0x10000) {
         style |= LBS_MULTIPLESEL | LBS_EXTENDEDSEL;
       }
       break;
-    case 10:
+    case OSGUI_CONTROL_RADIOBUTTON:
       if (inFlags & 0x10000) {
-        style &= ~TVS_HASLINES;
+        style |= WS_GROUP | WS_TABSTOP;
+      }
+      break;
+    case OSGUI_CONTROL_TREEVIEW:
+      if (inFlags & 0x10000) {
+        style &= ~TVS_DISABLEDRAGDROP;
       }
       if (inFlags & 0x20000) {
-        style |= TVS_HASBUTTONS;
+        style |= TVS_EDITLABELS;
       }
       if (inFlags & 0x80000) {
-        style = (style & 0xFFFFFBFE) | TVS_TRACKSELECT;
+        style = (style & ~TVS_HASBUTTONS) | TVS_SINGLEEXPAND;
       }
       break;
-    case 12:
+    case OSGUI_CONTROL_STATICBOX:
       if (inFlags & 0x10000) {
-        style = (style & 0xFFFFFFF8) | SS_ETCHEDFRAME;
+        style = (style & ~SS_BLACKFRAME) | SS_WHITERECT;
       }
       if (inFlags & 0x20000) {
-        style = (style & 0xFFFFFFE8) | SS_ETCHEDVERT;
+        style = (style & ~SS_BLACKFRAME) | SS_ETCHEDFRAME;
       }
       if (inFlags & 0x40000) {
-        style = (style & 0xFFFFFFF0) | SS_ETCHEDHORZ;
+        style = (style & ~SS_BLACKFRAME) | SS_OWNERDRAW;
       }
       break;
-    case 13:
+    case OSGUI_CONTROL_SPINBUTTON:
       if (inFlags & 0x10000) {
-        style |= UDS_ALIGNRIGHT;
+        style |= UDS_HORZ;
       }
       if (inFlags & 0x20000) {
         style |= UDS_WRAP;
       }
       break;
-    case 14:
-      if (inFlags & 0x10000) {
-        style |= BS_PUSHLIKE | BS_AUTOCHECKBOX;
-      }
-      break;
-    case 18:
+    case OSGUI_CONTROL_SCROLLBAR:
       if (inFlags & 0x10000) {
         style |= SBS_VERT;
       }
       if (inFlags & 0x20000) {
-        style |= SBS_SIZEGRIP;
+        style |= WS_TABSTOP;
       }
       break;
   }
 
   ASSERT(sAppInstance != 0);
   mHandle = CreateWindowExA(
-      styleEx, ControlClassName[mType], "", style, 0, 0, 0, 0, static_cast<HWND>(inWindow), reinterpret_cast<HMENU>(static_cast<int>(mID)),
+      extFlags, ControlClassName[mType], "", style, 0, 0, 0, 0, static_cast<HWND>(inWindow), reinterpret_cast<HMENU>(static_cast<int>(mID)),
       sAppInstance, 0
   );
-  ASSERT(mHandle != 0);
+  if (!mHandle) {
+    DWORD error = GetLastError();
+    if (!(error == 0L)) {
+      SErrDisplayErrorFmt(
+          STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+          isprint((error >> 24) & 0xFF) && isprint((error >> 16) & 0xFF) && isprint((error >> 8) & 0xFF) && isprint(error & 0xFF)
+              ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+              : "\"%s\", %s = %ld (0x%08X)",
+          "error == 0L", "error", error, error, (error >> 24) & 0xFF, (error >> 16) & 0xFF, (error >> 8) & 0xFF, error & 0xFF
+      );
+    }
+  }
 
   SetFont(ControlFont[mType]);
   sSetOsGuiPointer(static_cast<HWND>(mHandle), this);
@@ -1007,16 +1013,15 @@ void COsControl::GetSize(int *outW, int *outH) {
 void COsControl::SetTooltip(LPCSTR inText) {
   HWND tips;
   HWND owner;
-  if (mDialog) {
-    tips = static_cast<HWND>(mDialog->GetTooltips());
-    owner = static_cast<HWND>(mDialog->GetHandle());
-  } else {
+  if (!mDialog) {
     tips = sGetGlobalTips();
     owner = GetParent(static_cast<HWND>(mHandle));
+  } else {
+    tips = static_cast<HWND>(mDialog->GetTooltips());
+    owner = static_cast<HWND>(mDialog->GetHandle());
   }
   if (tips) {
     TOOLINFOA toolinfo;
-    memset(&toolinfo, 0, sizeof(toolinfo));
     toolinfo.cbSize = sizeof(toolinfo);
     toolinfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
     toolinfo.hwnd = owner;
@@ -1196,17 +1201,17 @@ COsMenuBar::~COsMenuBar() {
     DestroyAcceleratorTable(static_cast<HACCEL>(mAccelerators));
   }
 
-  int  id = -1;
-  UINT i;
-  for (i = 0; i < sMenubars.Count(); ++i) {
+  int id = -1;
+  for (int i = 0; i < static_cast<int>(sMenubars.Count()); ++i) {
     if (sMenubars[i] == this) {
       id = i;
       break;
     }
   }
   ASSERT(id != -1);
-  sMenubars[id] = sMenubars[sMenubars.Count() - 1];
-  sMenubars.SetCount(sMenubars.Count() - 1);
+  UINT last = sMenubars.Count() - 1;
+  sMenubars[id] = sMenubars[last];
+  sMenubars.SetCount(last);
 }
 
 void COsMenuBar::Set(TSGrowableArray<COsMenu *> &inMenus) {
@@ -1313,8 +1318,9 @@ COsDialog::~COsDialog() {
     }
   }
   ASSERT(id != -1);
-  sDialogs[id] = sDialogs[sDialogs.Count() - 1];
-  sDialogs.SetCount(sDialogs.Count() - 1);
+  UINT last = sDialogs.Count() - 1;
+  sDialogs[id] = sDialogs[last];
+  sDialogs.SetCount(last);
 }
 
 void COsDialog::ApplyModality(int inVal) {
@@ -1378,8 +1384,9 @@ void COsDialog::DeleteControl(COsControl *inControl) {
 void COsDialog::DetachControl(COsControl *inControl) {
   int index = FindControl(inControl);
   if (index != -1) {
-    mControls[index] = mControls[mControls.Count() - 1];
-    mControls.SetCount(mControls.Count() - 1);
+    UINT last = mControls.Count() - 1;
+    mControls[index] = mControls[last];
+    mControls.SetCount(last);
   }
 }
 
@@ -2158,44 +2165,45 @@ void COsListView::OnColumnClick(int inCol) {
 }
 
 int COsListView::OnNotify(int inCode, LPVOID inParam) {
-  if (inCode == LVN_COLUMNCLICK) {
-    OnColumnClick(static_cast<NMLISTVIEW *>(inParam)->iSubItem);
-    return 1;
-  }
-
-  if (inCode == -301) {
-    return SendEvent(16, 0);
-  }
-
-  if (inCode == LVN_KEYDOWN) {
-    WORD key = static_cast<NMLVKEYDOWN *>(inParam)->wVKey;
-    if (key == VK_RETURN) {
-      return OnReturn();
-    }
-    if (key == VK_DELETE) {
-      return SendEvent(10, 0);
-    }
-  } else if (inCode == LVN_ITEMCHANGED) {
-    NMLISTVIEW *listInfo = static_cast<NMLISTVIEW *>(inParam);
-    if ((listInfo->uChanged & LVIF_STATE) && ((listInfo->uOldState ^ listInfo->uNewState) & LVIS_SELECTED)) {
-      OnSelectionChange();
+  switch (inCode) {
+    case LVN_KEYDOWN:
+      switch (static_cast<NMLVKEYDOWN *>(inParam)->wVKey) {
+        case VK_DELETE:
+          return SendEvent(10, 0);
+        case VK_RETURN:
+          return OnReturn();
+      }
+      break;
+    case -301:
+      return SendEvent(16, 0);
+    case LVN_COLUMNCLICK:
+      OnColumnClick(static_cast<NMLISTVIEW *>(inParam)->iSubItem);
       return 1;
-    }
-  } else if (inCode == NM_CUSTOMDRAW) {
-    NMLVCUSTOMDRAW *drawInfo = static_cast<NMLVCUSTOMDRAW *>(inParam);
-    if (drawInfo->nmcd.dwDrawStage == CDDS_PREPAINT) {
-      if (mDialog) {
-        SetWindowLongA(static_cast<HWND>(mDialog->GetHandle()), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
+    case NM_CUSTOMDRAW: {
+      NMLVCUSTOMDRAW *drawInfo = static_cast<NMLVCUSTOMDRAW *>(inParam);
+      switch (drawInfo->nmcd.dwDrawStage) {
+        case CDDS_PREPAINT:
+          if (mDialog) {
+            SetWindowLongA(static_cast<HWND>(mDialog->GetHandle()), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
+          }
+          return CDRF_NOTIFYITEMDRAW;
+        case CDDS_ITEMPREPAINT: {
+          NTempest::CImVector color = GetRowColor(static_cast<int>(drawInfo->nmcd.dwItemSpec));
+          if (color.a) {
+            drawInfo->clrText = RGB(color.r, color.g, color.b);
+          }
+          break;
+        }
       }
-      return CDRF_NOTIFYITEMDRAW;
+      break;
     }
-
-    if (drawInfo->nmcd.dwDrawStage == CDDS_ITEMPREPAINT) {
-      inCode = *GetRowColor(static_cast<int>(drawInfo->nmcd.dwItemSpec)).IV_();
-      if (inCode & 0xFF000000) {
-        drawInfo->clrText = RGB((inCode >> 16) & 0xFF, (inCode >> 8) & 0xFF, inCode & 0xFF);
+    case LVN_ITEMCHANGED: {
+      NMLISTVIEW *listInfo = static_cast<NMLISTVIEW *>(inParam);
+      if ((listInfo->uChanged & LVIF_STATE) && ((listInfo->uOldState ^ listInfo->uNewState) & LVIS_SELECTED)) {
+        OnSelectionChange();
+        return 1;
       }
-      inCode = NM_CUSTOMDRAW;
+      break;
     }
   }
 
@@ -2536,29 +2544,36 @@ static HBITMAP__ *sBitmapFromImageData(int inWidth, int inHeight, LPVOID inData,
 }
 
 static HBITMAP__ *sMaskFromImageData(int inWidth, int inHeight, LPVOID inData, HDC__ *inDC) {
-  int   rowBytes = 2 * ((inWidth - 1) / 8 + 1);
-  BYTE *bits = static_cast<BYTE *>(_alloca(rowBytes * inHeight));
-  memset(bits, 0, rowBytes * inHeight);
+  int   rowBytes = (inWidth - 1) / 8 + 1;
+  BYTE *bits = static_cast<BYTE *>(_alloca(rowBytes * inHeight * 2));
+  memset(bits, 0, rowBytes * inHeight * 2);
   BYTE *rgba = static_cast<BYTE *>(inData);
   for (int y = 0; y < inHeight; ++y) {
     for (int x = 0; x < inWidth; ++x) {
       if (!rgba[(y * inWidth + x) * 4 + 3]) {
-        bits[y * rowBytes + x / 8] |= 1 << (7 - x % 8);
+        bits[y * rowBytes * 2 + x / 8] |= 1 << (7 - x % 8);
       }
     }
   }
 
-  BITMAPINFO *info = static_cast<BITMAPINFO *>(SMemAlloc(sizeof(BITMAPINFOHEADER) + 2 * sizeof(RGBQUAD), __FILE__, __LINE__, 0));
-  memset(info, 0, sizeof(BITMAPINFOHEADER) + 2 * sizeof(RGBQUAD));
+  BITMAPINFO *info = static_cast<BITMAPINFO *>(ALLOC(sizeof(BITMAPINFOHEADER) + 2 * sizeof(RGBQUAD)));
   info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
   info->bmiHeader.biWidth = inWidth;
   info->bmiHeader.biHeight = -inHeight;
   info->bmiHeader.biPlanes = 1;
   info->bmiHeader.biBitCount = 1;
-  info->bmiColors[0].rgbBlue = info->bmiColors[0].rgbGreen = info->bmiColors[0].rgbRed = 0;
-  *reinterpret_cast<DWORD *>(&info->bmiColors[1]) = 0xFFFFFFFF;
+  info->bmiHeader.biCompression = BI_RGB;
+  info->bmiHeader.biSizeImage = 0;
+  info->bmiHeader.biXPelsPerMeter = 0;
+  info->bmiHeader.biYPelsPerMeter = 0;
+  info->bmiHeader.biClrUsed = 0;
+  info->bmiHeader.biClrImportant = 0;
+  RGBQUAD rgb1 = {0, 0, 0, 0};
+  info->bmiColors[0] = rgb1;
+  RGBQUAD rgb2 = {0xFF, 0xFF, 0xFF, 0xFF};
+  info->bmiColors[1] = rgb2;
   HBITMAP bitmap = CreateDIBitmap(inDC, &info->bmiHeader, CBM_INIT, bits, info, DIB_RGB_COLORS);
-  SMemFree(info, __FILE__, __LINE__, 0);
+  FREE(info);
   return bitmap;
 }
 
@@ -2695,10 +2710,16 @@ void COsStaticText::Initialize() {
 void COsStaticText::SetJustification(int inJust) {
   LONG style = GetWindowLongA(static_cast<HWND>(mHandle), GWL_STYLE);
   style &= ~3;
-  if (inJust == 1) {
-    style |= SS_CENTER;
-  } else if (inJust == 2) {
-    style |= SS_RIGHT;
+  switch (inJust) {
+    case 0:
+      style |= SS_LEFT;
+      break;
+    case 1:
+      style |= SS_CENTER;
+      break;
+    case 2:
+      style |= SS_RIGHT;
+      break;
   }
   SetWindowLongA(static_cast<HWND>(mHandle), GWL_STYLE, style);
 }
@@ -2760,13 +2781,20 @@ void COsStaticImage::ClearImage() {
 
 static int CALLBACK sEditBoxProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
   COsEditBox *editBox = static_cast<COsEditBox *>(sGetOsGuiPointer(hwnd));
-  if (editBox && ((msg >= WM_KEYDOWN && msg <= WM_KEYUP) || msg == WM_MOUSEMOVE || msg == WM_LBUTTONDOWN || msg == WM_LBUTTONUP ||
-                  msg == WM_RBUTTONDOWN || msg == WM_RBUTTONUP))
-  {
-    editBox->UpdateSelection();
+  if (editBox) {
+    switch (msg) {
+      case WM_KEYDOWN:
+      case WM_KEYUP:
+      case WM_MOUSEMOVE:
+      case WM_LBUTTONDOWN:
+      case WM_LBUTTONUP:
+      case WM_RBUTTONDOWN:
+      case WM_RBUTTONUP:
+        editBox->UpdateSelection();
+        break;
+    }
   }
-  WNDPROC proc = reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC));
-  return CallWindowProcA(proc, hwnd, msg, wParam, lParam);
+  return CallWindowProcA(reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC)), hwnd, msg, wParam, lParam);
 }
 
 static BOOL sIsCharacterAllowed(char inChar, UINT inFilters) {
@@ -2889,15 +2917,20 @@ BOOL COsDialog::OnEvent(int inItemID, int inNotifyCode, int inCode) {
 static int CALLBACK sTreeViewProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
   COsTreeView *tree = static_cast<COsTreeView *>(sGetOsGuiPointer(hwnd));
   if (tree) {
-    if (msg == WM_LBUTTONDOWN && tree->OnMouseDown()) {
-      return 0;
+    BOOL handled = 0;
+    switch (msg) {
+      case WM_LBUTTONDOWN:
+        handled = tree->OnMouseDown();
+        break;
+      case WM_LBUTTONUP:
+        handled = tree->OnMouseUp();
+        break;
     }
-    if (msg == WM_LBUTTONUP && tree->OnMouseUp()) {
+    if (handled) {
       return 0;
     }
   }
-  WNDPROC proc = reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC));
-  return CallWindowProcA(proc, hwnd, msg, wParam, lParam);
+  return CallWindowProcA(reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC)), hwnd, msg, wParam, lParam);
 }
 
 COsTreeView::COsTreeView(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 10, inID, inFlags) {
@@ -3064,49 +3097,48 @@ void COsTreeView::SetItemImage(LPVOID inItem, int inWidth, int inHeight, LPVOID 
   VALIDATEENDVOID;
 
   HDC     dc = GetDC(static_cast<HWND>(mHandle));
-  HBITMAP bitmap = sBitmapFromImageData(16, 16, inData, dc);
-  HBITMAP mask = sMaskFromImageData(16, 16, inData, dc);
-  int     imageCount = ImageList_GetImageCount(static_cast<HIMAGELIST>(mImages));
+  HBITMAP hbmp = sBitmapFromImageData(16, 16, inData, dc);
+  HBITMAP hmask = sMaskFromImageData(16, 16, inData, dc);
+  int     numImages = ImageList_GetImageCount(static_cast<HIMAGELIST>(mImages));
 
   if (!inItem) {
-    if (!imageCount) {
-      ImageList_Add(static_cast<HIMAGELIST>(mImages), bitmap, mask);
+    if (!numImages) {
+      ImageList_Add(static_cast<HIMAGELIST>(mImages), hbmp, hmask);
     } else {
-      ImageList_Replace(static_cast<HIMAGELIST>(mImages), 0, bitmap, mask);
+      ImageList_Replace(static_cast<HIMAGELIST>(mImages), 0, hbmp, hmask);
       Refresh(1);
     }
   } else {
     TVITEMA itemInfo;
-    memset(&itemInfo, 0, sizeof(itemInfo));
     itemInfo.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
     itemInfo.hItem = static_cast<HTREEITEM>(inItem);
     SendMessageA(static_cast<HWND>(mHandle), TVM_GETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
 
-    if (itemInfo.iImage > 0 && itemInfo.iImage < imageCount) {
-      ImageList_Replace(static_cast<HIMAGELIST>(mImages), itemInfo.iImage, bitmap, mask);
+    if (itemInfo.iImage > 0 && itemInfo.iImage < numImages) {
+      ImageList_Replace(static_cast<HIMAGELIST>(mImages), itemInfo.iImage, hbmp, hmask);
       Refresh(1);
     } else {
       int image;
-      if (!mUnusedImageIDs.Count()) {
-        image = ImageList_Add(static_cast<HIMAGELIST>(mImages), bitmap, mask);
-      } else {
-        image = mUnusedImageIDs[mUnusedImageIDs.Count() - 1];
+      if (static_cast<int>(mUnusedImageIDs.Count()) > 0) {
+        image = *mUnusedImageIDs.Top();
         mUnusedImageIDs.SetCount(mUnusedImageIDs.Count() - 1);
-        ImageList_Replace(static_cast<HIMAGELIST>(mImages), image, bitmap, mask);
+        ImageList_Replace(static_cast<HIMAGELIST>(mImages), image, hbmp, hmask);
+      } else {
+        image = ImageList_Add(static_cast<HIMAGELIST>(mImages), hbmp, hmask);
       }
 
       if (image != -1) {
+        itemInfo.iSelectedImage = image;
+        itemInfo.iImage = image;
         itemInfo.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
         itemInfo.hItem = static_cast<HTREEITEM>(inItem);
-        itemInfo.iImage = image;
-        itemInfo.iSelectedImage = image;
         SendMessageA(static_cast<HWND>(mHandle), TVM_SETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
       }
     }
   }
 
-  DeleteObject(bitmap);
-  DeleteObject(mask);
+  DeleteObject(hbmp);
+  DeleteObject(hmask);
   ReleaseDC(static_cast<HWND>(mHandle), dc);
 }
 
@@ -3286,76 +3318,74 @@ BOOL COsTreeView::OnEscape() {
 }
 
 int COsTreeView::OnNotify(int inCode, LPVOID inParam) {
-  if (inCode == TVN_SELCHANGINGA) {
-    if (mFlags & 0x40000) {
-      return 1;
-    }
-    return COsControl::OnNotify(inCode, inParam);
-  }
-
-  if (inCode == TVN_KEYDOWN) {
-    WORD key = static_cast<NMTVKEYDOWN *>(inParam)->wVKey;
-    switch (key) {
-      case VK_TAB:
-        return SendEvent(11, 0);
-      case VK_RETURN:
-        return OnReturn();
-      case VK_ESCAPE:
-        return OnEscape();
-      case VK_DELETE:
-        return SendEvent(10, 0);
-      default:
-        return COsControl::OnNotify(inCode, inParam);
-    }
-  }
-
-  if (inCode == TVN_BEGINLABELEDITA || inCode == TVN_ENDLABELEDITA) {
-    NMTVDISPINFOA *editInfo = static_cast<NMTVDISPINFOA *>(inParam);
-    int accepted = inCode == TVN_ENDLABELEDITA ? OnEndEdit(editInfo->item.hItem, editInfo->item.pszText) : OnBeginEdit(editInfo->item.hItem);
-    if (accepted) {
-      return COsControl::OnNotify(inCode, inParam);
-    }
-    if (inCode == TVN_BEGINLABELEDITA) {
-      OnEscape();
-      SetInputFocus();
-      return 1;
-    }
-    return 0;
-  }
-
-  if (inCode == TVN_DELETEITEMA) {
-    OnDeleteItem(static_cast<NMTREEVIEWA *>(inParam)->itemOld.hItem);
-    return COsControl::OnNotify(inCode, inParam);
-  }
-
-  if (inCode == TVN_BEGINDRAGA) {
-    NMTREEVIEWA *treeInfo = static_cast<NMTREEVIEWA *>(inParam);
-    OnBeginDrag(treeInfo->itemNew.hItem, treeInfo->ptDrag.x, treeInfo->ptDrag.y);
-    return 1;
-  }
-
-  if (inCode == TVN_ITEMEXPANDEDA) {
-    OnExpandedItem(static_cast<NMTREEVIEWA *>(inParam)->itemNew.hItem);
-    return 1;
-  }
-
-  if (inCode == NM_CUSTOMDRAW) {
-    NMTVCUSTOMDRAW *drawInfo = static_cast<NMTVCUSTOMDRAW *>(inParam);
-    if (drawInfo->nmcd.dwDrawStage == CDDS_PREPAINT) {
-      if (mDialog) {
-        SetWindowLongA(static_cast<HWND>(mDialog->GetHandle()), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
+  switch (inCode) {
+    case TVN_BEGINLABELEDITA:
+    case TVN_ENDLABELEDITA: {
+      NMTVDISPINFOA *editInfo = static_cast<NMTVDISPINFOA *>(inParam);
+      int accepted;
+      if (inCode == TVN_ENDLABELEDITA) {
+        accepted = OnEndEdit(editInfo->item.hItem, editInfo->item.pszText);
+      } else {
+        accepted = OnBeginEdit(editInfo->item.hItem);
       }
-      return CDRF_NOTIFYITEMDRAW;
+      if (!accepted) {
+        if (inCode == TVN_BEGINLABELEDITA) {
+          OnEscape();
+          SetInputFocus();
+          return 1;
+        }
+        return 0;
+      }
+      break;
     }
-    if (drawInfo->nmcd.dwDrawStage == CDDS_ITEMPREPAINT) {
-      LPVOID item = reinterpret_cast<LPVOID>(drawInfo->nmcd.dwItemSpec);
-      if (!IsItemSelected(item)) {
-        inCode = *GetParams(item)->color.IV_();
-        if (inCode & 0xFF000000) {
-          drawInfo->clrText = RGB((inCode >> 16) & 0xFF, (inCode >> 8) & 0xFF, inCode & 0xFF);
+    case TVN_BEGINDRAGA: {
+      NMTREEVIEWA *treeInfo = static_cast<NMTREEVIEWA *>(inParam);
+      OnBeginDrag(treeInfo->itemNew.hItem, treeInfo->ptDrag.x, treeInfo->ptDrag.y);
+      return 1;
+    }
+    case TVN_ITEMEXPANDEDA:
+      OnExpandedItem(static_cast<NMTREEVIEWA *>(inParam)->itemNew.hItem);
+      return 1;
+    case TVN_KEYDOWN:
+      switch (static_cast<NMTVKEYDOWN *>(inParam)->wVKey) {
+        case VK_ESCAPE:
+          return OnEscape();
+        case VK_RETURN:
+          return OnReturn();
+        case VK_DELETE:
+          return SendEvent(10, 0);
+        case VK_TAB:
+          return SendEvent(11, 0);
+      }
+      break;
+    case TVN_DELETEITEMA:
+      OnDeleteItem(static_cast<NMTREEVIEWA *>(inParam)->itemOld.hItem);
+      break;
+    case TVN_SELCHANGINGA:
+      if (mFlags & 0x40000) {
+        return 1;
+      }
+      break;
+    case NM_CUSTOMDRAW: {
+      NMTVCUSTOMDRAW *drawInfo = static_cast<NMTVCUSTOMDRAW *>(inParam);
+      switch (drawInfo->nmcd.dwDrawStage) {
+        case CDDS_PREPAINT:
+          if (mDialog) {
+            SetWindowLongA(static_cast<HWND>(mDialog->GetHandle()), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
+          }
+          return CDRF_NOTIFYITEMDRAW;
+        case CDDS_ITEMPREPAINT: {
+          LPVOID item = reinterpret_cast<LPVOID>(drawInfo->nmcd.dwItemSpec);
+          if (!IsItemSelected(item)) {
+            NTempest::CImVector color(&GetParams(item)->color);
+            if (color.a) {
+              drawInfo->clrText = RGB(color.r, color.g, color.b);
+            }
+          }
+          break;
         }
       }
-      inCode = NM_CUSTOMDRAW;
+      break;
     }
   }
 
@@ -3571,7 +3601,6 @@ void COsTreeView::SetExpandFunction(void (*inFunc)(LPVOID, LPVOID), LPVOID inPar
 
 void COsTreeView::OnDeleteItem(LPVOID inItem) {
   TVITEMA itemInfo;
-  memset(&itemInfo, 0, sizeof(itemInfo));
   itemInfo.mask = TVIF_IMAGE;
   itemInfo.hItem = static_cast<HTREEITEM>(inItem);
   SendMessageA(static_cast<HWND>(mHandle), TVM_GETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
@@ -3630,8 +3659,7 @@ static int CALLBACK sSpinButtonProc(HWND__ *hwnd, UINT msg, UINT wParam, long lP
   if (spin && msg == WM_LBUTTONUP) {
     spin->OnSpinMouseUp();
   }
-  WNDPROC proc = reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC));
-  return CallWindowProcA(proc, hwnd, msg, wParam, lParam);
+  return CallWindowProcA(reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC)), hwnd, msg, wParam, lParam);
 }
 
 COsSpinButton::COsSpinButton(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 13, inID, inFlags) {
@@ -3925,11 +3953,11 @@ static int CALLBACK sDividerProc(HWND__ *hwnd, UINT msg, UINT wParam, long lPara
   COsDivider *divider = static_cast<COsDivider *>(sGetOsGuiPointer(hwnd));
   if (divider) {
     switch (msg) {
-      case WM_MOUSEMOVE:
-        divider->OnDivMouseMove(static_cast<short>(LOWORD(lParam)), static_cast<short>(HIWORD(lParam)));
-        break;
       case WM_LBUTTONDOWN:
         divider->OnDivMouseDown();
+        break;
+      case WM_MOUSEMOVE:
+        divider->OnDivMouseMove(static_cast<short>(LOWORD(lParam)), static_cast<short>(HIWORD(lParam)));
         break;
       case WM_LBUTTONUP:
         divider->OnDivMouseUp();
@@ -3939,8 +3967,7 @@ static int CALLBACK sDividerProc(HWND__ *hwnd, UINT msg, UINT wParam, long lPara
         break;
     }
   }
-  WNDPROC proc = reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC));
-  return CallWindowProcA(proc, hwnd, msg, wParam, lParam);
+  return CallWindowProcA(reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC)), hwnd, msg, wParam, lParam);
 }
 
 COsWindow::COsWindow(LPVOID inWindow) {

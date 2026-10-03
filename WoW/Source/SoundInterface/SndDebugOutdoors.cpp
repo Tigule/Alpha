@@ -97,7 +97,7 @@ void OUTDOORSCHUNKHASHOBJ::PrintInfo(FILE *outFile) {
 BOOL DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
   UINT chunks = s_chunkList.Count();
   if (!chunks) {
-    ConsoleWrite("Error, no chunk information to dump!", DEFAULT_COLOR);
+    ConsoleWrite("Error, no chunk info found!", DEFAULT_COLOR);
     return 1;
   }
 
@@ -105,7 +105,7 @@ BOOL DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
   char  buffer[128];
   for (UINT fileNumber = 0; fileNumber < 100; ++fileNumber) {
     SStrPrintf(buffer, sizeof(buffer), "SndEAXChunkInfo_OUTDOORS_%02d.txt", fileNumber);
-    outFile = fopen(buffer, "wt");
+    outFile = fopen(buffer, "w+t");
     if (outFile) {
       break;
     }

@@ -53,7 +53,7 @@ CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame *parent) : CSimpleButton(parent)
 
   m_nameFrame = NEW(CSimpleFontString)(this, 2, 1);
   m_nameFrame->SetPoint(FRAMEPOINT_TOP, this, FRAMEPOINT_TOP, 0.0f, -0.005f, 1);
-  m_nameFrame->SetFont(FrameScript_GetText("NAMEPLATE_FONT", -1, GENDER_NOT_APPLICABLE), 0.0235f, 0);
+  m_nameFrame->SetFont(FrameScript_GetText("NAMEPLATE_FONT", -1, GENDER_NOT_APPLICABLE), 0.01f, 0);
   m_nameFrame->SetVertexColor(NTempest::CImVector(0xFFFFFFFF));
   m_nameFrame->AddShadow(NTempest::CImVector(0xFF0000FF), NTempest::C2Vector(0.001f, -0.001f));
 

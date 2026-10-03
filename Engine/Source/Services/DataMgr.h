@@ -102,7 +102,10 @@ class TManaged : public CBaseManaged {
     return m_data;
   }
 
-  void Set(const T &data);
+  void Set(const T &data) {
+    SetUpdate(0, 0, 0.0f);
+    Set_(data);
+  }
 
   virtual void Update(float elapsedSec) {
     if (m_updateFcn) {
@@ -116,9 +119,11 @@ class TManaged : public CBaseManaged {
   virtual void UpdateR(float elapsedSec) {
     if (m_updateFcn) {
       T data = m_data;
-      T saved = data;
+      T saved = m_data;
       m_updateFcn(elapsedSec, m_updateData, &data);
-      ASSERT(data == saved);
+      VALIDATEBEGIN;
+      VALIDATE(data == saved);
+      VALIDATEENDVOID;
     }
     m_flags &= ~REQUIRESUPDATE;
   }

@@ -58,8 +58,7 @@ void CDetailDoodad::Initialize() {
     ASSERT(doodadList[doodadInfo->m_doodadIdTag]);
   }
 
-  CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  GxTexCreate(64, 8, GxTex_Argb8888, flags, 0, UpdateAlphaRampTexture, alphaRampTexture);
+  GxTexCreate(64, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0, UpdateAlphaRampTexture, alphaRampTexture);
   ASSERT(alphaRampTexture);
 }
 
@@ -72,7 +71,7 @@ void CDetailDoodad::Destroy() {
   }
   gxBufFreeList.SetCount(0);
 
-  ASSERT(g_gxBufCreateCount == g_gxBufDestroyCount);
+  ASSERT(g_gxBufCreateCount==g_gxBufDestroyCount);
 
   if (alphaRampTexture) {
     GxTexDestroy(alphaRampTexture);
@@ -94,13 +93,13 @@ void CDetailDoodad::Clear() {
 
 CDetailDoodadInst *CDetailDoodad::AllocInst() {
   CDetailDoodadInst *inst = instList.Head();
-  if (inst) {
-    instList.UnlinkNode(inst);
+  if (!inst) {
+    inst = instList.NewNode(0, 0, 0);
+    FATALASSERT(inst);
   } else {
-    inst = NEW(CDetailDoodadInst)();
+    inst->lameAssLink.Unlink();
   }
 
-  FATALASSERT(inst);
   return inst;
 }
 
@@ -108,6 +107,7 @@ void CDetailDoodad::FreeInst(CDetailDoodadInst *inst) {
   UINT index;
 
   ASSERT(inst);
+  inst->lameAssLink.Unlink();
   instList.LinkNode(inst, LIST_TAIL, 0);
 
   for (index = 0; index < 2; ++index) {
@@ -125,18 +125,19 @@ void CDetailDoodad::FreeInst(CDetailDoodadInst *inst) {
 
 CDetailDoodadGeom *CDetailDoodad::AllocGeom() {
   CDetailDoodadGeom *geom = geomList.Head();
-  if (geom) {
-    geomList.UnlinkNode(geom);
+  if (!geom) {
+    geom = geomList.NewNode(0, 0, 0);
+    FATALASSERT(geom);
   } else {
-    geom = NEW(CDetailDoodadGeom)();
+    geom->lameAssLink.Unlink();
   }
 
-  FATALASSERT(geom);
   return geom;
 }
 
 void CDetailDoodad::FreeGeom(CDetailDoodadGeom *geom) {
   ASSERT(geom);
+  geom->lameAssLink.Unlink();
   geomList.LinkNode(geom, LIST_TAIL, 0);
 
   geom->texture = 0;
@@ -150,16 +151,16 @@ void CDetailDoodad::FreeGeom(CDetailDoodadGeom *geom) {
 CGxBuf *CDetailDoodad::AllocGxBuf(UINT vertexCount, UINT indexCount) {
   CGxBuf *gxBuf;
 
-  if (gxBufFreeList.Count()) {
+  if (!gxBufFreeList.Count()) {
+    gxBuf = GxBufCreate(GxBWF_Medium, GxVBF_PNCT0, vertexCount, indexCount, GxBufFillCallback, 0);
+    FATALASSERT(gxBuf);
+    ++g_gxBufCreateCount;
+  } else {
     gxBuf = gxBufFreeList[gxBufFreeList.Count() - 1];
     FATALASSERT(gxBuf);
     gxBufFreeList.SetCount(gxBufFreeList.Count() - 1);
     gxBuf->CountSet(vertexCount, indexCount);
     gxBuf->Invalidate(CGxBuf::S_INVALID_DISCARD, CGxBuf::S_INVALID_DISCARD);
-  } else {
-    gxBuf = GxBufCreate(GxBWF_Medium, GxVBF_PNCT0, vertexCount, indexCount, GxBufFillCallback, 0);
-    FATALASSERT(gxBuf);
-    ++g_gxBufCreateCount;
   }
 
   return gxBuf;
@@ -167,7 +168,7 @@ CGxBuf *CDetailDoodad::AllocGxBuf(UINT vertexCount, UINT indexCount) {
 
 void CDetailDoodad::FreeGxBuf(CGxBuf *gxBuf) {
   ASSERT(gxBuf);
-  *gxBufFreeList.New() = gxBuf;
+  gxBufFreeList.Add(1, &gxBuf);
 }
 
 void CDetailDoodad::GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf) {
@@ -181,9 +182,9 @@ void CDetailDoodad::CreateAlphaRampTexture(LPCVOID &texels) {
   static NTempest::CImVector alphaRamp[8][64];
   BYTE                       alpha = 0;
 
-  for (int x = 63; x >= 0; --x) {
-    for (int y = 0; y < 8; ++y) {
-      alphaRamp[y][x].Set(alpha, 255, 255, 255);
+  for (UINT x = 0; x < 64; ++x) {
+    for (UINT y = 0; y < 8; ++y) {
+      alphaRamp[y][63 - x].Set(alpha, 255, 255, 255);
     }
     alpha += 4;
   }
@@ -331,52 +332,70 @@ void CDetailDoodadData::MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailD
   FATALASSERT(detailDoodad);
   FATALASSERT(detailDoodad->geom == 0);
 
-  BYTE *texSection = MDLFileBinarySeek(fileData, fileBytes, 'SXET');
-  FATALASSERT(texSection);
-  UINT sectionBytes = *reinterpret_cast<UINT *>(texSection);
-  FATALASSERT(sectionBytes == 268);
-  BYTE *texData = texSection + sizeof(UINT);
-  detailDoodad->texture = CMap::LoadTexture(reinterpret_cast<char *>(texData + 4));
+  BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'SXET');
+  FATALASSERT(data);
+
+  UINT sectionBytes = *((ULONG *) (data));
+  data += sizeof(ULONG);
+  UINT numTextures = sectionBytes / sizeof(MDLTEXTURESECTION);
+  FATALASSERT(numTextures == 1);
+  FATALASSERT(sectionBytes == (numTextures * sizeof(MDLTEXTURESECTION)));
+
+  MDLTEXTURESECTION *textures = reinterpret_cast<MDLTEXTURESECTION *>(data);
+  data += sectionBytes;
+  detailDoodad->texture = CMap::LoadTexture(textures->image);
 
   CDetailDoodadGeom *geom = CDetailDoodad::AllocGeom();
   FATALASSERT(geom);
   detailDoodad->geom = geom;
   geom->texture = 0;
 
-  BYTE *geoSection = MDLFileBinarySeek(fileData, fileBytes, 'SOEG');
-  FATALASSERT(geoSection);
-  UINT *data = reinterpret_cast<UINT *>(geoSection);
-  FATALASSERT(data[1] == 1);
-  data += 3;
+  data = MDLFileBinarySeek(data, fileBytes - (data - fileData), 'SOEG');
+  FATALASSERT(data);
+  data += sizeof(ULONG);
+  FATALASSERT(*((ULONG *) (data)) == 1);
+  data += sizeof(ULONG);
+  data += sizeof(ULONG);
 
-  FATALASSERT(*data++ == 'XTRV');
-  UINT nVertices = *data++;
+  FATALASSERT(*((ULONG *) (data)) == 'XTRV');
+  data += sizeof(ULONG);
+  UINT nVertices = *((ULONG *) (data));
+  data += sizeof(ULONG);
   geom->vertexList.SetCount(nVertices);
   memcpy(geom->vertexList.Ptr(), data, nVertices * sizeof(NTempest::C3Vector));
-  data += 3 * nVertices;
+  data += geom->vertexList.Bytes();
 
-  FATALASSERT(*data++ == 'SMRN');
-  FATALASSERT(*data++ == nVertices);
+  FATALASSERT(*((ULONG *) (data)) == 'SMRN');
+  data += sizeof(ULONG);
+  FATALASSERT(nVertices == *((ULONG *) (data)));
+  data += sizeof(ULONG);
   geom->normalList.SetCount(nVertices);
   memcpy(geom->normalList.Ptr(), data, nVertices * sizeof(NTempest::C3Vector));
-  data += 3 * nVertices;
+  data += geom->normalList.Bytes();
 
-  FATALASSERT(*data++ == 'SAVU');
-  FATALASSERT(*data++ == 1);
+  FATALASSERT(*((ULONG *) (data)) == 'SAVU');
+  data += sizeof(ULONG);
+  FATALASSERT(*((ULONG *) (data)) == 1);
+  data += sizeof(ULONG);
   geom->tVertexList.SetCount(nVertices);
   memcpy(geom->tVertexList.Ptr(), data, nVertices * sizeof(NTempest::C2Vector));
-  data += 2 * nVertices;
+  data += geom->tVertexList.Bytes();
 
-  FATALASSERT(*data++ == 'PYTP');
-  UINT primitiveTypeBytes = *data++;
-  data = reinterpret_cast<UINT *>(reinterpret_cast<BYTE *>(data) + primitiveTypeBytes);
+  FATALASSERT(*((ULONG *) (data)) == 'PYTP');
+  data += sizeof(ULONG);
+  UINT numPrimTypes = *((ULONG *) (data));
+  data += sizeof(ULONG);
+  data += numPrimTypes * sizeof(BYTE);
 
-  FATALASSERT(*data++ == 'TNCP');
-  UINT primitiveCount = *data++;
-  data += primitiveCount;
+  FATALASSERT(*((ULONG *) (data)) == 'TNCP');
+  data += sizeof(ULONG);
+  data += sizeof(ULONG);
+  data += numPrimTypes * sizeof(ULONG);
 
-  FATALASSERT(*data++ == 'XTVP');
-  UINT nPrims = *data++;
+  FATALASSERT(*((ULONG *) (data)) == 'XTVP');
+  data += sizeof(ULONG);
+  UINT nPrims = *((ULONG *) (data));
+  data += sizeof(ULONG);
   geom->indexList.SetCount(nPrims);
   memcpy(geom->indexList.Ptr(), data, nPrims * sizeof(WORD));
 }
@@ -395,22 +414,21 @@ void CDetailDoodadData::MdlReadCallback(const MDLDATA &data, CDetailDoodadData *
   detailDoodad->geom = geom;
   geom->texture = 0;
 
-  const MDLGEOSETSECTION &geoset = data.geosets[0];
-  UINT                    nVertices = geoset.vertices.Count();
+  UINT nVertices = data.geosets[0].vertices.Count();
 
   geom->vertexList.SetCount(nVertices);
   geom->normalList.SetCount(nVertices);
   geom->tVertexList.SetCount(nVertices);
   for (UINT index = 0; index < nVertices; ++index) {
-    geom->vertexList[index] = geoset.vertices[index];
-    geom->normalList[index] = geoset.normals[index];
-    geom->tVertexList[index] = geoset.texCoords[0][index];
+    geom->vertexList[index] = data.geosets[0].vertices[index];
+    geom->normalList[index] = data.geosets[0].normals[index];
+    geom->tVertexList[index] = data.geosets[0].texCoords[0][index];
   }
 
-  UINT nIndices = geoset.primitives.vertices.Count();
-  geom->indexList.SetCount(nIndices);
-  for (UINT index2 = 0; index2 < nIndices; ++index2) {
-    geom->indexList[index2] = geoset.primitives.vertices[index2];
+  UINT nPrims = data.geosets[0].primitives.vertices.Count();
+  geom->indexList.SetCount(nPrims);
+  for (UINT index2 = 0; index2 < nPrims; ++index2) {
+    geom->indexList[index2] = data.geosets[0].primitives.vertices[index2];
   }
 }
 
@@ -443,78 +461,20 @@ void CDetailDoodadInst::FreeBufs() {
 }
 
 void CDetailDoodadInst::AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags) {
-  CDetailDoodadData *detailData = CDetailDoodad::doodadList[doodadId];
-  if (!detailData || (!detailData->loaded && !detailData->Load()) || !detailData->geom) {
-    return;
-  }
-
-  CDetailDoodadGeom *geomData = detailData->geom;
-  int                geomIndex = -1;
-  UINT               index;
-  for (index = 0; index < 2; ++index) {
-    if (geom[index] && geom[index]->texture == detailData->texture) {
-      geomIndex = index;
-      break;
-    }
-  }
-
-  if (geomIndex == -1) {
-    geomIndex = geom[0] ? 1 : 0;
-    if (geom[geomIndex]) {
-      return;
-    }
-
-    geom[geomIndex] = CDetailDoodad::AllocGeom();
-    geom[geomIndex]->texture = detailData->texture;
-    geom[geomIndex]->vertexList.SetChunkSize(512);
-    geom[geomIndex]->normalList.SetChunkSize(512);
-    geom[geomIndex]->tVertexList.SetChunkSize(512);
-    geom[geomIndex]->cVertexList.SetChunkSize(512);
-    geom[geomIndex]->indexList.SetChunkSize(512);
-  }
-
-  CDetailDoodadGeom *dst = geom[geomIndex];
-  UINT               vertexBase = dst->vertexList.Count();
-  UINT               indexBase = dst->indexList.Count();
-  UINT               vertexCount = geomData->vertexList.Count();
-  UINT               indexCount = geomData->indexList.Count();
-
-  dst->vertexList.SetCount(vertexBase + vertexCount);
-  dst->normalList.SetCount(vertexBase + vertexCount);
-  dst->tVertexList.SetCount(vertexBase + vertexCount);
-  dst->cVertexList.SetCount(vertexBase + vertexCount);
-  dst->indexList.SetCount(indexBase + indexCount);
-
-  NTempest::CImVector argb(0xFFFFFFFF);
-  if (flags & Flag_Shadowed) {
-    argb.r = 0xC0;
-    argb.g = 0xC0;
-    argb.b = 0xC0;
-  }
-
-  for (index = 0; index < vertexCount; ++index) {
-    dst->vertexList[vertexBase + index] = geomData->vertexList[index] + pos;
-    dst->normalList[vertexBase + index] = geomData->normalList[index];
-    dst->tVertexList[vertexBase + index] = geomData->tVertexList[index];
-    dst->cVertexList[vertexBase + index] = argb;
-  }
-
-  for (index = 0; index < indexCount; ++index) {
-    dst->indexList[indexBase + index] = static_cast<WORD>(vertexBase + geomData->indexList[index]);
-  }
-}
-
-void CDetailDoodadInst::AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags, NTempest::C4Plane &plane) {
   UINT idx;
-  UINT iIdx;
 
   CDetailDoodadData *detailData = CDetailDoodad::doodadList[doodadId];
-  if (!detailData || (!detailData->loaded && !detailData->Load()) || !detailData->geom) {
+  if (detailData) {
+    return;
+  }
+  if (!detailData->loaded && !detailData->Load()) {
+    return;
+  }
+  if (!detailData->geom) {
     return;
   }
 
-  CDetailDoodadGeom *geomData = detailData->geom;
-  int                geomIndex = -1;
+  int geomIndex = -1;
   for (idx = 0; idx < 2; ++idx) {
     if (geom[idx] && geom[idx]->texture == detailData->texture) {
       geomIndex = idx;
@@ -523,9 +483,13 @@ void CDetailDoodadInst::AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD 
   }
 
   if (geomIndex == -1) {
-    geomIndex = geom[0] ? 1 : 0;
-    if (geom[geomIndex]) {
-      return;
+    if (geom[0]) {
+      if (geom[1]) {
+        return;
+      }
+      geomIndex = 1;
+    } else {
+      geomIndex = 0;
     }
 
     geom[geomIndex] = CDetailDoodad::AllocGeom();
@@ -537,37 +501,107 @@ void CDetailDoodadInst::AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD 
     geom[geomIndex]->indexList.SetChunkSize(512);
   }
 
-  CDetailDoodadGeom *dst = geom[geomIndex];
-  UINT               vertexBase = dst->vertexList.Count();
-  UINT               indexBase = dst->indexList.Count();
-  UINT               vertexCount = geomData->vertexList.Count();
-  UINT               indexCount = geomData->indexList.Count();
+  CDetailDoodadGeom *geomData = detailData->geom;
+  UINT               xOffs = geom[geomIndex]->vertexList.Count();
+  UINT               iIdx = geom[geomIndex]->indexList.Count();
+  UINT               nVerts = geomData->vertexList.Count() + xOffs;
 
-  dst->vertexList.SetCount(vertexBase + vertexCount);
-  dst->normalList.SetCount(vertexBase + vertexCount);
-  dst->tVertexList.SetCount(vertexBase + vertexCount);
-  dst->cVertexList.SetCount(vertexBase + vertexCount);
-  dst->indexList.SetCount(indexBase + indexCount);
+  geom[geomIndex]->vertexList.SetCount(nVerts);
+  geom[geomIndex]->normalList.SetCount(nVerts);
+  geom[geomIndex]->tVertexList.SetCount(nVerts);
+  geom[geomIndex]->cVertexList.SetCount(nVerts);
+  geom[geomIndex]->indexList.SetCount(geom[geomIndex]->indexList.Count() + geomData->indexList.Count());
 
-  NTempest::CImVector argb(0xFFFFFFFF);
-  if (flags & 1) {
+  NTempest::CImVector argb(1, 1, 1, 1);
+  if (flags & Flag_Shadowed) {
+    argb.b = 0xA0;
+    argb.g = 0xA0;
+    argb.r = 0xA0;
+  }
+
+  for (idx = 0; idx < geomData->vertexList.Count(); ++idx) {
+    geom[geomIndex]->vertexList[xOffs + idx] = geomData->vertexList[idx] + pos;
+    geom[geomIndex]->normalList[xOffs + idx] = geomData->normalList[idx];
+    geom[geomIndex]->tVertexList[xOffs + idx] = geomData->tVertexList[idx];
+    geom[geomIndex]->cVertexList[xOffs + idx] = argb;
+  }
+
+  for (idx = 0; idx < geomData->indexList.Count(); ++idx) {
+    geom[geomIndex]->indexList[iIdx++] = geomData->indexList[idx] + xOffs;
+  }
+}
+
+void CDetailDoodadInst::AddDoodad(UINT doodadId, NTempest::C3Vector &pos, DWORD flags, NTempest::C4Plane &plane) {
+  UINT idx;
+
+  CDetailDoodadData *detailData = CDetailDoodad::doodadList[doodadId];
+  if (!detailData) {
+    return;
+  }
+  if (!detailData->loaded && !detailData->Load()) {
+    return;
+  }
+  if (!detailData->geom) {
+    return;
+  }
+
+  int geomIndex = -1;
+  for (idx = 0; idx < 2; ++idx) {
+    if (geom[idx] && geom[idx]->texture == detailData->texture) {
+      geomIndex = idx;
+      break;
+    }
+  }
+
+  if (geomIndex == -1) {
+    if (geom[0]) {
+      if (geom[1]) {
+        return;
+      }
+      geomIndex = 1;
+    } else {
+      geomIndex = 0;
+    }
+
+    geom[geomIndex] = CDetailDoodad::AllocGeom();
+    geom[geomIndex]->texture = detailData->texture;
+    geom[geomIndex]->vertexList.SetChunkSize(512);
+    geom[geomIndex]->normalList.SetChunkSize(512);
+    geom[geomIndex]->tVertexList.SetChunkSize(512);
+    geom[geomIndex]->cVertexList.SetChunkSize(512);
+    geom[geomIndex]->indexList.SetChunkSize(512);
+  }
+
+  CDetailDoodadGeom *geomData = detailData->geom;
+  UINT               xOffs = geom[geomIndex]->vertexList.Count();
+  UINT               iIdx = geom[geomIndex]->indexList.Count();
+  UINT               nVerts = geomData->vertexList.Count() + xOffs;
+
+  geom[geomIndex]->vertexList.SetCount(nVerts);
+  geom[geomIndex]->normalList.SetCount(nVerts);
+  geom[geomIndex]->tVertexList.SetCount(nVerts);
+  geom[geomIndex]->cVertexList.SetCount(nVerts);
+  geom[geomIndex]->indexList.SetCount(geom[geomIndex]->indexList.Count() + geomData->indexList.Count());
+
+  NTempest::CImVector argb(255, 255, 255, 255);
+  if (flags & Flag_Shadowed) {
     argb.r = 0xC0;
     argb.g = 0xC0;
     argb.b = 0xC0;
   }
   if (GxCaps().m_colorFormat == GxCF_rgba) {
-    argb.Set(argb.a, argb.b, argb.g, argb.r);
+    argb = NTempest::CImVector(argb.a, argb.b, argb.g, argb.r);
   }
 
-  for (idx = 0; idx < vertexCount; ++idx) {
-    dst->vertexList[vertexBase + idx] = geomData->vertexList[idx] + pos;
-    dst->normalList[vertexBase + idx] = plane.n;
-    dst->tVertexList[vertexBase + idx] = geomData->tVertexList[idx];
-    dst->cVertexList[vertexBase + idx] = argb;
+  for (idx = 0; idx < geomData->vertexList.Count(); ++idx) {
+    geom[geomIndex]->vertexList[xOffs + idx] = geomData->vertexList[idx] + pos;
+    geom[geomIndex]->normalList[xOffs + idx] = plane.n;
+    geom[geomIndex]->tVertexList[xOffs + idx] = geomData->tVertexList[idx];
+    geom[geomIndex]->cVertexList[xOffs + idx] = argb;
   }
 
-  for (iIdx = 0; iIdx < indexCount; ++iIdx) {
-    dst->indexList[indexBase + iIdx] = static_cast<WORD>(vertexBase + geomData->indexList[iIdx]);
+  for (idx = 0; idx < geomData->indexList.Count(); ++idx) {
+    geom[geomIndex]->indexList[iIdx++] = geomData->indexList[idx] + xOffs;
   }
 }
 
@@ -603,21 +637,20 @@ void CDetailDoodadInst::Render() {
 }
 
 void CDetailDoodadInst::RenderAlpha() {
-  NTempest::C44Matrix mat;
-
   GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
   GxRsSet(GxRs_Culling, 0);
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   GxRsSet(GxRs_Blend, GxBlend_Alpha);
-  GxRsSet(GxRs_AlphaRef, static_cast<int>(CWorld::detailDoodadAlphaRef));
+  GxRsSet(GxRs_AlphaRef, static_cast<BYTE>(CWorld::detailDoodadAlphaRef));
   GxRsSet(GxRs_DepthWrite, 1);
   GxRsSet(GxRs_Texture1, CDetailDoodad::alphaRampTexture);
   GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
   GxRsSet(GxRs_TexGen1, GxTexGen_View);
   GxRsSet(GxRs_TextureShader1, GxTS_Affine);
 
+  NTempest::C44Matrix mat;
   mat.Scale(1.0f / (CWorld::detailDoodadDist * 0.33f));
-  mat.Rotate(3.1415927f * 0.5f, NTempest::C3Vector(0.0f, 1.0f, 0.0f), 0);
+  mat.Rotate(PI * 0.5f, NTempest::C3Vector(0.0f, 1.0f, 0.0f), 0);
   mat.Translate(NTempest::C3Vector(0.0f, 0.0f, CWorld::detailDoodadDist * -0.66f));
   GxXformPush(GxXform_Tex1, mat);
   GxVertexShaderSelect(GxVS_PassThru);

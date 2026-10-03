@@ -34,11 +34,14 @@ class CSimpleSortedArray {
           m_array[move] = m_array[move - 1];
           --move;
         }
+        m_array[index] = value;
         break;
       }
     }
 
-    m_array[index] = value;
+    if (index == m_count) {
+      m_array[index] = value;
+    }
     if (index < m_iterator) {
       ++m_iterator;
     }
@@ -49,7 +52,7 @@ class CSimpleSortedArray {
     UINT move;
 
     ASSERT(index < m_count);
-    for (move = index; move + 1 < m_count; ++move) {
+    for (move = index; move < m_count - 1; ++move) {
       m_array[move] = m_array[move + 1];
     }
 

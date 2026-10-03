@@ -88,8 +88,10 @@ void CGxDeviceD3d::ITexCreate(CGxTex *gxTex, UINT w, UINT h, UINT startLevel, UI
 
   ASSERT(ICheckTextureFormat(usage, s_GxTexFmtToD3dFmt[gxTex->m_format]));
 
+  endLevel -= startLevel;
+
   IDirect3DTexture9 *d3dTex;
-  long               result = m_d3dDevice->CreateTexture(w, h, endLevel - startLevel, usage, s_GxTexFmtToD3dFmt[gxTex->m_format], pool, &d3dTex, 0);
+  long               result = m_d3dDevice->CreateTexture(w, h, endLevel, usage, s_GxTexFmtToD3dFmt[gxTex->m_format], pool, &d3dTex, 0);
 
   if (result < 0) {
     s_GxTexFmtToUse[gxTex->m_format] = s_tolerableTexFmtMapping[gxTex->m_format];
@@ -98,13 +100,13 @@ void CGxDeviceD3d::ITexCreate(CGxTex *gxTex, UINT w, UINT h, UINT startLevel, UI
     ASSERT(gxTex->m_format != GxTex_Unknown);
     ASSERT(ICheckTextureFormat(0, s_GxTexFmtToD3dFmt[gxTex->m_format]));
 
-    result = m_d3dDevice->CreateTexture(w, h, endLevel - startLevel, usage, s_GxTexFmtToD3dFmt[gxTex->m_format], pool, &d3dTex, 0);
+    result = m_d3dDevice->CreateTexture(w, h, endLevel, usage, s_GxTexFmtToD3dFmt[gxTex->m_format], pool, &d3dTex, 0);
   }
 
-  if (result >= 0) {
-    gxTex->m_apiSpecificData = d3dTex;
-  } else {
+  if (result < 0) {
     DbgPrintf("Gx: (ERROR): Texture creation failure.\n");
+  } else {
+    gxTex->m_apiSpecificData = d3dTex;
   }
 }
 
@@ -157,15 +159,14 @@ void CGxDeviceD3d::ITexUpload(CGxTex *texId, UINT w, UINT h, UINT startLevel, UI
         break;
       }
 
-      LPVOID corner = reinterpret_cast<BYTE *>(const_cast<LPVOID>(texels)) + ((lockRect.l * s_texFormatBitDepth[texId->m_dataFormat]) >> 3) +
-                      texelStrideInBytes * lockRect.t;
-
-      try {
+      __try {
+        LPVOID corner = reinterpret_cast<BYTE *>(const_cast<LPVOID>(texels)) + ((lockRect.l * s_texFormatBitDepth[texId->m_dataFormat]) >> 3) +
+                        texelStrideInBytes * lockRect.t;
         Blit(
             NTempest::C2iVector(lockRect.Width(), lockRect.Height()), BlitAlpha_0, corner, texelStrideInBytes, GxGetBlitFormat(texId->m_dataFormat),
             rect.pBits, rect.Pitch, GxGetBlitFormat(texId->m_format)
         );
-      } catch (...) {
+      } __except (EXCEPTION_EXECUTE_HANDLER) {
         OsOutputDebugString("Access violation in Gx silently handled. %s : %d\n", __FILE__, __LINE__);
       }
 

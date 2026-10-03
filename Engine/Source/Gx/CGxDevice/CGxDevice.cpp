@@ -1591,11 +1591,9 @@ void CGxDevice::Log(const CGxCaps &caps) const {
 }
 
 void CGxDevice::Log(const CGxFormat &format) const {
-  LPCSTR depthFormat = FmtNames[format.depthFormat];
-
   if (format.window) {
-    Log("\tFormat: %d x %d Window, %s", format.size.x, format.size.y, depthFormat);
+    Log("\tFormat: %d x %d Window, %s", format.size.x, format.size.y, FmtNames[format.depthFormat]);
   } else {
-    Log("\tFormat %d x %d @ %d Fullscreen, %s, %s", format.size.x, format.size.y, format.refreshRate, FmtNames[format.colorFormat], depthFormat);
+    Log("\tFormat %d x %d @ %d Fullscreen, %s, %s", format.size.x, format.size.y, format.refreshRate, FmtNames[format.colorFormat], FmtNames[format.depthFormat]);
   }
 }

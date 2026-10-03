@@ -46,17 +46,14 @@ static void AddTriangle(
   UINT numVerts = debugVerts->Count();
   UINT numIndices = debugIndices->Count();
 
-  debugVerts->SetCount(numVerts + 3);
-  (*debugVerts)[numVerts] = face.vertices[0];
-  (*debugVerts)[numVerts + 1] = face.vertices[1];
-  (*debugVerts)[numVerts + 2] = face.vertices[2];
-
+  debugVerts->Add(3, face.vertices);
   debugIndices->SetCount(numIndices + 3);
+  debugVertColors->SetCount(numVerts + 3);
+
   (*debugIndices)[numIndices] = static_cast<WORD>(numVerts);
   (*debugIndices)[numIndices + 1] = static_cast<WORD>(numVerts + 1);
   (*debugIndices)[numIndices + 2] = static_cast<WORD>(numVerts + 2);
 
-  debugVertColors->SetCount(numVerts + 3);
   (*debugVertColors)[numVerts] = s_facetColor[color];
   (*debugVertColors)[numVerts + 1] = s_facetColor[color];
   (*debugVertColors)[numVerts + 2] = s_facetColor[color];
@@ -74,9 +71,10 @@ static void AddNormalLine(
   UINT               numIndices = debugIndices->Count();
 
   debugVerts->SetCount(numVerts + 2);
+  debugIndices->SetCount(numIndices + 2);
+
   (*debugVerts)[numVerts] = position;
   (*debugVerts)[numVerts + 1] = normalVert;
-  debugIndices->SetCount(numIndices + 2);
   (*debugIndices)[numIndices] = static_cast<WORD>(numVerts);
   (*debugIndices)[numIndices + 1] = static_cast<WORD>(numVerts + 1);
 }
@@ -95,51 +93,52 @@ static void BuildDisplayBox(
     TSGrowableArray<WORD>               *debugIndices,
     int                                  displayNormals
 ) {
-  NTempest::C3Vector  normZ[2] = {boxNormals[5], boxNormals[4]};
-  NTempest::C3Vector  normX[2] = {boxNormals[1], boxNormals[0]};
-  NTempest::C3Vector  normY[2] = {boxNormals[2], boxNormals[3]};
-  const WORD          boxIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1, 16, 16, 1, 4,  2,  8,  5,  5,  8,  11,
-                                        7,  19, 10, 10, 19, 22, 3,  9, 15, 15, 9, 21, 17, 23, 14, 14, 23, 20};
-  NTempest::C3Vector *norm;
   NTempest::C3Vector *dst;
+  NTempest::C3Vector *norm;
   UINT                index;
-  UINT                z;
-  UINT                y;
-  UINT                x;
 
   debugVerts->SetCount(24);
   dst = debugVerts->Ptr();
-  for (index = 0; index < 8; ++index) {
-    *dst++ = boxVerts[index];
-    *dst++ = boxVerts[index];
-    *dst++ = boxVerts[index];
+  for (index = 0; index < 8; ++index, dst += 3) {
+    dst[0] = dst[1] = dst[2] = boxVerts[index];
   }
 
   debugNormals->SetCount(24);
-  dst = debugNormals->Ptr();
-  for (z = 0; z < 2; ++z) {
-    for (y = 0; y < 2; ++y) {
-      for (x = 0; x < 2; ++x) {
-        *dst++ = normX[x];
-        *dst++ = normY[y];
-        *dst++ = normZ[z];
+
+  NTempest::C3Vector normX[2];
+  NTempest::C3Vector normY[2];
+  NTempest::C3Vector normZ[2];
+
+  normX[0] = boxNormals[1];
+  normX[1] = boxNormals[0];
+  normY[0] = boxNormals[2];
+  normY[1] = boxNormals[3];
+  normZ[0] = boxNormals[5];
+  normZ[1] = boxNormals[4];
+
+  norm = debugNormals->Ptr();
+  for (UINT z = 0; z < 2; ++z) {
+    for (UINT y = 0; y < 2; ++y) {
+      for (UINT x = 0; x < 2; ++x, norm += 3) {
+        norm[0] = normX[x];
+        norm[1] = normY[y];
+        norm[2] = normZ[z];
       }
     }
   }
 
-  debugIndices->SetCount(36);
-  for (index = 0; index < 36; ++index) {
-    (*debugIndices)[index] = boxIndices[index];
-  }
+  const WORD boxIndices[36] = {12, 18, 0,  0,  18, 6,  13, 1, 16, 16, 1, 4,  2,  8,  5,  5,  8,  11,
+                               7,  19, 10, 10, 19, 22, 3,  9, 15, 15, 9, 21, 17, 23, 14, 14, 23, 20};
+
+  debugIndices->Set(36, boxIndices);
 
   if (displayNormals) {
-    norm = const_cast<NTempest::C3Vector *>(boxNormals);
-    AddNormalLine(*norm++, (boxVerts[1] + boxVerts[5] + boxVerts[3] + boxVerts[7]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
-    AddNormalLine(*norm++, (boxVerts[0] + boxVerts[4] + boxVerts[2] + boxVerts[6]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
-    AddNormalLine(*norm++, (boxVerts[4] + boxVerts[5] + boxVerts[0] + boxVerts[1]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
-    AddNormalLine(*norm++, (boxVerts[2] + boxVerts[3] + boxVerts[6] + boxVerts[7]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
-    AddNormalLine(*norm++, (boxVerts[6] + boxVerts[7] + boxVerts[4] + boxVerts[5]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
-    AddNormalLine(*norm, (boxVerts[0] + boxVerts[1] + boxVerts[2] + boxVerts[3]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
+    AddNormalLine(boxNormals[0], (boxVerts[1] + boxVerts[5] + boxVerts[3] + boxVerts[7]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
+    AddNormalLine(boxNormals[1], (boxVerts[4] + boxVerts[0] + boxVerts[6] + boxVerts[2]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
+    AddNormalLine(boxNormals[2], (boxVerts[4] + boxVerts[5] + boxVerts[0] + boxVerts[1]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
+    AddNormalLine(boxNormals[3], (boxVerts[2] + boxVerts[3] + boxVerts[6] + boxVerts[7]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
+    AddNormalLine(boxNormals[4], (boxVerts[6] + boxVerts[7] + boxVerts[4] + boxVerts[5]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
+    AddNormalLine(boxNormals[5], (boxVerts[0] + boxVerts[1] + boxVerts[2] + boxVerts[3]) * 0.25f, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
   }
 }
 
@@ -188,47 +187,47 @@ void CollisionInfoColorFace(UINT faceId, FACET_COLOR color) {
     return;
   }
 
-  s_debugFacetColors[faceId] = color;
   g_debugVertColors[faceId * 3] = s_facetColor[color];
   g_debugVertColors[faceId * 3 + 1] = s_facetColor[color];
   g_debugVertColors[faceId * 3 + 2] = s_facetColor[color];
 }
 
 void CollisionInfoSetFallBox(const NTempest::C3Vector &position, float boxHalfDepth, float boxHeight) {
-  NTempest::C3Vector normY[2] = {NTempest::C3Vector(0.0f, -1.0f, 0.0f), NTempest::C3Vector(0.0f, 1.0f, 0.0f)};
-  NTempest::C3Vector normX[2] = {NTempest::C3Vector(-1.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f)};
-  const WORD         boxIndices[42] = {0, 6,  12, 12, 6,  20, 1, 13, 4, 4,  13, 17, 21, 7,  25, 25, 7,  10, 16, 24, 3,
-                                       3, 24, 9,  5,  11, 2,  2, 11, 8, 15, 29, 19, 18, 28, 26, 27, 31, 23, 22, 30, 14};
-  NTempest::C3Vector normZY[2] = {NTempest::C3Vector(0.0f, -0.87964189f, -0.4756366f), NTempest::C3Vector(0.0f, 0.87964189f, -0.4756366f)};
-  NTempest::C3Vector start;
-  float              halfBoxHeight;
-  NTempest::C3Vector normZX[2] = {NTempest::C3Vector(-0.87964189f, 0.0f, -0.4756366f), NTempest::C3Vector(0.87964189f, 0.0f, -0.4756366f)};
-  NTempest::C3Vector verts[2];
-  NTempest::C3Vector normal;
-  UINT               y;
-  UINT               x;
-  UINT               repeat;
-  UINT               index;
-
   if (!s_acceptingFacets) {
     return;
   }
 
-  verts[0] = NTempest::C3Vector(position.x - boxHalfDepth, position.y - boxHalfDepth, position.z + boxHalfDepth * 1.849399f);
-  verts[1] = NTempest::C3Vector(position.x + boxHalfDepth, position.y + boxHalfDepth, position.z + boxHeight);
+  UINT                y;
+  UINT                x;
+  UINT                index;
+  NTempest::C3Vector *dst;
 
   g_debugBoxVerts.SetCount(32);
-  for (y = 0; y < 2; ++y) {
-    for (x = 0; x < 2; ++x) {
-      for (repeat = 0; repeat < 3; ++repeat) {
-        g_debugBoxVerts[(y * 2 + x) * 3 + repeat] = NTempest::C3Vector(verts[x].x, verts[y].y, verts[1].z);
+  dst = g_debugBoxVerts.Ptr();
+  {
+    NTempest::C3Vector verts[2];
+
+    verts[0] = verts[1] = position;
+    verts[0].x -= boxHalfDepth;
+    verts[0].y -= boxHalfDepth;
+    verts[0].z += boxHalfDepth * 1.849399f;
+    verts[1].x += boxHalfDepth;
+    verts[1].y += boxHalfDepth;
+    verts[1].z += boxHeight;
+
+    for (y = 0; y < 2; ++y) {
+      for (x = 0; x < 2; ++x, dst += 3) {
+        dst[0].Set(verts[x].x, verts[y].y, verts[1].z);
+        dst[1] = dst[0];
+        dst[2] = dst[0];
       }
     }
-  }
-  for (y = 0; y < 2; ++y) {
-    for (x = 0; x < 2; ++x) {
-      for (repeat = 0; repeat < 4; ++repeat) {
-        g_debugBoxVerts[12 + (y * 2 + x) * 4 + repeat] = NTempest::C3Vector(verts[x].x, verts[y].y, verts[0].z);
+    for (y = 0; y < 2; ++y) {
+      for (x = 0; x < 2; ++x, dst += 4) {
+        dst[0].Set(verts[x].x, verts[y].y, verts[0].z);
+        dst[1] = dst[0];
+        dst[2] = dst[0];
+        dst[3] = dst[0];
       }
     }
   }
@@ -237,69 +236,96 @@ void CollisionInfoSetFallBox(const NTempest::C3Vector &position, float boxHalfDe
   }
 
   g_debugBoxNormals.SetCount(32);
+
+  NTempest::C3Vector normX[2];
+  NTempest::C3Vector normY[2];
+
+  normX[0].Set(-1.0f, 0.0f, 0.0f);
+  normX[1].Set(1.0f, 0.0f, 0.0f);
+  normY[0].Set(0.0f, -1.0f, 0.0f);
+  normY[1].Set(0.0f, 1.0f, 0.0f);
+
+  dst = g_debugBoxNormals.Ptr();
   for (y = 0; y < 2; ++y) {
-    for (x = 0; x < 2; ++x) {
-      index = (y * 2 + x) * 3;
-      g_debugBoxNormals[index] = normX[x];
-      g_debugBoxNormals[index + 1] = normY[y];
-      g_debugBoxNormals[index + 2] = NTempest::C3Vector(0.0f, 0.0f, 1.0f);
+    for (x = 0; x < 2; ++x, dst += 3) {
+      dst[0] = normX[x];
+      dst[1] = normY[y];
+      dst[2].Set(0.0f, 0.0f, 1.0f);
     }
   }
+
+  NTempest::C3Vector normZX[2];
+  NTempest::C3Vector normZY[2];
+
+  normZX[0].Set(-0.87964189f, 0.0f, -0.4756366f);
+  normZX[1].Set(0.87964189f, 0.0f, -0.4756366f);
+  normZY[0].Set(0.0f, -0.87964189f, -0.4756366f);
+  normZY[1].Set(0.0f, 0.87964189f, -0.4756366f);
+
   for (y = 0; y < 2; ++y) {
-    for (x = 0; x < 2; ++x) {
-      index = 12 + (y * 2 + x) * 4;
-      g_debugBoxNormals[index] = normX[x];
-      g_debugBoxNormals[index + 1] = normY[y];
-      g_debugBoxNormals[index + 2] = normZX[x];
-      g_debugBoxNormals[index + 3] = normZY[y];
+    for (x = 0; x < 2; ++x, dst += 3) {
+      dst[0] = normX[x];
+      dst[1] = normY[y];
+      dst[2] = normZX[x];
+      dst[3] = normZY[y];
     }
   }
-  g_debugBoxNormals[28] = normZX[0];
-  g_debugBoxNormals[29] = normZY[0];
-  g_debugBoxNormals[30] = normZX[1];
-  g_debugBoxNormals[31] = normZY[1];
+  dst[0] = normZX[0];
+  dst[1] = normZY[0];
+  dst[2] = normZX[1];
+  dst[3] = normZY[1];
 
-  g_debugBoxIndices.SetCount(42);
-  for (index = 0; index < 42; ++index) {
-    g_debugBoxIndices[index] = boxIndices[index];
-  }
+  const WORD boxIndices[42] = {0, 6,  12, 12, 6,  20, 1, 13, 4, 4,  13, 17, 21, 7,  25, 25, 7,  10, 16, 24, 3,
+                               3, 24, 9,  5,  11, 2,  2, 11, 8, 15, 29, 19, 18, 28, 26, 27, 31, 23, 22, 30, 14};
 
-  halfBoxHeight = position.z + (boxHalfDepth * 1.849399f + boxHeight) * 0.5f;
-  normal = NTempest::C3Vector(-1.0f, 0.0f, 0.0f);
-  start = NTempest::C3Vector(position.x - boxHalfDepth, position.y, halfBoxHeight);
+  g_debugBoxIndices.Set(42, boxIndices);
+
+  float              halfBoxHeight = (boxHalfDepth * 1.849399f + boxHeight) * 0.5f + position.z;
+  NTempest::C3Vector normal;
+  NTempest::C3Vector start;
+
+  start.Set(position.x - boxHalfDepth, position.y, halfBoxHeight);
+  normal.Set(-1.0f, 0.0f, 0.0f);
   AddNormalLine(normal, start, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
-  normal = NTempest::C3Vector(1.0f, 0.0f, 0.0f);
-  start.x = position.x + boxHalfDepth;
+  start.Set(boxHalfDepth + position.x, position.y, halfBoxHeight);
+  normal.Set(1.0f, 0.0f, 0.0f);
   AddNormalLine(normal, start, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
-  normal = NTempest::C3Vector(0.0f, -1.0f, 0.0f);
-  start = NTempest::C3Vector(position.x, position.y - boxHalfDepth, halfBoxHeight);
+  start.Set(position.x, position.y - boxHalfDepth, halfBoxHeight);
+  normal.Set(0.0f, -1.0f, 0.0f);
   AddNormalLine(normal, start, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
-  normal = NTempest::C3Vector(0.0f, 1.0f, 0.0f);
-  start.y = position.y + boxHalfDepth;
+  start.Set(position.x, boxHalfDepth + position.y, halfBoxHeight);
+  normal.Set(0.0f, 1.0f, 0.0f);
   AddNormalLine(normal, start, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
-  normal = NTempest::C3Vector(0.0f, 0.0f, 1.0f);
-  start = NTempest::C3Vector(position.x, position.y, position.z + boxHeight);
+  start.Set(position.x, position.y, boxHeight + position.z);
+  normal.Set(0.0f, 0.0f, 1.0f);
   AddNormalLine(normal, start, 0.83333331f, &g_debugNormalVerts, &g_debugNormalIndices);
 }
 
 void CollisionInfoAddBox(const NTempest::C3Vector &boxMin, const NTempest::C3Vector &boxMax) {
-  NTempest::C3Vector        boxVerts[8];
-  NTempest::C3Vector        boxNormals[6] = {NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(-1.0f, 0.0f, 0.0f),
-                                             NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.0f, -1.0f, 0.0f),
-                                             NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, -1.0f)};
-  const NTempest::C3Vector *verts[2] = {&boxMin, &boxMax};
-  UINT                      z;
-
   if (!s_acceptingFacets) {
     return;
   }
 
+  NTempest::C3Vector        boxVerts[8];
+  const NTempest::C3Vector *verts[2] = {&boxMin, &boxMax};
+  UINT                      z;
+
   for (z = 0; z < 2; ++z) {
     for (UINT y = 0; y < 2; ++y) {
-      boxVerts[z * 4 + y * 2] = NTempest::C3Vector(verts[0]->x, verts[y]->y, verts[z]->z);
-      boxVerts[z * 4 + y * 2 + 1] = NTempest::C3Vector(verts[1]->x, verts[y]->y, verts[z]->z);
+      for (UINT x = 0; x < 2; ++x) {
+        boxVerts[z * 4 + y * 2 + x].Set(verts[x]->x, verts[y]->y, verts[z]->z);
+      }
     }
   }
+
+  NTempest::C3Vector boxNormals[6];
+
+  boxNormals[0].Set(1.0f, 0.0f, 0.0f);
+  boxNormals[1].Set(-1.0f, 0.0f, 0.0f);
+  boxNormals[2].Set(0.0f, 1.0f, 0.0f);
+  boxNormals[3].Set(0.0f, -1.0f, 0.0f);
+  boxNormals[4].Set(0.0f, 0.0f, 1.0f);
+  boxNormals[5].Set(0.0f, 0.0f, -1.0f);
 
   BuildDisplayBox(boxVerts, boxNormals, &g_debugBoxVerts, &g_debugBoxNormals, &g_debugBoxIndices, 0);
 }

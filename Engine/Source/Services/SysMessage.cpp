@@ -65,50 +65,24 @@ void MSGBUFFER::SetInfo(LPCSTR newString, SYSMSG_TYPE newSeverity, UINT categori
   categoryMask = categories;
 }
 
-static void GenerateMaskString(char *buffer, UINT size, UINT maskString) {
-  char maskLetters[7];
-  UINT i;
-
-  for (i = 0; i < 7; ++i) {
-    maskLetters[i] = maskString & (1 << i) ? s_categoryMaskLetters[i] : '-';
-  }
-
-  SStrPrintf(
-      buffer, size, "%c%c%c%c%c%c%c", maskLetters[0], maskLetters[1], maskLetters[2], maskLetters[3], maskLetters[4], maskLetters[5], maskLetters[6]
-  );
-}
-
-static BOOL DetermineFileName(LPCSTR curDir, char *buffer, UINT size) {
-  UINT index;
-
-  for (index = 0; index < 1000; ++index) {
-    ASSERT(curDir);
-
-    SStrPrintf(buffer, size, "%sSysMsgLog%03d.txt", curDir, index);
-    if (!OsFileExists(buffer)) {
-      return 1;
-    }
-  }
-
-  return 0;
-}
-
 BOOL SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask) {
   char string[512];
-  char maskString[32] = "";
-
-  FATALASSERT(msg);
 
   VALIDATEBEGIN;
+  VALIDATE(msg);
   VALIDATE(severity < SYSMSG_NUMTYPES);
   VALIDATEEND;
 
   if (severity >= s_minSeverity && severity <= s_maxSeverity && (categoryMask & s_categoryFilter) && s_enabled && msg[0]) {
+    char maskString[32] = "";
+
     GenerateMaskString(maskString, sizeof(maskString), categoryMask);
     SStrPrintf(string, sizeof(string), "%s|%s|%s\r\n", maskString, s_severityStrings[severity], msg);
 
     if (s_osFile) {
-      OsWriteFile(s_osFile, string, SStrLen(string), reinterpret_cast<DWORD *>(&categoryMask));
+      DWORD dummy;
+
+      OsWriteFile(s_osFile, string, SStrLen(string), &dummy);
     }
 
     if (s_callback) {
@@ -117,6 +91,23 @@ BOOL SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask) {
   }
 
   return 1;
+}
+
+static void GenerateMaskString(char *buffer, UINT size, UINT maskString) {
+  char maskLetters[7];
+  UINT i;
+
+  for (i = 0; i < 7; ++i) {
+    if (maskString & (1 << i)) {
+      maskLetters[i] = s_categoryMaskLetters[i];
+    } else {
+      maskLetters[i] = '-';
+    }
+  }
+
+  SStrPrintf(
+      buffer, size, "%c%c%c%c%c%c%c", maskLetters[0], maskLetters[1], maskLetters[2], maskLetters[3], maskLetters[4], maskLetters[5], maskLetters[6]
+  );
 }
 
 BOOL SysMsgAdd(const CStatus &status, UINT categoryMask) {
@@ -243,6 +234,21 @@ void SysMsgEnableFileLog(LPCSTR baseDir) {
   if (s_osFile == reinterpret_cast<HOSFILE>(-1)) {
     s_osFile = 0;
   }
+}
+
+static BOOL DetermineFileName(LPCSTR curDir, char *buffer, UINT size) {
+  UINT index;
+
+  for (index = 0; index < 1000; ++index) {
+    ASSERT(curDir);
+
+    SStrPrintf(buffer, size, "%sSysMsgLog%03d.txt", curDir, index);
+    if (!OsFileExists(buffer)) {
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
 void SysMsgDisableFileLog() {

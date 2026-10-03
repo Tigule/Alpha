@@ -393,13 +393,12 @@ BOOL CParticleEmitter2::MoveParticle(CParticle2_Model &p, float elapsedTime) {
 BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
   UINT randomIndex = 0;
   if (m_twinkleOnOff < 1.0f || m_twinkleScaleRange != 0.0f) {
-    randomIndex = ((reinterpret_cast<DWORD>(&p) >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & 0x7F;
+    randomIndex = ((reinterpret_cast<DWORD>(&p) >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & RND_TABLE_MASK;
   }
-  if (m_rndTable[randomIndex] > m_twinkleOnOff) {
+  if (m_twinkleOnOff < 1.0f && m_rndTable[randomIndex] > m_twinkleOnOff) {
     return 0;
   }
 
-  ASSERT(p.m_keyFrame < m_particleKeys.Count());
   NTempest::CImVector color;
   int                 headCell;
   int                 tailCell;
@@ -407,28 +406,31 @@ BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
   m_particleKeys[p.m_keyFrame].Interpolate(p.m_age, color, headCell, tailCell, scale);
 
   if (GxCaps().m_colorFormat == GxCF_rgba) {
-    color.Set(color.a, color.b, color.g, color.r);
+    color = NTempest::CImVector(color.a, color.b, color.g, color.r);
   }
-  scale *= m_twinkleScaleMin + m_rndTable[randomIndex] * m_twinkleScaleRange;
+  if (m_twinkleScaleRange != 0.0f) {
+    scale *= m_rndTable[randomIndex] * m_twinkleScaleRange + m_twinkleScaleMin;
+  }
   if (m_inheritScale) {
     scale *= m_frameScale;
   }
 
-  NTempest::C3Vector viewPosition = p.m_position * s_particleToView;
-  CGxVertexPNCT0    *vertex = vtx;
+  NTempest::C3Vector vp = p.m_position * s_particleToView;
 
   if (m_particleHasHead) {
-    UINT  cell = static_cast<UINT>(headCell);
-    float texU = (cell % m_textureColumns) * m_ooTextureWidth;
-    float texV = (cell / m_textureColumns) * m_ooTextureHeight;
+    float tu = (headCell & (m_textureColumns - 1)) * m_ooTextureWidth;
+    float tv = (headCell >> m_textureLog) * m_ooTextureHeight;
 
-    if (m_particleAngularVelocity == 0.0f) {
-      for (UINT i = 0; i < 4; ++i) {
+    if (!*reinterpret_cast<DWORD *>(&m_particleAngularVelocity)) {
+      for (UINT i = 0; i < 4; ++i, ++vtx) {
         if (m_xyQuads) {
-          vertex[i].p = viewPosition + s_quadVectors[i] * scale;
+          vtx->p = scale * s_quadVectors[i] + vp;
         } else {
-          vertex[i].p = NTempest::C3Vector(viewPosition.x + vc[i][0] * scale, viewPosition.y + vc[i][1] * scale, viewPosition.z);
+          vtx->p = NTempest::C3Vector(scale * vc[i][0] + vp.x, scale * vc[i][1] + vp.y, vp.z);
         }
+        vtx->n = s_particleNormal;
+        vtx->c = color;
+        vtx->tc[0] = NTempest::C2Vector(tc[i][0] * m_ooTextureWidth + tu, tc[i][1] * m_ooTextureHeight + tv);
       }
     } else {
       float theta = p.m_age * m_particleAngularVelocity;
@@ -436,72 +438,79 @@ BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
         theta = -theta;
       }
 
-      if (m_xyQuads) {
-        NTempest::C33Matrix spin = NTempest::C33Matrix::Rotation(theta, m_xyAxis, true);
-        for (UINT i = 0; i < 4; ++i) {
-          const NTempest::C3Vector &base = s_quadVectors[i];
-          NTempest::C3Vector        rotated(
-              base.x * spin.a0 + base.y * spin.b0 + base.z * spin.c0, base.x * spin.a1 + base.y * spin.b1 + base.z * spin.c1,
-              base.x * spin.a2 + base.y * spin.b2 + base.z * spin.c2
-          );
-          vertex[i].p = viewPosition + rotated * scale;
+      float st;
+      float ct;
+      NTempest::CMath::sincos_(theta, st, ct);
+
+      for (UINT i = 0; i < 4; ++i, ++vtx) {
+        if (m_xyQuads) {
+          NTempest::C33Matrix spinMtx = NTempest::C33Matrix::Rotation(theta, m_xyAxis, true);
+          vtx->p = (spinMtx * s_quadVectors[i]) * scale + vp;
+        } else {
+          float x = scale * vc[i][0];
+          float y = scale * vc[i][1];
+          vtx->p.x = x * ct - y * st + vp.x;
+          vtx->p.y = y * ct + x * st + vp.y;
+          vtx->p.z = vp.z;
         }
-      } else {
-        float cosine = NTempest::CMath::cos_(theta);
-        float sine = NTempest::CMath::sin_(theta);
-        for (UINT i = 0; i < 4; ++i) {
-          float x = vc[i][0] * cosine - vc[i][1] * sine;
-          float y = vc[i][0] * sine + vc[i][1] * cosine;
-          vertex[i].p = NTempest::C3Vector(viewPosition.x + x * scale, viewPosition.y + y * scale, viewPosition.z);
-        }
+        vtx->n = s_particleNormal;
+        vtx->c = color;
+        vtx->tc[0] = NTempest::C2Vector(tc[i][0] * m_ooTextureWidth + tu, tc[i][1] * m_ooTextureHeight + tv);
       }
     }
+  }
 
-    for (UINT i = 0; i < 4; ++i) {
-      vertex[i].n = s_particleNormal;
-      vertex[i].c = color;
-      vertex[i].tc[0] = NTempest::C2Vector(texU + tc[i][0] * m_ooTextureWidth, texV + tc[i][1] * m_ooTextureHeight);
+  if (m_particleHasTail) {
+    float tu = (tailCell & (m_textureColumns - 1)) * m_ooTextureWidth;
+    float tv = (tailCell >> m_textureLog) * m_ooTextureHeight;
+    float tailLength = m_particleTailLength;
+
+    NTempest::C4Vector tmpV(-p.m_velocity.x, -p.m_velocity.y, -p.m_velocity.z, 0.0f);
+    if (m_tailGrows && tailLength > p.m_age) {
+      tailLength = p.m_age;
     }
-    vertex += 4;
-  }
 
-  if (!m_particleHasTail) {
-    return 1;
-  }
+    NTempest::C4Vector viewVel4d = tmpV * s_particleToView;
+    NTempest::C3Vector viewVel3d = tailLength * static_cast<NTempest::C3Vector>(viewVel4d);
+    NTempest::C3Vector viewVel2d = static_cast<NTempest::C2Vector>(viewVel3d);
+    float              velMag2d = viewVel2d.SquaredMag();
 
-  UINT  cell = static_cast<UINT>(tailCell);
-  float texU = (cell % m_textureColumns) * m_ooTextureWidth;
-  float texV = (cell / m_textureColumns) * m_ooTextureHeight;
-  float tailLength = m_particleTailLength;
-  if (m_tailGrows && tailLength > p.m_age) {
-    tailLength = p.m_age;
-  }
+    if (velMag2d >= 0.00077160494f) {
+      NTempest::C3Vector ep = vp + viewVel3d;
+      viewVel2d *= scale / NTempest::CMath::sqrt_(velMag2d);
 
-  NTempest::C4Vector velocity(-p.m_velocity.x, -p.m_velocity.y, -p.m_velocity.z, 0.0f);
-  NTempest::C4Vector viewVelocity = velocity * s_particleToView;
-  NTempest::C3Vector delta(viewVelocity.x * tailLength, viewVelocity.y * tailLength, viewVelocity.z * tailLength);
-  float              lengthSquared = delta.x * delta.x + delta.y * delta.y;
+      vtx->p = NTempest::C3Vector(vp.x - viewVel2d.y, vp.y + viewVel2d.x, vp.z);
+      vtx->n = s_particleNormal;
+      vtx->c = color;
+      vtx->tc[0] = NTempest::C2Vector(tc[0][0] * m_ooTextureWidth + tu, tc[0][1] * m_ooTextureHeight + tv);
+      ++vtx;
 
-  if (lengthSquared < 0.00077160494f) {
-    for (UINT i = 0; i < 4; ++i) {
-      vertex[i].p = NTempest::C3Vector(viewPosition.x + vc[i][0] * scale, viewPosition.y + vc[i][1] * scale, viewPosition.z);
+      vtx->p = NTempest::C3Vector(vp.x + viewVel2d.y, vp.y - viewVel2d.x, vp.z);
+      vtx->n = s_particleNormal;
+      vtx->c = color;
+      vtx->tc[0] = NTempest::C2Vector(tc[1][0] * m_ooTextureWidth + tu, tc[1][1] * m_ooTextureHeight + tv);
+      ++vtx;
+
+      vtx->p = NTempest::C3Vector(ep.x - viewVel2d.y, ep.y + viewVel2d.x, ep.z);
+      vtx->n = s_particleNormal;
+      vtx->c = color;
+      vtx->tc[0] = NTempest::C2Vector(tc[2][0] * m_ooTextureWidth + tu, tc[2][1] * m_ooTextureHeight + tv);
+      ++vtx;
+
+      vtx->p = NTempest::C3Vector(ep.x + viewVel2d.y, ep.y - viewVel2d.x, ep.z);
+      vtx->n = s_particleNormal;
+      vtx->c = color;
+      vtx->tc[0] = NTempest::C2Vector(tc[3][0] * m_ooTextureWidth + tu, tc[3][1] * m_ooTextureHeight + tv);
+    } else {
+      for (UINT i = 0; i < 4; ++i, ++vtx) {
+        vtx->p = NTempest::C3Vector(scale * vc[i][0] + vp.x, scale * vc[i][1] + vp.y, vp.z);
+        vtx->n = s_particleNormal;
+        vtx->c = color;
+        vtx->tc[0] = NTempest::C2Vector(tc[i][0] * m_ooTextureWidth + tu, tc[i][1] * m_ooTextureHeight + tv);
+      }
     }
-  } else {
-    NTempest::C3Vector end = viewPosition + delta;
-    float              ooLength = scale / NTempest::CMath::sqrt_(lengthSquared);
-    float              halfX = delta.x * ooLength;
-    float              halfY = delta.y * ooLength;
-    vertex[0].p = NTempest::C3Vector(viewPosition.x - halfY, viewPosition.y + halfX, viewPosition.z);
-    vertex[1].p = NTempest::C3Vector(viewPosition.x + halfY, viewPosition.y - halfX, viewPosition.z);
-    vertex[2].p = NTempest::C3Vector(end.x - halfY, end.y + halfX, end.z);
-    vertex[3].p = NTempest::C3Vector(end.x + halfY, end.y - halfX, end.z);
   }
 
-  for (UINT i = 0; i < 4; ++i) {
-    vertex[i].n = s_particleNormal;
-    vertex[i].c = color;
-    vertex[i].tc[0] = NTempest::C2Vector(texU + tc[i][0] * m_ooTextureWidth, texV + tc[i][1] * m_ooTextureHeight);
-  }
   return 1;
 }
 
@@ -604,42 +613,38 @@ void CParticleEmitter2::BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 void CParticleEmitter2::RenderParticles() {
+  NTempest::C44Matrix identity;
   NTempest::C44Matrix worldToView;
   GxXformView(worldToView);
-  NTempest::C44Matrix identity;
   GxXformSetView(identity);
 
   NTempest::C44Matrix viewRelative;
-  viewRelative.d0 = -m_cameraWorldPos.x;
-  viewRelative.d1 = -m_cameraWorldPos.y;
-  viewRelative.d2 = -m_cameraWorldPos.z;
-
-  NTempest::C44Matrix modelToWorld(
-      m_modelToWorld.a0, m_modelToWorld.a1, m_modelToWorld.a2, 0.0f, m_modelToWorld.b0, m_modelToWorld.b1, m_modelToWorld.b2, 0.0f, m_modelToWorld.c0,
-      m_modelToWorld.c1, m_modelToWorld.c2, 0.0f, m_modelToWorld.d0, m_modelToWorld.d1, m_modelToWorld.d2, 1.0f
-  );
+  *viewRelative.Row3AsVec3() = -m_cameraWorldPos;
 
   if (m_useModelSpace) {
-    s_particleToView = modelToWorld * viewRelative * worldToView;
+    s_particleToView = NTempest::C44Matrix(m_modelToWorld) * viewRelative * worldToView;
   } else {
     s_particleToView = viewRelative * worldToView;
   }
 
   if (m_xyQuads) {
-    static NTempest::C44Matrix quadToView;
-    static NTempest::C3Vector  vcv[4] = {
+    static NTempest::C3Vector vcv[4] = {
         NTempest::C3Vector(-1.0f, 1.0f, 0.0f), NTempest::C3Vector(-1.0f, -1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f),
         NTempest::C3Vector(1.0f, -1.0f, 0.0f)
     };
-    quadToView = m_useModelSpace ? s_particleToView : modelToWorld * s_particleToView;
-    for (UINT i = 0; i < 4; ++i) {
-      s_quadVectors[i] = NTempest::C3Vector(
-          vcv[i].x * quadToView.a0 + vcv[i].y * quadToView.b0 + vcv[i].z * quadToView.c0,
-          vcv[i].x * quadToView.a1 + vcv[i].y * quadToView.b1 + vcv[i].z * quadToView.c1,
-          vcv[i].x * quadToView.a2 + vcv[i].y * quadToView.b2 + vcv[i].z * quadToView.c2
-      );
+    static NTempest::C44Matrix quadToView;
+
+    if (m_useModelSpace) {
+      quadToView = s_particleToView;
+    } else {
+      quadToView = NTempest::C44Matrix(m_modelToWorld) * s_particleToView;
     }
-    m_xyAxis = NTempest::C3Vector(quadToView.c0, quadToView.c1, quadToView.c2);
+
+    for (UINT i = 0; i < 4; ++i) {
+      s_quadVectors[i] = NTempest::C44Matrix::mul3v33m_(vcv[i], quadToView);
+    }
+
+    m_xyAxis = *quadToView.Row2AsVec3();
     m_xyAxis.Normalize();
   }
 
@@ -650,15 +655,14 @@ void CParticleEmitter2::RenderParticles() {
     GxRsSet(GxRs_Texture0, texture);
     GxRsSet(GxRs_Blend, m_particleMaterial.alpha);
     GxRsSet(GxRs_Culling, 0);
-    GxRsSet(GxRs_Lighting, !!m_particleMaterial.enableLighting);
-    GxRsSet(GxRs_Fog, !!m_particleMaterial.enableFog);
-    GxRsSet(GxRs_DepthWrite, !!m_particleMaterial.enableDepthWrites);
+    GxRsSet(GxRs_Lighting, m_particleMaterial.enableLighting);
+    GxRsSet(GxRs_Fog, m_particleMaterial.enableFog);
+    GxRsSet(GxRs_DepthWrite, m_particleMaterial.enableDepthWrites);
 
-    UINT maxParticles = Gx_MaxVertices / m_verticesPerParticle;
-    s_maxParticles = m_alive.Count() < maxParticles ? m_alive.Count() : maxParticles;
+    s_maxParticles = Gx_MaxVertices / m_verticesPerParticle;
+    s_maxParticles = min(s_maxParticles, m_alive.Count());
     CGxBuf *buf = GxBufGetDynamic(GxVBF_PNCT0);
-    ASSERT(buf);
-    buf->CountSet(s_maxParticles * m_verticesPerParticle, s_maxParticles * m_indicesPerParticle);
+    buf->CountSet(m_verticesPerParticle * s_maxParticles, m_indicesPerParticle * s_maxParticles);
     buf->m_userCallback = BufRenderParticles;
     buf->m_userArg = this;
     GxBufLock(buf);
@@ -672,50 +676,33 @@ void CParticleEmitter2::RenderParticles() {
 BOOL CParticleEmitter2::RenderParticle(CParticle2_Model &p) {
   UINT randomIndex = 0;
   if (m_twinkleOnOff < 1.0f || m_twinkleScaleRange != 0.0f) {
-    randomIndex = ((reinterpret_cast<DWORD>(&p) >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & 0x7F;
+    randomIndex = ((reinterpret_cast<DWORD>(&p) >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & RND_TABLE_MASK;
   }
-  if (m_rndTable[randomIndex] > m_twinkleOnOff) {
+  if (m_twinkleOnOff < 1.0f && m_rndTable[randomIndex] > m_twinkleOnOff) {
     return 0;
   }
 
-  ASSERT(p.m_keyFrame < m_particleKeys.Count());
   NTempest::CImVector color;
   int                 headCell;
   int                 tailCell;
   float               scale;
   m_particleKeys[p.m_keyFrame].Interpolate(p.m_age, color, headCell, tailCell, scale);
-  scale *= m_twinkleScaleMin + m_rndTable[randomIndex] * m_twinkleScaleRange;
+  if (m_twinkleScaleRange != 0.0f) {
+    scale *= m_rndTable[randomIndex] * m_twinkleScaleRange + m_twinkleScaleMin;
+  }
   if (m_inheritScale) {
     scale *= m_frameScale;
   }
 
-  float               x = p.m_rotation.x;
-  float               y = p.m_rotation.y;
-  float               z = p.m_rotation.z;
-  float               w = p.m_rotation.w;
-  float               xx = x * x;
-  float               yy = y * y;
-  float               zz = z * z;
-  float               xy = x * y;
-  float               xz = x * z;
-  float               yz = y * z;
-  float               xw = x * w;
-  float               yw = y * w;
-  float               zw = z * w;
-  NTempest::C34Matrix particleMatrix(
-      1.0f - 2.0f * (yy + zz), 2.0f * (xy + zw), 2.0f * (xz - yw), 2.0f * (xy - zw), 1.0f - 2.0f * (xx + zz), 2.0f * (yz + xw), 2.0f * (xz + yw),
-      2.0f * (yz - xw), 1.0f - 2.0f * (xx + yy), p.m_position.x, p.m_position.y, p.m_position.z
-  );
+  NTempest::C34Matrix particleMatrix = static_cast<NTempest::C33Matrix>(p.m_rotation);
   particleMatrix.Scale(scale);
+  *particleMatrix.Row3AsVec3() = p.m_position;
   if (m_useModelSpace) {
     particleMatrix *= m_modelToWorld;
   }
-  particleMatrix.d0 -= m_cameraWorldPos.x;
-  particleMatrix.d1 -= m_cameraWorldPos.y;
-  particleMatrix.d2 -= m_cameraWorldPos.z;
+  *particleMatrix.Row3AsVec3() -= m_cameraWorldPos;
 
-  NTempest::C3Vector zero;
-  ModelAnimate(m_model, particleMatrix, 1.0f, zero, zero);
+  ModelAnimate(m_model, particleMatrix, 1.0f, NTempest::C3Vector(0.0f), NTempest::C3Vector(0.0f));
   ModelSetVertexColor(m_model, color.r, color.g, color.b, 0);
   ModelSetVertexAlpha(m_model, color.a, 0);
   ModelRender(m_model, 0, 0);
@@ -731,9 +718,12 @@ void CParticleEmitter2::RenderParticleModels() {
   GxXformView(worldToView);
 
   if (m_sortZ) {
-    NTempest::C34Matrix particleToView = m_useModelSpace ? (NTempest::C44Matrix(m_modelToWorld) * worldToView).operator NTempest::C34Matrix()
-                                                         : worldToView.operator NTempest::C34Matrix();
-
+    NTempest::C34Matrix particleToView;
+    if (m_useModelSpace) {
+      particleToView = NTempest::C44Matrix(m_modelToWorld) * worldToView;
+    } else {
+      particleToView = worldToView;
+    }
     UINT loop;
     for (loop = 0; loop < m_alive.Count(); ++loop) {
       CSortableParticleRecord sp;
@@ -936,11 +926,9 @@ void CParticleEmitter2::SingletonMgrUpdate(float elapsedTime, const NTempest::C3
 void CParticleEmitter2::UpdateXform(const NTempest::C34Matrix &modelToWorld, const NTempest::C3Vector &cameraWorldPos) {
   m_cameraWorldPos = cameraWorldPos;
   m_modelToWorld = modelToWorld;
-  m_modelToWorld.d0 += m_cameraWorldPos.x;
-  m_modelToWorld.d1 += m_cameraWorldPos.y;
-  m_modelToWorld.d2 += m_cameraWorldPos.z;
+  *m_modelToWorld.Row3AsVec3() += m_cameraWorldPos;
 
-  m_frameScale = NTempest::CMath::sqrt_(modelToWorld.a0 * modelToWorld.a0 + modelToWorld.a1 * modelToWorld.a1 + modelToWorld.a2 * modelToWorld.a2);
+  m_frameScale = modelToWorld.Row0AsVec3()->Mag();
 }
 
 void CParticleEmitter2::Update(float elapsedTime, const NTempest::C34Matrix &modelToWorld, const NTempest::C3Vector &cameraWorldPos) {
@@ -1039,9 +1027,7 @@ void CParticleEmitter2::InternalUpdate(float elapsedTime, int suppressNewParticl
     elapsedTime = 0.0f;
   }
 
-  if (elapsedTime <= s_maxTimeStep) {
-    m_stepFollowVector = m_followVector;
-  } else {
+  if (elapsedTime > s_maxTimeStep) {
     float numSteps = static_cast<float>(floor(elapsedTime / s_maxTimeStep));
     elapsedTime -= s_maxTimeStep * numSteps;
 
@@ -1053,15 +1039,14 @@ void CParticleEmitter2::InternalUpdate(float elapsedTime, int suppressNewParticl
       numSteps = 255.0f;
     }
 
-    BYTE  steps = NTempest::CMath::ftol_0_256_(numSteps);
-    float ooSteps = 1.0f / (steps + 1);
-    m_stepFollowVector.x = ooSteps * m_followVector.x;
-    m_stepFollowVector.y = ooSteps * m_followVector.y;
-    m_stepFollowVector.z = ooSteps * m_followVector.z;
+    UINT steps = NTempest::CMath::ftol_0_256_(numSteps);
+    m_stepFollowVector = (1.0f / (steps + 1)) * m_followVector;
 
     for (UINT index = 0; index < steps; ++index) {
       StepUpdate(s_maxTimeStep, suppressNewParticles);
     }
+  } else {
+    m_stepFollowVector = m_followVector;
   }
 
   StepUpdate(elapsedTime, suppressNewParticles);
