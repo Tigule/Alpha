@@ -1,6 +1,6 @@
 /* zconf.h -- configuration of the zlib compression library
- * Copyright (C) 1995-2002 Jean-loup Gailly.
- * For conditions of distribution and use, see copyright notice in zlib.h
+ * Copyright (C) 1995-1998 Jean-loup Gailly.
+ * For conditions of distribution and use, see copyright notice in zlib.h 
  */
 
 /* @(#) $Id$ */
@@ -196,15 +196,6 @@
 #  endif
 #endif
 
-#if defined(_MSC_VER) && _MSC_VER == 1200
-#  ifndef ZEXPORT
-#    define ZEXPORT
-#  endif
-#  ifndef ZEXPORTVA
-#    define ZEXPORTVA __cdecl
-#  endif
-#endif
-
 #ifndef ZEXPORT
 #  define ZEXPORT
 #endif
@@ -219,9 +210,7 @@
 #   define FAR
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
-typedef unsigned char  Byte;  /* 8 bits */
-#elif !defined(MACOS) && !defined(TARGET_OS_MAC)
+#if !defined(MACOS) && !defined(TARGET_OS_MAC)
 typedef unsigned char  Byte;  /* 8 bits */
 #endif
 typedef unsigned int   uInt;  /* 16 bits or more */

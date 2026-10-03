@@ -94,4 +94,4 @@ Libraries:
 * `Expat` 1.95.5
 * `FreeType` 2.0
 * `Lua` 5.0
-* `Zlib` 1.1.4
+* `Zlib` 1.1.3
