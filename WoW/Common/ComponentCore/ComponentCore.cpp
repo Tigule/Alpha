@@ -268,7 +268,7 @@ class CTexComponent : public CTexturePiece {
 };
 
 static const UINT s_tabardSectionFlags = 0x60;
-static LPCSTR     s_tabardSectionSuffix[NUM_TEXCOMPONENT_SECTIONS] = {0, 0, 0, 0, 0, 0, "_TU", "_TL", 0, 0};
+static LPCSTR     s_tabardSectionSuffix[NUM_TEXCOMPONENT_SECTIONS] = {0, 0, 0, 0, 0, "_TU", "_TL", 0, 0, 0};
 
 static HTEXTURECACHE         s_textureCacheHandle;
 static UINT                  s_numSectionsMask;
@@ -734,9 +734,6 @@ void CTexComponent::PasteTabardTexture(CStatus *status, TEXCOMPONENT_SECTIONS se
   char                emblemName[MAX_PATH];
   char                backgroundName[MAX_PATH];
   char                borderName[MAX_PATH];
-  CTexturePiece       background;
-  CTexturePiece       emblem;
-  CTexturePiece       border;
   TEXCOMPONENT_LAYERS layer;
   UINT                x;
   UINT                width;
@@ -751,6 +748,10 @@ void CTexComponent::PasteTabardTexture(CStatus *status, TEXCOMPONENT_SECTIONS se
   layer = g_sectionLayers[INDEX_TABARD_TYPE].layers[section];
   priority = g_sectionPriorities[INDEX_TABARD_TYPE].priorities[section];
   CTexturePiece &piece = m_sections[section].m_layers[layer].m_priorities[priority];
+
+  CTexturePiece background;
+  CTexturePiece emblem;
+  CTexturePiece border;
 
   GetTabardBackgroundFileName(section, m_background, backgroundName, sizeof(backgroundName));
   GetTabardEmblemFileName(section, m_emblemStyle, m_emblemColor, emblemName, sizeof(emblemName));

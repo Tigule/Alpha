@@ -38,18 +38,16 @@
 #include <string.h>
 #include <stdlib.h>
 
-static void GuildCallback(int id, const DWORDLONG &guid, LPVOID, bool granted);
+#define UPPER_EMBLEM_TEXTURE_WIDTH  128
+#define UPPER_EMBLEM_TEXTURE_HEIGHT 64
+#define LOWER_EMBLEM_TEXTURE_WIDTH  128
+#define LOWER_EMBLEM_TEXTURE_HEIGHT 32
+
+static void EmblemTextureUpdate(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
 
 static const int s_maxVariations[TABARDVARS_NUMVARS] = {42, 4, 2, 4, 19};
 
-static void EmblemTextureUpdate(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
-  if (cmd == GxTex_Latch) {
-    texelStrideInBytes = 4 * w;
-    texels = static_cast<TSFixedArray<NTempest::CImVector> *>(userArg)->Ptr();
-  }
-}
-
-static void GuildCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
+void GuildCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(359);
   }
@@ -99,7 +97,7 @@ void CGTabardModelFrame::InitializeModel(HMODEL model) {
 }
 
 void CGTabardModelFrame::InitializeTabardColors(const CGPlayer_C *playerPtr) {
-  const GuildStats_C *guild = g_guildInfoCache.GetRecord(playerPtr->GetGuildID(), 0, GuildCallback, 0);
+  const GuildStats_C *guild = g_guildInfoCache.GetRecord(playerPtr->GetGuildID(), 0, 0, 0);
   if (guild && guild->m_emblemStyle != -1 && guild->m_emblemColor != -1 && guild->m_borderStyle != -1 && guild->m_borderColor != -1 &&
       guild->m_backgroundColor != -1)
   {
@@ -108,12 +106,13 @@ void CGTabardModelFrame::InitializeTabardColors(const CGPlayer_C *playerPtr) {
     m_variations[2] = guild->m_borderStyle;
     m_variations[3] = guild->m_borderColor;
     m_variations[4] = guild->m_backgroundColor;
-  } else {
-    NTempest::CRndSeed seed;
-    seed.SetSeed(OsGetAsyncTimeMs());
-    for (UINT i = 0; i < TABARDVARS_NUMVARS; ++i) {
-      m_variations[i] = NTempest::CMath::mulhwu_(s_maxVariations[i], NTempest::CRandom::uint32_(seed));
-    }
+    return;
+  }
+
+  NTempest::CRndSeed seed;
+  seed.SetSeed(OsGetAsyncTimeMs());
+  for (int i = 0; i < TABARDVARS_NUMVARS; ++i) {
+    m_variations[i] = NTempest::CRandom::dice_(0, s_maxVariations[i] - 1, seed);
   }
 }
 
@@ -132,7 +131,7 @@ void CGTabardModelFrame::UpdateTabard() {
 void CGTabardModelFrame::SaveTabard() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->SaveTabard(m_variations[0], m_variations[1], m_variations[2], m_variations[3], m_variations[4], CGTabardCreationFrame::GetVendor());
+    player->SaveTabard(m_variations[0], m_variations[1], m_variations[2], m_variations[3], m_variations[4], CGGameUI::GetInteractTarget());
   }
 }
 
@@ -175,12 +174,12 @@ static int CGTabardModelFrame_CanSave(lua_State *L) {
 static int CGTabardModelFrame_CycleVariation(lua_State *L) {
   GET_TABARD_MODEL_THIS(L, object);
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
-    luaL_error(L, "Usage: CycleVariation(index, delta)");
+    luaL_error(L, "Usage: CycleVariation(variationIndex, delta)");
     return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 2)) - 1;
   if (index >= 5) {
-    luaL_error(L, "Invalid variation index");
+    luaL_error(L, "Invalid variationIndex in CycleVariation");
     return 0;
   }
   object->CycleVariation(index, static_cast<int>(lua_tonumber(L, 3)));
@@ -233,34 +232,41 @@ static int CGTabardModelFrame_GetUpperEmblemTexture(lua_State *L) {
 
   static TSFixedArray<NTempest::CImVector> pixels;
   if (!pixels.Count()) {
-    pixels.SetCount(128 * 64);
+    pixels.SetCount(UPPER_EMBLEM_TEXTURE_WIDTH * UPPER_EMBLEM_TEXTURE_HEIGHT);
   }
 
   char file[MAX_PATH];
   GetTabardEmblemFileName(5, object->GetVariation(0), object->GetVariation(1), file, MAX_PATH);
-  strncat(file, ".BLP", 259 - strlen(file));
+  SStrPack(file, ".BLP", MAX_PATH);
 
   CBLPFile image;
   if (image.Open(file)) {
-    FATALASSERT(image.Width() == 128);
-    FATALASSERT(image.Height() == 64);
+    FATALASSERT(image.Width() == UPPER_EMBLEM_TEXTURE_WIDTH);
+    FATALASSERT(image.Height() == UPPER_EMBLEM_TEXTURE_HEIGHT);
     BYTE *imageData;
     UINT  stride;
     if (image.Lock(PIXEL_ARGB8888, 0, imageData, stride)) {
       for (UINT i = 0; i < pixels.Count(); ++i) {
-        pixels[i] = NTempest::CImVector(0x00FFFFFF | (static_cast<DWORD>(imageData[4 * i + 3]) << 24));
+        pixels[i].Set(0x00FFFFFF | (static_cast<DWORD>(imageData[4 * i + 3]) << 24));
       }
-      image.Unlock(0);
     }
+    image.Unlock(0);
+    image.Close();
   }
 
   CGxTex *gxTex;
-  GxTexCreate(128, 64, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &pixels, EmblemTextureUpdate, gxTex);
+  GxTexCreate(UPPER_EMBLEM_TEXTURE_WIDTH, UPPER_EMBLEM_TEXTURE_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &pixels, EmblemTextureUpdate, gxTex);
   HTEXTURE handle = TextureCreate(gxTex);
   texture->SetTexture(handle);
   HandleClose(handle);
-  image.Close();
   return 0;
+}
+
+static void EmblemTextureUpdate(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
+  if (cmd == GxTex_Latch) {
+    texelStrideInBytes = 4 * w;
+    texels = static_cast<TSFixedArray<NTempest::CImVector> *>(userArg)->Ptr();
+  }
 }
 
 static int CGTabardModelFrame_GetLowerEmblemTexture(lua_State *L) {
@@ -277,33 +283,33 @@ static int CGTabardModelFrame_GetLowerEmblemTexture(lua_State *L) {
 
   static TSFixedArray<NTempest::CImVector> pixels;
   if (!pixels.Count()) {
-    pixels.SetCount(128 * 64);
+    pixels.SetCount(LOWER_EMBLEM_TEXTURE_WIDTH * LOWER_EMBLEM_TEXTURE_HEIGHT);
   }
 
   char file[MAX_PATH];
   GetTabardEmblemFileName(6, object->GetVariation(0), object->GetVariation(1), file, MAX_PATH);
-  strncat(file, ".BLP", 259 - strlen(file));
+  SStrPack(file, ".BLP", MAX_PATH);
 
   CBLPFile image;
   if (image.Open(file)) {
-    FATALASSERT(image.Width() == 128);
-    FATALASSERT(image.Height() == 64);
+    FATALASSERT(image.Width() == LOWER_EMBLEM_TEXTURE_WIDTH);
+    FATALASSERT(image.Height() == LOWER_EMBLEM_TEXTURE_HEIGHT);
     BYTE *imageData;
     UINT  stride;
     if (image.Lock(PIXEL_ARGB8888, 0, imageData, stride)) {
       for (UINT i = 0; i < pixels.Count(); ++i) {
-        pixels[i] = NTempest::CImVector(0x00FFFFFF | (static_cast<DWORD>(imageData[4 * i + 3]) << 24));
+        pixels[i].Set(0x00FFFFFF | (static_cast<DWORD>(imageData[4 * i + 3]) << 24));
       }
-      image.Unlock(0);
     }
+    image.Unlock(0);
+    image.Close();
   }
 
   CGxTex *gxTex;
-  GxTexCreate(128, 64, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &pixels, EmblemTextureUpdate, gxTex);
+  GxTexCreate(LOWER_EMBLEM_TEXTURE_WIDTH, LOWER_EMBLEM_TEXTURE_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &pixels, EmblemTextureUpdate, gxTex);
   HTEXTURE handle = TextureCreate(gxTex);
   texture->SetTexture(handle);
   HandleClose(handle);
-  image.Close();
   return 0;
 }
 
