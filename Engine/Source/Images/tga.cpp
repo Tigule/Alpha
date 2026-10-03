@@ -68,11 +68,7 @@ BOOL CTgaFile::ValidateColorDepth() {
     return 1;
   }
 
-  if (m_header.bPixelDepth == 16) {
-    SErrSetLastError(0xF720007C);
-  } else {
-    SErrSetLastError(0xF720007D);
-  }
+  SErrSetLastError(m_header.bPixelDepth == 16 ? 0xF720007C : 0xF720007D);
 
   return 0;
 }
@@ -116,10 +112,10 @@ int CTgaFile::ReadColorMappedImage(UINT flags) {
   }
 
   int result;
-  if (m_header.bImageType >= 9) {
-    result = ReadRleImage(0);
-  } else {
+  if (m_header.bImageType < 9) {
     result = ReadRawImage(0);
+  } else {
+    result = ReadRleImage(0);
   }
 
   if (m_header.bColorMapType && (flags & 2)) {
@@ -178,26 +174,27 @@ DWORD CTgaFile::PreImageBytes() {
 }
 
 void CTgaFile::AddAlphaChannel(BYTE *pAlphaData, BYTE *pNoAlphaData, const BYTE *alpha) {
-  UINT pixelCount = m_header.wWidth * m_header.wHeight;
-  UINT pixelBytes = (m_header.bPixelDepth + 7) / 8;
   UINT pixel;
 
-  for (pixel = 0; pixel < pixelCount; ++pixel) {
-    memmove(pAlphaData, pNoAlphaData, pixelBytes);
-    pAlphaData += pixelBytes;
-    pNoAlphaData += pixelBytes;
-
-    if (alpha) {
-      *pAlphaData = *alpha++;
-    } else {
-      *pAlphaData = 0xFF;
+  if (alpha) {
+    for (pixel = Size(); pixel; --pixel) {
+      memmove(pAlphaData, pNoAlphaData, BytesPerPixel());
+      pAlphaData += BytesPerPixel();
+      pNoAlphaData += BytesPerPixel();
+      *pAlphaData++ = *alpha++;
     }
-    ++pAlphaData;
+  } else {
+    for (pixel = Size(); pixel; --pixel) {
+      memmove(pAlphaData, pNoAlphaData, BytesPerPixel());
+      pAlphaData += BytesPerPixel();
+      pNoAlphaData += BytesPerPixel();
+      *pAlphaData++ = 0xFF;
+    }
   }
 
-  m_header.bPixelDepth = static_cast<BYTE>(m_header.bPixelDepth + 8 - m_header.Desc.bAlphaChannelBits);
+  m_header.bPixelDepth += 8 - m_header.Desc.bAlphaChannelBits;
   m_header.Desc.bAlphaChannelBits = 8;
-  m_imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
+  m_imageBytes = Bytes();
 }
 
 BOOL CTgaFile::ReadRawImage(UINT flags) {
@@ -270,32 +267,33 @@ BOOL CTgaFile::ReadRleImage(UINT flags) {
 BOOL CTgaFile::RLEDecompressImage(BYTE *pRLEData, BYTE *pData) {
   ASSERT(pRLEData);
 
-  int  pixelsRemaining = m_header.wWidth * m_header.wHeight;
-  UINT pixelBytes = (m_header.bPixelDepth + 7) / 8;
+  int  lPixelsLeft = Size();
+  UINT pixelBytes = BytesPerPixel();
 
-  while (pixelsRemaining) {
+  while (lPixelsLeft) {
     UINT packetHeader = *pRLEData++;
     int  packetPixels;
 
     if (packetHeader & 0x80) {
       packetPixels = (packetHeader & 0x7F) + 1;
-      pixelsRemaining -= packetPixels;
+      lPixelsLeft -= packetPixels;
 
       int pixel;
-      for (pixel = 0; pixel < packetPixels; ++pixel) {
+      for (pixel = packetPixels; pixel; --pixel) {
         memcpy(pData, pRLEData, pixelBytes);
         pData += pixelBytes;
       }
       pRLEData += pixelBytes;
     } else {
       packetPixels = packetHeader + 1;
-      memcpy(pData, pRLEData, pixelBytes * packetPixels);
-      pixelsRemaining -= packetPixels;
-      pRLEData += pixelBytes * packetPixels;
-      pData += pixelBytes * packetPixels;
+      lPixelsLeft -= packetPixels;
+      packetPixels *= pixelBytes;
+      memcpy(pData, pRLEData, packetPixels);
+      pRLEData += packetPixels;
+      pData += packetPixels;
     }
 
-    if (pixelsRemaining < 0) {
+    if (lPixelsLeft < 0) {
       SErrSetLastError(0xF7200077);
       return 0;
     }
@@ -319,8 +317,7 @@ BOOL CTgaFile::AddAlphaChannel(LPCVOID pImg) {
     RemoveAlphaChannels();
   }
 
-  UINT  pixelCount = m_header.wWidth * m_header.wHeight;
-  BYTE *newImage = static_cast<BYTE *>(ALLOC(pixelCount * (((m_header.bPixelDepth + 7) / 8) + 1)));
+  BYTE *newImage = static_cast<BYTE *>(ALLOC((BytesPerPixel() + 1) * Height() * Width()));
   if (!newImage) {
     return 0;
   }
@@ -454,27 +451,26 @@ BOOL CTgaFile::SetImage(const CTgaFile &source) {
   }
 
   return SetImage(
-      source.Image(), source.m_header.wWidth, source.m_header.wHeight, source.m_header.bPixelDepth, source.m_header.Desc.bAlphaChannelBits,
-      source.m_header.Desc.bTopBottomOrder, source.m_header.Desc.bLeftRightOrder
+      source.Image(), source.Width(), source.Height(), source.PixelDepth(), source.AlphaBits(), source.IsTopDown(), source.IsRightToLeft()
   );
 }
 
 BOOL CTgaFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, BYTE bAlphaBits, BOOL bTopDown, BOOL bRightToLeft) {
-  FATALASSERT(pImg);
-
-  FATALASSERT((bPixelDepth == 32) || (bPixelDepth == 24));
-
-  FATALASSERT((bAlphaBits == 0) || (bAlphaBits == 8));
+  VALIDATEBEGIN;
+  VALIDATE(pImg);
+  VALIDATE((bPixelDepth == 32) || (bPixelDepth == 24));
+  VALIDATE((bAlphaBits == 0) || (bAlphaBits == 8));
+  VALIDATEEND;
 
   memset(&m_header, 0, sizeof(m_header));
+  m_header.bImageType = 2;
+  m_header.wWidth = static_cast<WORD>(width);
+  m_header.wHeight = static_cast<WORD>(height);
   m_header.bPixelDepth = bPixelDepth;
   m_header.Desc.bAlphaChannelBits = bAlphaBits;
   m_header.Desc.bLeftRightOrder = bRightToLeft != 0;
   m_header.Desc.bTopBottomOrder = bTopDown != 0;
-  m_header.bImageType = 2;
-  m_header.wWidth = static_cast<WORD>(width);
-  m_header.wHeight = static_cast<WORD>(height);
-  m_imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
+  m_imageBytes = Bytes();
 
   FREEIFUSED(m_image);
 
@@ -493,10 +489,9 @@ BOOL CTgaFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth,
 BOOL CTgaFile::CountRun(BYTE *pImage, int nMax) {
   ASSERT(pImage != 0);
 
-  UINT pixelBytes = (m_header.bPixelDepth + 7) / 8;
-  int  nCount = 0;
-  UINT dwCheck = 0;
-  memcpy(&dwCheck, pImage, pixelBytes);
+  int   nCount = 0;
+  DWORD dwCheck = 0;
+  memcpy(&dwCheck, pImage, BytesPerPixel());
 
   if (nMax > 128) {
     nMax = 128;
@@ -504,11 +499,11 @@ BOOL CTgaFile::CountRun(BYTE *pImage, int nMax) {
 
   while (nMax) {
     --nMax;
-    if (memcmp(pImage, &dwCheck, pixelBytes)) {
+    if (memcmp(pImage, &dwCheck, BytesPerPixel())) {
       break;
     }
 
-    pImage += pixelBytes;
+    pImage += BytesPerPixel();
     ++nCount;
   }
 
@@ -630,7 +625,7 @@ BOOL CTgaFile::Write(LPCSTR path) {
   if (m_header.bIDLength > 0) {
     ASSERT(m_addlHeaderData);
 
-    if (!OsWriteFile(fileHandle, m_addlHeaderData, m_header.bIDLength, &byteswritten) || m_header.bIDLength != byteswritten) {
+    if (!OsWriteFile(fileHandle, m_addlHeaderData, m_header.bIDLength, &byteswritten) || byteswritten != m_header.bIDLength) {
       goto finallylabel;
     }
   }

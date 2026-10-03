@@ -118,14 +118,14 @@ class RCString : public TRefCnt {
 
 class RCStaticString : public RCString {
  public:
-  RCStaticString &operator=(LPCSTR str) {
-    Copy(str);
-    return *this;
-  }
-
   operator LPCSTR() const {
     LPCSTR itemstring = GetString();
     return itemstring ? itemstring : "";
+  }
+
+  RCStaticString &operator=(LPCSTR str) {
+    Copy(str);
+    return *this;
   }
 };
 

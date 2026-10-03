@@ -6,6 +6,8 @@ from pathlib import Path
 import struct
 from typing import Any, Iterable, Mapping
 
+from .linetag import build_line_tag_normalizer
+
 
 class PDBError(ValueError):
     pass
@@ -76,6 +78,7 @@ class TypeRepository:
     named_types: dict[str, list[int]] = field(default_factory=dict)
     diagnostics: list[str] = field(default_factory=list)
     aliases: dict[int, int] = field(default_factory=dict)
+    normalize_name: Any = None
 
     def resolve(self, index: int) -> TypeNode | None:
         if index < 0x1000:
@@ -293,11 +296,25 @@ def _parse_tpi(data: bytes) -> TypeRepository:
         except (PDBError, struct.error) as exc:
             node = TypeNode(index, f"leaf_0x{leaf:04x}", supported=False, reason=str(exc))
         repo.records[index] = node
-        if node.name and node.kind in {"class", "structure", "union", "enum"}:
-            repo.named_types.setdefault(node.name, []).append(index)
         pos, index = stop, index + 1
     if pos != end or index != last:
         raise PDBError("TPI record count/byte range mismatch")
+    normalize = build_line_tag_normalizer(
+        [node.name for node in repo.records.values()]
+        + [member.name for node in repo.records.values() for member in node.members]
+    )
+    for index, node in list(repo.records.items()):
+        name = normalize(node.name)
+        members = tuple(
+            member if normalize(member.name) == member.name else replace(member, name=normalize(member.name))
+            for member in node.members
+        )
+        if name != node.name or members != node.members:
+            node = replace(node, name=name, members=members)
+            repo.records[index] = node
+        if node.name and node.kind in {"class", "structure", "union", "enum"}:
+            repo.named_types.setdefault(node.name, []).append(index)
+    repo.normalize_name = normalize
     unsupported: dict[str, int] = {}
     resolved_forwards = 0
     for node in repo.records.values():
@@ -606,6 +623,13 @@ def parse_pdb(path: str | Path, data: bytes | None = None) -> PDBData:
         diagnostics.extend(types.diagnostics)
         functions, compilands = _parse_dbi(msf, msf.stream(3), diagnostics)
         checked: list[FunctionSymbol] = []
+        if types.normalize_name is not None:
+            functions = [
+                function if types.normalize_name(function.name) == function.name
+                else replace(function, name=types.normalize_name(function.name),
+                             display_name=types.normalize_name(function.display_name))
+                for function in functions
+            ]
         for function in functions:
             node = types.resolve(function.type_index) if function.type_index is not None else None
             if node is None:

@@ -57,58 +57,67 @@ namespace NTempest {
     long difference;
     do {
       difference = static_cast<long>(estimate - a / estimate) / 2;
-      estimate = (a / estimate + estimate) / 2;
+      estimate = static_cast<long>(a / estimate + estimate) / 2;
     } while (difference);
     return estimate;
   }
 
-  float CMath::atanoid_(float x, const float piOverTwo) {
-    bool negative = x < 0.0f;
-    if (negative) {
+  float CMath::atanoid_(float x, const float _pi_2) {
+    BOOL negative = 0;
+    BOOL reciprocal = 0;
+
+    if (x < -x) {
+      negative = 1;
       x = -x;
     }
 
-    bool reciprocal = x > 1.0f;
-    if (reciprocal) {
+    if (x > 1.0f) {
       x = 1.0f / x;
+      reciprocal = 1;
     }
 
     float x2 = x * x;
-    float result = x + ((0.25906625f - x * 0.04955592f) * x2 + 0.016148888f - x * 0.44026104f) * x2;
+    float result = x + ((0.25906625f - x * 0.04955592f) * x2 + (0.016148888f - x * 0.44026104f)) * x2;
     if (reciprocal) {
-      result = piOverTwo - result;
+      result = _pi_2 - result;
     }
-    return negative ? -result : result;
+    if (negative) {
+      result = -result;
+    }
+    return result;
   }
 
-  double CMath::logoid_(double x, const double a, const double b, const double c, const double d, const double ln2) {
+  double CMath::logoid_(double x, const double _a, const double _b, const double _c, const double _d, const double _ln2) {
     if (x <= 1.0e-307) {
-      return -HUGE_VAL;
+      return 0.0;
     }
     DWORD *words = reinterpret_cast<DWORD *>(&x);
-    long   exponent = static_cast<long>((words[1] >> 20 & 0x7FF) - 1023);
-    words[1] = words[1] & 0xFFFFF | 0x3FF00000;
-    return ((a * x + b) * x * x + x * c + d + exponent) * ln2;
+    DWORD  exponent = words[1];
+    words[1] = exponent & 0xFFFFF | 0x3FF00000;
+    exponent = (exponent >> 20 & 0x7FF) - 1023;
+    return (static_cast<long>(exponent) + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln2;
   }
 
-  double CMath::logoid2_(double x, const double a, const double b, const double c, const double d) {
+  double CMath::logoid2_(double x, const double _a, const double _b, const double _c, const double _d) {
     if (x <= 1.0e-307) {
-      return -HUGE_VAL;
+      return 0.0;
     }
     DWORD *words = reinterpret_cast<DWORD *>(&x);
-    long   exponent = static_cast<long>((words[1] >> 20 & 0x7FF) - 1023);
-    words[1] = words[1] & 0xFFFFF | 0x3FF00000;
-    return (a * x + b) * x * x + x * c + d + exponent;
+    DWORD  exponent = words[1];
+    words[1] = exponent & 0xFFFFF | 0x3FF00000;
+    exponent = (exponent >> 20 & 0x7FF) - 1023;
+    return static_cast<long>(exponent) + ((_a * x + _b) * (x * x) + (x * _c + _d));
   }
 
-  double CMath::logoid10_(double x, const double a, const double b, const double c, const double d, const double ln10) {
+  double CMath::logoid10_(double x, const double _a, const double _b, const double _c, const double _d, const double _ln10) {
     if (x <= 1.0e-307) {
-      return -HUGE_VAL;
+      return 0.0;
     }
     DWORD *words = reinterpret_cast<DWORD *>(&x);
-    long   exponent = static_cast<long>((words[1] >> 20 & 0x7FF) - 1023);
-    words[1] = words[1] & 0xFFFFF | 0x3FF00000;
-    return ((a * x + b) * x * x + x * c + d + exponent) * ln10;
+    DWORD  exponent = words[1];
+    words[1] = exponent & 0xFFFFF | 0x3FF00000;
+    exponent = (exponent >> 20 & 0x7FF) - 1023;
+    return (static_cast<long>(exponent) + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln10;
   }
 
   double CMath::log2_(double y) {
@@ -144,53 +153,62 @@ namespace NTempest {
     return exponent <= 0 ? 0.0 : HUGE_VAL;
   }
 
-  bool CMath::xsectunitsphere_(double x, double y, double z, double dx, double dy, double dz, const double r2) {
+  bool CMath::xsectunitsphere_(double x, double y, double z, double dx, double dy, double dz, const double _r2) {
     double distance2 = x * x + y * y + z * z;
-    double direction = x * dx + y * dy + z * dz;
-    if (distance2 < r2) {
+    x *= dx;
+    double direction = -(y * dy + z * dz);
+    if (distance2 < _r2) {
+    xsect:
       return true;
     }
-    return direction <= 0.0 && distance2 - direction * direction < r2;
+    if (x > direction) {
+    noxsect:
+      return false;
+    }
+    direction -= x;
+    return distance2 - direction * direction < _r2;
   }
 
   bool CMath::solvequad_(double a, double b, double c, double &r1, double &r2) {
-    double discriminant = b * b - 4.0 * a * c;
-    if (discriminant <= 0.0) {
-      return false;
+    double q = a * c * 4.0;
+    double discriminant = b * b;
+    if (discriminant > q) {
+      double root = sqrt_(discriminant - q);
+      q = -0.5 * (b > 0.0 ? b + root : b - root);
+      double div = 1.0 / (a * q);
+      double first = q * q * div;
+      double rb = a * c * div;
+      if (first < rb) {
+        r1 = first;
+        r2 = rb;
+      } else {
+        r2 = first;
+        r1 = rb;
+      }
+      return true;
     }
-    double root = sqrt_(discriminant);
-    double q = -0.5 * (b > 0.0 ? b + root : b - root);
-    double inverse = 1.0 / (a * q);
-    double first = q * q * inverse;
-    double second = a * c * inverse;
-    if (first < second) {
-      r1 = first;
-      r2 = second;
-    } else {
-      r1 = second;
-      r2 = first;
-    }
-    return true;
+    return false;
   }
 
   bool CMath::solvequad_(float a, float b, float c, float &r1, float &r2) {
-    float discriminant = b * b - 4.0f * a * c;
-    if (discriminant <= 0.0f) {
-      return false;
+    float q = a * c * 4.0f;
+    float discriminant = b * b;
+    if (discriminant > q) {
+      float root = sqrt_(discriminant - q);
+      q = -0.5f * (b > 0.0f ? b + root : b - root);
+      float div = 1.0f / (a * q);
+      float first = q * q * div;
+      float rb = a * c * div;
+      if (first < rb) {
+        r1 = first;
+        r2 = rb;
+      } else {
+        r2 = first;
+        r1 = rb;
+      }
+      return true;
     }
-    float root = sqrt_(discriminant);
-    float q = -0.5f * (b > 0.0f ? b + root : b - root);
-    float inverse = 1.0f / (a * q);
-    float first = q * q * inverse;
-    float second = a * c * inverse;
-    if (first < second) {
-      r1 = first;
-      r2 = second;
-    } else {
-      r1 = second;
-      r2 = first;
-    }
-    return true;
+    return false;
   }
 
   void CMath::invertarray_(double *a, DWORD n) {

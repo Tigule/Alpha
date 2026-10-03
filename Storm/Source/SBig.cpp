@@ -6,21 +6,46 @@
 
 class BigBuffer {
  private:
-  TSGrowableArray<UINT> m_data;
-  UINT                  m_offset;
+  mutable TSGrowableArray<UINT> m_data;
+  UINT                          m_offset;
 
-  void GrowToFit(UINT index);
+  void GrowToFit(UINT index) {
+    m_data.GrowToFit(m_offset + index, 1);
+  }
 
  public:
-  BigBuffer();
-  UINT &operator[](UINT index);
-  UINT  operator[](UINT index) const;
-  void  Clear();
-  UINT  Count() const;
-  BOOL  IsUsed(UINT index) const;
-  void  SetCount(UINT count);
-  void  SetOffset(UINT offset);
-  void  Trim() const;
+  BigBuffer() : m_offset(0) {
+  }
+  UINT &operator[](UINT index) {
+    GrowToFit(index);
+    return m_data[m_offset + index];
+  }
+  UINT operator[](UINT index) const {
+    return IsUsed(index) ? m_data[m_offset + index] : 0;
+  }
+  void Clear() {
+    m_data.SetCount(m_offset);
+  }
+  UINT Count() const {
+    return m_data.Count() - m_offset;
+  }
+  BOOL IsUsed(UINT index) const {
+    return m_offset + index < m_data.Count();
+  }
+  void SetCount(UINT count) {
+    m_data.SetCount(m_offset + count);
+  }
+  void SetOffset(UINT offset) {
+    m_offset = offset;
+    if (m_offset) {
+      GrowToFit(-1);
+    }
+  }
+  void Trim() const {
+    while (Count() && !*m_data.Top()) {
+      m_data.SetCount(m_data.Count() - 1);
+    }
+  }
 };
 
 class BigStack {
@@ -33,11 +58,32 @@ class BigStack {
   UINT      m_used;
 
  public:
-  BigStack();
-  BigBuffer &Alloc(UINT *count);
-  void       Free(UINT count);
-  BigBuffer &MakeDistinct(BigBuffer &orig, int required);
-  void       UnmakeDistinct(BigBuffer &orig, BigBuffer &distinct);
+  BigStack() : m_used(0) {
+  }
+  BigBuffer &Alloc(UINT *count) {
+    if (m_used >= 0x10) {
+      SErrDisplayError(0x85100000, __FILE__, __LINE__, "m_used < SIZE", NULL, 1);
+    }
+    if (count) {
+      ++*count;
+    }
+    return m_buffer[m_used++];
+  }
+  void Free(UINT count) {
+    if (count > m_used) {
+      SErrDisplayError(0x85100000, __FILE__, __LINE__, "count <= m_used", NULL, 1);
+    }
+    m_used -= count;
+  }
+  BigBuffer &MakeDistinct(BigBuffer &orig, int required) {
+    return required ? Alloc(NULL) : orig;
+  }
+  void UnmakeDistinct(BigBuffer &orig, BigBuffer &distinct) {
+    if (&orig != &distinct) {
+      orig = distinct;
+      Free(1);
+    }
+  }
 };
 
 typedef TSGrowableArray_<BYTE, 'SBIG', __LINE__> SBigOutputArray;
@@ -49,10 +95,18 @@ class BigData {
   SBigOutputArray m_output;
 
  public:
-  BigBuffer       &Primary();
-  const BigBuffer &Primary() const;
-  BigStack        &Stack() const;
-  SBigOutputArray &Output() const;
+  BigBuffer &Primary() {
+    return m_primary;
+  }
+  const BigBuffer &Primary() const {
+    return m_primary;
+  }
+  BigStack &Stack() const {
+    return (BigStack &)m_stack;
+  }
+  SBigOutputArray &Output() const {
+    return (SBigOutputArray &)m_output;
+  }
 };
 
 static const UINT SMALL_PRIMES[171] = {3,   5,   7,   11,  13,  17,  19,  23,  29,  31,  37,  41,  43,  47,  53,  59,   61,   67,   71,
@@ -69,7 +123,9 @@ static const UINT FERMAT_WITNESS[1] = {2};
 static const BYTE initSeed[8] = {0xB5, 0x3B, 0x12, 0x1F, 0xE5, 0x55, 0x9A, 0x15};
 static const BYTE initMul[8] = {0x50, 0x46, 0x00, 0x00, 0x69, 0x90, 0x00, 0x00};
 
-void TSSwap(BYTE &a, BYTE &b) {
+#define SMALL_BOUND ((DWORDLONG)1 << 32)
+
+inline void TSSwap(BYTE &a, BYTE &b) {
   BYTE temp = a;
   a = b;
   b = temp;
@@ -126,100 +182,6 @@ static void      ToStr(SBigOutputArray &output, const BigBuffer &a, BigStack &st
 static void      ToStream(SBigOutputArray &output, const BigBuffer &a);
 static void      ToUnsigned(UINT *val, const BigBuffer &a);
 
-void BigBuffer::GrowToFit(UINT index) {
-  m_data.GrowToFit(m_offset + index, 1);
-}
-
-BigBuffer::BigBuffer() : m_offset(0) {
-}
-
-UINT &BigBuffer::operator[](UINT index) {
-  GrowToFit(index);
-  return m_data[m_offset + index];
-}
-
-UINT BigBuffer::operator[](UINT index) const {
-  return IsUsed(index) ? m_data.Ptr()[m_offset + index] : 0;
-}
-
-void BigBuffer::Clear() {
-  m_data.SetCount(m_offset);
-}
-
-UINT BigBuffer::Count() const {
-  return m_data.Count() - m_offset;
-}
-
-BOOL BigBuffer::IsUsed(UINT index) const {
-  return m_offset + index < m_data.Count();
-}
-
-void BigBuffer::SetCount(UINT count) {
-  m_data.SetCount(m_offset + count);
-}
-
-void BigBuffer::SetOffset(UINT offset) {
-  m_offset = offset;
-  if (m_offset) {
-    GrowToFit(-1);
-  }
-}
-
-void BigBuffer::Trim() const {
-  UINT count = Count();
-  while (count && !(*this)[count - 1]) {
-    --count;
-  }
-  ((BigBuffer *)this)->SetCount(count);
-}
-
-BigStack::BigStack() : m_used(0) {
-}
-
-BigBuffer &BigStack::Alloc(UINT *count) {
-  if (m_used >= 0x10) {
-    SErrDisplayError(0x85100000, __FILE__, __LINE__, "m_used < SIZE", NULL, 1);
-  }
-  if (count) {
-    ++*count;
-  }
-  return m_buffer[m_used++];
-}
-
-void BigStack::Free(UINT count) {
-  if (count > m_used) {
-    SErrDisplayError(0x85100000, __FILE__, __LINE__, "count <= m_used", NULL, 1);
-  }
-  m_used -= count;
-}
-
-BigBuffer &BigStack::MakeDistinct(BigBuffer &orig, int required) {
-  return required ? Alloc(NULL) : orig;
-}
-
-void BigStack::UnmakeDistinct(BigBuffer &orig, BigBuffer &distinct) {
-  if (&orig != &distinct) {
-    orig = distinct;
-    Free(1);
-  }
-}
-
-BigBuffer &BigData::Primary() {
-  return m_primary;
-}
-
-const BigBuffer &BigData::Primary() const {
-  return m_primary;
-}
-
-BigStack &BigData::Stack() const {
-  return (BigStack &)m_stack;
-}
-
-SBigOutputArray &BigData::Output() const {
-  return (SBigOutputArray &)m_output;
-}
-
 static UINT ExtractLowPart(DWORDLONG *b) {
   UINT result;
   result = (UINT)*b;
@@ -228,11 +190,10 @@ static UINT ExtractLowPart(DWORDLONG *b) {
 }
 
 static UINT ExtractLowPartLargeSum(DWORDLONG *carry, DWORDLONG add) {
-  UINT result;
   *carry += add;
-  add = (DWORDLONG)(UINT)(*carry < add);
-  result = ExtractLowPart(carry);
-  *carry += add << 32;
+  add = (*carry < add) ? (DWORDLONG)1 : (DWORDLONG)0;
+  UINT result = ExtractLowPart(carry);
+  *carry += add * SMALL_BOUND;
   return result;
 }
 
@@ -247,7 +208,7 @@ static UINT ExtractLowPartSx(DWORDLONG *b) {
 }
 
 static void InsertLowPart(DWORDLONG *b, UINT c) {
-  *b = (*b << 32) | c;
+  *b = *b * SMALL_BOUND + c;
 }
 
 static DWORDLONG MakeLarge(UINT low, UINT high) {
@@ -256,32 +217,30 @@ static DWORDLONG MakeLarge(UINT low, UINT high) {
 
 static void Add(BigBuffer &a, const BigBuffer &b, UINT c) {
   DWORDLONG carry = c;
-  UINT      index = 0;
-  while (carry || b.IsUsed(index)) {
+  UINT      index;
+  for (index = 0; carry || b.IsUsed(index); ++index) {
     carry += b[index];
-    a[index++] = ExtractLowPart(&carry);
+    a[index] = ExtractLowPart(&carry);
   }
   a.SetCount(index);
 }
 
 static void Add(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
   DWORDLONG carry = 0;
-  UINT      index = 0;
-  while (carry || b.IsUsed(index) || c.IsUsed(index)) {
-    carry += (DWORDLONG)b[index] + c[index];
-    a[index++] = ExtractLowPart(&carry);
+  UINT      index;
+  for (index = 0; carry || b.IsUsed(index) || c.IsUsed(index); ++index) {
+    carry += (DWORDLONG)b[index] + (DWORDLONG)c[index];
+    a[index] = ExtractLowPart(&carry);
   }
   a.SetCount(index);
 }
 
 static void And(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
-  UINT index = 0;
-  while (b.IsUsed(index) || c.IsUsed(index)) {
+  UINT index;
+  for (index = 0; b.IsUsed(index) || c.IsUsed(index); ++index) {
     a[index] = b[index] & c[index];
-    ++index;
   }
   a.SetCount(index);
-  a.Trim();
 }
 
 static int Compare(const BigBuffer &a, UINT b) {
@@ -289,98 +248,114 @@ static int Compare(const BigBuffer &a, UINT b) {
   if (a.Count() > 1) {
     return 1;
   }
-  if (!a.Count()) {
-    return b ? -1 : 0;
+  if (a[0]) {
+    return (a[0] > b) ? 1 : -1;
   }
-  return a[0] < b ? -1 : a[0] > b;
+  return 0;
 }
 
 static int Compare(const BigBuffer &a, const BigBuffer &b) {
-  UINT index = 0;
-  int  result = 0;
-  while (a.IsUsed(index) || b.IsUsed(index)) {
+  int result = 0;
+  for (UINT index = 0; a.IsUsed(index) || b.IsUsed(index); ++index) {
     if (a[index] != b[index]) {
-      result = a[index] < b[index] ? -1 : 1;
+      result = (a[index] > b[index]) ? 1 : -1;
     }
-    ++index;
   }
   return result;
 }
 
 static void Div(BigBuffer &a, UINT *b, const BigBuffer &c, DWORDLONG d) {
+  ASSERT(d <= SMALL_BOUND);
+  a.SetCount(c.Count());
   DWORDLONG data = 0;
   UINT      index = c.Count();
-  a.SetCount(index);
-  while (index) {
-    InsertLowPart(&data, c[--index]);
+  while (index--) {
+    InsertLowPart(&data, c[index]);
     a[index] = (UINT)(data / d);
     data %= d;
   }
   a.Trim();
-  if (b) {
-    *b = (UINT)data;
-  }
+  *b = (UINT)data;
 }
 
 static void Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
-  UINT       allocCount = 0;
-  BigBuffer &quotient = stack.Alloc(&allocCount);
-  BigBuffer &remainder = stack.Alloc(&allocCount);
-  BigBuffer &work = stack.Alloc(&allocCount);
-  UINT       shift;
-  int        comparison;
-
+  c.Trim();
   d.Trim();
-  if (!d.Count()) {
-    SetZero(quotient);
-    SetZero(remainder);
-  } else {
-    remainder = c;
-    remainder.Trim();
-    SetZero(quotient);
-    comparison = Compare(remainder, d);
-    if (comparison >= 0) {
-      shift = HighBitPos(remainder) - HighBitPos(d);
-      Shl(work, d, shift);
-      for (;;) {
-        if (Compare(remainder, work) >= 0) {
-          Sub(remainder, remainder, work);
-          quotient[shift >> 5] |= 1u << (shift & 31);
-        }
-        if (!shift) {
-          break;
-        }
-        Shr(work, work, 1);
-        --shift;
-      }
+  UINT cCount = c.Count();
+  UINT dCount = d.Count();
+  if (dCount > cCount) {
+    b = c;
+    SetZero(a);
+    return;
+  }
+  if (dCount <= 1) {
+    Div(a, &b[0], c, d[0]);
+    b.SetCount(1);
+    return;
+  }
+
+  UINT       allocCount = 0;
+  BigBuffer &cc = stack.Alloc(&allocCount);
+  BigBuffer &dd = stack.Alloc(&allocCount);
+  BigBuffer &work = stack.Alloc(&allocCount);
+  UINT       shift = 31 - (HighBitPos(d) & 31);
+  Shl(cc, c, shift);
+  Shl(dd, d, shift);
+  UINT t = dd[dCount - 1] + 1;
+  UINT index = cCount - dCount + 1;
+  a.SetCount(index);
+  while (index--) {
+    a.SetOffset(index);
+    cc.SetOffset(index);
+    if (!t) {
+      a[0] = cc[dCount];
+    } else {
+      a[0] = (UINT)(MakeLarge(cc[dCount - 1], cc[dCount]) / t);
+    }
+    if (a[0]) {
+      Mul(work, dd, a[0]);
+      Sub(cc, cc, work);
+    }
+    while (cc[dCount] || Compare(cc, dd) >= 0) {
+      a[0]++;
+      Sub(cc, cc, dd);
     }
   }
-  a = quotient;
-  b = remainder;
+  Shr(b, cc, shift);
+  b.Trim();
   stack.Free(allocCount);
 }
 
 static void FindPrime(BigBuffer &a, UINT b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
   UINT       allocCount = 0;
   BigBuffer &t = stack.Alloc(&allocCount);
-  BigBuffer &seed = stack.Alloc(&allocCount);
-  BigBuffer &one = stack.Alloc(&allocCount);
+  BigBuffer &hi = stack.Alloc(&allocCount);
+  BigBuffer &tt = stack.Alloc(&allocCount);
 
-  SetOne(one);
-  Rand(a, c, seed, stack);
-  if (b) {
-    Set2Exp(t, b - 1);
-    Or(a, a, t);
+  Set2Exp(t, b - 2);
+  Set2Exp(hi, b - 1);
+  Add(hi, hi, t);
+  Div(tt, a, c, t, stack);
+  Add(a, a, hi);
+  if (IsEven(a)) {
+    Add(a, a, 1);
   }
-  Or(a, a, one);
-  while (!IsPrime(a, stack)) {
-    Add(a, a, 2);
-    if (!IsOne(d)) {
-      Sub(t, a, one);
-      Gcd(t, t, d, stack);
-      if (!IsOne(t)) {
-        continue;
+  Add(hi, hi, t);
+  Sub(hi, hi, 2);
+  for (;;) {
+    if (IsPrime(a, stack)) {
+      if (IsOne(d)) {
+        break;
       }
+      Sub(tt, a, 1);
+      Gcd(tt, tt, d, stack);
+      if (IsOne(tt)) {
+        break;
+      }
+    }
+    Add(a, a, 2);
+    if (Compare(a, hi) > 0) {
+      Sub(a, a, t);
     }
   }
   stack.Free(allocCount);
@@ -390,16 +365,18 @@ static void Gcd(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &
   UINT       allocCount = 0;
   BigBuffer &aa = stack.Alloc(&allocCount);
   BigBuffer &bb = stack.Alloc(&allocCount);
-  BigBuffer &q = stack.Alloc(&allocCount);
-  BigBuffer &r = stack.Alloc(&allocCount);
-  aa = b;
-  bb = c;
-  while (!IsZero(bb)) {
-    Div(q, r, aa, bb, stack);
-    aa = bb;
-    bb = r;
+  if (Compare(b, c) > 0) {
+    a = b;
+    bb = c;
+  } else {
+    a = c;
+    bb = b;
   }
-  a = aa;
+  while (!IsZero(bb)) {
+    Div(a, aa, a, bb, stack);
+    a = bb;
+    bb = aa;
+  }
   stack.Free(allocCount);
 }
 
@@ -413,7 +390,7 @@ static UINT HighBitPos(const BigBuffer &a) {
 
       do {
         --bit;
-        if (a[index] & mask) {
+        if (mask & a[index]) {
           return index * 32 + bit;
         }
         mask >>= 1;
@@ -458,7 +435,8 @@ static BOOL IsEven(const BigBuffer &a) {
 }
 
 static BOOL IsOdd(const BigBuffer &a) {
-  return a.Count() && (a[0] & 1);
+  a.Trim();
+  return a.Count() >= 1 && (a[0] & 1);
 }
 
 static BOOL IsOne(const BigBuffer &a) {
@@ -467,59 +445,68 @@ static BOOL IsOne(const BigBuffer &a) {
 }
 
 static BOOL IsPrime(const BigBuffer &a, BigStack &stack) {
-  UINT       b;
-  UINT       remainder;
-  UINT       j;
   UINT       allocCount = 0;
   BigBuffer &a1 = stack.Alloc(&allocCount);
   BigBuffer &m = stack.Alloc(&allocCount);
+  BigBuffer &z = stack.Alloc(&allocCount);
   BigBuffer &witness = stack.Alloc(&allocCount);
-  BigBuffer &q = stack.Alloc(&allocCount);
   int        result = TRUE;
+  UINT       index;
 
   a.Trim();
-  if (IsZero(a) || IsEven(a)) {
-    result = Compare(a, 2) == 0;
+  if (IsZero(a) || !(a[0] & 1)) {
+    result = FALSE;
   }
-  if (result) {
-    for (b = 0; b < 171; ++b) {
-      Div(q, &remainder, a, SMALL_PRIMES[b]);
-      if (!remainder && Compare(a, SMALL_PRIMES[b])) {
+  for (index = 0; result && index < 171; ++index) {
+    if ((DWORDLONG)SMALL_PRIMES[index] < SMALL_BOUND) {
+      UINT remainder;
+      Div(z, &remainder, a, SMALL_PRIMES[index]);
+      if (!remainder && !IsOne(z)) {
         result = FALSE;
-        break;
+      }
+    } else {
+      FromUnsigned(witness, SMALL_PRIMES[index]);
+      Div(z, m, a, witness, stack);
+      if (IsZero(m) && !IsOne(z)) {
+        result = FALSE;
       }
     }
   }
-  SetOne(a1);
-  Sub(a1, a, a1);
+
+  Sub(a1, a, 1);
   m = a1;
-  b = LowBitPos(m);
-  Shr(m, m, b);
-  if (result) {
-    for (j = 0; j < 6 && result; ++j) {
-      FromUnsigned(witness, SMALL_PRIMES[j]);
-      if (Compare(witness, a) >= 0) {
-        break;
-      }
-      PowMod(witness, witness, m, a, stack);
-      if (IsOne(witness) || !Compare(witness, a1)) {
-        continue;
-      }
-      for (remainder = 1; remainder < b; ++remainder) {
-        MulMod(witness, witness, witness, a, stack);
-        if (!Compare(witness, a1)) {
+  UINT b = LowBitPos(m);
+  if (b) {
+    Shr(m, m, b);
+  }
+  for (index = 0; result && index < 6; ++index) {
+    FromUnsigned(witness, SMALL_PRIMES[index]);
+    if (Compare(witness, a) >= 0) {
+      break;
+    }
+    PowMod(z, witness, m, a, stack);
+    if (!IsOne(z)) {
+      UINT j = 0;
+      while (Compare(z, a1)) {
+        if (++j == b) {
+          result = FALSE;
+          break;
+        }
+        MulMod(z, z, z, a, stack);
+        if (IsOne(z)) {
+          result = FALSE;
           break;
         }
       }
-      if (remainder == b) {
-        result = FALSE;
-      }
     }
   }
-  if (result) {
-    FromUnsigned(witness, FERMAT_WITNESS[0]);
-    PowMod(witness, witness, a, a, stack);
-    result = Compare(witness, FERMAT_WITNESS[0]) == 0;
+
+  for (index = 0; result && index < 1; ++index) {
+    FromUnsigned(witness, FERMAT_WITNESS[index]);
+    PowMod(z, witness, a, a, stack);
+    if (Compare(z, witness)) {
+      result = FALSE;
+    }
   }
   stack.Free(allocCount);
   return result;
@@ -531,12 +518,11 @@ static BOOL IsZero(const BigBuffer &a) {
 }
 
 static UINT LowBitPos(const BigBuffer &a) {
-  UINT index;
-  UINT bit;
-  for (index = 0; index < a.Count(); ++index) {
+  for (UINT index = 0; index < a.Count(); ++index) {
     if (a[index]) {
-      for (bit = 0; bit < 32; ++bit) {
-        if (a[index] & (1u << bit)) {
+      UINT mask = 1;
+      for (UINT bit = 0; bit < 32; ++bit, mask <<= 1) {
+        if (mask & a[index]) {
           return index * 32 + bit;
         }
       }
@@ -546,51 +532,35 @@ static UINT LowBitPos(const BigBuffer &a) {
 }
 
 static void Mul(BigBuffer &a, const BigBuffer &b, DWORDLONG c) {
+  ASSERT(c <= SMALL_BOUND);
   DWORDLONG carry = 0;
-  UINT      index = 0;
-  c = MakeLarge((UINT)c, (UINT)(c >> 32));
-  while (b.IsUsed(index) || carry) {
-    carry += (DWORDLONG)b[index] * c;
-    a[index++] = ExtractLowPart(&carry);
+  UINT      index;
+  for (index = 0; carry || b.IsUsed(index); ++index) {
+    carry += b[index] * c;
+    a[index] = ExtractLowPart(&carry);
   }
   a.SetCount(index);
-  a.Trim();
 }
 
 static void Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &stack) {
-  DWORDLONG  carry;
-  DWORDLONG  product;
-  DWORDLONG  sum;
-  UINT       bIndex;
-  UINT       cIndex;
-  UINT       allocCount = 0;
   BigBuffer &aa = stack.MakeDistinct(a, &a == &b || &a == &c);
-
-  aa.SetCount(b.Count() + c.Count());
-  for (bIndex = 0; bIndex < aa.Count(); ++bIndex) {
-    aa[bIndex] = 0;
-  }
-  for (bIndex = 0; bIndex < b.Count(); ++bIndex) {
-    carry = 0;
-    for (cIndex = 0; cIndex < c.Count(); ++cIndex) {
-      product = (DWORDLONG)b[bIndex] * c[cIndex];
-      sum = (DWORDLONG)aa[bIndex + cIndex] + carry;
-      aa[bIndex + cIndex] = ExtractLowPartLargeSum(&product, sum);
-      carry = product;
+  aa.Clear();
+  for (UINT bIndex = 0; b.IsUsed(bIndex); ++bIndex) {
+    DWORDLONG carry = 0;
+    for (UINT cIndex = 0; c.IsUsed(cIndex); ++cIndex) {
+      carry += aa[cIndex + bIndex] + (DWORDLONG)c[cIndex] * b[bIndex];
+      aa[cIndex + bIndex] = ExtractLowPart(&carry);
     }
-    aa[bIndex + c.Count()] = (UINT)carry;
+    aa[cIndex + bIndex] = ExtractLowPart(&carry);
   }
-  aa.Trim();
   stack.UnmakeDistinct(a, aa);
-  (void)allocCount;
 }
 
 static void MulMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
   UINT       allocCount = 0;
-  BigBuffer &product = stack.Alloc(&allocCount);
-  BigBuffer &quotient = stack.Alloc(&allocCount);
-  Mul(product, b, c, stack);
-  Div(quotient, a, product, d, stack);
+  BigBuffer &temp = stack.Alloc(&allocCount);
+  Mul(temp, b, c, stack);
+  Div(temp, a, temp, d, stack);
   stack.Free(allocCount);
 }
 
@@ -616,10 +586,8 @@ static void Or(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
 
 static void Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &stack) {
   UINT bit = c;
-  UINT scan;
-
-  for (scan = c & (c - 1); scan; scan &= scan - 1) {
-    bit = scan;
+  while (bit & (bit - 1)) {
+    bit &= bit - 1;
   }
 
   BigBuffer &aa = stack.MakeDistinct(a, &a == &b);
@@ -627,7 +595,7 @@ static void Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &stack) {
   while (bit > 1) {
     Mul(aa, aa, aa, stack);
     bit >>= 1;
-    if (bit & c) {
+    if (c & bit) {
       Mul(aa, aa, b, stack);
     }
   }
@@ -635,40 +603,32 @@ static void Pow(BigBuffer &a, const BigBuffer &b, UINT c, BigStack &stack) {
 }
 
 static void PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
-  BigBuffer *bPower[3];
-  UINT       index;
-  UINT       ciBits;
-  UINT       allocCount = 0;
-
   c.Trim();
   if (!c.Count()) {
     SetOne(a);
     return;
   }
 
+  UINT       allocCount = 0;
   BigBuffer &temp = stack.Alloc(&allocCount);
   BigBuffer &b2 = stack.Alloc(&allocCount);
   BigBuffer &b3 = stack.Alloc(&allocCount);
-  bPower[0] = (BigBuffer *)&b;
-  bPower[1] = &b2;
-  bPower[2] = &b3;
+  BigBuffer &aa = stack.MakeDistinct(a, &a == &b || &a == &c || &a == &d);
   MulMod(b2, b, b, d, stack);
   MulMod(b3, b2, b, d, stack);
-
-  BigBuffer &aa = stack.MakeDistinct(a, &a == &b || &a == &c || &a == &d);
+  const BigBuffer *bPower[3] = {&b, &b2, &b3};
   SetOne(aa);
-  index = c.Count();
-  while (index) {
-    UINT ci = c[--index];
-    ciBits = 32;
-    if (index == c.Count() - 1) {
+  UINT index = c.Count();
+  while (index--) {
+    UINT ci = c[index];
+    UINT ciBits = 32;
+    if (index + 1 == c.Count()) {
       while (!(ci & 0xC0000000)) {
         ci <<= 2;
         ciBits -= 2;
       }
     }
-    ciBits = (ciBits + 1) / 2;
-    while (ciBits) {
+    for (UINT bit = 0; bit < ciBits; bit += 2) {
       Square(aa, aa, stack);
       Div(temp, aa, aa, d, stack);
       Square(aa, aa, stack);
@@ -677,7 +637,6 @@ static void PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const B
         MulMod(aa, aa, *bPower[(ci >> 30) - 1], d, stack);
       }
       ci <<= 2;
-      --ciBits;
     }
   }
   stack.UnmakeDistinct(a, aa);
@@ -686,37 +645,52 @@ static void PowMod(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, const B
 
 static void Rand(BigBuffer &a, const BigBuffer &b, BigBuffer &seed, BigStack &stack) {
   UINT       allocCount = 0;
-  int        reinit;
-  UINT       loop;
   BigBuffer &mul = stack.Alloc(&allocCount);
-  BigBuffer &work = stack.Alloc(&allocCount);
-  BigBuffer &quotient = stack.Alloc(&allocCount);
+  BigBuffer &tt = stack.Alloc(&allocCount);
+  BigBuffer &aa = stack.MakeDistinct(a, &a == &b || &a == &seed);
+  BigBuffer &ss = stack.MakeDistinct(seed, &seed == &b);
 
-  seed.Trim();
-  reinit = seed.Count() < 2;
+  ss.Trim();
+  int reinit = ss.Count() < 2;
+  ss.SetCount(2);
   if (reinit) {
-    FromBinary(seed, initSeed, sizeof(initSeed));
+    for (UINT loop = 0; loop < 8; ++loop) {
+      ((BYTE *)&ss[0])[loop] = initSeed[loop];
+    }
   }
-  FromBinary(mul, initMul, sizeof(initMul));
-  a.SetCount(b.Count());
-  for (loop = 0; loop < b.Count(); ++loop) {
-    Mul(work, seed, mul, stack);
-    Add(work, work, loop + 1);
-    seed = work;
-    a[loop] = seed[0] ^ seed[1];
+  mul.SetCount(2);
+  {
+    for (UINT loop = 0; loop < 8; ++loop) {
+      ((BYTE *)&mul[0])[loop] = initMul[loop];
+    }
   }
-  Div(quotient, a, a, b, stack);
+  b.Trim();
+  aa.Clear();
+  {
+    for (UINT loop = 0; loop < (b.Count() * 32 + 31) / 32; ++loop) {
+      Mul(ss, ss, mul, stack);
+      Shr(tt, ss, 16);
+      Add(ss, tt, ss);
+      ss.SetCount(2);
+      Shl(aa, aa, 32);
+      Add(aa, aa, ss);
+      Shr(tt, ss, 32);
+      Add(aa, aa, tt);
+    }
+  }
+  Div(tt, aa, aa, b, stack);
+  stack.UnmakeDistinct(seed, ss);
+  stack.UnmakeDistinct(a, aa);
   stack.Free(allocCount);
 }
 
 static void Set2Exp(BigBuffer &a, UINT b) {
-  UINT count = (b >> 5) + 1;
   UINT index;
-  a.SetCount(count);
-  for (index = 0; index < count; ++index) {
+  for (index = 0; index < b / 32; ++index) {
     a[index] = 0;
   }
-  a[b >> 5] = 1u << (b & 31);
+  a[index++] = 1 << (b % 32);
+  a.SetCount(index);
 }
 
 static void SetOne(BigBuffer &a) {
@@ -729,34 +703,34 @@ static void SetZero(BigBuffer &a) {
 }
 
 static void Shl(BigBuffer &a, const BigBuffer &b, UINT c) {
-  UINT aCount = b.Count() + (c >> 5) + 1;
-  UINT cBits = c & 31;
+  UINT cOffset = c / 32;
+  UINT cBits = c % 32;
+  UINT aCount = b.Count() + cOffset + 1;
   UINT index = aCount;
-
-  while (index) {
-    UINT out = --index;
-    UINT source = out - (c >> 5);
-    UINT value = source < b.Count() ? b[source] << cBits : 0;
-    if (cBits && source && source - 1 < b.Count()) {
-      value += b[source - 1] >> (32 - cBits);
+  while (index--) {
+    UINT data = 0;
+    if (index >= cOffset) {
+      data = b[index - cOffset] << cBits;
     }
-    a[out] = value;
+    if (index > cOffset && cBits) {
+      data += b[index - cOffset - 1] >> (32 - cBits);
+    }
+    a[index] = data;
   }
   a.SetCount(aCount);
   a.Trim();
 }
 
 static void Shr(BigBuffer &a, const BigBuffer &b, UINT c) {
-  UINT word = c >> 5;
-  UINT cBits = c & 31;
-  UINT index = 0;
-
-  while (b.IsUsed(index + word)) {
-    UINT value = b[index + word] >> cBits;
+  UINT cOffset = c / 32;
+  UINT cBits = c % 32;
+  UINT index;
+  for (index = 0; b.IsUsed(index + cOffset); ++index) {
+    UINT data = b[index + cOffset] >> cBits;
     if (cBits) {
-      value += b[index + word + 1] << (32 - cBits);
+      data += b[index + cOffset + 1] << (32 - cBits);
     }
-    a[index++] = value;
+    a[index] = data;
   }
   a.SetCount(index);
 }
@@ -778,34 +752,31 @@ static void Square(BigBuffer &a, const BigBuffer &b, BigStack &stack) {
       }
       aa[bIndex + cIndex] = ExtractLowPartLargeSum(&carry, add);
     }
-    aa[bIndex + bIndex + 1] = ExtractLowPart(&carry);
+    aa[cIndex + bIndex] = ExtractLowPart(&carry);
   }
   stack.UnmakeDistinct(a, aa);
 }
 
 static void Sub(BigBuffer &a, const BigBuffer &b, UINT c) {
-  DWORDLONG borrow = 0 - static_cast<DWORDLONG>(c);
-  UINT      index = 0;
-
-  while (b.IsUsed(index)) {
+  DWORDLONG borrow = ~(DWORDLONG)c + 1;
+  UINT      index;
+  for (index = 0; b.IsUsed(index); ++index) {
     borrow += b[index];
-    a[index++] = ExtractLowPartSx(&borrow);
+    a[index] = ExtractLowPartSx(&borrow);
   }
   a.SetCount(index);
-  if (borrow) {
-    SErrDisplayError(0x85100000, __FILE__, __LINE__, "!borrow", NULL, 1);
-  }
+  ASSERT(!borrow);
 }
 
 static void Sub(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
   DWORDLONG borrow = 0;
-  UINT      index = 0;
-  while (borrow || b.IsUsed(index) || c.IsUsed(index)) {
-    borrow = (DWORDLONG)b[index] - c[index] - (UINT)borrow;
-    a[index++] = ExtractLowPartSx(&borrow);
+  UINT      index;
+  for (index = 0; b.IsUsed(index) || c.IsUsed(index); ++index) {
+    borrow += (DWORDLONG)b[index] - (DWORDLONG)c[index];
+    a[index] = ExtractLowPartSx(&borrow);
   }
   a.SetCount(index);
-  a.Trim();
+  ASSERT(!borrow);
 }
 
 static void Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
@@ -819,18 +790,16 @@ static void Xor(BigBuffer &a, const BigBuffer &b, const BigBuffer &c) {
 }
 
 static void DecodeDataBytes(LPCVOID data, UINT maxBytes, UINT *offset, UINT *dataBytes) {
-  *offset = 0;
   *dataBytes = 0;
+  *offset = 0;
   while (*offset < maxBytes) {
     UINT value = ((const BYTE *)data)[(*offset)++];
     if (value == 0xFF) {
       break;
     }
-    *dataBytes = value + 0xFF * *dataBytes;
+    *dataBytes = *dataBytes * 0xFF + value;
   }
-  if (*dataBytes >= maxBytes - *offset) {
-    *dataBytes = maxBytes - *offset;
-  }
+  *dataBytes = min(*dataBytes, maxBytes - *offset);
 }
 
 static void EncodeDataBytes(SBigOutputArray &output, UINT dataBytes) {
@@ -842,16 +811,13 @@ static void EncodeDataBytes(SBigOutputArray &output, UINT dataBytes) {
 }
 
 static void FromBinary(BigBuffer &a, LPCVOID data, UINT bytes) {
-  UINT byte;
   a.Clear();
-  for (byte = 0; byte < bytes; ++byte) {
-    UINT index = byte >> 2;
-    if (!(byte & 3)) {
-      a[index] = 0;
-    }
-    a[index] |= (UINT)((const BYTE *)data)[byte] << ((byte & 3) * 8);
+  for (UINT index = 0; index < bytes; ++index) {
+    UINT word = index / 4;
+    UINT byte = index % 4;
+    UINT value = ((const BYTE *)data)[index];
+    a[word] = (byte ? a[word] : 0) + (value << (byte * 8));
   }
-  a.Trim();
 }
 
 static void FromStr(BigBuffer &a, LPCSTR str) {
@@ -927,9 +893,8 @@ static void ToStream(SBigOutputArray &output, const BigBuffer &a) {
 }
 
 static void ToUnsigned(UINT *val, const BigBuffer &a) {
-  if (val) {
-    *val = a[0];
-  }
+  *val = 0;
+  *val = a[0];
 }
 
 extern "C" void APIENTRY SBigAdd(BigData *a, const BigData &b, const BigData &c) {
@@ -941,7 +906,16 @@ extern "C" void APIENTRY SBigAnd(BigData *a, const BigData &b, const BigData &c)
 }
 
 extern "C" void APIENTRY SBigBitLen(BigData *a, UINT *bits) {
-  *bits = IsZero(a->Primary()) ? 0 : HighBitPos(a->Primary()) + 1;
+  BigBuffer &aa = a->Primary();
+  aa.Trim();
+  UINT index = aa.Count() - 1;
+  UINT data = aa[index];
+  for (UINT bit = 31; bit; --bit) {
+    if ((1 << bit) & data) {
+      break;
+    }
+  }
+  *bits = index * 32 + bit + 1;
 }
 
 extern "C" int APIENTRY SBigCompare(const BigData &b, const BigData &c) {

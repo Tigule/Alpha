@@ -1,8 +1,10 @@
+#include "DBClient.h"
+#include <WowConst.h>
+#include <WowSvcs/WowSvcsClient/ClientServices.h>
+
 #include "DB/DBClient/DBCacheInstances.h"
 
 #include <Base/CDataStore.h>
-
-#include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 static void LoadDBCaches();
 

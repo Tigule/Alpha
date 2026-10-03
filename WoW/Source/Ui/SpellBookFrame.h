@@ -3,7 +3,7 @@
 
 #include <WowServices/BitField.h>
 
-#define MAXIMUM_LEARNED_SPELLS 1024
+#define MAXIMUM_LEARNED_SPELLS 1024u
 
 enum UI_SPELL_TYPE {
   PLAYER_SPELL = 0,
@@ -54,16 +54,16 @@ class CGSpellBook {
   static void PickupSpell(int slot, UI_SPELL_TYPE type);
   static void CastSpell(int slot, UI_SPELL_TYPE type);
   static int  GetSpell(UINT slot, UI_SPELL_TYPE type) {
-    if (slot >= MAXIMUM_LEARNED_SPELLS) {
-      return 0;
+    switch (type) {
+      case PLAYER_SPELL:
+        return m_knownSpells[slot];
+      case PLAYER_ABILITY:
+        return m_knownAbilities[slot];
+      case PET_SPELL:
+        return m_petSpells[slot];
+      default:
+        return 0;
     }
-    if (type == PLAYER_SPELL) {
-      return m_knownSpells[slot];
-    }
-    if (type == PLAYER_ABILITY) {
-      return m_knownAbilities[slot];
-    }
-    return type == PET_SPELL ? m_petSpells[slot] : 0;
   }
   static BOOL                        IsSelectedSlot(int slot, UI_SPELL_TYPE type);
   static BOOL                        IsToggledSpell(int slot, UI_SPELL_TYPE type);

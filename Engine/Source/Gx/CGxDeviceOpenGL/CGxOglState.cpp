@@ -391,7 +391,11 @@ void CGxDeviceOpenGl::IStateSyncEnables() {
   if (m_appState.m_masterEnables != m_hwState.m_masterEnables) {
     enable = 0;
     if (NeedsUpdate(m_appState.m_masterEnables, m_hwState.m_masterEnables, 0, 0, GxMasterEnable_PolygonFill, enable)) {
-      glPolygonMode(GL_FRONT_AND_BACK, enable ? GL_FILL : GL_LINE);
+      if (enable) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      } else {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      }
     }
 
     m_hwState.m_masterEnables = m_appState.m_masterEnables;
@@ -402,7 +406,6 @@ void CGxDeviceOpenGl::IStateSyncTexTransforms() {
   int texture;
 
   for (UINT tmu = 0; tmu < m_caps.m_numTmus; ++tmu) {
-    texture = 0;
     RsGet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), texture);
     if (texture && (m_xforms[tmu].m_dirty || m_texGen[tmu].m_dirty)) {
       IStateSyncTexTransform(tmu);
@@ -411,24 +414,27 @@ void CGxDeviceOpenGl::IStateSyncTexTransforms() {
 }
 
 void CGxDeviceOpenGl::IStateSyncTexTransform(UINT tmu) {
-  NTempest::C44Matrix concatMat;
-  int                 ts;
-
   FATALASSERT(tmu < m_caps.m_numTmus);
   DsSet(Ds_ActiveTexture, tmu, 0);
   DsSet(Ds_MatrixMode, GL_TEXTURE, 0);
 
-  ts = 0;
-  RsGet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), ts);
-  if (ts) {
-    if (ts == GxTS_Affine || ts == GxTS_Proj) {
-      concatMat = m_texGen[tmu].TopConst() * m_xforms[tmu].TopConst();
+  int ts;
+  GxRsGet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), ts);
+  switch (ts) {
+    case GxTS_PassThru:
+      glLoadIdentity();
+      break;
+
+    case GxTS_Affine:
+    case GxTS_Proj: {
+      NTempest::C44Matrix concatMat = m_texGen[tmu].TopConst() * m_xforms[tmu].TopConst();
       glLoadMatrixf(&concatMat.a0);
-    } else {
-      FATALASSERT(0);
+      break;
     }
-  } else {
-    glLoadIdentity();
+
+    default:
+      FATALASSERT(0);
+      break;
   }
 
   m_xforms[tmu].m_dirty = 0;

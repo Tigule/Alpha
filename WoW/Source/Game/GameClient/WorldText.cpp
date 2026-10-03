@@ -1,3 +1,10 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <MapDefs.h>
+#include <WorldClient/World.h>
+#include <WowConst.h>
+#include <DayNight.h>
+
 #include "WorldText.h"
 
 #include "Console/ConsoleCommand.h"
@@ -5,6 +12,7 @@
 #include "Object/ObjectClient/Object_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/WorldFrame.h"
+#include "WorldClient/WorldParam.h"
 
 #include <Base/Coordinate.h>
 #include <FrameScript/FrameScript.h>
@@ -94,9 +102,7 @@ static int IntInterp(float progress, int start, int end) {
 }
 
 static NTempest::CImVector ColorInterp(float range, NTempest::CImVector startColor, NTempest::CImVector endColor) {
-  if (range > 1.0f) {
-    range = 1.0f;
-  }
+  range = min(range, 1.0f);
   return NTempest::CImVector(
       255, static_cast<BYTE>(IntInterp(range, startColor.r, endColor.r)), static_cast<BYTE>(IntInterp(range, startColor.g, endColor.g)),
       static_cast<BYTE>(IntInterp(range, startColor.b, endColor.b))

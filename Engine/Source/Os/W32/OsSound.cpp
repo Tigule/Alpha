@@ -451,12 +451,12 @@ void Sound::Shutdown() {
 }
 
 void Sound::Update() {
-  NTempest::C3Vector pos;
-  NTempest::C3Vector listenerPos;
-
   ProcessStopList();
   ProcessFadeList();
   ProcessUpdateList();
+
+  NTempest::C3Vector pos;
+  NTempest::C3Vector listenerPos;
 
   FSOUND_3D_Listener_GetAttributes(&pos.x, 0, 0, 0, 0, 0, 0, 0);
   listenerPos.x = pos.z;
@@ -744,17 +744,18 @@ Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags,
   }
 
   if (loopCount == 1) {
-    return Play3D(category, filename, flags, startPaused);
+    return Play3D(category, filename, startPaused, 0);
   }
 
-  sound = PlayLooped(category, filename, static_cast<int>(loopCount - 1), 0x1002, startPaused, flags);
-  if (sound) {
-    if (!startPaused) {
-      sound->SetPaused(false);
-    }
-    sound->m_flags |= 0x08000000;
+  sound = PlayLooped(category, filename, static_cast<int>(loopCount - 1), 0x1002, true, flags);
+  if (!sound) {
+    return 0;
   }
 
+  if (!startPaused) {
+    sound->SetPaused(false);
+  }
+  sound->m_flags |= 0x08000000;
   return sound;
 }
 
@@ -926,7 +927,7 @@ void Sound::UpdatePosition() {
 }
 
 void Sound::Stop(float fadeTime) {
-  if (m_channel != -1 && m_stream && fadeTime >= 0.1f) {
+  if (m_channel != -1 && m_stream && !(fadeTime < 0.1f)) {
     m_fadeVolume = GetVolume();
     m_fadeRate = m_fadeVolume / (fadeTime * -1000.0f);
     m_fadeStartTime = OsGetAsyncTimeMs();
@@ -937,7 +938,7 @@ void Sound::Stop(float fadeTime) {
 }
 
 void Sound::Stop(UINT fadeTime) {
-  if (m_channel != -1 && m_stream && fadeTime >= 100) {
+  if (m_channel != -1 && m_stream && fadeTime) {
     m_fadeVolume = GetVolume();
     m_fadeRate = m_fadeVolume / -static_cast<float>(fadeTime);
     m_fadeStartTime = OsGetAsyncTimeMs();
@@ -988,9 +989,6 @@ int Sound::SetPositionMs(int milliseconds) {
 }
 
 void Sound::SetPosition(const NTempest::C3Vector &worldPosition, const NTempest::C3Vector *vel) {
-  NTempest::C3Vector soundPosition(-worldPosition.y, worldPosition.z, worldPosition.x);
-  NTempest::C3Vector velocity;
-
   if (!(m_flags & 0x08000000)) {
     return;
   }
@@ -1007,13 +1005,18 @@ void Sound::SetPosition(const NTempest::C3Vector &worldPosition, const NTempest:
     return;
   }
 
+  NTempest::C3Vector soundPosition;
+  soundPosition.x = -worldPosition.y;
+  soundPosition.y = worldPosition.z;
+  soundPosition.z = worldPosition.x;
+  NTempest::C3Vector velocity;
   if (vel) {
     velocity.x = -vel->y;
     velocity.y = vel->z;
     velocity.z = vel->x;
   }
 
-  FSOUND_3D_SetAttributes(m_channel, &soundPosition.x, vel ? &velocity.x : 0);
+  FSOUND_3D_SetAttributes(m_channel, &soundPosition[0], vel ? &velocity[0] : 0);
 }
 
 void Sound::SetReverbProperties(const _FSOUND_REVERB_CHANNELPROPERTIES *reverb) {
@@ -1029,7 +1032,12 @@ void Sound::SetPanning(float pan) {
     return;
   }
 
-  m_panning = min(max(pan, 0.0f), 1.0f);
+  if (pan < 0.0f) {
+    pan = 0.0f;
+  } else if (pan > 1.0f) {
+    pan = 1.0f;
+  }
+  m_panning = pan;
   if (m_channel != -1 && !(m_flags & 0x20000000)) {
     AddToPanningList();
   }
@@ -1041,10 +1049,10 @@ void Sound::SetCutoffDistanceSquared(float distanceSquared) {
   }
 
   m_cutoffDistanceSquared = distanceSquared;
-  if (distanceSquared == 0.0f) {
-    RemoveFromCutoffList();
-  } else {
+  if (distanceSquared != 0.0f) {
     AddToCutoffList();
+  } else {
+    RemoveFromCutoffList();
   }
 }
 
@@ -1075,8 +1083,8 @@ void Sound::SetVolume(float volume) {
 }
 
 void Sound::SetFrequency(int freq) {
-  m_flags |= 0x02000000;
   m_freq = freq;
+  m_flags |= 0x02000000;
 
   if (!IsSuspended() && m_channel != -1) {
     FSOUND_SetFrequency(m_channel, m_freq);
@@ -1098,17 +1106,26 @@ void Sound::SetListenerAttributes(
     const NTempest::C3Vector &worldForward,
     const NTempest::C3Vector &worldUp
 ) {
-  NTempest::C3Vector soundPosition(-worldPosition.y, worldPosition.z, worldPosition.x);
-  NTempest::C3Vector soundForward(-worldForward.y, worldForward.z, worldForward.x);
-  NTempest::C3Vector soundUp(-worldUp.y, worldUp.z, worldUp.x);
   NTempest::C3Vector soundVelocity;
+  NTempest::C3Vector soundPosition;
+  soundPosition.x = -worldPosition.y;
+  soundPosition.y = worldPosition.z;
+  soundPosition.z = worldPosition.x;
   if (worldVelocity) {
     soundVelocity.x = -worldVelocity->y;
     soundVelocity.y = worldVelocity->z;
     soundVelocity.z = worldVelocity->x;
   }
+  NTempest::C3Vector soundForward;
+  soundForward.x = -worldForward.y;
+  soundForward.y = worldForward.z;
+  soundForward.z = worldForward.x;
+  NTempest::C3Vector soundUp;
+  soundUp.x = -worldUp.y;
+  soundUp.y = worldUp.z;
+  soundUp.z = worldUp.x;
   FSOUND_3D_Listener_SetAttributes(
-      &soundPosition.x, worldVelocity ? &soundVelocity.x : 0, soundForward.x, soundForward.y, soundForward.z, soundUp.x, soundUp.y, soundUp.z
+      &soundPosition[0], worldVelocity ? &soundVelocity[0] : 0, soundForward[0], soundForward[1], soundForward[2], soundUp[0], soundUp[1], soundUp[2]
   );
 }
 

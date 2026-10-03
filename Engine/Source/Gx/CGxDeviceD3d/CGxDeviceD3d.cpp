@@ -49,18 +49,71 @@ CGxDevice *CGxDevice::NewD3d() {
   return NEW(CGxDeviceD3d);
 }
 
+static WORD HToI(LPCSTR h, UINT count);
+
+BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow) {
+  int                    retVal = 0;
+  DISPLAY_DEVICEA        dd;
+  D3DADAPTER_IDENTIFIER9 adapterId;
+  HINSTANCE              d3dLib;
+  IDirect3D9            *d3d;
+  UINT                   displayIndex;
+  WORD                   parsedVendorID;
+  WORD                   parsedDeviceID;
+
+  vendorID = 0xFFFF;
+  deviceID = 0xFFFF;
+  driverVersionHi = 0;
+  driverVersionLow = 0;
+
+  memset(&dd, 0, sizeof(dd));
+  dd.cb = sizeof(dd);
+  for (displayIndex = 0; EnumDisplayDevicesA(0, displayIndex, &dd, 0); ++displayIndex) {
+    if (dd.StateFlags & 4) {
+      if (strlen(dd.DeviceID) >= 0x15) {
+        parsedVendorID = HToI(&dd.DeviceID[8], 4);
+        parsedDeviceID = HToI(&dd.DeviceID[17], 4);
+        if (parsedVendorID && parsedDeviceID) {
+          vendorID = parsedVendorID;
+          deviceID = parsedDeviceID;
+          retVal = 1;
+        }
+      }
+      break;
+    }
+  }
+
+  if (!retVal) {
+    d3dLib = 0;
+    d3d = 0;
+    if (CGxDeviceD3d::ILoadD3dLib(d3dLib, d3d)) {
+      if (d3d->GetAdapterIdentifier(0, 0, &adapterId) >= 0) {
+        vendorID = static_cast<WORD>(adapterId.VendorId);
+        deviceID = static_cast<WORD>(adapterId.DeviceId);
+        driverVersionHi = adapterId.DriverVersion.HighPart;
+        driverVersionLow = adapterId.DriverVersion.LowPart;
+        retVal = 1;
+      }
+      CGxDeviceD3d::IUnloadD3dLib(d3dLib, d3d);
+    }
+  }
+
+  Log("CGxDevice::DeviceAdapterID(): RET: %d, VID: %x, DID: %x, DVER: %x.%x", retVal, vendorID, deviceID, driverVersionHi, driverVersionLow);
+  return retVal;
+}
+
 static WORD HToI(LPCSTR h, UINT count) {
   WORD value = 0;
   char c;
   int  cValue;
 
   while (count) {
+    value = static_cast<WORD>(value * 16);
     c = *h++;
     cValue = c;
-    value = static_cast<WORD>(value * 16);
     if (isxdigit(cValue)) {
       if (isdigit(cValue)) {
-        value = static_cast<WORD>(value + cValue - '0');
+        value = static_cast<WORD>(value + c - '0');
       } else {
         value = static_cast<WORD>(value + toupper(cValue) - 'A' + 10);
       }
@@ -69,65 +122,6 @@ static WORD HToI(LPCSTR h, UINT count) {
   }
 
   return value;
-}
-
-BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow) {
-  D3DADAPTER_IDENTIFIER9 adapterId;
-  DISPLAY_DEVICEA  dd;
-  HINSTANCE              d3dLib;
-  IDirect3D9            *d3d;
-  UINT                   displayIndex;
-  WORD                   parsedVendorID;
-  WORD                   parsedDeviceID;
-  int                    retVal;
-
-  vendorID = 0xFFFF;
-  deviceID = 0xFFFF;
-  driverVersionHi = 0;
-  driverVersionLow = 0;
-
-  memset(&dd, 0, sizeof(dd));
-  displayIndex = 0;
-  retVal = 0;
-  dd.cb = sizeof(dd);
-  if (!EnumDisplayDevicesA(0, displayIndex, &dd, 0)) {
-    goto d3dFallback;
-  }
-  while (!(dd.StateFlags & 4)) {
-    ++displayIndex;
-    if (!EnumDisplayDevicesA(0, displayIndex, &dd, 0)) {
-      goto d3dFallback;
-    }
-  }
-
-  if (strlen(dd.DeviceID) >= 0x15) {
-    parsedVendorID = HToI(&dd.DeviceID[8], 4);
-    parsedDeviceID = HToI(&dd.DeviceID[17], 4);
-    if (parsedVendorID && parsedDeviceID) {
-      vendorID = parsedVendorID;
-      deviceID = parsedDeviceID;
-      retVal = 1;
-      goto done;
-    }
-  }
-
-d3dFallback:
-  d3dLib = 0;
-  d3d = 0;
-  if (CGxDeviceD3d::ILoadD3dLib(d3dLib, d3d)) {
-    if (d3d->GetAdapterIdentifier(0, 0, &adapterId) >= 0) {
-      vendorID = static_cast<WORD>(adapterId.VendorId);
-      deviceID = static_cast<WORD>(adapterId.DeviceId);
-      driverVersionHi = adapterId.DriverVersion.HighPart;
-      driverVersionLow = adapterId.DriverVersion.LowPart;
-      retVal = 1;
-    }
-    CGxDeviceD3d::IUnloadD3dLib(d3dLib, d3d);
-  }
-
-done:
-  Log("CGxDevice::DeviceAdapterID(): RET: %d, VID: %x, DID: %x, DVER: %x.%x", retVal, vendorID, deviceID, driverVersionHi, driverVersionLow);
-  return retVal;
 }
 
 BOOL CGxDevice::AdapterInfer(WORD &deviceID) {
@@ -191,6 +185,7 @@ BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
 BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
   DISPLAY_DEVICEA dd;
   DEVMODEA        dm;
+  int             retVal = 0;
 
   dd.cb = sizeof(dd);
   EnumDisplayDevicesA(0, 0, &dd, 0);
@@ -199,13 +194,12 @@ BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
   }
 
   dm.dmSize = sizeof(dm);
-  if (!EnumDisplaySettingsA(dd.DeviceName, 0xFFFFFFFF, &dm)) {
-    return 0;
+  if (EnumDisplaySettingsA(dd.DeviceName, 0xFFFFFFFF, &dm)) {
+    mode.size = NTempest::C2iVector(dm.dmPelsWidth, dm.dmPelsHeight);
+    mode.refreshRate = dm.dmDisplayFrequency;
+    mode.bpp = dm.dmBitsPerPel;
+    retVal = 1;
   }
 
-  mode.size.x = dm.dmPelsWidth;
-  mode.size.y = dm.dmPelsHeight;
-  mode.bpp = dm.dmBitsPerPel;
-  mode.refreshRate = dm.dmDisplayFrequency;
-  return 1;
+  return retVal;
 }

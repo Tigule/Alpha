@@ -5,6 +5,7 @@
 #include <storm.h>
 
 #include "WowServices/WowConnection.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 class CDataStore;
 class ClntObjMgr;

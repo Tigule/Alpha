@@ -1,20 +1,23 @@
 #include <Base/Base.h>
 
+#include "Frame/CSimpleTop.h"
 #include "Frame/CSimpleMessageFrame.h"
 
 #include <lauxlib.h>
 #include <lua.h>
 
 static int CSimpleMessageFrame_AddMessage(lua_State *L) {
-  CSimpleMessageFrame *frame = 0;
-  if (lua_type(L, 1) == LUA_TTABLE) {
-    lua_rawgeti(L, 1, 0);
-    frame = static_cast<CSimpleMessageFrame *>(lua_touserdata(L, -1));
-    lua_pop(L, 1);
-  } else {
+  CSimpleMessageFrame *frame;
+  if (lua_type(L, 1) != LUA_TTABLE) {
     luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)");
+    frame = 0;
+  } else {
+    lua_rawgeti(L, 1, 0);
+    CSimpleMessageFrame *object = static_cast<CSimpleMessageFrame *>(lua_touserdata(L, -1));
+    lua_pop(L, 1);
+    ASSERT(object);
+    frame = object;
   }
-  ASSERT(frame);
 
   if (lua_isstring(L, 2)) {
     LPCSTR message = lua_tostring(L, 2);

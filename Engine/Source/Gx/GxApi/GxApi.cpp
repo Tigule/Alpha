@@ -33,11 +33,6 @@ static BlitFormat   blitTable[GxTexFormats_Last] = {BlitFormat_Unknown, BlitForm
 static const float Gx_MinTexAspect = 0.125f;
 static const float Gx_MaxTexAspect = 8.0f;
 
-static TSGrowableArray<BYTE>      s_vertexMem;
-static TSGrowableArray<BYTE>      s_indexMem;
-static TSGrowableArray<BYTE>      s_pixelMem;
-static TSGrowableArray<CGxFormat> s_formats;
-
 const UINT CGxShaderParam::TypeCountTable[3] = {1, 3, 4};
 
 CGxFormat::CGxFormat() {
@@ -82,6 +77,7 @@ int GxAdapterDesktopMode(CGxMonitorMode &mode) {
 const TSGrowableArray<CGxFormat> *GxEnumFormats(EGxApi api) {
   ASSERT(api < GxApis_Last);
 
+  static TSGrowableArray<CGxFormat> s_formats;
   s_formats.SetCount(0);
   s_formats.ReserveSpace(0x100);
 
@@ -261,7 +257,7 @@ void GxDevReadDepth(NTempest::CiRect &rect, TSGrowableArray<float> &depths) {
 }
 
 void GxDevSetRenderTarget(EGxBuffer buffer, CGxTex *texture, UINT plane) {
-  ASSERT(((((texture ? texture->m_flags.m_renderTarget : 1)))));
+  ASSERT((texture ? texture->m_flags.m_renderTarget : 1));
   g_theGxDevicePtr->DeviceSetRenderTarget(buffer, texture, plane);
 }
 
@@ -990,11 +986,11 @@ void GxXformBone(UINT ndx, NTempest::C34Matrix &matrix) {
 }
 
 void GxXformViewProj(NTempest::C44Matrix &matrix) {
-  NTempest::C44Matrix p;
   NTempest::C44Matrix v;
+  NTempest::C44Matrix p;
 
-  GxXformView(v);
-  GxXformProjection(p);
+  g_theGxDevicePtr->XformView(v);
+  g_theGxDevicePtr->XformProjection(p);
   matrix = v * p;
 }
 
@@ -1073,19 +1069,19 @@ void GxPixelShaderDestroy(CGxPixelShader *&ps) {
 void CGxShaderParam::Set(const NTempest::C4Vector &v) {
   ASSERT(type == Type_Vector4);
   dirty = 1;
-  memcpy(f, &v, TypeCountTable[type] * sizeof(NTempest::C4Vector));
+  *reinterpret_cast<NTempest::C4Vector *>(f) = v;
 }
 
 void CGxShaderParam::Set(const NTempest::C34Matrix &m) {
   ASSERT(type == Type_Matrix34);
   dirty = 1;
-  memcpy(f, &m, TypeCountTable[type] * sizeof(NTempest::C4Vector));
+  *reinterpret_cast<NTempest::C34Matrix *>(f) = m;
 }
 
 void CGxShaderParam::Set(const NTempest::C44Matrix &m) {
   ASSERT(type == Type_Matrix44);
   dirty = 1;
-  memcpy(f, &m, TypeCountTable[type] * sizeof(NTempest::C4Vector));
+  *reinterpret_cast<NTempest::C44Matrix *>(f) = m;
 }
 
 void CGxShader::SetParam(CGxShaderParam *p, const NTempest::C4Vector &v) {
@@ -1123,6 +1119,10 @@ CGxShaderParam *CGxShader::GetParam(LPCSTR name) {
 
   return 0;
 }
+
+static TSGrowableArray<BYTE> s_vertexMem;
+static TSGrowableArray<BYTE> s_indexMem;
+static TSGrowableArray<BYTE> s_pixelMem;
 
 LPVOID GxAllocVertexMem(UINT nBytes) {
   ASSERT(nBytes < sizeof(CGxVertexPNCT0T1) * Gx_MaxVertices);

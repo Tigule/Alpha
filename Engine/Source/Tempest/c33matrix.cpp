@@ -17,7 +17,7 @@ namespace NTempest {
   }
 
   float C33Matrix::Determinant() const {
-    return a0 * Det(b1, b2, c1, c2) - a1 * Det(b0, b2, c0, c2) + a2 * Det(b0, b1, c0, c1);
+    return a1 * b2 * c0 + a2 * b0 * c1 + a0 * b1 * c2 - a2 * b1 * c0 - a1 * b0 * c2 - a0 * b2 * c1;
   }
 
   C33Matrix C33Matrix::Cofactors() const {
@@ -28,14 +28,15 @@ namespace NTempest {
   }
 
   C33Matrix C33Matrix::Adjoint() const {
-    return Cofactors().Transpose();
+    return C33Matrix(
+        Det(b1, b2, c1, c2), -Det(a1, a2, c1, c2), Det(a1, a2, b1, b2), -Det(b0, b2, c0, c2), Det(a0, a2, c0, c2), -Det(a0, a2, b0, b2),
+        Det(b0, b1, c0, c1), -Det(a0, a1, c0, c1), Det(a0, a1, b0, b1)
+    );
   }
 
-  C33Matrix C33Matrix::Inverse(float determinant) const {
-    ASSERT(!CMath::fequal_(determinant, 0.0f));
-    C33Matrix result = Adjoint();
-    result.Scale(1.0f / determinant);
-    return result;
+  C33Matrix C33Matrix::Inverse(float det) const {
+    ASSERT(CMath::fequal_(det, 0.0f) == false);
+    return Adjoint() * (1.0f / det);
   }
 
   C33Matrix C33Matrix::AffineInverse(float scale) const {
@@ -80,9 +81,10 @@ namespace NTempest {
   }
 
   C33Matrix C33Matrix::Rotation(float angle) {
-    float sine = CMath::sin_(angle);
-    float cosine = CMath::cos_(angle);
-    return C33Matrix(cosine, -sine, 0.0f, sine, cosine, 0.0f, 0.0f, 0.0f, 1.0f);
+    float sine;
+    float cosine;
+    CMath::sincos_(angle, sine, cosine);
+    return C33Matrix(cosine, sine, 0.0f, -sine, cosine, 0.0f, 0.0f, 0.0f, 1.0f);
   }
 
   void C33Matrix::Scale(float scale) {
@@ -110,7 +112,9 @@ namespace NTempest {
   }
 
   void C33Matrix::Scale(const C3Vector &scale) {
-    Scale(scale.x, scale.y, scale.z);
+    *Row0AsVec3() *= scale.x;
+    *Row1AsVec3() *= scale.y;
+    *Row2AsVec3() *= scale.z;
   }
 
   void C33Matrix::Rotate(float angle, const C3Vector &axis, bool unit) {
@@ -134,7 +138,8 @@ namespace NTempest {
   }
 
   void C33Matrix::Scale(const C2Vector &scale) {
-    Scale(scale.x, scale.y);
+    *Row0AsVec2() *= scale.x;
+    *Row1AsVec2() *= scale.y;
   }
 
   void C33Matrix::Rotate(float angle) {

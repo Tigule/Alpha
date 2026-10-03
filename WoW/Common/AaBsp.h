@@ -114,11 +114,12 @@ class CAaBsp {
 
 template <class QUERY>
 class CAaBsp_Query {
- public:
-  CAaBsp_Query(const CAaBsp &aaBsp, QUERY &f) : aaBsp(aaBsp), f(f) {
-  }
+  void operator=(const CAaBsp_Query &);
 
  protected:
+  const CAaBsp &aaBsp;
+  QUERY        &f;
+
   void GetFaceIndices(const CAaBspNode *node) {
     const WORD *faceIndices = aaBsp.GetFaceIndices();
     for (UINT i = 0; i < node->nFaces; ++i) {
@@ -126,21 +127,13 @@ class CAaBsp_Query {
     }
   }
 
-  const CAaBsp &aaBsp;
-  QUERY        &f;
-
- private:
-  void operator=(const CAaBsp_Query &);
+ public:
+  CAaBsp_Query(const CAaBsp &aaBsp, QUERY &f) : aaBsp(aaBsp), f(f) {
+  }
 };
 
 template <class QUERY>
 class CAaBsp_Query_Segment : public CAaBsp_Query<QUERY> {
- public:
-  CAaBsp_Query_Segment(const CAaBsp &aaBsp, QUERY &f, const NTempest::C3Segment &seg) : CAaBsp_Query<QUERY>(aaBsp, f) {
-    GetFaceIndices(0, seg, aaBsp.GetAaBox());
-  }
-
- private:
   void operator=(const CAaBsp_Query_Segment &);
 
   void GetFaceIndices(UINT nodeIndex, const NTempest::C3Segment &seg, const NTempest::CAaBox &qbBox) {
@@ -211,16 +204,15 @@ class CAaBsp_Query_Segment : public CAaBsp_Query<QUERY> {
       }
     }
   }
+
+ public:
+  CAaBsp_Query_Segment(const CAaBsp &aaBsp, QUERY &f, const NTempest::C3Segment &seg) : CAaBsp_Query<QUERY>(aaBsp, f) {
+    GetFaceIndices(0, seg, aaBsp.GetAaBox());
+  }
 };
 
 template <class QUERY>
 class CAaBsp_Query_AaBox : public CAaBsp_Query<QUERY> {
- public:
-  CAaBsp_Query_AaBox(const CAaBsp &aaBsp, QUERY &f, const NTempest::CAaBox &aaBox) : CAaBsp_Query<QUERY>(aaBsp, f) {
-    GetFaceIndices(0, aaBsp.GetAaBox(), aaBox);
-  }
-
- private:
   void operator=(const CAaBsp_Query_AaBox &);
 
   void GetFaceIndices(UINT nodeIndex, const NTempest::CAaBox &nodeBox, const NTempest::CAaBox &queryBox) {
@@ -258,6 +250,11 @@ class CAaBsp_Query_AaBox : public CAaBsp_Query<QUERY> {
     } else if (node->negChild != 0xFFFF) {
       GetFaceIndices(node->negChild, negNodeBox, queryBox);
     }
+  }
+
+ public:
+  CAaBsp_Query_AaBox(const CAaBsp &aaBsp, QUERY &f, const NTempest::CAaBox &aaBox) : CAaBsp_Query<QUERY>(aaBsp, f) {
+    GetFaceIndices(0, aaBsp.GetAaBox(), aaBox);
   }
 };
 

@@ -54,7 +54,11 @@ void CSimpleMessageFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
   value = node->GetAttributeByName("insertMode");
   if (value && *value) {
-    SetInsertMode(!SStrCmpI(value, "BOTTOM", 0x7FFFFFFF) ? INSERT_AT_BOTTOM : INSERT_AT_TOP);
+    if (!SStrCmpI(value, "BOTTOM", 0x7FFFFFFF)) {
+      SetInsertMode(INSERT_AT_BOTTOM);
+    } else {
+      SetInsertMode(INSERT_AT_TOP);
+    }
   }
 }
 
@@ -127,12 +131,11 @@ void CSimpleMessageFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   m_messageFrameArea.b = rect.b - m_messageFrameInset.b * scale;
 
   float fontHeight = (m_attrib.GetFontHeight() + m_attrib.GetSpacing()) * scale;
-  ASSERT(fontHeight != 0.0f);
+  ASSERT(fontHeight);
 
   float              areaHeight = m_messageFrameArea.b - m_messageFrameArea.t;
   UINT               rows = static_cast<UINT>(areaHeight / fontHeight);
-  static const float EPSILON = 2.38418579e-7f;
-  if (fabs((rows + 1) * fontHeight - areaHeight) < EPSILON) {
+  if (NTempest::CMath::fequal_((rows + 1) * fontHeight, areaHeight)) {
     ++rows;
   }
 
@@ -209,7 +212,10 @@ void CSimpleMessageFrame::OnLayerUpdate(float elapsedSec) {
 }
 
 void CSimpleMessageFrame::AddPendingMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent) {
-  ASSERT(text);
+  VALIDATEBEGIN;
+  VALIDATE(text);
+  VALIDATEENDVOID;
+
   ASSERT(m_rows > 0);
 
   ScrollMessages(0);

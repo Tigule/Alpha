@@ -674,7 +674,7 @@ static void Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color
   }
 
   if (!NTempest::CMath::fequal_(scale, 1.0f)) {
-    scale = NTempest::CMath::sqrt_(scale);
+    scale = static_cast<float>(sqrt(scale));
     float ooScale = 1.0f / scale;
     worldMtx.a0 *= ooScale;
     worldMtx.a1 *= ooScale;
@@ -3092,20 +3092,21 @@ void ModelShowBoundingSphere(HMODEL model) {
 
   CModelBase   *unique;
   CModelShared *shared;
-  if (IModelDerefHandle(modelptr, &unique, &shared)) {
-    if (unique->m_boundsModel) {
-      HandleClose(unique->m_boundsModel);
-    }
-    NTempest::CAaSphere bounds;
-    IModelGetBoundingSphere(unique, shared, &bounds);
-    HTEXTURE texture = TextureCreateSolid(NTempest::CImVector(0x7F00FFFF), 0);
-    if (texture) {
-      unique->m_boundsModel = CreateModelBoundingSphere(bounds, texture, GxBlend_Alpha);
-      unique->m_flags |= 1;
-      HandleClose(texture);
-    }
-  } else {
+  if (!IModelDerefHandle(modelptr, &unique, &shared)) {
     EnqueueModelCommand(modelptr, MODEL_SHOW_BOUNDING_SPHERE);
+    return;
+  }
+
+  if (unique->m_boundsModel) {
+    HandleClose(unique->m_boundsModel);
+  }
+  NTempest::CAaSphere bounds;
+  IModelGetBoundingSphere(unique, shared, &bounds);
+  HTEXTURE texture = TextureCreateSolid(NTempest::CImVector(0x7F00FFFF), 0);
+  if (texture) {
+    unique->m_boundsModel = CreateModelBoundingSphere(bounds, texture, GxBlend_Alpha);
+    unique->m_flags |= 1;
+    HandleClose(texture);
   }
 }
 

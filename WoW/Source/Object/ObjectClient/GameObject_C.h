@@ -11,7 +11,6 @@
 #include "Tempest/c4plane.h"
 #include "Tempest/c4quaternion.h"
 #include "Tempest/caabox.h"
-#include "Ui/GameUI.h"
 #include "Object/MovementData.h"
 
 class CGGameObject_C;
@@ -24,6 +23,7 @@ class GameObjectStats;
 struct HCOLLISIONDATA__;
 typedef HCOLLISIONDATA__ *HCOLLISIONDATA;
 struct WorldObjCollisionHandlerData;
+enum GAME_ERROR_TYPE;
 
 BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
 
@@ -84,7 +84,9 @@ class CGGameObject {
   int                GetFactionTemplate() const;
   bool               GetDisabled() const;
   bool               GetLocked() const;
-  bool               GetQuestOnly() const;
+  bool               GetQuestOnly() const {
+    return (m_gameObj->m_flags >> 2) & 1;
+  }
 
  protected:
   explicit CGGameObject(DWORD *storage) {
@@ -103,10 +105,11 @@ class CGGameObject_C_TypeBase {
   }
   CGGameObject_C_TypeBase(CGGameObject_C *owner);
 
-  CGGameObject_C *m_owner;
-
   virtual __forceinline ~CGGameObject_C_TypeBase() {
   }
+
+  CGGameObject_C *m_owner;
+
   virtual bool               CanHighlight() const;
   virtual bool               CanChangeCursor() const;
   virtual bool               CanUse() const;
@@ -145,8 +148,7 @@ class CGGameObject_C_Type_Null : public CGGameObject_C_TypeBase {
 class CGGameObject_C_TypeAnimated : public CGGameObject_C_TypeBase {
  public:
   CGGameObject_C_TypeAnimated(CGGameObject_C *owner)
-      : CGGameObject_C_TypeBase(owner), m_animState(0), m_loopingSound(0), m_animPresent(0) {
-    memset(m_useFallbackAnim, 0, sizeof(m_useFallbackAnim));
+      : CGGameObject_C_TypeBase(owner), m_loopingSound(0), m_animPresent(0) {
   }
   virtual ~CGGameObject_C_TypeAnimated();
   virtual void   UpdateState(int oldState, int newState);
@@ -223,10 +225,10 @@ class CGGameObject_C_Type_Generic : public CGGameObject_C_TypeBase {
 class CGGameObject_C_Type_MapObj : public CGGameObject_C_TypeBase {
  public:
   CGGameObject_C_Type_MapObj(CGGameObject_C *owner);
-  virtual ~CGGameObject_C_Type_MapObj();
+  virtual void PostInit();
+  virtual      ~CGGameObject_C_Type_MapObj();
   virtual bool CanHighlight() const;
   virtual bool CanUse() const;
-  virtual void PostInit();
 
  protected:
   UINT m_objectId;
@@ -237,13 +239,13 @@ class CGGameObject_C_Type_MapObjTransport : public CGGameObject_C_Type_MapObj {
   CGGameObject_C_Type_MapObjTransport(CGGameObject_C *owner);
   virtual ~CGGameObject_C_Type_MapObjTransport() {
   }
+  virtual void               Reenable();
+  virtual void               Disable(int shutdown);
+  virtual void               UpdateMovement(DWORD eventTime, float elapsed);
   virtual NTempest::C3Vector GetPosition() const;
   virtual float              GetFacing() const;
   virtual void               AddPassenger(CMovementData *passenger);
   virtual BOOL               IsPointInside(const NTempest::C3Vector &point) const;
-  virtual void               Reenable();
-  virtual void               Disable(int shutdown);
-  virtual void               UpdateMovement(DWORD eventTime, float elapsed);
 
  protected:
   LISTDECLEX(CMovementData, transportLink, m_passengers);
@@ -289,14 +291,14 @@ class CGGameObject_C_Type_Goober : public CGGameObject_C_TypeAnimated {
 class CGGameObject_C_Type_Transport : public CGGameObject_C_TypeAnimated {
  public:
   CGGameObject_C_Type_Transport(CGGameObject_C *owner);
+  virtual void               Reenable();
+  virtual void               Disable(int shutdown);
+  virtual void               UpdateMovement(DWORD eventTime, float elapsed);
   virtual NTempest::C3Vector GetPosition() const;
   virtual void               AddPassenger(CMovementData *passenger);
   virtual NTempest::C3Vector GetCurrentMoveVector() const;
   virtual bool               CanUse() const;
   virtual BOOL               IsPointInside(const NTempest::C3Vector &point) const;
-  virtual void               Reenable();
-  virtual void               Disable(int shutdown);
-  virtual void               UpdateMovement(DWORD eventTime, float elapsed);
   virtual void               ModelJustLoaded();
 
  protected:
@@ -353,87 +355,93 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
 
   void         SetStorage(DWORD *storage);
   void         PostInit(const CClientObjCreate &init);
+  void         PostPostInit();
+  void PostMovementUpdate() {
+  }
   virtual void Disable(int shutdown);
   virtual void Reenable();
   virtual void PostReenable();
-  virtual BOOL UpdateModelLoadStatus();
-  BOOL         SetBlock(UINT i, DWORD data);
-  void         SetData(LPCVOID data, UINT bytes);
+  UINT         CreateWorldObject(DWORDLONG guid);
+  void         SetMirrorHandlers();
+  void         UnsetMirrorHandlers();
 
-  virtual NTempest::C3Vector  GetPosition() const;
-  virtual void                GetPosition(NTempest::C3Vector &vec) const;
-  virtual float               GetFacing() const;
-  virtual NTempest::C3Vector  GetCurrentMoveVector() const;
+  virtual NTempest::C3Vector GetPosition() const;
+  virtual void               GetPosition(NTempest::C3Vector &vec) const;
+  virtual float              GetFacing() const;
+  virtual NTempest::C3Vector GetCurrentMoveVector() const;
+  virtual void               GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
+  virtual BOOL               UpdateModelLoadStatus();
+  virtual BOOL               IsSolidSelectable() const;
+  virtual BOOL               IsSolidCollidable() const;
+  virtual BOOL               CanHighlight() const;
+  virtual BOOL               FloatingTooltip() const;
+  virtual void               OnRightClick();
+  virtual BOOL               IsPointInside(const NTempest::C3Vector &point) const;
+
+  LINKDECLEX(CGGameObject_C, moveLink);
+
+  void UpdateMovement(DWORD eventTime, float elapsed);
+  void AddPassenger(CMovementData *passenger);
+
+  BOOL                        IsTransport() const;
+  BOOL                        SetBlock(UINT i, DWORD data);
+  void                        SetData(LPCVOID data, UINT bytes);
+  static UINT                 OffsetOf(OBJECT_TYPE_ID type);
+  void                        LoadBaseObject(const GameObjectStats *stats);
+  UNIT_REACTION               ObjectReaction(const CGUnit_C *unit) const;
+  bool                        IsFriend(const CGUnit_C *unit) const;
+  bool                        IsPeaceful(const CGUnit_C *unit) const;
+  bool                        IsEnemy(const CGUnit_C *unit) const;
+  UINT                        GetServerTimeOffset();
+  void                        SetSolid(bool solid);
   virtual LPCSTR              GetModelFileName() const;
-  virtual BOOL                CanHighlight() const;
-  virtual BOOL                IsSolidSelectable() const;
-  virtual BOOL                IsSolidCollidable() const;
-  virtual BOOL                FloatingTooltip() const;
-  virtual void                OnRightClick();
-  virtual BOOL                IsPointInside(const NTempest::C3Vector &point) const;
+  LPCSTR                      GetName() const;
+  LPCSTR                      GetTypeName() const;
+  LPCSTR                      GetDebugStatus() const;
+  int                         GetType() const;
+  UINT                        GetPropertyValue(UINT index) const;
+  const LockRec              *GetLockRec() const;
+  bool                        IsValidOpenAction(int action) const;
+  bool                        IsValidTargetForSpell(const DWORDLONG &caster, int spellID) const;
+  bool                        IsLocked(int *spellID, int *spellSkill, int *lockSkill, CGItem_C **itemPtr, int *openIndex) const;
+  bool                        CanChangeCursor() const;
+  bool                        CanUse() const;
+  bool                        CanUseNow() const;
+  void                        StartInteraction();
+  void                        CloseInteraction();
+  void                        ActivateCustomAnim(UINT anim);
   virtual NTempest::C34Matrix GetMatrix() const;
-  virtual LPCSTR              GetObjectName() const;
-  virtual int                 GetPageTextID(void (*func)(int, const DWORDLONG &, LPVOID, bool)) const;
-  virtual void                GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
-  virtual void ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  HCOLLISIONDATA              GetCollideData() const;
+  NTempest::C3Vector          GetCollideMin() const;
+  NTempest::C3Vector          GetCollideMax() const;
+  NTempest::CAaBox            GetCollideExtents() const;
+  void                        UpdateMatrix();
 
-  BOOL               IsTransport() const;
-  int                GetPageTextLanguage() const;
-  int                GetPageTextMaterial() const;
-  void               LoadBaseObject(const GameObjectStats *stats);
-  void               PostMovementUpdate();
-  void               UpdateMovement(DWORD eventTime, float elapsed);
-  void               AddPassenger(CMovementData *passenger);
-  UINT               CreateWorldObject(DWORDLONG guid);
-  void               SetMirrorHandlers();
-  void               UnsetMirrorHandlers();
-  void               PostPostInit();
-  void               UpdateMatrix();
-  void               ActivateCustomAnim(UINT anim);
-  LPCSTR             GetName() const;
-  LPCSTR             GetTypeName() const;
-  LPCSTR             GetDebugStatus() const;
-  bool               CanChangeCursor() const;
-  bool               CanUse() const;
-  bool               CanUseNow() const;
-  int                GetType() const;
-  UINT               GetPropertyValue(UINT index) const;
-  const LockRec     *GetLockRec() const;
-  bool               IsFriend(const CGUnit_C *unit) const;
-  bool               IsPeaceful(const CGUnit_C *unit) const;
-  bool               IsEnemy(const CGUnit_C *unit) const;
-  UINT               GetServerTimeOffset();
-  void               SetSolid(bool solid);
-  bool               IsLocked(int *spellID, int *spellSkill, int *lockSkill, CGItem_C **itemPtr, int *openIndex) const;
-  bool               IsValidOpenAction(int action) const;
-  void               StartInteraction();
-  void               CloseInteraction();
-  UNIT_REACTION      ObjectReaction(const CGUnit_C *unit) const;
-  bool               IsValidTargetForSpell(const DWORDLONG &caster, int spellID) const;
-  bool               IsQuestObjectForMe();
-  HCOLLISIONDATA GetCollideData() const;
-  NTempest::C3Vector GetCollideMin() const;
-  NTempest::C3Vector GetCollideMax() const;
-  NTempest::CAaBox   GetCollideExtents() const;
+  CGGameObject_C_TypeBase *m_baseObj;
 
   static void Initialize();
   static void Shutdown();
-  static UINT OffsetOf(OBJECT_TYPE_ID type);
-
-  LINKDECLEX(CGGameObject_C, moveLink);
-  CGGameObject_C_TypeBase *m_baseObj;
 
  private:
-  CGGameObject_C        &operator=(const CGGameObject_C &);
-  LPCSTR                 GetModelFileNameInternal() const;
+  CGGameObject_C &operator=(const CGGameObject_C &);
+  LPCSTR          GetModelFileNameInternal() const;
+
   const GameObjectStats *m_stats;
   NTempest::C34Matrix    m_matrix;
-  HMODEL m_collideModel;
-  HCOLLISIONDATA m_collideData;
+  HMODEL                 m_collideModel;
+  HCOLLISIONDATA         m_collideData;
   NTempest::CAaBox       m_collideExtents;
   UINT                   m_serverTimeOffset;
   int                    m_isSolid : 1;
   int                    m_isQuestChestForMe : 1;
+
+ public:
+  bool           IsQuestObjectForMe();
+  virtual void   ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  virtual LPCSTR GetObjectName() const;
+  virtual int    GetPageTextID(void (*func)(int, const DWORDLONG &, LPVOID, bool)) const;
+  int            GetPageTextLanguage() const;
+  int            GetPageTextMaterial() const;
 };
 
 #endif

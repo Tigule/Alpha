@@ -62,7 +62,9 @@ namespace NTempest {
     void    Stretch(const C2iVector &value);
     void    Offset(long horizontal, long vertical);
     void    Offset(const C2iVector &value);
-    bool    NotEmpty() const;
+    bool NotEmpty() const {
+      return t < b && l < r;
+    }
     bool    Empty() const;
     bool    Invalid() const;
     bool    NotInvalid() const;
@@ -98,9 +100,14 @@ namespace NTempest {
     void          AlignRight(const CiRect &value);
     static CiRect Intersection(const CiRect &left, const CiRect &right);
     static CiRect Intersection(const CiRect &a, const CiRect &b, const CiRect &clip);
-    static CiRect Union(const CiRect &left, const CiRect &right);
+    static CiRect Union(const CiRect &l, const CiRect &r) {
+      return CiRect(min(l.t, r.t), min(l.l, r.l), max(l.b, r.b), max(l.r, r.r));
+    }
     CiRect        Intersect(const CiRect &right);
-    CiRect        Unite(const CiRect &right);
+    CiRect Unite(const CiRect &r) {
+      *this = Union(*this, r);
+      return *this;
+    }
     static CiRect ClippedLocal(const CiRect &value, const CiRect &clip);
     static DWORD  Difference(const CiRect &left, const CiRect &right, CiRect *result);
   };

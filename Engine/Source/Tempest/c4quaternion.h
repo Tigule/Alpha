@@ -132,7 +132,7 @@ namespace NTempest {
         C4Quaternion       &b
     );
     static C4Quaternion
-    Squad(float ratio, const C4Quaternion &start, const C4Quaternion &end, const C4Quaternion &outTangent, const C4Quaternion &inTangent);
+    Squad(float t, const C4Quaternion &p, const C4Quaternion &a, const C4Quaternion &b, const C4Quaternion &q);
   };
 
   inline C4Quaternion operator*(const C4Quaternion &l, const C4Quaternion &r) {

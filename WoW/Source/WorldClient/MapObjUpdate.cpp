@@ -1,10 +1,17 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
+#include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
 
-#include "Gx/Gx.h"
 #include "Images/blit.h"
 #include "Services/SysMessage.h"
 #include "Services/Texture.h"
@@ -15,10 +22,7 @@ void CMapObjGroup::CreateLightmaps() {
   for (UINT i = 0; i < lightmapTexCount; ++i) {
     SMOLightmapTex &lightmapTex = lightmapTexList[i];
     if (!lightmapTex.hTexture) {
-      EGxTexFormat format = LIGHTMAP_FORMAT;
-      if (!GxCaps().m_texFmtDxt) {
-        format = GxTex_Rgb565;
-      }
+      EGxTexFormat format = GxCaps().m_texFmtDxt ? LIGHTMAP_FORMAT : GxTex_Rgb565;
 
       lightmapTex.hTexture = TextureCreate("Lightmap", 256, 256, format, LIGHTMAP_FORMAT, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1));
       CGxTex *texture = TextureGetGxTex(lightmapTex.hTexture, 1, 0);
@@ -32,9 +36,10 @@ void CMapObjGroup::FreeLightmaps() {
 
   UINT i;
   for (i = 0; i < lightmapTexCount; ++i) {
-    if (lightmapTexList[i].hTexture) {
-      HandleClose(lightmapTexList[i].hTexture);
-      lightmapTexList[i].hTexture = 0;
+    SMOLightmapTex &lightmapTex = lightmapTexList[i];
+    if (lightmapTex.hTexture) {
+      HandleClose(lightmapTex.hTexture);
+      lightmapTex.hTexture = 0;
       freed = 1;
     }
   }
@@ -57,8 +62,13 @@ void CMapObjGroup::UpdateLightmapTex(
   SMOLightmapTex *lightmapTex = static_cast<SMOLightmapTex *>(userArg);
   FATALASSERT(lightmapTex);
 
-  if (cmd == GxTex_Latch) {
-    texelStrideInBytes = CalcRowStride(GxGetBlitFormat(LIGHTMAP_FORMAT), w);
-    texels = lightmapTex->texels;
+  switch (cmd) {
+    case GxTex_Lock:
+      return;
+
+    case GxTex_Latch:
+      texelStrideInBytes = CalcRowStride(GxGetBlitFormat(LIGHTMAP_FORMAT), w);
+      texels = lightmapTex->texels;
+      return;
   }
 }

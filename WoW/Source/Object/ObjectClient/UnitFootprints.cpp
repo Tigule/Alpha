@@ -2,12 +2,12 @@
 #include <Gx/Gx.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
-#include "WowServices/WowConnection.h"
-#include <WowConst.h>
+#include "Net/NetClient/NetClient.h"
 #include <Frame/CSimpleTop.h>
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
 
@@ -33,6 +33,7 @@
 #include <math.h>
 #include <new.h>
 
+
 void ProjectTex2dMakeMatrices(
     NTempest::C44Matrix       &texmat0,
     NTempest::C44Matrix       &texmat1,
@@ -51,7 +52,7 @@ void    UnitEffectOneShot(
     bool                      forceEffectOnMount
 );
 
-static NTempest::CRndSeed                 s_rndSeed;
+static LISTDECLEX(SPLATDATA, normalLink, s_freeList);
 static TSGrowableArray<PERSISTENTTEXTURE> s_footStepTextureTable;
 static TSGrowableArray<TIMEDTEXTURE>      s_bloodSplatTextureTable[5];
 static LISTBASE                          *s_currentList;
@@ -62,43 +63,48 @@ static int                                s_currentTime;
 static NTempest::C3Vector                 s_currentCamera;
 static NTempest::C44Matrix                s_currentWorld;
 static const float                        s_maxPurgeDist = 100.0f;
+static const int                          FADEIN = 50;
+static const int                          FADEDONE = 12050;
+static const int                          FADEOUT = 7050;
+static const float                        MAXALPHA = 128.0f;
 static const NTempest::C2Vector           s_splatSizes[5] = {
-    NTempest::C2Vector(0.66666669f), NTempest::C2Vector(1.0f), NTempest::C2Vector(1.3333334f), NTempest::C2Vector(1.6666666f),
-    NTempest::C2Vector(2.0f)
+    NTempest::C2Vector(0.44444445f), NTempest::C2Vector(0.6666667f), NTempest::C2Vector(1.1666666f), NTempest::C2Vector(1.3333334f),
+    NTempest::C2Vector(1.7777778f)
 };
-static TInstanceAllocator<CHUNKDATA> s_freeChunks(10);
-static LISTDECLEX(SPLATDATA, normalLink, s_freeList);
+static TInstanceAllocator<CHUNKDATA> s_freeChunks(100);
 static CVar *s_renderSplatsCVar;
 static CVar *s_renderParticlesCVar;
 
 static void InitializeBloodSplatTable() {
   int count = g_unitBloodDB.GetMaxID() + 1;
-  for (int i = 0; i < 5; ++i) {
-    s_bloodSplatTextureTable[i].SetCount(count);
-    for (int j = 0; j < count; ++j) {
-      const UnitBloodRec *rec = g_unitBloodDB.GetRecord(j);
+  for (int j = 5; j;) {
+    --j;
+    s_bloodSplatTextureTable[j].SetCount(count);
+    for (int i = g_unitBloodDB.GetNumRecords(); i;) {
+      --i;
+      const UnitBloodRec *rec = g_unitBloodDB.GetRecordByIndex(i);
       if (rec) {
-        s_bloodSplatTextureTable[i][j].SetTexture(rec->m_GroundBlood[i]);
+        s_bloodSplatTextureTable[j][rec->m_ID].SetTexture(rec->m_GroundBlood[j]);
       }
     }
   }
 }
 
 static void InitializeTextureTable() {
+  s_footStepTextureTable.SetCount(g_footprintTexturesDB.GetMaxID() + 1);
   CStatus status;
-  int     count = g_footprintTexturesDB.GetMaxID() + 1;
-  s_footStepTextureTable.SetCount(count);
-  for (int i = 0; i < g_footprintTexturesDB.GetNumRecords(); ++i) {
+  for (int i = g_footprintTexturesDB.GetNumRecords(); i;) {
+    --i;
     const FootprintTexturesRec *rec = g_footprintTexturesDB.GetRecordByIndex(i);
     s_footStepTextureTable[rec->m_ID].SetTexture(rec->m_FootstepFilename);
   }
 }
 
 static NTempest::CAaBox MakeCAaBox(const NTempest::C2Vector &size, const NTempest::C3Vector &position) {
-  float            radius = sqrtf(size.x * size.x + size.y * size.y) * 0.5f;
-  NTempest::CAaBox box;
-  box.b = position - NTempest::C3Vector(radius, radius, 0.3f);
-  box.t = position + NTempest::C3Vector(radius, radius, 0.3f);
+  float            radius = size.Mag() * 0.5f;
+  NTempest::CAaBox box(position);
+  box.b -= NTempest::C3Vector(radius, radius, 0.3f);
+  box.t += NTempest::C3Vector(radius, radius, 0.3f);
   return box;
 }
 
@@ -107,54 +113,58 @@ static NTempest::C44Matrix MakeBasis(int mirror, float facing, const NTempest::C
   if (mirror) {
     basis.Scale(NTempest::C3Vector(-1.0f, 1.0f, 1.0f));
   }
-  if (size.y > size.x) {
+  if (size.x < size.y) {
     basis.Scale(NTempest::C3Vector(1.0f, size.y / size.x, 1.0f));
   } else if (size.y < size.x) {
     basis.Scale(NTempest::C3Vector(size.x / size.y, 1.0f, 1.0f));
   }
-  basis.Rotate(-facing, s_zup, 1);
+  basis.Rotate(-facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
   return basis;
 }
 
 static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPNCT0T1 *vertices = 0;
-  WORD             *indices = 0;
-  if (cmd.vertex.op == GxBufOp_Fill) {
-    vertices = static_cast<CGxVertexPNCT0T1 *>(*cmd.vertex.mem[GxVM_Position]);
-  } else if (cmd.vertex.op == GxBufOp_Assign) {
-    vertices = static_cast<CGxVertexPNCT0T1 *>(GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices)));
-    *cmd.vertex.mem[GxVM_Position] = &vertices->p;
-    *cmd.vertex.mem[GxVM_Normal] = &vertices->n;
-    *cmd.vertex.mem[GxVM_Color] = &vertices->c;
-    *cmd.vertex.mem[GxVM_Texture0] = &vertices->tc[0];
-    *cmd.vertex.mem[GxVM_Texture1] = &vertices->tc[1];
-  } else {
+  WORD             *idx = 0;
+  if (cmd.vertex.op == GxBufOp_Nop || cmd.index.op == GxBufOp_Nop) {
     FATALASSERT(0);
+    return;
   }
-  if (cmd.index.op == GxBufOp_Fill) {
-    indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
-  } else if (cmd.index.op == GxBufOp_Assign) {
-    indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*indices)));
-    *cmd.index.mem[GxVM_Indices] = indices;
-  } else {
-    FATALASSERT(0);
+  switch (cmd.vertex.op) {
+    case GxBufOp_Assign:
+      vertices = static_cast<CGxVertexPNCT0T1 *>(GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices)));
+      *cmd.vertex.mem[GxVM_Position] = &vertices->p;
+      *cmd.vertex.mem[GxVM_Normal] = &vertices->n;
+      *cmd.vertex.mem[GxVM_Color] = &vertices->c;
+      *cmd.vertex.mem[GxVM_Texture0] = &vertices->tc[0];
+      *cmd.vertex.mem[GxVM_Texture1] = &vertices->tc[1];
+      break;
+    case GxBufOp_Fill:
+      vertices = static_cast<CGxVertexPNCT0T1 *>(*cmd.vertex.mem[GxVM_Position]);
+      break;
+  }
+  switch (cmd.index.op) {
+    case GxBufOp_Assign:
+      idx = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*idx)));
+      *cmd.index.mem[GxVM_Indices] = idx;
+      break;
+    case GxBufOp_Fill:
+      idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      break;
   }
 
   int vertsWritten = 0;
-  ITERATELIST(SPLATDATA, s_currentChunk->m_splats, splat) {
+  for (SPLATDATA *splat = s_currentChunk->m_splats.Head(); splat; splat = splat->normalLink.Next()) {
     if (!splat->skip) {
-      WORD *idx = splat->indices.Ptr();
-      for (UINT i = 0; i < splat->indices.Count(); ++i) {
-        *indices++ = static_cast<WORD>(vertsWritten + idx[i]);
+      int i;
+      for (i = 0; i < static_cast<int>(splat->indices.Count()); ++i, ++idx) {
+        *idx = splat->indices[i] + vertsWritten;
       }
-      for (UINT j = 0; j < splat->data.Count(); ++j) {
-        vertices->p = splat->data[j].p;
+      for (i = 0; i < static_cast<int>(splat->data.Count()); ++i, ++vertices, ++vertsWritten) {
+        vertices->p = splat->data[i].p;
         vertices->n = s_zup;
         vertices->c = splat->color;
-        vertices->tc[0] = splat->data[j].t[0];
-        vertices->tc[1] = splat->data[j].t[1];
-        ++vertices;
-        ++vertsWritten;
+        vertices->tc[0] = splat->data[i].t[0];
+        vertices->tc[1] = splat->data[i].t[1];
       }
     }
   }
@@ -162,7 +172,7 @@ static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
 
 bool SPLATDATA::Update(float progress, bool &nuke) {
   nuke = 0;
-  if (!data.Count() || !indices.Count() || (position - s_currentCamera).SquaredMag() >= s_maxPurgeDist * s_maxPurgeDist) {
+  if (!data.Count() || !indices.Count() || (position - s_currentCamera).SquaredMag() > s_maxPurgeDist * s_maxPurgeDist) {
     nuke = 1;
     return 1;
   }
@@ -171,20 +181,21 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
     return 1;
   }
   if (startTime == -1) {
-    int alpha = static_cast<int>((1.0f - progress) * 128.0f);
+    static int MAXALPHA = 128;
+    int        alpha = static_cast<int>((1.0 - progress) * MAXALPHA);
     color.a = alpha <= 0 ? 0 : alpha;
   } else {
     int elapsed = s_currentTime - startTime;
-    if (elapsed < 0 || elapsed > 12050) {
+    if (elapsed < 0 || elapsed > FADEDONE) {
       nuke = 1;
       return 1;
     }
-    if (elapsed < 50) {
-      color.a = static_cast<BYTE>(elapsed * 0.02f * 128.0f);
-    } else if (elapsed < 7050) {
-      color.a = 128;
-    } else if (elapsed < 12050) {
-      color.a = static_cast<BYTE>(128.0f - (elapsed - 7050) * 0.0002f * 128.0f);
+    if (elapsed < FADEIN) {
+      color.a = static_cast<BYTE>(MAXALPHA * (static_cast<float>(elapsed) / FADEIN));
+    } else if (elapsed < FADEOUT) {
+      color.a = static_cast<BYTE>(MAXALPHA);
+    } else if (elapsed < FADEDONE) {
+      color.a = static_cast<BYTE>(MAXALPHA - MAXALPHA * (static_cast<float>(elapsed - FADEOUT) / (FADEDONE - FADEOUT)));
     }
   }
   chunk->m_vertCount += data.Count();
@@ -192,194 +203,10 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
   return 0;
 }
 
-LISTBASE::~LISTBASE() {
-  if (m_texture) {
-    HandleClose(m_texture);
-  }
-}
-
-PERSISTENTTEXTURE::PERSISTENTTEXTURE() : LISTBASE(512, 1) {
-}
-
 void LISTBASE::SetTexture(LPCSTR n) {
   CStatus status;
   if (!m_texture && n && *n) {
     m_texture = TextureCreate(n, CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
-  }
-}
-
-CHUNKDATA *LISTBASE::FindChunk(int id) {
-  CHUNKDATA *chunk = m_chunks.Head();
-  while (chunk && chunk->m_sourceID != id) {
-    chunk = m_chunks.Next(chunk);
-  }
-  if (!chunk) {
-    chunk = s_freeChunks.Get(0);
-    chunk->m_sourceID = id;
-    m_chunks.LinkNode(chunk, LIST_HEAD, 0);
-  }
-  chunk->m_flags |= m_flags;
-  return chunk;
-}
-
-bool PERSISTENTTEXTURE::MakeSpace() {
-  if (m_currentCount >= m_maxCount) {
-    SPLATDATA *splat = m_splatOrder.Head();
-    if (splat) {
-      splat->chunk->RecycleSplat(splat);
-    }
-  }
-  return 1;
-}
-
-bool TIMEDTEXTURE::MakeSpace() {
-  return m_currentCount < m_maxCount;
-}
-
-SPLATDATA *GetSplat() {
-  SPLATDATA *splat = s_freeList.Head();
-  if (splat) {
-    s_freeList.UnlinkNode(splat);
-  } else {
-    splat = static_cast<SPLATDATA *>(SMemAlloc(sizeof(SPLATDATA), __FILE__, __LINE__, 0));
-    if (splat) {
-      splat = new (splat) SPLATDATA;
-    }
-  }
-  if (splat) {
-    splat->skip = 0;
-    splat->color = 0xFFFFFFFF;
-  }
-  return splat;
-}
-
-void CHUNKDATA::Render() {
-  if (m_vertCount && m_indexCount) {
-    NTempest::C44Matrix batchMtx = m_matrix * s_currentWorld;
-    GxXformSet(GxXform_World, batchMtx);
-    CGxBuf *buf = GxBufGetDynamic(GxVBF_PNCT0T1);
-    buf->UserCallbackSet(ProjectTexRenderPNCT0T1);
-    buf->CountSet(m_vertCount, m_indexCount);
-    GxBufLock(buf);
-    GxBufRender(CGxBatch(GxPrim_Triangles, m_indexCount, 0, -1, -1));
-    GxBufUnlock();
-  }
-}
-
-BOOL CHUNKDATA::GetVertCount(const CWTriData::Batch &batch, int &lowest, int &highest) {
-  int indexCount = batch.GetIndexCount();
-  if (!indexCount) {
-    return 0;
-  }
-  lowest = 0x7FFFFFFF;
-  highest = -1;
-  s_scratch.SetCount(batch.maxIndex + 1);
-  for (UINT i = 0; i < s_scratch.Count(); ++i) {
-    s_scratch[i] = -1;
-  }
-  int found = 0;
-  for (int j = 0; j < indexCount; ++j) {
-    UINT index = batch.GetIndex(j);
-    if (s_scratch[index] == -1) {
-      ++found;
-    }
-    ++s_scratch[index];
-    if (static_cast<int>(index) < lowest)
-      lowest = index;
-    if (static_cast<int>(index) > highest)
-      highest = index;
-  }
-  return found;
-}
-
-CHUNKDATA::~CHUNKDATA() {
-  while (m_splats.Head()) {
-    RecycleSplat(m_splats.Head());
-  }
-  FATALASSERT(!m_vertCount);
-  FATALASSERT(!m_indexCount);
-  Unlink();
-}
-
-SPLATDATA *CHUNKDATA::Add(const CWTriData::Batch &batch, const NTempest::CAaBox &box, const NTempest::C44Matrix &basis) {
-  int lowest;
-  int highest;
-  int vertCount = GetVertCount(batch, lowest, highest);
-  if (!vertCount) {
-    return 0;
-  }
-  SPLATDATA *splat = GetSplat();
-  if (!splat) {
-    return 0;
-  }
-  splat->startTime = (m_flags & 1) ? -1 : OsGetAsyncTimeMs();
-  splat->position = (box.b + box.t) * 0.5f;
-  splat->chunk = this;
-
-  NTempest::C44Matrix tex0;
-  NTempest::C44Matrix tex1;
-  ProjectTex2dMakeMatrices(tex0, tex1, box, &basis, 0.5f, 1);
-  tex0 = *batch.matrix * tex0;
-  tex1 = *batch.matrix * tex1;
-
-  for (int i = lowest, localIndex = 0; i <= highest; ++i) {
-    if (s_scratch[i] >= 0) {
-      s_scratch[i] = localIndex++;
-    }
-  }
-  splat->data.SetCount(vertCount);
-  splat->indices.SetCount(batch.GetIndexCount());
-  for (int j = 0; j < batch.GetIndexCount(); ++j) {
-    WORD sourceIndex = batch.GetIndex(j);
-    WORD localIndex = static_cast<WORD>(s_scratch[sourceIndex]);
-    splat->indices[j] = localIndex;
-    NTempest::C3Vector source = batch.GetVertex(sourceIndex);
-    splat->data[localIndex].p = source;
-    NTempest::C3Vector tc0 = source * tex0;
-    NTempest::C3Vector tc1 = source * tex1;
-    splat->data[localIndex].t[0] = NTempest::C2Vector(tc0.x, tc0.y);
-    splat->data[localIndex].t[1] = NTempest::C2Vector(tc1.x, tc1.y);
-  }
-  m_splats.LinkNode(splat, LIST_HEAD, 0);
-  ++m_numSplats;
-  m_matrix = *batch.matrix;
-  return splat;
-}
-
-void CHUNKDATA::RecycleSplat(SPLATDATA *splat) {
-  if (!splat) {
-    return;
-  }
-  splat->data.SetCount(0);
-  splat->indices.SetCount(0);
-  splat->orderLink.Unlink();
-  splat->chunk = 0;
-  s_freeList.LinkNode(splat, LIST_TAIL, 0);
-}
-
-void LISTBASE::Add(const NTempest::C3Vector &position, const NTempest::CAaBox &box, const NTempest::C44Matrix &matrix) {
-  if (!m_texture) {
-    return;
-  }
-  NTempest::C3Vector cameraPos;
-  CGWorldFrame::GetCameraPosition(&cameraPos);
-  if ((cameraPos - position).SquaredMag() >= 100.0f * 100.0f) {
-    return;
-  }
-  CWTriData data;
-  if (!CWorld::GetTris(box, data, 0x122)) {
-    return;
-  }
-  for (int i = data.GetNumBatches(); i;) {
-    const CWTriData::Batch &batch = data.GetBatch(--i);
-    if (!MakeSpace()) {
-      break;
-    }
-    CHUNKDATA *chunk = FindChunk(batch.sourceID);
-    SPLATDATA *splat = chunk->Add(batch, box, matrix);
-    if (splat) {
-      m_splatOrder.LinkNode(splat, LIST_HEAD, 0);
-    }
   }
 }
 
@@ -402,7 +229,7 @@ void LISTBASE::Render() {
   m_currentCount = 0;
   int found = 0;
   for (SPLATDATA *splat = m_splatOrder.Tail(); splat;) {
-    SPLATDATA *newTail = m_splatOrder.Prev(splat);
+    SPLATDATA *newTail = splat->orderLink.Prev();
     bool       nuke;
     if (splat->Update(static_cast<float>(found) / m_maxCount, nuke) && nuke) {
       splat->chunk->RecycleSplat(splat);
@@ -422,6 +249,177 @@ void LISTBASE::Render() {
   s_currentList = 0;
 }
 
+CHUNKDATA *LISTBASE::FindChunk(int id) {
+  CHUNKDATA *chunk = 0;
+  ITERATELIST(CHUNKDATA, m_chunks, search) {
+    if (search->m_sourceID == id) {
+      chunk = search;
+      break;
+    }
+  }
+  if (!chunk) {
+    chunk = s_freeChunks.Get(0);
+    chunk->m_sourceID = id;
+    m_chunks.LinkNode(chunk, LIST_TAIL, 0);
+  }
+  chunk->m_flags |= m_flags;
+  return chunk;
+}
+
+void LISTBASE::Add(const NTempest::C3Vector &position, const NTempest::CAaBox &box, const NTempest::C44Matrix &matrix) {
+  if (!m_texture) {
+    return;
+  }
+  NTempest::C3Vector cameraPos;
+  CGWorldFrame::GetCameraPosition(&cameraPos);
+  cameraPos -= position;
+  if (cameraPos.SquaredMag() >= s_maxPurgeDist * s_maxPurgeDist) {
+    return;
+  }
+  CWTriData data;
+  if (!CWorld::GetTris(box, data, 0x122)) {
+    return;
+  }
+  for (int i = data.GetNumBatches(); i;) {
+    --i;
+    if (!MakeSpace()) {
+      break;
+    }
+    const CWTriData::Batch &batch = data.GetBatch(i);
+    CHUNKDATA              *chunk = FindChunk(batch.sourceID);
+    SPLATDATA              *splat = chunk->Add(batch, box, matrix);
+    if (splat) {
+      m_splatOrder.LinkNode(splat, LIST_TAIL, 0);
+    }
+  }
+}
+
+bool TIMEDTEXTURE::MakeSpace() {
+  return m_currentCount < m_maxCount;
+}
+
+bool PERSISTENTTEXTURE::MakeSpace() {
+  if (m_currentCount >= m_maxCount) {
+    SPLATDATA *splat = m_splatOrder.Head();
+    if (splat) {
+      splat->chunk->RecycleSplat(splat);
+    }
+  }
+  return 1;
+}
+
+SPLATDATA *GetSplat() {
+  SPLATDATA *splat = s_freeList.Head();
+  if (splat) {
+    s_freeList.UnlinkNode(splat);
+  } else {
+    splat = NEW(SPLATDATA);
+  }
+  splat->skip = 0;
+  splat->color = NTempest::CImVector(0xFFFFFFFF);
+  return splat;
+}
+
+void CHUNKDATA::Render() {
+  if (m_vertCount && m_indexCount) {
+    NTempest::C44Matrix batchMtx = m_matrix * s_currentWorld;
+    GxXformSet(GxXform_World, batchMtx);
+    CGxBuf *buf = GxBufGetDynamic(GxVBF_PNCT0T1);
+    buf->UserCallbackSet(ProjectTexRenderPNCT0T1);
+    buf->CountSet(m_vertCount, m_indexCount);
+    GxBufLock(buf);
+    GxBufRender(CGxBatch(GxPrim_Triangles, m_indexCount, 0, -1, -1));
+    GxBufUnlock();
+  }
+}
+
+int CHUNKDATA::GetVertCount(const CWTriData::Batch &batch, int &lowest, int &highest) {
+  int indexCount = batch.GetIndexCount();
+  if (!indexCount) {
+    return 0;
+  }
+  highest = -1;
+  lowest = 0x7FFFFFFF;
+  s_scratch.SetCount(batch.maxIndex + 1);
+  for (UINT i = s_scratch.Count(); i;) {
+    s_scratch[--i] = -1;
+  }
+  int found = 0;
+  for (int j = 0; j < indexCount; ++j) {
+    UINT index = batch.vertexIndices[j];
+    if (s_scratch[index] == -1) {
+      ++found;
+    }
+    ++s_scratch[index];
+    highest = max(highest, batch.vertexIndices[j]);
+    lowest = min(lowest, batch.vertexIndices[j]);
+  }
+  return found;
+}
+
+SPLATDATA *CHUNKDATA::Add(const CWTriData::Batch &batch, const NTempest::CAaBox &box, const NTempest::C44Matrix &basis) {
+  int lowest;
+  int highest;
+  int vertCount = GetVertCount(batch, lowest, highest);
+  if (!vertCount) {
+    return 0;
+  }
+  SPLATDATA *splat = GetSplat();
+  if (m_flags & 1) {
+    splat->startTime = -1;
+  } else {
+    splat->startTime = OsGetAsyncTimeMs();
+  }
+  splat->position = (box.b + box.t) * 0.5f;
+  splat->chunk = this;
+
+  NTempest::C44Matrix tex0;
+  NTempest::C44Matrix tex1;
+  ProjectTex2dMakeMatrices(tex0, tex1, box, &basis, 0.5f, 1);
+  tex0 = *batch.matrix * tex0;
+  tex1 = *batch.matrix * tex1;
+
+  for (int i = lowest, localIndex = 0; i <= highest; ++i) {
+    if (s_scratch[i] > -1) {
+      s_scratch[i] = localIndex++;
+    }
+  }
+  splat->data.SetCount(vertCount);
+  splat->indices.SetCount(batch.GetIndexCount());
+  for (int j = 0; j < static_cast<int>(splat->indices.Count()); ++j) {
+    WORD sourceIndex = batch.vertexIndices[j];
+    WORD localIndex = static_cast<WORD>(s_scratch[sourceIndex]);
+    splat->indices[j] = localIndex;
+    NTempest::C3Vector source = batch.vertices[sourceIndex];
+    VERTDATA          &vert = splat->data[localIndex];
+    vert.p = source;
+    vert.t[0] = source * tex0;
+    vert.t[1] = source * tex1;
+  }
+  m_splats.LinkNode(splat, LIST_TAIL, 0);
+  m_matrix = *batch.matrix;
+  return splat;
+}
+
+CHUNKDATA::~CHUNKDATA() {
+  for (SPLATDATA *splat = m_splats.Head(); splat; splat = m_splats.Head()) {
+    RecycleSplat(splat);
+  }
+  FATALASSERT(!m_vertCount);
+  FATALASSERT(!m_indexCount);
+}
+
+void CHUNKDATA::RecycleSplat(SPLATDATA *splat) {
+  if (!splat) {
+    return;
+  }
+  splat->data.SetCount(0);
+  splat->indices.SetCount(0);
+  splat->orderLink.Unlink();
+  splat->chunk = 0;
+  s_freeList.LinkNode(splat, LIST_TAIL, 0);
+}
+
 void UnitFootprintInitialize() {
   s_renderSplatsCVar = CVar::Register("showfootprints", "toggles rendering of unit footprint splats", 1, "1", 0, GRAPHICS, false, 0);
   s_renderParticlesCVar = CVar::Register("showfootprintparticles", "toggles rendering of footprint particles", 1, "1", 0, GRAPHICS, false, 0);
@@ -431,7 +429,8 @@ void UnitFootprintInitialize() {
 
 void UnitFootprintShutdown() {
   s_footStepTextureTable.Clear();
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 5; i;) {
+    --i;
     s_bloodSplatTextureTable[i].Clear();
   }
 }
@@ -456,18 +455,18 @@ void UnitFootprintNewBloodSplat(const UnitBloodRec *rec, UINT unitSize, const NT
   }
   FATALASSERT(rec);
   FATALASSERT(unitSize < 5);
-  float              facing = NTempest::CRandom::real_(s_rndSeed) * 6.2831855f;
-  float              sizeVariance = NTempest::CRandom::real_(s_rndSeed) * 0.2f + 1.0f;
-  NTempest::C2Vector size(s_splatSizes[unitSize].x * sizeVariance, s_splatSizes[unitSize].y * sizeVariance);
-  UINT               texture = NTempest::CMath::mulhwu_(5, NTempest::CRandom::uint32_(s_rndSeed));
-  TIMEDTEXTURE      &list = s_bloodSplatTextureTable[texture][rec->m_ID];
-  list.Add(position, MakeCAaBox(size, position), MakeBasis(OsGetAsyncTimeMs() & 1, facing, size));
+  static NTempest::CRndSeed s_rndSeed;
+  float                     facing = NTempest::CRandom::reals_(s_rndSeed) * TWO_PI;
+  float                     sizeVariance = NTempest::CRandom::reals_(s_rndSeed) * 0.2f + 1.0f;
+  NTempest::C3Vector        size = sizeVariance * s_splatSizes[unitSize];
+  s_bloodSplatTextureTable[NTempest::CRandom::dice_(5, s_rndSeed)][rec->m_ID].Add(
+      position, MakeCAaBox(size, position), MakeBasis(OsGetAsyncTimeMs() & 1, facing, size)
+  );
 }
 
 void UnitFootprintPlayParticle(CGUnit_C *unit, const NTempest::C3Vector &position, UINT terrainID, float scale) {
   if (unit && s_renderParticlesCVar->GetInt()) {
     NTempest::C3Vector waterDir(0.0f);
-    NTempest::C3Vector splashPos;
     int                deep;
     UINT               liquid;
     float              surfaceColPt;
@@ -477,9 +476,9 @@ void UnitFootprintPlayParticle(CGUnit_C *unit, const NTempest::C3Vector &positio
     int inLiquid = CWorld::QueryObjectLiquid(unit->GetWorldObject(), liquid, surfaceColPt, waterDir, deep);
     depth = surfaceColPt - unit->GetPosition().z;
     if (inLiquid && (liquid & 3) != 2 && unit->GetCollisionBoxHeight() * 0.5f > depth) {
-      splashPos = position;
+      effect = unit->IsWalking() ? SPECIALEFFECT_FOOTSTEPSPRAYWATERWALK : SPECIALEFFECT_FOOTSTEPSPRAYWATER;
+      NTempest::C3Vector splashPos = position;
       splashPos.z += depth;
-      effect = unit->IsWalking() + 35;
       UnitEffectOneShot(static_cast<UNITEFFECTSPECIALS>(effect), unit->GetGUID(), &splashPos, unit->GetFacing(), scale, false);
     }
 
@@ -494,13 +493,13 @@ void UnitFootprintPlayParticle(CGUnit_C *unit, const NTempest::C3Vector &positio
 }
 
 void UnitFootprintRenderSplats(const NTempest::C3Vector &cameraPos) {
-  if (!s_renderSplatsCVar || !s_renderSplatsCVar->GetInt()) {
+  if (!s_renderSplatsCVar->GetInt()) {
     return;
   }
   s_currentTime = OsGetAsyncTimeMs();
   s_currentCamera = cameraPos;
-  s_currentWorld = NTempest::C44Matrix();
-  s_currentWorld.Translate(-cameraPos);
+  s_currentWorld.Identity();
+  *s_currentWorld.Row3AsVec3() = -cameraPos;
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsPush();
   GxRsSet(GxRs_Texture1, ProjectTex2dGetFade());
@@ -512,7 +511,8 @@ void UnitFootprintRenderSplats(const NTempest::C3Vector &cameraPos) {
   for (int i = s_footStepTextureTable.Count(); i;) {
     s_footStepTextureTable[--i].Render();
   }
-  for (int j = 0; j < 5; ++j) {
+  for (int j = 5; j;) {
+    --j;
     for (int i = s_bloodSplatTextureTable[j].Count(); i;) {
       s_bloodSplatTextureTable[j][--i].Render();
     }

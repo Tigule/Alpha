@@ -66,8 +66,8 @@ enum ITEM_STATIC_FLAGS {
   ITEM_FLAG_MULTI_DROP = 2048,
   ITEM_FLAG_BRIEFSPELLEFFECTS = 4096,
   ITEM_FLAG_PETITION = 8192,
-  ITEM_FLAG_NUM = 14,
-  MAX_ITEM_FLAG = 32768
+  MAX_ITEM_FLAG = 32768,
+  ITEM_FLAG_NUM = 14
 };
 
 enum ITEM_DYNAMIC_FLAGS {
@@ -112,11 +112,13 @@ class CGItem {
   int                    GetEnchantmentExpiration(int index) const;
   int                    GetEnchantmentCharges(int index) const;
   int GetPetitionID() const {
-    return (m_item->m_staticFlags & ITEM_FLAG_PETITION) ? m_item->m_enchantment[0].id : 0;
+    return !(m_item->m_staticFlags & ITEM_FLAG_PETITION) ? 0 : m_item->m_enchantment[0].id;
   }
   int                    GetNumPetitionSignatures() const;
   BYTE                  *GetData(UINT index);
-  static UINT               GetDataSize();
+  static __forceinline UINT GetDataSize() {
+    return TotalFields() * sizeof(DWORD);
+  }
   static UINT               GetBaseOffset();
   static __forceinline UINT TotalFields() {
     return 36;
@@ -157,78 +159,88 @@ class CGItem_C : public CGObject_C, public CGItem {
   CGItem_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init);
   ~CGItem_C();
 
-  void             PostInit(const CClientObjCreate &init);
-  void             PostInitWithStats();
-  virtual void     Disable(int shutdown);
-  virtual void     Reenable();
-  static void      Initialize();
-  static void      Shutdown();
-  LPCSTR           GetInventoryArt() const;
-  static LPCSTR    GetInventoryArt(int displayID);
-  virtual LPCSTR   GetModelFileName() const;
-  int              GetDisplayID() const;
-  BOOL             CanBeUsed();
-  int              GetUseSpell();
-  int              GetClassID() const;
-  int              GetSubtypeID() const;
-  int              GetSheatheType() const;
-  BOOL             IsMetal() const;
-  static BOOL      IsMetal(UINT material);
-  BOOL             GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const;
-  int              GetMaterial() const;
-  const ItemStats *GetStats() const;
-  void             Lock() {
-    m_flags |= 1U;
-  }
-  void SetTranslated();
-  void UpdateEnchantments() const;
-  void PostMovementUpdate();
-  void UpdateExpirationTime(int timeLeft);
-  int  GetExpirationTimeLeft();
-  void UpdateEnchantmentTime(int slot, int timeLeft);
-  int  GetEnchantmentTimeLeft(int slot);
-  UINT GetInventoryType() const;
-  int  GetMaxCount() const;
-  bool IsExotic() const;
-  BOOL CanGoInSlot(UINT slot) const;
-  int  GetSheatheInvisible() const;
-  bool IsWrapper() const;
-  bool Use();
+  void SetStorage(DWORD *storage);
 
-  void           SetStorage(DWORD *storage);
+  void           PostInit(const CClientObjCreate &init);
+  void           PostInitWithStats();
+  void PostMovementUpdate() {
+  }
+  virtual void   Disable(int shutdown);
+  virtual void   Reenable();
+  virtual void   OnRightClick();
+  BOOL           CanBeUsed();
+  int            GetUseSpell();
+  bool           Use();
+  LPCSTR         GetInventoryArt() const;
+  static LPCSTR  GetInventoryArt(int displayID);
   BOOL           SetBlock(UINT i, DWORD data);
   void           SetData(LPCVOID data, UINT bytes);
   static UINT    OffsetOf(OBJECT_TYPE_ID type);
-  virtual BOOL   GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
-  virtual void   OnRightClick();
-  virtual int    GetPageTextID(void (*func)(int, const DWORDLONG &, LPVOID, bool)) const;
-  virtual LPCSTR GetObjectName() const;
-
-  const ItemGroupSoundsRec *GetGroupSoundRec() const {
-    return m_soundsRec;
-  }
-
-  const VirtualItemInfo *GetVirtualInfo();
-  BOOL                   IsLocked() {
-    return m_flags & 1;
+  virtual LPCSTR GetModelFileName() const;
+  static void    Initialize();
+  static void    Shutdown();
+  BOOL           IsMetal() const;
+  static BOOL    IsMetal(UINT material);
+  void             Lock() {
+    m_flags |= 1U;
   }
 
   void Unlock() {
     m_flags &= ~1U;
   }
+  BOOL                   IsLocked() {
+    return m_flags & 1;
+  }
+  void SetTranslated();
+
+  const VirtualItemInfo *GetVirtualInfo();
+  int                    GetMaxCount() const;
+  int                    GetClassID() const;
+  int                    GetSubtypeID() const;
+  UINT                   GetInventoryType() const;
+  int                    GetDisplayID() const;
+  bool                   IsExotic() const;
+  BOOL                   GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const;
+  int                    GetMaterial() const;
+  int                    GetSheatheType() const;
+  BOOL                   CanGoInSlot(UINT slot) const;
+  int                    GetSheatheInvisible() const;
+  bool                   IsWrapper() const;
+  void                   UpdateExpirationTime(int timeLeft);
+  int                    GetExpirationTimeLeft();
+  void                   UpdateEnchantmentTime(int slot, int timeLeft);
+  int                    GetEnchantmentTimeLeft(int slot);
+  const ItemStats       *GetStats() const;
 
  protected:
   void InstallObjMirrorHandlers();
   void InstallItemIDMirrorHandler();
   void UninstallItemIDMirrorHandler();
 
+ public:
+  void UpdateEnchantments() const;
+
  private:
-  CGItem_C                 &operator=(const CGItem_C &);
-  UINT                      m_flags;
-  VirtualItemInfo           m_itemInfo;
-  DWORD                     m_expirationTime;
-  DWORD                     m_enchantmentExpiration[5];
+  CGItem_C &operator=(const CGItem_C &);
+
+  UINT            m_flags;
+  VirtualItemInfo m_itemInfo;
+  DWORD           m_expirationTime;
+  DWORD           m_enchantmentExpiration[5];
+
+ public:
+  virtual BOOL GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
+
+  const ItemGroupSoundsRec *GetGroupSoundRec() const {
+    return m_soundsRec;
+  }
+
+ private:
   const ItemGroupSoundsRec *m_soundsRec;
+
+ public:
+  virtual int    GetPageTextID(void (*func)(int, const DWORDLONG &, LPVOID, bool)) const;
+  virtual LPCSTR GetObjectName() const;
 };
 
 #endif

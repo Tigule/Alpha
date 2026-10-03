@@ -1,8 +1,8 @@
 #include <winsock2.h>
 
+#include "Base/Base.h"
 #include "WowConnection.h"
 
-#include "Base/Base.h"
 #include "Base/CDataStore.h"
 #include "Os/OsTime.h"
 #include "WDataStore.h"
@@ -274,10 +274,8 @@ WC_SEND_RESULT WowConnection::SendRaw(BYTE *data, int len) {
 }
 
 void WowConnection::CheckConnect() {
-  int                    sockerr;
-  int                    sockerrlen = sizeof(sockerr);
-  WowConnectionResponse *response;
-  int                    len;
+  int sockerr;
+  int sockerrlen = sizeof(sockerr);
 
   if (getsockopt(m_sock, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&sockerr), &sockerrlen) == 0) {
     if (sockerr) {
@@ -286,7 +284,7 @@ void WowConnection::CheckConnect() {
       SetState(WOWC_DISCONNECTED);
       AddRef();
       AcquireResponseRef();
-      response = m_response;
+      WowConnectionResponse *response = m_response;
       m_lock.Leave();
 
       if (response) {
@@ -296,10 +294,10 @@ void WowConnection::CheckConnect() {
       SetState(WOWC_CONNECTED);
       AddRef();
       AcquireResponseRef();
-      response = m_response;
+      WowConnectionResponse *response = m_response;
       m_lock.Leave();
 
-      len = sizeof(sockaddr_in);
+      int len = sizeof(sockaddr_in);
       getpeername(m_sock, reinterpret_cast<sockaddr *>(&m_peer), &len);
       len = sizeof(sockaddr_in);
       getsockname(m_sock, reinterpret_cast<sockaddr *>(&m_peer.selfAddr), &len);
@@ -602,13 +600,13 @@ void WowConnection::DoReads() {
   }
 
   if (m_connState == WOWC_CONNECTED) {
-    if (m_type == WOWC_TYPE_MESSAGES) {
-      DoMessageReads();
-    } else if (m_type == WOWC_TYPE_STREAM) {
-      DoStreamReads();
-      m_lock.Leave();
-      Release();
-      return;
+    switch (m_type) {
+      case WOWC_TYPE_STREAM:
+        DoStreamReads();
+        break;
+      case WOWC_TYPE_MESSAGES:
+        DoMessageReads();
+        break;
     }
   }
 
@@ -669,18 +667,17 @@ void WowConnection::StartConnect() {
 
 bool WowConnection::Connect(LPCSTR address, int retryms) {
   char   name[256];
-  int    port;
   LPCSTR colon = SStrChr(address, ':');
 
   if (colon) {
-    port = SStrToInt(colon + 1);
+    m_connectPort = SStrToInt(colon + 1);
     SStrCopy(name, address, min(colon - address + 1, sizeof(name)));
   } else {
-    port = 0;
+    m_connectPort = 0;
     SStrCopy(name, address, sizeof(name));
   }
 
-  Connect(name, port, retryms);
+  Connect(name, m_connectPort, retryms);
   return true;
 }
 
@@ -792,19 +789,17 @@ void WowConnectionInitializer::Destroy() {
 }
 
 void WowConnection::SetResponse(WowConnectionResponse *response) {
-  SCritSect *responseLock = &m_responseLock;
-
-retry:
-  responseLock->Enter();
-
-  if (m_responseRef && m_responseRefThread != SGetCurrentThreadId()) {
-    responseLock->Leave();
+  while (true) {
+    m_responseLock.Enter();
+    if (!m_responseRef || m_responseRefThread == SGetCurrentThreadId()) {
+      break;
+    }
+    m_responseLock.Leave();
     OsSleep(50);
-    goto retry;
   }
 
   m_response = response;
-  responseLock->Leave();
+  m_responseLock.Leave();
 }
 
 void WowConnection::AcquireResponseRef() {

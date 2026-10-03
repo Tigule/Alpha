@@ -179,7 +179,7 @@ struct CMdlBounds {
 #endif
 
 struct CAnimSequence {
-  CAnimSequence() {
+  CAnimSequence() : moveSpeed(0.0f), flags(0), randPickChance(0), blendTime(150) {
   }
 
   CAnimSequence(const CAnimSequence &source)
@@ -265,10 +265,6 @@ class CKeyFrameTrackBase {
     return m_numKeyFrames;
   }
 
-  void SetGlobalSequenceId(UINT globalSeqId) {
-    m_globalSeqId = globalSeqId;
-  }
-
   UINT NumKeysThisSeq(UINT sequence) const {
     ASSERT(SequenceChanges());
     ASSERT(sequence < m_indices.Count());
@@ -285,18 +281,41 @@ class CKeyFrameTrackBase {
     return NumKeysThisSeq(sequence);
   }
 
-  BOOL SequenceChanges() const {
-    return m_globalSeqId == -1;
+  void SetGlobalSequenceId(UINT globalSeqId) {
+    m_globalSeqId = globalSeqId;
   }
+  void SetNumKeys(UINT numKeys, UINT keySize);
+  void AddKey(int time);
+  void SetSequenceIndices(const CArray<CAnimSequence> &seq);
+  UINT SetAnimTime(const CBaseStatus &sequence, CKeyTrackStatus *keyStat, const InterpInfo &interpData);
+  int        JustPastKey(
+      int                    elapsedTime,
+      const CAnimSequence   &seqShared,
+      int                    seqElapsed,
+      BYTE                   sequenceId,
+      int                    seqIsNew,
+      const CKeyTrackStatus &prev,
+      const CKeyTrackStatus &curr
+  ) const;
 
   BOOL SequenceNeverChanges() const {
     return m_globalSeqId != -1;
+  }
+
+  BOOL SequenceChanges() const {
+    return m_globalSeqId == -1;
   }
 
   UINT Bytes() const {
     return m_numKeyFrames * m_keyFrameSize;
   }
 
+  CKeyFrame *NextKey(CKeyFrame *key);
+
+ protected:
+  const CKeyFrame *NextKey(const CKeyFrame *key) const;
+
+ public:
   UINT FirstKeyId(UINT sequence) const {
     ASSERT(sequence < m_indices.Count());
     return m_indices[sequence].start;
@@ -309,37 +328,7 @@ class CKeyFrameTrackBase {
     return keyId == LastKeyId(sequence) ? FirstKeyId(sequence) : keyId + 1;
   }
 
-  CKeyFrame *NextKey(CKeyFrame *key);
-  UINT       SetAnimTime(const CBaseStatus &sequence, CKeyTrackStatus *keyStat, const InterpInfo &interpData);
-  void       SetNumKeys(UINT numKeys, UINT keySize);
-  void       AddKey(int time);
-  void       SetSequenceIndices(const CArray<CAnimSequence> &seq);
-  int        JustPastKey(
-      int                    elapsedTime,
-      const CAnimSequence   &seqShared,
-      int                    seqElapsed,
-      BYTE                   sequenceId,
-      int                    seqIsNew,
-      const CKeyTrackStatus &prev,
-      const CKeyTrackStatus &curr
-  ) const;
-
  protected:
-  CKeyFrame *m_keyFrames;
-  UINT       m_numKeyFrames;
-
-  UINT LastKeyId(UINT sequence) const {
-    ASSERT(sequence < m_indices.Count());
-    return m_indices[sequence].start + m_indices[sequence].count - 1;
-  }
-
-  const CKeyFrame *NextKey(const CKeyFrame *key) const;
-  const CKeyFrame *GetKeyFrame(UINT keyId) const;
-  CKeyFrame       *GetKeyFrame(UINT keyId);
-  UINT             TimeDiff(const CKeyFrame &curr, const CKeyFrame &next, UINT seqTime);
-  UINT             KeyFrameSize() const {
-    return m_keyFrameSize;
-  }
   BOOL JustPastKeyForward(
       int                    elapsedTime,
       const CAnimSequence   &seqShared,
@@ -357,15 +346,29 @@ class CKeyFrameTrackBase {
       const CKeyTrackStatus &curr
   ) const;
 
- private:
-  UINT            m_keyFrameSize;
-  CArray<CKeySeq> m_indices;
-  UINT            m_globalSeqId;
+  UINT LastKeyId(UINT sequence) const {
+    ASSERT(sequence < m_indices.Count());
+    return m_indices[sequence].start + m_indices[sequence].count - 1;
+  }
+  const CKeyFrame *GetKeyFrame(UINT keyId) const;
+  CKeyFrame       *GetKeyFrame(UINT keyId);
+  UINT             TimeDiff(const CKeyFrame &curr, const CKeyFrame &next, UINT seqTime);
+  UINT             KeyFrameSize() const {
+    return m_keyFrameSize;
+  }
 
+  CKeyFrame *m_keyFrames;
+  UINT       m_numKeyFrames;
+
+ private:
   void ISetAnimTime(BYTE sequenceId, int seqIsNew, int milliseconds, int endtime, CKeyTrackStatus *keyStat);
   void ISetAnimTimeConstSeq(int milliseconds, int endtime, CKeyTrackStatus *keyStat);
   UINT FindKeyForTime(UINT currSeq, UINT currKeyId, int targettime);
   UINT FindKeyForTimeConstSeq(UINT currKeyId, int targettime);
+
+  UINT            m_keyFrameSize;
+  CArray<CKeySeq> m_indices;
+  UINT            m_globalSeqId;
 };
 
 template <class T, class U>
@@ -474,12 +477,6 @@ inline int CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaterni
   return 1;
 }
 template <>
-void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::Interpolate(
-    const CKeyTrackStatus  &keyStat,
-    UINT                    seqTime,
-    NTempest::C4Quaternion *transform
-);
-template <>
 void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::InterpolateHermite(
     const CSplineKeyFrame<NTempest::C4QuaternionCompressed> &currkey,
     const CSplineKeyFrame<NTempest::C4QuaternionCompressed> &nextkey,
@@ -501,11 +498,10 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
     NTempest::C4Quaternion                                  *transform
 );
 
-template <>
-void CKeyFrameTrack<C3Color, C3Color>::Interpolate(const CKeyTrackStatus &keyStat, UINT seqTime, C3Color *transform);
-
 struct CAnimTransform {
-  int  Animates();
+  int Animates() {
+    return translation.TotalKeys() || rotation.TotalKeys() || scale.TotalKeys();
+  }
   UINT Bytes() const {
     return translation.CKeyFrameTrackBase::Bytes() + rotation.CKeyFrameTrackBase::Bytes() + scale.CKeyFrameTrackBase::Bytes();
   }
@@ -520,7 +516,9 @@ struct CAnimObj : public CAnimTransform {
     name[0] = 0;
   }
 
-  int  Animates();
+  int Animates() {
+    return CAnimTransform::Animates() || (flags & 0x3F);
+  }
   UINT Bytes() const;
 
   UINT                        animObjId;
@@ -554,6 +552,7 @@ struct CAnimVisibleObj {
 
 struct CAnimCameraObj : public CAnimVisibleObj {
   CAnimCameraObj() {
+    name[0] = 0;
   }
   CAnimCameraObj(const CAnimCameraObj &);
 
@@ -569,7 +568,7 @@ struct CAnimCameraObj : public CAnimVisibleObj {
 };
 
 struct CAnimGeoset : public CAnimVisibleObj {
-  CAnimGeoset() {
+  CAnimGeoset() : sgGeosetId(0) {
   }
   CAnimGeoset(const CAnimGeoset &);
 
@@ -793,15 +792,14 @@ inline int CKeyFrameTrack<T, U>::InterpolateVolatile(
     return 0;
   }
   UINT keys = SetAnimTime(base, keyStatus, info);
+  if (!keys) {
+    return 0;
+  }
   if (keys == 1) {
     return InterpolateVolatileFewKeys(*keyStatus, transform);
   }
-  if (keys > 1) {
-    UINT sequenceTime = info.shared->seq[base.currSeq].time.h - info.shared->seq[base.currSeq].time.l;
-    Interpolate(*keyStatus, sequenceTime, transform);
-    return 1;
-  }
-  return 0;
+  Interpolate(*keyStatus, info.shared->seq[base.currSeq].time.Magnitude(), transform);
+  return 1;
 }
 
 template <class T, class U>
@@ -816,19 +814,18 @@ inline int CKeyFrameTrack<T, U>::InterpolateRetained(
     return 0;
   }
   UINT keys = SetAnimTime(base, keyStatus, info);
-  if (keys > 1) {
-    UINT sequenceTime = info.shared->seq[base.currSeq].time.h - info.shared->seq[base.currSeq].time.l;
-    Interpolate(*keyStatus, sequenceTime, transform);
-    return 1;
-  }
-  if (base.flags & 0x10) {
-    if (keys) {
-      return InterpolateRetainedFewKeys(*keyStatus, transform);
+  if (keys <= 1) {
+    if (!(base.flags & 0x10)) {
+      return 0;
     }
-    *transform = fallback;
-    return 1;
+    if (!keys) {
+      *transform = fallback;
+      return 1;
+    }
+    return InterpolateRetainedFewKeys(*keyStatus, transform);
   }
-  return 0;
+  Interpolate(*keyStatus, info.shared->seq[base.currSeq].time.Magnitude(), transform);
+  return 1;
 }
 
 template <class T, class U>
@@ -843,6 +840,37 @@ inline int CKeyFrameTrack<T, U>::InterpolateRetainedFewKeys(const CKeyTrackStatu
   ASSERT(transform);
   *transform = reinterpret_cast<const CLinearKeyFrame<T> *>(GetKeyFrame(keyStatus.currKey))->transform;
   return 1;
+}
+
+template <class T, class U>
+inline void CKeyFrameTrack<T, U>::Interpolate(const CKeyTrackStatus &keyStat, UINT seqTime, U *transform) {
+  ASSERT(transform);
+  const CKeyFrame *currkey = GetKeyFrame(keyStat.currKey);
+  const CKeyFrame *nextkey = GetKeyFrame(keyStat.nextKey);
+  int              timeperkey = TimeDiff(*currkey, *nextkey, seqTime);
+  float            ratio;
+  KEYTYPE          trackType;
+  if (timeperkey) {
+    ratio = static_cast<float>(keyStat.timepastkey) / timeperkey;
+    trackType = m_trackType;
+  } else {
+    trackType = KEYTYPE_NOINTERP;
+    ratio = 0.0f;
+  }
+  switch (trackType) {
+    case KEYTYPE_NOINTERP:
+      *transform = ToLinearKey(currkey)->transform;
+      break;
+    case KEYTYPE_LINEAR:
+      InterpolateLinear(*ToLinearKey(currkey), *ToLinearKey(nextkey), ratio, transform);
+      break;
+    case KEYTYPE_HERMITE:
+      InterpolateHermite(*ToSplineKey(currkey), *ToSplineKey(nextkey), ratio, transform);
+      break;
+    case KEYTYPE_BEZIER:
+      InterpolateBezier(*ToSplineKey(currkey), *ToSplineKey(nextkey), ratio, transform);
+      break;
+  }
 }
 
 void           GetWorldTransform(InterpInfo *animInfo);

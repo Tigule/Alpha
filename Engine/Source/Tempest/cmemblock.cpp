@@ -42,35 +42,32 @@ namespace NTempest {
     }
   }
 
-  void CMemBlock::Set32b_(DWORD *c, DWORD d, DWORD size) {
-    DWORD count = size >> 4;
+  void CMemBlock::Set32b_(DWORD *d, DWORD c, DWORD size) {
+    DWORD body = size >> 2;
+    DWORD count = body >> 2;
+    DWORD suffix = body - (count << 2);
 
-    while (count) {
-      c[0] = d;
-      c[1] = d;
-      c[2] = d;
-      c[3] = d;
-      c += 4;
-      --count;
+    for (; count > 0; --count) {
+      d[0] = c;
+      d[1] = c;
+      d[2] = c;
+      d[3] = c;
+      d += 4;
     }
 
-    switch ((size >> 2) & 3) {
+    switch (suffix) {
       case 3:
-        c[2] = d;
+        d[2] = c;
       case 2:
-        c[1] = d;
+        d[1] = c;
       case 1:
-        c[0] = d;
+        d[0] = c;
     }
   }
 
   void CMemBlock::SetM_(char *c, BYTE d, DWORD size) {
-    if (size >= 16) {
-      Set32b_(c, d, size);
-      return;
-    }
-
-    switch (size) {
+    if (size < 16) {
+      switch (size) {
       case 15:
         c[14] = d;
       case 14:
@@ -101,6 +98,9 @@ namespace NTempest {
         c[1] = d;
       case 1:
         c[0] = d;
+      }
+    } else {
+      Set32b_(c, d, size);
     }
   }
 
@@ -109,16 +109,25 @@ namespace NTempest {
     Set32b_(d, c, size);
   }
 
+  inline char *CMemBlock::Allocate(DWORD size, LPCSTR filen, long linen) {
+    return size ? static_cast<char *>(SMemAlloc(size, filen, linen, SMEM_FLAG_ZEROMEMORY)) : reinterpret_cast<char *>(-1);
+  }
+
+  inline void CMemBlock::Dispose(char *mem, LPCSTR filen, long linen) {
+    if (mem != reinterpret_cast<char *>(-1)) {
+      SMemFree(mem, filen, linen, 0);
+    }
+  }
+
   void CMemBlock::Constructor_(DWORD bsize, DWORD prologue, LPCSTR filen, long linen) {
     SetFileN_(filen);
     SetLineN_(linen);
     Destructor_();
 
-    DWORD allocSize = bsize + prologue;
-    mem_ = allocSize ? static_cast<char *>(SMemAlloc(allocSize, FileN_(), LineN_(), SMEM_FLAG_ZEROMEMORY)) : reinterpret_cast<char *>(-1);
+    mem_ = Allocate(bsize + prologue, FileN_(), LineN_());
     ASSERT(mem_ != 0);
 
-    size_ = allocSize;
+    size_ = bsize + prologue;
     size = bsize;
     mem = mem_ + prologue;
   }
@@ -127,9 +136,7 @@ namespace NTempest {
     if (mem_) {
       ASSERT(mem_ <= mem && size_ >= size);
 
-      if (mem_ != reinterpret_cast<char *>(-1)) {
-        SMemFree(mem_, FileN_(), LineN_(), 0);
-      }
+      Dispose(mem_, FileN_(), LineN_());
 
       size = 0;
       size_ = 0;
@@ -226,10 +233,10 @@ namespace NTempest {
       DWORD prologue = size_ - size;
       DWORD allocSize = prologue + newsize;
 
-      if (mem_ == reinterpret_cast<char *>(-1)) {
-        mem_ = static_cast<char *>(SMemAlloc(allocSize, FileN_(), LineN_(), SMEM_FLAG_ZEROMEMORY));
-      } else {
+      if (mem_ != reinterpret_cast<char *>(-1)) {
         mem_ = static_cast<char *>(SMemReAlloc(mem_, allocSize, FileN_(), LineN_(), SMEM_FLAG_ZEROMEMORY));
+      } else {
+        mem_ = static_cast<char *>(SMemAlloc(allocSize, FileN_(), LineN_(), SMEM_FLAG_ZEROMEMORY));
       }
 
       mem = mem_ + prologue;
@@ -245,44 +252,40 @@ namespace NTempest {
     return true;
   }
 
-  void CMemBlock::Detach(char *&detachedMem, DWORD &detachedSize) {
-    ASSERT(size_ == size);
-    detachedMem = mem_;
-    detachedSize = size_;
-    mem_ = 0;
-    mem = 0;
-    size_ = 0;
-    size = 0;
+  void CMemBlock::Detach(char *&mem, DWORD &size) {
+    ASSERT(this->size_ == this->size);
+    mem = this->mem_;
+    this->mem_ = this->mem = 0;
+    size = this->size_;
+    this->size_ = this->size = 0;
   }
 
-  void CMemBlock::Attach(char *attachedMem, DWORD attachedSize) {
-    ASSERT(!IsValid());
-    ASSERT(attachedMem != 0);
-    mem_ = attachedMem;
-    mem = attachedMem;
-    size_ = attachedSize;
-    size = attachedSize;
+  void CMemBlock::Attach(char *mem, DWORD size) {
+    ASSERT(IsValid() == false);
+    ASSERT(mem != 0);
+    this->mem_ = this->mem = mem;
+    this->size_ = this->size = size;
   }
 
-  void CMemBlock::Detach_(char *&detachedMem, DWORD &detachedSize, char *&detachedMem_, DWORD &detachedSize_) {
-    detachedMem_ = mem_;
-    detachedMem = mem;
-    detachedSize_ = size_;
-    detachedSize = size;
-    mem_ = 0;
-    mem = 0;
-    size_ = 0;
-    size = 0;
+  void CMemBlock::Detach_(char *&mem, DWORD &size, char *&mem_, DWORD &size_) {
+    mem_ = this->mem_;
+    this->mem_ = 0;
+    mem = this->mem;
+    this->mem = 0;
+    size_ = this->size_;
+    this->size_ = 0;
+    size = this->size;
+    this->size = 0;
   }
 
-  void CMemBlock::Attach_(char *attachedMem, DWORD attachedSize, char *attachedMem_, DWORD attachedSize_) {
-    ASSERT(!IsValid());
-    ASSERT(attachedSize_ >= attachedSize);
-    ASSERT(attachedMem == attachedMem_ + (attachedSize_ - attachedSize));
-    mem_ = attachedMem_;
-    mem = attachedMem;
-    size_ = attachedSize_;
-    size = attachedSize;
+  void CMemBlock::Attach_(char *mem, DWORD size, char *mem_, DWORD size_) {
+    ASSERT(IsValid() == false);
+    ASSERT(size_ >= size);
+    ASSERT(mem == mem_ + (size_ - size));
+    this->mem_ = mem_;
+    this->mem = mem;
+    this->size_ = size_;
+    this->size = size;
   }
 
   LPCSTR CMemBlock::FileN_() const {

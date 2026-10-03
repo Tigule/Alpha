@@ -261,11 +261,11 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   void   GetText(char *buffer, int bufferBytes) const;
 
   LPCSTR GetText() const {
-    return m_text;
+    return m_text && *m_text ? m_text : 0;
   }
 
   void SetHorizontalAlignment(UINT alignment) {
-    ChangeStyleFlags(0x7, alignment);
+    SetStyleFlags((m_styleFlags & ~0x7) | (alignment & 0x7));
   }
 
   UINT GetHorizontalAlignment() const {
@@ -273,7 +273,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   }
 
   void SetVerticalAlignment(UINT alignment) {
-    ChangeStyleFlags(0x38, alignment);
+    SetStyleFlags((m_styleFlags & ~0x38) | (alignment & 0x38));
   }
 
   UINT GetVerticalAlignment() const {
@@ -294,7 +294,12 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   }
 
   void SetStyleFlags(UINT flags) {
-    ChangeStyleFlags(0xFFFFFFFF, flags);
+    if (flags != m_styleFlags) {
+      m_styleFlags = flags;
+      if (m_string) {
+        UpdateString(0);
+      }
+    }
   }
 
   UINT GetStyleFlags() const {
@@ -302,23 +307,23 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   }
 
   void SetCanWrapOnSpace(BOOL canWrap) {
-    ChangeStyleFlags(0x1000, canWrap ? 0x1000 : 0);
+    ChangeStyleFlags(0x1000, canWrap);
   }
 
   void SetFixedColor(int fixed) {
-    ChangeStyleFlags(0x400, fixed ? 0x400 : 0);
+    ChangeStyleFlags(0x400, fixed);
   }
 
   void SetIgnoreColorCodes(int ignore) {
-    ChangeStyleFlags(0x2000, ignore ? 0x2000 : 0);
+    ChangeStyleFlags(0x2000, ignore);
   }
 
   void SetIgnoreNewlines(int ignore) {
-    ChangeStyleFlags(0x4000, ignore ? 0x4000 : 0);
+    ChangeStyleFlags(0x4000, ignore);
   }
 
   void SetIgnoreHyperlinks(int ignore) {
-    ChangeStyleFlags(0x8000, ignore ? 0x8000 : 0);
+    ChangeStyleFlags(0x8000, ignore);
   }
 
   void  SetSpacing(float spacing);
@@ -359,7 +364,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   }
 
   void GetShadowOffset(NTempest::C2Vector &offset) const {
-    offset = m_shadowOffset;
+    offset.Set(m_shadowOffset.x, m_shadowOffset.y);
   }
 
   float GetTextWidth(LPCSTR text, UINT textBytes);
@@ -400,15 +405,8 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   int                 m_alphaGradientLength;
   UINT                m_styleFlags;
 
-  void ChangeStyleFlags(UINT mask, int flags) {
-    UINT styleFlags = (m_styleFlags & ~mask) | flags;
-
-    if (styleFlags != m_styleFlags) {
-      m_styleFlags = styleFlags;
-      if (m_string) {
-        UpdateString(0);
-      }
-    }
+  void ChangeStyleFlags(UINT flags, int set) {
+    SetStyleFlags(set ? (m_styleFlags | flags) : (m_styleFlags & ~flags));
   }
 };
 

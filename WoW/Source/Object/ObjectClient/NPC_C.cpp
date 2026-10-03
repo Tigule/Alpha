@@ -2,12 +2,12 @@
 #include <Gx/Gx.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
-#include "WowServices/WowConnection.h"
-#include <WowConst.h>
+#include "Net/NetClient/NetClient.h"
 #include <Frame/CSimpleTop.h>
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
 
@@ -38,7 +38,7 @@ static BOOL NPCResponseHandler(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg)
   CGObject_C *object = ClntObjMgrObjectPtr(npcGUID, __FILE__, __LINE__);
   if (object && (object->GetType() & TYPE_UNIT)) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(object);
-    if (!unit->GetUnitData()->npcFlags) {
+    if (!unit->GetUnitNPCFlags()) {
       SysMsgPrintf(SYSMSG_ERROR, 2, "UNITNOTNPC|%d|0x%016I64X", unit->GetEntryID(), s_npcGUID);
     }
     return 1;

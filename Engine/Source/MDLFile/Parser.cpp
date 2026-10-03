@@ -17,11 +17,13 @@ UINT Parser::Token(LPCSTR *tokenText, UTokenData *data) {
   } else {
     int scanToken = m_scanner.mdllex();
     token = scanToken;
-    if (!scanToken) {
+    if (scanToken) {
+      if (scanToken == -2) {
+        token = 0;
+        m_flags |= 3;
+      }
+    } else {
       FatalEOF();
-      m_flags |= 3;
-    } else if (scanToken == -2) {
-      token = 0;
       m_flags |= 3;
     }
   }
@@ -36,17 +38,19 @@ UINT Parser::Token(LPCSTR *tokenText, UTokenData *data) {
 }
 
 void Parser::FatalDuplicate(LPCSTR found) {
-  m_status->FatalDuplicate(found, GetLineNumber());
+  m_status->Add(STATUS_FATAL, "Error (line %d): Found duplicate \"%s\"\n", GetLineNumber(), found);
   m_flags |= 1;
 }
 
 void Parser::FatalUnmatched(LPCSTR item1, UINT count1, LPCSTR item2, UINT count2) {
-  m_status->FatalUnmatched(item1, count1, item2, count2, GetLineNumber());
+  m_status->Add(
+      STATUS_FATAL, "Error (line %d): found %d \"%s\", but %d \"%s\", counts must match\n", GetLineNumber(), count1, item1, count2, item2
+  );
   m_flags |= 1;
 }
 
 void Parser::FatalNotFound(LPCSTR expected) {
-  m_status->FatalNotFound(expected, GetLineNumber());
+  m_status->Add(STATUS_FATAL, "Error (line %d): Expected \"%s\"\n", GetLineNumber(), expected);
   m_flags |= 1;
 }
 
@@ -55,12 +59,12 @@ void Parser::FatalNotFound(UINT what) {
 }
 
 void Parser::FatalUnexpected(LPCSTR found) {
-  m_status->FatalUnexpected(found, GetLineNumber());
+  m_status->Add(STATUS_FATAL, "Error (line %d): Unexpected token \"%s\"\n", GetLineNumber(), found);
   m_flags |= 1;
 }
 
 void Parser::FatalExpected(LPCSTR expected, LPCSTR found) {
-  m_status->FatalExpected(expected, found, GetLineNumber());
+  m_status->Add(STATUS_FATAL, "Error (line %d): Expected \"%s\", but found \"%s\"\n", GetLineNumber(), expected, found);
   m_flags |= 1;
 }
 
@@ -69,12 +73,12 @@ void Parser::FatalExpected(UINT what, LPCSTR found) {
 }
 
 void Parser::FatalEOF() {
-  m_status->FatalEOF(GetLineNumber());
+  m_status->Add(STATUS_FATAL, "Error (line %d): Unexpected end of file\n", GetLineNumber());
   m_flags |= 1;
 }
 
 void Parser::WarningCount(LPCSTR item, long expected, long actual) {
-  m_status->WarningCount(item, expected, actual, GetLineNumber());
+  m_status->Add(STATUS_WARNING, "Warning (line %d): Expected %d \"%s\", but found %d\n", GetLineNumber(), expected, item, actual);
 }
 
 void Parser::Expect(UINT what) {
@@ -149,12 +153,12 @@ long Parser::GetOptionalInt(UINT *token, LPCSTR *tokenText, UTokenData *savedVal
 }
 
 long Parser::GetOptionalInt(UINT cachedToken, UTokenData *cachedValue, UINT *token, LPCSTR *tokenText) {
-  if (cachedToken == 0x100) {
-    *token = Token(tokenText, 0);
-    return cachedValue->lVal;
+  if (cachedToken != 0x100) {
+    *token = cachedToken;
+    return -1;
   }
-  *token = cachedToken;
-  return -1;
+  *token = Token(tokenText, 0);
+  return cachedValue->lVal;
 }
 
 BOOL Parser::GetOptionalToken(UINT expected, UINT *token, LPCSTR *tokenText) {
@@ -167,10 +171,10 @@ BOOL Parser::GetOptionalToken(UINT expected, UINT *token, LPCSTR *tokenText) {
 }
 
 BOOL Parser::GetOptionalToken(UINT expected, UINT cachedToken, UINT *token, LPCSTR *tokenText) {
-  if (cachedToken == expected) {
-    *token = Token(tokenText, 0);
-    return 1;
+  if (cachedToken != expected) {
+    *token = cachedToken;
+    return 0;
   }
-  *token = cachedToken;
-  return 0;
+  *token = Token(tokenText, 0);
+  return 1;
 }

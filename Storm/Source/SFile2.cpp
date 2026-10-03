@@ -66,9 +66,6 @@ static char  s_datapath[MAX_PATH];
 static char  s_datapath2[MAX_PATH];
 static char  s_initialbasepath[MAX_PATH];
 
-MD5::MD5() {
-}
-
 void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
   char         namebuf[MAX_PATH];
   struct _stat stats;
@@ -540,7 +537,7 @@ int SFile::DoZRead(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *byte
         *bytesread = bytestoread - fileptr->m_zstream->avail_out;
       }
       fileptr->m_curOffset += bytestoread - fileptr->m_zstream->avail_out;
-      return bytestoread - fileptr->m_zstream->avail_out != 0;
+      return bytestoread - fileptr->m_zstream->avail_out > 0;
     }
     if (result != Z_OK) {
       return FALSE;
@@ -739,15 +736,14 @@ SFile::Read(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, 
     switch (fileptr->m_type) {
       case SFILE_PLAIN:
         result = (int)fread(buffer, 1, bytestoread, (FILE *)fileptr->m_fileptr);
-        if (result < 0) {
-          return FALSE;
+        if (result >= 0) {
+          if (bytesread) {
+            *bytesread = result;
+          }
+          lock->Leave();
+          return result > 0;
         }
-        if (bytesread) {
-          *bytesread = result;
-        }
-        result = result > 0;
-        lock->Leave();
-        return result;
+        return FALSE;
 
       case SFILE_COMPRESSED:
         result = DoZRead(fileptr, buffer, bytestoread, bytesread);
@@ -847,11 +843,10 @@ DWORD APIENTRY SFile::Close(SFile *file) {
     ZipFileCloseFile((ZipFileFCB *)file->m_zipFile);
   }
   if (file->m_archive) {
-    SArchive *archive = file->m_archive;
-    if (archive->m_archive) {
-      SFileCloseArchive((HSARCHIVE)archive->m_archive);
+    if (file->m_archive->m_archive) {
+      SFileCloseArchive((HSARCHIVE)file->m_archive->m_archive);
     }
-    delete archive;
+    delete file->m_archive;
   }
   delete file;
   return TRUE;
@@ -1111,57 +1106,56 @@ int APIENTRY SFile::CloseArchive(SArchive *archive) {
 
 int APIENTRY SFile::GetMD5(SFile *file, MD5 &sum) {
   ASSERT(file);
-  if (file->m_type <= SFILE_PLAIN || file->m_type > SFILE_ZIP_FILE || !file->m_haveMD5) {
-    return FALSE;
+  switch (file->m_type) {
+    case SFILE_PLAIN:
+      return FALSE;
+    case SFILE_COMPRESSED:
+    case SFILE_PAQ:
+    case SFILE_OLD_SFILE:
+    case SFILE_ZIP_FILE:
+      if (file->m_haveMD5) {
+        sum = file->m_md5;
+        return TRUE;
+      }
+      break;
   }
-  sum = file->m_md5;
-  return TRUE;
+  return FALSE;
 }
 
 int APIENTRY SFile::List(SArchive *archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param) {
-  UINT  *list;
-  BYTE  *cursor;
-  BYTE  *end;
-  DWORD  size;
-  char   line[MAX_PATH];
-  char  *output;
-  LPCSTR extension;
-
   ASSERT(archive);
   switch (archive->m_type) {
     case SARCHIVE_ZIP:
       return ZipFileList((DWORD)archive->m_archive, cb, param);
-    case SARCHIVE_MPQ:
-      break;
-    default:
-      goto list_failed;
-  }
-  if (!SFile::Load(archive, "(listfile)", (LPVOID *)&list, &size, 0, 0, NULL)) {
-    goto list_failed;
-  }
-
-  cursor = (BYTE *)list;
-  end = cursor + size;
-  output = line;
-  line[0] = 0;
-  while (cursor < end) {
-    if (*cursor == '\r' || *cursor == '\n') {
-      *output = 0;
-      if (line[0]) {
-        extension = SStrChrR(line, '.');
-        if ((!extension || SStrCmpI(extension, ".md5", INT_MAX)) && !cb(line, param)) {
-          break;
+    case SARCHIVE_MPQ: {
+      BYTE *list;
+      DWORD size;
+      if (SFile::Load(archive, "(listfile)", (LPVOID *)&list, &size, 0, 0, NULL)) {
+        BYTE  line[MAX_PATH];
+        BYTE *end = list + size;
+        BYTE *cursor = list;
+        BYTE *output = line;
+        line[0] = 0;
+        while (cursor < end) {
+          if (*cursor == '\r' || *cursor == '\n') {
+            *output = 0;
+            if (line[0]) {
+              LPCSTR extension = SStrChrR((LPCSTR)line, '.');
+              if ((!extension || SStrCmpI(extension, ".md5", INT_MAX)) && !cb((LPCSTR)line, param)) {
+                break;
+              }
+            }
+            output = line;
+          } else if (output < line + sizeof(line) - 1) {
+            *output++ = *cursor;
+          }
+          ++cursor;
         }
+        SFile::Unload(list);
+        return TRUE;
       }
-      output = line;
-    } else if (output < line + sizeof(line) - 1) {
-      *output++ = *cursor;
+      break;
     }
-    ++cursor;
   }
-  SFile::Unload(list);
-  return TRUE;
-
-list_failed:
   return FALSE;
 }

@@ -35,7 +35,11 @@ struct LISTBASE {
   LISTBASE(int m, int f) : m_texture(0), m_currentCount(-1), m_maxCount(m), m_flags(f) {
     FATALASSERT(m > 0);
   }
-  ~LISTBASE();
+  ~LISTBASE() {
+    if (m_texture) {
+      HandleClose(m_texture);
+    }
+  }
   void         Render();
   void         Add(const NTempest::C3Vector &position, const NTempest::CAaBox &box, const NTempest::C44Matrix &matrix);
   void         SetTexture(LPCSTR n);
@@ -51,13 +55,14 @@ struct LISTBASE {
 };
 
 struct TIMEDTEXTURE : public LISTBASE {
-  TIMEDTEXTURE() : LISTBASE(128, 0) {
+  TIMEDTEXTURE() : LISTBASE(64, 0) {
   }
   bool MakeSpace();
 };
 
 struct PERSISTENTTEXTURE : public LISTBASE {
-  PERSISTENTTEXTURE();
+  PERSISTENTTEXTURE() : LISTBASE(512, 1) {
+  }
   bool MakeSpace();
 };
 
@@ -70,7 +75,7 @@ NODEDECL(CHUNKDATA) {
   int                 m_numSplats;
   NTempest::C44Matrix m_matrix;
 
-  CHUNKDATA() : m_sourceID(0), m_flags(0), m_vertCount(0), m_indexCount(0), m_numSplats(0) {
+  CHUNKDATA() : m_flags(0), m_vertCount(0), m_indexCount(0) {
   }
   SPLATDATA *Add(const CWTriData::Batch &batch, const NTempest::CAaBox &box, const NTempest::C44Matrix &basis);
   void       RecycleSplat(SPLATDATA * splat);

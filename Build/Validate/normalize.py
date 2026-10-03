@@ -24,6 +24,7 @@ _MACRO_SINKS = {
     "SMemAlloc",
     "SMemFree",
     "SStrDupA",
+    "fileline",
 }
 
 

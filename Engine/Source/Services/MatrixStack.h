@@ -25,22 +25,22 @@ class CMatrixStack {
     m_stack.SetCount(stackCount - 1);
   }
 
+  void Mult(const T &value);
+
   void Load(const T &value) {
     *m_stack.Top() = value;
   }
-
-  void Mult(const T &value);
   void Remove(UINT removeFlags);
   void Identity();
 
-  T &Get() {
-    return *m_stack.Top();
+  void Get(T *value) const {
+    *value = *m_stack.Top();
   }
 
   const T &Get() const;
 
-  void Get(T *value) const {
-    *value = *m_stack.Top();
+  T &Get() {
+    return *m_stack.Top();
   }
 
  private:

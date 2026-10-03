@@ -63,6 +63,9 @@ int ISMemMarkAllHeaps(char *arglist) {
 }
 
 int ISStrI64ToString(char *arglist) {
-  Int64ToString(*(LONGLONG *)arglist, *(char **)(arglist + 8), *(DWORD *)(arglist + 12));
+  LONGLONG num = va_arg(arglist, LONGLONG);
+  char    *buf = va_arg(arglist, char *);
+  DWORD    destsize = va_arg(arglist, DWORD);
+  Int64ToString(num, buf, destsize);
   return TRUE;
 }

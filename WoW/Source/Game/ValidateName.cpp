@@ -1,3 +1,10 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <MapDefs.h>
+#include <WorldClient/World.h>
+#include <WowConst.h>
+#include <DayNight.h>
+
 #include "Game/ValidateName.h"
 
 #include <DB/DBClient/AutoCode/NamesProfanityRec.h>
@@ -115,7 +122,10 @@ VALIDATE_NAME_RESULT ValidateCharacterName(WOW_LOCALE locale, LPCSTR name) {
   VALIDATE_NAME_RESULT result = ValidateName(locale, 0, name, length, charset);
 
   if (result == NAME_SUCCESS) {
-    UINT maxLength = charset == CHARSET_LATIN1 ? 12 : 8;
+    UINT maxLength = 12;
+    if (charset != CHARSET_LATIN1) {
+      maxLength = 8;
+    }
     if (length > maxLength) {
       result = NAME_TOO_LONG;
     }
@@ -129,8 +139,14 @@ VALIDATE_NAME_RESULT ValidateGuildName(WOW_LOCALE locale, LPCSTR name) {
   UINT length;
   CHARSET charset;
   VALIDATE_NAME_RESULT result = ValidateName(locale, validChars, name, length, charset);
-  if (result == NAME_SUCCESS && length > (charset == CHARSET_LATIN1 ? 24U : 16U)) {
-    return NAME_TOO_LONG;
+  if (result == NAME_SUCCESS) {
+    UINT maxLength = 24;
+    if (charset != CHARSET_LATIN1) {
+      maxLength = 16;
+    }
+    if (length > maxLength) {
+      return NAME_TOO_LONG;
+    }
   }
   return result;
 }
@@ -139,8 +155,14 @@ VALIDATE_NAME_RESULT ValidatePetName(WOW_LOCALE locale, LPCSTR name) {
   UINT length;
   CHARSET charset;
   VALIDATE_NAME_RESULT result = ValidateName(locale, 0, name, length, charset);
-  if (result == NAME_SUCCESS && length > (charset == CHARSET_LATIN1 ? 12U : 8U)) {
-    return NAME_TOO_LONG;
+  if (result == NAME_SUCCESS) {
+    UINT maxLength = 12;
+    if (charset != CHARSET_LATIN1) {
+      maxLength = 8;
+    }
+    if (length > maxLength) {
+      return NAME_TOO_LONG;
+    }
   }
   return result;
 }
@@ -156,8 +178,12 @@ static bool IsAlpha(WOW_LOCALE locale, WORD ch) {
   if (IsLatin1(ch)) {
     return IsAlphaLatin1(ch);
   }
-  if (locale == LOCALE_ko_KR && IsKorean(ch)) {
-    return IsAlphaKorean(ch);
+  switch (locale) {
+    case LOCALE_ko_KR:
+      if (IsKorean(ch)) {
+        return IsAlphaKorean(ch);
+      }
+      break;
   }
   return 0;
 }
@@ -167,7 +193,10 @@ static bool IsLatin1(WORD ch) {
 }
 
 static bool IsAlphaLatin1(WORD ch) {
-  return (ch >= 0x0041 && ch <= 0x005A) || (ch >= 0x0061 && ch <= 0x007A) || (ch >= 0x00C0 && ch <= 0x00DD) || (ch >= 0x00E0 && ch <= 0x00FF);
+  if ((ch >= 0x0041 && ch <= 0x005A) || (ch >= 0x0061 && ch <= 0x007A) || (ch >= 0x00C0 && ch <= 0x00DD) || (ch >= 0x00E0 && ch <= 0x00FF)) {
+    return true;
+  }
+  return false;
 }
 
 static bool IsKorean(WORD ch) {

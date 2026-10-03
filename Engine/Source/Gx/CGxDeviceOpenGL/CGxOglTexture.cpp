@@ -25,18 +25,17 @@ int  CGxDeviceOpenGl::s_convertDataType[8] = {
     0, GL_UNSIGNED_INT_8_8_8_8_REV_EXT, GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT, GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT, GL_UNSIGNED_SHORT_5_6_5_EXT, 0, 0, 0
 };
 
-static TSGrowableArray<BYTE> scratchTexels;
-static CGxTex               *tex;
-static NTempest::CiRect      emptyRect;
+static CGxTex *tex;
 
 void CGxDeviceOpenGl::BindTexture(CGxTex *texId, UINT tmu) {
-  if (tmu == -1) {
-    tmu = 0;
-    DsSet(Ds_ActiveTexture, 0, 0);
+  UINT tmuToUse = tmu;
+  if (tmu == kNullTmu) {
+    tmuToUse = 0;
+    DsSet(Ds_ActiveTexture, tmuToUse, 0);
     IRsForceUpdate(GxRs_Texture0);
   }
 
-  ASSERT(DsGet(Ds_ActiveTexture) == tmu);
+  ASSERT(DsGet(Ds_ActiveTexture) == tmuToUse);
   glBindTexture(GL_TEXTURE_2D, reinterpret_cast<UINT>(texId->m_apiSpecificData));
 }
 
@@ -116,6 +115,7 @@ void CGxDeviceOpenGl::ITexDownload(CGxTex *texId, UINT w, UINT h, UINT startLeve
     case GxTex_Rgb565: {
       const BYTE *uploadTexels = static_cast<const BYTE *>(texels);
       if (gxDataFmt == GxTex_Dxt1 || gxDataFmt == GxTex_Dxt3 || gxDataFmt == GxTex_Dxt5) {
+        static TSGrowableArray<BYTE> scratchTexels;
         scratchTexels.SetCount((w * 16 * recth) >> 3);
 
         const BYTE *src = uploadTexels + ((r.l * s_texFormatBitDepth[gxDataFmt]) >> 3) + texelStrideInBytes * r.t;
@@ -168,15 +168,12 @@ void CGxDeviceOpenGl::ITexDownload(CGxTex *texId, UINT w, UINT h, UINT startLeve
 }
 
 void CGxDeviceOpenGl::ITexMarkAsUpdated(CGxTex *texId) {
-  ITexMarkAsUpdated(texId, -1);
+  ITexMarkAsUpdated(texId, kNullTmu);
 }
 
 void CGxDeviceOpenGl::ITexMarkAsUpdated(CGxTex *texId, UINT tmu) {
-  UINT    oglBase;
-  UINT    texelStrideInBytes;
-  LPCVOID texels;
-  UINT    w;
-  UINT    endLevel;
+  UINT oglBase;
+  UINT texelStrideInBytes;
 
   FATALASSERT(texId);
 
@@ -185,12 +182,10 @@ void CGxDeviceOpenGl::ITexMarkAsUpdated(CGxTex *texId, UINT tmu) {
   }
 
   if (texId->m_needsUpdate) {
-    w = texId->m_width;
+    UINT w = texId->m_width;
     UINT h = texId->m_height;
 
-    if (texId->m_apiSpecificData) {
-      BindTexture(texId, tmu);
-    } else {
+    if (!texId->m_apiSpecificData) {
       glGenTextures(1, reinterpret_cast<GLuint *>(&texId->m_apiSpecificData));
       BindTexture(texId, tmu);
       ITexSetFlags(texId);
@@ -205,52 +200,53 @@ void CGxDeviceOpenGl::ITexMarkAsUpdated(CGxTex *texId, UINT tmu) {
         }
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD_SGIS, maxLod);
       }
+    } else {
+      BindTexture(texId, tmu);
     }
 
-    if ((texId->m_flags.m_filter >= GxTex_LinearMipNearest && !texId->m_flags.m_generateMipMaps) || texId->m_flags.m_forceMipTracking) {
-      UINT maxDimension = w > h ? w : h;
+    UINT endLevel;
+    UINT level;
+    if ((texId->m_flags.m_filter == GxTex_Nearest || texId->m_flags.m_filter == GxTex_Linear || texId->m_flags.m_generateMipMaps) && !texId->m_flags.m_forceMipTracking) {
+      level = 0;
+      endLevel = 1;
+    } else {
+      UINT maxDimension = texId->m_width > texId->m_height ? texId->m_width : texId->m_height;
       endLevel = 1;
       while (maxDimension != 1) {
         maxDimension >>= 1;
         ++endLevel;
       }
 
-      oglBase = m_baseMipLevel < endLevel - 1 ? m_baseMipLevel : endLevel - 1;
-      w >>= oglBase;
-      h >>= oglBase;
-      if (texId->m_flags.m_forceMipTracking) {
-        endLevel = oglBase + 1;
+      level = m_baseMipLevel < endLevel - 1 ? m_baseMipLevel : endLevel - 1;
+      w >>= level;
+      h >>= level;
+      if (texId->m_flags.m_forceMipTracking == 1) {
+        endLevel = level + 1;
       }
-    } else {
-      oglBase = 0;
-      endLevel = 1;
     }
 
+    LPCVOID texels;
     texId->m_userFunc(GxTex_Lock, texId->m_width, texId->m_height, 0, 0, texId->m_userArg, texelStrideInBytes, texels);
 
-    UINT level = oglBase;
-    UINT uploadedLevels = 0;
-    while (level != endLevel) {
+    for (oglBase = level; level != endLevel; ++level) {
       texId->m_userFunc(GxTex_Latch, w, h, 0, level, texId->m_userArg, texelStrideInBytes, texels);
 
       if (!texId->m_flags.m_renderTarget) {
         ITexDownload(texId, w, h, level, oglBase, texelStrideInBytes, texels);
       }
 
-      if (uploadedLevels == 0 && texId->m_flags.m_generateMipMaps) {
+      if (level - oglBase == 0 && texId->m_flags.m_generateMipMaps) {
         break;
       }
 
       w >>= 1;
       h >>= 1;
-      if (!w) {
+      if (w < 1) {
         w = 1;
       }
-      if (!h) {
+      if (h < 1) {
         h = 1;
       }
-      ++level;
-      ++uploadedLevels;
     }
 
     texId->m_userFunc(GxTex_Unlock, texId->m_width, texId->m_height, 0, 0, texId->m_userArg, texelStrideInBytes, texels);
@@ -275,6 +271,7 @@ void CGxDeviceOpenGl::ITexForceRecreation() {
       tex->m_apiSpecificData = 0;
       tex->m_needsCreation = 1;
       tex->m_needsFlagUpdate = 1;
+      static NTempest::CiRect emptyRect;
       TexMarkForUpdate(tex, emptyRect, 0);
     }
   }

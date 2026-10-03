@@ -1,13 +1,22 @@
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
-#include "WorldClient/DetailDoodad.h"
 #include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include "WorldClient/Map.h"
 
-#include "Base/Base.h"
 #include "DB/DBClient/AutoCode/GroundEffectDoodadRec.h"
 #include "MDLFile/MDLTypes.h"
+#include "Services/SysMessage.h"
 #include "Services/Texture.h"
 
 class CStatus;
@@ -15,14 +24,19 @@ class CStatus;
 BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status);
 void  MDLFileBinaryUnload(BYTE *fileData);
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
+BOOL  MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status);
+
+static BOOL IsBinaryModelFile(char *path);
+
+char detailDoodadPath[] = "World\\NoDXT\\Detail\\";
 
 static UINT g_gxBufCreateCount;
 static UINT g_gxBufDestroyCount;
 
-LISTDECLEX(CDetailDoodadInst, lameAssLink, CDetailDoodad::instList);
-TSGrowableArray<CGxBuf *>            CDetailDoodad::gxBufFreeList;
-TSGrowableArray<CDetailDoodadData *> CDetailDoodad::doodadList;
 LISTDECLEX(CDetailDoodadGeom, lameAssLink, CDetailDoodad::geomList);
+LISTDECLEX(CDetailDoodadInst, lameAssLink, CDetailDoodad::instList);
+TSGrowableArray<CDetailDoodadData *> CDetailDoodad::doodadList;
+TSGrowableArray<CGxBuf *>            CDetailDoodad::gxBufFreeList;
 CGxTex *CDetailDoodad::alphaRampTexture;
 
 void CDetailDoodad::Initialize() {
@@ -189,12 +203,12 @@ void CDetailDoodad::UpdateAlphaRampTexture(
 ) {
   switch (cmd) {
     case GxTex_Lock:
-      break;
+      return;
 
     case GxTex_Latch:
       CreateAlphaRampTexture(texels);
       texelStrideInBytes = 4 * w;
-      break;
+      return;
   }
 }
 
@@ -202,6 +216,9 @@ void CDetailDoodadGeom::FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf) {
   UINT index = 0;
 
   switch (cmd.vertex.op) {
+    case GxBufOp_Nop:
+      return;
+
     case GxBufOp_Fill: {
       CGxVertexPNCT0 *vertices = static_cast<CGxVertexPNCT0 *>(*cmd.vertex.mem[GxVM_Vertex]);
       for (index = 0; index < vertexList.Count(); ++index) {
@@ -215,8 +232,8 @@ void CDetailDoodadGeom::FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf) {
 
     case GxBufOp_Assign:
       cmd.vertex.Set(GxVM_Position, vertexList.Ptr(), 12);
-      cmd.vertex.Set(GxVM_Normal, normalList.Ptr(), 12);
       cmd.vertex.Set(GxVM_Color, cVertexList.Ptr(), 4);
+      cmd.vertex.Set(GxVM_Normal, normalList.Ptr(), 12);
       cmd.vertex.Set(GxVM_Texture0, tVertexList.Ptr(), 8);
       break;
   }
@@ -224,13 +241,16 @@ void CDetailDoodadGeom::FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf) {
 
 void CDetailDoodadGeom::FillGxBufIndex(CGxBufCommand &cmd, CGxBuf *buf) {
   switch (cmd.index.op) {
+    case GxBufOp_Nop:
+      return;
+
     case GxBufOp_Fill:
       memcpy(*cmd.index.mem[GxVM_Indices], indexList.Ptr(), indexList.Count() * sizeof(WORD));
-      break;
+      return;
 
     case GxBufOp_Assign:
       cmd.index.Set(GxVM_Indices, indexList.Ptr(), 0);
-      break;
+      return;
   }
 }
 
@@ -261,6 +281,38 @@ CDetailDoodadData::~CDetailDoodadData() {
   }
 }
 
+BOOL CDetailDoodadData::Load() {
+  char pathName[MAX_PATH];
+  UINT fileBytes;
+
+  FATALASSERT(fileName);
+
+  DWORD length = SStrCopy(pathName, detailDoodadPath, 0x7FFFFFFF);
+
+  SStrCopy(pathName + length, fileName, 0x7FFFFFFF);
+  if (IsBinaryModelFile(pathName)) {
+    BYTE *fileData = MDLFileBinaryLoad(pathName, &fileBytes, 0);
+    if (!fileData) {
+      char message[512];
+
+      SStrPrintf(message, sizeof(message), "No such file: %s", pathName);
+      SysMsgAdd(message, SYSMSG_ERROR, 4);
+    } else {
+      MdlReadCallback(fileData, fileBytes, this);
+      MDLFileBinaryUnload(fileData);
+    }
+  } else {
+    MDLDATA mdlData;
+    BOOL    ret = MDLFileRead(pathName, &mdlData, 0);
+
+    FATALASSERT(ret);
+    MdlReadCallback(mdlData, this);
+  }
+
+  loaded = 1;
+  return 1;
+}
+
 static BOOL IsBinaryModelFile(char *path) {
   int length = SStrLen(path);
   if (path[length - 1] == 'x' || path[length - 1] == 'X') {
@@ -273,31 +325,6 @@ static BOOL IsBinaryModelFile(char *path) {
     return 1;
   }
   return 0;
-}
-
-BOOL CDetailDoodadData::Load() {
-  FATALASSERT(fileName);
-
-  char pathName[MAX_PATH];
-  SStrCopy(pathName, "World\\NoDXT\\Detail\\", sizeof(pathName));
-  SStrPack(pathName, fileName, sizeof(pathName));
-
-  UINT pathLength = SStrLen(pathName);
-  if (pathLength && pathName[pathLength - 1] != 'x' && pathName[pathLength - 1] != 'X') {
-    pathName[pathLength - 1] = 'x';
-  }
-
-  UINT  fileBytes = 0;
-  BYTE *fileData = MDLFileBinaryLoad(pathName, &fileBytes, 0);
-  if (!fileData) {
-    loaded = 1;
-    return 0;
-  }
-
-  MdlReadCallback(fileData, fileBytes, this);
-  MDLFileBinaryUnload(fileData);
-  loaded = 1;
-  return 1;
 }
 
 void CDetailDoodadData::MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailDoodadData *detailDoodad) {
@@ -388,10 +415,8 @@ void CDetailDoodadData::MdlReadCallback(const MDLDATA &data, CDetailDoodadData *
 }
 
 CDetailDoodadInst::CDetailDoodadInst() {
-  geom[0] = 0;
-  geom[1] = 0;
-  gxBuf[0] = 0;
-  gxBuf[1] = 0;
+  geom[0] = geom[1] = 0;
+  gxBuf[0] = gxBuf[1] = 0;
 }
 
 CDetailDoodadInst::~CDetailDoodadInst() {
@@ -550,8 +575,8 @@ void CDetailDoodadInst::Render() {
   GxRsSet(GxRs_Culling, 0);
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
-  GxRsSet(GxRs_Blend, GxBlend_Alpha);
-  GxRsSet(GxRs_AlphaRef, static_cast<int>(CWorld::detailDoodadAlphaRef));
+  GxRsSet(GxRs_Blend, GxBlend_AlphaKey);
+  GxRsSet(GxRs_AlphaRef, static_cast<BYTE>(CWorld::detailDoodadAlphaRef));
   GxRsSet(GxRs_DepthWrite, 1);
   GxVertexShaderSelect(GxVS_PassThru);
 

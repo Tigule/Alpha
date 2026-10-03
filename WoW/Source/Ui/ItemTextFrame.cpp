@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -173,7 +175,7 @@ void CGItemText::DisplayText(const DWORDLONG &item, int useSkill) {
 }
 
 void CGItemText::PrevPage() {
-  if (m_itemGUID && m_currentPage) {
+  if (m_itemGUID && m_currentPage > 0) {
     --m_currentPage;
     DisplayText(m_itemGUID, 1);
   }
@@ -187,27 +189,36 @@ void CGItemText::NextPage() {
 }
 
 static int Script_ItemTextGetItem(lua_State *L) {
+  LPCSTR      name = 0;
   CGObject_C *object = ClntObjMgrObjectPtr(CGItemText::GetItem(), __FILE__, __LINE__);
-  lua_pushstring(L, object ? object->GetObjectName() : 0);
+  if (object) {
+    name = object->GetObjectName();
+  }
+  lua_pushstring(L, name);
   return 1;
 }
 
 static int Script_ItemTextGetMaterial(lua_State *L) {
   CGObject_C *object = ClntObjMgrObjectPtr(CGItemText::GetItem(), __FILE__, __LINE__);
-  int         material = 0;
   if (object) {
-    if (object->GetType() & TYPE_ITEM) {
+    int material = 0;
+    if (object->IsA(ID_ITEM)) {
       const ItemStats_C *stats = g_itemDBCache.GetRecord(object->GetEntryID(), 0, 0, 0);
       if (stats) {
         material = stats->m_pageMaterial;
       }
-    } else if (object->GetType() & TYPE_GAMEOBJECT) {
+    } else if (object->IsA(ID_GAMEOBJECT)) {
       material = static_cast<CGGameObject_C *>(object)->GetPageTextMaterial();
     }
+    if (material > 0) {
+      const PageTextMaterialRec *rec = g_pageTextMaterialDB.GetRecord(material);
+      if (rec) {
+        lua_pushstring(L, rec->m_name);
+        return 1;
+      }
+    }
   }
-
-  const PageTextMaterialRec *rec = material > 0 ? g_pageTextMaterialDB.GetRecord(material) : 0;
-  lua_pushstring(L, rec ? rec->m_name : 0);
+  lua_pushnil(L);
   return 1;
 }
 

@@ -169,9 +169,8 @@ class TSCArray {
   }
 
   T &operator[](UINT index) {
-    if (index >= m_count) {
+    if (index >= m_count)
       FatalArrayBounds();
-    }
     return m_data[index];
   }
 
@@ -455,12 +454,10 @@ class TSGrowableArray : public TSFixedArray<T> {
     const UINT maxChunk = sizeof(T) < 0x20 ? 0x100 / sizeof(T) : 8;
 
     if (count < maxChunk) {
-      while ((count - 1) & count) {
+      while ((count - 1) & count)
         count = (count - 1) & count;
-      }
-      if (count < 1) {
+      if (count < 1)
         count = 1;
-      }
       return count;
     }
 
@@ -605,6 +602,8 @@ class TSGrowableArray : public TSFixedArray<T> {
 
 template <class T, UINT TAG, int LINE>
 class TSFixedArray_ : public TSFixedArray<T> {
+  static char s_name[5];
+
  public:
   TSFixedArray_<T, TAG, LINE> &operator=(const TSFixedArray<T> &source) {
     TSFixedArray<T>::operator=(source);
@@ -624,9 +623,6 @@ class TSFixedArray_ : public TSFixedArray<T> {
   virtual int MemLineNo() const {
     return LINE;
   }
-
- private:
-  static char s_name[5];
 };
 
 template <class T, UINT TAG, int LINE>
@@ -637,6 +633,8 @@ char TSFixedArray_<T, TAG, LINE>::s_name[5] = {
 
 template <class T, UINT TAG, int LINE>
 class TSGrowableArray_ : public TSGrowableArray<T> {
+  static char s_name[5];
+
  public:
   TSGrowableArray_<T, TAG, LINE> &operator=(const TSGrowableArray<T> &source) {
     TSGrowableArray<T>::operator=(source);
@@ -656,9 +654,6 @@ class TSGrowableArray_ : public TSGrowableArray<T> {
   virtual int MemLineNo() const {
     return LINE;
   }
-
- private:
-  static char s_name[5];
 };
 
 template <class T, UINT TAG, int LINE>
@@ -1110,12 +1105,10 @@ class TSList {
   TSList<T, GETLINK> &operator=(const TSList<T, GETLINK> &);
 
   void ChangeLinkOffset(int linkoffset) {
-    if (linkoffset == m_linkoffset) {
-      return;
+    if (linkoffset != m_linkoffset) {
+      UnlinkAll();
+      SetLinkOffset(linkoffset);
     }
-
-    UnlinkAll();
-    SetLinkOffset(linkoffset);
   }
 
   void Clear() {
@@ -1276,9 +1269,8 @@ class TSList {
   void UnlinkAll() {
     T *instance;
 
-    while ((instance = Head()) != 0) {
+    while ((instance = Head()) != 0)
       UnlinkNode(instance);
-    }
   }
 
   void UnlinkNode(T *ptr) {
@@ -1440,9 +1432,8 @@ class HASHKEY_STR {
   }
 
   ~HASHKEY_STR() {
-    if (m_str) {
+    if (m_str)
       SMemFree(m_str, __FILE__, __LINE__, 0);
-    }
   }
 
   HASHKEY_STR &operator=(const HASHKEY_STR &key) {
@@ -1673,11 +1664,10 @@ class TSHashTable {
     m_fulllist.UnlinkAll();
     for (loop = 0; loop < m_slotlistarray.Count(); ++loop) {
       while ((ptr = m_slotlistarray[loop].Head()) != 0) {
-        if (warn) {
+        if (warn)
           m_slotlistarray[loop].UnlinkNode(ptr);
-        } else {
+        else
           InternalDelete(ptr);
-        }
       }
     }
   }
@@ -1774,7 +1764,9 @@ class TSHashTable {
   void Delete(UINT hashval, const KEY &key) {
     T *ptr = Ptr(hashval, key);
 
-    FATALASSERT(ptr);
+    VALIDATEBEGIN;
+    VALIDATE(ptr);
+    VALIDATEENDVOID;
 
     Delete(ptr);
   }
@@ -1782,7 +1774,9 @@ class TSHashTable {
   void Delete(UINT hashval, LPCSTR key) {
     T *ptr = Ptr(hashval, key);
 
-    FATALASSERT(ptr);
+    VALIDATEBEGIN;
+    VALIDATE(ptr);
+    VALIDATEENDVOID;
 
     Delete(ptr);
   }
@@ -1790,7 +1784,9 @@ class TSHashTable {
   void Delete(LPCSTR key) {
     T *ptr = Ptr(key);
 
-    FATALASSERT(ptr);
+    VALIDATEBEGIN;
+    VALIDATE(ptr);
+    VALIDATEENDVOID;
 
     Delete(ptr);
   }
@@ -1873,14 +1869,12 @@ class TSHashTable {
   }
 
   T *Ptr(UINT hashval, const KEY &key) {
-    if (!Initialized()) {
+    if (!Initialized())
       return 0;
-    }
 
     ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr) {
-      if (ptr->m_hashval == hashval && ptr->m_key == key) {
+      if (ptr->m_hashval == hashval && ptr->m_key == key)
         return ptr;
-      }
     }
 
     return 0;
@@ -1891,30 +1885,26 @@ class TSHashTable {
   }
 
   T *Ptr(UINT hashval, LPCSTR str) {
-    if (!Initialized()) {
+    if (!Initialized())
       return 0;
-    }
 
     ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr) {
-      if (ptr->m_hashval == hashval && ptr->m_key == str) {
+      if (ptr->m_hashval == hashval && ptr->m_key == str)
         return ptr;
-      }
     }
 
     return 0;
   }
   const T *Ptr(UINT hashval, LPCSTR key) const;
   T *Ptr(LPCSTR str) {
-    if (!Initialized()) {
+    if (!Initialized())
       return 0;
-    }
 
     UINT hashval = SStrHashHT(str);
 
     ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr) {
-      if (ptr->m_hashval == hashval && ptr->m_key == str) {
+      if (ptr->m_hashval == hashval && ptr->m_key == str)
         return ptr;
-      }
     }
 
     return 0;
@@ -2000,33 +1990,42 @@ class TSHashTableReuse : public TSHashTable<T, KEY> {
 
   void         Destructor();
   virtual void InternalDelete(T *ptr) {
-    this->m_fulllist.UnlinkNode(ptr);
-    m_reuseList.LinkNode(ptr, LIST_HEAD, 0);
+    if (REUSE) {
+      this->m_fulllist.UnlinkNode(ptr);
+      m_reuseList.LinkNode(ptr, LIST_HEAD, 0);
+    } else {
+      ptr->~T();
+      SMemFree(ptr, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
+    }
   }
   virtual T *InternalNew(LISTEXDYN(T) * listptr, DWORD extrabytes, DWORD flags) {
-    ASSERT(!extrabytes);
+    if (REUSE) {
+      ASSERT(!extrabytes);
 
-    T *ptr = m_reuseList.Head();
+      T *ptr = m_reuseList.Head();
 
-    if (!ptr) {
-      TSHashObjectChunk<T, KEY> *chunk;
+      if (!ptr) {
+        TSHashObjectChunk<T, KEY> *chunk;
 
-      for (;;) {
-        chunk = m_chunkList.Head();
-        if (chunk && chunk->m_array.Reserved() > 0) {
-          break;
+        for (;;) {
+          chunk = m_chunkList.Head();
+          if (chunk && chunk->m_array.Reserved() > 0) {
+            break;
+          }
+
+          chunk = m_chunkList.NewNode(LIST_HEAD, 0, 0);
+          chunk->m_array.ReserveSpace(m_chunkSize);
+          m_chunkSize *= 2;
         }
 
-        chunk = m_chunkList.NewNode(LIST_HEAD, 0, 0);
-        chunk->m_array.ReserveSpace(m_chunkSize);
-        m_chunkSize *= 2;
+        ptr = chunk->m_array.NewElement();
       }
 
-      ptr = chunk->m_array.NewElement();
+      listptr->LinkNode(ptr, LIST_HEAD, 0);
+      return ptr;
+    } else {
+      return listptr->NewNode(LIST_HEAD, extrabytes, flags);
     }
-
-    listptr->LinkNode(ptr, LIST_HEAD, 0);
-    return ptr;
   }
 
  public:

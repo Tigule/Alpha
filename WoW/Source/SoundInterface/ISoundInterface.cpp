@@ -3,6 +3,7 @@
 #include <Gx/Gx.h>
 #include <WowConst.h>
 #include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 
 #include "ISoundInterface.h"

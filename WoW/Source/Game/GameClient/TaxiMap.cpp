@@ -1,3 +1,10 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <MapDefs.h>
+#include <WorldClient/World.h>
+#include <WowConst.h>
+#include <DayNight.h>
+
 #include "TaxiMap.h"
 
 #include "DB/DBClient/AutoCode/TaxiPathRec.h"
@@ -7,7 +14,6 @@
 #include <Base/Status.h>
 #include <Services/SysMessage.h>
 #include <Services/Texture.h>
-#include <Model/ModelInternal.h>
 #include <Tempest/cimvector.h>
 #include <Tempest/crect.h>
 #include <stpl.h>
@@ -25,6 +31,8 @@ static LONGLONG                  s_knownNodes;
 static HTEXTURE                  s_solidColor;
 static TSGrowableArray<TAXILINE> s_lines;
 
+#include <Model/ModelInternal.h>
+
 static void FixupRegionRect(NTempest::CRect &rect) {
   float xSlide = 0.0f;
   float ySlide = 0.0f;
@@ -38,10 +46,10 @@ static void FixupRegionRect(NTempest::CRect &rect) {
   } else if (rect.t < -17066.666f) {
     ySlide = -17066.666f - rect.t;
   }
-  rect.l += xSlide;
   rect.r += xSlide;
-  rect.t += ySlide;
+  rect.l += xSlide;
   rect.b += ySlide;
+  rect.t += ySlide;
 }
 
 static void TextureUpdateFunc(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {

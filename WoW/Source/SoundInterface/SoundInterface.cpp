@@ -1,8 +1,12 @@
-#include <WowConst.h>
-#include <MapDefs.h>
-
+#include <Base/Base.h>
 #include "SoundInterface.h"
-
+#include <Gx/Gx.h>
+#include <WowConst.h>
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include <MapDefs.h>
+#include "WorldClient/World.h"
 #include "Client.h"
 #include "Console/ConsoleCommand.h"
 #include "Console/ConsoleVar.h"
@@ -22,11 +26,8 @@
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Unit_C.h"
-#include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/ISoundInterface.h"
-#include "WorldClient/World.h"
 
-#include "Base/Base.h"
 #include "Base/CmdLine.h"
 #include "Os/W32/Debugging.h"
 #include "Os/W32/OsSound.h"
@@ -94,7 +95,9 @@ WEAPONSOUNDS::~WEAPONSOUNDS() {
 }
 
 WEAPONSOUNDS::WEAPONSOUNDS() {
-  Clear();
+  for (UINT i = 0; i < 2; ++i) {
+    soundList[i] = 0;
+  }
 }
 
 WEAPONSOUNDS::WEAPONSOUNDS(const WEAPONSOUNDS &rhs) {
@@ -114,8 +117,9 @@ const WEAPONSOUNDS &WEAPONSOUNDS::operator=(const WEAPONSOUNDS &rhs) {
 }
 
 void WEAPONSOUNDS::Clear() {
-  soundList[0] = 0;
-  soundList[1] = 0;
+  for (UINT i = 0; i < 2; ++i) {
+    soundList[i] = 0;
+  }
 }
 
 static void DetermineWeaponTypeAndMaterial(const VirtualItemInfo *item, UINT *weaponType, PARRYMATERIALS *material) {
@@ -292,7 +296,6 @@ static bool SoundGetParamValueString(LPCSTR parameter, LPCSTR &value) {
 
 void SndInterfaceInitialize() {
   RegisterCVars();
-  SoundInterfaceRegisterWorldCVars();
 
   if (CmdLineGetBool(static_cast<CMDOPT>(0x1A))) {
     return;
@@ -466,14 +469,14 @@ void SndInterfacePlayWeaponSwooshSound(WEAPONSWING_SOUNDTYPES soundType, int cri
 
 void SndInterfacePlaySpellSound(int soundID, CGUnit_C *obj) {
   SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
-  if (!definition || !obj || !(obj->GetType() & TYPE_UNIT)) {
+  if (!definition || !obj || !obj->IsA(ID_UNIT)) {
     return;
   }
 
-  if (definition->m_flags & 0x200) {
-    obj->PlaySpellLoopedSound(soundID);
-  } else {
+  if (!(definition->m_flags & 0x200)) {
     SndInterfacePlaySound(soundID, obj->GetPosition(), -1, 1.0f);
+  } else {
+    obj->PlaySpellLoopedSound(soundID);
   }
 }
 
@@ -633,28 +636,29 @@ UINT SndInterfaceGetSoundVariations(UINT soundID) {
 }
 
 static int Script_PlaySound(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
-    lua_pushfstring(L, "Usage: PlaySound(\"sound\")");
-    lua_error(L);
+  if (lua_isstring(L, 1)) {
+    SndInterfacePlayInterfaceSound(lua_tostring(L, 1));
+    return 0;
   }
 
-  SndInterfacePlayInterfaceSound(lua_tostring(L, 1));
+  lua_pushfstring(L, "Usage: PlaySound(\"sound\")");
+  lua_error(L);
   return 0;
 }
 
 static int Script_PlayMusic(lua_State *L) {
   Sound *sound;
 
-  if (!lua_isstring(L, 1)) {
-    lua_pushfstring(L, "Usage: PlayMusic(\"music\")");
-    lua_error(L);
+  if (lua_isstring(L, 1)) {
+    sound = Sound::Play2DLooped(SOUNDCATEGORY_NONE, lua_tostring(L, 1), 2, 0, true);
+    if (sound && !sound->SetPaused(false)) {
+      Sound::KillSound(sound);
+    }
+    return 0;
   }
 
-  sound = Sound::Play2DLooped(SOUNDCATEGORY_NONE, lua_tostring(L, 1), 2, 0, true);
-  if (sound && !sound->SetPaused(false)) {
-    Sound::KillSound(sound);
-  }
-
+  lua_pushfstring(L, "Usage: PlayMusic(\"music\")");
+  lua_error(L);
   return 0;
 }
 
@@ -685,7 +689,31 @@ bool SndInterfacePlaySound(UINT soundID, int forceIndex) {
 }
 
 bool SndInterfacePlaySound(UINT soundID, const NTempest::C3Vector &position, int forceIndex, float volumeScaler) {
-  return InternalPlaySound(SOUNDCATEGORY_NONE, soundID, position, forceIndex, volumeScaler);
+  SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
+  LPCSTR           filename;
+  Sound           *sound;
+
+  if (!definition) {
+    return false;
+  }
+
+  filename = definition->GetRandomFileName(forceIndex);
+  if (!filename || !*filename) {
+    return false;
+  }
+
+  sound = Sound::Play3D(SOUNDCATEGORY_NONE, filename, definition->GetOsFlags(), true);
+  if (!sound) {
+    return false;
+  }
+
+  definition->SetFrequencyAndVolume(sound, volumeScaler, false);
+  definition->Set3DParams(sound, &position);
+  if (!sound->SetPaused(false)) {
+    Sound::KillSound(sound);
+  }
+
+  return true;
 }
 
 bool SoundInterfaceIsSoundLooping(UINT soundID, bool &looping) {
@@ -709,13 +737,12 @@ Sound *SndInterfacePlayLoopedSound(UINT soundID, UINT loopCount) {
   }
 
   Sound *sound = Sound::Play2DLooped(SOUNDCATEGORY_NONE, filename, definition->GetOsFlags() | 4, loopCount, true);
-  if (!sound) {
-    return 0;
-  }
-
-  definition->SetFrequencyAndVolume(sound, 1.0f, false);
-  if (!sound->SetPaused(false)) {
-    Sound::KillSound(sound);
+  if (sound) {
+    definition->SetFrequencyAndVolume(sound, 1.0f, false);
+    if (!sound->SetPaused(false)) {
+      Sound::KillSound(sound);
+      return 0;
+    }
   }
   return sound;
 }
@@ -730,13 +757,12 @@ Sound *SndInterfacePlayLoopedSound(UINT soundID, const NTempest::C3Vector &posit
     return 0;
   }
   Sound *sound = Sound::Play3DLooped(SOUNDCATEGORY_NONE, filename, definition->GetOsFlags() | 4, loopCount, true);
-  if (!sound) {
-    return 0;
-  }
-  definition->SetFrequencyAndVolume(sound, 1.0f, false);
-  sound->SetPosition(position, 0);
-  if (!sound->SetPaused(false)) {
-    Sound::KillSound(sound);
+  if (sound) {
+    definition->SetFrequencyAndVolume(sound, 1.0f, false);
+    definition->Set3DParams(sound, &position);
+    if (!sound->SetPaused(false)) {
+      Sound::KillSound(sound);
+    }
   }
   return sound;
 }

@@ -159,12 +159,12 @@ static BOOL ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPAR
 }
 
 static BOOL IReadParticleEmitter2EmitterType(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
-  if (savedtoken != 0x1D0) {
-    return 0;
+  if (savedtoken == 0x1D0) {
+    emitter->emitterType = static_cast<MDLPARTICLEEMITTER2::PARTICLE_EMITTER_TYPE>(parse.ExpectInt());
+    parse.Expect(',');
+    return 1;
   }
-  emitter->emitterType = static_cast<MDLPARTICLEEMITTER2::PARTICLE_EMITTER_TYPE>(parse.ExpectInt());
-  parse.Expect(',');
-  return 1;
+  return 0;
 }
 
 static BOOL ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
@@ -450,7 +450,7 @@ static void IReadParticleEmitter2(Parser &parse, TSet &errors, MDLPARTICLEEMITTE
   parse.Expect('{');
   LPCSTR tokentext;
   UINT   savedtoken = parse.Token(&tokentext, 0);
-  while (savedtoken && savedtoken != '}') {
+  while (savedtoken != '}' && savedtoken) {
     int expectAnimation = IExpectAnimation(parse, &savedtoken, &tokentext);
     if (!errors.Check(savedtoken)) {
       parse.FatalDuplicate(tokentext);
@@ -486,7 +486,7 @@ namespace MDL {
 }  // namespace MDL
 
 static void IWriteParticleEmitter2BlendMode(const MDLPARTICLEEMITTER2 &section, TSGrowableArray<char> &buffer) {
-  UINT token = 0x12E;
+  UINT token;
   switch (section.blendMode) {
     case MDLPARTICLEEMITTER2::PBM_ADD:
       token = 0x11A;
@@ -501,28 +501,35 @@ static void IWriteParticleEmitter2BlendMode(const MDLPARTICLEEMITTER2 &section, 
       token = 0x11D;
       break;
     default:
+      token = 0x12E;
       break;
   }
   MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(token));
 }
 
 static void IWriteParticleEmitter2Type(const MDLPARTICLEEMITTER2 &section, TSGrowableArray<char> &buffer) {
-  UINT token = 0x157;
-  if (section.type == MDLPARTICLEEMITTER2::PT_TAIL) {
-    token = 0x1BC;
-  } else if (section.type == MDLPARTICLEEMITTER2::PT_BOTH) {
-    token = 0x133;
+  UINT token;
+  switch (section.type) {
+    case MDLPARTICLEEMITTER2::PT_TAIL:
+      token = 0x1BC;
+      break;
+    case MDLPARTICLEEMITTER2::PT_BOTH:
+      token = 0x133;
+      break;
+    default:
+      token = 0x157;
+      break;
   }
   MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(token));
 }
 
 static void IWriteParticleEmitter2Colors(const MDLPARTICLEEMITTER2 &emitter, TSGrowableArray<char> &buffer) {
   MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x1B0));
-  MDL::WriteLine(buffer, "\t\t%s ", MDL::TokenText(0x136));
+  MDL::WriteLine(buffer, "%s%s ", "\t\t", MDL::TokenText(0x136));
   WriteKeyData(buffer, &emitter.startColor.b, 3);
-  MDL::WriteLine(buffer, "\t\t%s ", MDL::TokenText(0x136));
+  MDL::WriteLine(buffer, "%s%s ", "\t\t", MDL::TokenText(0x136));
   WriteKeyData(buffer, &emitter.middleColor.b, 3);
-  MDL::WriteLine(buffer, "\t\t%s ", MDL::TokenText(0x136));
+  MDL::WriteLine(buffer, "%s%s ", "\t\t", MDL::TokenText(0x136));
   WriteKeyData(buffer, &emitter.endColor.b, 3);
   MDL::WriteLine(buffer, "\t},\n");
 }
@@ -561,10 +568,10 @@ static void IWritePE2Flags(const MDLPARTICLEEMITTER2 &emitter, TSGrowableArray<c
 }
 
 static void IWriteSpline(const TSGrowableArray<NTempest::C3Vector> &points, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x1B6));
-  MDL::WriteLine(buffer, "\t\t%s\n", MDL::TokenText(0x128));
+  MDL::WriteLine(buffer, "%s {\n", MDL::TokenText(0x1B6));
+  MDL::WriteLine(buffer, "\t%s\n", MDL::TokenText(0x128));
   WriteVertices(points, 0x1D8, buffer);
-  MDL::WriteLine(buffer, "\t}\n");
+  MDL::WriteLine(buffer, "}\n");
 }
 
 static void IWriteParticleEmitter2(const MDLDATA &data, const MDLPARTICLEEMITTER2 &emitter, int needObjIds, TSGrowableArray<char> &buffer) {

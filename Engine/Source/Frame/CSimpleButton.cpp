@@ -52,9 +52,7 @@ CSimpleButton::~CSimpleButton() {
     SetStateTexture(state, static_cast<CSimpleTexture *>(0));
   }
 
-  char description[1024];
-  SStrPrintf(description, sizeof(description), "%s:OnClick", GetName());
-  SetEventScript(m_onClick, 0, description);
+  SetOnClickScript(0);
 }
 
 void CSimpleButton::LoadXML(const XMLNode *node, CStatus *status) {
@@ -94,9 +92,7 @@ void CSimpleButton::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
 
   for (const XMLNode *script = node->GetChild(); script; script = script->GetSibling()) {
     if (!SStrCmpI(script->GetName(), "OnClick", INT_MAX)) {
-      char description[1024];
-      SStrPrintf(description, sizeof(description), "%s:OnClick", GetName());
-      SetEventScript(m_onClick, script->GetBody(), description);
+      SetOnClickScript(script->GetBody());
     }
   }
 }
@@ -181,20 +177,22 @@ void CSimpleButton::SetPressedOffset(const NTempest::C2Vector &offset) {
 }
 
 BOOL CSimpleButton::SetStateTexture(CSimpleButtonState state, LPCSTR texFile) {
+  int okay = 1;
+
   if (m_textures[state]) {
     m_textures[state]->SetTexture(texFile, 0);
-    return 1;
+  } else {
+    CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
+    if (texture->SetTexture(texFile, 0)) {
+      texture->SetAllPoints(this, 1);
+      SetStateTexture(state, texture);
+    } else {
+      DEL(texture);
+      okay = 0;
+    }
   }
 
-  CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
-  if (texture->SetTexture(texFile, 0)) {
-    texture->SetAllPoints(this, 1);
-    SetStateTexture(state, texture);
-    return 1;
-  }
-
-  DEL(texture);
-  return 0;
+  return okay;
 }
 
 void CSimpleButton::SetStateTexture(CSimpleButtonState state, CSimpleTexture *texture) {
@@ -236,9 +234,9 @@ void CSimpleButton::OnLayerHide() {
 
 BOOL CSimpleButton::OnLayerMouseDown(CMouseEvent &evt) {
   int handled = CSimpleFrame::OnLayerMouseDown(evt);
-  if (!handled && m_state != BUTTONSTATE_DISABLED && IsMouseButtonHandled(evt.button)) {
+  if (!handled && m_state != BUTTONSTATE_DISABLED) {
     NTempest::C2Vector pt(evt.x, evt.y);
-    if (TestHitRect(pt)) {
+    if (IsMouseButtonHandled(evt.button) && TestHitRect(pt)) {
       handled = 1;
       if (evt.button & m_clickAction) {
         OnClick(evt.button);
@@ -255,7 +253,7 @@ BOOL CSimpleButton::OnLayerMouseUp(CMouseEvent &evt) {
   int handled = CSimpleFrame::OnLayerMouseUp(evt);
   if (!handled && m_state != BUTTONSTATE_DISABLED) {
     handled = m_state == BUTTONSTATE_PUSHED;
-    if (m_state == BUTTONSTATE_PUSHED) {
+    if (handled) {
       NTempest::C2Vector pt(evt.x, evt.y);
       if (IsMouseButtonHandled(evt.button) && TestHitRect(pt) && ((evt.button << 8) & m_clickAction)) {
         OnClick(evt.button);
@@ -280,8 +278,10 @@ void CSimpleButton::OnDragStart(CMouseEvent &evt) {
 }
 
 void CSimpleButton::OnLayerCursorEnter() {
-  CSimpleFrame::OnLayerCursorEnter();
-  UpdateTextState(m_state);
+  if (m_state != BUTTONSTATE_DISABLED) {
+    CSimpleFrame::OnLayerCursorEnter();
+    UpdateTextState(m_state);
+  }
 
   if (m_trackObserver) {
     s_trackEvent.SetId(m_trackEnterEventId);
@@ -291,8 +291,10 @@ void CSimpleButton::OnLayerCursorEnter() {
 }
 
 void CSimpleButton::OnLayerCursorExit() {
-  CSimpleFrame::OnLayerCursorExit();
-  UpdateTextState(m_state);
+  if (m_state != BUTTONSTATE_DISABLED) {
+    CSimpleFrame::OnLayerCursorExit();
+    UpdateTextState(m_state);
+  }
 
   if (m_trackObserver) {
     s_trackEvent.SetId(m_trackExitEventId);
@@ -310,32 +312,7 @@ void CSimpleButton::OnClick(MOUSEBUTTON button) {
       m_observer->OnEvent(evt);
     }
 
-    if (m_onClick) {
-      LPCSTR buttonName;
-
-      switch (button) {
-        case MOUSE_BUTTON_LEFT:
-          buttonName = "LeftButton";
-          break;
-        case MOUSE_BUTTON_MIDDLE:
-          buttonName = "MiddleButton";
-          break;
-        case MOUSE_BUTTON_RIGHT:
-          buttonName = "RightButton";
-          break;
-        case MOUSE_BUTTON_XBUTTON1:
-          buttonName = "Button4";
-          break;
-        case MOUSE_BUTTON_XBUTTON2:
-          buttonName = "Button5";
-          break;
-        default:
-          buttonName = "UNKNOWN";
-          break;
-      }
-
-      FrameScript_Execute(m_onClick, this, "%s", buttonName);
-    }
+    RunOnClickScript(button);
   }
 }
 

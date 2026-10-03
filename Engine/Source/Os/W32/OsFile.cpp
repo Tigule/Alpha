@@ -10,13 +10,9 @@ DWORD OsPathGetRootChars(LPCSTR path);
 void  OsPathStripFilename(char *buffer);
 
 static void UTF16ToUTF8(const WORD *src, char *dest, DWORD destLength) {
-  DWORD destChars;
-  SUniConvertUTF16to8(dest, destLength, src, 0x7FFFFFFF, &destChars, 0);
-  if (destLength - 1 < destChars) {
-    dest[destLength - 1] = 0;
-    return;
-  }
-  dest[destChars] = 0;
+  DWORD stringLength;
+  SUniConvertUTF16to8(dest, destLength, src, 0x7FFFFFFF, &stringLength, 0);
+  dest[min(destLength - 1, stringLength)] = 0;
 }
 
 HOSFILE
@@ -353,7 +349,10 @@ BOOL OsFileAssocGetIdentifier(LPCSTR inFileExt, char *inBuffer, int inBufSize) {
   DWORD bytesRead = inBufSize;
   long  result = RegQueryValueExA(key, "", 0, &type, reinterpret_cast<BYTE *>(inBuffer), &bytesRead);
   RegCloseKey(key);
-  return type == REG_SZ && result == ERROR_SUCCESS;
+  if (type != REG_SZ) {
+    return 0;
+  }
+  return result == ERROR_SUCCESS;
 }
 
 void OsFileAssocSetIdentifier(LPCSTR inFileExt, LPCSTR inIdentifier) {

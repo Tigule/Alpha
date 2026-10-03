@@ -37,8 +37,8 @@ class CMyLoader : public IDirectMusicLoader {
   virtual DWORD __stdcall AddRef();
   virtual DWORD __stdcall Release();
   virtual long __stdcall  GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv);
-  virtual long __stdcall  SetObject(DMUS_OBJECTDESC *);
   virtual long __stdcall  SetSearchDirectory(const GUID &, wchar_t *, int);
+  virtual long __stdcall  SetObject(DMUS_OBJECTDESC *);
   virtual long __stdcall  ScanDirectory(const GUID &, wchar_t *, wchar_t *);
   virtual long __stdcall  CacheObject(IDirectMusicObject *);
   virtual long __stdcall  ReleaseObject(IDirectMusicObject *);
@@ -53,7 +53,7 @@ class CMyLoader : public IDirectMusicLoader {
 
 class CMyIStream : public IStream, public IDirectMusicGetLoader {
  public:
-  CMyIStream() : m_cRef(1), m_pLoader(0), m_cursor(0), m_loader(0) {
+  CMyIStream() : m_cRef(1), m_pLoader(0), m_cursor(0) {
   }
   ~CMyIStream() {
     Detach();
@@ -63,9 +63,11 @@ class CMyIStream : public IStream, public IDirectMusicGetLoader {
   virtual long __stdcall  QueryInterface(const GUID &iid, LPVOID *ppv);
   virtual DWORD __stdcall AddRef();
   virtual DWORD __stdcall Release();
+  virtual long __stdcall  GetLoader(IDirectMusicLoader **ppLoader);
   virtual long __stdcall  Read(LPVOID pv, DWORD cb, DWORD *pcb);
-  virtual long __stdcall  Write(LPCVOID, DWORD, DWORD *);
   virtual long __stdcall  Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *out);
+  virtual long __stdcall  Clone(IStream **ppstm);
+  virtual long __stdcall  Write(LPCVOID, DWORD, DWORD *);
   virtual long __stdcall  SetSize(ULARGE_INTEGER);
   virtual long __stdcall  CopyTo(IStream *, ULARGE_INTEGER, ULARGE_INTEGER *, ULARGE_INTEGER *);
   virtual long __stdcall  Commit(DWORD);
@@ -73,8 +75,6 @@ class CMyIStream : public IStream, public IDirectMusicGetLoader {
   virtual long __stdcall  LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
   virtual long __stdcall  UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
   virtual long __stdcall  Stat(STATSTG *, DWORD);
-  virtual long __stdcall  Clone(IStream **ppstm);
-  virtual long __stdcall  GetLoader(IDirectMusicLoader **ppLoader);
 
  private:
   long                m_cRef;
@@ -379,12 +379,11 @@ long CMyIStream::Attach(LPCSTR tzFile, IDirectMusicLoader *pLoader) {
 }
 
 DWORD __stdcall CMyIStream::Release() {
-  long ref = InterlockedDecrement(&m_cRef);
-  if (!ref) {
+  if (!InterlockedDecrement(&m_cRef)) {
     delete this;
     return 0;
   }
-  return ref;
+  return m_cRef;
 }
 
 DWORD __stdcall CMyIStream::AddRef() {
@@ -413,12 +412,12 @@ void CMyIStream::Detach() {
 }
 
 long __stdcall CMyIStream::Read(LPVOID pv, DWORD cb, DWORD *pcb) {
-  if (!m_loader->asyncLoader->buffer || m_loader->buffer.Count() < m_cursor + cb) {
+  if (!m_loader->asyncLoader->buffer || m_loader->buffer.Count() < static_cast<DWORDLONG>(m_cursor + cb)) {
     return E_FAIL;
   }
 
-  BYTE *source = reinterpret_cast<BYTE *>(m_loader->buffer.Ptr()) + static_cast<DWORD>(m_cursor);
   BYTE *destination = static_cast<BYTE *>(pv);
+  BYTE *source = reinterpret_cast<BYTE *>(m_loader->buffer.Ptr()) + static_cast<DWORD>(m_cursor);
   for (DWORD i = 0; i < cb; ++i) {
     *destination++ = *source++;
   }
@@ -431,19 +430,24 @@ long __stdcall CMyIStream::Read(LPVOID pv, DWORD cb, DWORD *pcb) {
 
 long __stdcall CMyIStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *out) {
   DWORDLONG origin = 0;
-  if (dwOrigin == STREAM_SEEK_CUR) {
-    origin = m_cursor;
-  } else if (dwOrigin == STREAM_SEEK_END) {
-    origin = m_loader->buffer.Count();
-  } else if (dwOrigin != STREAM_SEEK_SET) {
-    FATALASSERT(0);
+  if (dwOrigin != STREAM_SEEK_SET) {
+    if (dwOrigin == STREAM_SEEK_CUR) {
+      origin = m_cursor;
+    } else if (dwOrigin == STREAM_SEEK_END) {
+      origin = m_loader->buffer.Count();
+    } else {
+      FATALASSERT(0);
+    }
   }
 
   m_cursor = origin + dlibMove.QuadPart;
   if (out) {
     out->QuadPart = m_cursor;
   }
-  return m_cursor <= m_loader->buffer.Count() ? S_OK : E_FAIL;
+  if (static_cast<int>(m_loader->buffer.Count()) < m_cursor) {
+    return E_FAIL;
+  }
+  return S_OK;
 }
 
 long __stdcall CMyIStream::Clone(IStream **ppstm) {

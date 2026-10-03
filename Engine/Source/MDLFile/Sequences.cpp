@@ -8,9 +8,7 @@
 #include <stpl.h>
 #include <storm.h>
 
-MDLSEQUENCESSECTION::MDLSEQUENCESSECTION() : time(0), movespeed(0.0f), flags(0), bounds(), frequency(0.0f), replay(0), blendTime(150) {
-  name[0] = 0;
-  bounds.radius = 0.0f;
+MDLSEQUENCESSECTION::MDLSEQUENCESSECTION() : time(0), movespeed(0.0f), flags(0), frequency(0.0f), replay(0), blendTime(150) {
 }
 
 namespace MDL {
@@ -247,7 +245,7 @@ BOOL MDL::ReadGlobalSequences(Parser &parse, MDLDATA &data, CMDLStatus *) {
   UTokenData value;
   long       count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   if (count > 0) {
-    data.globalSeqs.ReserveSpace(count);
+    data.sequences.ReserveSpace(count);
   }
   parse.Expect('{', savedtoken, tokentext);
   savedtoken = parse.Token(&tokentext, &value);

@@ -14,34 +14,6 @@
 
 #include <stdlib.h>
 
-namespace NTempest {
-
-  void C4QuaternionCompressed::Set(const C4Quaternion &source) {
-    int sign = source.w >= 0.0f ? 1 : -1;
-    int x = sign * static_cast<int>(source.x * 2097152.0f);
-    int y = sign * static_cast<int>(source.y * 1048576.0f);
-    int z = sign * static_cast<int>(source.z * 1048576.0f);
-
-    DWORDLONG packed =
-        (static_cast<DWORDLONG>(x & 0x3FFFFF) << 42) | (static_cast<DWORDLONG>(y & 0x1FFFFF) << 21) | static_cast<DWORDLONG>(z & 0x1FFFFF);
-    m_data = static_cast<LONGLONG>(packed);
-  }
-
-  C4QuaternionCompressed::operator C4Quaternion() const {
-    const DWORDLONG data = static_cast<DWORDLONG>(m_data);
-    const int       xBits = static_cast<int>(data >> 32) >> 10;
-    const int       yBits = static_cast<int>(static_cast<UINT>(data >> 10)) >> 11;
-    const int       zBits = static_cast<int>(static_cast<UINT>(data) << 11) >> 11;
-    const float     x = static_cast<float>(xBits) * 0.00000047683716f;
-    const float     y = static_cast<float>(yBits) * 0.00000095367432f;
-    const float     z = static_cast<float>(zBits) * 0.00000095367432f;
-    const float     magnitude = x * x + y * y + z * z;
-    const float     w = CMath::fabs_(magnitude - 1.0f) < 0.00000095367432f ? 0.0f : CMath::sqrt_(1.0f - magnitude);
-    return C4Quaternion(w, x, y, z);
-  }
-
-}  // namespace NTempest
-
 static float s_timeScale = 1.0f;
 static UINT  s_animFlags;
 static UINT  s_lastFrame;
@@ -77,11 +49,11 @@ static int WrapAnimTime(int milliseconds, int looptime) {
     return 0;
   }
 
-  if (milliseconds < 0) {
-    return looptime - (-milliseconds % looptime);
+  if (milliseconds >= 0) {
+    return milliseconds % looptime;
   }
 
-  return milliseconds % looptime;
+  return looptime - (-milliseconds % looptime);
 }
 
 static void ISetSequenceInfo(CAnim *unique, CBaseStatus *status, UINT index, int resetTime) {
@@ -319,10 +291,9 @@ static int GetSeqSyncTime(CAnim *unique, CAnimData *shared, UINT currSeq, UINT p
     return 0;
   }
 
-  const float syncTime = static_cast<float>(unique->seq[prevSeq].elapsed - shared->seq[prevSeq].time.l) /
-                         static_cast<float>(shared->seq[prevSeq].time.h - shared->seq[prevSeq].time.l) *
-                         static_cast<float>(currSharedSeq->time.h - currSharedSeq->time.l);
-  return syncTime < 0.0f ? -static_cast<int>(-syncTime + 0.5f) : static_cast<int>(syncTime + 0.5f);
+  return NTempest::CMath::fint_n(static_cast<float>(unique->seq[prevSeq].elapsed - shared->seq[prevSeq].time.l) /
+                       static_cast<float>(shared->seq[prevSeq].time.h - shared->seq[prevSeq].time.l) *
+                       static_cast<float>(currSharedSeq->time.h - currSharedSeq->time.l));
 }
 
 void SetObjectSequencesReset(CAnim *unique, CAnimData *shared, UINT sequence, UINT blendTime, int resetTime) {
@@ -461,23 +432,21 @@ static BOOL AdvanceTime(CAnim *unique, CAnimData *shared) {
   unique->seqLastTime = s_currTime;
   const UINT numSequences = unique->seq.Count();
 
-  if ((s_animFlags & 8) || (unique->flags & 8)) {
+  if ((s_animFlags & 8) | (unique->flags & 8)) {
     fTimeElapsed = 0.0f;
     for (UINT pausedSeqIndex = 0; pausedSeqIndex < numSequences; ++pausedSeqIndex) {
       unique->seq[pausedSeqIndex].scaledElapsedTime = 0;
     }
   } else {
-    const int elapsedTime = fTimeElapsed < 0.0f ? -static_cast<int>(NTempest::CMath::fuint_n(-fTimeElapsed)) : static_cast<int>(fTimeElapsed + 0.5f);
-    SetGlobalSequenceTime(unique, shared, elapsedTime);
+    SetGlobalSequenceTime(unique, shared, NTempest::CMath::fint_n(fTimeElapsed));
 
     for (UINT seqIndex = 0; seqIndex < numSequences; ++seqIndex) {
-      CSeqInfo      &seqInfo = unique->seq[seqIndex];
-      CAnimSequence &sequence = shared->seq[seqIndex];
-      const float    scaled = fTimeElapsed * seqInfo.seqTimeScale;
-      seqInfo.scaledElapsedTime = scaled < 0.0f ? -static_cast<int>(NTempest::CMath::fuint_n(-scaled)) : static_cast<int>(scaled + 0.5f);
+      unique->seq[seqIndex].scaledElapsedTime = NTempest::CMath::fint_n(fTimeElapsed * unique->seq[seqIndex].seqTimeScale);
 
-      const int seqTime = seqInfo.elapsed + seqInfo.scaledElapsedTime - sequence.time.l;
-      if (!SetSequenceTime(unique, seqIndex, &sequence, &seqInfo, seqTime)) {
+      if (!SetSequenceTime(
+              unique, seqIndex, &shared->seq[seqIndex], &unique->seq[seqIndex],
+              unique->seq[seqIndex].elapsed + unique->seq[seqIndex].scaledElapsedTime - shared->seq[seqIndex].time.l
+          )) {
         return 0;
       }
     }
@@ -500,23 +469,10 @@ static void SetGeosetColor(const InterpInfo &animInfo, CAnimGeoset *currgeoset, 
   ASSERT(geoStatus);
 
   C3Color color;
-  if (currgeoset->color.TotalKeys()) {
-    UINT keys = currgeoset->color.SetAnimTime(geoStatus->base, &geoStatus->color, animInfo);
-    if (keys > 1) {
-      const CAnimSequence &sequence = animInfo.shared->seq[geoStatus->base.currSeq];
-      currgeoset->color.Interpolate(geoStatus->color, sequence.time.h - sequence.time.l, &color);
-    } else {
-      if (!(geoStatus->base.flags & 0x10)) {
-        return;
-      }
-      if (keys) {
-        color = reinterpret_cast<const CLinearKeyFrame<C3Color> *>(currgeoset->color.GetKeyFrame(geoStatus->color.currKey))->transform;
-      }
-    }
-
-    currentColor->r = NTempest::CMath::ftol_0_256_(min(max(color.r, 0.0f), 1.0f) * 255.0f);
-    currentColor->g = NTempest::CMath::ftol_0_256_(min(max(color.g, 0.0f), 1.0f) * 255.0f);
-    currentColor->b = NTempest::CMath::ftol_0_256_(min(max(color.b, 0.0f), 1.0f) * 255.0f);
+  if (currgeoset->color.InterpolateRetained(animInfo, geoStatus->base, &geoStatus->color, C3Color(), &color)) {
+    currentColor->r = NTempest::CMath::ftol_0_256_(NTempest::CMath::clamp_(color.r, 0.0f, 1.0f) * 255.0f);
+    currentColor->g = NTempest::CMath::ftol_0_256_(NTempest::CMath::clamp_(color.g, 0.0f, 1.0f) * 255.0f);
+    currentColor->b = NTempest::CMath::ftol_0_256_(NTempest::CMath::clamp_(color.b, 0.0f, 1.0f) * 255.0f);
   }
 }
 
@@ -525,23 +481,8 @@ static void SetGeosetAlpha(const InterpInfo &animInfo, CAnimGeoset *currgeoset, 
   ASSERT(geoStatus);
 
   float visibility = 0.0f;
-  if (currgeoset->visibility.TotalKeys()) {
-    UINT keys = currgeoset->visibility.SetAnimTime(geoStatus->base, &geoStatus->visibility, animInfo);
-    if (keys > 1) {
-      const CAnimSequence &sequence = animInfo.shared->seq[geoStatus->base.currSeq];
-      currgeoset->visibility.Interpolate(geoStatus->visibility, sequence.time.h - sequence.time.l, &visibility);
-    } else {
-      if (!(geoStatus->base.flags & 0x10)) {
-        return;
-      }
-      if (keys) {
-        visibility = reinterpret_cast<const CLinearKeyFrame<float> *>(currgeoset->visibility.GetKeyFrame(geoStatus->visibility.currKey))->transform;
-      } else {
-        visibility = 1.0f;
-      }
-    }
-
-    color->animatedAlpha = min(max(visibility, 0.0f), 1.0f);
+  if (currgeoset->visibility.InterpolateRetained(animInfo, geoStatus->base, &geoStatus->visibility, 1.0f, &visibility)) {
+    color->animatedAlpha = NTempest::CMath::clamp_(visibility, 0.0f, 1.0f);
     color->animatedColor.a = NTempest::CMath::ftol_0_256_(color->animatedAlpha * color->proceduralAlpha * 255.0f);
   }
 }
@@ -552,7 +493,7 @@ void CalcGeosetColor(const InterpInfo &animInfo, CAnimGeoset *geoset, CAnimGeose
 
   SetGeosetAlpha(animInfo, geoset, geoStatus, color);
   SetGeosetColor(animInfo, geoset, geoStatus, &color->animatedColor);
-  if (color->animatedColor.a) {
+  if (color->animatedColor.a > 0) {
     geoStatus->base.flags |= 1;
   } else {
     geoStatus->base.flags &= ~1;

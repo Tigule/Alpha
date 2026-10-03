@@ -2,12 +2,12 @@
 #include <Gx/Gx.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
-#include "WowServices/WowConnection.h"
-#include <WowConst.h>
+#include "Net/NetClient/NetClient.h"
 #include <Frame/CSimpleTop.h>
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
 
@@ -205,8 +205,12 @@ BOOL CGObject_C::ObjectModelSetSequence(HMODEL model, UINT sequence, UINT flags,
     flags |= 8;
   }
 
-  UINT animFlags = GenerateAnimFlags(flags);
-  int  result = flags & 1 ? ModelSetSequence(model, sequence, animFlags) : ModelSetRandomSequenceFidget(model, sequence, animFlags);
+  int result;
+  if (flags & 1) {
+    result = ModelSetSequence(model, sequence, GenerateAnimFlags(flags));
+  } else {
+    result = ModelSetRandomSequenceFidget(model, sequence, GenerateAnimFlags(flags));
+  }
   if (result) {
     return 1;
   }
@@ -232,12 +236,11 @@ BOOL CGObject_C::ObjectModelSetBoneSequence(HMODEL model, UINT sequence, UINT ob
     flags |= 8;
   }
 
-  UINT animFlags = GenerateAnimFlags(flags);
-  int  result;
+  int result;
   if (flags & 1) {
-    result = ModelSetSequence(model, sequence, objectID, animFlags);
+    result = ModelSetSequence(model, sequence, objectID, GenerateAnimFlags(flags));
   } else {
-    result = ModelSetRandomSequenceFidget(model, sequence, objectID, animFlags);
+    result = ModelSetRandomSequenceFidget(model, sequence, objectID, GenerateAnimFlags(flags));
   }
 
   if (result) {
@@ -368,10 +371,10 @@ void CGObject_C::AddWorldObject() {
   }
 
   UINT flags = 0;
-  if (GetType() & TYPE_GAMEOBJECT) {
+  if (IsA(ID_GAMEOBJECT)) {
     flags = 3;
   }
-  if (GetType() & TYPE_DYNAMICOBJECT) {
+  if (IsA(ID_DYNAMICOBJECT)) {
     flags |= 2;
   }
 
@@ -388,17 +391,16 @@ void CGObject_C::UpdateWorldObject() {
     return;
   }
 
-  NTempest::C44Matrix tempMat;
-  NTempest::CAaBox    extents;
-  memset(&extents, 0, sizeof(extents));
+  NTempest::CAaBox extents;
   if (m_model) {
     ModelGetExtents(m_model, &extents);
   }
 
+  NTempest::C44Matrix tempMat;
   tempMat.Translate(GetPosition());
 
   float facing;
-  if (GetType() & TYPE_UNIT) {
+  if (IsA(ID_UNIT)) {
     facing = static_cast<CGUnit_C *>(this)->GetDisplayFacing();
   } else {
     facing = GetFacing();
@@ -491,7 +493,7 @@ void CGObject_C::ReportMissingAnimObj(LPCSTR message, UINT objectID, LPCSTR mode
 }
 
 void CGObject_C::ReportMissingAttachment(UINT objectID, LPCSTR modelName) const {
-  ReportMissingAnimObj("MODELMISSINGATTACHMENT", objectID, modelName);
+  ReportMissingAnimObj("MODELMISSINGCONNECTION", objectID, modelName);
 }
 
 void CGObject_C::ReportMissingEventObject(UINT objectID, LPCSTR modelName) const {
@@ -538,7 +540,7 @@ void CGObject_C::ShowHighlightType(HIGHLIGHTTYPE type) {
   FATALASSERT(type < NUM_HIGHLIGHTTYPES);
 
   m_highlightTypes |= 1 << type;
-  ModelSetEmissiveColor(m_model, *reinterpret_cast<NTempest::CImVector *>(&DayNightGetInfo()->unitSelect), 1);
+  ModelSetEmissiveColor(m_model, NTempest::CImVector(*reinterpret_cast<DWORD *>(&DayNightGetInfo()->lightInfo.ambColor)), 1);
 }
 
 void CGObject_C::SetAnimated(int animated) {
@@ -650,13 +652,9 @@ void CGObject_C::PreAnimate(CGWorldFrame *worldFrame) {
     if (guid == lockedGUID) {
       static_cast<CGUnit_C *>(this)->RenderDebugPathing();
     } else if (guid == activePlayer) {
-      CGUnit_C         *unit = static_cast<CGUnit_C *>(this);
-      const CGUnitData *unitData = unit->GetUnitData();
-      const UINT        unitFlags = unitData->flags;
+      CGUnit_C *unit = static_cast<CGUnit_C *>(this);
 
-      if (!(unitFlags & 0x01000000) &&
-          (!(GetType() & TYPE_PLAYER) || unitData->charm || (!(unitFlags & 2) && (unitFlags & 0x00C00004)) || (unitFlags & 1)))
-      {
+      if (!unit->IsClientControlled()) {
         unit->RenderDebugPathing();
       }
     }
@@ -757,7 +755,9 @@ BOOL CGObject_C::UpdateModelLoadStatus() {
 }
 
 void CGObject_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
-  ModelGetStandingMatrix(m_model, GetPosition(), GetGroundNormal(), GetRenderFacing(), GetScale() * m_renderScale, worldMatrix);
+  HMODEL model = GetObjectModel();
+  float  scale = m_renderScale;
+  ModelGetStandingMatrix(model, GetPosition(), GetGroundNormal(), GetRenderFacing(), GetScale() * scale, worldMatrix);
 }
 
 void CGObject_C::UpdateObjectHeight(HMODEL model) {

@@ -120,7 +120,7 @@ static void IReadLight(Parser &parse, TSet &errors, NTempest::C3Vector *pivot, M
   parse.Expect('{');
   LPCSTR tokenText;
   UINT   token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
+  while (token != '}' && token) {
     int expectAnimation = IExpectAnimation(parse, &token, &tokenText);
     if (!expectAnimation && IllegalStaticToken(token)) {
       parse.FatalUnexpected(tokenText);
@@ -144,7 +144,7 @@ BOOL MDL::ReadLight(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   FATALASSERT(status);
   TSet                errors;
   MDLLIGHTSECTION    *light = data.lights.New();
-  NTempest::C3Vector *pivot = data.pivotPoints.Count() < 500 ? data.pivotPoints.New() : 0;
+  NTempest::C3Vector *pivot = data.version < 500 ? data.pivotPoints.New() : 0;
   ReadObjectName(parse, light->name);
   IAddLightErrors(errors);
   IReadLight(parse, errors, pivot, light, status, data.version);
@@ -154,11 +154,17 @@ BOOL MDL::ReadLight(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 }
 
 static void IWriteLightProperties(const MDLLIGHTSECTION &section, TSGrowableArray<char> &buffer) {
-  UINT token = 0x188;
-  if (section.type == LIGHTTYPE_DIRECT) {
-    token = 0x13E;
-  } else if (section.type == LIGHTTYPE_AMBIENT) {
-    token = 0x121;
+  UINT token;
+  switch (section.type) {
+    case LIGHTTYPE_DIRECT:
+      token = 0x13E;
+      break;
+    case LIGHTTYPE_AMBIENT:
+      token = 0x121;
+      break;
+    default:
+      token = 0x188;
+      break;
   }
   MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(token));
 }
@@ -372,8 +378,8 @@ static BOOL ReadBinLight(CMsgBuffer &buffer, MDLLIGHTSECTION *light, CMDLStatus 
 }
 
 BOOL MDL::ReadBinLights(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
-  UINT numLights = buf.GetUint();
   UINT totalRead = 4;
+  UINT numLights = buf.GetUint();
   data.lights.SetCount(0);
   data.lights.ReserveSpace(numLights);
   while (totalRead < length) {

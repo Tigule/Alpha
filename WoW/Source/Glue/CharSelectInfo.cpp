@@ -1,4 +1,15 @@
+#include <Base/Base.h>
 #include <WowConst.h>
+#include "Glue/CGlueMgr.h"
+#include <Frame/CSimpleFrame.h>
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Glue/CharCreateInfo.h"
+#include "Glue/CharSelectInfo.h"
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
+#include "SoundInterface/SoundInterface.h"
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
 
 #include "Glue/CharSelectInfo.h"
 
@@ -14,16 +25,14 @@
 #include "DB/DBClient/AutoCode/CreatureDisplayInfoRec.h"
 #include "DB/DBClient/AutoCode/CreatureModelDataRec.h"
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
-#include "DB/DBClient/DBCacheInstances.h"
 #include "Component/CharacterCustomization.h"
 #include "Game/GameClient/GuildClient.h"
 #include "Glue/CharCreateInfo.h"
 #include "Glue/CGlueMgr.h"
 #include "Object/ObjectClient/AnimCompiles.h"
-#include "Object/ObjectClient/Player_C.h"
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Player_C.h"
 
 #include <lauxlib.h>
 #include <lua.h>

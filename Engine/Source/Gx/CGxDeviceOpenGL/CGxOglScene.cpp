@@ -44,10 +44,10 @@ void CGxDeviceOpenGl::ScenePresent(UINT mask) {
   int screenShot = m_scrShotClick;
   CGxDevice::ScenePresent(mask);
 
-  if (m_hwState.m_masterEnables & (1U << GxMasterEnable_DoubleBuffering)) {
-    wglSwapLayerBuffers(m_hdc, WGL_SWAP_MAIN_PLANE);
-  } else {
+  if (!(m_hwState.m_masterEnables & (1U << GxMasterEnable_DoubleBuffering))) {
     glFinish();
+  } else {
+    wglSwapLayerBuffers(m_hdc, WGL_SWAP_MAIN_PLANE);
   }
 
   GetError();

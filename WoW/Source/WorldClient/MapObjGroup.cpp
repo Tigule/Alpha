@@ -4,7 +4,6 @@
 #include <WowConst.h>
 #include "AaBsp.h"
 #include <MapDefs.h>
-#include "Gx/CGxDevice.h"
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
@@ -248,7 +247,7 @@ bool QueryCull(const CWFrustum &frustum, const NTempest::C3Vector *verts) {
   frustum.Cull(verts[0], cc[0]);
   frustum.Cull(verts[1], cc[1]);
   frustum.Cull(verts[2], cc[2]);
-  return (cc[0] & cc[1] & cc[2]) != 0;
+  return (cc[0] & cc[1] & cc[2]) ? true : false;
 }
 
 void CMapObjGroup::GetTrisFromQuery(CWTriData &triData, BspQuery &q, const CMapObjDef *mapObjDef) {

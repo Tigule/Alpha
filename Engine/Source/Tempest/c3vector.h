@@ -57,7 +57,7 @@ namespace NTempest {
     }
 
     operator C2Vector() const {
-      return C2Vector(x, y);
+      return *reinterpret_cast<const C2Vector *>(this);
     }
 
     C3Vector &operator+=(const C3Vector &a) {
@@ -151,9 +151,9 @@ namespace NTempest {
     }
 
     void SafeNormalize() {
-      float squaredMag = SquaredMag();
-      if (squaredMag > 0.0f) {
-        *this *= CMath::sqrtinv_(squaredMag);
+      float mag = Mag();
+      if (CMath::fnotequal_(mag, 0.0f)) {
+        *this /= mag;
       }
     }
     void Scale(const float magnitude) {
@@ -165,23 +165,19 @@ namespace NTempest {
     EAxis MinorAxis() const;
 
     static C3Vector Min(const C3Vector &a, const C3Vector &b) {
-      return C3Vector(b.x <= a.x ? b.x : a.x, b.y <= a.y ? b.y : a.y, b.z <= a.z ? b.z : a.z);
+      return C3Vector(min(a.x, b.x), min(a.y, b.y), min(a.z, b.z));
     }
 
     static C3Vector Max(const C3Vector &a, const C3Vector &b) {
-      return C3Vector(b.x >= a.x ? b.x : a.x, b.y >= a.y ? b.y : a.y, b.z >= a.z ? b.z : a.z);
+      return C3Vector(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z));
     }
 
     void Minimize(const C3Vector &a) {
-      x = a.x < x ? a.x : x;
-      y = a.y < y ? a.y : y;
-      z = a.z < z ? a.z : z;
+      *this = Min(*this, a);
     }
 
     void Maximize(const C3Vector &a) {
-      x = a.x > x ? a.x : x;
-      y = a.y > y ? a.y : y;
-      z = a.z > z ? a.z : z;
+      *this = Max(*this, a);
     }
 
     static C3Vector Lerp(const C3Vector &a, const C3Vector &b, const C3Vector &t) {
@@ -246,8 +242,7 @@ namespace NTempest {
   }
 
   inline C3Vector operator/(const C3Vector &l, float r) {
-    float inverse = 1.0f / r;
-    return C3Vector(l.x * inverse, l.y * inverse, l.z * inverse);
+    return C3Vector(l.x / r, l.y / r, l.z / r);
   }
 
   inline bool operator<=(const C3Vector &l, const C3Vector &r) {

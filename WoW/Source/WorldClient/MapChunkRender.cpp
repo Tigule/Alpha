@@ -1,15 +1,23 @@
-#include <WowConst.h>
-#include <MapDefs.h>
-#include <Ftol.h>
-
-#include "WorldClient/World.h"
-#include "WorldClient/Map.h"
-
 #include "Base/Base.h"
 #include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
+#include <WowConst.h>
+#include "AaBsp.h"
+#include <MapDefs.h>
+
+#include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
+#include <Ftol.h>
+
+#include "WorldClient/Map.h"
+
 #include "Object/ObjectClient/ZoneDebug.h"
 #include "Services/Texture.h"
-#include "WorldClient/DetailDoodad.h"
 
 #include "DB/DBClient/AutoCode/GroundEffectTextureRec.h"
 
@@ -97,7 +105,8 @@ static STPrimGroup s_tPrimGroups[4][2] = {
     {{392, 0, s_primGroup3_0}, {90, 1, s_primGroup3_1}}
 };
 
-static float s_tempTexSpeed[8] = {64.0f, 48.0f, 32.0f, 16.0f, 8.0f, 4.0f, 2.0f, 1.0f};
+static NTempest::C44Matrix s_tempTexMat;
+static float               s_tempTexSpeed[8] = {64.0f, 48.0f, 32.0f, 16.0f, 8.0f, 4.0f, 2.0f, 1.0f};
 
 static int  s_neighborMask[4] = {0xFFFFFF00, 0xFFFF00FF, 0xFF00FFFF, 0x00FFFFFF};
 static int  s_neighborShft[4] = {0, 8, 16, 24};
@@ -243,24 +252,24 @@ void CMapChunk::FillGxBufDynVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 void CMapChunk::FillGxBufDynIndex(const CGxBufCommand &cmd, CGxBuf *buf) {
-  WORD *indices = 0;
+  WORD *idx = 0;
 
   switch (cmd.index.op) {
     case GxBufOp_Nop:
       return;
 
     case GxBufOp_Fill:
-      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
       break;
 
     case GxBufOp_Assign:
-      indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
-      *cmd.index.mem[GxVM_Indices] = indices;
+      idx = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
+      *cmd.index.mem[GxVM_Indices] = idx;
       break;
   }
 
-  ASSERT(indices);
-  memcpy(indices, primList, (primPtr - primList) * sizeof(WORD));
+  ASSERT(idx);
+  memcpy(idx, primList, reinterpret_cast<BYTE *>(primPtr) - reinterpret_cast<BYTE *>(primList));
 }
 
 void CMapChunk::RenderLayers() {
@@ -333,7 +342,7 @@ void CMapChunk::RenderLayers() {
   if (camDist > CWorld::textureLodDist) {
     float fade = camDist - CWorld::textureLodDist;
     if (fade < 64.0f) {
-      mattDiffuse.a = static_cast<BYTE>(NTempest::CMath::fuint_n((64.0f - fade) * 0.015625f * 255.0f));
+      mattDiffuse.a = Fast_ftol((64.0f - fade) * 0.015625f * 255.0f);
     } else {
       nLayersTest = 1;
     }
@@ -481,7 +490,7 @@ void CMapChunk::RenderLayersDyn() {
   if (camDist > CWorld::textureLodDist) {
     float fade = camDist - CWorld::textureLodDist;
     if (fade < 64.0f) {
-      mattDiffuse.a = static_cast<BYTE>(NTempest::CMath::fuint_n((64.0f - fade) * 0.015625f * 255.0f));
+      mattDiffuse.a = Fast_ftol((64.0f - fade) * 0.015625f * 255.0f);
     } else {
       nLayersTest = 1;
     }
@@ -567,12 +576,12 @@ void CMapChunk::RenderLayersColor() {
 }
 
 void CMapChunk::RenderLayersColorDyn() {
-  CGxBatch gxBatch(GxPrim_Triangles, primPtr - primList, 0, -1, -1);
+  CGxBatch gxBatch(GxPrim_Triangles, (reinterpret_cast<UINT>(primPtr) - reinterpret_cast<UINT>(primList)) / sizeof(WORD), 0, -1, -1);
   GxVertexShaderSelect(GxVS_PassThru);
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   GxRsSet(GxRs_Blend, GxBlend_Opaque);
-  GxRsSet(GxRs_Texture0, static_cast<LPVOID>(0));
-  GxRsSet(GxRs_Texture1, static_cast<LPVOID>(0));
+  GxRsSet(GxRs_Texture0, 0);
+  GxRsSet(GxRs_Texture1, 0);
   GxBufLock(gxBufDyn);
   GxBufRender(gxBatch);
   GxBufUnlock();

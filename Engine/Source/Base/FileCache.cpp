@@ -60,39 +60,48 @@ static PrefetchNode *IBaseFileStartLoad(LPCSTR fileName) {
   PrefetchNode *theFile = s_activeFiles.Ptr(fileName);
 
   if (theFile) {
+    s_activeFiles.Unlink(theFile);
     s_activeFiles.Insert(theFile, fileName);
     return theFile;
   }
 
   if (s_numActiveFiles == 128) {
-    s_activeFiles.Delete(s_activeFiles.Head());
+    s_activeFiles.Delete(s_activeFiles.Head()->GetString());
     --s_numActiveFiles;
   }
 
   theFile = s_activeFiles.New(fileName, 0, 0);
-  if (!SFile::LoadFile(fileName, &theFile->buffer, reinterpret_cast<DWORD *>(&theFile->size), 1, &theFile->overlapped)) {
-    s_activeFiles.Delete(theFile);
+
+  LPVOID localBuffer;
+  DWORD  localBytes;
+
+  if (!SFile::LoadFile(fileName, &localBuffer, &localBytes, 1, &theFile->overlapped)) {
+    s_activeFiles.Delete(fileName);
     return 0;
   }
 
+  theFile->buffer = localBuffer;
+  theFile->size = localBytes;
+  theFile->refCount = 0;
   ++s_numActiveFiles;
   return theFile;
 }
 
 BOOL IBaseFileLoad(LPCSTR fileName, LPCVOID *fileBuffer, DWORD *fileSize) {
+  BOOL          success = 0;
   PrefetchNode *theFile = IBaseFileStartLoad(fileName);
-  if (!theFile) {
-    return 0;
+  if (theFile) {
+    IBaseFileWaitForLoad(theFile);
+    ASSERT(theFile->refCount >= 0);
+    ++theFile->refCount;
+    *fileBuffer = theFile->buffer;
+    if (fileSize) {
+      *fileSize = theFile->size;
+    }
+    success = 1;
   }
 
-  IBaseFileWaitForLoad(theFile);
-  ASSERT(theFile->refCount >= 0);
-  ++theFile->refCount;
-  *fileBuffer = theFile->buffer;
-  if (fileSize) {
-    *fileSize = theFile->size;
-  }
-  return 1;
+  return success;
 }
 
 void IBaseFileUnload(LPCSTR fileName) {
@@ -201,12 +210,13 @@ void BaseFileRegisterUncachable(LPCSTR fileName) {
 }
 
 void BaseFileUnregisterUncachable(LPCSTR fileName) {
-  FATALASSERT(fileName);
+  VALIDATEBEGIN;
+  VALIDATE(fileName);
+  VALIDATEENDVOID;
 
   s_critSect.Enter();
-  UncachableNode *theFile = s_uncachableFiles.Ptr(fileName);
-  if (theFile) {
-    s_uncachableFiles.Delete(theFile);
+  if (s_uncachableFiles.Ptr(fileName)) {
+    s_uncachableFiles.Delete(fileName);
   }
   s_critSect.Leave();
 }

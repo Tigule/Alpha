@@ -5,6 +5,7 @@
 #include "Tempest/c2vector.h"
 #include "Tempest/c34matrix.h"
 #include "Tempest/c44matrix.h"
+#include "Tempest/cimvector.h"
 #include "Tempest/cmath.h"
 
 #include <math.h>
@@ -27,41 +28,49 @@ namespace NTempest {
   }
 
   void C3Spline::Pos(float t, C3Vector &pos, EvalType ptype) const {
-    ASSERT(points.Count());
     if (t <= 0.0f) {
       pos = points[0];
     } else if (t >= 1.0f) {
       pos = points[points.Count() - 1];
-    } else if (ptype == EVAL_PARAMETRIC) {
-      IPosParametric(t, pos);
-    } else if (ptype == EVAL_ARCLENGTH) {
-      IPosArclength(t, pos);
+    } else {
+      switch (ptype) {
+        case EVAL_ARCLENGTH:
+          IPosArclength(t, pos);
+          break;
+        case EVAL_PARAMETRIC:
+          IPosParametric(t, pos);
+          break;
+      }
     }
   }
 
   void C3Spline::Vel(float t, C3Vector &vel, EvalType ptype) const {
     t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
-    if (ptype == EVAL_PARAMETRIC) {
-      IVelParametric(t, vel);
-    } else if (ptype == EVAL_ARCLENGTH) {
-      IVelArclength(t, vel);
+    switch (ptype) {
+      case EVAL_ARCLENGTH:
+        IVelArclength(t, vel);
+        break;
+      case EVAL_PARAMETRIC:
+        IVelParametric(t, vel);
+        break;
     }
   }
 
   void C3Spline::Frame(float t, C34Matrix &frame, EvalType ptype) const {
     t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
-    if (ptype == EVAL_ARCLENGTH) {
-      IFrameArclength(t, frame);
-    } else {
-      ASSERT(0);
+    switch (ptype) {
+      case EVAL_ARCLENGTH:
+        IFrameArclength(t, frame);
+        break;
+      case EVAL_PARAMETRIC:
+        ASSERT(0);
+        break;
     }
   }
 
   void C3Spline::ISetPoints(const C3Vector *pts, UINT count) {
     points.SetCount(count);
-    for (UINT i = 0; i < count; ++i) {
-      points[i] = pts[i];
-    }
+    memcpy(points.Ptr(), pts, count * sizeof(C3Vector));
   }
 
 }  // namespace NTempest
@@ -81,11 +90,7 @@ namespace NTempest {
     pos.y = 0.0f;
     pos.z = 0.0f;
     for (UINT i = 0; i < 4; ++i) {
-      float           weight = EvaluatePolynomial(3, t, coeffs[i]);
-      const C3Vector &point = points[segment + i];
-      pos.x += weight * point.x;
-      pos.y += weight * point.y;
-      pos.z += weight * point.z;
+      pos += points[segment + i] * EvaluatePolynomial(3, t, coeffs[i]);
     }
   }
 
@@ -94,11 +99,7 @@ namespace NTempest {
     der.y = 0.0f;
     der.z = 0.0f;
     for (UINT i = 0; i < 4; ++i) {
-      float           weight = EvaluatePolynomial(2, t, coeffs[i]);
-      const C3Vector &point = points[segment + i];
-      der.x += weight * point.x;
-      der.y += weight * point.y;
-      der.z += weight * point.z;
+      der += points[segment + i] * EvaluatePolynomial(2, t, coeffs[i]);
     }
   }
 
@@ -107,11 +108,7 @@ namespace NTempest {
     der.y = 0.0f;
     der.z = 0.0f;
     for (UINT i = 0; i < 4; ++i) {
-      float           weight = EvaluatePolynomial(1, t, coeffs[i]);
-      const C3Vector &point = points[segment + i];
-      der.x += weight * point.x;
-      der.y += weight * point.y;
-      der.z += weight * point.z;
+      der += points[segment + i] * EvaluatePolynomial(1, t, coeffs[i]);
     }
   }
 
@@ -182,7 +179,6 @@ namespace NTempest {
   }
 
   static C44Matrix s_bezierCoeffs(-1.0f, 3.0f, -3.0f, 1.0f, 3.0f, -6.0f, 3.0f, 0.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
-  static C34Matrix s_bezierDer1Coeffs(-3.0f, 6.0f, -3.0f, 9.0f, -12.0f, 3.0f, -9.0f, 6.0f, 0.0f, 3.0f, 0.0f, 0.0f);
 
   void C3Spline_Bezier3::ParametricSegT(float wholeT, UINT &segment, float &t) const {
     C3Spline::ParametricSegT(wholeT, points.Count() / 3, segment, t);
@@ -224,31 +220,24 @@ namespace NTempest {
     UINT  segment;
     float segt;
     ArclengthSegT(t, segment, segt);
-    Evaluate(segment, segt, *reinterpret_cast<C3Vector *>(&frame.d0));
+    Evaluate(segment, segt, *frame.Row3AsVec3());
 
     C3Vector newFacing;
     EvaluateDer1(segment, segt, newFacing);
     float magnitude = newFacing.Mag();
-    if (CMath::fabs_(magnitude) >= 0.01f) {
+    if (!(CMath::fabs_(magnitude) < 0.01f)) {
       newFacing *= 1.0f / magnitude;
-      frame.a0 = newFacing.x;
-      frame.a1 = newFacing.y;
-      frame.a2 = newFacing.z;
+      *frame.Row0AsVec3() = newFacing;
     }
 
-    frame.b0 = -frame.a1;
-    frame.b1 = frame.a0;
-    frame.b2 = 0.0f;
-    magnitude = CMath::sqrt_(frame.b0 * frame.b0 + frame.b1 * frame.b1);
-    frame.b0 /= magnitude;
-    frame.b1 /= magnitude;
-
-    frame.c0 = -frame.b1 * frame.a2;
-    frame.c1 = frame.b0 * frame.a2;
-    frame.c2 = frame.b1 * frame.a0 - frame.b0 * frame.a1;
+    frame.Row1AsVec3()->Set(-frame.a1, frame.a0, 0.0f);
+    C2Vector &binormal = *reinterpret_cast<C2Vector *>(frame.Row1AsVec3());
+    binormal /= binormal.Mag();
+    *frame.Row2AsVec3() = C3Vector::Cross(*frame.Row0AsVec3(), binormal);
   }
 
   void C3Spline_Bezier3::EvaluateDer1(UINT segment, float t, C3Vector &der) const {
+    static C34Matrix s_bezierDer1Coeffs(-3.0f, 6.0f, -3.0f, 9.0f, -12.0f, 3.0f, -9.0f, 6.0f, 0.0f, 3.0f, 0.0f, 0.0f);
     C3Spline::EvaluateDer1(segment * 3, t, s_bezierDer1Coeffs, der);
   }
 
@@ -271,18 +260,17 @@ namespace NTempest {
     }
   }
 
-  void C3Spline_Bezier3::ISetPoints(const C3Vector *pts, UINT nPoints) {
-    UINT count = nPoints;
+  void C3Spline_Bezier3::ISetPoints(const C3Vector *pts, UINT count) {
     UINT segmentCount = count / 3;
-    nPoints = segmentCount * 3 + (segmentCount != 0 ? 1 : 0);
+    UINT nPoints = (segmentCount > 0) * 4 + (segmentCount - 1) * 3;
     ASSERT(nPoints <= count);
     cachedSegLength.SetCount(segmentCount);
     C3Spline::ISetPoints(pts, nPoints);
   }
 
   static C44Matrix s_catmullRomCoeffs(-0.5f, 1.0f, -0.5f, 0.0f, 1.5f, -2.5f, 0.0f, 1.0f, -1.5f, 2.0f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f);
-  static C24Matrix s_catmullRomDer2Coeffs(-3.0f, 2.0f, 9.0f, -5.0f, -9.0f, 4.0f, 3.0f, -1.0f);
   static C34Matrix s_catmullRomDer1Coeffs(-1.5f, 2.0f, -0.5f, 4.5f, -5.0f, 0.0f, -4.5f, 4.0f, 0.5f, 1.5f, -1.0f, 0.0f);
+  static C24Matrix s_catmullRomDer2Coeffs(-3.0f, 2.0f, 9.0f, -5.0f, -9.0f, 4.0f, 3.0f, -1.0f);
 
   void C3Spline_CatmullRom::Evaluate(UINT segment, float t, C3Vector &pos) const {
     if (splineMode != MODE_LINEAR) {
@@ -349,18 +337,16 @@ namespace NTempest {
 
   void C3Spline_CatmullRom::IVelArclength(float t, C3Vector &vel) const {
     UINT  segment;
-    float segmentT;
-    t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
-    ArclengthSegT(t, segment, segmentT);
-    EvaluateDer1(segment, segmentT, vel);
+    float segt = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+    ArclengthSegT(segt, segment, segt);
+    EvaluateDer1(segment, segt, vel);
   }
 
   void C3Spline_CatmullRom::IVelParametric(float t, C3Vector &vel) const {
     UINT  segment;
-    float segmentT;
-    t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
-    ParametricSegT(t, segment, segmentT);
-    EvaluateDer1(segment, segmentT, vel);
+    float segt = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+    ParametricSegT(segt, segment, segt);
+    EvaluateDer1(segment, segt, vel);
   }
 
   void C3Spline_CatmullRom::IFrameArclength(float t, C34Matrix &frame) const {

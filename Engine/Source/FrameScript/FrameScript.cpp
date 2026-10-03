@@ -253,13 +253,6 @@ void FrameScript_Object::SetEventScript(int &script, LPCSTR source, LPCSTR descr
   }
 }
 
-void FrameScript_Object::SetOnEventScript(LPCSTR source) {
-  char description[1024];
-
-  SStrPrintf(description, sizeof(description), "%s:OnEvent", GetName());
-  SetEventScript(m_onEvent, source, description);
-}
-
 void FrameScript_Object::OnScriptEvent(LPCSTR name) {
   lua_State *state;
 

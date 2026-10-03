@@ -113,7 +113,7 @@ class CLayoutFrame {
   BOOL IsResizeDependency(CLayoutFrame *pNewDependentFrame);
 
   BOOL IsResizeDeferred() const {
-    return (m_flags & 0x2) != 0;
+    return m_flags & 0x2;
   }
 
   virtual void SetDeferredResize(int enable);

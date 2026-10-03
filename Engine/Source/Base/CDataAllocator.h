@@ -51,8 +51,11 @@ class TInstanceAllocator : protected CDataAllocator {
   }
 
   __forceinline T *Get(int zero) {
-    LPVOID data = CDataAllocator::GetData(zero, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT);
-    return data ? new (data) T : 0;
+    T *data = static_cast<T *>(CDataAllocator::GetData(zero, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT));
+    if (data) {
+      new (data) T;
+    }
+    return data;
   }
 
   __forceinline void Put(T *data) {

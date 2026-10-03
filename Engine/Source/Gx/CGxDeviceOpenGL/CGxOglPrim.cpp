@@ -61,26 +61,39 @@ CGxBufOgl::CGxBufOgl() : m_vb(0), m_ib(0) {
 }
 
 BOOL CGxBufOgl::LockVB() {
-  if (!m_vb) {
-    memset(vertexPtr, 0, sizeof(vertexPtr));
-    return 0;
-  }
+  BOOL success = 0;
 
-  LPVOID mem = 0;
-  if (m_vertexStatus == S_INVALID_RELOAD) {
-    m_vb->Lock(mem, m_numVertices * GxVertexSize(m_vbFormat), m_vertexBase);
-  } else if (m_vertexStatus == S_INVALID_DISCARD) {
-    m_vb->Lock(mem, m_numVertices * GxVertexSize(m_vbFormat), BASE_NONE);
-    m_vertexBase = m_vb->m_base;
+  if (m_vb) {
+    LPVOID mem = 0;
+    switch (m_vertexStatus) {
+      default:
+        ASSERT(!("CGxBufOgl::LockVB(): invalid m_vertexStatus\n"));
+        break;
+
+      case S_INVALID_RELOAD:
+        m_vb->Lock(mem, m_numVertices * GxVertexSize(m_vbFormat), m_vertexBase);
+        break;
+
+      case S_INVALID_DISCARD:
+        m_vb->Lock(mem, m_numVertices * GxVertexSize(m_vbFormat), BASE_NONE);
+        m_vertexBase = m_vb->m_base;
+        break;
+    }
+
+    for (UINT member = 0; member < GxVertexMembers_Last; ++member) {
+      int offset = GxVertexMemberOffset(m_vbFormat, static_cast<EGxVertexMember>(member));
+      if (offset != -1) {
+        vertexPtr[member] = static_cast<BYTE *>(mem) + offset;
+      } else {
+        vertexPtr[member] = 0;
+      }
+    }
+    success = 1;
   } else {
-    FATALASSERT(0);
+    memset(vertexPtr, 0, sizeof(vertexPtr));
   }
 
-  for (UINT member = 0; member < GxVertexMembers_Last; ++member) {
-    int offset = GxVertexMemberOffset(m_vbFormat, static_cast<EGxVertexMember>(member));
-    vertexPtr[member] = offset == -1 ? 0 : static_cast<BYTE *>(mem) + offset;
-  }
-  return 1;
+  return success;
 }
 
 BOOL CGxBufOgl::LockIB() {
@@ -266,49 +279,44 @@ void CGxDeviceOpenGl::IPrimSetupNormal(UINT stride, LPCVOID normals) {
 }
 
 void CGxDeviceOpenGl::IPrimSetupColor(UINT stride, LPCVOID colors, UINT count, int convert) {
-  if (!colors) {
+  if (colors) {
+    if (stride) {
+      if (convert) {
+        const BYTE          *src = static_cast<const BYTE *>(colors);
+        NTempest::CImVector *dst = m_primColor.Ptr();
+        for (UINT i = 0; i < count; ++i) {
+          dst[i].Set(src[3], src[0], src[1], src[2]);
+          src += stride;
+        }
+        glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(NTempest::CImVector), m_primColor.Ptr());
+      } else {
+        glColorPointer(4, GL_UNSIGNED_BYTE, stride, colors);
+      }
+      DsSet(Ds_ColorArray, 1, 0);
+      IStateSetColorSource(Cs_Array);
+    } else {
+      DsSet(Ds_ColorArray, 0, 0);
+      IStateSetColorSource(Cs_Constant);
+      IStateSetColorSourceColor(Cs_Constant, *static_cast<const NTempest::CImVector *>(colors));
+    }
+  } else {
     DsSet(Ds_ColorArray, 0, 0);
     IStateSetColorSource(Cs_Material);
-    return;
   }
-
-  if (!stride) {
-    DsSet(Ds_ColorArray, 0, 0);
-    IStateSetColorSource(Cs_Constant);
-    IStateSetColorSourceColor(Cs_Constant, *static_cast<const NTempest::CImVector *>(colors));
-    return;
-  }
-
-  LPCVOID colorData = colors;
-  UINT    colorStride = stride;
-  if (convert) {
-    const BYTE          *src = static_cast<const BYTE *>(colors);
-    NTempest::CImVector *dst = m_primColor.Ptr();
-    for (UINT i = 0; i < count; ++i) {
-      dst[i].Set(src[3], src[0], src[1], src[2]);
-      src += stride;
-    }
-    colorData = m_primColor.Ptr();
-    colorStride = sizeof(NTempest::CImVector);
-  }
-
-  glColorPointer(4, GL_UNSIGNED_BYTE, colorStride, colorData);
-  DsSet(Ds_ColorArray, 1, 0);
-  IStateSetColorSource(Cs_Array);
 }
 
 void CGxDeviceOpenGl::IPrimSetupTexCoord(UINT tmu, UINT stride, LPCVOID texCoord) {
   if (tmu >= m_caps.m_numTmus) {
     FATALASSERT(0);
+    return;
   }
 
   DsSet(Ds_ActiveTexture, tmu, 0);
-  EDeviceState state = static_cast<EDeviceState>(static_cast<UINT>(Ds_TextureArray0) + tmu);
   if (texCoord) {
-    DsSet(state, 1, 0);
+    DsSet(static_cast<EDeviceState>(Ds_TextureArray0 + tmu), 1, 0);
     glTexCoordPointer(2, GL_FLOAT, stride, texCoord);
   } else {
-    DsSet(state, 0, 0);
+    DsSet(static_cast<EDeviceState>(Ds_TextureArray0 + tmu), 0, 0);
   }
 }
 

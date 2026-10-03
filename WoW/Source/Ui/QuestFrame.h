@@ -18,7 +18,12 @@ class QuestInfo {
   char name[64];
   int  turnIn;
 
-  void Clear();
+  void Clear() {
+    id = 0;
+    level = 0;
+    name[0] = 0;
+    turnIn = 0;
+  }
 };
 
 class QuestItemInfo {
@@ -33,7 +38,17 @@ class QuestItemInfo {
   int requiredDisplayID;
   int requiredAmount;
 
-  void Clear();
+  void Clear() {
+    rewardItemID = 0;
+    rewardDisplayID = 0;
+    rewardAmount = 0;
+    choiceItemID = 0;
+    choiceDisplayID = 0;
+    choiceAmount = 0;
+    requiredItemID = 0;
+    requiredDisplayID = 0;
+    requiredAmount = 0;
+  }
 };
 
 class CGQuestInfo {
@@ -47,18 +62,18 @@ class CGQuestInfo {
   static void EndQuestList();
   static void AddReward(
       LPCSTR title,
-      int   *itemChoice,
-      int   *choiceDisplay,
-      int   *choiceAmount,
+      int    itemChoice[],
+      int    choiceDisplay[],
+      int    choiceAmount[],
       int    numChoice,
-      int   *itemReward,
-      int   *itemDisplay,
-      int   *itemAmount,
+      int    itemReward[],
+      int    itemDisplay[],
+      int    itemAmount[],
       int    numReward,
       int    money,
       int    autoLaunched
   );
-  static void             AddItemRequest(LPCSTR title, int *items, int *itemAmount, int *itemDisplay, int numItems, int completed, int autoLaunched);
+  static void             AddItemRequest(LPCSTR title, int items[], int itemAmount[], int itemDisplay[], int numItems, int completed, int autoLaunched);
   static void             QuestGiverFinished();
   static const DWORDLONG &GetQuestGiver() {
     return m_npc;
@@ -104,7 +119,7 @@ class CGQuestInfo {
   static UINT GetNumQuestChoices();
   static UINT GetNumQuestItems();
   static int
-  GetQuestItemInfo(LPCSTR type, UINT index, char *name, UINT nameSize, char *texture, UINT textureSize, UINT &amount, int &quality, int &usable);
+  GetQuestItemInfo(LPCSTR type, UINT index, char name[], UINT nameSize, char texture[], UINT textureSize, UINT &amount, int &quality, int &usable);
   static int  GetQuestItemID(LPCSTR type, UINT index);
   static int GetNumQuests() {
     return m_numQuests;
@@ -131,15 +146,18 @@ class CGQuestInfo {
 
  private:
   static void ClearQuests() {
-    memset(m_quests, 0, sizeof(m_quests));
-    memset(m_inProgress, 0, sizeof(m_inProgress));
+    for (UINT i = 0; i < 8; ++i) {
+      m_quests[i].Clear();
+      m_inProgress[i].Clear();
+    }
     m_numQuests = 0;
     m_numInProgress = 0;
   }
 
   static void ClearItems() {
-    memset(m_questItems, 0, sizeof(m_questItems));
-    m_questTitle[0] = 0;
+    for (UINT i = 0; i < 6; ++i) {
+      m_questItems[i].Clear();
+    }
   }
 
  protected:

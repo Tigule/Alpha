@@ -51,7 +51,9 @@ namespace NTempest {
     static CAaSphere Bounding(const CDynTable<C3Vector> &vectors);
     static CAaSphere Bounding(const CDynTable<DWORD> &indices, const CDynTable<C3Vector> &vectors);
     static CAaSphere Bounding(const CAaSphere *spheres, DWORD count);
-    static CAaSphere Bounding(const CDynTable<CAaSphere> &spheres);
+    static CAaSphere Bounding(const CDynTable<CAaSphere> &spheres) {
+      return Bounding(&spheres[0], spheres.Used());
+    }
   };
 
 }  // namespace NTempest

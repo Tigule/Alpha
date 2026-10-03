@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -67,20 +69,21 @@ BOOL CGTutorial::OnTutorialFlags(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDat
 }
 
 static int Script_TriggerTutorial(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: TriggerTutorial(\"tutorial\")");
-  }
+  if (lua_isstring(L, 1)) {
 
-  LPCSTR token = lua_tostring(L, 1);
-  UINT   tutorial;
-  for (tutorial = 0; tutorial < NUM_TUTORIALS; ++tutorial) {
-    if (!SStrCmpI(token, s_tutorialTokens[tutorial], 0x7FFFFFFF)) {
-      break;
+    LPCSTR token = lua_tostring(L, 1);
+    UINT   tutorial;
+    for (tutorial = 0; tutorial < NUM_TUTORIALS; ++tutorial) {
+      if (!SStrCmpI(token, s_tutorialTokens[tutorial], 0x7FFFFFFF)) {
+        break;
+      }
     }
+    if (tutorial == NUM_TUTORIALS) {
+      return luaL_error(L, "Unknown tutorial token");
+    }
+    return 0;
   }
-  if (tutorial == NUM_TUTORIALS) {
-    return luaL_error(L, "Unknown tutorial token");
-  }
+  luaL_error(L, "Usage: TriggerTutorial(\"tutorial\")");
   return 0;
 }
 

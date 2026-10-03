@@ -20,7 +20,7 @@ class CMdlString {
   }
 
   CMdlString(const CMdlString<Length> &source) {
-    memcpy(m_string, source.m_string, sizeof(m_string));
+    SStrCopy(m_string, source.m_string, Length);
   }
 
   CMdlString<Length> &operator=(const CMdlString<Length> &source) {
@@ -69,6 +69,9 @@ struct CMdlBounds {
 #endif
 
 struct MDLTEXTURESECTION {
+  MDLTEXTURESECTION() : replaceableId(0), flags(0) {
+  }
+
   UINT            replaceableId;
   CMdlString<260> image;
   UINT            flags;
@@ -87,7 +90,7 @@ enum MDLTRACKTYPE {
 
 template <class T>
 struct MDLKEYFRAME {
-  MDLKEYFRAME() {
+  MDLKEYFRAME() : time(0) {
   }
 
   int time;
@@ -175,8 +178,7 @@ struct MDLPRIMITIVES {
 };
 
 struct MDLGEOSETSECTION {
-  MDLGEOSETSECTION() : materialId(0), bounds(), selectionGroup(0), flags(0) {
-    bounds.radius = 0.0f;
+  MDLGEOSETSECTION() : materialId(0), selectionGroup(0), flags(0) {
   }
 
   TSGrowableArray<NTempest::C3Vector>                   vertices;
@@ -336,7 +338,6 @@ struct MDLLIGHTSECTION : public MDLGENOBJECT {
 
 struct MDLPARTICLE {
   MDLPARTICLE() : staticLife(0.0f), staticSpeed(0.0f) {
-    static_cast<char *>(path)[0] = 0;
   }
 
   CMdlString<260>    path;
@@ -713,4 +714,9 @@ struct MDLBASE {
   MDLCOLLISION                          collision;
 };
 
-struct MDLDATA : public MDLBASE {};
+struct MDLDATA : public MDLBASE {
+  MDLDATA() {
+  }
+
+  MDLDATA &operator=(const MDLDATA &source);
+};

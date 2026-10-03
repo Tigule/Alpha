@@ -1,5 +1,6 @@
 #include <Base/Base.h>
 
+#include "Frame/CSimpleTop.h"
 #include "Frame/CSimpleFrame.h"
 
 #include "Frame/CBackdropGenerator.h"
@@ -9,19 +10,20 @@
 #include <lua.h>
 
 #define GET_SIMPLE_FRAME_THIS(L, object)                                \
-  CSimpleFrame *object = 0;                                             \
-  if (lua_type(L, 1) == LUA_TTABLE) {                                   \
-    lua_rawgeti(L, 1, 0);                                               \
-    object = static_cast<CSimpleFrame *>(lua_touserdata(L, -1));        \
-    lua_pop(L, 1);                                                      \
-  } else {                                                              \
+  CSimpleFrame *object;                                                 \
+  if (lua_type(L, 1) != LUA_TTABLE) {                                   \
     luaL_error(                                                         \
         L,                                                              \
         "Attempt to find 'this' in non-table object (used '.' instead " \
         "of ':' ?)"                                                     \
     );                                                                  \
-  }                                                                     \
-  ASSERT(object)
+    object = 0;                                                         \
+  } else {                                                              \
+    lua_rawgeti(L, 1, 0);                                               \
+    object = static_cast<CSimpleFrame *>(lua_touserdata(L, -1));        \
+    lua_pop(L, 1);                                                      \
+    ASSERT(object);                                                     \
+  }
 
 static int CSimpleFrame_GetParent(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
@@ -61,49 +63,54 @@ static int CSimpleFrame_GetFrameLevel(lua_State *L) {
 static int CSimpleFrame_SetFrameLevel(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetFrameLevel(level)");
+  if (lua_isnumber(L, 2)) {
+    object->SetFrameLevel(static_cast<int>(lua_tonumber(L, 2)), 0);
+    return 0;
   }
 
-  object->SetFrameLevel(static_cast<int>(lua_tonumber(L, 2)), 0);
+  luaL_error(L, "Usage: SetFrameLevel(level)");
   return 0;
 }
 
 static int CSimpleFrame_RegisterEvent(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  if (!lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: RegisterEvent(\"event\")");
+  if (lua_isstring(L, 2)) {
+    object->RegisterScriptEvent(lua_tostring(L, 2));
+    return 0;
   }
 
-  object->RegisterScriptEvent(lua_tostring(L, 2));
+  luaL_error(L, "Usage: RegisterEvent(\"event\")");
   return 0;
 }
 
 static int CSimpleFrame_UnregisterEvent(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  if (!lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: UnregisterEvent(\"event\")");
+  if (lua_isstring(L, 2)) {
+    object->UnregisterScriptEvent(lua_tostring(L, 2));
+    return 0;
   }
 
-  object->UnregisterScriptEvent(lua_tostring(L, 2));
+  luaL_error(L, "Usage: UnregisterEvent(\"event\")");
   return 0;
 }
 
 static int CSimpleFrame_SetAlpha(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetAlpha(alpha)");
-  }
+  if (lua_isnumber(L, 2)) {
+    double alpha = lua_tonumber(L, 2);
+    if (alpha >= 0.0 && alpha <= 1.0) {
+      object->SetAlpha(static_cast<BYTE>(alpha * 255.0));
+      return 0;
+    }
 
-  double alpha = lua_tonumber(L, 2);
-  if (alpha < 0.0 || alpha > 1.0) {
     luaL_error(L, "Alpha must be in the range of 0.0 to 1.0");
+    return 0;
   }
 
-  object->SetAlpha(static_cast<BYTE>(alpha * 255.0));
+  luaL_error(L, "Usage: SetAlpha(alpha)");
   return 0;
 }
 
@@ -117,11 +124,12 @@ static int CSimpleFrame_GetAlpha(lua_State *L) {
 static int CSimpleFrame_SetID(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetID(ID)");
+  if (lua_isnumber(L, 2)) {
+    object->m_id = static_cast<int>(lua_tonumber(L, 2));
+    return 0;
   }
 
-  object->m_id = static_cast<int>(lua_tonumber(L, 2));
+  luaL_error(L, "Usage: SetID(ID)");
   return 0;
 }
 
@@ -211,8 +219,8 @@ static int CSimpleFrame_Lower(lua_State *L) {
 static int CSimpleFrame_GetCenter(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  lua_pushnumber(L, object->CenterX() * 1024.0f * 1.25f);
-  lua_pushnumber(L, object->CenterY() * 1024.0f * 1.25f);
+  lua_pushnumber(L, 1.25f * (object->CenterX() * 1024.0f));
+  lua_pushnumber(L, 1.25f * (object->CenterY() * 1024.0f));
   return 2;
 }
 
@@ -227,18 +235,19 @@ static int CSimpleFrame_GetWidth(lua_State *L) {
     width = rect.r - rect.l;
   }
 
-  lua_pushnumber(L, width * 1024.0f * 1.25f);
+  lua_pushnumber(L, 1.25f * (width * 1024.0f));
   return 1;
 }
 
 static int CSimpleFrame_SetWidth(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetWidth(width)");
+  if (lua_isnumber(L, 2)) {
+    object->SetWidth(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    return 0;
   }
 
-  object->SetWidth(static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f));
+  luaL_error(L, "Usage: SetWidth(width)");
   return 0;
 }
 
@@ -253,93 +262,101 @@ static int CSimpleFrame_GetHeight(lua_State *L) {
     height = rect.b - rect.t;
   }
 
-  lua_pushnumber(L, height * 1024.0f * 1.25f);
+  lua_pushnumber(L, 1.25f * (height * 1024.0f));
   return 1;
 }
 
 static int CSimpleFrame_SetHeight(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetHeight(height)");
+  if (lua_isnumber(L, 2)) {
+    object->SetHeight(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    return 0;
   }
 
-  object->SetHeight(static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f));
+  luaL_error(L, "Usage: SetHeight(height)");
   return 0;
 }
 
 static int CSimpleFrame_SetPoint(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  if (!lua_isstring(L, 2) || !lua_isstring(L, 3)) {
-    luaL_error(
-        L,
-        "Usage: SetPoint(\"point\" \"frame\" [, relativePoint] "
-        "[, offsetX, offsetY])"
-    );
-  }
+  if (lua_isstring(L, 2) && lua_isstring(L, 3)) {
+    FRAMEPOINT    point;
+    FRAMEPOINT    relativePoint;
+    CLayoutFrame *relativeFrame;
+    float         offsetX = 0.0f;
+    float         offsetY = 0.0f;
 
-  FRAMEPOINT    point;
-  FRAMEPOINT    relativePoint;
-  CLayoutFrame *relativeFrame;
-  float         offsetX = 0.0f;
-  float         offsetY = 0.0f;
-
-  if (!StringToFramePoint(lua_tostring(L, 2), point)) {
-    luaL_error(L, "Unknown frame point");
-  }
-
-  relativePoint = point;
-
-  LPCSTR relativeName = lua_tostring(L, 3);
-  relativeFrame = object->GetLayoutFrameByName(relativeName);
-  if (!relativeFrame) {
-    char message[128];
-
-    SStrPrintf(message, sizeof(message), "Couldn't find frame named '%s'", relativeName);
-    luaL_error(L, message);
-  }
-
-  if (relativeFrame == object) {
-    char message[128];
-
-    SStrPrintf(message, sizeof(message), "Error: %s is anchored to itself", relativeName);
-    luaL_error(L, message);
-  }
-
-  if (lua_isstring(L, 4)) {
-    if (!StringToFramePoint(lua_tostring(L, 4), relativePoint)) {
+    if (!StringToFramePoint(lua_tostring(L, 2), point)) {
       luaL_error(L, "Unknown frame point");
+      return 0;
     }
 
-    if (lua_isnumber(L, 5) && lua_isnumber(L, 6)) {
-      offsetX = static_cast<float>(lua_tonumber(L, 5) * 0.0009765625f * 0.8f);
-      offsetY = static_cast<float>(lua_tonumber(L, 6) * 0.0009765625f * 0.8f);
+    relativePoint = point;
+
+    LPCSTR relativeName = lua_tostring(L, 3);
+    relativeFrame = object->GetLayoutFrameByName(relativeName);
+    if (!relativeFrame) {
+      char message[128];
+
+      SStrPrintf(message, sizeof(message), "Couldn't find frame named '%s'", relativeName);
+      luaL_error(L, message);
+      return 0;
     }
+
+    if (relativeFrame == object) {
+      char message[128];
+
+      SStrPrintf(message, sizeof(message), "Error: %s is anchored to itself", relativeName);
+      luaL_error(L, message);
+      return 0;
+    }
+
+    if (lua_isstring(L, 4)) {
+      if (!StringToFramePoint(lua_tostring(L, 4), relativePoint)) {
+        luaL_error(L, "Unknown frame point");
+        return 0;
+      }
+
+      if (lua_isnumber(L, 5) && lua_isnumber(L, 6)) {
+        offsetX = static_cast<float>(0.8f * (lua_tonumber(L, 5) * 0.0009765625f));
+        offsetY = static_cast<float>(0.8f * (lua_tonumber(L, 6) * 0.0009765625f));
+      }
+    }
+
+    object->SetPoint(point, relativeFrame, relativePoint, offsetX, offsetY, 1);
+    return 0;
   }
 
-  object->SetPoint(point, relativeFrame, relativePoint, offsetX, offsetY, 1);
+  luaL_error(
+      L,
+      "Usage: SetPoint(\"point\" \"frame\" [, relativePoint] "
+      "[, offsetX, offsetY])"
+  );
   return 0;
 }
 
 static int CSimpleFrame_SetAllPoints(lua_State *L) {
   GET_SIMPLE_FRAME_THIS(L, object);
 
-  if (!lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: SetAllPoints(\"frame\")");
+  if (lua_isstring(L, 2)) {
+    LPCSTR        relativeName = lua_tostring(L, 2);
+    CLayoutFrame *relativeFrame = object->GetLayoutFrameByName(relativeName);
+
+    if (!relativeFrame) {
+      char message[128];
+
+      SStrPrintf(message, sizeof(message), "Couldn't find frame named '%s'", relativeName);
+      luaL_error(L, message);
+      return 0;
+    }
+
+    object->SetAllPoints(relativeFrame, 1);
+    return 0;
   }
 
-  LPCSTR        relativeName = lua_tostring(L, 2);
-  CLayoutFrame *relativeFrame = object->GetLayoutFrameByName(relativeName);
-
-  if (!relativeFrame) {
-    char message[128];
-
-    SStrPrintf(message, sizeof(message), "Couldn't find frame named '%s'", relativeName);
-    luaL_error(L, message);
-  }
-
-  object->SetAllPoints(relativeFrame, 1);
+  luaL_error(L, "Usage: SetAllPoints(\"frame\")");
   return 0;
 }
 
@@ -383,12 +400,11 @@ static int CSimpleFrame_EnableMouse(lua_State *L) {
   int enable;
   if (lua_isnumber(L, 2)) {
     enable = lua_tonumber(L, 2) != 0.0;
-  } else {
-    if (!lua_isstring(L, 2)) {
-      luaL_error(L, "Usage: EnableMouse(0|1)");
-    }
-
+  } else if (lua_isstring(L, 2)) {
     enable = StringToBOOL(lua_tostring(L, 2));
+  } else {
+    luaL_error(L, "Usage: EnableMouse(0|1)");
+    return 0;
   }
 
   if (enable) {
@@ -406,12 +422,11 @@ static int CSimpleFrame_EnableKeyboard(lua_State *L) {
   int enable;
   if (lua_isnumber(L, 2)) {
     enable = lua_tonumber(L, 2) != 0.0;
-  } else {
-    if (!lua_isstring(L, 2)) {
-      luaL_error(L, "Usage: EnableKeyboard(0|1)");
-    }
-
+  } else if (lua_isstring(L, 2)) {
     enable = StringToBOOL(lua_tostring(L, 2));
+  } else {
+    luaL_error(L, "Usage: EnableKeyboard(0|1)");
+    return 0;
   }
 
   if (enable) {

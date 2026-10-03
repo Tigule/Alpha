@@ -132,14 +132,8 @@ const FT_Module_Class*  const ft_default_modules[] =
   {
     if ( library )
     {
-      FT_Memory  memory = library->memory;
-
-
       /* Discard the library object */
       FT_Done_Library( library );
-
-      /* discard memory manager */
-      FT_Done_Memory( memory );
     }
 
     return FT_Err_Ok;

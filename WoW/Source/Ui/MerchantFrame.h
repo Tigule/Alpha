@@ -27,7 +27,7 @@ class CGMerchantInfo {
     return m_itemCount;
   }
   static const VendorItem *GetItem(int index) {
-    return index >= 0 && index < m_itemCount ? &m_items[index] : 0;
+    return index >= 0 && index < m_itemCount && m_merchant ? &m_items[index] : 0;
   }
   static const ItemStats *GetItemStats(UINT itemID);
   static void             DecrementCallbackCount();

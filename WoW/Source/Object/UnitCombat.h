@@ -46,6 +46,8 @@ enum ANIMQUEUETYPE {
 };
 
 struct DamageData {
+  void Clear();
+
   int   totalDamage;
   int   damageType[5];
   UINT  minDamage[5];
@@ -53,8 +55,6 @@ struct DamageData {
   float damageFloat[5];
   int   damage[5];
   int   absorbed[5];
-
-  void Clear();
 };
 
 inline void DamageData::Clear() {
@@ -84,8 +84,8 @@ struct LOGBASE {
 };
 
 struct DAMAGELOGBASE : public LOGBASE {
-  DAMAGELOGBASE(const DAMAGELOGBASE &other);
   DAMAGELOGBASE(DWORDLONG attacker, DWORDLONG victim);
+  DAMAGELOGBASE(const DAMAGELOGBASE &other);
 
   DWORDLONG  attacker;
   DWORDLONG  victim;
@@ -106,6 +106,8 @@ struct DAMAGELOGBASE : public LOGBASE {
 };
 
 struct ATTACKROUNDINFO : public DAMAGELOGBASE {
+  ATTACKROUNDINFO();
+
   UINT         armorReduction;
   VICTIMSTATES newVictimState;
   UINT         victimRoundDuration;
@@ -125,15 +127,13 @@ struct ATTACKROUNDINFO : public DAMAGELOGBASE {
   float        dualWieldHitRollNeededFloat;
   int          procSpell;
 
-  ATTACKROUNDINFO();
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
 struct SPELLLOG : public DAMAGELOGBASE {
-  SPELLLOG(const SPELLLOG &);
-  SPELLLOG(DWORDLONG attacker, DWORDLONG victim, int spellID);
   SPELLLOG(DWORDLONG attacker, UINT spellID);
+  SPELLLOG(DWORDLONG attacker, DWORDLONG victim, int spellID);
   SPELLLOG(
       DWORDLONG attacker,
       DWORDLONG victim,
@@ -145,6 +145,8 @@ struct SPELLLOG : public DAMAGELOGBASE {
       float     resistanceCoefficient
   );
 
+  SPELLLOG(const SPELLLOG &);
+
   UINT  auraEffectID;
   UINT  spellID;
   UINT  damageType;
@@ -155,9 +157,6 @@ struct SPELLLOG : public DAMAGELOGBASE {
 };
 
 struct SPELLMISSLOG : public LOGBASE {
-  SPELLMISSLOG(const SPELLMISSLOG &);
-  SPELLMISSLOG(DWORDLONG attacker, DWORDLONG victim, UINT spellID);
-
   DWORDLONG attacker;
   DWORDLONG victim;
   UINT      spellID;
@@ -172,16 +171,14 @@ struct SPELLMISSLOG : public LOGBASE {
   float     blockRollNeeded;
   UINT      flags;
 
+  SPELLMISSLOG(DWORDLONG attacker, DWORDLONG victim, UINT spellID);
+  SPELLMISSLOG(const SPELLMISSLOG &);
+
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
 
 struct RESISTLOG : public LOGBASE {
-  RESISTLOG() {
-  }
-
-  RESISTLOG(const RESISTLOG &);
-
   DWORDLONG attacker;
   DWORDLONG victim;
   int       spell;
@@ -189,6 +186,11 @@ struct RESISTLOG : public LOGBASE {
   float     resistRoll;
   int       flags;
   int       castLevel;
+
+  RESISTLOG() {
+  }
+
+  RESISTLOG(const RESISTLOG &);
 
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
@@ -206,33 +208,34 @@ struct ENCHANTMENTLOG : public LOGBASE {
 };
 
 struct ENVIRONMENTALDAMAGE : public LOGBASE {
+  ENVIRONMENTALDAMAGE(DWORDLONG victim, int school, int amount);
+
   ENVIRONMENTALDAMAGE() {
   }
 
   ENVIRONMENTALDAMAGE(const ENVIRONMENTALDAMAGE &);
-  ENVIRONMENTALDAMAGE(DWORDLONG victim, int school, int amount);
+
+  virtual void PI(CDataStore &msg, int debug) const;
+  virtual void UI(CDataStore &msg);
 
   DWORDLONG victim;
   int       school;
   int       amount;
-
-  virtual void PI(CDataStore &msg, int debug) const;
-  virtual void UI(CDataStore &msg);
 };
 
 struct MIRRORTIMERDAMAGE : public LOGBASE {
-  MIRRORTIMERDAMAGE() {
-  }
-
-  MIRRORTIMERDAMAGE(const MIRRORTIMERDAMAGE &);
-  MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, DWORDLONG victim, int amount);
-
   int       damage;
   DWORDLONG victim;
   int       amount;
 
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
+  MIRRORTIMERDAMAGE(UNIT_MIRROR_TIMER damage, DWORDLONG victim, int amount);
+
+  MIRRORTIMERDAMAGE() {
+  }
+
+  MIRRORTIMERDAMAGE(const MIRRORTIMERDAMAGE &);
 };
 
 struct PARTYKILLLOG : public LOGBASE {
@@ -287,23 +290,24 @@ inline DAMAGELOGBASE::DAMAGELOGBASE(DWORDLONG attacker, DWORDLONG victim)
   dmg.Clear();
 }
 
-inline ATTACKROUNDINFO::ATTACKROUNDINFO() : DAMAGELOGBASE(0, 0) {
-  armorReduction = 0;
-  newVictimState = VS_NONE;
-  victimRoundDuration = 0;
-  dodgeRollFloat = 0.0f;
-  dodgeRollNeededFloat = 0.0f;
-  parryRollFloat = 0.0f;
-  parryRollNeededFloat = 0.0f;
-  stunRollFloat = 0.0f;
-  stunRollNeededFloat = 0.0f;
-  delayTime = 0;
-  spellDamageAdded = 0;
-  spellAddedDamage = 0;
-  sinceLastSwing = 0;
-  dualWieldHitRollFloat = 0.0f;
-  dualWieldHitRollNeededFloat = 0.0f;
-  procSpell = 0;
+inline ATTACKROUNDINFO::ATTACKROUNDINFO()
+    : DAMAGELOGBASE(0, 0),
+      armorReduction(0),
+      newVictimState(VS_NONE),
+      victimRoundDuration(0),
+      dodgeRollFloat(0.0f),
+      dodgeRollNeededFloat(0.0f),
+      parryRollFloat(0.0f),
+      parryRollNeededFloat(0.0f),
+      stunRollFloat(0.0f),
+      stunRollNeededFloat(0.0f),
+      delayTime(0),
+      spellDamageAdded(0),
+      spellAddedDamage(0),
+      sinceLastSwing(0),
+      dualWieldHitRollFloat(0.0f),
+      dualWieldHitRollNeededFloat(0.0f),
+      procSpell(0) {
 }
 
 inline SPELLLOG::SPELLLOG(DWORDLONG attacker, DWORDLONG victim, int spellID)
@@ -334,14 +338,14 @@ class CCombat {
  public:
   CCombat() : m_victim(0) {
   }
-
-  DWORDLONG IsAttacking() const;
-  void      SetAttacking(DWORDLONG victim);
   void      StopAttack() {
     m_victim = 0;
   }
   void GetClientInitData(CClientObjCreate *init) const;
   void SetClientInitData(const CClientObjCreate &init);
+
+  DWORDLONG IsAttacking() const;
+  void      SetAttacking(DWORDLONG victim);
 
  protected:
   DWORDLONG m_victim;
@@ -353,28 +357,28 @@ class CCombatClient : public CCombat {
  public:
   CCombatClient() : m_attackSent(0), m_stopSent(0) {
   }
+  void StopAttack() {
+    CCombat::StopAttack();
+    m_attackSent = 0;
+  }
+  void SetAttacking(DWORDLONG victim) {
+    CCombat::SetAttacking(victim);
+  }
 
   int AttackBeenSent() const {
     return m_attackSent;
   }
 
   void SetAttackSent(DWORDLONG victim);
-  void SetAttacking(DWORDLONG victim) {
-    CCombat::SetAttacking(victim);
-  }
-  void StopAttack() {
-    CCombat::StopAttack();
-    m_attackSent = 0;
-  }
   void ClearAttackSent() {
     m_attackSent = 0;
-  }
-  void SetStopSent(int stopSent) {
-    m_stopSent = stopSent;
   }
 
   int StopBeenSent() const {
     return m_stopSent;
+  }
+  void SetStopSent(int stopSent) {
+    m_stopSent = stopSent;
   }
 
  protected:

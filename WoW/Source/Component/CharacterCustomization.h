@@ -39,7 +39,6 @@ enum CHARTEXTUREVARIATIONS {
 };
 
 enum CHARACTER_GEOSET_SECTIONS {
-  CHARGEOSET_NONE = -1,
   CHARGEOSET_HAIR = 0,
   CHARGEOSET_BEARD = 1,
   CHARGEOSET_SIDEBURN = 2,
@@ -55,7 +54,8 @@ enum CHARACTER_GEOSET_SECTIONS {
   CHARGEOSET_TABARD = 12,
   CHARGEOSET_ROBE = 13,
   CHARGEOSET_LOINCLOTH = 14,
-  NUM_CHARGEOSETS = 15
+  NUM_CHARGEOSETS = 15,
+  CHARGEOSET_NONE = -1
 };
 
 enum CHARACTER_ITEM_GEOSETS {
@@ -70,6 +70,16 @@ enum CHARACTER_ITEM_GEOSETS {
   CHARITEMGEOSETS_LOINCLOTH = 8,
   NUM_CHARITEMGEOSETS = 9,
   INVALID_CHARITEMGEOSET = -1
+};
+
+enum {
+  CHAR_TEXID_HAIR = 0,
+  CHAR_TEXID_SCALP_UPPER = 1,
+  CHAR_TEXID_SCALP_LOWER = 2,
+  CHAR_TEXID_FACIAL_HAIR = 3,
+  CHAR_TEXID_FACIAL_UPPER = 4,
+  CHAR_TEXID_FACIAL_LOWER = 5,
+  NUM_CHAR_TEXIDS = 6
 };
 
 struct ITEMGEOSETGROUPS {
@@ -209,13 +219,13 @@ struct BEARDSTYLEDATA {
 };
 
 struct FACIALVARIATIONS {
-  ~FACIALVARIATIONS() {
-  }
+  TSFixedArray<FACIALGEOSETS> facialGeosets;
 
   void AddVariation(const CharacterFacialHairStylesRec *);
-  UINT NumVariations();
 
-  TSFixedArray<FACIALGEOSETS> facialGeosets;
+  ~FACIALVARIATIONS() {
+  }
+  UINT NumVariations();
 };
 
 struct INTDATA {
@@ -230,12 +240,12 @@ struct INTDATA {
 };
 
 struct VARIATIONS {
-  ~VARIATIONS() {
-  }
-
   UINT                     textureHolds[CHARTEXTUREVARIATIONS_NUM];
   FACIALVARIATIONS         facialVariations;
   TSGrowableArray<INTDATA> hairGeosets;
+
+  ~VARIATIONS() {
+  }
 };
 
 void     CharCustomizationInitialize();

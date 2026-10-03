@@ -133,12 +133,12 @@ void CAaBsp::Set(CAaBspNode *nodeList, UINT nNodes, WORD *faceIndices, UINT nFac
   FATALASSERT(nodeList);
   FATALASSERT(faceIndices);
 
-  rootNode = nodeList;
   nodes = nodeList;
+  rootNode = nodeList;
   nodeFaceIndices = faceIndices;
+  bFree = 0;
   this->nNodes = nNodes;
   this->nNodeFaceIndices = nFaceIndices;
-  bFree = 0;
   aaBox = box;
 }
 

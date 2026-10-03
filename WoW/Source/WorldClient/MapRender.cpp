@@ -1,16 +1,37 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include "WorldClient/Map.h"
 
-#include "DayNight.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "UIUtil/InputControl.h"
+#include "Ui/WorldFrame.h"
+
 #include "Model/IModel.h"
 #include "Services/Texture.h"
 #include "Tempest/c34matrix.h"
 
 #include <storm.h>
+
+struct SGroupPtr {
+  CMapObjDef      *mapObjDef;
+  CMapObjDefGroup *mapObjDefGroup;
+};
+
+static TSGrowableArray<SGroupPtr> s_groupPtrList;
+static NTempest::C44Matrix        s_gxViewMat;
+static NTempest::C44Matrix        s_gxWorldMat;
 
 void CMap::TestQueryRender() {
   NTempest::C44Matrix cMat;
@@ -175,26 +196,17 @@ void CMap::CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand 
 }
 
 static void Billboard(const NTempest::C3Vector &dir, NTempest::C44Matrix &mat) {
-  mat.a0 = dir.x;
-  mat.a1 = dir.y;
-  mat.a2 = dir.z;
+  NTempest::C3Vector &basisX = *mat.Row0AsVec3();
+  NTempest::C3Vector &basisY = *mat.Row1AsVec3();
+  NTempest::C3Vector &basisZ = *mat.Row2AsVec3();
 
-  NTempest::C3Vector basisZ(mat.a0, mat.a1, mat.a2);
-  basisZ.Normalize();
-  mat.a0 = basisZ.x;
-  mat.a1 = basisZ.y;
-  mat.a2 = basisZ.z;
-
-  mat.b0 = -mat.a1;
-  mat.b1 = mat.a0;
-  mat.b2 = 0.0f;
-  float ooMag = 1.0f / NTempest::CMath::sqrt_(mat.b0 * mat.b0 + mat.b1 * mat.b1);
-  mat.b0 *= ooMag;
-  mat.b1 *= ooMag;
-
-  mat.c0 = mat.b2 * mat.a1 - mat.b1 * mat.a2;
-  mat.c1 = mat.a2 * mat.b0 - mat.a0 * mat.b2;
-  mat.c2 = mat.b1 * mat.a0 - mat.b0 * mat.a1;
+  basisX = dir;
+  basisX.Normalize();
+  basisY.Set(-basisX.y, basisX.x, 0.0f);
+  NTempest::CMath::normalize_(basisY.x, basisY.y);
+  basisZ = NTempest::C3Vector(
+      basisY.z * basisX.y - basisY.y * basisX.z, basisX.z * basisY.x - basisX.x * basisY.z, basisY.y * basisX.x - basisY.x * basisX.y
+  );
 }
 
 BOOL DNGlare::IsVisible() {

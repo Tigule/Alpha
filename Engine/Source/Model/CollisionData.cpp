@@ -1,5 +1,6 @@
 #include <Base/Base.h>
 
+#include "Model/ModelInternal.h"
 #include "Model/CollisionData.h"
 
 #include "Gx/Gx.h"

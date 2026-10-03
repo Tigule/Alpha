@@ -72,8 +72,12 @@ class CGPlayer {
   UINT GetGuildRank() const {
     return m_plyr->guildRank;
   }
-  int  GetXP() const;
-  int  GetNextLevelXP() const;
+  int GetXP() const {
+    return m_plyr->XP;
+  }
+  int GetNextLevelXP() const {
+    return m_plyr->nextLevelXP;
+  }
   WORD GetMirrorSkillID(int index) const {
     return m_plyr->skillInfo[index].m_skillLineID;
   }
@@ -90,9 +94,11 @@ class CGPlayer {
     return m_plyr->skillInfo[index].m_skillStep;
   }
   const CQuestLogData *GetQuestLogData(int index) const {
-    return &m_plyr->questLog[index];
+    return (index >= 0 && index <= sizeof(m_plyr->questLog) / sizeof(m_plyr->questLog[0])) ? &m_plyr->questLog[index] : 0;
   }
-  DWORDLONG GetSelection() const;
+  DWORDLONG GetSelection() const {
+    return m_plyr->selection;
+  }
   int       GetCharacterPoints(int index) const;
   UINT      GetCreatureTracking() const {
     return m_plyr->trackCreatureMask;
@@ -189,58 +195,292 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   friend bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
   friend bool Spell_C_HaveSpellTokens(CGPlayer_C *player, const SpellRec *spell, bool report);
   friend bool Spell_C_HaveEquippedSpellItems(CGPlayer_C *player, const SpellRec *spell, bool checkAmmo, bool report);
+  friend class CGGameUI;
+  friend class CGWorldFrame;
 
  public:
   CGPlayer_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init);
   ~CGPlayer_C();
-  virtual void      Disable(int shutdown);
-  virtual void      Reenable();
-  virtual BOOL      ShouldRender(DWORD worldStatus);
-  virtual void      PreAnimate(CGWorldFrame *worldFrame);
+
+  void         SetStorage(DWORD *storage);
+  void         SetActiveMirrorHandlers();
+  void         PostInit(const CClientObjCreate &init);
+  virtual void PostReenable();
+  virtual void Disable(int shutdown);
+  virtual void Reenable();
+  static void  SellItem(DWORDLONG merchant, DWORDLONG item, UINT amount);
+  static DWORDLONG       GetActive() {
+    return ClntObjMgrGetActivePlayer();
+  }
+  static void       SetActive(const CGPlayer_C *playerPtr);
+  static void       TogglePlayerBounds();
+  static UINT       GetProficiency(BYTE type);
+  int               SwapInventorySlots(int slotA, int slotB);
+  BOOL              ReportBagItemSubtypeMismatch(BYTE bagSlot) const;
+  BOOL              OnTerrainClick(const CTerrainClickEvent &);
+  void              OnUnitDeath(DWORDLONG guid);
+  void              OnObjectDestruct(DWORDLONG guid);
+  void              SaveDeathMessage(DWORDLONG guid);
+  void              CheckKillerFeedback();
+  virtual void      OnAttackStart(DWORDLONG victim);
+  virtual void      OnAttackStop(DWORDLONG previousTarget, int nowDead);
+  BOOL              CanEngageTarget(const CGUnit_C *unitPtr);
+  virtual void      CombatLoggingFlagChanged();
+  void              PlayerFlagsChanged(BYTE oldFlags);
+  virtual void      SetEmoteState(UINT emoteID);
+  void              SendTextEmote(const EmotesTextRec *rec, const DWORDLONG &target) const;
+  virtual void      SetTorsoAnimState(UINT newState);
+  virtual void      SetBaseAnimState(UINT newState);
+  virtual BOOL      ShouldRenderUnitName(UINT mode) const;
+  virtual void      CommitTexture(int force);
+  virtual UINT      UpdateUnitNameString(UINT localPlayerFlags, UINT otherUnitsFlags, char *buffer, UINT bufferSize) const;
   virtual void      GetAFKText(char *buffer, int size) const;
   virtual void      GetDNDText(char *buffer, int size) const;
   virtual void      GetGMText(char *buffer, int size) const;
-  virtual DWORDLONG GetLocalTarget() const;
-  virtual void      HandleSpellEventSound();
-  virtual void      CombatLoggingFlagChanged();
-  virtual DWORDLONG GetUnitBeingLooted() const;
-  virtual void      OnAttackStart(DWORDLONG victim);
-  virtual void      OnAttackStop(DWORDLONG previousTarget, int nowDead);
+  virtual void      OnBadAttackFacing(DWORDLONG victim);
+  virtual void      OnBadAttackPosition(DWORDLONG victim, float range);
+  virtual void      OnBadAttackTarget(DWORDLONG victim);
+  virtual void      OnNotStanding(DWORDLONG victim);
   virtual void      OnDeath();
   virtual void      OnDeathAnimate();
-  virtual void      OnBadAttackFacing(DWORDLONG victim);
-  virtual void      OnBadAttackTarget(DWORDLONG victim);
-  virtual void      OnBadAttackPosition(DWORDLONG victim, float range);
-  virtual void      OnNotStanding(DWORDLONG victim);
-  virtual void      UnitHit(VICTIMSTATES state, DWORDLONG attacker);
-  virtual void      OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo);
-  virtual void      HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log);
+  void              HandleRepopRequest();
+  void              MoveItem(DWORDLONG item, DWORDLONG itemContainer, UINT slot, DWORDLONG newContainer, UINT newSlot);
+  void              SwapItems(DWORDLONG cursorItem, DWORDLONG cursorContainer, int cursorSlot, DWORDLONG containerB, int slotB, int force);
+  void              SplitItem(DWORDLONG cursorItem, DWORDLONG cursorContainer, int cursorSlot, DWORDLONG containerB, int slotB, int quantity);
+  void              DropItemInCursor(DWORDLONG cursorItem, DWORDLONG cursorItemPack, UINT cursorSlot);
+  void              AutoStoreItemInBag(DWORDLONG cursorItem, DWORDLONG cursorContainer, int cursorSlot, DWORDLONG containerB, int ignoreOwnershipRules);
+  void              AutoEquipCursorItem(int force);
+  void              AutoEquipItem(DWORDLONG container, UINT slot, int force);
+  void              AutoStoreLootItem(BYTE slot);
+  void              PutLootInSlot(DWORDLONG container, BYTE containerSlot, BYTE lootSlot);
+  void              PutLootInBag(DWORDLONG container, BYTE lootSlot);
+  BYTE              FindSlotIndex(DWORDLONG obj);
+  void              ClearPendingEquip(UINT index, int equip);
+  BOOL              HasEquipped(int classID, int subclassID);
+  int               LootUnit(CGUnit_C *unit);
+  BOOL              OnLootResponse(UINT eventTime, CDataStore *msg);
+  BOOL              OnLootReleaseResponse(CDataStore *msg);
+  BOOL              OnLootRemoved(CDataStore *msg);
+  BOOL              OnLootMoneyNotify(CDataStore *msg);
+  BOOL              OnLootClearMoney(CDataStore *msg);
+  BOOL              OnLootItemNotify(CDataStore *msg);
+  virtual void      LootAnimEndHandler();
+  BOOL              CanLoot(CGUnit_C *unitPtr);
+  virtual DWORDLONG GetUnitBeingLooted() const;
+  const DWORDLONG  &GetUnitLootingSent() const;
+  UINT              GetPlayerAnimState();
+  void              SheatheWeapon(bool sheathe);
+  void              TrySheathingWeapon();
+  void              AttachObjComponent(DWORDLONG item, UINT slot, bool defer, bool sheathe, int sheatheAttachmentSlot);
+  void              AddComponent(int displayID, UINT inventoryType, int slot, int commit);
+  void              RemoveComponent(int slot, bool commitItemGeosets, bool defer, bool removeRecord);
+  void              LootMoney();
+  BOOL              CanUseItem(const ItemStats *stats, GAME_ERROR_TYPE &reason);
+  BOOL              InviteToGroup(DWORDLONG target);
+  void              InviteToGroup(LPCSTR target);
+  int               Uninvite(DWORDLONG target);
+  void              Uninvite(LPCSTR target);
+  BOOL              SetNewLeader(DWORDLONG target);
+  void              SetNewLeader(LPCSTR target);
+  void              AcceptGroup();
+  void              DeclineGroup();
+  void              LeaveGroup();
+  void              SetLootMethod(LOOT_METHOD method, DWORDLONG master);
+  void              AcceptGuild();
+  void              DeclineGuild();
+  BOOL              SetBlock(UINT index, DWORD data);
+  void              SetData(LPCVOID data, UINT bytes);
+  static UINT       OffsetOf(OBJECT_TYPE_ID type);
+  virtual LPCSTR    GetModelFileName() const;
+  static void       Initialize();
+  static void       Shutdown();
+  static void       XBuyItem(DWORDLONG merchant, UINT itemID, BYTE quantity, bool autoEquip);
+  static void       XBuyItemInSlot(DWORDLONG merchant, UINT itemID, BYTE quantity, DWORDLONG container, BYTE slot);
+  static void       XBuyItemInBag(DWORDLONG merchant, UINT itemID, BYTE quantity, DWORDLONG container);
+  BOOL              OnVendorInventory(CDataStore *msg);
+  BOOL              OnQuestGiverListQuests(CDataStore *msg);
+  BOOL              OnQuestGiverInvalidQuest(CDataStore *msg);
+  BOOL              OnQuestGiverSendQuest(CDataStore *msg);
+  BOOL              OnQuestGiverRequestItems(CDataStore *msg);
+  BOOL              OnQuestGiverChooseReward(CDataStore *msg);
+  BOOL              OnQuestGiverQuestComplete(CDataStore *msg);
+  BOOL              OnQuestGiverQuestFailed(CDataStore *msg);
+  BOOL              OnQuestGiverStatus(CDataStore *msg);
+  BOOL              OnTrainerList(CDataStore *msg);
+  BOOL              OnBuyFailed(CDataStore *msg);
+  BOOL              OnBuySucceeded(CDataStore *msg);
+  BOOL              OnSellResponse(CDataStore *msg);
+  void              QueryQuest(const DWORDLONG &questGiver, int questID);
+  void              AcceptQuest(const DWORDLONG &questGiver, int questID);
+  void              CompleteQuest(const DWORDLONG &questGiver, int questID);
+  void              GiveQuestItems(const DWORDLONG &questGiver, int questID);
+  void              GetQuestReward(const DWORDLONG &questGiver, int questID, int itemChoice);
+  void              CancelQuest(const DWORDLONG &questGiver);
+  void              QuestLogRemoveQuest(int entry);
+  void              QuestLogSwapQuest(int entry1, int entry2);
+  void              UpdateQuestStatus(const DWORDLONG &guid);
+  void              UpdateQuestStatus(CGUnit_C *unit);
+  static void       UpdateQuestStatusAll();
+  void              UpdateTaxiStatus(CGUnit_C *unit);
+  static void       UpdateTaxiStatusAll();
+  void              UpdateBindStatus(CGUnit_C *unit);
+  static void       UpdateBindStatusAll();
+  void              TrainerBuySpell(const DWORDLONG &trainer, int spellID);
+  void              OnSpellFailed(const SpellRec *spellRec, UINT reason);
+  void              RequestPetitionSignatures(DWORDLONG item);
+  void              BuyPetition(const DWORDLONG &petitionUnit, CGPetition *petition);
+  void              TurnInGuildCharter();
+  BOOL              OnPetitionShowSignatures(CDataStore *msg);
+  BOOL              OnPetitionShowList(CDataStore *msg);
+  BOOL              OnSignedResults(CDataStore *msg);
+  BOOL              OnTurnInPetitionResults(CDataStore *msg);
+  void              PlayMacroSound(int category) const;
   virtual void      PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const;
   virtual void      PlayFoleySound() const;
+  virtual void      HandleSpellEventSound();
+  void              PlayVocalMacro(int category);
+  virtual void      PlayDeathThudCameraShake() const;
 
  protected:
   virtual UINT GetImpactType() const;
 
  public:
-  virtual const VirtualItemInfo *GetDefendingItem() const;
-  virtual void                   PlayDeathThudCameraShake() const;
-  virtual void                   LootAnimEndHandler();
-  virtual void                   SetTorsoAnimState(UINT newState);
-  virtual void                   SetBaseAnimState(UINT newState);
+  void                        DeleteWornItems() const;
+  UINT                        GetFramesSinceUpdate();
+  void                        SkipUpdate();
+  void                        UpdateText();
+  void                        InspectPlayer(const DWORDLONG &guid);
+  void                        ReceiveResurrectRequest(LPCSTR name);
+  void                        AcceptResurrectRequest(int accept);
+  virtual int                 GetSpellCastingTime(int spellID) const;
+  void                        AddKnownSpell(int spellID, int slot, int learned, int addToBook);
+  void                        DelKnownSpell(int spellID);
+  const TSGrowableArray<int> *GetTradeSkills(int skillLine) const;
+  const TSGrowableArray<int> *GetCraftSkills(SPELL_CAST_UI_TYPE type) const;
+  int                         GetCraftSkillActivator(SPELL_CAST_UI_TYPE type) const;
+  int                         GetSkillIndex(int skillID) const;
+  bool                        GetExpandedSkillRank(int skillID, int &rank, int &modifier) const;
+  int                         GetSkillRank(int skillID) const;
+  virtual int                 GetSpellRank(int spellID) const;
+  virtual bool                GetDefenseSkillRank(int &base, int &modifier) const;
+  virtual bool                GetAttackSkillRank(int hand, int &base, int &modifier) const;
+  static UINT                 GetNewContinentID();
+  int                         ValidateSlot(UINT slotID, DWORDLONG cursorItem);
+  static ITEMEXPIRATION      *GetPendingItemExpirationNode(const DWORDLONG &itemGUID);
+  static void                 UpdatePendingItemExpiration(const DWORDLONG &itemGUID);
+  virtual void                UpdateObjComponentVisuals(const CGItem_C *item, const ItemEnchantment *enchantments, int num);
+  virtual void                ClearItemVisuals(ACTIVEATTACHMENTINFO *info);
+  virtual void                SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec *rec, bool force);
+  BOOL                        OnAttackBreakHandler();
+  BOOL                        OnAttackIconPressed();
+  void                        SetCombatMode(int state);
 
- protected:
-  virtual UINT DetermineWoundSequence() const;
+  BOOL IsInCombatMode() const {
+    return (m_flags & 0x400) != 0;
+  }
+  virtual void      OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo);
+  virtual void      HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log);
+  void              KillExitCombatModeSheatheTimer();
+  virtual DWORDLONG GetLocalTarget() const;
+  virtual void      UnitHit(VICTIMSTATES state, DWORDLONG attacker);
+  void              ResetCombatModeTimer(int newCombat);
+
+ private:
+  void KillCombatModeTimer();
+  UINT GetCombatModeTimerInterval() const;
 
  public:
+  static void  OnItemDelete(DWORDLONG item, DWORDLONG listener);
+  void         OnItemDelete(DWORDLONG item);
+  void         SetLootCloseSentFlag();
+  void         ToggleSheathe(bool ignoreAnim);
+  void         StartSheatheAnim(INVENTORY_SLOTS slot, int hip, int both);
+  virtual void SetLastWeaponModeSent(int mode);
+
+ protected:
+  UINT m_framesSinceUpdate;
+  UINT m_flags;
+  int  m_lastWeaponModeSent;
+
+  TSHashTable<TRADESKILLLINE, HASHKEY_NONE> m_tradeSkillLines;
+  TSGrowableArray<int>                      m_craftSpells[4];
+  int                                       m_craftActivators[4];
+  HMODEL                                    m_components[NUM_INVENTORY_SLOTS][36];
+  TexComponentInfo                          m_texComponentInfo[NUM_INVENTORY_SLOTS];
+
+  virtual UINT DetermineWoundSequence() const;
+
+ private:
+  void        SetInventoryMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
+  void        UnsetInventoryMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
+  void        SetPlayerMirrorHandlers();
+  void        UnsetPlayerMirrorHandlers();
+  void        UnsetActiveMirrorHandlers();
+  void        InitPreferredGeosets();
+  void        InitComponents();
+  CGPlayer_C &operator=(const CGPlayer_C &);
+
+ public:
+  BOOL IsQuestUnit(CGUnit_C *unit);
+  void ShopFromMerchant(const DWORDLONG &merchant);
+  void TalkToQuestUnit(const DWORDLONG &unit);
+  void TalkToTrainer(const DWORDLONG &trainerUnit);
+  void TalkToBinder(const DWORDLONG &binder);
+  void TalkToBanker(const DWORDLONG &banker);
+  void TalkToTabardVendor(const DWORDLONG &tabardUnit);
+  void TalkToNpcPetition(const DWORDLONG &vendor);
+
+ protected:
+  DWORDLONG m_lootingUnit;
+  DWORDLONG m_lootingUnitSent;
+
+ public:
+  void SaveTabard(int eStyle, int eColor, int bStyle, int bColor, int bg, DWORDLONG vendor) const;
+  bool OnGuildChanged();
+  void GuildInfoLoaded(const TSGrowableArray<UINT> &guildList);
+
+ protected:
+  void SetGuildMirrorHandler();
+  void UnsetGuildMirrorHandler();
+
+  CGBag_C m_inventory;
+
+ public:
+  virtual CGBag_C                 *GetBag() {
+    return &m_inventory;
+  }
+  virtual const CGBag_C *GetBag() const {
+    return &m_inventory;
+  }
+  CGBag_C *Inventory() {
+    return &m_inventory;
+  }
+  const CGBag_C *Inventory() const {
+    return &m_inventory;
+  }
   virtual const VirtualItemInfo *GetVirtualItem(UINT slot, bool ignoreDisarmFlag) const;
   virtual int                    GetVirtualItemDisplayID(UINT slot) const;
-  virtual BOOL                   ShouldRenderUnitName(UINT mode) const;
-  virtual void                   CommitTexture(int force);
-  virtual UINT                   UpdateUnitNameString(UINT localPlayerFlags, UINT otherUnitsFlags, char *buffer, UINT bufferSize) const;
-  virtual float                  GetMountScale() const;
+  virtual const VirtualItemInfo *GetDefendingItem() const;
+  void                           ReadItem(BYTE packSlot, BYTE slot);
+  void                           ReadItem(DWORDLONG containerGUID, BYTE slot);
+  void                           ReadItemResult(NETMESSAGE msgID, CDataStore *msg);
   virtual void                   OnMount();
   virtual void                   OnDismount();
+  void                           HandleMountResult(UINT result);
+  void                           HandleDismountResult(UINT result);
+  virtual float                  GetMountScale() const;
   virtual bool                   CanBeMounted();
+  BOOL                           GetLanguageSkill(UINT language, UINT &skill);
+  UINT                           GetDefaultLanguage();
+  virtual BOOL                   ShouldRender(DWORD worldStatus);
+  virtual void                   PreAnimate(CGWorldFrame *worldFrame);
+  void                           OnTaxiNodeStatus(CDataStore *msg);
+  void                           ShowTaxiNodes(CDataStore *msg);
+  int                            QueryTaxiNodes(const DWORDLONG &unit);
+  void                           StartTaxi(DWORDLONG vendor, UINT startNode, UINT destNode);
+  void                           HandleActivateTaxiReply(UINT code);
+  bool                           CanTrack(const CGUnit_C *unit);
+  bool                           CanTrack(const CGGameObject_C *object);
 
  protected:
   virtual void CleanupUnitArtwork(int playerModelChanged, BOOL wasPlayerModel);
@@ -248,306 +488,83 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual void PostReinitializeArtwork();
 
  public:
-  virtual void            OnStandStateChanged(UINT oldState, UINT newState);
-  virtual void            ChangeStandState(UINT standState);
-  virtual void            SetEmoteState(UINT emoteID);
-  virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
-  virtual int             GetSpellRank(int spellID) const;
+  BOOL                             DeathBindDistanceCompare(const NTempest::C3Vector &bindStonePosition);
+  static void                      SaveBindPoint(CDataStore *msg);
+  static const NTempest::C3Vector &GetBindPoint();
+  virtual void                     ChangeStandState(UINT standState);
+  virtual void                     OnStandStateChanged(UINT oldState, UINT newState);
   UINT                    GetDisplayRace() const {
     return m_unit->race;
   }
   UINT GetDisplaySex() const {
     return m_unit->sex;
   }
-  virtual bool  GetDefenseSkillRank(int &base, int &modifier) const;
-  virtual bool  GetAttackSkillRank(int hand, int &base, int &modifier) const;
-  virtual void  OnLevelChange();
-  virtual float GetBlockChance() const;
-  virtual float GetDodgeChance() const;
-  virtual float GetParryChance() const;
-  virtual int   GetSpellCastingTime(int spellID) const;
-  virtual void  UpdateObjComponentVisuals(const CGItem_C *item, const ItemEnchantment *enchantments, int num);
-  virtual void  ClearItemVisuals(ACTIVEATTACHMENTINFO *info);
-  virtual void  SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec *rec, bool force);
-  virtual void  SetLastWeaponModeSent(int mode);
-
-  void                   SetStorage(DWORD *storage);
-  void                   PostInit(const CClientObjCreate &init);
-  void                   GuildInfoLoaded(const TSGrowableArray<UINT> &guildList);
-  static ITEMEXPIRATION *GetPendingItemExpirationNode(const DWORDLONG &itemGUID);
-  static void            Initialize();
-  static void            InstallGMHandlers();
-  static void            UninstallGMHandlers();
-  static void            GMIdle();
-  static void            StartGhosting(LPCSTR name);
-  static void            StartGhosting(DWORDLONG guid);
-  static void            StopGhosting();
-  static void            SetRealActivePlayer(DWORDLONG guid);
-  static void            SetActive(const CGPlayer_C *playerPtr);
-  static DWORDLONG       GetActive() {
-    return ClntObjMgrGetActivePlayer();
-  }
-  static DWORDLONG GetRealActivePlayer();
-  static UINT      GetNewContinentID();
-  static UINT      OffsetOf(OBJECT_TYPE_ID type);
-  static UINT      GetProficiency(BYTE type);
-  static void      UpdateTaxiStatusAll();
-  static void      UpdateBindStatusAll();
-  static UINT      GetLootItem(UINT slot);
-  static UINT      GetLootItemDisplayID(UINT slot);
-  static UINT      GetLootItemQuantity(UINT slot);
-  void             OnLootGameObject(const DWORDLONG &gameObject, bool lootAnim);
-  const DWORDLONG &GetUnitLootingSent() const;
-  void             ClearLootingUnitSent();
-  void             SetLootCloseSentFlag();
-  static void      TogglePlayerBounds();
-  static void      AddDeferredDamage(int normal, UINT flags, UINT damage, DWORDLONG victim);
-  static void      AddDeferredSpellMiss(DWORDLONG victim, MISS_REASON reason, int spellID);
-  static void      ProcessDeferredDamage();
-  static void      ProcessDeferredSpellMiss();
-  static void      XBuyItem(DWORDLONG merchant, UINT itemID, BYTE quantity, bool autoEquip);
-  static void      XBuyItemInSlot(DWORDLONG merchant, UINT itemID, BYTE quantity, DWORDLONG container, BYTE slot);
-  static void      XBuyItemInBag(DWORDLONG merchant, UINT itemID, BYTE quantity, DWORDLONG container);
-  static void      UpdatePendingItemExpiration(const DWORDLONG &itemGUID);
-  static void      Shutdown();
-  void             TrySheathingWeapon();
-  void             SheatheWeapon(bool sheathe);
-  void             SetFarSightFocus(CGObject_C *obj);
-  void             ToggleFarSight();
-  void             ClearFarSight();
-  BOOL             IsInFarSight() {
-    return (m_flags & 0x800) != 0;
-  }
-  void        BotMove(DWORD now, NTempest::C3Vector *points, int count, DWORD duration, UINT flags);
-  int         BotSpline();
-  CGUnit_C   *GetPossessedUnit();
-  BOOL        CanLoot(CGUnit_C *unitPtr);
-  static bool IsGiftWrapping();
-  static void CancelGiftWrap();
-  void        SetCombatMode(int state);
-  void        ReadItemResult(NETMESSAGE msgID, CDataStore *msg);
-  void        ReceiveResurrectRequest(LPCSTR name);
-  void        InspectPlayer(const DWORDLONG &guid);
-  void        AcceptResurrectRequest(int accept);
-
- private:
-  void SetInventoryMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
-  void UnsetInventoryMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
-  void SetPlayerMirrorHandlers();
-  void UnsetPlayerMirrorHandlers();
-
- public:
-  void SetActiveMirrorHandlers();
-
- private:
-  void UnsetActiveMirrorHandlers();
-
- public:
-  virtual void   PostReenable();
-  void           ResetCombatModeTimer(int newCombat);
-  void           ToggleSheathe(bool ignoreAnim);
-  void           KillExitCombatModeSheatheTimer();
-  void           StartSheatheAnim(INVENTORY_SLOTS slot, int hip, int both);
-  BOOL           CanEngageTarget(const CGUnit_C *unitPtr);
-  void           OnSpellFailed(const SpellRec *spellRec, UINT reason);
-  void           SaveTabard(int eStyle, int eColor, int bStyle, int bColor, int bg, DWORDLONG vendor) const;
-  bool           OnGuildChanged();
-  virtual LPCSTR GetModelFileName() const;
-
- private:
-  void        InitPreferredGeosets();
-  void        InitComponents();
-  CGPlayer_C &operator=(const CGPlayer_C &);
-
- public:
-  void        AddComponent(int displayID, UINT inventoryType, int slot, int commit);
-  void        RemoveComponent(int slot, bool commitItemGeosets, bool defer, bool removeRecord);
-  void        AttachObjComponent(DWORDLONG item, UINT slot, bool defer, bool sheathe, int sheatheAttachmentSlot);
-  BYTE        FindSlotIndex(DWORDLONG obj);
-  BYTE        FindItemSlot(DWORDLONG containerGUID, CGItem_C *item);
-  int         SwapInventorySlots(int slotA, int slotB);
-  void        MoveItem(DWORDLONG item, DWORDLONG itemContainer, UINT slot, DWORDLONG newContainer, UINT newSlot);
-  void        SwapItems(DWORDLONG cursorItem, DWORDLONG cursorContainer, int cursorSlot, DWORDLONG containerB, int slotB, int force);
-  void        SplitItem(DWORDLONG cursorItem, DWORDLONG cursorContainer, int cursorSlot, DWORDLONG containerB, int slotB, int quantity);
-  void        DropItemInCursor(DWORDLONG cursorItem, DWORDLONG cursorItemPack, UINT cursorSlot);
-  void        AutoStoreItemInBag(DWORDLONG cursorItem, DWORDLONG cursorContainer, int cursorSlot, DWORDLONG containerB, int ignoreOwnershipRules);
-  void        AutoEquipItem(DWORDLONG container, UINT slot, int force);
-  static void SellItem(DWORDLONG merchant, DWORDLONG item, UINT amount);
-  void        AutoEquipCursorItem(int force);
-  void        ClearPendingEquip(UINT index, int equip);
-  BOOL        HasEquipped(int classID, int subclassID);
-  BOOL        OnAttackIconPressed();
-  BOOL        CanUseItem(const ItemStats *stats, GAME_ERROR_TYPE &reason);
-  void        QueryQuest(const DWORDLONG &questGiver, int questID);
-  void        AcceptQuest(const DWORDLONG &questGiver, int questID);
-  void        CompleteQuest(const DWORDLONG &questGiver, int questID);
-  void        GiveQuestItems(const DWORDLONG &questGiver, int questID);
-  void        GetQuestReward(const DWORDLONG &questGiver, int questID, int itemChoice);
-  void        CancelQuest(const DWORDLONG &questGiver);
-  void        QuestLogRemoveQuest(int entry);
-  void        QuestLogSwapQuest(int entry1, int entry2);
-  void        OpenLootItem(CGItem_C *item);
-  void        AutoStoreLootItem(BYTE slot);
-  void        PutLootInSlot(DWORDLONG container, BYTE containerSlot, BYTE lootSlot);
-  void        PutLootInBag(DWORDLONG container, BYTE lootSlot);
-  void        LootMoney();
-  void        OpenWrappedItem(CGItem_C *item);
-  static void StartGiftWrap(CGItem_C *wrapper);
-  void        GiftWrap(CGItem_C *item);
-  void        RequestPetitionSignatures(DWORDLONG item);
-  BOOL        InviteToGroup(DWORDLONG target);
-  void        InviteToGroup(LPCSTR target);
-  int         Uninvite(DWORDLONG target);
-  void        Uninvite(LPCSTR target);
-  BOOL        SetNewLeader(DWORDLONG target);
-  void        SetNewLeader(LPCSTR target);
-  void        AcceptGroup();
-  void        DeclineGroup();
-  void        LeaveGroup();
-  void        SetLootMethod(LOOT_METHOD method, DWORDLONG master);
-  void        AcceptGuild();
-  void        DeclineGuild();
-  BOOL        SetBlock(UINT index, DWORD data);
-  void        SetData(LPCVOID data, UINT bytes);
-  BOOL        OnTerrainClick(const CTerrainClickEvent &);
-  UINT        GetPlayerAnimState();
-  BOOL        OnAttackBreakHandler();
-  BOOL        ReportBagItemSubtypeMismatch(BYTE bagSlot) const;
-  void        SaveDeathMessage(DWORDLONG guid);
-  void        CheckKillerFeedback();
-  void        OnUnitDeath(DWORDLONG guid);
-  void        OnObjectDestruct(DWORDLONG guid);
-  static void OnItemDelete(DWORDLONG item, DWORDLONG listener);
-  void        OnItemDelete(DWORDLONG item);
-  void        PlayerFlagsChanged(BYTE oldFlags);
-  static void SaveBindPoint(CDataStore *msg);
-  void        HandleMountResult(UINT result);
-  void        HandleDismountResult(UINT result);
-  void        OnTaxiNodeStatus(CDataStore *msg);
-  void        ShowTaxiNodes(CDataStore *msg);
-  void        StartTaxi(DWORDLONG vendor, UINT startNode, UINT destNode);
-  void        HandleActivateTaxiReply(UINT code);
-  bool        CanTrack(const CGGameObject_C *object);
-  bool        CanTrack(const CGUnit_C *unit);
-  void        PlayMacroSound(int category) const;
-  void        PlayVocalMacro(int category);
-  CGItem_C   *GetSoulstone() const;
-  void        UseSoulstone() const;
-  void        HandleRepopRequest();
-  BOOL        OnPetitionShowList(CDataStore *msg);
-  void        BuyPetition(const DWORDLONG &petitionUnit, CGPetition *petition);
-  void        TurnInGuildCharter();
-  void        SendTextEmote(const EmotesTextRec *rec, const DWORDLONG &target) const;
-  BOOL        OnPetitionShowSignatures(CDataStore *msg);
-  BOOL        OnSignedResults(CDataStore *msg);
-  BOOL        OnTurnInPetitionResults(CDataStore *msg);
-  BOOL        OnVendorInventory(CDataStore *msg);
-  BOOL        OnBuyFailed(CDataStore *msg);
-  BOOL        OnBuySucceeded(CDataStore *msg);
-  BOOL        OnSellResponse(CDataStore *msg);
-  BOOL        OnQuestGiverListQuests(CDataStore *msg);
-  BOOL        OnQuestGiverInvalidQuest(CDataStore *msg);
-  BOOL        OnQuestGiverSendQuest(CDataStore *msg);
-  BOOL        OnQuestGiverRequestItems(CDataStore *msg);
-  BOOL        OnQuestGiverChooseReward(CDataStore *msg);
-  BOOL        OnQuestGiverQuestComplete(CDataStore *msg);
-  BOOL        OnQuestGiverQuestFailed(CDataStore *msg);
-  BOOL        OnQuestGiverStatus(CDataStore *msg);
-  BOOL        OnTrainerList(CDataStore *msg);
-  BOOL        OnLootResponse(UINT eventTime, CDataStore *msg);
-  BOOL        OnLootReleaseResponse(CDataStore *msg);
-  BOOL        OnLootRemoved(CDataStore *msg);
-  BOOL        OnLootMoneyNotify(CDataStore *msg);
-  BOOL        OnLootClearMoney(CDataStore *msg);
-  BOOL        OnLootItemNotify(CDataStore *msg);
-  BOOL        OnSplitMoneyNotify(CDataStore *msg);
-  void        AddKnownSpell(int spellID, int slot, int learned, int addToBook);
-  void        DelKnownSpell(int spellID);
-  void        DeleteWornItems() const;
-  UINT        GetFramesSinceUpdate();
-  void        SkipUpdate();
-  void        UpdateText();
-  void        UpdateBindStatus(CGUnit_C *unit);
-  void        UpdateQuestStatus(const DWORDLONG &guid);
-  void        UpdateQuestStatus(CGUnit_C *unit);
-  static void UpdateQuestStatusAll();
-  void        UpdateTaxiStatus(CGUnit_C *unit);
-  int         LootUnit(CGUnit_C *unit);
-  void        ShopFromMerchant(const DWORDLONG &merchant);
-  BOOL        IsQuestUnit(CGUnit_C *unit);
-  void        TalkToQuestUnit(const DWORDLONG &unit);
-  int         QueryTaxiNodes(const DWORDLONG &unit);
-  void        TalkToTrainer(const DWORDLONG &trainerUnit);
-  void        TalkToBinder(const DWORDLONG &binder);
-  void        TalkToBanker(const DWORDLONG &banker);
-  void        TalkToNpcPetition(const DWORDLONG &vendor);
-  void        TrainerBuySpell(const DWORDLONG &trainer, int spellID);
-  void        TalkToTabardVendor(const DWORDLONG &tabardUnit);
-  void        ReadItem(BYTE packSlot, BYTE slot);
-  void        ReadItem(DWORDLONG containerGUID, BYTE slot);
-  BOOL        DeathBindDistanceCompare(const NTempest::C3Vector &bindStonePosition);
-  static const NTempest::C3Vector &GetBindPoint();
-  BOOL                             GetLanguageSkill(UINT language, UINT &skill);
-  UINT                             GetDefaultLanguage();
-  const TSGrowableArray<int>      *GetTradeSkills(int skillLine) const;
-  const TSGrowableArray<int>      *GetCraftSkills(SPELL_CAST_UI_TYPE type) const;
-  int                              GetCraftSkillActivator(SPELL_CAST_UI_TYPE type) const;
-  int                              GetSkillIndex(int skillID) const;
-  int                              GetSkillRank(int skillID) const;
-  void                             CheckWeaponDefenseRankChange() const;
-  void                             CheckWeaponDefenseRankChange(COMBATHAND hand) const;
-  int                              ValidateSlot(UINT slotID, DWORDLONG cursorItem);
-  bool                             GetExpandedSkillRank(int skillID, int &rank, int &modifier) const;
-  bool                             GetPackAndSlot(CGItem_C *item, BYTE &packSlot, BYTE &slot);
-  CGBag_C                         *Inventory();
-  const CGBag_C                   *Inventory() const;
-  virtual CGBag_C                 *GetBag() {
-    return &m_inventory;
-  }
-  virtual const CGBag_C *GetBag() const {
-    return &m_inventory;
-  }
-  virtual void ItemReceived(const ItemStats *stats) const;
-  void         IncrementPendingItemStats();
-  void         DecrementPendingItemStats();
-  void         FixComponenting(CGItem_C *item);
-
-  BOOL IsInCombatMode() const {
-    return (m_flags & 0x400) != 0;
-  }
-
- private:
-  void KillCombatModeTimer();
-  UINT GetCombatModeTimerInterval() const;
+  void                    OnLootGameObject(const DWORDLONG &gameObject, bool lootAnim);
+  void                    ClearLootingUnitSent();
+  CGItem_C               *GetSoulstone() const;
+  void                    UseSoulstone() const;
+  void                    FixComponenting(CGItem_C *item);
+  virtual void            ItemReceived(const ItemStats *stats) const;
+  virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
+  virtual void            OnLevelChange();
+  void                    CheckWeaponDefenseRankChange(COMBATHAND hand) const;
+  void                    CheckWeaponDefenseRankChange() const;
+  bool                    GetPackAndSlot(CGItem_C *item, BYTE &packSlot, BYTE &slot);
+  void                    OpenLootItem(CGItem_C *item);
+  void                    OpenWrappedItem(CGItem_C *item);
+  static UINT             GetLootItem(UINT slot);
+  static UINT             GetLootItemDisplayID(UINT slot);
+  static UINT             GetLootItemQuantity(UINT slot);
+  virtual float           GetBlockChance() const;
+  virtual float           GetDodgeChance() const;
+  virtual float           GetParryChance() const;
 
  protected:
   void CheckWeaponRankChange() const;
   void CheckDefenseRankChange() const;
-  void SetGuildMirrorHandler();
-  void UnsetGuildMirrorHandler();
-  void SetBankMirrorHandlers();
-  void UnsetBankMirrorHandlers();
-
-  UINT m_framesSinceUpdate;
-  UINT m_flags;
-  int  m_lastWeaponModeSent;
-
- protected:
-  friend class CGGameUI;
-  friend class CGWorldFrame;
 
   int GetWeaponSpell(COMBATHAND hand) const;
 
-  TSHashTable<TRADESKILLLINE, HASHKEY_NONE> m_tradeSkillLines;
-  TSGrowableArray<int>                      m_craftSpells[4];
-  int                                       m_craftActivators[4];
-  HMODEL                                    m_components[NUM_INVENTORY_SLOTS][36];
-  TexComponentInfo                          m_texComponentInfo[NUM_INVENTORY_SLOTS];
-  DWORDLONG                                 m_lootingUnit;
-  DWORDLONG                                 m_lootingUnitSent;
-  CGBag_C                                   m_inventory;
-  DWORDLONG                                 m_lastKillerGUID;
-  int                                       m_pendingItemStats;
+  DWORDLONG m_lastKillerGUID;
+
+  void SetBankMirrorHandlers();
+  void UnsetBankMirrorHandlers();
+
+ public:
+  BOOL        OnSplitMoneyNotify(CDataStore *msg);
+  void        IncrementPendingItemStats();
+  void        DecrementPendingItemStats();
+  static void StartGiftWrap(CGItem_C *wrapper);
+  static void CancelGiftWrap();
+  static bool IsGiftWrapping();
+  BYTE        FindItemSlot(DWORDLONG containerGUID, CGItem_C *item);
+  void        GiftWrap(CGItem_C *item);
+  void        BotMove(DWORD now, NTempest::C3Vector *points, int count, DWORD duration, UINT flags);
+  int         BotSpline();
+  void        SetFarSightFocus(CGObject_C *obj);
+  void        ToggleFarSight();
+  void        ClearFarSight();
+  BOOL             IsInFarSight() {
+    return (m_flags & 0x800) != 0;
+  }
+  CGUnit_C        *GetPossessedUnit();
+  static void      InstallGMHandlers();
+  static void      UninstallGMHandlers();
+  static void      StartGhosting(LPCSTR name);
+  static void      StartGhosting(DWORDLONG guid);
+  static void      StopGhosting();
+  static void      GMIdle();
+  static void      SetRealActivePlayer(DWORDLONG guid);
+  static DWORDLONG GetRealActivePlayer();
+
+ protected:
+  int m_pendingItemStats;
+
+ public:
+  static void AddDeferredDamage(int normal, UINT flags, UINT damage, DWORDLONG victim);
+  static void AddDeferredSpellMiss(DWORDLONG victim, MISS_REASON reason, int spellID);
+  static void ProcessDeferredDamage();
+  static void ProcessDeferredSpellMiss();
 };
 class CreatureModelDataRec;
 

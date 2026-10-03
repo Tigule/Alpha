@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -96,15 +98,13 @@ void CGBuffBar::ShutdownGame() {
 
 void CGBuffBar::EnterWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
-  UINT      unitOffset = CGUnit_C::OffsetOf(ID_UNIT);
-  ClntObjMgrSetObjMirrorHandler(player, unitOffset + offsetof(CGUnitData, auras), sizeof(((CGUnitData *)0)->auras) + sizeof(((CGUnitData *)0)->auraFlags), AuraUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(player, CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, auras), sizeof(((CGUnitData *)0)->auras) + sizeof(((CGUnitData *)0)->auraFlags), AuraUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
   UpdateBuffs();
 }
 
 void CGBuffBar::LeaveWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
-  UINT      unitOffset = CGUnit_C::OffsetOf(ID_UNIT);
-  ClntObjMgrUnsetObjMirrorHandler(player, unitOffset + offsetof(CGUnitData, auras), AuraUpdateHandler, 0);
+  ClntObjMgrUnsetObjMirrorHandler(player, CGUnit_C::OffsetOf(ID_UNIT) + offsetof(CGUnitData, auras), AuraUpdateHandler, 0);
 }
 
 void CGBuffBar::UpdateBuffs() {
@@ -113,43 +113,51 @@ void CGBuffBar::UpdateBuffs() {
     return;
   }
 
-  UINT desc = 0;
-  while (desc < 56 && m_buffs[desc].m_auraSpell > 0) {
-    int             id = m_buffs[desc].m_auraSpell;
+  int desc;
+  int aura;
+  for (desc = 0; desc < 56;) {
+    int id = m_buffs[desc].m_auraSpell;
+    if (id <= 0) {
+      break;
+    }
     const SpellRec *spell = g_spellDB.GetRecord(id);
-    if (spell && (static_cast<signed char>(spell->m_attributes) < 0 || (spell->m_attributesEx & 0x10000000))) {
+    if (spell && ((spell->m_attributes & 0x80) || (spell->m_attributesEx & 0x10000000))) {
       continue;
     }
 
-    int aura;
+    BOOL found = 0;
     for (aura = 0; aura < 56; ++aura) {
-      UINT flags = (player->GetUnitData()->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
-      if (player->GetUnitData()->auras[aura] == id && (flags & 0xE)) {
-        m_buffs[desc].SetAuraIndex(aura, player);
-        ++desc;
+      if (player->GetAura(aura) == id && (player->GetAuraFlags(aura) & 0xE)) {
+        found = 1;
         break;
       }
     }
-    if (aura == 56) {
-      memmove(&m_buffs[desc], &m_buffs[desc + 1], sizeof(CGBuffDesc) * (55 - desc));
+    if (!found) {
+      memcpy(&m_buffs[desc], &m_buffs[desc + 1], sizeof(CGBuffDesc) * (55 - desc));
       m_buffs[55].SetAuraIndex(-1, 0);
+    } else {
+      m_buffs[desc].SetAuraIndex(aura, player);
+      ++desc;
     }
   }
 
-  for (int aura = 0; aura < 56; ++aura) {
-    int             spellID = player->GetUnitData()->auras[aura];
-    UINT            flags = (player->GetUnitData()->auraFlags[aura / 2] >> (4 * (aura % 2))) & 0xF;
-    const SpellRec *spell = g_spellDB.GetRecord(spellID);
-    if (spellID <= 0 || !(flags & 0xE) || (spell && (static_cast<signed char>(spell->m_attributes) < 0 || (spell->m_attributesEx & 0x10000000)))) {
-      continue;
-    }
-
-    UINT index = 0;
-    while (index < 56 && m_buffs[index].m_auraSpell > 0 && m_buffs[index].m_auraSpell != spellID) {
-      ++index;
-    }
-    if (index < 56 && m_buffs[index].m_auraSpell <= 0) {
-      m_buffs[index].SetAuraIndex(aura, player);
+  for (aura = 0; aura < 56; ++aura) {
+    int spellID = player->GetAura(aura);
+    if (spellID > 0 && (player->GetAuraFlags(aura) & 0xE)) {
+      const SpellRec *spell = g_spellDB.GetRecord(spellID);
+      if (!spell || !((spell->m_attributes & 0x80) || (spell->m_attributesEx & 0x10000000))) {
+        BOOL found = 0;
+        int  index;
+        for (index = 0; index < 56 && m_buffs[index].m_auraSpell > 0; ++index) {
+          if (m_buffs[index].m_auraSpell == spellID) {
+            found = 1;
+            break;
+          }
+        }
+        if (!found && index < 56) {
+          m_buffs[index].SetAuraIndex(aura, player);
+        }
+      }
     }
   }
   FrameScript_SignalEvent(188);
@@ -162,48 +170,58 @@ void CGBuffBar::UpdateDuration(BYTE slot, UINT duration) {
 }
 
 const CGBuffDesc *CGBuffBar::GetBuffByFilter(int index, UINT filter, int &buffIndex) {
+  int count = 0;
   for (int i = 0; i < 56; ++i) {
     CGBuffDesc &buff = m_buffs[i];
-    bool        matches = buff.m_auraIndex >= 0;
-    if (matches) {
-      if (buff.m_auraIndex < 32) {
-        matches = (filter & 1) != 0;
-      } else if (buff.m_auraIndex < 40) {
-        matches = (filter & 2) != 0;
-      } else {
-        matches = (filter & 4) != 0;
+    if (buff.m_auraIndex < 0) {
+      continue;
+    }
+    if (buff.m_auraIndex < 32) {
+      if (!(filter & 1)) {
+        continue;
       }
+    } else if (buff.m_auraIndex < 40) {
+      if (!(filter & 2)) {
+        continue;
+      }
+    } else if (!(filter & 4)) {
+      continue;
     }
-    if (matches && (filter & 0x10) && !(buff.m_auraFlags & 1)) {
-      matches = false;
+    int flags = buff.m_auraFlags & 1;
+    if ((filter & 0x10) && !flags) {
+      continue;
     }
-    if (matches && (filter & 0x20) && (buff.m_auraFlags & 1)) {
-      matches = false;
+    if ((filter & 0x20) && flags) {
+      continue;
     }
-    if (matches && index-- == 0) {
+    if (count == index) {
       buffIndex = i;
       return &buff;
     }
+    ++count;
   }
   return 0;
 }
 
 const CGBuffDesc *CGBuffBar::GetBuffByIndex(int buffIndex) {
-  ASSERT(buffIndex >= 0 && buffIndex < 56);
+  ASSERT(buffIndex >= 0 && buffIndex < (sizeof(m_buffs) / sizeof(m_buffs[0])));
   return &m_buffs[buffIndex];
 }
 
 UINT CGBuffBar::GetBuffTimeLeftByIndex(int buffIndex) {
-  const CGBuffDesc *buff = GetBuffByIndex(buffIndex);
-  if (buff->m_auraIndex < 0) {
-    return 0;
+  UINT timeLeft = 0;
+  int  auraIndex = GetBuffByIndex(buffIndex)->GetAuraIndex();
+  if (auraIndex >= 0) {
+    UINT now = OsGetAsyncTimeMs();
+    timeLeft = static_cast<int>(now - m_durations[auraIndex]) >= 0 ? 0 : m_durations[auraIndex] - now;
   }
-  UINT now = OsGetAsyncTimeMs();
-  UINT expiry = m_durations[buff->m_auraIndex];
-  return static_cast<int>(now - expiry) < 0 ? expiry - now : 0;
+  return timeLeft;
 }
 
-CGBuffDesc::CGBuffDesc() : m_auraIndex(-1), m_auraSpell(0), m_untilCancelled(0) {
+CGBuffDesc::CGBuffDesc() {
+  m_auraSpell = 0;
+  m_auraIndex = -1;
+  m_untilCancelled = 0;
 }
 
 void CGBuffDesc::SetAuraIndex(int index, CGPlayer_C *player) {
@@ -213,13 +231,14 @@ void CGBuffDesc::SetAuraIndex(int index, CGPlayer_C *player) {
     return;
   }
 
-  const CGUnitData *unitData = player->GetUnitData();
-  m_auraSpell = unitData->auras[index];
-  m_auraFlags = (unitData->auraFlags[index / 2] >> (4 * (index % 2))) & 0xF;
-  const SpellRec *spell = g_spellDB.GetRecord(m_auraSpell);
-  if (spell) {
-    const SpellDurationRec *duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);
-    m_untilCancelled = !duration || duration->m_duration < 0;
+  m_auraSpell = player->GetAura(index);
+  m_auraFlags = player->GetAuraFlags(index);
+  if (m_auraSpell > 0) {
+    const SpellRec *spell = g_spellDB.GetRecord(m_auraSpell);
+    if (spell) {
+      const SpellDurationRec *duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);
+      m_untilCancelled = !duration || duration->m_duration < 0;
+    }
   }
 }
 
@@ -228,33 +247,37 @@ static int Script_GetPlayerBuff(lua_State *L) {
     luaL_error(L, "Usage: GetPlayerBuff(index [, \"filter\"])");
     return 0;
   }
+  int  index = static_cast<int>(lua_tonumber(L, 1));
   UINT filter = 7;
   if (lua_isstring(L, 2)) {
     LPCSTR cursor = lua_tostring(L, 2);
-    char   token[32];
     filter = 0;
+    char token[32];
     do {
       SStrTokenize(&cursor, token, sizeof(token), " |", 0);
-      if (!*token) {
-        break;
+      if (*token) {
+        if (!SStrCmpI(token, "HELPFUL", 0x7FFFFFFF)) {
+          filter |= 1;
+        } else if (!SStrCmpI(token, "HARMFUL", 0x7FFFFFFF)) {
+          filter |= 2;
+        } else if (!SStrCmpI(token, "PASSIVE", 0x7FFFFFFF)) {
+          filter |= 4;
+        } else if (!SStrCmpI(token, "CANCELABLE", 0x7FFFFFFF)) {
+          filter |= 0x10;
+        } else if (!SStrCmpI(token, "NOT_CANCELABLE", 0x7FFFFFFF)) {
+          filter |= 0x20;
+        }
       }
-      if (!SStrCmpI(token, "HELPFUL", 0x7FFFFFFF)) {
-        filter |= 1;
-      } else if (!SStrCmpI(token, "HARMFUL", 0x7FFFFFFF)) {
-        filter |= 2;
-      } else if (!SStrCmpI(token, "PASSIVE", 0x7FFFFFFF)) {
-        filter |= 4;
-      } else if (!SStrCmpI(token, "CANCELABLE", 0x7FFFFFFF)) {
-        filter |= 0x10;
-      } else if (!SStrCmpI(token, "NOT_CANCELABLE", 0x7FFFFFFF)) {
-        filter |= 0x20;
-      }
-    } while (*cursor);
+    } while (*token && *cursor);
   }
   int               buffIndex = -1;
-  const CGBuffDesc *buff = CGBuffBar::GetBuffByFilter(static_cast<int>(lua_tonumber(L, 1)), filter, buffIndex);
+  const CGBuffDesc *buff = CGBuffBar::GetBuffByFilter(index, filter, buffIndex);
   lua_pushnumber(L, static_cast<double>(buffIndex));
-  lua_pushnumber(L, buff ? static_cast<double>(buff->GetUntilCancelled()) : 0.0);
+  if (buff) {
+    lua_pushnumber(L, static_cast<double>(buff->GetUntilCancelled()));
+  } else {
+    lua_pushnumber(L, 0.0);
+  }
   return 2;
 }
 
@@ -263,14 +286,18 @@ static int Script_GetPlayerBuffTexture(lua_State *L) {
     luaL_error(L, "Usage: GetPlayerBuffTexture(buffIndex)");
     return 0;
   }
-  const CGBuffDesc   *buff = CGBuffBar::GetBuffByIndex(static_cast<int>(lua_tonumber(L, 1)));
-  const SpellRec     *spell = buff ? g_spellDB.GetRecord(buff->GetAuraSpell()) : 0;
-  const SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
-  if (icon) {
-    lua_pushstring(L, icon->m_textureFilename);
-  } else {
+  const CGBuffDesc *buff = CGBuffBar::GetBuffByIndex(static_cast<int>(lua_tonumber(L, 1)));
+  const SpellRec   *spell = g_spellDB.GetRecord(buff->GetAuraSpell());
+  if (!spell) {
     lua_pushnil(L);
+    return 1;
   }
+  const SpellIconRec *icon = g_spellIconDB.GetRecord(spell->m_spellIconID);
+  if (!icon) {
+    lua_pushnil(L);
+    return 1;
+  }
+  lua_pushstring(L, icon->m_textureFilename);
   return 1;
 }
 

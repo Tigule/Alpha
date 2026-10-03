@@ -4,7 +4,6 @@
 #include <WowConst.h>
 #include "AaBsp.h"
 #include <MapDefs.h>
-#include "Gx/CGxDevice.h"
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
@@ -143,11 +142,12 @@ void CMapObj::Clear() {
   }
   asyncObject = 0;
 
-  for (i = 0; i < materialCount; ++i) {
+  SMOMaterial *material = materialList;
+  for (i = 0; i < materialCount; ++i, ++material) {
     for (UINT map = 0; map < 2; ++map) {
-      if (materialList[i].hMaps[map]) {
-        HandleClose(materialList[i].hMaps[map]);
-        materialList[i].hMaps[map] = 0;
+      if (material->hMaps[map]) {
+        HandleClose(material->hMaps[map]);
+        material->hMaps[map] = 0;
       }
     }
   }
@@ -395,7 +395,7 @@ bool CMapObj::IsGroupLoading(UINT index) {
   }
 
   FATALASSERT(groupPtrList[index]);
-  return groupPtrList[index]->asyncObject != 0;
+  return groupPtrList[index]->asyncObject ? true : false;
 }
 
 void CMapObj::GetBounds(NTempest::CAaSphere &aaSphere) {
@@ -409,11 +409,11 @@ void CMapObj::GetBounds(NTempest::CAaSphere &aaSphere) {
 }
 
 void CMapObj::GetBounds(NTempest::CAaBox &aaBox) {
-  if (bLoaded) {
-    aaBox = this->aaBox;
+  if (!bLoaded) {
+    aaBox.b = NTempest::C3Vector(0.0f);
+    aaBox.t = NTempest::C3Vector(0.0f);
   } else {
-    aaBox.b.Set(0.0f, 0.0f, 0.0f);
-    aaBox.t.Set(0.0f, 0.0f, 0.0f);
+    aaBox = this->aaBox;
   }
 }
 
@@ -429,11 +429,11 @@ void CMapObj::GetGroupBounds(NTempest::CAaSphere &aaSphere, UINT index) {
 }
 
 void CMapObj::GetGroupBounds(NTempest::CAaBox &aaBox, UINT index) {
-  if (bLoaded) {
-    aaBox = groupInfoList[index].aaBox;
+  if (!bLoaded) {
+    aaBox.b = NTempest::C3Vector(0.0f);
+    aaBox.t = NTempest::C3Vector(0.0f);
   } else {
-    aaBox.b.Set(0.0f, 0.0f, 0.0f);
-    aaBox.t.Set(0.0f, 0.0f, 0.0f);
+    aaBox = groupInfoList[index].aaBox;
   }
 }
 
@@ -497,7 +497,7 @@ bool CMapObj::TestConvexVolume(const NTempest::C3Vector &point) {
   }
 
   for (UINT i = 0; i < volumePlaneCount; ++i) {
-    if (NTempest::C3Vector::Dot(convexVolumePlanes[i].n, point) + convexVolumePlanes[i].d > 0.0f) {
+    if (convexVolumePlanes[i].DistSigned(point) > 0.0f) {
       return false;
     }
   }
@@ -524,7 +524,7 @@ void CMapObj::ReadGroup(UINT index) {
   FATALASSERT(group);
   FATALASSERT(group->data == 0);
   FATALASSERT(group->asyncObject == 0);
-  ReadGroup(group, &groupInfoList[index], 0);
+  ReadGroup(groupPtrList[index], &groupInfoList[index], 0);
 }
 
 void CMapObj::WaitLoad() {
@@ -561,7 +561,10 @@ char *CMapObj::GetGroupName(UINT index) {
 }
 
 const SMOGroupInfo *CMapObj::GetGroupInfo(UINT index) {
-  return bLoaded ? &groupInfoList[index] : 0;
+  if (!bLoaded) {
+    return 0;
+  }
+  return &groupInfoList[index];
 }
 
 bool CMapObj::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color, float *t) {
@@ -612,9 +615,10 @@ bool CMapObj::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector 
 
 bool CMapObj::QueryLiquidStatus(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, UINT &liquid, float &surface, NTempest::C3Vector &dir) {
   for (UINT grouplp = 0; grouplp < groupCount; ++grouplp) {
-    SMOGroupInfo *groupInfo = &groupInfoList[grouplp];
-    if ((ignoreGroupFlags & groupInfo->flags) || pos.x <= groupInfo->aaBox.b.x || pos.y <= groupInfo->aaBox.b.y || pos.z <= groupInfo->aaBox.b.z ||
-        pos.x >= groupInfo->aaBox.t.x || pos.y >= groupInfo->aaBox.t.y || pos.z >= groupInfo->aaBox.t.z || !IsGroupLoaded(grouplp))
+    const SMOGroupInfo *groupInfo = GetGroupInfo(grouplp);
+    if ((ignoreGroupFlags & groupInfo->flags) || !(pos.x > groupInfo->aaBox.b.x) || !(pos.y > groupInfo->aaBox.b.y) ||
+        !(pos.z > groupInfo->aaBox.b.z) || !(pos.x < groupInfo->aaBox.t.x) || !(pos.y < groupInfo->aaBox.t.y) || !(pos.z < groupInfo->aaBox.t.z) ||
+        !IsGroupLoaded(grouplp))
     {
       continue;
     }
@@ -631,8 +635,9 @@ bool CMapObj::QueryLiquidStatus(UINT ignoreGroupFlags, const NTempest::C3Vector 
 bool CMapObj::QueryLiquidFishable(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, int &fishable) {
   for (UINT grouplp = 0; grouplp < groupCount; ++grouplp) {
     const SMOGroupInfo *groupInfo = GetGroupInfo(grouplp);
-    if ((ignoreGroupFlags & groupInfo->flags) || pos.x <= groupInfo->aaBox.b.x || pos.y <= groupInfo->aaBox.b.y || pos.z <= groupInfo->aaBox.b.z ||
-        pos.x >= groupInfo->aaBox.t.x || pos.y >= groupInfo->aaBox.t.y || pos.z >= groupInfo->aaBox.t.z || !IsGroupLoaded(grouplp))
+    if ((ignoreGroupFlags & groupInfo->flags) || !(pos.x > groupInfo->aaBox.b.x) || !(pos.y > groupInfo->aaBox.b.y) ||
+        !(pos.z > groupInfo->aaBox.b.z) || !(pos.x < groupInfo->aaBox.t.x) || !(pos.y < groupInfo->aaBox.t.y) || !(pos.z < groupInfo->aaBox.t.z) ||
+        !IsGroupLoaded(grouplp))
     {
       continue;
     }
@@ -647,13 +652,16 @@ bool CMapObj::QueryLiquidFishable(UINT ignoreGroupFlags, const NTempest::C3Vecto
 }
 
 UINT CMapObj::GetDoodadSet(UINT doodadIndex) {
-  if (!bLoaded || doodadIndex >= doodadDefCount || !doodadSetCount) {
+  if (!bLoaded) {
     return -1;
   }
 
-  for (UINT i = 0; i < doodadSetCount; ++i) {
-    if (doodadSetList[i].count && doodadIndex >= doodadSetList[i].startIndex && doodadIndex < doodadSetList[i].startIndex + doodadSetList[i].count) {
-      return i;
+  if (doodadIndex < doodadDefCount) {
+    for (UINT i = 0; i < doodadSetCount; ++i) {
+      if (doodadSetList[i].count && doodadIndex >= doodadSetList[i].startIndex &&
+          doodadIndex <= doodadSetList[i].startIndex + doodadSetList[i].count - 1) {
+        return i;
+      }
     }
   }
   return -1;

@@ -1,9 +1,15 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <MapDefs.h>
+#include <WorldClient/World.h>
+#include <WowConst.h>
+#include <DayNight.h>
+
 #include "WorldClient/World.h"
 
 #include "Base/Status.h"
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleCommand.h"
-#include "Gx/CGxDevice.h"
 #include "Gx/Gx.h"
 #include "Model/IModel.h"
 #include "Services/Texture.h"
@@ -15,23 +21,25 @@
 
 #include <math.h>
 
-static CGxTex                            *s_fadeTex;
-static HTEXTURE                           s_hTexture;
-static TSCArray<NTempest::CImVector, 512> s_texels;
-static const CWTriData::Batch            *s_batch;
-static NTempest::C3Vector                 s_zup(0.0f, 0.0f, 1.0f);
-static NTempest::CImVector                s_color;
-static int                                s_shadowLOD = 1;
+static float FeetToWorld(float ft);
+
+static const float EXTENT_SCALE = 1.0f;
+static const float SHADOW_ALPHA_SCALE = 1.5f;
+static const float BLOB_BELOW = FeetToWorld(5.0f), BLOB_ABOVE = FeetToWorld(3.0f);
+static const float SHADOW_POLY_OFFSET = 0.0625f;
 
 static float FeetToWorld(float ft) {
   return ft * 0.33333334f;
 }
 
-static const float EXTENT_SCALE = 1.0f;
-static const float SHADOW_ALPHA_SCALE = 1.5f;
-static const float BLOB_BELOW = FeetToWorld(5.0f);
-static const float BLOB_ABOVE = FeetToWorld(3.0f);
-static const float SHADOW_POLY_OFFSET = 0.0625f;
+static CGxTex                            *s_fadeTex;
+static HTEXTURE                           s_hTexture;
+static TSCArray<NTempest::CImVector, 512> s_texels;
+static CWFacetData                        s_facetData;
+static const CWTriData::Batch            *s_batch;
+static NTempest::C3Vector                 s_zup(0.0f, 0.0f, 1.0f);
+static NTempest::CImVector                s_color;
+static int                                s_shadowLOD = 1;
 
 static BOOL ConsoleCommand_ShadowLOD(LPCSTR, LPCSTR args);
 

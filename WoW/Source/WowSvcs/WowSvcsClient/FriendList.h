@@ -30,6 +30,13 @@ class FriendList {
   class Friend {
    public:
     Friend() {
+      m_name = 0;
+      m_connected = 0;
+      guid = 0;
+    }
+
+    ~Friend() {
+      FREEIFUSED(m_name);
     }
 
     BYTE      m_connected;
@@ -38,49 +45,45 @@ class FriendList {
     int       m_level;
     int       m_class;
     int       m_area;
-
-    ~Friend() {
-      FREEIFUSED(m_name);
-    }
-  };
-
-  ~FriendList();
+};
 
   FriendList();
-  static void   Initialize();
+
+  ~FriendList();
   static void   RegisterScriptFunctions();
   static void   UnregisterScriptFunctions();
+  static void   Initialize();
   static void   Destroy();
-  UINT          GetNumFriends();
-  const Friend *GetFriend(UINT index);
-  void          SetFriendSelectionIndex(UINT index);
-  int           GetFriendSelectionIndex();
+  void          AddFriends(CDataStore *msg);
+  void          SetConnected(DWORDLONG guid, bool connected);
+  void          ShowFriends();
   void          AddFriend(LPCSTR name);
   void          RemoveFriend(LPCSTR name);
   void          RemoveFriend(DWORDLONG guid);
   void          RemoveFriend(UINT index);
-  void          ShowFriends();
+  void          SortFriends();
+  UINT          GetNumFriends();
+  const Friend *GetFriend(UINT index);
+  void          SetFriendSelectionIndex(UINT index);
+  int           GetFriendSelectionIndex();
+  void          SortIgnore();
   UINT          GetNumIgnores();
   DWORDLONG     GetIgnore(UINT index);
+  bool          IsIgnored(DWORDLONG guid);
   void          SetIgnoreSelectionIndex(UINT index);
   int           GetIgnoreSelectionIndex();
+  void          HandleStatus(FRIEND_RESULT result, DWORDLONG guid, CDataStore *msg);
+  int           Added(DWORDLONG guid);
+  void          Removed(DWORDLONG guid);
+  void          SetName(DWORDLONG guid, LPCSTR name);
+  void          DecrementPendingFriendName();
+  void          DecrementPendingIgnoreName();
+  void          SendWho(LPCSTR str);
   void          AddOrDelIgnore(LPCSTR name);
   void          AddIgnore(LPCSTR name);
   void          DelIgnore(LPCSTR name);
   void          DelIgnore(DWORDLONG guid);
-  void          SendWho(LPCSTR str);
-  bool          IsIgnored(DWORDLONG guid);
-  void          HandleStatus(FRIEND_RESULT result, DWORDLONG guid, CDataStore *msg);
-  void          AddFriends(CDataStore *msg);
   void          IgnoreList(CDataStore *msg);
-  void          SetName(DWORDLONG guid, LPCSTR name);
-  void          DecrementPendingFriendName();
-  void          DecrementPendingIgnoreName();
-  void          SortFriends();
-  void          SortIgnore();
-  int           Added(DWORDLONG guid);
-  void          Removed(DWORDLONG guid);
-  void          SetConnected(DWORDLONG guid, bool connected);
   void          IgnoreAdded(DWORDLONG guid, int sort);
   void          IgnoreRemoved(DWORDLONG guid);
 

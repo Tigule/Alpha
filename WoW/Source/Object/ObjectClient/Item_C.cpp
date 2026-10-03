@@ -2,12 +2,12 @@
 #include <Gx/Gx.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
-#include "WowServices/WowConnection.h"
-#include <WowConst.h>
+#include "Net/NetClient/NetClient.h"
 #include <Frame/CSimpleTop.h>
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
 
@@ -16,11 +16,15 @@
 #include "Object/ObjectClient/Player_C.h"
 #include "Magic/MagicClient/Spell_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Ui/ActionBarFrame.h"
+#include "Ui/ContainerFrame.h"
 #include "Ui/GameUI.h"
 #include "Ui/ItemTextFrame.h"
 #include "Ui/LootFrame.h"
+#include "Ui/PaperDollInfoFrame.h"
 #include "Ui/QuestLog.h"
 #include "Ui/TradeFrame.h"
+#include "Ui/Tutorial.h"
 #include "Net/NetClient/NetClient.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
@@ -47,25 +51,43 @@ const DWORDLONG &Spell_C_GetCurrentCaster();
 void             ClntObjMgrHideObject(DWORDLONG guid);
 void             ClntObjMgrShowObject(DWORDLONG guid);
 
-class CGContainerInfo {
- public:
-  static void UpdateContents(DWORDLONG guid);
-  static void UpdateItem(DWORDLONG guid);
-};
-
-class CGActionBar {
- public:
-  static void UpdateItem(int entryID);
-};
+struct TradeSkillInfo;
+struct TradeSkillSubClassInfo;
+struct CraftInfo;
+struct CraftSkillLineInfo;
 
 class CGCraftInfo {
  public:
   static void RefreshList();
+
+ private:
+  static SPELL_CAST_UI_TYPE                    m_craftType;
+  static int                                   m_currentSelection;
+  static UINT                                  m_numSkills;
+  static UINT                                  m_numSkillLines;
+  static UINT                                  m_filteredSkills;
+  static int                                   m_collapseFilter;
+  static TSGrowableArray<CraftInfo *>          m_skills;
+  static TSGrowableArray<CraftSkillLineInfo *> m_skillLines;
 };
 
 class CGTradeSkillInfo {
  public:
   static void RefreshList(int resetFilters);
+
+ private:
+  static int                                       m_skillLine;
+  static int                                       m_currentSelection;
+  static UINT                                      m_itemsPending;
+  static UINT                                      m_numSkills;
+  static UINT                                      m_numSubClasses;
+  static UINT                                      m_filteredSkills;
+  static int                                       m_subClassFilter;
+  static int                                       m_invTypeFilter;
+  static int                                       m_collapseFilter;
+  static TSGrowableArray<TradeSkillInfo *>         m_skills;
+  static TSGrowableArray<TradeSkillSubClassInfo *> m_subClasses;
+  static int                                       m_availableSlots;
 };
 
 static BOOL OnUpdateEnchantments(DWORDLONG, UINT, UINT, LPCVOID, LPVOID);
@@ -106,12 +128,9 @@ CGItem_C::~CGItem_C() {
 }
 
 void CGItem_C::InstallObjMirrorHandlers() {
-  UINT offset = OffsetOf(ID_ITEM);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), offset + offsetof(CGItemData, m_owner), sizeof(((CGItemData *)0)->m_owner), OnUpdateOwner, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(GetGUID(), offset + offsetof(CGItemData, m_stackCount), sizeof(((CGItemData *)0)->m_stackCount), OnUpdateStackCount, 0, HANDLER_PRIORITY_NORMAL);
-  ClntObjMgrSetObjMirrorHandler(
-      GetGUID(), offset + offsetof(CGItemData, m_enchantment), sizeof(m_item->m_enchantment), OnUpdateEnchantments, 0, HANDLER_PRIORITY_NORMAL
-  );
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_owner), sizeof(m_item->m_owner), OnUpdateOwner, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_stackCount), sizeof(m_item->m_stackCount), OnUpdateStackCount, 0, HANDLER_PRIORITY_NORMAL);
+  ClntObjMgrSetObjMirrorHandler(GetGUID(), OffsetOf(ID_ITEM) + offsetof(CGItemData, m_enchantment), sizeof(m_item->m_enchantment), OnUpdateEnchantments, 0, HANDLER_PRIORITY_NORMAL);
 }
 
 void CGItem_C::InstallItemIDMirrorHandler() {
@@ -218,9 +237,7 @@ CGItem_C::CGItem_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
   m_itemInfo.m_inventoryType = static_cast<BYTE>(GetInventoryType());
   m_itemInfo.m_sheatheType = static_cast<BYTE>(GetSheatheType());
 
-  for (UINT i = 0; i < 5; ++i) {
-    m_enchantmentExpiration[i] = 0;
-  }
+  memset(m_enchantmentExpiration, 0, sizeof(m_enchantmentExpiration));
 }
 
 static void LoadItemCacheCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
@@ -357,25 +374,28 @@ BOOL CGItem_C::CanBeUsed() {
   if (!stats) {
     return 0;
   }
-  for (int index = 0; index < 5; ++index) {
+  UINT index;
+  for (index = 0; index < 5; ++index) {
     if (stats->m_spellID[index] && !stats->m_spellTrigger[index]) {
-      return 1;
+      break;
     }
   }
-  return 0;
+  return index < 5;
 }
 
 int CGItem_C::GetUseSpell() {
+  int                spellID = 0;
   const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   if (!stats) {
     return 0;
   }
-  for (int index = 0; index < 5; ++index) {
+  for (UINT index = 0; index < 5; ++index) {
     if (stats->m_spellID[index] && !stats->m_spellTrigger[index]) {
-      return stats->m_spellID[index];
+      spellID = stats->m_spellID[index];
+      break;
     }
   }
-  return 0;
+  return spellID;
 }
 
 bool CGItem_C::Use() {
@@ -467,10 +487,10 @@ void CGItem_C::UpdateEnchantments() const {
 }
 
 void CGItem_C::UpdateExpirationTime(int timeLeft) {
-  if (timeLeft <= 0) {
-    m_expirationTime = 0;
-  } else {
+  if (timeLeft > 0) {
     m_expirationTime = OsGetAsyncTimeMs() + 1000 * timeLeft;
+  } else {
+    m_expirationTime = 0;
   }
 }
 
@@ -497,15 +517,15 @@ int CGItem_C::GetEnchantmentTimeLeft(int slot) {
 
 void CGItem_C::UpdateEnchantmentTime(int slot, int timeLeft) {
   FATALASSERT((slot >= 0) && (slot < NUM_ITEM_ENCHANTMENTS));
-  if (timeLeft <= 0) {
-    m_enchantmentExpiration[slot] = 0;
-  } else {
+  if (timeLeft > 0) {
     m_enchantmentExpiration[slot] = OsGetAsyncTimeMs() + 1000 * timeLeft;
+  } else {
+    m_enchantmentExpiration[slot] = 0;
   }
 }
 
 int CGItem_C::GetSheatheType() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   return stats ? stats->m_sheatheType : 0;
 }
 
@@ -514,32 +534,32 @@ LPCSTR CGItem_C::GetInventoryArt() const {
 }
 
 int CGItem_C::GetClassID() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   return stats ? stats->m_class : 0;
 }
 
 int CGItem_C::GetSubtypeID() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   return stats ? stats->m_subclass : 0;
 }
 
 UINT CGItem_C::GetInventoryType() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   return stats ? stats->m_inventoryType : 0;
 }
 
 int CGItem_C::GetDisplayID() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   return stats ? stats->m_displayInfoID : 0;
 }
 
 BOOL CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
-  return stats && (stats->m_flags & flags) == flags;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  return stats ? (stats->m_flags & flags) == flags : 0;
 }
 
 int CGItem_C::GetMaterial() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   return stats ? stats->m_material : 0;
 }
 
@@ -553,7 +573,7 @@ BOOL CGItem_C::IsMetal(UINT material) {
 }
 
 const ItemStats *CGItem_C::GetStats() const {
-  return g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
+  return g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
 }
 
 BOOL CGItem_C::SetBlock(UINT i, DWORD data) {
@@ -573,11 +593,15 @@ void CGItem_C::SetData(LPCVOID data, UINT bytes) {
 }
 
 UINT CGItem_C::OffsetOf(OBJECT_TYPE_ID type) {
-  if (type == ID_OBJECT) {
-    return 0;
+  switch (type) {
+    case ID_OBJECT:
+      return 0;
+    case ID_ITEM:
+      return CGObject::TotalFields() * sizeof(DWORD);
+    default:
+      FATALASSERT(0);
+      return static_cast<UINT>(-1);
   }
-  FATALASSERT(type == ID_ITEM);
-  return CGObject::TotalFields() * sizeof(DWORD);
 }
 
 BOOL CGItem_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
@@ -600,17 +624,17 @@ void CGItem_C::OnRightClick() {
 }
 
 int CGItem_C::GetPageTextID(void (*func)(int, const DWORDLONG &, LPVOID, bool)) const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, m_obj->m_guid, func, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), GetGUID(), func, 0);
   return stats ? stats->m_pageText : 0;
 }
 
 LPCSTR CGItem_C::GetObjectName() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   return stats ? stats->m_displayName[0] : 0;
 }
 
 int CGItem_C::GetMaxCount() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
   return stats ? stats->m_maxCount : 1;
 }
 
@@ -627,6 +651,6 @@ int CGItem_C::GetSheatheInvisible() const {
 }
 
 bool CGItem_C::IsWrapper() const {
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_obj->m_entryID, 0, 0, 0);
-  return stats && (stats->m_flags & ITEM_FLAG_IS_WRAPPER) != 0;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), 0, 0, 0);
+  return stats ? (stats->m_flags & ITEM_FLAG_IS_WRAPPER) != 0 : false;
 }

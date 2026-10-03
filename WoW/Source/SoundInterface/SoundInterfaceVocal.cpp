@@ -1,12 +1,12 @@
 #include <Base/Base.h>
-#include <WowConst.h>
-
 #include "SoundInterface.h"
+#include <Gx/Gx.h>
+#include <WowConst.h>
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
 
 #include "Object/ObjectClient/Player_C.h"
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
-#include "ObjectMgrClient/ObjectMgrClient.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
 #include "DB/DBClient/AutoCode/SoundCharacterMacroLinesRec.h"
 
@@ -61,9 +61,8 @@ void SndInterfaceUnregisterVocalScriptFunctions() {
 
 void SoundInterfacePlayVocalMacro(const CGPlayer_C *player, int category) {
   if (player && (player->GetType() & TYPE_PLAYER) && category < 12) {
-    const CGUnitData *unitData = player->GetUnitData();
-    UINT              race = unitData->race;
-    UINT              sex = unitData->sex;
+    UINT race = player->GetRace();
+    UINT sex = player->GetSex();
     UINT              soundID = s_macroRaceDescs[race].soundID[category][sex];
     SndInterfacePlaySound(soundID, player->GetPosition(), -1, 1.0f);
   }

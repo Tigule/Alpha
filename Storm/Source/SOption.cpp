@@ -16,8 +16,10 @@ void IncrementFreeCount() {
 }
 
 extern "C" BOOL APIENTRY StormGetOption(int optname, LPVOID optval, LPDWORD optlen) {
-  FATALASSERT(optval);
-  FATALASSERT(optlen);
+  VALIDATEBEGIN;
+  VALIDATE(optval);
+  VALIDATE(optlen);
+  VALIDATEEND;
   SErrSetLastError(ERROR_INVALID_PARAMETER);
   switch (optname) {
     case 1:
@@ -102,7 +104,9 @@ extern "C" BOOL APIENTRY StormGetOption(int optname, LPVOID optval, LPDWORD optl
 }
 
 extern "C" BOOL APIENTRY StormSetOption(int optname, LPVOID optval, DWORD optlen) {
-  FATALASSERT(optval);
+  VALIDATEBEGIN;
+  VALIDATE(optval);
+  VALIDATEEND;
   SErrSetLastError(ERROR_INVALID_PARAMETER);
   switch (optname) {
     case 1:

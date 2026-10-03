@@ -9,7 +9,7 @@ static NTempest::C44Matrix s_bezierCoeffs(-1.0f, 3.0f, -3.0f, 1.0f, 3.0f, -6.0f,
 
 static float EvaluateCubicPolynomial(float t, const float *coefficients) {
   float result = coefficients[0];
-  for (UINT i = 1; i < 4; ++i) {
+  for (int i = 1; i < 4; ++i) {
     result = result * t + coefficients[i];
   }
   return result;
@@ -311,7 +311,7 @@ void CKeyFrameTrack<NTempest::C4QuaternionCompressed, NTempest::C4Quaternion>::I
   NTempest::C4Quaternion next = nextkey.transform;
   NTempest::C4Quaternion outTangent = currkey.outTan;
   NTempest::C4Quaternion inTangent = nextkey.inTan;
-  *transform = NTempest::C4Quaternion::Squad(ratio, curr, next, outTangent, inTangent);
+  *transform = NTempest::C4Quaternion::Squad(ratio, curr, outTangent, inTangent, next);
 }
 
 template <>

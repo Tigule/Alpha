@@ -203,7 +203,7 @@ BOOL CompDecorateUndecorateTexName(LPCSTR string, char *buffer, UINT size) {
     if (state == FINDING_PERIOD && *cursor == '.') {
       SStrCopy(extension, cursor, sizeof(extension));
       state = FINDING_UNDERSCORE;
-    } else if (state == FINDING_UNDERSCORE && *cursor == '_') {
+    } else if (*cursor == '_') {
       *cursor = 0;
       FATALASSERT(extension[0]);
       SStrPack(buffer, extension, size);

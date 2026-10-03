@@ -38,7 +38,13 @@ struct CMovementStatus {
   CMovementStatus() : transport(0), transRelPosition(0.0f), transRelFacing(0.0f), worldPosition(0.0f), worldFacing(0.0f), pitch(0.0f), moveFlags(0) {
   }
 
-  static UINT Skip(CDataStore *packet);
+  static UINT Skip(CDataStore *packet) {
+    LPVOID unused;
+    packet->GetDataInSitu(unused, 44);
+    UINT flags = 0;
+    *packet >> flags;
+    return flags;
+  }
 
   DWORDLONG          transport;
   NTempest::C3Vector transRelPosition;
@@ -62,23 +68,27 @@ struct CMoveSpline {
   NTempest::C3Spline_CatmullRom spline;
 
   static void Skip(CDataStore *packet) {
-    UINT flags = 0;
-    *packet >> flags;
-    UINT bytes = 0;
-    if (flags & 0x00010000) {
-      bytes = 12;
-    }
-    if (flags & 0x00020000) {
-      bytes += 8;
-    }
-    if (flags & 0x00040000) {
-      bytes += 4;
-    }
     LPVOID unused;
-    packet->GetDataInSitu(unused, bytes + 8);
-    UINT pointCount = 0;
-    *packet >> pointCount;
-    packet->GetDataInSitu(unused, 12 * pointCount);
+    {
+      UINT flags = 0;
+      *packet >> flags;
+      UINT bytes = 0;
+      if (flags & 0x00010000) {
+        bytes = 12;
+      }
+      if (flags & 0x00020000) {
+        bytes += 8;
+      }
+      if (flags & 0x00040000) {
+        bytes += 4;
+      }
+      packet->GetDataInSitu(unused, bytes + 8);
+    }
+    {
+      UINT pointCount = 0;
+      *packet >> pointCount;
+      packet->GetDataInSitu(unused, 12 * pointCount);
+    }
   }
 };
 
@@ -162,11 +172,7 @@ struct CClientObjCreate {
   }
 
   void Get(CDataStore *packet) {
-    *packet >> move;
-    packet->Get(flags);
-    packet->Get(attackCycle);
-    packet->Get(timerID);
-    packet->Get(victim);
+    *packet >> move >> flags >> attackCycle >> timerID >> victim;
   }
 
   static void Skip(CDataStore *packet) {

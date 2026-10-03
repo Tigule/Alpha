@@ -1,4 +1,15 @@
+#include <Base/Base.h>
 #include <WowConst.h>
+#include "Glue/CGlueMgr.h"
+#include <Frame/CSimpleFrame.h>
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Glue/CharCreateInfo.h"
+#include "Glue/CharSelectInfo.h"
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
+#include "SoundInterface/SoundInterface.h"
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
 
 #include "CGlueMgr.h"
 
@@ -147,9 +158,10 @@ void CGlueMgr::Shutdown() {
 }
 
 void CGlueMgr::InitCursor() {
+  LPCSTR  modelName = ClientDBStringLookup(SLOOKUP_DEFAULTCURSOR);
   CStatus status;
 
-  m_cursorModel = ModelCreate(ClientDBStringLookup(SLOOKUP_DEFAULTCURSOR), 0, &status);
+  m_cursorModel = ModelCreate(modelName, 0, &status);
   SysMsgAdd(status, 4);
 }
 

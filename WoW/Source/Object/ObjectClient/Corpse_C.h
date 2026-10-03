@@ -47,7 +47,7 @@ class CGCorpse {
 
   BYTE *GetData(UINT index);
   static __forceinline UINT GetDataSize() {
-    return sizeof(CGCorpseData);
+    return TotalFields() * sizeof(DWORD);
   }
   static UINT               GetBaseOffset();
   static __forceinline UINT TotalFields() {

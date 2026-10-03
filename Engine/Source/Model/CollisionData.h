@@ -1,7 +1,14 @@
 #pragma once
 
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
+#include "Tempest/caabox.h"
+#include "Tempest/c34matrix.h"
 #include "Tempest/cfacet.h"
+
+#include <stpl.h>
+
+struct HCOLLISIONDATA__;
+typedef HCOLLISIONDATA__ *HCOLLISIONDATA;
 
 struct CCollisionData : public CHandleObject {
   TSFixedArray<NTempest::C3Vector> vertices;

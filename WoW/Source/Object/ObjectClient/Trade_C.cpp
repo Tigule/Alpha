@@ -2,12 +2,12 @@
 #include <Gx/Gx.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
-#include "WowServices/WowConnection.h"
-#include <WowConst.h>
+#include "Net/NetClient/NetClient.h"
 #include <Frame/CSimpleTop.h>
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
 
@@ -87,7 +87,7 @@ static BOOL CCommand_AddTradeItem(LPCSTR command, LPCSTR arguments) {
   DWORDLONG cursorItemContainer;
   UINT      cursorItemSlot;
   CGGameUI::GetCursorItem(cursorItem, cursorItemContainer, cursorItemSlot);
-  UINT tradeSlot = arguments && *arguments ? static_cast<BYTE>(SStrToInt(arguments)) : 0;
+  BYTE tradeSlot = arguments && *arguments ? SStrToInt(arguments) : 0;
   Trade_C_AddItem(cursorItem, cursorItemContainer, cursorItemSlot, tradeSlot);
   return 1;
 }
@@ -319,7 +319,7 @@ BOOL Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot) {
 
 static void TradeNameCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
-    const NameCache *name = g_nameDBCache.GetRecord(guid, guid, 0, 0);
+    const NameCache *name = g_nameDBCache.GetRecord(guid, 0, 0, 0);
     if (name) {
       CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(169), name->m_name);
     }

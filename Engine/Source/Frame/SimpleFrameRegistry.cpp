@@ -42,11 +42,11 @@ SIMPLEFRAMEREGHASH *GetSimpleFrameHash(LPCSTR name, UINT context, int create, in
   contextHash = s_contextLookup.Ptr(context, s_nullHashKey);
   if (!contextHash) {
     *alreadyExisted = 0;
-    if (!create) {
+    if (create) {
+      contextHash = s_contextLookup.New(context, s_nullHashKey, 0, 0);
+    } else {
       return 0;
     }
-
-    contextHash = s_contextLookup.New(context, s_nullHashKey, 0, 0);
   }
 
   hash = contextHash->s_frameRegistry.Ptr(name);
@@ -70,11 +70,11 @@ SIMPLETEXTUREREGHASH *GetSimpleTextureHash(LPCSTR name, UINT context, int create
   contextHash = s_contextLookup.Ptr(context, s_nullHashKey);
   if (!contextHash) {
     *alreadyExisted = 0;
-    if (!create) {
+    if (create) {
+      contextHash = s_contextLookup.New(context, s_nullHashKey, 0, 0);
+    } else {
       return 0;
     }
-
-    contextHash = s_contextLookup.New(context, s_nullHashKey, 0, 0);
   }
 
   hash = contextHash->s_textureRegistry.Ptr(name);
@@ -98,11 +98,11 @@ SIMPLEFONTSTRINGREGHASH *GetSimpleFontStringHash(LPCSTR name, UINT context, int 
   contextHash = s_contextLookup.Ptr(context, s_nullHashKey);
   if (!contextHash) {
     *alreadyExisted = 0;
-    if (!create) {
+    if (create) {
+      contextHash = s_contextLookup.New(context, s_nullHashKey, 0, 0);
+    } else {
       return 0;
     }
-
-    contextHash = s_contextLookup.New(context, s_nullHashKey, 0, 0);
   }
 
   hash = contextHash->s_stringRegistry.Ptr(name);
@@ -120,8 +120,8 @@ BOOL SimpleFrameRegistryAddEntry(LPCSTR name, CSimpleFrame *object, UINT context
   BOOL                alreadyExisted;
   SIMPLEFRAMEREGHASH *hash;
 
-  FATALASSERT(name);
   VALIDATEBEGIN;
+  VALIDATE(name);
   VALIDATE(*name);
   VALIDATE(object);
   VALIDATEEND;
@@ -143,8 +143,8 @@ BOOL SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT con
   int                   alreadyExisted;
   SIMPLETEXTUREREGHASH *hash;
 
-  FATALASSERT(name);
   VALIDATEBEGIN;
+  VALIDATE(name);
   VALIDATE(*name);
   VALIDATE(object);
   VALIDATEEND;
@@ -166,8 +166,8 @@ BOOL SimpleFontStringRegistryAddEntry(LPCSTR name, CSimpleFontString *object, UI
   int                      alreadyExisted;
   SIMPLEFONTSTRINGREGHASH *hash;
 
-  FATALASSERT(name);
   VALIDATEBEGIN;
+  VALIDATE(name);
   VALIDATE(*name);
   VALIDATE(object);
   VALIDATEEND;
@@ -228,8 +228,8 @@ CSimpleFrame *SimpleFrameRegistryGetEntry(LPCSTR name, UINT context) {
   int                 unused;
   SIMPLEFRAMEREGHASH *hash;
 
-  FATALASSERT(name);
   VALIDATEBEGIN;
+  VALIDATE(name);
   VALIDATE(*name);
   VALIDATEEND;
 
@@ -241,8 +241,8 @@ CSimpleTexture *SimpleTextureRegistryGetEntry(LPCSTR name, UINT context) {
   int                   unused;
   SIMPLETEXTUREREGHASH *hash;
 
-  FATALASSERT(name);
   VALIDATEBEGIN;
+  VALIDATE(name);
   VALIDATE(*name);
   VALIDATEEND;
 
@@ -254,8 +254,8 @@ CSimpleFontString *SimpleFontStringRegistryGetEntry(LPCSTR name, UINT context) {
   int                      unused;
   SIMPLEFONTSTRINGREGHASH *hash;
 
-  FATALASSERT(name);
   VALIDATEBEGIN;
+  VALIDATE(name);
   VALIDATE(*name);
   VALIDATEEND;
 

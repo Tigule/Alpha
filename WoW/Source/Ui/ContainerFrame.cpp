@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -48,8 +50,9 @@ static BOOL UpdateContainerContents(DWORDLONG guid, UINT offset, UINT, LPCVOID p
   CGContainerInfo::UpdateContents(guid);
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
+    UINT      slot = (offset - 8) / 8;
     CGBag_C  *bag = object->GetBag();
-    DWORDLONG item = bag->GetItem((offset - 8) / 8);
+    DWORDLONG item = bag->GetItem(slot);
     if (*static_cast<const DWORDLONG *>(prevValue) != item) {
       CGGameUI::UnlockItem(item);
     }
@@ -61,8 +64,9 @@ static BOOL UpdateInvContents(DWORDLONG guid, UINT offset, UINT, LPCVOID prevVal
   CGContainerInfo::UpdateContents(guid);
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object) {
-    CGBag_C  *bag = object->GetBag();
-    DWORDLONG item = bag->GetItem(offset / 8);
+    UINT      slot = offset / 8;
+    CGBag_C  *bag = static_cast<CGPlayer_C *>(object)->CGPlayer_C::GetBag();
+    DWORDLONG item = bag->GetItem(slot);
     if (*static_cast<const DWORDLONG *>(prevValue) != item) {
       CGGameUI::UnlockItem(item);
     }
@@ -78,37 +82,40 @@ static BOOL InvUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
 void CGContainerInfo::EnterWorld() {
   DWORDLONG player = ClntObjMgrGetActivePlayer();
   ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + INVSLOT_BAG0 * sizeof(DWORDLONG), NUM_BAG_SLOTS * sizeof(DWORDLONG), InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  for (UINT offset = BACKPACK_FIRST * sizeof(DWORDLONG); offset <= BACKPACK_LAST * sizeof(DWORDLONG); offset += sizeof(DWORDLONG)) {
-    ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + offset, sizeof(DWORDLONG), UpdateInvContents, 0, HANDLER_PRIORITY_NORMAL);
+  for (int slot = BACKPACK_FIRST; slot <= BACKPACK_LAST; ++slot) {
+    player = ClntObjMgrGetActivePlayer();
+    ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + slot * sizeof(DWORDLONG), sizeof(DWORDLONG), UpdateInvContents, 0, HANDLER_PRIORITY_NORMAL);
   }
+  player = ClntObjMgrGetActivePlayer();
   ClntObjMgrSetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + BANKBAG_FIRST * sizeof(DWORDLONG), NUM_BANKBAG_SLOTS * sizeof(DWORDLONG), InvUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
-  memset(m_containers, 0, sizeof(m_containers));
+  m_containers[0] = 0;
+  memcpy(&m_containers[1], &m_containers[0], sizeof(m_containers) - sizeof(m_containers[0]));
   UpdateContainers();
 }
 
 void CGContainerInfo::LeaveWorld() {
-  UINT containerOffset = CGUnit_C::OffsetOf(ID_CONTAINER);
-  for (int i = 0; i < 10; ++i) {
-    DWORDLONG container = m_containers[i];
-    if (container) {
-      CGObject_C *object = ClntObjMgrObjectPtr(container, __FILE__, __LINE__);
+  for (int i = 0; i < sizeof(m_containers) / sizeof(m_containers[0]); ++i) {
+    if (m_containers[i]) {
+      CGObject_C *object = ClntObjMgrObjectPtr(m_containers[i], __FILE__, __LINE__);
       if (object) {
-        CGBag_C *bag = object->GetBag();
-        for (UINT slot = 0; slot < bag->NumSlots(); ++slot) {
-          ClntObjMgrUnsetObjMirrorHandler(container, containerOffset + offsetof(CGContainerData, m_slots) + slot * sizeof(DWORDLONG), UpdateContainerContents, 0);
+        int slots = static_cast<int>(object->GetBag()->NumSlots());
+        for (int item = 0; item < slots; ++item) {
+          ClntObjMgrUnsetObjMirrorHandler(m_containers[i], CGContainer_C::OffsetOf(ID_CONTAINER) + offsetof(CGContainerData, m_slots) + item * sizeof(DWORDLONG), UpdateContainerContents, 0);
         }
       }
       FrameScript_SignalEvent(306, "%d", i + 1);
     }
   }
 
-  DWORDLONG player = ClntObjMgrGetActivePlayer();
-  UINT      playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-  for (UINT offset = BACKPACK_FIRST * sizeof(DWORDLONG); offset <= BACKPACK_LAST * sizeof(DWORDLONG); offset += sizeof(DWORDLONG)) {
-    ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, invSlots) + offset, UpdateInvContents, 0);
+  DWORDLONG player;
+  for (int slot = BACKPACK_FIRST; slot <= BACKPACK_LAST; ++slot) {
+    player = ClntObjMgrGetActivePlayer();
+    ClntObjMgrUnsetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + slot * sizeof(DWORDLONG), UpdateInvContents, 0);
   }
-  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, invSlots) + INVSLOT_BAG0 * sizeof(DWORDLONG), InvUpdateHandler, 0);
-  ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, invSlots) + BANKBAG_FIRST * sizeof(DWORDLONG), InvUpdateHandler, 0);
+  player = ClntObjMgrGetActivePlayer();
+  ClntObjMgrUnsetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + INVSLOT_BAG0 * sizeof(DWORDLONG), InvUpdateHandler, 0);
+  player = ClntObjMgrGetActivePlayer();
+  ClntObjMgrUnsetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, invSlots) + BANKBAG_FIRST * sizeof(DWORDLONG), InvUpdateHandler, 0);
 }
 
 void CGContainerInfo::UpdateContainers() {
@@ -118,7 +125,7 @@ void CGContainerInfo::UpdateContainers() {
   }
 
   CGBag_C *inventory = object->CGPlayer_C::GetBag();
-  for (UINT index = 0; index < 10; ++index) {
+  for (int index = 0; index < sizeof(m_containers) / sizeof(m_containers[0]); ++index) {
     UINT      slot = index < NUM_BAG_SLOTS ? INVSLOT_BAG0 + index : BANKBAG_FIRST + index - NUM_BAG_SLOTS;
     DWORDLONG container = inventory->GetItem(slot);
     if (container == m_containers[index]) {
@@ -206,7 +213,7 @@ static int Script_GetContainerNumSlots(lua_State *L) {
     return 1;
   }
   if (index >= 0 && index < 10) {
-    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index + 1), __FILE__, __LINE__);
+    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
     if (object) {
       lua_pushnumber(L, static_cast<double>(object->GetBag()->NumSlots()));
       return 1;
@@ -225,12 +232,12 @@ static int Script_GetContainerItemInfo(lua_State *L) {
   if (!player) {
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   CGBag_C *bag = 0;
+  int      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   if (index == -1) {
     bag = player->CGPlayer_C::GetBag();
   } else if (index >= 0 && index < 10) {
-    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index + 1), __FILE__, __LINE__);
+    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
     if (object) {
       bag = object->GetBag();
     }
@@ -251,13 +258,17 @@ static int Script_GetContainerItemInfo(lua_State *L) {
   SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, item->GetInventoryArt());
   lua_pushstring(L, buffer);
   lua_pushnumber(L, static_cast<double>(item->GetStackCount()));
-  if (!item->IsLocked()) {
-    lua_pushnil(L);
-  } else {
+  if (item->IsLocked()) {
     lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
   }
   const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
-  lua_pushnumber(L, stats && stats->m_inventoryType ? static_cast<double>(stats->m_overallQualityID) : -1.0);
+  if (stats && stats->m_inventoryType) {
+    lua_pushnumber(L, static_cast<double>(stats->m_overallQualityID));
+  } else {
+    lua_pushnumber(L, -1.0);
+  }
   return 4;
 }
 
@@ -270,12 +281,12 @@ static int Script_GetContainerItemLink(lua_State *L) {
   if (!player) {
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   CGBag_C *bag = 0;
+  int      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   if (index == -1) {
     bag = player->CGPlayer_C::GetBag();
   } else if (index >= 0 && index < 10) {
-    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index + 1), __FILE__, __LINE__);
+    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
     if (object) {
       bag = object->GetBag();
     }
@@ -312,12 +323,12 @@ static int Script_GetContainerItemCooldown(lua_State *L) {
     lua_pushnumber(L, 0.0);
     return 3;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   CGBag_C *bag = 0;
+  int      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   if (index == -1) {
     bag = player->CGPlayer_C::GetBag();
   } else if (index >= 0 && index < 10) {
-    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index + 1), __FILE__, __LINE__);
+    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
     if (object) {
       bag = object->GetBag();
     }
@@ -347,7 +358,7 @@ static int Script_PickupContainerItem(lua_State *L) {
     return 0;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || (!CGGameUI::HasPlayerControl() && !((player->GetUnitData()->flags >> 20) & 1))) {
+  if (!player || (!CGGameUI::HasPlayerControl() && !player->IsOnTaxi())) {
     return 0;
   }
 
@@ -361,7 +372,7 @@ static int Script_PickupContainerItem(lua_State *L) {
     if (index < 0 || index >= 10) {
       return 0;
     }
-    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index + 1), __FILE__, __LINE__);
+    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
     if (!object) {
       return 0;
     }
@@ -441,7 +452,7 @@ static int Script_SplitContainerItem(lua_State *L) {
     return 0;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || (!CGGameUI::HasPlayerControl() && !((player->GetUnitData()->flags >> 20) & 1))) {
+  if (!player || (!CGGameUI::HasPlayerControl() && !player->IsOnTaxi())) {
     return 0;
   }
 
@@ -455,7 +466,7 @@ static int Script_SplitContainerItem(lua_State *L) {
     if (index < 0 || index >= 10) {
       return 0;
     }
-    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index + 1), __FILE__, __LINE__);
+    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
     if (!object) {
       return 0;
     }
@@ -512,7 +523,7 @@ static int Script_UseContainerItem(lua_State *L) {
     if (index < 0 || index >= 4) {
       return 0;
     }
-    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index + 1), __FILE__, __LINE__);
+    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
     if (!object) {
       return 0;
     }
@@ -571,7 +582,7 @@ static int Script_ShowContainerSellCursor(lua_State *L) {
     if (index < 0 || index >= 4) {
       return 0;
     }
-    CGObject_C *container = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index + 1), __FILE__, __LINE__);
+    CGObject_C *container = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
     if (!container) {
       return 0;
     }
@@ -613,7 +624,7 @@ static int Script_SetBagPortaitTexture(lua_State *L) {
     return 0;
   }
   texture->SetTexture(static_cast<HTEXTURE__ *>(0));
-  DWORDLONG container = CGContainerInfo::GetContainer(index + 1);
+  DWORDLONG container = CGContainerInfo::GetContainer(index);
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(container, __FILE__, __LINE__));
   if (item) {
     LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
@@ -630,21 +641,21 @@ static int Script_GetBagName(lua_State *L) {
     luaL_error(L, "Usage: GetBagName(index)");
     return 0;
   }
-  if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
-    lua_pushnil(L);
-    return 1;
-  }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  if (index == -1) {
-    lua_pushstring(L, FrameScript_GetText("BACKPACK_TOOLTIP", -1, GENDER_NOT_APPLICABLE));
-    return 1;
-  }
-  if (index >= 0 && index < 10) {
-    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index + 1), __FILE__, __LINE__));
-    const ItemStats *stats = item ? g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0) : 0;
-    if (stats) {
-      lua_pushstring(L, stats->m_displayName[0]);
+  if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
+    int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    if (index == -1) {
+      lua_pushstring(L, FrameScript_GetText("BACKPACK_TOOLTIP", -1, GENDER_NOT_APPLICABLE));
       return 1;
+    }
+    if (index >= 0 && index < 10) {
+      CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__));
+      if (item) {
+        const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
+        if (stats) {
+          lua_pushstring(L, stats->m_displayName[0]);
+          return 1;
+        }
+      }
     }
   }
   lua_pushnil(L);

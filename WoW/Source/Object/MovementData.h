@@ -14,13 +14,12 @@
 class CMovement;
 struct CWalkableSurface;
 struct CRedirect {
-  CRedirect() {
-    Reset();
+  CRedirect() : gameObjHit(0), flags(0) {
   }
   void Reset() {
-    hitPoint = NTempest::C3Vector(0.0f);
-    surfaceNorm[0] = NTempest::C3Vector(0.0f);
-    surfaceNorm[1] = NTempest::C3Vector(0.0f);
+    hitPoint.Set(0.0f, 0.0f, 0.0f);
+    surfaceNorm[0].Set(0.0f, 0.0f, 0.0f);
+    surfaceNorm[1].Set(0.0f, 0.0f, 0.0f);
     gameObjHit = 0;
     flags = 0;
   }

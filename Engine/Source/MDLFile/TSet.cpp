@@ -32,7 +32,7 @@ int TSet::Found(UINT token) {
   }
   SErrPrepareAppFatal(__FILE__, __LINE__);
   SErrDisplayAppFatal("TSet::Found: found unregistered token 0x%x", token);
-  return 0;
+  return 1;
 }
 
 int TSet::NotFound(UINT token) {
@@ -43,7 +43,7 @@ int TSet::NotFound(UINT token) {
   }
   SErrPrepareAppFatal(__FILE__, __LINE__);
   SErrDisplayAppFatal("TSet::NotFound: found unregistered token 0x%x", token);
-  return 0;
+  return 1;
 }
 
 void TSet::Complete(CMDLStatus *status) {

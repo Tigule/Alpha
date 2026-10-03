@@ -1,7 +1,10 @@
 #include <Base/Base.h>
-#include <WowConst.h>
-
 #include "SoundInterface.h"
+#include <Gx/Gx.h>
+#include <WowConst.h>
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
 
 #include "DB/DBClient/AutoCode/ZoneMusicRec.h"
 #include "Event/EvtApi.h"
@@ -9,6 +12,12 @@
 #include "Os/OsTime.h"
 #include "SoundInterface/ISoundInterface.h"
 #include "Tempest/crandom.h"
+
+enum {
+  FLAG_PAUSED = 1,
+  FLAG_INITIALIZED = 2,
+  FLAG_IMMEDIATEPLAY = 4
+};
 
 static int                 s_flags;
 static const ZoneMusicRec *s_currentMusic;

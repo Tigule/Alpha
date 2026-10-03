@@ -61,24 +61,56 @@ static int   s_processorVendor;
 int   s_sleepInBackground = 1;
 DWORD s_backgroundSleepMs;
 
-static int __cdecl IOsGetProcessorFeatures(BYTE *vendor, DWORD *featuresStd, DWORD *featuresExt) {
-  int result = 1;
-
-  memset(vendor, 0, 12);
+static int __cdecl IOsGetProcessorFeatures(BYTE vendor[12], DWORD *featuresStd, DWORD *featuresExt) {
+  ((DWORD *)vendor)[0] = 0;
+  ((DWORD *)vendor)[1] = 0;
+  ((DWORD *)vendor)[2] = 0;
   *featuresStd = 0;
   *featuresExt = 0;
 
-  if (IsProcessorFeaturePresent(8)) {
-    *featuresStd |= 0x00000010;
-  }
-  if (IsProcessorFeaturePresent(3)) {
-    *featuresStd |= 0x00800000;
-  }
-  if (IsProcessorFeaturePresent(6)) {
-    *featuresStd |= 0x02000000;
-  }
-  if (IsProcessorFeaturePresent(7)) {
-    *featuresExt |= 0x80000000;
+  int result = 0;
+
+  __asm {
+    push eax
+    push ebx
+    push ecx
+    push edx
+    pushfd
+    pop eax
+    mov ecx, eax
+    xor eax, 0x200000
+    push eax
+    popfd
+    pushfd
+    pop eax
+    xor eax, ecx
+    jz done
+    mov eax, 0
+    cpuid
+    test eax, eax
+    jz done
+    mov result, 1
+    mov eax, vendor
+    mov [eax], ebx
+    mov [eax + 4], edx
+    mov [eax + 8], ecx
+    mov eax, 1
+    cpuid
+    mov eax, featuresStd
+    mov [eax], edx
+    mov eax, 0x80000000
+    cpuid
+    cmp eax, 0x80000000
+    jbe done
+    mov eax, 0x80000001
+    cpuid
+    mov eax, featuresExt
+    mov [eax], edx
+  done:
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
   }
 
   return result;
@@ -161,6 +193,48 @@ void OsSetBackgroundSleepMs(DWORD sleepMs) {
 }
 
 void OsPause() {
+  __asm {
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+  }
 }
 
 OsType OsGetVersion() {
@@ -180,24 +254,18 @@ OsType OsGetVersion() {
   switch (osvi.dwPlatformId) {
     case VER_PLATFORM_WIN32_WINDOWS:
       if (osvi.dwMajorVersion == 4) {
-        switch (osvi.dwMinorVersion) {
-          case 0:
-            retVal = OsType_Win95;
-            if (osvi.szCSDVersion[1] == 'C' || osvi.szCSDVersion[1] == 'B') {
-              retVal = OsType_Win95OSR2;
-            }
-            break;
-
-          case 10:
-            retVal = OsType_Win98;
-            if (osvi.szCSDVersion[1] == 'A') {
-              retVal = OsType_Win98SE;
-            }
-            break;
-
-          case 90:
-            retVal = OsType_WinME;
-            break;
+        if (osvi.dwMinorVersion == 0) {
+          retVal = OsType_Win95;
+          if (osvi.szCSDVersion[1] == 'C' || osvi.szCSDVersion[1] == 'B') {
+            retVal = OsType_Win95OSR2;
+          }
+        } else if (osvi.dwMinorVersion == 10) {
+          retVal = OsType_Win98;
+          if (osvi.szCSDVersion[1] == 'A') {
+            retVal = OsType_Win98SE;
+          }
+        } else if (osvi.dwMinorVersion == 90) {
+          retVal = OsType_WinME;
         }
       }
       break;
@@ -248,16 +316,16 @@ void OsSystemObjectCreate(LPCSTR inName) {
 
 BOOL OsSystemObjectExists(LPCSTR inName) {
   HANDLE handle;
-  DWORD  error;
+  BOOL   exists;
 
   handle = CreateEventA(NULL, TRUE, FALSE, inName);
   if (!handle) {
     return 0;
   }
 
-  error = GetLastError();
+  exists = GetLastError() == ERROR_ALREADY_EXISTS;
   CloseHandle(handle);
-  return error == ERROR_ALREADY_EXISTS ? 1 : 0;
+  return exists;
 }
 
 BOOL OsLaunchURL(LPCSTR url) {

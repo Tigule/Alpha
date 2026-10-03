@@ -14,6 +14,8 @@ class CGObject_C;
 class CGInputControl;
 class CGUnit_C;
 
+#define MAX_CAMERA_VIEWS 5
+
 enum CGCameraMotion {
   CAMERA_MOVE_IN = 0,
   CAMERA_MOVE_OUT = 1,
@@ -38,82 +40,10 @@ enum CGCameraDir {
 };
 
 class CGCamera : public CSimpleCamera {
- public:
-  CGCamera();
-  ~CGCamera();
-
-  void             MakeRelativeTo(DWORDLONG guid);
-  const DWORDLONG &GetTarget() const {
-    return m_target;
-  }
-  void SetTarget(CGObject_C *target);
-  void SetPositionAndTarget(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
-  void SetPositionAndFacing(const NTempest::C3Vector &position, const NTempest::C3Vector &facing);
-  BOOL SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param);
-  void ClearModelCamera();
-  void ResetModelCamera();
-  void SetupWorldProjection(const NTempest::CRect &projectionRect);
-  void AddShake(int shake, const NTempest::C3Vector &position);
-  void AddShake(CGCameraShakeType shakeType, CGCameraDir direction, float amplitude, float frequency, float duration, float phase, float coefficient);
-  void ToggleFreeLook();
-  void EnableFreeLook();
-  void DisableFreeLook(int sticky);
-  virtual NTempest::C3Vector Forward() const;
-  virtual NTempest::C3Vector Right() const;
-  virtual NTempest::C3Vector Up() const;
-  void                       SyncFreeLookFacing();
-  void                       UpdateFreeLookFacing(float dx, float dy);
-  void                       CreateViewFromParams(int view, float dist, float pitch, float yaw);
-  void                       CreateViewFromCamera(int view);
-  void                       SetView(int newView);
-  void                       CycleView();
-  void                       NextView();
-  void                       PreviousView();
-  void                       ResetView(int view);
-  void                       ZoomIn(float distance, DWORD timestamp);
-  void                       ZoomOut(float distance, DWORD timestamp);
-  void                       StartMotion(CGCameraMotion move, DWORD timestamp, DWORD timeout);
-  void                       StopMotion(CGCameraMotion move, DWORD timestamp);
-  void                       SetPositionAndTargetWithRoll(const NTempest::C3Vector &position, const NTempest::C3Vector &target, float roll);
-  NTempest::C3Vector         Target() const;
-  NTempest::C3Vector         Facing() const;
-  int                        InFreeLookMode() const;
-  int                        GetView() const;
-  static BOOL                UpdateCallback(LPCVOID, LPVOID param);
-
- private:
   friend class CGWorldFrame;
   friend class CGInputControl;
   friend class CGUnit_C;
 
-  BOOL                FinishLoadingModel();
-  BOOL                FinishLoadingTarget(CGObject_C *target);
-  int                 CompletedAngle() const;
-  void                SetViewFlags(int flags);
-  NTempest::C33Matrix ParentToWorld() const;
-  static BOOL         CCommand_CameraClip(LPCSTR command, LPCSTR arguments);
-  void                SetTargetFadeValue(BYTE value);
-  void                SetModeNormal();
-  void                SetModeFreeLook();
-  void                CalcThirdPerson(CGObject_C *target, DWORD timestamp);
-  void                CalcFirstPerson(CGObject_C *target, DWORD timestamp);
-  void                ClampAngles();
-  float               GetSmoothedYawAngle(float yaw, int moving);
-  float               GetSmoothedHeight(float z, int moving);
-  void                PerformTerrainTilt(DWORD timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly);
-  void                SetDesiredDistance(float desiredDistance, DWORD timestamp);
-  void                SetDesiredDistanceOverTime(float desiredDistance, float motionTime, DWORD timestamp);
-  void                SetDesiredPitchAngle(float desiredAngle, float delay, DWORD timestamp);
-  void                SetDesiredPitchAngleOverTime(float desiredAngle, float motionTime, DWORD timestamp);
-  void                SetDesiredYawAngle(float desiredAngle, float delay, DWORD timestamp);
-  void                SetDesiredYawAngleOverTime(float desiredAngle, float motionTime, DWORD timestamp);
-  void                SetSmoothingAngle(float smoothingAngle, DWORD timestamp, int quickly);
-  float               GetCameraDistance(float cameraDist, const NTempest::C3Vector &targetPosition);
-  float               CollideCameraWithWorld(const NTempest::C3Vector &targetPosition);
-  void                UpdateMotion(DWORD timestamp);
-  void                CalcModelCamera(DWORD timestamp);
-  void                RunShakes();
-  void                CheckUnderwater();
   HMODEL__           *m_model;
   HCAMERA__          *m_modelCamera;
   NTempest::C34Matrix m_modelMatrix;
@@ -158,6 +88,79 @@ class CGCamera : public CSimpleCamera {
   LISTDECL(CameraShake, m_shakes);
 
   static int s_clipCamera;
+
+  void  SetSmoothingAngle(float smoothingAngle, DWORD timestamp, int quickly);
+  void  ClampAngles();
+  float GetSmoothedHeight(float z, int moving);
+  float GetSmoothedYawAngle(float yaw, int moving);
+  void  PerformTerrainTilt(DWORD timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly);
+  float GetCameraDistance(float cameraDist, const NTempest::C3Vector &targetPosition);
+  void  CalcThirdPerson(CGObject_C *target, DWORD timestamp);
+  void  CalcFirstPerson(CGObject_C *target, DWORD timestamp);
+  void  CalcModelCamera(DWORD timestamp);
+  void  SetTargetFadeValue(BYTE value);
+  float CollideCameraWithWorld(const NTempest::C3Vector &targetPosition);
+  void  SetModeNormal();
+  void  SetModeFreeLook();
+  void  UpdateMotion(DWORD timestamp);
+  void  SetDesiredDistance(float desiredDistance, DWORD timestamp);
+  void  SetDesiredDistanceOverTime(float desiredDistance, float motionTime, DWORD timestamp);
+  void  SetDesiredPitchAngle(float desiredAngle, float delay, DWORD timestamp);
+  void  SetDesiredPitchAngleOverTime(float desiredAngle, float motionTime, DWORD timestamp);
+  void  SetDesiredYawAngle(float desiredAngle, float delay, DWORD timestamp);
+  void  SetDesiredYawAngleOverTime(float desiredAngle, float motionTime, DWORD timestamp);
+  void  RunShakes();
+  void  CheckUnderwater();
+  int   CompletedAngle() const;
+  void  SetViewFlags(int flags);
+
+  BOOL                FinishLoadingModel();
+  BOOL                FinishLoadingTarget(CGObject_C *target);
+  NTempest::C33Matrix ParentToWorld() const;
+  static BOOL         CCommand_CameraClip(LPCSTR command, LPCSTR arguments);
+
+ public:
+  CGCamera();
+  ~CGCamera();
+  BOOL SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param);
+  void ResetModelCamera();
+  void ClearModelCamera();
+  void SetTarget(CGObject_C *target);
+  const DWORDLONG &GetTarget() const {
+    return m_target;
+  }
+  void                       SetPositionAndTarget(const NTempest::C3Vector &position, const NTempest::C3Vector &target);
+  void                       SetPositionAndFacing(const NTempest::C3Vector &position, const NTempest::C3Vector &facing);
+  void                       SetPositionAndTargetWithRoll(const NTempest::C3Vector &position, const NTempest::C3Vector &target, float roll);
+  virtual NTempest::C3Vector Forward() const;
+  virtual NTempest::C3Vector Right() const;
+  virtual NTempest::C3Vector Up() const;
+  NTempest::C3Vector         Target() const;
+  NTempest::C3Vector         Facing() const;
+  void                       SetupWorldProjection(const NTempest::CRect &projectionRect);
+  void                       AddShake(CGCameraShakeType shakeType, CGCameraDir direction, float amplitude, float frequency, float duration, float phase, float coefficient);
+  void                       AddShake(int shake, const NTempest::C3Vector &position);
+  void                       ToggleFreeLook();
+  void                       EnableFreeLook();
+  void                       DisableFreeLook(int sticky);
+  void                       UpdateFreeLookFacing(float dx, float dy);
+  void                       SyncFreeLookFacing();
+  void                       CreateViewFromParams(int view, float dist, float pitch, float yaw);
+  void                       CreateViewFromCamera(int view);
+  void                       SetView(int newView);
+  void                       CycleView();
+  void                       NextView();
+  void                       PreviousView();
+  void                       ResetView(int view);
+  void                       ZoomIn(float distance, DWORD timestamp);
+  void                       ZoomOut(float distance, DWORD timestamp);
+  void                       StartMotion(CGCameraMotion move, DWORD timestamp, DWORD timeout);
+  void                       StopMotion(CGCameraMotion move, DWORD timestamp);
+  int                        InFreeLookMode() const;
+  int                        GetView() const;
+
+  void        MakeRelativeTo(DWORDLONG guid);
+  static BOOL UpdateCallback(LPCVOID, LPVOID param);
 };
 
 void CameraInitialize();

@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -156,15 +158,16 @@ static int Script_StartDuel(lua_State *L) {
 }
 
 static int Script_StartDuelUnit(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: StartDuelUnit(\"unit\")");
+  if (lua_isstring(L, 1)) {
+    CGDuelInfo::StartDuel();
+    DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+    CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
+    if (object) {
+      object->OnRightClick();
+    }
+    return 0;
   }
-  CGDuelInfo::StartDuel();
-  DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-  CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
-  if (object) {
-    object->OnRightClick();
-  }
+  luaL_error(L, "Usage: StartDuelUnit(\"unit\")");
   return 0;
 }
 

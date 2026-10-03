@@ -2,12 +2,12 @@
 #include <Gx/Gx.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
-#include "WowServices/WowConnection.h"
-#include <WowConst.h>
+#include "Net/NetClient/NetClient.h"
 #include <Frame/CSimpleTop.h>
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
 
@@ -66,15 +66,14 @@ BOOL CGDynamicObject_C::UpdateModelLoadStatus() {
     return 0;
   }
 
-  HMODEL model = GetObjectModel();
-  m_haveStandSequence = ModelHasSequenceId(model, 0) != 0;
-  m_haveHoldSequence = ModelHasSequenceId(model, 1) != 0;
+  m_haveStandSequence = ModelHasSequenceId(GetObjectModel(), 0) != 0;
+  m_haveHoldSequence = ModelHasSequenceId(GetObjectModel(), 1) != 0;
 
   if (m_dynamicObj->m_type != 2 && m_dynamicObj->m_type != 1) {
     NTempest::CAaSphere bounds;
     bounds.r = 0.0f;
-    ModelGetBounds(model, &bounds);
-    if (bounds.r > 0.001f) {
+    ModelGetBounds(GetObjectModel(), &bounds);
+    if (bounds.r > 0.001) {
       m_dynamicScale = m_dynamicObj->m_radius / bounds.r;
     } else {
       const SpellVisualEffectNameRec *effectRec = GetVisualEffectNameRec();
@@ -85,7 +84,7 @@ BOOL CGDynamicObject_C::UpdateModelLoadStatus() {
   }
 
   if (m_haveHoldSequence && !m_haveStandSequence) {
-    ObjectModelSetSequence(model, 1, 0, 0);
+    ObjectModelSetSequence(GetObjectModel(), 1, 0, 0);
   }
   return 1;
 }
@@ -180,11 +179,15 @@ void CGDynamicObject_C::SetData(LPCVOID data, UINT bytes) {
 }
 
 UINT CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
-  if (type == ID_OBJECT) {
-    return 0;
+  switch (type) {
+    case ID_OBJECT:
+      return 0;
+    case ID_DYNAMICOBJECT:
+      return CGObject::TotalFields() * sizeof(DWORD);
+    default:
+      FATALASSERT(0);
+      return static_cast<UINT>(-1);
   }
-  FATALASSERT(type == ID_DYNAMICOBJECT);
-  return CGObject::TotalFields() * sizeof(DWORD);
 }
 
 const SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() const {
@@ -223,20 +226,23 @@ LPCSTR CGDynamicObject_C::GetModelFileName() const {
 }
 
 void CGDynamicObject_C::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position) {
-  UINT event = *reinterpret_cast<const UINT *>(eventName);
-  if (event == 'DNS$') {  // $SND
-    SpellSoundEffectCallback(eventName + 4, position);
-  } else if (event == 'KHS$') {  // $SHK
-    SpellCameraShakeCallback(eventName + 4, position);
-  } else {
-    SysMsgPrintf(SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|CGDynamicObject_C|CGDynamicObject_C::HandleAnimEvent", eventName);
+  switch (*reinterpret_cast<const UINT *>(eventName)) {
+    case 'DNS$':
+      SpellSoundEffectCallback(eventName + 4, position);
+      break;
+    case 'KHS$':
+      SpellCameraShakeCallback(eventName + 4, position);
+      break;
+    default:
+      SysMsgPrintf(SYSMSG_WARNING, 16, "UNKNOWNANIMEVENT|%s|CGDynamicObject_C|CGDynamicObject_C::HandleAnimEvent", eventName);
+      break;
   }
 }
 
 void CGDynamicObject_C::AnimFinished() {
-  if (m_haveHoldSequence) {
-    ObjectModelSetSequence(GetObjectModel(), 1, 0, 0);
-  } else {
+  if (!m_haveHoldSequence) {
     ObjectModelSetSequence(GetObjectModel(), 0, 0, 0);
+  } else {
+    ObjectModelSetSequence(GetObjectModel(), 1, 0, 0);
   }
 }

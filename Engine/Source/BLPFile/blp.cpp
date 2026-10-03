@@ -9,6 +9,85 @@
 
 #include <string.h>
 
+enum {
+  dSaveButton = 1,
+  dCancelButton = 2,
+  dDXT1 = 10,
+  dTextureFormatFirst = 10,
+  dDXT1a = 11,
+  dDXT3 = 12,
+  dDXT5 = 13,
+  d4444 = 14,
+  d1555 = 15,
+  d565 = 16,
+  d8888 = 17,
+  d888 = 18,
+  d555 = 19,
+  d8 = 20,
+  dNVHS = 21,
+  dNVHU = 22,
+  dTextureFormatLast = 22,
+  d3DPreviewButton = 300,
+  dViewDXT1 = 200,
+  dViewDXT2 = 201,
+  dViewDXT3 = 202,
+  dViewDXT5 = 203,
+  dViewA4R4G4B4 = 204,
+  dViewA1R5G5B5 = 205,
+  dViewR5G6B5 = 206,
+  dViewA8R8G8B8 = 207,
+  dGenerateMipMaps = 30,
+  dMIPMapSourceFirst = 30,
+  dSpecifyMipMaps = 31,
+  dUseExistingMipMaps = 32,
+  dNoMipMaps = 33,
+  dMIPMapSourceLast = 33,
+  dSpecifiedMipMaps = 39,
+  dMIPFilterBox = 133,
+  dMIPFilterFirst = 133,
+  dMIPFilterCubic = 134,
+  dMIPFilterFullDFT = 135,
+  dMIPFilterKaiser = 136,
+  dMIPFilterLinearLightKaiser = 137,
+  dMIPFilterLast = 137,
+  dShowDifferences = 40,
+  dShowFiltering = 41,
+  dShowMipMapping = 42,
+  dShowAnisotropic = 43,
+  dChangeClearColorButton = 50,
+  dViewXBOX1c = 51,
+  dViewXBOX1a = 52,
+  dDitherColor = 53,
+  dLoadBackgroundImageButton = 54,
+  dUseBackgroundImage = 55,
+  dBinaryAlpha = 56,
+  dAlphaBlending = 57,
+  dFadeColor = 58,
+  dFadeAlpha = 59,
+  dFadeToColorButton = 60,
+  dAlphaBorder = 61,
+  dBorder = 62,
+  dBorderColorButton = 63,
+  dNormalMap = 64,
+  dDuDvMap = 65,
+  dDitherEachMIPLevel = 66,
+  dGreyScale = 67,
+  dZoom = 70,
+  dTextureType2D = 80,
+  dTextureTypeFirst = 80,
+  dTextureTypeCube = 81,
+  dTextureTypeImage = 82,
+  dTextureTypeLast = 82,
+  dFadeAmount = 90,
+  dFadeToAlpha = 91,
+  dFadeToDelay = 92,
+  dAskToLoadMIPMaps = 400,
+  dShowAlphaWarning = 401,
+  dShowPower2Warning = 402,
+  dAdvancedBlendingButton = 500,
+  dUserSpecifiedFadingAmounts = 501
+};
+
 using NTempest::C2iVector;
 
 DECLARE_STRICT_HANDLE(HCOLORMAP);
@@ -378,15 +457,16 @@ BOOL CBLPFile::LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLe
   return 1;
 }
 
-void CBLPFile::DecompPalFastPath(BYTE *data, LPCVOID tempBuffer, UINT colorSize) {
-  const BYTE *colorData = static_cast<const BYTE *>(tempBuffer);
-  const BYTE *alphaData = colorData + colorSize;
+void CBLPFile::DecompPalFastPath(BYTE *data, LPCVOID tempbuffer, UINT colorSize) {
+  BYTE       *pPix = data;
+  const BYTE *colorData = static_cast<const BYTE *>(tempbuffer);
   UINT        i;
 
-  for (i = 0; i < colorSize; ++i) {
-    *reinterpret_cast<UINT *>(data) = *reinterpret_cast<const UINT *>(&m_header.extended.palette[colorData[i]]);
-    data[3] = alphaData[i];
-    data += 4;
+  for (i = colorSize; i; --i) {
+    *reinterpret_cast<UINT *>(pPix) = *reinterpret_cast<const UINT *>(&m_header.extended.palette[*colorData]);
+    pPix[3] = colorData[colorSize];
+    ++colorData;
+    pPix += 4;
   }
 }
 
@@ -506,18 +586,20 @@ void CBLPFile::DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
 }
 
 void CBLPFile::DecompPalARGB565(BYTE *data, LPCVOID tempBuffer, UINT colorSize) {
-  const BYTE *colorData = static_cast<const BYTE *>(tempBuffer);
   WORD        pal[256];
   WORD       *pixels = reinterpret_cast<WORD *>(data);
+  const BYTE *colorData = static_cast<const BYTE *>(tempBuffer);
   UINT        i;
 
   for (i = 0; i < 256; ++i) {
     const BlpPalPixel &color = m_header.extended.palette[i];
-    pal[i] = static_cast<WORD>(((color.r & 0xF8) << 8) | ((color.g & 0xFC) << 3) | (color.b >> 3));
+    pal[i] = static_cast<WORD>(((color.r & 0xF8) << 8) + ((color.g & 0xFC) << 3) + (color.b >> 3));
   }
 
   for (i = 0; i < colorSize; ++i) {
-    pixels[i] = pal[colorData[i]];
+    *pixels = pal[*colorData];
+    ++colorData;
+    ++pixels;
   }
 }
 

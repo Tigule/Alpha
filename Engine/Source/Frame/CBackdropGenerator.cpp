@@ -210,8 +210,8 @@ void CBackdropGenerator::Generate(const NTempest::CRect *rect) {
 
     ASSERT(texture);
 
-    float xRepeats = (rect->r - rect->l) / (m_backgroundSize == 0.0f ? m_cornerSize : m_backgroundSize);
-    float yRepeats = (rect->b - rect->t) / (m_backgroundSize == 0.0f ? m_cornerSize : m_backgroundSize);
+    float xRepeats = (rect->r - rect->l) / (m_backgroundSize != 0.0f ? m_backgroundSize : m_cornerSize);
+    float yRepeats = (rect->b - rect->t) / (m_backgroundSize != 0.0f ? m_backgroundSize : m_cornerSize);
 
     texCoords[0] = NTempest::C2Vector(0.0f, 0.0f);
     texCoords[1] = NTempest::C2Vector(0.0f, yRepeats);
@@ -284,7 +284,10 @@ void CBackdropGenerator::SetVertexColor(const NTempest::CImVector &color) {
 }
 
 void CBackdropGenerator::GetVertexColor(NTempest::CImVector &color) const {
-  color = m_color;
+  color.a = m_color.a;
+  color.r = m_color.r;
+  color.g = m_color.g;
+  color.b = m_color.b;
 }
 
 void CBackdropGenerator::SetBorderVertexColor(const NTempest::CImVector &color) {
@@ -327,5 +330,8 @@ void CBackdropGenerator::SetBorderVertexColor(const NTempest::CImVector &color) 
 }
 
 void CBackdropGenerator::GetBorderVertexColor(NTempest::CImVector &color) const {
-  color = m_borderColor;
+  color.a = m_borderColor.a;
+  color.r = m_borderColor.r;
+  color.g = m_borderColor.g;
+  color.b = m_borderColor.b;
 }

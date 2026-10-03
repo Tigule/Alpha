@@ -66,13 +66,11 @@ void CSimpleHyperlinkedFrame::LoadXML_Scripts(const XMLNode *node, CStatus *stat
   CSimpleFrame::LoadXML_Scripts(node, status);
 
   for (script = node->GetChild(); script; script = script->GetSibling()) {
-    LPCSTR name = script->GetName();
-
-    if (!SStrCmpI(name, "OnHyperlinkEnter", 0x7FFFFFFF)) {
+    if (!SStrCmpI(script->GetName(), "OnHyperlinkEnter", 0x7FFFFFFF)) {
       SetOnHyperlinkEnterScript(script->GetBody());
-    } else if (!SStrCmpI(name, "OnHyperlinkLeave", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(script->GetName(), "OnHyperlinkLeave", 0x7FFFFFFF)) {
       SetOnHyperlinkLeaveScript(script->GetBody());
-    } else if (!SStrCmpI(name, "OnHyperlinkClick", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(script->GetName(), "OnHyperlinkClick", 0x7FFFFFFF)) {
       SetOnHyperlinkClickScript(script->GetBody());
     }
   }

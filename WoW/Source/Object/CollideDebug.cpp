@@ -7,14 +7,14 @@
 #include "Object/MovementData.h"
 
 struct CARgbColor {
+  operator NTempest::CImVector() const {
+    return NTempest::CImVector(a, r, g, b);
+  }
+
   BYTE a;
   BYTE r;
   BYTE g;
   BYTE b;
-
-  operator NTempest::CImVector() const {
-    return NTempest::CImVector(a, r, g, b);
-  }
 };
 
 static CARgbColor s_facetColor[NUM_FACET_COLORS] = {

@@ -53,6 +53,30 @@ static struct {
     {ActivityGetTimePercent,  "percentage CPU"},
     {      ActivityGetCalls, "calls per frame"}
 };
+enum {
+  PERF_EVENTS = 0,
+  PERF_EVENTIDLE = 1,
+  PERF_EVENTPAINT = 2,
+  PERF_ANIMATE = 3,
+  PERF_ANIM_EVENTS = 4,
+  PERF_ANIM_SEQ_END = 5,
+  PERF_MODEL = 6,
+  PERF_PARTICLE = 7,
+  PERF_LIGHTING = 8,
+  PERF_RENDER = 9,
+  PERF_OBJ_MGR = 10,
+  PERF_FRAMEMGR = 11,
+  PERF_WORLD = 12,
+  PERF_SOUND = 13,
+  PERF_PERFDISPLAY = 14,
+  PERF_PROG0 = 15,
+  PERF_PROG1 = 16,
+  PERF_PROG2 = 17,
+  PERF_PROG3 = 18,
+  PERF_OTHER = 19,
+  PERF_MAX = 20
+};
+
 static int       s_activityMode;
 static HLAYER__ *s_layer;
 static void (*sTextFunc)(char *, int, LPVOID);
@@ -64,6 +88,18 @@ static float           s_avgPerfAccum[20][8];
 static int             s_avgPerfIndex;
 static float           s_perfFontHeight;
 static CGxStringBatch *s_stringBatch;
+
+enum {
+  MSG_OPEN = 0,
+  MSG_DATA = 1,
+  MSG_MAX = 2
+};
+
+enum {
+  PROF_PERFTIME_DATA = 1,
+  PROF_PERFTIME_LABELS = 2,
+  PROF_LOG_STRING = 3
+};
 
 char *s_perfPrompts[20] = {
     "Events",

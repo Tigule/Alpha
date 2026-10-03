@@ -26,6 +26,8 @@ struct MinimapTexParams {
 };
 
 struct QUADDATA {
+  QUADDATA();
+
   NTempest::C3Vector  verts[4];
   NTempest::C2Vector  texCoords[4];
   NTempest::C2Vector  maskTexCoords[4];
@@ -37,10 +39,6 @@ struct QUADDATA {
   NTempest::C2iVector m_areaNum;
   UINT                groupNum;
 
-  QUADDATA();
-
-  void            Render(UINT quad, const NTempest::CImVector &color) const;
-  NTempest::CRect NormalizeToQuad(UINT quad, NTempest::CRect clippedRect);
   void            GenerateVertTexInfo(
       const NTempest::CRect    &rect,
       UINT                      quad,
@@ -50,6 +48,9 @@ struct QUADDATA {
       float                     layoutScale
   );
   void UpdateData(UINT quad, const NTempest::C2Vector centerPoint, float radius, float layoutScale);
+
+  void            Render(UINT quad, const NTempest::CImVector &color) const;
+  NTempest::CRect NormalizeToQuad(UINT quad, NTempest::CRect clippedRect);
 };
 
 struct POIDIRECTIONDATA {

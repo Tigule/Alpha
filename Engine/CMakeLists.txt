@@ -2,6 +2,12 @@ add_subdirectory(Source/Expat)
 add_subdirectory(Source/Gxu/FreeType)
 add_subdirectory(Source/lua)
 
+add_library(regex STATIC
+    Source/regex/regfree.c
+    Source/regex/regcomp.c
+    Source/regex/regexec.c
+)
+
 add_library(Engine STATIC
     Source/Anim/Interp.cpp
     Source/Anim/Anim.cpp
@@ -149,9 +155,6 @@ add_library(Engine STATIC
     Source/Base/CDataAllocator.cpp
     Source/Base/FileCache.cpp
     Source/Base/CDataRecycler.cpp
-    Source/regex/regfree.c
-    Source/regex/regcomp.c
-    Source/regex/regexec.c
     Source/Services/Camera.cpp
     Source/Services/ParticleSystem.cpp
     Source/Services/GfxSingletonManager.cpp
@@ -216,11 +219,7 @@ endif()
 if(MSVC_VERSION EQUAL 1200)
     target_compile_options(Engine PRIVATE /Gr /Z7)
 
-    set_source_files_properties(
-        Source/regex/regfree.c
-        Source/regex/regcomp.c
-        Source/regex/regexec.c
-        PROPERTIES COMPILE_FLAGS "/G6 /Ob1")
+    target_compile_options(regex PRIVATE /Gr /Z7 /G6 /Ob1 /Oy)
 
     # looks like these files don't include debug info?
     set_source_files_properties(
@@ -520,7 +519,7 @@ target_include_directories(Engine
     "$ENV{DXSDK_DIR}/Include"
 )
 
-target_link_libraries(Engine Storm Expat FreeType lua)
+target_link_libraries(Engine Storm Expat FreeType lua regex)
 
 if(WIN32)
     set(FMOD_IMPORT_LIBRARY

@@ -9,15 +9,15 @@ namespace NTempest {
     LONGLONG m_data;
 
     float GetX() const {
-      return static_cast<float>(static_cast<int>(static_cast<DWORDLONG>(m_data) >> 32) >> 10) * 0.00000047683716f;
+      return static_cast<float>(static_cast<int>(m_data >> 42)) * 0.000000476837158203125f;
     }
 
     float GetY() const {
-      return static_cast<float>(static_cast<int>(static_cast<UINT>(static_cast<DWORDLONG>(m_data) >> 10)) >> 11) * 0.00000095367432f;
+      return static_cast<float>(static_cast<int>((m_data << 22) >> 43)) * 0.00000095367431640625f;
     }
 
     float GetZ() const {
-      return static_cast<float>(static_cast<int>(static_cast<UINT>(m_data) << 11) >> 11) * 0.00000095367432f;
+      return static_cast<float>(static_cast<int>((m_data << 43) >> 43)) * 0.00000095367431640625f;
     }
 
     float GetW(float x, float y, float z) const {
@@ -49,8 +49,20 @@ namespace NTempest {
       return *this;
     }
 
-    void Set(const C4Quaternion &source);
-         operator C4Quaternion() const;
+    void Set(const C4Quaternion &source) {
+      int sign = source.w < 0.0f ? -1 : 1;
+      int x = CMath::fint_(source.x * 2097152.0f) * sign;
+      int y = CMath::fint_(source.y * 1048576.0f) * sign;
+      int z = CMath::fint_(source.z * 1048576.0f) * sign;
+      m_data = (((static_cast<LONGLONG>(x) << 21) | (y & 0x1FFFFF)) << 21) | (z & 0x1FFFFF);
+    }
+
+    operator C4Quaternion() const {
+      float x = GetX();
+      float y = GetY();
+      float z = GetZ();
+      return C4Quaternion(GetW(x, y, z), x, y, z);
+    }
 
     LONGLONG Raw() const {
       return m_data;
@@ -88,8 +100,8 @@ namespace NTempest {
         const C4QuaternionCompressed &inTangent
     ) {
       return C4Quaternion::Squad(
-          ratio, static_cast<C4Quaternion>(start), static_cast<C4Quaternion>(end), static_cast<C4Quaternion>(outTangent),
-          static_cast<C4Quaternion>(inTangent)
+          ratio, static_cast<C4Quaternion>(start), static_cast<C4Quaternion>(outTangent), static_cast<C4Quaternion>(inTangent),
+          static_cast<C4Quaternion>(end)
       );
     }
 

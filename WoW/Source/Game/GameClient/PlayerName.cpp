@@ -1,8 +1,14 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <MapDefs.h>
+#include <WorldClient/World.h>
+#include <WowConst.h>
+#include <DayNight.h>
+
 #include "Console/ConsoleCommand.h"
 #include "Console/ConsoleVar.h"
 #include "Game/GameClient/PlayerName.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
-#include "Object/ObjectClient/Unit_C.h"
 #include "Ui/WorldFrame.h"
 
 #include <Base/Handle.h>
@@ -34,16 +40,6 @@ class PLAYERNAMEDESC : public CHandleObject {
   PLAYERNAMEDESC();
   virtual ~PLAYERNAMEDESC();
 
-  void                CreateWorldText(WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride);
-  void                RenderWorldText();
-  void                ShowWorldText(int show);
-  void                UpdateWorldPos();
-  void                UpdateWorldText();
-  void                MoveGeoset(const NTempest::C3Vector &pos);
-  void                Render(const NTempest::C44Matrix &basis);
-  void                SetStringColor(const NTempest::CImVector &color);
-  NTempest::CImVector GetStringColor() const;
-
   LINKDECLEX(PLAYERNAMEDESC, m_link);
   CGxString          *m_string;
   UINT                m_customGeosetID;
@@ -55,6 +51,16 @@ class PLAYERNAMEDESC : public CHandleObject {
   UINT                m_lastRenderFrame;
   HWORLDTEXT          m_worldTextHandles[4];
   float               m_heightOffset;
+
+  void                UpdateWorldPos();
+  void                Render(const NTempest::C44Matrix &basis);
+  void                SetStringColor(const NTempest::CImVector &color);
+  NTempest::CImVector GetStringColor() const;
+  void                CreateWorldText(WORLDTEXTTYPE type, LPCSTR text, const NTempest::CImVector *colorOverride);
+  void                UpdateWorldText();
+  void                ShowWorldText(int show);
+  void                RenderWorldText();
+  void                MoveGeoset(const NTempest::C3Vector &pos);
 };
 
 struct CVARINFO {
@@ -75,6 +81,8 @@ static CVar *s_unitShowMode;
 static CVar *s_showTypeCVars[8];
 static UINT  s_showTypeFlags[2] = {-1, -1};
 static UINT  s_lastRenderFrame;
+
+#include "Object/ObjectClient/Unit_C.h"
 
 PLAYERNAMEDESC::PLAYERNAMEDESC()
     : m_string(0),
@@ -111,10 +119,7 @@ PLAYERNAMEDESC::~PLAYERNAMEDESC() {
 
 static void PlayerNameRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, LPVOID param) {
   FATALASSERT(param);
-  NTempest::C44Matrix matrix(
-      basis.a0, basis.a1, basis.a2, 0.0f, basis.b0, basis.b1, basis.b2, 0.0f, basis.c0, basis.c1, basis.c2, 0.0f, basis.d0, basis.d1, basis.d2, 1.0f
-  );
-  static_cast<PLAYERNAMEDESC *>(param)->Render(matrix);
+  static_cast<PLAYERNAMEDESC *>(param)->Render(basis);
 }
 
 static const CVARINFO s_cvarInfo[8] = {
@@ -162,13 +167,64 @@ static void CalculateBillboardRotation(const NTempest::C3Vector &direction, NTem
   matrix.b2 = matrix.a0 * matrix.c1 - matrix.a1 * matrix.c0;
 }
 
-void PLAYERNAMEDESC::Render(const NTempest::C44Matrix &basis) {
+void PLAYERNAMEDESC::Render(const NTempest::C44Matrix &b) {
   FATALASSERT(m_unitPtr);
   ShowWorldText(1);
   m_lastRenderFrame = s_lastRenderFrame;
-  m_basePos.x = basis.d0;
-  m_basePos.y = basis.d1;
-  m_basePos.z = basis.d2;
+
+  UINT mode = s_unitShowMode->GetInt();
+  if (s_showNames && mode < 4) {
+    BOOL nameVisible = m_unitPtr->ShouldRenderUnitName(mode) != 0;
+    if (nameVisible != ((m_flags >> 3) & 1)) {
+      m_unitPtr->PlayerNameVisibilityChanged(nameVisible);
+    }
+
+    if (nameVisible) {
+      m_flags |= 8;
+      if (m_flags & 2) {
+        m_flags &= ~2;
+        m_unitPtr->GetSelectionHighlightColor(&m_stringColor);
+        if (m_string && !(m_flags & 1)) {
+          GxuFontSetStringColor(m_string, m_stringColor);
+        }
+      }
+
+      if (m_flags & 1) {
+        if (m_string) {
+          GxuFontDestroyString(m_string);
+        }
+        m_heightOffset = 0.0f;
+        m_string = 0;
+
+        char buffer[260];
+        buffer[0] = 0;
+        m_heightOffset = m_unitPtr->UpdateUnitNameString(s_showTypeFlags[0], s_showTypeFlags[1], buffer, sizeof(buffer)) * 0.2f;
+        if (s_playerNameFont && buffer[0]) {
+          GxuFontCreateString(
+              s_playerNameFont, buffer, 0.2f, NTempest::C3Vector(0.0f, 0.0f, 0.0f), 100000.0f, 100000.0f, 0.0f, m_string, GxVJ_Bottom, GxHJ_Center, 200,
+              m_stringColor, 0.0f
+          );
+        }
+        m_flags &= ~1;
+      }
+
+      if (m_string) {
+        NTempest::C44Matrix worldTranslate(
+            1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, b.d0, b.d1, b.d2 + m_heightOffset, 1.0f
+        );
+        NTempest::C3Vector facing(0.0f, 0.0f, 0.0f);
+        CGWorldFrame::GetCameraFacing(&facing);
+        NTempest::C44Matrix rotation;
+        CalculateBillboardRotation(facing, rotation);
+        rotation *= worldTranslate;
+        GxuFontRender(m_string, rotation);
+      }
+    } else {
+      m_flags &= ~8;
+    }
+  }
+
+  m_basePos = NTempest::C3Vector(b.d0, b.d1, b.d2);
   UpdateWorldPos();
 }
 
@@ -188,18 +244,24 @@ void PLAYERNAMEDESC::RenderWorldText() {
 }
 
 void PLAYERNAMEDESC::ShowWorldText(int show) {
-  if ((show && (m_flags & 4)) || (!show && !(m_flags & 4))) {
-    for (UINT i = 4; i--;) {
-      if (m_worldTextHandles[i]) {
-        WorldTextShow(m_worldTextHandles[i], show);
-      }
+  if (show) {
+    if (!(m_flags & 4)) {
+      return;
     }
+  } else if (m_flags & 4) {
+    return;
+  }
 
-    if (show) {
-      m_flags &= ~4;
-    } else {
-      m_flags |= 4;
+  for (UINT i = 4; i--;) {
+    if (m_worldTextHandles[i]) {
+      WorldTextShow(m_worldTextHandles[i], show);
     }
+  }
+
+  if (show) {
+    m_flags &= ~4;
+  } else {
+    m_flags |= 4;
   }
 }
 

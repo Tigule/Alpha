@@ -87,8 +87,41 @@ class CSimpleButton : public CSimpleFrame {
     return m_state;
   }
 
-  void   SetOnClickScript(LPCSTR source);
-  void   RunOnClickScript(MOUSEBUTTON button);
+  void SetOnClickScript(LPCSTR source) {
+    char description[1024];
+    SStrPrintf(description, sizeof(description), "%s:OnClick", GetName());
+    SetEventScript(m_onClick, source, description);
+  }
+
+  void RunOnClickScript(MOUSEBUTTON button) {
+    if (m_onClick) {
+      LPCSTR buttonName;
+
+      switch (button) {
+        case MOUSE_BUTTON_LEFT:
+          buttonName = "LeftButton";
+          break;
+        case MOUSE_BUTTON_MIDDLE:
+          buttonName = "MiddleButton";
+          break;
+        case MOUSE_BUTTON_RIGHT:
+          buttonName = "RightButton";
+          break;
+        case MOUSE_BUTTON_XBUTTON1:
+          buttonName = "Button4";
+          break;
+        case MOUSE_BUTTON_XBUTTON2:
+          buttonName = "Button5";
+          break;
+        default:
+          buttonName = "UNKNOWN";
+          break;
+      }
+
+      FrameScript_Execute(m_onClick, this, "%s", buttonName);
+    }
+  }
+
   static void RegisterScriptMethods();
   static void UnregisterScriptMethods();
 

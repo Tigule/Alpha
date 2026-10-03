@@ -10,7 +10,11 @@
 void GuildStats::Pack(CDataStore *msg) {
   ASSERT(msg);
   msg->Put(m_guildID);
-  msg->PutString(m_guildName[0] ? m_guildName : "");
+  if (m_guildName[0]) {
+    msg->PutString(m_guildName);
+  } else {
+    msg->PutString("");
+  }
   msg->Put(static_cast<UINT>(m_emblemStyle));
   msg->Put(static_cast<UINT>(m_emblemColor));
   msg->Put(static_cast<UINT>(m_borderStyle));

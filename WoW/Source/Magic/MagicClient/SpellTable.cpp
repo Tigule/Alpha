@@ -1,8 +1,12 @@
 #include <Base/Base.h>
-#include <WowConst.h>
+#include <Gx/Gx.h>
 #include <MapDefs.h>
+#include "WorldClient/World.h"
+#include <WowConst.h>
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
+#include "Net/NetClient/NetClient.h"
 
-#include "WowServices/WowConnection.h"
 #include "DB/DBClient/AutoCode/CharBaseInfoRec.h"
 #include "DB/DBClient/AutoCode/ChrClassesRec.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"

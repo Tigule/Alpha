@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -36,9 +38,9 @@
 
 bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
 
-static void QuestItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
-  if (granted) {
-    FrameScript_SignalEvent(280);
+static void QuestItemStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
+  if (granted && g_itemDBCache.GetRecord(id, 0, 0, 0)) {
+    FrameScript_SignalEvent(282);
   }
 }
 
@@ -69,19 +71,14 @@ void CGQuestInfo::EnterWorld() {
   m_completable = 0;
   m_autoLaunched = 0;
   m_lastChosenItem = 0;
-  memset(m_quests, 0, sizeof(m_quests));
-  memset(m_inProgress, 0, sizeof(m_inProgress));
-  m_numQuests = 0;
-  m_numInProgress = 0;
-  m_rewardMoney = 0;
-  m_pendingQuest = 0;
+  ClearQuests();
   m_greetingText[0] = 0;
   m_questTitle[0] = 0;
   m_questText[0] = 0;
   m_questLogText[0] = 0;
   m_progressText[0] = 0;
   m_rewardText[0] = 0;
-  memset(m_questItems, 0, sizeof(m_questItems));
+  ClearItems();
 }
 
 void CGQuestInfo::LeaveWorld() {
@@ -92,13 +89,12 @@ void CGQuestInfo::SetState(DWORDLONG guid, QUEST_STATE state, LPCSTR text, int q
   FATALASSERT(state < QUEST_STATE_NUM_TYPES);
 
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
-  if (!object || !(object->GetType() & (TYPE_ITEM | TYPE_UNIT | TYPE_GAMEOBJECT))) {
+  if (!object || !(object->IsA(ID_UNIT) || object->IsA(ID_GAMEOBJECT) || object->IsA(ID_ITEM))) {
     return;
   }
 
   if (state == QUEST_GREETING) {
     ClearQuests();
-    ClearItems();
     m_greetingText[0] = 0;
     m_questTitle[0] = 0;
     m_questText[0] = 0;
@@ -149,13 +145,12 @@ void CGQuestInfo::AddQuest(int quest, LPCSTR desc, int questLevel, int turnIn) {
   FATALASSERT(m_state == QUEST_GREETING);
   FATALASSERT((m_numQuests + m_numInProgress) < 8);
 
-  QuestInfo &info = m_quests[m_numQuests];
-  info.id = quest;
-  info.level = questLevel;
+  m_quests[m_numQuests].id = quest;
+  m_quests[m_numQuests].level = questLevel;
   if (desc) {
-    SStrCopy(info.name, desc, sizeof(info.name));
+    SStrCopy(m_quests[m_numQuests].name, desc, sizeof(m_quests[m_numQuests].name));
   }
-  info.turnIn = turnIn;
+  m_quests[m_numQuests].turnIn = turnIn;
   ++m_numQuests;
 }
 
@@ -163,13 +158,12 @@ void CGQuestInfo::AddQuestInProgress(int quest, LPCSTR desc, int questLevel) {
   FATALASSERT(m_state == QUEST_GREETING);
   FATALASSERT((m_numQuests + m_numInProgress) < 7);
 
-  QuestInfo &info = m_inProgress[m_numInProgress];
-  info.id = quest;
-  info.level = questLevel;
+  m_inProgress[m_numInProgress].id = quest;
+  m_inProgress[m_numInProgress].level = questLevel;
   if (desc) {
-    SStrCopy(info.name, desc, sizeof(info.name));
+    SStrCopy(m_inProgress[m_numInProgress].name, desc, sizeof(m_inProgress[m_numInProgress].name));
   }
-  info.turnIn = 0;
+  m_inProgress[m_numInProgress].turnIn = 0;
   ++m_numInProgress;
 }
 
@@ -179,13 +173,13 @@ void CGQuestInfo::EndQuestList() {
 
 void CGQuestInfo::AddReward(
     LPCSTR title,
-    int   *itemChoice,
-    int   *choiceDisplay,
-    int   *choiceAmount,
+    int    itemChoice[],
+    int    choiceDisplay[],
+    int    choiceAmount[],
     int    numChoice,
-    int   *itemReward,
-    int   *itemDisplay,
-    int   *itemAmount,
+    int    itemReward[],
+    int    itemDisplay[],
+    int    itemAmount[],
     int    numReward,
     int    money,
     int    autoLaunched
@@ -193,7 +187,7 @@ void CGQuestInfo::AddReward(
   FATALASSERT(numChoice <= 6);
   FATALASSERT(numReward <= 6);
 
-  memset(m_questItems, 0, sizeof(m_questItems));
+  ClearItems();
   int i;
   for (i = 0; i < numChoice; ++i) {
     m_questItems[i].choiceItemID = itemChoice[i];
@@ -201,6 +195,8 @@ void CGQuestInfo::AddReward(
     m_questItems[i].choiceAmount = choiceAmount[i];
   }
   for (; i < 6; ++i) {
+    m_questItems[i].choiceItemID = 0;
+    m_questItems[i].choiceDisplayID = 0;
     m_questItems[i].choiceAmount = 1;
   }
 
@@ -210,18 +206,28 @@ void CGQuestInfo::AddReward(
     m_questItems[i].rewardAmount = itemAmount[i];
   }
   for (; i < 6; ++i) {
+    m_questItems[i].rewardItemID = 0;
+    m_questItems[i].rewardDisplayID = 0;
     m_questItems[i].rewardAmount = 1;
   }
 
   if (title) {
-    SStrCopy(m_questTitle, *title ? title : " ", sizeof(m_questTitle));
+    if (*title) {
+      SStrCopy(m_questTitle, title, sizeof(m_questTitle));
+    } else {
+      SStrCopy(m_questTitle, " ", sizeof(m_questTitle));
+    }
   }
   m_rewardMoney = money;
   m_autoLaunched = autoLaunched;
-  FrameScript_SignalEvent(m_state == QUEST_OFFER ? 278 : 280);
+  if (m_state == QUEST_OFFER) {
+    FrameScript_SignalEvent(278);
+  } else {
+    FrameScript_SignalEvent(280);
+  }
 }
 
-void CGQuestInfo::AddItemRequest(LPCSTR title, int *items, int *itemAmount, int *itemDisplay, int numItems, int completed, int autoLaunched) {
+void CGQuestInfo::AddItemRequest(LPCSTR title, int items[], int itemAmount[], int itemDisplay[], int numItems, int completed, int autoLaunched) {
   FATALASSERT(numItems <= 6);
 
   int i;
@@ -237,7 +243,11 @@ void CGQuestInfo::AddItemRequest(LPCSTR title, int *items, int *itemAmount, int 
   }
 
   if (title) {
-    SStrCopy(m_questTitle, *title ? title : " ", sizeof(m_questTitle));
+    if (*title) {
+      SStrCopy(m_questTitle, title, sizeof(m_questTitle));
+    } else {
+      SStrCopy(m_questTitle, " ", sizeof(m_questTitle));
+    }
   }
   m_completable = completed;
   m_autoLaunched = autoLaunched;
@@ -262,7 +272,7 @@ BOOL CGQuestInfo::IsCompletable() {
   }
   UINT index;
   for (index = 0; index < 6 && m_questItems[index].requiredItemID; ++index) {
-    if (player->GetBag()->GetItemTypeCount(m_questItems[index].requiredItemID, 0) < static_cast<UINT>(m_questItems[index].requiredAmount)) {
+    if (player->CGPlayer_C::GetBag()->GetItemTypeCount(m_questItems[index].requiredItemID, 8) < m_questItems[index].requiredAmount) {
       return 0;
     }
   }
@@ -270,7 +280,7 @@ BOOL CGQuestInfo::IsCompletable() {
 }
 
 void CGQuestInfo::QueryQuest(UINT index) {
-  if (index >= m_numQuests) {
+  if (index > m_numQuests) {
     return;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -284,7 +294,7 @@ void CGQuestInfo::QueryQuest(UINT index) {
 }
 
 void CGQuestInfo::CompleteQuest(UINT index) {
-  if (index >= m_numInProgress) {
+  if (index > m_numInProgress) {
     return;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -306,7 +316,7 @@ void CGQuestInfo::AcceptQuest() {
 
 void CGQuestInfo::DeclineQuest() {
   CGObject_C *object = ClntObjMgrObjectPtr(m_npc, __FILE__, __LINE__);
-  if ((object && object->GetType() & TYPE_ITEM) || m_autoLaunched) {
+  if ((object && object->IsA(ID_ITEM)) || m_autoLaunched) {
     QuestGiverFinished();
   } else {
     CDataStore hello;
@@ -328,21 +338,19 @@ void CGQuestInfo::GiveQuestItems() {
 }
 
 BOOL CGQuestInfo::GetReward(int choice) {
-  if (m_state != QUEST_REWARD) {
-    return 1;
+  if (m_state == QUEST_REWARD) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player) {
+      int numChoices = GetNumQuestChoices();
+      if (numChoices > 0) {
+        if (choice >= numChoices || choice < 0) {
+          return 0;
+        }
+        m_lastChosenItem = m_questItems[choice].choiceItemID;
+      }
+      player->GetQuestReward(m_npc, m_currentQuest, choice > 0 ? choice : 0);
+    }
   }
-  UINT numChoices = GetNumQuestChoices();
-  if (numChoices && (choice < 0 || static_cast<UINT>(choice) >= numChoices)) {
-    return 0;
-  }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return 1;
-  }
-  if (numChoices) {
-    m_lastChosenItem = m_questItems[choice].choiceItemID;
-  }
-  player->GetQuestReward(m_npc, m_currentQuest, choice > 0 ? choice : 0);
   return 1;
 }
 
@@ -367,8 +375,9 @@ UINT CGQuestInfo::GetNumQuestItems() {
   return index;
 }
 
-int CGQuestInfo::
-    GetQuestItemInfo(LPCSTR type, UINT index, char *name, UINT nameSize, char *texture, UINT textureSize, UINT &amount, int &quality, int &usable) {
+int CGQuestInfo::GetQuestItemInfo(LPCSTR type, UINT index, char name[], UINT nameSize, char texture[], UINT textureSize, UINT &amount, int &quality, int &usable) {
+  static char buffer[MAX_PATH];
+
   name[0] = 0;
   texture[0] = 0;
   amount = 1;
@@ -377,8 +386,8 @@ int CGQuestInfo::
   if (index > 6) {
     return 0;
   }
-  int itemID = 0;
-  int displayID = 0;
+  int itemID;
+  int displayID;
   if (!SStrCmpI(type, "reward", 0x7FFFFFFF)) {
     itemID = m_questItems[index].rewardItemID;
     displayID = m_questItems[index].rewardDisplayID;
@@ -394,24 +403,25 @@ int CGQuestInfo::
   } else {
     return 0;
   }
-  const ItemStats_C *stats = itemID ? g_itemDBCache.GetRecord(itemID, m_npc, reinterpret_cast<DBCACHECALLBACKPROC>(QuestItemStatsCallback), 0) : 0;
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, m_npc, reinterpret_cast<DBCACHECALLBACKPROC>(QuestItemStatsCallback), 0);
   if (stats) {
     SStrCopy(name, stats->m_displayName[0], nameSize);
     quality = stats->m_inventoryType ? stats->m_overallQualityID : -1;
-    CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    GAME_ERROR_TYPE reason;
-    if (player && !player->CanUseItem(stats, reason)) {
-      usable = 0;
-    }
   }
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  SStrPrintf(texture, textureSize, "%s%s", path, *path ? "\\" : "");
-  SStrPack(texture, CGItem_C::GetInventoryArt(displayID), textureSize);
+  SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
+  SStrPack(buffer, CGItem_C::GetInventoryArt(displayID), sizeof(buffer));
+  SStrCopy(texture, buffer, textureSize);
+  CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  GAME_ERROR_TYPE reason;
+  if (player && stats && !player->CanUseItem(stats, reason)) {
+    usable = 0;
+  }
   return 1;
 }
 
 int CGQuestInfo::GetQuestItemID(LPCSTR type, UINT index) {
-  if (index >= 6) {
+  if (index > 6) {
     return 0;
   }
   if (!SStrCmpI(type, "reward", 0x7FFFFFFF)) {
@@ -428,8 +438,11 @@ int CGQuestInfo::GetQuestItemID(LPCSTR type, UINT index) {
 
 void CGQuestInfo::ConfirmAcceptQuest(int questID, LPCSTR questTitle, const DWORDLONG &initiatedBy) {
   m_pendingQuest = questID;
-  const NameCache *nc = g_nameDBCache.GetRecord(initiatedBy, initiatedBy, 0, 0);
-  FATALASSERT(nc);
+  const NameCache *nc = g_nameDBCache.GetRecord(initiatedBy, 0, 0, 0);
+  if (!nc) {
+    FATALASSERT(nc);
+    return;
+  }
   FrameScript_SignalEvent(325, "%s%s", nc->m_name, questTitle);
 }
 
@@ -479,50 +492,56 @@ static int Script_GetNumActiveQuests(lua_State *L) {
 }
 
 static int Script_GetAvailableTitle(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetAvailableTitle(index)");
+  if (lua_isnumber(L, 1)) {
+    lua_pushstring(L, CGQuestInfo::GetQuestName(static_cast<int>(lua_tonumber(L, 1)) - 1));
+    return 1;
   }
-  lua_pushstring(L, CGQuestInfo::GetQuestName(static_cast<UINT>(lua_tonumber(L, 1)) - 1));
-  return 1;
+  luaL_error(L, "Usage: GetAvailableTitle(index)");
+  return 0;
 }
 
 static int Script_GetActiveTitle(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetActiveTitle(index)");
+  if (lua_isnumber(L, 1)) {
+    lua_pushstring(L, CGQuestInfo::GetInProgressName(static_cast<int>(lua_tonumber(L, 1)) - 1));
+    return 1;
   }
-  lua_pushstring(L, CGQuestInfo::GetInProgressName(static_cast<UINT>(lua_tonumber(L, 1)) - 1));
-  return 1;
+  luaL_error(L, "Usage: GetActiveTitle(index)");
+  return 0;
 }
 
 static int Script_GetAvailableLevel(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetGetAvailableLevel(index)");
+  if (lua_isnumber(L, 1)) {
+    lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetQuestLevel(static_cast<int>(lua_tonumber(L, 1)) - 1)));
+    return 1;
   }
-  lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetQuestLevel(static_cast<UINT>(lua_tonumber(L, 1)) - 1)));
-  return 1;
+  luaL_error(L, "Usage: GetGetAvailableLevel(index)");
+  return 0;
 }
 
 static int Script_GetActiveLevel(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetGetActiveLevel(index)");
+  if (lua_isnumber(L, 1)) {
+    lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetInProgressLevel(static_cast<int>(lua_tonumber(L, 1)) - 1)));
+    return 1;
   }
-  lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetInProgressLevel(static_cast<UINT>(lua_tonumber(L, 1)) - 1)));
-  return 1;
+  luaL_error(L, "Usage: GetGetActiveLevel(index)");
+  return 0;
 }
 
 static int Script_SelectAvailableQuest(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: SelectAvailableQuest(index)");
+  if (lua_isnumber(L, 1)) {
+    CGQuestInfo::QueryQuest(static_cast<int>(lua_tonumber(L, 1)) - 1);
+    return 0;
   }
-  CGQuestInfo::QueryQuest(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  luaL_error(L, "Usage: SelectAvailableQuest(index)");
   return 0;
 }
 
 static int Script_SelectActiveQuest(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: SelectActiveQuest(index)");
+  if (lua_isnumber(L, 1)) {
+    CGQuestInfo::CompleteQuest(static_cast<int>(lua_tonumber(L, 1)) - 1);
+    return 0;
   }
-  CGQuestInfo::CompleteQuest(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  luaL_error(L, "Usage: SelectActiveQuest(index)");
   return 0;
 }
 
@@ -551,10 +570,12 @@ static int Script_CompleteQuest(lua_State *) {
 }
 
 static int Script_GetQuestReward(lua_State *L) {
-  int choice = lua_isnumber(L, 1) ? static_cast<int>(lua_tonumber(L, 1)) - 1 : 0;
+  int choice = -1;
+  if (lua_isnumber(L, 1)) {
+    choice = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  }
   if (!CGQuestInfo::GetReward(choice)) {
-    luaL_error(L, "Invalid reward choice in GetQuestReward");
-    return 0;
+    luaL_error(L, "Invalid reward choice in GetQuestReward([choice])");
   }
   return 0;
 }
@@ -580,30 +601,30 @@ static int Script_GetNumQuestItems(lua_State *L) {
 }
 
 static int Script_GetQuestItemInfo(lua_State *L) {
-  if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
-    return luaL_error(L, "Invalid quest item in GetQuestItemInfo(\"type\", index)");
+  if (lua_isstring(L, 1) && lua_isnumber(L, 2)) {
+    char texture[MAX_PATH];
+    char name[256];
+    int  usable;
+    UINT amount;
+    int  quality;
+    if (CGQuestInfo::GetQuestItemInfo(
+            lua_tostring(L, 1), static_cast<int>(lua_tonumber(L, 2)) - 1, name, sizeof(name), texture, sizeof(texture), amount, quality, usable
+        ))
+    {
+      lua_pushstring(L, name);
+      lua_pushstring(L, texture);
+      lua_pushnumber(L, static_cast<double>(amount));
+      lua_pushnumber(L, static_cast<double>(quality));
+      if (usable) {
+        lua_pushnumber(L, 1.0);
+      } else {
+        lua_pushnil(L);
+      }
+      return 5;
+    }
   }
-  char texture[MAX_PATH];
-  char name[256];
-  int  quality;
-  int  usable;
-  UINT amount;
-  if (!CGQuestInfo::GetQuestItemInfo(
-          lua_tostring(L, 1), static_cast<UINT>(lua_tonumber(L, 2)) - 1, name, sizeof(name), texture, sizeof(texture), amount, quality, usable
-      ))
-  {
-    return luaL_error(L, "Invalid quest item in GetQuestItemInfo(\"type\", index)");
-  }
-  lua_pushstring(L, name);
-  lua_pushstring(L, texture);
-  lua_pushnumber(L, static_cast<double>(amount));
-  lua_pushnumber(L, static_cast<double>(quality));
-  if (usable) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
-  }
-  return 5;
+  luaL_error(L, "Invalid quest item in GetQuestItemInfo(\"type\", index)");
+  return 0;
 }
 
 static int Script_QuestChooseRewardError(lua_State *) {
@@ -622,20 +643,25 @@ static int Script_ConfirmAcceptQuest(lua_State *) {
 
 static int Script_GetQuestBackgroundMaterial(lua_State *L) {
   CGObject_C *object = ClntObjMgrObjectPtr(CGQuestInfo::GetQuestGiver(), __FILE__, __LINE__);
-  int         material = 0;
   if (object) {
-    if (object->GetType() & TYPE_ITEM) {
+    int material = 0;
+    if (object->IsA(ID_ITEM)) {
       const ItemStats_C *stats = g_itemDBCache.GetRecord(object->GetEntryID(), 0, 0, 0);
       if (stats) {
         material = stats->m_pageMaterial;
       }
-    } else if (object->GetType() & TYPE_GAMEOBJECT) {
+    } else if (object->IsA(ID_GAMEOBJECT)) {
       material = static_cast<CGGameObject_C *>(object)->GetPageTextMaterial();
     }
+    if (material > 0) {
+      const PageTextMaterialRec *rec = g_pageTextMaterialDB.GetRecord(material);
+      if (rec) {
+        lua_pushstring(L, rec->m_name);
+        return 1;
+      }
+    }
   }
-
-  const PageTextMaterialRec *rec = material > 0 ? g_pageTextMaterialDB.GetRecord(material) : 0;
-  lua_pushstring(L, rec ? rec->m_name : 0);
+  lua_pushnil(L);
   return 1;
 }
 

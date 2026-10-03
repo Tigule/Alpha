@@ -57,7 +57,7 @@ void WowConnectionNet::Start() {
     SThread::Create(WorkerProc, worker, worker->thread, name);
   }
 
-  for (; id < 8; ++id) {
+  for (; id < sizeof(m_workers) / sizeof(m_workers[0]); ++id) {
     Worker *worker = &m_workers[id];
     worker->id = 0;
     worker->serviceConn = 0;

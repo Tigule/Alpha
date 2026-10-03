@@ -1,7 +1,7 @@
 #include <Base/Base.h>
-#include <WowConst.h>
-
 #include "SoundInterface.h"
+#include <Gx/Gx.h>
+#include <WowConst.h>
 
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleCommand.h"
@@ -41,7 +41,7 @@ static float InterpFloat(float progress, float start, float end) {
 }
 
 static int InterpInt(float progress, int start, int end) {
-  return static_cast<int>(start + progress * (end - start));
+  return static_cast<int>((static_cast<float>(end) - static_cast<float>(start)) * progress + static_cast<float>(start));
 }
 
 void SndInterfaceFadeProviderPrefs(const EVENT_DATA_IDLE *data) {

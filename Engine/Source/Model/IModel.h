@@ -9,6 +9,14 @@ class CGxLight;
 struct HTEXTURE__;
 typedef HTEXTURE__ *HTEXTURE;
 
+enum {
+  MODEL_GEO_UNSHADED = 1,
+  MODEL_GEO_TWOSIDED = 16,
+  MODEL_GEO_UNFOGGED = 32,
+  MODEL_GEO_NO_DEPTH_TEST = 64,
+  MODEL_GEO_NO_DEPTH_SET = 128
+};
+
 struct CModelCreate {
   CModelCreate() {
   }

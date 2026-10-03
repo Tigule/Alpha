@@ -6,6 +6,8 @@
 #include "UIUtil/InputControl.h"
 #include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Ui/GameUI.h"
 
 #include "UIUtil/HealthBar.h"
 
@@ -21,19 +23,19 @@ static BOOL SimpleHealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID data, 
   CGSimpleHealthBar *healthBar = static_cast<CGSimpleHealthBar *>(parameter);
   CGUnit_C          *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
-    const CGUnitData *unitData = unit->GetUnitData();
-    healthBar->SetMinMaxValues(0.0f, static_cast<float>(unitData->maxHealth));
-    healthBar->SetValue(static_cast<float>(unitData->health));
+    healthBar->SetMinMaxValues(0.0f, static_cast<float>(unit->GetMaxHealth()));
+    healthBar->SetValue(static_cast<float>(unit->GetHealth()));
   }
 
   return 1;
 }
 
-CGSimpleHealthBar::CGSimpleHealthBar(CSimpleFrame *parent) : CSimpleStatusBar(parent), m_unitGUID(0), m_scaleColor(1) {
+CGSimpleHealthBar::CGSimpleHealthBar(CSimpleFrame *parent) : CSimpleStatusBar(parent), m_unitGUID(0) {
+  m_scaleColor = 1;
 }
 
 CGSimpleHealthBar::~CGSimpleHealthBar() {
-  RemoveMirrorHandlers();
+  SetUnit(0);
 }
 
 void CGSimpleHealthBar::SetUnit(CGUnit_C *unit) {
@@ -46,9 +48,8 @@ void CGSimpleHealthBar::SetUnit(CGUnit_C *unit) {
   m_unitGUID = unit->GetGUID();
   InstallMirrorHandlers();
 
-  const CGUnitData *unitData = unit->GetUnitData();
-  SetMinMaxValues(0.0f, static_cast<float>(unitData->maxHealth));
-  SetValue(static_cast<float>(unitData->health));
+  SetMinMaxValues(0.0f, static_cast<float>(unit->GetMaxHealth()));
+  SetValue(static_cast<float>(unit->GetHealth()));
 }
 
 void CGSimpleHealthBar::SetValue(float value) {

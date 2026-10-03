@@ -33,15 +33,16 @@ class OsTimeManager {
     LARGE_INTEGER qperfCount;
   };
 
-  void                  Snapshot(TimeSnapshot *time);
-  static UINT __stdcall TimeKeeper(LPVOID);
-  void                  Calibrate();
-
  public:
   LONGLONG cpuTicksPerSecond_qp;
   LONGLONG cpuTicksPerSecond_ti;
 
  private:
+  static UINT __stdcall TimeKeeper(LPVOID);
+  void                  Calibrate();
+
+  void Snapshot(TimeSnapshot *time);
+
   SThread timeMgrThread;
   SEvent  shutdownEvt;
   DWORD   sleepVal;
@@ -158,7 +159,7 @@ void OsGetTimeStamp(char *timeStamp, DWORD len) {
   time_t ltime;
 
   time(&ltime);
-  strftime(timeStamp, len, "%m%d%y_%H%M%S", localtime(&ltime));
+  strftime(timeStamp, len, "%m%d%y_%H%M%S\0", localtime(&ltime));
 }
 
 void OsGetTimeStr(char *timebuf, DWORD len, LPCSTR format, long timer) {
@@ -179,8 +180,8 @@ void OsFileTimeGetCurrent(OSFILETIME *filetime) {
 }
 
 int OsFileTimeCompare(const OSFILETIME *filetime1, const OSFILETIME *filetime2) {
-  FATALASSERT(filetime1);
   VALIDATEBEGIN;
+  VALIDATE(filetime1);
   VALIDATE(filetime2);
   VALIDATEEND;
   return CompareFileTime(reinterpret_cast<const FILETIME *>(&filetime1->m_value), reinterpret_cast<const FILETIME *>(&filetime2->m_value));

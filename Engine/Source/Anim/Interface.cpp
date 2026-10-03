@@ -12,58 +12,69 @@ typedef TSHashTable<CAnimNameHash, HASHKEY_CONSTSTRI> CAnimNameHashTable;
 
 BOOL CAnimData::Animates() {
   UINT index;
-  for (index = 0; index < geo.Count(); ++index) {
-    if (geo[index].visibility.TotalKeys() || geo[index].color.TotalKeys()) {
+
+  CAnimGeoset *geoset = geo.Ptr();
+  for (index = geo.Count(); index--; ++geoset) {
+    if (geoset->visibility.TotalKeys() || geoset->color.TotalKeys()) {
       return 1;
     }
   }
-  for (index = 0; index < tex.Count(); ++index) {
-    if (tex[index].Animates()) {
+  CAnimTransform *texAnim = tex.Ptr();
+  for (index = tex.Count(); index--; ++texAnim) {
+    if (texAnim->Animates()) {
       return 1;
     }
   }
-  for (index = 0; index < baseObjs.Count(); ++index) {
-    if (baseObjs[index].CAnimTransform::Animates() || (baseObjs[index].flags & 0x3F)) {
+  CAnimObj *object = baseObjs.Ptr();
+  for (index = baseObjs.Count(); index--; ++object) {
+    if (object->Animates()) {
       return 1;
     }
   }
-  for (index = 0; index < boneObjs.Count(); ++index) {
-    if (boneObjs[index].CAnimTransform::Animates() || (boneObjs[index].flags & 0x3F)) {
+  CAnimBoneObj *bone = boneObjs.Ptr();
+  for (index = boneObjs.Count(); index--; ++bone) {
+    if (bone->Animates()) {
       return 1;
     }
   }
-  if (lightObjs.Count() || modelObjs.Count() || emitter2Objs.Count() || ribbonObjs.Count()) {
+  if (lightObjs.Count()) {
     return 1;
   }
-  for (index = 0; index < cameraObjs.Count(); ++index) {
-    CAnimCameraObj &camera = cameraObjs[index];
-    if (camera.visibility.TotalKeys() || camera.translation.TotalKeys() || camera.roll.TotalKeys() || camera.targetTranslation.TotalKeys()) {
+  if (modelObjs.Count()) {
+    return 1;
+  }
+  if (emitter2Objs.Count()) {
+    return 1;
+  }
+  if (ribbonObjs.Count()) {
+    return 1;
+  }
+  CAnimCameraObj *camera = cameraObjs.Ptr();
+  for (index = cameraObjs.Count(); index--; ++camera) {
+    if (camera->visibility.TotalKeys() || camera->translation.TotalKeys() || camera->roll.TotalKeys() || camera->targetTranslation.TotalKeys()) {
       return 1;
     }
   }
   UINT numEventEmitters = eventObjs.Count();
   for (index = 0; index < numEventEmitters; ++index) {
     CAnimEventObj &eventObject = eventObjs[index];
-    if (eventObject.Animates() || (eventObject.flags & 0x3F) || eventObject.events.TotalKeys()) {
+    if (eventObject.CAnimObj::Animates() || eventObject.events.TotalKeys()) {
       return 1;
     }
   }
-  for (index = 0; index < layers.Count(); ++index) {
-    if (layers[index].visibility.TotalKeys() || layers[index].flip.TotalKeys()) {
+  CAnimMaterialLayer *layer = layers.Ptr();
+  for (index = layers.Count(); index--; ++layer) {
+    if (layer->visibility.TotalKeys() || layer->flip.TotalKeys()) {
       return 1;
     }
   }
   return 0;
 }
 
-BOOL CAnimTransform::Animates() {
-  return translation.TotalKeys() || rotation.TotalKeys() || scale.TotalKeys();
-}
-
 BOOL CAnimData::Moves() {
-  for (UINT index = 0; index < boneObjs.Count(); ++index) {
-    CAnimBoneObj &bone = boneObjs[index];
-    if (bone.CAnimTransform::Animates() || (bone.flags & 0x3F)) {
+  CAnimBoneObj *bone = boneObjs.Ptr();
+  for (UINT i = boneObjs.Count(); i--; ++bone) {
+    if (bone->Animates()) {
       return 1;
     }
   }
@@ -256,19 +267,17 @@ static BOOL RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFla
 }
 
 static int AnimObjectUsingLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
-  ASSERT(unique);
-
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
-  ASSERT(shared);
-  ASSERT(objectId < shared->objectOrder.Count());
-
+  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnimData *shared;
+  VALIDATEBEGIN;
+  VALIDATE(unique);
+  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  VALIDATE(shared);
+  VALIDATE(objectId < shared->objectOrder.Count());
   objectId = shared->objectOrder[objectId];
   if (objectId == static_cast<UINT>(-1)) {
     return 0;
   }
-
-  VALIDATEBEGIN;
   VALIDATE(objectId < unique->status.Count());
   VALIDATEEND;
   return unique->status[objectId]->base.flags & lookAtTypeFlag;
@@ -356,12 +365,16 @@ BOOL AnimGetSequenceDuration(HANIM anim, UINT seqIndex, UINT *duration) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  CVariations &selection = shared->seqOrder[unique->seqMapIndex].order[seqIndex];
-  if (selection.primary == 0xFF) {
+  if (seqIndex >= shared->seqOrder[unique->seqMapIndex].order.Count()) {
     return 0;
   }
 
-  *duration = shared->seq[selection.primary].time.h - shared->seq[selection.primary].time.l;
+  UINT sequence = shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary;
+  if (sequence == 0xFF) {
+    return 0;
+  }
+
+  *duration = shared->seq[sequence].time.Magnitude();
   return 1;
 }
 
@@ -374,12 +387,16 @@ BOOL AnimGetSequenceName(HANIM anim, UINT seqIndex, char *buffer, UINT buffLengt
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  CVariations &selection = shared->seqOrder[unique->seqMapIndex].order[seqIndex];
-  if (selection.primary == 0xFF) {
+  if (seqIndex >= shared->seqOrder[unique->seqMapIndex].order.Count()) {
     return 0;
   }
 
-  SStrCopy(buffer, reinterpret_cast<LPCSTR>(&shared->seq[selection.primary].name), buffLength);
+  UINT sequence = shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary;
+  if (sequence == 0xFF) {
+    return 0;
+  }
+
+  SStrCopy(buffer, shared->seq[sequence].name, buffLength);
   return 1;
 }
 
@@ -391,12 +408,16 @@ BOOL AnimGetSequenceMoveSpeed(HANIM anim, UINT seqIndex, float *moveSpeed) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  CVariations &selection = shared->seqOrder[unique->seqMapIndex].order[seqIndex];
-  if (selection.primary == 0xFF) {
+  if (seqIndex >= shared->seqOrder[unique->seqMapIndex].order.Count()) {
     return 0;
   }
 
-  *moveSpeed = shared->seq[selection.primary].moveSpeed;
+  UINT sequence = shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary;
+  if (sequence == 0xFF) {
+    return 0;
+  }
+
+  *moveSpeed = shared->seq[sequence].moveSpeed;
   return 1;
 }
 
@@ -637,15 +658,7 @@ BOOL AnimIsAttachmentEnabled(HANIM anim, UINT index) {
 
   UINT geosetId = shared->modelObjs[index].geosetId;
 
-  if (!unique->modelStatus[index].IsVisible()) {
-    return 0;
-  }
-
-  if (geosetId == 0xFF) {
-    return 1;
-  }
-
-  if (unique->geosetStatus[geosetId].IsVisible()) {
+  if (unique->modelStatus[index].IsVisible() && (geosetId == 0xFF || unique->geosetStatus[geosetId].IsVisible())) {
     return 1;
   }
 
@@ -744,11 +757,7 @@ BOOL AnimNeedsSequenceBounds(HANIM anim) {
   CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
   ASSERT(shared);
 
-  if ((shared->flags & 8) && shared->seq.Count() > 1) {
-    return 1;
-  }
-
-  if ((shared->flags & 2) && shared->seq.Count() > 1) {
+  if (((shared->flags & 8) && shared->seq.Count() > 1) || ((shared->flags & 2) && shared->seq.Count() > 1)) {
     return 1;
   }
 
@@ -926,9 +935,7 @@ BOOL AnimGetEventObjectPosition(HANIM anim, UINT objectId, NTempest::C3Vector *p
     return 0;
   }
 
-  ASSERT(objectId < shared->obj.Count());
-  ASSERT(shared->obj[objectId]->type == 6);
-  ASSERT(objectId < unique->status.Count());
+  ASSERT(shared->obj[objectId]->type == OBJ_TYPE_EVENT);
   *position = static_cast<CAnimEventObjStatus *>(unique->status[objectId])->position;
   return 1;
 }

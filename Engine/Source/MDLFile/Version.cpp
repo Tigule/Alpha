@@ -18,7 +18,7 @@ namespace MDL {
 
     LPCSTR tokentext;
     UINT   token = parse.Token(&tokentext, 0);
-    while (token && token != '}') {
+    while (token != '}' && token) {
       if (!errors.Check(token)) {
         parse.FatalDuplicate(tokentext);
       }

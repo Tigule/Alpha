@@ -1,4 +1,5 @@
 #include "Model/ModelInternal.h"
+#include "Services/ParticleSystem2.h"
 #include "Base/Status.h"
 #include "MDLFile/MDLTypes.h"
 #include "Tempest/cmath.h"
@@ -10,8 +11,6 @@ BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 
 HTEXTURE LoadModelTexture(LPCSTR texturePath, UINT modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
 
-static NTempest::CImVector s_uglyPink(0xFFFF00FFul);
-
 static void GetTextureFlags(const MDLTEXTURESECTION &texdata, CGxTexFlags *flags) {
   if (texdata.flags & 0x1) {
     flags->m_wrapU = 1;
@@ -22,6 +21,7 @@ static void GetTextureFlags(const MDLTEXTURESECTION &texdata, CGxTexFlags *flags
 }
 
 static void ProcessTextures(const MDLTEXTURESECTION *texdata, UINT numTextures, UINT flags, CStatus *status, CModelTexture *textures) {
+  static NTempest::CImVector s_uglyPink(0xFFFF00FFul);
   for (UINT textureIndex = 0; textureIndex < numTextures; ++textureIndex) {
     textures[textureIndex].replaceableId = texdata[textureIndex].replaceableId;
 
@@ -46,7 +46,10 @@ static void ProcessTextures(const MDLTEXTURESECTION *texdata, UINT numTextures, 
 }
 
 static UINT GetTmuPassFlags(UINT createFlags, UINT layerFlags) {
-  UINT result = (layerFlags & 0x2) != 0;
+  UINT result = 0;
+  if (layerFlags & 0x2) {
+    result = 1;
+  }
   if (createFlags & 0x100000) {
     result |= 0x2;
   }
@@ -502,8 +505,7 @@ static void LoadLayerData(BYTE *materialData, CTexLayer *unique, CTexLayerShared
   shared->tmuPass[0].transformId = *reinterpret_cast<UINT *>(materialData + 12);
   shared->tmuPass[0].coordId = *reinterpret_cast<UINT *>(materialData + 16);
 
-  float alpha = *reinterpret_cast<const float *>(materialData + 20);
-  unique->layerAlpha = static_cast<BYTE>(NTempest::CMath::fuint_n(alpha * 255.0f));
+  unique->layerAlpha = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(materialData + 20) * 255.0f);
   shared->tmuPass[0].textureShader = GetTextureShader(shared->tmuPass[0].transformId, createFlags);
 
   unique->tmuPass[0].combiner = GxTexBlend_Mod;
@@ -644,9 +646,9 @@ void MdxLoadGlobalProperties(BYTE *data, UINT fileBytes, UINT *loadFlags, CModel
   data = MDLFileBinarySeek(data, fileBytes, 'LDOM');
   ASSERT(data != 0);
 
-  BYTE globalFlags = data[0x174];
-  modelShared->groundTrack = static_cast<GROUND_TRACK>(globalFlags & GROUND_TRACK_MASK);
-  if (globalFlags & 0x4) {
+  data += 0x174;
+  modelShared->groundTrack = static_cast<GROUND_TRACK>(*data & GROUND_TRACK_MASK);
+  if (*data & 0x4) {
     *loadFlags &= ~0x100;
   }
 }
@@ -660,10 +662,11 @@ void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *mode
   }
 
   UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  data += 4;
   UINT numTextures = sectionBytes / sizeof(MDLTEXTURESECTION);
-  ASSERT(sectionBytes == numTextures * sizeof(MDLTEXTURESECTION));
+  ASSERT(sectionBytes == (numTextures * sizeof(MDLTEXTURESECTION)));
   modelptr->m_textures.SetCount(numTextures);
-  ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(data + 4), numTextures, flags, status, modelptr->m_textures.Ptr());
+  ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(data), numTextures, flags, status, modelptr->m_textures.Ptr());
 }
 
 void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *modelptr, CStatus *status) {
@@ -675,10 +678,11 @@ void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *model
   }
 
   UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+  section += 4;
   UINT numTextures = sectionBytes / sizeof(MDLTEXTURESECTION);
-  ASSERT(sectionBytes == numTextures * sizeof(MDLTEXTURESECTION));
+  ASSERT(sectionBytes == (numTextures * sizeof(MDLTEXTURESECTION)));
   modelptr->m_textures.SetCount(numTextures);
-  ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(section + 4), numTextures, flags, status, modelptr->m_textures.Ptr());
+  ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(section), numTextures, flags, status, modelptr->m_textures.Ptr());
 }
 
 void MdxReadMaterials(BYTE *fileData, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {

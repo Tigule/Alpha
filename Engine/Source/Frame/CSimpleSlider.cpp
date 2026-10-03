@@ -26,9 +26,7 @@ CSimpleSlider::CSimpleSlider(CSimpleFrame *parent)
 CSimpleSlider::~CSimpleSlider() {
   SetThumbTexture(0, 3);
 
-  char description[1024];
-  SStrPrintf(description, sizeof(description), "%s:OnValueChanged", GetName());
-  SetEventScript(m_onValueChanged, 0, description);
+  SetOnValueChangedScript(0);
 }
 
 void CSimpleSlider::LoadXML(const XMLNode *node, CStatus *status) {
@@ -42,7 +40,7 @@ void CSimpleSlider::LoadXML(const XMLNode *node, CStatus *status) {
 
   for (const XMLNode *child = node->GetChild(); child; child = child->GetSibling()) {
     if (!SStrCmpI(child->GetName(), "ThumbTexture", INT_MAX)) {
-      SetThumbTexture(LoadXML_Texture(child, this, status), 3);
+      SetThumbTexture(LoadXML_Texture(child, this, status), layer);
     }
   }
 
@@ -83,9 +81,7 @@ void CSimpleSlider::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
 
   for (const XMLNode *script = node->GetChild(); script; script = script->GetSibling()) {
     if (!SStrCmpI(script->GetName(), "OnValueChanged", INT_MAX)) {
-      char description[1024];
-      SStrPrintf(description, sizeof(description), "%s:OnValueChanged", GetName());
-      SetEventScript(m_onValueChanged, script->GetBody(), description);
+      SetOnValueChangedScript(script->GetBody());
     }
   }
 }
@@ -121,7 +117,7 @@ void CSimpleSlider::SetMinMaxValues(float min, float max) {
   m_rangeSet = 1;
 
   if (m_valueSet) {
-    SetValue(m_value);
+    SetValue(GetValue());
   }
 }
 
@@ -130,16 +126,7 @@ void CSimpleSlider::SetValue(float value) {
     return;
   }
 
-  if (value < m_baseValue) {
-    value = m_baseValue;
-  }
-
-  float max = m_baseValue + m_range;
-  if (value > max) {
-    value = max;
-  }
-
-  value = StepValue(value);
+  value = StepValue(__min(GetMaxValue(), __max(GetMinValue(), value)));
 
   if (!m_valueSet || value != m_value) {
     m_value = value;
@@ -156,7 +143,7 @@ void CSimpleSlider::SetValueStep(float step) {
   m_valueStep = step;
 
   if (m_rangeSet) {
-    SetMinMaxValues(m_baseValue, m_baseValue + m_range);
+    SetMinMaxValues(GetMinValue(), GetMaxValue());
   }
 }
 
@@ -164,13 +151,13 @@ void CSimpleSlider::OnLayerUpdate(float elapsedSec) {
   CSimpleFrame::OnLayerUpdate(elapsedSec);
 
   if (m_changed && m_thumbTexture && m_rangeSet && m_valueSet) {
-    float offset = (m_value - m_baseValue) / m_range;
-    if (m_orientation == SLIDER_VERTICAL) {
-      float area = m_rect.b - m_rect.t - m_thumbTexture->GetHeight();
-      m_thumbTexture->SetPoint(FRAMEPOINT_TOP, this, FRAMEPOINT_TOP, 0.0f, -(area * offset / m_layoutScale), 1);
+    float value = (GetValue() - GetMinValue()) / (GetMaxValue() - GetMinValue());
+    if (IsHorizontal()) {
+      float offset = (m_rect.r - m_rect.l - m_thumbTexture->GetWidth()) * value / m_layoutScale;
+      m_thumbTexture->SetPoint(FRAMEPOINT_LEFT, this, FRAMEPOINT_LEFT, offset, 0.0f, 1);
     } else {
-      float area = m_rect.r - m_rect.l - m_thumbTexture->GetWidth();
-      m_thumbTexture->SetPoint(FRAMEPOINT_LEFT, this, FRAMEPOINT_LEFT, area * offset / m_layoutScale, 0.0f, 1);
+      float offset = (m_rect.b - m_rect.t - m_thumbTexture->GetHeight()) * value / m_layoutScale;
+      m_thumbTexture->SetPoint(FRAMEPOINT_TOP, this, FRAMEPOINT_TOP, 0.0f, -offset, 1);
     }
     m_changed = 0;
   }
@@ -178,16 +165,15 @@ void CSimpleSlider::OnLayerUpdate(float elapsedSec) {
 
 BOOL CSimpleSlider::OnLayerTrackUpdate(const CMouseEvent &evt) {
   if (m_buttonDown) {
-    float area;
-    float offset;
-    if (m_orientation == SLIDER_VERTICAL) {
-      area = m_rect.b - m_rect.t - m_thumbTexture->GetHeight();
-      offset = m_rect.b - m_thumbTexture->GetHeight() * 0.5f - evt.y;
+    if (IsHorizontal()) {
+      float area = m_rect.r - m_rect.l - m_thumbTexture->GetWidth();
+      float offset = evt.x - (m_thumbTexture->GetWidth() * 0.5f + m_rect.l);
+      SetValue((GetMaxValue() - GetMinValue()) * (offset / area) + GetMinValue());
     } else {
-      area = m_rect.r - m_rect.l - m_thumbTexture->GetWidth();
-      offset = evt.x - (m_thumbTexture->GetWidth() * 0.5f + m_rect.l);
+      float area = m_rect.b - m_rect.t - m_thumbTexture->GetHeight();
+      float offset = m_rect.b - m_thumbTexture->GetHeight() * 0.5f - evt.y;
+      SetValue((GetMaxValue() - GetMinValue()) * (offset / area) + GetMinValue());
     }
-    SetValue(m_range * (offset / area) + m_baseValue);
   }
   return CSimpleFrame::OnLayerTrackUpdate(evt);
 }

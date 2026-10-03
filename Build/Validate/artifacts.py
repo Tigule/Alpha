@@ -5,6 +5,7 @@ import re
 import struct
 from pathlib import Path
 
+from .linetag import build_line_tag_normalizer
 from .model import ArtifactData, Diagnostic, ImageIdentity, MapSymbol, Section
 
 
@@ -388,6 +389,12 @@ def _parse_map(
         _map_fail(path, "missing section contribution table")
     if not saw_public_table or not symbols:
         _map_fail(path, "missing public/static symbol rows")
+    normalize = build_line_tag_normalizer([symbol.name for symbol in symbols])
+    symbols = [
+        symbol if normalize(symbol.name) == symbol.name
+        else MapSymbol(normalize(symbol.name), symbol.rva, symbol.segment, symbol.offset, symbol.flags, symbol.object_name)
+        for symbol in symbols
+    ]
     return timestamp, preferred_base, tuple(section_rows), tuple(symbols)
 
 

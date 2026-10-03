@@ -6,6 +6,11 @@ namespace NTempest {
 
   class C22Matrix {
    public:
+    float a0;
+    float a1;
+    float b0;
+    float b1;
+
     enum {
       eComponents = 4
     };
@@ -21,8 +26,7 @@ namespace NTempest {
     ~C22Matrix() {
     }
 
-    static C22Matrix Rotation(float angle);
-    C22Matrix        asC22Matrix() const {
+    C22Matrix asC22Matrix() const {
       return *this;
     }
     const C22Matrix *asFloatPtr() const {
@@ -34,10 +38,10 @@ namespace NTempest {
     const float *Access() const {
       return &a0;
     }
-    float *operator[](DWORD row) {
+    float *operator[](UINT row) {
       return &a0 + row * 2;
     }
-    const float *operator[](DWORD row) const {
+    const float *operator[](UINT row) const {
       return &a0 + row * 2;
     }
     C2Vector *Row0AsVec2() {
@@ -72,15 +76,15 @@ namespace NTempest {
       b1 -= m.b1;
       return *this;
     }
+    C22Matrix &operator*=(const C22Matrix &m) {
+      *this = C22Matrix(a0 * m.a0 + a1 * m.b0, a0 * m.a1 + a1 * m.b1, b0 * m.a0 + b1 * m.b0, b0 * m.a1 + b1 * m.b1);
+      return *this;
+    }
     C22Matrix &operator*=(float value) {
       a0 *= value;
       a1 *= value;
       b0 *= value;
       b1 *= value;
-      return *this;
-    }
-    C22Matrix &operator*=(const C22Matrix &m) {
-      *this = C22Matrix(a0 * m.a0 + a1 * m.b0, a0 * m.a1 + a1 * m.b1, b0 * m.a0 + b1 * m.b0, b0 * m.a1 + b1 * m.b1);
       return *this;
     }
     C22Matrix &operator/=(float value) {
@@ -93,7 +97,8 @@ namespace NTempest {
       a0 = b1 = 1.0f;
       a1 = b0 = 0.0f;
     }
-    float Trace() const {
+    static C22Matrix Rotation(float angle);
+    float            Trace() const {
       return a0 + b1;
     }
     C22Matrix Transpose() const {
@@ -102,18 +107,13 @@ namespace NTempest {
     float Determinant() const {
       return a0 * b1 - a1 * b0;
     }
-    C22Matrix Inverse() const {
-      return Inverse(Determinant());
-    }
     C22Matrix Inverse(float determinant) const {
       float inverse = 1.0f / determinant;
       return C22Matrix(b1 * inverse, -a1 * inverse, -b0 * inverse, a0 * inverse);
     }
-
-    float a0;
-    float a1;
-    float b0;
-    float b1;
+    C22Matrix Inverse() const {
+      return Inverse(Determinant());
+    }
   };
 
 }  // namespace NTempest

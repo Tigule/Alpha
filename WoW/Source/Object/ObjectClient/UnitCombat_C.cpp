@@ -2,12 +2,12 @@
 #include <Gx/Gx.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
-#include "WowServices/WowConnection.h"
-#include <WowConst.h>
+#include "Net/NetClient/NetClient.h"
 #include <Frame/CSimpleTop.h>
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
 
@@ -537,7 +537,7 @@ bool CGUnit_C::QueueVictimAnim(VICTIMSTATES newState, int unitDead, int critical
     ATTACKROUNDINFO dummy;
     dummy.newVictimState = newState;
     if (unitDead) {
-      dummy.flags = 4;
+      dummy.flags |= 4;
     }
     if (criticalHit) {
       dummy.flags |= 8;
@@ -1101,14 +1101,16 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
 
 void CGUnit_C::AdjustVictimState(ATTACKROUNDINFO *roundInfo) {
   if (roundInfo->newVictimState == VS_PARRY) {
+    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_MAINHAND);
     const VirtualItemInfo *item = GetAttackingWeapon(COMBAT_MAINHAND);
-    if (!item || !m_unit->virtualItemDisplay[VIRTUAL_MONSTER_SLOT_MAINHAND]) {
+    if (!item || !display) {
       roundInfo->flags |= 0x40000;
       roundInfo->newVictimState = VS_DEFLECT;
     }
   } else if (roundInfo->newVictimState == VS_BLOCK) {
     const VirtualItemInfo *item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, 1);
-    if (!item || !m_unit->virtualItemDisplay[VIRTUAL_MONSTER_SLOT_OFFHAND]) {
+    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_OFFHAND);
+    if (!item || !display) {
       roundInfo->flags &= ~0x40000u;
       roundInfo->newVictimState = VS_DEFLECT;
     }
@@ -1117,12 +1119,15 @@ void CGUnit_C::AdjustVictimState(ATTACKROUNDINFO *roundInfo) {
 
 MISS_REASON CGUnit_C::AdjustVictimState(MISS_REASON reason) {
   if (reason == MISS_PARRIED) {
-    if (!GetAttackingWeapon(COMBAT_MAINHAND) || !m_unit->virtualItemDisplay[VIRTUAL_MONSTER_SLOT_MAINHAND]) {
+    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_MAINHAND);
+    const VirtualItemInfo *item = GetAttackingWeapon(COMBAT_MAINHAND);
+    if (!item || !display) {
       return MISS_DEFLECTED;
     }
   } else if (reason == MISS_BLOCKED) {
     const VirtualItemInfo *item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, 1);
-    if (!item || !m_unit->virtualItemDisplay[VIRTUAL_MONSTER_SLOT_OFFHAND]) {
+    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_OFFHAND);
+    if (!item || !display) {
       return MISS_DEFLECTED;
     }
   }
@@ -1290,7 +1295,7 @@ void CGUnit_C::ShowPlayerXPGained() {
 
 const VirtualItemInfo *CGUnit_C::GetParryingItem(bool ignoreMainHand) const {
   const VirtualItemInfo *item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, 0);
-  if (!ignoreMainHand && item && item->m_classID == 2) {
+  if (!ignoreMainHand && (!item || item->m_classID == 2)) {
     return item;
   }
 
@@ -1317,7 +1322,7 @@ int CGUnit_C::GetUnitSize() const {
 
 void CGUnit_C::WoundAnimEndHandler() {
   if (m_currentBaseAnimState != ANIM_STATE_DEAD) {
-    m_animFlags |= 2;
+    m_flags |= 2;
     ClearTorsoAnimation(64);
   }
 }

@@ -1,3 +1,7 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <BLPFile/blp.h>
+
 #include "SysMessage.h"
 
 #include <Base/Status.h>
@@ -35,13 +39,12 @@ static struct {
   BYTE  red;
   BYTE  green;
   BYTE  blue;
-  BYTE  unused;
   float timeVisible;
 } s_severityDisplay[SYSMSG_NUMTYPES] = {
-    {255, 255, 255, 0, 10.0f},
-    {255, 255, 127, 0, 15.0f},
-    {255, 127, 127, 0, 15.0f},
-    {127, 255, 255, 0, 20.0f}
+    {255, 255, 255, 10.0f},
+    {255, 255, 127, 15.0f},
+    {255, 127, 127, 15.0f},
+    {127, 255, 255, 20.0f}
 };
 
 static int            s_enabled = 1;
@@ -56,12 +59,7 @@ static BOOL DetermineFileName(LPCSTR curDir, char *buffer, UINT size);
 
 void MSGBUFFER::SetInfo(LPCSTR newString, SYSMSG_TYPE newSeverity, UINT categories) {
   FREEIFUSED(string);
-
-  if (newString) {
-    string = SStrDupA(newString, __FILE__, __LINE__);
-  } else {
-    string = 0;
-  }
+  string = newString ? SStrDupA(newString, __FILE__, __LINE__) : 0;
 
   severity = newSeverity;
   categoryMask = categories;

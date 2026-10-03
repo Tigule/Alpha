@@ -345,11 +345,11 @@ unreal operator*(const unreal &a, const unreal &b) {
 }
 
 unreal operator/(const unreal &a, const unreal &b) {
-  if (a.bits == b.bits) {
-    return unreal::fromBits(0x3F800000);
+  if (a.bits != b.bits) {
+    return a * reciprocal(b);
   }
 
-  return a * reciprocal(b);
+  return unreal::fromBits(0x3F800000);
 }
 
 unreal operator-(const unreal &a, const unreal &b) {
@@ -542,32 +542,32 @@ unreal ceil(const unreal &a) {
 
 unreal trunc(const unreal &a) {
   UINT bits = a.bits;
-  int  exponent = static_cast<BYTE>(bits >> 23) - 127;
+  int  exponent = ((bits >> 23) & 0xFF) - 127;
 
   if (exponent < 0) {
     return unreal::fromBits(0);
   }
 
-  if (exponent >= 23) {
-    return a;
+  if (exponent < 23) {
+    return unreal::fromBits(bits & (static_cast<int>(0x80000000) >> (exponent + 8)));
   }
 
-  return unreal::fromBits(bits & (static_cast<int>(0x80000000) >> (exponent + 8)));
+  return a;
 }
 
 unreal fract(const unreal &a) {
-  int exponent = static_cast<BYTE>(a.bits >> 23) - 127;
+  int exponent = ((a.bits >> 23) & 0xFF) - 127;
 
   if (exponent < 0) {
     return a;
   }
 
-  if (exponent >= 23) {
-    return unreal::fromBits(0);
+  if (exponent < 23) {
+    unreal aTrunc = unreal::fromBits(a.bits & (static_cast<int>(0x80000000) >> (exponent + 8)));
+    return a - aTrunc;
   }
 
-  unreal aTrunc = unreal::fromBits(a.bits & (static_cast<int>(0x80000000) >> (exponent + 8)));
-  return a - aTrunc;
+  return unreal::fromBits(0);
 }
 
 unreal round(const unreal &a) {
@@ -1120,7 +1120,8 @@ unreal atan2(const unreal &y, const unreal &x) {
 }
 
 CDataStore &operator<<(CDataStore &store, const unreal &val) {
-  return store.Put(val.bits);
+  store.Put(val.bits);
+  return store;
 }
 
 CDataStore &operator>>(CDataStore &store, unreal &val) {

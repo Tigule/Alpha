@@ -1,4 +1,6 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <BLPFile/blp.h>
 
 #include "OsGui.h"
 #include "Input.h"
@@ -44,6 +46,12 @@ static int                           sIdleTimerID;
 static LPCSTR const                  OsGuiPointerProp = "OsGuiPointer";
 static const UINT                    SelectedState = 3;
 static const UINT                    lvExtStyle = 0x20;
+
+enum {
+  OSGUI_CALLBACK_MENU = 0,
+  OSGUI_CALLBACK_IDLE = 1,
+  NUM_OSGUI_CALLBACKS = 2
+};
 
 struct OsGuiCallbackInfo {
   void (*function)(const OsGuiCallbackParams &);
@@ -1337,8 +1345,9 @@ LPVOID COsDialog::GetTooltips() {
 
 void COsDialog::AddControl(COsControl *inControl) {
   *mControls.New() = inControl;
-  if (GetParent(static_cast<HWND>(inControl->mHandle)) != mHandle) {
-    SetParent(static_cast<HWND>(inControl->mHandle), static_cast<HWND>(mHandle));
+  HWND parent = GetParent(static_cast<HWND>(inControl->GetHandle()));
+  if (parent != mHandle) {
+    SetParent(static_cast<HWND>(inControl->GetHandle()), static_cast<HWND>(mHandle));
   }
 }
 
@@ -1608,30 +1617,19 @@ BOOL COsDialog::OnMouseMove(int inX, int inY) {
 }
 
 BOOL COsDialog::OnControlTab() {
-  int  controlCount = static_cast<int>(mControls.Count());
-  UINT index = 0;
+  int         controlCount = static_cast<int>(mControls.Count());
+  COsControl *control = 0;
 
-  if (controlCount <= 0) {
-    return 0;
-  }
-
-  while (static_cast<int>(index) < controlCount) {
+  for (int index = 0; index < controlCount; ++index) {
     if (mControls[index]->GetType() == 15) {
+      control = mControls[index];
       break;
     }
-
-    ++index;
   }
 
-  if (static_cast<int>(index) >= controlCount) {
-    return 0;
-  }
-
-  COsControl *control = mControls[index];
   if (!control) {
     return 0;
   }
-
   return static_cast<COsTabControl *>(control)->OnControlTab();
 }
 
@@ -1950,23 +1948,24 @@ int COsListBox::OnContextMenu(int inX, int inY) {
   int posX;
   int posY;
   GetPosition(&posX, &posY, 0);
-  int item = SendMessageA(static_cast<HWND>(mHandle), LB_ITEMFROMPOINT, 0, MAKELPARAM(inX - posX, inY - posY));
-  if (item < 0 || item >= GetNumItems()) {
-    return 0;
-  }
-
-  if (mFlags & 0x10000) {
-    SelectAll(0);
-    SelectItem(item, 1);
-  } else {
-    int oldItem = GetValue();
-    SetValue(item);
-    if (oldItem == item) {
-      return COsControl::OnContextMenu(inX, inY);
+  posX = inX - posX;
+  posY = inY - posY;
+  int item = SendMessageA(static_cast<HWND>(mHandle), LB_ITEMFROMPOINT, 0, MAKELPARAM(posX, posY));
+  if (item >= 0 && item < GetNumItems()) {
+    if (!(mFlags & 0x10000)) {
+      int oldItem = GetValue();
+      SetValue(item);
+      if (oldItem != item) {
+        SendEvent(2, 0);
+      }
+    } else {
+      SelectAll(0);
+      SelectItem(item, 1);
+      SendEvent(2, 0);
     }
+    return COsControl::OnContextMenu(inX, inY);
   }
-  SendEvent(2, 0);
-  return COsControl::OnContextMenu(inX, inY);
+  return 0;
 }
 
 BOOL COsListBox::OnReturn() {
@@ -3137,33 +3136,36 @@ void COsTreeView::EditItem(LPVOID inItem) {
   SendMessageA(static_cast<HWND>(mHandle), TVM_EDITLABELA, 0, reinterpret_cast<LPARAM>(inItem));
 }
 
+struct OsGuiTVSIResults {
+  OsGuiTVSelectionInfo info;
+  LPVOID               lastSelected;
+  LPVOID               lastProcessed;
+};
+
 static void sTVGetSelectInfo(COsTreeView *inView, LPVOID inItem, LPVOID inParam) {
-  struct SelectInfo {
-    int    count;
-    LPVOID first;
-    UINT   flags;
-    LPVOID previous;
-    LPVOID last;
-  };
-  SelectInfo *info = static_cast<SelectInfo *>(inParam);
+  OsGuiTVSIResults *info = static_cast<OsGuiTVSIResults *>(inParam);
   if (inView->IsItemSelected(inItem)) {
-    ++info->count;
-    if (info->count == 1) {
-      info->first = info->previous = info->last = inItem;
-      info->flags |= 3;
+    ++info->info.numSelected;
+    if (info->info.numSelected == 1) {
+      info->info.firstSelection = inItem;
+      info->lastSelected = inItem;
+      info->lastProcessed = inItem;
+      info->info.flags |= 3;
     } else {
-      if ((info->flags & 1) && TreeView_GetParent(static_cast<HWND>(inView->GetHandle()), static_cast<HTREEITEM>(inItem)) !=
-                                   TreeView_GetParent(static_cast<HWND>(inView->GetHandle()), static_cast<HTREEITEM>(info->first)))
-      {
-        info->flags &= ~1U;
+      if (info->info.flags & 1) {
+        LPVOID firstParent = inView->GetItemParent(info->info.firstSelection);
+        if (inView->GetItemParent(inItem) != firstParent) {
+          info->info.flags &= ~1U;
+        }
       }
-      if ((info->flags & 2) && info->previous != info->last) {
-        info->flags &= ~2U;
+      if ((info->info.flags & 2) && info->lastSelected != info->lastProcessed) {
+        info->info.flags &= ~2U;
       }
-      info->previous = info->last = inItem;
+      info->lastSelected = inItem;
+      info->lastProcessed = inItem;
     }
   } else {
-    info->last = inItem;
+    info->lastProcessed = inItem;
   }
 }
 
@@ -3203,11 +3205,7 @@ LPVOID COsTreeView::GetSelectedItem() {
 }
 
 void COsTreeView::GetSelectionInfo(OsGuiTVSelectionInfo *outInfo) {
-  struct SelectInfo {
-    OsGuiTVSelectionInfo info;
-    LPVOID               lastSelected;
-    LPVOID               lastProcessed;
-  } results;
+  OsGuiTVSIResults results;
   memset(&results, 0, sizeof(results));
   EnumerateAllItems(sTVGetSelectInfo, &results);
   *outInfo = results.info;
@@ -3448,17 +3446,18 @@ void COsTreeView::OnBeginDrag(LPVOID inItem, int inX, int inY) {
 
   CreateDragImage(inItem);
   int wx;
-  int mx;
-  int cx;
-  GetPosition(&wx, &cx, 0);
-  mx = wx + inX;
-  inY += cx;
+  int wy;
+  GetPosition(&wx, &wy, 0);
+  int              mx = inX + wx;
+  int              my = inY + wy;
   NTempest::CiRect itemRect = GetItemRect(inItem);
+  int              dragY = my - itemRect.t - wy;
   int              dragX = mx - itemRect.l - wx + 16;
-  int              dragY = inY - itemRect.t - cx;
-  mDialog->GetPosition(&wx, &cx, 0);
+  int              cx;
+  int              cy;
+  mDialog->GetPosition(&cx, &cy, 0);
   ImageList_BeginDrag(static_cast<HIMAGELIST>(mDragImage), 0, dragX, dragY);
-  ImageList_DragEnter(static_cast<HWND>(mDialog->GetHandle()), mx - wx, inY - cx);
+  ImageList_DragEnter(static_cast<HWND>(mDialog->GetHandle()), mx - cx, my - cy);
   SetCapture(static_cast<HWND>(mDialog->GetHandle()));
   mDragInfo.dragItem = inItem;
   mDragging = 1;

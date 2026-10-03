@@ -22,15 +22,20 @@ BOOL  ReadObjectPtrs(MDLDATA *data, CMDLStatus *status);
 char *OsGetLastErrorStr();
 void  OsFreeLastErrorStr(char *msgBuf);
 
+enum {
+  MDLFILE_TEXT = 0,
+  MDLFILE_BIN = 1,
+  NUM_MDLFILE_TYPES = 2
+};
+
 class CMdlScanner : public mdl_scan {
+  CMDLStatus *m_status;
+
  public:
   CMdlScanner(CMDLStatus *status, LPCSTR input, int size) : mdl_scan(input, size), m_status(status) {
   }
 
   virtual void __cdecl mdlerror(char *format, ...);
-
- private:
-  CMDLStatus *m_status;
 };
 
 void __cdecl CMdlScanner::mdlerror(char *format, ...) {
@@ -363,7 +368,7 @@ BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag) {
   while (fileData < fileEnd) {
     UINT tag = *reinterpret_cast<UINT *>(fileData);
     fileData += sizeof(UINT);
-    if (tag == sectionTag) {
+    if (sectionTag == tag) {
       return fileData;
     }
 

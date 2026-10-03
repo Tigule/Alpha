@@ -130,8 +130,6 @@ namespace Storm {
     };
 
     NODEDECL(AUDIOSTREAM) {
-      ~AUDIOSTREAM();
-
       FILEREC            *file;
       DWORD               nextwrite;
       DWORD               bytespersecond;
@@ -150,6 +148,8 @@ namespace Storm {
       int                 soundbufferlocal;
       BYTE                fillvalue;
       LONG                refcount;
+
+      ~AUDIOSTREAM();
     };
 
     struct StormGlobals {
@@ -242,8 +242,6 @@ static int ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, 
 static int CheckFileExistsOnDisk(LPCSTR filename, DWORD flags, char *localfilename);
 
 NODEDECL(REQUEST) {
-  ~REQUEST();
-
   LPVOID                     event;
   Storm::SFile::FILEREC     *file;
   DWORD                      location;
@@ -259,6 +257,8 @@ NODEDECL(REQUEST) {
   int                        autodelrequest;
   DWORD                      bytesread;
   _TASYNCPARAMBLOCK         *asyncparam;
+
+  ~REQUEST();
 };
 
 NODEDECL(EVENTREC) {

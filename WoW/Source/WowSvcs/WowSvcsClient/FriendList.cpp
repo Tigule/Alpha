@@ -71,9 +71,13 @@ struct WhoSortType {
 
 WhoSortType s_whoSortCriteria[NUM_WHO_SORT_TYPES];
 
-FriendList::FriendList() : m_friendNamesPending(0), m_selectedFriend(0), m_ignoreNamesPending(0), m_selectedIgnore(0) {
+FriendList::FriendList() {
   memset(m_friends, 0, sizeof(m_friends));
   memset(m_ignore, 0, sizeof(m_ignore));
+  m_friendNamesPending = 0;
+  m_selectedFriend = 0;
+  m_ignoreNamesPending = 0;
+  m_selectedIgnore = 0;
 }
 
 static BOOL FriendListStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -89,45 +93,45 @@ static BOOL FriendListStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) 
 
 static void FriendListNameCallbackWithSort(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(reinterpret_cast<UINT>(arg));
-  if (granted) {
-    const NameCache *name = g_nameDBCache.GetRecord(guid, 0, 0, 0);
-    FATALASSERT(name);
-    if (g_friendList) {
-      g_friendList->SetName(guid, name->m_name);
-      g_friendList->DecrementPendingFriendName();
-    }
+  if (!granted) {
     if (error != GERR_NONE) {
-      CGGameUI::DisplayError(error, name->m_name);
-    }
-  } else {
-    if (error != GERR_NONE) {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(290));
+      CGGameUI::DisplayError(GERR_FRIEND_ERROR);
     }
     if (g_friendList) {
       g_friendList->SetName(guid, FrameScript_GetText("UNKNOWN", -1, GENDER_NOT_APPLICABLE));
       g_friendList->DecrementPendingFriendName();
+    }
+  } else {
+    const NameCache *nc = g_nameDBCache.GetRecord(guid, 0, 0, 0);
+    FATALASSERT(nc);
+    if (g_friendList) {
+      g_friendList->SetName(guid, nc->m_name);
+      g_friendList->DecrementPendingFriendName();
+    }
+    if (error != GERR_NONE) {
+      CGGameUI::DisplayError(error, nc->m_name);
     }
   }
 }
 
 static void IgnoreListNameCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   GAME_ERROR_TYPE error = static_cast<GAME_ERROR_TYPE>(reinterpret_cast<UINT>(arg));
-  if (granted) {
-    const NameCache *name = g_nameDBCache.GetRecord(guid, 0, 0, 0);
-    FATALASSERT(name);
-    if (g_friendList) {
-      g_friendList->DecrementPendingIgnoreName();
-    }
+  if (!granted) {
     if (error != GERR_NONE) {
-      CGGameUI::DisplayError(error, name->m_name);
-    }
-  } else {
-    if (error != GERR_NONE) {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(290));
+      CGGameUI::DisplayError(GERR_FRIEND_ERROR);
     }
     if (g_friendList) {
       g_friendList->DelIgnore(guid);
       g_friendList->DecrementPendingIgnoreName();
+    }
+  } else {
+    const NameCache *nc = g_nameDBCache.GetRecord(guid, 0, 0, 0);
+    FATALASSERT(nc);
+    if (g_friendList) {
+      g_friendList->DecrementPendingIgnoreName();
+    }
+    if (error != GERR_NONE) {
+      CGGameUI::DisplayError(error, nc->m_name);
     }
   }
 }
@@ -136,9 +140,7 @@ FriendList::~FriendList() {
 }
 
 static BOOL FriendListHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
-  if (g_friendList) {
-    g_friendList->AddFriends(msg);
-  }
+  g_friendList->AddFriends(msg);
   return 1;
 }
 
@@ -186,11 +188,12 @@ void FriendList::RemoveFriend(DWORDLONG guid) {
 }
 
 void FriendList::RemoveFriend(UINT index) {
-  const Friend *entry = GetFriend(index);
-  if (!entry) {
-    return;
+  if (index < 50) {
+    DWORDLONG guid = m_friends[index].guid;
+    if (guid) {
+      RemoveFriend(guid);
+    }
   }
-  RemoveFriend(entry->guid);
 }
 
 static BOOL ReverseWhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -242,7 +245,11 @@ static BOOL CCommand_RWhois(LPCSTR, LPCSTR args) {
 }
 
 static int Script_GetNumFriends(lua_State *L) {
-  lua_pushnumber(L, g_friendList ? g_friendList->GetNumFriends() : 0);
+  if (g_friendList) {
+    lua_pushnumber(L, g_friendList->GetNumFriends());
+  } else {
+    lua_pushnumber(L, 0.0);
+  }
   return 1;
 }
 
@@ -271,14 +278,12 @@ static int Script_SetSelectedFriend(lua_State *L) {
     luaL_error(L, "Usage: SetSelectedFriend(index)");
     return 0;
   }
-  if (g_friendList) {
-    g_friendList->SetFriendSelectionIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  }
+  g_friendList->SetFriendSelectionIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   return 0;
 }
 
 static int Script_GetSelectedFriend(lua_State *L) {
-  lua_pushnumber(L, g_friendList ? g_friendList->GetFriendSelectionIndex() + 1 : 0);
+  lua_pushnumber(L, g_friendList->GetFriendSelectionIndex() + 1);
   return 1;
 }
 
@@ -300,26 +305,25 @@ static int Script_AddFriend(lua_State *L) {
     luaL_error(L, "Usage: AddFriend(\"name\")");
     return 0;
   }
-  if (g_friendList) {
-    g_friendList->AddFriend(lua_tostring(L, 1));
-  }
+  CCommand_AddFriend("addfriend", lua_tostring(L, 1));
   return 0;
 }
 
 static int Script_RemoveFriend(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: RemoveFriend(index)");
-  }
-  if (g_friendList) {
+  if (lua_isnumber(L, 1)) {
     g_friendList->RemoveFriend(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+    return 0;
   }
+  if (lua_isstring(L, 1)) {
+    g_friendList->RemoveFriend(lua_tostring(L, 1));
+    return 0;
+  }
+  luaL_error(L, "Usage: RemoveFriend([\"name\"] or [index])");
   return 0;
 }
 
 static int Script_ShowFriends(lua_State *L) {
-  if (g_friendList) {
-    g_friendList->ShowFriends();
-  }
+  CCommand_Friends("friends", "");
   return 0;
 }
 
@@ -335,7 +339,11 @@ static int Script_SendWho(lua_State *L) {
 }
 
 static int Script_GetNumIgnores(lua_State *L) {
-  lua_pushnumber(L, g_friendList ? g_friendList->GetNumIgnores() : 0);
+  if (g_friendList) {
+    lua_pushnumber(L, g_friendList->GetNumIgnores());
+  } else {
+    lua_pushnumber(L, 0.0);
+  }
   return 1;
 }
 
@@ -355,14 +363,12 @@ static int Script_SetSelectedIgnore(lua_State *L) {
     luaL_error(L, "Usage: SetSelectedIgnore(index)");
     return 0;
   }
-  if (g_friendList) {
-    g_friendList->SetIgnoreSelectionIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  }
+  g_friendList->SetIgnoreSelectionIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
   return 0;
 }
 
 static int Script_GetSelectedIgnore(lua_State *L) {
-  lua_pushnumber(L, g_friendList ? g_friendList->GetIgnoreSelectionIndex() + 1 : 0);
+  lua_pushnumber(L, g_friendList->GetIgnoreSelectionIndex() + 1);
   return 1;
 }
 
@@ -590,18 +596,26 @@ UINT FriendList::GetNumFriends() {
 }
 
 const FriendList::Friend *FriendList::GetFriend(UINT index) {
-  return index < GetNumFriends() ? &m_friends[index] : 0;
+  if (index > 50) {
+    return 0;
+  }
+  return &m_friends[index];
 }
 
 void FriendList::SetFriendSelectionIndex(UINT index) {
-  const Friend *entry = GetFriend(index);
-  m_selectedFriend = entry ? entry->guid : 0;
+  if (index > 50) {
+    m_selectedFriend = 0;
+    return;
+  }
+  m_selectedFriend = m_friends[index].guid;
 }
 
 int FriendList::GetFriendSelectionIndex() {
-  for (UINT i = 0; i < GetNumFriends(); ++i) {
-    if (m_friends[i].guid == m_selectedFriend) {
-      return i;
+  if (m_selectedFriend) {
+    for (UINT i = 0; i < 50; ++i) {
+      if (m_friends[i].guid == m_selectedFriend) {
+        return i;
+      }
     }
   }
   return -1;
@@ -616,17 +630,26 @@ UINT FriendList::GetNumIgnores() {
 }
 
 DWORDLONG FriendList::GetIgnore(UINT index) {
-  return index < GetNumIgnores() ? m_ignore[index] : 0;
+  if (index > 25) {
+    return 0;
+  }
+  return m_ignore[index];
 }
 
 void FriendList::SetIgnoreSelectionIndex(UINT index) {
-  m_selectedIgnore = GetIgnore(index);
+  if (index > 25) {
+    m_selectedIgnore = 0;
+    return;
+  }
+  m_selectedIgnore = m_ignore[index];
 }
 
 int FriendList::GetIgnoreSelectionIndex() {
-  for (UINT i = 0; i < GetNumIgnores(); ++i) {
-    if (m_ignore[i] == m_selectedIgnore) {
-      return i;
+  if (m_selectedIgnore) {
+    for (UINT i = 0; i < 25; ++i) {
+      if (m_ignore[i] == m_selectedIgnore) {
+        return i;
+      }
     }
   }
   return -1;
@@ -636,7 +659,11 @@ void FriendList::ShowFriends() {
   char text[256];
   for (UINT i = 0; i < 50; ++i) {
     if (m_friends[i].m_name) {
-      SStrPrintf(text, sizeof(text), m_friends[i].m_connected ? "%s - Online" : "%s - Offline", m_friends[i].m_name);
+      if (m_friends[i].m_connected) {
+        SStrPrintf(text, sizeof(text), "%s - Online", m_friends[i].m_name);
+      } else {
+        SStrPrintf(text, sizeof(text), "%s - Offline", m_friends[i].m_name);
+      }
       CGChat::AddChatMessage(text, static_cast<SLASH_COMMAND_ID>(9), 0, 0, 0, 0, 0);
     }
   }
@@ -661,15 +688,15 @@ static int __cdecl QSortFriends(LPCVOID a, LPCVOID b) {
     return 1;
   if (!right->guid)
     return -1;
-  if (left->m_connected != right->m_connected) {
-    return left->m_connected ? -1 : 1;
+  if (left->m_connected == right->m_connected) {
+    if (left->m_name && right->m_name) {
+      return SStrCmpI(left->m_name, right->m_name, 0x7FFFFFFF);
+    }
+    if (!left->m_name && !right->m_name)
+      return 0;
+    return left->m_name ? -1 : 1;
   }
-  if (left->m_name && right->m_name) {
-    return SStrCmpI(left->m_name, right->m_name, 0x7FFFFFFF);
-  }
-  if (!left->m_name && !right->m_name)
-    return 0;
-  return left->m_name ? -1 : 1;
+  return left->m_connected ? -1 : 1;
 }
 
 static int __cdecl QSortIgnore(LPCVOID a, LPCVOID b) {
@@ -706,6 +733,7 @@ void FriendList::Removed(DWORDLONG guid) {
     if (m_friends[i].guid == guid) {
       m_friends[i].guid = 0;
       FREEIFUSED(m_friends[i].m_name);
+      m_friends[i].m_name = 0;
       return;
     }
   }
@@ -733,7 +761,9 @@ int FriendList::Added(DWORDLONG guid) {
 void FriendList::SetName(DWORDLONG guid, LPCSTR name) {
   for (UINT i = 0; i < 50; ++i) {
     if (m_friends[i].guid == guid) {
-      FREEIFUSED(m_friends[i].m_name);
+      if (m_friends[i].m_name) {
+        FREE(m_friends[i].m_name);
+      }
       m_friends[i].m_name = SStrDupA(name, __FILE__, __LINE__);
       return;
     }
@@ -771,33 +801,32 @@ bool FriendList::IsIgnored(DWORDLONG guid) {
 }
 
 void FriendList::AddFriends(CDataStore *msg) {
-  UINT i;
-  for (i = 0; i < 50; ++i) {
+  for (UINT i = 0; i < 50; ++i) {
     FREEIFUSED(m_friends[i].m_name);
     m_friends[i].m_name = 0;
   }
 
   BYTE count;
   msg->Get(count);
-  for (i = 0; i < count && i < 50; ++i) {
-    DWORDLONG guid;
+  for (BYTE f = 0; f < count && f < 50; ++f) {
     BYTE      status;
+    DWORDLONG guid;
     msg->Get(guid);
     msg->Get(status);
-    m_friends[i].guid = guid;
-    m_friends[i].m_connected = status != 0;
+    m_friends[f].guid = guid;
+    m_friends[f].m_connected = status != 0;
     if (status) {
-      msg->Get(m_friends[i].m_area);
-      msg->Get(m_friends[i].m_level);
-      msg->Get(m_friends[i].m_class);
+      msg->Get(m_friends[f].m_area);
+      msg->Get(m_friends[f].m_level);
+      msg->Get(m_friends[f].m_class);
     } else {
-      m_friends[i].m_area = 0;
-      m_friends[i].m_level = 0;
-      m_friends[i].m_class = 0;
+      m_friends[f].m_area = 0;
+      m_friends[f].m_level = 0;
+      m_friends[f].m_class = 0;
     }
-    const NameCache *name = g_nameDBCache.GetRecord(guid, guid, FriendListNameCallbackWithSort, reinterpret_cast<LPVOID>(297));
+    const NameCache *name = g_nameDBCache.GetRecord(m_friends[f].guid, m_friends[f].guid, FriendListNameCallbackWithSort, reinterpret_cast<LPVOID>(297));
     if (name) {
-      m_friends[i].m_name = SStrDupA(name->m_name, __FILE__, __LINE__);
+      m_friends[f].m_name = SStrDupA(name->m_name, __FILE__, __LINE__);
     } else {
       ++m_friendNamesPending;
     }
@@ -809,13 +838,15 @@ void FriendList::AddFriends(CDataStore *msg) {
 
 void FriendList::IgnoreAdded(DWORDLONG guid, int sort) {
   for (UINT i = 0; i < 25; ++i) {
-    if (m_ignore[i] == guid) {
-      return;
-    }
     if (!m_ignore[i]) {
       m_ignore[i] = guid;
       if (sort) {
-        SortIgnore();
+        if (!g_nameDBCache.GetRecord(guid, guid, IgnoreListNameCallback, reinterpret_cast<LPVOID>(297))) {
+          ++m_ignoreNamesPending;
+        }
+        if (!m_ignoreNamesPending) {
+          SortIgnore();
+        }
       }
       return;
     }
@@ -826,7 +857,9 @@ void FriendList::IgnoreRemoved(DWORDLONG guid) {
   for (UINT i = 0; i < 25; ++i) {
     if (m_ignore[i] == guid) {
       m_ignore[i] = 0;
-      SortIgnore();
+      if (!m_ignoreNamesPending) {
+        SortIgnore();
+      }
       return;
     }
   }
@@ -845,7 +878,7 @@ void FriendList::IgnoreList(CDataStore *msg) {
   BYTE count;
   msg->Get(count);
   FATALASSERT(count <= (sizeof(m_ignore) / sizeof(m_ignore[0])));
-  for (UINT i = 0; i < count; ++i) {
+  for (int i = 0; i < count; ++i) {
     DWORDLONG guid;
     msg->Get(guid);
     IgnoreAdded(guid, 0);
@@ -977,16 +1010,15 @@ static char *StripQuotes(char *string) {
     return 0;
   }
 
-  int length = strlen(string);
-  if (length < 2 || (string[0] != '"' && string[0] != '\'')) {
+  int length = SStrLen(string);
+  if (length < 2) {
     return string;
   }
-  if (string[length - 1] != '"' && string[length - 1] != '\'') {
-    return string;
+  if ((string[0] == '"' || string[0] == '\'') && (string[length - 1] == '"' || string[length - 1] == '\'')) {
+    string[length - 1] = 0;
+    return string + 1;
   }
-
-  string[length - 1] = 0;
-  return string + 1;
+  return string;
 }
 
 namespace {

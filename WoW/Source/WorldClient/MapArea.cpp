@@ -1,9 +1,16 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
-#include "World.h"
+#include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
 
 #include "Services/AsyncFileRead.h"
 #include "Services/Texture.h"
@@ -13,6 +20,7 @@ static TSCArray<BYTE, 163840> s_asyncLoadBuffers[4];
 static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
 static BYTE *s_freeAsyncBuffer;
 static BYTE  s_asyncBuffersInitialized;
+static TSCArray<BYTE, 163840> s_syncLoadBuffer;
 
 void CMapArea::FreeAsyncLoadBuffer(BYTE *buffer) {
   *reinterpret_cast<BYTE **>(buffer) = s_freeAsyncBuffer;
@@ -65,7 +73,7 @@ void CMapArea::AsyncPollHandler() {
 }
 
 CMapArea::CMapArea() {
-  infoIndex = 0;
+  texCount = 0;
   asyncObject = 0;
   for (UINT i = 0; i < 256; ++i) {
     chunkTable[i] = 0;
@@ -87,8 +95,8 @@ void CMapArea::Load(SMAreaInfo *areaInfo) {
   if (CMap::bPreload) {
     s_fileCritSect.Enter();
     SFile::SetFilePointer(CMap::wdtFile, areaInfo->offset, 0, FILE_BEGIN);
-    SFile::Read(CMap::wdtFile, s_asyncLoadBuffers[0].Ptr(), areaInfo->size, 0, 0, 0);
-    Create(s_asyncLoadBuffers[0].Ptr());
+    SFile::Read(CMap::wdtFile, s_syncLoadBuffer.Ptr(), areaInfo->size, 0, 0, 0);
+    Create(s_syncLoadBuffer.Ptr());
     s_fileCritSect.Leave();
   } else {
     asyncObject = AsyncFileReadCreateObject();

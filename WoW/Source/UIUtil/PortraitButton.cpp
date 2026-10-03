@@ -6,18 +6,18 @@
 #include "UIUtil/InputControl.h"
 #include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Ui/GameUI.h"
 
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleCommand.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
-#include "Object/ObjectClient/Unit_C.h"
+#include <BLPFile/blp.h>
 #include "ObjectMgrClient/ObjectMgrClient.h"
 
-#include <BLPFile/blp.h>
 #include <Base/Coordinate.h>
 #include <Frame/CSimpleRender.h>
 #include <FrameScript/FrameScript.h>
-#include <Gx/CGxDevice.h>
 #include <Gx/Gx.h>
 #include <Images/tga.h>
 #include <Model/IModel.h>
@@ -57,6 +57,9 @@ struct PortraitData {
 };
 
 struct PLAYERPORTRAIT : public TSHashObject<PLAYERPORTRAIT, CHashKeyGUID> {
+  PLAYERPORTRAIT() : dirty(1) {
+  }
+
   BYTE         dirty;
   PortraitData portrait;
 };
@@ -73,16 +76,17 @@ NODEDECL(DIRTYFACE) {
   DWORDLONG guid;
 };
 
-static NTempest::C44Matrix                       identity;
-static TSFixedArray<BYTE>                        alphaMasks[2];
+LISTDECL(DIRTYFACE, s_dirtyList);
+LISTDECL(DIRTYFACE, s_freeList);
 static TSHashTable<PLAYERPORTRAIT, CHashKeyGUID> s_playerPortraits;
 static TSHashTable<UNITPORTRAIT, HASHKEY_NONE>   s_unitPortraits;
 static TSHashTable<ITEMPORTRAIT, HASHKEY_STR>    s_itemPortraits;
 static HASHKEY_NONE                              s_nullHashKey;
-static LISTDECL(DIRTYFACE, s_dirtyFaces);
-static LISTDECL(DIRTYFACE, s_freeDirtyFaces);
+
+#include "Object/ObjectClient/Unit_C.h"
 
 static const TSFixedArray<BYTE> &GetAlphaMask(UINT size) {
+  static TSFixedArray<BYTE> alphaMasks[2];
   CBLPFile            image;
   CTgaFile            alpha;
   UINT                stride;
@@ -313,20 +317,18 @@ void PortraitShutdown() {
   s_playerPortraits.Clear();
   s_unitPortraits.Clear();
   s_itemPortraits.Clear();
-  alphaMasks[0].Clear();
-  alphaMasks[1].Clear();
-  while (DIRTYFACE *dirty = s_dirtyFaces.Head()) {
-    s_dirtyFaces.UnlinkNode(dirty);
+  while (DIRTYFACE *dirty = s_dirtyList.Head()) {
+    s_dirtyList.UnlinkNode(dirty);
     DEL(dirty);
   }
-  while (DIRTYFACE *dirty = s_freeDirtyFaces.Head()) {
-    s_freeDirtyFaces.UnlinkNode(dirty);
+  while (DIRTYFACE *dirty = s_freeList.Head()) {
+    s_freeList.UnlinkNode(dirty);
     DEL(dirty);
   }
 }
 
 void UpdatePortraits() {
-  while (DIRTYFACE *dirty = s_dirtyFaces.Head()) {
+  while (DIRTYFACE *dirty = s_dirtyList.Head()) {
     DWORDLONG       guid = dirty->guid;
     CHashKeyGUID    hashkey(guid);
     UINT            hashval = static_cast<UINT>(guid);
@@ -335,26 +337,26 @@ void UpdatePortraits() {
       portrait->dirty = 1;
     }
     Script_SendUnitSignal(guid, 181);
-    s_dirtyFaces.UnlinkNode(dirty);
-    s_freeDirtyFaces.LinkNode(dirty, LIST_TAIL, 0);
+    s_dirtyList.UnlinkNode(dirty);
+    s_freeList.LinkNode(dirty, LIST_TAIL, 0);
   }
 }
 
 void UpdatePortraitTexture(const DWORDLONG &guid) {
   DIRTYFACE *dirty;
-  ITERATELIST(DIRTYFACE, s_dirtyFaces, existingDirty) {
+  ITERATELIST(DIRTYFACE, s_dirtyList, existingDirty) {
     if (existingDirty->guid == guid) {
       return;
     }
   }
 
-  dirty = s_freeDirtyFaces.Head();
+  dirty = s_freeList.Head();
   if (dirty) {
-    s_freeDirtyFaces.UnlinkNode(dirty);
+    s_freeList.UnlinkNode(dirty);
   } else {
     dirty = NEW(DIRTYFACE);
   }
-  s_dirtyFaces.LinkNode(dirty, LIST_TAIL, 0);
+  s_dirtyList.LinkNode(dirty, LIST_TAIL, 0);
   dirty->guid = guid;
 }
 
@@ -398,6 +400,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   HMODEL              model = 0;
   HCAMERA             camera = 0;
   int                 gxFogEnable;
+  static NTempest::C44Matrix identity;
 
   if (!texture || !unit) {
     return;
@@ -415,7 +418,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
       }
     }
   } else {
-    UNITPORTRAIT *unitPortrait = s_unitPortraits.Ptr(unit->GetUnitData()->displayID, s_nullHashKey);
+    UNITPORTRAIT *unitPortrait = s_unitPortraits.Ptr(unit->GetDisplayID(), s_nullHashKey);
     if (unitPortrait) {
       texture->SetTexture(unitPortrait->portrait.texture);
       return;
@@ -431,7 +434,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   if (!unit->IsObjectModelLoaded() || !(unit->m_flags & 0x100)) {
   portrait_fallback:
     if (unit->GetType() & TYPE_PLAYER) {
-      SetPortraitTexture(texture, unit->GetUnitData()->race, unit->GetUnitData()->sex, unit->GetGUID());
+      SetPortraitTexture(texture, unit->GetRace(), unit->GetSex(), unit->GetGUID());
     } else {
       texture->SetTexture("Interface\\CharacterFrame\\TempPortrait", 0);
     }
@@ -515,7 +518,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
     playerPortrait->dirty = 0;
     portrait = &playerPortrait->portrait;
   } else {
-    UNITPORTRAIT *unitPortrait = s_unitPortraits.New(unit->GetUnitData()->displayID, s_nullHashKey, 0, 0);
+    UNITPORTRAIT *unitPortrait = s_unitPortraits.New(unit->GetDisplayID(), s_nullHashKey, 0, 0);
     portrait = &unitPortrait->portrait;
   }
 

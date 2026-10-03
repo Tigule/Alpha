@@ -3,28 +3,19 @@
 
 #include "DB/WowClientDB.h"
 
-#include <Model/IModel.h>
-
 #include <string.h>
 
 class CSimpleTop;
+struct HMODEL__;
+typedef HMODEL__ *HMODEL;
 struct CHARACTER_INFO;
 struct CHARACTER_CREATE_INFO;
 struct REALM_INFO;
 
 class CGlueMgr {
- public:
-  enum GLUE_IDLE_STATE {
-    IDLE_NONE = 0,
-    IDLE_ACCOUNT_LOGIN = 1,
-    IDLE_CHARACTER_LIST = 2,
-    IDLE_REALM_LIST = 3,
-    IDLE_CREATE_CHARACTER = 4,
-    IDLE_DELETE_CHARACTER = 5,
-    IDLE_ENTER_WORLD = 6,
-    IDLE_WORLD_LOGIN = 7
-  };
+  friend void ClientDestroyGame(int connected, int resumeUI, int loginError);
 
+ public:
   static void Initialize();
   static void Suspend();
   static void Resume();
@@ -47,8 +38,7 @@ class CGlueMgr {
   static void UpdateWaitQueue(UINT wait);
 
   static void ExpectDisconnect(int reconnect) {
-    m_disconnectPending = 1;
-    m_reconnect = reconnect;
+    m_disconnectPending = reconnect;
   }
 
   static void SetScreen(LPCSTR screen);
@@ -75,10 +65,16 @@ class CGlueMgr {
   static void GetRealmList();
   static BOOL NetDisconnectHandler(LPCVOID eventData, LPVOID);
 
- private:
-  friend void ClientDestroyGame(int connected, int resumeUI, int loginError);
-
-  static BOOL Idle(LPCVOID eventData, LPVOID param);
+  enum GLUE_IDLE_STATE {
+    IDLE_NONE = 0,
+    IDLE_ACCOUNT_LOGIN = 1,
+    IDLE_CHARACTER_LIST = 2,
+    IDLE_REALM_LIST = 3,
+    IDLE_CREATE_CHARACTER = 4,
+    IDLE_DELETE_CHARACTER = 5,
+    IDLE_ENTER_WORLD = 6,
+    IDLE_WORLD_LOGIN = 7
+  };
 
  protected:
   static void InitCursor();
@@ -104,6 +100,8 @@ class CGlueMgr {
   static DWORD           m_queueTime[3];
   static int             m_estimatedWaitTime;
   static CHARACTER_INFO *m_characterInfo;
+
+  static BOOL Idle(LPCVOID eventData, LPVOID param);
 };
 
 #endif

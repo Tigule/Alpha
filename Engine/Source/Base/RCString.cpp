@@ -29,6 +29,7 @@ void CStringManager::DestroyManager() {
 }
 
 CStringManager::~CStringManager() {
+  Clear();
 }
 
 CStringRep &CStringManager::Add(LPCSTR str) {
@@ -45,9 +46,14 @@ CStringRep &CStringManager::Add(LPCSTR str) {
 }
 
 CStringRep &CStringManager::Find(LPCSTR str) {
-  CStringRep *rep = str ? Ptr(str) : 0;
+  if (str) {
+    CStringRep *rep = Ptr(str);
+    if (rep) {
+      return *rep;
+    }
+  }
 
-  return rep ? *rep : CStringRep::s_nullRep;
+  return CStringRep::s_nullRep;
 }
 
 void CStringRep::DecrRef() {
@@ -120,7 +126,11 @@ int RCString::operator==(const RCString &r) const {
 }
 
 int RCString::operator==(LPCSTR str) const {
-  return m_rep.m_ptr ? m_rep.m_ptr->IsString(str) : str == 0;
+  if (!m_rep) {
+    return str == 0;
+  }
+
+  return *m_rep == str;
 }
 
 LPCSTR RCString::GetString() const {
@@ -193,9 +203,9 @@ RCString RCString::SubString(RCStringIndex start, RCStringIndex end) const {
 void RCString::Get(char *buf, RCStringIndex bufSize) const {
   LPCSTR str = GetString();
 
-  if (str) {
-    SStrCopy(buf, str, bufSize);
-  } else {
+  if (!str) {
     *buf = 0;
+  } else {
+    SStrCopy(buf, str, bufSize);
   }
 }

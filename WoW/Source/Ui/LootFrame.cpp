@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -75,8 +77,8 @@ void CGLootInfo::SetObject(CGObject_C *object, int coins, LOOT_ACQUIRE lootType)
   if (object) {
     m_object = object->GetGUID();
     m_lootType = lootType;
-    memset(m_loot, 0, sizeof(m_loot));
     m_coins = coins;
+    memset(m_loot, 0, sizeof(m_loot));
     m_itemsPending = 0;
 
     UINT itemCount = 0;
@@ -112,19 +114,21 @@ void CGLootInfo::ClearSlot(BYTE _slot) {
 
   for (index = 0; index < 16; ++index) {
     if (m_loot[index].itemID && m_loot[index].slot == _slot) {
-      if (m_loot[index].pending) {
-        g_itemDBCache.CancelCallback(m_loot[index].itemID, LootButtonItemStatsCallback, 0);
-      }
+      break;
+    }
+  }
+  if (index < 16) {
+    if (m_loot[index].pending) {
+      g_itemDBCache.CancelCallback(m_loot[index].itemID, LootButtonItemStatsCallback, 0);
+    }
 
-      memset(&m_loot[index], 0, sizeof(m_loot[index]));
-      if (m_coins) {
-        ++index;
-      }
-      FrameScript_SignalEvent(251, "%d", index + 1);
-      if (!HasLoot()) {
-        CGGameUI::CloseLoot(1, 0);
-      }
-      return;
+    memset(&m_loot[index], 0, sizeof(m_loot[index]));
+    if (m_coins) {
+      ++index;
+    }
+    FrameScript_SignalEvent(251, "%d", index + 1);
+    if (!HasLoot()) {
+      CGGameUI::CloseLoot(1, 0);
     }
   }
 }
@@ -316,43 +320,43 @@ void CGLootInfo::CoinsCleared() {
 
 int CGLootInfo::LootSlot(UINT slot, int force) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return 1;
-  }
-
-  UINT origSlot = slot;
-  if (m_coins) {
-    if (!slot) {
-      if (m_coins > 0) {
-        SndInterfacePlayInterfaceSound("LOOTWINDOWCOINSOUND");
-        player->LootMoney();
-        m_coins = -1;
-        FrameScript_SignalEvent(251, "%d", 1);
-        if (!HasLoot()) {
-          CGGameUI::CloseLoot(1, 0);
+  if (player) {
+    UINT origSlot = slot;
+    if (m_coins) {
+      if (!slot) {
+        if (m_coins > 0) {
+          SndInterfacePlayInterfaceSound("LOOTWINDOWCOINSOUND");
+          player->LootMoney();
+          m_coins = -1;
+          FrameScript_SignalEvent(251, "%d", 1);
+          if (!HasLoot()) {
+            CGGameUI::CloseLoot(1, 0);
+          }
         }
+        return 1;
       }
-      return 1;
+      --slot;
     }
-    --slot;
-  }
 
-  FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
-  if (m_loot[slot].itemID) {
-    const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
-    FATALASSERT(stats);
-    if (stats->m_bonding == 1 && !force) {
-      FrameScript_SignalEvent(268, "%u", origSlot + 1);
-      return 1;
+    FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
+    if (m_loot[slot].itemID) {
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
+      FATALASSERT(stats);
+      if (stats->m_bonding == 1 && !force) {
+        FrameScript_SignalEvent(268, "%u", origSlot + 1);
+        return 1;
+      }
+      SndInterfacePlayItemSound(ITEMSOUND_PICKUP, stats->m_displayInfoID);
+      player->AutoStoreLootItem(m_loot[slot].slot);
     }
-    SndInterfacePlayItemSound(ITEMSOUND_PICKUP, stats->m_displayInfoID);
-    player->AutoStoreLootItem(m_loot[slot].slot);
   }
   return 1;
 }
 
 BOOL CGLootInfo::HasLoot() {
-  FATALASSERT(m_object);
+  if (!ClntObjMgrObjectPtr(m_object, __FILE__, __LINE__)) {
+    return 0;
+  }
 
   if (m_coins > 0) {
     return 1;
@@ -424,8 +428,9 @@ static int Script_GetLootSlotLink(lua_State *L) {
     luaL_error(L, "Usage: GetLootSlotLink(slot)");
     return 0;
   }
+  int  slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
   char link[1024];
-  lua_pushstring(L, CGLootInfo::GetLootSlotLink(static_cast<UINT>(lua_tonumber(L, 1)) - 1, link, sizeof(link)));
+  lua_pushstring(L, CGLootInfo::GetLootSlotLink(slot, link, sizeof(link)));
   return 1;
 }
 
@@ -434,7 +439,8 @@ static int Script_LootSlotIsItem(lua_State *L) {
     luaL_error(L, "Usage: LootSlotIsItem(slot)");
     return 0;
   }
-  if (CGLootInfo::GetLootItem(static_cast<UINT>(lua_tonumber(L, 1)) - 1) > 0) {
+  int slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  if (CGLootInfo::GetLootItem(slot) > 0) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);
@@ -447,7 +453,8 @@ static int Script_LootSlotIsCoin(lua_State *L) {
     luaL_error(L, "Usage: LootSlotIsCoin(slot)");
     return 0;
   }
-  if (CGLootInfo::GetLootCoin(static_cast<UINT>(lua_tonumber(L, 1)) - 1) > 0) {
+  int slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  if (CGLootInfo::GetLootCoin(slot) > 0) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);
@@ -460,8 +467,11 @@ static int Script_LootSlot(lua_State *L) {
     luaL_error(L, "Usage: LootSlot(slot [, force])");
     return 0;
   }
-  UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
-  int  force = lua_isnumber(L, 2) ? static_cast<int>(lua_tonumber(L, 2)) : 0;
+  int slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int force = 0;
+  if (lua_isnumber(L, 2)) {
+    force = static_cast<int>(lua_tonumber(L, 2));
+  }
   lua_pushnumber(L, static_cast<double>(CGLootInfo::LootSlot(slot, force)));
   return 1;
 }

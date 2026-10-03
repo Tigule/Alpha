@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -67,7 +69,7 @@ void CGGuildRegistrar::BuyGuildCharter(LPCSTR guildName) {
       CGGameUI::DisplayError(GERR_ALREADY_IN_GUILD);
       return;
     }
-    if (player->GetUnitData()->coinage < static_cast<UINT>(m_petition.m_price)) {
+    if (player->GetMoney() < static_cast<UINT>(m_petition.m_price)) {
       CGGameUI::DisplayError(GERR_NOT_ENOUGH_MONEY);
       return;
     }

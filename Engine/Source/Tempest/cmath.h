@@ -64,15 +64,23 @@ namespace NTempest {
     }
 
     static BYTE ftol_round_0_256_(float x) {
-      ASSERT(x >= -0.5f);
-      ASSERT(x <= 255.4999f);
+      if (!(x >= -0.5f)) {
+        SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x >= -0.5f", "x", x);
+      }
+      if (!(x <= 255.4999f)) {
+        SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x <= 255.4999f", "x", x);
+      }
       x += 512.5f;
       return static_cast<BYTE>(*reinterpret_cast<DWORD *>(&x) >> 14);
     }
 
     static BYTE ftol_0_256_(float x) {
-      ASSERT(x >= 0.0f);
-      ASSERT(x <= 255.9999f);
+      if (!(x >= 0.0f)) {
+        SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x >= 0.0f", "x", x);
+      }
+      if (!(x <= 255.9999f)) {
+        SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x <= 255.9999f", "x", x);
+      }
       x += 512.0f;
       return static_cast<BYTE>(*reinterpret_cast<DWORD *>(&x) >> 14);
     }
@@ -234,11 +242,16 @@ namespace NTempest {
     }
 
     static DWORD fuint_n(float r) {
-      ASSERT(r >= .0f);
+      if (!(r >= .0f)) {
+        SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "r >= .0f", "r", r);
+      }
       return static_cast<DWORD>(r + 0.5f);
     }
 
     static DWORD fuint_(float r) {
+      if (!(r >= .0f)) {
+        SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "r >= .0f", "r", r);
+      }
       return static_cast<DWORD>(r);
     }
 
@@ -247,11 +260,11 @@ namespace NTempest {
     }
 
     static long fint_(float x) {
-      return static_cast<long>(x);
+      return x > .0f ? static_cast<long>(fuint_(x)) : -static_cast<long>(fuint_(-x));
     }
 
     static long fint_n(float x) {
-      return static_cast<long>(x + (x < 0.0f ? -0.5f : 0.5f));
+      return x > .0f ? static_cast<long>(fuint_n(x)) : -static_cast<long>(fuint_n(-x));
     }
 
     static long fint_pi(float x) {
@@ -661,7 +674,9 @@ namespace NTempest {
     }
 
     static double sqrt_(double x) {
-      ASSERT(x >= .0f);
+      if (!(x >= .0f)) {
+        SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x >= .0f", "x", x);
+      }
       return sqrt(x);
     }
 

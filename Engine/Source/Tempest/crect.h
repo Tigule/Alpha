@@ -84,7 +84,9 @@ namespace NTempest {
     bool NotInvalid() const;
     bool Encloses(const C2Vector &value) const;
     bool Encloses(const CRect &value) const;
-    bool Contains(const C2Vector &value) const;
+    bool Contains(const C2Vector &value) const {
+      return value.x >= l && value.x <= r && value.y >= t && value.y <= b;
+    }
     bool Contains(const CRect &value) const;
     bool InOpenR(const C2Vector &value) const;
     bool InOpenR(const CRect &value) const;
@@ -114,21 +116,15 @@ namespace NTempest {
     void     AlignRight(const CRect &value);
     static CRect Lerp(const CRect &a, const CRect &b, const CRect &t);
 
-    static CRect Intersection(const CRect &left, const CRect &right) {
-      CRect result;
-
-      result.t = left.t > right.t ? left.t : right.t;
-      result.l = left.l > right.l ? left.l : right.l;
-      result.b = left.b < right.b ? left.b : right.b;
-      result.r = left.r < right.r ? left.r : right.r;
-      return result;
+    static CRect Intersection(const CRect &l, const CRect &r) {
+      return CRect(max(l.t, r.t), max(l.l, r.l), min(l.b, r.b), min(l.r, r.r));
     }
 
     static CRect Intersection(const CRect &a, const CRect &b, const CRect &clip);
     static CRect Union(const CRect &left, const CRect &right);
 
-    CRect Intersect(const CRect &right) {
-      *this = Intersection(*this, right);
+    CRect Intersect(const CRect &r) {
+      *this = Intersection(*this, r);
       return *this;
     }
 

@@ -12,6 +12,17 @@ namespace NTempest {
 
 DECLARE_DERIVED_HANDLE(HTEXTURE, HOBJECT);
 
+enum {
+  TextureLog_Character = 0,
+  TextureLog_Creature = 1,
+  TextureLog_Dungeon = 2,
+  TextureLog_Interface = 3,
+  TextureLog_World = 4,
+  TextureLog_Tileset = 5,
+  TextureLog_Item = 6,
+  TextureLog_Num = 7
+};
+
 enum TEXFILETYPE {
   TEXFILETYPE_UNKNOWN = 0,
   TEXFILETYPE_TGA = 1,

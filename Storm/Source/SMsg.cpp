@@ -70,7 +70,9 @@ static LRESULT CALLBACK GenericWndProc(HWND window, UINT message, WPARAM wparam,
 }
 
 static BOOL InternalRegister(DWORD type, HWND window, DWORD id, SMSGHANDLER handler) {
-  FATALASSERT(handler);
+  VALIDATEBEGIN;
+  VALIDATE(handler);
+  VALIDATEEND;
 
   if (!FindWindowA(window)) {
     AddWindow(window);
@@ -189,7 +191,9 @@ extern "C" HWND APIENTRY SMsgGetDefaultWindow() {
 }
 
 extern "C" BOOL APIENTRY SMsgGetDefaultWindowRect(LPRECT rect) {
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(rect);
+  VALIDATEEND;
 
   if (!s_defaultwindowrect.left && !s_defaultwindowrect.top && !s_defaultwindowrect.right && !s_defaultwindowrect.bottom) {
     return GetClientRect(s_defaultwindow, rect);
@@ -200,7 +204,9 @@ extern "C" BOOL APIENTRY SMsgGetDefaultWindowRect(LPRECT rect) {
 }
 
 extern "C" WNDPROC APIENTRY SMsgGetGenericWndProc(DWORD id) {
-  FATALASSERT(!id);
+  VALIDATEBEGIN;
+  VALIDATE(!id);
+  VALIDATEEND;
 
   return GenericWndProc;
 }
@@ -249,7 +255,9 @@ extern "C" BOOL APIENTRY SMsgSetDefaultWindow(HWND window) {
 }
 
 extern "C" void APIENTRY SMsgSetDefaultWindowRect(const RECT *rect) {
-  FATALASSERT(rect);
+  VALIDATEBEGIN;
+  VALIDATE(rect);
+  VALIDATEENDVOID;
 
   s_defaultwindowrect = *rect;
 }

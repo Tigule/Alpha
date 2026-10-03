@@ -1,3 +1,10 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <MapDefs.h>
+#include <WorldClient/World.h>
+#include <WowConst.h>
+#include <DayNight.h>
+
 #include "Game/GameTime.h"
 
 #include "DayNight.h"
@@ -104,7 +111,8 @@ static BOOL CCommand_LocalTime(LPCSTR, LPCSTR time) {
   newTime.m_hour = hour;
   newTime.m_minute = minute;
   g_clientGameTime.SetTimeDateBias(0, 0, false);
-  g_clientGameTime.SetTimeDateBias(newTime.GetHourAndMinutes() - g_clientGameTime.GetHourAndMinutes(), 0, true);
+  int timeBias = newTime.GetHourAndMinutes() - g_clientGameTime.GetHourAndMinutes();
+  g_clientGameTime.SetTimeDateBias(timeBias, 0, true);
   UpdateTime();
   return 1;
 }
@@ -224,7 +232,8 @@ static BOOL ReceiveNewGameTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg)
 
 BOOL ClientGameTimeTickHandler(LPCVOID data, LPVOID) {
   FATALASSERT(data);
-  g_clientGameTime.GameTimeUpdate(*static_cast<const float *>(data));
+  float elapsedSec = *static_cast<const float *>(data);
+  g_clientGameTime.GameTimeUpdate(elapsedSec);
   return 1;
 }
 

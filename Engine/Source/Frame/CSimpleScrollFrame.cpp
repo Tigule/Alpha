@@ -54,15 +54,12 @@ void CSimpleScrollFrame::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
 
   const XMLNode *script;
   for (script = node->GetChild(); script; script = script->GetSibling()) {
-    LPCSTR name = script->GetName();
-    LPCSTR source = script->GetBody();
-
-    if (!SStrCmpI(name, "OnHorizontalScroll", 0x7FFFFFFF)) {
-      SetOnHorizontalScrollScript(source);
-    } else if (!SStrCmpI(name, "OnVerticalScroll", 0x7FFFFFFF)) {
-      SetOnVerticalScrollScript(source);
-    } else if (!SStrCmpI(name, "OnScrollRangeChanged", 0x7FFFFFFF)) {
-      SetOnScrollRangeChangedScript(source);
+    if (!SStrCmpI(script->GetName(), "OnHorizontalScroll", 0x7FFFFFFF)) {
+      SetOnHorizontalScrollScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnVerticalScroll", 0x7FFFFFFF)) {
+      SetOnVerticalScrollScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnScrollRangeChanged", 0x7FFFFFFF)) {
+      SetOnScrollRangeChangedScript(script->GetBody());
     }
   }
 }
@@ -129,8 +126,6 @@ static void GetScrollChildRect(CSimpleFrame *frame, NTempest::CRect &rect) {
 }
 
 void CSimpleScrollFrame::UpdateScrollChildRect(float w, float h) {
-  static const float EPSILON = 2.38418579e-7f;
-
   if (m_scrollChild) {
     const NTempest::C2Vector lastRange = m_scrollRange;
     NTempest::CRect          rect;
@@ -149,7 +144,7 @@ void CSimpleScrollFrame::UpdateScrollChildRect(float w, float h) {
     m_scrollRange.x = inverseScale * (horizontalRange > 0.0f ? horizontalRange : 0.0f);
     m_scrollRange.y = inverseScale * (verticalRange > 0.0f ? verticalRange : 0.0f);
 
-    if (fabs(m_scrollRange.x - lastRange.x) >= EPSILON || fabs(m_scrollRange.y - lastRange.y) >= EPSILON) {
+    if (NTempest::CMath::fnotequal_(m_scrollRange.x, lastRange.x) || NTempest::CMath::fnotequal_(m_scrollRange.y, lastRange.y)) {
       RunOnScrollRangeChangedScript();
     }
   }

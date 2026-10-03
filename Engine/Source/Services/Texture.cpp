@@ -6,7 +6,6 @@
 #include "Base/FileCache.h"
 #include "Base/Status.h"
 #include "BLPFile/blp.h"
-#include "Gx/CGxDevice.h"
 #include "Gx/Gx.h"
 #include "Images/dxt.h"
 #include "Images/tga.h"
@@ -83,19 +82,17 @@ struct CTextureItem {
   CTextureItem(int p_fromColor = 0) : texture(0), fromColor(p_fromColor), timeStamp(0) {
   }
 
-  ~CTextureItem();
+  ~CTextureItem() {
+    if (texture) {
+      HandleClose(texture);
+    }
+  }
 
   HTEXTURE texture;
   int      fromColor;
   DWORD    timeStamp;
   LINKDECLEX(CTextureItem, link);
 };
-
-CTextureItem::~CTextureItem() {
-  if (texture) {
-    HandleClose(texture);
-  }
-}
 
 struct CTextureHash : public TSHashObject<CTextureHash, HASHKEY_TEXTUREFILE>, public CTextureItem {
   CTextureHash();
@@ -130,6 +127,8 @@ enum EImageFormat {
   NUM_IMAGE_FORMATS = 2
 };
 
+static TSHashTableReuse<CTextureHash, HASHKEY_TEXTUREFILE, 1> s_textureCache;
+static TSHashTableReuse<CSolidTextureHash, HASHKEY_NONE, 1>   s_solidTextureCache;
 static MipBits *tgaMips;
 static LISTDECLEX(CTextureItem, link, s_textureCacheLRU);
 static HASHKEY_NONE s_hashKeyNone;
@@ -137,9 +136,8 @@ static LISTDECLEX(CTexture, link, s_textureList);
 static LPVOID              g_textureMipBits;
 static NTempest::CImVector CRAPPY_GREEN(0xFF00FF00UL);
 static LISTDECLEX(CGxTexCache, link, s_gxTexCacheList[5][5][GxTexFormats_Last]);
-static TSHashTableReuse<CTextureHash, HASHKEY_TEXTUREFILE, 1> s_textureCache;
-static const WORD                                             s_bitDepth[8] = {0, 32, 16, 16, 16, 4, 8, 8};
-static LPCSTR                                                 s_formatExt[NUM_IMAGE_FORMATS] = {".tga", ".blp"};
+static const WORD s_bitDepth[8] = {0, 32, 16, 16, 16, 4, 8, 8};
+static LPCSTR     s_formatExt[NUM_IMAGE_FORMATS] = {".tga", ".blp"};
 static LISTDECLEX(CGxTexCache, link, s_gxTexCacheFreeList);
 static TSCArray<BYTE, 1048576> s_asyncLoadBuffer;
 static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
@@ -149,7 +147,6 @@ static char s_gxTexFormatStrings[8][32] = {"GxTex_Unknown", "GxTex_Argb8888", "G
 static char s_gxTexFilterStrings[5][32] = {"GxTex_Nearest", "GxTex_Linear", "GxTex_LinearMipNearest", "GxTex_LinearMipLinear", ""};
 char       *s_textureLogString[7] = {"character", "creature", "dungeon", "interface", "world", "tileset", "item"};
 static int  s_asyncPending;
-static TSHashTableReuse<CSolidTextureHash, HASHKEY_NONE, 1> s_solidTextureCache;
 
 static HTEXTURE GetTexture(LPCSTR texMap, CGxTexFlags flags);
 static HTEXTURE GetTexture(const NTempest::CImVector &color);
@@ -271,8 +268,9 @@ static HTEXTURE GetTexture(const NTempest::CImVector &color) {
 }
 
 static int TextureIsUsed(HTEXTURE texture) {
-  ASSERT(texture);
-  return texture->unused > 1;
+  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+  ASSERT(textureptr);
+  return textureptr->GetRefCount() > 1;
 }
 
 static void HashNewTexture(LPCSTR texMap, CGxTexFlags flags, HTEXTURE texture, CStatus *status) {
@@ -567,15 +565,15 @@ static HTEXTURE CreateTgaTexture(LPCSTR file, CGxTexFlags flags, CStatus *status
 }
 
 static BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *height, EGxTexFormat *format, int *isOpaque, UINT *alphaBits) {
-  CBLPFile     texFile;
-  EGxTexFormat gxFormat = GxTex_Argb8888;
-  PIXEL_FORMAT pixelFormat = PIXEL_ARGB8888;
-
   ASSERT(fileName);
 
+  CBLPFile texFile;
   if (!texFile.Open(fileName)) {
     return 0;
   }
+
+  EGxTexFormat gxFormat = GxTex_Argb8888;
+  PIXEL_FORMAT pixelFormat = PIXEL_ARGB8888;
 
   if (texFile.m_header.colorEncoding == COLOR_DXT) {
     pixelFormat = static_cast<PIXEL_FORMAT>(texFile.m_header.preferredFormat);
@@ -584,12 +582,12 @@ static BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *he
       case PIXEL_DXT1:
         if (GxCaps().m_texFmtDxt) {
           gxFormat = GxTex_Dxt1;
-        } else if (texFile.m_header.alphaSize) {
-          gxFormat = GxTex_Argb1555;
-          pixelFormat = PIXEL_ARGB1555;
-        } else {
+        } else if (!texFile.m_header.alphaSize) {
           gxFormat = GxTex_Rgb565;
           pixelFormat = PIXEL_RGB565;
+        } else {
+          gxFormat = GxTex_Argb1555;
+          pixelFormat = PIXEL_ARGB1555;
         }
         break;
 
@@ -625,9 +623,9 @@ static BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *he
     *format = gxFormat;
   }
 
+  UINT bestMip = 0;
   UINT imgWidth = texFile.m_header.width;
   UINT imgHeight = texFile.m_header.height;
-  UINT bestMip = 0;
   RequestImageDimensions(&imgWidth, &imgHeight, &bestMip);
 
   if (width) {
@@ -956,9 +954,9 @@ static BOOL AsyncTextureLoadImageCreate(CTexture *texture) {
     texture->flags |= 1;
   }
 
+  UINT bestMip = 0;
   UINT width = image.Width();
   UINT height = image.Height();
-  UINT bestMip = 0;
   RequestImageDimensions(&width, &height, &bestMip);
 
   texture->mipBits = 0;
@@ -981,7 +979,7 @@ static BOOL AsyncTextureLoadImageCreate(CTexture *texture) {
 
 static void FillInSolidTexture(const NTempest::CImVector &color, CTexture *texture) {
   GxTexCreate(
-      8, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), reinterpret_cast<LPVOID>(*color.IV_()), GxuUpdateSingleColorTexture,
+      8, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), reinterpret_cast<LPVOID>(static_cast<DWORD>(color)), GxuUpdateSingleColorTexture,
       texture->gxTex
   );
 
@@ -1103,12 +1101,17 @@ static EImageFormat IdentifyAndStripFileExtension(LPCSTR fileName, char *strippe
   if (**ext == '.') {
     SStrLower(*ext + 1);
 
-    if ((*ext)[3] == 'a') {
-      if ((*ext)[1] == 't' && (*ext)[2] == 'g') {
-        imageFormat = IMAGE_FORMAT_TGA;
-      }
-    } else if ((*ext)[3] == 'p' && (*ext)[1] == 'b' && (*ext)[2] == 'l') {
-      imageFormat = IMAGE_FORMAT_BLP;
+    switch ((*ext)[3]) {
+      case 'a':
+        if ((*ext)[1] == 't' && (*ext)[2] == 'g') {
+          imageFormat = IMAGE_FORMAT_TGA;
+        }
+        break;
+      case 'p':
+        if ((*ext)[1] == 'b' && (*ext)[2] == 'l') {
+          imageFormat = IMAGE_FORMAT_BLP;
+        }
+        break;
     }
 
     **ext = 0;
@@ -1196,10 +1199,8 @@ MipBits *TextureLoadImage(LPCSTR filename, UINT *width, UINT *height, UINT *gxTe
 
   VALIDATEBEGIN;
   VALIDATE(filename);
-  FATALASSERT(width);
-
-  FATALASSERT(height);
-
+  VALIDATE(width);
+  VALIDATE(height);
   VALIDATE(gxTexFormat);
   VALIDATEEND;
 
@@ -1286,9 +1287,14 @@ HTEXTURE TextureLoadImage(LPCSTR filename) {
 }
 
 MipBits *TextureLoadImage(HTEXTURE texture, UINT *width, UINT *height, UINT *gxTexFormat, CStatus *status, UINT *alphaBits) {
-  FATALASSERT(texture);
+  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+  int       isOpaque;
 
-  return TextureLoadImage(reinterpret_cast<CTexture *>(texture)->filename, width, height, gxTexFormat, 0, status, alphaBits);
+  VALIDATEBEGIN;
+  VALIDATE(textureptr);
+  VALIDATEEND;
+
+  return TextureLoadImage(textureptr->filename, width, height, gxTexFormat, &isOpaque, status, alphaBits);
 }
 
 HTEXTURE TextureAllocImage(EGxTexFormat format, UINT width, UINT height) {
@@ -1299,7 +1305,7 @@ HTEXTURE TextureAllocImage(EGxTexFormat format, UINT width, UINT height) {
   texture->gxTexFormat = format;
   texture->gxWidth = width;
   texture->gxHeight = height;
-  texture->pixBitDepth = static_cast<WORD>(CGxDevice::s_texFormatBitDepth[format]);
+  texture->pixBitDepth = s_bitDepth[format];
   texture->asyncObject = 0;
   texture->mipBits = TextureAllocMippedImg(format, width, height);
   SStrCopy(texture->filename, "TextureAllocImage", sizeof(texture->filename));
@@ -1573,10 +1579,12 @@ MipBits *TextureCopyMippedImage(MipBits *srcData, EGxTexFormat format, UINT widt
   }
 
   MipBits *destData = TextureAllocMippedImg(format, width, height);
-  if (destData) {
-    UINT mipCount = TextureCalcMipCount(width, height);
-    memcpy(&destData->mip[mipCount], &srcData->mip[mipCount], CalcLevelOffset(mipCount, width, height, format));
+  if (!destData) {
+    return 0;
   }
+
+  UINT mipCount = TextureCalcMipCount(width, height);
+  memcpy(&destData->mip[mipCount], &srcData->mip[mipCount], CalcLevelOffset(mipCount, width, height, format));
   return destData;
 }
 

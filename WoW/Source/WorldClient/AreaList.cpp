@@ -1,20 +1,27 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
+
+#include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
 
 #include "AreaList.h"
 #include "AreaListHashKey.h"
-#include "World.h"
 
 #include <Base/CDataStore.h>
 #include <Console/ConsoleCommand.h>
 #include <DB/DBClient/AutoCode/AreaTableRec.h>
 #include <DB/DBClient/AutoCode/WMOAreaTableRec.h>
-#include <Net/NetClient/NetClient.h>
 #include <SoundInterface/SoundInterface.h>
+#include <Net/NetClient/NetClient.h>
 #include <Ui/GameUI.h>
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
 #include <WowSvcs/WowSvcsClient/ClientServices.h>
 #include <storm.h>
 

@@ -1,10 +1,17 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-
 #include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include "WorldCommon/WorldMath.h"
 
 #include <Model/IModel.h>
@@ -93,10 +100,10 @@ void CMap::UpdateDoodadDef(CMapDoodadDef *doodadDef, NTempest::C3Vector &pos, fl
   if (ModelIsLoaded(doodadDef->model, 1)) {
     InitializeDoodadBounds(doodadDef);
   } else {
-    doodadDef->aaSphere.c = pos;
+    doodadDef->aaSphere.c = doodadDef->pos;
     doodadDef->aaSphere.r = 0.0f;
-    doodadDef->aaBox.b = pos;
-    doodadDef->aaBox.t = pos;
+    doodadDef->aaBox.b = doodadDef->pos;
+    doodadDef->aaBox.t = doodadDef->pos;
   }
 }
 

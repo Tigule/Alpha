@@ -74,12 +74,12 @@ void ReadVertices(Parser &parse, LPCSTR title, TSGrowableArray<NTempest::C3Vecto
 static void IReadTVertices(Parser &parse, TSGrowableArray<NTempest::C2Vector> *texcoords) {
   UINT   savedtoken;
   LPCSTR tokentext;
+  long   actual = 0;
   long   count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   if (count > 0) {
     texcoords->ReserveSpace(count);
   }
   parse.Expect('{', savedtoken, tokentext);
-  long actual = 0;
   savedtoken = parse.Token(&tokentext, 0);
   while (savedtoken == '{') {
     NTempest::C2Vector *coord = texcoords->New();
@@ -92,7 +92,7 @@ static void IReadTVertices(Parser &parse, TSGrowableArray<NTempest::C2Vector> *t
     savedtoken = parse.Token(&tokentext, 0);
   }
   parse.Expect('}', savedtoken, tokentext);
-  if (count >= 0 && count != actual) {
+  if (count >= 0 && actual != count) {
     parse.WarningCount("vertices", count, actual);
   }
 }

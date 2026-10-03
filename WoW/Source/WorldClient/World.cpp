@@ -1,15 +1,22 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
+
+#include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+
 #include <Ftol.h>
 
-#include "World.h"
-
-#include "CMapObj.h"
-#include "WorldParam.h"
 #include "WorldCommon/WorldMath.h"
-
-#include "DayNight.h"
 
 #include <Base/Activity.h>
 #include <Base/CDataStore.h>
@@ -17,8 +24,6 @@
 #include <Anim/AnimTypes.h>
 #include <Console/ConsoleClient.h>
 #include <Console/ConsoleVar.h>
-#include <Gx/Gx.h>
-#include <Gxu/IGxuLight.h>
 #include <Model/IModel.h>
 #include <Os/OsTime.h>
 #include <Services/IParticleMisc.h>
@@ -29,17 +34,6 @@
 #include <float.h>
 #include <stdio.h>
 #include <storm.h>
-
-#include "WowSvcs/WowSvcsClient/ClientServices.h"
-
-NTempest::C44Matrix CWTriData::matrices[CWTriData::MaxBatches];
-WORD                CWTriData::vertexIndices[CWTriData::MaxVertexIndices];
-WORD                CWTriData::triIndices[CWTriData::MaxTriIndices];
-CWTriData::Batch    CWTriData::batches[CWTriData::MaxBatches];
-UINT                CWTriData::nMatrices;
-UINT                CWTriData::nVertexIndices;
-UINT                CWTriData::nTriIndices;
-UINT                CWTriData::nBatches;
 
 UINT                CWorld::frameCnt;
 UINT                CWorld::chunkCnt;
@@ -90,6 +84,15 @@ Particulate        *CWorld::particulate;
 int                 CWorld::bLoadSimpleDoodads;
 int                 CWorld::bShowSimpleDoodads;
 
+NTempest::C44Matrix CWTriData::matrices[CWTriData::MaxBatches];
+WORD                CWTriData::vertexIndices[CWTriData::MaxVertexIndices];
+WORD                CWTriData::triIndices[CWTriData::MaxTriIndices];
+CWTriData::Batch    CWTriData::batches[CWTriData::MaxBatches];
+UINT                CWTriData::nMatrices;
+UINT                CWTriData::nVertexIndices;
+UINT                CWTriData::nTriIndices;
+UINT                CWTriData::nBatches;
+
 static float profTimes[30];
 static int   profIdx;
 static float s_texDir[8][2] = {
@@ -102,6 +105,8 @@ static float s_texDir[8][2] = {
     { 0.0f, -1.0f},
     {-1.0f, -1.0f}
 };
+
+extern void (*GxuLightSelect)(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
 
 static void UpdateShadowGxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
 
@@ -283,11 +288,12 @@ void CWorld::UpdateDayNight(int forceFull, const NTempest::C3Vector *position) {
   }
 
   SetShadowColor(dnInfo->shadowClr);
-  CMap::sunLight->gxLight.m_dir = dnInfo->lightInfo.dir;
-  CMap::sunLight->gxLight.m_ambColor = dnInfo->lightInfo.ambColor;
-  CMap::sunLight->gxLight.m_dirColor = dnInfo->lightInfo.dirColor;
-  CMap::sunLight->gxLight.m_specColor = dnInfo->light.SkyArray[5];
-  CMap::sunLight->gxLight.m_specIntensity = 1.0f;
+  CGxLight &gxLight = CMap::sunLight->gxLight;
+  gxLight.m_dir = dnInfo->lightInfo.dir;
+  gxLight.m_ambColor = dnInfo->lightInfo.ambColor;
+  gxLight.m_dirColor = dnInfo->lightInfo.dirColor;
+  gxLight.m_specColor = dnInfo->light.CloudArray[0];
+  gxLight.m_specIntensity = 1.0f;
 }
 
 void CWorld::Render() {
@@ -429,15 +435,15 @@ BOOL CWorld::QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface,
 
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
-  if (!entity->flagInLiquid) {
-    return 0;
+  if (entity->flagInLiquid) {
+    surface = entity->lqSurface;
+    flowDir = entity->lqDirection;
+    liquid = entity->lqWhich;
+    deep = entity->flagDeepLiquid;
+    return 1;
   }
 
-  liquid = entity->lqWhich;
-  flowDir = entity->lqDirection;
-  surface = entity->lqSurface;
-  deep = entity->flagDeepLiquid;
-  return 1;
+  return 0;
 }
 
 int CWorld::QueryGroundType(DWORD hWorldObject, UINT &groundType) {
@@ -534,14 +540,15 @@ UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOO
 }
 
 void CWorld::ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, BOOL bSnap) {
-  FATALASSERT(reinterpret_cast<CMapBaseObj *>(id));
+  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
+  FATALASSERT(baseObj);
   if (bSnap) {
-    CMap::SnapBaseObjToSubChunk(reinterpret_cast<CMapBaseObj *>(id), pos, angle);
+    CMap::SnapBaseObjToSubChunk(baseObj, pos, angle);
   }
-  if (reinterpret_cast<CMapBaseObj *>(id)->GetType() & CMapBaseObj::Type_MapObjDef) {
-    CMap::UpdateMapObjDef(static_cast<CMapObjDef *>(reinterpret_cast<CMapBaseObj *>(id)), pos, angle);
+  if (baseObj->GetType() & CMapBaseObj::Type_MapObjDef) {
+    CMap::UpdateMapObjDef(static_cast<CMapObjDef *>(baseObj), pos, angle);
   } else {
-    CMap::UpdateDoodadDef(static_cast<CMapDoodadDef *>(reinterpret_cast<CMapBaseObj *>(id)), pos, angle);
+    CMap::UpdateDoodadDef(static_cast<CMapDoodadDef *>(baseObj), pos, angle);
   }
 }
 
@@ -725,8 +732,9 @@ void CWorld::RemoveObject(DWORD hWorldObject) {
   CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
   FATALASSERT(entity);
 
-  while (entity->parentLinkList.Head()) {
-    CMap::FreeBaseObjLink(entity->parentLinkList.Head());
+  for (CMapBaseObjLink *parentLink = entity->parentLinkList.Head(), *next;
+       (int)parentLink > 0 ? ((next = entity->parentLinkList.RawNext(parentLink)), 1) : 0; parentLink = next) {
+    CMap::FreeBaseObjLink(parentLink);
   }
 
   if (entity->GetType() & CMapBaseObj::Type_DoodadDef) {
@@ -738,8 +746,9 @@ void CWorld::RemoveObject(DWORD hWorldObject) {
     HandleClose(reinterpret_cast<HOBJECT>(entity->model));
   }
 
-  while (entity->cacheLightList.Head()) {
-    CMap::FreeCacheLight(entity->cacheLightList.Head());
+  for (CMapCacheLight *cacheLight = entity->cacheLightList.Head(), *pNext;
+       (int)cacheLight > 0 ? ((pNext = entity->cacheLightList.RawNext(cacheLight)), 1) : 0; cacheLight = pNext) {
+    CMap::FreeCacheLight(cacheLight);
   }
 
   if (entity->GetType() & CMapBaseObj::Type_Entity) {
@@ -847,7 +856,7 @@ int CWorld::QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, flo
 int CWorld::QueryLiquidSounds(DWORD hwObject, float radius, int *lbool, NTempest::C3Vector *ldelta) {
   FATALASSERT(lbool);
   FATALASSERT(ldelta);
-  FATALASSERT(radius > 0.0f && radius < 16.0f);
+  FATALASSERT(radius > 0.0f && radius < 16);
 
   CMapEntity *entity = reinterpret_cast<CMapEntity *>(hwObject);
   FATALASSERT(entity);
@@ -859,8 +868,13 @@ int CWorld::QueryLiquidSounds(DWORD hwObject, float radius, int *lbool, NTempest
   }
   memset(lbool, 0, 9 * sizeof(*lbool));
 
-  UINT closestExtLevel;
-  if (!entity->flagInside || (closestExtLevel = 9999, entity->QueryLiquidSounds(lbool, ldelta, ldsquared, closestExtLevel), closestExtLevel < 2)) {
+  if (entity->flagInside) {
+    UINT closestExtLevel = 9999;
+    entity->QueryLiquidSounds(lbool, ldelta, ldsquared, closestExtLevel);
+    if (closestExtLevel < 2) {
+      CMap::QueryLiquidSounds(entity->pos, radius, lbool, ldelta, ldsquared);
+    }
+  } else {
     CMap::QueryLiquidSounds(entity->pos, radius, lbool, ldelta, ldsquared);
   }
   return 1;
@@ -1024,9 +1038,8 @@ void CWorld::CalcFPS() {
 void CWorld::PrepareAreaOfInterest(const NTempest::C3Vector &position, const NTempest::C3Vector &target) {
   float mx = -(position.y - 17066.666f);
 
-  chunkRectHi.minx = static_cast<int>(mx * 0.03f - 0.5f);
-  mx = -(position.x - 17066.666f);
-  chunkRectHi.miny = static_cast<int>(mx * 0.03f - 0.5f);
+  chunkRectHi.miny = Fast_ftol(-(position.x - 17066.666f) * 0.03f);
+  chunkRectHi.minx = Fast_ftol(0.03f * mx);
   chunkRectHi.maxx = chunkRectHi.minx + chunkAoiSize.x;
   chunkRectHi.minx -= chunkAoiSize.x;
   chunkRectHi.maxy = chunkRectHi.miny + chunkAoiSize.y;
@@ -1096,8 +1109,8 @@ void CWorld::ModelGeoProjectCallback(const NTempest::CAaBox &worldBox, NTempest:
 }
 
 BOOL CWorld::ParticleProjectCallback(const NTempest::C3Segment &seg, float &z) {
-  NTempest::C4Plane facet;
   float             segT = 1.0f;
+  NTempest::C4Plane facet;
 
   if (GetFacet(seg, segT, facet, 0x111)) {
     z = (seg.end.z - seg.start.z) * segT + seg.start.z;
@@ -1108,8 +1121,8 @@ BOOL CWorld::ParticleProjectCallback(const NTempest::C3Segment &seg, float &z) {
 }
 
 BOOL CWorld::AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z) {
-  NTempest::C4Plane facet;
   float             segT = 1.0f;
+  NTempest::C4Plane facet;
 
   if (GetFacet(seg, segT, facet, 0x111)) {
     z = (seg.end.z - seg.start.z) * segT + seg.start.z;

@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -22,7 +24,9 @@
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Ui/ChatFrame.h"
 #include "Ui/GameUI.h"
+#include "Ui/PartyFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Base/Handle.h>
@@ -77,6 +81,8 @@ static struct {
     {1.3f, 0xFF00FF00}
 };
 
+NTempest::C2Vector CGMinimapFrame::m_pingPosition;
+
 static float const ICON_SIZE = 0.0125f;
 static float const BLIP_SIZE = 0.00625f;
 static float const ICON_HALF = ICON_SIZE * 0.5f;
@@ -89,7 +95,6 @@ static int      s_tooltipDisplay;
 static int      s_tooltipDisplayDistant = -1;
 static int      s_tooltipDisplayParty = -1;
 static int      s_initialized;
-static QUADDATA s_quadData[1024];
 struct QUADINFO {
   NTempest::C2Vector m_UL;
   NTempest::C2Vector m_LR;
@@ -105,11 +110,14 @@ static const QUADINFO s_mapBoxExtents[4] = {
     QUADINFO(NTempest::C2Vector(0.5f, 0.5f), NTempest::C2Vector(1.0f, 1.0f), NTempest::C2Vector(1.0f, 1.0f)),
     QUADINFO(NTempest::C2Vector(0.0f, 0.5f), NTempest::C2Vector(0.5f, 1.0f), NTempest::C2Vector(0.0f, 1.0f))
 };
+static QUADDATA s_quadData[1024];
+
+MinimapTexParams CGMinimapFrame::s_minimapTexParams;
+
 static HTEXTURE                          s_iconTexture;
 static HTEXTURE                          s_blipTexture;
 static HTEXTURE                          s_minimapMaskTexture;
 static TSGrowableArray<POIINFO>          s_POIInfo;
-static TSGrowableArray<POIDIRECTIONDATA> s_POIDirectionData;
 static NTempest::C2Vector                s_iconCoords[16][4];
 static NTempest::C3Vector                s_iconVertices[4] = {
     NTempest::C3Vector(-ICON_HALF, -ICON_HALF, 0.0f), NTempest::C3Vector(ICON_HALF, -ICON_HALF, 0.0f),
@@ -119,12 +127,10 @@ static NTempest::C3Vector s_blipVertices[4] = {
     NTempest::C3Vector(-BLIP_HALF, -BLIP_HALF, 0.0f), NTempest::C3Vector(BLIP_HALF, -BLIP_HALF, 0.0f),
     NTempest::C3Vector(-BLIP_HALF, BLIP_HALF, 0.0f), NTempest::C3Vector(BLIP_HALF, BLIP_HALF, 0.0f)
 };
+static TSGrowableArray<POIDIRECTIONDATA> s_POIDirectionData;
 static TSGrowableArray<OBJINFO> s_miniMapObjects[5];
 static PARTYMEMBERINFO          s_partyDirectionData[5];
 static WORD                     idx[4] = {0, 1, 3, 2};
-
-NTempest::C2Vector CGMinimapFrame::m_pingPosition;
-MinimapTexParams   CGMinimapFrame::s_minimapTexParams;
 
 NTempest::C2Vector
 CGMinimapFrame::WorldPosToMinimapFrameCoords(const NTempest::C3Vector centerPoint, float radius, float x, float y, float layoutScale) {
@@ -160,13 +166,11 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
         return 1;
       }
     case HIER_TYPE_UNIT: {
-      CGUnit_C         *unit = static_cast<CGUnit_C *>(objectPtr);
-      const CGUnitData *unitData = unit->GetUnitData();
-      const DWORDLONG  &owner = unitData->charmedBy ? unitData->charmedBy : unitData->summonedBy;
-      if (owner == ClntObjMgrGetActivePlayer()) {
+      CGUnit_C *unit = static_cast<CGUnit_C *>(objectPtr);
+      if (unit->GetControlGUID() == ClntObjMgrGetActivePlayer()) {
         type = 2;
       } else {
-        if (unitData->health <= 0 || !player->CanTrack(unit)) {
+        if (unit->GetHealth() <= 0 || !player->CanTrack(unit)) {
           return 1;
         }
         type = 1;
@@ -657,8 +661,8 @@ void QUADDATA::Render(UINT quad, const NTempest::CImVector &color) const {
   GxRsSet(GxRs_Texture1, TextureGetGxTex(s_minimapMaskTexture, 1, 0));
   GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
 
-  static NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
-  static const WORD         vertIndices[4] = {0, 1, 2, 3};
+  NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
+  static const WORD  vertIndices[4] = {0, 1, 2, 3};
   GxPrimLockVertexPtrs(
       4, verts, sizeof(NTempest::C3Vector), &normal, 0, &color, 0, 0, 0, texCoords, sizeof(NTempest::C2Vector), maskTexCoords,
       sizeof(NTempest::C2Vector)
@@ -1080,10 +1084,11 @@ static int CGMinimapFrame_GetZoom(lua_State *L) {
 }
 
 static int CGMinimapFrame_SetZoom(lua_State *L) {
-  if (!lua_isnumber(L, 2)) {
-    return luaL_error(L, "Usage: SetZoom(level)");
+  if (lua_isnumber(L, 2)) {
+    MinimapSetZoom(static_cast<UINT>(lua_tonumber(L, 2)));
+    return 0;
   }
-  MinimapSetZoom(static_cast<UINT>(lua_tonumber(L, 2)));
+  luaL_error(L, "Usage: SetZoom(level)");
   return 0;
 }
 

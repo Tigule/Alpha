@@ -4,12 +4,14 @@
 #include "WowConnection.h"
 
 class WowConnectionNet {
+  friend class WowConnection;
+
+ protected:
+  void Add(WowConnection *conn);
+  void Remove(WowConnection *conn);
+
  public:
   struct Worker {
-    Worker() : event(0, 0) {
-    }
-    Worker(const Worker &worker);
-
     WowConnectionNet *owner;
     SThread           thread;
     int               id;
@@ -18,50 +20,48 @@ class WowConnectionNet {
     BYTE              quit;
     SCritSect         lock;
 
+    Worker() : event(0, 0) {
+    }
+    Worker(const Worker &worker);
+
    private:
     Worker &operator=(const Worker &worker);
-  };
+};
 
   WowConnectionNet(int numThreads, void (*threadinit)());
   WowConnectionNet(const WowConnectionNet &net);
   ~WowConnectionNet();
-  WowConnectionNet &operator=(const WowConnectionNet &net);
 
-  void Start();
-  void Stop();
-  void RunWorker(int id);
-  void Run();
-  void Service(WowConnection *conn);
-  void SignalWorker(WowConnection *conn, UINT flags);
-  void ChangeState(WowConnection *conn, WOW_CONN_STATE state);
-  void Delete(WowConnection *conn);
+  void              Start();
+  void              Stop();
+  void              RunWorker(int id);
+  void              Run();
+  void              Service(WowConnection *conn);
+  void              SignalWorker(WowConnection *conn, UINT flags);
+  void              ChangeState(WowConnection *conn, WOW_CONN_STATE state);
+  WowConnectionNet &operator=(const WowConnectionNet &net);
 
   void PlatformInit(bool useEngine);
   void PlatformDestroy();
+  void PlatformRun();
   void PlatformAdd(WowConnection *conn);
   void PlatformRemove(WowConnection *conn);
   void PlatformChangeState(WowConnection *conn, WOW_CONN_STATE oldState);
   void PlatformDestruct(WowConnection *conn);
-  void PlatformRun();
   void PlatformWorkerReady();
-
- protected:
-  void Add(WowConnection *conn);
-  void Remove(WowConnection *conn);
+  void Delete(WowConnection *conn);
 
  private:
-  friend class WowConnection;
-
-  SThread m_thread;
-  SEvent  m_stopEvent;
-  BYTE    m_stop;
-  int     m_numWorkers;
-  Worker  m_workers[8];
+  SThread    m_thread;
+  SEvent     m_stopEvent;
+  BYTE       m_stop;
+  int        m_numWorkers;
+  Worker     m_workers[8];
   LISTDECLEX(WowConnection, netlink, m_connections);
   SCritSect  m_connectionsLock;
   SSemaphore m_workerSem;
   void (*m_threadinit)();
-  LPVOID m_connectionsChangedEvent;
+  LPVOID     m_connectionsChangedEvent;
 };
 
 #endif

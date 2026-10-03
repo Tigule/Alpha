@@ -1,3 +1,6 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+
 #include "OsJoystick.h"
 
 #include <storm.h>

@@ -11,10 +11,10 @@ enum {
   BIG_FILE_SIZE = 0x40000
 };
 
-static TSHashTableReuse<SoundFileObjectCacheNode, HASHKEY_NONE, 1>    s_soundFileObjectHashTable;
-static TSFixedArray<SoundFileObject>                                  s_soundFileObjects;
 static TSHashTableReuse<SoundFileDataCacheBlock, HASHKEY_LONGLONG, 1> s_soundFileDataCache;
 static LISTDECLEX(SoundFileDataCacheBlock, link, s_soundFileDataCacheLRU);
+static TSHashTableReuse<SoundFileObjectCacheNode, HASHKEY_NONE, 1>    s_soundFileObjectHashTable;
+static TSFixedArray<SoundFileObject>                                  s_soundFileObjects;
 static LISTDECLEX(SoundFileObject, link, s_freeSoundFileObjects);
 static SCritSect s_soundFileCacheLock;
 static UINT      s_openRequests;

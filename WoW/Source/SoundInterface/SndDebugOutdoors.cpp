@@ -1,15 +1,17 @@
 #include <Base/Base.h>
-#include <WowConst.h>
-#include <MapDefs.h>
-
 #include "SoundInterface.h"
+#include <Gx/Gx.h>
+#include <WowConst.h>
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include <MapDefs.h>
+#include "WorldClient/World.h"
 
 #include "WorldClient/AreaListHashKey.h"
 
 #include "Console/ConsoleClient.h"
 #include "Object/ObjectClient/Object_C.h"
-#include "ObjectMgrClient/ObjectMgrClient.h"
-#include "WorldClient/World.h"
 
 #include <stdio.h>
 #include <storm.h>
@@ -67,7 +69,7 @@ void OUTDOORSCHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
 void OUTDOORSCHUNKHASHOBJ::PrintInfo(FILE *outFile) {
   FATALASSERT(outFile);
 
-  fprintf(outFile, "c%dz%ds%d\n", continentID, areaID >> 16, static_cast<WORD>(areaID));
+  fprintf(outFile, "c%dz%ds%d\n", continentID, areaID >> 16, areaID & 0xFFFF);
   fprintf(outFile, "%d\n", desc.Environment);
   fprintf(outFile, "%0.4f\n", desc.DecayTime);
   fprintf(outFile, "%0.4f\n", desc.EnvSize);

@@ -1,3 +1,10 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <MapDefs.h>
+#include <WorldClient/World.h>
+#include <WowConst.h>
+#include <DayNight.h>
+
 #include <Console/ConsoleCommand.h>
 #include <Console/ConsoleVar.h>
 #include <Client.h>
@@ -93,7 +100,7 @@ static CVar                   *s_consoleVarHandle;
 
 static BOOL DiscontinueTimerHandler(LPCVOID data, LPVOID userArg);
 
-SWING::SWING() : m_flags(0) {
+SWING::SWING() {
   m_trail.SetChunkSize(128);
   m_vertexIndices.SetChunkSize(128);
 }
@@ -229,10 +236,7 @@ WTOBJECT::~WTOBJECT() {
 static void GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis, LPVOID param) {
   FATALASSERT(param);
 
-  NTempest::C44Matrix renderBasis(
-      basis.a0, basis.a1, basis.a2, 0.0f, basis.b0, basis.b1, basis.b2, 0.0f, basis.c0, basis.c1, basis.c2, 0.0f, basis.d0, basis.d1, basis.d2, 1.0f
-  );
-  static_cast<WTOBJECT *>(param)->Render(renderBasis);
+  static_cast<WTOBJECT *>(param)->Render(basis);
 }
 
 static BOOL DiscontinueTimerHandler(LPCVOID data, LPVOID userArg) {
@@ -274,11 +278,10 @@ void WTOBJECT::RenderVerts(const NTempest::C3Vector &cameraPos) {
   GxRsSet(GxRs_DepthWrite, 1);
   GxRsSet(GxRs_DepthTest, 1);
 
-  NTempest::C44Matrix world;
-  world.Translate(NTempest::C3Vector(-cameraPos.x, -cameraPos.y, -cameraPos.z));
+  NTempest::C44Matrix world(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, -cameraPos.x, -cameraPos.y, -cameraPos.z, 1.0f);
   GxXformPush(GxXform_World, world);
 
-  ITERATELIST(SWING, m_swings, swing) {
+  for (SWING *swing = m_swings.Head(), *next; (int)swing > 0 ? ((next = m_swings.RawNext(swing)), 1) : 0; swing = next) {
     swing->Render();
   }
 

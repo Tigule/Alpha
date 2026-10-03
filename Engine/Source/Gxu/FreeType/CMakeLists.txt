@@ -35,5 +35,5 @@ target_include_directories(FreeType
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(FreeType PRIVATE /Gr /Ob2 /Z7 /Za)
+    target_compile_options(FreeType PRIVATE /Gr /Ob1 /Z7 /Za)
 endif()

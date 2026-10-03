@@ -45,7 +45,7 @@ static void ConvertBool(CMDDEF *ptr, LPCSTR string, int *datachars) {
     enabled = TRUE;
     *datachars = 1;
   } else {
-    enabled = (ptr->flags & SCMD_BOOL_MASK) != SCMD_BOOL_CLEAR;
+    enabled = ((BYTE)ptr->flags & SCMD_BOOL_MASK) != SCMD_BOOL_CLEAR;
   }
 
   ptr->currvalue &= ~ptr->setmask;
@@ -63,7 +63,6 @@ static void ConvertBool(CMDDEF *ptr, LPCSTR string, int *datachars) {
 
 static void ConvertNumber(CMDDEF *ptr, LPCSTR string, int *datachars) {
   char *endptr = NULL;
-  DWORD bytes;
 
   if ((ptr->flags & SCMD_NUM_MASK) == SCMD_NUM_SIGNED) {
     ptr->currvalue = (DWORD)strtol(string, &endptr, 0);
@@ -71,10 +70,13 @@ static void ConvertNumber(CMDDEF *ptr, LPCSTR string, int *datachars) {
     ptr->currvalue = strtoul(string, &endptr, 0);
   }
 
-  *datachars = endptr ? (int)(endptr - string) : (int)SStrLen(string);
+  if (endptr) {
+    *datachars = endptr - string;
+  } else {
+    *datachars = SStrLen(string);
+  }
   if (ptr->variableptr) {
-    bytes = ptr->variablebytes < sizeof(DWORD) ? ptr->variablebytes : sizeof(DWORD);
-    memcpy(ptr->variableptr, &ptr->currvalue, bytes);
+    memcpy(ptr->variableptr, &ptr->currvalue, min(sizeof(DWORD), ptr->variablebytes));
   }
 }
 
@@ -91,17 +93,15 @@ static void ConvertString(CMDDEF *ptr, LPCSTR string, int *datachars) {
 }
 
 static CMDDEF *FindFlagDef(LPCSTR string, CMDDEF *firstdef, int minlength) {
-  int     strlength;
+  int     strlength = SStrLen(string);
+  int     bestchars = minlength - 1;
   CMDDEF *bestptr = NULL;
-  int     bestchars;
 
-  strlength = (int)SStrLen(string);
-  bestchars = minlength - 1;
-  ITERATEPARTIALLISTPTR(CMDDEF, SCMD_FLAG_LIST, firstdef, def) {
+  for (CMDDEF *def = firstdef; def; def = def->Next()) {
     if (def->namelength > bestchars && def->namelength <= strlength) {
       if ((def->flags & SCMD_CASESENSITIVE) ? !strncmp(def->name, string, def->namelength) : !_strnicmp(def->name, string, def->namelength)) {
-        bestptr = def;
         bestchars = def->namelength;
+        bestptr = def;
       }
     }
   }
@@ -159,10 +159,9 @@ static void GenerateError(SCMDERRORCALLBACK errorcallback, DWORD errorcode, LPCS
 }
 
 static BOOL PerformConversion(CMDDEF *ptr, LPCSTR string, int *datachars) {
-  CMDPARAMS    params;
-  CMDDEF_LIST *list;
-  DWORD        type;
-  int          pass;
+  CMDPARAMS params;
+  DWORD     type;
+  int       pass;
 
   *datachars = 0;
 
@@ -197,9 +196,8 @@ static BOOL PerformConversion(CMDDEF *ptr, LPCSTR string, int *datachars) {
     }
   }
 
-  for (pass = 0; pass < 2; pass++) {
-    list = pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST;
-    ITERATELISTPTR(CMDDEF, list, other) {
+  for (pass = 0; pass <= 1; pass++) {
+    ITERATELISTPTR(CMDDEF, (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST), other) {
       if (other->id == ptr->id) {
         type = other->flags & SCMD_TYPE_MASK;
         if (type == (ptr->flags & SCMD_TYPE_MASK) && other != ptr) {
@@ -222,21 +220,16 @@ static BOOL PerformConversion(CMDDEF *ptr, LPCSTR string, int *datachars) {
 }
 
 static BOOL ProcessCurrentFlag(LPCSTR string, PROCESSING *processing, int *datachars) {
-  CMDDEF *cmd;
-  int     currdatachars;
-
   *datachars = 0;
-  cmd = processing->ptr;
+  CMDDEF *ptr = processing->ptr;
   processing->ptr = NULL;
-  while (cmd) {
-    currdatachars = 0;
-    if (!PerformConversion(cmd, string, &currdatachars)) {
+  while (ptr) {
+    int currdatachars;
+    if (!PerformConversion(ptr, string, &currdatachars)) {
       return FALSE;
     }
-    if (currdatachars > *datachars) {
-      *datachars = currdatachars;
-    }
-    cmd = FindFlagDef(processing->name, cmd->Next(), processing->namelength);
+    *datachars = max(*datachars, currdatachars);
+    ptr = FindFlagDef(processing->name, ptr->Next(), processing->namelength);
   }
 
   return TRUE;
@@ -278,22 +271,23 @@ static BOOL ProcessFlags(LPCSTR string, PROCESSING *processing, SCMDERRORCALLBAC
   char lastflag[0x100];
   int  datachars;
   int  strlength;
+  int  namelength;
 
   lastflag[0] = 0;
   while (*string) {
     CMDDEF *cmd;
 
     strlength = (int)SStrLen(string);
-    datachars = SStrLen(lastflag) < 1 ? 1 : (int)SStrLen(lastflag);
+    namelength = SStrLen(lastflag) < 1 ? 1 : (int)SStrLen(lastflag);
 
     cmd = NULL;
-    while (datachars--) {
-      if (strlength + datachars < 0x100) {
-        SStrCopy(lastflag + datachars, string, sizeof(lastflag));
+    while (namelength--) {
+      if (strlength + namelength < 0x100) {
+        SStrCopy(lastflag + namelength, string, sizeof(lastflag));
         cmd = FindFlagDef(lastflag, SCMD_FLAG_LIST->Head(), 0);
         if (cmd) {
-          datachars = cmd->namelength;
-          lastflag[datachars] = 0;
+          namelength = cmd->namelength;
+          lastflag[namelength] = 0;
           break;
         }
       }
@@ -306,13 +300,13 @@ static BOOL ProcessFlags(LPCSTR string, PROCESSING *processing, SCMDERRORCALLBAC
       return FALSE;
     }
 
-    string += datachars;
+    string += namelength;
     while (SStrChr("=:", *string)) {
       string++;
     }
 
     processing->ptr = cmd;
-    processing->namelength = datachars;
+    processing->namelength = namelength;
     SStrCopy(processing->name, lastflag, 0x7FFFFFFF);
 
     if (!*string && (cmd->flags & SCMD_TYPE_MASK) != SCMD_TYPE_BOOL) {
@@ -320,7 +314,6 @@ static BOOL ProcessFlags(LPCSTR string, PROCESSING *processing, SCMDERRORCALLBAC
       return TRUE;
     }
 
-    datachars = 0;
     if (!ProcessCurrentFlag(string, processing, &datachars)) {
       return FALSE;
     }
@@ -335,12 +328,10 @@ ProcessToken(LPCSTR string, int quoted, PROCESSING *processing, CMDDEF **nextarg
 
 static BOOL
 ProcessString(LPCSTR *stringptr, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
-  char   buffer[0x100];
-  LPCSTR nextptr;
-  int    quoted;
-
   while (**stringptr) {
-    nextptr = *stringptr;
+    char   buffer[0x100];
+    int    quoted = 0;
+    LPCSTR nextptr = *stringptr;
     SStrTokenize(&nextptr, buffer, sizeof(buffer), " ,;\"\t\n\r\x1A", &quoted);
     if (buffer[0] && !ProcessToken(buffer, quoted, processing, nextarg, extracallback, errorcallback)) {
       break;
@@ -359,11 +350,11 @@ static BOOL ProcessToken(
     SCMDPROCESSCALLBACK extracallback,
     SCMDERRORCALLBACK   errorcallback
 ) {
-  if (!quoted && string[0] == '@') {
+  if (string[0] == '@' && !quoted) {
     return ProcessFile(string + 1, processing, nextarg, extracallback, errorcallback);
   }
 
-  if (!quoted && SStrChr("-/", string[0])) {
+  if (SStrChr("-/", string[0]) && !quoted) {
     processing->ptr = NULL;
     return ProcessFlags(string + 1, processing, errorcallback);
   }
@@ -375,16 +366,20 @@ static BOOL ProcessToken(
 
   if (*nextarg) {
     int datachars;
-    if (PerformConversion(*nextarg, string, &datachars)) {
-      *nextarg = (*nextarg)->Next();
-      return TRUE;
+    if (!PerformConversion(*nextarg, string, &datachars)) {
+      return FALSE;
     }
-  } else if (extracallback) {
-    return extracallback(string);
-  } else if (errorcallback) {
-    GenerateError(errorcallback, 0x85100065, string);
+    *nextarg = (*nextarg)->Next();
+    return TRUE;
   }
 
+  if (extracallback) {
+    return extracallback(string);
+  }
+
+  if (errorcallback) {
+    GenerateError(errorcallback, 0x85100065, string);
+  }
   return FALSE;
 }
 
@@ -439,9 +434,10 @@ extern "C" DWORD APIENTRY SCmdGetNum(DWORD id) {
 extern "C" BOOL APIENTRY SCmdGetString(DWORD id, char *buffer, DWORD bufferchars) {
   int pass;
 
-  FATALASSERT(buffer);
-  buffer[0] = 0;
-  FATALASSERT(bufferchars);
+  VALIDATEBEGIN;
+  VALIDATEANDBLANK(buffer);
+  VALIDATE(bufferchars);
+  VALIDATEEND;
 
   for (pass = 0; pass <= 1; pass++) {
     ITERATELISTPTR(CMDDEF, (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST), cmd) {
@@ -459,9 +455,10 @@ extern "C" BOOL APIENTRY SCmdGetString(DWORD id, char *buffer, DWORD bufferchars
 extern "C" BOOL APIENTRY SCmdGetStringAlloc(DWORD id, char **buffer) {
   int pass;
 
-  FATALASSERT(buffer);
+  VALIDATEBEGIN;
+  VALIDATEANDBLANK(buffer);
+  VALIDATEEND;
 
-  *buffer = NULL;
   for (pass = 0; pass <= 1; pass++) {
     ITERATELISTPTR(CMDDEF, (pass ? SCMD_FLAG_LIST : SCMD_ARG_LIST), cmd) {
       if (cmd->id == id) {
@@ -482,7 +479,9 @@ extern "C" BOOL APIENTRY SCmdProcess(LPCSTR cmdline, int skipprogname, SCMDPROCE
   CMDDEF    *nextarg;
   BOOL       result;
 
-  FATALASSERT(cmdline);
+  VALIDATEBEGIN;
+  VALIDATE(cmdline);
+  VALIDATEEND;
 
   if (skipprogname) {
     SStrTokenize(&cmdline, NULL, 0, " ,;\"\t\n\r\x1A", NULL);
@@ -516,12 +515,15 @@ extern "C" BOOL APIENTRY SCmdProcessCommandLine(SCMDPROCESSCALLBACK extracallbac
 extern "C" BOOL APIENTRY SCmdRegisterArgList(const ARGLIST *listptr, DWORD numargs) {
   DWORD i;
 
-  FATALASSERT(listptr);
+  VALIDATEBEGIN;
+  VALIDATE(listptr);
+  VALIDATEEND;
 
   for (i = 0; i < numargs; i++) {
-    if (!SCmdRegisterArgument(listptr[i].flags, listptr[i].id, listptr[i].name, NULL, 0, 1, 0xFFFFFFFF, listptr[i].callback)) {
+    if (!SCmdRegisterArgument(listptr->flags, listptr->id, listptr->name, NULL, 0, 1, 0xFFFFFFFF, listptr->callback)) {
       return FALSE;
     }
+    listptr++;
   }
 
   return TRUE;
@@ -545,13 +547,19 @@ extern "C" BOOL APIENTRY SCmdRegisterArgument(
   }
 
   namelength = (int)SStrLen(name);
-  FATALASSERT(namelength < 16);
-  FATALASSERT((!variablebytes) || variableptr);
-  FATALASSERT((((flags) & ((0 << 24) | (1 << 24) | (2 << 24))) != (2 << 24)) || (!s_addedoptional));
-  FATALASSERT((((flags) & ((0 << 24) | (1 << 24) | (2 << 24))) != (0 << 24)) || (namelength > 0));
-  FATALASSERT((((flags) & ((0 << 16) | (1 << 16) | (2 << 16))) != (0 << 16)) || (!variableptr) || (variablebytes == sizeof(DWORD)));
+  VALIDATEBEGIN;
+  VALIDATE(namelength < 16);
+  VALIDATE((!variablebytes) || variableptr);
+  VALIDATE((((flags) & ((0 << 24) | (1 << 24) | (2 << 24))) != (2 << 24)) || (!s_addedoptional));
+  VALIDATE((((flags) & ((0 << 24) | (1 << 24) | (2 << 24))) != (0 << 24)) || (namelength > 0));
+  VALIDATE((((flags) & ((0 << 16) | (1 << 16) | (2 << 16))) != (0 << 16)) || (!variableptr) || (variablebytes == sizeof(DWORD)));
+  VALIDATEEND;
 
-  cmd = ((flags & SCMD_ARG_MASK) ? SCMD_ARG_LIST : SCMD_FLAG_LIST)->NewNode(LIST_TAIL, 0, 0);
+  if (flags & SCMD_ARG_MASK) {
+    cmd = SCMD_ARG_LIST->NewNode(LIST_TAIL, 0, 0);
+  } else {
+    cmd = SCMD_FLAG_LIST->NewNode(LIST_TAIL, 0, 0);
+  }
 
   SStrCopy(cmd->name, name, sizeof(cmd->name));
   cmd->id = id;

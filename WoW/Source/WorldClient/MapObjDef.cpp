@@ -1,11 +1,18 @@
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/Map.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
 
-#include "Base/Base.h"
-#include "Gx/Gx.h"
+#include "WorldClient/Map.h"
 
 CMapObjDefGroup::CMapObjDefGroup() {
   type |= Type_MapObjDefGroup;
@@ -73,9 +80,9 @@ void CMapObjDefGroup::Update(const NTempest::C44Matrix &newMat) {
 }
 
 CMapObjDef::CMapObjDef() {
-  type |= Type_MapObjDef;
   nameId = 0;
   mapObj = 0;
+  type |= Type_MapObjDef;
   zoneName = 0;
   param64 = 0;
 }

@@ -133,27 +133,21 @@ static LPCSTR GetErrorString(UINT id) {
     return buffer;
   }
 
-  if (id < sizeof(s_displaystr) / sizeof(s_displaystr[0])) {
-    return s_displaystr[id];
-  }
-
-  return "";
+  return s_displaystr[id];
 }
 
 static void AddStormFacility(WORD facility) {
   MSGSRC **link;
-  MSGSRC  *source;
 
   link = &s_msgsrchead;
   while (*link) {
     link = &(*link)->next;
   }
 
-  source = (MSGSRC *)HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, sizeof(MSGSRC));
-  *link = source;
-  source->facility = facility;
-  source->module = StormGetInstance();
-  source->next = NULL;
+  *link = (MSGSRC *)HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, sizeof(MSGSRC));
+  (*link)->facility = facility;
+  (*link)->module = StormGetInstance();
+  (*link)->next = NULL;
 }
 
 static void AddStormMessages() {
@@ -165,7 +159,7 @@ static void AddStormMessages() {
 static void Breakpoint() {
 #if defined(_MSC_VER) && defined(_M_IX86)
   __try {
-    DebugBreak();
+    __asm int 3
   } __except (EXCEPTION_EXECUTE_HANDLER) {
   }
 #endif
@@ -189,29 +183,27 @@ static void InternalLeaveCriticalSection(CRITICAL_SECTION *critsect) {
 static int UndecorateObjectName(LPCSTR source, char *dest, DWORD destchars) {
   char *end;
 
-  if (!source || !dest || SStrLen(source) < 6 || source[0] != '.' || source[3] != 'U') {
+  if (SStrLen(source) < 6 || source[0] != '.' || source[3] != 'U') {
     return FALSE;
   }
 
-  source += 4;
-  if (!strpbrk(source, "?@")) {
+  if (!strpbrk(source + 4, "?@")) {
     return FALSE;
   }
 
-  SStrCopy(dest, source, destchars);
+  SStrCopy(dest, source + 4, destchars);
   end = strpbrk(dest, "?@");
   if (!end) {
     return FALSE;
   }
-  *end = 0;
 
-  while (end > dest && end[-1] == '_') {
-    --end;
-    *end = 0;
+  *end-- = 0;
+  while (end >= dest && *end == '_') {
+    *end-- = 0;
   }
 
   SStrPack(dest, " (", destchars);
-  SStrPack(dest, source - 4, destchars);
+  SStrPack(dest, source, destchars);
   SStrPack(dest, ")", destchars);
   return TRUE;
 }
@@ -223,22 +215,21 @@ void SErrInitialize() {
 }
 
 static BOOL CanBreakToDebugger() {
-  HMODULE kernel;
-  FARPROC proc;
-  int     present;
+  typedef BOOL(WINAPI * T_IsDebuggerPresent)();
+  HMODULE             kernel;
+  T_IsDebuggerPresent proc;
+  int                 present;
 
   present = FALSE;
   kernel = LoadLibraryA("KERNEL32.DLL");
-  if (!kernel) {
-    return FALSE;
+  if (kernel) {
+    proc = (T_IsDebuggerPresent)GetProcAddress(kernel, "IsDebuggerPresent");
+    if (proc) {
+      present = proc();
+    }
+    FreeLibrary(kernel);
   }
 
-  proc = GetProcAddress(kernel, "IsDebuggerPresent");
-  if (proc) {
-    present = ((BOOL(WINAPI *)(void))proc)();
-  }
-
-  FreeLibrary(kernel);
   return present;
 }
 
@@ -256,7 +247,11 @@ static int MakeDirectory(LPCSTR pszFullPath) {
   }
 
   attributes = GetFileAttributesA(pszFullPath);
-  return attributes != (DWORD)-1 && (attributes & FILE_ATTRIBUTE_DIRECTORY);
+  if (attributes == (DWORD)-1) {
+    return FALSE;
+  }
+
+  return ((BYTE)attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
 static void __cdecl WriteLine(LPVOID param, LPCSTR format, ...) {
@@ -273,8 +268,7 @@ static void __cdecl WriteLine(LPVOID param, LPCSTR format, ...) {
   va_end(args);
   buffer[sizeof(buffer) - 3] = 0;
   SStrPack(buffer, "\r\n", sizeof(buffer));
-  byteswritten = 0;
-  WriteFile((HANDLE)param, buffer, SStrLen(buffer), &byteswritten, NULL);
+  WriteFile((HANDLE)param, buffer, strlen(buffer), &byteswritten, NULL);
 }
 
 static void WriteMessageToLog(HANDLE logfile, LPCSTR message) {
@@ -382,79 +376,85 @@ static void CloseErrorLog(HANDLE logfile) {
 }
 
 static void GetExceptionNameWin32(DWORD exceptioncode, char *buffer, DWORD buffersize) {
+  LPCSTR name;
+
   switch (exceptioncode) {
     case EXCEPTION_ACCESS_VIOLATION:
-      SStrCopy(buffer, "ACCESS_VIOLATION", buffersize);
-      return;
+      name = "ACCESS_VIOLATION";
+      break;
     case EXCEPTION_DATATYPE_MISALIGNMENT:
-      SStrCopy(buffer, "DATATYPE_MISALIGNMENT", buffersize);
-      return;
+      name = "DATATYPE_MISALIGNMENT";
+      break;
     case EXCEPTION_BREAKPOINT:
-      SStrCopy(buffer, "BREAKPOINT", buffersize);
-      return;
+      name = "BREAKPOINT";
+      break;
     case EXCEPTION_SINGLE_STEP:
-      SStrCopy(buffer, "SINGLE_STEP", buffersize);
-      return;
+      name = "SINGLE_STEP";
+      break;
     case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-      SStrCopy(buffer, "ARRAY_BOUNDS_EXCEEDED", buffersize);
-      return;
+      name = "ARRAY_BOUNDS_EXCEEDED";
+      break;
     case EXCEPTION_FLT_DENORMAL_OPERAND:
-      SStrCopy(buffer, "FLT_DENORMAL_OPERAND", buffersize);
-      return;
+      name = "FLT_DENORMAL_OPERAND";
+      break;
     case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-      SStrCopy(buffer, "FLT_DIVIDE_BY_ZERO", buffersize);
-      return;
+      name = "FLT_DIVIDE_BY_ZERO";
+      break;
     case EXCEPTION_FLT_INEXACT_RESULT:
-      SStrCopy(buffer, "FLT_INEXACT_RESULT", buffersize);
-      return;
+      name = "FLT_INEXACT_RESULT";
+      break;
     case EXCEPTION_FLT_INVALID_OPERATION:
-      SStrCopy(buffer, "FLT_INVALID_OPERATION", buffersize);
-      return;
+      name = "FLT_INVALID_OPERATION";
+      break;
     case EXCEPTION_FLT_OVERFLOW:
-      SStrCopy(buffer, "FLT_OVERFLOW", buffersize);
-      return;
+      name = "FLT_OVERFLOW";
+      break;
     case EXCEPTION_FLT_STACK_CHECK:
-      SStrCopy(buffer, "FLT_STACK_CHECK", buffersize);
-      return;
+      name = "FLT_STACK_CHECK";
+      break;
     case EXCEPTION_FLT_UNDERFLOW:
-      SStrCopy(buffer, "FLT_UNDERFLOW", buffersize);
-      return;
+      name = "FLT_UNDERFLOW";
+      break;
     case EXCEPTION_ILLEGAL_INSTRUCTION:
-      SStrCopy(buffer, "ILLEGAL_INSTRUCTION", buffersize);
-      return;
+      name = "ILLEGAL_INSTRUCTION";
+      break;
     case EXCEPTION_IN_PAGE_ERROR:
-      SStrCopy(buffer, "IN_PAGE_ERROR", buffersize);
-      return;
+      name = "IN_PAGE_ERROR";
+      break;
     case EXCEPTION_INT_DIVIDE_BY_ZERO:
-      SStrCopy(buffer, "INT_DIVIDE_BY_ZERO", buffersize);
-      return;
+      name = "INT_DIVIDE_BY_ZERO";
+      break;
     case EXCEPTION_INT_OVERFLOW:
-      SStrCopy(buffer, "INT_OVERFLOW", buffersize);
-      return;
-    case EXCEPTION_INVALID_DISPOSITION:
-      SStrCopy(buffer, "INVALID_DISPOSITION", buffersize);
-      return;
+      name = "INT_OVERFLOW";
+      break;
     case EXCEPTION_NONCONTINUABLE_EXCEPTION:
-      SStrCopy(buffer, "NONCONTINUABLE_EXCEPTION", buffersize);
-      return;
+      name = "NONCONTINUABLE_EXCEPTION";
+      break;
+    case EXCEPTION_INVALID_DISPOSITION:
+      name = "INVALID_DISPOSITION";
+      break;
     case EXCEPTION_PRIV_INSTRUCTION:
-      SStrCopy(buffer, "PRIV_INSTRUCTION", buffersize);
-      return;
+      name = "PRIV_INSTRUCTION";
+      break;
     case EXCEPTION_STACK_OVERFLOW:
-      SStrCopy(buffer, "STACK_OVERFLOW", buffersize);
-      return;
+      name = "STACK_OVERFLOW";
+      break;
     case EXCEPTION_GUARD_PAGE:
-      SStrCopy(buffer, "GUARD_PAGE", buffersize);
-      return;
+      name = "GUARD_PAGE";
+      break;
     case EXCEPTION_INVALID_HANDLE:
-      SStrCopy(buffer, "INVALID_HANDLE", buffersize);
+      name = "INVALID_HANDLE";
+      break;
+    default: {
+      HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+      if (!ntdll || FormatMessageA(FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS, ntdll, exceptioncode, 0, buffer, buffersize, NULL) <= 0) {
+        SStrCopy(buffer, "unknown exception", buffersize);
+      }
       return;
+    }
   }
 
-  HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-  if (!ntdll || !FormatMessageA(FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_IGNORE_INSERTS, ntdll, exceptioncode, 0, buffer, buffersize, NULL)) {
-    SStrCopy(buffer, "unknown exception", buffersize);
-  }
+  SStrCopy(buffer, name, buffersize);
 }
 
 static LONG WINAPI ExceptionFilterWin32(EXCEPTION_POINTERS *exceptionpointers) {

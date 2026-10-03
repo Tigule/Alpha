@@ -17,6 +17,7 @@ struct UNITHASHOBJ;
 struct UNITONESHOTEFFECTDESC;
 struct C_OBJECTHASH;
 struct CMirrorHandler;
+class ClntObjMgr;
 
 template <class RECORD, class KEY, class HASHKEY>
 class DBCache;
@@ -63,85 +64,14 @@ class CHashKeyGUID {
   }
 };
 
-
-
-
-struct C_OBJECTHASH : public TSHashObject<C_OBJECTHASH, CHashKeyGUID> {
-  C_OBJECTHASH(const C_OBJECTHASH &object);
-  C_OBJECTHASH();
-
-  UINT memHandle;
-  UINT thisMemHandle;
-  LISTDECL(CMirrorHandler, mirrorHandlers[634]);
-  LINKDECLEX(C_OBJECTHASH, link);
-  LINKDECLEX(C_OBJECTHASH, reenableLink);
-};
-
 enum HANDLER_PRIORITY {
   HANDLER_PRIORITY_NORMAL = 0,
   HANDLER_PRIORITY_HIGH = 1
 };
 
-NODEDECL(CMirrorHandler) {
-  LINKDECLEX(CMirrorHandler, callLink);
-  BOOL (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
-  LPVOID                             param;
-  UINT                               blocksLeft;
-  UINT                               offset;
-  TSGrowableArray_<BYTE, 'OMGR', __LINE__> previous;
-  HANDLER_PRIORITY                   priority;
-};
-
-inline C_OBJECTHASH::C_OBJECTHASH() : memHandle(0) {
-}
-
-NODEDECL(OBJHANDLERREQUEST) {
-  DWORDLONG guid;
-  UINT      offset;
-  UINT      bytes;
-  BOOL (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
-  LPVOID           param;
-  HANDLER_PRIORITY priority;
-  BYTE             set;
-};
-
 enum PLAYER_TYPE {
   PLAYER_NORMAL = 0,
   PLAYER_BOT = 1
-};
-
-class ClntObjMgr {
- public:
-  ClntObjMgr(const ClntObjMgr &mgr);
-  ClntObjMgr(PLAYER_TYPE type, LPVOID clientPtr)
-      : m_callingMirrorHandlers(0),
-        m_allowGuidDeref(1),
-        m_activePlayer(0),
-        m_type(type),
-        m_mapID(0),
-        m_net(0),
-        m_movement(0),
-        m_clientPtr(clientPtr) {
-  }
-  ~ClntObjMgr() {
-  }
-
-  TSHashTable<C_OBJECTHASH, CHashKeyGUID> m_objects;
-  TSHashTable<C_OBJECTHASH, CHashKeyGUID> m_lazyCleanupObjects;
-  LISTDECLEX(C_OBJECTHASH, link, m_lazyCleanupFifo);
-  LISTDECLEX(C_OBJECTHASH, link, m_freeObjects);
-  LISTDECLEX(C_OBJECTHASH, link, m_visibleObjects);
-  LISTDECLEX(C_OBJECTHASH, reenableLink, m_reenabledObjects);
-  int m_callingMirrorHandlers;
-  LISTDECL(OBJHANDLERREQUEST, m_pendingObjHandlerRequests);
-  int               m_allowGuidDeref;
-  DWORDLONG         m_legalGuidDeref;
-  DWORDLONG         m_activePlayer;
-  PLAYER_TYPE       m_type;
-  UINT              m_mapID;
-  ClientConnection *m_net;
-  LPVOID            m_movement;
-  LPVOID            m_clientPtr;
 };
 
 ClntObjMgr       *ClntObjMgrGetCurrent();

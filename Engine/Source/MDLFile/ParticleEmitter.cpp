@@ -60,7 +60,7 @@ static void IReadParticleOptions(Parser &parse, MDLPARTICLE *options) {
   parse.Expect('{');
   LPCSTR tokentext;
   UINT   savedtoken = parse.Token(&tokentext, 0);
-  while (savedtoken && savedtoken != '}') {
+  while (savedtoken != '}' && savedtoken) {
     int expectAnimation = IExpectAnimation(parse, &savedtoken, &tokentext);
     if (!errors.Check(savedtoken)) {
       parse.FatalDuplicate(tokentext);
@@ -127,22 +127,25 @@ static void IReadParticleEmitterStaticData(Parser &parse, UINT savedtoken, LPCST
 }
 
 static BOOL IReadParticleEmitterFlags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER *emitter) {
-  if (savedtoken == 0x145) {
-    emitter->flags |= 0x8000;
-  } else if (savedtoken == 0x146) {
-    emitter->flags |= 0x10000;
-  } else {
-    return 0;
+  switch (savedtoken) {
+    case 0x145:
+      emitter->flags |= 0x8000;
+      parse.Expect(',');
+      return 1;
+    case 0x146:
+      emitter->flags |= 0x10000;
+      parse.Expect(',');
+      return 1;
+    default:
+      return 0;
   }
-  parse.Expect(',');
-  return 1;
 }
 
 static void IReadParticleEmitter(Parser &parse, TSet &errors, MDLPARTICLEEMITTER *emitter, CMDLStatus *status) {
   parse.Expect('{');
   LPCSTR tokentext;
   UINT   savedtoken = parse.Token(&tokentext, 0);
-  while (savedtoken && savedtoken != '}') {
+  while (savedtoken != '}' && savedtoken) {
     int expectAnimation = IExpectAnimation(parse, &savedtoken, &tokentext);
     if (!errors.Check(savedtoken)) {
       parse.FatalDuplicate(tokentext);
@@ -195,7 +198,11 @@ static void IWriteParticleOptions(const MDLPARTICLE &options, TSGrowableArray<ch
 }
 
 static void IWritePEFlags(const MDLPARTICLEEMITTER &emitter, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText((emitter.flags & 0x10000) ? 0x146 : 0x145));
+  if (emitter.flags & 0x10000) {
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x146));
+  } else {
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x145));
+  }
 }
 
 static void IWriteParticleEmitter(const MDLDATA &data, const MDLPARTICLEEMITTER &emitter, int needObjIds, TSGrowableArray<char> &buffer) {

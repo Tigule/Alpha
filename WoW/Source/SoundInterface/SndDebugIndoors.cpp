@@ -1,13 +1,15 @@
 #include <Base/Base.h>
-#include <WowConst.h>
-#include <MapDefs.h>
-
 #include "SoundInterface.h"
+#include <Gx/Gx.h>
+#include <WowConst.h>
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include <MapDefs.h>
+#include "WorldClient/World.h"
 
 #include "Console/ConsoleClient.h"
 #include "Object/ObjectClient/Object_C.h"
-#include "ObjectMgrClient/ObjectMgrClient.h"
-#include "WorldClient/World.h"
 
 #include <stdio.h>
 #include <storm.h>

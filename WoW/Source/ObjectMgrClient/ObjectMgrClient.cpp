@@ -1,6 +1,8 @@
 #include <Base/Base.h>
-#include <WowConst.h>
+#include <Gx/Gx.h>
 #include <MapDefs.h>
+#include "WorldClient/World.h"
+#include <WowConst.h>
 
 #include "ObjectMgrClient.h"
 
@@ -16,8 +18,6 @@
 #include "Console/ConsoleCommand.h"
 #include "Object/Object.h"
 #include "Object/ObjectClient/Bag_C.h"
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
 #include "Object/ObjectClient/Container_C.h"
 #include "Object/ObjectClient/Corpse_C.h"
 #include "Object/ObjectClient/DynamicObject_C.h"
@@ -26,19 +26,106 @@
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "Object/ObjectClient/Unit_C.h"
+#include "SoundInterface/SoundInterface.h"
+#include "UIUtil/Camera.h"
+#include "UIUtil/InputControl.h"
+#include "Ui/GameUI.h"
 #include "Object/mirror.h"
 #include "ObjectAlloc/ObjectAllocTemplate.h"
-#include "Ui/PartyFrame.h"
 #include "WowServices/WDataStore.h"
 #include "WowSvcs/WowSvcsClient/ClientConnection.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Ui/PartyFrame.h"
+
+struct C_OBJECTHASH : public TSHashObject<C_OBJECTHASH, CHashKeyGUID> {
+  C_OBJECTHASH();
+
+  UINT memHandle;
+  UINT thisMemHandle;
+  LISTDECL(CMirrorHandler, mirrorHandlers[634]);
+  LINKDECLEX(C_OBJECTHASH, link);
+  LINKDECLEX(C_OBJECTHASH, reenableLink);
+};
+
+NODEDECL(CMirrorHandler) {
+  LINKDECLEX(CMirrorHandler, callLink);
+  BOOL (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
+  LPVOID                             param;
+  UINT                               blocksLeft;
+  UINT                               offset;
+  TSGrowableArray_<BYTE, 'OMGR', __LINE__> previous;
+  HANDLER_PRIORITY                   priority;
+};
+
+inline C_OBJECTHASH::C_OBJECTHASH() : memHandle(0) {
+}
+
+NODEDECL(OBJHANDLERREQUEST) {
+  DWORDLONG guid;
+  UINT      offset;
+  UINT      bytes;
+  BOOL (*handler)(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID data, LPVOID param);
+  LPVOID           param;
+  HANDLER_PRIORITY priority;
+  BYTE             set;
+};
+
+class ClntObjMgr {
+ public:
+  ClntObjMgr(PLAYER_TYPE type, LPVOID clientPtr)
+      : m_callingMirrorHandlers(0),
+        m_allowGuidDeref(1),
+        m_activePlayer(0),
+        m_type(type),
+        m_mapID(0),
+        m_net(0),
+        m_movement(0),
+        m_clientPtr(clientPtr) {
+  }
+
+  ClntObjMgr(const ClntObjMgr &mgr);
+  ~ClntObjMgr() {
+  }
+
+  TSHashTable<C_OBJECTHASH, CHashKeyGUID> m_objects;
+  TSHashTable<C_OBJECTHASH, CHashKeyGUID> m_lazyCleanupObjects;
+  LISTDECLEX(C_OBJECTHASH, link, m_lazyCleanupFifo);
+  LISTDECLEX(C_OBJECTHASH, link, m_freeObjects);
+  LISTDECLEX(C_OBJECTHASH, link, m_visibleObjects);
+  LISTDECLEX(C_OBJECTHASH, reenableLink, m_reenabledObjects);
+  int                                     m_callingMirrorHandlers;
+  LISTDECL(OBJHANDLERREQUEST, m_pendingObjHandlerRequests);
+  int                                     m_allowGuidDeref;
+  DWORDLONG                               m_legalGuidDeref;
+  DWORDLONG                               m_activePlayer;
+  PLAYER_TYPE                             m_type;
+  UINT                                    m_mapID;
+  ClientConnection                       *m_net;
+  LPVOID                                  m_movement;
+  LPVOID                                  m_clientPtr;
+};
 
 extern "C" int __stdcall zlib_uncompress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen);
+
+enum {
+  UPDATE_PARTIAL = 0,
+  UPDATE_MOVEMENT = 1,
+  UPDATE_FULL = 2,
+  UPDATE_OUT_OF_RANGE = 3,
+  UPDATE_IN_RANGE = 4
+};
 
 static ClntObjMgr *s_curMgr;
 static UINT        s_hashMemBlock;
 static const UINT  s_objTotalSize[8] = {
-    0x48, 0xEC, 0x1B0, 0xCC0, 0x2248, 0xEC, 0x84, 0x10C,
+    sizeof(CGObject_C) + CGObject::TotalFields() * sizeof(DWORD),
+    sizeof(CGItem_C) + CGItem::TotalFields() * sizeof(DWORD),
+    sizeof(CGContainer_C) + CGContainer::TotalFields() * sizeof(DWORD),
+    sizeof(CGUnit_C) + CGUnit::TotalFields() * sizeof(DWORD),
+    sizeof(CGPlayer_C) + CGPlayer::TotalFields() * sizeof(DWORD),
+    sizeof(CGGameObject_C) + CGGameObject::TotalFields() * sizeof(DWORD),
+    sizeof(CGDynamicObject_C) + CGDynamicObject::TotalFields() * sizeof(DWORD),
+    sizeof(CGCorpse_C) + CGCorpse::TotalFields() * sizeof(DWORD),
 };
 static LPCSTR s_objNames[8] = {
     "CGObject_C", "CGItem_C", "CGContainer_C", "CGUnit_C", "CGPlayer_C", "CGGameObject_C", "CGDynamicObject_C", "CGCorpse_C",
@@ -47,7 +134,8 @@ static int s_heapSizes[8] = {
     0, 0x100, 0x20, 0x40, 0x40, 0x40, 0x20, 0x20,
 };
 static const UINT s_objMirrorBlocks[8] = {
-    6, 36, 78, 184, 634, 20, 16, 36,
+    CGObject::TotalFields(),        CGItem::TotalFields(),       CGContainer::TotalFields(),     CGUnit::TotalFields(),
+    CGPlayer::TotalFields(),        CGGameObject::TotalFields(), CGDynamicObject::TotalFields(), CGCorpse::TotalFields(),
 };
 static BYTE s_heapsAllocated;
 static UINT s_objHeapId[7];
@@ -70,11 +158,7 @@ static void FillInObjectData(C_OBJECTHASH *objhash, CDataStore *msg, CClientObjC
   CGObject_C *obj = static_cast<CGObject_C *>(ObjectPtr(objhash->memHandle));
   FATALASSERT(obj);
   obj->SetTypeID(objTypeID);
-  *msg >> init->move;
-  msg->Get(init->flags);
-  msg->Get(init->attackCycle);
-  msg->Get(init->timerID);
-  msg->Get(init->victim);
+  init->Get(msg);
   FillInPartialObjectData(objhash, msg, 1, 1);
 }
 
@@ -154,22 +238,22 @@ static BOOL SetObjectBlock(CGObject_C *obj, UINT i, DWORD data) {
 
 static UINT IncTypeId(CGObject_C *obj, UINT currTypeId) {
   switch (obj->GetType()) {
-    case HIER_TYPE_ITEM:
-    case HIER_TYPE_CONTAINER:
-      if (currTypeId == ID_OBJECT) {
-        return ID_ITEM;
-      }
-      if (currTypeId == ID_ITEM) {
-        return ID_CONTAINER;
-      }
-      break;
     case HIER_TYPE_UNIT:
     case HIER_TYPE_PLAYER:
-      if (currTypeId == ID_OBJECT) {
-        return ID_UNIT;
+      switch (currTypeId) {
+        case ID_OBJECT:
+          return ID_UNIT;
+        case ID_UNIT:
+          return ID_PLAYER;
       }
-      if (currTypeId == ID_UNIT) {
-        return ID_PLAYER;
+      break;
+    case HIER_TYPE_ITEM:
+    case HIER_TYPE_CONTAINER:
+      switch (currTypeId) {
+        case ID_OBJECT:
+          return ID_ITEM;
+        case ID_ITEM:
+          return ID_CONTAINER;
       }
       break;
     case HIER_TYPE_GAMEOBJECT:
@@ -192,13 +276,10 @@ static UINT IncTypeId(CGObject_C *obj, UINT currTypeId) {
 }
 
 static void MirrorHandlerAdvanceBlock(LISTPTREX(CMirrorHandler) handlerList) {
-  CMirrorHandler *handler = handlerList->Head();
-  while (handler) {
-    CMirrorHandler *next = handlerList->Next(handler);
-    if (handler->blocksLeft-- == 1) {
+  for (CMirrorHandler *handler = handlerList->Head(), *next; (int)handler > 0 ? ((next = handlerList->RawNext(handler)), 1) : 0; handler = next) {
+    if (!--handler->blocksLeft) {
       handlerList->UnlinkNode(handler);
     }
-    handler = next;
   }
 }
 
@@ -396,25 +477,25 @@ static OBJECT_TYPE_ID GetOffsetSectionId(OBJECT_TYPE hierType, UINT offset) {
   if (offset < 24) {
     return ID_OBJECT;
   }
-  if ((hierType & TYPE_ITEM) && offset < 144) {
+  if (static_cast<bool>((static_cast<UINT>(hierType) >> ID_ITEM) & 1) && offset < 144) {
     return ID_ITEM;
   }
-  if ((hierType & TYPE_CONTAINER) && offset < 312) {
+  if (static_cast<bool>((static_cast<UINT>(hierType) >> ID_CONTAINER) & 1) && offset < 312) {
     return ID_CONTAINER;
   }
-  if ((hierType & TYPE_UNIT) && offset < 736) {
+  if (static_cast<bool>((static_cast<UINT>(hierType) >> ID_UNIT) & 1) && offset < 736) {
     return ID_UNIT;
   }
-  if ((hierType & TYPE_PLAYER) && offset < 2536) {
+  if (static_cast<bool>((static_cast<UINT>(hierType) >> ID_PLAYER) & 1) && offset < 2536) {
     return ID_PLAYER;
   }
-  if ((hierType & TYPE_GAMEOBJECT) && offset < 80) {
+  if (static_cast<bool>((static_cast<UINT>(hierType) >> ID_GAMEOBJECT) & 1) && offset < 80) {
     return ID_GAMEOBJECT;
   }
-  if ((hierType & TYPE_DYNAMICOBJECT) && offset < 64) {
+  if (static_cast<bool>((static_cast<UINT>(hierType) >> ID_DYNAMICOBJECT) & 1) && offset < 64) {
     return ID_DYNAMICOBJECT;
   }
-  if ((hierType & TYPE_CORPSE) && offset < 144) {
+  if (static_cast<bool>((static_cast<UINT>(hierType) >> ID_CORPSE) & 1) && offset < 144) {
     return ID_CORPSE;
   }
   return ID_AIGROUP;
@@ -506,46 +587,48 @@ static CGObject_C *GetObjectPtr(DWORDLONG guid) {
 static void PostInitObject(CDataStore *msg) {
   DWORDLONG        guid;
   OBJECT_TYPE_ID   type;
-  BYTE             btype = 0;
+  BYTE             btype;
 
   msg->Get(guid);
   msg->Get(btype);
   type = static_cast<OBJECT_TYPE_ID>(btype);
-  CGObject_C *object = GetObjectPtr(guid);
-  FATALASSERT(object);
+  CGObject_C *obj = GetObjectPtr(guid);
+  FATALASSERT(obj);
   CClientObjCreate init;
   init.Get(msg);
 
-  if (object->IsPostInited()) {
-    if (type == ID_UNIT || type == ID_PLAYER) {
-      static_cast<CGUnit_C *>(object)->PostSetClientInitData(init.move);
+  if (obj->IsPostInited()) {
+    if (type >= ID_UNIT && type <= ID_PLAYER) {
+      static_cast<CGUnit_C *>(obj)->PostSetClientInitData(init.move);
     }
     CallMirrorHandlers(msg, true, guid);
     return;
   }
 
   switch (type) {
-    case ID_OBJECT:
-      object->PostInit(init);
-      break;
-    case ID_ITEM:
-    case ID_CONTAINER:
-      static_cast<CGItem_C *>(object)->PostInit(init);
+    case ID_PLAYER:
+      static_cast<CGPlayer_C *>(obj)->PostInit(init);
       break;
     case ID_UNIT:
-      static_cast<CGUnit_C *>(object)->PostInit(init);
+      static_cast<CGUnit_C *>(obj)->PostInit(init);
       break;
-    case ID_PLAYER:
-      static_cast<CGPlayer_C *>(object)->PostInit(init);
+    case ID_CONTAINER:
+      static_cast<CGContainer_C *>(obj)->PostInit(init);
+      break;
+    case ID_ITEM:
+      static_cast<CGItem_C *>(obj)->PostInit(init);
+      break;
+    case ID_OBJECT:
+      obj->PostInit(init);
       break;
     case ID_GAMEOBJECT:
-      static_cast<CGGameObject_C *>(object)->PostInit(init);
+      static_cast<CGGameObject_C *>(obj)->PostInit(init);
       break;
     case ID_DYNAMICOBJECT:
-      static_cast<CGDynamicObject_C *>(object)->PostInit(init);
+      static_cast<CGDynamicObject_C *>(obj)->PostInit(init);
       break;
     case ID_CORPSE:
-      static_cast<CGCorpse_C *>(object)->PostInit(init);
+      static_cast<CGCorpse_C *>(obj)->PostInit(init);
       break;
     default:
       break;
@@ -607,56 +690,55 @@ static C_OBJECTHASH *GetUpdateObject(DWORDLONG guid) {
 }
 
 static void SetupObjectStorage(OBJECT_TYPE_ID type, UINT memHandle) {
-  BYTE *storage = static_cast<BYTE *>(ObjectPtr(memHandle));
-
-  static const UINT objectSizes[8] = {
-      sizeof(CGObject_C), sizeof(CGItem_C),       sizeof(CGContainer_C),     sizeof(CGUnit_C),
-      sizeof(CGPlayer_C), sizeof(CGGameObject_C), sizeof(CGDynamicObject_C), sizeof(CGCorpse_C),
-  };
-  static const UINT totalFields[8] = {
-      CGObject::TotalFields(), CGItem::TotalFields(),       CGContainer::TotalFields(),     CGUnit::TotalFields(),
-      CGPlayer::TotalFields(), CGGameObject::TotalFields(), CGDynamicObject::TotalFields(), CGCorpse::TotalFields(),
-  };
-
+  LPVOID storage = ObjectPtr(memHandle);
   DWORD *data;
+  UINT   size;
   switch (type) {
     case ID_OBJECT:
-      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_OBJECT]);
-      static_cast<CGObject_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(static_cast<CGObject_C *>(storage) + 1);
+      size = CGObject::TotalFields() * sizeof(DWORD);
+      static_cast<CGObject_C *>(storage)->SetStorage(data);
       break;
     case ID_ITEM:
-      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_ITEM]);
-      static_cast<CGItem_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(static_cast<CGItem_C *>(storage) + 1);
+      size = CGItem::TotalFields() * sizeof(DWORD);
+      static_cast<CGItem_C *>(storage)->SetStorage(data);
       break;
     case ID_CONTAINER:
-      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_CONTAINER]);
-      static_cast<CGContainer_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(static_cast<CGContainer_C *>(storage) + 1);
+      size = CGContainer::TotalFields() * sizeof(DWORD);
+      static_cast<CGContainer_C *>(storage)->SetStorage(data);
       break;
     case ID_UNIT:
-      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_UNIT]);
-      static_cast<CGUnit_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(static_cast<CGUnit_C *>(storage) + 1);
+      size = CGUnit::TotalFields() * sizeof(DWORD);
+      static_cast<CGUnit_C *>(storage)->SetStorage(data);
       break;
     case ID_PLAYER:
-      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_PLAYER]);
-      static_cast<CGPlayer_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(static_cast<CGPlayer_C *>(storage) + 1);
+      size = CGPlayer::TotalFields() * sizeof(DWORD);
+      static_cast<CGPlayer_C *>(storage)->SetStorage(data);
       break;
     case ID_GAMEOBJECT:
-      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_GAMEOBJECT]);
-      static_cast<CGGameObject_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(static_cast<CGGameObject_C *>(storage) + 1);
+      size = CGGameObject::TotalFields() * sizeof(DWORD);
+      static_cast<CGGameObject_C *>(storage)->SetStorage(data);
       break;
     case ID_DYNAMICOBJECT:
-      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_DYNAMICOBJECT]);
-      static_cast<CGDynamicObject_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(static_cast<CGDynamicObject_C *>(storage) + 1);
+      size = CGDynamicObject::TotalFields() * sizeof(DWORD);
+      static_cast<CGDynamicObject_C *>(storage)->SetStorage(data);
       break;
     case ID_CORPSE:
-      data = reinterpret_cast<DWORD *>(storage + objectSizes[ID_CORPSE]);
-      static_cast<CGCorpse_C *>(static_cast<LPVOID>(storage))->SetStorage(data);
+      data = reinterpret_cast<DWORD *>(static_cast<CGCorpse_C *>(storage) + 1);
+      size = CGCorpse::TotalFields() * sizeof(DWORD);
+      static_cast<CGCorpse_C *>(storage)->SetStorage(data);
       break;
     default:
       FATALASSERT(0);
       return;
   }
-  memset(storage + objectSizes[type], 0, totalFields[type] * sizeof(DWORD));
+  memset(data, 0, size);
 }
 
 static C_OBJECTHASH *AllocNewObj() {
@@ -680,7 +762,7 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
   DWORDLONG        guid;
   UINT             memHandle;
   OBJECT_TYPE_ID   type;
-  BYTE             btype = 0;
+  BYTE             btype;
 
   FATALASSERT(msg);
   msg->Get(guid);
@@ -699,48 +781,50 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
     s_curMgr->m_freeObjects.UnlinkNode(foundObj);
   } else {
     foundObj = s_curMgr->m_lazyCleanupFifo.Head();
-    if (foundObj) {
-      s_curMgr->m_lazyCleanupObjects.Unlink(foundObj);
-      s_curMgr->m_lazyCleanupFifo.UnlinkNode(foundObj);
-
-      CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
-      FATALASSERT(object);
-      switch (object->GetType()) {
-        case HIER_TYPE_OBJECT:
-          object->~CGObject_C();
-          break;
-        case HIER_TYPE_ITEM:
-          static_cast<CGItem_C *>(object)->~CGItem_C();
-          break;
-        case HIER_TYPE_CONTAINER:
-          static_cast<CGContainer_C *>(object)->~CGContainer_C();
-          break;
-        case HIER_TYPE_UNIT:
-          static_cast<CGUnit_C *>(object)->~CGUnit_C();
-          break;
-        case HIER_TYPE_PLAYER:
-          static_cast<CGPlayer_C *>(object)->~CGPlayer_C();
-          break;
-        case HIER_TYPE_GAMEOBJECT:
-          static_cast<CGGameObject_C *>(object)->~CGGameObject_C();
-          break;
-        case HIER_TYPE_DYNAMICOBJECT:
-          static_cast<CGDynamicObject_C *>(object)->~CGDynamicObject_C();
-          break;
-        case HIER_TYPE_CORPSE:
-          static_cast<CGCorpse_C *>(object)->~CGCorpse_C();
-          break;
-        default:
-          FATALASSERT(0);
-          break;
-      }
-      ObjectFree(foundObj->memHandle);
-    } else {
+    if (!foundObj) {
       foundObj = AllocNewObj();
       if (!foundObj) {
         return 0;
       }
       SysMsgAdd("NOFREEOBJECTSALLOCATING", SYSMSG_WARNING, 0x20);
+    } else {
+      s_curMgr->m_lazyCleanupObjects.Unlink(foundObj);
+      s_curMgr->m_lazyCleanupFifo.UnlinkNode(foundObj);
+
+      {
+        CGObject_C *obj = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
+        FATALASSERT(obj);
+        switch (obj->GetType()) {
+          case HIER_TYPE_OBJECT:
+            obj->~CGObject_C();
+            break;
+          case HIER_TYPE_ITEM:
+            static_cast<CGItem_C *>(obj)->~CGItem_C();
+            break;
+          case HIER_TYPE_CONTAINER:
+            static_cast<CGContainer_C *>(obj)->~CGContainer_C();
+            break;
+          case HIER_TYPE_UNIT:
+            static_cast<CGUnit_C *>(obj)->~CGUnit_C();
+            break;
+          case HIER_TYPE_PLAYER:
+            static_cast<CGPlayer_C *>(obj)->~CGPlayer_C();
+            break;
+          case HIER_TYPE_GAMEOBJECT:
+            static_cast<CGGameObject_C *>(obj)->~CGGameObject_C();
+            break;
+          case HIER_TYPE_DYNAMICOBJECT:
+            static_cast<CGDynamicObject_C *>(obj)->~CGDynamicObject_C();
+            break;
+          case HIER_TYPE_CORPSE:
+            static_cast<CGCorpse_C *>(obj)->~CGCorpse_C();
+            break;
+          default:
+            FATALASSERT(0);
+            break;
+        }
+        ObjectFree(foundObj->memHandle);
+      }
     }
   }
 
@@ -750,8 +834,7 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
     return 0;
   }
 
-  CHashKeyGUID hashKey(guid);
-  s_curMgr->m_objects.Insert(foundObj, guid, hashKey);
+  s_curMgr->m_objects.Insert(foundObj, guid, CHashKeyGUID(guid));
   foundObj->memHandle = memHandle;
   CClientObjCreate init;
   SetupObjectStorage(type, memHandle);
@@ -819,24 +902,66 @@ static void PostMovementUpdate(CDataStore *msg) {
 }
 
 static void OutOfRangeMessage(DWORDLONG guid) {
-  static LPCSTR messages[8] = {
-      "Forgetting object", "Forgetting item",        "Forgetting container",      "Forgetting unit",
-      "Forgetting player", "Forgetting game object", "Forgetting dynamic object", "Forgetting corpse",
-  };
   CGObject_C *object = GetObjectPtr(guid);
   if (object) {
-    SysMsgAdd(messages[GetSectionId(object->GetType())], SYSMSG_INFO, 0x20);
+    switch (object->GetType()) {
+      case HIER_TYPE_OBJECT:
+        SysMsgAdd("Forgetting object", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_ITEM:
+        SysMsgAdd("Forgetting item", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_CONTAINER:
+        SysMsgAdd("Forgetting container", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_UNIT:
+        SysMsgAdd("Forgetting unit", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_PLAYER:
+        SysMsgAdd("Forgetting player", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_GAMEOBJECT:
+        SysMsgAdd("Forgetting game object", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_DYNAMICOBJECT:
+        SysMsgAdd("Forgetting dynamic object", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_CORPSE:
+        SysMsgAdd("Forgetting corpse", SYSMSG_INFO, 0x20);
+        break;
+    }
   }
 }
 
 static void InRangeMessage(DWORDLONG guid) {
-  static LPCSTR messages[8] = {
-      "Remembering object", "Remembering item",        "Remembering container",      "Remembering unit",
-      "Remembering player", "Remembering game object", "Remembering dynamic object", "Remembering corpse",
-  };
   CGObject_C *object = GetObjectPtr(guid);
   if (object) {
-    SysMsgAdd(messages[GetSectionId(object->GetType())], SYSMSG_INFO, 0x20);
+    switch (object->GetType()) {
+      case HIER_TYPE_OBJECT:
+        SysMsgAdd("Remembering object", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_ITEM:
+        SysMsgAdd("Remembering item", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_CONTAINER:
+        SysMsgAdd("Remembering container", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_UNIT:
+        SysMsgAdd("Remembering unit", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_PLAYER:
+        SysMsgAdd("Remembering player", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_GAMEOBJECT:
+        SysMsgAdd("Remembering game object", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_DYNAMICOBJECT:
+        SysMsgAdd("Remembering dynamic object", SYSMSG_INFO, 0x20);
+        break;
+      case HIER_TYPE_CORPSE:
+        SysMsgAdd("Remembering corpse", SYSMSG_INFO, 0x20);
+        break;
+    }
   }
 }
 
@@ -853,8 +978,9 @@ static void UpdateInRangeObjects(CDataStore *msg) {
   DWORDLONG guid;
   UINT      count;
   msg->Get(count);
-  FATALASSERT(count);
-  for (UINT i = 0; i < count; ++i) {
+  FATALASSERT(count > 0);
+  while (count) {
+    --count;
     msg->Get(guid);
     if (guid != ClntObjMgrGetActivePlayer()) {
       ClntObjMgrObjectInRange(guid);
@@ -866,8 +992,9 @@ static void UpdateOutOfRangeObjects(CDataStore *msg) {
   DWORDLONG guid;
   UINT      count;
   msg->Get(count);
-  FATALASSERT(count);
-  for (UINT i = 0; i < count; ++i) {
+  FATALASSERT(count > 0);
+  while (count) {
+    --count;
     msg->Get(guid);
     if (guid != ClntObjMgrGetActivePlayer()) {
       ClntObjMgrObjectOutOfRange(guid, 0);
@@ -877,10 +1004,8 @@ static void UpdateOutOfRangeObjects(CDataStore *msg) {
 
 static void ClearObjectMirrorHandlers(C_OBJECTHASH *foundObj) {
   for (UINT i = 0; i < 634; ++i) {
-    while (CMirrorHandler *handler = foundObj->mirrorHandlers[i].Head()) {
-      foundObj->mirrorHandlers[i].UnlinkNode(handler);
-      DEL(handler);
-    }
+    LISTPTR(CMirrorHandler) handlerList = &foundObj->mirrorHandlers[i];
+    handlerList->Clear();
   }
 }
 
@@ -1037,8 +1162,7 @@ static void AssignMirrorHandler(
     LPVOID           param,
     HANDLER_PRIORITY priority
 ) {
-  CMirrorHandler *mirror = NEW(CMirrorHandler);
-  handlerList->LinkNode(mirror, LIST_TAIL, 0);
+  CMirrorHandler *mirror = handlerList->NewNode(LIST_TAIL, 0, 0);
   mirror->previous.SetCount(bytes);
   mirror->offset = offset;
   mirror->handler = handler;
@@ -1309,47 +1433,47 @@ BOOL ClntObjMgrEnumVisibleObjects(BOOL (*handler)(DWORDLONG, LPVOID), LPVOID par
 
 void ClntObjMgrFreeObject(DWORDLONG guid) {
   ActivityBegin(ACTIVITY_OBJMGR);
-  ClntObjMgrObjectOutOfRange(guid, 1);
+  ClntObjMgrObjectOutOfRange(guid, 0);
 
-  CHashKeyGUID  hashKey(guid);
-  C_OBJECTHASH *foundObj = s_curMgr->m_lazyCleanupObjects.Ptr(guid, hashKey);
+  C_OBJECTHASH *foundObj = s_curMgr->m_lazyCleanupObjects.Ptr(guid, CHashKeyGUID(guid));
   if (foundObj) {
     s_curMgr->m_lazyCleanupObjects.Unlink(foundObj);
     s_curMgr->m_lazyCleanupFifo.UnlinkNode(foundObj);
 
-    CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
-    FATALASSERT(object);
-    switch (object->GetType()) {
-      case HIER_TYPE_OBJECT:
-        object->~CGObject_C();
-        break;
-      case HIER_TYPE_ITEM:
-        static_cast<CGItem_C *>(object)->~CGItem_C();
-        break;
-      case HIER_TYPE_CONTAINER:
-        static_cast<CGContainer_C *>(object)->~CGContainer_C();
-        break;
-      case HIER_TYPE_UNIT:
-        static_cast<CGUnit_C *>(object)->~CGUnit_C();
-        break;
-      case HIER_TYPE_PLAYER:
-        static_cast<CGPlayer_C *>(object)->~CGPlayer_C();
-        break;
-      case HIER_TYPE_GAMEOBJECT:
-        static_cast<CGGameObject_C *>(object)->~CGGameObject_C();
-        break;
-      case HIER_TYPE_DYNAMICOBJECT:
-        static_cast<CGDynamicObject_C *>(object)->~CGDynamicObject_C();
-        break;
-      case HIER_TYPE_CORPSE:
-        static_cast<CGCorpse_C *>(object)->~CGCorpse_C();
-        break;
-      default:
-        FATALASSERT(0);
-        break;
+    {
+      CGObject_C *obj = static_cast<CGObject_C *>(ObjectPtr(foundObj->memHandle));
+      FATALASSERT(obj);
+      switch (obj->GetType()) {
+        case HIER_TYPE_OBJECT:
+          obj->~CGObject_C();
+          break;
+        case HIER_TYPE_ITEM:
+          static_cast<CGItem_C *>(obj)->~CGItem_C();
+          break;
+        case HIER_TYPE_CONTAINER:
+          static_cast<CGContainer_C *>(obj)->~CGContainer_C();
+          break;
+        case HIER_TYPE_UNIT:
+          static_cast<CGUnit_C *>(obj)->~CGUnit_C();
+          break;
+        case HIER_TYPE_PLAYER:
+          static_cast<CGPlayer_C *>(obj)->~CGPlayer_C();
+          break;
+        case HIER_TYPE_GAMEOBJECT:
+          static_cast<CGGameObject_C *>(obj)->~CGGameObject_C();
+          break;
+        case HIER_TYPE_DYNAMICOBJECT:
+          static_cast<CGDynamicObject_C *>(obj)->~CGDynamicObject_C();
+          break;
+        case HIER_TYPE_CORPSE:
+          static_cast<CGCorpse_C *>(obj)->~CGCorpse_C();
+          break;
+        default:
+          FATALASSERT(0);
+          break;
+      }
+      ObjectFree(foundObj->memHandle);
     }
-
-    ObjectFree(foundObj->memHandle);
     s_curMgr->m_freeObjects.LinkNode(foundObj, LIST_TAIL, 0);
   }
   ActivityEnd(ACTIVITY_OBJMGR);
@@ -1383,47 +1507,49 @@ void ClntObjMgrDestroy() {
     ClntObjMgrObjectOutOfRange(object->GetGUID(), 1);
   }
 
-  while (C_OBJECTHASH *hash = s_curMgr->m_lazyCleanupFifo.Head()) {
+  while (C_OBJECTHASH *hash = s_curMgr->m_lazyCleanupObjects.Head()) {
     s_curMgr->m_lazyCleanupObjects.Unlink(hash);
     s_curMgr->m_lazyCleanupFifo.UnlinkNode(hash);
 
-    CGObject_C *object = static_cast<CGObject_C *>(ObjectPtr(hash->memHandle));
-    FATALASSERT(object);
-    switch (object->GetType()) {
-      case HIER_TYPE_OBJECT:
-        object->~CGObject_C();
-        break;
-      case HIER_TYPE_ITEM:
-        static_cast<CGItem_C *>(object)->~CGItem_C();
-        break;
-      case HIER_TYPE_CONTAINER:
-        static_cast<CGContainer_C *>(object)->~CGContainer_C();
-        break;
-      case HIER_TYPE_UNIT:
-        static_cast<CGUnit_C *>(object)->~CGUnit_C();
-        break;
-      case HIER_TYPE_PLAYER:
-        static_cast<CGPlayer_C *>(object)->~CGPlayer_C();
-        break;
-      case HIER_TYPE_GAMEOBJECT:
-        static_cast<CGGameObject_C *>(object)->~CGGameObject_C();
-        break;
-      case HIER_TYPE_DYNAMICOBJECT:
-        static_cast<CGDynamicObject_C *>(object)->~CGDynamicObject_C();
-        break;
-      case HIER_TYPE_CORPSE:
-        static_cast<CGCorpse_C *>(object)->~CGCorpse_C();
-        break;
-      default:
-        FATALASSERT(0);
-        break;
+    {
+      CGObject_C *obj = static_cast<CGObject_C *>(ObjectPtr(hash->memHandle));
+      FATALASSERT(obj);
+      switch (obj->GetType()) {
+        case HIER_TYPE_OBJECT:
+          obj->~CGObject_C();
+          break;
+        case HIER_TYPE_ITEM:
+          static_cast<CGItem_C *>(obj)->~CGItem_C();
+          break;
+        case HIER_TYPE_CONTAINER:
+          static_cast<CGContainer_C *>(obj)->~CGContainer_C();
+          break;
+        case HIER_TYPE_UNIT:
+          static_cast<CGUnit_C *>(obj)->~CGUnit_C();
+          break;
+        case HIER_TYPE_PLAYER:
+          static_cast<CGPlayer_C *>(obj)->~CGPlayer_C();
+          break;
+        case HIER_TYPE_GAMEOBJECT:
+          static_cast<CGGameObject_C *>(obj)->~CGGameObject_C();
+          break;
+        case HIER_TYPE_DYNAMICOBJECT:
+          static_cast<CGDynamicObject_C *>(obj)->~CGDynamicObject_C();
+          break;
+        case HIER_TYPE_CORPSE:
+          static_cast<CGCorpse_C *>(obj)->~CGCorpse_C();
+          break;
+        default:
+          FATALASSERT(0);
+          break;
+      }
+      ObjectFree(hash->memHandle);
     }
-
-    ObjectFree(hash->memHandle);
     ClearObjectMirrorHandlers(hash);
   }
 
-  while (C_OBJECTHASH *hash = s_curMgr->m_freeObjects.Head()) {
+  while (!s_curMgr->m_freeObjects.IsEmpty()) {
+    C_OBJECTHASH *hash = s_curMgr->m_freeObjects.Head();
     s_curMgr->m_freeObjects.UnlinkNode(hash);
     ClearObjectMirrorHandlers(hash);
     ObjectFree(hash->thisMemHandle);
@@ -1431,10 +1557,7 @@ void ClntObjMgrDestroy() {
 
   for (UINT objectType = 0; objectType < 8; ++objectType) {
     for (UINT block = 0; block < 634; ++block) {
-      while (CMirrorHandler *handler = s_mirrorHandlers[objectType][block].Head()) {
-        s_mirrorHandlers[objectType][block].UnlinkNode(handler);
-        DEL(handler);
-      }
+      s_mirrorHandlers[objectType][block].Clear();
     }
   }
 

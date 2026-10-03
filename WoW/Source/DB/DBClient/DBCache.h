@@ -3,9 +3,8 @@
 
 #include <stpl.h>
 
-#include "Net/NetClient/NetClient.h"
-
 class CDataStore;
+enum NETMESSAGE;
 class CGContainer_C;
 class CGPlayer_C;
 
@@ -41,7 +40,10 @@ template <class RECORD, class KEY, class HASHKEY>
 class DBCache {
  public:
   struct DBCACHEHASH : public TSHashObject<DBCACHEHASH, HASHKEY> {
-    DBCACHEHASH() : m_haveData(false), m_temp(false) {
+    DBCACHEHASH() {
+      memset(&m_record, 0, sizeof(m_record));
+      m_haveData = false;
+      m_temp = false;
     }
     DBCACHEHASH(const DBCACHEHASH &entry);
 

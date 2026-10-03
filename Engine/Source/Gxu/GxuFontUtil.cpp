@@ -922,8 +922,8 @@ void TEXTURECACHE::PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, D
   ASSERT(glyphData);
   ASSERT(dst);
 
-  char *src = static_cast<char *>(glyphData->m_data);
   UINT  pitch = glyphData->m_glyphPitch;
+  char *src = static_cast<char *>(glyphData->m_data);
   UINT  dstCellStride = 4 * glyphData->m_glyphCellWidth;
 
   UINT y;
@@ -934,18 +934,22 @@ void TEXTURECACHE::PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, D
 
   for (y = 0; y < glyphData->m_glyphHeight; ++y) {
     for (UINT x = 0; x < glyphData->m_glyphWidth; ++x) {
-      UINT bit = (src[x >> 3] >> (7 - (x & 7))) & 1;
-      dst[x] = bit ? 0xFFFFFFFF : 0;
+      if ((src[x >> 3] >> (7 - (x & 7))) & 1) {
+        dst[x] = 0xFFFFFFFF;
+      } else {
+        dst[x] = 0;
+      }
     }
-    dst += 256;
     src += pitch;
+    dst += 256;
   }
 
   int remaining = static_cast<int>(m_theFace->m_cellHeight) - static_cast<int>(glyphData->m_glyphHeight) - glyphData->m_yStart;
-  while (remaining > 0) {
-    memset(dst, 0, dstCellStride);
-    dst += 256;
-    --remaining;
+  if (remaining > 0) {
+    for (y = 0; y < static_cast<UINT>(remaining); ++y) {
+      memset(dst, 0, dstCellStride);
+      dst += 256;
+    }
   }
 }
 
@@ -1194,7 +1198,7 @@ void CGxString::SetStringPosition(const NTempest::C3Vector &position) {
 }
 
 void CGxString::SetColor(const NTempest::CImVector &color) {
-  if (*reinterpret_cast<const DWORD *>(&m_fontColor) == *reinterpret_cast<const DWORD *>(&color)) {
+  if (*reinterpret_cast<const DWORD *>(&color) == *reinterpret_cast<const DWORD *>(&m_fontColor)) {
     return;
   }
 
@@ -1783,7 +1787,7 @@ int CGxFont::Initialize(LPCSTR name, UINT newFlags, float fontHeight) {
   SStrPrintf(m_fontName, sizeof(m_fontName), "%s", name);
   m_requestedFontHeight = fontHeight;
   m_currentFontHeight = max(fontHeight, 2.0f / static_cast<float>(g_heightPixels));
-  m_pixelSize = min(static_cast<UINT>(ScreenToPixelHeight(0, m_currentFontHeight)), 32u);
+  m_pixelSize = min(32, static_cast<int>(ScreenToPixelHeight(0, m_currentFontHeight)));
 
   if (!m_pixelSize) {
     FATALERROR(
@@ -2350,10 +2354,10 @@ BATCHEDRENDERFONTDESC::~BATCHEDRENDERFONTDESC() {
 }
 
 void CGxStringBatch::RenderBatch() {
-  NTempest::C44Matrix oldView;
-  NTempest::C44Matrix oldProjection;
-
   GxVertexShaderSelect(GxVS_PassThru);
+
+  NTempest::C44Matrix oldProjection;
+  NTempest::C44Matrix oldView;
   GxXformProjection(oldProjection);
   GxXformView(oldView);
 
@@ -2438,11 +2442,11 @@ int CGxString::SetGradient(int startCharacter, int length) {
   m_lastGradientStart = startCharacter;
   m_lastGradientLength = length;
 
-  if (flags & 0x1000) {
-    ASSERT(m_colorGradients.Count());
-  } else {
+  if (!(flags & 0x1000)) {
     m_flags = (flags & ~0x8U) | 0x1000;
     CreateGeometry();
+  } else {
+    ASSERT(m_colorGradients.Count());
   }
 
   if (m_colorGradientShadows.Count()) {

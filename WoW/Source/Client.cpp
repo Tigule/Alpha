@@ -41,8 +41,6 @@
 #include "Object/MovementData.h"
 #include "Object/ObjectClient/Item_C.h"
 #include "Object/ObjectClient/GameObject_C.h"
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "Object/ObjectClient/Unit_C.h"
@@ -56,21 +54,6 @@
 
 #include <stdio.h>
 #include <string.h>
-
-BOOL CDataStore::IsRead() const {
-  return m_read == m_size;
-}
-
-void CDataStore::Reset() {
-  if (m_alloc == static_cast<UINT>(-1)) {
-    m_data = 0;
-    m_alloc = 0;
-  }
-
-  FetchWrite(0, 0, 0, 0);
-  m_size = 0;
-  m_read = static_cast<UINT>(-1);
-}
 
 typedef void (*SPROCESSCOMPLETIONPROC)(LPVOID);
 

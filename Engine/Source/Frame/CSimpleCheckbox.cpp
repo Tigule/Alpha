@@ -29,21 +29,23 @@ void CSimpleCheckbox::LoadXML(const XMLNode *node, CStatus *status) {
 }
 
 BOOL CSimpleCheckbox::SetCheckedTexture(LPCSTR texFile) {
+  int okay = 1;
+
   if (m_checkedTexture) {
     m_checkedTexture->SetTexture(texFile, 0);
-    return 1;
+  } else {
+    CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
+    if (texture->SetTexture(texFile, 0)) {
+      texture->SetAllPoints(this, 1);
+      texture->SetBlendMode(GxBlend_Add);
+      SetCheckedTexture(texture);
+    } else {
+      DEL(texture);
+      okay = 0;
+    }
   }
 
-  CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
-  if (texture->SetTexture(texFile, 0)) {
-    texture->SetAllPoints(this, 1);
-    texture->SetBlendMode(GxBlend_Add);
-    SetCheckedTexture(texture);
-    return 1;
-  }
-
-  DEL(texture);
-  return 0;
+  return okay;
 }
 
 void CSimpleCheckbox::SetCheckedTexture(CSimpleTexture *texture) {
@@ -60,21 +62,23 @@ void CSimpleCheckbox::SetCheckedTexture(CSimpleTexture *texture) {
 }
 
 BOOL CSimpleCheckbox::SetDisabledCheckedTexture(LPCSTR texFile) {
+  int okay = 1;
+
   if (m_disabledTexture) {
     m_disabledTexture->SetTexture(texFile, 0);
-    return 1;
+  } else {
+    CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
+    if (texture->SetTexture(texFile, 0)) {
+      texture->SetAllPoints(this, 1);
+      texture->SetBlendMode(GxBlend_Add);
+      SetDisabledCheckedTexture(texture);
+    } else {
+      DEL(texture);
+      okay = 0;
+    }
   }
 
-  CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
-  if (texture->SetTexture(texFile, 0)) {
-    texture->SetAllPoints(this, 1);
-    texture->SetBlendMode(GxBlend_Add);
-    SetDisabledCheckedTexture(texture);
-    return 1;
-  }
-
-  DEL(texture);
-  return 0;
+  return okay;
 }
 
 void CSimpleCheckbox::SetDisabledCheckedTexture(CSimpleTexture *texture) {

@@ -334,7 +334,7 @@ void CRibbonEmitter::SetMats(
 }
 
 void CRibbonEmitter::SetColor(const float r, const float g, const float b) {
-  m_diffuseClr.Set(m_diffuseClr.a, NTempest::CMath::fuint_n(r * 255.0f), NTempest::CMath::fuint_n(g * 255.0f), NTempest::CMath::fuint_n(b * 255.0f));
+  m_diffuseClr.Set(m_diffuseClr.a * 255.0f, r, g, b);
 }
 
 void CRibbonEmitter::SetAlpha(const float a) {

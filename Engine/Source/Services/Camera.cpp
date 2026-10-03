@@ -1,6 +1,9 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <BLPFile/blp.h>
+
 #include "Camera.h"
 
-#include <Gx/Gx.h>
 #include <Tempest/c2vector.h>
 #include <Tempest/c3vector.h>
 #include <Tempest/c44matrix.h>
@@ -8,6 +11,10 @@
 
 #include <math.h>
 
+static const float DEFAULT_DIST = 100.0f;
+static const float DEFAULT_FARZ = 5000.0f;
+static const float DEFAULT_NEARZ = 8.0f;
+static const float DEFAULT_FOV = PI * 0.5f;
 static const float DEFAULT_SCREEN_FRUSTUM_LENGTH = 500.0f;
 
 void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, UINT flags) {

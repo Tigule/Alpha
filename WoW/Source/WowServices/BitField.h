@@ -12,24 +12,15 @@ class TSBitField {
     SetCount(numBits);
   }
 
-  void SetCount(UINT numBits) {
-    m_numBits = numBits;
-    if (numBits) {
-      m_array.SetCount((numBits - 1) / (m_array.SizeOfElement() * 8) + 1);
-    } else {
-      m_array.Clear();
+  void SetAll() {
+    if (m_numBits) {
+      memset(m_array.Ptr(), 0xFF, m_array.Count() * m_array.SizeOfElement());
     }
   }
 
   void ClearAll() {
     if (m_numBits) {
       memset(m_array.Ptr(), 0, m_array.Count() * m_array.SizeOfElement());
-    }
-  }
-
-  void SetAll() {
-    if (m_numBits) {
-      memset(m_array.Ptr(), 0xFF, m_array.Count() * m_array.SizeOfElement());
     }
   }
 
@@ -50,6 +41,15 @@ class TSBitField {
 
   bool IsBitClear(UINT bitNum) const {
     return !IsBitSet(bitNum);
+  }
+
+  void SetCount(UINT numBits) {
+    m_numBits = numBits;
+    if (numBits) {
+      m_array.SetCount((numBits - 1) / (m_array.SizeOfElement() * 8) + 1);
+    } else {
+      m_array.Clear();
+    }
   }
 
   void Clear() {

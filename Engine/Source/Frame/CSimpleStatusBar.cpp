@@ -15,9 +15,7 @@ CSimpleStatusBar::CSimpleStatusBar(CSimpleFrame *parent)
 CSimpleStatusBar::~CSimpleStatusBar() {
   SetBarTexture(static_cast<CSimpleTexture *>(0), 2);
 
-  char description[1024];
-  SStrPrintf(description, sizeof(description), "%s:OnValueChanged", GetName());
-  SetEventScript(m_onValueChanged, 0, description);
+  SetOnValueChangedScript(0);
 }
 
 void CSimpleStatusBar::LoadXML(const XMLNode *node, CStatus *status) {
@@ -62,28 +60,28 @@ void CSimpleStatusBar::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
 
   for (const XMLNode *script = node->GetChild(); script; script = script->GetSibling()) {
     if (!SStrCmpI(script->GetName(), "OnValueChanged", 0x7FFFFFFF)) {
-      char description[1024];
-      SStrPrintf(description, sizeof(description), "%s:OnValueChanged", GetName());
-      SetEventScript(m_onValueChanged, script->GetBody(), description);
+      SetOnValueChangedScript(script->GetBody());
     }
   }
 }
 
 BOOL CSimpleStatusBar::SetBarTexture(LPCSTR texFile, int layer) {
+  int okay = 1;
+
   if (m_barTexture) {
     m_barTexture->SetTexture(texFile, 0);
-    return 1;
+  } else {
+    CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
+    if (texture->SetTexture(texFile, 0)) {
+      texture->SetAllPoints(this, 1);
+      SetBarTexture(texture, layer);
+    } else {
+      DEL(texture);
+      okay = 0;
+    }
   }
 
-  CSimpleTexture *texture = NEW(CSimpleTexture)(0, 2, 1);
-  if (texture->SetTexture(texFile, 0)) {
-    texture->SetAllPoints(this, 1);
-    SetBarTexture(texture, layer);
-    return 1;
-  }
-
-  DEL(texture);
-  return 0;
+  return okay;
 }
 
 void CSimpleStatusBar::SetBarTexture(CSimpleTexture *texture, int layer) {
@@ -118,13 +116,7 @@ void CSimpleStatusBar::SetMinMaxValues(float min, float max) {
 void CSimpleStatusBar::SetValue(float value) {
   ASSERT(m_rangeSet);
 
-  if (value < m_minValue) {
-    value = m_minValue;
-  }
-
-  if (value > m_maxValue) {
-    value = m_maxValue;
-  }
+  value = __min(m_maxValue, __max(m_minValue, value));
 
   if (!m_valueSet || value != m_value) {
     m_value = value;
@@ -137,10 +129,10 @@ void CSimpleStatusBar::SetValue(float value) {
 
 float CSimpleStatusBar::GetAnimValue() const {
   float range = m_maxValue - m_minValue;
-  if (range <= 0.0f) {
-    return 0.0f;
+  if (range > 0.0f) {
+    return (m_value - m_minValue) / range;
   }
-  return (m_value - m_minValue) / range;
+  return 0.0f;
 }
 
 void CSimpleStatusBar::OnLayerUpdate(float elapsedSec) {
@@ -148,8 +140,8 @@ void CSimpleStatusBar::OnLayerUpdate(float elapsedSec) {
 
   if (m_changed && m_barTexture && m_rangeSet && m_valueSet) {
     NTempest::CRect texRect;
-    memset(&texRect, 0, sizeof(texRect));
     texRect.r = GetAnimValue();
+    texRect.t = 0.0f;
     texRect.b = 1.0f;
     m_barTexture->SetTexCoord(texRect);
     m_changed = 0;

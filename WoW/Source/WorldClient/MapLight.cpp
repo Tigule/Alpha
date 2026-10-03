@@ -1,14 +1,21 @@
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-
 #include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include "WorldCommon/WorldMath.h"
 
 #include "Base/Activity.h"
 #include "Base/Status.h"
-#include "Gx/Gx.h"
 #include "Gxu/IGxuLight.h"
 #include "Services/Texture.h"
 #include "Tempest/cmath.h"
@@ -163,10 +170,8 @@ CMapLight *CMap::CreateLight(bool dynamic) {
 void CMap::DestroyLight(CMapLight *light) {
   ASSERT(light);
 
-  CMapBaseObjLink *link = light->parentLinkList.Head();
-  while (link) {
-    CMapBaseObjLink *next = light->parentLinkList.Next(link);
-
+  for (CMapBaseObjLink *link = light->parentLinkList.Head(), *next;
+       (int)link > 0 ? ((next = light->parentLinkList.RawNext(link)), 1) : 0; link = next) {
     if (link->ref) {
       if (link->ref->GetType() == CMapBaseObj::Type_Chunk) {
         static_cast<CMapChunk *>(link->ref)->UpdateLights();
@@ -176,7 +181,6 @@ void CMap::DestroyLight(CMapLight *light) {
     }
 
     FreeBaseObjLink(link);
-    link = next;
   }
 
   FreeLight(light);
@@ -243,20 +247,22 @@ void CMap::DisableLight(CMapLight *light) {
 
 void CMap::SelectLight(CMapBaseObj *baseObj) {
   FATALASSERT(baseObj);
-  if (baseObj->camDist < CWorld::farFog) {
-    oldSelectLightParm = baseObj;
-    baseObj->SelectLights();
+  if (baseObj->camDist >= CWorld::farFog) {
+    return;
   }
+  oldSelectLightParm = baseObj;
+  baseObj->SelectLights();
 }
 
 void CMap::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
   CMapBaseObj *baseObj = static_cast<CMapBaseObj *>(parm);
 
   ASSERT(baseObj);
-  if (baseObj->camDist < CWorld::farFog) {
-    oldSelectLightParm = baseObj;
-    baseObj->SelectLights();
+  if (baseObj->camDist >= CWorld::farFog) {
+    return;
   }
+  oldSelectLightParm = baseObj;
+  baseObj->SelectLights();
 }
 
 void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {

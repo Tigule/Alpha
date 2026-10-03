@@ -49,18 +49,18 @@ class CGQuestLog {
   static LPCSTR GetQuestTag(int index);
   static int    GetQuestLevel(int index);
   static BOOL   IsQuestHeader(int index) {
-    return index >= 0 && static_cast<UINT>(index) < m_numQuests ? m_quests[index].isHeader : 0;
+    return index >= 0 && index < static_cast<int>(m_numQuests) ? m_quests[index].isHeader : 0;
   }
   static int GetQuestItemID(LPCSTR type, int index);
   static int GetQuestLogEntry(int index) {
-    return index >= 0 && static_cast<UINT>(index) < m_numQuests ? m_quests[index].logIndex : -1;
+    return index >= 0 && index < static_cast<int>(m_numQuests) && !m_quests[index].isHeader ? m_quests[index].logIndex : -1;
   }
   static int GetQuestSortIndex(UINT index);
   static int GetQuestSortID(UINT index) {
-    return index < m_numSortTypes ? m_sortTypes[index] : 0;
+    return index < (sizeof(m_sortTypes) / sizeof(m_sortTypes[0])) ? m_sortTypes[index] : 0;
   }
   static BOOL IsSortHeaderCollapsed(UINT index) {
-    return index < 16 && !(m_collapseFilter & (1 << index));
+    return index < (sizeof(m_sortTypes) / sizeof(m_sortTypes[0])) ? !(m_collapseFilter & (1 << index)) : 0;
   }
   static void CollapseHeader(UINT index, int collapse);
   static BOOL IsSelectedQuestExpired();

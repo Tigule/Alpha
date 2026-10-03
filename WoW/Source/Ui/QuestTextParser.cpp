@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -58,7 +60,7 @@ static bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &
     return true;
   }
 
-  if (unit ? unit->GetUnitData()->sex : nc->m_sex) {
+  if (unit ? unit->GetSex() : nc->m_sex) {
     token = semi + 1;
     while (*token == ' ') {
       ++token;
@@ -105,7 +107,7 @@ static bool QuestParserReplaceText(char *buf, UINT size, const DWORDLONG &target
 
     case 'C':
     case 'c': {
-      UINT                 classID = unit ? unit->GetUnitData()->classId : nc->m_race;
+      UINT                 classID = unit ? unit->GetClass() : nc->m_race;
       const ChrClassesRec *classRec = g_chrClassesDB.GetRecord(classID);
       SStrCopy(classStr, classRec->m_name_lang[CURRENT_LANGUAGE], sizeof(classStr));
       if (*token == 'c') {
@@ -132,7 +134,7 @@ static bool QuestParserReplaceText(char *buf, UINT size, const DWORDLONG &target
       if (!(unit->GetType() & TYPE_PLAYER)) {
         SStrPack(buf, unit->GetUnitName(), size);
       } else {
-        const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(unit->GetUnitData()->race);
+        const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(unit->GetRace());
         SStrCopy(race, raceRec->m_name_lang[CURRENT_LANGUAGE], sizeof(race));
         if (*token == 'r') {
           SStrLower(race);
@@ -213,7 +215,7 @@ static bool SpellParserGenderConditional(char *buf, UINT size) {
   }
   LPCSTR text = token;
   LPCSTR stop = semi;
-  if (player->GetUnitData()->sex) {
+  if (player->GetSex()) {
     text = semi + 1;
     while (*text == ' ') {
       ++text;

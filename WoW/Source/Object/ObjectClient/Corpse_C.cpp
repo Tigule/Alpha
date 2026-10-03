@@ -2,12 +2,12 @@
 #include <Gx/Gx.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
-#include "WowServices/WowConnection.h"
-#include <WowConst.h>
+#include "Net/NetClient/NetClient.h"
 #include <Frame/CSimpleTop.h>
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
 
@@ -119,13 +119,13 @@ void CGCorpse_C::Reenable() {
 }
 
 BOOL CGCorpse_C::SetBlock(UINT i, DWORD data) {
-  if (i < OffsetOf(ID_CORPSE)) {
+  if (i < CGObject::TotalFields()) {
     return CGObject_C::SetBlock(i, data);
   }
 
-  i -= OffsetOf(ID_CORPSE);
-  FATALASSERT(i < (CGCorpse::GetDataSize() / sizeof(DWORD)));
-  reinterpret_cast<DWORD *>(m_corpse)[i] = data;
+  i -= CGObject::TotalFields();
+  FATALASSERT(i < (CGCorpse::GetDataSize()/sizeof(DWORD)));
+  reinterpret_cast<DWORD *>(&m_corpse)[i] = data;
   return 1;
 }
 
@@ -135,14 +135,15 @@ void CGCorpse_C::SetData(LPCVOID data, UINT bytes) {
 }
 
 UINT CGCorpse_C::OffsetOf(OBJECT_TYPE_ID type) {
-  if (type == ID_OBJECT) {
-    return 0;
+  switch (type) {
+    case ID_OBJECT:
+      return 0;
+    case ID_CORPSE:
+      return CGObject::TotalFields() * sizeof(DWORD);
+    default:
+      FATALASSERT(0);
+      return static_cast<UINT>(-1);
   }
-  if (type == ID_CORPSE) {
-    return CGObject::TotalFields() * sizeof(DWORD);
-  }
-  FATALASSERT(0);
-  return -1;
 }
 
 LPCSTR CGCorpse_C::GetModelFileName() const {
@@ -162,7 +163,7 @@ LPCSTR CGCorpse_C::GetModelFileName() const {
 }
 
 BOOL CGCorpse_C::ShouldRender(DWORD worldStatus) {
-  if (m_texComponent && !reinterpret_cast<CTexComponent *>(m_texComponent)->CheckSections(0)) {
+  if (m_texComponent && !TexComponentCheckSections(m_texComponent, 0)) {
     worldStatus &= ~1u;
   }
 

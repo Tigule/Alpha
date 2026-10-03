@@ -325,8 +325,7 @@ static void InitWeaponSubclasses() {
   int numWeaponSubclasses = 0;
   int weaponClass;
   int i;
-  if (s_weaponSubClasses.Count())
-    s_weaponSubClasses.Clear();
+  s_weaponSubClasses.SetCount(0);
   s_unarmedWeaponSubclass = 0;
   LocateWeaponSubclass();
   ASSERT(s_weaponClassRecPtr);

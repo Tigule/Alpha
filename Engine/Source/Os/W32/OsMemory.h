@@ -2,6 +2,9 @@
 
 class COsSharedMemory {
  public:
+  COsSharedMemory();
+  ~COsSharedMemory();
+
   enum {
     SMEM_OPEN_NEW = 0,
     SMEM_OPEN_EXISTING = 1,
@@ -13,9 +16,6 @@ class COsSharedMemory {
     SMEM_ACCESS_READ = 0,
     SMEM_ACCESS_WRITE = 1
   };
-
-  COsSharedMemory();
-  ~COsSharedMemory();
 
   bool Initialize(LPCSTR name, UINT size, int mode);
   bool ChangeAccess(int newAccess);

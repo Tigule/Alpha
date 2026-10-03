@@ -453,31 +453,31 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   }
 
   void RunOnMouseDownScript(MOUSEBUTTON button) {
-    LPCSTR buttonName;
-
-    switch (button) {
-      case MOUSE_BUTTON_LEFT:
-        buttonName = "LeftButton";
-        break;
-      case MOUSE_BUTTON_MIDDLE:
-        buttonName = "MiddleButton";
-        break;
-      case MOUSE_BUTTON_RIGHT:
-        buttonName = "RightButton";
-        break;
-      case MOUSE_BUTTON_XBUTTON1:
-        buttonName = "Button4";
-        break;
-      case MOUSE_BUTTON_XBUTTON2:
-        buttonName = "Button5";
-        break;
-      default:
-        buttonName = "UNKNOWN";
-        break;
-    }
-
     ASSERT(!m_loading);
     if (m_onMouseDown) {
+      LPCSTR buttonName;
+
+      switch (button) {
+        case MOUSE_BUTTON_LEFT:
+          buttonName = "LeftButton";
+          break;
+        case MOUSE_BUTTON_MIDDLE:
+          buttonName = "MiddleButton";
+          break;
+        case MOUSE_BUTTON_RIGHT:
+          buttonName = "RightButton";
+          break;
+        case MOUSE_BUTTON_XBUTTON1:
+          buttonName = "Button4";
+          break;
+        case MOUSE_BUTTON_XBUTTON2:
+          buttonName = "Button5";
+          break;
+        default:
+          buttonName = "UNKNOWN";
+          break;
+      }
+
       FrameScript_Execute(m_onMouseDown, this, "%s", buttonName);
     }
   }
@@ -492,31 +492,31 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   }
 
   void RunOnMouseUpScript(MOUSEBUTTON button) {
-    LPCSTR buttonName;
-
-    switch (button) {
-      case MOUSE_BUTTON_LEFT:
-        buttonName = "LeftButton";
-        break;
-      case MOUSE_BUTTON_MIDDLE:
-        buttonName = "MiddleButton";
-        break;
-      case MOUSE_BUTTON_RIGHT:
-        buttonName = "RightButton";
-        break;
-      case MOUSE_BUTTON_XBUTTON1:
-        buttonName = "Button4";
-        break;
-      case MOUSE_BUTTON_XBUTTON2:
-        buttonName = "Button5";
-        break;
-      default:
-        buttonName = "UNKNOWN";
-        break;
-    }
-
     ASSERT(!m_loading);
     if (m_onMouseUp) {
+      LPCSTR buttonName;
+
+      switch (button) {
+        case MOUSE_BUTTON_LEFT:
+          buttonName = "LeftButton";
+          break;
+        case MOUSE_BUTTON_MIDDLE:
+          buttonName = "MiddleButton";
+          break;
+        case MOUSE_BUTTON_RIGHT:
+          buttonName = "RightButton";
+          break;
+        case MOUSE_BUTTON_XBUTTON1:
+          buttonName = "Button4";
+          break;
+        case MOUSE_BUTTON_XBUTTON2:
+          buttonName = "Button5";
+          break;
+        default:
+          buttonName = "UNKNOWN";
+          break;
+      }
+
       FrameScript_Execute(m_onMouseUp, this, "%s", buttonName);
     }
   }
@@ -547,31 +547,31 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   }
 
   void RunOnDragStartScript(MOUSEBUTTON button) {
-    LPCSTR buttonName;
-
-    switch (button) {
-      case MOUSE_BUTTON_LEFT:
-        buttonName = "LeftButton";
-        break;
-      case MOUSE_BUTTON_MIDDLE:
-        buttonName = "MiddleButton";
-        break;
-      case MOUSE_BUTTON_RIGHT:
-        buttonName = "RightButton";
-        break;
-      case MOUSE_BUTTON_XBUTTON1:
-        buttonName = "Button4";
-        break;
-      case MOUSE_BUTTON_XBUTTON2:
-        buttonName = "Button5";
-        break;
-      default:
-        buttonName = "UNKNOWN";
-        break;
-    }
-
     ASSERT(!m_loading);
     if (m_onDragStart) {
+      LPCSTR buttonName;
+
+      switch (button) {
+        case MOUSE_BUTTON_LEFT:
+          buttonName = "LeftButton";
+          break;
+        case MOUSE_BUTTON_MIDDLE:
+          buttonName = "MiddleButton";
+          break;
+        case MOUSE_BUTTON_RIGHT:
+          buttonName = "RightButton";
+          break;
+        case MOUSE_BUTTON_XBUTTON1:
+          buttonName = "Button4";
+          break;
+        case MOUSE_BUTTON_XBUTTON2:
+          buttonName = "Button5";
+          break;
+        default:
+          buttonName = "UNKNOWN";
+          break;
+      }
+
       FrameScript_Execute(m_onDragStart, this, "%s", buttonName);
     }
   }

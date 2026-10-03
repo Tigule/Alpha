@@ -11,8 +11,8 @@ namespace NTempest {
 
   static const DWORD next[3] = {1, 2, 0};
 
-  void C4Quaternion::FromRotationMatrix(const C33Matrix &rotation) {
-    FromRotationMatrixInv(C33Matrix(rotation).Transpose());
+  void C4Quaternion::FromRotationMatrix(const C33Matrix &r) {
+    FromRotationMatrixInv(r.Transpose());
   }
 
   void C4Quaternion::FromRotationMatrixInv(const C33Matrix &rotation) {
@@ -73,31 +73,38 @@ namespace NTempest {
 
   C4Quaternion C4Quaternion::Inverse() const {
     float norm = x * x + y * y + z * z + w * w;
-    if (CMath::fabs_(norm) < 0.00000023841858f) {
-      ASSERT(!"C4Quaternion::Inverse(): cannot invert an invalid (zero-norm) quaternion.");
-      return C4Quaternion();
+    if (CMath::fnotequal_(norm, 0.0f)) {
+      norm = 1.0f / norm;
+      return C4Quaternion(w * norm, -x * norm, -y * norm, -z * norm);
     }
-    norm = 1.0f / norm;
-    return C4Quaternion(w * norm, -x * norm, -y * norm, -z * norm);
+    SErrDisplayError(
+        STORM_ERROR_ASSERTION, __FILE__, __LINE__, "\"C4Quaternion::Inverse(): cannot invert an invalid (zero-norm) quaternion.\"", FALSE
+    );
+    return C4Quaternion();
   }
 
   C4Quaternion C4Quaternion::Exp() const {
     float angle = CMath::sqrt_(x * x + y * y + z * z);
-    float s = CMath::sin_(angle);
-    float coeff = CMath::fabs_(s) < 0.00000047683716f ? 1.0f : s / angle;
-    return C4Quaternion(CMath::cos_(angle), coeff * x, coeff * y, coeff * z);
+    float s;
+    float c;
+    CMath::sincos_(angle, s, c);
+    if (CMath::fabs_(s) >= 0.00000047683716f) {
+      float coeff = s / angle;
+      return C4Quaternion(c, coeff * x, coeff * y, coeff * z);
+    }
+    return C4Quaternion(c, x, y, z);
   }
 
   C4Quaternion C4Quaternion::Log() const {
-    float coeff = 1.0f;
     if (CMath::fabs_(w) < 1.0f) {
       float angle = static_cast<float>(acos(w));
       float sine = CMath::sin_(angle);
       if (CMath::fabs_(sine) >= 0.00000047683716f) {
-        coeff = angle / sine;
+        float coeff = angle / sine;
+        return C4Quaternion(0.0f, coeff * x, coeff * y, coeff * z);
       }
     }
-    return C4Quaternion(0.0f, coeff * x, coeff * y, coeff * z);
+    return C4Quaternion(0.0f, x, y, z);
   }
 
   C4Quaternion C4Quaternion::Slerp(float ratio, const C4Quaternion &start, const C4Quaternion &end) {
@@ -122,16 +129,8 @@ namespace NTempest {
     );
   }
 
-  C4Quaternion C4Quaternion::Squad(
-      float               ratio,
-      const C4Quaternion &start,
-      const C4Quaternion &end,
-      const C4Quaternion &outTangent,
-      const C4Quaternion &inTangent
-  ) {
-    C4Quaternion value = Slerp(ratio, start, end);
-    C4Quaternion tangent = Slerp(ratio, outTangent, inTangent);
-    return Slerp(2.0f * ratio * (1.0f - ratio), value, tangent);
+  C4Quaternion C4Quaternion::Squad(float t, const C4Quaternion &p, const C4Quaternion &a, const C4Quaternion &b, const C4Quaternion &q) {
+    return Slerp(2.0f * t * (1.0f - t), Slerp(t, p, q), Slerp(t, a, b));
   }
 
   void C4Quaternion::SquadInterm(const C4Quaternion &q0, const C4Quaternion &q1, const C4Quaternion &q2, C4Quaternion &a, C4Quaternion &b) {

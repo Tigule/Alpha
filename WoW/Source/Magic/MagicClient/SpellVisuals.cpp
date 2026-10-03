@@ -1,8 +1,13 @@
-#include <WowConst.h>
+#include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <MapDefs.h>
+#include "WorldClient/World.h"
+#include <WowConst.h>
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
+#include "Net/NetClient/NetClient.h"
 
 #include "DB/DBClient/AutoCode/SpellAuraNamesRec.h"
-#include "DayNight.h"
 #include "DB/DBClient/AutoCode/SpellEffectCameraShakesRec.h"
 #include "DB/DBClient/AutoCode/SpellChainEffectsRec.h"
 #include "DB/DBClient/AutoCode/SpellDurationRec.h"
@@ -16,14 +21,12 @@
 #include "Object/ObjectClient/AnimCompiles.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "Object/ObjectClient/Player_C.h"
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Services/IParticleMisc.h"
 #include "Services/Lightning.h"
 #include "Services/SysMessage.h"
 #include "Services/Texture.h"
 #include <Os/OsTime.h>
-#include "Gx/Gx.h"
 #include "Model/IModel.h"
 #include "SoundInterface/SoundInterface.h"
 #include "Tempest/c34matrix.h"
@@ -31,7 +34,6 @@
 #include "Tempest/cmath.h"
 #include "Tempest/caasphere.h"
 #include "Ui/WorldFrame.h"
-#include "WorldClient/World.h"
 
 #include <Base/Status.h>
 #include <Base/CDataAllocator.h>
@@ -742,6 +744,8 @@ struct EclipseObject {
 } EclipseObject_HuhHuhHuh_Huh;
 
 static EclipseObject s_eclipseObject;
+
+#include "DayNight.h"
 
 bool LightningObject::Tick(UINT currentTime) {
   for (UINT i = 0; i < bolts.Count(); ++i) {

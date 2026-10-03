@@ -395,7 +395,7 @@ void CHuffman::BuildTree(BYTE hint) {
     }
   }
 
-  for (symbol = HUFFMAN_EOF; symbol < HUFFMAN_SYMBOLS; ++symbol) {
+  for (; symbol < HUFFMAN_SYMBOLS; ++symbol) {
     node = AllocNode(LIST_HEAD);
     m_symbol[symbol] = node;
     node->symbol = symbol;
@@ -403,15 +403,10 @@ void CHuffman::BuildTree(BYTE hint) {
   }
 
   node = m_nodelist.Head();
-  while (node) {
-    HUFFNODE *right;
+  HUFFNODE *right;
+  while (node && (right = node->Next()) != NULL) {
     HUFFNODE *parent;
     HUFFNODE *afterRight;
-
-    right = node->Next();
-    if (!right) {
-      break;
-    }
 
     parent = AllocNode(LIST_TAIL);
     parent->weight = node->weight + right->weight;
@@ -1002,18 +997,16 @@ extern "C" int __stdcall zlib_compress(BYTE *dest, DWORD *destLen, const BYTE *s
   stream.zfree = (free_func)ZlibFree;
   stream.opaque = &buffer;
   result = deflateInit(&stream, level);
-  if (result == Z_OK) {
-    result = deflate(&stream, Z_FINISH);
-    if (result == Z_STREAM_END) {
-      *destLen = stream.total_out;
-      return deflateEnd(&stream);
-    }
-    deflateEnd(&stream);
-    if (result == Z_OK) {
-      result = Z_BUF_ERROR;
-    }
+  if (result != Z_OK) {
+    return result;
   }
-  return result;
+  result = deflate(&stream, Z_FINISH);
+  if (result != Z_STREAM_END) {
+    deflateEnd(&stream);
+    return result == Z_OK ? Z_BUF_ERROR : result;
+  }
+  *destLen = stream.total_out;
+  return deflateEnd(&stream);
 }
 
 static void ZlibCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD *hint, DWORD optimization) {

@@ -201,8 +201,19 @@ class CDataStore {
     return m_read <= m_size;
   }
 
-  virtual BOOL IsRead() const;
-  virtual void Reset();
+  virtual BOOL IsRead() const {
+    return m_read == m_size;
+  }
+  virtual void Reset() {
+    if (m_alloc == static_cast<UINT>(-1)) {
+      m_data = 0;
+      m_alloc = 0;
+    }
+
+    FetchWrite(0, 0, 0, 0);
+    m_size = 0;
+    m_read = static_cast<UINT>(-1);
+  }
   virtual void Finalize() {
     ASSERT(!IsFinal());
     m_read = 0;

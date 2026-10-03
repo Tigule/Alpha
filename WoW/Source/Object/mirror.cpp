@@ -189,13 +189,15 @@ static ObjDataDescriptor *const s_descriptors[8] = {
 static void CopyAndExpandDescriptors(ObjDataDescriptor *dest, ObjDataDescriptor *source, UINT num, UINT destArraySize) {
   UINT d = 0;
 
-  while (num--) {
+  while (num > 0) {
     UINT fieldSize = source->fieldSize;
 
-    while (fieldSize--) {
+    while (fieldSize > 0) {
       dest[d++] = *source;
+      --fieldSize;
     }
     ++source;
+    --num;
   }
 
   ASSERT(d == destArraySize);

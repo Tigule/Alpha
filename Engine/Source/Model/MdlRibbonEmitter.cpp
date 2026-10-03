@@ -5,6 +5,7 @@
 #include "MDLFile/MDLTypes.h"
 #include "Model/Material.h"
 #include "Services/IParticleMisc.h"
+#include "Services/ParticleSystem2.h"
 #include "Services/RibbonEmitter.h"
 
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
@@ -39,29 +40,39 @@ static void LoadRibbonMaterial(
 }
 
 static void LoadEmitterData(BYTE *emitterData, CModelComplex *modelptr, CRibbonEmitter *ribbon) {
+  emitterData += *reinterpret_cast<UINT *>(emitterData) + 4;
+  float staticHeightAbove = *reinterpret_cast<float *>(emitterData);
+  emitterData += 4;
+  float staticHeightBelow = *reinterpret_cast<float *>(emitterData);
+  emitterData += 4;
+  NTempest::CImVector diffColor(
+      NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(emitterData)[0] * 255.0f),
+      NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(emitterData)[1] * 255.0f),
+      NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(emitterData)[2] * 255.0f),
+      NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(emitterData)[3] * 255.0f)
+  );
+  emitterData += 16;
+  float edgeLifetime = *reinterpret_cast<float *>(emitterData);
+  emitterData += 4;
+  UINT staticTextureSlot = *reinterpret_cast<UINT *>(emitterData);
+  emitterData += 4;
+  UINT edgesPerSecond = *reinterpret_cast<UINT *>(emitterData);
+  emitterData += 4;
+  UINT textureRows = *reinterpret_cast<UINT *>(emitterData);
+  emitterData += 4;
+  UINT textureCols = *reinterpret_cast<UINT *>(emitterData);
+  emitterData += 4;
+  UINT materialId = *reinterpret_cast<UINT *>(emitterData);
+  emitterData += 4;
+  float gravity = *reinterpret_cast<float *>(emitterData);
+
   static TSGrowableArray<CRibbonMat> mats;
   static TSGrowableArray<HTEXTURE>   textures;
   static TSGrowableArray<UINT>       replace;
 
-  UINT   staticDataOffset = *reinterpret_cast<UINT *>(emitterData);
-  BYTE  *staticData = emitterData + staticDataOffset + 4;
-  float *values = reinterpret_cast<float *>(staticData);
-
-  float               staticHeightAbove = values[0];
-  float               staticHeightBelow = values[1];
-  NTempest::CImVector diffColor;
-  diffColor.Set(values[2], values[3], values[4], values[5]);
-  float edgeLifetime = values[6];
-  UINT  staticTextureSlot = *reinterpret_cast<UINT *>(staticData + 28);
-  UINT  edgesPerSecond = *reinterpret_cast<UINT *>(staticData + 32);
-  UINT  textureRows = *reinterpret_cast<UINT *>(staticData + 36);
-  UINT  textureCols = *reinterpret_cast<UINT *>(staticData + 40);
-  UINT  materialId = *reinterpret_cast<UINT *>(staticData + 44);
-  float gravity = *reinterpret_cast<float *>(staticData + 48);
-
-  CMaterial *material = static_cast<CMaterial *>(HandleDereference(reinterpret_cast<HOBJECT>(modelptr->m_materials[materialId])));
-  ASSERT(material);
-  LoadRibbonMaterial(*material, modelptr->m_textures, &mats, &textures, &replace);
+  CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(modelptr->m_materials[materialId]);
+  ASSERT(uniqueMtl);
+  LoadRibbonMaterial(*uniqueMtl, modelptr->m_textures, &mats, &textures, &replace);
 
   ribbon->Initialize(
       static_cast<float>(edgesPerSecond), edgeLifetime, diffColor, textures, mats, replace, NTempest::CRect(0.0f, 0.0f, 1.0f, 1.0f), textureRows,

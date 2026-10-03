@@ -1309,7 +1309,7 @@ BYTE ModelGetVertexAlpha(HMODEL model) {
       return 0xFF;
     }
 
-    return NTempest::CMath::ftol_0_256_(complex->m_geosetColor[0].proceduralAlpha * 255.0f);
+    return NTempest::CMath::fuint_(complex->m_geosetColor[0].proceduralAlpha * 255.0f);
   }
 
   CModelSimple *simple = static_cast<CModelSimple *>(unique);
@@ -1317,7 +1317,7 @@ BYTE ModelGetVertexAlpha(HMODEL model) {
     return 0xFF;
   }
 
-  return NTempest::CMath::ftol_0_256_(simple->m_geosetColor[0].proceduralAlpha * 255.0f);
+  return NTempest::CMath::fuint_(simple->m_geosetColor[0].proceduralAlpha * 255.0f);
 }
 
 static void GeosetSetVertexAlpha(CGeosetShared *geoShared, CGeosetColor *geoColor, HMATERIAL *materials, float alpha) {

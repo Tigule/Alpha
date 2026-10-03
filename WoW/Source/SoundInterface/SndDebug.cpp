@@ -1,12 +1,14 @@
 #include <Base/Base.h>
-#include <WowConst.h>
-
 #include "SoundInterface.h"
+#include <Gx/Gx.h>
+#include <WowConst.h>
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
 
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleCommand.h"
 #include "Object/ObjectClient/Object_C.h"
-#include "ObjectMgrClient/ObjectMgrClient.h"
 
 #include "Event/EvtApi.h"
 #include "Os/OsTime.h"
@@ -67,13 +69,13 @@ static BOOL PingSound(LPCSTR command, LPCSTR arguments) {
 }
 
 static BOOL RoomType(LPCSTR command, LPCSTR arguments) {
-  SNDROOMTYPE roomType;
+  UINT roomType;
 
-  if (!arguments || (roomType = static_cast<SNDROOMTYPE>(SStrToInt(arguments))) <= SNDROOMTYPE_PSYCHOTIC) {
+  if (!arguments || (roomType = SStrToInt(arguments)) <= SNDROOMTYPE_PSYCHOTIC) {
     roomType = SNDROOMTYPE_PSYCHOTIC;
   }
 
-  SndSetRoomType(roomType);
+  SndSetRoomType(static_cast<SNDROOMTYPE>(roomType));
   return 1;
 }
 

@@ -1,20 +1,28 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
-#include "WorldParam.h"
+#include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
 
-#include "World.h"
 #include "Map.h"
 
 #include <Console/ConsoleClient.h>
 #include <Console/ConsoleVar.h>
-#include <Gx/Gx.h>
 #include <Model/IModel.h>
 #include <Services/IParticleMisc.h>
 #include <storm.h>
 
 #include <stdio.h>
+
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 CVar *CWorldParam::cvar_triLinear;
 CVar *CWorldParam::cvar_detailDensity;
@@ -145,7 +153,7 @@ bool CWorldParam::SmallCullCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, L
   float thres;
 
   sscanf(newValue, "%f", &thres);
-  if (thres < 0.001f || thres > 2.0f) {
+  if (thres < 0.001 || thres > 2.0f) {
     ConsoleWrite("SmallCull must be in range 0.001 - 2.0.", DEFAULT_COLOR);
     return false;
   }
@@ -271,37 +279,37 @@ bool CWorldParam::DetailDoodadDensityCallback(CVar *h, LPCSTR oldValue, LPCSTR n
 }
 
 bool CWorldParam::SpecularCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
+  bool result = true;
   if (SStrToInt(newValue)) {
-    if (GxCaps().m_pixelShaderTarget <= -1) {
+    if (GxCaps().m_pixelShaderTarget > -1) {
+      ConsoleWrite("Specular enabled", DEFAULT_COLOR);
+      CWorld::enables |= CWorld::Enable_Specular;
+    } else {
       ConsoleWrite("Specular unsupported on current API/HW.", DEFAULT_COLOR);
-      return false;
+      result = false;
     }
-
-    ConsoleWrite("Specular enabled", DEFAULT_COLOR);
-    CWorld::enables |= CWorld::Enable_Specular;
-    return true;
+  } else {
+    ConsoleWrite("Specular disabled.", DEFAULT_COLOR);
+    CWorld::enables &= ~CWorld::Enable_Specular;
   }
-
-  ConsoleWrite("Specular disabled.", DEFAULT_COLOR);
-  CWorld::enables &= ~CWorld::Enable_Specular;
-  return true;
+  return result;
 }
 
 bool CWorldParam::PixelShadersCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
+  bool result = true;
   if (SStrToInt(newValue)) {
-    if (GxCaps().m_pixelShaderTarget <= -1) {
+    if (GxCaps().m_pixelShaderTarget > -1) {
+      ConsoleWrite("Pixel shaders enabled.", DEFAULT_COLOR);
+      CWorld::enables |= CWorld::Enable_PixelShaders;
+    } else {
       ConsoleWrite("Pixel shaders unsupported on current API/HW.", DEFAULT_COLOR);
-      return false;
+      result = false;
     }
-
-    ConsoleWrite("Pixel shaders enabled.", DEFAULT_COLOR);
-    CWorld::enables |= CWorld::Enable_PixelShaders;
-    return true;
+  } else {
+    ConsoleWrite("Pixel shaders disabled.", DEFAULT_COLOR);
+    CWorld::enables &= ~CWorld::Enable_PixelShaders;
   }
-
-  ConsoleWrite("Pixel shaders disabled.", DEFAULT_COLOR);
-  CWorld::enables &= ~CWorld::Enable_PixelShaders;
-  return true;
+  return result;
 }
 
 bool CWorldParam::ParticleDensityCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {

@@ -39,17 +39,23 @@ namespace NTempest {
     CAaBox &operator/=(float value);
     CAaBox  operator-() const;
 
-    BYTE NotEmpty() const;
+    BYTE NotEmpty() const {
+      return b.x < t.x && b.y < t.y && b.z < t.z ? 1 : 0;
+    }
     BYTE Empty() const;
     BYTE Encloses(const C3Vector &value) const;
     BYTE Encloses(const C2Vector &value) const;
     BYTE Encloses(const CAaBox &value) const;
-    BYTE Contains(const C3Vector &value) const;
+    bool Contains(const C3Vector &value) const {
+      return value >= b && value <= t;
+    }
     BYTE Contains(const C2Vector &value) const;
     BYTE Contains(const CAaBox &value) const;
     BYTE InOpenR(const C3Vector &value) const;
     BYTE InOpenR(const CAaBox &value) const;
-    BYTE Intersects(const CAaBox &value) const;
+    bool Intersects(const CAaBox &value) const {
+      return value.b <= t && value.t >= b;
+    }
     BYTE Intersects2d(const CAaBox &value) const;
 
     float    Width() const;

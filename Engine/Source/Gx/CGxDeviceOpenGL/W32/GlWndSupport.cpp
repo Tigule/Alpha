@@ -3,13 +3,13 @@
 #include <gl/gl.h>
 
 static BOOL SetupPixelFormat(HDC hdc, const CGxFormat &format) {
+  BYTE colorBits = 16;
+  BYTE rBits = 5;
   BYTE gBits = 6;
   BYTE bBits = 5;
-  BYTE rBits = 5;
-  BYTE stencilBits = 0;
-  BYTE colorBits = 16;
-  BYTE depthBits = 16;
   BYTE alphaBits = 0;
+  BYTE depthBits = 16;
+  BYTE stencilBits = 0;
 
   switch (format.colorFormat) {
     case CGxFormat::Fmt_Rgb565:
@@ -22,6 +22,7 @@ static BOOL SetupPixelFormat(HDC hdc, const CGxFormat &format) {
     case CGxFormat::Fmt_ArgbX888:
       colorBits = 24;
       rBits = gBits = bBits = 8;
+      alphaBits = 0;
       break;
     case CGxFormat::Fmt_Argb8888:
       colorBits = 24;
@@ -93,7 +94,7 @@ static BOOL SetupPixelFormat(HDC hdc, const CGxFormat &format) {
   int matches = 1;
   if (!format.window) {
     if (format.colorFormat != CGxFormat::Fmt_ArgbX888) {
-      matches = pfd.cAlphaBits == alphaBits;
+      matches &= pfd.cAlphaBits == alphaBits;
     }
     matches &= pfd.cRedBits == rBits && pfd.cBlueBits == bBits && pfd.cGreenBits == gBits;
   }
@@ -116,10 +117,9 @@ static BOOL SetupPixelFormat(HDC hdc, const CGxFormat &format) {
 }
 
 HGLRC AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format) {
-  (void)hdc;
-  HDC windowDC = GetDC(hwnd);
-  if (windowDC && SetupPixelFormat(windowDC, format)) {
-    return wglCreateContext(windowDC);
+  hdc = GetDC(hwnd);
+  if (hdc && SetupPixelFormat(hdc, format)) {
+    return wglCreateContext(hdc);
   }
   return 0;
 }

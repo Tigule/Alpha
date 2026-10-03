@@ -15,28 +15,11 @@
 #include <math.h>
 
 void CClientMoveUpdate::Skip(CDataStore *packet) {
+  UINT   flags = CMovementStatus::Skip(packet);
   LPVOID unused;
-  packet->GetDataInSitu(unused, 44);
-  UINT flags = 0;
-  packet->Get(flags);
   packet->GetDataInSitu(unused, 20);
   if (flags & 0x04000000) {
-    flags = 0;
-    packet->Get(flags);
-    UINT bytes = 0;
-    if (flags & 0x00010000) {
-      bytes = 12;
-    }
-    if (flags & 0x00020000) {
-      bytes += 8;
-    }
-    if (flags & 0x00040000) {
-      bytes += 4;
-    }
-    packet->GetDataInSitu(unused, bytes + 8);
-    UINT pointCount = 0;
-    packet->Get(pointCount);
-    packet->GetDataInSitu(unused, 12 * pointCount);
+    CMoveSpline::Skip(packet);
   }
 }
 

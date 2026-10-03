@@ -1,9 +1,17 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include "WorldCommon/WorldMath.h"
 
 #include <Model/IModel.h>
@@ -123,16 +131,15 @@ void CMap::QueryLightmap(CMapDoodadDef *doodadDef) {
 }
 
 void CMap::UpdateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGroup, CMapObjDef *mapObjDef, CMapObjDefGroup *mapObjDefGroup) {
-  BOOL bFini = 1;
   FATALASSERT(mapObj);
   FATALASSERT(mapObjGroup);
   FATALASSERT(mapObjDef);
   FATALASSERT(mapObjDefGroup);
 
-  UINT             count = 0;
-  CMapBaseObjLink *doodadDefLink = mapObjDefGroup->doodadDefLinkList.Head();
+  BOOL bFini = 1;
+  UINT count = 0;
 
-  while (reinterpret_cast<long>(doodadDefLink) > 0) {
+  ITERATELIST(CMapBaseObjLink, mapObjDefGroup->doodadDefLinkList, doodadDefLink) {
     CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(doodadDefLink->owner);
 
     if (!doodadDef->model) {
@@ -150,8 +157,6 @@ void CMap::UpdateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGrou
     if (count >= 16 && !bPreload) {
       break;
     }
-
-    doodadDefLink = mapObjDefGroup->doodadDefLinkList.RawNext(doodadDefLink);
   }
 
   if (bFini || bPreload) {

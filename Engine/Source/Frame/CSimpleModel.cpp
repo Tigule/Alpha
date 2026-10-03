@@ -173,15 +173,15 @@ void CSimpleModel::SetCamera(HCAMERA camera) {
 void CSimpleModel::SetCameraByIndex(UINT index) {
   ASSERT(m_model);
 
-  if (m_flags & 0x1) {
-    SetCameraInternal(ModelGetCamera(m_model, index));
-  } else {
+  if (!(m_flags & 0x1)) {
     if (!(m_flags & 0x4) && m_camera) {
       HandleClose(m_camera);
     }
 
     m_cameraIndex = index;
     m_flags |= 0x4;
+  } else {
+    SetCameraInternal(ModelGetCamera(m_model, index));
   }
 }
 

@@ -6,6 +6,8 @@
 #include "UIUtil/InputControl.h"
 #include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Ui/GameUI.h"
 
 #include "Tempest/crect.h"
 #include "Tempest/c2vector.h"

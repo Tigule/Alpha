@@ -38,11 +38,30 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const DWORDLONG &
   }
 
   entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
-  if (entry) {
-    if (entry->m_haveData) {
-      return &entry->m_record;
+  if (!entry) {
+    if (cb) {
+      entry = m_table.New(static_cast<UINT>(id), HASHKEY(id), 0, 0);
+      entry->m_dbkey = id;
+      callbackEntry = entry->m_callbacks.NewNode(LIST_TAIL, 0, 0);
+      callbackEntry->m_callback = cb;
+      callbackEntry->m_guid = guid;
+      callbackEntry->m_cbArg = cbArg;
+
+      CDataStore queryMsg;
+
+      queryMsg.Put(m_singleQueryMsg);
+      queryMsg.Put(id);
+      if (m_requireGuids) {
+        queryMsg.Put(guid);
+      }
+      queryMsg.Finalize();
+      ClientServices_Send(&queryMsg);
     }
 
+    return 0;
+  }
+
+  if (!entry->m_haveData) {
     if (cb) {
       callbackEntry = entry->m_callbacks.NewNode(LIST_TAIL, 0, 0);
       callbackEntry->m_callback = cb;
@@ -53,29 +72,7 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const DWORDLONG &
     return 0;
   }
 
-  if (!cb) {
-    return 0;
-  }
-
-  entry = m_table.New(static_cast<UINT>(id), HASHKEY(id), 0, 0);
-  entry->m_dbkey = id;
-  callbackEntry = entry->m_callbacks.NewNode(LIST_TAIL, 0, 0);
-  callbackEntry->m_callback = cb;
-  callbackEntry->m_guid = guid;
-  callbackEntry->m_cbArg = cbArg;
-
-  {
-    CDataStore queryMsg;
-
-    queryMsg.Put(m_singleQueryMsg);
-    queryMsg.Put(id);
-    if (m_requireGuids) {
-      queryMsg.Put(guid);
-    }
-    queryMsg.Finalize();
-    ClientServices_Send(&queryMsg);
-  }
-  return 0;
+  return &entry->m_record;
 }
 
 template <class RECORD, class KEY, class HASHKEY>
@@ -135,14 +132,13 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
     msg->Get(count);
   }
 
-  if (!count) {
-    return;
-  }
-
-  while (count--) {
+  for (; count > 0; --count) {
+    invalid = 0;
     msg->Get(id);
-    invalid = (id & ~0x7FFFFFFF) != 0;
-    id &= 0x7FFFFFFF;
+    if (id & ~0x7FFFFFFF) {
+      invalid = 1;
+      id &= 0x7FFFFFFF;
+    }
 
     entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
     if (invalid) {
@@ -182,9 +178,11 @@ void DBCache<RECORD, KEY, HASHKEY>::CancelCallback(KEY id, DBCACHECALLBACKPROC c
     return;
   }
 
-  ITERATELIST(DBCACHECALLBACK, entry->m_callbacks, callbackEntry) {
+  DBCACHECALLBACK *callbackEntry;
+  DBCACHECALLBACK *next;
+  for (callbackEntry = entry->m_callbacks.Head(); (int)callbackEntry > 0 ? (next = entry->m_callbacks.RawNext(callbackEntry), 1) : 0; callbackEntry = next) {
     if (callbackEntry->m_callback == cb && callbackEntry->m_cbArg == cbArg) {
-      ITERATE_DELETE
+      entry->m_callbacks.DeleteNode(callbackEntry);
     }
   }
 }
@@ -314,9 +312,10 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
     if (entry->m_haveData && !entry->m_temp) {
       r.Reset();
       r.Put(entry->m_dbkey);
+      UINT pos = r.Size();
       r.Put(0);
       entry->m_record.Pack(&r);
-      r.Set(sizeof(KEY), r.Size() - sizeof(KEY) - sizeof(DWORD));
+      r.Set(pos, r.Size() - sizeof(KEY) - sizeof(DWORD));
       r.Finalize();
       r.GetDataInSitu(ptr, r.Size());
       OsWriteFile(file, ptr, r.Size(), &bytesWritten);
@@ -325,10 +324,9 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
   }
 
   endMarkerKey = 0;
+  endMarker = 0;
   OsWriteFile(file, &endMarkerKey, sizeof(endMarkerKey), &bytesWritten);
   ASSERT(bytesWritten == sizeof(endMarkerKey));
-
-  endMarker = 0;
   OsWriteFile(file, &endMarker, sizeof(endMarker), &bytesWritten);
   ASSERT(bytesWritten == sizeof(endMarker));
   OsCloseFile(file);

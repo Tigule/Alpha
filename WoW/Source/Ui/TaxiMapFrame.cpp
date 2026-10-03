@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -119,7 +121,6 @@ LPCSTR CGTaxiMap::TaxiNodeName(UINT slot) {
 }
 
 LPCSTR CGTaxiMap::TaxiNodeType(UINT slot) {
-  FATALASSERT(slot < NumTaxiNodes());
   return s_taxiNodeNames[TaxiNodeGetNodeType(m_nodes[slot].id)];
 }
 
@@ -137,19 +138,18 @@ UINT CGTaxiMap::TaxiNodeCost(UINT slot) {
 void CGTaxiMap::TakeTaxiNode(UINT slot) {
   FATALASSERT(slot < NumTaxiNodes());
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return;
-  }
-
-  UINT flags = player->GetUnitData()->flags;
-  if ((flags & 0x2000) || (flags & 0x1000)) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(163));
-  } else if (m_startNode == m_nodes[slot].id) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(155));
-  } else if (!TaxiRouteExists(m_startNode, m_nodes[slot].id)) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(156));
-  } else {
-    player->StartTaxi(m_unit, m_startNode, m_nodes[slot].id);
+  if (player) {
+    if (!player->IsMounted() && !player->IsPureMountActive()) {
+      if (m_startNode == m_nodes[slot].id) {
+        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(155));
+      } else if (!TaxiRouteExists(m_startNode, m_nodes[slot].id)) {
+        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(156));
+      } else {
+        player->StartTaxi(m_unit, m_startNode, m_nodes[slot].id);
+      }
+    } else {
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(163));
+    }
   }
 }
 
@@ -177,8 +177,9 @@ static int Script_SetTaxiMap(lua_State *L) {
 static int Script_SetTaxiRoute(lua_State *L) {
   CSimpleModel   *model = static_cast<CSimpleModel *>(SimpleFrameRegistryGetEntry("TaxiRouteMap", 0));
   NTempest::CRect rect;
-  if (model && !model->GetModel() && model->GetRect(&rect)) {
-    HMODEL route = TaxiGetRouteModel((rect.r - rect.l) / model->GetLayoutScale(), (rect.b - rect.t) / model->GetLayoutScale());
+  if (!model->GetModel() && model->GetRect(&rect)) {
+    float  scale = 1.0f / model->GetLayoutScale();
+    HMODEL route = TaxiGetRouteModel((rect.r - rect.l) * scale, (rect.b - rect.t) * scale);
     model->SetModel(route);
     if (route) {
       HandleClose(route);

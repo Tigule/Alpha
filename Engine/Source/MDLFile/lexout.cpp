@@ -37,10 +37,10 @@ mdl_scan::~mdl_scan() {
   if (mustfree) {
     mustfree = 0;
     if (mdltext) {
-      SMemFree(mdltext, "delete", -1, 0);
+      delete[] mdltext;
     }
     if (state) {
-      SMemFree(state, "delete", -1, 0);
+      delete[] state;
     }
   }
 }

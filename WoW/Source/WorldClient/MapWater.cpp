@@ -1,15 +1,21 @@
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
-#include <Ftol.h>
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
-
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
 #include "DayNight.h"
-#include "Base/Base.h"
+
+#include <Ftol.h>
+
 #include "Base/Handle.h"
 #include "Base/Status.h"
-#include "Gx/Gx.h"
 #include "Services/SysMessage.h"
 #include "Services/Texture.h"
 #include "Tempest/cmath.h"
@@ -38,15 +44,25 @@ struct LODArrays {
   void GenVerts(UINT lod);
 };
 
-static UINT                       s_lodSubdivs[5] = {0, 1, 3, 7, 15};
-static TSGrowableArray<LODArrays> s_lodArrays;
-static NTempest::CImVector       *pixels;
-static const float                kDeepDarken = 0.75f;
-static const float                MD_RIVER_DEPTH_SCALE = 1.0f / 9.0f;
-static const float                Gx_MinTexAspect = 0.125f;
-static float                      s_oceanDepthCoordTable[256];
-static float                      s_riverDepthCoordTable[256];
-static NTempest::CImVector        s_reflectivity[256];
+struct ChunkLodIdx {
+  UINT ComputeIndexCount(UINT lod);
+  void GenEdgeIndices(UINT edgeTris, UINT r1, UINT r1Delta, UINT r2, UINT r2Delta, WORD *idx);
+  void GenLinkIndices(UINT numQuads, UINT r1, UINT r1Delta, UINT r2, UINT r2Delta, WORD *idx);
+  void GenCenterIndices(UINT centerQuads, UINT rowVerts, WORD *idx);
+  void GenCenterIndicesRow(UINT nQuads, UINT r[2], UINT i0, UINT i1, WORD *&idx);
+
+  struct StartCount {
+    WORD start;
+    WORD count;
+  };
+
+  TSGrowableArray<WORD> indices;
+  StartCount            edges[4];
+  StartCount            links[4];
+  StartCount            center;
+
+  void GenIndices(UINT lod);
+};
 
 CGxTex                           *CMap::skyTexid;
 CGxTex                           *CMap::riverDiffTexid;
@@ -55,6 +71,8 @@ const UINT                        CMap::SKYTEX_HEIGHT = 64;
 const UINT                        CMap::WATERTEX_HEIGHT = 64;
 const float                       CMap::LIQUID_TEX_PURGE_TIME = 20.0f;
 const float                       CMap::WATER_SPEC_EXP = 6.0f;
+LISTDECL(WaterRadWave, CMap::waterRipplesActive);
+LISTDECL(WaterRadWave, CMap::waterRipplesFree);
 TSFixedArray<NTempest::CImVector> CMap::skyTexels;
 HTEXTURE CMap::liquidTex[LIQUID_COUNT][LIQUID_TEXTURE_COUNT];
 bool                              CMap::liquidTexLoaded[LIQUID_COUNT];
@@ -67,51 +85,18 @@ LPCSTR                            CMap::liquidTexBaseName[LIQUID_COUNT] = {"XTex
                                                                            "XTextures\\river\\fast_a.%d.blp"};
 bool                              CMap::riverDiffTexUpdated;
 bool                              CMap::oceanDiffTexUpdated;
-const float                       Particulate::PTSIZE = 0.5f;
-NTempest::C3Vector                Particulate::s_vcv[4] = {
-    NTempest::C3Vector(-PTSIZE, PTSIZE, 0.0f), NTempest::C3Vector(-PTSIZE, -PTSIZE, 0.0f), NTempest::C3Vector(PTSIZE, PTSIZE, 0.0f),
-    NTempest::C3Vector(PTSIZE, -PTSIZE, 0.0f)
-};
-NTempest::C2Vector Particulate::s_tc[13][4] = {
-    {       NTempest::C2Vector(0.0f,        0.0f),        NTempest::C2Vector(0.0f, 0.19921875f), NTempest::C2Vector(0.19921875f,        0.0f),
-     NTempest::C2Vector(0.19921875f, 0.19921875f)},
-    {NTempest::C2Vector(0.19921875f,        0.0f), NTempest::C2Vector(0.19921875f, 0.19921875f),  NTempest::C2Vector(0.3984375f,        0.0f),
-     NTempest::C2Vector(0.3984375f, 0.19921875f) },
-    { NTempest::C2Vector(0.3984375f,        0.0f),  NTempest::C2Vector(0.3984375f, 0.19921875f), NTempest::C2Vector(0.59765625f,        0.0f),
-     NTempest::C2Vector(0.59765625f, 0.19921875f)},
-    {NTempest::C2Vector(0.59765625f,        0.0f), NTempest::C2Vector(0.59765625f, 0.19921875f),   NTempest::C2Vector(0.796875f,        0.0f),
-     NTempest::C2Vector(0.796875f, 0.19921875f)  },
-    {       NTempest::C2Vector(0.0f, 0.19921875f),        NTempest::C2Vector(0.0f,  0.3984375f), NTempest::C2Vector(0.19921875f, 0.19921875f),
-     NTempest::C2Vector(0.19921875f,  0.3984375f)},
-    {NTempest::C2Vector(0.19921875f, 0.19921875f), NTempest::C2Vector(0.19921875f,  0.3984375f),  NTempest::C2Vector(0.3984375f, 0.19921875f),
-     NTempest::C2Vector(0.3984375f,  0.3984375f) },
-    { NTempest::C2Vector(0.3984375f, 0.19921875f),  NTempest::C2Vector(0.3984375f,  0.3984375f), NTempest::C2Vector(0.59765625f, 0.19921875f),
-     NTempest::C2Vector(0.59765625f,  0.3984375f)},
-    {NTempest::C2Vector(0.59765625f, 0.19921875f), NTempest::C2Vector(0.59765625f,  0.3984375f),   NTempest::C2Vector(0.796875f, 0.19921875f),
-     NTempest::C2Vector(0.796875f,  0.3984375f)  },
-    {  NTempest::C2Vector(0.796875f,        0.0f),   NTempest::C2Vector(0.796875f, 0.19921875f), NTempest::C2Vector(0.99609375f,        0.0f),
-     NTempest::C2Vector(0.99609375f, 0.19921875f)},
-    {       NTempest::C2Vector(0.0f,  0.3984375f),        NTempest::C2Vector(0.0f, 0.59765625f), NTempest::C2Vector(0.19921875f,  0.3984375f),
-     NTempest::C2Vector(0.19921875f, 0.59765625f)},
-    {NTempest::C2Vector(0.19921875f,  0.3984375f), NTempest::C2Vector(0.19921875f, 0.59765625f),  NTempest::C2Vector(0.3984375f,  0.3984375f),
-     NTempest::C2Vector(0.3984375f, 0.59765625f) },
-    { NTempest::C2Vector(0.3984375f,  0.3984375f),  NTempest::C2Vector(0.3984375f, 0.59765625f), NTempest::C2Vector(0.59765625f,  0.3984375f),
-     NTempest::C2Vector(0.59765625f, 0.59765625f)},
-    {NTempest::C2Vector(0.59765625f,  0.3984375f), NTempest::C2Vector(0.59765625f, 0.59765625f),   NTempest::C2Vector(0.796875f,  0.3984375f),
-     NTempest::C2Vector(0.796875f, 0.59765625f)  }
-};
-UINT Particulate::s_tcSub[4][8] = {
-    {0,  1,  2,  3, 4,  5,  6,  7},
-    {0,  1,  2,  3, 4,  5,  6,  7},
-    {9, 10, 11, 12, 9, 10, 11, 12},
-    {0,  0,  0,  0, 0,  0,  0,  0}
-};
-LISTDECL(WaterRadWave, CMap::waterRipplesFree);
-LISTDECL(WaterRadWave, CMap::waterRipplesActive);
 CGxPixelShader           *CMap::psOcean0;
-static NTempest::C2Vector oceanfft[4096];
-static float              phase;
-static float              phase2;
+
+static UINT                       s_lodSubdivs[5] = {0, 1, 3, 7, 15};
+static TSGrowableArray<LODArrays> s_lodArrays;
+static const UINT                 MAX_SUBDIVS = s_lodSubdivs[4];
+static NTempest::CImVector       *pixels;
+static const float                kDeepDarken = 0.75f;
+static const float                MD_RIVER_DEPTH_SCALE = 1.0f / 9.0f;
+static const float                Gx_MinTexAspect = 0.125f;
+static float                      s_oceanDepthCoordTable[256];
+static float                      s_riverDepthCoordTable[256];
+static NTempest::CImVector        s_reflectivity[256];
 
 const float WaterRadWave::PERTURB = 40.0f;
 
@@ -136,10 +121,10 @@ int CMapArea::ccWaterRipples = 1;
 void WaterRadWave::Init(const NTempest::C3Vector &p_pos, float len, float time, float amp, float vel, float freq) {
   pos = p_pos;
   length = len;
-  amplitude = amp;
   timeLength = time;
-  frequency = freq;
+  amplitude = amp;
   velocity = vel;
+  frequency = freq;
   curTime = 0.0f;
   rb = 0.0f;
   ooLength = 1.0f / len;
@@ -350,7 +335,7 @@ HTEXTURE CMap::GetLiquidTexture(UINT liquid) {
 
   ASSERT(liquid < LIQUID_COUNT);
 
-  UINT texture = static_cast<UINT>(fmod(CWorld::GetCurTimeSec(), secsPerLoop) / secsPerLoop * LIQUID_TEXTURE_COUNT - 0.5f);
+  UINT texture = Fast_ftol(fmod(CWorld::GetCurTimeSec(), secsPerLoop) / secsPerLoop * LIQUID_TEXTURE_COUNT);
 
   if (!liquidTexLoaded[liquid]) {
     allLoaded = 1;
@@ -470,8 +455,8 @@ void CMap::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radius, i
   FATALASSERT(mx >= 0.0f && my >= 0.0f);
   FATALASSERT(mx < 34133.332f && my < 34133.332f);
 
-  int areaX = (static_cast<int>(mx * 0.24f - 0.5f) >> 7) & 0x3F;
-  int areaY = (static_cast<int>(my * 0.24f - 0.5f) >> 7) & 0x3F;
+  int areaX = (Fast_ftol(mx * 0.24f) >> 7) & 0x3F;
+  int areaY = (Fast_ftol(my * 0.24f) >> 7) & 0x3F;
   int a[4];
   a[0] = areaX > 0 ? areaX - 1 : 0;
   a[1] = areaX + 1 < 63 ? areaX + 1 : 63;
@@ -524,8 +509,8 @@ void CMapArea::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radiu
   FATALASSERT(mx >= 0.0f && my >= 0.0f);
   FATALASSERT(mx < 34133.332f && my < 34133.332f);
 
-  int chunkX = static_cast<int>(mx * 0.03f - 0.5f) & 0xF;
-  int chunkY = static_cast<int>(my * 0.03f - 0.5f) & 0xF;
+  int chunkX = Fast_ftol(mx * 0.03f) & 0xF;
+  int chunkY = Fast_ftol(my * 0.03f) & 0xF;
   FATALASSERT(radius / 4.1666665f < 256.0f);
   int chunkRadius = static_cast<int>(ceil(radius / 4.1666665f));
   int minChunkX = chunkX - chunkRadius > 0 ? chunkX - chunkRadius : 0;
@@ -565,6 +550,42 @@ void CMapArea::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radiu
         }
       }
     }
+  }
+}
+
+static void fft2(float data[], DWORD nn[], int ndim, float isign);
+
+static WaterVert          sWave2(NTempest::C3Vector(1.414f, 1.414f, 0.0f), 0.5f, 1.0f / 18.0f, 0.0f);
+static NTempest::C2Vector oceanfft[4096];
+static float              phase;
+static float              phase2;
+
+void CMap::OceanFFT() {
+  memset(oceanfft, 0, sizeof(oceanfft));
+
+  phase += CWorld::tickTimeSec * 0.2f;
+  phase2 += CWorld::tickTimeSec * 0.92000002f;
+
+  float c = cos(phase);
+  float s = sin(phase);
+  float c2 = cos(phase2);
+  float s2 = sin(phase2);
+
+  oceanfft[770] = NTempest::C2Vector(2.2f * c, 2.2f * s);
+  oceanfft[896] = NTempest::C2Vector(2.02f * c2, 2.1f * s2);
+  oceanfft[180] = NTempest::C2Vector(2.1f * c2, 2.1f * s2);
+  oceanfft[3846] = NTempest::C2Vector(2.0f * c, 2.0f * s);
+  oceanfft[1403] = NTempest::C2Vector(1.3f * c, 1.2f * s);
+  oceanfft[3797] = NTempest::C2Vector(1.5f * c, 1.4f * s);
+  oceanfft[1424] = NTempest::C2Vector(1.4f * c2, 1.4f * s2);
+  oceanfft[254] = NTempest::C2Vector(1.6f * c2, 1.6f * s2);
+
+  DWORD nn[2] = {64, 64};
+  fft2(reinterpret_cast<float *>(oceanfft) - 1, nn - 1, 2, -1.0f);
+
+  for (UINT i = 0; i < 4096; ++i) {
+    oceanfft[i].x *= 0.015625f;
+    oceanfft[i].y *= 0.015625f;
   }
 }
 
@@ -642,34 +663,134 @@ static void fft2(float data[], DWORD nn[], int ndim, float isign) {
   }
 }
 
-void CMap::OceanFFT() {
-  memset(oceanfft, 0, sizeof(oceanfft));
+void ChunkLodIdx::GenEdgeIndices(UINT edgeTris, UINT r1, UINT r1Delta, UINT r2, UINT r2Delta, WORD *idx) {
+  UINT i;
+  UINT count = edgeTris / 2;
 
-  phase += CWorld::tickTimeSec * 0.2f;
-  phase2 += CWorld::tickTimeSec * 0.92000002f;
+  *idx++ = r1;
+  for (i = 0; i < count; ++i) {
+    *idx++ = r1;
+    r1 += r1Delta;
+    *idx++ = r2;
+    r2 += r2Delta;
+  }
 
-  float c = cos(phase);
-  float s = sin(phase);
-  float c2 = cos(phase2);
-  float s2 = sin(phase2);
+  *idx++ = r1 - r1Delta;
+  for (i = 0; i < count; ++i) {
+    *idx++ = r2;
+    r2 += r2Delta;
+    *idx++ = r1;
+    r1 += r1Delta;
+  }
 
-  oceanfft[770] = NTempest::C2Vector(2.2f * c, 2.2f * s);
-  oceanfft[896] = NTempest::C2Vector(2.02f * c2, 2.1f * s2);
-  oceanfft[180] = NTempest::C2Vector(2.1f * c2, 2.1f * s2);
-  oceanfft[3846] = NTempest::C2Vector(2.0f * c, 2.0f * s);
-  oceanfft[1403] = NTempest::C2Vector(1.3f * c, 1.2f * s);
-  oceanfft[3797] = NTempest::C2Vector(1.5f * c, 1.4f * s);
-  oceanfft[1424] = NTempest::C2Vector(1.4f * c2, 1.4f * s2);
-  oceanfft[254] = NTempest::C2Vector(1.6f * c2, 1.6f * s2);
+  *idx = r2 - r2Delta;
+}
 
-  DWORD nn[2] = {64, 64};
-  fft2(reinterpret_cast<float *>(oceanfft) - 1, nn - 1, 2, -1.0f);
+void ChunkLodIdx::GenLinkIndices(UINT numQuads, UINT r1, UINT r1Delta, UINT r2, UINT r2Delta, WORD *idx) {
+  UINT i;
+  UINT halfQuads = numQuads / 2 - 1;
+  WORD r1Delta2x = r1Delta * 2;
 
-  for (UINT i = 0; i < 4096; ++i) {
-    oceanfft[i].x *= 0.015625f;
-    oceanfft[i].y *= 0.015625f;
+  *idx++ = r1;
+  for (i = 0; i < halfQuads; ++i) {
+    *idx++ = r1;
+    *idx++ = r2;
+    r1 += r1Delta2x;
+    r2 += r2Delta;
+    *idx++ = r1;
+    *idx++ = r2;
+    r2 += r2Delta;
+    *idx++ = r1;
+  }
+
+  *idx++ = r1;
+  r1 += r1Delta2x;
+  *idx++ = r2;
+  *idx++ = r1;
+  *idx = r1;
+}
+
+void ChunkLodIdx::GenCenterIndicesRow(UINT nQuads, UINT r[2], UINT i0, UINT i1, WORD *&idx) {
+  UINT i;
+  UINT halfQuads = nQuads / 2;
+
+  *idx++ = r[i1];
+  *idx++ = r[i1]++;
+  *idx++ = r[i0]++;
+  for (i = 0; i < halfQuads; ++i) {
+    *idx++ = r[i1]++;
+    *idx++ = r[i0]++;
+  }
+
+  *idx++ = --r[i1];
+  for (i = 0; i < halfQuads; ++i) {
+    *idx++ = r[i0]++;
+    *idx++ = r[i1]++;
+  }
+
+  *idx++ = r[i1] - 1;
+}
+
+void ChunkLodIdx::GenCenterIndices(UINT centerQuads, UINT rowVerts, WORD *idx) {
+  UINT r[2];
+  UINT i;
+
+  r[0] = rowVerts + 1;
+  r[1] = r[0] + rowVerts;
+  for (i = 0; i < centerQuads / 2; ++i) {
+    r[0] = (i + 1) * rowVerts + 1;
+    r[1] = r[0] + rowVerts;
+    GenCenterIndicesRow(centerQuads / 2, r, 1, 0, idx);
+  }
+
+  for (i = 0; i < centerQuads / 2; ++i) {
+    r[0] = (centerQuads / 2 + i + 1) * rowVerts + 1;
+    r[1] = r[0] + rowVerts;
+    GenCenterIndicesRow(centerQuads / 2, r, 0, 1, idx);
   }
 }
+
+void ChunkLodIdx::GenIndices(UINT lod) {
+  UINT i;
+  UINT quads = 1 << lod;
+  UINT edgeTris = 2 * quads - 2;
+  UINT edgeIdxs = edgeTris + 5;
+  UINT rowVerts = quads + 1;
+  UINT linkIdxs = edgeTris - quads / 2 + 5;
+  UINT centerQuads = quads - 2;
+  UINT centerIdxs = (2 * centerQuads + 5) * centerQuads;
+
+  indices.SetCount(centerIdxs + 4 * (linkIdxs + edgeIdxs));
+
+  UINT start = 0;
+  for (i = 0; i < 4; ++i) {
+    edges[i].start = start;
+    edges[i].count = edgeIdxs;
+    start += edgeIdxs;
+  }
+
+  GenEdgeIndices(edgeTris, 0, 1, rowVerts + 1, 1, &indices[edges[0].start]);
+  GenEdgeIndices(edgeTris, rowVerts - 1, rowVerts, 2 * rowVerts - 1, rowVerts, &indices[edges[1].start]);
+  GenEdgeIndices(edgeTris, 3 * rowVerts + 1, 1, 4 * rowVerts, 1, &indices[edges[2].start]);
+  GenEdgeIndices(edgeTris, 0, rowVerts, rowVerts + 1, rowVerts, &indices[edges[3].start]);
+
+  for (i = 0; i < 4; ++i) {
+    links[i].start = start;
+    links[i].count = linkIdxs;
+    start += linkIdxs;
+  }
+
+  GenLinkIndices(edgeTris, 0, 1, rowVerts + 1, 1, &indices[links[0].start]);
+  GenLinkIndices(edgeTris, rowVerts - 1, rowVerts, 2 * rowVerts - 1, rowVerts, &indices[links[1].start]);
+  GenLinkIndices(edgeTris, 3 * rowVerts + 1, 1, 4 * rowVerts, 1, &indices[links[2].start]);
+  GenLinkIndices(edgeTris, 0, rowVerts, rowVerts + 1, rowVerts, &indices[links[3].start]);
+
+  center.start = start;
+  center.count = centerIdxs;
+  GenCenterIndices(centerQuads, rowVerts, &indices[center.start]);
+}
+
+WaveTrain train;
 
 void CMap::WaterRipple(const NTempest::C3Vector &pos, float len, float time, float amp, float vel, float freq) {
   if (!CMapArea::ccWaterRipples || waterRipplesFree.IsEmpty()) {
@@ -680,6 +801,95 @@ void CMap::WaterRipple(const NTempest::C3Vector &pos, float len, float time, flo
   waterRipplesFree.UnlinkNode(wave);
   waterRipplesActive.LinkNode(wave, LIST_TAIL, 0);
   wave->Init(pos, len, time, amp, vel, freq);
+}
+
+const float        WaveTrain::PHASE_GRID_SIZE = 8.333333f;
+static const float MAX_WAVE_DEPTH = 150.0f;
+const float        WaveTrain::DEPTH_RANGE_SCALE = 2.75f / MAX_WAVE_DEPTH;
+
+void WaveTrain::Move(float deltat) {
+  NTempest::C2Vector velocity = speed * *localToWorld.Row0AsVec2();
+
+  pos += deltat * velocity;
+
+  NTempest::C2Vector corner = pos - NTempest::C2Vector(
+                                        halfSize.x * localToWorld.a0 + halfSize.y * localToWorld.b0,
+                                        halfSize.x * localToWorld.a1 + halfSize.y * localToWorld.b1
+                                    );
+  float              deltax = deltat * speed;
+  float             *grid = phaseGrid;
+
+  for (int phy = 0; phy < phaseSize.y; ++phy) {
+    for (int phx = 0; phx < phaseSize.x; ++phx) {
+      NTempest::C2Vector localPos(phx * PHASE_GRID_SIZE, phy * PHASE_GRID_SIZE);
+      NTempest::C2Vector worldPos(
+          localPos.x * localToWorld.a0 + localPos.y * localToWorld.b0, localPos.x * localToWorld.a1 + localPos.y * localToWorld.b1
+      );
+
+      worldPos += corner;
+      float depth = -CWorld::CalcAltitude(worldPos.x, worldPos.y, 1.0f);
+
+      depth = min(depth, MAX_WAVE_DEPTH);
+      depth = DEPTH_RANGE_SCALE * depth;
+      depth = max(depth, 0.1f);
+      depth = static_cast<float>(tanh(depth * 0.0025f));
+      *grid++ += (1.0f / NTempest::CMath::sqrt_(depth) - 1.0f) * deltax * 0.0025f;
+    }
+  }
+}
+
+BOOL WaveTrain::Phase(const NTempest::C2Vector &worldPos, float &phase) {
+  NTempest::C2Vector delta = worldPos - pos;
+  NTempest::C2Vector localPos(
+      delta.x * localToWorld.a0 + delta.y * localToWorld.a1, delta.x * localToWorld.b0 + delta.y * localToWorld.b1
+  );
+
+  if (-halfSize.x > localPos.x || localPos.x > halfSize.x || -halfSize.y > localPos.y || localPos.y > halfSize.y) {
+    return 0;
+  }
+
+  localPos += halfSize;
+  localPos *= 1.0f / PHASE_GRID_SIZE;
+
+  NTempest::C2iVector ipos(localPos);
+  FATALASSERT(ipos.x >= 0 || ipos.y >= 0 || ipos.x < phaseSize.x-1 || ipos.y < phaseSize.y-1);
+
+  localPos.x -= ipos.x;
+  localPos.y -= ipos.y;
+
+  float x00 = phaseGrid[ipos.y * phaseSize.x + ipos.x];
+  float x10 = phaseGrid[(ipos.y + 1) * phaseSize.x + ipos.x];
+  float x0 = x00 + (phaseGrid[ipos.y * phaseSize.x + ipos.x + 1] - x00) * localPos.x;
+  float x1 = x10 + (phaseGrid[(ipos.y + 1) * phaseSize.x + ipos.x + 1] - x10) * localPos.x;
+
+  phase = x0 + (x1 - x0) * localPos.y;
+  return 1;
+}
+
+void WaveTrain::Init(const NTempest::C2Vector &pPos, const NTempest::C2Vector &pSize, const float radAngle, const float pSpeed) {
+  pos = pPos;
+  halfSize = 0.5f * pSize;
+
+  phaseSize.x = static_cast<int>(ceil(pSize.x * (1.0f / PHASE_GRID_SIZE))) + 1;
+  phaseSize.y = static_cast<int>(ceil(pSize.y * (1.0f / PHASE_GRID_SIZE))) + 1;
+  speed = pSpeed;
+  localToWorld = NTempest::C22Matrix::Rotation(radAngle);
+
+  float radius = pSize.y < pSize.x ? pSize.x : pSize.y;
+  radiusSq = radius * radius;
+
+  NTempest::C2Vector phasePos = pos - halfSize;
+  float             *grid = phaseGrid;
+
+  for (int phy = 0; phy < phaseSize.y; ++phy) {
+    for (int phx = 0; phx < phaseSize.x; ++phx) {
+      *grid++ = phx + phasePos.x;
+    }
+  }
+}
+
+BOOL WaveTrain::Contains(const NTempest::C2Vector &worldPos) {
+  return (worldPos - pos).SquaredMag() < radiusSq;
 }
 
 void CMap::WaterInitialize() {
@@ -1231,6 +1441,46 @@ void Particulate::Update() {
     }
   }
 }
+
+const float                       Particulate::PTSIZE = 0.5f;
+NTempest::C3Vector                Particulate::s_vcv[4] = {
+    NTempest::C3Vector(-PTSIZE, PTSIZE, 0.0f), NTempest::C3Vector(-PTSIZE, -PTSIZE, 0.0f), NTempest::C3Vector(PTSIZE, PTSIZE, 0.0f),
+    NTempest::C3Vector(PTSIZE, -PTSIZE, 0.0f)
+};
+NTempest::C2Vector Particulate::s_tc[13][4] = {
+    {       NTempest::C2Vector(0.0f,        0.0f),        NTempest::C2Vector(0.0f, 0.19921875f), NTempest::C2Vector(0.19921875f,        0.0f),
+     NTempest::C2Vector(0.19921875f, 0.19921875f)},
+    {NTempest::C2Vector(0.19921875f,        0.0f), NTempest::C2Vector(0.19921875f, 0.19921875f),  NTempest::C2Vector(0.3984375f,        0.0f),
+     NTempest::C2Vector(0.3984375f, 0.19921875f) },
+    { NTempest::C2Vector(0.3984375f,        0.0f),  NTempest::C2Vector(0.3984375f, 0.19921875f), NTempest::C2Vector(0.59765625f,        0.0f),
+     NTempest::C2Vector(0.59765625f, 0.19921875f)},
+    {NTempest::C2Vector(0.59765625f,        0.0f), NTempest::C2Vector(0.59765625f, 0.19921875f),   NTempest::C2Vector(0.796875f,        0.0f),
+     NTempest::C2Vector(0.796875f, 0.19921875f)  },
+    {       NTempest::C2Vector(0.0f, 0.19921875f),        NTempest::C2Vector(0.0f,  0.3984375f), NTempest::C2Vector(0.19921875f, 0.19921875f),
+     NTempest::C2Vector(0.19921875f,  0.3984375f)},
+    {NTempest::C2Vector(0.19921875f, 0.19921875f), NTempest::C2Vector(0.19921875f,  0.3984375f),  NTempest::C2Vector(0.3984375f, 0.19921875f),
+     NTempest::C2Vector(0.3984375f,  0.3984375f) },
+    { NTempest::C2Vector(0.3984375f, 0.19921875f),  NTempest::C2Vector(0.3984375f,  0.3984375f), NTempest::C2Vector(0.59765625f, 0.19921875f),
+     NTempest::C2Vector(0.59765625f,  0.3984375f)},
+    {NTempest::C2Vector(0.59765625f, 0.19921875f), NTempest::C2Vector(0.59765625f,  0.3984375f),   NTempest::C2Vector(0.796875f, 0.19921875f),
+     NTempest::C2Vector(0.796875f,  0.3984375f)  },
+    {  NTempest::C2Vector(0.796875f,        0.0f),   NTempest::C2Vector(0.796875f, 0.19921875f), NTempest::C2Vector(0.99609375f,        0.0f),
+     NTempest::C2Vector(0.99609375f, 0.19921875f)},
+    {       NTempest::C2Vector(0.0f,  0.3984375f),        NTempest::C2Vector(0.0f, 0.59765625f), NTempest::C2Vector(0.19921875f,  0.3984375f),
+     NTempest::C2Vector(0.19921875f, 0.59765625f)},
+    {NTempest::C2Vector(0.19921875f,  0.3984375f), NTempest::C2Vector(0.19921875f, 0.59765625f),  NTempest::C2Vector(0.3984375f,  0.3984375f),
+     NTempest::C2Vector(0.3984375f, 0.59765625f) },
+    { NTempest::C2Vector(0.3984375f,  0.3984375f),  NTempest::C2Vector(0.3984375f, 0.59765625f), NTempest::C2Vector(0.59765625f,  0.3984375f),
+     NTempest::C2Vector(0.59765625f, 0.59765625f)},
+    {NTempest::C2Vector(0.59765625f,  0.3984375f), NTempest::C2Vector(0.59765625f, 0.59765625f),   NTempest::C2Vector(0.796875f,  0.3984375f),
+     NTempest::C2Vector(0.796875f, 0.59765625f)  }
+};
+UINT Particulate::s_tcSub[4][8] = {
+    {0,  1,  2,  3, 4,  5,  6,  7},
+    {0,  1,  2,  3, 4,  5,  6,  7},
+    {9, 10, 11, 12, 9, 10, 11, 12},
+    {0,  0,  0,  0, 0,  0,  0,  0}
+};
 
 void Particulate::Render() {
   if (!show) {

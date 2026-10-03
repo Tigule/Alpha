@@ -13,7 +13,11 @@ CPlaneParticleEmitter::CPlaneParticleEmitter() : m_width(0.0f), m_height(0.0f), 
 }
 
 CPlaneParticleEmitter::CPlaneParticleEmitter(const CPlaneParticleEmitter &rhs, int deep)
-    : CParticleEmitter2(rhs, deep), m_width(rhs.m_width), m_height(rhs.m_height), m_latitude(rhs.m_latitude), m_longitude(rhs.m_longitude) {
+    : CParticleEmitter2(rhs, deep) {
+  m_width = rhs.m_width;
+  m_height = rhs.m_height;
+  m_latitude = rhs.m_latitude;
+  m_longitude = rhs.m_longitude;
 }
 
 CPlaneParticleEmitter::~CPlaneParticleEmitter() {
@@ -81,17 +85,17 @@ void CPlaneParticleEmitter::SetLongitude(float longInRadians) {
 }
 
 CSphereParticleEmitter::CSphereParticleEmitter()
-    : m_innerRadius(0.0f), m_outerRadius(0.0f), m_radiusRange(0.0f), m_latitude(0.0f), m_longitude(0.0f) {
+    : m_innerRadius(0.0f), m_outerRadius(0.0f), m_latitude(0.0f), m_longitude(0.0f) {
   m_emitterType = PET_SPHERE_EMITTER;
 }
 
 CSphereParticleEmitter::CSphereParticleEmitter(const CSphereParticleEmitter &rhs, int deep)
-    : CParticleEmitter2(rhs, deep),
-      m_innerRadius(rhs.m_innerRadius),
-      m_outerRadius(rhs.m_outerRadius),
-      m_radiusRange(rhs.m_radiusRange),
-      m_latitude(rhs.m_latitude),
-      m_longitude(rhs.m_longitude) {
+    : CParticleEmitter2(rhs, deep) {
+  m_innerRadius = rhs.m_innerRadius;
+  m_outerRadius = rhs.m_outerRadius;
+  m_latitude = rhs.m_latitude;
+  m_longitude = rhs.m_longitude;
+  m_radiusRange = rhs.m_radiusRange;
 }
 
 CSphereParticleEmitter::~CSphereParticleEmitter() {
@@ -244,7 +248,7 @@ void CSplineParticleEmitter::SetWidth(float start) {
 }
 void CSplineParticleEmitter::SetHeight(float end) {
   end = end < 0.0f ? 0.0f : (end > 1.0f ? 1.0f : end);
-  if (fabs(end - m_end) >= 2.3841858e-7f) {
+  if (NTempest::CMath::fnotequal_(end, m_end)) {
     m_emitAtEnd = 1;
     m_end = end;
     SetActualEmissionRate();

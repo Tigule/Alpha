@@ -1,20 +1,16 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <BLPFile/blp.h>
 
 #include "Services/Lightning.h"
 
-#include "Gx/Gx.h"
 #include "Tempest/c44matrix.h"
 #include "Tempest/cmath.h"
 #include "Tempest/crandom.h"
 
 #include <math.h>
 
-static NTempest::CRndSeed                            sRandSeed;
-static TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> sPoints;
-static NTempest::C44Matrix                           identity;
-static NTempest::C44Matrix                           worldToView;
-static NTempest::C44Matrix                           particleToView;
-static NTempest::C3Vector                            zup;
+static NTempest::CRndSeed sRandSeed;
 
 CLightning::CLightning() : mAvgSegLen(-2.0f), mWidth(1.0f), mRebuildPoints(1), mAccTime(0.0f), mTexture(0) {
 }
@@ -71,6 +67,7 @@ void CLightning::Update(float elapsed) {
     mRebuildPoints = 0;
   }
 
+  static TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> sPoints;
   BuildStroke(sPoints);
 
   UINT end = mPoints.Count() - 1;
@@ -95,6 +92,10 @@ void CLightning::Render(UINT boltId, const NTempest::C3Vector &cameraPos) {
     mRebuildPoints = 1;
   }
 
+  static NTempest::C44Matrix identity;
+  static NTempest::C44Matrix worldToView;
+  static NTempest::C44Matrix particleToView;
+  static NTempest::C3Vector  zup;
   GxXformView(worldToView);
   GxXformSetView(identity);
   GxXformPush(GxXform_World);
@@ -241,10 +242,10 @@ void CLightningManager::Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C
 }
 
 void CLightningManager::SetCoordUpdate(BoltID boltId, void (*updateproc)(LPVOID, UINT, NTempest::C3Vector *, NTempest::C3Vector *), LPVOID context) {
-  ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
-  ASSERT(0 == (NOTUSEDFLAG & reinterpret_cast<ulong>(mLiveBolts[boltId])));
-
   LightningCoordUpdateData updateData = {updateproc, context};
+
+  ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
+  ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
   mLiveBolts[boltId]->SetCoordUpdateData(updateData);
 }
 

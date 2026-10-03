@@ -4,15 +4,18 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/GameUI.h"
+#include "Ui/PartyFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Base/CDataStore.h>
@@ -102,9 +105,9 @@ class CGWorldMap {
 
 int                                 CGWorldMap::m_currentContinent = -1;
 int                                 CGWorldMap::m_currentZone = -1;
-TSFixedArray<WorldMapLandmarkInfo>  CGWorldMap::m_landmarks;
-TSFixedArray<WorldMapContinentInfo> CGWorldMap::m_continents;
 UINT                                CGWorldMap::m_numLandmarks;
+TSFixedArray<WorldMapContinentInfo> CGWorldMap::m_continents;
+TSFixedArray<WorldMapLandmarkInfo>  CGWorldMap::m_landmarks;
 
 void CGWorldMap::InitializeGame() {
   UINT numEntries = g_worldMapContinentDB.GetNumRecords();
@@ -521,11 +524,12 @@ static int Script_GetMapContinents(lua_State *L) {
 
 static int Script_GetMapZones(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    luaL_error(L, "Usage: GetMapZones(continent)");
+    luaL_error(L, "Usage: GetMapZones(continentIndex)");
     return 0;
   }
   UINT continent = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   UINT count = CGWorldMap::GetNumZones(continent);
+  lua_checkstack(L, count);
   for (UINT i = 0; i < count; ++i) {
     lua_pushstring(L, CGWorldMap::GetZoneName(continent, i));
   }
@@ -534,11 +538,14 @@ static int Script_GetMapZones(lua_State *L) {
 
 static int Script_SetMapZoom(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    luaL_error(L, "Usage: SetMapZoom(continent [, zone])");
+    luaL_error(L, "Usage: SetMapZoom(continentIndex [,zoneIndex])");
     return 0;
   }
   int continent = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  int zone = lua_isnumber(L, 2) ? static_cast<int>(lua_tonumber(L, 2)) - 1 : -1;
+  int zone = -1;
+  if (lua_isnumber(L, 2)) {
+    zone = static_cast<int>(lua_tonumber(L, 2)) - 1;
+  }
   CGWorldMap::SetMap(continent, zone);
   return 0;
 }
@@ -552,16 +559,16 @@ static int Script_GetMapInfo(lua_State *L) {
   lua_pushstring(L, CGWorldMap::GetMapFilename());
   UINT height = CGWorldMap::GetMapHeight();
   lua_pushnumber(L, static_cast<double>(height));
-  UINT padded = height;
   UINT low = height & 0xFF;
-  if (low && (low & (low - 1))) {
-    UINT power = 1;
-    while (power < low) {
-      power <<= 1;
+  height -= low;
+  if (low & (low - 1)) {
+    int bit = 7;
+    while (!(low & (1 << bit))) {
+      --bit;
     }
-    padded = (height & ~0xFF) + power;
+    low = 1 << (bit + 1);
   }
-  lua_pushnumber(L, static_cast<double>(padded));
+  lua_pushnumber(L, static_cast<double>(low + height));
   return 3;
 }
 
@@ -733,26 +740,26 @@ static int Script_GetNumMapLandmarks(lua_State *L) {
 }
 
 static int Script_GetMapLandmarkInfo(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    luaL_error(L, "Usage: GetMapLandmarkInfo(index)");
-    return 0;
+  if (lua_isnumber(L, 1)) {
+    const WorldMapLandmarkInfo *info = CGWorldMap::GetLandmarkInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+    if (!info) {
+      return 0;
+    }
+    if (info->isPortLoc) {
+      const WorldSafeLocsRec *rec = g_worldSafeLocsDB.GetRecord(info->entryID);
+      lua_pushstring(L, rec ? rec->m_AreaName_lang[CURRENT_LANGUAGE] : 0);
+      lua_pushnumber(L, 6.0);
+    } else {
+      const AreaPOIRec *rec = g_areaPOIDB.GetRecord(info->entryID);
+      lua_pushstring(L, rec ? rec->m_name_lang[CURRENT_LANGUAGE] : 0);
+      lua_pushnumber(L, rec ? static_cast<double>(rec->m_icon) : 0.0);
+    }
+    lua_pushnumber(L, info->x);
+    lua_pushnumber(L, info->y);
+    return 4;
   }
-  const WorldMapLandmarkInfo *info = CGWorldMap::GetLandmarkInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  if (!info) {
-    return 0;
-  }
-  if (info->isPortLoc) {
-    const WorldSafeLocsRec *rec = g_worldSafeLocsDB.GetRecord(info->entryID);
-    lua_pushstring(L, rec ? rec->m_AreaName_lang[CURRENT_LANGUAGE] : 0);
-    lua_pushnumber(L, 6.0);
-  } else {
-    const AreaPOIRec *rec = g_areaPOIDB.GetRecord(info->entryID);
-    lua_pushstring(L, rec ? rec->m_name_lang[CURRENT_LANGUAGE] : 0);
-    lua_pushnumber(L, rec ? static_cast<double>(rec->m_icon) : 0.0);
-  }
-  lua_pushnumber(L, info->x);
-  lua_pushnumber(L, info->y);
-  return 4;
+  luaL_error(L, "Usage: GetMapLandmarkInfo(index)");
+  return 0;
 }
 
 static FrameScript_Method s_ScriptFunctions[13] = {

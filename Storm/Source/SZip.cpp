@@ -129,12 +129,21 @@ class Flags {
   UINT m_value;
 
  public:
-  Flags();
-  void Set(UINT bit);
-  void Clear(UINT bit);
-  BOOL IsSet(UINT bit);
-  BOOL IsClear(UINT bit);
-
+  Flags() {
+    m_value = 0;
+  }
+  void Set(UINT bit) {
+    m_value |= bit;
+  }
+  void Clear(UINT bit) {
+    m_value &= ~bit;
+  }
+  BOOL IsSet(UINT bit) {
+    return m_value & bit;
+  }
+  BOOL IsClear(UINT bit) {
+    return (m_value & bit) == 0;
+  }
 };
 
 struct ZipFileDirEntry : TSHashObject<ZipFileDirEntry, HASHKEY_CONSTSTRI> {
@@ -170,9 +179,21 @@ struct ZipFileFCB {
   z_stream         zlibStream;
   BYTE             compressedData[ZIP_READ_CHUNK];
 
-  ZipFileFCB();
-  ~ZipFileFCB();
-  BOOL SetFault();
+  ZipFileFCB() {
+  }
+  ~ZipFileFCB() {
+    if (flags.IsSet(4)) {
+      inflateEnd(&zlibStream);
+    }
+  }
+  BOOL SetFault() {
+    if (flags.IsSet(4)) {
+      inflateEnd(&zlibStream);
+      flags.Clear(4);
+    }
+    flags.Set(1);
+    return 0;
+  }
 };
 
 typedef TSHashTable<ZipFileDirEntry, HASHKEY_CONSTSTRI> ZipDirTable;
@@ -189,44 +210,6 @@ void ZipFileUnloadFile(LPVOID buffer);
 
 static ZipDirTable s_directory;
 
-Flags::Flags() {
-  m_value = 0;
-}
-
-void Flags::Set(UINT bit) {
-  m_value |= bit;
-}
-
-void Flags::Clear(UINT bit) {
-  m_value &= ~bit;
-}
-
-BOOL Flags::IsSet(UINT bit) {
-  return m_value & bit;
-}
-
-BOOL Flags::IsClear(UINT bit) {
-  return (m_value & bit) == 0;
-}
-
-ZipFileFCB::ZipFileFCB() {
-}
-
-ZipFileFCB::~ZipFileFCB() {
-  if (flags.IsSet(4)) {
-    inflateEnd(&zlibStream);
-  }
-}
-
-BOOL ZipFileFCB::SetFault() {
-  if (flags.IsSet(4)) {
-    inflateEnd(&zlibStream);
-    flags.Clear(4);
-  }
-  flags.Set(1);
-  return 0;
-}
-
 ZipFileArchive::ZipFileArchive() {
   file = NULL;
   openFileCount = 0;
@@ -239,11 +222,23 @@ ZipFileArchive::~ZipFileArchive() {
     file = NULL;
   }
 
-  ITERATELIST(ZipFileDirEntry, s_directory, entry) {
+  ZipFileDirEntry *next;
+  for (ZipFileDirEntry *entry = s_directory.Head(); (int)entry > 0; entry = next) {
+    next = s_directory.RawNext(entry);
     if (entry->archive == this) {
-      ITERATE_DELETE;
+      s_directory.DeleteNode(entry);
     }
   }
+}
+
+BOOL ZipFileArchive::Open(LPCSTR archivename) {
+  FATALASSERT(archivename);
+  file = fopen(archivename, "rb");
+  if (!file) {
+    return 0;
+  }
+  SStrCopy(filename, archivename, sizeof(filename));
+  return 1;
 }
 
 BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader) {
@@ -309,11 +304,12 @@ BOOL ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader)
   return 1;
 }
 void ConvertFromZip(char *str) {
-  while (*str) {
-    if (*str == '/') {
-      *str = '\\';
-    }
-    ++str;
+  if (*str) {
+    do {
+      if (*str == '/') {
+        *str = '\\';
+      }
+    } while (*++str);
   }
 }
 
@@ -432,13 +428,11 @@ DWORD ZipFileOpenArchive(LPCSTR archivename) {
   CentralDirectoryHeader cdirHeader;
 
   archive = s_archives.NewNode(LIST_TAIL, 0, 0);
-  if (archive && archive->Open(archivename) && archive->GetCentralDirectoryHeader(cdirHeader) && archive->ProcessCentralDirectory(cdirHeader)) {
-    return (DWORD)archive;
-  }
-  if (archive) {
+  if (archive && (!archive->Open(archivename) || !archive->GetCentralDirectoryHeader(cdirHeader) || !archive->ProcessCentralDirectory(cdirHeader))) {
     s_archives.DeleteNode(archive);
+    archive = NULL;
   }
-  return 0;
+  return (DWORD)archive;
 }
 
 BOOL ZipFileCloseArchive(DWORD handle) {
@@ -466,9 +460,8 @@ ZipFileFCB *ZipFileOpenFile(LPCSTR filename, DWORD archive) {
     return NULL;
   }
 
-  fcb = (ZipFileFCB *)SMemAlloc(sizeof(ZipFileFCB), __FILE__, __LINE__, 0);
+  fcb = NEW(ZipFileFCB);
   FATALASSERT(fcb);
-  new (fcb) ZipFileFCB;
   fcb->dirEntry = dirEntry;
   fcb->targetPosition = 0;
   if (dirEntry->compressionMethod == 8) {
@@ -482,8 +475,7 @@ ZipFileFCB *ZipFileOpenFile(LPCSTR filename, DWORD archive) {
     fcb->zlibStream.zfree = (free_func)zfree;
     fcb->flags.Set(2);
     if (inflateInit2(&fcb->zlibStream, -15)) {
-      fcb->~ZipFileFCB();
-      SMemFree(fcb, "delete", -1, 0);
+      DEL(fcb);
       return NULL;
     }
     fcb->flags.Set(4);
@@ -524,31 +516,22 @@ int ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin) {
     return fcb->SetFault();
   }
 
-  switch (fcb->dirEntry->compressionMethod) {
-    case 0:
-      break;
-
-    default:
-      FATALASSERT(fcb->dirEntry->compressionMethod == 0 || fcb->dirEntry->compressionMethod == Z_DEFLATED);
-
-    case 8:
-      if (target < fcb->targetPosition) {
-        if (fcb->flags.IsSet(4) && inflateEnd(&fcb->zlibStream)) {
-          return fcb->SetFault();
-        }
-        fcb->compressedPosition = 0;
-        fcb->uncompressedPosition = 0;
-        fcb->zlibStream.next_in = fcb->compressedData;
-        fcb->zlibStream.avail_in = 0;
-        fcb->zlibStream.next_out = NULL;
-        fcb->zlibStream.avail_out = 0;
-        fcb->flags.Set(2);
-        if (inflateInit2(&fcb->zlibStream, -15)) {
-          return fcb->SetFault();
-        }
-        fcb->flags.Set(4);
-      }
-      break;
+  FATALASSERT(fcb->dirEntry->compressionMethod == 0 || fcb->dirEntry->compressionMethod == Z_DEFLATED);
+  if (fcb->dirEntry->compressionMethod != 0 && target < fcb->targetPosition) {
+    if (fcb->flags.IsSet(4) && inflateEnd(&fcb->zlibStream)) {
+      return fcb->SetFault();
+    }
+    fcb->compressedPosition = 0;
+    fcb->uncompressedPosition = 0;
+    fcb->zlibStream.next_in = fcb->compressedData;
+    fcb->zlibStream.avail_in = 0;
+    fcb->zlibStream.next_out = NULL;
+    fcb->zlibStream.avail_out = 0;
+    fcb->flags.Set(2);
+    if (inflateInit2(&fcb->zlibStream, -15)) {
+      return fcb->SetFault();
+    }
+    fcb->flags.Set(4);
   }
 
   fcb->targetPosition = target;
@@ -581,83 +564,71 @@ int ZipFileReadFile(ZipFileFCB *fcb, LPVOID buffer, UINT bytesToRead, UINT *byte
   }
 
   file = fcb->dirEntry->archive->file;
-  switch (fcb->dirEntry->compressionMethod) {
-    case 0:
-      if (fseek(file, (long)(fcb->dirEntry->startOffset + fcb->targetPosition), SEEK_SET)) {
-        return fcb->SetFault();
-      }
-      bytesProduced = (DWORD)fread(buffer, 1, bytesToRead, file);
-      if (bytesProduced != bytesToRead && ferror(file)) {
-        return fcb->SetFault();
-      }
-      break;
+  if (fcb->dirEntry->compressionMethod == 0) {
+    if (fseek(file, fcb->dirEntry->startOffset + fcb->targetPosition, SEEK_SET)) {
+      return fcb->SetFault();
+    }
+    bytesProduced = fread(buffer, 1, bytesToRead, file);
+    if (bytesProduced != bytesToRead && ferror(file)) {
+      return fcb->SetFault();
+    }
+  } else {
+    FATALASSERT(fcb->dirEntry->compressionMethod == 0 || fcb->dirEntry->compressionMethod == Z_DEFLATED);
+    fcb->zlibStream.next_out = (BYTE *)buffer;
+    fcb->zlibStream.avail_out = bytesToRead;
+    bytesSkipped = fcb->targetPosition - fcb->uncompressedPosition;
+    if (bytesSkipped && bytesSkipped < bytesToRead) {
+      fcb->zlibStream.avail_out = bytesSkipped;
+    }
+    if (fseek(file, fcb->dirEntry->startOffset + fcb->compressedPosition, SEEK_SET)) {
+      return fcb->SetFault();
+    }
 
-    default:
-      FATALASSERT(fcb->dirEntry->compressionMethod == Z_DEFLATED);
-
-    case 8:
-      bytesSkipped = fcb->targetPosition - fcb->uncompressedPosition;
-      fcb->zlibStream.next_out = (BYTE *)buffer;
-      fcb->zlibStream.avail_out = bytesToRead;
-      if (bytesSkipped && bytesSkipped < bytesToRead) {
-        fcb->zlibStream.avail_out = bytesSkipped;
-      }
-      if (fseek(file, (long)(fcb->dirEntry->startOffset + fcb->compressedPosition), SEEK_SET)) {
-        return fcb->SetFault();
-      }
-
-      while (fcb->zlibStream.avail_out) {
-        if (!fcb->zlibStream.avail_in && fcb->flags.IsSet(2)) {
-          fcb->zlibStream.next_in = fcb->compressedData;
-          inputBytes = fcb->dirEntry->compressedSize - fcb->compressedPosition;
-          if (inputBytes > sizeof(fcb->compressedData)) {
-            inputBytes = sizeof(fcb->compressedData);
-          } else if (!inputBytes) {
-            bytesProduced = bytesToRead - fcb->zlibStream.avail_out;
-            if (bytesRead) {
-              *bytesRead = bytesProduced;
-            }
-            return bytesProduced != 0;
+    while (fcb->zlibStream.avail_out) {
+      if (!fcb->zlibStream.avail_in && fcb->flags.IsSet(2)) {
+        fcb->zlibStream.next_in = fcb->compressedData;
+        inputBytes = min(sizeof(fcb->compressedData), fcb->dirEntry->compressedSize - fcb->compressedPosition);
+        if (!inputBytes) {
+          bytesProduced = bytesToRead - fcb->zlibStream.avail_out;
+          if (bytesRead) {
+            *bytesRead = bytesProduced;
           }
-          fcb->zlibStream.avail_in = (DWORD)fread(fcb->compressedData, 1, inputBytes, file);
-          if (fcb->zlibStream.avail_in != inputBytes) {
-            return fcb->SetFault();
-          }
-          fcb->compressedPosition += fcb->zlibStream.avail_in;
+          return bytesProduced > 0;
         }
-
-        outputBefore = fcb->zlibStream.avail_out;
-        zresult = inflate(&fcb->zlibStream, Z_SYNC_FLUSH);
-        if (zresult != Z_OK && zresult != Z_STREAM_END) {
+        fcb->zlibStream.avail_in = fread(fcb->zlibStream.next_in, 1, inputBytes, file);
+        if (fcb->zlibStream.avail_in != inputBytes) {
           return fcb->SetFault();
         }
-        bytesProduced = outputBefore - fcb->zlibStream.avail_out;
-        fcb->uncompressedPosition += bytesProduced;
-
-        if (bytesSkipped) {
-          bytesSkipped -= bytesProduced;
-          fcb->zlibStream.next_out = (BYTE *)buffer;
-          if (!bytesSkipped || bytesSkipped >= bytesToRead) {
-            fcb->zlibStream.avail_out = bytesToRead;
-          } else {
-            fcb->zlibStream.avail_out = bytesSkipped;
-          }
-        }
-
-        if (zresult == Z_STREAM_END) {
-          fcb->flags.Clear(2);
-          inflateEnd(&fcb->zlibStream);
-          fcb->flags.Clear(4);
-          break;
-        }
-        if (fcb->zlibStream.avail_out) {
-          fcb->flags.Set(2);
-        } else {
-          fcb->flags.Clear(2);
-        }
+        fcb->compressedPosition += fcb->zlibStream.avail_in;
       }
-      bytesProduced = bytesToRead - fcb->zlibStream.avail_out;
-      break;
+
+      outputBefore = fcb->zlibStream.avail_out;
+      zresult = inflate(&fcb->zlibStream, Z_SYNC_FLUSH);
+      if (zresult != Z_OK && zresult != Z_STREAM_END) {
+        return fcb->SetFault();
+      }
+      bytesProduced = outputBefore - fcb->zlibStream.avail_out;
+      fcb->uncompressedPosition += bytesProduced;
+
+      if (bytesSkipped) {
+        bytesSkipped -= bytesProduced;
+        fcb->zlibStream.next_out = (BYTE *)buffer;
+        fcb->zlibStream.avail_out = (bytesSkipped && bytesSkipped < bytesToRead) ? bytesSkipped : bytesToRead;
+      }
+
+      if (zresult == Z_STREAM_END) {
+        fcb->flags.Clear(2);
+        inflateEnd(&fcb->zlibStream);
+        fcb->flags.Clear(4);
+        break;
+      }
+      if (fcb->zlibStream.avail_out) {
+        fcb->flags.Set(2);
+      } else {
+        fcb->flags.Clear(2);
+      }
+    }
+    bytesProduced = bytesToRead - fcb->zlibStream.avail_out;
   }
 
   fcb->targetPosition += bytesProduced;
@@ -670,6 +641,7 @@ int ZipFileReadFile(ZipFileFCB *fcb, LPVOID buffer, UINT bytesToRead, UINT *byte
 BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
   z_stream         stream;
   ZipFileDirEntry *dirEntry;
+  ZipFileArchive  *archive;
   BYTE            *compressedData;
   BYTE            *uncompressedData;
   int              err;
@@ -681,7 +653,8 @@ BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
   if (!GetDirEntry(filename, &dirEntry)) {
     return 0;
   }
-  if (fseek(dirEntry->archive->file, (long)dirEntry->startOffset, SEEK_SET)) {
+  archive = dirEntry->archive;
+  if (fseek(archive->file, (long)dirEntry->startOffset, SEEK_SET)) {
     return 0;
   }
 
@@ -691,8 +664,8 @@ BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
   FATALASSERT(compressedData);
   stream.next_in = compressedData;
   stream.avail_in = dirEntry->compressedSize;
-  if (fread(compressedData, dirEntry->compressedSize, 1, dirEntry->archive->file) != 1) {
-    SMemFree(compressedData, __FILE__, __LINE__, 0);
+  if (fread(compressedData, dirEntry->compressedSize, 1, archive->file) != 1) {
+    SMemFree(stream.next_in, __FILE__, __LINE__, 0);
     return 0;
   }
 
@@ -741,25 +714,6 @@ BOOL ZipFileList(DWORD archive, int (*cb)(LPCSTR, LPVOID), LPVOID param) {
     }
   }
   return 1;
-}
-
-TestFile::TestFile(WowFileSystemProvider *provider, FILE *f) : WowFile(provider), m_f(f) {
-}
-
-TestFileSystemProvider::TestFileSystemProvider() {
-}
-
-BOOL ZipFileArchive::Open(LPCSTR archivename) {
-  FATALASSERT(archivename);
-  file = fopen(archivename, "rb");
-  if (!file) {
-    return 0;
-  }
-  SStrCopy(filename, archivename, sizeof(filename));
-  return 1;
-}
-
-TestFileSystemProvider::~TestFileSystemProvider() {
 }
 
 WowFile *TestFileSystemProvider::Open(LPCSTR filename) {

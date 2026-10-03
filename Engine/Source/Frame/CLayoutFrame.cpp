@@ -391,7 +391,7 @@ void CLayoutFrame::Clear(CLayoutFrame *relative, int doResize) {
   CFramePoint **point = m_points.Ptr();
 
   while (count) {
-    if (*point && (*point)->GetRelative() == relative) {
+    if (*point && relative == (*point)->GetRelative()) {
       DEL(*point);
       *point = 0;
     }
@@ -559,13 +559,11 @@ BOOL CLayoutFrame::GetRect(NTempest::CRect *rect) const {
 }
 
 void CLayoutFrame::SetLayoutScale(float scale, bool force) {
-  static const float EPSILON = 2.38418579e-7f;
-
   VALIDATEBEGIN;
   VALIDATE(scale);
   VALIDATEENDVOID;
 
-  if (force || fabs(scale - m_layoutScale) >= EPSILON) {
+  if (force || NTempest::CMath::fnotequal_(scale, m_layoutScale)) {
     m_layoutScale = scale;
     m_rect.Set(0.0f, 0.0f, 0.0f, 0.0f);
     m_flags &= ~0x1U;
@@ -601,7 +599,7 @@ BOOL CLayoutFrame::FlattenFrame(CLayoutFrame *top, float width, float height, fl
 
   FreePoints();
   SetPoint(
-      FRAMEPOINT_TOPLEFT, top, FRAMEPOINT_TOPLEFT, (rect.l + delta_x - toprect.l) / m_layoutScale, (rect.b + delta_y - toprect.b) / m_layoutScale, 0
+      FRAMEPOINT_TOPLEFT, top, FRAMEPOINT_TOPLEFT, -(toprect.l - (rect.l + delta_x)) / m_layoutScale, -(toprect.b - (rect.b + delta_y)) / m_layoutScale, 0
   );
 
   if (width == 0.0f) {
@@ -617,9 +615,9 @@ BOOL CLayoutFrame::FlattenFrame(CLayoutFrame *top, float width, float height, fl
 
   if (finalrect) {
     finalrect->l = rect.l + delta_x;
-    finalrect->r = rect.l + delta_x + width;
+    finalrect->r = finalrect->l + width;
     finalrect->t = rect.t + delta_y;
-    finalrect->b = rect.t + delta_y + height;
+    finalrect->b = finalrect->t + height;
   }
 
   return 1;
@@ -769,27 +767,26 @@ void CLayoutFrame::CageMouseInFrame(int enable) {
 }
 
 void CLayoutFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
-  static const float EPSILON = 2.38418579e-7f;
   float              oldHeight = m_rect.b - m_rect.t;
   float              oldWidth = m_rect.r - m_rect.l;
   UINT               dependency = 0;
 
-  if (!(fabs(rect.b - m_rect.b) < EPSILON)) {
+  if (NTempest::CMath::fnotequal_(rect.b, m_rect.b)) {
     dependency = 0x3;
   }
-  if (!(fabs(rect.l - m_rect.l) < EPSILON)) {
+  if (NTempest::CMath::fnotequal_(rect.l, m_rect.l)) {
     dependency |= 0x5;
   }
-  if (!(fabs(rect.r - m_rect.r) < EPSILON)) {
+  if (NTempest::CMath::fnotequal_(rect.r, m_rect.r)) {
     dependency |= 0xA;
   }
-  if (!(fabs(rect.t - m_rect.t) < EPSILON)) {
+  if (NTempest::CMath::fnotequal_(rect.t, m_rect.t)) {
     dependency |= 0xC;
   }
-  if (!(fabs((rect.b - rect.t) - oldHeight) < EPSILON)) {
+  if (NTempest::CMath::fnotequal_(rect.b - rect.t, oldHeight)) {
     dependency |= 0x20;
   }
-  if (!(fabs((rect.r - rect.l) - oldWidth) < EPSILON)) {
+  if (NTempest::CMath::fnotequal_(rect.r - rect.l, oldWidth)) {
     dependency |= 0x10;
   }
 
@@ -813,12 +810,12 @@ BOOL CLayoutFrame::OnFrameResize() {
     m_flags &= ~0x1U;
   }
 
-  if (!(m_flags & 0x1)) {
-    return 0;
+  if (m_flags & 0x1) {
+    SetRect(rect);
+    return 1;
   }
 
-  SetRect(rect);
-  return 1;
+  return 0;
 }
 
 void CLayoutFrame::DestroyLayout() {

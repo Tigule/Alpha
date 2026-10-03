@@ -43,9 +43,9 @@ enum CGInputReleaseAction {
 };
 
 class CGInputControl {
- public:
-  CGInputControl();
+  friend class CGGameUI;
 
+ public:
   static void Initialize() {
     ASSERT(!s_inputControl);
     s_inputControl = NEW(CGInputControl);
@@ -59,6 +59,12 @@ class CGInputControl {
 
   static CGInputControl *GetActive();
 
+ private:
+  static CGInputControl *s_inputControl;
+
+ public:
+  CGInputControl();
+
   void OnUpdate(float elapsedSec);
   void OnMouseMove(const CMouseEvent &event);
   void OnMouseMoveRel(const CMouseEvent &evt);
@@ -66,6 +72,11 @@ class CGInputControl {
   void UpdatePlayer(DWORD now);
   void SetReleaseAction(CGInputReleaseAction action);
   void SetControlBit(INPUT_CONTROL bit, int set, DWORD now, int sticky);
+
+ private:
+  BOOL SetControlBit(INPUT_CONTROL bit);
+
+ public:
   BOOL CameraCanTurnPlayer() const;
   void CameraTurnPlayer(DWORD timestamp, float yaw, float pitch, bool setSmoothFacing);
   BOOL IsMovingForward() const;
@@ -85,9 +96,12 @@ class CGInputControl {
   }
 
  private:
-  friend class CGGameUI;
-
-  static CGInputControl *s_inputControl;
+  BOOL UnsetControlBit(INPUT_CONTROL bit, int sticky);
+  void MovePlayer(DWORD now, CGUnit_C *player);
+  void StrafePlayer(DWORD now, CGUnit_C *player);
+  void TurnPlayer(DWORD now, CGUnit_C *player);
+  void PitchPlayer(DWORD now, CGUnit_C *player);
+  BOOL IsMouseDragging() const;
 
   DWORD                m_initializeTime;
   UINT                 m_controlFlags;
@@ -96,14 +110,6 @@ class CGInputControl {
   UINT                 m_lastFrameMouseMoved;
   DWORD                m_mouseDownTime;
   CGInputReleaseAction m_releaseAction;
-
-  BOOL SetControlBit(INPUT_CONTROL bit);
-  BOOL UnsetControlBit(INPUT_CONTROL bit, int sticky);
-  void MovePlayer(DWORD now, CGUnit_C *player);
-  void StrafePlayer(DWORD now, CGUnit_C *player);
-  void TurnPlayer(DWORD now, CGUnit_C *player);
-  void PitchPlayer(DWORD now, CGUnit_C *player);
-  BOOL IsMouseDragging() const;
 };
 
 void InputControlInitialize();

@@ -73,12 +73,12 @@ class CGClassTrainer {
       UINT   count,
       int   *spellID,
       UINT  *moneyCost,
-      BYTE **pointCost,
+      BYTE  *pointCost[2],
       BYTE  *reqLevel,
       UINT  *reqSkillLine,
       UINT  *reqSkillRank,
       UINT  *reqSkillStep,
-      int **reqAbility,
+      int   *reqAbility[3],
       BYTE  *usable,
       LPCSTR greeting
   );

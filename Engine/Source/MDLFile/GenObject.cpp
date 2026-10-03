@@ -3,6 +3,7 @@
 #include "Parser.h"
 #include "TSet.h"
 #include "Base/MsgBuffer.h"
+#include "Tempest/c4quaternioncompressed.h"
 
 #include <math.h>
 #include <storm.h>
@@ -244,11 +245,12 @@ void ReadObjectEnd(TSet &errors, MDLDATA &data, MDLGENOBJECT *object, DWORD list
 }
 
 BOOL IExpectAnimation(Parser &parse, UINT *savedtoken, LPCSTR *tokenText) {
+  BOOL result = 1;
   if (*savedtoken == 0x1BB) {
+    result = 0;
     *savedtoken = parse.Token(tokenText, 0);
-    return 0;
   }
-  return 1;
+  return result;
 }
 
 void WriteFloatKeyFrames(UINT title, LPCSTR indent, const MDLKEYTRACK<float> &keyframes, TSGrowableArray<char> &buffer) {
@@ -377,13 +379,13 @@ void WriteObjectHeader(const MDLDATA &data, const MDLGENOBJECT &obj, UINT title,
 }
 
 void WriteOptionalVertex(UINT title, LPCSTR indent, const NTempest::C3Vector &vertex, TSGrowableArray<char> &buffer) {
-  if (fabs(vertex.x) >= 2.3841858e-7f || fabs(vertex.y) >= 2.3841858e-7f || fabs(vertex.z) >= 2.3841858e-7f) {
+  if (NTempest::CMath::fnotequal_(vertex.x, 0.0f) || NTempest::CMath::fnotequal_(vertex.y, 0.0f) || NTempest::CMath::fnotequal_(vertex.z, 0.0f)) {
     MDL::WriteLine(buffer, "%s%s { %g, %g, %g },\n", indent, MDL::TokenText(title), vertex.x, vertex.y, vertex.z);
   }
 }
 
 void WriteOptionalFloat(UINT title, LPCSTR indent, float value, TSGrowableArray<char> &buffer) {
-  if (fabs(value) >= 2.3841858e-7f) {
+  if (NTempest::CMath::fnotequal_(value, 0.0f)) {
     MDL::WriteLine(buffer, "%s%s %g,\n", indent, MDL::TokenText(title), value);
   }
 }
@@ -409,8 +411,11 @@ UINT GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframe
   if (!keyframes.keys.Count()) {
     return 0;
   }
-  UINT dataSize = keyframes.type > TRACK_LINEAR ? 24 : 8;
-  return 16 + keyframes.keys.Count() * (4 + dataSize);
+  UINT dataSize = 8;
+  if (keyframes.type > TRACK_LINEAR) {
+    dataSize = 24;
+  }
+  return (dataSize + 4) * keyframes.keys.Count() + 16;
 }
 
 #define READ_BIN_FLOAT_KEYFRAMES(track, buffer, totalRead, elements, keyType)                \
@@ -525,32 +530,23 @@ UINT GetBinGenObjectSize(const MDLGENOBJECT &obj) {
   return size;
 }
 
-void WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, DWORD magicParam, CMsgBuffer &buffer) {
+void WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, DWORD magicParam, CMsgBuffer &buf) {
   UINT numKeys = keyframes.keys.Count();
   if (!numKeys) {
     return;
   }
-  buffer.AddDword(magicParam);
-  buffer.AddUint(numKeys);
-  buffer.AddUint(keyframes.type);
-  buffer.AddUint(keyframes.globalSeqId);
+  buf.AddDword(magicParam);
+  buf.AddUint(numKeys);
+  buf.AddUint(keyframes.type);
+  buf.AddUint(keyframes.globalSeqId);
 
-  for (UINT key = 0; key < numKeys; ++key) {
-    const MDLKEYFRAME<NTempest::C4Quaternion> &frame = keyframes.keys[key];
-    buffer.AddInt(frame.time);
-
-    const NTempest::C4Quaternion *quaternion = &frame.value;
-    UINT                          values = keyframes.type > TRACK_LINEAR ? 3 : 1;
-    for (UINT j = 0; j < values; ++j, ++quaternion) {
-      int      sign = quaternion->w >= 0.0f ? 1 : -1;
-      LONGLONG x = static_cast<LONGLONG>(quaternion->x * 2097152.0f);
-      LONGLONG y = static_cast<LONGLONG>(quaternion->y * 1048576.0f);
-      LONGLONG z = static_cast<LONGLONG>(quaternion->z * 1048576.0f);
-      x *= sign;
-      y *= sign;
-      z *= sign;
-      DWORDLONG packed = (static_cast<DWORDLONG>(x) << 42) | ((static_cast<DWORDLONG>(y) & 0x1FFFFF) << 21) | (static_cast<DWORDLONG>(z) & 0x1FFFFF);
-      buffer.AddLongLong(packed);
+  const MDLKEYFRAME<NTempest::C4Quaternion> *key = keyframes.keys.Ptr();
+  for (UINT i = numKeys; i; --i, ++key) {
+    buf.AddInt(key->time);
+    buf.AddLongLong(NTempest::C4QuaternionCompressed(key->value).Raw());
+    if (keyframes.type > TRACK_LINEAR) {
+      buf.AddLongLong(NTempest::C4QuaternionCompressed(key->inTan).Raw());
+      buf.AddLongLong(NTempest::C4QuaternionCompressed(key->outTan).Raw());
     }
   }
 }
@@ -565,31 +561,25 @@ BOOL ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, CMsgBu
     return 0;
   }
   keyframes.type = static_cast<MDLTRACKTYPE>(buf.GetUint());
+  totalRead += 4;
   keyframes.globalSeqId = buf.GetUint();
-  totalRead += 8;
+  totalRead += 4;
   keyframes.keys.SetCount(numKeys);
 
-  UINT key = keyframes.type > TRACK_LINEAR ? 3 : 1;
-  UINT bytesPerKey = 4 + key * 8;
-  if (numKeys * bytesPerKey > static_cast<UINT>(buf.Bytes())) {
+  MDLKEYFRAME<NTempest::C4Quaternion> *key = keyframes.keys.Ptr();
+  if ((keyframes.type > TRACK_LINEAR ? 28 : 12) * numKeys > buf.Bytes()) {
     return 0;
   }
 
-  for (UINT i = 0; i < numKeys; ++i) {
-    MDLKEYFRAME<NTempest::C4Quaternion> &frame = keyframes.keys[i];
-    frame.time = buf.GetInt();
+  for (UINT i = numKeys; i; --i, ++key) {
+    key->time = buf.GetInt();
     totalRead += 4;
-    NTempest::C4Quaternion *quaternion = &frame.value;
-    for (UINT j = 0; j < key; ++j, ++quaternion) {
-      DWORDLONG packed = buf.GetUlongLong();
-      int       z = static_cast<int>(static_cast<LONGLONG>(packed << 43) >> 43);
-      int       y = static_cast<int>(static_cast<LONGLONG>(((packed >> 21) & 0x1FFFFF) << 43) >> 43);
-      int       x = static_cast<int>(static_cast<LONGLONG>(packed) >> 42);
-      quaternion->x = x * 0.00000047683716f;
-      quaternion->y = y * 0.00000095367432f;
-      quaternion->z = z * 0.00000095367432f;
-      float square = quaternion->x * quaternion->x + quaternion->y * quaternion->y + quaternion->z * quaternion->z;
-      quaternion->w = fabs(square - 1.0f) >= 0.00000095367432f ? static_cast<float>(sqrt(1.0f - square)) : 0.0f;
+    key->value = NTempest::C4QuaternionCompressed(buf.GetLongLong());
+    totalRead += 8;
+    if (keyframes.type > TRACK_LINEAR) {
+      key->inTan = NTempest::C4QuaternionCompressed(buf.GetLongLong());
+      totalRead += 8;
+      key->outTan = NTempest::C4QuaternionCompressed(buf.GetLongLong());
       totalRead += 8;
     }
   }

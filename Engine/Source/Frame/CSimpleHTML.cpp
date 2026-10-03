@@ -205,12 +205,12 @@ void CSimpleHTML::ParseIMG(const XMLNode *node, CStatus *status) {
 
   value = node->GetAttributeByName("width");
   if (value && *value) {
-    w = SStrToFloat(value) * 0.0009765625f * 0.8f;
+    w = 0.8f * (SStrToFloat(value) * 0.0009765625f);
   }
 
   value = node->GetAttributeByName("height");
   if (value && *value) {
-    h = SStrToFloat(value) * 0.0009765625f * 0.8f;
+    h = 0.8f * (SStrToFloat(value) * 0.0009765625f);
   }
 
   CSimpleTexture *texture = NEW(CSimpleTexture)(this, 2, 1);

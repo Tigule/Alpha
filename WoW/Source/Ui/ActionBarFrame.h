@@ -1,7 +1,7 @@
 #ifndef WOW_SOURCE_UI_ACTIONBARFRAME_H
 #define WOW_SOURCE_UI_ACTIONBARFRAME_H
 
-#define NUM_ACTION_BUTTONS 120
+#define NUM_ACTION_BUTTONS 120u
 
 class CGActionBar {
  public:
@@ -19,10 +19,10 @@ class CGActionBar {
   static void UpdateCooldowns();
   static void UpdateUsable();
   static BOOL IsSpell(int id) {
-    return id >= 0 && id < NUM_ACTION_BUTTONS && m_slotActions[id] > 0;
+    return m_slotActions[id] > 0;
   }
   static BOOL IsItem(int id) {
-    return id >= 0 && id < NUM_ACTION_BUTTONS && m_slotActions[id] < 0;
+    return m_slotActions[id] < 0;
   }
   static int GetSpell(int id) {
     return IsSpell(id) ? m_slotActions[id] : 0;
@@ -31,7 +31,7 @@ class CGActionBar {
     return IsItem(id) ? -m_slotActions[id] : 0;
   }
   static BOOL HasAction(int id) {
-    return id >= 0 && id < NUM_ACTION_BUTTONS && m_slotActions[id] != 0;
+    return m_slotActions[id] != 0;
   }
   static BOOL   IsAttackAction(int id);
   static BOOL   IsUsableAction(int id, BOOL &noMana);

@@ -40,15 +40,32 @@ class CGObject_C : public CGObject {
   void PostInit(const CClientObjCreate &init);
   void PostMovementUpdate() {
   }
-  BOOL IsPostInited() const;
+
+  virtual void Disable(int shutdown);
+  virtual void Reenable();
+  virtual void PostReenable();
+  BOOL         IsPostInited() const;
+  BOOL         IsInReenable() const;
 
   static void Initialize();
   static void Shutdown();
+
+  void  AddWorldObject();
+  void  UpdateWorldObject();
+  void  RemoveWorldObject();
+  DWORD GetWorldObject() const {
+    return m_worldObject;
+  }
   static void UpdateAllWorldObjects();
 
-  virtual void     Disable(int shutdown);
-  virtual void     Reenable();
-  virtual void     PostReenable();
+  BOOL        SetBlock(UINT i, DWORD data);
+  void        SetData(LPCVOID data, UINT bytes);
+  static UINT OffsetOf(OBJECT_TYPE_ID type);
+
+  float GetObjectHeight() const {
+    return m_objectHeight;
+  }
+
   virtual CGBag_C *GetBag() {
     return 0;
   }
@@ -69,50 +86,39 @@ class CGObject_C : public CGObject {
   virtual NTempest::C3Vector GetGroundNormal() const {
     return NTempest::C3Vector(0.0f, 0.0f, 1.0f);
   }
-  void              SetAnimated(int animated);
+  void           SetAnimated(int animated);
   virtual HMODEL GetCharacterModel(int *mounted) const;
-  HMODEL GetObjectModel() const {
+  HMODEL         GetObjectModel() const {
     return m_model;
   }
   void SetObjectModel(HMODEL model);
-  BOOL IsObjectModelLoaded() const;
-  int  AreAttachmentsLoaded() const;
   int  AddAttachment(HMODEL parent, UINT parentIndex, HMODEL child, float scale);
-  BOOL IsDisabled() const;
-  BOOL IsInReenable() const;
-
-  BOOL        SetBlock(UINT i, DWORD data);
-  void        SetData(LPCVOID data, UINT bytes);
-  static UINT OffsetOf(OBJECT_TYPE_ID type);
-
-  void AddWorldObject();
-  void UpdateWorldObject();
-  void RemoveWorldObject();
-
-  float GetObjectHeight() const {
-    return m_objectHeight;
-  }
-
-  DWORD GetWorldObject() const {
-    return m_worldObject;
-  }
 
  protected:
+  BOOL           ObjectModelSetSequence(HMODEL model, UINT sequence, UINT flags, LPCSTR modelName);
+  BOOL           ObjectModelSetBoneSequence(HMODEL model, UINT sequence, UINT objectID, UINT flags);
   virtual LPCSTR GetModelFileName() const = 0;
   BOOL           InitModelFileName(char *modelFileName, UINT size);
   void           ReportMissingAnimation(UINT sequence, LPCSTR modelName) const;
   void           ReportMissingBone(UINT objectID, LPCSTR modelName) const;
   void           ReportMissingAttachment(UINT objectID, LPCSTR modelName) const;
-  void           ReportNoAnimation(LPCSTR modelName);
-  BOOL           ObjectModelSetSequence(HMODEL model, UINT sequence, UINT flags, LPCSTR modelName);
-  BOOL           ObjectModelSetBoneSequence(HMODEL model, UINT sequence, UINT objectID, UINT flags);
-  int            ObjectIsRendering() const;
 
  public:
-  void UpdateObjectHeight(HMODEL model);
+  void ReportMissingEventObject(UINT objectID, LPCSTR modelName) const;
+
+ protected:
+  void ReportNoAnimation(LPCSTR modelName);
+  int  ObjectIsRendering() const;
+  void ObjectSetNotRendering();
+
+ public:
+  BOOL IsDisabled() const;
+  BOOL IsObjectModelLoaded() const;
+  int  AreAttachmentsLoaded() const;
 
  private:
   void         ReportMissingAnimObj(LPCSTR message, UINT objectID, LPCSTR modelName) const;
+  CGObject_C  &operator=(const CGObject_C &object);
   virtual BOOL GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
     FATALASSERT(outPtr);
     outPtr->Set(0xFFFFFFFF);
@@ -120,14 +126,21 @@ class CGObject_C : public CGObject {
   }
 
  public:
+  void         HideHighlightType(HIGHLIGHTTYPE type);
+  void         ShowHighlightType(HIGHLIGHTTYPE type);
+  virtual void RenderTargetSelection() const {
+  }
   float GetRenderScale() const {
     return m_renderScale;
   }
   void SetRenderScale(float scale) {
     m_renderScale = scale;
   }
-  virtual void RenderTargetSelection() const {
-  }
+
+ private:
+  float m_renderScale;
+
+ public:
   virtual BOOL UpdateModelLoadStatus();
   virtual BOOL UpdateAttachmentLoadStatus();
   virtual BOOL UpdateTexComponentLoadStatus() {
@@ -139,8 +152,8 @@ class CGObject_C : public CGObject {
   virtual void PostAnimate(CGWorldFrame *worldFrame) {
   }
   virtual void GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
-  void         Animate();
   void         Animate(const NTempest::C34Matrix &camRelativeMatrix);
+  void         Animate();
   virtual BOOL ShouldRender(DWORD worldStatus);
   virtual void ObjectPostAnimate(float renderFacing, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg) {
   }
@@ -155,6 +168,7 @@ class CGObject_C : public CGObject {
   }
   virtual void UpdatePlayerName() {
   }
+  void         UpdateObjectHeight(HMODEL model);
   virtual BOOL IsSolidSelectable() const {
     return 1;
   }
@@ -176,45 +190,38 @@ class CGObject_C : public CGObject {
   virtual NTempest::C34Matrix GetMatrix() const {
     return NTempest::C34Matrix();
   }
-  void SetCircleRenderStates() const;
-
-  void HideHighlightType(HIGHLIGHTTYPE type);
-  void ShowHighlightType(HIGHLIGHTTYPE type);
 
  protected:
   virtual BOOL ShouldFadeIn() const {
     return 1;
   }
-  void ObjectSetNotRendering();
 
  public:
-  virtual LPCSTR GetObjectName() const;
-  void           ReportMissingEventObject(UINT objectID, LPCSTR modelName) const;
-  virtual int    GetPageTextID(void (*)(int, const DWORDLONG &, LPVOID, bool)) const {
-    return 0;
-  }
-  void DoFade(BYTE alpha, UINT fadeTimeMs);
-  BYTE GetAlpha() const {
-    return m_alpha;
-  }
-  void SetMaxAlpha(BYTE alpha) {
-    m_maxAlpha = alpha;
-  }
+  void SetCircleRenderStates() const;
 
  private:
-  CGObject_C &operator=(const CGObject_C &object);
-
-  float     m_renderScale;
   HMODEL m_model;
-
-  UINT  m_highlightTypes;
-  float m_objectHeight;
+  UINT   m_highlightTypes;
+  float  m_objectHeight;
 
  protected:
   DWORD m_worldObject;
 
  private:
   UINT m_flags;
+
+ public:
+  virtual LPCSTR GetObjectName() const;
+  virtual int    GetPageTextID(void (*)(int, const DWORDLONG &, LPVOID, bool)) const {
+    return 0;
+  }
+  BYTE GetAlpha() const {
+    return m_alpha;
+  }
+  void SetMaxAlpha(BYTE alpha) {
+    m_maxAlpha = alpha;
+  }
+  void DoFade(BYTE alpha, UINT fadeTimeMs);
 
  protected:
   UINT m_fadeStartTime;

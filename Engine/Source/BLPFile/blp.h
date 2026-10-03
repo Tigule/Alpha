@@ -26,6 +26,13 @@ enum PIXEL_FORMAT {
   NUM_PIXEL_FORMATS = 9
 };
 
+enum {
+  ALPHA_0 = 0,
+  ALPHA_1 = 1,
+  ALPHA_4 = 4,
+  ALPHA_8 = 8
+};
+
 enum MIPS_TYPE {
   MIPS_NONE = 0,
   MIPS_GENERATED = 1,
@@ -90,6 +97,17 @@ class CBLPFile {
     m_versionMagic = '2PLB'
   };
 
+ private:
+  void SharedInit() {
+    memset(&m_header, 0, sizeof(m_header));
+    m_header.magic = m_versionMagic;
+    m_header.formatVersion = 1;
+    m_header.preferredFormat = PIXEL_ARGB8888;
+    m_inMemoryImage = 0;
+    m_mipMapAlgorithm = MMA_BOX;
+  }
+
+ public:
   CBLPFile() : m_images(0), m_quality(100) {
     SharedInit();
   }
@@ -100,20 +118,7 @@ class CBLPFile {
     Close();
   }
 
-  void      Close();
-  int       Open(LPCSTR filename);
-  BOOL      Source(LPVOID fileBits);
-  int       Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride);
-  int       Unlock(UINT mipLevel);
-  BOOL      LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
-  BOOL      LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
-  BOOL      SetImage(CBLPFile &source, UINT mipLevel, CStatus *status);
-  BOOL      SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, UINT mipLevel, CStatus *status);
-  BOOL      SetAlphaBits(UINT alpha);
-  MIPS_TYPE HasMips() const;
-  void      SetHasMips(MIPS_TYPE hasMips);
-  UINT      Bytes() const;
-  UINT      Bytes(UINT mipLevel) const;
+  void Close();
 
   UINT Width() const {
     return m_header.width;
@@ -137,18 +142,41 @@ class CBLPFile {
   UINT Pixels(UINT mipLevel) const {
     return Width(mipLevel) * Height(mipLevel);
   }
+  UINT Bytes() const;
+  UINT Bytes(UINT mipLevel) const;
   UINT Quality() const {
     return m_quality;
   }
+  MIPS_TYPE HasMips() const;
+
+  UINT AlphaBits() const {
+    return m_header.alphaSize;
+  }
+  BOOL SetAlphaBits(UINT alpha);
+
+  int  GenerateMipLevel(UINT sourceLevel, UINT destinationLevel);
+  int  GenerateMipLevels(CStatus *status);
+  int  GenerateMipLevels(LPCSTR name, CStatus *status);
+  int  Open(LPCSTR filename);
+  BOOL Source(LPVOID fileBits);
   COLOR_FILE_FORMAT GetColorEncoding() const {
     return static_cast<COLOR_FILE_FORMAT>(m_header.colorEncoding);
   }
   PIXEL_FORMAT GetPreferredFormat() const {
     return static_cast<PIXEL_FORMAT>(m_header.preferredFormat);
   }
+  int  Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride);
+  int  Unlock(UINT mipLevel);
+  BOOL LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
   UINT GetNumLevels() {
     return m_numLevels;
   }
+  static void FlushFromReadCache(LPCSTR name);
+  void        SetHasMips(MIPS_TYPE hasMips);
+  BOOL        SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, UINT mipLevel, CStatus *status);
+  BOOL        SetImage(CBLPFile &source, UINT mipLevel, CStatus *status);
+  int         SetImages(CBLPFile &source);
+  int         Write(LPCSTR name, COLOR_FILE_FORMAT format);
   void SetQuality(UINT quality) {
     m_quality = quality;
   }
@@ -159,30 +187,10 @@ class CBLPFile {
     m_mipMapAlgorithm = algorithm;
   }
 
-  UINT AlphaBits() const {
-    return m_header.alphaSize;
-  }
-
-  int         GenerateMipLevel(UINT sourceLevel, UINT destinationLevel);
-  int         GenerateMipLevels(LPCSTR name, CStatus *status);
-  int         GenerateMipLevels(CStatus *status);
-  static void FlushFromReadCache(LPCSTR name);
-  int         SetImages(CBLPFile &source);
-  int         Write(LPCSTR name, COLOR_FILE_FORMAT format);
-
  protected:
+  int              GetOctreePal(tagPALETTEENTRY *palette, UINT count);
   BYTE            *Image(UINT level);
   BOOL             CreateMipLevels(UINT width, UINT height);
-  BOOL             IsValidMip(UINT level) const;
-  BOOL             GetFormatSize(PIXEL_FORMAT format, UINT mipLevel, UINT *size, UINT *stride) const;
-  void             DecompPalFastPath(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
-  void             DecompPalARGB8888(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
-  void             DecompPalARGB4444(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
-  void             DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
-  void             DecompPalARGB565(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
-  BOOL             DecompPal(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, LPCVOID tempBuffer);
-  int              DecompJPEG(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT dataSize, LPCVOID source, UINT &stride);
-  int              GetOctreePal(tagPALETTEENTRY *palette, UINT count);
   int              AddSourceImages(HCOLORLIST__ *colors);
   int              ComputePalette(HCOLORLIST__ *colors);
   int              Palettize(LPVOID output);
@@ -196,27 +204,8 @@ class CBLPFile {
   int              BuildPalettedImages(LPVOID output);
   tagPALETTEENTRY *GetBackgroundColor(int alpha, tagPALETTEENTRY *color);
   void             PaletteConvert(const tagPALETTEENTRY *source, BlpPalPixel *destination);
+  BOOL             IsValidMip(UINT level) const;
 
-  static BYTE s_eightBitAlphaLookup[16];
-  static BYTE s_oneBitAlphaLookup[2];
-  static WORD s_oneBitAlphaShort[2];
-
- private:
-  CBLPFile &operator=(CBLPFile &source);
-
-  void SharedInit() {
-    memset(&m_header, 0, sizeof(m_header));
-    m_header.magic = m_versionMagic;
-    m_header.formatVersion = 1;
-    m_header.preferredFormat = PIXEL_ARGB8888;
-    m_inMemoryImage = 0;
-    m_mipMapAlgorithm = MMA_BOX;
-  }
-
-  int Lock2(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, UINT &stride);
-  int Unlock2(UINT mipLevel);
-
- protected:
   MipBits        *m_images;
   BLPHeader       m_header;
   LPVOID          m_inMemoryImage;
@@ -225,7 +214,30 @@ class CBLPFile {
   UINT            m_quality;
   HCOLORMAP__    *m_colorMapping;
   MipMapAlgorithm m_mipMapAlgorithm;
-  BYTE           *m_lockDecompMem;
+
+  int  DecompJPEG(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT dataSize, LPCVOID source, UINT &stride);
+  BOOL DecompPal(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, LPCVOID tempBuffer);
+  void DecompPalFastPath(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  void DecompPalARGB8888(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  void DecompPalARGB4444(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  void DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  void DecompPalARGB565(BYTE *data, LPCVOID tempBuffer, UINT colorSize);
+  BOOL GetFormatSize(PIXEL_FORMAT format, UINT mipLevel, UINT *size, UINT *stride) const;
+
+  static BYTE s_eightBitAlphaLookup[16];
+  static BYTE s_oneBitAlphaLookup[2];
+  static WORD s_oneBitAlphaShort[2];
+  BYTE       *m_lockDecompMem;
+
+ private:
+  CBLPFile &operator=(CBLPFile &source);
+
+ public:
+  BOOL LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel);
+
+ private:
+  int Lock2(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, UINT &stride);
+  int Unlock2(UINT mipLevel);
 };
 
 #endif

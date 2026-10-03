@@ -92,9 +92,12 @@ namespace NTempest {
     );
   }
 
-  C44Matrix operator/(const C44Matrix &l, float r) {
-    ASSERT(!CMath::fequal_(r, 0.0f));
-    return l * (1.0f / r);
+  C44Matrix operator/(const C44Matrix &l, float a) {
+    float a_ = 1.0f / a;
+    return C44Matrix(
+        l.a0 * a_, l.a1 * a_, l.a2 * a_, l.a3 * a_, l.b0 * a_, l.b1 * a_, l.b2 * a_, l.b3 * a_, l.c0 * a_, l.c1 * a_, l.c2 * a_, l.c3 * a_,
+        l.d0 * a_, l.d1 * a_, l.d2 * a_, l.d3 * a_
+    );
   }
 
   C3Vector operator*(const C3Vector &v, const C44Matrix &r) {
@@ -182,7 +185,14 @@ namespace NTempest {
   }
 
   C44Matrix C44Matrix::Adjoint() const {
-    return Cofactors().Transpose();
+    return C44Matrix(
+        Det(b1, b2, b3, c1, c2, c3, d1, d2, d3), -Det(a1, a2, a3, c1, c2, c3, d1, d2, d3), Det(a1, a2, a3, b1, b2, b3, d1, d2, d3),
+        -Det(a1, a2, a3, b1, b2, b3, c1, c2, c3), -Det(b0, b2, b3, c0, c2, c3, d0, d2, d3), Det(a0, a2, a3, c0, c2, c3, d0, d2, d3),
+        -Det(a0, a2, a3, b0, b2, b3, d0, d2, d3), Det(a0, a2, a3, b0, b2, b3, c0, c2, c3), Det(b0, b1, b3, c0, c1, c3, d0, d1, d3),
+        -Det(a0, a1, a3, c0, c1, c3, d0, d1, d3), Det(a0, a1, a3, b0, b1, b3, d0, d1, d3), -Det(a0, a1, a3, b0, b1, b3, c0, c1, c3),
+        -Det(b0, b1, b2, c0, c1, c2, d0, d1, d2), Det(a0, a1, a2, c0, c1, c2, d0, d1, d2), -Det(a0, a1, a2, b0, b1, b2, d0, d1, d2),
+        Det(a0, a1, a2, b0, b1, b2, c0, c1, c2)
+    );
   }
 
   C44Matrix C44Matrix::Inverse(float det) const {
@@ -191,27 +201,26 @@ namespace NTempest {
   }
 
   C44Matrix C44Matrix::AffineInverse() const {
-    C44Matrix matrix(a0, b0, c0, 0.0f, a1, b1, c1, 0.0f, a2, b2, c2, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    C44Matrix matrix(static_cast<C33Matrix>(*this).Transpose());
     matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
   }
 
-  C44Matrix C44Matrix::AffineInverse(float scale) const {
-    if (CMath::fequal4_(scale, 1.0f)) {
+  C44Matrix C44Matrix::AffineInverse(float uniformScale) const {
+    if (CMath::fequal4_(uniformScale, 1.0f)) {
       return AffineInverse();
     }
-    C44Matrix matrix(a0, b0, c0, 0.0f, a1, b1, c1, 0.0f, a2, b2, c2, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-    matrix.Scale(1.0f / (scale * scale));
+    C44Matrix matrix(static_cast<C33Matrix>(*this).Transpose());
+    matrix.Scale(1.0f / (uniformScale * uniformScale));
     matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
   }
 
-  C44Matrix C44Matrix::AffineInverse(const C3Vector &scale) const {
-    C3Vector  s(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z);
-    C33Matrix rotationScale(a0, a1, a2, b0, b1, b2, c0, c1, c2);
+  C44Matrix C44Matrix::AffineInverse(const C3Vector &nonUniformScale) const {
+    C3Vector  s(1.0f / nonUniformScale.x, 1.0f / nonUniformScale.y, 1.0f / nonUniformScale.z);
+    C33Matrix rotationScale = *this;
     rotationScale.Scale(s);
-    rotationScale = rotationScale.Transpose();
-    C44Matrix matrix(rotationScale);
+    C44Matrix matrix(rotationScale.Transpose());
     matrix.Scale(s);
     matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
@@ -278,30 +287,7 @@ namespace NTempest {
   }
 
   void C44Matrix::Rotate(const C4Quaternion &rotation) {
-    const float x2 = rotation.x + rotation.x;
-    const float y2 = rotation.y + rotation.y;
-    const float z2 = rotation.z + rotation.z;
-    const float xx = rotation.x * x2;
-    const float xy = rotation.x * y2;
-    const float xz = rotation.x * z2;
-    const float yy = rotation.y * y2;
-    const float yz = rotation.y * z2;
-    const float zz = rotation.z * z2;
-    const float xw = rotation.w * x2;
-    const float yw = rotation.w * y2;
-    const float zw = rotation.w * z2;
-
-    C44Matrix matrix;
-    matrix.a0 = 1.0f - (yy + zz);
-    matrix.a1 = xy + zw;
-    matrix.a2 = xz - yw;
-    matrix.b0 = xy - zw;
-    matrix.b1 = 1.0f - (xx + zz);
-    matrix.b2 = yz + xw;
-    matrix.c0 = xz + yw;
-    matrix.c1 = yz - xw;
-    matrix.c2 = 1.0f - (xx + yy);
-    *this = matrix * *this;
+    *this = C44Matrix(static_cast<C33Matrix>(rotation)) * *this;
   }
 
 }  // namespace NTempest

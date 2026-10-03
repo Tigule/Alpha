@@ -1,18 +1,22 @@
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
-#include "World.h"
+#include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include "Map.h"
 
-#include "Base/Base.h"
 #include "WorldCommon/WorldMath.h"
 
 CMapBaseObj::CMapBaseObj() {
-  rot.x = 0.0f;
-  rot.y = 0.0f;
-  rot.z = 0.0f;
-  rot.w = 1.0f;
-  aaSphere.r = 0.0f;
   refCount = 0;
   flags = 0;
   type = Type_BaseObj;

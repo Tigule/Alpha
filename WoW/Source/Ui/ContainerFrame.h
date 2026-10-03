@@ -10,11 +10,11 @@ class CGContainerInfo {
   static void      UpdateContainers();
   static void      UpdateContents(DWORDLONG guid);
   static void      UpdateCooldowns();
-  static DWORDLONG GetContainer(int index) {
-    if (!index) {
-      return ClntObjMgrGetActivePlayer();
+  static DWORDLONG GetContainer(UINT index) {
+    if (index < 10) {
+      return m_containers[index];
     }
-    return index > 0 && index <= 10 ? m_containers[index - 1] : 0;
+    return 0;
   }
   static void OpenContainer(DWORDLONG container);
   static void UpdateItem(DWORDLONG item);

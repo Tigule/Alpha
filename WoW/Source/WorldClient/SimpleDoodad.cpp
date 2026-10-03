@@ -1,9 +1,17 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
-#include "CSimpleDoodad.h"
 #include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include "WorldClient/Map.h"
 
 #include "MDLFile/MDLTypes.h"
@@ -20,7 +28,7 @@ TSHashTable<CSimpleDoodad, HASHKEY_NONE> CSimpleDoodad::simpleDoodadHash;
 CGxBuf                                  *CSimpleDoodad::gxBufDyn;
 HASHKEY_NONE                             CSimpleDoodad::nullHashKey;
 
-static LISTDECLEX(CSimpleDoodad, sceneLink, simpleDoodadScene);
+LISTDECLEX(CSimpleDoodad, sceneLink, simpleDoodadScene);
 
 void CSimpleDoodad::Initialize() {
   gxBufDyn = GxBufCreate(GxBWF_Dynamic, GxVBF_PNT0, 0x2000, 0x2000, GxBufDynCallback, 0);
@@ -228,7 +236,7 @@ void CSimpleDoodad::CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufComm
 
   switch (cmd.vertex.op) {
     case GxBufOp_Nop:
-      break;
+      return;
 
     case GxBufOp_Fill:
       vtxBase = static_cast<CGxVertexPNT0 *>(*cmd.vertex.mem[GxVM_Position]);
@@ -259,7 +267,7 @@ void CSimpleDoodad::CreateIndices(CSimpleDoodadGeoset *geoset, const CGxBufComma
 
   switch (cmd.index.op) {
     case GxBufOp_Nop:
-      break;
+      return;
 
     case GxBufOp_Fill:
       idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);

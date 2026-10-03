@@ -61,7 +61,10 @@ namespace NTempest {
     using CMemBlockT<T>::IsValid;
 
     CDynTable(const CDynParms &dp = CDynParms(), DWORD prologue = 0, LPCSTR filen = 0, long linen = 0)
-        : CMemBlockT<T>(dp.Prealloc(), prologue, filen, linen), expand(dp.ExpandF()), iallocated(dp.Prealloc()), iused(0) {
+        : CMemBlockT<T>(dp.Prealloc(), prologue, filen, linen) {
+      expand = dp.ExpandF();
+      iallocated = dp.Prealloc();
+      iused = 0;
     }
 
     CDynTable(const CDynTable &other) : CMemBlockT<T>(other), expand(other.expand), iallocated(other.iallocated), iused(other.iused) {
@@ -150,10 +153,12 @@ namespace NTempest {
     }
 
     void SetEntry(DWORD at, const T *entry, DWORD count = 1) const {
-      ASSERT(entry);
-      ASSERT(at + count <= iused);
-      while (count--) {
-        reinterpret_cast<T *>(this->mem)[at++] = *entry;
+      ASSERT(IsValid());
+
+      DWORD end = min(at + count, iused);
+
+      for (; at < end; ++at) {
+        reinterpret_cast<T *>(this->mem)[at] = *entry;
       }
     }
 
@@ -201,30 +206,20 @@ namespace NTempest {
           return false;
         }
 
-        DWORD toexpand = iused + count - iallocated;
-        if (toexpand < expand) {
-          toexpand = expand;
-        }
+        DWORD toexpand = max(expand, iused - iallocated + count);
 
-        if (!Resize(iallocated + toexpand, true)) {
+        if (!CMemBlock::Resize((iallocated + toexpand) * sizeof(T), true)) {
           return false;
         }
+
+        iallocated += toexpand;
       }
 
-      DWORD at = iused;
+      DWORD i = iused;
       iused += count;
 
       if (entry) {
-        ASSERT(IsValid());
-
-        DWORD end = at + count;
-        if (end > iused) {
-          end = iused;
-        }
-
-        while (at < end) {
-          reinterpret_cast<T *>(this->mem)[at++] = *entry;
-        }
+        SetEntry(i, entry, iused);
       }
 
       return true;
@@ -263,7 +258,7 @@ namespace NTempest {
       }
 
       DWORD moventries = iused - at - count;
-      if (iused - at != count) {
+      if (moventries) {
         memmove(&(*this)[at], &(*this)[at + count], sizeof(T) * moventries);
       }
 
@@ -272,7 +267,11 @@ namespace NTempest {
     }
 
     bool RemoveLast() {
-      return iused ? Remove(iused - 1, 1) : false;
+      if (!iused) {
+        return false;
+      }
+
+      return Remove(iused - 1, 1);
     }
 
     bool RemoveAll() {

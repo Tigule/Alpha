@@ -27,15 +27,15 @@ UINT GetBitDepth(UINT fourCC) {
 }
 
 UINT CalcLevelSize(UINT level, UINT width, UINT height, UINT fourCC) {
-  UINT levelWidth = max(width >> level, 1U);
-  UINT levelHeight = max(height >> level, 1U);
+  width = max(1U, width >> level);
+  height = max(1U, height >> level);
 
   if (fourCC == 0 || fourCC == 1 || fourCC == 7) {
-    levelWidth = max(levelWidth, 4U);
-    levelHeight = max(levelHeight, 4U);
+    width = max(width, 4U);
+    height = max(height, 4U);
   }
 
-  return levelWidth * levelHeight * GetBitDepth(fourCC) >> 3;
+  return width * height * GetBitDepth(fourCC) >> 3;
 }
 
 UINT CalcLevelOffset(UINT level, UINT width, UINT height, UINT fourCC) {
@@ -92,9 +92,9 @@ UINT MippedImgCalcSize(UINT fourCC, UINT width, UINT height) {
 void MippedImgSet(UINT fourCC, UINT width, UINT height, MipBits *bits) {
   UINT levelCount = CalcLevelCount(width, height);
   UINT levelDataSize = CalcLevelOffset(levelCount, width, height, fourCC);
+  ASSERT(bits);
   UINT offset = 0;
   UINT level;
-  ASSERT(bits);
   for (level = 0; level < levelCount; ++level) {
     bits[level].mip[0] = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(&bits->mip[levelCount]) + offset);
     offset += CalcLevelSize(level, width, height, fourCC);

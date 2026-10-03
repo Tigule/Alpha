@@ -8,13 +8,6 @@
 #define BASEKEY      "Software\\Blizzard Entertainment\\"
 #define BATTLENETKEY "Software\\Battle.net\\"
 
-#undef FATALASSERT
-#define FATALASSERT(a)                       \
-  if (!(a)) {                                \
-    SErrPrepareAppFatal(__FILE__, __LINE__); \
-    SErrDisplayAppFatal(#a);                 \
-  }
-
 static void BuildFullKeyName(LPCSTR keyname, UINT flags, char *buffer, UINT bufferChars) {
   buffer[0] = 0;
   if (!(flags & SREG_FLAG_NO_BASE)) {
@@ -220,22 +213,30 @@ static BOOL InternalSaveEntry(LPCSTR keyname, LPCSTR valuename, UINT flags, DWOR
 }
 
 extern "C" BOOL APIENTRY SRegDeleteValue(LPCSTR keyname, LPCSTR valuename, UINT flags) {
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATEEND;
+
   return InternalDeleteEntry(keyname, valuename, flags);
 }
 
 extern "C" BOOL APIENTRY SRegDeleteKey(LPCSTR keyname, UINT flags) {
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATEEND;
+
   return InternalDeleteKey(keyname, flags);
 }
 
 extern "C" BOOL APIENTRY SRegGetBaseKey(UINT flags, char *buffer, UINT bufferChars) {
-  FATALASSERT(buffer);
-  FATALASSERT(bufferChars);
+  VALIDATEBEGIN;
+  VALIDATE(buffer);
+  VALIDATE(bufferChars);
+  VALIDATEEND;
 
   if (flags & SREG_FLAG_BATTLENET) {
     SStrCopy(buffer, BATTLENETKEY, bufferChars);
@@ -246,159 +247,169 @@ extern "C" BOOL APIENTRY SRegGetBaseKey(UINT flags, char *buffer, UINT bufferCha
 }
 
 extern "C" BOOL APIENTRY SRegLoadData(LPCSTR keyname, LPCSTR valuename, UINT flags, LPVOID buffer, DWORD buffersize, LPDWORD bytesread) {
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATEEND;
 
-  if (!bytesread) {
-    bytesread = reinterpret_cast<LPDWORD>(&keyname);
-  }
-
-  return InternalLoadEntry(keyname, valuename, flags, reinterpret_cast<LPDWORD>(&valuename), buffer, buffersize, bytesread);
+  DWORD datatype;
+  DWORD localbytesread;
+  return InternalLoadEntry(keyname, valuename, flags, &datatype, buffer, buffersize, bytesread ? bytesread : &localbytesread);
 }
 
 extern "C" BOOL APIENTRY SRegLoadString(LPCSTR keyname, LPCSTR valuename, UINT flags, char *buffer, DWORD buffersize) {
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
-  FATALASSERT(buffer);
-  FATALASSERT(buffersize);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATE(buffer);
+  VALIDATE(buffersize);
+  VALIDATEEND;
 
-  if (!InternalLoadEntry(keyname, valuename, flags, reinterpret_cast<LPDWORD>(&keyname), buffer, buffersize, reinterpret_cast<LPDWORD>(&valuename))) {
+  DWORD datatype;
+  DWORD bytesread;
+  if (!InternalLoadEntry(keyname, valuename, flags, &datatype, buffer, buffersize, &bytesread)) {
     return FALSE;
   }
 
-  if (*reinterpret_cast<LPDWORD>(&keyname) == REG_SZ) {
-    buffer[*reinterpret_cast<LPDWORD>(&valuename) < buffersize ? *reinterpret_cast<LPDWORD>(&valuename) : buffersize - 1] = 0;
-  } else if (*reinterpret_cast<LPDWORD>(&keyname) == REG_DWORD) {
-    SStrPrintf(buffer, buffersize, "%u", *(DWORD *)buffer);
+  switch (datatype) {
+    case REG_DWORD:
+      SStrPrintf(buffer, buffersize, "%u", *(DWORD *)buffer);
+      break;
+    case REG_SZ:
+      buffer[min(buffersize - 1, bytesread)] = 0;
+      break;
   }
 
   return TRUE;
 }
 
 extern "C" BOOL APIENTRY SRegLoadValue(LPCSTR keyname, LPCSTR valuename, UINT flags, LPDWORD value) {
-  char buffer[256];
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATE(value);
+  VALIDATEEND;
 
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
-  FATALASSERT(value);
-
+  char  buffer[256];
+  DWORD datatype;
+  DWORD bytesread;
   buffer[0] = 0;
-  if (!InternalLoadEntry(
-          keyname, valuename, flags, reinterpret_cast<LPDWORD>(&keyname), buffer, sizeof(buffer), reinterpret_cast<LPDWORD>(&valuename)
-      ))
-  {
+  if (!InternalLoadEntry(keyname, valuename, flags, &datatype, buffer, sizeof(buffer), &bytesread)) {
     return FALSE;
   }
 
-  if (*reinterpret_cast<LPDWORD>(&keyname) == REG_DWORD) {
-    *value = *(DWORD *)buffer;
-  } else if (*reinterpret_cast<LPDWORD>(&keyname) == REG_SZ) {
-    *value = strtoul(buffer, NULL, 0);
+  switch (datatype) {
+    case REG_DWORD:
+      *value = *(DWORD *)buffer;
+      break;
+    case REG_SZ:
+      *value = strtoul(buffer, NULL, 0);
+      break;
   }
 
   return TRUE;
 }
 
 extern "C" BOOL APIENTRY SRegSaveData(LPCSTR keyname, LPCSTR valuename, UINT flags, LPCVOID data, DWORD databytes) {
-  DWORD type;
-
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATEEND;
 
   if (!data) {
     data = "";
   }
 
-  type = (flags & SREG_FLAG_MULTISZ) ? REG_MULTI_SZ : REG_BINARY;
-  return InternalSaveEntry(keyname, valuename, flags, type, data, databytes);
+  return InternalSaveEntry(keyname, valuename, flags, (flags & SREG_FLAG_MULTISZ) ? REG_MULTI_SZ : REG_BINARY, data, databytes);
 }
 
 extern "C" BOOL APIENTRY SRegSaveString(LPCSTR keyname, LPCSTR valuename, UINT flags, LPCSTR string) {
-  DWORD bytes;
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATE(string);
+  VALIDATEEND;
 
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
-  FATALASSERT(string);
-
-  bytes = SStrLen(string) + 1;
-  return InternalSaveEntry(keyname, valuename, flags, REG_SZ, string, bytes);
+  return InternalSaveEntry(keyname, valuename, flags, REG_SZ, string, SStrLen(string) + 1);
 }
 
 extern "C" BOOL APIENTRY SRegSaveValue(LPCSTR keyname, LPCSTR valuename, UINT flags, DWORD value) {
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATEEND;
 
   return InternalSaveEntry(keyname, valuename, flags, REG_DWORD, &value, sizeof(value));
 }
 
 extern "C" BOOL APIENTRY SRegEnumKey(LPCSTR baseKeyName, UINT flags, UINT subKeyIndex, char *keyNameBuffer, UINT bufferChars) {
-  char     keyName[MAX_PATH];
-  char     fullBaseKeyName[MAX_PATH];
-  FILETIME lastWriteTime;
-  HKEY     baseKey;
-  LONG     status;
+  VALIDATEBEGIN;
+  VALIDATE(baseKeyName);
+  VALIDATE(*baseKeyName);
+  VALIDATE(keyNameBuffer);
+  VALIDATE(bufferChars);
+  VALIDATEEND;
 
-  FATALASSERT(baseKeyName);
-  FATALASSERT(*baseKeyName);
-  FATALASSERT(keyNameBuffer);
-  FATALASSERT(bufferChars);
-
+  char fullBaseKeyName[MAX_PATH];
   BuildFullKeyName(baseKeyName, flags, fullBaseKeyName, sizeof(fullBaseKeyName));
 
-  status = RegOpenKeyExA((flags & SREG_FLAG_HKLM) ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, fullBaseKeyName, 0, KEY_ENUMERATE_SUB_KEYS, &baseKey);
+  HKEY baseKey;
+  LONG status = RegOpenKeyExA((flags & SREG_FLAG_HKLM) ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, fullBaseKeyName, 0, KEY_ENUMERATE_SUB_KEYS, &baseKey);
   if (status != ERROR_SUCCESS) {
-    SetLastError((DWORD)status);
+    SetLastError(status);
     return FALSE;
   }
 
-  flags = bufferChars;
-  bufferChars = sizeof(keyName);
-  status = RegEnumKeyExA(baseKey, subKeyIndex, keyName, reinterpret_cast<LPDWORD>(&bufferChars), NULL, NULL, NULL, &lastWriteTime);
+  char     keyName[MAX_PATH];
+  DWORD    keyNameSize = sizeof(keyName);
+  FILETIME lastWriteTime;
+  status = RegEnumKeyExA(baseKey, subKeyIndex, keyName, &keyNameSize, NULL, NULL, NULL, &lastWriteTime);
   RegCloseKey(baseKey);
-
   if (status != ERROR_SUCCESS) {
-    SetLastError((DWORD)status);
+    SetLastError(status);
     return FALSE;
   }
 
-  SStrPrintf(keyNameBuffer, flags, "%s\\%s", baseKeyName, keyName);
+  SStrPrintf(keyNameBuffer, bufferChars, "%s\\%s", baseKeyName, keyName);
   return TRUE;
 }
 
 extern "C" BOOL APIENTRY SRegGetNumSubKeys(LPCSTR keyName, UINT flags, UINT *numSubKeys) {
+  VALIDATEBEGIN;
+  VALIDATE(keyName);
+  VALIDATEANDBLANK(numSubKeys);
+  VALIDATEEND;
+
   char fullKeyName[MAX_PATH];
-  HKEY key;
-  LONG status;
-
-  FATALASSERT(keyName);
-  FATALASSERT(numSubKeys);
-
-  *numSubKeys = 0;
   BuildFullKeyName(keyName, flags, fullKeyName, sizeof(fullKeyName));
 
-  status = RegOpenKeyExA((flags & SREG_FLAG_HKLM) ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, fullKeyName, 0, KEY_QUERY_VALUE, &key);
+  HKEY key;
+  LONG status = RegOpenKeyExA((flags & SREG_FLAG_HKLM) ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, fullKeyName, 0, KEY_QUERY_VALUE, &key);
   if (status != ERROR_SUCCESS) {
-    SetLastError((DWORD)status);
+    SetLastError(status);
     return FALSE;
   }
 
-  status = RegQueryInfoKeyA(key, NULL, NULL, NULL, reinterpret_cast<LPDWORD>(numSubKeys), NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+  DWORD subKeys;
+  status = RegQueryInfoKeyA(key, NULL, NULL, NULL, &subKeys, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
   RegCloseKey(key);
-
   if (status != ERROR_SUCCESS) {
-    SetLastError((DWORD)status);
+    SetLastError(status);
+    return FALSE;
   }
-  return status == ERROR_SUCCESS;
+
+  *numSubKeys = subKeys;
+  return TRUE;
 }

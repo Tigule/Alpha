@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -41,23 +43,23 @@ void CGReputationInfo::EnterWorld() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   FATALASSERT(player);
 
-  UINT raceID = player->GetUnitData()->race;
-  UINT classID = player->GetUnitData()->classId;
+  UINT raceID = player->GetRace();
+  UINT classID = player->GetClass();
   memset(m_factionBase, 0, sizeof(m_factionBase));
   memset(m_factionMap, 0, sizeof(m_factionMap));
 
-  for (int i = g_factionDB.GetNumRecords() - 1; i >= 0; --i) {
+  int i = g_factionDB.GetNumRecords();
+  while (i) {
+    --i;
     const FactionRec *faction = g_factionDB.GetRecordByIndex(i);
-    if (static_cast<UINT>(faction->m_reputationIndex) >= 64) {
-      continue;
-    }
-
-    m_factionMap[faction->m_reputationIndex] = faction->m_ID;
-    for (int group = 0; group < 4; ++group) {
-      UINT raceMask = faction->m_reputationRaceMask[group];
-      UINT classMask = faction->m_reputationClassMask[group];
-      if ((!raceMask || raceMask & (1 << (raceID - 1))) && (!classMask || classMask & (1 << (classID - 1))) && (raceMask || classMask)) {
-        m_factionBase[faction->m_reputationIndex] = faction->m_reputationBase[group];
+    if (faction->m_reputationIndex >= 0 && faction->m_reputationIndex < MAX_REPUTATION_FACTIONS) {
+      m_factionMap[faction->m_reputationIndex] = faction->m_ID;
+      for (UINT j = 0; j < 4; ++j) {
+        UINT raceMask = faction->m_reputationRaceMask[j];
+        UINT classMask = faction->m_reputationClassMask[j];
+        if ((raceMask || classMask) && (!raceMask || ((1 << (raceID - 1)) & raceMask)) && (!classMask || ((1 << (classID - 1)) & classMask))) {
+          m_factionBase[faction->m_reputationIndex] = faction->m_reputationBase[j];
+        }
       }
     }
   }
@@ -74,8 +76,9 @@ void CGReputationInfo::ShutdownGame() {
 int CGReputationInfo::FactionToIndex(int faction) {
   const FactionRec *rec = g_factionDB.GetRecord(faction);
   FATALASSERT(rec);
-  FATALASSERT(rec->m_reputationIndex >= 0 && rec->m_reputationIndex < 64);
-  return rec->m_reputationIndex;
+  int index = rec->m_reputationIndex;
+  FATALASSERT((index >= 0) && (index < MAX_REPUTATION_FACTIONS));
+  return index;
 }
 
 int CGReputationInfo::IndexToFaction(int index) {
@@ -107,7 +110,7 @@ void CGReputationInfo::OnSetFactionVisible(CDataStore *msg) {
   int factionIndex;
 
   msg->Get(factionIndex);
-  UINT flags = m_factionFlags[factionIndex];
+  BYTE flags = m_factionFlags[factionIndex];
   if (!(flags & 1)) {
     m_factionSorting[m_numFactions++] = factionIndex;
     SetFactionFlags(factionIndex, flags | 1);
@@ -126,12 +129,12 @@ void CGReputationInfo::OnSetFactionStanding(CDataStore *msg) {
   UNIT_REACTION oldReaction = GetFactionStandingReaction(faction);
   SetFactionStanding(factionIndex, standing);
 
-  UINT flags = m_factionFlags[factionIndex];
+  BYTE flags = m_factionFlags[factionIndex];
   if (!(flags & 1)) {
-    m_factionSorting[m_numFactions++] = factionIndex;
     flags |= 1;
+    m_factionSorting[m_numFactions++] = factionIndex;
   }
-  if (oldReaction == UNIT_REACTION_UNFRIENDLY && GetFactionStandingReaction(faction) < UNIT_REACTION_UNFRIENDLY) {
+  if (oldReaction == UNIT_REACTION_UNFRIENDLY && GetFactionStandingReaction(faction) < oldReaction) {
     flags |= 2;
   }
 
@@ -153,11 +156,12 @@ void CGReputationInfo::OnSetFactionStanding(CDataStore *msg) {
 static int __cdecl QSortFactions(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  int               factionA = CGReputationInfo::IndexToFaction(*static_cast<const int *>(a));
-  int               factionB = CGReputationInfo::IndexToFaction(*static_cast<const int *>(b));
-  const FactionRec *recordA = g_factionDB.GetRecord(factionA);
-  const FactionRec *recordB = g_factionDB.GetRecord(factionB);
-  return recordA && recordB ? SStrCmpI(recordA->m_name_lang[CURRENT_LANGUAGE], recordB->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF) : 0;
+  const FactionRec *recordA = g_factionDB.GetRecord(CGReputationInfo::IndexToFaction(*static_cast<const int *>(a)));
+  const FactionRec *recordB = g_factionDB.GetRecord(CGReputationInfo::IndexToFaction(*static_cast<const int *>(b)));
+  if (recordA && recordB) {
+    return SStrCmpI(recordA->m_name_lang[CURRENT_LANGUAGE], recordB->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF);
+  }
+  return 0;
 }
 
 void CGReputationInfo::SortFactions() {
@@ -165,7 +169,7 @@ void CGReputationInfo::SortFactions() {
 }
 
 int CGReputationInfo::GetFactionFromSortIndex(UINT index) {
-  if (!(index < m_numFactions)) {
+  if (index > m_numFactions) {
     return 0;
   }
 
@@ -177,14 +181,17 @@ void CGReputationInfo::SetFactionFlags(int factionIndex, BYTE flags) {
 }
 
 void CGReputationInfo::SetAtWar(int faction, bool state) {
-  int  index = FactionToIndex(faction);
-  UINT flags = m_factionFlags[index];
+  const FactionRec *rec = g_factionDB.GetRecord(faction);
+  FATALASSERT(rec);
+  int index = rec->m_reputationIndex;
+  FATALASSERT((index >= 0) && (index < MAX_REPUTATION_FACTIONS));
+  BYTE flags = m_factionFlags[index];
   if (state) {
     flags |= 2;
   } else {
     flags &= ~2;
   }
-  SetFactionFlags(index, static_cast<BYTE>(flags));
+  m_factionFlags[index] = flags;
   CDataStore msg;
   msg.Put(CMSG_SET_FACTION_ATWAR);
   msg.Put(index);
@@ -198,10 +205,10 @@ bool CGReputationInfo::IsAtWar(int faction) {
 }
 
 void CGReputationInfo::SetFactionStanding(int factionIndex, int standing) {
-  FATALASSERT(factionIndex >= 0 && factionIndex < 64);
-  standing -= m_factionStandings[factionIndex];
-  m_factionStandings[factionIndex] += standing;
-  UnitCombatLogFactionChanged(IndexToFaction(factionIndex), standing);
+  FATALASSERT((factionIndex >= 0) && (factionIndex < MAX_REPUTATION_FACTIONS));
+  int delta = standing - m_factionStandings[factionIndex];
+  m_factionStandings[factionIndex] = standing;
+  UnitCombatLogFactionChanged(IndexToFaction(factionIndex), delta);
 }
 
 int CGReputationInfo::GetFactionStanding(int faction) {
@@ -243,7 +250,8 @@ static int Script_GetFactionInfo(lua_State *L) {
     luaL_error(L, "Usage: GetFactionInfo(index)");
     return 0;
   }
-  int               faction = CGReputationInfo::GetFactionFromSortIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  int               index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int               faction = CGReputationInfo::GetFactionFromSortIndex(index);
   const FactionRec *rec = g_factionDB.GetRecord(faction);
   if (rec) {
     lua_pushstring(L, rec->m_name_lang[CURRENT_LANGUAGE]);
@@ -252,9 +260,9 @@ static int Script_GetFactionInfo(lua_State *L) {
     static const int s_factionThreshold[8] = {-4200, -600, -300, 0, 300, 900, 2100, 3300};
     int              min = s_factionThreshold[reaction];
     int              max = s_factionThreshold[reaction + 1];
-    int              standing = CGReputationInfo::GetFactionStanding(faction);
-    FATALASSERT(standing >= min && standing <= max);
-    lua_pushnumber(L, static_cast<double>(standing - min) / (max - min));
+    int              value = CGReputationInfo::GetFactionStanding(faction);
+    FATALASSERT((value >= min) && (value <= max));
+    lua_pushnumber(L, static_cast<double>(value - min) / (max - min));
     if (CGReputationInfo::IsAtWar(faction)) {
       lua_pushnumber(L, 1.0);
     } else {
@@ -274,17 +282,16 @@ static int Script_FactionToggleAtWar(lua_State *L) {
     luaL_error(L, "Usage: FactionToggleAtWar(index)");
     return 0;
   }
-  int faction = CGReputationInfo::GetFactionFromSortIndex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int faction = CGReputationInfo::GetFactionFromSortIndex(index);
   if (faction) {
     CGReputationInfo::SetAtWar(faction, !CGReputationInfo::IsAtWar(faction));
     if (CGReputationInfo::IsAtWar(faction)) {
       lua_pushnumber(L, 1.0);
-    } else {
-      lua_pushnil(L);
+      return 1;
     }
-  } else {
-    lua_pushnil(L);
   }
+  lua_pushnil(L);
   return 1;
 }
 

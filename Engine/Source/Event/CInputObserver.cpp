@@ -1,4 +1,4 @@
-#include <Base/Base.h>
+#include "EvtInt.h"
 
 #include "CInputObserver.h"
 #include "CMouseEvent.h"
@@ -92,18 +92,21 @@ BOOL CInputObserver::OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, LPVOID pa
 
 #define INPUT_OBSERVER_REGISTRATION(name, eventId, handler, inputEventId)                                   \
   void CInputObserver::Register##name(CObserver *pObs) {                                                    \
-    CInputObserver *input = GetInputObserver();                                                             \
-    if (!input->IsEventRegistered(eventId)) {                                                               \
-      EventRegisterEx(inputEventId, reinterpret_cast<EVENTHANDLER>(handler), input, EVENT_PRIORITY_NORMAL); \
+    if (!GetInputObserver()->IsEventRegistered(eventId)) {                                                  \
+      EventRegisterEx(inputEventId,                                                                         \
+                      reinterpret_cast<EVENTHANDLER>(handler),                                              \
+                      GetInputObserver(),                                                                   \
+                      EVENT_PRIORITY_NORMAL);                                                               \
     }                                                                                                       \
     GetInputObserver()->RegisterEvent(eventId, eventId, pObs);                                              \
   }                                                                                                         \
   void CInputObserver::Unregister##name(CObserver *pObs) {                                                  \
-    CInputObserver *input = GetInputObserver();                                                             \
-    input->UnregisterEvent(eventId, pObs);                                                                  \
+    GetInputObserver()->UnregisterEvent(eventId, pObs);                                                     \
     if (!GetInputObserver()->IsEventRegistered(eventId)) {                                                  \
-      input = GetInputObserver();                                                                           \
-      EventUnregisterEx(inputEventId, reinterpret_cast<EVENTHANDLER>(handler), input, 0xFFFFFFFF);          \
+      EventUnregisterEx(inputEventId,                                                                       \
+                        reinterpret_cast<EVENTHANDLER>(handler),                                            \
+                        GetInputObserver(),                                                                 \
+                        0xFFFFFFFF);                                                                        \
     }                                                                                                       \
   }
 

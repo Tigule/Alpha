@@ -6,6 +6,8 @@
 #include "UIUtil/InputControl.h"
 #include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Ui/GameUI.h"
 
 #include <Base/Handle.h>
 #include <Base/Status.h>
@@ -58,7 +60,10 @@ void CursorDestroy() {
 }
 
 BOOL CursorGrabMoney(HMODEL model) {
-  if (!g_cursor || g_cursor->GetItemType() != CURSOR_EMPTY) {
+  if (!g_cursor) {
+    return 0;
+  }
+  if (g_cursor->GetItemType() != CURSOR_EMPTY) {
     return 0;
   }
   g_cursor->SetItemType(CURSOR_MONEY);
@@ -67,7 +72,10 @@ BOOL CursorGrabMoney(HMODEL model) {
 }
 
 BOOL CursorGrabSpell(HMODEL model) {
-  if (!g_cursor || g_cursor->GetItemType() != CURSOR_EMPTY) {
+  if (!g_cursor) {
+    return 0;
+  }
+  if (g_cursor->GetItemType() != CURSOR_EMPTY) {
     return 0;
   }
   g_cursor->SetItemType(CURSOR_SPELL);
@@ -172,7 +180,10 @@ void CursorDropSpell() {
 }
 
 BOOL CursorHasSpell() {
-  return g_cursor && g_cursor->GetItemType() == CURSOR_SPELL;
+  if (g_cursor) {
+    return g_cursor->GetItemType() == CURSOR_SPELL;
+  }
+  return 0;
 }
 
 void CursorModelSetSequence(CURSORANIMATIONS sequence) {

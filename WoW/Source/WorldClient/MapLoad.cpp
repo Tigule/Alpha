@@ -1,12 +1,19 @@
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
 #include "DayNight.h"
+
 #include "SoundInterface/SoundInterface.h"
 #include "WorldCommon/WorldMath.h"
-#include "WorldClient/CMapObj.h"
 
 #include <Model/IModel.h>
 #include <Model/CollisionData.h>
@@ -18,7 +25,9 @@
 
 #include <float.h>
 
-static LPCSTR s_animationNames[1] = {"Stand"};
+static TSGrowableArray<DWORD> s_doodadRefArray;
+static LPCSTR                 s_animationNames[1] = {"Stand"};
+static NTempest::CImVector    s_uglyGreen(0xFF00FF00);
 
 static BOOL OnPickNextFidget(LPVOID param) {
   ModelSetRandomSequenceFidget(static_cast<HMODEL>(param), 0, 0);
@@ -354,9 +363,9 @@ CMapObjDef *CMap::CreateMapObjDef(SMMapObjDef &smMapObjDef, NTempest::C3Vector &
 }
 
 void CMap::InitializeDoodadBounds(CMapDoodadDef *doodadDef) {
-  NTempest::CAaBox    localCollExtents;
   NTempest::CAaBox    localExtents;
   NTempest::CAaSphere localSphere;
+  NTempest::CAaBox    localCollExtents;
 
   if (doodadDef->model) {
     ModelGetExtents(doodadDef->model, &localExtents);

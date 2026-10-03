@@ -1,3 +1,4 @@
+#include "Base/Base.h"
 #include "Anim/AnimInternal.h"
 #include "MDLFile/MDLTypes.h"
 #include "Base/Status.h"
@@ -282,9 +283,9 @@ static void BuildHierarchy(CAnimData *shared, const UINT *parentIds, const UINT 
 }
 
 static UINT GetGenObjectCount(BYTE *fileData, UINT fileBytes) {
-  BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'LDOM');
-  ASSERT(section);
-  return *reinterpret_cast<UINT *>(section + 373);
+  BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'LDOM');
+  ASSERT(data != 0);
+  return *reinterpret_cast<UINT *>(data + 373);
 }
 
 UINT AnimBuildObjectIdTranslation(const MDLDATA &data, UINT flags, TSStackArray<UINT> *idConversion) {
@@ -373,27 +374,29 @@ UINT AnimBuildObjectIdTranslation(BYTE *fileData, UINT fileBytes, UINT flags, UI
 }
 
 static void MaterialHandlerAnim(CAnimData *shared, const TSGrowableArray<MDLMATERIALSECTION> &materials, MDLTRACKTYPE forceType) {
-  UINT layerId = 0;
-  for (UINT material = 0; material < materials.Count(); ++material) {
-    for (UINT layer = 0; layer < materials[material].texLayers.Count(); ++layer, ++layerId) {
-      AnimAddMaterialLayer(shared, materials[material].texLayers[layer], layerId, forceType);
+  UINT                      layerId = 0;
+  const MDLMATERIALSECTION *material = materials.Ptr();
+  for (UINT i = materials.Count(); i; --i, ++material) {
+    const MDLTEXLAYER *layer = material->texLayers.Ptr();
+    for (UINT j = material->texLayers.Count(); j; --j, ++layer, ++layerId) {
+      AnimAddMaterialLayer(shared, *layer, layerId, forceType);
     }
   }
 }
 
 static void GeosetHandlerAnim(CAnimData *shared, const TSGrowableArray<MDLGEOSETANIMSECTION> &geosets, MDLTRACKTYPE forceType) {
-  shared->geo.ReserveSpace(geosets.Count());
-  shared->geo.Clear();
-  for (UINT i = 0; i < geosets.Count(); ++i) {
-    AnimAddGeoset(shared, geosets[i], forceType);
+  ASSERT(shared);
+  const MDLGEOSETANIMSECTION *geoset = geosets.Ptr();
+  for (UINT i = 0; i < geosets.Count(); ++i, ++geoset) {
+    AnimAddGeoset(shared, *geoset, forceType);
   }
 }
 
 static void CameraHandlerAnim(CAnimData *shared, const TSGrowableArray<MDLCAMERASECTION> &cameras, MDLTRACKTYPE forceType) {
-  shared->cameraObjs.ReserveSpace(cameras.Count());
-  shared->cameraObjs.Clear();
-  for (UINT i = 0; i < cameras.Count(); ++i) {
-    AnimAddCamera(shared, cameras[i], forceType);
+  ASSERT(shared);
+  const MDLCAMERASECTION *camera = cameras.Ptr();
+  for (UINT i = 0; i < cameras.Count(); ++i, ++camera) {
+    AnimAddCamera(shared, *camera, forceType);
   }
 }
 
@@ -694,7 +697,10 @@ void AnimInitialize() {
 
 static UINT CountSectionEntries(BYTE *fileData, UINT fileBytes, DWORD tag) {
   BYTE *section = MDLFileBinarySeek(fileData, fileBytes, tag);
-  return section ? *reinterpret_cast<UINT *>(section + 4) : 0;
+  if (!section) {
+    return 0;
+  }
+  return *reinterpret_cast<UINT *>(section + 4);
 }
 
 HANIM AnimCreate(BYTE *fileData, UINT fileBytes, UINT flags) {

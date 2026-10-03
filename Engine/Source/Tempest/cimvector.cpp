@@ -10,48 +10,42 @@ namespace NTempest {
     UINT max = rgb.MajorAxis();
     UINT min = rgb.MinorAxis();
 
-    hsv.z = rgb[max];
-    if (hsv.z == 0.0f) {
-      hsv.y = 0.0f;
-    } else {
-      hsv.y = (rgb[max] - rgb[min]) / rgb[max];
-    }
+    hsv[2] = rgb[max];
+    hsv[1] = (hsv[2] != 0.0f) ? (rgb[max] - rgb[min]) / rgb[max] : 0.0f;
 
-    if (hsv.y == 0.0f) {
-      hsv.x = -1.0f;
+    if (hsv[1] == 0.0f) {
+      hsv[0] = -1.0f;
       return;
     }
 
     float delta = rgb[max] - rgb[min];
     switch (max) {
-      case C3Vector::C3AXIS_X:
-        hsv.x = (rgb[C3Vector::C3AXIS_Y] - rgb[C3Vector::C3AXIS_Z]) / delta;
+      case 0:
+        hsv[0] = (rgb[1] - rgb[2]) / delta;
         break;
 
-      case C3Vector::C3AXIS_Y:
-        hsv.x = 2.0f + (rgb[C3Vector::C3AXIS_Z] - rgb[C3Vector::C3AXIS_X]) / delta;
+      case 1:
+        hsv[0] = 2.0f + (rgb[2] - rgb[0]) / delta;
         break;
 
-      case C3Vector::C3AXIS_Z:
-        hsv.x = 4.0f + (rgb[C3Vector::C3AXIS_X] - rgb[C3Vector::C3AXIS_Y]) / delta;
+      case 2:
+        hsv[0] = 4.0f + (rgb[0] - rgb[1]) / delta;
         break;
     }
 
-    hsv[C3Vector::C3AXIS_X] *= 60.0f;
-    if (hsv[C3Vector::C3AXIS_X] < 0.0f) {
-      hsv[C3Vector::C3AXIS_X] += 360.0f;
+    hsv[0] *= 60.0f;
+    if (hsv[0] < 0.0f) {
+      hsv[0] += 360.0f;
     }
   }
 
   void HSVtoRGB(const C3Vector &hsv, C3Vector &rgb) {
-    if (hsv.y == 0.0f) {
-      rgb.x = hsv.z;
-      rgb.y = hsv.z;
-      rgb.z = hsv.z;
+    if (hsv[1] == 0.0f) {
+      rgb = C3Vector(hsv[2], hsv[2], hsv[2]);
       return;
     }
 
-    float h = hsv.x;
+    float h = hsv[0];
     if (h == 360.0f) {
       h = 0.0f;
     }
@@ -60,44 +54,44 @@ namespace NTempest {
     int   i = CMath::ftol_0_256_(h);
     float f = h - i;
     float p = hsv.z * (1.0f - hsv.y);
-    float q = hsv.z * (1.0f - hsv.y * f);
-    float t = hsv.z * (1.0f - hsv.y * (1.0f - f));
+    float q = hsv[2] * (1.0f - hsv[1] * f);
+    float t = hsv[2] * (1.0f - hsv[1] * (1.0f - f));
 
     switch (i) {
       case 0:
-        rgb[C3Vector::C3AXIS_X] = hsv[C3Vector::C3AXIS_Z];
-        rgb[C3Vector::C3AXIS_Y] = t;
-        rgb[C3Vector::C3AXIS_Z] = p;
+        rgb[0] = hsv[2];
+        rgb[1] = t;
+        rgb[2] = p;
         break;
 
       case 1:
-        rgb[C3Vector::C3AXIS_X] = q;
-        rgb[C3Vector::C3AXIS_Y] = hsv[C3Vector::C3AXIS_Z];
-        rgb[C3Vector::C3AXIS_Z] = p;
+        rgb[0] = q;
+        rgb[1] = hsv[2];
+        rgb[2] = p;
         break;
 
       case 2:
-        rgb[C3Vector::C3AXIS_X] = p;
-        rgb[C3Vector::C3AXIS_Y] = hsv[C3Vector::C3AXIS_Z];
-        rgb[C3Vector::C3AXIS_Z] = t;
+        rgb[0] = p;
+        rgb[1] = hsv[2];
+        rgb[2] = t;
         break;
 
       case 3:
-        rgb[C3Vector::C3AXIS_X] = p;
-        rgb[C3Vector::C3AXIS_Y] = q;
-        rgb[C3Vector::C3AXIS_Z] = hsv[C3Vector::C3AXIS_Z];
+        rgb[0] = p;
+        rgb[1] = q;
+        rgb[2] = hsv[2];
         break;
 
       case 4:
-        rgb[C3Vector::C3AXIS_X] = t;
-        rgb[C3Vector::C3AXIS_Y] = p;
-        rgb[C3Vector::C3AXIS_Z] = hsv[C3Vector::C3AXIS_Z];
+        rgb[0] = t;
+        rgb[1] = p;
+        rgb[2] = hsv[2];
         break;
 
       case 5:
-        rgb[C3Vector::C3AXIS_X] = hsv[C3Vector::C3AXIS_Z];
-        rgb[C3Vector::C3AXIS_Y] = p;
-        rgb[C3Vector::C3AXIS_Z] = q;
+        rgb[0] = hsv[2];
+        rgb[1] = p;
+        rgb[2] = q;
         break;
 
       default:

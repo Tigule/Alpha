@@ -13,42 +13,38 @@ COsSharedMemory::~COsSharedMemory() {
 }
 
 bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
-  DWORD  access = FILE_MAP_WRITE;
-  HANDLE mapping = 0;
+  DWORD access = FILE_MAP_WRITE;
 
   switch (mode) {
     case 0:
     case 2:
-      mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, 0x08000004, 0, size, name);
-      break;
-
-    case 1:
-      mapping = OpenFileMappingA(access, FALSE, name);
+      *reinterpret_cast<HANDLE *>(m_opaqueData) = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, 0x08000004, 0, size, name);
       break;
 
     case 3:
       access = FILE_MAP_READ;
-      mapping = OpenFileMappingA(access, FALSE, name);
+
+    case 1:
+      *reinterpret_cast<HANDLE *>(m_opaqueData) = OpenFileMappingA(access, FALSE, name);
       break;
 
     default:
       return true;
   }
 
-  *reinterpret_cast<HANDLE *>(m_opaqueData) = mapping;
-  if (!mapping) {
+  if (!*reinterpret_cast<HANDLE *>(m_opaqueData)) {
     return true;
   }
 
   if (GetLastError() == ERROR_ALREADY_EXISTS && mode == 0) {
-    CloseHandle(mapping);
+    CloseHandle(*reinterpret_cast<HANDLE *>(m_opaqueData));
     *reinterpret_cast<HANDLE *>(m_opaqueData) = 0;
     return true;
   }
 
-  m_data = MapViewOfFile(mapping, access, 0, 0, 0);
+  m_data = MapViewOfFile(*reinterpret_cast<HANDLE *>(m_opaqueData), access, 0, 0, 0);
   if (!m_data) {
-    CloseHandle(mapping);
+    CloseHandle(*reinterpret_cast<HANDLE *>(m_opaqueData));
     *reinterpret_cast<HANDLE *>(m_opaqueData) = 0;
     return true;
   }
@@ -61,7 +57,13 @@ bool COsSharedMemory::ChangeAccess(int newAccess) {
   DWORD oldAccess;
   DWORD protection;
 
-  if (!*reinterpret_cast<HANDLE *>(m_opaqueData) || !m_data || !m_size) {
+  if (!*reinterpret_cast<HANDLE *>(m_opaqueData)) {
+    return true;
+  }
+  if (!m_data) {
+    return true;
+  }
+  if (!m_size) {
     return true;
   }
 

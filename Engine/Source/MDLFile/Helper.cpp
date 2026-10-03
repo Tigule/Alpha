@@ -11,7 +11,7 @@ namespace MDL {
   BOOL ReadHelper(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet                errors;
     MDLGENOBJECT       *helper = data.helpers.New();
-    NTempest::C3Vector *pivot = data.pivotPoints.Count() < 500 ? data.pivotPoints.New() : 0;
+    NTempest::C3Vector *pivot = data.version < 500 ? data.pivotPoints.New() : 0;
 
     AddObjectErrors(errors);
     ReadObjectName(parse, helper->name);
@@ -19,7 +19,7 @@ namespace MDL {
 
     LPCSTR tokenText;
     UINT   token = parse.Token(&tokenText, 0);
-    while (token && token != '}') {
+    while (token != '}' && token) {
       if (!errors.Check(token)) {
         parse.FatalDuplicate(tokenText);
       }

@@ -1,5 +1,15 @@
 #include <Base/Base.h>
 #include <WowConst.h>
+#include "Glue/CGlueMgr.h"
+#include <Frame/CSimpleFrame.h>
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Glue/CharCreateInfo.h"
+#include "Glue/CharSelectInfo.h"
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
+#include "SoundInterface/SoundInterface.h"
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
 
 #include "Glue/GlueScriptEvents.h"
 
@@ -154,7 +164,7 @@ static int Script_GetServerName(lua_State *L) {
 
 static int Script_DisconnectFromServer(lua_State *) {
   if (ClientServices_IsConnected()) {
-    CGlueMgr::ExpectDisconnect(0);
+    CGlueMgr::ExpectDisconnect(1);
     ClientServices_Disconnect();
   }
 
@@ -213,8 +223,7 @@ static int Script_ChangeRealm(lua_State *L) {
     return 0;
   }
 
-  int               index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  const REALM_INFO *realm = ClientServices_GetRealmInfoByIndex(index);
+  const REALM_INFO *realm = ClientServices_GetRealmInfoByIndex(static_cast<int>(lua_tonumber(L, 1)) - 1);
   if (!realm) {
     luaL_error(L, "Bad realm index in ChangeRealm");
     return 0;

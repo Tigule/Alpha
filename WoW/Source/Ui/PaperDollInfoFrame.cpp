@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -52,7 +54,7 @@ UINT                  CGCharacterInfo::m_secondaryOffset;
 UINT                  CGCharacterInfo::m_numSkills;
 CGCharacterModelBase *CGCharacterInfo::m_paperDoll;
 
-static UINT s_playerLevel;
+int s_qsortLevel;
 
 struct ProficiencyInfo {
   int minLevel;
@@ -65,7 +67,7 @@ static const ItemSubClassRec *FindItemSubClassRecord(int classID, int subClassID
 static int __cdecl            QSortCompareProficiency(LPCVOID a, LPCVOID b);
 
 static BOOL PlayerCharacterPointsUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
-  CGCharacterInfo::UpdateAllSkillLines();
+  FrameScript_SignalEvent(247);
   return 1;
 }
 
@@ -94,15 +96,16 @@ void CGCharacterInfo::LeaveWorld() {
 
 void CGCharacterInfo::InstallMirrorHandlers(DWORDLONG player) {
   if (player) {
-    UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-    ClntObjMgrSetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, characterPoints), sizeof(((CGPlayerData *)0)->characterPoints), PlayerCharacterPointsUpdateHandler, 0, HANDLER_PRIORITY_NORMAL);
+    ClntObjMgrSetObjMirrorHandler(
+        player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, characterPoints), sizeof(((CGPlayerData *)0)->characterPoints),
+        PlayerCharacterPointsUpdateHandler, 0, HANDLER_PRIORITY_NORMAL
+    );
   }
 }
 
 void CGCharacterInfo::RemoveMirrorHandlers(DWORDLONG player) {
   if (player) {
-    UINT playerOffset = CGPlayer_C::OffsetOf(ID_PLAYER);
-    ClntObjMgrUnsetObjMirrorHandler(player, playerOffset + offsetof(CGPlayerData, characterPoints), PlayerCharacterPointsUpdateHandler, 0);
+    ClntObjMgrUnsetObjMirrorHandler(player, CGPlayer_C::OffsetOf(ID_PLAYER) + offsetof(CGPlayerData, characterPoints), PlayerCharacterPointsUpdateHandler, 0);
   }
 }
 
@@ -130,7 +133,7 @@ void CGCharacterInfo::UpdateItem(DWORDLONG item) {
 
 void CGCharacterInfo::PickupItem(int slot) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || (!CGGameUI::HasPlayerControl() && !((player->GetUnitData()->flags >> 20) & 1))) {
+  if (!player || (!CGGameUI::HasPlayerControl() && !player->IsOnTaxi())) {
     return;
   }
 
@@ -262,7 +265,12 @@ BOOL CGCharacterInfo::PutItemInBag(int slot) {
   UINT virtualSlot;
   CGGameUI::GetCursorVirtualItem(virtualItem, virtualSlot);
 
-  DWORDLONG targetBag = slot == 255 ? player->GetGUID() : player->CGPlayer_C::GetBag()->GetItem(slot);
+  DWORDLONG targetBag;
+  if (slot == 255) {
+    targetBag = player->GetGUID();
+  } else {
+    targetBag = player->CGPlayer_C::GetBag()->GetItem(slot);
+  }
   if (!targetBag) {
     PickupItem(slot);
     return 0;
@@ -329,25 +337,25 @@ static int __cdecl QSortCompareByCategoryAndLevel(LPCVOID a, LPCVOID b) {
   FATALASSERT(b);
   const SkillLineRec *skill1 = *static_cast<const SkillLineRec *const *>(a);
   const SkillLineRec *skill2 = *static_cast<const SkillLineRec *const *>(b);
-  if (skill1->m_skillType != skill2->m_skillType) {
-    return skill1->m_skillType > skill2->m_skillType ? 1 : -1;
-  }
-  if (skill1->m_minCharLevel <= static_cast<int>(s_playerLevel)) {
-    if (skill2->m_minCharLevel <= static_cast<int>(s_playerLevel)) {
-      if (skill1->m_categoryID != skill2->m_categoryID) {
-        return skill1->m_categoryID > skill2->m_categoryID ? 1 : -1;
+  if (skill1->m_skillType == skill2->m_skillType) {
+    if (skill1->m_minCharLevel <= s_qsortLevel && skill2->m_minCharLevel <= s_qsortLevel) {
+      if (skill1->m_categoryID == skill2->m_categoryID) {
+        return SStrCmp(skill1->m_displayName_lang[CURRENT_LANGUAGE], skill2->m_displayName_lang[CURRENT_LANGUAGE], 4);
       }
+      return skill1->m_categoryID > skill2->m_categoryID ? 1 : -1;
+    }
+    if (skill1->m_minCharLevel <= s_qsortLevel) {
+      return -1;
+    }
+    if (skill2->m_minCharLevel <= s_qsortLevel) {
+      return 1;
+    }
+    if (skill1->m_minCharLevel == skill2->m_minCharLevel) {
       return SStrCmp(skill1->m_displayName_lang[CURRENT_LANGUAGE], skill2->m_displayName_lang[CURRENT_LANGUAGE], 4);
     }
-    return -1;
-  }
-  if (skill2->m_minCharLevel <= static_cast<int>(s_playerLevel)) {
-    return 1;
-  }
-  if (skill1->m_minCharLevel != skill2->m_minCharLevel) {
     return skill1->m_minCharLevel > skill2->m_minCharLevel ? 1 : -1;
   }
-  return SStrCmp(skill1->m_displayName_lang[CURRENT_LANGUAGE], skill2->m_displayName_lang[CURRENT_LANGUAGE], 4);
+  return skill1->m_skillType > skill2->m_skillType ? 1 : -1;
 }
 
 void CGCharacterInfo::OrderSkillLines() {
@@ -362,63 +370,56 @@ void CGCharacterInfo::OrderSkillLines() {
   for (i = 0; i < 69; ++i) {
     m_skillInfoList[i].isProf = 0;
     m_skillInfoList[i].skillID = 0;
-    if (i < 64) {
-      UINT skillID = playerPtr->GetMirrorSkillID(i);
-      if (skillID) {
-        const SkillLineRec *rec = g_skillLineDB.GetRecord(skillID);
-        if (rec && playerPtr->GetMirrorSkillMaxRank(i) && rec->m_categoryID < 4) {
-          if (!rec->m_skillType) {
-            ++numClassSkills;
-          }
-          skillInfo[count++] = rec;
+    if (i < 64 && playerPtr->GetMirrorSkillID(i) > 0) {
+      const SkillLineRec *rec = g_skillLineDB.GetRecord(playerPtr->GetMirrorSkillID(i));
+      skillInfo[count] = rec;
+      if (rec && playerPtr->GetMirrorSkillMaxRank(i) > 0 && rec->m_categoryID < 4) {
+        if (!rec->m_skillType) {
+          ++numClassSkills;
         }
+        ++count;
       }
     }
   }
-  s_playerLevel = playerPtr->GetUnitData()->level;
+  s_qsortLevel = playerPtr->GetLevel();
   qsort(skillInfo, count, sizeof(SkillLineRec *), QSortCompareByCategoryAndLevel);
   m_profOffset = numClassSkills + 1;
   m_specialOffset = 0;
   m_racialOffset = 0;
   m_secondaryOffset = 0;
-  UINT numProfs = OrderProficiencies(numClassSkills + 1);
+  UINT numProfs = OrderProficiencies(m_profOffset + 1);
   if (numProfs) {
     ++numProfs;
   }
   m_skillInfoList[0].isProf = 0;
   m_skillInfoList[0].skillID = 0;
   UINT skillCount = 1;
-  UINT output = numProfs + 1;
   for (i = 0; i < count; ++i) {
-    const SkillLineRec *rec = skillInfo[i];
-    if (!m_specialOffset && rec->m_skillType == 1) {
-      m_specialOffset = output++;
+    if (!m_specialOffset && skillInfo[i]->m_skillType == 1) {
+      m_specialOffset = numProfs + skillCount;
       ++skillCount;
     }
-    if (!m_racialOffset && rec->m_skillType == 2) {
-      m_racialOffset = output;
+    if (!m_racialOffset && skillInfo[i]->m_skillType == 2) {
+      m_racialOffset = numProfs + skillCount;
       if (!m_specialOffset) {
-        m_specialOffset = output;
+        m_specialOffset = numProfs + skillCount;
       }
       ++skillCount;
-      ++output;
     }
-    if (!m_secondaryOffset && (rec->m_skillType == 3 || rec->m_skillType == 4)) {
-      m_secondaryOffset = output;
+    if (!m_secondaryOffset && (skillInfo[i]->m_skillType == 3 || skillInfo[i]->m_skillType == 4)) {
+      m_secondaryOffset = numProfs + skillCount;
       if (!m_racialOffset) {
-        m_racialOffset = output;
+        m_racialOffset = numProfs + skillCount;
       }
       if (!m_specialOffset) {
-        m_specialOffset = output;
+        m_specialOffset = numProfs + skillCount;
       }
       ++skillCount;
-      ++output;
     }
-    UINT index = skillCount + (rec->m_skillType ? numProfs : 0);
+    UINT index = (skillInfo[i]->m_skillType ? numProfs : 0) + skillCount;
     m_skillInfoList[index].isProf = 0;
-    m_skillInfoList[index].skillID = rec->m_ID;
+    m_skillInfoList[index].skillID = skillInfo[i]->m_ID;
     ++skillCount;
-    ++output;
   }
   if (!m_secondaryOffset) {
     m_secondaryOffset = skillCount;
@@ -429,14 +430,14 @@ void CGCharacterInfo::OrderSkillLines() {
   if (!m_specialOffset) {
     m_specialOffset = skillCount;
   }
-  m_numSkills = numProfs + skillCount;
+  m_numSkills = skillCount + numProfs;
 }
 
 static const CharBaseInfoRec *GetCharBaseInfo(int raceID, int classID) {
   int i;
   for (i = 0; i < g_charBaseInfoDB.GetNumRecords(); ++i) {
     const CharBaseInfoRec *rec = g_charBaseInfoDB.GetRecordByIndex(i);
-    if (rec->m_raceID == raceID && rec->m_classID == classID) {
+    if (rec->m_classID == classID && rec->m_raceID == raceID) {
       return rec;
     }
   }
@@ -474,14 +475,13 @@ UINT CGCharacterInfo::OrderProficiencies(UINT offset) {
     if (rec->m_classID >= 0 && rec->m_classID < 16 && (rec->m_displayName_lang[CURRENT_LANGUAGE] || *rec->m_displayName_lang[CURRENT_LANGUAGE])) {
       FATALASSERT(numProfs < 24);
       UINT proficiency = CGPlayer_C::GetProficiency(static_cast<BYTE>(rec->m_classID));
-      UINT bit = 1 << rec->m_subClassID;
-      if ((proficiency & bit) && (rec->m_classID != 4 || !(proficiency & (1 << rec->m_postrequisiteProficiency)))) {
-        LPCSTR name = rec->m_verboseName_lang[CURRENT_LANGUAGE];
-        if (name && *name) {
-          SkillInfo *info = &m_skillInfoList[offset + numProfs];
-          info->isProf = 1;
-          info->profLevel = 0;
-          SStrCopy(info->profName, name, sizeof(info->profName));
+      if (proficiency && (proficiency & (1 << rec->m_subClassID)) &&
+          (rec->m_classID != 4 || !(proficiency & (1 << rec->m_postrequisiteProficiency))))
+      {
+        if (rec->m_verboseName_lang[CURRENT_LANGUAGE] && *rec->m_verboseName_lang[CURRENT_LANGUAGE]) {
+          m_skillInfoList[offset + numProfs].isProf = 1;
+          m_skillInfoList[offset + numProfs].profLevel = 0;
+          SStrCopy(m_skillInfoList[offset + numProfs].profName, rec->m_verboseName_lang[CURRENT_LANGUAGE], sizeof(m_skillInfoList[offset + numProfs].profName));
           ++numProfs;
           FATALASSERT(numProfs < 24);
         }
@@ -489,46 +489,41 @@ UINT CGCharacterInfo::OrderProficiencies(UINT offset) {
     }
   }
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!playerPtr) {
-    return numProfs;
-  }
-  const CharBaseInfoRec *base = GetCharBaseInfo(playerPtr->GetUnitData()->race, playerPtr->GetUnitData()->classId);
-  if (!base) {
-    return numProfs;
-  }
-  const ChrProficiencyRec *proficiencyRec = g_chrProficiencyDB.GetRecord(base->m_proficiency);
-  if (!proficiencyRec) {
-    return numProfs;
-  }
-  UINT orderedCount = 0;
-  for (i = 0; i < 16; ++i) {
-    if (proficiencyRec->m_proficiency_minLevel[i] > playerPtr->GetUnitData()->level && proficiencyRec->m_proficiency_acquireMethod[i] == 1) {
-      orderedSlots[orderedCount].minLevel = proficiencyRec->m_proficiency_minLevel[i];
-      orderedSlots[orderedCount].slot = i;
-      ++orderedCount;
-    }
-  }
-  qsort(orderedSlots, orderedCount, sizeof(ProficiencyInfo), QSortCompareProficiency);
-  for (i = 0; i < static_cast<int>(orderedCount); ++i) {
-    int  slot = orderedSlots[i].slot;
-    int  itemClass = proficiencyRec->m_proficiency_itemClass[slot];
-    UINT proficiency = CGPlayer_C::GetProficiency(static_cast<BYTE>(itemClass));
-    UINT bit;
-    for (bit = 0; bit < 32; ++bit) {
-      if ((proficiencyRec->m_proficiency_itemSubClassMask[slot] & (1 << bit)) && !(proficiency & (1 << bit))) {
-        const ItemSubClassRec *rec = FindItemSubClassRecord(itemClass, bit);
-        if (rec) {
-          LPCSTR name = rec->m_verboseName_lang[CURRENT_LANGUAGE];
-          if (*name) {
-            SkillInfo *info = &m_skillInfoList[offset + numProfs];
-            info->isProf = 1;
-            info->profLevel = proficiencyRec->m_proficiency_minLevel[slot];
-            SStrCopy(info->profName, name, sizeof(info->profName));
-            ++numProfs;
+  if (playerPtr) {
+    const CharBaseInfoRec *base = GetCharBaseInfo(playerPtr->GetRace(), playerPtr->GetClass());
+    if (base) {
+      const ChrProficiencyRec *proficiencyRec = g_chrProficiencyDB.GetRecord(base->m_proficiency);
+      if (proficiencyRec) {
+        int count = 0;
+        int j;
+        for (j = 0; j < 16; ++j) {
+          if (proficiencyRec->m_proficiency_minLevel[j] > playerPtr->GetLevel() && proficiencyRec->m_proficiency_acquireMethod[i] == 1) {
+            orderedSlots[count].minLevel = proficiencyRec->m_proficiency_minLevel[j];
+            orderedSlots[count].slot = j;
+            ++count;
+          }
+        }
+        qsort(orderedSlots, count, sizeof(ProficiencyInfo), QSortCompareProficiency);
+        for (i = 0; i < count; ++i) {
+          UINT proficiency = CGPlayer_C::GetProficiency(static_cast<BYTE>(proficiencyRec->m_proficiency_itemClass[orderedSlots[i].slot]));
+          UINT bit;
+          for (bit = 0; bit < 32; ++bit) {
+            if ((proficiencyRec->m_proficiency_itemSubClassMask[orderedSlots[i].slot] & (1 << bit)) && !(proficiency & (1 << bit))) {
+              const ItemSubClassRec *rec = FindItemSubClassRecord(proficiencyRec->m_proficiency_itemClass[orderedSlots[i].slot], bit);
+              if (rec && *rec->m_verboseName_lang[CURRENT_LANGUAGE]) {
+                m_skillInfoList[offset + numProfs].isProf = 1;
+                m_skillInfoList[offset + numProfs].profLevel = proficiencyRec->m_proficiency_minLevel[orderedSlots[i].slot];
+                SStrCopy(
+                    m_skillInfoList[offset + numProfs].profName, rec->m_verboseName_lang[CURRENT_LANGUAGE],
+                    sizeof(m_skillInfoList[offset + numProfs].profName)
+                );
+                ++numProfs;
+              }
+            }
+            FATALASSERT(numProfs < 24);
           }
         }
       }
-      FATALASSERT(numProfs < 24);
     }
   }
   return numProfs;
@@ -562,15 +557,21 @@ int CGCharacterInfo::GetSkillOffsetFromString(LPCSTR string, int &offset) {
 }
 
 const SkillInfo *CGCharacterInfo::GetSkillInfoByIndex(int index) {
-  return index >= 0 && static_cast<UINT>(index) < 93 ? &m_skillInfoList[index] : 0;
+  if (index >= 0 && static_cast<UINT>(index) < 93) {
+    return &m_skillInfoList[index];
+  }
+  return 0;
 }
 
 static BOOL GetSlotFromLua(lua_State *L, int &slot, int index) {
-  if (!lua_isnumber(L, index)) {
-    return 0;
+  if (lua_isnumber(L, index)) {
+    int value = static_cast<int>(lua_tonumber(L, index)) - 1;
+    if (value >= 0 && value <= 22 || value >= 39 && value <= 62 || value >= 63 && value <= 68) {
+      slot = value;
+      return 1;
+    }
   }
-  slot = static_cast<int>(lua_tonumber(L, index)) - 1;
-  return slot >= 0 && slot <= 22 || slot >= 39 && slot <= 62 || slot >= 63 && slot <= 68;
+  return 0;
 }
 
 static int Script_GetInventorySlotInfo(lua_State *L) {
@@ -602,19 +603,20 @@ static int Script_GetInventoryItemTexture(lua_State *L) {
     luaL_error(L, "Invalid inventory slot in GetInventoryItemTexture");
     return 0;
   }
-  CGUnit_C   *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  CGPlayer_C *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
-  CGBag_C    *bag = player ? player->CGPlayer_C::GetBag() : 0;
-  CGItem_C   *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
-  if (!item) {
-    lua_pushnil(L);
-    return 1;
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit && unit->IsA(ID_PLAYER)) {
+    CGItem_C *item =
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+    if (item) {
+      LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+      LPCSTR separator = *path ? "\\" : "";
+      char   buffer[MAX_PATH];
+      SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, item->GetInventoryArt());
+      lua_pushstring(L, buffer);
+      return 1;
+    }
   }
-  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  LPCSTR separator = *path ? "\\" : "";
-  char   buffer[MAX_PATH];
-  SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, separator, item->GetInventoryArt());
-  lua_pushstring(L, buffer);
+  lua_pushnil(L);
   return 1;
 }
 
@@ -628,17 +630,20 @@ static int Script_GetInventoryItemCount(lua_State *L) {
     luaL_error(L, "Invalid inventory slot in GetInventoryItemCount");
     return 0;
   }
-  CGUnit_C   *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  CGPlayer_C *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
-  CGBag_C    *bag = player ? player->CGPlayer_C::GetBag() : 0;
-  CGItem_C   *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
-  int         count = 1;
-  if (item && item->GetType() & TYPE_CONTAINER && item->GetClassID() == 11) {
-    count = item->GetBag()->GetItemTypeCount(-1, 0) > 0 ? item->GetBag()->GetItemTypeCount(-1, 0) : 0;
-  } else if (item) {
-    count = item->GetStackCount();
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit && unit->IsA(ID_PLAYER)) {
+    CGItem_C *item =
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+    if (item) {
+      if (item->IsA(ID_CONTAINER) && item->GetClassID() == 11) {
+        lua_pushnumber(L, static_cast<double>(max(item->GetBag()->GetItemTypeCount(-1, 0), 0)));
+        return 1;
+      }
+      lua_pushnumber(L, static_cast<double>(item->GetStackCount()));
+      return 1;
+    }
   }
-  lua_pushnumber(L, static_cast<double>(count));
+  lua_pushnumber(L, 1.0);
   return 1;
 }
 
@@ -652,16 +657,17 @@ static int Script_GetInventoryItemQuality(lua_State *L) {
     luaL_error(L, "Invalid inventory slot in GetInventoryItemQuality");
     return 0;
   }
-  CGUnit_C   *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  CGPlayer_C *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
-  CGBag_C    *bag = player ? player->CGPlayer_C::GetBag() : 0;
-  CGItem_C   *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
-  if (!item) {
-    lua_pushnil(L);
-    return 1;
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit && unit->IsA(ID_PLAYER)) {
+    CGItem_C *item =
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+    if (item) {
+      const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
+      lua_pushnumber(L, static_cast<double>(stats && stats->m_inventoryType ? stats->m_overallQualityID : -1));
+      return 1;
+    }
   }
-  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
-  lua_pushnumber(L, stats && stats->m_inventoryType ? static_cast<double>(stats->m_overallQualityID) : -1.0);
+  lua_pushnil(L);
   return 1;
 }
 
@@ -675,22 +681,23 @@ static int Script_GetInventoryItemCooldown(lua_State *L) {
     luaL_error(L, "Invalid inventory slot in GetInventoryItemCooldown");
     return 0;
   }
-  CGUnit_C   *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  CGPlayer_C *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
-  CGBag_C    *bag = player ? player->CGPlayer_C::GetBag() : 0;
-  CGItem_C   *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
-  if (!item) {
-    lua_pushnumber(L, 0.0);
-    lua_pushnumber(L, 0.0);
-    lua_pushnumber(L, 0.0);
-    return 3;
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit && unit->IsA(ID_PLAYER)) {
+    CGItem_C *item =
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+    if (item) {
+      DWORD startTime = 0;
+      UINT  duration = 0;
+      Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, 0);
+      lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
+      lua_pushnumber(L, static_cast<double>(duration) * 0.001);
+      lua_pushnumber(L, 1.0);
+      return 3;
+    }
   }
-  UINT        duration = 0;
-  DWORD       startTime = 0;
-  Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, 0);
-  lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
-  lua_pushnumber(L, static_cast<double>(duration) * 0.001);
-  lua_pushnumber(L, 1.0);
+  lua_pushnumber(L, 0.0);
+  lua_pushnumber(L, 0.0);
+  lua_pushnumber(L, 0.0);
   return 3;
 }
 
@@ -704,24 +711,27 @@ static int Script_GetInventoryItemLink(lua_State *L) {
     luaL_error(L, "Invalid inventory slot in GetInventoryItemLink");
     return 0;
   }
-  CGUnit_C        *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  CGPlayer_C      *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
-  CGBag_C         *bag = player ? player->CGPlayer_C::GetBag() : 0;
-  CGItem_C        *item = bag ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__)) : 0;
-  const ItemStats *stats = item ? g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0) : 0;
-  if (!stats) {
-    return 0;
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit && unit->IsA(ID_PLAYER)) {
+    CGItem_C *item =
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+    if (item) {
+      const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
+      if (stats) {
+        char link[1024];
+        SStrPrintf(link, sizeof(link), "|Hitem:%d|h[%s]|h", item->GetEntryID(), stats->m_displayName[0]);
+        lua_pushstring(L, link);
+        return 1;
+      }
+    }
   }
-  char link[1024];
-  SStrPrintf(link, sizeof(link), "|Hitem:%d|h[%s]|h", item->GetEntryID(), stats->m_displayName[0]);
-  lua_pushstring(L, link);
-  return 1;
+  return 0;
 }
 
 static int Script_PickupInventoryItem(lua_State *L) {
-  int slot;
+  int slot = 0;
   if (!GetSlotFromLua(L, slot, 1)) {
-    luaL_error(L, "Usage: PickupInventoryItem(slot)");
+    luaL_error(L, "Invalid inventory slot in PickupInventoryItem");
     return 0;
   }
   CGCharacterInfo::PickupItem(slot);
@@ -729,9 +739,9 @@ static int Script_PickupInventoryItem(lua_State *L) {
 }
 
 static int Script_UseInventoryItem(lua_State *L) {
-  int slot;
+  int slot = 0;
   if (!GetSlotFromLua(L, slot, 1)) {
-    luaL_error(L, "Usage: UseInventoryItem(slot)");
+    luaL_error(L, "Invalid inventory slot in UseInventoryItem");
     return 0;
   }
   CGCharacterInfo::UseItem(slot);
@@ -739,7 +749,7 @@ static int Script_UseInventoryItem(lua_State *L) {
 }
 
 static int Script_IsInventoryItemLocked(lua_State *L) {
-  int slot;
+  int slot = 0;
   if (!GetSlotFromLua(L, slot, 1)) {
     luaL_error(L, "Invalid inventory slot in IsInventoryItemLocked");
     return 0;
@@ -764,45 +774,46 @@ static int Script_GetSkillLineInfo(lua_State *L) {
 }
 
 static int Script_GetSkillByIndex(lua_State *L) {
-  int offset = 0;
-  if (!lua_isstring(L, 1) || !CGCharacterInfo::GetSkillOffsetFromString(lua_tostring(L, 1), offset) || !lua_isnumber(L, 2)) {
-    return luaL_error(L, "Invalid skill index in GetSkillByIndex(\"skillType\", index)");
-  }
-  const SkillInfo *info = CGCharacterInfo::GetSkillInfoByIndex(static_cast<int>(lua_tonumber(L, 2)) + offset);
-  if (!info) {
-    return luaL_error(L, "Invalid skill index in GetSkillByIndex(\"skillType\", index)");
-  }
-
-  if (info->isProf) {
-    lua_pushstring(L, info->profName);
-    lua_pushnumber(L, static_cast<double>(info->profLevel));
-    lua_pushnumber(L, 0.0);
-    lua_pushnumber(L, 0.0);
-    lua_pushnumber(L, 0.0);
-  } else {
-    const SkillLineRec *skill = g_skillLineDB.GetRecord(info->skillID);
-    if (!skill) {
-      return 5;
+  if (lua_isstring(L, 1)) {
+    int offset = 0;
+    if (CGCharacterInfo::GetSkillOffsetFromString(lua_tostring(L, 1), offset) && lua_isnumber(L, 2)) {
+      offset += static_cast<int>(lua_tonumber(L, 2));
+      const SkillInfo *info = CGCharacterInfo::GetSkillInfoByIndex(offset);
+      if (info) {
+        if (info->isProf) {
+          lua_pushstring(L, info->profName);
+          lua_pushnumber(L, static_cast<double>(info->profLevel));
+          lua_pushnumber(L, 0.0);
+          lua_pushnumber(L, 0.0);
+          lua_pushnumber(L, 0.0);
+        } else {
+          const SkillLineRec *skill = g_skillLineDB.GetRecord(info->skillID);
+          if (skill) {
+            lua_pushstring(L, skill->m_displayName_lang[CURRENT_LANGUAGE]);
+            lua_pushnumber(L, static_cast<double>(skill->m_minCharLevel));
+            CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+            if (player) {
+              int skillIndex = player->GetSkillIndex(info->skillID);
+              lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillRank(skillIndex)));
+              lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillModifier(skillIndex)));
+              lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillMaxRank(skillIndex)));
+            } else {
+              lua_pushnumber(L, 0.0);
+              lua_pushnumber(L, 0.0);
+              lua_pushnumber(L, 0.0);
+            }
+          }
+        }
+        return 5;
+      }
     }
-    lua_pushstring(L, skill->m_displayName_lang[CURRENT_LANGUAGE]);
-    lua_pushnumber(L, static_cast<double>(skill->m_minCharLevel));
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    if (!player) {
-      lua_pushnumber(L, 0.0);
-      lua_pushnumber(L, 0.0);
-      lua_pushnumber(L, 0.0);
-      return 5;
-    }
-    int skillIndex = player->GetSkillIndex(info->skillID);
-    lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillRank(skillIndex)));
-    lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillModifier(skillIndex)));
-    lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillMaxRank(skillIndex)));
   }
-  return 5;
+  luaL_error(L, "Invalid skill index in GetSkillByIndex(\"skillType\", index)");
+  return 0;
 }
 
 static int Script_PutItemInBag(lua_State *L) {
-  int slot;
+  int slot = 0;
   if (!GetSlotFromLua(L, slot, 1) || slot < 19) {
     luaL_error(L, "Invalid bag slot in PutItemInBag");
     return 0;
@@ -825,7 +836,7 @@ static int Script_PutItemInBackpack(lua_State *L) {
 }
 
 static int Script_PickupBagFromSlot(lua_State *L) {
-  int slot;
+  int slot = 0;
   if (!GetSlotFromLua(L, slot, 1) || slot < 19) {
     luaL_error(L, "Invalid bag slot in PickupBagFromSlot");
     return 0;
@@ -890,7 +901,7 @@ static int Script_SetInventoryPortaitTexture(lua_State *L) {
     return 0;
   }
   CGUnit_C   *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  CGPlayer_C *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
+  CGPlayer_C *player = unit && unit->IsA(ID_PLAYER) ? static_cast<CGPlayer_C *>(unit) : 0;
   CGItem_C   *item = player ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(player->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__)) : 0;
   if (item) {
     LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
@@ -913,17 +924,21 @@ static int Script_GetGuildInfo(lua_State *L) {
     luaL_error(L, "Usage: GetGuildInfo(\"unit\")");
     return 0;
   }
-  CGUnit_C           *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  CGPlayer_C         *player = unit && unit->GetType() & TYPE_PLAYER ? static_cast<CGPlayer_C *>(unit) : 0;
-  const GuildStats_C *guild =
-      player && player->GetGuildID() ? g_guildInfoCache.GetRecord(player->GetGuildID(), player->GetGUID(), GuildNameCallback, 0) : 0;
-  if (guild) {
-    lua_pushstring(L, guild->m_guildName);
-    lua_pushnumber(L, static_cast<double>(player->GetGuildRank()));
-  } else {
-    lua_pushnil(L);
-    lua_pushnumber(L, 0.0);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit && unit->IsA(ID_PLAYER)) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(unit);
+    int         guildID = player->GetGuildID();
+    if (guildID) {
+      const GuildStats_C *guild = g_guildInfoCache.GetRecord(guildID, player->GetGUID(), GuildNameCallback, 0);
+      if (guild) {
+        lua_pushstring(L, guild->m_guildName);
+        lua_pushnumber(L, static_cast<double>(player->GetGuildRank()));
+        return 2;
+      }
+    }
   }
+  lua_pushnil(L);
+  lua_pushnumber(L, 0.0);
   return 2;
 }
 

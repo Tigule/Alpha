@@ -1,14 +1,19 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
-
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
 #include "DayNight.h"
-#include "Gx/Gx.h"
-#include "Model/CollisionData.h"
+
 #include "Model/IModel.h"
+#include "Model/CollisionData.h"
 #include "WorldCommon/WorldMath.h"
 
 #include <float.h>
@@ -69,25 +74,18 @@ void CMapStaticEntity::AdjustLightmap(
     NTempest::CImVector       &ambColor,
     BYTE                       maxAmbient
 ) {
-  UINT maxMag = lmColor.r;
-  if (lmColor.g > maxMag) {
-    maxMag = lmColor.g;
-  }
-  if (lmColor.b > maxMag) {
-    maxMag = lmColor.b;
-  }
-  if (!maxMag) {
-    maxMag = 1;
-  }
+  BYTE maxMag = max(max(max(lmColor.r, lmColor.g), lmColor.b), 1);
 
   dirColor = lmColor;
   if (maxMag < minDir) {
-    NTempest::C3Vector rgb = dirColor;
+    NTempest::C3Vector rgb(dirColor.r * 0.0039215689f, dirColor.g * 0.0039215689f, dirColor.b * 0.0039215689f);
     NTempest::C3Vector hsv;
     NTempest::RGBtoHSV(rgb, hsv);
     hsv.z *= static_cast<float>(minDir) / maxMag;
     NTempest::HSVtoRGB(hsv, rgb);
-    dirColor = rgb;
+    dirColor = NTempest::CImVector(
+        255, NTempest::CMath::ftol_0_256_(rgb.x * 255.0f), NTempest::CMath::ftol_0_256_(rgb.y * 255.0f), NTempest::CMath::ftol_0_256_(rgb.z * 255.0f)
+    );
   }
 
   ambColor = lmColor;

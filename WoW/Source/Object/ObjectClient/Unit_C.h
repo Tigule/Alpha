@@ -8,7 +8,6 @@
 #include "Object/MovementData.h"
 #include "Object/Unit.h"
 #include "Object/UnitCombat.h"
-#include "Net/NetClient/NetClient.h"
 
 #include <Tempest/c3ivector.h>
 
@@ -29,6 +28,8 @@ struct HCHARGEOSET__;
 typedef HCHARGEOSET__ *HCHARGEOSET;
 template <class T>
 class TSStackArray;
+enum NETMESSAGE;
+class CDataStore;
 
 void UnitUpdateMovementAnim(const DWORDLONG &unit);
 BOOL UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
@@ -367,7 +368,9 @@ enum PUREMOUNTFADEMODE {
 NODEDECL(SPELLEFFECTDESC) {
   const SpellVisualKitRec *kitPtr;
 
-  ~SPELLEFFECTDESC();
+  ~SPELLEFFECTDESC() {
+    ClearLightningObjects();
+  }
   SPELLEFFECTDESC();
   void ClearLightningObjects();
 
@@ -423,13 +426,14 @@ struct ACTIVEATTACHMENTINFO {
   const ItemVisualsRec     *enchantmentVisual;
   ATTACHMENTMODELINFO       modelInfo[2];
 
-  __forceinline ACTIVEATTACHMENTINFO() : inventoryType(0), flags(0), invSlot(-1), sheathAttachmentSlot(-1), displayInfo(0), enchantmentVisual(0) {
-  }
-  __forceinline ~ACTIVEATTACHMENTINFO() {
-  }
   void Clear();
-  void ClearAttachmentFromModel(HMODEL charModel, HMODEL paperDollModel);
+  ~ACTIVEATTACHMENTINFO() {
+    Clear();
+  }
+  ACTIVEATTACHMENTINFO() : inventoryType(0), flags(0), invSlot(-1), sheathAttachmentSlot(-1), displayInfo(0), enchantmentVisual(0) {
+  }
   void Hide(CGUnit_C *unitPtr, HMODEL charModel, HMODEL paperDollModel, bool hide);
+  void ClearAttachmentFromModel(HMODEL charModel, HMODEL paperDollModel);
 };
 
 enum UNITSOUNDTYPE {
@@ -637,128 +641,199 @@ class CGUnit {
   friend int  Player_C_AppFocusMovementHandler(int focus);
 
  public:
-  static UINT               GetDataSize();
-  static UINT               GetBaseOffset();
-  static __forceinline UINT TotalFields() {
-    return 184;
+  UINT GetUnitFlags() const {
+    return m_unit->flags;
   }
-  static UINT             GetUpdateMaskBytes();
-  static UINT             GetUpdateMaskBlocks();
-  virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
-
-  UINT              GetUnitFlags() const;
   BYTE GetUnitNPCFlags() const {
     return m_unit->npcFlags;
   }
-  BYTE              IsAlive() const;
-  BYTE              IsDead() const;
+  BYTE IsAlive() const;
+  BYTE IsDead() const {
+    return m_unit->health <= 0;
+  }
   int GetHealth() const {
     return m_unit->health;
   }
-  float             GetHealthPercent() const;
-  int               GetPower(POWER_TYPE powerType) const;
-  int               GetMaxPower(POWER_TYPE powerType) const;
-  float             GetPowerPercent(POWER_TYPE powerType) const;
-  POWER_TYPE        GetDisplayPower() const;
+  float GetHealthPercent() const {
+    return static_cast<float>(m_unit->health) / m_unit->maxHealth;
+  }
+  int GetPower(POWER_TYPE powerType) const {
+    return powerType == -2 ? m_unit->health : m_unit->power[powerType];
+  }
+  int GetMaxPower(POWER_TYPE powerType) const {
+    return powerType == -2 ? m_unit->maxHealth : m_unit->maxPower[powerType];
+  }
+  float GetPowerPercent(POWER_TYPE powerType) const;
+  POWER_TYPE GetDisplayPower() const {
+    return static_cast<POWER_TYPE>(m_unit->displayPower);
+  }
   __forceinline int GetMaxHealth() const {
     return m_unit->maxHealth;
   }
-  UINT                   GetMoney() const;
-  int                    GetLevel() const;
-  UINT                   GetMinDamage() const;
-  UINT                   GetMaxDamage() const;
-  BOOL                   IsCombatLoggingActive() const;
-  int                    GetCurrentStat(UINT stat) const;
-  int                    GetEffectiveStat(UINT stat) const;
-  int                    GetBaseStat(UINT stat) const;
-  int                    GetResistance(UINT school) const;
-  int                    GetEffectiveResistance(UINT school) const;
-  int                    GetResistanceBuffModPositive(UINT school) const;
-  int                    GetResistanceBuffModNegative(UINT school) const;
-  int                    GetResistanceItemMod(UINT school) const;
+  UINT GetMoney() const {
+    return m_unit->coinage;
+  }
+  int GetLevel() const {
+    return m_unit->level;
+  }
+  UINT GetMinDamage() const {
+    return m_unit->minDamage;
+  }
+  UINT GetMaxDamage() const {
+    return m_unit->maxDamage;
+  }
+  BOOL IsCombatLoggingActive() const;
+  int GetCurrentStat(UINT statNumber) const {
+    FATALASSERT(statNumber < (sizeof(m_unit->stats) / sizeof(m_unit->stats[0])));
+    return m_unit->stats[statNumber];
+  }
+  int GetEffectiveStat(UINT stat) const;
+  int GetBaseStat(UINT statNumber) const {
+    FATALASSERT(statNumber < (sizeof(m_unit->baseStats) / sizeof(m_unit->baseStats[0])));
+    return m_unit->baseStats[statNumber];
+  }
+  int GetResistance(UINT resistance) const {
+    FATALASSERT(resistance < (sizeof(m_unit->resistances) / sizeof(m_unit->resistances[0])));
+    return m_unit->resistances[resistance];
+  }
+  int GetEffectiveResistance(UINT resistance) const {
+    FATALASSERT(resistance < (sizeof(m_unit->resistances) / sizeof(m_unit->resistances[0])));
+    return m_unit->resistances[resistance] < 0 ? 0 : m_unit->resistances[resistance];
+  }
+  int GetResistanceBuffModPositive(UINT resistance) const {
+    FATALASSERT(resistance < (sizeof(m_unit->resistanceBuffModsPositive) / sizeof(m_unit->resistanceBuffModsPositive[0])));
+    return m_unit->resistanceBuffModsPositive[resistance];
+  }
+  int GetResistanceBuffModNegative(UINT resistance) const {
+    FATALASSERT(resistance < (sizeof(m_unit->resistanceBuffModsNegative) / sizeof(m_unit->resistanceBuffModsNegative[0])));
+    return m_unit->resistanceBuffModsNegative[resistance];
+  }
+  int GetResistanceItemMod(UINT school) const;
   UINT GetRace() const {
     return m_unit->race;
   }
-  UINT                   GetClass() const;
-  UNIT_SEX               GetSex() const;
-  int                    GetModDamageDone(UINT school) const;
-  int                    GetModDamageTaken(UINT school) const;
-  int                    GetModCreatureDamageDone(UINT creatureType) const;
+  UINT GetClass() const {
+    return m_unit->classId;
+  }
+  UNIT_SEX GetSex() const {
+    return static_cast<UNIT_SEX>(m_unit->sex);
+  }
+  int GetModDamageDone(UINT school) const {
+    return m_unit->modDamageDone[school];
+  }
+  int      GetModDamageTaken(UINT school) const;
+  int      GetModCreatureDamageDone(UINT creatureType) const;
   const DWORDLONG &GetCharm() const {
     return m_unit->charm;
   }
   const DWORDLONG &GetSummon() const {
     return m_unit->summon;
   }
-  const DWORDLONG       &GetControlledGUID() const;
-  const DWORDLONG       &GetCharmedBy() const;
-  BYTE                   IsCharmedBy(const DWORDLONG &guid) const;
-  BYTE                   IsCharmed() const;
-  const DWORDLONG       &GetSummonedBy() const;
-  BYTE                   IsSummonedBy(const DWORDLONG &guid) const;
-  BYTE                   IsSummoned() const;
-  const DWORDLONG       &GetCreatedBy() const;
-  BYTE                   IsCreatedBy(const DWORDLONG &guid) const;
-  BYTE                   IsCreated() const;
-  int                    GetCreatedBySpell() const;
-  const DWORDLONG       &GetControlGUID() const;
-  const DWORDLONG       &GetOwnerGUID() const;
-  BYTE                   IsPossessedBy(const DWORDLONG &guid) const;
-  BYTE                   IsPossessed() const;
-  float                  GetBoundingRadius() const;
-  float                  GetCombatReach() const;
-  int                    GetDisplayID() const;
+  const DWORDLONG &GetControlledGUID() const {
+    return m_unit->charm ? m_unit->charm : m_unit->summon;
+  }
+  const DWORDLONG &GetCharmedBy() const {
+    return m_unit->charmedBy;
+  }
+  BYTE             IsCharmedBy(const DWORDLONG &guid) const;
+  BYTE IsCharmed() const {
+    return m_unit->charmedBy != 0;
+  }
+  const DWORDLONG &GetSummonedBy() const {
+    return m_unit->summonedBy;
+  }
+  BYTE             IsSummonedBy(const DWORDLONG &guid) const;
+  BYTE             IsSummoned() const;
+  const DWORDLONG &GetCreatedBy() const {
+    return m_unit->createdBy;
+  }
+  BYTE             IsCreatedBy(const DWORDLONG &guid) const;
+  BYTE             IsCreated() const;
+  int GetCreatedBySpell() const {
+    return m_unit->createdBySpell;
+  }
+  const DWORDLONG &GetControlGUID() const {
+    return m_unit->charmedBy ? m_unit->charmedBy : m_unit->summonedBy;
+  }
+  const DWORDLONG &GetOwnerGUID() const {
+    return m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
+  }
+  BYTE IsPossessedBy(const DWORDLONG &guid) const {
+    return IsPossessed() && guid == GetOwnerGUID();
+  }
+  BYTE IsPossessed() const {
+    return (GetUnitFlags() >> 24) & 1;
+  }
+  float GetBoundingRadius() const;
+  float GetCombatReach() const {
+    return m_unit->weaponReach + m_unit->combatReach;
+  }
+  int GetDisplayID() const {
+    return m_unit->displayID;
+  }
   UINT                   GetMonsterItemDisplay(UINT slot) const;
   const VirtualItemInfo *GetMonsterItemInfo(UINT slot) const;
-  UINT                   GetShapeshiftForm() const;
+  UINT GetShapeshiftForm() const {
+    return m_unit->shapeshiftForm;
+  }
   UINT                   GetShapeshiftBit() const;
   BYTE                   IsChannelling() const;
-  int                    GetChannelSpell() const;
+  int GetChannelSpell() const {
+    return m_unit->channelSpell;
+  }
   DWORDLONG GetChannelObject() const {
     return m_unit->channelObject;
   }
-  int                    ModCastSpeed() const;
-  DWORDLONG              GetComboTarget() const;
-  UINT                   GetComboPoints() const;
-  void                   GetPosition(NTempest::C3Vector &position) const;
+  int ModCastSpeed() const {
+    return m_unit->modCastingSpeed;
+  }
+  DWORDLONG GetComboTarget() const {
+    return m_unit->comboTarget;
+  }
+  UINT GetComboPoints() const {
+    return m_unit->comboPoints;
+  }
   NTempest::C3Vector     GetPosition() const {
     return m_move.GetPosition();
   }
-  NTempest::C3Vector     GetRawPosition() const;
-  float                  GetFacing() const;
-  float                  GetRawFacing() const;
-  void                   GetAnchorPosition(NTempest::C3Vector &position) const;
-  NTempest::C3Vector     GetAnchorPosition() const;
-  float                  GetAnchorFacing() const;
-  float                  GetPitch() const;
-  NTempest::C3Vector     GetGroundNormal() const;
-  float                  GetRunSpeed() const;
-  float                  GetWalkSpeed() const;
-  float                  GetSwimSpeed() const;
-  float                  GetTurnRate() const;
+  void               GetPosition(NTempest::C3Vector &position) const;
+  NTempest::C3Vector GetRawPosition() const;
+  float              GetFacing() const;
+  float              GetRawFacing() const;
+  NTempest::C3Vector GetAnchorPosition() const;
+  void               GetAnchorPosition(NTempest::C3Vector &position) const;
+  float              GetAnchorFacing() const;
+  float GetPitch() const {
+    return m_move.GetPitch();
+  }
+  NTempest::C3Vector GetGroundNormal() const;
+  float              GetRunSpeed() const;
+  float              GetWalkSpeed() const;
+  float              GetSwimSpeed() const;
+  float              GetTurnRate() const;
   UINT                   GetMoveFlags() const {
     return m_move.GetMoveFlags();
   }
-  BOOL  IsInMotion() const;
-  BOOL  IsMovingOrTurning() const;
-  BOOL  IsMovingOrFalling() const;
-  BOOL  IsMoving() const;
-  BOOL  IsMovingOrStrafing() const;
-  BOOL  IsMovingTurningOrStrafing() const;
-  BOOL  IsMovingStrafingOrFalling() const;
-  BOOL  IsMovingForward() const;
-  BOOL  IsMovingBackwards() const;
-  BOOL  IsWalking() const;
-  BOOL  IsRunning() const;
-  BOOL  IsTurning() const;
-  BOOL  IsTurningLeft() const;
-  BOOL  IsTurningRight() const;
-  BOOL  IsStrafingLeft() const;
-  BOOL  IsStrafingRight() const;
-  BOOL  IsStrafing() const;
-  BOOL  IsFalling() const;
-  BOOL  IsImmobilized() const;
-  int   Moved() const;
+  BOOL IsInMotion() const;
+  BOOL IsMovingOrTurning() const;
+  BOOL IsMovingOrFalling() const;
+  BOOL IsMoving() const;
+  BOOL IsMovingOrStrafing() const;
+  BOOL IsMovingTurningOrStrafing() const;
+  BOOL IsMovingStrafingOrFalling() const;
+  BOOL IsMovingForward() const;
+  BOOL IsMovingBackwards() const;
+  BOOL IsWalking() const;
+  BOOL IsRunning() const;
+  BOOL IsTurning() const;
+  BOOL IsTurningLeft() const;
+  BOOL IsTurningRight() const;
+  BOOL IsStrafingLeft() const;
+  BOOL IsStrafingRight() const;
+  BOOL IsStrafing() const;
+  BOOL IsFalling() const;
+  BOOL IsImmobilized() const;
+  int  Moved() const;
   DWORD GetMoveStartTime() const {
     return m_move.GetMoveStartTime();
   }
@@ -771,86 +846,157 @@ class CGUnit {
   float GetCollisionBoxHeight() const {
     return m_move.GetCollisionBoxHeight();
   }
-  int                IgnoresCollision() const;
-  BOOL               IsHalted() const;
-  void               BuildMovementUpdate(CDataStore *msg) const;
-  float              LinearDistanceSquared(const NTempest::C3Vector &position) const;
-  int                GetAura(int index) const;
-  BYTE               GetAuraFlags(int index) const;
-  UINT               GetAuraState() const;
-  BYTE               HasAuraState(UINT state) const;
-  BYTE               IsDisconnected() const;
-  BYTE               IsSpawning() const;
-  BYTE               IsClientLocked() const;
-  BYTE               IsOnTaxi() const;
-  BYTE               IsPlayerControlled() const;
-  BYTE               IsPlusMob() const;
-  BYTE               IsBeastmaster() const;
-  BYTE               IsImmunePC() const;
-  BYTE               IsImmuneNPC() const;
+  int   IgnoresCollision() const;
+  BOOL  IsHalted() const;
+  void  BuildMovementUpdate(CDataStore *msg) const;
+  float LinearDistanceSquared(const NTempest::C3Vector &position) const;
+  int GetAura(int index) const {
+    return m_unit->auras[index];
+  }
+  BYTE GetAuraFlags(int index) const {
+    return (m_unit->auraFlags[index / 2] >> (4 * (index % 2))) & 0xF;
+  }
+  UINT GetAuraState() const {
+    return m_unit->auraState;
+  }
+  BYTE  HasAuraState(UINT state) const;
+  BYTE               IsDisconnected() const {
+    return GetUnitFlags() & 1;
+  }
+  BYTE               IsSpawning() const {
+    return (GetUnitFlags() >> 1) & 1;
+  }
+  BYTE IsClientLocked() const {
+    return !IsSpawning() && (GetUnitFlags() & 0xC00004);
+  }
+  BYTE IsOnTaxi() const {
+    return (GetUnitFlags() >> 20) & 1;
+  }
+  BYTE               IsPlayerControlled() const {
+    return (GetUnitFlags() >> 3) & 1;
+  }
+  BYTE IsPlusMob() const {
+    return (GetUnitFlags() >> 6) & 1;
+  }
+  BYTE IsBeastmaster() const;
+  BYTE               IsImmunePC() const {
+    return (GetUnitFlags() >> 8) & 1;
+  }
+  BYTE               IsImmuneNPC() const {
+    return (GetUnitFlags() >> 9) & 1;
+  }
   BYTE               IsLooting() const {
-    return (m_unit->flags >> 10) & 1;
+    return (GetUnitFlags() >> 10) & 1;
   }
-  BYTE               IsInCombat() const;
+  BYTE IsInCombat() const;
   BYTE               IsMounted() const {
-    return (m_unit->flags >> 13) & 1;
+    return (GetUnitFlags() >> 13) & 1;
   }
-  BYTE      IsPureMountActive() const;
-  BYTE      IsPureMountMounted() const;
-  BYTE      IsFeignDeath() const;
-  BYTE      IsStealthed() const;
-  BYTE      IsInvisible() const;
-  BYTE      IsConfused() const;
-  BYTE      IsFleeing() const;
-  BYTE      IsAffectingCombat() const;
-  BYTE      IsMerchant() const;
-  BYTE      IsQuestGiver() const;
-  BYTE      IsTaxiNode() const;
-  BYTE      IsTrainer() const;
-  BYTE      IsBinder() const;
-  BYTE      IsBanker() const;
-  BYTE      IsNpcPetition() const;
-  BYTE      IsTabardVendor() const;
-  BYTE      IsGuildRegistrar() const;
-  BYTE      IsNPC() const;
-  int       GetMountDisplayID() const;
-  DWORDLONG GetTarget() const;
+  BYTE      IsPureMountActive() const {
+    return (GetUnitFlags() >> 12) & 1;
+  }
+  BYTE IsPureMountMounted() const;
+  BYTE IsFeignDeath() const {
+    return (GetUnitFlags() >> 14) & 1;
+  }
+  BYTE IsStealthed() const {
+    return (GetUnitFlags() >> 15) & 1;
+  }
+  BYTE IsInvisible() const {
+    return (GetUnitFlags() >> 16) & 1;
+  }
+  BYTE IsConfused() const;
+  BYTE IsFleeing() const;
+  BYTE IsAffectingCombat() const {
+    return (GetUnitFlags() >> 19) & 1;
+  }
+  BYTE IsMerchant() const {
+    return m_unit->npcFlags & 1;
+  }
+  BYTE IsQuestGiver() const {
+    return m_unit->npcFlags & 2;
+  }
+  BYTE IsTaxiNode() const {
+    return m_unit->npcFlags & 4;
+  }
+  BYTE IsTrainer() const {
+    return m_unit->npcFlags & 8;
+  }
+  BYTE IsBinder() const {
+    return m_unit->npcFlags & 0x10;
+  }
+  BYTE IsBanker() const {
+    return m_unit->npcFlags & 0x20;
+  }
+  BYTE IsNpcPetition() const {
+    return m_unit->npcFlags & 0x80;
+  }
+  BYTE IsTabardVendor() const {
+    return m_unit->npcFlags & 0x40;
+  }
+  BYTE IsGuildRegistrar() const {
+    return IsNpcPetition() && IsTabardVendor();
+  }
+  BYTE IsNPC() const {
+    return IsMerchant() || IsQuestGiver() || IsTaxiNode() || IsTrainer() || IsBinder() || IsBanker() || IsNpcPetition() || IsTabardVendor();
+  }
+  int  GetMountDisplayID() const;
+  DWORDLONG GetTarget() const {
+    return m_unit->target;
+  }
   UINT GetStandState() const {
     return m_unit->standState;
   }
-  int       StandStateValid(UNITSTANDSTATE newState) const;
-  BYTE      IsSitting() const;
-  BYTE      IsSleeping() const;
-  UINT      GetEmoteState() const;
-  UINT      GetPetNumber() const;
-  UINT      GetPetNameTimestamp() const;
-  BYTE     *GetData(UINT offset);
+  int  StandStateValid(UNITSTANDSTATE newState) const;
+  BYTE IsSitting() const;
+  BYTE IsSleeping() const;
+  UINT GetEmoteState() const;
+  UINT      GetPetNumber() const {
+    return m_unit->petNumber;
+  }
+  UINT      GetPetNameTimestamp() const {
+    return m_unit->petNameTimestamp;
+  }
+  BYTE       *GetData(UINT offset);
+  static UINT GetDataSize();
+  static UINT GetBaseOffset();
+  static __forceinline UINT TotalFields() {
+    return 184;
+  }
+  static UINT GetUpdateMaskBytes();
+  static UINT GetUpdateMaskBlocks();
   void      SetStorage(DWORD *storage) {
     m_unit = reinterpret_cast<CGUnitData *>(storage);
   }
-  UINT       GetAttackRoundTime(COMBATHAND hand) const;
-  WEAPONMODE GetWeaponMode() const;
-  BYTE       IsUsingRangedWeapon() const;
-  BYTE       GetSheathed() const;
-  void       SetWaterSurfaceElevation(float elevation);
+  UINT GetAttackRoundTime(COMBATHAND hand) const {
+    FATALASSERT(hand<NUMHANDS);
+    return m_unit->attackRoundBaseTime[hand];
+  }
+  WEAPONMODE GetWeaponMode() const {
+    return static_cast<WEAPONMODE>(m_unit->weaponMode);
+  }
+  BYTE                    IsUsingRangedWeapon() const;
+  BYTE                    GetSheathed() const;
+  virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
+  void                    SetWaterSurfaceElevation(float elevation);
 
  protected:
-  CGUnit(const CGUnit &);
   CGUnit(DWORD *storage, const NTempest::C3Vector &position, float facing, const DWORDLONG &guid)
       : m_unit(reinterpret_cast<CGUnitData *>(storage)), m_move(position, facing, guid) {
   }
+
+  CGUnit(const CGUnit &);
   ~CGUnit() {
   }
-
-  CGUnitData       *Unit();
   const CGUnitData *Unit() const;
+
+  CGUnitData *Unit();
+
+  CGUnitData   *m_unit;
+  CMovementData m_move;
 
  private:
   CGUnit &operator=(const CGUnit &);
-
- protected:
-  CGUnitData   *m_unit;
-  CMovementData m_move;
 };
 
 class CGUnit_C : public CGObject_C, public CGUnit {
@@ -861,251 +1007,256 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   friend struct ACTIVEATTACHMENTINFO;
   friend BOOL UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
   friend BOOL OnUnitCombatEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-
- public:
-  CGUnit_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init);
-  ~CGUnit_C();
-  virtual void Disable(int shutdown);
-  virtual void Reenable();
-  virtual void PostReenable();
-  virtual void PreRender(int currentTime, float elapsed);
-  virtual void PreAnimate(CGWorldFrame *worldFrame);
-
-  virtual void      GetAFKText(char *buffer, int size) const;
-  virtual void      GetDNDText(char *buffer, int size) const;
-  virtual void      GetGMText(char *buffer, int size) const;
-  virtual DWORDLONG GetLocalTarget() const;
-  virtual void      HandleSpellEventSound();
-  virtual void      CombatLoggingFlagChanged();
-  virtual DWORDLONG GetUnitBeingLooted() const;
-  virtual void      StopAttack();
-  virtual void      OnAttackStart(DWORDLONG victim);
-  virtual void      OnAttackStop(DWORDLONG previousTarget, int nowDead);
-  virtual void      OnDeath();
-  virtual void      OnDeathAnimate();
-  virtual void      OnGetAttacked(DWORDLONG attacker);
-  virtual void      OnBadAttackFacing(DWORDLONG victimGUID);
-  virtual void      OnBadAttackTarget(DWORDLONG victim);
-  virtual void      OnBadAttackPosition(DWORDLONG victimGUID, float range);
-  virtual void      OnNotStanding(DWORDLONG victim);
-  virtual void      UnitHit(VICTIMSTATES state, DWORDLONG attacker);
-  virtual void      OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo);
-  virtual void      HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log);
-
- protected:
-  virtual BOOL QueueAnim(ANIMQUEUETYPE type, const ATTACKROUNDINFO *roundInfo);
-  virtual void ProcessDiscardedAnim(ANIMQUEUENODE *node, bool doNotProcess);
-  virtual void ProcessAnim(ANIMQUEUENODE *node);
-
- public:
-  virtual void PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const;
-  virtual void PlayFoleySound() const;
-
- protected:
-  virtual UINT GetImpactType() const;
-
- public:
-  virtual const VirtualItemInfo *GetDefendingItem() const;
-  virtual void                   PlayDeathThudCameraShake() const;
-  virtual void                   LootAnimEndHandler();
-  virtual void                   RestoreUnit();
-  virtual void                   UpdateBaseAnimation(UINT flags);
-  virtual void                   StartSpellFizzleTimer(int spellID, UINT castingTime, int animSet);
-  virtual void                   SetTorsoAnimState(UINT newState);
-  virtual void                   SetBaseAnimState(UINT newState);
-
- protected:
-  virtual UINT DetermineWoundSequence() const;
-
- public:
-  virtual void                   OnFlagChanged(UINT oldFlags);
-  virtual const VirtualItemInfo *GetVirtualItem(UINT slot, bool ignoreDisarmFlag) const;
-  virtual int                    GetVirtualItemDisplayID(UINT slot) const;
-  virtual BOOL                   ShouldRenderUnitName(UINT mode) const;
-  virtual void                   CommitTexture(int force);
-  virtual UINT                   UpdateUnitNameString(UINT localPlayerFlags, UINT otherUnitsFlags, char *buffer, UINT bufferSize) const;
-  virtual void                   OnPickNextStandHandler();
-  virtual float                  GetMountScale() const;
-  virtual void                   OnMount();
-  virtual void                   OnDismount();
-  virtual bool                   CanBeMounted();
-
- protected:
-  virtual void CleanupUnitArtwork(int playerModelChanged, BOOL wasPlayerModel);
-  virtual void ReinitializeUnitArtwork();
-  virtual void PostReinitializeArtwork();
-
- public:
-  virtual void  OnStandStateChanged(UINT oldState, UINT newState);
-  virtual void  ChangeStandState(UINT standState);
-  virtual void  SetEmoteState(UINT emoteID);
-  virtual int   GetSpellRank(int spellID) const;
-  virtual bool  GetDefenseSkillRank(int &base, int &modifier) const;
-  virtual bool  GetAttackSkillRank(int hand, int &base, int &modifier) const;
-  virtual void  OnLevelChange();
-  virtual float GetBlockChance() const;
-  virtual float GetDodgeChance() const;
-  virtual float GetParryChance() const;
-  virtual int   GetSpellCastingTime(int spellID) const;
-  virtual void  UpdateObjComponentVisuals(const CGItem_C *item, const ItemEnchantment *enchantments, int num);
-  virtual void  ClearItemVisuals(ACTIVEATTACHMENTINFO *info);
-  virtual void  SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec *rec, bool force);
-  virtual void  SetLastWeaponModeSent(int mode);
-
-  void SetStorage(DWORD *storage);
-  void PostInit(const CClientObjCreate &init);
-  void PostMovementUpdate(const CClientMoveUpdate &update);
-  void UpdateUnitCollisionBox(HMODEL model, LPCSTR modelFileName);
-  void SetClientInitData(DWORD eventTime, const CClientObjCreate &init, bool partialUpdateOfActivePlayer);
-  void UpdateMoveInfo(DWORD eventTime, const CClientMoveUpdate &update);
-
- protected:
-  static DWORDLONG m_activeMover;
-
- public:
-  enum {
-    NUM_SAVED_FACING_DELTAS = 4
-  };
-
-  static void Initialize();
-  static void PostShutdown();
-  static void Shutdown();
-  static UINT OffsetOf(OBJECT_TYPE_ID type);
-  static void SetActiveMover(const DWORDLONG &guid);
-  static void StopMoveHeartbeatTimer();
-  static void StartMoveHeartbeatTimer();
-  static int  GetAnimPriority(int state);
-  static void NamePlateShow(int show);
-  int         GetCreatureType() const;
-  BOOL        CanBeLooted(DWORD currentTime) const;
-  static void UpdateUnitNameplates(CGWorldFrame *worldFrame);
-  static void RemoveAllNamePlates();
-
-  virtual LPCSTR GetObjectName() const;
-
- protected:
-  virtual BOOL ShouldFadeIn() const;
-
- public:
-  virtual BOOL GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
-  virtual void RenderTargetSelection() const;
-  void         BuildSelectionRotMatrix(NTempest::C44Matrix &matrix) const;
-  LPCSTR       GetUnitName() const;
-  LPCSTR       GetUnitTitle() const;
-  void         UpdatePlayerNameWorldText();
-
- private:
-  void AddUnitNamePlate(CGWorldFrame *worldFrame);
-  void InsertSortedNamePlate(struct NAMEPLATEDESC *desc);
-  void RemoveUnitNamePlate();
-
- public:
-  void                       DestroyFadingMounts();
-  void                       UpdateFadingMountModel(const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
-  void                       InitializeUnitName();
-  void                       CreateFadeInMount();
-  static void                ResortAllUnitNameplates(CGWorldFrame *worldFrame);
-  virtual NTempest::C3Vector GetPosition() const;
-  virtual void               GetPosition(NTempest::C3Vector &vec) const;
-  virtual float              GetFacing() const;
-  float                      GetDisplayFacing() const;
-  float                      GetSmoothFacing() const;
-  float                      GetRawSmoothFacing() const {
-    return m_smoothFacing;
-  }
-  void                       UpdateSmoothFacing();
-  void                       SetSmoothFacing(float facing);
-  bool                       IsTurningState() const;
-  virtual NTempest::C3Vector GetGroundNormal() const;
-  virtual void               GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
-  virtual void   ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
-  virtual float  GetRenderFacing() const;
-  virtual void   UpdateRenderFacing();
-  virtual void   UpdatePlayerName();
-  virtual void   PostAnimate(CGWorldFrame *worldFrame);
-  virtual void   OnSpecialMountAnim();
-  virtual BOOL   ShouldRender(DWORD worldStatus);
-  virtual HMODEL GetCharacterModel(int *mountedPtr) const;
-  virtual LPCSTR GetModelFileName() const;
-  virtual BOOL   UpdateModelLoadStatus();
-  void           RequestTalkEmote(TALKANIMATION talkAnim);
-  virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
-
-  __forceinline const CGUnitData *GetUnitData() const {
-    return m_unit;
-  }
-
-  HMODEL DuplicateCharacterModel(UINT flags) const;
-
- protected:
-  void InitializeSequenceFlags();
-  void MarkSwimAnimations();
-  void QueryModelStats();
-  void QueryMountModelStats();
-  void GetSwimMatrix(NTempest::C34Matrix *worldMatrix) const;
-  void UpdateDisplayFacing();
-  BOOL ShouldShuffle() const;
-
- private:
-  void      UpdateBaseRadius(HMODEL model);
-  CGUnit_C &operator=(const CGUnit_C &);
-
- public:
   friend void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit);
   friend void CreatureQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
   friend BOOL UnitModeUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
   friend BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
-  static void InitializeTextureVariations(const CreatureDisplayInfoRec *displayInfo, HMODEL theModel, const CreatureModelDataRec *modelData);
+  friend void MovementFixOutOfBoundsUnit(DWORDLONG guid);
 
  public:
-  void PostSetClientInitData(const CClientMoveUpdate &update);
-  BOOL OnMoveEvent(NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-  void OnMonsterMove(DWORD eventTime, CDataStore *msg);
-  BOOL OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *msg);
-  void OnMoveStopLocalNoUpdate(DWORD eventTime);
-  void OnSetRunModeLocalNoUpdate(DWORD eventTime, int run);
-  void OnSetFacingLocalNoUpdate(DWORD eventTime, float facing);
-  void OnSetFacingGUIDLocalNoUpdate(DWORD eventTime, const DWORDLONG &guid);
-  void OnTeleportNoUpdate(DWORD eventTime, const NTempest::C3Vector &position, float facing);
-  void OnPendingMoveStateChange(NETMESSAGE msgId);
-  void OnMoveStartLocal(DWORD eventTime, int forward);
-  void OnCollideFalling(DWORD eventTime);
-  void OnCollideFallLand(DWORD eventTime);
-  void OnMoveStopLocal(DWORD eventTime);
-  void OnJumpLocal(DWORD eventTime);
-  void ToggleRunModeLocal(DWORD eventTime);
-  void OnTurnStopLocal(DWORD eventTime);
-  void OnStrafeStopLocal(DWORD eventTime);
-  void OnStrafeStartLocal(DWORD eventTime, int left);
-  void OnTurnStartLocal(DWORD eventTime, int left);
-  void OnPitchStartLocal(DWORD eventTime, int up);
-  void OnPitchStopLocal(DWORD eventTime);
-  void OnSetRunModeLocal(DWORD eventTime, int run);
-  void OnSetFacingLocal(DWORD eventTime, float facing);
-  void OnSetRawFacingLocal(DWORD eventTime, float facing);
-  void OnSetPitchLocal(DWORD eventTime, float pitch);
-  void OnRunSpeedChangeLocal(DWORD eventTime, NETMESSAGE msgID, float speed);
-  void OnWalkSpeedChangeLocal(DWORD eventTime, float speed);
-  void OnSwimSpeedChangeLocal(DWORD eventTime, NETMESSAGE msgID, float speed);
-  void OnAllSpeedChangeLocal(DWORD eventTime, float speed);
-  void OnTurnRateChangeLocal(DWORD eventTime, float rate);
-  void OnMovementInitiated(bool facingOnly);
-  void OnTeleportLocalNoUpdate(DWORD eventTime, const NTempest::C3Vector &position, float facing);
-  void UpdateSwimmingStatus(DWORD eventTime, int inWater, float depth);
-  void SendRedirectionMessage();
-  void PlaySplashSound(const NTempest::C3Vector &position);
-  void ProcessLocalMoveEvent(NETMESSAGE msgId);
-  void BuildMovementUpdate(NETMESSAGE messageId, CDataStore *msg) const;
-  void SendMovementUpdate(NETMESSAGE messageId);
-  void StopSpellFizzleTimer(int spellID, BYTE status);
-  void SpellDelayed(int delay);
-  void EndSpellEffects(BYTE status);
-  BOOL SetCastingSpell(int spellID, bool force, bool precastAnimSuccessful);
-  bool SetSpellCastingAnimation(ANIMENUMERATION anim, UINT castKit, UINT soundID, int shakeID, ANIMENUMERATION &result);
-  void ClearSpellCastAnimInfo();
-  void AddHitAnimHolds(int spellID, const TSStackArray<DWORDLONG> &targets);
-  void MaybeSaveChannelSpellTargets(int spellID, const TSStackArray<DWORDLONG> &targets);
+  CGUnit_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init);
+  ~CGUnit_C();
+  void InitializeExtendedDisplay();
+
+  void         SetStorage(DWORD *storage);
+  void         PostInit(const CClientObjCreate &init);
+  void         PostMovementUpdate(const CClientMoveUpdate &update);
+  virtual void Disable(int shutdown);
+  virtual void Reenable();
+  virtual void PostReenable();
+  void         UpdateUnitCollisionBox(HMODEL model, LPCSTR modelFileName);
+  virtual BOOL IsSolidSelectable() const;
+  virtual BOOL IsSolidCollidable() const;
+  virtual BOOL CanHighlight() const;
+  virtual BOOL CanBeTargetted() const;
+  virtual void OnLeftClick();
+  virtual void OnRightClick();
+
+  virtual LPCSTR GetObjectName() const;
+  void           SetCreatureStats(const CreatureStats_C *stats);
+
+ protected:
+  virtual BOOL ShouldFadeIn() const;
+  void         UpdateUnitAlpha();
+
+ public:
+  bool IsClientControlled() const {
+    return IsPossessed() || (IsA(ID_PLAYER) && !IsCharmed() && !IsClientLocked() && !IsDisconnected());
+  }
+
+  static void Initialize();
+  static void Shutdown();
+  void        UnitInitializeModel(HMODEL model);
+  void        UnitInitializeMountModel(HMODEL model);
+  void        UnitUninitializeModel(HMODEL model);
+  static void PostShutdown();
+  static void NamePlateShow(int show);
+  static void RemoveAllNamePlates();
+  static void UpdateUnitNameplates(CGWorldFrame *worldFrame);
+  static void ResortAllUnitNameplates(CGWorldFrame *worldFrame);
+
+  virtual void      GetAFKText(char *buffer, int size) const;
+  virtual void      GetDNDText(char *buffer, int size) const;
+  virtual void      GetGMText(char *buffer, int size) const;
+  int               GetCreatureType() const;
+  void              SetLocalTarget(DWORDLONG target);
+  virtual DWORDLONG GetLocalTarget() const;
+  void              HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos);
+  void              HandleMountedAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos);
+  virtual void      HandleSpellEventSound();
+  virtual void      CombatLoggingFlagChanged();
+  virtual DWORDLONG GetUnitBeingLooted() const;
+  BOOL              CanBeLooted(DWORD currentTime) const;
+  static void       SetActiveMover(const DWORDLONG &guid);
+
+  static DWORDLONG GetActiveMover() {
+    return m_activeMover;
+  }
+
+ protected:
+  static DWORDLONG m_activeMover;
+
+ public:
+  virtual NTempest::C3Vector GetPosition() const;
+  virtual void               GetPosition(NTempest::C3Vector &vec) const;
+  virtual float              GetFacing() const;
+  virtual NTempest::C3Vector GetGroundNormal() const;
+  float                      GetBoundingRadius() const;
+  bool                       IsTurningState() const;
+  void                       SetMirrorHandlers();
+  void                       UnsetMirrorHandlers();
+  BOOL                       OnMoveEvent(NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  void                       OnMonsterMove(DWORD eventTime, CDataStore *msg);
+  BOOL                       OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *msg);
+  void                       OnMoveStopLocalNoUpdate(DWORD eventTime);
+  void                       OnStrafeStartLocalNoUpdate(DWORD eventTime, int left);
+  void                       OnStrafeStopLocalNoUpdate(DWORD eventTime);
+  void                       OnSetRunModeLocalNoUpdate(DWORD eventTime, int run);
+  void                       OnSetFacingLocalNoUpdate(DWORD eventTime, float facing);
+  void                       OnSetFacingGUIDLocalNoUpdate(DWORD eventTime, const DWORDLONG &guid);
+  void                       OnTeleportLocalNoUpdate(DWORD eventTime, const NTempest::C3Vector &position, float facing);
+  void                       OnTeleportNoUpdate(DWORD eventTime, const NTempest::C3Vector &position, float facing);
+  void                       OnEnableCollisionLocalNoUpdate(DWORD eventTime);
+  void                       OnDisableCollisionLocalNoUpdate(DWORD eventTime);
+  void                       OnToggleCollisionLocal(DWORD eventTime);
+  void                       OnPendingMoveStateChange(NETMESSAGE msgId);
+  void                       OnCollideFalling(DWORD eventTime);
+  void                       OnCollideFallLand(DWORD eventTime);
+  void                       BuildMovementUpdate(NETMESSAGE messageId, CDataStore *msg) const;
+  void                       SendMovementUpdate(NETMESSAGE messageId);
+  void                       UpdateSmoothFacing();
+  float                      GetSmoothFacing() const;
+  float                      GetRawSmoothFacing() const {
+    return m_smoothFacing;
+  }
+  void        SetSmoothFacing(float facing);
+  void        UpdateSwimmingStatus(DWORD eventTime, int inWater, float depth);
+  void        SendRedirectionMessage();
+  static void StopMoveHeartbeatTimer();
+  static void StartMoveHeartbeatTimer();
+
+ protected:
+  void UpdateDisplayFacing();
+  BOOL ShouldShuffle() const;
+
+ public:
+  float        GetDisplayFacing() const;
+  void         OnRestoreHealth();
+  void         UpdateMoveInfo(DWORD eventTime, const CClientMoveUpdate &update);
+  void         SetClientInitData(DWORD eventTime, const CClientObjCreate &init, bool partialUpdateOfActivePlayer);
+  void         PostSetClientInitData(const CClientMoveUpdate &update);
+  BOOL         IsWalking() const;
+  virtual void GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
+
+ protected:
+  void GetSwimMatrix(NTempest::C34Matrix *worldMatrix) const;
+
+ public:
+  void                OnAttackSwing(DWORDLONG victimGUID, UINT clientTimeStamp);
+  virtual void        StopAttack();
+  virtual void        OnAttackStart(DWORDLONG victim);
+  virtual void        OnAttackStop(DWORDLONG previousTarget, int nowDead);
+  virtual void        OnDeath();
+  void                SaveQuestAddItemMessage(int killed, int needed);
+  void                ProcessQuestItemMessages();
+  bool                DoNotLogDeath() const;
+  void                AdjustVictimState(ATTACKROUNDINFO *roundInfo);
+  MISS_REASON         AdjustVictimState(MISS_REASON reason);
+  virtual void        OnDeathAnimate();
+  void                InitializeResEffectModel();
+  void                ClearResEffectModel();
+  void                AttachResEffectModel();
+  void                DetatchResEffectModel();
+  void                ShowPlayerXPGained();
+  virtual void        OnGetAttacked(DWORDLONG attacker);
+  virtual void        OnBadAttackFacing(DWORDLONG victimGUID);
+  virtual void        OnBadAttackTarget(DWORDLONG victim);
+  virtual void        OnBadAttackPosition(DWORDLONG victimGUID, float range);
+  virtual void        OnNotStanding(DWORDLONG victim);
+  void                OnEncounter(AI_REACTION reaction);
+  void                QueueBloodSplat(BLOODSPURTLOCATION linkPoint);
+  void                HandleBloodPool(UINT currentTime);
+  BOOL                HasBloodRec() const;
+  const UnitBloodRec *GetBloodRecord();
+  void                AddBloodPool();
+  void                RemoveBloodPool();
+  virtual void        UnitHit(VICTIMSTATES state, DWORDLONG attacker);
+  void                GetResistanceAndBuffs(int r, int &realResistance, int &effectiveResistance, int &buffPositive, int &buffNegative) const;
+  BOOL                IsUnderWater() const;
+  void                SetForcedAnimation(LPCSTR string);
+  void                ResetForcedAnimation();
+  void                ForceUpdateBaseAnimation();
+  void                SetVictimAnimation(VICTIMSTATES newState, int unitDead, int criticalHit, UINT victimRoundDuration, int processNow);
+  bool                QueueVictimAnim(VICTIMSTATES newState, int unitDead, int criticalHit, UINT victimRoundDuration);
+  DWORDLONG IsAttacking() const {
+    return m_combat.IsAttacking();
+  }
+  DWORDLONG    IsAttackingNow() const;
+  void         ClearAttackSent();
+  virtual void OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo);
+  virtual void HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log);
+  void         DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimation);
+  void         ShowWorldText(const ATTACKROUNDINFO *roundInfo);
+  void         PerformSpellProcImpact(int spell);
+  void         AddVictimDeathHold(CGUnit_C *victimPtr);
+  void         SetMeleeDeathHold(const CGUnit_C *victimPtr);
+  void         ClearMeleeDeathHold();
+
+ private:
+  void PrintAttackSeqErrorMsg(UINT sequence, UINT fallBack) const;
+
+  int       m_questCountKilled;
+  int       m_questCountNeeded;
+  HMODEL    m_resEffectModel;
+  DWORDLONG m_meleeTargetDeathHold;
+  int       m_precastSheatheHoldTimer;
+
+ protected:
+  virtual BOOL   QueueAnim(ANIMQUEUETYPE type, const ATTACKROUNDINFO *roundInfo);
+  ANIMQUEUENODE *ProcessAnimQueue();
+  void           PurgeAnimNodes(bool doNotProcess);
+  virtual void   ProcessDiscardedAnim(ANIMQUEUENODE *node, bool doNotProcess);
+  virtual void   ProcessAnim(ANIMQUEUENODE *node);
+  ANIMQUEUENODE *GetNewAnimNode(int leaveUnlinked);
+  void           RecycleAnimNode(ANIMQUEUENODE *node);
+  void           CheckPendingVictimFeedback();
+  void           CheckPendingMissileRelease(const NTempest::C3Vector *position);
+
+ public:
+  virtual void PlayUnitSound(UNITSOUNDTYPE soundType, int alwaysPlay) const;
+  virtual void PlayFoleySound() const;
+  void         PlayParrySound(bool ignoreMainHand, const ATTACKROUNDINFO *roundInfo, const NTempest::C3Vector &position) const;
+  void         PlayImpactSound(DWORDLONG attacker, int criticalHit, COMBATHAND hand) const;
+  void         PlayCustomAttackSound(int sound, const NTempest::C3Vector &position);
+  void         SetCustomAttackSound(int sound, const NTempest::C3Vector &position);
+  void         PlayDeathThud() const;
+  void         PlaySplashSound(const NTempest::C3Vector &position);
+
+ protected:
+  virtual UINT GetImpactType() const;
+
+  int                m_customAttackSound;
+  NTempest::C3Vector m_customAttackPosition;
+  UINT               m_splashSoundID;
+
+ public:
+  const VirtualItemInfo         *GetParryingItem(bool ignoreMainHand) const;
+  virtual const VirtualItemInfo *GetDefendingItem() const;
+  const VirtualItemInfo         *GetAttackingWeapon(COMBATHAND hand) const;
+  bool                           GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type);
+  virtual void                   PlayDeathThudCameraShake() const;
+  int                            GetUnitSize() const;
+  void                           PlayStandSound() const;
+  void                           WoundAnimEndHandler();
+  void                           DodgeAnimEndHandler();
+  void                           AttackAnimEndHandler();
+  virtual void                   LootAnimEndHandler();
+  void                           DeathAnimEndHandler();
+  void                           NPCAnimEndHandler();
+  void                           RangedWeaponAnimEndHandler();
+  void                           ThrowAnimEndHandler();
+  int                            JumpTakeOffFinishedHandler();
+  int                            JumpLandFinishedHandler();
+  void                           GenericAnimEndHandler(ANIMENUMERATION animID, LPVOID param);
+  void                           InstallSeqEndHandler(HMODEL model, UINT animID);
+  virtual void                   RestoreUnit();
+  virtual LPCSTR                 GetModelFileName() const;
+  virtual void                   UpdateBaseAnimation(UINT flags);
+  void                           UpdateBaseAnimation(UINT newState, UINT flags);
+  void                           UpdateMountAnimation(UINT newState, UINT flags);
+  bool                           BaseAnimLocksHead() const;
+  bool                           TorsoAnimLocksHead() const;
+  bool                           TorsoAnimOverridesBase() const;
+  bool                           UnitHeadLocked() const;
+  virtual void                   StartSpellFizzleTimer(int spellID, UINT castingTime, int animSet);
+  void                           SpellDelayed(int delay);
+  void                           StopSpellFizzleTimer(int spellID, BYTE status);
+  void                           StopRangedAttackPrecast();
+  void                           EndSpellEffects(BYTE status);
+  void                           MaybeSaveChannelSpellTargets(int spellID, const TSStackArray<DWORDLONG> &targets);
+  bool                           CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGItem_C *item);
+  void                           PendingPrecastInterrupt(int spellID);
   void StoreSpellMissileEffect(
       const DWORDLONG          &target,
       const NTempest::C3Vector &destination,
@@ -1118,294 +1269,150 @@ class CGUnit_C : public CGObject_C, public CGUnit {
       UINT                      spellID,
       bool                      wasProc
   );
-  int GetCastingSpell() const {
-    return m_castingSpell;
-  }
-  void                  HandlePrecastStart(bool precast);
-  void                  HandlePrecastStop(int spellID, bool force);
-  void                  CheckDeferredSheathing();
-  void                  SetSheatheReason(SHEATHEREASONS reason, bool on, bool suppressSound);
-  const SpellVisualRec *GetAppropriateSpellVisual(const SpellRec *spellRec, SpellVisualRec &filled) const;
-  UINT                  GetCurrentTorsoAnim() const;
 
- protected:
-  UINT GetAnimationState();
+  void                 PlaySpellLoopedSound(int soundID);
+  virtual void         SetTorsoAnimState(UINT newState);
+  virtual void         SetBaseAnimState(UINT newState);
+  void                 SetBaseAnim(UINT newAnim);
+  void                 SetTorsoAnim(UINT newAnim);
+  int                  SetTorsoAnimation(UINT state, DWORD duration, UINT flags);
+  int                  ClearTorsoAnimation(UINT flags);
+  BOOL                 IsPreemptableWoundAnimState(UINT state);
+  BOOL                 IsAttackAnimState(UINT state);
+  BOOL                 ShouldDelayLevelupAnim();
+  BOOL                 ShouldDelayLevelupAnim(UINT state);
+  static bool          FactionHasReputation(int faction);
+  int                  GetFactionTemplate() const;
+  UNIT_REACTION        UnitReaction(const CGUnit_C *unit) const;
+  static UNIT_REACTION UnitReaction(int factionID, const CGUnit_C *unit, int trueSight);
+  bool                 IsFriend(const CGUnit_C *unit) const;
+  bool                 IsPeaceful(const CGUnit_C *unit) const;
+  bool                 IsEnemy(const CGUnit_C *unit) const;
+  bool                 CanAssist(const CGUnit_C *unit) const;
+  bool                 CanInteract(const CGUnit_C *unit) const;
+  bool                 CanInteract(const CGGameObject_C *object) const;
+  bool                 CanAttack(const CGUnit_C *unit) const;
+  bool                 CanAttackNow(const CGUnit_C *unit) const;
+  bool                 CanCooperate(const CGUnit_C *unit) const;
+  bool                 IsUnitInGroup(const CGUnit_C *unit) const;
+  BOOL                 IsStunned() const;
+  BOOL                 IsPacified() const;
+  BOOL                 IsDisarmed() const;
+  BOOL                 IsPlayingDeathAnim() const;
+  BOOL                 IsPlayingLayDownAnim() const;
+  BOOL                 IsPlayingSleepAnim() const;
+  BOOL                 IsPlayingGetUpAnim() const;
+  void                 UpdateDisplay(DWORD now);
+  void                 CheckRendering();
+  void                 OnStopRender();
+  void                 LookAtTarget();
+
+ private:
+  void LookAtTarget(CGUnit_C *target);
 
  public:
-  BOOL               IsWalking() const;
-  int                SetTorsoAnimation(UINT state, DWORD duration, UINT flags);
-  void               CheckLevelUpAnimFlag(int oldState, int newState);
-  void               HandleCastAnimEvent();
-  void               HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempest::C3Vector &position);
-  void               HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos);
-  void               HandleMountedAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos);
-  UNITEFFECTSPECIALS DetermineBreathEffect(UINT *duration);
-  void               BreathHandler(int forceOnMount);
-  void               ProcessBreathParticles(int currentTime);
+  void UpdateLookAtTarget();
+  void SetDead();
+
+ private:
+  void RemoveObjectLookAt();
+  void ApplyObjectCameraSpaceLookAt(const NTempest::C3Vector &target);
+
+  UINT m_disengageLookAtTimer;
 
  protected:
-  void HandlePlayStandSound(DWORD code, LPCSTR eventName);
-  void HandleFootfallAnimEvent(const NTempest::C3Vector &position);
-  void PlayFidgetSound(UINT fidgetNumber);
-
- public:
-  void PlayStandSound() const;
-  void PlayDeathThud() const;
-  int  GetStandStateAnim(HMODEL model) const;
-  void SetTorsoAnim(UINT newAnim);
-
- protected:
-  BOOL IsSplashing(const NTempest::C3Vector &position);
-
- public:
-  bool IsShapeShifted() const;
-  BOOL IsUnderWater() const;
-  UINT GetRunSequence() const;
-  UINT GetStopSequence() const;
-  int  GetWalkStateAnim() const;
-  UINT GetEmoteAnimation(UINT emoteID) const;
-  void SetRangedWeaponPullAnim(int duration);
-
- protected:
-  float GetAnimTimeScale(UINT sequence, UINT duration, UINT flags);
+  UINT  GetAnimationState();
+  int   PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget, bool &checkImpacts);
+  void  ApplyStrafeRotation(UINT newState);
+  void  SetStrafeRotation();
   BOOL  SetTorsoSequence(float timeScale, int flags);
+  float GetAnimTimeScale(UINT sequence, UINT duration, UINT flags);
+  void  StoreSequenceEndCallbacks(int anim);
+  void  ProcessAnimEndCallbacks();
+  void  ClearAnimCallbackData();
 
- public:
-  bool TorsoAnimOverridesBase() const;
-  BOOL IsPreemptableWoundAnimState(UINT state);
-  BOOL IsAttackAnimState(UINT state);
-  bool QueueVictimAnim(VICTIMSTATES newState, int unitDead, int criticalHit, UINT victimRoundDuration);
+  TSGrowableArray<ANIMENDDATA> m_animEndCallbackList;
+  ANIMENDDATA                 *m_callbackList[135];
 
- protected:
-  void CheckPendingVictimFeedback();
-
- public:
-  void        SetVictimAnimation(VICTIMSTATES newState, int unitDead, int criticalHit, UINT victimRoundDuration, int processNow);
-  void        DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimation);
-  void        AdjustVictimState(ATTACKROUNDINFO *roundInfo);
-  MISS_REASON AdjustVictimState(MISS_REASON reason);
-  void        ShowWorldText(const ATTACKROUNDINFO *roundInfo);
-  void        PerformSpellProcImpact(int spell);
-
- protected:
   void               ShowBloodSpurt(CGUnit_C *attacker, int crushingBlow);
   BLOODSPURTLOCATION DetermineBloodLinkPoint(CGUnit_C *attacker);
 
  public:
-  void                   SetMeleeDeathHold(const CGUnit_C *victimPtr);
-  void                   AddVictimDeathHold(CGUnit_C *victimPtr);
-  void                   ClearMeleeDeathHold();
-  void                   PlayParrySound(bool ignoreMainHand, const ATTACKROUNDINFO *roundInfo, const NTempest::C3Vector &position) const;
-  void                   PlayImpactSound(DWORDLONG attacker, int criticalHit, COMBATHAND hand) const;
-  void                   PlayCustomAttackSound(int sound, const NTempest::C3Vector &position);
-  void                   SetCustomAttackSound(int sound, const NTempest::C3Vector &position);
-  void                   ShowHandArrow(int show);
-  const VirtualItemInfo *GetParryingItem(bool ignoreMainHand) const;
-  const VirtualItemInfo *GetAttackingWeapon(COMBATHAND hand) const;
-  bool                   GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type);
-  int                    GetUnitSize() const;
-
- protected:
-  void CheckPendingMissileRelease(const NTempest::C3Vector *position);
-
- public:
-  void                     CheckPendingImpactKit();
-  const SpellVisualKitRec *GetRangedSpellAnim(int id, bool castKit);
-  int                      ClearTorsoAnimation(UINT flags);
-
- protected:
-  bool IsSpellAuraAnimActive(int &anim) const;
-  bool IsSpellChannelAnimActive(int &anim) const;
-
- public:
-  int  PlayEmoteAnimation(UINT emoteID, int flags);
-  void RangedWeaponAnimEndHandler();
-  void ThrowAnimEndHandler();
-  void GenericAnimEndHandler(ANIMENUMERATION animID, LPVOID param);
-
- protected:
-  void StoreSequenceEndCallbacks(int anim);
-  void ProcessAnimEndCallbacks();
-
- public:
-  void DeathAnimEndHandler();
-  void ForceUpdateBaseAnimation();
-  void PickNextRunHandler();
-  void WoundAnimEndHandler();
-  void SpellAnimEndHandler();
-  void NPCAnimEndHandler();
-  int  JumpTakeOffFinishedHandler();
-  int  JumpLandFinishedHandler();
-  void SitSleepAnimEndHandler();
-  void RangedPrecastEndHandler();
-  bool SetSpellPreCastingAnimation(ANIMENUMERATION anim);
-  void AttackAnimEndHandler();
-  void DodgeAnimEndHandler();
-  void SetRangedWeaponReleaseAnim();
-  void DrawBowString(const NTempest::C3Vector &cameraPos);
-  void ThrownMissileReleased();
-  void CheckPendingThrownWeaponReattach(bool force);
-
- protected:
-  void AddObjectComponentBySlot(
-      int  invSlot,
-      int  displayID,
-      int  inventoryType,
-      bool forceAlternate,
-      bool deferApply,
-      bool sheathe,
-      int  sheathedAttachmentPoint,
-      bool showHidden
-  );
-
- public:
-  bool IsSlotComponented(UINT offset, int ignoreUsingRangedWeapon);
-
- protected:
-  bool UpdateVisibilitySlots(HMODEL characterModel, int attachmentSlot, ACTIVEATTACHMENTINFO **&found, int displayID, bool deferApply);
-  void ClearWeaponTrailHandles();
-
- public:
-  void   ReinitializeWeaponTrails();
-  void   OnMountCancelled();
-  void   OnEncounter(AI_REACTION reaction);
-  HMODEL GetMountModel();
-
- protected:
-  const CreatureSoundDataRec *GetMountSoundDataRec() const;
-  const CreatureSoundDataRec *GetSoundData() const;
-
- public:
-  void UnitInitializeMountModel(HMODEL model);
-  void CreateUnitMount();
-  void DestroyUnitMount(int doNotUpdateAnim);
-  void UpdateUnitMountInfo(int immediate, UINT changedFlags);
-  void CreateFadeOutMount();
-  void DisableWeaponTrails();
-
- protected:
-  ACTIVEATTACHMENTINFO *CreateAttachmentInfo(
-      int  invSlot,
-      int  displayID,
-      int  inventoryType,
-      bool forceAlternate,
-      bool sheathe,
-      int  sheathedAttachmentPoint,
-      bool showHidden
-  );
-
- public:
-  UINT          GetDisplayRace() const;
-  UINT          GetDisplaySex() const;
-  HTEXCOMPONENT GetTexComponent() const {
-    return m_texComponent;
+  BOOL               SetBlock(UINT i, DWORD data);
+  void               SetData(LPCVOID data, UINT bytes);
+  static UINT        OffsetOf(OBJECT_TYPE_ID type);
+  BOOL               HasInteractIcon();
+  void               RefreshInteractIcon();
+  void               RemoveInteractIcon();
+  void               UpdateInteractIcon(QUEST_GIVER_STATUS status);
+  void               UpdateInteractIcon(INTERACTICONTYPE which);
+  QUEST_GIVER_STATUS GetQuestGiverStatus();
+  void               SetQuestGiverStatus(QUEST_GIVER_STATUS status);
+  void               EnableWeaponTrail(const NTempest::CImVector &color, int fadeOutRate, UINT duration);
+  int                GetDebugStateInfo(ATTACKROUNDINFO *attackInfo);
+  void               SetDebugHitRolls(const ATTACKROUNDINFO &info);
+  void               ClearDebugFlags();
+  void               SetUnitBadFacing();
+  BOOL               IsBadFacing();
+  BOOL               IsDeathFlagSet() const {
+    return (m_animFlags & 0x2000) != 0;
   }
-  virtual BOOL  UpdateAttachmentLoadStatus();
-  virtual BOOL  UpdateTexComponentLoadStatus();
-  BOOL          IsModelComponentable() const;
-  LPCSTR        GetDisplayTextureName() const;
-  UINT          SkinVariationID() const;
-  UINT          FaceID() const;
-  UINT          HairStyleID() const;
-  UINT          HairColorID() const;
-  UINT          FacialHairID() const;
-  void          InitPreferredGeosets();
-
- protected:
-  void SetAttachmentHidden(int attachmentSlot, bool hide);
-
- public:
-  void      PlaySpellLoopedSound(int soundID);
-  void      KillSpellLoopedSound();
-  void      StopRangedAttackPrecast();
-  HMODEL    GetRangedWeaponModel();
-  HMODEL    GetMountedModel() const;
-  void      PendingPrecastInterrupt(int spellID);
-  void      SaveTrackingTarget(DWORDLONG target, TRACKTYPE type, bool snapToTargetOnClear);
-  void      ClearTrackingTarget(bool snapToTargetOnClear);
-  DWORDLONG GetTrackingTarget() const;
-  bool      TrackingTargetMoving() const;
-  void      HandleFollowTarget();
-  void      SetWeaponMode(WEAPONMODE mode);
-  void      ClearRangedStandTimer();
-  void      SetAmmoDisplay(UINT displayID, UINT inventoryType) {
-    m_ammoDisplayID = displayID;
-    m_ammoInvType = inventoryType;
-  }
-  void SetRangedStandTimer();
+  void RemoveForceDisplayFacingFlag();
   void DetermineReadySequence(bool forceNormal);
-  void OnCombatModeTimer();
-  void AttackUnit(CGUnit_C *newVictim);
-  void OnAttackSwing(DWORDLONG victimGUID, UINT clientTimeStamp);
-  void SetDebugHitRolls(const ATTACKROUNDINFO &info);
+  void UpdateReadyAnim(const ItemStats *stats);
+  UINT GetRunSequence() const;
+  UINT GetStopSequence() const;
+  UINT GetReadySequence() const {
+    FATALASSERT(m_readySequence != 0xffffffff);
+    return m_readySequence;
+  }
+  UINT GetRangedReadySequence() const;
+  void AddDeathHold();
+  void DelDeathHold();
+  UINT GetDeathHolds() const;
+  void AddDamageDone(UINT damage, int normalCombatDamage, UINT flags, DWORDLONG attacker, int spellID);
+  void SpellEventHit();
+  bool IsSlotComponented(UINT offset, int ignoreUsingRangedWeapon);
+  void ProcessLocalMoveEvent(NETMESSAGE msgId);
+
+ protected:
+  void  SetFingersSeq(HMODEL charModel, UINT sequence, UINT startFinger, UINT lastFinger);
+  void  ResetFingersSeq(HMODEL charModel, UINT startFinger, UINT lastFinger);
+  void  SetHandState(HMODEL model, const VirtualItemInfo *item, UINT startFinger, UINT lastFinger);
+  void  SetHandsState(HMODEL model);
+  void  OnTeleport(DWORD eventTime, const CMovementStatus &update);
+  void  OnMoveStart(DWORD eventTime, const CMovementStatus &update, int forward);
+  void  OnMoveStop(DWORD eventTime, const CMovementStatus &update);
+  void  OnStrafeStart(DWORD eventTime, const CMovementStatus &update, int left);
+  void  OnStrafeStop(DWORD eventTime, const CMovementStatus &update);
+  void  OnJump(DWORD eventTime, const CMovementStatus &update);
+  void  OnTurnStart(DWORD eventTime, const CMovementStatus &update, int left);
+  void  OnTurnStop(DWORD eventTime, const CMovementStatus &update);
+  void  OnPitchStart(DWORD eventTime, const CMovementStatus &update, int up);
+  void  OnPitchStop(DWORD eventTime, const CMovementStatus &update);
+  void  OnSetRunMode(DWORD eventTime, const CMovementStatus &update, int run);
+  void  OnSetFacing(DWORD eventTime, const CMovementStatus &update);
+  void  OnSetPitch(DWORD eventTime, const CMovementStatus &update);
+  void  OnToggleCollision(DWORD eventTime, const CMovementStatus &update);
+  void  OnRunSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg);
+  void  OnWalkSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg);
+  void  OnSwimSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg);
+  void  OnTurnRateChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg);
+  void  OnTeleportAck(DWORD eventTime, const CMovementStatus &update);
+  void  OnSwimStart(DWORD eventTime, const CMovementStatus &update);
+  void  OnSwimStop(DWORD eventTime, const CMovementStatus &update);
+  void  OnMoveHeartBeat(DWORD eventTime, const CMovementStatus &update);
+  void  InitializeSequenceFlags();
+  float DetermineWalkRunTimeScale(int currentState);
 
  private:
   BOOL SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int processNow);
+  void AddDamageTimer(DWORDLONG attacker, VICTIMSTATES state, int unitDead, UINT duration, float delay, int criticalHit, int crushingBlow);
 
  public:
-  void InitializeResEffectModel();
-  void ClearResEffectModel();
-  void AttachResEffectModel();
-  void DetatchResEffectModel();
-  void OnRangedStandTimer();
-
- protected:
-  bool SheatheAnimPlaying() const;
-
- public:
-  void MaybeStartSheatheAnim();
-  void UpdateSheatheRangedReasons(bool suppressSound);
-  void SheatheOrUnsheatheItems(SHEATHEREASONS reason, bool sheathe, bool playSound);
-
- protected:
-  bool SheatheObjComponent(int slot, bool sheathe);
-  void ClearDeferredAttachment(HMODEL charModel, int slot);
-  bool ApplyAttachmentInfo(HMODEL characterModel, bool sheathe, int attachmentSlot, bool force);
-  void SetHandsState(HMODEL model);
-  void SetFingersSeq(HMODEL charModel, UINT sequence, UINT startFinger, UINT lastFinger);
-  void ResetFingersSeq(HMODEL charModel, UINT startFinger, UINT lastFinger);
-  void SetHandState(HMODEL model, const VirtualItemInfo *item, UINT startFinger, UINT lastFinger);
-
- public:
-  void HandleSheatheAnimEvent(bool clearSheatheAnim, bool suppressSound);
-  void SheatheAnimEndHandler();
-
- protected:
-  bool SetSheathingSequence();
-
- public:
-  void UnitInitializeModel(HMODEL model);
-  void UnitUninitializeModel(HMODEL model);
-  void ShutdownWorldName();
-
- protected:
-  void MarkFootstepAnimations(HMODEL model);
-  void UpdateUnitAlpha();
-  void RefreshAttachmentInfo(HMODEL model);
-
- public:
-  void KillCreatureLoopSound();
-  void InitializeLoopSound();
-  void InstallSeqEndHandler(HMODEL model, UINT animID);
-  void ClearMountAnimState();
-  void ClearTempCharModel();
-  void SetTempCharModel(HMODEL model);
-
- protected:
-  void ClearAnimCallbackData();
-
- public:
-  void CheckPendingSpellAnimHits();
-  void SpellAnimHit(int spellID);
-  void UpdateMountAnimation(UINT newState, UINT flags);
-  void UpdateMovementAnimSpeed(int forMount, int currentState);
-  void UpdateBaseAnimation(UINT newState, UINT flags);
-  void SetBaseAnim(UINT newAnim);
-  void LookAtTarget();
-  void UpdateLookAtTarget();
-  void SetLocalTarget(DWORDLONG target);
-  bool BaseAnimLocksHead() const;
-  bool TorsoAnimLocksHead() const;
+  void CheckPendingThrownWeaponReattach(bool force);
+  BOOL ShouldReattachThrownWeapon() const;
+  void SetReattachThrownWeapon(int reattach);
   UINT GetCurrentBaseAnimState() const {
     return m_currentBaseAnimState;
   }
@@ -1415,320 +1422,20 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   UINT GetCurrentBaseAnim() const {
     return m_currentBaseAnim;
   }
-  BOOL         IsInStandSitTransition();
-  BOOL         IsInSitSleepPosition();
-  BOOL         IsPlayingSittingOrStandingAnim() const;
-  int          GetFactionTemplate() const;
-  virtual BOOL IsSolidSelectable() const;
-  virtual BOOL IsSolidCollidable() const;
-  virtual BOOL CanHighlight() const;
-  virtual BOOL CanBeTargetted() const;
-  virtual void OnLeftClick();
-  virtual void OnRightClick();
-  int          GetSpellLevel(int spellID) const {
-    return static_cast<UINT>(GetSpellRank(spellID)) / 5;
-  }
-  bool                       IsSpellKnown(int spellID) const;
-  bool                       CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGItem_C *item);
-  const SkillLineAbilityRec *LookupAbility(int spellID) const;
-  bool                       IsSpellSuperceded(int spellID) const;
-  int                        GetSpellSkillLine(int spellID) const;
-  static bool                FactionHasReputation(int faction);
-  UNIT_REACTION              UnitReaction(const CGUnit_C *unit) const;
-  static UNIT_REACTION       UnitReaction(int factionID, const CGUnit_C *unit, int trueSight);
-  bool                       CanAttack(const CGUnit_C *unit) const;
-  bool                       CanAssist(const CGUnit_C *unit) const;
-  bool                       CanCooperate(const CGUnit_C *unit) const;
-  bool                       CanInteract(const CGUnit_C *unit) const;
-  bool                       CanInteract(const CGGameObject_C *object) const;
-  bool                       IsUnitInGroup(const CGUnit_C *unit) const;
-  void                       SetMirrorHandlers();
-  void                       UnsetMirrorHandlers();
-  void                       ClearFishingObject();
-  void                       ProcessChannelObject();
+  UINT GetCurrentTorsoAnim() const;
 
  protected:
-  void SetAuraMirrorHandlers();
-  void UnsetAuraMirrorHandlers();
-  void SetAuraMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
-  void UnsetAuraMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
+  UINT                        GetFlags() const;
+  int                         GotRangedWeaponRelease() const;
+  UINT                        ChooseAnimation(UINT state) const;
+  int                         CurrentAnimIncludesHit() const;
+  UINT                        GetAttackerAnimEx(COMBATHAND hand, const VirtualItemInfo *itemInfo) const;
+  UINT                        DetermineAttackerSequence(COMBATHAND hand) const;
+  UINT                        DetermineParrySequence() const;
+  virtual UINT                DetermineWoundSequence() const;
+  const CreatureSoundDataRec *GetSoundData() const;
+  const CreatureSoundDataRec *GetMountSoundDataRec() const;
 
- public:
-  void                OnAuraChanged(UINT slot, int previousValue);
-  void                SignalDisplayHealthUpdate() const;
-  void                UpdateDisplayHealth();
-  void                HandleBloodPool(UINT currentTime);
-  void                OnStopRender();
-  void                CheckRendering();
-  void                UpdateDisplay(DWORD now);
-  void                RemoveBloodPool();
-  void                AddBloodPool();
-  void                QueueBloodSplat(BLOODSPURTLOCATION linkPoint);
-  const UnitBloodRec *GetBloodRecord();
-
- protected:
-  void RemoveAuraEffect(UINT slot, int previousSpell);
-  void RefreshAuraVisuals();
-  void AddPendingShapeshiftEffect(int oldSpell);
-  void AddAuraEffect(UINT slot, bool startNow);
-
- public:
-  BOOL ShouldDelayLevelupAnim();
-  BOOL ShouldDelayLevelupAnim(UINT state);
-  void PerformLevelUpAnim(int force);
-  void OnCharmedChanged();
-  void UpdateDisplayInfo();
-  BOOL DisplayInfoNeedsUpdate(int &playerModelChanged, int &wasPlayerModel) const;
-
- protected:
-  void RefreshDataPointers();
-
- public:
-  void InitializeExtendedDisplay();
-
- protected:
-  void SetupFootprints();
-
- public:
-  void             AttachVirtualMonsterWeapons();
-  void             RenderDebugPathing();
-  void             InitializeNPCItems();
-  void             PlayImpactKit(int spellID, const SpellVisualKitRec *impactKit);
-  void             SetSpellImpactKit(const SpellVisualKitRec *impactKit);
-  void             AddSpellProcOneShotEffect(int spellID, const SpellVisualKitRec *rec);
-  void             SetImpactKitEffect(int spellID, CGUnit_C *target, const SpellVisualKitRec *impactKit, int immediate);
-  void             AddSpellProcAuraEffect(int auraslot, const SpellVisualKitRec *rec);
-  void             RemoveSpellProcAuraEffect(ACTIVEAURAINFO *rec);
-  SPELLEFFECTDESC *FindSpellEffectProcDesc(const SpellVisualKitRec *rec);
-  void             RefreshSpellProcEffects();
-  void             UpdateSpellProcEffects(float elapsedTime);
-  void             AddEmissiveColor(const NTempest::CImVector &color);
-  void             RemoveEmissiveColor(const NTempest::CImVector &color);
-  void             SetStandStateAnim(int standAnim);
-  void             SetWalkStateAnim(int walkAnim);
-  void             EnableWeaponTrail(const NTempest::CImVector &color, int fadeOutRate, UINT duration);
-
- protected:
-  void OnTeleport(DWORD eventTime, const CMovementStatus &update);
-  void OnMoveStart(DWORD eventTime, const CMovementStatus &update, int forward);
-  void OnMoveStop(DWORD eventTime, const CMovementStatus &update);
-  void OnStrafeStart(DWORD eventTime, const CMovementStatus &update, int left);
-  void OnStrafeStop(DWORD eventTime, const CMovementStatus &update);
-  void OnJump(DWORD eventTime, const CMovementStatus &update);
-  void OnTurnStart(DWORD eventTime, const CMovementStatus &update, int left);
-  void OnTurnStop(DWORD eventTime, const CMovementStatus &update);
-  void OnPitchStart(DWORD eventTime, const CMovementStatus &update, int up);
-  void OnPitchStop(DWORD eventTime, const CMovementStatus &update);
-  void OnSetRunMode(DWORD eventTime, const CMovementStatus &update, int run);
-  void OnSetFacing(DWORD eventTime, const CMovementStatus &update);
-  void OnSetPitch(DWORD eventTime, const CMovementStatus &update);
-  void OnToggleCollision(DWORD eventTime, const CMovementStatus &update);
-  void OnRunSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg);
-  void OnWalkSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg);
-  void OnSwimSpeedChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg);
-  void OnTurnRateChange(DWORD eventTime, const CMovementStatus &update, CDataStore *msg);
-  void OnTeleportAck(DWORD eventTime, const CMovementStatus &update);
-  void OnSwimStart(DWORD eventTime, const CMovementStatus &update);
-  void OnSwimStop(DWORD eventTime, const CMovementStatus &update);
-  void OnMoveHeartBeat(DWORD eventTime, const CMovementStatus &update);
-
- private:
-  void InternalProcessSpellProcEffects(SPELLPROC_ACTION action, float elapsed);
-
- public:
-  SPELLEFFECTDESC *GetActiveEffect(LIST(SPELLEFFECTDESC) & list);
-  void             ReinitializePaperdollModel();
-  void             CreatePaperdollModel();
-  HMODEL           GetPaperDollModel(bool duplicateModel);
-  void             DestroyPaperdollModel();
-  void             StandStateChanged(UINT oldState);
-  void             NPCFlagChanged(UINT oldNPCFlags);
-  void             RemoveInteractIcon();
-  void             RefreshInteractIcon();
-  void             UpdateInteractIcon(QUEST_GIVER_STATUS status);
-  void             UpdateInteractIcon(INTERACTICONTYPE which);
-  UINT             GetPlayerNameAttachmentPoint();
-  void             SetEmoteQueue(const QUESTGIVEREMOTENODE *list, UINT num);
-  void             SetEmoteQueue(TSStackArray<QUESTGIVEREMOTENODE> &list);
-
- protected:
-  BOOL EmoteProcType(UINT emoteID, EMOTESPECPROCS &proc) const;
-
- public:
-  void AddWorldXPGainText(int xpGain);
-  void AddWorldDamageText(UINT damage, int normalCombatDamage);
-  void AddWorldCritText(UINT damage, int normalCombatDamage);
-  void AddWorldText(MISS_REASON reason);
-  void AddWorldText(WORLDTEXTMISSTYPE type);
-  void StoreXPGain(int XP);
-  void SaveQuestAddItemMessage(int killed, int needed);
-  void ProcessQuestItemMessages();
-  void AddDamageDone(UINT damage, int normalCombatDamage, UINT flags, DWORDLONG attacker, int spellID);
-  void SpellEventHit();
-  void ShowPlayerXPGained();
-  void WeaponModeChanged();
-  void VirtualComponentChanged(int slot, int oldValue);
-  void AttachVirtualComponent(UINT slot, bool deferApply);
-  void DetachVirtualComponent(int vslot, bool defer, bool removeRecord);
-
- protected:
-  void RemoveObjectComponentByInvSlot(int invSlot, bool deferDeleteFromModel, bool removeRecord);
-  void ClearActiveAttachmentInfo();
-
- public:
-  void OnDynamicFlagsChanged(UINT oldValue);
-  void OnChannelSpellChanged(UINT oldSpell);
-  void ClearSavedChannelSpellTargets();
-  int  GetSavedChannelSpellID() const {
-    return m_savedChannelSpellID;
-  }
-  const TSGrowableArray<DWORDLONG> &GetSavedChannelSpellTargets() const {
-    return m_savedChannelSpellTargets;
-  }
-
- protected:
-  int SetEmoteAnimation(UINT emoteID, int flags);
-
- public:
-  void DDDELLOG(DWORDLONG guid, LPCSTR string, LPCSTR file, UINT line);
-  void DDADDLOG(DWORDLONG guid, LPCSTR string, LPCSTR file, UINT line);
-  void AddDeathHold();
-  void DDGENLOG(DWORDLONG guid, LPCSTR string, LPCSTR file, UINT line);
-  void DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stringBuffer) const;
-  void DelDeathHold();
-
- protected:
-  void            MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, UINT effect, UINT spellID, int priority, bool permanent);
-  ACTIVEAURAINFO *FindActiveAuraInfo(int slot);
-  void            AddKitAuras(const SpellVisualKitRec *kitRec, const SpellRec *spellRec);
-  void            RemoveAuraVisual(UNITEFFECTATTACHPPOINT attach);
-  void            FinishAuraDecays();
-
- public:
-  void RegisterScript();
-  void UnregisterScript();
-  void TriggerPlayerNameUpdate();
-  void PlayerNameVisibilityChanged(int nameVisible);
-  void UpdatePlayerNameColor();
-  void SetForcedAnimation(LPCSTR string);
-  void ResetForcedAnimation();
-  void OnNPCHello();
-  void OnNPCGoodbye();
-  int  PlayNPCSound(NPCSOUNDS sound, UINT index);
-
-  static DWORDLONG GetActiveMover() {
-    return m_activeMover;
-  }
-  bool      IsClientControlled() const;
-  float     GetBoundingRadius() const;
-  void      OnRestoreHealth();
-  bool      DoNotLogDeath() const;
-  DWORDLONG IsAttacking() const {
-    return m_combat.IsAttacking();
-  }
-  DWORDLONG          IsAttackingNow() const;
-  void               ClearAttackSent();
-  bool               CanAttackNow(const CGUnit_C *unit) const;
-  BOOL               IsStunned() const;
-  BOOL               IsPacified() const;
-  BOOL               IsDisarmed() const;
-  BOOL               IsPlayingDeathAnim() const;
-  BOOL               IsPlayingLayDownAnim() const;
-  BOOL               IsPlayingSleepAnim() const;
-  BOOL               IsPlayingGetUpAnim() const;
-  BOOL               HasBloodRec() const;
-  void               GetResistanceAndBuffs(int r, int &realResistance, int &effectiveResistance, int &buffPositive, int &buffNegative) const;
-  bool               IsFriend(const CGUnit_C *unit) const;
-  bool               IsPeaceful(const CGUnit_C *unit) const;
-  bool               IsEnemy(const CGUnit_C *unit) const;
-  void               SetDead();
-  BOOL               SetBlock(UINT i, DWORD data);
-  void               SetData(LPCVOID data, UINT bytes);
-  BOOL               HasInteractIcon();
-  QUEST_GIVER_STATUS GetQuestGiverStatus();
-  void               SetQuestGiverStatus(QUEST_GIVER_STATUS status);
-  int                GetDebugStateInfo(ATTACKROUNDINFO *attackInfo);
-  void               ClearDebugFlags();
-  void               SetUnitBadFacing();
-  BOOL               IsBadFacing();
-  BOOL               IsDeathFlagSet() const {
-    return (m_animFlags & 0x2000) != 0;
-  }
-  void RemoveForceDisplayFacingFlag();
-  UINT GetReadySequence() const {
-    FATALASSERT(m_readySequence != 0xffffffff);
-    return m_readySequence;
-  }
-  UINT        GetRangedReadySequence() const;
-  void        UpdateReadyAnim(const ItemStats *stats);
-  UINT        GetDeathHolds() const;
-  void        SetReattachThrownWeapon(int reattach);
-  BOOL        ShouldReattachThrownWeapon() const;
-  void        SetDebugPathPosition(const NTempest::C3Vector &position);
-  HCHARGEOSET GetGeosetHandle() const;
-  const UINT *GetPreferredGeosets() const;
-  UINT        GetNumPreferredGeosets() const;
-  int         GetDisplayHealth() const;
-  BOOL        IsTexComponentLoaded() const;
-  void        SetTexComponentLoaded(int loaded);
-  bool IsBeingStalked() const {
-    return (m_unit->dynamicFlags >> 1) & 1;
-  }
-  bool        GetLootPermission() const;
-  bool        GetShowingHandArrow() const;
-  void        SetShowHandArrowFlag(int show);
-  void        SetShowingHandArrowFlag(int showing);
-  bool        IsItemSwapFlagSet() const;
-  void        SetItemSwapFlag(bool set);
-  int         UnitMountShowing() const;
-  bool        UnitHeadLocked() const;
-  void        SetCreatureStats(const CreatureStats_C *stats);
-  void        OnEnableCollisionLocalNoUpdate(DWORD eventTime);
-  void        OnDisableCollisionLocalNoUpdate(DWORD eventTime);
-  void        OnToggleCollisionLocal(DWORD eventTime);
-  void        OnStrafeStartLocalNoUpdate(DWORD eventTime, int left);
-  void        OnStrafeStopLocalNoUpdate(DWORD eventTime);
-  void        OnSwimStartLocal(DWORD eventTime);
-  void        OnSwimStopLocal(DWORD eventTime);
-
- protected:
-  UINT GetFlags() const;
-  int  CurrentAnimIncludesHit() const;
-  int  GotRangedWeaponRelease() const;
-  void FootstepAnimEventHit(const NTempest::C3Vector &position, BOOL isLeftFoot);
-  void HandleFootstepAnimEvent(const NTempest::C3Vector &position);
-  void GetFootprintInfo(UINT *id, NTempest::C2Vector *size);
-  bool WeaponAttached(COMBATHAND hand) const;
-  void ClearChannelAuraInfo();
-  void HandleRemotePlayerSheathing();
-  void HandleLocalPlayerSheathing();
-  bool SheatheAnimEventEncountered() const;
-  void SetSheatheEventEncountered(bool encountered);
-
- private:
-  void  AddDamageTimer(DWORDLONG attacker, VICTIMSTATES state, int unitDead, UINT duration, float delay, int criticalHit, int crushingBlow);
-  float GetBaseRadius() const;
-
-  friend void MovementFixOutOfBoundsUnit(DWORDLONG guid);
-
- private:
-  int       m_questCountKilled;
-  int       m_questCountNeeded;
-  HMODEL    m_resEffectModel;
-  DWORDLONG m_meleeTargetDeathHold;
-  int       m_precastSheatheHoldTimer;
-
- protected:
-  int                m_customAttackSound;
-  NTempest::C3Vector m_customAttackPosition;
-  UINT               m_splashSoundID;
-
- private:
-  UINT m_disengageLookAtTimer;
-
- protected:
-  TSGrowableArray<ANIMENDDATA>       m_animEndCallbackList;
-  ANIMENDDATA                       *m_callbackList[135];
   const CreatureStats_C             *m_stats;
   const CreatureDisplayInfoRec      *m_displayInfo;
   const CreatureDisplayInfoExtraRec *m_displayInfoExtra;
@@ -1736,52 +1443,259 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   const CreatureSoundDataRec        *m_soundData;
   const CreatureSoundDataRec        *m_mountedSoundData;
   const UnitBloodLevelsRec          *m_bloodRec;
-  AuraVisual                         m_auraVisual[12];
+
+ public:
+  void HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempest::C3Vector &position);
+
+ protected:
+  void HandlePlayStandSound(DWORD code, LPCSTR eventName);
+  void FootstepAnimEventHit(const NTempest::C3Vector &position, BOOL isLeftFoot);
+  void HandleFootstepAnimEvent(const NTempest::C3Vector &position);
+  void HandleFootfallAnimEvent(const NTempest::C3Vector &position);
+  void PlayFidgetSound(UINT fidgetNumber);
+  void SetupFootprints();
+  BOOL IsSplashing(const NTempest::C3Vector &position);
+  void MarkSwimAnimations();
+  void MarkFootstepAnimations(HMODEL model);
+  void QueryModelStats();
+  void QueryMountModelStats();
+
+ private:
+  CGUnit_C &operator=(const CGUnit_C &);
+
+ public:
+  static void              InitializeTextureVariations(const CreatureDisplayInfoRec *displayInfo, HMODEL theModel, const CreatureModelDataRec *modelData);
+  bool                     SetSpellPreCastingAnimation(ANIMENUMERATION anim);
+  bool                     SetSpellCastingAnimation(ANIMENUMERATION anim, UINT castKit, UINT soundID, int shakeID, ANIMENUMERATION &result);
+  void                     ClearSpellCastAnimInfo();
+  void                     SetSpellImpactKit(const SpellVisualKitRec *impactKit);
+  const SpellVisualKitRec *GetRangedSpellAnim(int id, bool castKit);
+  void                     HandleCastAnimEvent();
+  void                     OnAuraChanged(UINT slot, int previousValue);
+  virtual void             OnFlagChanged(UINT oldFlags);
+
+ protected:
+  void            SetAuraMirrorHandlers();
+  void            UnsetAuraMirrorHandlers();
+  void            SetAuraMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
+  void            UnsetAuraMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID));
+  void            RemoveAuraEffect(UINT slot, int previousSpell);
+  void            AddAuraEffect(UINT slot, bool startNow);
+  void            RemoveAuraVisual(UNITEFFECTATTACHPPOINT attach);
+  void            MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, UINT effect, UINT spellID, int priority, bool permanent);
+  void            FinishAuraDecays();
+  bool            IsSpellAuraAnimActive(int &anim) const;
+  bool            IsSpellChannelAnimActive(int &anim) const;
+  ACTIVEAURAINFO *FindActiveAuraInfo(int slot);
+  void            RefreshAuraVisuals();
+  void            AddPendingShapeshiftEffect(int oldSpell);
+  void            AddKitAuras(const SpellVisualKitRec *kitRec, const SpellRec *spellRec);
+  void            ClearChannelAuraInfo();
+
+  AuraVisual      m_auraVisual[12];
   LISTDECL(ACTIVEAURAINFO, m_activeAuraInfo);
-  ANIMENUMERATION                      m_pendingImpactAnim;
-  HMODEL                               m_tempCharModel;
-  TSGrowableArray<char>                m_deathHoldBuffer;
-  TSGrowableArray<UINT>                m_deathHoldBufferIndices;
-  int                                  m_lastDeathTime;
-  int                                  m_nextDeathHoldCheckTime;
+  ANIMENUMERATION m_pendingImpactAnim;
+
+ public:
+  void                           UpdateMovementAnimSpeed(int forMount, int currentState);
+  virtual BOOL                   GetSelectionHighlightColor(NTempest::CImVector *outPtr) const;
+  void                           PerformLevelUpAnim(int force);
+  void                           CheckLevelUpAnimFlag(int oldState, int newState);
+  virtual const VirtualItemInfo *GetVirtualItem(UINT slot, bool ignoreDisarmFlag) const;
+  virtual int                    GetVirtualItemDisplayID(UINT slot) const;
+  void                           SetRangedWeaponPullAnim(int duration);
+  void                           SetRangedWeaponReleaseAnim();
+  void                           ThrownMissileReleased();
+  void                           AttachVirtualComponent(UINT slot, bool deferApply);
+  void                           AttachVirtualMonsterWeapons();
+  void                           VirtualComponentChanged(int slot, int oldValue);
+  void                           DetachVirtualComponent(int vslot, bool defer, bool removeRecord);
+  void                           SetDebugPathPosition(const NTempest::C3Vector &position);
+  void                           RenderDebugPathing();
+  void                           InitializeUnitName();
+  void                           ShutdownWorldName();
+  void                           UpdatePlayerNameWorldText();
+  void                           UpdatePlayerNameColor();
+  virtual BOOL                   ShouldRenderUnitName(UINT mode) const;
+  void                           TriggerPlayerNameUpdate();
+  virtual void                   CommitTexture(int force);
+  LPCSTR                         GetUnitName() const;
+  LPCSTR                         GetUnitTitle() const;
+  virtual UINT                   UpdateUnitNameString(UINT localPlayerFlags, UINT otherUnitsFlags, char *buffer, UINT bufferSize) const;
+  void                           AddWorldDamageText(UINT damage, int normalCombatDamage);
+  void                           AddWorldCritText(UINT damage, int normalCombatDamage);
+  void                           AddWorldText(WORLDTEXTMISSTYPE type);
+  void                           AddWorldText(MISS_REASON reason);
+  void                           AddWorldXPGainText(int xpGain);
+  void                           PlayerNameVisibilityChanged(int nameVisible);
+  void                           StoreXPGain(int XP);
+  virtual void                   OnPickNextStandHandler();
+  void                           PickNextRunHandler();
+  void                           SpellAnimEndHandler();
+  void                           RangedPrecastEndHandler();
+  BOOL                           SetCastingSpell(int spellID, bool force, bool precastAnimSuccessful);
+  int GetCastingSpell() const {
+    return m_castingSpell;
+  }
+  void               KillSpellLoopedSound();
+  void               KillCreatureLoopSound();
+  void               InitializeLoopSound();
+  UNITEFFECTSPECIALS DetermineBreathEffect(UINT *duration);
+  void               BreathHandler(int forceOnMount);
+  void               ProcessBreathParticles(int currentTime);
+  virtual HMODEL     GetCharacterModel(int *mountedPtr) const;
+  HMODEL             GetMountedModel() const;
+
+  HMODEL        DuplicateCharacterModel(UINT flags) const;
+  void          ClearMountAnimState();
+  void          CreateUnitMount();
+  virtual float GetMountScale() const;
+  void          DestroyUnitMount(int doNotUpdateAnim);
+  void          UpdateUnitMountInfo(int immediate, UINT changedFlags);
+  int           UnitMountShowing() const;
+  HMODEL        GetMountModel();
+  void          DestroyFadingMounts();
+  void          CreateFadeOutMount();
+  void          CreateFadeInMount();
+  void          UpdateFadingMountModel(const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  void          OnMountCancelled();
+  virtual void  UpdatePlayerName();
+  UINT          GetPlayerNameAttachmentPoint();
+  virtual void  OnSpecialMountAnim();
+  virtual void  OnMount();
+  virtual void  OnDismount();
+  void          OnCharmedChanged();
+  virtual bool  CanBeMounted();
+  void          ClearTempCharModel();
+  void          SetTempCharModel(HMODEL model);
+
+ protected:
+  void GetFootprintInfo(UINT *id, NTempest::C2Vector *size);
+
+  HMODEL m_tempCharModel;
+
+ public:
+  virtual BOOL  UpdateModelLoadStatus();
+  virtual BOOL  UpdateAttachmentLoadStatus();
+  virtual BOOL  UpdateTexComponentLoadStatus();
+  virtual BOOL  ShouldRender(DWORD worldStatus);
+  virtual void  UpdateRenderFacing();
+  virtual float GetRenderFacing() const;
+  virtual void  PreRender(int currentTime, float elapsed);
+  virtual void  PreAnimate(CGWorldFrame *worldFrame);
+  virtual void  PostAnimate(CGWorldFrame *worldFrame);
+  virtual void  ObjectPostAnimate(const NTempest::C34Matrix &matrix, const NTempest::C3Vector &cameraPos, const NTempest::C3Vector &cameraTarg);
+  virtual void  RenderTargetSelection() const;
+  void          BuildSelectionRotMatrix(NTempest::C44Matrix &matrix) const;
+  void          SetTexComponentLoaded(int loaded);
+  BOOL          IsTexComponentLoaded() const;
+  void          ReinitializeWeaponTrails();
+
+ private:
+  float GetBaseRadius() const;
+  void  UpdateBaseRadius(HMODEL model);
+  void  AddUnitNamePlate(CGWorldFrame *worldFrame);
+  void  InsertSortedNamePlate(struct NAMEPLATEDESC *desc);
+  void  RemoveUnitNamePlate();
+
+ public:
+  int  PlayNPCSound(NPCSOUNDS sound, UINT index);
+  void OnNPCHello();
+  void OnNPCGoodbye();
+  void DDADDLOG(DWORDLONG guid, LPCSTR string, LPCSTR file, UINT line);
+  void DDDELLOG(DWORDLONG guid, LPCSTR string, LPCSTR file, UINT line);
+  void DDGENLOG(DWORDLONG guid, LPCSTR string, LPCSTR file, UINT line);
+  void DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stringBuffer) const;
+
+ protected:
+  void DDWRITELOG(LPCSTR buffer);
+
+  TSGrowableArray<char> m_deathHoldBuffer;
+  TSGrowableArray<UINT> m_deathHoldBufferIndices;
+  int                   m_lastDeathTime;
+  int                   m_nextDeathHoldCheckTime;
+
+ public:
+  BOOL DisplayInfoNeedsUpdate(int &playerModelChanged, int &wasPlayerModel) const;
+  void UpdateDisplayInfo();
+
+ protected:
+  virtual void CleanupUnitArtwork(int playerModelChanged, BOOL wasPlayerModel);
+  void         RefreshDataPointers();
+  virtual void ReinitializeUnitArtwork();
+  virtual void PostReinitializeArtwork();
+
+ public:
+  void         StandStateChanged(UINT oldState);
+  void         NPCFlagChanged(UINT oldNPCFlags);
+  virtual void OnStandStateChanged(UINT oldState, UINT newState);
+  void         SitSleepAnimEndHandler();
+  BOOL         IsPlayingSittingOrStandingAnim() const;
+  virtual void ChangeStandState(UINT standState);
+  int          PlayEmoteAnimation(UINT emoteID, int flags);
+  void         RequestTalkEmote(TALKANIMATION talkAnim);
+  UINT         GetEmoteAnimation(UINT emoteID) const;
+  virtual void SetEmoteState(UINT emoteID);
+  void         SetEmoteQueue(TSStackArray<QUESTGIVEREMOTENODE> &list);
+  void         SetEmoteQueue(const QUESTGIVEREMOTENODE *list, UINT num);
+
+ protected:
+  int SetEmoteAnimation(UINT emoteID, int flags);
+
   TSGrowableArray<QUESTGIVEREMOTENODE> m_emoteQueue;
-  HMODEL                               m_interactIconModel;
+
+  void ProcessEmoteQueue();
+  BOOL EmoteProcType(UINT emoteID, EMOTESPECPROCS &proc) const;
+
+ public:
+  void RegisterScript();
+  void UnregisterScript();
+
+ protected:
+  HMODEL             m_interactIconModel;
   LISTDECL(BLOODSPLATNODE, m_bloodSplatNodes);
-  UINT m_nextAllowableBloodPool;
+  UINT               m_nextAllowableBloodPool;
   LISTDECL(ANIMQUEUENODE, m_animQueue);
-  CCombatClient                       m_combat;
-  ANIMQUEUENODE                      *m_currentDamageInfo;
-  UINT                                m_readySequence;
-  UINT                                m_animEndTime;
-  UINT                                m_animBaseDuration;
-  UINT                                m_animStartTime;
-  UINT                                m_flags;
-  UINT                                m_animFlags;
-  UINT                                m_footprintTextureID;
-  UINT                                m_terrain;
-  NTempest::C2Vector                  m_footprintSize;
-  float                               m_footprintParticleScale;
-  DEBUGHITROLLINFO                    m_hitInformation;
-  ANIMENUMERATION                     m_spellPrecastingAnim;
-  ANIMENUMERATION                     m_spellCastingAnim;
-  ANIMENUMERATION                     m_deferredPrecastAnim;
-  int                                 m_animatingAura;
-  UINT                                m_emoteID;
-  UINT                                m_spellCastingEffectKit;
-  UINT                                m_spellCastingSoundID;
-  int                                 m_spellCastingCameraShakeID;
-  MISSILESTRUCT                       m_spellMissileStruct;
-  float                               m_lastSentFacing;
-  float                               m_lastSentPitch;
-  HPLAYERNAME                         m_unitNameHandle;
-  int                                 m_accumulatedXPDrop;
-  int                                 m_castingSpell;
-  int                                 m_interruptedSpell;
-  int                                 m_lastSpellCastAnimTime;
-  int                                 m_nextBreath;
-  int                                 m_nextMountBreath;
-  int                                 m_scriptRegistered;
-  float                               m_displayFacing;
+  CCombatClient      m_combat;
+  ANIMQUEUENODE     *m_currentDamageInfo;
+  UINT               m_readySequence;
+  UINT               m_animEndTime;
+  UINT               m_animBaseDuration;
+  UINT               m_animStartTime;
+  UINT               m_flags;
+  UINT               m_animFlags;
+  UINT               m_footprintTextureID;
+  UINT               m_terrain;
+  NTempest::C2Vector m_footprintSize;
+  float              m_footprintParticleScale;
+  DEBUGHITROLLINFO   m_hitInformation;
+  ANIMENUMERATION    m_spellPrecastingAnim;
+  ANIMENUMERATION    m_spellCastingAnim;
+  ANIMENUMERATION    m_deferredPrecastAnim;
+  int                m_animatingAura;
+  UINT               m_emoteID;
+  UINT               m_spellCastingEffectKit;
+  UINT               m_spellCastingSoundID;
+  int                m_spellCastingCameraShakeID;
+  MISSILESTRUCT      m_spellMissileStruct;
+  float              m_lastSentFacing;
+  float              m_lastSentPitch;
+  HPLAYERNAME        m_unitNameHandle;
+  int                m_accumulatedXPDrop;
+  int                m_castingSpell;
+  int                m_interruptedSpell;
+  int                m_lastSpellCastAnimTime;
+  int                m_nextBreath;
+  int                m_nextMountBreath;
+  int                m_scriptRegistered;
+  float              m_displayFacing;
+
+ public:
+  enum {
+    NUM_SAVED_FACING_DELTAS = 4
+  };
+
+ protected:
   float                               m_smoothFacing;
   float                               m_savedFacingDeltas[NUM_SAVED_FACING_DELTAS];
   float                               m_forcedDisplayFacing;
@@ -1815,12 +1729,82 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   UINT                                m_lastGlobalClickCount;
   UINT                                m_pissedCount;
   UINT                                m_numNPCPissedSounds;
-  HCHARGEOSET                         m_geosetHandle;
-  HTEXCOMPONENT                       m_texComponent;
-  UINT                                m_preferredGeosets[15];
-  int                                 m_displayHealth;
+
+ public:
+  HCHARGEOSET GetGeosetHandle() const;
+  HTEXCOMPONENT GetTexComponent() const {
+    return m_texComponent;
+  }
+  BOOL        IsModelComponentable() const;
+  UINT        GetDisplayRace() const;
+  UINT        GetDisplaySex() const;
+  LPCSTR      GetDisplayTextureName() const;
+  UINT        SkinVariationID() const;
+  UINT        FaceID() const;
+  UINT        HairStyleID() const;
+  UINT        HairColorID() const;
+  UINT        FacialHairID() const;
+  const UINT *GetPreferredGeosets() const;
+  UINT        GetNumPreferredGeosets() const;
+  void        InitPreferredGeosets();
+  void        InitializeNPCItems();
+
+ protected:
+  HCHARGEOSET   m_geosetHandle;
+  HTEXCOMPONENT m_texComponent;
+  UINT          m_preferredGeosets[15];
+
+ public:
+  int                     GetDisplayHealth() const;
+  void                    SignalDisplayHealthUpdate() const;
+  void                    UpdateDisplayHealth();
+  BOOL                    IsInStandSitTransition();
+  BOOL                    IsInSitSleepPosition();
+  virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
+  virtual int             GetSpellRank(int spellID) const;
+  int          GetSpellLevel(int spellID) const {
+    return static_cast<UINT>(GetSpellRank(spellID)) / 5;
+  }
+  virtual bool  GetDefenseSkillRank(int &base, int &modifier) const;
+  virtual bool  GetAttackSkillRank(int hand, int &base, int &modifier) const;
+  virtual void  OnLevelChange();
+  virtual float GetBlockChance() const;
+  virtual float GetDodgeChance() const;
+  virtual float GetParryChance() const;
+
+ protected:
+  int m_displayHealth;
+
+ public:
+  const SkillLineAbilityRec *LookupAbility(int spellID) const;
+  bool                       IsSpellKnown(int spellID) const;
+  bool                       IsSpellSuperceded(int spellID) const;
+  int                        GetSpellSkillLine(int spellID) const;
+  virtual int                GetSpellCastingTime(int spellID) const;
+  void                       SetImpactKitEffect(int spellID, CGUnit_C *target, const SpellVisualKitRec *impactKit, int immediate);
+  void                       PlayImpactKit(int spellID, const SpellVisualKitRec *impactKit);
+  void                       CheckPendingImpactKit();
+  void                       AddSpellProcAuraEffect(int auraslot, const SpellVisualKitRec *rec);
+  void                       AddSpellProcOneShotEffect(int spellID, const SpellVisualKitRec *rec);
+  void                       RemoveSpellProcAuraEffect(ACTIVEAURAINFO *rec);
+  SPELLEFFECTDESC           *FindSpellEffectProcDesc(const SpellVisualKitRec *rec);
+  void                       RefreshSpellProcEffects();
+  void                       UpdateSpellProcEffects(float elapsedTime);
+  void                       AddEmissiveColor(const NTempest::CImVector &color);
+  void                       RemoveEmissiveColor(const NTempest::CImVector &color);
+  void                       SetStandStateAnim(int standAnim);
+  void                       SetWalkStateAnim(int walkAnim);
+  int                        GetStandStateAnim(HMODEL model) const;
+  int                        GetWalkStateAnim() const;
+  const SpellVisualRec      *GetAppropriateSpellVisual(const SpellRec *spellRec, SpellVisualRec &filled) const;
+  SPELLEFFECTDESC           *GetActiveEffect(LIST(SPELLEFFECTDESC) & list);
+  void                       AddHitAnimHolds(int spellID, const TSStackArray<DWORDLONG> &targets);
+  void                       CheckPendingSpellAnimHits();
+  void                       SpellAnimHit(int spellID);
 
  private:
+  void InternalProcessSpellProcEffects(SPELLPROC_ACTION action, float elapsed);
+
   LISTDECL(IMPACTEFFECTDESC, m_impactEffectsDesc);
   LISTDECL(SPELLEFFECTDESC, m_spellEffectLists[11]);
   NTempest::C3iVector        m_currentEmissive;
@@ -1831,45 +1815,169 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int                        m_standStateAnim;
   float                      m_baseRadius;
 
+ public:
+  static int GetAnimPriority(int state);
+  void       OnDynamicFlagsChanged(UINT oldValue);
+  void       OnChannelSpellChanged(UINT oldSpell);
+  void       ClearSavedChannelSpellTargets();
+  int  GetSavedChannelSpellID() const {
+    return m_savedChannelSpellID;
+  }
+  const TSGrowableArray<DWORDLONG> &GetSavedChannelSpellTargets() const {
+    return m_savedChannelSpellTargets;
+  }
+  bool IsBeingStalked() const {
+    return (m_unit->dynamicFlags >> 1) & 1;
+  }
+  bool GetLootPermission() const;
+  void DrawBowString(const NTempest::C3Vector &cameraPos);
+  void ShowHandArrow(int show);
+  void SetShowHandArrowFlag(int show);
+  bool GetShowingHandArrow() const {
+    return (m_flags >> 19) & 1;
+  }
+  void SetShowingHandArrowFlag(int showing);
+  void      SetAmmoDisplay(UINT displayID, UINT inventoryType) {
+    m_ammoDisplayID = displayID;
+    m_ammoInvType = inventoryType;
+  }
+  HMODEL GetRangedWeaponModel();
+  void   ClearRangedStandTimer();
+  void   OnRangedStandTimer();
+  void   SetRangedStandTimer();
+
  protected:
-  UINT                       m_ammoDisplayID;
-  UINT                       m_ammoInvType;
-  UINT                       m_rangedStandTimer;
-  ACTIVEATTACHMENTINFO      *m_attachments[5];
-  ACTIVEATTACHMENTINFO      *m_deferredAttachments[5];
-  int                        m_weaponTrails[5];
-  HMODEL                     m_paperDollModel;
-  int                        m_sheatheReasons;
-  ANIMENUMERATION            m_handAnim[2];
-  UINT                       m_deferredSheatheFlags;
-  SHEATHEREASONS             m_deferredSheatheReason;
+  UINT m_ammoDisplayID;
+  UINT m_ammoInvType;
+  UINT m_rangedStandTimer;
+
+ public:
+  virtual void UpdateObjComponentVisuals(const CGItem_C *item, const ItemEnchantment *enchantments, int num);
+  virtual void ClearItemVisuals(ACTIVEATTACHMENTINFO *info);
+  virtual void SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec *rec, bool force);
+
+ protected:
+  void AddObjectComponentBySlot(
+      int  invSlot,
+      int  displayID,
+      int  inventoryType,
+      bool forceAlternate,
+      bool deferApply,
+      bool sheathe,
+      int  sheathedAttachmentPoint,
+      bool showHidden
+  );
+
+  ACTIVEATTACHMENTINFO *CreateAttachmentInfo(
+      int  invSlot,
+      int  displayID,
+      int  inventoryType,
+      bool forceAlternate,
+      bool sheathe,
+      int  sheathedAttachmentPoint,
+      bool showHidden
+  );
+
+  void RemoveObjectComponentByInvSlot(int invSlot, bool deferDeleteFromModel, bool removeRecord);
+  bool SheatheObjComponent(int slot, bool sheathe);
+  void ClearActiveAttachmentInfo();
+  void SetAttachmentHidden(int attachmentSlot, bool hide);
+  bool ApplyAttachmentInfo(HMODEL characterModel, bool sheathe, int attachmentSlot, bool force);
+  bool UpdateVisibilitySlots(HMODEL characterModel, int attachmentSlot, ACTIVEATTACHMENTINFO **&found, int displayID, bool deferApply);
+  bool WeaponAttached(COMBATHAND hand) const;
+  void ClearWeaponTrailHandles();
+  void ClearDeferredAttachment(HMODEL charModel, int slot);
+  void RefreshAttachmentInfo(HMODEL model);
+
+  ACTIVEATTACHMENTINFO *m_attachments[5];
+  ACTIVEATTACHMENTINFO *m_deferredAttachments[5];
+  int                   m_weaponTrails[5];
+
+ public:
+  void   ReinitializePaperdollModel();
+  void   CreatePaperdollModel();
+  HMODEL GetPaperDollModel(bool duplicateModel);
+  void   DestroyPaperdollModel();
+
+ protected:
+  HMODEL m_paperDollModel;
+
+ public:
+  void         CheckDeferredSheathing();
+  void         SetSheatheReason(SHEATHEREASONS reason, bool on, bool suppressSound);
+  void         SheatheOrUnsheatheItems(SHEATHEREASONS reason, bool sheathe, bool playSound);
+  void         MaybeStartSheatheAnim();
+  void         DisableWeaponTrails();
+  void         HandleSheatheAnimEvent(bool clearSheatheAnim, bool suppressSound);
+  void         SheatheAnimEndHandler();
+  bool         IsItemSwapFlagSet() const;
+  void         SetItemSwapFlag(bool set);
+  void         SetWeaponMode(WEAPONMODE mode);
+  void         WeaponModeChanged();
+  void         UpdateSheatheRangedReasons(bool suppressSound);
+  virtual void SetLastWeaponModeSent(int mode);
+  void         HandlePrecastStart(bool precast);
+  void         HandlePrecastStop(int spellID, bool force);
+
+ protected:
+  bool SetSheathingSequence();
+  void HandleRemotePlayerSheathing();
+  void HandleLocalPlayerSheathing();
+  bool SheatheAnimPlaying() const;
+  bool SheatheAnimEventEncountered() const {
+    return (m_animFlags >> 16) & 1;
+  }
+  void SetSheatheEventEncountered(bool encountered);
+
+  int             m_sheatheReasons;
+  ANIMENUMERATION m_handAnim[2];
+  UINT            m_deferredSheatheFlags;
+  SHEATHEREASONS  m_deferredSheatheReason;
+
+ public:
+  void      ClearTrackingTarget(bool snapToTargetOnClear);
+  void      SaveTrackingTarget(DWORDLONG target, TRACKTYPE type, bool snapToTargetOnClear);
+  DWORDLONG GetTrackingTarget() const;
+  bool      TrackingTargetMoving() const;
+  void      HandleFollowTarget();
+  void      OnMovementInitiated(bool facingOnly);
+  void      OnMoveStartLocal(DWORD eventTime, int forward);
+  void      OnMoveStopLocal(DWORD eventTime);
+  void      OnStrafeStartLocal(DWORD eventTime, int left);
+  void      OnStrafeStopLocal(DWORD eventTime);
+  void      OnTurnStartLocal(DWORD eventTime, int left);
+  void      OnTurnStopLocal(DWORD eventTime);
+  void      OnSetFacingLocal(DWORD eventTime, float facing);
+  void      OnSetRawFacingLocal(DWORD eventTime, float facing);
+  void      OnPitchStartLocal(DWORD eventTime, int up);
+  void      OnPitchStopLocal(DWORD eventTime);
+  void      OnSetPitchLocal(DWORD eventTime, float pitch);
+  void      OnJumpLocal(DWORD eventTime);
+  void      OnSwimStartLocal(DWORD eventTime);
+  void      OnSwimStopLocal(DWORD eventTime);
+  void      OnRunSpeedChangeLocal(DWORD eventTime, NETMESSAGE msgID, float speed);
+  void      OnWalkSpeedChangeLocal(DWORD eventTime, float speed);
+  void      OnSwimSpeedChangeLocal(DWORD eventTime, NETMESSAGE msgID, float speed);
+  void      OnAllSpeedChangeLocal(DWORD eventTime, float speed);
+  void      OnTurnRateChangeLocal(DWORD eventTime, float rate);
+  void      OnSetRunModeLocal(DWORD eventTime, int run);
+  void      ToggleRunModeLocal(DWORD eventTime);
+  bool      IsShapeShifted() const;
+  void      AttackUnit(CGUnit_C *newVictim);
+  void      OnCombatModeTimer();
+
+ protected:
   int                        m_savedChannelSpellID;
   TSGrowableArray<DWORDLONG> m_savedChannelSpellTargets;
   SPELLEFFECTDESC           *m_channelSpellEffect;
   const SpellRec            *m_shapeShiftPoof;
-  FishingLineObject         *m_fishingLineObject;
+
+ public:
+  void ClearFishingObject();
+  void ProcessChannelObject();
 
  protected:
-  void           ProcessEmoteQueue();
-  void           ApplyStrafeRotation(UINT newState);
-  void           SetStrafeRotation();
-  int            PlayBaseAnimation(int newAnimState, int newAnim, int forceNoFidget, bool &checkImpacts);
-  float          DetermineWalkRunTimeScale(int currentState);
-  ANIMQUEUENODE *ProcessAnimQueue();
-  ANIMQUEUENODE *GetNewAnimNode(int leaveUnlinked);
-  void           RecycleAnimNode(ANIMQUEUENODE *node);
-  void           PurgeAnimNodes(bool doNotProcess);
-  UINT           ChooseAnimation(UINT state) const;
-  UINT           DetermineAttackerSequence(COMBATHAND hand) const;
-  UINT           DetermineParrySequence() const;
-  UINT           GetAttackerAnimEx(COMBATHAND hand, const VirtualItemInfo *itemInfo) const;
-  void           DDWRITELOG(LPCSTR buffer);
-
- private:
-  void LookAtTarget(CGUnit_C *target);
-  void ApplyObjectCameraSpaceLookAt(const NTempest::C3Vector &target);
-  void RemoveObjectLookAt();
-  void PrintAttackSeqErrorMsg(UINT sequence, UINT fallBack) const;
+  FishingLineObject *m_fishingLineObject;
 };
 
 void CGUnit_C_RenderBowStrings(const NTempest::C3Vector &c);

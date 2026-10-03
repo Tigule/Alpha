@@ -7,39 +7,39 @@ static BYTE pads[64] = {0x80};
 
 namespace Private {
 
-  DWORD S(DWORD x, int n) {
+  inline DWORD S(DWORD x, int n) {
     return _lrotl(x, n);
   }
 
-  void R1(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
+  inline void R1(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
     e += S(a, 5) + ((b & c) | (~b & d)) + w + 0x5A827999;
     b = S(b, 30);
     w = 0;
   }
 
-  void R2(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
+  inline void R2(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
     e += S(a, 5) + (b ^ c ^ d) + w + 0x6ED9EBA1;
     b = S(b, 30);
     w = 0;
   }
 
-  void R3(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
-    e += S(a, 5) + ((b & c) | ((b | c) & d)) + w + 0x8F1BBCDC;
+  inline void R3(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
+    e += S(a, 5) + ((b & (c | d)) | (c & d)) + w + 0x8F1BBCDC;
     b = S(b, 30);
     w = 0;
   }
 
-  void R4(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
+  inline void R4(DWORD a, DWORD &b, DWORD c, DWORD d, DWORD &e, DWORD &w) {
     e += S(a, 5) + (b ^ c ^ d) + w + 0xCA62C1D6;
     b = S(b, 30);
     w = 0;
   }
 
-  void Load(DWORD &a, const BYTE b[]) {
+  inline void Load(DWORD &a, const BYTE b[]) {
     a = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
   }
 
-  void Save(DWORDLONG a, BYTE b[]) {
+  inline void Save(DWORDLONG a, BYTE b[]) {
     int i;
 
     for (i = 7; i >= 0; i--) {
@@ -48,7 +48,7 @@ namespace Private {
     }
   }
 
-  void Save(DWORD a, BYTE b[]) {
+  inline void Save(DWORD a, BYTE b[]) {
     int i;
 
     for (i = 3; i >= 0; i--) {
@@ -72,7 +72,7 @@ void Sha1::Pump(DWORD hash[], const BYTE data[]) {
     Private::Load(w[i], data + i * 4);
   }
 
-  for (i = 16; i < 80; i++) {
+  for (; i < 80; i++) {
     w[i] = Private::S(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1);
   }
 
@@ -162,7 +162,7 @@ void Sha1::Append(LPCVOID _data, DWORD size) {
   }
 }
 
-void Sha1::Finalize(BYTE *hash) {
+void Sha1::Finalize(BYTE hash[]) {
   BYTE  size[8];
   DWORD padBytes;
   int   i;

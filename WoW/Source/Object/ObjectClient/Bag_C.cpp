@@ -2,12 +2,12 @@
 #include <Gx/Gx.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
-#include "WowServices/WowConnection.h"
-#include <WowConst.h>
+#include "Net/NetClient/NetClient.h"
 #include <Frame/CSimpleTop.h>
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
 
@@ -55,7 +55,7 @@ int CGBag_C::GetHeight(UINT offset) const {
 CGItem_C *CGBag_C::FindItemOfType(int entryID, UINT flags) const {
   DWORDLONG bagGUID;
   UINT      slot;
-  return FindItemOfType(entryID, bagGUID, slot, flags);
+  return FindItem(FindItemIDCallback, &entryID, bagGUID, slot, flags);
 }
 
 CGItem_C *CGBag_C::FindItemOfType(int entryID, DWORDLONG &bagGUID, UINT &slot, UINT flags) const {

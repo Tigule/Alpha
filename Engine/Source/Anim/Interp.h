@@ -17,8 +17,10 @@ class CArray {
   }
 
   ~CArray() {
-    delete[] m_data;
-    m_data = 0;
+    if (m_data) {
+      delete[] m_data;
+      m_data = 0;
+    }
   }
 
   CArray<T> &operator=(const CArray<T> &source) {
@@ -41,7 +43,9 @@ class CArray {
   }
 
   void ReserveSpace(UINT elements) {
-    delete[] m_data;
+    if (m_data) {
+      delete[] m_data;
+    }
     if (!elements) {
       m_data = 0;
       return;
@@ -126,9 +130,7 @@ struct CKeyTrackStatus {
 };
 
 struct CAnimObjStatus {
-  CAnimObjStatus() {
-    memset(this, 0, sizeof(*this));
-    base.flags = 0x10;
+  CAnimObjStatus() : lookAtId(0) {
   }
   CAnimObjStatus(const CAnimObjStatus &source)
       : translation(source.translation), rotation(source.rotation), scale(source.scale), base(source.base), lookAtId(source.lookAtId) {
@@ -143,8 +145,6 @@ struct CAnimObjStatus {
 
 struct CAnimEventObjStatus : public CAnimObjStatus {
   CAnimEventObjStatus() {
-    memset(this, 0, sizeof(*this));
-    base.flags = 0x10;
   }
 
   CKeyTrackStatus    event;
@@ -152,10 +152,7 @@ struct CAnimEventObjStatus : public CAnimObjStatus {
 };
 
 struct CAnimModelObjStatus : public CAnimObjStatus {
-  CAnimModelObjStatus() {
-    memset(this, 0, sizeof(*this));
-    base.flags = 0x10;
-    visible = 1.0f;
+  CAnimModelObjStatus() : visible(1.0f) {
   }
 
   BOOL IsVisible() const {
@@ -187,10 +184,7 @@ struct CAnimObjBlendStatus {
 };
 
 struct CAnimCameraObjStatus {
-  CAnimCameraObjStatus() {
-    memset(this, 0, sizeof(*this));
-    visible = 1.0f;
-    base.flags = 0x10;
+  CAnimCameraObjStatus() : visible(1.0f) {
   }
 
   BOOL IsVisible() const {
@@ -212,9 +206,7 @@ struct CAnimLayerStatus {
 };
 
 struct CAnimEmitter2ObjStatus : public CAnimObjStatus {
-  CAnimEmitter2ObjStatus() {
-    memset(this, 0, sizeof(*this));
-    base.flags = 0x10;
+  CAnimEmitter2ObjStatus() : elapsedTime(0.0f) {
   }
 
   CKeyTrackStatus speed;
@@ -242,9 +234,7 @@ struct CAnimLightObjStatus : public CAnimObjStatus {
 };
 
 struct CAnimRibbonObjStatus : public CAnimObjStatus {
-  CAnimRibbonObjStatus() {
-    memset(this, 0, sizeof(*this));
-    base.flags = 0x10;
+  CAnimRibbonObjStatus() : elapsedTime(0.0f) {
   }
 
   CKeyTrackStatus visibility;
@@ -258,8 +248,7 @@ struct CAnimRibbonObjStatus : public CAnimObjStatus {
 
 struct CAnimGeosetObjStatus {
   CAnimGeosetObjStatus() {
-    memset(this, 0, sizeof(*this));
-    base.flags = 0x11;
+    base.flags |= 1;
   }
 
   BOOL IsVisible() const {

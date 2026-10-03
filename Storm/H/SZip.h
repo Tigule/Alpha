@@ -34,7 +34,8 @@ class WowFile {
 
 class TestFile : public WowFile {
  public:
-  TestFile(WowFileSystemProvider *provider, FILE *file);
+  TestFile(WowFileSystemProvider *provider, FILE *f) : WowFile(provider), m_f(f) {
+  }
   ~TestFile();
 
   FILE *m_f;
@@ -42,15 +43,17 @@ class TestFile : public WowFile {
 
 class TestFileSystemProvider : public WowFileSystemProvider {
  public:
-  TestFileSystemProvider();
-  ~TestFileSystemProvider();
+  TestFileSystemProvider() {
+  }
+  ~TestFileSystemProvider() {
+  }
   virtual WowFile *Open(LPCSTR filename);
   virtual bool     Close(WowFile *f);
 };
 
 class WowFileSystem {
  public:
-  WowFileSystem() : m_providerList(0) {
+  WowFileSystem() {
   }
 
   ~WowFileSystem() {

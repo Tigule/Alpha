@@ -1,24 +1,26 @@
 #include <Base/Base.h>
 
+#include "Frame/CSimpleTop.h"
 #include "Frame/CSimpleHTML.h"
 
 #include <lauxlib.h>
 #include <lua.h>
 
 #define GET_SIMPLE_HTML_THIS(L, object)                                 \
-  CSimpleHTML *object = 0;                                              \
-  if (lua_type(L, 1) == LUA_TTABLE) {                                   \
-    lua_rawgeti(L, 1, 0);                                               \
-    object = static_cast<CSimpleHTML *>(lua_touserdata(L, -1));         \
-    lua_pop(L, 1);                                                      \
-  } else {                                                              \
+  CSimpleHTML *object;                                                  \
+  if (lua_type(L, 1) != LUA_TTABLE) {                                   \
     luaL_error(                                                         \
         L,                                                              \
         "Attempt to find 'this' in non-table object (used '.' instead " \
         "of ':' ?)"                                                     \
     );                                                                  \
-  }                                                                     \
-  ASSERT(object)
+    object = 0;                                                         \
+  } else {                                                              \
+    lua_rawgeti(L, 1, 0);                                               \
+    object = static_cast<CSimpleHTML *>(lua_touserdata(L, -1));         \
+    lua_pop(L, 1);                                                      \
+    ASSERT(object);                                                     \
+  }
 
 static int CSimpleHTML_SetText(lua_State *L) {
   GET_SIMPLE_HTML_THIS(L, object);

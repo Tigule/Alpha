@@ -345,7 +345,7 @@ class CMapObjGroup {
   CMapObj             *parent;
   float                flushTime;
   CAsyncObject        *asyncObject;
-  BYTE                 bLoaded;
+  bool                 bLoaded;
 
  public:
   LINKDECLEX(CMapObjGroup, lameAssLink);
@@ -356,7 +356,7 @@ class CMapObjGroup {
   void InitPtrs();
   void Clear();
   bool IsLoaded() {
-    return bLoaded != 0;
+    return bLoaded;
   }
   bool IsLoading() {
     return asyncObject != 0;

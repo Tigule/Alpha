@@ -1,24 +1,26 @@
 #include <Base/Base.h>
 
+#include "Frame/CSimpleTop.h"
 #include "Frame/CSimpleEditBox.h"
 
 #include <lauxlib.h>
 #include <lua.h>
 
 #define GET_SIMPLE_EDITBOX_THIS(L, object)                         \
-  CSimpleEditBox *object = 0;                                      \
-  if (lua_type(L, 1) == LUA_TTABLE) {                              \
-    lua_rawgeti(L, 1, 0);                                          \
-    object = static_cast<CSimpleEditBox *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                 \
-  } else {                                                         \
+  CSimpleEditBox *object;                                          \
+  if (lua_type(L, 1) != LUA_TTABLE) {                              \
     luaL_error(                                                    \
         L,                                                         \
         "Attempt to find 'this' in non-table object (used '.' "    \
         "instead of ':' ?)"                                        \
     );                                                             \
-  }                                                                \
-  ASSERT(object)
+    object = 0;                                                    \
+  } else {                                                         \
+    lua_rawgeti(L, 1, 0);                                          \
+    object = static_cast<CSimpleEditBox *>(lua_touserdata(L, -1)); \
+    lua_pop(L, 1);                                                 \
+    ASSERT(object);                                                \
+  }
 
 static int CSimpleEditBox_Insert(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
@@ -35,6 +37,7 @@ static int CSimpleEditBox_SetText(lua_State *L) {
 
   if (lua_gettop(L) != 2) {
     luaL_error(L, "Usage: SetText(\"text\")");
+    return 0;
   }
 
   object->SetText(lua_tostring(L, 2));
@@ -53,6 +56,7 @@ static int CSimpleEditBox_AddHistoryLine(lua_State *L) {
 
   if (lua_gettop(L) != 2) {
     luaL_error(L, "Usage: AddHistoryLine(\"text\")");
+    return 0;
   }
 
   object->AddHistoryLine(lua_tostring(L, 2));
@@ -62,14 +66,15 @@ static int CSimpleEditBox_AddHistoryLine(lua_State *L) {
 static int CSimpleEditBox_SetTextInsets(lua_State *L) {
   GET_SIMPLE_EDITBOX_THIS(L, object);
 
-  if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4) || !lua_isnumber(L, 5)) {
-    luaL_error(L, "Usage: SetTextInsets(l, r, t, b)");
+  if (lua_isnumber(L, 2) && lua_isnumber(L, 3) && lua_isnumber(L, 4) && lua_isnumber(L, 5)) {
+    object->SetEditTextInsets(
+        static_cast<float>(0.8f * (lua_tonumber(L, 3) * 0.0009765625f)), static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)),
+        static_cast<float>(0.8f * (lua_tonumber(L, 4) * 0.0009765625f)), static_cast<float>(0.8f * (lua_tonumber(L, 5) * 0.0009765625f))
+    );
+    return 0;
   }
 
-  object->SetEditTextInsets(
-      static_cast<float>(lua_tonumber(L, 3) * 0.0009765625f * 0.8f), static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f),
-      static_cast<float>(lua_tonumber(L, 4) * 0.0009765625f * 0.8f), static_cast<float>(lua_tonumber(L, 5) * 0.0009765625f * 0.8f)
-  );
+  luaL_error(L, "Usage: SetTextInsets(l, r, t, b)");
   return 0;
 }
 

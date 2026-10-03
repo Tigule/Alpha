@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -69,9 +71,11 @@
 #include <Event/EvtApi.h>
 #include <FrameScript/FrameScript.h>
 #include <Frame/SimpleFrameRegistry.h>
+#include <Frame/CSimpleStatusBar.h>
 #include <Frame/CSimpleTop.h>
 #include <FrameXML/FrameXML.h>
 #include <FrameXML/LoadXML.h>
+#include <Gx/CGxDevice.h>
 #include <Gx/Gx.h>
 #include <Model/IModel.h>
 #include <lauxlib.h>
@@ -189,6 +193,15 @@ CVar *s_statusBarCVar;
 CVar *s_assistAttackCVar;
 CVar *s_combatLogCVar;
 
+struct WorldMapContinentInfo;
+struct WorldMapLandmarkInfo;
+class CGBuffDesc;
+struct TradeSkillInfo;
+struct TradeSkillSubClassInfo;
+struct CraftInfo;
+struct CraftSkillLineInfo;
+struct PetitionSignerInfo;
+
 class CGWorldMap {
  public:
   static void InitializeGame();
@@ -196,6 +209,13 @@ class CGWorldMap {
   static void EnterWorld();
   static void LeaveWorld();
   static void SetMapToCurrentZone();
+
+ protected:
+  static int                                 m_currentContinent;
+  static int                                 m_currentZone;
+  static UINT                                m_numLandmarks;
+  static TSFixedArray<WorldMapContinentInfo> m_continents;
+  static TSFixedArray<WorldMapLandmarkInfo>  m_landmarks;
 };
 
 class CGBuffBar {
@@ -204,6 +224,10 @@ class CGBuffBar {
   static void ShutdownGame();
   static void EnterWorld();
   static void LeaveWorld();
+
+ private:
+  static CGBuffDesc m_buffs[56];
+  static UINT       m_durations[56];
 };
 
 class CGBankInfo {
@@ -219,24 +243,59 @@ class CGTradeSkillInfo {
   static void EnterWorld();
   static void LeaveWorld();
   static void ShutdownGame();
+
+ private:
+  static int                                       m_skillLine;
+  static int                                       m_currentSelection;
+  static UINT                                      m_itemsPending;
+  static UINT                                      m_numSkills;
+  static UINT                                      m_numSubClasses;
+  static UINT                                      m_filteredSkills;
+  static int                                       m_subClassFilter;
+  static int                                       m_invTypeFilter;
+  static int                                       m_collapseFilter;
+  static TSGrowableArray<TradeSkillInfo *>         m_skills;
+  static TSGrowableArray<TradeSkillSubClassInfo *> m_subClasses;
+  static int                                       m_availableSlots;
 };
 
 class CGCraftInfo {
  public:
   static void EnterWorld();
   static void ShutdownGame();
+
+ private:
+  static SPELL_CAST_UI_TYPE                    m_craftType;
+  static int                                   m_currentSelection;
+  static UINT                                  m_numSkills;
+  static UINT                                  m_numSkillLines;
+  static UINT                                  m_filteredSkills;
+  static int                                   m_collapseFilter;
+  static TSGrowableArray<CraftInfo *>          m_skills;
+  static TSGrowableArray<CraftSkillLineInfo *> m_skillLines;
 };
 
 class CGDuelInfo {
  public:
   static void InitializeGame();
   static void ShutdownGame();
+
+ protected:
+  static DWORDLONG m_arbiter;
 };
 
 class CGPetitionInfo {
  public:
   static void EnterWorld();
   static void LeaveWorld();
+
+ protected:
+  static DWORDLONG                           m_petitionGUID;
+  static int                                 m_petitionID;
+  static TSGrowableArray<PetitionSignerInfo> m_signatures;
+  static UINT                                m_numSignatures;
+  static UINT                                m_pendingNames;
+  static const CGPetition                   *m_petition;
 };
 
 void Spell_C_CancelSpell(bool failed, bool notifyServer, SPELL_FAILED_REASON reason);
@@ -250,6 +309,15 @@ void CursorResetCursor(int force);
 void CursorSetHeldItem(DWORDLONG itemGuid);
 void CursorSetHeldVirtualItem(UINT displayID);
 void CursorSetCursorMode(CURSORANIMATIONS mode);
+
+static UINT s_nearestIndex;
+struct NearestEnemyData {
+  DWORDLONG guid;
+  float     distSq;
+};
+static TSGrowableArray<NearestEnemyData> s_nearestList;
+static UINT                              s_nearestListTime;
+static UINT                              s_sameTargetTime;
 
 enum ERROR_TEXT_PLACEMENT {
   ERRORTEXT_CHAT = 0,
@@ -2657,14 +2725,6 @@ int           CGGameUI::m_hasControl;
 CinematicData CGGameUI::m_cinematic;
 char          CGGameUI::s_lastErrorString[512];
 
-static UINT s_nearestIndex;
-struct NearestEnemyData {
-  DWORDLONG guid;
-  float     distSq;
-};
-static TSGrowableArray<NearestEnemyData> s_nearestList;
-static UINT                              s_nearestListTime;
-static UINT                              s_sameTargetTime;
 static LPSTR compasDirStr[8] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
 static LPSTR s_spellMissReasons[10] = {"NONE", "PHYSICAL", "RESIST", "IMMUNE", "EVADED", "DODGED", "PARRIED", "BLOCKED", "TEMPIMMUNE", "DEFLECTED"};
 static LPSTR s_combatEvent[9] = {"MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT"};
@@ -3023,10 +3083,7 @@ static int Script_ToggleCollisionDisplay(lua_State *) {
 static int Script_Logout(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    const CGUnitData *unitData = player->GetUnitData();
-    UINT              flags = unitData->flags;
-    if ((flags & 0x01000000) || ((player->GetType() & TYPE_PLAYER) && !unitData->charmedBy && ((flags & 2) || !(flags & 0x00C00004)) && !(flags & 1)))
-    {
+    if (player->IsClientControlled()) {
       ClientServices_CharacterLogout(false);
     }
   }
@@ -3228,7 +3285,7 @@ static int Script_TargetUnitsPet(lua_State *L) {
   if (lua_isstring(L, 1)) {
     CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
     if (unit) {
-      DWORDLONG petGUID = *(unit->GetUnitData()->charm ? &unit->GetUnitData()->charm : &unit->GetUnitData()->summon);
+      DWORDLONG petGUID = *(unit->GetCharm() ? &unit->GetCharm() : &unit->GetSummon());
       if (petGUID) {
         CGGameUI::Target(petGUID, 0);
       }
@@ -3279,7 +3336,7 @@ static int Script_AssistUnit(lua_State *L) {
   if (unit->GetType() & TYPE_PLAYER) {
     newTarget = static_cast<CGPlayer_C *>(unit)->GetLocalTarget();
   } else {
-    newTarget = unit->GetUnitData()->target;
+    newTarget = unit->GetTarget();
   }
   if (newTarget) {
     CGGameUI::Target(newTarget, 0);
@@ -3363,13 +3420,7 @@ static int Script_ToggleRun(lua_State *L) {
       eventTime = mover->GetMoveStartTime();
     }
 
-    const CGUnitData *unitData = mover->GetUnitData();
-    UINT              flags = unitData->flags;
-    if (unitData->health > 0 &&
-        ((flags & 0x01000000) ||
-         ((mover->GetType() & TYPE_PLAYER) && !unitData->charmedBy && ((flags & 2) || !(flags & 0x00C00004)) && !(flags & 1))) &&
-        !mover->IsInStandSitTransition() && !(moveFlags & 0x2400))
-    {
+    if (mover->GetHealth() > 0 && mover->IsClientControlled() && !mover->IsInStandSitTransition() && !(moveFlags & 0x2400)) {
       mover->ToggleRunModeLocal(eventTime);
     }
   }
@@ -3384,14 +3435,8 @@ static int Script_Jump(lua_State *L) {
       eventTime = mover->GetMoveStartTime();
     }
 
-    const CGUnitData *unitData = mover->GetUnitData();
-    UINT              flags = unitData->flags;
-    if (unitData->health > 0 &&
-        ((flags & 0x01000000) ||
-         ((mover->GetType() & TYPE_PLAYER) && !unitData->charmedBy && ((flags & 2) || !(flags & 0x00C00004)) && !(flags & 1))) &&
-        !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & 0x2400))
-    {
-      UINT standState = unitData->standState;
+    if (mover->GetHealth() > 0 && mover->IsClientControlled() && !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & 0x2400)) {
+      UINT standState = mover->GetStandState();
       if (standState != 1 && standState != 3 && (standState < 4 || standState > 6)) {
         mover->OnJumpLocal(eventTime);
       } else {
@@ -3637,7 +3682,7 @@ static int Script_PickupPlayerMoney(lua_State *L) {
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   UINT        amount = static_cast<UINT>(lua_tonumber(L, 1));
-  if (player && amount && amount <= player->GetUnitData()->coinage) {
+  if (player && amount && amount <= player->GetMoney()) {
     CGGameUI::SetCursorMoney(amount);
   }
   return 0;
@@ -3826,7 +3871,7 @@ static int Script_PVPPort(lua_State *L) {
 
 static int Script_GetDamageBonusStat(lua_State *L) {
   CGPlayer_C          *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const ChrClassesRec *rec = player ? g_chrClassesDB.GetRecord(player->GetUnitData()->classId) : 0;
+  const ChrClassesRec *rec = player ? g_chrClassesDB.GetRecord(player->GetClass()) : 0;
   lua_pushnumber(L, rec ? rec->m_DamageBonusStat + 1.0 : 0.0);
   return 1;
 }
@@ -3936,7 +3981,7 @@ static int Script_GetNetStats(lua_State *L) {
 static int Script_SitOrStand(lua_State *) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->ChangeStandState(player->GetUnitData()->standState ? 0 : 1);
+    player->ChangeStandState(player->GetStandState() ? 0 : 1);
   }
   return 0;
 }
@@ -5285,7 +5330,7 @@ void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
   bool enterCombatMode = false;
   if (player && player->IsInCombatMode() && (oldTarget->GetType() & TYPE_UNIT)) {
     CGUnit_C *oldUnit = static_cast<CGUnit_C *>(oldTarget);
-    if (player->GetUnitData()->health > 0 && !(player->GetUnitData()->flags & 0x2000) && oldUnit->GetUnitData()->health > 0) {
+    if (player->GetHealth() > 0 && !player->IsMounted() && oldUnit->GetHealth() > 0) {
       enterCombatMode = player->CanAttack(oldUnit) != 0;
     }
   }
@@ -5314,7 +5359,7 @@ void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
       CGUnit_C *unit = static_cast<CGUnit_C *>(object);
       unit->RegisterScript();
 
-      if (player && player->GetUnitData()->health > 0 && !(player->GetUnitData()->flags & 0x2000) && unit->GetUnitData()->health > 0 &&
+      if (player && player->GetHealth() > 0 && !player->IsMounted() && unit->GetHealth() > 0 &&
           player->CanAttack(unit))
       {
         m_lastEnemyTarget = target;
@@ -5328,7 +5373,7 @@ void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
         CGTutorial::TriggerTutorial(TUTORIAL_TARGETING_ENEMY);
       }
 
-      if (unit->GetUnitData()->npcFlags) {
+      if (unit->GetUnitNPCFlags()) {
         SndInterfacePlayInterfaceSound("igCharacterNPCSelect");
       } else if (object->GetType() & TYPE_PLAYER) {
         SndInterfacePlayInterfaceSound("igCharacterSelect");
@@ -5364,7 +5409,7 @@ void CGGameUI::ClearTarget(DWORDLONG guid, int sendTarget) {
     if (object->GetType() & TYPE_UNIT) {
       CGUnit_C *unit = static_cast<CGUnit_C *>(object);
       unit->UnregisterScript();
-      if (unit->GetUnitData()->npcFlags) {
+      if (unit->GetUnitNPCFlags()) {
         SndInterfacePlayInterfaceSound("igCharacterNPCDeselect");
       } else if (object->GetType() & TYPE_PLAYER) {
         SndInterfacePlayInterfaceSound("igCharacterDeselect");
@@ -5453,7 +5498,7 @@ void CGGameUI::AssistByName(LPCSTR name) {
     if (unit->GetType() & TYPE_PLAYER) {
       newTarget = static_cast<CGPlayer_C *>(unit)->GetLocalTarget();
     } else {
-      newTarget = unit->GetUnitData()->target;
+      newTarget = unit->GetTarget();
     }
     if (newTarget) {
       Target(newTarget, 0);
@@ -5490,8 +5535,8 @@ static BOOL TargetUpdateProc(DWORDLONG guid, LPVOID) {
     return 1;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player || player->GetUnitData()->health <= 0 || (player->GetUnitData()->flags & 0x2000) || unit->GetUnitData()->health <= 0 ||
-      (unit->GetUnitData()->flags & 0x4000) || !player->CanAttack(unit))
+  if (!player || player->GetHealth() <= 0 || player->IsMounted() || unit->GetHealth() <= 0 ||
+      unit->IsFeignDeath() || !player->CanAttack(unit))
   {
     return 1;
   }
@@ -5555,7 +5600,7 @@ void CGGameUI::TargetNearestEnemy(int reverse) {
   UINT index = s_nearestIndex;
   for (;;) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_nearestList[index].guid, __FILE__, __LINE__));
-    if (unit && unit->GetUnitData()->health > 0) {
+    if (unit && unit->GetHealth() > 0) {
       s_nearestIndex = index;
       Target(s_nearestList[index].guid, 1);
       return;
@@ -5737,7 +5782,7 @@ void CGGameUI::SetMinimapZoneText(LPCSTR areaName) {
 
 void CGGameUI::SetCursorItem(DWORDLONG itemGUID, DWORDLONG containerGUID, UINT slot, int unlock, UINT stackSplit) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player && (m_hasControl || (player->GetUnitData()->flags & 0x100000))) {
+  if (player && (m_hasControl || player->IsOnTaxi())) {
     ClearCursor(unlock);
     if (itemGUID) {
       m_cursorItemContainer = containerGUID;
@@ -5900,7 +5945,7 @@ void CGGameUI::ShowCombatFeedback(const SPELLLOG &log) {
   }
 
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  DWORDLONG pet = player ? *(player->GetUnitData()->charm ? &player->GetUnitData()->charm : &player->GetUnitData()->summon) : 0;
+  DWORDLONG pet = player ? *(player->GetCharm() ? &player->GetCharm() : &player->GetSummon()) : 0;
 
   if (log.victim != pet && log.victim != ClntObjMgrGetActivePlayer()) {
     return;
@@ -6098,7 +6143,7 @@ void CGGameUI::UpdateActivePlayer() {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(player);
 
-  if (player->GetUnitData()->health > 0) {
+  if (player->GetHealth() > 0) {
     FrameScript_SignalEvent(255);
   } else {
     FrameScript_SignalEvent(256);

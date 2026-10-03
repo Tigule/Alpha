@@ -1,13 +1,19 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
 
 #include "Base/Handle.h"
 #include "Services/AsyncFileRead.h"
-#include "WorldClient/DetailDoodad.h"
 
 void CMap::Purge() {
   CMapBaseObjLink *link = areaLinkList.Head();
@@ -35,8 +41,9 @@ void CMap::PurgeDoodadDef(CMapDoodadDef *doodadDef) {
   FATALASSERT(doodadDef);
 
   if (!doodadDef->refCount) {
-    while (doodadDef->cacheLightList.Head()) {
-      FreeCacheLight(doodadDef->cacheLightList.Head());
+    for (CMapCacheLight *cacheLight = doodadDef->cacheLightList.Head(), *next;
+         (int)cacheLight > 0 ? ((next = doodadDef->cacheLightList.RawNext(cacheLight)), 1) : 0; cacheLight = next) {
+      FreeCacheLight(cacheLight);
     }
 
     if (doodadDef->model) {
@@ -52,17 +59,11 @@ void CMap::PurgeMapObjDef(CMapObjDef *mapObjDef) {
   FATALASSERT(mapObjDef);
 
   if (!mapObjDef->refCount) {
-    CMapBaseObjLink *link = mapObjDef->groupLinkList.Head();
-    while (1) {
-      if ((int)link <= 0) {
-        break;
-      }
-
-      CMapBaseObjLink *next = mapObjDef->groupLinkList.RawNext(link);
-      CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
-      FreeBaseObjLink(link);
+    for (CMapBaseObjLink *groupLink = mapObjDef->groupLinkList.Head(), *next;
+         (int)groupLink > 0 ? ((next = mapObjDef->groupLinkList.RawNext(groupLink)), 1) : 0; groupLink = next) {
+      CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
+      FreeBaseObjLink(groupLink);
       PurgeMapObjDefGroup(mapObjDefGroup);
-      link = next;
     }
 
     for (UINT i = 0; i < mapObjDef->lightList.Count(); ++i) {
@@ -82,39 +83,23 @@ void CMap::PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
   FATALASSERT(mapObjDefGroup);
 
   if (!mapObjDefGroup->refCount) {
-    CMapBaseObjLink *link = mapObjDefGroup->doodadDefLinkList.Head();
-    while (1) {
-      if ((int)link <= 0) {
-        break;
-      }
-
-      CMapBaseObjLink *next = mapObjDefGroup->doodadDefLinkList.RawNext(link);
-      CMapDoodadDef   *doodadDef = static_cast<CMapDoodadDef *>(link->owner);
-      FreeBaseObjLink(link);
+    CMapBaseObjLink *next;
+    for (CMapBaseObjLink *doodadDefLink = mapObjDefGroup->doodadDefLinkList.Head();
+         (int)doodadDefLink > 0 ? ((next = mapObjDefGroup->doodadDefLinkList.RawNext(doodadDefLink)), 1) : 0;
+         doodadDefLink = next) {
+      CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(doodadDefLink->owner);
+      FreeBaseObjLink(doodadDefLink);
       PurgeDoodadDef(doodadDef);
-      link = next;
     }
 
-    link = mapObjDefGroup->entityLinkList.Head();
-    while (1) {
-      if ((int)link <= 0) {
-        break;
-      }
-
-      CMapBaseObjLink *next = mapObjDefGroup->entityLinkList.RawNext(link);
-      FreeBaseObjLink(link);
-      link = next;
+    for (CMapBaseObjLink *entityLink = mapObjDefGroup->entityLinkList.Head();
+         (int)entityLink > 0 ? ((next = mapObjDefGroup->entityLinkList.RawNext(entityLink)), 1) : 0; entityLink = next) {
+      FreeBaseObjLink(entityLink);
     }
 
-    link = mapObjDefGroup->lightLinkList.Head();
-    while (1) {
-      if ((int)link <= 0) {
-        break;
-      }
-
-      CMapBaseObjLink *next = mapObjDefGroup->lightLinkList.RawNext(link);
-      FreeBaseObjLink(link);
-      link = next;
+    for (CMapBaseObjLink *lightLink = mapObjDefGroup->lightLinkList.Head();
+         (int)lightLink > 0 ? ((next = mapObjDefGroup->lightLinkList.RawNext(lightLink)), 1) : 0; lightLink = next) {
+      FreeBaseObjLink(lightLink);
     }
 
     FreeMapObjDefGroup(mapObjDefGroup);
@@ -226,69 +211,41 @@ void CMapChunk::Purge() {
   for (i = 0; i < 4; ++i) {
     if (liquids[i]) {
       CMap::FreeChunkLiquid(liquids[i]);
+      liquids[i] = 0;
     }
   }
 
-  CMapBaseObjLink *link = doodadDefLinkList.Head();
-  while (1) {
-    if ((int)link <= 0) {
-      break;
-    }
-
-    CMapBaseObjLink *next = doodadDefLinkList.RawNext(link);
-    CMapDoodadDef   *doodadDef = static_cast<CMapDoodadDef *>(link->owner);
-    CMap::FreeBaseObjLink(link);
+  CMapBaseObjLink *next;
+  for (CMapBaseObjLink *doodadDefLink = doodadDefLinkList.Head();
+       (int)doodadDefLink > 0 ? ((next = doodadDefLinkList.RawNext(doodadDefLink)), 1) : 0; doodadDefLink = next) {
+    CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(doodadDefLink->owner);
+    CMap::FreeBaseObjLink(doodadDefLink);
     CMap::PurgeDoodadDef(doodadDef);
-    link = next;
   }
 
-  link = mapObjDefLinkList.Head();
-  while (1) {
-    if ((int)link <= 0) {
-      break;
-    }
-
-    CMapBaseObjLink *next = mapObjDefLinkList.RawNext(link);
-    CMapObjDef      *mapObjDef = static_cast<CMapObjDef *>(link->owner);
-    CMap::FreeBaseObjLink(link);
+  for (CMapBaseObjLink *mapObjDefLink = mapObjDefLinkList.Head();
+       (int)mapObjDefLink > 0 ? ((next = mapObjDefLinkList.RawNext(mapObjDefLink)), 1) : 0; mapObjDefLink = next) {
+    CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(mapObjDefLink->owner);
+    CMap::FreeBaseObjLink(mapObjDefLink);
     CMap::PurgeMapObjDef(mapObjDef);
-    link = next;
   }
 
-  link = entityLinkList.Head();
-  while (1) {
-    if ((int)link <= 0) {
-      break;
-    }
-
-    CMapBaseObjLink *next = entityLinkList.RawNext(link);
-    CMap::FreeBaseObjLink(link);
-    link = next;
+  for (CMapBaseObjLink *entityLink = entityLinkList.Head();
+       (int)entityLink > 0 ? ((next = entityLinkList.RawNext(entityLink)), 1) : 0; entityLink = next) {
+    CMap::FreeBaseObjLink(entityLink);
   }
 
-  link = lightLinkList.Head();
-  while (1) {
-    if ((int)link <= 0) {
-      break;
-    }
-
-    CMapBaseObjLink *next = lightLinkList.RawNext(link);
-    CMap::FreeBaseObjLink(link);
-    link = next;
+  for (CMapBaseObjLink *lightLink = lightLinkList.Head();
+       (int)lightLink > 0 ? ((next = lightLinkList.RawNext(lightLink)), 1) : 0; lightLink = next) {
+    CMap::FreeBaseObjLink(lightLink);
   }
 
-  CMapSoundEmitter *soundEmitter = soundEmitterList.Head();
-  while (1) {
-    if ((int)soundEmitter <= 0) {
-      break;
-    }
-
-    CMapSoundEmitter *next = soundEmitterList.RawNext(soundEmitter);
+  for (CMapSoundEmitter *soundEmitter = soundEmitterList.Head(), *pNext;
+       (int)soundEmitter > 0 ? ((pNext = soundEmitterList.RawNext(soundEmitter)), 1) : 0; soundEmitter = pNext) {
     if (soundEmitterDestroyHandler) {
       soundEmitterDestroyHandler(soundEmitter->data.soundPointID);
     }
     CMap::FreeSoundEmitter(soundEmitter);
-    soundEmitter = next;
   }
 }
 

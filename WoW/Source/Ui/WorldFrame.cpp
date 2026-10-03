@@ -1,5 +1,16 @@
+#include <Base/Base.h>
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
+#include "WorldFrame.h"
+#include "GameUI.h"
 
 #include "WorldFrame.h"
 #include <Os/OsTime.h>
@@ -19,6 +30,7 @@
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "UIUtil/InputControl.h"
 #include "UIUtil/Cursor.h"
+#include "UIUtil/Tooltip.h"
 #include "Ui/GameUI.h"
 #include "Ui/LootFrame.h"
 #include "Ui/PartyFrame.h"
@@ -136,6 +148,7 @@ void             ModelRenderSceneTransparent(CStatus *status);
 static BOOL             ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32);
 static BOOL             ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
 
+static NTempest::C44Matrix IDENTITY;
 static LPCSTR s_spellShadowName[2] = {"Interface\\SpellShadow\\Spell-Shadow-Acceptable.blp", "Interface\\SpellShadow\\Spell-Shadow-Unacceptable.blp"};
 static CVar  *s_playerFadeCVar;
 static CVar  *s_playerFadeInRateCVar;
@@ -250,7 +263,7 @@ BOOL CGWorldFrame::IsUnitLegalSelection(const CGUnit_C *unit, UINT hitFilter) {
   }
 
   if (hitFilter & 0x300000) {
-    if (unit->GetUnitData()->health <= 0) {
+    if (unit->GetHealth() <= 0) {
       return (hitFilter & 0x200000) != 0;
     }
     return (hitFilter & 0x100000) != 0;
@@ -360,42 +373,48 @@ UINT CGWorldFrame::SphereTestModels(const NTempest::C3Vector &aVector, const NTe
 
 UINT CGWorldFrame::VolumeTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector) {
   UINT numHit = 0;
-  for (CModelRecord *record = m_models.Head(); record;) {
-    CModelRecord *next = record->Next();
-    if (!ModelHasHitTestVolumes(record->model) || ModelHitTestVolumes(record->model, record->scale, aVector, bVector, 1, &record->distance)) {
+  for (CModelRecord *record = m_models.Head(), *next; (int)record > 0 ? ((next = m_models.RawNext(record)), 1) : 0; record = next) {
+    if (!ModelHasHitTestVolumes(record->model)) {
+      ++numHit;
+    } else if (ModelHitTestVolumes(record->model, record->scale, aVector, bVector, 1, &record->distance)) {
       ++numHit;
     } else {
       MoveToFreeList(record);
     }
-    record = next;
   }
   return numHit;
 }
 
 UINT CGWorldFrame::GeometryTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector) {
   UINT numHit = 0;
-  for (CModelRecord *record = m_models.Head(); record;) {
-    CModelRecord *next = record->Next();
+  for (CModelRecord *record = m_models.Head(), *next; (int)record > 0 ? ((next = m_models.RawNext(record)), 1) : 0; record = next) {
     if (ModelHitTestGeometry(record->model, record->scale, aVector, bVector, 1, &record->distance)) {
       ++numHit;
     } else {
       MoveToFreeList(record);
     }
-    record = next;
   }
   return numHit;
 }
 
 static int GetObjectSelectCategory(CGObject_C *object) {
-  int type = object->GetType();
-  if (type == 9 || type == 25) {
-    CGUnit_C *unit = static_cast<CGUnit_C *>(object);
-    if (unit->GetUnitData()->health > 0) {
-      return 2;
-    }
-    return unit->CanBeLooted(OsGetAsyncTimeMs()) != 0;
+  enum {
+    PRIORITY_NON_INTERACTABLE = 0,
+    PRIORITY_LIVING = 2,
+    PRIORITY_INTERACTABLE = 1
+  };
+
+  switch (object->GetType()) {
+    case HIER_TYPE_UNIT:
+    case HIER_TYPE_PLAYER:
+      if (static_cast<CGUnit_C *>(object)->GetHealth() > 0) {
+        return PRIORITY_LIVING;
+      }
+      return static_cast<CGUnit_C *>(object)->CanBeLooted(OsGetAsyncTimeMs()) ? PRIORITY_INTERACTABLE : PRIORITY_NON_INTERACTABLE;
+    case HIER_TYPE_GAMEOBJECT:
+      return static_cast<CGGameObject_C *>(object)->CanUse() ? PRIORITY_INTERACTABLE : PRIORITY_NON_INTERACTABLE;
   }
-  return type == 33 && static_cast<CGGameObject_C *>(object)->CanHighlight();
+  return PRIORITY_NON_INTERACTABLE;
 }
 
 CModelRecord *CGWorldFrame::HigherPriorityModel(CModelRecord *a, CModelRecord *b) {
@@ -413,16 +432,14 @@ CModelRecord *CGWorldFrame::HigherPriorityModel(CModelRecord *a, CModelRecord *b
 
 void CGWorldFrame::ReduceToClosestModel() {
   CModelRecord *closest = m_models.Head();
-  for (CModelRecord *record = closest ? closest->Next() : 0; record;) {
-    CModelRecord *next = record->Next();
+  for (CModelRecord *record = m_models.RawNext(closest), *next; (int)record > 0 ? ((next = m_models.RawNext(record)), 1) : 0; record = next) {
     closest = HigherPriorityModel(closest, record);
-    record = next;
   }
 }
 
 void CGWorldFrame::HideObstructingModels(float maxDist) {
   DWORDLONG fade = 0;
-  ITERATELIST(CModelRecord, m_filteredModels, record) {
+  for (CModelRecord *record = m_filteredModels.Head(), *next; (int)record > 0 ? ((next = m_filteredModels.RawNext(record)), 1) : 0; record = next) {
     if (record->guid == CGPlayer_C::GetActive()) {
       if (record->distance <= maxDist) {
         fade = record->guid;
@@ -442,20 +459,22 @@ DWORDLONG CGWorldFrame::FindClosestModel(const NTempest::C3Vector &a, const NTem
     return 0;
   }
 
-  UINT volumeResult = VolumeTestModels(aVector, bVector);
-  if (!volumeResult) {
-    return 0;
-  }
-
-  if (volumeResult != 1) {
-    UINT geometryResult = GeometryTestModels(aVector, bVector);
-    if (!geometryResult) {
+  switch (VolumeTestModels(aVector, bVector)) {
+    case 0:
       return 0;
-    }
-
-    if (geometryResult != 1) {
-      ReduceToClosestModel();
-    }
+    case 1:
+      break;
+    default:
+      switch (GeometryTestModels(aVector, bVector)) {
+        case 0:
+          return 0;
+        case 1:
+          break;
+        default:
+          ReduceToClosestModel();
+          break;
+      }
+      break;
   }
 
   CModelRecord *picked = m_models.Head();
@@ -543,14 +562,16 @@ CGWorldFrame::HIT_TYPE CGWorldFrame::HitTestPoint(float x, float y, HitTestResul
   GxXformView(saved_view);
   m_camera->SetupWorldProjection(m_rect);
 
-  HIT_TYPE           hitType = HIT_NONE;
-  UINT               hitFilter = GetHitTestFilterFlags();
-  NTempest::C3Vector a;
-  NTempest::C3Vector b;
-  if (hitFilter && GetLineSegment(x, y, &a, &b)) {
-    hitType = HitTest(a, b, hitFilter, hitTestResult);
-    if (hitType < HIT_OBJECT) {
-      MoveToFreeList(&m_filteredModels);
+  HIT_TYPE hitType = HIT_NONE;
+  UINT     hitFilter = GetHitTestFilterFlags();
+  if (hitFilter) {
+    NTempest::C3Vector a;
+    NTempest::C3Vector b;
+    if (GetLineSegment(x, y, &a, &b)) {
+      hitType = HitTest(a, b, hitFilter, hitTestResult);
+      if (hitType < HIT_OBJECT) {
+        MoveToFreeList(&m_filteredModels);
+      }
     }
   }
 
@@ -788,11 +809,11 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
 
 BOOL CGWorldFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
   int result = CSimpleFrame::OnLayerTrackUpdate(evt);
-  if (result) {
-    CGInputControl::GetActive();
-    return 1;
+  if (!result) {
+    return result;
   }
-  return result;
+  CGInputControl::GetActive();
+  return 1;
 }
 
 void CGWorldFrame::OnLayerCursorExit() {
@@ -816,8 +837,11 @@ BOOL CGWorldFrame::OnLayerKeyDown(CKeyEvent &evt) {
   if (CSimpleFrame::OnLayerKeyDown(evt)) {
     return 1;
   }
-  if (evt.key < KEY_LAST && CGUIBindings::KeyEventToString(evt, m_lastKey[evt.key], sizeof(m_lastKey[evt.key]))) {
-    return CGUIBindings::GetActive()->ExecKey(m_lastKey[evt.key], evt.time, 1);
+  if (evt.key < KEY_LAST) {
+    char *string = m_lastKey[evt.key];
+    if (CGUIBindings::KeyEventToString(evt, string, sizeof(m_lastKey[0]))) {
+      return CGUIBindings::GetActive()->ExecKey(string, evt.time, 1);
+    }
   }
   return 0;
 }
@@ -905,7 +929,7 @@ BOOL CGWorldFrame::TogglePlayerRender() {
 
 int CGWorldFrame::SetPlayerRender(int state) {
   int oldState = m_renderPlayer;
-  m_renderPlayer = state != 0;
+  m_renderPlayer = state;
   return oldState;
 }
 
@@ -1025,7 +1049,7 @@ void CGWorldFrame::CursorTrackUnit(CGUnit_C *unit) {
 
   if (player->m_flags & 0x800) {
     CGUnit_C *possessed = player->GetPossessedUnit();
-    if (unit->GetUnitData()->health > 0 && possessed && possessed->GetUnitData()->health > 0 && !(possessed->GetUnitData()->flags & 0x2000) &&
+    if (unit->GetHealth() > 0 && possessed && possessed->GetHealth() > 0 && !possessed->IsMounted() &&
         possessed->CanAttack(unit))
     {
       CursorModelSetSequence(ATTACK_CURSOR);
@@ -1036,12 +1060,12 @@ void CGWorldFrame::CursorTrackUnit(CGUnit_C *unit) {
   }
 
   float sqMag = (player->GetPosition() - unit->GetPosition()).SquaredMag();
-  if (player->CanInteract(unit) && unit->GetUnitData()->health > 0) {
+  if (player->CanInteract(unit) && unit->GetHealth() > 0) {
     int  outOfRange = sqMag > 5.5555553436f * 5.5555553436f;
-    UINT npcFlags = unit->GetUnitData()->npcFlags;
+    UINT npcFlags = unit->GetUnitNPCFlags();
     if (npcFlags & 0x1) {
       CursorModelSetSequence(outOfRange ? PICKUP_ERROR_CURSOR : PICKUP_CURSOR);
-    } else if ((npcFlags & 0x2) && unit->GetUnitData()->weaponMode != 0 && unit->GetUnitData()->weaponMode != 2) {
+    } else if ((npcFlags & 0x2) && unit->GetWeaponMode() != 0 && unit->GetWeaponMode() != 2) {
       CursorModelSetSequence(outOfRange ? SPEAK_ERROR_CURSOR : SPEAK_CURSOR);
     } else if (npcFlags & 0x4) {
       CursorModelSetSequence(outOfRange ? TAXI_ERROR_CURSOR : TAXI_CURSOR);
@@ -1065,7 +1089,7 @@ void CGWorldFrame::CursorTrackUnit(CGUnit_C *unit) {
                                                                                                                              : PICKUP_ERROR_CURSOR
     );
   } else if (
-      player->GetUnitData()->health > 0 && !(player->GetUnitData()->flags & 0x2000) && unit->GetUnitData()->health > 0 && player->CanAttack(unit)
+      player->GetHealth() > 0 && !player->IsMounted() && unit->GetHealth() > 0 && player->CanAttack(unit)
   )
   {
     CursorModelSetSequence(sqMag <= 109.202499f ? ATTACK_CURSOR : ATTACK_ERROR_CURSOR);
@@ -1075,12 +1099,14 @@ void CGWorldFrame::CursorTrackUnit(CGUnit_C *unit) {
 }
 
 void CGWorldFrame::CursorTrackObject(CGGameObject_C *gameObject) {
-  if (!gameObject->m_baseObj->CanChangeCursor()) {
-    CursorResetCursor(0);
-  } else if (gameObject->m_baseObj->CanUseNow(0)) {
-    CursorModelSetSequence(INTERACT_CURSOR);
+  if (gameObject->CanChangeCursor()) {
+    if (gameObject->CanUseNow()) {
+      CursorModelSetSequence(INTERACT_CURSOR);
+    } else {
+      CursorModelSetSequence(INTERACT_ERROR_CURSOR);
+    }
   } else {
-    CursorModelSetSequence(INTERACT_ERROR_CURSOR);
+    CursorResetCursor(0);
   }
 }
 
@@ -1154,7 +1180,7 @@ void CGWorldFrame::UpdateDayNightInfo(float elapsedSec) {
 
 void CGWorldFrame::SetPlayerFadeCameraValue(BYTE value) {
   if (value != m_cameraAlpha) {
-    if (m_camera->m_target == ClntObjMgrGetActivePlayer() && ((!value && m_cameraAlpha) || (value && !m_cameraAlpha))) {
+    if (m_camera->m_target == ClntObjMgrGetActivePlayer() && ((value && !m_cameraAlpha) || (!value && m_cameraAlpha))) {
       Player_C_SetPlayerRender(value != 0);
     }
 
@@ -1250,16 +1276,16 @@ void CGWorldFrame::OnFrameRender(CRenderBatch *batch, UINT layer) {
 
 void CGWorldFrame::RenderWorld(LPVOID param) {
   CGWorldFrame       *worldFrame = static_cast<CGWorldFrame *>(param);
-  NTempest::C44Matrix saved_view;
   NTempest::C44Matrix saved_proj;
+  NTempest::C44Matrix saved_view;
 
-  GxXformView(saved_view);
   GxXformProjection(saved_proj);
+  GxXformView(saved_view);
   worldFrame->OnWorldUpdate();
   worldFrame->OnWorldRender();
   PlayerNameRenderWorldText();
-  GxXformSetView(saved_view);
   GxXformSetProjection(saved_proj);
+  GxXformSetView(saved_view);
 }
 
 NTempest::C2Vector CGWorldFrame::GetScreenCoordinates(const NTempest::C3Vector &point) {
@@ -1319,7 +1345,7 @@ void CGWorldFrame::OnWorldUpdate() {
   if (static_cast<int>(idleTime - AUTO_SIT_IDLE_TIME) >= 0) {
     if (static_cast<int>(idleTime - AUTO_LOGOUT_IDLE_TIME) < 0) {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(CGPlayer_C::GetActive(), __FILE__, __LINE__));
-      if (player && !player->GetUnitData()->standState) {
+      if (player && !player->GetStandState()) {
         player->ChangeStandState(1);
       }
     } else if (!ClientServices_CharacterLoggingOut()) {

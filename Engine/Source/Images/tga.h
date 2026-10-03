@@ -2,6 +2,16 @@
 
 #include <storm.h>
 
+enum {
+  TGA_NO_IMAGE_DATA = 0,
+  TGA_COLOR_MAPPED = 1,
+  TGA_TRUE_COLOR = 2,
+  TGA_BLACK_N_WHITE = 3,
+  TGA_RLE_COLOR_MAPPED = 9,
+  TGA_RLE_TRUE_COLOR = 10,
+  TGA_RLE_BLACK_N_WHITE = 11
+};
+
 #pragma pack(push, 1)
 struct TGAHeader {
   BYTE bIDLength;
@@ -35,8 +45,8 @@ struct TGAFooter {
 
 struct TGA32Pixel {
   TGA32Pixel();
-  TGA32Pixel(UINT color);
   TGA32Pixel(BYTE b, BYTE g, BYTE r, BYTE a);
+  TGA32Pixel(UINT color);
   operator UINT();
 
   BYTE b;
@@ -47,10 +57,10 @@ struct TGA32Pixel {
 
 class CTgaFile {
  public:
-  CTgaFile(const CTgaFile &source);
-
   CTgaFile() : m_file(0), m_image(0), m_addlHeaderData(0), m_imageBytes(0), m_colorMap(0) {
   }
+
+  CTgaFile(const CTgaFile &source);
 
   CTgaFile &operator=(const CTgaFile &source);
 
@@ -58,21 +68,7 @@ class CTgaFile {
     Close();
   }
 
-  void              Close();
-  BOOL              Open(LPCSTR filename);
-  int               LoadImageData(UINT flags);
-  BOOL              AddAlphaChannel(LPCVOID pImg);
-  BOOL              SetTopDown(int set);
-  BYTE             *Image();
-  const BYTE       *Image() const;
-  TGA32Pixel       *ImageTGA32Pixel();
-  const TGA32Pixel *ImageTGA32Pixel() const;
-  BOOL              RemoveAlphaChannels();
-  void              RemoveHeaderTrailer();
-  BOOL              SetImage(const CTgaFile &source);
-  BOOL              SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, BYTE bAlphaBits, BOOL bTopDown, BOOL bRightToLeft);
-  BOOL              Compress();
-  BOOL              Write(LPCSTR path);
+  void Close();
 
   UINT Width() const {
     return m_header.wWidth;
@@ -131,32 +127,49 @@ class CTgaFile {
   UINT ColorMapBytes() const {
     return m_header.wColorMapEntries * ColorMapEntryBytes();
   }
-
-  BYTE *ColorMap() {
-    return m_colorMap;
-  }
+  const BYTE *Image() const;
+  BYTE       *Image();
 
   const BYTE *ColorMap() const {
     return m_colorMap;
   }
 
+  BYTE *ColorMap() {
+    return m_colorMap;
+  }
+  const TGA32Pixel *ImageTGA32Pixel() const;
+  TGA32Pixel       *ImageTGA32Pixel();
+
   BOOL IsCompressed() const {
     return m_header.bImageType >= 9 && m_header.bImageType <= 11;
   }
+  BOOL Open(LPCSTR filename);
+  int  LoadImageData(UINT flags);
+  BOOL SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, BYTE bAlphaBits, BOOL bTopDown, BOOL bRightToLeft);
+  BOOL SetImage(const CTgaFile &source);
+  BOOL SetTopDown(int set);
+  BOOL AddAlphaChannel(LPCVOID pImg);
 
  private:
+  void AddAlphaChannel(BYTE *pAlphaData, BYTE *pNoAlphaData, const BYTE *alpha);
+
+ public:
+  BOOL RemoveAlphaChannels();
+  void RemoveHeaderTrailer();
+  BOOL Compress();
+  BOOL Write(LPCSTR path);
+
+ private:
+  DWORD PreImageBytes();
+  BOOL  ReadRawImage(UINT flags);
+  BOOL  RLEDecompressImage(BYTE *pRLEData, BYTE *pData);
+  BOOL  ReadRleImage(UINT flags);
+  int   ReadColorMappedImage(UINT flags);
   BOOL  ValidateColorDepth();
   void  ConvertColorMapped(UINT flags);
-  int   ReadColorMappedImage(UINT flags);
-  DWORD PreImageBytes();
-  void  AddAlphaChannel(BYTE *pAlphaData, BYTE *pNoAlphaData, const BYTE *alpha);
-  BOOL  ReadRawImage(UINT flags);
-  BOOL  ReadRleImage(UINT flags);
-  BOOL  RLEDecompressImage(BYTE *pRLEData, BYTE *pData);
   BOOL  CountRun(BYTE *pImage, int nMax);
   BOOL  RleCompressLine(BYTE **uncompressed, BYTE **compressed);
 
- private:
   SFile    *m_file;
   BYTE     *m_image;
   TGAHeader m_header;

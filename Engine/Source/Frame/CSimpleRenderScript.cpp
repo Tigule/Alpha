@@ -1,5 +1,6 @@
 #include <Base/Base.h>
 
+#include "Frame/CSimpleTop.h"
 #include "Frame/CSimpleRender.h"
 
 #include "FrameXML/LoadXML.h"
@@ -9,19 +10,20 @@
 #include <storm.h>
 
 #define GET_SIMPLE_RENDER_THIS(L, TYPE, object)                         \
-  TYPE *object = 0;                                                     \
-  if (lua_type(L, 1) == LUA_TTABLE) {                                   \
-    lua_rawgeti(L, 1, 0);                                               \
-    object = static_cast<TYPE *>(lua_touserdata(L, -1));                \
-    lua_pop(L, 1);                                                      \
-  } else {                                                              \
+  TYPE *object;                                                         \
+  if (lua_type(L, 1) != LUA_TTABLE) {                                   \
     luaL_error(                                                         \
         L,                                                              \
         "Attempt to find 'this' in non-table object (used '.' instead " \
         "of ':' ?)"                                                     \
     );                                                                  \
-  }                                                                     \
-  ASSERT(object)
+    object = 0;                                                         \
+  } else {                                                              \
+    lua_rawgeti(L, 1, 0);                                               \
+    object = static_cast<TYPE *>(lua_touserdata(L, -1));                \
+    lua_pop(L, 1);                                                      \
+    ASSERT(object);                                                     \
+  }
 
 #define DEFINE_RENDER_GET_NAME(TYPE, FUNCTION) \
   static int FUNCTION(lua_State *L) {           \
@@ -51,17 +53,18 @@
     return 0;                                                           \
   }
 
-#define DEFINE_RENDER_SET_ALPHA(TYPE, FUNCTION)              \
-  static int FUNCTION(lua_State *L) {                         \
-    GET_SIMPLE_RENDER_THIS(L, TYPE, object);                 \
-    if (!lua_isnumber(L, 2)) {                               \
-      luaL_error(L, "Usage: SetAlpha(alpha)");               \
-    }                                                        \
-    NTempest::CImVector color;                               \
-    object->GetVertexColor(color);                           \
-    color.a = static_cast<BYTE>(lua_tonumber(L, 2) * 255.0); \
-    object->SetVertexColor(color);                           \
-    return 0;                                                \
+#define DEFINE_RENDER_SET_ALPHA(TYPE, FUNCTION)                \
+  static int FUNCTION(lua_State *L) {                          \
+    GET_SIMPLE_RENDER_THIS(L, TYPE, object);                   \
+    if (lua_isnumber(L, 2)) {                                  \
+      NTempest::CImVector color;                               \
+      object->GetVertexColor(color);                           \
+      color.a = static_cast<BYTE>(lua_tonumber(L, 2) * 255.0); \
+      object->SetVertexColor(color);                           \
+      return 0;                                                \
+    }                                                          \
+    luaL_error(L, "Usage: SetAlpha(alpha)");                   \
+    return 0;                                                  \
   }
 
 #define DEFINE_RENDER_SHOW(TYPE, FUNCTION)   \
@@ -89,43 +92,47 @@
     return 1;                                    \
   }
 
-#define DEFINE_RENDER_SET_POINT(TYPE, FUNCTION)                                             \
-  static int FUNCTION(lua_State *L) {                                                        \
-    GET_SIMPLE_RENDER_THIS(L, TYPE, object);                                                \
-    if (!lua_isstring(L, 2) || !lua_isstring(L, 3)) {                                       \
-      luaL_error(                                                                           \
-          L,                                                                                \
-          "Usage: SetPoint(\"point\" \"frame\" [, relativePoint] "                          \
-          "[, offsetX, offsetY])"                                                           \
-      );                                                                                    \
-    }                                                                                       \
-    char          message[128];                                                             \
-    CLayoutFrame *relativeFrame;                                                            \
-    float         offsetY = 0.0f;                                                           \
-    float         offsetX = 0.0f;                                                           \
-    FRAMEPOINT    point;                                                                    \
-    FRAMEPOINT    relativePoint;                                                            \
-    if (!StringToFramePoint(lua_tostring(L, 2), point)) {                                   \
-      luaL_error(L, "Unknown frame point");                                                 \
-    }                                                                                       \
-    relativePoint = point;                                                                  \
-    LPCSTR relativeName = lua_tostring(L, 3);                                               \
-    relativeFrame = object->GetLayoutFrameByName(relativeName);                             \
-    if (!relativeFrame) {                                                                   \
-      SStrPrintf(message, sizeof(message), "Couldn't find frame named '%s'", relativeName); \
-      luaL_error(L, message);                                                               \
-    }                                                                                       \
-    if (lua_isstring(L, 4)) {                                                               \
-      if (!StringToFramePoint(lua_tostring(L, 4), relativePoint)) {                         \
-        luaL_error(L, "Unknown frame point");                                               \
-      }                                                                                     \
-      if (lua_isnumber(L, 5) && lua_isnumber(L, 6)) {                                       \
-        offsetX = static_cast<float>(lua_tonumber(L, 5) * 0.0009765625f * 0.8f);            \
-        offsetY = static_cast<float>(lua_tonumber(L, 6) * 0.0009765625f * 0.8f);            \
-      }                                                                                     \
-    }                                                                                       \
-    object->SetPoint(point, relativeFrame, relativePoint, offsetX, offsetY, 1);             \
-    return 0;                                                                               \
+#define DEFINE_RENDER_SET_POINT(TYPE, FUNCTION)                                               \
+  static int FUNCTION(lua_State *L) {                                                         \
+    GET_SIMPLE_RENDER_THIS(L, TYPE, object);                                                  \
+    if (lua_isstring(L, 2) && lua_isstring(L, 3)) {                                           \
+      char          message[128];                                                             \
+      CLayoutFrame *relativeFrame;                                                            \
+      float         offsetY = 0.0f;                                                           \
+      float         offsetX = 0.0f;                                                           \
+      FRAMEPOINT    point;                                                                    \
+      FRAMEPOINT    relativePoint;                                                            \
+      if (!StringToFramePoint(lua_tostring(L, 2), point)) {                                   \
+        luaL_error(L, "Unknown frame point");                                                 \
+        return 0;                                                                             \
+      }                                                                                       \
+      relativePoint = point;                                                                  \
+      LPCSTR relativeName = lua_tostring(L, 3);                                               \
+      relativeFrame = object->GetLayoutFrameByName(relativeName);                             \
+      if (!relativeFrame) {                                                                   \
+        SStrPrintf(message, sizeof(message), "Couldn't find frame named '%s'", relativeName); \
+        luaL_error(L, message);                                                               \
+        return 0;                                                                             \
+      }                                                                                       \
+      if (lua_isstring(L, 4)) {                                                               \
+        if (!StringToFramePoint(lua_tostring(L, 4), relativePoint)) {                         \
+          luaL_error(L, "Unknown frame point");                                               \
+          return 0;                                                                           \
+        }                                                                                     \
+        if (lua_isnumber(L, 5) && lua_isnumber(L, 6)) {                                       \
+          offsetX = static_cast<float>(0.8f * (lua_tonumber(L, 5) * 0.0009765625f));          \
+          offsetY = static_cast<float>(0.8f * (lua_tonumber(L, 6) * 0.0009765625f));          \
+        }                                                                                     \
+      }                                                                                       \
+      object->SetPoint(point, relativeFrame, relativePoint, offsetX, offsetY, 1);             \
+      return 0;                                                                               \
+    }                                                                                         \
+    luaL_error(                                                                               \
+        L,                                                                                    \
+        "Usage: SetPoint(\"point\" \"frame\" [, relativePoint] "                              \
+        "[, offsetX, offsetY])"                                                               \
+    );                                                                                        \
+    return 0;                                                                                 \
   }
 
 #define DEFINE_RENDER_CLEAR_ALL_POINTS(TYPE, FUNCTION) \
@@ -199,18 +206,19 @@ static int CSimpleTexture_GetWidth(lua_State *L) {
     width = rect.r - rect.l;
   }
 
-  lua_pushnumber(L, width * 1024.0f * 1.25f);
+  lua_pushnumber(L, 1.25f * (width * 1024.0f));
   return 1;
 }
 
 static int CSimpleTexture_SetWidth(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleTexture, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetWidth(width)");
+  if (lua_isnumber(L, 2)) {
+    object->SetWidth(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    return 0;
   }
 
-  object->SetWidth(static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f));
+  luaL_error(L, "Usage: SetWidth(width)");
   return 0;
 }
 
@@ -224,18 +232,19 @@ static int CSimpleTexture_GetHeight(lua_State *L) {
     height = rect.b - rect.t;
   }
 
-  lua_pushnumber(L, height * 1024.0f * 1.25f);
+  lua_pushnumber(L, 1.25f * (height * 1024.0f));
   return 1;
 }
 
 static int CSimpleTexture_SetHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleTexture, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetHeight(height)");
+  if (lua_isnumber(L, 2)) {
+    object->SetHeight(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    return 0;
   }
 
-  object->SetHeight(static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f));
+  luaL_error(L, "Usage: SetHeight(height)");
   return 0;
 }
 
@@ -262,19 +271,20 @@ TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleTexture::s_scriptMet
 static int CSimpleFontString_SetAlphaGradient(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
-    luaL_error(L, "Usage: SetAlphaGradient(start, length)");
+  if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
+    int start = static_cast<int>(lua_tonumber(L, 2));
+    int length = static_cast<int>(lua_tonumber(L, 3));
+    if (object->SetAlphaGradient(start, length)) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+
+    return 1;
   }
 
-  int start = static_cast<int>(lua_tonumber(L, 2));
-  int length = static_cast<int>(lua_tonumber(L, 3));
-  if (object->SetAlphaGradient(start, length)) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
-  }
-
-  return 1;
+  luaL_error(L, "Usage: SetAlphaGradient(start, length)");
+  return 0;
 }
 
 static int CSimpleFontString_SetText(lua_State *L) {
@@ -287,12 +297,7 @@ static int CSimpleFontString_SetText(lua_State *L) {
 static int CSimpleFontString_GetText(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  LPCSTR text = object->GetText();
-  if (!text || !*text) {
-    text = 0;
-  }
-
-  lua_pushstring(L, text);
+  lua_pushstring(L, object->GetText());
   return 1;
 }
 
@@ -303,11 +308,12 @@ DEFINE_RENDER_SET_ALPHA(CSimpleFontString, CSimpleFontString_SetAlpha)
 static int CSimpleFontString_SetTextHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetTextHeight(pixelHeight)");
+  if (lua_isnumber(L, 2)) {
+    object->SetTextHeight(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    return 0;
   }
 
-  object->SetTextHeight(static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f));
+  luaL_error(L, "Usage: SetTextHeight(pixelHeight)");
   return 0;
 }
 
@@ -318,18 +324,19 @@ DEFINE_RENDER_IS_VISIBLE(CSimpleFontString, CSimpleFontString_IsVisible)
 static int CSimpleFontString_SetWidth(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetWidth(pixelWidth)");
+  if (lua_isnumber(L, 2)) {
+    object->SetWidth(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    return 0;
   }
 
-  object->SetWidth(static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f));
+  luaL_error(L, "Usage: SetWidth(pixelWidth)");
   return 0;
 }
 
 static int CSimpleFontString_GetWidth(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  lua_pushnumber(L, object->GetWidth() * 1024.0f * 1.25f);
+  lua_pushnumber(L, 1.25f * (object->GetWidth() * 1024.0f));
   return 1;
 }
 
@@ -338,18 +345,19 @@ DEFINE_RENDER_SET_VERTEX_COLOR(CSimpleFontString, CSimpleFontString_SetTextColor
 static int CSimpleFontString_SetHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetHeight(pixelHeight)");
+  if (lua_isnumber(L, 2)) {
+    object->SetHeight(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
+    return 0;
   }
 
-  object->SetHeight(static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f));
+  luaL_error(L, "Usage: SetHeight(pixelHeight)");
   return 0;
 }
 
 static int CSimpleFontString_GetHeight(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
-  lua_pushnumber(L, object->GetHeight() * 1024.0f * 1.25f);
+  lua_pushnumber(L, 1.25f * (object->GetHeight() * 1024.0f));
   return 1;
 }
 
@@ -357,11 +365,12 @@ static int CSimpleFontString_SetJustifyH(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   UINT flag;
-  if (!lua_isstring(L, 2) || !StringToJustify(lua_tostring(L, 2), flag)) {
-    luaL_error(L, "Usage(SetJustifyH(\"justify\")");
+  if (lua_isstring(L, 2) && StringToJustify(lua_tostring(L, 2), flag)) {
+    object->SetHorizontalAlignment(flag);
+    return 0;
   }
 
-  object->SetHorizontalAlignment(flag);
+  luaL_error(L, "Usage(SetJustifyH(\"justify\")");
   return 0;
 }
 
@@ -369,11 +378,12 @@ static int CSimpleFontString_SetJustifyV(lua_State *L) {
   GET_SIMPLE_RENDER_THIS(L, CSimpleFontString, object);
 
   UINT flag;
-  if (!lua_isstring(L, 2) || !StringToJustify(lua_tostring(L, 2), flag)) {
-    luaL_error(L, "Usage(SetJustifyV(\"justify\")");
+  if (lua_isstring(L, 2) && StringToJustify(lua_tostring(L, 2), flag)) {
+    object->SetVerticalAlignment(flag);
+    return 0;
   }
 
-  object->SetVerticalAlignment(flag);
+  luaL_error(L, "Usage(SetJustifyV(\"justify\")");
   return 0;
 }
 

@@ -16,28 +16,28 @@ namespace SRWLock {
 
   typedef SURWLOCK BFRWLOCK;
 
-  void IInitialize();
-  void IDestroy();
-  void IOsRWLockIncRef();
-  void IOsRWLockDecRef();
-  BOOL IWaitAndCheckForDeadlock(LPVOID hevent);
-  long IAllocEvent(DWORD evtype);
-  void IFreeEvent(DWORD evtype, long event, int forcereset);
-  int  IWaitForEvent(DWORD evtype, long event);
-  void ISetEvent(DWORD evtype, long event);
-  long IEventIncRefCountOnly(long volatile *eventptr, long increment);
-  long IAllocEventOrIncRefCount(DWORD evtype, long volatile *eventptr, long increment);
-  BOOL IDecRefCountAndFreeEvent(DWORD evtype, long volatile *eventptr, long finalevent, long decrement);
-  void SUNNLockInitialize(SUNNLOCK volatile *sunnlock);
-  void SUNNLockDelete(SUNNLOCK volatile *sunnlock);
-  void SUNNLockEnter(SUNNLOCK volatile *sunnlock);
-  BOOL SUNNLockTryEnter(SUNNLOCK volatile *sunnlock);
-  void SUNNLockLeave(SUNNLOCK volatile *sunnlock);
-  void SURWLockInitialize(SURWLOCK volatile *surwlock);
-  void SURWLockDelete(SURWLOCK volatile *surwlock);
-  void SURWLockEnter(SURWLOCK volatile *surwlock, int forwriting);
-  int  SURWLockTryEnter(SURWLOCK volatile *surwlock, int forwriting);
-  void SURWLockLeave(SURWLOCK volatile *surwlock, int fromwriting);
+  static void IInitialize();
+  static void IDestroy();
+  static void IOsRWLockIncRef();
+  static void IOsRWLockDecRef();
+  static BOOL IWaitAndCheckForDeadlock(LPVOID hevent);
+  static long IAllocEvent(DWORD evtype);
+  static void IFreeEvent(DWORD evtype, long event, int forcereset);
+  static int  IWaitForEvent(DWORD evtype, long event);
+  static void ISetEvent(DWORD evtype, long event);
+  static long IEventIncRefCountOnly(long volatile *eventptr, long increment);
+  static long IAllocEventOrIncRefCount(DWORD evtype, long volatile *eventptr, long increment);
+  static BOOL IDecRefCountAndFreeEvent(DWORD evtype, long volatile *eventptr, long finalevent, long decrement);
+  static void SUNNLockInitialize(SUNNLOCK volatile *sunnlock);
+  static void SUNNLockDelete(SUNNLOCK volatile *sunnlock);
+  static void SUNNLockEnter(SUNNLOCK volatile *sunnlock);
+  static BOOL SUNNLockTryEnter(SUNNLOCK volatile *sunnlock);
+  static void SUNNLockLeave(SUNNLOCK volatile *sunnlock);
+  static void SURWLockInitialize(SURWLOCK volatile *surwlock);
+  static void SURWLockDelete(SURWLOCK volatile *surwlock);
+  static void SURWLockEnter(SURWLOCK volatile *surwlock, int forwriting);
+  static int  SURWLockTryEnter(SURWLOCK volatile *surwlock, int forwriting);
+  static void SURWLockLeave(SURWLOCK volatile *surwlock, int fromwriting);
 }  // namespace SRWLock
 
 struct CDebugLockData {
@@ -109,6 +109,48 @@ class CDebugLock : public T {
 };
 
 void Pause() {
+  __asm {
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+  }
 }
 
 void SRWLock::IInitialize() {
@@ -750,14 +792,12 @@ void CDebugSCritSect::Enter(LPCSTR fileName, DWORD line) {
 }
 
 BOOL CDebugSCritSect::TryEnter(LPCSTR fileName, DWORD line) {
-  CDebugLockData *data;
   DWORD           e;
   DWORD           threadId;
 
   threadId = GetCurrentThreadId();
-  data = (CDebugLockData *)m_debugData;
   CDebugLock<CDebugSCritSect>::IEnter();
-  e = CDebugLock<CDebugSCritSect>::IAddEntry(data, threadId, 1, fileName, line);
+  e = CDebugLock<CDebugSCritSect>::IAddEntry((CDebugLockData *)m_debugData, threadId, 1, fileName, line);
   CDebugLock<CDebugSCritSect>::ILeave();
   if (SCritSect::TryEnter()) {
     CDebugLock<CDebugSCritSect>::IEnterEntry(e);
@@ -765,21 +805,19 @@ BOOL CDebugSCritSect::TryEnter(LPCSTR fileName, DWORD line) {
   }
 
   CDebugLock<CDebugSCritSect>::IEnter();
-  CDebugLock<CDebugSCritSect>::IDeleteEntry(data, threadId, 1);
+  CDebugLock<CDebugSCritSect>::IDeleteEntry((CDebugLockData *)m_debugData, threadId, 1);
   CDebugLock<CDebugSCritSect>::ILeave();
   return 0;
 }
 
 void CDebugSCritSect::Leave(LPCSTR fileName, DWORD line) {
-  CDebugLockData *data;
   DWORD           threadId;
 
   threadId = GetCurrentThreadId();
-  data = (CDebugLockData *)m_debugData;
   CDebugLock<CDebugSCritSect>::IEnter();
-  if (!CDebugLock<CDebugSCritSect>::IDeleteEntry(data, threadId, 1)) {
+  if (!CDebugLock<CDebugSCritSect>::IDeleteEntry((CDebugLockData *)m_debugData, threadId, 1)) {
     SOutputDebugString("%s(%u) : CDebugSCritSect:%08x:Leave without Enter\n", fileName, line, this);
-    CDebugLock<CDebugSCritSect>::IDumpEntries(data);
+    CDebugLock<CDebugSCritSect>::IDumpEntries((CDebugLockData *)m_debugData);
   }
   CDebugLock<CDebugSCritSect>::ILeave();
   SCritSect::Leave();
@@ -853,19 +891,17 @@ CDebugSRWLock::~CDebugSRWLock() {
 }
 
 void CDebugSRWLock::Enter(int forwriting, LPCSTR fileName, DWORD line) {
-  CDebugLockData *data;
   DWORD           entry;
   DWORD           threadId;
 
   threadId = GetCurrentThreadId();
-  data = (CDebugLockData *)m_debugData;
   CDebugLock<CDebugSRWLock>::IEnter();
-  if (CDebugLock<CDebugSRWLock>::IClashingEntry(data, threadId, forwriting)) {
+  if (CDebugLock<CDebugSRWLock>::IClashingEntry((CDebugLockData *)m_debugData, threadId, forwriting)) {
     SOutputDebugString("%s(%u) : CDebugSRWLock:%08x:Enter(%c) already owned\n", fileName, line, this, forwriting ? 'W' : 'R');
-    CDebugLock<CDebugSRWLock>::IDumpEntries(data);
+    CDebugLock<CDebugSRWLock>::IDumpEntries((CDebugLockData *)m_debugData);
     entry = 0;
   } else {
-    entry = CDebugLock<CDebugSRWLock>::IAddEntry(data, threadId, forwriting, fileName, line);
+    entry = CDebugLock<CDebugSRWLock>::IAddEntry((CDebugLockData *)m_debugData, threadId, forwriting, fileName, line);
   }
   CDebugLock<CDebugSRWLock>::ILeave();
   CSRWLock::Enter(forwriting);
@@ -873,19 +909,17 @@ void CDebugSRWLock::Enter(int forwriting, LPCSTR fileName, DWORD line) {
 }
 
 BOOL CDebugSRWLock::TryEnter(int forwriting, LPCSTR fileName, DWORD line) {
-  CDebugLockData *data;
   DWORD           e;
   DWORD           threadId;
 
   threadId = GetCurrentThreadId();
-  data = (CDebugLockData *)m_debugData;
   CDebugLock<CDebugSRWLock>::IEnter();
-  if (CDebugLock<CDebugSRWLock>::IClashingEntry(data, threadId, forwriting)) {
+  if (CDebugLock<CDebugSRWLock>::IClashingEntry((CDebugLockData *)m_debugData, threadId, forwriting)) {
     SOutputDebugString("%s(%u) : CDebugSRWLock:%08x:TryEnter(%c) already owned\n", fileName, line, this, forwriting ? 'W' : 'R');
-    CDebugLock<CDebugSRWLock>::IDumpEntries(data);
+    CDebugLock<CDebugSRWLock>::IDumpEntries((CDebugLockData *)m_debugData);
     e = 0;
   } else {
-    e = CDebugLock<CDebugSRWLock>::IAddEntry(data, threadId, forwriting, fileName, line);
+    e = CDebugLock<CDebugSRWLock>::IAddEntry((CDebugLockData *)m_debugData, threadId, forwriting, fileName, line);
   }
   CDebugLock<CDebugSRWLock>::ILeave();
 
@@ -895,21 +929,19 @@ BOOL CDebugSRWLock::TryEnter(int forwriting, LPCSTR fileName, DWORD line) {
   }
 
   CDebugLock<CDebugSRWLock>::IEnter();
-  CDebugLock<CDebugSRWLock>::IDeleteEntry(data, threadId, forwriting);
+  CDebugLock<CDebugSRWLock>::IDeleteEntry((CDebugLockData *)m_debugData, threadId, forwriting);
   CDebugLock<CDebugSRWLock>::ILeave();
   return 0;
 }
 
 void CDebugSRWLock::Leave(int fromwriting, LPCSTR fileName, DWORD line) {
-  CDebugLockData *data;
   DWORD           threadId;
 
   threadId = GetCurrentThreadId();
-  data = (CDebugLockData *)m_debugData;
   CDebugLock<CDebugSRWLock>::IEnter();
-  if (!CDebugLock<CDebugSRWLock>::IDeleteEntry(data, threadId, fromwriting)) {
+  if (!CDebugLock<CDebugSRWLock>::IDeleteEntry((CDebugLockData *)m_debugData, threadId, fromwriting)) {
     SOutputDebugString("%s(%u) : CDebugSRWLock:%08x:Leave(%c) without Enter\n", fileName, line, this, fromwriting ? 'W' : 'R');
-    CDebugLock<CDebugSRWLock>::IDumpEntries(data);
+    CDebugLock<CDebugSRWLock>::IDumpEntries((CDebugLockData *)m_debugData);
   }
   CDebugLock<CDebugSRWLock>::ILeave();
   CSRWLock::Leave(fromwriting);

@@ -1,7 +1,7 @@
 #include <Base/Base.h>
-#include <WowConst.h>
-
 #include "SoundInterface.h"
+#include <Gx/Gx.h>
+#include <WowConst.h>
 
 #include "Console/ConsoleCommand.h"
 #include "Console/ConsoleVar.h"

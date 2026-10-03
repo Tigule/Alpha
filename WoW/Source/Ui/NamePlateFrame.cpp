@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -72,7 +74,7 @@ void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
   char level[32];
   char buf[32];
   SStrCopy(level, FrameScript_GetText("LEVEL", -1, GENDER_NOT_APPLICABLE), sizeof(level));
-  SStrPrintf(buf, sizeof(buf), "%s %d", level, unit->GetUnitData()->level);
+  SStrPrintf(buf, sizeof(buf), "%s %d", level, unit->GetLevel());
   m_nameFrame->SetText(unit->GetUnitName());
   m_healthBar->SetUnit(unit);
 

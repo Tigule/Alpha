@@ -1,5 +1,13 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <MapDefs.h>
+#include <WorldClient/World.h>
+#include <WowConst.h>
+#include <DayNight.h>
+
 #include "Game/GameClient/GuildClient.h"
 
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Object/GuildStats.h"
 

@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include "WowServices/WowConnection.h"
 #include <WowConst.h>
 
 #include "NetInternal.h"

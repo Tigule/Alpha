@@ -91,7 +91,7 @@ static void IWriteTexture(const MDLTEXTURESECTION &texture, TSGrowableArray<char
     MDL::WriteLine(buffer, "\t\t%s %d,\n", MDL::TokenText(0x1AA), texture.replaceableId);
   }
   IWriteTextureFlags(texture.flags, buffer);
-  MDL::WriteLine(buffer, "\t},\n");
+  MDL::WriteLine(buffer, "\t}\n");
 }
 
 namespace MDL {

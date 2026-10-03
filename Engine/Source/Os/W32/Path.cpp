@@ -33,7 +33,10 @@ DWORD OsPathGetRootChars(LPCSTR path) {
       }
     }
 
-    return rootEnd ? (DWORD)(rootEnd - path) : pathChars;
+    if (rootEnd) {
+      return rootEnd - path;
+    }
+    return pathChars;
   }
 
   return 0;
@@ -122,7 +125,11 @@ void OsPathGetFilename(LPCSTR path, char *buffer, UINT size) {
   FATALASSERT(path && buffer && size);
   buffer[0] = 0;
   LPCSTR filename = SStrChrR(path, '\\');
-  SStrCopy(buffer, filename ? filename + 1 : path, size);
+  if (filename) {
+    SStrCopy(buffer, filename + 1, size);
+  } else {
+    SStrCopy(buffer, path, size);
+  }
 }
 
 void OsPathGetLastDirectory(LPCSTR string, char *buffer, UINT size) {
@@ -133,15 +140,16 @@ void OsPathGetLastDirectory(LPCSTR string, char *buffer, UINT size) {
   OsPathStripFilename(path);
 
   char *directory = SStrChrR(path, '\\');
-  if (directory) {
-    if (!directory[1]) {
-      *directory = 0;
-      directory = SStrChrR(path, '\\');
-    }
-    SStrCopy(buffer, directory + 1, size);
-  } else {
+  if (!directory) {
     SStrCopy(buffer, path, size);
+    return;
   }
+
+  if (!directory[1]) {
+    *directory = 0;
+    directory = SStrChrR(path, '\\');
+  }
+  SStrCopy(buffer, directory + 1, size);
 }
 
 BOOL OsPathIsRelative(LPCSTR path) {
@@ -149,9 +157,8 @@ BOOL OsPathIsRelative(LPCSTR path) {
 }
 
 BOOL OsPathHasInvalidChars(LPCSTR path) {
-  LPCSTR invalidChars = "*/:><|&+^?\"";
-  while (*invalidChars) {
-    if (SStrChr(path, *invalidChars++)) {
+  for (char ch = *path++; ch; ch = *path++) {
+    if (SStrChr("*/:><|&+^?\"", ch)) {
       return 1;
     }
   }
@@ -159,9 +166,8 @@ BOOL OsPathHasInvalidChars(LPCSTR path) {
 }
 
 BOOL OsFileNameHasInvalidChars(LPCSTR filename) {
-  LPCSTR invalidChars = "\\*/:><|&+^?\"";
-  while (*invalidChars) {
-    if (SStrChr(filename, *invalidChars++)) {
+  for (char ch = *filename++; ch; ch = *filename++) {
+    if (SStrChr("\\*/:><|&+^?\"", ch)) {
       return 1;
     }
   }
@@ -194,7 +200,7 @@ void OsGetSystemFontDirectory(char *buffer, UINT chars) {
   FATALASSERT(charsCopied);
 
   if (buffer[charsCopied - 1] != '\\') {
-    SStrCopy(&buffer[charsCopied], "\\", chars - ++charsCopied);
+    SStrCopy(&buffer[charsCopied++], "\\", chars - charsCopied);
   }
   SStrCopy(&buffer[charsCopied], "fonts\\", chars - charsCopied);
 }

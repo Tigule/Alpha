@@ -1,18 +1,23 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-
 #include "WorldClient/CMapObj.h"
-#include "WorldClient/CSimpleDoodad.h"
+#include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include "WorldCommon/WorldMath.h"
 
-#include "Model/CollisionData.h"
 #include "Model/IModel.h"
 #include "Tempest/cfacet.h"
 
+#include <Model/CollisionData.h>
 #include <string.h>
 
 NTempest::CiRect NTempest::CiRect::Intersection(const CiRect &left, const CiRect &right) {
@@ -22,9 +27,8 @@ NTempest::CiRect NTempest::CiRect::Intersection(const CiRect &left, const CiRect
   );
 }
 
-static float            OneHalfOffset = 0.5f;
-static NTempest::CiRect scBounds(0, 0, 7, 7);
-static const float      OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
+static float       OneHalfOffset = 0.5f;
+static const float OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
 
 static void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData);
 static void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, DWORDLONG guid, CWFacetData *facetData);
@@ -79,9 +83,6 @@ SMAreaInfo      CMap::areaInfo[4096];
 CMapArea       *CMap::areaTable[4096];
 DWORD           CMap::areaLowOffsets[4096];
 CMapAreaLow    *CMap::areaLowTable[4096];
-LISTDECLEX(CMapBaseObjLink, refLink, CMap::areaLinkList);
-LISTDECLEX(CMapBaseObjLink, refLink, CMap::doodadDefLinkList);
-LISTDECLEX(CMapBaseObjLink, refLink, CMap::mapObjDefLinkList);
 HASHKEY_NONE          CMap::nullHashKey;
 TSGrowableArray<char> CMap::doodadNames;
 TSGrowableArray<UINT> CMap::doodadNamesIndex;
@@ -95,6 +96,9 @@ LPVOID CMap::entityHandlerParam;
 int (*CMap::entityCollisionHandler)(DWORDLONG, DWORD, WorldObjCollisionHandlerData *);
 TSGrowableArray<CGxVertexPC> CMap::testQueryVerts;
 TSGrowableArray<WORD>        CMap::testQueryIndices;
+LISTDECLEX(CMapBaseObjLink, refLink, CMap::areaLinkList);
+LISTDECLEX(CMapBaseObjLink, refLink, CMap::doodadDefLinkList);
+LISTDECLEX(CMapBaseObjLink, refLink, CMap::mapObjDefLinkList);
 UINT                         CMap::cCount;
 UINT                         CMap::bspRecurseCount;
 UINT                         CMap::nChunksPrepared;
@@ -1147,7 +1151,7 @@ bool CMap::GetTrisTerrain(const NTempest::CAaBox &aaBox, CWTriData &triData, UIN
 }
 
 bool CMap::GetTris(const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
-  UINT got = 0;
+  bool got = false;
   if (queryFlags & 0xF0) {
     got = GetTrisMapObjs(aaBox, triData, queryFlags);
   }
@@ -1307,6 +1311,7 @@ bool CMap::GetTrisChunk(int cx, int cy, NTempest::CiRect &sRect, const NTempest:
   }
 
   NTempest::CiRect scRect(sRect.t - 8 * cy, sRect.l - 8 * cx, sRect.b - 8 * cy, sRect.r - 8 * cx);
+  static NTempest::CiRect scBounds(0, 0, 7, 7);
   scRect = NTempest::CiRect::Intersection(scRect, scBounds);
 
   NTempest::CAaBox  localBox(aaBox.b - chunk->corner, aaBox.t - chunk->corner);

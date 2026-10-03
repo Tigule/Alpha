@@ -29,20 +29,16 @@ class CGCharacterInfo {
     return m_profOffset - 1;
   }
   static int GetNumSpecSkills() {
-    int count = static_cast<int>(m_racialOffset - m_specialOffset - 1);
-    return count < 0 ? 0 : count;
+    return max(0, static_cast<int>(m_racialOffset - m_specialOffset - 1));
   }
   static int GetNumRacialSkills() {
-    int count = static_cast<int>(m_secondaryOffset - m_racialOffset - 1);
-    return count < 0 ? 0 : count;
+    return max(0, static_cast<int>(m_secondaryOffset - m_racialOffset - 1));
   }
   static int GetNumSecondarySkills() {
-    int count = static_cast<int>(m_numSkills - m_secondaryOffset - 1);
-    return count < 0 ? 0 : count;
+    return max(0, static_cast<int>(m_numSkills - m_secondaryOffset - 1));
   }
   static int GetNumProficiencies() {
-    int count = static_cast<int>(m_specialOffset - m_profOffset - 1);
-    return count < 0 ? 0 : count;
+    return max(0, static_cast<int>(m_specialOffset - m_profOffset - 1));
   }
 
  protected:

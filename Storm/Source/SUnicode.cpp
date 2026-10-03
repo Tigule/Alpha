@@ -444,8 +444,8 @@ extern "C" UINT APIENTRY SUniSGetUTF8(const BYTE *strptr, int *chars) {
     return c;
   }
 
-  while (remaining-- > 0) {
-    UINT next = *strptr++;
+  for (int loop = 0; loop < remaining; ++loop) {
+    BYTE next = *strptr++;
 
     if (!next) {
       return static_cast<UINT>(-1);
@@ -457,7 +457,7 @@ extern "C" UINT APIENTRY SUniSGetUTF8(const BYTE *strptr, int *chars) {
       return 0x80000000;
     }
 
-    c = (c << 6) | (next & 0x3F);
+    c = (next & 0x3F) | (c << 6);
   }
 
   return c;
@@ -480,20 +480,17 @@ extern "C" char *APIENTRY SUniSPutUTF8(DWORD c, char *strptr) {
   } else if (c < 0x200000) {
     *strptr++ = static_cast<char>((c >> 18) | 0xF0);
     *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
     *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
   } else if (c < 0x400000) {
     *strptr++ = static_cast<char>((c >> 24) | 0xF8);
     *strptr++ = static_cast<char>(((c >> 18) & 0x3F) | 0x80);
     *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
     *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
   } else if (c < 0x80000000) {
     *strptr++ = static_cast<char>((c >> 30) | 0xFC);
     *strptr++ = static_cast<char>(((c >> 24) & 0x3F) | 0x80);
     *strptr++ = static_cast<char>(((c >> 18) & 0x3F) | 0x80);
     *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
     *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
   }
 

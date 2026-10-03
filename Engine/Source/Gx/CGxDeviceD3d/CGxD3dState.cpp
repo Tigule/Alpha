@@ -32,6 +32,22 @@ static void SetD3dColor(_D3DCOLORVALUE &dst, const NTempest::CImVector &src, flo
   dst.a = src.a * scale;
 }
 
+inline UINT CGxDeviceD3d::StateD3dLight::CalcChkSum(const _D3DLIGHT9 &light) {
+  const DWORD *data = reinterpret_cast<const DWORD *>(&light);
+  UINT         count = sizeof(light) / sizeof(DWORD);
+  UINT         chkSum = 0;
+
+  while (count) {
+    chkSum += (--count ^ *data++);
+  }
+
+  return chkSum;
+}
+
+inline int CGxDeviceD3d::StateD3dLight::operator!=(const _D3DLIGHT9 &light) {
+  return chkSum != CalcChkSum(light);
+}
+
 void CGxDeviceD3d::IStateSync() {
   IStateSyncLights();
   IStateSyncEnables();
@@ -171,7 +187,7 @@ void CGxDeviceD3d::IStateSyncTransforms() {
   }
 
   for (UINT tmu = 0; tmu < m_caps.m_numTmus; ++tmu) {
-    int texture = 0;
+    int texture;
     RsGet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), texture);
     if (texture && (m_xforms[tmu].m_dirty || m_texGen[tmu].m_dirty)) {
       IXformSetTex(tmu);
@@ -228,26 +244,11 @@ void CGxDeviceD3d::IStateSetD3DDefaults() {
 void CGxDeviceD3d::ISetLight(DWORD which, const _D3DLIGHT9 &value, int enabled) {
   StateD3dLight &state = m_d3dStatesLight[which];
   int            force = state.which == static_cast<DWORD>(-1);
-  UINT           chkSum = 0;
 
-  if (!force) {
-    const DWORD *data = reinterpret_cast<const DWORD *>(&value);
-    UINT         count = sizeof(value) / sizeof(DWORD);
-    while (count) {
-      chkSum += (--count ^ *data++);
-    }
-  }
-
-  if (force || chkSum != state.chkSum) {
+  if (force || state != value) {
     m_d3dDevice->SetLight(which, &value);
-    memcpy(&state.val, &value, sizeof(state.val));
-
-    const DWORD *data = reinterpret_cast<const DWORD *>(&state.val);
-    UINT         count = sizeof(state.val) / sizeof(DWORD);
-    state.chkSum = 0;
-    while (count) {
-      state.chkSum += (--count ^ *data++);
-    }
+    state.val = value;
+    state.chkSum = state.CalcChkSum(state.val);
   }
 
   if (force || state.enabled != enabled) {

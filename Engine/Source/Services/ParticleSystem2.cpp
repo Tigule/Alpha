@@ -1,9 +1,10 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <BLPFile/blp.h>
 
 #include "ParticleSystem2.h"
 
 #include "Base/Activity.h"
-#include "Gx/CGxDevice.h"
 #include "Tempest/c33matrix.h"
 #include "Tempest/c3segment.h"
 #include "Tempest/c4vector.h"
@@ -23,12 +24,9 @@ static float vc[4][2] = {
     { 1.0f,  1.0f},
     { 1.0f, -1.0f}
 };
-static NTempest::C44Matrix quadToView;
-static NTempest::C3Vector  vcv[4] = {
-    NTempest::C3Vector(-1.0f, 1.0f, 0.0f), NTempest::C3Vector(-1.0f, -1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f),
-    NTempest::C3Vector(1.0f, -1.0f, 0.0f)
-};
 static const float s_maxTimeStep = 0.1f;
+
+static NTempest::C3Vector s_particleNormal(0.0f, 0.0f, 1.0f);
 
 NTempest::CPriorityQ<CSortableParticleRecord, CSortableParticleRecord> CParticleEmitter2::m_pq;
 const float                                                            CParticleEmitter2::VEL_UPDATE_TIME = 1.0f / 30.0f;
@@ -39,10 +37,8 @@ UINT                                                                   CParticle
 UINT                                                                   CParticleEmitter2::s_renderedParticles;
 UINT                                                                   CParticleEmitter2::s_renderedIndices;
 UINT                                                                   CParticleEmitter2::s_maxParticles;
-NTempest::C3Vector                                                     CParticleEmitter2::s_quadVectors[4];
 NTempest::C44Matrix                                                    CParticleEmitter2::s_particleToView;
-
-static NTempest::C3Vector s_particleNormal;
+NTempest::C3Vector                                                     CParticleEmitter2::s_quadVectors[4];
 
 CParticleEmitter2::CParticleEmitter2() : m_refCount(1) {
   m_hTex = 0;
@@ -630,6 +626,11 @@ void CParticleEmitter2::RenderParticles() {
   }
 
   if (m_xyQuads) {
+    static NTempest::C44Matrix quadToView;
+    static NTempest::C3Vector  vcv[4] = {
+        NTempest::C3Vector(-1.0f, 1.0f, 0.0f), NTempest::C3Vector(-1.0f, -1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f),
+        NTempest::C3Vector(1.0f, -1.0f, 0.0f)
+    };
     quadToView = m_useModelSpace ? s_particleToView : modelToWorld * s_particleToView;
     for (UINT i = 0; i < 4; ++i) {
       s_quadVectors[i] = NTempest::C3Vector(

@@ -106,7 +106,12 @@ class ClientConnection : public NetClient {
  private:
   ClientConnection &operator=(const ClientConnection &connection);
   void              Initiate(WOWCS_OPS op, int errorCode, void (ClientConnection::*cleanup)());
-  void              Complete(int result, int errorCode);
+  void              Complete(int result, int errorCode) {
+    Cleanup();
+    m_errorCode = errorCode;
+    m_statusResult = result;
+    m_statusComplete = 1;
+  }
   void              Abort();
   void              AccountLogin_Cleanup();
   void              GetCharacterList_Cleanup();

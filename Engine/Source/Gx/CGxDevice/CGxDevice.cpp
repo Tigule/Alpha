@@ -1261,20 +1261,10 @@ BOOL CGxDevice::TexCreate(
 void CGxDevice::TexMarkForUpdate(CGxTex *texId, const NTempest::CiRect &updateRect, int immediate) {
   texId->m_needsUpdate = 1;
 
-  if (updateRect.t < updateRect.b && updateRect.l < updateRect.r) {
-    NTempest::CiRect merged(
-        texId->m_updateRect.t < updateRect.t ? texId->m_updateRect.t : updateRect.t,
-        texId->m_updateRect.l < updateRect.l ? texId->m_updateRect.l : updateRect.l,
-        texId->m_updateRect.b > updateRect.b ? texId->m_updateRect.b : updateRect.b,
-        texId->m_updateRect.r > updateRect.r ? texId->m_updateRect.r : updateRect.r
-    );
-
-    texId->m_updateRect = merged;
+  if (updateRect.NotEmpty()) {
+    texId->m_updateRect.Unite(updateRect);
   } else {
-    texId->m_updateRect.t = 0;
-    texId->m_updateRect.l = 0;
-    texId->m_updateRect.b = texId->m_height;
-    texId->m_updateRect.r = texId->m_width;
+    texId->m_updateRect = NTempest::CiRect(0, 0, texId->m_height, texId->m_width);
   }
 
   if (immediate) {

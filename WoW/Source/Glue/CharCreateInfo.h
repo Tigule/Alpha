@@ -7,16 +7,13 @@
 #include "Component/Component.h"
 #include "Model/IModel.h"
 
-#define MAX_PLAYER_SEXES 2
+#define MAX_PLAYER_SEXES 2u
 
 class CSimpleModel;
 
 extern LPCSTR g_glueBgObjNames[2];
 
 struct CustomizationSelections {
-  CustomizationSelections() {
-  }
-
   UINT classID;
   UINT outfit;
   UINT skinColor;
@@ -24,9 +21,21 @@ struct CustomizationSelections {
   UINT hairStyle;
   UINT facialStyle;
   UINT face;
+
+  CustomizationSelections() {
+  }
 };
 
 struct CHARCREATEINFO {
+  HMODEL                  characterModel[2];
+  HCHARGEOSET             geosetHandle[2];
+  HTEXCOMPONENT           characterComponent[2];
+  CustomizationSelections selections[2];
+  float                   cameraHeight[2][2];
+  float                   cameraRadius[2][2];
+  float                   targetHeight[2][2];
+  UINT                    currentGeosets[3][15];
+
   CHARCREATEINFO() {
     Initialize();
   }
@@ -63,55 +72,46 @@ struct CHARCREATEINFO {
   void UpdateGeosets(UINT beardGeoset, UINT sideBurnGeoset, UINT moustacheGeoset, UINT sex);
   void FindRange(UINT group, UINT *start, UINT *end);
   void CommitTexture(int race, int sex);
-
-  HMODEL                  characterModel[2];
-  HCHARGEOSET             geosetHandle[2];
-  HTEXCOMPONENT           characterComponent[2];
-  CustomizationSelections selections[2];
-  float                   cameraHeight[2][2];
-  float                   cameraRadius[2][2];
-  float                   targetHeight[2][2];
-  UINT                    currentGeosets[3][15];
 };
 
 class CCharCreateInfo {
  public:
-  static void   CreateCharacter(LPCSTR name);
-  static void   CycleCharCustomization(UINT index, int delta);
-  static LPCSTR GetClassNameByIndex(UINT index);
+  static void Initialize();
+  static void Shutdown();
+  static void SetCharCustomizeFrame(CSimpleModel *frame);
+  static void SetCharCustomizeModel(LPCSTR filename);
+  static void ResetCharCustomizeInfo();
   static float  GetCharFacing() {
     return m_charFacing;
   }
-  static UINT GetNumCharCustomizations(UINT index);
-  static UINT GetNumClasses() {
-    return m_classIndex.Count();
-  }
+  static void SetCharFacing(float facing);
   static UINT GetNumRaces() {
     return m_raceIndex.Count();
   }
   static LPCSTR GetRaceNameByIndex(UINT index);
-  static UINT   GetSelectedClassID();
-  static UINT   GetSelectedClassIndex() {
-    return m_selectedClass;
+  static void   UpdateAvailableClasses();
+  static UINT GetNumClasses() {
+    return m_classIndex.Count();
   }
-  static UINT GetSelectedRaceID();
+  static LPCSTR GetClassNameByIndex(UINT index);
+  static UINT   GetSelectedRaceID();
   static UINT GetSelectedRaceIndex() {
     return m_selectedRace;
   }
-  static UINT                            GetSelectedSexID();
+  static UINT GetSelectedSexID();
+  static UINT GetSelectedClassID();
+  static UINT   GetSelectedClassIndex() {
+    return m_selectedClass;
+  }
   static UINT                            GetNumOutfits(UINT raceID, UINT classID, UINT sexID);
   static const class CharStartOutfitRec *GetOutfit(UINT raceID, UINT classID, UINT sexID, UINT outfitID);
-  static void                            Initialize();
-  static void                            RandomizeCharCustomization();
-  static void                            ResetCharCustomizeInfo();
-  static void                            SetCharCustomizeFrame(CSimpleModel *frame);
-  static void                            SetCharCustomizeModel(LPCSTR filename);
-  static void                            SetCharFacing(float facing);
-  static void                            SetSelectedClass(UINT index);
   static void                            SetSelectedRace(UINT index, int updateModel);
   static void                            SetSelectedSex(UINT sex);
-  static void                            Shutdown();
-  static void                            UpdateAvailableClasses();
+  static void                            SetSelectedClass(UINT index);
+  static UINT                            GetNumCharCustomizations(UINT index);
+  static void                            CycleCharCustomization(UINT index, int delta);
+  static void                            RandomizeCharCustomization();
+  static void                            CreateCharacter(LPCSTR name);
 
  protected:
   static void UpdateAllCharacterInfo(int race, UINT sex);

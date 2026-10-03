@@ -46,7 +46,7 @@ static int    s_initialized;
 #define SSTR_SKIP_LEADING_BYTES           \
   for (; (DWORD)currdest & 3; ++currdest) \
     if (!*currdest)                       \
-  goto sstrEndSkip
+  goto endskip
 
 #define SSTR_SKIP_ALIGNED_DWORDS                    \
   do {                                              \
@@ -56,29 +56,31 @@ static int    s_initialized;
       continue;                                     \
     if (SSTR_CHECK_NULL_BYTE0(packed)) {            \
       currdest -= 4;                                \
-      goto sstrEndSkip;                             \
+      goto endskip;                             \
     }                                               \
     if (SSTR_CHECK_NULL_BYTE1(packed)) {            \
       currdest -= 3;                                \
-      goto sstrEndSkip;                             \
+      goto endskip;                             \
     }                                               \
     if (SSTR_CHECK_NULL_BYTE2(packed)) {            \
       currdest -= 2;                                \
-      goto sstrEndSkip;                             \
+      goto endskip;                             \
     }                                               \
     if (SSTR_CHECK_NULL_BYTE3(packed)) {            \
       currdest -= 1;                                \
-      goto sstrEndSkip;                             \
+      goto endskip;                             \
     }                                               \
     SSTR_CHECK_END_LOOP;                            \
   } while (1)
 
-#define SSTR_BEGIN_COPY DWORD sstrNegOffset = (DWORD) - (int)(destsize - (currdest - dest))
+#define SSTR_BEGIN_COPY DWORD sstrNegOffset = (DWORD)(currdest - enddest)
 
-#define SSTR_COPY_LEADING_BYTES                      \
-  while (((DWORD)source & 3) && sstrNegOffset)       \
-    if (!(*(enddest + sstrNegOffset++) = *source++)) \
-  goto sstrEndCopy
+#define SSTR_COPY_LEADING_BYTES                        \
+  while (((DWORD)source & 3) && sstrNegOffset) {       \
+    if (!(*(enddest + sstrNegOffset) = *source++))     \
+      goto endcopy;                                    \
+    ++sstrNegOffset;                                   \
+  }
 
 #define SSTR_COPY_ALIGNED_DWORDS                                 \
   if ((int)(sstrNegOffset += 3) < 0) {                           \
@@ -88,46 +90,49 @@ static int    s_initialized;
     while (!SSTR_CHECK_FOR_NULL_BYTES(packed.dword)) {           \
       *(SSTR_PACKEDPTR)(enddest + sstrNegOffset) = packed;       \
       if ((int)(sstrNegOffset += 4) >= 0)                        \
-        goto sstrDoneAligned;                                    \
+        goto donealigned;                                        \
       packed = *(SSTR_PACKEDPTR)source;                          \
       source += sizeof(SSTR_PACKED);                             \
     }                                                            \
     for (;;) {                                                   \
       if (SSTR_CHECK_NULL_BYTE0(packed)) {                       \
         *(enddest + sstrNegOffset) = packed.byte[0];             \
-        sstrNegOffset += 1;                                      \
-        goto sstrEndCopy;                                        \
+        goto endcopy;                                            \
       }                                                          \
       if (SSTR_CHECK_NULL_BYTE1(packed)) {                       \
         *(WORD *)(enddest + sstrNegOffset) = (WORD)packed.dword; \
-        sstrNegOffset += 2;                                      \
-        goto sstrEndCopy;                                        \
+        sstrNegOffset += 1;                                      \
+        goto endcopy;                                            \
       }                                                          \
       if (SSTR_CHECK_NULL_BYTE2(packed)) {                       \
         *(WORD *)(enddest + sstrNegOffset) = (WORD)packed.dword; \
         *(enddest + sstrNegOffset + 2) = 0;                      \
-        sstrNegOffset += 3;                                      \
-        goto sstrEndCopy;                                        \
+        sstrNegOffset += 2;                                      \
+        goto endcopy;                                            \
       }                                                          \
       *(SSTR_PACKEDPTR)(enddest + sstrNegOffset) = packed;       \
+      if (SSTR_CHECK_NULL_BYTE3(packed)) {                       \
+        sstrNegOffset += 3;                                      \
+        goto endcopy;                                            \
+      }                                                          \
       sstrNegOffset += sizeof(SSTR_PACKED);                      \
-      if (SSTR_CHECK_NULL_BYTE3(packed))                         \
-        goto sstrEndCopy;                                        \
       SSTR_CHECK_END_LOOP;                                       \
       if ((int)sstrNegOffset >= 0)                               \
-        goto sstrDoneAligned;                                    \
+        goto donealigned;                                        \
       packed = *(SSTR_PACKEDPTR)source;                          \
       source += sizeof(SSTR_PACKED);                             \
     }                                                            \
-  sstrDoneAligned:                                               \
+  donealigned:                                                   \
     enddest += 3;                                                \
   }                                                              \
   sstrNegOffset -= 3
 
 #define SSTR_COPY_TRAILING_BYTES                     \
-  while (sstrNegOffset)                              \
-    if (!(*(enddest + sstrNegOffset++) = *source++)) \
-      goto sstrEndCopy;                              \
+  while (sstrNegOffset) {                            \
+    if (!(*(enddest + sstrNegOffset) = *source++))   \
+      goto endcopy;                                  \
+    ++sstrNegOffset;                                 \
+  }                                                  \
   *enddest = 0
 
 static void CheckInitialized() {
@@ -156,89 +161,12 @@ static void InitializeFloatDigits() {
   } while (exponent > -21);
 }
 
-static inline double SStrParseIntegerDouble(LPCSTR *string) {
-  LPCSTR source;
-  LPCSTR chunkStart;
-  double result;
-  DWORD  chunk;
-  DWORD  digit;
-
-  source = *string;
-  result = 0.0;
-  chunk = *source - '0';
-  chunkStart = source;
-  if (chunk < 10) {
-    digit = source[1] - '0';
-    source++;
-    while (digit < 10) {
-      chunk = chunk * 10 + digit;
-      source++;
-      if (chunk >= 0x19999999) {
-        result = result * pow(10.0, source - chunkStart) + chunk;
-        chunk = 0;
-        chunkStart = source;
-      }
-      digit = *source - '0';
-    }
-  } else {
-    chunk = 0;
-  }
-
-  if (result != 0.0) {
-    result = result * pow(10.0, source - chunkStart) + chunk;
-  } else {
-    result = chunk;
-  }
-
-  *string = source;
-  return result;
-}
-
-static inline double SStrParseDecimalDouble(LPCSTR string) {
-  LPCSTR scan;
-  double result;
-  DWORD  digit;
-  int    exponent;
-  int    tableOffset;
-
-  CheckInitialized();
-  scan = string;
-
-  result = SStrParseIntegerDouble(&scan);
-
-  if (*scan == '.' && (DWORD)(scan[1] - '0') < 10) {
-    scan++;
-    tableOffset = 0;
-    exponent = -1;
-    digit = *scan - '0';
-    do {
-      scan++;
-      if (exponent > -21) {
-        result += (&s_realDigit[0][0])[tableOffset + digit];
-      } else {
-        result += digit * pow(10.0, exponent);
-      }
-      exponent--;
-      tableOffset += 10;
-      digit = *scan - '0';
-    } while (digit < 10);
-  }
-
-  if (*scan == 'e' || *scan == 'E') {
-    scan++;
-    if (*scan == '+') {
-      scan++;
-    }
-    result *= pow(10.0, SStrToInt(scan));
-  }
-
-  return result;
-}
-
 LPCSTR SStrChr(LPCSTR string, char ch) {
   char current;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   current = *string;
   while (current) {
@@ -255,7 +183,9 @@ LPCSTR SStrChr(LPCSTR string, char ch) {
 char *SStrChr(char *string, char ch) {
   char current;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   current = *string;
   while (current) {
@@ -272,7 +202,9 @@ char *SStrChr(char *string, char ch) {
 LPCSTR SStrChrR(LPCSTR string, char ch) {
   LPCSTR result;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   result = NULL;
   while (*string) {
@@ -288,7 +220,9 @@ LPCSTR SStrChrR(LPCSTR string, char ch) {
 char *SStrChrR(char *string, char ch) {
   char *result;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   result = NULL;
   while (*string) {
@@ -302,40 +236,52 @@ char *SStrChrR(char *string, char ch) {
 }
 
 int APIENTRY SStrCmp(LPCSTR string1, LPCSTR string2, DWORD maxchars) {
-  FATALASSERT(string1);
-  FATALASSERT(string2);
+  VALIDATEBEGIN;
+  VALIDATE(string1);
+  VALIDATE(string2);
+  if (0) {
+  validatefailed:
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return string1 - string2;
+  }
 
   return strncmp(string1, string2, maxchars);
 }
 
 int APIENTRY SStrCmpI(LPCSTR string1, LPCSTR string2, DWORD maxchars) {
-  FATALASSERT(string1);
-  FATALASSERT(string2);
+  VALIDATEBEGIN;
+  VALIDATE(string1);
+  VALIDATE(string2);
+  if (0) {
+  validatefailed:
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return string1 - string2;
+  }
 
   return _strnicmp(string1, string2, maxchars);
 }
 
 DWORD APIENTRY SStrCopy(char *dest, LPCSTR source, DWORD destsize) {
-  FATALASSERT(dest);
-  FATALASSERT(source);
+  VALIDATEBEGIN;
+  VALIDATE(dest);
+  VALIDATE(source);
+  VALIDATEEND;
 
   if (!destsize) {
     return 0;
   }
 
-  --destsize;
   {
     SSTR_INIT_DWORD_OPERATIONS;
     char *currdest = dest;
-    char *enddest = dest + destsize;
+    char *enddest = dest + destsize - 1;
 
     SSTR_BEGIN_COPY;
     SSTR_COPY_LEADING_BYTES;
     SSTR_COPY_ALIGNED_DWORDS;
     SSTR_COPY_TRAILING_BYTES;
-  sstrEndCopy:
-    currdest = enddest + (sstrNegOffset - 1);
-    return (DWORD)(currdest - dest);
+  endcopy:
+    return (DWORD)(sstrNegOffset - (DWORD)dest + (DWORD)enddest);
   }
 }
 
@@ -343,7 +289,9 @@ char *APIENTRY SStrDupA(LPCSTR string, LPCSTR fileName, UINT lineNumber) {
   DWORD bytes;
   char *result;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   bytes = SStrLen(string) + 1;
   result = (char *)SMemAlloc(bytes, fileName, lineNumber, 0);
@@ -361,7 +309,9 @@ extern "C" void APIENTRY SStrDestroy() {
 }
 
 DWORD APIENTRY SStrLen(LPCSTR string) {
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   {
     SSTR_INIT_DWORD_OPERATIONS;
@@ -369,7 +319,7 @@ DWORD APIENTRY SStrLen(LPCSTR string) {
 
     SSTR_SKIP_LEADING_BYTES;
     SSTR_SKIP_ALIGNED_DWORDS;
-  sstrEndSkip:
+  endskip:
     return (DWORD)(currdest - string);
   }
 }
@@ -377,7 +327,9 @@ DWORD APIENTRY SStrLen(LPCSTR string) {
 DWORD APIENTRY SStrLen(const WORD *string) {
   const WORD *scan;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   scan = string;
   if (*scan) {
@@ -390,76 +342,78 @@ DWORD APIENTRY SStrLen(const WORD *string) {
 }
 
 DWORD APIENTRY SStrPack(char *dest, LPCSTR source, DWORD destsize) {
-  FATALASSERT(dest);
-  FATALASSERT(source);
+  VALIDATEBEGIN;
+  VALIDATE(dest);
+  VALIDATE(source);
+  VALIDATEEND;
 
   if (!destsize) {
     return 0;
   }
 
-  --destsize;
   {
     SSTR_INIT_DWORD_OPERATIONS;
     char *currdest = dest;
-    char *enddest = dest + destsize;
+    char *enddest = dest + destsize - 1;
 
-    if (destsize != 0x7FFFFFFE) {
+    if (destsize != 0x7FFFFFFF) {
       *enddest = 0;
     }
 
     SSTR_SKIP_LEADING_BYTES;
     SSTR_SKIP_ALIGNED_DWORDS;
-  sstrEndSkip:
+  endskip:
     SSTR_BEGIN_COPY;
     SSTR_COPY_LEADING_BYTES;
     SSTR_COPY_ALIGNED_DWORDS;
     SSTR_COPY_TRAILING_BYTES;
-  sstrEndCopy:
-    currdest = enddest + (sstrNegOffset - 1);
-    return (DWORD)(currdest - dest);
+  endcopy:
+    return (DWORD)(sstrNegOffset - (DWORD)dest + (DWORD)enddest);
   }
 }
 
 static int ISStrVPrintf(char *dest, UINT maxchars, LPCSTR format, char *arglist) {
   int written;
 
-  if (!maxchars) {
-    return 0;
-  }
-
-  if (maxchars == 0x7FFFFFFF) {
+  if (maxchars) {
+    if (maxchars != 0x7FFFFFFF) {
+      if (g_opt.orderedprintfenabled) {
+        written = vsnoprintf(dest, (int)maxchars, format, arglist);
+      } else {
+        written = _vsnprintf(dest, maxchars, format, (va_list)arglist);
+      }
+      if ((UINT)written >= maxchars) {
+        written = maxchars - 1;
+        dest[written] = 0;
+      }
+      return written;
+    }
     if (g_opt.orderedprintfenabled) {
       return vsoprintf(dest, format, arglist);
     }
     return vsprintf(dest, format, (va_list)arglist);
   }
 
-  if (g_opt.orderedprintfenabled) {
-    written = vsnoprintf(dest, (int)maxchars, format, arglist);
-  } else {
-    written = _vsnprintf(dest, maxchars, format, (va_list)arglist);
-  }
-  if ((UINT)written >= maxchars) {
-    dest[maxchars - 1] = 0;
-    return maxchars - 1;
-  }
-
-  return written;
+  return 0;
 }
 
 DWORD __cdecl SStrPrintf(char *dest, DWORD maxchars, LPCSTR format, ...) {
   va_list args;
 
   va_start(args, format);
-  FATALASSERT(dest);
-  FATALASSERT(format);
+  VALIDATEBEGIN;
+  VALIDATE(dest);
+  VALIDATE(format);
+  VALIDATEEND;
 
   return ISStrVPrintf(dest, maxchars, format, (char *)args);
 }
 
 DWORD __cdecl SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, char *arglist) {
-  FATALASSERT(dest);
-  FATALASSERT(format);
+  VALIDATEBEGIN;
+  VALIDATE(dest);
+  VALIDATE(format);
+  VALIDATEEND;
 
   return (DWORD)ISStrVPrintf(dest, maxchars, format, arglist);
 }
@@ -467,15 +421,76 @@ DWORD __cdecl SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, char *argli
 double APIENTRY SStrToDouble(LPCSTR string) {
   int    negative;
   double result;
+  LPCSTR chunkStart;
+  DWORD  chunk;
+  DWORD  digit;
+  int    exponent;
+  int    tableOffset;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
+
+  CheckInitialized();
 
   negative = *string == '-';
   if (negative) {
     string++;
   }
 
-  result = SStrParseDecimalDouble(string);
+  result = 0.0;
+  chunk = *string - '0';
+  chunkStart = string;
+  if (chunk < 10) {
+    digit = *++string - '0';
+    while (digit < 10) {
+      chunk = chunk * 10 + digit;
+      string++;
+      if (chunk >= 0x19999999) {
+        result = result * pow(10.0, string - chunkStart) + chunk;
+        chunk = 0;
+        chunkStart = string;
+      }
+      digit = *string - '0';
+    }
+  } else {
+    chunk = 0;
+  }
+
+  if (result != 0.0) {
+    result = result * pow(10.0, string - chunkStart) + chunk;
+  } else {
+    result = chunk;
+  }
+
+  if (*string == '.') {
+    string++;
+    digit = *string - '0';
+    if (digit < 10) {
+      tableOffset = 0;
+      exponent = -1;
+      do {
+        string++;
+        if (exponent <= -21) {
+          result += digit * pow(10.0, exponent);
+        } else {
+          result += (&s_realDigit[0][0])[tableOffset + digit];
+        }
+        exponent--;
+        tableOffset += 10;
+        digit = *string - '0';
+      } while (digit < 10);
+    }
+  }
+
+  if (*string == 'e' || *string == 'E') {
+    string++;
+    if (*string == '+') {
+      string++;
+    }
+    result *= pow(10.0, SStrToInt(string));
+  }
+
   if (negative) {
     result = -result;
   }
@@ -485,25 +500,90 @@ double APIENTRY SStrToDouble(LPCSTR string) {
 float APIENTRY SStrToFloat(LPCSTR string) {
   int    negative;
   double result;
+  LPCSTR chunkStart;
+  DWORD  chunk;
+  DWORD  digit;
+  int    exponent;
+  int    tableOffset;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
+
+  CheckInitialized();
 
   negative = *string == '-';
   if (negative) {
     string++;
   }
 
-  result = SStrParseDecimalDouble(string);
+  result = 0.0;
+  chunk = *string - '0';
+  chunkStart = string;
+  if (chunk < 10) {
+    digit = *++string - '0';
+    while (digit < 10) {
+      chunk = chunk * 10 + digit;
+      string++;
+      if (chunk >= 0x19999999) {
+        result = result * pow(10.0, string - chunkStart) + chunk;
+        chunk = 0;
+        chunkStart = string;
+      }
+      digit = *string - '0';
+    }
+  } else {
+    chunk = 0;
+  }
+
+  if (result != 0.0) {
+    result = result * pow(10.0, string - chunkStart) + chunk;
+  } else {
+    result = chunk;
+  }
+
+  if (*string == '.') {
+    string++;
+    digit = *string - '0';
+    if (digit < 10) {
+      tableOffset = 0;
+      exponent = -1;
+      do {
+        string++;
+        if (exponent <= -21) {
+          result += digit * pow(10.0, exponent);
+        } else {
+          result += (&s_realDigit[0][0])[tableOffset + digit];
+        }
+        exponent--;
+        tableOffset += 10;
+        digit = *string - '0';
+      } while (digit < 10);
+    }
+  }
+
+  if (*string == 'e' || *string == 'E') {
+    string++;
+    if (*string == '+') {
+      string++;
+    }
+    result *= pow(10.0, SStrToInt(string));
+  }
+
   if (negative) {
     result = -result;
   }
   return (float)result;
 }
 
-static inline int SStrParseInt(LPCSTR string) {
+int APIENTRY SStrToInt(LPCSTR string) {
   UINT result;
   UINT digit;
   int  negative;
+
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   negative = *string == '-';
   if (negative) {
@@ -512,79 +592,63 @@ static inline int SStrParseInt(LPCSTR string) {
 
   result = *string - '0';
   if (result < 10) {
-    digit = string[1] - '0';
-    string++;
+    digit = *++string - '0';
     while (digit < 10) {
       string++;
-      result = digit + 10 * result;
+      result = result * 10 + digit;
       digit = *string - '0';
     }
   } else {
     result = 0;
   }
 
-  return negative ? -(int)result : (int)result;
-}
-
-int APIENTRY SStrToInt(LPCSTR string) {
-  FATALASSERT(string);
-
-  return SStrParseInt(string);
-}
-
-static inline DWORDLONG SStrParseUnsigned64(LPCSTR *string) {
-  LPCSTR    source;
-  LPCSTR    chunkStart;
-  DWORDLONG result;
-  DWORD     chunk;
-  DWORD     digit;
-  DWORDLONG multiplier;
-
-  source = *string;
-  result = 0;
-  chunk = *source - '0';
-  chunkStart = source;
-  if (chunk < 10) {
-    digit = source[1] - '0';
-    source++;
-    while (digit < 10) {
-      chunk = chunk * 10 + digit;
-      source++;
-      if (chunk >= 0x19999999) {
-        multiplier = (DWORDLONG)(pow(10.0, source - chunkStart) + 0.5);
-        result = result * multiplier + chunk;
-        chunk = 0;
-        chunkStart = source;
-      }
-      digit = *source - '0';
-    }
-  } else {
-    chunk = 0;
+  if (negative) {
+    result = -(int)result;
   }
-
-  if (result != 0) {
-    multiplier = (DWORDLONG)(pow(10.0, source - chunkStart) + 0.5);
-    result = result * multiplier + chunk;
-  } else {
-    result = chunk;
-  }
-
-  *string = source;
   return result;
 }
 
 LONGLONG APIENTRY SStrToInt64(LPCSTR string) {
   LONGLONG result;
   int      negative;
+  LPCSTR   chunkStart;
+  DWORD    chunk;
+  DWORD    digit;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   negative = *string == '-';
   if (negative) {
     string++;
   }
 
-  result = SStrParseUnsigned64(&string);
+  result = 0;
+  chunk = *string - '0';
+  chunkStart = string;
+  if (chunk < 10) {
+    digit = *++string - '0';
+    while (digit < 10) {
+      chunk = chunk * 10 + digit;
+      string++;
+      if (chunk >= 0x19999999) {
+        result = result * (LONGLONG)(pow(10.0, string - chunkStart) + 0.5) + chunk;
+        chunk = 0;
+        chunkStart = string;
+      }
+      digit = *string - '0';
+    }
+  } else {
+    chunk = 0;
+  }
+
+  if (result != 0) {
+    result = result * (LONGLONG)(pow(10.0, string - chunkStart) + 0.5) + chunk;
+  } else {
+    result = chunk;
+  }
+
   if (negative) {
     result = -result;
   }
@@ -595,19 +659,20 @@ UINT APIENTRY SStrToUnsigned(LPCSTR string) {
   UINT result;
   UINT digit;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   result = *string - '0';
-  if (result >= 10) {
-    return 0;
-  }
-
-  digit = string[1] - '0';
-  string++;
-  while (digit < 10) {
-    string++;
-    result = digit + 10 * result;
-    digit = *string - '0';
+  if (result < 10) {
+    digit = *++string - '0';
+    while (digit < 10) {
+      string++;
+      result = result * 10 + digit;
+      digit = *string - '0';
+    }
+  } else {
+    result = 0;
   }
 
   return result;
@@ -620,16 +685,12 @@ void APIENTRY SStrTokenize(LPCSTR *string, char *buffer, DWORD bufferchars, LPCS
   int    inquotes;
   int    quoteEnabled;
 
-  FATALASSERT(string);
-  if (!string) {
-    return;
-  }
-  FATALASSERT(*string);
-  if (!*string) {
-    return;
-  }
-  FATALASSERT(buffer || !bufferchars);
-  FATALASSERT(whitespace);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATE(*string);
+  VALIDATE(buffer || !bufferchars);
+  VALIDATE(whitespace);
+  VALIDATEENDVOID;
 
   quoteEnabled = SStrChr(whitespace, '"') != NULL;
   source = *string;
@@ -638,8 +699,8 @@ void APIENTRY SStrTokenize(LPCSTR *string, char *buffer, DWORD bufferchars, LPCS
 
   while (*source && SStrChr(whitespace, *source)) {
     if (quoteEnabled && *source == '"') {
-      inquotes = TRUE;
       usedquotes = TRUE;
+      inquotes = TRUE;
       source++;
       break;
     }
@@ -668,13 +729,13 @@ void APIENTRY SStrTokenize(LPCSTR *string, char *buffer, DWORD bufferchars, LPCS
       break;
     }
 
-    if (buffer && destchars + 1 < bufferchars) {
+    if (destchars + 1 < bufferchars) {
       buffer[destchars++] = ch;
     }
     source++;
   }
 
-  if (buffer && destchars < bufferchars) {
+  if (destchars < bufferchars) {
     buffer[destchars] = 0;
   }
   *string = source;
@@ -688,7 +749,9 @@ DWORD APIENTRY SStrHash(LPCSTR string, DWORD flags, DWORD seed) {
   DWORD offset;
   DWORD ch;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
   hash = seed;
   if (!hash) {
@@ -696,17 +759,19 @@ DWORD APIENTRY SStrHash(LPCSTR string, DWORD flags, DWORD seed) {
   }
 
   offset = 0xEEEEEEEE;
-  ch = (BYTE)*string;
   if (flags & 0x1) {
+    ch = (BYTE)*string;
     while (ch) {
+      ++string;
       hash += offset;
       offset *= 0x21;
       hash ^= s_hashtable[ch >> 4] - s_hashtable[ch & 0xF];
       offset += ch;
       offset += hash + 3;
-      ch = (BYTE) * ++string;
+      ch = (BYTE)*string;
     }
   } else {
+    ch = (BYTE)*string;
     while (ch) {
       ++string;
       if (ch >= 'a' && ch <= 'z') {
@@ -737,24 +802,22 @@ LONGLONG APIENTRY SStrHash64(LPCSTR string, DWORD flags, LONGLONG seed) {
   DWORD    ch;
   LONGLONG adjust;
 
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATEEND;
 
-  result = seed;
-  if (!result) {
-    result = 0x7FED7FED7FED7FED;
-  }
+  result = seed ? seed : 0x7FED7FED7FED7FED;
   adjust = 0xEEEEEEEEEEEEEEEE;
-  ch = (BYTE)*string;
   if (flags & 0x1) {
+    ch = (BYTE)*string;
     while (ch) {
-      result += adjust;
-      adjust *= 0x21;
-      result ^= s_hashtable64[ch >> 4] + s_hashtable64[ch & 0xF];
-      adjust += ch;
-      adjust += result + 3;
-      ch = (BYTE) * ++string;
+      ++string;
+      result = (s_hashtable64[ch >> 4] + s_hashtable64[ch & 0xF]) ^ (adjust + result);
+      adjust = adjust * 0x21 + ch + result + 3;
+      ch = (BYTE)*string;
     }
   } else {
+    ch = (BYTE)*string;
     while (ch) {
       ++string;
       if (ch >= 'a' && ch <= 'z') {
@@ -764,11 +827,8 @@ LONGLONG APIENTRY SStrHash64(LPCSTR string, DWORD flags, LONGLONG seed) {
       if (ch == '/') {
         ch = '\\';
       }
-      result += adjust;
-      adjust *= 0x21;
-      result ^= s_hashtable64[ch >> 4] + s_hashtable64[ch & 0xF];
-      adjust += ch;
-      adjust += result + 3;
+      result = (s_hashtable64[ch >> 4] + s_hashtable64[ch & 0xF]) ^ (adjust + result);
+      adjust = adjust * 0x21 + ch + result + 3;
       ch = (BYTE)*string;
     }
   }
@@ -876,10 +936,9 @@ DWORD APIENTRY SStrHashHT(LPCSTR string) {
     } else if (ch == '/') {
       ch = '\\';
     }
-    *out = (char)ch;
+    *out++ = (char)ch;
     ch = (BYTE)*string;
     used++;
-    out++;
   }
   *out = 0;
 
@@ -897,8 +956,10 @@ void APIENTRY SStrLower(char *string) {
 LPCSTR SStrStr(LPCSTR string, LPCSTR search) {
   DWORD searchLen;
 
-  FATALASSERT(string);
-  FATALASSERT(search);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATE(search);
+  VALIDATEEND;
 
   searchLen = SStrLen(search);
   while (*string) {
@@ -914,8 +975,10 @@ LPCSTR SStrStr(LPCSTR string, LPCSTR search) {
 char *SStrStr(char *string, LPCSTR search) {
   DWORD searchLen;
 
-  FATALASSERT(string);
-  FATALASSERT(search);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATE(search);
+  VALIDATEEND;
 
   searchLen = SStrLen(search);
   while (*string) {
@@ -931,8 +994,10 @@ char *SStrStr(char *string, LPCSTR search) {
 LPCSTR SStrStrI(LPCSTR string, LPCSTR search) {
   DWORD searchLen;
 
-  FATALASSERT(string);
-  FATALASSERT(search);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATE(search);
+  VALIDATEEND;
 
   searchLen = SStrLen(search);
   while (*string) {
@@ -948,8 +1013,10 @@ LPCSTR SStrStrI(LPCSTR string, LPCSTR search) {
 char *SStrStrI(char *string, LPCSTR search) {
   DWORD searchLen;
 
-  FATALASSERT(string);
-  FATALASSERT(search);
+  VALIDATEBEGIN;
+  VALIDATE(string);
+  VALIDATE(search);
+  VALIDATEEND;
 
   searchLen = SStrLen(search);
   while (*string) {
@@ -979,7 +1046,12 @@ char *Int64ToString(LONGLONG num, char *buf, DWORD destsize) {
     *scan++ = '0';
   }
 
-  while (num && scan < nbuf + destsize - 1) {
+  while (num) {
+    if (scan >= nbuf + destsize - 1) {
+      memset(buf, '*', destsize - 1);
+      buf[destsize - 1] = 0;
+      return buf;
+    }
     *scan++ = (char)('0' + (int)(num % 10));
     num /= 10;
     if (++thou == 3) {
@@ -988,12 +1060,6 @@ char *Int64ToString(LONGLONG num, char *buf, DWORD destsize) {
         thou = 0;
       }
     }
-  }
-
-  if (num) {
-    memset(buf, '*', destsize - 1);
-    buf[destsize - 1] = 0;
-    return buf;
   }
 
   out = buf;
@@ -1031,11 +1097,11 @@ void STypeCache::Shutdown() {
     SInterlockedDecrement(&s_interlock);
   }
 
-  block = s_namesBase;
-  while (block) {
-    next = *(char **)block;
-    SMemFree(block, __FILE__, __LINE__, 0);
+  next = s_namesBase;
+  while (next) {
     block = next;
+    next = *(char **)next;
+    SMemFree(block, __FILE__, __LINE__, 0);
   }
 
   table = s_table;
@@ -1054,7 +1120,6 @@ void STypeCache::Grow() {
   char *block;
   char *key;
   char *oldKey;
-  char *value;
 
   bits = s_tableSizeBits ? s_tableSizeBits : 9;
   bits++;
@@ -1070,8 +1135,8 @@ void STypeCache::Grow() {
     if (*key) {
       do {
         oldKey = key;
-        value = key + SStrLen(key) + 1;
-        key = value + SStrLen(value) + 1;
+        key += SStrLen(key) + 1;
+        key += SStrLen(key) + 1;
         i = GetProbe(oldKey);
         s_table[i] = oldKey;
       } while (*key);
@@ -1115,21 +1180,28 @@ int STypeCache::GetProbe(LPCSTR rawname) {
 }
 
 LPCSTR STypeCache::Get(LPCSTR rawname) {
-  int probe;
+  int   probe;
+  char *key;
+  char *value;
 
   if (!rawname) {
+    value = s_lastSearchValue;
     SInterlockedDecrement(&s_interlock);
-    return s_lastSearchValue;
+    return value;
   }
 
   while (SInterlockedIncrement(&s_interlock) != 1) {
     SInterlockedDecrement(&s_interlock);
   }
   probe = GetProbe(rawname);
-  if (probe >= 0 && s_table && s_table[probe]) {
-    s_lastSearchKey = s_table[probe];
-    s_lastSearchValue = s_lastSearchKey + SStrLen(s_lastSearchKey) + 1;
-    return s_lastSearchValue;
+  if (probe >= 0) {
+    key = s_table[probe];
+    if (key) {
+      value = key + SStrLen(key) + 1;
+      s_lastSearchKey = key;
+      s_lastSearchValue = value;
+      return value;
+    }
   }
 
   return NULL;
@@ -1164,15 +1236,11 @@ LPCSTR STypeCache::Set(LPCSTR rawname, LPCSTR decname) {
     s_namesFree = sizeof(char *);
   }
 
+  s_table[probe] = s_names + s_namesFree;
   slot = s_names + s_namesFree;
-  if (s_table) {
-    s_table[probe] = slot;
-  }
-
-  SStrCopy(slot, rawname, 0xFF);
-  slot += SStrLen(slot) + 1;
-  SStrCopy(slot, decname, 0xFF);
-  s_namesFree = (int)((slot + SStrLen(slot) + 1) - s_names);
+  slot += SStrCopy(slot, rawname, 0xFF) + 1;
+  slot += SStrCopy(slot, decname, 0xFF) + 1;
+  s_namesFree = slot - s_names;
   s_numEntries += 2;
 
   SInterlockedDecrement(&s_interlock);

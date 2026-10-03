@@ -102,14 +102,14 @@ enum VOCALUISOUNDTYPE {
 };
 
 struct VOCALUISOUND {
+  UINT soundTypes[NUM_SOUNDTYPES];
+  UINT pissedCount;
+
   void Clear() {
     soundTypes[0] = 0;
     soundTypes[1] = 0;
     pissedCount = 0;
   }
-
-  UINT soundTypes[NUM_SOUNDTYPES];
-  UINT pissedCount;
 };
 
 enum PARRYMATERIALS {

@@ -13,14 +13,14 @@ DECLARE_DERIVED_HANDLE(HTEXTFONT, HOBJECT);
 DECLARE_DERIVED_HANDLE(HTEXTBLOCK, HOBJECT);
 
 struct TEXTBLOCK : public CHandleObject {
+  CGxString *string;
+
   TEXTBLOCK() : string(0) {
   }
 
   virtual ~TEXTBLOCK() {
     GxuFontDestroyString(string);
   }
-
-  CGxString *string;
 };
 
 HTEXTFONT  TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeight);

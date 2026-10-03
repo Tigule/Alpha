@@ -24,7 +24,7 @@ void QuestCache::Pack(CDataStore *msg) {
     }
   }
 
-  while (count < 4) {
+  while (count < sizeof(m_rewardItems) / sizeof(m_rewardItems[0])) {
     msg->Put(0);
     msg->Put(0);
     ++count;
@@ -39,7 +39,7 @@ void QuestCache::Pack(CDataStore *msg) {
     }
   }
 
-  while (count < 6) {
+  while (count < sizeof(m_rewardChoiceItems) / sizeof(m_rewardChoiceItems[0])) {
     msg->Put(0);
     msg->Put(0);
     ++count;

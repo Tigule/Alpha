@@ -36,34 +36,28 @@ static char             s_defaultdir[MAX_PATH];
 static BOOL             s_logsysteminit;
 
 static DWORD PathGetRootChars(LPCSTR path) {
-  LPCSTR cursor;
-  DWORD  count;
-  DWORD  len;
-
   if (path[0] == '/') {
     return 1;
   }
 
-  len = SStrLen(path);
+  DWORD len = SStrLen(path);
   if (len < 2) {
     return 0;
   }
 
   if (path[1] == ':') {
-    return 2 + (path[2] == '\\');
+    return (path[2] == '\\') ? 3 : 2;
   }
 
   if (path[0] == '\\' && path[1] == '\\') {
-    cursor = path + 2;
-    count = 2;
-    while (count--) {
-      cursor = SStrChr(cursor, '\\');
+    LPCSTR cursor = path + 2;
+    for (DWORD count = 2; count; --count) {
       if (cursor) {
-        cursor++;
+        cursor = SStrChr(cursor, '\\') + 1;
       }
     }
     if (cursor) {
-      return (DWORD)(cursor - path);
+      return cursor - path;
     }
     return len;
   }
@@ -72,18 +66,11 @@ static DWORD PathGetRootChars(LPCSTR path) {
 }
 
 static void PathStripFilename(char *path) {
-  char *slash;
-  char *forwardSlash;
-  char *root;
-
-  slash = SStrChrR(path, '\\');
-  forwardSlash = SStrChrR(path, '/');
-  if (!slash || slash <= forwardSlash) {
-    slash = forwardSlash;
-  }
-
+  char *backslash = SStrChrR(path, '\\');
+  char *forwardSlash = SStrChrR(path, '/');
+  char *slash = max(backslash, forwardSlash);
   if (slash) {
-    root = path + PathGetRootChars(path);
+    char *root = path + PathGetRootChars(path);
     if (slash < root) {
       *root = 0;
     } else {
@@ -103,7 +90,9 @@ static BOOL CreateFileDirectory(LPCSTR path) {
   char *cursor;
   char *slash;
 
-  FATALASSERT(path);
+  VALIDATEBEGIN;
+  VALIDATE(path);
+  VALIDATEEND;
 
   SStrCopy(buffer, path, sizeof(buffer));
   PathStripFilename(buffer);
@@ -279,29 +268,21 @@ static LPCSTR PrependDefaultDir(char *newfilename, DWORD newfilenamesize, LPCSTR
 }
 
 static BOOL OpenLogFile(LPCSTR filename, LPVOID *file, DWORD flags) {
-  char   newfilename[MAX_PATH];
-  LPCSTR openPath;
-  DWORD  disposition;
-
-  if (!filename || !filename[0]) {
-    *file = INVALID_HANDLE_VALUE;
-    return FALSE;
+  if (filename && *filename) {
+    char newfilename[MAX_PATH];
+    filename = PrependDefaultDir(newfilename, sizeof(newfilename), filename);
+    BOOL append = (flags & SLOG_FLAG_APPEND) != 0;
+    CreateFileDirectory(filename);
+    *file = CreateFileA(filename, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, append ? OPEN_ALWAYS : CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    BOOL result = (*file != INVALID_HANDLE_VALUE);
+    if (result && append) {
+      SetFilePointer(*file, 0, NULL, FILE_END);
+    }
+    return result;
   }
 
-  openPath = PrependDefaultDir(newfilename, sizeof(newfilename), filename);
-  CreateFileDirectory(openPath);
-
-  disposition = (flags & SLOG_FLAG_APPEND) ? OPEN_ALWAYS : CREATE_ALWAYS;
-  *file = CreateFileA(openPath, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, disposition, FILE_ATTRIBUTE_NORMAL, NULL);
-  if (*file == INVALID_HANDLE_VALUE) {
-    return FALSE;
-  }
-
-  if (flags & SLOG_FLAG_APPEND) {
-    SetFilePointer((HANDLE)*file, 0, NULL, FILE_END);
-  }
-
-  return TRUE;
+  *file = INVALID_HANDLE_VALUE;
+  return FALSE;
 }
 
 static BOOL PrepareLog(LOGPTR logptr) {
@@ -338,10 +319,11 @@ extern "C" BOOL APIENTRY SLogCreate(LPCSTR filename, DWORD flags, HSLOG *log) {
   HANDLE     file;
   LOGPTR     rec;
 
-  FATALASSERT(filename);
-  FATALASSERT(*filename);
-  FATALASSERT(log);
-  *log = NULL;
+  VALIDATEBEGIN;
+  VALIDATE(filename);
+  VALIDATE(*filename);
+  VALIDATEANDBLANK(log);
+  VALIDATEEND;
 
   if (flags & SLOG_FLAG_MEMORYONLY) {
     flags &= ~SLOG_FLAG_OPENNOW;

@@ -1,12 +1,15 @@
 #include <Base/Base.h>
-#include <WowConst.h>
+#include <Gx/Gx.h>
 #include <MapDefs.h>
+#include "WorldClient/World.h"
+#include <WowConst.h>
+#include "Ui/LootFrame.h"
+#include "Ui/PartyFrame.h"
+#include "Net/NetClient/NetClient.h"
 
 #include "Object/ObjectClient/Item_C.h"
 #include "Spell_C.h"
 #include "Object/ObjectClient/GameObject_C.h"
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "Object/ItemStats.h"
 #include "Console/ConsoleClient.h"
@@ -29,8 +32,6 @@
 #include "Ui/PetInfo.h"
 #include "Ui/SpellBookFrame.h"
 #include "Ui/TradeFrame.h"
-#include "Ui/WorldFrame.h"
-#include "WorldClient/World.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "SoundInterface/SoundInterface.h"
 
@@ -51,14 +52,43 @@ enum CURSORANIMATIONS {
   CAST_ERROR_CURSOR = 10
 };
 
+struct TradeSkillInfo;
+struct TradeSkillSubClassInfo;
+struct CraftInfo;
+struct CraftSkillLineInfo;
+
 class CGCraftInfo {
  public:
   static void SetCraftType(SPELL_CAST_UI_TYPE type);
+
+ private:
+  static SPELL_CAST_UI_TYPE                    m_craftType;
+  static int                                   m_currentSelection;
+  static UINT                                  m_numSkills;
+  static UINT                                  m_numSkillLines;
+  static UINT                                  m_filteredSkills;
+  static int                                   m_collapseFilter;
+  static TSGrowableArray<CraftInfo *>          m_skills;
+  static TSGrowableArray<CraftSkillLineInfo *> m_skillLines;
 };
 
 class CGTradeSkillInfo {
  public:
   static void SetSkillLine(int id);
+
+ private:
+  static int                                       m_skillLine;
+  static int                                       m_currentSelection;
+  static UINT                                      m_itemsPending;
+  static UINT                                      m_numSkills;
+  static UINT                                      m_numSubClasses;
+  static UINT                                      m_filteredSkills;
+  static int                                       m_subClassFilter;
+  static int                                       m_invTypeFilter;
+  static int                                       m_collapseFilter;
+  static TSGrowableArray<TradeSkillInfo *>         m_skills;
+  static TSGrowableArray<TradeSkillSubClassInfo *> m_subClasses;
+  static int                                       m_availableSlots;
 };
 
 class SpellCast {
@@ -260,6 +290,8 @@ static UINT                                            s_spellWorldModel;
 static float                                           s_spellWorldModelFacing;
 static bool                                            s_spellWorldModelHousing;
 
+#include "Ui/WorldFrame.h"
+
 void SpellHistory::AddHistory(
     int   spellID,
     int   itemID,
@@ -406,12 +438,7 @@ BOOL SpellHistory::IsOnHold(int spellID, int itemID) {
 }
 
 void SpellHistory::RemoveHold(int spellID, DWORD startTime, bool clear) {
-  SPELLHISTORY *history = m_spellHistory.Head();
-  while (TRUE) {
-    if ((int)history <= 0) {
-      break;
-    }
-    SPELLHISTORY *next = m_spellHistory.RawNext(history);
+  for (SPELLHISTORY *history = m_spellHistory.Head(), *next; (int)history > 0 ? ((next = m_spellHistory.RawNext(history)), 1) : 0; history = next) {
     if (history->spellID == spellID && history->onHold) {
       if (clear) {
         m_spellHistory.UnlinkNode(history);
@@ -422,16 +449,19 @@ void SpellHistory::RemoveHold(int spellID, DWORD startTime, bool clear) {
         history->onHold = false;
       }
     }
-    history = next;
   }
 }
 
 void SpellHistory::ClearHistory() {
   SPELLHISTORY *history;
-  while ((history = m_spellHistory.Head()) != 0) {
+  do {
+    history = m_spellHistory.Head();
+    if (!history) {
+      break;
+    }
     m_spellHistory.UnlinkNode(history);
     m_freeList.LinkNode(history, LIST_TAIL, 0);
-  }
+  } while (TRUE);
 }
 
 void SpellHistory::GarbageCollect(DWORD timestamp) {
@@ -962,9 +992,7 @@ int Spell_C_GetSpellLevel(int id, BOOL isPet) {
       return 0;
     }
 
-    const CGUnitData *unitData = unit->GetUnitData();
-    const DWORDLONG  &pet = unitData->charm ? unitData->charm : unitData->summon;
-    unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(pet, __FILE__, __LINE__));
+    unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit->GetControlledGUID(), __FILE__, __LINE__));
   }
 
   return unit ? unit->GetSpellLevel(id) : 0;
@@ -1029,8 +1057,8 @@ void Spell_C_GetMinMaxRange(int id, float *min, float *max) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
       CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(player->IsAttacking(), __FILE__, __LINE__));
-      float     targetReach = target ? target->GetUnitData()->weaponReach + target->GetUnitData()->combatReach : range->m_rangeMax;
-      *max = player->GetUnitData()->weaponReach + player->GetUnitData()->combatReach + targetReach + 1.3333334f;
+      float     targetReach = target ? target->GetCombatReach() : range->m_rangeMax;
+      *max = player->GetCombatReach() + targetReach + 1.3333334f;
       *min = 0.0f;
     }
   } else {
@@ -1047,10 +1075,7 @@ void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, in
   }
 
   int dieSides = srec->m_effectDieSides[effectIndex];
-  int casterLevel = level;
-  if (!casterLevel) {
-    casterLevel = Spell_C_GetSpellLevel(srec->m_ID, isPet);
-  }
+  int casterLevel = level ? level : Spell_C_GetSpellLevel(srec->m_ID, isPet);
   if (srec->m_baseLevel > 0) {
     casterLevel -= srec->m_baseLevel;
   }
@@ -1060,11 +1085,17 @@ void Spell_C_GetMinMaxPoints(const SpellRec *srec, int effectIndex, int *min, in
 
   float levelBonus = casterLevel * srec->m_effectRealPointsPerLevel[effectIndex];
   int   minBonus = static_cast<int>(levelBonus);
-  int   maxBonus = static_cast<int>(levelBonus - floorf(levelBonus) >= 0.5f ? ceilf(levelBonus) : floorf(levelBonus));
+  int   maxBonus;
+  if (levelBonus - floorf(levelBonus) >= 0.5f) {
+    maxBonus = static_cast<int>(ceilf(levelBonus));
+  } else {
+    maxBonus = static_cast<int>(floorf(levelBonus));
+  }
 
   *min = srec->m_effectBaseDice[effectIndex] + srec->m_effectDicePerLevel[effectIndex] * casterLevel;
   *min += minBonus + srec->m_effectBasePoints[effectIndex];
-  *max = srec->m_effectBaseDice[effectIndex] * dieSides + srec->m_effectDicePerLevel[effectIndex] * (casterLevel * dieSides);
+  *max = srec->m_effectBaseDice[effectIndex] * dieSides;
+  *max += srec->m_effectDicePerLevel[effectIndex] * (casterLevel * dieSides);
   *max += maxBonus + srec->m_effectBasePoints[effectIndex];
 }
 
@@ -1251,10 +1282,10 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
     return false;
   }
 
-  if (player->GetUnitData()->channelSpell) {
+  if (player->GetChannelSpell()) {
     CDataStore msg;
     msg.Put(CMSG_CANCEL_CHANNELLING);
-    msg.Put(player->GetUnitData()->channelSpell);
+    msg.Put(player->GetChannelSpell());
     msg.Finalize();
     ClientServices_Send(&msg);
   }
@@ -1270,7 +1301,7 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
       return false;
     }
 
-    const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetUnitData()->race, player->GetUnitData()->classId, spellID);
+    const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetRace(), player->GetClass(), spellID);
     const SkillLineRec        *skillLine = ability ? g_skillLineDB.GetRecord(ability->m_skillLine) : 0;
     if (skillLine) {
       CGTradeSkillInfo::SetSkillLine(skillLine->m_ID);
@@ -1302,7 +1333,7 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
     }
   }
 
-  if (player->GetUnitData()->health <= 0 && !(spell->m_attributes & 0x800000)) {
+  if (player->GetHealth() <= 0 && !(spell->m_attributes & 0x800000)) {
     Spell_C_SpellFailed(spellID, 10, -1, -1);
     return false;
   }
@@ -1316,7 +1347,7 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
     return false;
   }
 
-  if ((spell->m_attributesEx & 0x500000) && !player->GetUnitData()->comboPoints) {
+  if ((spell->m_attributesEx & 0x500000) && !player->GetComboPoints()) {
     Spell_C_SpellFailed(spell->m_ID, 82, -1, -1);
     return false;
   }
@@ -1669,7 +1700,7 @@ bool Spell_C_HandleSpriteClick(CGObject_C *object) {
 
   if (object->GetType() & TYPE_UNIT) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(object);
-    if (unit->GetUnitData()->health > 0) {
+    if (unit->GetHealth() > 0) {
       if (s_needTargets & 0x400) {
         return 0;
       }
@@ -1697,7 +1728,7 @@ bool Spell_C_HandleSpriteClick(CGObject_C *object) {
       return 0;
     }
 
-    if (unit->GetUnitData()->health <= 0) {
+    if (unit->GetHealth() <= 0) {
       s_needTargets &= ~0x400;
     }
     handled = 1;
@@ -1851,9 +1882,9 @@ float Spell_C_GetSpellRadius() {
 
   const SpellRec       *spell = g_spellDB.GetRecord(s_spellCast.spellID);
   const SpellRadiusRec *radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[0]);
-  float radius1 = (radius ? radius->m_radius : 0.0f) + (radius ? player->GetUnitData()->level * radius->m_radiusPerLevel : 0.0f);
+  float radius1 = (radius ? radius->m_radius : 0.0f) + (radius ? player->GetLevel() * radius->m_radiusPerLevel : 0.0f);
   radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[1]);
-  float radius2 = (radius ? radius->m_radius : 0.0f) + (radius ? player->GetUnitData()->level * radius->m_radiusPerLevel : 0.0f);
+  float radius2 = (radius ? radius->m_radius : 0.0f) + (radius ? player->GetLevel() * radius->m_radiusPerLevel : 0.0f);
   return radius1 > radius2 ? radius1 : radius2;
 }
 
@@ -1875,7 +1906,7 @@ bool Spell_C_HandleSpriteRay(const CSpriteClickEvent &evt, bool checkRange) {
 
   if (object->GetType() & TYPE_UNIT) {
     CGUnit_C *unit = static_cast<CGUnit_C *>(object);
-    if (unit->GetUnitData()->health > 0) {
+    if (unit->GetHealth() > 0) {
       if (s_needTargets & 0x400) {
         return false;
       }
@@ -2422,9 +2453,7 @@ static void SpellGo(const DWORDLONG &casterGUID, const DWORDLONG &casterUnit, in
       CGContainerInfo::UpdateCooldowns();
     }
   } else {
-    const CGUnitData *unitData = caster->GetUnitData();
-    const DWORDLONG  &owner = unitData->charmedBy ? unitData->charmedBy : unitData->summonedBy;
-    if (owner == ClntObjMgrGetActivePlayer()) {
+    if (caster->GetControlGUID() == ClntObjMgrGetActivePlayer()) {
       s_spellHistory[1].AddHistory(
           spellID, 0, currTime, srec->m_recoveryTime, srec->m_category, currTime, srec->m_categoryRecoveryTime, needsEvent,
           srec->m_startRecoveryCategory, srec->m_startRecoveryTime

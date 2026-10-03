@@ -4,6 +4,26 @@
 
 namespace NTempest {
 
+  enum {
+    eMinPValue = 16
+  };
+
+  enum {
+    eMaxPValue = 0x7FFFFFEE
+  };
+
+  enum {
+    eDefPValue = 0x3FFFFFFF
+  };
+
+  enum {
+    eLowSystemPValue = 0
+  };
+
+  enum {
+    eHighSystemPValue = 0x7FFFFFFF
+  };
+
   template <class T, class B>
   class CPriorityQ : public CDynTable<T> {
    public:

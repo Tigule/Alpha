@@ -4,6 +4,10 @@
 
 static BOOL isIdent;
 
+inline UINT CGxMatrixStack::Flags() {
+  return m_flags[m_level];
+}
+
 void CGxDeviceD3d::XformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
   CGxDevice::XformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 
@@ -79,26 +83,27 @@ void CGxDeviceD3d::IXformSetWorld() {
 void CGxDeviceD3d::IXformSetTex(UINT tmu) {
   ASSERT(tmu < m_caps.m_numTmus);
 
-  int ts = 0;
+  DWORD ttfBits = D3DTTFF_DISABLE;
+  int   ts;
   GxRsGet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), ts);
-
-  UINT       ttfBits = D3DTTFF_DISABLE;
-  D3DXMATRIX matTex;
 
   switch (ts) {
     case GxTS_PassThru:
-      matTex = *reinterpret_cast<D3DXMATRIX *>(&m_texGen[tmu].m_mtx[m_texGen[tmu].m_level]);
-      m_d3dDevice->SetTransform(static_cast<D3DTRANSFORMSTATETYPE>(D3DTS_TEXTURE0 + tmu), &matTex);
-      if (!(m_texGen[tmu].m_flags[m_texGen[tmu].m_level] & CGxMatrixStack::F_Identity)) {
+      if (m_texGen[tmu].Flags() & CGxMatrixStack::F_Identity) {
+        D3DXMATRIX matTex = *reinterpret_cast<const D3DXMATRIX *>(&m_texGen[tmu].TopConst());
+        m_d3dDevice->SetTransform(static_cast<D3DTRANSFORMSTATETYPE>(D3DTS_TEXTURE0 + tmu), &matTex);
+      } else {
+        D3DXMATRIX matTex = *reinterpret_cast<const D3DXMATRIX *>(&m_texGen[tmu].TopConst());
+        m_d3dDevice->SetTransform(static_cast<D3DTRANSFORMSTATETYPE>(D3DTS_TEXTURE0 + tmu), &matTex);
         ttfBits = D3DTTFF_COUNT2;
       }
       break;
 
     case GxTS_Affine: {
-      NTempest::C44Matrix concatMat = m_texGen[tmu].m_mtx[m_texGen[tmu].m_level] * m_xforms[tmu].m_mtx[m_xforms[tmu].m_level];
-      matTex = *reinterpret_cast<D3DXMATRIX *>(&concatMat);
+      NTempest::C44Matrix concatMat = m_texGen[tmu].TopConst() * m_xforms[tmu].TopConst();
+      D3DXMATRIX          matTex = *reinterpret_cast<D3DXMATRIX *>(&concatMat);
 
-      int texGen = 0;
+      int texGen;
       RsGet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), texGen);
       if (texGen == GxTexGen_Disable) {
         matTex._31 = concatMat.d0;
@@ -111,8 +116,8 @@ void CGxDeviceD3d::IXformSetTex(UINT tmu) {
     }
 
     case GxTS_Proj: {
-      NTempest::C44Matrix concatMat = m_texGen[tmu].m_mtx[m_texGen[tmu].m_level] * m_xforms[tmu].m_mtx[m_xforms[tmu].m_level];
-      matTex = *reinterpret_cast<D3DXMATRIX *>(&concatMat);
+      NTempest::C44Matrix concatMat = m_texGen[tmu].TopConst() * m_xforms[tmu].TopConst();
+      D3DXMATRIX          matTex = *reinterpret_cast<D3DXMATRIX *>(&concatMat);
       m_d3dDevice->SetTransform(static_cast<D3DTRANSFORMSTATETYPE>(D3DTS_TEXTURE0 + tmu), &matTex);
       ttfBits = D3DTTFF_COUNT3 | D3DTTFF_PROJECTED;
       break;

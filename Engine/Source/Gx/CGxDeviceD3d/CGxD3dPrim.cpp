@@ -458,14 +458,88 @@ void CGxDeviceD3d::BufDestroy(CGxBuf *&b) {
   b = 0;
 }
 
-void IPrimSetupPos_PNT0(LPVOID __formal) {
-  LPBYTE dst = static_cast<LPBYTE>(__formal);
-
-  for (UINT i = 0; i < s_vertexCount; ++i) {
-    *reinterpret_cast<NTempest::C3Vector *>(dst) = s_pos[i];
-    *reinterpret_cast<NTempest::C3Vector *>(dst + 12) = s_normal[i];
-    *reinterpret_cast<NTempest::C2Vector *>(dst + 24) = s_tex[0][i];
-    dst += 32;
+__declspec(naked) void IPrimSetupPos_PNT0(LPVOID) {
+  __asm {
+    push ebx
+    push edi
+    mov edi, ecx
+    mov eax, s_pos
+    mov ebx, s_normal
+    mov ecx, s_vertexCount
+    shr ecx, 1
+    mov edx, s_tex
+    jz done_dloop
+    jmp dloop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+  dloop:
+    movq mm0, [eax]
+    movq mm1, [eax + 8]
+    movq mm3, [eax + 16]
+    movq mm4, [ebx]
+    movq mm2, [ebx + 8]
+    movq mm5, [ebx + 16]
+    movq mm6, mm1
+    movq mm7, mm4
+    psllq mm4, 32
+    pand mm1, s_lomask
+    por mm1, mm4
+    movq mm4, mm2
+    psrlq mm7, 32
+    psllq mm2, 32
+    por mm2, mm7
+    movq mm7, mm3
+    psrlq mm6, 32
+    psllq mm3, 32
+    por mm3, mm6
+    movq mm6, [edx]
+    psrlq mm7, 32
+    pand mm4, s_himask
+    por mm4, mm7
+    movq mm7, [edx + 8]
+    movq [edi], mm0
+    movq [edi + 8], mm1
+    movq [edi + 16], mm2
+    movq [edi + 24], mm6
+    movq [edi + 32], mm3
+    movq [edi + 40], mm4
+    movq [edi + 48], mm5
+    movq [edi + 56], mm7
+    add eax, 24
+    add ebx, 24
+    add edx, 16
+    add edi, 64
+    dec ecx
+    jnz dloop
+  done_dloop:
+    mov ecx, s_vertexCount
+    and ecx, 1
+    jz done_dlast
+    movq mm0, [eax]
+    movd mm1, [eax + 8]
+    movd mm4, [ebx]
+    movq mm2, [ebx + 4]
+    movq mm3, [edx]
+    psllq mm4, 32
+    por mm1, mm4
+    movq [edi], mm0
+    movq [edi + 8], mm1
+    movq [edi + 16], mm2
+    movq [edi + 24], mm3
+  done_dlast:
+    pop edi
+    pop ebx
+    emms
+    ret
   }
 }
 

@@ -132,7 +132,7 @@ static void IReadRibbonEmitter(Parser &parse, TSet &errors, MDLRIBBONEMITTER *em
   parse.Expect('{');
   LPCSTR tokenText;
   UINT   token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
+  while (token != '}' && token) {
     int expectAnimation = IExpectAnimation(parse, &token, &tokenText);
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokenText);

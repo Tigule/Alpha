@@ -127,14 +127,14 @@ struct HOLDINFO {
 };
 
 struct INVHOLDINFO {
+  HOLDINFO holdInfo[2];
+
   INVHOLDINFO(CHARACTER_ITEM_GEOSETS geoset0, TEXCOMPONENT_SECTIONS section0, CHARACTER_ITEM_GEOSETS geoset1, TEXCOMPONENT_SECTIONS section1) {
     holdInfo[0].geosetGroup = geoset0;
     holdInfo[0].holdSection = section0;
     holdInfo[1].geosetGroup = geoset1;
     holdInfo[1].holdSection = section1;
   }
-
-  HOLDINFO holdInfo[2];
 };
 
 static const INVHOLDINFO s_itemTypeTextureHolds[INDEX_NUMSLOTS] = {
@@ -171,195 +171,12 @@ class CharGeosetInfo {
  public:
   CharGeosetInfo();
   CharGeosetInfo(const CharGeosetInfo &rhs);
-  void UpdateGeosetDisplay(const ItemDisplayInfoRec *displayInfoRec, UINT itemInventoryType, HTEXCOMPONENT component, UINT playerRace) {
-    if (!displayInfoRec || !playerRace || playerRace > static_cast<UINT>(g_chrRacesDB.GetMaxID())) {
-      return;
-    }
+  void UpdateGeosetDisplay(const ItemDisplayInfoRec *displayInfoRec, UINT itemInventoryType, HTEXCOMPONENT component, UINT playerRace);
 
-    const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(playerRace);
-    if (!raceRec || ((raceRec->m_flags & 2) && itemInventoryType == INDEX_FEET_TYPE)) {
-      return;
-    }
-
-    UINT i;
-    for (i = 0; i < 4; ++i) {
-      CHARACTER_ITEM_GEOSETS group = g_geosetGroupsPerItem[itemInventoryType].geosetGroup[i];
-      if (group == INVALID_CHARITEMGEOSET) {
-        continue;
-      }
-
-      int geoset = displayInfoRec->m_geosetGroup[i];
-      if (geoset) {
-        inventoryTypeGeosets[group][itemInventoryType] = geoset + 1;
-      }
-
-      int priority = s_itemGeosetPriorities[itemInventoryType][group];
-      if (priority >= highestPriority[group]) {
-        highestPriority[group] = priority;
-        if (geoset || s_overridePriorities[itemInventoryType][group]) {
-          currentGeosets[group] = geoset + 1;
-          geosetCurrentlyUsedBy[group] = itemInventoryType;
-        }
-      }
-    }
-
-    LPCSTR legLowerTexture = CompUtilGetTextureSectionName(displayInfoRec, TCS_LEGLOWER);
-    if (itemInventoryType == INDEX_FEET_TYPE) {
-      if (legLowerTexture && *legLowerTexture) {
-        flags[3] |= 1;
-        disabledByFlags[3] |= 1u << INDEX_FEET_TYPE;
-      }
-    } else if (itemInventoryType == INDEX_LEGS_TYPE && !flags[3] && legLowerTexture && *legLowerTexture) {
-      flags[3] |= 1;
-      disabledByFlags[3] |= 1u << INDEX_LEGS_TYPE;
-    }
-
-    UINT group;
-    for (group = 0; group < 9; ++group) {
-      if (s_geosetGroupDisables[group]) {
-        UINT disabledGroup;
-        for (disabledGroup = 0; disabledGroup < 9; ++disabledGroup) {
-          if (currentGeosets[group] > 1 && (s_geosetGroupDisables[group] & (1u << disabledGroup))) {
-            flags[disabledGroup] |= 2;
-            disabledByFlags[disabledGroup] |= 1u << geosetCurrentlyUsedBy[group];
-          }
-        }
-      }
-
-      UINT disables = s_inventoryAndGeosetDisables[itemInventoryType].disableGeosetFlags[group];
-      if (group >= 5 && group <= 7) {
-        disables |= 1u << INDEX_FEET_TYPE;
-      }
-      if (currentGeosets[group] > 1 && disables) {
-        UINT disabledGroup;
-        for (disabledGroup = 0; disabledGroup < 9 && disables; ++disabledGroup) {
-          if (disables & (1u << disabledGroup)) {
-            flags[disabledGroup] |= 1;
-            disabledByFlags[disabledGroup] |= 1u << geosetCurrentlyUsedBy[group];
-            disables &= ~(1u << disabledGroup);
-          }
-        }
-      }
-    }
-
-    if (component) {
-      if (currentGeosets[7] > 1) {
-        TexComponentAddHold(component, INDEX_FEET_TYPE, TCS_LEGLOWER);
-      }
-      if (currentGeosets[2] > 1 && !(flags[2] & 3) && currentGeosets[0] <= 1) {
-        TexComponentAddHold(component, INDEX_HAND_TYPE, TCS_LOWERARM);
-      } else {
-        TexComponentRemoveHold(component, INDEX_HAND_TYPE, TCS_LOWERARM);
-      }
-      ShowInventoryTypeTextureHolds(component, itemInventoryType, 1);
-    }
-  }
-
-  void ShowInventoryTypeTextureHolds(HTEXCOMPONENT component, UINT inventoryType, int adding) {
-    FATALASSERT(component);
-    FATALASSERT(inventoryType != INDEX_NON_EQUIP_TYPE);
-    UINT i;
-    for (i = 0; i < 2; ++i) {
-      const HOLDINFO &hold = s_itemTypeTextureHolds[inventoryType].holdInfo[i];
-      if (hold.geosetGroup != -1 && hold.holdSection != TCS_INVALIDSECTION && (flags[hold.geosetGroup] & 1) &&
-          !(disabledByFlags[hold.geosetGroup] & (1u << inventoryType)) && currentGeosets[hold.geosetGroup] <= 1)
-      {
-        if (adding) {
-          TexComponentAddHold(component, static_cast<INVENTORY_TYPES>(inventoryType), hold.holdSection);
-        } else {
-          TexComponentRemoveHold(component, static_cast<INVENTORY_TYPES>(inventoryType), hold.holdSection);
-        }
-      }
-    }
-  }
+  void ShowInventoryTypeTextureHolds(HTEXCOMPONENT component, UINT inventoryType, int adding);
 
   BOOL ShowingSameGeosetsAs(const CharGeosetInfo &rhs);
-  void RemoveGeosetInfo(const ItemDisplayInfoRec *displayInfoRec, UINT inventoryType, HTEXCOMPONENT component) {
-    FATALASSERT(inventoryType != INDEX_NON_EQUIP_TYPE);
-
-    UINT oldGeosets[9];
-    memcpy(oldGeosets, currentGeosets, sizeof(oldGeosets));
-
-    UINT group;
-    for (group = 0; group < 9; ++group) {
-      inventoryTypeGeosets[group][inventoryType] = 0;
-      geosetCurrentlyUsedBy[group] = INDEX_NON_EQUIP_TYPE;
-      highestPriority[group] = -1;
-
-      UINT bestInventoryType = INDEX_NON_EQUIP_TYPE;
-      UINT candidateInventoryType;
-      for (candidateInventoryType = 0; candidateInventoryType < INDEX_NUMSLOTS; ++candidateInventoryType) {
-        if (inventoryTypeGeosets[group][candidateInventoryType] &&
-            static_cast<int>(s_itemGeosetPriorities[candidateInventoryType][group]) > highestPriority[group])
-        {
-          highestPriority[group] = s_itemGeosetPriorities[candidateInventoryType][group];
-          bestInventoryType = candidateInventoryType;
-        }
-      }
-
-      if (bestInventoryType != INDEX_NON_EQUIP_TYPE) {
-        currentGeosets[group] = inventoryTypeGeosets[group][bestInventoryType];
-        geosetCurrentlyUsedBy[group] = bestInventoryType;
-        continue;
-      }
-
-      currentGeosets[group] = 1;
-
-      UINT hideFlags = s_geosetGroupDisables[group];
-      if (hideFlags) {
-        UINT disabledGroup;
-        for (disabledGroup = 0; disabledGroup < 9; ++disabledGroup) {
-          if (hideFlags & (1u << disabledGroup)) {
-            flags[disabledGroup] &= ~2u;
-            currentGeosets[disabledGroup] = inventoryTypeGeosets[disabledGroup][geosetCurrentlyUsedBy[disabledGroup]];
-            if (!currentGeosets[disabledGroup]) {
-              currentGeosets[disabledGroup] = 1;
-            }
-            disabledByFlags[disabledGroup] &= ~(1u << inventoryType);
-          }
-        }
-      }
-
-      UINT thisGroupDisablesFlags = s_inventoryAndGeosetDisables[inventoryType].disableGeosetFlags[group];
-      if (group >= 5 && group <= 7) {
-        thisGroupDisablesFlags |= 1u << INDEX_FEET_TYPE;
-      }
-      if (thisGroupDisablesFlags) {
-        UINT disabledGroup;
-        for (disabledGroup = 0; disabledGroup < 9; ++disabledGroup) {
-          if ((thisGroupDisablesFlags & (1u << disabledGroup)) && (flags[disabledGroup] & 1)) {
-            currentGeosets[disabledGroup] = inventoryTypeGeosets[disabledGroup][geosetCurrentlyUsedBy[disabledGroup]];
-            if (!currentGeosets[disabledGroup]) {
-              currentGeosets[disabledGroup] = 1;
-            }
-            disabledByFlags[disabledGroup] &= ~(1u << inventoryType);
-            if (!disabledByFlags[disabledGroup]) {
-              flags[disabledGroup] &= ~1u;
-            }
-          }
-        }
-      }
-    }
-
-    if (inventoryType == INDEX_FEET_TYPE) {
-      LPCSTR legLowerTexture = CompUtilGetTextureSectionName(displayInfoRec, TCS_LEGLOWER);
-      if (legLowerTexture && *legLowerTexture) {
-        flags[3] &= ~1u;
-        currentGeosets[3] = inventoryTypeGeosets[3][INDEX_LEGS_TYPE];
-        disabledByFlags[3] &= ~(1u << INDEX_FEET_TYPE);
-      }
-    }
-
-    if (component) {
-      if (currentGeosets[7] <= 1) {
-        TexComponentRemoveHold(component, INDEX_FEET_TYPE, TCS_LEGLOWER);
-      }
-      if (oldGeosets[2] > 1 && currentGeosets[2] == 1 && !(flags[2] & 1) && currentGeosets[0] <= 1) {
-        TexComponentRemoveHold(component, INDEX_HAND_TYPE, TCS_LOWERARM);
-      }
-      ShowInventoryTypeTextureHolds(component, inventoryType, 0);
-    }
-  }
+  void RemoveGeosetInfo(const ItemDisplayInfoRec *displayInfoRec, UINT inventoryType, HTEXCOMPONENT component);
 
   void Clear();
   int  highestPriority[9];
@@ -369,53 +186,6 @@ class CharGeosetInfo {
   UINT flags[9];
   UINT inventoryTypeGeosets[9][INDEX_NUMSLOTS];
 };
-
-
-
-
-CharGeosetInfo::CharGeosetInfo() {
-  Clear();
-}
-
-CharGeosetInfo::CharGeosetInfo(const CharGeosetInfo &rhs) {
-  UINT group;
-  for (group = 0; group < 9; ++group) {
-    highestPriority[group] = rhs.highestPriority[group];
-    currentGeosets[group] = rhs.currentGeosets[group];
-    geosetCurrentlyUsedBy[group] = rhs.geosetCurrentlyUsedBy[group];
-    disabledByFlags[group] = rhs.disabledByFlags[group];
-    flags[group] = 0;
-
-    UINT inventoryType;
-    for (inventoryType = 0; inventoryType < INDEX_NUMSLOTS; ++inventoryType) {
-      inventoryTypeGeosets[group][inventoryType] = rhs.inventoryTypeGeosets[group][inventoryType];
-    }
-  }
-}
-
-BOOL CharGeosetInfo::ShowingSameGeosetsAs(const CharGeosetInfo &rhs) {
-  UINT group;
-  for (group = 0; group < 9; ++group) {
-    if ((flags[group] & 1) != (rhs.flags[group] & 1) || ((flags[group] ^ rhs.flags[group]) & 2) != 0 ||
-        (!(flags[group] & 1) && currentGeosets[group] != rhs.currentGeosets[group]))
-    {
-      return 0;
-    }
-  }
-  return 1;
-}
-
-void CharGeosetInfo::Clear() {
-  UINT group;
-  for (group = 0; group < 9; ++group) {
-    highestPriority[group] = -1;
-    currentGeosets[group] = 1;
-    geosetCurrentlyUsedBy[group] = 0;
-    disabledByFlags[group] = 0;
-    flags[group] = 0;
-    memset(inventoryTypeGeosets[group], 0, sizeof(inventoryTypeGeosets[group]));
-  }
-}
 
 class CCharGeoset : public CHandleObject {
  public:
@@ -437,74 +207,25 @@ class CCharGeoset : public CHandleObject {
     }
   }
 
+  void CommitWorkingGeosetInfo();
+
   void ClearGeosets();
-
-  void ShowGeosetSection(CHARACTER_GEOSET_SECTIONS section, UINT geosetNumber, int hideRemainder) {
-    ASSERT(section < NUM_CHARGEOSETS);
-    ASSERT(m_charModel);
-    ASSERT(geosetNumber < 100);
-
-    ShowGeosetSection(m_charModel, section, geosetNumber, hideRemainder);
-    if (m_paperDollModel) {
-      ShowGeosetSection(m_paperDollModel, section, geosetNumber, hideRemainder);
-    }
-    if (!geosetNumber) {
-      geosetNumber = !s_defaultGeosets[section];
-    }
-
-    if (m_currentGeosets[section] != geosetNumber) {
-      m_currentGeosets[section] = geosetNumber;
-      m_flags |= CHANGED;
-    }
-  }
-
-  void ShowGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section, UINT geosetNumber, int hideRemainder) const {
-    ASSERT(section < NUM_CHARGEOSETS);
-    ASSERT(model);
-    ASSERT(geosetNumber < 100);
-
-    if (hideRemainder) {
-      HideGeosetSection(model, section);
-    }
-    if (!geosetNumber) {
-      geosetNumber = !s_defaultGeosets[section];
-    }
-    if (m_currentGeosets[section] != geosetNumber && m_currentGeosets[section] && !hideRemainder) {
-      ModelHideGeosets(model, 100 * section + m_currentGeosets[section], 1);
-    }
-  }
-
-  void HideGeosetSection(CHARACTER_GEOSET_SECTIONS section);
-
-  void HideGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section) const;
 
   void CommitGeosets(HMODEL model);
 
   void Commit();
 
-  void CommitWorkingGeosetInfo() {
-    if (!m_geosetInfo.ShowingSameGeosetsAs(m_workingGeosetInfo)) {
-      UINT group;
-      for (group = 0; group < 9; ++group) {
-        UINT workingFlags = m_workingGeosetInfo.flags[group];
-        if (!(workingFlags & 1) || !(m_geosetInfo.flags[group] & 1)) {
-          if (!(workingFlags & 2) || !(m_geosetInfo.flags[group] & 2)) {
-            if (workingFlags & 1) {
-              HideGeosetSection(s_clothingGeosetRanges[group]);
-              m_currentGeosets[s_clothingGeosetRanges[group]] = 0;
-            } else {
-              ShowGeosetSection(s_clothingGeosetRanges[group], workingFlags & 2 ? 1 : m_workingGeosetInfo.currentGeosets[group], 0);
-            }
-          }
-        }
-      }
-    }
-    m_geosetInfo = m_workingGeosetInfo;
-  }
-
   void AddItemGeoset(const ItemDisplayInfoRec *displayInfoRec, UINT itemInventoryType, HTEXCOMPONENT component, UINT playerRace, int doNotCommit);
 
   void RemoveItemGeoset(const ItemDisplayInfoRec *displayInfoRec, UINT itemInventoryType, HTEXCOMPONENT component);
+
+  void ShowGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section, UINT geosetNumber, int hideRemainder) const;
+
+  void ShowGeosetSection(CHARACTER_GEOSET_SECTIONS section, UINT geosetNumber, int hideRemainder);
+
+  void HideGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section) const;
+
+  void HideGeosetSection(CHARACTER_GEOSET_SECTIONS section);
 
   void EnableHairGeosets(UINT race, UINT sex, UINT hairStyleID);
 
@@ -516,6 +237,128 @@ class CCharGeoset : public CHandleObject {
   UINT           m_currentGeosets[NUM_CHARGEOSETS];
 };
 
+CharGeosetInfo::CharGeosetInfo() {
+  Clear();
+}
+
+CharGeosetInfo::CharGeosetInfo(const CharGeosetInfo &rhs) {
+  UINT group;
+  for (group = 0; group < 9; ++group) {
+    highestPriority[group] = rhs.highestPriority[group];
+    currentGeosets[group] = rhs.currentGeosets[group];
+    geosetCurrentlyUsedBy[group] = rhs.geosetCurrentlyUsedBy[group];
+    disabledByFlags[group] = rhs.disabledByFlags[group];
+    flags[group] = 0;
+
+    UINT inventoryType;
+    for (inventoryType = 0; inventoryType < INDEX_NUMSLOTS; ++inventoryType) {
+      inventoryTypeGeosets[group][inventoryType] = rhs.inventoryTypeGeosets[group][inventoryType];
+    }
+  }
+}
+
+void CharGeosetInfo::UpdateGeosetDisplay(const ItemDisplayInfoRec *displayInfoRec, UINT itemInventoryType, HTEXCOMPONENT component, UINT playerRace) {
+  if (!displayInfoRec || !playerRace || playerRace > static_cast<UINT>(g_chrRacesDB.GetMaxID())) {
+    return;
+  }
+
+  const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(playerRace);
+  if (!raceRec || ((raceRec->m_flags & 2) && itemInventoryType == INDEX_FEET_TYPE)) {
+    return;
+  }
+
+  UINT i;
+  for (i = 0; i < 4; ++i) {
+    CHARACTER_ITEM_GEOSETS group = g_geosetGroupsPerItem[itemInventoryType].geosetGroup[i];
+    if (group == INVALID_CHARITEMGEOSET) {
+      continue;
+    }
+
+    int geoset = displayInfoRec->m_geosetGroup[i];
+    if (geoset) {
+      inventoryTypeGeosets[group][itemInventoryType] = geoset + 1;
+    }
+
+    int priority = s_itemGeosetPriorities[itemInventoryType][group];
+    if (priority >= highestPriority[group]) {
+      highestPriority[group] = priority;
+      if (geoset || s_overridePriorities[itemInventoryType][group]) {
+        currentGeosets[group] = geoset + 1;
+        geosetCurrentlyUsedBy[group] = itemInventoryType;
+      }
+    }
+  }
+
+  LPCSTR legLowerTexture = CompUtilGetTextureSectionName(displayInfoRec, TCS_LEGLOWER);
+  if (itemInventoryType == INDEX_FEET_TYPE) {
+    if (legLowerTexture && *legLowerTexture) {
+      flags[3] |= 1;
+      disabledByFlags[3] |= 1u << INDEX_FEET_TYPE;
+    }
+  } else if (itemInventoryType == INDEX_LEGS_TYPE && !flags[3] && legLowerTexture && *legLowerTexture) {
+    flags[3] |= 1;
+    disabledByFlags[3] |= 1u << INDEX_LEGS_TYPE;
+  }
+
+  UINT group;
+  for (group = 0; group < 9; ++group) {
+    if (s_geosetGroupDisables[group]) {
+      UINT disabledGroup;
+      for (disabledGroup = 0; disabledGroup < 9; ++disabledGroup) {
+        if (currentGeosets[group] > 1 && (s_geosetGroupDisables[group] & (1u << disabledGroup))) {
+          flags[disabledGroup] |= 2;
+          disabledByFlags[disabledGroup] |= 1u << geosetCurrentlyUsedBy[group];
+        }
+      }
+    }
+
+    UINT disables = s_inventoryAndGeosetDisables[itemInventoryType].disableGeosetFlags[group];
+    if (group >= 5 && group <= 7) {
+      disables |= 1u << INDEX_FEET_TYPE;
+    }
+    if (currentGeosets[group] > 1 && disables) {
+      UINT disabledGroup;
+      for (disabledGroup = 0; disabledGroup < 9 && disables; ++disabledGroup) {
+        if (disables & (1u << disabledGroup)) {
+          flags[disabledGroup] |= 1;
+          disabledByFlags[disabledGroup] |= 1u << geosetCurrentlyUsedBy[group];
+          disables &= ~(1u << disabledGroup);
+        }
+      }
+    }
+  }
+
+  if (component) {
+    if (currentGeosets[7] > 1) {
+      TexComponentAddHold(component, INDEX_FEET_TYPE, TCS_LEGLOWER);
+    }
+    if (currentGeosets[2] > 1 && !(flags[2] & 3) && currentGeosets[0] <= 1) {
+      TexComponentAddHold(component, INDEX_HAND_TYPE, TCS_LOWERARM);
+    } else {
+      TexComponentRemoveHold(component, INDEX_HAND_TYPE, TCS_LOWERARM);
+    }
+    ShowInventoryTypeTextureHolds(component, itemInventoryType, 1);
+  }
+}
+
+void CharGeosetInfo::ShowInventoryTypeTextureHolds(HTEXCOMPONENT component, UINT inventoryType, int adding) {
+  FATALASSERT(component);
+  FATALASSERT(inventoryType != INDEX_NON_EQUIP_TYPE);
+  UINT i;
+  for (i = 0; i < 2; ++i) {
+    const HOLDINFO &hold = s_itemTypeTextureHolds[inventoryType].holdInfo[i];
+    if (hold.geosetGroup != -1 && hold.holdSection != TCS_INVALIDSECTION && (flags[hold.geosetGroup] & 1) &&
+        !(disabledByFlags[hold.geosetGroup] & (1u << inventoryType)) && currentGeosets[hold.geosetGroup] <= 1)
+    {
+      if (adding) {
+        TexComponentAddHold(component, static_cast<INVENTORY_TYPES>(inventoryType), hold.holdSection);
+      } else {
+        TexComponentRemoveHold(component, static_cast<INVENTORY_TYPES>(inventoryType), hold.holdSection);
+      }
+    }
+  }
+}
+
 void CCharGeoset::ClearGeosets() {
   m_geosetInfo.Clear();
   m_workingGeosetInfo.Clear();
@@ -525,20 +368,10 @@ void CCharGeoset::ClearGeosets() {
   }
 }
 
-void CCharGeoset::HideGeosetSection(CHARACTER_GEOSET_SECTIONS section) {
-  ASSERT(section < NUM_CHARGEOSETS);
-  ASSERT(m_charModel);
-  m_currentGeosets[section] = 0;
-  HideGeosetSection(m_charModel, section);
-  if (m_paperDollModel) {
-    HideGeosetSection(m_paperDollModel, section);
-  }
-}
-
-void CCharGeoset::HideGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section) const {
-  ASSERT(section < NUM_CHARGEOSETS);
-  ASSERT(model);
-  ModelHideGeosetsRange(model, 100 * section + 1, 100 * section + 99, 1);
+void CCharGeoset::Commit() {
+  CommitGeosets(m_charModel);
+  CommitGeosets(m_paperDollModel);
+  m_flags &= ~CHANGED;
 }
 
 void CCharGeoset::CommitGeosets(HMODEL model) {
@@ -558,10 +391,36 @@ void CCharGeoset::CommitGeosets(HMODEL model) {
   ModelOptimizeVisibleGeosets(model);
 }
 
-void CCharGeoset::Commit() {
-  CommitGeosets(m_charModel);
-  CommitGeosets(m_paperDollModel);
-  m_flags &= ~CHANGED;
+void CharGeosetInfo::Clear() {
+  UINT group;
+  for (group = 0; group < 9; ++group) {
+    highestPriority[group] = -1;
+    currentGeosets[group] = 1;
+    geosetCurrentlyUsedBy[group] = 0;
+    disabledByFlags[group] = 0;
+    flags[group] = 0;
+    memset(inventoryTypeGeosets[group], 0, sizeof(inventoryTypeGeosets[group]));
+  }
+}
+
+void CCharGeoset::CommitWorkingGeosetInfo() {
+  if (!m_geosetInfo.ShowingSameGeosetsAs(m_workingGeosetInfo)) {
+    UINT group;
+    for (group = 0; group < 9; ++group) {
+      UINT workingFlags = m_workingGeosetInfo.flags[group];
+      if (!(workingFlags & 1) || !(m_geosetInfo.flags[group] & 1)) {
+        if (!(workingFlags & 2) || !(m_geosetInfo.flags[group] & 2)) {
+          if (workingFlags & 1) {
+            HideGeosetSection(s_clothingGeosetRanges[group]);
+            m_currentGeosets[s_clothingGeosetRanges[group]] = 0;
+          } else {
+            ShowGeosetSection(s_clothingGeosetRanges[group], workingFlags & 2 ? 1 : m_workingGeosetInfo.currentGeosets[group], 0);
+          }
+        }
+      }
+    }
+  }
+  m_geosetInfo = m_workingGeosetInfo;
 }
 
 void CCharGeoset::AddItemGeoset(
@@ -579,6 +438,137 @@ void CCharGeoset::AddItemGeoset(
 
 void CCharGeoset::RemoveItemGeoset(const ItemDisplayInfoRec *displayInfoRec, UINT itemInventoryType, HTEXCOMPONENT component) {
   m_workingGeosetInfo.RemoveGeosetInfo(displayInfoRec, itemInventoryType, component);
+}
+
+void CCharGeoset::ShowGeosetSection(CHARACTER_GEOSET_SECTIONS section, UINT geosetNumber, int hideRemainder) {
+  ASSERT(section < NUM_CHARGEOSETS);
+  ASSERT(m_charModel);
+  ASSERT(geosetNumber < 100);
+
+  ShowGeosetSection(m_charModel, section, geosetNumber, hideRemainder);
+  if (m_paperDollModel) {
+    ShowGeosetSection(m_paperDollModel, section, geosetNumber, hideRemainder);
+  }
+  if (!geosetNumber) {
+    geosetNumber = !s_defaultGeosets[section];
+  }
+
+  if (m_currentGeosets[section] != geosetNumber) {
+    m_currentGeosets[section] = geosetNumber;
+    m_flags |= CHANGED;
+  }
+}
+
+void CCharGeoset::HideGeosetSection(CHARACTER_GEOSET_SECTIONS section) {
+  ASSERT(section < NUM_CHARGEOSETS);
+  ASSERT(m_charModel);
+
+  UINT selectionStart = 100 * section + 1;
+  UINT selectionEnd = 100 * section + 99;
+  m_currentGeosets[section] = 0;
+  ModelHideGeosetsRange(m_charModel, selectionStart, selectionEnd, 1);
+  if (m_paperDollModel) {
+    ModelHideGeosetsRange(m_paperDollModel, selectionStart, selectionEnd, 1);
+  }
+}
+
+void CharGeosetInfo::RemoveGeosetInfo(const ItemDisplayInfoRec *displayInfoRec, UINT inventoryType, HTEXCOMPONENT component) {
+  FATALASSERT(inventoryType != INDEX_NON_EQUIP_TYPE);
+
+  UINT oldGeosets[9];
+  memcpy(oldGeosets, currentGeosets, sizeof(oldGeosets));
+
+  UINT group;
+  for (group = 0; group < 9; ++group) {
+    inventoryTypeGeosets[group][inventoryType] = 0;
+    geosetCurrentlyUsedBy[group] = INDEX_NON_EQUIP_TYPE;
+    highestPriority[group] = -1;
+
+    UINT bestInventoryType = INDEX_NON_EQUIP_TYPE;
+    UINT candidateInventoryType;
+    for (candidateInventoryType = 0; candidateInventoryType < INDEX_NUMSLOTS; ++candidateInventoryType) {
+      if (inventoryTypeGeosets[group][candidateInventoryType] &&
+          static_cast<int>(s_itemGeosetPriorities[candidateInventoryType][group]) > highestPriority[group])
+      {
+        highestPriority[group] = s_itemGeosetPriorities[candidateInventoryType][group];
+        bestInventoryType = candidateInventoryType;
+      }
+    }
+
+    if (bestInventoryType != INDEX_NON_EQUIP_TYPE) {
+      currentGeosets[group] = inventoryTypeGeosets[group][bestInventoryType];
+      geosetCurrentlyUsedBy[group] = bestInventoryType;
+      continue;
+    }
+
+    currentGeosets[group] = 1;
+
+    UINT hideFlags = s_geosetGroupDisables[group];
+    if (hideFlags) {
+      UINT disabledGroup;
+      for (disabledGroup = 0; disabledGroup < 9; ++disabledGroup) {
+        if (hideFlags & (1u << disabledGroup)) {
+          flags[disabledGroup] &= ~2u;
+          currentGeosets[disabledGroup] = inventoryTypeGeosets[disabledGroup][geosetCurrentlyUsedBy[disabledGroup]];
+          if (!currentGeosets[disabledGroup]) {
+            currentGeosets[disabledGroup] = 1;
+          }
+          disabledByFlags[disabledGroup] &= ~(1u << inventoryType);
+        }
+      }
+    }
+
+    UINT thisGroupDisablesFlags = s_inventoryAndGeosetDisables[inventoryType].disableGeosetFlags[group];
+    if (group >= 5 && group <= 7) {
+      thisGroupDisablesFlags |= 1u << INDEX_FEET_TYPE;
+    }
+    if (thisGroupDisablesFlags) {
+      UINT disabledGroup;
+      for (disabledGroup = 0; disabledGroup < 9; ++disabledGroup) {
+        if ((thisGroupDisablesFlags & (1u << disabledGroup)) && (flags[disabledGroup] & 1)) {
+          currentGeosets[disabledGroup] = inventoryTypeGeosets[disabledGroup][geosetCurrentlyUsedBy[disabledGroup]];
+          if (!currentGeosets[disabledGroup]) {
+            currentGeosets[disabledGroup] = 1;
+          }
+          disabledByFlags[disabledGroup] &= ~(1u << inventoryType);
+          if (!disabledByFlags[disabledGroup]) {
+            flags[disabledGroup] &= ~1u;
+          }
+        }
+      }
+    }
+  }
+
+  if (inventoryType == INDEX_FEET_TYPE) {
+    LPCSTR legLowerTexture = CompUtilGetTextureSectionName(displayInfoRec, TCS_LEGLOWER);
+    if (legLowerTexture && *legLowerTexture) {
+      flags[3] &= ~1u;
+      currentGeosets[3] = inventoryTypeGeosets[3][INDEX_LEGS_TYPE];
+      disabledByFlags[3] &= ~(1u << INDEX_FEET_TYPE);
+    }
+  }
+
+  if (component) {
+    if (currentGeosets[7] <= 1) {
+      TexComponentRemoveHold(component, INDEX_FEET_TYPE, TCS_LEGLOWER);
+    }
+    if (oldGeosets[2] > 1 && currentGeosets[2] == 1 && !(flags[2] & 1) && currentGeosets[0] <= 1) {
+      TexComponentRemoveHold(component, INDEX_HAND_TYPE, TCS_LOWERARM);
+    }
+    ShowInventoryTypeTextureHolds(component, inventoryType, 0);
+  }
+}
+
+BOOL CharGeosetInfo::ShowingSameGeosetsAs(const CharGeosetInfo &rhs) {
+  UINT group;
+  for (group = 0; group < 9; ++group) {
+    if ((flags[group] & 1) != (rhs.flags[group] & 1) || ((flags[group] ^ rhs.flags[group]) & 2) != 0 ||
+        (!(flags[group] & 1) && currentGeosets[group] != rhs.currentGeosets[group]))
+    {
+      return 0;
+    }
+  }
+  return 1;
 }
 
 void CCharGeoset::EnableHairGeosets(UINT race, UINT sex, UINT hairStyleID) {
@@ -1253,9 +1243,11 @@ void CharCustomizationRemoveItemGeosets(
 ) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(geosetHandle);
   if (geoset) {
-    FATALASSERT(displayInfoRec);
-    FATALASSERT(itemInventoryType != INDEX_NON_EQUIP_TYPE);
-    FATALASSERT(component);
+    VALIDATEBEGIN;
+    VALIDATE(displayInfoRec);
+    VALIDATE(itemInventoryType != INDEX_NON_EQUIP_TYPE);
+    VALIDATE(component);
+    VALIDATEENDVOID;
     if ((1 << itemInventoryType) & 0x1805B0) {
       geoset->RemoveItemGeoset(displayInfoRec, itemInventoryType, component);
     }
@@ -1272,7 +1264,7 @@ void CharCustomizationCommitGeosets(HCHARGEOSET handle) {
 void CharCustomizationShowGeoset(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section, UINT geosetNumber) {
   CCharGeoset *geoset = reinterpret_cast<CCharGeoset *>(handle);
   if (geoset) {
-    geoset->ShowGeosetSection(section, geosetNumber, 1);
+    geoset->ShowGeosetSection(section, geosetNumber, 0);
   }
 }
 
@@ -1302,6 +1294,28 @@ void CHARACTERSEXVARIATIONS::GetNumVariations(CHARTEXTURESECTIONID section, int 
   }
 
   if (npcVars) {
-    *npcVars = firstNPCVar[section] == INT_MAX ? 0 : lastNPCVar[section] - firstNPCVar[section] + 1;
+    *npcVars = firstNPCVar[section] != INT_MAX ? lastNPCVar[section] - firstNPCVar[section] + 1 : 0;
   }
+}
+
+void CCharGeoset::ShowGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section, UINT geosetNumber, int hideRemainder) const {
+  ASSERT(section < NUM_CHARGEOSETS);
+  ASSERT(model);
+  ASSERT(geosetNumber < 100);
+
+  if (hideRemainder) {
+    HideGeosetSection(model, section);
+  }
+  if (!geosetNumber) {
+    geosetNumber = !s_defaultGeosets[section];
+  }
+  if (m_currentGeosets[section] != geosetNumber && m_currentGeosets[section] && !hideRemainder) {
+    ModelHideGeosets(model, 100 * section + m_currentGeosets[section], 1);
+  }
+}
+
+void CCharGeoset::HideGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section) const {
+  ASSERT(section < NUM_CHARGEOSETS);
+  ASSERT(model);
+  ModelHideGeosetsRange(model, 100 * section + 1, 100 * section + 99, 1);
 }

@@ -1,5 +1,4 @@
-#include <WowConst.h>
-
+#include <Base/Base.h>
 #include "NetClient.h"
 
 #include <ctype.h>
@@ -7,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "Base/Base.h"
 #include "Base/CDataStore.h"
 #include "Console/ConsoleClient.h"
 #include "Glue/CGlueMgr.h"
@@ -51,6 +49,9 @@ struct CLIENTNETGETREALMSDATA {
 };
 
 class NetClientRedirect : public WowConnectionResponse {
+  NetClient     *m_owner;
+  WowConnection *m_conn;
+
  public:
   NetClientRedirect(NetClient *owner) {
     m_owner = owner;
@@ -119,10 +120,6 @@ class NetClientRedirect : public WowConnectionResponse {
       m_owner->m_redirectBytesRead += bytes;
     }
   }
-
- private:
-  NetClient     *m_owner;
-  WowConnection *m_conn;
 };
 
 static LISTDECL(NETCLIENTNODE, s_clientList);
@@ -213,10 +210,7 @@ void NetClient::Destroy() {
     memset(m_handlers, 0, sizeof(m_handlers));
     memset(m_handlerParams, 0, sizeof(m_handlerParams));
 
-    if (m_netEventQueue) {
-      m_netEventQueue->~NETEVENTQUEUE();
-      SMemFree(m_netEventQueue, "delete", -1, 0);
-    }
+    DEL(m_netEventQueue);
     m_netEventQueue = 0;
 
     DELIFUSED(m_redirect);

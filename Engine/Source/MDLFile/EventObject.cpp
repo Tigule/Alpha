@@ -91,7 +91,10 @@ void WriteBinEventKeyFrames(const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMs
 }
 
 UINT GetBinEventKeyFramesSize(const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes) {
-  return keyframes.keys.Count() ? 4 * keyframes.keys.Count() + 12 : 0;
+  if (!keyframes.keys.Count()) {
+    return 0;
+  }
+  return 4 * keyframes.keys.Count() + 12;
 }
 
 namespace MDL {
@@ -104,7 +107,7 @@ namespace MDL {
     parse.Expect('{');
     LPCSTR tokentext;
     UINT   token = parse.Token(&tokentext, 0);
-    while (token && token != '}') {
+    while (token != '}' && token) {
       if (!errors.Check(token)) {
         parse.FatalDuplicate(tokentext);
       }

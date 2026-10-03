@@ -1,18 +1,28 @@
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
 
 #include <float.h>
 
-#include "Base/Base.h"
-#include "Gx/Gx.h"
 #include "Os/W32/Debugging.h"
 #include "Services/AsyncFileRead.h"
 
 typedef UINT uint32;
+
+enum {
+  SPRIM_TYPE_STRIP = 0,
+  SPRIM_TYPE_TRI = 1
+};
 
 struct STPrimRemap {
   WORD  nIndicies;
@@ -93,13 +103,6 @@ static STPrimGroup s_tPrimGroups[4][2] = {
 static UINT g_gxBufCreateCount;
 static UINT g_gxBufDestroyCount;
 
-static TSCArray<BYTE, 15000> s_syncLoadBuffer;
-static SCritSect             s_fileCritSect;
-static TSCArray<BYTE, 15000> s_asyncLoadBuffers[16];
-static BYTE                 *s_freeAsyncBuffer;
-static BYTE                  s_asyncBuffersInitialized;
-static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
-
 UINT CMapChunk::cornerVertexIndex[4] = {0, 8, 136, 144};
 UINT CMapChunk::farCornerIndex;
 
@@ -123,6 +126,13 @@ TSGrowableArray<CGxTex *> CMapChunk::gxAlphaTexFreeList;
 TSGrowableArray<CGxTex *> CMapChunk::gxShadowTexFreeList;
 void (*CMapChunk::soundEmitterCreateHandler)(CWSoundEmitter &);
 void (*CMapChunk::soundEmitterDestroyHandler)(DWORD);
+
+static TSCArray<BYTE, 15000> s_syncLoadBuffer;
+static SCritSect             s_fileCritSect;
+static TSCArray<BYTE, 15000> s_asyncLoadBuffers[16];
+static BYTE                 *s_freeAsyncBuffer;
+static BYTE                  s_asyncBuffersInitialized;
+static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
 
 static void ValidateAsyncReadBuffer(BYTE *buffer) {
   for (UINT index = 0; index < 16; ++index) {
@@ -426,31 +436,28 @@ void CMapChunk::AsyncCallback(LPVOID userArg) {
 }
 
 CMapChunk::CMapChunk() {
-  detailDoodadInst = 0;
-  for (UINT i = 0; i < 4; ++i) {
-    liquids[i] = 0;
-  }
-
-  nLayers = 0;
   shadowTexture = 0;
   shadowGxTexture = 0;
-  gxBuf = 0;
   shaderTexture = 0;
   shaderGxTexture = 0;
+  detailDoodadInst = 0;
+  memset(liquids, 0, sizeof(liquids));
+  type |= Type_Chunk;
+  nLayers = 0;
+  gxBuf = 0;
   asyncObject = 0;
-  flags |= 4;
 }
 
 CMapChunk::~CMapChunk() {
   ASSERT(detailDoodadInst==0);
   ASSERT(asyncObject==0);
-  ASSERT(refCount == 0);
-  ASSERT(gxBuf == 0);
-  ASSERT(shaderGxTexture == 0);
-  ASSERT(shadowGxTexture == 0);
+  ASSERT(refCount==0);
+  ASSERT(gxBuf==0);
+  ASSERT(shaderGxTexture==0);
+  ASSERT(shadowGxTexture==0);
 
   for (UINT i = 0; i < 4; ++i) {
-    ASSERT(liquids[i] == 0);
+    ASSERT(liquids[i]==0);
   }
 }
 
@@ -833,19 +840,17 @@ void CMapChunk::CreateNormals(signed char *normals) {
 
   for (int fixed = 0; fixed < 9; ++fixed) {
     for (int index = 0; index < 9; ++index) {
-      normal->x = static_cast<float>(outer[2]) * -0.0078740157f;
-      normal->y = static_cast<float>(outer[0]) * -0.0078740157f;
-      normal->z = static_cast<float>(outer[1]) * 0.0078740157f;
-      outer += 3;
+      normal->y = static_cast<float>(*outer++) * -0.0078740157f;
+      normal->z = static_cast<float>(*outer++) * 0.0078740157f;
+      normal->x = static_cast<float>(*outer++) * -0.0078740157f;
       ++normal;
     }
 
     if (fixed < 8) {
       for (int index = 0; index < 8; ++index) {
-        normal->x = static_cast<float>(inner[2]) * -0.0078740157f;
-        normal->y = static_cast<float>(inner[0]) * -0.0078740157f;
-        normal->z = static_cast<float>(inner[1]) * 0.0078740157f;
-        inner += 3;
+        normal->y = static_cast<float>(*inner++) * -0.0078740157f;
+        normal->z = static_cast<float>(*inner++) * 0.0078740157f;
+        normal->x = static_cast<float>(*inner++) * -0.0078740157f;
         ++normal;
       }
     }
@@ -940,7 +945,7 @@ void CMapChunk::CreateRefs(CMapArea *area, UINT *ref, UINT doodadCnt, UINT mapOb
   FATALASSERT(ref);
 
   NTempest::C3Vector pos(17066.666f, 17066.666f, 0.0f);
-  while (doodadCnt) {
+  while (doodadCnt > 0) {
     CMapDoodadDef *doodadDef = CMap::CreateDoodadDef(area->doodadDefList[*ref], pos);
     if (doodadDef) {
       CMapBaseObjLink *link = CMap::AllocBaseObjLink(doodadDef);
@@ -953,7 +958,7 @@ void CMapChunk::CreateRefs(CMapArea *area, UINT *ref, UINT doodadCnt, UINT mapOb
     --doodadCnt;
   }
 
-  while (mapObjCnt) {
+  while (mapObjCnt > 0) {
     CMapObjDef      *mapObjDef = CMap::CreateMapObjDef(area->mapObjDefList[*ref], pos);
     CMapBaseObjLink *link = CMap::AllocBaseObjLink(mapObjDef);
     link->ref = this;
@@ -982,7 +987,8 @@ void CMapChunk::CreateChunkShaderTex() {
   shaderTexture = CMap::GetTex();
   FATALASSERT(shaderTexture);
 
-  const BYTE *alpha[4];
+  NTempest::CImVector *texels = reinterpret_cast<NTempest::CImVector *>(shaderTexture->pixels);
+  const BYTE          *alpha[4];
   for (UINT i = 0; i < 4; ++i) {
     alpha[i] = 0;
     if (i < nLayers && (layerList[i]->props & 0x100)) {
@@ -990,7 +996,7 @@ void CMapChunk::CreateChunkShaderTex() {
     }
   }
 
-  UnpackAlphaShadowBits(reinterpret_cast<NTempest::CImVector *>(shaderTexture->pixels), shadowBits, alpha, shadowOffs);
+  UnpackAlphaShadowBits(texels, shadowBits, alpha, shadowOffs);
 }
 
 void CMapChunk::UnpackAlphaShadowBits(NTempest::CImVector *texels, DWORD *bits, const BYTE *const alpha[], const BYTE *shadow) {
@@ -1103,16 +1109,22 @@ void CMapChunk::UpdateLayerGxTexture(
   CChunkLayer *layer = static_cast<CChunkLayer *>(userArg);
   FATALASSERT(layer);
 
-  if (cmd == GxTex_Lock) {
-    if (!layer->tex) {
-      layer->chunk->SyncLoadLayer(layer);
-    }
-  } else if (cmd == GxTex_Latch) {
-    texelStrideInBytes = 4 * w;
-    texels = layer->tex->pixels;
-  } else if (cmd == GxTex_Unlock) {
-    CMap::FreeTex(layer->tex);
-    layer->tex = 0;
+  switch (cmd) {
+    case GxTex_Lock:
+      if (!layer->tex) {
+        layer->chunk->SyncLoadLayer(layer);
+      }
+      return;
+
+    case GxTex_Latch:
+      texelStrideInBytes = 4 * w;
+      texels = layer->tex->pixels;
+      return;
+
+    case GxTex_Unlock:
+      CMap::FreeTex(layer->tex);
+      layer->tex = 0;
+      return;
   }
 }
 
@@ -1129,16 +1141,22 @@ void CMapChunk::UpdateShadowGxTexture(
   CMapChunk *chunk = static_cast<CMapChunk *>(userArg);
   FATALASSERT(chunk);
 
-  if (cmd == GxTex_Lock) {
-    if (!chunk->shadowTexture) {
-      chunk->SyncLoadShadow();
-    }
-  } else if (cmd == GxTex_Latch) {
-    texelStrideInBytes = 4 * w;
-    texels = chunk->shadowTexture->pixels;
-  } else if (cmd == GxTex_Unlock) {
-    CMap::FreeTex(chunk->shadowTexture);
-    chunk->shadowTexture = 0;
+  switch (cmd) {
+    case GxTex_Lock:
+      if (!chunk->shadowTexture) {
+        chunk->SyncLoadShadow();
+      }
+      return;
+
+    case GxTex_Latch:
+      texelStrideInBytes = 4 * w;
+      texels = chunk->shadowTexture->pixels;
+      return;
+
+    case GxTex_Unlock:
+      CMap::FreeTex(chunk->shadowTexture);
+      chunk->shadowTexture = 0;
+      return;
   }
 }
 
@@ -1155,16 +1173,22 @@ void CMapChunk::UpdateShaderGxTexture(
   CMapChunk *chunk = static_cast<CMapChunk *>(userArg);
   FATALASSERT(chunk);
 
-  if (cmd == GxTex_Lock) {
-    if (!chunk->shaderTexture) {
-      chunk->SyncLoadShader();
-    }
-  } else if (cmd == GxTex_Latch) {
-    texelStrideInBytes = 4 * w;
-    texels = chunk->shaderTexture->pixels;
-  } else if (cmd == GxTex_Unlock) {
-    CMap::FreeTex(chunk->shaderTexture);
-    chunk->shaderTexture = 0;
+  switch (cmd) {
+    case GxTex_Lock:
+      if (!chunk->shaderTexture) {
+        chunk->SyncLoadShader();
+      }
+      return;
+
+    case GxTex_Latch:
+      texelStrideInBytes = 4 * w;
+      texels = chunk->shaderTexture->pixels;
+      return;
+
+    case GxTex_Unlock:
+      CMap::FreeTex(chunk->shaderTexture);
+      chunk->shaderTexture = 0;
+      return;
   }
 }
 

@@ -1622,10 +1622,11 @@ namespace OsNet {
     NETSELECTSETS           selectSets(net);
 
     while (!s_tcpShutdown) {
-      DWORD      selsockCount = 0;
+      DWORD      selsockCount;
       TCPLISTEN *listen;
 
       selectSets.Clear();
+      selsockCount = 0;
       listen = listenIt.CycleInit();
       while (listen && selsockCount < 64U) {
         if (listen->IsClosed()) {
@@ -2360,13 +2361,13 @@ namespace OsNet {
     DWORD              infoId = param->m_infoId;
     WORD               defaultPort = param->m_defaultPort;
     NETADDR            netAddr;
-    char               hostName[1024];
     BOOL               hostAddrInfoFound;
     char             **hostAddr;
 
     SetEvent(param->m_event);
 
     while (1) {
+      char hostName[1024];
       hostName[0] = 0;
       hostAddrInfoFound = 0;
 
@@ -3663,7 +3664,7 @@ namespace OsNet {
 
     while ((poutput = m_outputList.Head()) != 0) {
       if (poutput->m_state == OUTPUTSTATE_COMPLETED) {
-        m_outputList.UnlinkNode(poutput);
+        poutput->Unlink();
         int connected = m_file != INVALID_HANDLE_VALUE;
         m_lock.Leave();
         if (connected) {

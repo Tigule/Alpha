@@ -385,8 +385,8 @@ UINT sgetu8(const BYTE *strptr, int *chars) {
     return c;
   }
 
-  while (remaining-- > 0) {
-    UINT next = *strptr++;
+  for (int i = 0; i < remaining; ++i) {
+    BYTE next = *strptr++;
 
     if (!next) {
       return static_cast<UINT>(-1);

@@ -16,12 +16,12 @@ class SSignatureData {
 
 namespace Signature {
 
-  BOOL HasMagic(const BYTE *data, DWORD size, DWORD modulusSize, DWORD &dataSize) {
+  static BOOL HasMagic(const BYTE *data, DWORD size, DWORD modulusSize, DWORD &dataSize) {
     dataSize = size - modulusSize - sizeof(DWORD);
     return size >= modulusSize + sizeof(DWORD) && *(const DWORD *)(data + dataSize) == SIGNATURE_MAGIC;
   }
 
-  void Hash(const BYTE *data, DWORD size, BYTE *const digest) {
+  static void Hash(const BYTE *data, DWORD size, BYTE digest[]) {
     Sha1 sha;
 
     sha.Initialize();
@@ -53,7 +53,7 @@ extern "C" void SSignatureVerifyStream_ProvideData(SSignatureData *token, const 
 
   hashBytes = size - token->magicBufferSize;
   if (hashBytes >= 0) {
-    if (token->magicBufferUsed) {
+    if (token->magicBufferUsed > 0) {
       token->sha.Append(token->magicBuffer, token->magicBufferUsed);
     }
     if (hashBytes > 0) {
@@ -93,7 +93,7 @@ extern "C" int SSignatureVerifyStream_Finish(SSignatureData *token, const BYTE *
     Crypt::RSA decoder;
     decoder.Prepare(modulus, token->modulusSize, pubExponent, token->pubExponentSize);
     decoder.Process(stored, token->modulusSize);
-    result = memcmp(stored, generated, token->modulusSize) == 0;
+    result = memcmp(stored, generated, token->modulusSize) ? false : true;
   }
 
   SMemFree(token->magicBuffer, __FILE__, __LINE__, 0);

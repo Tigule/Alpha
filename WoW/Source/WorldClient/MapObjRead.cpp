@@ -4,7 +4,6 @@
 #include <WowConst.h>
 #include "AaBsp.h"
 #include <MapDefs.h>
-#include "Gx/CGxDevice.h"
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
@@ -15,9 +14,11 @@
 
 #include "Os/W32/Debugging.h"
 #include "Services/AsyncFileRead.h"
+#include "Services/SysMessage.h"
 
 #include <storm.h>
 
+#include <ctype.h>
 #include <float.h>
 #include <string.h>
 
@@ -28,25 +29,26 @@ void CMapObj::AsyncPostloadCallbackHeader(LPVOID userArg) {
   AsyncFileReadDestroyObject(mapObj->asyncObject);
   mapObj->asyncObject = 0;
   if (mapObj->fileHeader.version != 14) {
-    OsOutputDebugString("MAPWRONGVERSION|%s\n", mapObj->name);
+    SysMsgPrintf(SYSMSG_FATAL, 2, "MAPWRONGVERSION|%s", mapObj->name);
     SFile::Close(mapObj->file);
     mapObj->file = 0;
     return;
   }
 
-  FATALASSERT(mapObj->fileHeader.iffChunkHeader.token == 'MOMO');
-  mapObj->dataBytes = mapObj->fileHeader.iffChunkHeader.size + sizeof(mapObj->fileHeader);
-  mapObj->data = static_cast<BYTE *>(SMemAlloc(mapObj->dataBytes, __FILE__, __LINE__, 0));
+  FATALASSERT(mapObj->fileHeader.iffChunkHeader.token=='MOMO');
+  DWORD dataBytes = mapObj->fileHeader.iffChunkHeader.size + sizeof(mapObj->fileHeader);
+  mapObj->data = static_cast<BYTE *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
   FATALASSERT(mapObj->data);
+  mapObj->dataBytes = dataBytes;
 
   mapObj->asyncObject = AsyncFileReadCreateObject();
   FATALASSERT(mapObj->asyncObject);
   mapObj->asyncObject->file = mapObj->file;
-  mapObj->asyncObject->offset = 0;
   mapObj->asyncObject->buffer = mapObj->data;
-  mapObj->asyncObject->size = mapObj->dataBytes;
+  mapObj->asyncObject->offset = 0;
+  mapObj->asyncObject->size = dataBytes;
   mapObj->asyncObject->userArg = mapObj;
-  mapObj->asyncObject->userPostloadCallback = AsyncPostloadCallbackAll;
+  mapObj->asyncObject->userPostloadCallback = AsyncPostloadCallback;
   AsyncFileReadObject(mapObj->asyncObject);
 }
 
@@ -56,19 +58,7 @@ void CMapObj::AsyncPostloadCallback(LPVOID userArg) {
 
   AsyncFileReadDestroyObject(mapObj->asyncObject);
   mapObj->asyncObject = 0;
-  SFile::Close(mapObj->file);
-  mapObj->file = 0;
-  memcpy(&mapObj->fileHeader, mapObj->data, sizeof(mapObj->fileHeader));
-  if (mapObj->fileHeader.version != 14) {
-    OsOutputDebugString("MAPWRONGVERSION|%s\n", mapObj->name);
-    SMemFree(mapObj->data, __FILE__, __LINE__, 0);
-    mapObj->data = 0;
-    mapObj->dataBytes = 0;
-    return;
-  }
-
   mapObj->CreateData();
-  mapObj->CreateAllGroups();
 }
 
 void CMapObj::AsyncPostloadCallbackAll(LPVOID userArg) {
@@ -77,12 +67,22 @@ void CMapObj::AsyncPostloadCallbackAll(LPVOID userArg) {
 
   AsyncFileReadDestroyObject(mapObj->asyncObject);
   mapObj->asyncObject = 0;
+  SFile::Close(mapObj->file);
+  mapObj->file = 0;
+  memcpy(&mapObj->fileHeader, mapObj->data, sizeof(mapObj->fileHeader));
+  if (mapObj->fileHeader.version != 14) {
+    SysMsgPrintf(SYSMSG_FATAL, 2, "MAPWRONGVERSION|%s", mapObj->name);
+    SMemFree(mapObj->data, __FILE__, __LINE__, 0);
+    mapObj->dataBytes = 0;
+    mapObj->data = 0;
+    return;
+  }
+
   mapObj->CreateData();
+  mapObj->CreateAllGroups();
 }
 
 BOOL CMapObj::Read(LPCSTR fileName) {
-  DWORD bRead;
-
   FATALASSERT(file == 0);
   SStrCopy(name, fileName, 0x7FFFFFFF);
   if (!SFile::Open(fileName, &file)) {
@@ -92,19 +92,19 @@ BOOL CMapObj::Read(LPCSTR fileName) {
   }
 
   if (CMap::bPreload) {
-    dataBytes = SFile::GetFileSize(file, 0);
-    if (dataBytes < 0x500000) {
-      data = static_cast<BYTE *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
+    DWORD fileSize = SFile::GetFileSize(file, 0);
+    if (fileSize < 0x500000) {
+      data = static_cast<BYTE *>(SMemAlloc(fileSize, __FILE__, __LINE__, 0));
       FATALASSERT(data);
-      SFile::Read(file, data, dataBytes, &bRead, 0, 0);
+      SFile::Read(file, data, fileSize, &dataBytes, 0, 0);
       SFile::Close(file);
       file = 0;
       memcpy(&fileHeader, data, sizeof(fileHeader));
       if (fileHeader.version != 14) {
-        OsOutputDebugString("MAPWRONGVERSION|%s\n", name);
+        SysMsgPrintf(SYSMSG_FATAL, 2, "MAPWRONGVERSION|%s", name);
         SMemFree(data, __FILE__, __LINE__, 0);
-        data = 0;
         dataBytes = 0;
+        data = 0;
         return 0;
       }
 
@@ -113,20 +113,21 @@ BOOL CMapObj::Read(LPCSTR fileName) {
       return 1;
     }
 
+    DWORD bRead;
     SFile::Read(file, &fileHeader, sizeof(fileHeader), &bRead, 0, 0);
     if (fileHeader.version != 14) {
-      OsOutputDebugString("MAPWRONGVERSION|%s\n", name);
+      SysMsgPrintf(SYSMSG_FATAL, 2, "MAPWRONGVERSION|%s", name);
       SFile::Close(file);
       file = 0;
       return 0;
     }
 
-    FATALASSERT(fileHeader.iffChunkHeader.token == 'MOMO');
-    dataBytes = fileHeader.iffChunkHeader.size + sizeof(fileHeader);
-    data = static_cast<BYTE *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
+    FATALASSERT(fileHeader.iffChunkHeader.token=='MOMO');
+    fileSize = fileHeader.iffChunkHeader.size + sizeof(fileHeader);
+    data = static_cast<BYTE *>(SMemAlloc(fileSize, __FILE__, __LINE__, 0));
     FATALASSERT(data);
     SFile::SetFilePointer(file, 0, 0, FILE_BEGIN);
-    SFile::Read(file, data, dataBytes, &bRead, 0, 0);
+    SFile::Read(file, data, fileSize, &dataBytes, 0, 0);
     CreateData();
     return 1;
   }
@@ -136,13 +137,14 @@ BOOL CMapObj::Read(LPCSTR fileName) {
   asyncObject->file = file;
   asyncObject->offset = 0;
   asyncObject->userArg = this;
-  dataBytes = SFile::GetFileSize(file, 0);
-  if (dataBytes < 0x500000) {
-    data = static_cast<BYTE *>(SMemAlloc(dataBytes, __FILE__, __LINE__, 0));
+  DWORD fileSize = SFile::GetFileSize(file, 0);
+  if (fileSize < 0x500000) {
+    data = static_cast<BYTE *>(SMemAlloc(fileSize, __FILE__, __LINE__, 0));
     FATALASSERT(data);
+    dataBytes = fileSize;
     asyncObject->buffer = data;
-    asyncObject->size = dataBytes;
-    asyncObject->userPostloadCallback = AsyncPostloadCallback;
+    asyncObject->size = fileSize;
+    asyncObject->userPostloadCallback = AsyncPostloadCallbackAll;
   } else {
     asyncObject->buffer = &fileHeader;
     asyncObject->size = sizeof(fileHeader);
@@ -184,22 +186,34 @@ void CMapObj::CreateData() {
 }
 
 void CMapObj::CreateAllGroups() {
-  for (UINT i = 0; i < groupCount; ++i) {
-    CreateGroup(groupPtrList[i], &groupInfoList[i]);
+  SMOGroupInfo *groupInfo = groupInfoList;
+  for (UINT i = 0; i < groupCount; ++i, ++groupInfo) {
+    CreateGroup(groupPtrList[i], groupInfo);
   }
 }
 
 void CMapObj::ReadExtGroups() {
-  for (UINT i = 0; i < groupCount; ++i) {
-    if (groupInfoList[i].flags & 0x88) {
-      ReadGroup(groupPtrList[i], &groupInfoList[i], 0);
+  SMOGroupInfo *groupInfo = groupInfoList;
+  for (UINT i = 0; i < groupCount; ++i, ++groupInfo) {
+    if (groupInfo->flags & 0x88) {
+      ReadGroup(groupPtrList[i], groupInfo, 0);
     }
   }
 }
 
 SIffChunk *CMapObj::ReadChunkHeader(BYTE *&pData, DWORD expectedToken) {
   SIffChunk *pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == expectedToken);
+  if (!(pIffChunk->token==expectedToken)) {
+    SErrDisplayErrorFmt(
+        STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+        isprint((expectedToken >> 24) & 0xFF) && isprint((expectedToken >> 16) & 0xFF) && isprint((expectedToken >> 8) & 0xFF) &&
+                isprint(expectedToken & 0xFF)
+            ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+            : "\"%s\", %s = %ld (0x%08X)",
+        "(pIffChunk->token==expectedToken)", "expectedToken", expectedToken, expectedToken, (expectedToken >> 24) & 0xFF,
+        (expectedToken >> 16) & 0xFF, (expectedToken >> 8) & 0xFF, expectedToken & 0xFF
+    );
+  }
   pData += sizeof(SIffChunk);
   return pIffChunk;
 }
@@ -292,9 +306,10 @@ void CMapObj::CreateDataPointers() {
 }
 
 void CMapObj::CreateMaterials() {
-  for (UINT i = 0; i < materialCount; ++i) {
-    materialList[i].hMaps[0] = 0;
-    materialList[i].hMaps[1] = 0;
+  SMOMaterial *material = materialList;
+  for (UINT i = 0; i < materialCount; ++i, ++material) {
+    material->hMaps[0] = 0;
+    material->hMaps[1] = 0;
   }
 }
 
@@ -419,42 +434,42 @@ void CMapObjGroup::CreateDataPointers(BYTE *pData) {
   pData += pIffChunk->size;
 
   pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOVT');
+  FATALASSERT(pIffChunk->token=='MOVT');
   pData += sizeof(SIffChunk);
   vertexList = reinterpret_cast<NTempest::C3Vector *>(pData);
   vertexCount = pIffChunk->size / 12;
   pData += pIffChunk->size;
 
   pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MONR');
+  FATALASSERT(pIffChunk->token=='MONR');
   pData += sizeof(SIffChunk);
   normalList = reinterpret_cast<NTempest::C3Vector *>(pData);
   normalCount = pIffChunk->size / 12;
   pData += pIffChunk->size;
 
   pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOTV');
+  FATALASSERT(pIffChunk->token=='MOTV');
   pData += sizeof(SIffChunk);
   textureVertexList = reinterpret_cast<NTempest::C2Vector *>(pData);
   textureVertexCount = pIffChunk->size / 8;
   pData += pIffChunk->size;
 
   pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOLV');
+  FATALASSERT(pIffChunk->token=='MOLV');
   pData += sizeof(SIffChunk);
   lightmapVertexList = reinterpret_cast<NTempest::C2Vector *>(pData);
   lightmapVertexCount = pIffChunk->size / 8;
   pData += pIffChunk->size;
 
   pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOIN');
+  FATALASSERT(pIffChunk->token=='MOIN');
   pData += sizeof(SIffChunk);
   indexList = reinterpret_cast<WORD *>(pData);
   indexCount = pIffChunk->size / 2;
   pData += pIffChunk->size;
 
   pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOBA');
+  FATALASSERT(pIffChunk->token=='MOBA');
   pData += sizeof(SIffChunk);
   batchList = reinterpret_cast<SMOBatch *>(pData);
   batchCount = pIffChunk->size / 24;
@@ -466,7 +481,7 @@ void CMapObjGroup::CreateOptionalDataPointers(BYTE *pData) {
   SIffChunk *pIffChunk;
   if (flags & 0x200) {
     pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-    FATALASSERT(pIffChunk->token == 'MOLR');
+    FATALASSERT(pIffChunk->token=='MOLR');
     pData += sizeof(SIffChunk);
     lightRefList = reinterpret_cast<WORD *>(pData);
     lightRefCount = pIffChunk->size / 2;
@@ -474,7 +489,7 @@ void CMapObjGroup::CreateOptionalDataPointers(BYTE *pData) {
   }
   if (flags & 0x800) {
     pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-    FATALASSERT(pIffChunk->token == 'MODR');
+    FATALASSERT(pIffChunk->token=='MODR');
     pData += sizeof(SIffChunk);
     doodadRefList = reinterpret_cast<WORD *>(pData);
     doodadRefCount = pIffChunk->size / 2;
@@ -482,13 +497,13 @@ void CMapObjGroup::CreateOptionalDataPointers(BYTE *pData) {
   }
   if (flags & 1) {
     pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-    FATALASSERT(pIffChunk->token == 'MOBN');
+    FATALASSERT(pIffChunk->token=='MOBN');
     pData += sizeof(SIffChunk);
     CAaBspNode *bspNodeList = reinterpret_cast<CAaBspNode *>(pData);
     UINT        nNodes = pIffChunk->size / 16;
     pData += pIffChunk->size;
     pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-    FATALASSERT(pIffChunk->token == 'MOBR');
+    FATALASSERT(pIffChunk->token=='MOBR');
     pData += sizeof(SIffChunk);
     WORD *faceIndices = reinterpret_cast<WORD *>(pData);
     UINT  nFaceIndices = pIffChunk->size / 2;
@@ -496,16 +511,26 @@ void CMapObjGroup::CreateOptionalDataPointers(BYTE *pData) {
     aaBsp.Set(bspNodeList, nNodes, faceIndices, nFaceIndices, aaBox);
   }
   if (flags & 0x400) {
-    const DWORD tokens[4] = {'MPBV', 'MPBP', 'MPBI', 'MPBG'};
-    for (UINT i = 0; i < 4; ++i) {
-      pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-      FATALASSERT(pIffChunk->token == tokens[i]);
-      pData += sizeof(SIffChunk) + pIffChunk->size;
-    }
+    pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+    FATALASSERT(pIffChunk->token=='MPBV');
+    pData += sizeof(SIffChunk);
+    pData += pIffChunk->size;
+    pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+    FATALASSERT(pIffChunk->token=='MPBP');
+    pData += sizeof(SIffChunk);
+    pData += pIffChunk->size;
+    pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+    FATALASSERT(pIffChunk->token=='MPBI');
+    pData += sizeof(SIffChunk);
+    pData += pIffChunk->size;
+    pIffChunk = reinterpret_cast<SIffChunk *>(pData);
+    FATALASSERT(pIffChunk->token=='MPBG');
+    pData += sizeof(SIffChunk);
+    pData += pIffChunk->size;
   }
   if (flags & 4) {
     pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-    FATALASSERT(pIffChunk->token == 'MOCV');
+    FATALASSERT(pIffChunk->token=='MOCV');
     pData += sizeof(SIffChunk);
     colorVertexList = reinterpret_cast<NTempest::CImVector *>(pData);
     colorVertexCount = pIffChunk->size / 4;
@@ -518,20 +543,12 @@ void CMapObjGroup::CreateOptionalDataPointers(BYTE *pData) {
     pIffChunk = reinterpret_cast<SIffChunk *>(pData);
     FATALASSERT(pIffChunk->token == 'MLIQ');
     pData += sizeof(SIffChunk);
-    liquidVerts.x = *reinterpret_cast<UINT *>(pData);
-    pData += sizeof(UINT);
-    liquidVerts.y = *reinterpret_cast<UINT *>(pData);
-    pData += sizeof(UINT);
-    liquidTiles.x = *reinterpret_cast<UINT *>(pData);
-    pData += sizeof(UINT);
-    liquidTiles.y = *reinterpret_cast<UINT *>(pData);
-    pData += sizeof(UINT);
-    liquidCorner.x = *reinterpret_cast<float *>(pData);
-    pData += sizeof(float);
-    liquidCorner.y = *reinterpret_cast<float *>(pData);
-    pData += sizeof(float);
-    liquidCorner.z = *reinterpret_cast<float *>(pData);
-    pData += sizeof(float);
+    liquidVerts = *reinterpret_cast<NTempest::C2iVector *>(pData);
+    pData += sizeof(NTempest::C2iVector);
+    liquidTiles = *reinterpret_cast<NTempest::C2iVector *>(pData);
+    pData += sizeof(NTempest::C2iVector);
+    liquidCorner = *reinterpret_cast<NTempest::C3Vector *>(pData);
+    pData += sizeof(NTempest::C3Vector);
     liquidMtlId = *reinterpret_cast<WORD *>(pData);
     pData += sizeof(WORD);
     liquidVertexList = reinterpret_cast<SMOLVert *>(pData);
@@ -549,7 +566,7 @@ void CMapObjGroup::CreateLightmapPointers(BYTE *&pData) {
   pData += pIffChunk->size;
 
   pIffChunk = reinterpret_cast<SIffChunk *>(pData);
-  FATALASSERT(pIffChunk->token == 'MOLD');
+  FATALASSERT(pIffChunk->token=='MOLD');
   pData += sizeof(SIffChunk);
   lightmapTexList = reinterpret_cast<SMOLightmapTex *>(pData);
   lightmapTexCount = pIffChunk->size / sizeof(*lightmapTexList);

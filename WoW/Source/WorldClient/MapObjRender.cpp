@@ -4,7 +4,6 @@
 #include <WowConst.h>
 #include "AaBsp.h"
 #include <MapDefs.h>
-#include "Gx/CGxDevice.h"
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"
@@ -27,8 +26,6 @@ int  CMapObj::bIntRender;
 void (*CMapObj::gRenderCallback)(const UINT, LPCVOID, const int);
 LPVOID CMapObj::gRenderUserParam;
 
-static NTempest::C4Vector tv[16];
-static UINT cnt;
 static WORD s_indexList[65535];
 typedef void (CMapObj::*MapObjRenderFunc)(const CMapObjGroup *, UINT);
 static MapObjRenderFunc    s_intFunc;
@@ -156,7 +153,7 @@ UINT CMapObj::StabPortals(UINT fromGroupIndex, UINT groupIndex, NTempest::C3Vect
               rayOrig, rayDir, portalVertexList[portal->startVertex], portalVertexList[portal->startVertex + j],
               portalVertexList[portal->startVertex + j + 1], dist
           ) &&
-          dist >= 0.0f && dist <= epsilon)
+          !(dist < 0.0f) && !(dist > epsilon))
       {
         return portalRef->groupIndex;
       }
@@ -378,7 +375,19 @@ void CMapObj::RRenderThruPortals(UINT groupIdx, UINT parentIdx, NTempest::CRect 
       continue;
     }
 
-    newRect = NTempest::CRect::Intersection(portalExtList[portalRef->portalIndex].sRect, viewRect);
+    newRect = portalExtList[portalRef->portalIndex].sRect;
+    if (newRect.l < viewRect.l) {
+      newRect.l = viewRect.l;
+    }
+    if (newRect.r > viewRect.r) {
+      newRect.r = viewRect.r;
+    }
+    if (newRect.t < viewRect.t) {
+      newRect.t = viewRect.t;
+    }
+    if (newRect.b > viewRect.b) {
+      newRect.b = viewRect.b;
+    }
     if (fabs(newRect.b - newRect.t) < 0.001f || fabs(newRect.r - newRect.l) < 0.001f) {
       continue;
     }
@@ -405,6 +414,9 @@ void CMapObj::RTransformPortal(SMOPortal *portal, SPortalExt *portalExt, int cpI
   FATALASSERT(portal);
   FATALASSERT(portalExt);
   (void)cpIgnore;
+
+  static NTempest::C4Vector tv[16];
+  static UINT               cnt;
 
   portalExt->flags = 0;
   for (i = 0; i < portal->count; ++i) {
@@ -882,11 +894,11 @@ void CMapObj::RenderGroupTex(const CMapObjGroup *group, UINT frustumCount) {
         batch->flags |= 0xF0;
         SMOMaterial &material = materialList[batch->texture];
         CGxTex      *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
+        GxRsSet(GxRs_Texture0, texture);
         GxTexFlags(texture, diffTexFlags);
         diffTexFlags.m_wrapU = !(material.flags & 0x40);
         diffTexFlags.m_wrapV = !(material.flags & 0x80);
         GxTexSetFlags(texture, diffTexFlags);
-        GxRsSet(GxRs_Texture0, texture);
         GxPrimDrawElements(GxPrim_Triangles, batch->count, group->indexList + batch->startIndex);
       }
     }

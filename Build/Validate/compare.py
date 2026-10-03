@@ -576,6 +576,53 @@ def _macro_evidence(artifact: ArtifactData, functions: Sequence[_Function], func
             {"sink": sink, "paired_call_verified": True, "value": source_file, "paired_line": line_value}))
         result.append(Evidence(line_instruction.offset + lo, ls, "macro_line", common + ":line", True,
             {"sink": sink, "paired_call_verified": True, "value": line_value, "paired_file": source_file}))
+    result.extend(_file_line_argument_evidence(artifact, instructions, {value.offset for value in result}))
+    return result
+
+
+def _immediate_argument(instruction: Any) -> int | None:
+    if instruction.mnemonic not in ("push", "mov") or len(instruction.fields) != 1 or not instruction.operands:
+        return None
+    if instruction.operands[-1][0] != "imm":
+        return None
+    if instruction.mnemonic == "mov" and (len(instruction.operands) != 2 or instruction.operands[0][0] != "reg"):
+        return None
+    return int(instruction.operands[-1][1])
+
+
+def _file_line_argument_evidence(artifact: ArtifactData, instructions: Sequence[Any],
+                                 covered: set[int]) -> list[Evidence]:
+    result: list[Evidence] = []
+    ordinal = 0
+    for index, instruction in enumerate(instructions):
+        value = _immediate_argument(instruction)
+        if value is None or instruction.offset + instruction.fields[0][0] in covered:
+            continue
+        file_rva = artifact.resolve_va(value)
+        source_file = _read_string(artifact, file_rva) if file_rva is not None else None
+        if source_file is None or not _basename(source_file).endswith((".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".inl")):
+            continue
+        line_instruction = None
+        for delta in (-1, 1, -2, 2, -3, 3):
+            other = index + delta
+            if not 0 <= other < len(instructions):
+                continue
+            line_value = _immediate_argument(instructions[other])
+            if line_value is not None and 0 < line_value < 100000                     and instructions[other].offset + instructions[other].fields[0][0] not in covered:
+                line_instruction = instructions[other]
+                break
+        if line_instruction is None:
+            continue
+        last = max(index, instructions.index(line_instruction))
+        if not any(candidate.mnemonic.startswith("call") for candidate in instructions[last + 1 : last + 9]):
+            continue
+        common = f"macro:fileline:{ordinal}"
+        ordinal += 1
+        fo, fs, _, _ = instruction.fields[0]; lo, ls, _, _ = line_instruction.fields[0]
+        result.append(Evidence(instruction.offset + fo, fs, "macro_file", common + ":file", True,
+            {"sink": "fileline", "paired_call_verified": True, "value": source_file, "paired_line": line_value}))
+        result.append(Evidence(line_instruction.offset + lo, ls, "macro_line", common + ":line", True,
+            {"sink": "fileline", "paired_call_verified": True, "value": line_value, "paired_file": source_file}))
     return result
 
 

@@ -6,6 +6,8 @@
 #include "UIUtil/InputControl.h"
 #include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Ui/GameUI.h"
 
 #include "TextureCacheCore.h"
 
@@ -24,20 +26,13 @@ enum CACHEMODE {
 };
 
 struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandleObject {
-  CACHEENTRY() : m_texture(0), m_size(0), m_expireTime(0), m_uncached(0) {
-  }
-
-  virtual ~CACHEENTRY() {
-    if (m_texture) {
-      HandleClose(m_texture);
-    }
-
-    m_texture = 0;
-  }
-
-  BOOL IsInUse() const {
-    return GetRefCount() > 1;
-  }
+  LINKDECLEX(CACHEENTRY, m_cacheLink);
+  HTEXTURE       m_texture;
+  TEXTUREINFO    m_textureInfo;
+  UINT           m_size;
+  UINT           m_expireTime;
+  int            m_uncached;
+  HMIPPEDTEXTURE m_selfReference;
 
   void LoadData(LPCSTR fileName) {
     char    altFileName[0x104];
@@ -52,13 +47,20 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
     }
   }
 
-  LINKDECLEX(CACHEENTRY, m_cacheLink);
-  HTEXTURE       m_texture;
-  TEXTUREINFO    m_textureInfo;
-  UINT           m_size;
-  UINT           m_expireTime;
-  int            m_uncached;
-  HMIPPEDTEXTURE m_selfReference;
+  CACHEENTRY() : m_texture(0), m_size(0), m_expireTime(0), m_uncached(0) {
+  }
+
+  virtual ~CACHEENTRY() {
+    if (m_texture) {
+      HandleClose(m_texture);
+    }
+
+    m_texture = 0;
+  }
+
+  BOOL IsInUse() const {
+    return GetRefCount() > 1;
+  }
 };
 
 class CACHEOBJECT : public CHandleObject {
@@ -67,10 +69,10 @@ class CACHEOBJECT : public CHandleObject {
   friend HTEXTURECACHE TextureCacheCreatTimeCache(UINT milliSeconds);
 
  public:
-  CACHEOBJECT();
-  virtual ~CACHEOBJECT();
   void           PurgeTextureCache();
   HMIPPEDTEXTURE GetTexture(LPCSTR fileName, TEXTUREINFO *info);
+  CACHEOBJECT();
+  virtual        ~CACHEOBJECT();
 
  protected:
   LISTDECLEX(CACHEENTRY, m_cacheLink, m_LRUList);

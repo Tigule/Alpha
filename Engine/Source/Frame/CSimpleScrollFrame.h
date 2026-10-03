@@ -46,7 +46,7 @@ class CSimpleScrollFrame : public CSimpleFrame {
 
   void RunOnHorizontalScrollScript() {
     if (m_onHorizontalScroll) {
-      FrameScript_Execute(m_onHorizontalScroll, this, "%f", m_scrollOffset.x * 1024.0f * 1.25f);
+      FrameScript_Execute(m_onHorizontalScroll, this, "%f", 1.25f * (m_scrollOffset.x * 1024.0f));
     }
   }
 
@@ -58,7 +58,7 @@ class CSimpleScrollFrame : public CSimpleFrame {
 
   void RunOnVerticalScrollScript() {
     if (m_onVerticalScroll) {
-      FrameScript_Execute(m_onVerticalScroll, this, "%f", m_scrollOffset.y * 1024.0f * 1.25f);
+      FrameScript_Execute(m_onVerticalScroll, this, "%f", 1.25f * (m_scrollOffset.y * 1024.0f));
     }
   }
 
@@ -70,7 +70,7 @@ class CSimpleScrollFrame : public CSimpleFrame {
 
   void RunOnScrollRangeChangedScript() {
     if (m_onScrollRangeChanged) {
-      FrameScript_Execute(m_onScrollRangeChanged, this, "%f%f", m_scrollRange.x * 1024.0f * 1.25f, m_scrollRange.y * 1024.0f * 1.25f);
+      FrameScript_Execute(m_onScrollRangeChanged, this, "%f%f", 1.25f * (m_scrollRange.x * 1024.0f), 1.25f * (m_scrollRange.y * 1024.0f));
     }
   }
 

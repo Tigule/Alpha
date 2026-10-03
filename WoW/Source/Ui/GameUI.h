@@ -3,7 +3,6 @@
 
 #include "Object/Object.h"
 #include "Object/Unit.h"
-#include "Net/NetClient/NetClient.h"
 
 #include <Event/EvtApi.h>
 
@@ -27,6 +26,7 @@ struct MIRRORTIMERDAMAGE;
 struct SPELLLOG;
 struct HMODEL__;
 struct lua_State;
+enum NETMESSAGE;
 
 static BOOL DebugAIStateHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *);
 static int  Script_PickupPetAction(lua_State *L);
@@ -36,20 +36,6 @@ class CMouseEvent;
 class CSizeEvent;
 class PetAction;
 enum SYSMSG_TYPE;
-
-enum LOOT_ACQUIRE {
-  LOOT_ACQUIRE_FAILED = 0,
-  LOOT_ACQUIRE_NORMAL = 1,
-  LOOT_ACQUIRE_PICKPOCKET = 2,
-  LOOT_ACQUIRE_FISHING = 3
-};
-
-enum LOOT_METHOD {
-  LOOT_METHOD_FREEFORALL = 0,
-  LOOT_METHOD_ROUNDROBIN = 1,
-  LOOT_METHOD_MASTERLOOTER = 2,
-  LOOT_METHOD_MAX = 3
-};
 
 struct CinematicData {
   const CinematicSequencesRec *sequence;

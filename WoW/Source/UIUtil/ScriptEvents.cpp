@@ -6,6 +6,8 @@
 #include "UIUtil/InputControl.h"
 #include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Ui/GameUI.h"
 
 struct lua_State;
 static int Script_HasFullControl(lua_State *L);
@@ -101,9 +103,9 @@ CGUnit_C *Script_GetUnitFromName(LPCSTR name) {
     return player;
   }
   if (!SStrCmpI(name, "pet", 0x7FFFFFFF)) {
-    guid = player->GetUnitData()->charm;
+    guid = player->GetCharm();
     if (!guid) {
-      guid = player->GetUnitData()->summon;
+      guid = player->GetSummon();
     }
   } else if (!SStrCmpI(name, "target", 0x7FFFFFFF)) {
     guid = CGGameUI::GetLockedTarget();
@@ -132,9 +134,9 @@ CGObject_C *Script_GetObjectFromName(LPCSTR name) {
     return playerObject;
   }
   if (!SStrCmpI(name, "pet", 0x7FFFFFFF)) {
-    guid = player->GetUnitData()->charm;
+    guid = player->GetCharm();
     if (!guid) {
-      guid = player->GetUnitData()->summon;
+      guid = player->GetSummon();
     }
   } else if (!SStrCmpI(name, "target", 0x7FFFFFFF)) {
     guid = CGGameUI::GetLockedTarget();
@@ -171,8 +173,8 @@ DWORDLONG Script_GetGUIDFromName(LPCSTR name) {
     return guid;
   }
   if (!SStrCmpI(name, "pet", 0x7FFFFFFF)) {
-    guid = player->GetUnitData()->charm;
-    return guid ? guid : player->GetUnitData()->summon;
+    guid = player->GetCharm();
+    return guid ? guid : player->GetSummon();
   }
   if (!SStrCmpI(name, "target", 0x7FFFFFFF)) {
     return CGGameUI::GetLockedTarget();
@@ -204,9 +206,9 @@ char **Script_GetNamesFromGUID(const DWORDLONG &guid, int &numnames) {
     SStrCopy(s_unitNames[numnames++], "player", 32);
   }
 
-  DWORDLONG pet = player->GetUnitData()->charm;
+  DWORDLONG pet = player->GetCharm();
   if (!pet) {
-    pet = player->GetUnitData()->summon;
+    pet = player->GetSummon();
   }
   if (guid == pet) {
     SStrCopy(s_unitNames[numnames++], "pet", 32);
@@ -341,12 +343,18 @@ static int Script_UnitExists(lua_State *L) {
 }
 
 static int Script_UnitIsUnit(lua_State *L) {
-  if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: UnitIsUnit(\"unit\", \"otherUnit\")");
+  if (lua_isstring(L, 1) && lua_isstring(L, 2)) {
+    DWORDLONG unitGUID = Script_GetGUIDFromName(lua_tostring(L, 1));
+    DWORDLONG targetGUID = Script_GetGUIDFromName(lua_tostring(L, 2));
+    if (unitGUID == targetGUID) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
   }
-
-  PushBoolean(L, Script_GetGUIDFromName(lua_tostring(L, 1)) == Script_GetGUIDFromName(lua_tostring(L, 2)));
-  return 1;
+  luaL_error(L, "Usage: UnitIsUnit(\"unit\", \"otherUnit\")");
+  return 0;
 }
 
 static int Script_UnitIsPlayer(lua_State *L) {
@@ -364,40 +372,42 @@ static int Script_UnitIsPartyLeader(lua_State *L) {
 
 static int Script_UnitInParty(lua_State *L) {
   DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
-  PushBoolean(L, CGPartyInfo::IsMember(guid));
-  return 1;
-}
-
-static int Script_UnitReaction(lua_State *L) {
-  CGUnit_C *unit;
-  CGUnit_C *otherUnit;
-
-  if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: UnitReaction(\"unit\", \"otherUnit\")");
-  }
-
-  unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  otherUnit = Script_GetUnitFromName(lua_tostring(L, 2));
-  if (unit && otherUnit) {
-    lua_pushnumber(L, unit->UnitReaction(otherUnit) + 1);
+  if (CGPartyInfo::IsMember(guid)) {
+    lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);
   }
   return 1;
 }
 
-static int Script_UnitIsEnemy(lua_State *L) {
-  CGUnit_C *unit;
-  CGUnit_C *otherUnit;
-
-  if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: UnitIsEnemy(\"unit\", \"otherUnit\")");
+static int Script_UnitReaction(lua_State *L) {
+  if (lua_isstring(L, 1) && lua_isstring(L, 2)) {
+    CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+    CGUnit_C *otherUnit = Script_GetUnitFromName(lua_tostring(L, 2));
+    if (unit && otherUnit) {
+      lua_pushnumber(L, unit->UnitReaction(otherUnit) + 1);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
   }
+  luaL_error(L, "Usage: UnitReaction(\"unit\", \"otherUnit\")");
+  return 0;
+}
 
-  unit = GetScriptUnit(L, 1);
-  otherUnit = GetScriptUnit(L, 2);
-  PushBoolean(L, unit && otherUnit && otherUnit->UnitReaction(unit) <= UNIT_REACTION_HOSTILE);
-  return 1;
+static int Script_UnitIsEnemy(lua_State *L) {
+  if (lua_isstring(L, 1) && lua_isstring(L, 2)) {
+    CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+    CGUnit_C *otherUnit = Script_GetUnitFromName(lua_tostring(L, 2));
+    if (unit && otherUnit && unit->UnitReaction(otherUnit) <= UNIT_REACTION_HOSTILE) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
+  }
+  luaL_error(L, "Usage: UnitIsEnemy(\"unit\", \"otherUnit\")");
+  return 0;
 }
 
 static int Script_UnitIsFriend(lua_State *L) {
@@ -426,28 +436,33 @@ static int Script_UnitIsFriend(lua_State *L) {
 }
 
 static int Script_UnitCanCooperate(lua_State *L) {
-  CGUnit_C *unit;
-  CGUnit_C *otherUnit;
-
-  if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: UnitCanCooperate(\"unit\", \"otherUnit\")");
+  if (lua_isstring(L, 1) && lua_isstring(L, 2)) {
+    CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+    CGUnit_C *otherUnit = Script_GetUnitFromName(lua_tostring(L, 2));
+    if (unit && otherUnit && unit->CanCooperate(otherUnit)) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
   }
-
-  unit = GetScriptUnit(L, 1);
-  otherUnit = GetScriptUnit(L, 2);
-  PushBoolean(L, unit && otherUnit && otherUnit->CanCooperate(unit));
-  return 1;
+  luaL_error(L, "Usage: UnitCanCooperate(\"unit\", \"otherUnit\")");
+  return 0;
 }
 
 static int Script_UnitIsCharmed(lua_State *L) {
-  CGUnit_C *unit = GetScriptUnit(L, 1);
-  PushBoolean(L, unit && unit->GetUnitData()->charmedBy != 0);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit && unit->IsCharmed()) {
+    lua_pushnumber(L, 1.0);
+  } else {
+    lua_pushnil(L);
+  }
   return 1;
 }
 
 static int Script_UnitIsPlusMob(lua_State *L) {
   CGUnit_C *unit = GetScriptUnit(L, 1);
-  PushBoolean(L, unit && (unit->GetUnitData()->flags & 0x40) != 0);
+  PushBoolean(L, unit && unit->IsPlusMob());
   return 1;
 }
 
@@ -517,18 +532,29 @@ static int Script_UnitHealth(lua_State *L) {
     luaL_error(L, "Usage: UnitHealth(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
-  lua_pushnumber(L, unit && !(unit->GetUnitData()->flags & 0x4000) ? unit->GetUnitData()->health : 0);
+  lua_pushnumber(L, unit && !unit->IsFeignDeath() ? unit->GetHealth() : 0);
   return 1;
 }
 
 static int Script_UnitHealthMax(lua_State *L) {
-  CGUnit_C *unit;
-
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitHealthMax(\"unit\")");
+    return 0;
   }
-  unit = GetScriptUnit(L, 1);
-  lua_pushnumber(L, unit ? unit->GetUnitData()->maxHealth : 0);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit) {
+    lua_pushnumber(L, unit->GetMaxHealth());
+    return 1;
+  }
+  DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  if (guid) {
+    CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStats(guid);
+    if (stats) {
+      lua_pushnumber(L, stats->maxHealth);
+      return 1;
+    }
+  }
+  lua_pushnumber(L, 0.0);
   return 1;
 }
 
@@ -544,8 +570,8 @@ static int Script_UnitMana(lua_State *L) {
     luaL_error(L, "Usage: UnitMana(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
-  powerType = unit ? unit->GetUnitData()->displayPower : 0;
-  lua_pushnumber(L, unit ? static_cast<UINT>(unit->GetUnitData()->power[powerType]) / PowerDisplayMod(powerType) : 0);
+  powerType = unit ? unit->GetDisplayPower() : 0;
+  lua_pushnumber(L, unit ? static_cast<UINT>(unit->GetPower(static_cast<POWER_TYPE>(powerType))) / PowerDisplayMod(powerType) : 0);
   return 1;
 }
 
@@ -557,19 +583,30 @@ static int Script_UnitManaMax(lua_State *L) {
     luaL_error(L, "Usage: UnitManaMax(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
-  powerType = unit ? unit->GetUnitData()->displayPower : 0;
-  lua_pushnumber(L, unit ? static_cast<UINT>(unit->GetUnitData()->maxPower[powerType]) / PowerDisplayMod(powerType) : 0);
+  powerType = unit ? unit->GetDisplayPower() : 0;
+  lua_pushnumber(L, unit ? static_cast<UINT>(unit->GetMaxPower(static_cast<POWER_TYPE>(powerType))) / PowerDisplayMod(powerType) : 0);
   return 1;
 }
 
 static int Script_UnitPowerType(lua_State *L) {
-  CGUnit_C *unit;
-
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitPowerType(\"unit\")");
+    return 0;
   }
-  unit = GetScriptUnit(L, 1);
-  lua_pushnumber(L, unit ? unit->GetUnitData()->displayPower : 0);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit) {
+    lua_pushnumber(L, unit->GetDisplayPower());
+    return 1;
+  }
+  DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  if (guid) {
+    CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStats(guid);
+    if (stats) {
+      lua_pushnumber(L, stats->powerType);
+      return 1;
+    }
+  }
+  lua_pushnumber(L, 0.0);
   return 1;
 }
 
@@ -580,30 +617,44 @@ static int Script_UnitIsDead(lua_State *L) {
     luaL_error(L, "Usage: UnitIsDead(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
-  PushBoolean(L, unit && (unit->GetUnitData()->health <= 0 || (unit->GetUnitData()->flags & 0x4000) != 0));
+  PushBoolean(L, unit && (unit->GetHealth() <= 0 || unit->IsFeignDeath()));
   return 1;
 }
 
 static int Script_UnitIsConnected(lua_State *L) {
-  CGUnit_C *unit;
-
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitIsDead(\"unit\")");
+    return 0;
   }
-  unit = GetScriptUnit(L, 1);
-  PushBoolean(L, unit != 0);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit) {
+    lua_pushnumber(L, 1.0);
+    return 1;
+  }
+  DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 1));
+  if (guid) {
+    CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStats(guid);
+    if (stats) {
+      if (stats->connected) {
+        lua_pushnumber(L, 1.0);
+      } else {
+        lua_pushnil(L);
+      }
+      return 1;
+    }
+  }
+  lua_pushnil(L);
   return 1;
 }
 
 static int Script_UnitSex(lua_State *L) {
-  CGUnit_C *unit;
-
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitSex(\"unit\")");
+    return 0;
   }
-  unit = GetScriptUnit(L, 1);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit) {
-    lua_pushnumber(L, unit->GetUnitData()->sex);
+    lua_pushnumber(L, unit->GetSex());
   } else {
     lua_pushnil(L);
   }
@@ -620,7 +671,7 @@ static int Script_UnitLevel(lua_State *L) {
   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
   unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
-    lua_pushnumber(L, unit->GetUnitData()->level);
+    lua_pushnumber(L, unit->GetLevel());
   } else if (CGPartyInfo::IsMember(guid)) {
     CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStats(guid);
     lua_pushnumber(L, stats ? stats->level : 0);
@@ -631,13 +682,16 @@ static int Script_UnitLevel(lua_State *L) {
 }
 
 static int Script_UnitMoney(lua_State *L) {
-  CGUnit_C *unit;
-
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitMoney(\"unit\")");
+    return 0;
   }
-  unit = GetScriptUnit(L, 1);
-  lua_pushnumber(L, unit ? unit->GetUnitData()->coinage : 0);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit) {
+    lua_pushnumber(L, unit->GetMoney());
+  } else {
+    lua_pushnumber(L, 0.0);
+  }
   return 1;
 }
 
@@ -649,7 +703,7 @@ static int Script_UnitRace(lua_State *L) {
     luaL_error(L, "Usage: UnitRace(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
-  race = unit ? g_chrRacesDB.GetRecord(unit->GetUnitData()->race) : 0;
+  race = unit ? g_chrRacesDB.GetRecord(unit->GetRace()) : 0;
   if (race) {
     lua_pushstring(L, race->m_name_lang[CURRENT_LANGUAGE]);
   } else {
@@ -666,7 +720,7 @@ static int Script_UnitClass(lua_State *L) {
     luaL_error(L, "Usage: UnitClass(\"unit\")");
   }
   unit = GetScriptUnit(L, 1);
-  unitClass = unit ? g_chrClassesDB.GetRecord(unit->GetUnitData()->classId) : 0;
+  unitClass = unit ? g_chrClassesDB.GetRecord(unit->GetClass()) : 0;
   if (unitClass) {
     lua_pushstring(L, unitClass->m_name_lang[CURRENT_LANGUAGE]);
   } else {
@@ -676,32 +730,28 @@ static int Script_UnitClass(lua_State *L) {
 }
 
 static int Script_UnitResistance(lua_State *L) {
-  UINT      resistance;
-  CGUnit_C *unit;
-  int       r = 0;
-  int       er = 0;
-  int       pos = 0;
-  int       neg = 0;
-
-  if (!lua_isstring(L, 1) || !lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: UnitResistance(\"unit\", resistance)");
-  }
-  resistance = static_cast<UINT>(lua_tonumber(L, 2));
-  if (resistance > 6) {
+  if (lua_isstring(L, 1) && lua_isnumber(L, 2)) {
+    int resistance = static_cast<int>(lua_tonumber(L, 2));
+    if (resistance >= 0 && resistance <= 6) {
+      int       r = 0;
+      int       er = 0;
+      int       pos = 0;
+      int       neg = 0;
+      CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+      if (unit) {
+        unit->GetResistanceAndBuffs(resistance, r, er, pos, neg);
+      }
+      lua_pushnumber(L, er);
+      lua_pushnumber(L, r);
+      lua_pushnumber(L, pos);
+      lua_pushnumber(L, neg);
+      return 4;
+    }
     luaL_error(L, "Invalid resistance index in UnitResistance");
+    return 0;
   }
-  unit = GetScriptUnit(L, 1);
-  if (unit && resistance) {
-    r = unit->GetUnitData()->resistances[resistance - 1];
-    pos = unit->GetUnitData()->resistanceBuffModsPositive[resistance - 1];
-    neg = unit->GetUnitData()->resistanceBuffModsNegative[resistance - 1];
-    er = unit->GetUnitData()->resistanceItemMods[resistance - 1];
-  }
-  lua_pushnumber(L, er);
-  lua_pushnumber(L, r);
-  lua_pushnumber(L, pos);
-  lua_pushnumber(L, neg);
-  return 4;
+  luaL_error(L, "Usage: UnitResistance(\"unit\", resistance)");
+  return 0;
 }
 
 static int Script_UnitStat(lua_State *L) {
@@ -719,8 +769,8 @@ static int Script_UnitStat(lua_State *L) {
   }
   unit = GetScriptUnit(L, 1);
   if (unit) {
-    base = unit->GetUnitData()->baseStats[stat];
-    value = unit->GetUnitData()->stats[stat];
+    base = unit->GetBaseStat(stat);
+    value = unit->GetCurrentStat(stat);
   }
   lua_pushnumber(L, base);
   lua_pushnumber(L, value - base);
@@ -728,18 +778,23 @@ static int Script_UnitStat(lua_State *L) {
 }
 
 static int Script_UnitAttackBothHands(lua_State *L) {
-  CGUnit_C *unit;
-  int       base[2] = {0, 0};
-  int       modifier[2] = {0, 0};
-  UINT      i;
+  UINT i;
+  int  base[2];
+  int  modifier[2];
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitAttackBothHands(\"unit\")");
+    return 0;
   }
-  unit = GetScriptUnit(L, 1);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit) {
     for (i = 0; i < 2; ++i) {
       unit->GetAttackSkillRank(i, base[i], modifier[i]);
+    }
+  } else {
+    for (i = 0; i < 2; ++i) {
+      modifier[i] = 0;
+      base[i] = 0;
     }
   }
   for (i = 0; i < 2; ++i) {
@@ -750,17 +805,27 @@ static int Script_UnitAttackBothHands(lua_State *L) {
 }
 
 static int Script_UnitDamage(lua_State *L) {
-  CGUnit_C *unit;
-  UINT      i;
+  UINT i;
 
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitDamage(\"unit\")");
+    return 0;
   }
-  unit = GetScriptUnit(L, 1);
-  lua_pushnumber(L, unit ? unit->GetUnitData()->minDamage : 0);
-  lua_pushnumber(L, unit ? unit->GetUnitData()->maxDamage : 0);
-  for (i = 0; i < 6; ++i) {
-    lua_pushnumber(L, unit && !i ? unit->GetUnitData()->modDamageDone[0] : 0);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit) {
+    lua_pushnumber(L, unit->GetMinDamage());
+    lua_pushnumber(L, unit->GetMaxDamage());
+    for (i = 0; i < 6; ++i) {
+      if (i == 0) {
+        lua_pushnumber(L, unit->GetModDamageDone(0));
+      } else {
+        lua_pushnumber(L, 0.0);
+      }
+    }
+  } else {
+    for (i = 0; i < 8; ++i) {
+      lua_pushnumber(L, 0.0);
+    }
   }
   return 8;
 }
@@ -774,13 +839,13 @@ static int Script_UnitAttackSpeed(lua_State *L) {
   }
   unit = GetScriptUnit(L, 1);
   if (unit && (unit->GetType() & TYPE_PLAYER)) {
-    lua_pushnumber(L, unit->GetUnitData()->attackRoundBaseTime[0] * 0.001);
+    lua_pushnumber(L, unit->GetAttackRoundTime(COMBAT_MAINHAND) * 0.001);
     CGBag_C *bag = unit->GetBag();
     if (bag) {
       offhand = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(16), __FILE__, __LINE__));
     }
     if (offhand && offhand->GetClassID() == 2) {
-      lua_pushnumber(L, unit->GetUnitData()->attackRoundBaseTime[1] * 0.001);
+      lua_pushnumber(L, unit->GetAttackRoundTime(COMBAT_OFFHAND) * 0.001);
       return 2;
     }
   } else {
@@ -791,14 +856,13 @@ static int Script_UnitAttackSpeed(lua_State *L) {
 }
 
 static int Script_UnitDefense(lua_State *L) {
-  CGUnit_C *unit;
-  int       base = 0;
-  int       modifier = 0;
-
   if (!lua_isstring(L, 1)) {
     luaL_error(L, "Usage: UnitDefense(\"unit\")");
+    return 0;
   }
-  unit = GetScriptUnit(L, 1);
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  int       base = 0;
+  int       modifier = 0;
   if (unit) {
     unit->GetDefenseSkillRank(base, modifier);
   }
@@ -808,22 +872,17 @@ static int Script_UnitDefense(lua_State *L) {
 }
 
 static int Script_UnitArmor(lua_State *L) {
-  CGUnit_C *unit;
-  UINT      resistance = GetPhysicalDamageClassID();
+  if (!lua_isstring(L, 1)) {
+    luaL_error(L, "Usage: UnitArmor(\"unit\")");
+    return 0;
+  }
   int       r = 0;
   int       er = 0;
   int       pos = 0;
   int       neg = 0;
-
-  if (!lua_isstring(L, 1)) {
-    luaL_error(L, "Usage: UnitArmor(\"unit\")");
-  }
-  unit = GetScriptUnit(L, 1);
-  if (unit && resistance && resistance <= 6) {
-    r = unit->GetUnitData()->resistances[resistance - 1];
-    pos = unit->GetUnitData()->resistanceBuffModsPositive[resistance - 1];
-    neg = unit->GetUnitData()->resistanceBuffModsNegative[resistance - 1];
-    er = unit->GetUnitData()->resistanceItemMods[resistance - 1];
+  CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
+  if (unit) {
+    unit->GetResistanceAndBuffs(GetPhysicalDamageClassID(), r, er, pos, neg);
   }
   lua_pushnumber(L, er);
   lua_pushnumber(L, r);
@@ -846,10 +905,8 @@ static int Script_UnitCharacterPoints(lua_State *L) {
   return 2;
 }
 
-static void PortraitQueryCallback(int, const DWORDLONG &, LPVOID, bool granted) {
-  if (granted) {
-    FrameScript_SignalEvent(181);
-  }
+static void PortraitQueryCallback(int, const DWORDLONG &guid, LPVOID, bool granted) {
+  CGGameUI::UnitPortraitUpdate(guid);
 }
 
 static int Script_SetPortraitTexture(lua_State *L) {
@@ -882,14 +939,14 @@ static int Script_SetPortraitTexture(lua_State *L) {
 
 static int Script_HasFullControl(lua_State *L) {
   CGUnit_C *player = Script_GetUnitFromName("player");
-  PushBoolean(L, player && !(player->GetUnitData()->flags & 0x100000) && player->GetUnitData()->health > 0 && CGGameUI::m_hasControl);
+  PushBoolean(L, player && !player->IsOnTaxi() && player->GetHealth() > 0 && CGGameUI::m_hasControl);
   return 1;
 }
 
 static int Script_GetComboPoints(lua_State *L) {
   CGUnit_C *player = Script_GetUnitFromName("player");
-  if (player && player->GetUnitData()->comboTarget == CGGameUI::GetLockedTarget()) {
-    lua_pushnumber(L, player->GetUnitData()->comboPoints);
+  if (player && player->GetComboTarget() == CGGameUI::GetLockedTarget()) {
+    lua_pushnumber(L, player->GetComboPoints());
   } else {
     lua_pushnumber(L, 0.0);
   }

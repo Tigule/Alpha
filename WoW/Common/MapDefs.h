@@ -32,21 +32,7 @@ struct SMOFog {
       end += (fog.end - end) * t;
       startScalar += (fog.startScalar - startScalar) * t;
 
-      UINT amount = NTempest::CMath::fuint_n(t * 255.0f);
-      if (!amount) {
-        return;
-      }
-
-      if (amount == 255) {
-        color.r = fog.color.r;
-        color.g = fog.color.g;
-        color.b = fog.color.b;
-        return;
-      }
-
-      color.r = static_cast<BYTE>(color.r + ((amount * (fog.color.r - color.r)) >> 8));
-      color.g = static_cast<BYTE>(color.g + ((amount * (fog.color.g - color.g)) >> 8));
-      color.b = static_cast<BYTE>(color.b + ((amount * (fog.color.b - color.b)) >> 8));
+      color.Blend255RGB(NTempest::CMath::ftol_0_256_(t * 255.0f), fog.color);
     }
   };
 

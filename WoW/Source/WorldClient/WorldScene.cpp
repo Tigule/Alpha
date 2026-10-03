@@ -1,15 +1,23 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
+
+#include "WorldClient/World.h"
+#include "WorldClient/CMapObj.h"
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
+#include "DayNight.h"
+
 #include <Ftol.h>
 
-#include "World.h"
-#include "CMapObj.h"
-#include "DetailDoodad.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 
-#include "DayNight.h"
-#include "Gx/Gx.h"
 #include "Model/IModel.h"
 #include "Services/SysMessage.h"
 #include "Tempest/c33matrix.h"
@@ -25,9 +33,8 @@ static UINT s_boxCornerIndicesX[8] = {0, 1, 1, 0, 0, 1, 1, 0};
 static UINT s_boxCornerIndicesY[8] = {0, 0, 1, 1, 0, 0, 1, 1};
 static UINT s_boxCornerIndicesZ[8] = {0, 0, 0, 0, 1, 1, 1, 1};
 
-LISTDECLEX(CWFrustum, sceneLink, CWorldScene::frustumFreeList);
-CSortTable            CWorldScene::sortTable;
 NTempest::C4Vector    CWorldScene::clipVertexBuffer[9];
+CSortTable            CWorldScene::sortTable;
 float                 CWorldScene::clipBuffer[128];
 CMapEntity           *CWorldScene::camTargEntity;
 CMapObjDef           *CWorldScene::viewerMapObjDef;
@@ -55,6 +62,7 @@ NTempest::C3Vector    CWorldScene::vpMaxPos;
 NTempest::C4Plane     CWorldScene::vpPlanes[4];
 NTempest::C4Vector    CWorldScene::mvpCol3;
 NTempest::C44Matrix   CWorldScene::gxViewMat;
+LISTDECLEX(CWFrustum, sceneLink, CWorldScene::frustumFreeList);
 UINT                  CWorldScene::nPrimsRendered;
 UINT                  CWorldScene::nChunksRendered;
 UINT                  CWorldScene::nDoodadsRendered;
@@ -141,13 +149,11 @@ void CWorldScene::Destroy() {
 CWFrustum *CWorldScene::AllocFrustum() {
   CWFrustum *frustum = frustumFreeList.Head();
   if (!frustum) {
-    LPVOID storage = SMemAlloc(sizeof(CWFrustum), typeid(CWFrustum).INTERNALRAWNAME(), -2, 8);
-    frustum = storage ? new (storage) CWFrustum : 0;
-    frustumFreeList.LinkNode(frustum, LIST_TAIL, 0);
+    frustum = frustumFreeList.NewNode(LIST_TAIL, 0, 0);
     FATALASSERT(frustum);
   }
 
-  frustumFreeList.UnlinkNode(frustum);
+  frustum->sceneLink.Unlink();
   return frustum;
 }
 
@@ -614,7 +620,7 @@ void CWorldScene::FrustumSet(const NTempest::CRect &sRect) {
 }
 
 void CWorldScene::FrustumSet(const NTempest::C3Vector corners[]) {
-  FrustumGet().CalcPlanesFromCorners(corners);
+  frustumStack[frustumIndex].CalcPlanesFromCorners(corners);
 }
 
 void CWorldScene::FrustumSet(const NTempest::C3Vector corners[], const NTempest::CRect &sRect) {
@@ -655,7 +661,7 @@ void CWorldScene::FrustumSet(const NTempest::C3Vector corners[], const NTempest:
 }
 
 void CWorldScene::FrustumSet(const CWFrustum &frustum) {
-  FrustumGet() = frustum;
+  frustumStack[frustumIndex] = frustum;
 }
 
 CWFrustum &CWorldScene::FrustumGet() {
@@ -663,19 +669,19 @@ CWFrustum &CWorldScene::FrustumGet() {
 }
 
 void CWorldScene::FrustumXform(const NTempest::C44Matrix &mat) {
-  FrustumGet().Transform(mat);
+  frustumStack[frustumIndex].Transform(mat);
 }
 
 BOOL CWorldScene::FrustumCull(const NTempest::C3Vector &center, float radius) {
-  return FrustumGet().Cull(center, radius) == WorldCull_outside;
+  return frustumStack[frustumIndex].Cull(NTempest::CAaSphere(center, radius)) == WorldCull_outside;
 }
 
 BOOL CWorldScene::FrustumCull(const NTempest::CAaBox &aaBox) {
-  return FrustumGet().Cull(aaBox) == WorldCull_outside;
+  return frustumStack[frustumIndex].Cull(aaBox) == WorldCull_outside;
 }
 
 BOOL CWorldScene::FrustumCull(const NTempest::CAaBox &aaBox, NTempest::C33Matrix &basis, NTempest::C3Vector &pos) {
-  return FrustumGet().Cull(aaBox, basis, pos) == WorldCull_outside;
+  return frustumStack[frustumIndex].Cull(aaBox, basis, pos) == WorldCull_outside;
 }
 
 void CWorldScene::FrustumPop() {
@@ -961,38 +967,34 @@ void CWorldScene::RenderDoodads() {
 }
 
 void CWorldScene::RenderHorizon() {
-  NTempest::C44Matrix cMat;
-  NTempest::C44Matrix saveProjMat;
-  NTempest::C44Matrix projMat;
-  NTempest::C3Vector  saveMin;
-  NTempest::C3Vector  saveMax;
-
   CGCamera *camera = CGWorldFrame::GetActiveCamera();
   float     farZ = camera->FarZ();
   float     fov = camera->FOV();
   float     aspect = camera->Aspect();
 
+  NTempest::C44Matrix saveProjMat;
   GxXformProjection(saveProjMat);
+
+  NTempest::C44Matrix projMat;
   GxuXformCreateProjection(fov, aspect, farZ - 33.0f, farZ + 2000.0f, projMat);
   GxXformSetProjection(projMat);
 
+  NTempest::C3Vector saveMin;
+  NTempest::C3Vector saveMax;
   GxXformViewport(saveMin.x, saveMax.x, saveMin.y, saveMax.y, saveMin.z, saveMax.z);
   GxXformSetViewport(saveMin.x, saveMax.x, saveMin.y, saveMax.y, saveMax.z, 1.0f);
 
-  cMat = NTempest::C44Matrix();
+  NTempest::C44Matrix cMat;
   cMat.Translate(-camPos);
   GxXformPush(GxXform_World, cMat);
 
-  CMapAreaLow *areaLow = sortTable.visAreaLowList.Head();
-  while (areaLow) {
-    CMapAreaLow *next = sortTable.visAreaLowList.Next(areaLow);
-    sortTable.visAreaLowList.UnlinkNode(areaLow);
+  for (CMapAreaLow *areaLow = sortTable.visAreaLowList.Head(), *next;
+       (int)areaLow > 0 ? ((next = sortTable.visAreaLowList.RawNext(areaLow)), 1) : 0; areaLow = next) {
+    areaLow->sceneLink.Unlink();
 
     if (CWorld::enables & CWorld::Enable_LowDetail) {
       CMap::RenderAreaLow(areaLow);
     }
-
-    areaLow = next;
   }
 
   GxXformPop(GxXform_World);
@@ -1399,7 +1401,7 @@ CWFrustum::CWFrustum(
   NTempest::C44Matrix viewMat;
   NTempest::C44Matrix projMat;
   GxuXformCreateLookAtSgCompat(lPos, lAt, lUp, viewMat);
-  GxuXformCreateProjection(p_fovy * 0.017453292f, p_aspect, p_minz, p_maxz, projMat);
+  GxuXformCreateProjection(fovy * 0.017453292f, aspect, minz, maxz, projMat);
   GxuXformCalcFrustumCorners(viewMat, projMat, corners);
   CalcPlanesFromCorners();
 }
@@ -1427,13 +1429,13 @@ void CWFrustum::CalcPlanesFromCorners() {
 void CWFrustum::Translate(const NTempest::C3Vector &t) {
   UINT i;
   for (i = 0; i < 8; ++i) {
-    corners[i] = corners[i] + t;
+    corners[i] += t;
   }
   for (i = 0; i < 6; ++i) {
     planes[i].Translate(t);
   }
-  lookPos = lookPos + t;
-  lookAt = lookAt + t;
+  lookPos += t;
+  lookAt += t;
 }
 
 void CWFrustum::Transform(const NTempest::C44Matrix &mat) {
@@ -1446,11 +1448,11 @@ void CWFrustum::Transform(const NTempest::C44Matrix &mat) {
 }
 
 WorldCullStatus CWFrustum::Cull(const NTempest::CAaBox &aabox) const {
-  const float *corner[2] = {&aabox.t.x, &aabox.b.x};
-  for (UINT p = 0; p < 6; ++p) {
-    if (corner[static_cast<DWORD>(NTempest::CMath::realasint32_(planes[p].n.x)) >> 31][0] * planes[p].n.x +
-            corner[static_cast<DWORD>(NTempest::CMath::realasint32_(planes[p].n.z)) >> 31][2] * planes[p].n.z +
-            corner[static_cast<DWORD>(NTempest::CMath::realasint32_(planes[p].n.y)) >> 31][1] * planes[p].n.y + planes[p].d <
+  float *corner[2] = {const_cast<float *>(&aabox.t.x), const_cast<float *>(&aabox.b.x)};
+  for (int p = 0; p < 6; ++p) {
+    if (corner[*reinterpret_cast<const DWORD *>(&planes[p].n.x) >> 31][0] * planes[p].n.x +
+            corner[*reinterpret_cast<const DWORD *>(&planes[p].n.z) >> 31][2] * planes[p].n.z +
+            corner[*reinterpret_cast<const DWORD *>(&planes[p].n.y) >> 31][1] * planes[p].n.y + planes[p].d <
         -0.019444443f) {
       return WorldCull_outside;
     }
@@ -1484,7 +1486,7 @@ WorldCullStatus CWFrustum::Cull(const NTempest::C3Vector &center, float radius) 
 }
 
 WorldCullStatus CWFrustum::Cull(const NTempest::CAaSphere &sphere) const {
-  for (UINT p = 0; p < 6; ++p) {
+  for (UINT p = 0; p != 6; ++p) {
     if (planes[p].DistSigned(sphere.c) < -sphere.r) {
       return WorldCull_outside;
     }
@@ -1511,7 +1513,8 @@ void CWFrustum::Cull(const NTempest::C3Vector &point, UINT &cullFlags) const {
 }
 
 WorldCullStatus CWFrustum::Cull(const NTempest::C4Plane &plane) const {
-  UINT counts[2] = {0, 0};
+  UINT counts[4];
+  memset(counts, 0, sizeof(counts));
   for (UINT i = 0; i < 8; ++i) {
     if (plane.DistSigned(corners[i]) > 0.019444443f) {
       ++counts[1];
@@ -1559,27 +1562,28 @@ struct ClipFrame {
   }
 };
 
-static NTempest::C3Vector  sPointPool[32];
-static NTempest::C3Vector *sInPointPtrs[32];
-static NTempest::C3Vector *sOutPointPtrs[32];
+enum {
+  POOL_SIZE = 32
+};
 
 BOOL CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3Vector **&p_outVerts, UINT &p_outCount) {
-  ClipInfo  sInInfo[32];
-  ClipInfo  infoPool[32];
-  ClipInfo *inInfoPtrs[32];
-  ClipInfo *outInfoPtrs[32];
+  static NTempest::C3Vector  sPointPool[POOL_SIZE];
+  static NTempest::C3Vector *inPointPtrs[POOL_SIZE];
+  static NTempest::C3Vector *outPointPtrs[POOL_SIZE];
+  ClipInfo                   sInInfo[POOL_SIZE];
+  ClipInfo                   sInfoPool[POOL_SIZE];
+  ClipInfo                  *inInfoPtrs[POOL_SIZE];
+  ClipInfo                  *outInfoPtrs[POOL_SIZE];
+  NTempest::C3Vector        *pointPool = sPointPool;
+  ClipInfo                  *infoPool = sInfoPool;
+  UINT                       andMask = 0xFFFFFFFF;
+  UINT                       orMask = 0;
 
-  FATALASSERT(p_inCount < 32);
-  if (!p_inCount) {
-    return 0;
-  }
-
-  UINT andMask = 0xFFFFFFFF;
-  UINT orMask = 0;
+  FATALASSERT(p_inCount < POOL_SIZE);
   for (UINT i = 0; i < p_inCount; ++i) {
     sInInfo[i].Set(&p_inVerts[i]);
     inInfoPtrs[i] = &sInInfo[i];
-    sInPointPtrs[i] = &p_inVerts[i];
+    inPointPtrs[i] = &p_inVerts[i];
     andMask &= sInInfo[i].mask;
     orMask |= sInInfo[i].mask;
   }
@@ -1588,17 +1592,15 @@ BOOL CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3
     return 0;
   }
   if (!orMask) {
-    p_outVerts = sInPointPtrs;
+    p_outVerts = inPointPtrs;
     p_outCount = p_inCount;
     return 1;
   }
 
-  ClipFrame           inFrame(sInPointPtrs, inInfoPtrs, p_inCount);
-  ClipFrame           outFrame(sOutPointPtrs, outInfoPtrs, 0);
-  ClipFrame          *in = &inFrame;
-  ClipFrame          *out = &outFrame;
-  NTempest::C3Vector *pointPool = sPointPool;
-  ClipInfo           *sInfoPool = infoPool;
+  ClipFrame  inFrame(inPointPtrs, inInfoPtrs, p_inCount);
+  ClipFrame  outFrame(outPointPtrs, outInfoPtrs, 0);
+  ClipFrame *in = &inFrame;
+  ClipFrame *oframe = &outFrame;
 
   UINT planeMask = 0x80000000;
   for (UINT plane = 0; plane < 6; ++plane, planeMask >>= 1) {
@@ -1606,40 +1608,40 @@ BOOL CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3
       continue;
     }
 
-    out->count = 0;
+    oframe->count = 0;
     UINT from = in->count - 1;
     UINT fromMask = in->info[from]->mask & planeMask;
-    for (UINT to = 0; to < in->count; ++to) {
-      UINT toMask = in->info[to]->mask & planeMask;
-      if (fromMask != toMask) {
-        float denominator = in->info[from]->bc[plane] - in->info[to]->bc[plane];
+    for (UINT toVert = 0; toVert < in->count; ++toVert) {
+      UINT toOut = in->info[toVert]->mask & planeMask;
+      if (fromMask != toOut) {
+        float denominator = in->info[from]->bc[plane] - in->info[toVert]->bc[plane];
         if (denominator == 0.0f) {
           denominator = 0.0001f;
         }
         float t = in->info[from]->bc[plane] / denominator;
-        *pointPool = *in->points[from] + (*in->points[to] - *in->points[from]) * t;
-        sInfoPool->Set(pointPool);
-        out->points[out->count] = pointPool++;
-        out->info[out->count++] = sInfoPool++;
+        *pointPool = *in->points[from] + (*in->points[toVert] - *in->points[from]) * t;
+        infoPool->Set(pointPool);
+        oframe->points[oframe->count] = pointPool++;
+        oframe->info[oframe->count++] = infoPool++;
       }
-      if (!toMask) {
-        out->points[out->count] = in->points[to];
-        out->info[out->count++] = in->info[to];
+      if (!toOut) {
+        oframe->points[oframe->count] = in->points[toVert];
+        oframe->info[oframe->count++] = in->info[toVert];
       }
 
-      FATALASSERT(out->count < 32);
-      FATALASSERT(pointPool - sPointPool < 32);
-      from = to;
-      fromMask = toMask;
+      FATALASSERT(oframe->count < POOL_SIZE);
+      FATALASSERT(pointPool - sPointPool < (sizeof(sPointPool) / sizeof(sPointPool[0])));
+      from = toVert;
+      fromMask = toOut;
     }
 
-    if (!out->count) {
+    if (!oframe->count) {
       return 0;
     }
 
     ClipFrame *temp = in;
-    in = out;
-    out = temp;
+    in = oframe;
+    oframe = temp;
   }
 
   p_outVerts = in->points;

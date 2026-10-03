@@ -1,6 +1,9 @@
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "BLPFile/blp.h"
+
 #include "AsyncFileRead.h"
 
-#include "Base/Base.h"
 #include "Event/EvtApi.h"
 #include "Os/OsTime.h"
 #include "Os/W32/Debugging.h"

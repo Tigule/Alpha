@@ -54,25 +54,12 @@ namespace NTempest {
   }
 
   C34Matrix operator*(const C34Matrix &l, const C34Matrix &r) {
-    C34Matrix result;
-
-    result.a0 = l.a0 * r.a0 + l.a1 * r.b0 + l.a2 * r.c0;
-    result.a1 = l.a0 * r.a1 + l.a1 * r.b1 + l.a2 * r.c1;
-    result.a2 = l.a0 * r.a2 + l.a1 * r.b2 + l.a2 * r.c2;
-
-    result.b0 = l.b0 * r.a0 + l.b1 * r.b0 + l.b2 * r.c0;
-    result.b1 = l.b0 * r.a1 + l.b1 * r.b1 + l.b2 * r.c1;
-    result.b2 = l.b0 * r.a2 + l.b1 * r.b2 + l.b2 * r.c2;
-
-    result.c0 = l.c0 * r.a0 + l.c1 * r.b0 + l.c2 * r.c0;
-    result.c1 = l.c0 * r.a1 + l.c1 * r.b1 + l.c2 * r.c1;
-    result.c2 = l.c0 * r.a2 + l.c1 * r.b2 + l.c2 * r.c2;
-
-    result.d0 = l.d0 * r.a0 + l.d1 * r.b0 + l.d2 * r.c0 + r.d0;
-    result.d1 = l.d0 * r.a1 + l.d1 * r.b1 + l.d2 * r.c1 + r.d1;
-    result.d2 = l.d0 * r.a2 + l.d1 * r.b2 + l.d2 * r.c2 + r.d2;
-
-    return result;
+    return C34Matrix(
+        l.a0 * r.a0 + l.a1 * r.b0 + l.a2 * r.c0, l.a0 * r.a1 + l.a1 * r.b1 + l.a2 * r.c1, l.a0 * r.a2 + l.a1 * r.b2 + l.a2 * r.c2,
+        l.b0 * r.a0 + l.b1 * r.b0 + l.b2 * r.c0, l.b0 * r.a1 + l.b1 * r.b1 + l.b2 * r.c1, l.b0 * r.a2 + l.b1 * r.b2 + l.b2 * r.c2,
+        l.c0 * r.a0 + l.c1 * r.b0 + l.c2 * r.c0, l.c0 * r.a1 + l.c1 * r.b1 + l.c2 * r.c1, l.c0 * r.a2 + l.c1 * r.b2 + l.c2 * r.c2,
+        l.d0 * r.a0 + l.d1 * r.b0 + l.d2 * r.c0 + r.d0, l.d0 * r.a1 + l.d1 * r.b1 + l.d2 * r.c1 + r.d1, l.d0 * r.a2 + l.d1 * r.b2 + l.d2 * r.c2 + r.d2
+    );
   }
 
   C34Matrix operator*(const C34Matrix &l, float a) {
@@ -154,10 +141,8 @@ namespace NTempest {
   }
 
   C34Matrix C34Matrix::AffineInverse() const {
-    C34Matrix matrix(a0, b0, c0, a1, b1, c1, a2, b2, c2, 0.0f, 0.0f, 0.0f);
-    matrix.d0 = -(matrix.a0 * d0 + matrix.b0 * d1 + matrix.c0 * d2);
-    matrix.d1 = -(matrix.a1 * d0 + matrix.b1 * d1 + matrix.c1 * d2);
-    matrix.d2 = -(matrix.a2 * d0 + matrix.b2 * d1 + matrix.c2 * d2);
+    C34Matrix matrix(static_cast<C33Matrix>(*this).Transpose());
+    matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
   }
 
@@ -166,21 +151,18 @@ namespace NTempest {
       return AffineInverse();
     }
 
-    C34Matrix matrix(a0, b0, c0, a1, b1, c1, a2, b2, c2, 0.0f, 0.0f, 0.0f);
+    C34Matrix matrix(static_cast<C33Matrix>(*this).Transpose());
     matrix.Scale(1.0f / (uniformScale * uniformScale));
     matrix.Translate(NTempest::C3Vector(-d0, -d1, -d2));
     return matrix;
   }
 
-  C34Matrix C34Matrix::AffineInverse(const C3Vector &scale) const {
-    C3Vector  s(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z);
-    C33Matrix rotationScale(a0, a1, a2, b0, b1, b2, c0, c1, c2);
+  C34Matrix C34Matrix::AffineInverse(const C3Vector &nonUniformScale) const {
+    C3Vector  s(1.0f / nonUniformScale.x, 1.0f / nonUniformScale.y, 1.0f / nonUniformScale.z);
+    C33Matrix rotationScale = *this;
     rotationScale.Scale(s);
 
-    C34Matrix matrix(
-        rotationScale.a0, rotationScale.b0, rotationScale.c0, rotationScale.a1, rotationScale.b1, rotationScale.c1, rotationScale.a2,
-        rotationScale.b2, rotationScale.c2, 0.0f, 0.0f, 0.0f
-    );
+    C34Matrix matrix(rotationScale.Transpose());
     matrix.Scale(s);
     matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
@@ -243,31 +225,7 @@ namespace NTempest {
   }
 
   void C34Matrix::Rotate(const C4Quaternion &rotation) {
-    const float x2 = rotation.x + rotation.x;
-    const float y2 = rotation.y + rotation.y;
-    const float z2 = rotation.z + rotation.z;
-    const float xx = rotation.x * x2;
-    const float xy = rotation.x * y2;
-    const float xz = rotation.x * z2;
-    const float yy = rotation.y * y2;
-    const float yz = rotation.y * z2;
-    const float zz = rotation.z * z2;
-    const float xw = rotation.w * x2;
-    const float yw = rotation.w * y2;
-    const float zw = rotation.w * z2;
-
-    C34Matrix matrix;
-    matrix.a0 = 1.0f - (yy + zz);
-    matrix.a1 = xy + zw;
-    matrix.a2 = xz - yw;
-    matrix.b0 = xy - zw;
-    matrix.b1 = 1.0f - (xx + zz);
-    matrix.b2 = yz + xw;
-    matrix.c0 = xz + yw;
-    matrix.c1 = yz - xw;
-    matrix.c2 = 1.0f - (xx + yy);
-
-    *this = matrix * *this;
+    *this = C34Matrix(static_cast<C33Matrix>(rotation)) * *this;
   }
 
   void C34Matrix::Rotate(float angle, const C3Vector &axis, bool unit) {

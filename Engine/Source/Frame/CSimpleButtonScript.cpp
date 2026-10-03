@@ -1,5 +1,6 @@
 #include <Base/Base.h>
 
+#include "Frame/CSimpleTop.h"
 #include "Frame/CSimpleButton.h"
 #include "FrameXML/LoadXML.h"
 
@@ -7,30 +8,29 @@
 #include <lua.h>
 
 #define GET_SIMPLE_BUTTON_THIS(L, object)                         \
-  CSimpleButton *object = 0;                                      \
-  if (lua_type(L, 1) == LUA_TTABLE) {                             \
-    lua_rawgeti(L, 1, 0);                                         \
-    object = static_cast<CSimpleButton *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                \
-  } else {                                                        \
+  CSimpleButton *object;                                          \
+  if (lua_type(L, 1) != LUA_TTABLE) {                             \
     luaL_error(                                                   \
         L,                                                        \
         "Attempt to find 'this' in non-table object (used '.' "   \
         "instead of ':' ?)"                                       \
     );                                                            \
-  }                                                               \
-  ASSERT(object)
+    object = 0;                                                   \
+  } else {                                                        \
+    lua_rawgeti(L, 1, 0);                                         \
+    object = static_cast<CSimpleButton *>(lua_touserdata(L, -1)); \
+    lua_pop(L, 1);                                                \
+    ASSERT(object);                                               \
+  }
 
 static BOOL StringToButtonState(LPCSTR string, CSimpleButtonState &state) {
-  struct ButtonStateName {
-    LPCSTR             string;
+  struct {
     CSimpleButtonState state;
-  };
-
-  ButtonStateName array[3] = {
-      {"DISABLED", BUTTONSTATE_DISABLED},
-      {  "NORMAL",   BUTTONSTATE_NORMAL},
-      {  "PUSHED",   BUTTONSTATE_PUSHED}
+    LPCSTR             string;
+  } array[3] = {
+      {BUTTONSTATE_DISABLED, "DISABLED"},
+      {  BUTTONSTATE_NORMAL,   "NORMAL"},
+      {  BUTTONSTATE_PUSHED,   "PUSHED"}
   };
 
   for (UINT i = 0; i < 3; ++i) {
@@ -88,32 +88,34 @@ static int CSimpleButton_SetButtonState(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
   CSimpleButtonState state = BUTTONSTATE_DISABLED;
-  if (!lua_isstring(L, 2) || !StringToButtonState(lua_tostring(L, 2), state)) {
-    luaL_error(L, "Usage: SetButtonState(\"state\", lock)");
+  int                lock = 0;
+  if (lua_isstring(L, 2) && StringToButtonState(lua_tostring(L, 2), state)) {
+    if (lua_isnumber(L, 3)) {
+      lock = static_cast<int>(lua_tonumber(L, 3)) > 0;
+    } else if (lua_isstring(L, 3)) {
+      lock = StringToBOOL(lua_tostring(L, 3));
+    }
+
+    object->SetButtonState(state, lock);
+    return 0;
   }
 
-  int lock = 0;
-  if (lua_isnumber(L, 3)) {
-    lock = static_cast<int>(lua_tonumber(L, 3)) > 0;
-  } else if (lua_isstring(L, 3)) {
-    lock = StringToBOOL(lua_tostring(L, 3));
-  }
-
-  object->SetButtonState(state, lock);
+  luaL_error(L, "Usage: SetButtonState(\"state\", lock)");
   return 0;
 }
 
 static int CSimpleButton_SetText(lua_State *L) {
   GET_SIMPLE_BUTTON_THIS(L, object);
 
-  if (!lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: SetText(\"text\")");
+  if (lua_isstring(L, 2)) {
+    LPCSTR text = lua_tostring(L, 2);
+    object->SetTextString(text);
+    object->SetDisabledTextString(text);
+    object->SetHighlightTextString(text);
+    return 0;
   }
 
-  LPCSTR text = lua_tostring(L, 2);
-  object->SetTextString(text);
-  object->SetDisabledTextString(text);
-  object->SetHighlightTextString(text);
+  luaL_error(L, "Usage: SetText(\"text\")");
   return 0;
 }
 
@@ -228,7 +230,7 @@ static int CSimpleButton_GetTextWidth(lua_State *L) {
 
   CSimpleFontString *text = object->GetText();
   float              width = text ? text->GetWidth() : 0.0f;
-  lua_pushnumber(L, width * 1024.0f * 1.25f);
+  lua_pushnumber(L, 1.25f * (width * 1024.0f));
   return 1;
 }
 
@@ -237,15 +239,16 @@ static int CSimpleButton_GetTextHeight(lua_State *L) {
 
   CSimpleFontString *text = object->GetText();
   float              height = text ? text->GetHeight() : 0.0f;
-  lua_pushnumber(L, height * 1024.0f * 1.25f);
+  lua_pushnumber(L, 1.25f * (height * 1024.0f));
   return 1;
 }
 
 static int CSimpleButton_RegisterForClicks(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, button);
+  GET_SIMPLE_BUTTON_THIS(L, object);
 
-  UINT buttons = 0;
-  int  index = 2;
+  CSimpleButton *button = object;
+  UINT           buttons = 0;
+  int            index = 2;
   while (lua_isstring(L, index)) {
     LPCSTR click = lua_tostring(L, index);
 

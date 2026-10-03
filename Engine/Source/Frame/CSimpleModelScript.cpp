@@ -7,33 +7,35 @@
 #include <lua.h>
 
 #define GET_SIMPLE_MODEL_THIS(L, object)                         \
-  CSimpleModel *object = 0;                                      \
-  if (lua_type(L, 1) == LUA_TTABLE) {                            \
-    lua_rawgeti(L, 1, 0);                                        \
-    object = static_cast<CSimpleModel *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                               \
-  } else {                                                       \
+  CSimpleModel *object;                                          \
+  if (lua_type(L, 1) != LUA_TTABLE) {                            \
     luaL_error(                                                  \
         L,                                                       \
         "Attempt to find 'this' in non-table object (used '.' "  \
         "instead of ':' ?)"                                      \
     );                                                           \
-  }                                                              \
-  ASSERT(object)
-
-static int CSimpleModel_SetModel(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, model);
-
-  if (!lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: SetModel(\"file\")");
+    object = 0;                                                  \
+  } else {                                                       \
+    lua_rawgeti(L, 1, 0);                                        \
+    object = static_cast<CSimpleModel *>(lua_touserdata(L, -1)); \
+    lua_pop(L, 1);                                               \
+    ASSERT(object);                                              \
   }
 
-  LPCSTR filename = lua_tostring(L, 2);
-  model->SetModel(filename, 0, 0);
-  if (!model->GetModel()) {
-    char message[512];
-    SStrPrintf(message, sizeof(message), "Invalid model file: %s", filename);
-    luaL_error(L, message);
+static int CSimpleModel_SetModel(lua_State *L) {
+  GET_SIMPLE_MODEL_THIS(L, object);
+
+  if (lua_isstring(L, 2)) {
+    LPCSTR filename = lua_tostring(L, 2);
+    object->SetModel(filename, 0, 0);
+    if (!object->GetModel()) {
+      char message[512];
+      SStrPrintf(message, sizeof(message), "Invalid model file: %s", filename);
+      luaL_error(L, message);
+      return 0;
+    }
+  } else {
+    luaL_error(L, "Usage: SetModel(\"file\")");
   }
 
   return 0;
@@ -60,71 +62,79 @@ static int CSimpleModel_SetPosition(lua_State *L) {
 static int CSimpleModel_SetFacing(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetFacing(facing)");
+  if (lua_isnumber(L, 2)) {
+    object->SetFacing(static_cast<float>(lua_tonumber(L, 2)));
+    return 0;
   }
 
-  object->SetFacing(static_cast<float>(lua_tonumber(L, 2)));
+  luaL_error(L, "Usage: SetFacing(facing)");
   return 0;
 }
 
 static int CSimpleModel_SetScale(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetScale(scale)");
+  if (lua_isnumber(L, 2)) {
+    object->SetScale(static_cast<float>(lua_tonumber(L, 2)));
+    return 0;
   }
 
-  object->SetScale(static_cast<float>(lua_tonumber(L, 2)));
+  luaL_error(L, "Usage: SetScale(scale)");
   return 0;
 }
 
 static int CSimpleModel_SetSequence(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetSequence(sequence)");
+  if (lua_isnumber(L, 2)) {
+    object->SetSequence(static_cast<UINT>(lua_tonumber(L, 2)));
+    return 0;
   }
 
-  object->SetSequence(static_cast<UINT>(lua_tonumber(L, 2)));
+  luaL_error(L, "Usage: SetSequence(sequence)");
   return 0;
 }
 
 static int CSimpleModel_SetSequenceTime(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
-  if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
-    luaL_error(L, "Usage: SetSequenceTime(sequence, time)");
+  if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
+    object->SetSequenceTime(static_cast<UINT>(lua_tonumber(L, 2)), static_cast<int>(lua_tonumber(L, 3)));
+    return 0;
   }
 
-  object->SetSequenceTime(static_cast<UINT>(lua_tonumber(L, 2)), static_cast<int>(lua_tonumber(L, 3)));
+  luaL_error(L, "Usage: SetSequenceTime(sequence, time)");
   return 0;
 }
 
 static int CSimpleModel_SetAlpha(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetAlpha(alpha)");
+  if (lua_isnumber(L, 2)) {
+    object->SetAlpha(static_cast<BYTE>(lua_tonumber(L, 2)));
+    return 0;
   }
 
-  object->SetAlpha(static_cast<BYTE>(lua_tonumber(L, 2)));
+  luaL_error(L, "Usage: SetAlpha(alpha)");
   return 0;
 }
 
 static int CSimpleModel_SetCamera(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetCamera(index)");
+  if (lua_isnumber(L, 2)) {
+    object->SetCameraByIndex(static_cast<UINT>(lua_tonumber(L, 2)));
+    return 0;
   }
 
-  object->SetCameraByIndex(static_cast<UINT>(lua_tonumber(L, 2)));
+  luaL_error(L, "Usage: SetCamera(index)");
   return 0;
 }
 
 static int CSimpleModel_SetLight(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, model);
+  GET_SIMPLE_MODEL_THIS(L, object);
+
+  CSimpleModel *model = object;
 
   if (!lua_isnumber(L, 2)) {
     luaL_error(L, "Usage: SetLight(enabled[, omni, dirX, dirY, dirZ, ambIntensity[, ambR, ambG, ambB], dirIntensity[, dirR, dirG, dirB]])");
@@ -206,11 +216,12 @@ static int CSimpleModel_AdvanceTime(lua_State *L) {
 static int CSimpleModel_ReplaceIconTexture(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
-  if (!lua_isstring(L, 2)) {
-    luaL_error(L, "Usage: ReplaceIconTexture(\"texture\")");
+  if (lua_isstring(L, 2)) {
+    object->ReplaceTexture(14, lua_tostring(L, 2));
+    return 0;
   }
 
-  object->ReplaceTexture(14, lua_tostring(L, 2));
+  luaL_error(L, "Usage: ReplaceIconTexture(\"texture\")");
   return 0;
 }
 
@@ -235,22 +246,24 @@ static int CSimpleModel_SetFogColor(lua_State *L) {
 static int CSimpleModel_SetFogNear(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetFogNear(value)");
+  if (lua_isnumber(L, 2)) {
+    object->SetFogNear(static_cast<float>(lua_tonumber(L, 2)));
+    return 0;
   }
 
-  object->SetFogNear(static_cast<float>(lua_tonumber(L, 2)));
+  luaL_error(L, "Usage: SetFogNear(value)");
   return 0;
 }
 
 static int CSimpleModel_SetFogFar(lua_State *L) {
   GET_SIMPLE_MODEL_THIS(L, object);
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetFogFar(value)");
+  if (lua_isnumber(L, 2)) {
+    object->SetFogFar(static_cast<float>(lua_tonumber(L, 2)));
+    return 0;
   }
 
-  object->SetFogFar(static_cast<float>(lua_tonumber(L, 2)));
+  luaL_error(L, "Usage: SetFogFar(value)");
   return 0;
 }
 

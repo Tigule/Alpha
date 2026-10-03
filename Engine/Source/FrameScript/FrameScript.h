@@ -44,7 +44,14 @@ class FrameScript_Object {
   void         UnregisterScriptEvent(LPCSTR name);
   void         UnregisterAllScriptEvents();
   void         SetEventScript(int &script, LPCSTR source, LPCSTR description);
-  void         SetOnEventScript(LPCSTR source);
+
+  void SetOnEventScript(LPCSTR source) {
+    char description[1024];
+
+    SStrPrintf(description, sizeof(description), "%s:OnEvent", GetName());
+    SetEventScript(m_onEvent, source, description);
+  }
+
   void         OnScriptEvent(LPCSTR name);
   void __cdecl OnScriptEvent(LPCSTR name, LPCSTR format, char *arguments);
 

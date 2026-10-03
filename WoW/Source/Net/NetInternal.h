@@ -21,21 +21,23 @@ NODEDECL(NETEVENTQUEUENODE) {
 class NETEVENTQUEUE {
   friend class NetClient;
 
- private:
+  NetClient *m_client;
+  SCritSect  m_critsect;
+  LISTDECL(NETEVENTQUEUENODE, m_eventQueue);
+
   NETEVENTQUEUE(const NETEVENTQUEUE &queue);
-  NETEVENTQUEUE &operator=(const NETEVENTQUEUE &queue);
 
  public:
   NETEVENTQUEUE(NetClient *client);
+
+ private:
+  NETEVENTQUEUE &operator=(const NETEVENTQUEUE &queue);
+
+ public:
   ~NETEVENTQUEUE();
 
   void AddEvent(EVENTID eventId, LPVOID conn, NetClient *client, LPCVOID data, DWORD bytes);
   void Poll();
-
- private:
-  NetClient *m_client;
-  SCritSect  m_critsect;
-  LISTDECL(NETEVENTQUEUENODE, m_eventQueue);
 };
 
 #endif

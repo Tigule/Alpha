@@ -37,29 +37,29 @@ struct CHARINFO {
 };
 
 class CCharSelectInfo {
+  friend class CGlueMgr;
+
  public:
+  static void            Initialize();
+  static void            Shutdown();
+  static void            SetModelFrame(CSimpleModel *frame);
+  static void            SetBackgroundModel(LPCSTR filename);
   static void            ClearCharacterModel();
-  static void            ClearCharacterList();
   static void            ClearPetModel();
+  static void            UpdateCharacterList();
+  static void            ClearCharacterList();
+  static void            SelectCharacter(int index);
   static int             GetNumCharacters();
   static int             GetSelectionIndex();
   static CHARACTER_INFO *GetSelectedCharacterInfo();
   static void            GuildCallback(int guildID, const DWORDLONG &guid, LPVOID arg, bool granted);
-  static void            Initialize();
-  static void            SelectCharacter(int index);
-  static void            SetBackgroundModel(LPCSTR filename);
-  static void            SetModelFrame(CSimpleModel *frame);
-  static void            Shutdown();
-  static void            UpdateCharacterList();
 
  protected:
+  static void UpdateCharacterInfo();
   static void ChangeSkinTexture();
   static void EnumerateCharactersCallback(CHARACTER_INFO &info, LPVOID);
-  static void UpdateCharacterInfo();
 
  private:
-  friend class CGlueMgr;
-
   static int           m_selectionIndex;
   static CSimpleModel *m_modelFrame;
 };

@@ -37,7 +37,6 @@ static LISTDECLEX(CILayer, zorderlink, s_zorderlist);
 static BOOL CaptureScreen() {
   char                       path[0x104];
   char                       timestamp[0x104];
-  CTgaFile                   tga;
   UINT                       w;
   UINT                       h;
   const NTempest::CImVector *pixels;
@@ -48,9 +47,9 @@ static BOOL CaptureScreen() {
     OsCreateDirectory("Screenshots", 0);
     OsGetTimeStamp(timestamp, sizeof(timestamp));
     SStrPrintf(path, sizeof(path), "%s\\WoWScrnShot_%s.tga", "Screenshots", timestamp);
+    CTgaFile tga;
     tga.SetImage(pixels, w, h, 0x20, 8, 1, 0);
     tga.Write(path);
-    tga.Close();
   }
 
   return pixels != 0;

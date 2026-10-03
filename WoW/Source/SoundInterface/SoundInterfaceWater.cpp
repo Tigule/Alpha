@@ -1,8 +1,13 @@
 #include <Base/Base.h>
-#include <WowConst.h>
-#include <MapDefs.h>
-
 #include "SoundInterface/SoundInterface.h"
+#include <Gx/Gx.h>
+#include <WowConst.h>
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include <MapDefs.h>
+#include "WorldClient/World.h"
+
 #include "SoundInterface/ISoundInterface.h"
 
 #include "Console/ConsoleVar.h"
@@ -10,9 +15,7 @@
 #include "DB/DBClient/AutoCode/SoundEntriesRec.h"
 #include "DB/DBClient/AutoCode/SoundWaterTypeRec.h"
 #include "Event/EvtApi.h"
-#include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Object/ObjectClient/Object_C.h"
-#include "WorldClient/World.h"
 
 #include <Os/W32/OsSound.h>
 #include <Tempest/c3vector.h>
@@ -60,16 +63,16 @@ struct LIQUIDINFO {
   const LIQUIDINFO &operator=(const LIQUIDINFO &rhs);
 };
 
+static const float FADEINTIME = 5.0f;
+static const float FADEOUTTIME = 5.0f;
+static const float PANNING_DIST = 100.0f;
+static const float PANNING_DIST_SQUARED = PANNING_DIST * PANNING_DIST;
 static LIQUIDINFO s_liquidInfo[4];
 static int        s_flags;
 static float      s_volume;
 static int        s_paused = -1;
 static int        s_elapsed;
 static CVar      *s_cvar;
-static const float FADEINTIME = 5.0f;
-static const float FADEOUTTIME = 5.0f;
-static const float PANNING_DIST = 100.0f;
-static const float PANNING_DIST_SQUARED = PANNING_DIST * PANNING_DIST;
 
 void LIQUIDINFO::StopSound(int immediate) {
   if (m_sound) {
@@ -86,7 +89,7 @@ static void ClearAllSounds(int immediate) {
 
 static bool ToggleCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   if (!SStrToInt(newValue)) {
-    ClearAllSounds(0);
+    ClearAllSounds(1);
   }
   return 1;
 }

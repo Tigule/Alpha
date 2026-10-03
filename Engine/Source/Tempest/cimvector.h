@@ -27,8 +27,12 @@ namespace NTempest {
     void        ScaleRGB_(DWORD scale);
     static BYTE ScaleC255(DWORD value, DWORD scale);
 
-    void Scale255_(DWORD scale) {
-      Set(0, static_cast<BYTE>((scale * r + 255) >> 8), static_cast<BYTE>((scale * g + 255) >> 8), static_cast<BYTE>((scale * b + 255) >> 8));
+    void Scale255_(DWORD a) {
+      DWORD dr;
+      DWORD dg;
+      DWORD db;
+      Get(dr, dg, db);
+      Set(0, static_cast<BYTE>((a * dr + 255) >> 8), static_cast<BYTE>((a * dg + 255) >> 8), static_cast<BYTE>((a * db + 255) >> 8));
     }
 
     void        Scale255RGB_(DWORD scale);
@@ -41,7 +45,10 @@ namespace NTempest {
       Set(d.a, static_cast<BYTE>((sa.r * d.r + 255) >> 8), static_cast<BYTE>((sa.g * d.g + 255) >> 8), static_cast<BYTE>((sa.b * d.b + 255) >> 8));
     }
 
-    static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination);
+    static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination) {
+      return static_cast<BYTE>(destination + ((alpha * (source - destination)) >> 8));
+    }
+
     void        Blend_(DWORD alpha, const CImVector *source);
 
     void BlendRGB_(DWORD alpha, const CImVector *source) {
@@ -59,10 +66,15 @@ namespace NTempest {
         return;
       }
 
-      CImVector destination(*this);
-      Set(0, static_cast<BYTE>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
-          static_cast<BYTE>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
-          static_cast<BYTE>(destination.b + ((alpha * (source->b - destination.b)) >> 8)));
+      DWORD dr;
+      DWORD dg;
+      DWORD db;
+      Get(dr, dg, db);
+      DWORD sr;
+      DWORD sg;
+      DWORD sb;
+      source->Get(sr, sg, sb);
+      Set(0, BlendC(alpha, sr, dr), BlendC(alpha, sg, dg), BlendC(alpha, sb, db));
     }
 
     void BlendRGB255_(DWORD alpha, const CImVector *source) {
@@ -71,10 +83,16 @@ namespace NTempest {
         return;
       }
 
-      CImVector destination(*this);
-      Set(destination.a, static_cast<BYTE>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
-          static_cast<BYTE>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
-          static_cast<BYTE>(destination.b + ((alpha * (source->b - destination.b)) >> 8)));
+      DWORD dr;
+      DWORD dg;
+      DWORD db;
+      DWORD d = *IV_();
+      Get_(d, dr, dg, db);
+      DWORD sr;
+      DWORD sg;
+      DWORD sb;
+      source->Get(sr, sg, sb);
+      *IV_() = MakeRGB(BlendC(alpha, sr, dr), BlendC(alpha, sg, dg), BlendC(alpha, sb, db)) | (d & eAlphaMask);
     }
 
    public:
@@ -125,16 +143,37 @@ namespace NTempest {
       return (static_cast<DWORD>(alpha) << 24) | (static_cast<DWORD>(red) << 16) | (static_cast<DWORD>(green) << 8) | static_cast<DWORD>(blue);
     }
 
-    static DWORD MakeRGB(BYTE red, BYTE green, BYTE blue);
+    static DWORD MakeRGB(BYTE red, BYTE green, BYTE blue) {
+      return (static_cast<DWORD>(red) << 16) | (static_cast<DWORD>(green) << 8) | static_cast<DWORD>(blue);
+    }
+
     static DWORD A_(DWORD value);
     DWORD        A_() const;
-    static DWORD R_(DWORD value);
+
+    static DWORD R_(DWORD value) {
+      return (value >> eRedS) & 0xFF;
+    }
+
     DWORD        R_() const;
-    static DWORD G_(DWORD value);
+
+    static DWORD G_(DWORD value) {
+      return (value >> eGreenS) & 0xFF;
+    }
+
     DWORD        G_() const;
-    static DWORD B_(DWORD value);
+
+    static DWORD B_(DWORD value) {
+      return value & 0xFF;
+    }
+
     DWORD        B_() const;
-    static void  Get_(DWORD value, DWORD &red, DWORD &green, DWORD &blue);
+
+    static void Get_(DWORD value, DWORD &red, DWORD &green, DWORD &blue) {
+      red = R_(value);
+      green = G_(value);
+      blue = B_(value);
+    }
+
     static void  Get_(DWORD value, DWORD &alpha, DWORD &red, DWORD &green, DWORD &blue);
     static void  Get_(DWORD value, float &alpha, float &red, float &green, float &blue);
     static DWORD Neg(DWORD value);
@@ -158,7 +197,10 @@ namespace NTempest {
     }
 
     DWORD Get() const;
-    void  Get(DWORD &red, DWORD &green, DWORD &blue) const;
+    void Get(DWORD &red, DWORD &green, DWORD &blue) const {
+      Get_(*IV_(), red, green, blue);
+    }
+
     void  Get(DWORD &alpha, DWORD &red, DWORD &green, DWORD &blue) const;
     void  Get(float &alpha, float &red, float &green, float &blue) const;
     DWORD GetRGB() const;
@@ -200,11 +242,15 @@ namespace NTempest {
     void  FromARGB(BYTE alpha, const CImVector &rgb);
 
     DWORD operator~() const;
-          operator DWORD() const;
+    operator DWORD() const {
+      return *IV_();
+    }
 
     void Scale(DWORD scale);
     void ScaleRGB(DWORD scale);
-    void Scale255(DWORD scale);
+    void Scale255(DWORD scale) {
+      Scale255_(scale);
+    }
     void Scale255RGB(DWORD scale);
     void ScaleA(DWORD scale);
     void ScaleA255(DWORD scale);
@@ -225,11 +271,27 @@ namespace NTempest {
 
     void BlendARGB(DWORD alpha, const CImVector *source);
     void BlendARGB(DWORD alpha, DWORD source);
-    void Blend255(DWORD alpha, const CImVector *source);
-    void Blend255(DWORD alpha, DWORD source);
+    void Blend255(DWORD alpha, const CImVector *source) {
+      if (alpha) {
+        Blend255_(alpha, source);
+      }
+    }
 
-    void Blend255RGB(DWORD alpha, const CImVector *source);
-    void Blend255RGB(DWORD alpha, DWORD source);
+    void Blend255(DWORD alpha, DWORD source) {
+      CImVector s(source);
+      Blend255(alpha, &s);
+    }
+
+    void Blend255RGB(DWORD alpha, const CImVector *source) {
+      if (alpha) {
+        BlendRGB255_(alpha, source);
+      }
+    }
+
+    void Blend255RGB(DWORD alpha, DWORD source) {
+      CImVector s(source);
+      Blend255RGB(alpha, &s);
+    }
 
     CImVector &operator=(const CImVector &c) {
       *IV_() = *c.IV_();

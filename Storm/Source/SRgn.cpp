@@ -231,41 +231,24 @@ static void FindSourceParams(RGN *rgnptr, const RECTF *rect) {
 }
 
 static void FragmentCombinedRectangles(TSGrowableArray<RECTF> *combinedarray, DWORD firstindex, DWORD lastindex, const RECTF *rect) {
-  RECTF newrect[4];
+  for (DWORD index = firstindex; index < lastindex; ++index) {
+    RECTF *existing = &(*combinedarray)[index];
 
-  for (; firstindex < lastindex; ++firstindex) {
-    RECTF *existing = &(*combinedarray)[firstindex];
+    if (CheckForIntersection(rect, existing)) {
+      RECTF newrect[4] = {
+          {rect->left, rect->bottom, rect->right, existing->bottom},
+          {rect->left, existing->top, rect->right, rect->top},
+          {rect->left, max(rect->bottom, existing->bottom), existing->left, min(rect->top, existing->top)},
+          {existing->right, max(rect->bottom, existing->bottom), rect->right, min(rect->top, existing->top)}
+      };
 
-    if (!CheckForIntersection(rect, existing)) {
-      continue;
-    }
-
-    newrect[0].left = rect->left;
-    newrect[0].bottom = rect->bottom;
-    newrect[0].right = rect->right;
-    newrect[0].top = existing->bottom;
-
-    newrect[1].left = rect->left;
-    newrect[1].bottom = existing->top;
-    newrect[1].right = rect->right;
-    newrect[1].top = rect->top;
-
-    newrect[2].left = rect->left;
-    newrect[2].bottom = max(rect->bottom, existing->bottom);
-    newrect[2].right = existing->left;
-    newrect[2].top = min(rect->top, existing->top);
-
-    newrect[3].left = existing->right;
-    newrect[3].bottom = max(rect->bottom, existing->bottom);
-    newrect[3].right = rect->right;
-    newrect[3].top = min(rect->top, existing->top);
-
-    for (DWORD loop = 0; loop < 4; ++loop) {
-      if (!IsNullRect(&newrect[loop])) {
-        FragmentCombinedRectangles(combinedarray, firstindex + 1, lastindex, &newrect[loop]);
+      for (DWORD loop = 0; loop < 4; ++loop) {
+        if (!IsNullRect(&newrect[loop])) {
+          FragmentCombinedRectangles(combinedarray, index + 1, lastindex, &newrect[loop]);
+        }
       }
+      return;
     }
-    return;
   }
 
   AddCombinedRect(combinedarray, rect);
@@ -581,15 +564,17 @@ extern "C" void APIENTRY SRgnDuplicate(HSRGN orighandle, HSRGN *handle, DWORD re
   VALIDATE(!reserved);
   VALIDATEENDVOID;
 
-  original = s_rgntable.Lock(orighandle, reinterpret_cast<HLOCKEDRGN *>(&orighandle), 0);
-  if (!original) {
-    return;
-  }
+  HLOCKEDRGN origlockedhandle;
 
-  copy = s_rgntable.NewLock(handle, reinterpret_cast<HLOCKEDRGN *>(&handle));
-  *copy = *original;
-  s_rgntable.Unlock(reinterpret_cast<HLOCKEDRGN>(handle));
-  s_rgntable.Unlock(reinterpret_cast<HLOCKEDRGN>(orighandle));
+  original = s_rgntable.Lock(orighandle, &origlockedhandle, 0);
+  if (original) {
+    HLOCKEDRGN lockedhandle;
+
+    copy = s_rgntable.NewLock(handle, &lockedhandle);
+    *copy = *original;
+    s_rgntable.Unlock(lockedhandle);
+    s_rgntable.Unlock(origlockedhandle);
+  }
 }
 
 extern "C" void APIENTRY SRgnGetBoundingRectf(HSRGN handle, RECTF *rect) {
@@ -597,6 +582,7 @@ extern "C" void APIENTRY SRgnGetBoundingRectf(HSRGN handle, RECTF *rect) {
   RGN          *rgnptr;
   SRGNSOURCEPTR source;
   DWORD         count;
+  DWORD         loop;
 
   VALIDATEBEGIN;
   VALIDATE(handle);
@@ -612,24 +598,19 @@ extern "C" void APIENTRY SRgnGetBoundingRectf(HSRGN handle, RECTF *rect) {
   if (rgnptr) {
     source = rgnptr->source.Ptr();
     count = rgnptr->source.NumElements();
-    while (count) {
-      if (!(source->flags & SRGN_SOURCE_PARAMONLY)) {
-        rect->left = min(rect->left, source->rect.left);
-        rect->bottom = min(rect->bottom, source->rect.bottom);
-        rect->right = max(rect->right, source->rect.right);
-        rect->top = max(rect->top, source->rect.top);
+    for (loop = 0; loop < count; ++loop) {
+      if (!(source[loop].flags & SRGN_SOURCE_PARAMONLY)) {
+        rect->left = min(rect->left, source[loop].rect.left);
+        rect->bottom = min(rect->bottom, source[loop].rect.bottom);
+        rect->right = max(rect->right, source[loop].rect.right);
+        rect->top = max(rect->top, source[loop].rect.top);
       }
-      ++source;
-      --count;
     }
     s_rgntable.Unlock(lockedhandle);
-  }
 
-  if (IsNullRect(rect)) {
-    rect->left = 0.0F;
-    rect->bottom = 0.0F;
-    rect->right = 0.0F;
-    rect->top = 0.0F;
+    if (IsNullRect(rect)) {
+      memset(rect, 0, sizeof(RECTF));
+    }
   }
 }
 
@@ -769,23 +750,25 @@ extern "C" BOOL APIENTRY SRgnIsPointInRegionf(HSRGN handle, float x, float y) {
   VALIDATE(handle);
   VALIDATEEND;
 
-  result = FALSE;
   rgnptr = s_rgntable.Lock(handle, &lockedhandle, 0);
-  if (rgnptr) {
-    sourcearray = rgnptr->source.Ptr();
-    count = rgnptr->source.NumElements();
-    for (loop = 0; loop < count; ++loop) {
-      SRGNSOURCEPTR source = &sourcearray[loop];
-
-      if (!(source->flags & SRGN_SOURCE_PARAMONLY) && x >= source->rect.left && y >= source->rect.bottom && x < source->rect.right &&
-          y < source->rect.top)
-      {
-        result = TRUE;
-        break;
-      }
-    }
-    s_rgntable.Unlock(lockedhandle);
+  if (!rgnptr) {
+    return FALSE;
   }
+
+  result = FALSE;
+  sourcearray = rgnptr->source.Ptr();
+  count = rgnptr->source.NumElements();
+  for (loop = 0; loop < count; ++loop) {
+    SRGNSOURCEPTR source = &sourcearray[loop];
+
+    if (!(source->flags & SRGN_SOURCE_PARAMONLY) && x >= source->rect.left && y >= source->rect.bottom && x < source->rect.right &&
+        y < source->rect.top)
+    {
+      result = TRUE;
+      break;
+    }
+  }
+  s_rgntable.Unlock(lockedhandle);
   return result;
 }
 
@@ -807,20 +790,21 @@ extern "C" BOOL APIENTRY SRgnIsRectInRegionf(HSRGN handle, const RECTF *rect) {
   VALIDATEEND;
 
   rgnptr = s_rgntable.Lock(handle, &lockedhandle, 0);
-  if (rgnptr) {
-    result = FALSE;
-    source = rgnptr->source.Ptr();
-    count = rgnptr->source.NumElements();
-    for (loop = 0; loop < count; ++loop) {
-      if (!(source[loop].flags & SRGN_SOURCE_PARAMONLY) && CheckForIntersection(rect, &source[loop].rect)) {
-        result = TRUE;
-        break;
-      }
-    }
-    s_rgntable.Unlock(lockedhandle);
-    return result;
+  if (!rgnptr) {
+    return FALSE;
   }
-  return FALSE;
+
+  result = FALSE;
+  source = rgnptr->source.Ptr();
+  count = rgnptr->source.NumElements();
+  for (loop = 0; loop < count; ++loop) {
+    if (!(source[loop].flags & SRGN_SOURCE_PARAMONLY) && CheckForIntersection(rect, &source[loop].rect)) {
+      result = TRUE;
+      break;
+    }
+  }
+  s_rgntable.Unlock(lockedhandle);
+  return result;
 }
 
 extern "C" BOOL APIENTRY SRgnIsRectInRegioni(HSRGN handle, const RECT *rect) {
@@ -842,6 +826,7 @@ extern "C" void APIENTRY SRgnOffsetf(HSRGN handle, float xoffset, float yoffset)
   RGN          *rgnptr;
   SRGNSOURCEPTR source;
   DWORD         count;
+  DWORD         loop;
 
   VALIDATEBEGIN;
   VALIDATE(handle);
@@ -851,13 +836,11 @@ extern "C" void APIENTRY SRgnOffsetf(HSRGN handle, float xoffset, float yoffset)
   if (rgnptr) {
     source = rgnptr->source.Ptr();
     count = rgnptr->source.NumElements();
-    while (count) {
-      source->rect.left += xoffset;
-      source->rect.bottom += yoffset;
-      source->rect.right += xoffset;
-      source->rect.top += yoffset;
-      source++;
-      count--;
+    for (loop = 0; loop < count; ++loop) {
+      source[loop].rect.left += xoffset;
+      source[loop].rect.bottom += yoffset;
+      source[loop].rect.right += xoffset;
+      source[loop].rect.top += yoffset;
     }
     InvalidateRegion(rgnptr);
     s_rgntable.Unlock(lockedhandle);

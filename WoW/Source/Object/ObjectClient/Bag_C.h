@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Ui/GameUI.h"
-
 class CGItem_C;
+enum GAME_ERROR_TYPE;
 
 enum BAG_RESULT {
   BAG_OK = 0,
@@ -76,7 +75,7 @@ class CGBag {
   }
   int GetIndexOfObject(DWORDLONG guid) const {
     for (UINT index = 0; index < NumSlots(); ++index) {
-      if (GetItem(index) == guid) {
+      if (m_slots[index] == guid) {
         return index;
       }
     }
@@ -115,14 +114,14 @@ class CGBag_C : public CGBag {
   ~CGBag_C() {
   }
 
-  int                    GetItemTypeCount(int entryID, UINT flags) const;
   int                    GetWidth(UINT offset) const;
   int                    GetHeight(UINT offset) const;
-  static GAME_ERROR_TYPE GetGameError(BAG_RESULT result);
-  CGItem_C              *FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param, UINT flags) const;
+  int                    GetItemTypeCount(int entryID, UINT flags) const;
   CGItem_C              *FindItemOfType(int entryID, UINT flags) const;
   CGItem_C              *FindItemOfType(int entryID, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
   CGItem_C              *FindItemOfClass(int classID, int subclassMask, UINT flags) const;
   CGItem_C              *FindItemOfClass(int classID, int subclassMask, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
+  CGItem_C              *FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param, UINT flags) const;
   CGItem_C              *FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param, DWORDLONG &bagGUID, UINT &slot, UINT flags) const;
+  static GAME_ERROR_TYPE GetGameError(BAG_RESULT result);
 };

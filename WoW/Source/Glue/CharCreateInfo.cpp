@@ -1,4 +1,15 @@
+#include <Base/Base.h>
 #include <WowConst.h>
+#include "Glue/CGlueMgr.h"
+#include <Frame/CSimpleFrame.h>
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include "Glue/CharCreateInfo.h"
+#include "Glue/CharSelectInfo.h"
+#include <Frame/CSimpleTop.h>
+#include <Frame/CSimpleModel.h>
+#include "SoundInterface/SoundInterface.h"
+#include <Gx/CGxDevice.h>
+#include "Object/ObjectClient/Unit_C.h"
 
 #include "Glue/CharCreateInfo.h"
 
@@ -20,13 +31,11 @@
 #include "Base/Status.h"
 #include "Component/CharacterCustomization.h"
 #include "Component/Component.h"
-#include "Object/ObjectClient/Object_C.h"
-#include "Object/ObjectClient/Player_C.h"
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Tempest/cmath.h"
 #include "Tempest/crandom.h"
+#include "Object/ObjectClient/Object_C.h"
+#include "Object/ObjectClient/Player_C.h"
 
 #include <string.h>
 #include <math.h>
@@ -110,12 +119,13 @@ static FrameScript_Method s_ScriptFunctions[20] = {
 };
 
 void CHARCREATEINFO::UpdateOutfit(int increment, UINT race, UINT sex) {
-  FATALASSERT(increment <= 1 && increment >= -1);
-  FATALASSERT(sex < 2);
+  FATALASSERT((increment <= 1 ) && (increment >= -1));
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
 
-  UINT numOutfits = CCharCreateInfo::GetNumOutfits(race, selections[sex].classID, sex);
+  CustomizationSelections &selection = selections[sex];
+  UINT                     numOutfits = CCharCreateInfo::GetNumOutfits(race, selection.classID, sex);
   if (numOutfits) {
-    selections[sex].outfit = (increment + numOutfits + selections[sex].outfit) % numOutfits;
+    selection.outfit = (increment + numOutfits + selection.outfit) % numOutfits;
     ChangeFaceTexture(race, sex);
     ChangeFacialHairTexture(race, sex);
     ChangeScalpHairTexture(race, sex);
@@ -123,13 +133,14 @@ void CHARCREATEINFO::UpdateOutfit(int increment, UINT race, UINT sex) {
 }
 
 void CHARCREATEINFO::ResetOutfitSelection(UINT raceID, UINT sex) {
-  FATALASSERT(sex < 2);
+  FATALASSERT(sex < MAX_PLAYER_SEXES);
 
-  UINT numOutfits = CCharCreateInfo::GetNumOutfits(raceID, selections[sex].classID, sex);
+  CustomizationSelections &selection = selections[sex];
+  UINT                     numOutfits = CCharCreateInfo::GetNumOutfits(raceID, selection.classID, sex);
   if (numOutfits) {
-    selections[sex].outfit %= numOutfits;
+    selection.outfit %= numOutfits;
   } else {
-    selections[sex].outfit = 0;
+    selection.outfit = 0;
   }
 }
 
@@ -157,7 +168,7 @@ void CHARCREATEINFO::FindRange(UINT group, UINT *start, UINT *end) {
 }
 
 void CHARCREATEINFO::CommitTexture(int race, int sex) {
-  if (sex < 2) {
+  if (sex < MAX_PLAYER_SEXES) {
     char    errorString[512];
     CStatus status;
     TexComponentCommitSections(&status, characterComponent[sex], 1);
@@ -302,7 +313,8 @@ void CCharCreateInfo::SetCharFacing(float facing) {
 
   HMODEL model = m_charCustomizeFrame ? m_charCustomizeFrame->GetModel() : 0;
   if (model) {
-    NTempest::C3Vector facingVector(cos(facing), sin(facing), 0.0f);
+    NTempest::C3Vector facingVector;
+    NTempest::CMath::sincos_(facing, facingVector.y, facingVector.x);
     ModelApplyObjectFaceDir(model, 0, facingVector);
   }
 }
@@ -746,19 +758,21 @@ UINT CCharCreateInfo::GetNumCharCustomizations(UINT index) {
   switch (index) {
     case 0:
       CharCustomizationGetNumSkinTextures(race, m_selectedSex, &numVariations, 0);
-      return numVariations;
+      break;
     case 1:
       CharCustomizationNumFaces(race, m_selectedSex, &numVariations, 0);
-      return numVariations;
+      break;
     case 2:
-      return CharCustomizationNumHairStyles(race, m_selectedSex);
+      numVariations = CharCustomizationNumHairStyles(race, m_selectedSex);
+      break;
     case 3:
-      return CharCustomizationNumHairColors(race, m_selectedSex);
+      numVariations = CharCustomizationNumHairColors(race, m_selectedSex);
+      break;
     case 4:
-      return CharCustomizationNumBeardStyles(race, m_selectedSex);
+      numVariations = CharCustomizationNumBeardStyles(race, m_selectedSex);
+      break;
   }
-
-  return 0;
+  return numVariations;
 }
 
 void CCharCreateInfo::CycleCharCustomization(UINT index, int delta) {
@@ -1004,7 +1018,8 @@ static int Script_SetSelectedRace(lua_State *L) {
     luaL_error(L, "Usage: SetSelectedRace(index)");
     return 0;
   }
-  CCharCreateInfo::SetSelectedRace(static_cast<UINT>(lua_tonumber(L, 1)) - 1, 0);
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  CCharCreateInfo::SetSelectedRace(index, 0);
   return 0;
 }
 
@@ -1013,7 +1028,8 @@ static int Script_SetSelectedSex(lua_State *L) {
     luaL_error(L, "Usage: SetSelectedSex(index)");
     return 0;
   }
-  CCharCreateInfo::SetSelectedSex(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  CCharCreateInfo::SetSelectedSex(index);
   return 0;
 }
 
@@ -1022,7 +1038,8 @@ static int Script_SetSelectedClass(lua_State *L) {
     luaL_error(L, "Usage: SetSelectedClass(index)");
     return 0;
   }
-  CCharCreateInfo::SetSelectedClass(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  CCharCreateInfo::SetSelectedClass(index);
   return 0;
 }
 
@@ -1037,7 +1054,8 @@ static int Script_HasCharCustomization(lua_State *L) {
     return 0;
   }
 
-  if (CCharCreateInfo::GetNumCharCustomizations(static_cast<UINT>(lua_tonumber(L, 1)) - 1) > 1) {
+  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  if (CCharCreateInfo::GetNumCharCustomizations(index) > 1) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);
@@ -1046,11 +1064,13 @@ static int Script_HasCharCustomization(lua_State *L) {
 }
 
 static int Script_CycleCharCustomization(lua_State *L) {
-  if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: CycleCharCustomization(index, delta)");
+  if (lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
+    int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    int delta = static_cast<int>(lua_tonumber(L, 2));
+    CCharCreateInfo::CycleCharCustomization(index, delta);
     return 0;
   }
-  CCharCreateInfo::CycleCharCustomization(static_cast<int>(lua_tonumber(L, 1)) - 1, static_cast<int>(lua_tonumber(L, 2)));
+  luaL_error(L, "Usage: CycleCharCustomization(index, delta)");
   return 0;
 }
 
@@ -1074,6 +1094,9 @@ static int Script_SetCharacterFacing(lua_State *L) {
 }
 
 static int Script_CreateCharacter(lua_State *L) {
+  if (lua_isstring(L, 1)) {
+    lua_tostring(L, 1);
+  }
   CCharCreateInfo::CreateCharacter(lua_tostring(L, 1));
   return 0;
 }

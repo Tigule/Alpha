@@ -1,6 +1,9 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <BLPFile/blp.h>
 
 #include "Services/ParticleSystem.h"
+#include "Services/ParticleSystem2.h"
 
 #include "Anim/WorldMatrix.h"
 #include "Base/Activity.h"
@@ -213,10 +216,10 @@ void CParticleEmitter::AddToModelScene() {
   ActivityBegin(ACTIVITY_PARTICLE);
   UINT numAlive = m_alive.Count();
   for (UINT loop = 0; loop < numAlive; ++loop) {
-    CParticle &particle = m_particles[m_alive[loop]];
-    ASSERT(particle.m_timeToLive >= 0.0f);
-    if (particle.m_timeToLive != 0.0f) {
-      ModelAddToScene(particle.m_hmodel, 0);
+    CParticle &p = m_particles[m_alive[loop]];
+    ASSERT(p.m_timeToLive >= 0);
+    if (p.m_timeToLive != 0.0f) {
+      ModelAddToScene(p.m_hmodel, 0);
     }
   }
   ActivityEnd(ACTIVITY_PARTICLE);
@@ -226,10 +229,10 @@ void CParticleEmitter::Render() {
   ActivityBegin(ACTIVITY_PARTICLE);
   UINT numAlive = m_alive.Count();
   for (UINT loop = 0; loop < numAlive; ++loop) {
-    CParticle &particle = m_particles[m_alive[loop]];
-    ASSERT(particle.m_timeToLive >= 0.0f);
-    if (particle.m_timeToLive != 0.0f) {
-      ModelRender(particle.m_hmodel, 0, 0);
+    CParticle &p = m_particles[m_alive[loop]];
+    ASSERT(p.m_timeToLive >= 0);
+    if (p.m_timeToLive != 0.0f) {
+      ModelRender(p.m_hmodel, 0, 0);
     }
   }
   ActivityEnd(ACTIVITY_PARTICLE);
@@ -238,10 +241,10 @@ void CParticleEmitter::Render() {
 void CParticleEmitter::Flush() {
   UINT count = m_particles.Count();
   while (count) {
-    CParticle &particle = m_particles[--count];
-    ASSERT(particle.m_timeToLive >= 0.0f);
-    if (particle.m_timeToLive != 0.0f) {
-      DestroyParticle(particle);
+    CParticle &p = m_particles[--count];
+    ASSERT(p.m_timeToLive >= 0);
+    if (p.m_timeToLive != 0.0f) {
+      DestroyParticle(p);
     }
   }
 }

@@ -88,8 +88,8 @@ static WORD WindowClassCreate() {
 
 static HWND WindowCreate(CGxDeviceD3d *dev, const CGxFormat &format) {
   HINSTANCE instance = GetModuleHandleA(0);
-  CGxFormat fmt = format;
   DWORD style = format.window ? WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_POPUP | WS_SYSMENU | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+  CGxFormat fmt = format;
 
   if (!fmt.size.x) {
     fmt.size.x = CW_USEDEFAULT;
@@ -273,14 +273,14 @@ BOOL CGxDeviceD3d::ICheckTextureFormat(DWORD usage, _D3DFORMAT textureFormat) {
 }
 
 BOOL CGxDeviceD3d::IAllocBuffers() {
-  for (UINT format = 0; format < GxVertexBufferFormats_Last; ++format) {
+  for (UINT format = 0; format != GxVertexBufferFormats_Last; ++format) {
     ICreateBuffers(static_cast<EGxVertexBufferFormat>(format), 0x4000, m_VBL[GxBWF_Dynamic][format], 0xC000, m_IB[GxBWF_Dynamic][0]);
 
     if (!m_VBL[GxBWF_Dynamic][format].m_vbList.Count() || !m_IB[GxBWF_Dynamic][0]) {
       return 0;
     }
 
-    for (UINT frequency = GxBWF_Low; frequency <= GxBWF_Medium; ++frequency) {
+    for (int frequency = GxBWF_Low; frequency <= GxBWF_Medium; ++frequency) {
       BufReserve(
           static_cast<EGxBufWriteFreq>(frequency), static_cast<EGxVertexBufferFormat>(format), m_VBReserve[frequency][format],
           m_IBReserve[frequency][format]

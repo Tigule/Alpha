@@ -38,10 +38,10 @@ static DWORD             s_typehashtablesize;
 static DWORD             s_typehashtableused;
 
 static DWORD ComputeNewTableSize(DWORD currentused) {
-  DWORD needed = currentused + currentused + 2;
   DWORD result = 1;
 
-  while (result <= needed) {
+  currentused = currentused * 2 + 2;
+  while (result <= currentused) {
     result <<= 1;
   }
 
@@ -49,26 +49,17 @@ static DWORD ComputeNewTableSize(DWORD currentused) {
 }
 
 static void CopyIdHashTable(IDHASHTABLEPTR dest, IDHASHTABLEPTR source) {
-  DWORD           id;
-  IDHASHENTRYPTR  entry;
-  IDHASHENTRYPTR  clone;
-  IDHASHENTRYPTR *tail;
-
   dest->size = source->size;
   dest->used = source->used;
-  dest->data = (IDHASHENTRYPTR *)SMemAlloc(source->size * sizeof(IDHASHENTRYPTR), __FILE__, __LINE__, 0);
+  dest->data = (IDHASHENTRYPTR *)ALLOC(dest->size * sizeof(IDHASHENTRYPTR));
 
-  for (id = 0; id < source->size; ++id) {
-    tail = &dest->data[id];
-    entry = source->data[id];
+  for (DWORD id = 0; id < source->size; ++id) {
+    IDHASHENTRYPTR  entry = source->data[id];
+    IDHASHENTRYPTR *tail = &dest->data[id];
     while (entry) {
-      clone = (IDHASHENTRYPTR)SMemAlloc(sizeof(IDHASHENTRY), __FILE__, __LINE__, 0);
-      clone->id = entry->id;
-      clone->sequence = entry->sequence;
-      clone->handler = entry->handler;
-      clone->next = entry->next;
-      *tail = clone;
-      tail = &clone->next;
+      *tail = NEW(IDHASHENTRY);
+      **tail = *entry;
+      tail = &(*tail)->next;
       entry = entry->next;
     }
     *tail = NULL;
@@ -95,18 +86,12 @@ static void DeleteIdHashTable(IDHASHTABLEPTR idhashtable) {
 }
 
 static TYPEHASHENTRYPTR FindTypeHashEntry(DWORD type, DWORD subtype) {
-  TYPEHASHENTRYPTR entry;
-
-  if (!s_typehashtable || !s_typehashtablesize) {
-    return NULL;
-  }
-
-  entry = s_typehashtable[(type ^ subtype) & (s_typehashtablesize - 1)];
-  while (entry) {
-    if (entry->type == type && entry->subtype == subtype) {
-      return entry;
+  if (s_typehashtable && s_typehashtablesize) {
+    TYPEHASHENTRYPTR entry = s_typehashtable[(type ^ subtype) & (s_typehashtablesize - 1)];
+    while (entry && (entry->type != type || entry->subtype != subtype)) {
+      entry = entry->next;
     }
-    entry = entry->next;
+    return entry;
   }
 
   return NULL;
@@ -124,28 +109,21 @@ extern "C" BOOL APIENTRY SEvtBreakHandlerChain(LPVOID data) {
 }
 
 extern "C" BOOL APIENTRY SEvtDestroy() {
-  TYPEHASHENTRYPTR entry;
-  TYPEHASHENTRYPTR next;
-  DWORD            loop;
-
   s_critsect.Enter();
 
-  if (s_typehashtable) {
-    for (loop = 0; loop < s_typehashtablesize; ++loop) {
-      entry = s_typehashtable[loop];
-      while (entry) {
-        next = entry->next;
-        while (entry->idhashtable) {
-          IDHASHTABLEPTR oldtable = entry->idhashtable;
-          entry->idhashtable = oldtable->next;
-          DeleteIdHashTable(oldtable);
-        }
-        delete entry;
-        entry = next;
+  for (DWORD loop = 0; loop < s_typehashtablesize; ++loop) {
+    TYPEHASHENTRYPTR entry;
+    while ((entry = s_typehashtable[loop]) != NULL) {
+      while (entry->idhashtable) {
+        IDHASHTABLEPTR oldtable = entry->idhashtable;
+        entry->idhashtable = oldtable->next;
+        DeleteIdHashTable(oldtable);
       }
+      s_typehashtable[loop] = entry->next;
+      DEL(entry);
     }
-    delete s_typehashtable;
   }
+  DELIFUSED(s_typehashtable);
 
   s_typehashtable = NULL;
   s_typehashtablesize = 0;
@@ -235,21 +213,17 @@ dispatchdone:
 }
 
 extern "C" BOOL APIENTRY SEvtPopState(DWORD type, DWORD subtype) {
-  TYPEHASHENTRYPTR typeentry;
-  IDHASHTABLEPTR   table;
-  BOOL             result;
+  BOOL result = FALSE;
 
-  result = FALSE;
   s_critsect.Enter();
-  typeentry = FindTypeHashEntry(type, subtype);
-  if (typeentry && typeentry->idhashtable) {
-    table = typeentry->idhashtable;
-    if (table->next) {
-      typeentry->idhashtable = table->next;
-      table->next = NULL;
-      DeleteIdHashTable(table);
-    } else {
+  TYPEHASHENTRYPTR typeentry = FindTypeHashEntry(type, subtype);
+  if (typeentry) {
+    IDHASHTABLEPTR next = typeentry->idhashtable->next;
+    if (!next) {
       result = SEvtUnregisterType(type, subtype);
+    } else {
+      DeleteIdHashTable(typeentry->idhashtable);
+      typeentry->idhashtable = next;
     }
   }
   s_modified = TRUE;
@@ -259,20 +233,17 @@ extern "C" BOOL APIENTRY SEvtPopState(DWORD type, DWORD subtype) {
 }
 
 extern "C" BOOL APIENTRY SEvtPushState(DWORD type, DWORD subtype) {
-  TYPEHASHENTRYPTR typeentry;
-  IDHASHTABLEPTR   copy;
-  BOOL             result;
+  BOOL result = FALSE;
 
-  result = FALSE;
   s_critsect.Enter();
-  typeentry = FindTypeHashEntry(type, subtype);
-  if (typeentry && typeentry->idhashtable) {
-    copy = new (SMemAlloc(sizeof(IDHASHTABLE), __FILE__, __LINE__, 0)) IDHASHTABLE;
+  TYPEHASHENTRYPTR typeentry = FindTypeHashEntry(type, subtype);
+  if (typeentry) {
+    IDHASHTABLEPTR copy = NEW(IDHASHTABLE);
     CopyIdHashTable(copy, typeentry->idhashtable);
     copy->next = typeentry->idhashtable;
     typeentry->idhashtable = copy;
-    s_modified = TRUE;
     result = TRUE;
+    s_modified = TRUE;
   }
   s_critsect.Leave();
 
@@ -285,8 +256,10 @@ extern "C" BOOL APIENTRY SEvtRegisterHandler(DWORD type, DWORD subtype, DWORD id
   IDHASHENTRYPTR   entry;
   DWORD            bucket;
 
-  FATALASSERT(handler);
-  FATALASSERT(!flags);
+  VALIDATEBEGIN;
+  VALIDATE(handler);
+  VALIDATE(!flags);
+  VALIDATEEND;
 
   s_critsect.Enter();
 
@@ -392,33 +365,25 @@ extern "C" BOOL APIENTRY SEvtRegisterHandler(DWORD type, DWORD subtype, DWORD id
 }
 
 extern "C" BOOL APIENTRY SEvtUnregisterHandler(DWORD type, DWORD subtype, DWORD id, SEVTHANDLER handler) {
-  TYPEHASHENTRYPTR typeentry;
-  IDHASHTABLEPTR   table;
-  IDHASHENTRYPTR   entry;
-  IDHASHENTRYPTR   next;
-  IDHASHENTRYPTR  *link;
-  BOOL             result;
+  BOOL result = FALSE;
 
-  result = FALSE;
   s_critsect.Enter();
-  typeentry = FindTypeHashEntry(type, subtype);
-  if (typeentry && typeentry->idhashtable) {
-    table = typeentry->idhashtable;
+  TYPEHASHENTRYPTR typeentry = FindTypeHashEntry(type, subtype);
+  if (typeentry) {
+    IDHASHTABLEPTR table = typeentry->idhashtable;
     if (table->data && table->size) {
-      link = &table->data[id & (table->size - 1)];
-      entry = *link;
-      while (entry) {
-        next = entry->next;
+      IDHASHENTRYPTR *link = &table->data[(table->size - 1) & id];
+      IDHASHENTRYPTR  entry;
+      while ((entry = *link) != NULL) {
         if (entry->id == id && (!handler || entry->handler == handler)) {
-          *link = next;
-          delete entry;
-          --table->used;
+          *link = entry->next;
+          DEL(entry);
           result = TRUE;
           s_modified = TRUE;
+          --typeentry->idhashtable->used;
         } else {
           link = &entry->next;
         }
-        entry = next;
       }
     }
   }
@@ -428,34 +393,30 @@ extern "C" BOOL APIENTRY SEvtUnregisterHandler(DWORD type, DWORD subtype, DWORD 
 }
 
 extern "C" BOOL APIENTRY SEvtUnregisterType(DWORD type, DWORD subtype) {
-  TYPEHASHENTRYPTR  entry;
-  TYPEHASHENTRYPTR  next;
-  TYPEHASHENTRYPTR *link;
-  BOOL              result;
+  BOOL result = FALSE;
 
-  result = FALSE;
   s_critsect.Enter();
-  if (s_typehashtable && s_typehashtablesize) {
-    link = &s_typehashtable[(type ^ subtype) & (s_typehashtablesize - 1)];
-    entry = *link;
-    while (entry) {
-      next = entry->next;
-      if (entry->type == type && entry->subtype == subtype) {
-        *link = next;
-        while (entry->idhashtable) {
-          IDHASHTABLEPTR oldtable = entry->idhashtable;
-          entry->idhashtable = oldtable->next;
-          DeleteIdHashTable(oldtable);
-        }
-        delete entry;
-        --s_typehashtableused;
-        s_modified = TRUE;
-        result = TRUE;
-        break;
-      }
-      link = &entry->next;
-      entry = next;
+  TYPEHASHENTRYPTR typeentry = FindTypeHashEntry(type, subtype);
+  if (typeentry) {
+    while (typeentry->idhashtable) {
+      IDHASHTABLEPTR oldtable = typeentry->idhashtable;
+      typeentry->idhashtable = oldtable->next;
+      DeleteIdHashTable(oldtable);
     }
+
+    TYPEHASHENTRYPTR *link = &s_typehashtable[(type ^ subtype) & (s_typehashtablesize - 1)];
+    TYPEHASHENTRYPTR  entry;
+    while ((entry = *link) != NULL) {
+      if (entry == typeentry) {
+        *link = entry->next;
+        DEL(entry);
+        --s_typehashtableused;
+      } else {
+        link = &entry->next;
+      }
+    }
+    result = TRUE;
+    s_modified = TRUE;
   }
   s_critsect.Leave();
 

@@ -1,3 +1,10 @@
+#include <Base/Base.h>
+#include <Gx/Gx.h>
+#include <MapDefs.h>
+#include <WorldClient/World.h>
+#include <WowConst.h>
+#include <DayNight.h>
+
 #include "Game/GameClient/Minimap.h"
 
 #include "Console/ConsoleVar.h"
@@ -6,12 +13,13 @@
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "Object/ObjectClient/Player_C.h"
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
 #include "Object/Object.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Ui/GameUI.h"
 #include "Ui/PartyFrame.h"
 #include "WorldClient/World.h"
+#include <BLPFile/blp.h>
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Base/Status.h>
 #include <DB/WowLocale.h>
@@ -31,34 +39,37 @@ struct MINIMAPMD5NAME : public TSHashObject<MINIMAPMD5NAME, HASHKEY_STRI> {
 extern CVar *s_minimapZoomCVar;
 extern CVar *s_minimapInsideZoomCVar;
 
-static UINT                s_currentContinent = -1;
-static NTempest::C3Vector  s_currentPosition(0.0f, 0.0f, -1.0f);
-static NTempest::C2iVector s_currentUpperLeftArea(-1);
-static NTempest::C2iVector s_currentLowerRightArea(-1);
-static const UINT          s_chunksPerSizeAtZoom[6] = {14, 12, 10, 8, 6, 4};
-static const float         s_minimapZoomSize[6] = {150.0f, 120.0f, 90.0f, 60.0f, 40.0f, 25.0f};
-static const float                               AREA_WORLD_SIZE_X = 533.33331f;
-static const float                               AREA_WORLD_SIZE_Y = 533.33331f;
-static const float                               CLOSEENOUGH = 0.013888889f;
-static const float                               MAX_POI_DISTANCE = 694.44446f;
 static float                                     angle = 90.0f;
 static float                                     boxHeight = 1066.6666f;
 static float                                     boxWidth = 1066.6666f;
+static const float                               AREA_WORLD_SIZE_X = 533.33331f;
+static const float                               AREA_WORLD_SIZE_Y = 533.33331f;
 static const float                               HALF_AREA_WORLD_SIZE_X = AREA_WORLD_SIZE_X * 0.5f;
 static const float                               HALF_AREA_WORLD_SIZE_Y = AREA_WORLD_SIZE_Y * 0.5f;
 static const float                               HALF_WORLD_SIZE_X = AREA_WORLD_SIZE_X * 64.0f * 0.5f;
 static const float                               HALF_WORLD_SIZE_Y = AREA_WORLD_SIZE_Y * 64.0f * 0.5f;
+static const float                               CLOSEENOUGH = 0.013888889f;
+static const float                               MAX_POI_DISTANCE = 694.44446f;
+static UINT                s_currentContinent = -1;
+static NTempest::C3Vector  s_currentPosition(0.0f, 0.0f, -1.0f);
+static NTempest::C2iVector s_currentUpperLeftArea(-1);
+static NTempest::C2iVector s_currentLowerRightArea(-1);
 static UINT                                      s_currentZoom = 3;
 static UINT                                      s_currentInsideZoom = 3;
 static UINT                                      s_mapObjID;
 static UINT                                      s_mapObjInstanceID;
 static UINT                                      s_mapObjGroupID = -1;
 static BYTE                                      s_isInside;
-static UINT                                      s_flags;
 static NTempest::C44Matrix                       s_mapObjInvMtx;
 static NTempest::CAaBox                          s_queryCenterBox;
 static NTempest::C3Vector                        s_queryCenter;
 static LPCSTR                                    MINIMAP_MD5_DIR = "Textures\\Minimap";
+static LPCSTR                                    FILENAME_TEMPLATE = "%s\\map%d_%d.blp";
+static const UINT          s_chunksPerSizeAtZoom[6] = {14, 12, 10, 8, 6, 4};
+static const float         s_minimapZoomSize[6] = {150.0f, 120.0f, 90.0f, 60.0f, 40.0f, 25.0f};
+static LPCSTR                                    s_mapObjTemplate = "%s_%03d_%02d_%02d.blp";
+static char                                      s_mapObjDir[MAX_PATH];
+static UINT                                      s_flags;
 static AreaPOIRec                                s_questPOI;
 static char                                      s_questPOIName[64];
 static TSFixedArray<const AreaPOIRec *>          s_pointsOfInterest;
@@ -73,9 +84,6 @@ static float                                     s_POIRotation[3];
 static int                                       s_updateDistantPOI;
 static int                                       s_lowestVisiblePriority = 3;
 static TSHashTable<MINIMAPMD5NAME, HASHKEY_STRI> s_md5NameHash;
-static LPCSTR                                    FILENAME_TEMPLATE = "%s\\map%d_%d.blp";
-static LPCSTR                                    s_mapObjTemplate = "%s_%03d_%02d_%02d.blp";
-static char                                      s_mapObjDir[MAX_PATH];
 
 static void UpdatePointsOfInterest() {
   UINT               numPOI;
@@ -719,8 +727,7 @@ void MinimapGetPartyMembers(PARTYMEMBERINFO array[]) {
 
     if (index == 4) {
       CGUnit_C         *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      const CGUnitData *unitData = activePlayer->GetUnitData();
-      guid = unitData->charm ? unitData->charm : unitData->summon;
+      guid = activePlayer->GetControlledGUID();
     } else {
       guid = CGPartyInfo::GetMember(index);
     }

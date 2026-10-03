@@ -21,16 +21,17 @@ CreateEmitter(const MDLPARTICLEEMITTER2 &emitterData, const TSGrowableArray<MDLT
 HTEXTURE LoadModelTexture(LPCSTR texturePath, UINT modelLoadFlags, CGxTexFlags texLoadFlags, CStatus *status);
 
 static CParticleEmitter2 *CreateEmitterObject(UINT type) {
-  ParticleSystemManager *manager = ParticleSystemManager::GetInstance();
-  ASSERT(manager);
+  ParticleSystemManager *partMgr = ParticleSystemManager::GetInstance();
+  ASSERT(partMgr);
 
-  if (type == CParticleEmitter2::PET_SPHERE_EMITTER) {
-    return manager->CreateSphereEmitter();
+  switch (type) {
+    case CParticleEmitter2::PET_SPHERE_EMITTER:
+      return partMgr->CreateSphereEmitter();
+    case CParticleEmitter2::PET_SPLINE_EMITTER:
+      return partMgr->CreateSplineEmitter();
+    default:
+      return partMgr->CreateQuadEmitter();
   }
-  if (type == CParticleEmitter2::PET_SPLINE_EMITTER) {
-    return manager->CreateSplineEmitter();
-  }
-  return manager->CreateQuadEmitter();
 }
 
 static void SetMaterialBlendMode(UINT blendMode, CParticleMat *mat) {
@@ -407,11 +408,13 @@ static BYTE *SetParticleTumble(BYTE *emitterData, CParticleEmitter2 *emitter) {
 }
 
 static BYTE *LoadC3Vector(BYTE *emitterData, NTempest::C3Vector *vector) {
-  const float *values = reinterpret_cast<const float *>(emitterData);
-  vector->x = values[0];
-  vector->y = values[1];
-  vector->z = values[2];
-  return emitterData + 3 * sizeof(float);
+  vector->x = *reinterpret_cast<float *>(emitterData);
+  emitterData += sizeof(float);
+  vector->y = *reinterpret_cast<float *>(emitterData);
+  emitterData += sizeof(float);
+  vector->z = *reinterpret_cast<float *>(emitterData);
+  emitterData += sizeof(float);
+  return emitterData;
 }
 
 static CParticleEmitter2 *

@@ -32,7 +32,7 @@ static CGxStringBatch s_stringBatch;
 static FT_MemoryRec_  s_GxuMemoryRecord = {0, FreeTypeAllocFunction, FreeTypeFreeFunction, FreeTypeReallocFunction};
 
 float SignOf(float value) {
-  return value >= 0.0f ? 1.0f : -1.0f;
+  return value < 0.0f ? -1.0f : 1.0f;
 }
 FT_LibraryRec_ *GetFreeTypeLibrary() {
   return s_FTLibrary;
@@ -183,17 +183,11 @@ int GxuFontCreateString(
 
   VALIDATEBEGIN;
   VALIDATE(face);
-
   VALIDATE(text);
-
-  FATALASSERT(fontHeight || (flags & EGxStringFlags_FixedSize));
-
-  FATALASSERT(blockWidth);
-
-  FATALASSERT(blockHeight);
-
-  FATALASSERT(vertJustification < GxVJ_Last);
-
+  VALIDATE(fontHeight || ( flags & EGxStringFlags_FixedSize ));
+  VALIDATE(blockWidth);
+  VALIDATE(blockHeight);
+  VALIDATE(vertJustification < GxVJ_Last);
   VALIDATE(horzJustification < GxHJ_Last);
   VALIDATEEND;
 
@@ -238,9 +232,8 @@ int GxuFontRenderString(
   CGxString *newString;
   int        result;
 
-  FATALASSERT(textHeight || (flags & EGxStringFlags_FixedSize));
-
   VALIDATEBEGIN;
+  VALIDATE(textHeight || ( flags & EGxStringFlags_FixedSize ));
   VALIDATE(font);
   VALIDATE(text);
   VALIDATEEND;
@@ -353,9 +346,8 @@ float GxuFontGetWrappedTextHeight(CGxFont *face, LPCSTR text, float fontHeight, 
   UINT   advance;
   float  extent;
   UINT   wide;
-  UINT   lines = 0;
-  LPCSTR nextText = 0;
-  LPCSTR currentText;
+  UINT   lines;
+  LPCSTR nextText;
 
   VALIDATEBEGIN;
   VALIDATE(face);
@@ -366,27 +358,29 @@ float GxuFontGetWrappedTextHeight(CGxFont *face, LPCSTR text, float fontHeight, 
     fontHeight = GxuFontGetOneToOneHeight(face);
   }
 
-  currentText = text;
-  while (*currentText) {
-    QUOTEDCODE quoted = GxuDetermineQuotedCode(currentText, advance, 0, flags, wide, SStrLen(currentText));
+  nextText = 0;
+  extent = 0.0f;
+  lines = 0;
+  do {
+    if (!*text) {
+      break;
+    }
 
-    if (wide == '\n' || quoted == CODE_NEWLINE) {
-      currentText += advance;
-      nextText = currentText;
+    QUOTEDCODE quoted = GxuDetermineQuotedCode(text, advance, 0, flags, wide, SStrLen(text));
+
+    if (wide != '\n' && quoted != CODE_NEWLINE) {
+      CalcWrapPoint(face, text, fontHeight, blockWidth, 0, &extent, &nextText, flags);
+      text = nextText;
     } else {
-      CalcWrapPoint(face, currentText, fontHeight, blockWidth, 0, &extent, &nextText, flags);
-      currentText = nextText;
+      nextText = text + advance;
+      text = nextText;
     }
 
     ++lines;
     if (flags & 0x2) {
       break;
     }
-
-    if (!currentText) {
-      break;
-    }
-  }
+  } while (text);
 
   return static_cast<float>(lines - 1) * lineSpacing + static_cast<float>(lines) * fontHeight;
 }

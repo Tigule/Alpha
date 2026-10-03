@@ -70,15 +70,15 @@ void CGameTime::GameTimeSetTime(const WowTime &time) {
 
   static_cast<WowTime &>(*this) = biasTime;
 
-  if (m_minute) {
-    --m_minute;
-  } else {
+  if (!m_minute) {
     m_minute = 59;
-    if (m_hour) {
-      --m_hour;
-    } else {
+    if (!m_hour) {
       m_hour = 23;
+    } else {
+      --m_hour;
     }
+  } else {
+    --m_minute;
   }
 
   TickMinute();
@@ -126,7 +126,7 @@ void CGameTime::GameTimeSync(const WowTime &time, bool reset) {
   int delta = biasTime.GetHourAndMinutes() - GetHourAndMinutes();
   if (reset || delta > 0) {
     UINT forward = static_cast<UINT>(delta + 1440) % 1440;
-    while (forward) {
+    while (forward > 0) {
       TickMinute();
       --forward;
     }
@@ -184,15 +184,15 @@ HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(
   newCallback->userData = user;
   newCallback->callback = callback;
 
-  int              hourAndMinutes = time.GetHourAndMinutes();
+  int              timeStamp = time.GetHourAndMinutes();
   HASHKEY_NONE     key;
-  TIMESTAMPSTRUCT *timestamp = m_callbackLists.Ptr(hourAndMinutes, key);
+  TIMESTAMPSTRUCT *timestamp = m_callbackLists.Ptr(timeStamp, key);
 
   if (!timestamp) {
-    timestamp = m_callbackLists.New(hourAndMinutes, key, 0, 0);
+    timestamp = m_callbackLists.New(timeStamp, key, 0, 0);
   }
 
-  timestamp->callbackList.LinkNode(newCallback, LIST_HEAD, 0);
+  timestamp->callbackList.LinkNode(newCallback, LIST_TAIL, 0);
 
   return static_cast<HGAMETIMECALLBACK>(HandleCreate(newCallback, "HGAMETIMECALLBACK"));
 }
@@ -217,7 +217,7 @@ float CGameTime::GameTimeSetMinutesPerSecond(float minutesPerSecond) {
 }
 
 float CGameTime::GameTimeGetDayProgression() {
-  float progression = (OsGetAsyncTimeMs() - m_lastTickMinute) * 0.001f * m_gameMinutesPerRealSecond + m_dayProgression;
+  float progression = m_gameMinutesPerRealSecond * ((OsGetAsyncTimeMs() - m_lastTickMinute) * 0.001f) + m_dayProgression;
 
   while (progression > 1440.0f) {
     progression -= 1440.0f;
@@ -237,18 +237,9 @@ void CGameTime::TickMinute() {
 }
 
 void CGameTime::PerformCallbacks(int minutes) {
-  if (m_callbackLists.m_slotmask == 0xFFFFFFFF) {
-    return;
-  }
-
-  UINT             slot = minutes & m_callbackLists.m_slotmask;
-  TIMESTAMPSTRUCT *timestamp = m_callbackLists.m_slotlistarray[slot].Head();
-
-  while (reinterpret_cast<long>(timestamp) > 0 && timestamp->GetHashValue() != minutes) {
-    timestamp = m_callbackLists.m_slotlistarray[slot].RawNext(timestamp);
-  }
-
-  if (reinterpret_cast<long>(timestamp) <= 0) {
+  HASHKEY_NONE     key;
+  TIMESTAMPSTRUCT *timestamp = m_callbackLists.Ptr(minutes, key);
+  if (!timestamp) {
     return;
   }
 

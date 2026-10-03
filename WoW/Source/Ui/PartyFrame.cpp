@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -23,6 +25,7 @@
 
 #include "Base/CDataStore.h"
 #include "FrameScript/FrameScript.h"
+#include <FrameXML/LoadXML.h>
 #include <lauxlib.h>
 #include <lua.h>
 
@@ -89,11 +92,17 @@ BOOL CGPartyInfo::IsMember(const DWORDLONG &guid) {
 }
 
 DWORDLONG CGPartyInfo::GetMemberByName(LPCSTR name) {
-  for (UINT i = 0; i < 4; ++i) {
-    if (m_members[i]) {
-      const NameCache *entry = g_nameDBCache.GetRecord(m_members[i], m_members[i], 0, 0);
-      if (entry && !SStrCmpI(entry->m_name, name, 0x7FFFFFFF)) {
-        return m_members[i];
+  if (name && *name) {
+    CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player && !SStrCmpI(name, player->GetUnitName(), 0x7FFFFFFF)) {
+      return ClntObjMgrGetActivePlayer();
+    }
+    for (UINT i = 0; i < 4; ++i) {
+      if (m_members[i]) {
+        const NameCache *nc = g_nameDBCache.GetRecord(m_members[i], 0, 0, 0);
+        if (nc && !SStrCmpI(name, nc->m_name, 0x7FFFFFFF)) {
+          return m_members[i];
+        }
       }
     }
   }
@@ -105,11 +114,14 @@ void CGPartyInfo::SetLeader(DWORDLONG guid) {
     m_leader = guid;
     m_leaderIndex = -1;
     if (guid) {
-      for (UINT index = 0; index < 4; ++index) {
+      UINT index;
+      for (index = 0; index < 4; ++index) {
         if (m_members[index] == guid) {
-          m_leaderIndex = index;
           break;
         }
+      }
+      if (index < 4) {
+        m_leaderIndex = index;
       }
     }
     FrameScript_SignalEvent(210);
@@ -140,15 +152,7 @@ void CGPartyInfo::AddMember(DWORDLONG guid, int connected) {
 }
 
 void CGPartyInfo::RemoveAll() {
-  UINT index;
-  for (index = 0; index < 4; ++index) {
-    CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_members[index], __FILE__, __LINE__));
-    if (unit) {
-      unit->UnregisterScript();
-    }
-  }
-
-  for (index = 0; index < 4; ++index) {
+  for (UINT index = 0; index < 4; ++index) {
     if (m_members[index]) {
       CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_members[index], __FILE__, __LINE__));
       if (unit) {
@@ -165,28 +169,44 @@ void CGPartyInfo::RemoveAll() {
 void CGPartyInfo::RemoveActivePlayer(DWORDLONG guid) {
   for (UINT i = 0; i < 4; ++i) {
     if (m_members[i] == guid) {
-      memmove(&m_members[i], &m_members[i + 1], (3 - i) * sizeof(m_members[0]));
-      memmove(&m_remoteStats[i], &m_remoteStats[i + 1], (3 - i) * sizeof(m_remoteStats[0]));
-      m_members[3] = 0;
-      memset(&m_remoteStats[3], 0, sizeof(m_remoteStats[3]));
+      m_members[i] = 0;
       FrameScript_SignalEvent(209);
-      return;
+      CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+      if (unit) {
+        unit->UpdatePlayerNameColor();
+      }
     }
   }
 }
 
 void CGPartyInfo::EnableMember(DWORDLONG guid, int enable) {
-  RemoteStats *stats = GetRemoteStats(guid);
-  if (stats && stats->connected != enable) {
-    stats->connected = enable;
-    FrameScript_SignalEvent(209);
+  if (guid) {
+    UINT index;
+    for (index = 0; index < 4; ++index) {
+      if (m_members[index] == guid) {
+        break;
+      }
+    }
+    if (index != 4) {
+      CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+      if (unit) {
+        if (enable) {
+          unit->RegisterScript();
+        } else {
+          unit->UnregisterScript();
+        }
+      }
+      FrameScript_SignalEvent(enable ? 211 : 212, "%d", index + 1);
+    }
   }
 }
 
 UINT CGPartyInfo::NumMembers() {
   UINT count = 0;
-  while (count < 4 && m_members[count]) {
-    ++count;
+  for (UINT i = 0; i < 4; ++i) {
+    if (m_members[i]) {
+      ++count;
+    }
   }
   return count;
 }
@@ -250,17 +270,19 @@ static int Script_GetNumPartyMembers(lua_State *L) {
 }
 
 static int Script_GetPartyMember(lua_State *L) {
-  if (!lua_isnumber(L, 1) || static_cast<UINT>(lua_tonumber(L, 1)) - 1 >= 4) {
-    luaL_error(L, "Usage: GetPartyMember(index)");
-    return 0;
+  if (lua_isnumber(L, 1)) {
+    UINT index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    if (index < 4) {
+      if (CGPartyInfo::GetMember(index)) {
+        lua_pushnumber(L, 1.0);
+      } else {
+        lua_pushnil(L);
+      }
+      return 1;
+    }
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
-  if (CGPartyInfo::GetMember(index)) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
-  }
-  return 1;
+  luaL_error(L, "Usage: GetPartyMember(1-4)");
+  return 0;
 }
 
 static int Script_GetPartyLeaderIndex(lua_State *L) {
@@ -286,28 +308,56 @@ static int Script_LeaveParty(lua_State *L) {
 }
 
 static int Script_GetLootMethod(lua_State *L) {
-  static LPCSTR methods[3] = {"freeforall", "roundrobin", "master"};
-  LOOT_METHOD   method = CGPartyInfo::GetLootMethod();
-  lua_pushstring(L, method < LOOT_METHOD_MAX ? methods[method] : "freeforall");
-  if (method == LOOT_METHOD_MASTERLOOTER) {
-    DWORDLONG master = CGPartyInfo::GetMasterLooter();
-    int       index = -1;
-    for (UINT i = 0; i < 4; ++i) {
-      if (CGPartyInfo::GetMember(i) == master) {
-        index = i + 1;
-        break;
-      }
-    }
-    lua_pushnumber(L, static_cast<double>(index));
-  } else {
+  if (!CGPartyInfo::NumMembers()) {
+    lua_pushstring(L, "freeforall");
     lua_pushnil(L);
+    return 2;
   }
+  switch (CGPartyInfo::GetLootMethod()) {
+    case LOOT_METHOD_FREEFORALL:
+      lua_pushstring(L, "freeforall");
+      break;
+    case LOOT_METHOD_ROUNDROBIN:
+      lua_pushstring(L, "roundrobin");
+      break;
+    case LOOT_METHOD_MASTERLOOTER:
+      lua_pushstring(L, "master");
+      break;
+    default:
+      lua_pushstring(L, "ERROR!");
+      break;
+  }
+  DWORDLONG master = CGPartyInfo::GetMasterLooter();
+  if (!master) {
+    lua_pushnil(L);
+    return 2;
+  }
+  if (master == ClntObjMgrGetActivePlayer()) {
+    lua_pushnumber(L, 0.0);
+    return 2;
+  }
+  for (int i = 0; i < 4; ++i) {
+    if (master == CGPartyInfo::GetMember(i)) {
+      lua_pushnumber(L, static_cast<double>(i + 1));
+      return 2;
+    }
+  }
+  lua_pushnil(L);
   return 2;
 }
 
 static int Script_SetLootMethod(lua_State *L) {
+  if (!CGPartyInfo::GetMember(0)) {
+    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(64));
+    return 0;
+  }
+  if (CGPartyInfo::GetLeader() != ClntObjMgrGetActivePlayer()) {
+    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(67));
+    return 0;
+  }
   if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: SetLootMethod(method, master)");
+    luaL_error(L, "Usage: SetLootMethod(\"method\" [,master])");
+    return 0;
   }
   LPCSTR      string = lua_tostring(L, 1);
   LOOT_METHOD method;
@@ -318,13 +368,24 @@ static int Script_SetLootMethod(lua_State *L) {
   } else if (!SStrCmpI(string, "master", 0x7FFFFFFF)) {
     method = LOOT_METHOD_MASTERLOOTER;
   } else {
-    return luaL_error(L, "Invalid loot method");
+    luaL_error(L, "Invalid loot method");
+    return 0;
   }
   DWORDLONG master = 0;
-  if (method == LOOT_METHOD_MASTERLOOTER && lua_isnumber(L, 2)) {
-    UINT index = static_cast<UINT>(lua_tonumber(L, 2)) - 1;
-    if (index < 4) {
-      master = CGPartyInfo::GetMember(index);
+  if (method == LOOT_METHOD_MASTERLOOTER) {
+    LPCSTR name;
+    if (lua_isstring(L, 2) && (name = lua_tostring(L, 2)) != 0 && *name) {
+      master = CGPartyInfo::GetMemberByName(name);
+      if (!master) {
+        master = CGGameUI::ClosestObjectMatch(name, TYPE_PLAYER);
+        if (!master || !CGPartyInfo::IsMember(master)) {
+          CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(65), name);
+          return 0;
+        }
+      }
+    } else {
+      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(213));
+      return 0;
     }
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -344,11 +405,13 @@ static int Script_GetLookingForGroup(lua_State *L) {
 }
 
 static int Script_SetLookingForGroup(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    luaL_error(L, "Usage: SetLookingForGroup(looking)");
-    return 0;
+  int looking = 0;
+  if (lua_isnumber(L, 1)) {
+    looking = static_cast<int>(lua_tonumber(L, 1));
+  } else if (lua_isstring(L, 1)) {
+    looking = StringToBOOL(lua_tostring(L, 1));
   }
-  CGPartyInfo::SetLookingForGroup(lua_tonumber(L, 1) != 0.0);
+  CGPartyInfo::SetLookingForGroup(looking);
   return 0;
 }
 

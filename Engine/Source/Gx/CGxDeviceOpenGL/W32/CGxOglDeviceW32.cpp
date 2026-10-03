@@ -36,11 +36,11 @@ static void WindowClassDestroy(WORD &hwndClass) {
 }
 
 static HWND WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
-  DWORD style = format.window ? WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_POPUP | WS_MAXIMIZE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+  HINSTANCE instance = GetModuleHandle(0);
+  DWORD     style = format.window ? WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS : WS_POPUP | WS_MAXIMIZE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 
   return CreateWindowExA(
-      WS_EX_APPWINDOW, s_WndClassName, "A game in progress", style, format.pos.x, format.pos.y, format.size.x, format.size.y, 0, 0,
-      GetModuleHandle(0), dev
+      WS_EX_APPWINDOW, s_WndClassName, "A game in progress", style, format.pos.x, format.pos.y, format.size.x, format.size.y, 0, 0, instance, dev
   );
 }
 
@@ -105,7 +105,8 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
     dm.dmSize = sizeof(dm);
     EnumDisplayDevicesA(0, 0, &dd, 0);
     EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), format.apiSpecificModeID, &dm);
-    FATALASSERT(ChangeDisplaySettingsExA(reinterpret_cast<LPCSTR>(dd.DeviceName), &dm, 0, CDS_FULLSCREEN, 0) == DISP_CHANGE_SUCCESSFUL);
+    LONG cdsErr = ChangeDisplaySettingsExA(reinterpret_cast<LPCSTR>(dd.DeviceName), &dm, 0, CDS_FULLSCREEN, 0);
+    FATALASSERT(cdsErr == 0);
     SetWindowPos(m_hwnd, 0, 0, 0, format.size.x, format.size.y, SWP_DEFERERASE | SWP_NOCOPYBITS | SWP_NOREDRAW);
     ShowWindow(m_hwnd, SW_SHOWMAXIMIZED);
   } else {
@@ -125,9 +126,9 @@ BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   dd.cb = sizeof(dd);
   EnumDisplayDevicesA(0, 0, &dd, 0);
 
-  UINT mode = 0;
-  UINT bitsPerPixel = format.colorFormat ? 32 : 16;
   dm.dmSize = sizeof(dm);
+  UINT bitsPerPixel = format.colorFormat ? 32 : 16;
+  UINT mode = 0;
   while (EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), mode, &dm)) {
     if (dm.dmBitsPerPel == bitsPerPixel && dm.dmDisplayFrequency == format.refreshRate && dm.dmPelsWidth == static_cast<UINT>(format.size.x) &&
         dm.dmPelsHeight == static_cast<UINT>(format.size.y))
@@ -144,10 +145,8 @@ BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
 BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
   FATALASSERT(m_hdc == 0 && m_hglrc == 0);
   m_hdc = GetDC(m_hwnd);
-  if (m_hdc) {
-    m_hglrc = AttachGlContext(m_hwnd, m_hdc, format);
-  }
-  if (!m_hdc || !m_hglrc) {
+  BOOL success = m_hdc && (m_hglrc = AttachGlContext(m_hwnd, m_hdc, format)) != 0;
+  if (!success) {
     IDevRemoveGlContext();
     return 0;
   }
@@ -396,7 +395,6 @@ static BOOL IsGlDisplayModeGood(const DEVMODEA &dm) {
 BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   DISPLAY_DEVICEA dd;
   DEVMODEA        dm;
-  CGxFormat       fmt;
   UINT            mode;
 
   dd.cb = sizeof(dd);
@@ -405,19 +403,17 @@ BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
     return 0;
   }
 
-  mode = 0;
   dm.dmSize = sizeof(dm);
 
-  while (EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), mode, &dm)) {
+  for (mode = 0; EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), mode, &dm); ++mode) {
     if (IsGlDisplayModeGood(dm)) {
+      CGxFormat fmt;
       memset(&fmt, 0, sizeof(fmt));
-      fmt.apiSpecificModeID = mode;
-      fmt.size.x = dm.dmPelsWidth;
-      fmt.size.y = dm.dmPelsHeight;
+      fmt.size = NTempest::C2iVector(dm.dmPelsWidth, dm.dmPelsHeight);
       fmt.refreshRate = dm.dmDisplayFrequency;
-      formats.Add(1, &fmt);
+      fmt.apiSpecificModeID = mode;
+      *formats.New() = fmt;
     }
-    ++mode;
   }
 
   return formats.Count() != 0;

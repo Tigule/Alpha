@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -26,6 +28,7 @@
 #include "DB/DBClient/AutoCode/LanguagesRec.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Ui/Tutorial.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 
 #include <Net/NetClient/NetClient.h>
@@ -116,10 +119,10 @@ struct WORDLIST : public TSHashObject<WORDLIST, HASHKEY_LANGUAGE> {
 
 static const UINT s_events[30] = {217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231,
                                   232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 338, 339, 340, 341, 342};
+static TSGrowableArray<ChatChannel> s_channels;
 static LISTDECL(PENDINGCHAT, s_pendingChat);
 static LISTDECL(PENDINGTEXTEMOTE, s_pendingTextEmote);
-static TSGrowableArray<ChatChannel>            s_channels;
-static TSHashTable<WORDLIST, HASHKEY_LANGUAGE> s_wordLists;
+TSHashTable<WORDLIST, HASHKEY_LANGUAGE> s_wordList;
 static int                                     s_loggingEnabled;
 static HSLOG                                   s_logHandle;
 
@@ -134,16 +137,16 @@ void CGChat::InitializeGame() {
     const LanguageWordsRec *wordRec = g_languageWordsDB.GetRecordByIndex(i);
     UINT                    len = SStrLen(wordRec->m_word);
     HASHKEY_LANGUAGE        key(wordRec->m_languageID, len);
-    WORDLIST               *wordList = s_wordLists.Ptr(wordRec->m_languageID ^ (len << 16), key);
+    WORDLIST               *wordList = s_wordList.Ptr(wordRec->m_languageID ^ (len << 16), key);
     if (!wordList) {
-      wordList = s_wordLists.New(wordRec->m_languageID ^ (len << 16), key, 0, 0);
+      wordList = s_wordList.New(wordRec->m_languageID ^ (len << 16), key, 0, 0);
     }
     *wordList->m_words.New() = wordRec;
   }
 }
 
 void CGChat::ShutdownGame() {
-  s_wordLists.Destroy();
+  s_wordList.Destroy();
 
   PENDINGCHAT *pending;
   while ((pending = s_pendingChat.Head()) != 0) {
@@ -687,7 +690,7 @@ BOOL CGChat::ChatHandler(CDataStore *msg) {
     }
 
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-    if (unit && !(unit->GetUnitData()->flags & 0x04000000) && (slashCmd == 0 || slashCmd == 4 || slashCmd == 1)) {
+    if (unit && !(unit->GetUnitFlags() & 0x04000000) && (slashCmd == 0 || slashCmd == 4 || slashCmd == 1)) {
       char laughToken[32];
       for (int i = 1;; ++i) {
         SStrPrintf(laughToken, sizeof(laughToken), "LAUGH_WORD%d", i);
@@ -869,7 +872,7 @@ static int Script_SendChatMessage(lua_State *L) {
     }
     CGChat::AddChatMessage(FrameScript_GetText(*text ? "MARKED_DND" : "CLEARED_DND", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
   }
-  if (player->GetUnitData()->health <= 0 && type != SLASH_CMD_WHISPER && type != SLASH_CMD_PARTY && type != SLASH_CMD_GUILD && type != SLASH_CMD_OFFICER && type != SLASH_CMD_SEND_CHANNEL) {
+  if (player->GetHealth() <= 0 && type != SLASH_CMD_WHISPER && type != SLASH_CMD_PARTY && type != SLASH_CMD_GUILD && type != SLASH_CMD_OFFICER && type != SLASH_CMD_SEND_CHANNEL) {
     CGGameUI::DisplayError(GERR_CHAT_WHILE_DEAD);
     return 0;
   }
@@ -928,7 +931,7 @@ static int Script_GetLanguageByIndex(lua_State *L) {
 
 static int Script_GetDefaultLanguage(lua_State *L) {
   CGPlayer_C         *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  const ChrRacesRec  *race = player ? g_chrRacesDB.GetRecord(player->GetUnitData()->race) : 0;
+  const ChrRacesRec  *race = player ? g_chrRacesDB.GetRecord(player->GetRace()) : 0;
   const LanguagesRec *language = race ? g_languagesDB.GetRecord(race->m_BaseLanguage) : 0;
   if (!language) {
     return 0;
@@ -938,27 +941,28 @@ static int Script_GetDefaultLanguage(lua_State *L) {
 }
 
 static int Script_DoEmote(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: DoEmote(emote [, unit])");
-  }
-  LPCSTR               name = lua_tostring(L, 1);
-  const EmotesTextRec *rec = 0;
-  for (int i = g_emotesTextDB.GetNumRecords(); i;) {
-    const EmotesTextRec *candidate = g_emotesTextDB.GetRecordByIndex(--i);
-    if (candidate && !SStrCmpI(name, candidate->m_name, 0x7FFFFFFF)) {
-      rec = candidate;
-      break;
+  if (lua_isstring(L, 1)) {
+    LPCSTR               name = lua_tostring(L, 1);
+    const EmotesTextRec *rec = 0;
+    for (int i = g_emotesTextDB.GetNumRecords(); i;) {
+      const EmotesTextRec *candidate = g_emotesTextDB.GetRecordByIndex(--i);
+      if (candidate && !SStrCmpI(name, candidate->m_name, 0x7FFFFFFF)) {
+        rec = candidate;
+        break;
+      }
     }
-  }
-  if (!rec) {
+    if (!rec) {
+      return 0;
+    }
+    LPCSTR      unit = lua_isstring(L, 2) ? lua_tostring(L, 2) : "target";
+    DWORDLONG   target = Script_GetGUIDFromName(unit);
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player) {
+      player->SendTextEmote(rec, target);
+    }
     return 0;
   }
-  LPCSTR      unit = lua_isstring(L, 2) ? lua_tostring(L, 2) : "target";
-  DWORDLONG   target = Script_GetGUIDFromName(unit);
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player) {
-    player->SendTextEmote(rec, target);
-  }
+  luaL_error(L, "Usage: DoEmote(emote [, unit])");
   return 0;
 }
 
@@ -1025,16 +1029,17 @@ static void ChannelCommand(lua_State *L, int messageCode, LPCSTR funcname) {
 }
 
 static int Script_JoinChannelByName(lua_State *L) {
-  if (!lua_isstring(L, 1)) {
-    return luaL_error(L, "Usage: JoinChannelByName(\"name\")");
+  if (lua_isstring(L, 1)) {
+    LPCSTR     password = lua_isstring(L, 2) ? lua_tostring(L, 2) : "";
+    CDataStore msg;
+    msg.Put(CMSG_JOIN_CHANNEL);
+    msg.PutString(lua_tostring(L, 1));
+    msg.PutString(password);
+    msg.Finalize();
+    ClientServices_Send(&msg);
+    return 0;
   }
-  LPCSTR     password = lua_isstring(L, 2) ? lua_tostring(L, 2) : "";
-  CDataStore msg;
-  msg.Put(CMSG_JOIN_CHANNEL);
-  msg.PutString(lua_tostring(L, 1));
-  msg.PutString(password);
-  msg.Finalize();
-  ClientServices_Send(&msg);
+  luaL_error(L, "Usage: JoinChannelByName(\"name\")");
   return 0;
 }
 

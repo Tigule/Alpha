@@ -36,27 +36,40 @@ namespace NTempest {
   }
 
   DWORD CMath::div5_(DWORD x) {
-    DWORD q = ((3 * x >> 4) + 3 * x) >> 8;
-    return ((q + (3 * x >> 4) + 3 * x >> 16) + q + (3 * x >> 4) + 3 * x + 2) >> 4;
+    x *= 3;
+    x += x >> 4;
+    x += x >> 8;
+    x += x >> 16;
+    return (x + 2) >> 4;
   }
 
   long CMath::div5_(long x) {
-    long q = (((3 * x) >> 4) + 3 * x) >> 8;
-    return (((q + ((3 * x) >> 4) + 3 * x) >> 16) + q + ((3 * x) >> 4) + 3 * x + 15) >> 4;
+    x *= 3;
+    x += x >> 4;
+    x += x >> 8;
+    x += x >> 16;
+    return (x + 15) >> 4;
   }
 
   DWORD CMath::div9_(DWORD x) {
-    DWORD q = ((7 * x >> 6) + 7 * x) >> 12;
-    return ((q + (7 * x >> 6) + 7 * x >> 24) + q + (7 * x >> 6) + 7 * x + 2) >> 6;
+    x *= 7;
+    x += x >> 6;
+    x += x >> 12;
+    x += x >> 24;
+    return (x + 2) >> 6;
   }
 
   long CMath::div9_(long x) {
-    long q = (((7 * x) >> 6) + 7 * x) >> 12;
-    return (((q + ((7 * x) >> 6) + 7 * x) >> 24) + q + ((7 * x) >> 6) + 7 * x + 62) >> 6;
+    x *= 7;
+    x += x >> 6;
+    x += x >> 12;
+    x += x >> 24;
+    return (x + 62) >> 6;
   }
 
   long CMath::min_(long a, long b, long c) {
-    return a < b ? (a < c ? a : c) : (b < c ? b : c);
+    a = min(a, b);
+    return min(a, c);
   }
   long CMath::med_(long a, long b, long c) {
     if (((a - b) ^ (c - b)) < 0)
@@ -66,7 +79,8 @@ namespace NTempest {
     return c;
   }
   long CMath::max_(long a, long b, long c) {
-    return a > b ? (a > c ? a : c) : (b > c ? b : c);
+    a = max(a, b);
+    return max(a, c);
   }
   long CMath::span_(long a, long b, long c) {
     return max_(a, b, c) - min_(a, b, c);
@@ -75,7 +89,10 @@ namespace NTempest {
     return div3_(a + b + c);
   }
   long CMath::min_(long a, long b, long c, long d, long e) {
-    return min_(min_(a, b, c), d, e);
+    a = min(a, b);
+    a = min(a, d);
+    a = min(a, e);
+    return min(a, c);
   }
   long CMath::med_(long a, long b, long c, long d, long e) {
     long ablo = a < b ? a : b, abhi = a > b ? a : b;
@@ -83,7 +100,10 @@ namespace NTempest {
     return med_(abhi < deHi ? abhi : deHi, c, ablo > deLo ? ablo : deLo);
   }
   long CMath::max_(long a, long b, long c, long d, long e) {
-    return max_(max_(a, b, c), d, e);
+    a = max(a, b);
+    a = max(a, d);
+    a = max(a, e);
+    return max(a, c);
   }
   long CMath::span_(long a, long b, long c, long d, long e) {
     return max_(a, b, c, d, e) - min_(a, b, c, d, e);
@@ -92,7 +112,14 @@ namespace NTempest {
     return div5_(a + b + c + d + e);
   }
   long CMath::min_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
-    return min_(min_(a, b, c, d, e), min_(f, g, h), i);
+    a = min(a, c);
+    a = min(a, g);
+    a = min(a, i);
+    a = min(a, b);
+    a = min(a, d);
+    a = min(a, f);
+    a = min(a, h);
+    return min(a, e);
   }
   long CMath::med_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     long v[9] = {a, b, c, d, e, f, g, h, i};
@@ -106,7 +133,14 @@ namespace NTempest {
     return v[4];
   }
   long CMath::max_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
-    return max_(max_(a, b, c, d, e), max_(f, g, h), i);
+    a = max(a, c);
+    a = max(a, g);
+    a = max(a, i);
+    a = max(a, b);
+    a = max(a, d);
+    a = max(a, f);
+    a = max(a, h);
+    return max(a, e);
   }
   long CMath::span_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
     return max_(a, b, c, d, e, f, g, h, i) - min_(a, b, c, d, e, f, g, h, i);
@@ -116,23 +150,23 @@ namespace NTempest {
   }
 
   void CMath::normalize_(double &x, double &y) {
-    double inverse = 1.0 / sqrt_(x * x + y * y);
+    double inverse = hypotinv_(x, y);
     x *= inverse;
     y *= inverse;
   }
   void CMath::normalize_(float &x, float &y) {
-    float inverse = 1.0f / sqrt_(x * x + y * y);
+    float inverse = hypotinv_(x, y);
     x *= inverse;
     y *= inverse;
   }
   void CMath::normalize_(double &x, double &y, double &z) {
-    double inverse = 1.0 / sqrt_(x * x + y * y + z * z);
+    double inverse = hypotinv_(x, y, z);
     x *= inverse;
     y *= inverse;
     z *= inverse;
   }
   void CMath::normalize_(float &x, float &y, float &z) {
-    float inverse = 1.0f / sqrt_(x * x + y * y + z * z);
+    float inverse = hypotinv_(x, y, z);
     x *= inverse;
     y *= inverse;
     z *= inverse;
@@ -148,11 +182,11 @@ namespace NTempest {
     return x;
   }
   float CMath::frsqrte_(float *x, DWORD magic) {
-    *x = frsqrte_(*x, magic);
+    *reinterpret_cast<DWORD *>(x) = magic - ((*reinterpret_cast<DWORD *>(x) >> 1) & 0x3FFFFFFF);
     return *x;
   }
   double CMath::frsqrte_(double *x, DWORD magic) {
-    *x = frsqrte_(*x, magic);
+    reinterpret_cast<DWORD *>(x)[1] = magic - ((reinterpret_cast<DWORD *>(x)[1] >> 1) & 0x3FFFFFFF);
     return *x;
   }
   float CMath::fres_(float x, DWORD magic) {
@@ -164,37 +198,33 @@ namespace NTempest {
     return x;
   }
   float CMath::fres_(float *x, DWORD magic) {
-    *x = fres_(*x, magic);
+    *reinterpret_cast<DWORD *>(x) = magic - *reinterpret_cast<DWORD *>(x);
     return *x;
   }
   double CMath::fres_(double *x, DWORD magic) {
-    *x = fres_(*x, magic);
+    reinterpret_cast<DWORD *>(x)[1] = magic - reinterpret_cast<DWORD *>(x)[1];
     return *x;
   }
 
-  void CMath::split_(double x, double &xf, long &xi) {
-    xi = static_cast<long>(x);
-    if (x < 0.0)
-      --xi;
-    xf = x - xi;
+  void CMath::split_(double xlr, double &xf, long &xi) {
+    xi = static_cast<long>(xlr);
+    xi = xlr < 0.0 ? xi - 1 : xi;
+    xf = xlr - xi;
   }
-  void CMath::split_(float x, float &xf, long &xi) {
-    xi = static_cast<long>(x);
-    if (x < 0.0f)
-      --xi;
-    xf = x - xi;
+  void CMath::split_(float xr, float &xf, long &xi) {
+    xi = fint_(xr);
+    xi = xr < 0.0f ? xi - 1 : xi;
+    xf = xr - xi;
   }
-  void CMath::splitr_(double x, double &xf, double &xi) {
-    xi = static_cast<long>(x);
-    if (x < 0.0)
-      xi -= 1.0;
-    xf = x - xi;
+  void CMath::splitr_(double xlr, double &xf, double &xi) {
+    xi = static_cast<long>(xlr);
+    xi = xlr < 0.0 ? xi - 1.0 : xi;
+    xf = xlr - xi;
   }
-  void CMath::splitr_(float x, float &xf, float &xi) {
-    xi = static_cast<float>(static_cast<long>(x));
-    if (x < 0.0f)
-      xi -= 1.0f;
-    xf = x - xi;
+  void CMath::splitr_(float xr, float &xf, float &xi) {
+    xi = static_cast<float>(fint_(xr));
+    xi = xr < 0.0f ? xi - 1.0f : xi;
+    xf = xr - xi;
   }
 
   float CMath::step_(float x, float a) {

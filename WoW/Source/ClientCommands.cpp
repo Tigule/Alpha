@@ -19,6 +19,7 @@
 #include "Object/ObjectClient/Player_C.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Ui/GameUI.h"
 #include "WorldClient/World.h"
 
 #include <Model/IModel.h>
@@ -929,7 +930,7 @@ static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
   FILE *file = fopen(fileName, "wt");
   if (!file) {
     char *error = OsGetLastErrorStr();
-    ConsoleWriteA("Failed to open %s for writing.", static_cast<COLOR_T>(2), fileName);
+    ConsoleWriteA("Failed to open %s for writing:", static_cast<COLOR_T>(4), fileName);
     ConsoleWrite(error, static_cast<COLOR_T>(4));
     return;
   }

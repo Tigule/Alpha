@@ -1,3 +1,5 @@
+#define FD_SETSIZE 1024
+
 #include <winsock2.h>
 #include <Base/Base.h>
 
@@ -57,7 +59,6 @@ static void MakeSocketPipe(int *pipes) {
   sockaddr_in addr;
   sockaddr_in incoming;
   int         len;
-  DWORD       on;
   int         listener = socket(AF_INET, SOCK_STREAM, 0);
 
   if (listener < 0) {
@@ -92,15 +93,19 @@ static void MakeSocketPipe(int *pipes) {
     ASSERT(0);
   }
 
-  on = 1;
-  ioctlsocket(pipes[1], FIONBIO, &on);
+  {
+    DWORD on = 1;
+    ioctlsocket(pipes[1], FIONBIO, &on);
+  }
 
   len = sizeof(incoming);
   pipes[0] = accept(listener, reinterpret_cast<sockaddr *>(&incoming), &len);
   ASSERT(pipes[0] >= 0);
 
-  on = 1;
-  ioctlsocket(pipes[0], FIONBIO, &on);
+  {
+    DWORD on = 1;
+    ioctlsocket(pipes[0], FIONBIO, &on);
+  }
   closesocket(listener);
 }
 

@@ -1,3 +1,5 @@
+#include "EvtInt.h"
+
 #include "Base/CDataAllocator.h"
 #include "Base/InstanceId.h"
 #include "CObserver.h"
@@ -56,7 +58,7 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   }
 
   BOOL Locked() {
-    return (flags & 0x0FFFFFFF) != 0;
+    return (flags & LOCKED) > 0;
   }
 
   void IncLock() {
@@ -68,7 +70,7 @@ struct EventReg : public TSHashObject<EventReg, HASHKEY_NONE> {
   }
 
   BOOL Changed() {
-    return (flags & 0x80000000) != 0;
+    return (flags & CHANGED) > 0;
   }
 
   void MarkChanged() {
@@ -103,6 +105,8 @@ NODEDECL(EventReg::EVENTDISPATCHREG) {
   }
   EVENTDISPATCHREG(const EVENTDISPATCHREG &);
   ~EVENTDISPATCHREG() {
+    pObserver = static_cast<CObserver *>(0);
+    expectedEventId = -1;
   }
 };
 
@@ -154,18 +158,20 @@ void CObserver::ClearRegistry() {
     return;
   }
 
-  EventReg *reg = m_pEventRegistry->Head();
-  while (reg) {
-    EventReg *next = m_pEventRegistry->Next(reg);
-    reg->UnregisterCallback(0);
-    reg->UnregisterEvent(0);
-    if (reg->IsEmpty() && !reg->Locked()) {
-      m_pEventRegistry->Delete(reg);
+  int       deleteRegistry = 1;
+  for (EventReg *pReg = m_pEventRegistry->Head(), *pRegnext_node;
+       (int)pReg > 0 ? ((pRegnext_node = m_pEventRegistry->Next(pReg)), 1) : 0;
+       pReg = pRegnext_node) {
+    pReg->UnregisterCallback(0);
+    pReg->UnregisterEvent(0);
+    if (pReg->IsEmpty()) {
+      m_pEventRegistry->Delete(pReg);
+    } else {
+      deleteRegistry = 0;
     }
-    reg = next;
   }
 
-  if (!m_pEventRegistry->Head()) {
+  if (deleteRegistry) {
     DEL(m_pEventRegistry);
     m_pEventRegistry = 0;
   }
@@ -203,7 +209,10 @@ BOOL CObserver::DispatchEvent(int id, CEvent &event) {
   }
 
   IncrRef();
-  int handled = reg->DispatchCallback(event) != 0;
+  int handled = 0;
+  if (reg->DispatchCallback(event)) {
+    handled = 1;
+  }
   if (reg->DispatchEvent(event)) {
     handled = 1;
   }
@@ -212,13 +221,8 @@ BOOL CObserver::DispatchEvent(int id, CEvent &event) {
     reg->CleanupCallbacks();
     reg->CleanupEvents();
     reg->ResetChanged();
-  }
-
-  if (reg->IsEmpty() && !reg->Locked()) {
-    m_pEventRegistry->Delete(reg);
-    if (!m_pEventRegistry->Head()) {
-      DEL(m_pEventRegistry);
-      m_pEventRegistry = 0;
+    if (reg->IsEmpty()) {
+      GetRegistry(0)->Delete(reg);
     }
   }
 
@@ -245,12 +249,8 @@ void CObserver::UnregisterCallback(UINT id, EVENTCALLBACK callback) {
   }
 
   reg->UnregisterCallback(callback);
-  if (reg->IsEmpty() && !reg->Locked()) {
-    m_pEventRegistry->Delete(reg);
-    if (!m_pEventRegistry->Head()) {
-      DEL(m_pEventRegistry);
-      m_pEventRegistry = 0;
-    }
+  if (reg->IsEmpty()) {
+    GetRegistry(0)->Delete(reg);
   }
 }
 
@@ -261,27 +261,22 @@ void CObserver::UnregisterEvent(UINT id, CObserver *pObserver) {
   }
 
   reg->UnregisterEvent(pObserver);
-  if (reg->IsEmpty() && !reg->Locked()) {
-    m_pEventRegistry->Delete(reg);
-    if (!m_pEventRegistry->Head()) {
-      DEL(m_pEventRegistry);
-      m_pEventRegistry = 0;
-    }
+  if (reg->IsEmpty()) {
+    GetRegistry(0)->Delete(reg);
   }
 }
 
 BOOL CObserver::IsEventRegistered(UINT id) {
-  EventReg *reg = GetEventReg(id, 0);
-  return reg && !reg->IsEmpty();
+  return GetEventReg(id, 0) != 0;
 }
 
 BOOL CObserver::IsEventRegisteredBy(UINT id, CObserver *pObserver) {
   EventReg *reg = GetEventReg(id, 0);
-  if (reg) {
-    return reg->IsEventRegistered(pObserver);
+  if (!reg) {
+    return 0;
   }
 
-  return 0;
+  return reg->IsEventRegistered(pObserver);
 }
 
 void EventRegistry::InternalDelete(EventReg *pReg) {
@@ -289,116 +284,120 @@ void EventRegistry::InternalDelete(EventReg *pReg) {
   s_eventRegAllocator.Put(pReg);
 }
 
-EventReg *EventRegistry::InternalNew(LISTEXDYN(EventReg) *, DWORD extrabytes, DWORD flags) {
-  FATALASSERT(!extrabytes);
-  return s_eventRegAllocator.Get((flags & SMEM_FLAG_ZEROMEMORY) != 0);
+EventReg *EventRegistry::InternalNew(LISTEXDYN(EventReg) * list, DWORD extrabytes, DWORD flags) {
+  FATALASSERT(extrabytes == 0);
+  EventReg *pReg = s_eventRegAllocator.Get(0);
+  list->LinkNode(pReg, LIST_HEAD, 0);
+  return pReg;
 }
 
 EventReg::EventReg() : flags(0) {
 }
 
 EventReg::~EventReg() {
-  CleanupCallbacks();
-  CleanupEvents();
+  for (EVENTCALLBACKREG *pCallbackReg = callbackList.Head(), *pCallbackRegnext_node;
+       (int)pCallbackReg > 0 ? ((pCallbackRegnext_node = callbackList.RawNext(pCallbackReg)), 1) : 0;
+       pCallbackReg = pCallbackRegnext_node) {
+    s_callbackRegAllocator.Put(pCallbackReg);
+  }
+
+  for (EVENTDISPATCHREG *pDispatchReg = dispatchList.Head(), *pDispatchRegnext_node;
+       (int)pDispatchReg > 0 ? ((pDispatchRegnext_node = dispatchList.RawNext(pDispatchReg)), 1) : 0;
+       pDispatchReg = pDispatchRegnext_node) {
+    s_dispatchRegAllocator.Put(pDispatchReg);
+  }
 }
 
 void EventReg::RegisterCallback(EVENTCALLBACK callback, LPVOID param) {
-  ITERATELIST(EVENTCALLBACKREG, callbackList, entry) {
-    if (entry->callback == callback) {
-      entry->param = param;
+  ITERATELIST(EVENTCALLBACKREG, callbackList, pCallbackReg) {
+    if (pCallbackReg->callback == callback) {
+      pCallbackReg->callback = callback;
+      pCallbackReg->param = param;
       return;
     }
   }
 
-  entry = s_callbackRegAllocator.Get(0);
-  ASSERT(entry);
-  callbackList.LinkNode(entry, LIST_TAIL, 0);
-  entry->callback = callback;
-  entry->param = param;
+  pCallbackReg = s_callbackRegAllocator.Get(0);
+  callbackList.LinkNode(pCallbackReg, LIST_TAIL, 0);
+  ASSERT(pCallbackReg);
+  pCallbackReg->callback = callback;
+  pCallbackReg->param = param;
 }
 
 void EventReg::RegisterEvent(int expectedEventId, CObserver *pObserver) {
-  ITERATELIST(EVENTDISPATCHREG, dispatchList, entry) {
-    if (entry->pObserver.m_ptr == pObserver) {
-      entry->expectedEventId = expectedEventId;
+  ITERATELIST(EVENTDISPATCHREG, dispatchList, pDispatchReg) {
+    if (pDispatchReg->pObserver.m_ptr == pObserver) {
+      pDispatchReg->pObserver = pObserver;
+      pDispatchReg->expectedEventId = expectedEventId;
       return;
     }
   }
 
-  entry = s_dispatchRegAllocator.Get(0);
-  ASSERT(entry);
-  dispatchList.LinkNode(entry, LIST_TAIL, 0);
-  entry->pObserver = pObserver;
-  entry->expectedEventId = expectedEventId;
+  pDispatchReg = s_dispatchRegAllocator.Get(0);
+  dispatchList.LinkNode(pDispatchReg, LIST_TAIL, 0);
+  ASSERT(pDispatchReg);
+  pDispatchReg->pObserver = pObserver;
+  pDispatchReg->expectedEventId = expectedEventId;
 }
 
 void EventReg::UnregisterCallback(EVENTCALLBACK callback) {
-  EVENTCALLBACKREG *entry = callbackList.Head();
-  while (entry) {
-    EVENTCALLBACKREG *pCallbackRegnext_node = callbackList.Next(entry);
-    if (!callback || entry->callback == callback) {
-      entry->callback = 0;
+  for (EVENTCALLBACKREG *pCallbackReg = callbackList.Head(), *pCallbackRegnext_node;
+       (int)pCallbackReg > 0 ? ((pCallbackRegnext_node = callbackList.RawNext(pCallbackReg)), 1) : 0;
+       pCallbackReg = pCallbackRegnext_node) {
+    if (pCallbackReg->callback == callback || !callback) {
+      pCallbackReg->callback = 0;
       if (Locked()) {
         MarkChanged();
       } else {
-        callbackList.UnlinkNode(entry);
-        s_callbackRegAllocator.Put(entry);
+        s_callbackRegAllocator.Put(pCallbackReg);
       }
       if (callback) {
         break;
       }
     }
-    entry = pCallbackRegnext_node;
   }
 }
 
 void EventReg::UnregisterEvent(CObserver *pObserver) {
-  EVENTDISPATCHREG *entry = dispatchList.Head();
-  while (entry) {
-    EVENTDISPATCHREG *pDispatchRegnext_node = dispatchList.Next(entry);
-    if (!pObserver || entry->pObserver.m_ptr == pObserver) {
-      entry->pObserver = static_cast<CObserver *>(0);
+  for (EVENTDISPATCHREG *pDispatchReg = dispatchList.Head(), *pDispatchRegnext_node;
+       (int)pDispatchReg > 0 ? ((pDispatchRegnext_node = dispatchList.RawNext(pDispatchReg)), 1) : 0;
+       pDispatchReg = pDispatchRegnext_node) {
+    if (pDispatchReg->pObserver.m_ptr == pObserver || !pObserver) {
+      pDispatchReg->pObserver = static_cast<CObserver *>(0);
       if (Locked()) {
         MarkChanged();
       } else {
-        dispatchList.UnlinkNode(entry);
-        s_dispatchRegAllocator.Put(entry);
+        s_dispatchRegAllocator.Put(pDispatchReg);
       }
       if (pObserver) {
         break;
       }
     }
-    entry = pDispatchRegnext_node;
   }
 }
 
 void EventReg::CleanupCallbacks() {
-  EVENTCALLBACKREG *entry = callbackList.Head();
-  while (entry) {
-    EVENTCALLBACKREG *next = callbackList.Next(entry);
-    if (!entry->callback) {
-      callbackList.UnlinkNode(entry);
-      s_callbackRegAllocator.Put(entry);
+  for (EVENTCALLBACKREG *pCallbackReg = callbackList.Head(), *pCallbackRegnext_node;
+       (int)pCallbackReg > 0 ? ((pCallbackRegnext_node = callbackList.RawNext(pCallbackReg)), 1) : 0;
+       pCallbackReg = pCallbackRegnext_node) {
+    if (!pCallbackReg->callback) {
+      s_callbackRegAllocator.Put(pCallbackReg);
     }
-    entry = next;
   }
 }
 
 void EventReg::CleanupEvents() {
-  EVENTDISPATCHREG *entry = dispatchList.Head();
-  while (entry) {
-    EVENTDISPATCHREG *next = dispatchList.Next(entry);
-    if (!entry->pObserver) {
-      dispatchList.UnlinkNode(entry);
-      s_dispatchRegAllocator.Put(entry);
+  for (EVENTDISPATCHREG *pDispatchReg = dispatchList.Head(), *pDispatchRegnext_node;
+       (int)pDispatchReg > 0 ? ((pDispatchRegnext_node = dispatchList.RawNext(pDispatchReg)), 1) : 0;
+       pDispatchReg = pDispatchRegnext_node) {
+    if (!pDispatchReg->pObserver) {
+      s_dispatchRegAllocator.Put(pDispatchReg);
     }
-    entry = next;
   }
 }
 
 BOOL EventReg::IsCallbackRegistered(EVENTCALLBACK callback) const {
-  const EVENTCALLBACKREG *entry;
-  for (entry = callbackList.Head(); entry; entry = callbackList.Next(entry)) {
+  for (const EVENTCALLBACKREG *entry = callbackList.Head(); (int)entry > 0; entry = callbackList.RawNext(entry)) {
     if (entry->callback == callback) {
       return 1;
     }
@@ -407,8 +406,7 @@ BOOL EventReg::IsCallbackRegistered(EVENTCALLBACK callback) const {
 }
 
 BOOL EventReg::IsEventRegistered(CObserver *pObserver) const {
-  const EVENTDISPATCHREG *entry;
-  for (entry = dispatchList.Head(); entry; entry = dispatchList.Next(entry)) {
+  for (const EVENTDISPATCHREG *entry = dispatchList.Head(); (int)entry > 0; entry = dispatchList.RawNext(entry)) {
     if (entry->pObserver == pObserver) {
       return 1;
     }

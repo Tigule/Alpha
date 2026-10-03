@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -89,7 +91,7 @@ void CGActionBar::UpdateBonusBar() {
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    const SpellShapeshiftFormRec *form = g_spellShapeshiftFormDB.GetRecord(player->GetUnitData()->shapeshiftForm);
+    const SpellShapeshiftFormRec *form = g_spellShapeshiftFormDB.GetRecord(player->GetShapeshiftForm());
     if (form) {
       m_bonusPage = form->m_bonusActionBar;
     }
@@ -102,123 +104,91 @@ BOOL CGActionBar::IsUsableAction(int id, BOOL &noMana) {
   noMana = 0;
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return 0;
-  }
+  if (player) {
+    if (IsAttackAction(id)) {
+      return !(player->GetUnitFlags() & 0x20000);
+    }
+    if (!IsSpell(id)) {
+      if (IsItem(id)) {
+        return !Spell_C_NeedsCooldownEvent(GetItem(id));
+      }
+      return 1;
+    }
+    if (IsToggledAction(id)) {
+      return 1;
+    }
 
-  const CGUnitData *unitData = player->GetUnitData();
-  if (IsAttackAction(id)) {
-    return !(unitData->flags & 0x20000);
-  }
-
-  int action = m_slotActions[id];
-  if (action < 0) {
-    return !Spell_C_NeedsCooldownEvent(-action);
-  }
-  if (!action || IsToggledAction(id)) {
-    return 1;
-  }
-
-  const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
-  if (!spell || !Spell_C_HaveSpellTokens(player, spell, false) || !Spell_C_HaveEquippedSpellItems(player, spell, true, false)) {
-    return 0;
-  }
-
-  if ((spell->m_attributesEx & 0x500000) && !unitData->comboPoints) {
-    return 0;
-  }
-
-  if (spell->m_shapeshiftMask && !(spell->m_shapeshiftMask & (1 << (unitData->shapeshiftForm - 1)))) {
-    return 0;
-  }
-
-  if ((spell->m_attributes & 0x10000) && player->IsShapeShifted()) {
-    return 0;
-  }
-
-  if ((spell->m_attributes & 0x20000) && !(unitData->flags & 0x8000)) {
-    return 0;
-  }
-  if ((spell->m_attributes & 0x10000000) && (unitData->flags & 0x80000)) {
-    return 0;
-  }
-
-  if (spell->m_casterAuraState && !(unitData->auraState & (1 << (spell->m_casterAuraState - 1)))) {
-    return 0;
-  }
-
-  if (spell->m_targetAuraState && spell->m_implicitTargetA[0] == 6) {
-    CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
-    if (!target || !(target->GetUnitData()->auraState & (1 << (spell->m_targetAuraState - 1)))) {
-      return 0;
+    const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
+    if (spell && Spell_C_HaveSpellTokens(player, spell, false) && Spell_C_HaveEquippedSpellItems(player, spell, true, false) &&
+        (!(spell->m_attributesEx & 0x500000) || player->GetComboPoints()) &&
+        (!spell->m_shapeshiftMask || (spell->m_shapeshiftMask & (1 << (player->GetShapeshiftForm() - 1)))) &&
+        (!(spell->m_attributes & 0x10000) || !player->IsShapeShifted()) &&
+        (!(spell->m_attributes & 0x20000) || player->IsStealthed()) &&
+        (!(spell->m_attributes & 0x10000000) || !player->IsAffectingCombat()) &&
+        (!spell->m_casterAuraState || (player->GetAuraState() & (1 << (spell->m_casterAuraState - 1)))))
+    {
+      if (spell->m_targetAuraState && spell->m_implicitTargetA[0] == 6) {
+        CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
+        if (!target || !(target->GetAuraState() & (1 << (spell->m_targetAuraState - 1)))) {
+          return 0;
+        }
+      }
+      if (!(spell->m_attributes & 0x2000000) || !Spell_C_NeedsCooldownEvent(spell, 0)) {
+        int power = spell->m_powerType == -2 ? player->GetHealth() : player->GetPower(static_cast<POWER_TYPE>(spell->m_powerType));
+        if (Spell_C_GetManaCost(spell->m_ID, 0) > power) {
+          noMana = 1;
+          return 0;
+        }
+        return 1;
+      }
     }
   }
-
-  if ((spell->m_attributes & 0x2000000) && Spell_C_NeedsCooldownEvent(spell, 0)) {
-    return 0;
-  }
-
-  int power = spell->m_powerType == -2 ? unitData->health : unitData->power[spell->m_powerType];
-  if (Spell_C_GetManaCost(spell->m_ID, 0) <= power) {
-    return 1;
-  }
-
-  noMana = 1;
   return 0;
 }
 
 BOOL CGActionBar::IsCurrentAction(int id) {
-  int action = m_slotActions[id];
-  if (!action) {
+  if (!HasAction(id)) {
     return 0;
   }
 
   if (IsAttackAction(id)) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    return player && (player->GetUnitData()->flags & 0x400);
+    return player && player->IsInCombatMode();
   }
 
-  if (action < 0) {
+  if (IsItem(id)) {
     CGObject_C *item = ClntObjMgrObjectPtr(Spell_C_GetModalItem(), __FILE__, __LINE__);
-    return item && item->GetEntryID() == -action;
+    return item && item->GetEntryID() == GetItem(id);
   }
 
-  int spellID = GetSpell(id);
-  if (Spell_C_GetModalSpell() == spellID || Spell_C_GetTargettingSpell() == spellID) {
+  if (Spell_C_GetModalSpell() == GetSpell(id) || Spell_C_GetTargettingSpell() == GetSpell(id)) {
     return 1;
   }
 
-  const SpellRec *spell = g_spellDB.GetRecord(spellID);
+  const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
   if (!spell) {
     return 0;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player && spell->m_effect[0] == 47) {
-    if (spell->m_effectMiscValue[0]) {
-      if (CGCraftInfo::GetCraftType() == spell->m_effectMiscValue[0]) {
-        return 1;
-      }
-    } else {
-      const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetUnitData()->race, player->GetUnitData()->classId, spell->m_ID);
+    if (!spell->m_effectMiscValue[0]) {
+      const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetRace(), player->GetClass(), spell->m_ID);
       if (ability && CGTradeSkillInfo::GetSkillLine() == ability->m_skillLine) {
         return 1;
       }
+    } else if (CGCraftInfo::GetCraftType() == spell->m_effectMiscValue[0]) {
+      return 1;
     }
   }
 
-  UINT effect;
-  for (effect = 0; effect < 3; ++effect) {
-    if (spell->m_effectAura[effect] == 36) {
-      break;
+  for (UINT i = 0; i < 3; ++i) {
+    if (spell->m_effectAura[i] == 36) {
+      int form = spell->m_effectMiscValue[i];
+      return form && player && player->GetShapeshiftForm() == form;
     }
   }
-  if (effect >= 3) {
-    return 0;
-  }
-
-  int form = spell->m_effectMiscValue[effect];
-  return form && player && player->GetUnitData()->shapeshiftForm == form;
+  return 0;
 }
 
 BOOL CGActionBar::IsToggledAction(int id) {
@@ -228,14 +198,11 @@ BOOL CGActionBar::IsToggledAction(int id) {
   }
 
   int active = 0;
-  if (m_slotActions[id] > 0) {
-    const SpellRec *spell = g_spellDB.GetRecord(m_slotActions[id]);
+  if (IsSpell(id)) {
+    const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
     if (spell && spell->m_activeIconID) {
-      const CGUnitData *unitData = player->GetUnitData();
-      const BYTE       *auraFlags = unitData->auraFlags;
-      int               aura;
-      for (aura = 0; aura < 40; ++aura) {
-        if (unitData->auras[aura] == spell->m_ID && ((auraFlags[aura / 2] >> (4 * (aura % 2))) & 1)) {
+      for (int i = 0; i < 40; ++i) {
+        if (player->GetAura(i) == spell->m_ID && (player->GetAuraFlags(i) & 1)) {
           active = 1;
           break;
         }
@@ -256,10 +223,11 @@ void CGActionBar::HideGrid() {
 void CGActionBar::SlotChanged(int id) {
   FATALASSERT(id >= 0 && id < NUM_ACTION_BUTTONS);
 
+  int        action = m_slotActions[id];
   CDataStore msg;
   msg.Put(CMSG_SET_ACTION_BUTTON);
   msg.Put(static_cast<BYTE>(id));
-  msg.Put(m_slotActions[id]);
+  msg.Put(action);
   msg.Finalize();
   ClientServices_Send(&msg);
   FrameScript_SignalEvent(204, "%d", id + 1);
@@ -267,7 +235,10 @@ void CGActionBar::SlotChanged(int id) {
 
 BOOL CGActionBar::IsAttackAction(int id) {
   const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
-  return spell && spell->m_effect[0] == 78;
+  if (spell && spell->m_effect[0] == 78) {
+    return 1;
+  }
+  return 0;
 }
 
 void CGActionBar::UpdateSelection() {
@@ -275,17 +246,16 @@ void CGActionBar::UpdateSelection() {
 }
 
 void CGActionBar::UpdateItem(int entryID) {
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return;
-  }
-
-  for (int id = 0; id < NUM_ACTION_BUTTONS; ++id) {
-    if (m_slotActions[id] < 0 && -m_slotActions[id] == entryID) {
-      if (player->GetBag()->GetItemTypeCount(entryID, 0) > 0) {
-        SlotChanged(id);
-      } else {
-        RemoveAction(id);
+  CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
+  if (player) {
+    int count = player->GetBag()->GetItemTypeCount(entryID, 0);
+    for (UINT i = 0; i < NUM_ACTION_BUTTONS; ++i) {
+      if (IsItem(i) && GetItem(i) == entryID) {
+        if (count <= 0) {
+          RemoveAction(i);
+        } else {
+          SlotChanged(i);
+        }
       }
     }
   }
@@ -300,31 +270,25 @@ void CGActionBar::UpdateCooldowns() {
 }
 
 void CGActionBar::SetAction(int id, int action) {
-  if (static_cast<UINT>(id) >= NUM_ACTION_BUTTONS) {
-    return;
-  }
-
-  m_slotActions[id] = 0;
-  if (action > 0) {
-    m_slotActions[id] = action;
-  } else if (action < 0) {
-    CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
-    CGBag_C    *inventory = player ? player->GetBag() : 0;
-    if (inventory && inventory->FindItemOfType(-action, 0)) {
+  if (static_cast<UINT>(id) < NUM_ACTION_BUTTONS) {
+    m_slotActions[id] = 0;
+    if (action < 0) {
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player && player->CGPlayer_C::GetBag()->FindItemOfType(-action, 0)) {
+        m_slotActions[id] = action;
+      }
+    } else if (action > 0) {
       m_slotActions[id] = action;
-      SlotChanged(id);
-      return;
     }
+    SlotChanged(id);
   }
-
-  SlotChanged(id);
 }
 
 void CGActionBar::AddAction(int action) {
-  for (int id = 0; id < NUM_ACTION_BUTTONS; ++id) {
-    if (!m_slotActions[id]) {
-      m_slotActions[id] = action;
-      SlotChanged(id);
+  for (UINT i = 0; i < NUM_ACTION_BUTTONS; ++i) {
+    if (!m_slotActions[i]) {
+      m_slotActions[i] = action;
+      SlotChanged(i);
       return;
     }
   }
@@ -356,31 +320,28 @@ void CGActionBar::UseAction(int id, BOOL checkCursor) {
   ASSERT(id >= 0);
   ASSERT(id < NUM_ACTION_BUTTONS);
 
-  if (checkCursor && (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
+  if (checkCursor && (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() > 0 ||
                       (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR && CGGameUI::GetCursorVirtualItem())))
   {
     PutActionInSlot(id);
     return;
   }
-  if (!HasAction(id)) {
-    return;
-  }
-  if (IsSpell(id)) {
-    int spell = GetSpell(id);
-    if (IsToggledAction(id)) {
-      Spell_C_CancelAura(spell);
-    } else if (spell == Spell_C_GetTargettingSpell()) {
+  if (HasAction(id)) {
+    if (IsItem(id)) {
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player) {
+        CGItem_C *item = player->CGPlayer_C::GetBag()->FindItemOfType(GetItem(id), 0);
+        if (item) {
+          item->Use();
+        }
+      }
+    } else if (IsToggledAction(id)) {
+      Spell_C_CancelAura(GetSpell(id));
+    } else if (GetSpell(id) == Spell_C_GetTargettingSpell()) {
       Spell_C_StopTargeting();
     } else {
-      Spell_C_CastSpell(spell, 0);
-      SndInterfacePlayInterfaceSound("INTERFACESOUND_ACTIONBUTTONDOWN");
-    }
-  } else {
-    CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
-    CGBag_C    *inventory = player ? player->GetBag() : 0;
-    CGItem_C   *item = inventory ? inventory->FindItemOfType(GetItem(id), 0) : 0;
-    if (item) {
-      item->Use();
+      Spell_C_CastSpell(GetSpell(id), 0);
+      SndInterfacePlayInterfaceSound("GAMESPELLACTIVATE");
     }
   }
 }
@@ -389,39 +350,34 @@ void CGActionBar::PickupAction(int id) {
   ASSERT(id >= 0);
   ASSERT(id < NUM_ACTION_BUTTONS);
 
-  if (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() ||
+  if (CGGameUI::GetCursorSpell() > 0 || CGGameUI::GetCursorItem() > 0 ||
       (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR && CGGameUI::GetCursorVirtualItem()))
   {
     PutActionInSlot(id);
     return;
   }
 
-  int action = m_slotActions[id];
-  if (!action) {
-    return;
-  }
-
-  if (action > 0) {
-    CGGameUI::SetCursorSpell(action, 0);
+  if (HasAction(id)) {
+    if (IsItem(id)) {
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player) {
+        CGItem_C *item = player->CGPlayer_C::GetBag()->FindItemOfType(GetItem(id), 0);
+        if (!item) {
+          RemoveAction(id);
+          return;
+        }
+        CGGameUI::SetCursorVirtualItem(GetItem(id), item->GetDisplayID(), id, UICURSOR_ACTIONBAR);
+      }
+    } else if (IsSpell(id)) {
+      CGGameUI::SetCursorSpell(GetSpell(id), 0);
+    }
     RemoveAction(id);
-    return;
   }
-
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  CGItem_C   *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(-action, 0) : 0;
-  if (item) {
-    CGGameUI::SetCursorVirtualItem(-action, item->GetDisplayID(), id, UICURSOR_ACTIONBAR);
-  }
-  RemoveAction(id);
 }
 
 void CGActionBar::PutActionInSlot(int id) {
   int cursorSpell = CGGameUI::GetCursorSpell();
-  int cursorItem = 0;
-
-  if (CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR) {
-    cursorItem = static_cast<int>(CGGameUI::GetCursorVirtualItem());
-  }
+  int cursorItem = CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR ? CGGameUI::GetCursorVirtualItem() : 0;
 
   if (!cursorItem && CGGameUI::GetCursorItem()) {
     CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGGameUI::GetCursorItem(), __FILE__, __LINE__));
@@ -430,58 +386,60 @@ void CGActionBar::PutActionInSlot(int id) {
     }
   }
 
-  int oldAction = m_slotActions[id];
   if (cursorSpell > 0) {
     const SpellRec *spell = g_spellDB.GetRecord(cursorSpell);
     if (!spell) {
       return;
     }
     if (spell->m_attributes & 0x40) {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(139));
+      CGGameUI::DisplayError(GERR_PASSIVE_ABILITY);
       return;
     }
-
-    if (oldAction > 0 && oldAction == cursorSpell) {
+    if (cursorSpell == GetSpell(id)) {
       CGGameUI::DropCursorSpell();
       return;
     }
 
-    if (oldAction > 0) {
-      CGGameUI::SetCursorSpell(oldAction, 0);
-    } else if (oldAction < 0) {
+    if (IsItem(id)) {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      CGItem_C   *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(-oldAction, 0) : 0;
-      if (item) {
-        CGGameUI::SetCursorVirtualItem(-oldAction, item->GetDisplayID(), id, UICURSOR_ACTIONBAR);
+      if (player) {
+        CGItem_C *item = player->CGPlayer_C::GetBag()->FindItemOfType(GetItem(id), 0);
+        if (item) {
+          CGGameUI::SetCursorVirtualItem(GetItem(id), item->GetDisplayID(), id, UICURSOR_ACTIONBAR);
+        }
       }
+    } else if (IsSpell(id)) {
+      CGGameUI::SetCursorSpell(GetSpell(id), 0);
     } else {
       CGGameUI::ClearCursor(1);
     }
 
     m_slotActions[id] = cursorSpell;
     SlotChanged(id);
-    return;
-  }
-
-  if (cursorItem > 0) {
+  } else if (cursorItem > 0) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    CGItem_C   *item = player && player->GetBag() ? player->GetBag()->FindItemOfType(cursorItem, 0) : 0;
+    if (!player) {
+      return;
+    }
+    CGItem_C *item = player->CGPlayer_C::GetBag()->FindItemOfType(cursorItem, 0);
     if (!item || !item->CanBeUsed()) {
       return;
     }
-
-    if (oldAction < 0 && -oldAction == cursorItem) {
+    if (cursorItem == GetItem(id)) {
       CGGameUI::ClearCursor(1);
       return;
     }
 
-    if (oldAction > 0) {
-      CGGameUI::SetCursorSpell(oldAction, 0);
-    } else if (oldAction < 0) {
-      CGItem_C *oldItem = player->GetBag()->FindItemOfType(-oldAction, 0);
-      if (oldItem) {
-        CGGameUI::SetCursorVirtualItem(-oldAction, oldItem->GetDisplayID(), id, UICURSOR_ACTIONBAR);
+    if (IsItem(id)) {
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player) {
+        CGItem_C *item = player->CGPlayer_C::GetBag()->FindItemOfType(GetItem(id), 0);
+        if (item) {
+          CGGameUI::SetCursorVirtualItem(GetItem(id), item->GetDisplayID(), id, UICURSOR_ACTIONBAR);
+        }
       }
+    } else if (IsSpell(id)) {
+      CGGameUI::SetCursorSpell(GetSpell(id), 0);
     } else {
       CGGameUI::ClearCursor(1);
     }
@@ -499,13 +457,11 @@ LPCSTR CGActionBar::GetAttackTexture() {
     return 0;
   }
 
-  if (!(player->GetUnitData()->flags & 0x200000)) {
-    CGBag_C  *inventory = player->GetBag();
-    DWORDLONG itemGUID = inventory ? inventory->GetItem(15) : 0;
-    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
+  if (!(player->GetUnitFlags() & 0x200000)) {
+    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(player->GetBag()->GetItem(15), __FILE__, __LINE__));
     if (item) {
       LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-      SStrPrintf(buffer, sizeof(buffer), "%s%s", path, path && *path ? "\\" : "");
+      SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
       SStrPack(buffer, item->GetInventoryArt(), sizeof(buffer));
       return buffer;
     }
@@ -517,179 +473,204 @@ LPCSTR CGActionBar::GetAttackTexture() {
 LPCSTR CGActionBar::GetTexture(int id) {
   static char buffer[MAX_PATH];
 
-  CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
-  if (!player || !HasAction(id)) {
-    return 0;
-  }
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (player) {
+    LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+    SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
 
-  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  SStrPrintf(buffer, sizeof(buffer), "%s%s", path, path && *path ? "\\" : "");
-
-  if (IsAttackAction(id)) {
-    return GetAttackTexture();
-  }
-
-  if (IsSpell(id)) {
-    const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
-    if (!spell) {
-      return 0;
+    if (HasAction(id)) {
+      if (IsAttackAction(id)) {
+        return GetAttackTexture();
+      }
+      if (IsItem(id)) {
+        CGItem_C *item = player->CGPlayer_C::GetBag()->FindItemOfType(GetItem(id), 0);
+        if (item) {
+          SStrPack(buffer, item->GetInventoryArt(), sizeof(buffer));
+          return buffer;
+        }
+      } else if (IsSpell(id)) {
+        const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
+        if (spell) {
+          const SpellIconRec *icon = g_spellIconDB.GetRecord(IsToggledAction(id) ? spell->m_activeIconID : spell->m_spellIconID);
+          if (icon) {
+            return icon->m_textureFilename;
+          }
+        }
+      }
     }
-
-    int                 iconID = IsToggledAction(id) ? spell->m_activeIconID : spell->m_spellIconID;
-    const SpellIconRec *icon = g_spellIconDB.GetRecord(iconID);
-    return icon ? icon->m_textureFilename : 0;
   }
-
-  CGBag_C  *inventory = player ? player->GetBag() : 0;
-  CGItem_C *item = inventory ? inventory->FindItemOfType(GetItem(id), 0) : 0;
-  if (!item) {
-    return 0;
-  }
-  SStrPack(buffer, item->GetInventoryArt(), sizeof(buffer));
-  return buffer;
+  return 0;
 }
 
 int CGActionBar::GetCount(int id) {
-  if (!IsItem(id)) {
-    return 0;
+  if (IsItem(id)) {
+    CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
+    if (player) {
+      return player->GetBag()->GetItemTypeCount(GetItem(id), 0);
+    }
   }
-  CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
-  return player ? player->GetBag()->GetItemTypeCount(GetItem(id), 0) : 0;
+  return 0;
 }
 
 void CGActionBar::GetCooldown(int id, DWORD &startTime, UINT &duration, UINT &enable) {
   startTime = 0;
   duration = 0;
-  if (IsSpell(id)) {
-    Spell_C_GetSpellCooldown(GetSpell(id), 0, &duration, &startTime, &enable);
-  } else if (IsItem(id)) {
+  if (IsItem(id)) {
     Spell_C_GetItemCooldown(GetItem(id), &duration, &startTime, &enable);
+  } else if (IsSpell(id)) {
+    Spell_C_GetSpellCooldown(GetSpell(id), 0, &duration, &startTime, &enable);
   }
 }
 
 void CGActionBar::PrecacheButtonArt(int id) {
-  int action = m_slotActions[id];
-  if (action > 0) {
-    UnitEffectPreloadSpellEffects(action);
-  } else if (action < 0) {
+  if (IsSpell(id)) {
+    UnitEffectPreloadSpellEffects(GetSpell(id));
+  } else if (IsItem(id)) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    CGItem_C   *item = player ? player->GetBag()->FindItemOfType(-action, 0) : 0;
-    if (item) {
-      UnitEffectPreloadSpellEffects(item->GetUseSpell());
+    if (player) {
+      CGItem_C *item = player->CGPlayer_C::GetBag()->FindItemOfType(GetItem(id), 0);
+      if (item) {
+        UnitEffectPreloadSpellEffects(item->GetUseSpell());
+      }
     }
   }
 }
 
 static int Script_GetActionTexture(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: GetActionTexture(slot)");
-  LPCSTR texture = CGActionBar::GetTexture(static_cast<int>(lua_tonumber(L, 1)) - 1);
-  if (texture) {
-    lua_pushstring(L, texture);
-  } else {
-    lua_pushnil(L);
+  if (lua_isnumber(L, 1)) {
+    int    id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    LPCSTR texture = CGActionBar::GetTexture(id);
+    if (texture) {
+      lua_pushstring(L, texture);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
   }
-  return 1;
+  luaL_error(L, "Usage: GetActionTexture(slot)");
+  return 0;
 }
 
 static int Script_GetActionCount(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: GetActionCount(slot)");
-  lua_pushnumber(L, static_cast<double>(CGActionBar::GetCount(static_cast<int>(lua_tonumber(L, 1)) - 1)));
-  return 1;
+  if (lua_isnumber(L, 1)) {
+    int id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    lua_pushnumber(L, static_cast<double>(CGActionBar::GetCount(id)));
+    return 1;
+  }
+  luaL_error(L, "Usage: GetActionCount(slot)");
+  return 0;
 }
 
 static int Script_GetActionCooldown(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: GetActionCooldown(slot)");
-  DWORD startTime;
-  UINT  duration;
-  UINT  enable;
-  CGActionBar::GetCooldown(static_cast<int>(lua_tonumber(L, 1)) - 1, startTime, duration, enable);
-  lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
-  lua_pushnumber(L, static_cast<double>(duration) * 0.001);
-  lua_pushnumber(L, static_cast<double>(enable));
-  return 3;
+  if (lua_isnumber(L, 1)) {
+    int   id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    DWORD startTime;
+    UINT  duration;
+    UINT  enable = 0;
+    CGActionBar::GetCooldown(id, startTime, duration, enable);
+    lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
+    lua_pushnumber(L, static_cast<double>(duration) * 0.001);
+    lua_pushnumber(L, static_cast<double>(enable));
+    return 3;
+  }
+  luaL_error(L, "Usage: GetActionCooldown(slot)");
+  return 0;
 }
 
 static int Script_HasAction(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    luaL_error(L, "Usage: HasAction(slot)");
-    return 0;
-  if (CGActionBar::HasAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
+  if (lua_isnumber(L, 1)) {
+    int id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    if (CGActionBar::HasAction(id)) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
   }
-  return 1;
+  luaL_error(L, "Usage: HasAction(slot)");
+  return 0;
 }
 
 static int Script_UseAction(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    luaL_error(L, "Usage: UseAction(slot)");
+  if (lua_isnumber(L, 1)) {
+    int  id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    BOOL checkCursor = 1;
+    if (lua_isstring(L, 2)) {
+      checkCursor = StringToBOOL(lua_tostring(L, 2));
+    }
+    CGActionBar::UseAction(id, checkCursor);
     return 0;
-  BOOL checkCursor = 0;
-  if (lua_isstring(L, 2)) {
-    checkCursor = StringToBOOL(lua_tostring(L, 2));
   }
-  CGActionBar::UseAction(static_cast<int>(lua_tonumber(L, 1)) - 1, checkCursor);
+  luaL_error(L, "Usage: UseAction(slot, [checkCursor])");
   return 0;
 }
 
 static int Script_PickupAction(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    luaL_error(L, "Usage: PickupAction(slot)");
+  if (lua_isnumber(L, 1)) {
+    int id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    CGActionBar::PickupAction(id);
     return 0;
-  CGActionBar::PickupAction(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  }
+  luaL_error(L, "Usage: PickupAction(slot)");
   return 0;
 }
 
 static int Script_PlaceAction(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    luaL_error(L, "Usage: PlaceAction(slot)");
+  if (lua_isnumber(L, 1)) {
+    int id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    CGActionBar::PutActionInSlot(id);
     return 0;
-  CGActionBar::PutActionInSlot(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  }
+  luaL_error(L, "Usage: PlaceAction(slot)");
   return 0;
 }
 
 static int Script_IsAttackAction(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: IsAttackAction(slot)");
-  if (CGActionBar::IsAttackAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
+  if (lua_isnumber(L, 1)) {
+    int id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    if (CGActionBar::IsAttackAction(id)) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
   }
-  return 1;
+  luaL_error(L, "Usage: IsAttackAction(slot)");
+  return 0;
 }
 
 static int Script_IsCurrentAction(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: IsCurrentAction(slot)");
-  if (CGActionBar::IsCurrentAction(static_cast<int>(lua_tonumber(L, 1)) - 1)) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
+  if (lua_isnumber(L, 1)) {
+    int id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    if (CGActionBar::IsCurrentAction(id)) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
   }
-  return 1;
+  luaL_error(L, "Usage: IsCurrentAction(slot)");
+  return 0;
 }
 
 static int Script_IsUsableAction(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: IsUsableAction(slot)");
-  BOOL noMana;
-  int  usable = CGActionBar::IsUsableAction(static_cast<int>(lua_tonumber(L, 1)) - 1, noMana);
-  if (usable) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
+  if (lua_isnumber(L, 1)) {
+    int  id = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    BOOL noMana = 0;
+    if (CGActionBar::IsUsableAction(id, noMana)) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    if (noMana) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    return 2;
   }
-  if (noMana) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
-  }
-  return 2;
+  luaL_error(L, "Usage: IsUsableAction(slot)");
+  return 0;
 }
 
 static int Script_GetBonusBarOffset(lua_State *L) {
@@ -704,7 +685,7 @@ static int Script_ChangeActionBarPage(lua_State *) {
 
 static int Script_PrecacheSpellArt(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    CGActionBar::PrecacheButtonArt(static_cast<int>(lua_tonumber(L, 1)));
+    CGActionBar::PrecacheButtonArt(static_cast<int>(lua_tonumber(L, 1)) - 1);
   }
   return 0;
 }

@@ -82,9 +82,8 @@ void CSimpleMessageScrollFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
   value = node->GetAttributeByName("maxLines");
   if (value && *value) {
-    int maxLines = SStrToInt(value);
-    if (maxLines > 0) {
-      SetMaxLines(maxLines);
+    if (SStrToInt(value) > 0) {
+      SetMaxLines(SStrToInt(value));
     }
   }
 }

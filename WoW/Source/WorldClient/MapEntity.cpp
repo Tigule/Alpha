@@ -1,15 +1,18 @@
-#include <Base/Base.h>
+#include "Base/Base.h"
+#include "Gx/Gx.h"
+#include "Services/ParticleSystem2.h"
 #include <WowConst.h>
+#include "AaBsp.h"
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-
 #include "WorldClient/CMapObj.h"
-
+#include "WorldClient/WorldParam.h"
+#include "WorldClient/DetailDoodad.h"
+#include "WorldClient/CSimpleDoodad.h"
 #include "DayNight.h"
 
 #include <DB/DBClient/DBClient.h>
-#include <Gx/Gx.h>
 #include <WorldCommon/WorldMath.h>
 
 #include <Tempest/cpriorityq.h>
@@ -155,13 +158,13 @@ BOOL CMapEntity::QueryMapObjListenerId(UINT &listenerId) {
 }
 
 bool CMapEntity::QueryMapObjMinimap(const NTempest::CAaBox &aaBox, TSStackArray<CWorld::MinimapQuad> &quads) {
-  NTempest::CAaBox localBox;
   CMapObjGroup    *mapObjGroup;
   CMapObj         *mapObj;
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjDef      *mapObjDef;
   bool result = false;
   if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+    NTempest::CAaBox localBox;
     CWorldMath::TransformAABox(mapObjDef->invMat, aaBox, localBox);
     result = mapObj->QueryMapObjMinimap(mapObjDefGroup->groupNum, localBox, quads);
   }
@@ -177,7 +180,7 @@ bool CMapEntity::QueryMapObjIDs(UINT &wmoID, UINT &instanceID, UINT &groupID) {
   bool result = false;
   if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
     wmoID = mapObj->GetWmoID();
-    instanceID = mapObj->GetHashValue();
+    instanceID = mapObjDef->mapObj->GetHashValue();
     groupID = mapObjDefGroup->groupNum;
     result = true;
   }
@@ -254,10 +257,10 @@ void CMapEntity::QueryLiquidSounds(int *lbool, NTempest::C3Vector *ldelta, float
 
 static float ComputeFogBlend(const SMOFog &fog, float dist) {
   FATALASSERT(dist < fog.end);
-  if (dist >= fog.start) {
-    return 1.0f - (dist - fog.start) / (fog.end - fog.start);
+  if (dist < fog.start) {
+    return 1.0f;
   }
-  return 1.0f;
+  return 1.0f - (dist - fog.start) / (fog.end - fog.start);
 }
 
 BOOL CMapEntity::QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct) {
@@ -360,8 +363,9 @@ BOOL CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
 void CMap::UpdateEntity(CMapEntity *entity) {
   FATALASSERT(entity);
 
-  while (entity->parentLinkList.Head()) {
-    FreeBaseObjLink(entity->parentLinkList.Head());
+  for (CMapBaseObjLink *parentLink = entity->parentLinkList.Head(), *next;
+       (int)parentLink > 0 ? ((next = entity->parentLinkList.RawNext(parentLink)), 1) : 0; parentLink = next) {
+    FreeBaseObjLink(parentLink);
   }
 
   entity->flags = (entity->flags & ~0x19) | CMapBaseObj::Flag_LightUpdate;
@@ -404,19 +408,21 @@ void CMap::LinkEntityToMapObj(CMapStaticEntity *entity, CMapObjDef *mapObjDef, C
     FATALASSERT(0);
   }
 
-  FATALASSERT(mapObjDef->mapObj);
-  CMapObjGroup *mapObjGroup = mapObjDef->mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
-  FATALASSERT(mapObjGroup);
+  CMapObj *hitMapObj = mapObjDef->mapObj;
+  FATALASSERT(hitMapObj);
+  CMapObjGroup *hitMapObjGroup = hitMapObj->GetGroup(mapObjDefGroup->groupNum, 0);
+  FATALASSERT(hitMapObjGroup);
 
-  if (mapObjGroup->flags & 0x8) {
+  UINT flags = hitMapObjGroup->flags;
+  if (flags & 0x8) {
     entity->flags |= CMapBaseObj::Flag_ExteriorLit;
   } else {
     entity->flagInside = 1;
-    if (mapObjGroup->flags & 0x40) {
+    if (flags & 0x40) {
       entity->flags |= CMapBaseObj::Flag_ExteriorLit;
     } else {
       entity->flags |= CMapBaseObj::Flag_InteriorLit;
-      entity->QueryLightmap(mapObjDef, mapObjGroup);
+      entity->QueryLightmap(mapObjDef, hitMapObjGroup);
     }
   }
 }
@@ -442,16 +448,15 @@ void CMap::LinkEntity(CMapStaticEntity *entity) {
   NTempest::C3Vector lEnd = lCen;
   lEnd.z -= 1760.0f;
 
-  CMapChunk *chunk;
-  float      chunkT = 1.0f;
-  UINT       hitChunk = VectorIntersectTerrain(&lCen, &lEnd, &chunkT, 0, &chunk);
-
+  CMapChunk       *chunk;
+  float            chunkT = 1.0f;
+  float            mapObjT = 1.0f;
+  UINT             hitChunk = VectorIntersectTerrain(&lCen, &lEnd, &chunkT, 0, &chunk);
   CMapObjDef      *mapObjDef;
   CMapObjDefGroup *mapObjDefGroup;
-  float            mapObjT = 1.0f;
   UINT             hitMapObj = LinkIntersectMapObjs(lCen, lEnd, mapObjT, mapObjDef, mapObjDefGroup);
 
-  if ((!hitChunk || (hitMapObj && chunkT >= mapObjT)) && hitMapObj) {
+  if ((!hitChunk || (hitMapObj && !(chunkT < mapObjT))) && hitMapObj) {
     LinkEntityToMapObj(entity, mapObjDef, mapObjDefGroup);
   } else if (hitChunk) {
     LinkEntityToChunk(entity, chunk);

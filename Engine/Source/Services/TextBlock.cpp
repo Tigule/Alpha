@@ -7,7 +7,9 @@
 
 #include <stpl.h>
 
-struct FONTHASHOBJ : public CHandleObject, public TSHashObject<FONTHASHOBJ, HASHKEY_STR> {
+struct FONTHASHOBJ : public TSHashObject<FONTHASHOBJ, HASHKEY_STR>, public CHandleObject {
+  CGxFont *font;
+
   FONTHASHOBJ() : font(0) {
   }
 
@@ -16,8 +18,6 @@ struct FONTHASHOBJ : public CHandleObject, public TSHashObject<FONTHASHOBJ, HASH
       GxuFontDestroyFont(font);
     }
   }
-
-  CGxFont *font;
 };
 
 static TSHashTable<FONTHASHOBJ, HASHKEY_STR> s_fontHash;
@@ -83,7 +83,10 @@ UINT TextBlockGetFontFlags(HTEXTFONT fontHandle) {
   VALIDATEEND;
 
   flags = GxuFontGetFontFlags(reinterpret_cast<FONTHASHOBJ *>(fontHandle)->font);
-  textFlags = (flags & 0x1) != 0;
+  textFlags = 0;
+  if (flags & 0x1) {
+    textFlags |= 0x1;
+  }
   if (flags & 0x8) {
     textFlags |= 0x4;
   }
@@ -261,7 +264,10 @@ void TextBlockGetTextExtent(HTEXTFONT font, LPCSTR text, UINT numChars, float fo
   VALIDATEENDVOID;
 
   DDCToNDC(0.0f, fontHeight, 0, &fontHeight);
-  gxFlags = (flags & 0x100) != 0;
+  gxFlags = 0;
+  if (flags & 0x100) {
+    gxFlags |= 0x1;
+  }
   if (flags & 0x200) {
     gxFlags |= 0x4;
   }
@@ -335,7 +341,10 @@ float TextBlockGetWrappedTextHeight(HTEXTFONT font, LPCSTR text, float fontHeigh
 
   fontHeight = DDCToNDCHeight(fontHeight);
   blockWidth = DDCToNDCWidth(blockWidth);
-  gxFlags = (flags & 0x100) != 0;
+  gxFlags = 0;
+  if (flags & 0x100) {
+    gxFlags |= 0x1;
+  }
   if (flags & 0x200) {
     gxFlags |= 0x4;
   }
@@ -440,7 +449,10 @@ UINT TextBlockGetMaxCharsWithinWidthFromEnd(
 
   DDCToNDC(0.0f, height, 0, &height);
   DDCToNDC(maxWidth, 0.0f, &maxWidth, 0);
-  gxFlags = (flags & 0x100) != 0;
+  gxFlags = 0;
+  if (flags & 0x100) {
+    gxFlags |= 0x1;
+  }
   if (flags & 0x200) {
     gxFlags |= 0x4;
   }

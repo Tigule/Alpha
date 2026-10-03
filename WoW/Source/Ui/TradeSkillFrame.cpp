@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -60,7 +62,7 @@ static int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
 static int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b);
 
 const SkillLineAbilityRec *SpellTableLookupAbility(UINT raceID, UINT classID, UINT spellID);
-extern const int *const    g_ITEMTYPEARRAY;
+extern const int           g_ITEMTYPEARRAY[];
 
 class CGTradeSkillInfo {
  public:
@@ -72,7 +74,7 @@ class CGTradeSkillInfo {
   static void RefreshList(int resetFilters);
   static void DecrementPendingItem() {
     if (!m_itemsPending || !--m_itemsPending) {
-      RefreshList(0);
+      RefreshList(1);
     }
   }
   static void SetSkillLine(int id);
@@ -87,7 +89,7 @@ class CGTradeSkillInfo {
   static const TradeSkillInfo *GetTradeSkillInfo(UINT index) {
     return index < m_filteredSkills ? m_skills[index] : 0;
   }
-  static UINT GetNumSubClasses() {
+  static int GetNumSubClasses() {
     return m_numSubClasses;
   }
   static TradeSkillSubClassInfo *GetSubClass(UINT index) {
@@ -155,13 +157,13 @@ static const char s_skillCategoryStrings[4][32] = {"optimal", "medium", "easy", 
 
 bool Spell_C_CastSpell(int spellID, const CGItem_C *item);
 
-static void TradeSkillItemCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
+static void TradeSkillItemCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (granted) {
-    CGTradeSkillInfo::RefreshList(1);
+    CGTradeSkillInfo::RefreshList(0);
   }
 }
 
-static void TradeSkillListItemCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
+static void TradeSkillListItemCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   if (granted) {
     CGTradeSkillInfo::DecrementPendingItem();
   }
@@ -207,14 +209,14 @@ void CGTradeSkillInfo::SetSkillLine(int id) {
     m_skillLine = id;
     m_currentSelection = 0;
     RefreshList(1);
-    if (m_numSkills) {
+    if (m_numSkills > 0) {
       FrameScript_SignalEvent(290);
     }
   }
 }
 
 void CGTradeSkillInfo::SetSelection(int index) {
-  if (index >= 0 && static_cast<UINT>(index) < m_numSkills && m_skills[index]->spellID > 0) {
+  if (index < m_numSkills && m_skills[index]->spellID > 0) {
     m_currentSelection = m_skills[index]->spellID;
   } else {
     m_currentSelection = 0;
@@ -225,12 +227,16 @@ int CGTradeSkillInfo::GetSelectionIndex() {
   if (!m_currentSelection) {
     return -1;
   }
-  for (UINT i = 0; i < m_numSkills; ++i) {
+  UINT i;
+  for (i = 0; i < m_numSkills; ++i) {
     if (m_skills[i]->spellID == m_currentSelection) {
-      return i;
+      break;
     }
   }
-  return -1;
+  if (i == m_numSkills) {
+    return -1;
+  }
+  return i;
 }
 
 static int __cdecl QSortSkills(LPCVOID a, LPCVOID b) {
@@ -242,45 +248,41 @@ static int __cdecl QSortSkills(LPCVOID a, LPCVOID b) {
   UINT            subClassRank2 = 0;
   int             enabled1 = 1;
   int             enabled2 = 1;
-  UINT            i;
-  for (i = 0; i < CGTradeSkillInfo::m_numSubClasses; ++i) {
-    TradeSkillSubClassInfo *subClass = CGTradeSkillInfo::m_subClasses[i];
+  for (UINT i = 0; i < CGTradeSkillInfo::GetNumSubClasses(); ++i) {
+    TradeSkillSubClassInfo *subClass = CGTradeSkillInfo::GetSubClass(i);
     if (subClass->classID == info1->classID && subClass->subClassID == info1->subClassID) {
       subClassRank1 = i;
-      enabled1 = !info1->enabled || !subClass->enabled ? 0 : 1;
+      enabled1 = info1->enabled && subClass->enabled;
     }
     if (subClass->classID == info2->classID && subClass->subClassID == info2->subClassID) {
       subClassRank2 = i;
       enabled2 = info2->enabled && subClass->enabled;
     }
   }
-  if (!enabled1) {
-    return enabled2 ? 1 : 0;
-  }
-  if (!enabled2) {
-    return -1;
-  }
-  if (subClassRank1 != subClassRank2) {
-    return subClassRank1 < subClassRank2 ? -1 : 1;
-  }
-  if (info1->spellID == -1) {
+  if (enabled1 && enabled2) {
+    if (subClassRank1 != subClassRank2) {
+      return subClassRank2 < subClassRank1 ? 1 : -1;
+    }
+    if (info1->spellID != -1 && info2->spellID != -1) {
+      const SpellRec *spell1 = g_spellDB.GetRecord(info1->spellID);
+      const SpellRec *spell2 = g_spellDB.GetRecord(info2->spellID);
+      if (!spell1 || !spell2) {
+        return 0;
+      }
+      if (info1->category == info2->category) {
+        if (info1->itemLevel == info2->itemLevel) {
+          return SStrCmpI(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF);
+        }
+        return info1->itemLevel < info2->itemLevel ? 1 : -1;
+      }
+      return info1->category > info2->category ? 1 : -1;
+    }
     return info2->spellID == -1 ? 1 : -1;
   }
-  if (info2->spellID == -1) {
-    return 1;
-  }
-  const SpellRec *spell1 = g_spellDB.GetRecord(info1->spellID);
-  const SpellRec *spell2 = g_spellDB.GetRecord(info2->spellID);
-  if (!spell1 || !spell2) {
+  if (!enabled1 && !enabled2) {
     return 0;
   }
-  if (info1->category != info2->category) {
-    return info1->category > info2->category ? 1 : -1;
-  }
-  if (info1->itemLevel != info2->itemLevel) {
-    return info1->itemLevel < info2->itemLevel ? 1 : -1;
-  }
-  return SStrCmp(spell1->m_name_lang[CURRENT_LANGUAGE], spell2->m_name_lang[CURRENT_LANGUAGE], 0x7FFFFFFF);
+  return enabled2 ? 1 : -1;
 }
 
 static int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b) {
@@ -288,36 +290,40 @@ static int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b) {
   FATALASSERT(b);
   TradeSkillSubClassInfo *info1 = *static_cast<TradeSkillSubClassInfo *const *>(a);
   TradeSkillSubClassInfo *info2 = *static_cast<TradeSkillSubClassInfo *const *>(b);
-  if (info1->classID != info2->classID) {
-    return info1->classID > info2->classID ? 1 : -1;
-  }
-  const ItemSubClassRec *rec1 = 0;
-  const ItemSubClassRec *rec2 = 0;
-  int                    i;
-  for (i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
-    const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
-    if (rec->m_classID == info1->classID && rec->m_subClassID == info1->subClassID) {
-      rec1 = rec;
-    }
-    if (rec->m_classID == info2->classID && rec->m_subClassID == info2->subClassID) {
-      rec2 = rec;
+  if (info1->classID == info2->classID) {
+    const ItemSubClassRec *rec1 = 0;
+    const ItemSubClassRec *rec2 = 0;
+    for (UINT i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
+      const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
+      if (rec->m_classID == info1->classID && rec->m_subClassID == info1->subClassID) {
+        rec1 = rec;
+        if (rec2) {
+          break;
+        }
+      }
+      if (rec->m_classID == info2->classID && rec->m_subClassID == info2->subClassID) {
+        rec2 = rec;
+        if (rec1) {
+          break;
+        }
+      }
     }
     if (rec1 && rec2) {
-      break;
+      LPCSTR name1 = rec1->m_verboseName_lang[CURRENT_LANGUAGE];
+      if (!name1 || !*name1) {
+        name1 = rec1->m_displayName_lang[CURRENT_LANGUAGE];
+      }
+      LPCSTR name2 = rec2->m_verboseName_lang[CURRENT_LANGUAGE];
+      if (!name2 || !*name2) {
+        name2 = rec2->m_displayName_lang[CURRENT_LANGUAGE];
+      }
+      if (name1 && name2) {
+        return SStrCmpI(name1, name2, 0x7FFFFFFF);
+      }
     }
-  }
-  if (!rec1 || !rec2) {
     return 0;
   }
-  LPCSTR name1 = rec1->m_verboseName_lang[CURRENT_LANGUAGE];
-  LPCSTR name2 = rec2->m_verboseName_lang[CURRENT_LANGUAGE];
-  if (!name1 || !*name1) {
-    name1 = rec1->m_displayName_lang[CURRENT_LANGUAGE];
-  }
-  if (!name2 || !*name2) {
-    name2 = rec2->m_displayName_lang[CURRENT_LANGUAGE];
-  }
-  return name1 && name2 ? SStrCmp(name1, name2, 0x7FFFFFFF) : 0;
+  return info1->classID > info2->classID ? 1 : -1;
 }
 
 void CGTradeSkillInfo::RefreshList(int resetFilters) {
@@ -335,114 +341,114 @@ void CGTradeSkillInfo::RefreshList(int resetFilters) {
   if (resetFilters) {
     m_numSubClasses = 0;
   }
-  if (!m_skillLine) {
-    return;
-  }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    return;
-  }
-  const TSGrowableArray<int> *spells = player->GetTradeSkills(m_skillLine);
-  if (!spells) {
-    return;
-  }
-  while (m_skills.Count() < spells->Count()) {
-    TradeSkillInfo *info = NEW(TradeSkillInfo);
-    m_skills.Add(1, &info);
-  }
-  m_numSkills = spells->Count();
-  for (i = 0; i < m_numSkills; ++i) {
-    int             spellID = (*spells)[i];
-    TradeSkillInfo *info = m_skills[i];
-    info->spellID = spellID;
-    const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetUnitData()->race, player->GetUnitData()->classId, spellID);
-    info->category = TRADESKILL_OPTIMAL;
-    if (ability) {
-      int trivialMax = ability->m_trivialSkillLineRankHigh;
-      int trivialMin = ability->m_trivialSkillLineRankLow;
-      if (!trivialMin) {
-        trivialMin = trivialMax == 25 ? 0 : trivialMax - 25;
-      }
-      int midpoint = (trivialMin + trivialMax) / 2;
-      int rank = player->GetSkillRank(ability->m_skillLine);
-      info->category = rank < trivialMin   ? TRADESKILL_OPTIMAL
-                       : rank < midpoint   ? TRADESKILL_MEDIUM
-                       : rank < trivialMax ? TRADESKILL_EASY
-                                           : TRADESKILL_TRIVIAL;
-    }
-    const SpellRec *spell = g_spellDB.GetRecord(spellID);
-    if (!spell) {
-      continue;
-    }
-    int numAvailable = -1;
-    for (j = 0; j < 8 && numAvailable; ++j) {
-      if (spell->m_reagent[j] && spell->m_reagentCount[j]) {
-        int count = player->GetBag()->GetItemTypeCount(spell->m_reagent[j], 0) / spell->m_reagentCount[j];
-        if (numAvailable == -1 || numAvailable >= count) {
-          numAvailable = count;
+  if (m_skillLine) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player) {
+      const TSGrowableArray<int> *spells = player->GetTradeSkills(m_skillLine);
+      if (spells) {
+        for (i = m_skills.Count(); i < spells->Count(); ++i) {
+          TradeSkillInfo *info = NEW(TradeSkillInfo);
+          m_skills.Add(&info);
+        }
+        m_numSkills = spells->Count();
+        for (i = 0; i < m_numSkills; ++i) {
+          int                        spellID = (*spells)[i];
+          const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetRace(), player->GetClass(), spellID);
+          m_skills[i]->spellID = spellID;
+          m_skills[i]->category = TRADESKILL_OPTIMAL;
+          if (ability) {
+            int trivialMax = ability->m_trivialSkillLineRankHigh;
+            int trivialMin = ability->m_trivialSkillLineRankLow;
+            if (!trivialMin) {
+              trivialMin = max(trivialMax - 25u, 0);
+            }
+            int midpoint = (trivialMax + trivialMin) / 2;
+            int rank = player->GetSkillRank(ability->m_skillLine);
+            if (rank < trivialMin) {
+              m_skills[i]->category = TRADESKILL_OPTIMAL;
+            } else if (rank < midpoint) {
+              m_skills[i]->category = TRADESKILL_MEDIUM;
+            } else if (rank < trivialMax) {
+              m_skills[i]->category = TRADESKILL_EASY;
+            } else {
+              m_skills[i]->category = TRADESKILL_TRIVIAL;
+            }
+          }
+          int             numAvailable = -1;
+          const SpellRec *spell = g_spellDB.GetRecord(spellID);
+          if (spell) {
+            for (j = 0; j < 8; ++j) {
+              if (!numAvailable) {
+                break;
+              }
+              if (spell->m_reagent[j] && spell->m_reagentCount[j]) {
+                int count = player->CGPlayer_C::GetBag()->GetItemTypeCount(spell->m_reagent[j], 0) / spell->m_reagentCount[j];
+                if (numAvailable == -1 || numAvailable >= count) {
+                  numAvailable = count;
+                }
+              }
+            }
+            const ItemStats_C *stats = g_itemDBCache.GetRecord(
+                spell->m_effectItemType[0], static_cast<DWORDLONG>(spellID) | 0xB000000000000000ui64, TradeSkillListItemCallback, 0
+            );
+            if (!stats) {
+              ++m_itemsPending;
+            }
+            if (!m_itemsPending) {
+              if (resetFilters) {
+                for (j = 0; j < m_numSubClasses; ++j) {
+                  if (m_subClasses[j]->classID == stats->m_class && m_subClasses[j]->subClassID == stats->m_subclass) {
+                    break;
+                  }
+                }
+                if (j == m_numSubClasses) {
+                  if (m_numSubClasses >= m_subClasses.Count()) {
+                    TradeSkillSubClassInfo *info = NEW(TradeSkillSubClassInfo);
+                    m_subClasses.Add(&info);
+                  }
+                  m_subClasses[j]->classID = stats->m_class;
+                  m_subClasses[j]->subClassID = stats->m_subclass;
+                  ++m_numSubClasses;
+                }
+              }
+              m_skills[i]->classID = stats->m_class;
+              m_skills[i]->subClassID = stats->m_subclass;
+              m_skills[i]->itemLevel = stats->m_itemLevel;
+              m_skills[i]->invSlots = g_ITEMTYPEARRAY[stats->m_inventoryType];
+              if (stats->m_inventoryType == 18) {
+                m_skills[i]->invSlots = 0x80000;
+              } else if (stats->m_inventoryType == 11) {
+                m_skills[i]->invSlots = 0x400;
+              } else if (stats->m_inventoryType == 12) {
+                m_skills[i]->invSlots = 0x1000;
+              }
+              if (!m_skills[i]->invSlots) {
+                m_skills[i]->invSlots = 0x800000;
+              }
+              if (resetFilters) {
+                m_availableSlots |= m_skills[i]->invSlots;
+              }
+            }
+          }
+          m_skills[i]->numAvailable = numAvailable > 0 ? numAvailable : 0;
+        }
+        if (!m_itemsPending) {
+          for (i = m_skills.Count(); i < m_numSkills + m_numSubClasses; ++i) {
+            TradeSkillInfo *info = NEW(TradeSkillInfo);
+            m_skills.Add(&info);
+          }
+          for (i = 0; i < m_numSubClasses; ++i) {
+            m_skills[m_numSkills + i]->spellID = -1;
+            m_skills[m_numSkills + i]->classID = m_subClasses[i]->classID;
+            m_skills[m_numSkills + i]->subClassID = m_subClasses[i]->subClassID;
+          }
+          m_numSkills += m_numSubClasses;
+          FilterAndSortSkills();
+          FrameScript_SignalEvent(291);
         }
       }
     }
-    const ItemStats_C *stats =
-        g_itemDBCache.GetRecord(spell->m_effectItemType[0], static_cast<DWORDLONG>(spellID) | 0xB000000000000000ui64, TradeSkillListItemCallback, 0);
-    if (!stats) {
-      ++m_itemsPending;
-      continue;
-    }
-    if (m_itemsPending) {
-      continue;
-    }
-    if (resetFilters) {
-      for (j = 0; j < m_numSubClasses; ++j) {
-        if (m_subClasses[j]->classID == stats->m_class && m_subClasses[j]->subClassID == stats->m_subclass) {
-          break;
-        }
-      }
-      if (j == m_numSubClasses) {
-        if (m_subClasses.Count() <= j) {
-          TradeSkillSubClassInfo *subClass = NEW(TradeSkillSubClassInfo);
-          m_subClasses.Add(1, &subClass);
-        }
-        m_subClasses[j]->classID = stats->m_class;
-        m_subClasses[j]->subClassID = stats->m_subclass;
-        ++m_numSubClasses;
-      }
-    }
-    info->classID = stats->m_class;
-    info->subClassID = stats->m_subclass;
-    info->itemLevel = stats->m_itemLevel;
-    info->invSlots = g_ITEMTYPEARRAY[stats->m_inventoryType];
-    if (stats->m_inventoryType == 18) {
-      info->invSlots = 0x80000;
-    } else if (stats->m_inventoryType == 11) {
-      info->invSlots = 0x400;
-    } else if (stats->m_inventoryType == 12) {
-      info->invSlots = 0x1000;
-    }
-    if (!info->invSlots) {
-      info->invSlots = 0x800000;
-    }
-    if (resetFilters) {
-      m_availableSlots |= info->invSlots;
-    }
-    info->numAvailable = numAvailable > 0 ? numAvailable : 0;
   }
-  if (m_itemsPending) {
-    return;
-  }
-  while (m_skills.Count() < m_numSkills + m_numSubClasses) {
-    TradeSkillInfo *info = NEW(TradeSkillInfo);
-    m_skills.Add(1, &info);
-  }
-  for (i = 0; i < m_numSubClasses; ++i) {
-    TradeSkillInfo *info = m_skills[m_numSkills + i];
-    info->spellID = -1;
-    info->classID = m_subClasses[i]->classID;
-    info->subClassID = m_subClasses[i]->subClassID;
-  }
-  m_numSkills += m_numSubClasses;
-  FilterAndSortSkills();
-  FrameScript_SignalEvent(291);
 }
 
 void CGTradeSkillInfo::FilterAndSortSkills() {
@@ -456,35 +462,39 @@ void CGTradeSkillInfo::FilterAndSortSkills() {
     m_subClasses[i]->filteredCount = 0;
   }
   for (i = 0; i < m_numSkills; ++i) {
-    TradeSkillInfo *info = m_skills[i];
-    if (info->spellID >= 0) {
+    if (m_skills[i]->spellID >= 0) {
       for (j = 0; j < m_numSubClasses; ++j) {
-        TradeSkillSubClassInfo *subClass = m_subClasses[j];
-        if (info->classID == subClass->classID && info->subClassID == subClass->subClassID && (m_invTypeFilter & info->invSlots)) {
-          ++subClass->filteredCount;
+        if (m_skills[i]->classID == m_subClasses[j]->classID && m_skills[i]->subClassID == m_subClasses[j]->subClassID) {
+          if (m_skills[i]->invSlots & m_invTypeFilter) {
+            ++m_subClasses[j]->filteredCount;
+          }
           break;
         }
       }
     }
   }
   for (i = 0; i < m_numSkills; ++i) {
-    TradeSkillInfo *info = m_skills[i];
-    info->enabled = 1;
-    if (info->spellID >= 0 && !(m_invTypeFilter & info->invSlots)) {
-      info->enabled = 0;
+    if (m_skills[i]->spellID >= 0 && !(m_skills[i]->invSlots & m_invTypeFilter)) {
+      m_skills[i]->enabled = 0;
       --m_filteredSkills;
-      continue;
-    }
-    TradeSkillSubClassInfo *subClass = 0;
-    for (j = 0; j < m_numSubClasses; ++j) {
-      if (info->classID == m_subClasses[j]->classID && info->subClassID == m_subClasses[j]->subClassID) {
-        subClass = m_subClasses[j];
-        break;
+    } else {
+      m_skills[i]->enabled = 1;
+      if (m_numSubClasses) {
+        UINT subClass = 0;
+        for (j = 0; j < m_numSubClasses; ++j) {
+          if (m_skills[i]->classID == m_subClasses[j]->classID && m_skills[i]->subClassID == m_subClasses[j]->subClassID) {
+            subClass = j;
+            break;
+          }
+        }
+        if (!m_subClasses[subClass]->enabled || !m_subClasses[subClass]->filteredCount) {
+          m_skills[i]->enabled = 0;
+          --m_filteredSkills;
+        } else if (m_skills[i]->spellID >= 0 && m_subClasses[subClass]->collapsed) {
+          m_skills[i]->enabled = 0;
+          --m_filteredSkills;
+        }
       }
-    }
-    if (!subClass || !subClass->enabled || !subClass->filteredCount || (info->spellID >= 0 && subClass->collapsed)) {
-      info->enabled = 0;
-      --m_filteredSkills;
     }
   }
   qsort(m_subClasses.Ptr(), m_numSubClasses, sizeof(TradeSkillSubClassInfo *), QSortSubClasses);
@@ -492,22 +502,25 @@ void CGTradeSkillInfo::FilterAndSortSkills() {
 }
 
 int CGTradeSkillInfo::GetSubClassIndexFromSkill(UINT index) {
-  const TradeSkillInfo *skill = index < m_numSkills ? m_skills[index] : 0;
-  if (!skill || skill->spellID >= 0) {
-    return -1;
-  }
-  for (UINT i = 0; i < m_numSubClasses; ++i) {
-    TradeSkillSubClassInfo *subClass = m_subClasses[i];
-    if (subClass->classID == skill->classID && subClass->subClassID == skill->subClassID) {
-      return i;
+  if (index < m_numSkills && m_skills[index]->spellID < 0) {
+    for (UINT i = 0; i < m_numSubClasses; ++i) {
+      if (m_subClasses[i]->classID == m_skills[index]->classID && m_subClasses[i]->subClassID == m_skills[index]->subClassID) {
+        return i;
+      }
     }
   }
   return -1;
 }
 
 BOOL CGTradeSkillInfo::IsCollpasedHeader(UINT index) {
-  int subClass = GetSubClassIndexFromSkill(index);
-  return subClass >= 0 && !(m_collapseFilter & (1 << subClass));
+  if (index < m_numSkills && m_skills[index]->spellID < 0) {
+    for (UINT i = 0; i < m_numSubClasses; ++i) {
+      if (m_subClasses[i]->classID == m_skills[index]->classID && m_subClasses[i]->subClassID == m_skills[index]->subClassID) {
+        return (m_collapseFilter & (1 << i)) == 0;
+      }
+    }
+  }
+  return 0;
 }
 
 void CGTradeSkillInfo::SetSubClassFilter(int filter) {
@@ -543,33 +556,35 @@ static int Script_GetTradeSkillInfo(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillInfo(index)");
     return 0;
   }
-  UINT                  index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  int                   index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(index);
-  if (info && info->spellID != -1) {
-    const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
-    if (spell) {
-      lua_pushstring(L, spell->m_name_lang[CURRENT_LANGUAGE]);
-      lua_pushstring(L, s_skillCategoryStrings[info->category]);
-      lua_pushnumber(L, static_cast<double>(info->numAvailable));
-      lua_pushnil(L);
-      return 4;
-    }
-  } else if (info) {
-    for (int i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
-      const ItemSubClassRec *subClass = g_itemSubClassDB.GetRecordByIndex(i);
-      if (subClass->m_classID == info->classID && subClass->m_subClassID == info->subClassID) {
-        LPCSTR name = subClass->m_verboseName_lang[CURRENT_LANGUAGE];
-        if (!name || !*name) {
-          name = subClass->m_displayName_lang[CURRENT_LANGUAGE];
+  if (info) {
+    if (info->spellID == -1) {
+      for (UINT i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
+        const ItemSubClassRec *subClass = g_itemSubClassDB.GetRecordByIndex(i);
+        if (subClass->m_classID == info->classID && subClass->m_subClassID == info->subClassID) {
+          LPCSTR name = subClass->m_verboseName_lang[CURRENT_LANGUAGE];
+          if (!name || !*name) {
+            name = subClass->m_displayName_lang[CURRENT_LANGUAGE];
+          }
+          lua_pushstring(L, name);
+          lua_pushstring(L, "header");
+          lua_pushnumber(L, 0.0);
+          if (CGTradeSkillInfo::IsCollpasedHeader(index)) {
+            lua_pushnil(L);
+          } else {
+            lua_pushnumber(L, 1.0);
+          }
+          return 4;
         }
-        lua_pushstring(L, name);
-        lua_pushstring(L, "header");
-        lua_pushnumber(L, 0.0);
-        if (CGTradeSkillInfo::IsCollpasedHeader(index)) {
-          lua_pushnil(L);
-        } else {
-          lua_pushnumber(L, 1.0);
-        }
+      }
+    } else {
+      const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
+      if (spell) {
+        lua_pushstring(L, spell->m_name_lang[CURRENT_LANGUAGE]);
+        lua_pushstring(L, s_skillCategoryStrings[info->category]);
+        lua_pushnumber(L, static_cast<double>(info->numAvailable));
+        lua_pushnil(L);
         return 4;
       }
     }
@@ -600,28 +615,33 @@ static int Script_GetTradeSkillIcon(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillIcon(index)");
     return 0;
   }
-  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  const SpellRec       *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
-  const ItemStats_C    *stats =
-      spell ? g_itemDBCache.GetRecord(
-                  spell->m_effectItemType[0], info ? static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64 : 0, TradeSkillItemCallback, 0
-              )
-            : 0;
-  if (stats) {
-    char   buffer[MAX_PATH];
-    LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-    SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
-    SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
-    lua_pushstring(L, buffer);
-  } else {
-    lua_pushnil(L);
+  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  if (info && info->spellID >= 0) {
+    const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
+    if (spell) {
+      const ItemStats_C *stats =
+          g_itemDBCache.GetRecord(spell->m_effectItemType[0], static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
+      if (stats) {
+        char   buffer[MAX_PATH];
+        LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+        SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
+        SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
+        lua_pushstring(L, buffer);
+        return 1;
+      }
+    }
   }
+  lua_pushnil(L);
   return 1;
 }
 
 static int Script_GetTradeSkillLine(lua_State *L) {
   const SkillLineRec *line = g_skillLineDB.GetRecord(CGTradeSkillInfo::GetSkillLine());
-  lua_pushstring(L, line ? line->m_displayName_lang[CURRENT_LANGUAGE] : "UNKNOWN");
+  if (line) {
+    lua_pushstring(L, line->m_displayName_lang[CURRENT_LANGUAGE]);
+  } else {
+    lua_pushstring(L, "UNKNOWN");
+  }
   return 1;
 }
 
@@ -652,20 +672,21 @@ static int Script_GetTradeSkillItemLink(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillItemLink(index)");
     return 0;
   }
-  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  const SpellRec       *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
-  if (!spell || !spell->m_effectItemType[0]) {
-    return 0;
+  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  if (info && info->spellID >= 0) {
+    const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
+    if (spell) {
+      int                itemID = spell->m_effectItemType[0];
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, 0, 0, 0);
+      if (stats) {
+        char link[1024];
+        SStrPrintf(link, sizeof(link), "|Hitem:%d|h[%s]|h", itemID, stats->m_displayName[0]);
+        lua_pushstring(L, link);
+        return 1;
+      }
+    }
   }
-  const ItemStats_C *stats =
-      g_itemDBCache.GetRecord(spell->m_effectItemType[0], static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
-  if (!stats) {
-    return 0;
-  }
-  char link[1024];
-  SStrPrintf(link, sizeof(link), "|Hitem:%d|h[%s]|h", spell->m_effectItemType[0], stats->m_displayName[CURRENT_LANGUAGE]);
-  lua_pushstring(L, link);
-  return 1;
+  return 0;
 }
 
 static int Script_GetTradeSkillNumReagents(lua_State *L) {
@@ -673,13 +694,16 @@ static int Script_GetTradeSkillNumReagents(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillNumReagents(index)");
     return 0;
   }
-  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  const SpellRec       *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
+  int                   index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   int                   count = 0;
-  if (spell) {
-    for (UINT i = 0; i < 8; ++i) {
-      if (spell->m_reagent[i]) {
-        ++count;
+  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(index);
+  if (info && info->spellID >= 0) {
+    const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
+    if (spell) {
+      for (UINT i = 0; i < 8; ++i) {
+        if (spell->m_reagent[i]) {
+          ++count;
+        }
       }
     }
   }
@@ -688,46 +712,53 @@ static int Script_GetTradeSkillNumReagents(lua_State *L) {
 }
 
 static int Script_GetTradeSkillReagentInfo(lua_State *L) {
-  if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: GetTradeSkillReagentInfo(index, reagentIndex)");
-    return 0;
-  }
-  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  int                   reagentIndex = static_cast<int>(lua_tonumber(L, 2));
-  const SpellRec       *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
-  UINT                  slot = 0;
-  int                   count = 0;
-  while (spell && slot < 8) {
-    if (spell->m_reagent[slot] && ++count == reagentIndex) {
-      break;
+  if (lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
+    int                   index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    int                   reagentIndex = static_cast<int>(lua_tonumber(L, 2));
+    const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(index);
+    if (info && info->spellID >= 0) {
+      const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
+      if (spell) {
+        int count = 0;
+        for (UINT i = 0; i < 8; ++i) {
+          if (spell->m_reagent[i]) {
+            ++count;
+            if (count == reagentIndex) {
+              int                itemID = spell->m_reagent[i];
+              const ItemStats_C *stats =
+                  g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
+              if (stats) {
+                lua_pushstring(L, stats->m_displayName[0]);
+                char   buffer[MAX_PATH];
+                LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+                SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
+                SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
+                lua_pushstring(L, buffer);
+              } else {
+                lua_pushnil(L);
+                lua_pushnil(L);
+              }
+              lua_pushnumber(L, static_cast<double>(spell->m_reagentCount[i]));
+              CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+              if (player) {
+                lua_pushnumber(L, static_cast<double>(player->CGPlayer_C::GetBag()->GetItemTypeCount(itemID, 0)));
+              } else {
+                lua_pushnumber(L, 0.0);
+              }
+              return 4;
+            }
+          }
+        }
+      }
     }
-    ++slot;
-  }
-  if (spell && slot < 8) {
-    int                itemID = spell->m_reagent[slot];
-    const ItemStats_C *stats =
-        g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
-    if (stats) {
-      lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
-      char   buffer[MAX_PATH];
-      LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-      SStrPrintf(buffer, sizeof(buffer), "%s%s", path, *path ? "\\" : "");
-      SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
-      lua_pushstring(L, buffer);
-    } else {
-      lua_pushnil(L);
-      lua_pushnil(L);
-    }
-    lua_pushnumber(L, static_cast<double>(spell->m_reagentCount[slot]));
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    lua_pushnumber(L, player ? static_cast<double>(player->GetBag()->GetItemTypeCount(itemID, 0)) : 0.0);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
     return 4;
   }
-  lua_pushnil(L);
-  lua_pushnil(L);
-  lua_pushnil(L);
-  lua_pushnil(L);
-  return 4;
+  luaL_error(L, "Usage: GetTradeSkillReagentInfo(index, reagentIndex)");
+  return 0;
 }
 
 static int Script_GetTradeSkillTools(lua_State *L) {
@@ -735,22 +766,26 @@ static int Script_GetTradeSkillTools(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillTools(index)");
     return 0;
   }
-  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  const SpellRec       *spell = info && info->spellID >= 0 ? g_spellDB.GetRecord(info->spellID) : 0;
   UINT                  count = 0;
-  if (spell) {
-    const SpellFocusObjectRec *focus = g_spellFocusObjectDB.GetRecord(spell->m_requiresSpellFocus);
-    if (focus) {
-      lua_pushstring(L, focus->m_name_lang[CURRENT_LANGUAGE]);
-      ++count;
-    }
-    for (UINT i = 0; i < 2; ++i) {
-      if (spell->m_totem[i]) {
-        const ItemStats_C *stats =
-            g_itemDBCache.GetRecord(spell->m_totem[i], static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
-        if (stats) {
-          lua_pushstring(L, stats->m_displayName[CURRENT_LANGUAGE]);
+  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  if (info && info->spellID >= 0) {
+    const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
+    if (spell) {
+      if (spell->m_requiresSpellFocus) {
+        const SpellFocusObjectRec *focus = g_spellFocusObjectDB.GetRecord(spell->m_requiresSpellFocus);
+        if (focus) {
+          lua_pushstring(L, focus->m_name_lang[CURRENT_LANGUAGE]);
           ++count;
+        }
+      }
+      for (UINT i = 0; i < 2; ++i) {
+        if (spell->m_totem[i]) {
+          const ItemStats_C *stats =
+              g_itemDBCache.GetRecord(spell->m_totem[i], static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
+          if (stats) {
+            lua_pushstring(L, stats->m_displayName[0]);
+            ++count;
+          }
         }
       }
     }
@@ -759,10 +794,10 @@ static int Script_GetTradeSkillTools(lua_State *L) {
 }
 
 static int Script_GetTradeSkillSubClasses(lua_State *L) {
-  UINT count = 0;
-  for (UINT i = 0; i < CGTradeSkillInfo::GetNumSubClasses(); ++i) {
+  UINT count = CGTradeSkillInfo::GetNumSubClasses();
+  for (UINT i = 0; i < count; ++i) {
     TradeSkillSubClassInfo *info = CGTradeSkillInfo::GetSubClass(i);
-    for (int j = 0; info && j < g_itemSubClassDB.GetNumRecords(); ++j) {
+    for (UINT j = 0; j < g_itemSubClassDB.GetNumRecords(); ++j) {
       const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(j);
       if (rec->m_classID == info->classID && rec->m_subClassID == info->subClassID) {
         LPCSTR name = rec->m_verboseName_lang[CURRENT_LANGUAGE];
@@ -770,7 +805,6 @@ static int Script_GetTradeSkillSubClasses(lua_State *L) {
           name = rec->m_displayName_lang[CURRENT_LANGUAGE];
         }
         lua_pushstring(L, name);
-        ++count;
         break;
       }
     }
@@ -782,7 +816,7 @@ static int Script_GetTradeSkillInvSlots(lua_State *L) {
   int available = CGTradeSkillInfo::GetAvailableSlots();
   int count = 0;
   for (UINT i = 0; i < 24; ++i) {
-    if (available & (1 << i)) {
+    if ((1 << i) & available) {
       lua_pushstring(L, FrameScript_GetText(s_invSlotTokens[i], -1, GENDER_NOT_APPLICABLE));
       ++count;
     }
@@ -791,8 +825,8 @@ static int Script_GetTradeSkillInvSlots(lua_State *L) {
 }
 
 static int Script_SetTradeSkillSubClassFilter(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    luaL_error(L, "Usage: SetTradeSkillSubClassFilter(index, onOff [, exclusive])");
+  if (!lua_isstring(L, 1)) {
+    luaL_error(L, "Usage: SetTradeSkillSubClassFilter(index [, on\\off, exclusive])");
     return 0;
   }
   int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
@@ -800,33 +834,37 @@ static int Script_SetTradeSkillSubClassFilter(lua_State *L) {
     CGTradeSkillInfo::SetSubClassFilter(-1);
     return 0;
   }
-  if (static_cast<UINT>(index) >= CGTradeSkillInfo::GetNumSubClasses()) {
+  if (index >= CGTradeSkillInfo::GetNumSubClasses()) {
     luaL_error(L, "Bad sub class in SetTradeSkillSubClassFilter");
     return 0;
   }
   if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Missing on/off parameter");
+    luaL_error(L, "Missing on//off parameter in SetTradeSkillSubClassFilter");
     return 0;
   }
   int filter = CGTradeSkillInfo::GetSubClassFilter();
-  if (static_cast<UINT>(lua_tonumber(L, 2))) {
-    filter = lua_isnumber(L, 3) && static_cast<UINT>(lua_tonumber(L, 3)) ? 1 << index : filter | (1 << index);
-  } else {
-    filter &= ~(1 << index);
+  if (!static_cast<int>(lua_tonumber(L, 2))) {
+    CGTradeSkillInfo::SetSubClassFilter(filter & ~(1 << index));
+    return 0;
   }
-  CGTradeSkillInfo::SetSubClassFilter(filter);
+  if (lua_isnumber(L, 3) && static_cast<int>(lua_tonumber(L, 3))) {
+    CGTradeSkillInfo::SetSubClassFilter(1 << index);
+    return 0;
+  }
+  CGTradeSkillInfo::SetSubClassFilter(filter | (1 << index));
   return 0;
 }
 
 static int Script_GetTradeSkillSubClassFilter(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: GetTradeSkillSubClassFilter(index)");
+    luaL_error(L, "Usage: GetTradeSkillSubClassFilter(index)");
+    return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   int filter = CGTradeSkillInfo::GetSubClassFilter();
+  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   if (index < 0) {
     for (UINT i = 0; i < CGTradeSkillInfo::GetNumSubClasses(); ++i) {
-      if (!(filter & (1 << i))) {
+      if (!((1 << i) & filter)) {
         lua_pushnil(L);
         return 1;
       }
@@ -834,10 +872,11 @@ static int Script_GetTradeSkillSubClassFilter(lua_State *L) {
     lua_pushnumber(L, 1.0);
     return 1;
   }
-  if (static_cast<UINT>(index) >= CGTradeSkillInfo::GetNumSubClasses()) {
-    return luaL_error(L, "Bad sub class in GetTradeSkillSubClassFilter");
+  if (index >= CGTradeSkillInfo::GetNumSubClasses()) {
+    luaL_error(L, "Bad sub class in GetTradeSkillSubClassFilter");
+    return 0;
   }
-  if (filter & (1 << index)) {
+  if ((1 << index) & filter) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);
@@ -846,8 +885,8 @@ static int Script_GetTradeSkillSubClassFilter(lua_State *L) {
 }
 
 static int Script_SetTradeSkillInvSlotFilter(lua_State *L) {
-  if (!lua_isnumber(L, 1)) {
-    luaL_error(L, "Usage: SetTradeSkillInvSlotFilter(index, onOff [, exclusive])");
+  if (!lua_isstring(L, 1)) {
+    luaL_error(L, "Usage: SetTradeSkillInvSlotFilter(index [, on\\off, exclusive])");
     return 0;
   }
   int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
@@ -856,32 +895,35 @@ static int Script_SetTradeSkillInvSlotFilter(lua_State *L) {
     return 0;
   }
   int available = CGTradeSkillInfo::GetAvailableSlots();
-  int slot = 0;
-  int visible = 0;
-  while (slot < 24) {
-    if (available & (1 << slot)) {
-      if (visible == index) {
+  int slot = -1;
+  int count = 0;
+  for (UINT i = 0; i < 24; ++i) {
+    if ((1 << i) & available) {
+      if (count == index) {
+        slot = i;
         break;
       }
-      ++visible;
+      ++count;
     }
-    ++slot;
   }
-  if (slot >= 24) {
-    luaL_error(L, "Bad inventory slot in SetTradeSkillInvSlotFilter");
+  if (slot == -1) {
+    luaL_error(L, "Bad inv slot in SetTradeSkillInvSlotFilter");
     return 0;
   }
   if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Missing on/off parameter");
+    luaL_error(L, "Missing on//off parameter in SetTradeSkillInvSlotFilter");
     return 0;
   }
   int filter = CGTradeSkillInfo::GetInvTypeFilter();
-  if (static_cast<UINT>(lua_tonumber(L, 2))) {
-    filter = lua_isnumber(L, 3) && static_cast<UINT>(lua_tonumber(L, 3)) ? 1 << slot : filter | (1 << slot);
-  } else {
-    filter &= ~(1 << slot);
+  if (!static_cast<int>(lua_tonumber(L, 2))) {
+    CGTradeSkillInfo::SetInvTypeFilter(filter & ~(1 << slot));
+    return 0;
   }
-  CGTradeSkillInfo::SetInvTypeFilter(filter);
+  if (lua_isnumber(L, 3) && static_cast<int>(lua_tonumber(L, 3))) {
+    CGTradeSkillInfo::SetInvTypeFilter(1 << slot);
+    return 0;
+  }
+  CGTradeSkillInfo::SetInvTypeFilter(filter | (1 << slot));
   return 0;
 }
 
@@ -890,33 +932,33 @@ static int Script_GetTradeSkillInvSlotFilter(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillInvSlotFilter(index)");
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  int available = CGTradeSkillInfo::GetAvailableSlots();
   int filter = CGTradeSkillInfo::GetInvTypeFilter();
+  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
   if (index < 0) {
-    if ((filter & available) == available) {
+    if ((CGTradeSkillInfo::GetAvailableSlots() & CGTradeSkillInfo::GetInvTypeFilter()) == CGTradeSkillInfo::GetAvailableSlots()) {
       lua_pushnumber(L, 1.0);
     } else {
       lua_pushnil(L);
     }
     return 1;
   }
-  int slot = 0;
-  int visible = 0;
-  while (slot < 24) {
-    if (available & (1 << slot)) {
-      if (visible == index) {
+  int available = CGTradeSkillInfo::GetAvailableSlots();
+  int slot = -1;
+  int count = 0;
+  for (UINT i = 0; i < 24; ++i) {
+    if ((1 << i) & available) {
+      if (count == index) {
+        slot = i;
         break;
       }
-      ++visible;
+      ++count;
     }
-    ++slot;
   }
-  if (slot >= 24) {
-    luaL_error(L, "Bad inventory slot in GetTradeSkillInvSlotFilter");
+  if (slot == -1) {
+    luaL_error(L, "Bad inv type in GetTradeSkillInvSlotFilter");
     return 0;
   }
-  if (filter & (1 << slot)) {
+  if ((1 << slot) & filter) {
     lua_pushnumber(L, 1.0);
   } else {
     lua_pushnil(L);

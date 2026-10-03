@@ -411,7 +411,7 @@ class Sha1 {
   void Initialize();
   void Append(LPCVOID _data, DWORD size);
   void Append(LPCSTR data);
-  void Finalize(BYTE *hash);
+  void Finalize(BYTE hash[]);
 
   static void Hash(BYTE *hash, LPCVOID data, DWORD size);
   static void Hash(BYTE *hash, LPCSTR data);
@@ -530,13 +530,13 @@ inline BigNum &BigNum::operator=(const BigNum &copy) {
 
 namespace Crypt {
   class RSA {
-   public:
-    void Prepare(LPCVOID modulus, DWORD mLength, LPCVOID exponent, DWORD eLength);
-    void Process(BYTE *data, DWORD size);
-
    private:
     BigNum m_modulus;
     BigNum m_exponent;
+
+   public:
+    void Prepare(LPCVOID modulus, DWORD mLength, LPCVOID exponent, DWORD eLength);
+    void Process(BYTE *data, DWORD size);
   };
 }
 
@@ -574,10 +574,10 @@ extern "C" int SSignatureGenerate(
                      #a,                 \
                      FALSE)
 #define FATALERROR(args)                  \
-  do {                                    \
+  if (1) {                                \
     SErrPrepareAppFatal(__FILE__, __LINE__); \
     SErrDisplayAppFatal args;             \
-  } while (0)
+  }
 #define VALIDATEBEGIN
 #define VALIDATE(a)                          \
   if (!(a)) {                                \
@@ -764,8 +764,8 @@ class CDebugSCritSect : private SCritSect {
   BYTE m_debugData[0x0C];
 
   CDebugSCritSect &operator=(const CDebugSCritSect &);
-  CDebugSCritSect();
   CDebugSCritSect(const CDebugSCritSect &);
+  CDebugSCritSect();
 
  public:
   ~CDebugSCritSect();
@@ -794,8 +794,8 @@ class CDebugSRWLock : private CSRWLock {
   BYTE m_debugData[0x0C];
 
   CDebugSRWLock &operator=(const CDebugSRWLock &);
-  CDebugSRWLock();
   CDebugSRWLock(const CDebugSRWLock &);
+  CDebugSRWLock();
 
  public:
   ~CDebugSRWLock();
@@ -1342,15 +1342,11 @@ char             *SStrStrI(char *string, LPCSTR search);
 #define ALLOCZERO(bytes) SMemAlloc(bytes, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY)
 #define DEL(ptr)         delete (ptr)
 #define DELIFUSED(ptr) \
-  do                   \
-    if (ptr)           \
-      delete ptr;      \
-  while (0)
+  if (ptr)             \
+    delete ptr
 #define FREE(ptr) SMemFree(ptr, __FILE__, __LINE__, 0)
-#define FREEIFUSED(ptr)                     \
-  do                                        \
-    if (ptr)                                \
-      SMemFree(ptr, __FILE__, __LINE__, 0); \
-  while (0)
+#define FREEIFUSED(ptr) \
+  if (ptr)              \
+    SMemFree(ptr, __FILE__, __LINE__, 0)
 #define NEW(struct)     new (SMemAlloc(sizeof(struct), __FILE__, __LINE__, 0)) struct
 #define NEWZERO(struct) (new (SMemAlloc(sizeof(struct), __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY)) struct)

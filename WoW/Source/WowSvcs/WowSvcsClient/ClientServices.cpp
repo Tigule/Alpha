@@ -1,3 +1,4 @@
+#include <Base/Base.h>
 #include <WowConst.h>
 
 #include <ctype.h>
@@ -19,13 +20,13 @@
 #include "Game/ValidateName.h"
 #include "Glue/CGlueMgr.h"
 #include "Object/ObjectClient/Player_C.h"
-#include "Ui/LootFrame.h"
-#include "Ui/PartyFrame.h"
+#include "Ui/ChatFrame.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Os/OsTime.h"
 #include "SRP/SHA.h"
 #include "SRP/SRP6.h"
+#include "UIUtil/InputControl.h"
 #include "Os/W32/OSSystem.h"
 #include "Ui/GameUI.h"
 #include "WowServices/WDataStore.h"
@@ -157,6 +158,8 @@ ClientConnection::ClientConnection() {
   m_initialized = 0;
   m_connected = 0;
   m_playing = 0;
+  m_statusComplete = 1;
+  m_statusResult = 1;
   m_inGame = 0;
   m_statusCop = COP_NONE;
   m_errorCode = 0;
@@ -164,8 +167,6 @@ ClientConnection::ClientConnection() {
   m_isBot = 0;
   m_exitAfterLogout = 0;
   m_loggingOut = 0;
-  m_statusComplete = 1;
-  m_statusResult = 1;
 }
 
 ClientConnection::~ClientConnection() {
@@ -179,10 +180,9 @@ BOOL ClientConnection::Initialize(LoginData *loginData) {
 
   m_statusCop = COP_INIT;
   if (!m_initialized) {
-    int result = NetClient::Initialize();
-    if (!result) {
+    if (!NetClient::Initialize()) {
       m_statusCop = COP_NONE;
-      return result;
+      return 0;
     }
   }
 
@@ -620,10 +620,7 @@ BOOL ClientConnection::HandleCharacterCreate(NETMESSAGE msgId, DWORD time, CData
     msg->Reset();
   }
 
-  Cleanup();
-  m_errorCode = result;
-  m_statusResult = result == 40;
-  m_statusComplete = 1;
+  Complete(result == 40, result);
   return 1;
 }
 
@@ -1095,11 +1092,10 @@ CHAR_NAME_RESULT ClientServices_CharacterValidateName(LPCSTR name) {
 }
 
 BOOL ClientServices_AccountValidateName(LPCSTR name) {
-  while (*name) {
-    if (!isalnum(*name) && *name != '.' && *name != '-') {
+  for (int c = *name++; c; c = *name++) {
+    if (!isalnum(c) && c != '.' && c != '-') {
       return 0;
     }
-    ++name;
   }
 
   return 1;
@@ -1196,17 +1192,16 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
       CGObject_C *object = ClntObjMgrObjectPtr(playerGuid, __FILE__, __LINE__);
       CGPlayer_C *player = static_cast<CGPlayer_C *>(object);
       if (player) {
-        const CGUnitData *unitData = player->GetUnitData();
-        LPCSTR            gender = s_sexNames[unitData->sex];
+        LPCSTR gender = s_sexNames[player->GetSex()];
         if (!gender) {
           gender = "Unknown gender";
         }
 
-        const ChrRacesRec   *race = g_chrRacesDB.GetRecord(unitData->race);
-        const ChrClassesRec *unitClass = g_chrClassesDB.GetRecord(unitData->classId);
+        const ChrRacesRec   *race = g_chrRacesDB.GetRecord(player->GetRace());
+        const ChrClassesRec *unitClass = g_chrClassesDB.GetRecord(player->GetClass());
         LPCSTR               raceName = race ? race->m_name_lang[CURRENT_LANGUAGE] : "Unknown";
         LPCSTR               className = unitClass ? unitClass->m_name_lang[CURRENT_LANGUAGE] : "Unknown";
-        SStrPrintf(line, sizeof(line), "Character:\t%s (level %i %s %s %s)\n", player->GetUnitName(), unitData->level, raceName, gender, className);
+        SStrPrintf(line, sizeof(line), "Character:\t%s (level %i %s %s %s)\n", player->GetUnitName(), player->GetLevel(), raceName, gender, className);
         SStrPack(message, line, sizeof(message));
 
         UINT          continentID = CGPlayer_C::GetNewContinentID();
@@ -1248,7 +1243,7 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
         SStrPrintf(line, sizeof(line), "Auras:\n");
         SStrPack(message, line, sizeof(message));
         for (UINT auraIndex = 0; auraIndex < 56; ++auraIndex) {
-          int spellID = unitData->auras[auraIndex];
+          int spellID = player->GetAura(auraIndex);
           if (!spellID) {
             continue;
           }

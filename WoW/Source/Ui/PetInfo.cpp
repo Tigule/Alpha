@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -68,8 +70,7 @@ void CGPetInfo::SetPet(DWORDLONG pet, DWORD expirationTime) {
   if (CGClassTrainer::GetTrainer() && CGClassTrainer::GetTrainerType() == TRAINER_TYPE_PET) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
     if (player) {
-      const DWORDLONG trainer = CGClassTrainer::GetTrainer();
-      player->TalkToTrainer(trainer);
+      player->TalkToTrainer(CGClassTrainer::GetTrainer());
     }
   }
 }
@@ -97,51 +98,47 @@ void CGPetInfo::ClearActions() {
 void CGPetInfo::SetAction(UINT index, PetAction &action, int save) {
   FATALASSERT(index < (sizeof(m_actions) / sizeof(m_actions[0])));
 
-  UINT &rawAction = action;
-  if (rawAction == static_cast<const UINT &>(m_actions[index])) {
+  if (action.GetAction() == m_actions[index].GetAction()) {
     return;
   }
-  if ((rawAction >> 24 & 0x3F) == 1) {
-    const SpellRec *spell = g_spellDB.GetRecord(rawAction & 0xFFFF);
-    if (!spell || spell->m_attributes & 0x40) {
+  if (action.GetActionType() == 1) {
+    const SpellRec *spell = g_spellDB.GetRecord(action.GetActionID());
+    if (!spell || (spell->m_attributes & 0x40)) {
       return;
     }
   }
 
   int oldSlot = -1;
   for (UINT slot = 0; slot < sizeof(m_actions) / sizeof(m_actions[0]); ++slot) {
-    UINT &slotAction = m_actions[slot];
-    if ((slotAction & 0x3FFFFFFF) == (rawAction & 0x3FFFFFFF) && slot != index) {
-      slotAction = 0;
+    if (m_actions[slot].GetActionTypeAndID() == action.GetActionTypeAndID() && slot != index) {
+      m_actions[slot].SetAction(0);
       oldSlot = slot;
       break;
     }
   }
 
-  UINT &currentAction = m_actions[index];
-  UINT  currentType = currentAction >> 24 & 0x3F;
-  if (oldSlot < 0 && (currentType == 6 || currentType == 7)) {
+  if (oldSlot < 0 && (m_actions[index].GetActionType() == 6 || m_actions[index].GetActionType() == 7)) {
     return;
   }
 
-  if (save && oldSlot < 0 && (rawAction >> 24 & 0x3F) == 1) {
-    rawAction |= 0x40000000;
+  if (save && oldSlot < 0 && action.GetActionType() == 1) {
+    action.SetAutocastEnabled(1);
   }
   if (oldSlot >= 0) {
-    static_cast<UINT &>(m_actions[oldSlot]) = currentAction;
+    m_actions[oldSlot] = m_actions[index];
   }
-  currentAction = rawAction;
+  m_actions[index] = action;
 
   if (save) {
     CDataStore msg;
     msg.Put(CMSG_PET_SET_ACTION);
     msg.Put(m_pet);
     if (oldSlot >= 0) {
-      msg.Put(oldSlot);
-      msg.Put(static_cast<const UINT &>(m_actions[oldSlot]));
+      msg.Put(static_cast<UINT>(oldSlot));
+      msg.Put(m_actions[oldSlot].GetAction());
     }
     msg.Put(index);
-    msg.Put(static_cast<const UINT &>(m_actions[index]));
+    msg.Put(m_actions[index].GetAction());
     msg.Finalize();
     ClientServices_Send(&msg);
     FrameScript_SignalEvent(333);
@@ -149,15 +146,16 @@ void CGPetInfo::SetAction(UINT index, PetAction &action, int save) {
 }
 
 void CGPetInfo::ToggleAutocast(UINT index) {
-  UINT &action = m_actions[index];
-  if (static_cast<int>(action) < 0) {
-    action ^= 0x40000000;
+  PetAction action = m_actions[index];
+  if (action.GetAutocastAllowed()) {
+    action.SetAutocastEnabled(!action.GetAutocastEnabled());
+    m_actions[index] = action;
 
     CDataStore msg;
     msg.Put(CMSG_PET_SET_ACTION);
     msg.Put(m_pet);
     msg.Put(index);
-    msg.Put(action);
+    msg.Put(m_actions[index].GetAction());
     msg.Finalize();
     ClientServices_Send(&msg);
     FrameScript_SignalEvent(333);
@@ -165,16 +163,13 @@ void CGPetInfo::ToggleAutocast(UINT index) {
 }
 
 void CGPetInfo::PutActionInSlot(PetAction &action, UINT slot) {
-  UINT rawAction = action;
   for (UINT i = 0; i < 10; ++i) {
-    UINT current = m_actions[i];
-    if ((current & 0x3FFFFFFF) == (rawAction & 0x3FFFFFFF)) {
-      rawAction = current & 0x80000000 | rawAction & 0x7FFFFFFF;
-      rawAction = current & 0x40000000 | rawAction & 0xBFFFFFFF;
+    if (m_actions[i].GetActionTypeAndID() == action.GetActionTypeAndID()) {
+      action.SetAutocastAllowed(m_actions[i].GetAutocastAllowed());
+      action.SetAutocastEnabled(m_actions[i].GetAutocastEnabled());
       break;
     }
   }
-  static_cast<UINT &>(action) = rawAction;
   SetAction(slot, action, 1);
 }
 
@@ -202,34 +197,39 @@ void CGPetInfo::UpdateCooldowns() {
 
 void CGPetInfo::SendPetAction(const PetAction &action, const DWORDLONG &target) {
   DWORDLONG actionTarget = target ? target : CGGameUI::GetLockedTarget();
-  UINT      rawAction = action;
-  UINT      actionType = rawAction >> 24 & 0x3F;
-  if (actionType == 6) {
-    SetPetMode(rawAction & 0xFFFF);
-  } else if (actionType == 7) {
-    UINT id = rawAction & 0xFFFF;
-    if (id <= 1) {
-      SetPetOrders(id);
-    } else if (id == 2) {
-      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      if (player) {
-        CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(actionTarget, __FILE__, __LINE__));
-        if (!unit) {
-          CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(141));
-          return;
-        }
-        if (!player->CanAttack(unit)) {
-          CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(142));
-          return;
+  switch (action.GetActionType()) {
+    case 6:
+      SetPetMode(action.GetActionID());
+      break;
+    case 7:
+      switch (action.GetActionID()) {
+        case 0:
+        case 1:
+          SetPetOrders(action.GetActionID());
+          break;
+        case 2: {
+          CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+          if (player) {
+            CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(actionTarget, __FILE__, __LINE__));
+            if (!unit) {
+              CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(141));
+              return;
+            }
+            if (!player->CanAttack(unit)) {
+              CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(142));
+              return;
+            }
+          }
+          break;
         }
       }
-    }
+      break;
   }
 
   CDataStore msg;
   msg.Put(CMSG_PET_ACTION);
   msg.Put(m_pet);
-  msg.Put(rawAction);
+  msg.Put(action.GetAction());
   msg.Put(actionTarget);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -285,11 +285,12 @@ void CGPetInfo::PetRename(LPCSTR newName) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(217));
     return;
   }
-  if (pet->GetUnitData()->summonedBy != ClntObjMgrGetActivePlayer()) {
+  DWORDLONG player = ClntObjMgrGetActivePlayer();
+  if (pet->GetSummonedBy() != player) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(218));
     return;
   }
-  if (!(pet->GetUnitData()->flags & 0x10)) {
+  if (!(pet->GetUnitFlags() & 0x10)) {
     CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(219));
     return;
   }
@@ -373,19 +374,22 @@ static int Script_GetPetActionInfo(lua_State *L) {
 }
 
 static int Script_GetPetActionCooldown(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: GetPetActionCooldown(index)");
-  const PetAction *action = CGPetInfo::GetAction(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  UINT             duration = 0, enable = 0;
-  DWORD            startTime = 0;
-  if (action) {
-    UINT raw = *action;
-    UINT type = raw >> 24 & 0x3F;
-    if (raw && type >= 1 && type <= 5)
-      Spell_C_GetSpellCooldown(raw & 0xFFFF, 1, &duration, &startTime, &enable);
+  if (!lua_isnumber(L, 1)) {
+    luaL_error(L, "Usage: GetPetActionCooldown(index)");
+    return 0;
   }
-  lua_pushnumber(L, startTime * 0.001);
-  lua_pushnumber(L, duration * 0.001);
+  const PetAction *action = CGPetInfo::GetAction(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  DWORD            startTime = 0;
+  UINT             duration = 0;
+  UINT             enable = 0;
+  if (action && action->GetAction()) {
+    int type = action->GetActionType();
+    if (type > 0 && type <= 5) {
+      Spell_C_GetSpellCooldown(action->GetActionID(), 1, &duration, &startTime, &enable);
+    }
+  }
+  lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
+  lua_pushnumber(L, static_cast<double>(duration) * 0.001);
   lua_pushnumber(L, static_cast<double>(enable));
   return 3;
 }
@@ -525,29 +529,34 @@ static int Script_PetRename(lua_State *L) {
 
 static int Script_PetCanBeAbandoned(lua_State *L) {
   CGUnit_C *pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(), __FILE__, __LINE__));
-  if (pet && pet->GetUnitData()->summonedBy == ClntObjMgrGetActivePlayer() && (pet->GetUnitData()->flags & 0x20)) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
+  if (pet) {
+    DWORDLONG player = ClntObjMgrGetActivePlayer();
+    if (pet->GetSummonedBy() == player && (pet->GetUnitFlags() & 0x20)) {
+      lua_pushnumber(L, 1.0);
+      return 1;
+    }
   }
+  lua_pushnil(L);
   return 1;
 }
 
 static int Script_PetCanBeRenamed(lua_State *L) {
   CGUnit_C *pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(), __FILE__, __LINE__));
-  if (pet && pet->GetUnitData()->summonedBy == ClntObjMgrGetActivePlayer() && (pet->GetUnitData()->flags & 0x10)) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
+  if (pet) {
+    DWORDLONG player = ClntObjMgrGetActivePlayer();
+    if (pet->GetSummonedBy() == player && (pet->GetUnitFlags() & 0x10)) {
+      lua_pushnumber(L, 1.0);
+      return 1;
+    }
   }
+  lua_pushnil(L);
   return 1;
 }
 
 static int Script_GetPetTimeRemaining(lua_State *L) {
   DWORD expiration = CGPetInfo::GetExpirationTime();
   if (expiration) {
-    DWORD now = OsGetAsyncTimeMs();
-    lua_pushnumber(L, static_cast<double>(expiration == now ? 0 : expiration - now));
+    lua_pushnumber(L, static_cast<double>(max(expiration - OsGetAsyncTimeMs(), 0)));
   } else {
     lua_pushnil(L);
   }

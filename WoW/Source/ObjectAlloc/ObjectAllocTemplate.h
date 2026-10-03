@@ -27,6 +27,8 @@ class TObjectAllocMemHandle {
 
 template <class T>
 class TObjectAlloc {
+  UINT m_ID;
+
  public:
   TObjectAlloc(LPCSTR heapName, UINT objectsPerBlock) : m_ID(ObjectAllocAddHeap(sizeof(T), objectsPerBlock, heapName)) {
   }
@@ -47,9 +49,6 @@ class TObjectAlloc {
   void Free(T *obj) {
     ObjectFree(obj->GetMemHandle());
   }
-
- private:
-  UINT m_ID;
 };
 
 #endif

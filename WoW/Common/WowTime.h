@@ -52,4 +52,10 @@ inline WowTime::WowTime(UINT value) {
   WowDecodeTime(value, this);
 }
 
+inline WowTime::WowTime(int hour, int minute) {
+  UINT value;
+  WowEncodeTime(value, minute, hour, -1, -1, -1, -1, 0);
+  WowDecodeTime(value, this);
+}
+
 #endif

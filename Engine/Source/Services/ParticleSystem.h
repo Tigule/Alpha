@@ -7,6 +7,10 @@
 #include <stddef.h>
 #include <stpl.h>
 
+enum {
+  PART_ANIM_STAND = 0
+};
+
 class CParticle {
   friend class CParticleEmitter;
 

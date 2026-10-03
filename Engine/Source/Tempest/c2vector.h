@@ -136,9 +136,9 @@ namespace NTempest {
     }
 
     void SafeNormalize() {
-      float squaredMag = SquaredMag();
-      if (squaredMag > 0.0f) {
-        *this *= CMath::sqrtinv_(squaredMag);
+      float mag = Mag();
+      if (CMath::fnotequal_(mag, 0.0f)) {
+        *this /= mag;
       }
     }
     void Scale(const float magnitude) {

@@ -4,7 +4,6 @@
 #include <WowConst.h>
 #include "AaBsp.h"
 #include <MapDefs.h>
-#include "Gx/CGxDevice.h"
 
 #include "WorldClient/World.h"
 #include "WorldClient/CMapObj.h"

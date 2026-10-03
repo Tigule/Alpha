@@ -6,6 +6,8 @@
 #include "UIUtil/InputControl.h"
 #include "UIUtil/Tooltip.h"
 #include <MapDefs.h>
+#include <WorldClient/World.h>
+#include "Ui/GameUI.h"
 
 #include "InputControl.h"
 
@@ -13,6 +15,7 @@
 #include <Console/ConsoleVar.h>
 #include <Event/CMouseEvent.h>
 #include <FrameScript/FrameScript.h>
+#include <FrameXML/LoadXML.h>
 #include <Os/OsTime.h>
 #include <Os/W32/OsJoystick.h>
 #include <Gx/Gx.h>
@@ -207,7 +210,7 @@ static int Script_CameraOrSelectOrMoveStop(lua_State *L) {
   if (lua_isnumber(L, 2)) {
     updatePlayer = static_cast<int>(lua_tonumber(L, 2));
   } else if (lua_isstring(L, 2)) {
-    updatePlayer = atoi(lua_tostring(L, 2));
+    updatePlayer = StringToBOOL(lua_tostring(L, 2));
   }
   control->SetControlBit(INPUT_MOVE_PLAYER_OR_TURN_CAMERA, 0, eventTime, updatePlayer);
   return 0;
@@ -240,7 +243,9 @@ static FrameScript_Method s_ScriptFunctions[21] = {
 static CGCamera *Camera() {
   CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
   FATALASSERT(worldFrame);
-  return CGWorldFrame::GetActiveCamera();
+  CGCamera *camera = worldFrame->Camera();
+  FATALASSERT(camera);
+  return camera;
 }
 
 void InputControlInitialize() {
@@ -411,11 +416,9 @@ void CGInputControl::UpdatePlayer(DWORD now) {
     now = player->m_animEndTime;
   }
 
-  const CGUnitData *unit = player->GetUnitData();
-  bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charmedBy &&
-                                                                     ((unit->flags & 2) || !(unit->flags & 0xC00004)) && !(unit->flags & 1));
-  bool              canMove = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() && !(player->m_move.m_moveFlags & 0x2400);
-  bool              canTurn = unit->health > 0 && canIssueMovement && !player->IsInStandSitTransition() && !(unit->flags & 0x40000);
+  bool canIssueMovement = player->IsClientControlled();
+  bool canMove = player->GetHealth() > 0 && canIssueMovement && !player->IsInStandSitTransition() && !(player->m_move.m_moveFlags & 0x2400);
+  bool canTurn = player->GetHealth() > 0 && canIssueMovement && !player->IsInStandSitTransition() && !(player->GetUnitFlags() & 0x40000);
 
   if (canMove) {
     MovePlayer(now, player);
@@ -463,7 +466,7 @@ void CGInputControl::SetReleaseAction(CGInputReleaseAction action) {
 }
 
 BOOL CGInputControl::SetControlBit(INPUT_CONTROL bit) {
-  if (m_controlFlags & bit) {
+  if (bit & m_controlFlags) {
     return 0;
   }
 
@@ -486,9 +489,9 @@ BOOL CGInputControl::SetControlBit(INPUT_CONTROL bit) {
   }
   if (bit & INPUT_FREE_LOOK_MASK) {
     m_controlFlags |= INPUT_CAMERA_MOVED;
-    if ((m_controlFlags & INPUT_FREE_LOOK_MASK) != static_cast<UINT>(bit)) {
-      m_releaseAction = INPUT_RELEASE_NONE;
-    }
+  }
+  if ((bit & INPUT_FREE_LOOK_MASK) && (m_controlFlags & INPUT_FREE_LOOK_MASK) != static_cast<UINT>(bit)) {
+    m_releaseAction = INPUT_RELEASE_NONE;
   }
   return 1;
 }
@@ -530,11 +533,11 @@ void CGInputControl::OnMouseMoveRel(const CMouseEvent &evt) {
 }
 
 BOOL CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
-  if (!(m_controlFlags & bit)) {
+  if (!(bit & m_controlFlags)) {
     return 0;
   }
 
-  int leavingFreeLook = (m_controlFlags & INPUT_FREE_LOOK_MASK) && !(m_controlFlags & ~bit & INPUT_FREE_LOOK_MASK);
+  bool leavingFreeLook = (m_controlFlags & INPUT_FREE_LOOK_MASK) && !(m_controlFlags & ~bit & INPUT_FREE_LOOK_MASK);
   if (leavingFreeLook) {
     CGCamera *camera = Camera();
     camera->SyncFreeLookFacing();
@@ -550,10 +553,13 @@ BOOL CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
 
     CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
     FATALASSERT(worldFrame);
-    if (m_releaseAction == INPUT_RELEASE_SELECT) {
-      worldFrame->PerformDefaultAction(MOUSE_BUTTON_LEFT, OsGetAsyncTimeMs());
-    } else if (m_releaseAction == INPUT_RELEASE_ACTION) {
-      worldFrame->PerformDefaultAction(MOUSE_BUTTON_RIGHT, OsGetAsyncTimeMs());
+    switch (m_releaseAction) {
+      case INPUT_RELEASE_SELECT:
+        worldFrame->PerformDefaultAction(MOUSE_BUTTON_LEFT, OsGetAsyncTimeMs());
+        break;
+      case INPUT_RELEASE_ACTION:
+        worldFrame->PerformDefaultAction(MOUSE_BUTTON_RIGHT, OsGetAsyncTimeMs());
+        break;
     }
   }
 
@@ -561,7 +567,10 @@ BOOL CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
 }
 
 void CGInputControl::MovePlayer(DWORD now, CGUnit_C *player) {
-  int direction = (m_controlFlags & INPUT_MOVE_PLAYER_AUTORUN) != 0;
+  int direction = 0;
+  if (m_controlFlags & INPUT_MOVE_PLAYER_AUTORUN) {
+    direction = 1;
+  }
   if (m_controlFlags & INPUT_MOVE_PLAYER_FORWARD_KEY) {
     ++direction;
   }
@@ -572,21 +581,33 @@ void CGInputControl::MovePlayer(DWORD now, CGUnit_C *player) {
     --direction;
   }
 
-  if (direction) {
-    if (player->GetUnitData()->standState) {
-      player->ChangeStandState(0);
-    } else if (!(m_controlFlags & INPUT_MOVE_PLAYER_SENT)) {
-      player->OnMoveStartLocal(now, direction > 0);
-      m_controlFlags |= INPUT_MOVE_PLAYER_SENT;
+  if (!direction) {
+    if (m_controlFlags & INPUT_MOVE_PLAYER_SENT) {
+      player->OnMoveStopLocal(now);
+      m_controlFlags &= ~INPUT_MOVE_PLAYER_SENT;
     }
-  } else if (m_controlFlags & INPUT_MOVE_PLAYER_SENT) {
-    player->OnMoveStopLocal(now);
-    m_controlFlags &= ~INPUT_MOVE_PLAYER_SENT;
+  } else if (player->GetStandState() == UNIT_STANDING) {
+    if (direction > 0) {
+      if (!(m_controlFlags & INPUT_MOVE_PLAYER_SENT)) {
+        player->OnMoveStartLocal(now, 1);
+        m_controlFlags |= INPUT_MOVE_PLAYER_SENT;
+      }
+    } else if (direction < 0) {
+      if (!(m_controlFlags & INPUT_MOVE_PLAYER_SENT)) {
+        player->OnMoveStartLocal(now, 0);
+        m_controlFlags |= INPUT_MOVE_PLAYER_SENT;
+      }
+    }
+  } else {
+    player->ChangeStandState(UNIT_STANDING);
   }
 }
 
 void CGInputControl::StrafePlayer(DWORD now, CGUnit_C *player) {
-  int direction = (m_controlFlags & INPUT_STRAFE_PLAYER_LEFT_KEY) != 0;
+  int direction = 0;
+  if (m_controlFlags & INPUT_STRAFE_PLAYER_LEFT_KEY) {
+    direction = 1;
+  }
   if ((m_controlFlags & INPUT_TURN_PLAYER) && (m_controlFlags & INPUT_TURN_PLAYER_LEFT_KEY)) {
     ++direction;
   }
@@ -597,48 +618,79 @@ void CGInputControl::StrafePlayer(DWORD now, CGUnit_C *player) {
     --direction;
   }
 
-  if (direction) {
-    if (player->GetUnitData()->standState) {
-      player->ChangeStandState(0);
-    } else if (!(m_controlFlags & INPUT_STRAFE_PLAYER_SENT)) {
-      player->OnStrafeStartLocal(now, direction > 0);
-      m_controlFlags |= INPUT_STRAFE_PLAYER_SENT;
+  if (!direction) {
+    if (m_controlFlags & INPUT_STRAFE_PLAYER_SENT) {
+      player->OnStrafeStopLocal(now);
+      m_controlFlags &= ~INPUT_STRAFE_PLAYER_SENT;
     }
-  } else if (m_controlFlags & INPUT_STRAFE_PLAYER_SENT) {
-    player->OnStrafeStopLocal(now);
-    m_controlFlags &= ~INPUT_STRAFE_PLAYER_SENT;
+  } else if (player->GetStandState() == UNIT_STANDING) {
+    if (direction > 0) {
+      if (!(m_controlFlags & INPUT_STRAFE_PLAYER_SENT)) {
+        player->OnStrafeStartLocal(now, 1);
+        m_controlFlags |= INPUT_STRAFE_PLAYER_SENT;
+      }
+    } else if (direction < 0) {
+      if (!(m_controlFlags & INPUT_STRAFE_PLAYER_SENT)) {
+        player->OnStrafeStartLocal(now, 0);
+        m_controlFlags |= INPUT_STRAFE_PLAYER_SENT;
+      }
+    }
+  } else {
+    player->ChangeStandState(UNIT_STANDING);
   }
 }
 
 void CGInputControl::TurnPlayer(DWORD now, CGUnit_C *player) {
   if (!(m_controlFlags & INPUT_TURN_PLAYER)) {
-    int direction = (m_controlFlags & INPUT_TURN_PLAYER_LEFT_KEY) != 0;
+    int direction = 0;
+    if (m_controlFlags & INPUT_TURN_PLAYER_LEFT_KEY) {
+      direction = 1;
+    }
     if (m_controlFlags & INPUT_TURN_PLAYER_RIGHT_KEY) {
       --direction;
     }
-    if (direction) {
-      if (player->GetUnitData()->standState) {
-        player->ChangeStandState(0);
-      } else if (!(m_controlFlags & INPUT_TURN_PLAYER_SENT)) {
-        player->OnTurnStartLocal(now, direction > 0);
-        m_controlFlags |= INPUT_TURN_PLAYER_SENT;
+
+    if (!direction) {
+      if (m_controlFlags & INPUT_TURN_PLAYER_SENT) {
+        player->OnTurnStopLocal(now);
+        m_controlFlags &= ~INPUT_TURN_PLAYER_SENT;
       }
-    } else if (m_controlFlags & INPUT_TURN_PLAYER_SENT) {
-      player->OnTurnStopLocal(now);
-      m_controlFlags &= ~INPUT_TURN_PLAYER_SENT;
+    } else if (player->GetStandState() == UNIT_STANDING) {
+      if (direction > 0) {
+        if (!(m_controlFlags & INPUT_TURN_PLAYER_SENT)) {
+          player->OnTurnStartLocal(now, 1);
+          m_controlFlags |= INPUT_TURN_PLAYER_SENT;
+        }
+      } else if (direction < 0) {
+        if (!(m_controlFlags & INPUT_TURN_PLAYER_SENT)) {
+          player->OnTurnStartLocal(now, 0);
+          m_controlFlags |= INPUT_TURN_PLAYER_SENT;
+        }
+      }
+    } else {
+      player->ChangeStandState(UNIT_STANDING);
     }
   }
 }
 
 void CGInputControl::PitchPlayer(DWORD now, CGUnit_C *player) {
   if (!(m_controlFlags & INPUT_TURN_PLAYER)) {
-    int direction = (m_controlFlags & INPUT_PITCH_PLAYER_UP_KEY) != 0;
+    int direction = 0;
+    if (m_controlFlags & INPUT_PITCH_PLAYER_UP_KEY) {
+      direction = 1;
+    }
     if (m_controlFlags & INPUT_PITCH_PLAYER_DOWN_KEY) {
       --direction;
     }
-    if (direction) {
+
+    if (direction > 0) {
       if (!(m_controlFlags & INPUT_PITCH_PLAYER_SENT)) {
-        player->OnPitchStartLocal(now, direction > 0);
+        player->OnPitchStartLocal(now, 1);
+        m_controlFlags |= INPUT_PITCH_PLAYER_SENT;
+      }
+    } else if (direction < 0) {
+      if (!(m_controlFlags & INPUT_PITCH_PLAYER_SENT)) {
+        player->OnPitchStartLocal(now, 0);
         m_controlFlags |= INPUT_PITCH_PLAYER_SENT;
       }
     } else if (m_controlFlags & INPUT_PITCH_PLAYER_SENT) {
@@ -654,10 +706,8 @@ BOOL CGInputControl::CameraCanTurnPlayer() const {
     return 0;
   }
 
-  const CGUnitData *unit = player->GetUnitData();
-  bool              canIssueMovement = (unit->flags & 0x1000000) || ((player->GetType() & TYPE_PLAYER) && !unit->charmedBy &&
-                                                                     ((unit->flags & 2) || !(unit->flags & 0xC00004)) && !(unit->flags & 1));
-  if (unit->health <= 0 || !canIssueMovement || (unit->flags & 0x40000) || player->IsInStandSitTransition() || unit->standState) {
+  bool canIssueMovement = player->IsClientControlled();
+  if (player->GetHealth() <= 0 || !canIssueMovement || (player->GetUnitFlags() & 0x40000) || player->IsInStandSitTransition() || player->GetStandState()) {
     return 0;
   }
 

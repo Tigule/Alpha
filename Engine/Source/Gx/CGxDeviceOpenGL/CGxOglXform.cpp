@@ -11,10 +11,10 @@ void CGxDeviceOpenGl::IXformSetProjection(const NTempest::C44Matrix &m) {
   }
 
   if ((m_textureTarget[0].m_apiSpecific || m_textureTarget[1].m_apiSpecific) && !GxCaps().m_rttOriginUpperLeft) {
-    glMat.b0 = -glMat.b0;
-    glMat.b1 = -glMat.b1;
-    glMat.b2 = -glMat.b2;
-    glMat.b3 = -glMat.b3;
+    glMat.b0 *= -1.0f;
+    glMat.b1 *= -1.0f;
+    glMat.b2 *= -1.0f;
+    glMat.b3 *= -1.0f;
   }
 
   DsSet(Ds_MatrixMode, GL_PROJECTION, 0);
@@ -22,22 +22,7 @@ void CGxDeviceOpenGl::IXformSetProjection(const NTempest::C44Matrix &m) {
 }
 
 void CGxDeviceOpenGl::IXformGLModelView(const NTempest::C44Matrix &gxm, NTempest::C44Matrix &oglm) {
-  oglm.a0 = gxm.a0;
-  oglm.a1 = gxm.a1;
-  oglm.a2 = -gxm.a2;
-  oglm.a3 = gxm.a3;
-  oglm.b0 = gxm.b0;
-  oglm.b1 = gxm.b1;
-  oglm.b2 = -gxm.b2;
-  oglm.b3 = gxm.b3;
-  oglm.c0 = gxm.c0;
-  oglm.c1 = gxm.c1;
-  oglm.c2 = -gxm.c2;
-  oglm.c3 = gxm.c3;
-  oglm.d0 = gxm.d0;
-  oglm.d1 = gxm.d1;
-  oglm.d2 = -gxm.d2;
-  oglm.d3 = gxm.d3;
+  oglm = NTempest::C44Matrix(gxm.a0, gxm.a1, -gxm.a2, gxm.a3, gxm.b0, gxm.b1, -gxm.b2, gxm.b3, gxm.c0, gxm.c1, -gxm.c2, gxm.c3, gxm.d0, gxm.d1, -gxm.d2, gxm.d3);
 }
 
 void CGxDeviceOpenGl::IXformSetModelView(const NTempest::C44Matrix &m) {
@@ -50,17 +35,16 @@ void CGxDeviceOpenGl::IXformSetModelView(const NTempest::C44Matrix &m) {
 void CGxDeviceOpenGl::XformSetViewport(float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
   CGxDevice::XformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 
-  const NTempest::CRect &cr = DeviceCurWindow();
-  int                    x = static_cast<int>(minX * cr.r);
-  int                    y = static_cast<int>(minY * cr.b);
-  int                    right = static_cast<int>(maxX * cr.r);
-  int                    bottom = static_cast<int>(maxY * cr.b);
-  int                    width = right - x;
-  int                    height = bottom - y;
+  const NTempest::CRect &rect = DeviceCurWindow();
+  RECT                   cr;
+  cr.left = static_cast<int>(minX * rect.r);
+  cr.top = static_cast<int>(minY * rect.b);
+  cr.right = static_cast<int>(maxX * rect.r);
+  cr.bottom = static_cast<int>(maxY * rect.b);
 
-  glViewport(x, y, width, height);
+  glViewport(cr.left, cr.top, cr.right - cr.left, cr.bottom - cr.top);
   glDepthRange(minZ, maxZ);
-  glScissor(x, y, width, height);
+  glScissor(cr.left, cr.top, cr.right - cr.left, cr.bottom - cr.top);
 }
 
 void CGxDeviceOpenGl::XformSetProjection(const NTempest::C44Matrix &matrix) {

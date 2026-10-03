@@ -1,5 +1,5 @@
 #include <Base/Base.h>
-#include <Gx/CGxDevice.h>
+#include <Gx/Gx.h>
 #include <Tempest/caabox.h>
 #include <Tempest/c33matrix.h>
 #include <Tempest/c34matrix.h>
@@ -10,9 +10,6 @@
 #include <stpl.h>
 #include <windows.h>
 
-static NTempest::CImVector                            image[64];
-static TSFixedArray_<NTempest::C3Vector, 'GxuT', __LINE__> tmpVtx;
-
 static float D3dCeil(float f) {
   return static_cast<float>(ceil(floor(f * 16.0f + 0.5f) * 0.0625f));
 }
@@ -22,10 +19,10 @@ static float OglFloor(float f) {
 }
 
 static void PixSnap(const CGxCaps &caps, const NTempest::C3Vector &src, NTempest::C3Vector &dst) {
-  if (caps.m_pixelCenterOnEdge && caps.m_texelCenterOnEdge) {
-    dst.Set(OglFloor(src.x), OglFloor(src.y), 1.0f);
-  } else if (!caps.m_pixelCenterOnEdge && caps.m_texelCenterOnEdge) {
-    dst.Set(D3dCeil(src.x), D3dCeil(src.y), 1.0f);
+  if (!caps.m_pixelCenterOnEdge && caps.m_texelCenterOnEdge) {
+    dst = NTempest::C3Vector(D3dCeil(src.x), D3dCeil(src.y), 1.0f);
+  } else if (caps.m_pixelCenterOnEdge && caps.m_texelCenterOnEdge) {
+    dst = NTempest::C3Vector(OglFloor(src.x), OglFloor(src.y), 1.0f);
   } else {
     ASSERT(0);
   }
@@ -296,7 +293,8 @@ void GxuUpdateSingleColorTexture(
     UINT         &texelStrideInBytes,
     LPCVOID      &texels
 ) {
-  UINT index;
+  UINT                       index;
+  static NTempest::CImVector image[64];
 
   switch (cmd) {
     case GxTex_Lock:
@@ -421,6 +419,7 @@ BOOL GxuTestRayAndMesh(
     modelToWorldMatrices = &identity;
   }
 
+  static TSFixedArray_<NTempest::C3Vector, 'GxuT', __LINE__> tmpVtx;
   tmpVtx.SetCount(posCount);
   const BYTE *posBytes = reinterpret_cast<const BYTE *>(pos);
   const BYTE *boneIndex = bone;

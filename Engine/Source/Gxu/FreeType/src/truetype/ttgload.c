@@ -125,9 +125,6 @@
                      FT_UShort*  aw )
   {
     TT_Get_Metrics( &face->horizontal, index, lsb, aw );
-
-    if ( check && face->postscript.isFixedPitch )
-      *aw = face->horizontal.advance_Width_Max;
   }
 
 
@@ -1153,15 +1150,6 @@
       FT_Pos  advance = loader->advance;
 
 
-      /* the flag FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH was introduced to */
-      /* correctly support DynaLab fonts, which have an incorrect       */
-      /* `advance_Width_Max' field!  It is used, to my knowledge,       */
-      /* exclusively in the X-TrueType font server.                     */
-      /*                                                                */
-      if ( face->postscript.isFixedPitch                                    &&
-           ( loader->load_flags & FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH ) == 0 )
-        advance = face->horizontal.advance_Width_Max;
-
       /* we need to return the advance in font units in linearHoriAdvance, */
       /* it will be scaled later by the base layer.                        */
       glyph->linearHoriAdvance = advance;
@@ -1269,8 +1257,7 @@
     }
 
     /* adjust advance width to the value contained in the hdmx table */
-    if ( !face->postscript.isFixedPitch && size &&
-         IS_HINTED( loader->load_flags )        )
+    if ( size && IS_HINTED( loader->load_flags ) )
     {
       FT_Byte* widths = Get_Advance_Widths( face,
                                             size->root.metrics.x_ppem );

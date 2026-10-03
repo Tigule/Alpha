@@ -85,9 +85,9 @@ CSimpleFrame::~CSimpleFrame() {
     }
   }
 
-  UINT layer;
-  for (layer = 0; layer < NUM_SIMPLEFRAME_DRAWLAYERS; ++layer) {
-    ASSERT(m_drawlayers[layer].IsEmpty());
+  UINT i;
+  for (i = 0; i < NUM_SIMPLEFRAME_DRAWLAYERS; ++i) {
+    ASSERT(m_drawlayers[i].IsEmpty());
   }
 
   m_renderList.UnlinkAll();
@@ -250,7 +250,7 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
   attribute = node->GetAttributeByName("alpha");
   if (attribute && *attribute) {
-    SetAlpha(static_cast<BYTE>(min(max(SStrToFloat(attribute), 0.0f), 1.0f) * 255.0f));
+    SetAlpha(static_cast<BYTE>(__max(__min(SStrToFloat(attribute), 1.0f), 0.0f) * 255.0f));
   }
 
   attribute = node->GetAttributeByName("id");
@@ -275,20 +275,18 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
   const XMLNode *child;
   for (child = node->GetChild(); child; child = child->GetSibling()) {
-    LPCSTR childName = child->GetName();
-
-    if (!SStrCmpI(childName, "TitleRegion", 0x7FFFFFFF)) {
+    if (!SStrCmpI(child->GetName(), "TitleRegion", 0x7FFFFFFF)) {
       CSimpleTitleRegion *titleRegion = NEW(CSimpleTitleRegion);
 
       titleRegion->SetParent(this);
       titleRegion->LoadXML(child, status);
       SetTitleRegion(titleRegion);
-    } else if (!SStrCmpI(childName, "Backdrop", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(child->GetName(), "Backdrop", 0x7FFFFFFF)) {
       CBackdropGenerator *backdrop = NEW(CBackdropGenerator);
 
       backdrop->LoadXML(child, status);
       SetBackdrop(backdrop);
-    } else if (!SStrCmpI(childName, "HitRectInsets", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(child->GetName(), "HitRectInsets", 0x7FFFFFFF)) {
       float l;
       float r;
       float t;
@@ -297,9 +295,9 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
       if (LoadXML_Insets(child, l, r, t, b, status)) {
         SetHitRectInsets(l, r, t, b);
       }
-    } else if (!SStrCmpI(childName, "Layers", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(child->GetName(), "Layers", 0x7FFFFFFF)) {
       LoadXML_Layers(child, status);
-    } else if (!SStrCmpI(childName, "Scripts", 0x7FFFFFFF)) {
+    } else if (!SStrCmpI(child->GetName(), "Scripts", 0x7FFFFFFF)) {
       LPCSTR name = GetName();
 
       if (name && *name) {
@@ -352,43 +350,40 @@ void CSimpleFrame::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
   const XMLNode *script;
 
   for (script = node->GetChild(); script; script = script->GetSibling()) {
-    LPCSTR name = script->GetName();
-    LPCSTR source = script->GetBody();
-
-    if (!SStrCmpI(name, "OnLoad", 0x7FFFFFFF)) {
-      SetOnLoadScript(source);
-    } else if (!SStrCmpI(name, "OnSizeChanged", 0x7FFFFFFF)) {
-      SetOnSizeChangedScript(source);
-    } else if (!SStrCmpI(name, "OnEvent", 0x7FFFFFFF)) {
-      SetOnEventScript(source);
-    } else if (!SStrCmpI(name, "OnUpdate", 0x7FFFFFFF)) {
-      SetOnUpdateScript(source);
-    } else if (!SStrCmpI(name, "OnShow", 0x7FFFFFFF)) {
-      SetOnShowScript(source);
-    } else if (!SStrCmpI(name, "OnHide", 0x7FFFFFFF)) {
-      SetOnHideScript(source);
-    } else if (!SStrCmpI(name, "OnEnter", 0x7FFFFFFF)) {
-      SetOnEnterScript(source);
-    } else if (!SStrCmpI(name, "OnLeave", 0x7FFFFFFF)) {
-      SetOnLeaveScript(source);
-    } else if (!SStrCmpI(name, "OnMouseDown", 0x7FFFFFFF)) {
-      SetOnMouseDownScript(source);
-    } else if (!SStrCmpI(name, "OnMouseUp", 0x7FFFFFFF)) {
-      SetOnMouseUpScript(source);
-    } else if (!SStrCmpI(name, "OnMouseWheel", 0x7FFFFFFF)) {
-      SetOnMouseWheelScript(source);
-    } else if (!SStrCmpI(name, "OnDragStart", 0x7FFFFFFF)) {
-      SetOnDragStartScript(source);
-    } else if (!SStrCmpI(name, "OnDragStop", 0x7FFFFFFF)) {
-      SetOnDragStopScript(source);
-    } else if (!SStrCmpI(name, "OnReceiveDrag", 0x7FFFFFFF)) {
-      SetOnReceiveDragScript(source);
-    } else if (!SStrCmpI(name, "OnChar", 0x7FFFFFFF)) {
-      SetOnCharScript(source);
-    } else if (!SStrCmpI(name, "OnKeyDown", 0x7FFFFFFF)) {
-      SetOnKeyDownScript(source);
-    } else if (!SStrCmpI(name, "OnKeyUp", 0x7FFFFFFF)) {
-      SetOnKeyUpScript(source);
+    if (!SStrCmpI(script->GetName(), "OnLoad", 0x7FFFFFFF)) {
+      SetOnLoadScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnSizeChanged", 0x7FFFFFFF)) {
+      SetOnSizeChangedScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnEvent", 0x7FFFFFFF)) {
+      SetOnEventScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnUpdate", 0x7FFFFFFF)) {
+      SetOnUpdateScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnShow", 0x7FFFFFFF)) {
+      SetOnShowScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnHide", 0x7FFFFFFF)) {
+      SetOnHideScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnEnter", 0x7FFFFFFF)) {
+      SetOnEnterScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnLeave", 0x7FFFFFFF)) {
+      SetOnLeaveScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnMouseDown", 0x7FFFFFFF)) {
+      SetOnMouseDownScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnMouseUp", 0x7FFFFFFF)) {
+      SetOnMouseUpScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnMouseWheel", 0x7FFFFFFF)) {
+      SetOnMouseWheelScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnDragStart", 0x7FFFFFFF)) {
+      SetOnDragStartScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnDragStop", 0x7FFFFFFF)) {
+      SetOnDragStopScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnReceiveDrag", 0x7FFFFFFF)) {
+      SetOnReceiveDragScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnChar", 0x7FFFFFFF)) {
+      SetOnCharScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnKeyDown", 0x7FFFFFFF)) {
+      SetOnKeyDownScript(script->GetBody());
+    } else if (!SStrCmpI(script->GetName(), "OnKeyUp", 0x7FFFFFFF)) {
+      SetOnKeyUpScript(script->GetBody());
     }
   }
 }
@@ -445,12 +440,11 @@ void CSimpleFrame::SetFrameStrata(int strata) {
 }
 
 void CSimpleFrame::SetFrameLevel(int level, int shiftChildren) {
-  int delta;
-
   ASSERT(level >= 0);
-  delta = level - m_level;
 
-  if (delta) {
+  if (level != m_level) {
+    int delta = level - m_level;
+
     m_top->UnregisterFrame(this);
     m_level += delta;
     m_top->RegisterFrame(this);
@@ -487,16 +481,18 @@ void CSimpleFrame::SetBackdrop(CBackdropGenerator *backdrop) {
 }
 
 BOOL CSimpleFrame::SetHighlight(LPCSTR texFile, EGxBlend blendMode) {
+  int             okay = 1;
   CSimpleTexture *texture = NEW(CSimpleTexture)(this, 4, 1);
 
   if (texture->SetTexture(texFile, 0)) {
     texture->SetAllPoints(this, 1);
     texture->SetBlendMode(blendMode);
-    return 1;
+  } else {
+    DEL(texture);
+    okay = 0;
   }
 
-  DEL(texture);
-  return 0;
+  return okay;
 }
 
 BOOL CSimpleFrame::SetHighlight(CSimpleTexture *texture, EGxBlend blendMode) {
@@ -510,7 +506,7 @@ BOOL CSimpleFrame::SetHighlight(CSimpleTexture *texture, EGxBlend blendMode) {
 }
 
 void CSimpleFrame::SetAlpha(BYTE alpha) {
-  if (alpha != m_alpha) {
+  if (m_alpha != alpha) {
     m_alpha = alpha;
 
     {
@@ -555,8 +551,7 @@ void CSimpleFrame::UnregisterRegion(CSimpleRegion *region) {
 
   ITERATELIST(REGIONNODE, m_regions, node) {
     if (node->region == region) {
-      m_regions.DeleteNode(node);
-      break;
+      ITERATE_DELETEANDBREAK;
     }
   }
 }
@@ -574,8 +569,7 @@ void CSimpleFrame::RemoveFrameRegion(CSimpleRegion *region, UINT drawlayer) {
   ITERATELIST(REGIONNODE, m_drawlayers[drawlayer], node) {
     if (node->region == region) {
       NotifyDrawLayerChanged(drawlayer);
-      m_drawlayers[drawlayer].DeleteNode(node);
-      break;
+      ITERATE_DELETEANDBREAK;
     }
   }
 }
@@ -597,6 +591,8 @@ void CSimpleFrame::NotifyDrawLayersChanged() {
 }
 
 BOOL CSimpleFrame::AddToFrameRegistry(LPCSTR frameName, UINT context) {
+  int okay = 0;
+
   if (m_frameName) {
     UnregisterScriptObject(m_frameName);
     SimpleFrameRegistryRemoveEntry(m_frameName, m_frameRegContext);
@@ -604,18 +600,16 @@ BOOL CSimpleFrame::AddToFrameRegistry(LPCSTR frameName, UINT context) {
     m_frameName = 0;
   }
 
-  if (!frameName || !*frameName) {
-    return 0;
+  if (frameName && *frameName) {
+    if (SimpleFrameRegistryAddEntry(frameName, this, context)) {
+      m_frameName = SStrDupA(frameName, __FILE__, __LINE__);
+      m_frameRegContext = context;
+      RegisterScriptObject(m_frameName);
+      okay = 1;
+    }
   }
 
-  if (!SimpleFrameRegistryAddEntry(frameName, this, context)) {
-    return 0;
-  }
-
-  m_frameName = SStrDupA(frameName, __FILE__, __LINE__);
-  m_frameRegContext = context;
-  RegisterScriptObject(m_frameName);
-  return 1;
+  return okay;
 }
 
 void CSimpleFrame::ClearFromSimpleRegistry() {
@@ -631,8 +625,7 @@ void CSimpleFrame::ParentFrame(CSimpleFrame *frame) {
 void CSimpleFrame::UnparentFrame(CSimpleFrame *frame) {
   ITERATELIST(SIMPLEFRAMENODE, m_children, node) {
     if (node->frame == frame) {
-      m_children.DeleteNode(node);
-      break;
+      ITERATE_DELETEANDBREAK;
     }
   }
 }
@@ -708,9 +701,7 @@ void CSimpleFrame::SetDeferredResize(int enable) {
 }
 
 void CSimpleFrame::SetLayoutScale(float scale, bool force) {
-  static const float EPSILON = 2.38418579e-7f;
-
-  if (force || fabs(scale - m_layoutScale) >= EPSILON) {
+  if (force || NTempest::CMath::fnotequal_(scale, m_layoutScale)) {
     if (!m_visible) {
       SetDeferredResize(1);
     }
@@ -842,15 +833,12 @@ BOOL CSimpleFrame::TestHitRect(const NTempest::C2Vector &pt) {
     }
 
     NTempest::CRect rect = parent->m_hitRect;
-    rect = NTempest::CRect(
-        m_hitRect.t > rect.t ? m_hitRect.t : rect.t, m_hitRect.l > rect.l ? m_hitRect.l : rect.l, m_hitRect.b < rect.b ? m_hitRect.b : rect.b,
-        m_hitRect.r < rect.r ? m_hitRect.r : rect.r
-    );
+    rect.Intersect(m_hitRect);
 
-    return pt.x >= rect.l && pt.x <= rect.r && pt.y >= rect.t && pt.y <= rect.b;
+    return rect.Contains(pt);
   }
 
-  return pt.x >= m_hitRect.l && pt.x <= m_hitRect.r && pt.y >= m_hitRect.t && pt.y <= m_hitRect.b;
+  return m_hitRect.Contains(pt);
 }
 
 void CSimpleFrame::SetHitRect(const NTempest::CRect &rect) {
@@ -868,12 +856,12 @@ void CSimpleFrame::SetHitRectInsets(float left, float right, float top, float bo
 }
 
 BOOL CSimpleFrame::GetHitRect(NTempest::CRect &rect) {
-  if (!(CLayoutFrame::m_flags & 0x1)) {
-    return 0;
+  if (CLayoutFrame::m_flags & 0x1) {
+    rect = m_hitRect;
+    return 1;
   }
 
-  rect = m_hitRect;
-  return 1;
+  return 0;
 }
 
 void CSimpleFrame::OnLayerShow() {
@@ -931,7 +919,7 @@ void CSimpleFrame::OnFrameRender() {
         batch->Finish();
       }
 
-      if (batch->Count()) {
+      if (batch->Count() > 0) {
         m_renderList.LinkNode(batch, LIST_TAIL, 0);
       }
     }
@@ -955,16 +943,14 @@ void CSimpleFrame::OnUpdateBatch(UINT layer) {
 }
 
 void CSimpleFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
-  static const float EPSILON = 2.38418579e-7f;
-
   CLayoutFrame::OnFrameSizeChanged(rect);
 
-  if (!(fabs(rect.l - m_rect.l) < EPSILON) || !(fabs(rect.r - m_rect.r) < EPSILON) || !(fabs(rect.t - m_rect.t) < EPSILON) ||
-      !(fabs(rect.b - m_rect.b) < EPSILON))
+  if (NTempest::CMath::fnotequal_(rect.l, m_rect.l) || NTempest::CMath::fnotequal_(rect.r, m_rect.r) ||
+      NTempest::CMath::fnotequal_(rect.t, m_rect.t) || NTempest::CMath::fnotequal_(rect.b, m_rect.b))
   {
     SetHitRect(rect);
 
-    if (!(fabs((rect.r - rect.l) - (m_rect.r - m_rect.l)) < EPSILON) || !(fabs((rect.b - rect.t) - (m_rect.b - m_rect.t)) < EPSILON)) {
+    if (NTempest::CMath::fnotequal_(rect.r - rect.l, m_rect.r - m_rect.l) || NTempest::CMath::fnotequal_(rect.b - rect.t, m_rect.b - m_rect.t)) {
       if (m_backdrop) {
         m_backdrop->Generate(&rect);
       }
@@ -1315,8 +1301,7 @@ BOOL CSimpleFrame::OnLayerMouseDown(CMouseEvent &evt) {
     m_mouseDown = 1;
     m_dragging = 0;
     m_dragButton = evt.button;
-    m_clickPoint.x = evt.x;
-    m_clickPoint.y = evt.y;
+    m_clickPoint.Set(evt.x, evt.y);
   }
 
   RunOnMouseDownScript(evt.button);

@@ -1,7 +1,6 @@
 #ifndef WOW_SOURCE_WORLDCLIENT_CSIMPLEDOODAD_H
 #define WOW_SOURCE_WORLDCLIENT_CSIMPLEDOODAD_H
 
-#include "Gx/CGxDevice.h"
 #include "Services/Texture.h"
 #include "Tempest/c2vector.h"
 #include "Tempest/c3vector.h"

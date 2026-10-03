@@ -4,9 +4,11 @@
 #include <WowConst.h>
 #include <MapDefs.h>
 #include <WorldClient/World.h>
+#include "Net/NetClient/NetClient.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "SoundInterface/SoundInterface.h"
+#include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
 
@@ -145,7 +147,7 @@ void CGPetitionInfo::DecrementPendingName() {
 void CGPetitionInfo::SetPetitionStats(int id) {
   if (m_petitionID == id) {
     m_petition = g_petitionCache.GetRecord(id, 0, 0, 0);
-    if (m_petition && !m_pendingNames) {
+    if (!m_pendingNames && m_petition) {
       FrameScript_SignalEvent(373);
       ConsoleWrite("Petition shown", DEFAULT_COLOR);
     }

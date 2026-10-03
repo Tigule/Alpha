@@ -4,11 +4,10 @@
 
 #include "Base/Status.h"
 #include "MDLFile/MDLTypes.h"
-#include "Gxu/IGxuLight.h"
-#include "Gx/CGxDevice.h"
 #include "Services/AsyncFileRead.h"
 #include "Services/Camera.h"
 #include "Services/IParticleMisc.h"
+#include "Services/ParticleSystem2.h"
 #include "Services/Texture.h"
 #include "Os/W32/Debugging.h"
 #include "Os/OsTime.h"
@@ -175,10 +174,6 @@ static EModelParamType s_modelParamTypes[MODEL_NUM_COMMANDS][4] = {
 
 static void AsyncModelHandler();
 
-static TSCArray<BYTE, 4194304> s_asyncLoadBuffer;
-static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
-static UINT                                              s_asyncLoadBufferUsed;
-static int                                               s_asyncPending;
 static TSHashTableReuse<CModelHash, CHashKeyFilePath, 1> s_modelCache;
 static LISTDECLEX(CModelHash, link, s_modelCacheLRU);
 static CNullStatus s_nullStatus;
@@ -998,6 +993,11 @@ static HMODEL IModelCreateBlocking(LPCSTR fileName, char *actualPath, CModelCrea
   HashNewModel(fileName, handle, createFlags, status);
   return handle;
 }
+
+static TSCArray<BYTE, 4194304> s_asyncLoadBuffer;
+static LISTDECLEX(CAsyncObject, link, s_asyncLoadList);
+static UINT s_asyncLoadBufferUsed;
+static int  s_asyncPending;
 
 void CModel::DeleteAsyncObj() {
   if (asyncObject->buffer) {

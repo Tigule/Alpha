@@ -5,8 +5,7 @@
 
 #include <gl/gl.h>
 
-namespace RegisterCombiners {
-
+struct RegisterCombiners {
   struct CombinerVariable {
     UINT input;
     UINT mapping;
@@ -68,33 +67,32 @@ namespace RegisterCombiners {
 
     void Realize();
   };
+};
 
-  void CombinerPortion::Realize(UINT stage, UINT portion) {
-    for (UINT i = 0; i <= 3; ++i) {
-      glCombinerInputNV(stage, portion, GL_VARIABLE_A_NV + i, variable[i].input, variable[i].mapping, variable[i].component);
-    }
-    glCombinerOutputNV(
-        stage, portion, output.abOutput, output.cdOutput, output.sumOutput, output.scale, output.bias, output.abDotProduct, output.cdDotProduct,
-        output.muxSum
-    );
+void RegisterCombiners::CombinerPortion::Realize(UINT stage, UINT portion) {
+  for (UINT i = 0; i <= 3; ++i) {
+    glCombinerInputNV(stage, portion, GL_VARIABLE_A_NV + i, variable[i].input, variable[i].mapping, variable[i].component);
   }
+  glCombinerOutputNV(
+      stage, portion, output.abOutput, output.cdOutput, output.sumOutput, output.scale, output.bias, output.abDotProduct, output.cdDotProduct,
+      output.muxSum
+  );
+}
 
-  void GeneralCombiner::Realize(UINT stage, int perStageConstants) {
-    portion[0].Realize(stage, GL_RGB);
-    portion[1].Realize(stage, GL_ALPHA);
-    if (perStageConstants) {
-      glCombinerStageParameterfvNV(stage, GL_CONSTANT_COLOR0_NV, &constants[0].x);
-      glCombinerStageParameterfvNV(stage, GL_CONSTANT_COLOR1_NV, &constants[1].x);
-    }
+void RegisterCombiners::GeneralCombiner::Realize(UINT stage, int perStageConstants) {
+  portion[0].Realize(stage, GL_RGB);
+  portion[1].Realize(stage, GL_ALPHA);
+  if (perStageConstants) {
+    glCombinerStageParameterfvNV(stage, GL_CONSTANT_COLOR0_NV, &constants[0].x);
+    glCombinerStageParameterfvNV(stage, GL_CONSTANT_COLOR1_NV, &constants[1].x);
   }
+}
 
-  void FinalCombiner::Realize() {
-    for (UINT i = 0; i <= 6; ++i) {
-      glFinalCombinerInputNV(GL_VARIABLE_A_NV + i, variable[i].input, variable[i].mapping, variable[i].component);
-    }
+void RegisterCombiners::FinalCombiner::Realize() {
+  for (UINT i = 0; i <= 6; ++i) {
+    glFinalCombinerInputNV(GL_VARIABLE_A_NV + i, variable[i].input, variable[i].mapping, variable[i].component);
   }
-
-}  // namespace RegisterCombiners
+}
 
 void CGxDeviceOpenGl::IPixelShaderBind(CGxPixelShader *ps) {
   if (ps) {

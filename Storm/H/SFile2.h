@@ -3,7 +3,8 @@
 
 class MD5 {
  public:
-  MD5();
+  MD5() {
+  }
 
   MD5(DWORD a, DWORD b, DWORD c, DWORD d) {
     val[0] = a;
@@ -28,7 +29,7 @@ class MD5 {
   }
 
   bool operator==(const MD5 &cmp) {
-    return val[0] == cmp.val[0] && val[1] == cmp.val[1] && val[2] == cmp.val[2] && val[3] == cmp.val[3];
+    return cmp.val[0] == val[0] && cmp.val[1] == val[1] && cmp.val[2] == val[2] && cmp.val[3] == val[3];
   }
 
   bool operator!=(const MD5 &);

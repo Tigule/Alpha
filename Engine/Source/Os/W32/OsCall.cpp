@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include <Gx/Gx.h>
 #include <stpl.h>
 #include <W32/ISThread.h>
 
@@ -55,6 +56,48 @@ static LISTDECL(ContextData, s_contextDataList);
 static DWORD s_tlsIndex;
 static DWORD s_initCount;
 static int   s_enable = 1;
+
+int __cdecl   OsCallEnter(DWORD funcAddr, DWORD retAddr);
+DWORD __cdecl OsCallExit();
+
+extern "C" __declspec(naked) void __cdecl _pexit() {
+  __asm {
+    push eax
+    push eax
+    push ecx
+    push edx
+    call OsCallExit
+    mov [esp + 12], eax
+    pop edx
+    pop ecx
+    pop eax
+    ret
+  }
+}
+
+extern "C" __declspec(naked) void __cdecl _penter() {
+  __asm {
+    push eax
+    push ecx
+    push edx
+    mov eax, [esp + 16]
+    push eax
+    mov eax, [esp + 16]
+    sub eax, 5
+    push eax
+    call OsCallEnter
+    add esp, 8
+    cmp eax, 0
+    je no_pexit
+    lea eax, _pexit
+    mov [esp + 16], eax
+  no_pexit:
+    pop edx
+    pop ecx
+    pop eax
+    ret
+  }
+}
 
 void OsCallInitialize(LPCSTR threadName) {
   s_critsect.Enter();
@@ -249,30 +292,31 @@ void OsCallCompleteTurn() {
 static void OsCallDumpContextData(_iobuf *file, const ContextData *contextData) {
   fprintf(file, "; Context: %s\r\n", contextData->m_title);
 
-  DWORD              turnOffset = contextData->m_turnBufferTail;
+  DWORD              turnOffset;
   const ContextTurn *turn = 0;
-  while (turnOffset != contextData->m_turnBufferHead) {
-    const ContextTurn &candidate = contextData->m_turnBuffer[turnOffset & 0x3FF];
-    if (static_cast<long>(candidate.m_callBufferHead - contextData->m_callBufferTail) >= 0) {
-      turn = &candidate;
+  for (turnOffset = contextData->m_turnBufferHead; turnOffset != contextData->m_turnBufferTail; ++turnOffset) {
+    turn = &contextData->m_turnBuffer[turnOffset & 0x3FF];
+    if (static_cast<int>(turn->m_callBufferHead - contextData->m_callBufferHead) >= 0) {
       break;
     }
-    ++turnOffset;
+    turn = 0;
   }
 
-  for (DWORD callOffset = contextData->m_callBufferTail; callOffset != contextData->m_callBufferHead; ++callOffset) {
+  for (DWORD callOffset = contextData->m_callBufferHead; callOffset != contextData->m_callBufferTail; ++callOffset) {
     const ContextCall &call = contextData->m_callBuffer[callOffset & 0xFF];
 
     if (turn && callOffset == turn->m_callBufferHead) {
       fprintf(file, ";[TURN %05u]\r\n", turn->m_turnId);
       ++turnOffset;
-      turn = turnOffset == contextData->m_turnBufferHead ? 0 : &contextData->m_turnBuffer[turnOffset & 0x3FF];
+      turn = turnOffset == contextData->m_turnBufferTail ? 0 : &contextData->m_turnBuffer[turnOffset & 0x3FF];
     }
 
-    if (call.m_depth & 0x80) {
-      fprintf(file, "%*s;data = 0x%08x = %f\r\n", call.m_depth & 0x7F, "", call.m_funcAddr, *reinterpret_cast<const float *>(&call.m_funcAddr));
-    } else if (call.m_funcAddr & 0x80000000) {
-      fprintf(file, "%*s%08x\r\n", call.m_depth, "", call.m_funcAddr & 0x7FFFFFFF);
+    if (!(call.m_depth & 0x80)) {
+      if (call.m_funcAddr & 0x80000000) {
+        fprintf(file, "%*s%08x\r\n", call.m_depth, "", call.m_funcAddr & 0x7FFFFFFF);
+      }
+    } else {
+      fprintf(file, "%*s;data = 0x%08x = %f\r\n", call.m_depth & ~0x80, "", call.m_funcAddr, *reinterpret_cast<const float *>(&call.m_funcAddr));
     }
   }
   fprintf(file, "\r\n");

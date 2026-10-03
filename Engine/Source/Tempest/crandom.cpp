@@ -30,7 +30,7 @@ namespace NTempest {
   }
 
   DWORD CRandom::Seed(char *password) {
-    ASSERT(password);
+    ASSERT(password != 0);
     DWORD length = SStrLen(password);
     DWORD seed = static_cast<BYTE>(password[0]);
     for (DWORD i = 1; i < length; ++i) {
@@ -64,7 +64,7 @@ namespace NTempest {
   }
 
   void CRandom::array_(long *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     array_(reinterpret_cast<DWORD *>(buf), count, seed);
   }
 
@@ -163,61 +163,61 @@ namespace NTempest {
   }
 
   void CRandom::arraye_(float *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = reale_(seed);
   }
 
   void CRandom::arraye_(double *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = lreale_(seed);
   }
 
   void CRandom::arraye_(float *buf, DWORD count, float mean, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = reale_(mean, seed);
   }
 
   void CRandom::arraye_(double *buf, DWORD count, double mean, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = lreale_(mean, seed);
   }
 
   void CRandom::arrayg_(float *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = realg_(seed);
   }
 
   void CRandom::arrayg_(double *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = lrealg_(seed);
   }
 
   void CRandom::arrayg_(float *buf, DWORD count, float mean, float variation, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = realg_(mean, variation, seed);
   }
 
   void CRandom::arrayg_(double *buf, DWORD count, double mean, double variation, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = lrealg_(mean, variation, seed);
   }
 
   void CRandom::array_(C2Vector *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = C2Vector_(seed);
   }
 
   void CRandom::array_(C3Vector *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     for (DWORD i = 0; i < count; ++i)
       buf[i] = C3Vector_(seed);
   }
@@ -228,7 +228,7 @@ namespace NTempest {
   }
 
   void CRandom::shuffle_(char *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     shuffle_(reinterpret_cast<BYTE *>(buf), count, seed);
   }
 
@@ -243,7 +243,7 @@ namespace NTempest {
   }
 
   void CRandom::shuffle_(short *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     shuffle_(reinterpret_cast<WORD *>(buf), count, seed);
   }
 
@@ -258,7 +258,7 @@ namespace NTempest {
   }
 
   void CRandom::shuffle_(long *buf, DWORD count, CRndSeed &seed) {
-    ASSERT(buf);
+    ASSERT(buf != 0);
     shuffle_(reinterpret_cast<DWORD *>(buf), count, seed);
   }
 
@@ -303,7 +303,7 @@ namespace NTempest {
   }
 
   void CRandom::crypt_(char *buf, DWORD size, char *password) {
-    ASSERT(password);
+    ASSERT(password != 0);
     crypt_(buf, size, Seed(password));
   }
 

@@ -171,19 +171,17 @@ void CSimpleEditBox::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
   CSimpleFrame::LoadXML_Scripts(node, status);
 
   for (const XMLNode *script = node->GetChild(); script; script = script->GetSibling()) {
-    LPCSTR name = script->GetName();
-
-    if (!SStrCmpI(name, "OnEnterPressed", INT_MAX)) {
+    if (!SStrCmpI(script->GetName(), "OnEnterPressed", INT_MAX)) {
       SetOnEnterPressedScript(script->GetBody());
-    } else if (!SStrCmpI(name, "OnEscapePressed", INT_MAX)) {
+    } else if (!SStrCmpI(script->GetName(), "OnEscapePressed", INT_MAX)) {
       SetOnEscapePressedScript(script->GetBody());
-    } else if (!SStrCmpI(name, "OnSpacePressed", INT_MAX)) {
+    } else if (!SStrCmpI(script->GetName(), "OnSpacePressed", INT_MAX)) {
       SetOnSpacePressedScript(script->GetBody());
-    } else if (!SStrCmpI(name, "OnTabPressed", INT_MAX)) {
+    } else if (!SStrCmpI(script->GetName(), "OnTabPressed", INT_MAX)) {
       SetOnTabPressedScript(script->GetBody());
-    } else if (!SStrCmpI(name, "OnTextChanged", INT_MAX)) {
+    } else if (!SStrCmpI(script->GetName(), "OnTextChanged", INT_MAX)) {
       SetOnTextChangedScript(script->GetBody());
-    } else if (!SStrCmpI(name, "OnTextSet", INT_MAX)) {
+    } else if (!SStrCmpI(script->GetName(), "OnTextSet", INT_MAX)) {
       SetOnTextSetScript(script->GetBody());
     }
   }
@@ -964,8 +962,9 @@ BOOL CSimpleEditBox::GetOffsetToLine(int offset) {
 }
 
 void CSimpleEditBox::GrowText(int size) {
-  if (size + 1 > m_textSize) {
-    m_textSize = (size + 32) & ~31;
+  ++size;
+  if (size > m_textSize) {
+    m_textSize = (size + 31) & ~31;
     m_text = static_cast<char *>(SMemReAlloc(m_text, m_textSize, __FILE__, __LINE__, 0));
     m_textInfo = static_cast<UINT *>(SMemReAlloc(m_textInfo, sizeof(UINT) * m_textSize, __FILE__, __LINE__, 0));
   }
@@ -1466,7 +1465,7 @@ void CSimpleEditBox::MakeTextVisible(int position, float offset, float stringWid
 }
 
 void CSimpleEditBox::UpdateVisibleText() {
-  ASSERT(m_cursorPos >= 0 && m_cursorPos <= m_textLength);
+  ASSERT((m_cursorPos >= 0) && (m_cursorPos <= m_textLength));
 
   float stringWidth = m_string->GetWidth();
   ASSERT(stringWidth > 0.0f);
@@ -1523,7 +1522,7 @@ void CSimpleEditBox::UpdateVisibleText() {
     if (m_cursorPos < m_visiblePos || m_cursorPos > m_visiblePos + m_visibleLen) {
       float offset = m_cursorPos >= m_visiblePos ? stringWidth * 0.75f : stringWidth * 0.25f;
       MakeTextVisible(m_cursorPos, offset, stringWidth);
-      ASSERT(m_cursorPos >= m_visiblePos && m_cursorPos <= m_visiblePos + m_visibleLen);
+      ASSERT(((m_cursorPos >= m_visiblePos) && (m_cursorPos <= (m_visiblePos+m_visibleLen))));
     }
   }
 

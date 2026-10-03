@@ -9,19 +9,20 @@ using NTempest::CMath;
 void CParticleKey::Interpolate(float time, NTempest::CImVector &color, int &headCell, int &tailCell, float &scale) {
   float t = (time - m_startTime) * m_ooSegLength * 0.99f + 0.005f;
 
-  color.a = NTempest::CMath::ftol_0_256_(m_startColor.a + m_deltaColor[0] * t);
-  color.r = NTempest::CMath::ftol_0_256_(m_startColor.r + m_deltaColor[1] * t);
-  color.g = NTempest::CMath::ftol_0_256_(m_startColor.g + m_deltaColor[2] * t);
-  color.b = NTempest::CMath::ftol_0_256_(m_startColor.b + m_deltaColor[3] * t);
-  scale = m_startScale + m_deltaScale * t;
+  color.a = NTempest::CMath::ftol_0_256_(m_deltaColor[0] * t + m_startColor.a);
+  color.r = NTempest::CMath::ftol_0_256_(m_deltaColor[1] * t + m_startColor.r);
+  color.g = NTempest::CMath::ftol_0_256_(m_deltaColor[2] * t + m_startColor.g);
+  color.b = NTempest::CMath::ftol_0_256_(m_deltaColor[3] * t + m_startColor.b);
+  scale = t * m_deltaScale + m_startScale;
 
-  float rt = t;
-  if (m_repeat != 1.0f) {
-    rt = static_cast<float>(fmod(t * m_repeat, 1.0));
+  if (m_repeat == 1.0f) {
+    headCell = NTempest::CMath::ftol_0_256_(m_deltaHead * t + m_initialHead);
+    tailCell = NTempest::CMath::ftol_0_256_(m_deltaTail * t + m_initialTail);
+  } else {
+    float rt = static_cast<float>(fmod(t * m_repeat, 1.0));
+    headCell = NTempest::CMath::ftol_0_256_(m_deltaHead * rt + m_initialHead);
+    tailCell = NTempest::CMath::ftol_0_256_(m_deltaTail * rt + m_initialTail);
   }
-
-  headCell = NTempest::CMath::ftol_0_256_(m_initialHead + m_deltaHead * rt);
-  tailCell = NTempest::CMath::ftol_0_256_(m_initialTail + m_deltaTail * rt);
 }
 
 CParticleKey::CParticleKey()
@@ -59,14 +60,24 @@ void CParticleKey::SetSegment(float normStartTime, float normEndTime) {
 }
 
 void CParticleKey::SetLifeSpan(float lifeSpan) {
-  ASSERT(lifeSpan > 2.3841858e-7f);
+  if (!(lifeSpan > 2.3841858e-7f)) {
+    SErrDisplayErrorFmt(
+        STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "lifeSpan > (real(1.192092896e-07F * 2.0f))", "lifeSpan", lifeSpan
+    );
+  }
   m_lifeSpan = lifeSpan;
   m_startTime = lifeSpan * m_normStartTime;
   m_endTime = lifeSpan * m_normEndTime;
   float timeDelta = m_endTime - m_startTime;
-  ASSERT(fabs(timeDelta) >= 2.3841858e-7f);
+  if (!CMath::fnotequal_(timeDelta, 0.0f)) {
+    SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "CMath::fnotequal_(timeDelta,0.0f)", "timeDelta", timeDelta);
+  }
   m_ooSegLength = 1.0f / timeDelta;
-  ASSERT(fabs(m_ooSegLength) >= 2.3841858e-7f);
+  if (!CMath::fnotequal_(m_ooSegLength, 0.0f)) {
+    SErrDisplayErrorFmt(
+        STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "CMath::fnotequal_(m_ooSegLength,0.0f)", "m_ooSegLength", m_ooSegLength
+    );
+  }
 }
 
 void CParticleKey::SetRepeat(float repeat) {

@@ -4,36 +4,34 @@
 #include <gl/gl.h>
 #include <gl/glu.h>
 
+const UINT CGxDeviceOpenGl::kNullTmu = 0xFFFFFFFF;
+
 static EGxBufWriteFreq freqOrder[3] = {GxBWF_Dynamic, GxBWF_Low, GxBWF_Medium};
 
 CGxDevice *CGxDevice::NewOpenGl() {
   return NEW(CGxDeviceOpenGl);
 }
 
-CGxDeviceOpenGl::CGxDeviceOpenGl()
-    : m_nvvarMem(0),
-      m_nvvarBytes(0),
-      m_nvvarNext(0),
-      m_bufRealloc(1),
-      m_hwnd(0),
-      m_ownhwnd(0),
-      m_hdc(0),
-      m_hglrc(0),
-      m_hPbuffer(0),
-      m_hPbufferDC(0),
-      m_hPbufferRC(0),
-      m_primType(GxPrims_Last),
-      m_primIndexCount(0),
-      m_primIndices(0),
-      m_worldViewChange(0) {
+CGxDeviceOpenGl::CGxDeviceOpenGl() {
   m_api = GxApi_OpenGl;
+  m_hwnd = 0;
+  m_ownhwnd = 0;
+  m_hdc = 0;
+  m_hglrc = 0;
+  m_hPbuffer = 0;
+  m_hPbufferDC = 0;
+  m_hPbufferRC = 0;
+  m_primType = GxPrims_Last;
+  m_primIndexCount = 0;
+  m_primIndices = 0;
+  m_worldViewChange = 0;
   m_caps.m_colorFormat = GxCF_rgba;
-
-  for (UINT freq = 0; freq < GxBufWriteFreqs_Last; ++freq) {
-    m_vertexBuffer[freq] = 0;
-    m_indexBuffer[freq] = 0;
-  }
-
+  memset(m_vertexBuffer, 0, sizeof(m_vertexBuffer));
+  memset(m_indexBuffer, 0, sizeof(m_indexBuffer));
+  m_bufRealloc = 1;
+  m_nvvarMem = 0;
+  m_nvvarBytes = 0;
+  m_nvvarNext = 0;
   DsInit();
   m_lockedArrays = 0;
   m_colorSource = Cs_Material;
@@ -159,9 +157,12 @@ void CGxDeviceOpenGl::IAllocVertexBufferVAR(EGxBufWriteFreq freq, UINT bytes) {
   }
 
   if (bytes && m_nvvarMem) {
-    FATALASSERT(m_nvvarNext + bytes <= m_nvvarBytes);
-    m_vertexBuffer[freq] = NEW(CGxMemBuffer_VAR)(bytes, static_cast<BYTE *>(m_nvvarMem) + m_nvvarNext);
-    m_nvvarNext += bytes;
+    if (m_nvvarNext + bytes <= m_nvvarBytes) {
+      m_vertexBuffer[freq] = NEW(CGxMemBuffer_VAR)(bytes, static_cast<BYTE *>(m_nvvarMem) + m_nvvarNext);
+      m_nvvarNext += bytes;
+    } else {
+      FATALASSERT(m_nvvarNext + bytes <= m_nvvarBytes);
+    }
   }
 }
 

@@ -4,7 +4,7 @@
 #include "MapDefs.h"
 #include "WorldClient/World.h"
 #include "Tempest/crange.h"
-#include "Gx/CGxDevice.h"
+#include "Tempest/c22matrix.h"
 #include "Tempest/c2ivector.h"
 #include "Tempest/c3vector.h"
 #include "Tempest/c4plane.h"
@@ -112,6 +112,44 @@ struct SWFlowv {
   float               velocity;
   float               amplitude;
   float               frequency;
+};
+
+struct WaterVert {
+  NTempest::C3Vector direction;
+  float              magnitude;
+  float              amplitude;
+  float              height;
+
+  WaterVert() {
+  }
+
+  WaterVert(const NTempest::C3Vector &direction, float magnitude, float amplitude, float height)
+      : direction(direction), magnitude(magnitude), amplitude(amplitude), height(height) {
+  }
+};
+
+class WaveTrain {
+ public:
+  static const float PHASE_GRID_SIZE;
+  static const float DEPTH_RANGE_SCALE;
+
+  NTempest::C2Vector  pos;
+  NTempest::C2Vector  halfSize;
+  float               radiusSq;
+  NTempest::C2iVector phaseSize;
+  NTempest::C22Matrix localToWorld;
+  float               speed;
+
+  enum {
+    PHASE_GRID_ARRAY_SIZE = 512
+  };
+
+  float phaseGrid[PHASE_GRID_ARRAY_SIZE];
+
+  BOOL Phase(const NTempest::C2Vector &worldPos, float &phase);
+  void Init(const NTempest::C2Vector &pPos, const NTempest::C2Vector &pSize, const float radAngle, const float pSpeed);
+  void Move(float deltat);
+  BOOL Contains(const NTempest::C2Vector &worldPos);
 };
 
 class CChunkLiquid {

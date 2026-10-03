@@ -27,16 +27,17 @@ namespace NTempest {
     float fy = CMath::fabs_(y);
     float fz = CMath::fabs_(z);
 
-    if (fx >= fy) {
-      if (fz >= fy) {
-        return C3AXIS_Y;
+    if (fx < fy) {
+      if (fx < fz) {
+        return C3AXIS_X;
       }
       return C3AXIS_Z;
     }
-    if (fx >= fz) {
+
+    if (fz < fy) {
       return C3AXIS_Z;
     }
-    return C3AXIS_X;
+    return C3AXIS_Y;
   }
 
 }  // namespace NTempest
