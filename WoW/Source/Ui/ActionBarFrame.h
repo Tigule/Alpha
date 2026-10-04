@@ -10,47 +10,47 @@ class CGActionBar {
   static void ShutdownGame();
   static void ShowGrid();
   static void HideGrid();
-  static void UpdateBonusBar();
-  static void SetAction(int id, int action);
-  static void RemoveAction(int id);
-  static void ReplaceSpell(int oldSpell, int newSpell);
-  static void RemoveSpell(int spellID);
-  static void UpdateSelection();
-  static void UpdateCooldowns();
-  static void UpdateUsable();
+  static void SlotChanged(int id);
   static BOOL IsSpell(int id) {
     return m_slotActions[id] > 0;
   }
   static BOOL IsItem(int id) {
     return m_slotActions[id] < 0;
   }
+  static BOOL IsAttackAction(int id);
   static int GetSpell(int id) {
     return IsSpell(id) ? m_slotActions[id] : 0;
   }
   static int GetItem(int id) {
     return IsItem(id) ? -m_slotActions[id] : 0;
   }
+  static void UpdateBonusBar();
+  static UINT   GetBonusBarOffset() {
+    return m_bonusPage;
+  }
+  static void UpdateSelection();
+  static void UpdateItem(int entryID);
+  static void UpdateUsable();
+  static void UpdateCooldowns();
+  static void SetAction(int id, int action);
+  static void AddAction(int action);
+  static void RemoveAction(int id);
+  static void RemoveSpell(int spellID);
+  static void ReplaceSpell(int oldSpell, int newSpell);
+  static void UseAction(int id, BOOL checkCursor);
+  static void PickupAction(int id);
+  static void PutActionInSlot(int id);
   static BOOL HasAction(int id) {
     return m_slotActions[id] != 0;
   }
-  static BOOL   IsAttackAction(int id);
   static BOOL   IsUsableAction(int id, BOOL &noMana);
   static BOOL   IsCurrentAction(int id);
   static BOOL   IsToggledAction(int id);
-  static void   UpdateItem(int entryID);
-  static void   AddAction(int action);
-  static void   UseAction(int id, BOOL checkCursor);
-  static void   PickupAction(int id);
-  static void   PutActionInSlot(int id);
   static LPCSTR GetAttackTexture();
   static LPCSTR GetTexture(int id);
   static int    GetCount(int id);
   static void   GetCooldown(int id, DWORD &startTime, UINT &duration, UINT &enable);
   static void   PrecacheButtonArt(int id);
-  static void   SlotChanged(int id);
-  static UINT   GetBonusBarOffset() {
-    return m_bonusPage;
-  }
 
  private:
   static int  m_slotActions[NUM_ACTION_BUTTONS];

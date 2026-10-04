@@ -52,7 +52,59 @@ struct TradeSkillInfo;
 struct TradeSkillSubClassInfo;
 
 class CGTradeSkillInfo {
-  friend class CGSpellBook;
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b);
+
+ public:
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void ShutdownGame();
+  static void Close();
+  static void ClearItemCallbacks();
+  static void DecrementPendingItem() {
+    if (!m_itemsPending || !--m_itemsPending) {
+      RefreshList(1);
+    }
+  }
+  static void SetSelection(int index);
+  static int  GetSelectionIndex();
+  static int  GetSkillLine() {
+    return m_skillLine;
+  }
+  static int GetNumTradeSkills() {
+    return m_filteredSkills;
+  }
+  static const TradeSkillInfo *GetTradeSkillInfo(UINT index) {
+    return index < m_filteredSkills ? m_skills[index] : 0;
+  }
+  static void SetSkillLine(int id);
+  static void RefreshList(int resetFilters);
+  static UINT GetNumSubClasses() {
+    return m_numSubClasses;
+  }
+  static TradeSkillSubClassInfo *GetSubClass(UINT index) {
+    return index < m_numSubClasses ? m_subClasses[index] : 0;
+  }
+  static int  GetSubClassIndexFromSkill(UINT index);
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetSubClassFilter() {
+    return m_subClassFilter;
+  }
+  static int GetInvTypeFilter() {
+    return m_invTypeFilter;
+  }
+  static int GetCollapseFilter() {
+    return m_collapseFilter;
+  }
+  static int GetAvailableSlots() {
+    return m_availableSlots;
+  }
+  static void SetSubClassFilter(int filter);
+  static void SetInvTypeFilter(int filter);
+  static void SetCollapseFilter(int filter);
+
+ protected:
+  static void FilterAndSortSkills();
 
  private:
   static int                                       m_skillLine;
@@ -73,7 +125,43 @@ struct CraftInfo;
 struct CraftSkillLineInfo;
 
 class CGCraftInfo {
-  friend class CGSpellBook;
+ public:
+  static void               EnterWorld();
+  static void               ShutdownGame();
+  static void               Close();
+  static void               SetSelection(int index);
+  static int                GetSelectionIndex();
+  static SPELL_CAST_UI_TYPE GetCraftType() {
+    return m_craftType;
+  }
+  static int GetNumCrafts() {
+    return m_filteredSkills;
+  }
+  static const CraftInfo *GetCraftInfo(UINT index) {
+    return index < m_numSkills ? m_skills[index] : 0;
+  }
+  static UINT GetNumSkillLines() {
+    return m_numSkillLines;
+  }
+  static CraftSkillLineInfo *GetSkillLine(UINT index) {
+    return index < m_numSkillLines ? m_skillLines[index] : 0;
+  }
+  static int  GetSkillLineIndexFromCraft(UINT index);
+  static void SetCraftType(SPELL_CAST_UI_TYPE type);
+  static void RefreshList();
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetCollapseFilter() {
+    return m_collapseFilter;
+  }
+  static void SetCollapseFilter(int filter);
+
+ private:
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortPetSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b);
+
+ protected:
+  static void FilterAndSortSkills();
 
  private:
   static SPELL_CAST_UI_TYPE                    m_craftType;
@@ -558,10 +646,10 @@ BOOL CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
   if (player && spell->m_effect[0] == 47) {
     if (!spell->m_effectMiscValue[0]) {
       const SkillLineAbilityRec *ability = player->LookupAbility(spell->m_ID);
-      if (ability && CGTradeSkillInfo::m_skillLine == ability->m_skillLine) {
+      if (ability && CGTradeSkillInfo::GetSkillLine() == ability->m_skillLine) {
         return 1;
       }
-    } else if (CGCraftInfo::m_craftType == spell->m_effectMiscValue[0]) {
+    } else if (CGCraftInfo::GetCraftType() == spell->m_effectMiscValue[0]) {
       return 1;
     }
   }

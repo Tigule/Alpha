@@ -1,7 +1,8 @@
 #pragma once
 
+#include "Object/Unit.h"
+
 class CGItem_C;
-enum GAME_ERROR_TYPE;
 
 enum BAG_RESULT {
   BAG_OK = 0,

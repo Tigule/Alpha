@@ -86,11 +86,11 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
   virtual LPCSTR                  GetModelFileName() const;
   void                            HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position);
   void                            AnimFinished();
-  virtual void                    GetPosition(NTempest::C3Vector &vec) const {
-    vec = m_dynamicObj->m_position;
-  }
   virtual NTempest::C3Vector GetPosition() const {
     return m_dynamicObj->m_position;
+  }
+  virtual void                    GetPosition(NTempest::C3Vector &vec) const {
+    vec = m_dynamicObj->m_position;
   }
   virtual float GetFacing() const {
     return m_dynamicObj->m_facing;

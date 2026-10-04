@@ -52,6 +52,10 @@ void    UnitEffectOneShot(
     bool                      forceEffectOnMount
 );
 
+enum {
+  CHUNKFLAG_PERSISTENT = 1
+};
+
 static LISTDECLEX(SPLATDATA, normalLink, s_freeList);
 static TSGrowableArray<PERSISTENTTEXTURE> s_footStepTextureTable;
 static TSGrowableArray<TIMEDTEXTURE>      s_bloodSplatTextureTable[5];

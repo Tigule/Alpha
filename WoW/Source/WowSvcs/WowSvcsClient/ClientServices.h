@@ -11,7 +11,6 @@ namespace NTempest {
 
 class ClientConnection;
 class CDataStore;
-enum NETMESSAGE;
 struct CHARACTER_INFO;
 struct REALM_INFO;
 

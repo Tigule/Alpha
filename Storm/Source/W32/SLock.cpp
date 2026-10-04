@@ -71,6 +71,26 @@ static long          s_freeCount[SRW_EVENT_TYPES];
 
 template <class T>
 class CDebugLock : public T {
+  CDebugLock &operator=(const CDebugLock &);
+  CDebugLock(const CDebugLock &);
+
+  enum {
+    MAX_ENTRIES = 256
+  };
+  enum {
+    LOCKENTERED = 0x80000000
+  };
+  enum {
+    FORWRITING = 0x40000000
+  };
+
+  static CInitCritSect   s_critsect;
+  static CDebugLockData *s_locks;
+  static CDebugLockEntry s_entries[MAX_ENTRIES];
+  static DWORD           s_freeEntries;
+
+  static void IRepairBadEntry(CDebugLockData *lock, DWORD e, CDebugLockEntry *eptr, LPCSTR fileName, DWORD line);
+
  public:
   static void Construct(CDebugLockData *lock);
   static void Destruct(CDebugLockData *lock);
@@ -84,27 +104,6 @@ class CDebugLock : public T {
   static DWORD IAddEntry(CDebugLockData *lock, DWORD threadId, int forwriting, LPCSTR fileName, DWORD line);
   static DWORD IDeleteEntry(CDebugLockData *lock, DWORD threadId, int fromwriting);
   static void  IEnterEntry(DWORD e);
-
- private:
-  CDebugLock(const CDebugLock &);
-  CDebugLock &operator=(const CDebugLock &);
-
-  enum {
-    MAX_ENTRIES = 256
-  };
-  enum {
-    LOCKENTERED = 0x80000000
-  };
-  enum {
-    FORWRITING = 0x40000000
-  };
-
-  static void IRepairBadEntry(CDebugLockData *lock, DWORD e, CDebugLockEntry *eptr, LPCSTR fileName, DWORD line);
-
-  static CInitCritSect   s_critsect;
-  static CDebugLockEntry s_entries[MAX_ENTRIES];
-  static DWORD           s_freeEntries;
-  static CDebugLockData *s_locks;
 };
 
 void Pause() {

@@ -2,6 +2,12 @@
 
 #include <stdio.h>
 
+enum {
+  SMEM_ALLOCATOR_CLASSIC = 0,
+  SMEM_ALLOCATOR_2 = 1,
+  SMEM_ALLOCATOR_SYSTEM = 2
+};
+
 #define FIRSTUSERHEAP 0x80000000
 #define MAXALLOCSIZE  0xFE5F
 #define MAXFREEMAINT  4

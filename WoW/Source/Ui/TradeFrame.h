@@ -34,23 +34,19 @@ enum TRADE_STATUS {
 
 class CGTradeInfo {
  public:
-  static void      EnterWorld();
-  static void      LeaveWorld();
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
+  static void PlayerAccept(int accept);
+  static void TargetAccept(int accept);
+  static void ClearAccept();
+  static void Update(TradeItemData items[]);
+  static void SetTradePartner(DWORDLONG partner);
   static DWORDLONG GetTradePartner() {
     return m_tradingPlayer;
   }
-  static void            SetTradePartner(DWORDLONG partner);
-  static void            Update(TradeItemData items[]);
-  static void            PlayerAccept(int accept);
-  static void            TargetAccept(int accept);
-  static void            ClearAccept();
-  static void            HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID);
-  static BOOL            SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot);
-  static DWORDLONG       GetPlayerTradeSlot(int index);
-  static void            RemovePlayerItem(DWORDLONG guid);
-  static void            UpdatePlayerItem(DWORDLONG guid);
-  static void            UnlockTradeItems();
-  static GAME_ERROR_TYPE GetGameError(BAG_RESULT bagResult, int myFailure);
+  static BOOL      SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot);
+  static DWORDLONG GetPlayerTradeSlot(int index);
   static void            GetPlayerItemInfo(int index, DWORDLONG &guid, DWORDLONG &bag, BYTE &slot) {
     if (index >= 0 && index < 8) {
       guid = m_playerItems[index];
@@ -74,12 +70,16 @@ class CGTradeInfo {
   static DWORDLONG GetTargetTradeItemCreator(int index) {
     return index >= 0 && index < 8 ? m_targetItemCreator[index] : 0;
   }
+  static void RemovePlayerItem(DWORDLONG guid);
+  static void UpdatePlayerItem(DWORDLONG guid);
   static int GetPlayerEnchantSlot() {
     return m_playerEnchantSlot;
   }
   static int GetTargetEnchantSlot() {
     return m_targetEnchantSlot;
   }
+  static void            UnlockTradeItems();
+  static GAME_ERROR_TYPE GetGameError(BAG_RESULT bagResult, int myFailure);
 
  protected:
   static DWORDLONG m_tradingPlayer;

@@ -101,6 +101,22 @@ inline bool CGGameObject_C::IsQuestObjectForMe() {
   return m_gameObj->m_dynamicFlags & 1;
 }
 
+enum {
+  ANIMSTATE_CLOSED = 0,
+  ANIMSTATE_OPENING = 1,
+  ANIMSTATE_OPEN = 2,
+  ANIMSTATE_CLOSING = 3,
+  ANIMSTATE_DESTROYING = 4,
+  ANIMSTATE_DESTROYED = 5,
+  ANIMSTATE_REBUILDING = 6,
+  ANIMSTATE_FIRSTCUSTOM = 7,
+  ANIMSTATE_CUSTOM0 = 7,
+  ANIMSTATE_CUSTOM1 = 8,
+  ANIMSTATE_CUSTOM2 = 9,
+  ANIMSTATE_CUSTOM3 = 10,
+  NUM_GAMEOBJ_ANIMSTATES = 11
+};
+
 struct StateAnimInfo {
   UINT seq;
   BYTE reverse;
@@ -108,7 +124,7 @@ struct StateAnimInfo {
   BYTE neverUseFallback;
 };
 
-static StateAnimInfo s_stateAnimInfo[11] = {
+static StateAnimInfo s_stateAnimInfo[NUM_GAMEOBJ_ANIMSTATES] = {
     { 1, 1, 0, 0},
     { 2, 0, 0, 1},
     { 3, 0, 1, 0},
@@ -122,7 +138,7 @@ static StateAnimInfo s_stateAnimInfo[11] = {
     {11, 0, 0, 1}
 };
 
-static LPCSTR s_statusString[11] = {"Closed", "Opening", "Open", "Closing", "Custom0", "Custom1", "Custom2", "Custom3", 0, 0, 0};
+static LPCSTR s_statusString[NUM_GAMEOBJ_ANIMSTATES] = {"Closed", "Opening", "Open", "Closing", "Custom0", "Custom1", "Custom2", "Custom3", 0, 0, 0};
 
 static CGGameObject_C_Type_Null s_nullBaseObj;
 

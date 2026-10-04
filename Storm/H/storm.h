@@ -418,19 +418,18 @@ class Sha1 {
 };
 
 class BigNum {
- private:
   BigData *m_data;
 
  public:
   BigNum();
-  BigNum(LPCSTR value);
-  BigNum(UINT value);
   BigNum(const BigNum &copy);
+  BigNum(UINT value);
+  BigNum(LPCSTR value);
   ~BigNum();
+  BigNum &operator=(const BigNum &copy);
+  BigNum &operator=(UINT value);
 
   BigNum &operator=(LPCSTR value);
-  BigNum &operator=(UINT value);
-  BigNum &operator=(const BigNum &copy);
 
   BigNum &Add(const BigNum &a, const BigNum &b);
   BigNum &Sub(const BigNum &a, const BigNum &b);
@@ -457,10 +456,10 @@ class BigNum {
   BigNum  operator<<(UINT bits);
   BigNum  operator>>(UINT bits);
   BigNum  operator~();
-  BigNum &operator--();
   BigNum  operator--(int);
-  BigNum &operator++();
+  BigNum &operator--();
   BigNum  operator++(int);
+  BigNum &operator++();
   BigNum &operator+=(const BigNum &value);
   BigNum &operator-=(const BigNum &value);
   BigNum &operator*=(const BigNum &value);
@@ -472,29 +471,29 @@ class BigNum {
   BigNum &operator<<=(UINT bits);
   BigNum &operator>>=(UINT bits);
 
-  int Compare(const BigNum &value);
-  int operator==(const BigNum &value);
-  int operator!=(const BigNum &value);
-  int operator<=(const BigNum &value);
-  int operator>=(const BigNum &value);
-  int operator<(const BigNum &value);
-  int operator>(const BigNum &value);
+  int     Compare(const BigNum &value);
+  int     operator==(const BigNum &value);
+  int     operator!=(const BigNum &value);
+  int     operator<=(const BigNum &value);
+  int     operator>=(const BigNum &value);
+  int     operator<(const BigNum &value);
+  int     operator>(const BigNum &value);
+  BigNum &FindPrime(UINT bits, const BigNum &minimum, const BigNum &maximum);
 
   BigNum &FindPrime(UINT bits, const BigNum &seed);
-  BigNum &FindPrime(UINT bits, const BigNum &minimum, const BigNum &maximum);
-  BigNum &Gcd(const BigNum &value);
   BigNum &Gcd(const BigNum &a, const BigNum &b);
-  BigNum &InvMod(const BigNum &value);
+  BigNum &Gcd(const BigNum &value);
   BigNum &InvMod(const BigNum &a, const BigNum &b);
-  BigNum &MulMod(const BigNum &a, const BigNum &b);
+  BigNum &InvMod(const BigNum &value);
   BigNum &MulMod(const BigNum &a, const BigNum &b, const BigNum &modulus);
-  BigNum &Pow(UINT exponent);
+  BigNum &MulMod(const BigNum &a, const BigNum &b);
   BigNum &Pow(const BigNum &value, UINT exponent);
-  BigNum &PowMod(const BigNum &value, const BigNum &modulus);
+  BigNum &Pow(UINT exponent);
   BigNum &PowMod(const BigNum &b, const BigNum &c, const BigNum &d);
+  BigNum &PowMod(const BigNum &value, const BigNum &modulus);
   BigNum &Rand(const BigNum &maximum, BigNum *seed);
-  BigNum &Square();
   BigNum &Square(const BigNum &value);
+  BigNum &Square();
 
   char   *ToStr(char *buffer, UINT bytes) const;
   LPVOID  ToBinaryBuffer(LPVOID data, UINT bytes) const;

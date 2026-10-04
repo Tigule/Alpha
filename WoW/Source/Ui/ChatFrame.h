@@ -45,24 +45,19 @@ class CGChat {
   static void ShutdownGame();
   static void EnterWorld();
   static void LeaveWorld();
-  static BOOL IsPaused();
-  static BOOL ChatHandler(CDataStore *msg);
-  static void ChannelList(CDataStore *msg);
-  static void ChannelNotify(CDataStore *msg);
-  static BOOL HandleTextEmote(CDataStore *msg);
+  static void TranslateMessage(UINT language, UINT skill, LPCSTR text, char *buffer, UINT size, int passXML);
 
-  static void FilterChat(int filter) {
-    m_filterChat = filter;
-  }
-
-  static void   AddChatMessage(LPCSTR text, SLASH_COMMAND_ID type, LPCSTR player, UINT language, LPCSTR channel, LPCSTR player2, LPCSTR specialFlag);
-  static void   AddTextEmoteMessage(const DWORDLONG &senderGUID, int textEmoteID, LPCSTR target);
-  static void   AddChannel(LPCSTR name);
-  static void   RemoveChannel(LPCSTR name);
-  static int    GetChannelID(LPCSTR name);
-  static LPCSTR GetChannelName(int localID);
+  static void         AddChatMessage(LPCSTR text, SLASH_COMMAND_ID type, LPCSTR player, UINT language, LPCSTR channel, LPCSTR player2, LPCSTR specialFlag);
+  static void         AddTextEmoteMessage(const DWORDLONG &senderGUID, int textEmoteID, LPCSTR target);
+  static BOOL         IsPaused();
+  static void         UpdateLanguages();
+  static void         AddChannel(LPCSTR name);
+  static void         RemoveChannel(LPCSTR name);
+  static int          GetChannelID(LPCSTR name);
   static ChatChannel *GetChannel(LPCSTR name);
-  static void         DisplayPendingUserList(ChatChannel *channel);
+  static LPCSTR       GetChannelName(int localID);
+  static void         ChannelNotify(CDataStore *msg);
+  static LPCSTR       GetChannelString(LPCSTR commandString);
   static void         QueueChatText(
       int       slashCmd,
       DWORDLONG guid,
@@ -74,13 +69,14 @@ class CGChat {
       DWORDLONG guid2,
       LPCSTR    specialFlag
   );
-  static void   QueueTextEmote(const DWORDLONG &sender, int textEmoteID, LPCSTR target, int waitingForUI);
-  static void   NameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
-  static void   TextEmoteNameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
-  static void   GetPendingChatMessages();
-  static void   UpdateLanguages();
-  static void   TranslateMessage(UINT language, UINT skill, LPCSTR text, char *buffer, UINT size, int passXML);
-  static LPCSTR GetChannelString(LPCSTR commandString);
+  static void QueueTextEmote(const DWORDLONG &sender, int textEmoteID, LPCSTR target, int waitingForUI);
+  static void NameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
+  static void TextEmoteNameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
+  static void GetPendingChatMessages();
+  static BOOL ChatHandler(CDataStore *msg);
+  static BOOL HandleTextEmote(CDataStore *msg);
+  static void ChannelList(CDataStore *msg);
+  static void DisplayPendingUserList(ChatChannel *channel);
   static void   CheckFlagChanged(
       DWORDLONG        guid,
       const NameCache *nc,
@@ -92,6 +88,10 @@ class CGChat {
       LPCSTR           unsetText
   );
   static void HandleFlagsChanged(DWORDLONG guid, BYTE oldFlags, BYTE newFlags, LPCSTR channel);
+
+  static void FilterChat(int filter) {
+    m_filterChat = filter;
+  }
 
  private:
   static int m_paused;

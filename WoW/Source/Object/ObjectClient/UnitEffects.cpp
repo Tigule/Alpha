@@ -48,6 +48,11 @@
 #include <stpl.h>
 #include <storm.h>
 
+enum {
+  EMITTER_DEATHIMPACT = 0,
+  NUM_OBJECTS = 1
+};
+
 using NTempest::CMath;
 
 inline NTempest::C3Vector CGCamera::Target() const {

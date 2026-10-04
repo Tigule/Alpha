@@ -58,8 +58,6 @@ class CGWorldMap {
   static void EnterWorld();
   static void LeaveWorld();
   static void ShutdownGame();
-  static void SetMapToCurrentZone();
-  static void SetMap(int continent, int zone);
   static int  GetCurrentContinent() {
     return m_currentContinent;
   }
@@ -74,6 +72,8 @@ class CGWorldMap {
     return continent < m_continents.Count() ? m_continents[continent].zoneList.Count() : 0;
   }
   static LPCSTR GetZoneName(UINT continent, UINT index);
+  static void   SetMapToCurrentZone();
+  static void   SetMap(int continent, int zone);
   static LPCSTR GetMapFilename();
   static UINT   GetMapHeight();
   static void   ProcessClick(float x, float y);

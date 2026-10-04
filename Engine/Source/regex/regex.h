@@ -43,8 +43,6 @@
 /* types */
 typedef long regoff_t;
 
-struct re_guts;
-
 typedef struct regex_t {
 	int re_magic;
 	unsigned int re_nsub;	/* number of parenthesized subexpressions */

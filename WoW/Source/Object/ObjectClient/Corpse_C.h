@@ -87,11 +87,11 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
   static UINT    OffsetOf(OBJECT_TYPE_ID type);
   virtual LPCSTR GetModelFileName() const;
   virtual BOOL   ShouldRender(DWORD worldStatus);
-  virtual void   GetPosition(NTempest::C3Vector &vec) const {
-    vec = m_corpse->m_position;
-  }
   virtual NTempest::C3Vector GetPosition() const {
     return m_corpse->m_position;
+  }
+  virtual void   GetPosition(NTempest::C3Vector &vec) const {
+    vec = m_corpse->m_position;
   }
   virtual float GetFacing() const {
     return m_corpse->m_facing;

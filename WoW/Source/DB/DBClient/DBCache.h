@@ -3,8 +3,9 @@
 
 #include <stpl.h>
 
+#include "WowServices/WDataStore.h"
+
 class CDataStore;
-enum NETMESSAGE;
 class CGContainer_C;
 class CGPlayer_C;
 

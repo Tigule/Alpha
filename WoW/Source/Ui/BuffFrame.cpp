@@ -33,6 +33,15 @@ class CGBuffBar;
 
 void Spell_C_CancelAura(int spellID);
 
+enum {
+  BUFF_FILTER_HELPFUL = 1,
+  BUFF_FILTER_HARMFUL = 2,
+  BUFF_FILTER_PASSIVE = 4,
+  BUFF_FILTER_CANCELABLE = 16,
+  BUFF_FILTER_NOT_CANCELABLE = 32,
+  BUFF_FILTER_ALL = 7
+};
+
 class CGBuffDesc {
   friend class CGBuffBar;
 

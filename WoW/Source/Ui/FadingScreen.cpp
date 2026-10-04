@@ -23,6 +23,12 @@
 
 static WORD indices[4] = {0, 1, 2, 3};
 
+enum {
+  FADING_NONE = 0,
+  FADING_OUT = 1,
+  FADING_IN = 2
+};
+
 static BYTE      s_fadingScreenEnabled;
 static BYTE      s_drawingFadingScreen;
 static HLAYER__ *s_fadingScreenLayer;

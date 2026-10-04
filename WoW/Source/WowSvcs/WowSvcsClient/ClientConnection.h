@@ -48,38 +48,28 @@ class ClientConnection : public NetClient {
   virtual BOOL Initialize(LoginData *loginData);
   virtual void Destroy();
 
+  int               PollStatus(WOWCS_OPS &op, int &errorCode, int &result);
   void              Cancel(int errorCode);
   void              Cleanup();
   void              Connect();
   void              AccountLogin(LPCSTR name, LPCSTR password, int region, WOW_LOCALE locale);
   void              AccountLogout();
-  void              GetRealmList();
-  int               GetRealmListCount();
-  int               EnumerateRealms(void (*fcn)(REALM_INFO &info, LPVOID param), LPVOID param);
-  const REALM_INFO *GetRealmInfoByIndex(int index);
   void              GetCharacterList();
   int               GetCharacterListCount();
   int               EnumerateCharacters(void (*fcn)(CHARACTER_INFO &info, LPVOID param), LPVOID param);
   void              CharacterCreate(const CHARACTER_CREATE_INFO &info);
-  void              CharacterDelete(DWORDLONG guid);
   void              CharacterLogin(DWORDLONG id);
-  BOOL              Disconnect();
   void              CharacterSetInGame(int state);
   void              CharacterLogout(bool exitAfterLogout, bool instant);
+  BOOL              CharacterLoggingOut();
+  void              CharacterDelete(DWORDLONG guid);
   void              CharacterRemoveFromGame();
   void              CharacterAbortLogout();
   void              CharacterForceLogout();
-  BOOL              CharacterLoggingOut();
   void              SetPlaying(int value);
   void              SetIsBot(int value);
   BOOL              IsBot();
-  int               PollStatus(WOWCS_OPS &op, int &errorCode, int &result);
-  void              RealmEnumCallback(CDataStore *data);
-  LPCSTR            GetCharacterName();
-
-  UINT GetWaitCount() {
-    return m_waitCount;
-  }
+  BOOL              Disconnect();
 
   BOOL IsInGame() {
     return m_inGame;
@@ -88,6 +78,13 @@ class ClientConnection : public NetClient {
   BOOL IsConnected() {
     return m_connected;
   }
+
+  void              RealmEnumCallback(CDataStore *data);
+  void              GetRealmList();
+  int               GetRealmListCount();
+  int               EnumerateRealms(void (*fcn)(REALM_INFO &info, LPVOID param), LPVOID param);
+  const REALM_INFO *GetRealmInfoByIndex(int index);
+  LPCSTR            GetCharacterName();
 
   virtual BOOL HandleConnect();
   virtual BOOL HandleDisconnect();
@@ -103,22 +100,12 @@ class ClientConnection : public NetClient {
   BOOL HandleLogoutAbortAck(NETMESSAGE msgId, DWORD time, CDataStore *msg);
   BOOL HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataStore *msg);
 
- private:
-  ClientConnection &operator=(const ClientConnection &connection);
-  void              Initiate(WOWCS_OPS op, int errorCode, void (ClientConnection::*cleanup)());
-  void              Complete(int result, int errorCode) {
-    Cleanup();
-    m_statusResult = result;
-    m_errorCode = errorCode;
-    m_statusComplete = 1;
+  UINT GetWaitCount() {
+    return m_waitCount;
   }
-  void              Abort();
-  void              AccountLogin_Cleanup();
-  void              GetCharacterList_Cleanup();
-  void              CharacterLogin_Cleanup();
-  void              CharacterCreate_Cleanup();
+
+ private:
   void              AccountLogin_Finish(int reason);
-  void              ConnectToSelectedServer();
 
   int                          m_initialized;
   int                          m_connected;
@@ -135,7 +122,22 @@ class ClientConnection : public NetClient {
   TSFixedArray<REALM_INFO>     m_realmList;
   BOOL                         m_isBot;
   UINT                         m_waitCount;
+
+  void              Initiate(WOWCS_OPS op, int errorCode, void (ClientConnection::*cleanup)());
+  void              Complete(int result, int errorCode) {
+    Cleanup();
+    m_statusResult = result;
+    m_errorCode = errorCode;
+    m_statusComplete = 1;
+  }
+  void              Abort();
   void (ClientConnection::*m_cleanup)();
+  void              AccountLogin_Cleanup();
+  void              GetCharacterList_Cleanup();
+  void              CharacterLogin_Cleanup();
+  void              CharacterCreate_Cleanup();
+  void              ConnectToSelectedServer();
+  ClientConnection &operator=(const ClientConnection &connection);
 };
 
 #endif

@@ -23,7 +23,6 @@ class GameObjectStats;
 struct HCOLLISIONDATA__;
 typedef HCOLLISIONDATA__ *HCOLLISIONDATA;
 struct WorldObjCollisionHandlerData;
-enum GAME_ERROR_TYPE;
 
 BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data);
 

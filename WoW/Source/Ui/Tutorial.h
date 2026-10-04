@@ -36,11 +36,11 @@ class CGTutorial {
   static void ClearTutorials();
   static void ResetTutorials();
 
- protected:
-  static FBitField m_tutorialFlags;
-
  private:
   static BOOL OnTutorialFlags(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+
+ protected:
+  static FBitField m_tutorialFlags;
 };
 
 #endif

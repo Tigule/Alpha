@@ -287,8 +287,8 @@ UINT CGWorldFrame::GeometryTestModels(const NTempest::C3Vector &aVector, const N
 static int GetObjectSelectCategory(CGObject_C *object) {
   enum {
     PRIORITY_NON_INTERACTABLE = 0,
-    PRIORITY_LIVING = 2,
-    PRIORITY_INTERACTABLE = 1
+    PRIORITY_INTERACTABLE = 1,
+    PRIORITY_LIVING = 2
   };
 
   switch (object->GetType()) {

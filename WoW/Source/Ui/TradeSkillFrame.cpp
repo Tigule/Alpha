@@ -68,19 +68,20 @@ const SkillLineAbilityRec *SpellTableLookupAbility(UINT raceID, UINT classID, UI
 extern const int           g_ITEMTYPEARRAY[];
 
 class CGTradeSkillInfo {
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b);
+
  public:
   static void EnterWorld();
   static void LeaveWorld();
   static void ShutdownGame();
   static void Close();
   static void ClearItemCallbacks();
-  static void RefreshList(int resetFilters);
   static void DecrementPendingItem() {
     if (!m_itemsPending || !--m_itemsPending) {
       RefreshList(1);
     }
   }
-  static void SetSkillLine(int id);
   static void SetSelection(int index);
   static int  GetSelectionIndex();
   static int  GetSkillLine() {
@@ -92,7 +93,9 @@ class CGTradeSkillInfo {
   static const TradeSkillInfo *GetTradeSkillInfo(UINT index) {
     return index < m_filteredSkills ? m_skills[index] : 0;
   }
-  static int GetNumSubClasses() {
+  static void SetSkillLine(int id);
+  static void RefreshList(int resetFilters);
+  static UINT GetNumSubClasses() {
     return m_numSubClasses;
   }
   static TradeSkillSubClassInfo *GetSubClass(UINT index) {
@@ -115,10 +118,6 @@ class CGTradeSkillInfo {
   static void SetSubClassFilter(int filter);
   static void SetInvTypeFilter(int filter);
   static void SetCollapseFilter(int filter);
-
- private:
-  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
-  friend int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b);
 
  protected:
   static void FilterAndSortSkills();
@@ -1256,7 +1255,7 @@ static int Script_SetTradeSkillSubClassFilter(lua_State *L) {
     CGTradeSkillInfo::SetSubClassFilter(-1);
     return 0;
   }
-  if (index >= CGTradeSkillInfo::GetNumSubClasses()) {
+  if (index >= static_cast<int>(CGTradeSkillInfo::GetNumSubClasses())) {
     luaL_error(L, "Bad sub class in SetTradeSkillSubClassFilter");
     return 0;
   }
@@ -1294,7 +1293,7 @@ static int Script_GetTradeSkillSubClassFilter(lua_State *L) {
     lua_pushnumber(L, 1.0);
     return 1;
   }
-  if (index >= CGTradeSkillInfo::GetNumSubClasses()) {
+  if (index >= static_cast<int>(CGTradeSkillInfo::GetNumSubClasses())) {
     luaL_error(L, "Bad sub class in GetTradeSkillSubClassFilter");
     return 0;
   }

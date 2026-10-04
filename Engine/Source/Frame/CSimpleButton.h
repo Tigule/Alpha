@@ -8,6 +8,19 @@ class CObserver;
 class CSimpleFontString;
 class CSimpleTexture;
 
+enum {
+  CLICK_ON_LEFTDOWN = 1,
+  CLICK_ON_LEFTUP = 256,
+  CLICK_ON_MIDDLEDOWN = 2,
+  CLICK_ON_MIDDLEUP = 512,
+  CLICK_ON_RIGHTDOWN = 4,
+  CLICK_ON_RIGHTUP = 1024,
+  CLICK_ON_X1DOWN = 8,
+  CLICK_ON_X1UP = 2048,
+  CLICK_ON_X2DOWN = 16,
+  CLICK_ON_X2UP = 4096
+};
+
 enum CSimpleButtonState {
   BUTTONSTATE_DISABLED = 0,
   BUTTONSTATE_NORMAL = 1,

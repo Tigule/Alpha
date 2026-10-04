@@ -193,22 +193,102 @@ CVar *s_statusBarCVar;
 CVar *s_assistAttackCVar;
 CVar *s_combatLogCVar;
 
-struct WorldMapContinentInfo;
-struct WorldMapLandmarkInfo;
-class CGBuffDesc;
+struct WorldMapContinentInfo {
+  int               continentID;
+  int               mapAreaID;
+  TSFixedArray<int> zoneList;
+  int               chunkZones[128][128];
+  NTempest::CRect   hitRect;
+};
+
+struct WorldMapLandmarkInfo {
+  int   entryID;
+  float x;
+  float y;
+  BOOL  isPortLoc;
+};
+
+class CGBuffDesc {
+  friend class CGBuffBar;
+
+ public:
+  CGBuffDesc();
+  __forceinline ~CGBuffDesc() {
+  }
+  void SetAuraIndex(int index, CGPlayer_C *player);
+  int  GetAuraIndex() const {
+    return m_auraIndex;
+  }
+  int GetAuraSpell() const {
+    return m_auraSpell;
+  }
+  BYTE GetAuraFlags() const {
+    return m_auraFlags;
+  }
+  int GetUntilCancelled() const {
+    return m_untilCancelled;
+  }
+
+ protected:
+  int  m_auraIndex;
+  int  m_auraSpell;
+  BYTE m_auraFlags;
+  int  m_untilCancelled;
+};
 struct TradeSkillInfo;
 struct TradeSkillSubClassInfo;
 struct CraftInfo;
 struct CraftSkillLineInfo;
-struct PetitionSignerInfo;
+class AreaPOIRec;
+class WorldSafeLocsRec;
+
+struct PetitionSignerInfo {
+  DWORDLONG guid;
+  int       choice;
+};
 
 class CGWorldMap {
  public:
   static void InitializeGame();
-  static void ShutdownGame();
   static void EnterWorld();
   static void LeaveWorld();
-  static void SetMapToCurrentZone();
+  static void ShutdownGame();
+  static int  GetCurrentContinent() {
+    return m_currentContinent;
+  }
+  static int GetCurrentZone() {
+    return m_currentZone;
+  }
+  static UINT GetNumContinents() {
+    return m_continents.Count();
+  }
+  static LPCSTR GetContinentName(UINT index);
+  static UINT   GetNumZones(UINT continent) {
+    return continent < m_continents.Count() ? m_continents[continent].zoneList.Count() : 0;
+  }
+  static LPCSTR GetZoneName(UINT continent, UINT index);
+  static void   SetMapToCurrentZone();
+  static void   SetMap(int continent, int zone);
+  static LPCSTR GetMapFilename();
+  static UINT   GetMapHeight();
+  static void   ProcessClick(float x, float y);
+  static int    GetMapHighlight(float x, float y);
+  static void   RunNearestPortLoc(float x, float y);
+  static void   GetPOIPosition(const AreaPOIRec *rec, float &x, float &y);
+  static void   GetPortLocPosition(const WorldSafeLocsRec *rec, float &x, float &y);
+  static void   GetPlayerPosition(DWORDLONG guid, float &x, float &y);
+  static void   GetBindPosition(float &x, float &y);
+  static UINT   GetNumLandmarks() {
+    return m_numLandmarks;
+  }
+  static const WorldMapLandmarkInfo *GetLandmarkInfo(UINT index) {
+    return index < m_numLandmarks ? &m_landmarks[index] : 0;
+  }
+
+ private:
+  static int  GetMapAreaFromPos(float x, float y);
+  static BOOL GetWorldLocFromPos(float x, float y, NTempest::C2Vector &loc, int &mapID);
+  static void GetWorldPosition(const NTempest::C2Vector &pos, int mapID, float &x, float &y);
 
  protected:
   static int                                 m_currentContinent;
@@ -220,10 +300,15 @@ class CGWorldMap {
 
 class CGBuffBar {
  public:
-  static void InitializeGame();
-  static void ShutdownGame();
-  static void EnterWorld();
-  static void LeaveWorld();
+  static void              InitializeGame();
+  static void              ShutdownGame();
+  static void              EnterWorld();
+  static void              LeaveWorld();
+  static void              UpdateBuffs();
+  static void              UpdateDuration(BYTE slot, UINT duration);
+  static const CGBuffDesc *GetBuffByFilter(int index, UINT filter, int &buffIndex);
+  static const CGBuffDesc *GetBuffByIndex(int buffIndex);
+  static UINT              GetBuffTimeLeftByIndex(int buffIndex);
 
  private:
   static CGBuffDesc m_buffs[56];
@@ -234,15 +319,71 @@ class CGBankInfo {
  public:
   static void      EnterWorld();
   static void      LeaveWorld();
+  static void      OpenBank(const DWORDLONG &guid);
   static void      CloseBank();
+  static void      OnCloseBank();
+  static void      PickupItem(int slot, BOOL isBag, int slotIsButtonID);
+  static void      SplitItem(int slot, int split);
+  static DWORDLONG GetBanker() {
+    return m_unit;
+  }
   static DWORDLONG m_unit;
 };
 
 class CGTradeSkillInfo {
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b);
+
  public:
   static void EnterWorld();
   static void LeaveWorld();
   static void ShutdownGame();
+  static void Close();
+  static void ClearItemCallbacks();
+  static void DecrementPendingItem() {
+    if (!m_itemsPending || !--m_itemsPending) {
+      RefreshList(1);
+    }
+  }
+  static void SetSelection(int index);
+  static int  GetSelectionIndex();
+  static int  GetSkillLine() {
+    return m_skillLine;
+  }
+  static int GetNumTradeSkills() {
+    return m_filteredSkills;
+  }
+  static const TradeSkillInfo *GetTradeSkillInfo(UINT index) {
+    return index < m_filteredSkills ? m_skills[index] : 0;
+  }
+  static void SetSkillLine(int id);
+  static void RefreshList(int resetFilters);
+  static UINT GetNumSubClasses() {
+    return m_numSubClasses;
+  }
+  static TradeSkillSubClassInfo *GetSubClass(UINT index) {
+    return index < m_numSubClasses ? m_subClasses[index] : 0;
+  }
+  static int  GetSubClassIndexFromSkill(UINT index);
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetSubClassFilter() {
+    return m_subClassFilter;
+  }
+  static int GetInvTypeFilter() {
+    return m_invTypeFilter;
+  }
+  static int GetCollapseFilter() {
+    return m_collapseFilter;
+  }
+  static int GetAvailableSlots() {
+    return m_availableSlots;
+  }
+  static void SetSubClassFilter(int filter);
+  static void SetInvTypeFilter(int filter);
+  static void SetCollapseFilter(int filter);
+
+ protected:
+  static void FilterAndSortSkills();
 
  private:
   static int                                       m_skillLine;
@@ -261,8 +402,42 @@ class CGTradeSkillInfo {
 
 class CGCraftInfo {
  public:
-  static void EnterWorld();
-  static void ShutdownGame();
+  static void               EnterWorld();
+  static void               ShutdownGame();
+  static void               Close();
+  static void               SetSelection(int index);
+  static int                GetSelectionIndex();
+  static SPELL_CAST_UI_TYPE GetCraftType() {
+    return m_craftType;
+  }
+  static int GetNumCrafts() {
+    return m_filteredSkills;
+  }
+  static const CraftInfo *GetCraftInfo(UINT index) {
+    return index < m_numSkills ? m_skills[index] : 0;
+  }
+  static UINT GetNumSkillLines() {
+    return m_numSkillLines;
+  }
+  static CraftSkillLineInfo *GetSkillLine(UINT index) {
+    return index < m_numSkillLines ? m_skillLines[index] : 0;
+  }
+  static int  GetSkillLineIndexFromCraft(UINT index);
+  static void SetCraftType(SPELL_CAST_UI_TYPE type);
+  static void RefreshList();
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetCollapseFilter() {
+    return m_collapseFilter;
+  }
+  static void SetCollapseFilter(int filter);
+
+ private:
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortPetSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b);
+
+ protected:
+  static void FilterAndSortSkills();
 
  private:
   static SPELL_CAST_UI_TYPE                    m_craftType;
@@ -279,6 +454,16 @@ class CGDuelInfo {
  public:
   static void InitializeGame();
   static void ShutdownGame();
+  static void StartDuel();
+  static void AcceptDuel();
+  static void CancelDuel();
+
+ private:
+  static BOOL OnDuelRequested(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  static BOOL OnDuelOutOfBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  static BOOL OnDuelInBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  static BOOL OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
+  static BOOL OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
 
  protected:
   static DWORDLONG m_arbiter;
@@ -288,6 +473,25 @@ class CGPetitionInfo {
  public:
   static void EnterWorld();
   static void LeaveWorld();
+  static void SetPetition(DWORDLONG petition, int petitionID);
+  static DWORDLONG GetPetition() {
+    return m_petitionGUID;
+  }
+  static void SetSignatures(BYTE count, DWORDLONG *signers, int *choices);
+  static UINT GetNumSignatures() {
+    return m_numSignatures;
+  }
+  static const PetitionSignerInfo *GetSignature(UINT index) {
+    return index < m_numSignatures ? &m_signatures[index] : 0;
+  }
+  static void DecrementPendingName();
+  static void SetPetitionStats(int id);
+  static const CGPetition *GetPetitionStats() {
+    return m_petition;
+  }
+
+ private:
+  static void ClearSignatures();
 
  protected:
   static DWORDLONG                           m_petitionGUID;

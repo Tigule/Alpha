@@ -31,27 +31,18 @@ class CGSpellBook {
     }
     return 0;
   }
+
+  static void AddKnownSpell(int spellID, int slot, int learned);
+  static void DelKnownSpell(int spellID);
+  static void ReplaceSpell(int oldSpell, int newSpell);
   static void ClearPetSpells();
   static void AddPetSpell(int spellID);
   static void SetKnowsPetSpells() {
     m_knowsPetSpells = 1;
   }
   static void UpdateSpells();
-  static void ReplaceSpell(int oldSpell, int newSpell);
   static void UpdateSelection();
   static void UpdateCooldowns();
-  static int  GetLanguageSpell(UINT language) {
-    return m_languageSpells[language];
-  }
-  static int GetStuckSpell() {
-    return m_stuckSpell;
-  }
-  static int GetDuelSpell() {
-    return m_duelSpell;
-  }
-
-  static void AddKnownSpell(int spellID, int slot, int learned);
-  static void DelKnownSpell(int spellID);
   static void PickupSpell(int slot, UI_SPELL_TYPE type);
   static void CastSpell(int slot, UI_SPELL_TYPE type);
   static int  GetSpell(UINT slot, UI_SPELL_TYPE type) {
@@ -66,6 +57,15 @@ class CGSpellBook {
         return 0;
     }
   }
+  static int GetDuelSpell() {
+    return m_duelSpell;
+  }
+  static int GetStuckSpell() {
+    return m_stuckSpell;
+  }
+  static int  GetLanguageSpell(UINT language) {
+    return m_languageSpells[language];
+  }
   static BOOL                        IsSelectedSlot(int slot, UI_SPELL_TYPE type);
   static BOOL                        IsToggledSpell(int slot, UI_SPELL_TYPE type);
   static const TSGrowableArray<int> &GetUnlockSpells();
@@ -78,6 +78,10 @@ class CGSpellBook {
   static int KnowsPetSpells() {
     return m_knowsPetSpells;
   }
+
+ protected:
+  static void SetSpell(int slot, int spellID, UI_SPELL_TYPE type);
+  static void SendSpellSlot(int slot, UI_SPELL_TYPE type);
 
  private:
   static FBitField            m_knownSpellBits;
@@ -93,10 +97,6 @@ class CGSpellBook {
   static UI_SPELL_TYPE        m_selectedType;
   static int                  m_knowsSpells;
   static int                  m_knowsPetSpells;
-
- protected:
-  static void SetSpell(int slot, int spellID, UI_SPELL_TYPE type);
-  static void SendSpellSlot(int slot, UI_SPELL_TYPE type);
 };
 
 #endif

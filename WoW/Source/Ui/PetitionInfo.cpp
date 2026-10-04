@@ -33,21 +33,21 @@ struct PetitionSignerInfo {
 
 class CGPetitionInfo {
  public:
-  static void      EnterWorld();
-  static void      LeaveWorld();
-  static void      SetPetition(DWORDLONG petition, int petitionID);
-  static void      SetSignatures(BYTE count, DWORDLONG *signers, int *choices);
-  static void      DecrementPendingName();
-  static void      SetPetitionStats(int id);
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void SetPetition(DWORDLONG petition, int petitionID);
   static DWORDLONG GetPetition() {
     return m_petitionGUID;
   }
+  static void SetSignatures(BYTE count, DWORDLONG *signers, int *choices);
   static UINT GetNumSignatures() {
     return m_numSignatures;
   }
   static const PetitionSignerInfo *GetSignature(UINT index) {
     return index < m_numSignatures ? &m_signatures[index] : 0;
   }
+  static void DecrementPendingName();
+  static void SetPetitionStats(int id);
   static const CGPetition *GetPetitionStats() {
     return m_petition;
   }

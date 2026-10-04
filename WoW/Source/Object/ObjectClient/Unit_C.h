@@ -8,6 +8,7 @@
 #include "Object/MovementData.h"
 #include "Object/Unit.h"
 #include "Object/UnitCombat.h"
+#include "WowServices/WDataStore.h"
 
 #include <Tempest/c3ivector.h>
 
@@ -28,7 +29,6 @@ struct HCHARGEOSET__;
 typedef HCHARGEOSET__ *HCHARGEOSET;
 template <class T>
 class TSStackArray;
-enum NETMESSAGE;
 class CDataStore;
 
 void UnitUpdateMovementAnim(const DWORDLONG &unit);

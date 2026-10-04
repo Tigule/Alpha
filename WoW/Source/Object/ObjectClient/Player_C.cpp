@@ -105,12 +105,92 @@ struct TradeSkillInfo;
 struct TradeSkillSubClassInfo;
 struct CraftInfo;
 struct CraftSkillLineInfo;
-struct PetitionSignerInfo;
-class CGBuffDesc;
+struct PetitionSignerInfo {
+  DWORDLONG guid;
+  int       choice;
+};
+class CGBuffDesc {
+  friend class CGBuffBar;
+
+ public:
+  CGBuffDesc();
+  __forceinline ~CGBuffDesc() {
+  }
+  void SetAuraIndex(int index, CGPlayer_C *player);
+  int  GetAuraIndex() const {
+    return m_auraIndex;
+  }
+  int GetAuraSpell() const {
+    return m_auraSpell;
+  }
+  BYTE GetAuraFlags() const {
+    return m_auraFlags;
+  }
+  int GetUntilCancelled() const {
+    return m_untilCancelled;
+  }
+
+ protected:
+  int  m_auraIndex;
+  int  m_auraSpell;
+  BYTE m_auraFlags;
+  int  m_untilCancelled;
+};
 
 class CGTradeSkillInfo {
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b);
+
  public:
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void ShutdownGame();
+  static void Close();
+  static void ClearItemCallbacks();
+  static void DecrementPendingItem() {
+    if (!m_itemsPending || !--m_itemsPending) {
+      RefreshList(1);
+    }
+  }
+  static void SetSelection(int index);
+  static int  GetSelectionIndex();
+  static int  GetSkillLine() {
+    return m_skillLine;
+  }
+  static int GetNumTradeSkills() {
+    return m_filteredSkills;
+  }
+  static const TradeSkillInfo *GetTradeSkillInfo(UINT index) {
+    return index < m_filteredSkills ? m_skills[index] : 0;
+  }
+  static void SetSkillLine(int id);
   static void RefreshList(int resetFilters);
+  static UINT GetNumSubClasses() {
+    return m_numSubClasses;
+  }
+  static TradeSkillSubClassInfo *GetSubClass(UINT index) {
+    return index < m_numSubClasses ? m_subClasses[index] : 0;
+  }
+  static int  GetSubClassIndexFromSkill(UINT index);
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetSubClassFilter() {
+    return m_subClassFilter;
+  }
+  static int GetInvTypeFilter() {
+    return m_invTypeFilter;
+  }
+  static int GetCollapseFilter() {
+    return m_collapseFilter;
+  }
+  static int GetAvailableSlots() {
+    return m_availableSlots;
+  }
+  static void SetSubClassFilter(int filter);
+  static void SetInvTypeFilter(int filter);
+  static void SetCollapseFilter(int filter);
+
+ protected:
+  static void FilterAndSortSkills();
 
  private:
   static int                                       m_skillLine;
@@ -129,7 +209,42 @@ class CGTradeSkillInfo {
 
 class CGCraftInfo {
  public:
+  static void               EnterWorld();
+  static void               ShutdownGame();
+  static void               Close();
+  static void               SetSelection(int index);
+  static int                GetSelectionIndex();
+  static SPELL_CAST_UI_TYPE GetCraftType() {
+    return m_craftType;
+  }
+  static int GetNumCrafts() {
+    return m_filteredSkills;
+  }
+  static const CraftInfo *GetCraftInfo(UINT index) {
+    return index < m_numSkills ? m_skills[index] : 0;
+  }
+  static UINT GetNumSkillLines() {
+    return m_numSkillLines;
+  }
+  static CraftSkillLineInfo *GetSkillLine(UINT index) {
+    return index < m_numSkillLines ? m_skillLines[index] : 0;
+  }
+  static int  GetSkillLineIndexFromCraft(UINT index);
+  static void SetCraftType(SPELL_CAST_UI_TYPE type);
   static void RefreshList();
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetCollapseFilter() {
+    return m_collapseFilter;
+  }
+  static void SetCollapseFilter(int filter);
+
+ private:
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortPetSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b);
+
+ protected:
+  static void FilterAndSortSkills();
 
  private:
   static SPELL_CAST_UI_TYPE                    m_craftType;
@@ -144,7 +259,15 @@ class CGCraftInfo {
 
 class CGBuffBar {
  public:
-  static void UpdateDuration(BYTE slot, UINT duration);
+  static void              InitializeGame();
+  static void              ShutdownGame();
+  static void              EnterWorld();
+  static void              LeaveWorld();
+  static void              UpdateBuffs();
+  static void              UpdateDuration(BYTE slot, UINT duration);
+  static const CGBuffDesc *GetBuffByFilter(int index, UINT filter, int &buffIndex);
+  static const CGBuffDesc *GetBuffByIndex(int buffIndex);
+  static UINT              GetBuffTimeLeftByIndex(int buffIndex);
 
  private:
   static CGBuffDesc m_buffs[56];
@@ -153,14 +276,42 @@ class CGBuffBar {
 
 class CGBankInfo {
  public:
+  static void      EnterWorld();
+  static void      LeaveWorld();
   static void      OpenBank(const DWORDLONG &guid);
+  static void      CloseBank();
+  static void      OnCloseBank();
+  static void      PickupItem(int slot, BOOL isBag, int slotIsButtonID);
+  static void      SplitItem(int slot, int split);
+  static DWORDLONG GetBanker() {
+    return m_unit;
+  }
   static DWORDLONG m_unit;
 };
 
 class CGPetitionInfo {
  public:
+  static void EnterWorld();
+  static void LeaveWorld();
   static void SetPetition(DWORDLONG petition, int petitionID);
+  static DWORDLONG GetPetition() {
+    return m_petitionGUID;
+  }
   static void SetSignatures(BYTE count, DWORDLONG *signers, int *choices);
+  static UINT GetNumSignatures() {
+    return m_numSignatures;
+  }
+  static const PetitionSignerInfo *GetSignature(UINT index) {
+    return index < m_numSignatures ? &m_signatures[index] : 0;
+  }
+  static void DecrementPendingName();
+  static void SetPetitionStats(int id);
+  static const CGPetition *GetPetitionStats() {
+    return m_petition;
+  }
+
+ private:
+  static void ClearSignatures();
 
  protected:
   static DWORDLONG                           m_petitionGUID;

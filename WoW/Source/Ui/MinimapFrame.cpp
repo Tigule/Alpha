@@ -71,7 +71,7 @@ struct MINIMAPINFO {
 };
 
 static struct {
-  float scale;
+  float blipSizeScale;
   UINT  color;
 } s_miniMapTypeInfo[5] = {
     {1.0f, 0xFFFFFF00},
@@ -287,8 +287,8 @@ BOOL CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
     for (count = 0; count < s_miniMapObjects[type].Count(); ++count) {
       framecoords.x = baseRect.l + s_miniMapObjects[type][count].position.x;
       framecoords.y = baseRect.t + s_miniMapObjects[type][count].position.y;
-      if (framecoords.x - BLIP_HALF * s_miniMapTypeInfo[type].scale <= evt.x && framecoords.x + BLIP_HALF * s_miniMapTypeInfo[type].scale >= evt.x &&
-          framecoords.y - BLIP_HALF * s_miniMapTypeInfo[type].scale <= evt.y && framecoords.y + BLIP_HALF * s_miniMapTypeInfo[type].scale >= evt.y)
+      if (framecoords.x - BLIP_HALF * s_miniMapTypeInfo[type].blipSizeScale <= evt.x && framecoords.x + BLIP_HALF * s_miniMapTypeInfo[type].blipSizeScale >= evt.x &&
+          framecoords.y - BLIP_HALF * s_miniMapTypeInfo[type].blipSizeScale <= evt.y && framecoords.y + BLIP_HALF * s_miniMapTypeInfo[type].blipSizeScale >= evt.y)
       {
         LPCSTR      string = 0;
         CGObject_C *object = ClntObjMgrObjectPtr(s_miniMapObjects[type][count].object, __FILE__, __LINE__);
@@ -465,7 +465,7 @@ void CGMinimapFrame::RenderObjectBlips(const DNInfo *dnInfo) {
       for (UINT index = 0; index < count; ++index) {
         NTempest::C2Vector framecoords = s_miniMapObjects[type][index].position;
         for (UINT vertex = 0; vertex < 4; ++vertex) {
-          verts[vertex] = NTempest::C3Vector(framecoords.x, framecoords.y, 0.0f) + s_miniMapTypeInfo[type].scale * s_blipVertices[vertex];
+          verts[vertex] = NTempest::C3Vector(framecoords.x, framecoords.y, 0.0f) + s_miniMapTypeInfo[type].blipSizeScale * s_blipVertices[vertex];
         }
 
         GxPrimLockVertexPtrs(4, verts, sizeof(NTempest::C3Vector), &normal, 0, &white, 0, 0, 0, s_iconCoords[type], sizeof(NTempest::C2Vector), 0, 0);

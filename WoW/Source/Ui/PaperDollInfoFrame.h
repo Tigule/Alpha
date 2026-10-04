@@ -12,19 +12,17 @@ class CGCharacterModelBase;
 
 class CGCharacterInfo {
  public:
-  static void             InitializeGame();
-  static void             ShutdownGame();
-  static void             EnterWorld();
-  static void             LeaveWorld();
-  static void             UpdateAllSkillLines();
-  static void             UpdateItem(DWORDLONG item);
-  static void             PickupItem(int slot);
-  static void             UseItem(int slot);
-  static void             PickupBag(int slot);
-  static BOOL             PutItemInBag(int slot);
-  static int              PutItemInBackpack();
-  static int              GetSkillOffsetFromString(LPCSTR string, int &offset);
-  static const SkillInfo *GetSkillInfoByIndex(int index);
+  static void InitializeGame();
+  static void ShutdownGame();
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void PickupItem(int slot);
+  static void UseItem(int slot);
+  static void PickupBag(int slot);
+  static BOOL PutItemInBag(int slot);
+  static int  PutItemInBackpack();
+  static void UpdateAllSkillLines();
+  static void UpdateItem(DWORDLONG item);
   static int              GetNumClassSkills() {
     return m_profOffset - 1;
   }
@@ -40,12 +38,15 @@ class CGCharacterInfo {
   static int GetNumProficiencies() {
     return max(0, static_cast<int>(m_specialOffset - m_profOffset - 1));
   }
+  static int              GetSkillOffsetFromString(LPCSTR string, int &offset);
+  static const SkillInfo *GetSkillInfoByIndex(int index);
 
  protected:
-  static void                  InstallMirrorHandlers(DWORDLONG player);
-  static void                  RemoveMirrorHandlers(DWORDLONG player);
-  static void                  OrderSkillLines();
-  static UINT                  OrderProficiencies(UINT offset);
+  static void InstallMirrorHandlers(DWORDLONG player);
+  static void RemoveMirrorHandlers(DWORDLONG player);
+  static void OrderSkillLines();
+  static UINT OrderProficiencies(UINT offset);
+
   static SkillInfo             m_skillInfoList[93];
   static UINT                  m_profOffset;
   static UINT                  m_specialOffset;

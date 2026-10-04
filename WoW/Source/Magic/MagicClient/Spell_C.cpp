@@ -59,7 +59,42 @@ struct CraftSkillLineInfo;
 
 class CGCraftInfo {
  public:
+  static void               EnterWorld();
+  static void               ShutdownGame();
+  static void               Close();
+  static void               SetSelection(int index);
+  static int                GetSelectionIndex();
+  static SPELL_CAST_UI_TYPE GetCraftType() {
+    return m_craftType;
+  }
+  static int GetNumCrafts() {
+    return m_filteredSkills;
+  }
+  static const CraftInfo *GetCraftInfo(UINT index) {
+    return index < m_numSkills ? m_skills[index] : 0;
+  }
+  static UINT GetNumSkillLines() {
+    return m_numSkillLines;
+  }
+  static CraftSkillLineInfo *GetSkillLine(UINT index) {
+    return index < m_numSkillLines ? m_skillLines[index] : 0;
+  }
+  static int  GetSkillLineIndexFromCraft(UINT index);
   static void SetCraftType(SPELL_CAST_UI_TYPE type);
+  static void RefreshList();
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetCollapseFilter() {
+    return m_collapseFilter;
+  }
+  static void SetCollapseFilter(int filter);
+
+ private:
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortPetSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b);
+
+ protected:
+  static void FilterAndSortSkills();
 
  private:
   static SPELL_CAST_UI_TYPE                    m_craftType;
@@ -73,8 +108,59 @@ class CGCraftInfo {
 };
 
 class CGTradeSkillInfo {
+  friend int __cdecl QSortSkills(LPCVOID a, LPCVOID b);
+  friend int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b);
+
  public:
+  static void EnterWorld();
+  static void LeaveWorld();
+  static void ShutdownGame();
+  static void Close();
+  static void ClearItemCallbacks();
+  static void DecrementPendingItem() {
+    if (!m_itemsPending || !--m_itemsPending) {
+      RefreshList(1);
+    }
+  }
+  static void SetSelection(int index);
+  static int  GetSelectionIndex();
+  static int  GetSkillLine() {
+    return m_skillLine;
+  }
+  static int GetNumTradeSkills() {
+    return m_filteredSkills;
+  }
+  static const TradeSkillInfo *GetTradeSkillInfo(UINT index) {
+    return index < m_filteredSkills ? m_skills[index] : 0;
+  }
   static void SetSkillLine(int id);
+  static void RefreshList(int resetFilters);
+  static UINT GetNumSubClasses() {
+    return m_numSubClasses;
+  }
+  static TradeSkillSubClassInfo *GetSubClass(UINT index) {
+    return index < m_numSubClasses ? m_subClasses[index] : 0;
+  }
+  static int  GetSubClassIndexFromSkill(UINT index);
+  static BOOL IsCollpasedHeader(UINT index);
+  static int  GetSubClassFilter() {
+    return m_subClassFilter;
+  }
+  static int GetInvTypeFilter() {
+    return m_invTypeFilter;
+  }
+  static int GetCollapseFilter() {
+    return m_collapseFilter;
+  }
+  static int GetAvailableSlots() {
+    return m_availableSlots;
+  }
+  static void SetSubClassFilter(int filter);
+  static void SetInvTypeFilter(int filter);
+  static void SetCollapseFilter(int filter);
+
+ protected:
+  static void FilterAndSortSkills();
 
  private:
   static int                                       m_skillLine;
