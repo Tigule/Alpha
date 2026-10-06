@@ -570,7 +570,7 @@ enum GEOM_SHAPE {
 };
 
 struct Vector3 {
-  operator NTempest::C3Vector() const;
+  operator NTempest::C3Vector() const { return NTempest::C3Vector(x, y, z); }
 
   enum {
     eComponents = 3

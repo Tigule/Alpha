@@ -426,30 +426,28 @@ static BOOL MdlReadLoadHitTestData(const MDLDATA &data, CModelComplex *modelptr,
   shared->hitTest.SetCount(numShapes);
   modelptr->m_hitTestMtx.SetCount(numShapes);
   for (UINT i = 0; i < numShapes; ++i) {
-    const MDLHITTESTSHAPE &source = data.hitTestShapes[i];
-    CHitTest              &dest = shared->hitTest[i];
-    switch (source.type) {
+    switch (data.hitTestShapes[i].type) {
       case SHAPE_BOX:
-        dest.type = COLLIDE_BOX;
-        dest.extent[0] = NTempest::C3Vector(source.shape.box.minimum.x, source.shape.box.minimum.y, source.shape.box.minimum.z);
-        dest.extent[1] = NTempest::C3Vector(source.shape.box.maximum.x, source.shape.box.maximum.y, source.shape.box.maximum.z);
+        shared->hitTest[i].type = COLLIDE_BOX;
+        shared->hitTest[i].extent[0] = data.hitTestShapes[i].shape.box.minimum;
+        shared->hitTest[i].extent[1] = data.hitTestShapes[i].shape.box.maximum;
         break;
       case SHAPE_CYLINDER:
-        dest.type = COLLIDE_CYLINDER;
-        dest.extent[0] = NTempest::C3Vector(source.shape.cylinder.base.x, source.shape.cylinder.base.y, source.shape.cylinder.base.z);
-        dest.extent[1] = dest.extent[0];
-        dest.extent[1].z += source.shape.cylinder.height;
-        dest.radius = source.shape.cylinder.radius;
+        shared->hitTest[i].type = COLLIDE_CYLINDER;
+        shared->hitTest[i].extent[0] = data.hitTestShapes[i].shape.cylinder.base;
+        shared->hitTest[i].extent[1] = data.hitTestShapes[i].shape.cylinder.base;
+        shared->hitTest[i].extent[1].z += data.hitTestShapes[i].shape.cylinder.height;
+        shared->hitTest[i].radius = data.hitTestShapes[i].shape.cylinder.radius;
         break;
       case SHAPE_SPHERE:
-        dest.type = COLLIDE_SPHERE;
-        dest.extent[0] = NTempest::C3Vector(source.shape.sphere.center.x, source.shape.sphere.center.y, source.shape.sphere.center.z);
-        dest.radius = source.shape.sphere.radius;
+        shared->hitTest[i].type = COLLIDE_SPHERE;
+        shared->hitTest[i].extent[0] = data.hitTestShapes[i].shape.sphere.center;
+        shared->hitTest[i].radius = data.hitTestShapes[i].shape.sphere.radius;
         break;
       case SHAPE_PLANE:
-        dest.type = COLLIDE_PLANE;
-        dest.extent[0].x = source.shape.plane.length;
-        dest.extent[0].y = source.shape.plane.width;
+        shared->hitTest[i].type = COLLIDE_PLANE;
+        shared->hitTest[i].extent[0].x = data.hitTestShapes[i].shape.plane.length;
+        shared->hitTest[i].extent[0].y = data.hitTestShapes[i].shape.plane.width;
         break;
       default:
         break;
