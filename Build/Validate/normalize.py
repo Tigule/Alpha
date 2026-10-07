@@ -1,7 +1,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Iterable, Mapping, Sequence
 
 from .decode import (
@@ -126,7 +126,8 @@ def _valid_macro_evidence(value: Evidence) -> bool:
 
 def _semantic_identity_matches(left: Evidence, right: Evidence,
                                left_instructions: Sequence[Instruction],
-                               right_instructions: Sequence[Instruction]) -> bool:
+                               right_instructions: Sequence[Instruction],
+                               padding_removed: bool = False) -> bool:
     prefix = "intra-function:+0x"
     internal = bool(left.identity and right.identity and
                     (left.identity.startswith(prefix) or right.identity.startswith(prefix)))
@@ -139,9 +140,42 @@ def _semantic_identity_matches(left: Evidence, right: Evidence,
         right_offset = int(right.identity[len(prefix):], 16)
     except ValueError:
         return False
-    left_index = next((i for i, instruction in enumerate(left_instructions) if instruction.offset == left_offset), None)
-    right_index = next((i for i, instruction in enumerate(right_instructions) if instruction.offset == right_offset), None)
+    left_index = next((i for i, instruction in enumerate(left_instructions) if instruction.offset >= left_offset), None)
+    right_index = next((i for i, instruction in enumerate(right_instructions) if instruction.offset >= right_offset), None)
+    for index, instructions, offset in ((left_index, left_instructions, left_offset), (right_index, right_instructions, right_offset)):
+        if index is not None and instructions[index].offset != offset and not padding_removed:
+            return False
     return left_index is not None and left_index == right_index
+
+
+def _alignment_padding(instruction: Instruction) -> bool:
+    operands = instruction.operands
+    if instruction.mnemonic == "nop":
+        return True
+    if instruction.mnemonic == "mov" and len(operands) == 2:
+        return operands[0][0] == operands[1][0] == "reg" and operands[0] == operands[1]
+    if instruction.mnemonic == "lea" and len(operands) == 2 and operands[0][0] == "reg" and operands[1][0] == "mem":
+        memory = operands[1]
+        return not memory[1] and memory[2] == operands[0][1] and not memory[3] and memory[5] == 0
+    return False
+
+
+def _without_alignment_padding(procedure: DecodedProcedure) -> DecodedProcedure:
+    return replace(procedure, instructions=tuple(
+        instruction for instruction in procedure.instructions if not _alignment_padding(instruction)))
+
+
+def _exact_push_width_change(a: Instruction, b: Instruction) -> bool:
+    return (
+        a.mnemonic == b.mnemonic == "push"
+        and len(a.operands) == len(b.operands) == 1
+        and a.operands[0][0] == b.operands[0][0] == "imm"
+        and {a.raw[0], b.raw[0]} == {0x6A, 0x68}
+        and {len(a.raw), len(b.raw)} == {2, 5}
+        and len(a.fields) == len(b.fields) == 1
+        and a.fields[0][0] == b.fields[0][0] == 1
+        and a.fields[0][2] == b.fields[0][2]
+    )
 
 
 def _matching_macro_pair(left: Evidence | None, right: Evidence | None) -> bool:
@@ -291,7 +325,27 @@ def compare_code(
         raise
     except DecodeFailure as exc:
         return NormalizationResult(False, "unsupported", str(exc))
+    macro_left = _index_evidence(original_macro_evidence)
+    macro_right = _index_evidence(rebuilt_macro_evidence)
+    padding_removed = False
     if len(left) != len(right):
+        try:
+            stripped_left = _without_alignment_padding(left_procedure)
+            stripped_right = _without_alignment_padding(right_procedure)
+            _data_tokens(stripped_left); _data_tokens(stripped_right)
+        except (KeyError, DecodeFailure):
+            stripped_left = stripped_right = None
+        if stripped_left is not None and len(stripped_left.instructions) == len(stripped_right.instructions):
+            left_procedure, right_procedure = stripped_left, stripped_right
+            left, right = left_procedure.instructions, right_procedure.instructions
+            padding_removed = True
+    macro_width_change_present = len(left) == len(right) and any(
+        _exact_push_width_change(a, b)
+        and a.fields[0][1] != b.fields[0][1]
+        and _matching_macro_pair(_field_evidence(macro_left, a, a.fields[0]), _field_evidence(macro_right, b, b.fields[0]))
+        for a, b in zip(left, right)
+    )
+    if len(left) != len(right) or (padding_removed and not macro_width_change_present):
         return NormalizationResult(
             False,
             "mismatch",
@@ -307,9 +361,9 @@ def compare_code(
         reloc_left[(value.offset, value.size)] = value
     for value in _selector_table_evidence(right_procedure):
         reloc_right[(value.offset, value.size)] = value
-    macro_left = _index_evidence(original_macro_evidence)
-    macro_right = _index_evidence(rebuilt_macro_evidence)
     audit: list[Mapping[str, Any]] = []
+    if padding_removed:
+        audit.append({"kind": "alignment_padding", "reason": "macro line width change"})
     used_macro = False
     used_macro_width_change = False
     for a, b in zip(left, right):
@@ -323,6 +377,21 @@ def compare_code(
             oa, sa, kind_a, _ = field_a
             ob, sb, kind_b, _ = field_b
             if sa != sb or kind_a != kind_b:
+                branch_a = _field_evidence(reloc_left, a, field_a)
+                branch_b = _field_evidence(reloc_right, b, field_b)
+                if (macro_width_change_present and kind_a == kind_b and a.mnemonic == b.mnemonic
+                        and a.mnemonic.startswith("j") and len(a.fields) == len(b.fields) == 1
+                        and {sa, sb} == {1, 4}
+                        and branch_a and branch_b and branch_a.resolved and branch_b.resolved
+                        and (branch_a.identity or "").startswith("intra-function:+0x")
+                        and _semantic_identity_matches(branch_a, branch_b, left, right, padding_removed)):
+                    used_macro = True
+                    used_macro_width_change = True
+                    audit.append({"kind": "branch_width", "instruction_offset_original": a.offset,
+                                  "instruction_offset_rebuilt": b.offset, "size_original": sa, "size_rebuilt": sb,
+                                  "identity": branch_a.identity})
+                    mutable_a = mutable_b
+                    continue
                 macro_a = _field_evidence(macro_left, a, field_a)
                 macro_b = _field_evidence(macro_right, b, field_b)
                 exact_push_width_change = (
@@ -360,7 +429,7 @@ def compare_code(
                     and semantic_a.resolved
                     and semantic_b.resolved
                     and semantic_a.identity
-                    and _semantic_identity_matches(semantic_a, semantic_b, left, right)
+                    and _semantic_identity_matches(semantic_a, semantic_b, left, right, padding_removed)
                     and semantic_a.kind == semantic_b.kind
                 )
                 if not semantic_matches:
@@ -388,7 +457,7 @@ def compare_code(
             eb = semantic_b
             category = "relocation"
             if not (ea and eb and ea.resolved and eb.resolved and ea.identity
-                    and _semantic_identity_matches(ea, eb, left, right) and ea.kind == eb.kind):
+                    and _semantic_identity_matches(ea, eb, left, right, padding_removed) and ea.kind == eb.kind):
                 ea = _field_evidence(macro_left, a, field_a)
                 eb = _field_evidence(macro_right, b, field_b)
                 category = "macro"

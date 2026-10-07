@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from hashlib import sha256
@@ -417,7 +418,26 @@ def _display_name(function: _Function) -> str:
     return names[0] if names else f"sub_{function.rva:08x}"
 
 
-def _target_maps(artifact: ArtifactData, functions: Sequence[_Function]) -> tuple[dict[int, str], dict[int, tuple[str, ...]]]:
+_NEAREST_TARGET_LIMIT = 0x10000
+_SORTED_TARGETS: dict[int, list[int]] = {}
+
+
+def _section_at(artifact: ArtifactData, rva: int) -> Any:
+    for section in artifact.sections:
+        if section.rva <= rva < section.rva + max(section.virtual_size, section.raw_size):
+            return section
+    return None
+
+
+def _data_rva(artifact: ArtifactData, section_number: int, offset: int) -> int | None:
+    for section in artifact.sections:
+        if section.number == section_number and not section.executable and 0 <= offset < section.virtual_size:
+            return section.rva + offset
+    return None
+
+
+def _target_maps(artifact: ArtifactData, functions: Sequence[_Function],
+                 pdb: PDBData | None = None) -> tuple[dict[int, str], dict[int, tuple[str, ...]]]:
     identity_rvas: dict[str, set[int]] = defaultdict(set)
     for function in functions:
         for identity in function.identities:
@@ -447,6 +467,20 @@ def _target_maps(artifact: ArtifactData, functions: Sequence[_Function]) -> tupl
         unique = [identity for identity in identities if len(owner_rvas[identity]) == 1]
         if len(unique) == 1:
             targets[rva].append(unique[0])
+    if pdb is not None:
+        module_keys = _module_keys(pdb)
+        data_rvas: dict[str, set[int]] = defaultdict(set)
+        located: list[tuple[int, str]] = []
+        for symbol in pdb.data:
+            key = module_keys.get(symbol.module)
+            rva = _data_rva(artifact, symbol.section, symbol.offset)
+            if key is None or rva is None:
+                continue
+            identity = f"data:{key}:{symbol.name}"
+            data_rvas[identity].add(rva); located.append((rva, identity))
+        for rva, identity in located:
+            if len(data_rvas[identity]) == 1 and not targets.get(rva):
+                targets[rva].append(identity)
     return function_targets, {rva: tuple(sorted(set(values))) for rva, values in targets.items()}
 
 
@@ -475,10 +509,22 @@ def _resolve_target(artifact: ArtifactData, function_targets: Mapping[int, str],
     if rva in function_targets:
         return function_targets[rva], True
     names = map_targets.get(rva, ())
-    if len(names) == 1:
-        return names[0], True
+    if names:
+        return "|".join(names), True
     string = _read_string(artifact, rva)
-    return (("string:" + string), True) if string is not None else (None, False)
+    if string is not None:
+        return "string:" + string, True
+    ordered = _SORTED_TARGETS.get(id(map_targets))
+    if ordered is None:
+        ordered = _SORTED_TARGETS[id(map_targets)] = sorted(map_targets)
+    index = bisect_right(ordered, rva) - 1
+    if index >= 0:
+        base = ordered[index]
+        section = _section_at(artifact, rva)
+        if rva - base <= _NEAREST_TARGET_LIMIT and section is not None and section is _section_at(artifact, base):
+            if not section.executable:
+                return f"{'|'.join(map_targets[base])}+0x{rva - base:x}", True
+    return None, False
 
 
 def _code_evidence(artifact: ArtifactData, functions: Sequence[_Function], function: _Function,
@@ -498,7 +544,7 @@ def _code_evidence(artifact: ArtifactData, functions: Sequence[_Function], funct
                 value, kind = int(operand[1]), "branch"
             elif operand[0] == "imm" and artifact.resolve_va(int(operand[1])) is not None:
                 value = int(operand[1])
-            elif operand[0] == "mem" and not operand[2] and not operand[3] and artifact.resolve_va(int(operand[5])) is not None:
+            elif operand[0] == "mem" and artifact.resolve_va(int(operand[5])) is not None:
                 value = int(operand[5])
             if value is not None:
                 identity, resolved = _resolve_target(artifact, function_targets, map_targets, function, value)
@@ -731,8 +777,8 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
         and original_artifact.imports == rebuilt_artifact.imports
         and original_pdb == rebuilt_pdb
     )
-    original_function_targets, original_map_targets = _target_maps(original_artifact, original_functions)
-    rebuilt_function_targets, rebuilt_map_targets = _target_maps(rebuilt_artifact, rebuilt_functions)
+    original_function_targets, original_map_targets = _target_maps(original_artifact, original_functions, original_pdb)
+    rebuilt_function_targets, rebuilt_map_targets = _target_maps(rebuilt_artifact, rebuilt_functions, rebuilt_pdb)
     functions_to_compare = (original_functions if selected_compiland is None else
                             [function for function in original_functions
                              if any(symbol.module == selected_compiland[0].module_name

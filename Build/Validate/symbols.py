@@ -28,6 +28,15 @@ class FunctionSymbol:
 
 
 @dataclass(frozen=True)
+class DataSymbol:
+    module: str
+    name: str
+    section: int
+    offset: int
+    kind: str
+
+
+@dataclass(frozen=True)
 class Compiland:
     module_name: str
     object_name: str
@@ -154,6 +163,7 @@ class PDBData:
     compilands: list[Compiland] = field(default_factory=list)
     types: TypeRepository = field(default_factory=TypeRepository)
     diagnostics: list[str] = field(default_factory=list)
+    data: list[DataSymbol] = field(default_factory=list)
 
 
 class _Reader:
@@ -516,7 +526,7 @@ class _Module:
     source_count: int
 
 
-def _parse_dbi(msf: _MSF2, data: bytes, diagnostics: list[str]) -> tuple[list[FunctionSymbol], list[Compiland]]:
+def _parse_dbi(msf: _MSF2, data: bytes, diagnostics: list[str]) -> tuple[list[FunctionSymbol], list[Compiland], list[DataSymbol]]:
     if len(data) < 64: raise PDBError("truncated DBI header")
     h = struct.unpack_from("<iIIHHHHHHiiiiIiiHHI", data)
     if h[0] != -1: raise PDBError("invalid DBI signature")
@@ -536,23 +546,23 @@ def _parse_dbi(msf: _MSF2, data: bytes, diagnostics: list[str]) -> tuple[list[Fu
     source_start = module_end + section_contrib_size + section_map_size
     if source_start + source_size > len(data): raise PDBError("DBI source substream exceeds stream")
     sources = _source_files(data[source_start : source_start + source_size], len(modules), diagnostics)
-    functions: list[FunctionSymbol] = []; compilands: list[Compiland] = []
+    functions: list[FunctionSymbol] = []; compilands: list[Compiland] = []; data_symbols: list[DataSymbol] = []
     for number, module in enumerate(modules):
         compiler: str | None = None; language: int | None = None; flags: dict[str, Any] = {}; options: tuple[str, ...] = (); reason: str | None = None
         if module.stream != 0xFFFF and module.symbol_bytes:
             try:
                 stream = msf.stream(module.stream)
-                compiler, language, flags, options, found = _module_symbols(
+                compiler, language, flags, options, found, found_data = _module_symbols(
                     stream, module.symbol_bytes, module.module
                 )
-                functions.extend(found)
+                functions.extend(found); data_symbols.extend(found_data)
             except PDBError as exc:
                 raise PDBError(
                     f"incomplete symbol inventory: module {module.module}: {exc}"
                 ) from exc
         key_source = module.obj.replace("\\", "/").rsplit("/", 1)[-1].lower()
         compilands.append(Compiland(module.module, module.obj, compiler, language, flags, options, sources[number] if number < len(sources) else (), key_source, "unsupported" if reason else "parsed", reason))
-    return functions, compilands
+    return functions, compilands, data_symbols
 
 
 def _source_files(data: bytes, module_count: int, diagnostics: list[str]) -> list[tuple[str, ...]]:
@@ -578,13 +588,13 @@ def _source_files(data: bytes, module_count: int, diagnostics: list[str]) -> lis
     return result
 
 
-def _module_symbols(data: bytes, byte_count: int, module: str) -> tuple[str | None, int | None, dict[str, Any], tuple[str, ...], list[FunctionSymbol]]:
+def _module_symbols(data: bytes, byte_count: int, module: str) -> tuple[str | None, int | None, dict[str, Any], tuple[str, ...], list[FunctionSymbol], list[DataSymbol]]:
     if len(data) < 4: raise PDBError("truncated module symbol stream")
     signature = struct.unpack_from("<I", data)[0]
     if signature not in (1, 2, 4): raise PDBError(f"unsupported module CodeView signature {signature}")
     limit = min(len(data), byte_count)
     if byte_count > len(data): raise PDBError("module symbol byte count exceeds stream")
-    pos = 4; compiler: str | None = None; language: int | None = None; flags: dict[str, Any] = {}; options: tuple[str, ...] = (); functions: list[FunctionSymbol] = []
+    pos = 4; compiler: str | None = None; language: int | None = None; flags: dict[str, Any] = {}; options: tuple[str, ...] = (); functions: list[FunctionSymbol] = []; data_symbols: list[DataSymbol] = []
     while pos < limit:
         if pos + 4 > limit: raise PDBError("truncated symbol record header")
         length, kind = struct.unpack_from("<HH", data, pos); end = pos + 2 + length
@@ -595,6 +605,11 @@ def _module_symbols(data: bytes, byte_count: int, module: str) -> tuple[str | No
             proc_len = struct.unpack_from("<I", b, 12)[0]; type_index = struct.unpack_from("<I", b, 24)[0]; offset = struct.unpack_from("<I", b, 28)[0]; section = struct.unpack_from("<H", b, 32)[0]
             name, _ = (_pascal if kind < 0x1100 else _zstring)(b, 35)
             functions.append(FunctionSymbol(module, name, name, section, offset, proc_len, type_index, "local" if kind in (0x100A, 0x110F) else "global"))
+        elif kind in (0x1007, 0x1008, 0x110C, 0x110D) and len(b) >= 11:
+            offset, section = struct.unpack_from("<IH", b, 4)
+            name, _ = (_pascal if kind < 0x1100 else _zstring)(b, 10)
+            if name:
+                data_symbols.append(DataSymbol(module, name, section, offset, "local" if kind in (0x1007, 0x110C) else "global"))
         elif kind == 0x0001 and len(b) >= 4:
             machine, raw_flags = b[0], int.from_bytes(b[1:4], "little"); compiler, _ = _pascal(b, 4); language = raw_flags & 0xFF; flags = {"machine": machine, "raw": raw_flags, "mode32": bool(raw_flags & (1 << 19))}
         elif kind in (0x1013, 0x1116) and len(b) >= 18:
@@ -608,7 +623,7 @@ def _module_symbols(data: bytes, byte_count: int, module: str) -> tuple[str | No
                 if part
             )
         pos = end
-    return compiler, language, flags, options, functions
+    return compiler, language, flags, options, functions, data_symbols
 
 
 def parse_pdb(path: str | Path, data: bytes | None = None) -> PDBData:
@@ -621,7 +636,7 @@ def parse_pdb(path: str | Path, data: bytes | None = None) -> PDBData:
         version, signature, age = struct.unpack_from("<III", info)
         types = _parse_tpi(msf.stream(2))
         diagnostics.extend(types.diagnostics)
-        functions, compilands = _parse_dbi(msf, msf.stream(3), diagnostics)
+        functions, compilands, data_symbols = _parse_dbi(msf, msf.stream(3), diagnostics)
         checked: list[FunctionSymbol] = []
         if types.normalize_name is not None:
             functions = [
@@ -638,7 +653,7 @@ def parse_pdb(path: str | Path, data: bytes | None = None) -> PDBData:
                 checked.append(replace(function, status="unsupported", reason=node.reason or f"unexpected function type {node.kind}"))
             else:
                 checked.append(function)
-        return PDBData(signature, age, "MSF/PDB 2.00", False, checked, compilands, types, diagnostics)
+        return PDBData(signature, age, "MSF/PDB 2.00", False, checked, compilands, types, diagnostics, data_symbols)
     except (OSError, PDBError, struct.error, OverflowError) as exc:
         diagnostics.append(str(exc))
         return PDBData(None, None, "unknown", True, diagnostics=diagnostics)
