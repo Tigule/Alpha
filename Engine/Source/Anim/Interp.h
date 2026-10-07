@@ -781,6 +781,12 @@ struct CAnimBoneObj : public CAnimObj {
   BYTE geosetId;
 };
 
+inline CAnimBoneObj *AnimObjToBoneObj(CAnimObj *currobj) {
+  ASSERT(currobj);
+  ASSERT(currobj->type == OBJ_TYPE_BONE);
+  return static_cast<CAnimBoneObj *>(currobj);
+}
+
 struct CAnimVisibleObj {
   int  Animates() {
     return visibility.TotalKeys() != 0;

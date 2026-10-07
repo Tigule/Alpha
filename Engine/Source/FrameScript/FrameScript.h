@@ -3,7 +3,8 @@
 
 #include <stpl.h>
 
-struct lua_State;
+#include <lauxlib.h>
+#include <lua.h>
 
 struct FrameScript_Method {
   LPCSTR name;
@@ -62,6 +63,19 @@ class FrameScript_Object {
   int lua_objectRef;
   int m_onEvent;
 };
+
+inline FrameScript_Object *FrameScript_GetObjectThis(lua_State *L) {
+  if (lua_type(L, 1) != LUA_TTABLE) {
+    luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)");
+    return NULL;
+  }
+
+  lua_rawgeti(L, 1, 0);
+  FrameScript_Object *object = static_cast<FrameScript_Object *>(lua_touserdata(L, -1));
+  lua_pop(L, 1);
+  ASSERT(object);
+  return object;
+}
 
 int          FrameScript_Initialize();
 void         FrameScript_Destroy();

@@ -30,6 +30,7 @@
 class CGItem_C;
 DWORDLONG Script_GetGUIDFromName(LPCSTR name);
 bool      Spell_C_CastSpell(int spellID, const CGItem_C *item);
+bool      Spell_C_HandleSpriteClick(CGObject_C *object);
 
 class CGDuelInfo {
  public:
@@ -151,7 +152,7 @@ static int Script_StartDuel(lua_State *L) {
     DWORDLONG   guid = CGGameUI::ClosestObjectMatch(lua_tostring(L, 1), TYPE_UNIT);
     CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
     if (object) {
-      object->OnRightClick();
+      Spell_C_HandleSpriteClick(object);
     }
   }
   return 0;
@@ -163,7 +164,7 @@ static int Script_StartDuelUnit(lua_State *L) {
     DWORDLONG   guid = Script_GetGUIDFromName(lua_tostring(L, 1));
     CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
     if (object) {
-      object->OnRightClick();
+      Spell_C_HandleSpriteClick(object);
     }
     return 0;
   }

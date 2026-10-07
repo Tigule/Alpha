@@ -63,6 +63,7 @@ target_include_directories(Wow PRIVATE
     ../Common
     ../../Engine/Source
     ../../Storm/H
+    ../../Engine/Source/lua/include
 
     .
 )

@@ -6,31 +6,15 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_HTML_THIS(L, object)                                 \
-  CSimpleHTML *object;                                                  \
-  if (lua_type(L, 1) != LUA_TTABLE) {                                   \
-    luaL_error(                                                         \
-        L,                                                              \
-        "Attempt to find 'this' in non-table object (used '.' instead " \
-        "of ':' ?)"                                                     \
-    );                                                                  \
-    object = 0;                                                         \
-  } else {                                                              \
-    lua_rawgeti(L, 1, 0);                                               \
-    object = static_cast<CSimpleHTML *>(lua_touserdata(L, -1));         \
-    lua_pop(L, 1);                                                      \
-    ASSERT(object);                                                     \
-  }
-
 static int CSimpleHTML_SetText(lua_State *L) {
-  GET_SIMPLE_HTML_THIS(L, object);
+  CSimpleHTML *object = static_cast<CSimpleHTML *>(FrameScript_GetObjectThis(L));
 
   object->SetText(lua_tostring(L, 2), 0);
   return 0;
 }
 
 static int CSimpleHTML_SetTextColor(lua_State *L) {
-  GET_SIMPLE_HTML_THIS(L, object);
+  CSimpleHTML *object = static_cast<CSimpleHTML *>(FrameScript_GetObjectThis(L));
 
   float red = static_cast<float>(lua_tonumber(L, 2));
   float green = static_cast<float>(lua_tonumber(L, 3));

@@ -3004,34 +3004,14 @@ void CGTooltip::OnLayerUpdate(float elapsedSec) {
   }
 }
 
-#define GET_TOOLTIP_THIS(L, tooltip)                              \
-  CGTooltip *tooltip;                                             \
-  {                                                               \
-    CGTooltip *object;                                            \
-    if (lua_type(L, 1) != LUA_TTABLE) {                           \
-      luaL_error(                                                 \
-          L,                                                      \
-          "Attempt to find 'this' in non-table object (used '.' " \
-          "instead of ':' ?)"                                     \
-      );                                                          \
-      object = 0;                                                 \
-    } else {                                                      \
-      lua_rawgeti(L, 1, 0);                                       \
-      object = static_cast<CGTooltip *>(lua_touserdata(L, -1));   \
-      lua_pop(L, 1);                                              \
-      ASSERT(object);                                             \
-    }                                                             \
-    tooltip = object;                                             \
-  }
-
 static int CGTooltip_SetPadding(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   tooltip->SetTooltipPadding(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
   return 0;
 }
 
 static int CGTooltip_IsOwned(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   lua_pushnumber(L, 0.0);
   lua_gettable(L, 2);
   CSimpleFrame *frame = static_cast<CSimpleFrame *>(lua_touserdata(L, -1));
@@ -3046,7 +3026,7 @@ static int CGTooltip_IsOwned(lua_State *L) {
 }
 
 static int CGTooltip_SetOwner(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   tooltip->Hide();
 
   lua_pushnumber(L, 0.0);
@@ -3084,13 +3064,13 @@ static int CGTooltip_SetOwner(lua_State *L) {
 }
 
 static int CGTooltip_ClearLines(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   tooltip->ClearLines();
   return 0;
 }
 
 static int CGTooltip_AddLine(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   LPCSTR              leftText = 0;
   LPCSTR              rightText = 0;
   NTempest::CImVector leftColor = s_defaultColor;
@@ -3130,7 +3110,7 @@ static int CGTooltip_AddLine(lua_State *L) {
 }
 
 static int CGTooltip_SetText(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isstring(L, 2)) {
     LPCSTR              tooltipText = lua_tostring(L, 2);
     NTempest::CImVector tooltipColor = s_defaultColor;
@@ -3154,7 +3134,7 @@ static int CGTooltip_SetText(lua_State *L) {
 }
 
 static int CGTooltip_AppendText(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isstring(L, 2)) {
     tooltip->AppendText(lua_tostring(L, 2));
     return 0;
@@ -3164,13 +3144,13 @@ static int CGTooltip_AppendText(lua_State *L) {
 }
 
 static int CGTooltip_FadeOut(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   tooltip->FadeOut();
   return 0;
 }
 
 static int CGTooltip_SetHyperlink(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isstring(L, 2)) {
     LPCSTR link = lua_tostring(L, 2);
     int    itemID;
@@ -3186,7 +3166,7 @@ static int CGTooltip_SetHyperlink(lua_State *L) {
 }
 
 static int CGTooltip_SetAction(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2)) {
     int   slot = static_cast<int>(lua_tonumber(L, 2)) - 1;
     DWORD startTime;
@@ -3246,7 +3226,7 @@ static int CGTooltip_SetAction(lua_State *L) {
 }
 
 static int CGTooltip_SetPlayerBuff(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2)) {
     int               index = static_cast<int>(lua_tonumber(L, 2));
     const CGBuffDesc *buff = CGBuffBar::GetBuffByIndex(index);
@@ -3274,7 +3254,7 @@ static int CGTooltip_SetPlayerBuff(lua_State *L) {
 }
 
 static int CGTooltip_SetSpell(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   int slot;
   if (lua_isnumber(L, 2) && lua_isstring(L, 3) && (slot = static_cast<int>(lua_tonumber(L, 2) - 1.0)) >= 0 && slot < 1024U) {
     UI_SPELL_TYPE type = PLAYER_SPELL;
@@ -3309,7 +3289,7 @@ static int CGTooltip_SetSpell(lua_State *L) {
 }
 
 static int CGTooltip_SetInventoryItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   int hasCooldown = 0;
   if (!lua_isstring(L, 2)) {
     luaL_error(L, "Usage: SetInventoryItem(unit, slot [, nameOnly])");
@@ -3366,7 +3346,7 @@ static int CGTooltip_SetInventoryItem(lua_State *L) {
 }
 
 static int CGTooltip_SetLootItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2)) {
     int itemID = CGLootInfo::GetLootItem(static_cast<UINT>(lua_tonumber(L, 2) - 1.0));
     if (itemID > 0) {
@@ -3379,7 +3359,7 @@ static int CGTooltip_SetLootItem(lua_State *L) {
 }
 
 static int CGTooltip_SetQuestItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   int itemID;
   if (!lua_isstring(L, 2) || !lua_isnumber(L, 3) ||
       (itemID = CGQuestInfo::GetQuestItemID(lua_tostring(L, 2), static_cast<int>(lua_tonumber(L, 3)) - 1)) <= 0)
@@ -3392,7 +3372,7 @@ static int CGTooltip_SetQuestItem(lua_State *L) {
 }
 
 static int CGTooltip_SetQuestLogItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   int itemID;
   if (!lua_isstring(L, 2) || !lua_isnumber(L, 3) ||
       (itemID = CGQuestLog::GetQuestItemID(lua_tostring(L, 2), static_cast<int>(lua_tonumber(L, 3)) - 1)) <= 0)
@@ -3405,7 +3385,7 @@ static int CGTooltip_SetQuestLogItem(lua_State *L) {
 }
 
 static int CGTooltip_SetTrainerService(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2)) {
     const TrainerServiceInfo *service = CGClassTrainer::GetService(static_cast<int>(lua_tonumber(L, 2)) - 1);
     if (service) {
@@ -3434,7 +3414,7 @@ static int CGTooltip_SetTrainerService(lua_State *L) {
 }
 
 static int CGTooltip_SetTradeSkillItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2)) {
     const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<int>(lua_tonumber(L, 2)) - 1);
     if (info) {
@@ -3460,7 +3440,7 @@ static int CGTooltip_SetTradeSkillItem(lua_State *L) {
 }
 
 static int CGTooltip_SetCraftItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
     const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<int>(lua_tonumber(L, 2)) - 1);
     if (info) {
@@ -3482,7 +3462,7 @@ static int CGTooltip_SetCraftItem(lua_State *L) {
 }
 
 static int CGTooltip_SetCraftSpell(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2)) {
     const CraftInfo *info = CGCraftInfo::GetCraftInfo(static_cast<int>(lua_tonumber(L, 2)) - 1);
     if (info) {
@@ -3495,7 +3475,7 @@ static int CGTooltip_SetCraftSpell(lua_State *L) {
 }
 
 static int CGTooltip_SetMerchantItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2)) {
     const VendorItem *item = CGMerchantInfo::GetItem(static_cast<int>(lua_tonumber(L, 2) - 1.0));
     if (item && item->m_itemType > 0) {
@@ -3508,7 +3488,7 @@ static int CGTooltip_SetMerchantItem(lua_State *L) {
 }
 
 static int CGTooltip_SetTradePlayerItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2)) {
     int       index = static_cast<int>(lua_tonumber(L, 2) - 1.0);
     DWORDLONG playerItemGUID;
@@ -3540,7 +3520,7 @@ static int CGTooltip_SetTradePlayerItem(lua_State *L) {
 }
 
 static int CGTooltip_SetTradeTargetItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (lua_isnumber(L, 2)) {
     int index = static_cast<int>(lua_tonumber(L, 2) - 1.0);
     int itemID = CGTradeInfo::GetTargetTradeItem(index);
@@ -3568,7 +3548,7 @@ static int CGTooltip_SetTradeTargetItem(lua_State *L) {
 }
 
 static int CGTooltip_SetBagItem(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player && lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
     int      bagIndex = static_cast<int>(lua_tonumber(L, 2)) - 1;
@@ -3622,7 +3602,7 @@ static int CGTooltip_SetBagItem(lua_State *L) {
 }
 
 static int CGTooltip_SetUnit(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   if (!lua_isstring(L, 2)) {
     luaL_error(L, "Usage: SetUnit(\"unit\")");
     return 0;
@@ -3637,7 +3617,7 @@ static int CGTooltip_SetUnit(lua_State *L) {
 }
 
 static int CGTooltip_NumLines(lua_State *L) {
-  GET_TOOLTIP_THIS(L, tooltip);
+  CGTooltip *tooltip = static_cast<CGTooltip *>(FrameScript_GetObjectThis(L));
   lua_pushnumber(L, static_cast<double>(tooltip->NumLines()));
   return 1;
 }
@@ -3651,8 +3631,6 @@ void CGTooltip::RegisterScriptMethods() {
 void CGTooltip::UnregisterScriptMethods() {
   FrameScript_Object::EmptyScriptMethodTable(s_scriptMethods);
 }
-
-#undef GET_TOOLTIP_THIS
 
 BOOL CGTooltip::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {

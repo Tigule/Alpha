@@ -7,6 +7,7 @@ add_library(FrameXML STATIC
 target_include_directories(FrameXML PRIVATE
     ..
     ../../../Storm/H
+    ../lua/include
 )
 
 target_compile_definitions(FrameXML PRIVATE _STATIC)

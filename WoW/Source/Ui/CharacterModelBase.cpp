@@ -113,23 +113,8 @@ CGCharacterModelBase::~CGCharacterModelBase() {
 CGCharacterModelBase::CGCharacterModelBase(CSimpleFrame *parent) : CSimpleModel(parent), m_unit(0), m_rotationScale(0.0f) {
 }
 
-#define GET_CHARACTER_MODEL_THIS(L, object)                              \
-  CGCharacterModelBase *object = 0;                                      \
-  if (lua_type(L, 1) == LUA_TTABLE) {                                    \
-    lua_rawgeti(L, 1, 0);                                                \
-    object = static_cast<CGCharacterModelBase *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                       \
-  } else {                                                               \
-    luaL_error(                                                          \
-        L,                                                               \
-        "Attempt to find 'this' in non-table object (used '.' "          \
-        "instead of ':' ?)"                                              \
-    );                                                                   \
-  }                                                                      \
-  FATALASSERT(object)
-
 static int Script_SetUnit(lua_State *L) {
-  GET_CHARACTER_MODEL_THIS(L, object);
+  CGCharacterModelBase *object = static_cast<CGCharacterModelBase *>(FrameScript_GetObjectThis(L));
   if (!lua_isstring(L, 2)) {
     luaL_error(L, "Usage: SetUnit(\"unit\")");
     return 0;
@@ -139,21 +124,19 @@ static int Script_SetUnit(lua_State *L) {
 }
 
 static int Script_UpdateModel(lua_State *L) {
-  GET_CHARACTER_MODEL_THIS(L, object);
+  CGCharacterModelBase *object = static_cast<CGCharacterModelBase *>(FrameScript_GetObjectThis(L));
   object->UpdateModel();
   return 0;
 }
 
 static int Script_SetRotation(lua_State *L) {
-  GET_CHARACTER_MODEL_THIS(L, object);
+  CGCharacterModelBase *object = static_cast<CGCharacterModelBase *>(FrameScript_GetObjectThis(L));
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: SetRotation(rotation (in radians))");
   }
   object->SetRotationScale(static_cast<float>(lua_tonumber(L, 2)));
   return 0;
 }
-
-#undef GET_CHARACTER_MODEL_THIS
 
 void CGCharacterModelBase::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(CGCharacterModelBaseMethods, 3, s_scriptMethods);

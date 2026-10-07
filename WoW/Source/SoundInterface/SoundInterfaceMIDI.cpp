@@ -14,19 +14,20 @@ static float                       s_volume = 1.0f;
 
 static bool AmbienceVolumeHandler(CVar *cvar, LPCSTR oldValue, LPCSTR newValue, LPVOID userArg) {
   s_volume = SStrToFloat(newValue);
+  float volume = s_volume;
   SndInterfaceWaterUpdateVolume(s_volume);
   Sound::MIDI_SetVolume(s_volume);
 
-  CVar *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
-  CVar *enableAmbience = CVar::Lookup("EnableAmbience");
   bool  enabled = true;
+  CVar *masterSoundEffects = CVar::Lookup("MasterSoundEffects");
   if (!masterSoundEffects || !masterSoundEffects->GetInt()) {
     enabled = false;
   }
+  CVar *enableAmbience = CVar::Lookup("EnableAmbience");
   if (!enableAmbience || !enableAmbience->GetInt()) {
     enabled = false;
   }
-  if (s_volume == 0.0f) {
+  if (volume == 0.0f) {
     enabled = false;
   }
   SndInterfaceWaterSetPaused(!enabled);
@@ -78,21 +79,11 @@ void SndInterfaceSetMIDIArea(int normal, int underwater) {
   const AreaMIDIAmbiencesRec *normalRec = g_areaMIDIAmbiencesDB.GetRecord(normal);
   const AreaMIDIAmbiencesRec *underwaterRec = g_areaMIDIAmbiencesDB.GetRecord(underwater);
 
-  if (g_currentAmbience == AMB_DAY) {
-    if (normalRec == s_ambienceRecNormal) {
-      return;
-    }
-  } else if (g_currentAmbience == AMB_NIGHT) {
-    if (underwaterRec == s_ambienceRecUnderwater) {
-      return;
-    }
-  } else {
-    return;
+  if ((g_currentAmbience == AMB_DAY && normalRec != s_ambienceRecNormal) || (g_currentAmbience == AMB_NIGHT && underwaterRec != s_ambienceRecUnderwater)) {
+    s_ambienceRecNormal = normalRec;
+    s_ambienceRecUnderwater = underwaterRec;
+    StartAmbience();
   }
-
-  s_ambienceRecNormal = normalRec;
-  s_ambienceRecUnderwater = underwaterRec;
-  StartAmbience();
 }
 
 void SndInterfaceClearMIDI() {

@@ -32,13 +32,9 @@ static int GetNextPlayTime() {
     return OsGetAsyncTimeMs();
   }
 
-  int minimum = s_currentMusic->m_SilenceIntervalMin[g_currentAmbience];
-  int range = s_currentMusic->m_SilenceIntervalMax[g_currentAmbience] - minimum;
-  if (range < 1) {
-    range = 1;
-  }
-  UINT random = NTempest::CRandom::uint32_(s_rndSeed);
-  return OsGetAsyncTimeMs() + minimum + static_cast<UINT>((static_cast<DWORDLONG>(random) * static_cast<UINT>(range)) >> 32);
+  int range = s_currentMusic->m_SilenceIntervalMax[g_currentAmbience] - s_currentMusic->m_SilenceIntervalMin[g_currentAmbience];
+  int silence = NTempest::CRandom::dice_(range < 1 ? 1 : range, s_rndSeed);
+  return OsGetAsyncTimeMs() + s_currentMusic->m_SilenceIntervalMin[g_currentAmbience] + silence;
 }
 
 static void PlayMusic() {
@@ -52,17 +48,19 @@ static void PlayMusic() {
     return;
   }
 
-  Sound::KillSound(s_sound);
+  if (s_sound) {
+    Sound::KillSound(s_sound);
+  }
   LPCSTR filename = definition->GetRandomFileName(-1);
   if (filename && *filename) {
     s_sound = Sound::Play2D(SOUNDCATEGORY_NONE, filename, 6, true);
   }
   if (s_sound) {
-    if (s_sound->SetPaused(false)) {
-      s_sound->SetVolume(definition->m_volume);
-    } else {
+    if (!s_sound->SetPaused(false)) {
       Sound::KillSound(s_sound);
+      return;
     }
+    s_sound->SetVolume(definition->m_volume);
   }
 }
 

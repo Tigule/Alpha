@@ -152,23 +152,8 @@ void CGTaxiMap::TakeTaxiNode(UINT slot) {
   }
 }
 
-#define GET_TAXI_OBJECT_THIS(L, type, object)                   \
-  type *object = 0;                                             \
-  if (lua_type(L, 1) == LUA_TTABLE) {                           \
-    lua_rawgeti(L, 1, 0);                                       \
-    object = static_cast<type *>(lua_touserdata(L, -1));        \
-    lua_pop(L, 1);                                              \
-  } else {                                                      \
-    luaL_error(                                                 \
-        L,                                                      \
-        "Attempt to find 'this' in non-table object (used '.' " \
-        "instead of ':' ?)"                                     \
-    );                                                          \
-  }                                                             \
-  FATALASSERT(object)
-
 static int Script_SetTaxiMap(lua_State *L) {
-  GET_TAXI_OBJECT_THIS(L, CSimpleTexture, object);
+  CSimpleTexture *object = static_cast<CSimpleTexture *>(FrameScript_GetObjectThis(L));
   object->SetTexture(TaxiMapGetTexture());
   return 0;
 }
@@ -277,8 +262,6 @@ static int Script_TaxiNodeGetType(lua_State *L) {
   lua_pushstring(L, CGTaxiMap::TaxiNodeType(slot));
   return 1;
 }
-
-#undef GET_TAXI_OBJECT_THIS
 
 static FrameScript_Method s_ScriptFunctions[10] = {
     {      "SetTaxiMap",            Script_SetTaxiMap},

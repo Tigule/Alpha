@@ -70,20 +70,19 @@ BOOL CGTutorial::OnTutorialFlags(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDat
 
 static int Script_TriggerTutorial(lua_State *L) {
   if (lua_isstring(L, 1)) {
-
     LPCSTR token = lua_tostring(L, 1);
-    UINT   tutorial;
-    for (tutorial = 0; tutorial < NUM_TUTORIALS; ++tutorial) {
+    int    tutorial;
+    for (tutorial = 0; tutorial < sizeof(s_tutorialTokens) / sizeof(s_tutorialTokens[0]); ++tutorial) {
       if (!SStrCmpI(token, s_tutorialTokens[tutorial], 0x7FFFFFFF)) {
         break;
       }
     }
-    if (tutorial == NUM_TUTORIALS) {
-      return luaL_error(L, "Unknown tutorial token");
+    if (tutorial >= NUM_TUTORIALS) {
+      luaL_error(L, "Unknown tutorial token");
     }
-    return 0;
+  } else {
+    luaL_error(L, "Usage: TriggerTutorial(\"tutorial\")");
   }
-  luaL_error(L, "Usage: TriggerTutorial(\"tutorial\")");
   return 0;
 }
 

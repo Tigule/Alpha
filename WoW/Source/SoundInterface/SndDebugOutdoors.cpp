@@ -37,7 +37,7 @@ void OUTDOORSCHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
   }
 
   ConsolePrintf(
-      "[%03d]   %d \"c%dz%ds%d\" %s", chunkNumber, areaID, continentID, areaID >> 16, static_cast<WORD>(areaID),
+      "[%03d]   %d \"c%dz%ds%d\" %s", chunkNumber, areaID, continentID, areaID >> 16, areaID & 0xFFFF,
       chunkNumber == s_currentChunk ? "[CURRENT]" : ""
   );
   if (!summary) {
@@ -126,111 +126,115 @@ BOOL DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
 
 BOOL ShowCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (!s_chunkList.Count()) {
-    ConsoleWrite("No chunks created!", DEFAULT_COLOR);
-  } else if (s_currentChunk >= s_chunkList.Count()) {
-    ConsoleWrite("Error, the current chunk is invalid!", DEFAULT_COLOR);
-  } else {
-    ASSERT(s_chunkList[s_currentChunk]);
-    s_chunkList[s_currentChunk]->DumpInfo(0, 0);
+    ConsoleWrite("No chunks created, use \"SndDebugCreateChunk\" to create a chunk for your current position", DEFAULT_COLOR);
+    return 1;
   }
+  if (s_currentChunk >= s_chunkList.Count()) {
+    ConsoleWrite("Error, the current chunk is greater than the number of chunks..something is wrong!", DEFAULT_COLOR);
+    return 1;
+  }
+  OUTDOORSCHUNKHASHOBJ *obj = s_chunkList[s_currentChunk];
+  ASSERT(obj);
+  obj->DumpInfo(0, 0);
   return 1;
 }
 
 BOOL SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (s_currentChunk > s_chunkList.Count()) {
-    ConsoleWrite("Error, the current chunk is invalid!", DEFAULT_COLOR);
+    ConsoleWrite("Error: the current chunk is invalid, contact Jeff", DEFAULT_COLOR);
     return 1;
   }
 
-  OUTDOORSCHUNKHASHOBJ *chunk = s_chunkList[s_currentChunk];
-  ASSERT(chunk);
+  OUTDOORSCHUNKHASHOBJ *obj = s_chunkList[s_currentChunk];
+  ASSERT(obj);
   UINT  prefNumber;
   float value;
+  _FSOUND_REVERB_PROPERTIES *desc = &obj->desc;
   sscanf(arguments, "%d %f", &prefNumber, &value);
   int intValue = static_cast<int>(value);
 
   switch (prefNumber) {
     case 1:
     case 22:
-      chunk->desc.Environment = intValue;
+      desc->Environment = intValue;
       break;
     case 2:
-      chunk->desc.DecayTime = value;
+      desc->DecayTime = value;
       break;
     case 3:
-      chunk->desc.EnvSize = value;
+      desc->EnvSize = value;
       break;
     case 4:
-      chunk->desc.EnvDiffusion = value;
+      desc->EnvDiffusion = value;
       break;
     case 5:
-      chunk->desc.Room = intValue;
+      desc->Room = intValue;
       break;
     case 6:
-      chunk->desc.RoomHF = intValue;
+      desc->RoomHF = intValue;
       break;
     case 7:
-      chunk->desc.DecayHFRatio = value;
+      desc->DecayHFRatio = value;
       break;
     case 8:
-      chunk->desc.Reflections = intValue;
+      desc->Reflections = intValue;
       break;
     case 9:
-      chunk->desc.ReflectionsDelay = value;
+      desc->ReflectionsDelay = value;
       break;
     case 10:
-      chunk->desc.Reverb = intValue;
+      desc->Reverb = intValue;
       break;
     case 11:
-      chunk->desc.ReverbDelay = value;
+      desc->ReverbDelay = value;
       break;
     case 12:
-      chunk->desc.RoomRolloffFactor = value;
+      desc->RoomRolloffFactor = value;
       break;
     case 13:
-      chunk->desc.AirAbsorptionHF = value;
+      desc->AirAbsorptionHF = value;
       break;
     case 14:
-      chunk->desc.RoomLF = intValue;
+      desc->RoomLF = intValue;
       break;
     case 15:
-      chunk->desc.DecayLFRatio = value;
+      desc->DecayLFRatio = value;
       break;
     case 16:
-      chunk->desc.EchoTime = value;
+      desc->EchoTime = value;
       break;
     case 17:
-      chunk->desc.EchoDepth = value;
+      desc->EchoDepth = value;
       break;
     case 18:
-      chunk->desc.ModulationTime = value;
+      desc->ModulationTime = value;
       break;
     case 19:
-      chunk->desc.ModulationDepth = value;
+      desc->ModulationDepth = value;
       break;
     case 20:
-      chunk->desc.HFReference = value;
+      desc->HFReference = value;
       break;
     case 21:
-      chunk->desc.LFReference = value;
+      desc->LFReference = value;
       break;
     default:
       ConsolePrintf("Error, unrecognized property %d!", prefNumber);
       break;
   }
 
-  SndInterfaceSetProviderPrefs(chunk->desc, chunk->desc);
+  SndInterfaceSetProviderPrefs(*desc, *desc);
   return 1;
 }
 
 BOOL SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     UINT chunk = SStrToUnsigned(arguments);
-    if (chunk < s_chunkList.Count()) {
+    if (chunk >= s_chunkList.Count()) {
+      ConsoleWrite("Error, invalid chunk # specified!", DEFAULT_COLOR);
+    } else {
       s_currentChunk = chunk;
       ConsolePrintf("Current chunk set to %d", chunk);
-    } else {
-      ConsoleWrite("Error, invalid chunk # specified!", DEFAULT_COLOR);
     }
   } else {
     ConsoleWrite("Error, this command needs a parameter, use \"ShowCurrentChunk\" to list chunks.", DEFAULT_COLOR);
@@ -241,13 +245,13 @@ BOOL SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
 BOOL CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!object) {
-    ConsoleWrite("Error, can't locate player!", DEFAULT_COLOR);
+    ConsoleWrite("Error, can't locate current player!", DEFAULT_COLOR);
     return 1;
   }
 
   DWORD worldObject = object->GetWorldObject();
   if (!worldObject) {
-    ConsoleWrite("Error, can't locate player world object!", DEFAULT_COLOR);
+    ConsoleWrite("Error, can't locate current player's worldobject!", DEFAULT_COLOR);
     return 1;
   }
   if (CWorld::QueryObjectInside(worldObject)) {
@@ -278,8 +282,9 @@ BOOL CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
 BOOL SndDebugListChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
   UINT i;
   for (i = 0; i < s_chunkList.Count(); ++i) {
-    ASSERT(s_chunkList[i]);
-    s_chunkList[i]->DumpInfo(1, 0);
+    OUTDOORSCHUNKHASHOBJ *obj = s_chunkList[i];
+    ASSERT(obj);
+    obj->DumpInfo(1, 0);
   }
   ConsolePrintf("listed %d entries", i);
   return 1;

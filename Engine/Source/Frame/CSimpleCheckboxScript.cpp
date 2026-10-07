@@ -7,24 +7,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_CHECKBOX_THIS(L, object)                         \
-  CSimpleCheckbox *object;                                          \
-  if (lua_type(L, 1) != LUA_TTABLE) {                               \
-    luaL_error(                                                     \
-        L,                                                          \
-        "Attempt to find 'this' in non-table object (used '.' "     \
-        "instead of ':' ?)"                                         \
-    );                                                              \
-    object = 0;                                                     \
-  } else {                                                          \
-    lua_rawgeti(L, 1, 0);                                           \
-    object = static_cast<CSimpleCheckbox *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                  \
-    ASSERT(object);                                                 \
-  }
-
 static int CSimpleCheckbox_SetChecked(lua_State *L) {
-  GET_SIMPLE_CHECKBOX_THIS(L, object);
+  CSimpleCheckbox *object = static_cast<CSimpleCheckbox *>(FrameScript_GetObjectThis(L));
 
   int state = 0;
   if (lua_isnumber(L, 2)) {
@@ -38,7 +22,7 @@ static int CSimpleCheckbox_SetChecked(lua_State *L) {
 }
 
 static int CSimpleCheckbox_GetChecked(lua_State *L) {
-  GET_SIMPLE_CHECKBOX_THIS(L, object);
+  CSimpleCheckbox *object = static_cast<CSimpleCheckbox *>(FrameScript_GetObjectThis(L));
 
   if (object->GetChecked()) {
     lua_pushnumber(L, 1.0);
@@ -49,7 +33,7 @@ static int CSimpleCheckbox_GetChecked(lua_State *L) {
 }
 
 static int CSimpleCheckbox_SetCheckedTexture(lua_State *L) {
-  GET_SIMPLE_CHECKBOX_THIS(L, object);
+  CSimpleCheckbox *object = static_cast<CSimpleCheckbox *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     object->SetCheckedTexture(lua_tostring(L, 2));
@@ -61,7 +45,7 @@ static int CSimpleCheckbox_SetCheckedTexture(lua_State *L) {
 }
 
 static int CSimpleCheckbox_SetDisabledCheckedTexture(lua_State *L) {
-  GET_SIMPLE_CHECKBOX_THIS(L, object);
+  CSimpleCheckbox *object = static_cast<CSimpleCheckbox *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     object->SetDisabledCheckedTexture(lua_tostring(L, 2));
@@ -71,8 +55,6 @@ static int CSimpleCheckbox_SetDisabledCheckedTexture(lua_State *L) {
   luaL_error(L, "Usage: SetDisabledCheckedTexture(\"texture\")");
   return 0;
 }
-
-#undef GET_SIMPLE_CHECKBOX_THIS
 
 static FrameScript_Method SimpleCheckboxMethods[] = {
     {               "SetChecked",                CSimpleCheckbox_SetChecked},

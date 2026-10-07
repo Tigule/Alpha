@@ -1061,21 +1061,6 @@ static int CGMinimapFrame_GetZoomLevels(lua_State *L) {
   return 1;
 }
 
-#define GET_MINIMAP_THIS(L, object)                                \
-  CGMinimapFrame *object = 0;                                      \
-  if (lua_type(L, 1) == LUA_TTABLE) {                              \
-    lua_rawgeti(L, 1, 0);                                          \
-    object = static_cast<CGMinimapFrame *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                 \
-  } else {                                                         \
-    return luaL_error(                                             \
-        L,                                                         \
-        "Attempt to find 'this' in non-table object (used '.' "    \
-        "instead of ':' ?)"                                        \
-    );                                                             \
-  }                                                                \
-  FATALASSERT(object)
-
 static int CGMinimapFrame_GetZoom(lua_State *L) {
   lua_pushnumber(L, static_cast<double>(MinimapGetZoom()));
   return 1;
@@ -1113,7 +1098,7 @@ static int CGMinimapFrame_PingLocation(lua_State *L) {
   float y = 0.0f;
   float viewSize = MinimapGetViewRadius() * 2.0f;
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
-    GET_MINIMAP_THIS(L, object);
+    CGMinimapFrame *object = static_cast<CGMinimapFrame *>(FrameScript_GetObjectThis(L));
     y = -static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f);
     x = static_cast<float>(lua_tonumber(L, 3) * 0.0009765625f * 0.8f);
     x = x / object->GetWidth() * viewSize;
@@ -1150,8 +1135,6 @@ static int CGMinimapFrame_GetPingPosition(lua_State *L) {
   }
   return 2;
 }
-
-#undef GET_MINIMAP_THIS
 
 void CGMinimapFrame::RegisterScriptMethods() {
   FrameScript_Object::FillScriptMethodTable(CGMinimapFrameMethods, 5, s_scriptMethods);

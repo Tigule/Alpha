@@ -9,24 +9,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_FRAME_THIS(L, object)                                \
-  CSimpleFrame *object;                                                 \
-  if (lua_type(L, 1) != LUA_TTABLE) {                                   \
-    luaL_error(                                                         \
-        L,                                                              \
-        "Attempt to find 'this' in non-table object (used '.' instead " \
-        "of ':' ?)"                                                     \
-    );                                                                  \
-    object = 0;                                                         \
-  } else {                                                              \
-    lua_rawgeti(L, 1, 0);                                               \
-    object = static_cast<CSimpleFrame *>(lua_touserdata(L, -1));        \
-    lua_pop(L, 1);                                                      \
-    ASSERT(object);                                                     \
-  }
-
 static int CSimpleFrame_GetParent(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   CSimpleFrame *parent = object->m_parent;
   LPCSTR        name;
@@ -41,7 +25,7 @@ static int CSimpleFrame_GetParent(lua_State *L) {
 }
 
 static int CSimpleFrame_GetName(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   LPCSTR name = object->GetName();
   if (name && *name) {
@@ -54,14 +38,14 @@ static int CSimpleFrame_GetName(lua_State *L) {
 }
 
 static int CSimpleFrame_GetFrameLevel(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->GetFrameLevel());
   return 1;
 }
 
 static int CSimpleFrame_SetFrameLevel(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetFrameLevel(static_cast<int>(lua_tonumber(L, 2)), 0);
@@ -73,7 +57,7 @@ static int CSimpleFrame_SetFrameLevel(lua_State *L) {
 }
 
 static int CSimpleFrame_RegisterEvent(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     object->RegisterScriptEvent(lua_tostring(L, 2));
@@ -85,7 +69,7 @@ static int CSimpleFrame_RegisterEvent(lua_State *L) {
 }
 
 static int CSimpleFrame_UnregisterEvent(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     object->UnregisterScriptEvent(lua_tostring(L, 2));
@@ -97,7 +81,7 @@ static int CSimpleFrame_UnregisterEvent(lua_State *L) {
 }
 
 static int CSimpleFrame_SetAlpha(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     double alpha = lua_tonumber(L, 2);
@@ -115,14 +99,14 @@ static int CSimpleFrame_SetAlpha(lua_State *L) {
 }
 
 static int CSimpleFrame_GetAlpha(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, static_cast<double>(object->GetAlpha()) / 255.0);
   return 1;
 }
 
 static int CSimpleFrame_SetID(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->m_id = static_cast<int>(lua_tonumber(L, 2));
@@ -134,14 +118,14 @@ static int CSimpleFrame_SetID(lua_State *L) {
 }
 
 static int CSimpleFrame_GetID(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->m_id);
   return 1;
 }
 
 static int CSimpleFrame_EnableDrawLayer(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   UINT layer = 2;
   if (lua_isstring(L, 2)) {
@@ -153,7 +137,7 @@ static int CSimpleFrame_EnableDrawLayer(lua_State *L) {
 }
 
 static int CSimpleFrame_DisableDrawLayer(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   UINT layer = 2;
   if (lua_isstring(L, 2)) {
@@ -165,21 +149,21 @@ static int CSimpleFrame_DisableDrawLayer(lua_State *L) {
 }
 
 static int CSimpleFrame_Show(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   object->Show();
   return 0;
 }
 
 static int CSimpleFrame_Hide(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   object->Hide();
   return 0;
 }
 
 static int CSimpleFrame_IsVisible(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (object->IsVisible()) {
     lua_pushnumber(L, 1.0);
@@ -191,7 +175,7 @@ static int CSimpleFrame_IsVisible(lua_State *L) {
 }
 
 static int CSimpleFrame_IsShown(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (object->m_shown) {
     lua_pushnumber(L, 1.0);
@@ -203,21 +187,21 @@ static int CSimpleFrame_IsShown(lua_State *L) {
 }
 
 static int CSimpleFrame_Raise(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   object->Raise();
   return 0;
 }
 
 static int CSimpleFrame_Lower(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   object->Lower();
   return 0;
 }
 
 static int CSimpleFrame_GetCenter(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, 1.25f * (object->CenterX() * 1024.0f));
   lua_pushnumber(L, 1.25f * (object->CenterY() * 1024.0f));
@@ -225,7 +209,7 @@ static int CSimpleFrame_GetCenter(lua_State *L) {
 }
 
 static int CSimpleFrame_GetWidth(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   float width = object->GetWidth();
   if (width == 0.0f) {
@@ -240,7 +224,7 @@ static int CSimpleFrame_GetWidth(lua_State *L) {
 }
 
 static int CSimpleFrame_SetWidth(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetWidth(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
@@ -252,7 +236,7 @@ static int CSimpleFrame_SetWidth(lua_State *L) {
 }
 
 static int CSimpleFrame_GetHeight(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   float height = object->GetHeight();
   if (height == 0.0f) {
@@ -267,7 +251,7 @@ static int CSimpleFrame_GetHeight(lua_State *L) {
 }
 
 static int CSimpleFrame_SetHeight(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetHeight(static_cast<float>(0.8f * (lua_tonumber(L, 2) * 0.0009765625f)));
@@ -279,7 +263,7 @@ static int CSimpleFrame_SetHeight(lua_State *L) {
 }
 
 static int CSimpleFrame_SetPoint(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2) && lua_isstring(L, 3)) {
     FRAMEPOINT    point;
@@ -338,7 +322,7 @@ static int CSimpleFrame_SetPoint(lua_State *L) {
 }
 
 static int CSimpleFrame_SetAllPoints(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     LPCSTR        relativeName = lua_tostring(L, 2);
@@ -361,14 +345,14 @@ static int CSimpleFrame_SetAllPoints(lua_State *L) {
 }
 
 static int CSimpleFrame_ClearAllPoints(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   object->ClearAllPoints(1);
   return 0;
 }
 
 static int CSimpleFrame_RegisterForDrag(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   CSimpleFrame *frame = object;
   UINT          buttons = 0;
@@ -395,7 +379,7 @@ static int CSimpleFrame_RegisterForDrag(lua_State *L) {
 }
 
 static int CSimpleFrame_EnableMouse(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   int enable;
   if (lua_isnumber(L, 2)) {
@@ -417,7 +401,7 @@ static int CSimpleFrame_EnableMouse(lua_State *L) {
 }
 
 static int CSimpleFrame_EnableKeyboard(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   int enable;
   if (lua_isnumber(L, 2)) {
@@ -441,7 +425,7 @@ static int CSimpleFrame_EnableKeyboard(lua_State *L) {
 }
 
 static int CSimpleFrame_SetBackdropColor(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   NTempest::CImVector color;
   float               red = static_cast<float>(lua_tonumber(L, 2));
@@ -462,7 +446,7 @@ static int CSimpleFrame_SetBackdropColor(lua_State *L) {
 }
 
 static int CSimpleFrame_SetBackdropBorderColor(lua_State *L) {
-  GET_SIMPLE_FRAME_THIS(L, object);
+  CSimpleFrame *object = static_cast<CSimpleFrame *>(FrameScript_GetObjectThis(L));
 
   NTempest::CImVector color;
   float               red = static_cast<float>(lua_tonumber(L, 2));
@@ -481,8 +465,6 @@ static int CSimpleFrame_SetBackdropBorderColor(lua_State *L) {
 
   return 0;
 }
-
-#undef GET_SIMPLE_FRAME_THIS
 
 static FrameScript_Method SimpleFrameMethods[] = {
     {             "GetParent",              CSimpleFrame_GetParent},

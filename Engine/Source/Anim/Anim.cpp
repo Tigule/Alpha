@@ -753,16 +753,17 @@ static void ISetSequenceUnchanged(CAnim *container, CAnimData *animptr) {
   UINT numObjects = container->status.Count();
   UINT i;
   for (i = 0; i < numObjects; ++i) {
-    if (animptr->obj[i]->type == OBJ_TYPE_BONE) {
-      CAnimObj *currobj = animptr->obj[i];
-      ASSERT(currobj);
-      ASSERT(currobj->type == OBJ_TYPE_BONE);
-      if (!static_cast<CAnimBoneObj *>(currobj)->IsVisible(*container)) {
-        setAllObjects = 0;
-        continue;
+    switch (animptr->obj[i]->type) {
+      case OBJ_TYPE_BONE: {
+        CAnimBoneObj *bone = AnimObjToBoneObj(animptr->obj[i]);
+        if (!bone->IsVisible(*container)) {
+          setAllObjects = 0;
+          continue;
+        }
+        break;
       }
-    } else if (animptr->obj[i]->type == OBJ_TYPE_EVENT) {
-      continue;
+      case OBJ_TYPE_EVENT:
+        continue;
     }
     container->status[i]->base.flags &= ~0x10;
   }
@@ -779,7 +780,11 @@ static void ISetSequenceUnchanged(CAnim *container, CAnimData *animptr) {
   for (i = container->geosetStatus.Count(); i; --i, ++geosetStatus) {
     geosetStatus->base.flags &= ~0x10;
   }
-  container->flags |= setAllObjects ? 1 : 2;
+  if (setAllObjects) {
+    container->flags |= 1;
+  } else {
+    container->flags |= 2;
+  }
 }
 
 void AnimProcessEvents(HANIM anim, const TSFixedArray<NTempest::C3Vector> &positions) {

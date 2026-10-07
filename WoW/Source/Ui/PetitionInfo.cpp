@@ -162,12 +162,20 @@ static int Script_ClosePetition(lua_State *) {
 static int Script_GetPetitionInfo(lua_State *L) {
   const CGPetition *petition = CGPetitionInfo::GetPetitionStats();
   if (petition) {
-    lua_pushstring(L, petition->m_flags & 1 ? "charter" : "petition");
+    if (petition->m_flags & 1) {
+      lua_pushstring(L, "charter");
+    } else {
+      lua_pushstring(L, "petition");
+    }
     lua_pushstring(L, petition->m_title);
     lua_pushstring(L, petition->m_bodyText);
     lua_pushnumber(L, static_cast<double>(petition->m_maxSignatures));
-    const NameCache *name = g_nameDBCache.GetRecord(petition->m_petitioner, petition->m_petitioner, 0, 0);
-    lua_pushstring(L, name ? name->m_name : 0);
+    const NameCache *name = g_nameDBCache.GetRecord(petition->m_petitioner, 0, 0, 0);
+    if (name) {
+      lua_pushstring(L, name->m_name);
+    } else {
+      lua_pushnil(L);
+    }
     if (petition->m_petitioner == ClntObjMgrGetActivePlayer()) {
       lua_pushnumber(L, 1.0);
     } else {
@@ -194,27 +202,40 @@ static int Script_GetPetitionNameInfo(lua_State *L) {
     luaL_error(L, "Usage: GetPetitionNameInfo(index)");
     return 0;
   }
-  const PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
-  const NameCache          *name = signer ? g_nameDBCache.GetRecord(signer->guid, signer->guid, 0, 0) : 0;
-  lua_pushstring(L, name ? name->m_name : 0);
+  UINT                      index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  const PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(index);
+  if (signer) {
+    const NameCache *name = g_nameDBCache.GetRecord(signer->guid, 0, 0, 0);
+    if (name) {
+      lua_pushstring(L, name->m_name);
+      return 1;
+    }
+  }
+  lua_pushnil(L);
   return 1;
 }
 
 static int Script_CanSignPetition(lua_State *L) {
+  BOOL              canSign = 1;
   const CGPetition *petition = CGPetitionInfo::GetPetitionStats();
-  BOOL              canSign = petition != 0;
-  CGPlayer_C       *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (petition && (petition->m_flags & 1) &&
-      ((!player || player->GetBag()->GetItem(0)) || CGPetitionInfo::GetNumSignatures() >= static_cast<UINT>(petition->m_maxSignatures)))
-  {
-    canSign = 0;
-  }
-  if (petition && petition->m_petitioner == ClntObjMgrGetActivePlayer()) {
-    canSign = 0;
-  }
-  for (UINT i = 0; canSign && i < CGPetitionInfo::GetNumSignatures(); ++i) {
-    if (CGPetitionInfo::GetSignature(i)->guid == ClntObjMgrGetActivePlayer()) {
+  if (petition) {
+    if (petition->m_flags & 1) {
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if ((player && player->GetGuildID()) || static_cast<int>(CGPetitionInfo::GetNumSignatures()) >= petition->m_maxSignatures) {
+        canSign = 0;
+      }
+    }
+    if (petition->m_petitioner == ClntObjMgrGetActivePlayer()) {
       canSign = 0;
+    }
+  }
+  if (canSign) {
+    for (UINT i = 0; i < CGPetitionInfo::GetNumSignatures(); ++i) {
+      const PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(i);
+      if (signer && signer->guid == ClntObjMgrGetActivePlayer()) {
+        canSign = 0;
+        break;
+      }
     }
   }
   if (canSign) {
@@ -226,16 +247,16 @@ static int Script_CanSignPetition(lua_State *L) {
 }
 
 static int Script_SignPetition(lua_State *L) {
-  BYTE choice = 1;
+  int choice = 1;
   if (lua_isnumber(L, 1)) {
-    choice = static_cast<BYTE>(lua_tonumber(L, 1));
+    choice = static_cast<int>(lua_tonumber(L, 1));
   }
   DWORDLONG petitionGUID = CGPetitionInfo::GetPetition();
   if (petitionGUID) {
     CDataStore msg;
     msg.Put(CMSG_PETITION_SIGN);
     msg.Put(petitionGUID);
-    msg.Put(choice);
+    msg.Put(static_cast<BYTE>(choice));
     msg.Finalize();
     ClientServices_Send(&msg);
   }

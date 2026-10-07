@@ -6,24 +6,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_EDITBOX_THIS(L, object)                         \
-  CSimpleEditBox *object;                                          \
-  if (lua_type(L, 1) != LUA_TTABLE) {                              \
-    luaL_error(                                                    \
-        L,                                                         \
-        "Attempt to find 'this' in non-table object (used '.' "    \
-        "instead of ':' ?)"                                        \
-    );                                                             \
-    object = 0;                                                    \
-  } else {                                                         \
-    lua_rawgeti(L, 1, 0);                                          \
-    object = static_cast<CSimpleEditBox *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                 \
-    ASSERT(object);                                                \
-  }
-
 static int CSimpleEditBox_Insert(lua_State *L) {
-  GET_SIMPLE_EDITBOX_THIS(L, object);
+  CSimpleEditBox *object = static_cast<CSimpleEditBox *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     object->Insert(lua_tostring(L, 2), 0);
@@ -33,7 +17,7 @@ static int CSimpleEditBox_Insert(lua_State *L) {
 }
 
 static int CSimpleEditBox_SetText(lua_State *L) {
-  GET_SIMPLE_EDITBOX_THIS(L, object);
+  CSimpleEditBox *object = static_cast<CSimpleEditBox *>(FrameScript_GetObjectThis(L));
 
   if (lua_gettop(L) != 2) {
     luaL_error(L, "Usage: SetText(\"text\")");
@@ -45,14 +29,14 @@ static int CSimpleEditBox_SetText(lua_State *L) {
 }
 
 static int CSimpleEditBox_GetText(lua_State *L) {
-  GET_SIMPLE_EDITBOX_THIS(L, object);
+  CSimpleEditBox *object = static_cast<CSimpleEditBox *>(FrameScript_GetObjectThis(L));
 
   lua_pushstring(L, object->GetText());
   return 1;
 }
 
 static int CSimpleEditBox_AddHistoryLine(lua_State *L) {
-  GET_SIMPLE_EDITBOX_THIS(L, object);
+  CSimpleEditBox *object = static_cast<CSimpleEditBox *>(FrameScript_GetObjectThis(L));
 
   if (lua_gettop(L) != 2) {
     luaL_error(L, "Usage: AddHistoryLine(\"text\")");
@@ -64,7 +48,7 @@ static int CSimpleEditBox_AddHistoryLine(lua_State *L) {
 }
 
 static int CSimpleEditBox_SetTextInsets(lua_State *L) {
-  GET_SIMPLE_EDITBOX_THIS(L, object);
+  CSimpleEditBox *object = static_cast<CSimpleEditBox *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3) && lua_isnumber(L, 4) && lua_isnumber(L, 5)) {
     object->SetEditTextInsets(
@@ -79,7 +63,7 @@ static int CSimpleEditBox_SetTextInsets(lua_State *L) {
 }
 
 static int CSimpleEditBox_SetTextColor(lua_State *L) {
-  GET_SIMPLE_EDITBOX_THIS(L, object);
+  CSimpleEditBox *object = static_cast<CSimpleEditBox *>(FrameScript_GetObjectThis(L));
 
   NTempest::CImVector color;
   float               red = static_cast<float>(lua_tonumber(L, 2));
@@ -97,20 +81,18 @@ static int CSimpleEditBox_SetTextColor(lua_State *L) {
 }
 
 static int CSimpleEditBox_SetFocus(lua_State *L) {
-  GET_SIMPLE_EDITBOX_THIS(L, object);
+  CSimpleEditBox *object = static_cast<CSimpleEditBox *>(FrameScript_GetObjectThis(L));
 
   CSimpleEditBox::SetKeyboardFocus(object);
   return 0;
 }
 
 static int CSimpleEditBox_ClearFocus(lua_State *L) {
-  GET_SIMPLE_EDITBOX_THIS(L, object);
+  CSimpleEditBox *object = static_cast<CSimpleEditBox *>(FrameScript_GetObjectThis(L));
 
   CSimpleEditBox::ClearKeyboardFocus(object);
   return 0;
 }
-
-#undef GET_SIMPLE_EDITBOX_THIS
 
 static FrameScript_Method SimpleEditBoxMethods[8] = {
     {        "Insert",         CSimpleEditBox_Insert},

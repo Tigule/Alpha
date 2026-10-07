@@ -432,6 +432,9 @@ def compare_code(
                     and _semantic_identity_matches(semantic_a, semantic_b, left, right, padding_removed)
                     and semantic_a.kind == semantic_b.kind
                 )
+                if (not semantic_matches and (semantic_a is None or semantic_a.kind == "bitwise_immediate")
+                        and (semantic_b is None or semantic_b.kind == "bitwise_immediate")):
+                    continue
                 if not semantic_matches:
                     macro_a = _field_evidence(macro_left, a, field_a)
                     macro_b = _field_evidence(macro_right, b, field_b)

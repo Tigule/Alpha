@@ -419,6 +419,7 @@ def _display_name(function: _Function) -> str:
 
 
 _NEAREST_TARGET_LIMIT = 0x10000
+_BITWISE_MNEMONICS = frozenset({"and", "or", "xor", "test"})
 _SORTED_TARGETS: dict[int, list[int]] = {}
 
 
@@ -511,19 +512,26 @@ def _resolve_target(artifact: ArtifactData, function_targets: Mapping[int, str],
     names = map_targets.get(rva, ())
     if names:
         return "|".join(names), True
-    string = _read_string(artifact, rva)
-    if string is not None:
-        return "string:" + string, True
     ordered = _SORTED_TARGETS.get(id(map_targets))
     if ordered is None:
         ordered = _SORTED_TARGETS[id(map_targets)] = sorted(map_targets)
     index = bisect_right(ordered, rva) - 1
+    relative: str | None = None
+    relative_to_string = False
     if index >= 0:
         base = ordered[index]
         section = _section_at(artifact, rva)
-        if rva - base <= _NEAREST_TARGET_LIMIT and section is not None and section is _section_at(artifact, base):
-            if not section.executable:
-                return f"{'|'.join(map_targets[base])}+0x{rva - base:x}", True
+        if (rva - base <= _NEAREST_TARGET_LIMIT and section is not None and section is _section_at(artifact, base)
+                and not section.executable):
+            relative = f"{'|'.join(map_targets[base])}+0x{rva - base:x}"
+            relative_to_string = any(name.startswith("map:??_C@") for name in map_targets[base])
+    if relative is not None and not relative_to_string:
+        return relative, True
+    string = _read_string(artifact, rva)
+    if string is not None:
+        return "string:" + string, True
+    if relative is not None:
+        return relative, True
     return None, False
 
 
@@ -544,6 +552,8 @@ def _code_evidence(artifact: ArtifactData, functions: Sequence[_Function], funct
                 value, kind = int(operand[1]), "branch"
             elif operand[0] == "imm" and artifact.resolve_va(int(operand[1])) is not None:
                 value = int(operand[1])
+                if instruction.mnemonic in _BITWISE_MNEMONICS:
+                    kind = "bitwise_immediate"
             elif operand[0] == "mem" and artifact.resolve_va(int(operand[5])) is not None:
                 value = int(operand[5])
             if value is not None:
@@ -622,7 +632,7 @@ def _macro_evidence(artifact: ArtifactData, functions: Sequence[_Function], func
             {"sink": sink, "paired_call_verified": True, "value": source_file, "paired_line": line_value}))
         result.append(Evidence(line_instruction.offset + lo, ls, "macro_line", common + ":line", True,
             {"sink": sink, "paired_call_verified": True, "value": line_value, "paired_file": source_file}))
-    result.extend(_file_line_argument_evidence(artifact, instructions, {value.offset for value in result}))
+    result.extend(_file_line_argument_evidence(artifact, instructions, {value.offset for value in result}, base))
     return result
 
 
@@ -636,8 +646,28 @@ def _immediate_argument(instruction: Any) -> int | None:
     return int(instruction.operands[-1][1])
 
 
+def _merged_line_arguments(instructions: Sequence[Any], line_instruction: Any, call_offset: int,
+                           covered: set[int], base: int) -> list[Any]:
+    found: list[Any] = []
+    for index, candidate in enumerate(instructions[:-1]):
+        if candidate is line_instruction or candidate.offset >= line_instruction.offset:
+            continue
+        value = _immediate_argument(candidate)
+        if value is None or not 0 < value < 100000 or candidate.offset + candidate.fields[0][0] in covered:
+            continue
+        if candidate.mnemonic != line_instruction.mnemonic or candidate.operands[:-1] != line_instruction.operands[:-1]:
+            continue
+        jump = instructions[index + 1]
+        if jump.mnemonic != "jmp" or not jump.operands or jump.operands[0][0] != "imm":
+            continue
+        target = int(jump.operands[0][1]) - base
+        if line_instruction.offset < target <= call_offset:
+            found.append(candidate)
+    return found
+
+
 def _file_line_argument_evidence(artifact: ArtifactData, instructions: Sequence[Any],
-                                 covered: set[int]) -> list[Evidence]:
+                                 covered: set[int], base: int = 0) -> list[Evidence]:
     result: list[Evidence] = []
     ordinal = 0
     for index, instruction in enumerate(instructions):
@@ -660,9 +690,16 @@ def _file_line_argument_evidence(artifact: ArtifactData, instructions: Sequence[
         if line_instruction is None:
             continue
         last = max(index, instructions.index(line_instruction))
-        if not any(candidate.mnemonic.startswith("call") for candidate in instructions[last + 1 : last + 9]):
+        call = next((candidate for candidate in instructions[last + 1 : last + 9]
+                     if candidate.mnemonic.startswith("call")), None)
+        if call is None:
             continue
         common = f"macro:fileline:{ordinal}"
+        for alternate, merged in enumerate(_merged_line_arguments(instructions, line_instruction, call.offset, covered, base)):
+            mo, ms, _, _ = merged.fields[0]
+            result.append(Evidence(merged.offset + mo, ms, "macro_line", f"{common}:line:merged{alternate}", True,
+                {"sink": "fileline", "paired_call_verified": True, "value": int(merged.operands[-1][1]),
+                 "paired_file": source_file}))
         ordinal += 1
         fo, fs, _, _ = instruction.fields[0]; lo, ls, _, _ = line_instruction.fields[0]
         result.append(Evidence(instruction.offset + fo, fs, "macro_file", common + ":file", True,

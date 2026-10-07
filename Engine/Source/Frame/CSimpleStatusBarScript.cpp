@@ -8,24 +8,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_STATUS_BAR_THIS(L, object)                        \
-  CSimpleStatusBar *object;                                          \
-  if (lua_type(L, 1) != LUA_TTABLE) {                                \
-    luaL_error(                                                      \
-        L,                                                           \
-        "Attempt to find 'this' in non-table object (used '.' "      \
-        "instead of ':' ?)"                                          \
-    );                                                               \
-    object = 0;                                                      \
-  } else {                                                           \
-    lua_rawgeti(L, 1, 0);                                            \
-    object = static_cast<CSimpleStatusBar *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                   \
-    ASSERT(object);                                                  \
-  }
-
 static int CSimpleStatusBar_SetMinMaxValues(lua_State *L) {
-  GET_SIMPLE_STATUS_BAR_THIS(L, object);
+  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
     float min = static_cast<float>(lua_tonumber(L, 2));
@@ -39,7 +23,7 @@ static int CSimpleStatusBar_SetMinMaxValues(lua_State *L) {
 }
 
 static int CSimpleStatusBar_GetMinMaxValues(lua_State *L) {
-  GET_SIMPLE_STATUS_BAR_THIS(L, object);
+  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->GetMinValue());
   lua_pushnumber(L, object->GetMaxValue());
@@ -47,7 +31,7 @@ static int CSimpleStatusBar_GetMinMaxValues(lua_State *L) {
 }
 
 static int CSimpleStatusBar_SetValue(lua_State *L) {
-  GET_SIMPLE_STATUS_BAR_THIS(L, object);
+  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     float value = static_cast<float>(lua_tonumber(L, 2));
@@ -60,14 +44,14 @@ static int CSimpleStatusBar_SetValue(lua_State *L) {
 }
 
 static int CSimpleStatusBar_GetValue(lua_State *L) {
-  GET_SIMPLE_STATUS_BAR_THIS(L, object);
+  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->GetValue());
   return 1;
 }
 
 static int CSimpleStatusBar_SetStatusBarColor(lua_State *L) {
-  GET_SIMPLE_STATUS_BAR_THIS(L, object);
+  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
 
   float red = static_cast<float>(lua_tonumber(L, 2));
   float green = static_cast<float>(lua_tonumber(L, 3));
@@ -82,8 +66,6 @@ static int CSimpleStatusBar_SetStatusBarColor(lua_State *L) {
   object->SetStatusBarColor(color);
   return 0;
 }
-
-#undef GET_SIMPLE_STATUS_BAR_THIS
 
 static FrameScript_Method SimpleStatusBarMethods[5] = {
     {  "SetMinMaxValues",   CSimpleStatusBar_SetMinMaxValues},

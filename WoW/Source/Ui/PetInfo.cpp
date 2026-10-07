@@ -413,13 +413,16 @@ static int Script_PickupPetAction(lua_State *L) {
     return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
-  if (index >= 10) {
+  if (index > 10) {
     luaL_error(L, "Invalid slot in PickupPetAction");
     return 0;
   }
+  if (!index) {
+    return 0;
+  }
 
-  UINT      cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
-  PetAction cursorAction(CGGameUI::m_cursorPetAction);
+  UINT cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
+  UINT cursorAction = CGGameUI::m_cursorPetAction;
   CGGameUI::ClearCursor(1);
   if (cursorSpell) {
     CGPetInfo::PutSpellInSlot(cursorSpell, index);
@@ -434,37 +437,46 @@ static int Script_PickupPetAction(lua_State *L) {
   if (!action) {
     return 0;
   }
-  UINT raw = *action;
-  if (!raw) {
-    return 0;
-  }
-  UINT type = raw >> 24 & 0x3F;
-  if (type == 1) {
-    CGGameUI::SetCursorSpell(raw & 0xFFFF, 1);
-  } else if (type > 1 && type <= 7) {
-    CGGameUI::SetCursorPetAction(*action);
+  switch (action->GetActionType()) {
+    case 1:
+      CGGameUI::SetCursorSpell(action->GetActionID(), 1);
+      break;
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+      CGGameUI::SetCursorPetAction(*action);
+      break;
   }
   return 0;
 }
 
 static int Script_TogglePetAutocast(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    return luaL_error(L, "Usage: TogglePetAutocast(index)");
+    luaL_error(L, "Usage: TogglePetAutocast(index)");
+    return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
-  if (index >= 10) {
-    return luaL_error(L, "Invalid slot in TogglePetAutocast");
+  if (index > 10) {
+    luaL_error(L, "Invalid slot in TogglePetAutocast");
+    return 0;
   }
-  UINT      cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
-  PetAction cursorAction(CGGameUI::m_cursorPetAction);
+  UINT cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
+  UINT cursorAction = CGGameUI::m_cursorPetAction;
   CGGameUI::ClearCursor(1);
-  if (cursorSpell) {
-    CGPetInfo::PutSpellInSlot(cursorSpell, index);
-  } else if (cursorAction) {
-    CGPetInfo::PutActionInSlot(cursorAction, index);
-  } else {
-    CGPetInfo::ToggleAutocast(index);
+  if (index) {
+    if (cursorSpell) {
+      CGPetInfo::PutSpellInSlot(cursorSpell, index);
+      return 0;
+    }
+    if (cursorAction) {
+      CGPetInfo::PutActionInSlot(cursorAction, index);
+      return 0;
+    }
   }
+  CGPetInfo::ToggleAutocast(index);
   return 0;
 }
 
@@ -474,23 +486,27 @@ static int Script_CastPetAction(lua_State *L) {
     return 0;
   }
   UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
-  if (index >= 10) {
+  if (index > 10) {
     luaL_error(L, "Invalid slot in CastPetAction");
     return 0;
   }
-  UINT      cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
-  PetAction cursorAction(CGGameUI::m_cursorPetAction);
+  UINT cursorSpell = CGGameUI::m_cursorItemType == UICURSOR_PET_SPELL ? CGGameUI::GetCursorSpell() : 0;
+  UINT cursorAction = CGGameUI::m_cursorPetAction;
   CGGameUI::ClearCursor(1);
-  if (cursorSpell) {
-    CGPetInfo::PutSpellInSlot(cursorSpell, index);
-  } else if (cursorAction) {
-    CGPetInfo::PutActionInSlot(cursorAction, index);
-  } else {
-    const PetAction *action = CGPetInfo::GetAction(index);
-    if (action) {
-      CGPetInfo::SendPetAction(*action, 0);
-      SndInterfacePlayInterfaceSound("GAMEABILITYACTIVATE");
+  if (index) {
+    if (cursorSpell) {
+      CGPetInfo::PutSpellInSlot(cursorSpell, index);
+      return 0;
     }
+    if (cursorAction) {
+      CGPetInfo::PutActionInSlot(cursorAction, index);
+      return 0;
+    }
+  }
+  const PetAction *action = CGPetInfo::GetAction(index);
+  if (action) {
+    CGPetInfo::SendPetAction(*action, 0);
+    SndInterfacePlayInterfaceSound("GAMEABILITYACTIVATE");
   }
   return 0;
 }

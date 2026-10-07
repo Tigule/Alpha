@@ -48,31 +48,38 @@ static BOOL OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
     case CMSG_GHOST: {
       s_ghostRequestPending = 0;
 
-      if (msg->Tell() - msg->Size() >= sizeof(s_ghostTarget)) {
-        msg->Get(s_ghostTarget);
-      } else {
+      if (msg->Tell() - msg->Size() < sizeof(s_ghostTarget)) {
         msg->Seek(msg->Tell());
         s_ghostTarget = 0;
+      } else {
+        msg->Get(s_ghostTarget);
       }
 
       CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
-      CGPlayer_C *target = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(s_ghostTarget ? s_ghostTarget : s_realActivePlayer, __FILE__, __LINE__));
+      CGPlayer_C   *target;
+      if (s_ghostTarget) {
+        target = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(s_ghostTarget, __FILE__, __LINE__));
+      } else {
+        target = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(s_realActivePlayer, __FILE__, __LINE__));
+      }
       if (target) {
         worldFrame->SetCameraTarget(target);
 
         CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(s_realActivePlayer, __FILE__, __LINE__));
         if (player) {
-          CWorld::SetHidden(player->GetWorldObject(), player != target);
-
-          if (player == target) {
+          if (player != target) {
+            CWorld::SetHidden(player->GetWorldObject(), 1);
+            if (target->IsA(TYPE_PLAYER)) {
+              CGGameUI::LeaveWorld();
+              ClntObjMgrSetActivePlayer(target->GetGUID());
+              CGPlayer_C::SetActive(target);
+              target->SetActiveMirrorHandlers();
+              CGGameUI::EnterWorld();
+            }
+          } else {
+            CWorld::SetHidden(player->GetWorldObject(), 0);
             ClntObjMgrSetActivePlayer(player->GetGUID());
             CGPlayer_C::SetActive(player);
-          } else if (target->GetType() & TYPE_PLAYER) {
-            CGGameUI::LeaveWorld();
-            ClntObjMgrSetActivePlayer(target->GetGUID());
-            CGPlayer_C::SetActive(target);
-            target->SetActiveMirrorHandlers();
-            CGGameUI::EnterWorld();
           }
         }
       }
@@ -82,10 +89,10 @@ static BOOL OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
     case MSG_GM_BIND_OTHER: {
       BYTE success;
       msg->Get(success);
-      if (success) {
-        ConsolePrintf("Player bound to current location");
-      } else {
+      if (!success) {
         ConsolePrintf("bindplayer failed");
+      } else {
+        ConsolePrintf("Player bound to current location");
       }
       break;
     }
@@ -93,10 +100,10 @@ static BOOL OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
     case MSG_GM_SUMMON: {
       BYTE success;
       msg->Get(success);
-      if (success) {
-        ConsolePrintf("Server is summoning now");
-      } else {
+      if (!success) {
         ConsolePrintf("Summon failed");
+      } else {
+        ConsolePrintf("Server is summoning now");
       }
       break;
     }

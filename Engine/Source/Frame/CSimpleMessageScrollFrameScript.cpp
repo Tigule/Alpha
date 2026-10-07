@@ -6,24 +6,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object)                       \
-  CSimpleMessageScrollFrame *object;                                          \
-  if (lua_type(L, 1) != LUA_TTABLE) {                                         \
-    luaL_error(                                                               \
-        L,                                                                    \
-        "Attempt to find 'this' in non-table object (used '.' instead "       \
-        "of ':' ?)"                                                           \
-    );                                                                        \
-    object = 0;                                                               \
-  } else {                                                                    \
-    lua_rawgeti(L, 1, 0);                                                     \
-    object = static_cast<CSimpleMessageScrollFrame *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                            \
-    ASSERT(object);                                                           \
-  }
-
 static int CSimpleMessageScrollFrame_AddMessage(lua_State *L) {
-  GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
+  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
 
   if (!lua_isstring(L, 2)) {
     return 0;
@@ -56,43 +40,43 @@ static int CSimpleMessageScrollFrame_AddMessage(lua_State *L) {
 }
 
 static int CSimpleMessageScrollFrame_ScrollUp(lua_State *L) {
-  GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
+  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
   object->ScrollUp();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_ScrollDown(lua_State *L) {
-  GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
+  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
   object->ScrollDown();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_PageUp(lua_State *L) {
-  GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
+  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
   object->PageUp();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_PageDown(lua_State *L) {
-  GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
+  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
   object->PageDown();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_ScrollToTop(lua_State *L) {
-  GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
+  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
   object->ScrollToTop();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_ScrollToBottom(lua_State *L) {
-  GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
+  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
   object->ScrollToBottom();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_AtBottom(lua_State *L) {
-  GET_SIMPLE_MESSAGE_SCROLL_FRAME_THIS(L, object);
+  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
   if (object->AtBottom()) {
     lua_pushnumber(L, 1.0);
   } else {

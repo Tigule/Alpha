@@ -1,62 +1,7 @@
 #ifndef WOW_SOURCE_UI_PETINFO_H
 #define WOW_SOURCE_UI_PETINFO_H
 
-class PetAction {
- public:
-  PetAction(UINT action = 0) : m_action(action) {
-  }
-
-  void SetAction(UINT action) {
-    m_action = action;
-  }
-  UINT GetAction() const {
-    return m_action;
-  }
-  void SetActionTypeAndID(UINT, UINT);
-  UINT GetActionTypeAndID() const {
-    return m_action & 0x3FFFFFFF;
-  }
-  void SetActionType(UINT);
-  int GetActionType() const {
-    return (m_action >> 24) & 0x3F;
-  }
-  void SetActionID(UINT);
-  int GetActionID() const {
-    return m_action & 0xFFFF;
-  }
-  void SetAutocastAllowed(BYTE allowed) {
-    if (allowed) {
-      m_action |= 0x80000000;
-    } else {
-      m_action &= ~0x80000000;
-    }
-  }
-  BYTE GetAutocastAllowed() const {
-    return (m_action >> 31) & 1;
-  }
-  void SetAutocastEnabled(BYTE enabled) {
-    if (enabled) {
-      m_action |= 0x40000000;
-    } else {
-      m_action &= ~0x40000000;
-    }
-  }
-  BYTE GetAutocastEnabled() const {
-    return (m_action >> 30) & 1;
-  }
-  BYTE operator==(const PetAction &) const;
-
-  operator UINT &() {
-    return m_action;
-  }
-
-  operator const UINT &() const {
-    return m_action;
-  }
-
- private:
-  UINT m_action;
-};
+#include "Object/UnitConst.h"
 
 class CGPetInfo {
  public:
@@ -87,7 +32,9 @@ class CGPetInfo {
   }
   static void ToggleAutocast(UINT index);
   static void PutSpellInSlot(int spell, UINT slot) {
-    PutActionInSlot(static_cast<UINT>(spell) | 0x01000000, slot);
+    PetAction action;
+    action.SetActionTypeAndID(1, spell);
+    PutActionInSlot(action, slot);
   }
   static void PutActionInSlot(UINT action, UINT slot) {
     PetAction petAction(action);

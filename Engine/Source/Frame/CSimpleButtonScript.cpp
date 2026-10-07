@@ -7,22 +7,6 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_BUTTON_THIS(L, object)                         \
-  CSimpleButton *object;                                          \
-  if (lua_type(L, 1) != LUA_TTABLE) {                             \
-    luaL_error(                                                   \
-        L,                                                        \
-        "Attempt to find 'this' in non-table object (used '.' "   \
-        "instead of ':' ?)"                                       \
-    );                                                            \
-    object = 0;                                                   \
-  } else {                                                        \
-    lua_rawgeti(L, 1, 0);                                         \
-    object = static_cast<CSimpleButton *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                \
-    ASSERT(object);                                               \
-  }
-
 static BOOL StringToButtonState(LPCSTR string, CSimpleButtonState &state) {
   struct {
     CSimpleButtonState state;
@@ -57,35 +41,35 @@ static LPCSTR ButtonStateToString(CSimpleButtonState state) {
 }
 
 static int CSimpleButton_Enable(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   object->Enable(1);
   return 0;
 }
 
 static int CSimpleButton_Disable(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   object->Enable(0);
   return 0;
 }
 
 static int CSimpleButton_IsEnabled(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->IsEnabled() != 0);
   return 1;
 }
 
 static int CSimpleButton_GetButtonState(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   lua_pushstring(L, ButtonStateToString(object->GetButtonState()));
   return 1;
 }
 
 static int CSimpleButton_SetButtonState(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   CSimpleButtonState state = BUTTONSTATE_DISABLED;
   int                lock = 0;
@@ -105,7 +89,7 @@ static int CSimpleButton_SetButtonState(lua_State *L) {
 }
 
 static int CSimpleButton_SetText(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     LPCSTR text = lua_tostring(L, 2);
@@ -120,7 +104,7 @@ static int CSimpleButton_SetText(lua_State *L) {
 }
 
 static int CSimpleButton_SetTextColor(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   float red = static_cast<float>(lua_tonumber(L, 2));
   float green = static_cast<float>(lua_tonumber(L, 3));
@@ -137,7 +121,7 @@ static int CSimpleButton_SetTextColor(lua_State *L) {
 }
 
 static int CSimpleButton_SetDisabledTextColor(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   float red = static_cast<float>(lua_tonumber(L, 2));
   float green = static_cast<float>(lua_tonumber(L, 3));
@@ -154,7 +138,7 @@ static int CSimpleButton_SetDisabledTextColor(lua_State *L) {
 }
 
 static int CSimpleButton_SetHighlightTextColor(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   float red = static_cast<float>(lua_tonumber(L, 2));
   float green = static_cast<float>(lua_tonumber(L, 3));
@@ -171,7 +155,7 @@ static int CSimpleButton_SetHighlightTextColor(lua_State *L) {
 }
 
 static int CSimpleButton_SetNormalTexture(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     object->SetStateTexture(BUTTONSTATE_NORMAL, lua_tostring(L, 2));
@@ -182,7 +166,7 @@ static int CSimpleButton_SetNormalTexture(lua_State *L) {
 }
 
 static int CSimpleButton_SetPushedTexture(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     object->SetStateTexture(BUTTONSTATE_PUSHED, lua_tostring(L, 2));
@@ -193,7 +177,7 @@ static int CSimpleButton_SetPushedTexture(lua_State *L) {
 }
 
 static int CSimpleButton_SetDisabledTexture(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     object->SetStateTexture(BUTTONSTATE_DISABLED, lua_tostring(L, 2));
@@ -204,7 +188,7 @@ static int CSimpleButton_SetDisabledTexture(lua_State *L) {
 }
 
 static int CSimpleButton_SetHighlightTexture(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     EGxBlend blendMode = GxBlend_Add;
@@ -219,14 +203,14 @@ static int CSimpleButton_SetHighlightTexture(lua_State *L) {
 }
 
 static int CSimpleButton_GetText(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   lua_pushstring(L, object->GetTextString());
   return 1;
 }
 
 static int CSimpleButton_GetTextWidth(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   CSimpleFontString *text = object->GetText();
   float              width = text ? text->GetWidth() : 0.0f;
@@ -235,7 +219,7 @@ static int CSimpleButton_GetTextWidth(lua_State *L) {
 }
 
 static int CSimpleButton_GetTextHeight(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   CSimpleFontString *text = object->GetText();
   float              height = text ? text->GetHeight() : 0.0f;
@@ -244,7 +228,7 @@ static int CSimpleButton_GetTextHeight(lua_State *L) {
 }
 
 static int CSimpleButton_RegisterForClicks(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   CSimpleButton *button = object;
   UINT           buttons = 0;
@@ -284,7 +268,7 @@ static int CSimpleButton_RegisterForClicks(lua_State *L) {
 }
 
 static int CSimpleButton_Click(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   MOUSEBUTTON button = MOUSE_BUTTON_LEFT;
   if (lua_isstring(L, 2)) {
@@ -307,20 +291,18 @@ static int CSimpleButton_Click(lua_State *L) {
 }
 
 static int CSimpleButton_LockHighlight(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   object->LockHighlight(1);
   return 0;
 }
 
 static int CSimpleButton_UnlockHighlight(lua_State *L) {
-  GET_SIMPLE_BUTTON_THIS(L, object);
+  CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
   object->LockHighlight(0);
   return 0;
 }
-
-#undef GET_SIMPLE_BUTTON_THIS
 
 static FrameScript_Method SimpleButtonMethods[20] = {
     {               "Enable",                CSimpleButton_Enable},

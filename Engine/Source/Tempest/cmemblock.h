@@ -85,6 +85,7 @@ namespace NTempest {
       return size_;
     }
     DWORD Prologue_() const {
+      ASSERT(IsValid());
       return size_ - size;
     }
     void Set_(BYTE value) {

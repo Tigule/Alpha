@@ -6,24 +6,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_SCROLL_FRAME_THIS(L, object)                        \
-  CSimpleScrollFrame *object;                                          \
-  if (lua_type(L, 1) != LUA_TTABLE) {                                  \
-    luaL_error(                                                        \
-        L,                                                             \
-        "Attempt to find 'this' in non-table object (used '.' "        \
-        "instead of ':' ?)"                                            \
-    );                                                                 \
-    object = 0;                                                        \
-  } else {                                                             \
-    lua_rawgeti(L, 1, 0);                                              \
-    object = static_cast<CSimpleScrollFrame *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                     \
-    ASSERT(object);                                                    \
-  }
-
 static int CSimpleScrollFrame_SetHorizontalScroll(lua_State *L) {
-  GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
+  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     float offset = 0.8f * (static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f);
@@ -36,7 +20,7 @@ static int CSimpleScrollFrame_SetHorizontalScroll(lua_State *L) {
 }
 
 static int CSimpleScrollFrame_SetVerticalScroll(lua_State *L) {
-  GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
+  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     float offset = 0.8f * (static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f);
@@ -49,41 +33,39 @@ static int CSimpleScrollFrame_SetVerticalScroll(lua_State *L) {
 }
 
 static int CSimpleScrollFrame_GetHorizontalScroll(lua_State *L) {
-  GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
+  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, 1.25f * (object->GetHorizontalScroll() * 1024.0f));
   return 1;
 }
 
 static int CSimpleScrollFrame_GetVerticalScroll(lua_State *L) {
-  GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
+  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, 1.25f * (object->GetVerticalScroll() * 1024.0f));
   return 1;
 }
 
 static int CSimpleScrollFrame_GetHorizontalScrollRange(lua_State *L) {
-  GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
+  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, 1.25f * (object->GetHorizontalScrollRange() * 1024.0f));
   return 1;
 }
 
 static int CSimpleScrollFrame_GetVerticalScrollRange(lua_State *L) {
-  GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
+  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, 1.25f * (object->GetVerticalScrollRange() * 1024.0f));
   return 1;
 }
 
 static int CSimpleScrollFrame_UpdateScrollChildRect(lua_State *L) {
-  GET_SIMPLE_SCROLL_FRAME_THIS(L, object);
+  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
 
   object->UpdateScrollChildRect();
   return 0;
 }
-
-#undef GET_SIMPLE_SCROLL_FRAME_THIS
 
 static FrameScript_Method SimpleScrollFrameMethods[7] = {
     {     "SetHorizontalScroll",      CSimpleScrollFrame_SetHorizontalScroll},

@@ -734,11 +734,10 @@ int ScrnPerfRemoteStartup() {
 }
 
 void ScrnPerfRemoteSetMode(PERF_REMOTE_MODE mode) {
-  if (mode < PERF_REMOTE_MODE_MAX) {
-    s_PerfRemoteMode = mode;
-  } else {
-    s_PerfRemoteMode = PERF_REMOTE_MODE__ONPAINT;
+  if (mode >= PERF_REMOTE_MODE_MAX) {
+    mode = PERF_REMOTE_MODE__ONPAINT;
   }
+  s_PerfRemoteMode = mode;
 }
 
 PERF_REMOTE_MODE ScrnPerfRemoteGetMode() {

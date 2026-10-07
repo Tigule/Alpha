@@ -30,6 +30,7 @@ target_include_directories(ObjectClient PRIVATE
     ../../../Common
     ../../../../Engine/Source
     ../../../../Storm/H
+    ../../../../Engine/Source/lua/include
 )
 
 if(MSVC_VERSION EQUAL 1200)

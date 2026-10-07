@@ -20,6 +20,7 @@ target_include_directories(GameClient PRIVATE
     ../..
     ../../../../Engine/Source
     ../../../../Storm/H
+    ../../../../Engine/Source/lua/include
 
     ../../../Common
 )

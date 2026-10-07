@@ -56,18 +56,6 @@ void GuildCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
 CGTabardModelFrame::CGTabardModelFrame(CSimpleFrame *parent) : CGCharacterModelBase(parent), m_charComponent(0) {
 }
 
-#define GET_TABARD_MODEL_THIS(L, object) \
-  CGTabardModelFrame *object; \
-  if (lua_type(L, 1) != LUA_TTABLE) { \
-    luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)"); \
-    object = 0; \
-  } else { \
-    lua_rawgeti(L, 1, 0); \
-    object = static_cast<CGTabardModelFrame *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1); \
-    FATALASSERT(object); \
-  }
-
 void CGTabardModelFrame::InitializeModel(HMODEL model) {
   if (!model) {
     return;
@@ -156,13 +144,13 @@ void CGTabardModelFrame::CycleVariation(UINT index, int delta) {
 }
 
 static int CGTabardModelFrame_Save(lua_State *L) {
-  GET_TABARD_MODEL_THIS(L, object);
+  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
   object->SaveTabard();
   return 0;
 }
 
 static int CGTabardModelFrame_CanSave(lua_State *L) {
-  GET_TABARD_MODEL_THIS(L, object);
+  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
   if (object->CanSaveTabard()) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -172,7 +160,7 @@ static int CGTabardModelFrame_CanSave(lua_State *L) {
 }
 
 static int CGTabardModelFrame_CycleVariation(lua_State *L) {
-  GET_TABARD_MODEL_THIS(L, object);
+  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
     luaL_error(L, "Usage: CycleVariation(variationIndex, delta)");
     return 0;
@@ -187,7 +175,7 @@ static int CGTabardModelFrame_CycleVariation(lua_State *L) {
 }
 
 static int CGTabardModelFrame_GetUpperBackgroundFileName(lua_State *L) {
-  GET_TABARD_MODEL_THIS(L, object);
+  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
   char string[MAX_PATH];
   GetTabardBackgroundFileName(5, object->GetVariation(4), string, MAX_PATH);
   lua_pushstring(L, string);
@@ -195,7 +183,7 @@ static int CGTabardModelFrame_GetUpperBackgroundFileName(lua_State *L) {
 }
 
 static int CGTabardModelFrame_GetLowerBackgroundFileName(lua_State *L) {
-  GET_TABARD_MODEL_THIS(L, object);
+  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
   char string[MAX_PATH];
   GetTabardBackgroundFileName(6, object->GetVariation(4), string, MAX_PATH);
   lua_pushstring(L, string);
@@ -203,7 +191,7 @@ static int CGTabardModelFrame_GetLowerBackgroundFileName(lua_State *L) {
 }
 
 static int CGTabardModelFrame_GetUpperEmblemFileName(lua_State *L) {
-  GET_TABARD_MODEL_THIS(L, object);
+  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
   char string[MAX_PATH];
   GetTabardEmblemFileName(5, object->GetVariation(0), object->GetVariation(1), string, MAX_PATH);
   lua_pushstring(L, string);
@@ -211,7 +199,7 @@ static int CGTabardModelFrame_GetUpperEmblemFileName(lua_State *L) {
 }
 
 static int CGTabardModelFrame_GetLowerEmblemFileName(lua_State *L) {
-  GET_TABARD_MODEL_THIS(L, object);
+  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
   char string[MAX_PATH];
   GetTabardEmblemFileName(6, object->GetVariation(0), object->GetVariation(1), string, MAX_PATH);
   lua_pushstring(L, string);
@@ -223,7 +211,7 @@ static int CGTabardModelFrame_GetUpperEmblemTexture(lua_State *L) {
     luaL_error(L, "Usage: GetUpperEmblemTexture(textureName)");
     return 0;
   }
-  GET_TABARD_MODEL_THIS(L, object);
+  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
   CSimpleTexture *texture = SimpleTextureRegistryGetEntry(lua_tostring(L, 2), 0);
   if (!texture) {
     luaL_error(L, "Invalid texture name in GetUpperEmblemTexture");
@@ -274,7 +262,7 @@ static int CGTabardModelFrame_GetLowerEmblemTexture(lua_State *L) {
     luaL_error(L, "Usage: GetLowerEmblemTexture(textureName)");
     return 0;
   }
-  GET_TABARD_MODEL_THIS(L, object);
+  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
   CSimpleTexture *texture = SimpleTextureRegistryGetEntry(lua_tostring(L, 2), 0);
   if (!texture) {
     luaL_error(L, "Invalid texture name in GetLowerEmblemTexture");
@@ -312,8 +300,6 @@ static int CGTabardModelFrame_GetLowerEmblemTexture(lua_State *L) {
   HandleClose(handle);
   return 0;
 }
-
-#undef GET_TABARD_MODEL_THIS
 
 static FrameScript_Method CGTabardModelFrameMethods[9] = {
     {                      "Save",                       CGTabardModelFrame_Save},

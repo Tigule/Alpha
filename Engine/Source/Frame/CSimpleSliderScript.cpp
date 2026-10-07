@@ -6,24 +6,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_SLIDER_THIS(L, object)                         \
-  CSimpleSlider *object;                                          \
-  if (lua_type(L, 1) != LUA_TTABLE) {                             \
-    luaL_error(                                                   \
-        L,                                                        \
-        "Attempt to find 'this' in non-table object (used '.' "   \
-        "instead of ':' ?)"                                       \
-    );                                                            \
-    object = 0;                                                   \
-  } else {                                                        \
-    lua_rawgeti(L, 1, 0);                                         \
-    object = static_cast<CSimpleSlider *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                                \
-    ASSERT(object);                                               \
-  }
-
 static int CSimpleSlider_SetMinMaxValues(lua_State *L) {
-  GET_SIMPLE_SLIDER_THIS(L, object);
+  CSimpleSlider *object = static_cast<CSimpleSlider *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
     float min = static_cast<float>(lua_tonumber(L, 2));
@@ -37,7 +21,7 @@ static int CSimpleSlider_SetMinMaxValues(lua_State *L) {
 }
 
 static int CSimpleSlider_GetMinMaxValues(lua_State *L) {
-  GET_SIMPLE_SLIDER_THIS(L, object);
+  CSimpleSlider *object = static_cast<CSimpleSlider *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->GetMinValue());
   lua_pushnumber(L, object->GetMaxValue());
@@ -45,7 +29,7 @@ static int CSimpleSlider_GetMinMaxValues(lua_State *L) {
 }
 
 static int CSimpleSlider_SetValue(lua_State *L) {
-  GET_SIMPLE_SLIDER_THIS(L, object);
+  CSimpleSlider *object = static_cast<CSimpleSlider *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     float value = static_cast<float>(lua_tonumber(L, 2));
@@ -58,14 +42,14 @@ static int CSimpleSlider_SetValue(lua_State *L) {
 }
 
 static int CSimpleSlider_GetValue(lua_State *L) {
-  GET_SIMPLE_SLIDER_THIS(L, object);
+  CSimpleSlider *object = static_cast<CSimpleSlider *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->GetValue());
   return 1;
 }
 
 static int CSimpleSlider_SetValueStep(lua_State *L) {
-  GET_SIMPLE_SLIDER_THIS(L, object);
+  CSimpleSlider *object = static_cast<CSimpleSlider *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     float value = static_cast<float>(lua_tonumber(L, 2));
@@ -78,13 +62,11 @@ static int CSimpleSlider_SetValueStep(lua_State *L) {
 }
 
 static int CSimpleSlider_GetValueStep(lua_State *L) {
-  GET_SIMPLE_SLIDER_THIS(L, object);
+  CSimpleSlider *object = static_cast<CSimpleSlider *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->GetValueStep());
   return 1;
 }
-
-#undef GET_SIMPLE_SLIDER_THIS
 
 static FrameScript_Method SimpleSliderMethods[] = {
     {"SetMinMaxValues", CSimpleSlider_SetMinMaxValues},

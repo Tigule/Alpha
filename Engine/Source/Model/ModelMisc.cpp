@@ -981,6 +981,20 @@ void ModelSetBlendMode(HMODEL model, EGxBlend blendMode, int doLinkedModels) {
   }
 }
 
+template <class T>
+inline void IModelHideGeosets(T *modelptr, CModelShared *shared, UINT selectionGroup, int hide) {
+  ASSERT(shared);
+  for (UINT index = 0; index < shared->numGeosets; ++index) {
+    if (shared->geosets[index].selectionGroup == selectionGroup) {
+      if (hide) {
+        modelptr->m_geosets[index].flags |= 1;
+      } else {
+        modelptr->m_geosets[index].flags &= ~1u;
+      }
+    }
+  }
+}
+
 void ModelHideGeosets(HMODEL model, UINT selectionGroup, int hide) {
   CModel *modelptr = reinterpret_cast<CModel *>(model);
   VALIDATEBEGIN;
@@ -994,27 +1008,23 @@ void ModelHideGeosets(HMODEL model, UINT selectionGroup, int hide) {
     return;
   }
 
-  ASSERT(shared);
   if (unique->m_flags & 0x20) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
-    for (UINT index = 0; index < shared->numGeosets; ++index) {
-      if (shared->geosets[index].selectionGroup == selectionGroup) {
-        if (hide) {
-          complex->m_geosets[index].flags |= 1;
-        } else {
-          complex->m_geosets[index].flags &= ~1u;
-        }
-      }
-    }
+    IModelHideGeosets(complex, shared, selectionGroup, hide);
   } else {
-    CModelSimple *complex = static_cast<CModelSimple *>(unique);
-    for (UINT index = 0; index < shared->numGeosets; ++index) {
-      if (shared->geosets[index].selectionGroup == selectionGroup) {
-        if (hide) {
-          complex->m_geosets[index].flags |= 1;
-        } else {
-          complex->m_geosets[index].flags &= ~1u;
-        }
+    CModelSimple *simple = static_cast<CModelSimple *>(unique);
+    IModelHideGeosets(simple, shared, selectionGroup, hide);
+  }
+}
+
+template <class T>
+inline void IModelHideGeosetsRange(T *modelptr, CModelShared *shared, UINT selectionStart, UINT selectionEnd, int hide) {
+  for (UINT index = 0; index < shared->numGeosets; ++index) {
+    if (shared->geosets[index].selectionGroup >= selectionStart && shared->geosets[index].selectionGroup <= selectionEnd) {
+      if (hide) {
+        modelptr->m_geosets[index].flags |= 1;
+      } else {
+        modelptr->m_geosets[index].flags &= ~1u;
       }
     }
   }
@@ -1035,26 +1045,10 @@ void ModelHideGeosetsRange(HMODEL model, UINT selectionStart, UINT selectionEnd,
 
   if (unique->m_flags & 0x20) {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
-    for (UINT index = 0; index < shared->numGeosets; ++index) {
-      if (shared->geosets[index].selectionGroup >= selectionStart && shared->geosets[index].selectionGroup <= selectionEnd) {
-        if (hide) {
-          complex->m_geosets[index].flags |= 1;
-        } else {
-          complex->m_geosets[index].flags &= ~1u;
-        }
-      }
-    }
+    IModelHideGeosetsRange(complex, shared, selectionStart, selectionEnd, hide);
   } else {
     CModelSimple *simple = static_cast<CModelSimple *>(unique);
-    for (UINT index = 0; index < shared->numGeosets; ++index) {
-      if (shared->geosets[index].selectionGroup >= selectionStart && shared->geosets[index].selectionGroup <= selectionEnd) {
-        if (hide) {
-          simple->m_geosets[index].flags |= 1;
-        } else {
-          simple->m_geosets[index].flags &= ~1u;
-        }
-      }
-    }
+    IModelHideGeosetsRange(simple, shared, selectionStart, selectionEnd, hide);
   }
 }
 
@@ -1556,6 +1550,13 @@ static void GeosetShowUnselectable(CGeosetShared *geoShared, CGeosetColor *geoCo
   }
 }
 
+template <class T>
+inline void IModelShowUnselectable(T *modelptr, CModelShared *shared, BYTE red, BYTE green, BYTE blue) {
+  for (UINT i = 0; i < shared->numGeosets; ++i) {
+    GeosetShowUnselectable(&shared->geosets[i], &modelptr->m_geosetColor[i], modelptr->m_materials.Ptr(), red, green, blue);
+  }
+}
+
 void ModelShowUnselectable(HMODEL model, BYTE red, BYTE green, BYTE blue) {
   CModelBase   *unique;
   CModelShared *shared;
@@ -1564,22 +1565,17 @@ void ModelShowUnselectable(HMODEL model, BYTE red, BYTE green, BYTE blue) {
     return;
   }
 
-  if (unique->m_flags & 0x20) {
+  if (!(unique->m_flags & 0x20)) {
+    IModelShowUnselectable(static_cast<CModelSimple *>(unique), shared, red, green, blue);
+  } else {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
-    for (i = 0; i < shared->numGeosets; ++i) {
-      GeosetShowUnselectable(&shared->geosets[i], &complex->m_geosetColor[i], complex->m_materials.Ptr(), red, green, blue);
-    }
+    IModelShowUnselectable(complex, shared, red, green, blue);
 
     UINT numAttachments = complex->m_attached.Count();
     for (i = 0; i < numAttachments; ++i) {
       ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         ModelShowUnselectable(link->child, red, green, blue);
       }
-    }
-  } else {
-    CModelSimple *simple = static_cast<CModelSimple *>(unique);
-    for (i = 0; i < shared->numGeosets; ++i) {
-      GeosetShowUnselectable(&shared->geosets[i], &simple->m_geosetColor[i], simple->m_materials.Ptr(), red, green, blue);
     }
   }
 }
@@ -1602,6 +1598,14 @@ static void GeosetHideUnselectable(CGeosetShared *geoShared, CGeosetColor *geoCo
   }
 }
 
+template <class T>
+inline void IModelHideUnselectable(T *modelptr, CModelShared *shared) {
+  ASSERT(shared);
+  for (UINT i = 0; i < shared->numGeosets; ++i) {
+    GeosetHideUnselectable(&shared->geosets[i], &modelptr->m_geosetColor[i], modelptr->m_materials.Ptr());
+  }
+}
+
 void ModelHideUnselectable(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
@@ -1610,23 +1614,17 @@ void ModelHideUnselectable(HMODEL model) {
     return;
   }
 
-  ASSERT(shared);
-  if (unique->m_flags & 0x20) {
+  if (!(unique->m_flags & 0x20)) {
+    IModelHideUnselectable(static_cast<CModelSimple *>(unique), shared);
+  } else {
     CModelComplex *complex = static_cast<CModelComplex *>(unique);
-    for (i = 0; i < shared->numGeosets; ++i) {
-      GeosetHideUnselectable(&shared->geosets[i], &complex->m_geosetColor[i], complex->m_materials.Ptr());
-    }
+    IModelHideUnselectable(complex, shared);
 
     UINT numAttachments = complex->m_attached.Count();
     for (i = 0; i < numAttachments; ++i) {
       ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         ModelHideUnselectable(link->child);
       }
-    }
-  } else {
-    CModelSimple *simple = static_cast<CModelSimple *>(unique);
-    for (i = 0; i < shared->numGeosets; ++i) {
-      GeosetHideUnselectable(&shared->geosets[i], &simple->m_geosetColor[i], simple->m_materials.Ptr());
     }
   }
 }

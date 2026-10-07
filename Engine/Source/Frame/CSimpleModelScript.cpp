@@ -6,24 +6,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#define GET_SIMPLE_MODEL_THIS(L, object)                         \
-  CSimpleModel *object;                                          \
-  if (lua_type(L, 1) != LUA_TTABLE) {                            \
-    luaL_error(                                                  \
-        L,                                                       \
-        "Attempt to find 'this' in non-table object (used '.' "  \
-        "instead of ':' ?)"                                      \
-    );                                                           \
-    object = 0;                                                  \
-  } else {                                                       \
-    lua_rawgeti(L, 1, 0);                                        \
-    object = static_cast<CSimpleModel *>(lua_touserdata(L, -1)); \
-    lua_pop(L, 1);                                               \
-    ASSERT(object);                                              \
-  }
-
 static int CSimpleModel_SetModel(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     LPCSTR filename = lua_tostring(L, 2);
@@ -42,14 +26,14 @@ static int CSimpleModel_SetModel(lua_State *L) {
 }
 
 static int CSimpleModel_ClearModel(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   object->SetModel(0);
   return 0;
 }
 
 static int CSimpleModel_SetPosition(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   NTempest::C3Vector pos;
   pos.x = static_cast<float>(lua_tonumber(L, 2));
@@ -60,7 +44,7 @@ static int CSimpleModel_SetPosition(lua_State *L) {
 }
 
 static int CSimpleModel_SetFacing(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetFacing(static_cast<float>(lua_tonumber(L, 2)));
@@ -72,7 +56,7 @@ static int CSimpleModel_SetFacing(lua_State *L) {
 }
 
 static int CSimpleModel_SetScale(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetScale(static_cast<float>(lua_tonumber(L, 2)));
@@ -84,7 +68,7 @@ static int CSimpleModel_SetScale(lua_State *L) {
 }
 
 static int CSimpleModel_SetSequence(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetSequence(static_cast<UINT>(lua_tonumber(L, 2)));
@@ -96,7 +80,7 @@ static int CSimpleModel_SetSequence(lua_State *L) {
 }
 
 static int CSimpleModel_SetSequenceTime(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
     object->SetSequenceTime(static_cast<UINT>(lua_tonumber(L, 2)), static_cast<int>(lua_tonumber(L, 3)));
@@ -108,7 +92,7 @@ static int CSimpleModel_SetSequenceTime(lua_State *L) {
 }
 
 static int CSimpleModel_SetAlpha(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetAlpha(static_cast<BYTE>(lua_tonumber(L, 2)));
@@ -120,7 +104,7 @@ static int CSimpleModel_SetAlpha(lua_State *L) {
 }
 
 static int CSimpleModel_SetCamera(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetCameraByIndex(static_cast<UINT>(lua_tonumber(L, 2)));
@@ -132,7 +116,7 @@ static int CSimpleModel_SetCamera(lua_State *L) {
 }
 
 static int CSimpleModel_SetLight(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   CSimpleModel *model = object;
 
@@ -183,7 +167,7 @@ static int CSimpleModel_SetLight(lua_State *L) {
 }
 
 static int CSimpleModel_GetPosition(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   NTempest::C3Vector pos = object->GetPosition();
   lua_pushnumber(L, pos.x);
@@ -193,28 +177,28 @@ static int CSimpleModel_GetPosition(lua_State *L) {
 }
 
 static int CSimpleModel_GetFacing(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->GetFacing());
   return 1;
 }
 
 static int CSimpleModel_GetScale(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   lua_pushnumber(L, object->GetScale());
   return 1;
 }
 
 static int CSimpleModel_AdvanceTime(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   object->AdvanceTime();
   return 0;
 }
 
 static int CSimpleModel_ReplaceIconTexture(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isstring(L, 2)) {
     object->ReplaceTexture(14, lua_tostring(L, 2));
@@ -226,7 +210,7 @@ static int CSimpleModel_ReplaceIconTexture(lua_State *L) {
 }
 
 static int CSimpleModel_SetFogColor(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   float red = static_cast<float>(lua_tonumber(L, 2));
   float green = static_cast<float>(lua_tonumber(L, 3));
@@ -244,7 +228,7 @@ static int CSimpleModel_SetFogColor(lua_State *L) {
 }
 
 static int CSimpleModel_SetFogNear(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetFogNear(static_cast<float>(lua_tonumber(L, 2)));
@@ -256,7 +240,7 @@ static int CSimpleModel_SetFogNear(lua_State *L) {
 }
 
 static int CSimpleModel_SetFogFar(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   if (lua_isnumber(L, 2)) {
     object->SetFogFar(static_cast<float>(lua_tonumber(L, 2)));
@@ -268,13 +252,11 @@ static int CSimpleModel_SetFogFar(lua_State *L) {
 }
 
 static int CSimpleModel_ClearFog(lua_State *L) {
-  GET_SIMPLE_MODEL_THIS(L, object);
+  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
 
   object->SetFog(0);
   return 0;
 }
-
-#undef GET_SIMPLE_MODEL_THIS
 
 static FrameScript_Method SimpleModelMethods[19] = {
     {          "SetModel",           CSimpleModel_SetModel},
