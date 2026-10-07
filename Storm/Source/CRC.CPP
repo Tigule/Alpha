@@ -41,10 +41,8 @@ DWORD CrcBuffer(LPCVOID buffer, DWORD len, DWORD *pcrc, DWORD stage) {
   }
 
   if (stage & 2) {
-    while (len) {
-      crc = crctable[(crc ^ *(const BYTE *)buffer) & 0xFF] ^ (crc >> 8);
-      buffer = (const BYTE *)buffer + 1;
-      len--;
+    for (const BYTE *ptr = (const BYTE *)buffer; len; ptr++, len--) {
+      crc = crctable[(crc ^ *ptr) & 0xFF] ^ (crc >> 8);
     }
   }
 

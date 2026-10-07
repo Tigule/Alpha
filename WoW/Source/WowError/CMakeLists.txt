@@ -1,4 +1,4 @@
-add_executable(WowError
+add_executable(WowError WIN32
     WowError.cpp
 )
 
@@ -9,7 +9,7 @@ target_include_directories(WowError PRIVATE
 set_target_properties(WowError PROPERTIES OUTPUT_NAME WowErrorAE)
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(WowError PRIVATE /Gr /Z7)
+    target_compile_options(WowError PRIVATE /Gr /Z7 /YX)
     target_link_libraries(WowError PRIVATE unicows msvcrt)
 endif()
 

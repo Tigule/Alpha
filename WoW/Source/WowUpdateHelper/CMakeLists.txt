@@ -1,4 +1,4 @@
-add_executable(WowUpdateHelper
+add_executable(WowUpdateHelper WIN32
     WowUpdateHelper.cpp
 )
 
@@ -9,7 +9,7 @@ target_include_directories(WowUpdateHelper PRIVATE
 set_target_properties(WowUpdateHelper PROPERTIES OUTPUT_NAME WowUpdateHelperAE)
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(WowUpdateHelper PRIVATE /Gr /Z7)
+    target_compile_options(WowUpdateHelper PRIVATE /Gr /YX)
     target_link_libraries(WowUpdateHelper PRIVATE unicows msvcrt)
 endif()
 

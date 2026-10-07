@@ -74,7 +74,8 @@ BOOL SCreateProcess(LPCSTR appName, char *commandLine, SPROCESSCOMPLETIONPROC ca
     completionInfo->proc = callbackWhenProcessCompletes;
     completionInfo->param = callbackData;
     completionInfo->process = processInfo.hProcess;
-    SCreateThread(ProcessCompletionCallbackThread, completionInfo, reinterpret_cast<UINT *>(&callbackWhenProcessCompletes), NULL, NULL);
+    UINT threadID;
+    SCreateThread(ProcessCompletionCallbackThread, completionInfo, &threadID, NULL, NULL);
   }
 
   return 1;

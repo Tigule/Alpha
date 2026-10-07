@@ -3,81 +3,39 @@
 #include <sys/stat.h>
 
 SDIR *APIENTRY SFile::OpenDir(LPCSTR name) {
-  SDIR        *dir;
+  SDIR *dir = NEW(SDIR);
+  strcpy(dir->name, name);
+  char *end = dir->name + strlen(dir->name) - 1;
+  while (*end == '\\' && end > dir->name) {
+    *end-- = 0;
+  }
   struct _stat stats;
-  char        *end;
-
-  dir = static_cast<SDIR *>(SMemAlloc(sizeof(SDIR), __FILE__, __LINE__, 0));
-  {
-    char   ch;
-    LPCSTR in;
-    char  *out;
-
-    in = name;
-    out = dir->name;
-    do {
-      ch = *in++;
-      *out++ = ch;
-    } while (ch);
-  }
-  end = dir->name + strlen(dir->name) - 1;
-  if (*end == '\\') {
-    do {
-      if (end <= dir->name) {
-        break;
-      }
-      *end-- = 0;
-    } while (*end == '\\');
+  if (!_stat(dir->name, &stats) && (stats.st_mode & _S_IFDIR)) {
+    dir->handle = NULL;
+    *++end = '\\';
+    *++end = '*';
+    *++end = 0;
+    return dir;
   }
 
-  if (_stat(dir->name, &stats) != 0 || (stats.st_mode & _S_IFDIR) == 0) {
-    delete dir;
-    return NULL;
-  }
-
-  dir->handle = NULL;
-  ++end;
-  *end++ = '\\';
-  *end++ = '*';
-  *end = 0;
-  return dir;
+  delete dir;
+  return NULL;
 }
 
 SDIRENT *APIENTRY SFile::ReadDir(SDIR *dir) {
   if (!dir->handle) {
-    dir->handle = FindFirstFileA(dir->name, &dir->findData);
-    if (dir->handle == INVALID_HANDLE_VALUE) {
-      return NULL;
+    dir->handle = FindFirstFile(dir->name, &dir->findData);
+    if (dir->handle != INVALID_HANDLE_VALUE) {
+      strcpy(dir->dirent.d_name, dir->findData.cFileName);
+      return &dir->dirent;
     }
-
-    {
-      char   ch;
-      LPCSTR in;
-      char  *out;
-
-      in = dir->findData.cFileName;
-      out = dir->dirent.d_name;
-      do {
-        ch = *in++;
-        *out++ = ch;
-      } while (ch);
-    }
-  } else if (!FindNextFileA(dir->handle, &dir->findData)) {
-    return NULL;
   } else {
-    char   ch;
-    LPCSTR in;
-    char  *out;
-
-    in = dir->findData.cFileName;
-    out = dir->dirent.d_name;
-    do {
-      ch = *in++;
-      *out++ = ch;
-    } while (ch);
+    if (FindNextFile(dir->handle, &dir->findData)) {
+      strcpy(dir->dirent.d_name, dir->findData.cFileName);
+      return &dir->dirent;
+    }
   }
-
-  return &dir->dirent;
+  return NULL;
 }
 
 void APIENTRY SFile::CloseDir(SDIR *dir) {
