@@ -98,10 +98,10 @@ jobs:
         with:
           name: windows-legacy
           path: |
-            Build/WoW/UpdateClient.exe
-            Build/WoW/Wow.exe
-            Build/WoW/WowError.exe
-            Build/WoW/WowUpdateHelper.exe
+            Build/WoW/bin/UpdateClientAE.exe
+            Build/WoW/bin/Wowae.exe
+            Build/WoW/bin/WowErrorAE.exe
+            Build/WoW/bin/WowUpdateHelperAE.exe
 
       - name: Download validation references
         shell: pwsh

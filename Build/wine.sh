@@ -32,7 +32,7 @@ DXSDK_LIB="$DXSDK_DIR/Lib/d3dx9.lib"
 PSDK_DIR="$DRIVE_C/PSDK"
 CMAKE_EXE='C:\Program Files\CMake\bin\cmake.exe'
 CMAKE_EXE_UNIX="$DRIVE_C/Program Files/CMake/bin/cmake.exe"
-WOW_EXE=${WOW_EXE:-"$SCRIPT_DIR/WoW/Wow.exe"}
+WOW_EXE=${WOW_EXE:-"$SCRIPT_DIR/WoW/bin/Wowae.exe"}
 WOW_CLIENT_DIR="$SCRIPT_DIR/../WoW/Client"
 WOW_CLIENT_EXE="$WOW_CLIENT_DIR/TiguleClient.exe"
 WOW_REF_EXE="$WOW_CLIENT_DIR/WowClient.exe"
@@ -53,7 +53,7 @@ Commands:
   install  Download and install VC6, DirectX SDK, Platform SDK, and CMake
   setup    Configure this checkout with VC6 NMake makefiles
   build    Build the configured tree with nmake
-  run      Copy Wow.exe into WoW/Client and start TiguleClient.exe
+  run      Copy Wowae.exe into WoW/Client and start TiguleClient.exe
   run-ref  Start the original reference client (WowMacClient.exe on macOS)
   all      Run install, setup, then build
 
@@ -61,7 +61,7 @@ Environment:
   WINEPREFIX  Wine prefix to use (default: $HOME/.wine)
   CROSSOVER_BOTTLE  Use CrossOver's named bottle instead of Wine
   CROSSOVER_ROOT  CrossOver installation root
-  WOW_EXE  Wow.exe path (default: <repo>/Build/WoW/Wow.exe)
+  WOW_EXE  Wowae.exe path (default: <repo>/Build/WoW/bin/Wowae.exe)
 EOF
 }
 
@@ -222,13 +222,14 @@ setup() {
 }
 
 build() {
-    rm -f Storm/*.lib Engine/*.lib WoW/*.pdb WoW/*.map WoW/*.exe
+    rm -f WoW/bin/*.pdb WoW/bin/*.map WoW/bin/*.exe
+    find Engine Storm WoW -name '*.lib' -exec rm -f {} + 2>/dev/null || true
     run_vc6_cmd "nmake"
 }
 
 run() {
     require_wine_prefix
-    [ -f "$WOW_EXE" ] || die "Wow.exe was not found: $WOW_EXE"
+    [ -f "$WOW_EXE" ] || die "Wowae.exe was not found: $WOW_EXE"
 
     mkdir -p "$WOW_CLIENT_DIR"
     cp "$WOW_EXE" "$WOW_CLIENT_EXE"

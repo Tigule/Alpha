@@ -1,4 +1,4 @@
-add_library(Zlib STATIC
+add_library(Zlib OBJECT
     adler32.c
     deflate.c
     infblock.c
@@ -13,5 +13,5 @@ add_library(Zlib STATIC
 
 if(MSVC_VERSION EQUAL 1200)
     target_compile_options(Zlib PRIVATE /Gr /Ob2 /Oy)
-    target_compile_definitions(Zlib PUBLIC Z_PREFIX)
+    target_compile_definitions(Zlib PRIVATE Z_PREFIX)
 endif()
